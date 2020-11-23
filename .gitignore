@@ -1,5 +1,9 @@
-# Prerequisites
-*.d
+*~
+build/*
+build-*/*
+.waf*
+.lock-waf*
+waf_tools/__pycache__/
 
 # Object files
 *.o
@@ -42,11 +46,3 @@
 *.idb
 *.pdb
 
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
