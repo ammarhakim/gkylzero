@@ -1,0 +1,21 @@
+## -*- python -*-
+# Build code in this directory
+##    _______     ___
+## + 6 @ |||| # P ||| +
+
+import os
+
+def build(bld):
+    source = r"""
+    gkyl_util.c
+    gkyl_alloc.c
+    """
+
+    # For now building static library. Probably should build shared
+    # library as well. In fact, shared-lib is needed to allow linking
+    # to interpreted language FFIs
+    bld.stlib(source = source,
+              includes = '.',
+              target = 'gkylzero',
+              name = 'gkylzero',
+    )

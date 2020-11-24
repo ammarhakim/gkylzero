@@ -46,30 +46,25 @@ def configure(conf):
     conf.env.LIB_DL = ['dl']
 
     # write out configuration info into header
-    conf.write_config_header('gkylconfig.h')
+    conf.write_config_header('gkylzeroconfig.h')
 
 
 from waflib import Task
 class GitTip(Task.Task):
     always_run = True # need to force running every time
-    run_str = r'echo \#define GKYL_GIT_CHANGESET  \"`git describe --abbrev=12 --always --dirty=+`\" > ${TGT}'
+    run_str = r'echo \#define GKYL_ZERO_GIT_CHANGESET  \"`git describe --abbrev=12 --always --dirty=+`\" > ${TGT}'
 
 def build(bld):
     gitTip = GitTip(env=bld.env)
-    gitTip.set_outputs(bld.path.find_or_declare('gkylgittip.h'))
+    gitTip.set_outputs(bld.path.find_or_declare('gkyl_zero_git_tip.h'))
     bld.add_to_group(gitTip)
 
     if bld.jobs > 16:
       bld.jobs = 16
     
     # recurse down directories and build C code
-    #bld.recurse("Comm")
-
-    # build executable
-    buildExec(bld)
-
-def buildExec(bld):
-    pass
+    bld.recurse("zero")
+    bld.recurse("unit")
 
 def dist(ctx):
     ctx.algo = "zip" # use ZIP instead of tar.bz2
