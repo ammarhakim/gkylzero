@@ -1,10 +1,10 @@
+#include <float.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include <gkyl_util.h>
 
-/**
- * Print error message to stderr and exit.
- *
- * @param msg Error message.
- */
 void
 gkyl_exit(const char* msg)
 {
@@ -12,10 +12,6 @@ gkyl_exit(const char* msg)
   exit(EXIT_FAILURE);
 }
 
-/**
- * Compares two float numbers 'a' and 'b' to check if they are
- * sufficiently close by, where 'eps' is the relative tolerance.
- */
 int
 gkyl_compare_float(float a, float b, float eps)
 {
@@ -26,10 +22,6 @@ gkyl_compare_float(float a, float b, float eps)
   return diff/fminf(absa+absb, FLT_MAX) < eps;
 }
 
-/**
- * Compares two double numbers 'a' and 'b' to check if they are
- * sufficiently close by, where 'eps' is the relative tolerance.
- */
 int
 gkyl_compare_double(double a, double b, double eps)
 {

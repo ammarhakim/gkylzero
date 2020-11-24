@@ -1,12 +1,8 @@
 #ifndef GKYL_UTIL_H
 #define GKYL_UTIL_H
 
-#include <assert.h>
-#include <float.h>
-#include <math.h>
+
 #include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 // This funny looking macro allows getting a pointer to the 'type'
 // struct that contains an object 'member' given the 'ptr' to the
