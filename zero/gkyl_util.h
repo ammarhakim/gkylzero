@@ -1,7 +1,6 @@
 #ifndef GKYL_UTIL_H
 #define GKYL_UTIL_H
 
-
 #include <stddef.h>
 
 // This funny looking macro allows getting a pointer to the 'type'

@@ -12,3 +12,10 @@ def build(bld):
         includes = '. ../zero',
         use = 'gkylzero',
     )
+
+    bld.program(
+        source = 'ctest_ref_count.c',
+        target = 'ctest_ref_count',
+        includes = '. ../zero',
+        use = 'gkylzero',
+    )    
