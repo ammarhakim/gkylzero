@@ -9,6 +9,7 @@ def build(bld):
     source = r"""
     gkyl_util.c
     gkyl_alloc.c
+    gkyl_range.c
     """
 
     # For now building static library. Probably should build shared

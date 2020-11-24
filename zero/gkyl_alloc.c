@@ -18,7 +18,7 @@ void*
 gkyl_malloc(size_t size)
 {
   void *mem = malloc(size);
-  if (NULL == mem) gkyl_exit("malloc failed!");
+  if (0 == mem) gkyl_exit("malloc failed!");
   return mem;
 }
 
@@ -26,7 +26,7 @@ void*
 gkyl_calloc(size_t num, size_t size)
 {
   void *mem = calloc(num, size);
-  if (NULL == mem) gkyl_exit("calloc failed!");
+  if (0 == mem) gkyl_exit("calloc failed!");
   return mem;
 }
 
@@ -47,7 +47,7 @@ gkyl_free(void *ptr)
 void*
 gkyl_aligned_alloc(size_t align, size_t size)
 {
-  void *ptr = NULL;
+  void *ptr = 0;
   assert((align & (align-1)) == 0); // is it power of 2?
 
   if (align && size) {
@@ -77,6 +77,5 @@ gkyl_aligned_free(void* ptr)
 {
   assert(ptr);
   uint16_t offset = *((uint16_t *)ptr - 1);
-  void *p = (void *)((uint8_t *)ptr - offset);
-  gkyl_free(p);
+  gkyl_free((uint8_t *)ptr - offset);
 }
