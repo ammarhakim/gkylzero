@@ -1,10 +1,34 @@
 #ifndef GKYL_RANGE_H
 #define GKYL_RANGE_H
 
+#include <gkyl_vargm.h>
+
 // Maximum dimension of grids
 #ifndef GKYL_MAX_DIM
 # define GKYL_MAX_DIM 6
 #endif
+
+/**
+ * Series of indexing "functions" to compute linear index into range
+ */
+#define gkyl_ridx1(r, i1)                       \
+    ((r).ac[0]+(i1)*(r).ac[1])
+#define gkyl_ridx2(r, i1, i2)                   \
+    ((r).ac[0]+((i1)*(r).ac[1]+(i2)*(r).ac[2]))
+#define gkyl_ridx3(r, i1, i2, i3)                               \
+    (((r).ac[0]+(i1)*(r).ac[1])+((i2)*(r).ac[2]+(i3)*(r).ac[3]))
+#define gkyl_ridx4(r, i1, i2, i3, i4)                                   \
+    (((r).ac[0]+(i1)*(r).ac[1])+((i2)*(r).ac[2]+(i3)*(r).ac[3]+(i4)*(r).ac[4]))
+#define gkyl_ridx5(r, i1, i2, i3, i4, i5)                               \
+    (((r).ac[0]+(i1)*(r).ac[1])+((i2)*(r).ac[2]+(i3)*(r).ac[3])+((i4)*(r).ac[4]+(i5)*(r).ac[5]))
+#define gkyl_ridx6(r, i1, i2, i3, i4, i5, i6)                           \
+    (((r).ac[0]+(i1)*(r).ac[1])+((i2)*(r).ac[2]+(i3)*(r).ac[3])+((i4)*(r).ac[4]+(i5)*(r).ac[5]+(i6)*(r).ac[6]))
+
+/** Generic indexing macro : works for 1D-6D */
+#define gkyl_ridx(r, ...) VFUNC1(gkyl_ridx, r, __VA_ARGS__)
+
+/** Indexing macros taking index defined as array of int */
+#define gkyl_ridxn(r, idx) gkyl_range_idx(&(r), idx)
 
 /**
  * Range object, representing an N-dimensional integer index
@@ -45,8 +69,8 @@ struct gkyl_range_iter {
  * @param lower Lower indices of range
  * @param upper Upper indices of range
  */
-void gkyl_range_init(struct gkyl_range *rng,
-  int ndim, int *lower, int *upper);
+void gkyl_range_init(struct gkyl_range *rng, int ndim,
+  const int *lower, const int *upper);
 
 /**
  * Create new range object from specified shape. This sets the lower
@@ -56,8 +80,8 @@ void gkyl_range_init(struct gkyl_range *rng,
  * @param ndim Dimensiom of range to create.
  * @param shape Shape of region
  */
-void gkyl_range_init_from_shape(struct gkyl_range *rng,
-  int ndim, int *shape);
+void gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim,
+  const int *shape);
 
 /**
  * Shape in direction dir
@@ -90,10 +114,10 @@ void gkyl_range_shorten(struct gkyl_range* srng,
  * @param srng Skin range
  * @param range Range object to find lower skin cells of
  * @param dir Direction to find lower skin cells in
- * @param nGhost Number of ghost cells to determine location of skin cell region
+ * @param nghost Number of ghost cells to determine location of skin cell region
  */
 void gkyl_range_lower_skin(struct gkyl_range* srng,
-  const struct gkyl_range* range, int dir, int nGhost);
+  const struct gkyl_range* range, int dir, int nghost);
 
 /**
  * Return range in direction 'dir' which corresponds to the "upper
@@ -104,39 +128,39 @@ void gkyl_range_lower_skin(struct gkyl_range* srng,
  * @param srng Skin range
  * @param range Range object to find upper skin cells of
  * @param dir Direction to find upper skin cells in
- * @param nGhost Number of ghost cells to determine location of skin cell region
+ * @param nghost Number of ghost cells to determine location of skin cell region
  */
 void gkyl_range_upper_skin(struct gkyl_range* srng,
-  const struct gkyl_range* range, int dir, int nGhost);
+  const struct gkyl_range* range, int dir, int nghost);
 
 /**
  * Return range in direction 'dir' which corresponds to the "lower
  * ghost" cells.  Lower ghost cells refer to the outer-most layer of
  * cells on the lower end of the range. Note that this outermost layer
- * is of size nGhost in direction dir.
+ * is of size nghost in direction dir.
  *
  * @param srng Ghost range
  * @param range Range object to find lower ghost cells of
  * @param dir Direction to find lower ghost cells in
- * @param nGhost Number of ghost cells to determine size of ghost cell region
+ * @param nghost Number of ghost cells to determine size of ghost cell region
  */
 void gkyl_range_lower_ghost(struct gkyl_range* srng,
-  const struct gkyl_range* range, int dir, int nGhost);
+  const struct gkyl_range* range, int dir, int nghost);
 
 /**
  * Return range in direction 'dir' which corresponds to the "upper
  * ghost" cells.  Upper ghost cells refer to the outer-most layer of
  * cells on the upper end of the range. Note that this outermost layer
- * is of size nGhost in direction dir.
+ * is of size nghost in direction dir.
  *
  * @param srng Ghost range
  * @param range Range object to find upper ghost cells of
  * @param dir Direction to find upper ghost cells in
- * @param nGhost Number of ghost cells to determine size of ghost cell region
+ * @param nghost Number of ghost cells to determine size of ghost cell region
  * @return Pointer to newly created range. Call release() to free.
  */
 void gkyl_range_upper_ghost(struct gkyl_range* srng,
-  const struct gkyl_range* range, int dir, int nGhost);
+  const struct gkyl_range* range, int dir, int nghost);
 
 /**
  * Compute offset given relative index. So for a 2D range, idx[2] = {1,
@@ -148,6 +172,15 @@ void gkyl_range_upper_ghost(struct gkyl_range* srng,
  * @return Relatice offset to idx.
  */
 int gkyl_range_offset(const struct gkyl_range* range, const int *idx);
+
+/**
+ * General indexing function. Returns linear index into the index
+ * range mapped by 'range'.
+ *
+ * @param range Range object to index
+ * @param idx Index for which to compute linear index
+ */
+int gkyl_range_idx(const struct gkyl_range* range, const int *idx);
 
 /**
  * Create iterator. The returned iterator can be used in a 'while'

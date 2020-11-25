@@ -20,24 +20,25 @@ calc_rowmajor_ac(struct gkyl_range* range)
 }
 
 void
-gkyl_range_init(struct gkyl_range *rng, int ndim, int *lower, int *upper)
+gkyl_range_init(struct gkyl_range *rng, int ndim,
+  const int *lower, const int *upper)
 {
   rng->ndim = ndim;
   rng->volume = 1;
   for (unsigned i=0; i<ndim; ++i) {
     rng->lower[i] = lower[i];
     rng->upper[i] = upper[i];
-    rng->volume *= (upper[i]-lower[i]+1);
+    rng->volume *= upper[i]-lower[i]+1;
   }
   calc_rowmajor_ac(rng);
 
   int idxZero[GKYL_MAX_DIM];
   for (unsigned i=0; i<ndim; ++i) idxZero[i] = 0;
-  // TODO: Compute the index of the zero element
+  rng->linIdxZero = gkyl_range_idx(rng, idxZero);
 }
 
 void
-gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim, int *shape)
+gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim, const int *shape)
 {
   int lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
   for (unsigned i=0; i<ndim; ++i) {
@@ -133,8 +134,35 @@ gkyl_range_upper_ghost(struct gkyl_range *rng,
 int
 gkyl_range_offset(const struct gkyl_range* range, const int *idx)
 {
+  return gkyl_range_idx(range, idx) - range->linIdxZero;
+}
+
+int
+gkyl_range_idx(const struct gkyl_range* range, const int *idx)
+{
+#define RI(...) gkyl_ridx(*range, __VA_ARGS__)
+  switch (range->ndim) {
+    case 1:
+        return RI(idx[0]); 
+        break;
+    case 2:
+        return RI(idx[0], idx[1]);
+        break;
+    case 3:
+        return RI(idx[0], idx[1], idx[2]);
+        break;
+    case 4:
+        return RI(idx[0], idx[1], idx[2], idx[3]);
+        break;
+    case 5:
+        return RI(idx[0], idx[1], idx[2], idx[3], idx[4]);
+        break;
+    case 6:
+        return RI(idx[0], idx[1], idx[2], idx[3], idx[4], idx[5]);
+        break;
+  }
   return 0;
-  // TODO: gkyl_range_index(range, idx) - range->linIdxZero;
+#undef RI
 }
 
 void
@@ -150,4 +178,3 @@ gkyl_range_new_iter(struct gkyl_range_iter *iter,
   }
   memcpy(&iter->range, range, sizeof(struct gkyl_range));
 }
-
