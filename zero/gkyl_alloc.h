@@ -1,5 +1,4 @@
-#ifndef GKYL_ALLOC_H
-#define GKYL_ALLOC_H
+#pragma once
 
 #include <stdlib.h>
 
@@ -43,5 +42,3 @@ void *gkyl_aligned_realloc(void *ptr, size_t align, size_t old_sz, size_t new_sz
  * @param ptr Memory to free.
  */
 void gkyl_aligned_free(void *ptr);
-
-#endif // GKYL_ALLOC_H

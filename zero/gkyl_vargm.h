@@ -1,5 +1,4 @@
-#ifndef GKYL_VARGM_H
-#define GKYL_VARGM_H
+#pragma once
 
 /**
  These horrible looking set of macros allows choosing macros based on
@@ -22,5 +21,3 @@
 #define VFUNC(func, ...) _VFUNC(func, __NARG__(__VA_ARGS__)) (__VA_ARGS__)
 // general definition for any function name (extra args)
 #define VFUNC1(func, a, ...) _VFUNC(func, __NARG__(__VA_ARGS__)) (a, __VA_ARGS__)
-
-#endif // GKYL_VARGM_H

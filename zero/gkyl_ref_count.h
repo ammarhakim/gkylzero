@@ -1,5 +1,4 @@
-#ifndef GKYL_REF_COUNT_H
-#define GKYL_REF_COUNT_H
+#pragma once
 
 // Implementation essentially as presented by Chris Wellons:
 // https://nullprogram.com/blog/2015/02/17/
@@ -35,5 +34,3 @@ gkyl_ref_count_dec(const struct gkyl_ref_count *ref) {
   if (--((struct gkyl_ref_count *)ref)->count == 0)
     ref->free(ref);
 }
-
-#endif // GKYL_REF_COUNT_H

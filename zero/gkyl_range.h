@@ -1,5 +1,4 @@
-#ifndef GKYL_RANGE_H
-#define GKYL_RANGE_H
+#pragma once
 
 #include <gkyl_vargm.h>
 
@@ -24,10 +23,11 @@
 #define gkyl_ridx6(r, i1, i2, i3, i4, i5, i6)                           \
     (((r).ac[0]+(i1)*(r).ac[1])+((i2)*(r).ac[2]+(i3)*(r).ac[3])+((i4)*(r).ac[4]+(i5)*(r).ac[5]+(i6)*(r).ac[6]))
 
-/** Generic indexing macro : works for 1D-6D */
+/** Generic indexing: works for 1D-6D (VFUNC1 is defined-ed in
+ * gkyl_vargm.h) */
 #define gkyl_ridx(r, ...) VFUNC1(gkyl_ridx, r, __VA_ARGS__)
 
-/** Indexing macros taking index defined as array of int */
+/** Indexing macro taking index defined as array of int */
 #define gkyl_ridxn(r, idx) gkyl_range_idx(&(r), idx)
 
 /**
@@ -183,6 +183,26 @@ int gkyl_range_offset(const struct gkyl_range* range, const int *idx);
 int gkyl_range_idx(const struct gkyl_range* range, const int *idx);
 
 /**
+ * Inverse indexer, mapping a linear index to an N-dimension index
+ * into 'range' object.
+ *
+ * @param range Range object to map into
+ * @param loc Linear index in [0, range->volume)
+ * @param idx On output, the N-dimensional index into 'range'
+ */
+static inline void
+gkyl_range_inv_idx(const struct gkyl_range *range, int loc, int *idx)
+{
+  int n = loc;
+  for (int i=1; i<=range->ndim; ++i) {
+    int quot = n/range->ac[i];
+    int rem = n % range->ac[i];
+    idx[i-1] = quot + range->lower[i-1];
+    n = rem;
+  }
+}
+
+/**
  * Create iterator. The returned iterator can be used in a 'while'
  * loop using gkyl_range_iter_next method to loop over the index set
  * spanned by the region.
@@ -192,6 +212,3 @@ int gkyl_range_idx(const struct gkyl_range* range, const int *idx);
  */
 void gkyl_range_new_iter(struct gkyl_range_iter *iter,
   const struct gkyl_range* range);
-
-
-#endif // GKYL_RANGE_H

@@ -171,10 +171,9 @@ gkyl_range_new_iter(struct gkyl_range_iter *iter,
 {
   iter->num_bumps = 0;
   iter->max_bumps = range->volume > 0 ? range->volume : 0;
-
   for (unsigned i=0; i<range->ndim; ++i) {
     iter->startIdx[i] = range->lower[i];
     iter->idx[i] = range->lower[i];
   }
-  memcpy(&iter->range, range, sizeof(struct gkyl_range));
+  iter->range = *range;
 }

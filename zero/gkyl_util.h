@@ -1,5 +1,4 @@
-#ifndef GKYL_UTIL_H
-#define GKYL_UTIL_H
+#pragma once
 
 #include <stddef.h>
 
@@ -34,5 +33,3 @@ int gkyl_compare_float(float a, float b, float eps);
  * sufficiently close by, where 'eps' is the relative tolerance.
  */
 int gkyl_compare_double(double a, double b, double eps);
-
-#endif // GKYL_UTIL_H

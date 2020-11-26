@@ -10,6 +10,7 @@ def build(bld):
     gkyl_util.c
     gkyl_alloc.c
     gkyl_range.c
+    gkyl_cart_modal_serendip.c
     """
 
     # For now building static library. Probably should build shared
