@@ -301,13 +301,61 @@ void test_range_offset()
   TEST_CHECK(offset == -28*20);
 }
 
+void test_range_iter_2d()
+{
+  int lower[2] = {1, 1}, upper[2] = {2, 3};
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, lower, upper);
+  
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+
+  for (int i=range.lower[0]; i<=range.upper[0]; ++i)
+    for (int j=range.lower[1]; j<=range.upper[1]; ++j) {
+      TEST_CHECK( 1 == gkyl_range_iter_next(&iter) );
+      TEST_CHECK( iter.idx[0] == i );
+      TEST_CHECK( iter.idx[1] == j );
+    }
+}
+
+void test_range_iter_3d()
+{
+  int lower[3] = {1, 1, -10}, upper[3] = {2, 5, -5};
+  struct gkyl_range range;
+  gkyl_range_init(&range, 3, lower, upper);
+  
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+
+  for (int i=range.lower[0]; i<=range.upper[0]; ++i)
+    for (int j=range.lower[1]; j<=range.upper[1]; ++j)
+      for (int k=range.lower[2]; k<=range.upper[2]; ++k) {
+        TEST_CHECK( 1 == gkyl_range_iter_next(&iter) );
+        TEST_CHECK( iter.idx[0] == i );
+        TEST_CHECK( iter.idx[1] == j );
+        TEST_CHECK( iter.idx[2] == k );
+      }
+
+  // test resetting iterator
+  gkyl_range_iter_reset(&iter);
+  
+  for (int i=range.lower[0]; i<=range.upper[0]; ++i)
+    for (int j=range.lower[1]; j<=range.upper[1]; ++j)
+      for (int k=range.lower[2]; k<=range.upper[2]; ++k) {
+        TEST_CHECK( 1 == gkyl_range_iter_next(&iter) );
+        TEST_CHECK( iter.idx[0] == i );
+        TEST_CHECK( iter.idx[1] == j );
+        TEST_CHECK( iter.idx[2] == k );
+      }
+}
+
 void test_range_inv_idx()
 {
   int lower[] = {1, 1, 1}, upper[] = {5, 5, 4};
   struct gkyl_range range;
   gkyl_range_init(&range, 3, lower, upper);
   struct gkyl_range_iter iter;
-  gkyl_range_new_iter(&iter, &range);
+  gkyl_range_iter_init(&iter, &range);
 
   // long idx[3], linIdx = 0; // TODO: uncomment  
   // while (gkyl_range_iter_next(iter)) {

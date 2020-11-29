@@ -35,7 +35,7 @@ void
 gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim, int polyOrder)
 {
   assert(ndim>0 && ndim<=6);
-  assert(ev_list[ndim].ev[polyOrder]); // make sure non-NULL  
+  assert(ev_list[ndim].ev[polyOrder]);
   
   basis->ndim = ndim;
   basis->polyOrder = polyOrder;

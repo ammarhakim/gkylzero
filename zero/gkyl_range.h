@@ -14,7 +14,7 @@
     ((r).ac[0]+(i1)*(r).ac[1])
 #define gkyl_ridx2(r, i1, i2)                   \
     ((r).ac[0]+((i1)*(r).ac[1]+(i2)*(r).ac[2]))
-#define gkyl_ridx3(r, i1, i2, i3)                               \
+#define gkyl_ridx3(r, i1, i2, i3)                                       \
     (((r).ac[0]+(i1)*(r).ac[1])+((i2)*(r).ac[2]+(i3)*(r).ac[3]))
 #define gkyl_ridx4(r, i1, i2, i3, i4)                                   \
     (((r).ac[0]+(i1)*(r).ac[1])+((i2)*(r).ac[2]+(i3)*(r).ac[3]+(i4)*(r).ac[4]))
@@ -53,11 +53,7 @@ struct gkyl_range_iter {
     int idx[GKYL_MAX_DIM]; // current index
 
     /* do not access directly */
-    int isFirst;
-    int isEmpty;
-    int startIdx[GKYL_MAX_DIM];
-    int num_bumps;
-    int max_bumps; 
+    int is_first;
     struct gkyl_range range;
 };
 
@@ -190,17 +186,7 @@ int gkyl_range_idx(const struct gkyl_range* range, const int *idx);
  * @param loc Linear index in [0, range->volume)
  * @param idx On output, the N-dimensional index into 'range'
  */
-static inline void
-gkyl_range_inv_idx(const struct gkyl_range *range, int loc, int *idx)
-{
-  int n = loc;
-  for (int i=1; i<=range->ndim; ++i) {
-    int quot = n/range->ac[i];
-    int rem = n % range->ac[i];
-    idx[i-1] = quot + range->lower[i-1];
-    n = rem;
-  }
-}
+void gkyl_range_inv_idx(const struct gkyl_range *range, int loc, int *idx);
 
 /**
  * Create iterator. The returned iterator can be used in a 'while'
@@ -210,5 +196,22 @@ gkyl_range_inv_idx(const struct gkyl_range *range, int loc, int *idx)
  * @param range Range object.
  * @return New iterator object for 'range'
  */
-void gkyl_range_new_iter(struct gkyl_range_iter *iter,
+void gkyl_range_iter_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range);
+
+/**
+ * Reset iterator back to start index. Call this method if you want to
+ * reuse an iterator that was already used in a while() loop.
+ * 
+ * @param iter Iterator to reset.
+ */
+void gkyl_range_iter_reset(struct gkyl_range_iter *iter);
+
+/**
+ * Get next index into range. The iter->idx array holds the next
+ * index. This should not be modified by the user!
+ *
+ * @param iter Iterator object. On exit, iter->idx has the next index
+ * @return 1 if there are more indices remaining, 0 if done.
+ */
+int gkyl_range_iter_next(struct gkyl_range_iter *iter);

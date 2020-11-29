@@ -166,14 +166,48 @@ gkyl_range_idx(const struct gkyl_range* range, const int *idx)
 }
 
 void
-gkyl_range_new_iter(struct gkyl_range_iter *iter,
+gkyl_range_inv_idx(const struct gkyl_range *range, int loc, int *idx)
+{
+  int n = loc;
+  for (int i=1; i<=range->ndim; ++i) {
+    int quot = n/range->ac[i];
+    int rem = n % range->ac[i];
+    idx[i-1] = quot + range->lower[i-1];
+    n = rem;
+  }
+}
+
+void
+gkyl_range_iter_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range)
 {
-  iter->num_bumps = 0;
-  iter->max_bumps = range->volume > 0 ? range->volume : 0;
-  for (unsigned i=0; i<range->ndim; ++i) {
-    iter->startIdx[i] = range->lower[i];
+  iter->is_first = 1;
+  for (unsigned i=0; i<range->ndim; ++i)
     iter->idx[i] = range->lower[i];
-  }
   iter->range = *range;
+}
+
+void gkyl_range_iter_reset(struct gkyl_range_iter *iter)
+{
+  iter->is_first = 1;
+  for (unsigned i=0; i<iter->range.ndim; ++i)
+    iter->idx[i] = iter->range.lower[i];
+}
+
+int
+gkyl_range_iter_next(struct gkyl_range_iter *iter)
+{
+  if (iter->is_first) {
+    iter->is_first = 0;
+    return 1;
+  };
+  
+  for (int dir=iter->range.ndim-1; dir>=0; --dir) {
+    iter->idx[dir] += 1;
+    if (iter->idx[dir] > iter->range.upper[dir])
+      iter->idx[dir] = iter->range.lower[dir];
+    else
+      return 1;
+  }
+  return 0;
 }

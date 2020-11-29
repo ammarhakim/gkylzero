@@ -1,7 +1,7 @@
 #pragma once
 
 /**
- * Basis function object.
+ * Basis function object: treat this as a read-only object.
  */
 struct gkyl_basis {
     unsigned ndim, polyOrder, numBasis;
