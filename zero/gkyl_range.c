@@ -10,7 +10,7 @@ static void
 calc_rowmajor_ac(struct gkyl_range* range)
 {
   int ndim = range->ndim;
-  range->ac[ndim] = 1;
+  range->ac[ndim] = 1L;
   for (int i=ndim-1; i>=1; --i)
     range->ac[i] = range->ac[i+1]*gkyl_range_shape(range, i);
   int start = 0;
@@ -24,7 +24,7 @@ gkyl_range_init(struct gkyl_range *rng, int ndim,
   const int *lower, const int *upper)
 {
   rng->ndim = ndim;
-  rng->volume = 1;
+  rng->volume = 1L;
   for (unsigned i=0; i<ndim; ++i) {
     rng->ilo[i] = rng->lower[i] = lower[i];
     rng->upper[i] = upper[i];
@@ -53,7 +53,7 @@ gkyl_sub_range_init(struct gkyl_range *rng,
   const struct gkyl_range *bigrng, const int *sublower, const int *subupper)
 {
   rng->ndim = bigrng->ndim;
-  rng->volume = 1;
+  rng->volume = 1L;
   for (unsigned i=0; i<rng->ndim; ++i) {
     rng->lower[i] = sublower[i] >= bigrng->lower[i] ? sublower[i] : bigrng->lower[i];
     rng->upper[i] = subupper[i] <= bigrng->upper[i] ? subupper[i] : bigrng->upper[i];
@@ -148,13 +148,13 @@ gkyl_range_upper_ghost(struct gkyl_range *rng,
   gkyl_range_init(rng, ndim, lo, up);
 }
 
-int
+long
 gkyl_range_offset(const struct gkyl_range* range, const int *idx)
 {
   return gkyl_range_idx(range, idx) - range->linIdxZero;
 }
 
-int
+long
 gkyl_range_idx(const struct gkyl_range* range, const int *idx)
 {
 #define RI(...) gkyl_ridx(*range, __VA_ARGS__)
@@ -183,12 +183,12 @@ gkyl_range_idx(const struct gkyl_range* range, const int *idx)
 }
 
 void
-gkyl_range_inv_idx(const struct gkyl_range *range, int loc, int *idx)
+gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
 {
-  int n = loc;
+  long n = loc;
   for (int i=1; i<=range->ndim; ++i) {
-    int quot = n/range->ac[i];
-    int rem = n % range->ac[i];
+    long quot = n/range->ac[i];
+    long rem = n % range->ac[i];
     idx[i-1] = quot + range->ilo[i-1];
     n = rem;
   }

@@ -400,6 +400,26 @@ void test_range_inv_idx()
   }
 }
 
+void test_huge_range()
+{
+  int lower[] = {1, 1, 1, 1, 1, 1}, upper[] = {64, 64, 64, 64, 64, 64};
+  struct gkyl_range range;
+  gkyl_range_init(&range, 6, lower, upper);
+
+  long vol = 1L*64*64*64*64*64*64;
+
+  TEST_CHECK( vol == range.volume );
+
+  long lidx = gkyl_ridxn(range, lower);
+  long uidx = gkyl_ridxn(range, upper);
+  TEST_CHECK( (uidx-lidx+1) == range.volume );
+
+  int idx[6];
+  gkyl_range_inv_idx(&range, uidx, idx);
+  for (unsigned d=0; d<6; ++d)
+    TEST_CHECK( idx[d] == upper[d] );
+}
+
 TEST_LIST = {
   { "range_1", test_range_1 },
   { "range_shape",  test_range_shape },
@@ -415,5 +435,6 @@ TEST_LIST = {
   { "range_index_idx", test_range_idx },
   { "range_offset", test_range_offset },
   { "range_inv_idx", test_range_inv_idx },
+  { "huge_range", test_huge_range },
   { NULL, NULL },
 };

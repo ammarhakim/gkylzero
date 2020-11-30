@@ -41,9 +41,9 @@ struct gkyl_range {
     long volume; // total volume of range
 
     /* do not access directly */
-    int ac[GKYL_MAX_DIM+1]; // coefficients for indexing
-    int ilo[GKYL_MAX_DIM]; // for use in inverse indexer
-    int linIdxZero; // linear index of {0,0,...}
+    int ilo[GKYL_MAX_DIM]; // for use in inverse indexer    
+    long ac[GKYL_MAX_DIM+1]; // coefficients for indexing
+    long linIdxZero; // linear index of {0,0,...}
 };
 
 /**
@@ -180,7 +180,7 @@ void gkyl_range_upper_ghost(struct gkyl_range* srng,
  * @param idx Relative index for offset calculation
  * @return Relatice offset to idx.
  */
-int gkyl_range_offset(const struct gkyl_range* range, const int *idx);
+long gkyl_range_offset(const struct gkyl_range* range, const int *idx);
 
 /**
  * General indexing function. Returns linear index into the index
@@ -189,7 +189,7 @@ int gkyl_range_offset(const struct gkyl_range* range, const int *idx);
  * @param range Range object to index
  * @param idx Index for which to compute linear index
  */
-int gkyl_range_idx(const struct gkyl_range* range, const int *idx);
+long gkyl_range_idx(const struct gkyl_range* range, const int *idx);
 
 /**
  * Inverse indexer, mapping a linear index to an N-dimension index
@@ -199,7 +199,7 @@ int gkyl_range_idx(const struct gkyl_range* range, const int *idx);
  * @param loc Linear index in [0, range->volume)
  * @param idx On output, the N-dimensional index into 'range'
  */
-void gkyl_range_inv_idx(const struct gkyl_range *range, int loc, int *idx);
+void gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx);
 
 /**
  * Create iterator. The returned iterator can be used in a 'while'
