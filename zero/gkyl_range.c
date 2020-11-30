@@ -26,7 +26,7 @@ gkyl_range_init(struct gkyl_range *rng, int ndim,
   rng->ndim = ndim;
   rng->volume = 1;
   for (unsigned i=0; i<ndim; ++i) {
-    rng->lower[i] = lower[i];
+    rng->ilo[i] = rng->lower[i] = lower[i];
     rng->upper[i] = upper[i];
     rng->volume *= upper[i]-lower[i]+1;
   }
@@ -46,6 +46,23 @@ gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim, const int *shape)
     up[i] = shape[i]-1;
   }
   gkyl_range_init(rng, ndim, lo, up);
+}
+
+void
+gkyl_sub_range_init(struct gkyl_range *rng,
+  const struct gkyl_range *bigrng, const int *sublower, const int *subupper)
+{
+  rng->ndim = bigrng->ndim;
+  rng->volume = 1;
+  for (unsigned i=0; i<rng->ndim; ++i) {
+    rng->lower[i] = sublower[i] >= bigrng->lower[i] ? sublower[i] : bigrng->lower[i];
+    rng->upper[i] = subupper[i] <= bigrng->upper[i] ? subupper[i] : bigrng->upper[i];
+    rng->ilo[i] = bigrng->ilo[i]; // so inv indexer works correctly
+    rng->volume *= rng->upper[i]-rng->lower[i]+1;
+  }
+  for (unsigned i=0; i<rng->ndim+1; ++i)
+    rng->ac[i] = bigrng->ac[i];
+  rng->linIdxZero = bigrng->linIdxZero;
 }
 
 int
@@ -172,7 +189,7 @@ gkyl_range_inv_idx(const struct gkyl_range *range, int loc, int *idx)
   for (int i=1; i<=range->ndim; ++i) {
     int quot = n/range->ac[i];
     int rem = n % range->ac[i];
-    idx[i-1] = quot + range->lower[i-1];
+    idx[i-1] = quot + range->ilo[i-1];
     n = rem;
   }
 }
@@ -182,16 +199,18 @@ gkyl_range_iter_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range)
 {
   iter->is_first = 1;
-  for (unsigned i=0; i<range->ndim; ++i)
-    iter->idx[i] = range->lower[i];
-  iter->range = *range;
+  iter->ndim = range->ndim;
+  for (unsigned i=0; i<range->ndim; ++i) {
+    iter->idx[i] = iter->lower[i] = range->lower[i];
+    iter->upper[i] = range->upper[i];
+  }
 }
 
 void gkyl_range_iter_reset(struct gkyl_range_iter *iter)
 {
   iter->is_first = 1;
-  for (unsigned i=0; i<iter->range.ndim; ++i)
-    iter->idx[i] = iter->range.lower[i];
+  for (unsigned i=0; i<iter->ndim; ++i)
+    iter->idx[i] = iter->lower[i];
 }
 
 int
@@ -200,12 +219,11 @@ gkyl_range_iter_next(struct gkyl_range_iter *iter)
   if (iter->is_first) {
     iter->is_first = 0;
     return 1;
-  };
-  
-  for (int dir=iter->range.ndim-1; dir>=0; --dir) {
+  }
+  for (int dir=iter->ndim-1; dir>=0; --dir) {
     iter->idx[dir] += 1;
-    if (iter->idx[dir] > iter->range.upper[dir])
-      iter->idx[dir] = iter->range.lower[dir];
+    if (iter->idx[dir] > iter->upper[dir])
+      iter->idx[dir] = iter->lower[dir];
     else
       return 1;
   }

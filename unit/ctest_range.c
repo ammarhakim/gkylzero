@@ -31,6 +31,41 @@ void test_range_shape()
   }
 }
 
+void test_sub_range()
+{
+  int lower[] = {1, 1}, upper[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, lower, upper);
+
+  int sublower[] = {2, 2}, subupper[] = { 5, 10 };
+  struct gkyl_range subrange;
+  gkyl_sub_range_init(&subrange, &range, sublower, subupper);
+
+  TEST_CHECK( subrange.volume == 4*9 );
+
+  for (unsigned d=0; d<2; ++d) {
+    TEST_CHECK( subrange.lower[d] == sublower[d] );
+    TEST_CHECK( subrange.upper[d] == subupper[d] );
+  }
+
+  for (int i=subrange.lower[0]; i<=subrange.upper[0]; ++i)
+    for (int j=subrange.lower[1]; j<=subrange.upper[1]; ++j)
+      TEST_CHECK( gkyl_ridx(subrange, i, j) == gkyl_ridx(range, i, j) );
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &subrange);
+
+  int invIdx[2];
+  while (gkyl_range_iter_next(&iter)) {
+    int lidx = gkyl_ridx(subrange, iter.idx[0], iter.idx[1]);
+    gkyl_range_inv_idx(&subrange, lidx, invIdx);
+
+    TEST_CHECK( invIdx[0] == iter.idx[0] );
+    TEST_CHECK( invIdx[1] == iter.idx[1] );
+  }
+  
+}
+
 void test_shorten()
 {
   int lower[] = {1, 1, 1}, upper[] = {20, 30, 20};
@@ -357,17 +392,18 @@ void test_range_inv_idx()
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
 
-  // long idx[3], linIdx = 0; // TODO: uncomment  
-  // while (gkyl_range_iter_next(iter)) {
-  //   gkyl_range_inv_indexer(range, linIdx++, idx);
-  //   for (unsigned d=0; d<range->ndim; ++d)
-  //     TEST_CHECK( iter->idx[d] == idx[d] );
-  // }
+  int idx[3], linIdx = 0;
+  while (gkyl_range_iter_next(&iter)) {
+    gkyl_range_inv_idx(&range, linIdx++, idx);
+    for (unsigned d=0; d<range.ndim; ++d)
+      TEST_CHECK( iter.idx[d] == idx[d] );
+  }
 }
 
 TEST_LIST = {
   { "range_1", test_range_1 },
   { "range_shape",  test_range_shape },
+  { "sub_range",  test_sub_range },  
   { "shorten", test_shorten },
   { "skin/ghost", test_skin_ghost },
   { "range_index_1d", test_range_index_1d },

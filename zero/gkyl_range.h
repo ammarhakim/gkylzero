@@ -2,7 +2,7 @@
 
 #include <gkyl_vargm.h>
 
-// Maximum dimension of grids
+// Maximum dimension of range
 #ifndef GKYL_MAX_DIM
 # define GKYL_MAX_DIM 6
 #endif
@@ -42,6 +42,7 @@ struct gkyl_range {
 
     /* do not access directly */
     int ac[GKYL_MAX_DIM+1]; // coefficients for indexing
+    int ilo[GKYL_MAX_DIM]; // for use in inverse indexer
     int linIdxZero; // linear index of {0,0,...}
 };
 
@@ -53,8 +54,8 @@ struct gkyl_range_iter {
     int idx[GKYL_MAX_DIM]; // current index
 
     /* do not access directly */
-    int is_first;
-    struct gkyl_range range;
+    int is_first, ndim;
+    int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
 };
 
 /**
@@ -78,6 +79,18 @@ void gkyl_range_init(struct gkyl_range *rng, int ndim,
  */
 void gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim,
   const int *shape);
+
+/**
+ * Create a sub-range from a given range. The sub-range is completed
+ * contained inside the parent range.
+ *
+ * @param rng New range object to initialize
+ * @param bigrng Parent range object 
+ * @param sublower Lower indices of sub-range
+ * @param subupper Upper indices of sub-range
+ */
+void gkyl_sub_range_init(struct gkyl_range *rng,
+  const struct gkyl_range *bigrng, const int *sublower, const int *subupper);
 
 /**
  * Shape in direction dir
