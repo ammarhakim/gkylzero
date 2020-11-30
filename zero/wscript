@@ -7,10 +7,11 @@ import os
 
 def build(bld):
     source = r"""
-    gkyl_util.c
     gkyl_alloc.c
-    gkyl_range.c
     gkyl_cart_modal_serendip.c
+    gkyl_range.c
+    gkyl_rect_grid.c
+    gkyl_util.c
     """
 
     # For now building static library. Probably should build shared

@@ -2,6 +2,11 @@
 
 #include <stddef.h>
 
+// Maximum dimension of range
+#ifndef GKYL_MAX_DIM
+# define GKYL_MAX_DIM 6
+#endif
+
 // This funny looking macro allows getting a pointer to the 'type'
 // struct that contains an object 'member' given the 'ptr' to the
 // 'member' inside 'type'. See https://en.wikipedia.org/wiki/Offsetof

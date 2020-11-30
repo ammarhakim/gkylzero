@@ -1,11 +1,7 @@
 #pragma once
 
+#include <gkyl_util.h>
 #include <gkyl_vargm.h>
-
-// Maximum dimension of range
-#ifndef GKYL_MAX_DIM
-# define GKYL_MAX_DIM 6
-#endif
 
 /**
  * Series of indexing "functions" to compute linear index into range
@@ -81,7 +77,7 @@ void gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim,
   const int *shape);
 
 /**
- * Create a sub-range from a given range. The sub-range is completed
+ * Create a sub-range from a given range. The sub-range is completely
  * contained inside the parent range.
  *
  * @param rng New range object to initialize

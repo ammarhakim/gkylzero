@@ -13,7 +13,7 @@ calc_rowmajor_ac(struct gkyl_range* range)
   range->ac[ndim] = 1L;
   for (int i=ndim-1; i>=1; --i)
     range->ac[i] = range->ac[i+1]*gkyl_range_shape(range, i);
-  int start = 0;
+  long start = 0L;
   for (int i=0; i<ndim; ++i)
     start += range->ac[i+1]*range->lower[i];
   range->ac[0] = -start;
