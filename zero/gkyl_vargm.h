@@ -1,7 +1,7 @@
 #pragma once
 
 /**
- These horrible looking set of macros allows choosing macros based on
+ These horrible looking set of macros allows choosing a macro based on
  number of arguments passed to it. It is ugly as hell and so I am
  putting it in its own file. Please do not use it unless you know what
  you are doing. See:

@@ -8,6 +8,7 @@ import os
 def build(bld):
     source = r"""
     gkyl_alloc.c
+    gkyl_array.c
     gkyl_cart_modal_serendip.c
     gkyl_range.c
     gkyl_rect_grid.c

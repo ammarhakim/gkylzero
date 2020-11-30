@@ -40,3 +40,10 @@ def build(bld):
         includes = '. ../zero',
         use = 'gkylzero',
     )
+
+    bld.program(
+        source = 'ctest_array.c',
+        target = 'ctest_array',
+        includes = '. ../zero',
+        use = 'gkylzero',
+    )    
