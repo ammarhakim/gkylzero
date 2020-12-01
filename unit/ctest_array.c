@@ -293,6 +293,65 @@ void test_array_set_flt()
   gkyl_array_release(a2);
 }
 
+void test_array_scale_dbl()
+{
+  size_t shape[] = {10};
+  struct gkyl_array *a1 = gkyl_array_new(1, sizeof(double), shape);
+
+  double *a1_d  = a1->data;
+  for (unsigned i=0; i<a1->size; ++i) {
+    a1_d[i] = i*1.0;
+  }
+
+  gkyl_array_scale(a1, 0.25);
+
+  for (unsigned i=0; i<a1->size; ++i)
+    TEST_CHECK( gkyl_compare(a1_d[i], i*0.25, 1e-14) );
+
+  gkyl_array_release(a1);
+}
+
+void test_array_opcombine()
+{
+  size_t shape[] = {10};
+  struct gkyl_array *a1 = gkyl_array_new(1, sizeof(double), shape);
+  struct gkyl_array *a2 = gkyl_array_new(1, sizeof(double), shape);
+
+  double *a1_d  = a1->data, *a2_d = a2->data;
+  for (unsigned i=0; i<a1->size; ++i) {
+    a1_d[i] = i*1.0;
+    a2_d[i] = i*0.1;
+  }
+
+  // a1 <- 0.25*(a1 + 0.5*a2)
+  gkyl_array_scale(gkyl_array_set(a1, 0.5, a2), 0.25);
+
+  for (unsigned i=0; i<a1->size; ++i)
+    TEST_CHECK( gkyl_compare(a1_d[i], 0.25*0.5*i*0.1, 1e-14) );
+
+  gkyl_array_release(a1);
+  gkyl_array_release(a2);
+}
+
+void test_array_ops()
+{
+  size_t shape[] = {10};
+  struct gkyl_array *a1 = gkyl_array_new(1, sizeof(double), shape);
+  struct gkyl_array *a2 = gkyl_array_new(1, sizeof(double), shape);
+
+  double *a1_d  = a1->data, *a2_d = a2->data;
+  for (unsigned i=0; i<a1->size; ++i)
+    a2_d[i] = i*0.1;
+
+  gkyl_array_uniop_dbl("square", 0.0, a1, 1.0, a2);
+
+  for (unsigned i=0; i<a1->size; ++i)
+    TEST_CHECK( gkyl_compare(a1_d[i], (i*0.1)*(i*0.1), 1e-14) );
+
+  gkyl_array_release(a1);
+  gkyl_array_release(a2);  
+}
+
 TEST_LIST = {
   { "array_base", test_array_base },
   { "array_reshape", test_array_reshape },
@@ -305,5 +364,8 @@ TEST_LIST = {
   { "array_accumulate_flt", test_array_accumulate_flt },
   { "array_set_dbl", test_array_set_dbl },
   { "array_set_flt", test_array_set_flt },
+  { "array_scale_dbl", test_array_scale_dbl },
+  { "array_opcombine", test_array_opcombine },
+  { "array_ops", test_array_ops },
   { NULL, NULL },
 };
