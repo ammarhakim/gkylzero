@@ -37,7 +37,7 @@ struct gkyl_range {
     long volume; // total volume of range
 
     /* do not access directly */
-    int ilo[GKYL_MAX_DIM]; // for use in inverse indexer    
+    int ilo[GKYL_MAX_DIM]; // for use in inverse indexer
     long ac[GKYL_MAX_DIM+1]; // coefficients for indexing
     long linIdxZero; // linear index of {0,0,...}
 };

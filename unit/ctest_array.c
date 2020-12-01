@@ -1,5 +1,7 @@
 #include <acutest.h>
 #include <gkyl_array.h>
+#include <gkyl_array_ops.h>
+#include <gkyl_util.h>
 
 void test_array_base()
 {
@@ -179,11 +181,99 @@ void test_array_fetch()
   gkyl_array_release(arr);
 }
 
+void test_array_accumulate_dbl()
+{
+  size_t shape[] = {10};
+  struct gkyl_array *a1 = gkyl_array_new(1, sizeof(double), shape);
+  struct gkyl_array *a2 = gkyl_array_new(1, sizeof(double), shape);
+
+  double *a1_d  = (double*) a1->data, *a2_d = (double*) a2->data;
+  for (unsigned i=0; i<a1->size; ++i) {
+    a1_d[i] = i*1.0;
+    a2_d[i] = i*0.1;
+  }
+
+  gkyl_array_accumulate(a1, 0.5, a2);
+
+  for (unsigned i=0; i<a1->size; ++i)
+    TEST_CHECK( gkyl_compare(a1_d[i], i*1.0+0.5*i*0.1, 1e-14) );
+
+  gkyl_array_release(a1);
+  gkyl_array_release(a2);
+}
+
+void test_array_accumulate_flt()
+{
+  size_t shape[] = {10};
+  struct gkyl_array *a1 = gkyl_array_new(1, sizeof(float), shape);
+  struct gkyl_array *a2 = gkyl_array_new(1, sizeof(float), shape);
+
+  float *a1_d  = (float*) a1->data, *a2_d = (float*) a2->data;
+  for (unsigned i=0; i<a1->size; ++i) {
+    a1_d[i] = i*1.0;
+    a2_d[i] = i*0.1;
+  }
+
+  gkyl_array_accumulate(a1, 0.5f, a2);
+
+  for (unsigned i=0; i<a1->size; ++i)
+    TEST_CHECK( gkyl_compare(a1_d[i], i*1.0+0.5*i*0.1, 1e-10) );
+
+  gkyl_array_release(a1);
+  gkyl_array_release(a2);
+}
+
+void test_array_set_dbl()
+{
+  size_t shape[] = {10};
+  struct gkyl_array *a1 = gkyl_array_new(1, sizeof(double), shape);
+  struct gkyl_array *a2 = gkyl_array_new(1, sizeof(double), shape);
+
+  double *a1_d  = (double*) a1->data, *a2_d = (double*) a2->data;
+  for (unsigned i=0; i<a1->size; ++i) {
+    a1_d[i] = i*1.0;
+    a2_d[i] = i*0.1;
+  }
+
+  gkyl_array_set(a1, 0.5, a2);
+
+  for (unsigned i=0; i<a1->size; ++i)
+    TEST_CHECK( gkyl_compare(a1_d[i], 0.5*i*0.1, 1e-14) );
+
+  gkyl_array_release(a1);
+  gkyl_array_release(a2);
+}
+
+void test_array_set_flt()
+{
+  size_t shape[] = {10};
+  struct gkyl_array *a1 = gkyl_array_new(1, sizeof(float), shape);
+  struct gkyl_array *a2 = gkyl_array_new(1, sizeof(float), shape);
+
+  float *a1_d  = (float*) a1->data, *a2_d = (float*) a2->data;
+  for (unsigned i=0; i<a1->size; ++i) {
+    a1_d[i] = i*1.0;
+    a2_d[i] = i*0.1;
+  }
+
+  gkyl_array_set(a1, 0.5f, a2);
+
+  for (unsigned i=0; i<a1->size; ++i)
+    TEST_CHECK( gkyl_compare(a1_d[i], 0.5*i*0.1, 1e-10) );
+
+  gkyl_array_release(a1);
+  gkyl_array_release(a2);
+}
+
 TEST_LIST = {
   { "array_base", test_array_base },
   { "array_reshape", test_array_reshape },
   { "array_reshape_2", test_array_reshape_2 },
   { "array_reshape_3", test_array_reshape_3 },
   { "array_fetch", test_array_fetch },
+  { "array_accumulate_dbl", test_array_accumulate_dbl },
+  { "array_accumulate_flt", test_array_accumulate_flt },
+  { "array_set_dbl", test_array_set_dbl },
+  { "array_set_flt", test_array_set_flt },
   { NULL, NULL },
 };
