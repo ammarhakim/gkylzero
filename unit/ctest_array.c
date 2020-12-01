@@ -15,7 +15,7 @@ void test_array_base()
   TEST_CHECK( arr->size == 20*10 );
   TEST_CHECK( arr->ref_count.count == 1 );
 
-  double *arrData  = (double*) arr->data;
+  double *arrData  = arr->data;
   for (unsigned i=0; i<arr->size; ++i)
     arrData[i] = (i+0.5)*0.1;
 
@@ -29,7 +29,7 @@ void test_array_base()
   TEST_CHECK( brr->size == 20*10 );
   TEST_CHECK( brr->ref_count.count == 1 );
 
-  double *brrData  = (double*) brr->data;
+  double *brrData  = brr->data;
   for (unsigned i=0; i<brr->size; ++i)
     TEST_CHECK( brrData[i] == arrData[i] );
 
@@ -68,7 +68,7 @@ void test_array_reshape()
   size_t shape[1] = {20};
   struct gkyl_array *arr = gkyl_array_new(1, sizeof(double), shape);
 
-  double *arrData  = (double*) arr->data;
+  double *arrData  = arr->data;
   for (unsigned i=0; i<arr->size; ++i)
     arrData[i] = (i+0.5)*0.1;
 
@@ -91,7 +91,7 @@ void test_array_reshape()
   TEST_CHECK( arr->size == 45 );
   TEST_CHECK( arr->ref_count.count == 1 );
 
-  arrData  = (double*) arr->data; // refetch data pointer
+  arrData  = arr->data; // refetch data pointer
   
   for (unsigned i=0; i<20; ++i)
     TEST_CHECK( arrData[i] == (i+0.5)*0.1 );
@@ -108,7 +108,7 @@ void test_array_reshape_2()
   size_t shape[1] = {20};
   struct gkyl_array *arr = gkyl_array_new(1, sizeof(double), shape);
 
-  double *arrData  = (double*) arr->data;
+  double *arrData  = arr->data;
   for (unsigned i=0; i<arr->size; ++i)
     arrData[i] = (i+0.5)*0.1;
 
@@ -122,7 +122,7 @@ void test_array_reshape_2()
   TEST_CHECK( arr->size == 4 );
   TEST_CHECK( arr->ref_count.count == 1 );
 
-  arrData  = (double*) arr->data; // refetch data pointer
+  arrData  = arr->data; // refetch data pointer
   
   for (unsigned i=0; i<4; ++i)
     TEST_CHECK( arrData[i] == (i+0.5)*0.1 );
@@ -135,7 +135,7 @@ void test_array_reshape_3()
   size_t shape[1] = {20};
   struct gkyl_array *arr = gkyl_array_new(1, sizeof(double), shape);
 
-  double *arrData  = (double*) arr->data;
+  double *arrData  = arr->data;
   for (unsigned i=0; i<arr->size; ++i)
     arrData[i] = (i+0.5)*0.1;
 
@@ -154,7 +154,7 @@ void test_array_reshape_3()
   TEST_CHECK( brr->size == 4 );
   TEST_CHECK( brr->ref_count.count == 1 );
 
-  double *brrData  = (double*) brr->data; // refetch data pointer
+  double *brrData  = brr->data; // refetch data pointer
   
   for (unsigned i=0; i<4; ++i)
     TEST_CHECK( brrData[i] == (i+0.5)*0.1 );
@@ -168,17 +168,45 @@ void test_array_fetch()
   size_t shape[1] = {20};
   struct gkyl_array *arr = gkyl_array_new(1, sizeof(double), shape);
 
-  double *arrData  = (double*) arr->data;
+  double *arrData  = arr->data;
   for (unsigned i=0; i<arr->size; ++i)
     arrData[i] = (i+0.5)*0.1;
 
-  double *arrDataLh = (double*) gkyl_array_fetch(arr, 0);
+  double *arrDataLh = gkyl_array_fetch(arr, 0);
   TEST_CHECK( arrDataLh[0] == 0.05 );
 
-  double *arrDataUh = (double*) gkyl_array_fetch(arr, 10);
+  double *arrDataUh = gkyl_array_fetch(arr, 10);
   TEST_CHECK( arrDataUh[0] == (10+0.5)*0.1);
  
   gkyl_array_release(arr);
+}
+
+void test_array_clear_dbl()
+{
+  size_t shape[] = {10};
+  struct gkyl_array *a1 = gkyl_array_new(1, sizeof(double), shape);
+
+  gkyl_array_clear(a1, 0.5);
+  double *a1_d  = a1->data;  
+
+  for (unsigned i=0; i<a1->size; ++i)
+    TEST_CHECK( gkyl_compare(a1_d[i], 0.5, 1e-14) );
+
+  gkyl_array_release(a1);
+}
+
+void test_array_clear_flt()
+{
+  size_t shape[] = {10};
+  struct gkyl_array *a1 = gkyl_array_new(1, sizeof(float), shape);
+
+  gkyl_array_clear(a1, 0.5f);
+
+  float *a1_d  = a1->data;  
+  for (unsigned i=0; i<a1->size; ++i)
+    TEST_CHECK( gkyl_compare(a1_d[i], 0.5, 1e-10) );
+
+  gkyl_array_release(a1);
 }
 
 void test_array_accumulate_dbl()
@@ -187,7 +215,7 @@ void test_array_accumulate_dbl()
   struct gkyl_array *a1 = gkyl_array_new(1, sizeof(double), shape);
   struct gkyl_array *a2 = gkyl_array_new(1, sizeof(double), shape);
 
-  double *a1_d  = (double*) a1->data, *a2_d = (double*) a2->data;
+  double *a1_d  = a1->data, *a2_d = a2->data;
   for (unsigned i=0; i<a1->size; ++i) {
     a1_d[i] = i*1.0;
     a2_d[i] = i*0.1;
@@ -208,7 +236,7 @@ void test_array_accumulate_flt()
   struct gkyl_array *a1 = gkyl_array_new(1, sizeof(float), shape);
   struct gkyl_array *a2 = gkyl_array_new(1, sizeof(float), shape);
 
-  float *a1_d  = (float*) a1->data, *a2_d = (float*) a2->data;
+  float *a1_d  = a1->data, *a2_d = a2->data;
   for (unsigned i=0; i<a1->size; ++i) {
     a1_d[i] = i*1.0;
     a2_d[i] = i*0.1;
@@ -229,7 +257,7 @@ void test_array_set_dbl()
   struct gkyl_array *a1 = gkyl_array_new(1, sizeof(double), shape);
   struct gkyl_array *a2 = gkyl_array_new(1, sizeof(double), shape);
 
-  double *a1_d  = (double*) a1->data, *a2_d = (double*) a2->data;
+  double *a1_d  = a1->data, *a2_d = a2->data;
   for (unsigned i=0; i<a1->size; ++i) {
     a1_d[i] = i*1.0;
     a2_d[i] = i*0.1;
@@ -250,7 +278,7 @@ void test_array_set_flt()
   struct gkyl_array *a1 = gkyl_array_new(1, sizeof(float), shape);
   struct gkyl_array *a2 = gkyl_array_new(1, sizeof(float), shape);
 
-  float *a1_d  = (float*) a1->data, *a2_d = (float*) a2->data;
+  float *a1_d  = a1->data, *a2_d = a2->data;
   for (unsigned i=0; i<a1->size; ++i) {
     a1_d[i] = i*1.0;
     a2_d[i] = i*0.1;
@@ -271,6 +299,8 @@ TEST_LIST = {
   { "array_reshape_2", test_array_reshape_2 },
   { "array_reshape_3", test_array_reshape_3 },
   { "array_fetch", test_array_fetch },
+  { "array_clear_dbl", test_array_clear_dbl },
+  { "array_clear_flt", test_array_clear_flt },
   { "array_accumulate_dbl", test_array_accumulate_dbl },
   { "array_accumulate_flt", test_array_accumulate_flt },
   { "array_set_dbl", test_array_set_dbl },
