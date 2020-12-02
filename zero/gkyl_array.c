@@ -1,13 +1,11 @@
-// Gkeyll includes
-#include <gkyl_alloc.h>
-#include <gkyl_array.h>
-#include <gkyl_util.h>
-
-// std includes
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+
+#include <gkyl_alloc.h>
+#include <gkyl_array.h>
+#include <gkyl_util.h>
 
 static void
 array_free(const struct gkyl_ref_count *ref)

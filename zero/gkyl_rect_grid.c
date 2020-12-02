@@ -1,8 +1,6 @@
-// Gkeyll includes
-#include <gkyl_rect_grid.h>
-
-// std includes
 #include <stdint.h>
+
+#include <gkyl_rect_grid.h>
 
 void
 gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,

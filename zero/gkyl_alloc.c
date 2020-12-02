@@ -51,8 +51,8 @@ gkyl_aligned_alloc(size_t align, size_t size)
   assert((align & (align-1)) == 0); // power of 2?
 
   if (align && size) {
-    uint32_t hdr_size = PTR_OFFSET_SZ + (align - 1);
-    void *p = gkyl_malloc(size + hdr_size);
+    uint32_t hdr_size = PTR_OFFSET_SZ + (align-1);
+    void *p = gkyl_calloc(size+hdr_size, 1);
     if (p) {
       ptr = (void *) align_up(((uintptr_t)p + PTR_OFFSET_SZ), align);
       *((uint16_t *)ptr - 1) = (uint16_t) ((uintptr_t) ptr - (uintptr_t) p);

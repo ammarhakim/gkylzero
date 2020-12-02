@@ -19,7 +19,8 @@ struct gkyl_ref_count {
  * @param ref Object to increment.
  */
 static inline void
-gkyl_ref_count_inc(const struct gkyl_ref_count *ref) {
+gkyl_ref_count_inc(const struct gkyl_ref_count *ref)
+{
   ((struct gkyl_ref_count *)ref)->count++;
 }
 
@@ -30,7 +31,8 @@ gkyl_ref_count_inc(const struct gkyl_ref_count *ref) {
  * @param ref Object to decrement.
  */
 static inline void
-gkyl_ref_count_dec(const struct gkyl_ref_count *ref) {
+gkyl_ref_count_dec(const struct gkyl_ref_count *ref)
+{
   if (--((struct gkyl_ref_count *)ref)->count == 0)
     ref->free(ref);
 }

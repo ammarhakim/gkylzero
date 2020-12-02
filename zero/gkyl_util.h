@@ -2,9 +2,14 @@
 
 #include <stddef.h>
 
-// Maximum dimension of range
+// Maximum dimensions supported
 #ifndef GKYL_MAX_DIM
 # define GKYL_MAX_DIM 6
+#endif
+
+// Default alignment boundary (seems agressive or maybe not enough?)
+#ifndef GKYL_DEF_ALIGN
+# define GKYL_DEF_ALIGN 64
 #endif
 
 // This funny looking macro allows getting a pointer to the 'type'
