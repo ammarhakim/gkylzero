@@ -181,7 +181,7 @@ void test_array_fetch()
   gkyl_array_release(arr);
 }
 
-void test_array_clear_dbl()
+void test_array_clear_double()
 {
   size_t shape[] = {10};
   struct gkyl_array *a1 = gkyl_array_new(1, sizeof(double), shape);
@@ -195,7 +195,7 @@ void test_array_clear_dbl()
   gkyl_array_release(a1);
 }
 
-void test_array_clear_flt()
+void test_array_clear_float()
 {
   size_t shape[] = {10};
   struct gkyl_array *a1 = gkyl_array_new(1, sizeof(float), shape);
@@ -209,7 +209,7 @@ void test_array_clear_flt()
   gkyl_array_release(a1);
 }
 
-void test_array_accumulate_dbl()
+void test_array_accumulate_double()
 {
   size_t shape[] = {10};
   struct gkyl_array *a1 = gkyl_array_new(1, sizeof(double), shape);
@@ -230,7 +230,7 @@ void test_array_accumulate_dbl()
   gkyl_array_release(a2);
 }
 
-void test_array_accumulate_flt()
+void test_array_accumulate_float()
 {
   size_t shape[] = {10};
   struct gkyl_array *a1 = gkyl_array_new(1, sizeof(float), shape);
@@ -251,7 +251,7 @@ void test_array_accumulate_flt()
   gkyl_array_release(a2);
 }
 
-void test_array_set_dbl()
+void test_array_set_double()
 {
   size_t shape[] = {10};
   struct gkyl_array *a1 = gkyl_array_new(1, sizeof(double), shape);
@@ -272,7 +272,7 @@ void test_array_set_dbl()
   gkyl_array_release(a2);
 }
 
-void test_array_set_flt()
+void test_array_set_float()
 {
   size_t shape[] = {10};
   struct gkyl_array *a1 = gkyl_array_new(1, sizeof(float), shape);
@@ -293,7 +293,7 @@ void test_array_set_flt()
   gkyl_array_release(a2);
 }
 
-void test_array_scale_dbl()
+void test_array_scale_double()
 {
   size_t shape[] = {10};
   struct gkyl_array *a1 = gkyl_array_new(1, sizeof(double), shape);
@@ -343,7 +343,7 @@ void test_array_ops()
   for (unsigned i=0; i<a1->size; ++i)
     a2_d[i] = i*0.1;
 
-  gkyl_array_uniop_dbl("square", 0.0, a1, 1.0, a2);
+  gkyl_array_uniop("square", 0.0, a1, 1.0, a2);
 
   for (unsigned i=0; i<a1->size; ++i)
     TEST_CHECK( gkyl_compare(a1_d[i], (i*0.1)*(i*0.1), 1e-14) );
@@ -358,13 +358,13 @@ TEST_LIST = {
   { "array_reshape_2", test_array_reshape_2 },
   { "array_reshape_3", test_array_reshape_3 },
   { "array_fetch", test_array_fetch },
-  { "array_clear_dbl", test_array_clear_dbl },
-  { "array_clear_flt", test_array_clear_flt },
-  { "array_accumulate_dbl", test_array_accumulate_dbl },
-  { "array_accumulate_flt", test_array_accumulate_flt },
-  { "array_set_dbl", test_array_set_dbl },
-  { "array_set_flt", test_array_set_flt },
-  { "array_scale_dbl", test_array_scale_dbl },
+  { "array_clear_double", test_array_clear_double },
+  { "array_clear_float", test_array_clear_float },
+  { "array_accumulate_double", test_array_accumulate_double },
+  { "array_accumulate_float", test_array_accumulate_float },
+  { "array_set_double", test_array_set_double },
+  { "array_set_float", test_array_set_float },
+  { "array_scale_double", test_array_scale_double },
   { "array_opcombine", test_array_opcombine },
   { "array_ops", test_array_ops },
   { NULL, NULL },
