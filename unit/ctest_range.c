@@ -499,6 +499,45 @@ void test_range_deflate()
   }
 }
 
+void test_range_skip_iter()
+{
+  int lower[] = {0, 0, 0}, upper[] = {5, 9, 17};
+  struct gkyl_range range;
+  gkyl_range_init(&range, 3, lower, upper);
+
+  // skip iter for full range 
+  struct gkyl_range_skip_iter skip;
+  gkyl_range_skip_iter_init(&skip, &range);
+
+  TEST_CHECK( skip.delta == range.volume );
+  TEST_CHECK( skip.range.ndim == 0 );  
+  TEST_CHECK( skip.range.volume == 1 );
+  TEST_CHECK( gkyl_range_idx(&skip.range, NULL) == 0 );
+
+  // ---
+  int lowerSub[] = {1, 1, 1}, upperSub[] = {4, 8, 16};
+  struct gkyl_range localRange;
+  gkyl_sub_range_init(&localRange, &range, lowerSub, upperSub);
+
+  // skip iter for local range 
+  gkyl_range_skip_iter_init(&skip, &localRange);
+
+  TEST_CHECK( skip.delta*skip.range.volume == localRange.volume );
+  TEST_CHECK( skip.range.ndim == 2 );
+
+  long count = 0;
+
+  // loops are an out while loop, with an inner for loop
+  struct gkyl_range_iter iter;  
+  gkyl_range_iter_init(&iter, &skip.range);
+  while (gkyl_range_iter_next(&iter)) {
+    long start = gkyl_range_idx(&skip.range, iter.idx);
+    for (long i=start; i<start+skip.delta; ++i)
+      count += 1;
+  }  
+  TEST_CHECK( count == localRange.volume );
+}
+
 TEST_LIST = {
   { "range_0", test_range_0 },
   { "range_1", test_range_1 },
@@ -517,5 +556,6 @@ TEST_LIST = {
   { "range_inv_idx", test_range_inv_idx },
   { "huge_range", test_huge_range },
   { "range_deflate", test_range_deflate },
+  { "range_skip_iter", test_range_skip_iter },
   { NULL, NULL },
 };
