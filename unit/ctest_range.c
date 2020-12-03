@@ -1,6 +1,15 @@
 #include <acutest.h>
 #include <gkyl_range.h>
 
+void test_range_0()
+{
+  struct gkyl_range range;
+  gkyl_range_init(&range, 0, NULL, NULL);
+
+  TEST_CHECK( range.ndim == 0 );
+  TEST_CHECK( range.volume == 1 );
+}
+
 void test_range_1()
 {
   int lower[] = {1, 1}, upper[] = {10, 20};
@@ -420,7 +429,78 @@ void test_huge_range()
     TEST_CHECK( idx[d] == upper[d] );
 }
 
+void test_range_deflate()
+{
+  int lower[] = {1, 1, 1}, upper[] = {10, 20, 30};
+  struct gkyl_range range;
+  gkyl_range_init(&range, 3, lower, upper);
+
+  int remDir[] = {0, 0, 1}, locDir[] = {0, 0, lower[2]};
+  struct gkyl_range defr;
+  gkyl_range_deflate(&defr, &range, remDir, locDir);
+
+  TEST_CHECK( defr.ndim == 2 );
+  TEST_CHECK( defr.volume == 200 );
+  
+  TEST_CHECK( defr.lower[0] == lower[0] );
+  TEST_CHECK( defr.upper[0] == upper[0] );
+  
+  TEST_CHECK( defr.lower[1] == lower[1] );
+  TEST_CHECK( defr.upper[1] == upper[1] );
+
+  int idx[3]; idx[2] = lower[2];
+
+  // loop over deflated region
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &defr);
+  while (gkyl_range_iter_next(&iter)) {
+    idx[0] = iter.idx[0]; idx[1] = iter.idx[1];
+    TEST_CHECK(
+      gkyl_range_idx(&defr, iter.idx) == gkyl_range_idx(&range, idx)
+    );
+  }
+
+  // remove two directions
+  remDir[0] = 0; remDir[1] = 1; remDir[2] = 1;
+  locDir[0] = 0; locDir[1] = upper[1]; locDir[2] = lower[2];
+  gkyl_range_deflate(&defr, &range, remDir, locDir);
+
+  TEST_CHECK( defr.ndim == 1 );
+  TEST_CHECK( defr.volume == 10 );
+  
+  TEST_CHECK( defr.lower[0] == lower[0] );
+  TEST_CHECK( defr.upper[0] == upper[0] );
+  
+  idx[1] = upper[1]; idx[2] = lower[2];
+  // loop over deflated region
+  gkyl_range_iter_init(&iter, &defr);
+  while (gkyl_range_iter_next(&iter)) {
+    idx[0] = iter.idx[0];
+    TEST_CHECK(
+      gkyl_range_idx(&defr, iter.idx) == gkyl_range_idx(&range, idx)
+    );
+  }
+
+  // remove all three directions
+  remDir[0] = 1; remDir[1] = 1; remDir[2] = 1;
+  locDir[0] = 5; locDir[1] = upper[1]; locDir[2] = lower[2];
+  gkyl_range_deflate(&defr, &range, remDir, locDir);
+
+  TEST_CHECK( defr.ndim == 0 );
+  TEST_CHECK( defr.volume == 1 );
+  
+  idx[0] = 5; idx[1] = upper[1]; idx[2] = lower[2];
+  // loop over deflated region
+  gkyl_range_iter_init(&iter, &defr);
+  while (gkyl_range_iter_next(&iter)) {
+    TEST_CHECK(
+      gkyl_range_idx(&defr, iter.idx) == gkyl_range_idx(&range, idx)
+    );
+  }
+}
+
 TEST_LIST = {
+  { "range_0", test_range_0 },
   { "range_1", test_range_1 },
   { "range_shape",  test_range_shape },
   { "sub_range",  test_sub_range },  
@@ -436,5 +516,6 @@ TEST_LIST = {
   { "range_offset", test_range_offset },
   { "range_inv_idx", test_range_inv_idx },
   { "huge_range", test_huge_range },
+  { "range_deflate", test_range_deflate },
   { NULL, NULL },
 };

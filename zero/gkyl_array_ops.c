@@ -85,7 +85,7 @@ static struct { char *op; float (*f)(float x); } uniop_float[] = {
 };
 
 #define FIND_UNIOP(type)                                                \
-    type (*find_uniop_##type(const char *op))(type)                     \
+    static type (*find_uniop_##type(const char *op))(type)              \
     {                                                                   \
       size_t nv = sizeof(uniop_##type)/sizeof(uniop_##type[0]);         \
       for (unsigned i=0; i<nv; ++i)                                     \

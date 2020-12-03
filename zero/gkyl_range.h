@@ -48,10 +48,17 @@ struct gkyl_range {
  */
 struct gkyl_range_iter {
     int idx[GKYL_MAX_DIM]; // current index
-
     /* do not access directly */
     int is_first, ndim;
     int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+};
+
+/**
+ * Skip-list based iterator object.
+ */
+struct gkyl_range_skip_iter {
+    long delta; // number of contiguous element
+    struct gkyl_range range; // outer range for iteration
 };
 
 /**
@@ -109,6 +116,22 @@ int gkyl_range_shape(const struct gkyl_range *rng, int dir);
  */
 void gkyl_range_shorten(struct gkyl_range* srng,
   const struct gkyl_range* rng, int dir, int len);
+
+/**
+ * Return range which has some directions removed by setting the index
+ * in those directions to fixed values. The "deflated" range has lower
+ * dimension than the parent 'rng' object. The indexing into the
+ * returned lower dimensional range gives the same index as the
+ * corresponding location in the parent range (with the missing
+ * indices set to 'locDir[dir]'). 
+ *
+ * @param srng Deflated range.
+ * @param rng Range object to deflate
+ * @param remDir 'ndim' Array of flags: 0 to keep direction, 1 to remove
+ * @param loc Index to set removed direction.
+ */
+void gkyl_range_deflate(struct gkyl_range* srng,
+  const struct gkyl_range* rng, const int *remDir, const int *locDir);
 
 /**
  * Return range in direction 'dir' which corresponds to the "lower
@@ -224,3 +247,13 @@ void gkyl_range_iter_reset(struct gkyl_range_iter *iter);
  * @return 1 if there are more indices remaining, 0 if done.
  */
 int gkyl_range_iter_next(struct gkyl_range_iter *iter);
+
+/**
+ * Create skip-iterator. The returned iterator can be used in a nested
+ * loop structure: a for loop inside a 'while' loop.
+ *
+ * @param range Range object.
+ * @return New iterator object for 'range'
+ */
+void gkyl_range_skip_iter_init(struct gkyl_range_skip_iter *iter,
+  const struct gkyl_range* range);
