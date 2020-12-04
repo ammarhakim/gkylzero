@@ -522,20 +522,45 @@ void test_range_skip_iter()
   // skip iter for local range 
   gkyl_range_skip_iter_init(&skip, &localRange);
 
+  TEST_CHECK( skip.delta == 16 );
   TEST_CHECK( skip.delta*skip.range.volume == localRange.volume );
   TEST_CHECK( skip.range.ndim == 2 );
 
   long count = 0;
-
-  // loops are an out while loop, with an inner for loop
-  struct gkyl_range_iter iter;  
+  // loops are an outer while loop, with an inner for loop
+  struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &skip.range);
   while (gkyl_range_iter_next(&iter)) {
     long start = gkyl_range_idx(&skip.range, iter.idx);
     for (long i=start; i<start+skip.delta; ++i)
       count += 1;
-  }  
+  }
   TEST_CHECK( count == localRange.volume );
+}
+
+void test_range_skip_iter_2()
+{
+  int lower[] = {0, 0, 0, 1, 1, 1}, upper[] = {17, 17, 17, 16, 16, 16};
+  struct gkyl_range range;
+  gkyl_range_init(&range, 6, lower, upper);
+
+  int lowerSub[] = {1, 1, 1, 1, 1, 1}, upperSub[] = {16, 16, 16, 16, 16, 16};
+  struct gkyl_range localRange;
+  gkyl_sub_range_init(&localRange, &range, lowerSub, upperSub);
+
+  // skip iter for local range
+  struct gkyl_range_skip_iter skip;  
+  gkyl_range_skip_iter_init(&skip, &localRange);
+
+  TEST_CHECK( skip.delta*skip.range.volume == 16*16*16*16*16*16 );
+
+  // printf("%ld %ld\n", skip.delta, skip.range.volume);
+  
+  // struct gkyl_range_iter iter;
+  // gkyl_range_iter_init(&iter, &skip.range);
+  // while (gkyl_range_iter_next(&iter)) {
+  //   long start = gkyl_range_idx(&skip.range, iter.idx);
+  // }
 }
 
 TEST_LIST = {
@@ -557,5 +582,6 @@ TEST_LIST = {
   { "huge_range", test_huge_range },
   { "range_deflate", test_range_deflate },
   { "range_skip_iter", test_range_skip_iter },
+  { "range_skip_iter_2", test_range_skip_iter_2 },  
   { NULL, NULL },
 };

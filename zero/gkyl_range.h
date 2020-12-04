@@ -35,8 +35,7 @@ struct gkyl_range {
     int lower[GKYL_MAX_DIM]; // lower bound
     int upper[GKYL_MAX_DIM]; // upper bound (inclusive)
     long volume; // total volume of range
-
-    /* do not access directly */
+    // do not access directly
     int ilo[GKYL_MAX_DIM]; // for use in inverse indexer
     long ac[GKYL_MAX_DIM+1]; // coefficients for indexing
     long linIdxZero; // linear index of {0,0,...}
@@ -48,7 +47,7 @@ struct gkyl_range {
  */
 struct gkyl_range_iter {
     int idx[GKYL_MAX_DIM]; // current index
-    /* do not access directly */
+    // do not access directly
     int is_first, ndim;
     int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
 };
@@ -57,7 +56,7 @@ struct gkyl_range_iter {
  * Skip-list based iterator object.
  */
 struct gkyl_range_skip_iter {
-    long delta; // number of contiguous element
+    long delta; // number of contiguous elements
     struct gkyl_range range; // outer range for iteration
 };
 

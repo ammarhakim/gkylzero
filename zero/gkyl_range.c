@@ -19,12 +19,15 @@ calc_rowmajor_ac(struct gkyl_range* range)
   range->ac[0] = -start;
 }
 
-// Computes stuff needd for "skip iterator"
-long
+// Computes stuff needed for "skip iterator"
+static long
 calc_skip_iter(const struct gkyl_range *rng, int *remDir)
 {
   int up[GKYL_MAX_DIM];
-  for (unsigned d=0; d<rng->ndim; ++d) up[d] = rng->upper[d];
+  for (unsigned d=0; d<rng->ndim; ++d) {
+    remDir[d] = 1;
+    up[d] = rng->upper[d];
+  }
   int d = 0;
   long vol = rng->volume;
   long loidx = gkyl_range_idx(rng, rng->lower);
@@ -111,7 +114,6 @@ gkyl_range_deflate(struct gkyl_range* srng,
   const struct gkyl_range* rng, const int *remDir, const int *locDir)
 {
   srng->linIdxZero = rng->linIdxZero;
-
   srng->ndim = 0;
   srng->volume = 1;  
   for (unsigned i=0, j=0; i<rng->ndim; ++i) {
@@ -126,10 +128,9 @@ gkyl_range_deflate(struct gkyl_range* srng,
     }
   }
   long adel = 0; // need to adjust ac[0]
-  for (unsigned i=0; i<rng->ndim; ++i) {
+  for (unsigned i=0; i<rng->ndim; ++i)
     if (remDir[i])
       adel += locDir[i]*rng->ac[i+1];
-  }
   srng->ac[0] = rng->ac[0] + adel;
 }
 
@@ -285,7 +286,6 @@ gkyl_range_skip_iter_init(struct gkyl_range_skip_iter *iter,
   const struct gkyl_range* range)
 {
   int remDir[GKYL_MAX_DIM];
-  for (unsigned d=0; d<range->ndim; ++d) remDir[d] = 1;
   iter->delta = calc_skip_iter(range, remDir);
   gkyl_range_deflate(&iter->range, range, remDir, range->lower);
 }
