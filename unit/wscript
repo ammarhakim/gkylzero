@@ -46,4 +46,11 @@ def build(bld):
         target = 'ctest_array',
         includes = '. ../zero',
         use = 'gkylzero',
-    )    
+    )
+
+    bld.program(
+        source = 'ctest_gauss_quad.c',
+        target = 'ctest_gauss_quad',
+        includes = '. ../zero',
+        use = 'gkylzero',
+    )

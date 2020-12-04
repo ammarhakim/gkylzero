@@ -12,6 +12,7 @@ def build(bld):
     gkyl_array_ops.c
     gkyl_array_rio.c
     gkyl_cart_modal_serendip.c
+    gkyl_gauss_quad_data.c
     gkyl_range.c
     gkyl_rect_grid.c
     gkyl_util.c
