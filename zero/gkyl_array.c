@@ -1,7 +1,5 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
@@ -79,15 +77,6 @@ gkyl_array_clone(const struct gkyl_array* src)
   arr->ref_count = (struct gkyl_ref_count) { array_free, 1 };
 
   return arr;
-}
-
-void
-gkyl_array_write(const struct gkyl_array *arr, FILE *fp)
-{
-  uint64_t rank = arr->rank;
-  fwrite(&rank, sizeof(uint64_t), 1, fp); // write as 64-bit integer
-  fwrite(arr->shape, sizeof(size_t), rank, fp);
-  fwrite(arr->data, arr->elemSz*arr->size, 1, fp);
 }
 
 struct gkyl_array*

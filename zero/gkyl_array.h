@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdio.h>
-
 #include <gkyl_ref_count.h>
 #include <gkyl_util.h>
 
@@ -60,13 +58,6 @@ struct gkyl_array* gkyl_array_copy(struct gkyl_array* dest,
  */
 struct gkyl_array* gkyl_array_clone(const struct gkyl_array* arr);
 
-/**
- * Write array data to file. Data is written as a binary file.
- *
- * @param arr Array object to write
- * @param fp File handle to write to.
- */
-void gkyl_array_write(const struct gkyl_array *arr, FILE *fp);
 
 /**
  * Fetches a pointer to the element stored at the linear index

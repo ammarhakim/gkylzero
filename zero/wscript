@@ -10,6 +10,7 @@ def build(bld):
     gkyl_alloc.c
     gkyl_array.c
     gkyl_array_ops.c
+    gkyl_array_rio.c
     gkyl_cart_modal_serendip.c
     gkyl_range.c
     gkyl_rect_grid.c
