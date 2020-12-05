@@ -553,14 +553,6 @@ void test_range_skip_iter_2()
   gkyl_range_skip_iter_init(&skip, &localRange);
 
   TEST_CHECK( skip.delta*skip.range.volume == 16*16*16*16*16*16 );
-
-  // printf("%ld %ld\n", skip.delta, skip.range.volume);
-  
-  // struct gkyl_range_iter iter;
-  // gkyl_range_iter_init(&iter, &skip.range);
-  // while (gkyl_range_iter_next(&iter)) {
-  //   long start = gkyl_range_idx(&skip.range, iter.idx);
-  // }
 }
 
 TEST_LIST = {
