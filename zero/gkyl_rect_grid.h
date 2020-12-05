@@ -10,9 +10,9 @@ struct gkyl_rect_grid {
     int ndim; // Number of dimensions
     double lower[GKYL_MAX_DIM]; // lower-left corner
     double upper[GKYL_MAX_DIM]; // upper-right corner
+    int cells[GKYL_MAX_DIM]; // number of cells    
     double dx[GKYL_MAX_DIM]; // cell spacing
     double cellVolume; // cell volume
-    int cells[GKYL_MAX_DIM]; // number of cells
 };
 
 /**

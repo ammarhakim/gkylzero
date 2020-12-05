@@ -10,7 +10,7 @@ void test_g1()
     // use the generic routine to get the ordinates and weights
     gkyl_gauleg(-1, 1, &x[0], &w[0], n);
 
-    // compare with pre-computes values
+    // compare with pre-computed values
     const double *xp = gkyl_gauss_ordinates[n];
     const double *wp = gkyl_gauss_weights[n];
     

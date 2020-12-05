@@ -5,9 +5,9 @@
 void
 gkyl_array_write(const struct gkyl_array *arr, FILE *fp)
 {
-  uint64_t rank = arr->rank;
-  fwrite(&rank, sizeof(uint64_t), 1, fp);
-  fwrite(arr->shape, sizeof(size_t), rank, fp);
+  uint64_t elemSz = arr->elemSz, size = arr->size;
+  fwrite(&elemSz, sizeof(uint64_t), 1, fp);
+  fwrite(&size, sizeof(uint64_t), 1, fp);
   fwrite(arr->data, arr->elemSz*arr->size, 1, fp);
 }
 
@@ -17,14 +17,13 @@ gkyl_sub_array_write(const struct gkyl_range *range,
 {
   assert(range->volume <= arr->size);
 #define _F(loc) gkyl_array_fetch(arr, loc)
-
-  uint64_t rank = arr->rank;
-  fwrite(&rank, sizeof(uint64_t), 1, fp);
-  fwrite(arr->shape, sizeof(size_t), rank, fp);  
   
-  // construct a skip iterator to allow writing (potentially) in
-  // chunks rather than element by element or requiring a copy of the
-  // data to be made
+  uint64_t elemSz = arr->elemSz, size = arr->size;
+  fwrite(&elemSz, sizeof(uint64_t), 1, fp);
+  fwrite(&size, sizeof(uint64_t), 1, fp);
+  
+  // construct skip iterator to allow writing (potentially) in chunks
+  // rather than element by element or requiring a copy of data
   struct gkyl_range_skip_iter skip;
   gkyl_range_skip_iter_init(&skip, range);
 

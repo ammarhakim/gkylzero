@@ -4,45 +4,28 @@
 #include <gkyl_util.h>
 
 /**
- * Array object. This is an untyped, reference counted array object.
+ * Array object. This is an untyped, undimensioned, reference counted
+ * array object. All additional structure is provided elsewhere,
+ * mainly by the range object.
  */
 struct gkyl_array {
-    int rank; // rank of array (dimensions)
-    size_t elemSz; // size of element stored in array
-    size_t shape[GKYL_MAX_DIM+2]; // shape of array
-    size_t size; // total number of elements
-    struct gkyl_ref_count ref_count; // reference count
+    size_t elemSz, size; // size of element; total number of elements
     void *data; // pointer to data
+    struct gkyl_ref_count ref_count; // reference count
 };
 
 /**
  * Create new array. Delete using gkyl_array_release method.
  * 
- * @param rank Rank (dimension) of array to create
  * @param elemSz Size of objects (elements) stored in array.
- * @param shape shape[d] gives number of elements in direction d
+ * @param size Number elements to store in array
  * @return Pointer to newly allocated array.
  */
-struct gkyl_array* gkyl_array_new(int rank, size_t elemSz, const size_t *shape);
-
-/**
- * Reshape array: array is reshaped in place. Note this method changes
- * (reduces or increases) the size of array in case new size is not
- * same as original size. Data is replicated if the new size is
- * bigger.
- * 
- * @param arr Array to reshape.
- * @param rank Dimension of reshaped array
- * @param shape shape[d] is number of elements in direction d.
- * @return Pointer to reshaped array (same as 'arr')
- */
-struct gkyl_array* gkyl_array_reshape(struct gkyl_array* arr,
-  int rank, const size_t *shape);
+struct gkyl_array* gkyl_array_new(size_t elemSz, size_t size);
 
 /**
  * Copy into array: pointer to dest array is returned. 'dest' and
- * 'src' must not point to same data. Arrays may be of different
- * shapes and sizes.
+ * 'src' must not point to same data.
  * 
  * @param dest Destination for copy.
  * @param src Srouce to copy from.
@@ -69,7 +52,8 @@ struct gkyl_array* gkyl_array_clone(const struct gkyl_array* arr);
  * @return Element at location 'loc'
  */
 static inline void*
-gkyl_array_fetch(const struct gkyl_array* arr, long loc) {
+gkyl_array_fetch(const struct gkyl_array* arr, long loc)
+{
   return ((char*) arr->data) + loc*arr->elemSz;
 }
 
