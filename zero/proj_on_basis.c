@@ -43,7 +43,6 @@ gkyl_proj_on_basis_new(
     memcpy(weights1, gkyl_gauss_weights[num_quad], num_quad*sizeof(double));
   }
   else {
-    // compute weights and ordinates
     gkyl_gauleg(-1, 1, ordinates1, weights1, num_quad);
   }
 
@@ -77,7 +76,7 @@ gkyl_proj_on_basis_new(
       wgt[0] *= weights1[iter.idx[i]-qrange.lower[i]];
   }
 
-  // pre-compute basis function at ordinates
+  // pre-compute basis functions at ordinates
   up->basis_at_ords = gkyl_array_new(sizeof(double)*basis->numBasis, tot_quad);
   for (unsigned n=0; n<tot_quad; ++n)
     basis->eval(gkyl_array_fetch(up->ordinates, n),
@@ -92,7 +91,10 @@ gkyl_proj_on_basis_new(
 }
 
 static inline void
-comp_to_phys(int ndim, const double *eta, const double *dx, const double *xc, double* restrict xout) {
+comp_to_phys(int ndim, const double *eta,
+  const double * restrict dx, const double * restrict xc,
+  double* restrict xout)
+{
   for (int d=0; d<ndim; ++d) xout[d] = 0.5*dx[d]*eta[d]+xc[d];
 }
 
@@ -115,9 +117,8 @@ proj_on_basis(const gkyl_proj_on_basis *up, double* f) {
 
     for (int imu=0; imu<tot_quad; ++imu) {
       double tmp = weights[imu]*func_at_ords[n+num_ret_vals*imu];
-      for(int k=0; k<numBasis; ++k) {
+      for(int k=0; k<numBasis; ++k)
         f[offset+k] += tmp*basis_at_ords[k+numBasis*imu];
-      }
     }
     offset += numBasis;
   }
@@ -127,22 +128,18 @@ void
 gkyl_proj_on_basis_advance(const gkyl_proj_on_basis* up,
   double tm,
   const struct gkyl_range *update_range, struct gkyl_array *arr)
-{    
-  // loop, projecting function on each cell in update_range
+{
+  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
+  
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
   while (gkyl_range_iter_next(&iter)) {
-    
-    double xc[GKYL_MAX_DIM]; // cell-center coordinates
+
     gkyl_rect_grid_cell_center(&up->grid, iter.idx, xc);
 
-    // compute value of function at ordinates
     for (unsigned i=0; i<up->tot_quad; ++i) {
-      double xmu[GKYL_MAX_DIM]; // Coordinate of quadrature node
-      // convert to coordinate inside physical cell
-      comp_to_phys(up->grid.ndim,
-        gkyl_array_fetch(up->ordinates, i), up->grid.dx, xc, xmu);
-      // evaluate function at coordinate
+      comp_to_phys(up->grid.ndim, gkyl_array_fetch(up->ordinates, i),
+        up->grid.dx, xc, xmu);
       up->eval(tm, xmu, gkyl_array_fetch(up->fun_at_ords, i));
     }
 
