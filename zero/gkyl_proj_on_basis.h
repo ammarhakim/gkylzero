@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
@@ -26,18 +27,18 @@ gkyl_proj_on_basis* gkyl_proj_on_basis_new(
   int num_quad, int num_ret_vals, evalf_t eval);
 
 /**
- * Compute projection on basis.
+ * Compute projection on basis. The update_rng MUST be a sub-range of
+ * the range on which the array is defined. That is, it must be either
+ * the same range as the array range, or one created using the
+ * gkyl_sub_range_init method.
  *
  * @param pob Project on basis updater to run
  * @param tm Time at which projection must be computed
- * @param up_rng Range on which to run projection
- * @param arr_rng Range on which output array is defined
+ * @param update_rng Range on which to run projection.
  * @param out Output array
  */
 void gkyl_proj_on_basis_advance(const gkyl_proj_on_basis* pob,
-  double tm,
-  const struct gkyl_range *up_rng, const struct gkyl_range *arr_rng,
-  struct gkyl_array *out);
+  double tm, const struct gkyl_range *update_rng, struct gkyl_array *out);
 
 /**
  * Delete updater.

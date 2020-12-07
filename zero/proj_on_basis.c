@@ -56,7 +56,7 @@ gkyl_proj_on_basis_new(
   int tot_quad = qrange.volume; up->tot_quad = tot_quad;
 
   // create ordinates and weights for multi-D quadrature  
-  up->ordinates = gkyl_array_new(sizeof(double), tot_quad*grid->ndim);
+  up->ordinates = gkyl_array_new(sizeof(double)*grid->ndim, tot_quad);
   up->weights = gkyl_array_new(sizeof(double), tot_quad);
 
   struct gkyl_range_iter iter;
@@ -66,8 +66,8 @@ gkyl_proj_on_basis_new(
     long node = gkyl_range_idx(&qrange, iter.idx);
     
     // set ordinates
-    double *ord = gkyl_array_fetch(up->ordinates, node*grid->ndim);
-    for (int i=0; i<qrange.ndim; ++i)
+    double *ord = gkyl_array_fetch(up->ordinates, node);
+    for (int i=0; i<grid->ndim; ++i)
       ord[i] = ordinates1[iter.idx[i]-qrange.lower[i]];
     
     // set weights
@@ -78,13 +78,13 @@ gkyl_proj_on_basis_new(
   }
 
   // pre-compute basis function at ordinates
-  up->basis_at_ords = gkyl_array_new(sizeof(double), tot_quad*basis->numBasis);
+  up->basis_at_ords = gkyl_array_new(sizeof(double)*basis->numBasis, tot_quad);
   for (unsigned n=0; n<tot_quad; ++n)
-    basis->eval(gkyl_array_fetch(up->ordinates, n*grid->ndim),
-      gkyl_array_fetch(up->basis_at_ords, n*basis->numBasis));
+    basis->eval(gkyl_array_fetch(up->ordinates, n),
+      gkyl_array_fetch(up->basis_at_ords, n));
 
   // allocate space to compute function at ordinates
-  up->fun_at_ords = gkyl_array_new(sizeof(double), tot_quad*num_ret_vals);
+  up->fun_at_ords = gkyl_array_new(sizeof(double)*num_ret_vals, tot_quad);
   
   gkyl_free(ordinates1); gkyl_free(weights1);
 
@@ -126,11 +126,8 @@ proj_on_basis(const gkyl_proj_on_basis *up, double* f) {
 void
 gkyl_proj_on_basis_advance(const gkyl_proj_on_basis* up,
   double tm,
-  const struct gkyl_range *update_range, const struct gkyl_range *arr_range,
-  struct gkyl_array *arr)
+  const struct gkyl_range *update_range, struct gkyl_array *arr)
 {    
-  long arr_stride = up->num_ret_vals*up->numBasis;
-  
   // loop, projecting function on each cell in update_range
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
@@ -144,13 +141,13 @@ gkyl_proj_on_basis_advance(const gkyl_proj_on_basis* up,
       double xmu[GKYL_MAX_DIM]; // Coordinate of quadrature node
       // convert to coordinate inside physical cell
       comp_to_phys(up->grid.ndim,
-        gkyl_array_fetch(up->ordinates, i*up->grid.ndim), up->grid.dx, xc, xmu);
+        gkyl_array_fetch(up->ordinates, i), up->grid.dx, xc, xmu);
       // evaluate function at coordinate
-      up->eval(tm, xmu, gkyl_array_fetch(up->fun_at_ords, i*up->num_ret_vals));
+      up->eval(tm, xmu, gkyl_array_fetch(up->fun_at_ords, i));
     }
 
-    long lidx = gkyl_range_idx(arr_range, iter.idx);
-    proj_on_basis(up, gkyl_array_fetch(arr, lidx*arr_stride));
+    long lidx = gkyl_range_idx(update_range, iter.idx);
+    proj_on_basis(up, gkyl_array_fetch(arr, lidx));
   }
 }
 

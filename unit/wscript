@@ -54,3 +54,17 @@ def build(bld):
         includes = '. ../zero',
         use = 'gkylzero',
     )
+
+    bld.program(
+        source = 'creg_proj_on_basis.c',
+        target = 'creg_proj_on_basis',
+        includes = '. ../zero',
+        use = 'gkylzero',
+    )
+
+    bld.program(
+        source = 'ctest_proj_on_basis.c',
+        target = 'ctest_proj_on_basis',
+        includes = '. ../zero',
+        use = 'gkylzero',
+    )
