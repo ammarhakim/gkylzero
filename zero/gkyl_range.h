@@ -18,8 +18,10 @@
     (((r).ac[0]+(i1)*(r).ac[1])+((i2)*(r).ac[2]+(i3)*(r).ac[3])+((i4)*(r).ac[4]+(i5)*(r).ac[5]))
 #define gkyl_ridx6(r, i1, i2, i3, i4, i5, i6)                           \
     (((r).ac[0]+(i1)*(r).ac[1])+((i2)*(r).ac[2]+(i3)*(r).ac[3])+((i4)*(r).ac[4]+(i5)*(r).ac[5]+(i6)*(r).ac[6]))
+#define gkyl_ridx7(r, i1, i2, i3, i4, i5, i6, i7)                       \
+    (((r).ac[0]+(i1)*(r).ac[1])+((i2)*(r).ac[2]+(i3)*(r).ac[3])+((i4)*(r).ac[4]+(i5)*(r).ac[5]+(i6)*(r).ac[6]) + (i7)*(r).ac[7])
 
-/** Generic indexing: works for 1D-6D (VFUNC1 is defined-ed in
+/** Generic indexing: works for 1D-7D (VFUNC1 is defined-ed in
  * gkyl_vargm.h) */
 #define gkyl_ridx(r, ...) VFUNC1(gkyl_ridx, r, __VA_ARGS__)
 

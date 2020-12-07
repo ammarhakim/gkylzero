@@ -228,6 +228,9 @@ gkyl_range_idx(const struct gkyl_range* range, const int *idx)
     case 6:
         return RI(idx[0], idx[1], idx[2], idx[3], idx[4], idx[5]);
         break;
+    case 7:
+        return RI(idx[0], idx[1], idx[2], idx[3], idx[4], idx[5], idx[6]);
+        break;
   }
   return 0;
 #undef RI

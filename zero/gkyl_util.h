@@ -4,7 +4,7 @@
 
 // Maximum dimensions supported
 #ifndef GKYL_MAX_DIM
-# define GKYL_MAX_DIM 6
+# define GKYL_MAX_DIM 7
 #endif
 
 // Default alignment boundary (seems agressive or maybe not enough?)
