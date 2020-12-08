@@ -118,3 +118,53 @@ FIND_UNIOP(double)
 
 GKYL_ARRAY_UNIOP(float)
 GKYL_ARRAY_UNIOP(double)
+
+void
+gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
+  const struct gkyl_range *range)
+{
+  assert(range->volume <= arr->size);
+  
+#define _F(loc) gkyl_array_fetch(arr, loc)  
+
+  // construct skip iterator to allow copying (potentially) in chunks
+  // rather than element by element
+  struct gkyl_range_skip_iter skip;
+  gkyl_range_skip_iter_init(&skip, range);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &skip.range);
+
+  long count = 0;
+  while (gkyl_range_iter_next(&iter)) {
+    long start = gkyl_range_idx(&skip.range, iter.idx);
+    memcpy(data+arr->elemSz*skip.delta*count++, _F(start), arr->elemSz*skip.delta);
+  }
+  
+#undef _F
+}
+
+void
+gkyl_array_copy_from_buffer(struct gkyl_array *arr,
+  const void *data, const struct gkyl_range *range)
+{
+  assert(range->volume <= arr->size);
+  
+#define _F(loc) gkyl_array_fetch(arr, loc)  
+
+  // construct skip iterator to allow copying (potentially) in chunks
+  // rather than element by element
+  struct gkyl_range_skip_iter skip;
+  gkyl_range_skip_iter_init(&skip, range);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &skip.range);
+
+  long count = 0;
+  while (gkyl_range_iter_next(&iter)) {
+    long start = gkyl_range_idx(&skip.range, iter.idx);
+    memcpy(_F(start), data+arr->elemSz*skip.delta*count++, arr->elemSz*skip.delta);
+  }
+  
+#undef _F  
+}

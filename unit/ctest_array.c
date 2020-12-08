@@ -2,6 +2,7 @@
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_util.h>
+#include <gkyl_alloc.h>
 
 void test_array_base()
 {
@@ -235,6 +236,47 @@ void test_array_ops()
   gkyl_array_release(a2);  
 }
 
+void test_array_copy()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+  
+  struct gkyl_array *arr = gkyl_array_new(sizeof(double), range.volume);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    double *d = gkyl_array_fetch(arr, gkyl_range_idx(&range, iter.idx));
+    d[0] = iter.idx[0] + 10.5*iter.idx[1];
+  }
+
+  int lower[] = {1, 1}, upper[] = {5, 10};
+  struct gkyl_range sub_range;
+  gkyl_sub_range_init(&sub_range, &range, lower, upper);
+
+  double *buff = gkyl_malloc(sizeof(double)*sub_range.volume);
+  gkyl_array_copy_to_buffer(buff, arr, &sub_range);
+
+  long count = 0;
+  gkyl_range_iter_init(&iter, &sub_range);
+  while (gkyl_range_iter_next(&iter))
+    TEST_CHECK( buff[count++] == iter.idx[0] + 10.5*iter.idx[1] );
+
+  gkyl_array_clear(arr, 0.0);
+  // copy back from buffer
+  gkyl_array_copy_from_buffer(arr, buff, &sub_range);
+
+  gkyl_range_iter_init(&iter, &sub_range);
+  while (gkyl_range_iter_next(&iter)) {
+    double *d = gkyl_array_fetch(arr, gkyl_range_idx(&sub_range, iter.idx));
+    TEST_CHECK( d[0]  == iter.idx[0] + 10.5*iter.idx[1] );
+  }
+
+  gkyl_array_release(arr);
+  gkyl_free(buff);
+}
+
 TEST_LIST = {
   { "array_base", test_array_base },
   { "array_fetch", test_array_fetch },
@@ -247,5 +289,6 @@ TEST_LIST = {
   { "array_scale_double", test_array_scale_double },
   { "array_opcombine", test_array_opcombine },
   { "array_ops", test_array_ops },
+  { "array_copy", test_array_copy },
   { NULL, NULL },
 };

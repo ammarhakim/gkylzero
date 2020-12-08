@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gkyl_array.h>
+#include <gkyl_range.h>
 
 /** Generic clear macro */
 #define gkyl_array_clear(out, a)       \
@@ -92,3 +93,24 @@ struct gkyl_array* gkyl_array_uniop_double(const char *op, double a,
 
 struct gkyl_array* gkyl_array_uniop_float(const char *op, float a,
   struct gkyl_array *out, float b, const struct gkyl_array *inp);
+
+/**
+ * Copy region of array into a buffer. The buffer must be preallocated
+ * and at least of size arr->size*arr->elemSz bytes.
+ *
+ * @param arr Array to copy from
+ * @param range Range specifying region to copy
+ * @param data Output data buffer.
+ */
+void gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
+  const struct gkyl_range *range);
+
+/**
+ * Copy buffer into region of array. The array must be preallocated.
+ *
+ * @param arr Array to copy from
+ * @param range Range specifying region to copy
+ * @param data Output data buffer.
+ */
+void gkyl_array_copy_from_buffer(struct gkyl_array *arr,
+  const void *data, const struct gkyl_range *range);
