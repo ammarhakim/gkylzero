@@ -1,0 +1,24 @@
+## -*- python -*-
+# Build code in this directory
+##    _______     ___
+## + 6 @ |||| # P ||| +
+
+import os
+
+def build(bld):
+    source = r"""
+    vlasov/vlasov_mom_kernels_ser_1x1v.c
+    vlasov/vlasov_mom_kernels_ser_1x2v.c
+    vlasov/vlasov_mom_kernels_ser_1x3v.c
+    vlasov/vlasov_mom_kernels_ser_2x2v.c
+    vlasov/vlasov_mom_kernels_ser_2x3v.c
+    vlasov/vlasov_mom_kernels_ser_3x3v.c
+
+    
+    """
+    
+    bld.stlib(source = source,
+              includes = '. vlasov',
+              target = 'gkylzerokern',
+              name = 'gkylzerokern'
+    )

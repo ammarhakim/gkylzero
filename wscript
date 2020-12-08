@@ -63,6 +63,7 @@ def build(bld):
       bld.jobs = 16
     
     # recurse down directories and build C code
+    bld.recurse("kernels")    
     bld.recurse("zero")
     bld.recurse("unit")
 

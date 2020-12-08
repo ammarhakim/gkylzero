@@ -1,13 +1,10 @@
-#include <gkyl_basis.h>
-
-// Gkeyll includes
-#include <gkyl_basis.h>
-#include <gkyl_cart_modal_serendip_funcs.h>
-#include <gkyl_util.h>
-
-// std include
 #include <assert.h>
 #include <string.h>
+
+#include <gkyl_basis.h>
+#include <gkyl_basis.h>
+#include <gkyl_util.h>
+#include "cart_modal_serendip_funcs.c"
 
 // Basis function eval for each dimension: ev_list[ndim].ev[polyOrder]
 static struct { void (*ev[4])(const double *z, double *b); } ev_list[] = {

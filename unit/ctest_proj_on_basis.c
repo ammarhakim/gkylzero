@@ -38,12 +38,15 @@ test_1()
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &arr_range, distf);
 
-  for (unsigned i=0; i<distf->size; ++i) {
-    const double *df = gkyl_array_fetch(distf, i);
-    printf("%g %g\n", df[0], df[1]);
-  }
-  printf("\n");
+  // left cell
+  double *dfl = gkyl_array_fetch(distf, 0);
+  TEST_CHECK( gkyl_compare(1.885618083164127, dfl[0], 1e-12) );
+  TEST_CHECK( gkyl_compare(-1.632993161855453, dfl[1], 1e-12) );
 
+  // right cell
+  double *dfr = gkyl_array_fetch(distf, 1);
+  TEST_CHECK( gkyl_compare(1.885618083164127, dfr[0], 1e-12) );
+  TEST_CHECK( gkyl_compare(1.632993161855453, dfr[1], 1e-12) );
 }
 
 TEST_LIST = {

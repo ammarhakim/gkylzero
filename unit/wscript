@@ -6,6 +6,8 @@
 import os
 
 def build(bld):
+
+    # unit tests
     bld.program(
         source = 'ctest_alloc.c',
         target = 'ctest_alloc',
@@ -56,15 +58,18 @@ def build(bld):
     )
 
     bld.program(
-        source = 'creg_proj_on_basis.c',
-        target = 'creg_proj_on_basis',
-        includes = '. ../zero',
-        use = 'gkylzero',
-    )
-
-    bld.program(
         source = 'ctest_proj_on_basis.c',
         target = 'ctest_proj_on_basis',
         includes = '. ../zero',
         use = 'gkylzero',
     )
+
+    # regression tests
+    bld.program(
+        source = 'creg_proj_on_basis.c',
+        target = 'creg_proj_on_basis',
+        includes = '. ../zero',
+        use = 'gkylzero gkylzerokern',
+    )
+
+    

@@ -5,6 +5,7 @@
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_vlasov_mom.h>
 
 #define SHOW_TIME(msg, tdiff) printf("%s %g\n", msg, 1.0*(tdiff)/CLOCKS_PER_SEC)
 
@@ -76,7 +77,8 @@ main(void)
   // grid
   double lower[] = {0.0, 0.0, -0.9, -0.9};
   double upper[] = {2*M_PI/kx, 2*M_PI/ky, 0.9, 0.9};
-  int cells[] = {32, 32, 32, 32};
+  //int cells[] = {32, 32, 32, 32};
+  int cells[] = {4, 4, 8, 8};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, pdim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
@@ -93,6 +95,11 @@ main(void)
     polyOrder+1, 1, evalDistFunc);
   gkyl_proj_on_basis *projField = gkyl_proj_on_basis_new(&confGrid, &confBasis,
     polyOrder+1, 8, evalFieldFunc);
+
+  // moment objects
+  struct gkyl_mom_type *m0 = gkyl_vlasov_mom_new(&confBasis, &basis, "M0");
+  struct gkyl_mom_type *m1i = gkyl_vlasov_mom_new(&confBasis, &basis, "M1i");
+  struct gkyl_mom_type *m2ij = gkyl_vlasov_mom_new(&confBasis, &basis, "M2ij");
 
   // global index range on phase-space grid (no ghost cells in
   // velocity space)
@@ -156,6 +163,9 @@ main(void)
   gkyl_proj_on_basis_release(projField);
   gkyl_array_release(distf);
   gkyl_array_release(em);
+  gkyl_mom_type_release(m0);
+  gkyl_mom_type_release(m1i);
+  gkyl_mom_type_release(m2ij);
 
   return 0;
 }
