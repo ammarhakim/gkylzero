@@ -99,7 +99,8 @@ comp_to_phys(int ndim, const double *eta,
 }
 
 static void
-proj_on_basis(const gkyl_proj_on_basis *up, double* f) {
+proj_on_basis(const gkyl_proj_on_basis *up, double* f)
+{
   const int numBasis = up->numBasis;
   const int tot_quad = up->tot_quad;
   const int num_ret_vals = up->num_ret_vals;
@@ -126,8 +127,7 @@ proj_on_basis(const gkyl_proj_on_basis *up, double* f) {
 
 void
 gkyl_proj_on_basis_advance(const gkyl_proj_on_basis* up,
-  double tm,
-  const struct gkyl_range *update_range, struct gkyl_array *arr)
+  double tm, const struct gkyl_range *update_range, struct gkyl_array *arr)
 {
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
   

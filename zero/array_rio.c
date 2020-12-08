@@ -29,7 +29,7 @@ gkyl_sub_array_write(const struct gkyl_range *range,
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &skip.range);
-  
+
   while (gkyl_range_iter_next(&iter)) {
     long start = gkyl_range_idx(&skip.range, iter.idx);
     fwrite(_F(start), arr->elemSz*skip.delta, 1, fp);

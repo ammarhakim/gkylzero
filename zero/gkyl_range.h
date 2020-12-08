@@ -85,18 +85,6 @@ void gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim,
   const int *shape);
 
 /**
- * Create a sub-range from a given range. The sub-range is completely
- * contained inside the parent range.
- *
- * @param rng New range object to initialize
- * @param bigrng Parent range object 
- * @param sublower Lower indices of sub-range
- * @param subupper Upper indices of sub-range
- */
-void gkyl_sub_range_init(struct gkyl_range *rng,
-  const struct gkyl_range *bigrng, const int *sublower, const int *subupper);
-
-/**
  * Shape in direction dir
  *
  * @param rng Range object
@@ -106,17 +94,17 @@ void gkyl_sub_range_init(struct gkyl_range *rng,
 int gkyl_range_shape(const struct gkyl_range *rng, int dir);
 
 /**
- * Return range which has 'dir' direction shortened to length
- * 'len'. The shortened range has the same dimensions and the same
- * start index in 'dir'.
+ * Create a sub-range from a given range. The sub-range need not be
+ * fully contained in the parent range. The sub-range and the parent
+ * range will returns the same linear index for a given index.
  *
- * @param srng Shortned range.
- * @param rng Range object to shorten
- * @param dir Direction to shorten
- * @param len Length of shortened direction
+ * @param rng New range object to initialize
+ * @param bigrng Parent range object 
+ * @param sublower Lower indices of sub-range
+ * @param subupper Upper indices of sub-range
  */
-void gkyl_range_shorten(struct gkyl_range* srng,
-  const struct gkyl_range* rng, int dir, int len);
+void gkyl_sub_range_init(struct gkyl_range *rng,
+  const struct gkyl_range *bigrng, const int *sublower, const int *subupper);
 
 /**
  * Return range which has some directions removed by setting the index
@@ -135,32 +123,43 @@ void gkyl_range_deflate(struct gkyl_range* srng,
   const struct gkyl_range* rng, const int *remDir, const int *locDir);
 
 /**
+ * Return range which has 'dir' direction shortened to length
+ * 'len'. The shortened range has the same dimensions and the same
+ * start index in 'dir'.
+ *
+ * @param srng Shortned range.
+ * @param rng Range object to shorten
+ * @param dir Direction to shorten
+ * @param len Length of shortened direction
+ */
+void gkyl_range_shorten(struct gkyl_range* srng,
+  const struct gkyl_range* rng, int dir, int len);
+
+/**
  * Return range in direction 'dir' which corresponds to the "lower
  * skin" cells.  Lower skin cells refer to the second inner-most layer
- * of cells on the lower end of the range. Location of skin cells is
- * with respect to the number of ghost cells in the range.
+ * of cells on the lower end of the range.
  *
  * @param srng Skin range
- * @param range Range object to find lower skin cells of
+ * @param range Range object to find lower skin cells
  * @param dir Direction to find lower skin cells in
- * @param nghost Number of ghost cells to determine location of skin cell region
+ * @param nskin Number of skin cells
  */
 void gkyl_range_lower_skin(struct gkyl_range* srng,
-  const struct gkyl_range* range, int dir, int nghost);
+  const struct gkyl_range* range, int dir, int nskin);
 
 /**
  * Return range in direction 'dir' which corresponds to the "upper
  * skin" cells.  Upper skin cells refer to the second inner-most layer
- * of cells on the upper end of the range. Location of skin cells is
- * with respect to the number of ghost cells in the range.
+ * of cells on the upper end of the range.
  *
  * @param srng Skin range
- * @param range Range object to find upper skin cells of
+ * @param range Range object to find upper skin cells
  * @param dir Direction to find upper skin cells in
- * @param nghost Number of ghost cells to determine location of skin cell region
+ * @param nskin Number of skin cells
  */
 void gkyl_range_upper_skin(struct gkyl_range* srng,
-  const struct gkyl_range* range, int dir, int nghost);
+  const struct gkyl_range* range, int dir, int nskin);
 
 /**
  * Return range in direction 'dir' which corresponds to the "lower
@@ -169,9 +168,9 @@ void gkyl_range_upper_skin(struct gkyl_range* srng,
  * is of size nghost in direction dir.
  *
  * @param srng Ghost range
- * @param range Range object to find lower ghost cells of
- * @param dir Direction to find lower ghost cells in
- * @param nghost Number of ghost cells to determine size of ghost cell region
+ * @param range Range object to find lower ghost cells
+ * @param dir Direction to find lower ghost cells
+ * @param nghost Number of ghost cells
  */
 void gkyl_range_lower_ghost(struct gkyl_range* srng,
   const struct gkyl_range* range, int dir, int nghost);
@@ -183,10 +182,9 @@ void gkyl_range_lower_ghost(struct gkyl_range* srng,
  * is of size nghost in direction dir.
  *
  * @param srng Ghost range
- * @param range Range object to find upper ghost cells of
- * @param dir Direction to find upper ghost cells in
- * @param nghost Number of ghost cells to determine size of ghost cell region
- * @return Pointer to newly created range. Call release() to free.
+ * @param range Range object to find upper ghost cells
+ * @param dir Direction to find upper ghost cells
+ * @param nghost Number of ghost cells
  */
 void gkyl_range_upper_ghost(struct gkyl_range* srng,
   const struct gkyl_range* range, int dir, int nghost);

@@ -71,23 +71,6 @@ gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim, const int *shape)
   gkyl_range_init(rng, ndim, lo, up);
 }
 
-void
-gkyl_sub_range_init(struct gkyl_range *rng,
-  const struct gkyl_range *bigrng, const int *sublower, const int *subupper)
-{
-  rng->ndim = bigrng->ndim;
-  rng->volume = 1L;
-  for (unsigned i=0; i<rng->ndim; ++i) {
-    rng->lower[i] = sublower[i] >= bigrng->lower[i] ? sublower[i] : bigrng->lower[i];
-    rng->upper[i] = subupper[i] <= bigrng->upper[i] ? subupper[i] : bigrng->upper[i];
-    rng->ilo[i] = bigrng->ilo[i]; // so inv indexer works correctly
-    rng->volume *= rng->upper[i]-rng->lower[i]+1;
-  }
-  for (unsigned i=0; i<rng->ndim+1; ++i)
-    rng->ac[i] = bigrng->ac[i];
-  rng->linIdxZero = bigrng->linIdxZero;
-}
-
 int
 gkyl_range_shape(const struct gkyl_range *range, int dir)
 {
@@ -95,18 +78,20 @@ gkyl_range_shape(const struct gkyl_range *range, int dir)
 }
 
 void
-gkyl_range_shorten(struct gkyl_range *rng,
-  const struct gkyl_range* range, int dir, int len)
+gkyl_sub_range_init(struct gkyl_range *rng,
+  const struct gkyl_range *bigrng, const int *sublower, const int *subupper)
 {
-  int ndim = range->ndim;
-  int lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
-  
-  for (unsigned i=0; i<ndim; ++i) {
-    lo[i] = range->lower[i];
-    up[i] = range->upper[i];
+  rng->ndim = bigrng->ndim;
+  rng->volume = 1L;
+  for (unsigned i=0; i<rng->ndim; ++i) {
+    rng->lower[i] = sublower[i];
+    rng->upper[i] = subupper[i];
+    rng->ilo[i] = bigrng->ilo[i]; // so inv indexer works correctly
+    rng->volume *= rng->upper[i]-rng->lower[i]+1;
   }
-  up[dir] = lo[dir]+len-1;
-  gkyl_range_init(rng, ndim, lo, up);
+  for (unsigned i=0; i<rng->ndim+1; ++i)
+    rng->ac[i] = bigrng->ac[i];
+  rng->linIdxZero = bigrng->linIdxZero;
 }
 
 void
@@ -135,8 +120,8 @@ gkyl_range_deflate(struct gkyl_range* srng,
 }
 
 void
-gkyl_range_lower_skin(struct gkyl_range *rng,
-  const struct gkyl_range* range, int dir, int nghost)
+gkyl_range_shorten(struct gkyl_range *rng,
+  const struct gkyl_range* range, int dir, int len)
 {
   int ndim = range->ndim;
   int lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
@@ -145,13 +130,29 @@ gkyl_range_lower_skin(struct gkyl_range *rng,
     lo[i] = range->lower[i];
     up[i] = range->upper[i];
   }
-  up[dir] = range->lower[dir]+nghost-1;
-  gkyl_range_init(rng, ndim, lo, up);
+  up[dir] = lo[dir]+len-1;
+  gkyl_sub_range_init(rng, range, lo, up);
+}
+
+
+void
+gkyl_range_lower_skin(struct gkyl_range *rng,
+  const struct gkyl_range* range, int dir, int nskin)
+{
+  int ndim = range->ndim;
+  int lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
+  
+  for (unsigned i=0; i<ndim; ++i) {
+    lo[i] = range->lower[i];
+    up[i] = range->upper[i];
+  }
+  up[dir] = range->lower[dir]+nskin-1;
+  gkyl_sub_range_init(rng, range, lo, up);
 }
 
 void
 gkyl_range_upper_skin(struct gkyl_range *rng,
-  const struct gkyl_range* range, int dir, int nghost)
+  const struct gkyl_range* range, int dir, int nskin)
 {
   int ndim = range->ndim;
   int lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
@@ -160,8 +161,8 @@ gkyl_range_upper_skin(struct gkyl_range *rng,
     lo[i] = range->lower[i];
     up[i] = range->upper[i];
   }
-  lo[dir] = range->upper[dir]-nghost+1;
-  gkyl_range_init(rng, ndim, lo, up);
+  lo[dir] = range->upper[dir]-nskin+1;
+  gkyl_sub_range_init(rng, range, lo, up);
 }
 
 void
@@ -177,7 +178,7 @@ gkyl_range_lower_ghost(struct gkyl_range *rng,
   }
   lo[dir] = range->lower[dir]-nghost;
   up[dir] = range->lower[dir]-1;
-  gkyl_range_init(rng, ndim, lo, up);
+  gkyl_sub_range_init(rng, range, lo, up);
 }
 
 void
@@ -193,7 +194,7 @@ gkyl_range_upper_ghost(struct gkyl_range *rng,
   }
   lo[dir] = range->upper[dir]+1;
   up[dir] = range->upper[dir]+nghost;
-  gkyl_range_init(rng, ndim, lo, up);
+  gkyl_sub_range_init(rng, range, lo, up);
 }
 
 long

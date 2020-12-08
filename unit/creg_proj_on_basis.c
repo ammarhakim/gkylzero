@@ -45,16 +45,15 @@ maxwellian2D(double n, double vx, double vy, double ux, double uy, double vth)
   return n/(2*M_PI*vth*vth)*exp(-v2/(2*vth*vth));
 }
 
-void evalDistFunc(double t, const double *xn, double* restrict fout)
+void evalDistFunc(double t, const double * restrict xn, double* restrict fout)
 {
-  double x = xn[0], y = xn[1];
-  double vx = xn[2], vy = xn[3];
+  double x = xn[0], y = xn[1], vx = xn[2], vy = xn[3];
   double fv = maxwellian2D(nElc10, vx, vy, uxElc10, uyElc10, vthElc10) +
     maxwellian2D(nElc20, vx, vy, uxElc20, uyElc20, vthElc20);
   fout[0] = (1.0+perturb_n*cos(kx*x+ky*y))*fv;
 }
 
-void evalFieldFunc(double t, const double *xn, double* restrict fout)
+void evalFieldFunc(double t, const double * restrict xn, double* restrict fout)
 {
   double x = xn[0], y = xn[1];
   
