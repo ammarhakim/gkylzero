@@ -109,7 +109,7 @@ void test_shorten()
   TEST_CHECK( shortr2.volume == 20*20*3 );
 }
 
-void test_skin_ghost()
+void test_skin()
 {
   int lower[] = {1, 1}, upper[] = {10, 10};
   struct gkyl_range range;
@@ -151,43 +151,6 @@ void test_skin_ghost()
   TEST_CHECK( upperSkinRange2.upper[0] == 10 );
   TEST_CHECK( upperSkinRange2.lower[1] == 10 );
   TEST_CHECK( upperSkinRange2.upper[1] == 10 );
-
-  // Test ghost cell ranges
-  struct gkyl_range lowerGhostRange1;
-  gkyl_range_lower_ghost(&lowerGhostRange1, &range, 0, 1);
-  
-  TEST_CHECK( lowerGhostRange1.volume == 10 );
-  TEST_CHECK( lowerGhostRange1.lower[0] == 0 );
-  TEST_CHECK( lowerGhostRange1.upper[0] == 0 );
-  TEST_CHECK( lowerGhostRange1.lower[1] == 1 );
-  TEST_CHECK( lowerGhostRange1.upper[1] == 10 );
-
-  struct gkyl_range lowerGhostRange2;
-  gkyl_range_lower_ghost(&lowerGhostRange2, &range, 1, 1);
-  
-  TEST_CHECK( lowerGhostRange2.volume == 10 );
-  TEST_CHECK( lowerGhostRange2.lower[0] == 1 );
-  TEST_CHECK( lowerGhostRange2.upper[0] == 10 );
-  TEST_CHECK( lowerGhostRange2.lower[1] == 0 );
-  TEST_CHECK( lowerGhostRange2.upper[1] == 0 );
-
-  struct gkyl_range upperGhostRange1;
-  gkyl_range_upper_ghost(&upperGhostRange1, &range, 0, 1);
-  
-  TEST_CHECK( upperGhostRange1.volume == 10 );
-  TEST_CHECK( upperGhostRange1.lower[0] == 11 );
-  TEST_CHECK( upperGhostRange1.upper[0] == 11 );
-  TEST_CHECK( upperGhostRange1.lower[1] == 1 );
-  TEST_CHECK( upperGhostRange1.upper[1] == 10 );
-
-  struct gkyl_range upperGhostRange2;
-  gkyl_range_upper_ghost(&upperGhostRange2, &range, 1, 1);
-  
-  TEST_CHECK( upperGhostRange2.volume == 10 );
-  TEST_CHECK( upperGhostRange2.lower[0] == 1 );
-  TEST_CHECK( upperGhostRange2.upper[0] == 10 );
-  TEST_CHECK( upperGhostRange2.lower[1] == 11 );
-  TEST_CHECK( upperGhostRange2.upper[1] == 11 );
 }
 
 void test_range_index_1d()
@@ -561,7 +524,7 @@ TEST_LIST = {
   { "range_shape",  test_range_shape },
   { "sub_range",  test_sub_range },  
   { "shorten", test_shorten },
-  { "skin/ghost", test_skin_ghost },
+  { "skin", test_skin },
   { "range_index_1d", test_range_index_1d },
   { "range_index_2d", test_range_index_2d },
   { "range_index_3d", test_range_index_3d },

@@ -94,9 +94,10 @@ void gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim,
 int gkyl_range_shape(const struct gkyl_range *rng, int dir);
 
 /**
- * Create a sub-range from a given range. The sub-range need not be
- * fully contained in the parent range. The sub-range and the parent
- * range will returns the same linear index for a given index.
+ * Create a sub-range from a given range. The sub-range must be fully
+ * contained in the parent range or else it will be truncated. The
+ * sub-range and the parent range will returns the same linear index
+ * for a given index.
  *
  * @param rng New range object to initialize
  * @param bigrng Parent range object 
@@ -160,34 +161,6 @@ void gkyl_range_lower_skin(struct gkyl_range* srng,
  */
 void gkyl_range_upper_skin(struct gkyl_range* srng,
   const struct gkyl_range* range, int dir, int nskin);
-
-/**
- * Return range in direction 'dir' which corresponds to the "lower
- * ghost" cells.  Lower ghost cells refer to the outer-most layer of
- * cells on the lower end of the range. Note that this outermost layer
- * is of size nghost in direction dir.
- *
- * @param srng Ghost range
- * @param range Range object to find lower ghost cells
- * @param dir Direction to find lower ghost cells
- * @param nghost Number of ghost cells
- */
-void gkyl_range_lower_ghost(struct gkyl_range* srng,
-  const struct gkyl_range* range, int dir, int nghost);
-
-/**
- * Return range in direction 'dir' which corresponds to the "upper
- * ghost" cells.  Upper ghost cells refer to the outer-most layer of
- * cells on the upper end of the range. Note that this outermost layer
- * is of size nghost in direction dir.
- *
- * @param srng Ghost range
- * @param range Range object to find upper ghost cells
- * @param dir Direction to find upper ghost cells
- * @param nghost Number of ghost cells
- */
-void gkyl_range_upper_ghost(struct gkyl_range* srng,
-  const struct gkyl_range* range, int dir, int nghost);
 
 /**
  * Compute offset given relative index. So for a 2D range, idx[2] = {1,
