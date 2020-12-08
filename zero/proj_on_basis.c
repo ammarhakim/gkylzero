@@ -130,11 +130,10 @@ gkyl_proj_on_basis_advance(const gkyl_proj_on_basis* up,
   double tm, const struct gkyl_range *update_range, struct gkyl_array *arr)
 {
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
-  
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
+  
   while (gkyl_range_iter_next(&iter)) {
-
     gkyl_rect_grid_cell_center(&up->grid, iter.idx, xc);
 
     for (unsigned i=0; i<up->tot_quad; ++i) {

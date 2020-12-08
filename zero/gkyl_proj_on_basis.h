@@ -20,7 +20,7 @@ typedef struct gkyl_proj_on_basis gkyl_proj_on_basis;
  * @param num_quad Number of quadrature nodes
  * @param num_ret_vals Number of values 'eval' sets
  * @param eval Function to project.
- * @return New updater pointer. Free using
+ * @return New updater pointer.
  */
 gkyl_proj_on_basis* gkyl_proj_on_basis_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
