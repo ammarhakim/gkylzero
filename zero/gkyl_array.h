@@ -5,11 +5,12 @@
 
 /**
  * Array object. This is an untyped, undimensioned, reference counted
- * array object. All additional structure is provided elsewhere,
+ * array object. All additional structure is provided else where,
  * mainly by the range object.
  */
 struct gkyl_array {
-    size_t elemSz, size; // size of element; total number of elements
+    size_t elemSz; // size of elements
+    size_t size; // total number of elements of size elemSz
     void *data; // pointer to data
     struct gkyl_ref_count ref_count; // reference count
 };
@@ -43,9 +44,7 @@ struct gkyl_array* gkyl_array_clone(const struct gkyl_array* arr);
 
 
 /**
- * Fetches a pointer to the element stored at the linear index
- * 'loc'. The calling method will usually need to cast the returned
- * pointer to the appropriate type before using it.
+ * Fetches a pointer to the element stored at the index 'loc'.
  *
  * @param arr Array to fetch from
  * @param loc Element to fetch

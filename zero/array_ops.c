@@ -5,13 +5,14 @@
 
 #include <gkyl_array_ops.h>
 
+#define NELM(arr, type) ((arr->size*arr->elemSz)/sizeof(type))
+
 #define GKYL_ARRAY_CLEAR(type)                                  \
     struct gkyl_array*                                          \
     gkyl_array_clear_##type(struct gkyl_array* out, type val)   \
     {                                                           \
-      assert(out->elemSz==sizeof(type));                        \
       type *out_d = out->data;                                  \
-      for (unsigned i=0; i<out->size; ++i)                      \
+      for (unsigned i=0; i<NELM(out,type); ++i)                 \
         out_d[i] = val;                                         \
       return out;                                               \
     }
@@ -24,12 +25,11 @@ GKYL_ARRAY_CLEAR(double)
     gkyl_array_accumulate_##type(struct gkyl_array* out, type a,        \
       const struct gkyl_array* inp)                                     \
     {                                                                   \
-      assert(out->elemSz==sizeof(type) && inp->elemSz==sizeof(type) &&  \
-        out->size == inp->size);                                        \
+      assert(out->size == inp->size && out->elemSz == inp->elemSz);     \
                                                                         \
       type *out_d = out->data;                                          \
       const type *inp_d = inp->data;                                    \
-      for (unsigned i=0; i<out->size; ++i)                              \
+      for (unsigned i=0; i<NELM(out,type); ++i)                         \
         out_d[i] += a*inp_d[i];                                         \
       return out;                                                       \
     }
@@ -42,12 +42,11 @@ GKYL_ARRAY_ACCUMULATE(double)
     gkyl_array_set_##type(struct gkyl_array* out, type a,               \
       const struct gkyl_array* inp)                                     \
     {                                                                   \
-      assert(out->elemSz==sizeof(type) && inp->elemSz==sizeof(type) &&  \
-        out->size == inp->size);                                        \
+      assert(out->size == inp->size && out->elemSz == inp->elemSz);     \
                                                                         \
       type *out_d = out->data;                                          \
       const type *inp_d = inp->data;                                    \
-      for (unsigned i=0; i<out->size; ++i)                              \
+      for (unsigned i=0; i<NELM(out,type); ++i)                         \
         out_d[i] = a*inp_d[i];                                          \
       return out;                                                       \
     }
@@ -102,15 +101,14 @@ FIND_UNIOP(double)
     gkyl_array_uniop_##type(const char *op, type a,                     \
       struct gkyl_array *out, type b, const struct gkyl_array *inp)     \
     {                                                                   \
-      assert(out->elemSz==sizeof(type) && inp->elemSz==sizeof(type) &&  \
-        out->size == inp->size);                                        \
+      assert(out->size == inp->size && out->elemSz == inp->elemSz);     \
                                                                         \
       type (*f)(type) = find_uniop_##type(op);                          \
       assert(f != _gkyl_null_##type);                                   \
                                                                         \
       type *out_d = out->data;                                          \
       const type *inp_d = inp->data;                                    \
-      for (unsigned i=0; i<out->size; ++i)                              \
+      for (unsigned i=0; i<NELM(out,type); ++i)                         \
         out_d[i] = a*out_d[i] + b*f(inp_d[i]);                          \
                                                                         \
       return out;                                                       \

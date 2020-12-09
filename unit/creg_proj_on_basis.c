@@ -2,6 +2,7 @@
 #include <time.h>
 
 #include <gkyl_array_rio.h>
+#include <gkyl_mom_calc.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
@@ -110,6 +111,12 @@ init_conf_ranges(int cdim, const int *cells,
   gkyl_range_init(conf_local_ext, cdim, lower_ext, upper_ext);
 }
 
+struct gkyl_array*
+mkarr(long numComp, long size)
+{
+  return gkyl_array_new(sizeof(double)*numComp, size);
+}
+
 int
 main(void)
 {
@@ -140,20 +147,25 @@ main(void)
     polyOrder+1, 8, evalFieldFunc);
 
   // moment objects
-  struct gkyl_mom_type *m0 = gkyl_vlasov_mom_new(&confBasis, &basis, "M0");
-  struct gkyl_mom_type *m1i = gkyl_vlasov_mom_new(&confBasis, &basis, "M1i");
-  struct gkyl_mom_type *m2ij = gkyl_vlasov_mom_new(&confBasis, &basis, "M2ij");
+  struct gkyl_mom_type *m0t = gkyl_vlasov_mom_new(&confBasis, &basis, "M0");
+  struct gkyl_mom_type *m1it = gkyl_vlasov_mom_new(&confBasis, &basis, "M1i");
+  struct gkyl_mom_type *m2ijt = gkyl_vlasov_mom_new(&confBasis, &basis, "M2ij");
+
+  // moment updaters
+  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, m0t);
+  gkyl_mom_calc *m1icalc = gkyl_mom_calc_new(&grid, m1it);
 
   struct gkyl_range phase_local, phase_local_ext, conf_local, conf_local_ext;
   init_phase_ranges(cdim, pdim, cells, &phase_local, &phase_local_ext);
   init_conf_ranges(cdim, cells, &conf_local, &conf_local_ext);
 
-  // create distribution function
-  struct gkyl_array *distf = gkyl_array_new(sizeof(double)*basis.numBasis,
-    phase_local_ext.volume);
-  // create EM field
-  struct gkyl_array *em = gkyl_array_new(sizeof(double)*confBasis.numBasis*8,
-    conf_local_ext.volume); 
+  // create distribution function, fields
+  struct gkyl_array *distf = mkarr(basis.numBasis, phase_local_ext.volume);
+  struct gkyl_array *em = mkarr(confBasis.numBasis*8, conf_local_ext.volume);
+
+  // fields to store moments
+  struct gkyl_array *m0 = mkarr(confBasis.numBasis*m0t->num_mom, conf_local_ext.volume);
+  struct gkyl_array *m1i = mkarr(confBasis.numBasis*m1it->num_mom, conf_local_ext.volume);
 
   tstart = clock();
   // project distribution function on basis
@@ -164,6 +176,13 @@ main(void)
   // project field on basis
   gkyl_proj_on_basis_advance(projField, 0.0, &conf_local, em);
 
+  // compute moments
+  tstart = clock();
+  gkyl_mom_calc_advance(m0calc, &phase_local, &conf_local, distf, m0);
+  gkyl_mom_calc_advance(m1icalc, &phase_local, &conf_local, distf, m1i);
+  tend = clock();
+  SHOW_TIME("Moment calc took", tend-tstart);
+
   tstart = clock();
   // write out to file
   FILE *fp = fopen("distf_0.gkyl", "wb");
@@ -173,19 +192,34 @@ main(void)
   tend = clock();
   SHOW_TIME("Output took", tend-tstart);
 
-  // write out to file
   fp = fopen("field_0.gkyl", "wb");
   gkyl_rect_grid_write(&confGrid, fp);
   gkyl_sub_array_write(&conf_local, em, fp);
   fclose(fp);
 
+  fp = fopen("m0_0.gkyl", "wb");
+  gkyl_rect_grid_write(&confGrid, fp);
+  gkyl_sub_array_write(&conf_local, m0, fp);
+  fclose(fp);
+
+  fp = fopen("m1i_0.gkyl", "wb");
+  gkyl_rect_grid_write(&confGrid, fp);
+  gkyl_sub_array_write(&conf_local, m1i, fp);
+  fclose(fp);
+
   gkyl_proj_on_basis_release(projDistf);
   gkyl_proj_on_basis_release(projField);
+  
   gkyl_array_release(distf);
   gkyl_array_release(em);
-  gkyl_mom_type_release(m0);
-  gkyl_mom_type_release(m1i);
-  gkyl_mom_type_release(m2ij);
+  gkyl_array_release(m0);
+  gkyl_array_release(m1i);
+  
+  gkyl_mom_type_release(m0t);
+  gkyl_mom_type_release(m1it);
+  gkyl_mom_type_release(m2ijt);
+  gkyl_mom_calc_release(m0calc);
+  gkyl_mom_calc_release(m1icalc);
 
   return 0;
 }

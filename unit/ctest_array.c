@@ -218,6 +218,28 @@ void test_array_opcombine()
   gkyl_array_release(a2);
 }
 
+void test_array_ops_comp() // more than 1 "component" in array
+{
+  int nc = 5; // number of "components"
+  struct gkyl_array *arr = gkyl_array_new(sizeof(float)*nc, 10);
+
+  for (unsigned i=0; i<arr->size; ++i) {
+    float *d = gkyl_array_fetch(arr, i);
+    for (unsigned k=0; k<nc; ++k)
+      d[k] = i*1.0;
+  }
+
+  gkyl_array_clear(arr, 1.5f);
+
+  for (unsigned i=0; i<arr->size; ++i) {
+    const float *d = gkyl_array_fetch(arr, i);
+    for (unsigned k=0; k<nc; ++k)
+      TEST_CHECK( gkyl_compare(d[k], 1.5f, 1e-10) );
+  }
+
+  gkyl_array_release(arr);
+}
+
 void test_array_ops()
 {
   struct gkyl_array *a1 = gkyl_array_new(sizeof(double), 10);
@@ -277,6 +299,30 @@ void test_array_copy()
   gkyl_free(buff);
 }
 
+void test_non_numeric()
+{
+  struct euler { double rho, u, E; };
+  struct gkyl_array *arr = gkyl_array_new(sizeof(struct euler), 10);
+
+  for (unsigned i=0; i<arr->size; ++i) {
+    struct euler *e = gkyl_array_fetch(arr, i);
+    e->rho = 1.0; e->u = 0.0; e->E = 100.5;
+  }
+  
+  struct gkyl_array *brr = gkyl_array_new(sizeof(struct euler), 10);
+  gkyl_array_copy(brr, arr);
+
+  for (unsigned i=0; i<arr->size; ++i) {
+    struct euler *e = gkyl_array_fetch(brr, i);
+    TEST_CHECK( e->rho == 1.0 );
+    TEST_CHECK( e->u == 0.0 );
+    TEST_CHECK( e->E == 100.5 );
+  }  
+
+  gkyl_array_release(arr);
+  gkyl_array_release(brr);
+}
+
 TEST_LIST = {
   { "array_base", test_array_base },
   { "array_fetch", test_array_fetch },
@@ -288,7 +334,9 @@ TEST_LIST = {
   { "array_set_float", test_array_set_float },
   { "array_scale_double", test_array_scale_double },
   { "array_opcombine", test_array_opcombine },
+  { "array_ops_comp", test_array_ops_comp },
   { "array_ops", test_array_ops },
   { "array_copy", test_array_copy },
+  { "non_numeric", test_non_numeric },
   { NULL, NULL },
 };

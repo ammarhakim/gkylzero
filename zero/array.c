@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -27,6 +28,8 @@ gkyl_array_new(size_t elemSz, size_t size)
 struct gkyl_array*
 gkyl_array_copy(struct gkyl_array* dest, const struct gkyl_array* src)
 {
+  assert(dest->elemSz == src->elemSz);
+  
   size_t ncopy = src->size < dest->size ? src->size : dest->size;
   memcpy(dest->data, src->data, ncopy*src->elemSz);
   return dest;
