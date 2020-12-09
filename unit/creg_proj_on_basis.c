@@ -170,7 +170,7 @@ main(void)
   tstart = clock();
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &phase_local, distf);
-  tend = clock();
+  tend = clock();  
   SHOW_TIME("Project on basis took", tend-tstart);
 
   // project field on basis
