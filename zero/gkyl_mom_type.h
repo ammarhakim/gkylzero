@@ -6,7 +6,7 @@
  * Function pointer type to compute the needed moment.
  */
 typedef void (*momf_t)(const double *xc, const double *dx,
-  const long *idx, const double *f, double* out);
+  const int *idx, const double *f, double* out);
 
 struct gkyl_mom_type {
     int cdim; // config-space dim
@@ -44,5 +44,5 @@ void gkyl_mom_type_release(struct gkyl_mom_type* momt);
  * @param out On output, contribution to moment from phase-space cell
  */
 void gkyl_mom_type_calc(const struct gkyl_mom_type* momt,
-  const double *xc, const double *dx, const long *idx,
+  const double *xc, const double *dx, const int *idx,
   const double *f, double* out);

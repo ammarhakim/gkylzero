@@ -21,19 +21,19 @@ gkyl_mom_calc* gkyl_mom_calc_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_mom_type *momt);
 
 /**
- * Compute moment of distribution function. The update_rng MUST be a
- * sub-range of the range on which the distribution function is
- * defined. That is, it must be either the same range as the
- * distribution function range, or one created using the
- * gkyl_sub_range_init method.
+ * Compute moment of distribution function. The phase_rng and conf_rng
+ * MUST be a sub-ranges of the range on which the distribution
+ * function and the moments are defined. These ranges must be
+ * self-consistently constructed.
  *
  * @param calc Moment calculator updater to run
- * @param update_rng Range on which to run updater
+ * @param phase_rng Phase-space range
+ * @param conf_rng Config-space rnage
  * @param fin Input distribution function array
  * @param mout Output moment array
  */
 void gkyl_mom_calc_advance(const gkyl_mom_calc* calc,
-  const struct gkyl_range *update_rng,
+  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
   const struct gkyl_array *fin, struct gkyl_array *mout);
 
 /**

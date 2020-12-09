@@ -67,6 +67,49 @@ void evalFieldFunc(double t, const double * restrict xn, double* restrict fout)
   fout[6] = 0.0; fout[7] = 0.0;
 }
 
+void
+init_phase_ranges(int cdim, int pdim, const int *cells,
+  struct gkyl_range *phase_local, struct gkyl_range *phase_local_ext)
+{
+  int lower_ext[GKYL_MAX_DIM], upper_ext[GKYL_MAX_DIM];
+  int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+  
+  for (unsigned i=0; i<cdim; ++i) {
+    lower_ext[i] = -1;
+    upper_ext[i] = cells[i];
+
+    lower[i] = 0;
+    upper[i] = cells[i]-1;
+  }
+  for (unsigned i=cdim; i<pdim; ++i) {
+    lower_ext[i] = 0;
+    upper_ext[i] = cells[i]-1;
+
+    lower[i] = 0;
+    upper[i] = cells[i]-1;
+  }
+  gkyl_range_init(phase_local, pdim, lower, upper);    
+  gkyl_range_init(phase_local_ext, pdim, lower_ext, upper_ext);
+}
+
+void
+init_conf_ranges(int cdim, const int *cells,
+  struct gkyl_range *conf_local, struct gkyl_range *conf_local_ext)
+{
+  int lower_ext[GKYL_MAX_DIM], upper_ext[GKYL_MAX_DIM];
+  int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+  
+  for (unsigned i=0; i<cdim; ++i) {
+    lower_ext[i] = -1;
+    upper_ext[i] = cells[i];
+
+    lower[i] = 0;
+    upper[i] = cells[i]-1;
+  }
+  gkyl_range_init(conf_local, cdim, lower, upper);    
+  gkyl_range_init(conf_local_ext, cdim, lower_ext, upper_ext);
+}
+
 int
 main(void)
 {
@@ -77,8 +120,8 @@ main(void)
   // grid
   double lower[] = {0.0, 0.0, -0.9, -0.9};
   double upper[] = {2*M_PI/kx, 2*M_PI/ky, 0.9, 0.9};
-  //int cells[] = {32, 32, 32, 32};
-  int cells[] = {4, 4, 8, 8};
+  int cells[] = {32, 32, 32, 32};
+  //int cells[] = {4, 4, 8, 8};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, pdim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
@@ -101,54 +144,31 @@ main(void)
   struct gkyl_mom_type *m1i = gkyl_vlasov_mom_new(&confBasis, &basis, "M1i");
   struct gkyl_mom_type *m2ij = gkyl_vlasov_mom_new(&confBasis, &basis, "M2ij");
 
-  // global index range on phase-space grid (no ghost cells in
-  // velocity space)
-  int phase_lower[] = { -1, -1, 0, 0 };
-  int phase_upper[] = { cells[0], cells[1], cells[2]-1, cells[3]-1 }; 
-
-  // create range for distribution function
-  struct gkyl_range dist_range;
-  gkyl_range_init(&dist_range, pdim, phase_lower, phase_upper);
-
-  struct gkyl_range em_range;
-  gkyl_range_init(&em_range, cdim, phase_lower, phase_upper);
+  struct gkyl_range phase_local, phase_local_ext, conf_local, conf_local_ext;
+  init_phase_ranges(cdim, pdim, cells, &phase_local, &phase_local_ext);
+  init_conf_ranges(cdim, cells, &conf_local, &conf_local_ext);
 
   // create distribution function
   struct gkyl_array *distf = gkyl_array_new(sizeof(double)*basis.numBasis,
-    dist_range.volume);
+    phase_local_ext.volume);
   // create EM field
   struct gkyl_array *em = gkyl_array_new(sizeof(double)*confBasis.numBasis*8,
-    em_range.volume); 
-
-  // create update region
-  int local_lower[] = {
-    dist_range.lower[0]+1, dist_range.lower[1]+1,
-    dist_range.lower[2], dist_range.lower[3]
-  };
-  int local_upper[] = {
-    dist_range.upper[0]-1, dist_range.upper[1]-1,
-    dist_range.upper[2], dist_range.upper[3]
-  };
-  struct gkyl_range dist_local_range;
-  gkyl_sub_range_init(&dist_local_range, &dist_range, local_lower, local_upper);
-
-  struct gkyl_range em_local_range;
-  gkyl_sub_range_init(&em_local_range, &em_range, local_lower, local_upper);
+    conf_local_ext.volume); 
 
   tstart = clock();
   // project distribution function on basis
-  gkyl_proj_on_basis_advance(projDistf, 0.0, &dist_local_range, distf);
+  gkyl_proj_on_basis_advance(projDistf, 0.0, &phase_local, distf);
   tend = clock();
   SHOW_TIME("Project on basis took", tend-tstart);
 
   // project field on basis
-  gkyl_proj_on_basis_advance(projField, 0.0, &em_local_range, em);
+  gkyl_proj_on_basis_advance(projField, 0.0, &conf_local, em);
 
   tstart = clock();
   // write out to file
   FILE *fp = fopen("distf_0.gkyl", "wb");
   gkyl_rect_grid_write(&grid, fp);
-  gkyl_sub_array_write(&dist_local_range, distf, fp);
+  gkyl_sub_array_write(&phase_local, distf, fp);
   fclose(fp);
   tend = clock();
   SHOW_TIME("Output took", tend-tstart);
@@ -156,7 +176,7 @@ main(void)
   // write out to file
   fp = fopen("field_0.gkyl", "wb");
   gkyl_rect_grid_write(&confGrid, fp);
-  gkyl_sub_array_write(&em_local_range, em, fp);
+  gkyl_sub_array_write(&conf_local, em, fp);
   fclose(fp);
 
   gkyl_proj_on_basis_release(projDistf);

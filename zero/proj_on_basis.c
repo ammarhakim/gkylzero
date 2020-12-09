@@ -16,14 +16,13 @@ struct gkyl_proj_on_basis {
     int tot_quad; // Total number of quadrature points
     struct gkyl_array *ordinates; // Ordinates for quadrature
     struct gkyl_array *weights; // Weights for quadrature
-    struct gkyl_array *basis_at_ords; // basis functions at ordinates
-    struct gkyl_array *fun_at_ords; // function at ordinates
+    struct gkyl_array *basis_at_ords; // Basis functions at ordinates
+    struct gkyl_array *fun_at_ords; // Function at ordinates
 };
 
 gkyl_proj_on_basis*
-gkyl_proj_on_basis_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
-  int num_quad, int num_ret_vals, evalf_t eval)
+gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis *basis, int num_quad, int num_ret_vals, evalf_t eval)
 {
   gkyl_proj_on_basis *up = gkyl_malloc(sizeof(gkyl_proj_on_basis));
 
