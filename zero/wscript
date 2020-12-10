@@ -17,6 +17,7 @@ def build(bld):
     gauss_quad_data.c
     mom_calc.c
     mom_type.c
+    optparse.c
     proj_on_basis.c
     range.c
     rect_grid.c

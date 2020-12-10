@@ -1,6 +1,7 @@
 #include <math.h>
 #include <time.h>
 
+#include <gkyl_array.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_proj_on_basis.h>

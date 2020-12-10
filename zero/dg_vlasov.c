@@ -117,6 +117,8 @@ struct dg_vlasov {
     vlasov_vol_t vol; // Volume kernel
     vlasov_stream_surf_t stream_surf[3]; // Surface terms for streaming
     vlasov_accel_surf_t accel_surf[3]; // Surface terms for acceleration
+
+    struct gkyl_range conf_range; // configuration space range
     struct gkyl_array *qmem; // Pointer to q/m*EM field
 };
 
@@ -129,7 +131,7 @@ vlasov_free(const struct gkyl_ref_count *ref)
 }
 
 void
-gkyl_vlasov_em(const struct gkyl_dg_eqn *eqn, struct gkyl_array *qmem)
+gkyl_vlasov_set_qmem(const struct gkyl_dg_eqn *eqn, struct gkyl_array *qmem)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
   vlasov->qmem = qmem;
@@ -137,9 +139,15 @@ gkyl_vlasov_em(const struct gkyl_dg_eqn *eqn, struct gkyl_array *qmem)
 
 static
 double vlasov_vol(const struct gkyl_dg_eqn *eqn, 
-  const double*  xc, const double*  dx, const int*  idx, const double* qIn, double *qRhsOut)
+  const double*  xc, const double*  dx, const int* idx, const double* qIn, double *qRhsOut)
 {
-  return 0;
+  struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
+
+  assert(vlasov->qmem);
+  
+  long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
+  return vlasov->vol(xc, dx, gkyl_array_fetch(vlasov->qmem, cidx),
+    qIn, qRhsOut);
 }
 
 static
@@ -165,7 +173,8 @@ double vlasov_boundary_surf(const struct gkyl_dg_eqn *eqn,
 #define CK(lst,cdim,vdim,polyOrder) lst[cv_index[cdim].vdim[vdim]].kernels[polyOrder]
 
 struct gkyl_dg_eqn*
-gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis)
+gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
+  const struct gkyl_range* conf_range)
 {
   struct dg_vlasov *vlasov = gkyl_malloc(sizeof(struct dg_vlasov));
 
@@ -195,6 +204,9 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   assert(vlasov->vol);
   for (unsigned i=0; i<cdim; ++i) assert(vlasov->stream_surf[i]);
   for (unsigned i=0; i<vdim; ++i) assert(vlasov->accel_surf[i]);
+
+  vlasov->qmem = 0; 
+  vlasov->conf_range = *conf_range;
 
   // set reference counter
   vlasov->eqn.ref_count = (struct gkyl_ref_count) { vlasov_free, 1 };
