@@ -64,12 +64,4 @@ def build(bld):
         use = 'gkylzero',
     )
 
-    # regression tests
-    bld.program(
-        source = 'creg_proj_on_basis.c',
-        target = 'creg_proj_on_basis',
-        includes = '. ../zero',
-        use = 'gkylzero gkylzerokern',
-    )
-
     

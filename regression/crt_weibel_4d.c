@@ -135,9 +135,8 @@ main(void)
   gkyl_rect_grid_init(&confGrid, cdim, lower, upper, cells);
 
   // basis functions
-  struct gkyl_basis basis;
+  struct gkyl_basis basis, confBasis;
   gkyl_cart_modal_serendip(&basis, pdim, polyOrder);
-  struct gkyl_basis confBasis;
   gkyl_cart_modal_serendip(&confBasis, cdim, polyOrder);
 
   // projection updater for dist-function

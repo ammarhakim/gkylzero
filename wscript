@@ -66,6 +66,7 @@ def build(bld):
     bld.recurse("kernels")    
     bld.recurse("zero")
     bld.recurse("unit")
+    bld.recurse("regression") 
 
 def dist(ctx):
     ctx.algo = "zip" # use ZIP instead of tar.bz2

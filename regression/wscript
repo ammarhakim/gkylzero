@@ -1,0 +1,17 @@
+## -*- python -*-
+# Build code in this directory
+##    _______     ___
+## + 6 @ |||| # P ||| +
+
+import os
+
+def build(bld):
+
+    bld.program(
+        source = 'crt_weibel_4d.c',
+        target = 'crt_weibel_4d',
+        includes = '. ../zero',
+        use = 'gkylzero gkylzerokern',
+    )
+
+    

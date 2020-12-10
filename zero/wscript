@@ -13,6 +13,7 @@ def build(bld):
     array_rio.c
     cart_modal_serendip.c
     dg_eqn.c
+    dg_vlasov.c
     gauss_quad_data.c
     mom_calc.c
     mom_type.c
