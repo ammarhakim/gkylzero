@@ -1,5 +1,5 @@
 #include <gkyl_vlasov_kernels.h> 
-double vlasov_vol_1x1v_p1(const double *w, const double *dxv, const double *EM, const double *f, double* restrict out) 
+double vlasov_vol_1x1v_p1(const double *w, const double *dxv, const double *EM, const double *restrict f, double* restrict out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. EM/f: Input EM-field/distribution function. out: Incremented output 
   double dv0dx0 = dxv[1]/dxv[0]; 

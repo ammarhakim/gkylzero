@@ -1,6 +1,6 @@
 #include <gkyl_vlasov_mom_kernels.h>
 
-void vlasov_mom_2x2v_m0_p1(const double *w, const double *dxv, const int *idx, const double *f, double* restrict out) 
+void vlasov_mom_2x2v_m0_p1(const double *w, const double *dxv, const int *idx, const double *restrict f, double* restrict out) 
 { 
   const double volFact = dxv[2]*dxv[3]/4; 
   out[0] += 2.0*f[0]*volFact; 
@@ -8,7 +8,7 @@ void vlasov_mom_2x2v_m0_p1(const double *w, const double *dxv, const int *idx, c
   out[2] += 2.0*f[2]*volFact; 
   out[3] += 2.0*f[5]*volFact; 
 } 
-void vlasov_mom_2x2v_m0_p2(const double *w, const double *dxv, const int *idx, const double *f, double* restrict out) 
+void vlasov_mom_2x2v_m0_p2(const double *w, const double *dxv, const int *idx, const double *restrict f, double* restrict out) 
 { 
   const double volFact = dxv[2]*dxv[3]/4; 
   out[0] += 2.0*f[0]*volFact; 
@@ -20,7 +20,7 @@ void vlasov_mom_2x2v_m0_p2(const double *w, const double *dxv, const int *idx, c
   out[6] += 2.0*f[19]*volFact; 
   out[7] += 2.0*f[20]*volFact; 
 } 
-void vlasov_mom_2x2v_m1i_p1(const double *w, const double *dxv, const int *idx, const double *f, double* restrict out) 
+void vlasov_mom_2x2v_m1i_p1(const double *w, const double *dxv, const int *idx, const double *restrict f, double* restrict out) 
 { 
   const double volFact = dxv[2]*dxv[3]/4; 
   const double wx1 = w[2], dv1 = dxv[2]; 
@@ -34,7 +34,7 @@ void vlasov_mom_2x2v_m1i_p1(const double *w, const double *dxv, const int *idx, 
   out[6] += volFact*(2.0*f[2]*wx2+0.5773502691896258*f[9]*dv2); 
   out[7] += volFact*(2.0*f[5]*wx2+0.5773502691896258*f[12]*dv2); 
 } 
-void vlasov_mom_2x2v_m1i_p2(const double *w, const double *dxv, const int *idx, const double *f, double* restrict out) 
+void vlasov_mom_2x2v_m1i_p2(const double *w, const double *dxv, const int *idx, const double *restrict f, double* restrict out) 
 { 
   const double volFact = dxv[2]*dxv[3]/4; 
   const double wx1 = w[2], dv1 = dxv[2]; 
@@ -56,7 +56,7 @@ void vlasov_mom_2x2v_m1i_p2(const double *w, const double *dxv, const int *idx, 
   out[14] += volFact*(2.0*f[19]*wx2+0.5773502691896257*f[35]*dv2); 
   out[15] += volFact*(2.0*f[20]*wx2+0.5773502691896257*f[36]*dv2); 
 } 
-void vlasov_mom_2x2v_m2ij_p1(const double *w, const double *dxv, const int *idx, const double *f, double* restrict out) 
+void vlasov_mom_2x2v_m2ij_p1(const double *w, const double *dxv, const int *idx, const double *restrict f, double* restrict out) 
 { 
   const double volFact = dxv[2]*dxv[3]/4; 
   const double wx1 = w[2], dv1 = dxv[2]; 
@@ -76,7 +76,7 @@ void vlasov_mom_2x2v_m2ij_p1(const double *w, const double *dxv, const int *idx,
   out[10] += volFact*(2.0*f[2]*wx2_sq+1.154700538379252*f[9]*dv2*wx2+0.1666666666666667*f[2]*dv2_sq); 
   out[11] += volFact*(2.0*f[5]*wx2_sq+1.154700538379252*f[12]*dv2*wx2+0.1666666666666667*f[5]*dv2_sq); 
 } 
-void vlasov_mom_2x2v_m2ij_p2(const double *w, const double *dxv, const int *idx, const double *f, double* restrict out) 
+void vlasov_mom_2x2v_m2ij_p2(const double *w, const double *dxv, const int *idx, const double *restrict f, double* restrict out) 
 { 
   const double volFact = dxv[2]*dxv[3]/4; 
   const double wx1 = w[2], dv1 = dxv[2]; 
@@ -108,7 +108,7 @@ void vlasov_mom_2x2v_m2ij_p2(const double *w, const double *dxv, const int *idx,
   out[22] += volFact*(2.0*f[19]*wx2_sq+1.154700538379251*f[35]*dv2*wx2+0.1666666666666667*f[19]*dv2_sq); 
   out[23] += volFact*(2.0*f[20]*wx2_sq+1.154700538379251*f[36]*dv2*wx2+0.1666666666666667*f[20]*dv2_sq); 
 } 
-void vlasov_mom_2x2v_m2_p1(const double *w, const double *dxv, const int *idx, const double *f, double* restrict out) 
+void vlasov_mom_2x2v_m2_p1(const double *w, const double *dxv, const int *idx, const double *restrict f, double* restrict out) 
 { 
   const double volFact = dxv[2]*dxv[3]/4; 
   const double wx1 = w[2], dv1 = dxv[2]; 
@@ -120,7 +120,7 @@ void vlasov_mom_2x2v_m2_p1(const double *w, const double *dxv, const int *idx, c
   out[2] += volFact*(2.0*f[2]*wx2_sq+1.154700538379252*f[9]*dv2*wx2+2.0*f[2]*wx1_sq+1.154700538379252*f[7]*dv1*wx1+0.1666666666666667*f[2]*dv2_sq+0.1666666666666667*f[2]*dv1_sq); 
   out[3] += volFact*(2.0*f[5]*wx2_sq+1.154700538379252*f[12]*dv2*wx2+2.0*f[5]*wx1_sq+1.154700538379252*f[11]*dv1*wx1+0.1666666666666667*f[5]*dv2_sq+0.1666666666666667*f[5]*dv1_sq); 
 } 
-void vlasov_mom_2x2v_m2_p2(const double *w, const double *dxv, const int *idx, const double *f, double* restrict out) 
+void vlasov_mom_2x2v_m2_p2(const double *w, const double *dxv, const int *idx, const double *restrict f, double* restrict out) 
 { 
   const double volFact = dxv[2]*dxv[3]/4; 
   const double wx1 = w[2], dv1 = dxv[2]; 
@@ -136,7 +136,7 @@ void vlasov_mom_2x2v_m2_p2(const double *w, const double *dxv, const int *idx, c
   out[6] += volFact*(2.0*f[19]*wx2_sq+1.154700538379251*f[35]*dv2*wx2+2.0*f[19]*wx1_sq+1.154700538379251*f[32]*dv1*wx1+0.1666666666666667*f[19]*dv2_sq+0.1666666666666667*f[19]*dv1_sq); 
   out[7] += volFact*(2.0*f[20]*wx2_sq+1.154700538379251*f[36]*dv2*wx2+2.0*f[20]*wx1_sq+1.154700538379251*f[33]*dv1*wx1+0.1666666666666667*f[20]*dv2_sq+0.1666666666666667*f[20]*dv1_sq); 
 } 
-void vlasov_mom_2x2v_m3i_p1(const double *w, const double *dxv, const int *idx, const double *f, double* restrict out) 
+void vlasov_mom_2x2v_m3i_p1(const double *w, const double *dxv, const int *idx, const double *restrict f, double* restrict out) 
 { 
   const double volFact = dxv[2]*dxv[3]/4; 
   const double wx1 = w[2], dv1 = dxv[2]; 
@@ -154,7 +154,7 @@ void vlasov_mom_2x2v_m3i_p1(const double *w, const double *dxv, const int *idx, 
   out[6] += volFact*(2.0*f[2]*wx2*wx2_sq+1.732050807568877*f[9]*dv2*wx2_sq+2.0*f[2]*wx1_sq*wx2+1.154700538379252*f[7]*dv1*wx1*wx2+0.5*f[2]*dv2_sq*wx2+0.1666666666666667*f[2]*dv1_sq*wx2+0.5773502691896258*f[9]*dv2*wx1_sq+0.3333333333333333*f[14]*dv1*dv2*wx1+0.08660254037844387*f[9]*dv2*dv2_sq+0.04811252243246882*f[9]*dv1_sq*dv2); 
   out[7] += volFact*(2.0*f[5]*wx2*wx2_sq+1.732050807568877*f[12]*dv2*wx2_sq+2.0*f[5]*wx1_sq*wx2+1.154700538379252*f[11]*dv1*wx1*wx2+0.5*f[5]*dv2_sq*wx2+0.1666666666666667*f[5]*dv1_sq*wx2+0.5773502691896258*f[12]*dv2*wx1_sq+0.3333333333333333*f[15]*dv1*dv2*wx1+0.08660254037844387*f[12]*dv2*dv2_sq+0.04811252243246882*f[12]*dv1_sq*dv2); 
 } 
-void vlasov_mom_2x2v_m3i_p2(const double *w, const double *dxv, const int *idx, const double *f, double* restrict out) 
+void vlasov_mom_2x2v_m3i_p2(const double *w, const double *dxv, const int *idx, const double *restrict f, double* restrict out) 
 { 
   const double volFact = dxv[2]*dxv[3]/4; 
   const double wx1 = w[2], dv1 = dxv[2]; 
