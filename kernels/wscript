@@ -37,10 +37,23 @@ def build(bld):
     vlasov/vlasov_surf_3x3v_p1.c
     vlasov/vlasov_surf_1x2v_p2.c
     vlasov/vlasov_surf_2x2v_p2.c
+
+    maxwell/maxwell_vol_1x_p1.c
+    maxwell/maxwell_vol_1x_p2.c
+    maxwell/maxwell_vol_2x_p1.c
+    maxwell/maxwell_vol_2x_p2.c
+    maxwell/maxwell_vol_3x_p1.c
+
+    maxwell/maxwell_surf_1x_p1.c
+    maxwell/maxwell_surf_1x_p2.c
+    maxwell/maxwell_surf_2x_p1.c
+    maxwell/maxwell_surf_2x_p2.c
+    maxwell/maxwell_surf_3x_p1.c
+
     """
     
     bld.stlib(source = source,
-              includes = '. vlasov',
+              includes = '. vlasov maxwell',
               target = 'gkylzerokern',
               name = 'gkylzerokern'
     )
