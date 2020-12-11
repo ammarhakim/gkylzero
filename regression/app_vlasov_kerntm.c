@@ -205,7 +205,7 @@ main(int argc, char **argv)
     zero_flux_dir[i] = 1; // no ghost cells in velocity directions
 
   long nsurf[] = { 0, 0, 0, 0, 0, 0 };
-  clock_t tmsurf[6];
+  double tmsurf[6];
 
   for (unsigned n=0; n<nloop; ++n) {
     gkyl_vlasov_set_qmem(vlasov_eqn, em);
@@ -253,29 +253,22 @@ main(int argc, char **argv)
       }
       
       tend = clock();
-      tmsurf[dir] = tend-tstart;
+      tmsurf[dir] += 1.0*(tend-tstart)/CLOCKS_PER_SEC;
     }
   }
 
   double totSurfTm = 0.0;
   for (unsigned dir=0; dir<pdim; ++dir) {
     printf("Surface update in dir %d took %g sec\n",
-      dir, 1.0*tmsurf[dir]/CLOCKS_PER_SEC);
+      dir, tmsurf[dir]);
     printf(" (Total calls = %ld. Time per-call %g)\n\n",
-      nsurf[dir], 1.0*tmsurf[dir]/CLOCKS_PER_SEC/nsurf[dir]);
+      nsurf[dir], tmsurf[dir]/nsurf[dir]);
 
-    totSurfTm += 1.0*tmsurf[dir]/CLOCKS_PER_SEC;
+    totSurfTm += tmsurf[dir];
   }
 
   printf("Total volume updates took %g. Surface updates took %g\n",
     totVolTm, totSurfTm);
-
-  // write out to file
-  FILE *fp = fopen("fOut.gkyl", "wb");
-  gkyl_rect_grid_write(&grid, fp);
-  gkyl_sub_array_write(&phase_local, fOut, fp);
-  fclose(fp);
-  tend = clock();  
 
   // release resources
   gkyl_array_release(fIn);
