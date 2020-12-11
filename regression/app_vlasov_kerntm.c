@@ -4,6 +4,7 @@
 
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_array_rio.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
@@ -268,6 +269,13 @@ main(int argc, char **argv)
 
   printf("Total volume updates took %g. Surface updates took %g\n",
     totVolTm, totSurfTm);
+
+  // write out to file
+  FILE *fp = fopen("fOut.gkyl", "wb");
+  gkyl_rect_grid_write(&grid, fp);
+  gkyl_sub_array_write(&phase_local, fOut, fp);
+  fclose(fp);
+  tend = clock();  
 
   // release resources
   gkyl_array_release(fIn);
