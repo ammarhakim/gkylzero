@@ -8,9 +8,17 @@
 #include <kernels/vlasov/gkyl_vlasov_kernels.h>
 
 // Types for various kernels
-typedef double (*vlasov_vol_t)(const double *w, const double *dxv, const double *EM, const double *f, double* out);
-typedef void (*vlasov_stream_surf_t)(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double* outl, double* outr);
-typedef double (*vlasov_accel_surf_t)(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double* outl, double* outr);
+typedef double (*vlasov_vol_t)(const double *w, const double *dxv,
+  const double *EM, const double *f, double* out);
+
+typedef void (*vlasov_stream_surf_t)(const double *wl, const double *wr,
+  const double *dxvl, const double *dxvr,
+  const double *fl, const double *fr, double* outl, double* outr);
+
+typedef double (*vlasov_accel_surf_t)(const double *wl, const double *wr,
+  const double *dxvl, const double *dxvr,
+  const double amax, const double *EM,
+  const double *fl, const double *fr, double* outl, double* outr);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
@@ -31,7 +39,7 @@ static struct { vlasov_vol_t kernels[3]; } vol_kernels[] = {
   { NULL, vlasov_vol_2x2v_p1, vlasov_vol_2x2v_p2 }, // 3
   { NULL, vlasov_vol_2x3v_p1, vlasov_vol_2x3v_p2 }, // 4
   // 3x kernels
-  { NULL, vlasov_vol_3x3v_p1, NULL                  }, // 5
+  { NULL, vlasov_vol_3x3v_p1, NULL               }, // 5
 };
 
 // Streaming surface kernel list: x-direction
@@ -83,7 +91,7 @@ static struct { vlasov_accel_surf_t kernels[3]; } accel_surf_vx_kernels[] = {
   { NULL, vlasov_surf_2x2v_vx_p1, vlasov_surf_2x2v_vx_p2 }, // 3
   { NULL, vlasov_surf_2x3v_vx_p1, vlasov_surf_2x3v_vx_p2 }, // 4
   // 3x kernels
-  { NULL, vlasov_surf_3x3v_vx_p1, NULL                  }, // 5
+  { NULL, vlasov_surf_3x3v_vx_p1, NULL                   }, // 5
 };
 
 // Accel_Surf_Vx_Kernels surface kernel list: vy-direction
@@ -96,7 +104,7 @@ static struct { vlasov_accel_surf_t kernels[3]; } accel_surf_vy_kernels[] = {
   { NULL, vlasov_surf_2x2v_vy_p1, vlasov_surf_2x2v_vy_p2 }, // 3
   { NULL, vlasov_surf_2x3v_vy_p1, vlasov_surf_2x3v_vy_p2 }, // 4
   // 3x kernels
-  { NULL, vlasov_surf_3x3v_vy_p1, NULL                  }, // 5
+  { NULL, vlasov_surf_3x3v_vy_p1, NULL                   }, // 5
 };
 
 // Acceleration surface kernel list: vz-direction
@@ -114,6 +122,8 @@ static struct { vlasov_accel_surf_t kernels[3]; } accel_surf_vz_kernels[] = {
 
 struct dg_vlasov {
     struct gkyl_dg_eqn eqn; // Base object
+    int cdim; // Config-space dimensions
+    int pdim; // Phase-space dimensions
     vlasov_vol_t vol; // Volume kernel
     vlasov_stream_surf_t stream_surf[3]; // Surface terms for streaming
     vlasov_accel_surf_t accel_surf[3]; // Surface terms for acceleration
@@ -156,7 +166,21 @@ double vlasov_surf(const struct gkyl_dg_eqn *eqn, int dir,
   double maxsOld, const int*  idxL, const int*  idxR,
   const double* qInL, const double*  qInR, double *qRhsOutL, double *qRhsOutR)
 {
-  return 0;
+  struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
+
+  double amax = 0.0;
+  if (dir < vlasov->cdim) {
+    vlasov->stream_surf[dir]
+      (xcL, xcR, dxL, dxR, qInL, qInR, qRhsOutL, qRhsOutR);
+  }
+  else {
+    long cidx = gkyl_range_idx(&vlasov->conf_range, idxL);
+    amax = vlasov->accel_surf[dir-vlasov->cdim]
+      (xcL, xcR, dxL, dxR, maxsOld, gkyl_array_fetch(vlasov->qmem, cidx),
+        qInL, qInR, qRhsOutL, qRhsOutR);
+  }
+  
+  return amax;
 }
 
 static
@@ -180,6 +204,9 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
   int polyOrder = cbasis->polyOrder;
+
+  vlasov->cdim = cdim;
+  vlasov->pdim = pdim;
 
   vlasov->eqn.num_equations = 1;
   vlasov->eqn.vol_term = vlasov_vol;
