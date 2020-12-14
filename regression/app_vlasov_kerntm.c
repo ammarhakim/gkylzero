@@ -141,7 +141,7 @@ main(int argc, char **argv)
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, pdim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
-  gkyl_rect_grid_init(&confGrid, cdim, lower, upper, cells);  
+  gkyl_rect_grid_init(&confGrid, cdim, lower, upper, cells);
 
   // basis functions
   struct gkyl_basis basis, confBasis;
@@ -169,14 +169,14 @@ main(int argc, char **argv)
   long nvol = 0;
 
   // volume kernels
-  printf("\n*** Timing volume kernel ....\n\n");  
+  printf("\n*** Timing volume kernel ....\n\n");
   tstart = clock();
   for (unsigned n=0; n<nloop; ++n) {
     
     gkyl_vlasov_set_qmem(vlasov_eqn, em);
 
     struct gkyl_range_iter iter;
-    gkyl_range_iter_init(&iter, &phase_local);    
+    gkyl_range_iter_init(&iter, &phase_local);
     while(gkyl_range_iter_next(&iter)) {
       gkyl_rect_grid_cell_center(&grid, iter.idx, xc);
       
@@ -205,7 +205,7 @@ main(int argc, char **argv)
     zero_flux_dir[i] = 1; // no ghost cells in velocity directions
 
   long nsurf[] = { 0, 0, 0, 0, 0, 0 };
-  double tmsurf[6];
+  double tmsurf[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 
   for (unsigned n=0; n<nloop; ++n) {
     gkyl_vlasov_set_qmem(vlasov_eqn, em);
