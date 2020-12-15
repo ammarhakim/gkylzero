@@ -15,6 +15,7 @@ def build(bld):
     dg_eqn.c
     dg_vlasov.c
     gauss_quad_data.c
+    hyper_dg.c
     mom_calc.c
     mom_type.c
     optparse.c

@@ -1,5 +1,8 @@
 #include <assert.h>
+#include <errno.h>
 #include <stdint.h>
+#include <stdio.h>
+
 #include <gkyl_array_rio.h>
 
 void
@@ -35,4 +38,15 @@ gkyl_sub_array_write(const struct gkyl_range *range,
     fwrite(_F(start), arr->elemSz*skip.delta, 1, fp);
   }
 #undef _F
+}
+
+int
+gkyl_grid_array_write(const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+  const struct gkyl_array *arr, const char *fname)
+{
+  FILE *fp = fopen(fname, "wb"); if (!fp) return errno;
+  gkyl_rect_grid_write(grid, fp);
+  gkyl_sub_array_write(range, arr, fp);
+  fclose(fp);
+  return 0;
 }

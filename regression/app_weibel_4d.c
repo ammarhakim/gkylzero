@@ -185,28 +185,15 @@ main(void)
 
   tstart = clock();
   // write out to file
-  FILE *fp = fopen("distf_0.gkyl", "wb");
-  gkyl_rect_grid_write(&grid, fp);
-  gkyl_sub_array_write(&phase_local, distf, fp);
-  fclose(fp);
+  gkyl_grid_array_write(&grid, &phase_local, distf, "distf_0.gkyl");
   tend = clock();
   SHOW_TIME("Output took", tend-tstart);
 
-  fp = fopen("field_0.gkyl", "wb");
-  gkyl_rect_grid_write(&confGrid, fp);
-  gkyl_sub_array_write(&conf_local, em, fp);
-  fclose(fp);
+  gkyl_grid_array_write(&confGrid, &conf_local, em, "field_0.gkyl");
+  gkyl_grid_array_write(&confGrid, &conf_local, m0, "m0_0.gkyl");
+  gkyl_grid_array_write(&confGrid, &conf_local, m1i, "m1i_0.gkyl");
 
-  fp = fopen("m0_0.gkyl", "wb");
-  gkyl_rect_grid_write(&confGrid, fp);
-  gkyl_sub_array_write(&conf_local, m0, fp);
-  fclose(fp);
-
-  fp = fopen("m1i_0.gkyl", "wb");
-  gkyl_rect_grid_write(&confGrid, fp);
-  gkyl_sub_array_write(&conf_local, m1i, fp);
-  fclose(fp);
-
+  // release resources
   gkyl_proj_on_basis_release(projDistf);
   gkyl_proj_on_basis_release(projField);
   
