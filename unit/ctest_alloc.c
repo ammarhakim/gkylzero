@@ -24,17 +24,17 @@ test_aligned_alloc()
 void
 test_aligned_realloc()
 {
-  unsigned n = 10;
+  int n = 10;
   int *d = gkyl_aligned_alloc(16, n*sizeof(int));
 
-  for (unsigned i=0; i<n; ++i)
+  for (int i=0; i<n; ++i)
     d[i] = 2*i;
 
   int *rd = gkyl_aligned_realloc(d, 16, n*sizeof(int), 2*n*sizeof(int));
 
   TEST_CHECK( (ptrdiff_t) rd % 16 == 0 );
 
-  for (unsigned i=0; i<n; ++i)
+  for (int i=0; i<n; ++i)
     TEST_CHECK( rd[i] == 2*i );
 
   gkyl_aligned_free(rd);

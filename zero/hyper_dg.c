@@ -10,7 +10,7 @@ struct gkyl_hyper_dg {
     int numBasis; // number of basis functions
     int num_up_dirs; // number of update directions
     int update_dirs[GKYL_MAX_DIM]; // directions to update
-    int zero_flux_flags[6]; // directions with zero flux
+    int zero_flux_flags[GKYL_MAX_DIM]; // directions with zero flux
     int update_vol_term; // should we update volume term?
     const struct gkyl_dg_eqn *equation; // equation object
 
@@ -22,24 +22,24 @@ struct gkyl_hyper_dg {
 };
 
 static inline void
-copy_int_arr(int n, const int *inp, int *out) {
-  for (unsigned i=0; i<n; ++i)  out[i] = inp[i];
+copy_int_arr(int n, const int *inp, int *restrict out) {
+  for (int i=0; i<n; ++i)  out[i] = inp[i];
 }
 
 void
 gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
   const struct gkyl_array *fIn, const struct gkyl_array *rhs)
 {
+  int ndim = hdg->ndim;
+  int firstDir = 1;
   int idxm[GKYL_MAX_DIM], idxp[GKYL_MAX_DIM];
   double xcm[GKYL_MAX_DIM], xcp[GKYL_MAX_DIM];
-  int ndim = hdg->ndim, numBasis = hdg->numBasis, numEqn = hdg->equation->num_equations;
-  int firstDir = 1;
   
   // we need to use previous step values for relaxation parameter
-  for (unsigned i=0; i<hdg->ndim; ++i)
+  for (int i=0; i<hdg->ndim; ++i)
     hdg->maxs_old[i] = hdg->maxs[i];
   
-  for (unsigned d=0; d<hdg->num_up_dirs; ++d) {
+  for (int d=0; d<hdg->num_up_dirs; ++d) {
     int dir = hdg->update_dirs[d];
 
     int dirLoIdx = update_range->lower[dir];
@@ -48,7 +48,7 @@ gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
     if (hdg->zero_flux_flags[dir]) {
       dirLoIdx = dirLoIdx+1;
       dirUpIdx = dirUpIdx-1;
-    }    
+    }
 
     // create range perpendicular to 'dir'
     struct gkyl_range perp_range;
@@ -60,7 +60,7 @@ gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
       copy_int_arr(ndim, iter.idx, idxm);
       copy_int_arr(ndim, iter.idx, idxp);
 
-      for (long i=dirLoIdx; i<=dirUpIdx; ++i) { // note dirUpIdx is inclusive
+      for (int i=dirLoIdx; i<=dirUpIdx; ++i) { // note dirUpIdx is inclusive
         idxm[dir] = i-1; idxp[dir] = i;
 
         gkyl_rect_grid_cell_center(&hdg->grid, idxm, xcm);
@@ -101,14 +101,14 @@ gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   up->numBasis = basis->numBasis;
   up->num_up_dirs = num_up_dirs;
 
-  for (unsigned i=0; i<num_up_dirs; ++i) {
+  for (int i=0; i<num_up_dirs; ++i) {
     up->update_dirs[i] = update_dirs[i];
     up->zero_flux_flags[i] = zero_flux_flags[i];
   }
   up->update_vol_term = update_vol_term;
   up->equation = gkyl_dg_eqn_aquire(equation);
 
-  for (unsigned i=0; i<up->ndim; ++i)
+  for (int i=0; i<up->ndim; ++i)
     up->maxs[i] = up->maxs_old[i] = up->maxs_local[i] = 0.0;
 
   return up;

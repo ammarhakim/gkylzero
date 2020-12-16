@@ -9,7 +9,7 @@ void test_grid_2d()
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
   TEST_CHECK( grid.ndim == 2 );
-  for (unsigned i=0; i<grid.ndim; ++i) {
+  for (int i=0; i<grid.ndim; ++i) {
     TEST_CHECK( grid.lower[i] == lower[i] );
     TEST_CHECK( grid.upper[i] == upper[i] );
     TEST_CHECK( grid.cells[i] == cells[i] );
@@ -19,8 +19,8 @@ void test_grid_2d()
 
   int idx[2];
   double xc[2];
-  for (unsigned i=0; i<grid.cells[0]; ++i)
-    for (unsigned j=0; j<grid.cells[1]; ++j) {
+  for (int i=0; i<grid.cells[0]; ++i)
+    for (int j=0; j<grid.cells[1]; ++j) {
       idx[0] = i; idx[1] = j;
       gkyl_rect_grid_cell_center(&grid, idx, xc);
 

@@ -76,14 +76,14 @@ init_phase_ranges(int cdim, int pdim, const int *cells,
   int lower_ext[GKYL_MAX_DIM], upper_ext[GKYL_MAX_DIM];
   int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
   
-  for (unsigned i=0; i<cdim; ++i) {
+  for (int i=0; i<cdim; ++i) {
     lower_ext[i] = -1;
     upper_ext[i] = cells[i];
 
     lower[i] = 0;
     upper[i] = cells[i]-1;
   }
-  for (unsigned i=cdim; i<pdim; ++i) {
+  for (int i=cdim; i<pdim; ++i) {
     lower_ext[i] = 0;
     upper_ext[i] = cells[i]-1;
 
@@ -101,7 +101,7 @@ init_conf_ranges(int cdim, const int *cells,
   int lower_ext[GKYL_MAX_DIM], upper_ext[GKYL_MAX_DIM];
   int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
   
-  for (unsigned i=0; i<cdim; ++i) {
+  for (int i=0; i<cdim; ++i) {
     lower_ext[i] = -1;
     upper_ext[i] = cells[i];
 

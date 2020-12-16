@@ -47,7 +47,7 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid,
 
   // create range to loop over quadrature points
   int qshape[GKYL_MAX_DIM];
-  for (unsigned i=0; i<grid->ndim; ++i) qshape[i] = num_quad;
+  for (int i=0; i<grid->ndim; ++i) qshape[i] = num_quad;
   struct gkyl_range qrange;
   gkyl_range_init_from_shape(&qrange, grid->ndim, qshape);
 
@@ -77,7 +77,7 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid,
 
   // pre-compute basis functions at ordinates
   up->basis_at_ords = gkyl_array_new(sizeof(double)*basis->numBasis, tot_quad);
-  for (unsigned n=0; n<tot_quad; ++n)
+  for (int n=0; n<tot_quad; ++n)
     basis->eval(gkyl_array_fetch(up->ordinates, n),
       gkyl_array_fetch(up->basis_at_ords, n));
 
@@ -135,7 +135,7 @@ gkyl_proj_on_basis_advance(const gkyl_proj_on_basis* up,
   while (gkyl_range_iter_next(&iter)) {
     gkyl_rect_grid_cell_center(&up->grid, iter.idx, xc);
 
-    for (unsigned i=0; i<up->tot_quad; ++i) {
+    for (int i=0; i<up->tot_quad; ++i) {
       comp_to_phys(up->grid.ndim, gkyl_array_fetch(up->ordinates, i),
         up->grid.dx, xc, xmu);
       up->eval(tm, xmu, gkyl_array_fetch(up->fun_at_ords, i));

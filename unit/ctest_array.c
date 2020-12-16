@@ -225,7 +225,7 @@ void test_array_ops_comp() // more than 1 "component" in array
 
   for (unsigned i=0; i<arr->size; ++i) {
     float *d = gkyl_array_fetch(arr, i);
-    for (unsigned k=0; k<nc; ++k)
+    for (int k=0; k<nc; ++k)
       d[k] = i*1.0;
   }
 
@@ -233,7 +233,7 @@ void test_array_ops_comp() // more than 1 "component" in array
 
   for (unsigned i=0; i<arr->size; ++i) {
     const float *d = gkyl_array_fetch(arr, i);
-    for (unsigned k=0; k<nc; ++k)
+    for (int k=0; k<nc; ++k)
       TEST_CHECK( gkyl_compare(d[k], 1.5f, 1e-10) );
   }
 

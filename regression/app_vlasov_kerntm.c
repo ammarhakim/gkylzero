@@ -18,14 +18,14 @@ init_phase_ranges(int cdim, int pdim, const int *cells,
   int lower_ext[GKYL_MAX_DIM], upper_ext[GKYL_MAX_DIM];
   int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
   
-  for (unsigned i=0; i<cdim; ++i) {
+  for (int i=0; i<cdim; ++i) {
     lower_ext[i] = -1;
     upper_ext[i] = cells[i];
 
     lower[i] = 0;
     upper[i] = cells[i]-1;
   }
-  for (unsigned i=cdim; i<pdim; ++i) {
+  for (int i=cdim; i<pdim; ++i) {
     lower_ext[i] = 0;
     upper_ext[i] = cells[i]-1;
 
@@ -43,7 +43,7 @@ init_conf_ranges(int cdim, const int *cells,
   int lower_ext[GKYL_MAX_DIM], upper_ext[GKYL_MAX_DIM];
   int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
   
-  for (unsigned i=0; i<cdim; ++i) {
+  for (int i=0; i<cdim; ++i) {
     lower_ext[i] = -1;
     upper_ext[i] = cells[i];
 
@@ -88,7 +88,7 @@ parse_args(int argc, char **argv)
 static inline void
 copy_int_arr(int n, const int *restrict inp, int *restrict out)
 {
-  for (unsigned i=0; i<n; ++i) out[i] = inp[i];
+  for (int i=0; i<n; ++i) out[i] = inp[i];
 }
 
 void
@@ -128,11 +128,11 @@ main(int argc, char **argv)
 
   double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
   int cells[GKYL_MAX_DIM];
-  for (unsigned d=0; d<cdim; ++d) {
+  for (int d=0; d<cdim; ++d) {
     lower[d] = -1.0; upper[d] = 1.0;
     cells[d] = app.ccells[d];
   }
-  for (unsigned d=cdim; d<pdim; ++d) {
+  for (int d=cdim; d<pdim; ++d) {
     lower[d] = -6.0; upper[d] = 6.0;
     cells[d] = app.vcells[d-cdim];
   }
@@ -171,7 +171,7 @@ main(int argc, char **argv)
   // volume kernels
   printf("\n*** Timing volume kernel ....\n\n");
   tstart = clock();
-  for (unsigned n=0; n<nloop; ++n) {
+  for (int n=0; n<nloop; ++n) {
     
     gkyl_vlasov_set_qmem(vlasov_eqn, em);
 
@@ -199,18 +199,18 @@ main(int argc, char **argv)
   printf("\n*** Timing surface kernels ....\n\n");
 
   int zero_flux_dir[6];
-  for (unsigned i=0; i<cdim; ++i)
+  for (int i=0; i<cdim; ++i)
     zero_flux_dir[i] = 0; // ghost cells in config directions
-  for (unsigned i=cdim; i<pdim; ++i)
+  for (int i=cdim; i<pdim; ++i)
     zero_flux_dir[i] = 1; // no ghost cells in velocity directions
 
   long nsurf[] = { 0, 0, 0, 0, 0, 0 };
   double tmsurf[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 
-  for (unsigned n=0; n<nloop; ++n) {
+  for (int n=0; n<nloop; ++n) {
     gkyl_vlasov_set_qmem(vlasov_eqn, em);
 
-    for (unsigned dir=0; dir<pdim; ++dir) {
+    for (int dir=0; dir<pdim; ++dir) {
       tstart = clock();
 
       int dirLoIdx = phase_local.lower[dir];
@@ -258,7 +258,7 @@ main(int argc, char **argv)
   }
 
   double totSurfTm = 0.0;
-  for (unsigned dir=0; dir<pdim; ++dir) {
+  for (int dir=0; dir<pdim; ++dir) {
     printf("Surface update in dir %d took %g sec\n",
       dir, tmsurf[dir]);
     printf(" (Total calls = %ld. Time per-call %g)\n\n",

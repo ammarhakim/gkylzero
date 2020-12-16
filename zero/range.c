@@ -24,7 +24,7 @@ static long
 calc_skip_iter(const struct gkyl_range *rng, int *remDir)
 {
   int up[GKYL_MAX_DIM];
-  for (unsigned d=0; d<rng->ndim; ++d) {
+  for (int d=0; d<rng->ndim; ++d) {
     remDir[d] = 1;
     up[d] = rng->upper[d];
   }
@@ -48,7 +48,7 @@ gkyl_range_init(struct gkyl_range *rng, int ndim,
 {
   rng->ndim = ndim;
   rng->volume = 1L;
-  for (unsigned i=0; i<ndim; ++i) {
+  for (int i=0; i<ndim; ++i) {
     rng->ilo[i] = rng->lower[i] = lower[i];
     rng->upper[i] = upper[i];
     rng->volume *= upper[i]-lower[i]+1;
@@ -56,7 +56,7 @@ gkyl_range_init(struct gkyl_range *rng, int ndim,
   calc_rowmajor_ac(rng);
 
   int idxZero[GKYL_MAX_DIM];
-  for (unsigned i=0; i<ndim; ++i) idxZero[i] = 0;
+  for (int i=0; i<ndim; ++i) idxZero[i] = 0;
   rng->linIdxZero = gkyl_range_idx(rng, idxZero);
 }
 
@@ -64,7 +64,7 @@ void
 gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim, const int *shape)
 {
   int lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
-  for (unsigned i=0; i<ndim; ++i) {
+  for (int i=0; i<ndim; ++i) {
     lo[i] = 0; // lower-left corner has index (0,0,...)
     up[i] = shape[i]-1;
   }
@@ -83,13 +83,13 @@ gkyl_sub_range_init(struct gkyl_range *rng,
 {
   rng->ndim = bigrng->ndim;
   rng->volume = 1L;
-  for (unsigned i=0; i<rng->ndim; ++i) {
+  for (int i=0; i<rng->ndim; ++i) {
     rng->lower[i] = sublower[i] >= bigrng->lower[i] ? sublower[i] : bigrng->lower[i];
     rng->upper[i] = subupper[i] <= bigrng->upper[i] ? subupper[i] : bigrng->upper[i];
     rng->ilo[i] = bigrng->ilo[i]; // so inv indexer works correctly
     rng->volume *= rng->upper[i]-rng->lower[i]+1;
   }
-  for (unsigned i=0; i<rng->ndim+1; ++i)
+  for (int i=0; i<rng->ndim+1; ++i)
     rng->ac[i] = bigrng->ac[i];
   rng->linIdxZero = bigrng->linIdxZero;
 }
@@ -101,7 +101,7 @@ gkyl_range_deflate(struct gkyl_range* srng,
   srng->linIdxZero = rng->linIdxZero;
   srng->ndim = 0;
   srng->volume = 1;  
-  for (unsigned i=0, j=0; i<rng->ndim; ++i) {
+  for (int i=0, j=0; i<rng->ndim; ++i) {
     if (!remDir[i]) {
       srng->lower[j] = rng->lower[i];
       srng->upper[j] = rng->upper[i];
@@ -113,7 +113,7 @@ gkyl_range_deflate(struct gkyl_range* srng,
     }
   }
   long adel = 0; // need to adjust ac[0]
-  for (unsigned i=0; i<rng->ndim; ++i)
+  for (int i=0; i<rng->ndim; ++i)
     if (remDir[i])
       adel += locDir[i]*rng->ac[i+1];
   srng->ac[0] = rng->ac[0] + adel;
@@ -126,7 +126,7 @@ gkyl_range_shorten(struct gkyl_range *rng,
   int ndim = range->ndim;
   int lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
   
-  for (unsigned i=0; i<ndim; ++i) {
+  for (int i=0; i<ndim; ++i) {
     lo[i] = range->lower[i];
     up[i] = range->upper[i];
   }
@@ -141,7 +141,7 @@ gkyl_range_lower_skin(struct gkyl_range *rng,
   int ndim = range->ndim;
   int lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
   
-  for (unsigned i=0; i<ndim; ++i) {
+  for (int i=0; i<ndim; ++i) {
     lo[i] = range->lower[i];
     up[i] = range->upper[i];
   }
@@ -156,7 +156,7 @@ gkyl_range_upper_skin(struct gkyl_range *rng,
   int ndim = range->ndim;
   int lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
   
-  for (unsigned i=0; i<ndim; ++i) {
+  for (int i=0; i<ndim; ++i) {
     lo[i] = range->lower[i];
     up[i] = range->upper[i];
   }
@@ -222,7 +222,7 @@ gkyl_range_iter_init(struct gkyl_range_iter *iter,
 {
   iter->is_first = 1;
   iter->ndim = range->ndim;
-  for (unsigned i=0; i<range->ndim; ++i) {
+  for (int i=0; i<range->ndim; ++i) {
     iter->idx[i] = iter->lower[i] = range->lower[i];
     iter->upper[i] = range->upper[i];
   }
@@ -231,7 +231,7 @@ gkyl_range_iter_init(struct gkyl_range_iter *iter,
 void gkyl_range_iter_reset(struct gkyl_range_iter *iter)
 {
   iter->is_first = 1;
-  for (unsigned i=0; i<iter->ndim; ++i)
+  for (int i=0; i<iter->ndim; ++i)
     iter->idx[i] = iter->lower[i];
 }
 

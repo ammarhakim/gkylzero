@@ -367,7 +367,7 @@ void test_range_inv_idx()
   int idx[3], linIdx = 0;
   while (gkyl_range_iter_next(&iter)) {
     gkyl_range_inv_idx(&range, linIdx++, idx);
-    for (unsigned d=0; d<range.ndim; ++d)
+    for (int d=0; d<range.ndim; ++d)
       TEST_CHECK( iter.idx[d] == idx[d] );
   }
 }

@@ -229,8 +229,8 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
 
   // ensure non-NULL pointers
   assert(vlasov->vol);
-  for (unsigned i=0; i<cdim; ++i) assert(vlasov->stream_surf[i]);
-  for (unsigned i=0; i<vdim; ++i) assert(vlasov->accel_surf[i]);
+  for (int i=0; i<cdim; ++i) assert(vlasov->stream_surf[i]);
+  for (int i=0; i<vdim; ++i) assert(vlasov->accel_surf[i]);
 
   vlasov->qmem = 0; 
   vlasov->conf_range = *conf_range;
