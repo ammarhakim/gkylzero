@@ -148,7 +148,7 @@ gkyl_vlasov_set_qmem(const struct gkyl_dg_eqn *eqn, struct gkyl_array *qmem)
 }
 
 static
-double vlasov_vol(const struct gkyl_dg_eqn *eqn, 
+double vol(const struct gkyl_dg_eqn *eqn, 
   const double*  xc, const double*  dx, const int* idx, const double* qIn, double *qRhsOut)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
@@ -161,7 +161,7 @@ double vlasov_vol(const struct gkyl_dg_eqn *eqn,
 }
 
 static
-double vlasov_surf(const struct gkyl_dg_eqn *eqn, int dir,
+double surf(const struct gkyl_dg_eqn *eqn, int dir,
   const double*  xcL, const double*  xcR, const double*  dxL, const double* dxR,
   double maxsOld, const int*  idxL, const int*  idxR,
   const double* qInL, const double*  qInR, double *qRhsOutL, double *qRhsOutR)
@@ -184,7 +184,7 @@ double vlasov_surf(const struct gkyl_dg_eqn *eqn, int dir,
 }
 
 static
-double vlasov_boundary_surf(const struct gkyl_dg_eqn *eqn,
+double boundary_surf(const struct gkyl_dg_eqn *eqn,
   int dir,
   const double*  xcL, const double*  xcR, const double*  dxL, const double*  dxR,
   double maxsOld, const int*  idxL, const int*  idxR,
@@ -209,9 +209,9 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   vlasov->pdim = pdim;
 
   vlasov->eqn.num_equations = 1;
-  vlasov->eqn.vol_term = vlasov_vol;
-  vlasov->eqn.surf_term = vlasov_surf;
-  vlasov->eqn.boundary_surf_term = vlasov_boundary_surf;
+  vlasov->eqn.vol_term = vol;
+  vlasov->eqn.surf_term = surf;
+  vlasov->eqn.boundary_surf_term = boundary_surf;
 
   vlasov->vol = CK(vol_kernels,cdim,vdim,polyOrder);
 
