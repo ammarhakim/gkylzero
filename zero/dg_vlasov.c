@@ -99,7 +99,7 @@ static struct { vlasov_accel_surf_t kernels[3]; } accel_surf_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, vlasov_surf_1x2v_vy_p1, vlasov_surf_1x2v_vy_p2 }, // 1
-  { NULL, vlasov_surf_1x3v_vy_p1, vlasov_surf_1x3v_vy_p2 }, // 2  
+  { NULL, vlasov_surf_1x3v_vy_p1, vlasov_surf_1x3v_vy_p2 }, // 2
   // 2x kernels
   { NULL, vlasov_surf_2x2v_vy_p1, vlasov_surf_2x2v_vy_p2 }, // 3
   { NULL, vlasov_surf_2x3v_vy_p1, vlasov_surf_2x3v_vy_p2 }, // 4
@@ -147,8 +147,8 @@ gkyl_vlasov_set_qmem(const struct gkyl_dg_eqn *eqn, struct gkyl_array *qmem)
   vlasov->qmem = qmem;
 }
 
-static
-double vol(const struct gkyl_dg_eqn *eqn, 
+static double
+vol(const struct gkyl_dg_eqn *eqn, 
   const double*  xc, const double*  dx, const int* idx, const double* qIn, double *qRhsOut)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
@@ -160,8 +160,8 @@ double vol(const struct gkyl_dg_eqn *eqn,
     qIn, qRhsOut);
 }
 
-static
-double surf(const struct gkyl_dg_eqn *eqn, int dir,
+static double
+surf(const struct gkyl_dg_eqn *eqn, int dir,
   const double*  xcL, const double*  xcR, const double*  dxL, const double* dxR,
   double maxsOld, const int*  idxL, const int*  idxR,
   const double* qInL, const double*  qInR, double *qRhsOutL, double *qRhsOutR)
@@ -183,8 +183,8 @@ double surf(const struct gkyl_dg_eqn *eqn, int dir,
   return amax;
 }
 
-static
-double boundary_surf(const struct gkyl_dg_eqn *eqn,
+static double
+boundary_surf(const struct gkyl_dg_eqn *eqn,
   int dir,
   const double*  xcL, const double*  xcR, const double*  dxL, const double*  dxR,
   double maxsOld, const int*  idxL, const int*  idxR,

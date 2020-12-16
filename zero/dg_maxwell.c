@@ -21,7 +21,7 @@ typedef double (*maxwell_surf_t)(const MaxwellEq_t *meq,
 static struct { maxwell_vol_t kernels[3]; } vol_kernels[] = {
   { NULL, maxwell_vol_1x_p1, maxwell_vol_1x_p2 }, // 0
   { NULL, maxwell_vol_2x_p1, maxwell_vol_2x_p2 }, // 1
-  { NULL, maxwell_vol_3x_p1, NULL }, // 2
+  { NULL, maxwell_vol_3x_p1, NULL },              // 2
 };
 
 // Surface kernel list: x-direction
@@ -60,16 +60,16 @@ maxwell_free(const struct gkyl_ref_count *ref)
   free(maxwell);
 }
 
-static
-double vol(const struct gkyl_dg_eqn *eqn,
+static double
+vol(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double*  dx, const int*  idx, const double* qIn, double *qRhsOut)
 {
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
   return maxwell->vol(&maxwell->maxwell_data, xc, dx, qIn, qRhsOut);
 }
 
-static
-double surf(const struct gkyl_dg_eqn *eqn,
+static double
+surf(const struct gkyl_dg_eqn *eqn,
   int dir,
   const double*  xcL, const double*  xcR, const double*  dxL, const double* dxR,
   double maxsOld, const int*  idxL, const int*  idxR,
@@ -81,8 +81,8 @@ double surf(const struct gkyl_dg_eqn *eqn,
     maxs, qInL, qInR, qRhsOutL, qRhsOutR);
 }
 
-static
-double boundary_surf(const struct gkyl_dg_eqn *eqn,
+static double
+boundary_surf(const struct gkyl_dg_eqn *eqn,
   int dir,
   const double*  xcL, const double*  xcR, const double*  dxL, const double*  dxR,
   double maxsOld, const int*  idxL, const int*  idxR,
