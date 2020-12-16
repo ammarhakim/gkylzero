@@ -121,8 +121,6 @@ void
 gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
   const struct gkyl_range *range)
 {
-  assert(range->volume <= arr->size);
-  
 #define _F(loc) gkyl_array_fetch(arr, loc)  
 
   // construct skip iterator to allow copying (potentially) in chunks
@@ -146,8 +144,6 @@ void
 gkyl_array_copy_from_buffer(struct gkyl_array *arr,
   const void *data, const struct gkyl_range *range)
 {
-  assert(range->volume <= arr->size);
-  
 #define _F(loc) gkyl_array_fetch(arr, loc)  
 
   // construct skip iterator to allow copying (potentially) in chunks

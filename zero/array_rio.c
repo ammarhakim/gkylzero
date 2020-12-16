@@ -18,7 +18,6 @@ void
 gkyl_sub_array_write(const struct gkyl_range *range,
   const struct gkyl_array *arr, FILE *fp)
 {
-  assert(range->volume <= arr->size);
 #define _F(loc) gkyl_array_fetch(arr, loc)
   
   uint64_t elemSz = arr->elemSz, size = arr->size;

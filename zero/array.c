@@ -15,7 +15,7 @@ array_free(const struct gkyl_ref_count *ref)
 }
 
 struct gkyl_array*
-gkyl_array_new(long elemSz, long size)
+gkyl_array_new(size_t elemSz, size_t size)
 {
   struct gkyl_array* arr = gkyl_malloc(sizeof(struct gkyl_array));
   arr->elemSz = elemSz;
