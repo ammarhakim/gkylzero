@@ -4,7 +4,7 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
-void evalFunc(double t, const double *xn, double* restrict fout)
+void evalFunc(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = x*x;
@@ -25,7 +25,7 @@ test_1()
 
   // projection updater for dist-function
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
-    polyOrder+1, 1, evalFunc);
+    polyOrder+1, 1, evalFunc, NULL);
 
   // create array range: no ghost-cells in velocity space
   struct gkyl_range arr_range;

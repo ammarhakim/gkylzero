@@ -11,6 +11,7 @@ struct gkyl_proj_on_basis {
     int num_quad; // Number of quadrature points to use in each direction
     int num_ret_vals; // Number of values returned by eval function
     evalf_t eval; // Function to project
+    void *ctx; // Evaluation context
 
     int numBasis; // Number of basis functions
     int tot_quad; // Total number of quadrature points
@@ -21,8 +22,8 @@ struct gkyl_proj_on_basis {
 };
 
 gkyl_proj_on_basis*
-gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *basis, int num_quad, int num_ret_vals, evalf_t eval)
+gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
+  int num_quad, int num_ret_vals, evalf_t eval, void *ctx)
 {
   gkyl_proj_on_basis *up = gkyl_malloc(sizeof(gkyl_proj_on_basis));
 
@@ -30,6 +31,7 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid,
   up->num_quad = num_quad;
   up->num_ret_vals = num_ret_vals;
   up->eval = eval;
+  up->ctx = ctx;
   up->numBasis = basis->numBasis;
 
   double *ordinates1 = gkyl_malloc(num_quad*sizeof(double));
@@ -138,7 +140,7 @@ gkyl_proj_on_basis_advance(const gkyl_proj_on_basis* up,
     for (int i=0; i<up->tot_quad; ++i) {
       comp_to_phys(up->grid.ndim, gkyl_array_fetch(up->ordinates, i),
         up->grid.dx, xc, xmu);
-      up->eval(tm, xmu, gkyl_array_fetch(up->fun_at_ords, i));
+      up->eval(tm, xmu, gkyl_array_fetch(up->fun_at_ords, i), up->ctx);
     }
 
     long lidx = gkyl_range_idx(update_range, iter.idx);

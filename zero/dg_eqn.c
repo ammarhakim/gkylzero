@@ -8,7 +8,7 @@ gkyl_dg_eqn_aquire(const struct gkyl_dg_eqn* eqn)
 }
 
 void
-gkyl_dg_eqn_release(struct gkyl_dg_eqn* eqn)
+gkyl_dg_eqn_release(const struct gkyl_dg_eqn* eqn)
 {
   gkyl_ref_count_dec(&eqn->ref_count);
 }

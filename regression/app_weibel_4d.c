@@ -48,7 +48,7 @@ maxwellian2D(double n, double vx, double vy, double ux, double uy, double vth)
   return n/(2*M_PI*vth*vth)*exp(-v2/(2*vth*vth));
 }
 
-void evalDistFunc(double t, const double * restrict xn, double* restrict fout)
+void evalDistFunc(double t, const double * restrict xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], vx = xn[2], vy = xn[3];
   double fv = maxwellian2D(nElc10, vx, vy, uxElc10, uyElc10, vthElc10) +
@@ -56,7 +56,7 @@ void evalDistFunc(double t, const double * restrict xn, double* restrict fout)
   fout[0] = (1.0+perturb_n*cos(kx*x+ky*y))*fv;
 }
 
-void evalFieldFunc(double t, const double * restrict xn, double* restrict fout)
+void evalFieldFunc(double t, const double * restrict xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   
@@ -142,9 +142,9 @@ main(void)
 
   // projection updater for dist-function
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
-    polyOrder+1, 1, evalDistFunc);
+    polyOrder+1, 1, evalDistFunc, NULL);
   gkyl_proj_on_basis *projField = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    polyOrder+1, 8, evalFieldFunc);
+    polyOrder+1, 8, evalFieldFunc, NULL);
 
   // moment objects
   struct gkyl_mom_type *m0t = gkyl_vlasov_mom_new(&confBasis, &basis, "M0");

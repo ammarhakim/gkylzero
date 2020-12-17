@@ -8,6 +8,13 @@ import os
 def build(bld):
 
     bld.program(
+        source = 'app_maxwell_2d.c',
+        target = 'app_maxwell_2d',
+        includes = '. ../zero',
+        use = 'gkylzero gkylzerokern',
+    )
+
+    bld.program(
         source = 'app_weibel_4d.c',
         target = 'app_weibel_4d',
         includes = '. ../zero',

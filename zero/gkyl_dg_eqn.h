@@ -38,4 +38,4 @@ struct gkyl_dg_eqn* gkyl_dg_eqn_aquire(const struct gkyl_dg_eqn* eqn);
  *
  * @param eqn Equation object to delete.
  */
-void gkyl_dg_eqn_release(struct gkyl_dg_eqn* eqn);
+void gkyl_dg_eqn_release(const struct gkyl_dg_eqn* eqn);

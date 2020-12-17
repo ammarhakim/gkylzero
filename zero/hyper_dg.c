@@ -14,15 +14,13 @@ struct gkyl_hyper_dg {
     int update_vol_term; // should we update volume term?
     const struct gkyl_dg_eqn *equation; // equation object
 
-    double dt;
     double maxs[GKYL_MAX_DIM];
     double maxs_old[GKYL_MAX_DIM], maxs_local[GKYL_MAX_DIM];
-    struct gkyl_array *cflRateByCell;
-    struct gkyl_array *maxsByCell;
 };
 
 static inline void
-copy_int_arr(int n, const int *inp, int *restrict out) {
+copy_int_arr(int n, const int *restrict inp, int *restrict out)
+{
   for (int i=0; i<n; ++i)  out[i] = inp[i];
 }
 
@@ -117,8 +115,6 @@ gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
 void
 gkyl_hyper_dg_release(gkyl_hyper_dg* up)
 {
-  free(up->maxs);
-  free(up->maxs_old);
-  free(up->maxs_local);
+  gkyl_dg_eqn_release(up->equation);
   free(up);
 }

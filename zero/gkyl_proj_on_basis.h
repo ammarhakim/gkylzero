@@ -5,8 +5,15 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
-// Type of function to project
-typedef void (*evalf_t)(double t, const double *xn, double *fout);
+/**
+ * Type of function to project.
+ *
+ * @param t Time to evaluate function
+ * @param xn Coordinates for evaluation
+ * @param fout Output vector of 'num_ret_vals'
+ * @param ctx Context for function evaluation. Can be NULL
+ */
+typedef void (*evalf_t)(double t, const double *xn, double *fout, void *ctx);
 
 // Object type
 typedef struct gkyl_proj_on_basis gkyl_proj_on_basis;
@@ -20,11 +27,12 @@ typedef struct gkyl_proj_on_basis gkyl_proj_on_basis;
  * @param num_quad Number of quadrature nodes
  * @param num_ret_vals Number of values 'eval' sets
  * @param eval Function to project.
+ * @param ctx Context for function evaluation. Can be NULL.
  * @return New updater pointer.
  */
 gkyl_proj_on_basis* gkyl_proj_on_basis_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
-  int num_quad, int num_ret_vals, evalf_t eval);
+  int num_quad, int num_ret_vals, evalf_t eval, void *ctx);
 
 /**
  * Compute projection on basis. The update_rng MUST be a sub-range of
