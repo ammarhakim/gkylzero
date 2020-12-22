@@ -65,6 +65,7 @@ def build(bld):
     # recurse down directories and build C code
     bld.recurse("kernels")    
     bld.recurse("zero")
+    bld.recurse("miniapp")
     bld.recurse("unit")
     bld.recurse("regression") 
 
