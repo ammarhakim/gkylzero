@@ -32,9 +32,9 @@ init_conf_ranges(int cdim, const int *cells,
 }
 
 struct gkyl_array*
-mkarr(long numComp, long size)
+mkarr(long nc, long size)
 {
-  return gkyl_array_new(sizeof(double)*numComp, size);
+  return gkyl_array_new(sizeof(double)*nc, size);
 }
 
 struct maxwell_app {

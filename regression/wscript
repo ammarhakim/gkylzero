@@ -10,20 +10,20 @@ def build(bld):
     bld.program(
         source = 'app_maxwell_2d.c',
         target = 'app_maxwell_2d',
-        includes = '. ../zero',
-        use = 'gkylzero gkylzerokern',
+        includes = '. ../zero ../miniapp',
+        use = 'gkylzero gkylzerokern gkylminiapp',
     )
 
     bld.program(
         source = 'app_weibel_4d.c',
         target = 'app_weibel_4d',
-        includes = '. ../zero',
-        use = 'gkylzero gkylzerokern',
+        includes = '. ../zero ../miniapp',
+        use = 'gkylzero gkylzerokern gkylminiapp',
     )
 
     bld.program(
         source = 'app_vlasov_kerntm.c',
-        target = 'app_vlasov_kerntm',
+        target = 'app_vlasov_kerntm',        
         includes = '. ../zero',
         use = 'gkylzero gkylzerokern',
     )    
