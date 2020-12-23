@@ -6,7 +6,7 @@
 
 // Parameters for Vlasov species
 struct gkyl_vlasov_species {
-    char name[64]; // Species name
+    char name[128]; // Species name
     double charge, mass; // Charge and mass
     double lower[3], upper[3]; // Lower, upper bounds of velocity-space
     int cells[3]; // Velocity-space cells
@@ -31,7 +31,7 @@ struct gkyl_em_field {
 
 // Top-level app parameters
 struct gkyl_vm {
-    char name[64]; // Name of app: used as output prefix
+    char name[128]; // Name of app: used as output prefix
 
     int cdim, vdim; // Conf, velocity space dimensions
     double lower[3], upper[3]; // Lower, upper bounds of config-space
@@ -54,6 +54,22 @@ typedef struct gkyl_vlasov_app gkyl_vlasov_app;
  * @return New vlasov mini-app object.
  */
 gkyl_vlasov_app* gkyl_vlasov_app_new(struct gkyl_vm vm);
+
+/**
+ * Initialize species and field.
+ *
+ * @param app App object.
+ */
+void gkyl_vlasov_app_init_sim(gkyl_vlasov_app* app);
+
+/**
+ * Write field and species data to file.
+ * 
+ * @param app App object.
+ * @param tm Time-stampe
+ * @param frame Frame number
+ */
+void gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame);
 
 /**
  * Free Vlasov app.

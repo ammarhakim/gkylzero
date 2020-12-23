@@ -43,7 +43,7 @@ evalDistFunc(double t, const double * restrict xn, double* restrict fout, void *
 }
 
 void
-evalFieldFunc(double t, const double * restrict xn, double* restrict fout, void *ctx)
+evalFieldFunc(double t, const double* restrict xn, double* restrict fout, void *ctx)
 {
   struct weibel_ctx *app = ctx;
 
@@ -131,6 +131,10 @@ main(int argc, char **argv)
 
   // create app object
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
+  // apply initial conditions
+  gkyl_vlasov_app_init_sim(app);
+  // write ICs to file
+  gkyl_vlasov_app_write(app, 0.0, 0);
 
   gkyl_vlasov_app_release(app);
   
