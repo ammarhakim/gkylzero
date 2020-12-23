@@ -15,6 +15,9 @@
 struct vm_species {
     struct gkyl_rect_grid grid;
     struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
+
+    // arrays for distribution function updates
+    struct gkyl_array *f;
 };
 
 struct gkyl_vlasov_app {
@@ -23,7 +26,7 @@ struct gkyl_vlasov_app {
     struct gkyl_range local, local_ext; // local, local-ext conf-space ranges
     struct gkyl_basis basis, confBasis; // phase-space, conf-space basis
 
-    // arrays for use in field-updates
+    // arrays for field-updates
     struct gkyl_array *em;
 
     // species data
@@ -129,6 +132,9 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
     gkyl_rect_grid_init(&app->species[i].grid, pdim, lower, upper, cells);
     init_phase_ranges(cdim, pdim, cells,
       &app->species[i].local, &app->species[i].local_ext);
+
+    // allocate distribution function arrays
+    app->species[i].f = mkarr(app->basis.numBasis, app->species[i].local_ext.volume);
   }
   
   return app;
@@ -145,21 +151,40 @@ gkyl_vlasov_app_init_sim(gkyl_vlasov_app* app)
     gkyl_proj_on_basis_advance(proj, 0.0, &app->local, app->em);
     gkyl_proj_on_basis_release(proj);
   } while(0);
-  
+
+  // initialize species
+  for (int i=0;  i<app->vm.num_species; ++i) {
+    gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->species[i].grid, &app->basis,
+      poly_order+1, 1, app->vm.species[i].init, app->vm.species[i].ctx);
+    gkyl_proj_on_basis_advance(proj, 0.0, &app->species[i].local, app->species[i].f);
+    gkyl_proj_on_basis_release(proj);
+  }
 }
 
 void
 gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
 {
-  // write EM field
-  char emFileNm[256];
-  sprintf(emFileNm, "%s-field_%d.gkyl", app->vm.name, frame);
-  gkyl_grid_array_write(&app->grid, &app->local, app->em, emFileNm);
+  do { // write EM field
+    char fileNm[256];
+    sprintf(fileNm, "%s-field_%d.gkyl", app->vm.name, frame);
+    gkyl_grid_array_write(&app->grid, &app->local, app->em, fileNm);
+  } while(0);
+
+  // write species distribution function
+  for (int i=0; i<app->vm.num_species; ++i) {
+    char fileNm[256];
+    sprintf(fileNm, "%s-%s_%d.gkyl", app->vm.name, app->vm.species[i].name, frame);
+    gkyl_grid_array_write(&app->species[i].grid, &app->species[i].local,
+      app->species[i].f, fileNm);
+  }
 }
 
 void
 gkyl_vlasov_app_release(gkyl_vlasov_app* app)
 {
+  for (int i=0; i<app->vm.num_species; ++i) {
+    gkyl_array_release(app->species[i].f);
+  }
   gkyl_free(app->species);
 
   gkyl_array_release(app->em);
