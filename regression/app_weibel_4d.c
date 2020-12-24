@@ -1,5 +1,8 @@
 #include <math.h>
 #include <time.h>
+#include <stdio.h>
+
+#define SHOW_TIME(msg, tdiff) printf("%s %g\n", msg, 1.0*(tdiff)/CLOCKS_PER_SEC)
 
 #include <gkyl_vlasov.h>
 
@@ -94,20 +97,25 @@ create_ctx(void)
 int
 main(int argc, char **argv)
 {
-  struct weibel_ctx ctx = create_ctx();
+  struct weibel_ctx ctx = create_ctx(); // context for init functions
 
+  // electrons
   struct gkyl_vlasov_species elc = {
     .name = "elc",
     .charge = -1.0, .mass = 1.0,
     .lower = { -0.9, -0.9 },
     .upper = { 0.9, 0.9 }, 
-    .cells = { 32, 32 },
+    .cells = { 8, 8 },
 
     .evolve = 1,
     .ctx = &ctx,
-    .init = evalDistFunc
+    .init = evalDistFunc,
+
+    .num_diag_moments = 2,
+    .diag_moments = { "M0", "M1i" },
   };
 
+  // field
   struct gkyl_em_field field = {
     .epsilon0 = 1.0, .mu0 = 1.0,
     .evolve = 1,
@@ -115,13 +123,14 @@ main(int argc, char **argv)
     .init = evalFieldFunc
   };
 
+  // VM app
   struct gkyl_vm vm = {
     .name = "weibel_4d",
 
     .cdim = 2, .vdim = 2,
     .lower = { 0.0, 0.0 },
     .upper = { 2*M_PI/ctx.kx, 2*M_PI/ctx.ky },
-    .cells = { 32, 32 },
+    .cells = { 16, 16 },
     .poly_order = 2,
 
     .num_species = 1,
@@ -129,13 +138,18 @@ main(int argc, char **argv)
     .field = field
   };
 
-  // create app object
+  clock_t tstart, tend;
+
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
-  // apply initial conditions
+
+  // Initialize simulation
   gkyl_vlasov_app_init_sim(app);
-  // write ICs to file
   gkyl_vlasov_app_write(app, 0.0, 0);
 
+  gkyl_vlasov_app_calc_mom(app);
+  gkyl_vlasov_app_mom_write(app, 0.0, 0);
+
+  // simulation complete, free app
   gkyl_vlasov_app_release(app);
   
   return 0;

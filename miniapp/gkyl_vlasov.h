@@ -16,6 +16,9 @@ struct gkyl_vlasov_species {
     void *ctx; // Context for initial condition init function
     // Pointer to initialization function
     void (*init)(double t, const double *xn, double *fout, void *ctx);
+
+    int num_diag_moments; // Number of diagnostic moments
+    char diag_moments[16][16]; // List of diagnostic moments
 };
 
 // Parameter for EM field
@@ -63,13 +66,29 @@ gkyl_vlasov_app* gkyl_vlasov_app_new(struct gkyl_vm vm);
 void gkyl_vlasov_app_init_sim(gkyl_vlasov_app* app);
 
 /**
+ * Calculate diagnostic moments.
+ *
+ * @param app App object.
+ */
+void gkyl_vlasov_app_calc_mom(gkyl_vlasov_app* app);
+
+/**
  * Write field and species data to file.
  * 
  * @param app App object.
- * @param tm Time-stampe
+ * @param tm Time-stamp
  * @param frame Frame number
  */
 void gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame);
+
+/**
+ * Write diagnostic moments for species to file.
+ * 
+ * @param app App object.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_vlasov_app_mom_write(gkyl_vlasov_app* app, double tm, int frame);
 
 /**
  * Free Vlasov app.
@@ -77,5 +96,3 @@ void gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame);
  * @param app App to release.
  */
 void gkyl_vlasov_app_release(gkyl_vlasov_app* app);
-
-

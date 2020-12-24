@@ -11,6 +11,13 @@
 #include <gkyl_vlasov.h>
 #include <gkyl_vlasov_mom.h>
 
+// data for moments
+struct vm_species_moments {
+    struct gkyl_mom_type *mtype;
+    gkyl_mom_calc *mcalc;
+    struct gkyl_array *marr;
+};
+
 // species data
 struct vm_species {
     struct gkyl_rect_grid grid;
@@ -18,6 +25,9 @@ struct vm_species {
 
     // arrays for distribution function updates
     struct gkyl_array *f;
+
+    //  for moments
+    struct vm_species_moments *moms;
 };
 
 struct gkyl_vlasov_app {
@@ -102,20 +112,22 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
   gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
   gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
 
-  if (ns > 0)
-    app->species = gkyl_malloc(ns*sizeof(struct vm_species));
-  else
-    app->species = 0; // so free won't barf
-
   // create config grid & ranges
   gkyl_rect_grid_init(&app->grid, cdim, vm.lower, vm.upper, vm.cells);
   init_conf_ranges(cdim, vm.cells, &app->local, &app->local_ext);
 
   // allocate field arrays (6 field components + 2 error fields)
   app->em = mkarr(8*app->confBasis.numBasis, app->local_ext.volume);
+
+  if (ns > 0)
+    app->species = gkyl_malloc(ns*sizeof(struct vm_species));
+  else
+    app->species = 0; // so free won't barf  
     
   // create species grid & ranges
   for (int i=0; i<ns; ++i) {
+    struct vm_species *s = &app->species[i];
+    
     int cells[GKYL_MAX_DIM];
     double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
 
@@ -129,12 +141,26 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
       lower[cdim+d] = vm.species[i].lower[d];
       upper[cdim+d] = vm.species[i].upper[d];
     }
-    gkyl_rect_grid_init(&app->species[i].grid, pdim, lower, upper, cells);
-    init_phase_ranges(cdim, pdim, cells,
-      &app->species[i].local, &app->species[i].local_ext);
+    gkyl_rect_grid_init(&s->grid, pdim, lower, upper, cells);
+    init_phase_ranges(cdim, pdim, cells, &s->local, &s->local_ext);
 
     // allocate distribution function arrays
-    app->species[i].f = mkarr(app->basis.numBasis, app->species[i].local_ext.volume);
+    s->f = mkarr(app->basis.numBasis, s->local_ext.volume);
+
+    // allocate data for moments
+    int ndm = vm.species[i].num_diag_moments;
+    s->moms = gkyl_malloc(ndm*sizeof(struct vm_species_moments));
+    
+    for (int m=0; m<ndm; ++m) {
+      // moment-type
+      s->moms[m].mtype = gkyl_vlasov_mom_new(&app->confBasis, &app->basis,
+        vm.species[i].diag_moments[m]);
+      // moment calculator
+      s->moms[m].mcalc = gkyl_mom_calc_new(&s->grid, s->moms[m].mtype);
+      // moment array
+      s->moms[m].marr = mkarr(s->moms[m].mtype->num_mom*app->confBasis.numBasis,
+        app->local_ext.volume);
+    }
   }
   
   return app;
@@ -162,11 +188,24 @@ gkyl_vlasov_app_init_sim(gkyl_vlasov_app* app)
 }
 
 void
+gkyl_vlasov_app_calc_mom(gkyl_vlasov_app* app)
+{
+  for (int i=0; i<app->vm.num_species; ++i) {
+    struct vm_species *s = &app->species[i];
+    
+    for (int m=0; m<app->vm.species[i].num_diag_moments; ++m)
+      gkyl_mom_calc_advance(s->moms[m].mcalc, &s->local, &app->local,
+        s->f, s->moms[m].marr);
+  }
+}
+
+void
 gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
 {
   do { // write EM field
     char fileNm[256];
     sprintf(fileNm, "%s-field_%d.gkyl", app->vm.name, frame);
+    
     gkyl_grid_array_write(&app->grid, &app->local, app->em, fileNm);
   } while(0);
 
@@ -174,19 +213,49 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
   for (int i=0; i<app->vm.num_species; ++i) {
     char fileNm[256];
     sprintf(fileNm, "%s-%s_%d.gkyl", app->vm.name, app->vm.species[i].name, frame);
+    
     gkyl_grid_array_write(&app->species[i].grid, &app->species[i].local,
       app->species[i].f, fileNm);
   }
 }
 
 void
-gkyl_vlasov_app_release(gkyl_vlasov_app* app)
+gkyl_vlasov_app_mom_write(gkyl_vlasov_app* app, double tm, int frame)
 {
   for (int i=0; i<app->vm.num_species; ++i) {
-    gkyl_array_release(app->species[i].f);
+
+    for (int m=0; m<app->vm.species[i].num_diag_moments; ++m) {
+      char fileNm[256];
+      sprintf(fileNm, "%s-%s-%s_%d.gkyl", app->vm.name, app->vm.species[i].name,
+        app->vm.species[i].diag_moments[m], frame);
+      
+      gkyl_grid_array_write(&app->grid, &app->local, app->species[i].moms[m].marr, fileNm);
+    }
+  }
+}
+
+void
+gkyl_vlasov_app_release(gkyl_vlasov_app* app)
+{
+  // free species data
+  for (int i=0; i<app->vm.num_species; ++i) {
+    struct vm_species *s = &app->species[i];
+    
+    gkyl_array_release(s->f);
+
+    // free moments
+    for (int m=0; m<app->vm.species[i].num_diag_moments; ++m) {
+      gkyl_mom_type_release(s->moms[m].mtype);
+      gkyl_mom_calc_release(s->moms[m].mcalc);
+      gkyl_array_release(s->moms[m].marr);
+    }
+    gkyl_free(s->moms);
+    
   }
   gkyl_free(app->species);
 
+  // free EM fields
   gkyl_array_release(app->em);
-  gkyl_free(app);
+  
+  gkyl_free(app); // free app
 }
