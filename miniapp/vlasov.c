@@ -12,11 +12,20 @@
 #include <gkyl_vlasov_mom.h>
 
 // data for moments
-struct vm_species_moments {
+struct vm_species_moment {
     struct gkyl_mom_type *mtype;
     gkyl_mom_calc *mcalc;
     struct gkyl_array *marr;
 };
+
+// release memory for moment data object
+static void
+vm_species_moment_release(struct vm_species_moment sm)
+{
+  gkyl_mom_type_release(sm.mtype);
+  gkyl_mom_calc_release(sm.mcalc);
+  gkyl_array_release(sm.marr);
+}
 
 // species data
 struct vm_species {
@@ -26,8 +35,8 @@ struct vm_species {
     // arrays for distribution function updates
     struct gkyl_array *f;
 
-    //  for moments
-    struct vm_species_moments *moms;
+    struct vm_species_moment m1i; // for computing currents
+    struct vm_species_moment *moms; // diagnostic moments
 };
 
 struct gkyl_vlasov_app {
@@ -147,9 +156,15 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
     // allocate distribution function arrays
     s->f = mkarr(app->basis.numBasis, s->local_ext.volume);
 
-    // allocate data for moments
+    // allocate data for momentum (for use in current accumulation)
+    s->m1i.mtype = gkyl_vlasov_mom_new(&app->confBasis, &app->basis, "M1i");
+    s->m1i.mcalc = gkyl_mom_calc_new(&s->grid, s->m1i.mtype);
+    s->m1i.marr = mkarr(s->m1i.mtype->num_mom*app->confBasis.numBasis,
+      app->local_ext.volume);
+
+    // allocate data for diagnostic moments
     int ndm = vm.species[i].num_diag_moments;
-    s->moms = gkyl_malloc(ndm*sizeof(struct vm_species_moments));
+    s->moms = gkyl_malloc(ndm*sizeof(struct vm_species_moment));
     
     for (int m=0; m<ndm; ++m) {
       // moment-type
@@ -243,12 +258,12 @@ gkyl_vlasov_app_release(gkyl_vlasov_app* app)
     
     gkyl_array_release(s->f);
 
-    // free moments
-    for (int m=0; m<app->vm.species[i].num_diag_moments; ++m) {
-      gkyl_mom_type_release(s->moms[m].mtype);
-      gkyl_mom_calc_release(s->moms[m].mcalc);
-      gkyl_array_release(s->moms[m].marr);
-    }
+    // free momentum data
+    vm_species_moment_release(s->m1i);
+
+    // free diag_moments moments data
+    for (int m=0; m<app->vm.species[i].num_diag_moments; ++m)
+      vm_species_moment_release(s->moms[m]);
     gkyl_free(s->moms);
     
   }
