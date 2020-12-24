@@ -59,11 +59,30 @@ typedef struct gkyl_vlasov_app gkyl_vlasov_app;
 gkyl_vlasov_app* gkyl_vlasov_app_new(struct gkyl_vm vm);
 
 /**
- * Initialize species and field.
+ * Initialize species and field by projecting initial conditions on
+ * basis functions.
  *
  * @param app App object.
  */
 void gkyl_vlasov_app_init_sim(gkyl_vlasov_app* app);
+
+/**
+ * Initialize field by projecting initial conditions on basis
+ * functions.
+ *
+ * @param app App object.
+ */
+void gkyl_vlasov_app_init_field(gkyl_vlasov_app* app);
+
+/**
+ * Initialize species by projecting initial conditions on basis
+ * functions. Species index (sidx) is the same index used to specify
+ * the species in the gkyl_vm object used to construct app.
+ *
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ */
+void gkyl_vlasov_app_init_species(gkyl_vlasov_app* app, int sidx);
 
 /**
  * Calculate diagnostic moments.
