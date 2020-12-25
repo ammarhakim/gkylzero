@@ -42,6 +42,9 @@ struct gkyl_vm {
     int cells[3]; // Config-space cells
     int poly_order; // Polynomial order
 
+    int num_periodic_dir; // Number of periodic directions
+    int periodic_dirs[3]; // List of periodic directions
+
     int num_species; // Number of species
     struct gkyl_vlasov_species species[GKYL_MAX_SPECIES]; // Species objects
     struct gkyl_em_field field; // Field object

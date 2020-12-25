@@ -1,51 +1,19 @@
+#include <math.h>
 #include <time.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
 
-#include <gkyl_array.h>
-#include <gkyl_array_ops.h>
-#include <gkyl_array_rio.h>
 #include <gkyl_const.h>
-#include <gkyl_dg_maxwell.h>
-#include <gkyl_hyper_dg.h>
-#include <gkyl_proj_on_basis.h>
-#include <gkyl_range.h>
-#include <gkyl_rect_grid.h>
+#include <gkyl_vlasov.h>
 
-void
-init_conf_ranges(int cdim, const int *cells,
-  struct gkyl_range *conf_local, struct gkyl_range *conf_local_ext)
-{
-  int lower_ext[GKYL_MAX_DIM], upper_ext[GKYL_MAX_DIM];
-  int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
-  
-  for (int i=0; i<cdim; ++i) {
-    lower_ext[i] = -1;
-    upper_ext[i] = cells[i];
-
-    lower[i] = 0;
-    upper[i] = cells[i]-1;
-  }
-  gkyl_range_init(conf_local_ext, cdim, lower_ext, upper_ext);
-  gkyl_sub_range_init(conf_local, conf_local_ext, lower, upper);
-}
-
-struct gkyl_array*
-mkarr(long nc, long size)
-{
-  return gkyl_array_new(sizeof(double)*nc, size);
-}
-
-struct maxwell_app {
-    int ndim, polyOrder;
-    int cells[3];
+struct maxwell_ctx {
     double L, kwave, lwave;
 };
 
+const double L = 1.0; // length of domain
+
 void evalFieldFunc(double t, const double *xn, double *restrict fout, void *ctx)
 {
-  struct maxwell_app *dat = ctx;
+  struct maxwell_ctx *dat = ctx;
 
   double x = xn[0], y = xn[1];
   double kwave = dat->kwave, lwave = dat->lwave, L = dat->L;
@@ -71,73 +39,57 @@ void evalFieldFunc(double t, const double *xn, double *restrict fout, void *ctx)
   fout[6] = 0.0; fout[7] = 0.0;
 }
 
-struct maxwell_app
-parse_args(int argc, char **argv)
+struct maxwell_ctx
+create_ctx(void)
 {
-  // replace with something read from CLI or a config file
-  struct maxwell_app app = {
-    .ndim = 2,
-    .polyOrder = 2,
-    .cells = { 16, 16 },
-    .L = 1.0,
+  struct maxwell_ctx ctx = {
+    .L = L,
     .kwave = 2.0,
     .lwave = 2.0
   };
 
-  return app;
+  return ctx;  
 }
 
 int
 main(int argc, char *argv[])
 {
-  struct maxwell_app app = parse_args(argc, argv);  
-  int cdim = app.ndim;
-  int polyOrder = app.polyOrder;
+  struct maxwell_ctx ctx = create_ctx();
 
-  // grid
-  double lower[] = {0.0, 0.0};
-  double upper[] = {app.L, app.L};
-  struct gkyl_rect_grid confGrid;
-  gkyl_rect_grid_init(&confGrid, cdim, lower, upper, app.cells);
+  struct gkyl_em_field field = {
+    .epsilon0 = GKYL_EPSILON0,
+    .mu0 = GKYL_MU0,
+    .elcErrorSpeedFactor = 0.0,
+    .mgnErrorSpeedFactor = 0.0,
+    .evolve = 1,
+    .ctx = &ctx,
+    .init = evalFieldFunc
+  };
 
-  // basis functions
-  struct gkyl_basis confBasis;
-  gkyl_cart_modal_serendip(&confBasis, cdim, polyOrder);
+  struct gkyl_vm vm = {
+    .name = "maxwell_2d",
 
-  // Maxwell equation object
-  struct gkyl_dg_eqn* maxwell_eqn = gkyl_dg_maxwell_new(
-    &confBasis, GKYL_SPEED_OF_LIGHT, 0, 0);
+    .cdim = 2, .vdim = 0,
+    .lower = { 0.0, 0.0 },
+    .upper = { L, L },
+    .cells = { 16, 16 },
+    .poly_order = 2,
 
-  // updaters
-  gkyl_proj_on_basis *projField = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    confBasis.polyOrder+1, 8, evalFieldFunc, &app);
+    .num_periodic_dir = 2,
+    .periodic_dirs = { 0, 1},
 
-  // solver for Maxwell equation
-  int max_up_dirs[] = {0, 1}, zero_flux_flags[] = {0, 0};
-  gkyl_hyper_dg *maxwellSlvr = gkyl_hyper_dg_new(&confGrid, &confBasis, maxwell_eqn,
-    cdim, max_up_dirs, zero_flux_flags, 1);
-  
-  // ranges
-  struct gkyl_range conf_local, conf_local_ext;
-  init_conf_ranges(cdim, app.cells, &conf_local, &conf_local_ext);
+    .field = field,
+    .num_species = 0, // pure EM simulation
+  };
 
-  // fields
-  struct gkyl_array *em = mkarr(confBasis.numBasis*8, conf_local_ext.volume);
-  struct gkyl_array *emNew = mkarr(confBasis.numBasis*8, conf_local_ext.volume);
+  gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
 
-  // run simulation
-  gkyl_proj_on_basis_advance(projField, 0.0, &conf_local, em);
+  // initialize simulation
+  gkyl_vlasov_app_init_sim(app);
+  gkyl_vlasov_app_write(app, 0.0, 0);
 
-  // write fields
-  gkyl_grid_array_write(&confGrid, &conf_local, em, "field_0.gkyl");
-
-  // cleanup objects
-  gkyl_proj_on_basis_release(projField);
-  gkyl_hyper_dg_release(maxwellSlvr);
-  gkyl_dg_eqn_release(maxwell_eqn);
-  gkyl_array_release(em);
-  gkyl_array_release(emNew);
+  // simulation complete, free app
+  gkyl_vlasov_app_release(app);  
   
   return 0;
-
 }

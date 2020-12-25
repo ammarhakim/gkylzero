@@ -2,9 +2,9 @@
 #include <time.h>
 #include <stdio.h>
 
-#define SHOW_TIME(msg, tdiff) printf("%s %g\n", msg, 1.0*(tdiff)/CLOCKS_PER_SEC)
-
 #include <gkyl_vlasov.h>
+
+#define SHOW_TIME(msg, tdiff) printf("%s %g\n", msg, 1.0*(tdiff)/CLOCKS_PER_SEC)
 
 struct weibel_ctx {
     // parameters for plasma streams
@@ -134,6 +134,9 @@ main(int argc, char **argv)
     .upper = { 2*M_PI/ctx.kx, 2*M_PI/ctx.ky },
     .cells = { 16, 16 },
     .poly_order = 2,
+
+    .num_periodic_dir = 2,
+    .periodic_dirs = { 0, 1},
 
     .num_species = 1,
     .species = { elc },
