@@ -24,6 +24,7 @@ struct gkyl_vlasov_species {
 // Parameter for EM field
 struct gkyl_em_field {
     double epsilon0, mu0;
+    double elcErrorSpeedFactor, mgnErrorSpeedFactor;
 
     int evolve; // Evolve field? 1-yes, 0-no
 
