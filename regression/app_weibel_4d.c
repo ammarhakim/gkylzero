@@ -1,6 +1,6 @@
 #include <math.h>
-#include <time.h>
 #include <stdio.h>
+#include <time.h>
 
 #include <gkyl_vlasov.h>
 

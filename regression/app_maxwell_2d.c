@@ -48,7 +48,7 @@ create_ctx(void)
     .lwave = 2.0
   };
 
-  return ctx;  
+  return ctx;
 }
 
 int

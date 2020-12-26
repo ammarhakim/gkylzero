@@ -43,7 +43,7 @@ gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
     int dirLoIdx = update_range->lower[dir];
     int dirUpIdx = update_range->upper[dir]+1; // one more edge than cells
 
-    if (hdg->zero_flux_flags[dir]) {
+    if (hdg->zero_flux_flags[d]) {
       dirLoIdx = dirLoIdx+1;
       dirUpIdx = dirUpIdx-1;
     }

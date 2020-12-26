@@ -17,7 +17,7 @@ typedef struct gkyl_hyper_dg gkyl_hyper_dg;
  * @param equation Equation object
  * @param num_up_dirs Number of directions to update
  * @param update_dirs List of directions to update (size 'num_up_dirs')
- * @param zero_flux_flags List of zero-flux BC direction (size 'num_up_dirs')
+ * @param zero_flux_flags Flags with zero-flux BCs (size 'num_up_dirs')
  * @param update_vol_term Set to 0 to skip volume update
  */
 gkyl_hyper_dg* gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,

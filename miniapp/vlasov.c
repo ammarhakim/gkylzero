@@ -105,6 +105,9 @@ struct vm_species {
 
     struct vm_species_moment m1i; // for computing currents
     struct vm_species_moment *moms; // diagnostic moments
+
+    struct gkyl_dg_eqn *eqn; // Vlasov equation
+    gkyl_hyper_dg *slvr; // solver
 };
 
 // field data
@@ -115,7 +118,7 @@ struct vm_field {
     struct gkyl_array *em;
     
     struct gkyl_dg_eqn *eqn; // Maxwell equation
-    struct gkyl_hyper_dg *slvr; // solver 
+    gkyl_hyper_dg *slvr; // solver 
 };
 
 // Vlasov object: used as opaque pointer in user code
@@ -128,12 +131,11 @@ struct gkyl_vlasov_app {
     struct gkyl_range local, local_ext; // local, local-ext conf-space ranges
     struct gkyl_basis basis, confBasis; // phase-space, conf-space basis
 
-    // field data
-    struct vm_field field;
+    struct vm_field field; // field data
 
     // species data
     int num_species;
-    struct vm_species *species;
+    struct vm_species *species; // species data
 };
 
 // initialize field object
@@ -170,10 +172,10 @@ vm_field_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_field *
   double ef = f->info.elcErrorSpeedFactor, mf = f->info.mgnErrorSpeedFactor;
   f->eqn = gkyl_dg_maxwell_new(&app->confBasis, c, ef, mf);
 
-  int max_up_dirs[] = {0, 1, 2}, zero_flux_flags[] = {0, 0, 0};
+  int up_dirs[] = {0, 1, 2}, zero_flux_flags[] = {0, 0, 0};
   // Maxwell solver
   f->slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, f->eqn,
-    app->cdim, max_up_dirs, zero_flux_flags, 1);
+    app->cdim, up_dirs, zero_flux_flags, 1);
 }
 
 // release resources for field
@@ -218,9 +220,25 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   int ndm = s->info.num_diag_moments;
   // allocate data for diagnostic moments
   s->moms = gkyl_malloc(ndm*sizeof(struct vm_species_moment));
-  
   for (int m=0; m<ndm; ++m)
     vm_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
+
+  // create equation object
+  s->eqn = gkyl_dg_vlasov_new(&app->confBasis, &app->basis, &app->local);
+
+  int up_dirs[GKYL_MAX_DIM], zero_flux_flags[GKYL_MAX_DIM];
+  for (int d=0; d<cdim; ++d) {
+    up_dirs[d] = d;
+    zero_flux_flags[d] = 0;
+  }
+  for (int d=0; d<cdim; ++d) {
+    up_dirs[d] = d;
+    zero_flux_flags[d] = 1; // zero-flux BCs in vel-space
+  }
+  
+  // create solver
+  s->slvr = gkyl_hyper_dg_new(&s->grid, &app->basis, s->eqn,
+    pdim, up_dirs, zero_flux_flags, 1);
 }
 
 // release resources for species
@@ -235,6 +253,9 @@ vm_species_release(struct vm_species *s)
   for (int i=0; i<s->info.num_diag_moments; ++i)
     vm_species_moment_release(&s->moms[i]);
   gkyl_free(s->moms);
+
+  gkyl_dg_eqn_release(s->eqn);
+  gkyl_hyper_dg_release(s->slvr);
 }
 
 
@@ -324,7 +345,6 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
   do { // write EM field
     char fileNm[256];
     sprintf(fileNm, "%s-field_%d.gkyl", app->name, frame);
-    
     gkyl_grid_array_write(&app->grid, &app->local, app->field.em, fileNm);
   } while(0);
 
@@ -332,7 +352,6 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
   for (int i=0; i<app->num_species; ++i) {
     char fileNm[256];
     sprintf(fileNm, "%s-%s_%d.gkyl", app->name, app->species[i].info.name, frame);
-    
     gkyl_grid_array_write(&app->species[i].grid, &app->species[i].local,
       app->species[i].f, fileNm);
   }
@@ -342,12 +361,10 @@ void
 gkyl_vlasov_app_mom_write(gkyl_vlasov_app* app, double tm, int frame)
 {
   for (int i=0; i<app->num_species; ++i) {
-
     for (int m=0; m<app->species[i].info.num_diag_moments; ++m) {
       char fileNm[256];
       sprintf(fileNm, "%s-%s-%s_%d.gkyl", app->name, app->species[i].info.name,
         app->species[i].info.diag_moments[m], frame);
-      
       gkyl_grid_array_write(&app->grid, &app->local, app->species[i].moms[m].marr, fileNm);
     }
   }
