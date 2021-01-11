@@ -41,6 +41,6 @@ void gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_r
 /**
  * Delete updater.
  *
- * @param pob Updater to delete.
+ * @param hdg Updater to delete.
  */
 void gkyl_hyper_dg_release(gkyl_hyper_dg* hdg);

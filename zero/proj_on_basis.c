@@ -34,8 +34,8 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
   up->ctx = ctx;
   up->numBasis = basis->numBasis;
 
-  double *ordinates1 = gkyl_malloc(num_quad*sizeof(double));
-  double *weights1 = gkyl_malloc(num_quad*sizeof(double));
+  double *ordinates1 = gkyl_malloc(sizeof(double[num_quad]));
+  double *weights1 = gkyl_malloc(sizeof(double[num_quad]));
 
   if (num_quad <= gkyl_gauss_max) {
     // use pre-computed values if possible (these are more accurate
@@ -56,7 +56,7 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
   int tot_quad = up->tot_quad = qrange.volume;
 
   // create ordinates and weights for multi-D quadrature  
-  up->ordinates = gkyl_array_new(sizeof(double)*grid->ndim, tot_quad);
+  up->ordinates = gkyl_array_new(sizeof(double[grid->ndim]), tot_quad);
   up->weights = gkyl_array_new(sizeof(double), tot_quad);
 
   struct gkyl_range_iter iter;
@@ -78,13 +78,13 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
   }
 
   // pre-compute basis functions at ordinates
-  up->basis_at_ords = gkyl_array_new(sizeof(double)*basis->numBasis, tot_quad);
+  up->basis_at_ords = gkyl_array_new(sizeof(double[basis->numBasis]), tot_quad);
   for (int n=0; n<tot_quad; ++n)
     basis->eval(gkyl_array_fetch(up->ordinates, n),
       gkyl_array_fetch(up->basis_at_ords, n));
 
   // allocate space to compute function at ordinates
-  up->fun_at_ords = gkyl_array_new(sizeof(double)*num_ret_vals, tot_quad);
+  up->fun_at_ords = gkyl_array_new(sizeof(double[num_ret_vals]), tot_quad);
   
   gkyl_free(ordinates1); gkyl_free(weights1);
 
@@ -102,13 +102,13 @@ comp_to_phys(int ndim, const double *eta,
 static void
 proj_on_basis(const gkyl_proj_on_basis *up, double* f)
 {
-  const int numBasis = up->numBasis;
-  const int tot_quad = up->tot_quad;
-  const int num_ret_vals = up->num_ret_vals;
+  int numBasis = up->numBasis;
+  int tot_quad = up->tot_quad;
+  int num_ret_vals = up->num_ret_vals;
   
-  const double *weights = up->weights->data;
-  const double *basis_at_ords = up->basis_at_ords->data;
-  const double *func_at_ords = up->fun_at_ords->data;
+  const double *restrict weights = up->weights->data;
+  const double *restrict basis_at_ords = up->basis_at_ords->data;
+  const double *restrict func_at_ords = up->fun_at_ords->data;
 
   // arrangement of f is as:
   // c0[0], c0[1], ... c1[0], c1[1], ....

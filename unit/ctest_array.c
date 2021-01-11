@@ -140,6 +140,54 @@ void test_array_accumulate_float()
   gkyl_array_release(a2);
 }
 
+void test_array_combine_double()
+{
+  struct gkyl_array *a1 = gkyl_array_new(sizeof(double), 10);
+  struct gkyl_array *a2 = gkyl_array_new(sizeof(double), 10);
+  struct gkyl_array *b = gkyl_array_new(sizeof(double), 10);
+
+  double *a1_d  = a1->data, *a2_d = a2->data, *b_d = b->data;
+  for (unsigned i=0; i<a1->size; ++i) {
+    a1_d[i] = i*1.0;
+    a2_d[i] = i*0.1;
+    b_d[i] = 10.5;
+  }
+
+  // b = 0.5*a1 + 2.5*a2
+  gkyl_array_accumulate(gkyl_array_set(b, 0.5, a1), 2.5, a2);
+
+  for (unsigned i=0; i<a1->size; ++i)
+    TEST_CHECK( gkyl_compare(b_d[i], 0.5*i*1.0+2.5*i*0.1, 1e-14) );
+
+  gkyl_array_release(a1);
+  gkyl_array_release(a2);
+  gkyl_array_release(b);
+}
+
+void test_array_combine_float()
+{
+  struct gkyl_array *a1 = gkyl_array_new(sizeof(float), 10);
+  struct gkyl_array *a2 = gkyl_array_new(sizeof(float), 10);
+  struct gkyl_array *b = gkyl_array_new(sizeof(float), 10);
+
+  float *a1_d  = a1->data, *a2_d = a2->data, *b_d = b->data;
+  for (unsigned i=0; i<a1->size; ++i) {
+    a1_d[i] = i*1.0f;
+    a2_d[i] = i*0.1f;
+    b_d[i] = 10.5f;
+  }
+
+  // b = 0.5*a1 + 2.5*a2
+  gkyl_array_accumulate(gkyl_array_set(b, 0.5f, a1), 2.5f, a2);
+
+  for (unsigned i=0; i<a1->size; ++i)
+    TEST_CHECK( gkyl_compare(b_d[i], 0.5f*i*1.0f+2.5f*i*0.1f, 1e-14) );
+
+  gkyl_array_release(a1);
+  gkyl_array_release(a2);
+  gkyl_array_release(b);
+}
+
 void test_array_set_double()
 {
   struct gkyl_array *a1 = gkyl_array_new(sizeof(double), 10);
@@ -330,6 +378,8 @@ TEST_LIST = {
   { "array_clear_float", test_array_clear_float },
   { "array_accumulate_double", test_array_accumulate_double },
   { "array_accumulate_float", test_array_accumulate_float },
+  { "array_combine_double", test_array_combine_double },
+  { "array_combine_float", test_array_combine_float },
   { "array_set_double", test_array_set_double },
   { "array_set_float", test_array_set_float },
   { "array_scale_double", test_array_scale_double },
