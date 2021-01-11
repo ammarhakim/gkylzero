@@ -148,8 +148,8 @@ gkyl_vlasov_set_qmem(const struct gkyl_dg_eqn *eqn, struct gkyl_array *qmem)
 }
 
 static double
-vol(const struct gkyl_dg_eqn *eqn, 
-  const double*  xc, const double*  dx, const int* idx, const double* qIn, double *qRhsOut)
+vol(const struct gkyl_dg_eqn *eqn,  const double*  xc, const double*  dx,
+  const int* idx, const double* qIn, double *qRhsOut)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
 

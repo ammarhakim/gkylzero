@@ -1,4 +1,5 @@
 #include <math.h>
+#include <time.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_hyper_dg.h>
@@ -14,6 +15,7 @@ struct gkyl_hyper_dg {
     int update_vol_term; // should we update volume term?
     const struct gkyl_dg_eqn *equation; // equation object
 
+    // max speed
     double maxs[GKYL_MAX_DIM];
     double maxs_old[GKYL_MAX_DIM], maxs_local[GKYL_MAX_DIM];
 };

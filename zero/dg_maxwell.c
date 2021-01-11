@@ -55,14 +55,14 @@ struct dg_maxwell {
 static void
 maxwell_free(const struct gkyl_ref_count *ref)
 {
-  struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);  
+  struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_maxwell *maxwell = container_of(base, struct dg_maxwell, eqn);
   free(maxwell);
 }
 
 static double
-vol(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double*  dx, const int*  idx, const double* qIn, double *qRhsOut)
+vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double*  dx,
+  const int*  idx, const double* qIn, double *qRhsOut)
 {
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
   return maxwell->vol(&maxwell->maxwell_data, xc, dx, qIn, qRhsOut);

@@ -4,6 +4,15 @@
 # define GKYL_MAX_SPECIES 2
 #endif
 
+// Status of update() method. If success is 0 (failure) then the
+// simulation needs to be aborted and can't continue. The 'dt' is the
+// actual time-step the simulation used.
+struct gkyl_vlasov_update_status {
+    int success; // 1 if update worked, 0 if a fatal error
+    double dt_actual; // Actual time-step taken
+    double dt_suggested; // Suggested stable time-step
+};
+
 // Parameters for Vlasov species
 struct gkyl_vlasov_species {
     char name[128]; // Species name
@@ -67,16 +76,18 @@ gkyl_vlasov_app* gkyl_vlasov_app_new(struct gkyl_vm vm);
  * basis functions.
  *
  * @param app App object.
+ * @param t0 Time for initial conditions.
  */
-void gkyl_vlasov_app_init_sim(gkyl_vlasov_app* app);
+void gkyl_vlasov_app_init(gkyl_vlasov_app* app, double t0);
 
 /**
  * Initialize field by projecting initial conditions on basis
  * functions.
  *
  * @param app App object.
+ * @param t0 Time for initial conditions
  */
-void gkyl_vlasov_app_init_field(gkyl_vlasov_app* app);
+void gkyl_vlasov_app_init_field(gkyl_vlasov_app* app, double t0);
 
 /**
  * Initialize species by projecting initial conditions on basis
@@ -85,8 +96,9 @@ void gkyl_vlasov_app_init_field(gkyl_vlasov_app* app);
  *
  * @param app App object.
  * @param sidx Index of species to initialize.
+ * @param t0 Time for initial conditions
  */
-void gkyl_vlasov_app_init_species(gkyl_vlasov_app* app, int sidx);
+void gkyl_vlasov_app_init_species(gkyl_vlasov_app* app, int sidx, double t0);
 
 /**
  * Calculate diagnostic moments.
@@ -105,13 +117,50 @@ void gkyl_vlasov_app_calc_mom(gkyl_vlasov_app* app);
 void gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame);
 
 /**
+ * Write field data to file.
+ * 
+ * @param app App object.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame);
+
+/**
+ * Write species data to file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+
+/**
  * Write diagnostic moments for species to file.
  * 
  * @param app App object.
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_vlasov_app_mom_write(gkyl_vlasov_app* app, double tm, int frame);
+void gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame);
+
+/**
+ * Advance simulation by a suggested time-step 'dt'. The dt may be too
+ * large in which case method will attempt to take a smaller time-step
+ * and also return it as the 'dt' field of the status object. If the
+ * suggested time-step 'dt' is smaller than the largest stable
+ * time-step the method will use the smaller value instead, returning
+ * the larger time-step in the 'dt' field of the status object. If the
+ * method fails to find any stable time-step then the 'success' flag
+ * will be set to 0. At that point the calling code must abort the
+ * simulation as this signals a catastrophic failure and the
+ * simulation can't be safely continued.
+ * 
+ * @param app App object.
+ * @param dt Suggested time-step to advance simulation
+ * @return Status of update.
+ */
+struct gkyl_vlasov_update_status gkyl_vlasov_update(gkyl_vlasov_app* app, double dt);
 
 /**
  * Free Vlasov app.

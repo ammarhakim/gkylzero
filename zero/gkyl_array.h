@@ -10,7 +10,7 @@
  */
 struct gkyl_array {
     size_t elemSz; // size of elements
-    size_t size; // total number of elements of size elemSz
+    size_t size; // number of elements of size elemSz
     void *data; // pointer to data
     struct gkyl_ref_count ref_count; // reference count
 };
@@ -41,7 +41,6 @@ struct gkyl_array* gkyl_array_copy(struct gkyl_array* dest,
  * @return Pointer to clone
  */
 struct gkyl_array* gkyl_array_clone(const struct gkyl_array* arr);
-
 
 /**
  * Fetches a pointer to the element stored at the index 'loc'.

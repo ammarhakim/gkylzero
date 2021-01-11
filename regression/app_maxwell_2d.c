@@ -85,7 +85,7 @@ main(int argc, char *argv[])
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
 
   // initialize simulation
-  gkyl_vlasov_app_init_sim(app);
+  gkyl_vlasov_app_init(app, 0.0);
   gkyl_vlasov_app_write(app, 0.0, 0);
 
   // simulation complete, free app

@@ -53,7 +53,7 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
   struct gkyl_range qrange;
   gkyl_range_init_from_shape(&qrange, grid->ndim, qshape);
 
-  int tot_quad = qrange.volume; up->tot_quad = tot_quad;
+  int tot_quad = up->tot_quad = qrange.volume;
 
   // create ordinates and weights for multi-D quadrature  
   up->ordinates = gkyl_array_new(sizeof(double)*grid->ndim, tot_quad);
