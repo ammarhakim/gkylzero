@@ -134,7 +134,7 @@ gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
   long count = 0;
   while (gkyl_range_iter_next(&iter)) {
     long start = gkyl_range_idx(&skip.range, iter.idx);
-    memcpy(data+arr->elemSz*skip.delta*count++, _F(start), arr->elemSz*skip.delta);
+    memcpy(((char*) data) + arr->elemSz*skip.delta*count++, _F(start), arr->elemSz*skip.delta);
   }
   
 #undef _F
@@ -157,7 +157,7 @@ gkyl_array_copy_from_buffer(struct gkyl_array *arr,
   long count = 0;
   while (gkyl_range_iter_next(&iter)) {
     long start = gkyl_range_idx(&skip.range, iter.idx);
-    memcpy(_F(start), data+arr->elemSz*skip.delta*count++, arr->elemSz*skip.delta);
+    memcpy(_F(start), ((char*) data) + arr->elemSz*skip.delta*count++, arr->elemSz*skip.delta);
   }
   
 #undef _F  

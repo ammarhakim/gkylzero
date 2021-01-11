@@ -247,7 +247,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     up_dirs[d] = d;
     zero_flux_flags[d] = 0;
   }
-  for (int d=0; d<cdim; ++d) {
+  for (int d=cdim; d<pdim; ++d) {
     up_dirs[d] = d;
     zero_flux_flags[d] = 1; // zero-flux BCs in vel-space
   }
