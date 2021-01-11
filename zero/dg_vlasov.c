@@ -8,6 +8,9 @@
 #include <kernels/vlasov/gkyl_vlasov_kernels.h>
 
 // Types for various kernels
+typedef double (*vlasov_stream_vol_t)(const double *w, const double *dxv,
+  const double *f, double* restrict out);
+
 typedef double (*vlasov_vol_t)(const double *w, const double *dxv,
   const double *qmem, const double *f, double* restrict out);
 
@@ -30,6 +33,18 @@ static struct { int vdim[4]; } cv_index[] = {
 };
 
 // Volume kernel list
+static struct { vlasov_stream_vol_t kernels[3]; } stream_vol_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_stream_vol_1x1v_ser_p1, vlasov_stream_vol_1x1v_ser_p2 }, // 0
+  { NULL, vlasov_stream_vol_1x2v_ser_p1, vlasov_stream_vol_1x2v_ser_p2 }, // 1
+  { NULL, vlasov_stream_vol_1x3v_ser_p1, vlasov_stream_vol_1x3v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, vlasov_stream_vol_2x2v_ser_p1, vlasov_stream_vol_2x2v_ser_p2 }, // 3
+  { NULL, vlasov_stream_vol_2x3v_ser_p1, vlasov_stream_vol_2x3v_ser_p2 }, // 4
+  // 3x kernels
+  { NULL, vlasov_stream_vol_3x3v_ser_p1, NULL               }, // 5
+};
+
 static struct { vlasov_vol_t kernels[3]; } vol_kernels[] = {
   // 1x kernels
   { NULL, vlasov_vol_1x1v_ser_p1, vlasov_vol_1x1v_ser_p2 }, // 0
