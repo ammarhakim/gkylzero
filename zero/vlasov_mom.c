@@ -19,66 +19,79 @@ static struct { int vdim[4]; } cv_index[] = {
 // M0 kernel list
 static struct { momf_t kernels[3]; } m0_kernels[] = {
   // 1x kernels
-  { NULL, vlasov_mom_1x1v_m0_p1, vlasov_mom_1x1v_m0_p2 }, // 0
-  { NULL, vlasov_mom_1x2v_m0_p1, vlasov_mom_1x2v_m0_p2 }, // 1
-  { NULL, vlasov_mom_1x3v_m0_p1, vlasov_mom_1x3v_m0_p2 }, // 2
+  { NULL, vlasov_M0_1x1v_ser_p1, vlasov_M0_1x1v_ser_p2 }, // 0
+  { NULL, vlasov_M0_1x2v_ser_p1, vlasov_M0_1x2v_ser_p2 }, // 1
+  { NULL, vlasov_M0_1x3v_ser_p1, vlasov_M0_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, vlasov_mom_2x2v_m0_p1, vlasov_mom_2x2v_m0_p2 }, // 3
-  { NULL, vlasov_mom_2x3v_m0_p1, vlasov_mom_2x3v_m0_p2 }, // 4
+  { NULL, vlasov_M0_2x2v_ser_p1, vlasov_M0_2x2v_ser_p2 }, // 3
+  { NULL, vlasov_M0_2x3v_ser_p1, vlasov_M0_2x3v_ser_p2 }, // 4
   // 3x kernels
-  { NULL, vlasov_mom_3x3v_m0_p1, NULL                  }, // 5
+  { NULL, vlasov_M0_3x3v_ser_p1, NULL                  }, // 5
 };
 
 // M1i kernel list
 static struct { momf_t kernels[3]; } m1i_kernels[] = {
   // 1x kernels
-  { NULL, vlasov_mom_1x1v_m1i_p1, vlasov_mom_1x1v_m1i_p2 }, // 0
-  { NULL, vlasov_mom_1x2v_m1i_p1, vlasov_mom_1x2v_m1i_p2 }, // 1
-  { NULL, vlasov_mom_1x3v_m1i_p1, vlasov_mom_1x3v_m1i_p2 }, // 2
+  { NULL, vlasov_M1i_1x1v_ser_p1, vlasov_M1i_1x1v_ser_p2 }, // 0
+  { NULL, vlasov_M1i_1x2v_ser_p1, vlasov_M1i_1x2v_ser_p2 }, // 1
+  { NULL, vlasov_M1i_1x3v_ser_p1, vlasov_M1i_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, vlasov_mom_2x2v_m1i_p1, vlasov_mom_2x2v_m1i_p2 }, // 3
-  { NULL, vlasov_mom_2x3v_m1i_p1, vlasov_mom_2x3v_m1i_p2 }, // 4
+  { NULL, vlasov_M1i_2x2v_ser_p1, vlasov_M1i_2x2v_ser_p2 }, // 3
+  { NULL, vlasov_M1i_2x3v_ser_p1, vlasov_M1i_2x3v_ser_p2 }, // 4
   // 3x kernels
-  { NULL, vlasov_mom_3x3v_m1i_p1, NULL                   }, // 5
-};
-
-// M2ij kernel list
-static struct { momf_t kernels[3]; } m2ij_kernels[] = {
-  // 1x kernels
-  { NULL, vlasov_mom_1x1v_m2ij_p1, vlasov_mom_1x1v_m2ij_p2 }, // 0
-  { NULL, vlasov_mom_1x2v_m2ij_p1, vlasov_mom_1x2v_m2ij_p2 }, // 1
-  { NULL, vlasov_mom_1x3v_m2ij_p1, vlasov_mom_1x3v_m2ij_p2 }, // 2
-  // 2x kernels
-  { NULL, vlasov_mom_2x2v_m2ij_p1, vlasov_mom_2x2v_m2ij_p2 }, // 3
-  { NULL, vlasov_mom_2x3v_m2ij_p1, vlasov_mom_2x3v_m2ij_p2 }, // 4
-  // 3x kernels
-  { NULL, vlasov_mom_3x3v_m2ij_p1, NULL                   }, // 5
+  { NULL, vlasov_M1i_3x3v_ser_p1, NULL                   }, // 5
 };
 
 // M2 kernel list
 static struct { momf_t kernels[3]; } m2_kernels[] = {
   // 1x kernels
-  { NULL, vlasov_mom_1x1v_m2_p1, vlasov_mom_1x1v_m2_p2 }, // 0
-  { NULL, vlasov_mom_1x2v_m2_p1, vlasov_mom_1x2v_m2_p2 }, // 1
-  { NULL, vlasov_mom_1x3v_m2_p1, vlasov_mom_1x3v_m2_p2 }, // 2
+  { NULL, vlasov_M2_1x1v_ser_p1, vlasov_M2_1x1v_ser_p2 }, // 0
+  { NULL, vlasov_M2_1x2v_ser_p1, vlasov_M2_1x2v_ser_p2 }, // 1
+  { NULL, vlasov_M2_1x3v_ser_p1, vlasov_M2_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, vlasov_mom_2x2v_m2_p1, vlasov_mom_2x2v_m2_p2 }, // 3
-  { NULL, vlasov_mom_2x3v_m2_p1, vlasov_mom_2x3v_m2_p2 }, // 4
+  { NULL, vlasov_M2_2x2v_ser_p1, vlasov_M2_2x2v_ser_p2 }, // 3
+  { NULL, vlasov_M2_2x3v_ser_p1, vlasov_M2_2x3v_ser_p2 }, // 4
   // 3x kernels
-  { NULL, vlasov_mom_3x3v_m2_p1, NULL                   }, // 5
+  { NULL, vlasov_M2_3x3v_ser_p1, NULL                   }, // 5
+};
+
+// M2ij kernel list
+static struct { momf_t kernels[3]; } m2ij_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_M2ij_1x1v_ser_p1, vlasov_M2ij_1x1v_ser_p2 }, // 0
+  { NULL, vlasov_M2ij_1x2v_ser_p1, vlasov_M2ij_1x2v_ser_p2 }, // 1
+  { NULL, vlasov_M2ij_1x3v_ser_p1, vlasov_M2ij_1x3v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, vlasov_M2ij_2x2v_ser_p1, vlasov_M2ij_2x2v_ser_p2 }, // 3
+  { NULL, vlasov_M2ij_2x3v_ser_p1, vlasov_M2ij_2x3v_ser_p2 }, // 4
+  // 3x kernels
+  { NULL, vlasov_M2ij_3x3v_ser_p1, NULL                   }, // 5
 };
 
 // M3i kernel list
 static struct { momf_t kernels[3]; } m3i_kernels[] = {
   // 1x kernels
-  { NULL, vlasov_mom_1x1v_m3i_p1, vlasov_mom_1x1v_m3i_p2 }, // 0
-  { NULL, vlasov_mom_1x2v_m3i_p1, vlasov_mom_1x2v_m3i_p2 }, // 1
-  { NULL, vlasov_mom_1x3v_m3i_p1, vlasov_mom_1x3v_m3i_p2 }, // 2
+  { NULL, vlasov_M3i_1x1v_ser_p1, vlasov_M3i_1x1v_ser_p2 }, // 0
+  { NULL, vlasov_M3i_1x2v_ser_p1, vlasov_M3i_1x2v_ser_p2 }, // 1
+  { NULL, vlasov_M3i_1x3v_ser_p1, vlasov_M3i_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, vlasov_mom_2x2v_m3i_p1, vlasov_mom_2x2v_m3i_p2 }, // 3
-  { NULL, vlasov_mom_2x3v_m3i_p1, vlasov_mom_2x3v_m3i_p2 }, // 4
+  { NULL, vlasov_M3i_2x2v_ser_p1, vlasov_M3i_2x2v_ser_p2 }, // 3
+  { NULL, vlasov_M3i_2x3v_ser_p1, vlasov_M3i_2x3v_ser_p2 }, // 4
   // 3x kernels
-  { NULL, vlasov_mom_3x3v_m3i_p1, NULL                   }, // 5
+  { NULL, vlasov_M3i_3x3v_ser_p1, NULL                   }, // 5
+};
+
+// M3ijk kernel list
+static struct { momf_t kernels[3]; } m3ijk_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_M3ijk_1x1v_ser_p1, vlasov_M3ijk_1x1v_ser_p2 }, // 0
+  { NULL, vlasov_M3ijk_1x2v_ser_p1, vlasov_M3ijk_1x2v_ser_p2 }, // 1
+  { NULL, vlasov_M3ijk_1x3v_ser_p1, vlasov_M3ijk_1x3v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, vlasov_M3ijk_2x2v_ser_p1, vlasov_M3ijk_2x2v_ser_p2 }, // 3
+  { NULL, vlasov_M3ijk_2x3v_ser_p1, vlasov_M3ijk_2x3v_ser_p2 }, // 4
+  // 3x kernels
+  { NULL, vlasov_M3ijk_3x3v_ser_p1, NULL                   }, // 5
 };
 
 static void
@@ -116,6 +129,13 @@ gkyl_vlasov_mom_new(const struct gkyl_basis* cbasis,
     momt->kernel = m1i_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder];
     momt->num_mom = vdim;
   }
+  else if (strcmp(mom, "M2") == 0) { // energy
+    assert(cv_index[cdim].vdim[vdim] != -1);
+    assert(NULL != m2_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder]);
+    
+    momt->kernel = m2_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder];
+    momt->num_mom = 1;
+  }
   else if (strcmp(mom, "M2ij") == 0) { // pressure tensor in lab-frame
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m2ij_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder]);
@@ -123,20 +143,20 @@ gkyl_vlasov_mom_new(const struct gkyl_basis* cbasis,
     momt->kernel = m2ij_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder];
     momt->num_mom = 1/2*vdim*(vdim+1);
   }
-  else if (strcmp(mom, "M2") == 0) { // trace of M2ij
-    assert(cv_index[cdim].vdim[vdim] != -1);
-    assert(NULL != m2_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder]);
-    
-    momt->kernel = m2_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder];
-    momt->num_mom = 1;
-  }
   else if (strcmp(mom, "M3i") == 0) { // heat-flux vector in lab-frame
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m3i_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder]);
     
     momt->kernel = m3i_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder];
     momt->num_mom = vdim;
-  }  
+  }
+  else if (strcmp(mom, "M3ijk") == 0) { // heat-flux tensor in lab-frame
+    assert(cv_index[cdim].vdim[vdim] != -1);
+    assert(NULL != m3i_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder]);
+    
+    momt->kernel = m3i_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder];
+    momt->num_mom = vdim;
+  }    
   else {
     // string not recognized
     gkyl_exit("gkyl_vlasov_mom_type: Unrecognized moment requested!");

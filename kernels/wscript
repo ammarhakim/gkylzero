@@ -7,48 +7,89 @@ import os
 
 def build(bld):
     source = r"""
-    vlasov/vlasov_mom_kernels_ser_1x1v.c
-    vlasov/vlasov_mom_kernels_ser_1x2v.c
-    vlasov/vlasov_mom_kernels_ser_1x3v.c
-    vlasov/vlasov_mom_kernels_ser_2x2v.c
-    vlasov/vlasov_mom_kernels_ser_2x3v.c
-    vlasov/vlasov_mom_kernels_ser_3x3v.c
+    vlasov/vlasov_mom_1x1v_ser_p1.c
+    vlasov/vlasov_mom_1x1v_ser_p2.c
+    vlasov/vlasov_mom_1x2v_ser_p1.c
+    vlasov/vlasov_mom_1x2v_ser_p2.c
+    vlasov/vlasov_mom_1x3v_ser_p1.c
+    vlasov/vlasov_mom_1x3v_ser_p2.c
+    vlasov/vlasov_mom_2x2v_ser_p1.c
+    vlasov/vlasov_mom_2x2v_ser_p2.c
+    vlasov/vlasov_mom_2x3v_ser_p1.c
+    vlasov/vlasov_mom_2x3v_ser_p2.c
+    vlasov/vlasov_mom_3x3v_ser_p1.c
 
-    vlasov/vlasov_vol_1x1v_p1.c
-    vlasov/vlasov_vol_1x2v_p2.c
-    vlasov/vlasov_vol_2x2v_p1.c
-    vlasov/vlasov_vol_2x3v_p2.c
-    vlasov/vlasov_vol_1x1v_p2.c
-    vlasov/vlasov_vol_1x3v_p1.c
-    vlasov/vlasov_vol_2x2v_p2.c
-    vlasov/vlasov_vol_3x3v_p1.c
-    vlasov/vlasov_vol_1x2v_p1.c
-    vlasov/vlasov_vol_1x3v_p2.c
-    vlasov/vlasov_vol_2x3v_p1.c
+    vlasov/vlasov_int_mom_1x1v_ser_p1.c
+    vlasov/vlasov_int_mom_1x1v_ser_p2.c
+    vlasov/vlasov_int_mom_1x2v_ser_p1.c
+    vlasov/vlasov_int_mom_1x2v_ser_p2.c
+    vlasov/vlasov_int_mom_1x3v_ser_p1.c
+    vlasov/vlasov_int_mom_1x3v_ser_p2.c
+    vlasov/vlasov_int_mom_2x2v_ser_p1.c
+    vlasov/vlasov_int_mom_2x2v_ser_p2.c
+    vlasov/vlasov_int_mom_2x3v_ser_p1.c
+    vlasov/vlasov_int_mom_2x3v_ser_p2.c
+    vlasov/vlasov_int_mom_3x3v_ser_p1.c
 
-    vlasov/vlasov_surf_1x1v_p1.c
-    vlasov/vlasov_surf_1x3v_p1.c
-    vlasov/vlasov_surf_2x3v_p1.c
-    vlasov/vlasov_surf_1x1v_p2.c
-    vlasov/vlasov_surf_1x3v_p2.c
-    vlasov/vlasov_surf_2x3v_p2.c
-    vlasov/vlasov_surf_1x2v_p1.c
-    vlasov/vlasov_surf_2x2v_p1.c
-    vlasov/vlasov_surf_3x3v_p1.c
-    vlasov/vlasov_surf_1x2v_p2.c
-    vlasov/vlasov_surf_2x2v_p2.c
+    vlasov/vlasov_stream_vol_1x1v_ser_p1.c
+    vlasov/vlasov_stream_vol_1x1v_ser_p2.c
+    vlasov/vlasov_stream_vol_1x2v_ser_p1.c
+    vlasov/vlasov_stream_vol_1x2v_ser_p2.c
+    vlasov/vlasov_stream_vol_1x3v_ser_p1.c
+    vlasov/vlasov_stream_vol_1x3v_ser_p2.c
+    vlasov/vlasov_stream_vol_2x2v_ser_p1.c
+    vlasov/vlasov_stream_vol_2x2v_ser_p2.c
+    vlasov/vlasov_stream_vol_2x3v_ser_p1.c
+    vlasov/vlasov_stream_vol_2x3v_ser_p2.c
+    vlasov/vlasov_stream_vol_3x3v_ser_p1.c
 
-    maxwell/maxwell_vol_1x_p1.c
-    maxwell/maxwell_vol_1x_p2.c
-    maxwell/maxwell_vol_2x_p1.c
-    maxwell/maxwell_vol_2x_p2.c
-    maxwell/maxwell_vol_3x_p1.c
+    vlasov/vlasov_stream_surf_1x1v_ser_p1.c
+    vlasov/vlasov_stream_surf_1x1v_ser_p2.c
+    vlasov/vlasov_stream_surf_1x2v_ser_p1.c
+    vlasov/vlasov_stream_surf_1x2v_ser_p2.c
+    vlasov/vlasov_stream_surf_1x3v_ser_p1.c
+    vlasov/vlasov_stream_surf_1x3v_ser_p2.c
+    vlasov/vlasov_stream_surf_2x2v_ser_p1.c
+    vlasov/vlasov_stream_surf_2x2v_ser_p2.c
+    vlasov/vlasov_stream_surf_2x3v_ser_p1.c
+    vlasov/vlasov_stream_surf_2x3v_ser_p2.c
+    vlasov/vlasov_stream_surf_3x3v_ser_p1.c
 
-    maxwell/maxwell_surf_1x_p1.c
-    maxwell/maxwell_surf_1x_p2.c
-    maxwell/maxwell_surf_2x_p1.c
-    maxwell/maxwell_surf_2x_p2.c
-    maxwell/maxwell_surf_3x_p1.c
+    vlasov/vlasov_vol_1x1v_ser_p1.c
+    vlasov/vlasov_vol_1x1v_ser_p2.c
+    vlasov/vlasov_vol_1x2v_ser_p1.c
+    vlasov/vlasov_vol_1x2v_ser_p2.c
+    vlasov/vlasov_vol_1x3v_ser_p1.c
+    vlasov/vlasov_vol_1x3v_ser_p2.c
+    vlasov/vlasov_vol_2x2v_ser_p1.c
+    vlasov/vlasov_vol_2x2v_ser_p2.c
+    vlasov/vlasov_vol_2x3v_ser_p1.c
+    vlasov/vlasov_vol_2x3v_ser_p2.c
+    vlasov/vlasov_vol_3x3v_ser_p1.c
+
+    vlasov/vlasov_surf_1x1v_ser_p1.c
+    vlasov/vlasov_surf_1x1v_ser_p2.c
+    vlasov/vlasov_surf_1x2v_ser_p1.c
+    vlasov/vlasov_surf_1x2v_ser_p2.c
+    vlasov/vlasov_surf_1x3v_ser_p1.c
+    vlasov/vlasov_surf_1x3v_ser_p2.c
+    vlasov/vlasov_surf_2x2v_ser_p1.c
+    vlasov/vlasov_surf_2x2v_ser_p2.c
+    vlasov/vlasov_surf_2x3v_ser_p1.c
+    vlasov/vlasov_surf_2x3v_ser_p2.c
+    vlasov/vlasov_surf_3x3v_ser_p1.c
+
+    maxwell/maxwell_vol_1x_ser_p1.c
+    maxwell/maxwell_vol_1x_ser_p2.c
+    maxwell/maxwell_vol_2x_ser_p1.c
+    maxwell/maxwell_vol_2x_ser_p2.c
+    maxwell/maxwell_vol_3x_ser_p1.c
+
+    maxwell/maxwell_surf_1x_ser_p1.c
+    maxwell/maxwell_surf_1x_ser_p2.c
+    maxwell/maxwell_surf_2x_ser_p1.c
+    maxwell/maxwell_surf_2x_ser_p2.c
+    maxwell/maxwell_surf_3x_ser_p1.c
 
     """
     
