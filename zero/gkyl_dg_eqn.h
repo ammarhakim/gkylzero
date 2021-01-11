@@ -8,14 +8,14 @@ struct gkyl_dg_eqn;
 // Function pointer type for volume kernel
 typedef double (*vol_termf_t)(const struct gkyl_dg_eqn *eqn, 
   const double*  xc, const double*  dx, const int*  idx,
-  const double* qIn, double *qRhsOut);
+  const double* qIn, double* restrict qRhsOut);
 
 
 // Function pointer type for surface kernel
 typedef double (*surf_termf_t)(const struct gkyl_dg_eqn *eqn, int dir,
   const double*  xcL, const double*  xcR, const double*  dxL, const double* dxR,
   double maxsOld, const int*  idxL, const int*  idxR,
-  const double* qInL, const double*  qInR, double *qRhsOutL, double *qRhsOutR);
+  const double* qInL, const double*  qInR, double* restrict qRhsOutL, double* restrict qRhsOutR);
 
 struct gkyl_dg_eqn {
     int num_equations; // Number of equations in system
