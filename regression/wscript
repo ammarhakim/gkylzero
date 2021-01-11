@@ -11,21 +11,21 @@ def build(bld):
         source = 'app_maxwell_2d.c',
         target = 'app_maxwell_2d',
         includes = '. ../zero ../miniapp',
-        use = 'gkylzero gkylzerokern gkylminiapp',
+        use = 'gkylminiapp gkylzero gkylzerokern',
     )
 
     bld.program(
         source = 'app_weibel_4d.c',
         target = 'app_weibel_4d',
         includes = '. ../zero ../miniapp',
-        use = 'gkylzero gkylzerokern gkylminiapp',
+        use = 'gkylminiapp gkylzero gkylzerokern',
     )
 
     bld.program(
         source = 'app_twostream.c',
         target = 'app_twostream',
         includes = '. ../zero ../miniapp',
-        use = 'gkylzero gkylzerokern gkylminiapp',
+        use = 'gkylminiapp gkylzero gkylzerokern',
     )    
 
     bld.program(
