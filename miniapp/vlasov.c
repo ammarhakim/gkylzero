@@ -419,6 +419,14 @@ forward_euler(gkyl_vlasov_app* app, double dt,
   
 }
 
+// Compute out = c1*arr1 + c2*arr2
+static inline struct gkyl_array*
+array_combine(struct gkyl_array *out, double c1, const struct gkyl_array *arr1,
+  double c2, const struct gkyl_array *arr2)
+{
+  return gkyl_array_accumulate(gkyl_array_set(out, c1, arr1), c2, arr2);
+}
+
 // Take a single time-step using the RK3 method. Also sets the status
 // object which itself has a suggested dt which can be different from
 // the actual time-step.
@@ -428,10 +436,6 @@ rk3(gkyl_vlasov_app* app, double dt0, struct gkyl_vlasov_update_status *st)
   const struct gkyl_array *fin[app->num_species];
   struct gkyl_array *fout[app->num_species];
 
-  // out = c1*arr1 + c2*arr2
-#define COMB(out, c1, arr1, c2, arr2)                                   \
-  gkyl_array_accumulate(gkyl_array_set(out, (c1), arr1), (c2), arr2);
-  
   // time-stepper state
   enum RK3_STATE {
     RK_STAGE_1, RK_STAGE_2, RK_STAGE_3, RK_COMPLETE
@@ -457,41 +461,46 @@ rk3(gkyl_vlasov_app* app, double dt0, struct gkyl_vlasov_update_status *st)
           }
           forward_euler(app, dt, fin, app->field.em1, fout, app->field.emnew, st);
           if (st->dt_actual < dt) {
-            // we need to redo starting from stage 1 with a smaller
-            // time-step
             dt = st->dt_actual;
-            state = RK_STAGE_1;
+            state = RK_STAGE_1; // restart from stage-1
           }
           else {
-            // f1 = 3/2*f + 1/4*fnew
-            for (int i=0; i<app->num_species; ++i) {
-              gkyl_array_accumulate(
-                gkyl_array_set(app->species[i].f1, 3.0/2.0, app->species[i].f),
-                1.0/4.0, app->species[i].fnew);
-            }
-            gkyl_array_accumulate(
-              gkyl_array_set(app->field.em1, 3.0/2.0, app->field.em),
-              1.0/4.0, app->field.emnew);
-            
-            // time-step is okay, so move to RK stage 3
+            for (int i=0; i<app->num_species; ++i)
+              array_combine(app->species[i].f1, 3.0/2.0, app->species[i].f, 1.0/4.0, app->species[i].fnew);
+            array_combine(app->field.em1, 3.0/2.0, app->field.em, 1.0/4.0, app->field.emnew);
+
             state = RK_STAGE_3;
           }
           break;
 
       case RK_STAGE_3:
-          printf("RK Stage 3\n");
-          state = RK_COMPLETE;
+          for (int i=0; i<app->num_species; ++i) {
+            fin[i] = app->species[i].f1;
+            fout[i] = app->species[i].fnew;
+          }          
+          forward_euler(app, dt, fin, app->field.em1, fout, app->field.emnew, st);
+          if (st->dt_actual < dt) {
+            dt = st->dt_actual;
+            state = RK_STAGE_1; // restart from stage-1
+          }
+          else {
+            for (int i=0; i<app->num_species; ++i) {
+              array_combine(app->species[i].f1, 1.0/2.0, app->species[i].f, 2.0/3.0, app->species[i].fnew);
+              gkyl_array_copy(app->species[i].f, app->species[i].f1);
+            }
+            array_combine(app->field.em1, 1.0/2.0, app->field.em, 2.0/3.0, app->field.emnew);
+            gkyl_array_copy(app->field.em, app->field.em1);
+
+            state = RK_COMPLETE;
+          }
           break;
 
-      case RK_COMPLETE:
-          // this can't happen: suppresses warning
+      case RK_COMPLETE: // can't happen: suppresses warning
           break;
     }
   }
   // set status object
   st->success = 1;
-
-#undef COMB  
 }
 
 struct gkyl_vlasov_update_status
