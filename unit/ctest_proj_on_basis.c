@@ -47,6 +47,9 @@ test_1()
   double *dfr = gkyl_array_fetch(distf, 1);
   TEST_CHECK( gkyl_compare(1.885618083164127, dfr[0], 1e-12) );
   TEST_CHECK( gkyl_compare(1.632993161855453, dfr[1], 1e-12) );
+
+  gkyl_proj_on_basis_release(projDistf);
+  gkyl_array_release(distf);
 }
 
 TEST_LIST = {

@@ -1,10 +1,8 @@
 #include <math.h>
 #include <stdio.h>
-#include <time.h>
 
+#include <gkyl_util.h>
 #include <gkyl_vlasov.h>
-
-#define SHOW_TIME(msg, tdiff) printf("%s %g\n", msg, 1.0*(tdiff)/CLOCKS_PER_SEC)
 
 struct weibel_ctx {
     // parameters for plasma streams
@@ -105,7 +103,7 @@ main(int argc, char **argv)
     .charge = -1.0, .mass = 1.0,
     .lower = { -0.9, -0.9 },
     .upper = { 0.9, 0.9 }, 
-    .cells = { 8, 8 },
+    .cells = { 16, 16 },
 
     .evolve = 1,
     .ctx = &ctx,
@@ -132,7 +130,7 @@ main(int argc, char **argv)
     .cdim = 2, .vdim = 2,
     .lower = { 0.0, 0.0 },
     .upper = { 2*M_PI/ctx.kx, 2*M_PI/ctx.ky },
-    .cells = { 16, 16 },
+    .cells = { 8, 8 },
     .poly_order = 2,
 
     .num_periodic_dir = 2,
@@ -143,7 +141,7 @@ main(int argc, char **argv)
     .field = field
   };
 
-  clock_t tstart, tend;
+  struct timespec tstart, tend;
 
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
 

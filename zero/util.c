@@ -31,3 +31,30 @@ gkyl_compare_dbl(double a, double b, double eps)
   if (a == 0 || b == 0 || (absa+absb < DBL_MIN)) return diff < eps*DBL_MIN;
   return diff/fmin(absa+absb, DBL_MAX) < eps;
 }
+
+int
+gkyl_wall_clock(struct timespec *ts)
+{
+  return clock_gettime(CLOCK_REALTIME, ts);
+}
+
+struct timespec
+gkyl_time_diff(struct timespec *start, struct timespec *end)
+{
+  struct timespec tm;
+  if ((end->tv_nsec-start->tv_nsec)<0) {
+    tm.tv_sec = end->tv_sec-start->tv_sec-1;
+    tm.tv_nsec = 1000000000+end->tv_nsec-start->tv_nsec;
+  }
+  else {
+    tm.tv_sec = end->tv_sec-start->tv_sec;
+    tm.tv_nsec = end->tv_nsec-start->tv_nsec;
+  }
+  return tm;  
+}
+   
+double
+gkyl_time_sec(struct timespec tm)
+{
+  return tm.tv_sec + 1e-9*tm.tv_nsec;
+}

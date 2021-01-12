@@ -440,7 +440,7 @@ rk3(gkyl_vlasov_app* app, double dt0, struct gkyl_vlasov_update_status *st)
   struct gkyl_array *fout[app->num_species];
 
   // time-stepper state
-  enum RK3_STATE { RK_STAGE_1, RK_STAGE_2, RK_STAGE_3, RK_COMPLETE } state = RK_STAGE_1;
+  enum { RK_STAGE_1, RK_STAGE_2, RK_STAGE_3, RK_COMPLETE } state = RK_STAGE_1;
 
   double tcurr = app->tcurr, dt = dt0;
   while (state != RK_COMPLETE) {

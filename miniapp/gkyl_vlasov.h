@@ -147,14 +147,14 @@ void gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame);
 /**
  * Advance simulation by a suggested time-step 'dt'. The dt may be too
  * large in which case method will attempt to take a smaller time-step
- * and also return it as the 'dt' field of the status object. If the
- * suggested time-step 'dt' is smaller than the largest stable
- * time-step the method will use the smaller value instead, returning
- * the larger time-step in the 'dt' field of the status object. If the
- * method fails to find any stable time-step then the 'success' flag
- * will be set to 0. At that point the calling code must abort the
- * simulation as this signals a catastrophic failure and the
- * simulation can't be safely continued.
+ * and also return it as the 'dt_actual' field of the status
+ * object. If the suggested time-step 'dt' is smaller than the largest
+ * stable time-step the method will use the smaller value instead,
+ * returning the larger time-step in the 'dt_suggested' field of the
+ * status object. If the method fails to find any stable time-step
+ * then the 'success' flag will be set to 0. At that point the calling
+ * code must abort the simulation as this signals a catastrophic
+ * failure and the simulation can't be safely continued.
  * 
  * @param app App object.
  * @param dt Suggested time-step to advance simulation

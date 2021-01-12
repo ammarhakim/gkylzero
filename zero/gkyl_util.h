@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stddef.h>
+#include <time.h>
 
 // Maximum dimensions supported
 #ifndef GKYL_MAX_DIM
@@ -43,3 +44,27 @@ int gkyl_compare_flt(float a, float b, float eps);
  * sufficiently close by, where 'eps' is the relative tolerance.
  */
 int gkyl_compare_dbl(double a, double b, double eps);
+
+/**
+ * Gets wall-clock time in secs/nanoseconds.
+ * 
+ * @return Status flag.
+ */
+int gkyl_wall_clock(struct timespec *ts);
+
+/**
+ * Difference between two timespec objects.
+ *
+ * @param tstart Start time
+ * @param tend End time 
+ * @return Time object representing difference
+ */
+struct timespec gkyl_time_diff(struct timespec *tstart, struct timespec *tend);
+
+/**
+ * Compute in secs time stored in timespec object.
+ *
+ * @param tm Timespec object
+ * @return Time in seconds
+ */
+double gkyl_time_sec(struct timespec tm);
