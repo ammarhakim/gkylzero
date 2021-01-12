@@ -7,7 +7,7 @@
 // Status of update() method. If success is 0 (failure) then the
 // simulation needs to be aborted and can't continue. The 'dt' is the
 // actual time-step the simulation used.
-struct gkyl_vlasov_update_status {
+struct gkyl_vlasov_status {
     int success; // 1 if update worked, 0 if a fatal error
     double dt_actual; // Actual time-step taken
     double dt_suggested; // Suggested stable time-step
@@ -57,6 +57,20 @@ struct gkyl_vm {
     int num_species; // Number of species
     struct gkyl_vlasov_species species[GKYL_MAX_SPECIES]; // Species objects
     struct gkyl_em_field field; // Field object
+};
+
+// Simulation statics
+struct gkyl_vlasov_stat {
+    long nup; // Calls to update
+    long nfeuler; // Calls to forward-Euler method
+    
+    double total_tm; // Time for simulation
+    double init_species_tm; // Time to initialize all species
+    double init_field_tm; // Time to initialize fields
+
+    double total_species_tm; // Time to compute species RHS
+    double total_field_tm; // Time to compute field RHS
+    double total_curr_tm; // Time to compute current accumulation
 };
 
 // Object representing Vlasov mini-app
@@ -160,7 +174,7 @@ void gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame);
  * @param dt Suggested time-step to advance simulation
  * @return Status of update.
  */
-struct gkyl_vlasov_update_status gkyl_vlasov_update(gkyl_vlasov_app* app, double dt);
+struct gkyl_vlasov_status gkyl_vlasov_update(gkyl_vlasov_app* app, double dt);
 
 /**
  * Free Vlasov app.

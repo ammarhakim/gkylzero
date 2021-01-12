@@ -48,9 +48,9 @@ int gkyl_compare_dbl(double a, double b, double eps);
 /**
  * Gets wall-clock time in secs/nanoseconds.
  * 
- * @return Status flag.
+ * @return Time object.
  */
-int gkyl_wall_clock(struct timespec *ts);
+struct timespec gkyl_wall_clock();
 
 /**
  * Difference between two timespec objects.
@@ -59,7 +59,7 @@ int gkyl_wall_clock(struct timespec *ts);
  * @param tend End time 
  * @return Time object representing difference
  */
-struct timespec gkyl_time_diff(struct timespec *tstart, struct timespec *tend);
+struct timespec gkyl_time_diff(struct timespec tstart, struct timespec tend);
 
 /**
  * Compute in secs time stored in timespec object.

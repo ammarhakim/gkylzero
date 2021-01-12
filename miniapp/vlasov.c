@@ -416,7 +416,7 @@ static void
 forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   const struct gkyl_array *fin[], const struct gkyl_array *em,
   struct gkyl_array *fout[], struct gkyl_array *emout,
-  struct gkyl_vlasov_update_status *st)
+  struct gkyl_vlasov_status *st)
 {
   st->dt_actual = dt; st->dt_suggested = dt;
   
@@ -431,13 +431,14 @@ array_combine(struct gkyl_array *out, double c1, const struct gkyl_array *arr1,
 }
 
 // Take time-step using the RK3 method. Also sets the status object
-// which itself has a suggested dt which can be different from the
-// actual time-step.
-static void
-rk3(gkyl_vlasov_app* app, double dt0, struct gkyl_vlasov_update_status *st)
+// which has the actual and suggested dts used. These can be different
+// from the actual time-step.
+static struct gkyl_vlasov_status
+rk3(gkyl_vlasov_app* app, double dt0)
 {
   const struct gkyl_array *fin[app->num_species];
   struct gkyl_array *fout[app->num_species];
+  struct gkyl_vlasov_status st;
 
   // time-stepper state
   enum { RK_STAGE_1, RK_STAGE_2, RK_STAGE_3, RK_COMPLETE } state = RK_STAGE_1;
@@ -450,8 +451,8 @@ rk3(gkyl_vlasov_app* app, double dt0, struct gkyl_vlasov_update_status *st)
             fin[i] = app->species[i].f;
             fout[i] = app->species[i].f1;
           }
-          forward_euler(app, tcurr, dt, fin, app->field.em, fout, app->field.em1, st);
-          dt = st->dt_actual;
+          forward_euler(app, tcurr, dt, fin, app->field.em, fout, app->field.em1, &st);
+          dt = st.dt_actual;
           state = RK_STAGE_2;
           break;
 
@@ -460,9 +461,9 @@ rk3(gkyl_vlasov_app* app, double dt0, struct gkyl_vlasov_update_status *st)
             fin[i] = app->species[i].f1;
             fout[i] = app->species[i].fnew;
           }
-          forward_euler(app, tcurr+dt, dt, fin, app->field.em1, fout, app->field.emnew, st);
-          if (st->dt_actual < dt) {
-            dt = st->dt_actual;
+          forward_euler(app, tcurr+dt, dt, fin, app->field.em1, fout, app->field.emnew, &st);
+          if (st.dt_actual < dt) {
+            dt = st.dt_actual;
             state = RK_STAGE_1; // restart from stage 1
           }
           else {
@@ -479,9 +480,9 @@ rk3(gkyl_vlasov_app* app, double dt0, struct gkyl_vlasov_update_status *st)
             fin[i] = app->species[i].f1;
             fout[i] = app->species[i].fnew;
           }          
-          forward_euler(app, tcurr+dt/2, dt, fin, app->field.em1, fout, app->field.emnew, st);
-          if (st->dt_actual < dt) {
-            dt = st->dt_actual;
+          forward_euler(app, tcurr+dt/2, dt, fin, app->field.em1, fout, app->field.emnew, &st);
+          if (st.dt_actual < dt) {
+            dt = st.dt_actual;
             state = RK_STAGE_1; // restart from stage 1
           }
           else {
@@ -501,14 +502,13 @@ rk3(gkyl_vlasov_app* app, double dt0, struct gkyl_vlasov_update_status *st)
     }
   }
   // set status object
-  st->success = 1;
+  st.success = 1;
 }
 
-struct gkyl_vlasov_update_status
+struct gkyl_vlasov_status
 gkyl_vlasov_update(gkyl_vlasov_app* app, double dt)
 {
-  struct gkyl_vlasov_update_status status;
-  rk3(app, dt, &status);
+  struct gkyl_vlasov_status status = rk3(app, dt);
   app->tcurr += status.dt_actual;
   return status;
 }

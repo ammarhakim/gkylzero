@@ -4,8 +4,6 @@
 
 #include <gkyl_vlasov.h>
 
-#define SHOW_TIME(msg, tdiff) printf("%s %g\n", msg, 1.0*(tdiff)/CLOCKS_PER_SEC)
-
 struct twostream_ctx {
     double knumber; // wave-number
     double vth; // electron thermal velocity
@@ -118,7 +116,7 @@ main(int argc, char **argv)
   while (tcurr < tend) {
     printf("Taking time-step dt = %g at t = %g\n", dt, tcurr);
     
-    struct gkyl_vlasov_update_status status = gkyl_vlasov_update(app, dt);
+    struct gkyl_vlasov_status status = gkyl_vlasov_update(app, dt);
     
     if (!status.success) {
       printf("** Update method failed! Aborting simulation ....\n");

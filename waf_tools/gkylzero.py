@@ -11,7 +11,7 @@ def options(opt):
     opt.add_option('--cxxflags', type='string', help='Compiler flags', dest='gkcxxflags',
                    default='-O3,-g,-Wall,-Wextra,-Wno-unused-variable,-Wno-unused-parameter,-std=c++17')
     opt.add_option('--cflags', type='string', help='Compiler flags', dest='gkcflags',
-                   default='-O3,-g,-Wall,-Wextra,-Wno-unused-variable,-Wno-unused-parameter')
+                   default='-O3,-g,-Wall,-Wextra,-Wno-unused-variable,-Wno-unused-parameter,-std=c99')
     opt.add_option('--debug', help='Debug flags', dest='gkdebug',
                    action='store_true', default=False)
     opt.add_option('--prefix', type='string', help='Install path', dest='prefix',

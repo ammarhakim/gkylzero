@@ -34,8 +34,7 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
   up->ctx = ctx;
   up->numBasis = basis->numBasis;
 
-  double *ordinates1 = gkyl_malloc(sizeof(double[num_quad]));
-  double *weights1 = gkyl_malloc(sizeof(double[num_quad]));
+  double ordinates1[num_quad], weights1[num_quad];
 
   if (num_quad <= gkyl_gauss_max) {
     // use pre-computed values if possible (these are more accurate
@@ -85,8 +84,6 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
 
   // allocate space to compute function at ordinates
   up->fun_at_ords = gkyl_array_new(sizeof(double[num_ret_vals]), tot_quad);
-  
-  gkyl_free(ordinates1); gkyl_free(weights1);
 
   return up;
 }
