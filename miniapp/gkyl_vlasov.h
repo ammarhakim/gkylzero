@@ -9,25 +9,25 @@
 // actual time-step the simulation used.
 struct gkyl_vlasov_status {
     int success; // 1 if update worked, 0 if a fatal error
-    double dt_actual; // Actual time-step taken
-    double dt_suggested; // Suggested stable time-step
+    double dt_actual; // actual time-step taken
+    double dt_suggested; // suggested stable time-step
 };
 
 // Parameters for Vlasov species
 struct gkyl_vlasov_species {
-    char name[128]; // Species name
-    double charge, mass; // Charge and mass
-    double lower[3], upper[3]; // Lower, upper bounds of velocity-space
-    int cells[3]; // Velocity-space cells
+    char name[128]; // species name
+    double charge, mass; // sharge and mass
+    double lower[3], upper[3]; // lower, upper bounds of velocity-space
+    int cells[3]; // velocity-space cells
 
-    int evolve; // Evolve species? 1-yes, 0-no
+    int evolve; // evolve species? 1-yes, 0-no
 
-    void *ctx; // Context for initial condition init function
-    // Pointer to initialization function
+    void *ctx; // context for initial condition init function
+    // pointer to initialization function
     void (*init)(double t, const double *xn, double *fout, void *ctx);
 
-    int num_diag_moments; // Number of diagnostic moments
-    char diag_moments[16][16]; // List of diagnostic moments
+    int num_diag_moments; // number of diagnostic moments
+    char diag_moments[16][16]; // list of diagnostic moments
 };
 
 // Parameter for EM field
@@ -35,42 +35,42 @@ struct gkyl_em_field {
     double epsilon0, mu0;
     double elcErrorSpeedFactor, mgnErrorSpeedFactor;
 
-    int evolve; // Evolve field? 1-yes, 0-no
+    int evolve; // evolve field? 1-yes, 0-no
 
-    void *ctx; // Context for initial condition init function
-    // Pointer to initialization function
+    void *ctx; // context for initial condition init function
+    // pointer to initialization function
     void (*init)(double t, const double *xn, double *fout, void *ctx);
 };
 
 // Top-level app parameters
 struct gkyl_vm {
-    char name[128]; // Name of app: used as output prefix
+    char name[128]; // name of app: used as output prefix
 
-    int cdim, vdim; // Conf, velocity space dimensions
-    double lower[3], upper[3]; // Lower, upper bounds of config-space
-    int cells[3]; // Config-space cells
-    int poly_order; // Polynomial order
+    int cdim, vdim; // conf, velocity space dimensions
+    double lower[3], upper[3]; // lower, upper bounds of config-space
+    int cells[3]; // config-space cells
+    int poly_order; // polynomial order
 
-    int num_periodic_dir; // Number of periodic directions
-    int periodic_dirs[3]; // List of periodic directions
+    int num_periodic_dir; // number of periodic directions
+    int periodic_dirs[3]; // list of periodic directions
 
-    int num_species; // Number of species
-    struct gkyl_vlasov_species species[GKYL_MAX_SPECIES]; // Species objects
-    struct gkyl_em_field field; // Field object
+    int num_species; // number of species
+    struct gkyl_vlasov_species species[GKYL_MAX_SPECIES]; // species objects
+    struct gkyl_em_field field; // field object
 };
 
 // Simulation statics
 struct gkyl_vlasov_stat {
-    long nup; // Calls to update
-    long nfeuler; // Calls to forward-Euler method
+    long nup; // calls to update
+    long nfeuler; // calls to forward-Euler method
     
-    double total_tm; // Time for simulation
-    double init_species_tm; // Time to initialize all species
-    double init_field_tm; // Time to initialize fields
+    double total_tm; // time for simulation
+    double init_species_tm; // time to initialize all species
+    double init_field_tm; // time to initialize fields
 
-    double total_species_tm; // Time to compute species RHS
-    double total_field_tm; // Time to compute field RHS
-    double total_curr_tm; // Time to compute current accumulation
+    double total_species_tm; // time to compute species RHS
+    double total_field_tm; // time to compute field RHS
+    double total_curr_tm; // time to compute current accumulation
 };
 
 // Object representing Vlasov mini-app

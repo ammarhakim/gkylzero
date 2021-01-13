@@ -7,18 +7,18 @@
 #include <gkyl_range.h>
 
 struct gkyl_proj_on_basis {
-    struct gkyl_rect_grid grid; // Grid object
-    int num_quad; // Number of quadrature points to use in each direction
-    int num_ret_vals; // Number of values returned by eval function
-    evalf_t eval; // Function to project
-    void *ctx; // Evaluation context
+    struct gkyl_rect_grid grid;
+    int num_quad; // number of quadrature points to use in each direction
+    int num_ret_vals; // number of values returned by eval function
+    evalf_t eval; // function to project
+    void *ctx; // evaluation context
 
-    int numBasis; // Number of basis functions
-    int tot_quad; // Total number of quadrature points
-    struct gkyl_array *ordinates; // Ordinates for quadrature
-    struct gkyl_array *weights; // Weights for quadrature
-    struct gkyl_array *basis_at_ords; // Basis functions at ordinates
-    struct gkyl_array *fun_at_ords; // Function at ordinates
+    int numBasis; // number of basis functions
+    int tot_quad; // total number of quadrature points
+    struct gkyl_array *ordinates; // qrdinates for quadrature
+    struct gkyl_array *weights; // weights for quadrature
+    struct gkyl_array *basis_at_ords; // basis functions at ordinates
+    struct gkyl_array *fun_at_ords; // function at ordinates
 };
 
 gkyl_proj_on_basis*

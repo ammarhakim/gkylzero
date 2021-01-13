@@ -230,7 +230,7 @@ main(int argc, char **argv)
       int idxm[GKYL_MAX_DIM], idxp[GKYL_MAX_DIM];
       double xcm[GKYL_MAX_DIM], xcp[GKYL_MAX_DIM];
 
-      while(gkyl_range_iter_next(&iter)) {
+      while (gkyl_range_iter_next(&iter)) {
         copy_int_arr(pdim, iter.idx, idxm);
         copy_int_arr(pdim, iter.idx, idxp);
 

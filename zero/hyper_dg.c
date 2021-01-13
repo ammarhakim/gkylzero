@@ -28,7 +28,7 @@ copy_int_arr(int n, const int *restrict inp, int *restrict out)
 
 void
 gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
-  const struct gkyl_array *fIn, const struct gkyl_array *rhs)
+  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs)
 {
   int ndim = hdg->ndim;
   int firstDir = 1;

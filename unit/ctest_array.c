@@ -8,7 +8,7 @@ void test_array_base()
 {
   struct gkyl_array *arr = gkyl_array_new(sizeof(double), 200);
 
-  TEST_CHECK( arr->elemSz == sizeof(double) );
+  TEST_CHECK( arr->elemsz == sizeof(double) );
   TEST_CHECK( arr->size == 20*10 );
   TEST_CHECK( arr->ref_count.count == 1 );
 
@@ -19,7 +19,7 @@ void test_array_base()
   // clone array
   struct gkyl_array *brr = gkyl_array_clone(arr);
 
-  TEST_CHECK( brr->elemSz == sizeof(double) );
+  TEST_CHECK( brr->elemsz == sizeof(double) );
   TEST_CHECK( brr->size == 20*10 );
   TEST_CHECK( brr->ref_count.count == 1 );
 
@@ -135,6 +135,98 @@ void test_array_accumulate_float()
 
   for (unsigned i=0; i<a1->size; ++i)
     TEST_CHECK( gkyl_compare(a1_d[i], i*1.0+0.5*i*0.1, 1e-10) );
+
+  gkyl_array_release(a1);
+  gkyl_array_release(a2);
+}
+
+void test_array_accumulate_range_double()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+  
+  struct gkyl_array *a1 = gkyl_array_new(sizeof(double[8]), range.volume);
+  struct gkyl_array *a2 = gkyl_array_new(sizeof(double[3]), range.volume);
+
+  // test a1 = a1 + 0.5*a2
+  gkyl_array_clear(a1, 0.5);
+  gkyl_array_clear(a2, 1.5);
+
+  gkyl_array_accumulate_range(a1, 0.5, a2, &range);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+    double *a1d = gkyl_array_fetch(a1, loc);
+    for (int i=0; i<3; ++i)
+      TEST_CHECK( a1d[i] == 0.5 + 0.5*1.5 );
+    for (int i=3; i<8; ++i)
+      TEST_CHECK( a1d[i] == 0.5);
+  }
+
+  // test a2 = a2 + 0.5*a
+  gkyl_array_clear(a1, 0.5);
+  gkyl_array_clear(a2, 1.5);
+
+  gkyl_array_accumulate_range(a2, 0.5, a1, &range);
+
+  gkyl_range_iter_reset(&iter);
+  
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+    double *a2d = gkyl_array_fetch(a2, loc);
+    for (int i=0; i<3; ++i)
+      TEST_CHECK( a2d[i] == 1.5 + 0.5*0.5 );
+  }  
+
+  gkyl_array_release(a1);
+  gkyl_array_release(a2);
+}
+
+void test_array_accumulate_range_float()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+  
+  struct gkyl_array *a1 = gkyl_array_new(sizeof(float[8]), range.volume);
+  struct gkyl_array *a2 = gkyl_array_new(sizeof(float[3]), range.volume);
+
+  // test a1 = a1 + 0.5*a2
+  gkyl_array_clear(a1, 0.5f);
+  gkyl_array_clear(a2, 1.5f);
+
+  gkyl_array_accumulate_range(a1, 0.5f, a2, &range);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+    float *a1d = gkyl_array_fetch(a1, loc);
+    for (int i=0; i<3; ++i)
+      TEST_CHECK( a1d[i] == 0.5 + 0.5*1.5 );
+    for (int i=3; i<8; ++i)
+      TEST_CHECK( a1d[i] == 0.5);
+  }
+
+  // test a2 = a2 + 0.5*a
+  gkyl_array_clear(a1, 0.5f);
+  gkyl_array_clear(a2, 1.5f);
+
+  gkyl_array_accumulate_range(a2, 0.5f, a1, &range);
+
+  gkyl_range_iter_reset(&iter);
+  
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+    float *a2d = gkyl_array_fetch(a2, loc);
+    for (int i=0; i<3; ++i)
+      TEST_CHECK( a2d[i] == 1.5 + 0.5*0.5 );
+  }  
 
   gkyl_array_release(a1);
   gkyl_array_release(a2);
@@ -378,6 +470,8 @@ TEST_LIST = {
   { "array_clear_float", test_array_clear_float },
   { "array_accumulate_double", test_array_accumulate_double },
   { "array_accumulate_float", test_array_accumulate_float },
+  { "array_accumulate_range_double", test_array_accumulate_range_double },
+  { "array_accumulate_range_float", test_array_accumulate_range_float },
   { "array_combine_double", test_array_combine_double },
   { "array_combine_float", test_array_combine_float },
   { "array_set_double", test_array_set_double },

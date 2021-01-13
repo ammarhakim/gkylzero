@@ -15,23 +15,23 @@ array_free(const struct gkyl_ref_count *ref)
 }
 
 struct gkyl_array*
-gkyl_array_new(size_t elemSz, size_t size)
+gkyl_array_new(size_t elemsz, size_t size)
 {
   struct gkyl_array* arr = gkyl_malloc(sizeof(struct gkyl_array));
-  arr->elemSz = elemSz;
+  arr->elemsz = elemsz;
   arr->size = size;
   arr->ref_count = (struct gkyl_ref_count) { array_free, 1 };  
-  arr->data = gkyl_calloc(arr->size, elemSz);
+  arr->data = gkyl_calloc(arr->size, elemsz);
   return arr;
 }
 
 struct gkyl_array*
 gkyl_array_copy(struct gkyl_array* dest, const struct gkyl_array* src)
 {
-  assert(dest->elemSz == src->elemSz);
+  assert(dest->elemsz == src->elemsz);
   
   long ncopy = src->size < dest->size ? src->size : dest->size;
-  memcpy(dest->data, src->data, ncopy*src->elemSz);
+  memcpy(dest->data, src->data, ncopy*src->elemsz);
   return dest;
 }
 
@@ -39,10 +39,10 @@ struct gkyl_array*
 gkyl_array_clone(const struct gkyl_array* src)
 {
   struct gkyl_array* arr = gkyl_malloc(sizeof(struct gkyl_array));
-  arr->elemSz = src->elemSz;
+  arr->elemsz = src->elemsz;
   arr->size = src->size;
-  arr->data = gkyl_calloc(arr->size, arr->elemSz);
-  memcpy(arr->data, src->data, arr->size*arr->elemSz);
+  arr->data = gkyl_calloc(arr->size, arr->elemsz);
+  memcpy(arr->data, src->data, arr->size*arr->elemsz);
   arr->ref_count = (struct gkyl_ref_count) { array_free, 1 };
   return arr;
 }

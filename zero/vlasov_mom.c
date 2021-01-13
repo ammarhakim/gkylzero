@@ -156,7 +156,7 @@ gkyl_vlasov_mom_new(const struct gkyl_basis* cbasis,
     
     momt->kernel = m3i_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder];
     momt->num_mom = vdim;
-  }    
+  }
   else {
     // string not recognized
     gkyl_exit("gkyl_vlasov_mom_type: Unrecognized moment requested!");

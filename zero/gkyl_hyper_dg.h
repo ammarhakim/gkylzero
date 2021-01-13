@@ -33,10 +33,11 @@ gkyl_hyper_dg* gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
  * @param hdg Hyper DG updater object
  * @param update_rng Range on which to compute.
  * @param fIn Input to updater
+ * @param cflrate CFL scalar rate array
  * @param rhs RHS output
  */
 void gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_rng,
-  const struct gkyl_array *fIn, const struct gkyl_array *rhs);
+  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs);
   
 /**
  * Delete updater.

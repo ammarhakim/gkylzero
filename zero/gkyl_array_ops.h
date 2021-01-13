@@ -17,6 +17,13 @@
       double: gkyl_array_accumulate_double)     \
     (out, a, inp)
 
+/** Generic accumulate macro */
+#define gkyl_array_accumulate_range(out, a, inp, range) \
+    _Generic((a),                                       \
+      float: gkyl_array_accumulate_range_float,         \
+      double: gkyl_array_accumulate_range_double)       \
+    (out, a, inp, range)
+
 /** Generic set macro */
 #define gkyl_array_set(out, a, inp)             \
     _Generic((a),                               \
@@ -99,8 +106,8 @@ struct gkyl_array* gkyl_array_uniop_float(const char *op, float a,
  * and at least of size arr->size*arr->elemSz bytes.
  *
  * @param arr Array to copy from
- * @param range Range specifying region to copy
  * @param data Output data buffer.
+ * @param range Range specifying region to copy
  */
 void gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
   const struct gkyl_range *range);
@@ -109,8 +116,23 @@ void gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
  * Copy buffer into region of array. The array must be preallocated.
  *
  * @param arr Array to copy from
- * @param range Range specifying region to copy
  * @param data Output data buffer.
+ * @param range Range specifying region to copy
  */
 void gkyl_array_copy_from_buffer(struct gkyl_array *arr,
   const void *data, const struct gkyl_range *range);
+
+/**
+ * Compute out = out + a*inp over a range of indices.
+ *
+ * @param out Output array
+ * @param a Factor to multiply input array
+ * @param inp Input array
+ * @param range Range specifying region to copy
+ * @return out array
+ */
+struct gkyl_array* gkyl_array_accumulate_range_double(struct gkyl_array *out,
+  double a, const struct gkyl_array *inp, const struct gkyl_range *range);
+
+struct gkyl_array* gkyl_array_accumulate_range_float(struct gkyl_array *out,
+  float a, const struct gkyl_array *inp, const struct gkyl_range *range);

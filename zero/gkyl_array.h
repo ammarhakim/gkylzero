@@ -9,8 +9,8 @@
  * mainly by the range object.
  */
 struct gkyl_array {
-    size_t elemSz; // size of elements
-    size_t size; // number of elements of size elemSz
+    size_t elemsz; // size of elements
+    size_t size; // number of elements of size elemsz
     void *data; // pointer to data
     struct gkyl_ref_count ref_count; // reference count
 };
@@ -18,11 +18,11 @@ struct gkyl_array {
 /**
  * Create new array. Delete using gkyl_array_release method.
  * 
- * @param elemSz Size of objects (elements) stored in array.
+ * @param elemsz Size of objects (elements) stored in array.
  * @param size Number elements to store in array
  * @return Pointer to newly allocated array.
  */
-struct gkyl_array* gkyl_array_new(size_t elemSz, size_t size);
+struct gkyl_array* gkyl_array_new(size_t elemsz, size_t size);
 
 /**
  * Copy into array: pointer to dest array is returned. 'dest' and
@@ -52,7 +52,7 @@ struct gkyl_array* gkyl_array_clone(const struct gkyl_array* arr);
 static inline void*
 gkyl_array_fetch(const struct gkyl_array* arr, long loc)
 {
-  return ((char*) arr->data) + loc*arr->elemSz;
+  return ((char*) arr->data) + loc*arr->elemsz;
 }
 
 /**

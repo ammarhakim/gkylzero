@@ -25,6 +25,14 @@ mkarr(long nc, long size)
   return a;
 }
 
+// Compute out = c1*arr1 + c2*arr2
+static inline struct gkyl_array*
+array_combine(struct gkyl_array *out, double c1, const struct gkyl_array *arr1,
+  double c2, const struct gkyl_array *arr2)
+{
+  return gkyl_array_accumulate(gkyl_array_set(out, c1, arr1), c2, arr2);
+}
+
 // list of valid moment names
 static const char *const valid_moment_names[] = { "M0", "M1i", "M2ij", "M2", "M3i" };
 
@@ -123,10 +131,10 @@ struct vm_field {
 
 // Vlasov object: used as opaque pointer in user code
 struct gkyl_vlasov_app {
-    char name[128]; // Name of app
-    int cdim, vdim; // Conf, velocity space dimensions
-    int poly_order; // Polynomial order
-    double tcurr; // Current time
+    char name[128]; // name of app
+    int cdim, vdim; // conf, velocity space dimensions
+    int poly_order; // polynomial order
+    double tcurr; // current time
     
     struct gkyl_rect_grid grid; // config-space grid
     struct gkyl_range local, local_ext; // local, local-ext conf-space ranges
@@ -422,14 +430,6 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   
 }
 
-// Compute out = c1*arr1 + c2*arr2
-static inline struct gkyl_array*
-array_combine(struct gkyl_array *out, double c1, const struct gkyl_array *arr1,
-  double c2, const struct gkyl_array *arr2)
-{
-  return gkyl_array_accumulate(gkyl_array_set(out, c1, arr1), c2, arr2);
-}
-
 // Take time-step using the RK3 method. Also sets the status object
 // which has the actual and suggested dts used. These can be different
 // from the actual time-step.
@@ -438,7 +438,7 @@ rk3(gkyl_vlasov_app* app, double dt0)
 {
   const struct gkyl_array *fin[app->num_species];
   struct gkyl_array *fout[app->num_species];
-  struct gkyl_vlasov_status st;
+  struct gkyl_vlasov_status st = { .success = 1 };
 
   // time-stepper state
   enum { RK_STAGE_1, RK_STAGE_2, RK_STAGE_3, RK_COMPLETE } state = RK_STAGE_1;
@@ -501,8 +501,8 @@ rk3(gkyl_vlasov_app* app, double dt0)
           break;
     }
   }
-  // set status object
-  st.success = 1;
+  
+  return st;
 }
 
 struct gkyl_vlasov_status
