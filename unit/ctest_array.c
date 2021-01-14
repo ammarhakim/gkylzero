@@ -380,24 +380,6 @@ void test_array_ops_comp() // more than 1 "component" in array
   gkyl_array_release(arr);
 }
 
-void test_array_ops()
-{
-  struct gkyl_array *a1 = gkyl_array_new(sizeof(double), 10);
-  struct gkyl_array *a2 = gkyl_array_new(sizeof(double), 10);
-
-  double *a1_d  = a1->data, *a2_d = a2->data;
-  for (unsigned i=0; i<a1->size; ++i)
-    a2_d[i] = i*0.1;
-
-  gkyl_array_uniop("square", 0.0, a1, 1.0, a2);
-
-  for (unsigned i=0; i<a1->size; ++i)
-    TEST_CHECK( gkyl_compare(a1_d[i], (i*0.1)*(i*0.1), 1e-14) );
-
-  gkyl_array_release(a1);
-  gkyl_array_release(a2);  
-}
-
 void test_array_copy()
 {
   int shape[] = {10, 20};
@@ -479,7 +461,6 @@ TEST_LIST = {
   { "array_scale_double", test_array_scale_double },
   { "array_opcombine", test_array_opcombine },
   { "array_ops_comp", test_array_ops_comp },
-  { "array_ops", test_array_ops },
   { "array_copy", test_array_copy },
   { "non_numeric", test_non_numeric },
   { NULL, NULL },

@@ -1,7 +1,7 @@
+#include <gkyl_const.h>
 #include <gkyl_gauss_quad_data.h>
 
 #define GUASS_QUAD_EPS 3.0e-15
-#define GKYL_PI 3.14159265358979323846
 
 // This is based on an implementation in Numerical Recipes in C book
 static void

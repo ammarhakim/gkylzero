@@ -38,13 +38,6 @@
       double: gkyl_array_set_double)            \
     (out, a, out)
 
-/** Generic uniop macro */
-#define gkyl_array_uniop(op, a, out, b, inp)    \
-    _Generic((a),                               \
-      float: gkyl_array_uniop_float,            \
-      double: gkyl_array_uniop_double)          \
-    (op, a, out, b, inp)
-
 /**
  * Clear out = val. Returns out.
  *
@@ -85,21 +78,19 @@ struct gkyl_array* gkyl_array_set_float(struct gkyl_array *out,
   float a, const struct gkyl_array *inp);
 
 /**
- * Generic unary operator. Computes out = a*out + b*OP[inp], where
- * "OP" represents an operator that takes a single scalar input.
+ * Compute out = out + a*inp over a range of indices.
  *
- * @param op Operator to apply
- * @param a Multiplicative factor on out
  * @param out Output array
- * @param b Multiplicative factor on inp
+ * @param a Factor to multiply input array
  * @param inp Input array
+ * @param range Range specifying region to copy
  * @return out array
  */
-struct gkyl_array* gkyl_array_uniop_double(const char *op, double a,
-  struct gkyl_array *out, double b, const struct gkyl_array *inp);
+struct gkyl_array* gkyl_array_accumulate_range_double(struct gkyl_array *out,
+  double a, const struct gkyl_array *inp, const struct gkyl_range *range);
 
-struct gkyl_array* gkyl_array_uniop_float(const char *op, float a,
-  struct gkyl_array *out, float b, const struct gkyl_array *inp);
+struct gkyl_array* gkyl_array_accumulate_range_float(struct gkyl_array *out,
+  float a, const struct gkyl_array *inp, const struct gkyl_range *range);
 
 /**
  * Copy region of array into a buffer. The buffer must be preallocated
@@ -121,18 +112,3 @@ void gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
  */
 void gkyl_array_copy_from_buffer(struct gkyl_array *arr,
   const void *data, const struct gkyl_range *range);
-
-/**
- * Compute out = out + a*inp over a range of indices.
- *
- * @param out Output array
- * @param a Factor to multiply input array
- * @param inp Input array
- * @param range Range specifying region to copy
- * @return out array
- */
-struct gkyl_array* gkyl_array_accumulate_range_double(struct gkyl_array *out,
-  double a, const struct gkyl_array *inp, const struct gkyl_range *range);
-
-struct gkyl_array* gkyl_array_accumulate_range_float(struct gkyl_array *out,
-  float a, const struct gkyl_array *inp, const struct gkyl_range *range);

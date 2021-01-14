@@ -15,9 +15,7 @@ struct gkyl_hyper_dg {
     int update_vol_term; // should we update volume term?
     const struct gkyl_dg_eqn *equation; // equation object
 
-    // max speed
-    double maxs[GKYL_MAX_DIM];
-    double maxs_old[GKYL_MAX_DIM], maxs_local[GKYL_MAX_DIM];
+    double maxs[GKYL_MAX_DIM]; // max speed
 };
 
 static inline void
@@ -30,27 +28,25 @@ void
 gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
   const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs)
 {
-  int ndim = hdg->ndim;
-  int firstDir = 1;
+  int ndim = hdg->ndim, first_dir = 1;
   int idxm[GKYL_MAX_DIM], idxp[GKYL_MAX_DIM];
   double xcm[GKYL_MAX_DIM], xcp[GKYL_MAX_DIM];
-  
-  // we need to use previous step values for relaxation parameter
+
+  double maxs_old[GKYL_MAX_DIM];
   for (int i=0; i<hdg->ndim; ++i)
-    hdg->maxs_old[i] = hdg->maxs[i];
+    maxs_old[i] = hdg->maxs[i];
   
   for (int d=0; d<hdg->num_up_dirs; ++d) {
     int dir = hdg->update_dirs[d];
 
-    int dirLoIdx = update_range->lower[dir];
-    int dirUpIdx = update_range->upper[dir]+1; // one more edge than cells
+    int loidx = update_range->lower[dir];
+    int upidx = update_range->upper[dir]+1; // one more edge than cells
 
     if (hdg->zero_flux_flags[d]) {
-      dirLoIdx = dirLoIdx+1;
-      dirUpIdx = dirUpIdx-1;
+      loidx = loidx+1;
+      upidx = upidx-1;
     }
 
-    // create range perpendicular to 'dir'
     struct gkyl_range perp_range;
     gkyl_range_shorten(&perp_range, update_range, dir, 1);
     struct gkyl_range_iter iter;
@@ -60,32 +56,34 @@ gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
       copy_int_arr(ndim, iter.idx, idxm);
       copy_int_arr(ndim, iter.idx, idxp);
 
-      for (int i=dirLoIdx; i<=dirUpIdx; ++i) { // note dirUpIdx is inclusive
+      for (int i=loidx; i<=upidx; ++i) { // note upidx is inclusive
         idxm[dir] = i-1; idxp[dir] = i;
 
         gkyl_rect_grid_cell_center(&hdg->grid, idxm, xcm);
         gkyl_rect_grid_cell_center(&hdg->grid, idxp, xcp);
 
-        long linIdxm = gkyl_range_idx(update_range, idxm);
-        long linIdxp = gkyl_range_idx(update_range, idxp);
+        long linm = gkyl_range_idx(update_range, idxm);
+        long linp = gkyl_range_idx(update_range, idxp);
 
-        if (firstDir && hdg->update_vol_term && i<=dirUpIdx-1) {
-          double cflRate = hdg->equation->vol_term(
+        if (first_dir && hdg->update_vol_term && i<=upidx-1) {
+          double cflr = hdg->equation->vol_term(
             hdg->equation, xcp, hdg->grid.dx, idxp,
-            gkyl_array_fetch(fIn, linIdxp), gkyl_array_fetch(rhs, linIdxp)
+            gkyl_array_fetch(fIn, linp), gkyl_array_fetch(rhs, linp)
           );
+          double *cflrate_d = gkyl_array_fetch(cflrate, linp);
+          cflrate_d[0] += cflr; // frequencies are additive
         }
 
         double maxs = hdg->equation->surf_term(hdg->equation,
           dir, xcm, xcp, hdg->grid.dx, hdg->grid.dx,
-          hdg->maxs_old[dir], idxm, idxp,
-          gkyl_array_fetch(fIn, linIdxm), gkyl_array_fetch(fIn, linIdxp),
-          gkyl_array_fetch(rhs, linIdxm), gkyl_array_fetch(rhs, linIdxp)
+          maxs_old[dir], idxm, idxp,
+          gkyl_array_fetch(fIn, linm), gkyl_array_fetch(fIn, linp),
+          gkyl_array_fetch(rhs, linm), gkyl_array_fetch(rhs, linp)
         );
         hdg->maxs[dir] = fmax(hdg->maxs[dir], maxs);
       }
     }
-    firstDir = 0;
+    first_dir = 0;
   }
 }
 
@@ -109,7 +107,7 @@ gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   up->equation = gkyl_dg_eqn_aquire(equation);
 
   for (int i=0; i<up->ndim; ++i)
-    up->maxs[i] = up->maxs_old[i] = up->maxs_local[i] = 0.0;
+    up->maxs[i] = 0.0;
 
   return up;
 }
