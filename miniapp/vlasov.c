@@ -21,7 +21,7 @@ static struct gkyl_array*
 mkarr(long nc, long size)
 {
   struct gkyl_array* a = gkyl_array_new(sizeof(double[nc]), size);
-  gkyl_array_clear(a, 0.0);
+  gkyl_array_clear(a, 0.0); 
   return a;
 }
 
@@ -108,8 +108,8 @@ struct vm_species {
     struct gkyl_rect_grid grid;
     struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
 
-    // arrays for distribution function updates
-    struct gkyl_array *f, *f1, *fnew;
+    struct gkyl_array *f, *f1, *fnew; // arrays for updates
+    struct gkyl_array *cflrate; // CFL rate in each cell
 
     struct vm_species_moment m1i; // for computing currents
     struct vm_species_moment *moms; // diagnostic moments
@@ -122,8 +122,8 @@ struct vm_species {
 struct vm_field {
     struct gkyl_em_field info; // data for field
     
-    // arrays for field updates
-    struct gkyl_array *em, *em1, *emnew;
+    struct gkyl_array *em, *em1, *emnew; // arrays for updates
+    struct gkyl_array *cflrate; // CFL rate in each cell    
     
     struct gkyl_dg_eqn *eqn; // Maxwell equation
     gkyl_hyper_dg *slvr; // solver 
@@ -178,6 +178,9 @@ vm_field_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_field *
   f->em1 = mkarr(8*app->confBasis.numBasis, app->local_ext.volume);
   f->emnew = mkarr(8*app->confBasis.numBasis, app->local_ext.volume);
 
+  // allocate cflrate (scalar array)
+  f->cflrate = mkarr(1, app->local_ext.volume);
+
   // equation object
   double c = 1/sqrt(f->info.epsilon0*f->info.mu0);
   double ef = f->info.elcErrorSpeedFactor, mf = f->info.mgnErrorSpeedFactor;
@@ -204,7 +207,8 @@ vm_field_release(struct vm_field *f)
 {
   gkyl_array_release(f->em);
   gkyl_array_release(f->em1);
-  gkyl_array_release(f->emnew);  
+  gkyl_array_release(f->emnew);
+  gkyl_array_release(f->cflrate);
   
   gkyl_dg_eqn_release(f->eqn);
   gkyl_hyper_dg_release(f->slvr);
@@ -236,7 +240,10 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   // allocate distribution function arrays
   s->f = mkarr(app->basis.numBasis, s->local_ext.volume);
   s->f1 = mkarr(app->basis.numBasis, s->local_ext.volume);
-  s->fnew = mkarr(app->basis.numBasis, s->local_ext.volume);  
+  s->fnew = mkarr(app->basis.numBasis, s->local_ext.volume);
+
+  // allocate cflrate (scalar array)
+  s->cflrate = mkarr(1, s->local_ext.volume);
 
   // allocate data for momentum (for use in current accumulation)
   vm_species_moment_init(app, s, &s->m1i, "M1i");
@@ -278,10 +285,11 @@ vm_species_rhs(gkyl_vlasov_app *app, const struct gkyl_array *f,
 static void
 vm_species_release(struct vm_species *s)
 {
-  // release various distribution function arrays
+  // release various arrays
   gkyl_array_release(s->f);
   gkyl_array_release(s->f1);
   gkyl_array_release(s->fnew);
+  gkyl_array_release(s->cflrate);
 
   // release moment data
   vm_species_moment_release(&s->m1i);
