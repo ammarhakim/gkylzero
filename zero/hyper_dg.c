@@ -2,6 +2,7 @@
 #include <time.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_array_ops.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_util.h>
 
@@ -51,6 +52,8 @@ gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
     gkyl_range_shorten(&perp_range, update_range, dir, 1);
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, &perp_range);
+
+    gkyl_array_clear(rhs, 0.0); // RHS should not increment to input
 
     while (gkyl_range_iter_next(&iter)) {
       copy_int_arr(ndim, iter.idx, idxm);

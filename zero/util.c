@@ -33,7 +33,7 @@ gkyl_compare_dbl(double a, double b, double eps)
 }
 
 struct timespec
-gkyl_wall_clock(struct timespec *ts)
+gkyl_wall_clock(void)
 {
   struct timespec tm;
   clock_gettime(CLOCK_REALTIME, &tm);

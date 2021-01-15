@@ -50,7 +50,7 @@ int gkyl_compare_dbl(double a, double b, double eps);
  * 
  * @return Time object.
  */
-struct timespec gkyl_wall_clock();
+struct timespec gkyl_wall_clock(void);
 
 /**
  * Difference between two timespec objects.

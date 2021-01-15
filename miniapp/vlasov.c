@@ -16,6 +16,75 @@
 #include <gkyl_vlasov.h>
 #include <gkyl_vlasov_mom.h>
 
+// ranges for use in BCs
+struct skin_ghost_ranges {
+    struct gkyl_range lower_skin[GKYL_MAX_DIM];
+    struct gkyl_range lower_ghost[GKYL_MAX_DIM];
+
+    struct gkyl_range upper_skin[GKYL_MAX_DIM];
+    struct gkyl_range upper_ghost[GKYL_MAX_DIM];
+};
+
+// data for moments
+struct vm_species_moment {
+    struct gkyl_mom_type *mtype;
+    gkyl_mom_calc *mcalc;
+    struct gkyl_array *marr;
+};
+
+// species data
+struct vm_species {
+    struct gkyl_vlasov_species info; // data for species
+    
+    struct gkyl_rect_grid grid;
+    struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
+    struct skin_ghost_ranges skin_ghost; // conf-space skin/ghost
+
+    struct gkyl_array *f, *f1, *fnew; // arrays for updates
+    struct gkyl_array *cflrate; // CFL rate in each cell
+    struct gkyl_array *bc_buffer; // buffer for periodic BCs
+
+    struct vm_species_moment m1i; // for computing currents
+    struct vm_species_moment *moms; // diagnostic moments
+
+    struct gkyl_dg_eqn *eqn; // Vlasov equation
+    gkyl_hyper_dg *slvr; // solver
+};
+
+// field data
+struct vm_field {
+    struct gkyl_em_field info; // data for field
+    
+    struct gkyl_array *em, *em1, *emnew; // arrays for updates
+    struct gkyl_array *qmem; // array for q/m*(E,B)
+    struct gkyl_array *cflrate; // CFL rate in each cell
+    struct gkyl_array *bc_buffer; // buffer for periodic BCs
+    
+    struct gkyl_dg_eqn *eqn; // Maxwell equation
+    gkyl_hyper_dg *slvr; // solver
+};
+
+// Vlasov object: used as opaque pointer in user code
+struct gkyl_vlasov_app {
+    char name[128]; // name of app
+    int cdim, vdim; // conf, velocity space dimensions
+    int poly_order; // polynomial order
+    double tcurr; // current time
+    double cfl; // CFL number
+    
+    struct gkyl_rect_grid grid; // config-space grid
+    struct gkyl_range local, local_ext; // local, local-ext conf-space ranges
+    struct gkyl_basis basis, confBasis; // phase-space, conf-space basis
+
+    struct skin_ghost_ranges skin_ghost; // conf-space skin/ghost
+
+    struct vm_field field; // field data
+
+    // species data
+    int num_species;
+    struct vm_species *species; // species data
+};
+
 // allocate array (filled with zeros)
 static struct gkyl_array*
 mkarr(long nc, long size)
@@ -94,60 +163,57 @@ init_phase_ranges(int cdim, int pdim, const int *cells,
   gkyl_sub_range_init(local, local_ext, lower, upper);
 }
 
-// data for moments
-struct vm_species_moment {
-    struct gkyl_mom_type *mtype;
-    gkyl_mom_calc *mcalc;
-    struct gkyl_array *marr;
-};
+// reduce
+static inline void
+incr_int_array(int ndim, int fact, const int *restrict del,
+  const int *restrict inp, int *restrict out)
+{
+  for (int i=0; i<ndim; ++i)
+    out[i] = inp[i] + fact*del[i];
+}
 
-// species data
-struct vm_species {
-    struct gkyl_vlasov_species info; // data for species
-    
-    struct gkyl_rect_grid grid;
-    struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
+// Create ghost and skin sub-ranges given a parent range
+static void
+skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
+  const struct gkyl_range *parent, const int *ghost)
+{
+  int ndim = parent->ndim;
+  int lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
+  
+  // create skin ranges in each direction
+  for (int d=0; d<ndim; ++d) {
 
-    struct gkyl_array *f, *f1, *fnew; // arrays for updates
-    struct gkyl_array *cflrate; // CFL rate in each cell
+    incr_int_array(ndim, 1, ghost, parent->lower, lo);
+    incr_int_array(ndim, -1, ghost, parent->upper, up);
+    // adjust for lower skin in direction 'd'
+    up[d] = lo[d];
+    gkyl_sub_range_init(&sgr->lower_skin[d], parent, lo, up);
 
-    struct vm_species_moment m1i; // for computing currents
-    struct vm_species_moment *moms; // diagnostic moments
+    incr_int_array(ndim, 1, ghost, parent->lower, lo);
+    incr_int_array(ndim, -1, ghost, parent->upper, up);
+    // adjust for upper skin in direction 'd'
+    lo[d] = up[d];
+    gkyl_sub_range_init(&sgr->upper_skin[d], parent, lo, up);
+  }
 
-    struct gkyl_dg_eqn *eqn; // Vlasov equation
-    gkyl_hyper_dg *slvr; // solver
-};
+  // create ghost ranges in each direction
+  for (int d=0; d<ndim; ++d) {
 
-// field data
-struct vm_field {
-    struct gkyl_em_field info; // data for field
-    
-    struct gkyl_array *em, *em1, *emnew; // arrays for updates
-    struct gkyl_array *qmem; // array for q/m*(E,B)
-    struct gkyl_array *cflrate; // CFL rate in each cell
-    
-    struct gkyl_dg_eqn *eqn; // Maxwell equation
-    gkyl_hyper_dg *slvr; // solver
-};
+    incr_int_array(ndim, 1, ghost, parent->lower, lo);
+    incr_int_array(ndim, -1, ghost, parent->upper, up);
+    // adjust for lower ghost in direction 'd'
+    lo[d] = lo[d]-ghost[d];
+    up[d] = lo[d];
+    gkyl_sub_range_init(&sgr->lower_ghost[d], parent, lo, up);
 
-// Vlasov object: used as opaque pointer in user code
-struct gkyl_vlasov_app {
-    char name[128]; // name of app
-    int cdim, vdim; // conf, velocity space dimensions
-    int poly_order; // polynomial order
-    double tcurr; // current time
-    double cfl; // CFL number
-    
-    struct gkyl_rect_grid grid; // config-space grid
-    struct gkyl_range local, local_ext; // local, local-ext conf-space ranges
-    struct gkyl_basis basis, confBasis; // phase-space, conf-space basis
-
-    struct vm_field field; // field data
-
-    // species data
-    int num_species;
-    struct vm_species *species; // species data
-};
+    incr_int_array(ndim, 1, ghost, parent->lower, lo);
+    incr_int_array(ndim, -1, ghost, parent->upper, up);
+    // adjust for upper ghost in direction 'd'
+    up[d] = up[d]+ghost[d];
+    lo[d] = up[d];
+    gkyl_sub_range_init(&sgr->upper_ghost[d], parent, lo, up);
+  }  
+}
 
 // initialize field object
 static void
@@ -181,6 +247,15 @@ vm_field_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_field *
   f->emnew = mkarr(8*app->confBasis.numBasis, app->local_ext.volume);
   f->qmem = mkarr(8*app->confBasis.numBasis, app->local_ext.volume);
 
+  // allocate buffer for applying periodic BCs
+  long buff_sz = 0;
+  // compute buffer size needed
+  for (int d=0; d<app->cdim; ++d) {
+    long vol = app->skin_ghost.lower_skin[d].volume;
+    buff_sz = buff_sz > vol ? buff_sz : vol;
+  }
+  f->bc_buffer = mkarr(8*app->confBasis.numBasis, buff_sz);
+
   // allocate cflrate (scalar array)
   f->cflrate = mkarr(1, app->local_ext.volume);
 
@@ -208,6 +283,20 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
   return app->cfl/omegaCfl;
 }
 
+// Apply periodic BCs
+static void
+vm_field_apply_bc(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array *f)
+{
+  int cdim = app->cdim;
+  for (int d=0; d<cdim; ++d) {
+    gkyl_array_copy_to_buffer(field->bc_buffer->data, f, &app->skin_ghost.lower_skin[d]);
+    gkyl_array_copy_from_buffer(f, field->bc_buffer->data, &app->skin_ghost.upper_ghost[d]);
+
+    gkyl_array_copy_to_buffer(field->bc_buffer->data, f, &app->skin_ghost.upper_skin[d]);
+    gkyl_array_copy_from_buffer(f, field->bc_buffer->data, &app->skin_ghost.lower_ghost[d]);
+  }
+}
+
 // release resources for field
 static void
 vm_field_release(struct vm_field *f)
@@ -216,6 +305,7 @@ vm_field_release(struct vm_field *f)
   gkyl_array_release(f->em1);
   gkyl_array_release(f->emnew);
   gkyl_array_release(f->qmem);
+  gkyl_array_release(f->bc_buffer);
   gkyl_array_release(f->cflrate);
   
   gkyl_dg_eqn_release(f->eqn);
@@ -229,22 +319,27 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   int cdim = app->cdim, vdim = app->vdim, poly_order = app->poly_order;
   int pdim = cdim+vdim;
 
-  int cells[GKYL_MAX_DIM];
+  int cells[GKYL_MAX_DIM], ghost[GKYL_MAX_DIM];
   double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
 
   for (int d=0; d<cdim; ++d) {
     cells[d] = vm->cells[d];
     lower[d] = vm->lower[d];
     upper[d] = vm->upper[d];
+    ghost[d] = 1;
   }
   for (int d=0; d<vdim; ++d) {
     cells[cdim+d] = s->info.cells[d];
     lower[cdim+d] = s->info.lower[d];
     upper[cdim+d] = s->info.upper[d];
+    ghost[cdim+d] = 0; // no ghost-cells in velocity space
   }
   gkyl_rect_grid_init(&s->grid, pdim, lower, upper, cells);
   init_phase_ranges(cdim, pdim, cells, &s->local, &s->local_ext);
 
+  // create skin/ghost range
+  skin_ghost_ranges_init(&s->skin_ghost, &s->local_ext, ghost);
+  
   // allocate distribution function arrays
   s->f = mkarr(app->basis.numBasis, s->local_ext.volume);
   s->f1 = mkarr(app->basis.numBasis, s->local_ext.volume);
@@ -252,6 +347,15 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
   // allocate cflrate (scalar array)
   s->cflrate = mkarr(1, s->local_ext.volume);
+
+  // allocate buffer for applying periodic BCs
+  long buff_sz = 0;
+  // compute buffer size needed
+  for (int d=0; d<cdim; ++d) {
+    long vol = s->skin_ghost.lower_skin[d].volume;
+    buff_sz = buff_sz > vol ? buff_sz : vol;
+  }
+  s->bc_buffer = mkarr(app->basis.numBasis, buff_sz);
 
   // allocate data for momentum (for use in current accumulation)
   vm_species_moment_init(app, s, &s->m1i, "M1i");
@@ -294,6 +398,20 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   return app->cfl/omegaCfl;
 }
 
+// Apply periodic BCs
+static void
+vm_species_apply_bc(gkyl_vlasov_app *app, struct vm_species *species, struct gkyl_array *f)
+{
+  int cdim = app->cdim;
+  for (int d=0; d<cdim; ++d) {
+    gkyl_array_copy_to_buffer(species->bc_buffer->data, f, &species->skin_ghost.lower_skin[d]);
+    gkyl_array_copy_from_buffer(f, species->bc_buffer->data, &species->skin_ghost.upper_ghost[d]);
+
+    gkyl_array_copy_to_buffer(species->bc_buffer->data, f, &species->skin_ghost.upper_skin[d]);
+    gkyl_array_copy_from_buffer(f, species->bc_buffer->data, &species->skin_ghost.lower_ghost[d]);
+  }
+}
+
 // release resources for species
 static void
 vm_species_release(struct vm_species *s)
@@ -303,6 +421,7 @@ vm_species_release(struct vm_species *s)
   gkyl_array_release(s->f1);
   gkyl_array_release(s->fnew);
   gkyl_array_release(s->cflrate);
+  gkyl_array_release(s->bc_buffer);
 
   // release moment data
   vm_species_moment_release(&s->m1i);
@@ -339,6 +458,10 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
   gkyl_rect_grid_init(&app->grid, cdim, vm.lower, vm.upper, vm.cells);
   init_conf_ranges(cdim, vm.cells, &app->local, &app->local_ext);
 
+  int ghost[] = { 1, 1, 1 };
+  // create config skin/ghost ranges
+  skin_ghost_ranges_init(&app->skin_ghost, &app->local_ext, ghost);
+
   // initialize EM field
   app->field.info = vm.field;
   vm_field_init(&vm, app, &app->field);
@@ -373,6 +496,7 @@ gkyl_vlasov_app_init_field(gkyl_vlasov_app* app, double t0)
   
   gkyl_proj_on_basis_advance(proj, t0, &app->local, app->field.em);
   gkyl_proj_on_basis_release(proj);
+  vm_field_apply_bc(app, &app->field, app->field.em);
 }
 
 void
@@ -387,6 +511,7 @@ gkyl_vlasov_app_init_species(gkyl_vlasov_app* app, int sidx, double t0)
   
   gkyl_proj_on_basis_advance(proj, t0, &app->species[sidx].local, app->species[sidx].f);
   gkyl_proj_on_basis_release(proj);
+  vm_species_apply_bc(app, &app->species[sidx], app->species[sidx].f);
 }
 
 void
@@ -469,8 +594,10 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   st->dt_suggested = dtmin;
 
   // complete update of distribution function
-  for (int i=0; i<app->num_species; ++i)
+  for (int i=0; i<app->num_species; ++i) {
     gkyl_array_accumulate(gkyl_array_scale(fout[i], dta), 1.0, fin[i]);
+    vm_species_apply_bc(app, &app->species[i], fout[i]);
+  }
 
   // accumulate current contribution to electric field terms
   for (int i=0; i<app->num_species; ++i) {
@@ -482,7 +609,8 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   }
   
   // complete update of field
-  gkyl_array_accumulate(gkyl_array_scale(emout, dta), 1.0, emin);    
+  gkyl_array_accumulate(gkyl_array_scale(emout, dta), 1.0, emin);
+  vm_field_apply_bc(app, &app->field, emout);
 }
 
 // Take time-step using the RK3 method. Also sets the status object
@@ -576,6 +704,6 @@ gkyl_vlasov_app_release(gkyl_vlasov_app* app)
   gkyl_free(app->species);
   
   vm_field_release(&app->field);
-  
+
   gkyl_free(app);
 }

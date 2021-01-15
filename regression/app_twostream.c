@@ -58,7 +58,7 @@ main(int argc, char **argv)
   // electrons
   struct gkyl_vlasov_species elc = {
     .name = "elc",
-    .charge = 0.0, .mass = 1.0,
+    .charge = -1.0, .mass = 1.0,
     .lower = { -6.0 },
     .upper = { 6.0 }, 
     .cells = { 32 },
@@ -103,7 +103,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.006;
+  double tcurr = 0.0, tend = 40.0;
   double dt = tend-tcurr;
 
   // initialize simulation
