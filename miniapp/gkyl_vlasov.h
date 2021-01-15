@@ -51,7 +51,7 @@ struct gkyl_vm {
     int cells[3]; // config-space cells
     int poly_order; // polynomial order
 
-    double cfl; // CFL number to use
+    double cfl_frac; // CFL fraction to use
 
     int num_periodic_dir; // number of periodic directions
     int periodic_dirs[3]; // list of periodic directions

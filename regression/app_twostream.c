@@ -58,7 +58,7 @@ main(int argc, char **argv)
   // electrons
   struct gkyl_vlasov_species elc = {
     .name = "elc",
-    .charge = -1.0, .mass = 1.0,
+    .charge = 0.0, .mass = 1.0,
     .lower = { -6.0 },
     .upper = { 6.0 }, 
     .cells = { 32 },
@@ -103,7 +103,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.02;
+  double tcurr = 0.0, tend = 0.006;
   double dt = tend-tcurr;
 
   // initialize simulation
@@ -114,7 +114,7 @@ main(int argc, char **argv)
 
   // loop, advancing solution by dt
   while (tcurr < tend) {
-    printf("Taking time-step at t = %g ... ", tcurr);
+    printf("Taking time-step at t = %g ...", tcurr);
     struct gkyl_vlasov_status status = gkyl_vlasov_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
     

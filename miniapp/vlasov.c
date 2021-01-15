@@ -215,7 +215,7 @@ vm_field_release(struct vm_field *f)
   gkyl_array_release(f->em);
   gkyl_array_release(f->em1);
   gkyl_array_release(f->emnew);
-    gkyl_array_release(f->qmem);
+  gkyl_array_release(f->qmem);
   gkyl_array_release(f->cflrate);
   
   gkyl_dg_eqn_release(f->eqn);
@@ -325,7 +325,8 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
   int poly_order = app->poly_order = vm.poly_order;
   int ns = app->num_species = vm.num_species;
 
-  app->cfl = vm.cfl == 0 ? 0.9 : vm.cfl;
+  double cfl_frac = vm.cfl_frac == 0 ? 1.0 : vm.cfl_frac;
+  app->cfl = cfl_frac/(2*poly_order+1);
 
   strcpy(app->name, vm.name);
   app->tcurr = 0.0; // reset on init
@@ -448,7 +449,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   const struct gkyl_array *fin[], const struct gkyl_array *emin,
   struct gkyl_array *fout[], struct gkyl_array *emout, struct gkyl_vlasov_status *st)
 {
-  double dtmax = dt;
+  double dtmin = dt;
 
   // compute RHS of Vlasov equations
   for (int i=0; i<app->num_species; ++i) {
@@ -456,28 +457,32 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     gkyl_array_set(app->field.qmem, qbym, emin);
     
     double dt1 = vm_species_rhs(app, &app->species[i], fin[i], app->field.qmem, fout[i]);
-    dtmax = fmin(dtmax, dt1);
+    dtmin = fmin(dtmin, dt1);
   }
 
   // compute RHS of Maxwell equations
   double dt1 = vm_field_rhs(app, &app->field, emin, emout);
-  dtmax = fmin(dtmax, dt1);
+  dtmin = fmin(dtmin, dt1);
 
-  // compute momentum from Vlasov (to compute current contribution)
-  for (int i=0; i<app->num_species; ++i) {
-    struct vm_species *s = &app->species[i];
-    gkyl_mom_calc_advance(s->m1i.mcalc, &s->local, &app->local,
-      fin[i], s->m1i.marr);
-  }
+  // don't take a time-step larger that input dt
+  double dta = st->dt_actual = dt < dtmin ? dt : dtmin;
+  st->dt_suggested = dtmin;
 
-  double dta = st->dt_actual = dt < dtmax ? dt : dtmax;
-  st->dt_suggested = dtmax;
-
-  // complete updates by incrementing RHS
+  // complete update of distribution function
   for (int i=0; i<app->num_species; ++i)
     gkyl_array_accumulate(gkyl_array_scale(fout[i], dta), 1.0, fin[i]);
 
-  gkyl_array_accumulate(gkyl_array_scale(emout, dta), 1.0, emin);
+  // accumulate current contribution to electric field terms
+  for (int i=0; i<app->num_species; ++i) {
+    struct vm_species *s = &app->species[i];    
+    gkyl_mom_calc_advance(s->m1i.mcalc, &s->local, &app->local,
+      fin[i], s->m1i.marr);
+    double qbyeps = s->info.charge/app->field.info.epsilon0;
+    gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, &app->local);
+  }
+  
+  // complete update of field
+  gkyl_array_accumulate(gkyl_array_scale(emout, dta), 1.0, emin);    
 }
 
 // Take time-step using the RK3 method. Also sets the status object
@@ -518,8 +523,8 @@ rk3(gkyl_vlasov_app* app, double dt0)
           }
           else {
             for (int i=0; i<app->num_species; ++i)
-              array_combine(app->species[i].f1, 3.0/2.0, app->species[i].f, 1.0/4.0, app->species[i].fnew);
-            array_combine(app->field.em1, 3.0/2.0, app->field.em, 1.0/4.0, app->field.emnew);
+              array_combine(app->species[i].f1, 3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew);
+            array_combine(app->field.em1, 3.0/4.0, app->field.em, 1.0/4.0, app->field.emnew);
 
             state = RK_STAGE_3;
           }
@@ -529,7 +534,7 @@ rk3(gkyl_vlasov_app* app, double dt0)
           for (int i=0; i<app->num_species; ++i) {
             fin[i] = app->species[i].f1;
             fout[i] = app->species[i].fnew;
-          }          
+          }
           forward_euler(app, tcurr+dt/2, dt, fin, app->field.em1, fout, app->field.emnew, &st);
           if (st.dt_actual < dt) {
             dt = st.dt_actual;
@@ -537,10 +542,10 @@ rk3(gkyl_vlasov_app* app, double dt0)
           }
           else {
             for (int i=0; i<app->num_species; ++i) {
-              array_combine(app->species[i].f1, 1.0/2.0, app->species[i].f, 2.0/3.0, app->species[i].fnew);
+              array_combine(app->species[i].f1, 1.0/3.0, app->species[i].f, 2.0/3.0, app->species[i].fnew);
               gkyl_array_copy(app->species[i].f, app->species[i].f1);
             }
-            array_combine(app->field.em1, 1.0/2.0, app->field.em, 2.0/3.0, app->field.emnew);
+            array_combine(app->field.em1, 1.0/3.0, app->field.em, 2.0/3.0, app->field.emnew);
             gkyl_array_copy(app->field.em, app->field.em1);
 
             state = RK_COMPLETE;
