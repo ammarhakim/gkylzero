@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <time.h>
 
+#include <gkyl_util.h>
 #include <gkyl_vlasov.h>
 
 struct twostream_ctx {
@@ -99,11 +100,13 @@ main(int argc, char **argv)
     .field = field
   };
 
+  struct timespec wall_start = gkyl_wall_clock();
+
   // create app object
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 40.0;
+  double tcurr = 0.0, tend = 60.0;
   double dt = tend-tcurr;
 
   // initialize simulation
@@ -112,6 +115,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app_write(app, tcurr, 0);
   gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 0);
 
+  int count = 0;
   // loop, advancing solution by dt
   while (tcurr < tend) {
     printf("Taking time-step at t = %g ...", tcurr);
@@ -124,6 +128,8 @@ main(int argc, char **argv)
     }
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
+
+    count++;
   }
 
   gkyl_vlasov_app_write(app, tcurr, 1);
@@ -131,6 +137,10 @@ main(int argc, char **argv)
 
   // simulation complete, free app
   gkyl_vlasov_app_release(app);
+
+  struct timespec wall_end = gkyl_wall_clock();
+  double sim_elapse = gkyl_time_sec(gkyl_time_diff(wall_start, wall_end));
+  printf("** Simulation took %g sec for %d steps\n", sim_elapse, count);
   
   return 0;
 }
