@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <float.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -15,7 +16,7 @@
     gkyl_array_clear_##type(struct gkyl_array* out, type val)   \
     {                                                           \
       type *out_d = out->data;                                  \
-      for (unsigned i=0; i<NELM(out,type); ++i)                 \
+      for (size_t i=0; i<NELM(out,type); ++i)                   \
         out_d[i] = val;                                         \
       return out;                                               \
     }
@@ -32,7 +33,7 @@ GKYL_ARRAY_CLEAR(double)
                                                                         \
       type *out_d = out->data;                                          \
       const type *inp_d = inp->data;                                    \
-      for (unsigned i=0; i<NELM(out,type); ++i)                         \
+      for (size_t i=0; i<NELM(out,type); ++i)                           \
         out_d[i] += a*inp_d[i];                                         \
       return out;                                                       \
     }
@@ -49,7 +50,7 @@ GKYL_ARRAY_ACCUMULATE(double)
                                                                         \
       type *out_d = out->data;                                          \
       const type *inp_d = inp->data;                                    \
-      for (unsigned i=0; i<NELM(out,type); ++i)                         \
+      for (size_t i=0; i<NELM(out,type); ++i)                           \
         out_d[i] = a*inp_d[i];                                          \
       return out;                                                       \
     }
@@ -62,9 +63,9 @@ GKYL_ARRAY_SET(double)
     array_acc1_##type(long n, long del, long outnc, long inpnc,         \
       type *restrict out, type a, type *restrict const inp)             \
     {                                                                   \
-    for (long i=0; i<del; ++i)                                          \
-      for (int c=0; c<n; ++c)                                           \
-        out[i*outnc+c] += a*inp[i*inpnc+c];                             \
+      for (long i=0; i<del; ++i)                                        \
+        for (int c=0; c<n; ++c)                                         \
+          out[i*outnc+c] += a*inp[i*inpnc+c];                           \
     }                                                                   \
                                                                         \
     struct gkyl_array*                                                  \
@@ -94,6 +95,27 @@ GKYL_ARRAY_SET(double)
 
 GKYL_ARRAY_ACCUMULATE_RANGE(float)
 GKYL_ARRAY_ACCUMULATE_RANGE(double)
+
+double
+gkyl_array_reduce(struct gkyl_array *arr, enum gkyl_array_op op)
+{
+  double res, *arr_d = arr->data;
+
+  switch (op) {
+    case GKYL_MIN:
+        res = DBL_MAX;
+        for (size_t i=0; i<NELM(arr, double); ++i)
+          res = fmin(res, arr_d[i]);
+        break;
+        
+    case GKYL_MAX:
+        res = DBL_MIN;
+        for (size_t i=0; i<NELM(arr, double); ++i)
+          res = fmax(res, arr_d[i]);
+        break;
+  }
+  return res;
+}
 
 void
 gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,

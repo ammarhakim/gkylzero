@@ -51,6 +51,8 @@ struct gkyl_vm {
     int cells[3]; // config-space cells
     int poly_order; // polynomial order
 
+    double cfl; // CFL number to use
+
     int num_periodic_dir; // number of periodic directions
     int periodic_dirs[3]; // list of periodic directions
 
@@ -64,7 +66,7 @@ struct gkyl_vlasov_stat {
     long nup; // calls to update
     long nfeuler; // calls to forward-Euler method
     
-    double total_tm; // time for simulation
+    double total_tm; // time for simulation (not including ICs)
     double init_species_tm; // time to initialize all species
     double init_field_tm; // time to initialize fields
 

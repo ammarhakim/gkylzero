@@ -103,7 +103,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 40.0;
+  double tcurr = 0.0, tend = 0.02;
   double dt = tend-tcurr;
 
   // initialize simulation
@@ -114,9 +114,9 @@ main(int argc, char **argv)
 
   // loop, advancing solution by dt
   while (tcurr < tend) {
-    printf("Taking time-step dt = %g at t = %g\n", dt, tcurr);
-    
+    printf("Taking time-step at t = %g ... ", tcurr);
     struct gkyl_vlasov_status status = gkyl_vlasov_update(app, dt);
+    printf(" dt = %g\n", status.dt_actual);
     
     if (!status.success) {
       printf("** Update method failed! Aborting simulation ....\n");

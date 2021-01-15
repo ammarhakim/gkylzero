@@ -445,6 +445,25 @@ void test_non_numeric()
   gkyl_array_release(brr);
 }
 
+void test_reduce()
+{
+  struct gkyl_array *arr = gkyl_array_new(sizeof(double[3]), 200);
+
+  for (size_t i=0; i<arr->size; ++i) {
+    double *d = gkyl_array_fetch(arr, i);
+    for (size_t c=0; c<3; ++c)
+      d[c] = 0.5*i + 0.1*c;
+  }
+  
+  double amin = gkyl_array_reduce(arr, GKYL_MIN);
+  double amax = gkyl_array_reduce(arr, GKYL_MAX);
+
+  TEST_CHECK( amin == 0.0 );
+  TEST_CHECK( amax == 0.5*199 + 0.1*2 );
+
+  gkyl_array_release(arr);
+}
+
 TEST_LIST = {
   { "array_base", test_array_base },
   { "array_fetch", test_array_fetch },
@@ -463,5 +482,6 @@ TEST_LIST = {
   { "array_ops_comp", test_array_ops_comp },
   { "array_copy", test_array_copy },
   { "non_numeric", test_non_numeric },
+  { "reduce", test_reduce },  
   { NULL, NULL },
 };

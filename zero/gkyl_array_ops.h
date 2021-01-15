@@ -38,6 +38,9 @@
       double: gkyl_array_set_double)            \
     (out, a, out)
 
+// Array reduce operators
+enum gkyl_array_op { GKYL_MIN, GKYL_MAX };
+
 /**
  * Clear out = val. Returns out.
  *
@@ -91,6 +94,15 @@ struct gkyl_array* gkyl_array_accumulate_range_double(struct gkyl_array *out,
 
 struct gkyl_array* gkyl_array_accumulate_range_float(struct gkyl_array *out,
   float a, const struct gkyl_array *inp, const struct gkyl_range *range);
+
+/**
+ * Perform an "reduce" operation of data in the array.
+ *
+ * @param arr Array to perform reduction on.
+ * @param op Reduction operators
+ * @return Reduced result
+ */
+double gkyl_array_reduce(struct gkyl_array *arr, enum gkyl_array_op op);
 
 /**
  * Copy region of array into a buffer. The buffer must be preallocated

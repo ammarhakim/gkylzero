@@ -62,8 +62,8 @@ init_conf_ranges(int cdim, const int *cells,
     lower[i] = 0;
     upper[i] = cells[i]-1;
   }
-  gkyl_range_init(local, cdim, lower, upper);    
   gkyl_range_init(local_ext, cdim, lower_ext, upper_ext);
+  gkyl_sub_range_init(local, local_ext, lower, upper);
 }
 
 // initialize local and local-ext ranges on phase-space: each species
@@ -90,8 +90,8 @@ init_phase_ranges(int cdim, int pdim, const int *cells,
     lower[i] = 0;
     upper[i] = cells[i]-1;
   }
-  gkyl_range_init(local, pdim, lower, upper);
   gkyl_range_init(local_ext, pdim, lower_ext, upper_ext);
+  gkyl_sub_range_init(local, local_ext, lower, upper);
 }
 
 // data for moments
@@ -123,10 +123,11 @@ struct vm_field {
     struct gkyl_em_field info; // data for field
     
     struct gkyl_array *em, *em1, *emnew; // arrays for updates
-    struct gkyl_array *cflrate; // CFL rate in each cell    
+    struct gkyl_array *qmem; // array for q/m*(E,B)
+    struct gkyl_array *cflrate; // CFL rate in each cell
     
     struct gkyl_dg_eqn *eqn; // Maxwell equation
-    gkyl_hyper_dg *slvr; // solver 
+    gkyl_hyper_dg *slvr; // solver
 };
 
 // Vlasov object: used as opaque pointer in user code
@@ -135,6 +136,7 @@ struct gkyl_vlasov_app {
     int cdim, vdim; // conf, velocity space dimensions
     int poly_order; // polynomial order
     double tcurr; // current time
+    double cfl; // CFL number
     
     struct gkyl_rect_grid grid; // config-space grid
     struct gkyl_range local, local_ext; // local, local-ext conf-space ranges
@@ -177,6 +179,7 @@ vm_field_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_field *
   f->em = mkarr(8*app->confBasis.numBasis, app->local_ext.volume);
   f->em1 = mkarr(8*app->confBasis.numBasis, app->local_ext.volume);
   f->emnew = mkarr(8*app->confBasis.numBasis, app->local_ext.volume);
+  f->qmem = mkarr(8*app->confBasis.numBasis, app->local_ext.volume);
 
   // allocate cflrate (scalar array)
   f->cflrate = mkarr(1, app->local_ext.volume);
@@ -195,10 +198,14 @@ vm_field_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_field *
 // Compute the RHS for field update, returning maximum stable
 // time-step.
 static double
-vm_field_rhs(gkyl_vlasov_app *app, const struct gkyl_array *current,
+vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
   const struct gkyl_array *em, struct gkyl_array *rhs)
 {
-  return 0.0;
+  gkyl_array_clear(field->cflrate, 0.0);
+  gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
+
+  double omegaCfl = gkyl_array_reduce(field->cflrate, GKYL_MAX);
+  return app->cfl/omegaCfl;
 }
 
 // release resources for field
@@ -208,6 +215,7 @@ vm_field_release(struct vm_field *f)
   gkyl_array_release(f->em);
   gkyl_array_release(f->em1);
   gkyl_array_release(f->emnew);
+    gkyl_array_release(f->qmem);
   gkyl_array_release(f->cflrate);
   
   gkyl_dg_eqn_release(f->eqn);
@@ -275,10 +283,15 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 // Compute the RHS for species update, returning maximum stable
 // time-step.
 static double
-vm_species_rhs(gkyl_vlasov_app *app, const struct gkyl_array *f,
-  const struct gkyl_array *em, struct gkyl_array *rhs)
+vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
+  const struct gkyl_array *fin, const struct gkyl_array *qmem, struct gkyl_array *rhs)
 {
-  return 0.0;
+  gkyl_array_clear(species->cflrate, 0.0);
+  gkyl_vlasov_set_qmem(species->eqn, qmem); // must set EM fields to use
+  gkyl_hyper_dg_advance(species->slvr, &species->local, fin, species->cflrate, rhs);
+
+  double omegaCfl = gkyl_array_reduce(species->cflrate, GKYL_MAX);
+  return app->cfl/omegaCfl;
 }
 
 // release resources for species
@@ -311,6 +324,8 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
   int pdim = cdim+vdim;
   int poly_order = app->poly_order = vm.poly_order;
   int ns = app->num_species = vm.num_species;
+
+  app->cfl = vm.cfl == 0 ? 0.9 : vm.cfl;
 
   strcpy(app->name, vm.name);
   app->tcurr = 0.0; // reset on init
@@ -430,12 +445,39 @@ gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
 // the status object.
 static void
 forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
-  const struct gkyl_array *fin[], const struct gkyl_array *em,
-  struct gkyl_array *fout[], struct gkyl_array *emout,
-  struct gkyl_vlasov_status *st)
+  const struct gkyl_array *fin[], const struct gkyl_array *emin,
+  struct gkyl_array *fout[], struct gkyl_array *emout, struct gkyl_vlasov_status *st)
 {
-  st->dt_actual = dt; st->dt_suggested = dt;
-  
+  double dtmax = dt;
+
+  // compute RHS of Vlasov equations
+  for (int i=0; i<app->num_species; ++i) {
+    double qbym = app->species[i].info.charge/app->species[i].info.mass;
+    gkyl_array_set(app->field.qmem, qbym, emin);
+    
+    double dt1 = vm_species_rhs(app, &app->species[i], fin[i], app->field.qmem, fout[i]);
+    dtmax = fmin(dtmax, dt1);
+  }
+
+  // compute RHS of Maxwell equations
+  double dt1 = vm_field_rhs(app, &app->field, emin, emout);
+  dtmax = fmin(dtmax, dt1);
+
+  // compute momentum from Vlasov (to compute current contribution)
+  for (int i=0; i<app->num_species; ++i) {
+    struct vm_species *s = &app->species[i];
+    gkyl_mom_calc_advance(s->m1i.mcalc, &s->local, &app->local,
+      fin[i], s->m1i.marr);
+  }
+
+  double dta = st->dt_actual = dt < dtmax ? dt : dtmax;
+  st->dt_suggested = dtmax;
+
+  // complete updates by incrementing RHS
+  for (int i=0; i<app->num_species; ++i)
+    gkyl_array_accumulate(gkyl_array_scale(fout[i], dta), 1.0, fin[i]);
+
+  gkyl_array_accumulate(gkyl_array_scale(emout, dta), 1.0, emin);
 }
 
 // Take time-step using the RK3 method. Also sets the status object

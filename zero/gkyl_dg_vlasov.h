@@ -22,4 +22,4 @@ struct gkyl_dg_eqn* gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis,
  * @param eqn Equation pointer
  * @param qmem Pointer to EM field scaled by q/m,
  */
-void gkyl_vlasov_set_qmem(const struct gkyl_dg_eqn *eqn, struct gkyl_array *qmem);
+void gkyl_vlasov_set_qmem(struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem);

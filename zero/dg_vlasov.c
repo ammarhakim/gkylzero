@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdio.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
@@ -144,7 +145,7 @@ struct dg_vlasov {
     vlasov_accel_surf_t accel_surf[3]; // Surface terms for acceleration
 
     struct gkyl_range conf_range; // configuration space range
-    struct gkyl_array *qmem; // Pointer to q/m*EM field
+    const struct gkyl_array *qmem; // Pointer to q/m*EM field
 };
 
 static void
@@ -156,7 +157,7 @@ vlasov_free(const struct gkyl_ref_count *ref)
 }
 
 void
-gkyl_vlasov_set_qmem(const struct gkyl_dg_eqn *eqn, struct gkyl_array *qmem)
+gkyl_vlasov_set_qmem(struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
   vlasov->qmem = qmem;
