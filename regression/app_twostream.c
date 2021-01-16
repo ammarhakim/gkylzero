@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <time.h>
 
-#include <gkyl_util.h>
 #include <gkyl_vlasov.h>
 
 struct twostream_ctx {
@@ -100,8 +99,6 @@ main(int argc, char **argv)
     .field = field
   };
 
-  struct timespec wall_start = gkyl_wall_clock();
-
   // create app object
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
 
@@ -116,7 +113,6 @@ main(int argc, char **argv)
   gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 0);
 
   int count = 0;
-  // loop, advancing solution by dt
   while (tcurr < tend) {
     printf("Taking time-step at t = %g ...", tcurr);
     struct gkyl_vlasov_status status = gkyl_vlasov_update(app, dt);
@@ -135,12 +131,21 @@ main(int argc, char **argv)
   gkyl_vlasov_app_write(app, tcurr, 1);
   gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1);
 
+  // fetch simulation statistics
+  struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
+
   // simulation complete, free app
   gkyl_vlasov_app_release(app);
 
-  struct timespec wall_end = gkyl_wall_clock();
-  double sim_elapse = gkyl_time_sec(gkyl_time_diff(wall_start, wall_end));
-  printf("** Simulation took %g sec for %d steps\n", sim_elapse, count);
+  printf("\n");
+  printf("Number of update calls %ld\n", stat.nup);
+  printf("Number of forward-Euler calls %ld\n", stat.nfeuler);
+  printf("Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
+  printf("Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
+  printf("Species RHS calc took %g secs\n", stat.species_rhs_tm);
+  printf("Field RHS calc took %g secs\n", stat.field_rhs_tm);
+  printf("Current evaluation and accumulate took %g secs\n", stat.current_tm);
+  printf("Updates took %g secs\n", stat.total_tm);
   
   return 0;
 }

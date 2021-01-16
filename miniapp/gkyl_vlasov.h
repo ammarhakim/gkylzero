@@ -16,7 +16,7 @@ struct gkyl_vlasov_status {
 // Parameters for Vlasov species
 struct gkyl_vlasov_species {
     char name[128]; // species name
-    double charge, mass; // sharge and mass
+    double charge, mass; // charge and mass
     double lower[3], upper[3]; // lower, upper bounds of velocity-space
     int cells[3]; // velocity-space cells
 
@@ -61,18 +61,23 @@ struct gkyl_vm {
     struct gkyl_em_field field; // field object
 };
 
-// Simulation statics
+// Simulation statistics
 struct gkyl_vlasov_stat {
     long nup; // calls to update
     long nfeuler; // calls to forward-Euler method
+    long nstage_2_fail; // number of failed RK stage-2s
+    long nstage_3_fail; // number of failed RK stage-3s
     
     double total_tm; // time for simulation (not including ICs)
     double init_species_tm; // time to initialize all species
     double init_field_tm; // time to initialize fields
 
-    double total_species_tm; // time to compute species RHS
-    double total_field_tm; // time to compute field RHS
-    double total_curr_tm; // time to compute current accumulation
+    double species_rhs_tm; // time to compute species RHS
+    double field_rhs_tm; // time to compute field RHS
+    double current_tm; // time to compute currents and accumulation
+
+    long nmom; // calls to moment calculation
+    double mom_tm; // time to compute moments
 };
 
 // Object representing Vlasov mini-app
@@ -177,6 +182,13 @@ void gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame);
  * @return Status of update.
  */
 struct gkyl_vlasov_status gkyl_vlasov_update(gkyl_vlasov_app* app, double dt);
+
+/**
+ * Return simulation statistics.
+ * 
+ * @return Return statistics object.
+ */
+struct gkyl_vlasov_stat gkyl_vlasov_app_stat(gkyl_vlasov_app* app);
 
 /**
  * Free Vlasov app.

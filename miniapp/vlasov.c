@@ -83,6 +83,8 @@ struct gkyl_vlasov_app {
     // species data
     int num_species;
     struct vm_species *species; // species data
+
+    struct gkyl_vlasov_stat stat; // statistics
 };
 
 // allocate array (filled with zeros)
@@ -276,10 +278,15 @@ static double
 vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
   const struct gkyl_array *em, struct gkyl_array *rhs)
 {
+  struct timespec wst = gkyl_wall_clock();
+  
   gkyl_array_clear(field->cflrate, 0.0);
   gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
 
   double omegaCfl = gkyl_array_reduce(field->cflrate, GKYL_MAX);
+
+  app->stat.field_rhs_tm += gkyl_time_sec(gkyl_time_diff(wst, gkyl_wall_clock()));
+  
   return app->cfl/omegaCfl;
 }
 
@@ -390,11 +397,16 @@ static double
 vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   const struct gkyl_array *fin, const struct gkyl_array *qmem, struct gkyl_array *rhs)
 {
+  struct timespec wst = gkyl_wall_clock();
+  
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_vlasov_set_qmem(species->eqn, qmem); // must set EM fields to use
   gkyl_hyper_dg_advance(species->slvr, &species->local, fin, species->cflrate, rhs);
 
   double omegaCfl = gkyl_array_reduce(species->cflrate, GKYL_MAX);
+
+  app->stat.species_rhs_tm += gkyl_time_sec(gkyl_time_diff(wst, gkyl_wall_clock()));
+  
   return app->cfl/omegaCfl;
 }
 
@@ -473,6 +485,9 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
     app->species[i].info = vm.species[i];
     vm_species_init(&vm, app, &app->species[i]);
   }
+
+  // initialize stat object
+  app->stat = (struct gkyl_vlasov_stat) { .nup = 0 }; // everything will be set to zero
   
   return app;
 }
@@ -574,6 +589,8 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   const struct gkyl_array *fin[], const struct gkyl_array *emin,
   struct gkyl_array *fout[], struct gkyl_array *emout, struct gkyl_vlasov_status *st)
 {
+  app->stat.nfeuler += 1;
+  
   double dtmin = dt;
 
   // compute RHS of Vlasov equations
@@ -599,6 +616,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     vm_species_apply_bc(app, &app->species[i], fout[i]);
   }
 
+  struct timespec wst = gkyl_wall_clock();
   // accumulate current contribution to electric field terms
   for (int i=0; i<app->num_species; ++i) {
     struct vm_species *s = &app->species[i];    
@@ -607,6 +625,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     double qbyeps = s->info.charge/app->field.info.epsilon0;
     gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, &app->local);
   }
+  app->stat.current_tm += gkyl_time_sec(gkyl_time_diff(wst, gkyl_wall_clock()));
   
   // complete update of field
   gkyl_array_accumulate(gkyl_array_scale(emout, dta), 1.0, emin);
@@ -648,6 +667,7 @@ rk3(gkyl_vlasov_app* app, double dt0)
           if (st.dt_actual < dt) {
             dt = st.dt_actual;
             state = RK_STAGE_1; // restart from stage 1
+            app->stat.nstage_2_fail += 1;
           }
           else {
             for (int i=0; i<app->num_species; ++i)
@@ -667,6 +687,7 @@ rk3(gkyl_vlasov_app* app, double dt0)
           if (st.dt_actual < dt) {
             dt = st.dt_actual;
             state = RK_STAGE_1; // restart from stage 1
+            app->stat.nstage_2_fail += 1;
           }
           else {
             for (int i=0; i<app->num_species; ++i) {
@@ -691,9 +712,21 @@ rk3(gkyl_vlasov_app* app, double dt0)
 struct gkyl_vlasov_status
 gkyl_vlasov_update(gkyl_vlasov_app* app, double dt)
 {
+  app->stat.nup += 1;
+  struct timespec wst = gkyl_wall_clock();
+
   struct gkyl_vlasov_status status = rk3(app, dt);
   app->tcurr += status.dt_actual;
+  
+  app->stat.total_tm += gkyl_time_sec(gkyl_time_diff(wst, gkyl_wall_clock()));
+  
   return status;
+}
+
+struct gkyl_vlasov_stat
+gkyl_vlasov_app_stat(gkyl_vlasov_app* app)
+{
+  return app->stat;
 }
 
 void
