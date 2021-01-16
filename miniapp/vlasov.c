@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <float.h>
 #include <math.h>
 #include <string.h>
 
@@ -487,7 +488,8 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
   }
 
   // initialize stat object
-  app->stat = (struct gkyl_vlasov_stat) { .nup = 0 }; // everything will be set to zero
+  app->stat = (struct gkyl_vlasov_stat)
+    { .stage_2_dt_min_diff = DBL_MAX };
   
   return app;
 }
@@ -665,9 +667,18 @@ rk3(gkyl_vlasov_app* app, double dt0)
           }
           forward_euler(app, tcurr+dt, dt, fin, app->field.em1, fout, app->field.emnew, &st);
           if (st.dt_actual < dt) {
+
+            // collect stats
+            double dt_rel_diff = (dt-st.dt_actual)/st.dt_actual;
+            app->stat.stage_2_dt_min_diff = fmin(app->stat.stage_2_dt_min_diff,
+              dt_rel_diff);
+            app->stat.stage_2_dt_max_diff = fmax(app->stat.stage_2_dt_max_diff,
+              dt_rel_diff);
+            app->stat.nstage_2_fail += 1;            
+            
             dt = st.dt_actual;
             state = RK_STAGE_1; // restart from stage 1
-            app->stat.nstage_2_fail += 1;
+
           }
           else {
             for (int i=0; i<app->num_species; ++i)
@@ -685,6 +696,15 @@ rk3(gkyl_vlasov_app* app, double dt0)
           }
           forward_euler(app, tcurr+dt/2, dt, fin, app->field.em1, fout, app->field.emnew, &st);
           if (st.dt_actual < dt) {
+
+            // collect stats
+            double dt_rel_diff = (dt-st.dt_actual)/st.dt_actual;
+            app->stat.stage_3_dt_min_diff = fmin(app->stat.stage_3_dt_min_diff,
+              dt_rel_diff);
+            app->stat.stage_3_dt_max_diff = fmax(app->stat.stage_3_dt_max_diff,
+              dt_rel_diff);
+            app->stat.nstage_3_fail += 1;
+            
             dt = st.dt_actual;
             state = RK_STAGE_1; // restart from stage 1
             app->stat.nstage_2_fail += 1;

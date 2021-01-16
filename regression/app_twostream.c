@@ -138,6 +138,8 @@ main(int argc, char **argv)
   printf("Number of update calls %ld\n", stat.nup);
   printf("Number of forward-Euler calls %ld\n", stat.nfeuler);
   printf("Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
+  printf("Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_max_diff);
+  printf("Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_min_diff);
   printf("Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   printf("Species RHS calc took %g secs\n", stat.species_rhs_tm);
   printf("Field RHS calc took %g secs\n", stat.field_rhs_tm);
