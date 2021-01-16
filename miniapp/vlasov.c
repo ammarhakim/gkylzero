@@ -488,8 +488,9 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
   }
 
   // initialize stat object
-  app->stat = (struct gkyl_vlasov_stat)
-    { .stage_2_dt_min_diff = DBL_MAX };
+  app->stat = (struct gkyl_vlasov_stat) {
+    .stage_2_dt_min_diff = DBL_MAX,
+  };
   
   return app;
 }

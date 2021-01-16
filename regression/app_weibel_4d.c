@@ -1,7 +1,6 @@
 #include <math.h>
 #include <stdio.h>
 
-#include <gkyl_util.h>
 #include <gkyl_vlasov.h>
 
 struct weibel_ctx {
@@ -141,19 +140,54 @@ main(int argc, char **argv)
     .field = field
   };
 
-  struct timespec tstart, tend;
-
+  // create app object
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
 
-  // initialize simulation
-  gkyl_vlasov_app_init(app, 0.0);
-  gkyl_vlasov_app_write(app, 0.0, 0);
+  // start, end and initial time-step
+  double tcurr = 0.0, tend = 15.0;
+  double dt = tend-tcurr;
 
-  gkyl_vlasov_app_calc_mom(app);
-  gkyl_vlasov_app_write_mom(app, 0.0, 0);
+  // initialize simulation
+  gkyl_vlasov_app_init(app, tcurr);
+  
+  gkyl_vlasov_app_write(app, tcurr, 0);
+  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 0);
+
+  while (tcurr < tend) {
+    printf("Taking time-step at t = %g ...", tcurr);
+    struct gkyl_vlasov_status status = gkyl_vlasov_update(app, dt);
+    printf(" dt = %g\n", status.dt_actual);
+    
+    if (!status.success) {
+      printf("** Update method failed! Aborting simulation ....\n");
+      break;
+    }
+    tcurr += status.dt_actual;
+    dt = status.dt_suggested;
+  }
+
+  gkyl_vlasov_app_write(app, tcurr, 1);
+  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1);
+
+  // fetch simulation statistics
+  struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
 
   // simulation complete, free app
   gkyl_vlasov_app_release(app);
+
+  printf("\n");
+  printf("Number of update calls %ld\n", stat.nup);
+  printf("Number of forward-Euler calls %ld\n", stat.nfeuler);
+  printf("Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
+  if (stat.nstage_2_fail > 0) {
+    printf("Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_max_diff);
+    printf("Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_min_diff);
+  }
+  printf("Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
+  printf("Species RHS calc took %g secs\n", stat.species_rhs_tm);
+  printf("Field RHS calc took %g secs\n", stat.field_rhs_tm);
+  printf("Current evaluation and accumulate took %g secs\n", stat.current_tm);
+  printf("Updates took %g secs\n", stat.total_tm);
   
   return 0;
 }
