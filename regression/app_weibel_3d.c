@@ -1,51 +1,82 @@
 #include <math.h>
 #include <stdio.h>
-#include <time.h>
 
+#include <gkyl_util.h>
 #include <gkyl_vlasov.h>
 
-struct twostream_ctx {
-    double knumber; // wave-number
-    double vth; // electron thermal velocity
-    double vdrift; // drift velocity
-    double perturbation;
+struct weibel_ctx {
+    // parameters for plasma streams
+    double nElc10, nElc20;
+    double vthElc10, vthElc20;
+    double uxElc10, uxElc20;
+    double uyElc10, uyElc20;
+
+    // perturbation parameters
+    double k0;
+    double perturb;
 };
 
-static inline double sq(double x) { return x*x; }
+inline double
+maxwellian2D(double n, double vx, double vy, double ux, double uy, double vth)
+{
+  double v2 = (vx-ux)*(vx-ux) + (vy-uy)*(vy-uy);
+  return n/(2*M_PI*vth*vth)*exp(-v2/(2*vth*vth));
+}
 
 void
 evalDistFunc(double t, const double * restrict xn, double* restrict fout, void *ctx)
 {
-  struct twostream_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
-  double alpha = app->perturbation, k = app->knumber, vt = app->vth, vdrift = app->vdrift;
+  struct weibel_ctx *app = ctx;
 
-  double fv = 1/sqrt(8*M_PI*sq(vt))*(exp(-sq(v-vdrift)/(2*sq(vt)))+exp(-sq(v+vdrift)/(2*sq(vt))));
-  fout[0] = (1+alpha*cos(k*x))*fv;
+  double nElc10 = app->nElc10, nElc20 = app->nElc20;
+  double uxElc10 = app->uxElc10, uxElc20 = app->uxElc20;
+  double uyElc10 = app->uyElc10, uyElc20 = app->uyElc20;
+  double vthElc10 = app->vthElc10, vthElc20 = app->vthElc20;
+  
+  double x = xn[0], vx = xn[1], vy = xn[2];
+  
+  fout[0] = maxwellian2D(nElc10, vx, vy, uxElc10, uyElc10, vthElc10) +
+    maxwellian2D(nElc20, vx, vy, uxElc20, uyElc20, vthElc20);
 }
 
 void
 evalFieldFunc(double t, const double* restrict xn, double* restrict fout, void *ctx)
 {
-  struct twostream_ctx *app = ctx;
-  double x = xn[0];
-  double alpha = app->perturbation, k = app->knumber;
+  struct weibel_ctx *app = ctx;
 
-  double E_x = -alpha*sin(k*x)/k;
+  double perturb = app->perturb, k0 = app->k0;
+  double x = xn[0];
+  double B_z = perturb*sin(k0*x);
   
-  fout[0] = E_x; fout[1] = 0.0, fout[2] = 0.0;
-  fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
+  fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
+  fout[3] = 0.0; fout[4] = 0.0; fout[5] = B_z;
   fout[6] = 0.0; fout[7] = 0.0;
 }
 
-struct twostream_ctx
+struct weibel_ctx
 create_ctx(void)
 {
-  struct twostream_ctx ctx = {
-    .knumber = 0.5,
-    .vth = 0.2,
-    .vdrift = 1.0,
-    .perturbation = 1.0e-6
+  double ud = 0.3;
+  double k0 = 1.0;
+  double massElc = 1.0;
+  double TElc10 = 0.01;
+  double TElc20 = 0.01;
+  double vthElc10 = sqrt(TElc10/massElc);
+  double vthElc20 = sqrt(TElc20/massElc);  
+  
+  struct weibel_ctx ctx = {
+    .nElc10 = 0.5,
+    .nElc20 = 0.5,
+    .uxElc10 = 0.0,
+    .uyElc10 = 0.3,
+    .uxElc20 = 0.0,
+    .uyElc20 = -0.3,
+
+    .vthElc10 = vthElc10,
+    .vthElc20 = vthElc20,
+
+    .k0 = 0.4,
+    .perturb = 1e-3,
   };
   return ctx;
 }
@@ -53,15 +84,15 @@ create_ctx(void)
 int
 main(int argc, char **argv)
 {
-  struct twostream_ctx ctx = create_ctx(); // context for init functions
+  struct weibel_ctx ctx = create_ctx(); // context for init functions
 
   // electrons
   struct gkyl_vlasov_species elc = {
     .name = "elc",
     .charge = -1.0, .mass = 1.0,
-    .lower = { -6.0 },
-    .upper = { 6.0 }, 
-    .cells = { 32 },
+    .lower = { -1.0, -1.0 },
+    .upper = { 1.0, 1.0 }, 
+    .cells = { 12, 12 },
 
     .evolve = 1,
     .ctx = &ctx,
@@ -74,8 +105,6 @@ main(int argc, char **argv)
   // field
   struct gkyl_em_field field = {
     .epsilon0 = 1.0, .mu0 = 1.0,
-    .elcErrorSpeedFactor = 0.0,
-    .mgnErrorSpeedFactor = 0.0,
     .evolve = 1,
     .ctx = &ctx,
     .init = evalFieldFunc
@@ -83,12 +112,12 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "twostream",
+    .name = "weibel_3d",
 
-    .cdim = 1, .vdim = 1,
-    .lower = { -M_PI/ctx.knumber },
-    .upper = { M_PI/ctx.knumber },
-    .cells = { 64 },
+    .cdim = 1, .vdim = 2,
+    .lower = { 0.0 },
+    .upper = { 2*M_PI/ctx.k0 },
+    .cells = { 24 },
     .poly_order = 2,
 
     .num_periodic_dir = 1,
@@ -103,7 +132,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 40.0;
+  double tcurr = 0.0, tend = 50.0;
   double dt = tend-tcurr;
 
   // initialize simulation
@@ -143,6 +172,7 @@ main(int argc, char **argv)
   printf("Field RHS calc took %g secs\n", stat.field_rhs_tm);
   printf("Current evaluation and accumulate took %g secs\n", stat.current_tm);
   printf("Updates took %g secs\n", stat.total_tm);
+
   
   return 0;
 }
