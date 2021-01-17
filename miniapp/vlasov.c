@@ -620,7 +620,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   // check if dtmin is slightly smaller than dt. Use dt if it is
   // (avoids retaking steps if dt changes are very small).
   double dt_rel_diff = (dt-dtmin)/dt;
-  if (dt_rel_diff < dt_max_rel_diff)
+  if (dt_rel_diff > 0 && dt_rel_diff < dt_max_rel_diff)
     dtmin = dt;
 
   // don't take a time-step larger that input dt
