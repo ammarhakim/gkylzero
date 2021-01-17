@@ -616,6 +616,13 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   double dt1 = vm_field_rhs(app, &app->field, emin, emout);
   dtmin = fmin(dtmin, dt1);
 
+  double dt_max_rel_diff = 0.01;
+  // check if dtmin is slightly smaller than dt. Use dt if it is
+  // (avoids retaking steps if dt changes are very small).
+  double dt_rel_diff = (dt-dtmin)/dt;
+  if (dt_rel_diff < dt_max_rel_diff)
+    dtmin = dt;
+
   // don't take a time-step larger that input dt
   double dta = st->dt_actual = dt < dtmin ? dt : dtmin;
   st->dt_suggested = dtmin;
