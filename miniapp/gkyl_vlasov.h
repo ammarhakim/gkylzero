@@ -69,11 +69,8 @@ struct gkyl_vlasov_stat {
     long nstage_2_fail; // number of failed RK stage-2s
     long nstage_3_fail; // number of failed RK stage-3s
 
-    double stage_2_dt_min_diff; // min rel-diff for stage-2 failure
-    double stage_2_dt_max_diff; // max rel-diff for stage-2 failure
-
-    double stage_3_dt_min_diff; // min rel-diff for stage-3 failure
-    double stage_3_dt_max_diff; // max rel-diff for stage-3 failure
+    double stage_2_dt_diff[2]; // [min,max] rel-diff for stage-2 failure
+    double stage_3_dt_diff[2]; // [min,max] rel-diff for stage-3 failure
     
     double total_tm; // time for simulation (not including ICs)
     double init_species_tm; // time to initialize all species
