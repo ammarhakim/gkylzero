@@ -37,8 +37,6 @@ gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
   for (int i=0; i<hdg->ndim; ++i)
     maxs_old[i] = hdg->maxs[i];
 
-  gkyl_array_clear(rhs, 0.0); // RHS should not increment to input
-  
   for (int d=0; d<hdg->num_up_dirs; ++d) {
     int dir = hdg->update_dirs[d];
 

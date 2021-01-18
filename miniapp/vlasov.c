@@ -88,7 +88,7 @@ struct gkyl_vlasov_app {
     struct gkyl_vlasov_stat stat; // statistics
 };
 
-static double
+static inline double
 diff_now_tm(struct timespec tm)
 {
   return gkyl_time_sec(gkyl_time_diff(tm, gkyl_wall_clock()));
@@ -288,6 +288,8 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
   struct timespec wst = gkyl_wall_clock();
   
   gkyl_array_clear(field->cflrate, 0.0);
+
+  gkyl_array_clear(rhs, 0.0);
   gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
 
   double omegaCfl = gkyl_array_reduce(field->cflrate, GKYL_MAX);
@@ -408,6 +410,8 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_vlasov_set_qmem(species->eqn, qmem); // must set EM fields to use
+
+  gkyl_array_clear(rhs, 0.0);
   gkyl_hyper_dg_advance(species->slvr, &species->local, fin, species->cflrate, rhs);
 
   double omegaCfl = gkyl_array_reduce(species->cflrate, GKYL_MAX);
