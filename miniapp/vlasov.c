@@ -43,7 +43,7 @@ struct vm_species {
 
     struct gkyl_array *f, *f1, *fnew; // arrays for updates
     struct gkyl_array *cflrate; // CFL rate in each cell
-    struct gkyl_array *bc_buffer; // buffer for periodic BCs
+    struct gkyl_array *bc_buffer; // buffer for BCs (used for both copy and periodic)
 
     struct vm_species_moment m1i; // for computing currents
     struct vm_species_moment *moms; // diagnostic moments
@@ -59,7 +59,7 @@ struct vm_field {
     struct gkyl_array *em, *em1, *emnew; // arrays for updates
     struct gkyl_array *qmem; // array for q/m*(E,B)
     struct gkyl_array *cflrate; // CFL rate in each cell
-    struct gkyl_array *bc_buffer; // buffer for periodic BCs
+    struct gkyl_array *bc_buffer; // buffer for BCs (used for both copy and periodic)
     
     struct gkyl_dg_eqn *eqn; // Maxwell equation
     gkyl_hyper_dg *slvr; // solver
@@ -72,6 +72,9 @@ struct gkyl_vlasov_app {
     int poly_order; // polynomial order
     double tcurr; // current time
     double cfl; // CFL number
+
+    int num_periodic_dir; // number of periodic directions
+    int periodic_dirs[3]; // list of periodic directions
     
     struct gkyl_rect_grid grid; // config-space grid
     struct gkyl_range local, local_ext; // local, local-ext conf-space ranges
@@ -256,7 +259,7 @@ vm_field_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_field *
   f->emnew = mkarr(8*app->confBasis.numBasis, app->local_ext.volume);
   f->qmem = mkarr(8*app->confBasis.numBasis, app->local_ext.volume);
 
-  // allocate buffer for applying periodic BCs
+  // allocate buffer for applying BCs (used for both periodic and copy BCs)
   long buff_sz = 0;
   // compute buffer size needed
   for (int d=0; d<app->cdim; ++d) {
@@ -299,18 +302,41 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
   return app->cfl/omegaCfl;
 }
 
-// Apply periodic BCs
+// Apply periodic BCs on EM fields
+static void
+vm_field_apply_periodic_bc(gkyl_vlasov_app *app, struct vm_field *field, int dir, struct gkyl_array *f)
+{
+  gkyl_array_copy_to_buffer(field->bc_buffer->data, f, &app->skin_ghost.lower_skin[dir]);
+  gkyl_array_copy_from_buffer(f, field->bc_buffer->data, &app->skin_ghost.upper_ghost[dir]);
+
+  gkyl_array_copy_to_buffer(field->bc_buffer->data, f, &app->skin_ghost.upper_skin[dir]);
+  gkyl_array_copy_from_buffer(f, field->bc_buffer->data, &app->skin_ghost.lower_ghost[dir]);
+}
+
+// Apply copy BCs on EM fields
+static void
+vm_field_apply_copy_bc(gkyl_vlasov_app *app, struct vm_field *field, int dir, struct gkyl_array *f)
+{
+  gkyl_array_copy_to_buffer(field->bc_buffer->data, f, &app->skin_ghost.lower_skin[dir]);
+  gkyl_array_copy_from_buffer(f, field->bc_buffer->data, &app->skin_ghost.lower_ghost[dir]);
+
+  gkyl_array_copy_to_buffer(field->bc_buffer->data, f, &app->skin_ghost.upper_skin[dir]);
+  gkyl_array_copy_from_buffer(f, field->bc_buffer->data, &app->skin_ghost.upper_ghost[dir]);
+}
+
+// Determine which directions are periodic and which directions are copy,
+// and then apply boundary conditions for EM fields
 static void
 vm_field_apply_bc(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array *f)
 {
-  int cdim = app->cdim;
-  for (int d=0; d<cdim; ++d) {
-    gkyl_array_copy_to_buffer(field->bc_buffer->data, f, &app->skin_ghost.lower_skin[d]);
-    gkyl_array_copy_from_buffer(f, field->bc_buffer->data, &app->skin_ghost.upper_ghost[d]);
-
-    gkyl_array_copy_to_buffer(field->bc_buffer->data, f, &app->skin_ghost.upper_skin[d]);
-    gkyl_array_copy_from_buffer(f, field->bc_buffer->data, &app->skin_ghost.lower_ghost[d]);
+  int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim, is_copy[3] = {1, 1, 1};
+  for (int d=0; d<num_periodic_dir; ++d) {
+    vm_field_apply_periodic_bc(app, field, app->periodic_dirs[d], f);
+    is_copy[app->periodic_dirs[d]] = 0;
   }
+  for (int d=0; d<cdim; ++d)
+    if (is_copy[d])
+      vm_field_apply_copy_bc(app, field, d, f);
 }
 
 // release resources for field
@@ -421,18 +447,41 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   return app->cfl/omegaCfl;
 }
 
-// Apply periodic BCs
+// Apply periodic BCs on distribution function
+static void
+vm_species_apply_periodic_bc(gkyl_vlasov_app *app, struct vm_species *species, int dir, struct gkyl_array *f)
+{
+  gkyl_array_copy_to_buffer(species->bc_buffer->data, f, &species->skin_ghost.lower_skin[dir]);
+  gkyl_array_copy_from_buffer(f, species->bc_buffer->data, &species->skin_ghost.upper_ghost[dir]);
+
+  gkyl_array_copy_to_buffer(species->bc_buffer->data, f, &species->skin_ghost.upper_skin[dir]);
+  gkyl_array_copy_from_buffer(f, species->bc_buffer->data, &species->skin_ghost.lower_ghost[dir]);
+}
+
+// Apply copy BCs on distribution function
+static void
+vm_species_apply_copy_bc(gkyl_vlasov_app *app, struct vm_species *species, int dir, struct gkyl_array *f)
+{
+  gkyl_array_copy_to_buffer(species->bc_buffer->data, f, &species->skin_ghost.lower_skin[dir]);
+  gkyl_array_copy_from_buffer(f, species->bc_buffer->data, &species->skin_ghost.lower_ghost[dir]);
+
+  gkyl_array_copy_to_buffer(species->bc_buffer->data, f, &species->skin_ghost.upper_skin[dir]);
+  gkyl_array_copy_from_buffer(f, species->bc_buffer->data, &species->skin_ghost.upper_ghost[dir]);
+}
+
+// Determine which directions are periodic and which directions are copy,
+// and then apply boundary conditions for distribution function
 static void
 vm_species_apply_bc(gkyl_vlasov_app *app, struct vm_species *species, struct gkyl_array *f)
 {
-  int cdim = app->cdim;
-  for (int d=0; d<cdim; ++d) {
-    gkyl_array_copy_to_buffer(species->bc_buffer->data, f, &species->skin_ghost.lower_skin[d]);
-    gkyl_array_copy_from_buffer(f, species->bc_buffer->data, &species->skin_ghost.upper_ghost[d]);
-
-    gkyl_array_copy_to_buffer(species->bc_buffer->data, f, &species->skin_ghost.upper_skin[d]);
-    gkyl_array_copy_from_buffer(f, species->bc_buffer->data, &species->skin_ghost.lower_ghost[d]);
+  int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim, is_copy[3] = {1, 1, 1};
+  for (int d=0; d<num_periodic_dir; ++d) {
+    vm_species_apply_periodic_bc(app, species, app->periodic_dirs[d], f);
+    is_copy[app->periodic_dirs[d]] = 0;
   }
+  for (int d=0; d<cdim; ++d)
+    if (is_copy[d])
+      vm_species_apply_copy_bc(app, species, d, f);
 }
 
 // release resources for species
@@ -469,6 +518,10 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
 
   double cfl_frac = vm.cfl_frac == 0 ? 1.0 : vm.cfl_frac;
   app->cfl = cfl_frac/(2*poly_order+1);
+
+  app->num_periodic_dir = vm.num_periodic_dir;
+  for (int d=0; d<cdim; ++d)
+    app->periodic_dirs[d] = vm.periodic_dirs[d];
 
   strcpy(app->name, vm.name);
   app->tcurr = 0.0; // reset on init
