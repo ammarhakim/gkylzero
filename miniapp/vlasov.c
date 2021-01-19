@@ -654,7 +654,7 @@ gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
 static void
 forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   const struct gkyl_array *fin[], const struct gkyl_array *emin,
-  struct gkyl_array *fout[], struct gkyl_array *emout, struct gkyl_vlasov_status *st)
+  struct gkyl_array *fout[], struct gkyl_array *emout, struct gkyl_update_status *st)
 {
   app->stat.nfeuler += 1;
   
@@ -709,12 +709,12 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 // Take time-step using the RK3 method. Also sets the status object
 // which has the actual and suggested dts used. These can be different
 // from the actual time-step.
-static struct gkyl_vlasov_status
+static struct gkyl_update_status
 rk3(gkyl_vlasov_app* app, double dt0)
 {
   const struct gkyl_array *fin[app->num_species];
   struct gkyl_array *fout[app->num_species];
-  struct gkyl_vlasov_status st = { .success = 1 };
+  struct gkyl_update_status st = { .success = 1 };
 
   // time-stepper state
   enum { RK_STAGE_1, RK_STAGE_2, RK_STAGE_3, RK_COMPLETE } state = RK_STAGE_1;
@@ -804,13 +804,13 @@ rk3(gkyl_vlasov_app* app, double dt0)
   return st;
 }
 
-struct gkyl_vlasov_status
+struct gkyl_update_status
 gkyl_vlasov_update(gkyl_vlasov_app* app, double dt)
 {
   app->stat.nup += 1;
   struct timespec wst = gkyl_wall_clock();
 
-  struct gkyl_vlasov_status status = rk3(app, dt);
+  struct gkyl_update_status status = rk3(app, dt);
   app->tcurr += status.dt_actual;
   
   app->stat.total_tm += diff_now_tm(wst);

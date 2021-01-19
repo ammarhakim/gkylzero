@@ -159,7 +159,7 @@ main(int argc, char **argv)
 
   while (tcurr < tend) {
     printf("Taking time-step at t = %g ...", tcurr);
-    struct gkyl_vlasov_status status = gkyl_vlasov_update(app, dt);
+    struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
     
     if (!status.success) {
