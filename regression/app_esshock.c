@@ -26,12 +26,10 @@ evalDistFuncElc(double t, const double * restrict xn, double* restrict fout, voi
   double x = xn[0], v = xn[1];
   double vt = app->vte, vdrift = app->uShock;
   double fv = 0.0;
-  if (x < 0) {
+  if (x < 0)
     fv = 1.0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v-vdrift)/(2*sq(vt))));
-  }
-  else {
+  else
     fv = 1.0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v+vdrift)/(2*sq(vt))));
-  }
   fout[0] = fv;
 }
 
@@ -42,12 +40,10 @@ evalDistFuncIon(double t, const double * restrict xn, double* restrict fout, voi
   double x = xn[0], v = xn[1];
   double vt = app->vti, vdrift = app->uShock;
   double fv = 0.0;
-  if (x < 0) {
+  if (x < 0)
     fv = 1.0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v-vdrift)/(2*sq(vt))));
-  }
-  else {
+  else
     fv = 1.0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v+vdrift)/(2*sq(vt))));
-  }
   fout[0] = fv;
 }
 
@@ -152,7 +148,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 100.0;
+  double tcurr = 0.0, tend = 20.0;
   double dt = tend-tcurr;
 
   // initialize simulation

@@ -2,7 +2,6 @@
 #include <string.h>
 
 #include <gkyl_basis.h>
-#include <gkyl_basis.h>
 #include <gkyl_util.h>
 #include "cart_modal_serendip_funcs.c"
 
