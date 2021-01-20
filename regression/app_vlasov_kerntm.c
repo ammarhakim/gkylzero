@@ -164,8 +164,6 @@ main(int argc, char **argv)
   struct gkyl_dg_eqn *vlasov_eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &conf_local);
 
   clock_t tstart, tend;
-  double xc[GKYL_MAX_DIM];
-
   long nvol = 0;
 
   // volume kernels
@@ -174,7 +172,8 @@ main(int argc, char **argv)
   for (int n=0; n<nloop; ++n) {
     
     gkyl_vlasov_set_qmem(vlasov_eqn, em);
-
+    double xc[GKYL_MAX_DIM];
+    
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, &phase_local);
     while(gkyl_range_iter_next(&iter)) {
@@ -204,68 +203,70 @@ main(int argc, char **argv)
   for (int i=cdim; i<pdim; ++i)
     zero_flux_dir[i] = 1; // no ghost cells in velocity directions
 
-  long nsurf[] = { 0, 0, 0, 0, 0, 0 };
-  double tmsurf[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+  long nsurf = 0;
 
+  tstart = clock();
   for (int n=0; n<nloop; ++n) {
     gkyl_vlasov_set_qmem(vlasov_eqn, em);
 
-    for (int dir=0; dir<pdim; ++dir) {
-      tstart = clock();
+    int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
+    double xcl[GKYL_MAX_DIM], xcc[GKYL_MAX_DIM], xcr[GKYL_MAX_DIM];
+    // integer used for selecting between left-edge zero-flux BCs and right-edge zero-flux BCs
+    int edge;
 
-      int dirLoIdx = phase_local.lower[dir];
-      int dirUpIdx = phase_local.upper[dir]+1; // one more edge than cells
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &phase_local);
 
-      if (zero_flux_dir[dir]) {
-        dirLoIdx = dirLoIdx+1;
-        dirUpIdx = dirUpIdx-1;
-      }
+    while (gkyl_range_iter_next(&iter)) {
+      copy_int_arr(pdim, iter.idx, idxc);
+      gkyl_rect_grid_cell_center(&grid, idxc, xcc);
 
-      struct gkyl_range perp_range;
-      gkyl_range_shorten(&perp_range, &phase_local, dir, 1);
+      long linc = gkyl_range_idx(&phase_local, idxc);
 
-      struct gkyl_range_iter iter;
-      gkyl_range_iter_init(&iter, &perp_range);
+      for (int d=0; d<pdim; ++d) {
+        copy_int_arr(pdim, iter.idx, idxl);
+        copy_int_arr(pdim, iter.idx, idxr);
+        if (zero_flux_dir[d] && (idxc[d] == lower[d] || idxc[d] == upper[d])) {
+          if (idxc[d] == lower[d]) edge = -1;
+          else edge = 1;
+          // use idxl to store interior edge index (first index away from skin cell)
+          idxl[d] = idxl[d]-edge;
 
-      int idxm[GKYL_MAX_DIM], idxp[GKYL_MAX_DIM];
-      double xcm[GKYL_MAX_DIM], xcp[GKYL_MAX_DIM];
+          gkyl_rect_grid_cell_center(&grid, idxl, xcl);
+          long linl = gkyl_range_idx(&phase_local, idxl);
 
-      while (gkyl_range_iter_next(&iter)) {
-        copy_int_arr(pdim, iter.idx, idxm);
-        copy_int_arr(pdim, iter.idx, idxp);
+          vlasov_eqn->boundary_surf_term(vlasov_eqn,
+            d, xcl, xcc, grid.dx, grid.dx,
+            1.0, idxl, idxc, edge,
+            gkyl_array_fetch(fIn, linl), gkyl_array_fetch(fIn, linc),
+            gkyl_array_fetch(fOut, linc)
+          );       
+        }
+        else {
+          idxl[d] = idxl[d]-1; idxr[d] = idxr[d]+1;
 
-        for (int i=dirLoIdx; i<=dirUpIdx; ++i) { // note dirUpIdx is inclusive
-          idxm[dir] = i-1; idxp[dir] = i;
-          
-          gkyl_rect_grid_cell_center(&grid, idxm, xcm);
-          gkyl_rect_grid_cell_center(&grid, idxp, xcp);
+          gkyl_rect_grid_cell_center(&grid, idxl, xcl);
+          gkyl_rect_grid_cell_center(&grid, idxr, xcr);
+          long linl = gkyl_range_idx(&phase_local, idxl); 
+          long linr = gkyl_range_idx(&phase_local, idxr);
 
-          long linIdxm = gkyl_range_idx(&phase_local, idxm);
-          long linIdxp = gkyl_range_idx(&phase_local, idxp);
-
-          vlasov_eqn->surf_term(vlasov_eqn, dir,
-            xcm, xcp, grid.dx, grid.dx, 1.0, idxm, idxp,
-            gkyl_array_fetch(fIn, linIdxm), gkyl_array_fetch(fIn, linIdxp),
-            gkyl_array_fetch(fOut, linIdxm), gkyl_array_fetch(fOut, linIdxp)
+          vlasov_eqn->surf_term(vlasov_eqn,
+            d, xcl, xcc, xcr, grid.dx, grid.dx, grid.dx,
+            1.0, idxl, idxc, idxr,
+            gkyl_array_fetch(fIn, linl), gkyl_array_fetch(fIn, linc), gkyl_array_fetch(fIn, linr),
+            gkyl_array_fetch(fOut, linc)
           );
-          nsurf[dir] += 1;
         }
       }
-      
-      tend = clock();
-      tmsurf[dir] += 1.0*(tend-tstart)/CLOCKS_PER_SEC;
+      nsurf += 1;
     }
   }
+  tend = clock();
+  SHOW_TIME("Surface kernel took ", tend-tstart);
+  printf("(Total calls = %ld. Time per-call %g)\n", nsurf,
+    1.0*(tend-tstart)/CLOCKS_PER_SEC/nsurf);
 
-  double totSurfTm = 0.0;
-  for (int dir=0; dir<pdim; ++dir) {
-    printf("Surface update in dir %d took %g sec\n",
-      dir, tmsurf[dir]);
-    printf(" (Total calls = %ld. Time per-call %g)\n\n",
-      nsurf[dir], tmsurf[dir]/nsurf[dir]);
-
-    totSurfTm += tmsurf[dir];
-  }
+  double totSurfTm = 1.0*(tend-tstart)/CLOCKS_PER_SEC;
 
   printf("Total volume updates took %g. Surface updates took %g\n",
     totVolTm, totSurfTm);

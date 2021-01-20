@@ -11,16 +11,26 @@ typedef double (*vol_termf_t)(const struct gkyl_dg_eqn *eqn,
   const double* qIn, double* restrict qRhsOut);
 
 // Function pointer type for surface kernel
-typedef double (*surf_termf_t)(const struct gkyl_dg_eqn *eqn, int dir,
-  const double*  xcL, const double*  xcR, const double*  dxL, const double* dxR,
-  double maxsOld, const int*  idxL, const int*  idxR,
-  const double* qInL, const double*  qInR, double* restrict qRhsOutL, double* restrict qRhsOutR);
+typedef double (*surf_termf_t)(const struct gkyl_dg_eqn *eqn, 
+  int dir,
+  const double*  xcL, const double*  xcC, const double*  xcR, 
+  const double*  dxL, const double* dxC, const double* dxR,
+  double maxsOld, const int*  idxL, const int*  idxC, const int*  idxR,
+  const double* qInL, const double*  qInC, const double*  qInR, double* restrict qRhsOut);
+
+// Function pointer type for surface kernel
+typedef double (*boundary_surf_termf_t)(const struct gkyl_dg_eqn *eqn,
+  int dir,
+  const double*  xcEdge, const double*  xcSkin,
+  const double*  dxEdge, const double* dxSkin,
+  double maxsOld, const int* idxEdge, const int* idxSkin, const int edge,
+  const double* qInEdge, const double* qInSkin, double* restrict qRhsOut);
 
 struct gkyl_dg_eqn {
     int num_equations; // number of equations in system
     vol_termf_t vol_term; // volume term kernel
     surf_termf_t surf_term; // surface term kernel
-    surf_termf_t boundary_surf_term; // boundary surface term kernel
+    boundary_surf_termf_t boundary_surf_term; // boundary surface term kernel
     struct gkyl_ref_count ref_count; // reference count     
 };
 

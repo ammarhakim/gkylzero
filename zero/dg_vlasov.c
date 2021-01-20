@@ -15,14 +15,16 @@ typedef double (*vlasov_stream_vol_t)(const double *w, const double *dxv,
 typedef double (*vlasov_vol_t)(const double *w, const double *dxv,
   const double *qmem, const double *f, double* restrict out);
 
-typedef void (*vlasov_stream_surf_t)(const double *wl, const double *wr,
-  const double *dxvl, const double *dxvr,
-  const double *fl, const double *fr, double* restrict outl, double* restrict outr);
+typedef void (*vlasov_stream_surf_t)(const double *w, const double *dxv,
+  const double *fl, const double *fc, const double *fr, double* restrict out);
 
-typedef double (*vlasov_accel_surf_t)(const double *wl, const double *wr,
-  const double *dxvl, const double *dxvr,
+typedef double (*vlasov_accel_surf_t)(const double *w, const double *dxv,
   const double amax, const double *qmem,
-  const double *fl, const double *fr, double* restrict outl, double* restrict outr);
+  const double *fl, const double *fc, const double *fr, double* restrict out);
+
+typedef double (*vlasov_accel_boundary_surf_t)(const double *w, const double *dxv,
+  const double amax, const double *qmem, const int edge,
+  const double *fSkin, const double *fEdge, double* restrict out);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
@@ -110,7 +112,7 @@ static struct { vlasov_accel_surf_t kernels[3]; } accel_surf_vx_kernels[] = {
   { NULL, vlasov_surfvx_3x3v_ser_p1, NULL                   }, // 5
 };
 
-// Accel_Surf_Vx_Kernels surface kernel list: vy-direction
+// Acceleration surface kernel list: vy-direction
 static struct { vlasov_accel_surf_t kernels[3]; } accel_surf_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
@@ -136,6 +138,45 @@ static struct { vlasov_accel_surf_t kernels[3]; } accel_surf_vz_kernels[] = {
   { NULL, vlasov_surfvz_3x3v_ser_p1, NULL }, // 5
 };
 
+// Acceleration boundary surface kernel (zero-flux BCs) list: vx-direction
+static struct { vlasov_accel_boundary_surf_t kernels[3]; } accel_boundary_surf_vx_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_boundary_surfvx_1x1v_ser_p1, vlasov_boundary_surfvx_1x1v_ser_p2 }, // 0
+  { NULL, vlasov_boundary_surfvx_1x2v_ser_p1, vlasov_boundary_surfvx_1x2v_ser_p2 }, // 1
+  { NULL, vlasov_boundary_surfvx_1x3v_ser_p1, vlasov_boundary_surfvx_1x3v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, vlasov_boundary_surfvx_2x2v_ser_p1, vlasov_boundary_surfvx_2x2v_ser_p2 }, // 3
+  { NULL, vlasov_boundary_surfvx_2x3v_ser_p1, vlasov_boundary_surfvx_2x3v_ser_p2 }, // 4
+  // 3x kernels
+  { NULL, vlasov_boundary_surfvx_3x3v_ser_p1, NULL                   }, // 5
+};
+
+// Acceleration boundary surface kernel (zero-flux BCs) list: vy-direction
+static struct { vlasov_accel_boundary_surf_t kernels[3]; } accel_boundary_surf_vy_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL }, // 0
+  { NULL, vlasov_boundary_surfvy_1x2v_ser_p1, vlasov_boundary_surfvy_1x2v_ser_p2 }, // 1
+  { NULL, vlasov_boundary_surfvy_1x3v_ser_p1, vlasov_boundary_surfvy_1x3v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, vlasov_boundary_surfvy_2x2v_ser_p1, vlasov_boundary_surfvy_2x2v_ser_p2 }, // 3
+  { NULL, vlasov_boundary_surfvy_2x3v_ser_p1, vlasov_boundary_surfvy_2x3v_ser_p2 }, // 4
+  // 3x kernels
+  { NULL, vlasov_boundary_surfvy_3x3v_ser_p1, NULL                   }, // 5
+};
+
+// Acceleration boundary surface kernel (zero-flux BCs) list: vz-direction
+static struct { vlasov_accel_boundary_surf_t kernels[3]; } accel_boundary_surf_vz_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, vlasov_boundary_surfvz_1x3v_ser_p1, vlasov_boundary_surfvz_1x3v_ser_p2}, // 2
+  // 2x kernels
+  { NULL, NULL, NULL }, // 3
+  { NULL, vlasov_boundary_surfvz_2x3v_ser_p1, vlasov_boundary_surfvz_2x3v_ser_p2 }, // 4
+  // 3x kernels
+  { NULL, vlasov_boundary_surfvz_3x3v_ser_p1, NULL }, // 5
+};
+
 struct dg_vlasov {
     struct gkyl_dg_eqn eqn; // Base object
     int cdim; // Config-space dimensions
@@ -143,6 +184,7 @@ struct dg_vlasov {
     vlasov_vol_t vol; // Volume kernel
     vlasov_stream_surf_t stream_surf[3]; // Surface terms for streaming
     vlasov_accel_surf_t accel_surf[3]; // Surface terms for acceleration
+    vlasov_accel_boundary_surf_t accel_boundary_surf[3]; // Surface terms for acceleration
 
     struct gkyl_range conf_range; // configuration space range
     const struct gkyl_array *qmem; // Pointer to q/m*EM field
@@ -177,23 +219,25 @@ vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
 }
 
 static double
-surf(const struct gkyl_dg_eqn *eqn, int dir,
-  const double*  xcL, const double*  xcR, const double*  dxL, const double* dxR,
-  double maxsOld, const int*  idxL, const int*  idxR,
-  const double* qInL, const double*  qInR, double* restrict qRhsOutL, double* restrict qRhsOutR)
+surf(const struct gkyl_dg_eqn *eqn, 
+  int dir,
+  const double*  xcL, const double*  xcC, const double*  xcR, 
+  const double*  dxL, const double* dxC, const double* dxR,
+  double maxsOld, const int*  idxL, const int*  idxC, const int*  idxR,
+  const double* qInL, const double*  qInC, const double*  qInR, double* restrict qRhsOut)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
 
   double amax = 0.0;
   if (dir < vlasov->cdim) {
     vlasov->stream_surf[dir]
-      (xcL, xcR, dxL, dxR, qInL, qInR, qRhsOutL, qRhsOutR);
+      (xcC, dxC, qInL, qInC, qInR, qRhsOut);
   }
   else {
-    long cidx = gkyl_range_idx(&vlasov->conf_range, idxL);
+    long cidx = gkyl_range_idx(&vlasov->conf_range, idxC);
     amax = vlasov->accel_surf[dir-vlasov->cdim]
-      (xcL, xcR, dxL, dxR, maxsOld, gkyl_array_fetch(vlasov->qmem, cidx),
-        qInL, qInR, qRhsOutL, qRhsOutR);
+      (xcC, dxC, maxsOld, gkyl_array_fetch(vlasov->qmem, cidx),
+        qInL, qInC, qInR, qRhsOut);
   }
   
   return amax;
@@ -202,11 +246,21 @@ surf(const struct gkyl_dg_eqn *eqn, int dir,
 static double
 boundary_surf(const struct gkyl_dg_eqn *eqn,
   int dir,
-  const double*  xcL, const double*  xcR, const double*  dxL, const double*  dxR,
-  double maxsOld, const int*  idxL, const int*  idxR,
-  const double* qInL, const double* qInR, double* restrict qRhsOutL, double* restrict qRhsOutR)
+  const double*  xcEdge, const double*  xcSkin,
+  const double*  dxEdge, const double* dxSkin,
+  double maxsOld, const int* idxEdge, const int* idxSkin, const int edge,
+  const double* qInEdge, const double* qInSkin, double* restrict qRhsOut)
 {
-  return 0;
+  struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
+
+  double amax = 0.0;
+  if (dir > vlasov->cdim) {
+    long cidx = gkyl_range_idx(&vlasov->conf_range, idxSkin);
+    amax = vlasov->accel_boundary_surf[dir-vlasov->cdim]
+      (xcSkin, dxSkin, maxsOld, gkyl_array_fetch(vlasov->qmem, cidx),
+        edge, qInEdge, qInSkin, qRhsOut);
+  }
+  return amax;
 }
 
 // "Choose Kernel" based on cdim, vdim and polyorder
@@ -243,10 +297,17 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   if (vdim>2)
     vlasov->accel_surf[2] = CK(accel_surf_vz_kernels,cdim,vdim,polyOrder);
 
+  vlasov->accel_boundary_surf[0] = CK(accel_boundary_surf_vx_kernels,cdim,vdim,polyOrder);
+  if (vdim>1)
+    vlasov->accel_boundary_surf[1] = CK(accel_boundary_surf_vy_kernels,cdim,vdim,polyOrder);
+  if (vdim>2)
+    vlasov->accel_boundary_surf[2] = CK(accel_boundary_surf_vz_kernels,cdim,vdim,polyOrder);
+
   // ensure non-NULL pointers
   assert(vlasov->vol);
   for (int i=0; i<cdim; ++i) assert(vlasov->stream_surf[i]);
   for (int i=0; i<vdim; ++i) assert(vlasov->accel_surf[i]);
+  for (int i=0; i<vdim; ++i) assert(vlasov->accel_boundary_surf[i]);
 
   vlasov->qmem = 0; 
   vlasov->conf_range = *conf_range;

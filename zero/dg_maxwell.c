@@ -12,10 +12,8 @@ typedef double (*maxwell_vol_t)(const gkyl_maxwell_inp *meq,
   const double *w, const double *dx, const double *q, double* restrict out);
 
 typedef double (*maxwell_surf_t)(const gkyl_maxwell_inp *meq,
-  const double *wl, const double *wr,
-  const double *dxl, const double *dxr, const double tau,
-  const double *ql, const double *qr,
-  double* restrict outl, double* restrict outr);
+  const double *w, const double *dx, const double tau,
+  const double *ql, const double *qc, const double *qr, double* restrict out);
 
 // Volume kernel list
 static struct { maxwell_vol_t kernels[3]; } vol_kernels[] = {
@@ -69,24 +67,26 @@ vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double*  dx,
 }
 
 static double
-surf(const struct gkyl_dg_eqn *eqn,
+surf(const struct gkyl_dg_eqn *eqn, 
   int dir,
-  const double*  xcL, const double*  xcR, const double*  dxL, const double* dxR,
-  double maxsOld, const int*  idxL, const int*  idxR,
-  const double* qInL, const double*  qInR, double* restrict qRhsOutL, double* restrict qRhsOutR)
+  const double*  xcL, const double*  xcC, const double*  xcR, 
+  const double*  dxL, const double* dxC, const double* dxR,
+  double maxsOld, const int*  idxL, const int*  idxC, const int*  idxR,
+  const double* qInL, const double*  qInC, const double*  qInR, double* restrict qRhsOut)
 {
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
   double maxs = maxwell->maxwell_data.c;
-  return maxwell->surf[dir](&maxwell->maxwell_data, xcL, xcR, dxL, dxR,
-    maxs, qInL, qInR, qRhsOutL, qRhsOutR);
+  return maxwell->surf[dir](&maxwell->maxwell_data, xcC, dxC,
+    maxs, qInL, qInC, qInR, qRhsOut);
 }
 
 static double
 boundary_surf(const struct gkyl_dg_eqn *eqn,
   int dir,
-  const double*  xcL, const double*  xcR, const double*  dxL, const double*  dxR,
-  double maxsOld, const int*  idxL, const int*  idxR,
-  const double* qInL, const double* qInR, double* restrict qRhsOutL, double* restrict qRhsOutR)
+  const double*  xcEdge, const double*  xcSkin,
+  const double*  dxEdge, const double* dxSkin,
+  double maxsOld, const int* idxEdge, const int* idxSkin, const int edge,
+  const double* qInEdge, const double* qInSkin, double* restrict qRhsOut)
 {
   return 0;
 }
