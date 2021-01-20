@@ -8,6 +8,9 @@ void test_range_0()
 
   TEST_CHECK( range.ndim == 0 );
   TEST_CHECK( range.volume == 1 );
+
+  TEST_CHECK( gkyl_range_is_sub_range(&range) == 0 );
+  TEST_CHECK( gkyl_range_is_threaded(&range) == 0 );
 }
 
 void test_range_1()
@@ -51,6 +54,7 @@ void test_sub_range()
   gkyl_sub_range_init(&subrange, &range, sublower, subupper);
 
   TEST_CHECK( subrange.volume == 4*9 );
+  TEST_CHECK( gkyl_range_is_sub_range(&subrange) == 1 );
 
   for (unsigned d=0; d<2; ++d) {
     TEST_CHECK( subrange.lower[d] == sublower[d] );
@@ -83,6 +87,8 @@ void test_shorten()
   gkyl_range_init(&range, 3, lower, upper);
   gkyl_range_shorten(&shortr, &range, 1, 1);
   gkyl_range_shorten(&shortr2, &range, 1, 3);
+
+  TEST_CHECK( gkyl_range_is_sub_range(&shortr) == 1 );
 
   // shortr
   TEST_CHECK( shortr.lower[0] == range.lower[0] );
@@ -118,6 +124,7 @@ void test_skin()
   // Test skin cell ranges
   struct gkyl_range lowerSkinRange1;
   gkyl_range_lower_skin(&lowerSkinRange1, &range, 0, 1);
+  TEST_CHECK( gkyl_range_is_sub_range(&lowerSkinRange1) == 1 );
   
   TEST_CHECK( lowerSkinRange1.volume == 10 );
   TEST_CHECK( lowerSkinRange1.lower[0] == 1 );
@@ -401,6 +408,8 @@ void test_range_deflate()
   int remDir[] = {0, 0, 1}, locDir[] = {0, 0, lower[2]};
   struct gkyl_range defr;
   gkyl_range_deflate(&defr, &range, remDir, locDir);
+
+  TEST_CHECK( gkyl_range_is_sub_range(&defr) );
 
   TEST_CHECK( defr.ndim == 2 );
   TEST_CHECK( defr.volume == 200 );

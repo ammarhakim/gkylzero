@@ -3,6 +3,8 @@
 #include <gkyl_util.h>
 #include <gkyl_vargm.h>
 
+#include <stdint.h>
+
 /**
  * Series of indexing "functions" to compute linear index into range
  */
@@ -37,10 +39,13 @@ struct gkyl_range {
     int lower[GKYL_MAX_DIM]; // lower bound
     int upper[GKYL_MAX_DIM]; // upper bound (inclusive)
     long volume; // total volume of range
+    
     // do not access directly
+    uint32_t flags; // Flags for internal use
     int ilo[GKYL_MAX_DIM]; // for use in inverse indexer
     long ac[GKYL_MAX_DIM+1]; // coefficients for indexing
     long linIdxZero; // linear index of {0,0,...}
+    long th_start, th_len; // start and size of linear range for iter
 };
 
 /**
@@ -92,6 +97,15 @@ void gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim,
  * @return Shape in direction dit
  */
 int gkyl_range_shape(const struct gkyl_range *rng, int dir);
+
+/**
+ * Return 1 if range is a sub-range/threaded.
+ *
+ * @param rng Range object
+ * @return 1 if true, 0 otherwise
+ */
+int gkyl_range_is_sub_range(const struct gkyl_range *rng);
+int gkyl_range_is_threaded(const struct gkyl_range *rng);
 
 /**
  * Create a sub-range from a given range. The sub-range must be fully
