@@ -13,12 +13,12 @@ static uint32_t masks[] =
 // sub-range flags
 #define SET_SUB_RANGE(flags) (flags) |= masks[R_IS_SUB_RANGE]
 #define CLEAR_SUB_RANGE(flags) (flags) &= ~masks[R_IS_SUB_RANGE]
-#define IS_SUB_RANGE(flags) (flags) & masks[R_IS_SUB_RANGE]
+#define IS_SUB_RANGE(flags) (((flags) & masks[R_IS_SUB_RANGE]) != 0)
 
 // threading flags
 #define SET_THREADED(flags) (flags) |= masks[R_IS_THREADED]
 #define CLEAR_THREADED(flags) (flags) &= ~masks[R_IS_THREADED]
-#define IS_THREADED(flags) (flags) & masks[R_IS_THREADED]
+#define IS_THREADED(flags) (((flags) & masks[R_IS_THREADED]) != 0)
 
 // Computes coefficients for mapping indices in row-major order
 static void
@@ -128,6 +128,22 @@ gkyl_sub_range_init(struct gkyl_range *rng,
 
   rng->flags = bigrng->flags;
   SET_SUB_RANGE(rng->flags);
+}
+
+void
+gkyl_range_thread(struct gkyl_range *rng, int nthreads, int tid)
+{
+  long offset = gkyl_range_idx(rng, rng->lower);
+  long quot = rng->volume/nthreads, rem = rng->volume % nthreads;
+  if (tid < rem) {
+    rng->th_len = quot+1;
+    rng->th_start = offset + tid*(quot+1);
+  }
+  else {
+    rng->th_len = quot;
+    rng->th_start = offset + rem*(quot+1) + (tid-rem)*quot;
+  }
+  SET_THREADED(rng->flags);
 }
 
 void

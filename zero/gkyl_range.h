@@ -122,6 +122,17 @@ void gkyl_sub_range_init(struct gkyl_range *rng,
   const struct gkyl_range *bigrng, const int *sublower, const int *subupper);
 
 /**
+ * Set threading for the given range. The only place threading matters
+ * is for iterators. Iterators for threaded-ranges only walk over the
+ * set of indices owned by that thread.
+ *
+ * @param rng Range object to thread
+ * @param nthreads Number of threads
+ * @param tid Thread ID [0, nthreads)
+ */
+void gkyl_range_thread(struct gkyl_range *rng, int nthreads, int tid);
+
+/**
  * Return range which has some directions removed by setting the index
  * in those directions to fixed values. The "deflated" range has lower
  * dimension than the parent 'rng' object. The indexing into the

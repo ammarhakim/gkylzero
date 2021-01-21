@@ -527,6 +527,69 @@ void test_range_skip_iter_2()
   TEST_CHECK( skip.delta*skip.range.volume == 16*16*16*16*16*16 );
 }
 
+void test_range_thread_1()
+{
+  int lower[] = { 1 }, upper[] = { 10 };
+  struct gkyl_range range;
+  gkyl_range_init(&range, 1, lower, upper);
+
+  int nthreads = 4, curr_start = 0, tot = 0;
+  for (int tid=0; tid<nthreads; ++tid) {
+    gkyl_range_thread(&range, nthreads, tid);
+
+    TEST_CHECK( gkyl_range_is_threaded(&range) == 1 );
+    TEST_CHECK( range.th_start == curr_start );
+    curr_start += range.th_len;
+    tot += range.th_len;
+  }
+  TEST_CHECK( tot == range.volume );
+}
+
+void test_range_thread_2()
+{
+  int lower[] = { 1, 2 }, upper[] = { 10, 25 };
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, lower, upper);
+
+  int nthreads = 4, curr_start = 0, tot = 0;
+  for (int tid=0; tid<nthreads; ++tid) {
+    gkyl_range_thread(&range, nthreads, tid);
+
+    TEST_CHECK( gkyl_range_is_threaded(&range) == 1 );
+    TEST_CHECK( range.th_start == curr_start );
+    curr_start += range.th_len;
+    tot += range.th_len;
+  }
+  TEST_CHECK( tot == range.volume );
+}
+
+void test_sub_range_thread()
+{
+  int lower[] = {1, 1}, upper[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, lower, upper);
+
+  int sublower[] = {2, 2}, subupper[] = { 5, 10 };
+  struct gkyl_range subrange;
+  gkyl_sub_range_init(&subrange, &range, sublower, subupper);
+  TEST_CHECK( gkyl_range_is_sub_range(&subrange) == 1 );
+
+  TEST_CHECK( subrange.th_start == gkyl_range_idx(&subrange, subrange.lower) );
+  TEST_CHECK( subrange.th_len == subrange.volume );
+
+  int nthreads = 4;
+  int tot = 0,  curr_start = gkyl_range_idx(&subrange, subrange.lower);
+  for (int tid=0; tid<nthreads; ++tid) {
+    gkyl_range_thread(&subrange, nthreads, tid);
+
+    TEST_CHECK( gkyl_range_is_threaded(&subrange) == 1 );
+    TEST_CHECK( subrange.th_start == curr_start );
+    curr_start += subrange.th_len;
+    tot += subrange.th_len;
+  }
+  TEST_CHECK( tot == subrange.volume );  
+}
+
 TEST_LIST = {
   { "range_0", test_range_0 },
   { "range_1", test_range_1 },
@@ -546,6 +609,9 @@ TEST_LIST = {
   { "huge_range", test_huge_range },
   { "range_deflate", test_range_deflate },
   { "range_skip_iter", test_range_skip_iter },
-  { "range_skip_iter_2", test_range_skip_iter_2 },  
+  { "range_skip_iter_2", test_range_skip_iter_2 },
+  { "range_thread_1", test_range_thread_1 },
+  { "range_thread_2", test_range_thread_2 },
+  { "sub_range_thread", test_sub_range_thread },
   { NULL, NULL },
 };
