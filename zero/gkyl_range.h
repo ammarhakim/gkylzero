@@ -53,9 +53,11 @@ struct gkyl_range {
  * must not modify it or any other members of this struct.
  */
 struct gkyl_range_iter {
-    int idx[GKYL_MAX_DIM]; // current index
-    // do not access directly
+    int idx[GKYL_MAX_DIM]; // current index (do not modify)
+
+    // do not access
     int is_first, ndim;
+    long bumps_left;
     int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
 };
 
@@ -227,14 +229,6 @@ void gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx);
  */
 void gkyl_range_iter_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range);
-
-/**
- * Reset iterator back to start index. Call this method if you want to
- * reuse an iterator that was already used in a while() loop.
- * 
- * @param iter Iterator to reset.
- */
-void gkyl_range_iter_reset(struct gkyl_range_iter *iter);
 
 /**
  * Get next index into range. The iter->idx array holds the next

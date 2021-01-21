@@ -280,22 +280,20 @@ gkyl_range_iter_init(struct gkyl_range_iter *iter,
 {
   iter->is_first = 1;
   iter->ndim = range->ndim;
+  iter->bumps_left = range->th_len;
+  
+  gkyl_range_inv_idx(range, range->th_start, iter->idx);
   for (int i=0; i<range->ndim; ++i) {
-    iter->idx[i] = iter->lower[i] = range->lower[i];
+    iter->lower[i] = range->lower[i];
     iter->upper[i] = range->upper[i];
   }
-}
-
-void gkyl_range_iter_reset(struct gkyl_range_iter *iter)
-{
-  iter->is_first = 1;
-  for (int i=0; i<iter->ndim; ++i)
-    iter->idx[i] = iter->lower[i];
 }
 
 int
 gkyl_range_iter_next(struct gkyl_range_iter *iter)
 {
+  if (iter->bumps_left-- < 1) return 0;
+  
   if (iter->is_first) {
     iter->is_first = 0;
     return 1;
