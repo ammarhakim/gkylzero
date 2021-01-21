@@ -173,7 +173,7 @@ void test_array_accumulate_range_double()
 
   gkyl_array_accumulate_range(a2, 0.5, a1, &range);
 
-  gkyl_range_iter_reset(&iter);
+  gkyl_range_iter_init(&iter, &range);
   
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(&range, iter.idx);
@@ -219,7 +219,7 @@ void test_array_accumulate_range_float()
 
   gkyl_array_accumulate_range(a2, 0.5f, a1, &range);
 
-  gkyl_range_iter_reset(&iter);
+  gkyl_range_iter_init(&iter, &range);
   
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(&range, iter.idx);

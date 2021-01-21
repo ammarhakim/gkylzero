@@ -8,6 +8,9 @@ void test_range_0()
 
   TEST_CHECK( range.ndim == 0 );
   TEST_CHECK( range.volume == 1 );
+
+  TEST_CHECK( gkyl_range_is_sub_range(&range) == 0 );
+  TEST_CHECK( gkyl_range_is_threaded(&range) == 0 );
 }
 
 void test_range_1()
@@ -51,6 +54,7 @@ void test_sub_range()
   gkyl_sub_range_init(&subrange, &range, sublower, subupper);
 
   TEST_CHECK( subrange.volume == 4*9 );
+  TEST_CHECK( gkyl_range_is_sub_range(&subrange) == 1 );
 
   for (unsigned d=0; d<2; ++d) {
     TEST_CHECK( subrange.lower[d] == sublower[d] );
@@ -83,6 +87,8 @@ void test_shorten()
   gkyl_range_init(&range, 3, lower, upper);
   gkyl_range_shorten(&shortr, &range, 1, 1);
   gkyl_range_shorten(&shortr2, &range, 1, 3);
+
+  TEST_CHECK( gkyl_range_is_sub_range(&shortr) == 1 );
 
   // shortr
   TEST_CHECK( shortr.lower[0] == range.lower[0] );
@@ -118,6 +124,7 @@ void test_skin()
   // Test skin cell ranges
   struct gkyl_range lowerSkinRange1;
   gkyl_range_lower_skin(&lowerSkinRange1, &range, 0, 1);
+  TEST_CHECK( gkyl_range_is_sub_range(&lowerSkinRange1) == 1 );
   
   TEST_CHECK( lowerSkinRange1.volume == 10 );
   TEST_CHECK( lowerSkinRange1.lower[0] == 1 );
@@ -342,18 +349,6 @@ void test_range_iter_3d()
         TEST_CHECK( iter.idx[1] == j );
         TEST_CHECK( iter.idx[2] == k );
       }
-
-  // test resetting iterator
-  gkyl_range_iter_reset(&iter);
-  
-  for (int i=range.lower[0]; i<=range.upper[0]; ++i)
-    for (int j=range.lower[1]; j<=range.upper[1]; ++j)
-      for (int k=range.lower[2]; k<=range.upper[2]; ++k) {
-        TEST_CHECK( 1 == gkyl_range_iter_next(&iter) );
-        TEST_CHECK( iter.idx[0] == i );
-        TEST_CHECK( iter.idx[1] == j );
-        TEST_CHECK( iter.idx[2] == k );
-      }
 }
 
 void test_range_inv_idx()
@@ -401,6 +396,8 @@ void test_range_deflate()
   int remDir[] = {0, 0, 1}, locDir[] = {0, 0, lower[2]};
   struct gkyl_range defr;
   gkyl_range_deflate(&defr, &range, remDir, locDir);
+
+  TEST_CHECK( gkyl_range_is_sub_range(&defr) );
 
   TEST_CHECK( defr.ndim == 2 );
   TEST_CHECK( defr.volume == 200 );
@@ -518,6 +515,111 @@ void test_range_skip_iter_2()
   TEST_CHECK( skip.delta*skip.range.volume == 16*16*16*16*16*16 );
 }
 
+void test_range_thread_1()
+{
+  int lower[] = { 1 }, upper[] = { 10 };
+  struct gkyl_range range;
+  gkyl_range_init(&range, 1, lower, upper);
+
+  int nthreads = 4, curr_start = 0, tot = 0;
+  for (int tid=0; tid<nthreads; ++tid) {
+    gkyl_range_thread(&range, nthreads, tid);
+
+    TEST_CHECK( gkyl_range_is_threaded(&range) == 1 );
+    TEST_CHECK( range.th_start == curr_start );
+    curr_start += range.th_len;
+    tot += range.th_len;
+  }
+  TEST_CHECK( tot == range.volume );
+}
+
+void test_range_thread_2()
+{
+  int lower[] = { 1, 2 }, upper[] = { 10, 25 };
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, lower, upper);
+
+  int nthreads = 4, curr_start = 0, tot = 0;
+  for (int tid=0; tid<nthreads; ++tid) {
+    gkyl_range_thread(&range, nthreads, tid);
+
+    TEST_CHECK( gkyl_range_is_threaded(&range) == 1 );
+    TEST_CHECK( range.th_start == curr_start );
+    curr_start += range.th_len;
+    tot += range.th_len;
+  }
+  TEST_CHECK( tot == range.volume );
+}
+
+void test_sub_range_thread()
+{
+  int lower[] = {1, 1}, upper[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, lower, upper);
+
+  int sublower[] = {2, 2}, subupper[] = { 5, 10 };
+  struct gkyl_range subrange;
+  gkyl_sub_range_init(&subrange, &range, sublower, subupper);
+  TEST_CHECK( gkyl_range_is_sub_range(&subrange) == 1 );
+
+  TEST_CHECK( subrange.th_start == gkyl_range_idx(&subrange, subrange.lower) );
+  TEST_CHECK( subrange.th_len == subrange.volume );
+
+  int nthreads = 4;
+  int tot = 0,  curr_start = gkyl_range_idx(&subrange, subrange.lower);
+  for (int tid=0; tid<nthreads; ++tid) {
+    gkyl_range_thread(&subrange, nthreads, tid);
+
+    TEST_CHECK( gkyl_range_is_threaded(&subrange) == 1 );
+    TEST_CHECK( subrange.th_start == curr_start );
+    curr_start += subrange.th_len;
+    tot += subrange.th_len;
+  }
+  TEST_CHECK( tot == subrange.volume );  
+}
+
+void test_range_thread_iter_1()
+{
+  int lower[] = { 1 }, upper[] = { 13 };
+  struct gkyl_range range;
+  gkyl_range_init(&range, 1, lower, upper);
+
+  int nthreads = 16;
+  long tot_vol = 0;
+  for (int tid=0; tid<nthreads; ++tid) {
+    gkyl_range_thread(&range, nthreads, tid);
+
+    long vol = 0;
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &range);
+    while (gkyl_range_iter_next(&iter))
+      vol += 1;
+    tot_vol += vol;
+  }
+  TEST_CHECK( tot_vol == range.volume );
+}
+
+void test_range_thread_iter_2()
+{
+  int lower[] = { 1, 1 }, upper[] = { 10, 25 };
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, lower, upper);
+
+  int nthreads = 4;
+  long tot_vol = 0;
+  for (int tid=0; tid<nthreads; ++tid) {
+    gkyl_range_thread(&range, nthreads, tid);
+
+    long vol = 0;
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &range);
+    while (gkyl_range_iter_next(&iter))
+      vol += 1;
+    tot_vol += vol;
+  }
+  TEST_CHECK( tot_vol == range.volume );
+}
+
 TEST_LIST = {
   { "range_0", test_range_0 },
   { "range_1", test_range_1 },
@@ -537,6 +639,11 @@ TEST_LIST = {
   { "huge_range", test_huge_range },
   { "range_deflate", test_range_deflate },
   { "range_skip_iter", test_range_skip_iter },
-  { "range_skip_iter_2", test_range_skip_iter_2 },  
+  { "range_skip_iter_2", test_range_skip_iter_2 },
+  { "range_thread_1", test_range_thread_1 },
+  { "range_thread_2", test_range_thread_2 },
+  { "sub_range_thread", test_sub_range_thread },
+  { "range_thread_iter_1", test_range_thread_iter_1 },  
+  { "range_thread_iter_2", test_range_thread_iter_2 },
   { NULL, NULL },
 };

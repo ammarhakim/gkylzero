@@ -5,6 +5,21 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
+// flags and corresponding bit-masks
+enum range_flags { R_IS_SUB_RANGE, R_IS_THREADED };
+static uint32_t masks[] =
+{ 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
+
+// sub-range flags
+#define SET_SUB_RANGE(flags) (flags) |= masks[R_IS_SUB_RANGE]
+#define CLEAR_SUB_RANGE(flags) (flags) &= ~masks[R_IS_SUB_RANGE]
+#define IS_SUB_RANGE(flags) (((flags) & masks[R_IS_SUB_RANGE]) != 0)
+
+// threading flags
+#define SET_THREADED(flags) (flags) |= masks[R_IS_THREADED]
+#define CLEAR_THREADED(flags) (flags) &= ~masks[R_IS_THREADED]
+#define IS_THREADED(flags) (((flags) & masks[R_IS_THREADED]) != 0)
+
 // Computes coefficients for mapping indices in row-major order
 static void
 calc_rowmajor_ac(struct gkyl_range* range)
@@ -58,6 +73,11 @@ gkyl_range_init(struct gkyl_range *rng, int ndim,
   int idxZero[GKYL_MAX_DIM];
   for (int i=0; i<ndim; ++i) idxZero[i] = 0;
   rng->linIdxZero = gkyl_range_idx(rng, idxZero);
+
+  rng->th_start = 0;
+  rng->th_len = rng->volume;
+
+  rng->flags = 0;
 }
 
 void
@@ -77,6 +97,16 @@ gkyl_range_shape(const struct gkyl_range *range, int dir)
   return range->upper[dir]-range->lower[dir]+1;
 }
 
+int gkyl_range_is_sub_range(const struct gkyl_range *rng)
+{
+  return IS_SUB_RANGE(rng->flags);
+}
+
+int gkyl_range_is_threaded(const struct gkyl_range *rng)
+{
+  return IS_THREADED(rng->flags);
+}
+
 void
 gkyl_sub_range_init(struct gkyl_range *rng,
   const struct gkyl_range *bigrng, const int *sublower, const int *subupper)
@@ -92,6 +122,28 @@ gkyl_sub_range_init(struct gkyl_range *rng,
   for (int i=0; i<rng->ndim+1; ++i)
     rng->ac[i] = bigrng->ac[i];
   rng->linIdxZero = bigrng->linIdxZero;
+
+  rng->th_start = gkyl_range_idx(bigrng, rng->lower);
+  rng->th_len = rng->volume;  
+
+  rng->flags = bigrng->flags;
+  SET_SUB_RANGE(rng->flags);
+}
+
+void
+gkyl_range_thread(struct gkyl_range *rng, int nthreads, int tid)
+{
+  long offset = gkyl_range_idx(rng, rng->lower);
+  long quot = rng->volume/nthreads, rem = rng->volume % nthreads;
+  if (tid < rem) {
+    rng->th_len = quot+1;
+    rng->th_start = offset + tid*(quot+1);
+  }
+  else {
+    rng->th_len = quot;
+    rng->th_start = offset + rem*(quot+1) + (tid-rem)*quot;
+  }
+  SET_THREADED(rng->flags);
 }
 
 void
@@ -117,6 +169,12 @@ gkyl_range_deflate(struct gkyl_range* srng,
     if (remDir[i])
       adel += locDir[i]*rng->ac[i+1];
   srng->ac[0] = rng->ac[0] + adel;
+
+  srng->th_start = gkyl_range_idx(srng, srng->lower);
+  srng->th_len = srng->volume;
+
+  srng->flags = rng->flags;
+  SET_SUB_RANGE(srng->flags);
 }
 
 void
@@ -222,22 +280,20 @@ gkyl_range_iter_init(struct gkyl_range_iter *iter,
 {
   iter->is_first = 1;
   iter->ndim = range->ndim;
+  iter->bumps_left = range->th_len;
+  
+  gkyl_range_inv_idx(range, range->th_start, iter->idx);
   for (int i=0; i<range->ndim; ++i) {
-    iter->idx[i] = iter->lower[i] = range->lower[i];
+    iter->lower[i] = range->lower[i];
     iter->upper[i] = range->upper[i];
   }
-}
-
-void gkyl_range_iter_reset(struct gkyl_range_iter *iter)
-{
-  iter->is_first = 1;
-  for (int i=0; i<iter->ndim; ++i)
-    iter->idx[i] = iter->lower[i];
 }
 
 int
 gkyl_range_iter_next(struct gkyl_range_iter *iter)
 {
+  if (iter->bumps_left-- < 1) return 0;
+  
   if (iter->is_first) {
     iter->is_first = 0;
     return 1;

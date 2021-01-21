@@ -3,6 +3,8 @@
 #include <gkyl_util.h>
 #include <gkyl_vargm.h>
 
+#include <stdint.h>
+
 /**
  * Series of indexing "functions" to compute linear index into range
  */
@@ -37,10 +39,13 @@ struct gkyl_range {
     int lower[GKYL_MAX_DIM]; // lower bound
     int upper[GKYL_MAX_DIM]; // upper bound (inclusive)
     long volume; // total volume of range
+    
     // do not access directly
+    uint32_t flags; // Flags for internal use
     int ilo[GKYL_MAX_DIM]; // for use in inverse indexer
     long ac[GKYL_MAX_DIM+1]; // coefficients for indexing
     long linIdxZero; // linear index of {0,0,...}
+    long th_start, th_len; // start and size of linear range for iter
 };
 
 /**
@@ -48,9 +53,11 @@ struct gkyl_range {
  * must not modify it or any other members of this struct.
  */
 struct gkyl_range_iter {
-    int idx[GKYL_MAX_DIM]; // current index
-    // do not access directly
+    int idx[GKYL_MAX_DIM]; // current index (do not modify)
+
+    // do not access
     int is_first, ndim;
+    long bumps_left;
     int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
 };
 
@@ -94,6 +101,15 @@ void gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim,
 int gkyl_range_shape(const struct gkyl_range *rng, int dir);
 
 /**
+ * Return 1 if range is a sub-range/threaded.
+ *
+ * @param rng Range object
+ * @return 1 if true, 0 otherwise
+ */
+int gkyl_range_is_sub_range(const struct gkyl_range *rng);
+int gkyl_range_is_threaded(const struct gkyl_range *rng);
+
+/**
  * Create a sub-range from a given range. The sub-range must be fully
  * contained in the parent range or else it will be truncated. The
  * sub-range and the parent range will returns the same linear index
@@ -106,6 +122,17 @@ int gkyl_range_shape(const struct gkyl_range *rng, int dir);
  */
 void gkyl_sub_range_init(struct gkyl_range *rng,
   const struct gkyl_range *bigrng, const int *sublower, const int *subupper);
+
+/**
+ * Set threading for the given range. The only place threading matters
+ * is for iterators. Iterators for threaded-ranges only walk over the
+ * set of indices owned by that thread.
+ *
+ * @param rng Range object to thread
+ * @param nthreads Number of threads
+ * @param tid Thread ID [0, nthreads)
+ */
+void gkyl_range_thread(struct gkyl_range *rng, int nthreads, int tid);
 
 /**
  * Return range which has some directions removed by setting the index
@@ -202,14 +229,6 @@ void gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx);
  */
 void gkyl_range_iter_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range);
-
-/**
- * Reset iterator back to start index. Call this method if you want to
- * reuse an iterator that was already used in a while() loop.
- * 
- * @param iter Iterator to reset.
- */
-void gkyl_range_iter_reset(struct gkyl_range_iter *iter);
 
 /**
  * Get next index into range. The iter->idx array holds the next
