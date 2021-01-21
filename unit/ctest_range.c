@@ -1,4 +1,6 @@
 #include <acutest.h>
+#include <gkyl_array.h>
+#include <gkyl_array_ops.h>
 #include <gkyl_range.h>
 
 void test_range_0()
@@ -620,6 +622,44 @@ void test_range_thread_iter_2()
   TEST_CHECK( tot_vol == range.volume );
 }
 
+void test_range_thread_iter_3()
+{
+  int lower[] = { 1, 1 }, upper[] = { 10, 25 };
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, lower, upper);
+
+  struct gkyl_array *arr = gkyl_array_new(sizeof(double), range.volume);
+  gkyl_array_clear(arr, 0.0);
+
+  int nthreads = 4;
+  for (int tid=0; tid<nthreads; ++tid) {
+    gkyl_range_thread(&range, nthreads, tid);
+
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &range);
+    
+    while (gkyl_range_iter_next(&iter)) {
+      long lidx = gkyl_range_idx(&range, iter.idx);
+      double *d = gkyl_array_fetch(arr, lidx);
+      d[0] += 1.0;
+    }
+  }
+
+  // reset to default
+  gkyl_range_thread(&range, 1, 0);
+  
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long lidx = gkyl_range_idx(&range, iter.idx);
+    double *d = gkyl_array_fetch(arr, lidx);
+
+    TEST_CHECK( d[0] == 1.0 );
+  }
+
+  gkyl_array_release(arr);
+}
+
 TEST_LIST = {
   { "range_0", test_range_0 },
   { "range_1", test_range_1 },
@@ -645,5 +685,6 @@ TEST_LIST = {
   { "sub_range_thread", test_sub_range_thread },
   { "range_thread_iter_1", test_range_thread_iter_1 },  
   { "range_thread_iter_2", test_range_thread_iter_2 },
+  { "range_thread_iter_3", test_range_thread_iter_3 },
   { NULL, NULL },
 };

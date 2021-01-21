@@ -43,6 +43,13 @@ def build(bld):
     )
 
     bld.program(
+        source = 'app_pthread_proj.c',
+        target = 'app_pthread_proj',
+        includes = '. ../zero ../miniapp',
+        use = 'gkylminiapp gkylzero gkylzerokern',
+    )    
+
+    bld.program(
         source = 'app_vlasov_kerntm.c',
         target = 'app_vlasov_kerntm',        
         includes = '. ../zero',
