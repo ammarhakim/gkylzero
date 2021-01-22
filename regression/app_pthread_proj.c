@@ -85,22 +85,20 @@ main(int argc, char **argv)
 
   pthread_t thread[max_thread];  
   struct thread_data td[max_thread];
+  for (int tid=0; tid<max_thread; ++tid) {
+    gkyl_range_thread(&arr_range, max_thread, tid);
+    td[tid]  = (struct thread_data) { .range = arr_range, .proj = projDistf, .f = distf };
+  }
 
   struct timespec tstart = gkyl_wall_clock();
   
   for (int tid=0; tid<max_thread; ++tid) {
-
-    gkyl_range_thread(&arr_range, max_thread, tid);
-    td[tid]  = (struct thread_data) { .range = arr_range, .proj = projDistf, .f = distf };
-    
     int rc = pthread_create(&thread[tid], NULL, thread_worker, &td[tid]);
-    
     if (rc) {
       printf("Thread creation failed with %d\n", rc);
       exit(-1);
     }    
   }
-
   for (int i=0; i<max_thread; ++i)
     pthread_join(thread[i], NULL);
 
