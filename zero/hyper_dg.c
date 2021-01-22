@@ -15,8 +15,6 @@ struct gkyl_hyper_dg {
     int zero_flux_flags[GKYL_MAX_DIM]; // directions with zero flux
     int update_vol_term; // should we update volume term?
     const struct gkyl_dg_eqn *equation; // equation object
-
-    double maxs[GKYL_MAX_DIM]; // max speed
 };
 
 static inline void
@@ -26,8 +24,8 @@ copy_int_arr(int n, const int *restrict inp, int *restrict out)
 }
 
 void
-gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
-  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs)
+gkyl_hyper_dg_advance(const gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
+  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs, double *maxs)
 {
   int ndim = hdg->ndim, first_dir = 1;
   int idxm[GKYL_MAX_DIM], idxp[GKYL_MAX_DIM];
@@ -35,7 +33,7 @@ gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
 
   double maxs_old[GKYL_MAX_DIM];
   for (int i=0; i<hdg->ndim; ++i)
-    maxs_old[i] = hdg->maxs[i];
+    maxs_old[i] = maxs[i];
 
   for (int d=0; d<hdg->num_up_dirs; ++d) {
     int dir = hdg->update_dirs[d];
@@ -75,13 +73,13 @@ gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
           cflrate_d[0] += cflr; // frequencies are additive
         }
 
-        double maxs = hdg->equation->surf_term(hdg->equation,
+        double mdir = hdg->equation->surf_term(hdg->equation,
           dir, xcm, xcp, hdg->grid.dx, hdg->grid.dx,
           maxs_old[dir], idxm, idxp,
           gkyl_array_cfetch(fIn, linm), gkyl_array_cfetch(fIn, linp),
           gkyl_array_fetch(rhs, linm), gkyl_array_fetch(rhs, linp)
         );
-        hdg->maxs[dir] = fmax(hdg->maxs[dir], maxs);
+        maxs[dir] = fmax(maxs[dir], mdir);
       }
     }
     first_dir = 0;
@@ -106,9 +104,6 @@ gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   }
   up->update_vol_term = update_vol_term;
   up->equation = gkyl_dg_eqn_aquire(equation);
-
-  for (int i=0; i<up->ndim; ++i)
-    up->maxs[i] = 0.0;
 
   return up;
 }
