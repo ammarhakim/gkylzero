@@ -1,6 +1,7 @@
+#include <math.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
 
 #include <gkyl_util.h>
 #include <gkyl_proj_on_basis.h>
@@ -10,8 +11,8 @@
 
 void evalFunc(double t, const double *xn, double* restrict fout, void *ctx)
 {
-  double x = xn[0];
-  fout[0] = x*x;
+  double x = xn[0], y = xn[1], z = xn[2];
+  fout[0] = x*x + sin(3*y)*cos(z) + z*z;
 }
 
 struct thread_data {
@@ -25,8 +26,6 @@ void*
 thread_worker(void *ctx)
 {
   struct thread_data *td = ctx;
-  printf("thread_worker: %ld %ld \n", td->range.th_start, td->range.th_len);
-  
   gkyl_proj_on_basis_advance(td->proj, 0.0, &td->range, td->f);
   return NULL;
 }
@@ -34,15 +33,15 @@ thread_worker(void *ctx)
 int
 main(void)
 {
-  int polyOrder = 1;
-  double lower[] = {-2.0}, upper[] = {2.0};
-  int cells[] = {50000};
+  int polyOrder = 2;
+  double lower[] = {-2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0};
+  int cells[] = {100, 100, 100};
   struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
+  gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
 
   // basis functions
   struct gkyl_basis basis;
-  gkyl_cart_modal_serendip(&basis, 1, polyOrder);
+  gkyl_cart_modal_serendip(&basis, 3, polyOrder);
 
   // projection updater for dist-function
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
@@ -50,13 +49,13 @@ main(void)
 
   // create array range: no ghost-cells 
   struct gkyl_range arr_range;
-  gkyl_range_init_from_shape(&arr_range, 1, cells);
+  gkyl_range_init_from_shape(&arr_range, 3, cells);
 
   // create distribution function
   struct gkyl_array *distf = gkyl_array_new(sizeof(double[basis.numBasis]),
     arr_range.volume);
 
-  int max_thread = 2;
+  int max_thread = 1;
   pthread_t thread[max_thread];  
   struct thread_data td[max_thread];
 
