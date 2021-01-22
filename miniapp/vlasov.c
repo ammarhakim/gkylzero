@@ -48,6 +48,7 @@ struct vm_species {
     struct vm_species_moment m1i; // for computing currents
     struct vm_species_moment *moms; // diagnostic moments
 
+    double maxs[GKYL_MAX_DIM]; // Maximum speed in each direction
     struct gkyl_dg_eqn *eqn; // Vlasov equation
     gkyl_hyper_dg *slvr; // solver
 };
@@ -60,7 +61,8 @@ struct vm_field {
     struct gkyl_array *qmem; // array for q/m*(E,B)
     struct gkyl_array *cflrate; // CFL rate in each cell
     struct gkyl_array *bc_buffer; // buffer for BCs (used for both copy and periodic)
-    
+
+    double maxs[GKYL_MAX_DIM]; // Maximum speed in each direction
     struct gkyl_dg_eqn *eqn; // Maxwell equation
     gkyl_hyper_dg *slvr; // solver
 };
@@ -280,6 +282,9 @@ vm_field_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_field *
   // Maxwell solver
   f->slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, f->eqn,
     app->cdim, up_dirs, zero_flux_flags, 1);
+
+  // initialize maxs for use in first step
+  for (int d=0; d<app->cdim; ++d) f->maxs[d] = 0.0;  
 }
 
 // Compute the RHS for field update, returning maximum stable
@@ -293,7 +298,7 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
   gkyl_array_clear(field->cflrate, 0.0);
 
   gkyl_array_clear(rhs, 0.0);
-  gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
+  gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs, field->maxs);
 
   double omegaCfl = gkyl_array_reduce(field->cflrate, GKYL_MAX);
 
@@ -424,6 +429,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   // create solver
   s->slvr = gkyl_hyper_dg_new(&s->grid, &app->basis, s->eqn,
     pdim, up_dirs, zero_flux_flags, 1);
+
+  // initialize maxs for use in first step
+  for (int d=0; d<pdim; ++d) s->maxs[d] = 0.0;
 }
 
 // Compute the RHS for species update, returning maximum stable
@@ -438,7 +446,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   gkyl_vlasov_set_qmem(species->eqn, qmem); // must set EM fields to use
 
   gkyl_array_clear(rhs, 0.0);
-  gkyl_hyper_dg_advance(species->slvr, &species->local, fin, species->cflrate, rhs);
+  gkyl_hyper_dg_advance(species->slvr, &species->local, fin, species->cflrate, rhs, species->maxs);
 
   double omegaCfl = gkyl_array_reduce(species->cflrate, GKYL_MAX);
 

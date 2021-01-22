@@ -18,7 +18,6 @@ struct gkyl_proj_on_basis {
     struct gkyl_array *ordinates; // qrdinates for quadrature
     struct gkyl_array *weights; // weights for quadrature
     struct gkyl_array *basis_at_ords; // basis functions at ordinates
-    struct gkyl_array *fun_at_ords; // function at ordinates
 };
 
 gkyl_proj_on_basis*
@@ -82,9 +81,6 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
     basis->eval(gkyl_array_fetch(up->ordinates, n),
       gkyl_array_fetch(up->basis_at_ords, n));
 
-  // allocate space to compute function at ordinates
-  up->fun_at_ords = gkyl_array_new(sizeof(double[num_ret_vals]), tot_quad);
-
   return up;
 }
 
@@ -97,15 +93,15 @@ comp_to_phys(int ndim, const double *eta,
 }
 
 static void
-proj_on_basis(const gkyl_proj_on_basis *up, double* f)
+proj_on_basis(const gkyl_proj_on_basis *up, const struct gkyl_array *fun_at_ords, double* f)
 {
   int numBasis = up->numBasis;
   int tot_quad = up->tot_quad;
   int num_ret_vals = up->num_ret_vals;
-  
+
   const double *restrict weights = up->weights->data;
   const double *restrict basis_at_ords = up->basis_at_ords->data;
-  const double *restrict func_at_ords = up->fun_at_ords->data;
+  const double *restrict func_at_ords = fun_at_ords->data;
 
   // arrangement of f is as:
   // c0[0], c0[1], ... c1[0], c1[1], ....
@@ -124,25 +120,32 @@ proj_on_basis(const gkyl_proj_on_basis *up, double* f)
 }
 
 void
-gkyl_proj_on_basis_advance(const gkyl_proj_on_basis* up,
+gkyl_proj_on_basis_advance(const gkyl_proj_on_basis *up,
   double tm, const struct gkyl_range *update_range, struct gkyl_array *arr)
 {
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
+
+  int num_ret_vals = up->num_ret_vals;
+  int tot_quad = up->tot_quad;
+  struct gkyl_array *fun_at_ords = gkyl_array_new(sizeof(double[num_ret_vals]), tot_quad);
+  
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
   
   while (gkyl_range_iter_next(&iter)) {
     gkyl_rect_grid_cell_center(&up->grid, iter.idx, xc);
 
-    for (int i=0; i<up->tot_quad; ++i) {
-      comp_to_phys(up->grid.ndim, gkyl_array_fetch(up->ordinates, i),
+    for (int i=0; i<tot_quad; ++i) {
+      comp_to_phys(up->grid.ndim, gkyl_array_cfetch(up->ordinates, i),
         up->grid.dx, xc, xmu);
-      up->eval(tm, xmu, gkyl_array_fetch(up->fun_at_ords, i), up->ctx);
+      up->eval(tm, xmu, gkyl_array_fetch(fun_at_ords, i), up->ctx);
     }
 
     long lidx = gkyl_range_idx(update_range, iter.idx);
-    proj_on_basis(up, gkyl_array_fetch(arr, lidx));
+    proj_on_basis(up, fun_at_ords, gkyl_array_fetch(arr, lidx));
   }
+
+  gkyl_array_release(fun_at_ords);
 }
 
 void
@@ -151,6 +154,5 @@ gkyl_proj_on_basis_release(gkyl_proj_on_basis* up)
   gkyl_array_release(up->ordinates);
   gkyl_array_release(up->weights);
   gkyl_array_release(up->basis_at_ords);
-  gkyl_array_release(up->fun_at_ords);  
   gkyl_free(up);
 }

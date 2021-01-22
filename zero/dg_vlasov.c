@@ -214,7 +214,7 @@ vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
   assert(vlasov->qmem);
   
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
-  return vlasov->vol(xc, dx, gkyl_array_fetch(vlasov->qmem, cidx),
+  return vlasov->vol(xc, dx, gkyl_array_cfetch(vlasov->qmem, cidx),
     qIn, qRhsOut);
 }
 
@@ -236,7 +236,7 @@ surf(const struct gkyl_dg_eqn *eqn,
   else {
     long cidx = gkyl_range_idx(&vlasov->conf_range, idxC);
     amax = vlasov->accel_surf[dir-vlasov->cdim]
-      (xcC, dxC, maxsOld, gkyl_array_fetch(vlasov->qmem, cidx),
+      (xcC, dxC, maxsOld, gkyl_array_cfetch(vlasov->qmem, cidx),
         qInL, qInC, qInR, qRhsOut);
   }
   
@@ -257,7 +257,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   if (dir > vlasov->cdim) {
     long cidx = gkyl_range_idx(&vlasov->conf_range, idxSkin);
     amax = vlasov->accel_boundary_surf[dir-vlasov->cdim]
-      (xcSkin, dxSkin, maxsOld, gkyl_array_fetch(vlasov->qmem, cidx),
+      (xcSkin, dxSkin, maxsOld, gkyl_array_cfetch(vlasov->qmem, cidx),
         edge, qInEdge, qInSkin, qRhsOut);
   }
   return amax;

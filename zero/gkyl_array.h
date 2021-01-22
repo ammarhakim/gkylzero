@@ -50,9 +50,14 @@ struct gkyl_array* gkyl_array_clone(const struct gkyl_array* arr);
  * @return Element at location 'loc'
  */
 static inline void*
-gkyl_array_fetch(const struct gkyl_array* arr, long loc)
+gkyl_array_fetch(struct gkyl_array* arr, long loc)
 {
   return ((char*) arr->data) + loc*arr->elemsz;
+}
+static inline const void*
+gkyl_array_cfetch(const struct gkyl_array* arr, long loc)
+{
+  return ((const char*) arr->data) + loc*arr->elemsz;
 }
 
 /**
