@@ -61,7 +61,7 @@ GKYL_ARRAY_SET(double)
 #define GKYL_ARRAY_ACCUMULATE_RANGE(type)                               \
     static void                                                         \
     array_acc1_##type(long n, long del, long outnc, long inpnc,         \
-      type *restrict out, type a, type *restrict const inp)             \
+      type *restrict out, type a, const type *restrict inp)             \
     {                                                                   \
       for (long i=0; i<del; ++i)                                        \
         for (int c=0; c<n; ++c)                                         \
@@ -87,7 +87,7 @@ GKYL_ARRAY_SET(double)
       while (gkyl_range_iter_next(&iter)) {                             \
         long start = gkyl_range_idx(&skip.range, iter.idx);             \
         array_acc1_##type(n, skip.delta, outnc, inpnc,                  \
-          gkyl_array_fetch(out, start), a, gkyl_array_fetch(inp, start)); \
+          gkyl_array_fetch(out, start), a, gkyl_array_cfetch(inp, start)); \
       }                                                                 \
                                                                         \
       return out;                                                       \
@@ -121,7 +121,7 @@ void
 gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
   const struct gkyl_range *range)
 {
-#define _F(loc) gkyl_array_fetch(arr, loc)  
+#define _F(loc) gkyl_array_cfetch(arr, loc)
 
   // construct skip iterator to allow copying (potentially) in chunks
   // rather than element by element

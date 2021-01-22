@@ -45,7 +45,7 @@ gkyl_proj_on_basis* gkyl_proj_on_basis_new(
  * @param update_rng Range on which to run projection.
  * @param out Output array
  */
-void gkyl_proj_on_basis_advance(const gkyl_proj_on_basis* pob,
+void gkyl_proj_on_basis_advance(const gkyl_proj_on_basis *pob,
   double tm, const struct gkyl_range *update_rng, struct gkyl_array *out);
 
 /**

@@ -102,7 +102,7 @@ proj_on_basis(const gkyl_proj_on_basis *up, double* f)
   int numBasis = up->numBasis;
   int tot_quad = up->tot_quad;
   int num_ret_vals = up->num_ret_vals;
-  
+
   const double *restrict weights = up->weights->data;
   const double *restrict basis_at_ords = up->basis_at_ords->data;
   const double *restrict func_at_ords = up->fun_at_ords->data;
@@ -124,7 +124,7 @@ proj_on_basis(const gkyl_proj_on_basis *up, double* f)
 }
 
 void
-gkyl_proj_on_basis_advance(const gkyl_proj_on_basis* up,
+gkyl_proj_on_basis_advance(const gkyl_proj_on_basis *up,
   double tm, const struct gkyl_range *update_range, struct gkyl_array *arr)
 {
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
@@ -135,7 +135,7 @@ gkyl_proj_on_basis_advance(const gkyl_proj_on_basis* up,
     gkyl_rect_grid_cell_center(&up->grid, iter.idx, xc);
 
     for (int i=0; i<up->tot_quad; ++i) {
-      comp_to_phys(up->grid.ndim, gkyl_array_fetch(up->ordinates, i),
+      comp_to_phys(up->grid.ndim, gkyl_array_cfetch(up->ordinates, i),
         up->grid.dx, xc, xmu);
       up->eval(tm, xmu, gkyl_array_fetch(up->fun_at_ords, i), up->ctx);
     }

@@ -18,7 +18,7 @@ void
 gkyl_sub_array_write(const struct gkyl_range *range,
   const struct gkyl_array *arr, FILE *fp)
 {
-#define _F(loc) gkyl_array_fetch(arr, loc)
+#define _F(loc) gkyl_array_cfetch(arr, loc)
   
   uint64_t elemsz = arr->elemsz, size = arr->size;
   fwrite(&elemsz, sizeof(uint64_t), 1, fp);

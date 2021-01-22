@@ -36,7 +36,7 @@ gkyl_mom_calc_advance(const gkyl_mom_calc* calc,
     long midx = gkyl_range_idx(conf_rng, iter.idx);
 
     gkyl_mom_type_calc(calc->momt, xc, calc->grid.dx, iter.idx,
-      gkyl_array_fetch(fin, fidx), gkyl_array_fetch(mout, midx)
+      gkyl_array_cfetch(fin, fidx), gkyl_array_fetch(mout, midx)
     );
   }
 }

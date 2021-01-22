@@ -69,7 +69,7 @@ gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
         if (first_dir && hdg->update_vol_term && i<=upidx-1) {
           double cflr = hdg->equation->vol_term(
             hdg->equation, xcp, hdg->grid.dx, idxp,
-            gkyl_array_fetch(fIn, linp), gkyl_array_fetch(rhs, linp)
+            gkyl_array_cfetch(fIn, linp), gkyl_array_fetch(rhs, linp)
           );
           double *cflrate_d = gkyl_array_fetch(cflrate, linp);
           cflrate_d[0] += cflr; // frequencies are additive
@@ -78,7 +78,7 @@ gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
         double maxs = hdg->equation->surf_term(hdg->equation,
           dir, xcm, xcp, hdg->grid.dx, hdg->grid.dx,
           maxs_old[dir], idxm, idxp,
-          gkyl_array_fetch(fIn, linm), gkyl_array_fetch(fIn, linp),
+          gkyl_array_cfetch(fIn, linm), gkyl_array_cfetch(fIn, linp),
           gkyl_array_fetch(rhs, linm), gkyl_array_fetch(rhs, linp)
         );
         hdg->maxs[dir] = fmax(hdg->maxs[dir], maxs);
