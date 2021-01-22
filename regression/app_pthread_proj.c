@@ -2,6 +2,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include <gkyl_util.h>
 #include <gkyl_proj_on_basis.h>
@@ -31,8 +32,35 @@ thread_worker(void *ctx)
 }
 
 int
-main(void)
+parse_args(int argc, char **argv)
 {
+  int c, nthread;
+  while ((c = getopt(argc, argv, "+hn:")) != -1)
+    switch (c)
+    {
+      case 'h':
+          nthread = 0;
+          break;
+
+      case 'n':
+          nthread = atoi(optarg);
+          break;
+
+      case '?':
+          return 0;
+    }
+  return nthread;
+}
+
+int
+main(int argc, char **argv)
+{
+  int max_thread = parse_args(argc, argv);
+  if (max_thread < 1) {
+    printf("Usage: app_pthread_proj -n <num-threads>\n");
+    exit(1);
+  }
+  
   int polyOrder = 2;
   double lower[] = {-2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0};
   int cells[] = {100, 100, 100};
@@ -55,7 +83,6 @@ main(void)
   struct gkyl_array *distf = gkyl_array_new(sizeof(double[basis.numBasis]),
     arr_range.volume);
 
-  int max_thread = 1;
   pthread_t thread[max_thread];  
   struct thread_data td[max_thread];
 
