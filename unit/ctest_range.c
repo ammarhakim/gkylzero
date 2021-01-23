@@ -567,14 +567,19 @@ void test_sub_range_thread()
   TEST_CHECK( subrange.th_start == gkyl_range_idx(&subrange, subrange.lower) );
   TEST_CHECK( subrange.th_len == subrange.volume );
 
-  int nthreads = 4;
-  int tot = 0,  curr_start = gkyl_range_idx(&subrange, subrange.lower);
+  int start_idx[] = {
+    gkyl_ridx(subrange, 2, 2),
+    gkyl_ridx(subrange, 3, 2),
+    gkyl_ridx(subrange, 4, 2),
+    gkyl_ridx(subrange, 5, 2),
+  };
+
+  int nthreads = 4, tot = 0;
   for (int tid=0; tid<nthreads; ++tid) {
     gkyl_range_thread(&subrange, nthreads, tid);
 
     TEST_CHECK( gkyl_range_is_threaded(&subrange) == 1 );
-    TEST_CHECK( subrange.th_start == curr_start );
-    curr_start += subrange.th_len;
+    TEST_CHECK( subrange.th_start == start_idx[tid] );
     tot += subrange.th_len;
   }
   TEST_CHECK( tot == subrange.volume );  
@@ -660,6 +665,47 @@ void test_range_thread_iter_3()
   gkyl_array_release(arr);
 }
 
+void test_sub_range_thread_iter()
+{
+  int lower[] = { 1, 1 }, upper[] = { 20, 25 };
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, lower, upper);
+
+  struct gkyl_array *arr = gkyl_array_new(sizeof(double), range.volume);
+  gkyl_array_clear(arr, 0.0);
+
+  int sublower[] = {2, 2}, subupper[] = { 15, 14 };
+  struct gkyl_range subrange;
+  gkyl_sub_range_init(&subrange, &range, sublower, subupper);  
+
+  int nthreads = 2;
+  for (int tid=0; tid<nthreads; ++tid) {
+    gkyl_range_thread(&subrange, nthreads, tid);
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &subrange);
+    
+    while (gkyl_range_iter_next(&iter)) {
+      long lidx = gkyl_range_idx(&subrange, iter.idx);
+      double *d = gkyl_array_fetch(arr, lidx);
+      d[0] += 1.0;
+    }
+  }
+
+  // reset to default
+  gkyl_range_thread(&subrange, 1, 0);
+  
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &subrange);
+  while (gkyl_range_iter_next(&iter)) {
+    long lidx = gkyl_range_idx(&subrange, iter.idx);
+    double *d = gkyl_array_fetch(arr, lidx);
+
+    TEST_CHECK( d[0] == 1.0 );
+  }
+
+  gkyl_array_release(arr);
+}
+
 TEST_LIST = {
   { "range_0", test_range_0 },
   { "range_1", test_range_1 },
@@ -686,5 +732,6 @@ TEST_LIST = {
   { "range_thread_iter_1", test_range_thread_iter_1 },  
   { "range_thread_iter_2", test_range_thread_iter_2 },
   { "range_thread_iter_3", test_range_thread_iter_3 },
+  { "sub_range_thread_iter", test_sub_range_thread_iter },
   { NULL, NULL },
 };

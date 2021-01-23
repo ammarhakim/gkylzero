@@ -130,6 +130,7 @@ gkyl_sub_range_init(struct gkyl_range *rng,
   SET_SUB_RANGE(rng->flags);
 }
 
+
 void
 gkyl_range_thread(struct gkyl_range *rng, int nthreads, int tid)
 {
@@ -142,6 +143,17 @@ gkyl_range_thread(struct gkyl_range *rng, int nthreads, int tid)
   else {
     rng->th_len = quot;
     rng->th_start = offset + rem*(quot+1) + (tid-rem)*quot;
+  }
+
+  // for sub-ranges we need to adjust things
+  if (IS_SUB_RANGE(rng->flags)) {
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init_ignore_threading(&iter, rng);
+    // we need to ignore previous threading information
+
+    long nbumps = rng->th_start-offset+1;
+    for (int i=0; i<nbumps; ++i) gkyl_range_iter_next(&iter);
+    rng->th_start = gkyl_range_idx(rng, iter.idx);
   }
   SET_THREADED(rng->flags);
 }
@@ -285,6 +297,20 @@ gkyl_range_iter_init(struct gkyl_range_iter *iter,
   gkyl_range_inv_idx(range, range->th_start, iter->idx);
   for (int i=0; i<range->ndim; ++i) {
     iter->lower[i] = range->lower[i];
+    iter->upper[i] = range->upper[i];
+  }
+}
+
+void
+gkyl_range_iter_init_ignore_threading(struct gkyl_range_iter *iter,
+  const struct gkyl_range* range)
+{
+  iter->is_first = 1;
+  iter->ndim = range->ndim;
+  iter->bumps_left = range->volume;
+  
+  for (int i=0; i<range->ndim; ++i) {
+    iter->idx[i] = iter->lower[i] = range->lower[i];
     iter->upper[i] = range->upper[i];
   }
 }
