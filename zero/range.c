@@ -6,7 +6,7 @@
 #include <gkyl_util.h>
 
 // flags and corresponding bit-masks
-enum range_flags { R_IS_SUB_RANGE, R_IS_THREADED };
+enum range_flags { R_IS_SUB_RANGE, R_IS_SPLIT };
 static uint32_t masks[] =
 { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
 
@@ -15,10 +15,10 @@ static uint32_t masks[] =
 #define CLEAR_SUB_RANGE(flags) (flags) &= ~masks[R_IS_SUB_RANGE]
 #define IS_SUB_RANGE(flags) (((flags) & masks[R_IS_SUB_RANGE]) != 0)
 
-// threading flags
-#define SET_THREADED(flags) (flags) |= masks[R_IS_THREADED]
-#define CLEAR_THREADED(flags) (flags) &= ~masks[R_IS_THREADED]
-#define IS_THREADED(flags) (((flags) & masks[R_IS_THREADED]) != 0)
+// spliting flags
+#define SET_SPLIT(flags) (flags) |= masks[R_IS_SPLIT]
+#define CLEAR_SPLIT(flags) (flags) &= ~masks[R_IS_SPLIT]
+#define IS_SPLIT(flags) (((flags) & masks[R_IS_SPLIT]) != 0)
 
 // Computes coefficients for mapping indices in row-major order
 static void
@@ -102,9 +102,9 @@ int gkyl_range_is_sub_range(const struct gkyl_range *rng)
   return IS_SUB_RANGE(rng->flags);
 }
 
-int gkyl_range_is_threaded(const struct gkyl_range *rng)
+int gkyl_range_is_split(const struct gkyl_range *rng)
 {
-  return IS_THREADED(rng->flags);
+  return IS_SPLIT(rng->flags);
 }
 
 void
@@ -132,10 +132,10 @@ gkyl_sub_range_init(struct gkyl_range *rng,
 
 
 void
-gkyl_range_thread(struct gkyl_range *rng, int nthreads, int tid)
+gkyl_range_split(struct gkyl_range *rng, int nsplits, int tid)
 {
   long offset = gkyl_range_idx(rng, rng->lower);
-  long quot = rng->volume/nthreads, rem = rng->volume % nthreads;
+  long quot = rng->volume/nsplits, rem = rng->volume % nsplits;
   if (tid < rem) {
     rng->th_len = quot+1;
     rng->th_start = offset + tid*(quot+1);
@@ -148,14 +148,14 @@ gkyl_range_thread(struct gkyl_range *rng, int nthreads, int tid)
   // for sub-ranges we need to adjust things
   if (IS_SUB_RANGE(rng->flags)) {
     struct gkyl_range_iter iter;
-    gkyl_range_iter_init_ignore_threading(&iter, rng);
-    // we need to ignore previous threading information
+    gkyl_range_iter_init_ignore_split(&iter, rng);
+    // we need to ignore previous split information
 
     long nbumps = rng->th_start-offset+1;
     for (int i=0; i<nbumps; ++i) gkyl_range_iter_next(&iter);
     rng->th_start = gkyl_range_idx(rng, iter.idx);
   }
-  SET_THREADED(rng->flags);
+  SET_SPLIT(rng->flags);
 }
 
 void
@@ -302,7 +302,7 @@ gkyl_range_iter_init(struct gkyl_range_iter *iter,
 }
 
 void
-gkyl_range_iter_init_ignore_threading(struct gkyl_range_iter *iter,
+gkyl_range_iter_init_ignore_split(struct gkyl_range_iter *iter,
   const struct gkyl_range* range)
 {
   iter->is_first = 1;

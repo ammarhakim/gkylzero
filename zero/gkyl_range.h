@@ -101,13 +101,13 @@ void gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim,
 int gkyl_range_shape(const struct gkyl_range *rng, int dir);
 
 /**
- * Return 1 if range is a sub-range/threaded.
+ * Return 1 if range is a sub-range/split.
  *
  * @param rng Range object
  * @return 1 if true, 0 otherwise
  */
 int gkyl_range_is_sub_range(const struct gkyl_range *rng);
-int gkyl_range_is_threaded(const struct gkyl_range *rng);
+int gkyl_range_is_split(const struct gkyl_range *rng);
 
 /**
  * Create a sub-range from a given range. The sub-range must be fully
@@ -124,15 +124,15 @@ void gkyl_sub_range_init(struct gkyl_range *rng,
   const struct gkyl_range *bigrng, const int *sublower, const int *subupper);
 
 /**
- * Set threading for the given range. The only place threading matters
- * is for iterators. Iterators for threaded-ranges only walk over the
- * set of indices owned by that thread.
+ * Set split for the given range. The only place split matters is for
+ * iterators. Iterators for split-ranges only walk over the set of
+ * indices owned by that split.
  *
- * @param rng Range object to thread
- * @param nthreads Number of threads
- * @param tid Thread ID [0, nthreads)
+ * @param rng Range object to split
+ * @param nsplits Number of splits
+ * @param tid Split ID [0, nsplits)
  */
-void gkyl_range_thread(struct gkyl_range *rng, int nthreads, int tid);
+void gkyl_range_split(struct gkyl_range *rng, int nsplits, int tid);
 
 /**
  * Return range which has some directions removed by setting the index
@@ -231,9 +231,9 @@ void gkyl_range_iter_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range);
 
 /**
- * Same as gkyl_range_iter_init, except thread info is ignored.
+ * Same as gkyl_range_iter_init, except split info is ignored.
  */
-void gkyl_range_iter_init_ignore_threading(struct gkyl_range_iter *iter,
+void gkyl_range_iter_init_ignore_split(struct gkyl_range_iter *iter,
   const struct gkyl_range* range);
 
 /**
