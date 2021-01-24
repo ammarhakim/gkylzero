@@ -103,7 +103,7 @@ gkyl_vlasov_app* gkyl_vlasov_app_new(struct gkyl_vm vm);
  * @param app App object.
  * @param t0 Time for initial conditions.
  */
-void gkyl_vlasov_app_init(gkyl_vlasov_app* app, double t0);
+void gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0);
 
 /**
  * Initialize field by projecting initial conditions on basis
@@ -112,7 +112,7 @@ void gkyl_vlasov_app_init(gkyl_vlasov_app* app, double t0);
  * @param app App object.
  * @param t0 Time for initial conditions
  */
-void gkyl_vlasov_app_init_field(gkyl_vlasov_app* app, double t0);
+void gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0);
 
 /**
  * Initialize species by projecting initial conditions on basis
@@ -123,7 +123,7 @@ void gkyl_vlasov_app_init_field(gkyl_vlasov_app* app, double t0);
  * @param sidx Index of species to initialize.
  * @param t0 Time for initial conditions
  */
-void gkyl_vlasov_app_init_species(gkyl_vlasov_app* app, int sidx, double t0);
+void gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0);
 
 /**
  * Calculate diagnostic moments.

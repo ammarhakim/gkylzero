@@ -15,7 +15,9 @@
 
 // This funny looking macro allows getting a pointer to the 'type'
 // struct that contains an object 'member' given the 'ptr' to the
-// 'member' inside 'type'. See https://en.wikipedia.org/wiki/Offsetof
+// 'member' inside 'type'. (Did I just write this gobbledygook?!)
+//
+// See https://en.wikipedia.org/wiki/Offsetof
 #define container_of(ptr, type, member)                                 \
     ((type *)((char *)(1 ? (ptr) : &((type *)0)->member) - offsetof(type, member)))
 

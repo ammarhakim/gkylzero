@@ -37,7 +37,7 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
 
   if (num_quad <= gkyl_gauss_max) {
     // use pre-computed values if possible (these are more accurate
-    // that computing them on the fly)
+    // than computing them on the fly)
     memcpy(ordinates1, gkyl_gauss_ordinates[num_quad], sizeof(double[num_quad]));
     memcpy(weights1, gkyl_gauss_weights[num_quad], sizeof(double[num_quad]));
   }

@@ -568,16 +568,16 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
 }
 
 void
-gkyl_vlasov_app_init(gkyl_vlasov_app* app, double t0)
+gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0)
 {
   app->tcurr = t0;
-  gkyl_vlasov_app_init_field(app, t0);
+  gkyl_vlasov_app_apply_ic_field(app, t0);
   for (int i=0;  i<app->num_species; ++i)
-    gkyl_vlasov_app_init_species(app, i, t0);
+    gkyl_vlasov_app_apply_ic_species(app, i, t0);
 }
 
 void
-gkyl_vlasov_app_init_field(gkyl_vlasov_app* app, double t0)
+gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
 {
   app->tcurr = t0;
   int poly_order = app->poly_order;
@@ -590,7 +590,7 @@ gkyl_vlasov_app_init_field(gkyl_vlasov_app* app, double t0)
 }
 
 void
-gkyl_vlasov_app_init_species(gkyl_vlasov_app* app, int sidx, double t0)
+gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0)
 {
   assert(sidx < app->num_species);
 
@@ -623,7 +623,7 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
   for (int i=0; i<app->num_species; ++i)
     gkyl_vlasov_app_write_species(app, i, tm, frame);
 }
-
+ 
 void
 gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
 {

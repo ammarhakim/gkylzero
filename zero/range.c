@@ -145,7 +145,10 @@ gkyl_range_split(struct gkyl_range *rng, int nsplits, int tid)
     rng->th_start = offset + rem*(quot+1) + (tid-rem)*quot;
   }
 
-  // for sub-ranges we need to adjust things
+  // for sub-ranges we need to adjust the start location (there must
+  // be a better way to do this than the brute force way it bumping
+  // enough times till one land at the start location and then
+  // computing its linear index)
   if (IS_SUB_RANGE(rng->flags)) {
     struct gkyl_range_iter iter;
     gkyl_range_iter_init_ignore_split(&iter, rng);

@@ -157,7 +157,7 @@ vlasov_free(const struct gkyl_ref_count *ref)
 }
 
 void
-gkyl_vlasov_set_qmem(struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem)
+gkyl_vlasov_set_qmem(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
   vlasov->qmem = qmem;
