@@ -100,6 +100,38 @@ void test_array_clear_float()
   gkyl_array_release(a1);
 }
 
+void test_array_clear_range_double()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+  
+  struct gkyl_array *a1 = gkyl_array_new(sizeof(double[1]), range.volume);
+  gkyl_array_clear_range(a1, 0.5, &range);
+
+  double *a1_d = a1->data;
+  for (unsigned i=0; i<a1->size; ++i)
+    TEST_CHECK( gkyl_compare(a1_d[i], 0.5, 1e-14) );
+
+  gkyl_array_release(a1);
+}
+
+void test_array_clear_range_float()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+  
+  struct gkyl_array *a1 = gkyl_array_new(sizeof(float[1]), range.volume);
+  gkyl_array_clear_range(a1, 0.5f, &range);
+
+  float *a1_d = a1->data;
+  for (unsigned i=0; i<a1->size; ++i)
+    TEST_CHECK( gkyl_compare(a1_d[i], 0.5f, 1e-14) );
+
+  gkyl_array_release(a1);
+}
+
 void test_array_accumulate_double()
 {
   struct gkyl_array *a1 = gkyl_array_new(sizeof(double), 10);
@@ -469,6 +501,8 @@ TEST_LIST = {
   { "array_fetch", test_array_fetch },
   { "array_clear_double", test_array_clear_double },
   { "array_clear_float", test_array_clear_float },
+  { "array_clear_range_double", test_array_clear_range_double },
+  { "array_clear_range_float", test_array_clear_range_float },  
   { "array_accumulate_double", test_array_accumulate_double },
   { "array_accumulate_float", test_array_accumulate_float },
   { "array_accumulate_range_double", test_array_accumulate_range_double },

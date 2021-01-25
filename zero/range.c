@@ -130,7 +130,6 @@ gkyl_sub_range_init(struct gkyl_range *rng,
   SET_SUB_RANGE(rng->flags);
 }
 
-
 void
 gkyl_range_split(struct gkyl_range *rng, int nsplits, int tid)
 {

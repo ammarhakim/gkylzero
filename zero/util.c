@@ -13,7 +13,7 @@ gkyl_exit(const char* msg)
 }
 
 int
-gkyl_compare_flt(float a, float b, float eps)
+gkyl_compare_float(float a, float b, float eps)
 {
   float absa = fabs(a), absb = fabs(b), diff = fabs(a-b);
 
@@ -23,7 +23,7 @@ gkyl_compare_flt(float a, float b, float eps)
 }
 
 int
-gkyl_compare_dbl(double a, double b, double eps)
+gkyl_compare_double(double a, double b, double eps)
 {
   double absa = fabs(a), absb = fabs(b), diff = fabs(a-b);
 

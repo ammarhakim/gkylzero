@@ -58,14 +58,44 @@ GKYL_ARRAY_ACCUMULATE(double)
 GKYL_ARRAY_SET(float)
 GKYL_ARRAY_SET(double)
 
+// range based methods
+
+#define GKYL_ARRAY_CLEAR_RANGE(type)                                    \
+    static inline void                                                  \
+    array_clear1_##type(long n, type *out, type val)                    \
+    {                                                                   \
+      for (int c=0; c<n; ++c)                                           \
+        out[c] = val;                                                   \
+    }                                                                   \
+                                                                        \
+    struct gkyl_array*                                                  \
+    gkyl_array_clear_range_##type(struct gkyl_array *out,               \
+      type val, const struct gkyl_range *range)                         \
+    {                                                                   \
+      long n = NCOM(out, type);                                         \
+                                                                        \
+      struct gkyl_range_iter iter;                                      \
+      gkyl_range_iter_init(&iter, range);                               \
+                                                                        \
+      long count = 0;                                                   \
+      while (gkyl_range_iter_next(&iter)) {                             \
+      long start = gkyl_range_idx(range, iter.idx);                     \
+        array_clear1_##type(n, gkyl_array_fetch(out, start), val);      \
+      }                                                                 \
+                                                                        \
+      return out;                                                       \
+    }
+
+GKYL_ARRAY_CLEAR_RANGE(float)
+GKYL_ARRAY_CLEAR_RANGE(double)
+
 #define GKYL_ARRAY_ACCUMULATE_RANGE(type)                               \
-    static void                                                         \
-    array_acc1_##type(long n, long del, long outnc, long inpnc,         \
+    static inline void                                                  \
+    array_acc1_##type(long n,                                           \
       type *restrict out, type a, const type *restrict inp)             \
     {                                                                   \
-      for (long i=0; i<del; ++i)                                        \
-        for (int c=0; c<n; ++c)                                         \
-          out[i*outnc+c] += a*inp[i*inpnc+c];                           \
+      for (int c=0; c<n; ++c)                                           \
+        out[c] += a*inp[c];                                             \
     }                                                                   \
                                                                         \
     struct gkyl_array*                                                  \
@@ -77,16 +107,12 @@ GKYL_ARRAY_SET(double)
       long outnc = NCOM(out, type), inpnc = NCOM(inp, type);            \
       long n = outnc<inpnc ? outnc : inpnc;                             \
                                                                         \
-      struct gkyl_range_skip_iter skip;                                 \
-      gkyl_range_skip_iter_init(&skip, range);                          \
-                                                                        \
       struct gkyl_range_iter iter;                                      \
-      gkyl_range_iter_init(&iter, &skip.range);                         \
+      gkyl_range_iter_init(&iter, range);                               \
                                                                         \
-      long count = 0;                                                   \
       while (gkyl_range_iter_next(&iter)) {                             \
-        long start = gkyl_range_idx(&skip.range, iter.idx);             \
-        array_acc1_##type(n, skip.delta, outnc, inpnc,                  \
+        long start = gkyl_range_idx(range, iter.idx);                   \
+        array_acc1_##type(n,                                            \
           gkyl_array_fetch(out, start), a, gkyl_array_cfetch(inp, start)); \
       }                                                                 \
                                                                         \

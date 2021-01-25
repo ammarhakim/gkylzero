@@ -10,6 +10,13 @@
       double: gkyl_array_clear_double) \
     (out, a)
 
+/** Generic clear macro */
+#define gkyl_array_clear_range(out, a, range)   \
+    _Generic((a),                               \
+      float: gkyl_array_clear_range_float,      \
+      double: gkyl_array_clear_range_double)    \
+    (out, a, range)
+
 /** Generic accumulate macro */
 #define gkyl_array_accumulate(out, a, inp)      \
     _Generic((a),                               \
@@ -79,6 +86,19 @@ struct gkyl_array* gkyl_array_set_double(struct gkyl_array *out,
 
 struct gkyl_array* gkyl_array_set_float(struct gkyl_array *out,
   float a, const struct gkyl_array *inp);
+
+/**
+ * Clear out = val. Returns out.
+ *
+ * @param out Output array
+ * @param val Factor to set 
+ * @return out array
+ */
+struct gkyl_array* gkyl_array_clear_range_double(struct gkyl_array *out, double val,
+  const struct gkyl_range *range);
+
+struct gkyl_array* gkyl_array_clear_range_float(struct gkyl_array *out, float val,
+  const struct gkyl_range *range);
 
 /**
  * Compute out = out + a*inp over a range of indices.
