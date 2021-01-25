@@ -352,6 +352,52 @@ void test_array_set_float()
   gkyl_array_release(a2);
 }
 
+void test_array_set_range_double()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+  
+  struct gkyl_array *a1 = gkyl_array_new(sizeof(double[8]), range.volume);
+  struct gkyl_array *a2 = gkyl_array_new(sizeof(double[3]), range.volume);
+
+  // test a1 = 0.5*a2
+  gkyl_array_clear_range(a1, 0.5, &range);
+  gkyl_array_clear_range(a2, 1.5, &range);
+
+  gkyl_array_set_range(a1, 0.5, a2, &range);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+    double *a1d = gkyl_array_fetch(a1, loc);
+    for (int i=0; i<3; ++i)
+      TEST_CHECK( a1d[i] == 0.5*1.5 );
+    for (int i=3; i<8; ++i)
+      TEST_CHECK( a1d[i] == 0.5);
+  }
+
+  // test a2 = a2 + 0.5*a
+  gkyl_array_clear(a1, 0.5);
+  gkyl_array_clear(a2, 1.5);
+
+  gkyl_array_accumulate_range(a2, 0.5, a1, &range);
+
+  gkyl_range_iter_init(&iter, &range);
+  
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+    double *a2d = gkyl_array_fetch(a2, loc);
+    for (int i=0; i<3; ++i)
+      TEST_CHECK( a2d[i] == 1.5 + 0.5*0.5 );
+  }  
+
+  gkyl_array_release(a1);
+  gkyl_array_release(a2);
+}
+
 void test_array_scale_double()
 {
   struct gkyl_array *a1 = gkyl_array_new(sizeof(double), 10);
@@ -496,6 +542,44 @@ void test_reduce()
   gkyl_array_release(arr);
 }
 
+void test_reduce_range()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+  
+  struct gkyl_array *arr = gkyl_array_new(sizeof(double[3]), range.volume);
+
+  int count = -1000;
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+    double *d = gkyl_array_fetch(arr, loc);
+    d[0] = count+0.5;
+    d[1] = count+1.5;
+    d[2] = count+2.5;
+
+    count += 1;
+  }
+
+  double amin[3], amax[3];
+  gkyl_array_reduce_range(amin, arr, GKYL_MIN, &range);
+
+  TEST_CHECK( amin[0] == -999.5 );
+  TEST_CHECK( amin[1] == -998.5 );
+  TEST_CHECK( amin[2] == -997.5 );
+
+  gkyl_array_reduce_range(amax, arr, GKYL_MAX, &range);
+  
+  TEST_CHECK( amax[0] == -800.5 );
+  TEST_CHECK( amax[1] == -799.5 );
+  TEST_CHECK( amax[2] == -798.5 );
+
+  gkyl_array_release(arr);
+}
+
 TEST_LIST = {
   { "array_base", test_array_base },
   { "array_fetch", test_array_fetch },
@@ -511,11 +595,13 @@ TEST_LIST = {
   { "array_combine_float", test_array_combine_float },
   { "array_set_double", test_array_set_double },
   { "array_set_float", test_array_set_float },
+  { "array_set_range_double", test_array_set_range_double },
   { "array_scale_double", test_array_scale_double },
   { "array_opcombine", test_array_opcombine },
   { "array_ops_comp", test_array_ops_comp },
   { "array_copy", test_array_copy },
   { "non_numeric", test_non_numeric },
-  { "reduce", test_reduce },  
+  { "reduce", test_reduce },
+  { "reduce_range", test_reduce_range },
   { NULL, NULL },
 };
