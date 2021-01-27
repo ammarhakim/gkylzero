@@ -15,7 +15,6 @@ static uint32_t masks[] =
 #define CLEAR_SUB_RANGE(flags) (flags) &= ~masks[R_IS_SUB_RANGE]
 #define IS_SUB_RANGE(flags) (((flags) & masks[R_IS_SUB_RANGE]) != 0)
 
-
 // Computes coefficients for mapping indices in row-major order
 static void
 calc_rowmajor_ac(struct gkyl_range* range)
