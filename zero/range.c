@@ -265,33 +265,25 @@ gkyl_range_calc_split(const struct gkyl_range *rng, int *lower)
   long len = 0, start = 0;
   int nsplit = rng->nsplit, tid = rng->tid;
   
-  long offset = gkyl_range_idx(rng, rng->lower);
   long quot = rng->volume/nsplit, rem = rng->volume % nsplit;
   if (tid < rem) {
     len = quot+1;
-    start = offset + tid*(quot+1);
+    start = tid*(quot+1);
   }
   else {
     len = quot;
-    start = offset + rem*(quot+1) + (tid-rem)*quot;
+    start = rem*(quot+1) + (tid-rem)*quot;
   }
 
-  // for sub-ranges we need to adjust the start location (there must
-  // be a better way to do this than the brute force way it bumping
-  // enough times till one land at the start location and then
-  // computing its linear index)
   if (IS_SUB_RANGE(rng->flags)) {
-    struct gkyl_range_iter iter;
-    gkyl_range_iter_init_ignore_split(&iter, rng);
-    // we need to ignore previous split information
-
-    long nbumps = start-offset+1;
-    for (int i=0; i<nbumps; ++i) gkyl_range_iter_next(&iter);
-    start = gkyl_range_idx(rng, iter.idx);
+    // sub-ranges can't use rng to inverse index    
+    struct gkyl_range subrange;
+    gkyl_range_init(&subrange, rng->ndim, rng->lower, rng->upper);
+    gkyl_range_inv_idx(&subrange, start, lower);
   }
-
-  // compute start location
-  gkyl_range_inv_idx(rng, start, lower);
+  else {
+    gkyl_range_inv_idx(rng, start, lower);
+  }
 
   return len;
 }
@@ -306,20 +298,6 @@ gkyl_range_iter_init(struct gkyl_range_iter *iter,
   
   for (int i=0; i<range->ndim; ++i) {
     iter->lower[i] = range->lower[i];
-    iter->upper[i] = range->upper[i];
-  }
-}
-
-void
-gkyl_range_iter_init_ignore_split(struct gkyl_range_iter *iter,
-  const struct gkyl_range* range)
-{
-  iter->is_first = 1;
-  iter->ndim = range->ndim;
-  iter->bumps_left = range->volume;
-  
-  for (int i=0; i<range->ndim; ++i) {
-    iter->idx[i] = iter->lower[i] = range->lower[i];
     iter->upper[i] = range->upper[i];
   }
 }

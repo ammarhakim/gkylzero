@@ -230,12 +230,6 @@ void gkyl_range_iter_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range);
 
 /**
- * Same as gkyl_range_iter_init, except split info is ignored.
- */
-void gkyl_range_iter_init_ignore_split(struct gkyl_range_iter *iter,
-  const struct gkyl_range* range);
-
-/**
  * Get next index into range. The iter->idx array holds the next
  * index. This should not be modified by the user!
  *
