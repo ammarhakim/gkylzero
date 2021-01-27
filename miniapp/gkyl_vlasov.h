@@ -195,6 +195,16 @@ struct gkyl_update_status gkyl_vlasov_update(gkyl_vlasov_app* app, double dt);
 struct gkyl_vlasov_stat gkyl_vlasov_app_stat(gkyl_vlasov_app* app);
 
 /**
+ * Run the RHS for the species update. This is used to compute kernel
+ * timers and is not otherwise a useful function for a full
+ * simulation.
+ *
+ * @param app App object.
+ * @param update_vol_term Set to 1 to update vol term also, 0 otherwise
+ */
+void gkyl_vlasov_app_species_rhs_tm(gkyl_vlasov_app* app, int update_vol_term);
+
+/**
  * Free Vlasov app.
  *
  * @param app App to release.

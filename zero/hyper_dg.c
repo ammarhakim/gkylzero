@@ -52,6 +52,7 @@ gkyl_hyper_dg_advance(const gkyl_hyper_dg *hdg, const struct gkyl_range *update_
     gkyl_range_iter_init(&iter, &perp_range);
 
     while (gkyl_range_iter_next(&iter)) {
+
       copy_int_arr(ndim, iter.idx, idxm);
       copy_int_arr(ndim, iter.idx, idxp);
 
@@ -106,6 +107,12 @@ gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   up->equation = gkyl_dg_eqn_aquire(equation);
 
   return up;
+}
+
+void
+gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *hdg, int update_vol_term)
+{
+  hdg->update_vol_term = update_vol_term;
 }
 
 void

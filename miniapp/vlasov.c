@@ -833,6 +833,25 @@ gkyl_vlasov_app_stat(gkyl_vlasov_app* app)
 }
 
 void
+gkyl_vlasov_app_species_rhs_tm(gkyl_vlasov_app* app, int update_vol_term)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    
+    struct vm_species *species = &app->species[i];
+    
+    const struct gkyl_array *qmem = app->field.qmem;
+    gkyl_vlasov_set_qmem(species->eqn, qmem);
+
+    const struct gkyl_array *fin = species->f;
+    struct gkyl_array *rhs = species->f1;
+
+    gkyl_hyper_dg_set_update_vol(species->slvr, update_vol_term);
+    gkyl_array_clear_range(rhs, 0.0, &species->local);
+    gkyl_hyper_dg_advance(species->slvr, &species->local, fin, species->cflrate, rhs, species->maxs);
+  }
+}
+
+void
 gkyl_vlasov_app_release(gkyl_vlasov_app* app)
 {
   for (int i=0; i<app->num_species; ++i)

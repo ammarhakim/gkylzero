@@ -39,6 +39,14 @@ gkyl_hyper_dg* gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
  */
 void gkyl_hyper_dg_advance(const gkyl_hyper_dg *hdg, const struct gkyl_range *update_rng,
   const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs, double *maxs);
+
+/**
+ * Set if volume term should be computed or not.
+ *
+ * @param hdg Hyper DG updater object
+ * @param update_vol_term Set to 1 to update vol term, 0 otherwise
+ */
+void gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *hdg, int update_vol_term);
   
 /**
  * Delete updater.

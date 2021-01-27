@@ -97,12 +97,14 @@ gkyl_range_shape(const struct gkyl_range *range, int dir)
   return range->upper[dir]-range->lower[dir]+1;
 }
 
-int gkyl_range_is_sub_range(const struct gkyl_range *rng)
+int
+gkyl_range_is_sub_range(const struct gkyl_range *rng)
 {
   return IS_SUB_RANGE(rng->flags);
 }
 
-int gkyl_range_is_split(const struct gkyl_range *rng)
+int
+gkyl_range_is_split(const struct gkyl_range *rng)
 {
   return IS_SPLIT(rng->flags);
 }

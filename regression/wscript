@@ -51,9 +51,7 @@ def build(bld):
 
     bld.program(
         source = 'app_vlasov_kerntm.c',
-        target = 'app_vlasov_kerntm',        
-        includes = '. ../zero',
-        use = 'gkylzero gkylzerokern',
-    )    
-
-    
+        target = 'app_vlasov_kerntm',
+        includes = '. ../zero ../miniapp',
+        use = 'gkylminiapp gkylzero gkylzerokern',
+    )
