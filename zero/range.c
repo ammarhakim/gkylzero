@@ -6,7 +6,7 @@
 #include <gkyl_util.h>
 
 // flags and corresponding bit-masks
-enum range_flags { R_IS_SUB_RANGE, R_IS_SPLIT };
+enum range_flags { R_IS_SUB_RANGE };
 static uint32_t masks[] =
 { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
 
@@ -15,10 +15,6 @@ static uint32_t masks[] =
 #define CLEAR_SUB_RANGE(flags) (flags) &= ~masks[R_IS_SUB_RANGE]
 #define IS_SUB_RANGE(flags) (((flags) & masks[R_IS_SUB_RANGE]) != 0)
 
-// spliting flags
-#define SET_SPLIT(flags) (flags) |= masks[R_IS_SPLIT]
-#define CLEAR_SPLIT(flags) (flags) &= ~masks[R_IS_SPLIT]
-#define IS_SPLIT(flags) (((flags) & masks[R_IS_SPLIT]) != 0)
 
 // Computes coefficients for mapping indices in row-major order
 static void
@@ -74,8 +70,8 @@ gkyl_range_init(struct gkyl_range *rng, int ndim,
   for (int i=0; i<ndim; ++i) idxZero[i] = 0;
   rng->linIdxZero = gkyl_range_idx(rng, idxZero);
 
-  rng->th_start = 0;
-  rng->th_len = rng->volume;
+  rng->nsplit = 1;
+  rng->tid = 0;
 
   rng->flags = 0;
 }
@@ -103,12 +99,6 @@ gkyl_range_is_sub_range(const struct gkyl_range *rng)
   return IS_SUB_RANGE(rng->flags);
 }
 
-int
-gkyl_range_is_split(const struct gkyl_range *rng)
-{
-  return IS_SPLIT(rng->flags);
-}
-
 void
 gkyl_sub_range_init(struct gkyl_range *rng,
   const struct gkyl_range *bigrng, const int *sublower, const int *subupper)
@@ -125,41 +115,18 @@ gkyl_sub_range_init(struct gkyl_range *rng,
     rng->ac[i] = bigrng->ac[i];
   rng->linIdxZero = bigrng->linIdxZero;
 
-  rng->th_start = gkyl_range_idx(bigrng, rng->lower);
-  rng->th_len = rng->volume;  
-
+  rng->nsplit = bigrng->nsplit;
+  rng->tid = bigrng->tid;
+  
   rng->flags = bigrng->flags;
   SET_SUB_RANGE(rng->flags);
 }
 
 void
-gkyl_range_split(struct gkyl_range *rng, int nsplits, int tid)
+gkyl_range_set_split(struct gkyl_range *rng, int nsplit, int tid)
 {
-  long offset = gkyl_range_idx(rng, rng->lower);
-  long quot = rng->volume/nsplits, rem = rng->volume % nsplits;
-  if (tid < rem) {
-    rng->th_len = quot+1;
-    rng->th_start = offset + tid*(quot+1);
-  }
-  else {
-    rng->th_len = quot;
-    rng->th_start = offset + rem*(quot+1) + (tid-rem)*quot;
-  }
-
-  // for sub-ranges we need to adjust the start location (there must
-  // be a better way to do this than the brute force way it bumping
-  // enough times till one land at the start location and then
-  // computing its linear index)
-  if (IS_SUB_RANGE(rng->flags)) {
-    struct gkyl_range_iter iter;
-    gkyl_range_iter_init_ignore_split(&iter, rng);
-    // we need to ignore previous split information
-
-    long nbumps = rng->th_start-offset+1;
-    for (int i=0; i<nbumps; ++i) gkyl_range_iter_next(&iter);
-    rng->th_start = gkyl_range_idx(rng, iter.idx);
-  }
-  SET_SPLIT(rng->flags);
+  rng->nsplit = nsplit;
+  rng->tid = tid;
 }
 
 void
@@ -186,8 +153,8 @@ gkyl_range_deflate(struct gkyl_range* srng,
       adel += locDir[i]*rng->ac[i+1];
   srng->ac[0] = rng->ac[0] + adel;
 
-  srng->th_start = gkyl_range_idx(srng, srng->lower);
-  srng->th_len = srng->volume;
+  srng->nsplit = rng->nsplit;
+  srng->tid = rng->tid;
 
   srng->flags = rng->flags;
   SET_SUB_RANGE(srng->flags);
@@ -290,15 +257,54 @@ gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
   }
 }
 
+// Computes split and returns number of elements handled locally and
+// the intial index into the range.
+static
+long
+gkyl_range_calc_split(const struct gkyl_range *rng, int *lower)
+{
+  long len = 0, start = 0;
+  int nsplit = rng->nsplit, tid = rng->tid;
+  
+  long offset = gkyl_range_idx(rng, rng->lower);
+  long quot = rng->volume/nsplit, rem = rng->volume % nsplit;
+  if (tid < rem) {
+    len = quot+1;
+    start = offset + tid*(quot+1);
+  }
+  else {
+    len = quot;
+    start = offset + rem*(quot+1) + (tid-rem)*quot;
+  }
+
+  // for sub-ranges we need to adjust the start location (there must
+  // be a better way to do this than the brute force way it bumping
+  // enough times till one land at the start location and then
+  // computing its linear index)
+  if (IS_SUB_RANGE(rng->flags)) {
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init_ignore_split(&iter, rng);
+    // we need to ignore previous split information
+
+    long nbumps = start-offset+1;
+    for (int i=0; i<nbumps; ++i) gkyl_range_iter_next(&iter);
+    start = gkyl_range_idx(rng, iter.idx);
+  }
+
+  // compute start location
+  gkyl_range_inv_idx(rng, start, lower);
+
+  return len;
+}
+
 void
 gkyl_range_iter_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range)
 {
   iter->is_first = 1;
   iter->ndim = range->ndim;
-  iter->bumps_left = range->th_len;
+  iter->bumps_left = gkyl_range_calc_split(range, iter->idx);
   
-  gkyl_range_inv_idx(range, range->th_start, iter->idx);
   for (int i=0; i<range->ndim; ++i) {
     iter->lower[i] = range->lower[i];
     iter->upper[i] = range->upper[i];

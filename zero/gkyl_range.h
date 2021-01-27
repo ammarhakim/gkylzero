@@ -45,7 +45,7 @@ struct gkyl_range {
     int ilo[GKYL_MAX_DIM]; // for use in inverse indexer
     long ac[GKYL_MAX_DIM+1]; // coefficients for indexing
     long linIdxZero; // linear index of {0,0,...}
-    long th_start, th_len; // start and size of linear range for iter
+    int nsplit, tid; // number of splits, split ID
 };
 
 /**
@@ -101,13 +101,12 @@ void gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim,
 int gkyl_range_shape(const struct gkyl_range *rng, int dir);
 
 /**
- * Return 1 if range is a sub-range/split.
+ * Return 1 if range is a sub-range.
  *
  * @param rng Range object
  * @return 1 if true, 0 otherwise
  */
 int gkyl_range_is_sub_range(const struct gkyl_range *rng);
-int gkyl_range_is_split(const struct gkyl_range *rng);
 
 /**
  * Create a sub-range from a given range. The sub-range must be fully
@@ -132,7 +131,7 @@ void gkyl_sub_range_init(struct gkyl_range *rng,
  * @param nsplits Number of splits
  * @param tid Split ID [0, nsplits)
  */
-void gkyl_range_split(struct gkyl_range *rng, int nsplits, int tid);
+void gkyl_range_set_split(struct gkyl_range *rng, int nsplits, int tid);
 
 /**
  * Return range which has some directions removed by setting the index
