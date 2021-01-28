@@ -499,6 +499,65 @@ void test_array_copy()
   gkyl_free(buff);
 }
 
+void test_array_copy_split()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+  
+  struct gkyl_array *arr = gkyl_array_new(sizeof(double), range.volume);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    double *d = gkyl_array_fetch(arr, gkyl_range_idx(&range, iter.idx));
+    d[0] = iter.idx[0] + 10.5*iter.idx[1];
+  }
+
+  int lower[] = {1, 1}, upper[] = {5, 10};
+  struct gkyl_range sub_range;
+  gkyl_sub_range_init(&sub_range, &range, lower, upper);
+
+  double *buff = gkyl_malloc(sizeof(double[sub_range.volume]));
+
+  int num_split = 3;
+  
+  long loc = 0;
+  for (int tid=0; tid<num_split; ++tid) {
+    gkyl_range_set_split(&sub_range, num_split, tid);
+    gkyl_array_copy_to_buffer(buff+loc, arr, &sub_range);
+    
+    loc += gkyl_range_split_len(&sub_range);
+  }
+
+  long count = 0;
+  gkyl_range_set_split(&sub_range, 1, 0);
+  gkyl_range_iter_init(&iter, &sub_range);
+  while (gkyl_range_iter_next(&iter))
+    TEST_CHECK( buff[count++] == iter.idx[0] + 10.5*iter.idx[1] );
+
+  gkyl_array_clear(arr, 0.0);
+
+  loc = 0;
+  for (int tid=0; tid<num_split; ++tid) {
+    // copy back from buffer
+    gkyl_range_set_split(&sub_range, num_split, tid);
+    gkyl_array_copy_from_buffer(arr, buff+loc, &sub_range);
+    loc += gkyl_range_split_len(&sub_range);
+  }
+
+  gkyl_range_set_split(&sub_range, 1, 0); // reset
+
+  gkyl_range_iter_init(&iter, &sub_range);
+  while (gkyl_range_iter_next(&iter)) {
+    double *d = gkyl_array_fetch(arr, gkyl_range_idx(&sub_range, iter.idx));
+    TEST_CHECK( d[0]  == iter.idx[0] + 10.5*iter.idx[1] );
+  }
+
+  gkyl_array_release(arr);
+  gkyl_free(buff);
+}
+
 void test_non_numeric()
 {
   struct euler { double rho, u, E; };
@@ -600,6 +659,7 @@ TEST_LIST = {
   { "array_opcombine", test_array_opcombine },
   { "array_ops_comp", test_array_ops_comp },
   { "array_copy", test_array_copy },
+  { "array_copy_split", test_array_copy_split },
   { "non_numeric", test_non_numeric },
   { "reduce", test_reduce },
   { "reduce_range", test_reduce_range },

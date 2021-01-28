@@ -134,6 +134,15 @@ void gkyl_sub_range_init(struct gkyl_range *rng,
 void gkyl_range_set_split(struct gkyl_range *rng, int nsplits, int tid);
 
 /**
+ * Return the number of elements looped over by iterator for this
+ * range.
+ *
+ * @param rng Range object
+ * @return number of elements looped over by iterator
+ */
+long gkyl_range_split_len(const struct gkyl_range *rng);
+
+/**
  * Return range which has some directions removed by setting the index
  * in those directions to fixed values. The "deflated" range has lower
  * dimension than the parent 'rng' object. The indexing into the

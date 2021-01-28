@@ -128,6 +128,39 @@ gkyl_range_set_split(struct gkyl_range *rng, int nsplit, int tid)
   rng->tid = tid;
 }
 
+// Computes split and returns number of elements handled locally and
+// the intial index into the range. Number of elements is returned and
+// start index set in 'lower'
+static long
+gkyl_range_calc_split(const struct gkyl_range *rng, int *lower)
+{
+  const int nsplit = rng->nsplit, tid = rng->tid;
+  long quot = rng->volume/nsplit, rem = rng->volume % nsplit;
+  
+  long len = gkyl_range_split_len(rng);
+  long start = tid < rem ? tid*(quot+1) : rem*(quot+1) + (tid-rem)*quot;
+
+  if (IS_SUB_RANGE(rng->flags)) {
+    // as 'start' in sub-range we need to use an additional
+    // indirection to compute the 'lower' bounds
+    struct gkyl_range subrange;
+    gkyl_range_init(&subrange, rng->ndim, rng->lower, rng->upper);
+    gkyl_range_inv_idx(&subrange, start, lower);
+  }
+  else {
+    gkyl_range_inv_idx(rng, start, lower);
+  }
+
+  return len;
+}
+
+long
+gkyl_range_split_len(const struct gkyl_range *rng)
+{
+  const long quot = rng->volume/rng->nsplit, rem = rng->volume % rng->nsplit;
+  return rng->tid < rem ? quot+1 : quot;
+}
+
 void
 gkyl_range_deflate(struct gkyl_range* srng,
   const struct gkyl_range* rng, const int *remDir, const int *locDir)
@@ -256,37 +289,6 @@ gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
   }
 }
 
-// Computes split and returns number of elements handled locally and
-// the intial index into the range.
-static
-long
-gkyl_range_calc_split(const struct gkyl_range *rng, int *lower)
-{
-  long len = 0, start = 0;
-  int nsplit = rng->nsplit, tid = rng->tid;
-  
-  long quot = rng->volume/nsplit, rem = rng->volume % nsplit;
-  if (tid < rem) {
-    len = quot+1;
-    start = tid*(quot+1);
-  }
-  else {
-    len = quot;
-    start = rem*(quot+1) + (tid-rem)*quot;
-  }
-
-  if (IS_SUB_RANGE(rng->flags)) {
-    // sub-ranges can't use rng to inverse index    
-    struct gkyl_range subrange;
-    gkyl_range_init(&subrange, rng->ndim, rng->lower, rng->upper);
-    gkyl_range_inv_idx(&subrange, start, lower);
-  }
-  else {
-    gkyl_range_inv_idx(rng, start, lower);
-  }
-
-  return len;
-}
 
 void
 gkyl_range_iter_init(struct gkyl_range_iter *iter,

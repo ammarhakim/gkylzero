@@ -217,18 +217,13 @@ gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
 {
 #define _F(loc) gkyl_array_cfetch(arr, loc)
 
-  // construct skip iterator to allow copying (potentially) in chunks
-  // rather than element by element
-  struct gkyl_range_skip_iter skip;
-  gkyl_range_skip_iter_init(&skip, range);
-
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &skip.range);
+  gkyl_range_iter_init(&iter, range);
 
   long count = 0;
   while (gkyl_range_iter_next(&iter)) {
-    long start = gkyl_range_idx(&skip.range, iter.idx);
-    memcpy(((char*) data) + arr->elemsz*skip.delta*count++, _F(start), arr->elemsz*skip.delta);
+    long start = gkyl_range_idx(range, iter.idx);
+    memcpy(((char*) data) + arr->elemsz*count++, _F(start), arr->elemsz);
   }
   
 #undef _F
@@ -240,18 +235,13 @@ gkyl_array_copy_from_buffer(struct gkyl_array *arr,
 {
 #define _F(loc) gkyl_array_fetch(arr, loc)  
 
-  // construct skip iterator to allow copying (potentially) in chunks
-  // rather than element by element
-  struct gkyl_range_skip_iter skip;
-  gkyl_range_skip_iter_init(&skip, range);
-
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &skip.range);
+  gkyl_range_iter_init(&iter, range);
 
   long count = 0;
   while (gkyl_range_iter_next(&iter)) {
-    long start = gkyl_range_idx(&skip.range, iter.idx);
-    memcpy(_F(start), ((char*) data) + arr->elemsz*skip.delta*count++, arr->elemsz*skip.delta);
+    long start = gkyl_range_idx(range, iter.idx);
+    memcpy(_F(start), ((char*) data) + arr->elemsz*count++, arr->elemsz);
   }
   
 #undef _F
