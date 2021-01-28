@@ -60,6 +60,13 @@
     (out, a, out, range)
 
 /** Generic reduce macro */
+#define gkyl_array_reduce(arr, op, out)                      \
+    _Generic((out),                                          \
+      float *: gkyl_array_reduce_float,                      \
+      double *: gkyl_array_reduce_double)                    \
+    (arr, op, out)
+
+/** Generic reduce macro */
 #define gkyl_array_reduce_range(res, arr, op, range)         \
     _Generic((res),                                          \
       float *: gkyl_array_reduce_range_float,                \
@@ -152,7 +159,8 @@ struct gkyl_array* gkyl_array_set_range_float(struct gkyl_array *out,
  * @param op Reduction operators
  * @return Reduced result
  */
-double gkyl_array_reduce(const struct gkyl_array *arr, enum gkyl_array_op op);
+double gkyl_array_reduce_double(const struct gkyl_array *arr, enum gkyl_array_op op, double *out);
+float gkyl_array_reduce_float(const struct gkyl_array *arr, enum gkyl_array_op op, float *out);
 
 /**
  * Perform an "reduce" operation of data in the array. Data is reduced

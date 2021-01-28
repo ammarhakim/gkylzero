@@ -58,6 +58,32 @@ GKYL_ARRAY_ACCUMULATE(double)
 GKYL_ARRAY_SET(float)
 GKYL_ARRAY_SET(double)
 
+#define GKYL_ARRAY_REDUCE(type)                                         \
+    type                                                                \
+    gkyl_array_reduce_##type(const struct gkyl_array *arr, enum gkyl_array_op op, type *out) \
+    {                                                                   \
+      type res, *arr_d = arr->data;                                     \
+                                                                        \
+      switch (op) {                                                     \
+        case GKYL_MIN:                                                  \
+            res = DBL_MAX;                                              \
+            for (size_t i=0; i<NELM(arr, type); ++i)                    \
+              res = fmin(res, arr_d[i]);                                \
+            break;                                                      \
+                                                                        \
+        case GKYL_MAX:                                                  \
+            res = -DBL_MAX;                                             \
+            for (size_t i=0; i<NELM(arr, type); ++i)                    \
+              res = fmax(res, arr_d[i]);                                \
+            break;                                                      \
+      }                                                                 \
+      if (out) *out = res;                                              \
+      return res;                                                       \
+    }                                                                  
+
+GKYL_ARRAY_REDUCE(float)
+GKYL_ARRAY_REDUCE(double)
+
 // range based methods
 
 #define GKYL_ARRAY_CLEAR_RANGE(type)                                    \
@@ -154,27 +180,6 @@ GKYL_ARRAY_ACCUMULATE_RANGE(double)
 
 GKYL_ARRAY_SET_RANGE(float)
 GKYL_ARRAY_SET_RANGE(double)
-
-double
-gkyl_array_reduce(const struct gkyl_array *arr, enum gkyl_array_op op)
-{
-  double res, *arr_d = arr->data;
-
-  switch (op) {
-    case GKYL_MIN:
-        res = DBL_MAX;
-        for (size_t i=0; i<NELM(arr, double); ++i)
-          res = fmin(res, arr_d[i]);
-        break;
-        
-    case GKYL_MAX:
-        res = -DBL_MAX;
-        for (size_t i=0; i<NELM(arr, double); ++i)
-          res = fmax(res, arr_d[i]);
-        break;
-  }
-  return res;
-}
 
 #define GKYL_ARRAY_REDUCE_RANGE(type)                                   \
     void gkyl_array_reduce_range_##type(type *res,                      \
