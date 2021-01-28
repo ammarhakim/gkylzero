@@ -53,7 +53,7 @@
     (out, a, out)
 
 /** Generic scale macro (uses set) */
-#define gkyl_array_scale_range(out, a)          \
+#define gkyl_array_scale_range(out, a, range)   \
     _Generic((a),                               \
       float: gkyl_array_set_range_float,        \
       double: gkyl_array_set_range_double)      \
@@ -151,6 +151,16 @@ struct gkyl_array* gkyl_array_set_range_double(struct gkyl_array *out,
   double a, const struct gkyl_array *inp, const struct gkyl_range *range);
 struct gkyl_array* gkyl_array_set_range_float(struct gkyl_array *out,
   float a, const struct gkyl_array *inp, const struct gkyl_range *range);
+
+/**
+ * Copy out inp. Returns out.
+ *
+ * @param out Output array
+ * @param inp Input array
+ * @return out array
+ */
+struct gkyl_array* gkyl_array_copy_range(struct gkyl_array *out,
+  const struct gkyl_array *inp, const struct gkyl_range *range);
 
 /**
  * Perform an "reduce" operation of data in the array.

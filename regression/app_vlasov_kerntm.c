@@ -122,14 +122,14 @@ main(int argc, char **argv)
   struct timespec tm_start = gkyl_wall_clock();
   // time with volume term
   for (int i=0; i<inp.nloop; ++i)
-    gkyl_vlasov_app_species_rhs_tm(app, 1);
+    gkyl_vlasov_app_species_ktm_rhs(app, 1);
   
   double tm_tot = gkyl_time_sec(gkyl_time_diff(tm_start, gkyl_wall_clock()));
 
   tm_start = gkyl_wall_clock();
   // time without volume term
   for (int i=0; i<inp.nloop; ++i)
-    gkyl_vlasov_app_species_rhs_tm(app, 0);
+    gkyl_vlasov_app_species_ktm_rhs(app, 0);
   
   double tm_surf_only = gkyl_time_sec(gkyl_time_diff(tm_start, gkyl_wall_clock()));
 
@@ -175,8 +175,6 @@ main(int argc, char **argv)
   printf("Surface updates took: %g [s]\n", tm_surf_only/inp.nloop);
     
   printf("Time for full update: %g [s]\n", tm_tot/inp.nloop);
-
-
 
   gkyl_vlasov_app_release(app);
   

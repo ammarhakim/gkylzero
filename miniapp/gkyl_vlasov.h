@@ -202,7 +202,7 @@ struct gkyl_vlasov_stat gkyl_vlasov_app_stat(gkyl_vlasov_app* app);
  * @param app App object.
  * @param update_vol_term Set to 1 to update vol term also, 0 otherwise
  */
-void gkyl_vlasov_app_species_rhs_tm(gkyl_vlasov_app* app, int update_vol_term);
+void gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term);
 
 /**
  * Free Vlasov app.

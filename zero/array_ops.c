@@ -214,7 +214,23 @@ GKYL_ARRAY_SET_RANGE(double)
     }                                                                  
 
 GKYL_ARRAY_REDUCE_RANGE(double)
-GKYL_ARRAY_REDUCE_RANGE(float)    
+GKYL_ARRAY_REDUCE_RANGE(float)
+
+struct gkyl_array*
+gkyl_array_copy_range(struct gkyl_array *out,
+  const struct gkyl_array *inp, const struct gkyl_range *range)
+{
+  assert(out->size == inp->size && out->elemsz == inp->elemsz);
+  
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, range);
+
+  while (gkyl_range_iter_next(&iter)) {
+    long start = gkyl_range_idx(range, iter.idx);
+    memcpy(gkyl_array_fetch(out, start), gkyl_array_cfetch(inp, start), inp->elemsz);
+  }
+  return out;
+}
 
 void
 gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
