@@ -1,14 +1,14 @@
 #include <gkyl_vlasov_kernels.h> 
-void vlasov_surfx_1x3v_ser_p1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double* restrict outl, double* restrict outr) 
+void vlasov_surfx_1x3v_ser_p1(const gkyl_real *wl, const gkyl_real *wr, const gkyl_real *dxvl, const gkyl_real *dxvr, const gkyl_real *fl, const gkyl_real *fr, gkyl_real* restrict outl, gkyl_real* restrict outr) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
   // fl/fr:     Distribution function in left/right cells.
   // outl/outr: Incremented distribution function in left/right cells.
-  double rdxl2 = 2.0/dxvl[0]; 
-  double rdxr2 = 2.0/dxvr[0]; 
+  gkyl_real rdxl2 = 2.0/dxvl[0]; 
+  gkyl_real rdxr2 = 2.0/dxvr[0]; 
 
-  double incr[16]; 
+  gkyl_real incr[16]; 
 
   if (wr[1]>0) { 
   incr[0] = dxvl[1]*(0.25*fl[5]+0.1443375672974065*fl[2])+(0.8660254037844386*fl[1]+0.5*fl[0])*wl[1]; 
@@ -114,7 +114,7 @@ void vlasov_surfx_1x3v_ser_p1(const double *wl, const double *wr, const double *
   outl[15] += incr[15]*rdxl2; 
   } 
 } 
-double vlasov_surfvx_1x3v_ser_p1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *qmem, const double *fl, const double *fr, double* restrict outl, double* restrict outr) 
+gkyl_real vlasov_surfvx_1x3v_ser_p1(const gkyl_real *wl, const gkyl_real *wr, const gkyl_real *dxvl, const gkyl_real *dxvr, const gkyl_real amax, const gkyl_real *qmem, const gkyl_real *fl, const gkyl_real *fr, gkyl_real* restrict outl, gkyl_real* restrict outr) 
 { 
   // w:         Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
@@ -123,20 +123,20 @@ double vlasov_surfvx_1x3v_ser_p1(const double *wl, const double *wr, const doubl
   // fl/fr:     Distribution function in left/right cells 
   // outl/outr: output distribution function in left/right cells 
   // returns abs(amid) for use in determining amax in cfl and global lax flux 
-  double dv10l = 2/dxvl[1]; 
-  double dv10r = 2/dxvr[1]; 
+  gkyl_real dv10l = 2/dxvl[1]; 
+  gkyl_real dv10r = 2/dxvr[1]; 
 
-  const double dv1 = dxvr[1], wv1 = wr[1]; 
-  const double dv2 = dxvr[2], wv2 = wr[2]; 
-  const double dv3 = dxvr[3], wv3 = wr[3]; 
-  const double *E0 = &qmem[0]; 
-  const double *B0 = &qmem[6]; 
-  const double *B1 = &qmem[8]; 
-  const double *B2 = &qmem[10]; 
+  const gkyl_real dv1 = dxvr[1], wv1 = wr[1]; 
+  const gkyl_real dv2 = dxvr[2], wv2 = wr[2]; 
+  const gkyl_real dv3 = dxvr[3], wv3 = wr[3]; 
+  const gkyl_real *E0 = &qmem[0]; 
+  const gkyl_real *B0 = &qmem[6]; 
+  const gkyl_real *B1 = &qmem[8]; 
+  const gkyl_real *B2 = &qmem[10]; 
 
-  double Ghat[8]; 
-  double favg[8]; 
-  double alpha[8]; 
+  gkyl_real Ghat[8]; 
+  gkyl_real favg[8]; 
+  gkyl_real alpha[8]; 
 
   favg[0] = (-1.224744871391589*fr[2])+1.224744871391589*fl[2]+0.7071067811865475*fr[0]+0.7071067811865475*fl[0]; 
   favg[1] = (-1.224744871391589*fr[5])+1.224744871391589*fl[5]+0.7071067811865475*fr[1]+0.7071067811865475*fl[1]; 
@@ -154,7 +154,7 @@ double vlasov_surfvx_1x3v_ser_p1(const double *wl, const double *wr, const doubl
   alpha[4] = 0.5773502691896258*B2[1]*dv2; 
   alpha[5] = -0.5773502691896258*B1[1]*dv3; 
 
-  double amid = 0.3535533905932737*alpha[0]; 
+  gkyl_real amid = 0.3535533905932737*alpha[0]; 
 
   Ghat[0] = 0.3535533905932737*(1.732050807568877*(fr[2]+fl[2])-1.0*fr[0]+fl[0])*amax+0.1767766952966368*(alpha[5]*favg[5]+alpha[4]*favg[4]+alpha[3]*favg[3]+alpha[2]*favg[2]+alpha[1]*favg[1]+alpha[0]*favg[0]); 
   Ghat[1] = 0.3535533905932737*(1.732050807568877*(fr[5]+fl[5])-1.0*fr[1]+fl[1])*amax+0.1767766952966368*(alpha[3]*favg[5]+favg[3]*alpha[5]+alpha[2]*favg[4]+favg[2]*alpha[4]+alpha[0]*favg[1]+favg[0]*alpha[1]); 
@@ -201,7 +201,7 @@ double vlasov_surfvx_1x3v_ser_p1(const double *wl, const double *wr, const doubl
 
   return fabs(amid); 
 } 
-double vlasov_surfvy_1x3v_ser_p1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *qmem, const double *fl, const double *fr, double* restrict outl, double* restrict outr) 
+gkyl_real vlasov_surfvy_1x3v_ser_p1(const gkyl_real *wl, const gkyl_real *wr, const gkyl_real *dxvl, const gkyl_real *dxvr, const gkyl_real amax, const gkyl_real *qmem, const gkyl_real *fl, const gkyl_real *fr, gkyl_real* restrict outl, gkyl_real* restrict outr) 
 { 
   // w:         Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
@@ -210,20 +210,20 @@ double vlasov_surfvy_1x3v_ser_p1(const double *wl, const double *wr, const doubl
   // fl/fr:     Distribution function in left/right cells 
   // outl/outr: output distribution function in left/right cells 
   // returns abs(amid) for use in determining amax in cfl and global lax flux 
-  double dv11l = 2/dxvl[2]; 
-  double dv11r = 2/dxvr[2]; 
+  gkyl_real dv11l = 2/dxvl[2]; 
+  gkyl_real dv11r = 2/dxvr[2]; 
 
-  const double dv1 = dxvr[1], wv1 = wr[1]; 
-  const double dv2 = dxvr[2], wv2 = wr[2]; 
-  const double dv3 = dxvr[3], wv3 = wr[3]; 
-  const double *E1 = &qmem[2]; 
-  const double *B0 = &qmem[6]; 
-  const double *B1 = &qmem[8]; 
-  const double *B2 = &qmem[10]; 
+  const gkyl_real dv1 = dxvr[1], wv1 = wr[1]; 
+  const gkyl_real dv2 = dxvr[2], wv2 = wr[2]; 
+  const gkyl_real dv3 = dxvr[3], wv3 = wr[3]; 
+  const gkyl_real *E1 = &qmem[2]; 
+  const gkyl_real *B0 = &qmem[6]; 
+  const gkyl_real *B1 = &qmem[8]; 
+  const gkyl_real *B2 = &qmem[10]; 
 
-  double Ghat[8]; 
-  double favg[8]; 
-  double alpha[8]; 
+  gkyl_real Ghat[8]; 
+  gkyl_real favg[8]; 
+  gkyl_real alpha[8]; 
 
   favg[0] = (-1.224744871391589*fr[3])+1.224744871391589*fl[3]+0.7071067811865475*fr[0]+0.7071067811865475*fl[0]; 
   favg[1] = (-1.224744871391589*fr[6])+1.224744871391589*fl[6]+0.7071067811865475*fr[1]+0.7071067811865475*fl[1]; 
@@ -241,7 +241,7 @@ double vlasov_surfvy_1x3v_ser_p1(const double *wl, const double *wr, const doubl
   alpha[4] = -0.5773502691896258*B2[1]*dv1; 
   alpha[5] = 0.5773502691896258*B0[1]*dv3; 
 
-  double amid = 0.3535533905932737*alpha[0]; 
+  gkyl_real amid = 0.3535533905932737*alpha[0]; 
 
   Ghat[0] = 0.3535533905932737*(1.732050807568877*(fr[3]+fl[3])-1.0*fr[0]+fl[0])*amax+0.1767766952966368*(alpha[5]*favg[5]+alpha[4]*favg[4]+alpha[3]*favg[3]+alpha[2]*favg[2]+alpha[1]*favg[1]+alpha[0]*favg[0]); 
   Ghat[1] = 0.3535533905932737*(1.732050807568877*(fr[6]+fl[6])-1.0*fr[1]+fl[1])*amax+0.1767766952966368*(alpha[3]*favg[5]+favg[3]*alpha[5]+alpha[2]*favg[4]+favg[2]*alpha[4]+alpha[0]*favg[1]+favg[0]*alpha[1]); 
@@ -288,7 +288,7 @@ double vlasov_surfvy_1x3v_ser_p1(const double *wl, const double *wr, const doubl
 
   return fabs(amid); 
 } 
-double vlasov_surfvz_1x3v_ser_p1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *qmem, const double *fl, const double *fr, double* restrict outl, double* restrict outr) 
+gkyl_real vlasov_surfvz_1x3v_ser_p1(const gkyl_real *wl, const gkyl_real *wr, const gkyl_real *dxvl, const gkyl_real *dxvr, const gkyl_real amax, const gkyl_real *qmem, const gkyl_real *fl, const gkyl_real *fr, gkyl_real* restrict outl, gkyl_real* restrict outr) 
 { 
   // w:         Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
@@ -297,20 +297,20 @@ double vlasov_surfvz_1x3v_ser_p1(const double *wl, const double *wr, const doubl
   // fl/fr:     Distribution function in left/right cells 
   // outl/outr: output distribution function in left/right cells 
   // returns abs(amid) for use in determining amax in cfl and global lax flux 
-  double dv12l = 2/dxvl[3]; 
-  double dv12r = 2/dxvr[3]; 
+  gkyl_real dv12l = 2/dxvl[3]; 
+  gkyl_real dv12r = 2/dxvr[3]; 
 
-  const double dv1 = dxvr[1], wv1 = wr[1]; 
-  const double dv2 = dxvr[2], wv2 = wr[2]; 
-  const double dv3 = dxvr[3], wv3 = wr[3]; 
-  const double *E2 = &qmem[4]; 
-  const double *B0 = &qmem[6]; 
-  const double *B1 = &qmem[8]; 
-  const double *B2 = &qmem[10]; 
+  const gkyl_real dv1 = dxvr[1], wv1 = wr[1]; 
+  const gkyl_real dv2 = dxvr[2], wv2 = wr[2]; 
+  const gkyl_real dv3 = dxvr[3], wv3 = wr[3]; 
+  const gkyl_real *E2 = &qmem[4]; 
+  const gkyl_real *B0 = &qmem[6]; 
+  const gkyl_real *B1 = &qmem[8]; 
+  const gkyl_real *B2 = &qmem[10]; 
 
-  double Ghat[8]; 
-  double favg[8]; 
-  double alpha[8]; 
+  gkyl_real Ghat[8]; 
+  gkyl_real favg[8]; 
+  gkyl_real alpha[8]; 
 
   favg[0] = (-1.224744871391589*fr[4])+1.224744871391589*fl[4]+0.7071067811865475*fr[0]+0.7071067811865475*fl[0]; 
   favg[1] = (-1.224744871391589*fr[8])+1.224744871391589*fl[8]+0.7071067811865475*fr[1]+0.7071067811865475*fl[1]; 
@@ -328,7 +328,7 @@ double vlasov_surfvz_1x3v_ser_p1(const double *wl, const double *wr, const doubl
   alpha[4] = 0.5773502691896258*B1[1]*dv1; 
   alpha[5] = -0.5773502691896258*B0[1]*dv2; 
 
-  double amid = 0.3535533905932737*alpha[0]; 
+  gkyl_real amid = 0.3535533905932737*alpha[0]; 
 
   Ghat[0] = 0.3535533905932737*(1.732050807568877*(fr[4]+fl[4])-1.0*fr[0]+fl[0])*amax+0.1767766952966368*(alpha[5]*favg[5]+alpha[4]*favg[4]+alpha[3]*favg[3]+alpha[2]*favg[2]+alpha[1]*favg[1]+alpha[0]*favg[0]); 
   Ghat[1] = 0.3535533905932737*(1.732050807568877*(fr[8]+fl[8])-1.0*fr[1]+fl[1])*amax+0.1767766952966368*(alpha[3]*favg[5]+favg[3]*alpha[5]+alpha[2]*favg[4]+favg[2]*alpha[4]+alpha[0]*favg[1]+favg[0]*alpha[1]); 

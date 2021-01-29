@@ -1,33 +1,33 @@
 #include <gkyl_vlasov_kernels.h> 
-double vlasov_vol_3x3v_ser_p1(const double *w, const double *dxv, const double *qmem, const double *f, double* restrict out) 
+gkyl_real vlasov_vol_3x3v_ser_p1(const gkyl_real *w, const gkyl_real *dxv, const gkyl_real *qmem, const gkyl_real *f, gkyl_real* restrict out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
   // qmem:      q/m*EM fields.
   // f:         Input distribution function.
   // out:       Incremented output.
-  double dv0dx0 = dxv[3]/dxv[0]; 
-  double w0dx0 = w[3]/dxv[0]; 
-  double dv1dx1 = dxv[4]/dxv[1]; 
-  double w1dx1 = w[4]/dxv[1]; 
-  double dv2dx2 = dxv[5]/dxv[2]; 
-  double w2dx2 = w[5]/dxv[2]; 
-  const double dv10 = 2/dxv[3]; 
-  const double *E0 = &qmem[0]; 
-  const double dv1 = dxv[3], wv1 = w[3]; 
-  const double dv11 = 2/dxv[4]; 
-  const double *E1 = &qmem[8]; 
-  const double dv2 = dxv[4], wv2 = w[4]; 
-  const double dv12 = 2/dxv[5]; 
-  const double *E2 = &qmem[16]; 
-  const double dv3 = dxv[5], wv3 = w[5]; 
+  gkyl_real dv0dx0 = dxv[3]/dxv[0]; 
+  gkyl_real w0dx0 = w[3]/dxv[0]; 
+  gkyl_real dv1dx1 = dxv[4]/dxv[1]; 
+  gkyl_real w1dx1 = w[4]/dxv[1]; 
+  gkyl_real dv2dx2 = dxv[5]/dxv[2]; 
+  gkyl_real w2dx2 = w[5]/dxv[2]; 
+  const gkyl_real dv10 = 2/dxv[3]; 
+  const gkyl_real *E0 = &qmem[0]; 
+  const gkyl_real dv1 = dxv[3], wv1 = w[3]; 
+  const gkyl_real dv11 = 2/dxv[4]; 
+  const gkyl_real *E1 = &qmem[8]; 
+  const gkyl_real dv2 = dxv[4], wv2 = w[4]; 
+  const gkyl_real dv12 = 2/dxv[5]; 
+  const gkyl_real *E2 = &qmem[16]; 
+  const gkyl_real dv3 = dxv[5], wv3 = w[5]; 
 
-  const double *B0 = &qmem[24]; 
-  const double *B1 = &qmem[32]; 
-  const double *B2 = &qmem[40]; 
-  double alpha_mid = 0.0; 
-  double alpha_cdim[192]; 
-  double alpha_vdim[192]; 
+  const gkyl_real *B0 = &qmem[24]; 
+  const gkyl_real *B1 = &qmem[32]; 
+  const gkyl_real *B2 = &qmem[40]; 
+  gkyl_real alpha_mid = 0.0; 
+  gkyl_real alpha_cdim[192]; 
+  gkyl_real alpha_vdim[192]; 
 
   alpha_cdim[0] = 16.0*w0dx0; 
   alpha_cdim[4] = 4.618802153517007*dv0dx0; 

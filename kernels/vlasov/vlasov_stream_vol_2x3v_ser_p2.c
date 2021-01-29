@@ -1,14 +1,14 @@
 #include <gkyl_vlasov_kernels.h> 
-double vlasov_stream_vol_2x3v_ser_p2(const double *w, const double *dxv, const double *f, double* restrict out) 
+gkyl_real vlasov_stream_vol_2x3v_ser_p2(const gkyl_real *w, const gkyl_real *dxv, const gkyl_real *f, gkyl_real* restrict out) 
 { 
   // w[NDIM]: Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
   // f: Input distribution function.
   // out: Incremented output.
-  double w2Ddx0  = w[2]/dxv[0]; 
-  double dv2Ddx0 = dxv[2]/dxv[0]; 
-  double w3Ddx1  = w[3]/dxv[1]; 
-  double dv3Ddx1 = dxv[3]/dxv[1]; 
+  gkyl_real w2Ddx0  = w[2]/dxv[0]; 
+  gkyl_real dv2Ddx0 = dxv[2]/dxv[0]; 
+  gkyl_real w3Ddx1  = w[3]/dxv[1]; 
+  gkyl_real dv3Ddx1 = dxv[3]/dxv[1]; 
 
   out[1] += 3.464101615137754*f[0]*w2Ddx0+f[3]*dv2Ddx0; 
   out[2] += 3.464101615137754*f[0]*w3Ddx1+f[4]*dv3Ddx1; 

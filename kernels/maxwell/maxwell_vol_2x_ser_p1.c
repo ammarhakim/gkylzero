@@ -1,29 +1,29 @@
 #include <gkyl_maxwell_kernels.h> 
-double maxwell_vol_2x_ser_p1(const gkyl_maxwell_inp *meq, const double *w, const double *dx, const double *q, double* restrict out) 
+gkyl_real maxwell_vol_2x_ser_p1(const gkyl_maxwell_inp *meq, const gkyl_real *w, const gkyl_real *dx, const gkyl_real *q, gkyl_real* restrict out) 
 { 
-  const double c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; 
-  const double c2chi = c2*chi, c2gamma = c2*gamma; 
+  const gkyl_real c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; 
+  const gkyl_real c2chi = c2*chi, c2gamma = c2*gamma; 
  
-  const double *ex = &q[0]; 
-  const double *ey = &q[4]; 
-  const double *ez = &q[8]; 
-  const double *bx = &q[12]; 
-  const double *by = &q[16]; 
-  const double *bz = &q[20]; 
-  const double *ph = &q[24]; 
-  const double *ps = &q[28]; 
+  const gkyl_real *ex = &q[0]; 
+  const gkyl_real *ey = &q[4]; 
+  const gkyl_real *ez = &q[8]; 
+  const gkyl_real *bx = &q[12]; 
+  const gkyl_real *by = &q[16]; 
+  const gkyl_real *bz = &q[20]; 
+  const gkyl_real *ph = &q[24]; 
+  const gkyl_real *ps = &q[28]; 
  
-  double *outEx = &out[0]; 
-  double *outEy = &out[4]; 
-  double *outEz = &out[8]; 
-  double *outBx = &out[12]; 
-  double *outBy = &out[16]; 
-  double *outBz = &out[20]; 
-  double *outPh = &out[24]; 
-  double *outPs = &out[28]; 
+  gkyl_real *outEx = &out[0]; 
+  gkyl_real *outEy = &out[4]; 
+  gkyl_real *outEz = &out[8]; 
+  gkyl_real *outBx = &out[12]; 
+  gkyl_real *outBy = &out[16]; 
+  gkyl_real *outBz = &out[20]; 
+  gkyl_real *outPh = &out[24]; 
+  gkyl_real *outPs = &out[28]; 
  
-  double dx0 = 2.0/dx[0]; 
-  double dx1 = 2.0/dx[1]; 
+  gkyl_real dx0 = 2.0/dx[0]; 
+  gkyl_real dx1 = 2.0/dx[1]; 
 
   outEx[1] += 1.732050807568877*ph[0]*c2chi*dx0; 
   outEx[2] += -1.732050807568877*bz[0]*c2*dx1; 
@@ -57,7 +57,7 @@ double maxwell_vol_2x_ser_p1(const gkyl_maxwell_inp *meq, const double *w, const
   outPs[2] += 1.732050807568877*by[0]*c2gamma*dx1; 
   outPs[3] += 1.732050807568877*by[1]*c2gamma*dx1+1.732050807568877*bx[2]*c2gamma*dx0; 
 
-  double cflFreq = 0.0; 
+  gkyl_real cflFreq = 0.0; 
   cflFreq += meq->c/dx[0]; 
   cflFreq += meq->c/dx[1]; 
   return cflFreq; 

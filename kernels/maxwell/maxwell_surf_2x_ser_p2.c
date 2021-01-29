@@ -1,49 +1,49 @@
 #include <gkyl_maxwell_kernels.h> 
-double maxwell_surfx_2x_ser_p2(const gkyl_maxwell_inp *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double* restrict outl, double* restrict outr) 
+gkyl_real maxwell_surfx_2x_ser_p2(const gkyl_maxwell_inp *meq, const gkyl_real *wl, const gkyl_real *wr, const gkyl_real *dxl, const gkyl_real *dxr, const gkyl_real tau, const gkyl_real *ql, const gkyl_real *qr, gkyl_real* restrict outl, gkyl_real* restrict outr) 
 { 
-  const double c = meq->c, chi = meq->chi, gamma = meq->gamma; 
-  const double c2 = c*c; 
-  const double c2chi = c2*chi, c2gamma = c2*gamma; 
+  const gkyl_real c = meq->c, chi = meq->chi, gamma = meq->gamma; 
+  const gkyl_real c2 = c*c; 
+  const gkyl_real c2chi = c2*chi, c2gamma = c2*gamma; 
  
-  const double dxl1 = 2.0/dxl[0]; 
-  const double dxr1 = 2.0/dxr[0]; 
-  const double *exl = &ql[0]; 
-  const double *eyl = &ql[8]; 
-  const double *ezl = &ql[16]; 
-  const double *bxl = &ql[24]; 
-  const double *byl = &ql[32]; 
-  const double *bzl = &ql[40]; 
-  const double *phl = &ql[48]; 
-  const double *psl = &ql[56]; 
+  const gkyl_real dxl1 = 2.0/dxl[0]; 
+  const gkyl_real dxr1 = 2.0/dxr[0]; 
+  const gkyl_real *exl = &ql[0]; 
+  const gkyl_real *eyl = &ql[8]; 
+  const gkyl_real *ezl = &ql[16]; 
+  const gkyl_real *bxl = &ql[24]; 
+  const gkyl_real *byl = &ql[32]; 
+  const gkyl_real *bzl = &ql[40]; 
+  const gkyl_real *phl = &ql[48]; 
+  const gkyl_real *psl = &ql[56]; 
  
-  double *outExl = &outl[0]; 
-  double *outEyl = &outl[8]; 
-  double *outEzl = &outl[16]; 
-  double *outBxl = &outl[24]; 
-  double *outByl = &outl[32]; 
-  double *outBzl = &outl[40]; 
-  double *outPhl = &outl[48]; 
-  double *outPsl = &outl[56]; 
+  gkyl_real *outExl = &outl[0]; 
+  gkyl_real *outEyl = &outl[8]; 
+  gkyl_real *outEzl = &outl[16]; 
+  gkyl_real *outBxl = &outl[24]; 
+  gkyl_real *outByl = &outl[32]; 
+  gkyl_real *outBzl = &outl[40]; 
+  gkyl_real *outPhl = &outl[48]; 
+  gkyl_real *outPsl = &outl[56]; 
  
-  const double *exr = &qr[0]; 
-  const double *eyr = &qr[8]; 
-  const double *ezr = &qr[16]; 
-  const double *bxr = &qr[24]; 
-  const double *byr = &qr[32]; 
-  const double *bzr = &qr[40]; 
-  const double *phr = &qr[48]; 
-  const double *psr = &qr[56]; 
+  const gkyl_real *exr = &qr[0]; 
+  const gkyl_real *eyr = &qr[8]; 
+  const gkyl_real *ezr = &qr[16]; 
+  const gkyl_real *bxr = &qr[24]; 
+  const gkyl_real *byr = &qr[32]; 
+  const gkyl_real *bzr = &qr[40]; 
+  const gkyl_real *phr = &qr[48]; 
+  const gkyl_real *psr = &qr[56]; 
  
-  double *outExr = &outr[0]; 
-  double *outEyr = &outr[8]; 
-  double *outEzr = &outr[16]; 
-  double *outBxr = &outr[24]; 
-  double *outByr = &outr[32]; 
-  double *outBzr = &outr[40]; 
-  double *outPhr = &outr[48]; 
-  double *outPsr = &outr[56]; 
+  gkyl_real *outExr = &outr[0]; 
+  gkyl_real *outEyr = &outr[8]; 
+  gkyl_real *outEzr = &outr[16]; 
+  gkyl_real *outBxr = &outr[24]; 
+  gkyl_real *outByr = &outr[32]; 
+  gkyl_real *outBzr = &outr[40]; 
+  gkyl_real *outPhr = &outr[48]; 
+  gkyl_real *outPsr = &outr[56]; 
  
-  double incr[8]; 
+  gkyl_real incr[8]; 
  
   incr[0] = ((-0.5590169943749475*exr[4])+0.5590169943749475*exl[4]+0.4330127018922193*(exr[1]+exl[1])-0.25*exr[0]+0.25*exl[0])*c*chi+(0.5590169943749475*(phr[4]+phl[4])-0.4330127018922193*phr[1]+0.4330127018922193*phl[1]+0.25*(phr[0]+phl[0]))*c2chi; 
   incr[1] = (0.9682458365518543*exr[4]-0.9682458365518543*exl[4]-0.75*(exr[1]+exl[1])+0.4330127018922193*exr[0]-0.4330127018922193*exl[0])*c*chi+((-0.9682458365518543*(phr[4]+phl[4]))+0.75*phr[1]-0.75*phl[1]-0.4330127018922193*(phr[0]+phl[0]))*c2chi; 
@@ -263,51 +263,51 @@ double maxwell_surfx_2x_ser_p2(const gkyl_maxwell_inp *meq, const double *wl, co
 
   return fmax(c, tau); 
 } 
-double maxwell_surfy_2x_ser_p2(const gkyl_maxwell_inp *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double* restrict outl, double* restrict outr) 
+gkyl_real maxwell_surfy_2x_ser_p2(const gkyl_maxwell_inp *meq, const gkyl_real *wl, const gkyl_real *wr, const gkyl_real *dxl, const gkyl_real *dxr, const gkyl_real tau, const gkyl_real *ql, const gkyl_real *qr, gkyl_real* restrict outl, gkyl_real* restrict outr) 
 { 
-  const double c = meq->c, chi = meq->chi, gamma = meq->gamma; 
-  const double c2 = c*c; 
-  const double c2chi = c2*chi, c2gamma = c2*gamma; 
+  const gkyl_real c = meq->c, chi = meq->chi, gamma = meq->gamma; 
+  const gkyl_real c2 = c*c; 
+  const gkyl_real c2chi = c2*chi, c2gamma = c2*gamma; 
  
-  const double dxl1 = 2.0/dxl[1]; 
-  const double dxr1 = 2.0/dxr[1]; 
-  const double *exl = &ql[0]; 
-  const double *eyl = &ql[8]; 
-  const double *ezl = &ql[16]; 
-  const double *bxl = &ql[24]; 
-  const double *byl = &ql[32]; 
-  const double *bzl = &ql[40]; 
-  const double *phl = &ql[48]; 
-  const double *psl = &ql[56]; 
+  const gkyl_real dxl1 = 2.0/dxl[1]; 
+  const gkyl_real dxr1 = 2.0/dxr[1]; 
+  const gkyl_real *exl = &ql[0]; 
+  const gkyl_real *eyl = &ql[8]; 
+  const gkyl_real *ezl = &ql[16]; 
+  const gkyl_real *bxl = &ql[24]; 
+  const gkyl_real *byl = &ql[32]; 
+  const gkyl_real *bzl = &ql[40]; 
+  const gkyl_real *phl = &ql[48]; 
+  const gkyl_real *psl = &ql[56]; 
  
-  double *outExl = &outl[0]; 
-  double *outEyl = &outl[8]; 
-  double *outEzl = &outl[16]; 
-  double *outBxl = &outl[24]; 
-  double *outByl = &outl[32]; 
-  double *outBzl = &outl[40]; 
-  double *outPhl = &outl[48]; 
-  double *outPsl = &outl[56]; 
+  gkyl_real *outExl = &outl[0]; 
+  gkyl_real *outEyl = &outl[8]; 
+  gkyl_real *outEzl = &outl[16]; 
+  gkyl_real *outBxl = &outl[24]; 
+  gkyl_real *outByl = &outl[32]; 
+  gkyl_real *outBzl = &outl[40]; 
+  gkyl_real *outPhl = &outl[48]; 
+  gkyl_real *outPsl = &outl[56]; 
  
-  const double *exr = &qr[0]; 
-  const double *eyr = &qr[8]; 
-  const double *ezr = &qr[16]; 
-  const double *bxr = &qr[24]; 
-  const double *byr = &qr[32]; 
-  const double *bzr = &qr[40]; 
-  const double *phr = &qr[48]; 
-  const double *psr = &qr[56]; 
+  const gkyl_real *exr = &qr[0]; 
+  const gkyl_real *eyr = &qr[8]; 
+  const gkyl_real *ezr = &qr[16]; 
+  const gkyl_real *bxr = &qr[24]; 
+  const gkyl_real *byr = &qr[32]; 
+  const gkyl_real *bzr = &qr[40]; 
+  const gkyl_real *phr = &qr[48]; 
+  const gkyl_real *psr = &qr[56]; 
  
-  double *outExr = &outr[0]; 
-  double *outEyr = &outr[8]; 
-  double *outEzr = &outr[16]; 
-  double *outBxr = &outr[24]; 
-  double *outByr = &outr[32]; 
-  double *outBzr = &outr[40]; 
-  double *outPhr = &outr[48]; 
-  double *outPsr = &outr[56]; 
+  gkyl_real *outExr = &outr[0]; 
+  gkyl_real *outEyr = &outr[8]; 
+  gkyl_real *outEzr = &outr[16]; 
+  gkyl_real *outBxr = &outr[24]; 
+  gkyl_real *outByr = &outr[32]; 
+  gkyl_real *outBzr = &outr[40]; 
+  gkyl_real *outPhr = &outr[48]; 
+  gkyl_real *outPsr = &outr[56]; 
  
-  double incr[8]; 
+  gkyl_real incr[8]; 
  
   incr[0] = ((-0.5590169943749475*exr[5])+0.5590169943749475*exl[5]+0.4330127018922193*(exr[2]+exl[2])-0.25*exr[0]+0.25*exl[0])*tau+((-0.5590169943749475*(bzr[5]+bzl[5]))+0.4330127018922193*bzr[2]-0.4330127018922193*bzl[2]-0.25*(bzr[0]+bzl[0]))*c2; 
   incr[1] = ((-0.5590169943749476*exr[7])+0.5590169943749476*exl[7]+0.4330127018922193*(exr[3]+exl[3])-0.25*exr[1]+0.25*exl[1])*tau+((-0.5590169943749476*(bzr[7]+bzl[7]))+0.4330127018922193*bzr[3]-0.4330127018922193*bzl[3]-0.25*(bzr[1]+bzl[1]))*c2; 

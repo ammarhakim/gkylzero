@@ -82,7 +82,7 @@ def build(bld):
     """
     
     bld.stlib(source = source,
-              includes = '. vlasov maxwell',
+              includes = '. ../zero vlasov maxwell',
               target = 'gkylzerokern',
               name = 'gkylzerokern'
     )

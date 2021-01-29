@@ -1,24 +1,24 @@
 #include <gkyl_vlasov_kernels.h> 
-double vlasov_vol_1x2v_ser_p1(const double *w, const double *dxv, const double *qmem, const double *f, double* restrict out) 
+gkyl_real vlasov_vol_1x2v_ser_p1(const gkyl_real *w, const gkyl_real *dxv, const gkyl_real *qmem, const gkyl_real *f, gkyl_real* restrict out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
   // qmem:      q/m*EM fields.
   // f:         Input distribution function.
   // out:       Incremented output.
-  double dv0dx0 = dxv[1]/dxv[0]; 
-  double w0dx0 = w[1]/dxv[0]; 
-  const double dv10 = 2/dxv[1]; 
-  const double *E0 = &qmem[0]; 
-  const double dv1 = dxv[1], wv1 = w[1]; 
-  const double dv11 = 2/dxv[2]; 
-  const double *E1 = &qmem[2]; 
-  const double dv2 = dxv[2], wv2 = w[2]; 
+  gkyl_real dv0dx0 = dxv[1]/dxv[0]; 
+  gkyl_real w0dx0 = w[1]/dxv[0]; 
+  const gkyl_real dv10 = 2/dxv[1]; 
+  const gkyl_real *E0 = &qmem[0]; 
+  const gkyl_real dv1 = dxv[1], wv1 = w[1]; 
+  const gkyl_real dv11 = 2/dxv[2]; 
+  const gkyl_real *E1 = &qmem[2]; 
+  const gkyl_real dv2 = dxv[2], wv2 = w[2]; 
 
-  const double *B2 = &qmem[10]; 
-  double alpha_mid = 0.0; 
-  double alpha_cdim[8]; 
-  double alpha_vdim[16]; 
+  const gkyl_real *B2 = &qmem[10]; 
+  gkyl_real alpha_mid = 0.0; 
+  gkyl_real alpha_cdim[8]; 
+  gkyl_real alpha_vdim[16]; 
 
   alpha_cdim[0] = 5.656854249492382*w0dx0; 
   alpha_cdim[2] = 1.632993161855453*dv0dx0; 

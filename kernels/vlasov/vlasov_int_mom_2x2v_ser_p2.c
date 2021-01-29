@@ -1,11 +1,11 @@
 #include <gkyl_vlasov_mom_kernels.h> 
-void vlasov_int_mom_2x2v_ser_p2(const double *w, const double *dxv, const int *idx, const double *f, double* restrict out) 
+void vlasov_int_mom_2x2v_ser_p2(const gkyl_real *w, const gkyl_real *dxv, const int *idx, const gkyl_real *f, gkyl_real* restrict out) 
 { 
-  const double volFact = dxv[0]*dxv[1]*dxv[2]*dxv[3]*0.0625; 
-  const double wx1 = w[2], dv1 = dxv[2]; 
-  const double wx1_sq = wx1*wx1, dv1_sq = dv1*dv1; 
-  const double wx2 = w[3], dv2 = dxv[3]; 
-  const double wx2_sq = wx2*wx2, dv2_sq = dv2*dv2; 
+  const gkyl_real volFact = dxv[0]*dxv[1]*dxv[2]*dxv[3]*0.0625; 
+  const gkyl_real wx1 = w[2], dv1 = dxv[2]; 
+  const gkyl_real wx1_sq = wx1*wx1, dv1_sq = dv1*dv1; 
+  const gkyl_real wx2 = w[3], dv2 = dxv[3]; 
+  const gkyl_real wx2_sq = wx2*wx2, dv2_sq = dv2*dv2; 
  
   out[0] += 4.0*f[0]*volFact; 
   out[1] += volFact*(4.0*f[0]*wx1+1.154700538379252*f[3]*dv1); 

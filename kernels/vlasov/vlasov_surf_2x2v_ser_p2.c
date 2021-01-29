@@ -1,14 +1,14 @@
 #include <gkyl_vlasov_kernels.h> 
-void vlasov_surfx_2x2v_ser_p2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double* restrict outl, double* restrict outr) 
+void vlasov_surfx_2x2v_ser_p2(const gkyl_real *wl, const gkyl_real *wr, const gkyl_real *dxvl, const gkyl_real *dxvr, const gkyl_real *fl, const gkyl_real *fr, gkyl_real* restrict outl, gkyl_real* restrict outr) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
   // fl/fr:     Distribution function in left/right cells.
   // outl/outr: Incremented distribution function in left/right cells.
-  double rdxl2 = 2.0/dxvl[0]; 
-  double rdxr2 = 2.0/dxvr[0]; 
+  gkyl_real rdxl2 = 2.0/dxvl[0]; 
+  gkyl_real rdxr2 = 2.0/dxvr[0]; 
 
-  double incr[48]; 
+  gkyl_real incr[48]; 
 
   if (wr[2]>0) { 
   incr[0] = dxvl[2]*(0.3227486121839514*fl[21]+0.25*fl[6]+0.1443375672974065*fl[3])+wl[2]*(1.118033988749895*fl[11]+0.8660254037844386*fl[1]+0.5*fl[0]); 
@@ -306,16 +306,16 @@ void vlasov_surfx_2x2v_ser_p2(const double *wl, const double *wr, const double *
   outl[47] += incr[47]*rdxl2; 
   } 
 } 
-void vlasov_surfy_2x2v_ser_p2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double* restrict outl, double* restrict outr) 
+void vlasov_surfy_2x2v_ser_p2(const gkyl_real *wl, const gkyl_real *wr, const gkyl_real *dxvl, const gkyl_real *dxvr, const gkyl_real *fl, const gkyl_real *fr, gkyl_real* restrict outl, gkyl_real* restrict outr) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
   // fl/fr:     Distribution function in left/right cells.
   // outl/outr: Incremented distribution function in left/right cells.
-  double rdxl2 = 2.0/dxvl[1]; 
-  double rdxr2 = 2.0/dxvr[1]; 
+  gkyl_real rdxl2 = 2.0/dxvl[1]; 
+  gkyl_real rdxr2 = 2.0/dxvr[1]; 
 
-  double incr[48]; 
+  gkyl_real incr[48]; 
 
   if (wr[3]>0) { 
   incr[0] = dxvl[3]*(0.3227486121839514*fl[26]+0.25*fl[9]+0.1443375672974065*fl[4])+wl[3]*(1.118033988749895*fl[12]+0.8660254037844386*fl[2]+0.5*fl[0]); 
@@ -613,7 +613,7 @@ void vlasov_surfy_2x2v_ser_p2(const double *wl, const double *wr, const double *
   outl[47] += incr[47]*rdxl2; 
   } 
 } 
-double vlasov_surfvx_2x2v_ser_p2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *qmem, const double *fl, const double *fr, double* restrict outl, double* restrict outr) 
+gkyl_real vlasov_surfvx_2x2v_ser_p2(const gkyl_real *wl, const gkyl_real *wr, const gkyl_real *dxvl, const gkyl_real *dxvr, const gkyl_real amax, const gkyl_real *qmem, const gkyl_real *fl, const gkyl_real *fr, gkyl_real* restrict outl, gkyl_real* restrict outr) 
 { 
   // w:         Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
@@ -622,17 +622,17 @@ double vlasov_surfvx_2x2v_ser_p2(const double *wl, const double *wr, const doubl
   // fl/fr:     Distribution function in left/right cells 
   // outl/outr: output distribution function in left/right cells 
   // returns abs(amid) for use in determining amax in cfl and global lax flux 
-  double dv10l = 2/dxvl[2]; 
-  double dv10r = 2/dxvr[2]; 
+  gkyl_real dv10l = 2/dxvl[2]; 
+  gkyl_real dv10r = 2/dxvr[2]; 
 
-  const double dv1 = dxvr[2], wv1 = wr[2]; 
-  const double dv2 = dxvr[3], wv2 = wr[3]; 
-  const double *E0 = &qmem[0]; 
-  const double *B2 = &qmem[40]; 
+  const gkyl_real dv1 = dxvr[2], wv1 = wr[2]; 
+  const gkyl_real dv2 = dxvr[3], wv2 = wr[3]; 
+  const gkyl_real *E0 = &qmem[0]; 
+  const gkyl_real *B2 = &qmem[40]; 
 
-  double Ghat[20]; 
-  double favg[20]; 
-  double alpha[20]; 
+  gkyl_real Ghat[20]; 
+  gkyl_real favg[20]; 
+  gkyl_real alpha[20]; 
 
   favg[0] = 1.58113883008419*fr[13]+1.58113883008419*fl[13]-1.224744871391589*fr[3]+1.224744871391589*fl[3]+0.7071067811865475*fr[0]+0.7071067811865475*fl[0]; 
   favg[1] = 1.58113883008419*fr[23]+1.58113883008419*fl[23]-1.224744871391589*fr[6]+1.224744871391589*fl[6]+0.7071067811865475*fr[1]+0.7071067811865475*fl[1]; 
@@ -672,7 +672,7 @@ double vlasov_surfvx_2x2v_ser_p2(const double *wl, const double *wr, const doubl
   alpha[17] = 0.408248290463863*B2[6]*dv2; 
   alpha[18] = 0.408248290463863*B2[7]*dv2; 
 
-  double amid = (-0.3952847075210473*alpha[8])-0.3952847075210473*alpha[7]+0.3535533905932737*alpha[0]; 
+  gkyl_real amid = (-0.3952847075210473*alpha[8])-0.3952847075210473*alpha[7]+0.3535533905932737*alpha[0]; 
 
   Ghat[0] = 0.1767766952966368*(alpha[18]*favg[18]+alpha[17]*favg[17]+alpha[14]*favg[14]+alpha[13]*favg[13]+alpha[12]*favg[12]+alpha[11]*favg[11]+alpha[10]*favg[10]+alpha[8]*favg[8]+alpha[7]*favg[7]+alpha[6]*favg[6]+alpha[5]*favg[5]+alpha[4]*favg[4]+alpha[3]*favg[3]+alpha[2]*favg[2]+alpha[1]*favg[1]+alpha[0]*favg[0])-0.3535533905932737*(2.23606797749979*fr[13]-1.0*(2.23606797749979*fl[13]+1.732050807568877*(fr[3]+fl[3]))+fr[0]-1.0*fl[0])*amax; 
   Ghat[1] = 0.01178511301977579*(15.0*(alpha[14]*favg[18]+favg[14]*alpha[18])+13.41640786499874*(alpha[10]*favg[17]+favg[10]*alpha[17])+13.41640786499874*(alpha[5]*favg[13]+favg[5]*alpha[13])+15.0*(alpha[8]*favg[12]+favg[8]*alpha[12])+13.41640786499874*(alpha[4]*favg[11]+favg[4]*alpha[11])+15.0*(alpha[6]*favg[10]+favg[6]*alpha[10])+13.41640786499874*(alpha[1]*favg[7]+favg[1]*alpha[7])+15.0*(alpha[3]*favg[5]+favg[3]*alpha[5]+alpha[2]*favg[4]+favg[2]*alpha[4]+alpha[0]*favg[1]+favg[0]*alpha[1]))-0.1178511301977579*(1.732050807568877*(3.872983346207417*fr[23]-1.0*(3.872983346207417*fl[23]+3.0*(fr[6]+fl[6])))+3.0*(fr[1]-1.0*fl[1]))*amax; 
@@ -795,7 +795,7 @@ double vlasov_surfvx_2x2v_ser_p2(const double *wl, const double *wr, const doubl
 
   return fabs(amid); 
 } 
-double vlasov_surfvy_2x2v_ser_p2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *qmem, const double *fl, const double *fr, double* restrict outl, double* restrict outr) 
+gkyl_real vlasov_surfvy_2x2v_ser_p2(const gkyl_real *wl, const gkyl_real *wr, const gkyl_real *dxvl, const gkyl_real *dxvr, const gkyl_real amax, const gkyl_real *qmem, const gkyl_real *fl, const gkyl_real *fr, gkyl_real* restrict outl, gkyl_real* restrict outr) 
 { 
   // w:         Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
@@ -804,17 +804,17 @@ double vlasov_surfvy_2x2v_ser_p2(const double *wl, const double *wr, const doubl
   // fl/fr:     Distribution function in left/right cells 
   // outl/outr: output distribution function in left/right cells 
   // returns abs(amid) for use in determining amax in cfl and global lax flux 
-  double dv11l = 2/dxvl[3]; 
-  double dv11r = 2/dxvr[3]; 
+  gkyl_real dv11l = 2/dxvl[3]; 
+  gkyl_real dv11r = 2/dxvr[3]; 
 
-  const double dv1 = dxvr[2], wv1 = wr[2]; 
-  const double dv2 = dxvr[3], wv2 = wr[3]; 
-  const double *E1 = &qmem[8]; 
-  const double *B2 = &qmem[40]; 
+  const gkyl_real dv1 = dxvr[2], wv1 = wr[2]; 
+  const gkyl_real dv2 = dxvr[3], wv2 = wr[3]; 
+  const gkyl_real *E1 = &qmem[8]; 
+  const gkyl_real *B2 = &qmem[40]; 
 
-  double Ghat[20]; 
-  double favg[20]; 
-  double alpha[20]; 
+  gkyl_real Ghat[20]; 
+  gkyl_real favg[20]; 
+  gkyl_real alpha[20]; 
 
   favg[0] = 1.58113883008419*fr[14]+1.58113883008419*fl[14]-1.224744871391589*fr[4]+1.224744871391589*fl[4]+0.7071067811865475*fr[0]+0.7071067811865475*fl[0]; 
   favg[1] = 1.58113883008419*fr[28]+1.58113883008419*fl[28]-1.224744871391589*fr[8]+1.224744871391589*fl[8]+0.7071067811865475*fr[1]+0.7071067811865475*fl[1]; 
@@ -854,7 +854,7 @@ double vlasov_surfvy_2x2v_ser_p2(const double *wl, const double *wr, const doubl
   alpha[17] = -0.408248290463863*B2[6]*dv1; 
   alpha[18] = -0.408248290463863*B2[7]*dv1; 
 
-  double amid = (-0.3952847075210473*alpha[8])-0.3952847075210473*alpha[7]+0.3535533905932737*alpha[0]; 
+  gkyl_real amid = (-0.3952847075210473*alpha[8])-0.3952847075210473*alpha[7]+0.3535533905932737*alpha[0]; 
 
   Ghat[0] = 0.1767766952966368*(alpha[18]*favg[18]+alpha[17]*favg[17]+alpha[14]*favg[14]+alpha[13]*favg[13]+alpha[12]*favg[12]+alpha[11]*favg[11]+alpha[10]*favg[10]+alpha[8]*favg[8]+alpha[7]*favg[7]+alpha[6]*favg[6]+alpha[5]*favg[5]+alpha[4]*favg[4]+alpha[3]*favg[3]+alpha[2]*favg[2]+alpha[1]*favg[1]+alpha[0]*favg[0])-0.3535533905932737*(2.23606797749979*fr[14]-1.0*(2.23606797749979*fl[14]+1.732050807568877*(fr[4]+fl[4]))+fr[0]-1.0*fl[0])*amax; 
   Ghat[1] = 0.01178511301977579*(15.0*(alpha[14]*favg[18]+favg[14]*alpha[18])+13.41640786499874*(alpha[10]*favg[17]+favg[10]*alpha[17])+13.41640786499874*(alpha[5]*favg[13]+favg[5]*alpha[13])+15.0*(alpha[8]*favg[12]+favg[8]*alpha[12])+13.41640786499874*(alpha[4]*favg[11]+favg[4]*alpha[11])+15.0*(alpha[6]*favg[10]+favg[6]*alpha[10])+13.41640786499874*(alpha[1]*favg[7]+favg[1]*alpha[7])+15.0*(alpha[3]*favg[5]+favg[3]*alpha[5]+alpha[2]*favg[4]+favg[2]*alpha[4]+alpha[0]*favg[1]+favg[0]*alpha[1]))-0.1178511301977579*(1.732050807568877*(3.872983346207417*fr[28]-1.0*(3.872983346207417*fl[28]+3.0*(fr[8]+fl[8])))+3.0*(fr[1]-1.0*fl[1]))*amax; 
