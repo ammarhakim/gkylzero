@@ -2,75 +2,76 @@
 
 #include <gkyl_array.h>
 #include <gkyl_range.h>
+#include <gkyl_real_type.h>
 
 /** Generic clear macro */
 #define gkyl_array_clear(out, a)       \
-    _Generic((a),                      \
+    _Generic((gkyl_real_type_zero),    \
       float: gkyl_array_clear_float,   \
       double: gkyl_array_clear_double) \
     (out, a)
 
 /** Generic clear macro */
-#define gkyl_array_clear_range(out, a, range)   \
-    _Generic((a),                               \
-      float: gkyl_array_clear_range_float,      \
-      double: gkyl_array_clear_range_double)    \
+#define gkyl_array_clear_range(out, a, range)                     \
+    _Generic((gkyl_real_type_zero),                               \
+      float: gkyl_array_clear_range_float,                        \
+      double: gkyl_array_clear_range_double)                      \
     (out, a, range)
 
 /** Generic accumulate macro */
-#define gkyl_array_accumulate(out, a, inp)      \
-    _Generic((a),                               \
-      float: gkyl_array_accumulate_float,       \
-      double: gkyl_array_accumulate_double)     \
+#define gkyl_array_accumulate(out, a, inp)                        \
+    _Generic((gkyl_real_type_zero),                               \
+      float: gkyl_array_accumulate_float,                         \
+      double: gkyl_array_accumulate_double)                       \
     (out, a, inp)
 
 /** Generic accumulate macro */
-#define gkyl_array_accumulate_range(out, a, inp, range) \
-    _Generic((a),                                       \
-      float: gkyl_array_accumulate_range_float,         \
-      double: gkyl_array_accumulate_range_double)       \
+#define gkyl_array_accumulate_range(out, a, inp, range)                 \
+    _Generic((gkyl_real_type_zero),                                     \
+      float: gkyl_array_accumulate_range_float,                         \
+      double: gkyl_array_accumulate_range_double)                       \
     (out, a, inp, range)
 
 /** Generic set macro */
-#define gkyl_array_set(out, a, inp)             \
-    _Generic((a),                               \
-      float: gkyl_array_set_float,              \
-      double: gkyl_array_set_double)            \
+#define gkyl_array_set(out, a, inp)                               \
+    _Generic((gkyl_real_type_zero),                               \
+      float: gkyl_array_set_float,                                \
+      double: gkyl_array_set_double)                              \
     (out, a, inp)
 
+/** Generic scale macro */
+#define gkyl_array_scale(out, a)                                  \
+    _Generic((gkyl_real_type_zero),                               \
+      float: gkyl_array_scale_float,                              \
+      double: gkyl_array_scale_double)                            \
+    (out, a)
+
 /** Generic set macro */
-#define gkyl_array_set_range(out, a, inp, range)        \
-    _Generic((a),                                       \
-      float: gkyl_array_set_range_float,                \
-      double: gkyl_array_set_range_double)              \
+#define gkyl_array_set_range(out, a, inp, range)                        \
+    _Generic((gkyl_real_type_zero),                                     \
+      float: gkyl_array_set_range_float,                                \
+      double: gkyl_array_set_range_double)                              \
     (out, a, inp, range)
 
-/** Generic scale macro (uses set) */
-#define gkyl_array_scale(out, a)                \
-    _Generic((a),                               \
-      float: gkyl_array_set_float,              \
-      double: gkyl_array_set_double)            \
-    (out, a, out)
-
-/** Generic scale macro (uses set) */
-#define gkyl_array_scale_range(out, a, range)   \
-    _Generic((a),                               \
-      float: gkyl_array_set_range_float,        \
-      double: gkyl_array_set_range_double)      \
-    (out, a, out, range)
+/** Generic scale macro */
+#define gkyl_array_scale_range(out, a, range)  \
+    _Generic((gkyl_real_type_zero),            \
+      float: gkyl_array_scale_range_float,     \
+      double: gkyl_array_scale_range_double)   \
+    (out, a, range)
 
 /** Generic reduce macro */
-#define gkyl_array_reduce(arr, op, out)                      \
-    _Generic((out),                                          \
-      float *: gkyl_array_reduce_float,                      \
-      double *: gkyl_array_reduce_double)                    \
+#define gkyl_array_reduce(arr, op, out)  \
+    _Generic((gkyl_real_type_zero),      \
+      float: gkyl_array_reduce_float,    \
+      double: gkyl_array_reduce_double)  \
     (arr, op, out)
 
 /** Generic reduce macro */
 #define gkyl_array_reduce_range(res, arr, op, range)         \
-    _Generic((res),                                          \
-      float *: gkyl_array_reduce_range_float,                \
-      double *: gkyl_array_reduce_range_double)              \
+    _Generic((gkyl_real_type_zero),                          \
+      float: gkyl_array_reduce_range_float,                  \
+      double: gkyl_array_reduce_range_double)                \
     (res, arr, op, range)
 
 // Array reduce operators
@@ -112,6 +113,9 @@ struct gkyl_array* gkyl_array_set_double(struct gkyl_array *out,
 struct gkyl_array* gkyl_array_set_float(struct gkyl_array *out,
   float a, const struct gkyl_array *inp);
 
+struct gkyl_array* gkyl_array_scale_double(struct gkyl_array *out, double a);
+struct gkyl_array* gkyl_array_scale_float(struct gkyl_array *out, float a);
+
 /**
  * Clear out = val. Returns out.
  *
@@ -151,6 +155,12 @@ struct gkyl_array* gkyl_array_set_range_double(struct gkyl_array *out,
   double a, const struct gkyl_array *inp, const struct gkyl_range *range);
 struct gkyl_array* gkyl_array_set_range_float(struct gkyl_array *out,
   float a, const struct gkyl_array *inp, const struct gkyl_range *range);
+
+struct gkyl_array* gkyl_array_scale_range_double(struct gkyl_array *out,
+  double a, const struct gkyl_range *range);
+
+struct gkyl_array* gkyl_array_scale_range_float(struct gkyl_array *out,
+  float a, const struct gkyl_range *range);
 
 /**
  * Copy out inp. Returns out.

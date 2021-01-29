@@ -16,6 +16,8 @@ def options(opt):
                    action='store_true', default=False)
     opt.add_option('--prefix', type='string', help='Install path', dest='prefix',
                    default=os.path.expandvars('$HOME/gkylsoft/gkylzero'))
+    opt.add_option('--real-type', type='string', help='Real number type (float or double)', dest='real_type',
+                   default="double")
     opt.add_option('--extra-link-libs', type='string', help='Extra libraries to link to', dest='extralibs',
                    default='')
 
@@ -34,6 +36,17 @@ def check_gkylzero(conf):
     if conf.options.gkdebug:
       conf.env.append_value('CXXFLAGS', '-g')
       conf.env.append_value('CFLAGS', '-g')
+
+    if conf.options.real_type == "float":
+        conf.start_msg("Using real-type:")
+        conf.end_msg("float")
+
+        conf.env.append_value('CFLAGS', '-DGKYL_REAL_TYPE=1')
+        conf.env.append_value('CXXFLAGS', '-DGKYL_REAL_TYPE=1')
+
+    else:
+        conf.start_msg("Using real-type:")
+        conf.end_msg("double")
 
     conf.env.EXTRALIBS = ' '.join(conf.options.extralibs.split(','))
     

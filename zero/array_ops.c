@@ -84,6 +84,18 @@ GKYL_ARRAY_SET(double)
 GKYL_ARRAY_REDUCE(float)
 GKYL_ARRAY_REDUCE(double)
 
+struct gkyl_array*
+gkyl_array_scale_double(struct gkyl_array *out, double a)
+{
+  return gkyl_array_set_double(out, a, out);
+}
+
+struct gkyl_array*
+gkyl_array_scale_float(struct gkyl_array *out, float a)
+{
+  return gkyl_array_set_float(out, a, out);
+}
+
 // range based methods
 
 #define GKYL_ARRAY_CLEAR_RANGE(type)                                    \
@@ -180,6 +192,18 @@ GKYL_ARRAY_ACCUMULATE_RANGE(double)
 
 GKYL_ARRAY_SET_RANGE(float)
 GKYL_ARRAY_SET_RANGE(double)
+
+struct gkyl_array*
+gkyl_array_scale_range_double(struct gkyl_array *out, double a, const struct gkyl_range *range)
+{
+  return gkyl_array_set_range_double(out, a, out, range);
+}
+
+struct gkyl_array*
+gkyl_array_scale_range_float(struct gkyl_array *out, float a, const struct gkyl_range *range)
+{
+  return gkyl_array_set_range_float(out, a, out, range);
+}
 
 #define GKYL_ARRAY_REDUCE_RANGE(type)                                   \
     void gkyl_array_reduce_range_##type(type *res,                      \

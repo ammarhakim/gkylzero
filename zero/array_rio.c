@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include <gkyl_real_type.h>
 #include <gkyl_array_rio.h>
 
 void
@@ -44,6 +45,11 @@ gkyl_grid_array_write(const struct gkyl_rect_grid *grid, const struct gkyl_range
   const struct gkyl_array *arr, const char *fname)
 {
   FILE *fp = fopen(fname, "wb"); if (!fp) return errno;
+
+  // write if the data is float or double
+  uint64_t real_type = gkyl_real_type_id;
+  fwrite(&real_type, sizeof(uint64_t), 1, fp);
+  
   gkyl_rect_grid_write(grid, fp);
   gkyl_sub_array_write(range, arr, fp);
   fclose(fp);
