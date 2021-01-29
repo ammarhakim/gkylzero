@@ -5,10 +5,10 @@
 
 // This is based on an implementation in Numerical Recipes in C book
 static void
-priv_gkyl_gauleg( double x1, double x2,  double x[], double w[], int n)
+priv_gkyl_gauleg( gkyl_real x1, gkyl_real x2,  gkyl_real x[], gkyl_real w[], int n)
 {
   int m, j, i;
-  double z1, z, xm, xl, pp, p3, p2, p1;
+  gkyl_real z1, z, xm, xl, pp, p3, p2, p1;
 
   m = (n+1)/2;
   xm = 0.5*(x2+x1);
@@ -35,7 +35,7 @@ priv_gkyl_gauleg( double x1, double x2,  double x[], double w[], int n)
 }
 
 void
-gkyl_gauleg(double x1, double x2,  double x[], double w[], int n)
+gkyl_gauleg(gkyl_real x1, gkyl_real x2,  gkyl_real x[], gkyl_real w[], int n)
 {
   priv_gkyl_gauleg(x1, x2, x-1, w-1, n); // actual routine assumes 1-offset arrays
 }

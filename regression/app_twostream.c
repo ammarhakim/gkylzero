@@ -5,33 +5,33 @@
 #include <gkyl_vlasov.h>
 
 struct twostream_ctx {
-    double knumber; // wave-number
-    double vth; // electron thermal velocity
-    double vdrift; // drift velocity
-    double perturbation;
+    gkyl_real knumber; // wave-number
+    gkyl_real vth; // electron thermal velocity
+    gkyl_real vdrift; // drift velocity
+    gkyl_real perturbation;
 };
 
-static inline double sq(double x) { return x*x; }
+static inline gkyl_real sq(gkyl_real x) { return x*x; }
 
 void
-evalDistFunc(double t, const double * restrict xn, double* restrict fout, void *ctx)
+evalDistFunc(gkyl_real t, const gkyl_real * restrict xn, gkyl_real* restrict fout, void *ctx)
 {
   struct twostream_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
-  double alpha = app->perturbation, k = app->knumber, vt = app->vth, vdrift = app->vdrift;
+  gkyl_real x = xn[0], v = xn[1];
+  gkyl_real alpha = app->perturbation, k = app->knumber, vt = app->vth, vdrift = app->vdrift;
 
-  double fv = 1/sqrt(8*M_PI*sq(vt))*(exp(-sq(v-vdrift)/(2*sq(vt)))+exp(-sq(v+vdrift)/(2*sq(vt))));
+  gkyl_real fv = 1/sqrt(8*M_PI*sq(vt))*(exp(-sq(v-vdrift)/(2*sq(vt)))+exp(-sq(v+vdrift)/(2*sq(vt))));
   fout[0] = (1+alpha*cos(k*x))*fv;
 }
 
 void
-evalFieldFunc(double t, const double* restrict xn, double* restrict fout, void *ctx)
+evalFieldFunc(gkyl_real t, const gkyl_real* restrict xn, gkyl_real* restrict fout, void *ctx)
 {
   struct twostream_ctx *app = ctx;
-  double x = xn[0];
-  double alpha = app->perturbation, k = app->knumber;
+  gkyl_real x = xn[0];
+  gkyl_real alpha = app->perturbation, k = app->knumber;
 
-  double E_x = -alpha*sin(k*x)/k;
+  gkyl_real E_x = -alpha*sin(k*x)/k;
   
   fout[0] = E_x; fout[1] = 0.0, fout[2] = 0.0;
   fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
@@ -103,8 +103,8 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 40.0;
-  double dt = tend-tcurr;
+  gkyl_real tcurr = 0.0, tend = 40.0;
+  gkyl_real dt = tend-tcurr;
 
   // initialize simulation
   gkyl_vlasov_app_apply_ic(app, tcurr);

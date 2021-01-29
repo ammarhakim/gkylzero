@@ -3,29 +3,29 @@
 #pragma once
 
 static void 
-eval_1d_p0(const double *z, double* restrict b) { 
+eval_1d_p0(const gkyl_real *z, gkyl_real* restrict b) { 
 
 
    b[0] = 0.7071067811865475; 
 } 
 static void 
-eval_1d_p1(const double *z, double* restrict b) { 
-   const double z1 = z[0];
+eval_1d_p1(const gkyl_real *z, gkyl_real* restrict b) { 
+   const gkyl_real z1 = z[0];
 
    b[0] = 0.7071067811865475; 
    b[1] = 1.224744871391589*z1; 
 } 
 static void 
-eval_1d_p2(const double *z, double* restrict b) { 
-   const double z1 = z[0]; const double z1_sq = z1*z1;
+eval_1d_p2(const gkyl_real *z, gkyl_real* restrict b) { 
+   const gkyl_real z1 = z[0]; const gkyl_real z1_sq = z1*z1;
 
    b[0] = 0.7071067811865475; 
    b[1] = 1.224744871391589*z1; 
    b[2] = 2.371708245126284*z1_sq-0.7905694150420947; 
 } 
 static void 
-eval_1d_p3(const double *z, double* restrict b) { 
-   const double z1 = z[0]; const double z1_sq = z1*z1; const double z1_cu = z1*z1*z1;
+eval_1d_p3(const gkyl_real *z, gkyl_real* restrict b) { 
+   const gkyl_real z1 = z[0]; const gkyl_real z1_sq = z1*z1; const gkyl_real z1_cu = z1*z1*z1;
 
    b[0] = 0.7071067811865475; 
    b[1] = 1.224744871391589*z1; 
@@ -33,14 +33,14 @@ eval_1d_p3(const double *z, double* restrict b) {
    b[3] = 4.677071733467426*z1_cu-2.806243040080455*z1; 
 } 
 static void 
-eval_2d_p0(const double *z, double* restrict b) { 
+eval_2d_p0(const gkyl_real *z, gkyl_real* restrict b) { 
 
    b[0] = 0.5; 
 } 
 static void 
-eval_2d_p1(const double *z, double* restrict b) { 
-   const double z1 = z[0];
-   const double z2 = z[1];
+eval_2d_p1(const gkyl_real *z, gkyl_real* restrict b) { 
+   const gkyl_real z1 = z[0];
+   const gkyl_real z2 = z[1];
 
    b[0] = 0.5; 
    b[1] = 0.8660254037844386*z1; 
@@ -48,9 +48,9 @@ eval_2d_p1(const double *z, double* restrict b) {
    b[3] = 1.5*z1*z2; 
 } 
 static void 
-eval_2d_p2(const double *z, double* restrict b) { 
-   const double z1 = z[0]; const double z1_sq = z1*z1;
-   const double z2 = z[1]; const double z2_sq = z2*z2;
+eval_2d_p2(const gkyl_real *z, gkyl_real* restrict b) { 
+   const gkyl_real z1 = z[0]; const gkyl_real z1_sq = z1*z1;
+   const gkyl_real z2 = z[1]; const gkyl_real z2_sq = z2*z2;
 
    b[0] = 0.5; 
    b[1] = 0.8660254037844386*z1; 
@@ -62,9 +62,9 @@ eval_2d_p2(const double *z, double* restrict b) {
    b[7] = 2.904737509655563*z1*z2_sq-0.9682458365518543*z1; 
 } 
 static void 
-eval_2d_p3(const double *z, double* restrict b) { 
-   const double z1 = z[0]; const double z1_sq = z1*z1; const double z1_cu = z1*z1*z1;
-   const double z2 = z[1]; const double z2_sq = z2*z2; const double z2_cu = z2*z2*z2;
+eval_2d_p3(const gkyl_real *z, gkyl_real* restrict b) { 
+   const gkyl_real z1 = z[0]; const gkyl_real z1_sq = z1*z1; const gkyl_real z1_cu = z1*z1*z1;
+   const gkyl_real z2 = z[1]; const gkyl_real z2_sq = z2*z2; const gkyl_real z2_cu = z2*z2*z2;
 
    b[0] = 0.5; 
    b[1] = 0.8660254037844386*z1; 
@@ -80,15 +80,15 @@ eval_2d_p3(const double *z, double* restrict b) {
    b[11] = 5.7282196186948*z1*z2_cu-3.43693177121688*z1*z2; 
 } 
 static void 
-eval_3d_p0(const double *z, double* restrict b) {
+eval_3d_p0(const gkyl_real *z, gkyl_real* restrict b) {
   
    b[0] = 0.3535533905932737; 
 } 
 static void 
-eval_3d_p1(const double *z, double* restrict b) { 
-   const double z1 = z[0];
-   const double z2 = z[1];
-   const double z3 = z[2];
+eval_3d_p1(const gkyl_real *z, gkyl_real* restrict b) { 
+   const gkyl_real z1 = z[0];
+   const gkyl_real z2 = z[1];
+   const gkyl_real z3 = z[2];
 
    b[0] = 0.3535533905932737; 
    b[1] = 0.6123724356957944*z1; 
@@ -100,10 +100,10 @@ eval_3d_p1(const double *z, double* restrict b) {
    b[7] = 1.837117307087383*z1*z2*z3; 
 } 
 static void 
-eval_3d_p2(const double *z, double* restrict b) { 
-   const double z1 = z[0]; const double z1_sq = z1*z1;
-   const double z2 = z[1]; const double z2_sq = z2*z2;
-   const double z3 = z[2]; const double z3_sq = z3*z3;
+eval_3d_p2(const gkyl_real *z, gkyl_real* restrict b) { 
+   const gkyl_real z1 = z[0]; const gkyl_real z1_sq = z1*z1;
+   const gkyl_real z2 = z[1]; const gkyl_real z2_sq = z2*z2;
+   const gkyl_real z3 = z[2]; const gkyl_real z3_sq = z3*z3;
 
    b[0] = 0.3535533905932737; 
    b[1] = 0.6123724356957944*z1; 
@@ -127,10 +127,10 @@ eval_3d_p2(const double *z, double* restrict b) {
    b[19] = 3.557562367689425*z1*z2*z3_sq-1.185854122563142*z1*z2; 
 } 
 static void 
-eval_3d_p3(const double *z, double* restrict b) { 
-   const double z1 = z[0]; const double z1_sq = z1*z1; const double z1_cu = z1*z1*z1;
-   const double z2 = z[1]; const double z2_sq = z2*z2; const double z2_cu = z2*z2*z2;
-   const double z3 = z[2]; const double z3_sq = z3*z3; const double z3_cu = z3*z3*z3;
+eval_3d_p3(const gkyl_real *z, gkyl_real* restrict b) { 
+   const gkyl_real z1 = z[0]; const gkyl_real z1_sq = z1*z1; const gkyl_real z1_cu = z1*z1*z1;
+   const gkyl_real z2 = z[1]; const gkyl_real z2_sq = z2*z2; const gkyl_real z2_cu = z2*z2*z2;
+   const gkyl_real z3 = z[2]; const gkyl_real z3_sq = z3*z3; const gkyl_real z3_cu = z3*z3*z3;
 
    b[0] = 0.3535533905932737; 
    b[1] = 0.6123724356957944*z1; 
@@ -166,16 +166,16 @@ eval_3d_p3(const double *z, double* restrict b) {
    b[31] = 7.015607600201137*z1*z2*z3_cu-4.209364560120682*z1*z2*z3; 
 } 
 static void 
-eval_4d_p0(const double *z, double* restrict b) { 
+eval_4d_p0(const gkyl_real *z, gkyl_real* restrict b) { 
 
    b[0] = 0.25; 
 } 
 static void 
-eval_4d_p1(const double *z, double* restrict b) { 
-   const double z1 = z[0];
-   const double z2 = z[1];
-   const double z3 = z[2];
-   const double z4 = z[3];
+eval_4d_p1(const gkyl_real *z, gkyl_real* restrict b) { 
+   const gkyl_real z1 = z[0];
+   const gkyl_real z2 = z[1];
+   const gkyl_real z3 = z[2];
+   const gkyl_real z4 = z[3];
 
    b[0] = 0.25; 
    b[1] = 0.4330127018922193*z1; 
@@ -195,11 +195,11 @@ eval_4d_p1(const double *z, double* restrict b) {
    b[15] = 2.25*z1*z2*z3*z4; 
 } 
 static void 
-eval_4d_p2(const double *z, double* restrict b) { 
-   const double z1 = z[0]; const double z1_sq = z1*z1;
-   const double z2 = z[1]; const double z2_sq = z2*z2;
-   const double z3 = z[2]; const double z3_sq = z3*z3;
-   const double z4 = z[3]; const double z4_sq = z4*z4;
+eval_4d_p2(const gkyl_real *z, gkyl_real* restrict b) { 
+   const gkyl_real z1 = z[0]; const gkyl_real z1_sq = z1*z1;
+   const gkyl_real z2 = z[1]; const gkyl_real z2_sq = z2*z2;
+   const gkyl_real z3 = z[2]; const gkyl_real z3_sq = z3*z3;
+   const gkyl_real z4 = z[3]; const gkyl_real z4_sq = z4*z4;
 
    b[0] = 0.25; 
    b[1] = 0.4330127018922193*z1; 
@@ -251,11 +251,11 @@ eval_4d_p2(const double *z, double* restrict b) {
    b[47] = 4.357106264483344*z1*z2*z3*z4_sq-1.452368754827781*z1*z2*z3; 
 } 
 static void 
-eval_4d_p3(const double *z, double* restrict b) { 
-   const double z1 = z[0]; const double z1_sq = z1*z1; const double z1_cu = z1*z1*z1;
-   const double z2 = z[1]; const double z2_sq = z2*z2; const double z2_cu = z2*z2*z2;
-   const double z3 = z[2]; const double z3_sq = z3*z3; const double z3_cu = z3*z3*z3;
-   const double z4 = z[3]; const double z4_sq = z4*z4; const double z4_cu = z4*z4*z4;
+eval_4d_p3(const gkyl_real *z, gkyl_real* restrict b) { 
+   const gkyl_real z1 = z[0]; const gkyl_real z1_sq = z1*z1; const gkyl_real z1_cu = z1*z1*z1;
+   const gkyl_real z2 = z[1]; const gkyl_real z2_sq = z2*z2; const gkyl_real z2_cu = z2*z2*z2;
+   const gkyl_real z3 = z[2]; const gkyl_real z3_sq = z3*z3; const gkyl_real z3_cu = z3*z3*z3;
+   const gkyl_real z4 = z[3]; const gkyl_real z4_sq = z4*z4; const gkyl_real z4_cu = z4*z4*z4;
 
    b[0] = 0.25; 
    b[1] = 0.4330127018922193*z1; 
@@ -339,17 +339,17 @@ eval_4d_p3(const double *z, double* restrict b) {
    b[79] = 8.5923294280422*z1*z2*z3*z4_cu-5.15539765682532*z1*z2*z3*z4; 
 } 
 static void 
-eval_5d_p0(const double *z, double* restrict b) { 
+eval_5d_p0(const gkyl_real *z, gkyl_real* restrict b) { 
 
    b[0] = 0.1767766952966368; 
 } 
 static void 
-eval_5d_p1(const double *z, double* restrict b) { 
-   const double z1 = z[0];
-   const double z2 = z[1];
-   const double z3 = z[2];
-   const double z4 = z[3];
-   const double z5 = z[4];
+eval_5d_p1(const gkyl_real *z, gkyl_real* restrict b) { 
+   const gkyl_real z1 = z[0];
+   const gkyl_real z2 = z[1];
+   const gkyl_real z3 = z[2];
+   const gkyl_real z4 = z[3];
+   const gkyl_real z5 = z[4];
 
    b[0] = 0.1767766952966368; 
    b[1] = 0.3061862178478971*z1; 
@@ -385,12 +385,12 @@ eval_5d_p1(const double *z, double* restrict b) {
    b[31] = 2.755675960631073*z1*z2*z3*z4*z5; 
 } 
 static void 
-eval_5d_p2(const double *z, double* restrict b) { 
-   const double z1 = z[0]; const double z1_sq = z1*z1;
-   const double z2 = z[1]; const double z2_sq = z2*z2;
-   const double z3 = z[2]; const double z3_sq = z3*z3;
-   const double z4 = z[3]; const double z4_sq = z4*z4;
-   const double z5 = z[4]; const double z5_sq = z5*z5;
+eval_5d_p2(const gkyl_real *z, gkyl_real* restrict b) { 
+   const gkyl_real z1 = z[0]; const gkyl_real z1_sq = z1*z1;
+   const gkyl_real z2 = z[1]; const gkyl_real z2_sq = z2*z2;
+   const gkyl_real z3 = z[2]; const gkyl_real z3_sq = z3*z3;
+   const gkyl_real z4 = z[3]; const gkyl_real z4_sq = z4*z4;
+   const gkyl_real z5 = z[4]; const gkyl_real z5_sq = z5*z5;
 
    b[0] = 0.1767766952966368; 
    b[1] = 0.3061862178478971*z1; 
@@ -506,18 +506,18 @@ eval_5d_p2(const double *z, double* restrict b) {
    b[111] = 5.336343551534138*z1*z2*z3*z4*z5_sq-1.778781183844713*z1*z2*z3*z4; 
 } 
 static void 
-eval_6d_p0(const double *z, double* restrict b) { 
+eval_6d_p0(const gkyl_real *z, gkyl_real* restrict b) { 
 
    b[0] = 0.125; 
 } 
 static void 
-eval_6d_p1(const double *z, double* restrict b) { 
-   const double z1 = z[0];
-   const double z2 = z[1];
-   const double z3 = z[2];
-   const double z4 = z[3];
-   const double z5 = z[4];
-   const double z6 = z[5];
+eval_6d_p1(const gkyl_real *z, gkyl_real* restrict b) { 
+   const gkyl_real z1 = z[0];
+   const gkyl_real z2 = z[1];
+   const gkyl_real z3 = z[2];
+   const gkyl_real z4 = z[3];
+   const gkyl_real z5 = z[4];
+   const gkyl_real z6 = z[5];
 
    b[0] = 0.125; 
    b[1] = 0.2165063509461096*z1; 

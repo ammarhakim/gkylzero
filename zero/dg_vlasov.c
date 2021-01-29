@@ -9,20 +9,20 @@
 #include <kernels/vlasov/gkyl_vlasov_kernels.h>
 
 // Types for various kernels
-typedef double (*vlasov_stream_vol_t)(const double *w, const double *dxv,
-  const double *f, double* restrict out);
+typedef gkyl_real (*vlasov_stream_vol_t)(const gkyl_real *w, const gkyl_real *dxv,
+  const gkyl_real *f, gkyl_real* restrict out);
 
-typedef double (*vlasov_vol_t)(const double *w, const double *dxv,
-  const double *qmem, const double *f, double* restrict out);
+typedef gkyl_real (*vlasov_vol_t)(const gkyl_real *w, const gkyl_real *dxv,
+  const gkyl_real *qmem, const gkyl_real *f, gkyl_real* restrict out);
 
-typedef void (*vlasov_stream_surf_t)(const double *wl, const double *wr,
-  const double *dxvl, const double *dxvr,
-  const double *fl, const double *fr, double* restrict outl, double* restrict outr);
+typedef void (*vlasov_stream_surf_t)(const gkyl_real *wl, const gkyl_real *wr,
+  const gkyl_real *dxvl, const gkyl_real *dxvr,
+  const gkyl_real *fl, const gkyl_real *fr, gkyl_real* restrict outl, gkyl_real* restrict outr);
 
-typedef double (*vlasov_accel_surf_t)(const double *wl, const double *wr,
-  const double *dxvl, const double *dxvr,
-  const double amax, const double *qmem,
-  const double *fl, const double *fr, double* restrict outl, double* restrict outr);
+typedef gkyl_real (*vlasov_accel_surf_t)(const gkyl_real *wl, const gkyl_real *wr,
+  const gkyl_real *dxvl, const gkyl_real *dxvr,
+  const gkyl_real amax, const gkyl_real *qmem,
+  const gkyl_real *fl, const gkyl_real *fr, gkyl_real* restrict outl, gkyl_real* restrict outr);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
@@ -163,9 +163,9 @@ gkyl_vlasov_set_qmem(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qme
   vlasov->qmem = qmem;
 }
 
-static double
-vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
-  const int* idx, const double* qIn, double* restrict qRhsOut)
+static gkyl_real
+vol(const struct gkyl_dg_eqn *eqn, const gkyl_real*  xc, const gkyl_real*  dx, 
+  const int* idx, const gkyl_real* qIn, gkyl_real* restrict qRhsOut)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
 
@@ -176,15 +176,15 @@ vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
     qIn, qRhsOut);
 }
 
-static double
+static gkyl_real
 surf(const struct gkyl_dg_eqn *eqn, int dir,
-  const double*  xcL, const double*  xcR, const double*  dxL, const double* dxR,
-  double maxsOld, const int*  idxL, const int*  idxR,
-  const double* qInL, const double*  qInR, double* restrict qRhsOutL, double* restrict qRhsOutR)
+  const gkyl_real*  xcL, const gkyl_real*  xcR, const gkyl_real*  dxL, const gkyl_real* dxR,
+  gkyl_real maxsOld, const int*  idxL, const int*  idxR,
+  const gkyl_real* qInL, const gkyl_real*  qInR, gkyl_real* restrict qRhsOutL, gkyl_real* restrict qRhsOutR)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
 
-  double amax = 0.0;
+  gkyl_real amax = 0.0;
   if (dir < vlasov->cdim) {
     vlasov->stream_surf[dir]
       (xcL, xcR, dxL, dxR, qInL, qInR, qRhsOutL, qRhsOutR);
@@ -199,12 +199,12 @@ surf(const struct gkyl_dg_eqn *eqn, int dir,
   return amax;
 }
 
-static double
+static gkyl_real
 boundary_surf(const struct gkyl_dg_eqn *eqn,
   int dir,
-  const double*  xcL, const double*  xcR, const double*  dxL, const double*  dxR,
-  double maxsOld, const int*  idxL, const int*  idxR,
-  const double* qInL, const double* qInR, double* restrict qRhsOutL, double* restrict qRhsOutR)
+  const gkyl_real*  xcL, const gkyl_real*  xcR, const gkyl_real*  dxL, const gkyl_real*  dxR,
+  gkyl_real maxsOld, const int*  idxL, const int*  idxR,
+  const gkyl_real* qInL, const gkyl_real* qInR, gkyl_real* restrict qRhsOutL, gkyl_real* restrict qRhsOutR)
 {
   return 0;
 }

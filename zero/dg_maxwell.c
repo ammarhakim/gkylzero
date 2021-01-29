@@ -8,14 +8,14 @@
 #include <kernels/maxwell/gkyl_maxwell_kernels.h>
 
 // Types for various kernels
-typedef double (*maxwell_vol_t)(const gkyl_maxwell_inp *meq,
-  const double *w, const double *dx, const double *q, double* restrict out);
+typedef gkyl_real (*maxwell_vol_t)(const gkyl_maxwell_inp *meq,
+  const gkyl_real *w, const gkyl_real *dx, const gkyl_real *q, gkyl_real* restrict out);
 
-typedef double (*maxwell_surf_t)(const gkyl_maxwell_inp *meq,
-  const double *wl, const double *wr,
-  const double *dxl, const double *dxr, const double tau,
-  const double *ql, const double *qr,
-  double* restrict outl, double* restrict outr);
+typedef gkyl_real (*maxwell_surf_t)(const gkyl_maxwell_inp *meq,
+  const gkyl_real *wl, const gkyl_real *wr,
+  const gkyl_real *dxl, const gkyl_real *dxr, const gkyl_real tau,
+  const gkyl_real *ql, const gkyl_real *qr,
+  gkyl_real* restrict outl, gkyl_real* restrict outr);
 
 // Volume kernel list
 static struct { maxwell_vol_t kernels[3]; } vol_kernels[] = {
@@ -60,33 +60,33 @@ maxwell_free(const struct gkyl_ref_count *ref)
   free(maxwell);
 }
 
-static double
-vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double*  dx, 
-  const int*  idx, const double* qIn, double* restrict qRhsOut)
+static gkyl_real
+vol(const struct gkyl_dg_eqn *eqn, const gkyl_real* xc, const gkyl_real*  dx, 
+  const int*  idx, const gkyl_real* qIn, gkyl_real* restrict qRhsOut)
 {
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
   return maxwell->vol(&maxwell->maxwell_data, xc, dx, qIn, qRhsOut);
 }
 
-static double
+static gkyl_real
 surf(const struct gkyl_dg_eqn *eqn,
   int dir,
-  const double*  xcL, const double*  xcR, const double*  dxL, const double* dxR,
-  double maxsOld, const int*  idxL, const int*  idxR,
-  const double* qInL, const double*  qInR, double* restrict qRhsOutL, double* restrict qRhsOutR)
+  const gkyl_real*  xcL, const gkyl_real*  xcR, const gkyl_real*  dxL, const gkyl_real* dxR,
+  gkyl_real maxsOld, const int*  idxL, const int*  idxR,
+  const gkyl_real* qInL, const gkyl_real*  qInR, gkyl_real* restrict qRhsOutL, gkyl_real* restrict qRhsOutR)
 {
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
-  double maxs = maxwell->maxwell_data.c;
+  gkyl_real maxs = maxwell->maxwell_data.c;
   return maxwell->surf[dir](&maxwell->maxwell_data, xcL, xcR, dxL, dxR,
     maxs, qInL, qInR, qRhsOutL, qRhsOutR);
 }
 
-static double
+static gkyl_real
 boundary_surf(const struct gkyl_dg_eqn *eqn,
   int dir,
-  const double*  xcL, const double*  xcR, const double*  dxL, const double*  dxR,
-  double maxsOld, const int*  idxL, const int*  idxR,
-  const double* qInL, const double* qInR, double* restrict qRhsOutL, double* restrict qRhsOutR)
+  const gkyl_real*  xcL, const gkyl_real*  xcR, const gkyl_real*  dxL, const gkyl_real*  dxR,
+  gkyl_real maxsOld, const int*  idxL, const int*  idxR,
+  const gkyl_real* qInL, const gkyl_real* qInR, gkyl_real* restrict qRhsOutL, gkyl_real* restrict qRhsOutR)
 {
   return 0;
 }
@@ -96,7 +96,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
 
 struct gkyl_dg_eqn*
 gkyl_dg_maxwell_new(const struct gkyl_basis* cbasis,
-  double lightSpeed, double elcErrorSpeedFactor, double mgnErrorSpeedFactor)
+  gkyl_real lightSpeed, gkyl_real elcErrorSpeedFactor, gkyl_real mgnErrorSpeedFactor)
 {
   struct dg_maxwell *maxwell = gkyl_malloc(sizeof(struct dg_maxwell));
 

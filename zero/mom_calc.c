@@ -22,7 +22,7 @@ gkyl_mom_calc_advance(const gkyl_mom_calc* calc,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
   const struct gkyl_array *fin, struct gkyl_array *mout)
 {
-  double xc[GKYL_MAX_DIM];
+  gkyl_real xc[GKYL_MAX_DIM];
 
   gkyl_array_clear(mout, 0.0);
   

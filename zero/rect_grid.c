@@ -4,7 +4,7 @@
 
 void
 gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
-  const double *lower, const double *upper, const int *cells)
+  const gkyl_real *lower, const gkyl_real *upper, const int *cells)
 {
   grid->ndim = ndim;  
   grid->cellVolume = 1.0;
@@ -18,7 +18,7 @@ gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
 }
 
 void
-gkyl_rect_grid_cell_center(const struct gkyl_rect_grid *grid, const int *idx, double *xc)
+gkyl_rect_grid_cell_center(const struct gkyl_rect_grid *grid, const int *idx, gkyl_real *xc)
 {
   for (int i=0; i<grid->ndim; ++i)
     xc[i] = grid->lower[i]+(idx[i]+0.5)*grid->dx[i];
@@ -35,6 +35,6 @@ gkyl_rect_grid_write(const struct gkyl_rect_grid *grid, FILE *fp)
   
   fwrite(&ndim, sizeof(uint64_t), 1, fp);
   fwrite(cells, sizeof(uint64_t), grid->ndim, fp);
-  fwrite(grid->lower, sizeof(double), grid->ndim, fp);
-  fwrite(grid->upper, sizeof(double), grid->ndim, fp);
+  fwrite(grid->lower, sizeof(gkyl_real), grid->ndim, fp);
+  fwrite(grid->upper, sizeof(gkyl_real), grid->ndim, fp);
 }

@@ -3,7 +3,7 @@
 
 void test_grid_2d()
 {
-  double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
+  gkyl_real lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
   int cells[] = {20, 20};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
@@ -18,7 +18,7 @@ void test_grid_2d()
   TEST_CHECK( grid.cellVolume == 0.075*0.2 );
 
   int idx[2];
-  double xc[2];
+  gkyl_real xc[2];
   for (int i=0; i<grid.cells[0]; ++i)
     for (int j=0; j<grid.cells[1]; ++j) {
       idx[0] = i; idx[1] = j;

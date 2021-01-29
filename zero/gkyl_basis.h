@@ -1,5 +1,7 @@
 #pragma once
 
+#include <gkyl_real_type.h>
+
 /**
  * Basis function object: treat this as a read-only object.
  */
@@ -14,7 +16,7 @@ struct gkyl_basis {
  * @param z Location to evaluate basis. z \in [-1,1]^n
  * @param b On output, value of basis at 'z'
  */
-    void (*eval)(const double *z, double *b);
+    void (*eval)(const gkyl_real *z, gkyl_real *b);
 };
 
 /**

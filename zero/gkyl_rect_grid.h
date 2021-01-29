@@ -1,6 +1,8 @@
 #pragma once
 
 #include <stdio.h>
+
+#include <gkyl_real_type.h>
 #include <gkyl_util.h>
 
 /**
@@ -8,11 +10,11 @@
  */
 struct gkyl_rect_grid {
     int ndim; // number of dimensions
-    double lower[GKYL_MAX_DIM]; // lower-left corner
-    double upper[GKYL_MAX_DIM]; // upper-right corner
+    gkyl_real lower[GKYL_MAX_DIM]; // lower-left corner
+    gkyl_real upper[GKYL_MAX_DIM]; // upper-right corner
     int cells[GKYL_MAX_DIM]; // number of cells    
-    double dx[GKYL_MAX_DIM]; // cell spacing
-    double cellVolume; // cell volume
+    gkyl_real dx[GKYL_MAX_DIM]; // cell spacing
+    gkyl_real cellVolume; // cell volume
 };
 
 /**
@@ -25,7 +27,7 @@ struct gkyl_rect_grid {
  * @param cells Number of cells in each direction
  */
 void gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
-  const double *lower, const double *upper, const int *cells);
+  const gkyl_real *lower, const gkyl_real *upper, const int *cells);
 
 /**
  * Get cell-center coordinates. idx is the zero-based cell index.
@@ -35,7 +37,7 @@ void gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
  * @param xc On output, cell-center coordinates of cell 'idx'
  */
 void gkyl_rect_grid_cell_center(const struct gkyl_rect_grid *grid,
-  const int *idx, double *xc);
+  const int *idx, gkyl_real *xc);
 
 /**
  * Write grid data to file. File must be opened by caller of this

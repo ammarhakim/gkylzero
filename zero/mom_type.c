@@ -15,8 +15,8 @@ gkyl_mom_type_release(struct gkyl_mom_type* momt)
 
 void
 gkyl_mom_type_calc(const struct gkyl_mom_type* momt,
-  const double *xc, const double *dx, const int *idx,
-  const double *f, double* restrict out)
+  const gkyl_real *xc, const gkyl_real *dx, const int *idx,
+  const gkyl_real *f, gkyl_real* restrict out)
 {
   momt->kernel(xc, dx, idx, f, out);
 }

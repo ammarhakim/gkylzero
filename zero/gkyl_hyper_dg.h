@@ -4,6 +4,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_range.h>
+#include <gkyl_real_type.h>
 #include <gkyl_rect_grid.h>
 
 // Object type
@@ -38,7 +39,7 @@ gkyl_hyper_dg* gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
  * @param maxs Input/output: maximum speed
  */
 void gkyl_hyper_dg_advance(const gkyl_hyper_dg *hdg, const struct gkyl_range *update_rng,
-  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs, double *maxs);
+  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs, gkyl_real *maxs);
 
 /**
  * Set if volume term should be computed or not.

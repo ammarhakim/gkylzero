@@ -12,7 +12,7 @@ void test_ser_1d() {
   TEST_CHECK( basis1.numBasis == 2 );
   TEST_CHECK( strcmp(basis1.id, "serendipity") == 0 );
 
-  double z[1], b[basis1.numBasis];
+  gkyl_real z[1], b[basis1.numBasis];
 
   z[0] = 0.0; basis1.eval(z, b);
 

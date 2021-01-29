@@ -1,5 +1,7 @@
 #pragma once
 
+#include <gkyl_real_type.h>
+
 #ifndef GKYL_MAX_SPECIES
 # define GKYL_MAX_SPECIES 2
 #endif
@@ -9,22 +11,22 @@
 // actual time-step the simulation used.
 struct gkyl_update_status {
     int success; // 1 if update worked, 0 if a fatal error
-    double dt_actual; // actual time-step taken
-    double dt_suggested; // suggested stable time-step
+    gkyl_real dt_actual; // actual time-step taken
+    gkyl_real dt_suggested; // suggested stable time-step
 };
 
 // Parameters for Vlasov species
 struct gkyl_vlasov_species {
     char name[128]; // species name
-    double charge, mass; // charge and mass
-    double lower[3], upper[3]; // lower, upper bounds of velocity-space
+    gkyl_real charge, mass; // charge and mass
+    gkyl_real lower[3], upper[3]; // lower, upper bounds of velocity-space
     int cells[3]; // velocity-space cells
 
     int evolve; // evolve species? 1-yes, 0-no
 
     void *ctx; // context for initial condition init function
     // pointer to initialization function
-    void (*init)(double t, const double *xn, double *fout, void *ctx);
+    void (*init)(gkyl_real t, const gkyl_real *xn, gkyl_real *fout, void *ctx);
 
     int num_diag_moments; // number of diagnostic moments
     char diag_moments[16][16]; // list of diagnostic moments
@@ -32,14 +34,14 @@ struct gkyl_vlasov_species {
 
 // Parameter for EM field
 struct gkyl_em_field {
-    double epsilon0, mu0;
-    double elcErrorSpeedFactor, mgnErrorSpeedFactor;
+    gkyl_real epsilon0, mu0;
+    gkyl_real elcErrorSpeedFactor, mgnErrorSpeedFactor;
 
     int evolve; // evolve field? 1-yes, 0-no
 
     void *ctx; // context for initial condition init function
     // pointer to initialization function
-    void (*init)(double t, const double *xn, double *fout, void *ctx);
+    void (*init)(gkyl_real t, const gkyl_real *xn, gkyl_real *fout, void *ctx);
 };
 
 // Top-level app parameters
@@ -47,11 +49,11 @@ struct gkyl_vm {
     char name[128]; // name of app: used as output prefix
 
     int cdim, vdim; // conf, velocity space dimensions
-    double lower[3], upper[3]; // lower, upper bounds of config-space
+    gkyl_real lower[3], upper[3]; // lower, upper bounds of config-space
     int cells[3]; // config-space cells
     int poly_order; // polynomial order
 
-    double cfl_frac; // CFL fraction to use (default 1.0)
+    gkyl_real cfl_frac; // CFL fraction to use (default 1.0)
 
     int num_periodic_dir; // number of periodic directions
     int periodic_dirs[3]; // list of periodic directions
@@ -69,19 +71,19 @@ struct gkyl_vlasov_stat {
     long nstage_2_fail; // number of failed RK stage-2s
     long nstage_3_fail; // number of failed RK stage-3s
 
-    double stage_2_dt_diff[2]; // [min,max] rel-diff for stage-2 failure
-    double stage_3_dt_diff[2]; // [min,max] rel-diff for stage-3 failure
+    gkyl_real stage_2_dt_diff[2]; // [min,max] rel-diff for stage-2 failure
+    gkyl_real stage_3_dt_diff[2]; // [min,max] rel-diff for stage-3 failure
     
-    double total_tm; // time for simulation (not including ICs)
-    double init_species_tm; // time to initialize all species
-    double init_field_tm; // time to initialize fields
+    gkyl_real total_tm; // time for simulation (not including ICs)
+    gkyl_real init_species_tm; // time to initialize all species
+    gkyl_real init_field_tm; // time to initialize fields
 
-    double species_rhs_tm; // time to compute species RHS
-    double field_rhs_tm; // time to compute field RHS
-    double current_tm; // time to compute currents and accumulation
+    gkyl_real species_rhs_tm; // time to compute species RHS
+    gkyl_real field_rhs_tm; // time to compute field RHS
+    gkyl_real current_tm; // time to compute currents and accumulation
 
     long nmom; // calls to moment calculation
-    double mom_tm; // time to compute moments
+    gkyl_real mom_tm; // time to compute moments
 };
 
 // Object representing Vlasov mini-app
@@ -103,7 +105,7 @@ gkyl_vlasov_app* gkyl_vlasov_app_new(struct gkyl_vm vm);
  * @param app App object.
  * @param t0 Time for initial conditions.
  */
-void gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0);
+void gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, gkyl_real t0);
 
 /**
  * Initialize field by projecting initial conditions on basis
@@ -112,7 +114,7 @@ void gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0);
  * @param app App object.
  * @param t0 Time for initial conditions
  */
-void gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0);
+void gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, gkyl_real t0);
 
 /**
  * Initialize species by projecting initial conditions on basis
@@ -123,7 +125,7 @@ void gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0);
  * @param sidx Index of species to initialize.
  * @param t0 Time for initial conditions
  */
-void gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0);
+void gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, gkyl_real t0);
 
 /**
  * Calculate diagnostic moments.
@@ -139,7 +141,7 @@ void gkyl_vlasov_app_calc_mom(gkyl_vlasov_app* app);
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame);
+void gkyl_vlasov_app_write(gkyl_vlasov_app* app, gkyl_real tm, int frame);
 
 /**
  * Write field data to file.
@@ -148,7 +150,7 @@ void gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame);
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame);
+void gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, gkyl_real tm, int frame);
 
 /**
  * Write species data to file.
@@ -158,7 +160,7 @@ void gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame);
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, gkyl_real tm, int frame);
 
 /**
  * Write diagnostic moments for species to file.
@@ -167,7 +169,7 @@ void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, in
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame);
+void gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, gkyl_real tm, int frame);
 
 /**
  * Advance simulation by a suggested time-step 'dt'. The dt may be too
@@ -185,7 +187,7 @@ void gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame);
  * @param dt Suggested time-step to advance simulation
  * @return Status of update.
  */
-struct gkyl_update_status gkyl_vlasov_update(gkyl_vlasov_app* app, double dt);
+struct gkyl_update_status gkyl_vlasov_update(gkyl_vlasov_app* app, gkyl_real dt);
 
 /**
  * Return simulation statistics.

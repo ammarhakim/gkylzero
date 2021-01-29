@@ -10,9 +10,9 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_array_rio.h>
 
-void evalFunc(double t, const double *xn, double* restrict fout, void *ctx)
+void evalFunc(gkyl_real t, const gkyl_real *xn, gkyl_real* restrict fout, void *ctx)
 {
-  double x = xn[0], y = xn[1], z = xn[2];
+  gkyl_real x = xn[0], y = xn[1], z = xn[2];
   fout[0] = x*x + sin(3*y)*cos(z) + z*z;
 }
 
@@ -62,7 +62,7 @@ main(int argc, char **argv)
   }
   
   int polyOrder = 2;
-  double lower[] = {-2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0};
+  gkyl_real lower[] = {-2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0};
   int cells[] = {100, 100, 100};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
@@ -80,7 +80,7 @@ main(int argc, char **argv)
   gkyl_range_init_from_shape(&arr_range, 3, cells);
 
   // create distribution function
-  struct gkyl_array *distf = gkyl_array_new(sizeof(double[basis.numBasis]),
+  struct gkyl_array *distf = gkyl_array_new(sizeof(gkyl_real[basis.numBasis]),
     arr_range.volume);
 
   pthread_t thread[max_thread];  
@@ -102,7 +102,7 @@ main(int argc, char **argv)
   for (int i=0; i<max_thread; ++i)
     pthread_join(thread[i], NULL);
 
-  double tm = gkyl_time_sec(gkyl_time_diff(tstart, gkyl_wall_clock()));
+  gkyl_real tm = gkyl_time_sec(gkyl_time_diff(tstart, gkyl_wall_clock()));
   printf("%d threads took %g to update\n", max_thread, tm);
 
   gkyl_range_set_split(&arr_range, 1, 0);

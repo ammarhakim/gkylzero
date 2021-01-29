@@ -25,13 +25,13 @@ copy_int_arr(int n, const int *restrict inp, int *restrict out)
 
 void
 gkyl_hyper_dg_advance(const gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
-  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs, double *maxs)
+  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs, gkyl_real *maxs)
 {
   int ndim = hdg->ndim, first_dir = 1;
   int idxm[GKYL_MAX_DIM], idxp[GKYL_MAX_DIM];
-  double xcm[GKYL_MAX_DIM], xcp[GKYL_MAX_DIM];
+  gkyl_real xcm[GKYL_MAX_DIM], xcp[GKYL_MAX_DIM];
 
-  double maxs_old[GKYL_MAX_DIM];
+  gkyl_real maxs_old[GKYL_MAX_DIM];
   for (int i=0; i<hdg->ndim; ++i)
     maxs_old[i] = maxs[i];
 
@@ -66,15 +66,15 @@ gkyl_hyper_dg_advance(const gkyl_hyper_dg *hdg, const struct gkyl_range *update_
         long linp = gkyl_range_idx(update_range, idxp);
 
         if (first_dir && hdg->update_vol_term && i<=upidx-1) {
-          double cflr = hdg->equation->vol_term(
+          gkyl_real cflr = hdg->equation->vol_term(
             hdg->equation, xcp, hdg->grid.dx, idxp,
             gkyl_array_cfetch(fIn, linp), gkyl_array_fetch(rhs, linp)
           );
-          double *cflrate_d = gkyl_array_fetch(cflrate, linp);
+          gkyl_real *cflrate_d = gkyl_array_fetch(cflrate, linp);
           cflrate_d[0] += cflr; // frequencies are additive
         }
 
-        double mdir = hdg->equation->surf_term(hdg->equation,
+        gkyl_real mdir = hdg->equation->surf_term(hdg->equation,
           dir, xcm, xcp, hdg->grid.dx, hdg->grid.dx,
           maxs_old[dir], idxm, idxp,
           gkyl_array_cfetch(fIn, linm), gkyl_array_cfetch(fIn, linp),

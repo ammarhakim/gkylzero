@@ -1,20 +1,21 @@
 #pragma once
 
+#include <gkyl_real_type.h>
 #include <gkyl_ref_count.h>
 
 // Forward declare for use in function pointers
 struct gkyl_dg_eqn;
 
 // Function pointer type for volume kernel
-typedef double (*vol_termf_t)(const struct gkyl_dg_eqn *eqn, 
-  const double*  xc, const double*  dx, const int*  idx,
-  const double* qIn, double* restrict qRhsOut);
+typedef gkyl_real (*vol_termf_t)(const struct gkyl_dg_eqn *eqn, 
+  const gkyl_real*  xc, const gkyl_real*  dx, const int*  idx,
+  const gkyl_real* qIn, gkyl_real* restrict qRhsOut);
 
 // Function pointer type for surface kernel
-typedef double (*surf_termf_t)(const struct gkyl_dg_eqn *eqn, int dir,
-  const double*  xcL, const double*  xcR, const double*  dxL, const double* dxR,
-  double maxsOld, const int*  idxL, const int*  idxR,
-  const double* qInL, const double*  qInR, double* restrict qRhsOutL, double* restrict qRhsOutR);
+typedef gkyl_real (*surf_termf_t)(const struct gkyl_dg_eqn *eqn, int dir,
+  const gkyl_real*  xcL, const gkyl_real*  xcR, const gkyl_real*  dxL, const gkyl_real* dxR,
+  gkyl_real maxsOld, const int*  idxL, const int*  idxR,
+  const gkyl_real* qInL, const gkyl_real*  qInR, gkyl_real* restrict qRhsOutL, gkyl_real* restrict qRhsOutR);
 
 struct gkyl_dg_eqn {
     int num_equations; // number of equations in system

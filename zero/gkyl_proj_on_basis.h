@@ -3,6 +3,7 @@
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_range.h>
+#include <gkyl_real_type.h>
 #include <gkyl_rect_grid.h>
 
 /**
@@ -13,7 +14,7 @@
  * @param fout Output vector of 'num_ret_vals'
  * @param ctx Context for function evaluation. Can be NULL
  */
-typedef void (*evalf_t)(double t, const double *xn, double *fout, void *ctx);
+typedef void (*evalf_t)(gkyl_real t, const gkyl_real *xn, gkyl_real *fout, void *ctx);
 
 // Object type
 typedef struct gkyl_proj_on_basis gkyl_proj_on_basis;
@@ -46,7 +47,7 @@ gkyl_proj_on_basis* gkyl_proj_on_basis_new(
  * @param out Output array
  */
 void gkyl_proj_on_basis_advance(const gkyl_proj_on_basis *pob,
-  double tm, const struct gkyl_range *update_rng, struct gkyl_array *out);
+  gkyl_real tm, const struct gkyl_range *update_rng, struct gkyl_array *out);
 
 /**
  * Delete updater.

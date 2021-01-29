@@ -6,7 +6,7 @@
 #include "cart_modal_serendip_funcs.c"
 
 // Basis function eval for each dimension: ev_list[ndim].ev[polyOrder]
-static struct { void (*ev[4])(const double *z, double *b); } ev_list[] = {
+static struct { void (*ev[4])(const gkyl_real *z, gkyl_real *b); } ev_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
   { eval_1d_p0, eval_1d_p1, eval_1d_p2, eval_1d_p3 },
   { eval_2d_p0, eval_2d_p1, eval_2d_p2, eval_2d_p3 },

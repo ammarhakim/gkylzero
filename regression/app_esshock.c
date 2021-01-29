@@ -5,27 +5,27 @@
 #include <gkyl_vlasov.h>
 
 struct esshock_ctx {
-    double chargeElc; // electron charge
-    double massElc; // electron mass
-    double chargeIon; // ion charge
-    double massIon; // ion mass
-    double Te_Ti; // electron to ion temperature ratio
-    double vte; // electron thermal velocity
-    double vti; // ion thermal velocity
-    double cs; // sound speed
-    double uShock; // in-flow velocity
-    double Lx; // size of the box
+    gkyl_real chargeElc; // electron charge
+    gkyl_real massElc; // electron mass
+    gkyl_real chargeIon; // ion charge
+    gkyl_real massIon; // ion mass
+    gkyl_real Te_Ti; // electron to ion temperature ratio
+    gkyl_real vte; // electron thermal velocity
+    gkyl_real vti; // ion thermal velocity
+    gkyl_real cs; // sound speed
+    gkyl_real uShock; // in-flow velocity
+    gkyl_real Lx; // size of the box
 };
 
-static inline double sq(double x) { return x*x; }
+static inline gkyl_real sq(gkyl_real x) { return x*x; }
 
 void
-evalDistFuncElc(double t, const double * restrict xn, double* restrict fout, void *ctx)
+evalDistFuncElc(gkyl_real t, const gkyl_real * restrict xn, gkyl_real* restrict fout, void *ctx)
 {
   struct esshock_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
-  double vt = app->vte, vdrift = app->uShock;
-  double fv = 0.0;
+  gkyl_real x = xn[0], v = xn[1];
+  gkyl_real vt = app->vte, vdrift = app->uShock;
+  gkyl_real fv = 0.0;
   if (x < 0)
     fv = 1.0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v-vdrift)/(2*sq(vt))));
   else
@@ -34,12 +34,12 @@ evalDistFuncElc(double t, const double * restrict xn, double* restrict fout, voi
 }
 
 void
-evalDistFuncIon(double t, const double * restrict xn, double* restrict fout, void *ctx)
+evalDistFuncIon(gkyl_real t, const gkyl_real * restrict xn, gkyl_real* restrict fout, void *ctx)
 {
   struct esshock_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
-  double vt = app->vti, vdrift = app->uShock;
-  double fv = 0.0;
+  gkyl_real x = xn[0], v = xn[1];
+  gkyl_real vt = app->vti, vdrift = app->uShock;
+  gkyl_real fv = 0.0;
   if (x < 0)
     fv = 1.0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v-vdrift)/(2*sq(vt))));
   else
@@ -48,10 +48,10 @@ evalDistFuncIon(double t, const double * restrict xn, double* restrict fout, voi
 }
 
 void
-evalFieldFunc(double t, const double* restrict xn, double* restrict fout, void *ctx)
+evalFieldFunc(gkyl_real t, const gkyl_real* restrict xn, gkyl_real* restrict fout, void *ctx)
 {
   struct esshock_ctx *app = ctx;
-  double x = xn[0];
+  gkyl_real x = xn[0];
   
   fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
   fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
@@ -148,8 +148,8 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 20.0;
-  double dt = tend-tcurr;
+  gkyl_real tcurr = 0.0, tend = 20.0;
+  gkyl_real dt = tend-tcurr;
 
   // initialize simulation
   gkyl_vlasov_app_apply_ic(app, tcurr);

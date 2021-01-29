@@ -6,47 +6,47 @@
 
 struct weibel_ctx {
     // parameters for plasma streams
-    double nElc10, nElc20;
-    double vthElc10, vthElc20;
-    double uxElc10, uxElc20;
-    double uyElc10, uyElc20;
+    gkyl_real nElc10, nElc20;
+    gkyl_real vthElc10, vthElc20;
+    gkyl_real uxElc10, uxElc20;
+    gkyl_real uyElc10, uyElc20;
 
     // perturbation parameters
-    double k0;
-    double perturb;
+    gkyl_real k0;
+    gkyl_real perturb;
 };
 
-inline double
-maxwellian2D(double n, double vx, double vy, double ux, double uy, double vth)
+inline gkyl_real
+maxwellian2D(gkyl_real n, gkyl_real vx, gkyl_real vy, gkyl_real ux, gkyl_real uy, gkyl_real vth)
 {
-  double v2 = (vx-ux)*(vx-ux) + (vy-uy)*(vy-uy);
+  gkyl_real v2 = (vx-ux)*(vx-ux) + (vy-uy)*(vy-uy);
   return n/(2*M_PI*vth*vth)*exp(-v2/(2*vth*vth));
 }
 
 void
-evalDistFunc(double t, const double * restrict xn, double* restrict fout, void *ctx)
+evalDistFunc(gkyl_real t, const gkyl_real * restrict xn, gkyl_real* restrict fout, void *ctx)
 {
   struct weibel_ctx *app = ctx;
 
-  double nElc10 = app->nElc10, nElc20 = app->nElc20;
-  double uxElc10 = app->uxElc10, uxElc20 = app->uxElc20;
-  double uyElc10 = app->uyElc10, uyElc20 = app->uyElc20;
-  double vthElc10 = app->vthElc10, vthElc20 = app->vthElc20;
+  gkyl_real nElc10 = app->nElc10, nElc20 = app->nElc20;
+  gkyl_real uxElc10 = app->uxElc10, uxElc20 = app->uxElc20;
+  gkyl_real uyElc10 = app->uyElc10, uyElc20 = app->uyElc20;
+  gkyl_real vthElc10 = app->vthElc10, vthElc20 = app->vthElc20;
   
-  double x = xn[0], vx = xn[1], vy = xn[2];
+  gkyl_real x = xn[0], vx = xn[1], vy = xn[2];
   
   fout[0] = maxwellian2D(nElc10, vx, vy, uxElc10, uyElc10, vthElc10) +
     maxwellian2D(nElc20, vx, vy, uxElc20, uyElc20, vthElc20);
 }
 
 void
-evalFieldFunc(double t, const double* restrict xn, double* restrict fout, void *ctx)
+evalFieldFunc(gkyl_real t, const gkyl_real* restrict xn, gkyl_real* restrict fout, void *ctx)
 {
   struct weibel_ctx *app = ctx;
 
-  double perturb = app->perturb, k0 = app->k0;
-  double x = xn[0];
-  double B_z = perturb*sin(k0*x);
+  gkyl_real perturb = app->perturb, k0 = app->k0;
+  gkyl_real x = xn[0];
+  gkyl_real B_z = perturb*sin(k0*x);
   
   fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
   fout[3] = 0.0; fout[4] = 0.0; fout[5] = B_z;
@@ -56,13 +56,13 @@ evalFieldFunc(double t, const double* restrict xn, double* restrict fout, void *
 struct weibel_ctx
 create_ctx(void)
 {
-  double ud = 0.3;
-  double k0 = 1.0;
-  double massElc = 1.0;
-  double TElc10 = 0.01;
-  double TElc20 = 0.01;
-  double vthElc10 = sqrt(TElc10/massElc);
-  double vthElc20 = sqrt(TElc20/massElc);  
+  gkyl_real ud = 0.3;
+  gkyl_real k0 = 1.0;
+  gkyl_real massElc = 1.0;
+  gkyl_real TElc10 = 0.01;
+  gkyl_real TElc20 = 0.01;
+  gkyl_real vthElc10 = sqrt(TElc10/massElc);
+  gkyl_real vthElc20 = sqrt(TElc20/massElc);  
   
   struct weibel_ctx ctx = {
     .nElc10 = 0.5,
@@ -132,8 +132,8 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 50.0;
-  double dt = tend-tcurr;
+  gkyl_real tcurr = 0.0, tend = 50.0;
+  gkyl_real dt = tend-tcurr;
 
   // initialize simulation
   gkyl_vlasov_app_apply_ic(app, tcurr);

@@ -2,6 +2,7 @@
 
 #include <gkyl_basis.h>
 #include <gkyl_dg_eqn.h>
+#include <gkyl_real_type.h>
 
 /**
  * Create a new Maxwell equation object.
@@ -13,4 +14,4 @@
  * @return Pointer to Maxwell equation object
  */
 struct gkyl_dg_eqn* gkyl_dg_maxwell_new(const struct gkyl_basis* cbasis,
-  double lightSpeed, double elcErrorSpeedFactor, double mgnErrorSpeedFactor);
+  gkyl_real lightSpeed, gkyl_real elcErrorSpeedFactor, gkyl_real mgnErrorSpeedFactor);

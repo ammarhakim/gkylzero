@@ -7,13 +7,13 @@
 #include <gkyl_util.h>
 
 void
-evalDistFunc(double t, const double * restrict xn, double* restrict fout, void *ctx)
+evalDistFunc(gkyl_real t, const gkyl_real * restrict xn, gkyl_real* restrict fout, void *ctx)
 {
   fout[0] = 0.0;
 }
 
 void
-evalFieldFunc(double t, const double* restrict xn, double* restrict fout, void *ctx)
+evalFieldFunc(gkyl_real t, const gkyl_real* restrict xn, gkyl_real* restrict fout, void *ctx)
 {
   fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
   fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
@@ -124,14 +124,14 @@ main(int argc, char **argv)
   for (int i=0; i<inp.nloop; ++i)
     gkyl_vlasov_app_species_ktm_rhs(app, 1);
   
-  double tm_tot = gkyl_time_sec(gkyl_time_diff(tm_start, gkyl_wall_clock()));
+  gkyl_real tm_tot = gkyl_time_sec(gkyl_time_diff(tm_start, gkyl_wall_clock()));
 
   tm_start = gkyl_wall_clock();
   // time without volume term
   for (int i=0; i<inp.nloop; ++i)
     gkyl_vlasov_app_species_ktm_rhs(app, 0);
   
-  double tm_surf_only = gkyl_time_sec(gkyl_time_diff(tm_start, gkyl_wall_clock()));
+  gkyl_real tm_surf_only = gkyl_time_sec(gkyl_time_diff(tm_start, gkyl_wall_clock()));
 
   int cdim = inp.cdim, vdim = inp.vdim, pdim = cdim + vdim;
 
@@ -170,7 +170,7 @@ main(int argc, char **argv)
   printf("]\n");
   printf("Net surface kernel calls: %ld\n", nsurf_updates_tot);
 
-  double tm_vol = tm_tot - tm_surf_only;
+  gkyl_real tm_vol = tm_tot - tm_surf_only;
   printf("Volume updates took:  %g [s]\n", tm_vol/inp.nloop);
   printf("Surface updates took: %g [s]\n", tm_surf_only/inp.nloop);
     
