@@ -552,14 +552,23 @@ void test_range_split_2()
   int nsplits = 4, curr_start = 0, tot = 0;
   for (int tid=0; tid<nsplits; ++tid) {
     gkyl_range_set_split(&range, nsplits, tid);
-
+    
     gkyl_range_iter_init(&iter, &range);
     gkyl_range_inv_idx(&range, curr_start, idx);
-
+    
     for (int d=0; d<range.ndim; ++d)
       TEST_CHECK( idx[d] == iter.idx[d] );
     curr_start += iter.bumps_left;
     tot += iter.bumps_left;
+  }
+  TEST_CHECK( tot == range.volume );
+
+  gkyl_range_set_split(&range, nsplits, 0);
+  
+  tot = 0;
+  gkyl_range_iter_no_split_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    tot += 1;
   }
   TEST_CHECK( tot == range.volume );
 }

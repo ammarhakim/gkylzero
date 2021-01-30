@@ -304,6 +304,20 @@ gkyl_range_iter_init(struct gkyl_range_iter *iter,
   }
 }
 
+void
+gkyl_range_iter_no_split_init(struct gkyl_range_iter *iter,
+  const struct gkyl_range* range)
+{
+  iter->is_first = 1;
+  iter->ndim = range->ndim;
+  iter->bumps_left = range->volume;
+  
+  for (int i=0; i<range->ndim; ++i) {
+    iter->idx[i] = iter->lower[i] = range->lower[i];
+    iter->upper[i] = range->upper[i];
+  }  
+}
+
 int
 gkyl_range_iter_next(struct gkyl_range_iter *iter)
 {

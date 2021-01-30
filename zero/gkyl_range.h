@@ -239,6 +239,15 @@ void gkyl_range_iter_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range);
 
 /**
+ * Create iterator, ignoring split information in range.
+ *
+ * @param range Range object.
+ * @return New iterator object for 'range'
+ */
+void gkyl_range_iter_no_split_init(struct gkyl_range_iter *iter,
+  const struct gkyl_range* range);
+
+/**
  * Get next index into range. The iter->idx array holds the next
  * index. This should not be modified by the user!
  *
