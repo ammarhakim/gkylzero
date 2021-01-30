@@ -44,6 +44,11 @@ gkyl_grid_array_write(const struct gkyl_rect_grid *grid, const struct gkyl_range
   const struct gkyl_array *arr, const char *fname)
 {
   FILE *fp = fopen(fname, "wb"); if (!fp) return errno;
+
+  // data double
+  uint64_t real_type = 2;
+  fwrite(&real_type, sizeof(uint64_t), 1, fp);  
+  
   gkyl_rect_grid_write(grid, fp);
   gkyl_sub_array_write(range, arr, fp);
   fclose(fp);
