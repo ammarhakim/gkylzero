@@ -3,7 +3,7 @@
 # This script creates a directory in which all GkylZero code is copied
 # and a Makefile to compile them is written. This allows distribution
 # of the code as a single compressed directory that can be built with
-# a simple make command (hence, not requiring waf and hence python).
+# a simple make command (hence, not requiring waf or python).
 
 distname=gzero
 
