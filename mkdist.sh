@@ -42,7 +42,7 @@ regtargets=""
 for rt in $regtests
 do
     regtargets+="$rt: $rt.c libgkylzero.a\n"
-    regtargets+="\t\${CC} \${CFLAGS} $rt.c -I. -L. -lgkylzero -o $rt\n\n"
+    regtargets+="\t\${CC} \${CFLAGS} $rt.c -I. -L. -lgkylzero -lm -o $rt\n\n"
 done
 
 # create unit-test targets for insertion in generated Makefile
@@ -50,7 +50,7 @@ unittargets=""
 for ut in $unittests
 do
     unittargets+="$ut: $ut.c libgkylzero.a\n"
-    unittargets+="\t\${CC} \${CFLAGS} $ut.c -I. -L. -lgkylzero -o $ut\n\n"
+    unittargets+="\t\${CC} \${CFLAGS} $ut.c -I. -L. -lgkylzero -lm -o $ut\n\n"
 done
 
 # create Makefile
@@ -62,7 +62,6 @@ cat <<EOF > Makefile
 #
 
 CFLAGS = -O3 -g -I.
-CXXFLAGS = -std=c++17 -O3 -I.
 
 headers = $headers
 
