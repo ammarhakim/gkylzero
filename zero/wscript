@@ -30,7 +30,7 @@ def build(bld):
     # library as well. In fact, shared-lib is needed to allow linking
     # to interpreted language FFIs
     bld.stlib(source = source,
-              includes = '. ..',
+              includes = '. .. ../kernels/maxwell ../kernels/vlasov/',
               target = 'gkylzero',
               name = 'gkylzero',
     )

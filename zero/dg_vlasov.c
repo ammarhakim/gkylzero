@@ -6,7 +6,7 @@
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_util.h>
 
-#include <kernels/vlasov/gkyl_vlasov_kernels.h>
+#include <gkyl_vlasov_kernels.h>
 
 // Types for various kernels
 typedef double (*vlasov_stream_vol_t)(const double *w, const double *dxv,
