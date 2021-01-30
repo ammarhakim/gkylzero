@@ -722,6 +722,41 @@ void test_sub_range_split_iter()
   gkyl_array_release(arr);
 }
 
+void test_nested_iter()
+{
+  int shape[] = {2, 2, 4, 8};
+  
+  struct gkyl_range phase_range, conf_range, vel_range;
+  gkyl_range_init_from_shape(&phase_range, 4, shape);
+  gkyl_range_init_from_shape(&conf_range, 2, shape);
+
+  struct gkyl_array *carr = gkyl_array_new(sizeof(double), conf_range.volume);
+  gkyl_array_clear(carr, 0.0);
+
+  struct gkyl_range_iter conf_iter, vel_iter;
+
+  int rem_dir[] = { 1, 1, 0, 0};
+  
+  gkyl_range_iter_init(&conf_iter, &conf_range);
+  while (gkyl_range_iter_next(&conf_iter)) {
+
+    gkyl_range_deflate(&vel_range, &phase_range, rem_dir, conf_iter.idx);
+    gkyl_range_iter_init(&vel_iter, &vel_range);
+
+    double *carrdat = gkyl_array_fetch(carr, gkyl_range_idx(&conf_range, conf_iter.idx));
+    while (gkyl_range_iter_next(&vel_iter))
+      carrdat[0] += 1;
+  }
+
+  gkyl_range_iter_init(&conf_iter, &conf_range);
+  while (gkyl_range_iter_next(&conf_iter)) {
+    double *carrdat = gkyl_array_fetch(carr, gkyl_range_idx(&conf_range, conf_iter.idx));
+    TEST_CHECK( carrdat[0] == 32.0 );
+  }
+
+  gkyl_array_release(carr);
+}
+
 TEST_LIST = {
   { "range_0", test_range_0 },
   { "range_1", test_range_1 },
@@ -749,5 +784,6 @@ TEST_LIST = {
   { "range_split_iter_2", test_range_split_iter_2 },
   { "range_split_iter_3", test_range_split_iter_3 },
   { "sub_range_split_iter", test_sub_range_split_iter },
+  { "nested_iter", test_nested_iter },
   { NULL, NULL },
 };
