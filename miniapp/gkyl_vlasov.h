@@ -1,12 +1,11 @@
 #pragma once
 
 #ifndef GKYL_MAX_SPECIES
-# define GKYL_MAX_SPECIES 2
+# define GKYL_MAX_SPECIES 8
 #endif
 
 // Status of update() method. If success is 0 (failure) then the
-// simulation needs to be aborted and can't continue. The 'dt' is the
-// actual time-step the simulation used.
+// simulation needs to be aborted and can't continue.
 struct gkyl_update_status {
     int success; // 1 if update worked, 0 if a fatal error
     double dt_actual; // actual time-step taken
