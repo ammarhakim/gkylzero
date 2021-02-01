@@ -80,8 +80,7 @@ main(int argc, char **argv)
   gkyl_range_init_from_shape(&arr_range, 3, cells);
 
   // create distribution function
-  struct gkyl_array *distf = gkyl_array_new(sizeof(double[basis.numBasis]),
-    arr_range.volume);
+  struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.numBasis, arr_range.volume);
 
   pthread_t thread[max_thread];  
   struct thread_data td[max_thread];

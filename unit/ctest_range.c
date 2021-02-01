@@ -658,7 +658,7 @@ void test_range_split_iter_3()
   struct gkyl_range range;
   gkyl_range_init(&range, 2, lower, upper);
 
-  struct gkyl_array *arr = gkyl_array_new(sizeof(double), range.volume);
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
   gkyl_array_clear(arr, 0.0);
 
   int nsplits = 4;
@@ -696,7 +696,7 @@ void test_sub_range_split_iter()
   struct gkyl_range range;
   gkyl_range_init(&range, 2, lower, upper);
 
-  struct gkyl_array *arr = gkyl_array_new(sizeof(double), range.volume);
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
   gkyl_array_clear(arr, 0.0);
 
   int sublower[] = {2, 2}, subupper[] = { 15, 14 };
@@ -739,7 +739,7 @@ void test_nested_iter()
   gkyl_range_init_from_shape(&phase_range, 4, shape);
   gkyl_range_init_from_shape(&conf_range, 2, shape);
 
-  struct gkyl_array *carr = gkyl_array_new(sizeof(double), conf_range.volume);
+  struct gkyl_array *carr = gkyl_array_new(GKYL_DOUBLE, 1, conf_range.volume);
   gkyl_array_clear(carr, 0.0);
 
   struct gkyl_range_iter conf_iter, vel_iter;

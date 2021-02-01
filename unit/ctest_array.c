@@ -6,9 +6,10 @@
 
 void test_array_base()
 {
-  struct gkyl_array *arr = gkyl_array_new(sizeof(double), 200);
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, 200);
 
   TEST_CHECK( arr->elemsz == sizeof(double) );
+  TEST_CHECK( arr->ncomp == 1 );
   TEST_CHECK( arr->size == 20*10 );
   TEST_CHECK( arr->ref_count.count == 1 );
 
@@ -20,6 +21,7 @@ void test_array_base()
   struct gkyl_array *brr = gkyl_array_clone(arr);
 
   TEST_CHECK( brr->elemsz == sizeof(double) );
+  TEST_CHECK( arr->ncomp == 1 );  
   TEST_CHECK( brr->size == 20*10 );
   TEST_CHECK( brr->ref_count.count == 1 );
 
@@ -59,7 +61,7 @@ void test_array_base()
 
 void test_array_fetch()
 {
-  struct gkyl_array *arr = gkyl_array_new(sizeof(double), 20);
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, 20);
 
   double *arrData  = arr->data;
   for (unsigned i=0; i<arr->size; ++i)
@@ -76,7 +78,7 @@ void test_array_fetch()
 
 void test_array_clear()
 {
-  struct gkyl_array *a1 = gkyl_array_new(sizeof(double), 10);
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
 
   gkyl_array_clear(a1, 0.5);
   double *a1_d  = a1->data;  
@@ -93,7 +95,7 @@ void test_array_clear_range()
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 2, shape);
   
-  struct gkyl_array *a1 = gkyl_array_new(sizeof(double[1]), range.volume);
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
   gkyl_array_clear_range(a1, 0.5, &range);
 
   double *a1_d = a1->data;
@@ -105,8 +107,8 @@ void test_array_clear_range()
 
 void test_array_accumulate()
 {
-  struct gkyl_array *a1 = gkyl_array_new(sizeof(double), 10);
-  struct gkyl_array *a2 = gkyl_array_new(sizeof(double), 10);
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
+  struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
 
   double *a1_d  = a1->data, *a2_d = a2->data;
   for (unsigned i=0; i<a1->size; ++i) {
@@ -129,8 +131,8 @@ void test_array_accumulate_range()
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 2, shape);
   
-  struct gkyl_array *a1 = gkyl_array_new(sizeof(double[8]), range.volume);
-  struct gkyl_array *a2 = gkyl_array_new(sizeof(double[3]), range.volume);
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 8, range.volume);
+  struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 3, range.volume);
 
   // test a1 = a1 + 0.5*a2
   gkyl_array_clear(a1, 0.5);
@@ -171,9 +173,9 @@ void test_array_accumulate_range()
 
 void test_array_combine()
 {
-  struct gkyl_array *a1 = gkyl_array_new(sizeof(double), 10);
-  struct gkyl_array *a2 = gkyl_array_new(sizeof(double), 10);
-  struct gkyl_array *b = gkyl_array_new(sizeof(double), 10);
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
+  struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
+  struct gkyl_array *b = gkyl_array_new(GKYL_DOUBLE, 1, 10);
 
   double *a1_d  = a1->data, *a2_d = a2->data, *b_d = b->data;
   for (unsigned i=0; i<a1->size; ++i) {
@@ -195,8 +197,8 @@ void test_array_combine()
 
 void test_array_set()
 {
-  struct gkyl_array *a1 = gkyl_array_new(sizeof(double), 10);
-  struct gkyl_array *a2 = gkyl_array_new(sizeof(double), 10);
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
+  struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
 
   double *a1_d  = a1->data, *a2_d = a2->data;
   for (unsigned i=0; i<a1->size; ++i) {
@@ -219,8 +221,8 @@ void test_array_set_range()
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 2, shape);
   
-  struct gkyl_array *a1 = gkyl_array_new(sizeof(double[8]), range.volume);
-  struct gkyl_array *a2 = gkyl_array_new(sizeof(double[3]), range.volume);
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 8, range.volume);
+  struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 3, range.volume);
 
   // test a1 = 0.5*a2
   gkyl_array_clear_range(a1, 0.5, &range);
@@ -261,7 +263,7 @@ void test_array_set_range()
 
 void test_array_scale()
 {
-  struct gkyl_array *a1 = gkyl_array_new(sizeof(double), 10);
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
 
   double *a1_d  = a1->data;
   for (unsigned i=0; i<a1->size; ++i) {
@@ -278,8 +280,8 @@ void test_array_scale()
 
 void test_array_opcombine()
 {
-  struct gkyl_array *a1 = gkyl_array_new(sizeof(double), 10);  
-  struct gkyl_array *a2 = gkyl_array_new(sizeof(double), 10);
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);  
+  struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
 
   double *a1_d  = a1->data, *a2_d = a2->data;
   for (unsigned i=0; i<a1->size; ++i) {
@@ -300,7 +302,7 @@ void test_array_opcombine()
 void test_array_ops_comp() // more than 1 "component" in array
 {
   int nc = 5; // number of "components"
-  struct gkyl_array *arr = gkyl_array_new(sizeof(double)*nc, 10);
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, nc, 10);
 
   for (unsigned i=0; i<arr->size; ++i) {
     double *d = gkyl_array_fetch(arr, i);
@@ -325,7 +327,7 @@ void test_array_copy()
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 2, shape);
   
-  struct gkyl_array *arr = gkyl_array_new(sizeof(double), range.volume);
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -366,7 +368,7 @@ void test_array_copy_split()
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 2, shape);
   
-  struct gkyl_array *arr = gkyl_array_new(sizeof(double), range.volume);
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -422,14 +424,14 @@ void test_array_copy_split()
 void test_non_numeric()
 {
   struct euler { double rho, u, E; };
-  struct gkyl_array *arr = gkyl_array_new(sizeof(struct euler), 10);
+  struct gkyl_array *arr = gkyl_array_new(GKYL_USER, sizeof(struct euler), 10);
 
   for (unsigned i=0; i<arr->size; ++i) {
     struct euler *e = gkyl_array_fetch(arr, i);
     e->rho = 1.0; e->u = 0.0; e->E = 100.5;
   }
   
-  struct gkyl_array *brr = gkyl_array_new(sizeof(struct euler), 10);
+  struct gkyl_array *brr = gkyl_array_new(GKYL_USER, sizeof(struct euler), 10);
   gkyl_array_copy(brr, arr);
 
   for (unsigned i=0; i<arr->size; ++i) {
@@ -445,7 +447,7 @@ void test_non_numeric()
 
 void test_reduce()
 {
-  struct gkyl_array *arr = gkyl_array_new(sizeof(double[3]), 200);
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 3, 200);
 
   for (size_t i=0; i<arr->size; ++i) {
     double *d = gkyl_array_fetch(arr, i);
@@ -469,7 +471,7 @@ void test_reduce_range()
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 2, shape);
   
-  struct gkyl_array *arr = gkyl_array_new(sizeof(double[3]), range.volume);
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 3, range.volume);
 
   int count = -1000;
 

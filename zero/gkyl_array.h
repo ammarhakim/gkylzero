@@ -3,26 +3,36 @@
 #include <gkyl_ref_count.h>
 #include <gkyl_util.h>
 
+#include <stdint.h>
+
+// Type of element stored in array
+enum gkyl_elem_type { GKYL_INT, GKYL_FLOAT, GKYL_DOUBLE, GKYL_USER };
+
 /**
- * Array object. This is an untyped, undimensioned, reference counted
+ * Array object. This is an untype, undimensioned, reference counted
  * array object. All additional structure is provided else where,
  * mainly by the range object.
  */
 struct gkyl_array {
-    size_t elemsz; // size of elements
-    size_t size; // number of elements of size elemsz
-    void *data; // pointer to data
-    struct gkyl_ref_count ref_count; // reference count
+    enum gkyl_elem_type type; // type stored in array
+    size_t elemsz, ncomp; // size of elements, number of 'components'
+    size_t size; // number of indices
+    
+    uint32_t flags;
+    size_t esznc;
+    void *data;
+    struct gkyl_ref_count ref_count;
 };
 
 /**
  * Create new array. Delete using gkyl_array_release method.
  * 
- * @param elemsz Size of objects (elements) stored in array.
- * @param size Number elements to store in array
+ * @param type Type of data in array
+ * @param ncomp Number of components at each index
+ * @param size Number indices 
  * @return Pointer to newly allocated array.
  */
-struct gkyl_array* gkyl_array_new(size_t elemsz, size_t size);
+struct gkyl_array* gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size);
 
 /**
  * Copy into array: pointer to dest array is returned. 'dest' and
@@ -52,14 +62,14 @@ struct gkyl_array* gkyl_array_clone(const struct gkyl_array* arr);
 static inline void*
 gkyl_array_fetch(struct gkyl_array* arr, long loc)
 {
-  return ((char*) arr->data) + loc*arr->elemsz;
+  return ((char*) arr->data) + loc*arr->esznc;
 }
 
 /** Same as above, except fetches a constant pointer */
 static inline const void*
 gkyl_array_cfetch(const struct gkyl_array* arr, long loc)
 {
-  return ((const char*) arr->data) + loc*arr->elemsz;
+  return ((const char*) arr->data) + loc*arr->esznc;
 }
 
 /**

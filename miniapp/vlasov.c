@@ -103,8 +103,7 @@ diff_now_tm(struct timespec tm)
 static struct gkyl_array*
 mkarr(long nc, long size)
 {
-  struct gkyl_array* a = gkyl_array_new(sizeof(double[nc]), size);
-  gkyl_array_clear(a, 0.0); 
+  struct gkyl_array* a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 

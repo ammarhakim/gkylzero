@@ -8,10 +8,10 @@
 void
 gkyl_array_write(const struct gkyl_array *arr, FILE *fp)
 {
-  uint64_t elemsz = arr->elemsz, size = arr->size;
-  fwrite(&elemsz, sizeof(uint64_t), 1, fp);
+  uint64_t esznc = arr->esznc, size = arr->size;
+  fwrite(&esznc, sizeof(uint64_t), 1, fp);
   fwrite(&size, sizeof(uint64_t), 1, fp);
-  fwrite(arr->data, arr->elemsz*arr->size, 1, fp);
+  fwrite(arr->data, arr->esznc*arr->size, 1, fp);
 }
 
 void
@@ -20,8 +20,8 @@ gkyl_sub_array_write(const struct gkyl_range *range,
 {
 #define _F(loc) gkyl_array_cfetch(arr, loc)
   
-  uint64_t elemsz = arr->elemsz, size = arr->size;
-  fwrite(&elemsz, sizeof(uint64_t), 1, fp);
+  uint64_t esznc = arr->esznc, size = arr->size;
+  fwrite(&esznc, sizeof(uint64_t), 1, fp);
   fwrite(&size, sizeof(uint64_t), 1, fp);
   
   // construct skip iterator to allow writing (potentially) in chunks
@@ -34,7 +34,7 @@ gkyl_sub_array_write(const struct gkyl_range *range,
 
   while (gkyl_range_iter_next(&iter)) {
     long start = gkyl_range_idx(&skip.range, iter.idx);
-    fwrite(_F(start), arr->elemsz*skip.delta, 1, fp);
+    fwrite(_F(start), arr->esznc*skip.delta, 1, fp);
   }
 #undef _F
 }
