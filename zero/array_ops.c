@@ -13,7 +13,9 @@
 
 struct gkyl_array*                                              
 gkyl_array_clear(struct gkyl_array* out, double val)       
-{                                                           
+{
+  assert(out->type == GKYL_DOUBLE);
+  
   double *out_d = out->data;                                  
   for (size_t i=0; i<NELM(out); ++i)                   
     out_d[i] = val;                                         
@@ -23,7 +25,8 @@ gkyl_array_clear(struct gkyl_array* out, double val)
 struct gkyl_array*                                                  
 gkyl_array_accumulate(struct gkyl_array* out, double a,        
   const struct gkyl_array* inp)                                     
-{                                                                   
+{
+  assert(out->type == GKYL_DOUBLE);
   assert(out->size == inp->size && out->elemsz == inp->elemsz);     
                                                                         
   double *out_d = out->data;                                          
@@ -36,7 +39,8 @@ gkyl_array_accumulate(struct gkyl_array* out, double a,
 struct gkyl_array*                                                  
 gkyl_array_set(struct gkyl_array* out, double a,               
   const struct gkyl_array* inp)                                     
-{                                                                   
+{
+  assert(out->type == GKYL_DOUBLE);
   assert(out->size == inp->size && out->elemsz == inp->elemsz);     
                                                                         
   double *out_d = out->data;                                          
@@ -54,7 +58,8 @@ gkyl_array_scale(struct gkyl_array* out, double a)
 
 double                                                                
 gkyl_array_reduce(const struct gkyl_array *arr, enum gkyl_array_op op, double *out) 
-{                                                                   
+{
+  assert(arr->type == GKYL_DOUBLE);
   double res, *arr_d = arr->data;                                     
                                                                         
   switch (op) {                                                     
@@ -85,7 +90,8 @@ array_clear1(long n, double *out, double val)
                                                                         
 struct gkyl_array*                                                  
 gkyl_array_clear_range(struct gkyl_array *out, double val, const struct gkyl_range *range)                         
-{                                                                   
+{
+  assert(out->type == GKYL_DOUBLE);
   long n = NCOM(out);                                         
                                                                         
   struct gkyl_range_iter iter;                                      
@@ -110,7 +116,8 @@ array_acc1(long n, double *restrict out, double a, const double *restrict inp)
 struct gkyl_array*                                                  
 gkyl_array_accumulate_range(struct gkyl_array *out,          
   double a, const struct gkyl_array *inp, const struct gkyl_range *range) 
-{                                                                   
+{
+  assert(out->type == GKYL_DOUBLE);
   assert(out->size == inp->size);                                   
                                                                         
   long outnc = NCOM(out), inpnc = NCOM(inp);            
@@ -139,7 +146,8 @@ array_set1(long n,
 struct gkyl_array*                                                  
 gkyl_array_set_range(struct gkyl_array *out,                 
   double a, const struct gkyl_array *inp, const struct gkyl_range *range) 
-{                                                                   
+{
+  assert(out->type == GKYL_DOUBLE && inp->type == GKYL_DOUBLE);
   assert(out->size == inp->size);                                   
                                                                         
   long outnc = NCOM(out), inpnc = NCOM(inp);            
@@ -165,7 +173,9 @@ struct gkyl_array* gkyl_array_scale_range(struct gkyl_array *out,
 
 void gkyl_array_reduce_range(double *res,                      
   const struct gkyl_array *arr, enum gkyl_array_op op, const struct gkyl_range *range) 
-{                                                                   
+{
+  assert(arr->type == GKYL_DOUBLE);
+  
   long n = NCOM(arr);                                         
   struct gkyl_range_iter iter;                                      
   gkyl_range_iter_init(&iter, range);                               

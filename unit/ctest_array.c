@@ -8,6 +8,7 @@ void test_array_base()
 {
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, 200);
 
+  TEST_CHECK( arr->type = GKYL_DOUBLE );
   TEST_CHECK( arr->elemsz == sizeof(double) );
   TEST_CHECK( arr->ncomp == 1 );
   TEST_CHECK( arr->size == 20*10 );
