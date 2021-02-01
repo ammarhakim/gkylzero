@@ -523,6 +523,8 @@ vm_species_release(struct vm_species *s)
 gkyl_vlasov_app*
 gkyl_vlasov_app_new(struct gkyl_vm vm)
 {
+  assert(vm.num_species <= GKYL_MAX_SPECIES);
+  
   gkyl_vlasov_app *app = gkyl_malloc(sizeof(gkyl_vlasov_app));
   
   int cdim = app->cdim = vm.cdim;
