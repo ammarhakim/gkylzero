@@ -81,6 +81,37 @@ clean:
 
 EOF
 
+# write a README file
+cat <<EOF1 > README.md
+
+This directory contains the complete source for GkylZero copied to a
+single directory. It also contains an auto-generated
+Makefile. Documentation for Gkeyll is available at
+https://gkeyll.readthedocs.io.
+
+# Install
+
+You can build the code by simply typing 'make' in this directory. As
+GkylZero has minimal external dependencies, this should "just work" on
+most systems. However, sometimes you might need to pass options to the
+make command. For example, to use Intel compiler do:
+
+ make CC=icc
+
+You can of course edit the Makefile yourself to suite your needs. To
+install the code do:
+
+ make install
+
+The default installation location is \$HOME/gkylsoft/gkylzero. You can
+change it by specifying the PREFIX variable:
+
+ make PREFIX=/mylocation install
+
+Generated on $(date) by $(whoami).
+
+EOF1
+
 # up a directory and tar.gz archive
 cd ..
 tar -zcf ${distname}.tar.gz ${distname}

@@ -54,6 +54,8 @@ gkyl_array_fetch(struct gkyl_array* arr, long loc)
 {
   return ((char*) arr->data) + loc*arr->elemsz;
 }
+
+/** Same as above, except fetches a constant pointer */
 static inline const void*
 gkyl_array_cfetch(const struct gkyl_array* arr, long loc)
 {
