@@ -1,7 +1,5 @@
 #include <gkyl_euler_prim.h>
 
-enum euler_cv { RHOU = 1, RHOV = 2, RHOW = 3 };
-
 static const int dir_shuffle[][4] = {
   { 0, 1, 2, 3},
   { 0, 2, 3, 1},
