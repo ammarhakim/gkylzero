@@ -15,6 +15,7 @@ def build(bld):
     dg_eqn.c
     dg_maxwell.c
     dg_vlasov.c
+    euler_prim.c
     gauss_quad_data.c
     hyper_dg.c
     mom_calc.c
@@ -24,6 +25,7 @@ def build(bld):
     rect_grid.c
     util.c
     vlasov_mom.c
+    wv_eqn.c
     """
 
     # For now building static library. Probably should build shared
