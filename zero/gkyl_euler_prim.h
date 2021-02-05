@@ -12,9 +12,20 @@ static inline double gkyl_euler_pressure(double gas_gamma, const double *q)
 }
 
 /**
+ * Compute maximum absolute speed.
+ * 
+ * @param dir Direction 
+ * @param gas_gamma Gas adiabatic constant
+ * @param q Conserved variables
+ * @return Maximum absolute speed for given q
+ */
+double gkyl_euler_max_abs_speed(int dir, double gas_gamma, const double *q);
+
+/**
  * Compute flux in direction 'dir'.
  * 
  * @param dir Direction to compute flux
+ * @param gas_gamma Gas adiabatic constant
  * @param Conserved variables
  * @param flux On output, the flux in direction 'dir'
  */

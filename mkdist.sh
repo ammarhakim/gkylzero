@@ -58,7 +58,7 @@ cat <<EOF > Makefile
 
 # Amalgamated makefile. Set compiler if needed:
 #
-# CC=mpicc make
+# make CC=mpicc 
 #
 
 CFLAGS = -O3 -g -I.
