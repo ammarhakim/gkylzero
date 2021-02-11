@@ -26,6 +26,7 @@ def build(bld):
     util.c
     vlasov_mom.c
     wv_eqn.c
+    wv_euler.c
     """
 
     # For now building static library. Probably should build shared

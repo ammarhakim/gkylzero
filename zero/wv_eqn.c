@@ -7,6 +7,13 @@ gkyl_wv_eqn_aquire(const struct gkyl_wv_eqn* eqn)
   return (struct gkyl_wv_eqn*) eqn;
 }
 
+double
+gkyl_wv_waves(const struct gkyl_wv_eqn *eqn, 
+  int dir, const double *ql, const double *qr, double *waves, double *speeds)
+{
+  return eqn->wave_func(eqn, dir, ql, qr, waves, speeds);
+}
+
 void
 gkyl_wv_eqn_release(const struct gkyl_wv_eqn* eqn)
 {
