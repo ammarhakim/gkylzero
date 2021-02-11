@@ -13,7 +13,7 @@ static const int dir_shuffle[][4] = {
 #define RHOW d[3]
 
 void
-gkyl_euler_flux(int dir, double gas_gamma, const double *q, double *flux)
+gkyl_euler_flux(int dir, double gas_gamma, const double q[5], double flux[5])
 {
   const int *d = dir_shuffle[dir];
   double pr = gkyl_euler_pressure(gas_gamma, q), u = q[RHOU]/q[0];
@@ -21,11 +21,11 @@ gkyl_euler_flux(int dir, double gas_gamma, const double *q, double *flux)
   flux[RHOU] = q[RHOU]*u + pr; // rho*u*u + pr
   flux[RHOV] = q[RHOV]*u; // rho*v*u
   flux[RHOW] = q[RHOW]*u; // rho*w*u
-  flux[4] = (q[5]+pr)*u; // (E+p)*u
+  flux[4] = (q[4]+pr)*u; // (E+p)*u
 }
 
 double
-gkyl_euler_max_abs_speed(int dir, double gas_gamma, const double *q)
+gkyl_euler_max_abs_speed(int dir, double gas_gamma, const double q[5])
 {
   const int *d = dir_shuffle[dir];
   double pr = gkyl_euler_pressure(gas_gamma, q), u = q[RHOU]/q[0];

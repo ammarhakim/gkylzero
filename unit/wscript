@@ -64,4 +64,9 @@ def build(bld):
         use = 'gkylzero',
     )
 
-    
+    bld.program(
+        source = 'ctest_wv_euler.c',
+        target = 'ctest_wv_euler',
+        includes = '. ../zero',
+        use = 'gkylzero',
+    )    

@@ -8,10 +8,18 @@ gkyl_wv_eqn_aquire(const struct gkyl_wv_eqn* eqn)
 }
 
 double
-gkyl_wv_waves(const struct gkyl_wv_eqn *eqn, 
-  int dir, const double *ql, const double *qr, double *waves, double *speeds)
+gkyl_wv_eqn_waves(const struct gkyl_wv_eqn *eqn,
+  int dir, const double *delta, const double *ql, const double *qr, double *waves, double *speeds)
 {
-  return eqn->wave_func(eqn, dir, ql, qr, waves, speeds);
+  return eqn->waves_func(eqn, dir, delta, ql, qr, waves, speeds);
+}
+
+void
+gkyl_wv_eqn_qfluct(const struct gkyl_wv_eqn *eqn,
+  int dir, const double *ql, const double *qr, const double *waves, const double *speeds,
+  double *amdq, double *apdq)
+{
+  eqn->qfluct_func(eqn, dir, ql, qr, waves, speeds, amdq, apdq);
 }
 
 void
