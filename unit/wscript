@@ -11,62 +11,62 @@ def build(bld):
     bld.program(
         source = 'ctest_alloc.c',
         target = 'ctest_alloc',
-        includes = '. ../zero',
+        includes = '. ../zero ../minus',
         use = 'gkylzero',
     )
 
     bld.program(
         source = 'ctest_ref_count.c',
         target = 'ctest_ref_count',
-        includes = '. ../zero',
+        includes = '. ../zero ../minus',
         use = 'gkylzero',
     )
 
     bld.program(
         source = 'ctest_range.c',
         target = 'ctest_range',
-        includes = '. ../zero',
+        includes = '. ../zero ../minus',
         use = 'gkylzero',
     )
 
     bld.program(
         source = 'ctest_basis.c',
         target = 'ctest_basis',
-        includes = '. ../zero',
+        includes = '. ../zero ../minus',
         use = 'gkylzero',
     )
 
     bld.program(
         source = 'ctest_rect_grid.c',
         target = 'ctest_rect_grid',
-        includes = '. ../zero',
+        includes = '. ../zero ../minus',
         use = 'gkylzero',
     )
 
     bld.program(
         source = 'ctest_array.c',
         target = 'ctest_array',
-        includes = '. ../zero',
+        includes = '. ../zero ../minus',
         use = 'gkylzero',
     )
 
     bld.program(
         source = 'ctest_gauss_quad.c',
         target = 'ctest_gauss_quad',
-        includes = '. ../zero',
+        includes = '. ../zero ../minus',
         use = 'gkylzero',
     )
 
     bld.program(
         source = 'ctest_proj_on_basis.c',
         target = 'ctest_proj_on_basis',
-        includes = '. ../zero',
+        includes = '. ../zero ../minus',
         use = 'gkylzero',
     )
 
     bld.program(
         source = 'ctest_wv_euler.c',
         target = 'ctest_wv_euler',
-        includes = '. ../zero',
+        includes = '. ../zero ../minus',
         use = 'gkylzero',
     )    

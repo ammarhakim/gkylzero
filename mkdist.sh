@@ -5,25 +5,27 @@
 # of the code as a single compressed directory that can be built with
 # a simple make command (hence, not requiring waf or python).
 
-distname=gzero
+distname=gkyzero-dist
 
 # create directory 
 rm -rf $distname
 mkdir $distname
 
+# copy included dependency
+cp minus/*.h $distname
+#cp minus/*.c $distname
 # copy library code
 cp zero/*.h $distname
 cp zero/*.c $distname
 # copy app code
-cp miniapp/*.h $distname
-cp miniapp/*.c $distname
+cp one/*.h $distname
+cp one/*.c $distname
 # copy kernels
 cp kernels/*/*.h $distname
 cp kernels/*/*.c $distname
 # copy regression tests
 cp regression/*.c $distname
 # copy unit tests
-cp unit/acutest.h $distname
 cp unit/*.c $distname
 
 cd $distname
