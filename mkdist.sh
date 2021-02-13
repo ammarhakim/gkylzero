@@ -5,7 +5,7 @@
 # of the code as a single compressed directory that can be built with
 # a simple make command (hence, not requiring waf or python).
 
-distname=gkyzero-dist
+distname=gkylzero-dist
 
 # create directory 
 rm -rf $distname

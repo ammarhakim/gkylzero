@@ -5,8 +5,7 @@ build-*/*
 .lock-waf*
 waf_tools/*.pyc
 waf_tools/__pycache__/
-gzero*
-
+gkylzero-dist*
 
 # Object files
 *.o
