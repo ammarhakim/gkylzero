@@ -69,15 +69,15 @@ test_euler_waves()
 
   for (int d=0; d<3; ++d) {
     double speeds[3], waves[3*5];
-    gkyl_wv_eqn_waves(euler, 0, delta, ql, qr, waves, speeds);
+    gkyl_wv_eqn_waves(euler, d, delta, ql, qr, waves, speeds);
 
     double apdq[5], amdq[5];
-    gkyl_wv_eqn_qfluct(euler, 0, ql, qr, waves, speeds, amdq, apdq);
+    gkyl_wv_eqn_qfluct(euler, d, ql, qr, waves, speeds, amdq, apdq);
     
     // check if sum of left/right going fluctuations sum to jump in flux
     double fl[5], fr[5];
-    gkyl_euler_flux(0, gas_gamma, ql, fl);
-    gkyl_euler_flux(0, gas_gamma, qr, fr);
+    gkyl_euler_flux(d, gas_gamma, ql, fl);
+    gkyl_euler_flux(d, gas_gamma, qr, fr);
     
     for (int i=0; i<5; ++i)
       TEST_CHECK( gkyl_compare(fr[i]-fl[i], amdq[i]+apdq[i], 1e-14) );
@@ -86,8 +86,43 @@ test_euler_waves()
   gkyl_wv_eqn_release(euler);
 }
 
+void
+test_euler_waves_2()
+{
+  double gas_gamma = 1.4;
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(gas_gamma);
+
+  double vl[5] = { 1.0, 0.1, 0.2, 0.3, 1.5};
+  double vr[5] = { 0.01, 1.0, 2.0, 3.0, 15.0};
+
+  double ql[5], qr[5];
+  calcq(gas_gamma, vl, ql); calcq(gas_gamma, vr, qr);
+
+  double delta[5];
+  for (int i=0; i<5; ++i) delta[i] = qr[i]-ql[i];
+
+  for (int d=0; d<3; ++d) {
+    double speeds[3], waves[3*5];
+    gkyl_wv_eqn_waves(euler, d, delta, ql, qr, waves, speeds);
+
+    double apdq[5], amdq[5];
+    gkyl_wv_eqn_qfluct(euler, d, ql, qr, waves, speeds, amdq, apdq);
+    
+    // check if sum of left/right going fluctuations sum to jump in flux
+    double fl[5], fr[5];
+    gkyl_euler_flux(d, gas_gamma, ql, fl);
+    gkyl_euler_flux(d, gas_gamma, qr, fr);
+    
+    for (int i=0; i<5; ++i)
+      TEST_CHECK( gkyl_compare(fr[i]-fl[i], amdq[i]+apdq[i], 1e-14) );
+  }
+  
+  gkyl_wv_eqn_release(euler);
+}
+
 TEST_LIST = {
   { "euler_basic", test_euler_basic },
   { "euler_waves", test_euler_waves },
+  { "euler_waves_2", test_euler_waves_2 },
   { NULL, NULL },
 };
