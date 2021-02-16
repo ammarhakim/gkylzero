@@ -15,6 +15,7 @@ def build(bld):
     dg_eqn.c
     dg_maxwell.c
     dg_vlasov.c
+    euler_prim.c
     gauss_quad_data.c
     hyper_dg.c
     mom_calc.c
@@ -24,13 +25,15 @@ def build(bld):
     rect_grid.c
     util.c
     vlasov_mom.c
+    wv_eqn.c
+    wv_euler.c
     """
 
     # For now building static library. Probably should build shared
     # library as well. In fact, shared-lib is needed to allow linking
     # to interpreted language FFIs
     bld.stlib(source = source,
-              includes = '. ..',
+              includes = '. .. ../kernels/basis ../kernels/maxwell ../kernels/vlasov/',
               target = 'gkylzero',
               name = 'gkylzero',
     )

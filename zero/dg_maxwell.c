@@ -5,7 +5,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_util.h>
-#include <kernels/maxwell/gkyl_maxwell_kernels.h>
+#include <gkyl_maxwell_kernels.h>
 
 // Types for various kernels
 typedef double (*maxwell_vol_t)(const gkyl_maxwell_inp *meq,

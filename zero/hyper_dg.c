@@ -115,6 +115,12 @@ gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
 }
 
 void
+gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *hdg, int update_vol_term)
+{
+  hdg->update_vol_term = update_vol_term;
+}
+
+void
 gkyl_hyper_dg_release(gkyl_hyper_dg* up)
 {
   gkyl_dg_eqn_release(up->equation);

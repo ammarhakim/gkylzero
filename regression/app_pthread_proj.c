@@ -80,13 +80,12 @@ main(int argc, char **argv)
   gkyl_range_init_from_shape(&arr_range, 3, cells);
 
   // create distribution function
-  struct gkyl_array *distf = gkyl_array_new(sizeof(double[basis.numBasis]),
-    arr_range.volume);
+  struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.numBasis, arr_range.volume);
 
   pthread_t thread[max_thread];  
   struct thread_data td[max_thread];
   for (int tid=0; tid<max_thread; ++tid) {
-    gkyl_range_thread(&arr_range, max_thread, tid);
+    gkyl_range_set_split(&arr_range, max_thread, tid);
     td[tid]  = (struct thread_data) { .range = arr_range, .proj = projDistf, .f = distf };
   }
 
@@ -105,7 +104,7 @@ main(int argc, char **argv)
   double tm = gkyl_time_sec(gkyl_time_diff(tstart, gkyl_wall_clock()));
   printf("%d threads took %g to update\n", max_thread, tm);
 
-  gkyl_range_thread(&arr_range, 1, 0);
+  gkyl_range_set_split(&arr_range, 1, 0);
   gkyl_grid_array_write(&grid, &arr_range, distf, "pthread.gkyl");
   
   gkyl_proj_on_basis_release(projDistf);

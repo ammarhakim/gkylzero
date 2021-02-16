@@ -10,50 +10,48 @@ def build(bld):
     bld.program(
         source = 'app_maxwell_2d.c',
         target = 'app_maxwell_2d',
-        includes = '. ../zero ../miniapp',
-        use = 'gkylminiapp gkylzero gkylzerokern',
+        includes = '. ../zero ../one',
+        use = 'gkylone gkylzero gkylzerokern',
     )
 
     bld.program(
         source = 'app_weibel_4d.c',
         target = 'app_weibel_4d',
-        includes = '. ../zero ../miniapp',
-        use = 'gkylminiapp gkylzero gkylzerokern',
+        includes = '. ../zero ../one',
+        use = 'gkylone gkylzero gkylzerokern',
     )
 
     bld.program(
         source = 'app_weibel_3d.c',
         target = 'app_weibel_3d',
-        includes = '. ../zero ../miniapp',
-        use = 'gkylminiapp gkylzero gkylzerokern',
+        includes = '. ../zero ../one',
+        use = 'gkylone gkylzero gkylzerokern',
     )
 
     bld.program(
         source = 'app_twostream.c',
         target = 'app_twostream',
-        includes = '. ../zero ../miniapp',
-        use = 'gkylminiapp gkylzero gkylzerokern',
+        includes = '. ../zero ../one',
+        use = 'gkylone gkylzero gkylzerokern',
     )
 
     bld.program(
         source = 'app_esshock.c',
         target = 'app_esshock',
-        includes = '. ../zero ../miniapp',
-        use = 'gkylminiapp gkylzero gkylzerokern',
+        includes = '. ../zero ../one',
+        use = 'gkylone gkylzero gkylzerokern',
     )
 
     bld.program(
         source = 'app_pthread_proj.c',
         target = 'app_pthread_proj',
-        includes = '. ../zero ../miniapp',
-        use = 'gkylminiapp gkylzero gkylzerokern',
+        includes = '. ../zero ../one',
+        use = 'gkylone gkylzero gkylzerokern',
     )    
 
     bld.program(
         source = 'app_vlasov_kerntm.c',
-        target = 'app_vlasov_kerntm',        
-        includes = '. ../zero',
-        use = 'gkylzero gkylzerokern',
-    )    
-
-    
+        target = 'app_vlasov_kerntm',
+        includes = '. ../zero ../one',
+        use = 'gkylone gkylzero gkylzerokern',
+    )

@@ -103,17 +103,17 @@ diff_now_tm(struct timespec tm)
 static struct gkyl_array*
 mkarr(long nc, long size)
 {
-  struct gkyl_array* a = gkyl_array_new(sizeof(double[nc]), size);
-  gkyl_array_clear(a, 0.0); 
+  struct gkyl_array* a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
 // Compute out = c1*arr1 + c2*arr2
 static inline struct gkyl_array*
 array_combine(struct gkyl_array *out, double c1, const struct gkyl_array *arr1,
-  double c2, const struct gkyl_array *arr2)
+  double c2, const struct gkyl_array *arr2, const struct gkyl_range *rng)
 {
-  return gkyl_array_accumulate(gkyl_array_set(out, c1, arr1), c2, arr2);
+  return gkyl_array_accumulate_range(gkyl_array_set_range(out, c1, arr1, rng),
+    c2, arr2, rng);
 }
 
 // list of valid moment names
@@ -300,7 +300,8 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
   gkyl_array_clear(rhs, 0.0);
   gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs, field->maxs);
 
-  double omegaCfl = gkyl_array_reduce(field->cflrate, GKYL_MAX);
+  double omegaCfl;
+  gkyl_array_reduce(field->cflrate, GKYL_MAX, &omegaCfl);
 
   app->stat.field_rhs_tm += diff_now_tm(wst);
   
@@ -309,7 +310,8 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
 
 // Apply periodic BCs on EM fields
 static void
-vm_field_apply_periodic_bc(gkyl_vlasov_app *app, struct vm_field *field, int dir, struct gkyl_array *f)
+vm_field_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_field *field,
+  int dir, struct gkyl_array *f)
 {
   gkyl_array_copy_to_buffer(field->bc_buffer->data, f, &app->skin_ghost.lower_skin[dir]);
   gkyl_array_copy_from_buffer(f, field->bc_buffer->data, &app->skin_ghost.upper_ghost[dir]);
@@ -320,7 +322,8 @@ vm_field_apply_periodic_bc(gkyl_vlasov_app *app, struct vm_field *field, int dir
 
 // Apply copy BCs on EM fields
 static void
-vm_field_apply_copy_bc(gkyl_vlasov_app *app, struct vm_field *field, int dir, struct gkyl_array *f)
+vm_field_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_field *field,
+  int dir, struct gkyl_array *f)
 {
   gkyl_array_copy_to_buffer(field->bc_buffer->data, f, &app->skin_ghost.lower_skin[dir]);
   gkyl_array_copy_from_buffer(f, field->bc_buffer->data, &app->skin_ghost.lower_ghost[dir]);
@@ -332,7 +335,7 @@ vm_field_apply_copy_bc(gkyl_vlasov_app *app, struct vm_field *field, int dir, st
 // Determine which directions are periodic and which directions are copy,
 // and then apply boundary conditions for EM fields
 static void
-vm_field_apply_bc(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array *f)
+vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gkyl_array *f)
 {
   int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim, is_copy[3] = {1, 1, 1};
   for (int d=0; d<num_periodic_dir; ++d) {
@@ -444,11 +447,12 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_vlasov_set_qmem(species->eqn, qmem); // must set EM fields to use
-
+  
   gkyl_array_clear(rhs, 0.0);
   gkyl_hyper_dg_advance(species->slvr, &species->local, fin, species->cflrate, rhs, species->maxs);
 
-  double omegaCfl = gkyl_array_reduce(species->cflrate, GKYL_MAX);
+  double omegaCfl;
+  gkyl_array_reduce(species->cflrate, GKYL_MAX, &omegaCfl);
 
   app->stat.species_rhs_tm += diff_now_tm(wst);
   
@@ -457,7 +461,8 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
 
 // Apply periodic BCs on distribution function
 static void
-vm_species_apply_periodic_bc(gkyl_vlasov_app *app, struct vm_species *species, int dir, struct gkyl_array *f)
+vm_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_species *species,
+  int dir, struct gkyl_array *f)
 {
   gkyl_array_copy_to_buffer(species->bc_buffer->data, f, &species->skin_ghost.lower_skin[dir]);
   gkyl_array_copy_from_buffer(f, species->bc_buffer->data, &species->skin_ghost.upper_ghost[dir]);
@@ -468,7 +473,8 @@ vm_species_apply_periodic_bc(gkyl_vlasov_app *app, struct vm_species *species, i
 
 // Apply copy BCs on distribution function
 static void
-vm_species_apply_copy_bc(gkyl_vlasov_app *app, struct vm_species *species, int dir, struct gkyl_array *f)
+vm_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_species *species,
+  int dir, struct gkyl_array *f)
 {
   gkyl_array_copy_to_buffer(species->bc_buffer->data, f, &species->skin_ghost.lower_skin[dir]);
   gkyl_array_copy_from_buffer(f, species->bc_buffer->data, &species->skin_ghost.lower_ghost[dir]);
@@ -480,7 +486,7 @@ vm_species_apply_copy_bc(gkyl_vlasov_app *app, struct vm_species *species, int d
 // Determine which directions are periodic and which directions are copy,
 // and then apply boundary conditions for distribution function
 static void
-vm_species_apply_bc(gkyl_vlasov_app *app, struct vm_species *species, struct gkyl_array *f)
+vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, struct gkyl_array *f)
 {
   int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim, is_copy[3] = {1, 1, 1};
   for (int d=0; d<num_periodic_dir; ++d) {
@@ -516,6 +522,8 @@ vm_species_release(struct vm_species *s)
 gkyl_vlasov_app*
 gkyl_vlasov_app_new(struct gkyl_vm vm)
 {
+  assert(vm.num_species <= GKYL_MAX_SPECIES);
+  
   gkyl_vlasov_app *app = gkyl_malloc(sizeof(gkyl_vlasov_app));
   
   int cdim = app->cdim = vm.cdim;
@@ -568,16 +576,16 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
 }
 
 void
-gkyl_vlasov_app_init(gkyl_vlasov_app* app, double t0)
+gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0)
 {
   app->tcurr = t0;
-  gkyl_vlasov_app_init_field(app, t0);
+  gkyl_vlasov_app_apply_ic_field(app, t0);
   for (int i=0;  i<app->num_species; ++i)
-    gkyl_vlasov_app_init_species(app, i, t0);
+    gkyl_vlasov_app_apply_ic_species(app, i, t0);
 }
 
 void
-gkyl_vlasov_app_init_field(gkyl_vlasov_app* app, double t0)
+gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
 {
   app->tcurr = t0;
   int poly_order = app->poly_order;
@@ -590,7 +598,7 @@ gkyl_vlasov_app_init_field(gkyl_vlasov_app* app, double t0)
 }
 
 void
-gkyl_vlasov_app_init_species(gkyl_vlasov_app* app, int sidx, double t0)
+gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0)
 {
   assert(sidx < app->num_species);
 
@@ -623,7 +631,7 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
   for (int i=0; i<app->num_species; ++i)
     gkyl_vlasov_app_write_species(app, i, tm, frame);
 }
-
+ 
 void
 gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
 {
@@ -694,7 +702,8 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 
   // complete update of distribution function
   for (int i=0; i<app->num_species; ++i) {
-    gkyl_array_accumulate(gkyl_array_scale(fout[i], dta), 1.0, fin[i]);
+    gkyl_array_accumulate_range(gkyl_array_scale_range(fout[i], dta, &app->species[i].local),
+        1.0, fin[i], &app->species[i].local);
     vm_species_apply_bc(app, &app->species[i], fout[i]);
   }
 
@@ -704,13 +713,15 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     struct vm_species *s = &app->species[i];    
     gkyl_mom_calc_advance(s->m1i.mcalc, &s->local, &app->local,
       fin[i], s->m1i.marr);
+    
     double qbyeps = s->info.charge/app->field.info.epsilon0;
     gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, &app->local);
   }
   app->stat.current_tm += diff_now_tm(wst);
   
   // complete update of field
-  gkyl_array_accumulate(gkyl_array_scale(emout, dta), 1.0, emin);
+  gkyl_array_accumulate_range(gkyl_array_scale_range(emout, dta, &app->local),
+    1.0, emin, &app->local);
   vm_field_apply_bc(app, &app->field, emout);
 }
 
@@ -762,8 +773,10 @@ rk3(gkyl_vlasov_app* app, double dt0)
           }
           else {
             for (int i=0; i<app->num_species; ++i)
-              array_combine(app->species[i].f1, 3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew);
-            array_combine(app->field.em1, 3.0/4.0, app->field.em, 1.0/4.0, app->field.emnew);
+              array_combine(app->species[i].f1,
+                3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew, &app->species[i].local_ext);
+            array_combine(app->field.em1,
+              3.0/4.0, app->field.em, 1.0/4.0, app->field.emnew, &app->local_ext);
 
             state = RK_STAGE_3;
           }
@@ -794,11 +807,13 @@ rk3(gkyl_vlasov_app* app, double dt0)
           }
           else {
             for (int i=0; i<app->num_species; ++i) {
-              array_combine(app->species[i].f1, 1.0/3.0, app->species[i].f, 2.0/3.0, app->species[i].fnew);
-              gkyl_array_copy(app->species[i].f, app->species[i].f1);
+              array_combine(app->species[i].f1,
+                1.0/3.0, app->species[i].f, 2.0/3.0, app->species[i].fnew, &app->species[i].local_ext);
+              gkyl_array_copy_range(app->species[i].f, app->species[i].f1, &app->species[i].local_ext);
             }
-            array_combine(app->field.em1, 1.0/3.0, app->field.em, 2.0/3.0, app->field.emnew);
-            gkyl_array_copy(app->field.em, app->field.em1);
+            array_combine(app->field.em1,
+              1.0/3.0, app->field.em, 2.0/3.0, app->field.emnew, &app->local_ext);
+            gkyl_array_copy_range(app->field.em, app->field.em1, &app->local_ext);
 
             state = RK_COMPLETE;
           }
@@ -830,6 +845,26 @@ struct gkyl_vlasov_stat
 gkyl_vlasov_app_stat(gkyl_vlasov_app* app)
 {
   return app->stat;
+}
+
+void
+gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    
+    struct vm_species *species = &app->species[i];
+    
+    const struct gkyl_array *qmem = app->field.qmem;
+    gkyl_vlasov_set_qmem(species->eqn, qmem);
+
+    const struct gkyl_array *fin = species->f;
+    struct gkyl_array *rhs = species->f1;
+
+    gkyl_hyper_dg_set_update_vol(species->slvr, update_vol_term);
+    gkyl_array_clear_range(rhs, 0.0, &species->local);
+    gkyl_hyper_dg_advance(species->slvr, &species->local, fin,
+      species->cflrate, rhs, species->maxs);
+  }
 }
 
 void

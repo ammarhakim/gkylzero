@@ -5,7 +5,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_util.h>
 #include <gkyl_vlasov_mom.h>
-#include <kernels/vlasov/gkyl_vlasov_mom_kernels.h>
+#include <gkyl_vlasov_mom_kernels.h>
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below

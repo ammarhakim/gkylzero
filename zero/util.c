@@ -13,22 +13,25 @@ gkyl_exit(const char* msg)
 }
 
 int
-gkyl_compare_flt(float a, float b, float eps)
+gkyl_compare_float(float a, float b, float eps)
 {
   float absa = fabs(a), absb = fabs(b), diff = fabs(a-b);
 
   if (a == b) return 1;
-  if (a == 0 || b == 0 || (absa+absb < FLT_MIN)) return diff < eps*FLT_MIN;
+  if (a == 0 || b == 0 || (absa+absb < FLT_MIN)) return diff < eps;
+  if (absa < eps) return diff < eps;
+  if (absb < eps) return diff < eps;
   return diff/fminf(absa+absb, FLT_MAX) < eps;
 }
 
 int
-gkyl_compare_dbl(double a, double b, double eps)
+gkyl_compare_double(double a, double b, double eps)
 {
   double absa = fabs(a), absb = fabs(b), diff = fabs(a-b);
-
   if (a == b) return 1;
-  if (a == 0 || b == 0 || (absa+absb < DBL_MIN)) return diff < eps*DBL_MIN;
+  if (a == 0 || b == 0 || (absa+absb < DBL_MIN)) return diff < eps;
+  if (absa < eps) return diff < eps;
+  if (absb < eps) return diff < eps;
   return diff/fmin(absa+absb, DBL_MAX) < eps;
 }
 

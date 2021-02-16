@@ -107,7 +107,7 @@ main(int argc, char **argv)
   double dt = tend-tcurr;
 
   // initialize simulation
-  gkyl_vlasov_app_init(app, tcurr);
+  gkyl_vlasov_app_apply_ic(app, tcurr);
   
   gkyl_vlasov_app_write(app, tcurr, 0);
   gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 0);

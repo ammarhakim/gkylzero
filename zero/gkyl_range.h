@@ -45,7 +45,7 @@ struct gkyl_range {
     int ilo[GKYL_MAX_DIM]; // for use in inverse indexer
     long ac[GKYL_MAX_DIM+1]; // coefficients for indexing
     long linIdxZero; // linear index of {0,0,...}
-    long th_start, th_len; // start and size of linear range for iter
+    int nsplit, tid; // number of splits, split ID
 };
 
 /**
@@ -101,13 +101,12 @@ void gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim,
 int gkyl_range_shape(const struct gkyl_range *rng, int dir);
 
 /**
- * Return 1 if range is a sub-range/threaded.
+ * Return 1 if range is a sub-range.
  *
  * @param rng Range object
  * @return 1 if true, 0 otherwise
  */
 int gkyl_range_is_sub_range(const struct gkyl_range *rng);
-int gkyl_range_is_threaded(const struct gkyl_range *rng);
 
 /**
  * Create a sub-range from a given range. The sub-range must be fully
@@ -124,15 +123,24 @@ void gkyl_sub_range_init(struct gkyl_range *rng,
   const struct gkyl_range *bigrng, const int *sublower, const int *subupper);
 
 /**
- * Set threading for the given range. The only place threading matters
- * is for iterators. Iterators for threaded-ranges only walk over the
- * set of indices owned by that thread.
+ * Set split for the given range. The only place split matters is for
+ * iterators. Iterators for split-ranges only walk over the set of
+ * indices owned by that split.
  *
- * @param rng Range object to thread
- * @param nthreads Number of threads
- * @param tid Thread ID [0, nthreads)
+ * @param rng Range object to split
+ * @param nsplits Number of splits
+ * @param tid Split ID [0, nsplits)
  */
-void gkyl_range_thread(struct gkyl_range *rng, int nthreads, int tid);
+void gkyl_range_set_split(struct gkyl_range *rng, int nsplits, int tid);
+
+/**
+ * Return the number of elements looped over by iterator for this
+ * range.
+ *
+ * @param rng Range object
+ * @return number of elements looped over by iterator
+ */
+long gkyl_range_split_len(const struct gkyl_range *rng);
 
 /**
  * Return range which has some directions removed by setting the index
@@ -228,6 +236,15 @@ void gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx);
  * @return New iterator object for 'range'
  */
 void gkyl_range_iter_init(struct gkyl_range_iter *iter,
+  const struct gkyl_range* range);
+
+/**
+ * Create iterator, ignoring split information in range.
+ *
+ * @param range Range object.
+ * @return New iterator object for 'range'
+ */
+void gkyl_range_iter_no_split_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range);
 
 /**

@@ -37,7 +37,7 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
 
   if (num_quad <= gkyl_gauss_max) {
     // use pre-computed values if possible (these are more accurate
-    // that computing them on the fly)
+    // than computing them on the fly)
     memcpy(ordinates1, gkyl_gauss_ordinates[num_quad], sizeof(double[num_quad]));
     memcpy(weights1, gkyl_gauss_weights[num_quad], sizeof(double[num_quad]));
   }
@@ -54,8 +54,8 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
   int tot_quad = up->tot_quad = qrange.volume;
 
   // create ordinates and weights for multi-D quadrature  
-  up->ordinates = gkyl_array_new(sizeof(double[grid->ndim]), tot_quad);
-  up->weights = gkyl_array_new(sizeof(double), tot_quad);
+  up->ordinates = gkyl_array_new(GKYL_DOUBLE, grid->ndim, tot_quad);
+  up->weights = gkyl_array_new(GKYL_DOUBLE, 1, tot_quad);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &qrange);
@@ -76,7 +76,7 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
   }
 
   // pre-compute basis functions at ordinates
-  up->basis_at_ords = gkyl_array_new(sizeof(double[basis->numBasis]), tot_quad);
+  up->basis_at_ords = gkyl_array_new(GKYL_DOUBLE, basis->numBasis, tot_quad);
   for (int n=0; n<tot_quad; ++n)
     basis->eval(gkyl_array_fetch(up->ordinates, n),
       gkyl_array_fetch(up->basis_at_ords, n));
@@ -127,7 +127,7 @@ gkyl_proj_on_basis_advance(const gkyl_proj_on_basis *up,
 
   int num_ret_vals = up->num_ret_vals;
   int tot_quad = up->tot_quad;
-  struct gkyl_array *fun_at_ords = gkyl_array_new(sizeof(double[num_ret_vals]), tot_quad);
+  struct gkyl_array *fun_at_ords = gkyl_array_new(GKYL_DOUBLE, num_ret_vals, tot_quad);
   
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);

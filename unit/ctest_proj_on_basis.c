@@ -32,8 +32,7 @@ test_1()
   gkyl_range_init_from_shape(&arr_range, 1, cells);
 
   // create distribution function
-  struct gkyl_array *distf = gkyl_array_new(sizeof(double[basis.numBasis]),
-    arr_range.volume);
+  struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.numBasis, arr_range.volume);
 
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &arr_range, distf);

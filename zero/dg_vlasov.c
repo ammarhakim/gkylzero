@@ -6,7 +6,7 @@
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_util.h>
 
-#include <kernels/vlasov/gkyl_vlasov_kernels.h>
+#include <gkyl_vlasov_kernels.h>
 
 // Types for various kernels
 typedef double (*vlasov_stream_vol_t)(const double *w, const double *dxv,
@@ -199,7 +199,7 @@ vlasov_free(const struct gkyl_ref_count *ref)
 }
 
 void
-gkyl_vlasov_set_qmem(struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem)
+gkyl_vlasov_set_qmem(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
   vlasov->qmem = qmem;

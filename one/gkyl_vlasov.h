@@ -1,12 +1,11 @@
 #pragma once
 
 #ifndef GKYL_MAX_SPECIES
-# define GKYL_MAX_SPECIES 2
+# define GKYL_MAX_SPECIES 8
 #endif
 
 // Status of update() method. If success is 0 (failure) then the
-// simulation needs to be aborted and can't continue. The 'dt' is the
-// actual time-step the simulation used.
+// simulation needs to be aborted and can't continue.
 struct gkyl_update_status {
     int success; // 1 if update worked, 0 if a fatal error
     double dt_actual; // actual time-step taken
@@ -103,7 +102,7 @@ gkyl_vlasov_app* gkyl_vlasov_app_new(struct gkyl_vm vm);
  * @param app App object.
  * @param t0 Time for initial conditions.
  */
-void gkyl_vlasov_app_init(gkyl_vlasov_app* app, double t0);
+void gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0);
 
 /**
  * Initialize field by projecting initial conditions on basis
@@ -112,7 +111,7 @@ void gkyl_vlasov_app_init(gkyl_vlasov_app* app, double t0);
  * @param app App object.
  * @param t0 Time for initial conditions
  */
-void gkyl_vlasov_app_init_field(gkyl_vlasov_app* app, double t0);
+void gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0);
 
 /**
  * Initialize species by projecting initial conditions on basis
@@ -123,7 +122,7 @@ void gkyl_vlasov_app_init_field(gkyl_vlasov_app* app, double t0);
  * @param sidx Index of species to initialize.
  * @param t0 Time for initial conditions
  */
-void gkyl_vlasov_app_init_species(gkyl_vlasov_app* app, int sidx, double t0);
+void gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0);
 
 /**
  * Calculate diagnostic moments.
@@ -193,6 +192,16 @@ struct gkyl_update_status gkyl_vlasov_update(gkyl_vlasov_app* app, double dt);
  * @return Return statistics object.
  */
 struct gkyl_vlasov_stat gkyl_vlasov_app_stat(gkyl_vlasov_app* app);
+
+/**
+ * Run the RHS for the species update. This is used to compute kernel
+ * timers and is not otherwise a useful function for a full
+ * simulation.
+ *
+ * @param app App object.
+ * @param update_vol_term Set to 1 to update vol term also, 0 otherwise
+ */
+void gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term);
 
 /**
  * Free Vlasov app.

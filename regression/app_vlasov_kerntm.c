@@ -1,281 +1,182 @@
-#include <time.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
-#include <gkyl_array.h>
-#include <gkyl_array_ops.h>
-#include <gkyl_array_rio.h>
-#include <gkyl_dg_vlasov.h>
-#include <gkyl_range.h>
-#include <gkyl_rect_grid.h>
-
-#define SHOW_TIME(msg, tdiff) printf("%s %g s\n", msg, 1.0*(tdiff)/CLOCKS_PER_SEC)
+#include <gkyl_vlasov.h>
+#include <gkyl_util.h>
 
 void
-init_phase_ranges(int cdim, int pdim, const int *cells,
-  struct gkyl_range *phase_local, struct gkyl_range *phase_local_ext)
+evalDistFunc(double t, const double * restrict xn, double* restrict fout, void *ctx)
 {
-  int lower_ext[GKYL_MAX_DIM], upper_ext[GKYL_MAX_DIM];
-  int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
-  
-  for (int i=0; i<cdim; ++i) {
-    lower_ext[i] = -1;
-    upper_ext[i] = cells[i];
-
-    lower[i] = 0;
-    upper[i] = cells[i]-1;
-  }
-  for (int i=cdim; i<pdim; ++i) {
-    lower_ext[i] = 0;
-    upper_ext[i] = cells[i]-1;
-
-    lower[i] = 0;
-    upper[i] = cells[i]-1;
-  }
-  gkyl_range_init(phase_local_ext, pdim, lower_ext, upper_ext);
-  gkyl_sub_range_init(phase_local, phase_local_ext, lower, upper);
+  fout[0] = 0.0;
 }
 
 void
-init_conf_ranges(int cdim, const int *cells,
-  struct gkyl_range *conf_local, struct gkyl_range *conf_local_ext)
+evalFieldFunc(double t, const double* restrict xn, double* restrict fout, void *ctx)
 {
-  int lower_ext[GKYL_MAX_DIM], upper_ext[GKYL_MAX_DIM];
-  int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
-  
-  for (int i=0; i<cdim; ++i) {
-    lower_ext[i] = -1;
-    upper_ext[i] = cells[i];
-
-    lower[i] = 0;
-    upper[i] = cells[i]-1;
-  }
-  gkyl_range_init(conf_local_ext, cdim, lower_ext, upper_ext);
-  gkyl_sub_range_init(conf_local, conf_local_ext, lower, upper);
+  fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
+  fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
+  fout[6] = 0.0; fout[7] = 0.0;
 }
 
-struct gkyl_array*
-mkarr(long numComp, long size)
-{
-  return gkyl_array_new(sizeof(double)*numComp, size);
-}
-
-struct vlasov_app {
-    int cdim, vdim, polyOrder;
+struct kerntm_inp {
+    int cdim, vdim, poly_order;
     int ccells[3], vcells[3];
     int nloop;
 };
 
-struct vlasov_app
-parse_args(int argc, char **argv)
+struct kerntm_inp
+get_inp(int argc, char **argv)
 {
-  // replace with something read from CLI or a config file
-  struct vlasov_app app = {
-    .cdim = 2, .vdim = 2, .polyOrder = 2,
-    .ccells = {8, 8, 8}, .vcells = {16, 16, 16},
-    .nloop = 100
+  int c, cdim = 2, vdim = 2, poly_order = 2, nloop = 10;
+  while ((c = getopt(argc, argv, "+hc:v:p:n:")) != -1)
+    switch (c)
+    {
+      case 'h':
+          printf("Usage: app_vlasov_kerntm -c CDIM -v VDIM -p POLYORDER -n NLOOP\n");
+          exit(-1);
+          break;
+      
+      case 'c':
+          cdim = atoi(optarg);
+          break;
+
+      case 'v':
+          vdim = atoi(optarg);
+          break;
+
+      case 'p':
+          poly_order = atoi(optarg);
+          break;
+
+      case 'n':
+          nloop = atoi(optarg);
+          break;          
+
+      case '?':
+          break;
+    }
+  
+  return (struct kerntm_inp) {
+    .cdim = cdim,
+    .vdim = vdim,
+    .poly_order = poly_order,
+    .ccells = { 8, 8, 8 },
+    .vcells = { 16, 16, 16 },
+    .nloop = nloop,
   };
-
-  // struct vlasov_app app = {
-  //   .cdim = 2, .vdim = 2, .polyOrder = 2,
-  //   .ccells = {2, 2}, .vcells = {4, 4},
-  //   .nloop = 1
-  // };
-
-  return app;
-}
-
-static inline void
-copy_int_arr(int n, const int *restrict inp, int *restrict out)
-{
-  for (int i=0; i<n; ++i) out[i] = inp[i];
-}
-
-void
-show_params(struct vlasov_app app)
-{
-  int cdim = app.cdim, vdim = app.vdim;
-  int polyOrder = app.polyOrder;  
-  
-  printf("Kernel timer run with:\n");
-  printf("cdim = %d; vdim = %d; polyOrder = %d\n", cdim, vdim, polyOrder);
-  printf("nloop = %d\n", app.nloop);
-  
-  if (cdim == 1)
-    printf("NX = %d\n", app.ccells[0]);
-  if (cdim == 2)
-    printf("NX = %d; NY = %d\n", app.ccells[0], app.ccells[1]);
-  if (cdim == 3)
-    printf("NX = %d; NY = %d; NZ = %d\n", app.ccells[0], app.ccells[1], app.ccells[2]);
-
-  if (vdim == 1)
-    printf("VX = %d\n", app.vcells[0]);
-  if (vdim == 2)
-    printf("VX = %d; VY = %d\n", app.vcells[0], app.vcells[1]);
-  if (vdim == 3)
-    printf("VX = %d; VY = %d; VZ = %d\n", app.vcells[0], app.vcells[1], app.vcells[2]);
 }
 
 int
 main(int argc, char **argv)
 {
-  struct vlasov_app app = parse_args(argc, argv);
-  show_params(app);
+  struct kerntm_inp inp = get_inp(argc, argv);
 
-  int cdim = app.cdim, vdim = app.vdim, pdim = cdim+vdim;
-  int polyOrder = app.polyOrder;
-  int nloop = app.nloop;
-
-  double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
-  int cells[GKYL_MAX_DIM];
-  for (int d=0; d<cdim; ++d) {
-    lower[d] = -1.0; upper[d] = 1.0;
-    cells[d] = app.ccells[d];
-  }
-  for (int d=cdim; d<pdim; ++d) {
-    lower[d] = -6.0; upper[d] = 6.0;
-    cells[d] = app.vcells[d-cdim];
-  }
-
-  // grids
-  struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, pdim, lower, upper, cells);
-  struct gkyl_rect_grid confGrid;
-  gkyl_rect_grid_init(&confGrid, cdim, lower, upper, cells);
-
-  // basis functions
-  struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, pdim, polyOrder);
-  gkyl_cart_modal_serendip(&confBasis, cdim, polyOrder);
-
-  struct gkyl_range phase_local, phase_local_ext, conf_local, conf_local_ext;
-  init_phase_ranges(cdim, pdim, cells, &phase_local, &phase_local_ext);
-  init_conf_ranges(cdim, cells, &conf_local, &conf_local_ext);
-
-  // create distribution function, fields
-  struct gkyl_array *fIn = mkarr(basis.numBasis, phase_local_ext.volume);
-  struct gkyl_array *fOut = mkarr(basis.numBasis, phase_local_ext.volume);
-  struct gkyl_array *em = mkarr(confBasis.numBasis*8, conf_local_ext.volume);
-
-  gkyl_array_clear(fIn, 1.0); gkyl_array_clear(fOut, 1.0);
-  gkyl_array_clear(em, 2.0);
-
-  // vlasov equation object
-  struct gkyl_dg_eqn *vlasov_eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &conf_local);
-
-  clock_t tstart, tend;
-  long nvol = 0;
-
-  // volume kernels
-  printf("\n*** Timing volume kernel ....\n\n");
-  tstart = clock();
-  for (int n=0; n<nloop; ++n) {
+  printf("Running kernel timers with:\n");
+  printf("cdim = %d; vdim = %d; polyOrder = %d\n", inp.cdim, inp.vdim, inp.poly_order);
+  printf("cells = [");
+  for (int d=0; d<inp.cdim; ++d)
+    printf("%d ", inp.ccells[d]);
+  for (int d=0; d<inp.vdim; ++d)
+    printf("%d ", inp.vcells[d]);
+  printf("]\n");
     
-    gkyl_vlasov_set_qmem(vlasov_eqn, em);
-    double xc[GKYL_MAX_DIM];
-    
-    struct gkyl_range_iter iter;
-    gkyl_range_iter_init(&iter, &phase_local);
-    while(gkyl_range_iter_next(&iter)) {
-      gkyl_rect_grid_cell_center(&grid, iter.idx, xc);
-      
-      long fidx = gkyl_range_idx(&phase_local, iter.idx);
-      
-      vlasov_eqn->vol_term(vlasov_eqn, xc, grid.dx, iter.idx,
-        gkyl_array_fetch(fIn, fidx), gkyl_array_fetch(fOut, fidx)
-      );
-      nvol += 1;
-    }
-  }
-  tend = clock();
-  SHOW_TIME("Volume kernel took ", tend-tstart);
-  printf("(Total calls = %ld. Time per-call %g)\n", nvol,
-    1.0*(tend-tstart)/CLOCKS_PER_SEC/nvol);
+  printf("nloop = %d\n", inp.nloop);
+  
+  // electrons
+  struct gkyl_vlasov_species elc = {
+    .name = "elc",
+    .charge = -1.0, .mass = 1.0,
+    .lower = { -6.0, -6.0, -6.0 },
+    .upper = { 6.0, 6.0, 6.0 }, 
+    .cells = { inp.vcells[0], inp.vcells[1], inp.vcells[2] },
+    .init = evalDistFunc,
+  };
 
-  double totVolTm = 1.0*(tend-tstart)/CLOCKS_PER_SEC;
+  // field
+  struct gkyl_em_field field = {
+    .epsilon0 = 1.0, .mu0 = 1.0,
+    .init = evalFieldFunc
+  };
 
-  // surface kernels
-  printf("\n*** Timing surface kernels ....\n\n");
+  // VM app
+  struct gkyl_vm vm = {
+    .name = "kern-timer",
 
-  int zero_flux_dir[6];
+    .cdim = inp.cdim, .vdim = inp.vdim,
+    .lower = { -1.0, -1.0, -1.0 },
+    .upper = { 1.0, 1.0, 1.0 },
+    .cells = { inp.ccells[0], inp.ccells[1], inp.ccells[2] },
+    .poly_order = inp.poly_order,
+
+    .num_species = 1,
+    .species = { elc },
+    .field = field
+  };
+
+  // create app object
+  gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
+  gkyl_vlasov_app_apply_ic(app, 0.0);
+
+  struct timespec tm_start = gkyl_wall_clock();
+  // time with volume term
+  for (int i=0; i<inp.nloop; ++i)
+    gkyl_vlasov_app_species_ktm_rhs(app, 1);
+  
+  double tm_tot = gkyl_time_sec(gkyl_time_diff(tm_start, gkyl_wall_clock()));
+
+  tm_start = gkyl_wall_clock();
+  // time without volume term
+  for (int i=0; i<inp.nloop; ++i)
+    gkyl_vlasov_app_species_ktm_rhs(app, 0);
+  
+  double tm_surf_only = gkyl_time_sec(gkyl_time_diff(tm_start, gkyl_wall_clock()));
+
+  int cdim = inp.cdim, vdim = inp.vdim, pdim = cdim + vdim;
+
+  // compute how many volume updates we did per loop
+  long nvol_updates = 1;
   for (int i=0; i<cdim; ++i)
-    zero_flux_dir[i] = 0; // ghost cells in config directions
-  for (int i=cdim; i<pdim; ++i)
-    zero_flux_dir[i] = 1; // no ghost cells in velocity directions
+    nvol_updates *= inp.ccells[i];
+  for (int i=0; i<vdim; ++i)
+    nvol_updates *= inp.vcells[i];
 
-  long nsurf = 0;
+  long nsurf_updates[pdim];
+  
+  for (int d=0; d<pdim; ++d) {
+    nsurf_updates[d] = 1;
+    
+    for (int i=0; i<cdim; ++i)
+      if (i == d)
+        nsurf_updates[d] *= inp.ccells[i]+1;
+      else
+        nsurf_updates[d] *= inp.ccells[i];
 
-  tstart = clock();
-  for (int n=0; n<nloop; ++n) {
-    gkyl_vlasov_set_qmem(vlasov_eqn, em);
-
-    int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
-    double xcl[GKYL_MAX_DIM], xcc[GKYL_MAX_DIM], xcr[GKYL_MAX_DIM];
-    // integer used for selecting between left-edge zero-flux BCs and right-edge zero-flux BCs
-    int edge;
-
-    struct gkyl_range_iter iter;
-    gkyl_range_iter_init(&iter, &phase_local);
-
-    while (gkyl_range_iter_next(&iter)) {
-      copy_int_arr(pdim, iter.idx, idxc);
-      gkyl_rect_grid_cell_center(&grid, idxc, xcc);
-
-      long linc = gkyl_range_idx(&phase_local, idxc);
-
-      for (int d=0; d<pdim; ++d) {
-        copy_int_arr(pdim, iter.idx, idxl);
-        copy_int_arr(pdim, iter.idx, idxr);
-        if (zero_flux_dir[d] && (idxc[d] == lower[d] || idxc[d] == upper[d])) {
-          if (idxc[d] == lower[d]) edge = -1;
-          else edge = 1;
-          // use idxl to store interior edge index (first index away from skin cell)
-          idxl[d] = idxl[d]-edge;
-
-          gkyl_rect_grid_cell_center(&grid, idxl, xcl);
-          long linl = gkyl_range_idx(&phase_local, idxl);
-
-          vlasov_eqn->boundary_surf_term(vlasov_eqn,
-            d, xcl, xcc, grid.dx, grid.dx,
-            1.0, idxl, idxc, edge,
-            gkyl_array_fetch(fIn, linl), gkyl_array_fetch(fIn, linc),
-            gkyl_array_fetch(fOut, linc)
-          );       
-        }
-        else {
-          idxl[d] = idxl[d]-1; idxr[d] = idxr[d]+1;
-
-          gkyl_rect_grid_cell_center(&grid, idxl, xcl);
-          gkyl_rect_grid_cell_center(&grid, idxr, xcr);
-          long linl = gkyl_range_idx(&phase_local, idxl); 
-          long linr = gkyl_range_idx(&phase_local, idxr);
-
-          vlasov_eqn->surf_term(vlasov_eqn,
-            d, xcl, xcc, xcr, grid.dx, grid.dx, grid.dx,
-            1.0, idxl, idxc, idxr,
-            gkyl_array_fetch(fIn, linl), gkyl_array_fetch(fIn, linc), gkyl_array_fetch(fIn, linr),
-            gkyl_array_fetch(fOut, linc)
-          );
-        }
-      }
-      nsurf += 1;
-    }
+    for (int i=cdim; i<pdim; ++i)
+      if (i == d)
+        nsurf_updates[d] *= inp.vcells[i-cdim]-1;
+      else
+        nsurf_updates[d] *= inp.vcells[i-cdim];
   }
-  tend = clock();
-  SHOW_TIME("Surface kernel took ", tend-tstart);
-  printf("(Total calls = %ld. Time per-call %g)\n", nsurf,
-    1.0*(tend-tstart)/CLOCKS_PER_SEC/nsurf);
 
-  double totSurfTm = 1.0*(tend-tstart)/CLOCKS_PER_SEC;
+  printf("Volume kernel calls: %ld\n", nvol_updates);
+  long nsurf_updates_tot = 0;
+  printf("Surface kernels calls: [");
+  for (int d=0; d<pdim; ++d) {
+    printf("%ld ", nsurf_updates[d]);
+    nsurf_updates_tot += nsurf_updates[d];
+  }
+  printf("]\n");
+  printf("Net surface kernel calls: %ld\n", nsurf_updates_tot);
 
-  printf("Total volume updates took %g. Surface updates took %g\n",
-    totVolTm, totSurfTm);
+  double tm_vol = tm_tot - tm_surf_only;
+  printf("Volume updates took:  %g [s]\n", tm_vol/inp.nloop);
+  printf("Surface updates took: %g [s]\n", tm_surf_only/inp.nloop);
+    
+  printf("Time for full update: %g [s]\n", tm_tot/inp.nloop);
 
-  // release resources
-  gkyl_array_release(fIn);
-  gkyl_array_release(fOut);
-  gkyl_array_release(em);
-  gkyl_dg_eqn_release(vlasov_eqn);
+  gkyl_vlasov_app_release(app);
   
   return 0;
 }
