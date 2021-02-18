@@ -15,6 +15,6 @@ def build(bld):
     # to interpreted language FFIs
     bld.stlib(source = source,
               includes = '. .. ../zero',
-              target = 'gkylone',
-              name = 'gkylone',
+              target = 'gkylapps',
+              name = 'gkylapps',
     )

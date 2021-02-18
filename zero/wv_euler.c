@@ -91,7 +91,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
 }
 
 static void
-qfluct(const struct gkyl_wv_eqn *eqn, 
+qfluct_roe(const struct gkyl_wv_eqn *eqn, 
   int dir, const double *ql, const double *qr, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
@@ -114,7 +114,7 @@ gkyl_wv_euler_new(double gas_gamma)
   euler->eqn.num_waves = 3;
   euler->gas_gamma = gas_gamma;
   euler->eqn.waves_func = wave_roe;
-  euler->eqn.qfluct_func = qfluct;
+  euler->eqn.qfluct_func = qfluct_roe;
 
   euler->eqn.ref_count = (struct gkyl_ref_count) { euler_free, 1 };
 

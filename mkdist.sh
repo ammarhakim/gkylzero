@@ -18,8 +18,8 @@ cp minus/*.h $distname
 cp zero/*.h $distname
 cp zero/*.c $distname
 # copy app code
-cp one/*.h $distname
-cp one/*.c $distname
+cp apps/*.h $distname
+cp apps/*.c $distname
 # copy kernels
 cp kernels/*/*.h $distname
 cp kernels/*/*.c $distname
@@ -64,6 +64,7 @@ cat <<EOF > Makefile
 #
 
 CFLAGS = -O3 -g -I.
+PREFIX = \${HOME}/gkylsoft
 
 headers = $headers
 
@@ -73,6 +74,16 @@ all: libgkylzero.a ${regtests} ${unittests}
 
 libgkylzero.a: \${libobjs}
 	ar -crs libgkylzero.a \${libobjs}
+
+install: libgkylzero.a
+	 mkdir -p \${PREFIX}/gkylzero/include
+	 mkdir -p \${PREFIX}/gkylzero/lib
+	 mkdir -p \${PREFIX}/gkylzero/share
+	 cp -f ${headers} \${PREFIX}/gkylzero/include
+	 cp -f libgkylzero.a \${PREFIX}/gkylzero/lib
+	 cp -f 000version.txt \${PREFIX}/gkylzero
+	 cp -f Makefile.sample \${PREFIX}/gkylzero/share/Makefile
+	 cp -f app_twostream.c \${PREFIX}/gkylzero/share/app_twostream.c
 
 $(printf "%b" "$regtargets")
 
@@ -108,11 +119,51 @@ install the code do:
 The default installation location is \$HOME/gkylsoft/gkylzero. You can
 change it by specifying the PREFIX variable:
 
- make PREFIX=/mylocation install
+ make PREFIX=mylocation install
+
+The code will be installed in mylocation/gkylzero.
+
+To uninstall manually delete the gkylzero directory wherever you
+installed it. There is no explicit uninstall target.
+
+Note that GkylZero is meant to be a library and not a stand-alone
+code. To write an application that uses GkylZero a sample app and
+Makefile will be installed in the "share" directory of the
+installation. Also see app_* files in this directory for example
+applications.
 
 Generated on $(date) by $(whoami).
 
 EOF1
+
+# write version information
+cat <<EOF2 > 000version.txt
+git changeset: $(git describe --abbrev=12 --always --dirty=+)
+Archive generated on $(date) by $(whoami).
+EOF2
+
+# write sample Makefile for user projects
+cat <<EOF3 > Makefile.sample
+
+# Sample Makefile to use installed gkylzero library: copy and modify
+# for your needs
+
+CFLAGS = -O3 -g -I.
+PREFIX = \${HOME}/gkylsoft
+
+G0_INC_DIR = \${PREFIX}/gkylzero/include
+G0_LIB_DIR = \${PREFIX}/gkylzero/lib
+G0_LIB_FLAGS = -lm -lgkylzero
+
+all: app_twostream
+
+app_twostream: app_twostream.c
+	 \${CC} \${CFLAGS} -I\${G0_INC_DIR} -L\${G0_LIB_DIR} \${G0_LIB_FLAGS} app_twostream.c -o app_twostream
+
+clean:
+	rm -rf app_twostream app_twostream.dSYM
+
+EOF3
 
 # up a directory and tar.gz archive
 cd ..
