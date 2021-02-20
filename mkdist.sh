@@ -58,7 +58,8 @@ done
 # create Makefile
 cat <<EOF > Makefile
 
-# Amalgamated makefile. Set compiler if needed:
+# Amalgamated Makefile, generated automatically. Set compiler or
+# modify as needed. For example, to set compiler do:
 #
 # make CC=mpicc 
 #
@@ -78,12 +79,14 @@ libgkylzero.a: \${libobjs}
 install: libgkylzero.a
 	 mkdir -p \${PREFIX}/gkylzero/include
 	 mkdir -p \${PREFIX}/gkylzero/lib
+	 mkdir -p \${PREFIX}/gkylzero/bin
 	 mkdir -p \${PREFIX}/gkylzero/share
 	 cp -f ${headers} \${PREFIX}/gkylzero/include
 	 cp -f libgkylzero.a \${PREFIX}/gkylzero/lib
 	 cp -f 000version.txt \${PREFIX}/gkylzero
 	 cp -f Makefile.sample \${PREFIX}/gkylzero/share/Makefile
 	 cp -f app_twostream.c \${PREFIX}/gkylzero/share/app_twostream.c
+	 cp -f app_vlasov_kerntm \${PREFIX}/gkylzero/bin/
 
 $(printf "%b" "$regtargets")
 
