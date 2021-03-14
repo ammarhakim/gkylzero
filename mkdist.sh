@@ -17,23 +17,30 @@ cp minus/*.h $distname
 # copy library code
 cp zero/*.h $distname
 cp zero/*.c $distname
-# copy app code
-cp apps/*.h $distname
-cp apps/*.c $distname
 # copy kernels
 cp kernels/*/*.h $distname
 cp kernels/*/*.c $distname
-# copy regression tests
-cp regression/*.c $distname
-# copy unit tests
-cp unit/*.c $distname
+# copy app code
+cp apps/*.h $distname
+cp apps/*.c $distname
 
 cd $distname
 
 # get list of header files
 headers=$(ls *.h | tr "\n" " ")
-# list of C code
+# list of C code for inclusion in library
 sources=$(ls *.c | sed 's/\.c/\.o/' | tr "\n" " " )
+
+# back up to root dir to copy regression and unit tests (this is so
+# that the regression, unit and app objects are not archived into the
+# gkylzero library)
+cd ..
+# copy regression tests
+cp regression/*.c $distname
+# copy unit tests
+cp unit/*.c $distname
+cd $distname
+
 # list of regression tests
 regtests=$(ls app_*.c | sed 's/\.c//' | tr "\n" " " )
 # list of unit tests
@@ -44,7 +51,7 @@ regtargets=""
 for rt in $regtests
 do
     regtargets+="$rt: $rt.c libgkylzero.a\n"
-    regtargets+="\t\${CC} \${CFLAGS} $rt.c -I. -L. -lgkylzero -lm -o $rt\n\n"
+    regtargets+="\t\${CC} \${CFLAGS} $rt.c -I. -L. -lgkylzero -lm -lpthread -o $rt\n\n"
 done
 
 # create unit-test targets for insertion in generated Makefile
@@ -52,7 +59,7 @@ unittargets=""
 for ut in $unittests
 do
     unittargets+="$ut: $ut.c libgkylzero.a\n"
-    unittargets+="\t\${CC} \${CFLAGS} $ut.c -I. -L. -lgkylzero -lm -o $ut\n\n"
+    unittargets+="\t\${CC} \${CFLAGS} $ut.c -I. -L. -lgkylzero -lm -lpthread -o $ut\n\n"
 done
 
 # create Makefile

@@ -25,7 +25,7 @@ from waflib.Options import options
 
 def options(opt):
     opt.load('compiler_c compiler_cxx') 
-    opt.load('gkylzero',
+    opt.load('gkylzero mpi',
              tooldir='waf_tools')
 
 def configure(conf):
@@ -34,6 +34,7 @@ def configure(conf):
     # load tools
     conf.load('compiler_c compiler_cxx')
     conf.check_gkylzero()
+    conf.check_mpi()
 
     # standard install location for dependencies
     gkydepsDir = os.path.expandvars('$HOME/gkylsoft')
