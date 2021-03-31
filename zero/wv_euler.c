@@ -36,7 +36,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   double rhol = ql[0], rhor = qr[0];
   double pl = gkyl_euler_pressure(gas_gamma, ql), pr = gkyl_euler_pressure(gas_gamma, qr);
 
-  // Roe averages: see Roe's original 1986 paper or LeVeque book
+  // Roe averages: see Roe's original 1981 paper or LeVeque book
   double srrhol = sqrt(rhol), srrhor = sqrt(rhor);
   double ravgl1 = 1/srrhol, ravgr1 = 1/srrhor;
   double ravg2 = 1/(srrhol+srrhor);

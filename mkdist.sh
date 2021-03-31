@@ -32,8 +32,8 @@ headers=$(ls *.h | tr "\n" " ")
 sources=$(ls *.c | sed 's/\.c/\.o/' | tr "\n" " " )
 
 # back up to root dir to copy regression and unit tests (this is so
-# that the regression, unit and app objects are not archived into the
-# gkylzero library)
+# that the regression, unit objects are not archived into the gkylzero
+# library)
 cd ..
 # copy regression tests
 cp regression/*.c $distname
