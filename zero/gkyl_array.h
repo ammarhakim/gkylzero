@@ -19,8 +19,8 @@ struct gkyl_array {
     size_t size; // number of indices
     
     uint32_t flags;
-    size_t esznc;
-    void *data;
+    size_t esznc; // elemsz*ncomp
+    void *data; // pointer to data (do not use directly)
     struct gkyl_ref_count ref_count;
 };
 
