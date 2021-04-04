@@ -13,7 +13,7 @@ mkdir $distname
 
 # copy included dependency
 cp minus/*.h $distname
-#cp minus/*.c $distname
+cp minus/*.c $distname
 # copy library code
 cp zero/*.h $distname
 cp zero/*.c $distname

@@ -10,8 +10,8 @@ def build(bld):
     bld.program(
         source = 'app_weibel_4d.c',
         target = 'app_weibel_4d',
-        includes = '. ../zero ../apps',
-        use = 'gkylapps gkylzero gkylzerokern',
+        includes = '. ../zero ../minud ../apps',
+        use = 'gkylapps gkylzero gkylminus gkylzerokern',
     )
 
     bld.program(

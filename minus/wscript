@@ -7,14 +7,14 @@ import os
 
 def build(bld):
     source = r"""
-    vlasov.c
+    rxi_ini.c
     """
 
     # For now building static library. Probably should build shared
     # library as well. In fact, shared-lib is needed to allow linking
     # to interpreted language FFIs
     bld.stlib(source = source,
-              includes = '. .. ../zero ../minus',
-              target = 'gkylapps',
-              name = 'gkylapps',
+              includes = '.',
+              target = 'gkylminus',
+              name = 'gkylminus',
     )
