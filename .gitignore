@@ -1,6 +1,7 @@
 *~
 build/*
 build-*/*
+*.gkyl
 .waf*
 .lock-waf*
 waf_tools/*.pyc
@@ -12,6 +13,7 @@ gkylzero-dist*
 *.ko
 *.obj
 *.elf
+*.DS_Store
 
 # Linker output
 *.ilk

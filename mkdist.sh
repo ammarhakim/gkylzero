@@ -177,6 +177,10 @@ clean:
 
 EOF3
 
-# up a directory and tar.gz archive
+# up a directory and archive
 cd ..
-tar -zcf ${distname}.tar.gz ${distname}
+rm -f ${distname}.zip
+zip -r ${distname}.zip ${distname}
+
+## MAC OSX uses BSD tar which causes warning messages on Linux 
+#tar -zcf ${distname}.tar.gz ${distname}
