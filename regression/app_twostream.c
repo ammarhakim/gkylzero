@@ -1,6 +1,8 @@
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 #include <gkyl_vlasov.h>
@@ -90,8 +92,13 @@ create_ctx(rxi_ini_t *inp)
 int
 main(int argc, char **argv)
 {
-  const char *inp_name = argc>1 ? argv[1] : "app_twostream.ini";
+  const char *inp_name = argc>1 ? argv[1] : "twostream.ini";
   rxi_ini_t *inp = rxi_ini_load(inp_name);
+
+  if (NULL == inp) {
+    printf("Unable to open input file %s!\n", inp_name);
+    exit(1);
+  }
   
   struct twostream_ctx ctx = create_ctx(inp); // context for init functions
   struct twostream_inp tsinp = create_twostream_inp(inp); // input parameters
@@ -125,8 +132,6 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "twostream",
-
     .cdim = 1, .vdim = 1,
     .lower = { -M_PI/ctx.knumber },
     .upper = { M_PI/ctx.knumber },
@@ -140,6 +145,9 @@ main(int argc, char **argv)
     .species = { elc },
     .field = field
   };
+  // construct sim name based on input file name
+  strncpy(vm.name, inp_name, strcspn(inp_name, ".inp"));
+  
 
   // create app object
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
