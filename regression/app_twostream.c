@@ -148,7 +148,6 @@ main(int argc, char **argv)
   // construct sim name based on input file name
   strncpy(vm.name, inp_name, strcspn(inp_name, ".inp"));
   
-
   // create app object
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
 

@@ -56,6 +56,12 @@ class GitTip(Task.Task):
     run_str = r'echo \#define GKYL_ZERO_GIT_CHANGESET  \"`git describe --abbrev=12 --always --dirty=+`\" > ${TGT}'
 
 def build(bld):
+
+    if bld.cmd == "install":
+        # do not allow any installation from waf
+        print("Installation is only possible using gkylzero-dist!")
+        return
+    
     gitTip = GitTip(env=bld.env)
     gitTip.set_outputs(bld.path.find_or_declare('gkyl_zero_git_tip.h'))
     bld.add_to_group(gitTip)
@@ -69,7 +75,7 @@ def build(bld):
     bld.recurse("zero")
     bld.recurse("apps")
     bld.recurse("unit")
-    bld.recurse("regression") 
+    bld.recurse("regression")
 
 def dist(ctx):
     ctx.algo = "zip" # use ZIP instead of tar.bz2

@@ -37,6 +37,7 @@ sources=$(ls *.c | sed 's/\.c/\.o/' | tr "\n" " " )
 cd ..
 # copy regression tests
 cp regression/*.c $distname
+cp regression/*.ini $distname
 # copy unit tests
 cp unit/*.c $distname
 cd $distname
@@ -93,6 +94,7 @@ install: libgkylzero.a
 	 cp -f 000version.txt \${PREFIX}/gkylzero
 	 cp -f Makefile.sample \${PREFIX}/gkylzero/share/Makefile
 	 cp -f app_twostream.c \${PREFIX}/gkylzero/share/app_twostream.c
+	 cp -f twostream.ini \${PREFIX}/gkylzero/share/twostream.ini
 	 cp -f app_vlasov_kerntm \${PREFIX}/gkylzero/bin/
 
 $(printf "%b" "$regtargets")
