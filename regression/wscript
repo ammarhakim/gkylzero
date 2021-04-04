@@ -7,44 +7,47 @@ import os
 
 def build(bld):
 
+    includes = '. ../zero ../minus ../apps'
+    use = 'gkylapps gkylzero gkylminus gkylzerokern'
+
     bld.program(
         source = 'app_weibel_4d.c',
         target = 'app_weibel_4d',
-        includes = '. ../zero ../minud ../apps',
-        use = 'gkylapps gkylzero gkylminus gkylzerokern',
+        includes = includes,
+        use = use,
     )
 
     bld.program(
         source = 'app_weibel_3d.c',
         target = 'app_weibel_3d',
-        includes = '. ../zero ../apps',
+        includes = includes,
         use = 'gkylapps gkylzero gkylzerokern',
     )
 
     bld.program(
         source = 'app_twostream.c',
         target = 'app_twostream',
-        includes = '. ../zero ../apps',
-        use = 'gkylapps gkylzero gkylzerokern',
+        includes = includes,
+        use = use,
     )
 
     bld.program(
         source = 'app_esshock.c',
         target = 'app_esshock',
-        includes = '. ../zero ../apps',
-        use = 'gkylapps gkylzero gkylzerokern',
+        includes = includes,
+        use = use,
     )
 
     bld.program(
         source = 'app_pthread_proj.c',
         target = 'app_pthread_proj',
-        includes = '. ../zero ../apps',
-        use = 'gkylapps gkylzero gkylzerokern',
+        includes = includes,
+        use = use,
     )    
 
     bld.program(
         source = 'app_vlasov_kerntm.c',
         target = 'app_vlasov_kerntm',
-        includes = '. ../zero ../apps',
-        use = 'gkylapps gkylzero gkylzerokern',
+        includes = includes,
+        use = use,
     )
