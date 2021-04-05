@@ -60,11 +60,11 @@ create_twostream_inp(rxi_ini_t *inp)
   int read_failed = 0;
   // read from input file
   if (!rxi_ini_sget(inp, "conf-grid", "tend", "%lg", &tsinp.tend)) {
-    printf("Must provide 'tend' in section '[conf-grid]'!\n");
+    fprintf(stderr, "Must provide 'tend' in section '[conf-grid]'!\n");
     read_failed = 1;
   }
   if (!rxi_ini_sget(inp, "conf-grid", "cells", "%d", &tsinp.conf_cells)) {
-    printf("Must provide 'cells' in section '[conf-grid]'!\n");
+    fprintf(stderr, "Must provide 'cells' in section '[conf-grid]'!\n");
     read_failed = 1;
   }
 
@@ -72,21 +72,21 @@ create_twostream_inp(rxi_ini_t *inp)
   rxi_ini_sget(inp, "electrons", "mass", "%lg", &tsinp.mass);
 
   if (!rxi_ini_sget(inp, "electrons", "cells", "%d", &tsinp.vel_cells)) {
-    printf("Must provide 'cells' in section '[electrons]'!\n");
+    fprintf(stderr, "Must provide 'cells' in section '[electrons]'!\n");
     read_failed = 1;
   }
 
   if (!rxi_ini_sget(inp, "electrons", "lower", "%lg", &tsinp.vel_extents[0])) {
-    printf("Must provide 'lower' in section '[electrons]'!\n");
+    fprintf(stderr, "Must provide 'lower' in section '[electrons]'!\n");
     read_failed = 1;
   }
   if (!rxi_ini_sget(inp, "electrons", "upper", "%lg", &tsinp.vel_extents[1])) {
-    printf("Must provide 'upper' in section '[electrons]'!\n");
+    fprintf(stderr, "Must provide 'upper' in section '[electrons]'!\n");
     read_failed = 1;
   }
 
   if (read_failed) {
-    printf("... aborting!\n");
+    fprintf(stderr, "... aborting!\n");
     exit(1);
   }  
 
@@ -102,21 +102,21 @@ create_ctx(rxi_ini_t *inp)
 
   int read_failed = 0;
   if (!rxi_ini_sget(inp, "electrons", "knumber", "%lg", &ctx.knumber)) {
-    printf("Must provide 'knumber' in section '[electrons]'!\n");
+    fprintf(stderr, "Must provide 'knumber' in section '[electrons]'!\n");
     read_failed = 1;
   }
   if (!rxi_ini_sget(inp, "electrons", "vth", "%lg", &ctx.vth)) {
-    printf("Must provide 'vth' in section '[electrons]'!\n");
+    fprintf(stderr, "Must provide 'vth' in section '[electrons]'!\n");
     read_failed = 1;
   }
   if (!rxi_ini_sget(inp, "electrons", "vdrift", "%lg", &ctx.vdrift)) {
-    printf("Must provide 'vdrift' in section '[electrons]'!\n");
+    fprintf(stderr, "Must provide 'vdrift' in section '[electrons]'!\n");
     read_failed = 1;
   }
   rxi_ini_sget(inp, "electrons", "perturbation", "%lg", &ctx.perturbation);
 
   if (read_failed) {
-    printf("... aborting!\n");
+    fprintf(stderr, "... aborting!\n");
     exit(1);
   }
   
@@ -130,7 +130,7 @@ main(int argc, char **argv)
   rxi_ini_t *inp = rxi_ini_load(inp_name);
 
   if (NULL == inp) {
-    printf("Unable to open input file %s!\n", inp_name);
+    fprintf(stderr, "Unable to open input file %s!\n", inp_name);
     exit(1);
   }
   
@@ -201,7 +201,7 @@ main(int argc, char **argv)
     printf(" dt = %g\n", status.dt_actual);
     
     if (!status.success) {
-      printf("** Update method failed! Aborting simulation ....\n");
+      fprintf(stderr, "** Update method failed! Aborting simulation ....\n");
       break;
     }
     tcurr += status.dt_actual;
