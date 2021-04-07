@@ -25,6 +25,7 @@ def build(bld):
     rect_grid.c
     util.c
     vlasov_mom.c
+    wave_prop.c
     wv_eqn.c
     wv_euler.c
     """

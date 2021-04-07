@@ -63,6 +63,13 @@ do
     unittargets+="\t\${CC} \${CFLAGS} $ut.c -I. -L. -lgkylzero -lm -lpthread -o $ut\n\n"
 done
 
+# add unit-tests for use in "make check"
+checkcmds=""
+for ut in $unittests
+do
+    checkcmds+="\t./$ut\n"
+done
+
 # create Makefile
 cat <<EOF > Makefile
 
@@ -100,6 +107,9 @@ install: libgkylzero.a
 $(printf "%b" "$regtargets")
 
 $(printf "%b" "$unittargets")
+
+check: ${unittests}
+$(printf "%b" "$checkcmds")
 
 clean:
 	rm -rf libgkylzero.a \${libobjs} ${regtests} ${unittests} *.dSYM *.so 
