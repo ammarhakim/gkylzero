@@ -1,3 +1,5 @@
+![Build Dist](https://github.com/ammarhakim/gkylzero/actions/workflows/main.yml/badge.svg)
+
 # About
 
 This is the GkeyllZero layer of the Gkeyll code. The name is
