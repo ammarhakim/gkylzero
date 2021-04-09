@@ -182,7 +182,7 @@ main(int argc, char **argv)
   // construct sim name based on input file name
   const char *inp_last_slash = strrchr(inp_name, '/');
   const char *inp_no_slash = inp_last_slash ? inp_last_slash+1 : inp_name;
-  strncpy(vm.name, inp_no_slash, strcspn(inp_no_slash, ".inp"));
+  strncpy(vm.name, inp_no_slash, strcspn(inp_no_slash, ".ini"));
   
   // create app object
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
