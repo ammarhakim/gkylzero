@@ -79,7 +79,7 @@ cat <<EOF > Makefile
 # make CC=mpicc 
 #
 
-CFLAGS = -O3 -g -I.
+CFLAGS = -O3 -g -I. -Wall -Wextra -Wno-unused-variable -Wno-unused-parameter
 PREFIX = \${HOME}/gkylsoft
 
 headers = $headers
