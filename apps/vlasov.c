@@ -13,6 +13,7 @@
 #include <gkyl_mom_calc.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
+#include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_vlasov_mom.h>
@@ -128,53 +129,6 @@ is_moment_name_valid(const char *nm)
     if (strcmp(valid_moment_names[i], nm) == 0)
       return 1;
   return 0;
-}
-
-// initialize local and local-ext ranges on conf-space.
-static void
-init_conf_ranges(int cdim, const int *cells,
-  struct gkyl_range *local, struct gkyl_range *local_ext)
-{
-  int lower_ext[GKYL_MAX_DIM], upper_ext[GKYL_MAX_DIM];
-  int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
-  
-  for (int i=0; i<cdim; ++i) {
-    lower_ext[i] = -1;
-    upper_ext[i] = cells[i];
-
-    lower[i] = 0;
-    upper[i] = cells[i]-1;
-  }
-  gkyl_range_init(local_ext, cdim, lower_ext, upper_ext);
-  gkyl_sub_range_init(local, local_ext, lower, upper);
-}
-
-// initialize local and local-ext ranges on phase-space: each species
-// can have different phase-space grid and hence ranges; note that
-// this function assumes there are no ghost-cells in velocity space.
-static void
-init_phase_ranges(int cdim, int pdim, const int *cells,
-  struct gkyl_range *local, struct gkyl_range *local_ext)
-{
-  int lower_ext[GKYL_MAX_DIM], upper_ext[GKYL_MAX_DIM];
-  int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
-  
-  for (int i=0; i<cdim; ++i) {
-    lower_ext[i] = -1;
-    upper_ext[i] = cells[i];
-
-    lower[i] = 0;
-    upper[i] = cells[i]-1;
-  }
-  for (int i=cdim; i<pdim; ++i) {
-    lower_ext[i] = 0;
-    upper_ext[i] = cells[i]-1;
-
-    lower[i] = 0;
-    upper[i] = cells[i]-1;
-  }
-  gkyl_range_init(local_ext, pdim, lower_ext, upper_ext);
-  gkyl_sub_range_init(local, local_ext, lower, upper);
 }
 
 // reduce
@@ -385,9 +339,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     ghost[cdim+d] = 0; // no ghost-cells in velocity space
   }
   gkyl_rect_grid_init(&s->grid, pdim, lower, upper, cells);
-  init_phase_ranges(cdim, pdim, cells, &s->local, &s->local_ext);
+  gkyl_create_grid_ranges(&s->grid, ghost, &s->local_ext, &s->local);
 
-  // create skin/ghost range
   skin_ghost_ranges_init(&s->skin_ghost, &s->local_ext, ghost);
   
   // allocate distribution function arrays
@@ -546,12 +499,10 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
   gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
   gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
 
-  // create config grid & ranges
   gkyl_rect_grid_init(&app->grid, cdim, vm.lower, vm.upper, vm.cells);
-  init_conf_ranges(cdim, vm.cells, &app->local, &app->local_ext);
 
-  int ghost[] = { 1, 1, 1 };
-  // create config skin/ghost ranges
+  int ghost[] = { 1, 1, 1 };  
+  gkyl_create_grid_ranges(&app->grid, ghost, &app->local_ext, &app->local);
   skin_ghost_ranges_init(&app->skin_ghost, &app->local_ext, ghost);
 
   // initialize EM field
