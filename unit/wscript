@@ -44,6 +44,13 @@ def build(bld):
     )
 
     bld.program(
+        source = 'ctest_rect_decomp.c',
+        target = 'ctest_rect_decomp',
+        includes = '. ../zero ../minus',
+        use = 'gkylzero',
+    )    
+
+    bld.program(
         source = 'ctest_array.c',
         target = 'ctest_array',
         includes = '. ../zero ../minus',

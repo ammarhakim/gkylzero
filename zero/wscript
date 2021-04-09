@@ -22,6 +22,7 @@ def build(bld):
     mom_type.c
     proj_on_basis.c
     range.c
+    rect_decomp.c
     rect_grid.c
     util.c
     vlasov_mom.c
