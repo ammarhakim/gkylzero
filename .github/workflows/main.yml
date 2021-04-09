@@ -18,4 +18,4 @@ jobs:
     - name: make
       run: make -C gkylzero-dist -j4
     - name: make check
-      run: make -C check
+      run: make -C gkylzero-dist check

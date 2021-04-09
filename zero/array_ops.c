@@ -60,7 +60,7 @@ double
 gkyl_array_reduce(const struct gkyl_array *arr, enum gkyl_array_op op, double *out)
 {
   assert(arr->type == GKYL_DOUBLE);
-  double res, *arr_d = arr->data;
+  double res = 0, *arr_d = arr->data;
 
   switch (op) {
     case GKYL_MIN:

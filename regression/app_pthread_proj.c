@@ -34,7 +34,7 @@ thread_worker(void *ctx)
 int
 parse_args(int argc, char **argv)
 {
-  int c, nthread;
+  int c, nthread = 1;
   while ((c = getopt(argc, argv, "+hn:")) != -1)
     switch (c)
     {
