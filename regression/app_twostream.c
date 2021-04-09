@@ -180,7 +180,9 @@ main(int argc, char **argv)
     .field = field
   };
   // construct sim name based on input file name
-  strncpy(vm.name, inp_name, strcspn(inp_name, ".inp"));
+  const char *inp_last_slash = strrchr(inp_name, '/');
+  const char *inp_no_slash = inp_last_slash ? inp_last_slash+1 : inp_name;
+  strncpy(vm.name, inp_no_slash, strcspn(inp_no_slash, ".inp"));
   
   // create app object
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
