@@ -72,6 +72,13 @@ def build(bld):
     )
 
     bld.program(
+        source = 'ctest_fv_proj.c',
+        target = 'ctest_fv_proj',
+        includes = '. ../zero ../minus',
+        use = 'gkylzero',
+    )    
+
+    bld.program(
         source = 'ctest_wv_euler.c',
         target = 'ctest_wv_euler',
         includes = '. ../zero ../minus',

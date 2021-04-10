@@ -15,7 +15,7 @@ struct gkyl_proj_on_basis {
 
     int numBasis; // number of basis functions
     int tot_quad; // total number of quadrature points
-    struct gkyl_array *ordinates; // qrdinates for quadrature
+    struct gkyl_array *ordinates; // ordinates for quadrature
     struct gkyl_array *weights; // weights for quadrature
     struct gkyl_array *basis_at_ords; // basis functions at ordinates
 };

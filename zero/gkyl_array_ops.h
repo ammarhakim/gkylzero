@@ -86,7 +86,7 @@ struct gkyl_array* gkyl_array_set_range(struct gkyl_array *out,
  * @param out Output array
  * @param a Factor to scale by
  * @return out array
- * @param range Range specifying region to set
+ * @param range Range specifying region to scale
  */
 struct gkyl_array* gkyl_array_scale_range(struct gkyl_array *out,
   double a, const struct gkyl_range *range);
