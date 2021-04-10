@@ -56,8 +56,11 @@ example) but the *generated* code itself will be in C.
 
 Developing in C (and C++) requires very strong focus and
 discipline. Please consult https://en.cppreference.com/w/ for
-standards documentation for these languages and their libraries. Most
-importantly, *please internalize and follow* the programming
+standards documentation for these languages and their
+libraries. Please use valgrind to make sure all code is "valgrind
+clean". Pay attention to all compiler warnings.
+
+Most importantly, *please internalize and follow* the programming
 philosophy outlined in the document ["A Minimalist Approach to
 Software"](http://ammar-hakim.org/minimalist-software.html).
 
