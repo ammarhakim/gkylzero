@@ -70,6 +70,14 @@ do
     checkcmds+="\t./$ut\n"
 done
 
+# create list for amalgamated gkyl headers
+gkyl_headers=$(ls gkyl_*.h | tr "\n" " ")
+header_inc_list=""
+for gh in $gkyl_headers
+do
+    header_inc_list+="#include <$gh>\n"
+done
+
 # create Makefile
 cat <<EOF > Makefile
 
@@ -91,12 +99,14 @@ all: libgkylzero.a ${regtests} ${unittests}
 libgkylzero.a: \${libobjs}
 	ar -crs libgkylzero.a \${libobjs}
 
-install: libgkylzero.a
+install: libgkylzero.a app_twostream app_vlasov_kerntm
 	 mkdir -p \${PREFIX}/gkylzero/include
 	 mkdir -p \${PREFIX}/gkylzero/lib
 	 mkdir -p \${PREFIX}/gkylzero/bin
 	 mkdir -p \${PREFIX}/gkylzero/share
 	 cp -f ${headers} \${PREFIX}/gkylzero/include
+	 cp -f gkylzero.h \${PREFIX}/gkylzero/include
+	 cp -f gkylzero.hpp \${PREFIX}/gkylzero/include
 	 cp -f libgkylzero.a \${PREFIX}/gkylzero/lib
 	 cp -f 000version.txt \${PREFIX}/gkylzero
 	 cp -f Makefile.sample \${PREFIX}/gkylzero/share/Makefile
@@ -187,10 +197,33 @@ clean:
 
 EOF3
 
+# write an amalgamated C header with all gkylzero headers included in
+# it
+cat <<EOF4 > gkylzero.h
+#pragma once
+
+$(printf "%b" "$header_inc_list")
+
+/* Non gkylzero headers (but very useful) */
+#include <rxi_ini.h>
+
+EOF4
+
+# write an amalgamated C++ header with all gkylzero headers included in
+# it
+cat <<EOF5 > gkylzero.hpp
+#pragma once
+
+extern "C" {
+$(printf "%b" "$header_inc_list")
+}
+
+EOF5
+
 # up a directory and archive
 cd ..
 rm -f ${distname}.zip
-zip -r ${distname}.zip ${distname}
+zip -r ${distname}.zip ${distname} > /dev/null
 
 ## MAC OSX uses BSD tar which causes warning messages on Linux 
 #tar -zcf ${distname}.tar.gz ${distname}
