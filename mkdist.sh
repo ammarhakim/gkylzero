@@ -106,7 +106,6 @@ install: libgkylzero.a app_twostream app_vlasov_kerntm
 	 mkdir -p \${PREFIX}/gkylzero/share
 	 cp -f ${headers} \${PREFIX}/gkylzero/include
 	 cp -f gkylzero.h \${PREFIX}/gkylzero/include
-	 cp -f gkylzero.hpp \${PREFIX}/gkylzero/include
 	 cp -f libgkylzero.a \${PREFIX}/gkylzero/lib
 	 cp -f 000version.txt \${PREFIX}/gkylzero
 	 cp -f Makefile.sample \${PREFIX}/gkylzero/share/Makefile
@@ -208,17 +207,6 @@ $(printf "%b" "$header_inc_list")
 #include <rxi_ini.h>
 
 EOF4
-
-# write an amalgamated C++ header with all gkylzero headers included in
-# it
-cat <<EOF5 > gkylzero.hpp
-#pragma once
-
-extern "C" {
-$(printf "%b" "$header_inc_list")
-}
-
-EOF5
 
 # up a directory and archive
 cd ..

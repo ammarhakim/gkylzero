@@ -5,11 +5,15 @@
 This is the GkeyllZero layer of the Gkeyll code. The name is
 pronounced as in the book "The Strange Case of Dr. Jekyll and
 Mr. Hyde" which is required reading for all members of the Gkeyll
-Team. GkeyllZero is written mostly in C and some C++.  GkeyllZero is
-developed at Princeton Plasma Physics Laboratory (PPPL) and is
-copyrighted 2020-2021 by Ammar Hakim and the Gkeyll Team.
+Team. GkeyllZero is written in C and some C++. GkeyllZero is developed
+at Princeton Plasma Physics Laboratory (PPPL) and is copyrighted
+2020-2021 by Ammar Hakim and the Gkeyll Team.
 
-Documentation for the code is available at http://gkeyll.rtfd.io.
+**NOTE**: Though the code is called "Gkeyll" and "GkeyllZero" we use
+the prefix "gkyl" in the source code itself. This may be confusing at
+first but one gets used to it.
+
+Documentation is available at http://gkeyll.rtfd.io.
 
 # Install
 
@@ -39,6 +43,23 @@ Note that GkeyllZero is meant to be used as a *library*. You can use
 it to create your own "app" for your particular problem. See that
 various "app_*.c" files for examples. Full documentation is available
 on the RTFD website linked above.
+
+# Developing for GkeyllZero
+
+Out goal is to keep GkeyllZero as simple and dependency free as
+possible. Some dependencies are unavoidable like MPI, linear algebra
+and FFT libraries. However, where possible we would like to avoid an
+exponentially increasing dependency chain. Another goal is that
+GkeyllZero itself should be pure modern (C99) C. Some tools used in
+code generation need C++ (GiNaC CAS and Swig wrapper generator, for
+example) but the *generated* code itself will be in C.
+
+Developing in C (and C++) requires very strong focus and
+discipline. Please consult https://en.cppreference.com/w/ for
+standards documentation for these languages and their libraries. Most
+importantly, *please internalize and follow* the programming
+philosophy outlined in the document ["A Minimalist Approach to
+Software"](http://ammar-hakim.org/minimalist-software.html).
 
 # License
 
