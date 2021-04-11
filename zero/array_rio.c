@@ -54,3 +54,24 @@ gkyl_grid_array_write(const struct gkyl_rect_grid *grid, const struct gkyl_range
   fclose(fp);
   return 0;
 }
+
+void
+gkyl_print_range(const struct gkyl_range* range, const char *nm, FILE *fp)
+{
+  fprintf(fp, "%s = { ", nm);
+
+  fprintf(fp, " lower = { ");
+  for (int d=0; d<range->ndim; ++d)
+    fprintf(fp, "%d%c ", range->lower[d], d==range->ndim-1 ? ' ' : ',');
+  fprintf(fp, "}, ");
+
+  fprintf(fp, "upper = { ");
+  for (int d=0; d<range->ndim; ++d)
+    fprintf(fp, "%d%c ", range->upper[d] , d==range->ndim-1 ? ' ' : ',');
+  fprintf(fp, "}, ");
+
+  fprintf(fp, " volume = %ld, ", range->volume );
+  fprintf(fp, " is_sub_range = %d", gkyl_range_is_sub_range(range) );
+  
+  fprintf(fp, " }\n ");
+}

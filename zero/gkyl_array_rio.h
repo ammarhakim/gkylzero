@@ -38,3 +38,12 @@ void gkyl_sub_array_write(const struct gkyl_range *range,
  */
 int gkyl_grid_array_write(const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
   const struct gkyl_array *arr, const char* fname);
+
+/**
+ * Print range information to file object.
+ *
+ * @param range Range object to print
+ * @param nm Name of range
+ * @param fp File object to print range information
+ */
+void gkyl_print_range(const struct gkyl_range* range, const char *nm, FILE *fp);

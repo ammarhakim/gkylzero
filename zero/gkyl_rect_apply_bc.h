@@ -4,6 +4,9 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
+// Constants to represent lowe/upper edges
+enum gkyl_edge_loc { GKYL_LOWER_EDGE = 0, GKYL_UPPER_EDGE  = 1 };
+
 /**
  * Type of function to apply BC
  *
@@ -24,21 +27,25 @@ typedef struct gkyl_rect_apply_bc gkyl_rect_apply_bc;
  * @param grid Grid object
  * @param dir Direction to apply BC 
  * @param edge Edge to apply BC (0: left-edge; 1: right-edge)
+ * @param nghost Number of ghost cells in each direction
  * @param Boundary condition function to apply
  * @param ctx Context to pass to bcfunc.
  * @return New updater pointer.
  */
 gkyl_rect_apply_bc* gkyl_rect_apply_bc_new(const struct gkyl_rect_grid *grid,
-  int dir, int edge, rect_bc_func_t bcfunc, void *ctx);
+  int dir, enum gkyl_edge_loc edge, const int *nghost, rect_bc_func_t bcfunc, void *ctx);
 
 /**
- * Apply boundary condition on specified field.
+ * Apply boundary condition on specified field. If the update_rng does
+ * not touch the edge in specified dir then nothing is done.
  *
  * @param bc BC updater to run
  * @param tm Time at which BC is applied
+ * @param update_rng Range on which BC is applied. See note above.
  * @param out Output array
  */
-void gkyl_rect_apply_bc_advance(const gkyl_rect_apply_bc *bc, double tm, struct gkyl_array *out);
+void gkyl_rect_apply_bc_advance(const gkyl_rect_apply_bc *bc, double tm,
+  const struct gkyl_range *update_rng, struct gkyl_array *out);
 
 /**
  * Delete updater.
