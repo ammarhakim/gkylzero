@@ -1,6 +1,5 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
-#include <gkyl_array_rio.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_apply_bc.h>
 #include <gkyl_rect_decomp.h>
@@ -86,9 +85,6 @@ gkyl_rect_apply_bc_new(const struct gkyl_rect_grid *grid,
   // ranges for use in the BC
   gkyl_create_grid_ranges(grid, nghost, &up->ext_range, &up->range);
   skin_ghost_ranges_init(&up->skin, &up->ghost, dir, edge, &up->ext_range, nghost);
-
-  gkyl_print_range(&up->ghost, "ghost", stdout);
-  gkyl_print_range(&up->skin, "skin", stdout);
 
   return up;
 }

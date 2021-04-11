@@ -198,6 +198,18 @@ void gkyl_range_upper_skin(struct gkyl_range* srng,
   const struct gkyl_range* range, int dir, int nskin);
 
 /**
+ * Compute intersection of two ranges. No sub-range information is
+ * propagated to the new range object.
+ * 
+ * @param irng Intersection of r1 and r2
+ * @param r1 Range to intersect
+ * @param r2 Range to intersect
+ * @return 1 if intersection is not-empty, 0 otherwise
+ */
+int gkyl_range_intersect(struct gkyl_range* irng,
+  const struct gkyl_range *r1, const struct gkyl_range *r2);
+
+/**
  * Compute offset given relative index. So for a 2D range, idx[2] = {1,
  * 0} will compute the relative offset from {i, j} to {i+1, j} in the
  * mapping from indices to a linear integer space.

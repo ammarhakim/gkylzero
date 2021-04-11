@@ -56,13 +56,19 @@ void
 gkyl_range_init(struct gkyl_range *rng, int ndim,
   const int *lower, const int *upper)
 {
+  int is_zero_vol = 0;
   rng->ndim = ndim;
   rng->volume = 1L;
   for (int i=0; i<ndim; ++i) {
     rng->ilo[i] = rng->lower[i] = lower[i];
     rng->upper[i] = upper[i];
     rng->volume *= upper[i]-lower[i]+1;
+    // need to handle case when upper[i]<lower[i]
+    is_zero_vol = upper[i]<lower[i] ? 1 : 0;
   }
+  // reset volume if any lower[d] <= upper[d]
+  if (is_zero_vol) rng->volume = 0;
+  
   calc_rowmajor_ac(rng);
 
   int idxZero[GKYL_MAX_DIM];
@@ -235,6 +241,20 @@ gkyl_range_upper_skin(struct gkyl_range *rng,
   }
   lo[dir] = range->upper[dir]-nskin+1;
   gkyl_sub_range_init(rng, range, lo, up);
+}
+
+int
+gkyl_range_intersect(struct gkyl_range* irng,
+  const struct gkyl_range *r1, const struct gkyl_range *r2)
+{
+  int ndim = r1->ndim;
+  int lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
+  for (int d=0; d<ndim; ++d) {
+    lo[d] = r1->lower[d] > r2->lower[d] ? r1->lower[d] : r2->lower[d];
+    up[d] = r1->upper[d] < r2->upper[d] ? r1->upper[d] : r2->upper[d];
+  }
+  gkyl_range_init(irng, ndim, lo, up);
+  return irng->volume > 0 ? 1 : 0;
 }
 
 long

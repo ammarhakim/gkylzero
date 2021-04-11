@@ -1,6 +1,7 @@
 #include <acutest.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_array_rio.h>
 #include <gkyl_range.h>
 
 void test_range_0()
@@ -766,6 +767,38 @@ void test_nested_iter()
   gkyl_array_release(carr);
 }
 
+void test_intersect()
+{
+  struct gkyl_range r1, r2, r3, r4, inter;
+
+  gkyl_range_init(&r1, 2, (int[]) { 1, 1 }, (int[]) { 20, 20 } );
+  gkyl_range_init(&r2, 2, (int[]) { 6, 6 }, (int[]) { 10, 10 } );
+  gkyl_range_init(&r3, 2, (int[]) { 6, 6 }, (int[]) { 32, 40 } );
+  gkyl_range_init(&r4, 2, (int[]) { 32, 40 }, (int[]) { 64, 80 } );
+
+  // r1 inter r2
+  TEST_CHECK( 1 == gkyl_range_intersect(&inter, &r1, &r2) );
+
+  TEST_CHECK ( 25 == inter.volume );
+  TEST_CHECK ( 6 == inter.lower[0] );
+  TEST_CHECK ( 6 == inter.lower[1] );
+  TEST_CHECK ( 10 == inter.upper[0] );
+  TEST_CHECK ( 10 == inter.upper[1] );
+
+  // r1 inter r3
+  TEST_CHECK( 1 == gkyl_range_intersect(&inter, &r1, &r3) );
+
+  TEST_CHECK ( 15*15 == inter.volume );
+  TEST_CHECK ( 6 == inter.lower[0] );
+  TEST_CHECK ( 6 == inter.lower[1] );
+  TEST_CHECK ( 20 == inter.upper[0] );
+  TEST_CHECK ( 20 == inter.upper[1] );
+
+  // r1 inter r4
+  TEST_CHECK( 0 == gkyl_range_intersect(&inter, &r1, &r4) );
+  
+}
+
 TEST_LIST = {
   { "range_0", test_range_0 },
   { "range_1", test_range_1 },
@@ -794,5 +827,6 @@ TEST_LIST = {
   { "range_split_iter_3", test_range_split_iter_3 },
   { "sub_range_split_iter", test_sub_range_split_iter },
   { "nested_iter", test_nested_iter },
+  { "intersect", test_intersect }, 
   { NULL, NULL },
 };
