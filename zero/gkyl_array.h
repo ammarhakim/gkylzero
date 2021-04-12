@@ -29,7 +29,7 @@ struct gkyl_array {
  * 
  * @param type Type of data in array
  * @param ncomp Number of components at each index
- * @param size Number indices 
+ * @param size Number of indices 
  * @return Pointer to newly allocated array.
  */
 struct gkyl_array* gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size);
