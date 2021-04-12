@@ -21,7 +21,7 @@ struct gkyl_rect_apply_bc {
 static inline void
 copy_int_arr(int n, const int *restrict inp, int *restrict out)
 {
-  for (int i=0; i<n; ++i)  out[i] = inp[i];
+  for (int i=0; i<n; ++i) out[i] = inp[i];
 }
 
 gkyl_rect_apply_bc*
@@ -52,6 +52,7 @@ gkyl_rect_apply_bc_advance(const gkyl_rect_apply_bc *bc, double tm,
   int dir = bc->dir;
   enum gkyl_edge_loc edge = bc->edge;
   int ndim = bc->grid.ndim;
+  int ncomp = out->ncomp;
 
   // return immediately if update region does not touch boundary
   if ( (edge == GKYL_LOWER_EDGE) && (update_rng->lower[dir] > bc->range.lower[dir]) )
@@ -78,14 +79,17 @@ gkyl_rect_apply_bc_advance(const gkyl_rect_apply_bc *bc, double tm,
 
     // compute linear index into appropriate ghost-cell
     copy_int_arr(ndim, iter.idx, gidx);
-    gidx[dir] = 2*edge_idx-gidx[dir]+fact; // correc thing to do for reflection and axis BCs
+    // this strange indexing ensures that the ghost cell index is
+    // essentially "reflection" of the skin cell index; might not be
+    // correct for all BCs but I am not sure how else to handle
+    // multiple ghost-cell situations
+    gidx[dir] = 2*edge_idx-gidx[dir]+fact;
     long gloc = gkyl_range_idx(update_rng, gidx);
 
     // apply boundary condition
-    bc->bcfunc(tm, dir,
+    bc->bcfunc(tm, dir, ncomp,
       gkyl_array_fetch(out, sloc), gkyl_array_fetch(out, gloc), bc->ctx);
-  }
-  
+  }  
 }
 
 void

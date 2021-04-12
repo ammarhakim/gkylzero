@@ -10,11 +10,13 @@
  *
  * @param t Time at which BC is applied
  * @param dir Direction in which BC is applied
+ * @param ncomp Number of compontents (size of skin and ghost arrays)
  * @param skin Pointer to data in skin-cell
  * @param ghost Pointer to data in ghost-cell
  * @param ctx Context for function evaluation. Can be NULL
  */
-typedef void (*rect_bc_func_t)(double t, int dir, const double *skin, double *ghost, void *ctx);
+typedef void (*rect_bc_func_t)(double t, int dir, int ncomp,
+  const double *skin, double *ghost, void *ctx);
 
 // Object type
 typedef struct gkyl_rect_apply_bc gkyl_rect_apply_bc;
