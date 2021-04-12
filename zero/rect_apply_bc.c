@@ -4,8 +4,6 @@
 #include <gkyl_rect_apply_bc.h>
 #include <gkyl_rect_decomp.h>
 
-#include <gkyl_array_rio.h>
-
 struct gkyl_rect_apply_bc {
     struct gkyl_rect_grid grid;
     int dir; // direction to apply BC
@@ -49,10 +47,8 @@ void
 gkyl_rect_apply_bc_advance(const gkyl_rect_apply_bc *bc, double tm,
   const struct gkyl_range *update_rng, struct gkyl_array *out)
 {
-  int dir = bc->dir;
   enum gkyl_edge_loc edge = bc->edge;
-  int ndim = bc->grid.ndim;
-  int ncomp = out->ncomp;
+  int dir = bc->dir, ndim = bc->grid.ndim, ncomp = out->ncomp;
 
   // return immediately if update region does not touch boundary
   if ( (edge == GKYL_LOWER_EDGE) && (update_rng->lower[dir] > bc->range.lower[dir]) )
