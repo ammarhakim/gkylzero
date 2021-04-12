@@ -48,6 +48,19 @@ int gkyl_compare_float(float a, float b, float eps);
 int gkyl_compare_double(double a, double b, double eps);
 
 /**
+ * Copy (small) int arrays.
+ *
+ * @param n Number of elements to copy
+ * @param inp Input array
+ * @param out Output array
+ */
+static inline void
+gkyl_copy_int_arr(int n, const int *restrict inp, int *restrict out)
+{
+  for (int i=0; i<n; ++i) out[i] = inp[i];
+}
+
+/**
  * Gets wall-clock time in secs/nanoseconds.
  * 
  * @return Time object.
