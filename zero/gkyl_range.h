@@ -30,6 +30,9 @@
 /** Indexing macro taking index defined as array of int */
 #define gkyl_ridxn(r, idx) gkyl_range_idx(&(r), idx)
 
+// Constants to represent lower/upper edges
+enum gkyl_edge_loc { GKYL_LOWER_EDGE = 0, GKYL_UPPER_EDGE  = 1 };
+
 /**
  * Range object, representing an N-dimensional integer index
  * set. Lower and upper limits are inclusive.
@@ -196,6 +199,21 @@ void gkyl_range_lower_skin(struct gkyl_range* srng,
  */
 void gkyl_range_upper_skin(struct gkyl_range* srng,
   const struct gkyl_range* range, int dir, int nskin);
+
+/**
+ * Create ghost and skin sub-ranges given parent range. The skin and
+ * ghost ranges are sub-ranges of the parent range and DO NOT include
+ * corners.
+ *
+ * @param skin On output, skin range
+ * @param ghost On outout, ghost range
+ * @param dir Direction in which skin/ghost are computed
+ * @param edge Edge on which skin/ghost are computed
+ * @param parent Range for which skin/ghost are computed
+ * @param nghost Number of ghost cells in 'dir' are nghost[dir]
+ */
+void gkyl_skin_ghost_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
+  int dir, enum gkyl_edge_loc edge, const struct gkyl_range *parent, const int *nghost);
 
 /**
  * Compute intersection of two ranges. No sub-range information is

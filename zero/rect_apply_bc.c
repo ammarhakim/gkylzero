@@ -4,6 +4,8 @@
 #include <gkyl_rect_apply_bc.h>
 #include <gkyl_rect_decomp.h>
 
+#include <gkyl_array_rio.h>
+
 struct gkyl_rect_apply_bc {
     struct gkyl_rect_grid grid;
     int dir; // direction to apply BC
@@ -16,56 +18,10 @@ struct gkyl_rect_apply_bc {
     struct gkyl_range skin, ghost; // skin and ghost ranges
 };
 
-// Increment an int vector by fact*del[d] in each direction d.
-static void
-incr_int_array(int ndim, int fact, const int *restrict del,
-  const int *restrict inp, int *restrict out)
+static inline void
+copy_int_arr(int n, const int *restrict inp, int *restrict out)
 {
-  for (int i=0; i<ndim; ++i)
-    out[i] = inp[i] + fact*del[i];
-}
-
-// Create ghost and skin sub-ranges given parent (extended
-// range). This code is somewhat convoluted as the skin and ghost
-// ranges need to be sub-ranges of the extended range on the grid and
-// not include corners. I am nor sure how to handle corners on
-// physical boundaries. Also, perhaps this code could be simplified.
-static void
-skin_ghost_ranges_init(struct gkyl_range *skin, struct gkyl_range *ghost,
-  int dir, enum gkyl_edge_loc edge, const struct gkyl_range *parent, const int *nghost)
-{
-  int ndim = parent->ndim, lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
-
-  if (edge == GKYL_LOWER_EDGE) {
-
-    incr_int_array(ndim, 1, nghost, parent->lower, lo);
-    incr_int_array(ndim, -1, nghost, parent->upper, up);
-    
-    up[dir] = lo[dir]+nghost[dir]-1;
-    gkyl_sub_range_init(skin, parent, lo, up);
-
-    incr_int_array(ndim, 1, nghost, parent->lower, lo);
-    incr_int_array(ndim, -1, nghost, parent->upper, up);
-    
-    lo[dir] = lo[dir]-nghost[dir];
-    up[dir] = lo[dir]+nghost[dir]-1;
-    gkyl_sub_range_init(ghost, parent, lo, up);
-  }
-  else {
-
-    incr_int_array(ndim, 1, nghost, parent->lower, lo);
-    incr_int_array(ndim, -1, nghost, parent->upper, up);
-    
-    lo[dir] = up[dir]-nghost[dir]+1;
-    gkyl_sub_range_init(skin, parent, lo, up);
-
-    incr_int_array(ndim, 1, nghost, parent->lower, lo);
-    incr_int_array(ndim, -1, nghost, parent->upper, up);
-    
-    up[dir] = up[dir]+nghost[dir]+1;
-    lo[dir] = up[dir]-nghost[dir];
-    gkyl_sub_range_init(ghost, parent, lo, up);
-  }
+  for (int i=0; i<n; ++i)  out[i] = inp[i];
 }
 
 gkyl_rect_apply_bc*
@@ -77,14 +33,14 @@ gkyl_rect_apply_bc_new(const struct gkyl_rect_grid *grid,
   up->grid = *grid;
   up->dir = dir;
   up->edge = edge;
-  for (int d=0; d<grid->ndim; ++d) up->nghost[d] = nghost[d];
+  copy_int_arr(grid->ndim, nghost, up->nghost);
   up->bcfunc = bcfunc;
   up->ctx = ctx;
 
-  // compute range and extended range over grid; and skin and ghost
-  // ranges for use in the BC
+  // compute range and extended range over grid ....
   gkyl_create_grid_ranges(grid, nghost, &up->ext_range, &up->range);
-  skin_ghost_ranges_init(&up->skin, &up->ghost, dir, edge, &up->ext_range, nghost);
+  // ... from these compute skin and ghost ranges
+  gkyl_skin_ghost_ranges(&up->skin, &up->ghost, dir, edge, &up->ext_range, nghost);
 
   return up;
 }
@@ -93,6 +49,43 @@ void
 gkyl_rect_apply_bc_advance(const gkyl_rect_apply_bc *bc, double tm,
   const struct gkyl_range *update_rng, struct gkyl_array *out)
 {
+  int dir = bc->dir;
+  enum gkyl_edge_loc edge = bc->edge;
+  int ndim = bc->grid.ndim;
+
+  // return immediately if update region does not touch boundary
+  if ( (edge == GKYL_LOWER_EDGE) && (update_rng->lower[dir] > bc->range.lower[dir]) )
+    return;
+  if ( (edge == GKYL_UPPER_EDGE) && (update_rng->upper[dir] < bc->range.upper[dir]) )
+    return;
+
+  // compute intersection for region to update
+  struct gkyl_range up_range;
+  gkyl_range_intersect(&up_range, update_rng, &bc->skin);
+
+  int edge_idx = (edge == GKYL_LOWER_EDGE) ? bc->range.lower[dir] : bc->range.upper[dir] ;
+  int fact = (edge == GKYL_LOWER_EDGE) ? -1 : 1 ;
+
+  int gidx[GKYL_MAX_DIM]; // index into ghost cell
+  
+  // create iterator to walk over skin cells
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &up_range);
+  
+  while (gkyl_range_iter_next(&iter)) {
+
+    long sloc = gkyl_range_idx(update_rng, iter.idx);
+
+    // compute linear index into appropriate ghost-cell
+    copy_int_arr(ndim, iter.idx, gidx);
+    gidx[dir] = 2*edge_idx-gidx[dir]+fact; // correc thing to do for reflection and axis BCs
+    long gloc = gkyl_range_idx(update_rng, gidx);
+
+    // apply boundary condition
+    bc->bcfunc(tm, dir,
+      gkyl_array_fetch(out, sloc), gkyl_array_fetch(out, gloc), bc->ctx);
+  }
+  
 }
 
 void

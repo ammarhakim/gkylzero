@@ -243,6 +243,60 @@ gkyl_range_upper_skin(struct gkyl_range *rng,
   gkyl_sub_range_init(rng, range, lo, up);
 }
 
+// Increment an int vector by fact*del[d] in each direction d.
+static void
+incr_int_array(int ndim, int fact, const int *restrict del,
+  const int *restrict inp, int *restrict out)
+{
+  for (int i=0; i<ndim; ++i)
+    out[i] = inp[i] + fact*del[i];
+}
+
+/**
+ * Create ghost and skin sub-ranges given parent (extended
+ * range). This code is somewhat convoluted as the skin and ghost
+ * ranges need to be sub-ranges of the extended range on the grid and
+ * not include corners. I am nor sure how to handle corners on
+ * physical boundaries. Also, perhaps this code could be simplified.
+*/
+void
+gkyl_skin_ghost_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
+  int dir, enum gkyl_edge_loc edge, const struct gkyl_range *parent, const int *nghost)
+{
+  int ndim = parent->ndim, lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
+
+  if (edge == GKYL_LOWER_EDGE) {
+
+    incr_int_array(ndim, 1, nghost, parent->lower, lo);
+    incr_int_array(ndim, -1, nghost, parent->upper, up);
+    
+    up[dir] = lo[dir]+nghost[dir]-1;
+    gkyl_sub_range_init(skin, parent, lo, up);
+
+    incr_int_array(ndim, 1, nghost, parent->lower, lo);
+    incr_int_array(ndim, -1, nghost, parent->upper, up);
+    
+    lo[dir] = lo[dir]-nghost[dir];
+    up[dir] = lo[dir]+nghost[dir]-1;
+    gkyl_sub_range_init(ghost, parent, lo, up);
+  }
+  else {
+
+    incr_int_array(ndim, 1, nghost, parent->lower, lo);
+    incr_int_array(ndim, -1, nghost, parent->upper, up);
+    
+    lo[dir] = up[dir]-nghost[dir]+1;
+    gkyl_sub_range_init(skin, parent, lo, up);
+
+    incr_int_array(ndim, 1, nghost, parent->lower, lo);
+    incr_int_array(ndim, -1, nghost, parent->upper, up);
+    
+    up[dir] = up[dir]+nghost[dir]+1;
+    lo[dir] = up[dir]-nghost[dir];
+    gkyl_sub_range_init(ghost, parent, lo, up);
+  }
+}
+
 int
 gkyl_range_intersect(struct gkyl_range* irng,
   const struct gkyl_range *r1, const struct gkyl_range *r2)

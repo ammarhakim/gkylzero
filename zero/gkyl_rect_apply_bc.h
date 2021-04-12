@@ -4,8 +4,6 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
-// Constants to represent lowe/upper edges
-enum gkyl_edge_loc { GKYL_LOWER_EDGE = 0, GKYL_UPPER_EDGE  = 1 };
 
 /**
  * Type of function to apply BC
