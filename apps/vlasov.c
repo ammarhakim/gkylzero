@@ -146,41 +146,13 @@ skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
   const struct gkyl_range *parent, const int *ghost)
 {
   int ndim = parent->ndim;
-  int lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
   
-  // create skin ranges in each direction
   for (int d=0; d<ndim; ++d) {
-
-    incr_int_array(ndim, 1, ghost, parent->lower, lo);
-    incr_int_array(ndim, -1, ghost, parent->upper, up);
-    // adjust for lower skin in direction 'd'
-    up[d] = lo[d];
-    gkyl_sub_range_init(&sgr->lower_skin[d], parent, lo, up);
-
-    incr_int_array(ndim, 1, ghost, parent->lower, lo);
-    incr_int_array(ndim, -1, ghost, parent->upper, up);
-    // adjust for upper skin in direction 'd'
-    lo[d] = up[d];
-    gkyl_sub_range_init(&sgr->upper_skin[d], parent, lo, up);
+    gkyl_skin_ghost_ranges(&sgr->lower_skin[d], &sgr->lower_ghost[d],
+      d, GKYL_LOWER_EDGE, parent, ghost);
+    gkyl_skin_ghost_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d],
+      d, GKYL_UPPER_EDGE, parent, ghost);
   }
-
-  // create ghost ranges in each direction
-  for (int d=0; d<ndim; ++d) {
-
-    incr_int_array(ndim, 1, ghost, parent->lower, lo);
-    incr_int_array(ndim, -1, ghost, parent->upper, up);
-    // adjust for lower ghost in direction 'd'
-    lo[d] = lo[d]-ghost[d];
-    up[d] = lo[d];
-    gkyl_sub_range_init(&sgr->lower_ghost[d], parent, lo, up);
-
-    incr_int_array(ndim, 1, ghost, parent->lower, lo);
-    incr_int_array(ndim, -1, ghost, parent->upper, up);
-    // adjust for upper ghost in direction 'd'
-    up[d] = up[d]+ghost[d];
-    lo[d] = up[d];
-    gkyl_sub_range_init(&sgr->upper_ghost[d], parent, lo, up);
-  }  
 }
 
 // initialize field object
