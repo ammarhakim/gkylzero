@@ -13,7 +13,8 @@ enum gkyl_wave_limiter {
   GKYL_SUPERBEE,
   GKYL_VAN_LEER,
   GKYL_MONOTONIZED_CENTERED,
-  GKYL_BEAM_WARMING, GKYL_ZERO
+  GKYL_BEAM_WARMING,
+  GKYL_ZERO
 };
 
 struct gkyl_wave_prop_status {
