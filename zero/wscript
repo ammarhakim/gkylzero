@@ -32,6 +32,7 @@ def build(bld):
     wave_prop.c
     wv_eqn.c
     wv_euler.c
+    wv_iso_euler.c
     wv_maxwell.c
     """
 
