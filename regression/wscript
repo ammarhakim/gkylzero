@@ -51,3 +51,10 @@ def build(bld):
         includes = includes,
         use = use,
     )
+
+    bld.program(
+        source = 'app_euler_riem_2d.c',
+        target = 'app_euler_riem_2d',
+        includes = includes,
+        use = 'gkylapps gkylzero gkylzerokern',
+    )    

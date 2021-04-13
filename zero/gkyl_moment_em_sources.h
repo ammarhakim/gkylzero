@@ -8,16 +8,16 @@
 #include <gkyl_util.h>
 
 struct gkyl_moment_em_sources_data {
-    double charge;
-    double mass;
+    double charge; // species charge
+    double mass; // species mass
 };
 
 struct gkyl_moment_em_sources_inp {
     const struct gkyl_rect_grid *grid; // grid on which to solve equations
     int nfluids; // number of fluids
     struct gkyl_moment_em_sources_data param[GKYL_MAX_SPECIES]; // species data
-    double epsilon0; //
-    int has_pressure; // 1 if pressure equation is present
+    double epsilon0;
+    int has_pressure; // 1 if to update pressure; 0 otherwise (10M and isothermal)
 };
 
 // Object type
