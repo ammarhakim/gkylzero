@@ -28,7 +28,7 @@ struct gkyl_vlasov_species {
 };
 
 // Parameter for EM field
-struct gkyl_em_field {
+struct gkyl_vlasov_field {
     double epsilon0, mu0;
     double elcErrorSpeedFactor, mgnErrorSpeedFactor;
 
@@ -55,7 +55,7 @@ struct gkyl_vm {
 
     int num_species; // number of species
     struct gkyl_vlasov_species species[GKYL_MAX_SPECIES]; // species objects
-    struct gkyl_em_field field; // field object
+    struct gkyl_vlasov_field field; // field object
 };
 
 // Simulation statistics
@@ -81,15 +81,15 @@ struct gkyl_vlasov_stat {
     double mom_tm; // time to compute moments
 };
 
-// Object representing Vlasov mini-app
+// Object representing Vlasov app
 typedef struct gkyl_vlasov_app gkyl_vlasov_app;
 
 /**
- * Construct a new Vlasov mini-app.
+ * Construct a new Vlasov app.
  *
  * @param vm App inputs. See struct docs. All struct params MUST be
  *     initialized
- * @return New vlasov mini-app object.
+ * @return New vlasov app object.
  */
 gkyl_vlasov_app* gkyl_vlasov_app_new(struct gkyl_vm vm);
 

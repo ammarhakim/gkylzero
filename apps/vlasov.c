@@ -56,7 +56,7 @@ struct vm_species {
 
 // field data
 struct vm_field {
-    struct gkyl_em_field info; // data for field
+    struct gkyl_vlasov_field info; // data for field
     
     struct gkyl_array *em, *em1, *emnew; // arrays for updates
     struct gkyl_array *qmem; // array for q/m*(E,B)
