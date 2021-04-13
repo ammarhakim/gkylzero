@@ -21,7 +21,7 @@ typedef struct gkyl_moment_em_sources gkyl_moment_em_sources;
  * @param nfluids Number of fluid species being evolved
  */
 gkyl_moment_em_sources* gkyl_moment_em_sources_new(const struct gkyl_rect_grid *grid,
-  int nfluids, struct gkyl_moment_em_sources_data param[], double epsilon0);
+  int nfluids, struct gkyl_moment_em_sources_data param[], double epsilon0, int hasPressure);
 
 /**
  * Compute implicit update of the electromagnetic source terms in the multi-fluid system.

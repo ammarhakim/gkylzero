@@ -78,7 +78,7 @@ main(void)
 
   // moment sources object
   struct gkyl_moment_em_sources *mes = gkyl_moment_em_sources_new(&grid, 1, 
-    (struct gkyl_moment_em_sources_data[]) {{.charge = -1.0, .mass = 1.0}}, 1.0);
+    (struct gkyl_moment_em_sources_data[]) {{.charge = -1.0, .mass = 1.0}}, 1.0, 0);
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 100.0;
