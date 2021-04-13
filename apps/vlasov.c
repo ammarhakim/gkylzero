@@ -131,15 +131,6 @@ is_moment_name_valid(const char *nm)
   return 0;
 }
 
-// reduce
-static inline void
-incr_int_array(int ndim, int fact, const int *restrict del,
-  const int *restrict inp, int *restrict out)
-{
-  for (int i=0; i<ndim; ++i)
-    out[i] = inp[i] + fact*del[i];
-}
-
 // Create ghost and skin sub-ranges given a parent range
 static void
 skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
