@@ -21,6 +21,7 @@ def build(bld):
     hyper_dg.c
     mom_calc.c
     mom_type.c
+    moment_em_sources.c
     proj_on_basis.c
     range.c
     rect_apply_bc.c
