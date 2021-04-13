@@ -1,8 +1,6 @@
 #pragma once
 
-#ifndef GKYL_MAX_SPECIES
-# define GKYL_MAX_SPECIES 8
-#endif
+#include <gkyl_util.h>
 
 // Status of update() method. If success is 0 (failure) then the
 // simulation needs to be aborted and can't continue.

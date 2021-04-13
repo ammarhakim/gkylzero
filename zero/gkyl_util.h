@@ -8,6 +8,12 @@
 # define GKYL_MAX_DIM 7
 #endif
 
+// Maximum number of supported species
+#ifndef GKYL_MAX_SPECIES
+# define GKYL_MAX_SPECIES 8
+#endif
+
+
 // Default alignment boundary (seems agressive or maybe not enough?)
 #ifndef GKYL_DEF_ALIGN
 # define GKYL_DEF_ALIGN 64
