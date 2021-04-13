@@ -23,8 +23,9 @@ struct gkyl_moment_em_sources {
     struct gkyl_rect_grid grid; // grid object
     int ndim; // number of dimensions
     int nfluids; // number of fluids in multi-fluid system
-    struct gkyl_moment_em_sources_data param[8]; // struct of fluid parameters
+    struct gkyl_moment_em_sources_data param[8]; // struct of fluid parameters (NOTE: max 8 species for now)
     double epsilon0; // permittivity of free space
+    int hasPressure; // flag to update energy based on updated kinetic energy
 };
 
 static void
@@ -146,6 +147,29 @@ em_source_update(const gkyl_moment_em_sources *mes, double dt, double* fluids[],
   } 
 }
 
+static void
+pressure_em_source_update(const gkyl_moment_em_sources *mes, double dt, double* fluids[], double* em)
+{
+  // Source updater that updates the electric field and fluid momenta, along with the fluid pressure
+  // Momenta update only affects kinetic energy; need to separate kinetic from internal energy
+  int nfluids = mes->nfluids;
+  double keOld[nfluids], keNew[nfluids];
+  for (int n=0; n < nfluids; ++n)
+  {
+    double *f = fluids[n];
+    keOld[n] = 0.5 * (f[MX]*f[MX] + f[MY]*f[MY] + f[MZ]*f[MZ]) / f[RHO];
+  }
+
+  em_source_update(mes, dt, fluids, em);
+
+  for (int n=0; n < nfluids; ++n)
+  {
+    double *f = fluids[n];
+    keNew[n] = 0.5 * (f[MX]*f[MX] + f[MY]*f[MY] + f[MZ]*f[MZ]) / f[RHO];
+    f[ER] += keNew[n] - keOld[n];
+  }
+}
+
 void
 gkyl_moment_em_sources_advance(const gkyl_moment_em_sources *mes, double dt,
   const struct gkyl_range *update_range, struct gkyl_array *fluid[], struct gkyl_array *em)
@@ -153,6 +177,7 @@ gkyl_moment_em_sources_advance(const gkyl_moment_em_sources *mes, double dt,
 
   int ndim = mes->ndim;
   int nfluids = mes->nfluids;
+  int hasPressure = mes->hasPressure;
   double *fluids[nfluids];
 
   struct gkyl_range_iter iter;
@@ -160,14 +185,15 @@ gkyl_moment_em_sources_advance(const gkyl_moment_em_sources *mes, double dt,
   while (gkyl_range_iter_next(&iter)) {
     long lidx = gkyl_range_idx(update_range, iter.idx);
     for (int n=0; n<nfluids; ++n) fluids[n] = gkyl_array_fetch(fluid[n], lidx);
-    em_source_update(mes, dt, fluids, gkyl_array_fetch(em, lidx));
+    if (hasPressure) pressure_em_source_update(mes, dt, fluids, gkyl_array_fetch(em, lidx));
+    else em_source_update(mes, dt, fluids, gkyl_array_fetch(em, lidx));
   }
 
 }
 
 gkyl_moment_em_sources*
 gkyl_moment_em_sources_new(const struct gkyl_rect_grid *grid,
-  int nfluids, struct gkyl_moment_em_sources_data param[], const double epsilon0)
+  int nfluids, struct gkyl_moment_em_sources_data param[], double epsilon0, int hasPressure)
 {
   gkyl_moment_em_sources *up = gkyl_malloc(sizeof(gkyl_moment_em_sources));
 
@@ -176,6 +202,7 @@ gkyl_moment_em_sources_new(const struct gkyl_rect_grid *grid,
   up->nfluids = nfluids;
   for (int n=0; n<nfluids; ++n) up->param[n] = param[n];
   up->epsilon0 = epsilon0;
+  up->hasPressure = hasPressure;
 
   return up;
 }
