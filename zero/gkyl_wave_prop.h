@@ -16,7 +16,7 @@ enum gkyl_wave_limiter {
   GKYL_BEAM_WARMING, GKYL_ZERO
 };
 
-struct gkyl_wave_prop_advance_status {
+struct gkyl_wave_prop_status {
     int success; // 1 if step worked, 0 otherwise
     double dt_suggested; // suggested time-step
 };
@@ -30,7 +30,7 @@ struct gkyl_wave_prop_inp {
     enum gkyl_wave_limiter limiter; // limiter to use
     int num_up_dirs; // number of update directions
     int update_dirs[GKYL_MAX_DIM]; // directions to update
-    double cfl, cflm; // CFL and maximum CFL number
+    double cfl; // CFL number to use
 };
 
 /**
@@ -53,7 +53,7 @@ gkyl_wave_prop* gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp);
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
-struct gkyl_wave_prop_advance_status gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
+struct gkyl_wave_prop_status gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
   double tm, double dt, const struct gkyl_range *update_range,
   const struct gkyl_array *qin, struct gkyl_array *qout);
   

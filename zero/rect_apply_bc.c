@@ -16,12 +16,6 @@ struct gkyl_rect_apply_bc {
     struct gkyl_range skin, ghost; // skin and ghost ranges
 };
 
-static inline void
-copy_int_arr(int n, const int *restrict inp, int *restrict out)
-{
-  for (int i=0; i<n; ++i) out[i] = inp[i];
-}
-
 gkyl_rect_apply_bc*
 gkyl_rect_apply_bc_new(const struct gkyl_rect_grid *grid,
   int dir, enum gkyl_edge_loc edge, const int *nghost, rect_bc_func_t bcfunc, void *ctx)
@@ -31,7 +25,7 @@ gkyl_rect_apply_bc_new(const struct gkyl_rect_grid *grid,
   up->grid = *grid;
   up->dir = dir;
   up->edge = edge;
-  copy_int_arr(grid->ndim, nghost, up->nghost);
+  gkyl_copy_int_arr(grid->ndim, nghost, up->nghost);
   up->bcfunc = bcfunc;
   up->ctx = ctx;
 
@@ -60,8 +54,8 @@ gkyl_rect_apply_bc_advance(const gkyl_rect_apply_bc *bc, double tm,
   struct gkyl_range up_range;
   gkyl_range_intersect(&up_range, update_rng, &bc->skin);
 
-  int edge_idx = (edge == GKYL_LOWER_EDGE) ? bc->range.lower[dir] : bc->range.upper[dir] ;
-  int fact = (edge == GKYL_LOWER_EDGE) ? -1 : 1 ;
+  int edge_idx = (edge == GKYL_LOWER_EDGE) ? bc->range.lower[dir] : bc->range.upper[dir];
+  int fact = (edge == GKYL_LOWER_EDGE) ? -1 : 1;
 
   int gidx[GKYL_MAX_DIM]; // index into ghost cell
   
@@ -74,7 +68,7 @@ gkyl_rect_apply_bc_advance(const gkyl_rect_apply_bc *bc, double tm,
     long sloc = gkyl_range_idx(update_rng, iter.idx);
 
     // compute linear index into appropriate ghost-cell
-    copy_int_arr(ndim, iter.idx, gidx);
+    gkyl_copy_int_arr(ndim, iter.idx, gidx);
     // this strange indexing ensures that the ghost cell index is
     // essentially "reflection" of the skin cell index; might not be
     // correct for all BCs but I am not sure how else to handle

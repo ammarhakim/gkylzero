@@ -17,12 +17,6 @@ struct gkyl_hyper_dg {
     const struct gkyl_dg_eqn *equation; // equation object
 };
 
-static inline void
-copy_int_arr(int n, const int *restrict inp, int *restrict out)
-{
-  for (int i=0; i<n; ++i)  out[i] = inp[i];
-}
-
 void
 gkyl_hyper_dg_advance(const gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
   const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs, double *maxs)
@@ -53,9 +47,9 @@ gkyl_hyper_dg_advance(const gkyl_hyper_dg *hdg, const struct gkyl_range *update_
 
     while (gkyl_range_iter_next(&iter)) {
 
-      copy_int_arr(ndim, iter.idx, idxm);
-      copy_int_arr(ndim, iter.idx, idxp);
-
+      gkyl_copy_int_arr(ndim, iter.idx, idxm);
+      gkyl_copy_int_arr(ndim, iter.idx, idxp);
+      
       for (int i=loidx; i<=upidx; ++i) { // note upidx is inclusive
         idxm[dir] = i-1; idxp[dir] = i;
 

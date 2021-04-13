@@ -13,7 +13,7 @@ struct gkyl_wave_prop {
     int num_up_dirs; // number of update directions
     int update_dirs[GKYL_MAX_DIM]; // directions to update
     enum gkyl_wave_limiter limiter; // limiter to use
-    double cfl, cflm; // CFL and maximum CFL number
+    double cfl; // CFL number
     const struct gkyl_wv_eqn *equation; // equation object
 
     // data for 1D slice update
@@ -34,7 +34,6 @@ gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp)
 
   up->limiter = winp.limiter;
   up->cfl = winp.cfl;
-  up->cflm = winp.cflm;
   up->equation = gkyl_wv_eqn_aquire(winp.equation);
 
   int nghost[3] = { 2, 2, 2 };
@@ -57,28 +56,53 @@ gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp)
   return up;
 }
 
-static inline
-void calc_jump(int n, const double *ql, const double *qr, double *restrict jump)
+// some helper functions
+static inline void
+calc_jump(int n, const double *ql, const double *qr, double *restrict jump)
 {
   for (int d=0; d<n; ++d) jump[d] = qr[d]-ql[d];
 }
 
-struct gkyl_wave_prop_advance_status
+static inline void
+calc_first_order_update(int meqn, double dtdx, double *restrict ql, double *restrict qr,
+  const double *amdq, const double *apdq)
+{
+  for (int i=0; i<meqn; ++i) {
+    qr[i] = qr[i] - dtdx*apdq[i];
+    ql[i] = ql[i] - dtdx*amdq[i];
+  }
+}
+
+static inline double
+calc_cfla(int mwaves, double cfla, double dtdx, const double *s)
+{
+  double c = cfla;
+  for (int i=0; i<mwaves; ++i)
+    c = fmax(c, dtdx*fabs(s[i]));
+  return c;
+}
+
+// advance method
+struct gkyl_wave_prop_status
 gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
   double tm, double dt, const struct gkyl_range *update_range,
   const struct gkyl_array *qin, struct gkyl_array *qout)
 {
-
   int ndim = update_range->ndim;
   int meqn = wv->equation->num_equations, mwaves = wv->equation->num_waves;
 
+  double cfla = 0.0, cfl = wv->cfl, cflm = 1.1*cfl;
   double delta[meqn], waves[meqn*mwaves], s[mwaves];
+  double amdq[meqn], apdq[meqn];
+
+  int idxl[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
   
-  int idxm[GKYL_MAX_DIM], idxp[GKYL_MAX_DIM];
   for (int d=0; d<wv->num_up_dirs; ++d) {
     int dir = wv->update_dirs[d];
 
-    // upper/lower bounds in direction 'd'. Not these are edge indices
+    double dtdx = dt/wv->grid.dx[dir];
+
+    // upper/lower bounds in direction 'd'. Note these are edge indices
     int loidx = update_range->lower[dir]-1;
     int upidx = update_range->upper[dir]+2;
 
@@ -94,24 +118,34 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
     // slice along that direction
     while (gkyl_range_iter_next(&iter)) {
       
-      gkyl_copy_int_arr(ndim, iter.idx, idxm);
-      gkyl_copy_int_arr(ndim, iter.idx, idxp);
+      gkyl_copy_int_arr(ndim, iter.idx, idxl);
+      gkyl_copy_int_arr(ndim, iter.idx, idxr);
 
       for (int i=loidx; i<upidx; ++i) {
-        idxm[dir] = i-1; idxp[dir] = i;
+        idxl[dir] = i-1; idxr[dir] = i;
 
-        const double *ql = gkyl_array_cfetch(qin, gkyl_range_idx(update_range, idxm));
-        const double *qr = gkyl_array_cfetch(qin, gkyl_range_idx(update_range, idxm));
+        const double *qinl = gkyl_array_cfetch(qin, gkyl_range_idx(update_range, idxl));
+        const double *qinr = gkyl_array_cfetch(qin, gkyl_range_idx(update_range, idxr));
 
         // compute jump across interface
-        calc_jump(meqn, ql, qr, delta);
+        calc_jump(meqn, qinl, qinr, delta);
         // compute waves and fluctuations
-        gkyl_wv_eqn_waves(wv->equation, dir, delta, ql, qr, waves, s);
+        gkyl_wv_eqn_waves(wv->equation, dir, delta, qinl, qinr, waves, s);
+        gkyl_wv_eqn_qfluct(wv->equation, dir, qinl, qinr, waves, s, amdq, apdq);
+
+        double *qoutl = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+        double *qoutr = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxr));
+
+        calc_first_order_update(meqn, dtdx, qoutl, qoutr, amdq, apdq);
+        cfla = calc_cfla(mwaves, cfla, dtdx, s);
       }
+
+      if (cfla > cflm)
+        return (struct gkyl_wave_prop_status) { .success = 0, .dt_suggested = dt*cfl/cfla };
     }
   }
 
-  return (struct gkyl_wave_prop_advance_status) { .success = 1, .dt_suggested = 1 };
+  return (struct gkyl_wave_prop_status) { .success = 1, .dt_suggested = dt };
 }
 
 void
