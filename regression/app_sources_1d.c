@@ -79,7 +79,7 @@ main(void)
   // moment sources object
   struct gkyl_moment_em_sources *mes =
     gkyl_moment_em_sources_new( (struct gkyl_moment_em_sources_inp) {
-        .grid = grid,
+        .grid = &grid,
         .nfluids = 1,
         .param = {
           { .charge = -1.0, .mass = 1.0 },
