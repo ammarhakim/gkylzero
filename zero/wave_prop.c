@@ -113,8 +113,8 @@ calc_jump(int n, const double *ql, const double *qr, double *restrict jump)
 }
 
 static inline void
-calc_first_order_update(int meqn, double dtdx, double *restrict ql, double *restrict qr,
-  const double *amdq, const double *apdq)
+calc_first_order_update(int meqn, double dtdx,
+  double *restrict ql, double *restrict qr, const double *amdq, const double *apdq)
 {
   for (int i=0; i<meqn; ++i) {
     qr[i] = qr[i] - dtdx*apdq[i];
@@ -206,7 +206,9 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
   double delta[meqn], amdq[meqn], apdq[meqn];
 
   int idxl[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
-  
+
+  gkyl_array_copy(qout, qin);
+
   for (int d=0; d<wv->num_up_dirs; ++d) {
     int dir = wv->update_dirs[d];
 
@@ -292,7 +294,16 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
     }
   }
 
-  return (struct gkyl_wave_prop_status) { .success = 1, .dt_suggested = dt };
+  // compute allowable time-step from this update, but suggest only
+  // bigger time-step; (Only way dt can reduce is if the update
+  // fails. If the code comes here the update suceeded and so we
+  // should not allow dt to reduce).
+  double dt_suggested = dt*cfl/cfla;
+
+  return (struct gkyl_wave_prop_status) {
+    .success = 1,
+    .dt_suggested = dt_suggested > dt ? dt_suggested : dt
+  };
 }
 
 void
