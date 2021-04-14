@@ -2,11 +2,16 @@
 
 #include <gkyl_app.h>
 #include <gkyl_util.h>
+#include <gkyl_wv_eqn.h>
+#include <gkyl_wave_prop.h>
 
 // Parameters for moment species
 struct gkyl_moment_species {
     char name[128]; // species name
     double charge, mass; // charge and mass
+
+    enum gkyl_wave_limiter limiter; // limiter to use
+    const struct gkyl_wv_eqn *equation; // equation object
 
     int evolve; // evolve species? 1-yes, 0-no
 
@@ -19,6 +24,8 @@ struct gkyl_moment_species {
 struct gkyl_moment_field {
     double epsilon0, mu0;
     double elcErrorSpeedFactor, mgnErrorSpeedFactor;
+
+    enum gkyl_wave_limiter limiter; // limiter to use
 
     int evolve; // evolve field? 1-yes, 0-no
 
@@ -137,7 +144,7 @@ void gkyl_moment_app_write_species(gkyl_moment_app* app, int sidx, double tm, in
 struct gkyl_update_status gkyl_moment_update(gkyl_moment_app* app, double dt);
 
 /**
- * Free Vlasov app.
+ * Free moment app.
  *
  * @param app App to release.
  */

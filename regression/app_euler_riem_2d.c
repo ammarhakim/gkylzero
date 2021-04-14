@@ -1,8 +1,9 @@
 #include <math.h>
 #include <stdio.h>
 
-#include <gkyl_util.h>
 #include <gkyl_moment.h>
+#include <gkyl_util.h>
+#include <gkyl_wv_euler.h>
 
 struct euler_ctx {
     double gas_gamma; // gas constant
@@ -68,17 +69,20 @@ main(int argc, char **argv)
 {
   struct euler_ctx ctx = euler_ctx(); // context for init functions
 
+  // equation object
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma);
+
   struct gkyl_moment_species elc = {
     .name = "euler",
-    .charge = 0.0, .mass = 1.0,
 
+    .equation = euler,
     .evolve = 1,
     .ctx = &ctx,
     .init = evalEulerInit,
   };
 
   // VM app
-  struct gkyl_moment moments = {
+  struct gkyl_moment app_inp = {
     .name = "euler_riem_2d",
 
     .ndim = 2,
@@ -90,6 +94,23 @@ main(int argc, char **argv)
     .species = { elc },
   };
 
+  // create app object
+  gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
+
+  // start, end and initial time-step
+  double tcurr = 0.0, tend = 0.8;
+  double dt = tend-tcurr;
+
+  // initialize simulation
+  gkyl_moment_app_apply_ic(app, tcurr);
+  
+  gkyl_moment_app_write(app, tcurr, 0);
+
+  gkyl_moment_app_write(app, tcurr, 1);
+
+  // simulation complete, free resources
+  gkyl_wv_eqn_release(euler);
+  gkyl_moment_app_release(app); 
   
   return 0;
 }

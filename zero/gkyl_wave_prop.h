@@ -8,7 +8,7 @@
 
 // Limiters
 enum gkyl_wave_limiter {
-  GKYL_NO_LIMITER,
+  GKYL_NO_LIMITER = 1, // to allow default to be 0
   GKYL_MIN_MOD,
   GKYL_SUPERBEE,
   GKYL_VAN_LEER,

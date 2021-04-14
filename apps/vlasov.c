@@ -146,7 +146,7 @@ skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
   }
 }
 
-// initialize field object
+// initialize species moment object
 static void
 vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   struct vm_species_moment *sm, const char *nm)
@@ -161,7 +161,7 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
 
 // release memory for moment data object
 static void
-vm_species_moment_release(struct vm_species_moment *sm)
+vm_species_moment_release(const struct vm_species_moment *sm)
 {
   gkyl_mom_type_release(sm->mtype);
   gkyl_mom_calc_release(sm->mcalc);
@@ -266,7 +266,7 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
 
 // release resources for field
 static void
-vm_field_release(struct vm_field *f)
+vm_field_release(const struct vm_field *f)
 {
   gkyl_array_release(f->em);
   gkyl_array_release(f->em1);

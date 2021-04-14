@@ -177,8 +177,8 @@ limit_waves(const gkyl_wave_prop *wv, const struct gkyl_range *slice_range,
     for (int i=lower; i<=upper; ++i) {
       double dotl = dotr;
       
-      double *wi = gkyl_array_fetch(waves, gkyl_ridx(*slice_range, i));
-      double *wi1 = gkyl_array_fetch(waves, gkyl_ridx(*slice_range, i+1));
+      double *restrict wi = gkyl_array_fetch(waves, gkyl_ridx(*slice_range, i));
+      const double *restrict wi1 = gkyl_array_cfetch(waves, gkyl_ridx(*slice_range, i+1));
       
       double wnorm2 = wave_dot_prod(meqn, &wi[mw*meqn], &wi[mw*meqn]);
       dotr = wave_dot_prod(meqn, &wi[mw*meqn], &wi1[mw*meqn]);
