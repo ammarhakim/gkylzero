@@ -206,7 +206,7 @@ gkyl_moment_app_new(struct gkyl_moment mom)
 
   app->has_field = 0;
   // initialize field if we have one
-  if (app->field.init) {
+  if (mom.field.init) {
     app->has_field = 1;
     moment_field_init(&mom, &mom.field, app, &app->field);
   }

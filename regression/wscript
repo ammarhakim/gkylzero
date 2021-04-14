@@ -57,4 +57,11 @@ def build(bld):
         target = 'app_euler_riem_2d',
         includes = includes,
         use = 'gkylapps gkylzero gkylzerokern',
-    )    
+    )
+
+    bld.program(
+        source = 'app_5m_riem.c',
+        target = 'app_5m_riem',
+        includes = includes,
+        use = 'gkylapps gkylzero gkylzerokern',
+    )        
