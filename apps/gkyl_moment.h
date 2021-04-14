@@ -134,7 +134,7 @@ void gkyl_moment_app_write_species(gkyl_moment_app* app, int sidx, double tm, in
  * @param dt Suggested time-step to advance simulation
  * @return Status of update.
  */
-struct gkyl_update_status gkyl_vlasov_update(gkyl_moment_app* app, double dt);
+struct gkyl_update_status gkyl_moment_update(gkyl_moment_app* app, double dt);
 
 /**
  * Free Vlasov app.
