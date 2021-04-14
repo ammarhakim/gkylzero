@@ -1,6 +1,6 @@
 #include <math.h>
 
-#include <gkyl_maxwell_prim.h>
+#include <gkyl_prim_maxwell.h>
 
 static const int dir_shuffle[][6] = {
   {0, 1, 2, 3, 4, 5},

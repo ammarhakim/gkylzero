@@ -1,6 +1,6 @@
 #include <math.h>
 
-#include <gkyl_euler_prim.h>
+#include <gkyl_prim_euler.h>
 
 static const int dir_shuffle[][3] = {
   {1, 2, 3},

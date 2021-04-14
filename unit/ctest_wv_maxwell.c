@@ -1,5 +1,5 @@
 #include <acutest.h>
-#include <gkyl_maxwell_prim.h>
+#include <gkyl_prim_maxwell.h>
 #include <gkyl_wv_maxwell.h>
 
 static const int dir_shuffle[][6] = {

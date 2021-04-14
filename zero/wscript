@@ -15,15 +15,16 @@ def build(bld):
     dg_eqn.c
     dg_maxwell.c
     dg_vlasov.c
-    euler_prim.c
-    iso_euler_prim.c
-    maxwell_prim.c
     fv_proj.c
     gauss_quad_data.c
     hyper_dg.c
     mom_calc.c
     mom_type.c
     moment_em_sources.c
+    prim_euler.c
+    prim_iso_euler.c
+    prim_maxwell.c
+    prim_ten_moment.c
     proj_on_basis.c
     range.c
     rect_apply_bc.c
@@ -36,6 +37,7 @@ def build(bld):
     wv_euler.c
     wv_iso_euler.c
     wv_maxwell.c
+    wv_ten_moment.c
     """
 
     # For now building static library. Probably should build shared

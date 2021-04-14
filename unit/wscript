@@ -105,3 +105,10 @@ def build(bld):
         includes = '. ../zero ../minus',
         use = 'gkylzero',
     )    
+
+    bld.program(
+        source = 'ctest_wv_ten_moment.c',
+        target = 'ctest_wv_ten_moment',
+        includes = '. ../zero ../minus',
+        use = 'gkylzero',
+    )    
