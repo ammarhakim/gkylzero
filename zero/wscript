@@ -17,6 +17,7 @@ def build(bld):
     dg_vlasov.c
     euler_prim.c
     iso_euler_prim.c
+    maxwell_prim.c
     fv_proj.c
     gauss_quad_data.c
     hyper_dg.c

@@ -3,11 +3,19 @@
 #include <gkyl_alloc.h>
 #include <gkyl_wv_maxwell.h>
 
-static const int dir_shuffle[][7] = {
-  { 0, 0, 1, 2, 3, 4, 5},
-  { 0, 1, 2, 0, 4, 5, 3},
-  { 0, 2, 0, 1, 5, 3, 4}
+static const int dir_shuffle[][6] = {
+  {0, 1, 2, 3, 4, 5},
+  {1, 2, 0, 4, 5, 3},
+  {2, 0, 1, 5, 3, 4}
 };
+
+// Make indexing cleaner with the dir_shuffle
+#define EX d[0]
+#define EY d[1]
+#define EZ d[2]
+#define BX d[3]
+#define BY d[4]
+#define BZ d[5]
 
 struct wv_maxwell {
     struct gkyl_wv_eqn eqn; // base object
@@ -35,15 +43,16 @@ wave(const struct gkyl_wv_eqn *eqn,
   
   const int *d = dir_shuffle[dir];
     
-  // compute projections of jump (generated from Maxima)
-  double a1 = 0.5*(delta[d[4]]-delta[8]*c1);
-  double a2 = 0.5*(delta[8]*c1+delta[d[4]]);
-  double a3 = 0.5*(delta[d[1]]-delta[7]*c);
-  double a4 = 0.5*(delta[7]*c+delta[d[1]]);
-  double a5 = 0.5*(delta[d[2]]-delta[d[6]]*c);
-  double a6 = 0.5*(delta[d[5]]*c+delta[d[3]]);
-  double a7 = 0.5*(delta[d[6]]*c+delta[d[2]]);
-  double a8 = 0.5*(delta[d[3]]-delta[d[5]]*c);
+  // compute projections of jump
+  // Note correction potentials are scalars and no dir_shuffle required
+  double a1 = 0.5*(delta[BX]-delta[7]*c1);
+  double a2 = 0.5*(delta[BX]+delta[7]*c1);
+  double a3 = 0.5*(delta[EX]-delta[6]*c);
+  double a4 = 0.5*(delta[EX]+delta[6]*c);
+  double a5 = 0.5*(delta[EY]-delta[BZ]*c);
+  double a6 = 0.5*(delta[BY]*c+delta[EZ]);
+  double a7 = 0.5*(delta[BZ]*c+delta[EY]);
+  double a8 = 0.5*(delta[EZ]-delta[BY]*c);
 
   // set waves to 0.0 as most entries vanish
   for (int i=0; i<8*6; ++i) waves[i] = 0.0;
@@ -52,42 +61,42 @@ wave(const struct gkyl_wv_eqn *eqn,
 
   // wave 1:
   w = &waves[0*8];
-  w[d[4]] = a1;
+  w[BX] = a1;
   w[7] = -a1*c;
   s[0] = -c*b_fact;
 
    // wave 2:
   w = &waves[1*8];
-  w[d[4]] = a2;
+  w[BX] = a2;
   w[7] = a2*c;
   s[1] = c*b_fact;
 
    // wave 3:
   w = &waves[2*8];
-  w[d[1]] = a3;
+  w[EX] = a3;
   w[6] = -a3*c1;
   s[2] = -c*e_fact;
 
    // wave 4:
   w = &waves[3*8];
-  w[d[1]] = a4;
+  w[EX] = a4;
   w[6] = a4*c1;
   s[3] = c*e_fact;
 
    // wave 5: (two waves with EV -c, -c lumped into one)
   w = &waves[4*8];
-  w[d[2]] = a5;
-  w[d[3]] = a6;
-  w[d[5]] = a6*c1;
-  w[d[6]] = -a5*c1;
+  w[EY] = a5;
+  w[EZ] = a6;
+  w[BY] = a6*c1;
+  w[BZ] = -a5*c1;
   s[4] = -c;
 
    // wave 6: (two waves with EV c, c lumped into one)
   w = &waves[5*8];
-  w[d[2]] = a7;
-  w[d[3]] = a8;
-  w[d[5]] = -a8*c1;
-  w[d[6]] = a7*c1;
+  w[EY] = a7;
+  w[EZ] = a8;
+  w[BY] = -a8*c1;
+  w[BZ] = a7*c1;
   s[5] = c;
   
   return c;

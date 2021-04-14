@@ -4,11 +4,16 @@
 #include <gkyl_euler_prim.h>
 #include <gkyl_wv_euler.h>
 
-static const int dir_shuffle[][4] = {
-  { 0, 1, 2, 3},
-  { 0, 2, 3, 1},
-  { 0, 3, 1, 2}
+static const int dir_shuffle[][3] = {
+  {1, 2, 3},
+  {2, 3, 1},
+  {3, 1, 2}
 };
+
+// Make indexing cleaner with the dir_shuffle
+#define RHOU d[0]
+#define RHOV d[1]
+#define RHOW d[2]
 
 struct wv_euler {
     struct gkyl_wv_eqn eqn; // base object
@@ -40,9 +45,9 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   double srrhol = sqrt(rhol), srrhor = sqrt(rhor);
   double ravgl1 = 1/srrhol, ravgr1 = 1/srrhor;
   double ravg2 = 1/(srrhol+srrhor);
-  double u = (ql[d[1]]*ravgl1 + qr[d[1]]*ravgr1)*ravg2;
-  double v = (ql[d[2]]*ravgl1 + qr[d[2]]*ravgr1)*ravg2;
-  double w = (ql[d[3]]*ravgl1 + qr[d[3]]*ravgr1)*ravg2;
+  double u = (ql[RHOU]*ravgl1 + qr[RHOU]*ravgr1)*ravg2;
+  double v = (ql[RHOV]*ravgl1 + qr[RHOV]*ravgr1)*ravg2;
+  double w = (ql[RHOW]*ravgl1 + qr[RHOW]*ravgr1)*ravg2;
   double enth = ((ql[4]+pl)*ravgl1 + (qr[4]+pr)*ravgr1)*ravg2;
 
   // See http://ammar-hakim.org/sj/euler-eigensystem.html for notation
@@ -53,37 +58,37 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   double g1a2 = g1/aa2, euv = enth-q2;
 
   // Compute projections of jump
-  double a4 = g1a2*(euv*delta[0] + u*delta[d[1]] + v*delta[d[2]] + w*delta[d[3]] - delta[4]);
-  double a2 = delta[d[2]] - v*delta[0];
-  double a3 = delta[d[3]] - w*delta[0];
-  double a5 = 0.5*(delta[d[1]] + (a-u)*delta[0] - a*a4)/a;
+  double a4 = g1a2*(euv*delta[0] + u*delta[RHOU] + v*delta[RHOV] + w*delta[RHOW] - delta[4]);
+  double a2 = delta[RHOV] - v*delta[0];
+  double a3 = delta[RHOW] - w*delta[0];
+  double a5 = 0.5*(delta[RHOU] + (a-u)*delta[0] - a*a4)/a;
   double a1 = delta[0] - a4 - a5;
 
   double *wv;
   // Wave 1: eigenvalue is u-c
   wv = &waves[0];
   wv[0] = a1;
-  wv[d[1]] = a1*(u-a);
-  wv[d[2]] = a1*v;
-  wv[d[3]] = a1*w;
+  wv[RHOU] = a1*(u-a);
+  wv[RHOV] = a1*v;
+  wv[RHOW] = a1*w;
   wv[4] = a1*(enth-u*a);
   s[0] = u-a;
 
   // Wave 2: eigenvalue is u, u, u three waves are lumped into one
   wv = &waves[5];
   wv[0] = a4;
-  wv[d[1]] = a4*u;
-  wv[d[2]] = a4*v + a2;
-  wv[d[3]] = a4*w + a3;
+  wv[RHOU] = a4*u;
+  wv[RHOV] = a4*v + a2;
+  wv[RHOW] = a4*w + a3;
   wv[4] = a4*0.5*q2 + a2*v + a3*w;
   s[1] = u;
 
   // Wave 3: eigenvalue is u+c
   wv = &waves[10];
   wv[0] = a5;
-  wv[d[1]] = a5*(u+a);
-  wv[d[2]] = a5*v;
-  wv[d[3]] = a5*w;
+  wv[RHOU] = a5*(u+a);
+  wv[RHOV] = a5*v;
+  wv[RHOW] = a5*w;
   wv[4] = a5*(enth+u*a);
   s[2] = u+a;
   
