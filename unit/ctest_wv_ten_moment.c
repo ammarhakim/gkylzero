@@ -146,43 +146,8 @@ test_ten_moment_waves()
   gkyl_wv_eqn_release(ten_moment);
 }
 
-// void
-// test_ten_moment_waves_2()
-// {
-//   double gas_gamma = 1.4;
-//   struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new(gas_gamma);
-
-//   double vl[10] = { 1.0, 0.1, 0.2, 0.3, 1.5};
-//   double vr[10] = { 0.01, 1.0, 2.0, 3.0, 15.0};
-
-//   double ql[10], qr[10];
-//   calcq(gas_gamma, vl, ql); calcq(gas_gamma, vr, qr);
-
-//   double delta[10];
-//   for (int i=0; i<5; ++i) delta[i] = qr[i]-ql[i];
-
-//   for (int d=0; d<3; ++d) {
-//     double speeds[3], waves[3*5];
-//     gkyl_wv_eqn_waves(ten_moment, d, delta, ql, qr, waves, speeds);
-
-//     double apdq[10], amdq[10];
-//     gkyl_wv_eqn_qfluct(ten_moment, d, ql, qr, waves, speeds, amdq, apdq);
-    
-//     // check if sum of left/right going fluctuations sum to jump in flux
-//     double fl[10], fr[10];
-//     gkyl_ten_moment_flux(d, gas_gamma, ql, fl);
-//     gkyl_ten_moment_flux(d, gas_gamma, qr, fr);
-    
-//     for (int i=0; i<5; ++i)
-//       TEST_CHECK( gkyl_compare(fr[i]-fl[i], amdq[i]+apdq[i], 1e-14) );
-//   }
-  
-//   gkyl_wv_eqn_release(ten_moment);
-// }
-
 TEST_LIST = {
   { "ten_moment_basic", test_ten_moment_basic },
   { "ten_moment_waves", test_ten_moment_waves },
-//  { "ten_moment_waves_2", test_ten_moment_waves_2 },
   { NULL, NULL },
 };
