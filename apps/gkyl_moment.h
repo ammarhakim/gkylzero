@@ -55,7 +55,8 @@ struct gkyl_moment {
 // Simulation statistics
 struct gkyl_moment_stat {
     long nup; // calls to update
-    
+    long nfail; // number of failed time-steps
+
     double total_tm; // time for simulation (not including ICs)
     double species_tm; // time to compute species updates
     double field_tm; // time to compute field updates
@@ -142,6 +143,13 @@ void gkyl_moment_app_write_species(gkyl_moment_app* app, int sidx, double tm, in
  * @return Status of update.
  */
 struct gkyl_update_status gkyl_moment_update(gkyl_moment_app* app, double dt);
+
+/**
+ * Return simulation statistics.
+ * 
+ * @return Return statistics.
+ */
+struct gkyl_moment_stat gkyl_moment_app_stat(gkyl_moment_app* app);
 
 /**
  * Free moment app.

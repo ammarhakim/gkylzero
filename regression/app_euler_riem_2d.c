@@ -103,14 +103,38 @@ main(int argc, char **argv)
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
-  
   gkyl_moment_app_write(app, tcurr, 0);
+
+  long step = 1;
+  while (tcurr < tend) {
+    printf("Taking time-step %ld at t = %g ...", step, tcurr);
+    struct gkyl_update_status status = gkyl_moment_update(app, dt);
+    printf(" dt = %g\n", status.dt_actual);
+    
+    if (!status.success) {
+      printf("** Update method failed! Aborting simulation ....\n");
+      break;
+    }
+    tcurr += status.dt_actual;
+    dt = status.dt_suggested;
+
+    step += 1;
+  }
 
   gkyl_moment_app_write(app, tcurr, 1);
 
+  struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
+
   // simulation complete, free resources
   gkyl_wv_eqn_release(euler);
-  gkyl_moment_app_release(app); 
+  gkyl_moment_app_release(app);
+
+  printf("\n");
+  printf("Number of update calls %ld\n", stat.nup);
+  printf("Number of failed time-steps %ld\n", stat.nfail);
+  printf("Species updates took %g secs\n", stat.species_tm);
+  printf("Field updates took %g secs\n", stat.field_tm);
+  printf("Total updates took %g secs\n", stat.total_tm);
   
   return 0;
 }

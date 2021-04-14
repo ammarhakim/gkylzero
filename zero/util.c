@@ -57,6 +57,12 @@ gkyl_time_diff(struct timespec start, struct timespec end)
   }
   return tm;  
 }
+
+double
+gkyl_time_diff_now_sec(struct timespec tm)
+{
+  return gkyl_time_sec(gkyl_time_diff(tm, gkyl_wall_clock()));
+}
    
 double
 gkyl_time_sec(struct timespec tm)

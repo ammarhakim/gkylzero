@@ -83,6 +83,14 @@ struct timespec gkyl_wall_clock(void);
 struct timespec gkyl_time_diff(struct timespec tstart, struct timespec tend);
 
 /**
+ * Difference between timespec object and "now", returned in seconds.
+ * 
+ * @param tm Timespec
+ * @return Time in seconds
+ */
+double gkyl_time_diff_now_sec(struct timespec tm);
+
+/**
  * Compute in secs time stored in timespec object.
  *
  * @param tm Timespec object
