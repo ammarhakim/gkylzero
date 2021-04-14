@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 #include <gkyl_util.h>
-#include <gkyl_moments.h>
+#include <gkyl_moment.h>
 
 struct euler_ctx {
     double gas_gamma; // gas constant
