@@ -92,8 +92,6 @@ main(int argc, char **argv)
     .init = evalFieldInit,
   };
 
-  printf("field -> %g\n", maxwell.epsilon0);
-  
   // VM app
   struct gkyl_moment app_inp = {
     .name = "5m_riem",
