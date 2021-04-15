@@ -8,21 +8,18 @@
 void
 evalElcInit(double t, const double * restrict xn, double* restrict fout, void *ctx)
 {
-  double charge = 1.0;
   double gasGamma = 5./3.;
-  double elcCharge = -charge;
-  double ionCharge = charge;
   double elcMass = 1/1836.2;
   double ionMass = 1.0;
 
   double rho, pr;
   if (xn[0] < 0.5) {
     rho = 1.0*elcMass/ionMass;
-    pr = 5.0e-5/(gasGamma-1);
+    pr = 5.0e-5;
   }
   else {
     rho = 0.125*elcMass/ionMass;
-    pr = 5.0e-6/(gasGamma-1);
+    pr = 5.0e-6;
   }
   fout[0] = rho;
   fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
@@ -37,11 +34,11 @@ evalIonInit(double t, const double * restrict xn, double* restrict fout, void *c
   double rho, pr;
   if (xn[0] < 0.5) {
     rho = 1.0;
-    pr = 5.0e-5/(gasGamma-1);
+    pr = 5.0e-5;
   }
   else {
     rho = 0.125;
-    pr = 5.0e-6/(gasGamma-1);
+    pr = 5.0e-6;
   }
   fout[0] = rho;
   fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
@@ -53,6 +50,9 @@ evalFieldInit(double t, const double * restrict xn, double* restrict fout, void 
 {
   double Bx = 0.75e-2;
   double Bz = xn[0] < 0.5 ? 1.0e-2 : -1.0e-2;
+
+  //double Bx = 0.0;
+  //double Bz = 0.0;
 
   // electric field
   fout[0] = 0.0, fout[1] = 0.0; fout[2] = 0.0;
@@ -72,6 +72,7 @@ main(int argc, char **argv)
 
   struct gkyl_moment_species elc = {
     .name = "elc",
+    .charge = -1.0, .mass = 1.0/1836.2,
 
     .equation = elc_euler,
     .evolve = 1,
@@ -79,6 +80,7 @@ main(int argc, char **argv)
   };
   struct gkyl_moment_species ion = {
     .name = "ion",
+    .charge = 1.0, .mass = 1.0,
 
     .equation = ion_euler,
     .evolve = 1,
@@ -109,7 +111,7 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.8;
+  double tcurr = 0.0, tend = 4.0;
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);

@@ -100,7 +100,6 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = 0.8;
 
-
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
   gkyl_moment_app_write(app, tcurr, 0);
