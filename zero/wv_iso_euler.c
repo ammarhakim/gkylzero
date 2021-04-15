@@ -1,6 +1,7 @@
 #include <math.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_prim_iso_euler.h>
 #include <gkyl_wv_iso_euler.h>
 
 static const int dir_shuffle[][3] = {
@@ -93,6 +94,13 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn,
     amdq[i] = s0m*w0[i] + s1m*w1[i] + s2m*w2[i];
     apdq[i] = s0p*w0[i] + s1p*w1[i] + s2p*w2[i];
   }
+}
+
+static double
+max_speed(const struct gkyl_wv_eqn *eqn, int dir, const double *q)
+{
+  const struct wv_iso_euler *iso_euler = container_of(eqn, struct wv_iso_euler, eqn);
+  return gkyl_iso_euler_max_abs_speed(dir, iso_euler->vt, q);
 }
 
 struct gkyl_wv_eqn*

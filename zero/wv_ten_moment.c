@@ -220,6 +220,13 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn,
   }
 }
 
+static double
+max_speed(const struct gkyl_wv_eqn *eqn, int dir, const double *q)
+{
+  const struct wv_ten_moment *ten_moment = container_of(eqn, struct wv_ten_moment, eqn);
+  return gkyl_ten_moment_max_abs_speed(dir, q);
+}
+
 struct gkyl_wv_eqn*
 gkyl_wv_ten_moment_new()
 {
