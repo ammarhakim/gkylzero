@@ -371,7 +371,7 @@ moment_field_max_dt(const gkyl_moment_app *app, const struct moment_field *fld)
 {
   double max_dt = DBL_MAX;
   for (int d=0; d<app->ndim; ++d)
-    max_dt = fmax(max_dt, gkyl_wave_prop_max_dt(fld->slvr[d], &app->local, fld->f[0]));
+    max_dt = fmin(max_dt, gkyl_wave_prop_max_dt(fld->slvr[d], &app->local, fld->f[0]));
   return max_dt;
 }
 

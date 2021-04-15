@@ -112,12 +112,29 @@ main(int argc, char **argv)
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 0.8;
-  double dt = tend-tcurr;
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
-  
   gkyl_moment_app_write(app, tcurr, 0);
+
+  // compute estimate of maximum stable time-step
+  double dt = gkyl_moment_app_max_dt(app);
+
+  long step = 1;
+  while (tcurr < tend) {
+    printf("Taking time-step %ld at t = %g ...", step, tcurr);
+    struct gkyl_update_status status = gkyl_moment_update(app, dt);
+    printf(" dt = %g\n", status.dt_actual);
+    
+    if (!status.success) {
+      printf("** Update method failed! Aborting simulation ....\n");
+      break;
+    }
+    tcurr += status.dt_actual;
+    dt = status.dt_suggested;
+
+    step += 1;
+  }
 
   gkyl_moment_app_write(app, tcurr, 1);
 
