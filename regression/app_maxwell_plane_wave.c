@@ -9,7 +9,25 @@
 void
 evalFieldInit(double t, const double * restrict xn, double* restrict fout, void *ctx)
 {
-  
+  // assumes epsilon0 = mu0 = c = 1.0
+  double L = 1.0;
+  double kwave = 2.0;
+  double lwave = 2.0;
+  double pi = 3.141592653589793238462643383279502884;
+  double phi = 2*pi/L*(kwave*xn[0] + lwave*xn[1]);
+  double knorm = sqrt(kwave*kwave + lwave*lwave);
+  double kxn = kwave/knorm;
+  double kyn = lwave/knorm;
+  //n = (-1, 1, 1), n_hat = 1/math.sqrt(3)
+  double E0 = 1.0/sqrt(3.0);
+  fout[0] = -E0*cos(phi);
+  fout[1] = E0*cos(phi);
+  fout[2] = E0*cos(phi);
+  fout[3] = E0*cos(phi)*2*pi/L*kyn;
+  fout[4] = -E0*cos(phi)*2*pi/L*kxn;
+  fout[5] = E0*cos(phi)*2*pi/L*(-kxn - kyn);
+  fout[6] = 0.0;
+  fout[7] = 0.0;  
 }
 
 int
@@ -23,8 +41,12 @@ main(int argc, char **argv)
     .lower = { 0.0, 0.0 },
     .upper = { 1.0, 1.0 }, 
     .cells = { 128, 128 },
+    .periodic_dirs = { 0, 1 },
+    .cfl_frac = 1.0,
 
     .field = {
+      .epsilon0 = 1.0, .mu0 = 1.0,
+      .elcErrorSpeedFactor = 0.0, .mgnErrorSpeedFactor = 0.0,
       .evolve = 1,
       .ctx = NULL,
       .limiter = GKYL_NO_LIMITER,
@@ -36,7 +58,7 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.8;
+  double tcurr = 0.0, tend = 2.0;
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
