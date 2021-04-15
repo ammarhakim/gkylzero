@@ -82,10 +82,9 @@ main(void)
         .grid = &grid,
         .nfluids = 1,
         .param = {
-          { .charge = -1.0, .mass = 1.0 },
+          { .charge = -1.0, .mass = 1.0, .type = GKYL_ISO_EULER },
         },
         .epsilon0 = 1.0,
-        .has_pressure = 0
       }
     );
 
