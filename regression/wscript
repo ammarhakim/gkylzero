@@ -64,4 +64,11 @@ def build(bld):
         target = 'app_5m_riem',
         includes = includes,
         use = 'gkylapps gkylzero gkylzerokern',
-    )        
+    )
+ 
+    bld.program(
+        source = 'app_maxwell_plane_wave.c',
+        target = 'app_maxwell_plane_wave',
+        includes = includes,
+        use = 'gkylapps gkylzero gkylzerokern',
+    )   

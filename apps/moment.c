@@ -375,6 +375,34 @@ moment_field_max_dt(const gkyl_moment_app *app, const struct moment_field *fld)
   return max_dt;
 }
 
+// update solution: initial solution is in fld->f[0] and updated
+// solution in fld->f[ndim]
+static struct gkyl_update_status
+moment_field_update(const gkyl_moment_app *app,
+  const struct moment_field *fld, double tcurr, double dt)
+{
+  int ndim = fld->ndim;
+  struct gkyl_wave_prop_status stat;
+
+  for (int d=0; d<ndim; ++d) {
+    // update solution
+    stat = gkyl_wave_prop_advance(fld->slvr[d], tcurr, dt, &app->local, fld->f[d], fld->f[d+1]);
+
+    if (stat.success == 0)
+      return (struct gkyl_update_status) {
+        .success = 0,
+        .dt_suggested = stat.dt_suggested
+      };
+    // apply BC
+    moment_field_apply_bc(app, tcurr, fld, fld->f[d+1]);
+  }
+
+  return (struct gkyl_update_status) {
+    .success = 1,
+    .dt_suggested = stat.dt_suggested
+  };
+}
+
 // free field
 static void
 moment_field_release(const struct moment_field *fld)
@@ -560,15 +588,24 @@ moment_update(gkyl_moment_app* app, double dt0)
       case FIELD_UPDATE:
           state = FLUID_UPDATE; // next state
 
-          // TODO field update by dt
+          struct timespec fl_tm = gkyl_wall_clock();
+          struct gkyl_update_status s = moment_field_update(app, &app->field, tcurr, dt);
+          if (s.success == 0) {
+            app->stat.nfail += 1;
+            dt = s.dt_suggested;
+            state = UPDATE_REDO;
+            break;
+          }
+          
+          dt_suggested = fmin(dt_suggested, s.dt_suggested);
+          app->stat.species_tm += gkyl_time_diff_now_sec(fl_tm);
           
           break;
 
       case FLUID_UPDATE:
           state = SECOND_SOURCE_UPDATE; // next state
 
-          struct timespec wst = gkyl_wall_clock();
-          
+          struct timespec sp_tm = gkyl_wall_clock();
           for (int i=0; i<ns; ++i) {         
             struct gkyl_update_status s =
               moment_species_update(app, &app->species[i], tcurr, dt);
@@ -581,8 +618,8 @@ moment_update(gkyl_moment_app* app, double dt0)
             }
             dt_suggested = fmin(dt_suggested, s.dt_suggested);
           }
-
-          app->stat.species_tm += gkyl_time_diff_now_sec(wst);
+          
+          app->stat.species_tm += gkyl_time_diff_now_sec(sp_tm);
          
           break;
 

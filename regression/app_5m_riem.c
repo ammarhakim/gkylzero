@@ -85,13 +85,6 @@ main(int argc, char **argv)
     .init = evalIonInit,
   };  
 
-  struct gkyl_moment_field maxwell = {
-    .epsilon0 = 1.0, .mu0 = 1.0,
-
-    .evolve = 1,
-    .init = evalFieldInit,
-  };
-
   // VM app
   struct gkyl_moment app_inp = {
     .name = "5m_riem",
@@ -104,7 +97,12 @@ main(int argc, char **argv)
     .num_species = 2,
     .species = { elc, ion },
 
-    .field = maxwell,
+    .field = {
+      .epsilon0 = 1.0, .mu0 = 1.0,
+      
+      .evolve = 1,
+      .init = evalFieldInit,
+    }
   };
 
   // create app object
