@@ -34,7 +34,7 @@ def configure(conf):
     # load tools
     conf.load('compiler_c compiler_cxx')
     conf.check_gkylzero()
-    conf.check_mpi()
+    # conf.check_mpi()
 
     # standard install location for dependencies
     gkydepsDir = os.path.expandvars('$HOME/gkylsoft')
