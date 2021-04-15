@@ -111,7 +111,7 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 4.0;
+  double tcurr = 0.0, tend = 10.0;
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
@@ -138,10 +138,20 @@ main(int argc, char **argv)
 
   gkyl_moment_app_write(app, tcurr, 1);
 
+  struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
+
   // simulation complete, free resources
   gkyl_wv_eqn_release(elc_euler);
   gkyl_wv_eqn_release(ion_euler);
-  gkyl_moment_app_release(app); 
+  gkyl_moment_app_release(app);
+
+  printf("\n");
+  printf("Number of update calls %ld\n", stat.nup);
+  printf("Number of failed time-steps %ld\n", stat.nfail);
+  printf("Species updates took %g secs\n", stat.species_tm);
+  printf("Field updates took %g secs\n", stat.field_tm);
+  printf("Source updates took %g secs\n", stat.sources_tm);
+  printf("Total updates took %g secs\n", stat.total_tm);  
   
   return 0;
 }

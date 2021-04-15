@@ -473,6 +473,11 @@ moment_sources_update(const gkyl_moment_app *app, const struct moment_sources *s
     fluids[i] = app->species[i].f[sidx[nstrang]];
 
   gkyl_moment_em_sources_advance(src->slvr, dt, &app->local, fluids, app->field.f[sidx[nstrang]]);
+
+  for (int i=0; i<app->num_species; ++i)
+    moment_species_apply_bc(app, tcurr, &app->species[i], fluids[i]);
+
+  moment_field_apply_bc(app, tcurr, &app->field, app->field.f[sidx[nstrang]]);
 }
 
 // free sources
@@ -651,8 +656,11 @@ moment_update(gkyl_moment_app* app, double dt0)
           if (app->has_field)
             gkyl_array_copy(app->field.fdup, app->field.f[0]);
 
-          if (app->update_sources)
+          if (app->update_sources) {
+            struct timespec tm = gkyl_wall_clock();
             moment_sources_update(app, &app->sources, 0, tcurr, dt/2);
+            app->stat.sources_tm += gkyl_time_diff_now_sec(tm);
+          }
             
           break;
 
@@ -670,7 +678,7 @@ moment_update(gkyl_moment_app* app, double dt0)
             }
             
             dt_suggested = fmin(dt_suggested, s.dt_suggested);
-            app->stat.species_tm += gkyl_time_diff_now_sec(fl_tm);
+            app->stat.field_tm += gkyl_time_diff_now_sec(fl_tm);
           }
           
           break;
@@ -699,8 +707,11 @@ moment_update(gkyl_moment_app* app, double dt0)
       case SECOND_SOURCE_UPDATE:
           state = UPDATE_COMPLETE; // next state
 
-          if (app->update_sources)
+          if (app->update_sources) {
+            struct timespec tm = gkyl_wall_clock();
             moment_sources_update(app, &app->sources, 1, tcurr, dt/2);
+            app->stat.sources_tm += gkyl_time_diff_now_sec(tm);
+          }
 
           // copy solution in prep for next time-step
           for (int i=0; i<ns; ++i)

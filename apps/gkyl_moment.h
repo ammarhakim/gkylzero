@@ -60,6 +60,7 @@ struct gkyl_moment_stat {
     double total_tm; // time for simulation (not including ICs)
     double species_tm; // time to compute species updates
     double field_tm; // time to compute field updates
+    double sources_tm; // time to compute source terms
 };
 
 // Object representing moments app
