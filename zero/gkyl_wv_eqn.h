@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gkyl_eqn_type.h>
 #include <gkyl_ref_count.h>
 
 // Forward declare for use in function pointers
@@ -19,6 +20,7 @@ typedef double (*wv_max_speed_t)(const struct gkyl_wv_eqn *eqn,
   int dir, const double *q);
 
 struct gkyl_wv_eqn {
+    enum gkyl_eqn_type type; // Equation type
     int num_equations; // number of equations in system
     int num_waves; // number of waves in system
     wv_waves_t waves_func; // function to compute waves and speeds

@@ -108,11 +108,13 @@ gkyl_wv_iso_euler_new(double vt)
 {
   struct wv_iso_euler *iso_euler = gkyl_malloc(sizeof(struct wv_iso_euler));
 
+  iso_euler->eqn.type = GKYL_ISO_EULER;
   iso_euler->eqn.num_equations = 4;
   iso_euler->eqn.num_waves = 3;
   iso_euler->vt = vt;
   iso_euler->eqn.waves_func = wave_roe;
   iso_euler->eqn.qfluct_func = qfluct_roe;
+  iso_euler->eqn.max_speed_func = max_speed;
 
   iso_euler->eqn.ref_count = (struct gkyl_ref_count) { iso_euler_free, 1 };
 

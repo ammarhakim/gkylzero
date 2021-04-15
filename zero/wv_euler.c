@@ -122,6 +122,7 @@ gkyl_wv_euler_new(double gas_gamma)
 {
   struct wv_euler *euler = gkyl_malloc(sizeof(struct wv_euler));
 
+  euler->eqn.type = GKYL_EULER;
   euler->eqn.num_equations = 5;
   euler->eqn.num_waves = 3;
   euler->gas_gamma = gas_gamma;
