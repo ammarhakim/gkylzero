@@ -9,6 +9,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_fv_proj.h>
 #include <gkyl_moment.h>
+#include <gkyl_moment_em_sources.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_apply_bc.h>
 #include <gkyl_rect_decomp.h>
@@ -48,6 +49,7 @@ struct moment_species {
     gkyl_rect_apply_bc *lower_bc[3], *upper_bc[3];
 };
 
+// field data
 struct moment_field {
     int ndim;
     double epsilon0, mu0;
@@ -65,6 +67,11 @@ struct moment_field {
 
     // boundary conditions on lower/upper edges in each direction
     gkyl_rect_apply_bc *lower_bc[3], *upper_bc[3];    
+};
+
+// source data
+struct moment_sources {
+    gkyl_moment_em_sources *slvr; // source solver function
 };
 
 // Moment object: used as opaque pointer in user code
@@ -424,6 +431,22 @@ moment_field_release(const struct moment_field *fld)
   gkyl_array_release(fld->bc_buffer);
 }
 
+// initialize source solver: this should be called after all species
+// and fields are initialized
+static 
+void
+moment_sources_init(const struct gkyl_moment_app *app, struct moment_sources *src)
+{
+  struct gkyl_moment_em_sources_inp src_inp = {
+    .grid = &app->grid,
+    .nfluids = app->num_species,
+    .epsilon0 = app->field.epsilon0,
+  };
+
+  /* for (int i=0; i<app->num_species; ++i) */
+  /*   src_inp. */
+}
+
 gkyl_moment_app*
 gkyl_moment_app_new(struct gkyl_moment mom)
 {
@@ -577,9 +600,11 @@ moment_update(gkyl_moment_app* app, double dt0)
     switch (state) {
       case FIRST_SOURCE_UPDATE:
           state = FIELD_UPDATE; // next state
+
           // copy old solution in case we need to redo this step
           for (int i=0; i<ns; ++i)
             gkyl_array_copy(app->species[i].fdup, app->species[i].f[0]);
+          gkyl_array_copy(app->field.fdup, app->field.f[0]);
 
           // TODO source update by dt/2
 
@@ -631,6 +656,7 @@ moment_update(gkyl_moment_app* app, double dt0)
           // copy solution in prep for next time-step
           for (int i=0; i<ns; ++i)
             gkyl_array_copy(app->species[i].f[0], app->species[i].f[ndim]);
+            gkyl_array_copy(app->field.f[0], app->field.f[ndim]);
           
           break;
 
@@ -639,7 +665,8 @@ moment_update(gkyl_moment_app* app, double dt0)
           
           // restore solution and retake step
           for (int i=0; i<ns; ++i)
-            gkyl_array_copy(app->species[i].f[0], app->species[i].fdup); 
+            gkyl_array_copy(app->species[i].f[0], app->species[i].fdup);
+          gkyl_array_copy(app->field.f[0], app->field.fdup);
           
           break;
 
