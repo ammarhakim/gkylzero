@@ -41,6 +41,8 @@ main(int argc, char **argv)
     .lower = { 0.0, 0.0 },
     .upper = { 1.0, 1.0 }, 
     .cells = { 128, 128 },
+
+    .num_periodic_dir = 2,
     .periodic_dirs = { 0, 1 },
     .cfl_frac = 1.0,
 
