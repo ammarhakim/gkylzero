@@ -1,3 +1,4 @@
+#include <float.h>
 #include <math.h>
 #include <time.h>
 
@@ -304,6 +305,30 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
     .success = 1,
     .dt_suggested = dt_suggested > dt ? dt_suggested : dt
   };
+}
+
+double
+gkyl_wave_prop_max_dt(const gkyl_wave_prop *wv, const struct gkyl_range *update_range,
+  const struct gkyl_array *qin)
+{
+  double max_dt = DBL_MAX;
+  
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, update_range);
+  while (gkyl_range_iter_next(&iter)) {
+
+    for (int d=0; d<wv->num_up_dirs; ++d) {
+      int dir = wv->update_dirs[d];
+      double dx = wv->grid.dx[dir];
+
+      const double *q = gkyl_array_cfetch(qin, gkyl_range_idx(update_range, iter.idx));
+      double maxs = gkyl_wv_eqn_max_speed(wv->equation, dir, q);
+      max_dt = fmin(max_dt, wv->cfl*dx/maxs);
+    }
+    
+  }
+
+  return max_dt;
 }
 
 void

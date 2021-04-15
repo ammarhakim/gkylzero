@@ -49,14 +49,26 @@ gkyl_wave_prop* gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp);
  * gkyl_sub_range_init method.
  *
  * @param wv Updater object
+ * @param tm Current time
+ * @param dt time-step
  * @param update_rng Range on which to compute.
- * @param fIn Input to updater
- * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
- * @param rhs RHS output
+ * @param qin Input to updater
+ * @param qout Solution at tm+dt
  */
 struct gkyl_wave_prop_status gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
   double tm, double dt, const struct gkyl_range *update_range,
   const struct gkyl_array *qin, struct gkyl_array *qout);
+
+/**
+ * Compute an estimate of maximum stable time-step for given input
+ * state 'qin'
+ *
+ * @param wv Updater object
+ * @param qin Input to compute dt for
+ * @return maximum stable time-step
+ */
+double gkyl_wave_prop_max_dt(const gkyl_wave_prop *wv, const struct gkyl_range *update_range,
+  const struct gkyl_array *qin);
   
 /**
  * Delete updater.

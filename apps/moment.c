@@ -219,6 +219,16 @@ moment_species_apply_bc(const gkyl_moment_app *app, double tcurr,
     }
 }
 
+// maximum stable time-step
+static double
+moment_species_max_dt(const gkyl_moment_app *app, const struct moment_species *sp)
+{
+  double max_dt = DBL_MAX;
+  for (int d=0; d<app->ndim; ++d)
+    max_dt = fmin(max_dt, gkyl_wave_prop_max_dt(sp->slvr[d], &app->local, sp->f[0]));
+  return max_dt;
+}
+
 // update solution: initial solution is in sp->f[0] and updated
 // solution in sp->f[ndim]
 static struct gkyl_update_status
@@ -356,6 +366,15 @@ moment_field_apply_bc(const gkyl_moment_app *app, double tcurr,
     }  
 }
 
+static double
+moment_field_max_dt(const gkyl_moment_app *app, const struct moment_field *fld)
+{
+  double max_dt = DBL_MAX;
+  for (int d=0; d<app->ndim; ++d)
+    max_dt = fmax(max_dt, gkyl_wave_prop_max_dt(fld->slvr[d], &app->local, fld->f[0]));
+  return max_dt;
+}
+
 // free field
 static void
 moment_field_release(const struct moment_field *fld)
@@ -420,6 +439,19 @@ gkyl_moment_app_new(struct gkyl_moment mom)
   };
 
   return app;
+}
+
+double
+gkyl_moment_app_max_dt(gkyl_moment_app* app)
+{
+  double max_dt = DBL_MAX;
+  for (int i=0;  i<app->num_species; ++i) 
+    max_dt = fmin(max_dt, moment_species_max_dt(app, &app->species[i]));
+
+  if (app->has_field)
+    max_dt = fmin(max_dt, moment_field_max_dt(app, &app->field));
+
+  return max_dt;
 }
 
 void

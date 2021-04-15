@@ -74,6 +74,15 @@ typedef struct gkyl_moment_app gkyl_moment_app;
 gkyl_moment_app* gkyl_moment_app_new(struct gkyl_moment mom);
 
 /**
+ * Compute maximum estimated stable dt wtih current app state. Call
+ * after app initialized and after initial conditions set.
+ *
+ * @param app App object.
+ * @retuen maximum estimated stable dt
+ */
+double gkyl_moment_app_max_dt(gkyl_moment_app* app);
+
+/**
  * Initialize species and field.
  *
  * @param app App object.

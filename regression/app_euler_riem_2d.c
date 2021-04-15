@@ -99,11 +99,14 @@ main(int argc, char **argv)
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 0.8;
-  double dt = tend-tcurr;
+
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
   gkyl_moment_app_write(app, tcurr, 0);
+
+  // compute estimate of maximum stable time-step
+  double dt = gkyl_moment_app_max_dt(app);
 
   long step = 1;
   while (tcurr < tend) {

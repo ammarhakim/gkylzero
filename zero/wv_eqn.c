@@ -22,6 +22,12 @@ gkyl_wv_eqn_qfluct(const struct gkyl_wv_eqn *eqn,
   eqn->qfluct_func(eqn, dir, ql, qr, waves, speeds, amdq, apdq);
 }
 
+double
+gkyl_wv_eqn_max_speed(const struct gkyl_wv_eqn *eqn, int dir, const double *q)
+{
+  return eqn->max_speed_func(eqn, dir, q);
+}
+
 void
 gkyl_wv_eqn_release(const struct gkyl_wv_eqn* eqn)
 {

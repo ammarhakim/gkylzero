@@ -110,6 +110,13 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn,
   }
 }
 
+static double
+max_speed(const struct gkyl_wv_eqn *eqn, int dir, const double *q)
+{
+  const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
+  return gkyl_euler_max_abs_speed(dir, euler->gas_gamma, q);
+}
+
 struct gkyl_wv_eqn*
 gkyl_wv_euler_new(double gas_gamma)
 {
@@ -120,6 +127,7 @@ gkyl_wv_euler_new(double gas_gamma)
   euler->gas_gamma = gas_gamma;
   euler->eqn.waves_func = wave_roe;
   euler->eqn.qfluct_func = qfluct_roe;
+  euler->eqn.max_speed_func = max_speed;
 
   euler->eqn.ref_count = (struct gkyl_ref_count) { euler_free, 1 };
 

@@ -122,6 +122,13 @@ qfluct(const struct gkyl_wv_eqn *eqn,
   }
 }
 
+static double
+max_speed(const struct gkyl_wv_eqn *eqn, int dir, const double *q)
+{
+  const struct wv_maxwell *maxwell = container_of(eqn, struct wv_maxwell, eqn);
+  return maxwell->c;
+}
+
 struct gkyl_wv_eqn*
 gkyl_wv_maxwell_new(double c, double e_fact, double b_fact)
 {
@@ -136,6 +143,7 @@ gkyl_wv_maxwell_new(double c, double e_fact, double b_fact)
   
   maxwell->eqn.waves_func = wave;
   maxwell->eqn.qfluct_func = qfluct;
+  maxwell->eqn.max_speed_func = max_speed;
 
   maxwell->eqn.ref_count = (struct gkyl_ref_count) { maxwell_free, 1 };
 
