@@ -3,11 +3,13 @@
 #include <math.h>
 
 #include <gkyl_array.h>
+#include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
 struct gkyl_moment_em_sources_data {
+    enum gkyl_eqn_type type;
     double charge; // species charge
     double mass; // species mass
 };
@@ -17,7 +19,6 @@ struct gkyl_moment_em_sources_inp {
     int nfluids; // number of fluids
     struct gkyl_moment_em_sources_data param[GKYL_MAX_SPECIES]; // species data
     double epsilon0;
-    int has_pressure; // 1 if to update pressure; 0 otherwise (10M and isothermal)
 };
 
 // Object type
