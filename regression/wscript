@@ -65,10 +65,17 @@ def build(bld):
         includes = includes,
         use = 'gkylapps gkylzero gkylzerokern',
     )
+
+    bld.program(
+        source = 'app_maxwell_plane_wave_1d.c',
+        target = 'app_maxwell_plane_wave_1d',
+        includes = includes,
+        use = 'gkylapps gkylzero gkylzerokern',
+    )   
  
     bld.program(
-        source = 'app_maxwell_plane_wave.c',
-        target = 'app_maxwell_plane_wave',
+        source = 'app_maxwell_plane_wave_2d.c',
+        target = 'app_maxwell_plane_wave_2d',
         includes = includes,
         use = 'gkylapps gkylzero gkylzerokern',
     )   
