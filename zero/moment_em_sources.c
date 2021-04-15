@@ -18,31 +18,22 @@ static const unsigned BZ = 5;
 static const unsigned PHIE = 6;
 static const unsigned PHIM = 7;
 
+// Function for specific update method
+typedef void (*source_update_t)(
+  const gkyl_moment_em_sources *mes, double dt, double* fluids[], double* em);
+
 struct gkyl_moment_em_sources {
     struct gkyl_rect_grid grid; // grid object
     int ndim; // number of dimensions
     int nfluids; // number of fluids in multi-fluid system
     struct gkyl_moment_em_sources_data param[GKYL_MAX_SPECIES]; // struct of fluid parameters
     double epsilon0; // permittivity of free space
-    int has_pressure; // flag to update energy based on updated kinetic energy
+
+    source_update_t ufunc; // actual function to do update
 };
 
-
-gkyl_moment_em_sources*
-gkyl_moment_em_sources_new(struct gkyl_moment_em_sources_inp inp)
-{
-  gkyl_moment_em_sources *up = gkyl_malloc(sizeof(gkyl_moment_em_sources));
-
-  up->grid = *(inp.grid);
-  up->ndim = up->grid.ndim;
-  up->nfluids = inp.nfluids;
-  for (int n=0; n<inp.nfluids; ++n) up->param[n] = inp.param[n];
-  up->epsilon0 = inp.epsilon0;
-  up->has_pressure = inp.has_pressure;
-
-  return up;
-}
-
+// Update momentum and E field using time-centered scheme. See Wang
+// et. al. 2020 for details
 static void
 em_source_update(const gkyl_moment_em_sources *mes, double dt, double* fluids[], double* em)
 {
@@ -162,6 +153,8 @@ em_source_update(const gkyl_moment_em_sources *mes, double dt, double* fluids[],
   } 
 }
 
+// Update momentum and E field and then using this modify scalar
+// pressure. See Wang et. al. 2020 for details
 static void
 pressure_em_source_update(const gkyl_moment_em_sources *mes, double dt, double* fluids[], double* em)
 {
@@ -186,14 +179,30 @@ pressure_em_source_update(const gkyl_moment_em_sources *mes, double dt, double* 
   }
 }
 
+gkyl_moment_em_sources*
+gkyl_moment_em_sources_new(struct gkyl_moment_em_sources_inp inp)
+{
+  gkyl_moment_em_sources *up = gkyl_malloc(sizeof(gkyl_moment_em_sources));
+
+  up->grid = *(inp.grid);
+  up->ndim = up->grid.ndim;
+  up->nfluids = inp.nfluids;
+  for (int n=0; n<inp.nfluids; ++n) up->param[n] = inp.param[n];
+  up->epsilon0 = inp.epsilon0;
+
+  up->ufunc = em_source_update;
+  if (inp.has_pressure)
+    up->ufunc = pressure_em_source_update;
+
+  return up;
+}
+
 void
 gkyl_moment_em_sources_advance(const gkyl_moment_em_sources *mes, double dt,
   const struct gkyl_range *update_range, struct gkyl_array *fluid[], struct gkyl_array *em)
 {
-
   int ndim = mes->ndim;
   int nfluids = mes->nfluids;
-  int has_pressure = mes->has_pressure;
   double *fluids[nfluids];
 
   struct gkyl_range_iter iter;
@@ -205,10 +214,7 @@ gkyl_moment_em_sources_advance(const gkyl_moment_em_sources *mes, double dt,
     for (int n=0; n<nfluids; ++n)
       fluids[n] = gkyl_array_fetch(fluid[n], lidx);
 
-    if (has_pressure)
-      pressure_em_source_update(mes, dt, fluids, gkyl_array_fetch(em, lidx));
-    else
-      em_source_update(mes, dt, fluids, gkyl_array_fetch(em, lidx));
+    mes->ufunc(mes, dt, fluids, gkyl_array_fetch(em, lidx));
   }
 }
 
