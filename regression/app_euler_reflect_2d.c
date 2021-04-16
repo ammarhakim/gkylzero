@@ -50,11 +50,14 @@ main(int argc, char **argv)
     .evolve = 1,
     .ctx = &ctx,
     .init = evalEulerInit,
+
+    .bcx = { GKYL_MOMENT_SPECIES_WALL, GKYL_MOMENT_SPECIES_WALL },
+    .bcy = { GKYL_MOMENT_SPECIES_WALL, GKYL_MOMENT_SPECIES_WALL },
   };
 
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "euler_riem_2d",
+    .name = "euler_reflect_2d",
 
     .ndim = 2,
     .lower = { 0.0, 0.0 },

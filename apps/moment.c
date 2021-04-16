@@ -111,11 +111,63 @@ mkarr(long nc, long size)
   return a;
 }
 
+// for use in direction suffle in BCs
+static const int maxwell_dir_shuffle[][6] = {
+  {0, 1, 2, 3, 4, 5},
+  {1, 2, 0, 4, 5, 3},
+  {2, 0, 1, 5, 3, 4}
+};
+static const int euler_dir_shuffle[][3] = {
+  {1, 2, 3},
+  {2, 3, 1},
+  {3, 1, 2}
+};
+
 // function for copy BC
 static void
 bc_copy(double t, int dir, int nc, const double *skin, double *restrict ghost, void *ctx)
 {
   for (int c=0; c<nc; ++c) ghost[c] = skin[c];
+}
+
+// SHOULD THESE REALLY BE HERE? PERHAPS PUT THEM IN EQN THEMSELVES.
+
+// Maxwell perfectly conducting BC
+static void
+bc_maxwell_wall(double t, int dir, int nc, const double *skin, double *restrict ghost, void *ctx)
+{
+  const int *d = maxwell_dir_shuffle[dir];
+  
+  // zero-tangent for E field
+  ghost[d[0]] = skin[d[0]];
+  ghost[d[1]] = -skin[d[1]];
+  ghost[d[2]] = -skin[d[2]];
+
+
+  // zero-normal for B field
+  ghost[d[3]] = -skin[d[3]];
+  ghost[d[4]] = skin[d[4]];
+  ghost[d[5]] = skin[d[5]];
+
+  // correction potential
+  ghost[6] = -skin[6];
+  ghost[7] = skin[7];
+}
+
+// Euler perfectly reflecting wall
+static void
+bc_euler_wall(double t, int dir, int nc, const double *skin, double *restrict ghost, void *ctx)
+{
+  const int *d = euler_dir_shuffle[dir];
+
+  // copy density and pressure
+  ghost[0] = skin[0];
+  ghost[4] = skin[4];
+
+  // zero-normal for momentum
+  ghost[d[0]] = -skin[d[0]];
+  ghost[d[1]] = skin[d[1]];
+  ghost[d[2]] = skin[d[2]];
 }
 
 // Create ghost and skin sub-ranges given a parent range
@@ -179,25 +231,39 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     );
 
   // determine which directions are not periodic
-  int num_periodic_dir = app->num_periodic_dir, is_copy[3] = {1, 1, 1};
+  int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
   for (int d=0; d<num_periodic_dir; ++d)
-    is_copy[app->periodic_dirs[d]] = 0;
+    is_np[app->periodic_dirs[d]] = 0;
 
   int nghost[3] = {2, 2, 2};
-  // create BC updater in each non-periodic dir
-  for (int d=0; d<ndim; ++d) {
-    if (is_copy[d]) {
-      sp->lower_bc[d] = gkyl_rect_apply_bc_new(
-        &app->grid, d, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
+  for (int dir=0; dir<app->ndim; ++dir) {
+    if (is_np[dir]) {
+      const enum gkyl_moment_bc_type *bc;
+      if (dir == 0)
+        bc = mom_sp->bcx;
+      else if (dir == 1)
+        bc = mom_sp->bcy;
+      else
+        bc = mom_sp->bcz;
+
+      // lower BCs in X
+      if (bc[0] == GKYL_MOMENT_SPECIES_WALL)
+        sp->lower_bc[dir] = gkyl_rect_apply_bc_new(
+          &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_euler_wall, NULL);
+      else
+        sp->lower_bc[dir] = gkyl_rect_apply_bc_new(
+          &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
       
-      sp->upper_bc[d] = gkyl_rect_apply_bc_new(
-        &app->grid, d, GKYL_UPPER_EDGE, nghost, bc_copy, NULL);
-    }
-    else {
-      sp->lower_bc[d] = sp->upper_bc[d] = 0;
+      // upper BCs in X
+      if (bc[1] == GKYL_MOMENT_SPECIES_WALL)
+        sp->upper_bc[dir] = gkyl_rect_apply_bc_new(
+          &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_euler_wall, NULL);
+      else
+        sp->upper_bc[dir] = gkyl_rect_apply_bc_new(
+          &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_copy, NULL);
     }
   }
-
+    
   int meqn = sp->num_equations;
   sp->fdup = mkarr(meqn, app->local_ext.volume);
   // allocate arrays
@@ -309,7 +375,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
 
   double c = 1/sqrt(epsilon0*mu0);
   struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c,
-    mom_fld->elcErrorSpeedFactor, mom_fld->mgnErrorSpeedFactor);
+    mom_fld->elc_error_speed_fact, mom_fld->mag_error_speed_fact);
 
   int ndim = mom->ndim;
   // create updaters for each directional update
@@ -325,24 +391,38 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
     );
 
   // determine which directions are not periodic
-  int num_periodic_dir = app->num_periodic_dir, is_copy[3] = {1, 1, 1};
+  int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
   for (int d=0; d<num_periodic_dir; ++d)
-    is_copy[app->periodic_dirs[d]] = 0;
+    is_np[app->periodic_dirs[d]] = 0;
 
   int nghost[3] = {2, 2, 2};
-  // create BC updater in each non-periodic dir
-  for (int d=0; d<ndim; ++d) {
-    if (is_copy[d]) {
-      fld->lower_bc[d] = gkyl_rect_apply_bc_new(
-        &app->grid, d, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
+  for (int dir=0; dir<app->ndim; ++dir) {
+    if (is_np[dir]) {
+      const enum gkyl_moment_bc_type *bc;
+      if (dir == 0)
+        bc = mom_fld->bcx;
+      else if (dir == 1)
+        bc = mom_fld->bcy;
+      else
+        bc = mom_fld->bcz;
+
+      // lower BCs in X
+      if (bc[0] == GKYL_MOMENT_FIELD_COND)
+        fld->lower_bc[dir] = gkyl_rect_apply_bc_new(
+          &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_maxwell_wall, NULL);
+      else
+        fld->lower_bc[dir] = gkyl_rect_apply_bc_new(
+          &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
       
-      fld->upper_bc[d] = gkyl_rect_apply_bc_new(
-        &app->grid, d, GKYL_UPPER_EDGE, nghost, bc_copy, NULL);
+      // upper BCs in X
+      if (bc[1] == GKYL_MOMENT_FIELD_COND)
+        fld->upper_bc[dir] = gkyl_rect_apply_bc_new(
+          &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_maxwell_wall, NULL);
+      else
+        fld->upper_bc[dir] = gkyl_rect_apply_bc_new(
+          &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_copy, NULL);
     }
-    else {
-      fld->lower_bc[d] = fld->upper_bc[d] = 0;
-    }
-  }  
+  }
 
   // allocate arrays
   fld->fdup = mkarr(8, app->local_ext.volume);

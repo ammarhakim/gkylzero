@@ -5,6 +5,13 @@
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wave_prop.h>
 
+// Boundaru conditions on fields and fluids
+enum gkyl_moment_bc_type {
+  GKYL_MOMENT_COPY = 0, // copy BCs for fluid and field
+  GKYL_MOMENT_SPECIES_WALL, // perfect reflector for moments
+  GKYL_MOMENT_FIELD_COND, // perfect conductor for fields
+};
+
 // Parameters for moment species
 struct gkyl_moment_species {
     char name[128]; // species name
@@ -18,12 +25,15 @@ struct gkyl_moment_species {
     void *ctx; // context for initial condition init function
     // pointer to initialization function
     void (*init)(double t, const double *xn, double *fout, void *ctx);
+
+    // boundary conditions
+    enum gkyl_moment_bc_type bcx[2], bcy[2], bcz[2];
 };
 
 // Parameter for EM field
 struct gkyl_moment_field {
     double epsilon0, mu0;
-    double elcErrorSpeedFactor, mgnErrorSpeedFactor;
+    double elc_error_speed_fact, mag_error_speed_fact;
 
     enum gkyl_wave_limiter limiter; // limiter to use
 
@@ -32,6 +42,9 @@ struct gkyl_moment_field {
     void *ctx; // context for initial condition init function
     // pointer to initialization function
     void (*init)(double t, const double *xn, double *fout, void *ctx);
+
+    // boundary conditions
+    enum gkyl_moment_bc_type bcx[2], bcy[2], bcz[2];
 };
 
 // Top-level app parameters

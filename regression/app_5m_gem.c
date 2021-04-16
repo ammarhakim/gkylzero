@@ -103,6 +103,8 @@ main(int argc, char **argv)
     .equation = elc_euler,
     .evolve = 1,
     .init = evalElcInit,
+
+    .bcy = { GKYL_MOMENT_SPECIES_WALL, GKYL_MOMENT_SPECIES_WALL },
   };
   struct gkyl_moment_species ion = {
     .name = "ion",
@@ -111,11 +113,13 @@ main(int argc, char **argv)
     .equation = ion_euler,
     .evolve = 1,
     .init = evalIonInit,
+
+    .bcy = { GKYL_MOMENT_SPECIES_WALL, GKYL_MOMENT_SPECIES_WALL },    
   };  
 
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "5m_riem",
+    .name = "5m_gem",
 
     .ndim = 2,
     .lower = { -12.8, -6.4 },
@@ -131,9 +135,12 @@ main(int argc, char **argv)
 
     .field = {
       .epsilon0 = 1.0, .mu0 = 1.0,
+      .mag_error_speed_fact = 1.0,
       
       .evolve = 1,
       .init = evalFieldInit,
+      
+      .bcy = { GKYL_MOMENT_FIELD_COND, GKYL_MOMENT_FIELD_COND },
     }
   };
 

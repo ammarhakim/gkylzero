@@ -28,7 +28,7 @@ main(int argc, char **argv)
 {
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "maxwell_plane_wave",
+    .name = "maxwell_reflect_2d",
 
     .ndim = 2,
     .lower = { -1.0, -1.0 },
@@ -39,11 +39,13 @@ main(int argc, char **argv)
 
     .field = {
       .epsilon0 = 1.0, .mu0 = 1.0,
-      .elcErrorSpeedFactor = 0.0, .mgnErrorSpeedFactor = 0.0,
       .evolve = 1,
       .ctx = NULL,
       .limiter = GKYL_NO_LIMITER,
       .init = evalFieldInit,
+
+      .bcx = { GKYL_MOMENT_FIELD_COND, GKYL_MOMENT_FIELD_COND },
+      .bcy = { GKYL_MOMENT_FIELD_COND, GKYL_MOMENT_FIELD_COND },
     }
   };
 

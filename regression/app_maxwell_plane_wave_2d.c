@@ -48,7 +48,6 @@ main(int argc, char **argv)
 
     .field = {
       .epsilon0 = 1.0, .mu0 = 1.0,
-      .elcErrorSpeedFactor = 0.0, .mgnErrorSpeedFactor = 0.0,
       .evolve = 1,
       .ctx = NULL,
       .limiter = GKYL_NO_LIMITER,
