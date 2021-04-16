@@ -50,10 +50,6 @@ def configure(conf):
     conf.write_config_header('gkylzeroconfig.h')
 
 
-from waflib import Task
-class GitTip(Task.Task):
-    always_run = True # need to force running every time
-    run_str = r'echo \#define GKYL_ZERO_GIT_CHANGESET  \"`git describe --abbrev=12 --always --dirty=+`\" > ${TGT}'
 
 def build(bld):
 
@@ -62,10 +58,6 @@ def build(bld):
         print("Installation is only possible using gkylzero-dist!")
         return
     
-    gitTip = GitTip(env=bld.env)
-    gitTip.set_outputs(bld.path.find_or_declare('gkyl_zero_git_tip.h'))
-    bld.add_to_group(gitTip)
-
     if bld.jobs > 16:
       bld.jobs = 16
     
