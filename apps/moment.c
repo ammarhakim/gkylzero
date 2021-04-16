@@ -111,6 +111,7 @@ mkarr(long nc, long size)
   return a;
 }
 
+// function for copy BC
 static void
 bc_copy(double t, int dir, int nc, const double *skin, double *restrict ghost, void *ctx)
 {
@@ -628,49 +629,55 @@ static
 struct gkyl_update_status
 moment_update(gkyl_moment_app* app, double dt0)
 {
-  struct gkyl_update_status st = { .success = 1 };
   int ns = app->num_species, ndim = app->ndim;
 
   double dt_suggested = DBL_MAX;
   
-  // time-stepper state
+  // time-stepper states
   enum {
+    UPDATE_DONE = 0,
+    PRE_UPDATE,
+    POST_UPDATE,
     FIRST_SOURCE_UPDATE,
     FIELD_UPDATE,
-    FLUID_UPDATE,
+    SPECIES_UPDATE,
     SECOND_SOURCE_UPDATE,
     UPDATE_REDO,
-    UPDATE_COMPLETE
-  } state = FIRST_SOURCE_UPDATE;
+  } state = PRE_UPDATE;
 
   double tcurr = app->tcurr, dt = dt0;
-  while (state != UPDATE_COMPLETE) {
+  while (state != UPDATE_DONE) {
     switch (state) {
-      case FIRST_SOURCE_UPDATE:
-          state = FIELD_UPDATE; // next state
-
+      case PRE_UPDATE:
+          state = FIRST_SOURCE_UPDATE; // next state
+          
           // copy old solution in case we need to redo this step
           for (int i=0; i<ns; ++i)
             gkyl_array_copy(app->species[i].fdup, app->species[i].f[0]);
-
           if (app->has_field)
             gkyl_array_copy(app->field.fdup, app->field.f[0]);
 
+          break;
+          
+      
+      case FIRST_SOURCE_UPDATE:
+          state = FIELD_UPDATE; // next state
+
           if (app->update_sources) {
-            struct timespec tm = gkyl_wall_clock();
+            struct timespec src1_tm = gkyl_wall_clock();
             moment_sources_update(app, &app->sources, 0, tcurr, dt/2);
-            app->stat.sources_tm += gkyl_time_diff_now_sec(tm);
+            app->stat.sources_tm += gkyl_time_diff_now_sec(src1_tm);
           }
             
           break;
 
       case FIELD_UPDATE:
-          state = FLUID_UPDATE; // next state
+          state = SPECIES_UPDATE; // next state
 
           if (app->has_field) {
             struct timespec fl_tm = gkyl_wall_clock();
             struct gkyl_update_status s = moment_field_update(app, &app->field, tcurr, dt);
-            if (s.success == 0) {
+            if (!s.success) {
               app->stat.nfail += 1;
               dt = s.dt_suggested;
               state = UPDATE_REDO;
@@ -683,7 +690,7 @@ moment_update(gkyl_moment_app* app, double dt0)
           
           break;
 
-      case FLUID_UPDATE:
+      case SPECIES_UPDATE:
           state = SECOND_SOURCE_UPDATE; // next state
 
           struct timespec sp_tm = gkyl_wall_clock();
@@ -691,7 +698,7 @@ moment_update(gkyl_moment_app* app, double dt0)
             struct gkyl_update_status s =
               moment_species_update(app, &app->species[i], tcurr, dt);
 
-            if (s.success == 0) {
+            if (!s.success) {
               app->stat.nfail += 1;
               dt = s.dt_suggested;
               state = UPDATE_REDO;
@@ -699,42 +706,44 @@ moment_update(gkyl_moment_app* app, double dt0)
             }
             dt_suggested = fmin(dt_suggested, s.dt_suggested);
           }
-          
           app->stat.species_tm += gkyl_time_diff_now_sec(sp_tm);
          
           break;
 
       case SECOND_SOURCE_UPDATE:
-          state = UPDATE_COMPLETE; // next state
+          state = POST_UPDATE; // next state
 
           if (app->update_sources) {
-            struct timespec tm = gkyl_wall_clock();
+            struct timespec src2_tm = gkyl_wall_clock();
             moment_sources_update(app, &app->sources, 1, tcurr, dt/2);
-            app->stat.sources_tm += gkyl_time_diff_now_sec(tm);
+            app->stat.sources_tm += gkyl_time_diff_now_sec(src2_tm);
           }
+
+          break;
+
+      case POST_UPDATE:
+          state = UPDATE_DONE;
 
           // copy solution in prep for next time-step
           for (int i=0; i<ns; ++i)
             gkyl_array_copy(app->species[i].f[0], app->species[i].f[ndim]);
-
           if (app->has_field)
             gkyl_array_copy(app->field.f[0], app->field.f[ndim]);
           
           break;
 
       case UPDATE_REDO:
-          state = FIRST_SOURCE_UPDATE; // start all-over again
+          state = PRE_UPDATE; // start all-over again
           
           // restore solution and retake step
           for (int i=0; i<ns; ++i)
             gkyl_array_copy(app->species[i].f[0], app->species[i].fdup);
-
           if (app->has_field)
             gkyl_array_copy(app->field.f[0], app->field.fdup);
           
           break;
 
-      case UPDATE_COMPLETE: // unreachable code! (suppresses warning)
+      case UPDATE_DONE: // unreachable code! (suppresses warning)
           break;
     }
   }
