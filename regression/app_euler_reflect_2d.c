@@ -15,47 +15,16 @@ evalEulerInit(double t, const double * restrict xn, double* restrict fout, void 
   struct euler_ctx *app = ctx;
   double gas_gamma = app->gas_gamma;
 
-  double sloc = 0.8;
-  double rho, u, v, pr;
-
   double x = xn[0], y = xn[1];
 
-  double upLeft[] = {0.0, 0.3, 0.5323, 1.206, 0.0};
-  double upRight[] = {0.0, 1.5, 1.5, 0.0, 0.0};
-  double loLeft[] = {0.0, 0.029, 0.138, 1.206, 1.206};
-  double loRight[] = {0.0, 0.3, 0.5323, 0.0, 1.206};
+  double rho = 1.0;
+  double xc = 0.5, yc = 0.5;
+  double beta = 50.0;
+  double pr = 1.0 + 0.1*exp(-beta*((x-xc)*(x-xc) + (y-yc)*(y-yc)));
 
-  if (y>sloc) {
-    if (x<sloc) {
-      pr = upLeft[1];
-      rho = upLeft[2];
-      u = upLeft[3];
-      v = upLeft[4];
-    }
-    else {
-      pr = upRight[1];
-      rho = upRight[2];
-      u = upRight[3];
-      v = upRight[4];
-    }
-  }
-  else {
-    if (x<sloc) {
-        pr = loLeft[1];
-        rho = loLeft[2];
-        u = loLeft[3];
-        v = loLeft[4];
-    }
-    else {
-      pr = loRight[1];
-      rho = loRight[2];
-      u = loRight[3];
-      v = loRight[4];
-    }
-  }
   fout[0] = rho;
-  fout[1] = rho*u; fout[2] = rho*v; fout[3] = 0.0;
-  fout[4] = 0.5*rho*(u*u+v*v) + pr/(gas_gamma-1);
+  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
+  fout[4] = pr/(gas_gamma-1);
 }
 
 struct euler_ctx
@@ -92,6 +61,8 @@ main(int argc, char **argv)
     .upper = { 1.0, 1.0 }, 
     .cells = { 128, 128 },
 
+    .cfl_frac = 0.9,
+
     .num_species = 1,
     .species = { fluid },
   };
@@ -100,7 +71,7 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.8;
+  double tcurr = 0.0, tend = 10.0;
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);

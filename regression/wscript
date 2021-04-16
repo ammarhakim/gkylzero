@@ -60,15 +60,8 @@ def build(bld):
     )
 
     bld.program(
-        source = 'app_5m_riem.c',
-        target = 'app_5m_riem',
-        includes = includes,
-        use = 'gkylapps gkylzero gkylzerokern',
-    )
-
-    bld.program(
-        source = 'app_5m_gem.c',
-        target = 'app_5m_gem',
+        source = 'app_euler_reflect_2d.c',
+        target = 'app_euler_reflect_2d',
         includes = includes,
         use = 'gkylapps gkylzero gkylzerokern',
     )
@@ -86,3 +79,24 @@ def build(bld):
         includes = includes,
         use = 'gkylapps gkylzero gkylzerokern',
     )   
+
+    bld.program(
+        source = 'app_maxwell_reflect_2d.c',
+        target = 'app_maxwell_reflect_2d',
+        includes = includes,
+        use = 'gkylapps gkylzero gkylzerokern',
+    )   
+
+    bld.program(
+        source = 'app_5m_riem.c',
+        target = 'app_5m_riem',
+        includes = includes,
+        use = 'gkylapps gkylzero gkylzerokern',
+    )
+
+    bld.program(
+        source = 'app_5m_gem.c',
+        target = 'app_5m_gem',
+        includes = includes,
+        use = 'gkylapps gkylzero gkylzerokern',
+    )

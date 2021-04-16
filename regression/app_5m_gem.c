@@ -8,7 +8,7 @@
 void
 evalElcInit(double t, const double * restrict xn, double* restrict fout, void *ctx)
 {
-  double x = xn[1], y = xn[2];
+  double x = xn[0], y = xn[1];
   double gasGamma = 5.0/3.0;
   double elcMass = 1/25.0;
   double elcCharge = -1.0;
@@ -37,7 +37,7 @@ evalElcInit(double t, const double * restrict xn, double* restrict fout, void *c
 void
 evalIonInit(double t, const double * restrict xn, double* restrict fout, void *ctx)
 {
-  double x = xn[1], y = xn[2];
+  double x = xn[0], y = xn[1];
   double gasGamma = 5.0/3.0;
   double ionMass = 1.0;
   double ionCharge = 1.0;
@@ -66,7 +66,7 @@ evalIonInit(double t, const double * restrict xn, double* restrict fout, void *c
 void
 evalFieldInit(double t, const double * restrict xn, double* restrict fout, void *ctx)
 {
-  double x = xn[1], y = xn[2];
+  double x = xn[0], y = xn[1];
   double pi = 3.141592653589793238462643383279502884;
   double lambda = 0.5;
   double B0 = 0.1;
