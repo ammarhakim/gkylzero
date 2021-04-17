@@ -79,7 +79,7 @@ em_source_update(const gkyl_moment_em_sources *mes, double dt, double* fluids[],
   // implementation follow Wang et al. Appendix D, equation numbers referenced henceforth
   int nfluids = mes->nfluids;
   double epsilon0 = mes->epsilon0;
-  double b[3];
+  double b[3] = { 0.0, 0.0, 0.0 };
   double Bmag = sqrt(em[BX]*em[BX] + em[BY]*em[BY] + em[BZ]*em[BZ]);
   // get magnetic field unit vector 
   if (Bmag > 0.0) {
@@ -87,18 +87,12 @@ em_source_update(const gkyl_moment_em_sources *mes, double dt, double* fluids[],
     b[1] = em[BY]/Bmag;
     b[2] = em[BZ]/Bmag;
   }
-  else {
-    b[0] = 0.0;
-    b[1] = 0.0;
-    b[2] = 0.0;
-  }
   double qbym[nfluids], Wc_dt[nfluids], wp_dt2[nfluids];
   double J[nfluids][3];
   double w02 = 0.0;
   double gam2 = 0.0;
   double delta = 0.0;
-  double K[3];
-  for (unsigned i=0; i < 3; ++i) K[i] = 0.0;
+  double K[3] = { 0.0, 0.0, 0.0 };
 
   for (int n=0; n < nfluids; ++n)
   {
@@ -201,6 +195,7 @@ fluid_source_update(const gkyl_moment_em_sources *mes, double dt, double* fluids
   int nfluids = mes->nfluids;
   double keOld[nfluids];
   double prInp[6],prTen[nfluids][6];
+  
   for (int n=0; n < nfluids; ++n) {
     const double *f = fluids[n];
     // If Euler equations, store old value of the kinetic energy for later update.
@@ -262,8 +257,7 @@ void
 gkyl_moment_em_sources_advance(const gkyl_moment_em_sources *mes, double dt,
   const struct gkyl_range *update_range, struct gkyl_array *fluid[], struct gkyl_array *em)
 {
-  int ndim = mes->ndim;
-  int nfluids = mes->nfluids;
+  int ndim = mes->ndim, nfluids = mes->nfluids;
   double *fluids[nfluids];
 
   struct gkyl_range_iter iter;
