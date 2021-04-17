@@ -262,6 +262,9 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         sp->upper_bc[dir] = gkyl_rect_apply_bc_new(
           &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_copy, NULL);
     }
+    else {
+      sp->upper_bc[dir] = sp->lower_bc[dir] = 0;
+    }
   }
     
   int meqn = sp->num_equations;
@@ -421,6 +424,9 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
       else
         fld->upper_bc[dir] = gkyl_rect_apply_bc_new(
           &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_copy, NULL);
+    }
+    else {
+      fld->upper_bc[dir] = fld->lower_bc[dir] = 0;
     }
   }
 
