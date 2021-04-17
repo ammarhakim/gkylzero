@@ -20,9 +20,8 @@ Documentation is available at http://gkeyll.rtfd.io.
 You can install the code in two ways, depending on what you want to do
 with it. First, if you want to use the code as a library or run
 simulations you should be using a released *deployment version*
-shipped as a zip file. Alternately, clone this repo and run:
+shipped as a zip file. Get the zip file, unzip it and cd to it:
 ```
-  ./mkdist.sh
   cd gkylzero-dist
   make install
 ```
@@ -44,6 +43,15 @@ it to create your own "app" for your particular problem. See that
 various "app_*.c" files for examples. Full documentation is available
 on the RTFD website linked above.
 
+If you are developing GkylZero you need to clone this repo and build
+as follows:
+```
+   ./waf configure build
+```
+
+You *can't install* using waf. Installation is only supported via the
+distribution zip.
+
 # Developing for GkeyllZero
 
 Out goal is to keep GkeyllZero as simple and dependency free as
@@ -55,12 +63,12 @@ code generation need C++ (GiNaC CAS and Swig wrapper generator, for
 example) but the *generated* code itself will be in C.
 
 Developing in C (and C++) requires very strong focus and
-discipline. Please consult https://en.cppreference.com/w/ for
+discipline. **Please consult** https://en.cppreference.com/w/ for
 standards documentation for these languages and their
-libraries. Please use valgrind to make sure all code is "valgrind
+libraries. **Please use valgrind** to make sure all code is "valgrind
 clean". Pay attention to all compiler warnings.
 
-Most importantly, *please internalize and follow* the programming
+Most importantly, **please internalize and follow** the programming
 philosophy outlined in the document ["A Minimalist Approach to
 Software"](http://ammar-hakim.org/minimalist-software.html).
 

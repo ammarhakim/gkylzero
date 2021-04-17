@@ -212,6 +212,3 @@ EOF4
 cd ..
 rm -f ${distname}.zip
 zip -r ${distname}.zip ${distname} > /dev/null
-
-## MAC OSX uses BSD tar which causes warning messages on Linux 
-#tar -zcf ${distname}.tar.gz ${distname}
