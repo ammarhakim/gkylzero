@@ -111,4 +111,11 @@ def build(bld):
         target = 'ctest_wv_ten_moment',
         includes = '. ../zero ../minus',
         use = 'gkylzero',
-    )    
+    )
+
+    bld.program(
+        source = 'ctest_block_topo.c',
+        target = 'ctest_block_topo',
+        includes = '. ../zero ../minus',
+        use = 'gkylzero',
+    )
