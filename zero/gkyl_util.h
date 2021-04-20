@@ -3,6 +3,11 @@
 #include <stddef.h>
 #include <time.h>
 
+// Maximum configuration-space dimensions supported
+#ifndef GKYL_MAX_CDIM
+# define GKYL_MAX_CDIM 3
+#endif
+
 // Maximum dimensions supported
 #ifndef GKYL_MAX_DIM
 # define GKYL_MAX_DIM 7

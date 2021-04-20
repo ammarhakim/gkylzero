@@ -11,6 +11,7 @@ def build(bld):
     array.c
     array_ops.c
     array_rio.c
+    block_topo.c
     cart_modal_serendip.c
     dg_eqn.c
     dg_maxwell.c
