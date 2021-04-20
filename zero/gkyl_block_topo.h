@@ -11,14 +11,15 @@ enum gkyl_oriented_edge {
   GKYL_PHYSICAL, // edge on physical domain boundary
 };
 
-// Structrue to describe a single connection to a given target block
+// Connection to a given target edge
 struct gkyl_target_edge {
     int bid; // block ID of target edge
     int dir; // logical direction of target edge
     enum gkyl_oriented_edge edge; // edge+orientaton of target edge
 };
 
-// Connections of a block in each direction and along each edge
+// Connections of a block in each direction and along each edge (0:
+// lower, 1:upper)
 struct gkyl_block_connections {
     struct gkyl_target_edge connections[GKYL_MAX_CDIM][2];
 };
@@ -33,8 +34,8 @@ struct gkyl_block_topo {
 
 /**
  * Construct a new empty N-dim block topology with given total number
- * of blocks. The block topology needs to be manually constructed for
- * it to be useful.
+ * of blocks. The returned block topology needs to be manually
+ * constructed for it to be useful.
  *
  * @param ndim Dimension of space
  * @param nblocks Total number of blocks in topology

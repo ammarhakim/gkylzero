@@ -17,7 +17,7 @@ gkyl_block_topo_new(int ndim, int nblocks)
   struct gkyl_block_topo *btopo = gkyl_malloc(sizeof(struct gkyl_block_topo));
   btopo->ndim = ndim;
   btopo->num_blocks = nblocks;
-  btopo->conn = gkyl_malloc(sizeof(struct gkyl_block_connections[nblocks]));
+  btopo->conn = gkyl_calloc(sizeof(struct gkyl_block_connections), nblocks);
 
   return btopo;
 }
