@@ -23,8 +23,8 @@ struct gkyl_block_connections {
     struct gkyl_target_edge connections[GKYL_MAX_CDIM][2];
 };
 
-// Connectivity information for all blocks, describing the topology of
-// the blocks
+// Connectivity information for all blocks, describing topology of
+// blocks
 struct gkyl_block_topo {
     int num_blocks; // total number of blocks
     struct gkyl_block_connections *conn; // connection info for each block
