@@ -100,3 +100,10 @@ def build(bld):
         includes = includes,
         use = 'gkylapps gkylzero gkylzerokern',
     )
+
+    bld.program(
+        source = 'app_euler_multiblock.c',
+        target = 'app_euler_multiblock',
+        includes = includes,
+        use = 'gkylapps gkylzero gkylzerokern',
+    )
