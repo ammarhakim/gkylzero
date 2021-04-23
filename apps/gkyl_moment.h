@@ -5,7 +5,7 @@
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wave_prop.h>
 
-// Boundaru conditions on fields and fluids
+// Boundary conditions on fields and fluids
 enum gkyl_moment_bc_type {
   GKYL_MOMENT_COPY = 0, // copy BCs for fluid and field
   GKYL_MOMENT_SPECIES_WALL, // perfect reflector for moments

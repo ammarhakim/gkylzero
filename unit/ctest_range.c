@@ -574,6 +574,37 @@ void test_range_split_2()
   TEST_CHECK( tot == range.volume );
 }
 
+void test_range_split_3()
+{
+  int lower[] = { 1, 2 }, upper[] = { 10, 25 };
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, lower, upper);
+
+  int idx[range.ndim];
+  struct gkyl_range_iter iter;  
+
+  int nsplits = 4, curr_start = 0, tot = 0;
+  for (int tid=0; tid<nsplits; ++tid) {
+    struct gkyl_range sr = gkyl_range_split(&range, nsplits, tid);
+
+    gkyl_range_iter_init(&iter, &sr);
+    gkyl_range_inv_idx(&sr, curr_start, idx);
+    
+    for (int d=0; d<sr.ndim; ++d)
+      TEST_CHECK( idx[d] == iter.idx[d] );
+    curr_start += iter.bumps_left;
+    tot += iter.bumps_left;
+  }
+  TEST_CHECK( tot == range.volume );
+
+  tot = 0;
+  gkyl_range_iter_no_split_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    tot += 1;
+  }
+  TEST_CHECK( tot == range.volume );
+}
+
 void test_sub_range_split()
 {
   int lower[] = {1, 1}, upper[] = {10, 20};
@@ -821,6 +852,7 @@ TEST_LIST = {
   { "range_skip_iter_2", test_range_skip_iter_2 },
   { "range_split_1", test_range_split_1 },
   { "range_split_2", test_range_split_2 },
+  { "range_split_3", test_range_split_3 },
   { "sub_range_split", test_sub_range_split },
   { "range_split_iter_1", test_range_split_iter_1 },  
   { "range_split_iter_2", test_range_split_iter_2 },

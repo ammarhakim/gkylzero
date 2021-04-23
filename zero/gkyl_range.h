@@ -137,6 +137,17 @@ void gkyl_sub_range_init(struct gkyl_range *rng,
 void gkyl_range_set_split(struct gkyl_range *rng, int nsplits, int tid);
 
 /**
+ * Creates a new range that is a split of the given range. See
+ * gkyl_range_set_split.
+ *
+ * @param rng Range object to split
+ * @param nsplits Number of splits
+ * @param tid Split ID [0, nsplits)
+ * @return Split range
+ */
+struct gkyl_range gkyl_range_split(struct gkyl_range *rng, int nsplits, int tid);
+
+/**
  * Return the number of elements looped over by iterator for this
  * range.
  *

@@ -84,10 +84,12 @@ main(int argc, char **argv)
 
   pthread_t thread[max_thread];  
   struct thread_data td[max_thread];
-  for (int tid=0; tid<max_thread; ++tid) {
-    gkyl_range_set_split(&arr_range, max_thread, tid);
-    td[tid]  = (struct thread_data) { .range = arr_range, .proj = projDistf, .f = distf };
-  }
+  for (int tid=0; tid<max_thread; ++tid)
+    td[tid]  = (struct thread_data) {
+      .range = gkyl_range_split(&arr_range, max_thread, tid),
+      .proj = projDistf,
+      .f = distf
+    };
 
   struct timespec tstart = gkyl_wall_clock();
   
@@ -104,7 +106,6 @@ main(int argc, char **argv)
   double tm = gkyl_time_sec(gkyl_time_diff(tstart, gkyl_wall_clock()));
   printf("%d threads took %g to update\n", max_thread, tm);
 
-  gkyl_range_set_split(&arr_range, 1, 0);
   gkyl_grid_array_write(&grid, &arr_range, distf, "pthread.gkyl");
   
   gkyl_proj_on_basis_release(projDistf);

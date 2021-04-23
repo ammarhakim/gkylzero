@@ -134,6 +134,14 @@ gkyl_range_set_split(struct gkyl_range *rng, int nsplit, int tid)
   rng->tid = tid;
 }
 
+struct gkyl_range
+gkyl_range_split(struct gkyl_range *rng, int nsplits, int tid)
+{
+  struct gkyl_range r = *rng;
+  gkyl_range_set_split(&r, nsplits, tid);
+  return r;
+}
+
 // Computes split and returns number of elements handled locally and
 // the initial index into the range. Number of elements is returned
 // and start index set in 'lower'
