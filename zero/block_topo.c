@@ -63,5 +63,5 @@ void
 gkyl_block_topo_release(struct gkyl_block_topo* btopo)
 {
   gkyl_free(btopo->conn);
-  gkyl_free(btopo); btopo = NULL;
+  gkyl_free(btopo); btopo = 0;
 }

@@ -28,7 +28,7 @@ void
 gkyl_write_field(struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_array *em, double tm, int frame)
 {
   const char *fmt = "%s-field_%d.gkyl";
-  int sz = snprintf(NULL, 0, fmt, "app_sources_1d", frame);
+  int sz = snprintf(0, 0, fmt, "app_sources_1d", frame);
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, "app_sources_1d", frame);
   
@@ -39,7 +39,7 @@ void
 gkyl_write_species(struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_array *f, double tm, int frame)
 {
   const char *fmt = "%s-euler_%d.gkyl";
-  int sz = snprintf(NULL, 0, fmt, "app_sources_1d", frame);
+  int sz = snprintf(0, 0, fmt, "app_sources_1d", frame);
   char fileNm[sz+1]; // ensures no buffer overflow  
   snprintf(fileNm, sizeof fileNm, fmt, "app_sources_1d", frame);
   
@@ -67,10 +67,10 @@ main(void)
   struct gkyl_array *em = gkyl_array_new(GKYL_DOUBLE, 8, ext_range.volume);
 
   // initialize simulation
-  gkyl_fv_proj *fv_fluid_proj = gkyl_fv_proj_new(&grid, 2, 5, evalFluidFunc, NULL);
+  gkyl_fv_proj *fv_fluid_proj = gkyl_fv_proj_new(&grid, 2, 5, evalFluidFunc, 0);
   gkyl_fv_proj_advance(fv_fluid_proj, 0.0, &range, f);
 
-  gkyl_fv_proj *fv_em_proj = gkyl_fv_proj_new(&grid, 2, 8, evalFieldFunc, NULL);
+  gkyl_fv_proj *fv_em_proj = gkyl_fv_proj_new(&grid, 2, 8, evalFieldFunc, 0);
   gkyl_fv_proj_advance(fv_em_proj, 0.0, &range, em);
 
   gkyl_write_field(grid, range, em, 0.0, 0);

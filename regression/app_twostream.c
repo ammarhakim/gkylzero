@@ -129,7 +129,7 @@ main(int argc, char **argv)
   const char *inp_name = argc>1 ? argv[1] : "twostream.ini";
   rxi_ini_t *inp = rxi_ini_load(inp_name);
 
-  if (NULL == inp) {
+  if (0 == inp) {
     fprintf(stderr, "Unable to open input file %s!\n", inp_name);
     exit(1);
   }

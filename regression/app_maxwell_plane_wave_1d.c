@@ -47,7 +47,6 @@ main(int argc, char **argv)
     .field = {
       .epsilon0 = 1.0, .mu0 = 1.0,
       .evolve = 1,
-      .ctx = NULL,
       .limiter = GKYL_NO_LIMITER,
       .init = evalFieldInit,
     }

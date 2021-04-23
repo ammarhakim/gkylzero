@@ -363,7 +363,6 @@ gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
   }
 }
 
-
 void
 gkyl_range_iter_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range)

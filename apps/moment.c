@@ -249,18 +249,18 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
       // lower BCs in X
       if (bc[0] == GKYL_MOMENT_SPECIES_WALL)
         sp->lower_bc[dir] = gkyl_rect_apply_bc_new(
-          &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_euler_wall, NULL);
+          &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_euler_wall, 0);
       else
         sp->lower_bc[dir] = gkyl_rect_apply_bc_new(
-          &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
+          &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_copy, 0);
       
       // upper BCs in X
       if (bc[1] == GKYL_MOMENT_SPECIES_WALL)
         sp->upper_bc[dir] = gkyl_rect_apply_bc_new(
-          &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_euler_wall, NULL);
+          &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_euler_wall, 0);
       else
         sp->upper_bc[dir] = gkyl_rect_apply_bc_new(
-          &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_copy, NULL);
+          &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_copy, 0);
     }
     else {
       sp->upper_bc[dir] = sp->lower_bc[dir] = 0;
@@ -412,18 +412,18 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
       // lower BCs in X
       if (bc[0] == GKYL_MOMENT_FIELD_COND)
         fld->lower_bc[dir] = gkyl_rect_apply_bc_new(
-          &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_maxwell_wall, NULL);
+          &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_maxwell_wall, 0);
       else
         fld->lower_bc[dir] = gkyl_rect_apply_bc_new(
-          &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
+          &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_copy, 0);
       
       // upper BCs in X
       if (bc[1] == GKYL_MOMENT_FIELD_COND)
         fld->upper_bc[dir] = gkyl_rect_apply_bc_new(
-          &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_maxwell_wall, NULL);
+          &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_maxwell_wall, 0);
       else
         fld->upper_bc[dir] = gkyl_rect_apply_bc_new(
-          &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_copy, NULL);
+          &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_copy, 0);
     }
     else {
       fld->upper_bc[dir] = fld->lower_bc[dir] = 0;
@@ -692,7 +692,7 @@ gkyl_moment_app_write_field(gkyl_moment_app* app, double tm, int frame)
   if (app->has_field != 1) return;
 
   const char *fmt = "%s-%s_%d.gkyl";
-  int sz = snprintf(NULL, 0, fmt, app->name, "field", frame);
+  int sz = snprintf(0, 0, fmt, app->name, "field", frame);
   char fileNm[sz+1]; // ensures no buffer overflow  
   snprintf(fileNm, sizeof fileNm, fmt, app->name, "field", frame);
   
@@ -703,7 +703,7 @@ void
 gkyl_moment_app_write_species(gkyl_moment_app* app, int sidx, double tm, int frame)
 {
   const char *fmt = "%s-%s_%d.gkyl";
-  int sz = snprintf(NULL, 0, fmt, app->name, app->species[sidx].name, frame);
+  int sz = snprintf(0, 0, fmt, app->name, app->species[sidx].name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow  
   snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].name, frame);
   
