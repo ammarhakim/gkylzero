@@ -87,8 +87,8 @@ em_source_update(const gkyl_moment_em_sources *mes, double dt, double* fluids[],
     b[1] = em[BY]/Bmag;
     b[2] = em[BZ]/Bmag;
   }
-  double qbym[nfluids], Wc_dt[nfluids], wp_dt2[nfluids];
-  double J[nfluids][3];
+  double qbym[GKYL_MAX_SPECIES], Wc_dt[GKYL_MAX_SPECIES], wp_dt2[GKYL_MAX_SPECIES];
+  double J[GKYL_MAX_SPECIES][3];
   double w02 = 0.0;
   double gam2 = 0.0;
   double delta = 0.0;
@@ -193,8 +193,8 @@ static void
 fluid_source_update(const gkyl_moment_em_sources *mes, double dt, double* fluids[], double* em)
 {
   int nfluids = mes->nfluids;
-  double keOld[nfluids];
-  double prInp[6],prTen[nfluids][6];
+  double keOld[GKYL_MAX_SPECIES];
+  double prInp[6], prTen[GKYL_MAX_SPECIES][6];
   
   for (int n=0; n < nfluids; ++n) {
     const double *f = fluids[n];
@@ -258,7 +258,7 @@ gkyl_moment_em_sources_advance(const gkyl_moment_em_sources *mes, double dt,
   const struct gkyl_range *update_range, struct gkyl_array *fluid[], struct gkyl_array *em)
 {
   int ndim = mes->ndim, nfluids = mes->nfluids;
-  double *fluids[nfluids];
+  double *fluids[GKYL_MAX_SPECIES];
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);

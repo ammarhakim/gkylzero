@@ -509,7 +509,7 @@ main(int argc, char **argv)
   write_sol("euler_multiblock_0", num_blocks, bdata);
 
   // run simulation
-  double tcurr = 0.0, tend = 0.01;
+  double tcurr = 0.0, tend = 0.6;
   double dt = max_dt(num_blocks, bdata);
 
   struct sim_stats stats = { };

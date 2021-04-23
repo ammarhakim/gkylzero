@@ -4,7 +4,7 @@
 #include <gkyl_prim_ten_moment.h>
 #include <gkyl_wv_ten_moment.h>
 
-static double sq(double x) { return x*x; }
+static inline double sq(double x) { return x*x; }
 
 static const int dir_u_shuffle[][3] = {
   {1, 2, 3},
