@@ -7,7 +7,7 @@
 
 // flags and corresponding bit-masks
 enum range_flags { R_IS_SUB_RANGE };
-static uint32_t masks[] =
+static const uint32_t masks[] =
 { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
 
 // sub-range flags
@@ -252,7 +252,7 @@ gkyl_range_upper_skin(struct gkyl_range *rng,
 }
 
 // Increment an int vector by fact*del[d] in each direction d.
-static void
+static inline void
 incr_int_array(int ndim, int fact, const int *restrict del,
   const int *restrict inp, int *restrict out)
 {
@@ -264,7 +264,7 @@ incr_int_array(int ndim, int fact, const int *restrict del,
  * Create ghost and skin sub-ranges given parent (extended
  * range). This code is somewhat convoluted as the skin and ghost
  * ranges need to be sub-ranges of the extended range on the grid and
- * not include corners. I am nor sure how to handle corners on
+ * not include corners. I am not sure how to handle corners on
  * physical boundaries. Also, perhaps this code could be simplified.
 */
 void

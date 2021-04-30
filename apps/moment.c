@@ -288,14 +288,14 @@ static void
 moment_species_apply_bc(const gkyl_moment_app *app, double tcurr,
   const struct moment_species *sp, struct gkyl_array *f)
 {
-  int num_periodic_dir = app->num_periodic_dir, ndim = app->ndim, is_copy[3] = {1, 1, 1};
+  int num_periodic_dir = app->num_periodic_dir, ndim = app->ndim, is_non_periodic[3] = {1, 1, 1};
   for (int d=0; d<num_periodic_dir; ++d) {
     moment_apply_periodic_bc(app, sp->bc_buffer, app->periodic_dirs[d], f);
-    is_copy[app->periodic_dirs[d]] = 0;
+    is_non_periodic[app->periodic_dirs[d]] = 0;
   }
   
   for (int d=0; d<ndim; ++d)
-    if (is_copy[d]) {
+    if (is_non_periodic[d]) {
       gkyl_rect_apply_bc_advance(sp->lower_bc[d], tcurr, &app->local, f);
       gkyl_rect_apply_bc_advance(sp->upper_bc[d], tcurr, &app->local, f);
     }
@@ -452,14 +452,14 @@ static void
 moment_field_apply_bc(const gkyl_moment_app *app, double tcurr,
   const struct moment_field *field, struct gkyl_array *f)
 {
-  int num_periodic_dir = app->num_periodic_dir, ndim = app->ndim, is_copy[3] = {1, 1, 1};
+  int num_periodic_dir = app->num_periodic_dir, ndim = app->ndim, is_non_periodic[3] = {1, 1, 1};
   for (int d=0; d<num_periodic_dir; ++d) {
     moment_apply_periodic_bc(app, field->bc_buffer, app->periodic_dirs[d], f);
-    is_copy[app->periodic_dirs[d]] = 0;
+    is_non_periodic[app->periodic_dirs[d]] = 0;
   }
 
   for (int d=0; d<ndim; ++d)
-    if (is_copy[d]) {
+    if (is_non_periodic[d]) {
       gkyl_rect_apply_bc_advance(field->lower_bc[d], tcurr, &app->local, f);
       gkyl_rect_apply_bc_advance(field->upper_bc[d], tcurr, &app->local, f);
     }  

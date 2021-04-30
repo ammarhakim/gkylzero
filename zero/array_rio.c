@@ -5,6 +5,14 @@
 
 #include <gkyl_array_rio.h>
 
+// code for array datatype for use in IO
+static const uint64_t array_data_type[] = {
+  [GKYL_INT] = 0,
+  [GKYL_FLOAT] = 1,
+  [GKYL_DOUBLE] = 2,
+  [GKYL_USER] = 32,
+};
+
 void
 gkyl_array_write(const struct gkyl_array *arr, FILE *fp)
 {
@@ -46,8 +54,8 @@ gkyl_grid_array_write(const struct gkyl_rect_grid *grid, const struct gkyl_range
   FILE *fp = fopen(fname, "wb"); if (!fp) return errno;
 
   // data double
-  uint64_t real_type = 2;
-  fwrite(&real_type, sizeof(uint64_t), 1, fp);  
+  uint64_t real_type = array_data_type[arr->type];
+  fwrite(&real_type, sizeof(uint64_t), 1, fp);
   
   gkyl_rect_grid_write(grid, fp);
   gkyl_sub_array_write(range, arr, fp);

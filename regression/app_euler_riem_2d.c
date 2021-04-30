@@ -75,8 +75,6 @@ main(int argc, char **argv)
   struct gkyl_moment_species fluid = {
     .name = "euler",
 
-    .charge = 0.0, .mass = 1.0,
-
     .equation = euler,
     .evolve = 1,
     .ctx = &ctx,
@@ -90,7 +88,7 @@ main(int argc, char **argv)
     .ndim = 2,
     .lower = { 0.0, 0.0 },
     .upper = { 1.0, 1.0 }, 
-    .cells = { 128, 128 },
+    .cells = { 200, 200 },
 
     .num_species = 1,
     .species = { fluid },
