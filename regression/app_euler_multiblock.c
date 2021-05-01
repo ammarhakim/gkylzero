@@ -13,7 +13,6 @@
 #include <gkyl_block_topo.h>
 #include <gkyl_fv_proj.h>
 #include <gkyl_moment.h>
-#include <gkyl_moment_em_sources.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_apply_bc.h>
 #include <gkyl_rect_decomp.h>

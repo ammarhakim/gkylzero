@@ -21,7 +21,7 @@ def build(bld):
     hyper_dg.c
     mom_calc.c
     mom_type.c
-    moment_em_sources.c
+    moment_em_coupling.c
     prim_euler.c
     prim_iso_euler.c
     prim_maxwell.c

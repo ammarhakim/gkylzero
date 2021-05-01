@@ -1,6 +1,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
-#include <gkyl_moment_em_sources.h>
+#include <gkyl_moment_em_coupling.h>
 
 // Makes indexing cleaner
 static const unsigned RHO = 0;
@@ -25,11 +25,11 @@ static const unsigned BZ = 5;
 static const unsigned PHIE = 6;
 static const unsigned PHIM = 7;
 
-struct gkyl_moment_em_sources {
+struct gkyl_moment_em_coupling {
     struct gkyl_rect_grid grid; // grid object
     int ndim; // number of dimensions
     int nfluids; // number of fluids in multi-fluid system
-    struct gkyl_moment_em_sources_data param[GKYL_MAX_SPECIES]; // struct of fluid parameters
+    struct gkyl_moment_em_coupling_data param[GKYL_MAX_SPECIES]; // struct of fluid parameters
     double epsilon0; // permittivity of free space
 };
 
@@ -72,7 +72,7 @@ pressure_tensor_rotate(double qbym, double dt, double* em, const double prRhs[6]
 // Update momentum and E field using time-centered scheme. See Wang
 // et. al. 2020 for details.
 static void
-em_source_update(const gkyl_moment_em_sources *mes, double dt, double* fluids[], double* em)
+em_source_update(const gkyl_moment_em_coupling *mes, double dt, double* fluids[], double* em)
 {
   // based on Smithe (2007) with corrections but using Hakim (2019) notations
   // full reference in Wang, Hakim, Ng, Dong, & Germaschewski JCP 2020
@@ -190,7 +190,7 @@ em_source_update(const gkyl_moment_em_sources *mes, double dt, double* fluids[],
 // if Ten moment equations, rotate pressure tensor around magnetic field.
 // See Wang et. al. 2020 JCP for details
 static void
-fluid_source_update(const gkyl_moment_em_sources *mes, double dt, double* fluids[], double* em)
+fluid_source_update(const gkyl_moment_em_coupling *mes, double dt, double* fluids[], double* em)
 {
   int nfluids = mes->nfluids;
   double keOld[GKYL_MAX_SPECIES];
@@ -239,10 +239,10 @@ fluid_source_update(const gkyl_moment_em_sources *mes, double dt, double* fluids
   }
 }
 
-gkyl_moment_em_sources*
-gkyl_moment_em_sources_new(struct gkyl_moment_em_sources_inp inp)
+gkyl_moment_em_coupling*
+gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
 {
-  gkyl_moment_em_sources *up = gkyl_malloc(sizeof(gkyl_moment_em_sources));
+  gkyl_moment_em_coupling *up = gkyl_malloc(sizeof(gkyl_moment_em_coupling));
 
   up->grid = *(inp.grid);
   up->ndim = up->grid.ndim;
@@ -254,7 +254,7 @@ gkyl_moment_em_sources_new(struct gkyl_moment_em_sources_inp inp)
 }
 
 void
-gkyl_moment_em_sources_advance(const gkyl_moment_em_sources *mes, double dt,
+gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
   const struct gkyl_range *update_range, struct gkyl_array *fluid[], struct gkyl_array *em)
 {
   int ndim = mes->ndim, nfluids = mes->nfluids;
@@ -274,7 +274,7 @@ gkyl_moment_em_sources_advance(const gkyl_moment_em_sources *mes, double dt,
 }
 
 void
-gkyl_moment_em_sources_release(gkyl_moment_em_sources* up)
+gkyl_moment_em_coupling_release(gkyl_moment_em_coupling* up)
 {
   free(up);
 }

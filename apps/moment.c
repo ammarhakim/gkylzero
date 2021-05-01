@@ -9,7 +9,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_fv_proj.h>
 #include <gkyl_moment.h>
-#include <gkyl_moment_em_sources.h>
+#include <gkyl_moment_em_coupling.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_apply_bc.h>
 #include <gkyl_rect_decomp.h>
@@ -72,7 +72,7 @@ struct moment_field {
 
 // source data
 struct moment_sources {
-    gkyl_moment_em_sources *slvr; // source solver function
+    gkyl_moment_em_coupling *slvr; // source solver function
 };
 
 // Moment object: used as opaque pointer in user code
@@ -529,21 +529,21 @@ static
 void
 moment_sources_init(const struct gkyl_moment_app *app, struct moment_sources *src)
 {
-  struct gkyl_moment_em_sources_inp src_inp = {
+  struct gkyl_moment_em_coupling_inp src_inp = {
     .grid = &app->grid,
     .nfluids = app->num_species,
     .epsilon0 = app->field.epsilon0,
   };
 
   for (int i=0; i<app->num_species; ++i)
-    src_inp.param[i] = (struct gkyl_moment_em_sources_data) {
+    src_inp.param[i] = (struct gkyl_moment_em_coupling_data) {
       .type = app->species[i].eqn_type,
       .charge = app->species[i].charge,
       .mass = app->species[i].mass
     };
 
   // create updater to solve for sources
-  src->slvr = gkyl_moment_em_sources_new(src_inp);
+  src->slvr = gkyl_moment_em_coupling_new(src_inp);
 }
 
 // update sources: 'nstrang' is 0 for the first Strang step and 1 for
@@ -559,7 +559,7 @@ moment_sources_update(const gkyl_moment_app *app, const struct moment_sources *s
   for (int i=0; i<app->num_species; ++i)
     fluids[i] = app->species[i].f[sidx[nstrang]];
 
-  gkyl_moment_em_sources_advance(src->slvr, dt, &app->local, fluids, app->field.f[sidx[nstrang]]);
+  gkyl_moment_em_coupling_advance(src->slvr, dt, &app->local, fluids, app->field.f[sidx[nstrang]]);
 
   for (int i=0; i<app->num_species; ++i)
     moment_species_apply_bc(app, tcurr, &app->species[i], fluids[i]);
@@ -572,7 +572,7 @@ static
 void
 moment_sources_release(const struct moment_sources *src)
 {
-  gkyl_moment_em_sources_release(src->slvr);
+  gkyl_moment_em_coupling_release(src->slvr);
 }
 
 gkyl_moment_app*

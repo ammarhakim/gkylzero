@@ -8,21 +8,21 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
-struct gkyl_moment_em_sources_data {
+struct gkyl_moment_em_coupling_data {
     enum gkyl_eqn_type type;
     double charge; // species charge
     double mass; // species mass
 };
 
-struct gkyl_moment_em_sources_inp {
+struct gkyl_moment_em_coupling_inp {
     const struct gkyl_rect_grid *grid; // grid on which to solve equations
     int nfluids; // number of fluids
-    struct gkyl_moment_em_sources_data param[GKYL_MAX_SPECIES]; // species data
+    struct gkyl_moment_em_coupling_data param[GKYL_MAX_SPECIES]; // species data
     double epsilon0;
 };
 
 // Object type
-typedef struct gkyl_moment_em_sources gkyl_moment_em_sources;
+typedef struct gkyl_moment_em_coupling gkyl_moment_em_coupling;
 
 /**
  * Create new updater to update electromagnetic sources in fluid
@@ -31,7 +31,7 @@ typedef struct gkyl_moment_em_sources gkyl_moment_em_sources;
  *
  * @param inp Input parameters to updater
  */
-gkyl_moment_em_sources* gkyl_moment_em_sources_new(struct gkyl_moment_em_sources_inp inp);
+gkyl_moment_em_coupling* gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp);
 
 /**
  * Compute implicit update of the electromagnetic source terms in the
@@ -46,7 +46,7 @@ gkyl_moment_em_sources* gkyl_moment_em_sources_new(struct gkyl_moment_em_sources
  * @param em EM variables
  */
 
-void gkyl_moment_em_sources_advance(const gkyl_moment_em_sources *mes, double dt,
+void gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
   const struct gkyl_range *update_rng, struct gkyl_array *fluid[], struct gkyl_array *em);
 
 /**
@@ -54,4 +54,4 @@ void gkyl_moment_em_sources_advance(const gkyl_moment_em_sources *mes, double dt
  *
  * @param mes Updater to delete.
  */
-void gkyl_moment_em_sources_release(gkyl_moment_em_sources *mes);
+void gkyl_moment_em_coupling_release(gkyl_moment_em_coupling *mes);
