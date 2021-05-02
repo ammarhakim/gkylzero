@@ -77,8 +77,8 @@ main(void)
   gkyl_write_species(grid, range, f, 0.0, 0);
 
   // moment sources object
-  struct gkyl_moment_em_sources *mes =
-    gkyl_moment_em_sources_new( (struct gkyl_moment_em_sources_inp) {
+  struct gkyl_moment_em_coupling *mes =
+    gkyl_moment_em_coupling_new( (struct gkyl_moment_em_coupling_inp) {
         .grid = &grid,
         .nfluids = 1,
         .param = {
@@ -95,7 +95,7 @@ main(void)
   struct gkyl_array* fluids[] = {f};
   while (tcurr < tend) {
     printf("Taking time-step at t = %g ...", tcurr);
-    gkyl_moment_em_sources_advance(mes, dt, &range, fluids, em);
+    gkyl_moment_em_coupling_advance(mes, dt, &range, fluids, em);
     printf(" dt = %g\n", dt); 
     tcurr += dt;
     gkyl_write_field(grid, range, em, tcurr, frame);
@@ -108,7 +108,7 @@ main(void)
   gkyl_fv_proj_release(fv_em_proj);
   gkyl_array_release(f);
   gkyl_array_release(em);
-  gkyl_moment_em_sources_release(mes);
+  gkyl_moment_em_coupling_release(mes);
   
   return 0;
 }

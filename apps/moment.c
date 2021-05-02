@@ -71,7 +71,7 @@ struct moment_field {
 };
 
 // source data
-struct moment_sources {
+struct moment_coupling {
     gkyl_moment_em_coupling *slvr; // source solver function
 };
 
@@ -98,7 +98,7 @@ struct gkyl_moment_app {
     struct moment_species *species; // species data
 
     int update_sources; // flag to indicate if sources are to be updated
-    struct moment_sources sources; // sources
+    struct moment_coupling sources; // sources
     
     struct gkyl_moment_stat stat; // statistics
 };
@@ -527,7 +527,7 @@ moment_field_release(const struct moment_field *fld)
 // and fields are initialized
 static 
 void
-moment_sources_init(const struct gkyl_moment_app *app, struct moment_sources *src)
+moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *src)
 {
   struct gkyl_moment_em_coupling_inp src_inp = {
     .grid = &app->grid,
@@ -550,7 +550,7 @@ moment_sources_init(const struct gkyl_moment_app *app, struct moment_sources *sr
 // the second step
 static 
 void
-moment_sources_update(const gkyl_moment_app *app, const struct moment_sources *src,
+moment_coupling_update(const gkyl_moment_app *app, const struct moment_coupling *src,
   int nstrang, double tcurr, double dt)
 {
   int sidx[2] = { 0, app->ndim };
@@ -570,7 +570,7 @@ moment_sources_update(const gkyl_moment_app *app, const struct moment_sources *s
 // free sources
 static 
 void
-moment_sources_release(const struct moment_sources *src)
+moment_coupling_release(const struct moment_coupling *src)
 {
   gkyl_moment_em_coupling_release(src->slvr);
 }
@@ -614,7 +614,7 @@ gkyl_moment_app_new(struct gkyl_moment mom)
   app->update_sources = 0;
   if (app->has_field && ns>0) {
     app->update_sources = 1; // only update if field and species are present
-    moment_sources_init(app, &app->sources);
+    moment_coupling_init(app, &app->sources);
   }
 
   strcpy(app->name, mom.name);
@@ -724,10 +724,10 @@ moment_update(gkyl_moment_app* app, double dt0)
     UPDATE_DONE = 0,
     PRE_UPDATE,
     POST_UPDATE,
-    FIRST_SOURCE_UPDATE,
+    FIRST_COUPLING_UPDATE,
     FIELD_UPDATE,
     SPECIES_UPDATE,
-    SECOND_SOURCE_UPDATE,
+    SECOND_COUPLING_UPDATE,
     UPDATE_REDO,
   } state = PRE_UPDATE;
 
@@ -735,7 +735,7 @@ moment_update(gkyl_moment_app* app, double dt0)
   while (state != UPDATE_DONE) {
     switch (state) {
       case PRE_UPDATE:
-          state = FIRST_SOURCE_UPDATE; // next state
+          state = FIRST_COUPLING_UPDATE; // next state
           
           // copy old solution in case we need to redo this step
           for (int i=0; i<ns; ++i)
@@ -746,12 +746,12 @@ moment_update(gkyl_moment_app* app, double dt0)
           break;
           
       
-      case FIRST_SOURCE_UPDATE:
+      case FIRST_COUPLING_UPDATE:
           state = FIELD_UPDATE; // next state
 
           if (app->update_sources) {
             struct timespec src1_tm = gkyl_wall_clock();
-            moment_sources_update(app, &app->sources, 0, tcurr, dt/2);
+            moment_coupling_update(app, &app->sources, 0, tcurr, dt/2);
             app->stat.sources_tm += gkyl_time_diff_now_sec(src1_tm);
           }
             
@@ -777,7 +777,7 @@ moment_update(gkyl_moment_app* app, double dt0)
           break;
 
       case SPECIES_UPDATE:
-          state = SECOND_SOURCE_UPDATE; // next state
+          state = SECOND_COUPLING_UPDATE; // next state
 
           struct timespec sp_tm = gkyl_wall_clock();
           for (int i=0; i<ns; ++i) {         
@@ -796,12 +796,12 @@ moment_update(gkyl_moment_app* app, double dt0)
          
           break;
 
-      case SECOND_SOURCE_UPDATE:
+      case SECOND_COUPLING_UPDATE:
           state = POST_UPDATE; // next state
 
           if (app->update_sources) {
             struct timespec src2_tm = gkyl_wall_clock();
-            moment_sources_update(app, &app->sources, 1, tcurr, dt/2);
+            moment_coupling_update(app, &app->sources, 1, tcurr, dt/2);
             app->stat.sources_tm += gkyl_time_diff_now_sec(src2_tm);
           }
 
@@ -872,7 +872,7 @@ gkyl_moment_app_release(gkyl_moment_app* app)
     moment_field_release(&app->field);
 
   if (app->update_sources)
-    moment_sources_release(&app->sources);
+    moment_coupling_release(&app->sources);
   
   gkyl_free(app);
 }
