@@ -318,10 +318,10 @@ moment_species_update(const gkyl_moment_app *app,
   const struct moment_species *sp, double tcurr, double dt)
 {
   int ndim = sp->ndim;
+  double dt_suggested = DBL_MAX;
   struct gkyl_wave_prop_status stat;
 
   for (int d=0; d<ndim; ++d) {
-    // update solution
     stat = gkyl_wave_prop_advance(sp->slvr[d], tcurr, dt, &app->local, sp->f[d], sp->f[d+1]);
 
     if (stat.success == 0)
@@ -329,13 +329,14 @@ moment_species_update(const gkyl_moment_app *app,
         .success = 0,
         .dt_suggested = stat.dt_suggested
       };
-    // apply BC
+    
+    dt_suggested = fmin(dt_suggested, stat.dt_suggested);
     moment_species_apply_bc(app, tcurr, sp, sp->f[d+1]);
   }
 
   return (struct gkyl_update_status) {
     .success = 1,
-    .dt_suggested = stat.dt_suggested
+    .dt_suggested = dt_suggested
   };
 }
 
