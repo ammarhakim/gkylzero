@@ -12,6 +12,22 @@ static inline double gkyl_euler_pressure(double gas_gamma, const double q[5])
 }
 
 /**
+ * Compute primitive variables given conserved variables.
+ *
+ * @param gas_gamma Gas adiabatic constant
+ * @param q Conserved variables
+ * @param v Primitive variables (output)
+ */
+static inline void gkyl_euler_prim_vars(double gas_gamma, const double q[5], double v[5])
+{
+  v[0] = q[0];
+  v[1] = q[1]/q[0];
+  v[2] = q[2]/q[0];
+  v[3] = q[3]/q[0];
+  v[4] = gkyl_euler_pressure(gas_gamma, q);
+}
+
+/**
  * Compute maximum absolute speed.
  * 
  * @param dir Direction 

@@ -134,3 +134,10 @@ gkyl_wv_euler_new(double gas_gamma)
 
   return &euler->eqn;
 }
+
+double
+gkyl_wv_euler_gas_gamma(const struct gkyl_wv_eqn* eqn)
+{
+  const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
+  return euler->gas_gamma;
+}
