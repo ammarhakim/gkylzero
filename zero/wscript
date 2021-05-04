@@ -19,6 +19,7 @@ def build(bld):
     fv_proj.c
     gauss_quad_data.c
     hyper_dg.c
+    kep_scheme.c
     mom_calc.c
     mom_type.c
     moment_em_coupling.c

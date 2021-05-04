@@ -1,0 +1,46 @@
+#pragma once
+
+#include <gkyl_array.h>
+#include <gkyl_basis.h>
+#include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
+#include <gkyl_wv_eqn.h>
+
+// Object type
+typedef struct gkyl_kep_scheme gkyl_kep_scheme;
+
+struct gkyl_kep_scheme_inp {
+    const struct gkyl_rect_grid *grid; // grid on which to solve equations
+    const struct gkyl_wv_eqn *equation; // equation solver
+    int num_up_dirs; // number of update directions
+    int update_dirs[GKYL_MAX_DIM]; // directions to update
+};
+
+/**
+ * Create new updater to update fluid equations using KEP scheme
+ *
+ * @param inp Input parameters to construct KEP scheme
+ */
+gkyl_kep_scheme* gkyl_kep_scheme_new(struct gkyl_kep_scheme_inp inp);
+
+/**
+ * Compute RHS of update. The update_rng MUST be a sub-range of the
+ * range on which the array is defined. That is, it must be either the
+ * same range as the array range, or one created using the
+ * gkyl_sub_range_init method.
+ *
+ * @param kep KEP scheme updater object.
+ * @param update_rng Range on which to compute.
+ * @param fIn Input to updater
+ * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
+ * @param rhs RHS output
+ */
+void gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range *update_rng,
+  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs);
+
+/**
+ * Delete updater.
+ *
+ * @param kep Updater to delete.
+ */
+void gkyl_kep_scheme_release(gkyl_kep_scheme* kep);
