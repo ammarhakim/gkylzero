@@ -36,11 +36,11 @@ struct gkyl_moment_em_coupling {
 // Rotate pressure tensor using magnetic field. See Wang
 // et. al. 2020 for details.
 static void
-pressure_tensor_rotate(double qbym, double dt, double* em, const double prRhs[6], double prOut[6])
+pressure_tensor_rotate(double qbym, double dt, double* em, double* staticEB, const double prRhs[6], double prOut[6])
 {
-  double Bx = em[BX];
-  double By = em[BY];
-  double Bz = em[BZ];
+  double Bx = em[BX] + staticEB[BX];
+  double By = em[BY] + staticEB[BY];
+  double Bz = em[BZ] + staticEB[BZ];
 
   double dt1 = 0.5 * dt;
   double dtsq = dt1 * dt1;
@@ -72,7 +72,7 @@ pressure_tensor_rotate(double qbym, double dt, double* em, const double prRhs[6]
 // Update momentum and E field using time-centered scheme. See Wang
 // et. al. 2020 for details.
 static void
-em_source_update(const gkyl_moment_em_coupling *mes, double dt, double* fluids[], double* em)
+em_source_update(const gkyl_moment_em_coupling *mes, double dt, double* fluids[], double* auxSrcs[], double* em, double* staticEB)
 {
   // based on Smithe (2007) with corrections but using Hakim (2019) notations
   // full reference in Wang, Hakim, Ng, Dong, & Germaschewski JCP 2020
@@ -80,15 +80,19 @@ em_source_update(const gkyl_moment_em_coupling *mes, double dt, double* fluids[]
   int nfluids = mes->nfluids;
   double epsilon0 = mes->epsilon0;
   double b[3] = { 0.0, 0.0, 0.0 };
-  double Bmag = sqrt(em[BX]*em[BX] + em[BY]*em[BY] + em[BZ]*em[BZ]);
+  double Bx = em[BX] + staticEB[BX];
+  double By = em[BY] + staticEB[BY];
+  double Bz = em[BZ] + staticEB[BZ];
+  double Bmag = sqrt(Bx*Bx + By*By + Bz*Bz);
   // get magnetic field unit vector 
   if (Bmag > 0.0) {
-    b[0] = em[BX]/Bmag;
-    b[1] = em[BY]/Bmag;
-    b[2] = em[BZ]/Bmag;
+    b[0] = Bx/Bmag;
+    b[1] = By/Bmag;
+    b[2] = Bz/Bmag;
   }
   double qbym[GKYL_MAX_SPECIES], Wc_dt[GKYL_MAX_SPECIES], wp_dt2[GKYL_MAX_SPECIES];
   double J[GKYL_MAX_SPECIES][3];
+  double JOld[GKYL_MAX_SPECIES][3];
   double w02 = 0.0;
   double gam2 = 0.0;
   double delta = 0.0;
@@ -98,10 +102,18 @@ em_source_update(const gkyl_moment_em_coupling *mes, double dt, double* fluids[]
   {
     qbym[n] = mes->param[n].charge / mes->param[n].mass;
     const double *f = fluids[n];
+    const double *auxAccel = auxSrcs[n];
 
-    J[n][0] = f[MX] * qbym[n];
-    J[n][1] = f[MY] * qbym[n];
-    J[n][2] = f[MZ] * qbym[n];
+    JOld[n][0] = f[MX] * qbym[n];
+    JOld[n][1] = f[MY] * qbym[n];
+    JOld[n][2] = f[MZ] * qbym[n];
+
+    // Add contributions from static electric field and external forces to current
+    // Note: Input external force should be an acceleration, conversion to force density occurs here
+    J[n][0] = JOld[n][0] + 0.5*dt*qbym[n]*f[RHO]*(qbym[n]*staticEB[EX] + auxAccel[0]);
+    J[n][1] = JOld[n][1] + 0.5*dt*qbym[n]*f[RHO]*(qbym[n]*staticEB[EY] + auxAccel[1]);
+    J[n][2] = JOld[n][2] + 0.5*dt*qbym[n]*f[RHO]*(qbym[n]*staticEB[EZ] + auxAccel[2]);
+
     // cyclotron frequency * dt
     Wc_dt[n] = qbym[n] * Bmag * dt;
     // plasma frequency^2 * dt^2
@@ -129,10 +141,19 @@ em_source_update(const gkyl_moment_em_coupling *mes, double dt, double* fluids[]
   // Delta2 (capital Delta) = Eq. D.11
   double Delta2 = delta * delta / (1.0 + w02 / 4.0);
 
-  double F[3], F_halfK[3], Fbar[3];
-  F[0] = em[EX] * epsilon0;
-  F[1] = em[EY] * epsilon0;
-  F[2] = em[EZ] * epsilon0;
+  double FOld[3], F[3], F_halfK[3], Fbar[3];
+  const double* auxCurrent = auxSrcs[nfluids];
+
+  FOld[0] = em[EX] * epsilon0;
+  FOld[1] = em[EY] * epsilon0;
+  FOld[2] = em[EZ] * epsilon0;
+
+  // Add contributions from external currents to electric field
+  // Note: Input external current should be a current density, conversion to electric field units occurs here
+  F[0] = FOld[0] - 0.5*dt*auxCurrent[0]/epsilon0;
+  F[1] = FOld[1] - 0.5*dt*auxCurrent[1]/epsilon0;
+  F[2] = FOld[2] - 0.5*dt*auxCurrent[2]/epsilon0;
+
   F_halfK[0] = F[0] + 0.5*K[0];
   F_halfK[1] = F[1] + 0.5*K[1];
   F_halfK[2] = F[2] + 0.5*K[2];
@@ -150,9 +171,9 @@ em_source_update(const gkyl_moment_em_coupling *mes, double dt, double* fluids[]
     + (delta / 8. / (1. + w02 / 4.)) * (b[0]*F_halfK[1] - b[1]*F_halfK[0])
   );
 
-  em[EX] = (2.0 * Fbar[0] - F[0])/epsilon0;
-  em[EY] = (2.0 * Fbar[1] - F[1])/epsilon0;
-  em[EZ] = (2.0 * Fbar[2] - F[2])/epsilon0;
+  em[EX] = (2.0 * Fbar[0] - FOld[0])/epsilon0;
+  em[EY] = (2.0 * Fbar[1] - FOld[1])/epsilon0;
+  em[EZ] = (2.0 * Fbar[2] - FOld[2])/epsilon0;
 
   double Jstar[3], J_new[3];
   for (int n=0; n < nfluids; ++n)
@@ -168,15 +189,15 @@ em_source_update(const gkyl_moment_em_coupling *mes, double dt, double* fluids[]
     J_new[0] = 2.0 * (Jstar[0] 
       + (Wc_dt[n] * Wc_dt[n] / 4.0) * b[0] * (b[0]*Jstar[0] + b[1]*Jstar[1] + b[2]*Jstar[2]) 
       - (Wc_dt[n] / 2.0) * (b[1]*Jstar[2] - b[2]*Jstar[1])) / (1.0 + (Wc_dt[n] * Wc_dt[n] / 4.0))
-      - J[n][0];
+      - JOld[n][0];
     J_new[1] = 2.0 * (Jstar[1] 
       + (Wc_dt[n] * Wc_dt[n] / 4.0) * b[1] * (b[0]*Jstar[0] + b[1]*Jstar[1] + b[2]*Jstar[2]) 
       - (Wc_dt[n] / 2.0) * (b[2]*Jstar[0] - b[0]*Jstar[2])) / (1.0 + (Wc_dt[n] * Wc_dt[n] / 4.0)) 
-      - J[n][1];
+      - JOld[n][1];
     J_new[2] = 2.0 * (Jstar[2] 
       + (Wc_dt[n] * Wc_dt[n] / 4.0) * b[2] * (b[0]*Jstar[0] + b[1]*Jstar[1] + b[2]*Jstar[2]) 
       - (Wc_dt[n] / 2.0) * (b[0]*Jstar[1] - b[1]*Jstar[0])) / (1.0 + (Wc_dt[n] * Wc_dt[n] / 4.0)) 
-      - J[n][2];
+      - JOld[n][2];
 
     f[MX] = J_new[0] / qbym[n];
     f[MY] = J_new[1] / qbym[n];
@@ -190,7 +211,7 @@ em_source_update(const gkyl_moment_em_coupling *mes, double dt, double* fluids[]
 // if Ten moment equations, rotate pressure tensor around magnetic field.
 // See Wang et. al. 2020 JCP for details
 static void
-fluid_source_update(const gkyl_moment_em_coupling *mes, double dt, double* fluids[], double* em)
+fluid_source_update(const gkyl_moment_em_coupling *mes, double dt, double* fluids[], double* auxSrcs[], double* em, double* staticEB)
 {
   int nfluids = mes->nfluids;
   double keOld[GKYL_MAX_SPECIES];
@@ -212,12 +233,12 @@ fluid_source_update(const gkyl_moment_em_coupling *mes, double dt, double* fluid
       prInp[4] = f[P23] - f[MY] * f[MZ] / f[RHO];
       prInp[5] = f[P33] - f[MZ] * f[MZ] / f[RHO];
 
-      pressure_tensor_rotate(qbym, dt, em, prInp, prTen[n]);
+      pressure_tensor_rotate(qbym, dt, em, staticEB, prInp, prTen[n]);
     }
   }
 
   // Update momentum and electric field using time-centered implicit solve.
-  em_source_update(mes, dt, fluids, em);
+  em_source_update(mes, dt, fluids, auxSrcs, em, staticEB);
 
   for (int n=0; n < nfluids; ++n) {
     double *f = fluids[n];
@@ -255,10 +276,11 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
 
 void
 gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
-  const struct gkyl_range *update_range, struct gkyl_array *fluid[], struct gkyl_array *em)
+  const struct gkyl_range *update_range, struct gkyl_array *fluid[], struct gkyl_array *auxSrc[], struct gkyl_array *em, struct gkyl_array *staticEB)
 {
   int ndim = mes->ndim, nfluids = mes->nfluids;
   double *fluids[GKYL_MAX_SPECIES];
+  double *auxSrcs[GKYL_MAX_SPECIES];
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
@@ -266,10 +288,14 @@ gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
     
     long lidx = gkyl_range_idx(update_range, iter.idx);
     
-    for (int n=0; n<nfluids; ++n)
+    for (int n=0; n<nfluids; ++n) {
       fluids[n] = gkyl_array_fetch(fluid[n], lidx);
+      auxSrcs[n] = gkyl_array_fetch(auxSrc[n], lidx);
+    }
+    // Last entry in auxSrcs is always the external current
+    auxSrcs[nfluids] = gkyl_array_fetch(auxSrc[nfluids], lidx);
 
-    fluid_source_update(mes, dt, fluids, gkyl_array_fetch(em, lidx));
+    fluid_source_update(mes, dt, fluids, auxSrcs, gkyl_array_fetch(em, lidx), gkyl_array_fetch(staticEB, lidx));
   }
 }
 

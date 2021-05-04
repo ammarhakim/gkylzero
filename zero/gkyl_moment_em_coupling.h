@@ -47,7 +47,9 @@ gkyl_moment_em_coupling* gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupl
  */
 
 void gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
-  const struct gkyl_range *update_rng, struct gkyl_array *fluid[], struct gkyl_array *em);
+  const struct gkyl_range *update_rng, 
+  struct gkyl_array *fluid[], struct gkyl_array *auxSrc[],
+  struct gkyl_array *em, struct gkyl_array *staticEB);
 
 /**
  * Delete updater.

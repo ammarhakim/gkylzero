@@ -40,6 +40,7 @@ struct moment_species {
     void (*init)(double t, const double *xn, double *fout, void *ctx);
     
     struct gkyl_array *fdup, *f[4]; // arrays for updates
+    struct gkyl_array *auxSrc; // array for external forces
     struct gkyl_array *bc_buffer; // buffer for periodic BCs
 
     enum gkyl_eqn_type eqn_type; // type ID of equation
@@ -62,6 +63,7 @@ struct moment_field {
     void (*init)(double t, const double *xn, double *fout, void *ctx);    
     
     struct gkyl_array *fdup, *f[4]; // arrays for updates
+    struct gkyl_array *auxSrc, *staticEB; // arrays for external currents/fields
     struct gkyl_array *bc_buffer; // buffer for periodic BCs
 
     gkyl_wave_prop *slvr[3]; // solver in each direction
@@ -273,6 +275,8 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   for (int d=0; d<ndim+1; ++d)
     sp->f[d] = mkarr(meqn, app->local_ext.volume);
 
+  // allocate array for external forces for each species
+  sp->auxSrc = mkarr(3, app->local_ext.volume);
   // allocate buffer for applying BCs (used for periodic BCs)
   long buff_sz = 0;
   // compute buffer size needed
@@ -358,6 +362,8 @@ moment_species_release(const struct moment_species *sp)
   for (int d=0; d<sp->ndim+1; ++d)
     gkyl_array_release(sp->f[d]);
 
+  gkyl_array_release(sp->auxSrc);
+
   gkyl_array_release(sp->bc_buffer);
 }
 
@@ -435,6 +441,10 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   fld->fdup = mkarr(8, app->local_ext.volume);
   for (int d=0; d<ndim+1; ++d)
     fld->f[d] = mkarr(8, app->local_ext.volume);
+
+  // allocate arrays for external current/fields
+  fld->auxSrc = mkarr(3, app->local_ext.volume);
+  fld->staticEB = mkarr(6, app->local_ext.volume);
 
   // allocate buffer for applying BCs (used for periodic BCs)
   long buff_sz = 0;
@@ -521,6 +531,9 @@ moment_field_release(const struct moment_field *fld)
   for (int d=0; d<fld->ndim+1; ++d)
     gkyl_array_release(fld->f[d]);
   
+  gkyl_array_release(fld->auxSrc);
+  gkyl_array_release(fld->staticEB);
+
   gkyl_array_release(fld->bc_buffer);
 }
 
@@ -556,11 +569,15 @@ moment_coupling_update(const gkyl_moment_app *app, const struct moment_coupling 
 {
   int sidx[2] = { 0, app->ndim };
   struct gkyl_array *fluids[app->num_species];
+  struct gkyl_array *auxSrcs[app->num_species+1];
 
-  for (int i=0; i<app->num_species; ++i)
+  for (int i=0; i<app->num_species; ++i) {
     fluids[i] = app->species[i].f[sidx[nstrang]];
+    auxSrcs[i] = app->species[i].auxSrc;
+  }
+  auxSrcs[app->num_species] = app->field.auxSrc;
 
-  gkyl_moment_em_coupling_advance(src->slvr, dt, &app->local, fluids, app->field.f[sidx[nstrang]]);
+  gkyl_moment_em_coupling_advance(src->slvr, dt, &app->local, fluids, auxSrcs, app->field.f[sidx[nstrang]], app->field.staticEB);
 
   for (int i=0; i<app->num_species; ++i)
     moment_species_apply_bc(app, tcurr, &app->species[i], fluids[i]);
