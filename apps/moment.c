@@ -696,7 +696,7 @@ gkyl_moment_app_apply_ic_species(gkyl_moment_app* app, int sidx, double t0)
 }
 
 void
-gkyl_moment_app_write(gkyl_moment_app* app, double tm, int frame)
+gkyl_moment_app_write(const gkyl_moment_app* app, double tm, int frame)
 {
   gkyl_moment_app_write_field(app, tm, frame);
   for (int i=0; i<app->num_species; ++i)
@@ -704,7 +704,7 @@ gkyl_moment_app_write(gkyl_moment_app* app, double tm, int frame)
 }
 
 void
-gkyl_moment_app_write_field(gkyl_moment_app* app, double tm, int frame)
+gkyl_moment_app_write_field(const gkyl_moment_app* app, double tm, int frame)
 {
   if (app->has_field != 1) return;
 
@@ -717,7 +717,7 @@ gkyl_moment_app_write_field(gkyl_moment_app* app, double tm, int frame)
 }
 
 void
-gkyl_moment_app_write_species(gkyl_moment_app* app, int sidx, double tm, int frame)
+gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, int frame)
 {
   const char *fmt = "%s-%s_%d.gkyl";
   int sz = snprintf(0, 0, fmt, app->name, app->species[sidx].name, frame);

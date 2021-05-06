@@ -128,7 +128,7 @@ void gkyl_moment_app_apply_ic_species(gkyl_moment_app* app, int sidx, double t0)
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_moment_app_write(gkyl_moment_app* app, double tm, int frame);
+void gkyl_moment_app_write(const gkyl_moment_app* app, double tm, int frame);
 
 /**
  * Write field data to file.
@@ -137,7 +137,7 @@ void gkyl_moment_app_write(gkyl_moment_app* app, double tm, int frame);
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_moment_app_write_field(gkyl_moment_app* app, double tm, int frame);
+void gkyl_moment_app_write_field(const gkyl_moment_app* app, double tm, int frame);
 
 /**
  * Write species data to file.
@@ -147,7 +147,7 @@ void gkyl_moment_app_write_field(gkyl_moment_app* app, double tm, int frame);
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_moment_app_write_species(gkyl_moment_app* app, int sidx, double tm, int frame);
+void gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, int frame);
 
 /**
  * Advance simulation by a suggested time-step 'dt'. The dt may be too

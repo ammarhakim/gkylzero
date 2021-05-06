@@ -10,9 +10,9 @@ gkyl_tm_trigger_check_and_bump(struct gkyl_tm_trigger *tmt, double tcurr)
 {
   int status = 0;
   if (tcurr >= tmt->tcurr) {
+    status = 1;
     tmt->curr += 1;
     tmt->tcurr += tmt->dt;
-    status = 1;
   }
   return status;
 }

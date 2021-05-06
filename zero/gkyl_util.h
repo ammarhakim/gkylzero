@@ -40,7 +40,9 @@
     (a, b, eps)
 
 /**
- * Time-trigger (TODO: what the heck is this?)
+ * Time-trigger. Typical initialization is:
+ * 
+ * struct gkyl_tm_trigger tmt = { .dt = tend/nframe };
  */
 struct gkyl_tm_trigger {
     int curr; // current counter
@@ -49,7 +51,7 @@ struct gkyl_tm_trigger {
 
 /**
  * Check if the tcurr should trigger and bump internal counters if it
- * does. This only works if sequencial calls to this method have the
+ * does. This only works if sequential calls to this method have the
  * tcurr monotonically increasing.
  *
  * @param tmt Time trigger object
