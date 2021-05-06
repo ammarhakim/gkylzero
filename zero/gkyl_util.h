@@ -40,6 +40,25 @@
     (a, b, eps)
 
 /**
+ * Time-trigger (TODO: what the heck is this?)
+ */
+struct gkyl_tm_trigger {
+    int curr; // current counter
+    double dt, tcurr; // Time-interval, current time
+};
+
+/**
+ * Check if the tcurr should trigger and bump internal counters if it
+ * does. This only works if sequencial calls to this method have the
+ * tcurr monotonically increasing.
+ *
+ * @param tmt Time trigger object
+ * @param tcurr Current time.
+ * @return 1 if triggered, 0 otherwise
+ */
+int gkyl_tm_trigger_check_and_bump(struct gkyl_tm_trigger *tmt, double tcurr);
+
+/**
  * Print error message to stderr and exit.
  *
  * @param msg Error message.

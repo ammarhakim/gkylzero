@@ -61,13 +61,13 @@ mkep_flux(int dir, double gas_gamma, const double vm[5], const double vp[5], dou
   double kebar = 0.5*(euler_ke(vm) + euler_ke(vp));
   
   const int *d = dir_shuffle[dir];
-  flux[0] = vbar[RHO]*vbar[RHOU]; // denisty flux
+  flux[0] = vbar[RHO]*vbar[RHOU]; // rho*u
   // momentum flux must have this form to ensure KEP property
-  flux[RHOU] =  flux[0]*vbar[RHOU] + vbar[PR];
-  flux[RHOV] =  flux[0]*vbar[RHOV];
-  flux[RHOW] =  flux[0]*vbar[RHOW];
+  flux[RHOU] =  flux[0]*vbar[RHOU] + vbar[PR]; // rho*u*u + pe
+  flux[RHOV] =  flux[0]*vbar[RHOV]; // rho*u*v
+  flux[RHOW] =  flux[0]*vbar[RHOW]; // rho*u*v
   // following ensure stability of linear perturbations around uniform flow
-  flux[ER] = gas_gamma/(gas_gamma-1)*vbar[PR]*vbar[RHOU] + flux[0]*kebar;
+  flux[ER] = gas_gamma/(gas_gamma-1)*vbar[PR]*vbar[RHOU] + flux[0]*kebar; // (E+p)*u
 
 #undef RHO  
 #undef RHOU
@@ -86,7 +86,6 @@ gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range *upd
   double gas_gamma = gkyl_wv_euler_gas_gamma(kep->equation);
 
   int idxm[GKYL_MAX_DIM], idxp[GKYL_MAX_DIM];
-  double xcm[GKYL_MAX_DIM], xcp[GKYL_MAX_DIM];
 
   double vm[5], vp[5], flux[5];
 
@@ -112,26 +111,20 @@ gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range *upd
       for (int i=loidx; i<=upidx; ++i) { // note upidx is inclusive
         idxm[dir] = i-1; idxp[dir] = i;
 
-        gkyl_rect_grid_cell_center(&kep->grid, idxm, xcm);
-        gkyl_rect_grid_cell_center(&kep->grid, idxp, xcp);
-
         long linm = gkyl_range_idx(update_rng, idxm);
         long linp = gkyl_range_idx(update_rng, idxp);
 
         const double *qm = gkyl_array_cfetch(qin, linm);
         const double *qp = gkyl_array_cfetch(qin, linp);
 
-        // compute primitive variables
         gkyl_euler_prim_vars(gas_gamma, qm, vm);
         gkyl_euler_prim_vars(gas_gamma, qp, vp);
 
-        // calculate numeric flux at interface ...
         mkep_flux(dir, gas_gamma, vm, vp, flux);
 
+        // accumulate contribution of flux to left/right cell
         double *rhsm = gkyl_array_fetch(rhs, linm);
         double *rhsp = gkyl_array_fetch(rhs, linp);
-        
-        // ... accumulate contribution to left/right cell
         for (int m=0; m<5; ++m) {
           rhsp[m] += flux[m]/dx;
           rhsm[m] += -flux[m]/dx;

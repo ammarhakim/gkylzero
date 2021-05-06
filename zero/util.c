@@ -5,6 +5,18 @@
 
 #include <gkyl_util.h>
 
+int
+gkyl_tm_trigger_check_and_bump(struct gkyl_tm_trigger *tmt, double tcurr)
+{
+  int status = 0;
+  if (tcurr >= tmt->tcurr) {
+    tmt->curr += 1;
+    tmt->tcurr += tmt->dt;
+    status = 1;
+  }
+  return status;
+}
+
 void
 gkyl_exit(const char* msg)
 {

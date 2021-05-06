@@ -145,7 +145,6 @@ bc_maxwell_wall(double t, int dir, int nc, const double *skin, double *restrict 
   ghost[d[1]] = -skin[d[1]];
   ghost[d[2]] = -skin[d[2]];
 
-
   // zero-normal for B field
   ghost[d[3]] = -skin[d[3]];
   ghost[d[4]] = skin[d[4]];
@@ -576,7 +575,8 @@ moment_coupling_update(const gkyl_moment_app *app, const struct moment_coupling 
     app_accels[i] = app->species[i].app_accel;
   }
 
-  gkyl_moment_em_coupling_advance(src->slvr, dt, &app->local, fluids, app_accels, app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em);
+  gkyl_moment_em_coupling_advance(src->slvr, dt, &app->local,
+    fluids, app_accels, app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em);
 
   for (int i=0; i<app->num_species; ++i)
     moment_species_apply_bc(app, tcurr, &app->species[i], fluids[i]);

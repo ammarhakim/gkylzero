@@ -55,7 +55,7 @@ struct gkyl_moment {
     double lower[3], upper[3]; // lower, upper bounds
     int cells[3]; // config-space cells
 
-    double cfl_frac; // CFL fraction to use (default 1.0)
+    double cfl_frac; // CFL fraction to use
 
     int num_periodic_dir; // number of periodic directions
     int periodic_dirs[3]; // list of periodic directions
