@@ -47,6 +47,12 @@ struct gkyl_moment_field {
     enum gkyl_moment_bc_type bcx[2], bcy[2], bcz[2];
 };
 
+// Choices of schemes to use in the fluid solver 
+enum gkyl_moment_fluid_scheme {
+  GKYL_MOMENT_FLUID_WAVE_PROP = 0, // default
+  GKYL_MOMENT_FLUID_KEP
+};
+
 // Top-level app parameters
 struct gkyl_moment {
     char name[128]; // name of app: used as output prefix
@@ -56,6 +62,8 @@ struct gkyl_moment {
     int cells[3]; // config-space cells
 
     double cfl_frac; // CFL fraction to use
+
+    enum gkyl_moment_fluid_scheme fluid_scheme; // scheme to update fluid equations
 
     int num_periodic_dir; // number of periodic directions
     int periodic_dirs[3]; // list of periodic directions

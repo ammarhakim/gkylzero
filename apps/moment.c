@@ -86,6 +86,8 @@ struct gkyl_moment_app {
 
     int num_periodic_dir; // number of periodic directions
     int periodic_dirs[3]; // list of periodic directions
+
+    enum gkyl_moment_fluid_scheme fluid_scheme; // scheme to update fluid equations
     
     struct gkyl_rect_grid grid; // grid
     struct gkyl_range local, local_ext; // local, local-ext ranges
@@ -608,6 +610,8 @@ gkyl_moment_app_new(struct gkyl_moment mom)
 
   double cfl_frac = mom.cfl_frac == 0 ? 0.95 : mom.cfl_frac;
   app->cfl = 1.0*cfl_frac;
+
+  app->fluid_scheme = mom.fluid_scheme;
 
   app->num_periodic_dir = mom.num_periodic_dir;
   for (int d=0; d<ndim; ++d)
