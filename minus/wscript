@@ -8,6 +8,7 @@ import os
 def build(bld):
     source = r"""
     mpack.c
+    pcg_basic.c
     rxi_ini.c
     """
 

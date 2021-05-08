@@ -36,7 +36,8 @@ struct gkyl_moment_em_coupling {
 // Rotate pressure tensor using magnetic field. See Wang
 // et. al. 2020 for details.
 static void
-pressure_tensor_rotate(double qbym, double dt, double* em, double* ext_em, const double prRhs[6], double prOut[6])
+pressure_tensor_rotate(double qbym, double dt, const double *em, const double *ext_em,
+  const double prRhs[6], double prOut[6])
 {
   double Bx = em[BX] + ext_em[BX];
   double By = em[BY] + ext_em[BY];
@@ -72,7 +73,10 @@ pressure_tensor_rotate(double qbym, double dt, double* em, double* ext_em, const
 // Update momentum and E field using time-centered scheme. See Wang
 // et. al. 2020 for details.
 static void
-em_source_update(const gkyl_moment_em_coupling *mes, double dt, double* fluids[], double* app_accels[], double* em, double* app_current, double* ext_em)
+em_source_update(const gkyl_moment_em_coupling *mes, double dt,
+  double *fluids[], double *app_accels[],
+  double *em,
+  const double *app_current, const double *ext_em)
 {
   // based on Smithe (2007) with corrections but using Hakim (2019) notations
   // full reference in Wang, Hakim, Ng, Dong, & Germaschewski JCP 2020
@@ -210,7 +214,9 @@ em_source_update(const gkyl_moment_em_coupling *mes, double dt, double* fluids[]
 // if Ten moment equations, rotate pressure tensor around magnetic field.
 // See Wang et. al. 2020 JCP for details
 static void
-fluid_source_update(const gkyl_moment_em_coupling *mes, double dt, double* fluids[], double* app_accels[], double* em, double* app_current, double* ext_em)
+fluid_source_update(const gkyl_moment_em_coupling *mes, double dt,
+  double* fluids[], double *app_accels[GKYL_MAX_SPECIES], double* em,
+  const double* app_current, const double* ext_em)
 {
   int nfluids = mes->nfluids;
   double keOld[GKYL_MAX_SPECIES];
@@ -275,7 +281,9 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
 
 void
 gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
-  const struct gkyl_range *update_range, struct gkyl_array *fluid[], struct gkyl_array *app_accel[], struct gkyl_array *em, struct gkyl_array *app_current, struct gkyl_array *ext_em)
+  const struct gkyl_range *update_range,
+  struct gkyl_array *fluid[], struct gkyl_array *app_accel[],
+  struct gkyl_array *em, struct gkyl_array *app_current, struct gkyl_array *ext_em)
 {
   int ndim = mes->ndim, nfluids = mes->nfluids;
   double *fluids[GKYL_MAX_SPECIES];
@@ -292,7 +300,11 @@ gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
       app_accels[n] = gkyl_array_fetch(app_accel[n], lidx);
     }
 
-    fluid_source_update(mes, dt, fluids, app_accels, gkyl_array_fetch(em, lidx), gkyl_array_fetch(app_current, lidx), gkyl_array_fetch(ext_em, lidx));
+    fluid_source_update(mes, dt, fluids, app_accels,
+      gkyl_array_fetch(em, lidx),
+      gkyl_array_fetch(app_current, lidx),
+      gkyl_array_fetch(ext_em, lidx)
+    );
   }
 }
 

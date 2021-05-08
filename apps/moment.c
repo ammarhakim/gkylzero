@@ -27,7 +27,7 @@ struct skin_ghost_ranges {
     struct gkyl_range upper_ghost[GKYL_MAX_DIM];
 };
 
-// species data
+// Species data
 struct moment_species {
     int ndim;
     char name[128]; // species name
@@ -51,7 +51,7 @@ struct moment_species {
     gkyl_rect_apply_bc *lower_bc[3], *upper_bc[3];
 };
 
-// field data
+// Field data
 struct moment_field {
     int ndim;
     double epsilon0, mu0;
@@ -72,12 +72,12 @@ struct moment_field {
     gkyl_rect_apply_bc *lower_bc[3], *upper_bc[3];    
 };
 
-// source data
+// Source data
 struct moment_coupling {
     gkyl_moment_em_coupling *slvr; // source solver function
 };
 
-// Moment object: used as opaque pointer in user code
+// Moment app object: used as opaque pointer in user code
 struct gkyl_moment_app {
     char name[128]; // name of app
     int ndim; // space dimensions
@@ -199,6 +199,8 @@ moment_apply_periodic_bc(const gkyl_moment_app *app, struct gkyl_array *bc_buffe
   gkyl_array_copy_to_buffer(bc_buffer->data, f, &app->skin_ghost.upper_skin[dir]);
   gkyl_array_copy_from_buffer(f, bc_buffer->data, &app->skin_ghost.lower_ghost[dir]);
 }
+
+/** moment_species functions */
 
 // initialize species
 static void
@@ -367,6 +369,8 @@ moment_species_release(const struct moment_species *sp)
 
   gkyl_array_release(sp->bc_buffer);
 }
+
+/** moment_field functions */
 
 // initialize field
 static void
@@ -538,6 +542,8 @@ moment_field_release(const struct moment_field *fld)
   gkyl_array_release(fld->bc_buffer);
 }
 
+/** moment_coupling functions */
+
 // initialize source solver: this should be called after all species
 // and fields are initialized
 static 
@@ -568,9 +574,9 @@ void
 moment_coupling_update(const gkyl_moment_app *app, const struct moment_coupling *src,
   int nstrang, double tcurr, double dt)
 {
-  int sidx[2] = { 0, app->ndim };
-  struct gkyl_array *fluids[app->num_species];
-  struct gkyl_array *app_accels[app->num_species];
+  int sidx[] = { 0, app->ndim };
+  struct gkyl_array *fluids[GKYL_MAX_SPECIES];
+  struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
 
   for (int i=0; i<app->num_species; ++i) {
     fluids[i] = app->species[i].f[sidx[nstrang]];
@@ -593,6 +599,8 @@ moment_coupling_release(const struct moment_coupling *src)
 {
   gkyl_moment_em_coupling_release(src->slvr);
 }
+
+/** app methods */
 
 gkyl_moment_app*
 gkyl_moment_app_new(struct gkyl_moment mom)
@@ -731,7 +739,7 @@ gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, i
   gkyl_grid_array_write(&app->grid, &app->local, app->species[sidx].f[0], fileNm);
 }
 
-// function that takes a time-step
+// internal function that takes a single time-step
 static
 struct gkyl_update_status
 moment_update(gkyl_moment_app* app, double dt0)
