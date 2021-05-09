@@ -1,7 +1,11 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <time.h>
+
+// random number generator
+#include <pcg_basic.h>
 
 // Maximum configuration-space dimensions supported
 #ifndef GKYL_MAX_CDIM
@@ -19,7 +23,7 @@
 #endif
 
 
-// Default alignment boundary (seems agressive or maybe not enough?)
+// Default alignment boundary
 #ifndef GKYL_DEF_ALIGN
 # define GKYL_DEF_ALIGN 64
 #endif
@@ -123,3 +127,56 @@ double gkyl_time_diff_now_sec(struct timespec tm);
  * @return Time in seconds
  */
 double gkyl_time_sec(struct timespec tm);
+
+/**
+ * Initialize 32-bit RNG 
+ *
+ * @param nd_seed true if to use non-deterministic seed, or false for
+ *   a determistic seed.
+ */
+pcg32_random_t gkyl_pcg32_init(bool nd_seed);
+
+/**
+ * Returns a unsigned 32-bit random number
+ *
+ * @param rng Pointer to RNG
+ * @return Uniformly distributed 32-bit integer
+ */
+uint32_t gkyl_pcg32_rand_uint32(pcg32_random_t* rng);
+
+/**
+ * Returns a random number in [0,1), rounded to the nearest
+ * 1/2^32. This may not be enough resolution for some applications.
+ *
+ * @param rng Pointer to RNG
+ * @return Uniformly distributed double in [0,1)
+ */
+double gkyl_pcg32_rand_double(pcg32_random_t* rng);
+
+/** 64-bit RNG: concatination of two 32-bit RNGs */
+typedef struct { pcg32_random_t gen[2]; } pcg64_random_t;
+
+/**
+ * Initialize 64-bit RNG 
+ *
+ * @param nd_seed true if to use non-deterministic seed, or false for
+ *   a determistic seed.
+ */
+pcg64_random_t gkyl_pcg64_init(bool nd_seed);
+
+/**
+ * Returns a unsigned 64-bit random number
+ *
+ * @param rng Pointer to RNG
+ * @return Uniformly distributed 64-bit integer
+ */
+uint32_t gkyl_pcg64_rand_uint32(pcg64_random_t* rng);
+
+/**
+ * Returns a random number in [0,1), rounded to the nearest
+ * 1/2^64.
+ *
+ * @param rng Pointer to RNG
+ * @return Uniformly distributed double in [0,1)
+ */
+double gkyl_pcg64_rand_double(pcg64_random_t* rng);

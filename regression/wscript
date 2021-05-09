@@ -21,7 +21,7 @@ def build(bld):
         source = 'app_weibel_3d.c',
         target = 'app_weibel_3d',
         includes = includes,
-        use = 'gkylapps gkylzero gkylzerokern',
+        use = use,
     )
 
     bld.program(
@@ -56,54 +56,54 @@ def build(bld):
         source = 'app_euler_riem_2d.c',
         target = 'app_euler_riem_2d',
         includes = includes,
-        use = 'gkylapps gkylzero gkylzerokern',
+        use = use,
     )
 
     bld.program(
         source = 'app_euler_reflect_2d.c',
         target = 'app_euler_reflect_2d',
         includes = includes,
-        use = 'gkylapps gkylzero gkylzerokern',
+        use = use,
     )
 
     bld.program(
         source = 'app_maxwell_plane_wave_1d.c',
         target = 'app_maxwell_plane_wave_1d',
         includes = includes,
-        use = 'gkylapps gkylzero gkylzerokern',
+        use = use,
     )   
  
     bld.program(
         source = 'app_maxwell_plane_wave_2d.c',
         target = 'app_maxwell_plane_wave_2d',
         includes = includes,
-        use = 'gkylapps gkylzero gkylzerokern',
+        use = use,
     )   
 
     bld.program(
         source = 'app_maxwell_reflect_2d.c',
         target = 'app_maxwell_reflect_2d',
         includes = includes,
-        use = 'gkylapps gkylzero gkylzerokern',
+        use = use,
     )   
 
     bld.program(
         source = 'app_5m_riem.c',
         target = 'app_5m_riem',
         includes = includes,
-        use = 'gkylapps gkylzero gkylzerokern',
+        use = use,
     )
 
     bld.program(
         source = 'app_5m_gem.c',
         target = 'app_5m_gem',
         includes = includes,
-        use = 'gkylapps gkylzero gkylzerokern',
+        use = use,
     )
 
     bld.program(
         source = 'app_euler_multiblock.c',
         target = 'app_euler_multiblock',
         includes = includes,
-        use = 'gkylapps gkylzero gkylzerokern',
+        use = use,
     )
