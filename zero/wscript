@@ -32,6 +32,7 @@ def build(bld):
     rect_apply_bc.c
     rect_decomp.c
     rect_grid.c
+    update_fsm.c
     util.c
     vlasov_mom.c
     wave_prop.c
