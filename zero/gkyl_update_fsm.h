@@ -8,8 +8,14 @@ struct gkyl_update_status {
     double dt_suggested; // suggested stable time-step
 };
 
+/** 
+ * Basic states of FSM. User code MUST start their state with
+ * GKYL_UPDATE_FSM_FIRST for the FSM to function properly.
+ */
 enum {
-  GKYL_UPDATE_FSM_FINISH = -1 // signals completion of update sequence
+  GKYL_UPDATE_FSM_FINISH = -1, // signals completion of update sequence
+  GKYL_UPDATE_FSM_REDO = 0, // redo state
+  GKYL_UPDATE_FSM_FIRST // user code MUST have this as the first state number
 };
 
 struct gkyl_update_fsm_step {
@@ -28,9 +34,10 @@ struct gkyl_update_fsm {
  * be manually populated by the caller.
  * 
  * @param nsteps Number of stepcs in update sequence
+ * @param redo Step to perform a "redo" of sequence 
  */
-struct gkyl_update_fsm* gkyl_update_fsm_new(int nsteps);
-
+struct gkyl_update_fsm* gkyl_update_fsm_new(int nsteps,
+  const struct gkyl_update_fsm_step *redo);
 
 /**
  * Given a update sequence, run it till sequence completes, returning

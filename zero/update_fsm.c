@@ -3,29 +3,18 @@
 #include <gkyl_update_fsm.h>
 #include <gkyl_alloc.h>
 
-static struct gkyl_update_status
-update_step_dummy(double tcurr, double dt, void *ctx)
-{
-  return (struct gkyl_update_status) {
-    .success = 1,
-    .next_state = GKYL_UPDATE_FSM_FINISH,
-    .dt_actual = DBL_MAX,
-    .dt_suggested = DBL_MAX
-  };  
-}
-
 struct gkyl_update_fsm*
-gkyl_update_fsm_new(int nsteps)
+gkyl_update_fsm_new(int nsteps, const struct gkyl_update_fsm_step *redo)
 {
   struct gkyl_update_fsm *fsm;
   fsm = gkyl_malloc(sizeof *fsm);
 
   fsm->nsteps = nsteps;
-  fsm->steps = gkyl_malloc(sizeof(struct gkyl_update_fsm_step[nsteps]));
 
-  // set all steps to default to dummy steps
-  for (int i=0; i<nsteps; ++i)
-    fsm->steps[i] = (struct gkyl_update_fsm_step) { .u = update_step_dummy };
+  // we need to allocate one extra step to store REDO
+  fsm->steps = gkyl_malloc(sizeof(struct gkyl_update_fsm_step[nsteps+1]));
+  fsm->steps[GKYL_UPDATE_FSM_REDO].ctx = redo->ctx;
+  fsm->steps[GKYL_UPDATE_FSM_REDO].u = redo->u;
 
   return fsm;
 }
