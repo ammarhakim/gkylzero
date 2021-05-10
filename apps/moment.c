@@ -331,9 +331,9 @@ moment_species_update(const gkyl_moment_app *app,
   for (int d=0; d<ndim; ++d) {
     stat = gkyl_wave_prop_advance(sp->slvr[d], tcurr, dt, &app->local, sp->f[d], sp->f[d+1]);
 
-    if (stat.success == 0)
+    if (!stat.success)
       return (struct gkyl_update_status) {
-        .success = 0,
+        .success = false,
         .dt_suggested = stat.dt_suggested
       };
     
@@ -342,7 +342,7 @@ moment_species_update(const gkyl_moment_app *app,
   }
 
   return (struct gkyl_update_status) {
-    .success = 1,
+    .success = true,
     .dt_suggested = dt_suggested
   };
 }
@@ -503,9 +503,9 @@ moment_field_update(const gkyl_moment_app *app,
     // update solution
     stat = gkyl_wave_prop_advance(fld->slvr[d], tcurr, dt, &app->local, fld->f[d], fld->f[d+1]);
 
-    if (stat.success == 0)
+    if (!stat.success)
       return (struct gkyl_update_status) {
-        .success = 0,
+        .success = false,
         .dt_suggested = stat.dt_suggested
       };
     // apply BC
@@ -513,7 +513,7 @@ moment_field_update(const gkyl_moment_app *app,
   }
 
   return (struct gkyl_update_status) {
-    .success = 1,
+    .success = true,
     .dt_suggested = stat.dt_suggested
   };
 }
@@ -864,7 +864,7 @@ moment_update(gkyl_moment_app* app, double dt0)
   }
 
   return (struct gkyl_update_status) {
-    .success = 1,
+    .success = true,
     .dt_actual = dt,
     .dt_suggested = dt_suggested,
   };

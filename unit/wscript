@@ -121,3 +121,10 @@ def build(bld):
         includes = '. ../zero ../minus',
         use = use,
     )
+
+    bld.program(
+        source = 'ctest_update_fsm.c',
+        target = 'ctest_update_fsm',
+        includes = '. ../zero ../minus',
+        use = use,
+    )
