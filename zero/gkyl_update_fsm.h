@@ -24,6 +24,15 @@ struct gkyl_update_fsm {
 };
 
 /**
+ * Allocate a new FSM update sequence object. The returned object must
+ * be manually populated by the caller.
+ * 
+ * @param nsteps Number of stepcs in update sequence
+ */
+struct gkyl_update_fsm* gkyl_update_fsm_new(int nsteps);
+
+
+/**
  * Given a update sequence, run it till sequence completes, returning
  * final status. Note that the input 'dt' may not be actually what a
  * given system takes. The actual time-step take is returned in the
