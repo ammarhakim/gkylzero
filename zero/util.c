@@ -129,7 +129,27 @@ static int _dummy_global = 0; // just to provide address for use in seed
 pcg64_random_t
 gkyl_pcg64_init(bool nd_seed)
 {
-  pcg64_random_t pcg;
+  pcg64_random_t rng;
+  int rounds = 5;
 
-  return pcg;
+  if (nd_seed)
+    pcg64_srandom_r(&rng,
+      time(NULL) ^ (intptr_t)&printf, ~time(NULL) ^ (intptr_t)&pcg32_random_r,
+      (intptr_t)&rounds, (intptr_t)&_dummy_global);
+  else
+    pcg64_srandom_r(&rng, 42u, 42u, 54u, 54u);
+
+  return rng;
+}
+
+uint64_t
+gkyl_pcg64_rand_uint32(pcg64_random_t* rng)
+{
+  return ((uint64_t)(pcg32_random_r(rng->gen)) << 32) | pcg32_random_r(rng->gen+1);
+}
+
+double
+gkyl_pcg64_rand_double(pcg64_random_t* rng)
+{
+  return ldexp(gkyl_pcg64_rand_uint32(rng), -64);
 }
