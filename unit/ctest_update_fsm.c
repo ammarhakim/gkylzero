@@ -17,7 +17,7 @@ struct seq_ctx {
 struct gkyl_update_status
 seq_redo(double tcurr, double dt, void *ctx)
 {
-  printf("seq_redo: dt = %g\n", dt);
+  //printf("seq_redo: dt = %g\n", dt);
   
   struct seq_ctx *sc = ctx;
   sc->nredo += 1;
@@ -33,7 +33,7 @@ seq_redo(double tcurr, double dt, void *ctx)
 struct gkyl_update_status
 seq_src_1(double tcurr, double dt, void *ctx)
 {
-  printf("seq_src_1: dt = %g\n", dt);
+  //printf("seq_src_1: dt = %g\n", dt);
   
   struct seq_ctx *sc = ctx;
   sc->nsrc += 1;
@@ -49,7 +49,7 @@ seq_src_1(double tcurr, double dt, void *ctx)
 struct gkyl_update_status
 seq_fluid(double tcurr, double dt, void *ctx)
 {
-  printf("seq_fluid: dt = %g\n", dt);
+  //printf("seq_fluid: dt = %g\n", dt);
   
   struct seq_ctx *sc = ctx;
   sc->nfluid += 1;
@@ -72,7 +72,7 @@ seq_fluid(double tcurr, double dt, void *ctx)
 struct gkyl_update_status
 seq_src_2(double tcurr, double dt, void *ctx)
 {
-  printf("seq_src_2: dt = %g\n", dt);
+  //printf("seq_src_2: dt = %g\n", dt);
   
   struct seq_ctx *sc = ctx;
   sc->nsrc += 1;
