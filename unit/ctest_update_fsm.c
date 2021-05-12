@@ -62,7 +62,7 @@ seq_fluid(double tcurr, double dt, void *ctx)
   // take time-step of dt_actual
   
   return (struct gkyl_update_status) {
-    .success = 1,
+    .success = true,
     .next_state = SRC_2,
     .dt_actual = dt_actual,
     .dt_suggested = max_dt,
@@ -89,7 +89,8 @@ void
 test_seq_1()
 {
   struct seq_ctx ctx = { };
-  
+
+  // FINISH = 4 in case of 3 states
   struct gkyl_update_fsm *seq = gkyl_update_fsm_new(FINIS-1, (struct gkyl_update_fsm_step) {
       .ctx = &ctx,
       .u = seq_redo

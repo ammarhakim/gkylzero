@@ -10,8 +10,6 @@ static const int dir_shuffle[][3] = {
   {3, 1, 2}
 };
 
-// Make indexing cleaner with the dir_shuffle
-
 struct gkyl_kep_scheme {
     struct gkyl_rect_grid grid; // grid object
     int ndim; // number of dimensions

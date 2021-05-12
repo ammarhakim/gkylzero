@@ -3,7 +3,8 @@
 #include <acutest.h>
 #include <gkyl_basis.h>
 
-void test_ser_1d() {
+void test_ser_1d()
+{
   struct gkyl_basis basis1;
   gkyl_cart_modal_serendip(&basis1, 1, 1);
 

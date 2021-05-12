@@ -49,7 +49,7 @@ struct gkyl_update_fsm* gkyl_update_fsm_new(int nsteps,
  * dt_suggested. Typically, if success field of returned status is
  * 0 then the simulation must abort (after cleanup).
  *
- * @param seq Sequence of steps in update
+ * @param seq Sequence object
  * @param init_state Initial state of FSM
  * @param turr Current time
  * @param dt Suggested time-step to take.
@@ -59,5 +59,7 @@ struct gkyl_update_status gkyl_update_fsm_run(struct gkyl_update_fsm *seq,
 
 /**
  * Free update FSM object
+ * 
+ * @param seq Sequence object
  */
 void gkyl_update_fsm_release(struct gkyl_update_fsm *seq);
