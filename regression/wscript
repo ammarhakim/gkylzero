@@ -60,6 +60,13 @@ def build(bld):
     )
 
     bld.program(
+        source = 'app_euler_sodshock.c',
+        target = 'app_euler_sodshock',
+        includes = includes,
+        use = use,
+    )    
+
+    bld.program(
         source = 'app_euler_reflect_2d.c',
         target = 'app_euler_reflect_2d',
         includes = includes,
