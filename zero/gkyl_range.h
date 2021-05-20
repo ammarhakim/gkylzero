@@ -30,6 +30,9 @@
 /** Indexing macro taking index defined as array of int */
 #define gkyl_ridxn(r, idx) gkyl_range_idx(&(r), idx)
 
+// Constants to represent lower/upper edges
+enum gkyl_edge_loc { GKYL_LOWER_EDGE = 0, GKYL_UPPER_EDGE  = 1 };
+
 /**
  * Range object, representing an N-dimensional integer index
  * set. Lower and upper limits are inclusive.
@@ -134,6 +137,17 @@ void gkyl_sub_range_init(struct gkyl_range *rng,
 void gkyl_range_set_split(struct gkyl_range *rng, int nsplits, int tid);
 
 /**
+ * Creates a new range that is a split of the given range. See
+ * gkyl_range_set_split.
+ *
+ * @param rng Range object to split
+ * @param nsplits Number of splits
+ * @param tid Split ID [0, nsplits)
+ * @return Split range
+ */
+struct gkyl_range gkyl_range_split(struct gkyl_range *rng, int nsplits, int tid);
+
+/**
  * Return the number of elements looped over by iterator for this
  * range.
  *
@@ -196,6 +210,33 @@ void gkyl_range_lower_skin(struct gkyl_range* srng,
  */
 void gkyl_range_upper_skin(struct gkyl_range* srng,
   const struct gkyl_range* range, int dir, int nskin);
+
+/**
+ * Create ghost and skin sub-ranges given parent range. The skin and
+ * ghost ranges are sub-ranges of the parent range and DO NOT include
+ * corners.
+ *
+ * @param skin On output, skin range
+ * @param ghost On outout, ghost range
+ * @param dir Direction in which skin/ghost are computed
+ * @param edge Edge on which skin/ghost are computed
+ * @param parent Range for which skin/ghost are computed
+ * @param nghost Number of ghost cells in 'dir' are nghost[dir]
+ */
+void gkyl_skin_ghost_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
+  int dir, enum gkyl_edge_loc edge, const struct gkyl_range *parent, const int *nghost);
+
+/**
+ * Compute intersection of two ranges. No sub-range information is
+ * propagated to the new range object.
+ * 
+ * @param irng Intersection of r1 and r2
+ * @param r1 Range to intersect
+ * @param r2 Range to intersect
+ * @return 1 if intersection is not-empty, 0 otherwise
+ */
+int gkyl_range_intersect(struct gkyl_range* irng,
+  const struct gkyl_range *r1, const struct gkyl_range *r2);
 
 /**
  * Compute offset given relative index. So for a 2D range, idx[2] = {1,

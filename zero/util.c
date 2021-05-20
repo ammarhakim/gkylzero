@@ -5,6 +5,18 @@
 
 #include <gkyl_util.h>
 
+int
+gkyl_tm_trigger_check_and_bump(struct gkyl_tm_trigger *tmt, double tcurr)
+{
+  int status = 0;
+  if (tcurr >= tmt->tcurr) {
+    status = 1;
+    tmt->curr += 1;
+    tmt->tcurr += tmt->dt;
+  }
+  return status;
+}
+
 void
 gkyl_exit(const char* msg)
 {
@@ -57,9 +69,87 @@ gkyl_time_diff(struct timespec start, struct timespec end)
   }
   return tm;  
 }
+
+double
+gkyl_time_diff_now_sec(struct timespec tm)
+{
+  return gkyl_time_sec(gkyl_time_diff(tm, gkyl_wall_clock()));
+}
    
 double
 gkyl_time_sec(struct timespec tm)
 {
   return tm.tv_sec + 1e-9*tm.tv_nsec;
+}
+
+pcg32_random_t
+gkyl_pcg32_init(bool nd_seed)
+{
+  pcg32_random_t rng;
+  int rounds = 5;
+
+  if (nd_seed)
+    // seed with external entropy -- the time and some program addresses
+    // (which will actually be somewhat random on most modern systems).
+    pcg32_srandom_r(&rng, time(NULL) ^ (intptr_t)&printf, 
+      (intptr_t)&rounds);
+  else
+    // seed with a fixed constant
+    pcg32_srandom_r(&rng, 42u, 54u);
+
+  return rng;
+}
+
+uint32_t
+gkyl_pcg32_rand_uint32(pcg32_random_t* rng)
+{
+  return pcg32_random_r(rng);
+}
+
+double
+gkyl_pcg32_rand_double(pcg32_random_t* rng)
+{
+  return ldexp(pcg32_random_r(rng), -32);
+}
+
+static void
+pcg64_srandom_r(pcg64_random_t* rng, uint64_t seed1, uint64_t seed2,
+  uint64_t seq1,  uint64_t seq2)
+{
+  uint64_t mask = ~0ull >> 1;
+  // stream for each generators *must* be distinct
+  if ((seq1 & mask) == (seq2 & mask)) 
+    seq2 = ~seq2;
+  pcg32_srandom_r(rng->gen,   seed1, seq1);
+  pcg32_srandom_r(rng->gen+1, seed2, seq2);
+}
+
+static int _dummy_global = 0; // just to provide address for use in seed
+
+pcg64_random_t
+gkyl_pcg64_init(bool nd_seed)
+{
+  pcg64_random_t rng;
+  int rounds = 5;
+
+  if (nd_seed)
+    pcg64_srandom_r(&rng,
+      time(NULL) ^ (intptr_t)&printf, ~time(NULL) ^ (intptr_t)&pcg32_random_r,
+      (intptr_t)&rounds, (intptr_t)&_dummy_global);
+  else
+    pcg64_srandom_r(&rng, 42u, 42u, 54u, 54u);
+
+  return rng;
+}
+
+uint64_t
+gkyl_pcg64_rand_uint32(pcg64_random_t* rng)
+{
+  return ((uint64_t)(pcg32_random_r(rng->gen)) << 32) | pcg32_random_r(rng->gen+1);
+}
+
+double
+gkyl_pcg64_rand_double(pcg64_random_t* rng)
+{
+  return ldexp(gkyl_pcg64_rand_uint32(rng), -64);
 }

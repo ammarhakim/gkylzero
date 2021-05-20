@@ -25,7 +25,7 @@ from waflib.Options import options
 
 def options(opt):
     opt.load('compiler_c compiler_cxx') 
-    opt.load('gkylzero',
+    opt.load('gkylzero mpi',
              tooldir='waf_tools')
 
 def configure(conf):
@@ -34,6 +34,7 @@ def configure(conf):
     # load tools
     conf.load('compiler_c compiler_cxx')
     conf.check_gkylzero()
+    # conf.check_mpi()
 
     # standard install location for dependencies
     gkydepsDir = os.path.expandvars('$HOME/gkylsoft')
@@ -49,25 +50,24 @@ def configure(conf):
     conf.write_config_header('gkylzeroconfig.h')
 
 
-from waflib import Task
-class GitTip(Task.Task):
-    always_run = True # need to force running every time
-    run_str = r'echo \#define GKYL_ZERO_GIT_CHANGESET  \"`git describe --abbrev=12 --always --dirty=+`\" > ${TGT}'
 
 def build(bld):
-    gitTip = GitTip(env=bld.env)
-    gitTip.set_outputs(bld.path.find_or_declare('gkyl_zero_git_tip.h'))
-    bld.add_to_group(gitTip)
 
+    if bld.cmd == "install":
+        # do not allow any installation from waf
+        print("Installation is only possible using gkylzero-dist!")
+        return
+    
     if bld.jobs > 16:
       bld.jobs = 16
     
     # recurse down directories and build C code
-    bld.recurse("kernels")    
+    bld.recurse("kernels")
+    bld.recurse("minus")
     bld.recurse("zero")
-    bld.recurse("one")
+    bld.recurse("apps")
     bld.recurse("unit")
-    bld.recurse("regression") 
+    bld.recurse("regression")
 
 def dist(ctx):
     ctx.algo = "zip" # use ZIP instead of tar.bz2

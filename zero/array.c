@@ -7,7 +7,7 @@
 #include <gkyl_util.h>
 
 // size in bytes for various data-types
-static size_t array_elem_size[] = {
+static const size_t array_elem_size[] = {
   [GKYL_INT] = sizeof(int),
   [GKYL_FLOAT] = sizeof(float),
   [GKYL_DOUBLE] = sizeof(double),

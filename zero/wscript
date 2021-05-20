@@ -11,29 +11,43 @@ def build(bld):
     array.c
     array_ops.c
     array_rio.c
+    block_topo.c
     cart_modal_serendip.c
     dg_eqn.c
     dg_maxwell.c
     dg_vlasov.c
-    euler_prim.c
+    fv_proj.c
     gauss_quad_data.c
     hyper_dg.c
+    kep_scheme.c
     mom_calc.c
     mom_type.c
+    moment_em_coupling.c
+    prim_euler.c
+    prim_iso_euler.c
+    prim_maxwell.c
+    prim_ten_moment.c
     proj_on_basis.c
     range.c
+    rect_apply_bc.c
+    rect_decomp.c
     rect_grid.c
+    update_fsm.c
     util.c
     vlasov_mom.c
+    wave_prop.c
     wv_eqn.c
     wv_euler.c
+    wv_iso_euler.c
+    wv_maxwell.c
+    wv_ten_moment.c
     """
 
     # For now building static library. Probably should build shared
     # library as well. In fact, shared-lib is needed to allow linking
     # to interpreted language FFIs
     bld.stlib(source = source,
-              includes = '. .. ../kernels/basis ../kernels/maxwell ../kernels/vlasov/',
+              includes = '. .. ../minus ../kernels/basis ../kernels/maxwell ../kernels/vlasov/',
               target = 'gkylzero',
               name = 'gkylzero',
     )

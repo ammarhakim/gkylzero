@@ -7,66 +7,124 @@ import os
 
 def build(bld):
 
+    use = 'gkylzero gkylminus'
+
     # unit tests
     bld.program(
         source = 'ctest_alloc.c',
         target = 'ctest_alloc',
         includes = '. ../zero ../minus',
-        use = 'gkylzero',
+        use = use,
     )
 
     bld.program(
         source = 'ctest_ref_count.c',
         target = 'ctest_ref_count',
         includes = '. ../zero ../minus',
-        use = 'gkylzero',
+        use = use,
     )
 
     bld.program(
         source = 'ctest_range.c',
         target = 'ctest_range',
         includes = '. ../zero ../minus',
-        use = 'gkylzero',
+        use = use,
     )
 
     bld.program(
         source = 'ctest_basis.c',
         target = 'ctest_basis',
         includes = '. ../zero ../minus',
-        use = 'gkylzero',
+        use = use,
     )
 
     bld.program(
         source = 'ctest_rect_grid.c',
         target = 'ctest_rect_grid',
         includes = '. ../zero ../minus',
-        use = 'gkylzero',
+        use = use,
     )
+
+    bld.program(
+        source = 'ctest_rect_decomp.c',
+        target = 'ctest_rect_decomp',
+        includes = '. ../zero ../minus',
+        use = use,
+    )    
 
     bld.program(
         source = 'ctest_array.c',
         target = 'ctest_array',
         includes = '. ../zero ../minus',
-        use = 'gkylzero',
+        use = use,
     )
 
     bld.program(
         source = 'ctest_gauss_quad.c',
         target = 'ctest_gauss_quad',
         includes = '. ../zero ../minus',
-        use = 'gkylzero',
+        use = use,
     )
 
     bld.program(
         source = 'ctest_proj_on_basis.c',
         target = 'ctest_proj_on_basis',
         includes = '. ../zero ../minus',
-        use = 'gkylzero',
+        use = use,
+    )
+
+    bld.program(
+        source = 'ctest_fv_proj.c',
+        target = 'ctest_fv_proj',
+        includes = '. ../zero ../minus',
+        use = use,
+    )
+
+    bld.program(
+        source = 'ctest_rect_apply_bc.c',
+        target = 'ctest_rect_apply_bc',
+        includes = '. ../zero ../minus',
+        use = use,
     )
 
     bld.program(
         source = 'ctest_wv_euler.c',
         target = 'ctest_wv_euler',
         includes = '. ../zero ../minus',
-        use = 'gkylzero',
+        use = use,
     )    
+
+    bld.program(
+        source = 'ctest_wv_iso_euler.c',
+        target = 'ctest_wv_iso_euler',
+        includes = '. ../zero ../minus',
+        use = use,
+    )    
+
+    bld.program(
+        source = 'ctest_wv_maxwell.c',
+        target = 'ctest_wv_maxwell',
+        includes = '. ../zero ../minus',
+        use = use,
+    )    
+
+    bld.program(
+        source = 'ctest_wv_ten_moment.c',
+        target = 'ctest_wv_ten_moment',
+        includes = '. ../zero ../minus',
+        use = use,
+    )
+
+    bld.program(
+        source = 'ctest_block_topo.c',
+        target = 'ctest_block_topo',
+        includes = '. ../zero ../minus',
+        use = use,
+    )
+
+    bld.program(
+        source = 'ctest_update_fsm.c',
+        target = 'ctest_update_fsm',
+        includes = '. ../zero ../minus',
+        use = use,
+    )

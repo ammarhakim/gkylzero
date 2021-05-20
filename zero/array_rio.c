@@ -5,6 +5,14 @@
 
 #include <gkyl_array_rio.h>
 
+// code for array datatype for use in IO
+static const uint64_t array_data_type[] = {
+  [GKYL_INT] = 0,
+  [GKYL_FLOAT] = 1,
+  [GKYL_DOUBLE] = 2,
+  [GKYL_USER] = 32,
+};
+
 void
 gkyl_array_write(const struct gkyl_array *arr, FILE *fp)
 {
@@ -46,11 +54,32 @@ gkyl_grid_array_write(const struct gkyl_rect_grid *grid, const struct gkyl_range
   FILE *fp = fopen(fname, "wb"); if (!fp) return errno;
 
   // data double
-  uint64_t real_type = 2;
-  fwrite(&real_type, sizeof(uint64_t), 1, fp);  
+  uint64_t real_type = array_data_type[arr->type];
+  fwrite(&real_type, sizeof(uint64_t), 1, fp);
   
   gkyl_rect_grid_write(grid, fp);
   gkyl_sub_array_write(range, arr, fp);
   fclose(fp);
   return 0;
+}
+
+void
+gkyl_print_range(const struct gkyl_range* range, const char *nm, FILE *fp)
+{
+  fprintf(fp, "%s = { ", nm);
+
+  fprintf(fp, " lower = { ");
+  for (int d=0; d<range->ndim; ++d)
+    fprintf(fp, "%d%c ", range->lower[d], d==range->ndim-1 ? ' ' : ',');
+  fprintf(fp, "}, ");
+
+  fprintf(fp, "upper = { ");
+  for (int d=0; d<range->ndim; ++d)
+    fprintf(fp, "%d%c ", range->upper[d] , d==range->ndim-1 ? ' ' : ',');
+  fprintf(fp, "}, ");
+
+  fprintf(fp, " volume = %ld, ", range->volume );
+  fprintf(fp, " is_sub_range = %d", gkyl_range_is_sub_range(range) );
+  
+  fprintf(fp, " }\n ");
 }

@@ -7,51 +7,103 @@ import os
 
 def build(bld):
 
-    bld.program(
-        source = 'app_maxwell_2d.c',
-        target = 'app_maxwell_2d',
-        includes = '. ../zero ../one',
-        use = 'gkylone gkylzero gkylzerokern',
-    )
+    includes = '. ../zero ../minus ../apps'
+    use = 'gkylapps gkylzero gkylminus gkylzerokern'
 
     bld.program(
         source = 'app_weibel_4d.c',
         target = 'app_weibel_4d',
-        includes = '. ../zero ../one',
-        use = 'gkylone gkylzero gkylzerokern',
+        includes = includes,
+        use = use,
     )
 
     bld.program(
         source = 'app_weibel_3d.c',
         target = 'app_weibel_3d',
-        includes = '. ../zero ../one',
-        use = 'gkylone gkylzero gkylzerokern',
+        includes = includes,
+        use = use,
     )
 
     bld.program(
         source = 'app_twostream.c',
         target = 'app_twostream',
-        includes = '. ../zero ../one',
-        use = 'gkylone gkylzero gkylzerokern',
+        includes = includes,
+        use = use,
     )
 
     bld.program(
         source = 'app_esshock.c',
         target = 'app_esshock',
-        includes = '. ../zero ../one',
-        use = 'gkylone gkylzero gkylzerokern',
+        includes = includes,
+        use = use,
     )
 
     bld.program(
         source = 'app_pthread_proj.c',
         target = 'app_pthread_proj',
-        includes = '. ../zero ../one',
-        use = 'gkylone gkylzero gkylzerokern',
+        includes = includes,
+        use = use,
     )    
 
     bld.program(
         source = 'app_vlasov_kerntm.c',
         target = 'app_vlasov_kerntm',
-        includes = '. ../zero ../one',
-        use = 'gkylone gkylzero gkylzerokern',
+        includes = includes,
+        use = use,
+    )
+
+    bld.program(
+        source = 'app_euler_riem_2d.c',
+        target = 'app_euler_riem_2d',
+        includes = includes,
+        use = use,
+    )
+
+    bld.program(
+        source = 'app_euler_reflect_2d.c',
+        target = 'app_euler_reflect_2d',
+        includes = includes,
+        use = use,
+    )
+
+    bld.program(
+        source = 'app_maxwell_plane_wave_1d.c',
+        target = 'app_maxwell_plane_wave_1d',
+        includes = includes,
+        use = use,
+    )   
+ 
+    bld.program(
+        source = 'app_maxwell_plane_wave_2d.c',
+        target = 'app_maxwell_plane_wave_2d',
+        includes = includes,
+        use = use,
+    )   
+
+    bld.program(
+        source = 'app_maxwell_reflect_2d.c',
+        target = 'app_maxwell_reflect_2d',
+        includes = includes,
+        use = use,
+    )   
+
+    bld.program(
+        source = 'app_5m_riem.c',
+        target = 'app_5m_riem',
+        includes = includes,
+        use = use,
+    )
+
+    bld.program(
+        source = 'app_5m_gem.c',
+        target = 'app_5m_gem',
+        includes = includes,
+        use = use,
+    )
+
+    bld.program(
+        source = 'app_euler_multiblock.c',
+        target = 'app_euler_multiblock',
+        includes = includes,
+        use = use,
     )

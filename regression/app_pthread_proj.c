@@ -34,7 +34,7 @@ thread_worker(void *ctx)
 int
 parse_args(int argc, char **argv)
 {
-  int c, nthread;
+  int c, nthread = 1;
   while ((c = getopt(argc, argv, "+hn:")) != -1)
     switch (c)
     {
@@ -73,7 +73,7 @@ main(int argc, char **argv)
 
   // projection updater for dist-function
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
-    polyOrder+1, 1, evalFunc, NULL);
+    polyOrder+1, 1, evalFunc, 0);
 
   // create array range: no ghost-cells 
   struct gkyl_range arr_range;
@@ -84,27 +84,28 @@ main(int argc, char **argv)
 
   pthread_t thread[max_thread];  
   struct thread_data td[max_thread];
-  for (int tid=0; tid<max_thread; ++tid) {
-    gkyl_range_set_split(&arr_range, max_thread, tid);
-    td[tid]  = (struct thread_data) { .range = arr_range, .proj = projDistf, .f = distf };
-  }
+  for (int tid=0; tid<max_thread; ++tid)
+    td[tid]  = (struct thread_data) {
+      .range = gkyl_range_split(&arr_range, max_thread, tid),
+      .proj = projDistf,
+      .f = distf
+    };
 
   struct timespec tstart = gkyl_wall_clock();
   
   for (int tid=0; tid<max_thread; ++tid) {
-    int rc = pthread_create(&thread[tid], NULL, thread_worker, &td[tid]);
+    int rc = pthread_create(&thread[tid], 0, thread_worker, &td[tid]);
     if (rc) {
       printf("Thread creation failed with %d\n", rc);
       exit(-1);
     }    
   }
   for (int i=0; i<max_thread; ++i)
-    pthread_join(thread[i], NULL);
+    pthread_join(thread[i], 0);
 
   double tm = gkyl_time_sec(gkyl_time_diff(tstart, gkyl_wall_clock()));
   printf("%d threads took %g to update\n", max_thread, tm);
 
-  gkyl_range_set_split(&arr_range, 1, 0);
   gkyl_grid_array_write(&grid, &arr_range, distf, "pthread.gkyl");
   
   gkyl_proj_on_basis_release(projDistf);

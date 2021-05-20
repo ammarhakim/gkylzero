@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gkyl_eqn_type.h>
 #include <gkyl_ref_count.h>
 
 // Forward declare for use in function pointers
@@ -14,11 +15,17 @@ typedef void (*wv_qfluct_t)(const struct gkyl_wv_eqn *eqn,
   int dir, const double *ql, const double *qr, const double *waves, const double *speeds,
   double *amdq, double *apdq);
 
+// Function pointer to compute maximum speed given local state
+typedef double (*wv_max_speed_t)(const struct gkyl_wv_eqn *eqn, 
+  int dir, const double *q);
+
 struct gkyl_wv_eqn {
+    enum gkyl_eqn_type type; // Equation type
     int num_equations; // number of equations in system
     int num_waves; // number of waves in system
     wv_waves_t waves_func; // function to compute waves and speeds
     wv_qfluct_t qfluct_func; // function to compute q-fluctuations
+    wv_max_speed_t max_speed_func; // function to compute max-speed
     struct gkyl_ref_count ref_count; // reference count
 };
 
@@ -66,6 +73,20 @@ double gkyl_wv_eqn_waves(const struct gkyl_wv_eqn *eqn,
 void gkyl_wv_eqn_qfluct(const struct gkyl_wv_eqn *eqn,
   int dir, const double *ql, const double *qr, const double *waves, const double *speeds,
   double *amdq, double *apdq);
+
+/**
+ * Compute waves and speeds from left/right conserved variables. The
+ * 'waves' array has size num_equations X num_waves in length. The 'm'
+ * wave (m = 0 ... num_waves-1) is stored starting at location
+ * waves[m*num_equations].
+ *
+ * @param eqn Equation object
+ * @param dir Direction to compute waves/speeds
+ * @param q Conserved variables
+ * @return maximum wave-speed in direction 'dir'
+ */
+double gkyl_wv_eqn_max_speed(const struct gkyl_wv_eqn *eqn, int dir, const double *q);
+
 
 /**
  * Delete equation object

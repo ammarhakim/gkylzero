@@ -13,27 +13,35 @@ mkdir $distname
 
 # copy included dependency
 cp minus/*.h $distname
-#cp minus/*.c $distname
+cp minus/*.c $distname
 # copy library code
 cp zero/*.h $distname
 cp zero/*.c $distname
-# copy app code
-cp one/*.h $distname
-cp one/*.c $distname
 # copy kernels
 cp kernels/*/*.h $distname
 cp kernels/*/*.c $distname
-# copy regression tests
-cp regression/*.c $distname
-# copy unit tests
-cp unit/*.c $distname
+# copy app code
+cp apps/*.h $distname
+cp apps/*.c $distname
 
 cd $distname
 
 # get list of header files
 headers=$(ls *.h | tr "\n" " ")
-# list of C code
+# list of C code for inclusion in library
 sources=$(ls *.c | sed 's/\.c/\.o/' | tr "\n" " " )
+
+# back up to root dir to copy regression and unit tests (this is so
+# that the regression, unit objects are not archived into the gkylzero
+# library)
+cd ..
+# copy regression tests
+cp regression/*.c $distname
+cp regression/*.ini $distname
+# copy unit tests
+cp unit/*.c $distname
+cd $distname
+
 # list of regression tests
 regtests=$(ls app_*.c | sed 's/\.c//' | tr "\n" " " )
 # list of unit tests
@@ -44,7 +52,7 @@ regtargets=""
 for rt in $regtests
 do
     regtargets+="$rt: $rt.c libgkylzero.a\n"
-    regtargets+="\t\${CC} \${CFLAGS} $rt.c -I. -L. -lgkylzero -lm -o $rt\n\n"
+    regtargets+="\t\${CC} \${CFLAGS} $rt.c -I. -L. -lgkylzero -lm -lpthread -o $rt\n\n"
 done
 
 # create unit-test targets for insertion in generated Makefile
@@ -52,18 +60,35 @@ unittargets=""
 for ut in $unittests
 do
     unittargets+="$ut: $ut.c libgkylzero.a\n"
-    unittargets+="\t\${CC} \${CFLAGS} $ut.c -I. -L. -lgkylzero -lm -o $ut\n\n"
+    unittargets+="\t\${CC} \${CFLAGS} $ut.c -I. -L. -lgkylzero -lm -lpthread -o $ut\n\n"
+done
+
+# add unit-tests for use in "make check"
+checkcmds=""
+for ut in $unittests
+do
+    checkcmds+="\t./$ut\n"
+done
+
+# create list for amalgamated gkyl headers
+gkyl_headers=$(ls gkyl_*.h | tr "\n" " ")
+header_inc_list=""
+for gh in $gkyl_headers
+do
+    header_inc_list+="#include <$gh>\n"
 done
 
 # create Makefile
 cat <<EOF > Makefile
 
-# Amalgamated makefile. Set compiler if needed:
+# Amalgamated Makefile, generated automatically. Set compiler or
+# modify as needed. For example, to set compiler do:
 #
 # make CC=mpicc 
 #
 
-CFLAGS = -O3 -g -I.
+CFLAGS = -O3 -g -I. 
+PREFIX = \${HOME}/gkylsoft
 
 headers = $headers
 
@@ -74,9 +99,26 @@ all: libgkylzero.a ${regtests} ${unittests}
 libgkylzero.a: \${libobjs}
 	ar -crs libgkylzero.a \${libobjs}
 
+install: libgkylzero.a app_twostream app_vlasov_kerntm
+	 mkdir -p \${PREFIX}/gkylzero/include
+	 mkdir -p \${PREFIX}/gkylzero/lib
+	 mkdir -p \${PREFIX}/gkylzero/bin
+	 mkdir -p \${PREFIX}/gkylzero/share
+	 cp -f ${headers} \${PREFIX}/gkylzero/include
+	 cp -f gkylzero.h \${PREFIX}/gkylzero/include
+	 cp -f libgkylzero.a \${PREFIX}/gkylzero/lib
+	 cp -f 000version.txt \${PREFIX}/gkylzero
+	 cp -f Makefile.sample \${PREFIX}/gkylzero/share/Makefile
+	 cp -f app_twostream.c \${PREFIX}/gkylzero/share/app_twostream.c
+	 cp -f twostream.ini \${PREFIX}/gkylzero/share/twostream.ini
+	 cp -f app_vlasov_kerntm \${PREFIX}/gkylzero/bin/
+
 $(printf "%b" "$regtargets")
 
 $(printf "%b" "$unittargets")
+
+check: ${unittests}
+$(printf "%b" "$checkcmds")
 
 clean:
 	rm -rf libgkylzero.a \${libobjs} ${regtests} ${unittests} *.dSYM *.so 
@@ -108,12 +150,65 @@ install the code do:
 The default installation location is \$HOME/gkylsoft/gkylzero. You can
 change it by specifying the PREFIX variable:
 
- make PREFIX=/mylocation install
+ make PREFIX=mylocation install
+
+The code will be installed in mylocation/gkylzero.
+
+To uninstall manually delete the gkylzero directory wherever you
+installed it. There is no explicit uninstall target.
+
+Note that GkylZero is meant to be a library and not a stand-alone
+code. To write an application that uses GkylZero a sample app and
+Makefile will be installed in the "share" directory of the
+installation. Also see app_* files in this directory for example
+applications.
 
 Generated on $(date) by $(whoami).
 
 EOF1
 
-# up a directory and tar.gz archive
+# write version information
+cat <<EOF2 > 000version.txt
+git changeset: $(git describe --abbrev=12 --always --dirty=+)
+Archive generated on $(date) by $(whoami).
+EOF2
+
+# write sample Makefile for user projects
+cat <<EOF3 > Makefile.sample
+
+# Sample Makefile to use installed gkylzero library: copy and modify
+# for your needs
+
+CFLAGS = -O3 -g -I.
+PREFIX = \${HOME}/gkylsoft
+
+G0_INC_DIR = \${PREFIX}/gkylzero/include
+G0_LIB_DIR = \${PREFIX}/gkylzero/lib
+G0_LIB_FLAGS = -lm -lgkylzero
+
+all: app_twostream
+
+app_twostream: app_twostream.c
+	 \${CC} \${CFLAGS} -I\${G0_INC_DIR} -L\${G0_LIB_DIR} \${G0_LIB_FLAGS} app_twostream.c -o app_twostream
+
+clean:
+	rm -rf app_twostream app_twostream.dSYM
+
+EOF3
+
+# write an amalgamated C header with all gkylzero headers included in
+# it
+cat <<EOF4 > gkylzero.h
+#pragma once
+
+$(printf "%b" "$header_inc_list")
+
+/* Non gkylzero headers (but very useful) */
+#include <rxi_ini.h>
+
+EOF4
+
+# up a directory and archive
 cd ..
-tar -zcf ${distname}.tar.gz ${distname}
+rm -f ${distname}.zip
+zip -r ${distname}.zip ${distname} > /dev/null

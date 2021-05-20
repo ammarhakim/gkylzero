@@ -13,6 +13,7 @@
 #include <gkyl_mom_calc.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
+#include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_vlasov_mom.h>
@@ -55,7 +56,7 @@ struct vm_species {
 
 // field data
 struct vm_field {
-    struct gkyl_em_field info; // data for field
+    struct gkyl_vlasov_field info; // data for field
     
     struct gkyl_array *em, *em1, *emnew; // arrays for updates
     struct gkyl_array *qmem; // array for q/m*(E,B)
@@ -93,12 +94,6 @@ struct gkyl_vlasov_app {
     struct gkyl_vlasov_stat stat; // statistics
 };
 
-static inline double
-diff_now_tm(struct timespec tm)
-{
-  return gkyl_time_sec(gkyl_time_diff(tm, gkyl_wall_clock()));
-}
-
 // allocate array (filled with zeros)
 static struct gkyl_array*
 mkarr(long nc, long size)
@@ -130,106 +125,22 @@ is_moment_name_valid(const char *nm)
   return 0;
 }
 
-// initialize local and local-ext ranges on conf-space.
-static void
-init_conf_ranges(int cdim, const int *cells,
-  struct gkyl_range *local, struct gkyl_range *local_ext)
-{
-  int lower_ext[GKYL_MAX_DIM], upper_ext[GKYL_MAX_DIM];
-  int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
-  
-  for (int i=0; i<cdim; ++i) {
-    lower_ext[i] = -1;
-    upper_ext[i] = cells[i];
-
-    lower[i] = 0;
-    upper[i] = cells[i]-1;
-  }
-  gkyl_range_init(local_ext, cdim, lower_ext, upper_ext);
-  gkyl_sub_range_init(local, local_ext, lower, upper);
-}
-
-// initialize local and local-ext ranges on phase-space: each species
-// can have different phase-space grid and hence ranges; note that
-// this function assumes there are no ghost-cells in velocity space.
-static void
-init_phase_ranges(int cdim, int pdim, const int *cells,
-  struct gkyl_range *local, struct gkyl_range *local_ext)
-{
-  int lower_ext[GKYL_MAX_DIM], upper_ext[GKYL_MAX_DIM];
-  int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
-  
-  for (int i=0; i<cdim; ++i) {
-    lower_ext[i] = -1;
-    upper_ext[i] = cells[i];
-
-    lower[i] = 0;
-    upper[i] = cells[i]-1;
-  }
-  for (int i=cdim; i<pdim; ++i) {
-    lower_ext[i] = 0;
-    upper_ext[i] = cells[i]-1;
-
-    lower[i] = 0;
-    upper[i] = cells[i]-1;
-  }
-  gkyl_range_init(local_ext, pdim, lower_ext, upper_ext);
-  gkyl_sub_range_init(local, local_ext, lower, upper);
-}
-
-// reduce
-static inline void
-incr_int_array(int ndim, int fact, const int *restrict del,
-  const int *restrict inp, int *restrict out)
-{
-  for (int i=0; i<ndim; ++i)
-    out[i] = inp[i] + fact*del[i];
-}
-
 // Create ghost and skin sub-ranges given a parent range
 static void
 skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
   const struct gkyl_range *parent, const int *ghost)
 {
   int ndim = parent->ndim;
-  int lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
   
-  // create skin ranges in each direction
   for (int d=0; d<ndim; ++d) {
-
-    incr_int_array(ndim, 1, ghost, parent->lower, lo);
-    incr_int_array(ndim, -1, ghost, parent->upper, up);
-    // adjust for lower skin in direction 'd'
-    up[d] = lo[d];
-    gkyl_sub_range_init(&sgr->lower_skin[d], parent, lo, up);
-
-    incr_int_array(ndim, 1, ghost, parent->lower, lo);
-    incr_int_array(ndim, -1, ghost, parent->upper, up);
-    // adjust for upper skin in direction 'd'
-    lo[d] = up[d];
-    gkyl_sub_range_init(&sgr->upper_skin[d], parent, lo, up);
+    gkyl_skin_ghost_ranges(&sgr->lower_skin[d], &sgr->lower_ghost[d],
+      d, GKYL_LOWER_EDGE, parent, ghost);
+    gkyl_skin_ghost_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d],
+      d, GKYL_UPPER_EDGE, parent, ghost);
   }
-
-  // create ghost ranges in each direction
-  for (int d=0; d<ndim; ++d) {
-
-    incr_int_array(ndim, 1, ghost, parent->lower, lo);
-    incr_int_array(ndim, -1, ghost, parent->upper, up);
-    // adjust for lower ghost in direction 'd'
-    lo[d] = lo[d]-ghost[d];
-    up[d] = lo[d];
-    gkyl_sub_range_init(&sgr->lower_ghost[d], parent, lo, up);
-
-    incr_int_array(ndim, 1, ghost, parent->lower, lo);
-    incr_int_array(ndim, -1, ghost, parent->upper, up);
-    // adjust for upper ghost in direction 'd'
-    up[d] = up[d]+ghost[d];
-    lo[d] = up[d];
-    gkyl_sub_range_init(&sgr->upper_ghost[d], parent, lo, up);
-  }  
 }
 
-// initialize field object
+// initialize species moment object
 static void
 vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   struct vm_species_moment *sm, const char *nm)
@@ -244,7 +155,7 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
 
 // release memory for moment data object
 static void
-vm_species_moment_release(struct vm_species_moment *sm)
+vm_species_moment_release(const struct vm_species_moment *sm)
 {
   gkyl_mom_type_release(sm->mtype);
   gkyl_mom_calc_release(sm->mcalc);
@@ -303,7 +214,7 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
   double omegaCfl;
   gkyl_array_reduce(field->cflrate, GKYL_MAX, &omegaCfl);
 
-  app->stat.field_rhs_tm += diff_now_tm(wst);
+  app->stat.field_rhs_tm += gkyl_time_sec(wst);
   
   return app->cfl/omegaCfl;
 }
@@ -349,7 +260,7 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
 
 // release resources for field
 static void
-vm_field_release(struct vm_field *f)
+vm_field_release(const struct vm_field *f)
 {
   gkyl_array_release(f->em);
   gkyl_array_release(f->em1);
@@ -385,9 +296,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     ghost[cdim+d] = 0; // no ghost-cells in velocity space
   }
   gkyl_rect_grid_init(&s->grid, pdim, lower, upper, cells);
-  init_phase_ranges(cdim, pdim, cells, &s->local, &s->local_ext);
+  gkyl_create_grid_ranges(&s->grid, ghost, &s->local_ext, &s->local);
 
-  // create skin/ghost range
   skin_ghost_ranges_init(&s->skin_ghost, &s->local_ext, ghost);
   
   // allocate distribution function arrays
@@ -454,7 +364,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   double omegaCfl;
   gkyl_array_reduce(species->cflrate, GKYL_MAX, &omegaCfl);
 
-  app->stat.species_rhs_tm += diff_now_tm(wst);
+  app->stat.species_rhs_tm += gkyl_time_sec(wst);
   
   return app->cfl/omegaCfl;
 }
@@ -546,12 +456,10 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
   gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
   gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
 
-  // create config grid & ranges
   gkyl_rect_grid_init(&app->grid, cdim, vm.lower, vm.upper, vm.cells);
-  init_conf_ranges(cdim, vm.cells, &app->local, &app->local_ext);
 
-  int ghost[] = { 1, 1, 1 };
-  // create config skin/ghost ranges
+  int ghost[] = { 1, 1, 1 };  
+  gkyl_create_grid_ranges(&app->grid, ghost, &app->local_ext, &app->local);
   skin_ghost_ranges_init(&app->skin_ghost, &app->local_ext, ghost);
 
   // initialize EM field
@@ -635,16 +543,22 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
 void
 gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
 {
-  char fileNm[256];
-  sprintf(fileNm, "%s-field_%d.gkyl", app->name, frame);
+  const char *fmt = "%s-field_%d.gkyl";
+  int sz = snprintf(0, 0, fmt, app->name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
+  
   gkyl_grid_array_write(&app->grid, &app->local, app->field.em, fileNm);
 }
 
 void
 gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
-  char fileNm[256];
-  sprintf(fileNm, "%s-%s_%d.gkyl", app->name, app->species[sidx].info.name, frame);
+  const char *fmt = "%s-%s_%d.gkyl";
+  int sz = snprintf(0, 0, fmt, app->name, app->species[sidx].info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow  
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame);
+  
   gkyl_grid_array_write(&app->species[sidx].grid, &app->species[sidx].local,
     app->species[sidx].f, fileNm);
 }
@@ -654,9 +568,14 @@ gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
 {
   for (int i=0; i<app->num_species; ++i) {
     for (int m=0; m<app->species[i].info.num_diag_moments; ++m) {
-      char fileNm[256];
-      sprintf(fileNm, "%s-%s-%s_%d.gkyl", app->name, app->species[i].info.name,
+      
+      const char *fmt = "%s-%s-%s_%d.gkyl";
+      int sz = snprintf(0, 0, fmt, app->name, app->species[i].info.name,
         app->species[i].info.diag_moments[m], frame);
+      char fileNm[sz+1]; // ensures no buffer overflow  
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
+        app->species[i].info.diag_moments[m], frame);
+      
       gkyl_grid_array_write(&app->grid, &app->local, app->species[i].moms[m].marr, fileNm);
     }
   }
@@ -717,7 +636,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     double qbyeps = s->info.charge/app->field.info.epsilon0;
     gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, &app->local);
   }
-  app->stat.current_tm += diff_now_tm(wst);
+  app->stat.current_tm += gkyl_time_sec(wst);
   
   // complete update of field
   gkyl_array_accumulate_range(gkyl_array_scale_range(emout, dta, &app->local),
@@ -733,7 +652,7 @@ rk3(gkyl_vlasov_app* app, double dt0)
 {
   const struct gkyl_array *fin[app->num_species];
   struct gkyl_array *fout[app->num_species];
-  struct gkyl_update_status st = { .success = 1 };
+  struct gkyl_update_status st = { .success = true };
 
   // time-stepper state
   enum { RK_STAGE_1, RK_STAGE_2, RK_STAGE_3, RK_COMPLETE } state = RK_STAGE_1;
@@ -836,7 +755,7 @@ gkyl_vlasov_update(gkyl_vlasov_app* app, double dt)
   struct gkyl_update_status status = rk3(app, dt);
   app->tcurr += status.dt_actual;
   
-  app->stat.total_tm += diff_now_tm(wst);
+  app->stat.total_tm += gkyl_time_sec(wst);
   
   return status;
 }

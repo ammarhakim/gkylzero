@@ -45,7 +45,7 @@ static const double gkyl_gauss_weights_8[] =
 // gkyl_gauss_ordinates[N] are ordinates for N-point Guassian
 // integration
 static const double* gkyl_gauss_ordinates[] = {
-  NULL, // N=0 makes no sense,
+  0, // N=0 makes no sense,
   gkyl_gauss_ordinates_1,
   gkyl_gauss_ordinates_2,
   gkyl_gauss_ordinates_3,
@@ -58,7 +58,7 @@ static const double* gkyl_gauss_ordinates[] = {
 
 // gkyl_gauss_weights[N] are weights for N-point Guassian integration
 static const double* gkyl_gauss_weights[] = {
-  NULL, // N=0 makes no sense,
+  0, // N=0 makes no sense,
   gkyl_gauss_weights_1,
   gkyl_gauss_weights_2,
   gkyl_gauss_weights_3,

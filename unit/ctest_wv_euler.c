@@ -1,5 +1,5 @@
 #include <acutest.h>
-#include <gkyl_euler_prim.h>
+#include <gkyl_prim_euler.h>
 #include <gkyl_wv_euler.h>
 
 void

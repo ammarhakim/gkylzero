@@ -15,7 +15,7 @@ def options(opt):
     opt.add_option('--debug', help='Debug flags', dest='gkdebug',
                    action='store_true', default=False)
     opt.add_option('--prefix', type='string', help='Install path', dest='prefix',
-                   default=os.path.expandvars('$HOME/gkylsoft/gkylzero'))
+                   default=os.path.expandvars('$HOME/gkylsoft/gkylzero'))    
     opt.add_option('--extra-link-libs', type='string', help='Extra libraries to link to', dest='extralibs',
                    default='')
 

@@ -95,7 +95,7 @@ main(int argc, char **argv)
   };
 
   // field
-  struct gkyl_em_field field = {
+  struct gkyl_vlasov_field field = {
     .epsilon0 = 1.0, .mu0 = 1.0,
     .init = evalFieldFunc
   };

@@ -7,7 +7,7 @@
 
 // flags and corresponding bit-masks
 enum range_flags { R_IS_SUB_RANGE };
-static uint32_t masks[] =
+static const uint32_t masks[] =
 { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
 
 // sub-range flags
@@ -56,13 +56,19 @@ void
 gkyl_range_init(struct gkyl_range *rng, int ndim,
   const int *lower, const int *upper)
 {
+  int is_zero_vol = 0;
   rng->ndim = ndim;
   rng->volume = 1L;
   for (int i=0; i<ndim; ++i) {
     rng->ilo[i] = rng->lower[i] = lower[i];
     rng->upper[i] = upper[i];
     rng->volume *= upper[i]-lower[i]+1;
+    // need to handle case when upper[i]<lower[i]
+    is_zero_vol = upper[i]<lower[i] ? 1 : 0;
   }
+  // reset volume if any lower[d] <= upper[d]
+  if (is_zero_vol) rng->volume = 0;
+  
   calc_rowmajor_ac(rng);
 
   int idxZero[GKYL_MAX_DIM];
@@ -128,9 +134,17 @@ gkyl_range_set_split(struct gkyl_range *rng, int nsplit, int tid)
   rng->tid = tid;
 }
 
+struct gkyl_range
+gkyl_range_split(struct gkyl_range *rng, int nsplits, int tid)
+{
+  struct gkyl_range r = *rng;
+  gkyl_range_set_split(&r, nsplits, tid);
+  return r;
+}
+
 // Computes split and returns number of elements handled locally and
-// the intial index into the range. Number of elements is returned and
-// start index set in 'lower'
+// the initial index into the range. Number of elements is returned
+// and start index set in 'lower'
 static long
 gkyl_range_calc_split(const struct gkyl_range *rng, int *lower)
 {
@@ -237,6 +251,74 @@ gkyl_range_upper_skin(struct gkyl_range *rng,
   gkyl_sub_range_init(rng, range, lo, up);
 }
 
+// Increment an int vector by fact*del[d] in each direction d.
+static inline void
+incr_int_array(int ndim, int fact, const int *restrict del,
+  const int *restrict inp, int *restrict out)
+{
+  for (int i=0; i<ndim; ++i)
+    out[i] = inp[i] + fact*del[i];
+}
+
+/**
+ * Create ghost and skin sub-ranges given parent (extended
+ * range). This code is somewhat convoluted as the skin and ghost
+ * ranges need to be sub-ranges of the extended range on the grid and
+ * not include corners. I am not sure how to handle corners on
+ * physical boundaries. Also, perhaps this code could be simplified.
+*/
+void
+gkyl_skin_ghost_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
+  int dir, enum gkyl_edge_loc edge, const struct gkyl_range *parent, const int *nghost)
+{
+  int ndim = parent->ndim, lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
+
+  if (edge == GKYL_LOWER_EDGE) {
+
+    incr_int_array(ndim, 1, nghost, parent->lower, lo);
+    incr_int_array(ndim, -1, nghost, parent->upper, up);
+    
+    up[dir] = lo[dir]+nghost[dir]-1;
+    gkyl_sub_range_init(skin, parent, lo, up);
+
+    incr_int_array(ndim, 1, nghost, parent->lower, lo);
+    incr_int_array(ndim, -1, nghost, parent->upper, up);
+    
+    lo[dir] = lo[dir]-nghost[dir];
+    up[dir] = lo[dir]+nghost[dir]-1;
+    gkyl_sub_range_init(ghost, parent, lo, up);
+  }
+  else {
+
+    incr_int_array(ndim, 1, nghost, parent->lower, lo);
+    incr_int_array(ndim, -1, nghost, parent->upper, up);
+    
+    lo[dir] = up[dir]-nghost[dir]+1;
+    gkyl_sub_range_init(skin, parent, lo, up);
+
+    incr_int_array(ndim, 1, nghost, parent->lower, lo);
+    incr_int_array(ndim, -1, nghost, parent->upper, up);
+    
+    up[dir] = up[dir]+nghost[dir]+1;
+    lo[dir] = up[dir]-nghost[dir];
+    gkyl_sub_range_init(ghost, parent, lo, up);
+  }
+}
+
+int
+gkyl_range_intersect(struct gkyl_range* irng,
+  const struct gkyl_range *r1, const struct gkyl_range *r2)
+{
+  int ndim = r1->ndim;
+  int lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
+  for (int d=0; d<ndim; ++d) {
+    lo[d] = r1->lower[d] > r2->lower[d] ? r1->lower[d] : r2->lower[d];
+    up[d] = r1->upper[d] < r2->upper[d] ? r1->upper[d] : r2->upper[d];
+  }
+  gkyl_range_init(irng, ndim, lo, up);
+  return irng->volume > 0 ? 1 : 0;
+}
+
 long
 gkyl_range_offset(const struct gkyl_range* range, const int *idx)
 {
@@ -288,7 +370,6 @@ gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
     n = rem;
   }
 }
-
 
 void
 gkyl_range_iter_init(struct gkyl_range_iter *iter,

@@ -1,0 +1,21 @@
+name: Build Distro
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: mkdist
+      run: ./mkdist.sh
+    - name: make
+      run: make -C gkylzero-dist -j4
+    - name: make check
+      run: make -C gkylzero-dist check

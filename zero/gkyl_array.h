@@ -19,8 +19,8 @@ struct gkyl_array {
     size_t size; // number of indices
     
     uint32_t flags;
-    size_t esznc;
-    void *data;
+    size_t esznc; // elemsz*ncomp
+    void *data; // pointer to data (do not use directly)
     struct gkyl_ref_count ref_count;
 };
 
@@ -29,7 +29,7 @@ struct gkyl_array {
  * 
  * @param type Type of data in array
  * @param ncomp Number of components at each index
- * @param size Number indices 
+ * @param size Number of indices 
  * @return Pointer to newly allocated array.
  */
 struct gkyl_array* gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size);
