@@ -214,7 +214,7 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
   double omegaCfl;
   gkyl_array_reduce(field->cflrate, GKYL_MAX, &omegaCfl);
 
-  app->stat.field_rhs_tm += gkyl_time_sec(wst);
+  app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
   
   return app->cfl/omegaCfl;
 }
@@ -364,7 +364,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   double omegaCfl;
   gkyl_array_reduce(species->cflrate, GKYL_MAX, &omegaCfl);
 
-  app->stat.species_rhs_tm += gkyl_time_sec(wst);
+  app->stat.species_rhs_tm += gkyl_time_diff_now_sec(wst);
   
   return app->cfl/omegaCfl;
 }
@@ -636,7 +636,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     double qbyeps = s->info.charge/app->field.info.epsilon0;
     gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, &app->local);
   }
-  app->stat.current_tm += gkyl_time_sec(wst);
+  app->stat.current_tm += gkyl_time_diff_now_sec(wst);
   
   // complete update of field
   gkyl_array_accumulate_range(gkyl_array_scale_range(emout, dta, &app->local),
@@ -755,7 +755,7 @@ gkyl_vlasov_update(gkyl_vlasov_app* app, double dt)
   struct gkyl_update_status status = rk3(app, dt);
   app->tcurr += status.dt_actual;
   
-  app->stat.total_tm += gkyl_time_sec(wst);
+  app->stat.total_tm += gkyl_time_diff_now_sec(wst);
   
   return status;
 }
