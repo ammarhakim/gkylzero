@@ -12,7 +12,7 @@
 #define align_up(num, align) \
     (((num) + ((align) - 1)) & ~((align) - 1))
 
-#define PTR_OFFSET_SZ sizeof(uint16_t)
+static const size_t PTR_OFFSET_SZ = sizeof(uint16_t);
 
 void*
 gkyl_malloc(size_t size)

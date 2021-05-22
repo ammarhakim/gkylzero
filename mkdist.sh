@@ -87,7 +87,7 @@ cat <<EOF > Makefile
 # make CC=mpicc 
 #
 
-CFLAGS = -O3 -g -I. 
+CFLAGS = -Wall -Wno-unused-variable -O3 -g -I. 
 PREFIX = \${HOME}/gkylsoft
 
 headers = $headers
@@ -179,7 +179,7 @@ cat <<EOF3 > Makefile.sample
 # Sample Makefile to use installed gkylzero library: copy and modify
 # for your needs
 
-CFLAGS = -O3 -g -I.
+CFLAGS = -Wall -Wno-unused-variable -O3 -g -I.
 PREFIX = \${HOME}/gkylsoft
 
 G0_INC_DIR = \${PREFIX}/gkylzero/include
