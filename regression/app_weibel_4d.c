@@ -70,7 +70,7 @@ create_ctx(void)
 
   double massElc = 1.0, R = 0.333333333333333;
   double TElc10 = massElc*R*ud*R*ud;
-  double TElc20 = massElc*R*ud*R*ud;
+  double TElc20 = TElc10;
   double vthElc10 = sqrt(TElc10/massElc);
   double vthElc20 = sqrt(TElc20/massElc);  
   
