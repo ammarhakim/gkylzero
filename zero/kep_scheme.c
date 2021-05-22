@@ -80,7 +80,6 @@ gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range *upd
   const struct gkyl_array *qin, struct gkyl_array *cflrate, struct gkyl_array *rhs)
 {
   int ndim = update_rng->ndim;
-  int meqn = kep->equation->num_equations;
   double gas_gamma = gkyl_wv_euler_gas_gamma(kep->equation);
 
   int idxm[GKYL_MAX_DIM], idxp[GKYL_MAX_DIM];

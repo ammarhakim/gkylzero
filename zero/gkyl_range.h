@@ -177,13 +177,13 @@ void gkyl_range_deflate(struct gkyl_range* srng,
  * 'len'. The shortened range has the same dimensions and the same
  * start index in 'dir'.
  *
- * @param srng Shortned range.
- * @param rng Range object to shorten
+ * @param rng Shortned range.
+ * @param range Range object to shorten
  * @param dir Direction to shorten
  * @param len Length of shortened direction
  */
-void gkyl_range_shorten(struct gkyl_range* srng,
-  const struct gkyl_range* rng, int dir, int len);
+void gkyl_range_shorten(struct gkyl_range *rng,
+  const struct gkyl_range* range, int dir, int len);
 
 /**
  * Return range in direction 'dir' which corresponds to the "lower

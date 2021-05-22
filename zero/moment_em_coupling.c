@@ -285,7 +285,7 @@ gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
   struct gkyl_array *fluid[], struct gkyl_array *app_accel[],
   struct gkyl_array *em, struct gkyl_array *app_current, struct gkyl_array *ext_em)
 {
-  int ndim = mes->ndim, nfluids = mes->nfluids;
+  int nfluids = mes->nfluids;
   double *fluids[GKYL_MAX_SPECIES];
   double *app_accels[GKYL_MAX_SPECIES];
 

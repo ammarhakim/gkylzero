@@ -41,7 +41,7 @@ gkyl_realloc(void *ptr, size_t new_size)
 void
 gkyl_free(void *ptr)
 {
-  free(ptr); ptr = 0;
+  free(ptr);
 }
 
 void*
@@ -65,7 +65,10 @@ void*
 gkyl_aligned_realloc(void *ptr, size_t align, size_t old_sz, size_t new_sz)
 {
   void *nptr = gkyl_aligned_alloc(align, new_sz);
-  if (0 == nptr) gkyl_exit("aligned_realloc failed!");
+  if (0 == nptr) {
+    gkyl_exit("aligned_realloc failed!");
+    return 0;
+  }
   memcpy(nptr, ptr, old_sz < new_sz ? old_sz : new_sz);
   gkyl_aligned_free(ptr);
   return nptr;

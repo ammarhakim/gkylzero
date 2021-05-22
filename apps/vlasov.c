@@ -277,7 +277,7 @@ vm_field_release(const struct vm_field *f)
 static void
 vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_species *s)
 {
-  int cdim = app->cdim, vdim = app->vdim, poly_order = app->poly_order;
+  int cdim = app->cdim, vdim = app->vdim;
   int pdim = cdim+vdim;
 
   int cells[GKYL_MAX_DIM], ghost[GKYL_MAX_DIM];
@@ -720,8 +720,6 @@ rk3(gkyl_vlasov_app* app, double dt0)
             dt = st.dt_actual;
             state = RK_STAGE_1; // restart from stage 1
             
-            dt = st.dt_actual;
-            state = RK_STAGE_1; // restart from stage 1
             app->stat.nstage_2_fail += 1;
           }
           else {
