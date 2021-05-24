@@ -1,12 +1,12 @@
 #pragma once
 
 /**
- These horrible looking set of macros allows choosing a macro based on
- number of arguments passed to it. It is ugly as hell and so I am
- putting it in its own file. Please do not use it unless you know what
- you are doing. See:
+   These horrible looking set of macros allows choosing a macro based on
+   number of arguments passed to it. It is ugly as hell and so I am
+   putting it in its own file. Please do not use it unless you know what
+   you are doing. See:
 
- https://stackoverflow.com/questions/11761703/overloading-macro-on-number-of-arguments/11763277#11763277
+   https://stackoverflow.com/questions/11761703/overloading-macro-on-number-of-arguments/11763277#11763277
 */
 
 // get number of arguments with __NARG__

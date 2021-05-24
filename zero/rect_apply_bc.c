@@ -5,15 +5,15 @@
 #include <gkyl_rect_decomp.h>
 
 struct gkyl_rect_apply_bc {
-    struct gkyl_rect_grid grid;
-    int dir; // direction to apply BC
-    enum gkyl_edge_loc edge; // edge to apply BC
-    int nghost[GKYL_MAX_DIM]; // number of ghost cells
-    rect_bc_func_t bcfunc; // function pointer
-    void *ctx; // context to pass to function
+  struct gkyl_rect_grid grid;
+  int dir; // direction to apply BC
+  enum gkyl_edge_loc edge; // edge to apply BC
+  int nghost[GKYL_MAX_DIM]; // number of ghost cells
+  rect_bc_func_t bcfunc; // function pointer
+  void *ctx; // context to pass to function
 
-    struct gkyl_range ext_range, range; // ranges on grid
-    struct gkyl_range skin, ghost; // skin and ghost ranges
+  struct gkyl_range ext_range, range; // ranges on grid
+  struct gkyl_range skin, ghost; // skin and ghost ranges
 };
 
 gkyl_rect_apply_bc*

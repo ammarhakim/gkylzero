@@ -11,7 +11,7 @@ enum seq_states {
 };
 
 struct seq_ctx {
-    int nredo, nfluid, nsrc;
+  int nredo, nfluid, nsrc;
 };
 
 struct gkyl_update_status

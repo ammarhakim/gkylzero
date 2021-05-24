@@ -14,14 +14,14 @@ enum gkyl_elem_type { GKYL_INT, GKYL_FLOAT, GKYL_DOUBLE, GKYL_USER };
  * mainly by the range object.
  */
 struct gkyl_array {
-    enum gkyl_elem_type type; // type stored in array
-    size_t elemsz, ncomp; // size of elements, number of 'components'
-    size_t size; // number of indices
+  enum gkyl_elem_type type; // type stored in array
+  size_t elemsz, ncomp; // size of elements, number of 'components'
+  size_t size; // number of indices
     
-    uint32_t flags;
-    size_t esznc; // elemsz*ncomp
-    void *data; // pointer to data (do not use directly)
-    struct gkyl_ref_count ref_count;
+  uint32_t flags;
+  size_t esznc; // elemsz*ncomp
+  void *data; // pointer to data (do not use directly)
+  struct gkyl_ref_count ref_count;
 };
 
 /**

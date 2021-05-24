@@ -18,9 +18,9 @@ static const int dir_shuffle[][6] = {
 #define BZ d[5]
 
 struct wv_maxwell {
-    struct gkyl_wv_eqn eqn; // base object
-    double c; // light speed
-    double e_fact, b_fact; // electric and magnetic correction factors
+  struct gkyl_wv_eqn eqn; // base object
+  double c; // light speed
+  double e_fact, b_fact; // electric and magnetic correction factors
 };
 
 static void
@@ -65,25 +65,25 @@ wave(const struct gkyl_wv_eqn *eqn,
   w[7] = -a1*c;
   s[0] = -c*b_fact;
 
-   // wave 2:
+  // wave 2:
   w = &waves[1*8];
   w[BX] = a2;
   w[7] = a2*c;
   s[1] = c*b_fact;
 
-   // wave 3:
+  // wave 3:
   w = &waves[2*8];
   w[EX] = a3;
   w[6] = -a3*c1;
   s[2] = -c*e_fact;
 
-   // wave 4:
+  // wave 4:
   w = &waves[3*8];
   w[EX] = a4;
   w[6] = a4*c1;
   s[3] = c*e_fact;
 
-   // wave 5: (two waves with EV -c, -c lumped into one)
+  // wave 5: (two waves with EV -c, -c lumped into one)
   w = &waves[4*8];
   w[EY] = a5;
   w[EZ] = a6;
@@ -91,7 +91,7 @@ wave(const struct gkyl_wv_eqn *eqn,
   w[BZ] = -a5*c1;
   s[4] = -c;
 
-   // wave 6: (two waves with EV c, c lumped into one)
+  // wave 6: (two waves with EV c, c lumped into one)
   w = &waves[5*8];
   w[EY] = a7;
   w[EZ] = a8;

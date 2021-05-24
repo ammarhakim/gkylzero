@@ -18,20 +18,20 @@ enum gkyl_wave_limiter {
 };
 
 struct gkyl_wave_prop_status {
-    int success; // 1 if step worked, 0 otherwise
-    double dt_suggested; // suggested time-step
+  int success; // 1 if step worked, 0 otherwise
+  double dt_suggested; // suggested time-step
 };
 
 // Object type
 typedef struct gkyl_wave_prop gkyl_wave_prop;
 
 struct gkyl_wave_prop_inp {
-    const struct gkyl_rect_grid *grid; // grid on which to solve equations
-    const struct gkyl_wv_eqn *equation; // equation solver
-    enum gkyl_wave_limiter limiter; // limiter to use
-    int num_up_dirs; // number of update directions
-    int update_dirs[GKYL_MAX_DIM]; // directions to update
-    double cfl; // CFL number to use
+  const struct gkyl_rect_grid *grid; // grid on which to solve equations
+  const struct gkyl_wv_eqn *equation; // equation solver
+  enum gkyl_wave_limiter limiter; // limiter to use
+  int num_up_dirs; // number of update directions
+  int update_dirs[GKYL_MAX_DIM]; // directions to update
+  double cfl; // CFL number to use
 };
 
 /**

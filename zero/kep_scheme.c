@@ -11,11 +11,11 @@ static const int dir_shuffle[][3] = {
 };
 
 struct gkyl_kep_scheme {
-    struct gkyl_rect_grid grid; // grid object
-    int ndim; // number of dimensions
-    int num_up_dirs; // number of update directions
-    int update_dirs[GKYL_MAX_DIM]; // directions to update
-    const struct gkyl_wv_eqn *equation; // equation object
+  struct gkyl_rect_grid grid; // grid object
+  int ndim; // number of dimensions
+  int num_up_dirs; // number of update directions
+  int update_dirs[GKYL_MAX_DIM]; // directions to update
+  const struct gkyl_wv_eqn *equation; // equation object
 };
 
 gkyl_kep_scheme*

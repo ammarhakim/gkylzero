@@ -20,78 +20,78 @@
 
 // ranges for use in BCs
 struct skin_ghost_ranges {
-    struct gkyl_range lower_skin[GKYL_MAX_DIM];
-    struct gkyl_range lower_ghost[GKYL_MAX_DIM];
+  struct gkyl_range lower_skin[GKYL_MAX_DIM];
+  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
 
-    struct gkyl_range upper_skin[GKYL_MAX_DIM];
-    struct gkyl_range upper_ghost[GKYL_MAX_DIM];
+  struct gkyl_range upper_skin[GKYL_MAX_DIM];
+  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
 };
 
 // data for moments
 struct vm_species_moment {
-    struct gkyl_mom_type *mtype;
-    gkyl_mom_calc *mcalc;
-    struct gkyl_array *marr;
+  struct gkyl_mom_type *mtype;
+  gkyl_mom_calc *mcalc;
+  struct gkyl_array *marr;
 };
 
 // species data
 struct vm_species {
-    struct gkyl_vlasov_species info; // data for species
+  struct gkyl_vlasov_species info; // data for species
     
-    struct gkyl_rect_grid grid;
-    struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
-    struct skin_ghost_ranges skin_ghost; // conf-space skin/ghost
+  struct gkyl_rect_grid grid;
+  struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
+  struct skin_ghost_ranges skin_ghost; // conf-space skin/ghost
 
-    struct gkyl_array *f, *f1, *fnew; // arrays for updates
-    struct gkyl_array *cflrate; // CFL rate in each cell
-    struct gkyl_array *bc_buffer; // buffer for BCs (used for both copy and periodic)
+  struct gkyl_array *f, *f1, *fnew; // arrays for updates
+  struct gkyl_array *cflrate; // CFL rate in each cell
+  struct gkyl_array *bc_buffer; // buffer for BCs (used for both copy and periodic)
 
-    struct vm_species_moment m1i; // for computing currents
-    struct vm_species_moment *moms; // diagnostic moments
+  struct vm_species_moment m1i; // for computing currents
+  struct vm_species_moment *moms; // diagnostic moments
 
-    double maxs[GKYL_MAX_DIM]; // Maximum speed in each direction
-    struct gkyl_dg_eqn *eqn; // Vlasov equation
-    gkyl_hyper_dg *slvr; // solver
+  double maxs[GKYL_MAX_DIM]; // Maximum speed in each direction
+  struct gkyl_dg_eqn *eqn; // Vlasov equation
+  gkyl_hyper_dg *slvr; // solver
 };
 
 // field data
 struct vm_field {
-    struct gkyl_vlasov_field info; // data for field
+  struct gkyl_vlasov_field info; // data for field
     
-    struct gkyl_array *em, *em1, *emnew; // arrays for updates
-    struct gkyl_array *qmem; // array for q/m*(E,B)
-    struct gkyl_array *cflrate; // CFL rate in each cell
-    struct gkyl_array *bc_buffer; // buffer for BCs (used for both copy and periodic)
+  struct gkyl_array *em, *em1, *emnew; // arrays for updates
+  struct gkyl_array *qmem; // array for q/m*(E,B)
+  struct gkyl_array *cflrate; // CFL rate in each cell
+  struct gkyl_array *bc_buffer; // buffer for BCs (used for both copy and periodic)
 
-    double maxs[GKYL_MAX_DIM]; // Maximum speed in each direction
-    struct gkyl_dg_eqn *eqn; // Maxwell equation
-    gkyl_hyper_dg *slvr; // solver
+  double maxs[GKYL_MAX_DIM]; // Maximum speed in each direction
+  struct gkyl_dg_eqn *eqn; // Maxwell equation
+  gkyl_hyper_dg *slvr; // solver
 };
 
 // Vlasov object: used as opaque pointer in user code
 struct gkyl_vlasov_app {
-    char name[128]; // name of app
-    int cdim, vdim; // conf, velocity space dimensions
-    int poly_order; // polynomial order
-    double tcurr; // current time
-    double cfl; // CFL number
+  char name[128]; // name of app
+  int cdim, vdim; // conf, velocity space dimensions
+  int poly_order; // polynomial order
+  double tcurr; // current time
+  double cfl; // CFL number
 
-    int num_periodic_dir; // number of periodic directions
-    int periodic_dirs[3]; // list of periodic directions
+  int num_periodic_dir; // number of periodic directions
+  int periodic_dirs[3]; // list of periodic directions
     
-    struct gkyl_rect_grid grid; // config-space grid
-    struct gkyl_range local, local_ext; // local, local-ext conf-space ranges
-    struct gkyl_basis basis, confBasis; // phase-space, conf-space basis
+  struct gkyl_rect_grid grid; // config-space grid
+  struct gkyl_range local, local_ext; // local, local-ext conf-space ranges
+  struct gkyl_basis basis, confBasis; // phase-space, conf-space basis
 
-    struct skin_ghost_ranges skin_ghost; // conf-space skin/ghost
+  struct skin_ghost_ranges skin_ghost; // conf-space skin/ghost
 
-    struct vm_field field; // field data
+  struct vm_field field; // field data
 
-    // species data
-    int num_species;
-    struct vm_species *species; // species data
+  // species data
+  int num_species;
+  struct vm_species *species; // species data
 
-    struct gkyl_vlasov_stat stat; // statistics
+  struct gkyl_vlasov_stat stat; // statistics
 };
 
 // allocate array (filled with zeros)
@@ -622,7 +622,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   // complete update of distribution function
   for (int i=0; i<app->num_species; ++i) {
     gkyl_array_accumulate_range(gkyl_array_scale_range(fout[i], dta, &app->species[i].local),
-        1.0, fin[i], &app->species[i].local);
+      1.0, fin[i], &app->species[i].local);
     vm_species_apply_bc(app, &app->species[i], fout[i]);
   }
 

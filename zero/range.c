@@ -266,7 +266,7 @@ incr_int_array(int ndim, int fact, const int *restrict del,
  * ranges need to be sub-ranges of the extended range on the grid and
  * not include corners. I am not sure how to handle corners on
  * physical boundaries. Also, perhaps this code could be simplified.
-*/
+ */
 void
 gkyl_skin_ghost_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
   int dir, enum gkyl_edge_loc edge, const struct gkyl_range *parent, const int *nghost)

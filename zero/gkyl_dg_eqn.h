@@ -17,11 +17,11 @@ typedef double (*surf_termf_t)(const struct gkyl_dg_eqn *eqn, int dir,
   const double* qInL, const double*  qInR, double* restrict qRhsOutL, double* restrict qRhsOutR);
 
 struct gkyl_dg_eqn {
-    int num_equations; // number of equations in system
-    vol_termf_t vol_term; // volume term kernel
-    surf_termf_t surf_term; // surface term kernel
-    surf_termf_t boundary_surf_term; // boundary surface term kernel
-    struct gkyl_ref_count ref_count; // reference count     
+  int num_equations; // number of equations in system
+  vol_termf_t vol_term; // volume term kernel
+  surf_termf_t surf_term; // surface term kernel
+  surf_termf_t boundary_surf_term; // boundary surface term kernel
+  struct gkyl_ref_count ref_count; // reference count     
 };
 
 /**

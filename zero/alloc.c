@@ -9,7 +9,7 @@
 #include <gkyl_util.h>
 
 // Compute first 'align' boundary after 'num'
-#define align_up(num, align) \
+#define align_up(num, align)                    \
     (((num) + ((align) - 1)) & ~((align) - 1))
 
 static const size_t PTR_OFFSET_SZ = sizeof(uint16_t);

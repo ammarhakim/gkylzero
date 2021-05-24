@@ -20,91 +20,91 @@
 
 // ranges for use in BCs
 struct skin_ghost_ranges {
-    struct gkyl_range lower_skin[GKYL_MAX_DIM];
-    struct gkyl_range lower_ghost[GKYL_MAX_DIM];
+  struct gkyl_range lower_skin[GKYL_MAX_DIM];
+  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
 
-    struct gkyl_range upper_skin[GKYL_MAX_DIM];
-    struct gkyl_range upper_ghost[GKYL_MAX_DIM];
+  struct gkyl_range upper_skin[GKYL_MAX_DIM];
+  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
 };
 
 // Species data
 struct moment_species {
-    int ndim;
-    char name[128]; // species name
-    double charge, mass;
+  int ndim;
+  char name[128]; // species name
+  double charge, mass;
 
-    int evolve; // evolve species? 1-yes, 0-no
+  int evolve; // evolve species? 1-yes, 0-no
 
-    void *ctx; // context for initial condition init function
-    // pointer to initialization function
-    void (*init)(double t, const double *xn, double *fout, void *ctx);
+  void *ctx; // context for initial condition init function
+  // pointer to initialization function
+  void (*init)(double t, const double *xn, double *fout, void *ctx);
     
-    struct gkyl_array *fdup, *f[4]; // arrays for updates
-    struct gkyl_array *app_accel; // array for applied acceleration/forces
-    struct gkyl_array *bc_buffer; // buffer for periodic BCs
+  struct gkyl_array *fdup, *f[4]; // arrays for updates
+  struct gkyl_array *app_accel; // array for applied acceleration/forces
+  struct gkyl_array *bc_buffer; // buffer for periodic BCs
 
-    enum gkyl_eqn_type eqn_type; // type ID of equation
-    int num_equations; // number of equations in species
-    gkyl_wave_prop *slvr[3]; // solver in each direction
+  enum gkyl_eqn_type eqn_type; // type ID of equation
+  int num_equations; // number of equations in species
+  gkyl_wave_prop *slvr[3]; // solver in each direction
 
-    // boundary conditions on lower/upper edges in each direction
-    gkyl_rect_apply_bc *lower_bc[3], *upper_bc[3];
+  // boundary conditions on lower/upper edges in each direction
+  gkyl_rect_apply_bc *lower_bc[3], *upper_bc[3];
 };
 
 // Field data
 struct moment_field {
-    int ndim;
-    double epsilon0, mu0;
+  int ndim;
+  double epsilon0, mu0;
 
-    int evolve; // evolve species? 1-yes, 0-no
+  int evolve; // evolve species? 1-yes, 0-no
     
-    void *ctx; // context for initial condition init function
-    // pointer to initialization function
-    void (*init)(double t, const double *xn, double *fout, void *ctx);    
+  void *ctx; // context for initial condition init function
+  // pointer to initialization function
+  void (*init)(double t, const double *xn, double *fout, void *ctx);    
     
-    struct gkyl_array *fdup, *f[4]; // arrays for updates
-    struct gkyl_array *app_current, *ext_em; // arrays for applied currents/external fields
-    struct gkyl_array *bc_buffer; // buffer for periodic BCs
+  struct gkyl_array *fdup, *f[4]; // arrays for updates
+  struct gkyl_array *app_current, *ext_em; // arrays for applied currents/external fields
+  struct gkyl_array *bc_buffer; // buffer for periodic BCs
 
-    gkyl_wave_prop *slvr[3]; // solver in each direction
+  gkyl_wave_prop *slvr[3]; // solver in each direction
 
-    // boundary conditions on lower/upper edges in each direction
-    gkyl_rect_apply_bc *lower_bc[3], *upper_bc[3];    
+  // boundary conditions on lower/upper edges in each direction
+  gkyl_rect_apply_bc *lower_bc[3], *upper_bc[3];    
 };
 
 // Source data
 struct moment_coupling {
-    gkyl_moment_em_coupling *slvr; // source solver function
+  gkyl_moment_em_coupling *slvr; // source solver function
 };
 
 // Moment app object: used as opaque pointer in user code
 struct gkyl_moment_app {
-    char name[128]; // name of app
-    int ndim; // space dimensions
-    double tcurr; // current time
-    double cfl; // CFL number
+  char name[128]; // name of app
+  int ndim; // space dimensions
+  double tcurr; // current time
+  double cfl; // CFL number
 
-    int num_periodic_dir; // number of periodic directions
-    int periodic_dirs[3]; // list of periodic directions
+  int num_periodic_dir; // number of periodic directions
+  int periodic_dirs[3]; // list of periodic directions
 
-    enum gkyl_moment_fluid_scheme fluid_scheme; // scheme to update fluid equations
+  enum gkyl_moment_fluid_scheme fluid_scheme; // scheme to update fluid equations
     
-    struct gkyl_rect_grid grid; // grid
-    struct gkyl_range local, local_ext; // local, local-ext ranges
+  struct gkyl_rect_grid grid; // grid
+  struct gkyl_range local, local_ext; // local, local-ext ranges
 
-    struct skin_ghost_ranges skin_ghost; // conf-space skin/ghost
+  struct skin_ghost_ranges skin_ghost; // conf-space skin/ghost
 
-    int has_field; // flag to indicate if we have a field
-    struct moment_field field; // field data
+  int has_field; // flag to indicate if we have a field
+  struct moment_field field; // field data
     
-    // species data
-    int num_species;
-    struct moment_species *species; // species data
+  // species data
+  int num_species;
+  struct moment_species *species; // species data
 
-    int update_sources; // flag to indicate if sources are to be updated
-    struct moment_coupling sources; // sources
+  int update_sources; // flag to indicate if sources are to be updated
+  struct moment_coupling sources; // sources
     
-    struct gkyl_moment_stat stat; // statistics
+  struct gkyl_moment_stat stat; // statistics
 };
 
 // allocate array (filled with zeros)

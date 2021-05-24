@@ -6,7 +6,7 @@
 #include <gkyl_wv_iso_euler.h>
 
 struct iso_euler_ctx {
-    double cs; // sound speed
+  double cs; // sound speed
 };
 
 void

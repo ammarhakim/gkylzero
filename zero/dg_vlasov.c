@@ -137,15 +137,15 @@ static struct { vlasov_accel_surf_t kernels[3]; } accel_surf_vz_kernels[] = {
 };
 
 struct dg_vlasov {
-    struct gkyl_dg_eqn eqn; // Base object
-    int cdim; // Config-space dimensions
-    int pdim; // Phase-space dimensions
-    vlasov_vol_t vol; // Volume kernel
-    vlasov_stream_surf_t stream_surf[3]; // Surface terms for streaming
-    vlasov_accel_surf_t accel_surf[3]; // Surface terms for acceleration
+  struct gkyl_dg_eqn eqn; // Base object
+  int cdim; // Config-space dimensions
+  int pdim; // Phase-space dimensions
+  vlasov_vol_t vol; // Volume kernel
+  vlasov_stream_surf_t stream_surf[3]; // Surface terms for streaming
+  vlasov_accel_surf_t accel_surf[3]; // Surface terms for acceleration
 
-    struct gkyl_range conf_range; // configuration space range
-    const struct gkyl_array *qmem; // Pointer to q/m*EM field
+  struct gkyl_range conf_range; // configuration space range
+  const struct gkyl_array *qmem; // Pointer to q/m*EM field
 };
 
 static void

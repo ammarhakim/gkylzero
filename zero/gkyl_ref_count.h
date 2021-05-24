@@ -9,8 +9,8 @@
  * Object holding use count and pointer to destructor function.
  */
 struct gkyl_ref_count {
-    void (*free)(const struct gkyl_ref_count* );
-    int count;
+  void (*free)(const struct gkyl_ref_count* );
+  int count;
 };
 
 /**

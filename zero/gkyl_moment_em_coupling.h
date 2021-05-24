@@ -9,16 +9,16 @@
 #include <gkyl_util.h>
 
 struct gkyl_moment_em_coupling_data {
-    enum gkyl_eqn_type type;
-    double charge; // species charge
-    double mass; // species mass
+  enum gkyl_eqn_type type;
+  double charge; // species charge
+  double mass; // species mass
 };
 
 struct gkyl_moment_em_coupling_inp {
-    const struct gkyl_rect_grid *grid; // grid on which to solve equations
-    int nfluids; // number of fluids
-    struct gkyl_moment_em_coupling_data param[GKYL_MAX_SPECIES]; // species data
-    double epsilon0;
+  const struct gkyl_rect_grid *grid; // grid on which to solve equations
+  int nfluids; // number of fluids
+  struct gkyl_moment_em_coupling_data param[GKYL_MAX_SPECIES]; // species data
+  double epsilon0;
 };
 
 // Object type

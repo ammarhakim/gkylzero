@@ -4,10 +4,10 @@
 
 /** Status of a step in the update process */
 struct gkyl_update_status {
-    bool success; // true if update worked, false if a fatal error
-    int next_state; // next state of update sequence
-    double dt_actual; // actual time-step taken
-    double dt_suggested; // suggested stable time-step
+  bool success; // true if update worked, false if a fatal error
+  int next_state; // next state of update sequence
+  double dt_actual; // actual time-step taken
+  double dt_suggested; // suggested stable time-step
 };
 
 /** 
@@ -21,14 +21,14 @@ enum {
 };
 
 struct gkyl_update_fsm_step {
-    void *ctx; // closure context to pass to update method
-    // function pointer to perform update step
-    struct gkyl_update_status (*u)(double tcurr, double dt, void *ctx);
+  void *ctx; // closure context to pass to update method
+  // function pointer to perform update step
+  struct gkyl_update_status (*u)(double tcurr, double dt, void *ctx);
 };
 
 struct gkyl_update_fsm {
-    int nsteps; // number of steps in sequence
-    struct gkyl_update_fsm_step *steps; // steps in sequence
+  int nsteps; // number of steps in sequence
+  struct gkyl_update_fsm_step *steps; // steps in sequence
 };
 
 /**

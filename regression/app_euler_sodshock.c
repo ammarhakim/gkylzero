@@ -6,7 +6,7 @@
 #include <gkyl_wv_euler.h>
 
 struct euler_ctx {
-    double gas_gamma; // gas constant
+  double gas_gamma; // gas constant
 };
 
 void

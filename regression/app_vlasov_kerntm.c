@@ -21,9 +21,9 @@ evalFieldFunc(double t, const double* restrict xn, double* restrict fout, void *
 }
 
 struct kerntm_inp {
-    int cdim, vdim, poly_order;
-    int ccells[3], vcells[3];
-    int nloop;
+  int cdim, vdim, poly_order;
+  int ccells[3], vcells[3];
+  int nloop;
 };
 
 struct kerntm_inp

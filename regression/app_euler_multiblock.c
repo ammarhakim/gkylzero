@@ -27,11 +27,11 @@ static const double gas_gamma = 1.4;
 
 // ranges for use in BCs
 struct skin_ghost_ranges {
-    struct gkyl_range lower_skin[2];
-    struct gkyl_range lower_ghost[2];
+  struct gkyl_range lower_skin[2];
+  struct gkyl_range lower_ghost[2];
 
-    struct gkyl_range upper_skin[2];
-    struct gkyl_range upper_ghost[2];
+  struct gkyl_range upper_skin[2];
+  struct gkyl_range upper_ghost[2];
 };
 
 void
@@ -78,15 +78,15 @@ create_block_topo()
 
   /* Block layout
 
-    +------+
-    |0     |
-    |      |
-    +------+-----+
-    |1     |2    |
-    |      |     |
-    +------+-----+
+     +------+
+     |0     |
+     |      |
+     +------+-----+
+     |1     |2    |
+     |      |     |
+     +------+-----+
     
-   */  
+  */  
 
   // block 0
   btopo->conn[0] = (struct gkyl_block_connections) {
@@ -144,24 +144,24 @@ initFluidSod(double t, const double *xn, double* restrict fout, void *ctx)
 
 // Block data and methods on individual blocks
 struct block_data {
-    struct gkyl_rect_grid grid; // grid
-    gkyl_fv_proj *fv_proj; // project initial conditions
+  struct gkyl_rect_grid grid; // grid
+  gkyl_fv_proj *fv_proj; // project initial conditions
 
-     // extended and update ranges
-    struct gkyl_range ext_range, range;
-    // arrays for solution
-    struct gkyl_array *fdup, *f[3];
+  // extended and update ranges
+  struct gkyl_range ext_range, range;
+  // arrays for solution
+  struct gkyl_array *fdup, *f[3];
 
-    // equation system
-    struct gkyl_wv_eqn *euler;
-    // updaters
-    gkyl_wave_prop *slvr[2]; // solver in each direction
+  // equation system
+  struct gkyl_wv_eqn *euler;
+  // updaters
+  gkyl_wave_prop *slvr[2]; // solver in each direction
 
-    struct skin_ghost_ranges skin_ghost; // conf-space skin/ghost
-    struct gkyl_array *bc_buffer; // buffer for use in block BCs
+  struct skin_ghost_ranges skin_ghost; // conf-space skin/ghost
+  struct gkyl_array *bc_buffer; // buffer for use in block BCs
 
-    // boundary conditions on lower/upper edges in each direction
-    gkyl_rect_apply_bc *lower_bc[2], *upper_bc[2];
+  // boundary conditions on lower/upper edges in each direction
+  gkyl_rect_apply_bc *lower_bc[2], *upper_bc[2];
 };
 
 void
@@ -342,7 +342,7 @@ update_all_blocks(const struct gkyl_block_topo *btopo, const struct block_data b
 }
 
 struct sim_stats {
-    int nfail;
+  int nfail;
 };
 
 // function that takes a time-step

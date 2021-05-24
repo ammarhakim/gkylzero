@@ -6,7 +6,7 @@
 #include <gkyl_wv_euler.h>
 
 struct euler_ctx {
-    double gas_gamma; // gas constant
+  double gas_gamma; // gas constant
 };
 
 void
@@ -41,10 +41,10 @@ evalEulerInit(double t, const double * restrict xn, double* restrict fout, void 
   }
   else {
     if (x<sloc) {
-        pr = loLeft[1];
-        rho = loLeft[2];
-        u = loLeft[3];
-        v = loLeft[4];
+      pr = loLeft[1];
+      rho = loLeft[2];
+      u = loLeft[3];
+      v = loLeft[4];
     }
     else {
       pr = loRight[1];

@@ -17,10 +17,10 @@ void evalFunc(double t, const double *xn, double* restrict fout, void *ctx)
 }
 
 struct thread_data {
-    struct gkyl_range range; // thread-specific range
+  struct gkyl_range range; // thread-specific range
     
-    gkyl_proj_on_basis *proj; // shared updater
-    struct gkyl_array *f; // shared field
+  gkyl_proj_on_basis *proj; // shared updater
+  struct gkyl_array *f; // shared field
 };
 
 void*

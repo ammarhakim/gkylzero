@@ -5,15 +5,15 @@
 #include <gkyl_vlasov.h>
 
 struct weibel_ctx {
-    // parameters for plasma streams
-    double nElc10, nElc20;
-    double vthElc10, vthElc20;
-    double uxElc10, uxElc20;
-    double uyElc10, uyElc20;
+  // parameters for plasma streams
+  double nElc10, nElc20;
+  double vthElc10, vthElc20;
+  double uxElc10, uxElc20;
+  double uyElc10, uyElc20;
 
-    // perturbation parameters
-    double k0;
-    double perturb;
+  // perturbation parameters
+  double k0;
+  double perturb;
 };
 
 inline double

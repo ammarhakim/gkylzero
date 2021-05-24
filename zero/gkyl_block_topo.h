@@ -13,23 +13,23 @@ enum gkyl_oriented_edge {
 
 // Connection to a given target edge
 struct gkyl_target_edge {
-    int bid; // block ID of target edge
-    int dir; // logical direction of target edge
-    enum gkyl_oriented_edge edge; // edge+orientaton of target edge
+  int bid; // block ID of target edge
+  int dir; // logical direction of target edge
+  enum gkyl_oriented_edge edge; // edge+orientaton of target edge
 };
 
 // Connections of a block in each direction and along each edge (0:
 // lower, 1:upper)
 struct gkyl_block_connections {
-    struct gkyl_target_edge connections[GKYL_MAX_CDIM][2];
+  struct gkyl_target_edge connections[GKYL_MAX_CDIM][2];
 };
 
 // Connectivity information for all blocks, describing topology of
 // blocks
 struct gkyl_block_topo {
-    int ndim; // dimension
-    int num_blocks; // total number of blocks
-    struct gkyl_block_connections *conn; // connection info for each block
+  int ndim; // dimension
+  int num_blocks; // total number of blocks
+  struct gkyl_block_connections *conn; // connection info for each block
 };
 
 /**
