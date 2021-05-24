@@ -244,16 +244,16 @@ sync_blocks(const struct gkyl_block_topo *btopo, const struct block_data bdata[]
         switch (te[0].edge) {
           case GKYL_LOWER_POSITIVE:
           case GKYL_LOWER_NEGATIVE:
-              gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &bdata[tbid].skin_ghost.lower_ghost[tdir]);
-              break;
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &bdata[tbid].skin_ghost.lower_ghost[tdir]);
+            break;
 
           case GKYL_UPPER_POSITIVE:
           case GKYL_UPPER_NEGATIVE:
-              gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &bdata[tbid].skin_ghost.upper_ghost[tdir]);
-              break;
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &bdata[tbid].skin_ghost.upper_ghost[tdir]);
+            break;
 
           default:
-              ;
+            ;
         }
       }
 
@@ -272,16 +272,16 @@ sync_blocks(const struct gkyl_block_topo *btopo, const struct block_data bdata[]
         switch (te[1].edge) {
           case GKYL_LOWER_POSITIVE:
           case GKYL_LOWER_NEGATIVE:
-              gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &bdata[tbid].skin_ghost.lower_ghost[tdir]);
-              break;
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &bdata[tbid].skin_ghost.lower_ghost[tdir]);
+            break;
 
           case GKYL_UPPER_POSITIVE:
           case GKYL_UPPER_NEGATIVE:
-              gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &bdata[tbid].skin_ghost.upper_ghost[tdir]);
-              break;
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &bdata[tbid].skin_ghost.upper_ghost[tdir]);
+            break;
 
           default:
-              ;
+            ;
         }
       }      
     }
@@ -366,49 +366,49 @@ update(const struct gkyl_block_topo *btopo, const struct block_data bdata[],
   while (state != UPDATE_DONE) {
     switch (state) {
       case PRE_UPDATE:
-          state = FLUID_UPDATE; // next state
+        state = FLUID_UPDATE; // next state
           
-          // copy old solution in case we need to redo this step
-          for (int i=0; i<num_blocks; ++i)
-            gkyl_array_copy(bdata[i].fdup, bdata[i].f[0]);
+        // copy old solution in case we need to redo this step
+        for (int i=0; i<num_blocks; ++i)
+          gkyl_array_copy(bdata[i].fdup, bdata[i].f[0]);
 
-          break;
+        break;
           
       
       case FLUID_UPDATE:
-          state = POST_UPDATE; // next state
+        state = POST_UPDATE; // next state
           
-          struct gkyl_update_status s = update_all_blocks(btopo, bdata, tcurr, dt);
-          if (!s.success) {
-            stats->nfail += 1;
-            dt = s.dt_suggested;
-            state = UPDATE_REDO;
-            break;
-          }
-          dt_suggested = fmin(dt_suggested, s.dt_suggested);
-
+        struct gkyl_update_status s = update_all_blocks(btopo, bdata, tcurr, dt);
+        if (!s.success) {
+          stats->nfail += 1;
+          dt = s.dt_suggested;
+          state = UPDATE_REDO;
           break;
+        }
+        dt_suggested = fmin(dt_suggested, s.dt_suggested);
+
+        break;
 
       case POST_UPDATE:
-          state = UPDATE_DONE;
+        state = UPDATE_DONE;
 
-          // copy solution in prep for next time-step
-          for (int i=0; i<num_blocks; ++i)
-            gkyl_array_copy(bdata[i].f[0], bdata[i].f[2]);
+        // copy solution in prep for next time-step
+        for (int i=0; i<num_blocks; ++i)
+          gkyl_array_copy(bdata[i].f[0], bdata[i].f[2]);
           
-          break;
+        break;
 
       case UPDATE_REDO:
-          state = PRE_UPDATE; // start all-over again
+        state = PRE_UPDATE; // start all-over again
           
-          // restore solution and retake step
-          for (int i=0; i<num_blocks; ++i)
-            gkyl_array_copy(bdata[i].f[0], bdata[i].fdup);
+        // restore solution and retake step
+        for (int i=0; i<num_blocks; ++i)
+          gkyl_array_copy(bdata[i].f[0], bdata[i].fdup);
           
-          break;
+        break;
 
       case UPDATE_DONE: // unreachable code! (suppresses warning)
-          break;
+        break;
     }
   }
 

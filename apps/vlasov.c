@@ -661,83 +661,83 @@ rk3(gkyl_vlasov_app* app, double dt0)
   while (state != RK_COMPLETE) {
     switch (state) {
       case RK_STAGE_1:
-          for (int i=0; i<app->num_species; ++i) {
-            fin[i] = app->species[i].f;
-            fout[i] = app->species[i].f1;
-          }
-          forward_euler(app, tcurr, dt, fin, app->field.em, fout, app->field.em1, &st);
-          dt = st.dt_actual;
-          state = RK_STAGE_2;
-          break;
+        for (int i=0; i<app->num_species; ++i) {
+          fin[i] = app->species[i].f;
+          fout[i] = app->species[i].f1;
+        }
+        forward_euler(app, tcurr, dt, fin, app->field.em, fout, app->field.em1, &st);
+        dt = st.dt_actual;
+        state = RK_STAGE_2;
+        break;
 
       case RK_STAGE_2:
-          for (int i=0; i<app->num_species; ++i) {
-            fin[i] = app->species[i].f1;
-            fout[i] = app->species[i].fnew;
-          }
-          forward_euler(app, tcurr+dt, dt, fin, app->field.em1, fout, app->field.emnew, &st);
-          if (st.dt_actual < dt) {
+        for (int i=0; i<app->num_species; ++i) {
+          fin[i] = app->species[i].f1;
+          fout[i] = app->species[i].fnew;
+        }
+        forward_euler(app, tcurr+dt, dt, fin, app->field.em1, fout, app->field.emnew, &st);
+        if (st.dt_actual < dt) {
 
-            // collect stats
-            double dt_rel_diff = (dt-st.dt_actual)/st.dt_actual;
-            app->stat.stage_2_dt_diff[0] = fmin(app->stat.stage_2_dt_diff[0],
-              dt_rel_diff);
-            app->stat.stage_2_dt_diff[1] = fmax(app->stat.stage_2_dt_diff[1],
-              dt_rel_diff);
-            app->stat.nstage_2_fail += 1;
+          // collect stats
+          double dt_rel_diff = (dt-st.dt_actual)/st.dt_actual;
+          app->stat.stage_2_dt_diff[0] = fmin(app->stat.stage_2_dt_diff[0],
+            dt_rel_diff);
+          app->stat.stage_2_dt_diff[1] = fmax(app->stat.stage_2_dt_diff[1],
+            dt_rel_diff);
+          app->stat.nstage_2_fail += 1;
             
-            dt = st.dt_actual;
-            state = RK_STAGE_1; // restart from stage 1
+          dt = st.dt_actual;
+          state = RK_STAGE_1; // restart from stage 1
 
-          }
-          else {
-            for (int i=0; i<app->num_species; ++i)
-              array_combine(app->species[i].f1,
-                3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew, &app->species[i].local_ext);
-            array_combine(app->field.em1,
-              3.0/4.0, app->field.em, 1.0/4.0, app->field.emnew, &app->local_ext);
+        }
+        else {
+          for (int i=0; i<app->num_species; ++i)
+            array_combine(app->species[i].f1,
+              3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew, &app->species[i].local_ext);
+          array_combine(app->field.em1,
+            3.0/4.0, app->field.em, 1.0/4.0, app->field.emnew, &app->local_ext);
 
-            state = RK_STAGE_3;
-          }
-          break;
+          state = RK_STAGE_3;
+        }
+        break;
 
       case RK_STAGE_3:
+        for (int i=0; i<app->num_species; ++i) {
+          fin[i] = app->species[i].f1;
+          fout[i] = app->species[i].fnew;
+        }
+        forward_euler(app, tcurr+dt/2, dt, fin, app->field.em1, fout, app->field.emnew, &st);
+        if (st.dt_actual < dt) {
+
+          // collect stats
+          double dt_rel_diff = (dt-st.dt_actual)/st.dt_actual;
+          app->stat.stage_3_dt_diff[0] = fmin(app->stat.stage_3_dt_diff[0],
+            dt_rel_diff);
+          app->stat.stage_3_dt_diff[1] = fmax(app->stat.stage_3_dt_diff[1],
+            dt_rel_diff);
+          app->stat.nstage_3_fail += 1;
+            
+          dt = st.dt_actual;
+          state = RK_STAGE_1; // restart from stage 1
+            
+          app->stat.nstage_2_fail += 1;
+        }
+        else {
           for (int i=0; i<app->num_species; ++i) {
-            fin[i] = app->species[i].f1;
-            fout[i] = app->species[i].fnew;
+            array_combine(app->species[i].f1,
+              1.0/3.0, app->species[i].f, 2.0/3.0, app->species[i].fnew, &app->species[i].local_ext);
+            gkyl_array_copy_range(app->species[i].f, app->species[i].f1, &app->species[i].local_ext);
           }
-          forward_euler(app, tcurr+dt/2, dt, fin, app->field.em1, fout, app->field.emnew, &st);
-          if (st.dt_actual < dt) {
+          array_combine(app->field.em1,
+            1.0/3.0, app->field.em, 2.0/3.0, app->field.emnew, &app->local_ext);
+          gkyl_array_copy_range(app->field.em, app->field.em1, &app->local_ext);
 
-            // collect stats
-            double dt_rel_diff = (dt-st.dt_actual)/st.dt_actual;
-            app->stat.stage_3_dt_diff[0] = fmin(app->stat.stage_3_dt_diff[0],
-              dt_rel_diff);
-            app->stat.stage_3_dt_diff[1] = fmax(app->stat.stage_3_dt_diff[1],
-              dt_rel_diff);
-            app->stat.nstage_3_fail += 1;
-            
-            dt = st.dt_actual;
-            state = RK_STAGE_1; // restart from stage 1
-            
-            app->stat.nstage_2_fail += 1;
-          }
-          else {
-            for (int i=0; i<app->num_species; ++i) {
-              array_combine(app->species[i].f1,
-                1.0/3.0, app->species[i].f, 2.0/3.0, app->species[i].fnew, &app->species[i].local_ext);
-              gkyl_array_copy_range(app->species[i].f, app->species[i].f1, &app->species[i].local_ext);
-            }
-            array_combine(app->field.em1,
-              1.0/3.0, app->field.em, 2.0/3.0, app->field.emnew, &app->local_ext);
-            gkyl_array_copy_range(app->field.em, app->field.em1, &app->local_ext);
-
-            state = RK_COMPLETE;
-          }
-          break;
+          state = RK_COMPLETE;
+        }
+        break;
 
       case RK_COMPLETE: // can't happen: suppresses warning
-          break;
+        break;
     }
   }
   

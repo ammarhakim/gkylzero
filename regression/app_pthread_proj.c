@@ -39,15 +39,15 @@ parse_args(int argc, char **argv)
     switch (c)
     {
       case 'h':
-          nthread = 0;
-          break;
+        nthread = 0;
+        break;
 
       case 'n':
-          nthread = atoi(optarg);
-          break;
+        nthread = atoi(optarg);
+        break;
 
       case '?':
-          return 0;
+        return 0;
     }
   return nthread;
 }

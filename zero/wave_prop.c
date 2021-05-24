@@ -40,32 +40,32 @@ limiter_function(double r, enum gkyl_wave_limiter limiter)
   double theta = 0.0;
   switch (limiter) {
     case GKYL_NO_LIMITER:
-        theta = 1.0;
-        break;
+      theta = 1.0;
+      break;
     
     case GKYL_MIN_MOD:
-        theta = fmax(0, fmin(1, r));
-        break;
+      theta = fmax(0, fmin(1, r));
+      break;
 
     case GKYL_SUPERBEE:
-        theta = fmax3(0.0, fmin(1, 2*r), fmin(2.0, r));
-        break;
+      theta = fmax3(0.0, fmin(1, 2*r), fmin(2.0, r));
+      break;
 
     case GKYL_VAN_LEER:
-        theta = (r+fabs(r))/(1+fabs(r));
-        break;
+      theta = (r+fabs(r))/(1+fabs(r));
+      break;
 
     case GKYL_MONOTONIZED_CENTERED:
-        theta = fmax(0.0, fmin3((1.0+r)/2, 2, 2*r));
-        break;
+      theta = fmax(0.0, fmin3((1.0+r)/2, 2, 2*r));
+      break;
 
     case GKYL_BEAM_WARMING:
-        theta = r;
-        break;
+      theta = r;
+      break;
 
     case GKYL_ZERO:
-        theta = 0;
-        break;
+      theta = 0;
+      break;
   }
   return theta;
 }

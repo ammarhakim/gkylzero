@@ -34,28 +34,28 @@ get_inp(int argc, char **argv)
     switch (c)
     {
       case 'h':
-          printf("Usage: app_vlasov_kerntm -c CDIM -v VDIM -p POLYORDER -n NLOOP\n");
-          exit(-1);
-          break;
+        printf("Usage: app_vlasov_kerntm -c CDIM -v VDIM -p POLYORDER -n NLOOP\n");
+        exit(-1);
+        break;
       
       case 'c':
-          cdim = atoi(optarg);
-          break;
+        cdim = atoi(optarg);
+        break;
 
       case 'v':
-          vdim = atoi(optarg);
-          break;
+        vdim = atoi(optarg);
+        break;
 
       case 'p':
-          poly_order = atoi(optarg);
-          break;
+        poly_order = atoi(optarg);
+        break;
 
       case 'n':
-          nloop = atoi(optarg);
-          break;          
+        nloop = atoi(optarg);
+        break;          
 
       case '?':
-          break;
+        break;
     }
   
   return (struct kerntm_inp) {
