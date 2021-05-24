@@ -20,8 +20,10 @@ Documentation is available at http://gkeyll.rtfd.io.
 You can install the code in two ways, depending on what you want to do
 with it. First, if you want to use the code as a library or run
 simulations you should be using a released *deployment version*
-shipped as a zip file. Get the zip file, unzip it and cd to it:
+shipped as a zip file. Get the zip file, unzip it and cd to it. Or,
+if you have cloned this repo then do:
 ```
+  sh mkdist.sh
   cd gkylzero-dist
   make install
 ```
@@ -31,6 +33,10 @@ serial; MPI for parallel and BLAS/LAPACK for linear algebra for some
 solvers). You can set the compiler you want to use as:
 ```
     make CC=icc install 
+```
+or
+```
+    make CC=nvcc
 ```
 
 You can run the unit tests from the deployment directory as:
