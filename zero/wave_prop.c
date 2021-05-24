@@ -9,16 +9,16 @@
 #include <gkyl_wave_prop.h>
 
 struct gkyl_wave_prop {
-    struct gkyl_rect_grid grid; // grid object
-    int ndim; // number of dimensions
-    int num_up_dirs; // number of update directions
-    int update_dirs[GKYL_MAX_DIM]; // directions to update
-    enum gkyl_wave_limiter limiter; // limiter to use
-    double cfl; // CFL number
-    const struct gkyl_wv_eqn *equation; // equation object
+  struct gkyl_rect_grid grid; // grid object
+  int ndim; // number of dimensions
+  int num_up_dirs; // number of update directions
+  int update_dirs[GKYL_MAX_DIM]; // directions to update
+  enum gkyl_wave_limiter limiter; // limiter to use
+  double cfl; // CFL number
+  const struct gkyl_wv_eqn *equation; // equation object
 
-    // data for 1D slice update
-    struct gkyl_array *waves, *speeds, *flux2;
+  // data for 1D slice update
+  struct gkyl_array *waves, *speeds, *flux2;
 };
 
 static inline double

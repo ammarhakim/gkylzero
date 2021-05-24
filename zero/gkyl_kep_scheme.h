@@ -10,10 +10,10 @@
 typedef struct gkyl_kep_scheme gkyl_kep_scheme;
 
 struct gkyl_kep_scheme_inp {
-    const struct gkyl_rect_grid *grid; // grid on which to solve equations
-    const struct gkyl_wv_eqn *equation; // equation solver
-    int num_up_dirs; // number of update directions
-    int update_dirs[GKYL_MAX_DIM]; // directions to update
+  const struct gkyl_rect_grid *grid; // grid on which to solve equations
+  const struct gkyl_wv_eqn *equation; // equation solver
+  int num_up_dirs; // number of update directions
+  int update_dirs[GKYL_MAX_DIM]; // directions to update
 };
 
 /**

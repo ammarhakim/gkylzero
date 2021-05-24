@@ -5,73 +5,73 @@
 
 // Parameters for Vlasov species
 struct gkyl_vlasov_species {
-    char name[128]; // species name
-    double charge, mass; // charge and mass
-    double lower[3], upper[3]; // lower, upper bounds of velocity-space
-    int cells[3]; // velocity-space cells
+  char name[128]; // species name
+  double charge, mass; // charge and mass
+  double lower[3], upper[3]; // lower, upper bounds of velocity-space
+  int cells[3]; // velocity-space cells
 
-    int evolve; // evolve species? 1-yes, 0-no
+  int evolve; // evolve species? 1-yes, 0-no
 
-    void *ctx; // context for initial condition init function
-    // pointer to initialization function
-    void (*init)(double t, const double *xn, double *fout, void *ctx);
+  void *ctx; // context for initial condition init function
+  // pointer to initialization function
+  void (*init)(double t, const double *xn, double *fout, void *ctx);
 
-    int num_diag_moments; // number of diagnostic moments
-    char diag_moments[16][16]; // list of diagnostic moments
+  int num_diag_moments; // number of diagnostic moments
+  char diag_moments[16][16]; // list of diagnostic moments
 };
 
 // Parameter for EM field
 struct gkyl_vlasov_field {
-    double epsilon0, mu0;
-    double elcErrorSpeedFactor, mgnErrorSpeedFactor;
+  double epsilon0, mu0;
+  double elcErrorSpeedFactor, mgnErrorSpeedFactor;
 
-    int evolve; // evolve field? 1-yes, 0-no
+  int evolve; // evolve field? 1-yes, 0-no
 
-    void *ctx; // context for initial condition init function
-    // pointer to initialization function
-    void (*init)(double t, const double *xn, double *fout, void *ctx);
+  void *ctx; // context for initial condition init function
+  // pointer to initialization function
+  void (*init)(double t, const double *xn, double *fout, void *ctx);
 };
 
 // Top-level app parameters
 struct gkyl_vm {
-    char name[128]; // name of app: used as output prefix
+  char name[128]; // name of app: used as output prefix
 
-    int cdim, vdim; // conf, velocity space dimensions
-    double lower[3], upper[3]; // lower, upper bounds of config-space
-    int cells[3]; // config-space cells
-    int poly_order; // polynomial order
+  int cdim, vdim; // conf, velocity space dimensions
+  double lower[3], upper[3]; // lower, upper bounds of config-space
+  int cells[3]; // config-space cells
+  int poly_order; // polynomial order
 
-    double cfl_frac; // CFL fraction to use (default 1.0)
+  double cfl_frac; // CFL fraction to use (default 1.0)
 
-    int num_periodic_dir; // number of periodic directions
-    int periodic_dirs[3]; // list of periodic directions
+  int num_periodic_dir; // number of periodic directions
+  int periodic_dirs[3]; // list of periodic directions
 
-    int num_species; // number of species
-    struct gkyl_vlasov_species species[GKYL_MAX_SPECIES]; // species objects
-    struct gkyl_vlasov_field field; // field object
+  int num_species; // number of species
+  struct gkyl_vlasov_species species[GKYL_MAX_SPECIES]; // species objects
+  struct gkyl_vlasov_field field; // field object
 };
 
 // Simulation statistics
 struct gkyl_vlasov_stat {
-    long nup; // calls to update
-    long nfeuler; // calls to forward-Euler method
+  long nup; // calls to update
+  long nfeuler; // calls to forward-Euler method
     
-    long nstage_2_fail; // number of failed RK stage-2s
-    long nstage_3_fail; // number of failed RK stage-3s
+  long nstage_2_fail; // number of failed RK stage-2s
+  long nstage_3_fail; // number of failed RK stage-3s
 
-    double stage_2_dt_diff[2]; // [min,max] rel-diff for stage-2 failure
-    double stage_3_dt_diff[2]; // [min,max] rel-diff for stage-3 failure
+  double stage_2_dt_diff[2]; // [min,max] rel-diff for stage-2 failure
+  double stage_3_dt_diff[2]; // [min,max] rel-diff for stage-3 failure
     
-    double total_tm; // time for simulation (not including ICs)
-    double init_species_tm; // time to initialize all species
-    double init_field_tm; // time to initialize fields
+  double total_tm; // time for simulation (not including ICs)
+  double init_species_tm; // time to initialize all species
+  double init_field_tm; // time to initialize fields
 
-    double species_rhs_tm; // time to compute species RHS
-    double field_rhs_tm; // time to compute field RHS
-    double current_tm; // time to compute currents and accumulation
+  double species_rhs_tm; // time to compute species RHS
+  double field_rhs_tm; // time to compute field RHS
+  double current_tm; // time to compute currents and accumulation
 
-    long nmom; // calls to moment calculation
-    double mom_tm; // time to compute moments
+  long nmom; // calls to moment calculation
+  double mom_tm; // time to compute moments
 };
 
 // Object representing Vlasov app

@@ -29,8 +29,8 @@ static const int dir_p_shuffle[][6] = {
 double
 gkyl_ten_moment_max_abs_speed(int dir, const double q[10])
 {
-  const int *d = dir_u_shuffle[dir];
-  const int *dp = dir_p_shuffle[dir];
+  int const *const d = dir_u_shuffle[dir];
+  int const *const dp = dir_p_shuffle[dir];
 
   double u = q[RHOU]/q[0];
   double p11 = q[PXX] - q[0]*u*u;
@@ -40,8 +40,8 @@ gkyl_ten_moment_max_abs_speed(int dir, const double q[10])
 void
 gkyl_ten_moment_flux(int dir, const double q[10], double flux[10])
 {
-  const int *d = dir_u_shuffle[dir];
-  const int *dp = dir_p_shuffle[dir];
+  int const *const d = dir_u_shuffle[dir];
+  int const *const dp = dir_p_shuffle[dir];
 
   double v[10];
   gkyl_ten_moment_primitive(q, v);

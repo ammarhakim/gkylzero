@@ -20,13 +20,13 @@ typedef double (*wv_max_speed_t)(const struct gkyl_wv_eqn *eqn,
   int dir, const double *q);
 
 struct gkyl_wv_eqn {
-    enum gkyl_eqn_type type; // Equation type
-    int num_equations; // number of equations in system
-    int num_waves; // number of waves in system
-    wv_waves_t waves_func; // function to compute waves and speeds
-    wv_qfluct_t qfluct_func; // function to compute q-fluctuations
-    wv_max_speed_t max_speed_func; // function to compute max-speed
-    struct gkyl_ref_count ref_count; // reference count
+  enum gkyl_eqn_type type; // Equation type
+  int num_equations; // number of equations in system
+  int num_waves; // number of waves in system
+  wv_waves_t waves_func; // function to compute waves and speeds
+  wv_qfluct_t qfluct_func; // function to compute q-fluctuations
+  wv_max_speed_t max_speed_func; // function to compute max-speed
+  struct gkyl_ref_count ref_count; // reference count
 };
 
 /**

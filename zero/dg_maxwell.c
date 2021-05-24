@@ -44,10 +44,10 @@ static struct { maxwell_surf_t kernels[3]; } surf_z_kernels[] = {
 };
 
 struct dg_maxwell {
-    struct gkyl_dg_eqn eqn; // Base object    
-    gkyl_maxwell_inp maxwell_data; // Parameters needed by kernels
-    maxwell_vol_t vol; // pointer to volume kernel
-    maxwell_surf_t surf[3]; // pointers to surface kernels
+  struct gkyl_dg_eqn eqn; // Base object    
+  gkyl_maxwell_inp maxwell_data; // Parameters needed by kernels
+  maxwell_vol_t vol; // pointer to volume kernel
+  maxwell_surf_t surf[3]; // pointers to surface kernels
 };
 
 static void

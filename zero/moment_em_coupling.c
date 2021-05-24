@@ -26,11 +26,11 @@ static const unsigned PHIE = 6;
 static const unsigned PHIM = 7;
 
 struct gkyl_moment_em_coupling {
-    struct gkyl_rect_grid grid; // grid object
-    int ndim; // number of dimensions
-    int nfluids; // number of fluids in multi-fluid system
-    struct gkyl_moment_em_coupling_data param[GKYL_MAX_SPECIES]; // struct of fluid parameters
-    double epsilon0; // permittivity of free space
+  struct gkyl_rect_grid grid; // grid object
+  int ndim; // number of dimensions
+  int nfluids; // number of fluids in multi-fluid system
+  struct gkyl_moment_em_coupling_data param[GKYL_MAX_SPECIES]; // struct of fluid parameters
+  double epsilon0; // permittivity of free space
 };
 
 // Rotate pressure tensor using magnetic field. See Wang
@@ -285,7 +285,7 @@ gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
   struct gkyl_array *fluid[], struct gkyl_array *app_accel[],
   struct gkyl_array *em, struct gkyl_array *app_current, struct gkyl_array *ext_em)
 {
-  int ndim = mes->ndim, nfluids = mes->nfluids;
+  int nfluids = mes->nfluids;
   double *fluids[GKYL_MAX_SPECIES];
   double *app_accels[GKYL_MAX_SPECIES];
 

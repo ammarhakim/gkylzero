@@ -38,17 +38,17 @@ enum gkyl_edge_loc { GKYL_LOWER_EDGE = 0, GKYL_UPPER_EDGE  = 1 };
  * set. Lower and upper limits are inclusive.
  */
 struct gkyl_range {
-    int ndim; // number of dimension
-    int lower[GKYL_MAX_DIM]; // lower bound
-    int upper[GKYL_MAX_DIM]; // upper bound (inclusive)
-    long volume; // total volume of range
+  int ndim; // number of dimension
+  int lower[GKYL_MAX_DIM]; // lower bound
+  int upper[GKYL_MAX_DIM]; // upper bound (inclusive)
+  long volume; // total volume of range
     
-    // do not access directly
-    uint32_t flags; // Flags for internal use
-    int ilo[GKYL_MAX_DIM]; // for use in inverse indexer
-    long ac[GKYL_MAX_DIM+1]; // coefficients for indexing
-    long linIdxZero; // linear index of {0,0,...}
-    int nsplit, tid; // number of splits, split ID
+  // do not access directly
+  uint32_t flags; // Flags for internal use
+  int ilo[GKYL_MAX_DIM]; // for use in inverse indexer
+  long ac[GKYL_MAX_DIM+1]; // coefficients for indexing
+  long linIdxZero; // linear index of {0,0,...}
+  int nsplit, tid; // number of splits, split ID
 };
 
 /**
@@ -56,20 +56,20 @@ struct gkyl_range {
  * must not modify it or any other members of this struct.
  */
 struct gkyl_range_iter {
-    int idx[GKYL_MAX_DIM]; // current index (do not modify)
+  int idx[GKYL_MAX_DIM]; // current index (do not modify)
 
-    // do not access
-    int is_first, ndim;
-    long bumps_left;
-    int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+  // do not access
+  int is_first, ndim;
+  long bumps_left;
+  int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
 };
 
 /**
  * Skip-list based iterator object.
  */
 struct gkyl_range_skip_iter {
-    long delta; // number of contiguous elements
-    struct gkyl_range range; // outer range for iteration
+  long delta; // number of contiguous elements
+  struct gkyl_range range; // outer range for iteration
 };
 
 /**
@@ -177,13 +177,13 @@ void gkyl_range_deflate(struct gkyl_range* srng,
  * 'len'. The shortened range has the same dimensions and the same
  * start index in 'dir'.
  *
- * @param srng Shortned range.
- * @param rng Range object to shorten
+ * @param rng Shortned range.
+ * @param range Range object to shorten
  * @param dir Direction to shorten
  * @param len Length of shortened direction
  */
-void gkyl_range_shorten(struct gkyl_range* srng,
-  const struct gkyl_range* rng, int dir, int len);
+void gkyl_range_shorten(struct gkyl_range *rng,
+  const struct gkyl_range* range, int dir, int len);
 
 /**
  * Return range in direction 'dir' which corresponds to the "lower

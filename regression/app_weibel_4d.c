@@ -4,16 +4,16 @@
 #include <gkyl_vlasov.h>
 
 struct weibel_ctx {
-    // parameters for plasma streams
-    double nElc10, nElc20;
-    double vthElc10, vthElc20;
-    double uxElc10, uxElc20;
-    double uyElc10, uyElc20;
+  // parameters for plasma streams
+  double nElc10, nElc20;
+  double vthElc10, vthElc20;
+  double uxElc10, uxElc20;
+  double uyElc10, uyElc20;
 
-    // perturbation parameters
-    double kx, ky;
-    double alpha; // ratio of E_y/E_x
-    double perturb_n;
+  // perturbation parameters
+  double kx, ky;
+  double alpha; // ratio of E_y/E_x
+  double perturb_n;
 };
 
 inline double
@@ -70,7 +70,7 @@ create_ctx(void)
 
   double massElc = 1.0, R = 0.333333333333333;
   double TElc10 = massElc*R*ud*R*ud;
-  double TElc20 = massElc*R*ud*R*ud;
+  double TElc20 = TElc10;
   double vthElc10 = sqrt(TElc10/massElc);
   double vthElc20 = sqrt(TElc20/massElc);  
   

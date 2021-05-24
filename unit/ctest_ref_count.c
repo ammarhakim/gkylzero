@@ -7,8 +7,8 @@
 static int free_called = 0;
 
 struct range {
-    int value;
-    struct gkyl_ref_count ref_count;
+  int value;
+  struct gkyl_ref_count ref_count;
 };
 
 void

@@ -4,8 +4,8 @@
  * Basis function object: treat this as a read-only object.
  */
 struct gkyl_basis {
-    unsigned ndim, polyOrder, numBasis;
-    char id[64]; // "serendipity", "tensor", "maximal-order"
+  unsigned ndim, polyOrder, numBasis;
+  char id[64]; // "serendipity", "tensor", "maximal-order"
     
 /**
  * Evaluate basis in unit cell (i.e. a hypercube with each side
@@ -14,7 +14,7 @@ struct gkyl_basis {
  * @param z Location to evaluate basis. z \in [-1,1]^n
  * @param b On output, value of basis at 'z'
  */
-    void (*eval)(const double *z, double *b);
+  void (*eval)(const double *z, double *b);
 };
 
 /**

@@ -5,16 +5,16 @@
 #include <gkyl_vlasov.h>
 
 struct esshock_ctx {
-    double chargeElc; // electron charge
-    double massElc; // electron mass
-    double chargeIon; // ion charge
-    double massIon; // ion mass
-    double Te_Ti; // electron to ion temperature ratio
-    double vte; // electron thermal velocity
-    double vti; // ion thermal velocity
-    double cs; // sound speed
-    double uShock; // in-flow velocity
-    double Lx; // size of the box
+  double chargeElc; // electron charge
+  double massElc; // electron mass
+  double chargeIon; // ion charge
+  double massIon; // ion mass
+  double Te_Ti; // electron to ion temperature ratio
+  double vte; // electron thermal velocity
+  double vti; // ion thermal velocity
+  double cs; // sound speed
+  double uShock; // in-flow velocity
+  double Lx; // size of the box
 };
 
 static inline double sq(double x) { return x*x; }

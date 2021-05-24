@@ -14,37 +14,37 @@ enum gkyl_moment_bc_type {
 
 // Parameters for moment species
 struct gkyl_moment_species {
-    char name[128]; // species name
-    double charge, mass; // charge and mass
+  char name[128]; // species name
+  double charge, mass; // charge and mass
 
-    enum gkyl_wave_limiter limiter; // limiter to use
-    const struct gkyl_wv_eqn *equation; // equation object
+  enum gkyl_wave_limiter limiter; // limiter to use
+  const struct gkyl_wv_eqn *equation; // equation object
 
-    int evolve; // evolve species? 1-yes, 0-no
+  int evolve; // evolve species? 1-yes, 0-no
 
-    void *ctx; // context for initial condition init function
-    // pointer to initialization function
-    void (*init)(double t, const double *xn, double *fout, void *ctx);
+  void *ctx; // context for initial condition init function
+  // pointer to initialization function
+  void (*init)(double t, const double *xn, double *fout, void *ctx);
 
-    // boundary conditions
-    enum gkyl_moment_bc_type bcx[2], bcy[2], bcz[2];
+  // boundary conditions
+  enum gkyl_moment_bc_type bcx[2], bcy[2], bcz[2];
 };
 
 // Parameter for EM field
 struct gkyl_moment_field {
-    double epsilon0, mu0;
-    double elc_error_speed_fact, mag_error_speed_fact;
+  double epsilon0, mu0;
+  double elc_error_speed_fact, mag_error_speed_fact;
 
-    enum gkyl_wave_limiter limiter; // limiter to use
+  enum gkyl_wave_limiter limiter; // limiter to use
 
-    int evolve; // evolve field? 1-yes, 0-no
+  int evolve; // evolve field? 1-yes, 0-no
 
-    void *ctx; // context for initial condition init function
-    // pointer to initialization function
-    void (*init)(double t, const double *xn, double *fout, void *ctx);
+  void *ctx; // context for initial condition init function
+  // pointer to initialization function
+  void (*init)(double t, const double *xn, double *fout, void *ctx);
 
-    // boundary conditions
-    enum gkyl_moment_bc_type bcx[2], bcy[2], bcz[2];
+  // boundary conditions
+  enum gkyl_moment_bc_type bcx[2], bcy[2], bcz[2];
 };
 
 // Choices of schemes to use in the fluid solver 
@@ -55,33 +55,33 @@ enum gkyl_moment_fluid_scheme {
 
 // Top-level app parameters
 struct gkyl_moment {
-    char name[128]; // name of app: used as output prefix
+  char name[128]; // name of app: used as output prefix
 
-    int ndim; // space dimensions
-    double lower[3], upper[3]; // lower, upper bounds
-    int cells[3]; // config-space cells
+  int ndim; // space dimensions
+  double lower[3], upper[3]; // lower, upper bounds
+  int cells[3]; // config-space cells
 
-    double cfl_frac; // CFL fraction to use
+  double cfl_frac; // CFL fraction to use
 
-    enum gkyl_moment_fluid_scheme fluid_scheme; // scheme to update fluid equations
+  enum gkyl_moment_fluid_scheme fluid_scheme; // scheme to update fluid equations
 
-    int num_periodic_dir; // number of periodic directions
-    int periodic_dirs[3]; // list of periodic directions
+  int num_periodic_dir; // number of periodic directions
+  int periodic_dirs[3]; // list of periodic directions
 
-    int num_species; // number of species
-    struct gkyl_moment_species species[GKYL_MAX_SPECIES]; // species objects
-    struct gkyl_moment_field field; // field object
+  int num_species; // number of species
+  struct gkyl_moment_species species[GKYL_MAX_SPECIES]; // species objects
+  struct gkyl_moment_field field; // field object
 };
 
 // Simulation statistics
 struct gkyl_moment_stat {
-    long nup; // calls to update
-    long nfail; // number of failed time-steps
+  long nup; // calls to update
+  long nfail; // number of failed time-steps
 
-    double total_tm; // time for simulation (not including ICs)
-    double species_tm; // time to compute species updates
-    double field_tm; // time to compute field updates
-    double sources_tm; // time to compute source terms
+  double total_tm; // time for simulation (not including ICs)
+  double species_tm; // time to compute species updates
+  double field_tm; // time to compute field updates
+  double sources_tm; // time to compute source terms
 };
 
 // Object representing moments app

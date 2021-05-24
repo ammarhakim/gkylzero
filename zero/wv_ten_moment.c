@@ -33,20 +33,20 @@ static const int dir_p_shuffle[][6] = {
 /* Multiply by phi prime */
 static void mulByPhiPrime(double p0, double u1, double u2, double u3, const double w[10], double out[10]) 
 { 
-   out[0] = w[0]; 
-   out[1] = w[0]*u1+w[1]*p0; 
-   out[2] = w[0]*u2+w[2]*p0; 
-   out[3] = w[0]*u3+w[3]*p0; 
-   out[4] = w[0]*sq(u1)+2*w[1]*p0*u1+w[4]; 
-   out[5] = w[0]*u1*u2+w[1]*p0*u2+w[2]*p0*u1+w[5]; 
-   out[6] = w[0]*u1*u3+w[1]*p0*u3+w[3]*p0*u1+w[6]; 
-   out[7] = w[0]*sq(u2)+2*w[2]*p0*u2+w[7]; 
-   out[8] = w[0]*u2*u3+w[2]*p0*u3+w[3]*p0*u2+w[8]; 
-   out[9] = w[0]*sq(u3)+2*w[3]*p0*u3+w[9]; 
+  out[0] = w[0]; 
+  out[1] = w[0]*u1+w[1]*p0; 
+  out[2] = w[0]*u2+w[2]*p0; 
+  out[3] = w[0]*u3+w[3]*p0; 
+  out[4] = w[0]*sq(u1)+2*w[1]*p0*u1+w[4]; 
+  out[5] = w[0]*u1*u2+w[1]*p0*u2+w[2]*p0*u1+w[5]; 
+  out[6] = w[0]*u1*u3+w[1]*p0*u3+w[3]*p0*u1+w[6]; 
+  out[7] = w[0]*sq(u2)+2*w[2]*p0*u2+w[7]; 
+  out[8] = w[0]*u2*u3+w[2]*p0*u3+w[3]*p0*u2+w[8]; 
+  out[9] = w[0]*sq(u3)+2*w[3]*p0*u3+w[9]; 
 } 
 
 struct wv_ten_moment {
-    struct gkyl_wv_eqn eqn; // base object
+  struct gkyl_wv_eqn eqn; // base object
 };
 
 static void
@@ -62,7 +62,6 @@ static double
 wave_roe(const struct gkyl_wv_eqn *eqn, 
   int dir, const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
-  const struct wv_ten_moment *ten_moment = container_of(eqn, struct wv_ten_moment, eqn);
   const int *d = dir_u_shuffle[dir];
   const int *dp = dir_p_shuffle[dir];
 
@@ -223,7 +222,6 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn,
 static double
 max_speed(const struct gkyl_wv_eqn *eqn, int dir, const double *q)
 {
-  const struct wv_ten_moment *ten_moment = container_of(eqn, struct wv_ten_moment, eqn);
   return gkyl_ten_moment_max_abs_speed(dir, q);
 }
 

@@ -97,7 +97,6 @@ gkyl_array_clear_range(struct gkyl_array *out, double val, const struct gkyl_ran
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, range);
 
-  long count = 0;
   while (gkyl_range_iter_next(&iter)) {
     long start = gkyl_range_idx(range, iter.idx);
     array_clear1(n, gkyl_array_fetch(out, start), val);
