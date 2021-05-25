@@ -23,7 +23,7 @@ simulations you should be using a released *deployment version*
 shipped as a zip file. Get the zip file, unzip it and cd to it. Or,
 if you have cloned this repo then do:
 ```
-  sh mkdist.sh
+  ./mkdist.sh
   cd gkylzero-dist
   make install
 ```
@@ -36,7 +36,7 @@ solvers). You can set the compiler you want to use as:
 ```
 or
 ```
-    make CC=nvcc
+    make CC=nvcc install
 ```
 
 You can run the unit tests from the deployment directory as:
