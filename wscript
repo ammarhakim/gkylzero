@@ -49,8 +49,6 @@ def configure(conf):
     # write out configuration info into header
     conf.write_config_header('gkylzeroconfig.h')
 
-
-
 def build(bld):
 
     if bld.cmd == "install":
