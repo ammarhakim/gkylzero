@@ -17,46 +17,46 @@ libobjs = $(patsubst %.c,%.o,$(wildcard minus/*.c)) \
 	$(patsubst %.c,%.o,$(wildcard kernels/*/*.c))
 
 # Make targets: libraties, regression tests and unit tests
-all: makeout/libgkylzero.a \
-	$(patsubst %.c,makeout/%,$(wildcard regression/app_*.c)) \
-	$(patsubst %.c,makeout/%,$(wildcard unit/ctest_*.c))
+all: build/libgkylzero.a \
+	$(patsubst %.c,build/%,$(wildcard regression/app_*.c)) \
+	$(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 
 # Library archive
-makeout/libgkylzero.a: ${libobjs}
-	ar -crs makeout/libgkylzero.a ${libobjs}
+build/libgkylzero.a: ${libobjs}
+	ar -crs build/libgkylzero.a ${libobjs}
 
 # Regression tests
-makeout/regression/twostream.ini: regression/twostream.ini
-	cp regression/twostream.ini makeout/regression/twostream.ini
+build/regression/twostream.ini: regression/twostream.ini
+	cp regression/twostream.ini build/regression/twostream.ini
 
-makeout/regression/%: regression/%.c makeout/libgkylzero.a
-	${CC} ${CFLAGS} -I. -Lmakeout -lgkylzero -lm -lpthread -o $@ $<
+build/regression/%: regression/%.c build/libgkylzero.a
+	${CC} ${CFLAGS} -I. -Lbuild -lgkylzero -lm -lpthread -o $@ $<
 
 # Unit tests
 
-makeout/unit/%: unit/%.c makeout/libgkylzero.a
-	${CC} ${CFLAGS} -I. -Lmakeout -lgkylzero -lm -lpthread -o $@ $<
+build/unit/%: unit/%.c build/libgkylzero.a
+	${CC} ${CFLAGS} -I. -Lbuild -lgkylzero -lm -lpthread -o $@ $<
 
 # Run unit tests
-check: $(patsubst %.c,makeout/%,$(wildcard unit/ctest_*.c))
-	./makeout/unit/ctest_alloc
-	./makeout/unit/ctest_array
-	./makeout/unit/ctest_basis
-	./makeout/unit/ctest_block_topo
-	./makeout/unit/ctest_fv_proj
-	./makeout/unit/ctest_gauss_quad
-	./makeout/unit/ctest_proj_on_basis
-	./makeout/unit/ctest_range
-	./makeout/unit/ctest_rect_apply_bc
-	./makeout/unit/ctest_rect_decomp
-	./makeout/unit/ctest_rect_grid
-	./makeout/unit/ctest_ref_count
-	./makeout/unit/ctest_update_fsm
-	./makeout/unit/ctest_wv_euler
-	./makeout/unit/ctest_wv_iso_euler
-	./makeout/unit/ctest_wv_maxwell
-	./makeout/unit/ctest_wv_ten_moment
+check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
+	./build/unit/ctest_alloc
+	./build/unit/ctest_array
+	./build/unit/ctest_basis
+	./build/unit/ctest_block_topo
+	./build/unit/ctest_fv_proj
+	./build/unit/ctest_gauss_quad
+	./build/unit/ctest_proj_on_basis
+	./build/unit/ctest_range
+	./build/unit/ctest_rect_apply_bc
+	./build/unit/ctest_rect_decomp
+	./build/unit/ctest_rect_grid
+	./build/unit/ctest_ref_count
+	./build/unit/ctest_update_fsm
+	./build/unit/ctest_wv_euler
+	./build/unit/ctest_wv_iso_euler
+	./build/unit/ctest_wv_maxwell
+	./build/unit/ctest_wv_ten_moment
 
 clean:
-	rm -rf makeout/libgkylzero.a ${libobjs} makeout/regression/app_* makeout/unit/ctest_*
+	rm -rf build/libgkylzero.a ${libobjs} build/regression/app_* build/unit/ctest_*
 
