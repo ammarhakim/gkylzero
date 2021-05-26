@@ -18,7 +18,7 @@ libobjs = $(patsubst %.c,%.o,$(wildcard minus/*.c)) \
 
 # Make targets: libraties, regression tests and unit tests
 all: build/libgkylzero.a \
-	$(patsubst %.c,build/%,$(wildcard regression/app_*.c)) \
+	$(patsubst %.c,build/%,$(wildcard regression/app_*.c)) build/regression/twostream.ini \
 	$(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 
 # Library archive
