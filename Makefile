@@ -30,12 +30,12 @@ build/regression/twostream.ini: regression/twostream.ini
 	cp regression/twostream.ini build/regression/twostream.ini
 
 build/regression/%: regression/%.c build/libgkylzero.a
-	${CC} ${CFLAGS} -I. -Lbuild -lgkylzero -lm -lpthread -o $@ $<
+	${CC} ${CFLAGS} -o $@ $< -I. -Lbuild -lgkylzero -lm -lpthread 
 
 # Unit tests
 
 build/unit/%: unit/%.c build/libgkylzero.a
-	${CC} ${CFLAGS} -I. -Lbuild -lgkylzero -lm -lpthread -o $@ $<
+	${CC} ${CFLAGS} -o $@ $< -I. -Lbuild -lgkylzero -lm -lpthread 
 
 # Run unit tests
 check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
