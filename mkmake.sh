@@ -1,8 +1,6 @@
 #!/bin/bash
 
-# This script creates a Makefile for use in building the
-# code. Typically you do not actually need to run this unless you
-# add more files to the code.
+# This script creates a Makefile for use in building the code.
 
 # list of library headers and sources
 lib_headers=$(ls minus/*.h zero/*.h apps/*.h | tr "\n" " ")
