@@ -8,7 +8,7 @@ import os
 def build(bld):
 
     includes = '. ../zero ../minus ../apps'
-    use = 'gkylapps gkylzero gkylminus gkylzerokern M'
+    use = 'gkylapps gkylzero gkylminus gkylzerokern M PTHREAD'
 
     bld.program(
         source = 'app_weibel_4d.c',

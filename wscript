@@ -45,6 +45,7 @@ def configure(conf):
     # load options for math and dynamic library
     conf.env.LIB_M = ['m']
     conf.env.LIB_DL = ['dl']
+    conf.env.LIB_PTHREAD = ['pthread']
 
     # write out configuration info into header
     conf.write_config_header('gkylzeroconfig.h')
