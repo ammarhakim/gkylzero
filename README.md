@@ -17,8 +17,20 @@ Documentation is available at http://gkeyll.rtfd.io.
 
 # Install
 
-You can install the code in two ways, depending on what you want to do
-with it. First, if you want to use the code as a library or run
+If you are developing GkeyllZero and have cloned this repo, then
+simply type:
+```
+    make
+```
+in the top-level directory. To run all unit tests do:
+```
+    make check
+```
+
+Please see Makefile for other options to make that can be specified to
+specify other flags and options.
+
+If you want to use the code as a library or run
 simulations you should be using a released *deployment version*
 shipped as a zip file. Get the zip file, unzip it and cd to it. Then type:
 ```
@@ -41,22 +53,10 @@ You can run the unit tests from the deployment directory as:
     make check
 ```
 
-If you are developing GkeyllZero and have cloned this repo, then
-simply type:
-```
-    make
-```
-in the top-level directory. To run all unit tests do:
-```
-    make check
-```
-
-Please see Makefile for other options to make that can be specified to
-specify other flags and options.
 
 The unit and regression test executables are written in the
-`makeout/unit` and `makeout/regression` directories. Please cd to
-those directories if you want to run individual regression tests.
+`build/unit` and `build/regression` directories. Please cd to those
+directories if you want to run individual regression tests.
 
 Note that GkeyllZero is meant to be used as a *library*. You can use
 it to create your own "app" for your particular problem. See that
