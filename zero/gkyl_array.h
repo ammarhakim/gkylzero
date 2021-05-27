@@ -36,6 +36,23 @@ struct gkyl_array {
 struct gkyl_array* gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size);
 
 /**
+ * Create new array with data on NV-GPU. Delete using
+ * gkyl_array_release method.
+ *
+ * NOTE: Only the data stored in the array lives on the NV-GPU. The
+ * rest of the array struct is on the host. You must call a
+ * "gkyl_array_clone_on_cu_dev" method to get a pointer to an array
+ * which is completely on the GPU (i.e. all struct members can then be
+ * safely used from cu-kernels).
+ * 
+ * @param type Type of data in array
+ * @param ncomp Number of components at each index
+ * @param size Number of indices 
+ * @return Pointer to newly allocated array.
+ */
+struct gkyl_array* gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size);
+
+/**
  * Returns true if array lives on NV-GPU.
  *
  * @param arr Array to check

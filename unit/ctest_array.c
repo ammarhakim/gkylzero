@@ -1,8 +1,8 @@
 #include <acutest.h>
+#include <gkyl_alloc.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_util.h>
-#include <gkyl_alloc.h>
 
 void test_array_base()
 {
@@ -506,6 +506,24 @@ void test_reduce_range()
   gkyl_array_release(arr);
 }
 
+// CUDA specific tests
+#ifdef GKYL_HAVE_CUDA
+
+void test_cuda_array()
+{
+  struct gkyl_array *arr = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 200);
+
+  TEST_CHECK( arr->type = GKYL_DOUBLE );
+  TEST_CHECK( arr->elemsz == sizeof(double) );
+  TEST_CHECK( arr->ncomp == 1 );
+  TEST_CHECK( arr->size == 20*10 );
+  TEST_CHECK( arr->ref_count.count == 1 );
+
+  TEST_CHECK( gkyl_array_is_cu_dev(arr) == true );  
+}
+
+#endif
+
 TEST_LIST = {
   { "array_base", test_array_base },
   { "array_fetch", test_array_fetch },
@@ -524,5 +542,8 @@ TEST_LIST = {
   { "non_numeric", test_non_numeric },
   { "reduce", test_reduce },
   { "reduce_range", test_reduce_range },
+#ifdef GKYL_HAVE_CUDA
+  { "cuda_array", test_cuda_array },
+#endif
   { NULL, NULL },
 };

@@ -28,7 +28,16 @@ static void
 array_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_array *arr = container_of(ref, struct gkyl_array, ref_count);
-  gkyl_free(arr->data);
+  
+  if (IS_CU_ARRAY(arr->flags))
+#ifdef GKYL_HAVE_CUDA
+    gkyl_cu_free(arr->data);
+#else
+  { } // this can never happen
+#endif  
+  else
+    gkyl_free(arr->data);
+  
   gkyl_free(arr);
 }
 
@@ -93,3 +102,27 @@ gkyl_array_release(const struct gkyl_array* arr)
 {
   gkyl_ref_count_dec(&arr->ref_count);
 }
+
+// CUDA specific code
+
+#ifdef GKYL_HAVE_CUDA
+
+struct gkyl_array*
+gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
+{
+  struct gkyl_array* arr = gkyl_malloc(sizeof(struct gkyl_array));
+
+  arr->type = type;
+  arr->elemsz = array_elem_size[type];
+  arr->ncomp = ncomp;
+  arr->size = size;
+  arr->flags = 0;
+  SET_CU_ARRAY(arr->flags);  
+  arr->esznc = arr->elemsz*arr->ncomp;
+  arr->ref_count = (struct gkyl_ref_count) { array_free, 1 };  
+  arr->data = gkyl_cu_malloc(arr->size*arr->esznc);
+  
+  return arr;  
+}
+
+#endif // CUDA specific code

@@ -29,7 +29,7 @@
 #endif
 
 // CUDA specific defines etc
-#ifdef __CUDACC__
+#ifdef __NVCC__
 
 #define GKYL_HAVE_CUDA
 #define GKYL_CU_DH __device__ __host__

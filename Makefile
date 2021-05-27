@@ -22,7 +22,7 @@ all: build/libgkylzero.a \
 	$(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 
 # Library archive
-build/libgkylzero.a: ${libobjs}
+build/libgkylzero.a: ${libobjs} ${headers}
 	ar -crs build/libgkylzero.a ${libobjs}
 
 # Regression tests
