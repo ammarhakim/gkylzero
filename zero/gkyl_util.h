@@ -31,12 +31,12 @@
 // CUDA specific defines etc
 #ifdef __CUDACC__
 
-#define GKYL_HAVE_CUDA 1
+#define GKYL_HAVE_CUDA
 #define GKYL_CU_DH __device__ __host__
 
 #else
 
-#define GKYL_HAVE_CUDA 0
+#undef GKYL_HAVE_CUDA
 #define GKYL_CU_DH
 
 #endif // CUDA specific defines etc
