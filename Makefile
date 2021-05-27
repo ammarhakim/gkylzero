@@ -57,6 +57,23 @@ check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_wv_maxwell
 	./build/unit/ctest_wv_ten_moment
 
+install: all
+	mkdir -p ${PREFIX}/gkylzero/include
+	mkdir -p ${PREFIX}/gkylzero/lib
+	mkdir -p ${PREFIX}/gkylzero/bin
+	mkdir -p ${PREFIX}/gkylzero/share
+	cp ${headers} ${PREFIX}/gkylzero/include
+	cp ${headers} build/headers
+	rm -f ${PREFIX}/gkylzero/include/gkylzero.h
+	@echo "#pragma once\n" > ${PREFIX}/gkylzero/include/gkylzero.h
+	@echo "#define TEST_NO_MAIN" >> ${PREFIX}/gkylzero/include/gkylzero.h
+	@echo $(patsubst build/headers/%.h,"#include <%.h>\n",$(wildcard build/headers/*.h)) >> ${PREFIX}/gkylzero/include/gkylzero.h
+	cp -f build/libgkylzero.a ${PREFIX}/gkylzero/lib
+	cp -f build/Makefile.sample ${PREFIX}/gkylzero/share/Makefile
+	cp -f regression/app_twostream.c ${PREFIX}/gkylzero/share/app_twostream.c
+	cp -f regression/twostream.ini ${PREFIX}/gkylzero/share/twostream.ini
+	cp -f build/regression/app_vlasov_kerntm ${PREFIX}/gkylzero/bin/
+
 clean:
 	rm -rf build/libgkylzero.a ${libobjs} build/regression/app_* build/unit/ctest_*
 
