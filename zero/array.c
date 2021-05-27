@@ -6,6 +6,16 @@
 #include <gkyl_array.h>
 #include <gkyl_util.h>
 
+// flags and corresponding bit-masks
+enum array_flags { A_IS_CU_ARRAY };
+static const uint32_t masks[] =
+{ 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
+
+// NV-GPU flags
+#define SET_CU_ARRAY(flags) (flags) |= masks[A_IS_CU_ARRAY]
+#define CLEAR_CU_ARRAY(flags) (flags) &= ~masks[A_IS_CU_ARRAY]
+#define IS_CU_ARRAY(flags) (((flags) & masks[A_IS_CU_ARRAY]) != 0)
+
 // size in bytes for various data-types
 static const size_t array_elem_size[] = {
   [GKYL_INT] = sizeof(int),
@@ -31,11 +41,18 @@ gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
   arr->elemsz = array_elem_size[type];
   arr->ncomp = ncomp;
   arr->size = size;
+  arr->flags = 0;
   arr->esznc = arr->elemsz*arr->ncomp;
   arr->ref_count = (struct gkyl_ref_count) { array_free, 1 };  
   arr->data = gkyl_calloc(arr->size, arr->esznc);
   
   return arr;
+}
+
+bool
+gkyl_array_is_cu_dev(struct gkyl_array *const arr)
+{
+  return IS_CU_ARRAY(arr->flags);
 }
 
 struct gkyl_array*

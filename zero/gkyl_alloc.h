@@ -42,3 +42,11 @@ void *gkyl_aligned_realloc(void *ptr, size_t align, size_t old_sz, size_t new_sz
  * @param ptr Memory to free.
  */
 void gkyl_aligned_free(void *ptr);
+
+// CUDA specific code (NV: Nvidia)
+
+/** Allocate memory on NV-GPU */
+void* gkyl_cu_malloc(size_t size);
+
+/** Free memory on device */
+void gkyl_cu_free(void *ptr);

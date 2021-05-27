@@ -81,3 +81,27 @@ gkyl_aligned_free(void* ptr)
   uint16_t offset = *((uint16_t *)ptr - 1);
   gkyl_free((uint8_t *)ptr - offset);
 }
+
+// CUDA specific code
+
+#ifdef GKYL_HAVE_CUDA
+
+#include <cuda_runtime.h>
+
+void*
+gkyl_cu_malloc(size_t size)
+{
+  void *ptr;
+  cudaError_t err = cudaMalloc(&ptr, size);
+  if (err == cudaErrorMemoryAllocation)
+    gkyl_exit("cudaMalloc failed!");
+  return ptr;
+}
+
+void
+gkyl_cu_free(void *ptr)
+{
+  cudaFree(ptr);
+}
+
+#endif // CUDA specific code

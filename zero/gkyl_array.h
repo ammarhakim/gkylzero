@@ -3,6 +3,7 @@
 #include <gkyl_ref_count.h>
 #include <gkyl_util.h>
 
+#include <stdbool.h>
 #include <stdint.h>
 
 // Type of element stored in array
@@ -33,6 +34,14 @@ struct gkyl_array {
  * @return Pointer to newly allocated array.
  */
 struct gkyl_array* gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size);
+
+/**
+ * Returns true if array lives on NV-GPU.
+ *
+ * @param arr Array to check
+ * @return true of array lives on NV-GPU, false otherwise
+ */
+bool gkyl_array_is_cu_dev(struct gkyl_array *const arr);
 
 /**
  * Copy into array: pointer to dest array is returned. 'dest' and

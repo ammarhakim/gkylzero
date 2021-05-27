@@ -28,6 +28,19 @@
 # define GKYL_DEF_ALIGN 64
 #endif
 
+// CUDA specific defines etc
+#ifdef __CUDACC__
+
+#define GKYL_HAVE_CUDA 1
+#define GKYL_CU_DH __device__ __host__
+
+#else
+
+#define GKYL_HAVE_CUDA 0
+#define GKYL_CU_DH
+
+#endif // CUDA specific defines etc
+
 // This funny looking macro allows getting a pointer to the 'type'
 // struct that contains an object 'member' given the 'ptr' to the
 // 'member' inside 'type'. (Did I just write this gobbledygook?!)

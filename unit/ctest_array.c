@@ -14,6 +14,8 @@ void test_array_base()
   TEST_CHECK( arr->size == 20*10 );
   TEST_CHECK( arr->ref_count.count == 1 );
 
+  TEST_CHECK( gkyl_array_is_cu_dev(arr) == false );
+
   double *arrData  = arr->data;
   for (unsigned i=0; i<arr->size; ++i)
     arrData[i] = (i+0.5)*0.1;
