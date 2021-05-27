@@ -12,7 +12,7 @@ G0_LIB_FLAGS = -lm -lgkylzero
 all: app_twostream
 
 app_twostream: app_twostream.c
-	 ${CC} ${CFLAGS} -I${G0_INC_DIR} -L${G0_LIB_DIR} ${G0_LIB_FLAGS} app_twostream.c -o app_twostream
+	 ${CC} ${CFLAGS} -I${G0_INC_DIR} app_twostream.c -o app_twostream -L${G0_LIB_DIR} ${G0_LIB_FLAGS} 
 
 clean:
 	rm -rf app_twostream app_twostream.dSYM
