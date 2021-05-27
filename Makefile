@@ -75,5 +75,5 @@ install: all
 	cp -f build/regression/app_vlasov_kerntm ${PREFIX}/gkylzero/bin/
 
 clean:
-	rm -rf build/libgkylzero.a ${libobjs} build/regression/app_* build/unit/ctest_*
+	rm -rf build/libgkylzero.a build/regression/twostream.ini build/headers/*.h ${libobjs} build/regression/app_* build/unit/ctest_*
 
