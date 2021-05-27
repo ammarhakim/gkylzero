@@ -1,0 +1,19 @@
+
+# Sample Makefile to use installed gkylzero library: copy and modify
+# for your needs
+
+CFLAGS = -O3 -g -I.
+PREFIX = ${HOME}/gkylsoft
+
+G0_INC_DIR = ${PREFIX}/gkylzero/include
+G0_LIB_DIR = ${PREFIX}/gkylzero/lib
+G0_LIB_FLAGS = -lm -lgkylzero
+
+all: app_twostream
+
+app_twostream: app_twostream.c
+	 ${CC} ${CFLAGS} -I${G0_INC_DIR} -L${G0_LIB_DIR} ${G0_LIB_FLAGS} app_twostream.c -o app_twostream
+
+clean:
+	rm -rf app_twostream app_twostream.dSYM
+
