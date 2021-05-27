@@ -63,11 +63,6 @@ install: all
 	mkdir -p ${PREFIX}/gkylzero/bin
 	mkdir -p ${PREFIX}/gkylzero/share
 	cp ${headers} ${PREFIX}/gkylzero/include
-	cp ${headers} build/headers
-	rm -f ${PREFIX}/gkylzero/include/gkylzero.h
-	@echo "#pragma once\n" > ${PREFIX}/gkylzero/include/gkylzero.h
-	@echo "#define TEST_NO_MAIN" >> ${PREFIX}/gkylzero/include/gkylzero.h
-	@echo $(patsubst build/headers/%.h,"#include <%.h>\n",$(wildcard build/headers/*.h)) >> ${PREFIX}/gkylzero/include/gkylzero.h
 	cp -f build/libgkylzero.a ${PREFIX}/gkylzero/lib
 	cp -f build/Makefile.sample ${PREFIX}/gkylzero/share/Makefile
 	cp -f regression/app_twostream.c ${PREFIX}/gkylzero/share/app_twostream.c
