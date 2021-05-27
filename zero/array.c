@@ -28,16 +28,7 @@ static void
 array_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_array *arr = container_of(ref, struct gkyl_array, ref_count);
-  
-  if (IS_CU_ARRAY(arr->flags))
-#ifdef GKYL_HAVE_CUDA
-    gkyl_cu_free(arr->data);
-#else
-  { } // this can never happen
-#endif  
-  else
-    gkyl_free(arr->data);
-  
+  IS_CU_ARRAY(arr->flags) ? gkyl_cu_free(arr->data) : gkyl_free(arr->data);
   gkyl_free(arr);
 }
 
@@ -59,7 +50,7 @@ gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
 }
 
 bool
-gkyl_array_is_cu_dev(struct gkyl_array *const arr)
+gkyl_array_is_cu_dev(const struct gkyl_array *arr)
 {
   return IS_CU_ARRAY(arr->flags);
 }
@@ -70,7 +61,25 @@ gkyl_array_copy(struct gkyl_array* dest, const struct gkyl_array* src)
   assert(dest->esznc == src->esznc);
   
   long ncopy = src->size < dest->size ? src->size : dest->size;
-  memcpy(dest->data, src->data, ncopy*src->esznc);
+
+  bool dest_is_cu_dev = gkyl_array_is_cu_dev(dest);
+  bool src_is_cu_dev = gkyl_array_is_cu_dev(src);
+
+  if (src_is_cu_dev) {
+    // source is on device
+    if (dest_is_cu_dev)
+      gkyl_cu_memcpy(dest->data, src->data, ncopy*src->esznc, GKYL_CU_MEMCPY_D2D);
+    else
+      gkyl_cu_memcpy(dest->data, src->data, ncopy*src->esznc, GKYL_CU_MEMCPY_D2H);
+  }
+  else {
+    // source is on host
+    if (dest_is_cu_dev)
+      gkyl_cu_memcpy(dest->data, src->data, ncopy*src->esznc, GKYL_CU_MEMCPY_H2D);
+    else
+      memcpy(dest->data, src->data, ncopy*src->esznc);
+  }
+  
   return dest;
 }
 
@@ -83,8 +92,17 @@ gkyl_array_clone(const struct gkyl_array* src)
   arr->ncomp = src->ncomp;
   arr->esznc = src->esznc;
   arr->size = src->size;
-  arr->data = gkyl_calloc(arr->size, arr->esznc);
-  memcpy(arr->data, src->data, arr->size*arr->esznc);
+  arr->flags = src->flags;
+
+  if (IS_CU_ARRAY(src->flags)) {
+    arr->data = gkyl_cu_malloc(arr->size*arr->esznc);
+    gkyl_cu_memcpy(arr->data, src->data, arr->size*arr->esznc, GKYL_CU_MEMCPY_D2D);
+  }
+  else {
+    arr->data = gkyl_calloc(arr->size, arr->esznc);
+    memcpy(arr->data, src->data, arr->size*arr->esznc);
+  }
+  
   arr->ref_count = (struct gkyl_ref_count) { array_free, 1 };
   
   return arr;

@@ -31,13 +31,31 @@
 // CUDA specific defines etc
 #ifdef __NVCC__
 
+#include <cuda_runtime.h>
+
 #define GKYL_HAVE_CUDA
 #define GKYL_CU_DH __device__ __host__
+
+// for directional copies
+enum gkyl_cu_memcpy_kind {
+  GKYL_CU_MEMCPY_H2H = cudaMemcpyHostToHost,
+  GKYL_CU_MEMCPY_H2D = cudaMemcpyHostToDevice,
+  GKYL_CU_MEMCPY_D2H = cudaMemcpyDeviceToHost,
+  GKYL_CU_MEMCPY_D2D = cudaMemcpyDeviceToDevice
+};
 
 #else
 
 #undef GKYL_HAVE_CUDA
 #define GKYL_CU_DH
+
+// for directional copies
+enum gkyl_cu_memcpy_kind {
+  GKYL_CU_MEMCPY_H2H,
+  GKYL_CU_MEMCPY_H2D,
+  GKYL_CU_MEMCPY_D2H,
+  GKYL_CU_MEMCPY_D2D,
+};
 
 #endif // CUDA specific defines etc
 

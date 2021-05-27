@@ -58,7 +58,7 @@ struct gkyl_array* gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp,
  * @param arr Array to check
  * @return true of array lives on NV-GPU, false otherwise
  */
-bool gkyl_array_is_cu_dev(struct gkyl_array *const arr);
+bool gkyl_array_is_cu_dev(const struct gkyl_array *arr);
 
 /**
  * Copy into array: pointer to dest array is returned. 'dest' and

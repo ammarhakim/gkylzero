@@ -50,3 +50,6 @@ void* gkyl_cu_malloc(size_t size);
 
 /** Free memory on device */
 void gkyl_cu_free(void *ptr);
+
+/** Copy data between host/device */
+void gkyl_cu_memcpy(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind);
