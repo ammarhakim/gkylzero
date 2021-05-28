@@ -185,7 +185,6 @@ struct dg_vlasov {
   vlasov_stream_surf_t stream_surf[3]; // Surface terms for streaming
   vlasov_accel_surf_t accel_surf[3]; // Surface terms for acceleration
   vlasov_accel_boundary_surf_t accel_boundary_surf[3]; // Surface terms for acceleration
-
   struct gkyl_range conf_range; // configuration space range
   const struct gkyl_array *qmem; // Pointer to q/m*EM field
 };
