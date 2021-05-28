@@ -511,15 +511,37 @@ void test_reduce_range()
 
 void test_cuda_array()
 {
-  struct gkyl_array *arr = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 200);
+  struct gkyl_array *arr_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 200);
 
-  TEST_CHECK( arr->type = GKYL_DOUBLE );
-  TEST_CHECK( arr->elemsz == sizeof(double) );
-  TEST_CHECK( arr->ncomp == 1 );
-  TEST_CHECK( arr->size == 20*10 );
-  TEST_CHECK( arr->ref_count.count == 1 );
+  TEST_CHECK( arr_cu->type = GKYL_DOUBLE );
+  TEST_CHECK( arr_cu->elemsz == sizeof(double) );
+  TEST_CHECK( arr_cu->ncomp == 1 );
+  TEST_CHECK( arr_cu->size == 20*10 );
+  TEST_CHECK( arr_cu->ref_count.count == 1 );
 
-  TEST_CHECK( gkyl_array_is_cu_dev(arr) == true );  
+  TEST_CHECK( gkyl_array_is_cu_dev(arr_cu) == true );
+
+  // create host array and initialize it
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, 200);
+
+  double *arrData  = arr->data;
+  for (unsigned i=0; i<arr->size; ++i)
+    arrData[i] = (i+0.5)*0.1;  
+
+  // copy to device
+  gkyl_array_copy(arr_cu, arr);
+
+  // reset host array
+  for (unsigned i=0; i<arr->size; ++i)
+    arrData[i] = 0.0;
+
+  // copy from device and check if things are ok
+  gkyl_array_copy(arr, arr_cu);
+
+  for (unsigned i=0; i<arr->size; ++i)
+    TEST_CHECK( arrData[i] == (i+0.5)*0.1 );
+
+  gkyl_array_release(arr);
 }
 
 #endif
