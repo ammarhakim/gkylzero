@@ -3,7 +3,7 @@
 
 #include <gkyl_basis.h>
 #include <gkyl_util.h>
-#include "cart_modal_serendip_funcs.h"
+#include <cart_modal_serendip_funcs.h>
 
 // Basis function eval for each dimension: ev_list[ndim].ev[polyOrder]
 static struct { void (*ev[4])(const double *z, double *b); } ev_list[] = {

@@ -1,3 +1,4 @@
+cppcheck-err.txt
 *~
 build/*
 build-*/*
@@ -7,6 +8,7 @@ build-*/*
 waf_tools/*.pyc
 waf_tools/__pycache__/
 gkylzero-dist*
+makeout/*
 
 # Object files
 *.o

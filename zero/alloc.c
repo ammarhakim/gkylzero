@@ -9,10 +9,10 @@
 #include <gkyl_util.h>
 
 // Compute first 'align' boundary after 'num'
-#define align_up(num, align) \
+#define align_up(num, align)                    \
     (((num) + ((align) - 1)) & ~((align) - 1))
 
-#define PTR_OFFSET_SZ sizeof(uint16_t)
+static const size_t PTR_OFFSET_SZ = sizeof(uint16_t);
 
 void*
 gkyl_malloc(size_t size)
@@ -41,7 +41,7 @@ gkyl_realloc(void *ptr, size_t new_size)
 void
 gkyl_free(void *ptr)
 {
-  free(ptr); ptr = 0;
+  free(ptr);
 }
 
 void*
@@ -65,7 +65,10 @@ void*
 gkyl_aligned_realloc(void *ptr, size_t align, size_t old_sz, size_t new_sz)
 {
   void *nptr = gkyl_aligned_alloc(align, new_sz);
-  if (0 == nptr) gkyl_exit("aligned_realloc failed!");
+  if (0 == nptr) {
+    gkyl_exit("aligned_realloc failed!");
+    return 0;
+  }
   memcpy(nptr, ptr, old_sz < new_sz ? old_sz : new_sz);
   gkyl_aligned_free(ptr);
   return nptr;
@@ -78,3 +81,59 @@ gkyl_aligned_free(void* ptr)
   uint16_t offset = *((uint16_t *)ptr - 1);
   gkyl_free((uint8_t *)ptr - offset);
 }
+
+// CUDA specific code
+
+#ifdef GKYL_HAVE_CUDA
+
+#include <cuda_runtime.h>
+
+void*
+gkyl_cu_malloc(size_t size)
+{
+  void *ptr;
+  cudaError_t err = cudaMalloc(&ptr, size);
+  if (err == cudaErrorMemoryAllocation)
+    gkyl_exit("cudaMalloc failed!");
+  return ptr;
+}
+
+void
+gkyl_cu_free(void *ptr)
+{
+  cudaFree(ptr);
+}
+
+void
+gkyl_cu_memcpy(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind)
+{
+  cudaError_t err = cudaMemcpy(dst, src, count, kind);
+  if (err != cudaSuccess)
+    gkyl_exit("cudaMemcpy failed!");
+}
+
+#else
+
+// These non-CUDA functions will simply abort. When not using CUDA
+// none of these methods should be called at all.
+
+void*
+gkyl_cu_malloc(size_t size)
+{
+  assert(false);
+  return 0;
+}
+
+void
+gkyl_cu_free(void *ptr)
+{
+  assert(false);
+}
+
+void
+gkyl_cu_memcpy(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind)
+{
+  assert(false);  
+}
+
+#endif // CUDA specific code

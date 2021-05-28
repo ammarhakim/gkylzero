@@ -17,10 +17,10 @@ void evalFunc(double t, const double *xn, double* restrict fout, void *ctx)
 }
 
 struct thread_data {
-    struct gkyl_range range; // thread-specific range
+  struct gkyl_range range; // thread-specific range
     
-    gkyl_proj_on_basis *proj; // shared updater
-    struct gkyl_array *f; // shared field
+  gkyl_proj_on_basis *proj; // shared updater
+  struct gkyl_array *f; // shared field
 };
 
 void*
@@ -39,15 +39,15 @@ parse_args(int argc, char **argv)
     switch (c)
     {
       case 'h':
-          nthread = 0;
-          break;
+        nthread = 0;
+        break;
 
       case 'n':
-          nthread = atoi(optarg);
-          break;
+        nthread = atoi(optarg);
+        break;
 
       case '?':
-          return 0;
+        return 0;
     }
   return nthread;
 }

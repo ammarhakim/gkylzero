@@ -25,7 +25,7 @@ gkyl_maxwell_max_abs_speed(int dir, double c, double e_fact, double b_fact, cons
 void
 gkyl_maxwell_flux(int dir, double c, double e_fact, double b_fact, const double q[8], double flux[8])
 {
-  const int *d = dir_shuffle[dir];
+  int const *const d = dir_shuffle[dir];
   double c2 = c*c;
 
   flux[EX] = e_fact*c2*q[6]; // e_fact*c^2*phi

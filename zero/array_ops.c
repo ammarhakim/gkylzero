@@ -64,16 +64,16 @@ gkyl_array_reduce(const struct gkyl_array *arr, enum gkyl_array_op op, double *o
 
   switch (op) {
     case GKYL_MIN:
-        res = DBL_MAX;
-        for (size_t i=0; i<NELM(arr); ++i)
-          res = fmin(res, arr_d[i]);
-        break;
+      res = DBL_MAX;
+      for (size_t i=0; i<NELM(arr); ++i)
+        res = fmin(res, arr_d[i]);
+      break;
 
     case GKYL_MAX:
-        res = -DBL_MAX;
-        for (size_t i=0; i<NELM(arr); ++i)
-          res = fmax(res, arr_d[i]);
-        break;
+      res = -DBL_MAX;
+      for (size_t i=0; i<NELM(arr); ++i)
+        res = fmax(res, arr_d[i]);
+      break;
   }
   if (out) *out = res;
   return res;
@@ -97,7 +97,6 @@ gkyl_array_clear_range(struct gkyl_array *out, double val, const struct gkyl_ran
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, range);
 
-  long count = 0;
   while (gkyl_range_iter_next(&iter)) {
     long start = gkyl_range_idx(range, iter.idx);
     array_clear1(n, gkyl_array_fetch(out, start), val);
@@ -182,25 +181,25 @@ void gkyl_array_reduce_range(double *res,
 
   switch (op) {
     case GKYL_MIN:
-        for (long i=0; i<n; ++i) res[i] = DBL_MAX;
+      for (long i=0; i<n; ++i) res[i] = DBL_MAX;
 
-        while (gkyl_range_iter_next(&iter)) {
-          long start = gkyl_range_idx(range, iter.idx);
-          const double *d = gkyl_array_cfetch(arr, start);
-          for (long i=0; i<n; ++i)
-            res[i] = fmin(res[i], d[i]);
-        }
-        break;
+      while (gkyl_range_iter_next(&iter)) {
+        long start = gkyl_range_idx(range, iter.idx);
+        const double *d = gkyl_array_cfetch(arr, start);
+        for (long i=0; i<n; ++i)
+          res[i] = fmin(res[i], d[i]);
+      }
+      break;
     case GKYL_MAX:
-        for (long i=0; i<n; ++i) res[i] = -DBL_MAX;
+      for (long i=0; i<n; ++i) res[i] = -DBL_MAX;
 
-        while (gkyl_range_iter_next(&iter)) {
-          long start = gkyl_range_idx(range, iter.idx);
-          const double *d = gkyl_array_cfetch(arr, start);
-          for (long i=0; i<n; ++i)
-            res[i] = fmax(res[i], d[i]);
-        }
-        break;
+      while (gkyl_range_iter_next(&iter)) {
+        long start = gkyl_range_idx(range, iter.idx);
+        const double *d = gkyl_array_cfetch(arr, start);
+        for (long i=0; i<n; ++i)
+          res[i] = fmax(res[i], d[i]);
+      }
+      break;
   }
 }
 

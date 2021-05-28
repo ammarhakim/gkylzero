@@ -3,6 +3,7 @@
 #include <gkyl_ref_count.h>
 #include <gkyl_util.h>
 
+#include <stdbool.h>
 #include <stdint.h>
 
 // Type of element stored in array
@@ -14,14 +15,14 @@ enum gkyl_elem_type { GKYL_INT, GKYL_FLOAT, GKYL_DOUBLE, GKYL_USER };
  * mainly by the range object.
  */
 struct gkyl_array {
-    enum gkyl_elem_type type; // type stored in array
-    size_t elemsz, ncomp; // size of elements, number of 'components'
-    size_t size; // number of indices
+  enum gkyl_elem_type type; // type stored in array
+  size_t elemsz, ncomp; // size of elements, number of 'components'
+  size_t size; // number of indices
     
-    uint32_t flags;
-    size_t esznc; // elemsz*ncomp
-    void *data; // pointer to data (do not use directly)
-    struct gkyl_ref_count ref_count;
+  uint32_t flags;
+  size_t esznc; // elemsz*ncomp
+  void *data; // pointer to data (do not use directly)
+  struct gkyl_ref_count ref_count;
 };
 
 /**
@@ -33,6 +34,31 @@ struct gkyl_array {
  * @return Pointer to newly allocated array.
  */
 struct gkyl_array* gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size);
+
+/**
+ * Create new array with data on NV-GPU. Delete using
+ * gkyl_array_release method.
+ *
+ * NOTE: Only the data stored in the array lives on the NV-GPU. The
+ * rest of the array struct is on the host. You must call a
+ * "gkyl_array_clone_on_cu_dev" method to get a pointer to an array
+ * which is completely on the GPU (i.e. all struct members can then be
+ * safely used from cu-kernels).
+ * 
+ * @param type Type of data in array
+ * @param ncomp Number of components at each index
+ * @param size Number of indices 
+ * @return Pointer to newly allocated array.
+ */
+struct gkyl_array* gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size);
+
+/**
+ * Returns true if array lives on NV-GPU.
+ *
+ * @param arr Array to check
+ * @return true of array lives on NV-GPU, false otherwise
+ */
+bool gkyl_array_is_cu_dev(const struct gkyl_array *arr);
 
 /**
  * Copy into array: pointer to dest array is returned. 'dest' and

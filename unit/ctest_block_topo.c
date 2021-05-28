@@ -13,15 +13,15 @@ test_L_domain()
 
   /* Block layout
 
-    +------+
-    |0     |
-    |      |
-    +------+-----+
-    |1     |2    |
-    |      |     |
-    +------+-----+
+     +------+
+     |0     |
+     |      |
+     +------+-----+
+     |1     |2    |
+     |      |     |
+     +------+-----+
     
-   */
+  */
 
   // block 0
   btopo->conn[0] = (struct gkyl_block_connections) {
@@ -81,13 +81,13 @@ test_mobius_domain()
 
   /* Block layout
 
-    periodic
-    +------+
-    |0     | periodic with twist
-    |      |
-    +------+
+     periodic
+     +------+
+     |0     | periodic with twist
+     |      |
+     +------+
     
-   */
+  */
 
   // block 0
   btopo->conn[0] = (struct gkyl_block_connections) {

@@ -9,16 +9,16 @@
 #include <gkyl_wave_prop.h>
 
 struct gkyl_wave_prop {
-    struct gkyl_rect_grid grid; // grid object
-    int ndim; // number of dimensions
-    int num_up_dirs; // number of update directions
-    int update_dirs[GKYL_MAX_DIM]; // directions to update
-    enum gkyl_wave_limiter limiter; // limiter to use
-    double cfl; // CFL number
-    const struct gkyl_wv_eqn *equation; // equation object
+  struct gkyl_rect_grid grid; // grid object
+  int ndim; // number of dimensions
+  int num_up_dirs; // number of update directions
+  int update_dirs[GKYL_MAX_DIM]; // directions to update
+  enum gkyl_wave_limiter limiter; // limiter to use
+  double cfl; // CFL number
+  const struct gkyl_wv_eqn *equation; // equation object
 
-    // data for 1D slice update
-    struct gkyl_array *waves, *speeds, *flux2;
+  // data for 1D slice update
+  struct gkyl_array *waves, *speeds, *flux2;
 };
 
 static inline double
@@ -40,32 +40,32 @@ limiter_function(double r, enum gkyl_wave_limiter limiter)
   double theta = 0.0;
   switch (limiter) {
     case GKYL_NO_LIMITER:
-        theta = 1.0;
-        break;
+      theta = 1.0;
+      break;
     
     case GKYL_MIN_MOD:
-        theta = fmax(0, fmin(1, r));
-        break;
+      theta = fmax(0, fmin(1, r));
+      break;
 
     case GKYL_SUPERBEE:
-        theta = fmax3(0.0, fmin(1, 2*r), fmin(2.0, r));
-        break;
+      theta = fmax3(0.0, fmin(1, 2*r), fmin(2.0, r));
+      break;
 
     case GKYL_VAN_LEER:
-        theta = (r+fabs(r))/(1+fabs(r));
-        break;
+      theta = (r+fabs(r))/(1+fabs(r));
+      break;
 
     case GKYL_MONOTONIZED_CENTERED:
-        theta = fmax(0.0, fmin3((1.0+r)/2, 2, 2*r));
-        break;
+      theta = fmax(0.0, fmin3((1.0+r)/2, 2, 2*r));
+      break;
 
     case GKYL_BEAM_WARMING:
-        theta = r;
-        break;
+      theta = r;
+      break;
 
     case GKYL_ZERO:
-        theta = 0;
-        break;
+      theta = 0;
+      break;
   }
   return theta;
 }

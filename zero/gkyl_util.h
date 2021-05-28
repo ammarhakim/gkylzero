@@ -28,6 +28,37 @@
 # define GKYL_DEF_ALIGN 64
 #endif
 
+// CUDA specific defines etc
+#ifdef __NVCC__
+
+#include <cuda_runtime.h>
+
+#define GKYL_HAVE_CUDA
+#define GKYL_CU_DH __device__ __host__
+
+// for directional copies
+enum gkyl_cu_memcpy_kind {
+  GKYL_CU_MEMCPY_H2H = cudaMemcpyHostToHost,
+  GKYL_CU_MEMCPY_H2D = cudaMemcpyHostToDevice,
+  GKYL_CU_MEMCPY_D2H = cudaMemcpyDeviceToHost,
+  GKYL_CU_MEMCPY_D2D = cudaMemcpyDeviceToDevice
+};
+
+#else
+
+#undef GKYL_HAVE_CUDA
+#define GKYL_CU_DH
+
+// for directional copies
+enum gkyl_cu_memcpy_kind {
+  GKYL_CU_MEMCPY_H2H,
+  GKYL_CU_MEMCPY_H2D,
+  GKYL_CU_MEMCPY_D2H,
+  GKYL_CU_MEMCPY_D2D,
+};
+
+#endif // CUDA specific defines etc
+
 // This funny looking macro allows getting a pointer to the 'type'
 // struct that contains an object 'member' given the 'ptr' to the
 // 'member' inside 'type'. (Did I just write this gobbledygook?!)
@@ -37,10 +68,10 @@
     ((type *)((char *)(1 ? (ptr) : &((type *)0)->member) - offsetof(type, member)))
 
 // Select type-specific compare function
-#define gkyl_compare(a, b, eps)                    \
-    _Generic((a),                                  \
-      float: gkyl_compare_float,                   \
-      double: gkyl_compare_double)                 \
+#define gkyl_compare(a, b, eps)                 \
+    _Generic((a),                               \
+      float: gkyl_compare_float,                \
+      double: gkyl_compare_double)              \
     (a, b, eps)
 
 /**
@@ -49,8 +80,8 @@
  * struct gkyl_tm_trigger tmt = { .dt = tend/nframe };
  */
 struct gkyl_tm_trigger {
-    int curr; // current counter
-    double dt, tcurr; // Time-interval, current time
+  int curr; // current counter
+  double dt, tcurr; // Time-interval, current time
 };
 
 /**

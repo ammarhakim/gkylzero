@@ -16,8 +16,8 @@ static const int dir_shuffle[][3] = {
 #define RHOW d[2]
 
 struct wv_euler {
-    struct gkyl_wv_eqn eqn; // base object
-    double gas_gamma; // gas adiabatic constant
+  struct gkyl_wv_eqn eqn; // base object
+  double gas_gamma; // gas adiabatic constant
 };
 
 static void

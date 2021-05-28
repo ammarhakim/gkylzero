@@ -27,11 +27,11 @@ static const double gas_gamma = 1.4;
 
 // ranges for use in BCs
 struct skin_ghost_ranges {
-    struct gkyl_range lower_skin[2];
-    struct gkyl_range lower_ghost[2];
+  struct gkyl_range lower_skin[2];
+  struct gkyl_range lower_ghost[2];
 
-    struct gkyl_range upper_skin[2];
-    struct gkyl_range upper_ghost[2];
+  struct gkyl_range upper_skin[2];
+  struct gkyl_range upper_ghost[2];
 };
 
 void
@@ -78,15 +78,15 @@ create_block_topo()
 
   /* Block layout
 
-    +------+
-    |0     |
-    |      |
-    +------+-----+
-    |1     |2    |
-    |      |     |
-    +------+-----+
+     +------+
+     |0     |
+     |      |
+     +------+-----+
+     |1     |2    |
+     |      |     |
+     +------+-----+
     
-   */  
+  */  
 
   // block 0
   btopo->conn[0] = (struct gkyl_block_connections) {
@@ -144,24 +144,24 @@ initFluidSod(double t, const double *xn, double* restrict fout, void *ctx)
 
 // Block data and methods on individual blocks
 struct block_data {
-    struct gkyl_rect_grid grid; // grid
-    gkyl_fv_proj *fv_proj; // project initial conditions
+  struct gkyl_rect_grid grid; // grid
+  gkyl_fv_proj *fv_proj; // project initial conditions
 
-     // extended and update ranges
-    struct gkyl_range ext_range, range;
-    // arrays for solution
-    struct gkyl_array *fdup, *f[3];
+  // extended and update ranges
+  struct gkyl_range ext_range, range;
+  // arrays for solution
+  struct gkyl_array *fdup, *f[3];
 
-    // equation system
-    struct gkyl_wv_eqn *euler;
-    // updaters
-    gkyl_wave_prop *slvr[2]; // solver in each direction
+  // equation system
+  struct gkyl_wv_eqn *euler;
+  // updaters
+  gkyl_wave_prop *slvr[2]; // solver in each direction
 
-    struct skin_ghost_ranges skin_ghost; // conf-space skin/ghost
-    struct gkyl_array *bc_buffer; // buffer for use in block BCs
+  struct skin_ghost_ranges skin_ghost; // conf-space skin/ghost
+  struct gkyl_array *bc_buffer; // buffer for use in block BCs
 
-    // boundary conditions on lower/upper edges in each direction
-    gkyl_rect_apply_bc *lower_bc[2], *upper_bc[2];
+  // boundary conditions on lower/upper edges in each direction
+  gkyl_rect_apply_bc *lower_bc[2], *upper_bc[2];
 };
 
 void
@@ -244,16 +244,16 @@ sync_blocks(const struct gkyl_block_topo *btopo, const struct block_data bdata[]
         switch (te[0].edge) {
           case GKYL_LOWER_POSITIVE:
           case GKYL_LOWER_NEGATIVE:
-              gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &bdata[tbid].skin_ghost.lower_ghost[tdir]);
-              break;
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &bdata[tbid].skin_ghost.lower_ghost[tdir]);
+            break;
 
           case GKYL_UPPER_POSITIVE:
           case GKYL_UPPER_NEGATIVE:
-              gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &bdata[tbid].skin_ghost.upper_ghost[tdir]);
-              break;
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &bdata[tbid].skin_ghost.upper_ghost[tdir]);
+            break;
 
           default:
-              ;
+            ;
         }
       }
 
@@ -272,16 +272,16 @@ sync_blocks(const struct gkyl_block_topo *btopo, const struct block_data bdata[]
         switch (te[1].edge) {
           case GKYL_LOWER_POSITIVE:
           case GKYL_LOWER_NEGATIVE:
-              gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &bdata[tbid].skin_ghost.lower_ghost[tdir]);
-              break;
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &bdata[tbid].skin_ghost.lower_ghost[tdir]);
+            break;
 
           case GKYL_UPPER_POSITIVE:
           case GKYL_UPPER_NEGATIVE:
-              gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &bdata[tbid].skin_ghost.upper_ghost[tdir]);
-              break;
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &bdata[tbid].skin_ghost.upper_ghost[tdir]);
+            break;
 
           default:
-              ;
+            ;
         }
       }      
     }
@@ -342,7 +342,7 @@ update_all_blocks(const struct gkyl_block_topo *btopo, const struct block_data b
 }
 
 struct sim_stats {
-    int nfail;
+  int nfail;
 };
 
 // function that takes a time-step
@@ -366,49 +366,49 @@ update(const struct gkyl_block_topo *btopo, const struct block_data bdata[],
   while (state != UPDATE_DONE) {
     switch (state) {
       case PRE_UPDATE:
-          state = FLUID_UPDATE; // next state
+        state = FLUID_UPDATE; // next state
           
-          // copy old solution in case we need to redo this step
-          for (int i=0; i<num_blocks; ++i)
-            gkyl_array_copy(bdata[i].fdup, bdata[i].f[0]);
+        // copy old solution in case we need to redo this step
+        for (int i=0; i<num_blocks; ++i)
+          gkyl_array_copy(bdata[i].fdup, bdata[i].f[0]);
 
-          break;
+        break;
           
       
       case FLUID_UPDATE:
-          state = POST_UPDATE; // next state
+        state = POST_UPDATE; // next state
           
-          struct gkyl_update_status s = update_all_blocks(btopo, bdata, tcurr, dt);
-          if (!s.success) {
-            stats->nfail += 1;
-            dt = s.dt_suggested;
-            state = UPDATE_REDO;
-            break;
-          }
-          dt_suggested = fmin(dt_suggested, s.dt_suggested);
-
+        struct gkyl_update_status s = update_all_blocks(btopo, bdata, tcurr, dt);
+        if (!s.success) {
+          stats->nfail += 1;
+          dt = s.dt_suggested;
+          state = UPDATE_REDO;
           break;
+        }
+        dt_suggested = fmin(dt_suggested, s.dt_suggested);
+
+        break;
 
       case POST_UPDATE:
-          state = UPDATE_DONE;
+        state = UPDATE_DONE;
 
-          // copy solution in prep for next time-step
-          for (int i=0; i<num_blocks; ++i)
-            gkyl_array_copy(bdata[i].f[0], bdata[i].f[2]);
+        // copy solution in prep for next time-step
+        for (int i=0; i<num_blocks; ++i)
+          gkyl_array_copy(bdata[i].f[0], bdata[i].f[2]);
           
-          break;
+        break;
 
       case UPDATE_REDO:
-          state = PRE_UPDATE; // start all-over again
+        state = PRE_UPDATE; // start all-over again
           
-          // restore solution and retake step
-          for (int i=0; i<num_blocks; ++i)
-            gkyl_array_copy(bdata[i].f[0], bdata[i].fdup);
+        // restore solution and retake step
+        for (int i=0; i<num_blocks; ++i)
+          gkyl_array_copy(bdata[i].f[0], bdata[i].fdup);
           
-          break;
+        break;
 
       case UPDATE_DONE: // unreachable code! (suppresses warning)
-          break;
+        break;
     }
   }
 

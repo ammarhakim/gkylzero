@@ -9,17 +9,17 @@
 #include <rxi_ini.h>
 
 struct twostream_inp {
-    double tend;
-    double charge, mass; // for electrons
-    int conf_cells, vel_cells;
-    double vel_extents[2];
+  double tend;
+  double charge, mass; // for electrons
+  int conf_cells, vel_cells;
+  double vel_extents[2];
 };
 
 struct twostream_ctx {
-    double knumber; // wave-number
-    double vth; // electron thermal velocity
-    double vdrift; // drift velocity
-    double perturbation;
+  double knumber; // wave-number
+  double vth; // electron thermal velocity
+  double vdrift; // drift velocity
+  double perturbation;
 };
 
 static inline double sq(double x) { return x*x; }

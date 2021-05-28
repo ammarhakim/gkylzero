@@ -15,7 +15,7 @@ static const int dir_shuffle[][3] = {
 double
 gkyl_iso_euler_max_abs_speed(int dir, double vt, const double q[4])
 {
-  const int *d = dir_shuffle[dir];
+  int const *const d = dir_shuffle[dir];
   double u = q[RHOU]/q[0];
   return fabs(u) + vt;
 }
@@ -23,7 +23,7 @@ gkyl_iso_euler_max_abs_speed(int dir, double vt, const double q[4])
 void
 gkyl_iso_euler_flux(int dir, double vt, const double q[4], double flux[4])
 {
-  const int *d = dir_shuffle[dir];
+  int const *const d = dir_shuffle[dir];
   double u = q[RHOU]/q[0];
   flux[0] = q[RHOU]; // rho*u
   flux[RHOU] = q[RHOU]*u + q[0]*vt*vt; // rho*(u*u + vt*vt)

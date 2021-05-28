@@ -3,8 +3,8 @@
 #include <gkyl_mom_calc.h>
 
 struct gkyl_mom_calc {
-    struct gkyl_rect_grid grid;
-    struct gkyl_mom_type *momt;
+  struct gkyl_rect_grid grid;
+  struct gkyl_mom_type *momt;
 };
 
 gkyl_mom_calc*

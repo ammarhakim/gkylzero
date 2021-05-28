@@ -9,16 +9,16 @@
 #include <gkyl_util.h>
 
 struct gkyl_moment_em_coupling_data {
-    enum gkyl_eqn_type type;
-    double charge; // species charge
-    double mass; // species mass
+  enum gkyl_eqn_type type;
+  double charge; // species charge
+  double mass; // species mass
 };
 
 struct gkyl_moment_em_coupling_inp {
-    const struct gkyl_rect_grid *grid; // grid on which to solve equations
-    int nfluids; // number of fluids
-    struct gkyl_moment_em_coupling_data param[GKYL_MAX_SPECIES]; // species data
-    double epsilon0;
+  const struct gkyl_rect_grid *grid; // grid on which to solve equations
+  int nfluids; // number of fluids
+  struct gkyl_moment_em_coupling_data param[GKYL_MAX_SPECIES]; // species data
+  double epsilon0;
 };
 
 // Object type
@@ -41,9 +41,12 @@ gkyl_moment_em_coupling* gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupl
  * gkyl_sub_range_init method.
  *
  * @param mes Moment electromagnetic sources updater object
- * @param update_rng Range on which to run projection.
+ * @param update_rng Range on which to solve implicit time-centered update.
  * @param fluid Array of fluid variables (array size: nfluids)
+ * @param app_accel Array of applied acceleration terms to fluid equations (for external forces)
  * @param em EM variables
+ * @param app_current Applied current array (for external current driving)
+ * @param ext_em External EM variables (for EM fields coming from external sources (coils, capacitors, etc.))
  */
 
 void gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,

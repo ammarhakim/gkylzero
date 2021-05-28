@@ -17,12 +17,23 @@ Documentation is available at http://gkeyll.rtfd.io.
 
 # Install
 
-You can install the code in two ways, depending on what you want to do
-with it. First, if you want to use the code as a library or run
-simulations you should be using a released *deployment version*
-shipped as a zip file. Get the zip file, unzip it and cd to it:
+If you are developing GkeyllZero and have cloned this repo, then
+simply type:
 ```
-  cd gkylzero-dist
+    make
+```
+in the top-level directory. To run all unit tests do:
+```
+    make check
+```
+
+Please see Makefile for other options to make that can be specified to
+specify other flags and options.
+
+If you want to use the code as a library or run
+simulations you should be using a released *deployment version*
+shipped as a zip file. Get the zip file, unzip it and cd to it. Then type:
+```
   make install
 ```
 
@@ -32,25 +43,25 @@ solvers). You can set the compiler you want to use as:
 ```
     make CC=icc install 
 ```
+or
+```
+    make CC=nvcc install
+```
 
 You can run the unit tests from the deployment directory as:
 ```
     make check
 ```
 
+
+The unit and regression test executables are written in the
+`build/unit` and `build/regression` directories. Please cd to those
+directories if you want to run individual regression tests.
+
 Note that GkeyllZero is meant to be used as a *library*. You can use
 it to create your own "app" for your particular problem. See that
 various "app_*.c" files for examples. Full documentation is available
 on the RTFD website linked above.
-
-If you are developing GkylZero you need to clone this repo and build
-as follows:
-```
-   ./waf configure build
-```
-
-You *can't install* using waf. Installation is only supported via the
-distribution zip.
 
 # Developing for GkeyllZero
 

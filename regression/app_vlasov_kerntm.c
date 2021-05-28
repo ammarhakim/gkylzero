@@ -21,9 +21,9 @@ evalFieldFunc(double t, const double* restrict xn, double* restrict fout, void *
 }
 
 struct kerntm_inp {
-    int cdim, vdim, poly_order;
-    int ccells[3], vcells[3];
-    int nloop;
+  int cdim, vdim, poly_order;
+  int ccells[3], vcells[3];
+  int nloop;
 };
 
 struct kerntm_inp
@@ -34,28 +34,28 @@ get_inp(int argc, char **argv)
     switch (c)
     {
       case 'h':
-          printf("Usage: app_vlasov_kerntm -c CDIM -v VDIM -p POLYORDER -n NLOOP\n");
-          exit(-1);
-          break;
+        printf("Usage: app_vlasov_kerntm -c CDIM -v VDIM -p POLYORDER -n NLOOP\n");
+        exit(-1);
+        break;
       
       case 'c':
-          cdim = atoi(optarg);
-          break;
+        cdim = atoi(optarg);
+        break;
 
       case 'v':
-          vdim = atoi(optarg);
-          break;
+        vdim = atoi(optarg);
+        break;
 
       case 'p':
-          poly_order = atoi(optarg);
-          break;
+        poly_order = atoi(optarg);
+        break;
 
       case 'n':
-          nloop = atoi(optarg);
-          break;          
+        nloop = atoi(optarg);
+        break;          
 
       case '?':
-          break;
+        break;
     }
   
   return (struct kerntm_inp) {

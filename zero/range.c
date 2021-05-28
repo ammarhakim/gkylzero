@@ -266,7 +266,7 @@ incr_int_array(int ndim, int fact, const int *restrict del,
  * ranges need to be sub-ranges of the extended range on the grid and
  * not include corners. I am not sure how to handle corners on
  * physical boundaries. Also, perhaps this code could be simplified.
-*/
+ */
 void
 gkyl_skin_ghost_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
   int dir, enum gkyl_edge_loc edge, const struct gkyl_range *parent, const int *nghost)
@@ -331,29 +331,29 @@ gkyl_range_idx(const struct gkyl_range* range, const int *idx)
 #define RI(...) gkyl_ridx(*range, __VA_ARGS__)
   switch (range->ndim) {
     case 0:
-        return range->ac[0];
-        break;    
+      return range->ac[0];
+      break;    
     case 1:
-        return RI(idx[0]); 
-        break;
+      return RI(idx[0]); 
+      break;
     case 2:
-        return RI(idx[0], idx[1]);
-        break;
+      return RI(idx[0], idx[1]);
+      break;
     case 3:
-        return RI(idx[0], idx[1], idx[2]);
-        break;
+      return RI(idx[0], idx[1], idx[2]);
+      break;
     case 4:
-        return RI(idx[0], idx[1], idx[2], idx[3]);
-        break;
+      return RI(idx[0], idx[1], idx[2], idx[3]);
+      break;
     case 5:
-        return RI(idx[0], idx[1], idx[2], idx[3], idx[4]);
-        break;
+      return RI(idx[0], idx[1], idx[2], idx[3], idx[4]);
+      break;
     case 6:
-        return RI(idx[0], idx[1], idx[2], idx[3], idx[4], idx[5]);
-        break;
+      return RI(idx[0], idx[1], idx[2], idx[3], idx[4], idx[5]);
+      break;
     case 7:
-        return RI(idx[0], idx[1], idx[2], idx[3], idx[4], idx[5], idx[6]);
-        break;
+      return RI(idx[0], idx[1], idx[2], idx[3], idx[4], idx[5], idx[6]);
+      break;
   }
   return 0;
 #undef RI
