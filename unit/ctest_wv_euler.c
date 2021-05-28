@@ -33,21 +33,21 @@ test_euler_basic()
   TEST_CHECK( flux[1] == rho*u*u + pr );
   TEST_CHECK( flux[2] == rho*u*v );
   TEST_CHECK( flux[3] == rho*u*w );
-  TEST_CHECK( flux[4] == (E+pr)*u );
+  TEST_CHECK( gkyl_compare(flux[4], (E+pr)*u, 1e-15) );
 
   gkyl_euler_flux(1, gas_gamma, q, flux);
   TEST_CHECK( flux[0] == rho*v );
   TEST_CHECK( flux[1] == rho*v*u );
   TEST_CHECK( flux[2] == rho*v*v + pr );
   TEST_CHECK( flux[3] == rho*v*w );
-  TEST_CHECK( flux[4] == (E+pr)*v );
+  TEST_CHECK( gkyl_compare(flux[4], (E+pr)*v, 1e-15) );
 
   gkyl_euler_flux(2, gas_gamma, q, flux);
   TEST_CHECK( flux[0] == rho*w );
   TEST_CHECK( flux[1] == rho*w*u );
   TEST_CHECK( flux[2] == rho*w*v );
   TEST_CHECK( flux[3] == rho*w*w + pr );
-  TEST_CHECK( flux[4] == (E+pr)*w );
+  TEST_CHECK( gkyl_compare(flux[4], (E+pr)*w, 1e-15) );
   
   gkyl_wv_eqn_release(euler);
 }
