@@ -7,6 +7,12 @@
 // random number generator
 #include <pcg_basic.h>
 
+// restrict keyword in C and C++ are different
+#define GKYL_RESTRICT restrict
+#ifdef __cplusplus
+# define GKYL_RESTRICT __restrict__
+#endif
+
 // Maximum configuration-space dimensions supported
 #ifndef GKYL_MAX_CDIM
 # define GKYL_MAX_CDIM 3
@@ -122,7 +128,7 @@ int gkyl_compare_double(double a, double b, double eps);
  * @param out Output array
  */
 static inline void
-gkyl_copy_int_arr(int n, const int *restrict inp, int *restrict out)
+gkyl_copy_int_arr(int n, const int* GKYL_RESTRICT inp, int* GKYL_RESTRICT out)
 {
   for (int i=0; i<n; ++i) out[i] = inp[i];
 }

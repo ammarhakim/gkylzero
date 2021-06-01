@@ -91,8 +91,17 @@ void gkyl_range_init(struct gkyl_range *rng, int ndim,
  * @param ndim Dimensiom of range to create.
  * @param shape Shape of region
  */
+
 void gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim,
   const int *shape);
+
+/**
+ * Clone range object on NV-GPU.
+ *
+ * @param rng Range object on device to clone
+ * @return Clone valid on device.
+ */
+struct gkyl_range* gkyl_range_clone_on_cu_dev(struct gkyl_range* rng);
 
 /**
  * Shape in direction dir
@@ -101,6 +110,7 @@ void gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim,
  * @param dir Direction to compute shape
  * @return Shape in direction dit
  */
+GKYL_CU_DH
 int gkyl_range_shape(const struct gkyl_range *rng, int dir);
 
 /**
@@ -109,6 +119,7 @@ int gkyl_range_shape(const struct gkyl_range *rng, int dir);
  * @param rng Range object
  * @return 1 if true, 0 otherwise
  */
+GKYL_CU_DH
 int gkyl_range_is_sub_range(const struct gkyl_range *rng);
 
 /**
@@ -247,6 +258,7 @@ int gkyl_range_intersect(struct gkyl_range* irng,
  * @param idx Relative index for offset calculation
  * @return Relatice offset to idx.
  */
+GKYL_CU_DH
 long gkyl_range_offset(const struct gkyl_range* range, const int *idx);
 
 /**
@@ -256,6 +268,7 @@ long gkyl_range_offset(const struct gkyl_range* range, const int *idx);
  * @param range Range object to index
  * @param idx Index for which to compute linear index
  */
+GKYL_CU_DH
 long gkyl_range_idx(const struct gkyl_range* range, const int *idx);
 
 /**
@@ -266,6 +279,7 @@ long gkyl_range_idx(const struct gkyl_range* range, const int *idx);
  * @param loc Linear index in [0, range->volume)
  * @param idx On output, the N-dimensional index into 'range'
  */
+GKYL_CU_DH
 void gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx);
 
 /**
@@ -276,6 +290,7 @@ void gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx);
  * @param range Range object.
  * @return New iterator object for 'range'
  */
+GKYL_CU_DH
 void gkyl_range_iter_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range);
 
@@ -285,6 +300,7 @@ void gkyl_range_iter_init(struct gkyl_range_iter *iter,
  * @param range Range object.
  * @return New iterator object for 'range'
  */
+GKYL_CU_DH
 void gkyl_range_iter_no_split_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range);
 
@@ -295,6 +311,7 @@ void gkyl_range_iter_no_split_init(struct gkyl_range_iter *iter,
  * @param iter Iterator object. On exit, iter->idx has the next index
  * @return 1 if there are more indices remaining, 0 if done.
  */
+GKYL_CU_DH
 int gkyl_range_iter_next(struct gkyl_range_iter *iter);
 
 /**
@@ -304,5 +321,6 @@ int gkyl_range_iter_next(struct gkyl_range_iter *iter);
  * @param range Range object.
  * @return New iterator object for 'range'
  */
+GKYL_CU_DH
 void gkyl_range_skip_iter_init(struct gkyl_range_skip_iter *iter,
   const struct gkyl_range* range);

@@ -509,7 +509,7 @@ void test_reduce_range()
 // CUDA specific tests
 #ifdef GKYL_HAVE_CUDA
 
-void test_cuda_array()
+void test_cu_array_base()
 {
   struct gkyl_array *arr_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 200);
 
@@ -565,7 +565,7 @@ TEST_LIST = {
   { "reduce", test_reduce },
   { "reduce_range", test_reduce_range },
 #ifdef GKYL_HAVE_CUDA
-  { "cuda_array", test_cuda_array },
+  { "cu_array_base", test_cu_array_base },
 #endif
   { NULL, NULL },
 };

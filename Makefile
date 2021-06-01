@@ -4,8 +4,18 @@
 # make CC=mpicc 
 #
 
+NVCC = 
+USING_NVCC =
+ifeq ($(CC),nvcc)
+	USING_NVCC = yes
+	NVCC = $(CC)
+endif
+
 CFLAGS = -O3 -g -Iminus -Izero -Iapps -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov
 PREFIX = ${HOME}/gkylsoft
+
+%.o : %.cu
+	${NVCC} -w -dc -o $@ $< $(CFLAGS)
 
 # Header dependencies
 headers = $(wildcard minus/*.h) $(wildcard zero/*.h) $(wildcard apps/*.h) $(wildcard kernels/*/*.h)
@@ -21,6 +31,8 @@ all: build/libgkylzero.a \
 	$(patsubst %.c,build/%,$(wildcard regression/app_*.c)) build/regression/twostream.ini \
 	$(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 
+#ar -crs build/libgkylzero.a ${libobjs}
+#${CC} -lib ${libobjs} -o build/libgkylzero.a 
 # Library archive
 build/libgkylzero.a: ${libobjs} ${headers}
 	ar -crs build/libgkylzero.a ${libobjs}
@@ -35,7 +47,16 @@ build/regression/%: regression/%.c build/libgkylzero.a
 # Unit tests
 
 build/unit/%: unit/%.c build/libgkylzero.a
-	${CC} ${CFLAGS} -o $@ $< -I. -Lbuild -lgkylzero -lm -lpthread 
+	${CC} ${CFLAGS} -o $@ $< -I. -Lbuild -lgkylzero -lm -lpthread
+
+# CUDA specific code
+ifdef USING_NVCC
+
+# unit tests needing CUDA kernels
+build/unit/ctest_range: unit/ctest_range.o unit/ctest_cu_range.o build/libgkylzero.a
+	${CC} ${CFLAGS} unit/ctest_range.o unit/ctest_cu_range.o -o build/unit/ctest_range -Lbuild -lgkylzero -lm -lpthread
+
+endif
 
 # Run unit tests
 check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
