@@ -10,7 +10,7 @@ struct iso_euler_ctx {
 };
 
 void
-evalEulerInit(double t, const double * restrict xn, double* restrict fout, void *ctx)
+evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
 

@@ -1,5 +1,6 @@
 #pragma once 
-#include <math.h> 
+#include <math.h>
+#include <gkyl_util.h>
 
 void vlasov_M0_1x1v_ser_p1(const double *w, const double *dxv, const int *idx, const double *f, double* restrict out); 
 void vlasov_M1i_1x1v_ser_p1(const double *w, const double *dxv, const int *idx, const double *f, double* restrict out); 

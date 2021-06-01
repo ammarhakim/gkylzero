@@ -14,7 +14,7 @@ NVCC =
 USING_NVCC =
 ifeq ($(CC), nvcc)
        USING_NVCC = yes
-       CFLAGS += -w -dc -arch=sm_70 --std=c++11 --compiler-options="-fPIC" 
+       CFLAGS += -w -dc -arch=sm_70 --compiler-options="-fPIC" 
        LDFLAGS += -arch=sm_70 -dlink
 endif
 

@@ -258,8 +258,8 @@ gkyl_range_upper_skin(struct gkyl_range *rng,
 
 // Increment an int vector by fact*del[d] in each direction d.
 static inline void
-incr_int_array(int ndim, int fact, const int *restrict del,
-  const int *restrict inp, int *restrict out)
+incr_int_array(int ndim, int fact, const int * GKYL_RESTRICT del,
+  const int * GKYL_RESTRICT inp, int *restrict out)
 {
   for (int i=0; i<ndim; ++i)
     out[i] = inp[i] + fact*del[i];

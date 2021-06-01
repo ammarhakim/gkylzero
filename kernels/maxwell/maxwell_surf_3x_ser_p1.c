@@ -1,5 +1,5 @@
 #include <gkyl_maxwell_kernels.h> 
-double maxwell_surfx_3x_ser_p1(const gkyl_maxwell_inp *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double* restrict outl, double* restrict outr) 
+double maxwell_surfx_3x_ser_p1(const gkyl_maxwell_inp *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double* GKYL_RESTRICT outl, double* GKYL_RESTRICT outr) 
 { 
   const double c = meq->c, chi = meq->chi, gamma = meq->gamma; 
   const double c2 = c*c; 
@@ -263,7 +263,7 @@ double maxwell_surfx_3x_ser_p1(const gkyl_maxwell_inp *meq, const double *wl, co
 
   return fmax(c, tau); 
 } 
-double maxwell_surfy_3x_ser_p1(const gkyl_maxwell_inp *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double* restrict outl, double* restrict outr) 
+double maxwell_surfy_3x_ser_p1(const gkyl_maxwell_inp *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double* GKYL_RESTRICT outl, double* GKYL_RESTRICT outr) 
 { 
   const double c = meq->c, chi = meq->chi, gamma = meq->gamma; 
   const double c2 = c*c; 
@@ -527,7 +527,7 @@ double maxwell_surfy_3x_ser_p1(const gkyl_maxwell_inp *meq, const double *wl, co
 
   return fmax(c, tau); 
 } 
-double maxwell_surfz_3x_ser_p1(const gkyl_maxwell_inp *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double* restrict outl, double* restrict outr) 
+double maxwell_surfz_3x_ser_p1(const gkyl_maxwell_inp *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double* GKYL_RESTRICT outl, double* GKYL_RESTRICT outr) 
 { 
   const double c = meq->c, chi = meq->chi, gamma = meq->gamma; 
   const double c2 = c*c; 

@@ -1,5 +1,5 @@
 #include <gkyl_vlasov_mom_kernels.h> 
-void vlasov_int_mom_1x2v_ser_p1(const double *w, const double *dxv, const int *idx, const double *f, double* restrict out) 
+void vlasov_int_mom_1x2v_ser_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out) 
 { 
   const double volFact = dxv[0]*dxv[1]*dxv[2]*0.125; 
   const double wx1 = w[1], dv1 = dxv[1]; 

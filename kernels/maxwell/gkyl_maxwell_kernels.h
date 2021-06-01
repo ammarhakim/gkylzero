@@ -1,5 +1,7 @@
 #pragma once 
-#include <math.h> 
+#include <math.h>
+#include <gkyl_util.h>
+
 typedef struct { double c, chi, gamma; } gkyl_maxwell_inp; 
 
 double maxwell_vol_1x_ser_p1(const gkyl_maxwell_inp *meq, const double *w, const double *dx, const double *q, double* restrict out); 

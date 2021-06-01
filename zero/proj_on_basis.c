@@ -86,8 +86,8 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
 
 static inline void
 comp_to_phys(int ndim, const double *eta,
-  const double * restrict dx, const double * restrict xc,
-  double* restrict xout)
+  const double * GKYL_RESTRICT dx, const double * GKYL_RESTRICT xc,
+  double* GKYL_RESTRICT xout)
 {
   for (int d=0; d<ndim; ++d) xout[d] = 0.5*dx[d]*eta[d]+xc[d];
 }
@@ -99,9 +99,9 @@ proj_on_basis(const gkyl_proj_on_basis *up, const struct gkyl_array *fun_at_ords
   int tot_quad = up->tot_quad;
   int num_ret_vals = up->num_ret_vals;
 
-  const double *restrict weights = up->weights->data;
-  const double *restrict basis_at_ords = up->basis_at_ords->data;
-  const double *restrict func_at_ords = fun_at_ords->data;
+  const double* GKYL_RESTRICT weights = up->weights->data;
+  const double* GKYL_RESTRICT basis_at_ords = up->basis_at_ords->data;
+  const double* GKYL_RESTRICT func_at_ords = fun_at_ords->data;
 
   // arrangement of f is as:
   // c0[0], c0[1], ... c1[0], c1[1], ....

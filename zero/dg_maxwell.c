@@ -9,13 +9,13 @@
 
 // Types for various kernels
 typedef double (*maxwell_vol_t)(const gkyl_maxwell_inp *meq,
-  const double *w, const double *dx, const double *q, double* restrict out);
+  const double *w, const double *dx, const double *q, double* GKYL_RESTRICT out);
 
 typedef double (*maxwell_surf_t)(const gkyl_maxwell_inp *meq,
   const double *wl, const double *wr,
   const double *dxl, const double *dxr, const double tau,
   const double *ql, const double *qr,
-  double* restrict outl, double* restrict outr);
+  double* GKYL_RESTRICT outl, double* GKYL_RESTRICT outr);
 
 // Volume kernel list
 static struct { maxwell_vol_t kernels[3]; } vol_kernels[] = {
@@ -62,7 +62,7 @@ maxwell_free(const struct gkyl_ref_count *ref)
 
 static double
 vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double*  dx, 
-  const int*  idx, const double* qIn, double* restrict qRhsOut)
+  const int*  idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
   return maxwell->vol(&maxwell->maxwell_data, xc, dx, qIn, qRhsOut);
@@ -73,7 +73,7 @@ surf(const struct gkyl_dg_eqn *eqn,
   int dir,
   const double*  xcL, const double*  xcR, const double*  dxL, const double* dxR,
   double maxsOld, const int*  idxL, const int*  idxR,
-  const double* qInL, const double*  qInR, double* restrict qRhsOutL, double* restrict qRhsOutR)
+  const double* qInL, const double*  qInR, double* GKYL_RESTRICT qRhsOutL, double* GKYL_RESTRICT qRhsOutR)
 {
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
   double maxs = maxwell->maxwell_data.c;
@@ -86,7 +86,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   int dir,
   const double*  xcL, const double*  xcR, const double*  dxL, const double*  dxR,
   double maxsOld, const int*  idxL, const int*  idxR,
-  const double* qInL, const double* qInR, double* restrict qRhsOutL, double* restrict qRhsOutR)
+  const double* qInL, const double* qInR, double* GKYL_RESTRICT qRhsOutL, double* GKYL_RESTRICT qRhsOutR)
 {
   return 0;
 }

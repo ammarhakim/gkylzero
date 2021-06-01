@@ -25,7 +25,7 @@ struct twostream_ctx {
 static inline double sq(double x) { return x*x; }
 
 void
-evalDistFunc(double t, const double * restrict xn, double* restrict fout, void *ctx)
+evalDistFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct twostream_ctx *app = ctx;
   double x = xn[0], v = xn[1];
@@ -36,7 +36,7 @@ evalDistFunc(double t, const double * restrict xn, double* restrict fout, void *
 }
 
 void
-evalFieldFunc(double t, const double* restrict xn, double* restrict fout, void *ctx)
+evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct twostream_ctx *app = ctx;
   double x = xn[0];
