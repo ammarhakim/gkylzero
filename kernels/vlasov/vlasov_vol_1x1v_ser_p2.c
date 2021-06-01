@@ -1,5 +1,5 @@
 #include <gkyl_vlasov_kernels.h> 
-double vlasov_vol_1x1v_ser_p2(const double *w, const double *dxv, const double *qmem, const double *f, double* restrict out) 
+double vlasov_vol_1x1v_ser_p2(const double *w, const double *dxv, const double *qmem, const double *f, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.

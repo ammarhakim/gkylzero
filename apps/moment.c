@@ -129,7 +129,7 @@ static const int euler_dir_shuffle[][3] = {
 
 // function for copy BC
 static void
-bc_copy(double t, int dir, int nc, const double *skin, double *restrict ghost, void *ctx)
+bc_copy(double t, int dir, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
 {
   for (int c=0; c<nc; ++c) ghost[c] = skin[c];
 }
@@ -138,7 +138,7 @@ bc_copy(double t, int dir, int nc, const double *skin, double *restrict ghost, v
 
 // Maxwell perfectly conducting BC
 static void
-bc_maxwell_wall(double t, int dir, int nc, const double *skin, double *restrict ghost, void *ctx)
+bc_maxwell_wall(double t, int dir, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
 {
   const int *d = maxwell_dir_shuffle[dir];
   
@@ -159,7 +159,7 @@ bc_maxwell_wall(double t, int dir, int nc, const double *skin, double *restrict 
 
 // Euler perfectly reflecting wall
 static void
-bc_euler_wall(double t, int dir, int nc, const double *skin, double *restrict ghost, void *ctx)
+bc_euler_wall(double t, int dir, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
 {
   const int *d = euler_dir_shuffle[dir];
 
