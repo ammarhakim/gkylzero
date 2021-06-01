@@ -4,18 +4,25 @@
 # make CC=mpicc 
 #
 
-NVCC = 
-USING_NVCC =
-ifeq ($(CC),nvcc)
-	USING_NVCC = yes
-	NVCC = $(CC)
-endif
 
-CFLAGS = -O3 -g -Iminus -Izero -Iapps -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov
+CFLAGS = -O3 -g 
+LDFLAGS = -O3
+INCLUDES = -Iminus -Izero -Iapps -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov
 PREFIX = ${HOME}/gkylsoft
 
+NVCC = 
+USING_NVCC =
+ifeq ($(CC), nvcc)
+       USING_NVCC = yes
+       CFLAGS += -w -dc -arch=sm_70 --std=c++11 --compiler-options="-fPIC" 
+       LDFLAGS += -arch=sm_70 -dlink
+endif
+
+%.o : %.c
+	${CC} -c $(CFLAGS) $(INCLUDES) -o $@ $< 
+
 %.o : %.cu
-	${NVCC} -w -dc -o $@ $< $(CFLAGS)
+	${CC} -c $(CFLAGS) $(INCLUDES) -o $@ $< 
 
 # Header dependencies
 headers = $(wildcard minus/*.h) $(wildcard zero/*.h) $(wildcard apps/*.h) $(wildcard kernels/*/*.h)
@@ -42,19 +49,19 @@ build/regression/twostream.ini: regression/twostream.ini
 	cp regression/twostream.ini build/regression/twostream.ini
 
 build/regression/%: regression/%.c build/libgkylzero.a
-	${CC} ${CFLAGS} -o $@ $< -I. -Lbuild -lgkylzero -lm -lpthread 
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero -lm -lpthread 
 
 # Unit tests
 
 build/unit/%: unit/%.c build/libgkylzero.a
-	${CC} ${CFLAGS} -o $@ $< -I. -Lbuild -lgkylzero -lm -lpthread
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero -lm -lpthread
 
 # CUDA specific code
 ifdef USING_NVCC
 
 # unit tests needing CUDA kernels
 build/unit/ctest_range: unit/ctest_range.o unit/ctest_cu_range.o build/libgkylzero.a
-	${CC} ${CFLAGS} unit/ctest_range.o unit/ctest_cu_range.o -o build/unit/ctest_range -Lbuild -lgkylzero -lm -lpthread
+	${CC} ${LDFLAGS} unit/ctest_range.o unit/ctest_cu_range.o -o build/unit/ctest_range -Lbuild -lgkylzero -lm -lpthread
 
 endif
 
@@ -91,5 +98,5 @@ install: all
 	cp -f build/regression/app_vlasov_kerntm ${PREFIX}/gkylzero/bin/
 
 clean:
-	rm -rf build/libgkylzero.a build/regression/twostream.ini ${libobjs} build/regression/app_* build/unit/ctest_*
+	rm -rf build/libgkylzero.a build/regression/twostream.ini ${libobjs} unit/*.o regression/*.o build/regression/app_* build/unit/ctest_*
 
