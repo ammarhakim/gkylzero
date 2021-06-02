@@ -1,4 +1,6 @@
 #include <acutest.h>
+
+#include <gkyl_alloc.h>
 #include <gkyl_basis.h>
 #include <gkyl_dg_maxwell.h>
 
@@ -17,6 +19,8 @@ test_dg_max()
 
 #ifdef GKYL_HAVE_CUDA
 
+int cu_maxwell_test(const struct gkyl_dg_eqn *eqn);
+
 void
 test_cu_dg_max()
 {
@@ -24,6 +28,10 @@ test_cu_dg_max()
   gkyl_cart_modal_serendip(&basis, 1, 1);
 
   struct gkyl_dg_eqn* eqn = gkyl_dg_maxwell_cu_dev_new(&basis, 1.0, 0.5, 0.25);
+
+  cu_maxwell_test(eqn);
+
+  gkyl_cu_free(eqn);
   
 }
 
