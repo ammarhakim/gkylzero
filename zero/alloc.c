@@ -93,7 +93,7 @@ gkyl_cu_malloc(size_t size)
 {
   void *ptr;
   cudaError_t err = cudaMalloc(&ptr, size);
-  if (err == cudaErrorMemoryAllocation)
+  if (err != cudaSuccess)
     gkyl_exit("cudaMalloc failed!");
   return ptr;
 }
@@ -110,6 +110,14 @@ gkyl_cu_memcpy(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind
   cudaError_t err = cudaMemcpy(dst, src, count, kind);
   if (err != cudaSuccess)
     gkyl_exit("cudaMemcpy failed!");
+}
+
+void
+gkyl_cu_memcpy_symbol(void *dst, void *src, size_t count, size_t offset, enum gkyl_cu_memcpy_kind kind)
+{
+  cudaError_t err = cudaMemcpyFromSymbol(dst, src, count, offset, kind);
+  if (err != cudaSuccess)
+    gkyl_exit("cudaMemcpyFromSymbol failed!");  
 }
 
 #else
@@ -134,6 +142,12 @@ void
 gkyl_cu_memcpy(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind)
 {
   assert(false);  
+}
+
+void
+gkyl_cu_memcpy(void *dst, void *src, size_t count, size_t offset, enum gkyl_cu_memcpy_kind kind)
+{
+  assert(flase);
 }
 
 #endif // CUDA specific code
