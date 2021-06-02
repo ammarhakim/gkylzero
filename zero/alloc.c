@@ -113,7 +113,7 @@ gkyl_cu_memcpy(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind
 }
 
 void
-gkyl_cu_memcpy_symbol(void *dst, void *src, size_t count, size_t offset, enum gkyl_cu_memcpy_kind kind)
+gkyl_cu_memcpy_symbol(void *dst, const void *src, size_t count, size_t offset, enum gkyl_cu_memcpy_kind kind)
 {
   cudaError_t err = cudaMemcpyFromSymbol(dst, src, count, offset, kind);
   if (err != cudaSuccess)
@@ -145,7 +145,7 @@ gkyl_cu_memcpy(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind
 }
 
 void
-gkyl_cu_memcpy_symbol(void *dst, void *src, size_t count, size_t offset, enum gkyl_cu_memcpy_kind kind)
+gkyl_cu_memcpy_symbol(void *dst, const void *src, size_t count, size_t offset, enum gkyl_cu_memcpy_kind kind)
 {
   assert(false);
 }

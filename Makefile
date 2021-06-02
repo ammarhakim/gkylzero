@@ -35,6 +35,9 @@ libobjs = $(patsubst %.c,%.o,$(wildcard minus/*.c)) \
 
 ifdef USING_NVCC
 
+# Object constructed from cu files to include in library
+libobjs += $(patsubst %.cu,%.o,$(wildcard zero/*.cu))
+
 # Unfortunately, due to the limitations of the NVCC compiler to treat
 # device code in C files, we need to force compile the kernel code
 # using the -x cu flag
