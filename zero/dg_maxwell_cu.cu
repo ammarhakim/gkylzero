@@ -43,5 +43,12 @@ gkyl_dg_maxwell_cu_dev_new(const struct gkyl_basis* cbasis,
   if (cdim>2)
     maxwell->surf[2] = CK(surf_z_kernels, cdim, polyOrder);
 
-  return &maxwell->eqn;
+  // copy to device
+  struct dg_maxwell *maxwell_cu = (struct dg_maxwell*) gkyl_cu_malloc(sizeof(struct dg_maxwell));
+  gkyl_cu_memcpy(maxwell_cu, maxwell, sizeof(struct dg_maxwell), GKYL_CU_MEMCPY_H2D);
+
+  // cleanup
+  gkyl_free(maxwell);
+
+  return &maxwell_cu->eqn;
 }
