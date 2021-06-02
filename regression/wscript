@@ -53,6 +53,13 @@ def build(bld):
     )
 
     bld.program(
+        source = 'app_vlasov_moments.c',
+        target = 'app_vlasov_moments',
+        includes = includes,
+        use = use,
+    )
+
+    bld.program(
         source = 'app_euler_riem_2d.c',
         target = 'app_euler_riem_2d',
         includes = includes,
