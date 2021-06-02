@@ -52,7 +52,7 @@ test_1()
 {
   int polyOrder = 1;
   double lower[] = {-2.0, -2.0}, upper[] = {2.0, 2.0};
-  int cells[] = {20, 20};
+  int cells[] = {4, 2};
   int ndim = sizeof(lower)/sizeof(lower[0]);
   int vdim = 1, cdim = 1;
 
@@ -92,34 +92,6 @@ test_1()
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
 
-  //// bottom left cell
-  //double *df0 = gkyl_array_fetch(distf, 0);
-  //TEST_CHECK( gkyl_compare( 2.666666666666667, df0[0], 1e-12) );
-  //TEST_CHECK( gkyl_compare(-2.309401076758503, df0[1], 1e-12) );
-  //TEST_CHECK( gkyl_compare( 0., df0[2], 1e-12) );
-  //TEST_CHECK( gkyl_compare( 0., df0[3], 1e-12) );
-
-  //// top left cell
-  //double *df1 = gkyl_array_fetch(distf, 1);
-  //TEST_CHECK( gkyl_compare( 2.666666666666667, df1[0], 1e-12) );
-  //TEST_CHECK( gkyl_compare(-2.309401076758503, df1[1], 1e-12) );
-  //TEST_CHECK( gkyl_compare( 0., df1[2], 1e-12) );
-  //TEST_CHECK( gkyl_compare( 0., df1[3], 1e-12) );
-
-  //// bottom right cell
-  //double *df2 = gkyl_array_fetch(distf, 2);
-  //TEST_CHECK( gkyl_compare( 2.666666666666667, df2[0], 1e-12) );
-  //TEST_CHECK( gkyl_compare( 2.309401076758503, df2[1], 1e-12) );
-  //TEST_CHECK( gkyl_compare( 0., df2[2], 1e-12) );
-  //TEST_CHECK( gkyl_compare( 0., df2[3], 1e-12) );
-
-  //// bottom left cell
-  //double *df3 = gkyl_array_fetch(distf, 3);
-  //TEST_CHECK( gkyl_compare( 2.666666666666667, df3[0], 1e-12) );
-  //TEST_CHECK( gkyl_compare( 2.309401076758503, df3[1], 1e-12) );
-  //TEST_CHECK( gkyl_compare( 0., df3[2], 1e-12) );
-  //TEST_CHECK( gkyl_compare( 0., df3[3], 1e-12) );
-
   struct gkyl_mom_type *mtype;
   mtype = gkyl_vlasov_mom_new(&confBasis, &basis, "M0");
   gkyl_mom_calc *mcalc;
@@ -130,16 +102,31 @@ test_1()
   // compute the moment
   gkyl_mom_calc_advance(mcalc, &local, &confLocal, distf, marr);
 
-  const char *fmt = "%s-%s-%s_%d.gkyl";
-  char name[] = "mom_calc";
-  char speciesName[] = "distf";
-  char momName[] = "M0";
-  int frame = 0;
-  int sz = snprintf(0, 0, fmt, name, speciesName, momName, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, name, speciesName, momName, frame);
+  // Check results.
+  double *marr0 = gkyl_array_fetch(marr, 1);
+  TEST_CHECK( gkyl_compare( 13.199326582148885, marr0[0], 1e-12) );
+  TEST_CHECK( gkyl_compare(-4.898979485566354 , marr0[1], 1e-12) );
+  double *marr1 = gkyl_array_fetch(marr, 2);
+  TEST_CHECK( gkyl_compare(  1.885618083164126, marr1[0], 1e-12) );
+  TEST_CHECK( gkyl_compare( -1.632993161855452, marr1[1], 1e-12) );
+  double *marr2 = gkyl_array_fetch(marr, 3);
+  TEST_CHECK( gkyl_compare(  1.885618083164127, marr2[0], 1e-12) );
+  TEST_CHECK( gkyl_compare(  1.632993161855452, marr2[1], 1e-12) );
+  double *marr3 = gkyl_array_fetch(marr, 4);
+  TEST_CHECK( gkyl_compare( 13.199326582148885, marr3[0], 1e-12) );
+  TEST_CHECK( gkyl_compare( 4.898979485566355 , marr3[1], 1e-12) );
 
-  gkyl_grid_array_write(&confGrid, &confLocal, marr, fileNm);
+  //// Write the moment array to file.
+  //const char *fmt = "%s-%s-%s_%d.gkyl";
+  //char name[] = "mom_calc";
+  //char speciesName[] = "distf";
+  //char momName[] = "M0";
+  //int frame = 0;
+  //int sz = snprintf(0, 0, fmt, name, speciesName, momName, frame);
+  //char fileNm[sz+1]; // ensures no buffer overflow
+  //snprintf(fileNm, sizeof fileNm, fmt, name, speciesName, momName, frame);
+
+  //gkyl_grid_array_write(&confGrid, &confLocal, marr, fileNm);
 
   // release memory for moment data object
   gkyl_array_release(marr);
