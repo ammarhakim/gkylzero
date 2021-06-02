@@ -1,34 +1,38 @@
 /* -*- c -*- */
 
 #include <gkylzero.h>
-
-int
-my_gkyl_range_shape(const struct gkyl_range *range, int dir)
-{
-  return range->upper[dir]-range->lower[dir]+1;
-}
-
 #include <stdio.h>
 
 extern "C" {
-    void cu_range_test(const struct gkyl_range *rng);
+    int cu_range_test(const struct gkyl_range *rng);
 }
 
 __global__
-void ker_cu_range_test(const struct gkyl_range *rng)
+void ker_cu_range_test(const struct gkyl_range *rng, int *nfail)
 {
-  printf("%d. (%d %d)\n", rng->ndim, rng->lower[0], rng->upper[0]);
-  int s0 = gkyl_range_shape(rng, 0);
-  int s1 = gkyl_range_shape(rng, 1);
-  printf("shape %d %d\n ", s0, s1);
+  *nfail = 0;
 
-  printf("Linear index to first location %d\n", gkyl_range_idx(rng, rng->lower));
-  printf("Linear index to last location %d\n", gkyl_range_idx(rng, rng->upper)); 
+  int lower[] = {0, 0}, upper[] = {24, 49};
+
+  GKYL_CU_CHECK( rng->ndim == 2, nfail );
+  GKYL_CU_CHECK( rng->volume == 25*50, nfail );
+
+  for (unsigned i=0; i<2; ++i) {
+    GKYL_CU_CHECK( rng->lower[i] == lower[i], nfail );
+    GKYL_CU_CHECK( rng->upper[i] == upper[i], nfail );
+  }  
 }
 
-void cu_range_test(const struct gkyl_range *rng)
+int cu_range_test(const struct gkyl_range *rng)
 {
-  ker_cu_range_test<<<1,1>>>(rng);
+  int *nfail_dev = (int *) gkyl_cu_malloc(sizeof(int));  
+  ker_cu_range_test<<<1,1>>>(rng, nfail_dev);
+
+  int nfail;
+  gkyl_cu_memcpy(&nfail, nfail_dev, sizeof(int), GKYL_CU_MEMCPY_D2H);
+  gkyl_cu_free(nfail_dev);
+
+  return nfail;  
 }
 
 

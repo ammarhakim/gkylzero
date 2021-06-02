@@ -94,6 +94,13 @@ enum gkyl_cu_memcpy_kind {
       double: gkyl_compare_double)              \
     (a, b, eps)
 
+// a quick-and-dirty macro for testing (mostly) CUDA kernel code
+#define GKYL_CU_CHECK(expr, cntr) do {                                  \
+      if (!(expr)) {                                                    \
+        *cntr += 1;                                                     \
+        printf("%s failed! (%s:%d)\n", #expr, __FILE__, __LINE__);      \
+      }                                                                 \
+    } while (0);
 
 // Code 
 

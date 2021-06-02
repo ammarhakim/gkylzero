@@ -1,9 +1,8 @@
-
+#
 # You can set compiler to use as:
 #
 # make CC=mpicc 
 #
-
 
 CFLAGS = -O3 -g 
 LDFLAGS = -O3
@@ -37,8 +36,8 @@ libobjs = $(patsubst %.c,%.o,$(wildcard minus/*.c)) \
 ifdef USING_NVCC
 
 # Unfortunately, due to the limitations of the NVCC compiler to treat
-# C files, we need to force compile the kernel code using the -x cu
-# flag
+# device code in C files, we need to force compile the kernel code
+# using the -x cu flag
 
 kernels/maxwell/%.o : kernels/maxwell/%.c
 	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
@@ -75,6 +74,9 @@ ifdef USING_NVCC
 
 build/unit/ctest_range: unit/ctest_range.o unit/ctest_range_cu.o build/libgkylzero.a
 	${CC} ${LDFLAGS} unit/ctest_range.o unit/ctest_range_cu.o -o build/unit/ctest_range -Lbuild -lgkylzero -lm -lpthread
+
+build/unit/ctest_array: unit/ctest_array.o unit/ctest_array_cu.o build/libgkylzero.a
+	${CC} ${LDFLAGS} unit/ctest_array.o unit/ctest_array_cu.o -o build/unit/ctest_array -Lbuild -lgkylzero -lm -lpthread
 
 endif
 

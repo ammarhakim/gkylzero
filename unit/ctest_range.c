@@ -836,7 +836,7 @@ void test_intersect()
 #ifdef GKYL_HAVE_CUDA
 
 /* Function signatures of kernel calls */
-void cu_range_test(const struct gkyl_range *rng);
+int cu_range_test(const struct gkyl_range *rng);
 
 void test_cu_range()
 {
@@ -848,7 +848,8 @@ void test_cu_range()
   struct gkyl_range *cu_range = gkyl_range_clone_on_cu_dev(&range);
 
   // call kernel
-  cu_range_test(cu_range);
+  int nfail = cu_range_test(cu_range);
+  TEST_CHECK( nfail == 0 );
 
   gkyl_cu_free(cu_range);
 }
