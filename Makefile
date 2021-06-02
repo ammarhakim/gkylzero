@@ -59,6 +59,7 @@ build/unit/%: unit/%.c build/libgkylzero.a
 ifdef USING_NVCC
 
 # unit tests needing CUDA kernels
+
 build/unit/ctest_range: unit/ctest_range.o unit/ctest_range_cu.o build/libgkylzero.a
 	${CC} ${LDFLAGS} unit/ctest_range.o unit/ctest_range_cu.o -o build/unit/ctest_range -Lbuild -lgkylzero -lm -lpthread
 

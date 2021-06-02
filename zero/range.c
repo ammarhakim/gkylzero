@@ -315,58 +315,6 @@ gkyl_range_intersect(struct gkyl_range* irng,
   return irng->volume > 0 ? 1 : 0;
 }
 
-long
-gkyl_range_offset(const struct gkyl_range* range, const int *idx)
-{
-  return gkyl_range_idx(range, idx) - range->linIdxZero;
-}
-
-long
-gkyl_range_idx(const struct gkyl_range* range, const int *idx)
-{
-#define RI(...) gkyl_ridx(*range, __VA_ARGS__)
-  switch (range->ndim) {
-    case 0:
-      return range->ac[0];
-      break;    
-    case 1:
-      return RI(idx[0]); 
-      break;
-    case 2:
-      return RI(idx[0], idx[1]);
-      break;
-    case 3:
-      return RI(idx[0], idx[1], idx[2]);
-      break;
-    case 4:
-      return RI(idx[0], idx[1], idx[2], idx[3]);
-      break;
-    case 5:
-      return RI(idx[0], idx[1], idx[2], idx[3], idx[4]);
-      break;
-    case 6:
-      return RI(idx[0], idx[1], idx[2], idx[3], idx[4], idx[5]);
-      break;
-    case 7:
-      return RI(idx[0], idx[1], idx[2], idx[3], idx[4], idx[5], idx[6]);
-      break;
-  }
-  return 0;
-#undef RI
-}
-
-void
-gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
-{
-  long n = loc;
-  for (int i=1; i<=range->ndim; ++i) {
-    long quot = n/range->ac[i];
-    long rem = n % range->ac[i];
-    idx[i-1] = quot + range->ilo[i-1];
-    n = rem;
-  }
-}
-
 void
 gkyl_range_iter_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range)

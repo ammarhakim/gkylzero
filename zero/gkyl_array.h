@@ -85,6 +85,7 @@ struct gkyl_array* gkyl_array_clone(const struct gkyl_array* arr);
  * @param loc Element to fetch
  * @return Element at location 'loc'
  */
+GKYL_CU_DH
 static inline void*
 gkyl_array_fetch(struct gkyl_array* arr, long loc)
 {
@@ -92,6 +93,7 @@ gkyl_array_fetch(struct gkyl_array* arr, long loc)
 }
 
 /** Same as above, except fetches a constant pointer */
+GKYL_CU_DH
 static inline const void*
 gkyl_array_cfetch(const struct gkyl_array* arr, long loc)
 {
