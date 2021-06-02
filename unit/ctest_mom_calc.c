@@ -70,19 +70,27 @@ test_1()
   gkyl_cart_modal_serendip(&basis, ndim, polyOrder);
   gkyl_cart_modal_serendip(&confBasis, cdim, polyOrder);
 
+  int confGhost[] = { 1 };
+  struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
+  gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
+  struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
+  skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
+
+  int ghost[] = { confGhost[0], 0 };
+  struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+  struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
+  skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
+
   // projection updater for dist-function
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
     polyOrder+1, 1, evalFunc, NULL);
 
-  // create array range: no ghost-cells in velocity space
-  struct gkyl_range arr_range;
-  gkyl_range_init_from_shape(&arr_range, ndim, cells);
-
   // create distribution function
-  struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.numBasis, arr_range.volume);
+  struct gkyl_array *distf = mkarr(basis.numBasis, local_ext.volume);
 
   // project distribution function on basis
-  gkyl_proj_on_basis_advance(projDistf, 0.0, &arr_range, distf);
+  gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
 
   //// bottom left cell
   //double *df0 = gkyl_array_fetch(distf, 0);
@@ -111,18 +119,6 @@ test_1()
   //TEST_CHECK( gkyl_compare( 2.309401076758503, df3[1], 1e-12) );
   //TEST_CHECK( gkyl_compare( 0., df3[2], 1e-12) );
   //TEST_CHECK( gkyl_compare( 0., df3[3], 1e-12) );
-
-  int confGhost[] = { 1 };
-  struct gkyl_range confLocal, confLocal_ext; // local, local-ext phase-space ranges
-  gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
-  struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
-  skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
-
-  int ghost[] = { confGhost[0], 0 };
-  struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
-  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
-  struct skin_ghost_ranges skin_ghost; // conf-space skin/ghost
-  skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   struct gkyl_mom_type *mtype;
   mtype = gkyl_vlasov_mom_new(&confBasis, &basis, "M0");
