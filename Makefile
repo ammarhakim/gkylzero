@@ -15,7 +15,7 @@ USING_NVCC =
 NVCC_FLAGS = 
 ifeq ($(CC), nvcc)
        USING_NVCC = yes
-       NVCC_FLAGS = -w -dc -arch=sm_70 --compiler-options="-fPIC" 
+       NVCC_FLAGS = -x cu -w -dc -arch=sm_70 --compiler-options="-fPIC" 
        LDFLAGS += -arch=sm_70
 endif
 
@@ -33,6 +33,19 @@ libobjs = $(patsubst %.c,%.o,$(wildcard minus/*.c)) \
 	$(patsubst %.c,%.o,$(wildcard zero/*.c)) \
 	$(patsubst %.c,%.o,$(wildcard apps/*.c)) \
 	$(patsubst %.c,%.o,$(wildcard kernels/*/*.c))
+
+ifdef USING_NVCC
+
+# Unfortunately, due to the limitations of the NVCC compiler to treat
+# C files, we need to force compile the kernel code using the -x cu
+# flag
+
+kernels/maxwell/%.o : kernels/maxwell/%.c
+	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
+
+kernels/vlasov/%.o : kernels/vlasov/%.c
+	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
+endif
 
 # Make targets: libraties, regression tests and unit tests
 all: build/libgkylzero.a \

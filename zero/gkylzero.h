@@ -2,6 +2,11 @@
 
 /* Amalgamated include. Extend with new headers when needed */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <gkyl_util.h>
 #include <cart_modal_serendip_funcs.h>
 #include <gkyl_alloc.h>
 #include <gkyl_app.h>
@@ -35,7 +40,6 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_ref_count.h>
 #include <gkyl_update_fsm.h>
-#include <gkyl_util.h>
 #include <gkyl_vargm.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_vlasov_kernels.h>
@@ -48,7 +52,6 @@
 #include <gkyl_wv_maxwell.h>
 #include <gkyl_wv_ten_moment.h>
 
-/* Other useful stuff */
-#include <rxi_ini.h>
-#include <mpack.h>
-#include <pcg_basic.h>
+#ifdef __cplusplus
+}
+#endif
