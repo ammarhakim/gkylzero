@@ -33,6 +33,7 @@ void gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
  * @param grid Grid object on device to clone
  * @return Clone valid on device.
  */
+
 struct gkyl_rect_grid* gkyl_rect_grid_clone_on_cu_dev(struct gkyl_rect_grid* grid);
 
 /**
@@ -42,8 +43,13 @@ struct gkyl_rect_grid* gkyl_rect_grid_clone_on_cu_dev(struct gkyl_rect_grid* gri
  * @param idx Index of cell (lower-left corner has all index (0,0,...) )
  * @param xc On output, cell-center coordinates of cell 'idx'
  */
-void gkyl_rect_grid_cell_center(const struct gkyl_rect_grid *grid,
-  const int *idx, double *xc);
+GKYL_CU_DH
+static inline void gkyl_rect_grid_cell_center(const struct gkyl_rect_grid *grid,
+  const int *idx, double *xc)
+{
+  for (int i=0; i<grid->ndim; ++i)
+    xc[i] = grid->lower[i]+(idx[i]+0.5)*grid->dx[i];
+}
 
 /**
  * Write grid data to file. File must be opened by caller of this
