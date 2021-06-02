@@ -3,6 +3,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_basis.h>
 #include <gkyl_dg_maxwell.h>
+#include <gkyl_dg_maxwell_priv.h>
 
 void
 test_dg_max()
@@ -13,6 +14,14 @@ test_dg_max()
   struct gkyl_dg_eqn* eqn = gkyl_dg_maxwell_new(&basis, 1.0, 0.5, 0.25);
 
   TEST_CHECK( eqn->num_equations == 8 );
+
+  // this is not possible from user code and should NOT be done. This
+  // is for testing only
+  struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
+
+  TEST_CHECK( maxwell->maxwell_data.c == 1.0 );
+  TEST_CHECK( maxwell->maxwell_data.chi == 0.5 );
+  TEST_CHECK( maxwell->maxwell_data.gamma == 0.25 );
 
   gkyl_dg_eqn_release(eqn);
 }
@@ -29,7 +38,9 @@ test_cu_dg_max()
 
   struct gkyl_dg_eqn* eqn = gkyl_dg_maxwell_cu_dev_new(&basis, 1.0, 0.5, 0.25);
 
-  cu_maxwell_test(eqn);
+  int nfail = cu_maxwell_test(eqn);
+
+  TEST_CHECK( nfail == 0 );
 
   gkyl_cu_free(eqn);
   
