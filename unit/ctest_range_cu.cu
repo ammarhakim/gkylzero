@@ -1,9 +1,7 @@
 /* -*- c -*- */
 
 #include <gkyl_alloc.h>
-extern "C" {
 #include <gkyl_range.h>
-}
 
 int
 my_gkyl_range_shape(const struct gkyl_range *range, int dir)

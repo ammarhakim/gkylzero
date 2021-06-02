@@ -2,6 +2,8 @@
 #include <math.h>
 #include <gkyl_util.h>
 
+EXTERN_C_BEG
+
 void vlasov_M0_1x1v_ser_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
 void vlasov_M1i_1x1v_ser_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
 void vlasov_M2_1x1v_ser_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
@@ -146,3 +148,4 @@ void vlasov_M3i_2x3v_tensor_p2(const double *w, const double *dxv, const int *id
 void vlasov_M3ijk_2x3v_tensor_p2(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
 void vlasov_int_mom_2x3v_tensor_p2(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
 
+EXTERN_C_END

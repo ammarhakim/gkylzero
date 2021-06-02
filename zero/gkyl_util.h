@@ -34,6 +34,19 @@
 # define GKYL_DEF_ALIGN 64
 #endif
 
+#ifdef __cplusplus
+
+// extern "C" guards needed when using code from C++
+# define EXTERN_C_BEG extern "C" {
+# define EXTERN_C_END }
+
+#else
+
+# define EXTERN_C_BEG 
+# define EXTERN_C_END
+
+#endif
+
 // CUDA specific defines etc
 #ifdef __NVCC__
 
