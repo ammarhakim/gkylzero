@@ -111,7 +111,10 @@ struct gkyl_range* gkyl_range_clone_on_cu_dev(struct gkyl_range* rng);
  * @return Shape in direction dit
  */
 GKYL_CU_DH
-int gkyl_range_shape(const struct gkyl_range *rng, int dir);
+static inline int gkyl_range_shape(const struct gkyl_range *rng, int dir)
+{
+  return rng->upper[dir]-rng->lower[dir]+1;  
+}
 
 /**
  * Return 1 if range is a sub-range.
