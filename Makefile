@@ -12,16 +12,17 @@ PREFIX = ${HOME}/gkylsoft
 
 NVCC = 
 USING_NVCC =
+NVCC_FLAGS = 
 ifeq ($(CC), nvcc)
        USING_NVCC = yes
-       CFLAGS += -w -dc -arch=sm_70 --compiler-options="-fPIC" 
+       NVCC_FLAGS = -w -dc -arch=sm_70 --compiler-options="-fPIC" 
        LDFLAGS += -arch=sm_70 -dlink
 endif
 
-%.o : %.c
-	${CC} -c $(CFLAGS) $(INCLUDES) -o $@ $< 
-
 %.o : %.cu
+	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
+
+%.o : %.c
 	${CC} -c $(CFLAGS) $(INCLUDES) -o $@ $< 
 
 # Header dependencies
@@ -38,8 +39,6 @@ all: build/libgkylzero.a \
 	$(patsubst %.c,build/%,$(wildcard regression/app_*.c)) build/regression/twostream.ini \
 	$(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 
-#ar -crs build/libgkylzero.a ${libobjs}
-#${CC} -lib ${libobjs} -o build/libgkylzero.a 
 # Library archive
 build/libgkylzero.a: ${libobjs} ${headers}
 	ar -crs build/libgkylzero.a ${libobjs}
@@ -60,8 +59,8 @@ build/unit/%: unit/%.c build/libgkylzero.a
 ifdef USING_NVCC
 
 # unit tests needing CUDA kernels
-build/unit/ctest_range: unit/ctest_range.o unit/ctest_cu_range.o build/libgkylzero.a
-	${CC} ${LDFLAGS} unit/ctest_range.o unit/ctest_cu_range.o -o build/unit/ctest_range -Lbuild -lgkylzero -lm -lpthread
+build/unit/ctest_range: unit/ctest_range.o unit/ctest_range_cu.o build/libgkylzero.a
+	${CC} ${LDFLAGS} unit/ctest_range.o unit/ctest_range_cu.o -o build/unit/ctest_range -Lbuild -lgkylzero -lm -lpthread
 
 endif
 

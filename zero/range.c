@@ -32,7 +32,6 @@ calc_rowmajor_ac(struct gkyl_range* range)
 }
 
 // Computes stuff needed for "skip iterator"
-GKYL_CU_DH
 static long
 calc_skip_iter(const struct gkyl_range *rng, int *remDir)
 {
@@ -95,7 +94,6 @@ gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim, const int *shape)
   gkyl_range_init(rng, ndim, lo, up);
 }
 
-GKYL_CU_DH
 int
 gkyl_range_shape(const struct gkyl_range *range, int dir)
 {
@@ -149,7 +147,6 @@ gkyl_range_split(struct gkyl_range *rng, int nsplits, int tid)
 // Computes split and returns number of elements handled locally and
 // the initial index into the range. Number of elements is returned
 // and start index set in 'lower'
-GKYL_CU_DH
 static long
 gkyl_range_calc_split(const struct gkyl_range *rng, int *lower)
 {
@@ -324,14 +321,12 @@ gkyl_range_intersect(struct gkyl_range* irng,
   return irng->volume > 0 ? 1 : 0;
 }
 
-GKYL_CU_DH
 long
 gkyl_range_offset(const struct gkyl_range* range, const int *idx)
 {
   return gkyl_range_idx(range, idx) - range->linIdxZero;
 }
 
-GKYL_CU_DH
 long
 gkyl_range_idx(const struct gkyl_range* range, const int *idx)
 {
@@ -366,7 +361,6 @@ gkyl_range_idx(const struct gkyl_range* range, const int *idx)
 #undef RI
 }
 
-GKYL_CU_DH
 void
 gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
 {
@@ -379,7 +373,6 @@ gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
   }
 }
 
-GKYL_CU_DH
 void
 gkyl_range_iter_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range)
@@ -394,7 +387,6 @@ gkyl_range_iter_init(struct gkyl_range_iter *iter,
   }
 }
 
-GKYL_CU_DH
 void
 gkyl_range_iter_no_split_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range)
@@ -409,7 +401,6 @@ gkyl_range_iter_no_split_init(struct gkyl_range_iter *iter,
   }  
 }
 
-GKYL_CU_DH
 int
 gkyl_range_iter_next(struct gkyl_range_iter *iter)
 {
@@ -429,7 +420,6 @@ gkyl_range_iter_next(struct gkyl_range_iter *iter)
   return 0;
 }
 
-GKYL_CU_DH
 void
 gkyl_range_skip_iter_init(struct gkyl_range_skip_iter *iter,
   const struct gkyl_range* range)

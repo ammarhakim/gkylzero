@@ -21,7 +21,7 @@ __global__
 void ker_cu_range_test(const struct gkyl_range *rng)
 {
   printf("%d. (%d %d)\n", rng->ndim, rng->lower[0], rng->upper[0]);
-  int s0 = gkyl_range_shape(rng, 0);
+  //int s0 = gkyl_range_shape(rng, 0);
 }
 
 void cu_range_test(const struct gkyl_range *rng)
