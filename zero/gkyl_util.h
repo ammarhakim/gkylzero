@@ -7,6 +7,25 @@
 // random number generator
 #include <pcg_basic.h>
 
+#ifdef __cplusplus
+
+// extern "C" guards needed when using code from C++
+# define EXTERN_C_BEG extern "C" {
+# define EXTERN_C_END }
+
+#else
+
+# define EXTERN_C_BEG 
+# define EXTERN_C_END
+
+#endif
+
+// restrict keyword in C and C++ are different
+#define GKYL_RESTRICT restrict
+#ifdef __cplusplus
+# define GKYL_RESTRICT __restrict__
+#endif
+
 // Maximum configuration-space dimensions supported
 #ifndef GKYL_MAX_CDIM
 # define GKYL_MAX_CDIM 3
@@ -27,6 +46,7 @@
 #ifndef GKYL_DEF_ALIGN
 # define GKYL_DEF_ALIGN 64
 #endif
+
 
 // CUDA specific defines etc
 #ifdef __NVCC__
@@ -73,6 +93,18 @@ enum gkyl_cu_memcpy_kind {
       float: gkyl_compare_float,                \
       double: gkyl_compare_double)              \
     (a, b, eps)
+
+// a quick-and-dirty macro for testing (mostly) CUDA kernel code
+#define GKYL_CU_CHECK(expr, cntr) do {                                  \
+      if (!(expr)) {                                                    \
+        *cntr += 1;                                                     \
+        printf("%s failed! (%s:%d)\n", #expr, __FILE__, __LINE__);      \
+      }                                                                 \
+    } while (0);
+
+// Code 
+
+EXTERN_C_BEG
 
 /**
  * Time-trigger. Typical initialization is:
@@ -121,8 +153,9 @@ int gkyl_compare_double(double a, double b, double eps);
  * @param inp Input array
  * @param out Output array
  */
+GKYL_CU_DH
 static inline void
-gkyl_copy_int_arr(int n, const int *restrict inp, int *restrict out)
+gkyl_copy_int_arr(int n, const int* GKYL_RESTRICT inp, int* GKYL_RESTRICT out)
 {
   for (int i=0; i<n; ++i) out[i] = inp[i];
 }
@@ -211,3 +244,5 @@ uint64_t gkyl_pcg64_rand_uint32(pcg64_random_t* rng);
  * @return Uniformly distributed double in [0,1)
  */
 double gkyl_pcg64_rand_double(pcg64_random_t* rng);
+
+EXTERN_C_END

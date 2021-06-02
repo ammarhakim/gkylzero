@@ -6,7 +6,7 @@
  * Function pointer type to compute the needed moment.
  */
 typedef void (*momf_t)(const double *xc, const double *dx,
-  const int *idx, const double *f, double* restrict out);
+  const int *idx, const double *f, double* out);
 
 struct gkyl_mom_type {
   int cdim; // config-space dim
@@ -45,4 +45,4 @@ void gkyl_mom_type_release(struct gkyl_mom_type* momt);
  */
 void gkyl_mom_type_calc(const struct gkyl_mom_type* momt,
   const double *xc, const double *dx, const int *idx,
-  const double *f, double* restrict out);
+  const double *f, double* out);

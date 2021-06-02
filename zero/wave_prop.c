@@ -108,14 +108,14 @@ gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp)
 
 // some helper functions
 static inline void
-calc_jump(int n, const double *ql, const double *qr, double *restrict jump)
+calc_jump(int n, const double *ql, const double *qr, double * GKYL_RESTRICT jump)
 {
   for (int d=0; d<n; ++d) jump[d] = qr[d]-ql[d];
 }
 
 static inline void
 calc_first_order_update(int meqn, double dtdx,
-  double *restrict ql, double *restrict qr, const double *amdq, const double *apdq)
+  double * GKYL_RESTRICT ql, double * GKYL_RESTRICT qr, const double *amdq, const double *apdq)
 {
   for (int i=0; i<meqn; ++i) {
     qr[i] = qr[i] - dtdx*apdq[i];
@@ -133,7 +133,7 @@ calc_cfla(int mwaves, double cfla, double dtdx, const double *s)
 }
 
 static inline double
-wave_dot_prod(int meqn, const double *restrict wa, const double *restrict wb)
+wave_dot_prod(int meqn, const double * GKYL_RESTRICT wa, const double * GKYL_RESTRICT wb)
 {
   double dot = 0.0;
   for (int i=0; i<meqn; ++i) dot += wa[i]*wb[i];
@@ -148,7 +148,7 @@ wave_rescale(int meqn, double fact, double *w)
 
 static inline void
 calc_second_order_flux(int meqn, double dtdx, double s,
-  const double *waves, double *restrict flux2)
+  const double *waves, double * GKYL_RESTRICT flux2)
 {
   double sfact = 0.5*fabs(s)*(1-fabs(s)*dtdx);
   for (int i=0; i<meqn; ++i)
@@ -156,7 +156,7 @@ calc_second_order_flux(int meqn, double dtdx, double s,
 }
 
 static inline void
-calc_second_order_update(int meqn, double dtdx, double *restrict qout,
+calc_second_order_update(int meqn, double dtdx, double * GKYL_RESTRICT qout,
   const double *fl, const double *fr)
 {
   for (int i=0; i<meqn; ++i)
@@ -178,8 +178,8 @@ limit_waves(const gkyl_wave_prop *wv, const struct gkyl_range *slice_range,
     for (int i=lower; i<=upper; ++i) {
       double dotl = dotr;
       
-      double *restrict wi = gkyl_array_fetch(waves, gkyl_ridx(*slice_range, i));
-      const double *restrict wi1 = gkyl_array_cfetch(waves, gkyl_ridx(*slice_range, i+1));
+      double * GKYL_RESTRICT wi = gkyl_array_fetch(waves, gkyl_ridx(*slice_range, i));
+      const double * GKYL_RESTRICT wi1 = gkyl_array_cfetch(waves, gkyl_ridx(*slice_range, i+1));
       
       double wnorm2 = wave_dot_prod(meqn, &wi[mw*meqn], &wi[mw*meqn]);
       dotr = wave_dot_prod(meqn, &wi[mw*meqn], &wi1[mw*meqn]);

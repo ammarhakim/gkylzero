@@ -140,7 +140,58 @@ gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
   arr->ref_count = (struct gkyl_ref_count) { array_free, 1 };  
   arr->data = gkyl_cu_malloc(arr->size*arr->esznc);
   
-  return arr;  
+  return arr;
+}
+
+struct gkyl_array*
+gkyl_array_clone_on_cu_dev(struct gkyl_array* arr)
+{
+  struct gkyl_array* cp_arr = gkyl_malloc(sizeof(struct gkyl_array));
+  cp_arr->type = arr->type;
+  cp_arr->elemsz = arr->elemsz;
+  cp_arr->ncomp = arr->ncomp;
+  cp_arr->size = arr->size;
+  cp_arr->flags = arr->flags;
+  cp_arr->esznc = arr->esznc;
+
+  bool is_alloc = false;
+  if (IS_CU_ARRAY(arr->flags)) {
+    cp_arr->data = arr->data;
+  }
+  else {
+    // if data is not already on device, we need to copy it there
+    is_alloc = true;
+    cp_arr->data = gkyl_cu_malloc(arr->size*arr->esznc);
+    gkyl_cu_memcpy(cp_arr->data, arr->data, arr->size*arr->esznc, GKYL_CU_MEMCPY_H2D);
+  }
+
+  // copy array to device
+  size_t sz = sizeof(struct gkyl_array);
+  struct gkyl_array *cu_arr = gkyl_cu_malloc(sz);
+  gkyl_cu_memcpy(cu_arr, cp_arr, sz, GKYL_CU_MEMCPY_H2D);
+
+  // clean up
+  if (is_alloc)
+    gkyl_cu_free(cp_arr->data);
+  gkyl_free(cp_arr);
+
+  return cu_arr;
+}
+
+#else
+
+struct gkyl_array*
+gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
+{
+  assert(false);
+  return 0;
+}
+
+struct gkyl_array*
+gkyl_array_clone_on_cu_dev(struct gkyl_array* arr)
+{
+  assert(false);
+  return 0;
 }
 
 #endif // CUDA specific code

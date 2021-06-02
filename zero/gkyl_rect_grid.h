@@ -28,6 +28,14 @@ void gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
   const double *lower, const double *upper, const int *cells);
 
 /**
+ * Clone grid object on NV-GPU.
+ *
+ * @param grid Grid object on device to clone
+ * @return Clone valid on device.
+ */
+struct gkyl_rect_grid* gkyl_rect_grid_clone_on_cu_dev(struct gkyl_rect_grid* grid);
+
+/**
  * Get cell-center coordinates. idx is the zero-based cell index.
  *
  * @param grid Grid object

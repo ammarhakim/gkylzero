@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <gkyl_util.h>
 #include <gkyl_array_ops.h>
 
 // Compute number of elements stored in array 'arr'
@@ -106,7 +107,7 @@ gkyl_array_clear_range(struct gkyl_array *out, double val, const struct gkyl_ran
 }
 
 static inline void
-array_acc1(long n, double *restrict out, double a, const double *restrict inp)
+array_acc1(long n, double * GKYL_RESTRICT out, double a, const double * GKYL_RESTRICT inp)
 {
   for (int c=0; c<n; ++c)
     out[c] += a*inp[c];
@@ -136,7 +137,7 @@ gkyl_array_accumulate_range(struct gkyl_array *out,
 
 static inline void
 array_set1(long n,
-  double *restrict out, double a, const double *restrict inp)
+  double * GKYL_RESTRICT out, double a, const double * GKYL_RESTRICT inp)
 {
   for (int c=0; c<n; ++c)
     out[c] = a*inp[c];

@@ -1,7 +1,9 @@
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include <gkyl_alloc.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
@@ -90,12 +92,6 @@ gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim, const int *shape)
     up[i] = shape[i]-1;
   }
   gkyl_range_init(rng, ndim, lo, up);
-}
-
-int
-gkyl_range_shape(const struct gkyl_range *range, int dir)
-{
-  return range->upper[dir]-range->lower[dir]+1;
 }
 
 int
@@ -253,8 +249,8 @@ gkyl_range_upper_skin(struct gkyl_range *rng,
 
 // Increment an int vector by fact*del[d] in each direction d.
 static inline void
-incr_int_array(int ndim, int fact, const int *restrict del,
-  const int *restrict inp, int *restrict out)
+incr_int_array(int ndim, int fact, const int * GKYL_RESTRICT del,
+  const int * GKYL_RESTRICT inp, int *GKYL_RESTRICT out)
 {
   for (int i=0; i<ndim; ++i)
     out[i] = inp[i] + fact*del[i];
@@ -319,58 +315,6 @@ gkyl_range_intersect(struct gkyl_range* irng,
   return irng->volume > 0 ? 1 : 0;
 }
 
-long
-gkyl_range_offset(const struct gkyl_range* range, const int *idx)
-{
-  return gkyl_range_idx(range, idx) - range->linIdxZero;
-}
-
-long
-gkyl_range_idx(const struct gkyl_range* range, const int *idx)
-{
-#define RI(...) gkyl_ridx(*range, __VA_ARGS__)
-  switch (range->ndim) {
-    case 0:
-      return range->ac[0];
-      break;    
-    case 1:
-      return RI(idx[0]); 
-      break;
-    case 2:
-      return RI(idx[0], idx[1]);
-      break;
-    case 3:
-      return RI(idx[0], idx[1], idx[2]);
-      break;
-    case 4:
-      return RI(idx[0], idx[1], idx[2], idx[3]);
-      break;
-    case 5:
-      return RI(idx[0], idx[1], idx[2], idx[3], idx[4]);
-      break;
-    case 6:
-      return RI(idx[0], idx[1], idx[2], idx[3], idx[4], idx[5]);
-      break;
-    case 7:
-      return RI(idx[0], idx[1], idx[2], idx[3], idx[4], idx[5], idx[6]);
-      break;
-  }
-  return 0;
-#undef RI
-}
-
-void
-gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
-{
-  long n = loc;
-  for (int i=1; i<=range->ndim; ++i) {
-    long quot = n/range->ac[i];
-    long rem = n % range->ac[i];
-    idx[i-1] = quot + range->ilo[i-1];
-    n = rem;
-  }
-}
-
 void
 gkyl_range_iter_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range)
@@ -426,3 +370,27 @@ gkyl_range_skip_iter_init(struct gkyl_range_skip_iter *iter,
   iter->delta = calc_skip_iter(range, remDir);
   gkyl_range_deflate(&iter->range, range, remDir, range->lower);
 }
+
+// CUDA specific code
+
+#ifdef GKYL_HAVE_CUDA
+
+struct gkyl_range*
+gkyl_range_clone_on_cu_dev(struct gkyl_range* rng)
+{
+  size_t sz = sizeof(struct gkyl_range);
+  struct gkyl_range *cu_rng = gkyl_cu_malloc(sz);
+  gkyl_cu_memcpy(cu_rng, rng, sz, GKYL_CU_MEMCPY_H2D);
+  return cu_rng;
+}
+
+#else
+
+struct gkyl_range*
+gkyl_range_clone_on_cu_dev(struct gkyl_range* rng)
+{
+  assert(false);
+  return 0;
+}
+
+#endif

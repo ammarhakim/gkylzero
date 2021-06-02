@@ -1,5 +1,7 @@
+#include <assert.h>
 #include <stdint.h>
 
+#include <gkyl_alloc.h>
 #include <gkyl_rect_grid.h>
 
 void
@@ -38,3 +40,27 @@ gkyl_rect_grid_write(const struct gkyl_rect_grid *grid, FILE *fp)
   fwrite(grid->lower, sizeof(double), grid->ndim, fp);
   fwrite(grid->upper, sizeof(double), grid->ndim, fp);
 }
+
+// CUDA specific code
+
+#ifdef GKYL_HAVE_CUDA
+
+struct gkyl_rect_grid*
+gkyl_rect_grid_clone_on_cu_dev(struct gkyl_rect_grid* grid)
+{
+  size_t sz = sizeof(struct gkyl_rect_grid);
+  struct gkyl_rect_grid *cu_grid = gkyl_cu_malloc(sz);
+  gkyl_cu_memcpy(cu_grid, grid, sz, GKYL_CU_MEMCPY_H2D);
+  return cu_grid;
+}
+
+#else
+
+struct gkyl_rect_grid*
+gkyl_rect_grid_clone_on_cu_dev(struct gkyl_rect_grid* grid)
+{
+  assert(false);
+  return 0;
+}
+
+#endif

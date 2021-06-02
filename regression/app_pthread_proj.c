@@ -10,7 +10,7 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_array_rio.h>
 
-void evalFunc(double t, const double *xn, double* restrict fout, void *ctx)
+void evalFunc(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   fout[0] = x*x + sin(3*y)*cos(z) + z*z;

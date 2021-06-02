@@ -20,7 +20,7 @@ struct esshock_ctx {
 static inline double sq(double x) { return x*x; }
 
 void
-evalDistFuncElc(double t, const double * restrict xn, double* restrict fout, void *ctx)
+evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct esshock_ctx *app = ctx;
   double x = xn[0], v = xn[1];
@@ -34,7 +34,7 @@ evalDistFuncElc(double t, const double * restrict xn, double* restrict fout, voi
 }
 
 void
-evalDistFuncIon(double t, const double * restrict xn, double* restrict fout, void *ctx)
+evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct esshock_ctx *app = ctx;
   double x = xn[0], v = xn[1];
@@ -48,7 +48,7 @@ evalDistFuncIon(double t, const double * restrict xn, double* restrict fout, voi
 }
 
 void
-evalFieldFunc(double t, const double* restrict xn, double* restrict fout, void *ctx)
+evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct esshock_ctx *app = ctx;
   double x = xn[0];

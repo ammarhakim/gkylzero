@@ -1,4 +1,6 @@
 #include <acutest.h>
+
+#include <gkyl_alloc.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
@@ -830,6 +832,30 @@ void test_intersect()
   
 }
 
+// CUDA specific tests
+#ifdef GKYL_HAVE_CUDA
+
+/* Function signatures of kernel calls */
+int cu_range_test(const struct gkyl_range *rng);
+
+void test_cu_range()
+{
+  int shape[] = {25, 50};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+
+  // copy range to device
+  struct gkyl_range *cu_range = gkyl_range_clone_on_cu_dev(&range);
+
+  // call kernel
+  int nfail = cu_range_test(cu_range);
+  TEST_CHECK( nfail == 0 );
+
+  gkyl_cu_free(cu_range);
+}
+
+#endif
+
 TEST_LIST = {
   { "range_0", test_range_0 },
   { "range_1", test_range_1 },
@@ -859,6 +885,9 @@ TEST_LIST = {
   { "range_split_iter_3", test_range_split_iter_3 },
   { "sub_range_split_iter", test_sub_range_split_iter },
   { "nested_iter", test_nested_iter },
-  { "intersect", test_intersect }, 
+  { "intersect", test_intersect },
+#ifdef GKYL_HAVE_CUDA
+  { "cu_range", test_cu_range },
+#endif  
   { NULL, NULL },
 };

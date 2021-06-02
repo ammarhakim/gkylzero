@@ -7,7 +7,7 @@
 #include <gkyl_wv_euler.h>
 
 void
-evalFieldInit(double t, const double * restrict xn, double* restrict fout, void *ctx)
+evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   // assumes epsilon0 = mu0 = c = 1.0
   double x = xn[0], y = xn[1];

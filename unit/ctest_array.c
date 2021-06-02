@@ -509,7 +509,10 @@ void test_reduce_range()
 // CUDA specific tests
 #ifdef GKYL_HAVE_CUDA
 
-void test_cuda_array()
+/* Function signatures of kernel calls */
+int cu_array_clone_test(const struct gkyl_array *arr);
+
+void test_cu_array_base()
 {
   struct gkyl_array *arr_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 200);
 
@@ -542,6 +545,39 @@ void test_cuda_array()
     TEST_CHECK( arrData[i] == (i+0.5)*0.1 );
 
   gkyl_array_release(arr);
+  gkyl_array_release(arr_cu);
+}
+
+void test_cu_array_dev_clone()
+{
+  struct gkyl_array *arr_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 20);
+
+  TEST_CHECK( arr_cu->type = GKYL_DOUBLE );
+  TEST_CHECK( arr_cu->elemsz == sizeof(double) );
+  TEST_CHECK( arr_cu->ncomp == 1 );
+  TEST_CHECK( arr_cu->size == 20 );
+  TEST_CHECK( arr_cu->ref_count.count == 1 );
+
+  TEST_CHECK( gkyl_array_is_cu_dev(arr_cu) == true );
+
+  // create host array and initialize it
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, 20);
+
+  double *arrData  = arr->data;
+  for (unsigned i=0; i<arr->size; ++i)
+    arrData[i] = (i+0.5)*0.1;  
+
+  // copy to device
+  gkyl_array_copy(arr_cu, arr);
+
+  // clone the device array
+  struct gkyl_array *arr_cl = gkyl_array_clone_on_cu_dev(arr_cu);
+
+  int nfail = cu_array_clone_test(arr_cl);
+  TEST_CHECK( nfail == 0 );
+
+  gkyl_array_release(arr);
+  gkyl_array_release(arr_cu);  
 }
 
 #endif
@@ -565,7 +601,8 @@ TEST_LIST = {
   { "reduce", test_reduce },
   { "reduce_range", test_reduce_range },
 #ifdef GKYL_HAVE_CUDA
-  { "cuda_array", test_cuda_array },
+  { "cu_array_base", test_cu_array_base },
+  { "cu_array_dev_clone", test_cu_array_dev_clone },
 #endif
   { NULL, NULL },
 };

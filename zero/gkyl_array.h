@@ -61,6 +61,19 @@ struct gkyl_array* gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp,
 bool gkyl_array_is_cu_dev(const struct gkyl_array *arr);
 
 /**
+ * Clone array to live fully on device. Unlike the array created from
+ * gkyl_array_cu_dev_new *all* of the array lives on the device and
+ * hence the returned pointer is safe to pass to kernel code.
+ *
+ * NOTE: If the data in the input array 'arr' already lives on the
+ * device, then the clone and 'arr' share the device data.
+ *
+ * @param arr Array to clone
+ * @param Clone valid on device.
+ */
+struct gkyl_array* gkyl_array_clone_on_cu_dev(struct gkyl_array* arr);
+
+/**
  * Copy into array: pointer to dest array is returned. 'dest' and
  * 'src' must not point to same data.
  * 
@@ -85,6 +98,7 @@ struct gkyl_array* gkyl_array_clone(const struct gkyl_array* arr);
  * @param loc Element to fetch
  * @return Element at location 'loc'
  */
+GKYL_CU_DH
 static inline void*
 gkyl_array_fetch(struct gkyl_array* arr, long loc)
 {
@@ -92,6 +106,7 @@ gkyl_array_fetch(struct gkyl_array* arr, long loc)
 }
 
 /** Same as above, except fetches a constant pointer */
+GKYL_CU_DH
 static inline const void*
 gkyl_array_cfetch(const struct gkyl_array* arr, long loc)
 {

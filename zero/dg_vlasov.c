@@ -10,21 +10,21 @@
 
 // Types for various kernels
 typedef double (*vlasov_stream_vol_t)(const double *w, const double *dxv,
-  const double *f, double* restrict out);
+  const double *f, double* GKYL_RESTRICT out);
 
 typedef double (*vlasov_vol_t)(const double *w, const double *dxv,
-  const double *qmem, const double *f, double* restrict out);
+  const double *qmem, const double *f, double* GKYL_RESTRICT out);
 
 typedef void (*vlasov_stream_surf_t)(const double *w, const double *dxv,
-  const double *fl, const double *fc, const double *fr, double* restrict out);
+  const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
 typedef double (*vlasov_accel_surf_t)(const double *w, const double *dxv,
   const double amax, const double *qmem,
-  const double *fl, const double *fc, const double *fr, double* restrict out);
+  const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
 typedef double (*vlasov_accel_boundary_surf_t)(const double *w, const double *dxv,
   const double amax, const double *qmem, const int edge,
-  const double *fSkin, const double *fEdge, double* restrict out);
+  const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
@@ -206,7 +206,7 @@ gkyl_vlasov_set_qmem(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qme
 
 static double
 vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
-  const int* idx, const double* qIn, double* restrict qRhsOut)
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
 
@@ -223,7 +223,7 @@ surf(const struct gkyl_dg_eqn *eqn,
   const double*  xcL, const double*  xcC, const double*  xcR, 
   const double*  dxL, const double* dxC, const double* dxR,
   double maxsOld, const int*  idxL, const int*  idxC, const int*  idxR,
-  const double* qInL, const double*  qInC, const double*  qInR, double* restrict qRhsOut)
+  const double* qInL, const double*  qInC, const double*  qInR, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
 
@@ -248,7 +248,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   const double*  xcEdge, const double*  xcSkin,
   const double*  dxEdge, const double* dxSkin,
   double maxsOld, const int* idxEdge, const int* idxSkin, const int edge,
-  const double* qInEdge, const double* qInSkin, double* restrict qRhsOut)
+  const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
 

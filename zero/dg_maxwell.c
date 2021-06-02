@@ -9,11 +9,11 @@
 
 // Types for various kernels
 typedef double (*maxwell_vol_t)(const gkyl_maxwell_inp *meq,
-  const double *w, const double *dx, const double *q, double* restrict out);
+  const double *w, const double *dx, const double *q, double* GKYL_RESTRICT out);
 
 typedef double (*maxwell_surf_t)(const gkyl_maxwell_inp *meq,
   const double *w, const double *dx, const double tau,
-  const double *ql, const double *qc, const double *qr, double* restrict out);
+  const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out);
 
 // Volume kernel list
 static struct { maxwell_vol_t kernels[3]; } vol_kernels[] = {
@@ -60,7 +60,7 @@ maxwell_free(const struct gkyl_ref_count *ref)
 
 static double
 vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double*  dx, 
-  const int*  idx, const double* qIn, double* restrict qRhsOut)
+  const int*  idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
   return maxwell->vol(&maxwell->maxwell_data, xc, dx, qIn, qRhsOut);
@@ -72,7 +72,7 @@ surf(const struct gkyl_dg_eqn *eqn,
   const double*  xcL, const double*  xcC, const double*  xcR, 
   const double*  dxL, const double* dxC, const double* dxR,
   double maxsOld, const int*  idxL, const int*  idxC, const int*  idxR,
-  const double* qInL, const double*  qInC, const double*  qInR, double* restrict qRhsOut)
+  const double* qInL, const double*  qInC, const double*  qInR, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
   double maxs = maxwell->maxwell_data.c;
@@ -86,7 +86,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   const double*  xcEdge, const double*  xcSkin,
   const double*  dxEdge, const double* dxSkin,
   double maxsOld, const int* idxEdge, const int* idxSkin, const int edge,
-  const double* qInEdge, const double* qInSkin, double* restrict qRhsOut)
+  const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
 {
   return 0;
 }

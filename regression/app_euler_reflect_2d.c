@@ -10,7 +10,7 @@ struct euler_ctx {
 };
 
 void
-evalEulerInit(double t, const double * restrict xn, double* restrict fout, void *ctx)
+evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct euler_ctx *app = ctx;
   double gas_gamma = app->gas_gamma;

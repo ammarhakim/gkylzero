@@ -1,11 +1,28 @@
-
+#
 # You can set compiler to use as:
 #
 # make CC=mpicc 
 #
 
-CFLAGS = -O3 -g -Iminus -Izero -Iapps -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov
+CFLAGS = -O3 -g 
+LDFLAGS = -O3
+INCLUDES = -Iminus -Izero -Iapps -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov
 PREFIX = ${HOME}/gkylsoft
+
+NVCC = 
+USING_NVCC =
+NVCC_FLAGS = 
+ifeq ($(CC), nvcc)
+       USING_NVCC = yes
+       NVCC_FLAGS = -x cu -w -dc -arch=sm_70 --compiler-options="-fPIC" 
+       LDFLAGS += -arch=sm_70
+endif
+
+%.o : %.cu
+	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
+
+%.o : %.c
+	${CC} -c $(CFLAGS) $(INCLUDES) -o $@ $< 
 
 # Header dependencies
 headers = $(wildcard minus/*.h) $(wildcard zero/*.h) $(wildcard apps/*.h) $(wildcard kernels/*/*.h)
@@ -15,6 +32,19 @@ libobjs = $(patsubst %.c,%.o,$(wildcard minus/*.c)) \
 	$(patsubst %.c,%.o,$(wildcard zero/*.c)) \
 	$(patsubst %.c,%.o,$(wildcard apps/*.c)) \
 	$(patsubst %.c,%.o,$(wildcard kernels/*/*.c))
+
+ifdef USING_NVCC
+
+# Unfortunately, due to the limitations of the NVCC compiler to treat
+# device code in C files, we need to force compile the kernel code
+# using the -x cu flag
+
+kernels/maxwell/%.o : kernels/maxwell/%.c
+	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
+
+kernels/vlasov/%.o : kernels/vlasov/%.c
+	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
+endif
 
 # Make targets: libraties, regression tests and unit tests
 all: build/libgkylzero.a \
@@ -30,12 +60,25 @@ build/regression/twostream.ini: regression/twostream.ini
 	cp regression/twostream.ini build/regression/twostream.ini
 
 build/regression/%: regression/%.c build/libgkylzero.a
-	${CC} ${CFLAGS} -o $@ $< -I. -Lbuild -lgkylzero -lm -lpthread 
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero -lm -lpthread 
 
 # Unit tests
 
 build/unit/%: unit/%.c build/libgkylzero.a
-	${CC} ${CFLAGS} -o $@ $< -I. -Lbuild -lgkylzero -lm -lpthread 
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero -lm -lpthread
+
+# CUDA specific code
+ifdef USING_NVCC
+
+# unit tests needing CUDA kernels
+
+build/unit/ctest_range: unit/ctest_range.o unit/ctest_range_cu.o build/libgkylzero.a
+	${CC} ${LDFLAGS} unit/ctest_range.o unit/ctest_range_cu.o -o build/unit/ctest_range -Lbuild -lgkylzero -lm -lpthread
+
+build/unit/ctest_array: unit/ctest_array.o unit/ctest_array_cu.o build/libgkylzero.a
+	${CC} ${LDFLAGS} unit/ctest_array.o unit/ctest_array_cu.o -o build/unit/ctest_array -Lbuild -lgkylzero -lm -lpthread
+
+endif
 
 # Run unit tests
 check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
@@ -70,5 +113,5 @@ install: all
 	cp -f build/regression/app_vlasov_kerntm ${PREFIX}/gkylzero/bin/
 
 clean:
-	rm -rf build/libgkylzero.a build/regression/twostream.ini ${libobjs} build/regression/app_* build/unit/ctest_*
+	rm -rf build/libgkylzero.a build/regression/twostream.ini ${libobjs} unit/*.o regression/*.o build/regression/app_* build/unit/ctest_*
 

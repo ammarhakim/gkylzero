@@ -24,7 +24,7 @@ maxwellian2D(double n, double vx, double vy, double ux, double uy, double vth)
 }
 
 void
-evalDistFunc(double t, const double * restrict xn, double* restrict fout, void *ctx)
+evalDistFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct weibel_ctx *app = ctx;
 
@@ -40,7 +40,7 @@ evalDistFunc(double t, const double * restrict xn, double* restrict fout, void *
 }
 
 void
-evalFieldFunc(double t, const double* restrict xn, double* restrict fout, void *ctx)
+evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct weibel_ctx *app = ctx;
 
