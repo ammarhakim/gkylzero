@@ -329,6 +329,28 @@ void gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
 }
 
 /**
+ * Inverse indexer for use with a sub_range, mapping a linear index to an N-dimension index
+ * into 'range' object.
+ * Behavior is such that loc = 0 gives idx = {0, 0, ...}.
+ *
+ * @param range Range object to map into
+ * @param loc Linear index in [0, range->volume)
+ * @param idx On output, the N-dimensional index into 'range'
+ */
+GKYL_CU_DH
+static inline
+void gkyl_sub_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
+{
+  long n = loc;
+  for (int i=1; i<=range->ndim; ++i) {
+    long quot = n/range->ac[i];
+    long rem = n % range->ac[i];
+    idx[i-1] = quot + range->lower[i-1];
+    n = rem;
+  }
+}
+
+/**
  * Create iterator. The returned iterator can be used in a 'while'
  * loop using gkyl_range_iter_next method to loop over the index set
  * spanned by the region.

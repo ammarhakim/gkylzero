@@ -79,12 +79,16 @@ test_vlasov_2x3v_p1()
 
   // run hyper_dg_advance
   int nrep = 10;
+  bool no_iter = true;
   for(int n=0; n<nrep; n++) {
     maxs[0] = 0., maxs[1] = 0., maxs[2] = 0., maxs[3] = 0., maxs[4] = 0.;
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
     gkyl_vlasov_set_qmem(eqn, qmem); // must set EM fields to use
-    gkyl_hyper_dg_advance(slvr, &phaseLocalRange, fin, cflrate, rhs, maxs);
+    if(no_iter) 
+      gkyl_hyper_dg_advance_no_iter(slvr, &phaseLocalRange, fin, cflrate, rhs, maxs);
+    else
+      gkyl_hyper_dg_advance(slvr, &phaseLocalRange, fin, cflrate, rhs, maxs);
   }
 
   // get linear index of first non-ghost cell

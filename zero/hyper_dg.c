@@ -87,6 +87,77 @@ gkyl_hyper_dg_advance(const gkyl_hyper_dg *hdg, const struct gkyl_range *update_
   }
 }
 
+void
+gkyl_hyper_dg_advance_no_iter(const gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
+  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs, double *maxs)
+{
+  int ndim = hdg->ndim;
+  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
+  double xcl[GKYL_MAX_DIM], xcc[GKYL_MAX_DIM], xcr[GKYL_MAX_DIM];
+  // integer used for selecting between left-edge zero-flux BCs and right-edge zero-flux BCs
+  int edge;
+
+  double maxs_old[GKYL_MAX_DIM];
+  for (int i=0; i<hdg->ndim; ++i)
+    maxs_old[i] = maxs[i];
+
+  for(long linc1 = 0; linc1 < update_range->volume; linc1++) {
+    // inverse index from linc1 to idxc
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idxc={0,0,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(update_range, linc1, idxc);
+    gkyl_rect_grid_cell_center(&hdg->grid, idxc, xcc);
+
+    long linc = gkyl_range_idx(update_range, idxc);
+    if (hdg->update_vol_term) {
+      double cflr = hdg->equation->vol_term(
+        hdg->equation, xcc, hdg->grid.dx, idxc,
+        gkyl_array_cfetch(fIn, linc), gkyl_array_fetch(rhs, linc)
+      );
+      double *cflrate_d = gkyl_array_fetch(cflrate, linc);
+      cflrate_d[0] += cflr; // frequencies are additive
+    }
+    
+    for (int d=0; d<hdg->num_up_dirs; ++d) {
+      int dir = hdg->update_dirs[d];
+      gkyl_copy_int_arr(ndim, idxc, idxl);
+      gkyl_copy_int_arr(ndim, idxc, idxr);
+      // TODO: fix for arbitrary subrange
+      if (hdg->zero_flux_flags[d] && (idxc[dir] == update_range->lower[dir] || idxc[dir] == update_range->upper[dir])) {
+        edge = (idxc[dir] == update_range->lower[dir]) ? -1 : 1;
+        // use idxl to store interior edge index (first index away from skin cell)
+        idxl[dir] = idxl[dir]-edge;
+
+        gkyl_rect_grid_cell_center(&hdg->grid, idxl, xcl);
+        long linl = gkyl_range_idx(update_range, idxl);
+
+        double mdir = hdg->equation->boundary_surf_term(hdg->equation,
+          dir, xcl, xcc, hdg->grid.dx, hdg->grid.dx,
+          maxs_old[dir], idxl, idxc, edge,
+          gkyl_array_cfetch(fIn, linl), gkyl_array_cfetch(fIn, linc),
+          gkyl_array_fetch(rhs, linc)
+        );
+        maxs[dir] = fmax(maxs[dir], mdir);         
+      }
+      else {
+        idxl[dir] = idxl[dir]-1; idxr[dir] = idxr[dir]+1;
+        gkyl_rect_grid_cell_center(&hdg->grid, idxl, xcl);
+        gkyl_rect_grid_cell_center(&hdg->grid, idxr, xcr);
+        long linl = gkyl_range_idx(update_range, idxl); 
+        long linr = gkyl_range_idx(update_range, idxr);
+
+        double mdir = hdg->equation->surf_term(hdg->equation,
+          dir, xcl, xcc, xcr, hdg->grid.dx, hdg->grid.dx, hdg->grid.dx,
+          maxs_old[dir], idxl, idxc, idxr,
+          gkyl_array_cfetch(fIn, linl), gkyl_array_cfetch(fIn, linc), gkyl_array_cfetch(fIn, linr),
+          gkyl_array_fetch(rhs, linc)
+        );
+        maxs[dir] = fmax(maxs[dir], mdir);
+      }
+    }
+  }
+}
+
 gkyl_hyper_dg*
 gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation,

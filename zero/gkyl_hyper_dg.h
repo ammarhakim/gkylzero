@@ -40,6 +40,12 @@ gkyl_hyper_dg* gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
 void gkyl_hyper_dg_advance(const gkyl_hyper_dg *hdg, const struct gkyl_range *update_rng,
   const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs, double *maxs);
 
+/* 
+ * Same as gkyl_hyper_dg_advance, but doesn't use iterators 
+ */
+void gkyl_hyper_dg_advance_no_iter(const gkyl_hyper_dg *hdg, const struct gkyl_range *update_rng,
+  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs, double *maxs);
+
 /**
  * Set if volume term should be computed or not.
  *
