@@ -108,7 +108,10 @@ gkyl_hyper_dg_advance_no_iter(const gkyl_hyper_dg *hdg, const struct gkyl_range 
     gkyl_sub_range_inv_idx(update_range, linc1, idxc);
     gkyl_rect_grid_cell_center(&hdg->grid, idxc, xcc);
 
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
     long linc = gkyl_range_idx(update_range, idxc);
+
     if (hdg->update_vol_term) {
       double cflr = hdg->equation->vol_term(
         hdg->equation, xcc, hdg->grid.dx, idxc,
