@@ -1,5 +1,5 @@
 #include <gkyl_maxwell_kernels.h> 
-double maxwell_vol_2x_ser_p1(const gkyl_maxwell_inp *meq, const double *w, const double *dx, const double *q, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double maxwell_vol_2x_ser_p1(const gkyl_maxwell_inp *meq, const double *w, const double *dx, const double *q, double* GKYL_RESTRICT out) 
 { 
   const double c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; 
   const double c2chi = c2*chi, c2gamma = c2*gamma; 

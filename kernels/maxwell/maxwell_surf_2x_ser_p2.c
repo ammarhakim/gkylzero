@@ -1,5 +1,5 @@
 #include <gkyl_maxwell_kernels.h> 
-double maxwell_surfx_2x_ser_p2(const gkyl_maxwell_inp *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double* GKYL_RESTRICT outl, double* GKYL_RESTRICT outr) 
+GKYL_CU_DH double maxwell_surfx_2x_ser_p2(const gkyl_maxwell_inp *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double* GKYL_RESTRICT outl, double* GKYL_RESTRICT outr) 
 { 
   const double c = meq->c, chi = meq->chi, gamma = meq->gamma; 
   const double c2 = c*c; 
@@ -263,7 +263,7 @@ double maxwell_surfx_2x_ser_p2(const gkyl_maxwell_inp *meq, const double *wl, co
 
   return fmax(c, tau); 
 } 
-double maxwell_surfy_2x_ser_p2(const gkyl_maxwell_inp *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double* GKYL_RESTRICT outl, double* GKYL_RESTRICT outr) 
+GKYL_CU_DH double maxwell_surfy_2x_ser_p2(const gkyl_maxwell_inp *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double* GKYL_RESTRICT outl, double* GKYL_RESTRICT outr) 
 { 
   const double c = meq->c, chi = meq->chi, gamma = meq->gamma; 
   const double c2 = c*c; 
