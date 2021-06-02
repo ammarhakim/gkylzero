@@ -16,7 +16,7 @@ NVCC_FLAGS =
 ifeq ($(CC), nvcc)
        USING_NVCC = yes
        NVCC_FLAGS = -w -dc -arch=sm_70 --compiler-options="-fPIC" 
-       LDFLAGS += -arch=sm_70 -dlink
+       LDFLAGS += -arch=sm_70
 endif
 
 %.o : %.cu
