@@ -9,6 +9,17 @@
 // Object type
 typedef struct gkyl_hyper_dg gkyl_hyper_dg;
 
+struct gkyl_hyper_dg {
+  struct gkyl_rect_grid grid; // grid object
+  int ndim; // number of dimensions
+  int numBasis; // number of basis functions
+  int num_up_dirs; // number of update directions
+  int update_dirs[GKYL_MAX_DIM]; // directions to update
+  int zero_flux_flags[GKYL_MAX_DIM]; // directions with zero flux
+  int update_vol_term; // should we update volume term?
+  const struct gkyl_dg_eqn *equation; // equation object
+};
+
 /**
  * Create new updater to update equations using DG algorithm.
  *
@@ -46,17 +57,35 @@ void gkyl_hyper_dg_advance(const gkyl_hyper_dg *hdg, const struct gkyl_range *up
 void gkyl_hyper_dg_advance_no_iter(const gkyl_hyper_dg *hdg, const struct gkyl_range *update_rng,
   const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs, double *maxs);
 
+#ifdef GKYL_HAVE_CUDA
+
+__global__ void gkyl_hyper_dg_advance_cu(const gkyl_hyper_dg *hdg, const struct gkyl_range *update_rng,
+  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs, double *maxs);
+
+#endif
+
 /**
  * Set if volume term should be computed or not.
  *
  * @param hdg Hyper DG updater object
  * @param update_vol_term Set to 1 to update vol term, 0 otherwise
  */
-void gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *hdg, int update_vol_term);
+GKYL_CU_DH
+static inline
+void gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *hdg, int update_vol_term)
+{
+  hdg->update_vol_term = update_vol_term;
+}
   
 /**
  * Delete updater.
  *
  * @param hdg Updater to delete.
  */
-void gkyl_hyper_dg_release(gkyl_hyper_dg* hdg);
+GKYL_CU_DH
+static inline
+void gkyl_hyper_dg_release(gkyl_hyper_dg* hdg)
+{
+  gkyl_dg_eqn_release(hdg->equation);
+  free(hdg);
+}
