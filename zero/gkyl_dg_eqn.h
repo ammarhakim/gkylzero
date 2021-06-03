@@ -40,7 +40,6 @@ struct gkyl_dg_eqn {
  *
  * @param eqn Equation object.
  */
-GKYL_CU_DH
 static inline
 struct gkyl_dg_eqn* gkyl_dg_eqn_aquire(const struct gkyl_dg_eqn* eqn) 
 {
@@ -53,7 +52,6 @@ struct gkyl_dg_eqn* gkyl_dg_eqn_aquire(const struct gkyl_dg_eqn* eqn)
  *
  * @param eqn Equation object to delete.
  */
-GKYL_CU_DH
 static inline
 void gkyl_dg_eqn_release(const struct gkyl_dg_eqn* eqn)
 {
