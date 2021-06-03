@@ -21,10 +21,10 @@ void ker_cu_maxwell_test(const struct gkyl_dg_eqn *eqn, int *nfail)
   GKYL_CU_CHECK( maxwell->maxwell_data.gamma == 0.25, nfail );
 }
 
-int cu_maxwell_test(const struct gkyl_dg_eqn *arr)
+int cu_maxwell_test(const struct gkyl_dg_eqn *eqn)
 {
   int *nfail_dev = (int *) gkyl_cu_malloc(sizeof(int));
-  ker_cu_maxwell_test<<<1,1>>>(arr, nfail_dev);
+  ker_cu_maxwell_test<<<1,1>>>(eqn, nfail_dev);
 
   int nfail;
   gkyl_cu_memcpy(&nfail, nfail_dev, sizeof(int), GKYL_CU_MEMCPY_D2H);

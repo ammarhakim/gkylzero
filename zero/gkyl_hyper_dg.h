@@ -82,7 +82,6 @@ void gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *hdg, int update_vol_term)
  *
  * @param hdg Updater to delete.
  */
-GKYL_CU_DH
 static inline
 void gkyl_hyper_dg_release(gkyl_hyper_dg* hdg)
 {
