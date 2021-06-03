@@ -153,12 +153,21 @@ __device__ static struct { vlasov_accel_boundary_surf_t kernels[3]; } p_accel_bo
   { NULL, &vlasov_boundary_surfvz_3x3v_ser_p1, NULL }, // 5
 };
 
-__device__
-void
-gkyl_vlasov_set_qmem_cu(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem)
+// CUDA kernel to set pointer to qmem = q/m*EM
+// This is required because eqn object lives on device,
+// and so its members cannot be modified without a full __global__ kernel on device.
+__global__ void
+gkyl_vlasov_set_qmem_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
   vlasov->qmem = qmem;
+}
+
+// Host-side wrapper for set_qmem_cu_kernel
+void
+gkyl_vlasov_set_qmem_cu(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem)
+{
+  gkyl_vlasov_set_qmem_cu_kernel<<<1,1>>>(eqn, qmem);
 }
 
 struct gkyl_dg_eqn*
@@ -214,7 +223,7 @@ gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_bas
   struct dg_vlasov *vlasov_cu = (struct dg_vlasov*) gkyl_cu_malloc(sizeof(struct dg_vlasov));
   gkyl_cu_memcpy(vlasov_cu, vlasov, sizeof(struct dg_vlasov), GKYL_CU_MEMCPY_H2D);
 
-  // we need to copy conf_range seperately as it is already on device
+  // we need to copy conf_range separately as it is already on device
   gkyl_cu_memcpy(&vlasov_cu->conf_range, (void*) conf_range, sizeof(struct gkyl_range), GKYL_CU_MEMCPY_D2D);
 
   gkyl_free(vlasov);  
