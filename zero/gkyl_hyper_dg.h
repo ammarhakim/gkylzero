@@ -35,6 +35,22 @@ gkyl_hyper_dg* gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation,
   int num_up_dirs, int update_dirs[], int zero_flux_flags[], int update_vol_term);
 
+
+/**
+ * Create new updater on CUDA device to update equations using DG algorithm.
+ *
+ * @param grid_cu Grid object (on device)
+ * @param basis Basis functions
+ * @param equation_cu Equation object (on device)
+ * @param num_up_dirs Number of directions to update
+ * @param update_dirs List of directions to update (size 'num_up_dirs')
+ * @param zero_flux_flags Flags with zero-flux BCs (size 'num_up_dirs')
+ * @param update_vol_term Set to 0 to skip volume update
+ */
+gkyl_hyper_dg* gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
+  const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation_cu,
+  int num_up_dirs, int update_dirs[], int zero_flux_flags[], int update_vol_term);
+
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
  * range on which the array is defined. That is, it must be either the
