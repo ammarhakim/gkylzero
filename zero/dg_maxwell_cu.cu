@@ -6,10 +6,7 @@ extern "C" {
 #include <gkyl_dg_maxwell_priv.h>
 }
 
-// "Choose Kernel" based on cdim and polyorder
-#define CK(lst,cdim,polyOrder) lst[cdim-1].kernels[polyOrder]
-// copy symbol from device -> host
-#define G_MCS(dst, src, type) gkyl_cu_memcpy_symbol(dst, src, sizeof(type), 0, GKYL_CU_MEMCPY_D2H)
+#include <stdio.h>
 
 // various pointers to functions on device
 __device__ static vol_termf_t p_vol = &vol;
@@ -27,9 +24,9 @@ gkyl_dg_maxwell_cu_dev_new(const struct gkyl_basis* cbasis,
 
   maxwell->eqn.num_equations = 8;
 
-  G_MCS(&maxwell->eqn.vol_term, &p_vol, vol_termf_t);
-  G_MCS(&maxwell->eqn.surf_term, &p_surf, surf_termf_t);
-  G_MCS(&maxwell->eqn.boundary_surf_term, &p_boundary_surf, boundary_surf_termf_t);
+  cudaMemcpyFromSymbol(&maxwell->eqn.vol_term, p_vol, sizeof(vol_termf_t));
+  cudaMemcpyFromSymbol(&maxwell->eqn.surf_term, p_surf, sizeof(surf_termf_t));
+  cudaMemcpyFromSymbol(&maxwell->eqn.boundary_surf_term, p_boundary_surf, sizeof(boundary_surf_termf_t));
 
   maxwell->maxwell_data.c = lightSpeed;
   maxwell->maxwell_data.chi = lightSpeed*elcErrorSpeedFactor;

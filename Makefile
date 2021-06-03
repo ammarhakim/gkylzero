@@ -14,7 +14,7 @@ USING_NVCC =
 NVCC_FLAGS = 
 ifeq ($(CC), nvcc)
        USING_NVCC = yes
-       NVCC_FLAGS = -x cu -w -dc -arch=sm_70 --compiler-options="-fPIC" 
+       NVCC_FLAGS = -x cu -dc -arch=sm_70 --compiler-options="-fPIC" 
        LDFLAGS += -arch=sm_70
 endif
 
@@ -49,7 +49,7 @@ kernels/vlasov/%.o : kernels/vlasov/%.c
 	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
 endif
 
-# Make targets: libraties, regression tests and unit tests
+# Make targets: libraries, regression tests and unit tests
 all: build/libgkylzero.a \
 	$(patsubst %.c,build/%,$(wildcard regression/app_*.c)) build/regression/twostream.ini \
 	$(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
@@ -66,13 +66,11 @@ build/regression/%: regression/%.c build/libgkylzero.a
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero -lm -lpthread 
 
 # Unit tests
-
 build/unit/%: unit/%.c build/libgkylzero.a
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero -lm -lpthread
 
-# CUDA specific code
-ifdef USING_NVCC
 
+ifdef USING_NVCC
 # unit tests needing CUDA kernels
 
 build/unit/ctest_range: unit/ctest_range.o unit/ctest_range_cu.o build/libgkylzero.a
@@ -95,6 +93,7 @@ check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_array
 	./build/unit/ctest_basis
 	./build/unit/ctest_block_topo
+	./build/unit/ctest_dg_maxwell
 	./build/unit/ctest_fv_proj
 	./build/unit/ctest_gauss_quad
 	./build/unit/ctest_proj_on_basis

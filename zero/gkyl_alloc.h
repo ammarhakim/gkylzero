@@ -53,6 +53,3 @@ void gkyl_cu_free(void *ptr);
 
 /** Copy data between host/device */
 void gkyl_cu_memcpy(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind);
-
-/** Copy symbol between host/device */
-void gkyl_cu_memcpy_symbol(void *dst, const void *src, size_t count, size_t offset, enum gkyl_cu_memcpy_kind kind);

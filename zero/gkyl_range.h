@@ -329,9 +329,9 @@ void gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
 }
 
 /**
- * Inverse indexer for use with a sub_range, mapping a linear index to an N-dimension index
- * into 'range' object.
- * Behavior is such that loc = 0 gives idx = {0, 0, ...}.
+ * Inverse indexer for use with a sub_range, mapping a linear index to
+ * an N-dimension index into 'range' object.  Behavior is such that
+ * loc = 0 gives idx = {0, 0, ...}.
  *
  * @param range Range object to map into
  * @param loc Linear index in [0, range->volume)

@@ -21,9 +21,10 @@
 #endif
 
 // restrict keyword in C and C++ are different
-#define GKYL_RESTRICT restrict
 #ifdef __cplusplus
 # define GKYL_RESTRICT __restrict__
+#else
+# define GKYL_RESTRICT restrict
 #endif
 
 // Maximum configuration-space dimensions supported
@@ -41,12 +42,10 @@
 # define GKYL_MAX_SPECIES 8
 #endif
 
-
 // Default alignment boundary
 #ifndef GKYL_DEF_ALIGN
 # define GKYL_DEF_ALIGN 64
 #endif
-
 
 // CUDA specific defines etc
 #ifdef __NVCC__
@@ -54,7 +53,9 @@
 #include <cuda_runtime.h>
 
 #define GKYL_HAVE_CUDA
+
 #define GKYL_CU_DH __device__ __host__
+#define GKYL_CU_D __device__ 
 
 // for directional copies
 enum gkyl_cu_memcpy_kind {
@@ -68,6 +69,7 @@ enum gkyl_cu_memcpy_kind {
 
 #undef GKYL_HAVE_CUDA
 #define GKYL_CU_DH
+#define GKYL_CU_D
 
 // for directional copies
 enum gkyl_cu_memcpy_kind {

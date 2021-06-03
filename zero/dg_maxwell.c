@@ -7,8 +7,14 @@
 #include <gkyl_dg_maxwell_priv.h>
 #include <gkyl_util.h>
 
-// "Choose Kernel" based on cdim and polyorder
-#define CK(lst,cdim,polyOrder) lst[cdim-1].kernels[polyOrder]
+
+static void
+maxwell_free(const struct gkyl_ref_count *ref)
+{
+  struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
+  struct dg_maxwell *maxwell = container_of(base, struct dg_maxwell, eqn);
+  free(maxwell);
+}
 
 struct gkyl_dg_eqn*
 gkyl_dg_maxwell_new(const struct gkyl_basis* cbasis,

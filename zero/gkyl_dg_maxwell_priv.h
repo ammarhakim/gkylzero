@@ -41,6 +41,9 @@ static struct { maxwell_surf_t kernels[3]; } surf_z_kernels[] = {
   { NULL, maxwell_surfz_3x_ser_p1, NULL }, // 2
 };
 
+// "Choose Kernel" based on cdim and polyorder
+#define CK(lst,cdim,polyOrder) lst[cdim-1].kernels[polyOrder]
+
 struct dg_maxwell {
   struct gkyl_dg_eqn eqn; // Base object    
   gkyl_maxwell_inp maxwell_data; // Parameters needed by kernels
@@ -48,15 +51,7 @@ struct dg_maxwell {
   maxwell_surf_t surf[3]; // pointers to surface kernels
 };
 
-static void
-maxwell_free(const struct gkyl_ref_count *ref)
-{
-  struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
-  struct dg_maxwell *maxwell = container_of(base, struct dg_maxwell, eqn);
-  free(maxwell);
-}
-
-GKYL_CU_DH
+GKYL_CU_D
 static double
 vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double*  dx, 
   const int*  idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
@@ -65,7 +60,7 @@ vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double*  dx,
   return maxwell->vol(&maxwell->maxwell_data, xc, dx, qIn, qRhsOut);
 }
 
-GKYL_CU_DH
+GKYL_CU_D
 static double
 surf(const struct gkyl_dg_eqn *eqn, 
   int dir,
@@ -80,7 +75,7 @@ surf(const struct gkyl_dg_eqn *eqn,
     maxs, qInL, qInC, qInR, qRhsOut);
 }
 
-GKYL_CU_DH
+GKYL_CU_D
 static double
 boundary_surf(const struct gkyl_dg_eqn *eqn,
   int dir,

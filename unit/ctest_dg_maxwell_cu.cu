@@ -1,7 +1,7 @@
 /* -*- c -*- */
 
-#include <gkylzero.h>
 #include <stdio.h>
+#include <gkylzero.h>
 #include <gkyl_dg_maxwell_priv.h>
 
 extern "C" {
@@ -19,7 +19,6 @@ void ker_cu_maxwell_test(const struct gkyl_dg_eqn *eqn, int *nfail)
   GKYL_CU_CHECK( maxwell->maxwell_data.c == 1.0, nfail );
   GKYL_CU_CHECK( maxwell->maxwell_data.chi == 0.5, nfail );
   GKYL_CU_CHECK( maxwell->maxwell_data.gamma == 0.25, nfail );
-  
 }
 
 int cu_maxwell_test(const struct gkyl_dg_eqn *arr)
