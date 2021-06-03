@@ -153,6 +153,14 @@ __device__ static struct { vlasov_accel_boundary_surf_t kernels[3]; } p_accel_bo
   { NULL, &vlasov_boundary_surfvz_3x3v_ser_p1, NULL }, // 5
 };
 
+__device__
+void
+gkyl_vlasov_set_qmem_cu(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem)
+{
+  struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
+  vlasov->qmem = qmem;
+}
+
 struct gkyl_dg_eqn*
 gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
   const struct gkyl_range* conf_range)

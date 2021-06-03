@@ -34,3 +34,12 @@ struct gkyl_dg_eqn* gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
  * @param qmem Pointer to EM field scaled by q/m,
  */
 void gkyl_vlasov_set_qmem(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem);
+
+/**
+ * Set the q/m*EM field needed in updating the force terms.
+ * 
+ * @param eqn Equation pointer
+ * @param qmem Pointer to EM field scaled by q/m,
+ */
+GKYL_CU_D
+void gkyl_vlasov_set_qmem_cu(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem);
