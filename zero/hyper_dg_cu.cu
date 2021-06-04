@@ -10,10 +10,10 @@ extern "C" {
 
 __global__ void 
 gkyl_hyper_dg_advance_cu(const gkyl_hyper_dg* __restrict__ hdg, 
-                         const struct gkyl_range* __restrict__ update_range,
-                         const struct gkyl_array* __restrict__ fIn, 
-                         struct gkyl_array *cflrate, 
-                         struct gkyl_array *rhs, double *maxs)
+  const struct gkyl_range* __restrict__ update_range,
+  const struct gkyl_array* __restrict__ fIn, 
+  struct gkyl_array *cflrate, 
+  struct gkyl_array *rhs, double *maxs)
 {
   int ndim = hdg->ndim;
   int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
@@ -106,14 +106,14 @@ gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
   }
   up->update_vol_term = update_vol_term;
 
-  // copy the host struct to device struct
+  up->equation = equation_cu; // NB: RHS a pointer to device
+
+  // copy host struct to device struct
   gkyl_hyper_dg *up_cu = (gkyl_hyper_dg*) gkyl_cu_malloc(sizeof(gkyl_hyper_dg));
   gkyl_cu_memcpy(up_cu, up, sizeof(struct gkyl_hyper_dg), GKYL_CU_MEMCPY_H2D);
 
-  // we need to copy grid_cu and equation_cu into up_cu struct
-  // separately as they are already on device
+  // we need to copy grid_cu separately as it is already on device
   gkyl_cu_memcpy(&up_cu->grid, (void*) grid_cu, sizeof(struct gkyl_rect_grid), GKYL_CU_MEMCPY_D2D);
-  gkyl_cu_memcpy(&up_cu->equation, (void*) equation_cu, sizeof(struct gkyl_dg_eqn), GKYL_CU_MEMCPY_D2D); 
 
   gkyl_free(up);
 

@@ -14,6 +14,8 @@ void ker_cu_maxwell_test(const struct gkyl_dg_eqn *eqn, int *nfail)
   *nfail = 0;
 
   GKYL_CU_CHECK( eqn->num_equations == 8, nfail );
+
+  // DO NOT DO THIS IN PRODUCTION! ONLY FOR TESTING
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
 
   GKYL_CU_CHECK( maxwell->maxwell_data.c == 1.0, nfail );

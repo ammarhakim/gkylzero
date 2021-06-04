@@ -14,6 +14,8 @@ void ker_cu_vlasov_test(const struct gkyl_dg_eqn *eqn, int *nfail)
   *nfail = 0;
 
   GKYL_CU_CHECK( eqn->num_equations == 1, nfail );
+
+  // DO NOT DO THIS IN PRODUCTION! ONLY FOR TESTING
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
 
   GKYL_CU_CHECK( vlasov->cdim == 1, nfail );
