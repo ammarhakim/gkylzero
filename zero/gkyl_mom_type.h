@@ -31,7 +31,7 @@ struct gkyl_mom_type* gkyl_mom_type_aquire(const struct gkyl_mom_type* momt);
  *
  * @param momt Moment object to delete.
  */
-void gkyl_mom_type_release(struct gkyl_mom_type* momt);
+void gkyl_mom_type_release(const struct gkyl_mom_type* momt);
 
 /**
  * Calculate moment specified by mom_type object.

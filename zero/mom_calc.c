@@ -4,7 +4,7 @@
 
 struct gkyl_mom_calc {
   struct gkyl_rect_grid grid;
-  struct gkyl_mom_type *momt;
+  const struct gkyl_mom_type *momt;
 };
 
 gkyl_mom_calc*
@@ -15,6 +15,22 @@ gkyl_mom_calc_new(const struct gkyl_rect_grid *grid,
   up->grid = *grid;
   up->momt = gkyl_mom_type_aquire(momt);
   return up;
+}
+
+gkyl_mom_calc*
+gkyl_mom_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_mom_type *momt)
+{
+  gkyl_mom_calc *up = gkyl_malloc(sizeof(gkyl_mom_calc));
+  up->momt = momt;
+
+  gkyl_mom_calc *up_cu = gkyl_cu_malloc(sizeof(gkyl_mom_calc));
+  gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_mom_calc), GKYL_CU_MEMCPY_H2D);
+  // we need to copy grid separately as it is already on device
+  gkyl_cu_memcpy(&up_cu->grid, (void*) grid, sizeof(struct gkyl_rect_grid), GKYL_CU_MEMCPY_D2D);
+
+  gkyl_free(up);
+  return up_cu;
 }
 
 static inline void

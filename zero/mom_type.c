@@ -8,7 +8,7 @@ gkyl_mom_type_aquire(const struct gkyl_mom_type* momt)
 }
 
 void
-gkyl_mom_type_release(struct gkyl_mom_type* momt)
+gkyl_mom_type_release(const struct gkyl_mom_type* momt)
 {
   gkyl_ref_count_dec(&momt->ref_count);
 }

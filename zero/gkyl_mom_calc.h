@@ -21,6 +21,13 @@ gkyl_mom_calc* gkyl_mom_calc_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_mom_type *momt);
 
 /**
+ * Create new updater to compute moments of distribution function on
+ * NV-GPU. See new() method for documentation.
+ */
+gkyl_mom_calc* gkyl_mom_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_mom_type *momt);
+
+/**
  * Compute moment of distribution function. The phase_rng and conf_rng
  * MUST be a sub-ranges of the range on which the distribution
  * function and the moments are defined. These ranges must be
