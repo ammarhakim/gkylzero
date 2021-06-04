@@ -88,6 +88,9 @@ build/unit/ctest_dg_maxwell: unit/ctest_dg_maxwell.o unit/ctest_dg_maxwell_cu.o 
 build/unit/ctest_dg_vlasov: unit/ctest_dg_vlasov.o unit/ctest_dg_vlasov_cu.o build/libgkylzero.a
 	${CC} ${LDFLAGS} unit/ctest_dg_vlasov.o unit/ctest_dg_vlasov_cu.o -o build/unit/ctest_dg_vlasov -Lbuild -lgkylzero -lm -lpthread
 
+build/unit/ctest_vlasov_mom: unit/ctest_vlasov_mom.o unit/ctest_vlasov_mom_cu.o build/libgkylzero.a
+	${CC} ${LDFLAGS} unit/ctest_vlasov_mom.o unit/ctest_vlasov_mom_cu.o -o build/unit/ctest_vlasov_mom -Lbuild -lgkylzero -lm -lpthread
+
 build/unit/ctest_hyper_dg: unit/ctest_hyper_dg.o unit/ctest_hyper_dg_cu.o build/libgkylzero.a
 	${CC} ${LDFLAGS} unit/ctest_hyper_dg.o unit/ctest_hyper_dg_cu.o -o build/unit/ctest_hyper_dg -Lbuild -lgkylzero -lm -lpthread
 
@@ -111,6 +114,7 @@ check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_rect_grid
 	./build/unit/ctest_ref_count
 	./build/unit/ctest_update_fsm
+	./build/unit/ctest_vlasov_mom
 	./build/unit/ctest_wv_euler
 	./build/unit/ctest_wv_iso_euler
 	./build/unit/ctest_wv_maxwell

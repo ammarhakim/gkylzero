@@ -88,7 +88,7 @@ static struct { momf_t kernels[3]; } p_m3ijk_kernels[] = {
 };
 
 struct gkyl_mom_type*
-gkyl_vlasov_mom_on_cu_dev_new(const struct gkyl_basis* cbasis,
+gkyl_vlasov_mom_cu_dev_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, const char *mom)
 {
   assert(cbasis->polyOrder == pbasis->polyOrder);
@@ -131,7 +131,7 @@ gkyl_vlasov_mom_on_cu_dev_new(const struct gkyl_basis* cbasis,
     
     cudaMemcpyFromSymbol(&momt->kernel,
       p_m2ij_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder], sizeof(momf_t));
-    momt->num_mom = 1/2*vdim*(vdim+1);
+    momt->num_mom = vdim*(vdim+1)/2;
   }
   else if (strcmp(mom, "M3i") == 0) { // heat-flux vector in lab-frame
     assert(cv_index[cdim].vdim[vdim] != -1);
@@ -147,7 +147,9 @@ gkyl_vlasov_mom_on_cu_dev_new(const struct gkyl_basis* cbasis,
     
     cudaMemcpyFromSymbol(&momt->kernel,
       p_m3ijk_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder], sizeof(momf_t));
-    momt->num_mom = vdim;
+
+    int m3ijk_count[] = { 1, 4, 10 };
+    momt->num_mom = m3ijk_count[vdim-1];
   }
   else {
     // string not recognized
