@@ -510,7 +510,7 @@ void test_reduce_range()
 #ifdef GKYL_HAVE_CUDA
 
 /* Function signatures of kernel calls */
-int cu_array_clone_test(const struct gkyl_array *arr);
+int cu_array_clone_test( struct gkyl_array *arr);
 
 void test_cu_array_base()
 {
@@ -550,6 +550,7 @@ void test_cu_array_base()
 
 void test_cu_array_dev_clone()
 {
+  // create a host array struct containing device data
   struct gkyl_array *arr_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 20);
 
   TEST_CHECK( arr_cu->type = GKYL_DOUBLE );
@@ -557,7 +558,6 @@ void test_cu_array_dev_clone()
   TEST_CHECK( arr_cu->ncomp == 1 );
   TEST_CHECK( arr_cu->size == 20 );
   TEST_CHECK( arr_cu->ref_count.count == 1 );
-
   TEST_CHECK( gkyl_array_is_cu_dev(arr_cu) == true );
 
   // create host array and initialize it
@@ -567,14 +567,25 @@ void test_cu_array_dev_clone()
   for (unsigned i=0; i<arr->size; ++i)
     arrData[i] = (i+0.5)*0.1;  
 
-  // copy to device
-  gkyl_array_copy(arr_cu, arr);
-
-  // clone the device array
-  struct gkyl_array *arr_cl = gkyl_array_clone_on_cu_dev(arr_cu);
-
+  // create device array struct
+  struct gkyl_array *arr_cl;
+  // clone the host array struct (arr) as a device array struct
+  // (this does a deep copy to device of entire struct)
+  arr_cl = gkyl_array_clone_on_cu_dev(arr);
   int nfail = cu_array_clone_test(arr_cl);
   TEST_CHECK( nfail == 0 );
+  TEST_MSG("Cloning host array with host data on device failed");
+
+  // create another device array struct
+  struct gkyl_array *arr_cl2;
+  // copy host array data to device (but arr_cu struct is still on host)
+  gkyl_array_copy(arr_cu, arr);
+
+  // clone arr_cu (which contains device data) as a device array struct
+  arr_cl2 = gkyl_array_clone_on_cu_dev(arr_cu);
+  nfail = cu_array_clone_test(arr_cl2);
+  TEST_CHECK( nfail == 0 );
+  TEST_MSG("Cloning host array with device data on device failed");
 
   gkyl_array_release(arr);
   gkyl_array_release(arr_cu);  

@@ -146,34 +146,24 @@ gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
 struct gkyl_array*
 gkyl_array_clone_on_cu_dev(struct gkyl_array* arr)
 {
-  struct gkyl_array* cp_arr = gkyl_malloc(sizeof(struct gkyl_array));
-  cp_arr->type = arr->type;
-  cp_arr->elemsz = arr->elemsz;
-  cp_arr->ncomp = arr->ncomp;
-  cp_arr->size = arr->size;
-  cp_arr->flags = arr->flags;
-  cp_arr->esznc = arr->esznc;
+  // create and allocate a new struct on device
+  struct gkyl_array* cu_arr = gkyl_cu_malloc(sizeof(struct gkyl_array));
 
-  bool is_alloc = false;
+  // allocate data for new device struct
+  void *cu_data = gkyl_cu_malloc(arr->size*arr->esznc);
+
+  // copy struct arr to new device struct cu_arr
+  gkyl_cu_memcpy(cu_arr, arr, sizeof(struct gkyl_array), GKYL_CU_MEMCPY_H2D);
+
+  // (deep) copy data into new struct cu_arr
   if (IS_CU_ARRAY(arr->flags)) {
-    cp_arr->data = arr->data;
-  }
-  else {
-    // if data is not already on device, we need to copy it there
-    is_alloc = true;
-    cp_arr->data = gkyl_cu_malloc(arr->size*arr->esznc);
-    gkyl_cu_memcpy(cp_arr->data, arr->data, arr->size*arr->esznc, GKYL_CU_MEMCPY_H2D);
+    gkyl_cu_memcpy(cu_data, arr->data, arr->size*arr->esznc, GKYL_CU_MEMCPY_D2D);
+  } else {
+    gkyl_cu_memcpy(cu_data, arr->data, arr->size*arr->esznc, GKYL_CU_MEMCPY_H2D);
   }
 
-  // copy array to device
-  size_t sz = sizeof(struct gkyl_array);
-  struct gkyl_array *cu_arr = gkyl_cu_malloc(sz);
-  gkyl_cu_memcpy(cu_arr, cp_arr, sz, GKYL_CU_MEMCPY_H2D);
-
-  // clean up
-  if (is_alloc)
-    gkyl_cu_free(cp_arr->data);
-  gkyl_free(cp_arr);
+  // update pointers in new struct cu_arr
+  gkyl_cu_memcpy(&(cu_arr->data), &cu_data, sizeof(void*), GKYL_CU_MEMCPY_H2D);
 
   return cu_arr;
 }

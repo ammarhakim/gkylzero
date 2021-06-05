@@ -5,7 +5,7 @@
 #
 
 CFLAGS = -O3 -g 
-LDFLAGS = -O3
+LDFLAGS = 
 INCLUDES = -Iminus -Izero -Iapps -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov
 PREFIX = ${HOME}/gkylsoft
 

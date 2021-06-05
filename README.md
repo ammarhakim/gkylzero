@@ -27,8 +27,26 @@ in the top-level directory. To run all unit tests do:
     make check
 ```
 
-Please see Makefile for other options to make that can be specified to
-specify other flags and options.
+You can specify the compiler when running make. For example:
+```
+    make CC=icc
+```
+to build with the Intel C compiler. If you use the NVIDIA nvcc
+compiler then the CUDA specific parts of the code will be built:
+```
+    make CC=nvcc
+```
+Note that if your machine has more than one core (a highly likely
+situation) you can run make in parallel, for example:
+```
+    make -j4
+```
+will use 4 cores while compiling the code, and can be potentially
+faster on most machines.
+
+The unit and regression test executables are written in the
+`build/unit` and `build/regression` directories. Please cd to those
+directories if you want to run individual regression tests.
 
 If you want to use the code as a library or run
 simulations you should be using a released *deployment version*
@@ -47,16 +65,6 @@ or
 ```
     make CC=nvcc install
 ```
-
-You can run the unit tests from the deployment directory as:
-```
-    make check
-```
-
-
-The unit and regression test executables are written in the
-`build/unit` and `build/regression` directories. Please cd to those
-directories if you want to run individual regression tests.
 
 Note that GkeyllZero is meant to be used as a *library*. You can use
 it to create your own "app" for your particular problem. See that
