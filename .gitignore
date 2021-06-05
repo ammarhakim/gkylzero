@@ -1,5 +1,6 @@
 cppcheck-err.txt
 *~
+*.sw*
 build/*
 build-*/*
 *.gkyl
