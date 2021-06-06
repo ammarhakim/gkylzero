@@ -184,37 +184,40 @@ gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_bas
 
   vlasov->eqn.num_equations = 1;
   
-  cudaMemcpyFromSymbol(&vlasov->eqn.vol_term, p_vol, sizeof(vol_termf_t));
-  cudaMemcpyFromSymbol(&vlasov->eqn.surf_term, p_surf, sizeof(surf_termf_t));
-  cudaMemcpyFromSymbol(&vlasov->eqn.boundary_surf_term, p_boundary_surf, sizeof(boundary_surf_termf_t));
+  gkyl_cu_memcpy_from_symbol(&vlasov->eqn.vol_term,
+    p_vol, sizeof(vol_termf_t));
+  gkyl_cu_memcpy_from_symbol(&vlasov->eqn.surf_term,
+    p_surf, sizeof(surf_termf_t));
+  gkyl_cu_memcpy_from_symbol(&vlasov->eqn.boundary_surf_term,
+    p_boundary_surf, sizeof(boundary_surf_termf_t));
 
-  cudaMemcpyFromSymbol(&vlasov->vol, CK(p_vol_kernels,cdim,vdim,polyOrder), sizeof(vlasov_vol_t));
+  gkyl_cu_memcpy_from_symbol(&vlasov->vol, CK(p_vol_kernels,cdim,vdim,polyOrder), sizeof(vlasov_vol_t));
 
-  cudaMemcpyFromSymbol(&vlasov->stream_surf[0],
+  gkyl_cu_memcpy_from_symbol(&vlasov->stream_surf[0],
     CK(p_stream_surf_x_kernels,cdim,vdim,polyOrder), sizeof(vlasov_stream_surf_t));
   if (cdim>1)
-    cudaMemcpyFromSymbol(&vlasov->stream_surf[1],
+    gkyl_cu_memcpy_from_symbol(&vlasov->stream_surf[1],
       CK(p_stream_surf_y_kernels,cdim,vdim,polyOrder), sizeof(vlasov_stream_surf_t));
   if (cdim>2)
-    cudaMemcpyFromSymbol(&vlasov->stream_surf[2],
+    gkyl_cu_memcpy_from_symbol(&vlasov->stream_surf[2],
       CK(p_stream_surf_z_kernels,cdim,vdim,polyOrder), sizeof(vlasov_stream_surf_t));
 
-  cudaMemcpyFromSymbol(&vlasov->accel_surf[0],
+  gkyl_cu_memcpy_from_symbol(&vlasov->accel_surf[0],
     CK(p_accel_surf_vx_kernels,cdim,vdim,polyOrder), sizeof(vlasov_accel_surf_t));
   if (vdim>1)
-    cudaMemcpyFromSymbol(&vlasov->accel_surf[1],
+    gkyl_cu_memcpy_from_symbol(&vlasov->accel_surf[1],
       CK(p_accel_surf_vy_kernels,cdim,vdim,polyOrder), sizeof(vlasov_accel_surf_t));
   if (vdim>2)
-    cudaMemcpyFromSymbol(&vlasov->accel_surf[2],
+    gkyl_cu_memcpy_from_symbol(&vlasov->accel_surf[2],
       CK(p_accel_surf_vz_kernels,cdim,vdim,polyOrder), sizeof(vlasov_accel_surf_t));
 
-  cudaMemcpyFromSymbol(&vlasov->accel_boundary_surf[0],
+  gkyl_cu_memcpy_from_symbol(&vlasov->accel_boundary_surf[0],
     CK(p_accel_boundary_surf_vx_kernels,cdim,vdim,polyOrder), sizeof(vlasov_accel_boundary_surf_t));
   if (vdim>1)
-    cudaMemcpyFromSymbol(&vlasov->accel_boundary_surf[1],
+    gkyl_cu_memcpy_from_symbol(&vlasov->accel_boundary_surf[1],
       CK(p_accel_boundary_surf_vy_kernels,cdim,vdim,polyOrder), sizeof(vlasov_accel_boundary_surf_t));
   if (vdim>2)
-    cudaMemcpyFromSymbol(&vlasov->accel_boundary_surf[2],
+    gkyl_cu_memcpy_from_symbol(&vlasov->accel_boundary_surf[2],
       CK(p_accel_boundary_surf_vz_kernels,cdim,vdim,polyOrder), sizeof(vlasov_accel_boundary_surf_t));
 
   vlasov->qmem = 0;

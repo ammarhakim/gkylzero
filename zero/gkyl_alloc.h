@@ -1,8 +1,9 @@
 #pragma once
 
-#include <stdlib.h>
-
 #include <gkyl_util.h>
+
+#include <stdio.h>
+#include <stdlib.h>
 
 // The following allocators have the same calling/return behavior as
 // standard C allocators. However, an error is signaled if allocation
@@ -53,3 +54,18 @@ void gkyl_cu_free(void *ptr);
 
 /** Copy data between host/device */
 void gkyl_cu_memcpy(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind);
+
+#ifdef GKYL_HAVE_CUDA
+
+/** This needs to be a macro due to the special way in which cudaMemcpyFromSymbol works */
+#define gkyl_cu_memcpy_from_symbol(dest, src, sz)                       \
+    do {                                                                \
+      cudaError_t err = cudaMemcpyFromSymbol(dest, src, sz);            \
+      if (err != cudaSuccess) {                                         \
+        char str[1024];                                                 \
+        sprintf(str, "\nCUDA error: %s (%s:%d)\n", cudaGetErrorString(err), __FILE__, __LINE__); \
+        gkyl_exit(str);                                                 \
+      }                                                                 \
+    } while(0);
+
+#endif

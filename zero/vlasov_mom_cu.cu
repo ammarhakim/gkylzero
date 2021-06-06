@@ -105,7 +105,7 @@ gkyl_vlasov_mom_cu_dev_new(const struct gkyl_basis* cbasis,
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m0_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder]);
     
-    cudaMemcpyFromSymbol(&momt->kernel,
+    gkyl_cu_memcpy_from_symbol(&momt->kernel,
       p_m0_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder], sizeof(momf_t));
     momt->num_mom = 1;
   }
@@ -113,7 +113,7 @@ gkyl_vlasov_mom_cu_dev_new(const struct gkyl_basis* cbasis,
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m1i_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder]);
     
-    cudaMemcpyFromSymbol(&momt->kernel,
+    gkyl_cu_memcpy_from_symbol(&momt->kernel,
       p_m1i_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder], sizeof(momf_t));
     momt->num_mom = vdim;
   }
@@ -121,7 +121,7 @@ gkyl_vlasov_mom_cu_dev_new(const struct gkyl_basis* cbasis,
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m2_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder]);
     
-    cudaMemcpyFromSymbol(&momt->kernel,
+    gkyl_cu_memcpy_from_symbol(&momt->kernel,
       p_m2_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder], sizeof(momf_t));
     momt->num_mom = 1;
   }
@@ -129,7 +129,7 @@ gkyl_vlasov_mom_cu_dev_new(const struct gkyl_basis* cbasis,
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m2ij_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder]);
     
-    cudaMemcpyFromSymbol(&momt->kernel,
+    gkyl_cu_memcpy_from_symbol(&momt->kernel,
       p_m2ij_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder], sizeof(momf_t));
     momt->num_mom = vdim*(vdim+1)/2;
   }
@@ -137,7 +137,7 @@ gkyl_vlasov_mom_cu_dev_new(const struct gkyl_basis* cbasis,
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m3i_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder]);
     
-    cudaMemcpyFromSymbol(&momt->kernel,
+    gkyl_cu_memcpy_from_symbol(&momt->kernel,
       p_m3i_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder], sizeof(momf_t));
     momt->num_mom = vdim;
   }
@@ -145,7 +145,7 @@ gkyl_vlasov_mom_cu_dev_new(const struct gkyl_basis* cbasis,
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m3ijk_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder]);
     
-    cudaMemcpyFromSymbol(&momt->kernel,
+    gkyl_cu_memcpy_from_symbol(&momt->kernel,
       p_m3ijk_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder], sizeof(momf_t));
 
     int m3ijk_count[] = { 1, 4, 10 };

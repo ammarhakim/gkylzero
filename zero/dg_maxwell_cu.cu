@@ -55,17 +55,17 @@ gkyl_dg_maxwell_cu_dev_new(const struct gkyl_basis* cbasis,
   int polyOrder = cbasis->polyOrder;
 
   // copy appropriate device function pointers to host to store in struct
-  cudaMemcpyFromSymbol(&maxwell->eqn.vol_term, p_vol, sizeof(vol_termf_t));
-  cudaMemcpyFromSymbol(&maxwell->eqn.surf_term, p_surf, sizeof(surf_termf_t));
-  cudaMemcpyFromSymbol(&maxwell->eqn.boundary_surf_term, p_boundary_surf, sizeof(boundary_surf_termf_t));
+  gkyl_cu_memcpy_from_symbol(&maxwell->eqn.vol_term, p_vol, sizeof(vol_termf_t));
+  gkyl_cu_memcpy_from_symbol(&maxwell->eqn.surf_term, p_surf, sizeof(surf_termf_t));
+  gkyl_cu_memcpy_from_symbol(&maxwell->eqn.boundary_surf_term, p_boundary_surf, sizeof(boundary_surf_termf_t));
 
-  cudaMemcpyFromSymbol(&maxwell->vol, CK(p_vol_kernels, cdim, polyOrder), sizeof(maxwell_vol_t));
+  gkyl_cu_memcpy_from_symbol(&maxwell->vol, CK(p_vol_kernels, cdim, polyOrder), sizeof(maxwell_vol_t));
 
-  cudaMemcpyFromSymbol(&maxwell->surf[0], CK(p_surf_x_kernels, cdim, polyOrder), sizeof(maxwell_surf_t));
+  gkyl_cu_memcpy_from_symbol(&maxwell->surf[0], CK(p_surf_x_kernels, cdim, polyOrder), sizeof(maxwell_surf_t));
   if (cdim>1)
-    cudaMemcpyFromSymbol(&maxwell->surf[1], CK(p_surf_y_kernels, cdim, polyOrder), sizeof(maxwell_surf_t));
+    gkyl_cu_memcpy_from_symbol(&maxwell->surf[1], CK(p_surf_y_kernels, cdim, polyOrder), sizeof(maxwell_surf_t));
   if (cdim>2)
-    cudaMemcpyFromSymbol(&maxwell->surf[2], CK(p_surf_z_kernels, cdim, polyOrder), sizeof(maxwell_surf_t));
+    gkyl_cu_memcpy_from_symbol(&maxwell->surf[2], CK(p_surf_z_kernels, cdim, polyOrder), sizeof(maxwell_surf_t));
 
   // copy the host struct to device struct
   struct dg_maxwell *maxwell_cu = (struct dg_maxwell*) gkyl_cu_malloc(sizeof(struct dg_maxwell));
