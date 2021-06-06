@@ -38,7 +38,7 @@ gkyl_hyper_dg_advance_cu(const gkyl_hyper_dg* __restrict__ hdg,
 
     // convert back to a linear index on the super-range (with ghost cells)
     // linc will have jumps in it to jump over ghost cells
-    long linc = gkyl_range_idx(update_range, idxc);
+    unsigned long linc = gkyl_range_idx(update_range, idxc);
 
     if (hdg->update_vol_term) {
       double cflr = hdg->equation->vol_term(
