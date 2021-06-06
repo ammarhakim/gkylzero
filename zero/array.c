@@ -146,21 +146,14 @@ gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
 struct gkyl_array*
 gkyl_array_clone_on_cu_dev(struct gkyl_array* arr)
 {
-  // create and allocate a new struct on device
+  // create and allocate a new struct and data on device
   struct gkyl_array* cu_arr = gkyl_cu_malloc(sizeof(struct gkyl_array));
-
-  // allocate data for new device struct
   void *cu_data = gkyl_cu_malloc(arr->size*arr->esznc);
 
-  // copy struct arr to new device struct cu_arr
+  // copy struct arr to new device struct cu_arr, and deep copy data
   gkyl_cu_memcpy(cu_arr, arr, sizeof(struct gkyl_array), GKYL_CU_MEMCPY_H2D);
-
-  // (deep) copy data into new struct cu_arr
-  if (IS_CU_ARRAY(arr->flags)) {
-    gkyl_cu_memcpy(cu_data, arr->data, arr->size*arr->esznc, GKYL_CU_MEMCPY_D2D);
-  } else {
-    gkyl_cu_memcpy(cu_data, arr->data, arr->size*arr->esznc, GKYL_CU_MEMCPY_H2D);
-  }
+  gkyl_cu_memcpy(cu_data, arr->data, arr->size*arr->esznc,
+    IS_CU_ARRAY(arr->flags) ? GKYL_CU_MEMCPY_D2D : GKYL_CU_MEMCPY_H2D);  
 
   // update pointers in new struct cu_arr
   gkyl_cu_memcpy(&(cu_arr->data), &cu_data, sizeof(void*), GKYL_CU_MEMCPY_H2D);
