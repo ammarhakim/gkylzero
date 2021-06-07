@@ -604,25 +604,27 @@ void test_cu_array_dev_kernel()
   gkyl_array_release(arr_cu_cl);  
 }
 
-// void test_cu_array_clear()
-// {
-//   // create host array 
-//   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
-//   // make device copy
-//   struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 10);
-//   gkyl_array_copy(a1_cu, a1);
+void test_cu_array_clear()
+{
+  // create host array 
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
+  // make device copy
+  struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 10);
+  gkyl_array_copy(a1_cu, a1);
 
-//   // clear array on device
-//   gkyl_array_clear_cu(a1_cu, 0.5);
-//   // copy from device and check if things are ok
-//   gkyl_array_copy(a1, a1_cu);
-//   double *a1_d  = a1->data;  
-//   for (unsigned i=0; i<a1->size; ++i)
-//     TEST_CHECK( gkyl_compare(a1_d[i], 0.5, 1e-14) );
+  // clear array on device
+  int numThreads = 10;
+  int numBlocks = 1;
+  gkyl_array_clear_cu(numBlocks, numThreads, a1_cu, 0.5);
+  // copy from device and check if things are ok
+  gkyl_array_copy(a1, a1_cu);
+  double *a1_d  = a1->data;  
+  for (unsigned i=0; i<a1->size; ++i)
+    TEST_CHECK( gkyl_compare(a1_d[i], 0.5, 1e-14) );
 
-//   gkyl_array_release(a1);
-//   gkyl_array_release(a1_cu);
-// }
+  gkyl_array_release(a1);
+  gkyl_array_release(a1_cu);
+}
 
 // void test_cu_array_clear_range()
 // {
@@ -670,7 +672,7 @@ TEST_LIST = {
   { "reduce_range", test_reduce_range },
 #ifdef GKYL_HAVE_CUDA
   { "cu_array_base", test_cu_array_base },
-  // { "cu_array_clear", test_cu_array_clear},
+  { "cu_array_clear", test_cu_array_clear},
   // { "cu_array_clear_range", test_cu_array_clear_range},
   { "cu_array_dev_kernel", test_cu_array_dev_kernel },
 #endif
