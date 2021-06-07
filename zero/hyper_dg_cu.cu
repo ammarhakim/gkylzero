@@ -8,12 +8,8 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ void 
-gkyl_hyper_dg_advance_cu(const gkyl_hyper_dg* __restrict__ hdg, 
-  const struct gkyl_range* __restrict__ update_range,
-  const struct gkyl_array* __restrict__ fIn, 
-  struct gkyl_array *cflrate, 
-  struct gkyl_array *rhs, double *maxs)
+__global__ void gkyl_hyper_dg_advance_cu(const gkyl_hyper_dg* hdg, const struct gkyl_range* update_range,
+  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs, double* GKYL_RESTRICT maxs)
 {
   int ndim = hdg->ndim;
   int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
