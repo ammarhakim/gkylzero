@@ -510,7 +510,7 @@ void test_reduce_range()
 #ifdef GKYL_HAVE_CUDA
 
 /* Function signatures of kernel calls */
-int cu_array_clone_test( struct gkyl_array *arr);
+int cu_array_test_and_flip_sign( struct gkyl_array *arr);
 
 void test_cu_array_base()
 {
@@ -548,7 +548,7 @@ void test_cu_array_base()
   gkyl_array_release(arr_cu);
 }
 
-void test_cu_array_dev_clone()
+void test_cu_array_dev_kernel()
 {
   // create a host array struct containing device data
   struct gkyl_array *arr_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 20);
@@ -567,28 +567,41 @@ void test_cu_array_dev_clone()
   for (unsigned i=0; i<arr->size; ++i)
     arrData[i] = (i+0.5)*0.1;  
 
-  // create device array struct
-  struct gkyl_array *arr_cl;
-  // clone the host array struct (arr) as a device array struct
-  // (this does a deep copy to device of entire struct)
-  arr_cl = gkyl_array_clone_on_cu_dev(arr);
-  int nfail = cu_array_clone_test(arr_cl);
-  TEST_CHECK( nfail == 0 );
-  TEST_MSG("Cloning host array with host data on device failed");
-
-  // create another device array struct
-  struct gkyl_array *arr_cl2;
-  // copy host array data to device (but arr_cu struct is still on host)
+  // copy arr data to device data in arr_cu
   gkyl_array_copy(arr_cu, arr);
 
-  // clone arr_cu (which contains device data) as a device array struct
-  arr_cl2 = gkyl_array_clone_on_cu_dev(arr_cu);
-  nfail = cu_array_clone_test(arr_cl2);
-  TEST_CHECK( nfail == 0 );
-  TEST_MSG("Cloning host array with device data on device failed");
+  // create new struct arr_cu_cl that is a clone of arr_cu
+  struct gkyl_array *arr_cu_cl = gkyl_array_clone(arr_cu);
 
+  // check arr_cu on device and flip sign
+  int nfail = cu_array_test_and_flip_sign(arr_cu->on_device);
+  TEST_CHECK( nfail == 0 );
+
+  // restore arr_cu by copying from arr_cu_cl, and test again
+  gkyl_array_copy(arr_cu, arr_cu_cl);
+  nfail = cu_array_test_and_flip_sign(arr_cu->on_device);
+  TEST_CHECK( nfail == 0 );
+
+  // check arr_cu_cl on device and flip sign
+  nfail = cu_array_test_and_flip_sign(arr_cu_cl->on_device);
+  TEST_CHECK( nfail == 0 );
+
+  // copy arr_cu back to host and check
+  gkyl_array_copy(arr, arr_cu);
+  for (unsigned i=0; i<arr->size; ++i)
+    TEST_CHECK( arrData[i] == -(i+0.5)*0.1);  
+
+  // copy arr_cu_cl back to host and check
+  // zero out arr first (no cheating)
+  gkyl_array_clear(arr, 0.);
+  gkyl_array_copy(arr, arr_cu_cl);
+  for (unsigned i=0; i<arr->size; ++i)
+    TEST_CHECK( arrData[i] == -(i+0.5)*0.1);  
+
+  // release all data
   gkyl_array_release(arr);
   gkyl_array_release(arr_cu);  
+  gkyl_array_release(arr_cu_cl);  
 }
 
 void test_cu_array_clear()
@@ -596,7 +609,8 @@ void test_cu_array_clear()
   // create host array 
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
   // make device copy
-  struct gkyl_array *a1_cu = gkyl_array_clone_on_cu_dev(a1); 
+  struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 10);
+  gkyl_array_copy(a1_cu, a1);
 
   // clear array on device
   gkyl_array_clear_cu(a1_cu, 0.5);
@@ -620,7 +634,8 @@ void test_array_clear_range()
   
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
   // make device copy of array
-  struct gkyl_array *a1_cu = gkyl_array_clone_on_cu_dev(a1); 
+  struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, range.volume);
+  gkyl_array_copy(a1_cu, a1);
   gkyl_array_clear_range_cu(a1_cu, 0.5, &cu_range);
 
   // copy from device and check if things are ok
@@ -655,9 +670,9 @@ TEST_LIST = {
   { "reduce_range", test_reduce_range },
 #ifdef GKYL_HAVE_CUDA
   { "cu_array_base", test_cu_array_base },
-  { "cu_array_dev_clone", test_cu_array_dev_clone },
   { "cu_array_clear", test_cu_array_clear},
   { "cu_array_clear_range", test_cu_array_clear_range},
+  { "cu_array_dev_kernel", test_cu_array_dev_kernel },
 #endif
   { NULL, NULL },
 };

@@ -50,10 +50,16 @@ mkarr(long nc, long size)
   return a;
 }
 
+// allocate cu_dev array
+static struct gkyl_array*
+mkarr_cu(long nc, long size)
+{
+  struct gkyl_array* a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
+  return a;
+}
+
 void test_vlasov_2x3v_p1_cu()
 {
-  cudaError_t err;
-
   // initialize grid and ranges on host
   int cdim = 2, vdim = 3;
   int pdim = cdim+vdim;
@@ -81,13 +87,6 @@ void test_vlasov_2x3v_p1_cu()
   struct gkyl_range *phaseRange_cu = gkyl_range_clone_on_cu_dev(&phaseRange);
   struct gkyl_range *phaseRange_ext_cu = gkyl_range_clone_on_cu_dev(&phaseRange_ext);
 
-  err = cudaGetLastError();
-  if (err != cudaSuccess) {
-    char str[100];
-    sprintf(str, "\nafter range clone: CUDA error: %s\n", cudaGetErrorString(err));
-    gkyl_exit(str);
-  }
-
   // initialize basis (note: basis has no device implementation)
   int poly_order = 1;
   struct gkyl_basis basis, confBasis; // phase-space, conf-space basis
@@ -99,34 +98,15 @@ void test_vlasov_2x3v_p1_cu()
   struct gkyl_dg_eqn *eqn_cu;
   eqn_cu = gkyl_dg_vlasov_cu_dev_new(&confBasis, &basis, confRange_cu);
 
-  err = cudaGetLastError();
-  if (err != cudaSuccess) {
-    char str[100];
-    sprintf(str, "\nafter vlasov init: CUDA error: %s\n", cudaGetErrorString(err));
-    gkyl_exit(str);
-  }
-
   // initialize hyper_dg slvr
   int up_dirs[] = {0, 1, 2, 3, 4};
   int zero_flux_flags[] = {0, 0, 1, 1, 1};
 
   gkyl_hyper_dg *slvr_cu;
   slvr_cu = gkyl_hyper_dg_cu_dev_new(phaseGrid_cu, &basis, eqn_cu, pdim, up_dirs, zero_flux_flags, 1);
-  err = cudaGetLastError();
-  if (err != cudaSuccess) {
-    char str[100];
-    sprintf(str, "\nafter hyper_dg init: CUDA error: %s\n", cudaGetErrorString(err));
-    gkyl_exit(str);
-  }
 
   // basic checks
   int nfail = hyper_dg_test(slvr_cu);
-  err = cudaGetLastError();
-  if (err != cudaSuccess) {
-    char str[100];
-    sprintf(str, "\nafter hyper_dg_test: CUDA error: %s\n", cudaGetErrorString(err));
-    gkyl_exit(str);
-  }
 
   TEST_CHECK( nfail == 0 );
 
@@ -150,50 +130,39 @@ void test_vlasov_2x3v_p1_cu()
     qmem_d[i] = (double)(-i+27 % nem) / nem  * ((i%2 == 0) ? 1 : -1);
   }
 
-  // initialize device arrays as clones of host arrays
-  struct gkyl_array *fin_cu = gkyl_array_clone_on_cu_dev(fin);
-  struct gkyl_array *rhs_cu = gkyl_array_clone_on_cu_dev(rhs);
-  struct gkyl_array *cflrate_cu = gkyl_array_clone_on_cu_dev(cflrate);
-  struct gkyl_array *qmem_cu = gkyl_array_clone_on_cu_dev(qmem);
+  // initialize device arrays 
+  struct gkyl_array *fin_cu = mkarr_cu(basis.numBasis, phaseRange_ext.volume);
+  struct gkyl_array *rhs_cu = mkarr_cu(basis.numBasis, phaseRange_ext.volume);
+  struct gkyl_array *cflrate_cu = mkarr_cu(1, phaseRange_ext.volume);
+  struct gkyl_array *qmem_cu = mkarr_cu(8*confBasis.numBasis, confRange_ext.volume);
 
-  // get host pointers to device struct data (need better way of handling these...)
-  void *rhs_data_cu;
-  gkyl_cu_memcpy(&rhs_data_cu, &(rhs_cu->data), sizeof(void*), GKYL_CU_MEMCPY_D2H);
-  void *cflrate_data_cu;
-  gkyl_cu_memcpy(&cflrate_data_cu, &(cflrate_cu->data), sizeof(void*), GKYL_CU_MEMCPY_D2H);
+  // copy initial conditions to device
+  gkyl_array_copy(fin_cu, fin);
+  gkyl_array_copy(qmem_cu, qmem);
 
-  double *maxs_cu;
-  cudaMalloc((void**) &maxs_cu, sizeof(double)*5);
-
-  err = cudaGetLastError();
-  if (err != cudaSuccess) {
-    char str[100];
-    sprintf(str, "\nBefore hyper_dg advance: CUDA error: %s\n", cudaGetErrorString(err));
-    gkyl_exit(str);
-  }
+  // maxs_cu is not an array struct, just a regular array
+  double *maxs_cu = (double*) gkyl_cu_malloc(sizeof(double)*5);
 
   // run hyper_dg_advance
   int nrep = 10;
   for(int n=0; n<nrep; n++) {
+    // zero out array struct device data (eventually these will be handled by array_ops)
+    cudaMemset(rhs_cu->data, 0.0, rhs_cu->size*rhs_cu->esznc);
+    cudaMemset(cflrate_cu->data, 0.0, cflrate_cu->size*cflrate_cu->esznc);
+
+    // also zero out maxs_cu
     cudaMemset(maxs_cu, 0., sizeof(double)*5);
-    cudaMemset(rhs_data_cu, 0.0, rhs->size*rhs->esznc);
-    cudaMemset(cflrate_data_cu, 0.0, cflrate->size*cflrate->esznc);
-    gkyl_vlasov_set_qmem_cu(eqn_cu, qmem_cu); // must set EM fields to use
+
+    // set pointer to EM fields in vlasov equation object (on device)
+    gkyl_vlasov_set_qmem_cu(eqn_cu, qmem_cu->on_device); // must set EM fields to use
 
     int dB = 256;
     int dG = phaseRange.volume/dB + 1;
-    gkyl_hyper_dg_advance_cu<<<dG,dB>>>(slvr_cu, phaseRange_cu, fin_cu, cflrate_cu, rhs_cu, maxs_cu);
-    cudaDeviceSynchronize();
-    err = cudaGetLastError();
-    if (err != cudaSuccess) {
-      char str[100];
-      sprintf(str, "\nAfter hyper_dg advance: CUDA error: %s\n", cudaGetErrorString(err));
-      gkyl_exit(str);
-    }
+    gkyl_hyper_dg_advance_cu<<<dG,dB>>>(slvr_cu, phaseRange_cu, fin_cu->on_device, cflrate_cu->on_device, rhs_cu->on_device, maxs_cu);
   }
 
-  gkyl_array_clear(rhs, 0.0);
-  gkyl_cu_memcpy(rhs->data, rhs_data_cu, rhs->size*rhs->esznc, GKYL_CU_MEMCPY_D2H);
+  // copy result from device to host
+  gkyl_array_copy(rhs, rhs_cu);
 
   // get linear index of first non-ghost cell
   int idx[] = {0, 0, 0, 0, 0};
@@ -250,6 +219,11 @@ void test_vlasov_2x3v_p1_cu()
   gkyl_array_release(rhs);
   gkyl_array_release(cflrate);
   gkyl_array_release(qmem);
+
+  gkyl_array_release(fin_cu);
+  gkyl_array_release(rhs_cu);
+  gkyl_array_release(cflrate_cu);
+  gkyl_array_release(qmem_cu);
 
 //  gkyl_hyper_dg_release(slvr_cu);
 //  gkyl_dg_eqn_release(eqn_cu);

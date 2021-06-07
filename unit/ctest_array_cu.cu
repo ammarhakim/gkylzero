@@ -4,11 +4,11 @@
 #include <stdio.h>
 
 extern "C" {
-    int cu_array_clone_test( struct gkyl_array *arr);
+    int cu_array_test_and_flip_sign( struct gkyl_array *arr);
 }
 
 __global__
-void ker_cu_array_clone_test( struct gkyl_array *arr, int *nfail)
+void ker_cu_array_test_and_flip_sign( struct gkyl_array *arr, int *nfail)
 {
   *nfail = 0;
   
@@ -25,10 +25,10 @@ void ker_cu_array_clone_test( struct gkyl_array *arr, int *nfail)
 
 }
 
-int cu_array_clone_test( struct gkyl_array *arr)
+int cu_array_test_and_flip_sign( struct gkyl_array *arr)
 {
   int *nfail_dev = (int *) gkyl_cu_malloc(sizeof(int));
-  ker_cu_array_clone_test<<<1,1>>>(arr, nfail_dev);
+  ker_cu_array_test_and_flip_sign<<<1,1>>>(arr, nfail_dev);
 
   int nfail;
   gkyl_cu_memcpy(&nfail, nfail_dev, sizeof(int), GKYL_CU_MEMCPY_D2H);

@@ -174,33 +174,33 @@ gkyl_array_copy_range_cu_kernel(struct gkyl_array *out,
 struct gkyl_array*
 gkyl_array_clear_range_cu(int numBlocks, int numThreads, struct gkyl_array *out, double val, const struct gkyl_range* range)
 {
-  gkyl_array_clear_range_cu_kernel<<<numBlocks, numThreads>>>(out, val, range);
+  gkyl_array_clear_range_cu_kernel<<<numBlocks, numThreads>>>(out->on_device, val, range);
 }
 
 struct gkyl_array*
 gkyl_array_accumulate_range_cu(int numBlocks, int numThreads, struct gkyl_array *out,
   double a, const struct gkyl_array* inp, const struct gkyl_range* range)
 {
-  gkyl_array_accumulate_range_cu_kernel<<<numBlocks, numThreads>>>(out, a, inp, range);
+  gkyl_array_accumulate_range_cu_kernel<<<numBlocks, numThreads>>>(out->on_device, a, inp, range);
 }
 
 struct gkyl_array*
 gkyl_array_set_range_cu(int numBlocks, int numThreads, struct gkyl_array *out,
   double a, const struct gkyl_array* inp, const struct gkyl_range* range)
 {
-  gkyl_array_set_range_cu_kernel<<<numBlocks, numThreads>>>(out, a, inp, range);
+  gkyl_array_set_range_cu_kernel<<<numBlocks, numThreads>>>(out->on_device, a, inp, range);
 }
 
 struct gkyl_array*
 gkyl_array_scale_range_cu(int numBlocks, int numThreads, struct gkyl_array *out,
   double a, const struct gkyl_range* range)
 {
-  gkyl_array_scale_range_cu_kernel<<<numBlocks, numThreads>>>(out, a, range);
+  gkyl_array_scale_range_cu_kernel<<<numBlocks, numThreads>>>(out->on_device, a, range);
 }
 
 struct gkyl_array* 
 gkyl_array_copy_range_cu(int numBlocks, int numThreads, struct gkyl_array *out,
   const struct gkyl_array* inp, const struct gkyl_range* range)
 {
-  gkyl_array_copy_range_cu_kernel<<<numBlocks, numThreads>>>(out, inp, range);
+  gkyl_array_copy_range_cu_kernel<<<numBlocks, numThreads>>>(out->on_device, inp, range);
 }

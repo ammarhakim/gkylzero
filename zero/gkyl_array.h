@@ -23,6 +23,9 @@ struct gkyl_array {
   size_t esznc; // elemsz*ncomp
   void *data; // pointer to data (do not use directly)
   struct gkyl_ref_count ref_count;
+#ifdef GKYL_HAVE_CUDA
+  struct gkyl_array *on_device; // pointer to device clone if data is on device
+#endif
 };
 
 /**
@@ -39,11 +42,11 @@ struct gkyl_array* gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t
  * Create new array with data on NV-GPU. Delete using
  * gkyl_array_release method.
  *
- * NOTE: Only the data stored in the array lives on the NV-GPU. The
- * rest of the array struct is on the host. You must call a
- * "gkyl_array_clone_on_cu_dev" method to get a pointer to an array
- * which is completely on the GPU (i.e. all struct members can then be
- * safely used from cu-kernels).
+ * NOTE: the data member lives on GPU, but the struct lives on the host.
+ * For this reason, this method also creates a device struct and stores a 
+ * pointer to it in the on_device member. This is a device clone of the 
+ * host struct, and is what should be used to pass to CUDA kernels which
+ * require the entire array struct on device.
  * 
  * @param type Type of data in array
  * @param ncomp Number of components at each index
@@ -59,19 +62,6 @@ struct gkyl_array* gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp,
  * @return true of array lives on NV-GPU, false otherwise
  */
 bool gkyl_array_is_cu_dev(const struct gkyl_array *arr);
-
-/**
- * Clone array to live fully on device. Unlike the array created from
- * gkyl_array_cu_dev_new *all* of the array lives on the device and
- * hence the returned pointer is safe to pass to kernel code.
- *
- * NOTE: If the data in the input array 'arr' already lives on the
- * device, then the clone and 'arr' share the device data.
- *
- * @param arr Array to clone
- * @param Clone valid on device.
- */
-struct gkyl_array* gkyl_array_clone_on_cu_dev(struct gkyl_array* arr);
 
 /**
  * Copy into array: pointer to dest array is returned. 'dest' and

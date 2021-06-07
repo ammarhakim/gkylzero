@@ -28,7 +28,7 @@ static void
 array_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_array *arr = container_of(ref, struct gkyl_array, ref_count);
-  IS_CU_ARRAY(arr->flags) ? gkyl_cu_free(arr->data) : gkyl_free(arr->data);
+  IS_CU_ARRAY(arr->flags) ? gkyl_cu_free(arr->data), gkyl_cu_free(arr->on_device) : gkyl_free(arr->data);
   gkyl_free(arr);
 }
 
@@ -96,7 +96,10 @@ gkyl_array_clone(const struct gkyl_array* src)
 
   if (IS_CU_ARRAY(src->flags)) {
     arr->data = gkyl_cu_malloc(arr->size*arr->esznc);
+    arr->on_device = gkyl_cu_malloc(sizeof(struct gkyl_array));
     gkyl_cu_memcpy(arr->data, src->data, arr->size*arr->esznc, GKYL_CU_MEMCPY_D2D);
+    gkyl_cu_memcpy(arr->on_device, src->on_device, sizeof(struct gkyl_array), GKYL_CU_MEMCPY_D2D);
+    gkyl_cu_memcpy(&((arr->on_device)->data), &arr->data, sizeof(void*), GKYL_CU_MEMCPY_H2D);
   }
   else {
     arr->data = gkyl_calloc(arr->size, arr->esznc);
@@ -139,39 +142,22 @@ gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
   arr->esznc = arr->elemsz*arr->ncomp;
   arr->ref_count = (struct gkyl_ref_count) { array_free, 1 };  
   arr->data = gkyl_cu_malloc(arr->size*arr->esznc);
+
+  // create a clone of the struct arr->on_device that lives on the device,
+  // so that the whole arr->on_device struct can be passed to a device kernel
+  arr->on_device = gkyl_cu_malloc(sizeof(struct gkyl_array));
+  gkyl_cu_memcpy(arr->on_device, arr, sizeof(struct gkyl_array), GKYL_CU_MEMCPY_H2D);
+  // set device-side data pointer in arr->on_device to arr->data 
+  // (which is the host-side pointer to the device data)
+  gkyl_cu_memcpy(&((arr->on_device)->data), &arr->data, sizeof(void*), GKYL_CU_MEMCPY_H2D);
   
   return arr;
-}
-
-struct gkyl_array*
-gkyl_array_clone_on_cu_dev(struct gkyl_array* arr)
-{
-  // create and allocate a new struct and data on device
-  struct gkyl_array* cu_arr = gkyl_cu_malloc(sizeof(struct gkyl_array));
-  void *cu_data = gkyl_cu_malloc(arr->size*arr->esznc);
-
-  // copy struct arr to new device struct cu_arr, and deep copy data
-  gkyl_cu_memcpy(cu_arr, arr, sizeof(struct gkyl_array), GKYL_CU_MEMCPY_H2D);
-  gkyl_cu_memcpy(cu_data, arr->data, arr->size*arr->esznc,
-    IS_CU_ARRAY(arr->flags) ? GKYL_CU_MEMCPY_D2D : GKYL_CU_MEMCPY_H2D);  
-
-  // update pointers in new struct cu_arr
-  gkyl_cu_memcpy(&(cu_arr->data), &cu_data, sizeof(void*), GKYL_CU_MEMCPY_H2D);
-
-  return cu_arr;
 }
 
 #else
 
 struct gkyl_array*
 gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
-{
-  assert(false);
-  return 0;
-}
-
-struct gkyl_array*
-gkyl_array_clone_on_cu_dev(struct gkyl_array* arr)
 {
   assert(false);
   return 0;
