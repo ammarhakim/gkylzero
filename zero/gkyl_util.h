@@ -65,6 +65,8 @@ enum gkyl_cu_memcpy_kind {
   GKYL_CU_MEMCPY_D2D = cudaMemcpyDeviceToDevice
 };
 
+#define GKYL_DEFAULT_NUM_THREADS 256
+
 #else
 
 #undef GKYL_HAVE_CUDA

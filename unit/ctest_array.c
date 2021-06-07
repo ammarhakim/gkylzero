@@ -615,7 +615,7 @@ void test_cu_array_clear()
   // clear array on device
   int numThreads = 10;
   int numBlocks = 1;
-  gkyl_array_clear_cu(numBlocks, numThreads, a1_cu, 0.5);
+  gkyl_array_clear_cu(a1_cu, 0.5);
   // copy from device and check if things are ok
   gkyl_array_copy(a1, a1_cu);
   double *a1_d  = a1->data;  
@@ -626,29 +626,29 @@ void test_cu_array_clear()
   gkyl_array_release(a1_cu);
 }
 
-// void test_cu_array_clear_range()
-// {
-//   int shape[] = {10, 20};
-//   struct gkyl_range range;
-//   gkyl_range_init_from_shape(&range, 2, shape);
-//   // make device copy of range
-//   struct gkyl_range* cu_range = gkyl_range_clone_on_cu_dev(&range);
-  
-//   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
-//   // make device copy of array
-//   struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, range.volume);
-//   gkyl_array_copy(a1_cu, a1);
-//   gkyl_array_clear_range_cu(a1_cu, 0.5, &cu_range);
+ void test_cu_array_clear_range()
+ {
+   int shape[] = {10, 20};
+   struct gkyl_range range;
+   gkyl_range_init_from_shape(&range, 2, shape);
+   // make device copy of range
+   struct gkyl_range* cu_range = gkyl_range_clone_on_cu_dev(&range);
 
-//   // copy from device and check if things are ok
-//   gkyl_array_copy(a1, a1_cu);
-//   double *a1_d  = a1->data;  
-//   for (unsigned i=0; i<a1->size; ++i)
-//     TEST_CHECK( gkyl_compare(a1_d[i], 0.5, 1e-14) );
+   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
+   // make device copy of array
+   struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, range.volume);
+   gkyl_array_copy(a1_cu, a1);
+   gkyl_array_clear_range_cu(10, 1, a1_cu, 0.5, cu_range);
 
-//   gkyl_array_release(a1);
-//   gkyl_array_release(a1_cu);
-// }
+   // copy from device and check if things are ok
+   gkyl_array_copy(a1, a1_cu);
+   double *a1_d  = a1->data;  
+   for (unsigned i=0; i<a1->size; ++i)
+     TEST_CHECK( gkyl_compare(a1_d[i], 0.5, 1e-14) );
+
+   gkyl_array_release(a1);
+   gkyl_array_release(a1_cu);
+ }
 
 #endif
 
@@ -673,7 +673,7 @@ TEST_LIST = {
 #ifdef GKYL_HAVE_CUDA
   { "cu_array_base", test_cu_array_base },
   { "cu_array_clear", test_cu_array_clear},
-  // { "cu_array_clear_range", test_cu_array_clear_range},
+  { "cu_array_clear_range", test_cu_array_clear_range},
   { "cu_array_dev_kernel", test_cu_array_dev_kernel },
 #endif
   { NULL, NULL },

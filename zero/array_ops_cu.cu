@@ -51,27 +51,27 @@ gkyl_array_set_cu_kernel(struct gkyl_array* out, double a,
 
 // Host-side wrappers for array operations
 void
-gkyl_array_clear_cu(int numBlocks, int numThreads, struct gkyl_array* out, double val)
+gkyl_array_clear_cu(struct gkyl_array* out, double val)
 {
-  gkyl_array_clear_cu_kernel<<<numBlocks, numThreads>>>(out->on_device, val);
+  gkyl_array_clear_cu_kernel<<<out->numBlocks, out->numThreads>>>(out->on_device, val);
 }
 
 void
-gkyl_array_accumulate_cu(int numBlocks, int numThreads, struct gkyl_array* out, double a, const struct gkyl_array* inp)
+gkyl_array_accumulate_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp)
 {
-  gkyl_array_accumulate_cu_kernel<<<numBlocks, numThreads>>>(out->on_device, a, inp->on_device);
+  gkyl_array_accumulate_cu_kernel<<<out->numBlocks, out->numThreads>>>(out->on_device, a, inp->on_device);
 }
 
 void
-gkyl_array_set_cu(int numBlocks, int numThreads, struct gkyl_array* out, double a, const struct gkyl_array* inp)
+gkyl_array_set_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp)
 {
-  gkyl_array_set_cu_kernel<<<numBlocks, numThreads>>>(out->on_device, a, inp->on_device);
+  gkyl_array_set_cu_kernel<<<out->numBlocks, out->numThreads>>>(out->on_device, a, inp->on_device);
 }
 
 void
-gkyl_array_scale_cu(int numBlocks, int numThreads, struct gkyl_array* out, double a)
+gkyl_array_scale_cu(struct gkyl_array* out, double a)
 {
-  gkyl_array_set_cu_kernel<<<numBlocks, numThreads>>>(out->on_device, a, out);
+  gkyl_array_set_cu_kernel<<<out->numBlocks, out->numThreads>>>(out->on_device, a, out);
 }
 
 // Range-based methods

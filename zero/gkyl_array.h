@@ -26,6 +26,7 @@ struct gkyl_array {
 
   // CUDA ONLY
   struct gkyl_array *on_device; // pointer to device clone if data is on device
+  int numThreads, numBlocks; // CUDA kernel launch specifiers for entire array ops
 };
 
 /**
