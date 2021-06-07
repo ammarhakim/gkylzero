@@ -4,10 +4,11 @@
 extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_array_ops_priv.h>
 #include <gkyl_util.h>
 }
 
-__global__ struct gkyl_array*
+__global__ void
 gkyl_array_clear_cu_kernel(struct gkyl_array* out, double val)
 {
 
@@ -18,10 +19,9 @@ gkyl_array_clear_cu_kernel(struct gkyl_array* out, double val)
   {
     out_d[linc] = val;
   }
-  return out;
 }
 
-__global__ struct gkyl_array*
+__global__ void
 gkyl_array_accumulate_cu_kernel(struct gkyl_array* out, double a,
   const struct gkyl_array* inp)
 {
@@ -33,10 +33,9 @@ gkyl_array_accumulate_cu_kernel(struct gkyl_array* out, double a,
   {
     out_d[linc] += a*inp_d[linc];
   }
-  return out;
 }
 
-__global__ struct gkyl_array*
+__global__ void
 gkyl_array_set_cu_kernel(struct gkyl_array* out, double a,
   const struct gkyl_array* inp)
 {
@@ -48,35 +47,34 @@ gkyl_array_set_cu_kernel(struct gkyl_array* out, double a,
   {
     out_d[linc] = a*inp_d[linc];
   }
-  return out;
 }
 
-__global__ struct gkyl_array*
+__global__ void
 gkyl_array_scale_cu_kernel(struct gkyl_array* out, double a)
 {
   return gkyl_array_set_cu(out, a, out);
 }
 
 // Host-side wrappers for array operations
-struct gkyl_array*
+void
 gkyl_array_clear_cu(int numBlocks, int numThreads, struct gkyl_array* out, double val)
 {
   gkyl_array_clear_cu_kernel<<<numBlocks, numThreads>>>(out, val);
 }
 
-struct gkyl_array*
+void
 gkyl_array_accumulate_cu(int numBlocks, int numThreads, struct gkyl_array* out, double a, const struct gkyl_array* inp)
 {
   gkyl_array_accumulate_cu_kernel<<<numBlocks, numThreads>>>(out, a, inp);
 }
 
-struct gkyl_array*
+void
 gkyl_array_set_cu(int numBlocks, int numThreads, struct gkyl_array* out, double a, const struct gkyl_array* inp)
 {
   gkyl_array_set_cu_kernel<<<numBlocks, numThreads>>>(out, a, inp);
 }
 
-struct gkyl_array*
+void
 gkyl_array_scale_cu(int numBlocks, int numThreads, struct gkyl_array* out, double a)
 {
   gkyl_array_scale_cu_kernel<<<numBlocks, numThreads>>>(out, a);
@@ -90,7 +88,7 @@ gkyl_array_scale_cu(int numBlocks, int numThreads, struct gkyl_array* out, doubl
 // This super range can include ghost cells and thus linear index will have
 // have jumps over ghost cells.
 
-__global__ struct gkyl_array*
+__global__ void
 gkyl_array_clear_range_cu_kernel(struct gkyl_array *out, double val, const struct gkyl_range* range)
 {
   long n = NCOM(out);
@@ -103,11 +101,9 @@ gkyl_array_clear_range_cu_kernel(struct gkyl_array *out, double val, const struc
     long start = gkyl_range_idx(range, idx);
     array_clear1(n, gkyl_array_fetch(out, start), val);
   }
-
-  return out;
 }
 
-__global__ struct gkyl_array*
+__global__ void
 gkyl_array_accumulate_range_cu_kernel(struct gkyl_array *out,
   double a, const struct gkyl_array* inp, const struct gkyl_range* range)
 {
@@ -123,11 +119,9 @@ gkyl_array_accumulate_range_cu_kernel(struct gkyl_array *out,
     array_acc1(n,
       gkyl_array_fetch(out, start), a, gkyl_array_cfetch(inp, start));
   }
-
-  return out;
 }
 
-__global__ struct gkyl_array*
+__global__ void
 gkyl_array_set_range_cu_kernel(struct gkyl_array *out,
   double a, const struct gkyl_array* inp, const struct gkyl_range* range)
 {
@@ -143,18 +137,16 @@ gkyl_array_set_range_cu_kernel(struct gkyl_array *out,
     array_set1(n,
       gkyl_array_fetch(out, start), a, gkyl_array_cfetch(inp, start));
   }
-
-  return out;
 }
 
-__global__ struct gkyl_array* 
+__global__ void 
 gkyl_array_scale_range_cu_kernel(struct gkyl_array *out,
   double a, const struct gkyl_range* range)
 {
   return gkyl_array_set_range(out, a, out, range);
 }
 
-__global__ struct gkyl_array* 
+__global__ void 
 gkyl_array_copy_range_cu_kernel(struct gkyl_array *out,
   const struct gkyl_array* inp, const struct gkyl_range* range)
 {
@@ -166,39 +158,37 @@ gkyl_array_copy_range_cu_kernel(struct gkyl_array *out,
     long start = gkyl_range_idx(range, idx);
     memcpy(gkyl_array_fetch(out, start), gkyl_array_cfetch(inp, start), inp->esznc);
   }
-
-  return out;
 }
 
 // Host-side wrappers for range-based array operations
-struct gkyl_array*
+void
 gkyl_array_clear_range_cu(int numBlocks, int numThreads, struct gkyl_array *out, double val, const struct gkyl_range* range)
 {
   gkyl_array_clear_range_cu_kernel<<<numBlocks, numThreads>>>(out->on_device, val, range);
 }
 
-struct gkyl_array*
+void
 gkyl_array_accumulate_range_cu(int numBlocks, int numThreads, struct gkyl_array *out,
   double a, const struct gkyl_array* inp, const struct gkyl_range* range)
 {
   gkyl_array_accumulate_range_cu_kernel<<<numBlocks, numThreads>>>(out->on_device, a, inp, range);
 }
 
-struct gkyl_array*
+void
 gkyl_array_set_range_cu(int numBlocks, int numThreads, struct gkyl_array *out,
   double a, const struct gkyl_array* inp, const struct gkyl_range* range)
 {
   gkyl_array_set_range_cu_kernel<<<numBlocks, numThreads>>>(out->on_device, a, inp, range);
 }
 
-struct gkyl_array*
+void
 gkyl_array_scale_range_cu(int numBlocks, int numThreads, struct gkyl_array *out,
   double a, const struct gkyl_range* range)
 {
   gkyl_array_scale_range_cu_kernel<<<numBlocks, numThreads>>>(out->on_device, a, range);
 }
 
-struct gkyl_array* 
+void
 gkyl_array_copy_range_cu(int numBlocks, int numThreads, struct gkyl_array *out,
   const struct gkyl_array* inp, const struct gkyl_range* range)
 {

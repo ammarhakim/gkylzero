@@ -6,11 +6,7 @@
 
 #include <gkyl_util.h>
 #include <gkyl_array_ops.h>
-
-// Compute number of elements stored in array 'arr'
-#define NELM(arr) (arr->size*arr->ncomp)
-// Compute number of components stored in array 'arr'
-#define NCOM(arr) (arr->ncomp)
+#include <gkyl_array_ops_priv.h>
 
 struct gkyl_array*
 gkyl_array_clear(struct gkyl_array* out, double val)
