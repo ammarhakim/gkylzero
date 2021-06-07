@@ -14,6 +14,7 @@ typedef double (*maxwell_surf_t)(const gkyl_maxwell_inp *meq,
   const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out);
 
 // Volume kernel list
+GKYL_CU_D
 static struct { maxwell_vol_t kernels[3]; } vol_kernels[] = {
   { NULL, maxwell_vol_1x_ser_p1, maxwell_vol_1x_ser_p2 }, // 0
   { NULL, maxwell_vol_2x_ser_p1, maxwell_vol_2x_ser_p2 }, // 1
@@ -21,6 +22,7 @@ static struct { maxwell_vol_t kernels[3]; } vol_kernels[] = {
 };
 
 // Surface kernel list: x-direction
+GKYL_CU_D
 static struct { maxwell_surf_t kernels[3]; } surf_x_kernels[] = {
   { NULL, maxwell_surfx_1x_ser_p1, maxwell_surfx_1x_ser_p2 }, // 0
   { NULL, maxwell_surfx_2x_ser_p1, maxwell_surfx_2x_ser_p2 }, // 1
@@ -28,6 +30,7 @@ static struct { maxwell_surf_t kernels[3]; } surf_x_kernels[] = {
 };
 
 // Surface kernel list: y-direction
+GKYL_CU_D
 static struct { maxwell_surf_t kernels[3]; } surf_y_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, maxwell_surfy_2x_ser_p1, maxwell_surfy_2x_ser_p2 }, // 1
@@ -35,12 +38,12 @@ static struct { maxwell_surf_t kernels[3]; } surf_y_kernels[] = {
 };
 
 // Surface kernel list: z-direction
+GKYL_CU_D
 static struct { maxwell_surf_t kernels[3]; } surf_z_kernels[] = {
   { NULL, NULL, NULL },                 // 0
   { NULL, NULL, NULL },                 // 1
   { NULL, maxwell_surfz_3x_ser_p1, NULL }, // 2
 };
-
 
 struct dg_maxwell {
   struct gkyl_dg_eqn eqn; // Base object    
