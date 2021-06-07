@@ -41,8 +41,6 @@ static struct { maxwell_surf_t kernels[3]; } surf_z_kernels[] = {
   { NULL, maxwell_surfz_3x_ser_p1, NULL }, // 2
 };
 
-// "Choose Kernel" based on cdim and polyorder
-#define CK(lst,cdim,polyOrder) lst[cdim-1].kernels[polyOrder]
 
 struct dg_maxwell {
   struct gkyl_dg_eqn eqn; // Base object    

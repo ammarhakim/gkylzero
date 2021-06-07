@@ -7,6 +7,8 @@
 #include <gkyl_dg_maxwell_priv.h>
 #include <gkyl_util.h>
 
+// "Choose Kernel" based on cdim and polyorder
+#define CK(lst,cdim,polyOrder) lst[cdim-1].kernels[polyOrder]
 
 static void
 maxwell_free(const struct gkyl_ref_count *ref)
