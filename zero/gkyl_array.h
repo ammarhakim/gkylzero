@@ -23,9 +23,9 @@ struct gkyl_array {
   size_t esznc; // elemsz*ncomp
   void *data; // pointer to data (do not use directly)
   struct gkyl_ref_count ref_count;
-#ifdef GKYL_HAVE_CUDA
+
+  // CUDA ONLY
   struct gkyl_array *on_device; // pointer to device clone if data is on device
-#endif
 };
 
 /**
