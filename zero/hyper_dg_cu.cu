@@ -29,7 +29,6 @@ gkyl_hyper_dg_advance_cu(const gkyl_hyper_dg* __restrict__ hdg,
       linc1 < update_range->volume;
       linc1 += blockDim.x*gridDim.x)
   {
-
     // inverse index from linc1 to idxc
     // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idxc={0,0,...}
     // since update_range is a subrange
@@ -38,7 +37,7 @@ gkyl_hyper_dg_advance_cu(const gkyl_hyper_dg* __restrict__ hdg,
 
     // convert back to a linear index on the super-range (with ghost cells)
     // linc will have jumps in it to jump over ghost cells
-    unsigned long linc = gkyl_range_idx(update_range, idxc);
+    long linc = gkyl_range_idx(update_range, idxc);
 
     if (hdg->update_vol_term) {
       double cflr = hdg->equation->vol_term(

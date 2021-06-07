@@ -177,16 +177,17 @@ void test_vlasov_2x3v_p1_cu()
   for(int n=0; n<nrep; n++) {
     cudaMemset(maxs_cu, 0., sizeof(double)*5);
     cudaMemset(rhs_data_cu, 0.0, rhs->size*rhs->esznc);
-    cudaMemset(cflrate_data_cu, 0.0, sizeof(double)*phaseRange_ext.volume);
+    cudaMemset(cflrate_data_cu, 0.0, cflrate->size*cflrate->esznc);
     gkyl_vlasov_set_qmem_cu(eqn_cu, qmem_cu); // must set EM fields to use
 
     int dB = 256;
     int dG = phaseRange.volume/dB + 1;
     gkyl_hyper_dg_advance_cu<<<dG,dB>>>(slvr_cu, phaseRange_cu, fin_cu, cflrate_cu, rhs_cu, maxs_cu);
+    cudaDeviceSynchronize();
     err = cudaGetLastError();
     if (err != cudaSuccess) {
       char str[100];
-      sprintf(str, "\nCUDA error: %s\n", cudaGetErrorString(err));
+      sprintf(str, "\nAfter hyper_dg advance: CUDA error: %s\n", cudaGetErrorString(err));
       gkyl_exit(str);
     }
   }
@@ -204,7 +205,7 @@ void test_vlasov_2x3v_p1_cu()
   int i = 0;
   while(val==0) {
     rhs_d = (double*) gkyl_array_fetch(rhs, i);
-    val = rhs_d[0];
+    val = rhs_d[1];
     if(val==0) i++;
   }
   TEST_CHECK(i == linl);
