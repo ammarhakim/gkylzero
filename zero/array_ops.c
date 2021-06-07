@@ -81,14 +81,6 @@ gkyl_array_reduce(const struct gkyl_array *arr, enum gkyl_array_op op, double *o
 }
 
 // range based methods
-
-static inline void
-array_clear1(long n, double *out, double val)
-{
-  for (int c=0; c<n; ++c)
-    out[c] = val;
-}
-
 struct gkyl_array*
 gkyl_array_clear_range(struct gkyl_array *out, double val, const struct gkyl_range *range)
 {
@@ -104,13 +96,6 @@ gkyl_array_clear_range(struct gkyl_array *out, double val, const struct gkyl_ran
   }
 
   return out;
-}
-
-static inline void
-array_acc1(long n, double * GKYL_RESTRICT out, double a, const double * GKYL_RESTRICT inp)
-{
-  for (int c=0; c<n; ++c)
-    out[c] += a*inp[c];
 }
 
 struct gkyl_array*
@@ -133,14 +118,6 @@ gkyl_array_accumulate_range(struct gkyl_array *out,
   }
 
   return out;
-}
-
-static inline void
-array_set1(long n,
-  double * GKYL_RESTRICT out, double a, const double * GKYL_RESTRICT inp)
-{
-  for (int c=0; c<n; ++c)
-    out[c] = a*inp[c];
 }
 
 struct gkyl_array*

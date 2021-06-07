@@ -1,0 +1,206 @@
+#include <math.h>
+#include <time.h>
+
+extern "C" {
+#include <gkyl_alloc.h>
+#include <gkyl_array_ops.h>
+#include <gkyl_util.h>
+}
+
+__global__ struct gkyl_array*
+gkyl_array_clear_cu_kernel(struct gkyl_array* out, double val)
+{
+
+  double *out_d = out->data;
+  for(unsigned long linc = threadIdx.x + blockIdx.x*blockDim.x; 
+      linc < NELM(out);
+      linc += blockDim.x*gridDim.x)
+  {
+    out_d[linc] = val;
+  }
+  return out;
+}
+
+__global__ struct gkyl_array*
+gkyl_array_accumulate_cu_kernel(struct gkyl_array* out, double a,
+  const struct gkyl_array* inp)
+{
+  double *out_d = out->data;
+  const double *inp_d = inp->data;
+  for(unsigned long linc = threadIdx.x + blockIdx.x*blockDim.x; 
+      linc < NELM(out);
+      linc += blockDim.x*gridDim.x)
+  {
+    out_d[linc] += a*inp_d[linc];
+  }
+  return out;
+}
+
+__global__ struct gkyl_array*
+gkyl_array_set_cu_kernel(struct gkyl_array* out, double a,
+  const struct gkyl_array* inp)
+{
+  double *out_d = out->data;
+  const double *inp_d = inp->data;
+  for(unsigned long linc = threadIdx.x + blockIdx.x*blockDim.x; 
+      linc < NELM(out);
+      linc += blockDim.x*gridDim.x)
+  {
+    out_d[linc] = a*inp_d[linc];
+  }
+  return out;
+}
+
+__global__ struct gkyl_array*
+gkyl_array_scale_cu_kernel(struct gkyl_array* out, double a)
+{
+  return gkyl_array_set_cu(out, a, out);
+}
+
+// Host-side wrappers for array operations
+struct gkyl_array*
+gkyl_array_clear_cu(int numBlocks, int numThreads, struct gkyl_array* out, double val)
+{
+  gkyl_array_clear_cu_kernel<<<numBlocks, numThreads>>>(out, val);
+}
+
+struct gkyl_array*
+gkyl_array_accumulate_cu(int numBlocks, int numThreads, struct gkyl_array* out, double a, const struct gkyl_array* inp)
+{
+  gkyl_array_accumulate_cu_kernel<<<numBlocks, numThreads>>>(out, a, inp);
+}
+
+struct gkyl_array*
+gkyl_array_set_cu(int numBlocks, int numThreads, struct gkyl_array* out, double a, const struct gkyl_array* inp)
+{
+  gkyl_array_set_cu_kernel<<<numBlocks, numThreads>>>(out, a, inp);
+}
+
+struct gkyl_array*
+gkyl_array_scale_cu(int numBlocks, int numThreads, struct gkyl_array* out, double a)
+{
+  gkyl_array_scale_cu_kernel<<<numBlocks, numThreads>>>(out, a);
+}
+
+// Range-based methods
+// Range-based methods need to inverse index from linc to idx.
+// Must use gkyl_sub_range_inv_idx so that linc=0 maps to idxc={0,0,...}
+// since range can be a subrange.
+// Then, convert back to a linear index on the super-range.
+// This super range can include ghost cells and thus linear index will have
+// have jumps over ghost cells.
+
+__global__ struct gkyl_array*
+gkyl_array_clear_range_cu_kernel(struct gkyl_array *out, double val, const struct gkyl_range* range)
+{
+  long n = NCOM(out);
+  int idx[GKYL_MAX_DIM];
+  for(unsigned long linc = threadIdx.x + blockIdx.x*blockDim.x; 
+      linc < range->volume;
+      linc += blockDim.x*gridDim.x)
+  {
+    gkyl_sub_range_inv_idx(range, linc, idx);
+    long start = gkyl_range_idx(range, idx);
+    array_clear1(n, gkyl_array_fetch(out, start), val);
+  }
+
+  return out;
+}
+
+__global__ struct gkyl_array*
+gkyl_array_accumulate_range_cu_kernel(struct gkyl_array *out,
+  double a, const struct gkyl_array* inp, const struct gkyl_range* range)
+{
+  long outnc = NCOM(out), inpnc = NCOM(inp);
+  long n = outnc<inpnc ? outnc : inpnc;
+
+  for(unsigned long linc = threadIdx.x + blockIdx.x*blockDim.x; 
+      linc < range->volume;
+      linc += blockDim.x*gridDim.x)
+  {
+    gkyl_sub_range_inv_idx(range, linc, idx);
+    long start = gkyl_range_idx(range, idx);
+    array_acc1(n,
+      gkyl_array_fetch(out, start), a, gkyl_array_cfetch(inp, start));
+  }
+
+  return out;
+}
+
+__global__ struct gkyl_array*
+gkyl_array_set_range_cu_kernel(struct gkyl_array *out,
+  double a, const struct gkyl_array* inp, const struct gkyl_range* range)
+{
+  long outnc = NCOM(out), inpnc = NCOM(inp);
+  long n = outnc<inpnc ? outnc : inpnc;
+
+  for(unsigned long linc = threadIdx.x + blockIdx.x*blockDim.x; 
+      linc < range->volume;
+      linc += blockDim.x*gridDim.x)
+  {
+    gkyl_sub_range_inv_idx(range, linc, idx); 
+    long start = gkyl_range_idx(range, idx);
+    array_set1(n,
+      gkyl_array_fetch(out, start), a, gkyl_array_cfetch(inp, start));
+  }
+
+  return out;
+}
+
+__global__ struct gkyl_array* 
+gkyl_array_scale_range_cu_kernel(struct gkyl_array *out,
+  double a, const struct gkyl_range* range)
+{
+  return gkyl_array_set_range(out, a, out, range);
+}
+
+__global__ struct gkyl_array* 
+gkyl_array_copy_range_cu_kernel(struct gkyl_array *out,
+  const struct gkyl_array* inp, const struct gkyl_range* range)
+{
+  for(unsigned long linc = threadIdx.x + blockIdx.x*blockDim.x; 
+      linc < range->volume;
+      linc += blockDim.x*gridDim.x)
+  {
+    gkyl_sub_range_inv_idx(range, linc, idx);
+    long start = gkyl_range_idx(range, idx);
+    memcpy(gkyl_array_fetch(out, start), gkyl_array_cfetch(inp, start), inp->esznc);
+  }
+
+  return out;
+}
+
+// Host-side wrappers for range-based array operations
+struct gkyl_array*
+gkyl_array_clear_range_cu(int numBlocks, int numThreads, struct gkyl_array *out, double val, const struct gkyl_range* range)
+{
+  gkyl_array_clear_range_cu_kernel<<<numBlocks, numThreads>>>(out, val, range);
+}
+
+struct gkyl_array*
+gkyl_array_accumulate_range_cu(int numBlocks, int numThreads, struct gkyl_array *out,
+  double a, const struct gkyl_array* inp, const struct gkyl_range* range)
+{
+  gkyl_array_accumulate_range_cu_kernel<<<numBlocks, numThreads>>>(out, a, inp, range);
+}
+
+struct gkyl_array*
+gkyl_array_set_range_cu(int numBlocks, int numThreads, struct gkyl_array *out,
+  double a, const struct gkyl_array* inp, const struct gkyl_range* range)
+{
+  gkyl_array_set_range_cu_kernel<<<numBlocks, numThreads>>>(out, a, inp, range);
+}
+
+struct gkyl_array*
+gkyl_array_scale_range_cu(int numBlocks, int numThreads, struct gkyl_array *out,
+  double a, const struct gkyl_range* range)
+{
+  gkyl_array_scale_range_cu_kernel<<<numBlocks, numThreads>>>(out, a, range);
+}
+
+struct gkyl_array* 
+gkyl_array_copy_range_cu(int numBlocks, int numThreads, struct gkyl_array *out,
+  const struct gkyl_array* inp, const struct gkyl_range* range)
+{
+  gkyl_array_copy_range_cu_kernel<<<numBlocks, numThreads>>>(out, inp, range);
+}
