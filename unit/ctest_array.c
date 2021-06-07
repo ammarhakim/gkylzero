@@ -670,8 +670,8 @@ TEST_LIST = {
   { "reduce_range", test_reduce_range },
 #ifdef GKYL_HAVE_CUDA
   { "cu_array_base", test_cu_array_base },
-  { "cu_array_clear", test_cu_array_clear},
-  { "cu_array_clear_range", test_cu_array_clear_range},
+  // { "cu_array_clear", test_cu_array_clear},
+  // { "cu_array_clear_range", test_cu_array_clear_range},
   { "cu_array_dev_kernel", test_cu_array_dev_kernel },
 #endif
   { NULL, NULL },
