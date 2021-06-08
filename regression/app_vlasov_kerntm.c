@@ -141,6 +141,10 @@ main(int argc, char **argv)
   // time with volume term
   for (int i=0; i<inp.nloop; ++i)
     gkyl_vlasov_app_species_ktm_rhs(app, 1);
+
+#ifdef GKYL_HAVE_CUDA
+  cudaDeviceSynchronize();
+#endif
   
   double tm_tot = gkyl_time_sec(gkyl_time_diff(tm_start, gkyl_wall_clock()));
 
@@ -148,6 +152,10 @@ main(int argc, char **argv)
   // time without volume term
   for (int i=0; i<inp.nloop; ++i)
     gkyl_vlasov_app_species_ktm_rhs(app, 0);
+
+#ifdef GKYL_HAVE_CUDA
+  cudaDeviceSynchronize();
+#endif  
   
   double tm_surf_only = gkyl_time_sec(gkyl_time_diff(tm_start, gkyl_wall_clock()));
 
