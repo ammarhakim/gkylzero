@@ -14,6 +14,7 @@ static struct { int vdim[4]; } cv_index[] = {
 };
 
 // M0 kernel list
+GKYL_CU_D
 static struct { momf_t kernels[3]; } m0_kernels[] = {
   // 1x kernels
   { NULL, vlasov_M0_1x1v_ser_p1, vlasov_M0_1x1v_ser_p2 }, // 0
@@ -27,6 +28,7 @@ static struct { momf_t kernels[3]; } m0_kernels[] = {
 };
 
 // M1i kernel list
+GKYL_CU_D
 static struct { momf_t kernels[3]; } m1i_kernels[] = {
   // 1x kernels
   { NULL, vlasov_M1i_1x1v_ser_p1, vlasov_M1i_1x1v_ser_p2 }, // 0
@@ -40,6 +42,7 @@ static struct { momf_t kernels[3]; } m1i_kernels[] = {
 };
 
 // M2 kernel list
+GKYL_CU_D
 static struct { momf_t kernels[3]; } m2_kernels[] = {
   // 1x kernels
   { NULL, vlasov_M2_1x1v_ser_p1, vlasov_M2_1x1v_ser_p2 }, // 0
@@ -53,6 +56,7 @@ static struct { momf_t kernels[3]; } m2_kernels[] = {
 };
 
 // M2ij kernel list
+GKYL_CU_D
 static struct { momf_t kernels[3]; } m2ij_kernels[] = {
   // 1x kernels
   { NULL, vlasov_M2ij_1x1v_ser_p1, vlasov_M2ij_1x1v_ser_p2 }, // 0
@@ -66,6 +70,7 @@ static struct { momf_t kernels[3]; } m2ij_kernels[] = {
 };
 
 // M3i kernel list
+GKYL_CU_D
 static struct { momf_t kernels[3]; } m3i_kernels[] = {
   // 1x kernels
   { NULL, vlasov_M3i_1x1v_ser_p1, vlasov_M3i_1x1v_ser_p2 }, // 0
@@ -79,6 +84,7 @@ static struct { momf_t kernels[3]; } m3i_kernels[] = {
 };
 
 // M3ijk kernel list
+GKYL_CU_D
 static struct { momf_t kernels[3]; } m3ijk_kernels[] = {
   // 1x kernels
   { NULL, vlasov_M3ijk_1x1v_ser_p1, vlasov_M3ijk_1x1v_ser_p2 }, // 0
