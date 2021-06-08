@@ -185,9 +185,7 @@ gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
   return 0;
 }
 
-void
-gkyl_hyper_dg_advance_cu(const int nblocks, const int nthreads,
-  const gkyl_hyper_dg* hdg, const struct gkyl_range* update_range,
+void gkyl_hyper_dg_advance_cu(const gkyl_hyper_dg* hdg, const struct gkyl_range update_range,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
   struct gkyl_array* GKYL_RESTRICT rhs, double* GKYL_RESTRICT maxs)
 {
