@@ -162,7 +162,8 @@ gkyl_array_scale_cu(struct gkyl_array* out, double a);
  * Host-side wrappers for range-based array operations
  */
 void
-gkyl_array_clear_range_cu(int numBlocks, int numThreads, struct gkyl_array *out, double val, const struct gkyl_range* range);
+gkyl_array_clear_range_cu(int numBlocks, int numThreads,
+  struct gkyl_array *out, double val, const struct gkyl_range* range);
 
 void
 gkyl_array_accumulate_range_cu(int numBlocks, int numThreads, struct gkyl_array *out,

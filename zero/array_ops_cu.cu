@@ -26,7 +26,7 @@ gkyl_array_accumulate_cu_kernel(struct gkyl_array* out, double a,
   const struct gkyl_array* inp)
 {
   double *out_d = (double*) out->data;
-  const double *inp_d = (double*) inp->data;
+  const double *inp_d = (const double*) inp->data;
   for(unsigned long linc = threadIdx.x + blockIdx.x*blockDim.x; 
       linc < NELM(out);
       linc += blockDim.x*gridDim.x)
@@ -40,7 +40,7 @@ gkyl_array_set_cu_kernel(struct gkyl_array* out, double a,
   const struct gkyl_array* inp)
 {
   double *out_d = (double*) out->data;
-  const double *inp_d = (double*) inp->data;
+  const double *inp_d = (const double*) inp->data;
   for(unsigned long linc = threadIdx.x + blockIdx.x*blockDim.x; 
       linc < NELM(out);
       linc += blockDim.x*gridDim.x)
@@ -111,7 +111,7 @@ gkyl_array_accumulate_range_cu_kernel(struct gkyl_array *out,
     gkyl_sub_range_inv_idx(range, linc, idx);
     long start = gkyl_range_idx(range, idx);
     array_acc1(n,
-     (double*) gkyl_array_fetch(out, start), a, (double*) gkyl_array_cfetch(inp, start));
+      (double*) gkyl_array_fetch(out, start), a, (double*) gkyl_array_cfetch(inp, start));
   }
 }
 
@@ -150,7 +150,8 @@ gkyl_array_copy_range_cu_kernel(struct gkyl_array *out,
 
 // Host-side wrappers for range-based array operations
 void
-gkyl_array_clear_range_cu(int numBlocks, int numThreads, struct gkyl_array *out, double val, const struct gkyl_range* range)
+gkyl_array_clear_range_cu(int numBlocks, int numThreads,
+  struct gkyl_array *out, double val, const struct gkyl_range* range)
 {
   gkyl_array_clear_range_cu_kernel<<<numBlocks, numThreads>>>(out->on_device, val, range);
 }
