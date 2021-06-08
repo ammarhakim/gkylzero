@@ -905,54 +905,54 @@ void test_cu_array_scale()
   gkyl_array_release(a1_cu);
 }
 
-// void test_cu_array_copy()
-// {
-//   int shape[] = {10, 20};
-//   struct gkyl_range range;
-//   gkyl_range_init_from_shape(&range, 2, shape);
-//   // make device copy of range
-//   struct gkyl_range* cu_range = gkyl_range_clone_on_cu_dev(&range);
+void test_cu_array_copy()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+  // make device copy of range
+  struct gkyl_range* cu_range = gkyl_range_clone_on_cu_dev(&range);
   
-//   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
-//   // make device copies of arrays
-//   struct gkyl_array *arr_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, range.volume);
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
+  // make device copies of arrays
+  struct gkyl_array *arr_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, range.volume);
 
-//   // initialize array that will be copied
-//   struct gkyl_range_iter iter;
-//   gkyl_range_iter_init(&iter, &range);
-//   while (gkyl_range_iter_next(&iter)) {
-//     double *d = gkyl_array_fetch(arr, gkyl_range_idx(&range, iter.idx));
-//     d[0] = iter.idx[0] + 10.5*iter.idx[1];
-//   }
+  // initialize array that will be copied
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    double *d = gkyl_array_fetch(arr, gkyl_range_idx(&range, iter.idx));
+    d[0] = iter.idx[0] + 10.5*iter.idx[1];
+  }
 
-//   // copy host array to device
-//   gkyl_array_copy(arr_cu, arr);
+  // copy host array to device
+  gkyl_array_copy(arr_cu, arr);
 
-//   int lower[] = {1, 1}, upper[] = {5, 10};
-//   struct gkyl_range sub_range;
-//   gkyl_sub_range_init(&sub_range, &range, lower, upper);
-//   // make device copy of sub-range
-//   struct gkyl_range* cu_sub_range = gkyl_range_clone_on_cu_dev(&sub_range);
+  int lower[] = {1, 1}, upper[] = {5, 10};
+  struct gkyl_range sub_range;
+  gkyl_sub_range_init(&sub_range, &range, lower, upper);
+  // make device copy of sub-range
+  struct gkyl_range* cu_sub_range = gkyl_range_clone_on_cu_dev(&sub_range);
 
-//   double *buff_cu = gkyl_cu_malloc(sizeof(double)*sub_range.volume);
-//   gkyl_array_copy_to_buffer_cu(buff_cu, arr_cu, &cu_sub_range);
+  double *buff_cu = gkyl_cu_malloc(sizeof(double)*sub_range.volume);
+  gkyl_array_copy_to_buffer_cu(10, 1, buff_cu, arr_cu, cu_sub_range);
 
-//   gkyl_array_clear_cu(arr, 0.0);
-//   // copy back from buffer
-//   gkyl_array_copy_from_buffer_cu(arr_cu, buff_cu, &cu_sub_range);
+  gkyl_array_clear_cu(arr, 0.0);
+  // copy back from buffer
+  gkyl_array_copy_from_buffer_cu(10, 1, arr_cu, buff_cu, cu_sub_range);
 
-//   // copy from device and check if things are ok
-//   gkyl_array_copy(arr, arr_cu);
-//   gkyl_range_iter_init(&iter, &sub_range);
-//   while (gkyl_range_iter_next(&iter)) {
-//     double *d = gkyl_array_fetch(arr, gkyl_range_idx(&sub_range, iter.idx));
-//     TEST_CHECK( d[0]  == iter.idx[0] + 10.5*iter.idx[1] );
-//   }
+  // copy from device and check if things are ok
+  gkyl_array_copy(arr, arr_cu);
+  gkyl_range_iter_init(&iter, &sub_range);
+  while (gkyl_range_iter_next(&iter)) {
+    double *d = gkyl_array_fetch(arr, gkyl_range_idx(&sub_range, iter.idx));
+    TEST_CHECK( d[0]  == iter.idx[0] + 10.5*iter.idx[1] );
+  }
 
-//   gkyl_array_release(arr);
-//   gkyl_array_release(arr_cu);
-//   gkyl_free(buff_cu);
-// }
+  gkyl_array_release(arr);
+  gkyl_array_release(arr_cu);
+  gkyl_free(buff_cu);
+}
 
 #endif
 
@@ -984,7 +984,7 @@ TEST_LIST = {
   { "cu_array_set", test_cu_array_set },
   { "cu_array_set_range", test_cu_array_set_range },
   { "cu_array_scale", test_cu_array_scale },
-  // { "cu_array_copy", test_cu_array_copy },
+  { "cu_array_copy", test_cu_array_copy },
   { "cu_array_dev_kernel", test_cu_array_dev_kernel },
 #endif
   { NULL, NULL },

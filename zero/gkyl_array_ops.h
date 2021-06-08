@@ -186,5 +186,5 @@ gkyl_array_copy_to_buffer_cu(int numBlocks, int numThreads, void *data,
   const struct gkyl_array *arr, const struct gkyl_range *range);
 
 void 
-gkyl_array_copy_from_buffer_cu(int numBlocks, int numThreads, const struct gkyl_array *arr,
-  void *data, const struct gkyl_range *range);
+gkyl_array_copy_from_buffer_cu(int numBlocks, int numThreads, struct gkyl_array *arr,
+  const void *data, const struct gkyl_range *range);
