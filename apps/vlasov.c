@@ -916,7 +916,7 @@ gkyl_vlasov_app_species_ktm_rhs_dev(gkyl_vlasov_app* app, int update_vol_term)
     int nblocks = species->local.volume/nthreads + 1;
 
     gkyl_hyper_dg_set_update_vol_cu(species->slvr, update_vol_term);
-    gkyl_array_clear_range_cu(nblocks, nthreads, rhs, 0.0, &species->local);
+    gkyl_array_clear_range_cu(nblocks, nthreads, rhs, 0.0, species->local);
     gkyl_hyper_dg_advance_cu(nblocks, nthreads, species->slvr, species->local, fin,
       species->cflrate_cu, rhs, species->maxs_cu);
   }
