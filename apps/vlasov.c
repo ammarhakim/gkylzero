@@ -46,6 +46,10 @@ struct vm_species {
   struct gkyl_array *cflrate; // CFL rate in each cell
   struct gkyl_array *bc_buffer; // buffer for BCs (used for both copy and periodic)
 
+  // species data on device
+  struct gkyl_array *f_cu, *f1_cu, *fnew_cu; // arrays for updates
+  struct gkyl_array *cflrate_cu; // CFL rate in each cell
+
   struct vm_species_moment m1i; // for computing currents
   struct vm_species_moment *moms; // diagnostic moments
 
@@ -63,6 +67,11 @@ struct vm_field {
   struct gkyl_array *cflrate; // CFL rate in each cell
   struct gkyl_array *bc_buffer; // buffer for BCs (used for both copy and periodic)
 
+  // species data on device
+  struct gkyl_array *em_cu, *em1_cu, *emnew_cu; // arrays for updates
+  struct gkyl_array *qmem_cu; // array for q/m*(E,B)
+  struct gkyl_array *cflrate_cu; // CFL rate in each cell
+
   double maxs[GKYL_MAX_DIM]; // Maximum speed in each direction
   struct gkyl_dg_eqn *eqn; // Maxwell equation
   gkyl_hyper_dg *slvr; // solver
@@ -75,6 +84,8 @@ struct gkyl_vlasov_app {
   int poly_order; // polynomial order
   double tcurr; // current time
   double cfl; // CFL number
+
+  bool use_gpu; // should we use GPU (if present)
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
@@ -99,6 +110,13 @@ static struct gkyl_array*
 mkarr(long nc, long size)
 {
   struct gkyl_array* a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  return a;
+}
+
+static struct gkyl_array*
+mkcuarr(long nc, long size)
+{
+  struct gkyl_array* a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
@@ -183,6 +201,15 @@ vm_field_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_field *
 
   // allocate cflrate (scalar array)
   f->cflrate = mkarr(1, app->local_ext.volume);
+
+  if (app->use_gpu) {
+    f->em_cu = mkcuarr(8*app->confBasis.numBasis, app->local_ext.volume);
+    f->em1_cu = mkcuarr(8*app->confBasis.numBasis, app->local_ext.volume);
+    f->emnew_cu = mkcuarr(8*app->confBasis.numBasis, app->local_ext.volume);
+    f->qmem_cu = mkcuarr(8*app->confBasis.numBasis, app->local_ext.volume);
+
+    f->cflrate_cu = mkcuarr(1, app->local_ext.volume);
+  }
 
   // equation object
   double c = 1/sqrt(f->info.epsilon0*f->info.mu0);
@@ -307,6 +334,15 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
   // allocate cflrate (scalar array)
   s->cflrate = mkarr(1, s->local_ext.volume);
+
+  // allocate data on device
+  if (app->use_gpu) {
+    s->f_cu = mkcuarr(app->basis.numBasis, s->local_ext.volume);
+    s->f1_cu = mkcuarr(app->basis.numBasis, s->local_ext.volume);
+    s->fnew_cu = mkcuarr(app->basis.numBasis, s->local_ext.volume);
+    
+    s->cflrate_cu = mkcuarr(1, s->local_ext.volume);
+  }
 
   // allocate buffer for applying periodic BCs
   long buff_sz = 0;
@@ -444,6 +480,12 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
 
   double cfl_frac = vm.cfl_frac == 0 ? 1.0 : vm.cfl_frac;
   app->cfl = cfl_frac/(2*poly_order+1);
+
+#ifdef GKYL_HAVE_CUDA
+  app->use_gpu = vm.use_gpu;
+#else
+  app->use_gpu = false; // can't use GPUs if we don't have them!
+#endif
 
   app->num_periodic_dir = vm.num_periodic_dir;
   for (int d=0; d<cdim; ++d)

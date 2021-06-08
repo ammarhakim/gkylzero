@@ -3,6 +3,8 @@
 #include <gkyl_app.h>
 #include <gkyl_util.h>
 
+#include <stdbool.h>
+
 // Parameters for Vlasov species
 struct gkyl_vlasov_species {
   char name[128]; // species name
@@ -42,6 +44,8 @@ struct gkyl_vm {
   int poly_order; // polynomial order
 
   double cfl_frac; // CFL fraction to use (default 1.0)
+
+  bool use_gpu; // Flag to indicate if solver should use GPUs
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
