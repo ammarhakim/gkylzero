@@ -8,8 +8,16 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ void gkyl_hyper_dg_advance_cu_kernel(const gkyl_hyper_dg* hdg, const struct gkyl_range* update_range,
-  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs, double* GKYL_RESTRICT maxs)
+__global__ void
+gkyl_hyper_dg_set_update_vol_cu_kernel(gkyl_hyper_dg *hdg, int update_vol_term)
+{
+  gkyl_hyper_dg_set_update_vol(hdg, update_vol_term);
+}
+
+__global__ void
+gkyl_hyper_dg_advance_cu_kernel(const gkyl_hyper_dg* hdg, const struct gkyl_range* update_range,
+  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
+  struct gkyl_array* GKYL_RESTRICT rhs, double* GKYL_RESTRICT maxs)
 {
   int ndim = hdg->ndim;
   int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
@@ -85,10 +93,20 @@ __global__ void gkyl_hyper_dg_advance_cu_kernel(const gkyl_hyper_dg* hdg, const 
 }
 
 // wrapper to call advance kernel on device
-void gkyl_hyper_dg_advance_cu(const int numBlocks, const int numThreads, const gkyl_hyper_dg* hdg, const struct gkyl_range* update_range,
-  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs, double* GKYL_RESTRICT maxs)
+void
+gkyl_hyper_dg_advance_cu(const int numBlocks, const int numThreads,
+  const gkyl_hyper_dg* hdg, const struct gkyl_range* update_range,
+  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
+  struct gkyl_array* GKYL_RESTRICT rhs, double* GKYL_RESTRICT maxs)
 {
-  gkyl_hyper_dg_advance_cu_kernel<<<numBlocks, numThreads>>>(hdg, update_range, fIn->on_device, cflrate->on_device, rhs->on_device, maxs);
+  gkyl_hyper_dg_advance_cu_kernel<<<numBlocks, numThreads>>>(hdg, update_range,
+    fIn->on_device, cflrate->on_device, rhs->on_device, maxs);
+}
+
+void
+gkyl_hyper_dg_set_update_vol_cu(gkyl_hyper_dg *hdg, int update_vol_term)
+{
+  gkyl_hyper_dg_set_update_vol_cu_kernel<<<1,1>>>(hdg, update_vol_term);
 }
 
 gkyl_hyper_dg*

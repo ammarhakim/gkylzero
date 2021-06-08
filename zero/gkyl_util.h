@@ -81,6 +81,8 @@ enum gkyl_cu_memcpy_kind {
   GKYL_CU_MEMCPY_D2D,
 };
 
+#define GKYL_DEFAULT_NUM_THREADS 1
+
 #endif // CUDA specific defines etc
 
 // This funny looking macro allows getting a pointer to the 'type'

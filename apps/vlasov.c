@@ -48,6 +48,7 @@ struct vm_species {
 
   // species data on device
   struct gkyl_rect_grid *grid_cu;
+  struct gkyl_range *local_cu, *local_ext_cu; // local, local-ext phase-space ranges
   
   struct gkyl_array *f_cu, *f1_cu, *fnew_cu; // arrays for updates
   struct gkyl_array *cflrate_cu; // CFL rate in each cell
@@ -327,8 +328,7 @@ vm_field_release(const gkyl_vlasov_app* app, const struct vm_field *f)
     gkyl_array_release(f->qmem_cu);
     gkyl_array_release(f->cflrate_cu);
 
-    gkyl_cu_free(f->maxs_cu);
-  }
+    gkyl_cu_free(f->maxs_cu);  }
 
   if (app->use_gpu) {
     // TODO: NOT SURE HOW TO RELEASE ON DEVICE YET
@@ -383,6 +383,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->cflrate_cu = mkcuarr(1, s->local_ext.volume);
 
     s->grid_cu = gkyl_rect_grid_clone_on_cu_dev(&s->grid);
+    s->local_cu = gkyl_range_clone_on_cu_dev(&s->local);
+    s->local_ext_cu = gkyl_range_clone_on_cu_dev(&s->local_ext);
   }
 
   // allocate buffer for applying periodic BCs
@@ -513,6 +515,10 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     gkyl_array_release(s->f1_cu);
     gkyl_array_release(s->fnew_cu);
     gkyl_array_release(s->cflrate_cu);
+
+    gkyl_cu_free(s->grid_cu);
+    gkyl_cu_free(s->local_cu);
+    gkyl_cu_free(s->local_ext_cu);
   }
 
   // release moment data
@@ -922,16 +928,19 @@ gkyl_vlasov_app_species_ktm_rhs_dev(gkyl_vlasov_app* app, int update_vol_term)
     
     struct vm_species *species = &app->species[i];
     
-    const struct gkyl_array *qmem = app->field.qmem_cu->on_device;
-    gkyl_vlasov_set_qmem_cu(species->eqn, qmem);
+    const struct gkyl_array *qmem_cu = app->field.qmem_cu;
+    gkyl_vlasov_set_qmem_cu(species->eqn, qmem_cu->on_device);
 
-    const struct gkyl_array *fin = species->f_cu->on_device;
-    struct gkyl_array *rhs = species->f1_cu->on_device;
+    const struct gkyl_array *fin = species->f_cu;
+    struct gkyl_array *rhs = species->f1_cu;
 
-    //gkyl_hyper_dg_set_update_vol(species->slvr, update_vol_term);
-    //gkyl_array_clear_range(rhs, 0.0, &species->local);
-    //gkyl_hyper_dg_advance(species->slvr, &species->local, fin,
-    //  species->cflrate, rhs, species->maxs);
+    int nthreads = GKYL_DEFAULT_NUM_THREADS;
+    int nblocks = species->local.volume/nthreads + 1;
+
+    gkyl_hyper_dg_set_update_vol_cu(species->slvr, update_vol_term);
+    gkyl_array_clear_range_cu(nblocks, nthreads, rhs, 0.0, species->local_cu);
+    gkyl_hyper_dg_advance_cu(nblocks, nthreads, species->slvr, species->local_cu, fin,
+      species->cflrate_cu, rhs, species->maxs_cu);
   }
 }
 
