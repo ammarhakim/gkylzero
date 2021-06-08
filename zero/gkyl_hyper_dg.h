@@ -75,7 +75,10 @@ void gkyl_hyper_dg_advance_no_iter(const gkyl_hyper_dg *hdg, const struct gkyl_r
 
 #ifdef GKYL_HAVE_CUDA
 
-__global__ void gkyl_hyper_dg_advance_cu(const gkyl_hyper_dg* hdg, const struct gkyl_range* update_range,
+__global__ void gkyl_hyper_dg_advance_cu_kernel(const gkyl_hyper_dg* hdg, const struct gkyl_range* update_range,
+  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs, double* GKYL_RESTRICT maxs);
+
+void gkyl_hyper_dg_advance_cu(const int numBlocks, const int numThreads, const gkyl_hyper_dg* hdg, const struct gkyl_range* update_range,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs, double* GKYL_RESTRICT maxs);
 
 #endif
