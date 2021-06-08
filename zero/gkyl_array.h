@@ -43,11 +43,11 @@ struct gkyl_array* gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t
  * Create new array with data on NV-GPU. Delete using
  * gkyl_array_release method.
  *
- * NOTE: the data member lives on GPU, but the struct lives on the host.
- * For this reason, this method also creates a device struct and stores a 
- * pointer to it in the on_device member. This is a device clone of the 
- * host struct, and is what should be used to pass to CUDA kernels which
- * require the entire array struct on device.
+ * NOTE: the data member lives on GPU, but the struct lives on the
+ * host.  For this reason, this method also creates a device struct
+ * and stores a pointer to it in the on_device member. This is a
+ * device clone of the host struct, and is what should be used to pass
+ * to CUDA kernels which require the entire array struct on device.
  * 
  * @param type Type of data in array
  * @param ncomp Number of components at each index

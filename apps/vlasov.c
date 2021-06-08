@@ -47,6 +47,8 @@ struct vm_species {
   struct gkyl_array *bc_buffer; // buffer for BCs (used for both copy and periodic)
 
   // species data on device
+  struct gkyl_rect_grid *grid_cu;
+  
   struct gkyl_array *f_cu, *f1_cu, *fnew_cu; // arrays for updates
   struct gkyl_array *cflrate_cu; // CFL rate in each cell
 
@@ -56,6 +58,8 @@ struct vm_species {
   double maxs[GKYL_MAX_DIM]; // Maximum speed in each direction
   struct gkyl_dg_eqn *eqn; // Vlasov equation
   gkyl_hyper_dg *slvr; // solver
+
+  double *maxs_cu; // unfortunately this needs to be alloc-ed  
 };
 
 // field data
@@ -75,6 +79,8 @@ struct vm_field {
   double maxs[GKYL_MAX_DIM]; // Maximum speed in each direction
   struct gkyl_dg_eqn *eqn; // Maxwell equation
   gkyl_hyper_dg *slvr; // solver
+
+  double *maxs_cu; // unfortunately this needs to be alloc-ed
 };
 
 // Vlasov object: used as opaque pointer in user code
@@ -95,6 +101,10 @@ struct gkyl_vlasov_app {
   struct gkyl_basis basis, confBasis; // phase-space, conf-space basis
 
   struct skin_ghost_ranges skin_ghost; // conf-space skin/ghost
+
+  // app data on device
+  struct gkyl_rect_grid *grid_cu; // config-space grid
+  struct gkyl_range *local_cu, *local_ext_cu; // local, local-ext conf-space ranges
 
   struct vm_field field; // field data
 
@@ -214,15 +224,29 @@ vm_field_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_field *
   // equation object
   double c = 1/sqrt(f->info.epsilon0*f->info.mu0);
   double ef = f->info.elcErrorSpeedFactor, mf = f->info.mgnErrorSpeedFactor;
-  f->eqn = gkyl_dg_maxwell_new(&app->confBasis, c, ef, mf);
+
+  if (app->use_gpu)
+    f->eqn = gkyl_dg_maxwell_cu_dev_new(&app->confBasis, c, ef, mf);
+  else
+    f->eqn = gkyl_dg_maxwell_new(&app->confBasis, c, ef, mf);
 
   int up_dirs[] = {0, 1, 2}, zero_flux_flags[] = {0, 0, 0};
+
   // Maxwell solver
-  f->slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, f->eqn,
-    app->cdim, up_dirs, zero_flux_flags, 1);
+  if (app->use_gpu)
+    f->slvr = gkyl_hyper_dg_cu_dev_new(app->grid_cu, &app->confBasis, f->eqn,
+      app->cdim, up_dirs, zero_flux_flags, 1);
+  else
+    f->slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, f->eqn,
+      app->cdim, up_dirs, zero_flux_flags, 1);
 
   // initialize maxs for use in first step
-  for (int d=0; d<app->cdim; ++d) f->maxs[d] = 0.0;  
+  for (int d=0; d<app->cdim; ++d) f->maxs[d] = 0.0;
+
+  if (app->use_gpu) {
+    f->maxs_cu = gkyl_cu_malloc(sizeof(double[GKYL_MAX_DIM]));
+    gkyl_cu_memcpy(f->maxs_cu, f->maxs, sizeof(double[GKYL_MAX_DIM]), GKYL_CU_MEMCPY_H2D);
+  }
 }
 
 // Compute the RHS for field update, returning maximum stable
@@ -287,7 +311,7 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
 
 // release resources for field
 static void
-vm_field_release(const struct vm_field *f)
+vm_field_release(const gkyl_vlasov_app* app, const struct vm_field *f)
 {
   gkyl_array_release(f->em);
   gkyl_array_release(f->em1);
@@ -295,9 +319,24 @@ vm_field_release(const struct vm_field *f)
   gkyl_array_release(f->qmem);
   gkyl_array_release(f->bc_buffer);
   gkyl_array_release(f->cflrate);
-  
-  gkyl_dg_eqn_release(f->eqn);
-  gkyl_hyper_dg_release(f->slvr);
+
+  if (app->use_gpu) {
+    gkyl_array_release(f->em_cu);
+    gkyl_array_release(f->em1_cu);
+    gkyl_array_release(f->emnew_cu);
+    gkyl_array_release(f->qmem_cu);
+    gkyl_array_release(f->cflrate_cu);
+
+    gkyl_cu_free(f->maxs_cu);
+  }
+
+  if (app->use_gpu) {
+    // TODO: NOT SURE HOW TO RELEASE ON DEVICE YET
+  }
+  else {
+    gkyl_dg_eqn_release(f->eqn);
+    gkyl_hyper_dg_release(f->slvr);
+  }
 }
 
 // initialize species object
@@ -342,6 +381,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->fnew_cu = mkcuarr(app->basis.numBasis, s->local_ext.volume);
     
     s->cflrate_cu = mkcuarr(1, s->local_ext.volume);
+
+    s->grid_cu = gkyl_rect_grid_clone_on_cu_dev(&s->grid);
   }
 
   // allocate buffer for applying periodic BCs
@@ -363,7 +404,10 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     vm_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
 
   // create equation object
-  s->eqn = gkyl_dg_vlasov_new(&app->confBasis, &app->basis, &app->local);
+  if (app->use_gpu)
+    s->eqn = gkyl_dg_vlasov_cu_dev_new(&app->confBasis, &app->basis, app->local_cu);
+  else
+    s->eqn = gkyl_dg_vlasov_new(&app->confBasis, &app->basis, &app->local);
 
   int up_dirs[GKYL_MAX_DIM], zero_flux_flags[GKYL_MAX_DIM];
   for (int d=0; d<cdim; ++d) {
@@ -376,11 +420,20 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   }
   
   // create solver
-  s->slvr = gkyl_hyper_dg_new(&s->grid, &app->basis, s->eqn,
-    pdim, up_dirs, zero_flux_flags, 1);
+  if (app->use_gpu)
+    s->slvr = gkyl_hyper_dg_cu_dev_new(s->grid_cu, &app->basis, s->eqn,
+      pdim, up_dirs, zero_flux_flags, 1);
+  else 
+    s->slvr = gkyl_hyper_dg_new(&s->grid, &app->basis, s->eqn,
+      pdim, up_dirs, zero_flux_flags, 1);
 
   // initialize maxs for use in first step
   for (int d=0; d<pdim; ++d) s->maxs[d] = 0.0;
+
+  if (app->use_gpu) {
+    s->maxs_cu = gkyl_cu_malloc(sizeof(double[GKYL_MAX_DIM]));
+    gkyl_cu_memcpy(s->maxs_cu, s->maxs, sizeof(double[GKYL_MAX_DIM]), GKYL_CU_MEMCPY_H2D);
+  }  
 }
 
 // Compute the RHS for species update, returning maximum stable
@@ -446,7 +499,7 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
 
 // release resources for species
 static void
-vm_species_release(struct vm_species *s)
+vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
 {
   // release various arrays
   gkyl_array_release(s->f);
@@ -455,14 +508,26 @@ vm_species_release(struct vm_species *s)
   gkyl_array_release(s->cflrate);
   gkyl_array_release(s->bc_buffer);
 
+  if (app->use_gpu) {
+    gkyl_array_release(s->f_cu);
+    gkyl_array_release(s->f1_cu);
+    gkyl_array_release(s->fnew_cu);
+    gkyl_array_release(s->cflrate_cu);
+  }
+
   // release moment data
   vm_species_moment_release(&s->m1i);
   for (int i=0; i<s->info.num_diag_moments; ++i)
     vm_species_moment_release(&s->moms[i]);
   gkyl_free(s->moms);
 
-  gkyl_dg_eqn_release(s->eqn);
-  gkyl_hyper_dg_release(s->slvr);
+  if (app->use_gpu) {
+    // TODO: NOT SURE HOW TO RELEASE ON DEVICE YET
+  }
+  else {
+    gkyl_dg_eqn_release(s->eqn);
+    gkyl_hyper_dg_release(s->slvr);
+  }
 }
 
 gkyl_vlasov_app*
@@ -503,6 +568,14 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
   int ghost[] = { 1, 1, 1 };  
   gkyl_create_grid_ranges(&app->grid, ghost, &app->local_ext, &app->local);
   skin_ghost_ranges_init(&app->skin_ghost, &app->local_ext, ghost);
+
+  if (app->use_gpu) {
+    // create device copies
+    app->grid_cu = gkyl_rect_grid_clone_on_cu_dev(&app->grid);
+
+    app->local_cu = gkyl_range_clone_on_cu_dev(&app->local);
+    app->local_ext_cu = gkyl_range_clone_on_cu_dev(&app->local_ext);
+  }
 
   // initialize EM field
   app->field.info = vm.field;
@@ -545,6 +618,9 @@ gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
   gkyl_proj_on_basis_advance(proj, t0, &app->local, app->field.em);
   gkyl_proj_on_basis_release(proj);
   vm_field_apply_bc(app, &app->field, app->field.em);
+
+  if (app->use_gpu)
+    gkyl_array_copy(app->field.em_cu, app->field.em);
 }
 
 void
@@ -560,6 +636,9 @@ gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0)
   gkyl_proj_on_basis_advance(proj, t0, &app->species[sidx].local, app->species[sidx].f);
   gkyl_proj_on_basis_release(proj);
   vm_species_apply_bc(app, &app->species[sidx], app->species[sidx].f);
+
+  if (app->use_gpu)
+    gkyl_array_copy(app->species[sidx].f_cu, app->species[sidx].f);
 }
 
 void
@@ -589,6 +668,10 @@ gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
   int sz = snprintf(0, 0, fmt, app->name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
+
+  if (app->use_gpu)
+    // copy data from device to host before writing it out    
+    gkyl_array_copy(app->field.em, app->field.em_cu);
   
   gkyl_grid_array_write(&app->grid, &app->local, app->field.em, fileNm);
 }
@@ -600,6 +683,10 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int fra
   int sz = snprintf(0, 0, fmt, app->name, app->species[sidx].info.name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow  
   snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame);
+
+  if (app->use_gpu)
+    // copy data from device to host before writing it out
+    gkyl_array_copy(app->species[sidx].f, app->species[sidx].f_cu);
   
   gkyl_grid_array_write(&app->species[sidx].grid, &app->species[sidx].local,
     app->species[sidx].f, fileNm);
@@ -806,8 +893,9 @@ gkyl_vlasov_app_stat(gkyl_vlasov_app* app)
   return app->stat;
 }
 
+static
 void
-gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
+gkyl_vlasov_app_species_ktm_rhs_host(gkyl_vlasov_app* app, int update_vol_term)
 {
   for (int i=0; i<app->num_species; ++i) {
     
@@ -826,14 +914,44 @@ gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
   }
 }
 
+static
+void
+gkyl_vlasov_app_species_ktm_rhs_dev(gkyl_vlasov_app* app, int update_vol_term)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    
+    struct vm_species *species = &app->species[i];
+    
+    const struct gkyl_array *qmem = app->field.qmem_cu->on_device;
+    gkyl_vlasov_set_qmem_cu(species->eqn, qmem);
+
+    const struct gkyl_array *fin = species->f_cu->on_device;
+    struct gkyl_array *rhs = species->f1_cu->on_device;
+
+    //gkyl_hyper_dg_set_update_vol(species->slvr, update_vol_term);
+    //gkyl_array_clear_range(rhs, 0.0, &species->local);
+    //gkyl_hyper_dg_advance(species->slvr, &species->local, fin,
+    //  species->cflrate, rhs, species->maxs);
+  }
+}
+
+void
+gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
+{
+  if (app->use_gpu)
+    gkyl_vlasov_app_species_ktm_rhs_dev(app, update_vol_term);
+  else
+    gkyl_vlasov_app_species_ktm_rhs_host(app, update_vol_term);
+}
+
 void
 gkyl_vlasov_app_release(gkyl_vlasov_app* app)
 {
   for (int i=0; i<app->num_species; ++i)
-    vm_species_release(&app->species[i]);
+    vm_species_release(app, &app->species[i]);
   gkyl_free(app->species);
   
-  vm_field_release(&app->field);
+  vm_field_release(app, &app->field);
 
   gkyl_free(app);
 }
