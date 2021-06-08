@@ -180,3 +180,11 @@ gkyl_array_scale_range_cu(int numBlocks, int numThreads, struct gkyl_array *out,
 void
 gkyl_array_copy_range_cu(int numBlocks, int numThreads, struct gkyl_array *out,
   const struct gkyl_array* inp, const struct gkyl_range* range);
+
+void
+gkyl_array_copy_to_buffer_cu(int numBlocks, int numThreads, void *data, 
+  const struct gkyl_array *arr, const struct gkyl_range *range);
+
+void 
+gkyl_array_copy_from_buffer_cu(int numBlocks, int numThreads, const struct gkyl_array *arr,
+  void *data, const struct gkyl_range *range);

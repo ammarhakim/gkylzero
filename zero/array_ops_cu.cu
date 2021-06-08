@@ -148,6 +148,38 @@ gkyl_array_copy_range_cu_kernel(struct gkyl_array *out,
   }
 }
 
+// __global__ void 
+// gkyl_array_copy_to_buffer_cu_kernel(void *data, const struct gkyl_array *arr,
+//   const struct gkyl_range *range)
+// {
+//   int idx[GKYL_MAX_DIM];
+//   long count = 0;
+//   for(unsigned long linc = threadIdx.x + blockIdx.x*blockDim.x; 
+//       linc < range->volume;
+//       linc += blockDim.x*gridDim.x)
+//   {
+//     gkyl_sub_range_inv_idx(range, linc, idx);
+//     long start = gkyl_range_idx(range, idx);
+//     memcpy(((char*) data) + arr->esznc*count++, (double*) gkyl_array_fetch(arr, start), arr->esznc);
+//   }
+// }
+
+// __global__ void 
+// gkyl_array_copy_from_buffer_cu_kernel(const struct gkyl_array *arr, void *data,
+//   const struct gkyl_range *range)
+// {
+//   int idx[GKYL_MAX_DIM];
+//   long count = 0;
+//   for(unsigned long linc = threadIdx.x + blockIdx.x*blockDim.x; 
+//       linc < range->volume;
+//       linc += blockDim.x*gridDim.x)
+//   {
+//     gkyl_sub_range_inv_idx(range, linc, idx);
+//     long start = gkyl_range_idx(range, idx);
+//     memcpy((double*) gkyl_array_fetch(arr, start), ((char*) data) + arr->esznc*count++, arr->esznc);
+//   }
+// }
+
 // Host-side wrappers for range-based array operations
 void
 gkyl_array_clear_range_cu(int numBlocks, int numThreads,
@@ -183,3 +215,17 @@ gkyl_array_copy_range_cu(int numBlocks, int numThreads, struct gkyl_array *out,
 {
   gkyl_array_copy_range_cu_kernel<<<numBlocks, numThreads>>>(out->on_device, inp->on_device, range);
 }
+
+// void 
+// gkyl_array_copy_to_buffer_cu(int numBlocks, int numThreads, void *data, 
+//   const struct gkyl_array *arr, const struct gkyl_range *range)
+// {
+//   gkyl_array_copy_to_buffer_cu_kernel<<<numBlocks, numThreads>>>(data, arr->on_device, range);
+// }
+
+// void 
+// gkyl_array_copy_from_buffer_cu(int numBlocks, int numThreads, const struct gkyl_array *arr,
+//   void *data, const struct gkyl_range *range)
+// {
+//   gkyl_array_copy_from_buffer_cu_kernel<<<numBlocks, numThreads>>>(arr->on_device, data, range);
+// }
