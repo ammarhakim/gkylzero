@@ -245,11 +245,11 @@ void test_array_set_range()
       TEST_CHECK( a1d[i] == 0.5);
   }
 
-  // test a2 = a2 + 0.5*a
+  // test a2 = 0.5*a1
   gkyl_array_clear(a1, 0.5);
   gkyl_array_clear(a2, 1.5);
 
-  gkyl_array_accumulate_range(a2, 0.5, a1, &range);
+  gkyl_array_set_range(a2, 0.5, a1, &range);
 
   gkyl_range_iter_init(&iter, &range);
   
@@ -257,7 +257,7 @@ void test_array_set_range()
     long loc = gkyl_range_idx(&range, iter.idx);
     double *a2d = gkyl_array_fetch(a2, loc);
     for (int i=0; i<3; ++i)
-      TEST_CHECK( a2d[i] == 1.5 + 0.5*0.5 );
+      TEST_CHECK( a2d[i] == 0.5*0.5 );
   }  
 
   gkyl_array_release(a1);
@@ -626,29 +626,285 @@ void test_cu_array_clear()
   gkyl_array_release(a1_cu);
 }
 
- void test_cu_array_clear_range()
- {
-   int shape[] = {10, 20};
-   struct gkyl_range range;
-   gkyl_range_init_from_shape(&range, 2, shape);
-   // make device copy of range
-   struct gkyl_range* cu_range = gkyl_range_clone_on_cu_dev(&range);
+void test_cu_array_clear_range()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+  // make device copy of range
+  struct gkyl_range* cu_range = gkyl_range_clone_on_cu_dev(&range);
 
-   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
-   // make device copy of array
-   struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, range.volume);
-   gkyl_array_copy(a1_cu, a1);
-   gkyl_array_clear_range_cu(10, 1, a1_cu, 0.5, cu_range);
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
+  // make device copy of array
+  struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, range.volume);
+  gkyl_array_copy(a1_cu, a1);
+  gkyl_array_clear_range_cu(10, 1, a1_cu, 0.5, cu_range);
 
-   // copy from device and check if things are ok
-   gkyl_array_copy(a1, a1_cu);
-   double *a1_d  = a1->data;  
-   for (unsigned i=0; i<a1->size; ++i)
-     TEST_CHECK( gkyl_compare(a1_d[i], 0.5, 1e-14) );
+  // copy from device and check if things are ok
+  gkyl_array_copy(a1, a1_cu);
+  double *a1_d  = a1->data;  
+  for (unsigned i=0; i<a1->size; ++i)
+    TEST_CHECK( gkyl_compare(a1_d[i], 0.5, 1e-14) );
 
-   gkyl_array_release(a1);
-   gkyl_array_release(a1_cu);
- }
+  gkyl_array_release(a1);
+  gkyl_array_release(a1_cu);
+}
+
+// void test_cu_array_accumulate()
+// {
+//   // create host arrays 
+//   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
+//   struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
+//   // make device copies
+//   struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 10);
+//   struct gkyl_array *a2_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 10);
+
+//   // initialize data
+//   double *a1_d  = a1->data, *a2_d = a2->data;
+//   for (unsigned i=0; i<a1->size; ++i) {
+//     a1_d[i] = i*1.0;
+//     a2_d[i] = i*0.1;
+//   }
+
+//   // copy initialized arrays to device
+//   gkyl_array_copy(a1_cu, a1);
+//   gkyl_array_copy(a2_cu, a2);
+
+//   gkyl_array_accumulate_cu(10, 1, a1_cu, 0.5, a2_cu);
+
+//   // copy from device and check if things are ok
+//   gkyl_array_copy(a1, a1_cu);
+//   for (unsigned i=0; i<a1->size; ++i)
+//     TEST_CHECK( gkyl_compare(a1_d[i], i*1.0+0.5*i*0.1, 1e-14) );
+
+//   gkyl_array_release(a1);
+//   gkyl_array_release(a2);
+//   gkyl_array_release(a1_cu);
+//   gkyl_array_release(a2_cu);
+// }
+
+// void test_cu_array_accumulate_range()
+// {
+//   int shape[] = {10, 20};
+//   struct gkyl_range range;
+//   gkyl_range_init_from_shape(&range, 2, shape);
+//   // make device copy of range
+//   struct gkyl_range* cu_range = gkyl_range_clone_on_cu_dev(&range);
+  
+//   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 8, range.volume);
+//   struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 3, range.volume);
+
+//   // make device copies of arrays
+//   struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 8, range.volume);
+//   struct gkyl_array *a2_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3, range.volume);
+
+//   // copy host arrays to device
+//   gkyl_array_copy(a1_cu, a1);
+//   gkyl_array_copy(a2_cu, a2);
+
+//   // test a1 = a1 + 0.5*a2
+//   gkyl_array_clear_cu(10, 1, a1_cu, 0.5);
+//   gkyl_array_clear_cu(10, 1, a2_cu, 1.5);
+
+//   gkyl_array_accumulate_range_cu(10, 1, a1_cu, 0.5, a2_cu, &cu_range);
+
+//  // copy from device and check if things are ok
+//   gkyl_array_copy(a1, a1_cu);
+//   struct gkyl_range_iter iter;
+//   gkyl_range_iter_init(&iter, &range);
+  
+//   while (gkyl_range_iter_next(&iter)) {
+//     long loc = gkyl_range_idx(&range, iter.idx);
+//     double *a1d = gkyl_array_fetch(a1, loc);
+//     for (int i=0; i<3; ++i)
+//       TEST_CHECK( a1d[i] == 0.5 + 0.5*1.5 );
+//     for (int i=3; i<8; ++i)
+//       TEST_CHECK( a1d[i] == 0.5);
+//   }
+
+//   // test a2 = a2 + 0.5*a
+//   gkyl_array_clear_cu(10, 1, a1_cu, 0.5);
+//   gkyl_array_clear_cu(10, 1, a2_cu, 1.5);
+
+//   gkyl_array_accumulate_range(10, 1, a2_cu, 0.5, a1_cu, &cu_range);
+
+//  // copy from device and check if things are ok
+//   gkyl_array_copy(a2, a2_cu);
+//   gkyl_range_iter_init(&iter, &range);
+
+//   while (gkyl_range_iter_next(&iter)) {
+//     long loc = gkyl_range_idx(&range, iter.idx);
+//     double *a2d = gkyl_array_fetch(a2, loc);
+//     for (int i=0; i<3; ++i)
+//       TEST_CHECK( a2d[i] == 1.5 + 0.5*0.5 );
+//   }  
+
+//   gkyl_array_release(a1);
+//   gkyl_array_release(a2);
+//   gkyl_array_release(a1_cu);
+//   gkyl_array_release(a2_cu);
+// }
+
+// void test_cu_array_combine()
+// {
+//   // create host arrays 
+//   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
+//   struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
+//   struct gkyl_array *b = gkyl_array_new(GKYL_DOUBLE, 1, 10);
+
+//   // make device copies
+//   struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 10);
+//   struct gkyl_array *a2_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 10);
+//   struct gkyl_array *b_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 10);
+
+//   double *a1_d  = a1->data, *a2_d = a2->data, *b_d = b->data;
+//   for (unsigned i=0; i<a1->size; ++i) {
+//     a1_d[i] = i*1.0;
+//     a2_d[i] = i*0.1;
+//     b_d[i] = 10.5;
+//   }
+
+//   // copy initialized arrays to device
+//   gkyl_array_copy(a1_cu, a1);
+//   gkyl_array_copy(a2_cu, a2);
+//   gkyl_array_copy(b_cu, b);
+
+//   // b = 0.5*a1 + 2.5*a2
+//   gkyl_array_accumulate_cu(10, 1, gkyl_array_set_cu(10, 1, b_cu, 0.5, a1_cu), 2.5, a2_cu);
+
+//   // copy from device and check if things are ok
+//   gkyl_array_copy(b, b_cu);
+//   for (unsigned i=0; i<a1->size; ++i)
+//     TEST_CHECK( gkyl_compare(b_d[i], 0.5*i*1.0+2.5*i*0.1, 1e-14) );
+
+//   gkyl_array_release(a1);
+//   gkyl_array_release(a2);
+//   gkyl_array_release(b);
+//   gkyl_array_release(a1_cu);
+//   gkyl_array_release(a2_cu);
+//   gkyl_array_release(b_cu);
+// }
+
+// void test_cu_array_set()
+// {
+//   // create host arrays 
+//   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
+//   struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
+//   // make device copies
+//   struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 10);
+//   struct gkyl_array *a2_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 10);
+
+//   // initialize data
+//   double *a1_d  = a1->data, *a2_d = a2->data;
+//   for (unsigned i=0; i<a1->size; ++i) {
+//     a1_d[i] = i*1.0;
+//     a2_d[i] = i*0.1;
+//   }
+
+//   // copy initialized arrays to device
+//   gkyl_array_copy(a1_cu, a1);
+//   gkyl_array_copy(a2_cu, a2);
+
+//   gkyl_array_set_cu(10, 1, a1_cu, 0.5, a2_cu);
+
+//   // copy from device and check if things are ok
+//   gkyl_array_copy(a1, a1_cu);
+//   for (unsigned i=0; i<a1->size; ++i)
+//     TEST_CHECK( gkyl_compare(a1_d[i], 0.5*i*0.1, 1e-14) );
+
+//   gkyl_array_release(a1);
+//   gkyl_array_release(a2);
+//   gkyl_array_release(a1_cu);
+//   gkyl_array_release(a2_cu);
+// }
+
+// void test_cu_array_set_range()
+// {
+//   int shape[] = {10, 20};
+//   struct gkyl_range range;
+//   gkyl_range_init_from_shape(&range, 2, shape);
+//   // make device copy of range
+//   struct gkyl_range* cu_range = gkyl_range_clone_on_cu_dev(&range);
+  
+//   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 8, range.volume);
+//   struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 3, range.volume);
+
+//   // make device copies of arrays
+//   struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 8, range.volume);
+//   struct gkyl_array *a2_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3, range.volume);
+
+//   // copy host arrays to device
+//   gkyl_array_copy(a1_cu, a1);
+//   gkyl_array_copy(a2_cu, a2);
+
+//   // test a1 = 0.5*a2
+//   gkyl_array_clear_cu(10, 1, a1_cu, 0.5);
+//   gkyl_array_clear_cu(10, 1, a2_cu, 1.5);
+
+//   gkyl_array_set_range_cu(10, 1, a1_cu, 0.5, a2_cu, &cu_range);
+
+//  // copy from device and check if things are ok
+//   gkyl_array_copy(a1, a1_cu);
+//   struct gkyl_range_iter iter;
+//   gkyl_range_iter_init(&iter, &range);
+  
+//   while (gkyl_range_iter_next(&iter)) {
+//     long loc = gkyl_range_idx(&range, iter.idx);
+//     double *a1d = gkyl_array_fetch(a1, loc);
+//     for (int i=0; i<3; ++i)
+//       TEST_CHECK( a1d[i] == 0.5*1.5 );
+//     for (int i=3; i<8; ++i)
+//       TEST_CHECK( a1d[i] == 0.5);
+//   }
+
+//   // test a2 = 0.5*a1
+//   gkyl_array_clear_cu(10, 1, a1_cu, 0.5);
+//   gkyl_array_clear_cu(10, 1, a2_cu, 1.5);
+
+//   gkyl_array_set_range_cu(10, 1, a2_cu, 0.5, a1_cu, &cu_range);
+
+//  // copy from device and check if things are ok
+//   gkyl_array_copy(a2, a2_cu);
+//   gkyl_range_iter_init(&iter, &range);
+  
+//   while (gkyl_range_iter_next(&iter)) {
+//     long loc = gkyl_range_idx(&range, iter.idx);
+//     double *a2d = gkyl_array_fetch(a2, loc);
+//     for (int i=0; i<3; ++i)
+//       TEST_CHECK( a2d[i] == 0.5*0.5 );
+//   }  
+
+//   gkyl_array_release(a1);
+//   gkyl_array_release(a2);
+//   gkyl_array_release(a1_cu);
+//   gkyl_array_release(a2_cu);
+// }
+
+// void test_cu_array_scale()
+// {
+//   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
+//   // make device copies
+//   struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 10);
+
+//   // initialize data
+//   double *a1_d  = a1->data;
+//   for (unsigned i=0; i<a1->size; ++i) {
+//     a1_d[i] = i*1.0;
+//   }
+
+//   // copy host arrays to device
+//   gkyl_array_copy(a1_cu, a1);
+
+//   gkyl_array_scale_cu(10, 1, a1_cu, 0.25);
+
+//  // copy from device and check if things are ok
+//   gkyl_array_copy(a1, a1_cu);
+//   for (unsigned i=0; i<a1->size; ++i)
+//     TEST_CHECK( gkyl_compare(a1_d[i], i*0.25, 1e-14) );
+
+//   gkyl_array_release(a1);
+//   gkyl_array_release(a1_cu);
+// }
 
 #endif
 
@@ -674,6 +930,12 @@ TEST_LIST = {
   { "cu_array_base", test_cu_array_base },
   { "cu_array_clear", test_cu_array_clear},
   { "cu_array_clear_range", test_cu_array_clear_range},
+  // { "cu_array_accumulate", test_cu_array_accumulate},
+  // { "cu_array_accumulate_range", test_cu_array_accumulate_range},
+  // { "cu_array_combine", test_cu_array_combine},
+  // { "cu_array_set", test_cu_array_set },
+  // { "cu_array_set_range", test_cu_array_set_range },
+  // { "cu_array_scale", test_cu_array_scale },
   { "cu_array_dev_kernel", test_cu_array_dev_kernel },
 #endif
   { NULL, NULL },
