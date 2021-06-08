@@ -44,14 +44,12 @@ test_cu_dg_vlasov()
   struct gkyl_range crange;
   gkyl_range_init_from_shape(&crange, 1, (int[]) { 100 } );
 
-  struct gkyl_range *crange_cu = gkyl_range_clone_on_cu_dev(&crange);
-  struct gkyl_dg_eqn* eqn = gkyl_dg_vlasov_cu_dev_new(&cbasis, &pbasis, crange_cu);
+  struct gkyl_dg_eqn* eqn = gkyl_dg_vlasov_cu_dev_new(&cbasis, &pbasis, &crange);
 
   int nfail = cu_vlasov_test(eqn);
 
   TEST_CHECK( nfail == 0 );
 
-  gkyl_cu_free(crange_cu);
   gkyl_cu_free(eqn);
 }
 

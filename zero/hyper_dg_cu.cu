@@ -15,7 +15,7 @@ gkyl_hyper_dg_set_update_vol_cu_kernel(gkyl_hyper_dg *hdg, int update_vol_term)
 }
 
 __global__ void
-gkyl_hyper_dg_advance_cu_kernel(const gkyl_hyper_dg* hdg, const struct gkyl_range* update_range,
+gkyl_hyper_dg_advance_cu_kernel(const gkyl_hyper_dg* hdg, const struct gkyl_range update_range,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
   struct gkyl_array* GKYL_RESTRICT rhs, double* GKYL_RESTRICT maxs)
 {
@@ -30,18 +30,18 @@ gkyl_hyper_dg_advance_cu_kernel(const gkyl_hyper_dg* hdg, const struct gkyl_rang
     maxs_old[i] = maxs[i];
 
   for(unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x; 
-      linc1 < update_range->volume;
+      linc1 < update_range.volume;
       linc1 += blockDim.x*gridDim.x)
   {
     // inverse index from linc1 to idxc
     // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idxc={0,0,...}
     // since update_range is a subrange
-    gkyl_sub_range_inv_idx(update_range, linc1, idxc);
+    gkyl_sub_range_inv_idx(&update_range, linc1, idxc);
     gkyl_rect_grid_cell_center(&hdg->grid, idxc, xcc);
 
     // convert back to a linear index on the super-range (with ghost cells)
     // linc will have jumps in it to jump over ghost cells
-    long linc = gkyl_range_idx(update_range, idxc);
+    long linc = gkyl_range_idx(&update_range, idxc);
 
     if (hdg->update_vol_term) {
       double cflr = hdg->equation->vol_term(
@@ -57,13 +57,13 @@ gkyl_hyper_dg_advance_cu_kernel(const gkyl_hyper_dg* hdg, const struct gkyl_rang
       gkyl_copy_int_arr(ndim, idxc, idxl);
       gkyl_copy_int_arr(ndim, idxc, idxr);
       // TODO: fix for arbitrary subrange
-      if (hdg->zero_flux_flags[d] && (idxc[dir] == update_range->lower[dir] || idxc[dir] == update_range->upper[dir])) {
-        edge = (idxc[dir] == update_range->lower[dir]) ? -1 : 1;
+      if (hdg->zero_flux_flags[d] && (idxc[dir] == update_range.lower[dir] || idxc[dir] == update_range.upper[dir])) {
+        edge = (idxc[dir] == update_range.lower[dir]) ? -1 : 1;
         // use idxl to store interior edge index (first index away from skin cell)
         idxl[dir] = idxl[dir]-edge;
 
         gkyl_rect_grid_cell_center(&hdg->grid, idxl, xcl);
-        long linl = gkyl_range_idx(update_range, idxl);
+        long linl = gkyl_range_idx(&update_range, idxl);
 
         double mdir = hdg->equation->boundary_surf_term(hdg->equation,
           dir, xcl, xcc, hdg->grid.dx, hdg->grid.dx,
@@ -77,8 +77,8 @@ gkyl_hyper_dg_advance_cu_kernel(const gkyl_hyper_dg* hdg, const struct gkyl_rang
         idxl[dir] = idxl[dir]-1; idxr[dir] = idxr[dir]+1;
         gkyl_rect_grid_cell_center(&hdg->grid, idxl, xcl);
         gkyl_rect_grid_cell_center(&hdg->grid, idxr, xcr);
-        long linl = gkyl_range_idx(update_range, idxl); 
-        long linr = gkyl_range_idx(update_range, idxr);
+        long linl = gkyl_range_idx(&update_range, idxl); 
+        long linr = gkyl_range_idx(&update_range, idxr);
 
         double mdir = hdg->equation->surf_term(hdg->equation,
           dir, xcl, xcc, xcr, hdg->grid.dx, hdg->grid.dx, hdg->grid.dx,
@@ -95,7 +95,7 @@ gkyl_hyper_dg_advance_cu_kernel(const gkyl_hyper_dg* hdg, const struct gkyl_rang
 // wrapper to call advance kernel on device
 void
 gkyl_hyper_dg_advance_cu(const int numBlocks, const int numThreads,
-  const gkyl_hyper_dg* hdg, const struct gkyl_range* update_range,
+  const gkyl_hyper_dg* hdg, const struct gkyl_range update_range,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
   struct gkyl_array* GKYL_RESTRICT rhs, double* GKYL_RESTRICT maxs)
 {
@@ -110,7 +110,7 @@ gkyl_hyper_dg_set_update_vol_cu(gkyl_hyper_dg *hdg, int update_vol_term)
 }
 
 gkyl_hyper_dg*
-gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
+gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation_cu,
   int num_up_dirs, int update_dirs[], int zero_flux_flags[], int update_vol_term)
 {
@@ -119,6 +119,7 @@ gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
   up->ndim = basis->ndim;
   up->numBasis = basis->numBasis;
   up->num_up_dirs = num_up_dirs;
+  up->grid = *grid;
 
   for (int i=0; i<num_up_dirs; ++i) {
     up->update_dirs[i] = update_dirs[i];
@@ -131,9 +132,6 @@ gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
   // copy host struct to device struct
   gkyl_hyper_dg *up_cu = (gkyl_hyper_dg*) gkyl_cu_malloc(sizeof(gkyl_hyper_dg));
   gkyl_cu_memcpy(up_cu, up, sizeof(struct gkyl_hyper_dg), GKYL_CU_MEMCPY_H2D);
-
-  // we need to copy grid_cu separately as it is already on device
-  gkyl_cu_memcpy(&up_cu->grid, (void*) grid_cu, sizeof(struct gkyl_rect_grid), GKYL_CU_MEMCPY_D2D);
 
   gkyl_free(up);
 

@@ -371,26 +371,3 @@ gkyl_range_skip_iter_init(struct gkyl_range_skip_iter *iter,
   gkyl_range_deflate(&iter->range, range, remDir, range->lower);
 }
 
-// CUDA specific code
-
-#ifdef GKYL_HAVE_CUDA
-
-struct gkyl_range*
-gkyl_range_clone_on_cu_dev(struct gkyl_range* rng)
-{
-  size_t sz = sizeof(struct gkyl_range);
-  struct gkyl_range *cu_rng = gkyl_cu_malloc(sz);
-  gkyl_cu_memcpy(cu_rng, rng, sz, GKYL_CU_MEMCPY_H2D);
-  return cu_rng;
-}
-
-#else
-
-struct gkyl_range*
-gkyl_range_clone_on_cu_dev(struct gkyl_range* rng)
-{
-  assert(false);
-  return 0;
-}
-
-#endif

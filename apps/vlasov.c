@@ -47,9 +47,6 @@ struct vm_species {
   struct gkyl_array *bc_buffer; // buffer for BCs (used for both copy and periodic)
 
   // species data on device
-  struct gkyl_rect_grid *grid_cu;
-  struct gkyl_range *local_cu, *local_ext_cu; // local, local-ext phase-space ranges
-  
   struct gkyl_array *f_cu, *f1_cu, *fnew_cu; // arrays for updates
   struct gkyl_array *cflrate_cu; // CFL rate in each cell
 
@@ -102,10 +99,6 @@ struct gkyl_vlasov_app {
   struct gkyl_basis basis, confBasis; // phase-space, conf-space basis
 
   struct skin_ghost_ranges skin_ghost; // conf-space skin/ghost
-
-  // app data on device
-  struct gkyl_rect_grid *grid_cu; // config-space grid
-  struct gkyl_range *local_cu, *local_ext_cu; // local, local-ext conf-space ranges
 
   struct vm_field field; // field data
 
@@ -235,7 +228,7 @@ vm_field_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_field *
 
   // Maxwell solver
   if (app->use_gpu)
-    f->slvr = gkyl_hyper_dg_cu_dev_new(app->grid_cu, &app->confBasis, f->eqn,
+    f->slvr = gkyl_hyper_dg_cu_dev_new(&app->grid, &app->confBasis, f->eqn,
       app->cdim, up_dirs, zero_flux_flags, 1);
   else
     f->slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, f->eqn,
@@ -381,10 +374,6 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->fnew_cu = mkcuarr(app->basis.numBasis, s->local_ext.volume);
     
     s->cflrate_cu = mkcuarr(1, s->local_ext.volume);
-
-    s->grid_cu = gkyl_rect_grid_clone_on_cu_dev(&s->grid);
-    s->local_cu = gkyl_range_clone_on_cu_dev(&s->local);
-    s->local_ext_cu = gkyl_range_clone_on_cu_dev(&s->local_ext);
   }
 
   // allocate buffer for applying periodic BCs
@@ -407,7 +396,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
   // create equation object
   if (app->use_gpu)
-    s->eqn = gkyl_dg_vlasov_cu_dev_new(&app->confBasis, &app->basis, app->local_cu);
+    s->eqn = gkyl_dg_vlasov_cu_dev_new(&app->confBasis, &app->basis, &app->local);
   else
     s->eqn = gkyl_dg_vlasov_new(&app->confBasis, &app->basis, &app->local);
 
@@ -423,7 +412,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   
   // create solver
   if (app->use_gpu)
-    s->slvr = gkyl_hyper_dg_cu_dev_new(s->grid_cu, &app->basis, s->eqn,
+    s->slvr = gkyl_hyper_dg_cu_dev_new(&s->grid, &app->basis, s->eqn,
       pdim, up_dirs, zero_flux_flags, 1);
   else 
     s->slvr = gkyl_hyper_dg_new(&s->grid, &app->basis, s->eqn,
@@ -515,10 +504,6 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     gkyl_array_release(s->f1_cu);
     gkyl_array_release(s->fnew_cu);
     gkyl_array_release(s->cflrate_cu);
-
-    gkyl_cu_free(s->grid_cu);
-    gkyl_cu_free(s->local_cu);
-    gkyl_cu_free(s->local_ext_cu);
   }
 
   // release moment data
@@ -574,14 +559,6 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
   int ghost[] = { 1, 1, 1 };  
   gkyl_create_grid_ranges(&app->grid, ghost, &app->local_ext, &app->local);
   skin_ghost_ranges_init(&app->skin_ghost, &app->local_ext, ghost);
-
-  if (app->use_gpu) {
-    // create device copies
-    app->grid_cu = gkyl_rect_grid_clone_on_cu_dev(&app->grid);
-
-    app->local_cu = gkyl_range_clone_on_cu_dev(&app->local);
-    app->local_ext_cu = gkyl_range_clone_on_cu_dev(&app->local_ext);
-  }
 
   // initialize EM field
   app->field.info = vm.field;
@@ -939,8 +916,8 @@ gkyl_vlasov_app_species_ktm_rhs_dev(gkyl_vlasov_app* app, int update_vol_term)
     int nblocks = species->local.volume/nthreads + 1;
 
     gkyl_hyper_dg_set_update_vol_cu(species->slvr, update_vol_term);
-    gkyl_array_clear_range_cu(nblocks, nthreads, rhs, 0.0, species->local_cu);
-    gkyl_hyper_dg_advance_cu(nblocks, nthreads, species->slvr, species->local_cu, fin,
+    gkyl_array_clear_range_cu(nblocks, nthreads, rhs, 0.0, &species->local);
+    gkyl_hyper_dg_advance_cu(nblocks, nthreads, species->slvr, species->local, fin,
       species->cflrate_cu, rhs, species->maxs_cu);
   }
 #endif  

@@ -34,7 +34,7 @@ void test_grid_2d()
 // CUDA specific tests
 #ifdef GKYL_HAVE_CUDA
 
-int cu_rect_grid_test(const struct gkyl_rect_grid *rng);
+int cu_rect_grid_test(const struct gkyl_rect_grid grid);
 
 void test_cu_grid_2d()
 {
@@ -43,13 +43,8 @@ void test_cu_grid_2d()
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
-  // clone on device
-  struct gkyl_rect_grid *grid_cu = gkyl_rect_grid_clone_on_cu_dev(&grid);
-
-  int nfail = cu_rect_grid_test(grid_cu);
+  int nfail = cu_rect_grid_test(grid);
   TEST_CHECK( nfail == 0 );
-  
-  gkyl_cu_free(grid_cu);
 }
 #endif
 

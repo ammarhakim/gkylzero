@@ -96,14 +96,6 @@ void gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim,
   const int *shape);
 
 /**
- * Clone range object on NV-GPU.
- *
- * @param rng Range object on device to clone
- * @return Clone valid on device.
- */
-struct gkyl_range* gkyl_range_clone_on_cu_dev(struct gkyl_range* rng);
-
-/**
  * Shape in direction dir
  *
  * @param rng Range object

@@ -80,12 +80,12 @@ void test_vlasov_2x3v_p1_cu()
   gkyl_create_grid_ranges(&phaseGrid, ghost, &phaseRange_ext, &phaseRange);
 
   // clone grid and ranges to device
-  struct gkyl_rect_grid *confGrid_cu = gkyl_rect_grid_clone_on_cu_dev(&confGrid);    
-  struct gkyl_rect_grid *phaseGrid_cu = gkyl_rect_grid_clone_on_cu_dev(&phaseGrid);    
-  struct gkyl_range *confRange_cu = gkyl_range_clone_on_cu_dev(&confRange);
-  struct gkyl_range *confRange_ext_cu = gkyl_range_clone_on_cu_dev(&confRange_ext);
-  struct gkyl_range *phaseRange_cu = gkyl_range_clone_on_cu_dev(&phaseRange);
-  struct gkyl_range *phaseRange_ext_cu = gkyl_range_clone_on_cu_dev(&phaseRange_ext);
+  //struct gkyl_rect_grid *confGrid = gkyl_rect_grid_clone_on_cu_dev(&confGrid);    
+  //struct gkyl_rect_grid *phaseGrid = gkyl_rect_grid_clone_on_cu_dev(&phaseGrid);    
+  //struct gkyl_range *confRange = gkyl_range_clone_on_cu_dev(&confRange);
+  //struct gkyl_range *confRange_ext = gkyl_range_clone_on_cu_dev(&confRange_ext);
+  //struct gkyl_range *phaseRange = gkyl_range_clone_on_cu_dev(&phaseRange);
+  //struct gkyl_range *phaseRange_ext = gkyl_range_clone_on_cu_dev(&phaseRange_ext);
 
   // initialize basis (note: basis has no device implementation)
   int poly_order = 1;
@@ -96,14 +96,14 @@ void test_vlasov_2x3v_p1_cu()
 
   // initialize eqn on device
   struct gkyl_dg_eqn *eqn_cu;
-  eqn_cu = gkyl_dg_vlasov_cu_dev_new(&confBasis, &basis, confRange_cu);
+  eqn_cu = gkyl_dg_vlasov_cu_dev_new(&confBasis, &basis, &confRange);
 
   // initialize hyper_dg slvr
   int up_dirs[] = {0, 1, 2, 3, 4};
   int zero_flux_flags[] = {0, 0, 1, 1, 1};
 
   gkyl_hyper_dg *slvr_cu;
-  slvr_cu = gkyl_hyper_dg_cu_dev_new(phaseGrid_cu, &basis, eqn_cu, pdim, up_dirs, zero_flux_flags, 1);
+  slvr_cu = gkyl_hyper_dg_cu_dev_new(&phaseGrid, &basis, eqn_cu, pdim, up_dirs, zero_flux_flags, 1);
 
   // basic checks
   int nfail = hyper_dg_test(slvr_cu);
@@ -158,7 +158,7 @@ void test_vlasov_2x3v_p1_cu()
 
     int numThreads = 256;
     int numBlocks = phaseRange.volume/numThreads + 1;
-    gkyl_hyper_dg_advance_cu(numBlocks, numThreads, slvr_cu, phaseRange_cu, fin_cu, cflrate_cu, rhs_cu, maxs_cu);
+    gkyl_hyper_dg_advance_cu(numBlocks, numThreads, slvr_cu, phaseRange, fin_cu, cflrate_cu, rhs_cu, maxs_cu);
   }
 
   // copy result from device to host

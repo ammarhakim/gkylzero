@@ -26,12 +26,10 @@ gkyl_vlasov_set_qmem_cu(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *
 // CUDA kernel to set device pointers to range object and vlasov kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ void
-dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, const struct gkyl_range *conf_range, int cv_index, int cdim, int vdim, int polyOrder)
+dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, int cv_index, int cdim, int vdim, int polyOrder)
 {
   vlasov->qmem = 0; 
-  vlasov->conf_range = *conf_range;
 
-  vlasov->eqn.num_equations = 1;
   vlasov->eqn.vol_term = vol;
   vlasov->eqn.surf_term = surf;
   vlasov->eqn.boundary_surf_term = boundary_surf;
@@ -59,7 +57,7 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, const struct gkyl_range *con
 
 struct gkyl_dg_eqn*
 gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range_cu)
+  const struct gkyl_range* conf_range)
 {
   struct dg_vlasov *vlasov = (struct dg_vlasov*) gkyl_malloc(sizeof(struct dg_vlasov));
 
@@ -70,12 +68,13 @@ gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_bas
   vlasov->pdim = pdim;
 
   vlasov->eqn.num_equations = 1;
+  vlasov->conf_range = *conf_range;
 
   // copy the host struct to device struct
   struct dg_vlasov *vlasov_cu = (struct dg_vlasov*) gkyl_cu_malloc(sizeof(struct dg_vlasov));
   gkyl_cu_memcpy(vlasov_cu, vlasov, sizeof(struct dg_vlasov), GKYL_CU_MEMCPY_H2D);
 
-  dg_vlasov_set_cu_dev_ptrs<<<1,1>>>(vlasov_cu, conf_range_cu, cv_index[cdim].vdim[vdim], cdim, vdim, polyOrder);
+  dg_vlasov_set_cu_dev_ptrs<<<1,1>>>(vlasov_cu, cv_index[cdim].vdim[vdim], cdim, vdim, polyOrder);
 
   gkyl_free(vlasov);  
   
