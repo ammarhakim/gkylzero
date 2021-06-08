@@ -83,6 +83,36 @@ void test_sub_range()
   
 }
 
+void test_sub_range_inv_idx()
+{
+  int lower[] = {1, 1}, upper[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, lower, upper);
+
+  int sublower[] = {2, 2}, subupper[] = { 5, 10 };
+  struct gkyl_range subrange;
+  gkyl_sub_range_init(&subrange, &range, sublower, subupper);
+
+  // create a range spanning sublower and subupper
+  struct gkyl_range range2;
+  gkyl_range_init(&range2, 2, sublower, subupper);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &subrange);  
+
+  int idx[2];
+  for (int i=0; i<range2.volume; ++i) {
+
+    gkyl_range_iter_next(&iter); // bump iterator
+    
+    // compute inverse index into subrange
+    gkyl_sub_range_inv_idx(&subrange, i, idx);
+
+    TEST_CHECK(idx[0] == iter.idx[0]);
+    TEST_CHECK(idx[1] == iter.idx[1]);
+  }
+}
+
 void test_shorten()
 {
   int lower[] = {1, 1, 1}, upper[] = {20, 30, 20};
@@ -860,7 +890,8 @@ TEST_LIST = {
   { "range_0", test_range_0 },
   { "range_1", test_range_1 },
   { "range_shape",  test_range_shape },
-  { "sub_range",  test_sub_range },  
+  { "sub_range",  test_sub_range },
+  { "sub_range_inv_idx",  test_sub_range_inv_idx },
   { "shorten", test_shorten },
   { "skin", test_skin },
   { "range_index_1d", test_range_index_1d },

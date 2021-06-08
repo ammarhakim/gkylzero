@@ -47,6 +47,7 @@ struct gkyl_range {
   uint32_t flags; // Flags for internal use
   int ilo[GKYL_MAX_DIM]; // for use in inverse indexer
   long ac[GKYL_MAX_DIM+1]; // coefficients for indexing
+  long iac[GKYL_MAX_DIM+1]; // for use in sub-range inverse indexer
   long linIdxZero; // linear index of {0,0,...}
   int nsplit, tid; // number of splits, split ID
 
@@ -338,8 +339,8 @@ void gkyl_sub_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
 {
   long n = loc;
   for (int i=1; i<=range->ndim; ++i) {
-    long quot = n/range->ac[i];
-    long rem = n % range->ac[i];
+    long quot = n/range->iac[i];
+    long rem = n % range->iac[i];
     idx[i-1] = quot + range->lower[i-1];
     n = rem;
   }

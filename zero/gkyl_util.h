@@ -167,6 +167,20 @@ gkyl_copy_int_arr(int n, const int* GKYL_RESTRICT inp, int* GKYL_RESTRICT out)
 }
 
 /**
+ * Copy (small) long arrays.
+ *
+ * @param n Number of elements to copy
+ * @param inp Input array
+ * @param out Output array
+ */
+GKYL_CU_DH
+static inline void
+gkyl_copy_long_arr(int n, const long* GKYL_RESTRICT inp, long* GKYL_RESTRICT out)
+{
+  for (int i=0; i<n; ++i) out[i] = inp[i];
+}
+
+/**
  * Gets wall-clock time in secs/nanoseconds.
  * 
  * @return Time object.
