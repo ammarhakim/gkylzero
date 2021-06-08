@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <math.h>
 #include <time.h>
 
@@ -171,3 +172,32 @@ gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
 
   return up;
 }
+
+#ifndef GKYL_HAVE_CUDA
+
+// default functions
+gkyl_hyper_dg*
+gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
+  const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation_cu,
+  int num_up_dirs, int update_dirs[], int zero_flux_flags[], int update_vol_term)
+{
+  assert(false);
+  return 0;
+}
+
+void
+gkyl_hyper_dg_advance_cu(const int numBlocks, const int numThreads,
+  const gkyl_hyper_dg* hdg, const struct gkyl_range* update_range,
+  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
+  struct gkyl_array* GKYL_RESTRICT rhs, double* GKYL_RESTRICT maxs)
+{
+  assert(false);
+}
+
+void
+gkyl_hyper_dg_set_update_vol_cu(gkyl_hyper_dg *hdg, int update_vol_term)
+{
+  assert(false);
+}
+
+#endif

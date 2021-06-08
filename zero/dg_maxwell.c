@@ -53,3 +53,15 @@ gkyl_dg_maxwell_new(const struct gkyl_basis* cbasis,
   
   return &maxwell->eqn;
 }
+
+#ifndef GKYL_HAVE_CUDA
+
+struct gkyl_dg_eqn*
+gkyl_dg_maxwell_cu_dev_new(const struct gkyl_basis* cbasis,
+  double lightSpeed, double elcErrorSpeedFactor, double mgnErrorSpeedFactor)
+{
+  assert(false);
+  return 0;
+}
+
+#endif

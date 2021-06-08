@@ -924,6 +924,7 @@ static
 void
 gkyl_vlasov_app_species_ktm_rhs_dev(gkyl_vlasov_app* app, int update_vol_term)
 {
+#ifdef GKYL_HAVE_CUDA  
   for (int i=0; i<app->num_species; ++i) {
     
     struct vm_species *species = &app->species[i];
@@ -942,6 +943,7 @@ gkyl_vlasov_app_species_ktm_rhs_dev(gkyl_vlasov_app* app, int update_vol_term)
     gkyl_hyper_dg_advance_cu(nblocks, nthreads, species->slvr, species->local_cu, fin,
       species->cflrate_cu, rhs, species->maxs_cu);
   }
+#endif  
 }
 
 void

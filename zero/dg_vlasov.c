@@ -73,3 +73,15 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   
   return &vlasov->eqn;
 }
+
+#ifndef GKYL_HAVE_CUDA
+
+struct gkyl_dg_eqn*
+gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range)
+{
+  assert(false);
+  return 0;
+}
+
+#endif

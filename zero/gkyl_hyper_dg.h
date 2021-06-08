@@ -73,16 +73,12 @@ void gkyl_hyper_dg_advance(const gkyl_hyper_dg *hdg, const struct gkyl_range *up
 void gkyl_hyper_dg_advance_no_iter(const gkyl_hyper_dg *hdg, const struct gkyl_range *update_rng,
   const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs, double *maxs);
 
-#ifdef GKYL_HAVE_CUDA
-
 void gkyl_hyper_dg_advance_cu(const int numBlocks, const int numThreads,
   const gkyl_hyper_dg* hdg, const struct gkyl_range* update_range,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
   struct gkyl_array* GKYL_RESTRICT rhs, double* GKYL_RESTRICT maxs);
 
 void gkyl_hyper_dg_set_update_vol_cu(gkyl_hyper_dg *hdg, int update_vol_term);
-
-#endif
 
 /**
  * Set if volume term should be computed or not.
