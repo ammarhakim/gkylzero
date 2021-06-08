@@ -146,9 +146,9 @@ void test_vlasov_2x3v_p1_cu()
   // run hyper_dg_advance
   int nrep = 10;
   for(int n=0; n<nrep; n++) {
-    // zero out array struct device data (eventually these will be handled by array_ops)
-    cudaMemset(rhs_cu->data, 0.0, rhs_cu->size*rhs_cu->esznc);
-    cudaMemset(cflrate_cu->data, 0.0, cflrate_cu->size*cflrate_cu->esznc);
+    // zero out array struct device data
+    gkyl_array_clear_cu(rhs_cu, 0.0);
+    gkyl_array_clear_cu(cflrate_cu, 0.0);
 
     // also zero out maxs_cu
     cudaMemset(maxs_cu, 0., sizeof(double)*5);
