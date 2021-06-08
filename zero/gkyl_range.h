@@ -49,6 +49,9 @@ struct gkyl_range {
   long ac[GKYL_MAX_DIM+1]; // coefficients for indexing
   long linIdxZero; // linear index of {0,0,...}
   int nsplit, tid; // number of splits, split ID
+
+  // FOR CUDA ONLY
+  int nthreads, nblocks; // CUDA kernel launch specifiers for range-based ops
 };
 
 /**

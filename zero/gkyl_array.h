@@ -24,9 +24,9 @@ struct gkyl_array {
   void *data; // pointer to data (do not use directly)
   struct gkyl_ref_count ref_count;
 
-  // CUDA ONLY
+  // FOR CUDA ONLY
   struct gkyl_array *on_device; // pointer to device clone if data is on device
-  int numThreads, numBlocks; // CUDA kernel launch specifiers for entire array ops
+  int nthreads, nblocks; // CUDA kernel launch specifiers for entire array ops
 };
 
 /**

@@ -53,25 +53,25 @@ gkyl_array_set_cu_kernel(struct gkyl_array* out, double a,
 void
 gkyl_array_clear_cu(struct gkyl_array* out, double val)
 {
-  gkyl_array_clear_cu_kernel<<<out->numBlocks, out->numThreads>>>(out->on_device, val);
+  gkyl_array_clear_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_device, val);
 }
 
 void
 gkyl_array_accumulate_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp)
 {
-  gkyl_array_accumulate_cu_kernel<<<out->numBlocks, out->numThreads>>>(out->on_device, a, inp->on_device);
+  gkyl_array_accumulate_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_device, a, inp->on_device);
 }
 
 void
 gkyl_array_set_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp)
 {
-  gkyl_array_set_cu_kernel<<<out->numBlocks, out->numThreads>>>(out->on_device, a, inp->on_device);
+  gkyl_array_set_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_device, a, inp->on_device);
 }
 
 void
 gkyl_array_scale_cu(struct gkyl_array* out, double a)
 {
-  gkyl_array_set_cu_kernel<<<out->numBlocks, out->numThreads>>>(out->on_device, a, out->on_device);
+  gkyl_array_set_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_device, a, out->on_device);
 }
 
 // Range-based methods
@@ -182,50 +182,49 @@ gkyl_array_copy_from_buffer_cu_kernel(struct gkyl_array *arr, const void *data,
 
 // Host-side wrappers for range-based array operations
 void
-gkyl_array_clear_range_cu(int numBlocks, int numThreads,
-  struct gkyl_array *out, double val, const struct gkyl_range range)
+gkyl_array_clear_range_cu(struct gkyl_array *out, double val, const struct gkyl_range range)
 {
-  gkyl_array_clear_range_cu_kernel<<<numBlocks, numThreads>>>(out->on_device, val, range);
+  gkyl_array_clear_range_cu_kernel<<<range.nblocks, range.nthreads>>>(out->on_device, val, range);
 }
 
 void
-gkyl_array_accumulate_range_cu(int numBlocks, int numThreads, struct gkyl_array *out,
+gkyl_array_accumulate_range_cu(struct gkyl_array *out,
   double a, const struct gkyl_array* inp, const struct gkyl_range range)
 {
-  gkyl_array_accumulate_range_cu_kernel<<<numBlocks, numThreads>>>(out->on_device, a, inp->on_device, range);
+  gkyl_array_accumulate_range_cu_kernel<<<range.nblocks, range.nthreads>>>(out->on_device, a, inp->on_device, range);
 }
 
 void
-gkyl_array_set_range_cu(int numBlocks, int numThreads, struct gkyl_array *out,
+gkyl_array_set_range_cu(struct gkyl_array *out,
   double a, const struct gkyl_array* inp, const struct gkyl_range range)
 {
-  gkyl_array_set_range_cu_kernel<<<numBlocks, numThreads>>>(out->on_device, a, inp->on_device, range);
+  gkyl_array_set_range_cu_kernel<<<range.nblocks, range.nthreads>>>(out->on_device, a, inp->on_device, range);
 }
 
 void
-gkyl_array_scale_range_cu(int numBlocks, int numThreads, struct gkyl_array *out,
+gkyl_array_scale_range_cu(struct gkyl_array *out,
   double a, const struct gkyl_range range)
 {
-  gkyl_array_set_range_cu_kernel<<<numBlocks, numThreads>>>(out->on_device, a, out->on_device, range);
+  gkyl_array_set_range_cu_kernel<<<range.nblocks, range.nthreads>>>(out->on_device, a, out->on_device, range);
 }
 
 void
-gkyl_array_copy_range_cu(int numBlocks, int numThreads, struct gkyl_array *out,
+gkyl_array_copy_range_cu(struct gkyl_array *out,
   const struct gkyl_array* inp, const struct gkyl_range range)
 {
-  gkyl_array_copy_range_cu_kernel<<<numBlocks, numThreads>>>(out->on_device, inp->on_device, range);
+  gkyl_array_copy_range_cu_kernel<<<range.nblocks, range.nthreads>>>(out->on_device, inp->on_device, range);
 }
 
 void 
-gkyl_array_copy_to_buffer_cu(int numBlocks, int numThreads, void *data, 
+gkyl_array_copy_to_buffer_cu(void *data, 
   const struct gkyl_array *arr, const struct gkyl_range range)
 {
-  gkyl_array_copy_to_buffer_cu_kernel<<<numBlocks, numThreads>>>(data, arr->on_device, range);
+  gkyl_array_copy_to_buffer_cu_kernel<<<range.nblocks, range.nthreads>>>(data, arr->on_device, range);
 }
 
 void 
-gkyl_array_copy_from_buffer_cu(int numBlocks, int numThreads, struct gkyl_array *arr,
+gkyl_array_copy_from_buffer_cu(struct gkyl_array *arr,
   const void *data, const struct gkyl_range range)
 {
-  gkyl_array_copy_from_buffer_cu_kernel<<<numBlocks, numThreads>>>(arr->on_device, data, range);
+  gkyl_array_copy_from_buffer_cu_kernel<<<range.nblocks, range.nthreads>>>(arr->on_device, data, range);
 }

@@ -95,8 +95,8 @@ gkyl_array_clone(const struct gkyl_array* src)
   arr->flags = src->flags;
 
   if (IS_CU_ARRAY(src->flags)) {
-    arr->numThreads = src->numThreads;
-    arr->numBlocks = src->numBlocks;
+    arr->nthreads = src->nthreads;
+    arr->nblocks = src->nblocks;
     arr->data = gkyl_cu_malloc(arr->size*arr->esznc);
     arr->on_device = gkyl_cu_malloc(sizeof(struct gkyl_array));
     gkyl_cu_memcpy(arr->data, src->data, arr->size*arr->esznc, GKYL_CU_MEMCPY_D2D);
@@ -144,8 +144,8 @@ gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
   arr->esznc = arr->elemsz*arr->ncomp;
   arr->ref_count = (struct gkyl_ref_count) { array_free, 1 };  
   arr->data = gkyl_cu_malloc(arr->size*arr->esznc);
-  arr->numThreads = GKYL_DEFAULT_NUM_THREADS;
-  arr->numBlocks = arr->size*arr->ncomp/arr->numThreads + 1;
+  arr->nthreads = GKYL_DEFAULT_NUM_THREADS;
+  arr->nblocks = arr->size*arr->ncomp/arr->nthreads + 1;
 
   // create a clone of the struct arr->on_device that lives on the device,
   // so that the whole arr->on_device struct can be passed to a device kernel

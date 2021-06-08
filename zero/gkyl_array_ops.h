@@ -162,29 +162,28 @@ gkyl_array_scale_cu(struct gkyl_array* out, double a);
  * Host-side wrappers for range-based array operations
  */
 void
-gkyl_array_clear_range_cu(int numBlocks, int numThreads,
-  struct gkyl_array *out, double val, const struct gkyl_range range);
+gkyl_array_clear_range_cu(struct gkyl_array *out, double val, const struct gkyl_range range);
 
 void
-gkyl_array_accumulate_range_cu(int numBlocks, int numThreads, struct gkyl_array *out,
+gkyl_array_accumulate_range_cu(struct gkyl_array *out,
   double a, const struct gkyl_array* inp, const struct gkyl_range range);
 
 void
-gkyl_array_set_range_cu(int numBlocks, int numThreads, struct gkyl_array *out,
+gkyl_array_set_range_cu(struct gkyl_array *out,
   double a, const struct gkyl_array* inp, const struct gkyl_range range);
 
 void
-gkyl_array_scale_range_cu(int numBlocks, int numThreads, struct gkyl_array *out,
+gkyl_array_scale_range_cu(struct gkyl_array *out,
   double a, const struct gkyl_range range);
 
 void
-gkyl_array_copy_range_cu(int numBlocks, int numThreads, struct gkyl_array *out,
+gkyl_array_copy_range_cu(struct gkyl_array *out,
   const struct gkyl_array* inp, const struct gkyl_range range);
 
 void
-gkyl_array_copy_to_buffer_cu(int numBlocks, int numThreads, void *data, 
+gkyl_array_copy_to_buffer_cu(void *data, 
   const struct gkyl_array *arr, const struct gkyl_range range);
 
 void 
-gkyl_array_copy_from_buffer_cu(int numBlocks, int numThreads, struct gkyl_array *arr,
+gkyl_array_copy_from_buffer_cu(struct gkyl_array *arr,
   const void *data, const struct gkyl_range range);

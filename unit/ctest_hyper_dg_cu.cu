@@ -156,9 +156,7 @@ void test_vlasov_2x3v_p1_cu()
     // set pointer to EM fields in vlasov equation object (on device)
     gkyl_vlasov_set_qmem_cu(eqn_cu, qmem_cu->on_device); // must set EM fields to use
 
-    int numThreads = 256;
-    int numBlocks = phaseRange.volume/numThreads + 1;
-    gkyl_hyper_dg_advance_cu(numBlocks, numThreads, slvr_cu, phaseRange, fin_cu, cflrate_cu, rhs_cu, maxs_cu);
+    gkyl_hyper_dg_advance_cu(slvr_cu, phaseRange, fin_cu, cflrate_cu, rhs_cu, maxs_cu);
   }
 
   // copy result from device to host
