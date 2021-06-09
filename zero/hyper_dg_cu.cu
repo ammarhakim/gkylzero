@@ -15,7 +15,7 @@ gkyl_hyper_dg_set_update_vol_cu_kernel(gkyl_hyper_dg *hdg, int update_vol_term)
 }
 
 __global__ void
-gkyl_hyper_dg_advance_cu_kernel(gkyl_hyper_dg* hdg, const struct gkyl_range update_range,
+gkyl_hyper_dg_advance_cu_kernel(gkyl_hyper_dg* hdg, struct gkyl_range update_range,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
   struct gkyl_array* GKYL_RESTRICT rhs, struct gkyl_array* GKYL_RESTRICT maxs_by_cell)
 {
@@ -48,7 +48,7 @@ gkyl_hyper_dg_advance_cu_kernel(gkyl_hyper_dg* hdg, const struct gkyl_range upda
       cflrate_d[0] += cflr; // frequencies are additive
     }
     
-    double *maxs_by_cell_d = (double*) gkyl_array_cfetch(maxs_by_cell, linc);
+    double *maxs_by_cell_d = (double*) gkyl_array_fetch(maxs_by_cell, linc);
     for (int d=0; d<hdg->num_up_dirs; ++d) {
       int dir = hdg->update_dirs[d];
       gkyl_copy_int_arr(ndim, idxc, idxl);
@@ -166,7 +166,7 @@ gkyl_hyper_dg_advance_cu_kernel_shared(gkyl_hyper_dg* hdg, const struct gkyl_ran
 
 // wrapper to call advance kernel on device
 void
-gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* hdg, const struct gkyl_range update_range,
+gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* hdg, struct gkyl_range update_range,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
   struct gkyl_array* GKYL_RESTRICT rhs, struct gkyl_array* GKYL_RESTRICT maxs_by_cell)
 {
