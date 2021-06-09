@@ -897,7 +897,7 @@ gkyl_vlasov_app_species_ktm_rhs_dev(gkyl_vlasov_app* app, int update_vol_term)
     struct vm_species *species = &app->species[i];
     
     const struct gkyl_array *qmem_cu = app->field.qmem_cu;
-    gkyl_vlasov_set_qmem_cu(species->eqn, qmem_cu->on_device);
+    gkyl_vlasov_set_qmem_cu(species->eqn, qmem_cu);
 
     const struct gkyl_array *fin = species->f_cu;
     struct gkyl_array *rhs = species->f1_cu;

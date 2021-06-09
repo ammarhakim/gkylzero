@@ -20,7 +20,7 @@ gkyl_vlasov_set_qmem_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_
 void
 gkyl_vlasov_set_qmem_cu(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem)
 {
-  gkyl_vlasov_set_qmem_cu_kernel<<<1,1>>>(eqn, qmem);
+  gkyl_vlasov_set_qmem_cu_kernel<<<1,1>>>(eqn, qmem->on_device);
 }
 
 // CUDA kernel to set device pointers to range object and vlasov kernel function
