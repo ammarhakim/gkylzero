@@ -23,6 +23,13 @@ mkarr(long nc, long size)
   struct gkyl_array* a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
+// allocate cu_dev array
+static struct gkyl_array*
+mkarr_cu(long nc, long size)
+{
+  struct gkyl_array* a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
+  return a;
+}
 
 struct skin_ghost_ranges {
   struct gkyl_range lower_skin[GKYL_MAX_DIM];
@@ -136,6 +143,68 @@ test_1()
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf);
 }
+
+#ifdef GKYL_HAVE_CUDA
+void
+test_11()
+{
+  int polyOrder = 1;
+  double lower[] = {-2.0, -2.0}, upper[] = {2.0, 2.0};
+  int cells[] = {4, 2};
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int vdim = 1, cdim = 1;
+
+  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
+  int confCells[] = {cells[0]};
+
+  // grids
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+  struct gkyl_rect_grid confGrid;
+  gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+
+  // basis functions
+  struct gkyl_basis basis, confBasis;
+  gkyl_cart_modal_serendip(&basis, ndim, polyOrder);
+  gkyl_cart_modal_serendip(&confBasis, cdim, polyOrder);
+
+  int confGhost[] = { 0 };
+  struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
+  gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
+  struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
+  skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
+
+  int ghost[] = { confGhost[0], 0 };
+  struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+  struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
+  skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
+
+  // projection updater for dist-function
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
+    polyOrder+1, 1, evalFunc, NULL);
+
+  // create distribution function and moment arrays
+  struct gkyl_array *distf, *m0;
+  distf = mkarr(basis.numBasis, local_ext.volume);
+  m0 = mkarr(confBasis.numBasis, confLocal_ext.volume);
+
+  // project distribution function on basis
+  gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
+
+  // initialize device arrays
+  struct gkyl_array *distf_cu, *m0_cu;
+  distf_cu = mkarr_cu(basis.numBasis, local_ext.volume);
+  m0_cu = mkarr_cu(confBasis.numBasis, confLocal_ext.volume);
+  gkyl_array_copy(distf_cu, distf);
+
+  gkyl_array_release(distf);
+  gkyl_array_release(distf_cu);
+  gkyl_array_release(m0);
+  gkyl_array_release(m0_cu);
+
+}
+#endif
 
 TEST_LIST = {
   { "test_1", test_1 },
