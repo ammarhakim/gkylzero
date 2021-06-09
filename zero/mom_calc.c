@@ -2,11 +2,6 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_mom_calc.h>
 
-struct gkyl_mom_calc {
-  struct gkyl_rect_grid grid;
-  const struct gkyl_mom_type *momt;
-};
-
 gkyl_mom_calc*
 gkyl_mom_calc_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_mom_type *momt)

@@ -202,8 +202,23 @@ test_11()
   struct gkyl_mom_type *vmM0_t = gkyl_vlasov_mom_cu_dev_new(&confBasis, &basis, "M0");
   gkyl_mom_calc *momCalc = gkyl_mom_calc_cu_dev_new(&grid, vmM0_t);
 
-  // compute the moment
+  // compute the moment and copy back to host
   gkyl_mom_calc_advance_cu(momCalc, local, confLocal, distf_cu, m0_cu);
+  gkyl_array_copy(m0, m0_cu);
+
+  // Check results.
+  double *m00 = gkyl_array_fetch(m0, 0+confGhost[0]);
+  TEST_CHECK( gkyl_compare( 13.199326582148885, m00[0], 1e-12) );
+  TEST_CHECK( gkyl_compare(-4.898979485566354 , m00[1], 1e-12) );
+  double *m01 = gkyl_array_fetch(m0, 1+confGhost[0]);
+  TEST_CHECK( gkyl_compare(  1.885618083164126, m01[0], 1e-12) );
+  TEST_CHECK( gkyl_compare( -1.632993161855452, m01[1], 1e-12) );
+  double *m02 = gkyl_array_fetch(m0, 2+confGhost[0]);
+  TEST_CHECK( gkyl_compare(  1.885618083164127, m02[0], 1e-12) );
+  TEST_CHECK( gkyl_compare(  1.632993161855452, m02[1], 1e-12) );
+  double *m03 = gkyl_array_fetch(m0, 3+confGhost[0]);
+  TEST_CHECK( gkyl_compare( 13.199326582148885, m03[0], 1e-12) );
+  TEST_CHECK( gkyl_compare( 4.898979485566355 , m03[1], 1e-12) );
 
   // free allocated memory.
   gkyl_array_release(distf);
@@ -216,5 +231,8 @@ test_11()
 
 TEST_LIST = {
   { "test_1", test_1 },
+#ifdef GKYL_HAVE_CUDA
+  { "test_11", test_11 },
+#endif
   { NULL, NULL },
 };
