@@ -198,6 +198,14 @@ test_11()
   m0_cu = mkarr_cu(confBasis.numBasis, confLocal_ext.volume);
   gkyl_array_copy(distf_cu, distf);
 
+  // Create vlasov moment and mom_calc objects on device.
+  struct gkyl_mom_type *vmM0_t = gkyl_vlasov_mom_cu_dev_new(&confBasis, &basis, "M0");
+  gkyl_mom_calc *momCalc = gkyl_mom_calc_cu_dev_new(&grid, vmM0_t);
+
+  // compute the moment
+  gkyl_mom_calc_advance_cu(momCalc, local, confLocal, distf_cu, m0_cu);
+
+  // free allocated memory.
   gkyl_array_release(distf);
   gkyl_array_release(distf_cu);
   gkyl_array_release(m0);

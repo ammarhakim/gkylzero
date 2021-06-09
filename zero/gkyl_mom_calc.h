@@ -43,6 +43,10 @@ void gkyl_mom_calc_advance(const gkyl_mom_calc* calc,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
   const struct gkyl_array *fin, struct gkyl_array *mout);
 
+void gkyl_mom_calc_advance_cu(const gkyl_mom_calc* mcalc,
+  const struct gkyl_range phase_range, const struct gkyl_range conf_range,
+  const struct gkyl_array* GKYL_RESTRICT fin, struct gkyl_array* GKYL_RESTRICT mout);
+
 /**
  * Delete pointer to moment calculator updater.
  *
