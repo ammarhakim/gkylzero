@@ -101,7 +101,7 @@ gkyl_array_reduce_free_cu(struct gkyl_array_reduceObject* redOb)
 }
 
 void
-gkyl_array_reduce_max_cu(struct gkyl_array* inp, double *out_d)
+gkyl_array_reduce_max_cu(const struct gkyl_array* inp, double *out_d)
 {
   // Reduce a gkyl_array component-wise. The output must be a device array
   // with as many elements as there are components in the input array.
@@ -113,7 +113,7 @@ gkyl_array_reduce_max_cu(struct gkyl_array* inp, double *out_d)
 }
 
 void
-gkyl_array_reduce_range_max_cu(struct gkyl_array* inp, const struct gkyl_range range, double *out_d)
+gkyl_array_reduce_range_max_cu(const struct gkyl_array* inp, const struct gkyl_range range, double *out_d)
 {
   // Reduce a gkyl_array component-wise within a specified range. The output must be
   // a device array with as many elements as there are components in the input array.

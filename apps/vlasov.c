@@ -903,12 +903,12 @@ gkyl_vlasov_app_species_ktm_rhs_dev(gkyl_vlasov_app* app, int update_vol_term)
     struct gkyl_array *rhs = species->f1_cu;
 
     gkyl_hyper_dg_set_update_vol_cu(species->slvr, update_vol_term);
-    gkyl_array_clear_range_cu(rhs, 0.0, species->local);
+    gkyl_array_clear_range(rhs, 0.0, species->local);
     gkyl_hyper_dg_advance_cu(species->slvr, species->local, fin,
       species->cflrate_cu, rhs, species->maxs_by_cell_cu);
 
     // reduction to get maxs (maximum over cells of maxs_by_cell)
-    gkyl_array_reduce_range_max_cu(species->maxs_by_cell_cu, species->local, species->slvr->maxs);
+    gkyl_array_reduce_range(species->slvr->maxs, species->maxs_by_cell_cu, GKYL_MAX, species->local);
   }
 #endif  
 }

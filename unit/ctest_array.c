@@ -613,7 +613,7 @@ void test_cu_array_clear()
   gkyl_array_copy(a1_cu, a1);
 
   // clear array on device
-  gkyl_array_clear_cu(a1_cu, 0.5);
+  gkyl_array_clear(a1_cu, 0.5);
   // copy from device and check if things are ok
   gkyl_array_copy(a1, a1_cu);
   double *a1_d  = a1->data;  
@@ -634,7 +634,7 @@ void test_cu_array_clear_range()
   // make device copy of array
   struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, range.volume);
   gkyl_array_copy(a1_cu, a1);
-  gkyl_array_clear_range_cu(a1_cu, 0.5, range);
+  gkyl_array_clear_range(a1_cu, 0.5, range);
 
   // copy from device and check if things are ok
   gkyl_array_copy(a1, a1_cu);
@@ -666,7 +666,7 @@ void test_cu_array_accumulate()
   gkyl_array_copy(a1_cu, a1);
   gkyl_array_copy(a2_cu, a2);
 
-  gkyl_array_accumulate_cu(a1_cu, 0.5, a2_cu);
+  gkyl_array_accumulate(a1_cu, 0.5, a2_cu);
 
   // copy from device and check if things are ok
   gkyl_array_copy(a1, a1_cu);
@@ -697,10 +697,10 @@ void test_cu_array_accumulate_range()
   gkyl_array_copy(a2_cu, a2);
 
   // test a1 = a1 + 0.5*a2
-  gkyl_array_clear_cu(a1_cu, 0.5);
-  gkyl_array_clear_cu(a2_cu, 1.5);
+  gkyl_array_clear(a1_cu, 0.5);
+  gkyl_array_clear(a2_cu, 1.5);
 
-  gkyl_array_accumulate_range_cu(a1_cu, 0.5, a2_cu, range);
+  gkyl_array_accumulate_range(a1_cu, 0.5, a2_cu, range);
 
  // copy from device and check if things are ok
   gkyl_array_copy(a1, a1_cu);
@@ -717,10 +717,10 @@ void test_cu_array_accumulate_range()
   }
 
   // test a2 = a2 + 0.5*a
-  gkyl_array_clear_cu(a1_cu, 0.5);
-  gkyl_array_clear_cu(a2_cu, 1.5);
+  gkyl_array_clear(a1_cu, 0.5);
+  gkyl_array_clear(a2_cu, 1.5);
 
-  gkyl_array_accumulate_range_cu(a2_cu, 0.5, a1_cu, range);
+  gkyl_array_accumulate_range(a2_cu, 0.5, a1_cu, range);
 
  // copy from device and check if things are ok
   gkyl_array_copy(a2, a2_cu);
@@ -764,8 +764,8 @@ void test_cu_array_combine()
   gkyl_array_copy(b_cu, b);
 
   // b = 0.5*a1 + 2.5*a2
-  gkyl_array_set_cu(b_cu, 0.5, a1_cu);
-  gkyl_array_accumulate_cu(b_cu, 2.5, a2_cu);
+  gkyl_array_set(b_cu, 0.5, a1_cu);
+  gkyl_array_accumulate(b_cu, 2.5, a2_cu);
 
   // copy from device and check if things are ok
   gkyl_array_copy(b, b_cu);
@@ -800,7 +800,7 @@ void test_cu_array_set()
   gkyl_array_copy(a1_cu, a1);
   gkyl_array_copy(a2_cu, a2);
 
-  gkyl_array_set_cu(a1_cu, 0.5, a2_cu);
+  gkyl_array_set(a1_cu, 0.5, a2_cu);
 
   // copy from device and check if things are ok
   gkyl_array_copy(a1, a1_cu);
@@ -831,10 +831,10 @@ void test_cu_array_set_range()
   gkyl_array_copy(a2_cu, a2);
 
   // test a1 = 0.5*a2
-  gkyl_array_clear_cu(a1_cu, 0.5);
-  gkyl_array_clear_cu(a2_cu, 1.5);
+  gkyl_array_clear(a1_cu, 0.5);
+  gkyl_array_clear(a2_cu, 1.5);
 
-  gkyl_array_set_range_cu(a1_cu, 0.5, a2_cu, range);
+  gkyl_array_set_range(a1_cu, 0.5, a2_cu, range);
 
  // copy from device and check if things are ok
   gkyl_array_copy(a1, a1_cu);
@@ -851,10 +851,10 @@ void test_cu_array_set_range()
   }
 
   // test a2 = 0.5*a1
-  gkyl_array_clear_cu(a1_cu, 0.5);
-  gkyl_array_clear_cu(a2_cu, 1.5);
+  gkyl_array_clear(a1_cu, 0.5);
+  gkyl_array_clear(a2_cu, 1.5);
 
-  gkyl_array_set_range_cu(a2_cu, 0.5, a1_cu, range);
+  gkyl_array_set_range(a2_cu, 0.5, a1_cu, range);
 
   // copy from device and check if things are ok
   gkyl_array_copy(a2, a2_cu);
@@ -888,7 +888,7 @@ void test_cu_array_scale()
   // copy host arrays to device
   gkyl_array_copy(a1_cu, a1);
 
-  gkyl_array_scale_cu(a1_cu, 0.25);
+  gkyl_array_scale(a1_cu, 0.25);
 
  // copy from device and check if things are ok
   gkyl_array_copy(a1, a1_cu);
@@ -925,11 +925,11 @@ void test_cu_array_copy()
   gkyl_sub_range_init(&sub_range, &range, lower, upper);
 
   double *buff_cu = gkyl_cu_malloc(sizeof(double)*sub_range.volume);
-  gkyl_array_copy_to_buffer_cu(buff_cu, arr_cu, sub_range);
+  gkyl_array_copy_to_buffer(buff_cu, arr_cu, sub_range);
 
-  gkyl_array_clear_cu(arr, 0.0);
+  gkyl_array_clear(arr, 0.0);
   // copy back from buffer
-  gkyl_array_copy_from_buffer_cu(arr_cu, buff_cu, sub_range);
+  gkyl_array_copy_from_buffer(arr_cu, buff_cu, sub_range);
 
   // copy from device and check if things are ok
   gkyl_array_copy(arr, arr_cu);
