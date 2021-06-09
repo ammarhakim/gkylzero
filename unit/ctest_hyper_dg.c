@@ -52,13 +52,13 @@ test_vlasov_2x3v_p1()
   // initialize hyper_dg slvr
   int up_dirs[] = {0, 1, 2, 3, 4};
   int zero_flux_flags[] = {0, 0, 1, 1, 1};
+  double maxs_init[] = {0., 0., 0., 0., 0.};
 
   gkyl_hyper_dg *slvr;
-  slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1);
+  slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1, maxs_init);
 
   // initialize arrays
   struct gkyl_array *fin, *rhs, *cflrate, *qmem;
-  double maxs[] = {0., 0., 0., 0., 0.};
   fin = mkarr(basis.numBasis, phaseRange_ext.volume);
   rhs = mkarr(basis.numBasis, phaseRange_ext.volume);
   cflrate = mkarr(1, phaseRange_ext.volume);
@@ -79,17 +79,24 @@ test_vlasov_2x3v_p1()
 
   // run hyper_dg_advance
   int nrep = 10;
-  bool no_iter = true;
+  bool no_iter = false;
   for(int n=0; n<nrep; n++) {
-    maxs[0] = 0., maxs[1] = 0., maxs[2] = 0., maxs[3] = 0., maxs[4] = 0.;
+    slvr->maxs[0] = 0., slvr->maxs[1] = 0., slvr->maxs[2] = 0., slvr->maxs[3] = 0., slvr->maxs[4] = 0.;
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
     gkyl_vlasov_set_qmem(eqn, qmem); // must set EM fields to use
     if(no_iter) 
-      gkyl_hyper_dg_advance_no_iter(slvr, &phaseRange, fin, cflrate, rhs, maxs);
+      gkyl_hyper_dg_advance_no_iter(slvr, &phaseRange, fin, cflrate, rhs);
     else
-      gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs, maxs);
+      gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs);
   }
+
+  // check results of maxs
+  TEST_CHECK( gkyl_compare(slvr->maxs[0], 0.0000000000000000e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare(slvr->maxs[1], 0.0000000000000000e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare(slvr->maxs[2], 1.1565625000000002e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare(slvr->maxs[3], 1.1571875000000000e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare(slvr->maxs[4], 1.1578125000000001e+00, 1e-12) );
 
   // get linear index of first non-ghost cell
   int idx[] = {0, 0, 0, 0, 0};

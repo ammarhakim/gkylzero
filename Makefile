@@ -100,6 +100,7 @@ endif
 check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_alloc
 	./build/unit/ctest_array
+	./build/unit/ctest_array_reduce
 	./build/unit/ctest_basis
 	./build/unit/ctest_block_topo
 	./build/unit/ctest_dg_maxwell

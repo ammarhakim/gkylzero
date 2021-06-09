@@ -6,6 +6,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_vlasov.h>
@@ -53,11 +54,10 @@ struct vm_species {
   struct vm_species_moment m1i; // for computing currents
   struct vm_species_moment *moms; // diagnostic moments
 
-  double maxs[GKYL_MAX_DIM]; // Maximum speed in each direction
   struct gkyl_dg_eqn *eqn; // Vlasov equation
   gkyl_hyper_dg *slvr; // solver
 
-  double *maxs_cu; // unfortunately this needs to be alloc-ed  
+  struct gkyl_array *maxs_by_cell_cu; // unfortunately this needs to be alloc-ed  
 };
 
 // field data
@@ -74,11 +74,10 @@ struct vm_field {
   struct gkyl_array *qmem_cu; // array for q/m*(E,B)
   struct gkyl_array *cflrate_cu; // CFL rate in each cell
 
-  double maxs[GKYL_MAX_DIM]; // Maximum speed in each direction
   struct gkyl_dg_eqn *eqn; // Maxwell equation
   gkyl_hyper_dg *slvr; // solver
 
-  double *maxs_cu; // unfortunately this needs to be alloc-ed
+  struct gkyl_array *maxs_by_cell_cu; // unfortunately this needs to be alloc-ed
 };
 
 // Vlasov object: used as opaque pointer in user code
@@ -213,6 +212,7 @@ vm_field_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_field *
     f->qmem_cu = mkcuarr(8*app->confBasis.numBasis, app->local_ext.volume);
 
     f->cflrate_cu = mkcuarr(1, app->local_ext.volume);
+    f->maxs_by_cell_cu = mkcuarr(app->cdim, app->local_ext.volume);
   }
 
   // equation object
@@ -226,21 +226,15 @@ vm_field_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_field *
 
   int up_dirs[] = {0, 1, 2}, zero_flux_flags[] = {0, 0, 0};
 
+  double maxs_init[] = {0., 0., 0.};
+
   // Maxwell solver
   if (app->use_gpu)
     f->slvr = gkyl_hyper_dg_cu_dev_new(&app->grid, &app->confBasis, f->eqn,
-      app->cdim, up_dirs, zero_flux_flags, 1);
+      app->cdim, up_dirs, zero_flux_flags, 1, maxs_init);
   else
     f->slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, f->eqn,
-      app->cdim, up_dirs, zero_flux_flags, 1);
-
-  // initialize maxs for use in first step
-  for (int d=0; d<app->cdim; ++d) f->maxs[d] = 0.0;
-
-  if (app->use_gpu) {
-    f->maxs_cu = gkyl_cu_malloc(sizeof(double[GKYL_MAX_DIM]));
-    gkyl_cu_memcpy(f->maxs_cu, f->maxs, sizeof(double[GKYL_MAX_DIM]), GKYL_CU_MEMCPY_H2D);
-  }
+      app->cdim, up_dirs, zero_flux_flags, 1, maxs_init);
 }
 
 // Compute the RHS for field update, returning maximum stable
@@ -254,7 +248,7 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
   gkyl_array_clear(field->cflrate, 0.0);
 
   gkyl_array_clear(rhs, 0.0);
-  gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs, field->maxs);
+  gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
 
   double omegaCfl;
   gkyl_array_reduce(field->cflrate, GKYL_MAX, &omegaCfl);
@@ -321,7 +315,7 @@ vm_field_release(const gkyl_vlasov_app* app, const struct vm_field *f)
     gkyl_array_release(f->qmem_cu);
     gkyl_array_release(f->cflrate_cu);
 
-    gkyl_cu_free(f->maxs_cu);  }
+    gkyl_array_release(f->maxs_by_cell_cu);  }
 
   if (app->use_gpu) {
     // TODO: NOT SURE HOW TO RELEASE ON DEVICE YET
@@ -374,6 +368,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->fnew_cu = mkcuarr(app->basis.numBasis, s->local_ext.volume);
     
     s->cflrate_cu = mkcuarr(1, s->local_ext.volume);
+    s->maxs_by_cell_cu = mkcuarr(pdim, s->local_ext.volume);
   }
 
   // allocate buffer for applying periodic BCs
@@ -401,30 +396,25 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->eqn = gkyl_dg_vlasov_new(&app->confBasis, &app->basis, &app->local);
 
   int up_dirs[GKYL_MAX_DIM], zero_flux_flags[GKYL_MAX_DIM];
+  double maxs_init[GKYL_MAX_DIM];
   for (int d=0; d<cdim; ++d) {
     up_dirs[d] = d;
     zero_flux_flags[d] = 0;
+    maxs_init[d] = 0.;
   }
   for (int d=cdim; d<pdim; ++d) {
     up_dirs[d] = d;
     zero_flux_flags[d] = 1; // zero-flux BCs in vel-space
+    maxs_init[d] = 0.;
   }
   
   // create solver
   if (app->use_gpu)
     s->slvr = gkyl_hyper_dg_cu_dev_new(&s->grid, &app->basis, s->eqn,
-      pdim, up_dirs, zero_flux_flags, 1);
+      pdim, up_dirs, zero_flux_flags, 1, maxs_init);
   else 
     s->slvr = gkyl_hyper_dg_new(&s->grid, &app->basis, s->eqn,
-      pdim, up_dirs, zero_flux_flags, 1);
-
-  // initialize maxs for use in first step
-  for (int d=0; d<pdim; ++d) s->maxs[d] = 0.0;
-
-  if (app->use_gpu) {
-    s->maxs_cu = gkyl_cu_malloc(sizeof(double[GKYL_MAX_DIM]));
-    gkyl_cu_memcpy(s->maxs_cu, s->maxs, sizeof(double[GKYL_MAX_DIM]), GKYL_CU_MEMCPY_H2D);
-  }  
+      pdim, up_dirs, zero_flux_flags, 1, maxs_init);
 }
 
 // Compute the RHS for species update, returning maximum stable
@@ -439,7 +429,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   gkyl_vlasov_set_qmem(species->eqn, qmem); // must set EM fields to use
   
   gkyl_array_clear(rhs, 0.0);
-  gkyl_hyper_dg_advance(species->slvr, &species->local, fin, species->cflrate, rhs, species->maxs);
+  gkyl_hyper_dg_advance(species->slvr, &species->local, fin, species->cflrate, rhs);
 
   double omegaCfl;
   gkyl_array_reduce(species->cflrate, GKYL_MAX, &omegaCfl);
@@ -893,7 +883,7 @@ gkyl_vlasov_app_species_ktm_rhs_host(gkyl_vlasov_app* app, int update_vol_term)
     gkyl_hyper_dg_set_update_vol(species->slvr, update_vol_term);
     gkyl_array_clear_range(rhs, 0.0, species->local);
     gkyl_hyper_dg_advance(species->slvr, &species->local, fin,
-      species->cflrate, rhs, species->maxs);
+      species->cflrate, rhs);
   }
 }
 
@@ -915,7 +905,10 @@ gkyl_vlasov_app_species_ktm_rhs_dev(gkyl_vlasov_app* app, int update_vol_term)
     gkyl_hyper_dg_set_update_vol_cu(species->slvr, update_vol_term);
     gkyl_array_clear_range_cu(rhs, 0.0, species->local);
     gkyl_hyper_dg_advance_cu(species->slvr, species->local, fin,
-      species->cflrate_cu, rhs, species->maxs_cu);
+      species->cflrate_cu, rhs, species->maxs_by_cell_cu);
+
+    // reduction to get maxs (maximum over cells of maxs_by_cell)
+    gkyl_array_reduce_range_max_cu(species->maxs_by_cell_cu, species->local, species->slvr->maxs);
   }
 #endif  
 }

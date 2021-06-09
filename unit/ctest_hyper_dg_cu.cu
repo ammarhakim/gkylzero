@@ -79,14 +79,6 @@ void test_vlasov_2x3v_p1_cu()
   gkyl_rect_grid_init(&phaseGrid, pdim, lower, upper, cells);
   gkyl_create_grid_ranges(&phaseGrid, ghost, &phaseRange_ext, &phaseRange);
 
-  // clone grid and ranges to device
-  //struct gkyl_rect_grid *confGrid = gkyl_rect_grid_clone_on_cu_dev(&confGrid);    
-  //struct gkyl_rect_grid *phaseGrid = gkyl_rect_grid_clone_on_cu_dev(&phaseGrid);    
-  //struct gkyl_range *confRange = gkyl_range_clone_on_cu_dev(&confRange);
-  //struct gkyl_range *confRange_ext = gkyl_range_clone_on_cu_dev(&confRange_ext);
-  //struct gkyl_range *phaseRange = gkyl_range_clone_on_cu_dev(&phaseRange);
-  //struct gkyl_range *phaseRange_ext = gkyl_range_clone_on_cu_dev(&phaseRange_ext);
-
   // initialize basis (note: basis has no device implementation)
   int poly_order = 1;
   struct gkyl_basis basis, confBasis; // phase-space, conf-space basis
@@ -101,9 +93,10 @@ void test_vlasov_2x3v_p1_cu()
   // initialize hyper_dg slvr
   int up_dirs[] = {0, 1, 2, 3, 4};
   int zero_flux_flags[] = {0, 0, 1, 1, 1};
+  double maxs_init[] = {0., 0., 0., 0., 0.};
 
   gkyl_hyper_dg *slvr_cu;
-  slvr_cu = gkyl_hyper_dg_cu_dev_new(&phaseGrid, &basis, eqn_cu, pdim, up_dirs, zero_flux_flags, 1);
+  slvr_cu = gkyl_hyper_dg_cu_dev_new(&phaseGrid, &basis, eqn_cu, pdim, up_dirs, zero_flux_flags, 1, maxs_init);
 
   // basic checks
   int nfail = hyper_dg_test(slvr_cu);
@@ -135,13 +128,17 @@ void test_vlasov_2x3v_p1_cu()
   struct gkyl_array *rhs_cu = mkarr_cu(basis.numBasis, phaseRange_ext.volume);
   struct gkyl_array *cflrate_cu = mkarr_cu(1, phaseRange_ext.volume);
   struct gkyl_array *qmem_cu = mkarr_cu(8*confBasis.numBasis, confRange_ext.volume);
+  struct gkyl_array *maxs_by_cell_cu = mkarr_cu(GKYL_MAX_DIM, phaseRange_ext.volume);
+
+  // also set up maxs arrays on host and device
+  double* maxs = (double*) gkyl_malloc(GKYL_MAX_DIM*sizeof(double));
+  double* maxs_cu = (double*) gkyl_cu_malloc(GKYL_MAX_DIM*sizeof(double));
+  for(int i=0; i<GKYL_MAX_DIM; i++) 
+    maxs[i] = 0.;
 
   // copy initial conditions to device
   gkyl_array_copy(fin_cu, fin);
   gkyl_array_copy(qmem_cu, qmem);
-
-  // maxs_cu is not an array struct, just a regular array
-  double *maxs_cu = (double*) gkyl_cu_malloc(sizeof(double)*5);
 
   // run hyper_dg_advance
   int nrep = 10;
@@ -149,15 +146,28 @@ void test_vlasov_2x3v_p1_cu()
     // zero out array struct device data
     gkyl_array_clear_cu(rhs_cu, 0.0);
     gkyl_array_clear_cu(cflrate_cu, 0.0);
+    gkyl_array_clear_cu(maxs_by_cell_cu, 0.0);
 
-    // also zero out maxs_cu
-    cudaMemset(maxs_cu, 0., sizeof(double)*5);
+    // zero out maxs values in slvr_cu
+    cudaMemset(slvr_cu->maxs, 0., GKYL_MAX_DIM*sizeof(double));
 
     // set pointer to EM fields in vlasov equation object (on device)
     gkyl_vlasov_set_qmem_cu(eqn_cu, qmem_cu->on_device); // must set EM fields to use
 
-    gkyl_hyper_dg_advance_cu(slvr_cu, phaseRange, fin_cu, cflrate_cu, rhs_cu, maxs_cu);
+    // advance hyper_dg
+    gkyl_hyper_dg_advance_cu(slvr_cu, phaseRange, fin_cu, cflrate_cu, rhs_cu, maxs_by_cell_cu);
+  
+    // reduction to get maxs (maximum over cells of maxs_by_cell)
+    gkyl_array_reduce_max_cu(maxs_by_cell_cu, slvr_cu->maxs);
   }
+
+  // check results of maxs
+  gkyl_cu_memcpy(maxs, slvr_cu->maxs, GKYL_MAX_DIM*sizeof(double), GKYL_CU_MEMCPY_D2H);
+  TEST_CHECK( gkyl_compare_double(maxs[0], 0.0000000000000000e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(maxs[1], 0.0000000000000000e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(maxs[2], 1.1565625000000002e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(maxs[3], 1.1571875000000000e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(maxs[4], 1.1578125000000001e+00, 1e-12) );
 
   // copy result from device to host
   gkyl_array_copy(rhs, rhs_cu);
@@ -216,41 +226,39 @@ void test_vlasov_2x3v_p1_cu()
   int idx2[] = {5, 2, 4, 7, 1};
   int linl2 = gkyl_range_idx(&phaseRange, idx2);
   rhs_d = (double*) gkyl_array_fetch(rhs, linl2);
-  for(int i=0; i<32; i++) 
-    printf("\n%.16e", rhs_d[i]);
 
-  //TEST_CHECK( gkyl_compare_double(rhs_d[0],  4.7846096908261693e-02 , 1e-12) ); 
-  //TEST_CHECK( gkyl_compare_double(rhs_d[1],  1.1169641822719267e+01 , 1e-12) );
-  //TEST_CHECK( gkyl_compare_double(rhs_d[2],  -5.7985839866517281e+01, 1e-12) );
-  //TEST_CHECK( gkyl_compare_double(rhs_d[3],  5.6000000000000183e-01 , 1e-12) );
-  //TEST_CHECK( gkyl_compare_double(rhs_d[4],  -3.5215390309173478e-01, 1e-12) ); 
-  //TEST_CHECK( gkyl_compare_double(rhs_d[5],  3.1215390309173235e-01 , 1e-12) );
-  //TEST_CHECK( gkyl_compare_double(rhs_d[6],  -5.9451852405668802e+01, 1e-12) );
-  //TEST_CHECK( gkyl_compare_double(rhs_d[7],  1.0813746062398621e+01 , 1e-12) );
-  //TEST_CHECK( gkyl_compare_double(rhs_d[8],  -4.9765990416585353e+01, 1e-12) ); 
-  //TEST_CHECK( gkyl_compare_double(rhs_d[9],  3.4930985546332849e+00 , 1e-12) );
-  //TEST_CHECK( gkyl_compare_double(rhs_d[10], -5.7062455762946534e+01, 1e-12) );
-  //TEST_CHECK( gkyl_compare_double(rhs_d[11], 3.1215390309173224e-01 , 1e-12) );
-  //TEST_CHECK( gkyl_compare_double(rhs_d[12], -3.5100138306029467e+00, 1e-12) );
-  //TEST_CHECK( gkyl_compare_double(rhs_d[13], 4.8317490964220532e+01 , 1e-12) );
-  //TEST_CHECK( gkyl_compare_double(rhs_d[14], -3.2905989232414845e-01, 1e-12) ); 
-  //TEST_CHECK( gkyl_compare_double(rhs_d[15], 7.9094010767584866e-01 , 1e-12) );
-  //TEST_CHECK( gkyl_compare_double(rhs_d[16], -6.8157586550966215e+01, 1e-12) );
-  //TEST_CHECK( gkyl_compare_double(rhs_d[17], 5.1498741574033772e+01 , 1e-12) );
-  //TEST_CHECK( gkyl_compare_double(rhs_d[18], -3.5101085195914536e+00, 1e-12) ); 
-  //TEST_CHECK( gkyl_compare_double(rhs_d[19], 4.8317866239642733e+01 , 1e-12) );
-  //TEST_CHECK( gkyl_compare_double(rhs_d[20], -6.0284065563081157e+01, 1e-12) );
-  //TEST_CHECK( gkyl_compare_double(rhs_d[21], 3.5332118170962823e+00 , 1e-12) );
-  //TEST_CHECK( gkyl_compare_double(rhs_d[22], -5.7103189399232193e+01, 1e-12) );
-  //TEST_CHECK( gkyl_compare_double(rhs_d[23], 1.0413981651809296e+01 , 1e-12) );
-  //TEST_CHECK( gkyl_compare_double(rhs_d[24], -4.9366836100923372e+01, 1e-12) ); 
-  //TEST_CHECK( gkyl_compare_double(rhs_d[25], 7.2784609690826585e-01 , 1e-12) );
-  //TEST_CHECK( gkyl_compare_double(rhs_d[26], -6.0284408668301865e+01, 1e-12) );
-  //TEST_CHECK( gkyl_compare_double(rhs_d[27], 6.0244518005727826e+01 , 1e-12) );
-  //TEST_CHECK( gkyl_compare_double(rhs_d[28], -6.0036637472496942e+01, 1e-12) ); 
-  //TEST_CHECK( gkyl_compare_double(rhs_d[29], 1.0962068462170658e+01 , 1e-12) );
-  //TEST_CHECK( gkyl_compare_double(rhs_d[30], -5.7779480060160040e+01, 1e-12) );
-  //TEST_CHECK( gkyl_compare_double(rhs_d[31], 6.0644701637051824e+01 , 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[0],  4.7846096908261693e-02 , 1e-12) ); 
+  TEST_CHECK( gkyl_compare_double(rhs_d[1],  1.1169641822719267e+01 , 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[2],  -5.7985839866517281e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[3],  5.6000000000000183e-01 , 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[4],  -3.5215390309173478e-01, 1e-12) ); 
+  TEST_CHECK( gkyl_compare_double(rhs_d[5],  3.1215390309173235e-01 , 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[6],  -5.9451852405668802e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[7],  1.0813746062398621e+01 , 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[8],  -4.9765990416585353e+01, 1e-12) ); 
+  TEST_CHECK( gkyl_compare_double(rhs_d[9],  3.4930985546332849e+00 , 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[10], -5.7062455762946534e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[11], 3.1215390309173224e-01 , 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[12], -3.5100138306029467e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[13], 4.8317490964220532e+01 , 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[14], -3.2905989232414845e-01, 1e-12) ); 
+  TEST_CHECK( gkyl_compare_double(rhs_d[15], 7.9094010767584866e-01 , 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[16], -6.8157586550966215e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[17], 5.1498741574033772e+01 , 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[18], -3.5101085195914536e+00, 1e-12) ); 
+  TEST_CHECK( gkyl_compare_double(rhs_d[19], 4.8317866239642733e+01 , 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[20], -6.0284065563081157e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[21], 3.5332118170962823e+00 , 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[22], -5.7103189399232193e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[23], 1.0413981651809296e+01 , 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[24], -4.9366836100923372e+01, 1e-12) ); 
+  TEST_CHECK( gkyl_compare_double(rhs_d[25], 7.2784609690826585e-01 , 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[26], -6.0284408668301865e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[27], 6.0244518005727826e+01 , 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[28], -6.0036637472496942e+01, 1e-12) ); 
+  TEST_CHECK( gkyl_compare_double(rhs_d[29], 1.0962068462170658e+01 , 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[30], -5.7779480060160040e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[31], 6.0644701637051824e+01 , 1e-12) );
 
   // clean up
   gkyl_array_release(fin);
@@ -262,6 +270,10 @@ void test_vlasov_2x3v_p1_cu()
   gkyl_array_release(rhs_cu);
   gkyl_array_release(cflrate_cu);
   gkyl_array_release(qmem_cu);
+  gkyl_array_release(maxs_by_cell_cu);
+
+  gkyl_free(maxs);
+  gkyl_cu_free(maxs_cu);
 
 //  gkyl_hyper_dg_release(slvr_cu);
 //  gkyl_dg_eqn_release(eqn_cu);

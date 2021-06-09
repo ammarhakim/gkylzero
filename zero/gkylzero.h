@@ -12,6 +12,7 @@ extern "C" {
 #include <gkyl_app.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_basis.h>
 #include <gkyl_block_topo.h>
