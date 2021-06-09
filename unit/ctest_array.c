@@ -99,7 +99,7 @@ void test_array_clear_range()
   gkyl_range_init_from_shape(&range, 2, shape);
   
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
-  gkyl_array_clear_range(a1, 0.5, &range);
+  gkyl_array_clear_range(a1, 0.5, range);
 
   double *a1_d = a1->data;
   for (unsigned i=0; i<a1->size; ++i)
@@ -141,7 +141,7 @@ void test_array_accumulate_range()
   gkyl_array_clear(a1, 0.5);
   gkyl_array_clear(a2, 1.5);
 
-  gkyl_array_accumulate_range(a1, 0.5, a2, &range);
+  gkyl_array_accumulate_range(a1, 0.5, a2, range);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -159,7 +159,7 @@ void test_array_accumulate_range()
   gkyl_array_clear(a1, 0.5);
   gkyl_array_clear(a2, 1.5);
 
-  gkyl_array_accumulate_range(a2, 0.5, a1, &range);
+  gkyl_array_accumulate_range(a2, 0.5, a1, range);
 
   gkyl_range_iter_init(&iter, &range);
   
@@ -228,10 +228,10 @@ void test_array_set_range()
   struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 3, range.volume);
 
   // test a1 = 0.5*a2
-  gkyl_array_clear_range(a1, 0.5, &range);
-  gkyl_array_clear_range(a2, 1.5, &range);
+  gkyl_array_clear_range(a1, 0.5, range);
+  gkyl_array_clear_range(a2, 1.5, range);
 
-  gkyl_array_set_range(a1, 0.5, a2, &range);
+  gkyl_array_set_range(a1, 0.5, a2, range);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -249,7 +249,7 @@ void test_array_set_range()
   gkyl_array_clear(a1, 0.5);
   gkyl_array_clear(a2, 1.5);
 
-  gkyl_array_set_range(a2, 0.5, a1, &range);
+  gkyl_array_set_range(a2, 0.5, a1, range);
 
   gkyl_range_iter_init(&iter, &range);
   
@@ -344,7 +344,7 @@ void test_array_copy()
   gkyl_sub_range_init(&sub_range, &range, lower, upper);
 
   double *buff = gkyl_malloc(sizeof(double)*sub_range.volume);
-  gkyl_array_copy_to_buffer(buff, arr, &sub_range);
+  gkyl_array_copy_to_buffer(buff, arr, sub_range);
 
   long count = 0;
   gkyl_range_iter_init(&iter, &sub_range);
@@ -353,7 +353,7 @@ void test_array_copy()
 
   gkyl_array_clear(arr, 0.0);
   // copy back from buffer
-  gkyl_array_copy_from_buffer(arr, buff, &sub_range);
+  gkyl_array_copy_from_buffer(arr, buff, sub_range);
 
   gkyl_range_iter_init(&iter, &sub_range);
   while (gkyl_range_iter_next(&iter)) {
@@ -391,7 +391,7 @@ void test_array_copy_split()
   long loc = 0;
   for (int tid=0; tid<num_split; ++tid) {
     gkyl_range_set_split(&sub_range, num_split, tid);
-    gkyl_array_copy_to_buffer(buff+loc, arr, &sub_range);
+    gkyl_array_copy_to_buffer(buff+loc, arr, sub_range);
     
     loc += gkyl_range_split_len(&sub_range);
   }
@@ -408,7 +408,7 @@ void test_array_copy_split()
   for (int tid=0; tid<num_split; ++tid) {
     // copy back from buffer
     gkyl_range_set_split(&sub_range, num_split, tid);
-    gkyl_array_copy_from_buffer(arr, buff+loc, &sub_range);
+    gkyl_array_copy_from_buffer(arr, buff+loc, sub_range);
     loc += gkyl_range_split_len(&sub_range);
   }
 
@@ -491,13 +491,13 @@ void test_reduce_range()
   }
 
   double amin[3], amax[3];
-  gkyl_array_reduce_range(amin, arr, GKYL_MIN, &range);
+  gkyl_array_reduce_range(amin, arr, GKYL_MIN, range);
 
   TEST_CHECK( amin[0] == -999.5 );
   TEST_CHECK( amin[1] == -998.5 );
   TEST_CHECK( amin[2] == -997.5 );
 
-  gkyl_array_reduce_range(amax, arr, GKYL_MAX, &range);
+  gkyl_array_reduce_range(amax, arr, GKYL_MAX, range);
   
   TEST_CHECK( amax[0] == -800.5 );
   TEST_CHECK( amax[1] == -799.5 );

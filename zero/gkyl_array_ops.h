@@ -54,7 +54,7 @@ struct gkyl_array* gkyl_array_scale(struct gkyl_array *out, double a);
  * @return out array
  */
 struct gkyl_array* gkyl_array_clear_range(struct gkyl_array *out, double val,
-  const struct gkyl_range *range);
+  struct gkyl_range range);
 
 /**
  * Compute out = out + a*inp over a range of indices.
@@ -66,7 +66,7 @@ struct gkyl_array* gkyl_array_clear_range(struct gkyl_array *out, double val,
  * @return out array
  */
 struct gkyl_array* gkyl_array_accumulate_range(struct gkyl_array *out,
-  double a, const struct gkyl_array *inp, const struct gkyl_range *range);
+  double a, const struct gkyl_array *inp, struct gkyl_range range);
 
 /**
  * Set out = a*inp. Returns out.
@@ -78,7 +78,7 @@ struct gkyl_array* gkyl_array_accumulate_range(struct gkyl_array *out,
  * @param range Range specifying region to set
  */
 struct gkyl_array* gkyl_array_set_range(struct gkyl_array *out,
-  double a, const struct gkyl_array *inp, const struct gkyl_range *range);
+  double a, const struct gkyl_array *inp, struct gkyl_range range);
 
 /**
  * Scale out = a*ut. Returns out.
@@ -89,7 +89,7 @@ struct gkyl_array* gkyl_array_set_range(struct gkyl_array *out,
  * @param range Range specifying region to scale
  */
 struct gkyl_array* gkyl_array_scale_range(struct gkyl_array *out,
-  double a, const struct gkyl_range *range);
+  double a, struct gkyl_range range);
 
 /**
  * Copy out inp. Returns out.
@@ -99,7 +99,7 @@ struct gkyl_array* gkyl_array_scale_range(struct gkyl_array *out,
  * @return out array
  */
 struct gkyl_array* gkyl_array_copy_range(struct gkyl_array *out,
-  const struct gkyl_array *inp, const struct gkyl_range *range);
+  const struct gkyl_array *inp, struct gkyl_range range);
 
 /**
  * Perform an "reduce" operation of data in the array.
@@ -120,7 +120,7 @@ double gkyl_array_reduce(const struct gkyl_array *arr, enum gkyl_array_op op, do
  * @param range Range specifying region
  */
 void gkyl_array_reduce_range(double *res,
-  const struct gkyl_array *arr, enum gkyl_array_op op, const struct gkyl_range *range);
+  const struct gkyl_array *arr, enum gkyl_array_op op, struct gkyl_range range);
 
 /**
  * Copy region of array into a buffer. The buffer must be preallocated
@@ -131,7 +131,7 @@ void gkyl_array_reduce_range(double *res,
  * @param range Range specifying region to copy from
  */
 void gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
-  const struct gkyl_range *range);
+  struct gkyl_range range);
 
 /**
  * Copy buffer into region of array. The array must be preallocated.
@@ -141,7 +141,7 @@ void gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
  * @param range Range specifying region to copy into
  */
 void gkyl_array_copy_from_buffer(struct gkyl_array *arr,
-  const void *data, const struct gkyl_range *range);
+  const void *data, struct gkyl_range range);
 
 /**
  * Host-side wrappers for array operations
