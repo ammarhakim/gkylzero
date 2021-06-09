@@ -173,13 +173,13 @@ gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* hdg, const struct gkyl_range update_rang
   int nblocks = update_range.nblocks;
   int nthreads = update_range.nthreads;
 
-  //gkyl_hyper_dg_advance_cu_kernel<<<nblocks, nthreads>>>(hdg, update_range,
-  //  fIn->on_device, cflrate->on_device, rhs->on_device, maxs_by_cell->on_device);
-
-  int shared_size = ((fIn->ncomp)*nthreads+fIn->ncomp)*sizeof(double);
-  cudaFuncSetAttribute(gkyl_hyper_dg_advance_cu_kernel_shared, cudaFuncAttributeMaxDynamicSharedMemorySize, shared_size); 
-  gkyl_hyper_dg_advance_cu_kernel_shared<<<nblocks, nthreads, shared_size>>>(hdg, update_range,
+  gkyl_hyper_dg_advance_cu_kernel<<<nblocks, nthreads>>>(hdg, update_range,
     fIn->on_device, cflrate->on_device, rhs->on_device, maxs_by_cell->on_device);
+
+  //int shared_size = ((fIn->ncomp)*nthreads+fIn->ncomp)*sizeof(double);
+  //cudaFuncSetAttribute(gkyl_hyper_dg_advance_cu_kernel_shared, cudaFuncAttributeMaxDynamicSharedMemorySize, shared_size); 
+  //gkyl_hyper_dg_advance_cu_kernel_shared<<<nblocks, nthreads, shared_size>>>(hdg, update_range,
+  //  fIn->on_device, cflrate->on_device, rhs->on_device, maxs_by_cell->on_device);
 }
 
 void
