@@ -941,7 +941,7 @@ void test_cu_array_copy()
 
   gkyl_array_release(arr);
   gkyl_array_release(arr_cu);
-  gkyl_free(buff_cu);
+  gkyl_cu_free(buff_cu);
 }
 
 #endif
@@ -974,7 +974,7 @@ TEST_LIST = {
   { "cu_array_set", test_cu_array_set },
   { "cu_array_set_range", test_cu_array_set_range },
   { "cu_array_scale", test_cu_array_scale },
-  //{ "cu_array_copy", test_cu_array_copy },
+  { "cu_array_copy", test_cu_array_copy },
   { "cu_array_dev_kernel", test_cu_array_dev_kernel },
 #endif
   { NULL, NULL },
