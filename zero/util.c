@@ -20,7 +20,7 @@ gkyl_tm_trigger_check_and_bump(struct gkyl_tm_trigger *tmt, double tcurr)
 void
 gkyl_exit(const char* msg)
 {
-  fprintf(stderr, "Error: %s", msg);
+  fprintf(stderr, "Error: %s\n", msg);
   exit(EXIT_FAILURE);
 }
 
