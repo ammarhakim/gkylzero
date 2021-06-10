@@ -21,8 +21,6 @@ gkyl_mom_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
 
   gkyl_mom_calc *up_cu = gkyl_cu_malloc(sizeof(gkyl_mom_calc));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_mom_calc), GKYL_CU_MEMCPY_H2D);
-  // we need to copy grid separately as it is already on device
-  gkyl_cu_memcpy(&up_cu->grid, (void*) grid, sizeof(struct gkyl_rect_grid), GKYL_CU_MEMCPY_D2D);
 
   gkyl_free(up);
   return up_cu;

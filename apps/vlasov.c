@@ -161,8 +161,8 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   
   if (app->use_gpu) {
     struct gkyl_mom_type *mtype_host = gkyl_vlasov_mom_new(&app->confBasis, &app->basis, nm);
-  //  sm->mtype = gkyl_vlasov_mom_cu_dev_new(&app->confBasis, &app->basis, nm);
-  //  sm->mcalc = gkyl_mom_calc_cu_dev_new(&s->grid, sm->mtype);
+    sm->mtype = gkyl_vlasov_mom_cu_dev_new(&app->confBasis, &app->basis, nm);
+    sm->mcalc = gkyl_mom_calc_cu_dev_new(&s->grid, sm->mtype);
 
     sm->marr = mkarr(app->use_gpu, mtype_host->num_mom*app->confBasis.numBasis,
         app->local_ext.volume);
