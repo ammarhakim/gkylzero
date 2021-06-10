@@ -238,6 +238,28 @@ gkyl_array_copy_range(struct gkyl_array *out,
   return out;
 }
 
+struct gkyl_array*
+gkyl_array_copy_range_to_range(struct gkyl_array *out,
+  const struct gkyl_array *inp, struct gkyl_range out_range, struct gkyl_range inp_range)
+{
+#ifdef GKYL_HAVE_CUDA
+  if(gkyl_array_is_cu_dev(out)) {gkyl_array_copy_range_to_range_cu(out, inp, out_range, inp_range); return out;}
+#endif
+
+  assert(out->size == inp->size && out->elemsz == inp->elemsz);
+  assert(out_range.volume == inp_range.volume);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &out_range);
+
+  while (gkyl_range_iter_next(&iter)) {
+    long start_out = gkyl_range_idx(&out_range, iter.idx);
+    long start_inp = gkyl_range_idx(&inp_range, iter.idx);
+    memcpy(gkyl_array_fetch(out, start_out), gkyl_array_cfetch(inp, start_inp), inp->esznc);
+  }
+  return out;
+}
+
 void
 gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
   struct gkyl_range range)

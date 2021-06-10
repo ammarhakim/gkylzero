@@ -96,10 +96,24 @@ struct gkyl_array* gkyl_array_scale_range(struct gkyl_array *out,
  *
  * @param out Output array
  * @param inp Input array
+ * @param range Range specifying region to copy
  * @return out array
  */
 struct gkyl_array* gkyl_array_copy_range(struct gkyl_array *out,
   const struct gkyl_array *inp, struct gkyl_range range);
+
+/**
+ * Copy out inp over specified ranges. Returns out.
+ * input and output ranges must have the same volume.
+ *
+ * @param out Output array
+ * @param inp Input array
+ * @param out_range Range specifying region to copy to in out array
+ * @param inp_range Range specifying region to copy to from in inp array
+ * @return out array
+ */
+struct gkyl_array* gkyl_array_copy_range_to_range(struct gkyl_array *out,
+  const struct gkyl_array *inp, struct gkyl_range out_range, struct gkyl_range inp_range);
 
 /**
  * Perform an "reduce" operation of data in the array.
