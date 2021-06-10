@@ -14,6 +14,7 @@ struct weibel_ctx {
   double kx, ky;
   double alpha; // ratio of E_y/E_x
   double perturb_n;
+  bool use_gpu;
 };
 
 inline double
@@ -73,6 +74,7 @@ create_ctx(void)
   double TElc20 = TElc10;
   double vthElc10 = sqrt(TElc10/massElc);
   double vthElc20 = sqrt(TElc20/massElc);  
+  bool use_gpu = false;
   
   struct weibel_ctx ctx = {
     .nElc10 = 0.5,
@@ -87,6 +89,7 @@ create_ctx(void)
     .kx = kx, .ky = ky,
     .alpha = 1.18281106421231,
     .perturb_n = 1e-8,
+    .use_gpu = use_gpu,
   };
   return ctx;
 }
@@ -137,7 +140,9 @@ main(int argc, char **argv)
 
     .num_species = 1,
     .species = { elc },
-    .field = field
+    .field = field,
+ 
+    .use_gpu = ctx.use_gpu,
   };
 
   // create app object

@@ -438,7 +438,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
 
   double omegaCfl;
   gkyl_array_reduce(species->cflrate, GKYL_MAX, &omegaCfl);
-  gkyl_array_reduce_range(species->slvr->maxs, species->maxs_by_cell, GKYL_MAX, app->local);
+  gkyl_array_reduce_range(species->slvr->maxs, species->maxs_by_cell, GKYL_MAX, species->local);
 
   app->stat.species_rhs_tm += gkyl_time_diff_now_sec(wst);
   
@@ -533,6 +533,7 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
 
 #ifdef GKYL_HAVE_CUDA
   app->use_gpu = vm.use_gpu;
+  if(app->use_gpu) printf("Running calculation on GPU\n");
 #else
   app->use_gpu = false; // can't use GPUs if we don't have them!
 #endif
