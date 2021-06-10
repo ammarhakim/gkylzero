@@ -508,8 +508,8 @@ void test_reduce()
   }
   
   double amin, amax;
-  gkyl_array_reduce(arr, GKYL_MIN, &amin);
-  gkyl_array_reduce(arr, GKYL_MAX, &amax);
+  gkyl_array_reduce(&amin, arr, GKYL_MIN);
+  gkyl_array_reduce(&amax, arr, GKYL_MAX);
 
   TEST_CHECK( amin == 0.0 );
   TEST_CHECK( amax == 0.5*199 + 0.1*2 );

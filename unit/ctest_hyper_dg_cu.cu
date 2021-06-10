@@ -158,7 +158,7 @@ void test_vlasov_2x3v_p1_cu()
     gkyl_hyper_dg_advance_cu(slvr_cu, phaseRange, fin_cu, cflrate_cu, rhs_cu, maxs_by_cell_cu);
   
     // reduction to get maxs (maximum over cells of maxs_by_cell)
-    gkyl_array_reduce(maxs_by_cell_cu, GKYL_MAX, slvr_cu->maxs);
+    gkyl_array_reduce(slvr_cu->maxs, maxs_by_cell_cu, GKYL_MAX);
   }
 
   // check results of maxs

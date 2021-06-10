@@ -89,19 +89,19 @@ __global__ void arrayMax_range_blockRedAtomic_cub(const struct gkyl_array* inp, 
 }
 
 void
-gkyl_array_reduce_init_cu(struct gkyl_array* arrIn, struct gkyl_array_reduceObject* redOb)
+gkyl_array_reduce_init_cu(struct gkyl_array* arrIn, struct gkyl_array_reduce_util* redutil)
 {
   // Current implementation (CUB block reduce + atomic reduce) does not need to preallocate aything.
 }
 
 void
-gkyl_array_reduce_free_cu(struct gkyl_array_reduceObject* redOb)
+gkyl_array_reduce_free_cu(struct gkyl_array_reduce_util* redutil)
 {
   // Current implementation (CUB block reduce + atomic reduce) does not allocate additional memory.
 }
 
 void
-gkyl_array_reduce_max_cu(const struct gkyl_array* inp, double *out_d)
+gkyl_array_reduce_max_cu(double *out_d, const struct gkyl_array* inp)
 {
   // Reduce a gkyl_array component-wise. The output must be a device array
   // with as many elements as there are components in the input array.
@@ -114,7 +114,7 @@ gkyl_array_reduce_max_cu(const struct gkyl_array* inp, double *out_d)
 }
 
 void
-gkyl_array_reduce_range_max_cu(const struct gkyl_array* inp, const struct gkyl_range range, double *out_d)
+gkyl_array_reduce_range_max_cu(double *out_d, const struct gkyl_array* inp, const struct gkyl_range range)
 {
   // Reduce a gkyl_array component-wise within a specified range. The output must be
   // a device array with as many elements as there are components in the input array.

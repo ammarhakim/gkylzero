@@ -122,7 +122,7 @@ struct gkyl_array* gkyl_array_copy_range_to_range(struct gkyl_array *out,
  * @param op Reduction operators
  * @return Reduced result
  */
-double gkyl_array_reduce(const struct gkyl_array *arr, enum gkyl_array_op op, double *out);
+double gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op op);
 
 /**
  * Perform an "reduce" operation of data in the array. Data is reduced

@@ -71,13 +71,13 @@ gkyl_array_scale(struct gkyl_array* out, double a)
 }
 
 double
-gkyl_array_reduce(const struct gkyl_array *arr, enum gkyl_array_op op, double *out)
+gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op op)
 {
 #ifdef GKYL_HAVE_CUDA
   if(gkyl_array_is_cu_dev(arr)) {
     switch (op) {
       case GKYL_MAX:
-        gkyl_array_reduce_max_cu(arr, out);
+        gkyl_array_reduce_max_cu(out, arr);
         break;
     }
     return 0.;
@@ -195,7 +195,7 @@ void gkyl_array_reduce_range(double *res,
   if(gkyl_array_is_cu_dev(arr)) {
     switch (op) {
       case GKYL_MAX:
-        gkyl_array_reduce_range_max_cu(arr, range, res);
+        gkyl_array_reduce_range_max_cu(res, arr, range);
         break;
     }
     return;

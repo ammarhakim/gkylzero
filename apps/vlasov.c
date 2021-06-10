@@ -272,7 +272,7 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
   else
     gkyl_hyper_dg_advance(field->slvr, app->local, em, field->cflrate, rhs, field->maxs_by_cell);
 
-  gkyl_array_reduce(field->cflrate, GKYL_MAX, field->omegaCfl_ptr);
+  gkyl_array_reduce(field->omegaCfl_ptr, field->cflrate, GKYL_MAX);
   gkyl_array_reduce_range(field->slvr->maxs, field->maxs_by_cell, GKYL_MAX, app->local);
   double omegaCfl = field->omegaCfl_ptr[0];
 
@@ -450,7 +450,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   else
     gkyl_hyper_dg_advance(species->slvr, species->local, fin, species->cflrate, rhs, species->maxs_by_cell);
 
-  gkyl_array_reduce(species->cflrate, GKYL_MAX, species->omegaCfl_ptr);
+  gkyl_array_reduce(species->omegaCfl_ptr, species->cflrate, GKYL_MAX);
   gkyl_array_reduce_range(species->slvr->maxs, species->maxs_by_cell, GKYL_MAX, species->local);
   double omegaCfl = species->omegaCfl_ptr[0];
 

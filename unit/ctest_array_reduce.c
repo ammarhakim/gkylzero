@@ -27,7 +27,7 @@ void test_cu_array_reduce_max()
   double* a1max_cu = (double*) gkyl_cu_malloc(numComp*sizeof(double));
 
   // component-wise reduce array and copy the result back to host 
-  gkyl_array_reduce(a1_cu, GKYL_MAX, a1max_cu);
+  gkyl_array_reduce(a1max_cu, a1_cu, GKYL_MAX);
 
   // copy to host and check values.
   gkyl_cu_memcpy(a1max, a1max_cu, numComp*sizeof(double), GKYL_CU_MEMCPY_D2H);
