@@ -87,13 +87,15 @@ gkyl_array_clear_range_cu_kernel(struct gkyl_array *out, double val, struct gkyl
 {
   long n = NCOM(out);
   int idx[GKYL_MAX_DIM];
-  for(unsigned long linc = threadIdx.x + blockIdx.x*blockDim.x; 
+  for(unsigned long linc = blockIdx.x;
       linc < range.volume;
-      linc += blockDim.x*gridDim.x)
+      linc += gridDim.x)
   {
     gkyl_sub_range_inv_idx(&range, linc, idx);
     long start = gkyl_range_idx(&range, idx);
-    array_clear1(n, (double*) gkyl_array_fetch(out, start), val);
+    double* out_d = (double*) gkyl_array_fetch(out, start);
+    if(threadIdx.x < n)
+      out_d[threadIdx.x] = val;
   }
 }
 
@@ -104,14 +106,16 @@ gkyl_array_accumulate_range_cu_kernel(struct gkyl_array *out,
   long outnc = NCOM(out), inpnc = NCOM(inp);
   long n = outnc<inpnc ? outnc : inpnc;
   int idx[GKYL_MAX_DIM];
-  for(unsigned long linc = threadIdx.x + blockIdx.x*blockDim.x; 
+  for(unsigned long linc = blockIdx.x;
       linc < range.volume;
-      linc += blockDim.x*gridDim.x)
+      linc += gridDim.x)
   {
     gkyl_sub_range_inv_idx(&range, linc, idx);
     long start = gkyl_range_idx(&range, idx);
-    array_acc1(n,
-      (double*) gkyl_array_fetch(out, start), a, (double*) gkyl_array_cfetch(inp, start));
+    double* out_d = (double*) gkyl_array_fetch(out, start);
+    double* inp_d = (double*) gkyl_array_cfetch(inp, start);
+    if(threadIdx.x < n)
+      out_d[threadIdx.x] += a*inp_d[threadIdx.x];
   }
 }
 
@@ -122,14 +126,16 @@ gkyl_array_set_range_cu_kernel(struct gkyl_array *out,
   long outnc = NCOM(out), inpnc = NCOM(inp);
   long n = outnc<inpnc ? outnc : inpnc;
   int idx[GKYL_MAX_DIM];
-  for(unsigned long linc = threadIdx.x + blockIdx.x*blockDim.x; 
+  for(unsigned long linc = blockIdx.x;
       linc < range.volume;
-      linc += blockDim.x*gridDim.x)
+      linc += gridDim.x)
   {
     gkyl_sub_range_inv_idx(&range, linc, idx); 
     long start = gkyl_range_idx(&range, idx);
-    array_set1(n,
-      (double*) gkyl_array_fetch(out, start), a, (double*) gkyl_array_cfetch(inp, start));
+    double* out_d = (double*) gkyl_array_fetch(out, start);
+    double* inp_d = (double*) gkyl_array_cfetch(inp, start);
+    if(threadIdx.x < n)
+      out_d[threadIdx.x] = a*inp_d[threadIdx.x];
   }
 }
 
@@ -138,9 +144,9 @@ gkyl_array_copy_range_cu_kernel(struct gkyl_array *out, const struct gkyl_array*
   struct gkyl_range out_range, struct gkyl_range inp_range)
 {
   int idx_out[GKYL_MAX_DIM], idx_inp[GKYL_MAX_DIM];
-  for(unsigned long linc = threadIdx.x + blockIdx.x*blockDim.x;
+  for(unsigned long linc = blockIdx.x;
       linc < out_range.volume;
-      linc += blockDim.x*gridDim.x) {
+      linc += gridDim.x) {
 
     gkyl_sub_range_inv_idx(&out_range, linc, idx_out);
     gkyl_sub_range_inv_idx(&inp_range, linc, idx_inp);
@@ -148,8 +154,8 @@ gkyl_array_copy_range_cu_kernel(struct gkyl_array *out, const struct gkyl_array*
     long start_inp = gkyl_range_idx(&inp_range, idx_inp);
     double *out_data = (double*) gkyl_array_fetch(out, start_out);
     const double *inp_data = (const double*) gkyl_array_cfetch(inp, start_inp);
-    for (unsigned i = 0; i < NCOM(out); ++i)
-      out_data[i] = inp_data[i];
+    if(threadIdx.x < NCOM(out))
+      out_data[threadIdx.x] = inp_data[threadIdx.x];
   }
 }
 
@@ -199,35 +205,45 @@ gkyl_array_copy_from_buffer_cu_kernel(struct gkyl_array *arr, const void *data,
 void
 gkyl_array_clear_range_cu(struct gkyl_array *out, double val, struct gkyl_range range)
 {
-  gkyl_array_clear_range_cu_kernel<<<range.nblocks, range.nthreads>>>(out->on_device, val, range);
+  int nthreads = out->ncomp;
+  int nblocks = range.volume;
+  gkyl_array_clear_range_cu_kernel<<<nblocks, nthreads>>>(out->on_device, val, range);
 }
 
 void
 gkyl_array_accumulate_range_cu(struct gkyl_array *out,
   double a, const struct gkyl_array* inp, struct gkyl_range range)
 {
-  gkyl_array_accumulate_range_cu_kernel<<<range.nblocks, range.nthreads>>>(out->on_device, a, inp->on_device, range);
+  int nthreads = out->ncomp;
+  int nblocks = range.volume;
+  gkyl_array_accumulate_range_cu_kernel<<<nblocks, nthreads>>>(out->on_device, a, inp->on_device, range);
 }
 
 void
 gkyl_array_set_range_cu(struct gkyl_array *out,
   double a, const struct gkyl_array* inp, struct gkyl_range range)
 {
-  gkyl_array_set_range_cu_kernel<<<range.nblocks, range.nthreads>>>(out->on_device, a, inp->on_device, range);
+  int nthreads = out->ncomp;
+  int nblocks = range.volume;
+  gkyl_array_set_range_cu_kernel<<<nblocks, nthreads>>>(out->on_device, a, inp->on_device, range);
 }
 
 void
 gkyl_array_scale_range_cu(struct gkyl_array *out,
   double a, struct gkyl_range range)
 {
-  gkyl_array_set_range_cu_kernel<<<range.nblocks, range.nthreads>>>(out->on_device, a, out->on_device, range);
+  int nthreads = out->ncomp;
+  int nblocks = range.volume;
+  gkyl_array_set_range_cu_kernel<<<nblocks, nthreads>>>(out->on_device, a, out->on_device, range);
 }
 
 void
 gkyl_array_copy_range_cu(struct gkyl_array *out,
   const struct gkyl_array *inp, struct gkyl_range range)
 {
-  gkyl_array_copy_range_cu_kernel<<<range.nblocks, range.nthreads>>>(out->on_device, inp->on_device, range, range);
+  int nthreads = inp->ncomp;
+  int nblocks = range.volume;
+  gkyl_array_copy_range_cu_kernel<<<nblocks, nthreads>>>(out->on_device, inp->on_device, range, range);
 }
 
 void
