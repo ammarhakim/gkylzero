@@ -13,6 +13,7 @@ struct twostream_inp {
   double charge, mass; // for electrons
   int conf_cells, vel_cells;
   double vel_extents[2];
+  bool use_gpu;
 };
 
 struct twostream_ctx {
@@ -54,7 +55,8 @@ create_twostream_inp(rxi_ini_t *inp)
 {
   struct twostream_inp tsinp = {
     .charge = -1.0,
-    .mass = 1.0
+    .mass = 1.0,
+    .use_gpu = false,
   };
 
   int read_failed = 0;
@@ -67,6 +69,7 @@ create_twostream_inp(rxi_ini_t *inp)
     fprintf(stderr, "Must provide 'cells' in section '[conf-grid]'!\n");
     read_failed = 1;
   }
+  rxi_ini_sget(inp, "conf-grid", "use_gpu", "%d", &tsinp.use_gpu);
 
   rxi_ini_sget(inp, "electrons", "charge", "%lg", &tsinp.charge);
   rxi_ini_sget(inp, "electrons", "mass", "%lg", &tsinp.mass);
@@ -161,7 +164,7 @@ main(int argc, char **argv)
     .mgnErrorSpeedFactor = 0.0,
     .evolve = 1,
     .ctx = &ctx,
-    .init = evalFieldFunc
+    .init = evalFieldFunc,
   };
 
   // VM app
@@ -177,7 +180,9 @@ main(int argc, char **argv)
 
     .num_species = 1,
     .species = { elc },
-    .field = field
+    .field = field,
+
+    .use_gpu = tsinp.use_gpu,
   };
   // construct sim name based on input file name
   const char *inp_last_slash = strrchr(inp_name, '/');
