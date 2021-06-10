@@ -146,6 +146,7 @@ struct moment_inp {
   int cdim, vdim, poly_order;
   int ccells[3], vcells[3];
   int nloop;
+  bool use_gpu;
   evalf_t eval; // function to project
 };
 
@@ -153,12 +154,13 @@ struct moment_inp
 get_inp(int argc, char **argv)
 {
   int c, cdim = 2, vdim = 2, poly_order = 2, nloop = 10;
+  bool use_gpu = false;
   evalf_t eval = evalDistFunc2x2v;
   while ((c = getopt(argc, argv, "+hc:v:p:n:")) != -1) {
     switch (c)
     {
       case 'h':
-        printf("Usage: app_vlasov_moments -c CDIM -v VDIM -p POLYORDER -n NLOOP\n");
+        printf("Usage: app_vlasov_moments -c CDIM -v VDIM -p POLYORDER -n NLOOP -g\n");
         exit(-1);
         break;
       
@@ -177,6 +179,10 @@ get_inp(int argc, char **argv)
       case 'n':
         nloop = atoi(optarg);
         break;          
+
+      case 'g':
+        use_gpu = true;
+        break;
 
       case '?':
         break;
@@ -202,6 +208,7 @@ get_inp(int argc, char **argv)
     .vcells = { 16, 16, 16 },
     .nloop = nloop,
     .eval = eval,
+    .use_gpu = use_gpu,
    };
 }
 
@@ -210,7 +217,15 @@ main(int argc, char **argv)
 {
   struct moment_inp inp = get_inp(argc, argv);
 
-  printf("Running moment calculation with:\n");
+#ifdef GKYL_HAVE_CUDA
+  if (inp.use_gpu)
+    printf("Running moment calculation on GPU with:\n");
+  else
+    printf("Running moment calculation on CPU with:\n");
+#else
+  printf("Running moment calculation on CPU with:\n");
+#endif
+
   printf("cdim = %d; vdim = %d; polyOrder = %d\n", inp.cdim, inp.vdim, inp.poly_order);
   printf("cells = [");
   for (int d=0; d<inp.cdim; ++d)
