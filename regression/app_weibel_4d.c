@@ -1,5 +1,7 @@
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include <gkyl_vlasov.h>
 
@@ -63,7 +65,7 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 }
 
 struct weibel_ctx
-create_ctx(void)
+create_ctx(int argc, char **argv)
 {
   double ud = 0.3;
   double k0 = 1.0, theta = 45.0/180.0*M_PI;
@@ -74,7 +76,26 @@ create_ctx(void)
   double TElc20 = TElc10;
   double vthElc10 = sqrt(TElc10/massElc);
   double vthElc20 = sqrt(TElc20/massElc);  
+
   bool use_gpu = false;
+
+  int c;
+  while ((c = getopt(argc, argv, "+hgc:v:p:n:")) != -1) {
+    switch (c)
+    {
+      case 'h':
+        printf("Usage: Pass -g to run on GPU \n");
+        exit(-1);
+        break;
+
+      case 'g':
+        use_gpu = true;
+        break;        
+      
+      case '?':
+        break;
+    }
+  }  
   
   struct weibel_ctx ctx = {
     .nElc10 = 0.5,
@@ -97,7 +118,7 @@ create_ctx(void)
 int
 main(int argc, char **argv)
 {
-  struct weibel_ctx ctx = create_ctx(); // context for init functions
+  struct weibel_ctx ctx = create_ctx(argc, argv); // context for init functions
 
   // electrons
   struct gkyl_vlasov_species elc = {
