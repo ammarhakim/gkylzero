@@ -154,7 +154,7 @@ get_inp(int argc, char **argv)
 {
   int c, cdim = 2, vdim = 2, poly_order = 2, nloop = 10;
   evalf_t eval = evalDistFunc2x2v;
-  while ((c = getopt(argc, argv, "+hc:v:p:n:")) != -1)
+  while ((c = getopt(argc, argv, "+hc:v:p:n:")) != -1) {
     switch (c)
     {
       case 'h':
@@ -181,26 +181,19 @@ get_inp(int argc, char **argv)
       case '?':
         break;
     }
+  }
+  
   if (cdim == 1 && vdim == 1)
-  {
     eval = evalDistFunc1x1v;
-  }
   else if (cdim == 1 && vdim == 2)
-  {
     eval = evalDistFunc1x2v;
-  }
   else if (cdim == 1 && vdim == 3)
-  {
     eval = evalDistFunc1x3v;
-  }
   else if (cdim == 2 && vdim == 3)
-  {
     eval = evalDistFunc2x3v;
-  }
   else if (cdim == 3 && vdim == 3)
-  {
     eval = evalDistFunc3x3v;
-  }
+  
   return (struct moment_inp) {
     .cdim = cdim,
     .vdim = vdim,
@@ -209,7 +202,7 @@ get_inp(int argc, char **argv)
     .vcells = { 16, 16, 16 },
     .nloop = nloop,
     .eval = eval,
-  };
+   };
 }
 
 int

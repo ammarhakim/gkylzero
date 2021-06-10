@@ -33,7 +33,7 @@ get_inp(int argc, char **argv)
 {
   int c, cdim = 2, vdim = 2, poly_order = 2, nloop = 10;
   bool use_gpu = false;
-  while ((c = getopt(argc, argv, "+hgc:v:p:n:")) != -1)
+  while ((c = getopt(argc, argv, "+hgc:v:p:n:")) != -1) {
     switch (c)
     {
       case 'h':
@@ -64,6 +64,7 @@ get_inp(int argc, char **argv)
       case '?':
         break;
     }
+  }
   
   return (struct kerntm_inp) {
     .cdim = cdim,
