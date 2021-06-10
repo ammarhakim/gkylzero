@@ -108,7 +108,7 @@ check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_fv_proj
 	./build/unit/ctest_gauss_quad
 	./build/unit/ctest_hyper_dg
-	./build/unit/ctest_mom_cal
+	./build/unit/ctest_mom_calc
 	./build/unit/ctest_proj_on_basis
 	./build/unit/ctest_range
 	./build/unit/ctest_rect_apply_bc
