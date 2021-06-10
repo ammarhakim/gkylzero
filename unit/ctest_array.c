@@ -324,7 +324,7 @@ void test_array_ops_comp() // more than 1 "component" in array
   gkyl_array_release(arr);
 }
 
-void test_array_copy()
+void test_array_copy_buffer()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -363,6 +363,55 @@ void test_array_copy()
 
   gkyl_array_release(arr);
   gkyl_free(buff);
+}
+
+void test_array_copy_range()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 10, range.volume);
+  struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 10, range.volume);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    double *d = gkyl_array_fetch(a1, gkyl_range_idx(&range, iter.idx));
+    d[0] = iter.idx[0] + 10.5*iter.idx[1];
+  }
+
+  // copy the contents of a1 into a2 over the specified range
+  gkyl_array_copy_range(a2, a1, range);
+  
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    double *d = gkyl_array_fetch(a2, gkyl_range_idx(&range, iter.idx));
+    TEST_CHECK( d[0]  == iter.idx[0] + 10.5*iter.idx[1] );
+  }
+
+  // clear array for second test
+  gkyl_array_clear(a2, 0.0);
+  // initialize left sub-range
+  int lower_l[] = {range.lower[0], range.lower[1]}, upper_l[] = {range.lower[0], range.upper[1]};
+  struct gkyl_range sub_range_l;
+  gkyl_sub_range_init(&sub_range_l, &range, lower_l, upper_l);
+  
+  // initialize right sub-range
+  int lower_r[] = {range.upper[0], range.lower[1]}, upper_r[] = {range.upper[0], range.upper[1]};
+  struct gkyl_range sub_range_r;
+  gkyl_sub_range_init(&sub_range_r, &range, lower_r, upper_r);
+
+  gkyl_array_copy_range_to_range(a2, a1, sub_range_r, sub_range_l);
+
+  gkyl_range_iter_init(&iter, &sub_range_r);
+  while (gkyl_range_iter_next(&iter)) {
+    double *d = gkyl_array_fetch(a2, gkyl_range_idx(&sub_range_r, iter.idx));
+    TEST_CHECK( d[0]  == iter.idx[0] + 10.5*iter.idx[1] );
+  }
+
+  gkyl_array_release(a1);
+  gkyl_array_release(a2);
 }
 
 void test_array_copy_split()
@@ -899,7 +948,7 @@ void test_cu_array_scale()
   gkyl_array_release(a1_cu);
 }
 
-void test_cu_array_copy()
+void test_cu_array_copy_buffer()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -944,6 +993,69 @@ void test_cu_array_copy()
   gkyl_cu_free(buff_cu);
 }
 
+void test_cu_array_copy_range()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 10, range.volume);
+  struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 10, range.volume);
+
+  // make device copies of arrays
+  struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 10, range.volume);
+  struct gkyl_array *a2_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 10, range.volume);  
+  
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    double *d = gkyl_array_fetch(a1, gkyl_range_idx(&range, iter.idx));
+    d[0] = iter.idx[0] + 10.5*iter.idx[1];
+  }
+
+  // copy host array to device
+  gkyl_array_copy(a1_cu, a1);
+  gkyl_array_copy(a2_cu, a2);
+
+  // copy the contents of a1 into a2 over the specified range
+  gkyl_array_copy_range_cu(a2_cu, a1_cu, range);
+
+  /// copy back to host to check contents
+  gkyl_array_copy(a2, a2_cu);
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    double *d = gkyl_array_fetch(a2, gkyl_range_idx(&range, iter.idx));
+    TEST_CHECK( d[0]  == iter.idx[0] + 10.5*iter.idx[1] );
+  }
+
+  // clear array for second test
+  gkyl_array_clear_cu(a2_cu, 0.0);
+  // initialize left sub-range
+  int lower_l[] = {range.lower[0], range.lower[1]}, upper_l[] = {range.lower[0], range.upper[1]};
+  struct gkyl_range sub_range_l;
+  gkyl_sub_range_init(&sub_range_l, &range, lower_l, upper_l);
+  
+  // initialize right sub-range
+  int lower_r[] = {range.upper[0], range.lower[1]}, upper_r[] = {range.upper[0], range.upper[1]};
+  struct gkyl_range sub_range_r;
+  gkyl_sub_range_init(&sub_range_r, &range, lower_r, upper_r);
+
+  gkyl_array_copy_range_to_range_cu(a2_cu, a1_cu, sub_range_r, sub_range_l);
+
+  // copy back to host to check contents
+  gkyl_array_copy(a2, a2_cu);
+  gkyl_range_iter_init(&iter, &sub_range_r);
+  while (gkyl_range_iter_next(&iter)) {
+    double *d = gkyl_array_fetch(a2, gkyl_range_idx(&sub_range_r, iter.idx));
+//    TEST_CHECK( d[0]  == iter.idx[0] + 10.5*iter.idx[1] );
+  }
+
+  gkyl_array_release(a1);
+  gkyl_array_release(a2);
+  gkyl_array_release(a1_cu);
+  gkyl_array_release(a2_cu);
+}
+
 #endif
 
 TEST_LIST = {
@@ -959,7 +1071,8 @@ TEST_LIST = {
   { "array_scale", test_array_scale },
   { "array_opcombine", test_array_opcombine },
   { "array_ops_comp", test_array_ops_comp },
-  { "array_copy", test_array_copy },
+  { "array_copy_buffer", test_array_copy_buffer },
+  { "array_copy_range", test_array_copy_range},
   { "array_copy_split", test_array_copy_split },
   { "non_numeric", test_non_numeric },
   { "reduce", test_reduce },
@@ -974,7 +1087,8 @@ TEST_LIST = {
   { "cu_array_set", test_cu_array_set },
   { "cu_array_set_range", test_cu_array_set_range },
   { "cu_array_scale", test_cu_array_scale },
-  { "cu_array_copy", test_cu_array_copy },
+  { "cu_array_copy_buffer", test_cu_array_copy_buffer },
+  { "cu_array_copy_range", test_cu_array_copy_range },
   { "cu_array_dev_kernel", test_cu_array_dev_kernel },
 #endif
   { NULL, NULL },
