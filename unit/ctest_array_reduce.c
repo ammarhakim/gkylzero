@@ -1,6 +1,7 @@
 #include <acutest.h>
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
+#include <gkyl_array_ops.h>
 #include <gkyl_array_reduce.h>
 #include <gkyl_util.h>
 
@@ -26,7 +27,7 @@ void test_cu_array_reduce_max()
   double* a1max_cu = (double*) gkyl_cu_malloc(numComp*sizeof(double));
 
   // component-wise reduce array and copy the result back to host 
-  gkyl_array_reduce_max_cu(a1_cu, a1max_cu);
+  gkyl_array_reduce(a1_cu, GKYL_MAX, a1max_cu);
 
   // copy to host and check values.
   gkyl_cu_memcpy(a1max, a1max_cu, numComp*sizeof(double), GKYL_CU_MEMCPY_D2H);
@@ -36,7 +37,7 @@ void test_cu_array_reduce_max()
   }
 
   gkyl_free(a1max);
-  // gkyl_free(a1max_cu); // this seg faults.
+  gkyl_cu_free(a1max_cu);
   gkyl_array_release(a1);
   gkyl_array_release(a1_cu);
 

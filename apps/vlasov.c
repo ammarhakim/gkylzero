@@ -56,6 +56,8 @@ struct vm_species {
 
   struct gkyl_dg_eqn *eqn; // Vlasov equation
   gkyl_hyper_dg *slvr; // solver 
+
+  double* omegaCfl_ptr;
 };
 
 // field data
@@ -72,6 +74,8 @@ struct vm_field {
 
   struct gkyl_dg_eqn *eqn; // Maxwell equation
   gkyl_hyper_dg *slvr; // solver
+
+  double* omegaCfl_ptr;
 };
 
 // Vlasov object: used as opaque pointer in user code
@@ -225,6 +229,10 @@ vm_field_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_field *
   // allocate cflrate (scalar array)
   f->cflrate = mkarr(app->use_gpu, 1, app->local_ext.volume);
   f->maxs_by_cell = mkarr(app->use_gpu, app->cdim, app->local_ext.volume);
+  if(app->use_gpu)
+    f->omegaCfl_ptr = gkyl_cu_malloc_host(sizeof(double));
+  else
+    f->omegaCfl_ptr = gkyl_malloc(sizeof(double));
 
   // equation object
   double c = 1/sqrt(f->info.epsilon0*f->info.mu0);
@@ -264,9 +272,9 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
   else
     gkyl_hyper_dg_advance(field->slvr, app->local, em, field->cflrate, rhs, field->maxs_by_cell);
 
-  double omegaCfl;
-  gkyl_array_reduce(field->cflrate, GKYL_MAX, &omegaCfl);
+  gkyl_array_reduce(field->cflrate, GKYL_MAX, field->omegaCfl_ptr);
   gkyl_array_reduce_range(field->slvr->maxs, field->maxs_by_cell, GKYL_MAX, app->local);
+  double omegaCfl = field->omegaCfl_ptr[0];
 
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
   
@@ -326,10 +334,12 @@ vm_field_release(const gkyl_vlasov_app* app, const struct vm_field *f)
 
   if (app->use_gpu) {
     gkyl_array_release(f->em_host);
+    gkyl_cu_free_host(f->omegaCfl_ptr);
   }
   else {
     gkyl_dg_eqn_release(f->eqn);
     gkyl_hyper_dg_release(f->slvr);
+    gkyl_free(f->omegaCfl_ptr);
   }
 }
 
@@ -372,6 +382,10 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   // allocate cflrate (scalar array) and maxs
   s->cflrate = mkarr(app->use_gpu, 1, s->local_ext.volume);
   s->maxs_by_cell = mkarr(app->use_gpu, pdim, s->local_ext.volume);
+  if(app->use_gpu)
+    s->omegaCfl_ptr = gkyl_cu_malloc_host(sizeof(double));
+  else
+    s->omegaCfl_ptr = gkyl_malloc(sizeof(double));
 
   // allocate buffer for applying periodic BCs
   long buff_sz = 0;
@@ -436,9 +450,9 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   else
     gkyl_hyper_dg_advance(species->slvr, species->local, fin, species->cflrate, rhs, species->maxs_by_cell);
 
-  double omegaCfl;
-  gkyl_array_reduce(species->cflrate, GKYL_MAX, &omegaCfl);
+  gkyl_array_reduce(species->cflrate, GKYL_MAX, species->omegaCfl_ptr);
   gkyl_array_reduce_range(species->slvr->maxs, species->maxs_by_cell, GKYL_MAX, species->local);
+  double omegaCfl = species->omegaCfl_ptr[0];
 
   app->stat.species_rhs_tm += gkyl_time_diff_now_sec(wst);
   
@@ -507,9 +521,11 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   gkyl_free(s->moms);
 
   if (app->use_gpu) {
+    gkyl_cu_free_host(s->omegaCfl_ptr);
     // TODO: NOT SURE HOW TO RELEASE ON DEVICE YET
   }
   else {
+    gkyl_free(s->omegaCfl_ptr);
     gkyl_dg_eqn_release(s->eqn);
     gkyl_hyper_dg_release(s->slvr);
   }

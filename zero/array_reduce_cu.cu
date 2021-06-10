@@ -110,6 +110,7 @@ gkyl_array_reduce_max_cu(const struct gkyl_array* inp, double *out_d)
   const int blockSize = GKYL_DEFAULT_NUM_THREADS;
 
   arrayMax_blockRedAtomic_cub<blockSize><<<iDivUp(numCells, blockSize), blockSize>>>(inp->on_device, out_d);
+  cudaDeviceSynchronize();
 }
 
 void
