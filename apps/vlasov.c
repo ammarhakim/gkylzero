@@ -36,6 +36,7 @@ struct vm_species_moment {
   struct gkyl_mom_type *mtype;
   gkyl_mom_calc *mcalc;
   struct gkyl_array *marr;
+  struct gkyl_array *marr_host;  
 };
 
 // species data
@@ -163,16 +164,29 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   
   sm->mtype = gkyl_vlasov_mom_new(&app->confBasis, &app->basis, nm);
   sm->mcalc = gkyl_mom_calc_new(&s->grid, sm->mtype);
-  sm->marr = mkarr(false, sm->mtype->num_mom*app->confBasis.numBasis,
+  sm->marr = mkarr(app->use_gpu, sm->mtype->num_mom*app->confBasis.numBasis,
     app->local_ext.volume);
+
+  sm->marr_host = sm->marr;
+  if (app->use_gpu)
+    sm->marr_host = mkarr(false, sm->mtype->num_mom*app->confBasis.numBasis,
+      app->local_ext.volume);
 }
 
 // release memory for moment data object
 static void
-vm_species_moment_release(const struct vm_species_moment *sm)
+vm_species_moment_release(const struct gkyl_vlasov_app *app, const struct vm_species_moment *sm)
 {
-  gkyl_mom_type_release(sm->mtype);
-  gkyl_mom_calc_release(sm->mcalc);
+  if (app->use_gpu) {
+    // TODO: release dev objects
+
+    gkyl_array_release(sm->marr_host);
+  }
+  else {
+    gkyl_mom_type_release(sm->mtype);
+    gkyl_mom_calc_release(sm->mcalc);
+  }
+  
   gkyl_array_release(sm->marr);
 }
 
@@ -197,8 +211,7 @@ vm_field_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_field *
     long vol = app->skin_ghost.lower_skin[d].volume;
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
-  //f->bc_buffer = mkarr(app->use_gpu, 8*app->confBasis.numBasis, buff_sz);
-  f->bc_buffer = mkarr(false, 8*app->confBasis.numBasis, buff_sz);
+  f->bc_buffer = mkarr(app->use_gpu, 8*app->confBasis.numBasis, buff_sz);
 
   // allocate cflrate (scalar array)
   f->cflrate = mkarr(app->use_gpu, 1, app->local_ext.volume);
@@ -355,9 +368,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     long vol = s->skin_ghost.lower_skin[d].volume;
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
-  //s->bc_buffer = mkarr(app->use_gpu, app->basis.numBasis, buff_sz);
-  s->bc_buffer = mkarr(false, app->basis.numBasis, buff_sz);
-
+  s->bc_buffer = mkarr(app->use_gpu, app->basis.numBasis, buff_sz);
+  
   // allocate data for momentum (for use in current accumulation)
   vm_species_moment_init(app, s, &s->m1i, "M1i");
 
@@ -474,9 +486,9 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   }
 
   // release moment data
-  vm_species_moment_release(&s->m1i);
+  vm_species_moment_release(app, &s->m1i);
   for (int i=0; i<s->info.num_diag_moments; ++i)
-    vm_species_moment_release(&s->moms[i]);
+    vm_species_moment_release(app, &s->moms[i]);
   gkyl_free(s->moms);
 
   if (app->use_gpu) {
@@ -566,11 +578,12 @@ gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
     poly_order+1, 8, app->field.info.init, app->field.info.ctx);
 
   gkyl_proj_on_basis_advance(proj, t0, &app->local, app->field.em_host);
-  vm_field_apply_bc(app, &app->field, app->field.em_host);
   gkyl_proj_on_basis_release(proj);
-
+ 
   if (app->use_gpu)
     gkyl_array_copy(app->field.em, app->field.em_host);
+  
+  vm_field_apply_bc(app, &app->field, app->field.em);  
 }
 
 void
@@ -585,10 +598,11 @@ gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0)
 
   gkyl_proj_on_basis_advance(proj, t0, &app->species[sidx].local, app->species[sidx].f_host);
   gkyl_proj_on_basis_release(proj);
-  //vm_species_apply_bc(app, &app->species[sidx], app->species[sidx].f_host);
 
   if (app->use_gpu)
     gkyl_array_copy(app->species[sidx].f, app->species[sidx].f_host);
+
+  vm_species_apply_bc(app, &app->species[sidx], app->species[sidx].f);
 }
 
 void
@@ -661,8 +675,11 @@ gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
       char fileNm[sz+1]; // ensures no buffer overflow  
       snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
         app->species[i].info.diag_moments[m], frame);
+
+      if (app->use_gpu)
+        gkyl_array_copy(app->species[i].moms[m].marr_host, app->species[i].moms[m].marr);
       
-      gkyl_grid_array_write(&app->grid, &app->local, app->species[i].moms[m].marr, fileNm);
+      gkyl_grid_array_write(&app->grid, &app->local, app->species[i].moms[m].marr_host, fileNm);
     }
   }
 }
