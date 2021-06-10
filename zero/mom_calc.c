@@ -2,6 +2,8 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_mom_calc.h>
 
+#include <assert.h>
+
 gkyl_mom_calc*
 gkyl_mom_calc_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_mom_type *momt)
@@ -79,3 +81,15 @@ void gkyl_mom_calc_release(gkyl_mom_calc* up)
   gkyl_mom_type_release(up->momt);
   gkyl_free(up);
 }
+
+#ifndef GKYL_HAVE_CUDA
+
+void
+gkyl_mom_calc_advance_cu(const gkyl_mom_calc* mcalc,
+  const struct gkyl_range phase_range, const struct gkyl_range conf_range,
+  const struct gkyl_array* GKYL_RESTRICT fin, struct gkyl_array* GKYL_RESTRICT mout)
+{
+  assert(false);
+}
+
+#endif

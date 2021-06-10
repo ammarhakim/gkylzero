@@ -82,3 +82,15 @@ gkyl_vlasov_mom_new(const struct gkyl_basis* cbasis,
     
   return momt;
 }
+
+#ifndef GKYL_HAVE_CUDA
+
+struct gkyl_mom_type*
+gkyl_vlasov_mom_cu_dev_new(const struct gkyl_basis* cbasis,
+  const struct gkyl_basis* pbasis, const char *mom)
+{
+  assert(false);
+  return 0;
+}
+
+#endif
