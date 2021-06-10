@@ -169,18 +169,19 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
     sm->mcalc = gkyl_mom_calc_cu_dev_new(&s->grid, sm->mtype);
 
     sm->marr = mkarr(app->use_gpu, mtype_host->num_mom*app->confBasis.numBasis,
-        app->local_ext.volume);
+      app->local_ext.volume);
 
     sm->marr_host = mkarr(false, mtype_host->num_mom*app->confBasis.numBasis,
       app->local_ext.volume);
 
     gkyl_mom_type_release(mtype_host);
-  } else {
+  }
+  else {
     sm->mtype = gkyl_vlasov_mom_new(&app->confBasis, &app->basis, nm);
     sm->mcalc = gkyl_mom_calc_new(&s->grid, sm->mtype);
 
     sm->marr = mkarr(app->use_gpu, sm->mtype->num_mom*app->confBasis.numBasis,
-        app->local_ext.volume);
+      app->local_ext.volume);
 
     sm->marr_host = sm->marr;
   }
@@ -229,7 +230,7 @@ vm_field_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_field *
   // allocate cflrate (scalar array)
   f->cflrate = mkarr(app->use_gpu, 1, app->local_ext.volume);
   f->maxs_by_cell = mkarr(app->use_gpu, app->cdim, app->local_ext.volume);
-  if(app->use_gpu)
+  if (app->use_gpu)
     f->omegaCfl_ptr = gkyl_cu_malloc_host(sizeof(double));
   else
     f->omegaCfl_ptr = gkyl_malloc(sizeof(double));
@@ -267,7 +268,7 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
   gkyl_array_clear(field->cflrate, 0.0);
 
   gkyl_array_clear(rhs, 0.0);
-  if(app->use_gpu)
+  if (app->use_gpu)
     gkyl_hyper_dg_advance_cu(field->slvr, app->local, em, field->cflrate, rhs, field->maxs_by_cell);
   else
     gkyl_hyper_dg_advance(field->slvr, app->local, em, field->cflrate, rhs, field->maxs_by_cell);
@@ -382,7 +383,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   // allocate cflrate (scalar array) and maxs
   s->cflrate = mkarr(app->use_gpu, 1, s->local_ext.volume);
   s->maxs_by_cell = mkarr(app->use_gpu, pdim, s->local_ext.volume);
-  if(app->use_gpu)
+  if (app->use_gpu)
     s->omegaCfl_ptr = gkyl_cu_malloc_host(sizeof(double));
   else
     s->omegaCfl_ptr = gkyl_malloc(sizeof(double));
@@ -445,7 +446,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   gkyl_vlasov_set_qmem(species->eqn, qmem); // must set EM fields to use
   
   gkyl_array_clear(rhs, 0.0);
-  if(app->use_gpu)
+  if (app->use_gpu)
     gkyl_hyper_dg_advance_cu(species->slvr, species->local, fin, species->cflrate, rhs, species->maxs_by_cell);
   else
     gkyl_hyper_dg_advance(species->slvr, species->local, fin, species->cflrate, rhs, species->maxs_by_cell);
@@ -549,7 +550,6 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
 
 #ifdef GKYL_HAVE_CUDA
   app->use_gpu = vm.use_gpu;
-  if(app->use_gpu) printf("Running calculation on GPU\n");
 #else
   app->use_gpu = false; // can't use GPUs if we don't have them!
 #endif
@@ -644,7 +644,7 @@ gkyl_vlasov_app_calc_mom(gkyl_vlasov_app* app)
     struct vm_species *s = &app->species[i];
     
     for (int m=0; m<app->species[i].info.num_diag_moments; ++m)
-      if(app->use_gpu)
+      if (app->use_gpu)
         gkyl_mom_calc_advance_cu(s->moms[m].mcalc, s->local, app->local,
           s->f, s->moms[m].marr);
       else
@@ -769,7 +769,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   // accumulate current contribution to electric field terms
   for (int i=0; i<app->num_species; ++i) {
     struct vm_species *s = &app->species[i];    
-    if(app->use_gpu)
+    if (app->use_gpu)
       gkyl_mom_calc_advance_cu(s->m1i.mcalc, s->local, app->local,
         fin[i], s->m1i.marr);
     else
@@ -920,12 +920,12 @@ gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
     const struct gkyl_array *fin = species->f;
     struct gkyl_array *rhs = species->f1;
 
-    if(app->use_gpu)
+    if (app->use_gpu)
       gkyl_hyper_dg_set_update_vol_cu(species->slvr, update_vol_term);
     else
       gkyl_hyper_dg_set_update_vol(species->slvr, update_vol_term);
     gkyl_array_clear_range(rhs, 0.0, species->local);
-    if(app->use_gpu)
+    if (app->use_gpu)
       gkyl_hyper_dg_advance_cu(species->slvr, species->local, fin,
         species->cflrate, rhs, species->maxs_by_cell);
     else
