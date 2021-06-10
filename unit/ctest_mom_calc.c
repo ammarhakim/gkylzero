@@ -120,9 +120,9 @@ test_1x1v_p1()
   m2 = mkarr(confBasis.numBasis, confLocal_ext.volume);
   
   // compute the moments
-  gkyl_mom_calc_advance(m0calc, &local, &confLocal, distf, m0);
-  gkyl_mom_calc_advance(m1icalc, &local, &confLocal, distf, m1i);
-  gkyl_mom_calc_advance(m2calc, &local, &confLocal, distf, m2);
+  gkyl_mom_calc_advance(m0calc, local, confLocal, distf, m0);
+  gkyl_mom_calc_advance(m1icalc, local, confLocal, distf, m1i);
+  gkyl_mom_calc_advance(m2calc, local, confLocal, distf, m2);
  
   // Check M0.
   double *m00 = gkyl_array_fetch(m0, 0+confGhost[0]); double *m01 = gkyl_array_fetch(m0, 1+confGhost[0]);
@@ -240,9 +240,9 @@ test_1x2v_p1()
   m2 = mkarr(confBasis.numBasis, confLocal_ext.volume);
 
   // compute the moments
-  gkyl_mom_calc_advance(m0calc, &local, &confLocal, distf, m0);
-  gkyl_mom_calc_advance(m1icalc, &local, &confLocal, distf, m1i);
-  gkyl_mom_calc_advance(m2calc, &local, &confLocal, distf, m2);
+  gkyl_mom_calc_advance(m0calc, local, confLocal, distf, m0);
+  gkyl_mom_calc_advance(m1icalc, local, confLocal, distf, m1i);
+  gkyl_mom_calc_advance(m2calc, local, confLocal, distf, m2);
  
   // Check M0.
   for (unsigned int i=0; i<cells[0]; ++i) {
@@ -342,9 +342,9 @@ test_2x2v_p1()
   m2 = mkarr(confBasis.numBasis, confLocal_ext.volume);
 
   // compute the moments
-  gkyl_mom_calc_advance(m0calc, &local, &confLocal, distf, m0);
-  gkyl_mom_calc_advance(m1icalc, &local, &confLocal, distf, m1i);
-  gkyl_mom_calc_advance(m2calc, &local, &confLocal, distf, m2);
+  gkyl_mom_calc_advance(m0calc, local, confLocal, distf, m0);
+  gkyl_mom_calc_advance(m1icalc, local, confLocal, distf, m1i);
+  gkyl_mom_calc_advance(m2calc, local, confLocal, distf, m2);
  
   // Check M0.
   for (unsigned int i=0; i<cells[0]; ++i) {
@@ -447,9 +447,9 @@ test_2x3v_p1()
   m2 = mkarr(confBasis.numBasis, confLocal_ext.volume);
 
   // compute the moments
-  gkyl_mom_calc_advance(m0calc, &local, &confLocal, distf, m0);
-  gkyl_mom_calc_advance(m1icalc, &local, &confLocal, distf, m1i);
-  gkyl_mom_calc_advance(m2calc, &local, &confLocal, distf, m2);
+  gkyl_mom_calc_advance(m0calc, local, confLocal, distf, m0);
+  gkyl_mom_calc_advance(m1icalc, local, confLocal, distf, m1i);
+  gkyl_mom_calc_advance(m2calc, local, confLocal, distf, m2);
  
   // Check M0.
   for (unsigned int i=0; i<cells[0]; ++i) {

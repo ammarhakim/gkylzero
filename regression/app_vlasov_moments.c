@@ -156,7 +156,7 @@ get_inp(int argc, char **argv)
   int c, cdim = 2, vdim = 2, poly_order = 2, nloop = 10;
   bool use_gpu = false;
   evalf_t eval = evalDistFunc2x2v;
-  while ((c = getopt(argc, argv, "+hc:v:p:n:")) != -1) {
+  while ((c = getopt(argc, argv, "+hgc:v:p:n:")) != -1) {
     switch (c)
     {
       case 'h':
@@ -266,7 +266,9 @@ main(int argc, char **argv)
 
     .num_species = 1,
     .species = { elc },
-    .field = field
+    .field = field,
+
+    .use_gpu = inp.use_gpu,
   };
 
   // create app object

@@ -19,9 +19,6 @@
 #include <gkyl_vlasov.h>
 #include <gkyl_vlasov_mom.h>
 
-// Funny looking macro to construct function name
-#define G_HD(func) ( app->use_gpu ? func##_cu : func)
-
 // ranges for use in BCs
 struct skin_ghost_ranges {
   struct gkyl_range lower_skin[GKYL_MAX_DIM];
@@ -162,15 +159,27 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
 {
   assert(is_moment_name_valid(nm));
   
-  sm->mtype = gkyl_vlasov_mom_new(&app->confBasis, &app->basis, nm);
-  sm->mcalc = gkyl_mom_calc_new(&s->grid, sm->mtype);
-  sm->marr = mkarr(app->use_gpu, sm->mtype->num_mom*app->confBasis.numBasis,
-    app->local_ext.volume);
+  if (app->use_gpu) {
+    struct gkyl_mom_type *mtype_host = gkyl_vlasov_mom_new(&app->confBasis, &app->basis, nm);
+  //  sm->mtype = gkyl_vlasov_mom_cu_dev_new(&app->confBasis, &app->basis, nm);
+  //  sm->mcalc = gkyl_mom_calc_cu_dev_new(&s->grid, sm->mtype);
 
-  sm->marr_host = sm->marr;
-  if (app->use_gpu)
-    sm->marr_host = mkarr(false, sm->mtype->num_mom*app->confBasis.numBasis,
+    sm->marr = mkarr(app->use_gpu, mtype_host->num_mom*app->confBasis.numBasis,
+        app->local_ext.volume);
+
+    sm->marr_host = mkarr(false, mtype_host->num_mom*app->confBasis.numBasis,
       app->local_ext.volume);
+
+    gkyl_mom_type_release(mtype_host);
+  } else {
+    sm->mtype = gkyl_vlasov_mom_new(&app->confBasis, &app->basis, nm);
+    sm->mcalc = gkyl_mom_calc_new(&s->grid, sm->mtype);
+
+    sm->marr = mkarr(app->use_gpu, sm->mtype->num_mom*app->confBasis.numBasis,
+        app->local_ext.volume);
+
+    sm->marr_host = sm->marr;
+  }
 }
 
 // release memory for moment data object
@@ -250,7 +259,10 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
   gkyl_array_clear(field->cflrate, 0.0);
 
   gkyl_array_clear(rhs, 0.0);
-  gkyl_hyper_dg_advance(field->slvr, app->local, em, field->cflrate, rhs, field->maxs_by_cell);
+  if(app->use_gpu)
+    gkyl_hyper_dg_advance_cu(field->slvr, app->local, em, field->cflrate, rhs, field->maxs_by_cell);
+  else
+    gkyl_hyper_dg_advance(field->slvr, app->local, em, field->cflrate, rhs, field->maxs_by_cell);
 
   double omegaCfl;
   gkyl_array_reduce(field->cflrate, GKYL_MAX, &omegaCfl);
@@ -419,7 +431,10 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   gkyl_vlasov_set_qmem(species->eqn, qmem); // must set EM fields to use
   
   gkyl_array_clear(rhs, 0.0);
-  gkyl_hyper_dg_advance(species->slvr, species->local, fin, species->cflrate, rhs, species->maxs_by_cell);
+  if(app->use_gpu)
+    gkyl_hyper_dg_advance_cu(species->slvr, species->local, fin, species->cflrate, rhs, species->maxs_by_cell);
+  else
+    gkyl_hyper_dg_advance(species->slvr, species->local, fin, species->cflrate, rhs, species->maxs_by_cell);
 
   double omegaCfl;
   gkyl_array_reduce(species->cflrate, GKYL_MAX, &omegaCfl);
@@ -521,7 +536,7 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
 #else
   app->use_gpu = false; // can't use GPUs if we don't have them!
 #endif
-
+  
   app->num_periodic_dir = vm.num_periodic_dir;
   for (int d=0; d<cdim; ++d)
     app->periodic_dirs[d] = vm.periodic_dirs[d];
@@ -612,8 +627,12 @@ gkyl_vlasov_app_calc_mom(gkyl_vlasov_app* app)
     struct vm_species *s = &app->species[i];
     
     for (int m=0; m<app->species[i].info.num_diag_moments; ++m)
-      gkyl_mom_calc_advance(s->moms[m].mcalc, &s->local, &app->local,
-        s->f, s->moms[m].marr);
+      if(app->use_gpu)
+        gkyl_mom_calc_advance_cu(s->moms[m].mcalc, s->local, app->local,
+          s->f, s->moms[m].marr);
+      else
+        gkyl_mom_calc_advance(s->moms[m].mcalc, s->local, app->local,
+          s->f, s->moms[m].marr);
   }
 }
 
@@ -733,8 +752,12 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   // accumulate current contribution to electric field terms
   for (int i=0; i<app->num_species; ++i) {
     struct vm_species *s = &app->species[i];    
-    gkyl_mom_calc_advance(s->m1i.mcalc, &s->local, &app->local,
-      fin[i], s->m1i.marr);
+    if(app->use_gpu)
+      gkyl_mom_calc_advance_cu(s->m1i.mcalc, s->local, app->local,
+        fin[i], s->m1i.marr);
+    else
+      gkyl_mom_calc_advance(s->m1i.mcalc, s->local, app->local,
+        fin[i], s->m1i.marr);
     
     double qbyeps = s->info.charge/app->field.info.epsilon0;
     gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, app->local);
@@ -875,15 +898,22 @@ gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
     struct vm_species *species = &app->species[i];
     
     const struct gkyl_array *qmem = app->field.qmem;
-    G_HD(gkyl_vlasov_set_qmem)(species->eqn, qmem);
+    gkyl_vlasov_set_qmem(species->eqn, qmem);
 
     const struct gkyl_array *fin = species->f;
     struct gkyl_array *rhs = species->f1;
 
-    G_HD(gkyl_hyper_dg_set_update_vol)(species->slvr, update_vol_term);
+    if(app->use_gpu)
+      gkyl_hyper_dg_set_update_vol_cu(species->slvr, update_vol_term);
+    else
+      gkyl_hyper_dg_set_update_vol(species->slvr, update_vol_term);
     gkyl_array_clear_range(rhs, 0.0, species->local);
-    G_HD(gkyl_hyper_dg_advance)(species->slvr, species->local, fin,
-      species->cflrate, rhs, species->maxs_by_cell);
+    if(app->use_gpu)
+      gkyl_hyper_dg_advance_cu(species->slvr, species->local, fin,
+        species->cflrate, rhs, species->maxs_by_cell);
+    else
+      gkyl_hyper_dg_advance(species->slvr, species->local, fin,
+        species->cflrate, rhs, species->maxs_by_cell);
 
     // reduction to get maxs (maximum over cells of maxs_by_cell)
     gkyl_array_reduce_range(species->slvr->maxs, species->maxs_by_cell, GKYL_MAX, species->local);

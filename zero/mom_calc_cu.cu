@@ -18,6 +18,7 @@ __global__ void gkyl_mom_calc_advance_cu_ker(const gkyl_mom_calc* mcalc,
     gkyl_rect_grid_cell_center(&mcalc->grid, pidx, xc);
 
     long lincP = gkyl_range_idx(&phase_range, pidx);
+    //long lincP_vflip = 
     const double* fptr = (const double*) gkyl_array_cfetch(fin, lincP);
     double momLocal[96]; // hard-coded to max confBasis.numBasis (3x p=3 Ser) for now.
     for (unsigned int k=0; k<96; ++k){
