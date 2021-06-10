@@ -66,14 +66,14 @@ gkyl_hyper_dg* gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
  * @param rhs RHS output
  * @param maxs Input/output: maximum speed
  */
-void gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_rng,
-  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs);
+void gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, struct gkyl_range update_rng,
+  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs, struct gkyl_array *maxs_by_cell);
 
 /* 
  * Same as gkyl_hyper_dg_advance, but doesn't use iterators 
  */
-void gkyl_hyper_dg_advance_no_iter(gkyl_hyper_dg *hdg, const struct gkyl_range *update_rng,
-  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs);
+void gkyl_hyper_dg_advance_no_iter(gkyl_hyper_dg *hdg, struct gkyl_range update_rng,
+  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs, struct gkyl_array *maxs_by_cell);
 
 void gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* hdg, const struct gkyl_range update_range,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,

@@ -152,7 +152,7 @@ void test_vlasov_2x3v_p1_cu()
     cudaMemset(slvr_cu->maxs, 0., GKYL_MAX_DIM*sizeof(double));
 
     // set pointer to EM fields in vlasov equation object (on device)
-    gkyl_vlasov_set_qmem_cu(eqn_cu, qmem_cu->on_device); // must set EM fields to use
+    gkyl_vlasov_set_qmem_cu(eqn_cu, qmem_cu); // must set EM fields to use
 
     // advance hyper_dg
     gkyl_hyper_dg_advance_cu(slvr_cu, phaseRange, fin_cu, cflrate_cu, rhs_cu, maxs_by_cell_cu);

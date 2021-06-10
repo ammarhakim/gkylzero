@@ -27,7 +27,7 @@ void gkyl_array_reduce_init_cu(struct gkyl_array_reduceObject* redOb, struct gky
  * @param inp A gkyl_array to be reduced.
  * @param out_d A device array with as many elements as the 'inp' has components.
  */
-void gkyl_array_reduce_max_cu(struct gkyl_array* inp, double *out_d);
+void gkyl_array_reduce_max_cu(const struct gkyl_array* inp, double *out_d);
 
 /**
  * Reduce a gkyl_array component-wise over a specified range.
@@ -36,7 +36,7 @@ void gkyl_array_reduce_max_cu(struct gkyl_array* inp, double *out_d);
  * @param range A gkyl_range over which to perform the reduction.
  * @param out_d A device array with as many elements as the 'inp' has components.
  */
-void gkyl_array_reduce_range_max_cu(struct gkyl_array* inp, const struct gkyl_range range, double *out_d);
+void gkyl_array_reduce_range_max_cu(const struct gkyl_array* inp, const struct gkyl_range range, double *out_d);
 
 /**
  * Free the memory allocated in reduce_init_cu.

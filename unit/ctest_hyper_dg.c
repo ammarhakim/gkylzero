@@ -58,10 +58,11 @@ test_vlasov_2x3v_p1()
   slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1, maxs_init);
 
   // initialize arrays
-  struct gkyl_array *fin, *rhs, *cflrate, *qmem;
+  struct gkyl_array *fin, *rhs, *cflrate, *maxs_by_cell, *qmem;
   fin = mkarr(basis.numBasis, phaseRange_ext.volume);
   rhs = mkarr(basis.numBasis, phaseRange_ext.volume);
   cflrate = mkarr(1, phaseRange_ext.volume);
+  maxs_by_cell = mkarr(pdim, phaseRange_ext.volume);
   qmem = mkarr(8*confBasis.numBasis, confRange_ext.volume);
 
   // set initial condition
@@ -86,11 +87,12 @@ test_vlasov_2x3v_p1()
     gkyl_array_clear(cflrate, 0.0);
     gkyl_vlasov_set_qmem(eqn, qmem); // must set EM fields to use
     if(no_iter) 
-      gkyl_hyper_dg_advance_no_iter(slvr, &phaseRange, fin, cflrate, rhs);
+      gkyl_hyper_dg_advance_no_iter(slvr, phaseRange, fin, cflrate, rhs, maxs_by_cell);
     else
-      gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs);
+      gkyl_hyper_dg_advance(slvr, phaseRange, fin, cflrate, rhs, maxs_by_cell);
   }
-
+  gkyl_array_reduce_range(slvr->maxs, maxs_by_cell, GKYL_MAX, phaseRange);
+  
   // check results of maxs
   TEST_CHECK( gkyl_compare(slvr->maxs[0], 0.0000000000000000e+00, 1e-12) );
   TEST_CHECK( gkyl_compare(slvr->maxs[1], 0.0000000000000000e+00, 1e-12) );
@@ -191,6 +193,7 @@ test_vlasov_2x3v_p1()
   gkyl_array_release(fin);
   gkyl_array_release(rhs);
   gkyl_array_release(cflrate);
+  gkyl_array_release(maxs_by_cell);
   gkyl_array_release(qmem);
 
   gkyl_hyper_dg_release(slvr);

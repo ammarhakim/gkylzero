@@ -45,19 +45,19 @@ struct vm_species {
 
   struct gkyl_array *f, *f1, *fnew; // arrays for updates
   struct gkyl_array *cflrate; // CFL rate in each cell
+  struct gkyl_array *maxs_by_cell; // maximum 'speed' in each direction for global LF flux
   struct gkyl_array *bc_buffer; // buffer for BCs (used for both copy and periodic)
 
   // species data on device
   struct gkyl_array *f_cu, *f1_cu, *fnew_cu; // arrays for updates
   struct gkyl_array *cflrate_cu; // CFL rate in each cell
+  struct gkyl_array *maxs_by_cell_cu; // maximum 'speed' in each direction for global LF flux
 
   struct vm_species_moment m1i; // for computing currents
   struct vm_species_moment *moms; // diagnostic moments
 
   struct gkyl_dg_eqn *eqn; // Vlasov equation
-  gkyl_hyper_dg *slvr; // solver
-
-  struct gkyl_array *maxs_by_cell_cu; // unfortunately this needs to be alloc-ed  
+  gkyl_hyper_dg *slvr; // solver 
 };
 
 // field data
@@ -67,17 +67,19 @@ struct vm_field {
   struct gkyl_array *em, *em1, *emnew; // arrays for updates
   struct gkyl_array *qmem; // array for q/m*(E,B)
   struct gkyl_array *cflrate; // CFL rate in each cell
+  struct gkyl_array *maxs_by_cell; // maximum 'speed' in each direction for global LF flux
+                                   // Note, array is just zeros for Maxwell's, which use upwinding
   struct gkyl_array *bc_buffer; // buffer for BCs (used for both copy and periodic)
 
   // species data on device
   struct gkyl_array *em_cu, *em1_cu, *emnew_cu; // arrays for updates
   struct gkyl_array *qmem_cu; // array for q/m*(E,B)
   struct gkyl_array *cflrate_cu; // CFL rate in each cell
+  struct gkyl_array *maxs_by_cell_cu; // maximum 'speed' in each direction for global LF flux
+                                      // Note, array is just zeros for Maxwell's, which use upwinding
 
   struct gkyl_dg_eqn *eqn; // Maxwell equation
   gkyl_hyper_dg *slvr; // solver
-
-  struct gkyl_array *maxs_by_cell_cu; // unfortunately this needs to be alloc-ed
 };
 
 // Vlasov object: used as opaque pointer in user code
@@ -204,6 +206,7 @@ vm_field_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_field *
 
   // allocate cflrate (scalar array)
   f->cflrate = mkarr(1, app->local_ext.volume);
+  f->maxs_by_cell = mkarr(app->cdim, app->local_ext.volume);
 
   if (app->use_gpu) {
     f->em_cu = mkcuarr(8*app->confBasis.numBasis, app->local_ext.volume);
@@ -248,10 +251,11 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
   gkyl_array_clear(field->cflrate, 0.0);
 
   gkyl_array_clear(rhs, 0.0);
-  gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
+  gkyl_hyper_dg_advance(field->slvr, app->local, em, field->cflrate, rhs, field->maxs_by_cell);
 
   double omegaCfl;
   gkyl_array_reduce(field->cflrate, GKYL_MAX, &omegaCfl);
+  gkyl_array_reduce_range(field->slvr->maxs, field->maxs_by_cell, GKYL_MAX, app->local);
 
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
   
@@ -307,6 +311,7 @@ vm_field_release(const gkyl_vlasov_app* app, const struct vm_field *f)
   gkyl_array_release(f->qmem);
   gkyl_array_release(f->bc_buffer);
   gkyl_array_release(f->cflrate);
+  gkyl_array_release(f->maxs_by_cell);
 
   if (app->use_gpu) {
     gkyl_array_release(f->em_cu);
@@ -314,7 +319,6 @@ vm_field_release(const gkyl_vlasov_app* app, const struct vm_field *f)
     gkyl_array_release(f->emnew_cu);
     gkyl_array_release(f->qmem_cu);
     gkyl_array_release(f->cflrate_cu);
-
     gkyl_array_release(f->maxs_by_cell_cu);  }
 
   if (app->use_gpu) {
@@ -360,6 +364,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
   // allocate cflrate (scalar array)
   s->cflrate = mkarr(1, s->local_ext.volume);
+  s->maxs_by_cell = mkarr(pdim, s->local_ext.volume);
 
   // allocate data on device
   if (app->use_gpu) {
@@ -429,10 +434,11 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   gkyl_vlasov_set_qmem(species->eqn, qmem); // must set EM fields to use
   
   gkyl_array_clear(rhs, 0.0);
-  gkyl_hyper_dg_advance(species->slvr, &species->local, fin, species->cflrate, rhs);
+  gkyl_hyper_dg_advance(species->slvr, species->local, fin, species->cflrate, rhs, species->maxs_by_cell);
 
   double omegaCfl;
   gkyl_array_reduce(species->cflrate, GKYL_MAX, &omegaCfl);
+  gkyl_array_reduce_range(species->slvr->maxs, species->maxs_by_cell, GKYL_MAX, app->local);
 
   app->stat.species_rhs_tm += gkyl_time_diff_now_sec(wst);
   
@@ -487,6 +493,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   gkyl_array_release(s->f1);
   gkyl_array_release(s->fnew);
   gkyl_array_release(s->cflrate);
+  gkyl_array_release(s->maxs_by_cell);
   gkyl_array_release(s->bc_buffer);
 
   if (app->use_gpu) {
@@ -494,6 +501,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     gkyl_array_release(s->f1_cu);
     gkyl_array_release(s->fnew_cu);
     gkyl_array_release(s->cflrate_cu);
+    gkyl_array_release(s->maxs_by_cell_cu);
   }
 
   // release moment data
@@ -882,8 +890,10 @@ gkyl_vlasov_app_species_ktm_rhs_host(gkyl_vlasov_app* app, int update_vol_term)
 
     gkyl_hyper_dg_set_update_vol(species->slvr, update_vol_term);
     gkyl_array_clear_range(rhs, 0.0, species->local);
-    gkyl_hyper_dg_advance(species->slvr, &species->local, fin,
-      species->cflrate, rhs);
+    gkyl_hyper_dg_advance(species->slvr, species->local, fin,
+      species->cflrate, rhs, species->maxs_by_cell);
+
+    gkyl_array_reduce_range(species->slvr->maxs, species->maxs_by_cell, GKYL_MAX, species->local);
   }
 }
 
@@ -897,18 +907,18 @@ gkyl_vlasov_app_species_ktm_rhs_dev(gkyl_vlasov_app* app, int update_vol_term)
     struct vm_species *species = &app->species[i];
     
     const struct gkyl_array *qmem_cu = app->field.qmem_cu;
-    gkyl_vlasov_set_qmem_cu(species->eqn, qmem_cu->on_device);
+    gkyl_vlasov_set_qmem_cu(species->eqn, qmem_cu);
 
     const struct gkyl_array *fin = species->f_cu;
     struct gkyl_array *rhs = species->f1_cu;
 
     gkyl_hyper_dg_set_update_vol_cu(species->slvr, update_vol_term);
-    gkyl_array_clear_range_cu(rhs, 0.0, species->local);
+    gkyl_array_clear_range(rhs, 0.0, species->local);
     gkyl_hyper_dg_advance_cu(species->slvr, species->local, fin,
       species->cflrate_cu, rhs, species->maxs_by_cell_cu);
 
     // reduction to get maxs (maximum over cells of maxs_by_cell)
-    gkyl_array_reduce_range_max_cu(species->maxs_by_cell_cu, species->local, species->slvr->maxs);
+    gkyl_array_reduce_range(species->slvr->maxs, species->maxs_by_cell_cu, GKYL_MAX, species->local);
   }
 #endif  
 }
