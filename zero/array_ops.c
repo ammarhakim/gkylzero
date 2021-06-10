@@ -70,7 +70,7 @@ gkyl_array_scale(struct gkyl_array* out, double a)
   return gkyl_array_set(out, a, out);
 }
 
-double
+void 
 gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op op)
 {
 #ifdef GKYL_HAVE_CUDA
@@ -80,28 +80,33 @@ gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op 
         gkyl_array_reduce_max_cu(out, arr);
         break;
     }
-    return 0.;
+    return;
   }
 #endif
 
   assert(arr->type == GKYL_DOUBLE);
-  double res = 0, *arr_d = arr->data;
+  long nc = NCOM(arr);
+  double *arr_d = arr->data;
 
   switch (op) {
     case GKYL_MIN:
-      res = DBL_MAX;
-      for (size_t i=0; i<NELM(arr); ++i)
-        res = fmin(res, arr_d[i]);
+      for (long k=0; k<nc; ++k) out[k] = DBL_MAX;
+      for (size_t i=0; i<arr->size; ++i) {
+        const double *d = gkyl_array_cfetch(arr, i);
+        for (long k=0; k<nc; ++k)
+          out[k] = fmin(out[k], d[k]);
+      }
       break;
 
     case GKYL_MAX:
-      res = -DBL_MAX;
-      for (size_t i=0; i<NELM(arr); ++i)
-        res = fmax(res, arr_d[i]);
+      for (long k=0; k<nc; ++k) out[k] = -DBL_MAX;
+      for (size_t i=0; i<arr->size; ++i) {
+        const double *d = gkyl_array_cfetch(arr, i);
+        for (long k=0; k<nc; ++k)
+          out[k] = fmax(out[k], d[k]);
+      }
       break;
   }
-  if (out) *out = res;
-  return res;
 }
 
 // range based methods

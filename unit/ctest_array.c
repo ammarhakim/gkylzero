@@ -499,20 +499,23 @@ void test_non_numeric()
 
 void test_reduce()
 {
-  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 3, 200);
+  int ncomp = 3, ncells = 200;
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, ncomp, ncells);
 
   for (size_t i=0; i<arr->size; ++i) {
     double *d = gkyl_array_fetch(arr, i);
-    for (size_t c=0; c<3; ++c)
+    for (size_t c=0; c<ncomp; ++c)
       d[c] = 0.5*i + 0.1*c;
   }
   
-  double amin, amax;
-  gkyl_array_reduce(&amin, arr, GKYL_MIN);
-  gkyl_array_reduce(&amax, arr, GKYL_MAX);
+  double amin[ncomp], amax[ncomp];
+  gkyl_array_reduce(&amin[0], arr, GKYL_MIN);
+  gkyl_array_reduce(&amax[0], arr, GKYL_MAX);
 
-  TEST_CHECK( amin == 0.0 );
-  TEST_CHECK( amax == 0.5*199 + 0.1*2 );
+  for (size_t c=0; c<ncomp; ++c) {
+    TEST_CHECK( amin[c] == 0.1*c );
+    TEST_CHECK( amax[c] == 0.5*(ncells-1) + 0.1*c );
+  }
 
   gkyl_array_release(arr);
 }
