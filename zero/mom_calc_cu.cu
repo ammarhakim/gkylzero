@@ -8,7 +8,7 @@ __global__ void gkyl_mom_calc_advance_cu_ker(const gkyl_mom_calc* mcalc,
   const struct gkyl_array* GKYL_RESTRICT fin, struct gkyl_array* GKYL_RESTRICT mout){
 
   double xc[GKYL_MAX_DIM];
-  int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_DIM];
+  int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM];
 
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
       tid < phase_range.volume;
@@ -19,7 +19,10 @@ __global__ void gkyl_mom_calc_advance_cu_ker(const gkyl_mom_calc* mcalc,
 
     long lincP = gkyl_range_idx(&phase_range, pidx);
     const double* fptr = (const double*) gkyl_array_cfetch(fin, lincP);
-    double momLocal[32]; // hard-coded to max confBasis.numBasis (3x p=3 Ser) for now.
+    double momLocal[96]; // hard-coded to max confBasis.numBasis (3x p=3 Ser) for now.
+    for (unsigned int k=0; k<96; ++k){
+      momLocal[k] = 0.0;
+    }
 
     // reduce local f to local mom
     mcalc->momt->kernel(xc, mcalc->grid.dx, pidx, fptr, &momLocal[0]);

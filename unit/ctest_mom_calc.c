@@ -804,7 +804,7 @@ test_2x2v_p1_cu()
         TEST_CHECK( gkyl_compare( 0., m0ptr[k], 1e-12) );
   }}}
 
-  // Check M1i.
+  //// Check M1i.
   for (unsigned int i=0; i<cells[0]; ++i) {
     for (unsigned int j=0; j<cells[1]; ++j) {
       int cidx[2] = {i,j};
@@ -812,7 +812,6 @@ test_2x2v_p1_cu()
       double *m1iptr = gkyl_array_fetch(m1i, linc);
       for (unsigned int k=0; k<m1i->ncomp; ++k) {
         TEST_CHECK( gkyl_compare( 0., m1iptr[k], 1e-12) );
-        printf("got m1i[%d,%d,%d]=%f\n",i,j,k,m1iptr[k]);
   }}}
 
   // Check M2.
@@ -914,10 +913,8 @@ test_2x3v_p1_cu()
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m0ptr = gkyl_array_fetch(m0, linc);
       TEST_CHECK( gkyl_compare( 31.999999999999996, m0ptr[0], 1e-12) );
-//      printf("got m0[%d,%d,%d]=%f\n",i,j,0,m0ptr[0]);
       for (unsigned int k=1; k<m0->ncomp; ++k) {
         TEST_CHECK( gkyl_compare( 0., m0ptr[k], 1e-12) );
-//        printf("got m0[%d,%d,%d]=%f\n",i,j,k,m0ptr[k]);
   }}}
 
   // Check M1i.
@@ -937,10 +934,8 @@ test_2x3v_p1_cu()
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m2ptr = gkyl_array_fetch(m2, linc);
       TEST_CHECK( gkyl_compare( 127.999999999999972, m2ptr[0], 1e-12) );
-//      printf("got m2[%d,%d,%d]=%f\n",i,j,0,m2ptr[0]);
       for (unsigned int k=1; k<m2->ncomp; ++k) {
         TEST_CHECK( gkyl_compare( 0., m2ptr[k], 1e-12) );
-//        printf("got m2[%d,%d,%d]=%f\n",i,j,k,m2ptr[k]);
   }}}
 
   // free allocated memory.
@@ -961,7 +956,7 @@ TEST_LIST = {
   { "test_1x1v_p1_cu", test_1x1v_p1_cu },
   { "test_1x2v_p1_cu", test_1x2v_p1_cu },
   { "test_2x2v_p1_cu", test_2x2v_p1_cu },
-//  { "test_2x3v_p1_cu", test_2x3v_p1_cu },
+  { "test_2x3v_p1_cu", test_2x3v_p1_cu },
 #endif
   { NULL, NULL },
 };
