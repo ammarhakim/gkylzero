@@ -1,3 +1,5 @@
+/* -*- c -*- */
+
 // CUB for reductions.
 #include <cub/cub.cuh>
 
@@ -7,12 +9,15 @@ extern "C" {
 #include <gkyl_array_reduce.h>
 }
 
-int iDivUp(int a, int b) {
+int
+iDivUp(int a, int b)
+{
   // Round a / b to nearest higher integer value
   return (a % b != 0) ? (a / b + 1) : (a / b);
 }
 
-__device__ static float atomicMax_float(float* address, float val)
+__device__ static float
+atomicMax_float(float* address, float val)
 {
   int* address_as_i = (int*) address;
   int old = *address_as_i, assumed;
@@ -24,7 +29,8 @@ __device__ static float atomicMax_float(float* address, float val)
   return __int_as_float(old);
 }
 
-__device__ double atomicMax_double(double* address, double val)
+__device__ double
+atomicMax_double(double* address, double val)
 {
   unsigned long long int* address_as_ull = (unsigned long long int*) address;
   unsigned long long int old = *address_as_ull, assumed;
@@ -36,9 +42,9 @@ __device__ double atomicMax_double(double* address, double val)
   return __longlong_as_double(old);
 }
 
-template <unsigned int BLOCKSIZE>
-__global__ void arrayMax_blockRedAtomic_cub(const struct gkyl_array* inp, double* out) {
-
+template <unsigned int BLOCKSIZE> __global__ void
+arrayMax_blockRedAtomic_cub(const struct gkyl_array* inp, double* out)
+{
   unsigned long linc = blockIdx.x * blockDim.x + threadIdx.x;
 
   // Specialize BlockReduce for type double.
@@ -55,16 +61,17 @@ __global__ void arrayMax_blockRedAtomic_cub(const struct gkyl_array* inp, double
   for (unsigned int k = 0; k < nComp; ++k) {
     double f = inp_d[linc*nComp+k];
     double bResult;
-    if (linc < nCells) bResult = BlockReduceT(temp).Reduce(f, cub::Max());
-    if (threadIdx.x == 0) {
+    if (linc < nCells)
+      bResult = BlockReduceT(temp).Reduce(f, cub::Max());
+    if (threadIdx.x == 0)
       atomicMax_double(&out[k], bResult);
-    }
   };
 }
 
 template <unsigned int BLOCKSIZE>
-__global__ void arrayMax_range_blockRedAtomic_cub(const struct gkyl_array* inp, const struct gkyl_range range, double* out) {
-
+__global__ void
+arrayMax_range_blockRedAtomic_cub(const struct gkyl_array* inp, const struct gkyl_range range, double* out)
+{
   unsigned long linc = blockIdx.x * blockDim.x + threadIdx.x;
 
   // Specialize BlockReduce for type double.
@@ -83,28 +90,33 @@ __global__ void arrayMax_range_blockRedAtomic_cub(const struct gkyl_array* inp, 
     double* fptr = (double*) gkyl_array_cfetch(inp, start);
     double f = fptr[k];
     double bResult;
-    if (linc < nCells) bResult = BlockReduceT(temp).Reduce(f, cub::Max());
-    if (threadIdx.x == 0) atomicMax_double(&out[k], bResult);
+    if (linc < nCells)
+      bResult = BlockReduceT(temp).Reduce(f, cub::Max());
+    if (threadIdx.x == 0)
+      atomicMax_double(&out[k], bResult);
   };
 }
 
 void
 gkyl_array_reduce_init_cu(struct gkyl_array* arrIn, struct gkyl_array_reduce_util* redutil)
 {
-  // Current implementation (CUB block reduce + atomic reduce) does not need to preallocate aything.
+  // Current implementation (CUB block reduce + atomic reduce) does
+  // not need to preallocate aything.
 }
 
 void
 gkyl_array_reduce_free_cu(struct gkyl_array_reduce_util* redutil)
 {
-  // Current implementation (CUB block reduce + atomic reduce) does not allocate additional memory.
+  // Current implementation (CUB block reduce + atomic reduce) does
+  // not allocate additional memory.
 }
 
 void
 gkyl_array_reduce_max_cu(double *out_d, const struct gkyl_array* inp)
 {
-  // Reduce a gkyl_array component-wise. The output must be a device array
-  // with as many elements as there are components in the input array.
+  // Reduce a gkyl_array component-wise. The output must be a device
+  // array with as many elements as there are components in the input
+  // array.
 
   int numCells = inp->size;
   const int blockSize = GKYL_DEFAULT_NUM_THREADS;
@@ -116,11 +128,13 @@ gkyl_array_reduce_max_cu(double *out_d, const struct gkyl_array* inp)
 void
 gkyl_array_reduce_range_max_cu(double *out_d, const struct gkyl_array* inp, const struct gkyl_range range)
 {
-  // Reduce a gkyl_array component-wise within a specified range. The output must be
-  // a device array with as many elements as there are components in the input array.
+  // Reduce a gkyl_array component-wise within a specified range. The
+  // output must be a device array with as many elements as there are
+  // components in the input array.
 
   int numCells = range.volume;
   const int blockSize = GKYL_DEFAULT_NUM_THREADS;
 
-  arrayMax_range_blockRedAtomic_cub<blockSize><<<iDivUp(numCells, blockSize), blockSize>>>(inp->on_device, range, out_d);
+  arrayMax_range_blockRedAtomic_cub<blockSize><<<iDivUp(numCells, blockSize), blockSize>>>(
+    inp->on_device, range, out_d);
 }

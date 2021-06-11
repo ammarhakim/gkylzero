@@ -255,7 +255,8 @@ int gkyl_range_intersect(struct gkyl_range* irng,
  * @param idx Index for which to compute linear index
  */
 GKYL_CU_DH
-static inline long gkyl_range_idx(const struct gkyl_range* range, const int *idx)
+static inline long
+gkyl_range_idx(const struct gkyl_range* range, const int *idx)
 {
 #define RI(...) gkyl_ridx(*range, __VA_ARGS__)
   switch (range->ndim) {
@@ -298,7 +299,8 @@ static inline long gkyl_range_idx(const struct gkyl_range* range, const int *idx
  * @return Relatice offset to idx.
  */
 GKYL_CU_DH
-static inline long gkyl_range_offset(const struct gkyl_range* range, const int *idx)
+static inline long
+gkyl_range_offset(const struct gkyl_range* range, const int *idx)
 {
   return gkyl_range_idx(range, idx) - range->linIdxZero;
 }
@@ -312,8 +314,8 @@ static inline long gkyl_range_offset(const struct gkyl_range* range, const int *
  * @param idx On output, the N-dimensional index into 'range'
  */
 GKYL_CU_DH
-static inline
-void gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
+static inline void
+gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
 {
   long n = loc;
   for (int i=1; i<=range->ndim; ++i) {
@@ -334,8 +336,8 @@ void gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
  * @param idx On output, the N-dimensional index into 'range'
  */
 GKYL_CU_DH
-static inline
-void gkyl_sub_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
+static inline void
+gkyl_sub_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
 {
   long n = loc;
   for (int i=1; i<=range->ndim; ++i) {

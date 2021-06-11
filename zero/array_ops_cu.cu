@@ -1,3 +1,5 @@
+/* -*- c -*- */
+
 #include <math.h>
 #include <time.h>
 
@@ -94,7 +96,7 @@ gkyl_array_clear_range_cu_kernel(struct gkyl_array *out, double val, struct gkyl
     gkyl_sub_range_inv_idx(&range, linc, idx);
     long start = gkyl_range_idx(&range, idx);
     double* out_d = (double*) gkyl_array_fetch(out, start);
-    if(threadIdx.x < n)
+    if (threadIdx.x < n)
       out_d[threadIdx.x] = val;
   }
 }
@@ -113,8 +115,8 @@ gkyl_array_accumulate_range_cu_kernel(struct gkyl_array *out,
     gkyl_sub_range_inv_idx(&range, linc, idx);
     long start = gkyl_range_idx(&range, idx);
     double* out_d = (double*) gkyl_array_fetch(out, start);
-    double* inp_d = (double*) gkyl_array_cfetch(inp, start);
-    if(threadIdx.x < n)
+    const double* inp_d = (const double*) gkyl_array_cfetch(inp, start);
+    if (threadIdx.x < n)
       out_d[threadIdx.x] += a*inp_d[threadIdx.x];
   }
 }
@@ -133,8 +135,8 @@ gkyl_array_set_range_cu_kernel(struct gkyl_array *out,
     gkyl_sub_range_inv_idx(&range, linc, idx); 
     long start = gkyl_range_idx(&range, idx);
     double* out_d = (double*) gkyl_array_fetch(out, start);
-    double* inp_d = (double*) gkyl_array_cfetch(inp, start);
-    if(threadIdx.x < n)
+    const double* inp_d = (const double*) gkyl_array_cfetch(inp, start);
+    if (threadIdx.x < n)
       out_d[threadIdx.x] = a*inp_d[threadIdx.x];
   }
 }
@@ -154,7 +156,7 @@ gkyl_array_copy_range_cu_kernel(struct gkyl_array *out, const struct gkyl_array*
     long start_inp = gkyl_range_idx(&inp_range, idx_inp);
     double *out_data = (double*) gkyl_array_fetch(out, start_out);
     const double *inp_data = (const double*) gkyl_array_cfetch(inp, start_inp);
-    if(threadIdx.x < NCOM(out))
+    if (threadIdx.x < NCOM(out))
       out_data[threadIdx.x] = inp_data[threadIdx.x];
   }
 }
@@ -216,7 +218,8 @@ gkyl_array_accumulate_range_cu(struct gkyl_array *out,
 {
   int nthreads = out->ncomp;
   int nblocks = range.volume;
-  gkyl_array_accumulate_range_cu_kernel<<<nblocks, nthreads>>>(out->on_device, a, inp->on_device, range);
+  gkyl_array_accumulate_range_cu_kernel<<<nblocks, nthreads>>>(out->on_device,
+    a, inp->on_device, range);
 }
 
 void
@@ -225,7 +228,8 @@ gkyl_array_set_range_cu(struct gkyl_array *out,
 {
   int nthreads = out->ncomp;
   int nblocks = range.volume;
-  gkyl_array_set_range_cu_kernel<<<nblocks, nthreads>>>(out->on_device, a, inp->on_device, range);
+  gkyl_array_set_range_cu_kernel<<<nblocks, nthreads>>>(out->on_device,
+    a, inp->on_device, range);
 }
 
 void
@@ -243,14 +247,16 @@ gkyl_array_copy_range_cu(struct gkyl_array *out,
 {
   int nthreads = inp->ncomp;
   int nblocks = range.volume;
-  gkyl_array_copy_range_cu_kernel<<<nblocks, nthreads>>>(out->on_device, inp->on_device, range, range);
+  gkyl_array_copy_range_cu_kernel<<<nblocks, nthreads>>>(out->on_device,
+    inp->on_device, range, range);
 }
 
 void
 gkyl_array_copy_range_to_range_cu(struct gkyl_array *out,
   const struct gkyl_array *inp, struct gkyl_range out_range, struct gkyl_range inp_range)
 {
-  gkyl_array_copy_range_cu_kernel<<<out_range.nblocks, out_range.nthreads>>>(out->on_device, inp->on_device, out_range, inp_range);
+  gkyl_array_copy_range_cu_kernel<<<out_range.nblocks, out_range.nthreads>>>(out->on_device,
+    inp->on_device, out_range, inp_range);
 }
 
 void 
@@ -260,7 +266,8 @@ gkyl_array_copy_to_buffer_cu(void *data,
   gkyl_range data_range;
   int shape[1] = {range.volume};
   gkyl_range_init_from_shape(&data_range, 1, shape);
-  gkyl_array_copy_to_buffer_cu_kernel<<<range.nblocks, range.nthreads>>>(data, arr->on_device, range, data_range);
+  gkyl_array_copy_to_buffer_cu_kernel<<<range.nblocks, range.nthreads>>>(data,
+    arr->on_device, range, data_range);
 }
 
 void 
@@ -270,5 +277,6 @@ gkyl_array_copy_from_buffer_cu(struct gkyl_array *arr,
   gkyl_range data_range;
   int shape[1] = {range.volume};
   gkyl_range_init_from_shape(&data_range, 1, shape);
-  gkyl_array_copy_from_buffer_cu_kernel<<<range.nblocks, range.nthreads>>>(arr->on_device, data, range, data_range);
+  gkyl_array_copy_from_buffer_cu_kernel<<<range.nblocks, range.nthreads>>>(arr->on_device,
+    data, range, data_range);
 }

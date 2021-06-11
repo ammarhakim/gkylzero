@@ -6,8 +6,6 @@
 struct gkyl_array_reduce_util
 {
   double initValue;
-//  void *d_temp = NULL;
-//  size_t temp_bytes = 0;
   void *d_temp;
   size_t temp_bytes;
   void *out_d;

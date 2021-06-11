@@ -160,48 +160,36 @@ void gkyl_array_copy_from_buffer(struct gkyl_array *arr,
 /**
  * Host-side wrappers for array operations
  */
-void
-gkyl_array_clear_cu(struct gkyl_array* out, double val);
+void gkyl_array_clear_cu(struct gkyl_array* out, double val);
 
-void
-gkyl_array_accumulate_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp);
+void gkyl_array_accumulate_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp);
 
-void
-gkyl_array_set_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp);
+void gkyl_array_set_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp);
 
-void
-gkyl_array_scale_cu(struct gkyl_array* out, double a);
+void gkyl_array_scale_cu(struct gkyl_array* out, double a);
 
 /**
  * Host-side wrappers for range-based array operations
  */
-void
-gkyl_array_clear_range_cu(struct gkyl_array *out, double val, struct gkyl_range range);
+void gkyl_array_clear_range_cu(struct gkyl_array *out, double val, struct gkyl_range range);
 
-void
-gkyl_array_accumulate_range_cu(struct gkyl_array *out,
+void gkyl_array_accumulate_range_cu(struct gkyl_array *out,
   double a, const struct gkyl_array* inp, struct gkyl_range range);
 
-void
-gkyl_array_set_range_cu(struct gkyl_array *out,
+void gkyl_array_set_range_cu(struct gkyl_array *out,
   double a, const struct gkyl_array* inp, struct gkyl_range range);
 
-void
-gkyl_array_scale_range_cu(struct gkyl_array *out,
+void gkyl_array_scale_range_cu(struct gkyl_array *out,
   double a, struct gkyl_range range);
 
-void
-gkyl_array_copy_range_cu(struct gkyl_array *out, const struct gkyl_array* inp, 
+void gkyl_array_copy_range_cu(struct gkyl_array *out, const struct gkyl_array* inp, 
   struct gkyl_range range);
 
-void
-gkyl_array_copy_range_to_range_cu(struct gkyl_array *out, const struct gkyl_array* inp, 
+void gkyl_array_copy_range_to_range_cu(struct gkyl_array *out, const struct gkyl_array* inp,
   struct gkyl_range out_range, struct gkyl_range inp_range);
 
-void
-gkyl_array_copy_to_buffer_cu(void *data, const struct gkyl_array *arr, 
+void gkyl_array_copy_to_buffer_cu(void *data, const struct gkyl_array *arr, 
   struct gkyl_range range);
 
-void 
-gkyl_array_copy_from_buffer_cu(struct gkyl_array *arr, const void *data, 
+void gkyl_array_copy_from_buffer_cu(struct gkyl_array *arr, const void *data, 
   struct gkyl_range range);
