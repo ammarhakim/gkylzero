@@ -2,6 +2,8 @@
  * user code */
 #pragma once
 
+#include <gkyl_util.h>
+
 static void 
 eval_1d_p0(const double *z, double* GKYL_RESTRICT b) { 
 

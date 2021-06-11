@@ -143,7 +143,7 @@ gkyl_pcg64_init(bool nd_seed)
 }
 
 uint64_t
-gkyl_pcg64_rand_uint32(pcg64_random_t* rng)
+gkyl_pcg64_rand_uint64(pcg64_random_t* rng)
 {
   return ((uint64_t)(pcg32_random_r(rng->gen)) << 32) | pcg32_random_r(rng->gen+1);
 }
@@ -151,5 +151,5 @@ gkyl_pcg64_rand_uint32(pcg64_random_t* rng)
 double
 gkyl_pcg64_rand_double(pcg64_random_t* rng)
 {
-  return ldexp(gkyl_pcg64_rand_uint32(rng), -64);
+  return ldexp(gkyl_pcg64_rand_uint64(rng), -64);
 }

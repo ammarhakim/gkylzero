@@ -254,7 +254,7 @@ pcg64_random_t gkyl_pcg64_init(bool nd_seed);
  * @param rng Pointer to RNG
  * @return Uniformly distributed 64-bit integer
  */
-uint64_t gkyl_pcg64_rand_uint32(pcg64_random_t* rng);
+uint64_t gkyl_pcg64_rand_uint64(pcg64_random_t* rng);
 
 /**
  * Returns a random number in [0,1), rounded to the nearest
