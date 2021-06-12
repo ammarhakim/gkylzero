@@ -87,7 +87,7 @@ gkyl_array_reduce_max_cu(double *out_d, const struct gkyl_array* inp)
 }
 
 void
-gkyl_array_reduce_range_max_cu(double *out_d, const struct gkyl_array* inp, const struct gkyl_range range)
+gkyl_array_reduce_range_max_cu(double *out_d, const struct gkyl_array* inp, struct gkyl_range range)
 {
   int numCells = range.volume;
   const int blockSize = GKYL_DEFAULT_NUM_THREADS;
