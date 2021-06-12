@@ -118,17 +118,17 @@ struct gkyl_array* gkyl_array_copy_range_to_range(struct gkyl_array *out,
 /**
  * Perform an "reduce" operation of data in the array.
  *
+ * @param res On output, reduces values (ncomp size)
  * @param arr Array to perform reduction on.
  * @param op Reduction operators
- * @return Reduced result
  */
-void gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op op);
+void gkyl_array_reduce(double *res, const struct gkyl_array *arr, enum gkyl_array_op op);
 
 /**
  * Perform an "reduce" operation of data in the array. Data is reduced
  * component-wise.
  *
- * @param res On output, reduced values
+ * @param res On output, reduced values (ncomp size)
  * @param arr Array to perform reduction on.
  * @param op Reduction operators
  * @param range Range specifying region

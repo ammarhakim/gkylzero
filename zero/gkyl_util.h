@@ -181,6 +181,16 @@ gkyl_copy_long_arr(int n, const long* GKYL_RESTRICT inp, long* GKYL_RESTRICT out
 }
 
 /**
+ *   Round a/b to nearest higher integer value
+ */
+GKYL_CU_DH
+static inline int
+gkyl_int_div_up(int a, int b)
+{
+  return (a%b != 0) ? (a/b+1) : (a/b);
+}
+
+/**
  * Gets wall-clock time in secs/nanoseconds.
  * 
  * @return Time object.

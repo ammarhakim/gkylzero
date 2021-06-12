@@ -49,29 +49,14 @@ void gkyl_aligned_free(void *ptr);
 /** Allocate memory on NV-GPU */
 void* gkyl_cu_malloc(size_t size);
 
-/** Allocate pinned host memory on NV-GPU */
-void* gkyl_cu_malloc_host(size_t size);
-
 /** Free memory on device */
 void gkyl_cu_free(void *ptr);
+
+/** Allocate pinned host memory on NV-GPU */
+void* gkyl_cu_malloc_host(size_t size);
 
 /** Free pinned host memory on device */
 void gkyl_cu_free_host(void *ptr);
 
 /** Copy data between host/device */
 void gkyl_cu_memcpy(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind);
-
-#ifdef GKYL_HAVE_CUDA
-
-/** This needs to be a macro due to the special way in which cudaMemcpyFromSymbol works */
-#define gkyl_cu_memcpy_from_symbol(dest, src, sz)                       \
-    do {                                                                \
-      cudaError_t err = cudaMemcpyFromSymbol(dest, src, sz);            \
-      if (err != cudaSuccess) {                                         \
-        char str[1024];                                                 \
-        sprintf(str, "\nCUDA error: %s (%s:%d)\n", cudaGetErrorString(err), __FILE__, __LINE__); \
-        gkyl_exit(str);                                                 \
-      }                                                                 \
-    } while(0);
-
-#endif

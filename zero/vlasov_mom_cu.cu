@@ -1,4 +1,4 @@
-/* -*- c -*- */
+/* -*- c++ -*- */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -12,8 +12,9 @@ extern "C" {
 }
 
 enum { M0, M1i, M2, M2ij, M3i, M3ijk, BAD };
-static 
-int get_mom_id(const char *mom)
+
+static int
+get_mom_id(const char *mom)
 {
   int mom_idx = BAD;
 
@@ -47,6 +48,7 @@ void vlasov_mom_set_cu_dev_ptrs(struct gkyl_mom_type* momt, int mom_id, int vdim
   int polyOrder, int tblidx)
 {
   int m3ijk_count[] = { 1, 4, 10 };
+  
   switch (mom_id) {
     case M0:
       momt->kernel = m0_kernels[tblidx].kernels[polyOrder];

@@ -1,4 +1,4 @@
-/* -*- c -*- */
+/* -*- c++ -*- */
 
 #include <math.h>
 #include <time.h>
@@ -10,17 +10,15 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
+// start ID for use in various loops
+#define START_ID (threadIdx.x + blockIdx.x*blockDim.x)
+
 __global__ void
 gkyl_array_clear_cu_kernel(struct gkyl_array* out, double val)
 {
-
   double *out_d = (double*) out->data;
-  for(unsigned long linc = threadIdx.x + blockIdx.x*blockDim.x; 
-      linc < NELM(out);
-      linc += blockDim.x*gridDim.x)
-  {
+  for(unsigned long linc = START_ID; linc < NELM(out); linc += blockDim.x*gridDim.x)
     out_d[linc] = val;
-  }
 }
 
 __global__ void
@@ -29,12 +27,8 @@ gkyl_array_accumulate_cu_kernel(struct gkyl_array* out, double a,
 {
   double *out_d = (double*) out->data;
   const double *inp_d = (const double*) inp->data;
-  for(unsigned long linc = threadIdx.x + blockIdx.x*blockDim.x; 
-      linc < NELM(out);
-      linc += blockDim.x*gridDim.x)
-  {
+  for(unsigned long linc = START_ID; linc < NELM(out); linc += blockDim.x*gridDim.x)
     out_d[linc] += a*inp_d[linc];
-  }
 }
 
 __global__ void
@@ -43,12 +37,8 @@ gkyl_array_set_cu_kernel(struct gkyl_array* out, double a,
 {
   double *out_d = (double*) out->data;
   const double *inp_d = (const double*) inp->data;
-  for(unsigned long linc = threadIdx.x + blockIdx.x*blockDim.x; 
-      linc < NELM(out);
-      linc += blockDim.x*gridDim.x)
-  {
+  for(unsigned long linc = START_ID; linc < NELM(out); linc += blockDim.x*gridDim.x)
     out_d[linc] = a*inp_d[linc];
-  }
 }
 
 // Host-side wrappers for array operations
@@ -89,10 +79,7 @@ gkyl_array_clear_range_cu_kernel(struct gkyl_array *out, double val, struct gkyl
 {
   long n = NCOM(out);
   int idx[GKYL_MAX_DIM];
-  for(unsigned long linc = blockIdx.x;
-      linc < range.volume;
-      linc += gridDim.x)
-  {
+  for(unsigned long linc = blockIdx.x; linc < range.volume; linc += gridDim.x) {
     gkyl_sub_range_inv_idx(&range, linc, idx);
     long start = gkyl_range_idx(&range, idx);
     double* out_d = (double*) gkyl_array_fetch(out, start);
@@ -108,12 +95,10 @@ gkyl_array_accumulate_range_cu_kernel(struct gkyl_array *out,
   long outnc = NCOM(out), inpnc = NCOM(inp);
   long n = outnc<inpnc ? outnc : inpnc;
   int idx[GKYL_MAX_DIM];
-  for(unsigned long linc = blockIdx.x;
-      linc < range.volume;
-      linc += gridDim.x)
-  {
+  for(unsigned long linc = blockIdx.x; linc < range.volume; linc += gridDim.x) {
     gkyl_sub_range_inv_idx(&range, linc, idx);
     long start = gkyl_range_idx(&range, idx);
+    
     double* out_d = (double*) gkyl_array_fetch(out, start);
     const double* inp_d = (const double*) gkyl_array_cfetch(inp, start);
     if (threadIdx.x < n)
@@ -128,12 +113,10 @@ gkyl_array_set_range_cu_kernel(struct gkyl_array *out,
   long outnc = NCOM(out), inpnc = NCOM(inp);
   long n = outnc<inpnc ? outnc : inpnc;
   int idx[GKYL_MAX_DIM];
-  for(unsigned long linc = blockIdx.x;
-      linc < range.volume;
-      linc += gridDim.x)
-  {
+  for(unsigned long linc = blockIdx.x; linc < range.volume; linc += gridDim.x) {
     gkyl_sub_range_inv_idx(&range, linc, idx); 
     long start = gkyl_range_idx(&range, idx);
+    
     double* out_d = (double*) gkyl_array_fetch(out, start);
     const double* inp_d = (const double*) gkyl_array_cfetch(inp, start);
     if (threadIdx.x < n)
@@ -146,14 +129,12 @@ gkyl_array_copy_range_cu_kernel(struct gkyl_array *out, const struct gkyl_array*
   struct gkyl_range out_range, struct gkyl_range inp_range)
 {
   int idx_out[GKYL_MAX_DIM], idx_inp[GKYL_MAX_DIM];
-  for(unsigned long linc = blockIdx.x;
-      linc < out_range.volume;
-      linc += gridDim.x) {
-
+  for(unsigned long linc = blockIdx.x; linc < out_range.volume; linc += gridDim.x) {
     gkyl_sub_range_inv_idx(&out_range, linc, idx_out);
     gkyl_sub_range_inv_idx(&inp_range, linc, idx_inp);
     long start_out = gkyl_range_idx(&out_range, idx_out);
     long start_inp = gkyl_range_idx(&inp_range, idx_inp);
+    
     double *out_data = (double*) gkyl_array_fetch(out, start_out);
     const double *inp_data = (const double*) gkyl_array_cfetch(inp, start_inp);
     if (threadIdx.x < NCOM(out))
@@ -167,15 +148,13 @@ gkyl_array_copy_to_buffer_cu_kernel(void *data, const struct gkyl_array *arr,
 {
   int idx[GKYL_MAX_DIM], idx_d[1];
   double *d_data = (double*) data;
-  for(unsigned long linc = threadIdx.x + blockIdx.x*blockDim.x;
-      linc < range.volume;
-      linc += blockDim.x*gridDim.x) {
-
+  
+  for(unsigned long linc = START_ID; linc < range.volume; linc += blockDim.x*gridDim.x) {
     gkyl_sub_range_inv_idx(&range, linc, idx);
-    // Since data range is just a 1D index, can just use range_inv_idx
     gkyl_range_inv_idx(&data_range, linc, idx_d);
     long start = gkyl_range_idx(&range, idx);
     long start_d = gkyl_range_idx(&data_range, idx_d);
+    
     const double *arr_data = (const double*) gkyl_array_cfetch(arr, start);
     for (unsigned i = 0; i < NCOM(arr); ++i)
       d_data[i+start_d*NCOM(arr)] = arr_data[i];
@@ -188,15 +167,13 @@ gkyl_array_copy_from_buffer_cu_kernel(struct gkyl_array *arr, const void *data,
 {
   int idx[GKYL_MAX_DIM], idx_d[1];
   const double *d_data = (const double*) data;
-  for(unsigned long linc = threadIdx.x + blockIdx.x*blockDim.x;
-      linc < range.volume;
-      linc += blockDim.x*gridDim.x) {
-
+  
+  for(unsigned long linc = START_ID; linc < range.volume; linc += blockDim.x*gridDim.x) {
     gkyl_sub_range_inv_idx(&range, linc, idx);
-    // Since data range is just a 1D index, can just use range_inv_idx
     gkyl_range_inv_idx(&data_range, linc, idx_d);
     long start = gkyl_range_idx(&range, idx);
     long start_d = gkyl_range_idx(&data_range, idx_d);
+    
     double *arr_data = (double*) gkyl_array_fetch(arr, start);
     for (unsigned i = 0; i < NCOM(arr); ++i)
       arr_data[i] = d_data[i+start_d*NCOM(arr)];
@@ -264,7 +241,7 @@ gkyl_array_copy_to_buffer_cu(void *data,
   const struct gkyl_array *arr, struct gkyl_range range)
 {
   gkyl_range data_range;
-  int shape[1] = {range.volume};
+  int shape[1] = { range.volume};
   gkyl_range_init_from_shape(&data_range, 1, shape);
   gkyl_array_copy_to_buffer_cu_kernel<<<range.nblocks, range.nthreads>>>(data,
     arr->on_device, range, data_range);
@@ -275,7 +252,7 @@ gkyl_array_copy_from_buffer_cu(struct gkyl_array *arr,
   const void *data, struct gkyl_range range)
 {
   gkyl_range data_range;
-  int shape[1] = {range.volume};
+  int shape[1] = { range.volume };
   gkyl_range_init_from_shape(&data_range, 1, shape);
   gkyl_array_copy_from_buffer_cu_kernel<<<range.nblocks, range.nthreads>>>(arr->on_device,
     data, range, data_range);

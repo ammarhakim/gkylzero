@@ -1,4 +1,4 @@
-/* -*- c -*- */
+/* -*- c++ -*- */
 
 extern "C" {
 #include <gkyl_alloc.h>
@@ -8,8 +8,8 @@ extern "C" {
 
 #define CK(lst,cdim,polyOrder) lst[cdim-1].kernels[polyOrder]
 
-__global__
-void dg_maxwell_set_cu_dev_ptrs(struct dg_maxwell* maxwell, int cdim, int polyOrder)
+__global__ void
+dg_maxwell_set_cu_dev_ptrs(struct dg_maxwell* maxwell, int cdim, int polyOrder)
 {
   maxwell->eqn.vol_term = vol;
   maxwell->eqn.surf_term = surf;

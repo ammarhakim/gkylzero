@@ -1,4 +1,4 @@
-/* -*- c -*- */
+/* -*- c++ -*- */
 
 extern "C" {
 #include <gkyl_alloc.h>
