@@ -79,8 +79,6 @@ void gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* hdg, const struct gkyl_range update
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
   struct gkyl_array* GKYL_RESTRICT rhs, struct gkyl_array* GKYL_RESTRICT maxs_by_cell);
 
-void gkyl_hyper_dg_set_update_vol_cu(gkyl_hyper_dg *hdg, int update_vol_term);
-
 /**
  * Set if volume term should be computed or not.
  *
@@ -93,15 +91,12 @@ void gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *hdg, int update_vol_term)
 {
   hdg->update_vol_term = update_vol_term;
 }
+// On-device version of the same
+void gkyl_hyper_dg_set_update_vol_cu(gkyl_hyper_dg *hdg, int update_vol_term);
   
 /**
  * Delete updater.
  *
  * @param hdg Updater to delete.
  */
-static inline
-void gkyl_hyper_dg_release(gkyl_hyper_dg* hdg)
-{
-  gkyl_dg_eqn_release(hdg->equation);
-  free(hdg);
-}
+void gkyl_hyper_dg_release(gkyl_hyper_dg* hdg);

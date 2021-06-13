@@ -84,7 +84,7 @@ gkyl_hyper_dg_advance_no_iter(gkyl_hyper_dg *hdg, struct gkyl_range update_range
   // integer used for selecting between left-edge zero-flux BCs and right-edge zero-flux BCs
   int edge;
 
-  for(long linc1 = 0; linc1 < update_range.volume; linc1++) {
+  for (long linc1 = 0; linc1 < update_range.volume; linc1++) {
     // inverse index from linc1 to idxc
     // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idxc={0,0,...}
     // since update_range is a subrange
@@ -166,6 +166,12 @@ gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   up->equation = gkyl_dg_eqn_aquire(equation);
 
   return up;
+}
+
+void gkyl_hyper_dg_release(gkyl_hyper_dg* hdg)
+{
+  gkyl_dg_eqn_release(hdg->equation);
+  free(hdg);
 }
 
 #ifndef GKYL_HAVE_CUDA
