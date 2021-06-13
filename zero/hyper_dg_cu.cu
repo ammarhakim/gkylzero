@@ -100,7 +100,7 @@ gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* hdg, struct gkyl_range update_range,
   int nthreads = update_range.nthreads;
 
   gkyl_hyper_dg_advance_cu_kernel<<<nblocks, nthreads>>>(hdg, update_range,
-    fIn->on_device, cflrate->on_device, rhs->on_device, maxs_by_cell->on_device);
+    fIn->self, cflrate->self, rhs->self, maxs_by_cell->self);
 }
 
 void

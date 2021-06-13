@@ -33,14 +33,14 @@ arrayMax_blockRedAtomic_cub(const struct gkyl_array* inp, double* out)
   // Allocate temporary storage in shared memory.
   __shared__ typename BlockReduceT::TempStorage temp;
 
-  unsigned int nComp = inp->ncomp;
-  unsigned long nCells = inp->size;
+  size_t nComp = inp->ncomp;
+  size_t nCells = inp->size;
 
   const double *inp_d = (const double*) inp->data;
 
-  for (unsigned int k = 0; k < nComp; ++k) {
+  for (size_t k = 0; k < nComp; ++k) {
     double f = inp_d[linc*nComp+k];
-    double bResult;
+    double bResult = 0;
     if (linc < nCells)
       bResult = BlockReduceT(temp).Reduce(f, cub::Max());
     if (threadIdx.x == 0)
@@ -60,16 +60,17 @@ arrayMax_range_blockRedAtomic_cub(const struct gkyl_array* inp, const struct gky
   // Allocate temporary storage in shared memory.
   __shared__ typename BlockReduceT::TempStorage temp;
 
-  long nCells = range.volume, nComp = inp->ncomp;
+  long nCells = range.volume;
+  size_t nComp = inp->ncomp;
 
   int idx[GKYL_MAX_DIM];
 
-  for (int k = 0; k < nComp; ++k) {
+  for (size_t k = 0; k < nComp; ++k) {
     gkyl_sub_range_inv_idx(&range, linc, idx);
     long start = gkyl_range_idx(&range, idx);
-    double* fptr = (double*) gkyl_array_cfetch(inp, start);
+    const double* fptr = (const double*) gkyl_array_cfetch(inp, start);
     double f = fptr[k];
-    double bResult;
+    double bResult = 0;
     if (linc < nCells)
       bResult = BlockReduceT(temp).Reduce(f, cub::Max());
     if (threadIdx.x == 0)
@@ -80,17 +81,16 @@ arrayMax_range_blockRedAtomic_cub(const struct gkyl_array* inp, const struct gky
 void
 gkyl_array_reduce_max_cu(double *out_d, const struct gkyl_array* inp)
 {
-  int numCells = inp->size;
-  const int blockSize = GKYL_DEFAULT_NUM_THREADS;
-  arrayMax_blockRedAtomic_cub<blockSize><<<gkyl_int_div_up(numCells, blockSize), blockSize>>>(inp->on_device, out_d);
+  int nblocks = gkyl_int_div_up(inp->size, nthreads)
+  int nthreads = GKYL_DEFAULT_NUM_THREADS;
+  arrayMax_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_device, out_d);
   cudaDeviceSynchronize();
 }
 
 void
 gkyl_array_reduce_range_max_cu(double *out_d, const struct gkyl_array* inp, struct gkyl_range range)
 {
-  int numCells = range.volume;
-  const int blockSize = GKYL_DEFAULT_NUM_THREADS;
-  arrayMax_range_blockRedAtomic_cub<blockSize><<<gkyl_int_div_up(numCells, blockSize), blockSize>>>(
-    inp->on_device, range, out_d);
+  int nblocks = gkyl_int_div_up(range.volume, nthreads)
+  int nthreads = GKYL_DEFAULT_NUM_THREADS;
+  arrayMax_range_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->self, range, out_d);
 }

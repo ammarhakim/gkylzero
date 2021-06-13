@@ -15,18 +15,17 @@ enum gkyl_elem_type { GKYL_INT, GKYL_FLOAT, GKYL_DOUBLE, GKYL_USER };
  * mainly by the range object.
  */
 struct gkyl_array {
-  enum gkyl_elem_type type; // type stored in array
+  enum gkyl_elem_type type; // type of data stored in array
   size_t elemsz, ncomp; // size of elements, number of 'components'
   size_t size; // number of indices
-    
-  uint32_t flags;
+
   size_t esznc; // elemsz*ncomp
-  void *data; // pointer to data (do not use directly)
+  void *data; // pointer to data
+  uint32_t flags;  
   struct gkyl_ref_count ref_count;
 
-  // FOR CUDA ONLY
-  struct gkyl_array *on_device; // pointer to device clone if data is on device
-  int nthreads, nblocks; // CUDA kernel launch specifiers for entire array ops
+  int nthreads, nblocks; // threads per block, number of blocks
+  struct gkyl_array *self; // pointer to itself or device data
 };
 
 /**
@@ -44,10 +43,9 @@ struct gkyl_array* gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t
  * gkyl_array_release method.
  *
  * NOTE: the data member lives on GPU, but the struct lives on the
- * host.  For this reason, this method also creates a device struct
- * and stores a pointer to it in the on_device member. This is a
- * device clone of the host struct, and is what should be used to pass
- * to CUDA kernels which require the entire array struct on device.
+ * host.  However, the self member for this cal is set to a device
+ * clone of the host struct, and is what should be used to pass to
+ * CUDA kernels which require the entire array struct on device.
  * 
  * @param type Type of data in array
  * @param ncomp Number of components at each index

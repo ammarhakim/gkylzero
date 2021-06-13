@@ -14,6 +14,8 @@ void test_array_base()
   TEST_CHECK( arr->size == 20*10 );
   TEST_CHECK( arr->ref_count.count == 1 );
 
+  TEST_CHECK( arr->self == arr );
+
   TEST_CHECK( gkyl_array_is_cu_dev(arr) == false );
 
   double *arrData  = arr->data;
@@ -623,16 +625,16 @@ void test_cu_array_dev_kernel()
   struct gkyl_array *arr_cu_cl = gkyl_array_clone(arr_cu);
 
   // check arr_cu on device and flip sign
-  int nfail = cu_array_test_and_flip_sign(arr_cu->on_device);
+  int nfail = cu_array_test_and_flip_sign(arr_cu->self);
   TEST_CHECK( nfail == 0 );
 
   // restore arr_cu by copying from arr_cu_cl, and test again
   gkyl_array_copy(arr_cu, arr_cu_cl);
-  nfail = cu_array_test_and_flip_sign(arr_cu->on_device);
+  nfail = cu_array_test_and_flip_sign(arr_cu->self);
   TEST_CHECK( nfail == 0 );
 
   // check arr_cu_cl on device and flip sign
-  nfail = cu_array_test_and_flip_sign(arr_cu_cl->on_device);
+  nfail = cu_array_test_and_flip_sign(arr_cu_cl->self);
   TEST_CHECK( nfail == 0 );
 
   // copy arr_cu back to host and check

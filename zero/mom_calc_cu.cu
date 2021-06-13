@@ -48,6 +48,7 @@ gkyl_mom_calc_advance_cu(const gkyl_mom_calc* mcalc,
 {
   int nblocks = phase_range.nblocks, nthreads = phase_range.nthreads;
   gkyl_array_clear_range(mout, 0.0, conf_range);
-  gkyl_mom_calc_advance_cu_ker<<<nblocks, nthreads>>>(mcalc, phase_range, conf_range, fin->on_device, mout->on_device);
+  gkyl_mom_calc_advance_cu_ker<<<nblocks, nthreads>>>
+    (mcalc, phase_range, conf_range, fin->self, mout->self);
 
 }
