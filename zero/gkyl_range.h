@@ -135,19 +135,9 @@ void gkyl_sub_range_init(struct gkyl_range *rng,
   const struct gkyl_range *bigrng, const int *sublower, const int *subupper);
 
 /**
- * Set split for the given range. The only place split matters is for
- * iterators. Iterators for split-ranges only walk over the set of
- * indices owned by that split.
- *
- * @param rng Range object to split
- * @param nsplits Number of splits
- * @param tid Split ID [0, nsplits)
- */
-void gkyl_range_set_split(struct gkyl_range *rng, int nsplits, int tid);
-
-/**
- * Creates a new range that is a split of the given range. See
- * gkyl_range_set_split.
+ * Creates a new range that is a split of the given range. The only
+ * place split matters is for iterators. Iterators for split-ranges
+ * only walk over the set of indices owned by that split.
  *
  * @param rng Range object to split
  * @param nsplits Number of splits

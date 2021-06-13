@@ -137,18 +137,12 @@ gkyl_sub_range_init(struct gkyl_range *rng,
   rng->nblocks = rng->volume/rng->nthreads + 1;
 }
 
-void
-gkyl_range_set_split(struct gkyl_range *rng, int nsplit, int tid)
-{
-  rng->nsplit = nsplit;
-  rng->tid = tid;
-}
-
 struct gkyl_range
-gkyl_range_split(struct gkyl_range *rng, int nsplits, int tid)
+gkyl_range_split(struct gkyl_range *rng, int nsplit, int tid)
 {
   struct gkyl_range r = *rng;
-  gkyl_range_set_split(&r, nsplits, tid);
+  r.nsplit = nsplit;
+  r.tid = tid;
   return r;
 }
 

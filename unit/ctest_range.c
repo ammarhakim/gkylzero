@@ -560,12 +560,12 @@ void test_range_split_1()
 
   int nsplits = 4, curr_start = 0, tot = 0;
   for (int tid=0; tid<nsplits; ++tid) {
-    gkyl_range_set_split(&range, nsplits, tid);
+    struct gkyl_range sr = gkyl_range_split(&range, nsplits, tid);
 
-    gkyl_range_iter_init(&iter, &range);
-    gkyl_range_inv_idx(&range, curr_start, idx);
+    gkyl_range_iter_init(&iter, &sr);
+    gkyl_range_inv_idx(&sr, curr_start, idx);
 
-    for (int d=0; d<range.ndim; ++d)
+    for (int d=0; d<sr.ndim; ++d)
       TEST_CHECK( idx[d] == iter.idx[d] );
     curr_start += iter.bumps_left;
     tot += iter.bumps_left;
@@ -584,10 +584,10 @@ void test_range_split_2()
 
   int nsplits = 4, curr_start = 0, tot = 0;
   for (int tid=0; tid<nsplits; ++tid) {
-    gkyl_range_set_split(&range, nsplits, tid);
+    struct gkyl_range sr = gkyl_range_split(&range, nsplits, tid);
     
-    gkyl_range_iter_init(&iter, &range);
-    gkyl_range_inv_idx(&range, curr_start, idx);
+    gkyl_range_iter_init(&iter, &sr);
+    gkyl_range_inv_idx(&sr, curr_start, idx);
     
     for (int d=0; d<range.ndim; ++d)
       TEST_CHECK( idx[d] == iter.idx[d] );
@@ -596,10 +596,9 @@ void test_range_split_2()
   }
   TEST_CHECK( tot == range.volume );
 
-  gkyl_range_set_split(&range, nsplits, 0);
-  
   tot = 0;
-  gkyl_range_iter_no_split_init(&iter, &range);
+  //gkyl_range_iter_no_split_init(&iter, &range);
+  gkyl_range_iter_init(&iter, &range);
   while (gkyl_range_iter_next(&iter)) {
     tot += 1;
   }
@@ -664,10 +663,10 @@ void test_sub_range_split()
 
   int nsplits = 4, tot = 0;
   for (int tid=0; tid<nsplits; ++tid) {
-    gkyl_range_set_split(&subrange, nsplits, tid);
-    gkyl_range_iter_init(&iter, &subrange);
+    struct gkyl_range sr = gkyl_range_split(&subrange, nsplits, tid);
+    gkyl_range_iter_init(&iter, &sr);
     
-    long th_start = gkyl_range_idx(&subrange, iter.idx);
+    long th_start = gkyl_range_idx(&sr, iter.idx);
     TEST_CHECK( th_start == start_idx[tid] );
     tot += iter.bumps_left;
   }
@@ -683,11 +682,11 @@ void test_range_split_iter_1()
   int nsplits = 16;
   long tot_vol = 0;
   for (int tid=0; tid<nsplits; ++tid) {
-    gkyl_range_set_split(&range, nsplits, tid);
+    struct gkyl_range sr = gkyl_range_split(&range, nsplits, tid);
 
     long vol = 0;
     struct gkyl_range_iter iter;
-    gkyl_range_iter_init(&iter, &range);
+    gkyl_range_iter_init(&iter, &sr);
     while (gkyl_range_iter_next(&iter))
       vol += 1;
     tot_vol += vol;
@@ -704,11 +703,11 @@ void test_range_split_iter_2()
   int nsplits = 4;
   long tot_vol = 0;
   for (int tid=0; tid<nsplits; ++tid) {
-    gkyl_range_set_split(&range, nsplits, tid);
+    struct gkyl_range sr = gkyl_range_split(&range, nsplits, tid);
 
     long vol = 0;
     struct gkyl_range_iter iter;
-    gkyl_range_iter_init(&iter, &range);
+    gkyl_range_iter_init(&iter, &sr);
     while (gkyl_range_iter_next(&iter))
       vol += 1;
     tot_vol += vol;
@@ -727,21 +726,18 @@ void test_range_split_iter_3()
 
   int nsplits = 4;
   for (int tid=0; tid<nsplits; ++tid) {
-    gkyl_range_set_split(&range, nsplits, tid);
+    struct gkyl_range sr = gkyl_range_split(&range, nsplits, tid);
 
     struct gkyl_range_iter iter;
-    gkyl_range_iter_init(&iter, &range);
+    gkyl_range_iter_init(&iter, &sr);
     
     while (gkyl_range_iter_next(&iter)) {
-      long lidx = gkyl_range_idx(&range, iter.idx);
+      long lidx = gkyl_range_idx(&sr, iter.idx);
       double *d = gkyl_array_fetch(arr, lidx);
       d[0] += 1.0;
     }
   }
 
-  // reset to default
-  gkyl_range_set_split(&range, 1, 0);
-  
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
   while (gkyl_range_iter_next(&iter)) {
@@ -769,20 +765,17 @@ void test_sub_range_split_iter()
 
   int nsplits = 2;
   for (int tid=0; tid<nsplits; ++tid) {
-    gkyl_range_set_split(&subrange, nsplits, tid);
+    struct gkyl_range sr = gkyl_range_split(&subrange, nsplits, tid);
     struct gkyl_range_iter iter;
-    gkyl_range_iter_init(&iter, &subrange);
+    gkyl_range_iter_init(&iter, &sr);
     
     while (gkyl_range_iter_next(&iter)) {
-      long lidx = gkyl_range_idx(&subrange, iter.idx);
+      long lidx = gkyl_range_idx(&sr, iter.idx);
       double *d = gkyl_array_fetch(arr, lidx);
       d[0] += 1.0;
     }
   }
 
-  // reset to default
-  gkyl_range_set_split(&subrange, 1, 0);
-  
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &subrange);
   while (gkyl_range_iter_next(&iter)) {

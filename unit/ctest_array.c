@@ -439,14 +439,13 @@ void test_array_copy_split()
   
   long loc = 0;
   for (int tid=0; tid<num_split; ++tid) {
-    gkyl_range_set_split(&sub_range, num_split, tid);
-    gkyl_array_copy_to_buffer(buff+loc, arr, sub_range);
+    struct gkyl_range sr = gkyl_range_split(&sub_range, num_split, tid);
+    gkyl_array_copy_to_buffer(buff+loc, arr, sr);
     
-    loc += gkyl_range_split_len(&sub_range);
+    loc += gkyl_range_split_len(&sr);
   }
 
   long count = 0;
-  gkyl_range_set_split(&sub_range, 1, 0);
   gkyl_range_iter_init(&iter, &sub_range);
   while (gkyl_range_iter_next(&iter))
     TEST_CHECK( buff[count++] == iter.idx[0] + 10.5*iter.idx[1] );
@@ -456,12 +455,10 @@ void test_array_copy_split()
   loc = 0;
   for (int tid=0; tid<num_split; ++tid) {
     // copy back from buffer
-    gkyl_range_set_split(&sub_range, num_split, tid);
-    gkyl_array_copy_from_buffer(arr, buff+loc, sub_range);
-    loc += gkyl_range_split_len(&sub_range);
+    struct gkyl_range sr = gkyl_range_split(&sub_range, num_split, tid);
+    gkyl_array_copy_from_buffer(arr, buff+loc, sr);
+    loc += gkyl_range_split_len(&sr);
   }
-
-  gkyl_range_set_split(&sub_range, 1, 0); // reset
 
   gkyl_range_iter_init(&iter, &sub_range);
   while (gkyl_range_iter_next(&iter)) {
