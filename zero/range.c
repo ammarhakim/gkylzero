@@ -150,7 +150,7 @@ gkyl_range_split(struct gkyl_range *rng, int nsplit, int tid)
 // the initial index into the range. Number of elements is returned
 // and start index set in 'lower'
 static long
-gkyl_range_calc_split(const struct gkyl_range *rng, int *lower)
+range_calc_split(const struct gkyl_range *rng, int *lower)
 {
   const int nsplit = rng->nsplit, tid = rng->tid;
   long quot = rng->volume/nsplit, rem = rng->volume % nsplit;
@@ -333,7 +333,7 @@ gkyl_range_iter_init(struct gkyl_range_iter *iter,
 {
   iter->is_first = 1;
   iter->ndim = range->ndim;
-  iter->bumps_left = gkyl_range_calc_split(range, iter->idx);
+  iter->bumps_left = range_calc_split(range, iter->idx);
   
   for (int i=0; i<range->ndim; ++i) {
     iter->lower[i] = range->lower[i];
