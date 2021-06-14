@@ -36,7 +36,7 @@ gkyl_mom_calc* gkyl_mom_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
  * Compute moment of distribution function. The phase_rng and conf_rng
  * MUST be a sub-ranges of the range on which the distribution
  * function and the moments are defined. These ranges must be
- * self-consistently constructed.
+ * on_dev-consistently constructed.
  *
  * @param calc Moment calculator updater to run
  * @param phase_rng Phase-space range

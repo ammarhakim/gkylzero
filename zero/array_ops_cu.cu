@@ -59,25 +59,25 @@ gkyl_array_set_cu_kernel(struct gkyl_array* out, double a,
 void
 gkyl_array_clear_cu(struct gkyl_array* out, double val)
 {
-  gkyl_array_clear_cu_kernel<<<out->nblocks, out->nthreads>>>(out->self, val);
+  gkyl_array_clear_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, val);
 }
 
 void
 gkyl_array_accumulate_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp)
 {
-  gkyl_array_accumulate_cu_kernel<<<out->nblocks, out->nthreads>>>(out->self, a, inp->self);
+  gkyl_array_accumulate_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a, inp->on_dev);
 }
 
 void
 gkyl_array_set_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp)
 {
-  gkyl_array_set_cu_kernel<<<out->nblocks, out->nthreads>>>(out->self, a, inp->self);
+  gkyl_array_set_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a, inp->on_dev);
 }
 
 void
 gkyl_array_scale_cu(struct gkyl_array* out, double a)
 {
-  gkyl_array_set_cu_kernel<<<out->nblocks, out->nthreads>>>(out->self, a, out->self);
+  gkyl_array_set_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a, out->on_dev);
 }
 
 // Range-based methods
@@ -303,7 +303,7 @@ gkyl_array_clear_range_cu(struct gkyl_array *out, double val, struct gkyl_range 
   dim3 dimGrid, dimBlock;
   gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range, out->ncomp);
 
-  gkyl_array_clear_range_cu_kernel<<<dimGrid, dimBlock>>>(out->self, val, range);
+  gkyl_array_clear_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, val, range);
 }
 
 void
@@ -313,7 +313,7 @@ gkyl_array_accumulate_range_cu(struct gkyl_array *out,
   dim3 dimGrid, dimBlock;
   gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range, min(out->ncomp, inp->ncomp));
 
-  gkyl_array_accumulate_range_cu_kernel<<<dimGrid, dimBlock>>>(out->self, a, inp->self, range);
+  gkyl_array_accumulate_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, a, inp->on_dev, range);
 }
 
 void
@@ -323,8 +323,8 @@ gkyl_array_set_range_cu(struct gkyl_array *out,
   dim3 dimGrid, dimBlock;
   gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range, min(out->ncomp, inp->ncomp));
 
-  gkyl_array_set_range_cu_kernel<<<dimGrid, dimBlock>>>(out->self,
-    a, inp->self, range);
+  gkyl_array_set_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev,
+    a, inp->on_dev, range);
 }
 
 void
@@ -334,8 +334,8 @@ gkyl_array_scale_range_cu(struct gkyl_array *out,
   dim3 dimGrid, dimBlock;
   gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range, out->ncomp);
 
-  gkyl_array_set_range_cu_kernel<<<dimGrid, dimBlock>>>(out->self,
-    a, out->self, range);
+  gkyl_array_set_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev,
+    a, out->on_dev, range);
 }
 
 void
@@ -345,8 +345,8 @@ gkyl_array_copy_range_cu(struct gkyl_array *out,
   dim3 dimGrid, dimBlock;
   gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range, out->ncomp);
 
-  gkyl_array_copy_range_cu_kernel<<<dimGrid, dimBlock>>>(out->self,
-    inp->self, range, range);
+  gkyl_array_copy_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev,
+    inp->on_dev, range, range);
 }
 
 void
@@ -356,8 +356,8 @@ gkyl_array_copy_range_to_range_cu(struct gkyl_array *out,
   dim3 dimGrid, dimBlock;
   gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, inp_range, out->ncomp);
 
-  gkyl_array_copy_range_cu_kernel<<<dimGrid, dimBlock>>>(out->self,
-    inp->self, out_range, inp_range);
+  gkyl_array_copy_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev,
+    inp->on_dev, out_range, inp_range);
 }
 
 void 
@@ -368,7 +368,7 @@ gkyl_array_copy_to_buffer_cu(void *data,
   gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range, arr->ncomp);
 
   gkyl_array_copy_to_buffer_cu_kernel<<<dimGrid, dimBlock>>>(data,
-    arr->self, range);
+    arr->on_dev, range);
 }
 
 void 
@@ -378,6 +378,6 @@ gkyl_array_copy_from_buffer_cu(struct gkyl_array *arr,
   int nelem = range.volume*arr->ncomp;
   int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(nelem, nthreads);
-  gkyl_array_copy_from_buffer_cu_kernel<<<nblocks, nthreads>>>(arr->self,
+  gkyl_array_copy_from_buffer_cu_kernel<<<nblocks, nthreads>>>(arr->on_dev,
     data, range);
 }

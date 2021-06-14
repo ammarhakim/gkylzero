@@ -83,7 +83,7 @@ gkyl_array_reduce_max_cu(double *out_d, const struct gkyl_array* inp)
 {
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;  
   int nblocks = gkyl_int_div_up(inp->size, nthreads);
-  arrayMax_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->self, out_d);
+  arrayMax_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, out_d);
   cudaDeviceSynchronize();
 }
 
@@ -92,5 +92,5 @@ gkyl_array_reduce_range_max_cu(double *out_d, const struct gkyl_array* inp, stru
 {
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(range.volume, nthreads);
-  arrayMax_range_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->self, range, out_d);
+  arrayMax_range_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, range, out_d);
 }

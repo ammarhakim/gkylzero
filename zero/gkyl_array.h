@@ -25,7 +25,7 @@ struct gkyl_array {
   struct gkyl_ref_count ref_count;
 
   int nthreads, nblocks; // threads per block, number of blocks
-  struct gkyl_array *self; // pointer to itself or device data
+  struct gkyl_array *on_dev; // pointer to iton_dev or device data
 };
 
 /**
@@ -43,7 +43,7 @@ struct gkyl_array* gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t
  * gkyl_array_release method.
  *
  * NOTE: the data member lives on GPU, but the struct lives on the
- * host.  However, the self member for this cal is set to a device
+ * host.  However, the on_dev member for this cal is set to a device
  * clone of the host struct, and is what should be used to pass to
  * CUDA kernels which require the entire array struct on device.
  * 
