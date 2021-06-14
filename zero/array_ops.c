@@ -12,11 +12,11 @@
 struct gkyl_array*
 gkyl_array_clear(struct gkyl_array* out, double val)
 {
+  assert(out->type == GKYL_DOUBLE);
+
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) { gkyl_array_clear_cu(out, val); return out; }
 #endif
-
-  assert(out->type == GKYL_DOUBLE);
 
   double *out_d = out->data;
   for (size_t i=0; i<NELM(out); ++i)
@@ -28,12 +28,12 @@ struct gkyl_array*
 gkyl_array_accumulate(struct gkyl_array* out, double a,
   const struct gkyl_array* inp)
 {
+  assert(out->type == GKYL_DOUBLE);
+  assert(out->size == inp->size && out->elemsz == inp->elemsz);
+
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) { gkyl_array_accumulate_cu(out, a, inp); return out; }
 #endif
-
-  assert(out->type == GKYL_DOUBLE);
-  assert(out->size == inp->size && out->elemsz == inp->elemsz);
 
   double *out_d = out->data;
   const double *inp_d = inp->data;
@@ -46,12 +46,12 @@ struct gkyl_array*
 gkyl_array_set(struct gkyl_array* out, double a,
   const struct gkyl_array* inp)
 {
+  assert(out->type == GKYL_DOUBLE);
+  assert(out->size == inp->size && out->elemsz == inp->elemsz);
+
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) { gkyl_array_set_cu(out, a, inp); return out; }
 #endif
-
-  assert(out->type == GKYL_DOUBLE);
-  assert(out->size == inp->size && out->elemsz == inp->elemsz);
 
   double *out_d = out->data;
   const double *inp_d = inp->data;
@@ -73,6 +73,8 @@ gkyl_array_scale(struct gkyl_array* out, double a)
 void 
 gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op op)
 {
+  assert(arr->type == GKYL_DOUBLE);
+
 #ifdef GKYL_HAVE_CUDA
   if(gkyl_array_is_cu_dev(arr)) {
     switch (op) {
@@ -84,7 +86,6 @@ gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op 
   }
 #endif
 
-  assert(arr->type == GKYL_DOUBLE);
   long nc = NCOM(arr);
   double *arr_d = arr->data;
 
@@ -113,11 +114,12 @@ gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op 
 struct gkyl_array*
 gkyl_array_clear_range(struct gkyl_array *out, double val, struct gkyl_range range)
 {
+  assert(out->type == GKYL_DOUBLE);
+
 #ifdef GKYL_HAVE_CUDA
   if(gkyl_array_is_cu_dev(out)) { gkyl_array_clear_range_cu(out, val, range); return out; }
 #endif
 
-  assert(out->type == GKYL_DOUBLE);
   long n = NCOM(out);
 
   struct gkyl_range_iter iter;
@@ -135,12 +137,12 @@ struct gkyl_array*
 gkyl_array_accumulate_range(struct gkyl_array *out,
   double a, const struct gkyl_array *inp, struct gkyl_range range)
 {
+  assert(out->type == GKYL_DOUBLE);
+  assert(out->size == inp->size);
+
 #ifdef GKYL_HAVE_CUDA
   if(gkyl_array_is_cu_dev(out)) { gkyl_array_accumulate_range_cu(out, a, inp, range); return out; }
 #endif
-
-  assert(out->type == GKYL_DOUBLE);
-  assert(out->size == inp->size);
 
   long outnc = NCOM(out), inpnc = NCOM(inp);
   long n = outnc<inpnc ? outnc : inpnc;
@@ -161,12 +163,12 @@ struct gkyl_array*
 gkyl_array_set_range(struct gkyl_array *out,
   double a, const struct gkyl_array *inp, struct gkyl_range range)
 {
+  assert(out->type == GKYL_DOUBLE && inp->type == GKYL_DOUBLE);
+  assert(out->size == inp->size);
+
 #ifdef GKYL_HAVE_CUDA
   if(gkyl_array_is_cu_dev(out)) { gkyl_array_set_range_cu(out, a, inp, range); return out; }
 #endif
-
-  assert(out->type == GKYL_DOUBLE && inp->type == GKYL_DOUBLE);
-  assert(out->size == inp->size);
 
   long outnc = NCOM(out), inpnc = NCOM(inp);
   long n = outnc<inpnc ? outnc : inpnc;
@@ -198,6 +200,8 @@ void
 gkyl_array_reduce_range(double *res,
   const struct gkyl_array *arr, enum gkyl_array_op op, struct gkyl_range range)
 {
+  assert(arr->type == GKYL_DOUBLE);
+
 #ifdef GKYL_HAVE_CUDA
   if(gkyl_array_is_cu_dev(arr)) {
     switch (op) {
@@ -208,8 +212,6 @@ gkyl_array_reduce_range(double *res,
     return;
   }
 #endif
-
-  assert(arr->type == GKYL_DOUBLE);
 
   long n = NCOM(arr);
   struct gkyl_range_iter iter;
@@ -243,11 +245,11 @@ struct gkyl_array*
 gkyl_array_copy_range(struct gkyl_array *out,
   const struct gkyl_array *inp, struct gkyl_range range)
 {
+  assert(out->size == inp->size && out->elemsz == inp->elemsz);
+
 #ifdef GKYL_HAVE_CUDA
   if(gkyl_array_is_cu_dev(out)) { gkyl_array_copy_range_cu(out, inp, range); return out; }
 #endif
-
-  assert(out->size == inp->size && out->elemsz == inp->elemsz);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -263,12 +265,12 @@ struct gkyl_array*
 gkyl_array_copy_range_to_range(struct gkyl_array *out,
   const struct gkyl_array *inp, struct gkyl_range out_range, struct gkyl_range inp_range)
 {
+  assert(out->size == inp->size && out->elemsz == inp->elemsz);
+  assert(out_range.volume == inp_range.volume);
+
 #ifdef GKYL_HAVE_CUDA
   if(gkyl_array_is_cu_dev(out)) { gkyl_array_copy_range_to_range_cu(out, inp, out_range, inp_range); return out; }
 #endif
-
-  assert(out->size == inp->size && out->elemsz == inp->elemsz);
-  assert(out_range.volume == inp_range.volume);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &out_range);
