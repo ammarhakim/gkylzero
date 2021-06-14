@@ -130,6 +130,7 @@ install: all
 	cp ${headers} ${PREFIX}/gkylzero/include
 	cp -f build/libgkylzero.a ${PREFIX}/gkylzero/lib
 	cp -f build/Makefile.sample ${PREFIX}/gkylzero/share/Makefile
+	cp -f regression/app_arg_parse.h ${PREFIX}/gkylzero/share/app_arg_parse.h
 	cp -f regression/app_twostream.c ${PREFIX}/gkylzero/share/app_twostream.c
 	cp -f regression/twostream.ini ${PREFIX}/gkylzero/share/twostream.ini
 	cp -f build/regression/app_vlasov_kerntm ${PREFIX}/gkylzero/bin/
