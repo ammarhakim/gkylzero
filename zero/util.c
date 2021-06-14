@@ -51,6 +51,9 @@ struct timespec
 gkyl_wall_clock(void)
 {
   struct timespec tm;
+#ifdef GKYL_HAVE_CUDA
+  cudaDeviceSynchronize();
+#endif
   clock_gettime(CLOCK_REALTIME, &tm);
   return tm;
 }
