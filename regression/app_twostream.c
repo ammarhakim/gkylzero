@@ -128,6 +128,12 @@ int
 main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = get_parse_app_args(argc, argv);
+
+  if (strcmp(app_args.file_name, APP_ARGS_DEFAULT_FILE_NAME) == 0)
+    strcpy(app_args.file_name, "twostream.ini");
+
+  printf("Name is %s\n", app_args.file_name);
+  
   rxi_ini_t *inp = rxi_ini_load(app_args.file_name);
 
   struct twostream_ctx ctx = create_ctx(inp); // context for init functions

@@ -6,6 +6,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#define APP_ARGS_DEFAULT_FILE_NAME "name-not-set"
+
 struct gkyl_app_args {
   bool use_gpu; // should this be run on GPU?
   bool step_mode; // run for fixed number of steps? (for valgrind/cuda-memcheck)
@@ -21,6 +23,8 @@ get_parse_app_args(int argc, char **argv)
   int num_steps = INT_MAX;
 
   struct gkyl_app_args args;
+
+  strcpy(args.file_name, APP_ARGS_DEFAULT_FILE_NAME); // default 
 
   int c;
   while ((c = getopt(argc, argv, "+hgs:i:")) != -1) {
