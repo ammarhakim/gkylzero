@@ -732,7 +732,7 @@ void test_cu_array_accumulate()
 
 void test_cu_array_accumulate_range()
 {
-  int shape[] = {10, 20};
+  int shape[] = {20, 10};
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 2, shape);
   
@@ -743,14 +743,20 @@ void test_cu_array_accumulate_range()
   struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 8, range.volume);
   struct gkyl_array *a2_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3, range.volume);
 
-  // copy host arrays to device
+  // initialize data
+  double *a1_d  = a1->data, *a2_d = a2->data;
+  for (unsigned i=0; i<a1->size; ++i) {
+    for(unsigned c=0; c<a1->ncomp; ++c) 
+      a1_d[c+a1->ncomp*i] = i*1.0 + .01*c;
+    for(unsigned c=0; c<a2->ncomp; ++c) 
+      a2_d[c+a2->ncomp*i] = i*0.1 + .01*c;
+  }
+
+  // copy initialized arrays to device
   gkyl_array_copy(a1_cu, a1);
   gkyl_array_copy(a2_cu, a2);
 
-  // test a1 = a1 + 0.5*a2
-  gkyl_array_clear(a1_cu, 0.5);
-  gkyl_array_clear(a2_cu, 1.5);
-
+  // a1 = a1 + 0.5*a2
   gkyl_array_accumulate_range(a1_cu, 0.5, a2_cu, range);
 
  // copy from device and check if things are ok
@@ -761,10 +767,11 @@ void test_cu_array_accumulate_range()
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(&range, iter.idx);
     double *a1d = gkyl_array_fetch(a1, loc);
-    for (int i=0; i<3; ++i)
-      TEST_CHECK( a1d[i] == 0.5 + 0.5*1.5 );
-    for (int i=3; i<8; ++i)
-      TEST_CHECK( a1d[i] == 0.5);
+    for (int c=0; c<a2->ncomp; ++c) {
+      TEST_CHECK( gkyl_compare( a1d[c], (.01+.5*.01)*c + loc*1.0 + .5*loc*.1, 1e-14 ) );
+    }
+    for (int c=a2->ncomp; c<a1->ncomp; ++c)
+      TEST_CHECK( a1d[c] == (.01)*c + loc*1.0 );
   }
 
   // test a2 = a2 + 0.5*a
@@ -780,7 +787,7 @@ void test_cu_array_accumulate_range()
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(&range, iter.idx);
     double *a2d = gkyl_array_fetch(a2, loc);
-    for (int i=0; i<3; ++i)
+    for (int i=0; i<a2->ncomp; ++i)
       TEST_CHECK( a2d[i] == 1.5 + 0.5*0.5 );
   }  
 
