@@ -6,7 +6,7 @@
 
 CFLAGS = -O3 -g 
 LDFLAGS = 
-INCLUDES = -Iminus -Izero -Iapps -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov
+INCLUDES = -Iminus -Izero -Iapps -Iregression -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov
 PREFIX = ${HOME}/gkylsoft
 
 NVCC = 
@@ -62,7 +62,7 @@ build/libgkylzero.a: ${libobjs} ${headers}
 build/regression/twostream.ini: regression/twostream.ini
 	cp regression/twostream.ini build/regression/twostream.ini
 
-build/regression/%: regression/%.c build/libgkylzero.a
+build/regression/%: regression/%.c build/libgkylzero.a regression/app_arg_parse.h
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero -lm -lpthread 
 
 # Unit tests

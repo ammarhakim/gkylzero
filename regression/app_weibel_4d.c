@@ -1,9 +1,9 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 
 #include <gkyl_vlasov.h>
+#include <app_arg_parse.h>
 
 struct weibel_ctx {
   // parameters for plasma streams
@@ -65,7 +65,7 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 }
 
 struct weibel_ctx
-create_ctx(int argc, char **argv)
+create_ctx(void)
 {
   double ud = 0.3;
   double k0 = 1.0, theta = 45.0/180.0*M_PI;
@@ -76,26 +76,6 @@ create_ctx(int argc, char **argv)
   double TElc20 = TElc10;
   double vthElc10 = sqrt(TElc10/massElc);
   double vthElc20 = sqrt(TElc20/massElc);  
-
-  bool use_gpu = false;
-
-  int c;
-  while ((c = getopt(argc, argv, "+hgc:v:p:n:")) != -1) {
-    switch (c)
-    {
-      case 'h':
-        printf("Usage: Pass -g to run on GPU \n");
-        exit(-1);
-        break;
-
-      case 'g':
-        use_gpu = true;
-        break;        
-      
-      case '?':
-        break;
-    }
-  }  
   
   struct weibel_ctx ctx = {
     .nElc10 = 0.5,
@@ -110,7 +90,6 @@ create_ctx(int argc, char **argv)
     .kx = kx, .ky = ky,
     .alpha = 1.18281106421231,
     .perturb_n = 1e-8,
-    .use_gpu = use_gpu,
   };
   return ctx;
 }
@@ -118,7 +97,8 @@ create_ctx(int argc, char **argv)
 int
 main(int argc, char **argv)
 {
-  struct weibel_ctx ctx = create_ctx(argc, argv); // context for init functions
+  struct gkyl_app_args app_args = get_parse_app_args(argc, argv);
+  struct weibel_ctx ctx = create_ctx(); // context for init functions
 
   // electrons
   struct gkyl_vlasov_species elc = {
@@ -163,7 +143,7 @@ main(int argc, char **argv)
     .species = { elc },
     .field = field,
  
-    .use_gpu = ctx.use_gpu,
+    .use_gpu = app_args.use_gpu,
   };
 
   // create app object
@@ -179,7 +159,8 @@ main(int argc, char **argv)
   gkyl_vlasov_app_write(app, tcurr, 0);
   gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 0);
 
-  while (tcurr < tend) {
+  long step = 1, num_steps = app_args.num_steps;
+  while ((tcurr < tend) && (step <= num_steps)) {
     printf("Taking time-step at t = %g ...", tcurr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
@@ -190,6 +171,7 @@ main(int argc, char **argv)
     }
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
+    step += 1;
   }
 
   gkyl_vlasov_app_write(app, tcurr, 1);

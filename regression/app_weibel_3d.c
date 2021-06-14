@@ -3,6 +3,7 @@
 
 #include <gkyl_util.h>
 #include <gkyl_vlasov.h>
+#include <app_arg_parse.h>
 
 struct weibel_ctx {
   // parameters for plasma streams
@@ -84,6 +85,7 @@ create_ctx(void)
 int
 main(int argc, char **argv)
 {
+  struct gkyl_app_args app_args = get_parse_app_args(argc, argv);
   struct weibel_ctx ctx = create_ctx(); // context for init functions
 
   // electrons
@@ -125,7 +127,9 @@ main(int argc, char **argv)
 
     .num_species = 1,
     .species = { elc },
-    .field = field
+    .field = field,
+
+    .use_gpu = app_args.use_gpu
   };
 
   // create app object
@@ -141,7 +145,8 @@ main(int argc, char **argv)
   gkyl_vlasov_app_write(app, tcurr, 0);
   gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 0);
 
-  while (tcurr < tend) {
+  long step = 1, num_steps = app_args.num_steps;
+  while ((tcurr < tend) && (step <= num_steps)) {
     printf("Taking time-step at t = %g ...", tcurr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
@@ -152,6 +157,7 @@ main(int argc, char **argv)
     }
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
+    step += 1;
   }
 
   gkyl_vlasov_app_write(app, tcurr, 1);
