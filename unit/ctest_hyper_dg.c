@@ -118,7 +118,7 @@ test_vlasov_1x2v_p2_(bool use_gpu)
   bool no_iter = false;
   for(int n=0; n<nrep; n++) {
     if (use_gpu)
-      gkyl_cu_memset(slvr->maxs, 0., GKYL_MAX_DIM*sizeof(double));
+      gkyl_cu_memset(slvr->maxs, 0, GKYL_MAX_DIM*sizeof(double));
     else
       for (int i=0; i<pdim; i++) slvr->maxs[i] = 0.;
     gkyl_array_clear(rhs, 0.0);
@@ -325,7 +325,7 @@ test_vlasov_2x3v_p1_(bool use_gpu)
   bool no_iter = false;
   for(int n=0; n<nrep; n++) {
     if (use_gpu)
-      gkyl_cu_memset(slvr->maxs, 0., GKYL_MAX_DIM*sizeof(double));
+      gkyl_cu_memset(slvr->maxs, 0, GKYL_MAX_DIM*sizeof(double));
     else
       for (int i=0; i<pdim; i++) slvr->maxs[i] = 0.;
     gkyl_array_clear(rhs, 0.0);
