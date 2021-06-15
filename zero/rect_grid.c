@@ -20,13 +20,6 @@ gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
 }
 
 void
-gkyl_rect_grid_cell_center(const struct gkyl_rect_grid *grid, const int *idx, double *xc)
-{
-  for (int i=0; i<grid->ndim; ++i)
-    xc[i] = grid->lower[i]+(idx[i]+0.5)*grid->dx[i];
-}
-
-void
 gkyl_rect_grid_write(const struct gkyl_rect_grid *grid, FILE *fp)
 {
   // dimension and shape are written as 64 bit integers
@@ -41,26 +34,3 @@ gkyl_rect_grid_write(const struct gkyl_rect_grid *grid, FILE *fp)
   fwrite(grid->upper, sizeof(double), grid->ndim, fp);
 }
 
-// CUDA specific code
-
-#ifdef GKYL_HAVE_CUDA
-
-struct gkyl_rect_grid*
-gkyl_rect_grid_clone_on_cu_dev(struct gkyl_rect_grid* grid)
-{
-  size_t sz = sizeof(struct gkyl_rect_grid);
-  struct gkyl_rect_grid *cu_grid = gkyl_cu_malloc(sz);
-  gkyl_cu_memcpy(cu_grid, grid, sz, GKYL_CU_MEMCPY_H2D);
-  return cu_grid;
-}
-
-#else
-
-struct gkyl_rect_grid*
-gkyl_rect_grid_clone_on_cu_dev(struct gkyl_rect_grid* grid)
-{
-  assert(false);
-  return 0;
-}
-
-#endif

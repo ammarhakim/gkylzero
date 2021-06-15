@@ -86,7 +86,7 @@ gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range *upd
 
   double vm[5], vp[5], flux[5];
 
-  gkyl_array_clear_range(rhs, 0.0, update_rng);
+  gkyl_array_clear_range(rhs, 0.0, *update_rng);
 
   for (int d=0; d<kep->num_up_dirs; ++d) {
     int dir = kep->update_dirs[d];

@@ -1,8 +1,9 @@
 #pragma once
 
-#include <stdlib.h>
-
 #include <gkyl_util.h>
+
+#include <stdio.h>
+#include <stdlib.h>
 
 // The following allocators have the same calling/return behavior as
 // standard C allocators. However, an error is signaled if allocation
@@ -51,5 +52,14 @@ void* gkyl_cu_malloc(size_t size);
 /** Free memory on device */
 void gkyl_cu_free(void *ptr);
 
+/** Allocate pinned host memory on NV-GPU */
+void* gkyl_cu_malloc_host(size_t size);
+
+/** Free pinned host memory on device */
+void gkyl_cu_free_host(void *ptr);
+
 /** Copy data between host/device */
 void gkyl_cu_memcpy(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind);
+
+/** Set memory on device */
+void gkyl_cu_memset(void *data, int val, size_t count);

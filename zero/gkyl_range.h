@@ -47,8 +47,12 @@ struct gkyl_range {
   uint32_t flags; // Flags for internal use
   int ilo[GKYL_MAX_DIM]; // for use in inverse indexer
   long ac[GKYL_MAX_DIM+1]; // coefficients for indexing
+  long iac[GKYL_MAX_DIM+1]; // for use in sub-range inverse indexer
   long linIdxZero; // linear index of {0,0,...}
   int nsplit, tid; // number of splits, split ID
+
+  // FOR CUDA ONLY
+  int nthreads, nblocks; // CUDA kernel launch specifiers for range-based ops
 };
 
 /**
@@ -96,14 +100,6 @@ void gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim,
   const int *shape);
 
 /**
- * Clone range object on NV-GPU.
- *
- * @param rng Range object on device to clone
- * @return Clone valid on device.
- */
-struct gkyl_range* gkyl_range_clone_on_cu_dev(struct gkyl_range* rng);
-
-/**
  * Shape in direction dir
  *
  * @param rng Range object
@@ -139,19 +135,9 @@ void gkyl_sub_range_init(struct gkyl_range *rng,
   const struct gkyl_range *bigrng, const int *sublower, const int *subupper);
 
 /**
- * Set split for the given range. The only place split matters is for
- * iterators. Iterators for split-ranges only walk over the set of
- * indices owned by that split.
- *
- * @param rng Range object to split
- * @param nsplits Number of splits
- * @param tid Split ID [0, nsplits)
- */
-void gkyl_range_set_split(struct gkyl_range *rng, int nsplits, int tid);
-
-/**
- * Creates a new range that is a split of the given range. See
- * gkyl_range_set_split.
+ * Creates a new range that is a split of the given range. The only
+ * place split matters is for iterators. Iterators for split-ranges
+ * only walk over the set of indices owned by that split.
  *
  * @param rng Range object to split
  * @param nsplits Number of splits
@@ -259,7 +245,8 @@ int gkyl_range_intersect(struct gkyl_range* irng,
  * @param idx Index for which to compute linear index
  */
 GKYL_CU_DH
-static inline long gkyl_range_idx(const struct gkyl_range* range, const int *idx)
+static inline long
+gkyl_range_idx(const struct gkyl_range* range, const int *idx)
 {
 #define RI(...) gkyl_ridx(*range, __VA_ARGS__)
   switch (range->ndim) {
@@ -302,7 +289,8 @@ static inline long gkyl_range_idx(const struct gkyl_range* range, const int *idx
  * @return Relatice offset to idx.
  */
 GKYL_CU_DH
-static inline long gkyl_range_offset(const struct gkyl_range* range, const int *idx)
+static inline long
+gkyl_range_offset(const struct gkyl_range* range, const int *idx)
 {
   return gkyl_range_idx(range, idx) - range->linIdxZero;
 }
@@ -316,14 +304,36 @@ static inline long gkyl_range_offset(const struct gkyl_range* range, const int *
  * @param idx On output, the N-dimensional index into 'range'
  */
 GKYL_CU_DH
-static inline
-void gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
+static inline void
+gkyl_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
 {
   long n = loc;
   for (int i=1; i<=range->ndim; ++i) {
     long quot = n/range->ac[i];
     long rem = n % range->ac[i];
     idx[i-1] = quot + range->ilo[i-1];
+    n = rem;
+  }
+}
+
+/**
+ * Inverse indexer for use with a sub_range, mapping a linear index to
+ * an N-dimension index into 'range' object.  Behavior is such that
+ * loc = 0 gives idx = {0, 0, ...}.
+ *
+ * @param range Range object to map into
+ * @param loc Linear index in [0, range->volume)
+ * @param idx On output, the N-dimensional index into 'range'
+ */
+GKYL_CU_DH
+static inline void
+gkyl_sub_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
+{
+  long n = loc;
+  for (int i=1; i<=range->ndim; ++i) {
+    long quot = n/range->iac[i];
+    long rem = n % range->iac[i];
+    idx[i-1] = quot + range->lower[i-1];
     n = rem;
   }
 }

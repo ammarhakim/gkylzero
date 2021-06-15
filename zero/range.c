@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <gkyl_alloc.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
@@ -19,16 +18,16 @@ static const uint32_t masks[] =
 
 // Computes coefficients for mapping indices in row-major order
 static void
-calc_rowmajor_ac(struct gkyl_range* range)
+calc_rowmajor_ac(struct gkyl_range* range, long ac[])
 {
   int ndim = range->ndim;
-  range->ac[ndim] = 1L;
+  ac[ndim] = 1L;
   for (int i=ndim-1; i>=1; --i)
-    range->ac[i] = range->ac[i+1]*gkyl_range_shape(range, i);
+    ac[i] = ac[i+1]*gkyl_range_shape(range, i);
   long start = 0L;
   for (int i=0; i<ndim; ++i)
-    start += range->ac[i+1]*range->lower[i];
-  range->ac[0] = -start;
+    start += ac[i+1]*range->lower[i];
+  ac[0] = -start;
 }
 
 // Computes stuff needed for "skip iterator"
@@ -71,7 +70,8 @@ gkyl_range_init(struct gkyl_range *rng, int ndim,
   // reset volume if any lower[d] <= upper[d]
   if (is_zero_vol) rng->volume = 0;
   
-  calc_rowmajor_ac(rng);
+  calc_rowmajor_ac(rng, rng->ac);
+  gkyl_copy_long_arr(GKYL_MAX_DIM+1, rng->ac, rng->iac);
 
   int idxZero[GKYL_MAX_DIM];
   for (int i=0; i<ndim; ++i) idxZero[i] = 0;
@@ -81,6 +81,10 @@ gkyl_range_init(struct gkyl_range *rng, int ndim,
   rng->tid = 0;
 
   rng->flags = 0;
+
+  // for CUDA ops
+  rng->nthreads = GKYL_DEFAULT_NUM_THREADS;
+  rng->nblocks = rng->volume/rng->nthreads + 1;
 }
 
 void
@@ -121,20 +125,24 @@ gkyl_sub_range_init(struct gkyl_range *rng,
   
   rng->flags = bigrng->flags;
   SET_SUB_RANGE(rng->flags);
-}
 
-void
-gkyl_range_set_split(struct gkyl_range *rng, int nsplit, int tid)
-{
-  rng->nsplit = nsplit;
-  rng->tid = tid;
+  // we need to construct iac such that sub_range_inv_idx works
+  // properly
+  struct gkyl_range sub_range;
+  gkyl_range_init(&sub_range, rng->ndim, rng->lower, rng->upper);
+  gkyl_copy_long_arr(GKYL_MAX_DIM+1, sub_range.ac, rng->iac);
+
+  // for CUDA ops
+  rng->nthreads = GKYL_DEFAULT_NUM_THREADS;
+  rng->nblocks = rng->volume/rng->nthreads + 1;
 }
 
 struct gkyl_range
-gkyl_range_split(struct gkyl_range *rng, int nsplits, int tid)
+gkyl_range_split(struct gkyl_range *rng, int nsplit, int tid)
 {
   struct gkyl_range r = *rng;
-  gkyl_range_set_split(&r, nsplits, tid);
+  r.nsplit = nsplit;
+  r.tid = tid;
   return r;
 }
 
@@ -142,7 +150,7 @@ gkyl_range_split(struct gkyl_range *rng, int nsplits, int tid)
 // the initial index into the range. Number of elements is returned
 // and start index set in 'lower'
 static long
-gkyl_range_calc_split(const struct gkyl_range *rng, int *lower)
+range_calc_split(const struct gkyl_range *rng, int *lower)
 {
   const int nsplit = rng->nsplit, tid = rng->tid;
   long quot = rng->volume/nsplit, rem = rng->volume % nsplit;
@@ -200,6 +208,10 @@ gkyl_range_deflate(struct gkyl_range* srng,
 
   srng->flags = rng->flags;
   SET_SUB_RANGE(srng->flags);
+
+  // for CUDA ops
+  srng->nthreads = GKYL_DEFAULT_NUM_THREADS;
+  srng->nblocks = srng->volume/srng->nthreads + 1;
 }
 
 void
@@ -321,7 +333,7 @@ gkyl_range_iter_init(struct gkyl_range_iter *iter,
 {
   iter->is_first = 1;
   iter->ndim = range->ndim;
-  iter->bumps_left = gkyl_range_calc_split(range, iter->idx);
+  iter->bumps_left = range_calc_split(range, iter->idx);
   
   for (int i=0; i<range->ndim; ++i) {
     iter->lower[i] = range->lower[i];
@@ -371,26 +383,3 @@ gkyl_range_skip_iter_init(struct gkyl_range_skip_iter *iter,
   gkyl_range_deflate(&iter->range, range, remDir, range->lower);
 }
 
-// CUDA specific code
-
-#ifdef GKYL_HAVE_CUDA
-
-struct gkyl_range*
-gkyl_range_clone_on_cu_dev(struct gkyl_range* rng)
-{
-  size_t sz = sizeof(struct gkyl_range);
-  struct gkyl_range *cu_rng = gkyl_cu_malloc(sz);
-  gkyl_cu_memcpy(cu_rng, rng, sz, GKYL_CU_MEMCPY_H2D);
-  return cu_rng;
-}
-
-#else
-
-struct gkyl_range*
-gkyl_range_clone_on_cu_dev(struct gkyl_range* rng)
-{
-  assert(false);
-  return 0;
-}
-
-#endif

@@ -9,6 +9,19 @@
 // Object type
 typedef struct gkyl_hyper_dg gkyl_hyper_dg;
 
+struct gkyl_hyper_dg {
+  struct gkyl_rect_grid grid; // grid object
+  int ndim; // number of dimensions
+  int numBasis; // number of basis functions
+  int num_up_dirs; // number of update directions
+  int update_dirs[GKYL_MAX_DIM]; // directions to update
+  int zero_flux_flags[GKYL_MAX_DIM]; // directions with zero flux
+  int update_vol_term; // should we update volume term?
+  const struct gkyl_dg_eqn *equation; // equation object
+ 
+  double maxs[GKYL_MAX_DIM];
+};
+
 /**
  * Create new updater to update equations using DG algorithm.
  *
@@ -22,7 +35,23 @@ typedef struct gkyl_hyper_dg gkyl_hyper_dg;
  */
 gkyl_hyper_dg* gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation,
-  int num_up_dirs, int update_dirs[], int zero_flux_flags[], int update_vol_term);
+  int num_up_dirs, int update_dirs[], int zero_flux_flags[], int update_vol_term, double maxs_init[]);
+
+
+/**
+ * Create new updater on CUDA device to update equations using DG algorithm.
+ *
+ * @param grid_cu Grid object (on device)
+ * @param basis Basis functions
+ * @param equation_cu Equation object (on device)
+ * @param num_up_dirs Number of directions to update
+ * @param update_dirs List of directions to update (size 'num_up_dirs')
+ * @param zero_flux_flags Flags with zero-flux BCs (size 'num_up_dirs')
+ * @param update_vol_term Set to 0 to skip volume update
+ */
+gkyl_hyper_dg* gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
+  const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation_cu,
+  int num_up_dirs, int update_dirs[], int zero_flux_flags[], int update_vol_term, double maxs_init[]);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
@@ -37,8 +66,18 @@ gkyl_hyper_dg* gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
  * @param rhs RHS output
  * @param maxs Input/output: maximum speed
  */
-void gkyl_hyper_dg_advance(const gkyl_hyper_dg *hdg, const struct gkyl_range *update_rng,
-  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs, double *maxs);
+void gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, struct gkyl_range update_rng,
+  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs, struct gkyl_array *maxs_by_cell);
+
+/* 
+ * Same as gkyl_hyper_dg_advance, but doesn't use iterators 
+ */
+void gkyl_hyper_dg_advance_no_iter(gkyl_hyper_dg *hdg, struct gkyl_range update_rng,
+  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs, struct gkyl_array *maxs_by_cell);
+
+void gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* hdg, const struct gkyl_range update_range,
+  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
+  struct gkyl_array* GKYL_RESTRICT rhs, struct gkyl_array* GKYL_RESTRICT maxs_by_cell);
 
 /**
  * Set if volume term should be computed or not.
@@ -46,7 +85,14 @@ void gkyl_hyper_dg_advance(const gkyl_hyper_dg *hdg, const struct gkyl_range *up
  * @param hdg Hyper DG updater object
  * @param update_vol_term Set to 1 to update vol term, 0 otherwise
  */
-void gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *hdg, int update_vol_term);
+GKYL_CU_DH
+static inline
+void gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *hdg, int update_vol_term)
+{
+  hdg->update_vol_term = update_vol_term;
+}
+// On-device version of the same
+void gkyl_hyper_dg_set_update_vol_cu(gkyl_hyper_dg *hdg, int update_vol_term);
   
 /**
  * Delete updater.

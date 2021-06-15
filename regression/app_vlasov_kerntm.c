@@ -1,4 +1,5 @@
 #include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -24,19 +25,25 @@ struct kerntm_inp {
   int cdim, vdim, poly_order;
   int ccells[3], vcells[3];
   int nloop;
+  bool use_gpu;
 };
 
 struct kerntm_inp
 get_inp(int argc, char **argv)
 {
   int c, cdim = 2, vdim = 2, poly_order = 2, nloop = 10;
-  while ((c = getopt(argc, argv, "+hc:v:p:n:")) != -1)
+  bool use_gpu = false;
+  while ((c = getopt(argc, argv, "+hgc:v:p:n:")) != -1) {
     switch (c)
     {
       case 'h':
-        printf("Usage: app_vlasov_kerntm -c CDIM -v VDIM -p POLYORDER -n NLOOP\n");
+        printf("Usage: app_vlasov_kerntm -c CDIM -v VDIM -p POLYORDER -n NLOOP -g\n");
         exit(-1);
         break;
+
+      case 'g':
+        use_gpu = true;
+        break;        
       
       case 'c':
         cdim = atoi(optarg);
@@ -57,6 +64,7 @@ get_inp(int argc, char **argv)
       case '?':
         break;
     }
+  }
   
   return (struct kerntm_inp) {
     .cdim = cdim,
@@ -65,6 +73,7 @@ get_inp(int argc, char **argv)
     .ccells = { 8, 8, 8 },
     .vcells = { 16, 16, 16 },
     .nloop = nloop,
+    .use_gpu = use_gpu,
   };
 }
 
@@ -73,7 +82,15 @@ main(int argc, char **argv)
 {
   struct kerntm_inp inp = get_inp(argc, argv);
 
-  printf("Running kernel timers with:\n");
+#ifdef GKYL_HAVE_CUDA
+  if (inp.use_gpu)
+    printf("Running kernel timers on GPU with:\n");
+  else
+    printf("Running kernel timers on CPU with:\n");
+#else
+  printf("Running kernel timers on CPU with:\n");
+#endif
+  
   printf("cdim = %d; vdim = %d; polyOrder = %d\n", inp.cdim, inp.vdim, inp.poly_order);
   printf("cells = [");
   for (int d=0; d<inp.cdim; ++d)
@@ -110,6 +127,8 @@ main(int argc, char **argv)
     .cells = { inp.ccells[0], inp.ccells[1], inp.ccells[2] },
     .poly_order = inp.poly_order,
 
+    .use_gpu = inp.use_gpu,
+
     .num_species = 1,
     .species = { elc },
     .field = field
@@ -123,6 +142,10 @@ main(int argc, char **argv)
   // time with volume term
   for (int i=0; i<inp.nloop; ++i)
     gkyl_vlasov_app_species_ktm_rhs(app, 1);
+
+#ifdef GKYL_HAVE_CUDA
+  cudaDeviceSynchronize();
+#endif
   
   double tm_tot = gkyl_time_sec(gkyl_time_diff(tm_start, gkyl_wall_clock()));
 
@@ -130,6 +153,10 @@ main(int argc, char **argv)
   // time without volume term
   for (int i=0; i<inp.nloop; ++i)
     gkyl_vlasov_app_species_ktm_rhs(app, 0);
+
+#ifdef GKYL_HAVE_CUDA
+  cudaDeviceSynchronize();
+#endif  
   
   double tm_surf_only = gkyl_time_sec(gkyl_time_diff(tm_start, gkyl_wall_clock()));
 

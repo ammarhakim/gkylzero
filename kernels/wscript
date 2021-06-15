@@ -67,6 +67,18 @@ def build(bld):
     vlasov/vlasov_surf_2x3v_ser_p2.c
     vlasov/vlasov_surf_3x3v_ser_p1.c
 
+    vlasov/vlasov_boundary_surf_1x1v_ser_p1.c
+    vlasov/vlasov_boundary_surf_1x1v_ser_p2.c
+    vlasov/vlasov_boundary_surf_1x2v_ser_p1.c
+    vlasov/vlasov_boundary_surf_1x2v_ser_p2.c
+    vlasov/vlasov_boundary_surf_1x3v_ser_p1.c
+    vlasov/vlasov_boundary_surf_1x3v_ser_p2.c
+    vlasov/vlasov_boundary_surf_2x2v_ser_p1.c
+    vlasov/vlasov_boundary_surf_2x2v_ser_p2.c
+    vlasov/vlasov_boundary_surf_2x3v_ser_p1.c
+    vlasov/vlasov_boundary_surf_2x3v_ser_p2.c
+    vlasov/vlasov_boundary_surf_3x3v_ser_p1.c
+
     maxwell/maxwell_vol_1x_ser_p1.c
     maxwell/maxwell_vol_1x_ser_p2.c
     maxwell/maxwell_vol_2x_ser_p1.c

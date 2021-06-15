@@ -93,8 +93,19 @@ gkyl_cu_malloc(size_t size)
 {
   void *ptr;
   cudaError_t err = cudaMalloc(&ptr, size);
-  if (err == cudaErrorMemoryAllocation)
+  if (err != cudaSuccess)
     gkyl_exit("cudaMalloc failed!");
+  return ptr;
+}
+
+// for pinned host memory
+void*
+gkyl_cu_malloc_host(size_t size)
+{
+  void *ptr;
+  cudaError_t err = cudaMallocHost(&ptr, size);
+  if (err != cudaSuccess)
+    gkyl_exit("cudaMallocHost failed!");
   return ptr;
 }
 
@@ -105,14 +116,26 @@ gkyl_cu_free(void *ptr)
 }
 
 void
+gkyl_cu_free_host(void *ptr)
+{
+  cudaFreeHost(ptr);
+}
+
+void
 gkyl_cu_memcpy(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind)
 {
   cudaError_t err = cudaMemcpy(dst, src, count, kind);
   if (err != cudaSuccess) {
-    char str[100];
+    char str[1024];
     sprintf(str, "\nCUDA error: %s\n", cudaGetErrorString(err));
     gkyl_exit(str);
   }
+}
+
+void
+gkyl_cu_memset(void *data, int val, size_t count)
+{
+  cudaMemset(data, val, count);
 }
 
 #else
@@ -127,6 +150,13 @@ gkyl_cu_malloc(size_t size)
   return 0;
 }
 
+void*
+gkyl_cu_malloc_host(size_t size)
+{
+  assert(false);
+  return 0;
+}
+
 void
 gkyl_cu_free(void *ptr)
 {
@@ -134,7 +164,19 @@ gkyl_cu_free(void *ptr)
 }
 
 void
+gkyl_cu_free_host(void *ptr)
+{
+  assert(false);
+}
+
+void
 gkyl_cu_memcpy(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind)
+{
+  assert(false);  
+}
+
+void
+gkyl_cu_memset(void *data, int val, size_t count)
 {
   assert(false);  
 }

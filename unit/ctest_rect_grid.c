@@ -1,4 +1,6 @@
 #include <acutest.h>
+
+#include <gkyl_alloc.h>
 #include <gkyl_rect_grid.h>
 
 void test_grid_2d()
@@ -29,7 +31,27 @@ void test_grid_2d()
     }
 }
 
+// CUDA specific tests
+#ifdef GKYL_HAVE_CUDA
+
+int cu_rect_grid_test(const struct gkyl_rect_grid grid);
+
+void test_cu_grid_2d()
+{
+  double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
+  int cells[] = {20, 20};
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
+
+  int nfail = cu_rect_grid_test(grid);
+  TEST_CHECK( nfail == 0 );
+}
+#endif
+
 TEST_LIST = {
   { "grid_2d", test_grid_2d },
+#ifdef GKYL_HAVE_CUDA
+  { "cu_grid_2d", test_cu_grid_2d },
+#endif  
   { NULL, NULL },
 };

@@ -21,9 +21,10 @@
 #endif
 
 // restrict keyword in C and C++ are different
-#define GKYL_RESTRICT restrict
 #ifdef __cplusplus
 # define GKYL_RESTRICT __restrict__
+#else
+# define GKYL_RESTRICT restrict
 #endif
 
 // Maximum configuration-space dimensions supported
@@ -41,12 +42,10 @@
 # define GKYL_MAX_SPECIES 8
 #endif
 
-
 // Default alignment boundary
 #ifndef GKYL_DEF_ALIGN
 # define GKYL_DEF_ALIGN 64
 #endif
-
 
 // CUDA specific defines etc
 #ifdef __NVCC__
@@ -54,7 +53,9 @@
 #include <cuda_runtime.h>
 
 #define GKYL_HAVE_CUDA
+
 #define GKYL_CU_DH __device__ __host__
+#define GKYL_CU_D __device__ 
 
 // for directional copies
 enum gkyl_cu_memcpy_kind {
@@ -64,10 +65,13 @@ enum gkyl_cu_memcpy_kind {
   GKYL_CU_MEMCPY_D2D = cudaMemcpyDeviceToDevice
 };
 
+#define GKYL_DEFAULT_NUM_THREADS 256
+
 #else
 
 #undef GKYL_HAVE_CUDA
 #define GKYL_CU_DH
+#define GKYL_CU_D
 
 // for directional copies
 enum gkyl_cu_memcpy_kind {
@@ -76,6 +80,8 @@ enum gkyl_cu_memcpy_kind {
   GKYL_CU_MEMCPY_D2H,
   GKYL_CU_MEMCPY_D2D,
 };
+
+#define GKYL_DEFAULT_NUM_THREADS 1
 
 #endif // CUDA specific defines etc
 
@@ -161,6 +167,30 @@ gkyl_copy_int_arr(int n, const int* GKYL_RESTRICT inp, int* GKYL_RESTRICT out)
 }
 
 /**
+ * Copy (small) long arrays.
+ *
+ * @param n Number of elements to copy
+ * @param inp Input array
+ * @param out Output array
+ */
+GKYL_CU_DH
+static inline void
+gkyl_copy_long_arr(int n, const long* GKYL_RESTRICT inp, long* GKYL_RESTRICT out)
+{
+  for (int i=0; i<n; ++i) out[i] = inp[i];
+}
+
+/**
+ *   Round a/b to nearest higher integer value
+ */
+GKYL_CU_DH
+static inline int
+gkyl_int_div_up(int a, int b)
+{
+  return (a%b != 0) ? (a/b+1) : (a/b);
+}
+
+/**
  * Gets wall-clock time in secs/nanoseconds.
  * 
  * @return Time object.
@@ -234,7 +264,7 @@ pcg64_random_t gkyl_pcg64_init(bool nd_seed);
  * @param rng Pointer to RNG
  * @return Uniformly distributed 64-bit integer
  */
-uint64_t gkyl_pcg64_rand_uint32(pcg64_random_t* rng);
+uint64_t gkyl_pcg64_rand_uint64(pcg64_random_t* rng);
 
 /**
  * Returns a random number in [0,1), rounded to the nearest

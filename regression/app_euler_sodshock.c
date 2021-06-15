@@ -4,6 +4,7 @@
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_euler.h>
+#include <app_arg_parse.h>
 
 struct euler_ctx {
   double gas_gamma; // gas constant
@@ -41,6 +42,7 @@ euler_ctx(void)
 int
 main(int argc, char **argv)
 {
+  struct gkyl_app_args app_args = get_parse_app_args(argc, argv);
   struct euler_ctx ctx = euler_ctx(); // context for init functions
 
   // equation object
@@ -85,8 +87,8 @@ main(int argc, char **argv)
   // compute estimate of maximum stable time-step
   double dt = gkyl_moment_app_max_dt(app);
 
-  long step = 1;
-  while (tcurr < tend) {
+  long step = 1, num_steps = app_args.num_steps;
+  while ((tcurr < tend) && (step <= num_steps)) {
     printf("Taking time-step %ld at t = %g ...", step, tcurr);
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);

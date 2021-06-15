@@ -4,6 +4,7 @@
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_euler.h>
+#include <app_arg_parse.h>
 
 void
 evalElcInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -92,6 +93,7 @@ evalFieldInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 int
 main(int argc, char **argv)
 {
+  struct gkyl_app_args app_args = get_parse_app_args(argc, argv);
   // electron/ion equations
   struct gkyl_wv_eqn *elc_euler = gkyl_wv_euler_new(5.0/3.0);
   struct gkyl_wv_eqn *ion_euler = gkyl_wv_euler_new(5.0/3.0);
@@ -158,7 +160,7 @@ main(int argc, char **argv)
   double dt = gkyl_moment_app_max_dt(app);
 
   long step = 1;
-  while (tcurr < tend) {
+  while ((tcurr < tend) && (step <= app_args.num_steps)) {
     printf("Taking time-step %ld at t = %g ...", step, tcurr);
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);

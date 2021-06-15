@@ -14,9 +14,9 @@ struct range {
 void
 range_free(const struct gkyl_ref_count* rc)
 {
-  struct range *self = container_of(rc, struct range, ref_count);
+  struct range *on_dev = container_of(rc, struct range, ref_count);
   free_called = 1;
-  gkyl_free(self);
+  gkyl_free(on_dev);
 }
 
 struct range*

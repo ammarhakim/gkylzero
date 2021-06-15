@@ -6,6 +6,7 @@
 #include <time.h>
 
 #include <gkyl_vlasov.h>
+#include <app_arg_parse.h>
 #include <rxi_ini.h>
 
 struct twostream_inp {
@@ -54,7 +55,7 @@ create_twostream_inp(rxi_ini_t *inp)
 {
   struct twostream_inp tsinp = {
     .charge = -1.0,
-    .mass = 1.0
+    .mass = 1.0,
   };
 
   int read_failed = 0;
@@ -126,14 +127,15 @@ create_ctx(rxi_ini_t *inp)
 int
 main(int argc, char **argv)
 {
-  const char *inp_name = argc>1 ? argv[1] : "twostream.ini";
-  rxi_ini_t *inp = rxi_ini_load(inp_name);
+  struct gkyl_app_args app_args = get_parse_app_args(argc, argv);
 
-  if (0 == inp) {
-    fprintf(stderr, "Unable to open input file %s!\n", inp_name);
-    exit(1);
-  }
+  if (strcmp(app_args.file_name, APP_ARGS_DEFAULT_FILE_NAME) == 0)
+    strcpy(app_args.file_name, "twostream.ini");
+
+  printf("Name is %s\n", app_args.file_name);
   
+  rxi_ini_t *inp = rxi_ini_load(app_args.file_name);
+
   struct twostream_ctx ctx = create_ctx(inp); // context for init functions
   struct twostream_inp tsinp = create_twostream_inp(inp); // input parameters
   
@@ -161,7 +163,7 @@ main(int argc, char **argv)
     .mgnErrorSpeedFactor = 0.0,
     .evolve = 1,
     .ctx = &ctx,
-    .init = evalFieldFunc
+    .init = evalFieldFunc,
   };
 
   // VM app
@@ -177,11 +179,13 @@ main(int argc, char **argv)
 
     .num_species = 1,
     .species = { elc },
-    .field = field
+    .field = field,
+
+    .use_gpu = app_args.use_gpu,
   };
   // construct sim name based on input file name
-  const char *inp_last_slash = strrchr(inp_name, '/');
-  const char *inp_no_slash = inp_last_slash ? inp_last_slash+1 : inp_name;
+  const char *inp_last_slash = strrchr(app_args.file_name, '/');
+  const char *inp_no_slash = inp_last_slash ? inp_last_slash+1 : app_args.file_name;
   strncpy(vm.name, inp_no_slash, strcspn(inp_no_slash, ".ini"));
   
   // create app object
@@ -197,7 +201,8 @@ main(int argc, char **argv)
   gkyl_vlasov_app_write(app, tcurr, 0);
   gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 0);
 
-  while (tcurr < tend) {
+  long step = 1, num_steps = app_args.num_steps;
+  while ((tcurr < tend) && (step <= num_steps)) {
     printf("Taking time-step at t = %g ...", tcurr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
@@ -208,6 +213,7 @@ main(int argc, char **argv)
     }
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
+    step += 1;
   }
 
   gkyl_vlasov_app_write(app, tcurr, 1);
