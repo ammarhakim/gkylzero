@@ -150,7 +150,7 @@ gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
   arr->ref_count = (struct gkyl_ref_count) { array_free, 1 };  
   arr->data = gkyl_cu_malloc(arr->size*arr->esznc);
   arr->nthreads = GKYL_DEFAULT_NUM_THREADS;
-  arr->nblocks = arr->size*arr->ncomp/arr->nthreads + 1;
+  arr->nblocks = gkyl_int_div_up(arr->size*arr->ncomp, arr->nthreads);
 
   // create a clone of the struct arr->on_dev that lives on the device,
   // so that the whole arr->on_dev struct can be passed to a device kernel
