@@ -17,8 +17,7 @@ Documentation is available at http://gkeyll.rtfd.io.
 
 # Install
 
-If you are developing GkeyllZero and have cloned this repo, then
-simply type:
+Cloned this repo, then type:
 ```
     make
 ```
@@ -39,31 +38,18 @@ compiler then the CUDA specific parts of the code will be built:
 Note that if your machine has more than one core (a highly likely
 situation) you can run make in parallel, for example:
 ```
-    make -j4
+    make -j
 ```
-will use 4 cores while compiling the code, and can be potentially
-faster on most machines.
+will use several cores while compiling the code, and can be
+potentially faster on most machines.
 
 The unit and regression test executables are written in the
 `build/unit` and `build/regression` directories. Please cd to those
 directories if you want to run individual regression tests.
 
-If you want to use the code as a library or run
-simulations you should be using a released *deployment version*
-shipped as a zip file. Get the zip file, unzip it and cd to it. Then type:
+If you want to use the code as a library you should install it:
 ```
   make install
-```
-
-GkeyllZero has minimal dependencies (none at all if you want to run in
-serial; MPI for parallel and BLAS/LAPACK for linear algebra for some
-solvers). You can set the compiler you want to use as:
-```
-    make CC=icc install 
-```
-or
-```
-    make CC=nvcc install
 ```
 
 Note that GkeyllZero is meant to be used as a *library*. You can use
@@ -78,8 +64,8 @@ possible. Some dependencies are unavoidable like MPI, linear algebra
 and FFT libraries. However, where possible we would like to avoid an
 exponentially increasing dependency chain. Another goal is that
 GkeyllZero itself should be pure modern (C99) C. Some tools used in
-code generation need C++ (GiNaC CAS and Swig wrapper generator, for
-example) but the *generated* code itself will be in C.
+code generation need C++ (CUDA is C++ code) but the core code itself
+will be in C.
 
 Developing in C (and C++) requires very strong focus and
 discipline. **Please consult** https://en.cppreference.com/w/ for
