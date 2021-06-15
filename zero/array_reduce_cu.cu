@@ -71,11 +71,12 @@ arrayMax_range_blockRedAtomic_cub(const struct gkyl_array* inp, const struct gky
     const double* fptr = (const double*) gkyl_array_cfetch(inp, start);
     double f = fptr[k];
     double bResult = 0;
-    if (linc < nCells)
+    if (linc < nCells) {
       bResult = BlockReduceT(temp).Reduce(f, cub::Max());
-    if (threadIdx.x == 0)
-      atomicMax_double(&out[k], bResult);
-  };
+      if (threadIdx.x == 0)
+        atomicMax_double(&out[k], bResult);
+    }
+  }
 }
 
 void
