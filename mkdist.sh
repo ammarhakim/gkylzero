@@ -36,6 +36,7 @@ sources=$(ls *.c | sed 's/\.c/\.o/' | tr "\n" " " )
 # library)
 cd ..
 # copy regression tests
+cp regression/*.h $distname
 cp regression/*.c $distname
 cp regression/*.ini $distname
 # copy unit tests
