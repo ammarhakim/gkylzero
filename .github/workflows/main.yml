@@ -13,9 +13,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: mkdist
-      run: ./mkdist.sh
     - name: make
-      run: make -C gkylzero-dist -j4
+      run: make -j
     - name: make check
-      run: make -C gkylzero-dist check
+      run: make check
