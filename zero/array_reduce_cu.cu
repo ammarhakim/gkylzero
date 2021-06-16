@@ -39,10 +39,10 @@ arrayMax_blockRedAtomic_cub(const struct gkyl_array* inp, double* out)
   const double *inp_d = (const double*) inp->data;
 
   for (size_t k = 0; k < nComp; ++k) {
-    double f = inp_d[linc*nComp+k];
+    double f = -DBL_MAX;
+    if (linc < nCells) f = inp_d[linc*nComp+k];
     double bResult = 0;
-    if (linc < nCells)
-      bResult = BlockReduceT(temp).Reduce(f, cub::Max());
+    bResult = BlockReduceT(temp).Reduce(f, cub::Max());
     if (threadIdx.x == 0)
       atomicMax_double(&out[k], bResult);
   };
@@ -69,13 +69,12 @@ arrayMax_range_blockRedAtomic_cub(const struct gkyl_array* inp, const struct gky
     gkyl_sub_range_inv_idx(&range, linc, idx);
     long start = gkyl_range_idx(&range, idx);
     const double* fptr = (const double*) gkyl_array_cfetch(inp, start);
-    double f = fptr[k];
+    double f = -DBL_MAX;
+    if (linc < nCells) f = fptr[k];
     double bResult = 0;
-    if (linc < nCells) {
-      bResult = BlockReduceT(temp).Reduce(f, cub::Max());
-      if (threadIdx.x == 0)
-        atomicMax_double(&out[k], bResult);
-    }
+    bResult = BlockReduceT(temp).Reduce(f, cub::Max());
+    if (threadIdx.x == 0)
+      atomicMax_double(&out[k], bResult);
   }
 }
 
