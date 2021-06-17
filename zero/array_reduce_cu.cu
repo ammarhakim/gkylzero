@@ -45,7 +45,7 @@ arrayMax_blockRedAtomic_cub(const struct gkyl_array* inp, double* out)
     bResult = BlockReduceT(temp).Reduce(f, cub::Max());
     if (threadIdx.x == 0)
       atomicMax_double(&out[k], bResult);
-  };
+  }
 }
 
 template <unsigned int BLOCKSIZE>
