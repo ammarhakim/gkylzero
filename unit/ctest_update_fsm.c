@@ -90,7 +90,6 @@ test_seq_1()
 {
   struct seq_ctx ctx = { };
 
-  // FINISH = 4 in case of 3 states
   struct gkyl_update_fsm *seq = gkyl_update_fsm_new(
     FINIS, // number of steps in sequence
     (struct gkyl_update_fsm_step[FINIS]) { // steps in sequence

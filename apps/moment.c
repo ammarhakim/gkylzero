@@ -905,3 +905,26 @@ gkyl_moment_app_release(gkyl_moment_app* app)
   
   gkyl_free(app);
 }
+
+void
+gkyl_moment_stat_write_json(FILE *fp, struct gkyl_moment_stat stat)
+{
+  char buff[70];
+  time_t t = time(NULL);
+  struct tm curr_tm = *localtime(&t);
+  
+  fprintf(fp, "{\n");
+
+  if (strftime(buff, sizeof buff, "%c", &curr_tm))
+    fprintf(fp, " \"date\" : \"%s\"\n", buff);
+
+  fprintf(fp, " \"nup\" : \"%ld\"\n", stat.nup);
+  fprintf(fp, " \"nfail\" : \"%ld\"\n", stat.nfail);
+  fprintf(fp, " \"total_tm\" : \"%lg\"\n", stat.total_tm);
+  fprintf(fp, " \"species_tm\" : \"%lg\"\n", stat.species_tm);
+  fprintf(fp, " \"field_tm\" : \"%lg\"\n", stat.field_tm);
+  fprintf(fp, " \"sources_tm\" : \"%lg\"\n", stat.sources_tm);
+  
+  fprintf(fp, "}\n");  
+}
+    

@@ -5,6 +5,8 @@
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wave_prop.h>
 
+#include <time.h>
+
 // Boundary conditions on fields and fluids
 enum gkyl_moment_bc_type {
   GKYL_MOMENT_COPY = 0, // copy BCs for fluid and field
@@ -83,6 +85,14 @@ struct gkyl_moment_stat {
   double field_tm; // time to compute field updates
   double sources_tm; // time to compute source terms
 };
+
+/**
+ * Write stats to file. Data is written in json format.
+ *
+ * @oaram file Open file pointer to write
+ * @param stat Statistics object 
+ */
+void gkyl_moment_stat_write_json(FILE *file, struct gkyl_moment_stat stat);
 
 // Object representing moments app
 typedef struct gkyl_moment_app gkyl_moment_app;
