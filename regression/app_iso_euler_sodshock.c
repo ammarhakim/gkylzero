@@ -37,7 +37,7 @@ iso_euler_ctx(void)
 int
 main(int argc, char **argv)
 {
-  struct gkyl_app_args app_args = get_parse_app_args(argc, argv);  
+  struct gkyl_app_args app_args = parse_app_args(argc, argv);  
   struct iso_euler_ctx ctx = iso_euler_ctx(); // context for init functions
 
   // equation object

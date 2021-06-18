@@ -127,7 +127,7 @@ create_ctx(rxi_ini_t *inp)
 int
 main(int argc, char **argv)
 {
-  struct gkyl_app_args app_args = get_parse_app_args(argc, argv);
+  struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
   if (strcmp(app_args.file_name, APP_ARGS_DEFAULT_FILE_NAME) == 0)
     strcpy(app_args.file_name, "twostream.ini");

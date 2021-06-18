@@ -67,7 +67,7 @@ evalFieldInit(double t, const double * restrict xn, double* restrict fout, void 
 int
 main(int argc, char **argv)
 {
-  struct gkyl_app_args app_args = get_parse_app_args(argc, argv);
+  struct gkyl_app_args app_args = parse_app_args(argc, argv);
   // electron/ion equations
   struct gkyl_wv_eqn *elc_euler = gkyl_wv_euler_new(5.0/3.0);
   struct gkyl_wv_eqn *ion_euler = gkyl_wv_euler_new(5.0/3.0);
