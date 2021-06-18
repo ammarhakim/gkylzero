@@ -108,9 +108,9 @@ calc_pi_1D(double dx, double u_l[3], double u_u[3], double em_tot_l[8], double e
   calc_bhat(em_tot_l, b_l);
   calc_bhat(em_tot_u, b_u);
 
-  calc_arithm_avg_1D(b_l[0], b_u[0], b_avg[0]);
-  calc_arithm_avg_1D(b_l[1], b_u[1], b_avg[1]);
-  calc_arithm_avg_1D(b_l[2], b_u[2], b_avg[2]);
+  b_avg[0] = calc_arithm_avg_1D(b_l[0], b_u[0]);
+  b_avg[1] = calc_arithm_avg_1D(b_l[1], b_u[1]);
+  b_avg[2] = calc_arithm_avg_1D(b_l[2], b_u[2]);
 
   // (bb - 1/3 I) : W
   double par_ros = (b_avg[0]*b_avg[0] - 1.0/3.0)*w[0] + b_avg[0]*b_avg[1]*w[1] + b_avg[0]*b_avg[2]*w[2] 

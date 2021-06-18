@@ -62,6 +62,6 @@ void gkyl_moment_braginskii_advance(const gkyl_moment_braginskii *bes, struct gk
 /**
  * Delete updater.
  *
- * @param mes Updater to delete.
+ * @param bes Updater to delete.
  */
-void gkyl_moment_braginskii_release(gkyl_moment_braginskii *mes);
+void gkyl_moment_braginskii_release(gkyl_moment_braginskii *bes);
