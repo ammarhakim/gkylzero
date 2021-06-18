@@ -891,6 +891,40 @@ gkyl_moment_app_stat(gkyl_moment_app* app)
 }
 
 void
+gkyl_moment_app_stat_write(const gkyl_moment_app* app)
+{
+  const char *fmt = "%s-%s";
+  int sz = snprintf(0, 0, fmt, app->name, "stat.json");
+  char fileNm[sz+1]; // ensures no buffer overflow  
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, "stat.json");
+  
+  char buff[70];
+  time_t t = time(NULL);
+  struct tm curr_tm = *localtime(&t);
+
+  // append to existing file so we have a history of different runs
+  FILE *fp = fopen(fileNm, "a");
+
+  if (fp) {
+    fprintf(fp, "{\n");
+
+    if (strftime(buff, sizeof buff, "%c", &curr_tm))
+      fprintf(fp, " \"date\" : \"%s\"\n", buff);
+
+    fprintf(fp, " \"nup\" : \"%ld\"\n", app->stat.nup);
+    fprintf(fp, " \"nfail\" : \"%ld\"\n", app->stat.nfail);
+    fprintf(fp, " \"total_tm\" : \"%lg\"\n", app->stat.total_tm);
+    fprintf(fp, " \"species_tm\" : \"%lg\"\n", app->stat.species_tm);
+    fprintf(fp, " \"field_tm\" : \"%lg\"\n", app->stat.field_tm);
+    fprintf(fp, " \"sources_tm\" : \"%lg\"\n", app->stat.sources_tm);
+  
+    fprintf(fp, "}\n");
+
+    fclose(fp);
+  }
+}
+
+void
 gkyl_moment_app_release(gkyl_moment_app* app)
 {
   for (int i=0; i<app->num_species; ++i)
@@ -905,26 +939,3 @@ gkyl_moment_app_release(gkyl_moment_app* app)
   
   gkyl_free(app);
 }
-
-void
-gkyl_moment_stat_write_json(FILE *fp, struct gkyl_moment_stat stat)
-{
-  char buff[70];
-  time_t t = time(NULL);
-  struct tm curr_tm = *localtime(&t);
-  
-  fprintf(fp, "{\n");
-
-  if (strftime(buff, sizeof buff, "%c", &curr_tm))
-    fprintf(fp, " \"date\" : \"%s\"\n", buff);
-
-  fprintf(fp, " \"nup\" : \"%ld\"\n", stat.nup);
-  fprintf(fp, " \"nfail\" : \"%ld\"\n", stat.nfail);
-  fprintf(fp, " \"total_tm\" : \"%lg\"\n", stat.total_tm);
-  fprintf(fp, " \"species_tm\" : \"%lg\"\n", stat.species_tm);
-  fprintf(fp, " \"field_tm\" : \"%lg\"\n", stat.field_tm);
-  fprintf(fp, " \"sources_tm\" : \"%lg\"\n", stat.sources_tm);
-  
-  fprintf(fp, "}\n");  
-}
-    

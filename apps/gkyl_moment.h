@@ -86,14 +86,6 @@ struct gkyl_moment_stat {
   double sources_tm; // time to compute source terms
 };
 
-/**
- * Write stats to file. Data is written in json format.
- *
- * @oaram file Open file pointer to write
- * @param stat Statistics object 
- */
-void gkyl_moment_stat_write_json(FILE *file, struct gkyl_moment_stat stat);
-
 // Object representing moments app
 typedef struct gkyl_moment_app gkyl_moment_app;
 
@@ -166,6 +158,13 @@ void gkyl_moment_app_write_field(const gkyl_moment_app* app, double tm, int fram
  * @param frame Frame number
  */
 void gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, int frame);
+
+/**
+ * Write stats to file. Data is written in json format.
+ *
+ * @param app App object.
+ */
+void gkyl_moment_app_stat_write(const gkyl_moment_app* app);
 
 /**
  * Advance simulation by a suggested time-step 'dt'. The dt may be too

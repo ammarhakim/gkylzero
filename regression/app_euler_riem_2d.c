@@ -126,6 +126,7 @@ main(int argc, char **argv)
   }
 
   gkyl_moment_app_write(app, tcurr, 1);
+  gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
 
@@ -140,12 +141,5 @@ main(int argc, char **argv)
   printf("Field updates took %g secs\n", stat.field_tm);
   printf("Total updates took %g secs\n", stat.total_tm);
 
-  // write stats to file
-  FILE *fp = fopen("euler_riem_2d_stat.json", "a");
-  if (fp) {
-    gkyl_moment_stat_write_json(fp, stat);
-    fclose(fp);
-  }
-  
   return 0;
 }

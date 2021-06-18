@@ -139,28 +139,15 @@ main(int argc, char **argv)
   }
 
   gkyl_moment_app_write(app, tcurr, 1);
+  gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
+  
 
   // simulation complete, free resources
   gkyl_wv_eqn_release(elc_euler);
   gkyl_wv_eqn_release(ion_euler);
   gkyl_moment_app_release(app);
-
-  printf("\n");
-  printf("Number of update calls %ld\n", stat.nup);
-  printf("Number of failed time-steps %ld\n", stat.nfail);
-  printf("Species updates took %g secs\n", stat.species_tm);
-  printf("Field updates took %g secs\n", stat.field_tm);
-  printf("Source updates took %g secs\n", stat.sources_tm);
-  printf("Total updates took %g secs\n", stat.total_tm);
-
-  // write stats to file
-  FILE *fp = fopen("5m_riem_stat.json", "a");
-  if (fp) {
-    gkyl_moment_stat_write_json(fp, stat);
-    fclose(fp);
-  }
   
   return 0;
 }
