@@ -127,7 +127,7 @@ create_ctx(rxi_ini_t *inp)
 int
 main(int argc, char **argv)
 {
-  struct gkyl_app_args app_args = get_parse_app_args(argc, argv);
+  struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
   if (strcmp(app_args.file_name, APP_ARGS_DEFAULT_FILE_NAME) == 0)
     strcpy(app_args.file_name, "twostream.ini");
@@ -218,6 +218,7 @@ main(int argc, char **argv)
 
   gkyl_vlasov_app_write(app, tcurr, 1);
   gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1);
+  gkyl_vlasov_app_stat_write(app);
 
   // fetch simulation statistics
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);

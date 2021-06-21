@@ -25,7 +25,7 @@ struct gkyl_array {
   struct gkyl_ref_count ref_count;
 
   int nthreads, nblocks; // threads per block, number of blocks
-  struct gkyl_array *on_dev; // pointer to iton_dev or device data
+  struct gkyl_array *on_dev; // pointer to itself or device data
 };
 
 /**

@@ -67,7 +67,7 @@ evalFieldInit(double t, const double * restrict xn, double* restrict fout, void 
 int
 main(int argc, char **argv)
 {
-  struct gkyl_app_args app_args = get_parse_app_args(argc, argv);
+  struct gkyl_app_args app_args = parse_app_args(argc, argv);
   // electron/ion equations
   struct gkyl_wv_eqn *elc_euler = gkyl_wv_euler_new(5.0/3.0);
   struct gkyl_wv_eqn *ion_euler = gkyl_wv_euler_new(5.0/3.0);
@@ -139,21 +139,15 @@ main(int argc, char **argv)
   }
 
   gkyl_moment_app_write(app, tcurr, 1);
+  gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
+  
 
   // simulation complete, free resources
   gkyl_wv_eqn_release(elc_euler);
   gkyl_wv_eqn_release(ion_euler);
   gkyl_moment_app_release(app);
-
-  printf("\n");
-  printf("Number of update calls %ld\n", stat.nup);
-  printf("Number of failed time-steps %ld\n", stat.nfail);
-  printf("Species updates took %g secs\n", stat.species_tm);
-  printf("Field updates took %g secs\n", stat.field_tm);
-  printf("Source updates took %g secs\n", stat.sources_tm);
-  printf("Total updates took %g secs\n", stat.total_tm);  
   
   return 0;
 }

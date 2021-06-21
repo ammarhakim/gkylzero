@@ -164,6 +164,13 @@ void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, in
 void gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame);
 
 /**
+ * Write stats to file. Data is written in json format.
+ *
+ * @param app App object.
+ */
+void gkyl_vlasov_app_stat_write(const gkyl_vlasov_app* app);
+
+/**
  * Advance simulation by a suggested time-step 'dt'. The dt may be too
  * large in which case method will attempt to take a smaller time-step
  * and also return it as the 'dt_actual' field of the status
