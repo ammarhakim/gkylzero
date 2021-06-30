@@ -16,7 +16,7 @@ struct gkyl_app_args {
 };
 
 static struct gkyl_app_args
-get_parse_app_args(int argc, char **argv)
+parse_app_args(int argc, char **argv)
 {
   bool use_gpu = false;
   bool step_mode = false;

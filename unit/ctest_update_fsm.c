@@ -4,17 +4,22 @@
 #include <gkyl_update_fsm.h>
 
 enum seq_states {
-  SRC_1 = GKYL_UPDATE_FSM_FIRST,
+  SRC_1 = GKYL_UPDATE_FSM_FIRST, // first step
   FLUID,
-  SRC_2,
-  FINIS // sentinel
+  SRC_2
 };
 
 struct seq_ctx {
   int nredo, nfluid, nsrc;
 };
 
-struct gkyl_update_status
+static void
+seq_ctx_print(struct seq_ctx ctx)
+{
+  fprintf(stdout, "nredo: %d. nfluid: %d. nsrc: %d\n", ctx.nredo, ctx.nfluid, ctx.nsrc);
+}
+
+struct gkyl_update_fsm_status
 seq_redo(double tcurr, double dt, void *ctx)
 {
   //printf("seq_redo: dt = %g\n", dt);
@@ -22,64 +27,69 @@ seq_redo(double tcurr, double dt, void *ctx)
   struct seq_ctx *sc = ctx;
   sc->nredo += 1;
   
-  return (struct gkyl_update_status) {
-    .success = 1,
-    .next_state = SRC_1,
+  return (struct gkyl_update_fsm_status) {
+    .status = GKYL_UPDATE_FSM_STATUS_SUCCESS,
     .dt_actual = dt,
-    .dt_suggested = DBL_MAX
+    .dt_suggested = DBL_MAX,
   };
 }
 
-struct gkyl_update_status
+struct gkyl_update_fsm_status
 seq_src_1(double tcurr, double dt, void *ctx)
 {
   //printf("seq_src_1: dt = %g\n", dt);
   
   struct seq_ctx *sc = ctx;
   sc->nsrc += 1;
-  
-  return (struct gkyl_update_status) {
-    .success = 1,
-    .next_state = FLUID,
+
+  enum gkyl_update_fsm_code status = GKYL_UPDATE_FSM_STATUS_SUCCESS;
+  if (dt > 100)
+    status = GKYL_UPDATE_FSM_STATUS_FAIL;  
+
+  return (struct gkyl_update_fsm_status) {
+    .status = status,
     .dt_actual = dt,
     .dt_suggested = DBL_MAX,
   };
 }
 
-struct gkyl_update_status
+struct gkyl_update_fsm_status
 seq_fluid(double tcurr, double dt, void *ctx)
 {
   //printf("seq_fluid: dt = %g\n", dt);
+  const double max_dt = 0.1; // maximum possible time-step
   
   struct seq_ctx *sc = ctx;
   sc->nfluid += 1;
 
-  double max_dt = 0.1, dt_actual = dt;
+  double dt_actual = dt;
 
   if (dt > max_dt)
     dt_actual = max_dt;
 
   // take time-step of dt_actual
   
-  return (struct gkyl_update_status) {
-    .success = true,
-    .next_state = SRC_2,
+  return (struct gkyl_update_fsm_status) {
+    .status = GKYL_UPDATE_FSM_STATUS_SUCCESS,
     .dt_actual = dt_actual,
     .dt_suggested = max_dt,
   };
 }
 
-struct gkyl_update_status
+struct gkyl_update_fsm_status
 seq_src_2(double tcurr, double dt, void *ctx)
 {
   //printf("seq_src_2: dt = %g\n", dt);
-  
+
   struct seq_ctx *sc = ctx;
   sc->nsrc += 1;
-  
-  return (struct gkyl_update_status) {
-    .success = 1,
-    .next_state = GKYL_UPDATE_FSM_FINISH,
+
+  enum gkyl_update_fsm_code status = GKYL_UPDATE_FSM_STATUS_SUCCESS;
+  if (dt > 100)
+    status = GKYL_UPDATE_FSM_STATUS_FAIL;  
+
+  return (struct gkyl_update_fsm_status) {
+    .status = status,
     .dt_actual = dt,
     .dt_suggested = DBL_MAX,
   };
@@ -90,37 +100,38 @@ test_seq_1()
 {
   struct seq_ctx ctx = { };
 
-  // FINISH = 4 in case of 3 states
-  struct gkyl_update_fsm *seq = gkyl_update_fsm_new(FINIS-1, (struct gkyl_update_fsm_step) {
-      .ctx = &ctx,
-      .u = seq_redo
-    }
+  struct gkyl_update_fsm *seq = gkyl_update_fsm_new(
+    3, // number of actions (including redo)
+    (struct gkyl_update_fsm_action[3]) { // actions in sequence
+      [SRC_1] = { .ctx = &ctx, .u = seq_src_1 },
+      [FLUID] = { .ctx = &ctx, .u = seq_fluid },
+      [SRC_2] = { .ctx = &ctx, .u = seq_src_2 }
+    },
+    3, // number of transitions
+    (struct gkyl_update_fsm_transition[3]) { // transition table
+      [SRC_1] = { FLUID, GKYL_UPDATE_FSM_REDO },
+      [FLUID] = { SRC_2, GKYL_UPDATE_FSM_REDO },
+      [SRC_2] = { GKYL_UPDATE_FSM_FINISH, GKYL_UPDATE_FSM_REDO }
+    },
+    (struct gkyl_update_fsm_action) { .ctx = &ctx, .u = seq_redo } // redo action
   );
 
-  // add various steps in sequence
-  seq->steps[SRC_1] = (struct gkyl_update_fsm_step) {
-    .ctx = &ctx,
-    .u = seq_src_1
-  };
-  seq->steps[FLUID] = (struct gkyl_update_fsm_step) {
-    .ctx = &ctx,
-    .u = seq_fluid
-  };
-  seq->steps[SRC_2] = (struct gkyl_update_fsm_step) {
-    .ctx = &ctx,
-    .u = seq_src_2
-  };
-
-  TEST_CHECK( 3 == seq->nsteps );
+  TEST_CHECK( 3 == seq->nactions );
   
-  struct gkyl_update_status status = gkyl_update_fsm_run(seq, SRC_1, 0.0, 1.0);
+  struct gkyl_update_fsm_status status = gkyl_update_fsm_run(seq, 0.0, 1.0);
 
+  TEST_CHECK( GKYL_UPDATE_FSM_STATUS_SUCCESS == status.status );
   TEST_CHECK( 1 == ctx.nredo );
   TEST_CHECK( 2 == ctx.nfluid );
   TEST_CHECK( 3 == ctx.nsrc );
 
+  //seq_ctx_print(ctx);
+
   TEST_CHECK( 0.1 == status.dt_actual );
   TEST_CHECK( 0.1 == status.dt_suggested );
+
+  status = gkyl_update_fsm_run(seq, 0.0, 200.0); // should abort
+  TEST_CHECK( GKYL_UPDATE_FSM_STATUS_FAIL == status.status );
 
   gkyl_update_fsm_release(seq);
 }

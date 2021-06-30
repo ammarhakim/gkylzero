@@ -5,6 +5,8 @@
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wave_prop.h>
 
+#include <time.h>
+
 // Boundary conditions on fields and fluids
 enum gkyl_moment_bc_type {
   GKYL_MOMENT_COPY = 0, // copy BCs for fluid and field
@@ -156,6 +158,13 @@ void gkyl_moment_app_write_field(const gkyl_moment_app* app, double tm, int fram
  * @param frame Frame number
  */
 void gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, int frame);
+
+/**
+ * Write stats to file. Data is written in json format.
+ *
+ * @param app App object.
+ */
+void gkyl_moment_app_stat_write(const gkyl_moment_app* app);
 
 /**
  * Advance simulation by a suggested time-step 'dt'. The dt may be too

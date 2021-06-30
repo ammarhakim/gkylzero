@@ -68,7 +68,7 @@ euler_ctx(void)
 int
 main(int argc, char **argv)
 {
-  struct gkyl_app_args app_args = get_parse_app_args(argc, argv); 
+  struct gkyl_app_args app_args = parse_app_args(argc, argv); 
   struct euler_ctx ctx = euler_ctx(); // context for init functions
 
   // equation object
@@ -126,6 +126,7 @@ main(int argc, char **argv)
   }
 
   gkyl_moment_app_write(app, tcurr, 1);
+  gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
 
@@ -139,6 +140,6 @@ main(int argc, char **argv)
   printf("Species updates took %g secs\n", stat.species_tm);
   printf("Field updates took %g secs\n", stat.field_tm);
   printf("Total updates took %g secs\n", stat.total_tm);
-  
+
   return 0;
 }

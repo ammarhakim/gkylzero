@@ -34,7 +34,7 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 int
 main(int argc, char **argv)
 {
-  struct gkyl_app_args app_args = get_parse_app_args(argc, argv);
+  struct gkyl_app_args app_args = parse_app_args(argc, argv);
   
   struct gkyl_moment app_inp = {
     .name = "maxwell_plane_wave",
@@ -86,6 +86,7 @@ main(int argc, char **argv)
   }
 
   gkyl_moment_app_write(app, tcurr, 1);
+  gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
 

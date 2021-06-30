@@ -10,7 +10,7 @@ build-*/*
 waf_tools/*.pyc
 waf_tools/__pycache__/
 gkylzero-dist*
-makeout/*
+*.json
 
 # Object files
 *.o
