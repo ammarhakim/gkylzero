@@ -5,21 +5,29 @@
 #include <gkyl_alloc.h>
 
 struct gkyl_update_fsm*
-gkyl_update_fsm_new(int nsteps, struct gkyl_update_fsm_step steps[])
+gkyl_update_fsm_new(int nactions, struct gkyl_update_fsm_action actions[],
+  int ntransitions, struct gkyl_update_fsm_transition *transitions,
+  struct gkyl_update_fsm_action redo)
 {
   struct gkyl_update_fsm *fsm;
   fsm = gkyl_malloc(sizeof *fsm);
 
-  fsm->nsteps = nsteps;
+  fsm->nactions = nactions;
+  fsm->actions = gkyl_malloc(sizeof(struct gkyl_update_fsm_action[nactions]));
+  for (int i=0; i<nactions; ++i)
+    fsm->actions[i] = actions[i];
 
-  fsm->steps = gkyl_malloc(sizeof(struct gkyl_update_fsm_step[nsteps]));
-  for (int i=0; i<nsteps; ++i)
-    fsm->steps[i] = steps[i];
+  fsm->ntransitions = ntransitions;
+  fsm->transitions = gkyl_malloc(sizeof(struct gkyl_update_fsm_transition[ntransitions]));
+  for (int i=0; i<ntransitions; ++i)
+    fsm->transitions[i] = transitions[i];
+
+  fsm->redo = redo;
 
   return fsm;
 }
 
-struct gkyl_update_status
+struct gkyl_update_fsm_status
 gkyl_update_fsm_run(struct gkyl_update_fsm *seq, double tcurr, double dt)
 {
   int step = 0;
@@ -27,29 +35,32 @@ gkyl_update_fsm_run(struct gkyl_update_fsm *seq, double tcurr, double dt)
   double dt_suggested = DBL_MAX, dt_actual = dt;
 
   int state = GKYL_UPDATE_FSM_FIRST;
-  while ((state != GKYL_UPDATE_FSM_FINISH) && (state != GKYL_UPDATE_FSM_ABORT)) {
+  while (state != GKYL_UPDATE_FSM_FINISH) {
     // run current step
-    struct gkyl_update_status status =
-      seq->steps[state].u(tcurr, dt_actual, seq->steps[state].ctx);
+    struct gkyl_update_fsm_status status =
+      seq->actions[state].u(tcurr, dt_actual, seq->actions[state].ctx);
 
-    if (step > 0 && status.dt_actual < dt_actual) {
-      // if actual time-step taken after first one is smaller than
-      // dt_suggested, we need to redo whole sequence
+    if (status.status == GKYL_UPDATE_FSM_STATUS_FAIL)
+      break;
+
+    state = seq->transitions[state].success_action;
+    step += 1;
+    dt_suggested = fmin(dt_suggested, status.dt_suggested);
+
+    if ( (status.status == GKYL_UPDATE_FSM_STATUS_REDO) || (step > 0 && status.dt_actual < dt_actual) ) {
+      // redo the whole sequence if asked to do so, or if a later step
+      // takes a smaller time-step than it was asked to take
+      seq->redo.u(tcurr, dt, seq->redo.ctx);
+      
       step = 0;
-      state = GKYL_UPDATE_FSM_REDO;
+      state = GKYL_UPDATE_FSM_FIRST;
       dt_actual = status.dt_actual;
-      dt_suggested = DBL_MAX;
-    }
-    else {
-      step += 1;
-      state = status.next_state;
-      dt_actual = status.dt_actual;
-      dt_suggested = fmin(dt_suggested, status.dt_suggested);
+      dt_suggested = DBL_MAX;      
     }
   }
   
-  return (struct gkyl_update_status) {
-    .success = (state == GKYL_UPDATE_FSM_FINISH ? true : false),
+  return (struct gkyl_update_fsm_status) {
+    .status = (state == GKYL_UPDATE_FSM_FINISH ? GKYL_UPDATE_FSM_STATUS_SUCCESS : GKYL_UPDATE_FSM_STATUS_FAIL),
     .dt_actual = dt_actual,
     .dt_suggested = dt_suggested,
   };
@@ -58,6 +69,7 @@ gkyl_update_fsm_run(struct gkyl_update_fsm *seq, double tcurr, double dt)
 void
 gkyl_update_fsm_release(struct gkyl_update_fsm *seq)
 {
-  gkyl_free(seq->steps);
+  gkyl_free(seq->actions);
+  gkyl_free(seq->transitions);
   gkyl_free(seq);
 }
