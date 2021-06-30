@@ -1,5 +1,4 @@
 #include <math.h>
-#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -9,6 +8,7 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_array_rio.h>
+#include <thpool.h>
 
 void evalFunc(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -23,12 +23,11 @@ struct thread_data {
   struct gkyl_array *f; // shared field
 };
 
-void*
+void
 thread_worker(void *ctx)
 {
   struct thread_data *td = ctx;
   gkyl_proj_on_basis_advance(td->proj, 0.0, &td->range, td->f);
-  return NULL;
 }
 
 int
@@ -92,24 +91,27 @@ main(int argc, char **argv)
     };
 
   struct timespec tstart = gkyl_wall_clock();
-  
-  for (int tid=0; tid<max_thread; ++tid) {
-    int rc = pthread_create(&thread[tid], 0, thread_worker, &td[tid]);
-    if (rc) {
-      printf("Thread creation failed with %d\n", rc);
-      exit(-1);
-    }    
-  }
-  for (int i=0; i<max_thread; ++i)
-    pthread_join(thread[i], 0);
+
+  // run projection updater on threads
+  threadpool thpool = thpool_init(max_thread);
+  for (int tid=0; tid<max_thread; ++tid)
+    thpool_add_work(thpool, thread_worker, &td[tid]);
+  thpool_wait(thpool);
 
   double tm = gkyl_time_sec(gkyl_time_diff(tstart, gkyl_wall_clock()));
   printf("%d threads took %g to update\n", max_thread, tm);
 
-  gkyl_grid_array_write(&grid, &arr_range, distf, "pthread.gkyl");
+  // construct file name and write data out
+  const char *fmt = "%s-%d.gkyl";
+  int sz = snprintf(0, 0, fmt, "pthread", max_thread);
+  char fileNm[sz+1]; // ensures no buffer overflow  
+  snprintf(fileNm, sizeof fileNm, fmt, "pthread", max_thread);
+  
+  gkyl_grid_array_write(&grid, &arr_range, distf, fileNm);
   
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf);
+  thpool_destroy(thpool);
   
   return 0;
 }
