@@ -109,9 +109,9 @@ test_seq_1()
     },
     3, // number of transitions
     (struct gkyl_update_fsm_transition[3]) { // transition table
-      [SRC_1] = { FLUID },
-      [FLUID] = { SRC_2 },
-      [SRC_2] = { GKYL_UPDATE_FSM_FINISH }
+      [SRC_1] = { FLUID, GKYL_UPDATE_FSM_REDO },
+      [FLUID] = { SRC_2, GKYL_UPDATE_FSM_REDO },
+      [SRC_2] = { GKYL_UPDATE_FSM_FINISH, GKYL_UPDATE_FSM_REDO }
     },
     (struct gkyl_update_fsm_action) { .ctx = &ctx, .u = seq_redo } // redo action
   );

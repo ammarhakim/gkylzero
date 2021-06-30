@@ -18,7 +18,8 @@ struct gkyl_update_fsm_status {
  * GKYL_UPDATE_FSM_FIRST for the FSM to function properly.
  */
 enum gkyl_update_fsm_state {
-  GKYL_UPDATE_FSM_FINISH = -1, // signals completion of update
+  GKYL_UPDATE_FSM_FINISH = -2, // signals completion of update
+  GKYL_UPDATE_FSM_REDO = -1, // default redo state
   GKYL_UPDATE_FSM_FIRST = 0 // user code MUST have this as first state
 };
 
@@ -32,15 +33,16 @@ struct gkyl_update_fsm_action {
 // Represent a transition of the FSM
 struct gkyl_update_fsm_transition {
   int success_action; // action on success
+  int redo_action; // action on redo (can be GKYL_UPDATE_FSM_REDO)
 };
 
 // Finite-state machine
 struct gkyl_update_fsm {
   int nactions; // number of actions
+  int ntransitions; // number of transitions  
   struct gkyl_update_fsm_action *actions; // actions
-  int ntransitions; // number of transitions
+  struct gkyl_update_fsm_action redo; // default redo action
   struct gkyl_update_fsm_transition *transitions; // transitions
-  struct gkyl_update_fsm_action redo; // redo action
 };
 
 /**
@@ -50,7 +52,7 @@ struct gkyl_update_fsm {
  * @param actions List of actions
  * @param ntransitions Number of transitions
  * @param transitions List of transitions
- * @param redo Action on transition to redo state
+ * @param redo Default redo action  on transition to redo state
  * @return New FSM update object
  */
 struct gkyl_update_fsm* gkyl_update_fsm_new(int nactions, struct gkyl_update_fsm_action actions[],
