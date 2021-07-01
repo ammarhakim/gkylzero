@@ -9,7 +9,6 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_array_rio.h>
 #include <thpool.h>
-#include <pthread.h>
 
 void evalFunc(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -82,7 +81,6 @@ main(int argc, char **argv)
   // create distribution function
   struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.numBasis, arr_range.volume);
 
-  pthread_t thread[max_thread];  
   struct thread_data td[max_thread];
   for (int tid=0; tid<max_thread; ++tid)
     td[tid]  = (struct thread_data) {
