@@ -9,6 +9,7 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_array_rio.h>
 #include <thpool.h>
+#include <pthread.h>
 
 void evalFunc(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 {
