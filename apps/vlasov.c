@@ -665,7 +665,7 @@ void
 gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
 {
   const char *fmt = "%s-field_%d.gkyl";
-  int sz = snprintf(0, 0, fmt, app->name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
 
@@ -683,7 +683,7 @@ void
 gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
   const char *fmt = "%s-%s_%d.gkyl";
-  int sz = snprintf(0, 0, fmt, app->name, app->species[sidx].info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].info.name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow  
   snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame);
 
@@ -706,7 +706,7 @@ gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
     for (int m=0; m<app->species[i].info.num_diag_moments; ++m) {
       
       const char *fmt = "%s-%s-%s_%d.gkyl";
-      int sz = snprintf(0, 0, fmt, app->name, app->species[i].info.name,
+      int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
         app->species[i].info.diag_moments[m], frame);
       char fileNm[sz+1]; // ensures no buffer overflow  
       snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
@@ -941,7 +941,7 @@ void
 gkyl_vlasov_app_stat_write(const gkyl_vlasov_app* app)
 {
   const char *fmt = "%s-%s";
-  int sz = snprintf(0, 0, fmt, app->name, "stat.json");
+  int sz = gkyl_calc_strlen(fmt, app->name, "stat.json");
   char fileNm[sz+1]; // ensures no buffer overflow  
   snprintf(fileNm, sizeof fileNm, fmt, app->name, "stat.json");
   
@@ -950,9 +950,8 @@ gkyl_vlasov_app_stat_write(const gkyl_vlasov_app* app)
   struct tm curr_tm = *localtime(&t);
 
   // append to existing file so we have a history of different runs
-  FILE *fp = fopen(fileNm, "a");
-
-  if (fp) {
+  FILE *fp = 0;
+  with_file (fp, fileNm, "a") {
     fprintf(fp, "{\n");
 
     if (strftime(buff, sizeof buff, "%c", &curr_tm))
@@ -980,8 +979,6 @@ gkyl_vlasov_app_stat_write(const gkyl_vlasov_app* app)
     fprintf(fp, " \"mom_tm\" : \"%lg\"\n", app->stat.mom_tm);
   
     fprintf(fp, "}\n");
-
-    fclose(fp);
   }
 }
 

@@ -108,6 +108,19 @@ enum gkyl_cu_memcpy_kind {
       }                                                                 \
     } while (0);
 
+// Computes length of string needed given a format specifier and data. Example:
+//
+// size_t len = silo_calc_strlen("%s-%d", "silo", 25);
+// 
+#define gkyl_calc_strlen(fmt, ...) snprintf(0, 0, fmt, __VA_ARGS__)
+
+// Open file 'fname' with 'mode; into handle 'fp'. Handle is closed
+// when block attached to with_file exists
+#define with_file(fp, fname, mode)                              \
+    for (bool _break = (fp = fopen(fname, mode), (fp != NULL)); \
+         _break;                                                \
+         _break = false, fclose(fp))
+
 // Code 
 
 EXTERN_C_BEG
