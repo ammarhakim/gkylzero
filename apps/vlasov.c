@@ -274,8 +274,13 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
     gkyl_hyper_dg_advance(field->slvr, app->local, em, field->cflrate, rhs, field->maxs_by_cell);
 
   gkyl_array_reduce_range(field->omegaCfl_ptr, field->cflrate, GKYL_MAX, app->local);
-  gkyl_array_reduce_range(field->slvr->maxs, field->maxs_by_cell, GKYL_MAX, app->local);
   double omegaCfl = field->omegaCfl_ptr[0];
+
+  // CAUTION: This call violates our basic rule that elements of
+  // structs should not be modified directly, but only via function
+  // calls. Here this is done as species->slvr->maxs could be a CUDA
+  // array
+  gkyl_array_reduce_range(field->slvr->maxs, field->maxs_by_cell, GKYL_MAX, app->local);
 
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
   
@@ -933,6 +938,11 @@ gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
         species->cflrate, rhs, species->maxs_by_cell);
 
     // reduction to get maxs (maximum over cells of maxs_by_cell)
+
+    // CAUTION: This call violates our basic rule that elements of
+    // structs should not be modified directly, but only via function
+    // calls. Here this is done as species->slvr->maxs could be a CUDA
+    // array
     gkyl_array_reduce_range(species->slvr->maxs, species->maxs_by_cell, GKYL_MAX, species->local);
   }
 }
