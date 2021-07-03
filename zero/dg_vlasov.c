@@ -19,7 +19,7 @@ void
 gkyl_vlasov_set_qmem(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem)
 {
 #ifdef GKYL_HAVE_CUDA
-  if(gkyl_array_is_cu_dev(qmem)) {gkyl_vlasov_set_qmem_cu(eqn, qmem); return;}
+  if (gkyl_array_is_cu_dev(qmem)) {gkyl_vlasov_set_qmem_cu(eqn, qmem); return;}
 #endif
 
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);

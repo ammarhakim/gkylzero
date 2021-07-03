@@ -112,7 +112,7 @@ proj_on_basis(const gkyl_proj_on_basis *up, const struct gkyl_array *fun_at_ords
 
     for (int imu=0; imu<tot_quad; ++imu) {
       double tmp = weights[imu]*func_at_ords[n+num_ret_vals*imu];
-      for(int k=0; k<numBasis; ++k)
+      for (int k=0; k<numBasis; ++k)
         f[offset+k] += tmp*basis_at_ords[k+numBasis*imu];
     }
     offset += numBasis;

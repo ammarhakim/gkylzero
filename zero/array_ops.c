@@ -64,7 +64,7 @@ struct gkyl_array*
 gkyl_array_scale(struct gkyl_array* out, double a)
 {
 #ifdef GKYL_HAVE_CUDA
-  if(gkyl_array_is_cu_dev(out)) { gkyl_array_scale_cu(out, a); return out; }
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_scale_cu(out, a); return out; }
 #endif
 
   return gkyl_array_set(out, a, out);
@@ -76,7 +76,7 @@ gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op 
   assert(arr->type == GKYL_DOUBLE);
 
 #ifdef GKYL_HAVE_CUDA
-  if(gkyl_array_is_cu_dev(arr)) {
+  if (gkyl_array_is_cu_dev(arr)) {
     switch (op) {
       case GKYL_MAX:
         gkyl_array_reduce_max_cu(out, arr);
@@ -117,7 +117,7 @@ gkyl_array_clear_range(struct gkyl_array *out, double val, struct gkyl_range ran
   assert(out->type == GKYL_DOUBLE);
 
 #ifdef GKYL_HAVE_CUDA
-  if(gkyl_array_is_cu_dev(out)) { gkyl_array_clear_range_cu(out, val, range); return out; }
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_clear_range_cu(out, val, range); return out; }
 #endif
 
   long n = NCOM(out);
@@ -141,7 +141,7 @@ gkyl_array_accumulate_range(struct gkyl_array *out,
   assert(out->size == inp->size);
 
 #ifdef GKYL_HAVE_CUDA
-  if(gkyl_array_is_cu_dev(out)) { gkyl_array_accumulate_range_cu(out, a, inp, range); return out; }
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_accumulate_range_cu(out, a, inp, range); return out; }
 #endif
 
   long outnc = NCOM(out), inpnc = NCOM(inp);
@@ -167,7 +167,7 @@ gkyl_array_set_range(struct gkyl_array *out,
   assert(out->size == inp->size);
 
 #ifdef GKYL_HAVE_CUDA
-  if(gkyl_array_is_cu_dev(out)) { gkyl_array_set_range_cu(out, a, inp, range); return out; }
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_set_range_cu(out, a, inp, range); return out; }
 #endif
 
   long outnc = NCOM(out), inpnc = NCOM(inp);
@@ -190,7 +190,7 @@ gkyl_array_scale_range(struct gkyl_array *out,
   double a, struct gkyl_range range)
 {
 #ifdef GKYL_HAVE_CUDA
-  if(gkyl_array_is_cu_dev(out)) { gkyl_array_scale_range_cu(out, a, range); return out; }
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_scale_range_cu(out, a, range); return out; }
 #endif
 
   return gkyl_array_set_range(out, a, out, range);
@@ -203,7 +203,7 @@ gkyl_array_reduce_range(double *res,
   assert(arr->type == GKYL_DOUBLE);
 
 #ifdef GKYL_HAVE_CUDA
-  if(gkyl_array_is_cu_dev(arr)) {
+  if (gkyl_array_is_cu_dev(arr)) {
     switch (op) {
       case GKYL_MAX:
         gkyl_array_reduce_range_max_cu(res, arr, range);
@@ -248,7 +248,7 @@ gkyl_array_copy_range(struct gkyl_array *out,
   assert(out->size == inp->size && out->elemsz == inp->elemsz);
 
 #ifdef GKYL_HAVE_CUDA
-  if(gkyl_array_is_cu_dev(out)) { gkyl_array_copy_range_cu(out, inp, range); return out; }
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_copy_range_cu(out, inp, range); return out; }
 #endif
 
   struct gkyl_range_iter iter;
@@ -269,7 +269,7 @@ gkyl_array_copy_range_to_range(struct gkyl_array *out,
   assert(out_range.volume == inp_range.volume);
 
 #ifdef GKYL_HAVE_CUDA
-  if(gkyl_array_is_cu_dev(out)) { gkyl_array_copy_range_to_range_cu(out, inp, out_range, inp_range); return out; }
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_copy_range_to_range_cu(out, inp, out_range, inp_range); return out; }
 #endif
 
   struct gkyl_range_iter iter;
@@ -288,7 +288,7 @@ gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
   struct gkyl_range range)
 {
 #ifdef GKYL_HAVE_CUDA
-  if(gkyl_array_is_cu_dev(arr)) { gkyl_array_copy_to_buffer_cu(data, arr, range); return; }
+  if (gkyl_array_is_cu_dev(arr)) { gkyl_array_copy_to_buffer_cu(data, arr, range); return; }
 #endif
 
 #define _F(loc) gkyl_array_cfetch(arr, loc)
@@ -310,7 +310,7 @@ gkyl_array_copy_from_buffer(struct gkyl_array *arr,
   const void *data, struct gkyl_range range)
 {
 #ifdef GKYL_HAVE_CUDA
-  if(gkyl_array_is_cu_dev(arr)) { gkyl_array_copy_from_buffer_cu(arr, data, range); return; }
+  if (gkyl_array_is_cu_dev(arr)) { gkyl_array_copy_from_buffer_cu(arr, data, range); return; }
 #endif
 
 #define _F(loc) gkyl_array_fetch(arr, loc)

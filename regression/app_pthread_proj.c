@@ -98,7 +98,7 @@ main(int argc, char **argv)
   thpool_wait(thpool);
 
   double tm = gkyl_time_sec(gkyl_time_diff(tstart, gkyl_wall_clock()));
-  printf("%d threads took %g to update\n", max_thread, tm);
+  printf("%d threads took %g to update\n", thpool_num_threads_alive(thpool), tm);
 
   // construct file name and write data out
   const char *fmt = "%s-%d.gkyl";
