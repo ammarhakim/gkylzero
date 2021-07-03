@@ -965,27 +965,27 @@ gkyl_vlasov_app_stat_write(const gkyl_vlasov_app* app)
     fprintf(fp, "{\n");
 
     if (strftime(buff, sizeof buff, "%c", &curr_tm))
-      fprintf(fp, " \"date\" : \"%s\"\n", buff);
+      fprintf(fp, " \"date\" : \"%s\",\n", buff);
 
-    fprintf(fp, " \"nup\" : \"%ld\"\n", app->stat.nup);
-    fprintf(fp, " \"nfeuler\" : \"%ld\"\n", app->stat.nfeuler);
-    fprintf(fp, " \"nstage_2_fail\" : \"%ld\"\n", app->stat.nstage_2_fail);
-    fprintf(fp, " \"nstage_3_fail\" : \"%ld\"\n", app->stat.nstage_3_fail);
+    fprintf(fp, " \"nup\" : \"%ld\",\n", app->stat.nup);
+    fprintf(fp, " \"nfeuler\" : \"%ld\",\n", app->stat.nfeuler);
+    fprintf(fp, " \"nstage_2_fail\" : \"%ld\",\n", app->stat.nstage_2_fail);
+    fprintf(fp, " \"nstage_3_fail\" : \"%ld\",\n", app->stat.nstage_3_fail);
 
-    fprintf(fp, " \"stage_2_dt_diff\" : [ \"%lg\", \"%lg\" ]\n",
+    fprintf(fp, " \"stage_2_dt_diff\" : [ \"%lg\", \"%lg\" ],\n",
       app->stat.stage_2_dt_diff[0], app->stat.stage_2_dt_diff[1]);
-    fprintf(fp, " \"stage_3_dt_diff\" : [ \"%lg\", \"%lg\" ]\n",
+    fprintf(fp, " \"stage_3_dt_diff\" : [ \"%lg\", \"%lg\" ],\n",
       app->stat.stage_3_dt_diff[0], app->stat.stage_3_dt_diff[1]);
     
-    fprintf(fp, " \"total_tm\" : \"%lg\"\n", app->stat.total_tm);
-    fprintf(fp, " \"init_species_tm\" : \"%lg\"\n", app->stat.init_species_tm);
-    fprintf(fp, " \"init_field_tm\" : \"%lg\"\n", app->stat.init_field_tm);
+    fprintf(fp, " \"total_tm\" : \"%lg\",\n", app->stat.total_tm);
+    fprintf(fp, " \"init_species_tm\" : \"%lg\",\n", app->stat.init_species_tm);
+    fprintf(fp, " \"init_field_tm\" : \"%lg\",\n", app->stat.init_field_tm);
     
-    fprintf(fp, " \"species_rhs_tm\" : \"%lg\"\n", app->stat.species_rhs_tm);
-    fprintf(fp, " \"field_rhs_tm\" : \"%lg\"\n", app->stat.field_rhs_tm);
-    fprintf(fp, " \"current_tm\" : \"%lg\"\n", app->stat.current_tm);
+    fprintf(fp, " \"species_rhs_tm\" : \"%lg\",\n", app->stat.species_rhs_tm);
+    fprintf(fp, " \"field_rhs_tm\" : \"%lg\",\n", app->stat.field_rhs_tm);
+    fprintf(fp, " \"current_tm\" : \"%lg\",\n", app->stat.current_tm);
 
-    fprintf(fp, " \"nmom\" : \"%ld\"\n", app->stat.nmom);
+    fprintf(fp, " \"nmom\" : \"%ld\",\n", app->stat.nmom);
     fprintf(fp, " \"mom_tm\" : \"%lg\"\n", app->stat.mom_tm);
   
     fprintf(fp, "}\n");

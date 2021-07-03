@@ -908,13 +908,13 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
     fprintf(fp, "{\n");
 
     if (strftime(buff, sizeof buff, "%c", &curr_tm))
-      fprintf(fp, " \"date\" : \"%s\"\n", buff);
+      fprintf(fp, " \"date\" : \"%s\",\n", buff);
 
-    fprintf(fp, " \"nup\" : \"%ld\"\n", app->stat.nup);
-    fprintf(fp, " \"nfail\" : \"%ld\"\n", app->stat.nfail);
-    fprintf(fp, " \"total_tm\" : \"%lg\"\n", app->stat.total_tm);
-    fprintf(fp, " \"species_tm\" : \"%lg\"\n", app->stat.species_tm);
-    fprintf(fp, " \"field_tm\" : \"%lg\"\n", app->stat.field_tm);
+    fprintf(fp, " \"nup\" : \"%ld\",\n", app->stat.nup);
+    fprintf(fp, " \"nfail\" : \"%ld\",\n", app->stat.nfail);
+    fprintf(fp, " \"total_tm\" : \"%lg\",\n", app->stat.total_tm);
+    fprintf(fp, " \"species_tm\" : \"%lg\",\n", app->stat.species_tm);
+    fprintf(fp, " \"field_tm\" : \"%lg\",\n", app->stat.field_tm);
     fprintf(fp, " \"sources_tm\" : \"%lg\"\n", app->stat.sources_tm);
   
     fprintf(fp, "}\n");
