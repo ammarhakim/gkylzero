@@ -179,6 +179,16 @@ void thpool_destroy(threadpool);
  */
 int thpool_num_threads_working(threadpool);
 
+/**
+ * @brief Return number of threads alive
+ *
+ * Total alive threads are maximum number of threads that can perform work.
+ *
+ * @param threadpool     the threadpool of interest
+ * @return integer       number of threads alive
+ */
+int thpool_num_threads_alive(threadpool);    
+
 
 #ifdef __cplusplus
 }
