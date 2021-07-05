@@ -40,10 +40,37 @@ int gkyl_grid_array_write(const struct gkyl_rect_grid *grid, const struct gkyl_r
   const struct gkyl_array *arr, const char* fname);
 
 /**
- * Print range information to file object.
+ * Read data from file and create new array. 
  *
- * @param range Range object to print
- * @param nm Name of range
- * @param fp File object to print range information
+ * @param type Type of data in array
+ * @param fp File handle to read from.
+ * @return Pointer to newly allocated array.
  */
-void gkyl_print_range(const struct gkyl_range* range, const char *nm, FILE *fp);
+struct gkyl_array* gkyl_array_new_from_file(enum gkyl_elem_type type, FILE *fp);
+
+/**
+ * Read part of the array from file. The region of the array to read
+ * is specified in the range object. This method will fail if range
+ * volume is greater than array size. The input array must be
+ * pre-allocated and must be big enough to hold the read data.
+ *
+ * @param range Range describing portion of the array to read.
+ * @param arr Array object to read into
+ * @param fp File handle to read from.
+ * @param True on successful read, false otherwise
+ */
+bool gkyl_sub_array_read(const struct gkyl_range *range,
+  struct gkyl_array *arr, FILE *fp);
+
+/**
+ * Read grid and array data from file. The input array must be
+ * pre-allocated and must be big enough to hold the read data.
+ * 
+ * @param grid Grid object to read
+ * @param range Range describing portion of the array.
+ * @param arr Array object to read
+ * @param fname Name of input file
+ * @return Status flag: 0 if write succeeded, 'errno' otherwise
+ */
+int gkyl_grid_array_read(struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+  struct gkyl_array *arr, const char* fname);

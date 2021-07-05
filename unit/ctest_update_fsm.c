@@ -101,7 +101,7 @@ test_seq_1()
   struct seq_ctx ctx = { };
 
   struct gkyl_update_fsm *seq = gkyl_update_fsm_new(
-    3, // number of actions (including redo)
+    3, // number of actions
     (struct gkyl_update_fsm_action[3]) { // actions in sequence
       [SRC_1] = { .ctx = &ctx, .u = seq_src_1 },
       [FLUID] = { .ctx = &ctx, .u = seq_fluid },

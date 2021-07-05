@@ -13,6 +13,14 @@ static const uint64_t array_data_type[] = {
   [GKYL_USER] = 32,
 };
 
+// size in bytes for various data-types
+static const size_t array_elem_size[] = {
+  [GKYL_INT] = sizeof(int),
+  [GKYL_FLOAT] = sizeof(float),
+  [GKYL_DOUBLE] = sizeof(double),
+  [GKYL_USER] = 1,
+};
+
 void
 gkyl_array_write(const struct gkyl_array *arr, FILE *fp)
 {
@@ -28,7 +36,7 @@ gkyl_sub_array_write(const struct gkyl_range *range,
 {
 #define _F(loc) gkyl_array_cfetch(arr, loc)
   
-  uint64_t esznc = arr->esznc, size = arr->size;
+  uint64_t esznc = arr->esznc, size = range->volume;
   fwrite(&esznc, sizeof(uint64_t), 1, fp);
   fwrite(&size, sizeof(uint64_t), 1, fp);
   
@@ -52,7 +60,7 @@ gkyl_grid_array_write(const struct gkyl_rect_grid *grid, const struct gkyl_range
   const struct gkyl_array *arr, const char *fname)
 {
   FILE *fp = 0;
-  with_file (fp, fname, "wb") {
+  with_file (fp, fname, "w") {
     uint64_t real_type = array_data_type[arr->type];
     fwrite(&real_type, sizeof(uint64_t), 1, fp);
     gkyl_rect_grid_write(grid, fp);
@@ -61,23 +69,60 @@ gkyl_grid_array_write(const struct gkyl_rect_grid *grid, const struct gkyl_range
   return errno;
 }
 
-void
-gkyl_print_range(const struct gkyl_range* range, const char *nm, FILE *fp)
+struct gkyl_array*
+gkyl_array_new_from_file(enum gkyl_elem_type type, FILE *fp)
 {
-  fprintf(fp, "%s = { ", nm);
+  uint64_t esznc, size;
+  fread(&esznc, sizeof(uint64_t), 1, fp);
+  fread(&size, sizeof(uint64_t), 1, fp);
 
-  fprintf(fp, " lower = { ");
-  for (int d=0; d<range->ndim; ++d)
-    fprintf(fp, "%d%c ", range->lower[d], d==range->ndim-1 ? ' ' : ',');
-  fprintf(fp, "}, ");
+  int ncomp = esznc/array_elem_size[type];
+  struct gkyl_array* arr = gkyl_array_new(type, ncomp, size);
+  fread(arr->data, arr->esznc*arr->size, 1, fp);
 
-  fprintf(fp, "upper = { ");
-  for (int d=0; d<range->ndim; ++d)
-    fprintf(fp, "%d%c ", range->upper[d] , d==range->ndim-1 ? ' ' : ',');
-  fprintf(fp, "}, ");
+  return arr;
+}
 
-  fprintf(fp, " volume = %ld, ", range->volume );
-  fprintf(fp, " is_sub_range = %d", gkyl_range_is_sub_range(range) );
+bool
+gkyl_sub_array_read(const struct gkyl_range *range, struct gkyl_array *arr, FILE *fp)
+{
+#define _F(loc) gkyl_array_fetch(arr, loc)
   
-  fprintf(fp, " }\n ");
+  uint64_t esznc, size;
+  fread(&esznc, sizeof(uint64_t), 1, fp);
+  fread(&size, sizeof(uint64_t), 1, fp);
+
+  if ((size != range->volume) || (size > arr->size))
+    return false;
+  
+  // construct skip iterator to allow reading (potentially) in chunks
+  // rather than element by element or requiring a copy of data
+  struct gkyl_range_skip_iter skip;
+  gkyl_range_skip_iter_init(&skip, range);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &skip.range);
+
+  while (gkyl_range_iter_next(&iter)) {
+    long start = gkyl_range_idx(&skip.range, iter.idx);
+    fread(_F(start), arr->esznc*skip.delta, 1, fp);
+  }
+
+  return true;
+#undef _F
+}
+
+int
+gkyl_grid_array_read(struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+  struct gkyl_array *arr, const char* fname)
+{
+  FILE *fp = 0;
+  with_file (fp, fname, "r") {
+    uint64_t real_type = 0;
+    fread(&real_type, sizeof(uint64_t), 1, fp);
+    
+    gkyl_rect_grid_read(grid, fp);
+    gkyl_sub_array_read(range, arr, fp);
+  }
+  return errno;  
 }

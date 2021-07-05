@@ -383,3 +383,23 @@ gkyl_range_skip_iter_init(struct gkyl_range_skip_iter *iter,
   gkyl_range_deflate(&iter->range, range, remDir, range->lower);
 }
 
+void
+gkyl_print_range(const struct gkyl_range* range, const char *nm, FILE *fp)
+{
+  fprintf(fp, "%s = { ", nm);
+
+  fprintf(fp, " lower = { ");
+  for (int d=0; d<range->ndim; ++d)
+    fprintf(fp, "%d%c ", range->lower[d], d==range->ndim-1 ? ' ' : ',');
+  fprintf(fp, "}, ");
+
+  fprintf(fp, "upper = { ");
+  for (int d=0; d<range->ndim; ++d)
+    fprintf(fp, "%d%c ", range->upper[d] , d==range->ndim-1 ? ' ' : ',');
+  fprintf(fp, "}, ");
+
+  fprintf(fp, " volume = %ld, ", range->volume );
+  fprintf(fp, " is_sub_range = %d", gkyl_range_is_sub_range(range) );
+  
+  fprintf(fp, " }\n ");
+}
