@@ -36,7 +36,7 @@ void gkyl_sub_array_write(const struct gkyl_range *range,
  * @param fname Name of output file (include .gkyl extension)
  * @return Status flag: 0 if write succeeded, 'errno' otherwise
  */
-int gkyl_grid_array_write(const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+int gkyl_grid_sub_array_write(const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
   const struct gkyl_array *arr, const char* fname);
 
 /**
@@ -72,5 +72,14 @@ bool gkyl_sub_array_read(const struct gkyl_range *range,
  * @param fname Name of input file
  * @return Status flag: 0 if write succeeded, 'errno' otherwise
  */
-int gkyl_grid_array_read(struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+int gkyl_grid_sub_array_read(struct gkyl_rect_grid *grid, const struct gkyl_range *range,
   struct gkyl_array *arr, const char* fname);
+
+/**
+ * Read grid and array data from file, creating a new array.
+ * 
+ * @param grid Grid object to read
+ * @param fname Name of input file
+ * @return Newly created array object
+ */
+struct gkyl_array* gkyl_grid_array_new_from_file(struct gkyl_rect_grid *grid, const char* fname);

@@ -702,7 +702,7 @@ test_grid_array_rio_1()
       d[k] = (10.5*iter.idx[0] + 220.5*iter.idx[1])*(k+0.5);
   }
 
-  gkyl_grid_array_write(&grid, &range, arr, "ctest_array_grid_array_1.gkyl");
+  gkyl_grid_sub_array_write(&grid, &range, arr, "ctest_array_grid_array_1.gkyl");
 
   struct gkyl_array *arr2 = gkyl_array_new(GKYL_DOUBLE, 2, ext_range.volume);
   gkyl_array_clear(arr2, 0.0);
@@ -710,7 +710,7 @@ test_grid_array_rio_1()
   struct gkyl_rect_grid grid2;
   
   // read back the grid and the array
-  gkyl_grid_array_read(&grid2, &range, arr2, "ctest_array_grid_array_1.gkyl");
+  gkyl_grid_sub_array_read(&grid2, &range, arr2, "ctest_array_grid_array_1.gkyl");
 
   TEST_CHECK( grid.ndim == grid2.ndim );
   for (int d=0; d<grid.ndim; ++d) {
@@ -727,6 +727,63 @@ test_grid_array_rio_1()
 
     const double *rhs = gkyl_array_cfetch(arr, loc);
     const double *lhs = gkyl_array_cfetch(arr2, loc);
+    for (int k=0; k<2; ++k)
+      TEST_CHECK( lhs[k] == rhs[k] );
+  }
+  
+  gkyl_array_release(arr);
+  gkyl_array_release(arr2);
+}
+
+void
+test_grid_array_rio_2()
+{
+  double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
+  int cells[] = {20, 60};
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
+
+  int nghost[] = { 1, 2 };
+  struct gkyl_range range, ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
+
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 2, ext_range.volume);
+  gkyl_array_clear(arr, 0.0);
+
+  // set some values in array
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+
+    double *d = gkyl_array_fetch(arr, loc);
+    for (int k=0; k<2; ++k)
+      d[k] = (10.5*iter.idx[0] + 220.5*iter.idx[1])*(k+0.5);
+  }
+
+  gkyl_grid_sub_array_write(&grid, &range, arr, "ctest_array_grid_array_2.gkyl");
+
+  struct gkyl_rect_grid grid2;
+  struct gkyl_array *arr2 = gkyl_grid_array_new_from_file(&grid2, "ctest_array_grid_array_2.gkyl");
+
+  TEST_CHECK( grid.ndim == grid2.ndim );
+  for (int d=0; d<grid.ndim; ++d) {
+    TEST_CHECK( grid.lower[d] == grid2.lower[d] );
+    TEST_CHECK( grid.upper[d] == grid2.upper[d] );
+    TEST_CHECK( grid.cells[d] == grid2.cells[d] );
+    TEST_CHECK( grid.dx[d] == grid2.dx[d] );
+  }
+  TEST_CHECK( grid.cellVolume == grid2.cellVolume );  
+
+  // NOTE: array read from file is not the same shape as "arr". This
+  // is because the new_file_file does not read ghost cells.
+  long lhs_loc = 0;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+
+    const double *rhs = gkyl_array_cfetch(arr, loc);
+    const double *lhs = gkyl_array_cfetch(arr2, lhs_loc++);
     for (int k=0; k<2; ++k)
       TEST_CHECK( lhs[k] == rhs[k] );
   }
@@ -1268,6 +1325,7 @@ TEST_LIST = {
   { "rio_2", test_rio_2 },
   { "rio_3", test_rio_3 },
   { "grid_array_rio_1", test_grid_array_rio_1 },
+  { "grid_array_rio_2", test_grid_array_rio_2 },
 #ifdef GKYL_HAVE_CUDA
   { "cu_array_base", test_cu_array_base },
   { "cu_array_clear", test_cu_array_clear},

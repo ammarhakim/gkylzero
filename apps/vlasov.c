@@ -677,10 +677,10 @@ gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
   if (app->use_gpu) {
     // copy data from device to host before writing it out    
     gkyl_array_copy(app->field.em_host, app->field.em);
-    gkyl_grid_array_write(&app->grid, &app->local, app->field.em_host, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->local, app->field.em_host, fileNm);
   }
   else {
-    gkyl_grid_array_write(&app->grid, &app->local, app->field.em, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->local, app->field.em, fileNm);
   }
 }
 
@@ -695,11 +695,11 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int fra
   if (app->use_gpu) {
     // copy data from device to host before writing it out
     gkyl_array_copy(app->species[sidx].f_host, app->species[sidx].f);
-    gkyl_grid_array_write(&app->species[sidx].grid, &app->species[sidx].local,
+    gkyl_grid_sub_array_write(&app->species[sidx].grid, &app->species[sidx].local,
       app->species[sidx].f_host, fileNm);
   }
   else {
-    gkyl_grid_array_write(&app->species[sidx].grid, &app->species[sidx].local,
+    gkyl_grid_sub_array_write(&app->species[sidx].grid, &app->species[sidx].local,
       app->species[sidx].f, fileNm);
   }
 }
@@ -720,7 +720,7 @@ gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
       if (app->use_gpu)
         gkyl_array_copy(app->species[i].moms[m].marr_host, app->species[i].moms[m].marr);
       
-      gkyl_grid_array_write(&app->grid, &app->local, app->species[i].moms[m].marr_host, fileNm);
+      gkyl_grid_sub_array_write(&app->grid, &app->local, app->species[i].moms[m].marr_host, fileNm);
     }
   }
 }

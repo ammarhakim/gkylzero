@@ -106,7 +106,7 @@ main(int argc, char **argv)
   char fileNm[sz+1]; // ensures no buffer overflow  
   snprintf(fileNm, sizeof fileNm, fmt, "pthread", max_thread);
   
-  gkyl_grid_array_write(&grid, &arr_range, distf, fileNm);
+  gkyl_grid_sub_array_write(&grid, &arr_range, distf, fileNm);
   
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf);

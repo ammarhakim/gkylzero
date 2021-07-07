@@ -725,7 +725,7 @@ gkyl_moment_app_write_field(const gkyl_moment_app* app, double tm, int frame)
   char fileNm[sz+1]; // ensures no buffer overflow  
   snprintf(fileNm, sizeof fileNm, fmt, app->name, "field", frame);
   
-  gkyl_grid_array_write(&app->grid, &app->local, app->field.f[0], fileNm);
+  gkyl_grid_sub_array_write(&app->grid, &app->local, app->field.f[0], fileNm);
 }
 
 void
@@ -736,7 +736,7 @@ gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, i
   char fileNm[sz+1]; // ensures no buffer overflow  
   snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].name, frame);
   
-  gkyl_grid_array_write(&app->grid, &app->local, app->species[sidx].f[0], fileNm);
+  gkyl_grid_sub_array_write(&app->grid, &app->local, app->species[sidx].f[0], fileNm);
 }
 
 // internal function that takes a single time-step
