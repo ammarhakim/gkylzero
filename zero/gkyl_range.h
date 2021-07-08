@@ -4,6 +4,7 @@
 #include <gkyl_vargm.h>
 
 #include <stdint.h>
+#include <stdio.h>
 
 /**
  * Series of indexing "functions" to compute linear index into range
@@ -376,3 +377,12 @@ int gkyl_range_iter_next(struct gkyl_range_iter *iter);
  */
 void gkyl_range_skip_iter_init(struct gkyl_range_skip_iter *iter,
   const struct gkyl_range* range);
+
+/**
+ * Print range information to file object.
+ *
+ * @param range Range object to print
+ * @param nm Name of range
+ * @param fp File object to print range information
+ */
+void gkyl_print_range(const struct gkyl_range* range, const char *nm, FILE *fp);

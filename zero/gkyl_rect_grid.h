@@ -1,6 +1,8 @@
 #pragma once
 
 #include <stdio.h>
+#include <stdbool.h>
+
 #include <gkyl_util.h>
 
 /**
@@ -50,3 +52,13 @@ static inline void gkyl_rect_grid_cell_center(const struct gkyl_rect_grid *grid,
  * @param fp File handle to write to.
  */
 void gkyl_rect_grid_write(const struct gkyl_rect_grid *grid, FILE *fp);
+
+/**
+ * Read data from file and initialize grid. File must be opened by
+ * caller of this function.
+ *
+ * @param grid Grid object to initialize
+ * @param fp File handle to read fromx.
+ * @return True if read succeeded, false otherwise
+ */
+bool gkyl_rect_grid_read(struct gkyl_rect_grid *grid, FILE *fp);

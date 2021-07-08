@@ -2,6 +2,7 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_util.h>
 
 void test_grid_2d()
 {
@@ -31,6 +32,31 @@ void test_grid_2d()
     }
 }
 
+void test_grid_io()
+{
+  double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
+  int cells[] = {20, 20};
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
+
+  FILE *fp = 0;
+  with_file (fp, "ctest_rect_grid.dat", "w")
+    gkyl_rect_grid_write(&grid, fp);
+
+  struct gkyl_rect_grid grid2;
+  with_file (fp, "ctest_rect_grid.dat", "r")
+    gkyl_rect_grid_read(&grid2, fp);
+
+  TEST_CHECK( grid.ndim == grid2.ndim );
+  for (int d=0; d<grid.ndim; ++d) {
+    TEST_CHECK( grid.lower[d] == grid2.lower[d] );
+    TEST_CHECK( grid.upper[d] == grid2.upper[d] );
+    TEST_CHECK( grid.cells[d] == grid2.cells[d] );
+    TEST_CHECK( grid.dx[d] == grid2.dx[d] );
+  }
+  TEST_CHECK( grid.cellVolume == grid2.cellVolume );
+}
+
 // CUDA specific tests
 #ifdef GKYL_HAVE_CUDA
 
@@ -50,6 +76,7 @@ void test_cu_grid_2d()
 
 TEST_LIST = {
   { "grid_2d", test_grid_2d },
+  { "grid_io", test_grid_io },
 #ifdef GKYL_HAVE_CUDA
   { "cu_grid_2d", test_cu_grid_2d },
 #endif  

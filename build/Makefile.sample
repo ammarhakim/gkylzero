@@ -7,7 +7,7 @@ PREFIX = ${HOME}/gkylsoft
 
 G0_INC_DIR = ${PREFIX}/gkylzero/include
 G0_LIB_DIR = ${PREFIX}/gkylzero/lib
-G0_LIB_FLAGS = -lgkylzero -lm
+G0_LIB_FLAGS = -lgkylzero -lm -lpthread
 
 all: app_twostream
 

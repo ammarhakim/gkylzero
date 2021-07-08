@@ -3,7 +3,7 @@
 
 // for use in consistency checking
 static const enum gkyl_oriented_edge complimentary_edges[] = {
-  [0] = 0, // can't happen for fully-specied edges
+  [0] = 0, // can't happen for fully-specified edges
   [GKYL_LOWER_POSITIVE] = GKYL_UPPER_POSITIVE,
   [GKYL_LOWER_NEGATIVE] = GKYL_UPPER_NEGATIVE,
   [GKYL_UPPER_POSITIVE] = GKYL_LOWER_POSITIVE,

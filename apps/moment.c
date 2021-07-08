@@ -721,22 +721,22 @@ gkyl_moment_app_write_field(const gkyl_moment_app* app, double tm, int frame)
   if (app->has_field != 1) return;
 
   const char *fmt = "%s-%s_%d.gkyl";
-  int sz = snprintf(0, 0, fmt, app->name, "field", frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, "field", frame);
   char fileNm[sz+1]; // ensures no buffer overflow  
   snprintf(fileNm, sizeof fileNm, fmt, app->name, "field", frame);
   
-  gkyl_grid_array_write(&app->grid, &app->local, app->field.f[0], fileNm);
+  gkyl_grid_sub_array_write(&app->grid, &app->local, app->field.f[0], fileNm);
 }
 
 void
 gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, int frame)
 {
   const char *fmt = "%s-%s_%d.gkyl";
-  int sz = snprintf(0, 0, fmt, app->name, app->species[sidx].name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow  
   snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].name, frame);
   
-  gkyl_grid_array_write(&app->grid, &app->local, app->species[sidx].f[0], fileNm);
+  gkyl_grid_sub_array_write(&app->grid, &app->local, app->species[sidx].f[0], fileNm);
 }
 
 // internal function that takes a single time-step
@@ -894,33 +894,30 @@ void
 gkyl_moment_app_stat_write(const gkyl_moment_app* app)
 {
   const char *fmt = "%s-%s";
-  int sz = snprintf(0, 0, fmt, app->name, "stat.json");
+  int sz = gkyl_calc_strlen(fmt, app->name, "stat.json");
   char fileNm[sz+1]; // ensures no buffer overflow  
   snprintf(fileNm, sizeof fileNm, fmt, app->name, "stat.json");
-  
+
   char buff[70];
   time_t t = time(NULL);
   struct tm curr_tm = *localtime(&t);
 
   // append to existing file so we have a history of different runs
-  FILE *fp = fopen(fileNm, "a");
-
-  if (fp) {
+  FILE *fp = 0;
+  with_file (fp, fileNm, "a") {
     fprintf(fp, "{\n");
 
     if (strftime(buff, sizeof buff, "%c", &curr_tm))
-      fprintf(fp, " \"date\" : \"%s\"\n", buff);
+      fprintf(fp, " \"date\" : \"%s\",\n", buff);
 
-    fprintf(fp, " \"nup\" : \"%ld\"\n", app->stat.nup);
-    fprintf(fp, " \"nfail\" : \"%ld\"\n", app->stat.nfail);
-    fprintf(fp, " \"total_tm\" : \"%lg\"\n", app->stat.total_tm);
-    fprintf(fp, " \"species_tm\" : \"%lg\"\n", app->stat.species_tm);
-    fprintf(fp, " \"field_tm\" : \"%lg\"\n", app->stat.field_tm);
+    fprintf(fp, " \"nup\" : \"%ld\",\n", app->stat.nup);
+    fprintf(fp, " \"nfail\" : \"%ld\",\n", app->stat.nfail);
+    fprintf(fp, " \"total_tm\" : \"%lg\",\n", app->stat.total_tm);
+    fprintf(fp, " \"species_tm\" : \"%lg\",\n", app->stat.species_tm);
+    fprintf(fp, " \"field_tm\" : \"%lg\",\n", app->stat.field_tm);
     fprintf(fp, " \"sources_tm\" : \"%lg\"\n", app->stat.sources_tm);
   
     fprintf(fp, "}\n");
-
-    fclose(fp);
   }
 }
 

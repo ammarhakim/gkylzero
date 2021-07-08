@@ -274,8 +274,13 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
     gkyl_hyper_dg_advance(field->slvr, app->local, em, field->cflrate, rhs, field->maxs_by_cell);
 
   gkyl_array_reduce_range(field->omegaCfl_ptr, field->cflrate, GKYL_MAX, app->local);
-  gkyl_array_reduce_range(field->slvr->maxs, field->maxs_by_cell, GKYL_MAX, app->local);
   double omegaCfl = field->omegaCfl_ptr[0];
+
+  // CAUTION: This call violates our basic rule that elements of
+  // structs should not be modified directly, but only via function
+  // calls. Here this is done as species->slvr->maxs could be a CUDA
+  // array
+  gkyl_array_reduce_range(field->slvr->maxs, field->maxs_by_cell, GKYL_MAX, app->local);
 
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
   
@@ -665,17 +670,17 @@ void
 gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
 {
   const char *fmt = "%s-field_%d.gkyl";
-  int sz = snprintf(0, 0, fmt, app->name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
 
   if (app->use_gpu) {
     // copy data from device to host before writing it out    
     gkyl_array_copy(app->field.em_host, app->field.em);
-    gkyl_grid_array_write(&app->grid, &app->local, app->field.em_host, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->local, app->field.em_host, fileNm);
   }
   else {
-    gkyl_grid_array_write(&app->grid, &app->local, app->field.em, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->local, app->field.em, fileNm);
   }
 }
 
@@ -683,18 +688,18 @@ void
 gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
   const char *fmt = "%s-%s_%d.gkyl";
-  int sz = snprintf(0, 0, fmt, app->name, app->species[sidx].info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].info.name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow  
   snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame);
 
   if (app->use_gpu) {
     // copy data from device to host before writing it out
     gkyl_array_copy(app->species[sidx].f_host, app->species[sidx].f);
-    gkyl_grid_array_write(&app->species[sidx].grid, &app->species[sidx].local,
+    gkyl_grid_sub_array_write(&app->species[sidx].grid, &app->species[sidx].local,
       app->species[sidx].f_host, fileNm);
   }
   else {
-    gkyl_grid_array_write(&app->species[sidx].grid, &app->species[sidx].local,
+    gkyl_grid_sub_array_write(&app->species[sidx].grid, &app->species[sidx].local,
       app->species[sidx].f, fileNm);
   }
 }
@@ -706,7 +711,7 @@ gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
     for (int m=0; m<app->species[i].info.num_diag_moments; ++m) {
       
       const char *fmt = "%s-%s-%s_%d.gkyl";
-      int sz = snprintf(0, 0, fmt, app->name, app->species[i].info.name,
+      int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
         app->species[i].info.diag_moments[m], frame);
       char fileNm[sz+1]; // ensures no buffer overflow  
       snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
@@ -715,7 +720,7 @@ gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
       if (app->use_gpu)
         gkyl_array_copy(app->species[i].moms[m].marr_host, app->species[i].moms[m].marr);
       
-      gkyl_grid_array_write(&app->grid, &app->local, app->species[i].moms[m].marr_host, fileNm);
+      gkyl_grid_sub_array_write(&app->grid, &app->local, app->species[i].moms[m].marr_host, fileNm);
     }
   }
 }
@@ -933,6 +938,11 @@ gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
         species->cflrate, rhs, species->maxs_by_cell);
 
     // reduction to get maxs (maximum over cells of maxs_by_cell)
+
+    // CAUTION: This call violates our basic rule that elements of
+    // structs should not be modified directly, but only via function
+    // calls. Here this is done as species->slvr->maxs could be a CUDA
+    // array
     gkyl_array_reduce_range(species->slvr->maxs, species->maxs_by_cell, GKYL_MAX, species->local);
   }
 }
@@ -941,7 +951,7 @@ void
 gkyl_vlasov_app_stat_write(const gkyl_vlasov_app* app)
 {
   const char *fmt = "%s-%s";
-  int sz = snprintf(0, 0, fmt, app->name, "stat.json");
+  int sz = gkyl_calc_strlen(fmt, app->name, "stat.json");
   char fileNm[sz+1]; // ensures no buffer overflow  
   snprintf(fileNm, sizeof fileNm, fmt, app->name, "stat.json");
   
@@ -950,38 +960,35 @@ gkyl_vlasov_app_stat_write(const gkyl_vlasov_app* app)
   struct tm curr_tm = *localtime(&t);
 
   // append to existing file so we have a history of different runs
-  FILE *fp = fopen(fileNm, "a");
-
-  if (fp) {
+  FILE *fp = 0;
+  with_file (fp, fileNm, "a") {
     fprintf(fp, "{\n");
 
     if (strftime(buff, sizeof buff, "%c", &curr_tm))
-      fprintf(fp, " \"date\" : \"%s\"\n", buff);
+      fprintf(fp, " \"date\" : \"%s\",\n", buff);
 
-    fprintf(fp, " \"nup\" : \"%ld\"\n", app->stat.nup);
-    fprintf(fp, " \"nfeuler\" : \"%ld\"\n", app->stat.nfeuler);
-    fprintf(fp, " \"nstage_2_fail\" : \"%ld\"\n", app->stat.nstage_2_fail);
-    fprintf(fp, " \"nstage_3_fail\" : \"%ld\"\n", app->stat.nstage_3_fail);
+    fprintf(fp, " \"nup\" : \"%ld\",\n", app->stat.nup);
+    fprintf(fp, " \"nfeuler\" : \"%ld\",\n", app->stat.nfeuler);
+    fprintf(fp, " \"nstage_2_fail\" : \"%ld\",\n", app->stat.nstage_2_fail);
+    fprintf(fp, " \"nstage_3_fail\" : \"%ld\",\n", app->stat.nstage_3_fail);
 
-    fprintf(fp, " \"stage_2_dt_diff\" : [ \"%lg\", \"%lg\" ]\n",
+    fprintf(fp, " \"stage_2_dt_diff\" : [ \"%lg\", \"%lg\" ],\n",
       app->stat.stage_2_dt_diff[0], app->stat.stage_2_dt_diff[1]);
-    fprintf(fp, " \"stage_3_dt_diff\" : [ \"%lg\", \"%lg\" ]\n",
+    fprintf(fp, " \"stage_3_dt_diff\" : [ \"%lg\", \"%lg\" ],\n",
       app->stat.stage_3_dt_diff[0], app->stat.stage_3_dt_diff[1]);
     
-    fprintf(fp, " \"total_tm\" : \"%lg\"\n", app->stat.total_tm);
-    fprintf(fp, " \"init_species_tm\" : \"%lg\"\n", app->stat.init_species_tm);
-    fprintf(fp, " \"init_field_tm\" : \"%lg\"\n", app->stat.init_field_tm);
+    fprintf(fp, " \"total_tm\" : \"%lg\",\n", app->stat.total_tm);
+    fprintf(fp, " \"init_species_tm\" : \"%lg\",\n", app->stat.init_species_tm);
+    fprintf(fp, " \"init_field_tm\" : \"%lg\",\n", app->stat.init_field_tm);
     
-    fprintf(fp, " \"species_rhs_tm\" : \"%lg\"\n", app->stat.species_rhs_tm);
-    fprintf(fp, " \"field_rhs_tm\" : \"%lg\"\n", app->stat.field_rhs_tm);
-    fprintf(fp, " \"current_tm\" : \"%lg\"\n", app->stat.current_tm);
+    fprintf(fp, " \"species_rhs_tm\" : \"%lg\",\n", app->stat.species_rhs_tm);
+    fprintf(fp, " \"field_rhs_tm\" : \"%lg\",\n", app->stat.field_rhs_tm);
+    fprintf(fp, " \"current_tm\" : \"%lg\",\n", app->stat.current_tm);
 
-    fprintf(fp, " \"nmom\" : \"%ld\"\n", app->stat.nmom);
+    fprintf(fp, " \"nmom\" : \"%ld\",\n", app->stat.nmom);
     fprintf(fp, " \"mom_tm\" : \"%lg\"\n", app->stat.mom_tm);
   
     fprintf(fp, "}\n");
-
-    fclose(fp);
   }
 }
 

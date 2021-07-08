@@ -31,7 +31,7 @@ __global__ void
 gkyl_array_clear_cu_kernel(struct gkyl_array* out, double val)
 {
   double *out_d = (double*) out->data;
-  for(unsigned long linc = START_ID; linc < NELM(out); linc += blockDim.x*gridDim.x)
+  for (unsigned long linc = START_ID; linc < NELM(out); linc += blockDim.x*gridDim.x)
     out_d[linc] = val;
 }
 
@@ -41,7 +41,7 @@ gkyl_array_accumulate_cu_kernel(struct gkyl_array* out, double a,
 {
   double *out_d = (double*) out->data;
   const double *inp_d = (const double*) inp->data;
-  for(unsigned long linc = START_ID; linc < NELM(out); linc += blockDim.x*gridDim.x)
+  for (unsigned long linc = START_ID; linc < NELM(out); linc += blockDim.x*gridDim.x)
     out_d[linc] += a*inp_d[linc];
 }
 
@@ -51,7 +51,7 @@ gkyl_array_set_cu_kernel(struct gkyl_array* out, double a,
 {
   double *out_d = (double*) out->data;
   const double *inp_d = (const double*) inp->data;
-  for(unsigned long linc = START_ID; linc < NELM(out); linc += blockDim.x*gridDim.x)
+  for (unsigned long linc = START_ID; linc < NELM(out); linc += blockDim.x*gridDim.x)
     out_d[linc] = a*inp_d[linc];
 }
 
@@ -285,7 +285,7 @@ gkyl_array_copy_from_buffer_cu_kernel(struct gkyl_array *arr, const void *data,
   
   // since input data is just a linear array, just stream through data linearly
   // linc = c + n*idx1 + n*ac1*idx2 + ...
-  for(unsigned long linc = START_ID; linc < range.volume*n; linc += blockDim.x*gridDim.x) {
+  for (unsigned long linc = START_ID; linc < range.volume*n; linc += blockDim.x*gridDim.x) {
     int c = linc % n;
     long linc2 = linc / n; // = idx1 + ac1*idx2 + ...
     gkyl_sub_range_inv_idx(&range, linc2, idx);

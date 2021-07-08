@@ -128,7 +128,8 @@ gkyl_array_aquire(const struct gkyl_array* arr)
 void
 gkyl_array_release(const struct gkyl_array* arr)
 {
-  gkyl_ref_count_dec(&arr->ref_count);
+  if (arr)
+    gkyl_ref_count_dec(&arr->ref_count);
 }
 
 // CUDA specific code
