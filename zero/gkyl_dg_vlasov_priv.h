@@ -20,7 +20,7 @@ typedef double (*vlasov_accel_surf_t)(const double *w, const double *dxv,
 
 typedef double (*vlasov_accel_boundary_surf_t)(const double *w, const double *dxv,
   const double amax, const double *qmem, const int edge,
-  const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out);
+  const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
