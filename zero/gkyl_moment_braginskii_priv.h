@@ -1,4 +1,5 @@
 #pragma once
+#include <math.h>
 
 // Private header, not for direct use in user code
 
@@ -53,6 +54,16 @@ static inline double
 calc_harmonic_avg_2D(double a_ll, double a_lu, double a_ul, double a_uu)
 {
   return 1.0/(0.25/a_ll + 0.25/a_lu + 0.25/a_ul + 0.25/a_uu);
+}
+
+// Calculate the collision time based on the species' parameters
+// Note: assumes the electron-ion collision frequency so sqrt(2) may be missing
+//       coulomb_log considered constant, rho is mass density, temp is temperature
+static inline double
+calc_tau(double coulomb_log, double epsilon0, double charge, double mass, double rho, double temp)
+{
+  double a = M_PI*mass*temp;
+  return 6.0*sqrt(2.0*a*a*a)*epsilon0*epsilon0/(coulomb_log*charge*charge*charge*charge*rho);
 }
 
 // Calculate rate of strain tensor

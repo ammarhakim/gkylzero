@@ -78,6 +78,24 @@ create_offsets(const struct gkyl_range *range, long offsets[])
     offsets[count++] = gkyl_range_offset(range, iter3.idx);
 }
 
+// Calculate the magnitude of the local magnetic field
+static inline double
+calc_mag_b(double em_tot[8])
+{
+  return sqrt(em_tot[BX]*em_tot[BX] + em_tot[BY]*em_tot[BY] + em_tot[BZ]*em_tot[BZ]);
+}
+
+// Calculate the cyclotron frequency based on the species' parameters
+static inline double
+calc_omega_c(double charge, double mass, double em_tot[8])
+{
+  double omega_c = 0.0;
+  double Bmag = calc_mag_b(em_tot);
+  if (Bmag > 0.0)
+    omega_c = charge*Bmag/mass;
+  return omega_c;
+}
+
 // Calculate magnetic field unit vector
 static void
 calc_bhat(double em_tot[8], double b[3])
@@ -85,7 +103,7 @@ calc_bhat(double em_tot[8], double b[3])
   double Bx = em_tot[BX];
   double By = em_tot[BY];
   double Bz = em_tot[BZ];
-  double Bmag = sqrt(Bx*Bx + By*By + Bz*Bz);
+  double Bmag = calc_mag_b(em_tot);
   // get magnetic field unit vector 
   if (Bmag > 0.0) {
     b[0] = Bx/Bmag;
@@ -97,25 +115,35 @@ calc_bhat(double em_tot[8], double b[3])
 // Calculate viscous stress tensor Pi (magnetized)
 // In 1D, computes quantity at cell edge of two-cell interface
 static void
-calc_pi_1D(double dx, double u_l[3], double u_u[3], double em_tot_l[8], double em_tot_u[8], double pi[6])
+calc_pi_1D(double dx, double fluid_l[5], double fluid_u[5], double em_tot_l[8], double em_tot_u[8], double pi[6])
 {
+  double rho_l = fluid_l[RHO];
+  double rho_u = fluid_u[RHO];
+  double u_l[3] = { fluid_l[MX]/rho_l, fluid_l[MY]/rho_l, fluid_l[MZ]/rho_l };
+  double u_u[3] = { fluid_u[MX]/rho_u, fluid_u[MY]/rho_u, fluid_u[MZ]/rho_u };
+  double p_l = fluid_l[ER] - (fluid_l[MX]*fluid_l[MX] + fluid_l[MY]*fluid_l[MY] + fluid_l[MZ]*fluid_l[MZ])/rho_l;
+  double p_u = fluid_u[ER] - (fluid_u[MX]*fluid_u[MX] + fluid_u[MY]*fluid_u[MY] + fluid_u[MZ]*fluid_u[MZ])/rho_u;
+  
   double w[6];
   calc_ros_1D(dx, u_l, u_u, w);
 
   double b_l[3] = { 0.0, 0.0, 0.0 };
   double b_u[3] = { 0.0, 0.0, 0.0 };
-  double b_avg[3] = { 0.0, 0.0, 0.0 };
   calc_bhat(em_tot_l, b_l);
   calc_bhat(em_tot_u, b_u);
+  
+  double b_avg[3] = { 0.0, 0.0, 0.0 };
 
   b_avg[0] = calc_arithm_avg_1D(b_l[0], b_u[0]);
   b_avg[1] = calc_arithm_avg_1D(b_l[1], b_u[1]);
   b_avg[2] = calc_arithm_avg_1D(b_l[2], b_u[2]);
 
-  // (bb - 1/3 I) : W
-  double par_ros = (b_avg[0]*b_avg[0] - 1.0/3.0)*w[0] + b_avg[0]*b_avg[1]*w[1] + b_avg[0]*b_avg[2]*w[2] 
-                  + b_avg[1]*b_avg[0]*w[1] + (b_avg[1]*b_avg[1] - 1.0/3.0)*w[3] + b_avg[1]*b_avg[2]*w[4] 
-                  + b_avg[2]*b_avg[0]*w[2] + b_avg[2]*b_avg[1]*w[4] + (b_avg[2]*b_avg[2] - 1.0/3.0)*w[5];
+  // pi_parallel = (bb - 1/3 I) (bb - 1/3 I) : W
+  
+  // parallel rate of strain = (bb - 1/3 I) : W
+  double par_ros = (b_avg[0]*b_avg[0] - 1.0/3.0)*w[0] + 2.0*b_avg[0]*b_avg[1]*w[1] + 2.0*b_avg[0]*b_avg[2]*w[2] 
+                  + (b_avg[1]*b_avg[1] - 1.0/3.0)*w[3] + 2.0*b_avg[1]*b_avg[2]*w[4] 
+                  + (b_avg[2]*b_avg[2] - 1.0/3.0)*w[5];
 
   double pi_par[6];
   pi_par[0] = (b_avg[0]*b_avg[0] - 1.0/3.0)*par_ros;
@@ -125,13 +153,27 @@ calc_pi_1D(double dx, double u_l[3], double u_u[3], double em_tot_l[8], double e
   pi_par[4] = b_avg[1]*b_avg[2]*par_ros;
   pi_par[5] = (b_avg[2]*b_avg[2] - 1.0/3.0)*par_ros;
 
-  // double pi_perp[6];
-  // pi_perp[0] =
-  // pi_perp[1] =
-  // pi_perp[2] =
-  // pi_perp[3] =
-  // pi_perp[4] =
-  // pi_perp[5] =
+  // pi_perp = (I - bb) . W . (I + 3bb) + (I + 3bb) . W . (I - bb)
+  
+  // (b . W . I)_x = b_x W_xx + b_y W_xy + b_z W_xz
+  double bWIx = w[0]*b_avg[0] + w[1]*b_avg[1] + w[2]*b_avg[2];
+  // (b . W . I)_y = b_x W_xy + b_y W_yy + b_z W_yz  
+  double bWIy = w[1]*b_avg[0] + w[3]*b_avg[1] + w[4]*b_avg[2];
+  // (b . W . I)_z = b_x W_xz + b_y W_yz + b_z W_zz
+  double bWIz = w[0]*b_avg[2] + w[4]*b_avg[1] + w[5]*b_avg[2];
+
+  // b . W . b
+  double bWb = b_avg[0]*b_avg[0]*w[0] + 2.0*b_avg[0]*b_avg[1]*w[1] + 2.0*b_avg[0]*b_avg[2]*w[2] 
+              + b_avg[1]*b_avg[1]*w[3] + 2.0*b_avg[1]*b_avg[2]*w[4] 
+              + b_avg[2]*b_avg[2]*w[5];
+  
+  double pi_perp[6];
+  pi_perp[0] = 2.0*(w[0] + 2.0*b_avg[0]*bWIx - 3.0*b_avg[0]*b_avg[0]*bWb);
+  pi_perp[1] = 2.0*w[1] + 2.0*(b_avg[1]*bWIx + b_avg[0]*bWIy) - 6.0*b_avg[0]*b_avg[1]*bWb;
+  pi_perp[2] = 2.0*w[2] + 2.0*(b_avg[2]*bWIx + b_avg[0]*bWIz) - 6.0*b_avg[0]*b_avg[2]*bWb;
+  pi_perp[3] = 2.0*(w[3] + 2.0*b_avg[1]*bWIy - 3.0*b_avg[1]*b_avg[1]*bWb);
+  pi_perp[4] = 2.0*w[4] + 2.0*(b_avg[2]*bWIy + b_avg[1]*bWIz) - 6.0*b_avg[1]*b_avg[2]*bWb;
+  pi_perp[5] = 2.0*(w[5] + 2.0*b_avg[2]*bWIz - 3.0*b_avg[2]*b_avg[2]*bWb);
 }
 
 // Compute the RHS for the Braginskii transport terms in 1D
