@@ -132,9 +132,11 @@ main(int argc, char **argv)
   if (strcmp(app_args.file_name, APP_ARGS_DEFAULT_FILE_NAME) == 0)
     strcpy(app_args.file_name, "twostream.ini");
 
-  printf("Name is %s\n", app_args.file_name);
-  
   rxi_ini_t *inp = rxi_ini_load(app_args.file_name);
+  if (!inp) {
+    fprintf(stderr, "Unable to open input file %s!\n", app_args.file_name);
+    exit(1);
+  }
 
   struct twostream_ctx ctx = create_ctx(inp); // context for init functions
   struct twostream_inp tsinp = create_twostream_inp(inp); // input parameters
