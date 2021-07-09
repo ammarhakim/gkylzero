@@ -249,7 +249,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
 
   double amax = 0.0;
-  if (dir > vlasov->cdim) {
+  if (dir >= vlasov->cdim) {
     long cidx = gkyl_range_idx(&vlasov->conf_range, idxSkin);
     amax = vlasov->accel_boundary_surf[dir-vlasov->cdim]
       (xcSkin, dxSkin, maxsOld, (const double*) gkyl_array_cfetch(vlasov->qmem, cidx),
