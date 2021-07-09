@@ -94,6 +94,19 @@ create_twostream_inp(rxi_ini_t *inp)
   return tsinp;
 }
 
+struct twostream_inp
+create_default_twostream_inp(void)
+{
+  return (struct twostream_inp) {
+    .tend = 40.0,
+    .charge = -1.0,
+    .mass = 1.0,
+    .conf_cells = 64,
+    .vel_cells = 32,
+    .vel_extents = { -6.0, 6.0 },
+  };
+}
+
 struct twostream_ctx
 create_ctx(rxi_ini_t *inp)
 {
@@ -124,6 +137,17 @@ create_ctx(rxi_ini_t *inp)
   return ctx;
 }
 
+struct twostream_ctx
+create_default_ctx(void)
+{
+  return (struct twostream_ctx) {
+    .knumber = 0.5,
+    .vth = 0.2,
+    .vdrift = 1.0,
+    .perturbation = 1.0e-6,
+  };
+}
+
 int
 main(int argc, char **argv)
 {
@@ -132,15 +156,19 @@ main(int argc, char **argv)
   if (strcmp(app_args.file_name, APP_ARGS_DEFAULT_FILE_NAME) == 0)
     strcpy(app_args.file_name, "twostream.ini");
 
+  struct twostream_ctx ctx;
+  struct twostream_inp tsinp;
+  
   rxi_ini_t *inp = rxi_ini_load(app_args.file_name);
-  if (!inp) {
-    fprintf(stderr, "Unable to open input file %s!\n", app_args.file_name);
-    exit(1);
+  if (inp) {
+    ctx = create_ctx(inp); // context for init functions
+    tsinp = create_twostream_inp(inp); // input parameters
+  }
+  else {
+    ctx = create_default_ctx(); // context for init functions
+    tsinp = create_default_twostream_inp(); // input parameters
   }
 
-  struct twostream_ctx ctx = create_ctx(inp); // context for init functions
-  struct twostream_inp tsinp = create_twostream_inp(inp); // input parameters
-  
   // electrons
   struct gkyl_vlasov_species elc = {
     .name = "elc",
@@ -226,7 +254,8 @@ main(int argc, char **argv)
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
 
   // simulation complete, free objects
-  rxi_ini_free(inp);  
+  if (inp)
+    rxi_ini_free(inp);  
   gkyl_vlasov_app_release(app);
 
   printf("\n");
