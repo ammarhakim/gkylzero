@@ -614,7 +614,10 @@ gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
     poly_order+1, 8, app->field.info.init, app->field.info.ctx);
 
+  struct timespec wtm = gkyl_wall_clock();
   gkyl_proj_on_basis_advance(proj, t0, &app->local, app->field.em_host);
+  app->stat.init_field_tm += gkyl_time_diff_now_sec(wtm);
+  
   gkyl_proj_on_basis_release(proj);
  
   if (app->use_gpu)
@@ -633,7 +636,10 @@ gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0)
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->species[sidx].grid, &app->basis,
     poly_order+1, 1, app->species[sidx].info.init, app->species[sidx].info.ctx);
 
+  struct timespec wtm = gkyl_wall_clock();
   gkyl_proj_on_basis_advance(proj, t0, &app->species[sidx].local, app->species[sidx].f_host);
+  app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
+  
   gkyl_proj_on_basis_release(proj);
 
   if (app->use_gpu)
@@ -648,13 +654,17 @@ gkyl_vlasov_app_calc_mom(gkyl_vlasov_app* app)
   for (int i=0; i<app->num_species; ++i) {
     struct vm_species *s = &app->species[i];
     
-    for (int m=0; m<app->species[i].info.num_diag_moments; ++m)
+    for (int m=0; m<app->species[i].info.num_diag_moments; ++m) {
+      struct timespec wst = gkyl_wall_clock();
       if (app->use_gpu)
         gkyl_mom_calc_advance_cu(s->moms[m].mcalc, s->local, app->local,
           s->f, s->moms[m].marr);
       else
         gkyl_mom_calc_advance(s->moms[m].mcalc, s->local, app->local,
           s->f, s->moms[m].marr);
+      app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
+      app->stat.nmom += 1;
+    }
   }
 }
 
