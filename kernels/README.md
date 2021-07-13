@@ -47,3 +47,22 @@ the former denoting the volume update formula for only the streaming term in
 the Vlasov equation in 2x2v, Serendipity basis, polynomial order 2 while the latter 
 contains the surface update formulas for constant diffusion, fourth power (hyperdiffusion),
 in 2D with the Serendipity basis and polynomial order 2.
+
+# Header Naming Convention
+
+Header files have the following naming convention:
+```
+    gkyl_equation_kernels.h
+```
+As an example, all of the C kernels for the Vlasov equation: volume, surface, and boundary
+surface for the different Vlasov equation types (Vlasov-Maxwell, only streaming) are contained in:
+```
+    gkyl_vlasov_kernels.h
+```
+
+Further modifiers should follow the equation but before kernels.h. So the header file containing 
+all of the declarations for the C kernels that contain the update formulas for computing 
+velocity moments can be found in:
+```
+    gkyl_vlasov_mom_kernels.h
+```
