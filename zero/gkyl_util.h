@@ -110,7 +110,7 @@ enum gkyl_cu_memcpy_kind {
 
 // Computes length of string needed given a format specifier and data. Example:
 //
-// size_t len = silo_calc_strlen("%s-%d", "silo", 25);
+// size_t len = gkyl_calc_strlen("%s-%d", "silo", 25);
 // 
 #define gkyl_calc_strlen(fmt, ...) snprintf(0, 0, fmt, __VA_ARGS__)
 
