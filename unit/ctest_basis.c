@@ -2,6 +2,7 @@
 
 #include <acutest.h>
 #include <gkyl_basis.h>
+#include <gkyl_util.h>
 
 void test_ser_1d()
 {
@@ -17,12 +18,12 @@ void test_ser_1d()
 
   z[0] = 0.0; basis1.eval(z, b);
 
-  TEST_CHECK( b[0] == 1/sqrt(2.0) );
+  TEST_CHECK( gkyl_compare(b[0], 1/sqrt(2.0), 1e-15) );
   TEST_CHECK( b[1] == 0.0 );
 
   z[0] = 0.5; basis1.eval(z, b);
   
-  TEST_CHECK( b[0] == 1/sqrt(2.0) );
+  TEST_CHECK( gkyl_compare(b[0], 1/sqrt(2.0), 1e-15) );
   TEST_CHECK( b[1] == sqrt(3.0/2.0)*0.5 );
 }
 
