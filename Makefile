@@ -47,6 +47,9 @@ kernels/maxwell/%.o : kernels/maxwell/%.c
 
 kernels/vlasov/%.o : kernels/vlasov/%.c
 	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
+
+kernels/basis/%.o : kernels/basis/%.c
+	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
 endif
 
 # Make targets: libraries, regression tests and unit tests

@@ -1,6 +1,8 @@
+// Sat Jul 17 14:24:52 2021
+#include <gkyl_basis_ser_kernels.h>
 GKYL_CU_DH
-static void
-flip_sign_1d_p0(int dir, const double *f, double *fout )
+void
+flip_sign_1d_ser_p0(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -8,8 +10,8 @@ flip_sign_1d_p0(int dir, const double *f, double *fout )
 }
 
 GKYL_CU_DH
-static void
-flip_sign_1d_p1(int dir, const double *f, double *fout )
+void
+flip_sign_1d_ser_p1(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -18,8 +20,8 @@ flip_sign_1d_p1(int dir, const double *f, double *fout )
 }
 
 GKYL_CU_DH
-static void
-flip_sign_1d_p2(int dir, const double *f, double *fout )
+void
+flip_sign_1d_ser_p2(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -29,8 +31,8 @@ flip_sign_1d_p2(int dir, const double *f, double *fout )
 }
 
 GKYL_CU_DH
-static void
-flip_sign_1d_p3(int dir, const double *f, double *fout )
+void
+flip_sign_1d_ser_p3(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -41,8 +43,8 @@ flip_sign_1d_p3(int dir, const double *f, double *fout )
 }
 
 GKYL_CU_DH
-static void
-flip_sign_2d_p0(int dir, const double *f, double *fout )
+void
+flip_sign_2d_ser_p0(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -53,8 +55,8 @@ flip_sign_2d_p0(int dir, const double *f, double *fout )
 }
 
 GKYL_CU_DH
-static void
-flip_sign_2d_p1(int dir, const double *f, double *fout )
+void
+flip_sign_2d_ser_p1(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -71,8 +73,8 @@ flip_sign_2d_p1(int dir, const double *f, double *fout )
 }
 
 GKYL_CU_DH
-static void
-flip_sign_2d_p2(int dir, const double *f, double *fout )
+void
+flip_sign_2d_ser_p2(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -97,8 +99,8 @@ flip_sign_2d_p2(int dir, const double *f, double *fout )
 }
 
 GKYL_CU_DH
-static void
-flip_sign_2d_p3(int dir, const double *f, double *fout )
+void
+flip_sign_2d_ser_p3(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -131,8 +133,8 @@ flip_sign_2d_p3(int dir, const double *f, double *fout )
 }
 
 GKYL_CU_DH
-static void
-flip_sign_3d_p0(int dir, const double *f, double *fout )
+void
+flip_sign_3d_ser_p0(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -146,8 +148,8 @@ flip_sign_3d_p0(int dir, const double *f, double *fout )
 }
 
 GKYL_CU_DH
-static void
-flip_sign_3d_p1(int dir, const double *f, double *fout )
+void
+flip_sign_3d_ser_p1(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -182,8 +184,8 @@ flip_sign_3d_p1(int dir, const double *f, double *fout )
 }
 
 GKYL_CU_DH
-static void
-flip_sign_3d_p2(int dir, const double *f, double *fout )
+void
+flip_sign_3d_ser_p2(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -254,8 +256,8 @@ flip_sign_3d_p2(int dir, const double *f, double *fout )
 }
 
 GKYL_CU_DH
-static void
-flip_sign_3d_p3(int dir, const double *f, double *fout )
+void
+flip_sign_3d_ser_p3(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -362,8 +364,8 @@ flip_sign_3d_p3(int dir, const double *f, double *fout )
 }
 
 GKYL_CU_DH
-static void
-flip_sign_4d_p0(int dir, const double *f, double *fout )
+void
+flip_sign_4d_ser_p0(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -380,8 +382,8 @@ flip_sign_4d_p0(int dir, const double *f, double *fout )
 }
 
 GKYL_CU_DH
-static void
-flip_sign_4d_p1(int dir, const double *f, double *fout )
+void
+flip_sign_4d_ser_p1(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -458,8 +460,8 @@ flip_sign_4d_p1(int dir, const double *f, double *fout )
 }
 
 GKYL_CU_DH
-static void
-flip_sign_4d_p2(int dir, const double *f, double *fout )
+void
+flip_sign_4d_ser_p2(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -664,8 +666,8 @@ flip_sign_4d_p2(int dir, const double *f, double *fout )
 }
 
 GKYL_CU_DH
-static void
-flip_sign_4d_p3(int dir, const double *f, double *fout )
+void
+flip_sign_4d_ser_p3(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -998,8 +1000,8 @@ flip_sign_4d_p3(int dir, const double *f, double *fout )
 }
 
 GKYL_CU_DH
-static void
-flip_sign_5d_p0(int dir, const double *f, double *fout )
+void
+flip_sign_5d_ser_p0(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -1019,8 +1021,8 @@ flip_sign_5d_p0(int dir, const double *f, double *fout )
 }
 
 GKYL_CU_DH
-static void
-flip_sign_5d_p1(int dir, const double *f, double *fout )
+void
+flip_sign_5d_ser_p1(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -1195,8 +1197,8 @@ flip_sign_5d_p1(int dir, const double *f, double *fout )
 }
 
 GKYL_CU_DH
-static void
-flip_sign_5d_p2(int dir, const double *f, double *fout )
+void
+flip_sign_5d_ser_p2(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -1771,8 +1773,8 @@ flip_sign_5d_p2(int dir, const double *f, double *fout )
 }
 
 GKYL_CU_DH
-static void
-flip_sign_5d_p3(int dir, const double *f, double *fout )
+void
+flip_sign_5d_ser_p3(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -2747,8 +2749,8 @@ flip_sign_5d_p3(int dir, const double *f, double *fout )
 }
 
 GKYL_CU_DH
-static void
-flip_sign_6d_p0(int dir, const double *f, double *fout )
+void
+flip_sign_6d_ser_p0(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -2771,8 +2773,8 @@ flip_sign_6d_p0(int dir, const double *f, double *fout )
 }
 
 GKYL_CU_DH
-static void
-flip_sign_6d_p1(int dir, const double *f, double *fout )
+void
+flip_sign_6d_ser_p1(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -3173,8 +3175,8 @@ flip_sign_6d_p1(int dir, const double *f, double *fout )
 }
 
 GKYL_CU_DH
-static void
-flip_sign_6d_p2(int dir, const double *f, double *fout )
+void
+flip_sign_6d_ser_p2(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];

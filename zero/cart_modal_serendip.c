@@ -3,17 +3,17 @@
 
 #include <gkyl_basis.h>
 #include <gkyl_util.h>
-#include <cart_modal_serendip_funcs.h>
+#include <gkyl_basis_ser_kernels.h>
 
 // Basis function eval for each dimension: ev_list[ndim].ev[polyOrder]
 static struct { void (*ev[4])(const double *z, double *b); } ev_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
-  { eval_1d_p0, eval_1d_p1, eval_1d_p2, eval_1d_p3 },
-  { eval_2d_p0, eval_2d_p1, eval_2d_p2, eval_2d_p3 },
-  { eval_3d_p0, eval_3d_p1, eval_3d_p2, eval_3d_p3 },
-  { eval_4d_p0, eval_4d_p1, eval_4d_p2, eval_4d_p3 },
-  { eval_5d_p0, eval_5d_p1, eval_5d_p2, NULL },
-  { eval_6d_p0, eval_6d_p1, NULL, NULL },
+  { eval_1d_ser_p0, eval_1d_ser_p1, eval_1d_ser_p2, eval_1d_ser_p3 },
+  { eval_2d_ser_p0, eval_2d_ser_p1, eval_2d_ser_p2, eval_2d_ser_p3 },
+  { eval_3d_ser_p0, eval_3d_ser_p1, eval_3d_ser_p2, eval_3d_ser_p3 },
+  { eval_4d_ser_p0, eval_4d_ser_p1, eval_4d_ser_p2, eval_4d_ser_p3 },
+  { eval_5d_ser_p0, eval_5d_ser_p1, eval_5d_ser_p2, NULL },
+  { eval_6d_ser_p0, eval_6d_ser_p1, NULL, NULL },
 };
 
 // Number of basis functions: numBasis_list[ndim].count[polyOrder]
