@@ -5,8 +5,9 @@
 #
 
 CFLAGS = -O3 -g 
-LDFLAGS = 
-INCLUDES = -Iminus -Izero -Iapps -Iregression -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov
+LDFLAGS =
+KERN_INCLUDES = -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov -Ikernels/bin_op
+INCLUDES = -Iminus -Izero -Iapps -Iregression ${KERN_INCLUDES}
 PREFIX = ${HOME}/gkylsoft
 
 NVCC = 
@@ -98,6 +99,8 @@ build/unit/ctest_hyper_dg: unit/ctest_hyper_dg.o unit/ctest_hyper_dg_cu.o build/
 	${CC} ${LDFLAGS} unit/ctest_hyper_dg.o unit/ctest_hyper_dg_cu.o -o build/unit/ctest_hyper_dg -Lbuild -lgkylzero -lm -lpthread
 
 endif
+
+.PHONY: check clean install
 
 # Run unit tests
 check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
