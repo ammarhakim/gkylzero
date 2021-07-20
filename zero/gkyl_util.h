@@ -121,7 +121,10 @@ enum gkyl_cu_memcpy_kind {
          _break;                                                \
          _break = false, fclose(fp))
 
-// Code 
+// Code
+
+#define GKYL_MIN(x,y) ((x)<(y) ? (x) : (y))
+#define GKYL_MAX(x,y) ((x)>(y) ? (x) : (y))
 
 EXTERN_C_BEG
 
