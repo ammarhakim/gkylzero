@@ -15,6 +15,16 @@ struct gkyl_basis {
  * @param b On output, value of basis at 'z'
  */
   void (*eval)(const double *z, double *b);
+
+/**
+ * Flip-sign function: changes signs of input expansion cofficients by
+ * changing monomial terms in specified direction.
+ *
+ * @param dir Direction to flip sign
+ * @param f Input expansion
+ * @param fout On output, flipped version of @a f
+ */
+  void (*flip_sign)(int dir, const double *f, double *fout);
 };
 
 /**
