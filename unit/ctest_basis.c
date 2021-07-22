@@ -69,26 +69,6 @@ test_ser_2d()
   TEST_CHECK( fin[6] == fout[6] );
   TEST_CHECK( -fin[7] == fout[7] );
 
-  basis.flip_sign(0, fin, fout);
-  TEST_CHECK( fin[0] == fout[0] );
-  TEST_CHECK( -fin[1] == fout[1] );
-  TEST_CHECK( fin[2] == fout[2] );  
-  TEST_CHECK( -fin[3] == fout[3] );
-  TEST_CHECK( fin[4] == fout[4] );
-  TEST_CHECK( fin[5] == fout[5] );
-  TEST_CHECK( fin[6] == fout[6] );
-  TEST_CHECK( -fin[7] == fout[7] );
-
-  basis.flip_sign(0, fin, fout);
-  TEST_CHECK( fin[0] == fout[0] );
-  TEST_CHECK( -fin[1] == fout[1] );
-  TEST_CHECK( fin[2] == fout[2] );  
-  TEST_CHECK( -fin[3] == fout[3] );
-  TEST_CHECK( fin[4] == fout[4] );
-  TEST_CHECK( fin[5] == fout[5] );
-  TEST_CHECK( fin[6] == fout[6] );
-  TEST_CHECK( -fin[7] == fout[7] );
-
   basis.flip_sign(1, fin, fout);
   TEST_CHECK( fin[0] == fout[0] );
   TEST_CHECK( fin[1] == fout[1] );
