@@ -17,7 +17,7 @@ Documentation is available at http://gkeyll.rtfd.io.
 
 # Install
 
-Cloned this repo, then type:
+Clone this repo, then type:
 ```
     make
 ```
@@ -44,8 +44,7 @@ will use several cores while compiling the code, and can be
 potentially faster on most machines.
 
 The unit and regression test executables are written in the
-`build/unit` and `build/regression` directories. Please cd to those
-directories if you want to run individual regression tests.
+`build/unit` and `build/regression` directories.
 
 If you want to use the code as a library you should install it:
 ```
@@ -60,12 +59,11 @@ on the RTFD website linked above.
 # Developing for GkeyllZero
 
 Out goal is to keep GkeyllZero as simple and dependency free as
-possible. Some dependencies are unavoidable like MPI, linear algebra
-and FFT libraries. However, where possible we would like to avoid an
-exponentially increasing dependency chain. Another goal is that
-GkeyllZero itself should be pure modern (C99) C. Some tools used in
-code generation need C++ (CUDA is C++ code) but the core code itself
-will be in C.
+possible. Some dependencies are unavoidable like MPI and linear
+algebra libraries. However, we must avoid an exponentially increasing
+dependency chain. Another goal is that GkeyllZero itself should be
+pure modern (C99) C. Some parts of the code need C++ (nvcc is a C++
+compiler for CUDA) but the core code itself should be in C.
 
 Developing in C (and C++) requires very strong focus and
 discipline. **Please consult** https://en.cppreference.com/w/ for
