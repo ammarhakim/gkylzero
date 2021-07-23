@@ -1,4 +1,5 @@
 cppcheck-err.txt
+install-deps/build-opts.sh
 *~
 *.sw*
 */.nfs*
