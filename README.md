@@ -56,6 +56,28 @@ it to create your own "app" for your particular problem. See that
 various "app_*.c" files for examples. Full documentation is available
 on the RTFD website linked above.
 
+# LAPACK and BLAS
+
+Some parts of GkeyllZero rely on presence of LAPACK and BLAS. Very
+likely highly optimized builds of these libraries are already
+installed on your platform (Framework Accelerator on Mac, MKL on Intel
+machines etc). In this case there is no need to install anything and
+simply set the appropriate flags to the make command to find/use your
+installed BLAS/LAPACK libraries.
+
+However, if you must install these please use the OpenBLAS
+implementation. This is a highly optimized library that is
+well-maintianed and easy to build and install. There are scripts to
+build this already.  From the top-level directory do:
+```
+cd install-deps
+./mkdeps.sh --build-openblas=yes
+```
+
+This will install OpenBLAS in the $HOME/gkylsoft directory. Note that
+OpenBLAS requires you to have gfortran installed. You are responsible
+for installing this on your machine.
+
 # Developing for GkeyllZero
 
 Out goal is to keep GkeyllZero as simple and dependency free as
