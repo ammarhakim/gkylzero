@@ -129,6 +129,14 @@ enum gkyl_cu_memcpy_kind {
 EXTERN_C_BEG
 
 /**
+ * Kernel floating-point op-counts
+ */
+struct gkyl_kern_op_count {
+  size_t num_sum; // number of + and - operations
+  size_t num_prod; // number of * and / operations
+};
+
+/**
  * Time-trigger. Typical initialization is:
  * 
  * struct gkyl_tm_trigger tmt = { .dt = tend/nframe };
