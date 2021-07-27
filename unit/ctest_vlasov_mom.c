@@ -7,18 +7,18 @@
 void
 test_vlasov_mom()
 {
-  int polyOrder = 2;
+  int poly_order = 2;
   struct gkyl_basis cbasis, pbasis;
-  gkyl_cart_modal_serendip(&cbasis, 1, polyOrder); // 1X
-  gkyl_cart_modal_serendip(&pbasis, 4, polyOrder); // 1X3V
+  gkyl_cart_modal_serendip(&cbasis, 1, poly_order); // 1X
+  gkyl_cart_modal_serendip(&pbasis, 4, poly_order); // 1X3V
 
   struct gkyl_mom_type *m2ij = gkyl_vlasov_mom_new(&cbasis, &pbasis, "M2ij");
 
   TEST_CHECK( m2ij->cdim == 1 );
   TEST_CHECK( m2ij->pdim == 4 );
-  TEST_CHECK( m2ij->polyOrder == 2 );
-  TEST_CHECK( m2ij->num_config == cbasis.numBasis );
-  TEST_CHECK( m2ij->num_phase == pbasis.numBasis );
+  TEST_CHECK( m2ij->poly_order == 2 );
+  TEST_CHECK( m2ij->num_config == cbasis.num_basis );
+  TEST_CHECK( m2ij->num_phase == pbasis.num_basis );
   TEST_CHECK( m2ij->num_mom == 6 );
   
   struct gkyl_mom_type *m3ijk = gkyl_vlasov_mom_new(&cbasis, &pbasis, "M3ijk");
@@ -35,10 +35,10 @@ int cu_vlasov_mom_test(const struct gkyl_mom_type *mom);
 void
 test_cu_vlasov_mom()
 {
-  int polyOrder = 2;
+  int poly_order = 2;
   struct gkyl_basis cbasis, pbasis;
-  gkyl_cart_modal_serendip(&cbasis, 1, polyOrder); // 1X
-  gkyl_cart_modal_serendip(&pbasis, 4, polyOrder); // 1X3V
+  gkyl_cart_modal_serendip(&cbasis, 1, poly_order); // 1X
+  gkyl_cart_modal_serendip(&pbasis, 4, poly_order); // 1X3V
 
   struct gkyl_mom_type *m2ij = gkyl_vlasov_mom_cu_dev_new(&cbasis, &pbasis, "M2ij");
 

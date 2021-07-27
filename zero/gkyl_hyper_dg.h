@@ -12,7 +12,7 @@ typedef struct gkyl_hyper_dg gkyl_hyper_dg;
 struct gkyl_hyper_dg {
   struct gkyl_rect_grid grid; // grid object
   int ndim; // number of dimensions
-  int numBasis; // number of basis functions
+  int num_basis; // number of basis functions
   int num_up_dirs; // number of update directions
   int update_dirs[GKYL_MAX_DIM]; // directions to update
   int zero_flux_flags[GKYL_MAX_DIM]; // directions with zero flux

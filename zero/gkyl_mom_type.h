@@ -11,7 +11,7 @@ typedef void (*momf_t)(const double *xc, const double *dx,
 struct gkyl_mom_type {
   int cdim; // config-space dim
   int pdim; // phase-space dim
-  int polyOrder; // polynomal order
+  int poly_order; // polynomal order
   int num_config; // number of basis functions in config-space
   int num_phase; // number of basis functions in phase-space
   int num_mom; // number of components in moment

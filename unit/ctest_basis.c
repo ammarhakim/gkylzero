@@ -11,11 +11,11 @@ test_ser_1d()
   gkyl_cart_modal_serendip(&basis1, 1, 1);
 
   TEST_CHECK( basis1.ndim == 1 );
-  TEST_CHECK( basis1.polyOrder == 1 );
-  TEST_CHECK( basis1.numBasis == 2 );
+  TEST_CHECK( basis1.poly_order == 1 );
+  TEST_CHECK( basis1.num_basis == 2 );
   TEST_CHECK( strcmp(basis1.id, "serendipity") == 0 );
 
-  double z[1], b[basis1.numBasis];
+  double z[1], b[basis1.num_basis];
 
   z[0] = 0.0; basis1.eval(z, b);
 
@@ -35,11 +35,11 @@ test_ser_2d()
   gkyl_cart_modal_serendip(&basis, 2, 2);
 
   TEST_CHECK( basis.ndim == 2 );
-  TEST_CHECK( basis.polyOrder == 2 );
-  TEST_CHECK( basis.numBasis == 8 );
+  TEST_CHECK( basis.poly_order == 2 );
+  TEST_CHECK( basis.num_basis == 8 );
   TEST_CHECK( strcmp(basis.id, "serendipity") == 0 );
 
-  double z[basis.ndim], b[basis.numBasis];
+  double z[basis.ndim], b[basis.num_basis];
 
   z[1] = 0.0; z[2] = 0.0;
   basis.eval(z, b);
@@ -53,8 +53,8 @@ test_ser_2d()
   TEST_CHECK( gkyl_compare(0.0, b[6], 1e-15) );
   TEST_CHECK( gkyl_compare(0.0, b[7], 1e-15) );
 
-  double fin[basis.numBasis], fout[basis.numBasis];
-  for (int i=0; i<basis.numBasis; ++i) {
+  double fin[basis.num_basis], fout[basis.num_basis];
+  for (int i=0; i<basis.num_basis; ++i) {
     fin[i] = 1.0;
     fout[i] = 0.0;
   }

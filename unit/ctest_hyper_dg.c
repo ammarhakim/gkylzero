@@ -80,11 +80,11 @@ test_vlasov_1x2v_p2_(bool use_gpu)
   // initialize arrays
   struct gkyl_array *fin, *rhs, *cflrate, *maxs_by_cell, *qmem;
   struct gkyl_array *fin_h, *qmem_h, *rhs_h;
-  fin = mkarr1(use_gpu, basis.numBasis, phaseRange_ext.volume);
-  rhs = mkarr1(use_gpu, basis.numBasis, phaseRange_ext.volume);
+  fin = mkarr1(use_gpu, basis.num_basis, phaseRange_ext.volume);
+  rhs = mkarr1(use_gpu, basis.num_basis, phaseRange_ext.volume);
   cflrate = mkarr1(use_gpu, 1, phaseRange_ext.volume);
   maxs_by_cell = mkarr1(use_gpu, pdim, phaseRange_ext.volume);
-  qmem = mkarr1(use_gpu, 8*confBasis.numBasis, confRange_ext.volume);
+  qmem = mkarr1(use_gpu, 8*confBasis.num_basis, confRange_ext.volume);
 
   double *cfl_ptr;
   if (use_gpu)
@@ -93,10 +93,10 @@ test_vlasov_1x2v_p2_(bool use_gpu)
     cfl_ptr = gkyl_malloc(sizeof(double));
 
   // set initial condition
-  int nf = phaseRange_ext.volume*basis.numBasis;
+  int nf = phaseRange_ext.volume*basis.num_basis;
   double *fin_d;
   if (use_gpu) {
-    fin_h = mkarr1(false, basis.numBasis, phaseRange_ext.volume);
+    fin_h = mkarr1(false, basis.num_basis, phaseRange_ext.volume);
     fin_d = fin_h->data;
   } else {
     fin_d = fin->data;
@@ -106,10 +106,10 @@ test_vlasov_1x2v_p2_(bool use_gpu)
   }
   if (use_gpu) gkyl_array_copy(fin, fin_h);
 
-  int nem = confRange_ext.volume*confBasis.numBasis;
+  int nem = confRange_ext.volume*confBasis.num_basis;
   double *qmem_d;
   if (use_gpu) {
-    qmem_h = mkarr1(false, 8*confBasis.numBasis, confRange_ext.volume);
+    qmem_h = mkarr1(false, 8*confBasis.num_basis, confRange_ext.volume);
     qmem_d = qmem_h->data;
   } else {
     qmem_d = qmem->data;
@@ -167,7 +167,7 @@ test_vlasov_1x2v_p2_(bool use_gpu)
   int linl = gkyl_range_idx(&phaseRange, idx);
 
   if (use_gpu) {
-    rhs_h = mkarr1(false, basis.numBasis, phaseRange_ext.volume);
+    rhs_h = mkarr1(false, basis.num_basis, phaseRange_ext.volume);
     gkyl_array_copy(rhs_h, rhs);
     rhs = rhs_h;
   }
@@ -307,17 +307,17 @@ test_vlasov_2x3v_p1_(bool use_gpu)
   // initialize arrays
   struct gkyl_array *fin, *rhs, *cflrate, *maxs_by_cell, *qmem;
   struct gkyl_array *fin_h, *qmem_h, *rhs_h;
-  fin = mkarr1(use_gpu, basis.numBasis, phaseRange_ext.volume);
-  rhs = mkarr1(use_gpu, basis.numBasis, phaseRange_ext.volume);
+  fin = mkarr1(use_gpu, basis.num_basis, phaseRange_ext.volume);
+  rhs = mkarr1(use_gpu, basis.num_basis, phaseRange_ext.volume);
   cflrate = mkarr1(use_gpu, 1, phaseRange_ext.volume);
   maxs_by_cell = mkarr1(use_gpu, pdim, phaseRange_ext.volume);
-  qmem = mkarr1(use_gpu, 8*confBasis.numBasis, confRange_ext.volume);
+  qmem = mkarr1(use_gpu, 8*confBasis.num_basis, confRange_ext.volume);
 
   // set initial condition
-  int nf = phaseRange_ext.volume*basis.numBasis;
+  int nf = phaseRange_ext.volume*basis.num_basis;
   double *fin_d;
   if (use_gpu) {
-    fin_h = mkarr1(false, basis.numBasis, phaseRange_ext.volume);
+    fin_h = mkarr1(false, basis.num_basis, phaseRange_ext.volume);
     fin_d = fin_h->data;
   } else {
     fin_d = fin->data;
@@ -327,10 +327,10 @@ test_vlasov_2x3v_p1_(bool use_gpu)
   }
   if (use_gpu) gkyl_array_copy(fin, fin_h);
 
-  int nem = confRange_ext.volume*confBasis.numBasis;
+  int nem = confRange_ext.volume*confBasis.num_basis;
   double *qmem_d;
   if (use_gpu) {
-    qmem_h = mkarr1(false, 8*confBasis.numBasis, confRange_ext.volume);
+    qmem_h = mkarr1(false, 8*confBasis.num_basis, confRange_ext.volume);
     qmem_d = qmem_h->data;
   } else {
     qmem_d = qmem->data;
@@ -379,7 +379,7 @@ test_vlasov_2x3v_p1_(bool use_gpu)
   int linl = gkyl_range_idx(&phaseRange, idx);
 
   if (use_gpu) {
-    rhs_h = mkarr1(false, basis.numBasis, phaseRange_ext.volume);
+    rhs_h = mkarr1(false, basis.num_basis, phaseRange_ext.volume);
     gkyl_array_copy(rhs_h, rhs);
     rhs = rhs_h;
   }

@@ -1,10 +1,10 @@
 #pragma once
 
 /**
- * Basis function object: treat this as a read-only object.
+ * Basis function object
  */
 struct gkyl_basis {
-  unsigned ndim, polyOrder, numBasis;
+  unsigned ndim, poly_order, num_basis;
   char id[64]; // "serendipity", "tensor", "maximal-order"
     
 /**
@@ -32,7 +32,7 @@ struct gkyl_basis {
  *
  * @param basis Basis object to initialize
  * @param ndim Dimension of reference element.
- * @param polyOrder Polynomial order.
+ * @param poly_order Polynomial order.
  * @return Pointer to new basis function.
  */
-void gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim, int polyOrder);
+void gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim, int poly_order);

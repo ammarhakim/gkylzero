@@ -23,3 +23,10 @@ void gkyl_dg_mul_op(struct gkyl_basis basis,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop);
 
+/**
+ * Return FLOP count for multiplication operation.
+ *
+ * @param basis Basis functions used in expansions
+ * @return FLOP count
+ */
+struct gkyl_kern_op_count gkyl_dg_mul_op_count(struct gkyl_basis basis);

@@ -8,7 +8,7 @@
 #include <gkyl_util.h>
 
 // "Choose Kernel" based on cdim and polyorder
-#define CK(lst,cdim,polyOrder) lst[cdim-1].kernels[polyOrder]
+#define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order]
 
 static void
 maxwell_free(const struct gkyl_ref_count *ref)
@@ -25,7 +25,7 @@ gkyl_dg_maxwell_new(const struct gkyl_basis* cbasis,
   struct dg_maxwell *maxwell = gkyl_malloc(sizeof(struct dg_maxwell));
 
   int cdim = cbasis->ndim;
-  int polyOrder = cbasis->polyOrder;
+  int poly_order = cbasis->poly_order;
 
   maxwell->eqn.num_equations = 8;
   maxwell->eqn.vol_term = vol;
@@ -36,14 +36,14 @@ gkyl_dg_maxwell_new(const struct gkyl_basis* cbasis,
   maxwell->maxwell_data.chi = lightSpeed*elcErrorSpeedFactor;
   maxwell->maxwell_data.gamma = lightSpeed*mgnErrorSpeedFactor;
 
-  maxwell->vol =  CK(vol_kernels, cdim, polyOrder);
+  maxwell->vol =  CK(vol_kernels, cdim, poly_order);
   assert(maxwell->vol);
 
-  maxwell->surf[0] = CK(surf_x_kernels, cdim, polyOrder);
+  maxwell->surf[0] = CK(surf_x_kernels, cdim, poly_order);
   if (cdim>1)
-    maxwell->surf[1] = CK(surf_y_kernels, cdim, polyOrder);
+    maxwell->surf[1] = CK(surf_y_kernels, cdim, poly_order);
   if (cdim>2)
-    maxwell->surf[2] = CK(surf_z_kernels, cdim, polyOrder);
+    maxwell->surf[2] = CK(surf_z_kernels, cdim, poly_order);
 
   // ensure non-NULL pointers 
   for (int i=0; i<cdim; ++i) assert(maxwell->surf[i]);

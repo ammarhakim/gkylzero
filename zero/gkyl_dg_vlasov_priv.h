@@ -185,7 +185,7 @@ static struct { vlasov_accel_boundary_surf_t kernels[3]; } accel_boundary_surf_v
 };
 
 // "Choose Kernel" based on cdim, vdim and polyorder
-#define CK(lst,cdim,vd,polyOrder) lst[cv_index[cdim].vdim[vd]].kernels[polyOrder]
+#define CK(lst,cdim,vd,poly_order) lst[cv_index[cdim].vdim[vd]].kernels[poly_order]
 
 struct dg_vlasov {
   struct gkyl_dg_eqn eqn; // Base object

@@ -10,8 +10,8 @@ gkyl_dg_mul_op(struct gkyl_basis basis,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop)
 {
-  mul_op_t mul_op = choose_ser_mul_kern(basis.ndim, basis.polyOrder);
-  int num_basis = basis.numBasis;
+  mul_op_t mul_op = choose_ser_mul_kern(basis.ndim, basis.poly_order);
+  int num_basis = basis.num_basis;
 
   assert( (out->size == lop->size) && (out->size == rop->size) );
 
@@ -21,6 +21,13 @@ gkyl_dg_mul_op(struct gkyl_basis basis,
     const double *rop_d = gkyl_array_cfetch(rop, i);
     double *out_d = gkyl_array_fetch(out, i);
 
-    mul_op(lop_d, rop_d, out_d);
+    mul_op(lop_d+c_lop*num_basis, rop_d+c_rop*num_basis, out_d+c_oop*num_basis);
   }
+}
+
+struct gkyl_kern_op_count
+gkyl_dg_mul_op_count(struct gkyl_basis basis)
+{
+  mul_op_count_t mul_op = choose_ser_mul_op_count_kern(basis.ndim, basis.poly_order);
+  return mul_op();
 }
