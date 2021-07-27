@@ -109,6 +109,7 @@ check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_array_reduce
 	./build/unit/ctest_basis
 	./build/unit/ctest_block_topo
+	./build/unit/ctest_dg_bin_ops
 	./build/unit/ctest_dg_maxwell
 	./build/unit/ctest_dg_vlasov
 	./build/unit/ctest_fv_proj

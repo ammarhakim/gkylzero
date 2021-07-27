@@ -15,6 +15,7 @@ extern "C" {
 #include <gkyl_basis.h>
 #include <gkyl_block_topo.h>
 #include <gkyl_const.h>
+#include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_vlasov.h>
@@ -24,7 +25,6 @@ extern "C" {
 #include <gkyl_hyper_dg.h>
 #include <gkyl_kep_scheme.h>
 #include <gkyl_mat.h>
-#include <gkyl_maxwell_kernels.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_type.h>
 #include <gkyl_moment.h>
@@ -43,15 +43,13 @@ extern "C" {
 #include <gkyl_util.h>
 #include <gkyl_vargm.h>
 #include <gkyl_vlasov.h>
-#include <gkyl_vlasov_kernels.h>
 #include <gkyl_vlasov_mom.h>
-#include <gkyl_vlasov_mom_kernels.h>
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_iso_euler.h>
 #include <gkyl_wv_maxwell.h>
-#include <gkyl_wv_ten_moment.h>    
+#include <gkyl_wv_ten_moment.h>
 
 #ifdef __cplusplus
 }
