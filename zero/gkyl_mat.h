@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdbool.h>
+
 /** Flags for indicating (conjugate) transpose */
 enum gkyl_mat_trans { GKYL_NO_TRANS, GKYL_TRANS, GKYL_CONJ_TRANS };
 
@@ -92,6 +94,27 @@ void gkyl_mat_show(const char *name, FILE *fp, const struct gkyl_mat *mat);
 struct gkyl_mat* gkyl_mat_mm(double alpha, double beta,
   enum gkyl_mat_trans transa, const struct gkyl_mat *A,
   enum gkyl_mat_trans transb, const struct gkyl_mat *B, struct gkyl_mat *C);
+
+/**
+ * Solve system of linear equations using LU decomposition. On input
+ * the RHS must be in the "x" matrix (each column represents a RHS
+ * vector) and on output "x" is replaced with the solution(s). Returns
+ * true on success, false otherwise. Note that on output A is replaced
+ * by its LU factors.
+ *
+ * The ipiv input is an chunk of memory that is sizeof(lapack_int[N]),
+ * where N is the number of equations. It is safest to assume
+ * lapack_int is long (it may be smaller). You must
+ * allocate/deallocate ipiv yourself! Use something like:
+ *
+ * ipiv = gkyl_malloc(sizeof(long[N]));
+ * gkyl_mat_linsolve_lu(...);
+ * gkyl_free(ipiv);
+ *
+ * The reason for passing ipiv to this function is that it avoids
+ * allocations inside this function.
+ */
+bool gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, void *ipiv);
 
 /**
  * Release matrix

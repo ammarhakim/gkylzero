@@ -1,4 +1,5 @@
 #include <acutest.h>
+#include <gkyl_alloc.h>
 #include <gkyl_mat.h>
 
 void
@@ -109,8 +110,50 @@ test_mat_mm_op()
   gkyl_mat_release(D);
 }
 
+void
+test_mat_linsolve()
+{
+  struct gkyl_mat *A = gkyl_mat_new(3, 3, 0.0);
+  struct gkyl_mat *x = gkyl_mat_new(3, 1, 0.0);
+
+  double val = 1.0;
+
+  // A : matrix( [1,2,3], [4,5,6], [7,8,10] );
+  for (int i=0; i<A->nr; ++i)  
+    for (int j=0; j<A->nc; ++j) {
+      gkyl_mat_set(A,i,j,val);
+      val += 1.0;
+    }
+  gkyl_mat_set(A,2,2,10.0); // ensures determinant is not zero
+
+  //gkyl_mat_show("A", stdout, A);
+
+  // x = matrix( [1, 1, 1] );
+  gkyl_mat_clear(x, 1.0);
+
+  // memory for pivot vector
+  void *ipiv = gkyl_malloc(sizeof(long[A->nr]));
+
+  // solve linear system: sol : matrix( [-1, 1, 0] )
+  bool status = gkyl_mat_linsolve_lu(A, x, ipiv);
+
+  TEST_CHECK( status );
+
+  //gkyl_mat_show("A", stdout, A);
+  //gkyl_mat_show("x", stdout, x);
+
+  TEST_CHECK( gkyl_compare(gkyl_mat_get(x,0,0), -1.0, 1e-15) );
+  TEST_CHECK( gkyl_compare( gkyl_mat_get(x,1,0), 1.0, 1e-15) );
+  TEST_CHECK( gkyl_compare( gkyl_mat_get(x,2,0), 0.0, 1e-15) );
+  
+  gkyl_mat_release(A);
+  gkyl_mat_release(x);
+  gkyl_free(ipiv);
+}
+
 TEST_LIST = {
   { "mat_base", test_mat_base },
   { "mat_mm_op", test_mat_mm_op },
+  { "mat_linsolve", test_mat_linsolve },
   { NULL, NULL },
 };
