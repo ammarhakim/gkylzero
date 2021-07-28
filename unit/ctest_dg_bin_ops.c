@@ -7,7 +7,7 @@
 #include <gkyl_range.h>
 
 void
-test_mul_1()
+test_mul_1d_p2_ss()
 {
   struct gkyl_range range;
   gkyl_range_init(&range, 1, (const int[]) { 0 }, (const int[]) { 10 });
@@ -43,13 +43,46 @@ test_mul_1()
       TEST_CHECK( gkyl_compare( 0.0, d[k], 1e-15) );
   }
 
+  gkyl_array_clear(fg, 0.0); // reset
+
+  // create subrange
+  struct gkyl_range sub_range;
+  gkyl_sub_range_init(&sub_range, &range, (const int[]) { 3 }, (const int[]) { 8 } );
+
+  gkyl_dg_mul_op_range(basis, 0, fg, 0, f, 0, g, sub_range);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &sub_range);
+
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&sub_range, iter.idx);
+
+    const double *d = gkyl_array_cfetch(fg, loc);
+    TEST_CHECK( gkyl_compare( 0.5*1.5/sqrt(2.0), d[0], 1e-15) );
+
+    for (int k=1; k<basis.num_basis; ++k)
+      TEST_CHECK( gkyl_compare( 0.0, d[k], 1e-15) );
+  }
+
+  // ensure values not in range were not touched
+  gkyl_range_iter_init(&iter, &range);
+
+  long count = 0;
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&sub_range, iter.idx);
+    const double *d = gkyl_array_cfetch(fg, loc);
+    if (d[0] == 0.0) count += 1;
+  }
+
+  TEST_CHECK( count == range.volume-sub_range.volume );
+
   gkyl_array_release(f);
   gkyl_array_release(g);
   gkyl_array_release(fg);
 }
 
 void
-test_mul_2()
+test_mul_1d_p2_sv()
 {
   struct gkyl_range range;
   gkyl_range_init(&range, 1, (const int[]) { 0 }, (const int[]) { 10 });
@@ -101,7 +134,7 @@ test_mul_2()
 }
 
 TEST_LIST = {
-  { "mul_1", test_mul_1 },
-  { "mul_2", test_mul_2 },
+  { "mul_1d_p2_ss", test_mul_1d_p2_ss },
+  { "mul_1d_p2_sv", test_mul_1d_p2_sv },
   { NULL, NULL },
 };
