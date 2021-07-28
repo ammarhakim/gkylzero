@@ -54,7 +54,63 @@ test_mat_base()
   gkyl_mat_release(m2);
 }
 
+void
+test_mat_mm_op()
+{
+  struct gkyl_mat *A = gkyl_mat_new(2, 3, 0.0);
+  struct gkyl_mat *B = gkyl_mat_new(3, 2, 0.0);
+  struct gkyl_mat *C = gkyl_mat_new(2, 2, 0.0);
+  struct gkyl_mat *D = gkyl_mat_new(3, 3, 0.0);
+
+  double val = 1.0;
+
+  // A : matrix( [1,2,3], [4,5,6] );
+  for (int i=0; i<A->nr; ++i)  
+    for (int j=0; j<A->nc; ++j) {
+      gkyl_mat_set(A,i,j,val);
+      val += 1.0;
+    }
+
+  // B : matrix( [7,8], [9,10], [11,12] );
+  for (int i=0; i<B->nr; ++i)  
+    for (int j=0; j<B->nc; ++j) {
+      gkyl_mat_set(B,i,j,val);
+      val += 1.0;
+    }
+
+  // C = 0.5*A*B + 0.0*C
+  gkyl_mat_mm(0.5, 0.0, GKYL_NO_TRANS, A, GKYL_NO_TRANS, B, C);
+
+  // C : matrix( [29.0, 32.0], [69.5, 77.0] )
+  TEST_CHECK( gkyl_mat_get(C, 0, 0) == 29.0 );
+  TEST_CHECK( gkyl_mat_get(C, 0, 1) == 32.0 );
+  TEST_CHECK( gkyl_mat_get(C, 1, 0) == 69.5 );
+  TEST_CHECK( gkyl_mat_get(C, 1, 1) == 77.0 );
+
+  // D = 0.5*A'*B'
+  gkyl_mat_mm(0.5, 0.0, GKYL_TRANS, A, GKYL_TRANS, B, D);
+
+  // D : matrix( [ 19.5  24.5  29.5 ], [ 27.0  34.0  41.0 ], [ 34.5  43.5  52.5 ] )
+  TEST_CHECK( gkyl_mat_get(D, 0, 0) == 19.5 );
+  TEST_CHECK( gkyl_mat_get(D, 0, 1) == 24.5 );
+  TEST_CHECK( gkyl_mat_get(D, 0, 2) == 29.5 );
+
+  TEST_CHECK( gkyl_mat_get(D, 1, 0) == 27.0 );
+  TEST_CHECK( gkyl_mat_get(D, 1, 1) == 34.0 );
+  TEST_CHECK( gkyl_mat_get(D, 1, 2) == 41.0 );
+
+  TEST_CHECK( gkyl_mat_get(D, 2, 0) == 34.5 );
+  TEST_CHECK( gkyl_mat_get(D, 2, 1) == 43.5 );
+  TEST_CHECK( gkyl_mat_get(D, 2, 2) == 52.5 );
+  
+  gkyl_mat_release(A);
+  gkyl_mat_release(B);
+  gkyl_mat_release(C);
+  gkyl_mat_release(D);
+}
+
 TEST_LIST = {
   { "mat_base", test_mat_base },
+  { "mat_mm_op", test_mat_mm_op },
   { NULL, NULL },
 };

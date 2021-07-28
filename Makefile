@@ -7,8 +7,15 @@
 CFLAGS = -O3 -g -ffast-math -march=native
 LDFLAGS =
 KERN_INCLUDES = -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov -Ikernels/bin_op
-INCLUDES = -Iminus -Izero -Iapps -Iregression ${KERN_INCLUDES}
+
+# Install prefix
 PREFIX = ${HOME}/gkylsoft
+
+# Lapack include and libraries: we prefer linking to static library
+LAPACK_INC = ${HOME}/gkylsoft/OpenBLAS/include
+LAPACK_LIB = ${HOME}/gkylsoft/OpenBLAS/lib/libopenblas.a
+
+INCLUDES = -Iminus -Izero -Iapps -Iregression ${KERN_INCLUDES} -I${LAPACK_INC}
 
 NVCC = 
 USING_NVCC =
@@ -67,11 +74,11 @@ build/regression/twostream.ini: regression/twostream.ini
 	cp regression/twostream.ini build/regression/twostream.ini
 
 build/regression/%: regression/%.c build/libgkylzero.a regression/app_arg_parse.h
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero -lm -lpthread 
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero -lm -lpthread ${LAPACK_LIB}
 
 # Unit tests
 build/unit/%: unit/%.c build/libgkylzero.a
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero -lm -lpthread
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero -lm -lpthread ${LAPACK_LIB}
 
 
 ifdef USING_NVCC
