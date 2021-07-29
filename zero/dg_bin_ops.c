@@ -14,8 +14,6 @@ gkyl_dg_mul_op(struct gkyl_basis basis,
   mul_op_t mul_op = choose_ser_mul_kern(basis.ndim, basis.poly_order);
   int num_basis = basis.num_basis;
 
-  assert( (out->size == lop->size) && (out->size == rop->size) );
-
   for (size_t i=0; i<out->size; ++i) {
     
     const double *lop_d = gkyl_array_cfetch(lop, i);
@@ -33,8 +31,6 @@ void gkyl_dg_mul_op_range(struct gkyl_basis basis,
 {
   mul_op_t mul_op = choose_ser_mul_kern(basis.ndim, basis.poly_order);
   int num_basis = basis.num_basis;
-
-  assert( (out->size == lop->size) && (out->size == rop->size) );  
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -67,8 +63,6 @@ gkyl_dg_div_op(struct gkyl_basis basis,
   div_op_t div_op = choose_ser_div_kern(basis.ndim, basis.poly_order);
   int num_basis = basis.num_basis;
 
-  assert( (out->size == lop->size) && (out->size == rop->size) );
-
   // allocate memory for use in kernels
   size_t N = basis.num_basis;
   struct gkyl_mat *A = gkyl_mat_new(N, N, 0.0);
@@ -94,8 +88,6 @@ void gkyl_dg_div_op_range(struct gkyl_basis basis,
 {
   div_op_t div_op = choose_ser_div_kern(basis.ndim, basis.poly_order);
   int num_basis = basis.num_basis;
-
-  assert( (out->size == lop->size) && (out->size == rop->size) );
 
   // allocate memory for use in kernels
   size_t N = basis.num_basis;
