@@ -64,9 +64,8 @@ gkyl_dg_div_op(struct gkyl_basis basis,
   int num_basis = basis.num_basis;
 
   // allocate memory for use in kernels
-  size_t N = basis.num_basis;
-  struct gkyl_mat *A = gkyl_mat_new(N, N, 0.0);
-  struct gkyl_mat *x = gkyl_mat_new(N, 1, 0.0);
+  struct gkyl_mat *A = gkyl_mat_new(num_basis, num_basis, 0.0);
+  struct gkyl_mat *x = gkyl_mat_new(num_basis, 1, 0.0);
 
   for (size_t i=0; i<out->size; ++i) {
     
@@ -90,9 +89,8 @@ void gkyl_dg_div_op_range(struct gkyl_basis basis,
   int num_basis = basis.num_basis;
 
   // allocate memory for use in kernels
-  size_t N = basis.num_basis;
-  struct gkyl_mat *A = gkyl_mat_new(N, N, 0.0);
-  struct gkyl_mat *x = gkyl_mat_new(N, 1, 0.0);  
+  struct gkyl_mat *A = gkyl_mat_new(num_basis, num_basis, 0.0);
+  struct gkyl_mat *x = gkyl_mat_new(num_basis, 1, 0.0);  
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
