@@ -143,8 +143,8 @@ test_mat_linsolve()
   //gkyl_mat_show("x", stdout, x);
 
   TEST_CHECK( gkyl_compare(gkyl_mat_get(x,0,0), -1.0, 1e-15) );
-  TEST_CHECK( gkyl_compare( gkyl_mat_get(x,1,0), 1.0, 1e-15) );
-  TEST_CHECK( gkyl_compare( gkyl_mat_get(x,2,0), 0.0, 1e-15) );
+  TEST_CHECK( gkyl_compare(gkyl_mat_get(x,1,0), 1.0, 1e-15) );
+  TEST_CHECK( gkyl_compare(gkyl_mat_get(x,2,0), 0.0, 1e-15) );
   
   gkyl_mat_release(A);
   gkyl_mat_release(x);

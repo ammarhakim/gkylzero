@@ -7,6 +7,10 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_util.h>
 
+void test_dummy()
+{
+}
+
 // CUDA specific tests
 #ifdef GKYL_HAVE_CUDA
 
@@ -156,6 +160,7 @@ void test_cu_array_reduce_range_2d_max()
 #endif
 
 TEST_LIST = {
+  { "dummy", test_dummy },
 #ifdef GKYL_HAVE_CUDA
   { "cu_array_reduce_max", test_cu_array_reduce_max },
   { "cu_array_reduce_range_1d_max", test_cu_array_reduce_range_1d_max },
