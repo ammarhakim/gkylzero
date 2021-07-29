@@ -132,7 +132,7 @@ test_mat_linsolve()
   gkyl_mat_clear(x, 1.0);
 
   // memory for pivot vector
-  void *ipiv = gkyl_malloc(sizeof(long[A->nr]));
+  struct gkyl_mem_chunk *ipiv = gkyl_mem_chunk_new(sizeof(long[3]));
 
   // solve linear system: sol : matrix( [-1, 1, 0] )
   bool status = gkyl_mat_linsolve_lu(A, x, ipiv);
@@ -148,7 +148,7 @@ test_mat_linsolve()
   
   gkyl_mat_release(A);
   gkyl_mat_release(x);
-  gkyl_free(ipiv);
+  gkyl_mem_chunk_release(ipiv);
 }
 
 TEST_LIST = {

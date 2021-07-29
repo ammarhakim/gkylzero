@@ -117,10 +117,13 @@ gkyl_mat_mm(double alpha, double beta,
 }
 
 bool
-gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, void *ipiv)
+gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, struct gkyl_mem_chunk *ipiv)
 {
   assert( A->nr == A->nc );
-  int info = LAPACKE_dgesv(LAPACK_COL_MAJOR, A->nr, x->nc, A->data, A->nr, ipiv, x->data, A->nr);
+  assert( ipiv->count >= sizeof(lapack_int[A->nr]) );
+  
+  int info = LAPACKE_dgesv(LAPACK_COL_MAJOR,
+    A->nr, x->nc, A->data, A->nr, ipiv->data, x->data, A->nr);
   return info == 0 ? true : false;
 }
 

@@ -82,6 +82,20 @@ gkyl_aligned_free(void* ptr)
   gkyl_free((uint8_t *)ptr - offset);
 }
 
+struct gkyl_mem_chunk*
+gkyl_mem_chunk_new(size_t count)
+{
+  struct gkyl_mem_chunk *mem = gkyl_malloc(sizeof(struct gkyl_mem_chunk) + sizeof(char[count]));
+  mem->count = count;
+  return mem;
+}
+
+void
+gkyl_mem_chunk_release(struct gkyl_mem_chunk *mem)
+{
+  gkyl_free(mem);
+}
+
 // CUDA specific code
 
 #ifdef GKYL_HAVE_CUDA

@@ -105,16 +105,16 @@ struct gkyl_mat* gkyl_mat_mm(double alpha, double beta,
  * The ipiv input is an chunk of memory that is sizeof(lapack_int[N]),
  * where N is the number of equations. It is safest to assume
  * lapack_int is long (it may be smaller). You must
- * allocate/deallocate ipiv yourself! Use something like:
+ * allocate/deallocate ipiv yourself! Use:
  *
- * ipiv = gkyl_malloc(sizeof(long[N]));
+ * ipiv = gkyl_mem_chunk_new(sizeof(long[N]));
  * gkyl_mat_linsolve_lu(...);
- * gkyl_free(ipiv);
+ * gkyl_mem_chunck_release(ipiv);
  *
  * The reason for passing ipiv to this function is that it avoids
  * allocations inside this function.
  */
-bool gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, void *ipiv);
+bool gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, struct gkyl_mem_chunk *ipiv);
 
 /**
  * Release matrix
