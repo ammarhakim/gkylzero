@@ -135,7 +135,7 @@ test_mat_linsolve()
   gkyl_mem_buff ipiv = gkyl_mem_buff_new(sizeof(long[3]));
 
   // solve linear system: sol : matrix( [-1, 1, 0] )
-  bool status = gkyl_mat_linsolve_lu(A, x, ipiv);
+  bool status = gkyl_mat_linsolve_lu(A, x, gkyl_mem_buff_data(ipiv));
 
   TEST_CHECK( status );
 

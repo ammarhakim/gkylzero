@@ -108,13 +108,13 @@ struct gkyl_mat* gkyl_mat_mm(double alpha, double beta,
  * allocate/deallocate ipiv yourself! Use:
  *
  * ipiv = gkyl_mem_chunk_new(sizeof(long[N]));
- * gkyl_mat_linsolve_lu(...);
+ * gkyl_mat_linsolve_lu(A, x, gkyl_mem_buff_data(ipiv));
  * gkyl_mem_chunck_release(ipiv);
  *
  * The reason for passing ipiv to this function is that it avoids
  * allocations inside this function.
  */
-bool gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, gkyl_mem_buff ipiv);
+bool gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, void* ipiv);
 
 /**
  * Release matrix
