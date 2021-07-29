@@ -5,12 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// Represents a sized chunk of memory
-struct gkyl_mem_chunk {
-  size_t count; // size of memory in bytes
-  char data[]; // Allocated memory
-};
-
 // The following allocators have the same calling/return behavior as
 // standard C allocators. However, an error is signaled if allocation
 // fails.
@@ -50,21 +44,20 @@ void *gkyl_aligned_realloc(void *ptr, size_t align, size_t old_sz, size_t new_sz
  */
 void gkyl_aligned_free(void *ptr);
 
-/**
- * Allocated a new chunk of count bytes of memory. Free using
- * gkyl_mem_chunk_release().
- *
- * @param count Bytes to allocte
- * @return Pointer to newly allocated chunk
- */
-struct gkyl_mem_chunk* gkyl_mem_chunk_new(size_t count);
+// Represents a sized chunk of memory
+typedef struct gkyl_mem_buff_tag* gkyl_mem_buff;
 
-/**
- * Release memory chunk
- *
- * @param mem Memory chunk to release
- */
-void gkyl_mem_chunk_release(struct gkyl_mem_chunk *mem);
+/** Allocate new memory buffer with count bytes */
+gkyl_mem_buff gkyl_mem_buff_new(size_t count);
+
+/** Get size of mem_buff */
+size_t gkyl_mem_buff_size(gkyl_mem_buff mem);
+
+/** Get pointer to data buffer */
+char* gkyl_mem_buff_data(gkyl_mem_buff mem);
+
+/** Free buffer */
+void gkyl_mem_buff_release(gkyl_mem_buff mem);
 
 // CUDA specific code (NV: Nvidia)
 

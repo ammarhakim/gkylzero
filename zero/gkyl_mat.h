@@ -114,7 +114,7 @@ struct gkyl_mat* gkyl_mat_mm(double alpha, double beta,
  * The reason for passing ipiv to this function is that it avoids
  * allocations inside this function.
  */
-bool gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, struct gkyl_mem_chunk *ipiv);
+bool gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, gkyl_mem_buff ipiv);
 
 /**
  * Release matrix
