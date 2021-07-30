@@ -34,14 +34,14 @@ void binop_div_2d_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double 
     lhs[5] = 0.0; 
     lhs[6] = 0.0; 
     lhs[7] = 0.0; 
-    gkyl_mat_set(rhs,1,0,f[0]); 
+    gkyl_mat_set(rhs,0,0,f[0]); 
+    gkyl_mat_set(rhs,1,0,0.0); 
     gkyl_mat_set(rhs,2,0,0.0); 
     gkyl_mat_set(rhs,3,0,0.0); 
     gkyl_mat_set(rhs,4,0,0.0); 
     gkyl_mat_set(rhs,5,0,0.0); 
     gkyl_mat_set(rhs,6,0,0.0); 
     gkyl_mat_set(rhs,7,0,0.0); 
-    gkyl_mat_set(rhs,8,0,0.0); 
   } else { 
     lhs[0] = g[0]; 
     lhs[1] = g[1]; 
@@ -51,14 +51,14 @@ void binop_div_2d_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double 
     lhs[5] = g[5]; 
     lhs[6] = g[6]; 
     lhs[7] = g[7]; 
-    gkyl_mat_set(rhs,1,0,f[0]); 
-    gkyl_mat_set(rhs,2,0,f[1]); 
-    gkyl_mat_set(rhs,3,0,f[2]); 
-    gkyl_mat_set(rhs,4,0,f[3]); 
-    gkyl_mat_set(rhs,5,0,f[4]); 
-    gkyl_mat_set(rhs,6,0,f[5]); 
-    gkyl_mat_set(rhs,7,0,f[6]); 
-    gkyl_mat_set(rhs,8,0,f[7]); 
+    gkyl_mat_set(rhs,0,0,f[0]); 
+    gkyl_mat_set(rhs,1,0,f[1]); 
+    gkyl_mat_set(rhs,2,0,f[2]); 
+    gkyl_mat_set(rhs,3,0,f[3]); 
+    gkyl_mat_set(rhs,4,0,f[4]); 
+    gkyl_mat_set(rhs,5,0,f[5]); 
+    gkyl_mat_set(rhs,6,0,f[6]); 
+    gkyl_mat_set(rhs,7,0,f[7]); 
   } 
  
   // Fill LHS matrix. 

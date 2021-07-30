@@ -22,13 +22,13 @@ void binop_div_1d_ser_p1(struct gkyl_mat *A, struct gkyl_mat *rhs, const double 
   if (avgg) { 
     lhs[0] = g[0]; 
     lhs[1] = 0.0; 
-    gkyl_mat_set(rhs,1,0,f[0]); 
-    gkyl_mat_set(rhs,2,0,0.0); 
+    gkyl_mat_set(rhs,0,0,f[0]); 
+    gkyl_mat_set(rhs,1,0,0.0); 
   } else { 
     lhs[0] = g[0]; 
     lhs[1] = g[1]; 
-    gkyl_mat_set(rhs,1,0,f[0]); 
-    gkyl_mat_set(rhs,2,0,f[1]); 
+    gkyl_mat_set(rhs,0,0,f[0]); 
+    gkyl_mat_set(rhs,1,0,f[1]); 
   } 
  
   // Fill LHS matrix. 
