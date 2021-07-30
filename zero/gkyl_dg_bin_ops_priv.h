@@ -33,9 +33,9 @@ static struct { mul_op_count_t mul[4]; } ser_mul_op_count_list[] = {
 GKYL_CU_D
 static struct { div_op_t div[4]; } ser_div_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
-  { NULL, binop_div_1d_ser_p1, binop_div_1d_ser_p2, binop_div_1d_ser_p3 },
-  { NULL, binop_div_2d_ser_p1, binop_div_2d_ser_p2, binop_div_2d_ser_p3 },
-  { NULL, binop_div_3d_ser_p1, binop_div_3d_ser_p2, binop_div_3d_ser_p3 }
+  { binop_div_1d_ser_p0, binop_div_1d_ser_p1, binop_div_1d_ser_p2, binop_div_1d_ser_p3 },
+  { binop_div_2d_ser_p0, binop_div_2d_ser_p1, binop_div_2d_ser_p2, binop_div_2d_ser_p3 },
+  { binop_div_3d_ser_p0, binop_div_3d_ser_p1, binop_div_3d_ser_p2, binop_div_3d_ser_p3 } 
 };
 
 static mul_op_t
