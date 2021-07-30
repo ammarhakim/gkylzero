@@ -166,15 +166,15 @@ test_div_1d_p2_ss()
   gkyl_array_clear(h, 0.5);
 
   // h = fg/g = f
-  gkyl_dg_div_op(basis, 0, fg, 0, g, 0, h);
+  gkyl_dg_div_op(basis, 0, h, 0, fg, 0, g);
 
   for (size_t i=0; i<range.volume; ++i) {
     const double *f_d = gkyl_array_cfetch(f, i);
     const double *h_d = gkyl_array_cfetch(h, i);
 
     for (int k=0; k<basis.num_basis; ++k) {
-      //printf("%lg %lg\n", f_d[k], h_d[k]);
-      //TEST_CHECK( gkyl_compare(f_d[k], h_d[k], 1e-15) );
+      //printf("f[%d] = %lg; h[%d] = %lg\n", k, f_d[k], k, h_d[k]);
+      TEST_CHECK( gkyl_compare(f_d[k], h_d[k], 1e-15) );
     }
   }  
 
