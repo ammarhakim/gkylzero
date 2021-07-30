@@ -3,8 +3,10 @@
  
 void binop_div_1d_ser_p1(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *f, const double *g, double *fdivg) 
 { 
-  // g:       denominator field (must be a scalar). 
+  // A:       preallocated LHS matrix. 
+  // rhs:     preallocated RHS vector. 
   // f:       numerator field (must be a scalar). 
+  // g:       denominator field (must be a scalar). 
   // fdivg:   output field. 
  
   // If a corner value is below zero, use cell average g.
