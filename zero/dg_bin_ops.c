@@ -73,6 +73,7 @@ gkyl_dg_div_op(struct gkyl_basis basis,
     const double *rop_d = gkyl_array_cfetch(rop, i);
     double *out_d = gkyl_array_fetch(out, i);
 
+    gkyl_mat_clear(A, 0.0); gkyl_mat_clear(x, 0.0);
     div_op(A, x, lop_d+c_lop*num_basis, rop_d+c_rop*num_basis, out_d+c_oop*num_basis);
   }
 
@@ -102,6 +103,7 @@ void gkyl_dg_div_op_range(struct gkyl_basis basis,
     const double *rop_d = gkyl_array_cfetch(rop, loc);
     double *out_d = gkyl_array_fetch(out, loc);
 
+    gkyl_mat_clear(A, 0.0); gkyl_mat_clear(x, 0.0);    
     div_op(A, x, lop_d+c_lop*num_basis, rop_d+c_rop*num_basis, out_d+c_oop*num_basis);
   }
 

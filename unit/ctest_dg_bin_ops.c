@@ -133,8 +133,60 @@ test_mul_1d_p2_sv()
   gkyl_array_release(fg);
 }
 
+void
+test_div_1d_p2_ss()
+{
+  struct gkyl_range range;
+  gkyl_range_init(&range, 1, (const int[]) { 0 }, (const int[]) { 10 });
+
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, range.ndim, 2);
+  
+  struct gkyl_array *f = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
+  gkyl_array_clear(f, 0.0);
+  for (size_t i=0; i<range.volume; ++i) {
+    double *d = gkyl_array_fetch(f, i);
+    d[0] = 1.5;
+  }  
+
+  struct gkyl_array *g = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
+  gkyl_array_clear(g, 0.0);
+  for (size_t i=0; i<range.volume; ++i) {
+    double *d = gkyl_array_fetch(g, i);
+    d[0] = 0.5;
+  }
+
+  struct gkyl_array *fg = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
+  gkyl_array_clear(fg, 0.0);
+
+  // fg = f*g
+  gkyl_dg_mul_op(basis, 0, fg, 0, f, 0, g);
+
+  struct gkyl_array *h = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
+  gkyl_array_clear(h, 0.5);
+
+  // h = fg/g = f
+  gkyl_dg_div_op(basis, 0, fg, 0, g, 0, h);
+
+  for (size_t i=0; i<range.volume; ++i) {
+    const double *f_d = gkyl_array_cfetch(f, i);
+    const double *h_d = gkyl_array_cfetch(h, i);
+
+    for (int k=0; k<basis.num_basis; ++k) {
+      //printf("%lg %lg\n", f_d[k], h_d[k]);
+      //TEST_CHECK( gkyl_compare(f_d[k], h_d[k], 1e-15) );
+    }
+  }  
+
+  gkyl_array_release(f);
+  gkyl_array_release(g);
+  gkyl_array_release(h);
+  gkyl_array_release(fg);  
+}
+
 TEST_LIST = {
   { "mul_1d_p2_ss", test_mul_1d_p2_ss },
   { "mul_1d_p2_sv", test_mul_1d_p2_sv },
+  { "div_1d_p2_ss", test_div_1d_p2_ss },
   { NULL, NULL },
 };
