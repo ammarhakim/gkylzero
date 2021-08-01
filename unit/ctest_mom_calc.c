@@ -63,7 +63,7 @@ skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
 void
 test_1x1v_p1()
 {
-  int polyOrder = 1;
+  int poly_order = 1;
   double lower[] = {-2.0, -2.0}, upper[] = {2.0, 2.0};
   int cells[] = {4, 2};
   int ndim = sizeof(lower)/sizeof(lower[0]);
@@ -80,8 +80,8 @@ test_1x1v_p1()
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, polyOrder);
-  gkyl_cart_modal_serendip(&confBasis, cdim, polyOrder);
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
@@ -97,11 +97,11 @@ test_1x1v_p1()
 
   // projection updater for dist-function
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
-    polyOrder+1, 1, evalFunc, NULL);
+    poly_order+1, 1, evalFunc, NULL);
 
   // create distribution function array
   struct gkyl_array *distf;
-  distf = mkarr(basis.numBasis, local_ext.volume);
+  distf = mkarr(basis.num_basis, local_ext.volume);
 
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
@@ -115,9 +115,9 @@ test_1x1v_p1()
 
   // create moment arrays
   struct gkyl_array *m0, *m1i, *m2;
-  m0 = mkarr(confBasis.numBasis, confLocal_ext.volume);
-  m1i = mkarr(vdim*confBasis.numBasis, confLocal_ext.volume);
-  m2 = mkarr(confBasis.numBasis, confLocal_ext.volume);
+  m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m1i = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
+  m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
   
   // compute the moments
   gkyl_mom_calc_advance(m0calc, local, confLocal, distf, m0);
@@ -183,7 +183,7 @@ test_1x1v_p1()
 void
 test_1x2v_p1()
 {
-  int polyOrder = 1;
+  int poly_order = 1;
   double lower[] = {-2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0};
   int cells[] = {4, 2, 2};
   int ndim = sizeof(lower)/sizeof(lower[0]);
@@ -200,8 +200,8 @@ test_1x2v_p1()
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, polyOrder);
-  gkyl_cart_modal_serendip(&confBasis, cdim, polyOrder);
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 0 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
@@ -217,11 +217,11 @@ test_1x2v_p1()
 
   // projection updater for dist-function
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
-    polyOrder+1, 1, evalFuncSimple, NULL);
+    poly_order+1, 1, evalFuncSimple, NULL);
 
   // create distribution function array
   struct gkyl_array *distf;
-  distf = mkarr(basis.numBasis, local_ext.volume);
+  distf = mkarr(basis.num_basis, local_ext.volume);
 
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
@@ -235,9 +235,9 @@ test_1x2v_p1()
   
   // create moment arrays
   struct gkyl_array *m0, *m1i, *m2;
-  m0 = mkarr(confBasis.numBasis, confLocal_ext.volume);
-  m1i = mkarr(vdim*confBasis.numBasis, confLocal_ext.volume);
-  m2 = mkarr(confBasis.numBasis, confLocal_ext.volume);
+  m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m1i = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
+  m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moments
   gkyl_mom_calc_advance(m0calc, local, confLocal, distf, m0);
@@ -250,7 +250,7 @@ test_1x2v_p1()
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *m0ptr = gkyl_array_fetch(m0, linc);
     TEST_CHECK( gkyl_compare( 5.656854249492378, m0ptr[0], 1e-12) );
-    for (unsigned int k=1; k<confBasis.numBasis; ++k) {
+    for (unsigned int k=1; k<confBasis.num_basis; ++k) {
       TEST_CHECK( gkyl_compare( 0., m0ptr[k], 1e-12) );
   }}
 
@@ -269,7 +269,7 @@ test_1x2v_p1()
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *m2ptr = gkyl_array_fetch(m2, linc);
     TEST_CHECK( gkyl_compare( 15.084944665313010, m2ptr[0], 1e-12) );
-    for (unsigned int k=1; k<confBasis.numBasis; ++k) {
+    for (unsigned int k=1; k<confBasis.num_basis; ++k) {
       TEST_CHECK( gkyl_compare( 0., m2ptr[k], 1e-12) );
   }}
 
@@ -285,7 +285,7 @@ test_1x2v_p1()
 void
 test_2x2v_p1()
 {
-  int polyOrder = 1;
+  int poly_order = 1;
   double lower[] = {-2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0};
   int cells[] = {4, 4, 2, 2};
   int ndim = sizeof(lower)/sizeof(lower[0]);
@@ -302,8 +302,8 @@ test_2x2v_p1()
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, polyOrder);
-  gkyl_cart_modal_serendip(&confBasis, cdim, polyOrder);
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 1, 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
@@ -319,11 +319,11 @@ test_2x2v_p1()
 
   // projection updater for dist-function
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
-    polyOrder+1, 1, evalFuncSimple, NULL);
+    poly_order+1, 1, evalFuncSimple, NULL);
 
   // create distribution function array
   struct gkyl_array *distf;
-  distf = mkarr(basis.numBasis, local_ext.volume);
+  distf = mkarr(basis.num_basis, local_ext.volume);
 
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
@@ -337,9 +337,9 @@ test_2x2v_p1()
   
   // create moment arrays
   struct gkyl_array *m0, *m1i, *m2;
-  m0 = mkarr(confBasis.numBasis, confLocal_ext.volume);
-  m1i = mkarr(vdim*confBasis.numBasis, confLocal_ext.volume);
-  m2 = mkarr(confBasis.numBasis, confLocal_ext.volume);
+  m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m1i = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
+  m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moments
   gkyl_mom_calc_advance(m0calc, local, confLocal, distf, m0);
@@ -353,7 +353,7 @@ test_2x2v_p1()
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m0ptr = gkyl_array_fetch(m0, linc);
       TEST_CHECK( gkyl_compare( 8.0, m0ptr[0], 1e-12) );
-      for (unsigned int k=1; k<confBasis.numBasis; ++k) {
+      for (unsigned int k=1; k<confBasis.num_basis; ++k) {
         TEST_CHECK( gkyl_compare( 0., m0ptr[k], 1e-12) );
   }}}
 
@@ -374,7 +374,7 @@ test_2x2v_p1()
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m2ptr = gkyl_array_fetch(m2, linc);
       TEST_CHECK( gkyl_compare( 21.333333333333336, m2ptr[0], 1e-12) );
-      for (unsigned int k=1; k<confBasis.numBasis; ++k) {
+      for (unsigned int k=1; k<confBasis.num_basis; ++k) {
         TEST_CHECK( gkyl_compare( 0., m2ptr[k], 1e-12) );
   }}}
 
@@ -390,7 +390,7 @@ test_2x2v_p1()
 void
 test_2x3v_p1()
 {
-  int polyOrder = 1;
+  int poly_order = 1;
   double lower[] = {-2.0, -2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0, 2.0};
   int cells[] = {4, 4, 2, 2, 2};
   int ndim = sizeof(lower)/sizeof(lower[0]);
@@ -407,8 +407,8 @@ test_2x3v_p1()
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, polyOrder);
-  gkyl_cart_modal_serendip(&confBasis, cdim, polyOrder);
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 1, 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
@@ -424,11 +424,11 @@ test_2x3v_p1()
 
   // projection updater for dist-function
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
-    polyOrder+1, 1, evalFuncSimple, NULL);
+    poly_order+1, 1, evalFuncSimple, NULL);
 
   // create distribution function array
   struct gkyl_array *distf;
-  distf = mkarr(basis.numBasis, local_ext.volume);
+  distf = mkarr(basis.num_basis, local_ext.volume);
 
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
@@ -442,9 +442,9 @@ test_2x3v_p1()
   
   // create moment arrays
   struct gkyl_array *m0, *m1i, *m2;
-  m0 = mkarr(confBasis.numBasis, confLocal_ext.volume);
-  m1i = mkarr(vdim*confBasis.numBasis, confLocal_ext.volume);
-  m2 = mkarr(confBasis.numBasis, confLocal_ext.volume);
+  m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m1i = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
+  m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moments
   gkyl_mom_calc_advance(m0calc, local, confLocal, distf, m0);
@@ -458,7 +458,7 @@ test_2x3v_p1()
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m0ptr = gkyl_array_fetch(m0, linc);
       TEST_CHECK( gkyl_compare( 31.999999999999996, m0ptr[0], 1e-12) );
-      for (unsigned int k=1; k<confBasis.numBasis; ++k) {
+      for (unsigned int k=1; k<confBasis.num_basis; ++k) {
         TEST_CHECK( gkyl_compare( 0., m0ptr[k], 1e-12) );
   }}}
 
@@ -479,7 +479,7 @@ test_2x3v_p1()
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m2ptr = gkyl_array_fetch(m2, linc);
       TEST_CHECK( gkyl_compare( 127.999999999999972, m2ptr[0], 1e-12) );
-      for (unsigned int k=1; k<confBasis.numBasis; ++k) {
+      for (unsigned int k=1; k<confBasis.num_basis; ++k) {
         TEST_CHECK( gkyl_compare( 0., m2ptr[k], 1e-12) );
   }}}
 
@@ -496,7 +496,7 @@ test_2x3v_p1()
 void
 test_1x1v_p1_cu()
 {
-  int polyOrder = 1;
+  int poly_order = 1;
   double lower[] = {-2.0, -2.0}, upper[] = {2.0, 2.0};
   int cells[] = {4, 2};
   int ndim = sizeof(lower)/sizeof(lower[0]);
@@ -513,8 +513,8 @@ test_1x1v_p1_cu()
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, polyOrder);
-  gkyl_cart_modal_serendip(&confBasis, cdim, polyOrder);
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 0 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
@@ -530,24 +530,24 @@ test_1x1v_p1_cu()
 
   // projection updater for dist-function
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
-    polyOrder+1, 1, evalFunc, NULL);
+    poly_order+1, 1, evalFunc, NULL);
 
   // create distribution function and moment arrays
   struct gkyl_array *distf, *m0, *m1i, *m2;
-  distf = mkarr(basis.numBasis, local_ext.volume);
-  m0 = mkarr(confBasis.numBasis, confLocal_ext.volume);
-  m1i = mkarr(vdim*confBasis.numBasis, confLocal_ext.volume);
-  m2 = mkarr(confBasis.numBasis, confLocal_ext.volume);
+  distf = mkarr(basis.num_basis, local_ext.volume);
+  m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m1i = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
+  m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
 
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
 
   // initialize device arrays
   struct gkyl_array *distf_cu, *m0_cu, *m1i_cu, *m2_cu;
-  distf_cu = mkarr_cu(basis.numBasis, local_ext.volume);
-  m0_cu = mkarr_cu(confBasis.numBasis, confLocal_ext.volume);
-  m1i_cu = mkarr_cu(vdim*confBasis.numBasis, confLocal_ext.volume);
-  m2_cu = mkarr_cu(confBasis.numBasis, confLocal_ext.volume);
+  distf_cu = mkarr_cu(basis.num_basis, local_ext.volume);
+  m0_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
+  m1i_cu = mkarr_cu(vdim*confBasis.num_basis, confLocal_ext.volume);
+  m2_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
   gkyl_array_copy(distf_cu, distf);
 
   // Create vlasov moment and mom_calc objects on device.
@@ -613,7 +613,7 @@ test_1x1v_p1_cu()
 void
 test_1x2v_p1_cu()
 {
-  int polyOrder = 1;
+  int poly_order = 1;
   double lower[] = {-2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0};
   int cells[] = {4, 2, 2};
   int ndim = sizeof(lower)/sizeof(lower[0]);
@@ -630,8 +630,8 @@ test_1x2v_p1_cu()
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, polyOrder);
-  gkyl_cart_modal_serendip(&confBasis, cdim, polyOrder);
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 0 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
@@ -647,12 +647,12 @@ test_1x2v_p1_cu()
 
   // projection updater for dist-function
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
-    polyOrder+1, 1, evalFuncSimple, NULL);
+    poly_order+1, 1, evalFuncSimple, NULL);
 
   // create distribution function
   struct gkyl_array *distf, *distf_cu;
-  distf = mkarr(basis.numBasis, local_ext.volume);
-  distf_cu = mkarr_cu(basis.numBasis, local_ext.volume);
+  distf = mkarr(basis.num_basis, local_ext.volume);
+  distf_cu = mkarr_cu(basis.num_basis, local_ext.volume);
 
   // project distribution function on basis and copy to device
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
@@ -668,12 +668,12 @@ test_1x2v_p1_cu()
 
   // create moment arrays
   struct gkyl_array *m0, *m1i, *m2, *m0_cu, *m1i_cu, *m2_cu;;
-  m0 = mkarr(confBasis.numBasis, confLocal_ext.volume);
-  m1i = mkarr(vdim*confBasis.numBasis, confLocal_ext.volume);
-  m2 = mkarr(confBasis.numBasis, confLocal_ext.volume);
-  m0_cu = mkarr_cu(confBasis.numBasis, confLocal_ext.volume);
-  m1i_cu = mkarr_cu(vdim*confBasis.numBasis, confLocal_ext.volume);
-  m2_cu = mkarr_cu(confBasis.numBasis, confLocal_ext.volume);
+  m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m1i = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
+  m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m0_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
+  m1i_cu = mkarr_cu(vdim*confBasis.num_basis, confLocal_ext.volume);
+  m2_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment and copy back to host
   gkyl_mom_calc_advance_cu(m0Calc, local, confLocal, distf_cu, m0_cu);
@@ -689,7 +689,7 @@ test_1x2v_p1_cu()
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *m0ptr = gkyl_array_fetch(m0, linc);
     TEST_CHECK( gkyl_compare( 5.656854249492378, m0ptr[0], 1e-12) );
-    for (unsigned int k=1; k<confBasis.numBasis; ++k) {
+    for (unsigned int k=1; k<confBasis.num_basis; ++k) {
       TEST_CHECK( gkyl_compare( 0., m0ptr[k], 1e-12) );
   }}
 
@@ -708,7 +708,7 @@ test_1x2v_p1_cu()
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *m2ptr = gkyl_array_fetch(m2, linc);
     TEST_CHECK( gkyl_compare( 15.084944665313010, m2ptr[0], 1e-12) );
-    for (unsigned int k=1; k<confBasis.numBasis; ++k) {
+    for (unsigned int k=1; k<confBasis.num_basis; ++k) {
       TEST_CHECK( gkyl_compare( 0., m2ptr[k], 1e-12) );
   }}
 
@@ -723,7 +723,7 @@ test_1x2v_p1_cu()
 void
 test_2x2v_p1_cu()
 {
-  int polyOrder = 1;
+  int poly_order = 1;
   double lower[] = {-2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0};
   int cells[] = {4, 4, 2, 2};
   int ndim = sizeof(lower)/sizeof(lower[0]);
@@ -740,8 +740,8 @@ test_2x2v_p1_cu()
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, polyOrder);
-  gkyl_cart_modal_serendip(&confBasis, cdim, polyOrder);
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 1, 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
@@ -757,12 +757,12 @@ test_2x2v_p1_cu()
 
   // projection updater for dist-function
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
-    polyOrder+1, 1, evalFuncSimple, NULL);
+    poly_order+1, 1, evalFuncSimple, NULL);
 
   // create distribution function
   struct gkyl_array *distf, *distf_cu;
-  distf = mkarr(basis.numBasis, local_ext.volume);
-  distf_cu = mkarr_cu(basis.numBasis, local_ext.volume);
+  distf = mkarr(basis.num_basis, local_ext.volume);
+  distf_cu = mkarr_cu(basis.num_basis, local_ext.volume);
 
   // project distribution function on basis and copy to device
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
@@ -778,12 +778,12 @@ test_2x2v_p1_cu()
 
   // create moment arrays
   struct gkyl_array *m0, *m1i, *m2, *m0_cu, *m1i_cu, *m2_cu;;
-  m0 = mkarr(confBasis.numBasis, confLocal_ext.volume);
-  m1i = mkarr(vdim*confBasis.numBasis, confLocal_ext.volume);
-  m2 = mkarr(confBasis.numBasis, confLocal_ext.volume);
-  m0_cu = mkarr_cu(confBasis.numBasis, confLocal_ext.volume);
-  m1i_cu = mkarr_cu(vdim*confBasis.numBasis, confLocal_ext.volume);
-  m2_cu = mkarr_cu(confBasis.numBasis, confLocal_ext.volume);
+  m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m1i = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
+  m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m0_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
+  m1i_cu = mkarr_cu(vdim*confBasis.num_basis, confLocal_ext.volume);
+  m2_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment and copy back to host
   gkyl_mom_calc_advance_cu(m0Calc, local, confLocal, distf_cu, m0_cu);
@@ -836,7 +836,7 @@ test_2x2v_p1_cu()
 void
 test_2x3v_p1_cu()
 {
-  int polyOrder = 1;
+  int poly_order = 1;
   double lower[] = {-2.0, -2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0, 2.0};
   int cells[] = {4, 4, 2, 2, 2};
   int ndim = sizeof(lower)/sizeof(lower[0]);
@@ -853,8 +853,8 @@ test_2x3v_p1_cu()
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, polyOrder);
-  gkyl_cart_modal_serendip(&confBasis, cdim, polyOrder);
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 1, 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
@@ -870,12 +870,12 @@ test_2x3v_p1_cu()
 
   // projection updater for dist-function
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
-    polyOrder+1, 1, evalFuncSimple, NULL);
+    poly_order+1, 1, evalFuncSimple, NULL);
 
   // create distribution function
   struct gkyl_array *distf, *distf_cu;
-  distf = mkarr(basis.numBasis, local_ext.volume);
-  distf_cu = mkarr_cu(basis.numBasis, local_ext.volume);
+  distf = mkarr(basis.num_basis, local_ext.volume);
+  distf_cu = mkarr_cu(basis.num_basis, local_ext.volume);
 
   // project distribution function on basis and copy to device
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
@@ -891,12 +891,12 @@ test_2x3v_p1_cu()
 
   // create moment arrays
   struct gkyl_array *m0, *m1i, *m2, *m0_cu, *m1i_cu, *m2_cu;;
-  m0 = mkarr(confBasis.numBasis, confLocal_ext.volume);
-  m1i = mkarr(vdim*confBasis.numBasis, confLocal_ext.volume);
-  m2 = mkarr(confBasis.numBasis, confLocal_ext.volume);
-  m0_cu = mkarr_cu(confBasis.numBasis, confLocal_ext.volume);
-  m1i_cu = mkarr_cu(vdim*confBasis.numBasis, confLocal_ext.volume);
-  m2_cu = mkarr_cu(confBasis.numBasis, confLocal_ext.volume);
+  m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m1i = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
+  m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m0_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
+  m1i_cu = mkarr_cu(vdim*confBasis.num_basis, confLocal_ext.volume);
+  m2_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment and copy back to host
   gkyl_mom_calc_advance_cu(m0Calc, local, confLocal, distf_cu, m0_cu);

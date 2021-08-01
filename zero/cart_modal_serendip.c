@@ -3,21 +3,32 @@
 
 #include <gkyl_basis.h>
 #include <gkyl_util.h>
-#include <cart_modal_serendip_funcs.h>
+#include <gkyl_basis_ser_kernels.h>
 
-// Basis function eval for each dimension: ev_list[ndim].ev[polyOrder]
+// Basis function eval for each dimension: ev_list[ndim].ev[poly_order]
 static struct { void (*ev[4])(const double *z, double *b); } ev_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
-  { eval_1d_p0, eval_1d_p1, eval_1d_p2, eval_1d_p3 },
-  { eval_2d_p0, eval_2d_p1, eval_2d_p2, eval_2d_p3 },
-  { eval_3d_p0, eval_3d_p1, eval_3d_p2, eval_3d_p3 },
-  { eval_4d_p0, eval_4d_p1, eval_4d_p2, eval_4d_p3 },
-  { eval_5d_p0, eval_5d_p1, eval_5d_p2, NULL },
-  { eval_6d_p0, eval_6d_p1, NULL, NULL },
+  { eval_1d_ser_p0, eval_1d_ser_p1, eval_1d_ser_p2, eval_1d_ser_p3 },
+  { eval_2d_ser_p0, eval_2d_ser_p1, eval_2d_ser_p2, eval_2d_ser_p3 },
+  { eval_3d_ser_p0, eval_3d_ser_p1, eval_3d_ser_p2, eval_3d_ser_p3 },
+  { eval_4d_ser_p0, eval_4d_ser_p1, eval_4d_ser_p2, eval_4d_ser_p3 },
+  { eval_5d_ser_p0, eval_5d_ser_p1, eval_5d_ser_p2, NULL },
+  { eval_6d_ser_p0, eval_6d_ser_p1, NULL, NULL },
 };
 
-// Number of basis functions: numBasis_list[ndim].count[polyOrder]
-static struct { int count[4]; } numBasis_list[] = {
+// Flip-sign functions: ev_list[ndim].ev[poly_order]
+static struct { void (*fs[4])(int dir, const double *f, double *fout); } fs_list[] = {
+  { NULL, NULL, NULL, NULL }, // No 0D basis functions
+  { flip_sign_1d_ser_p0, flip_sign_1d_ser_p1, flip_sign_1d_ser_p2, flip_sign_1d_ser_p3 },
+  { flip_sign_2d_ser_p0, flip_sign_2d_ser_p1, flip_sign_2d_ser_p2, flip_sign_2d_ser_p3 },
+  { flip_sign_3d_ser_p0, flip_sign_3d_ser_p1, flip_sign_3d_ser_p2, flip_sign_3d_ser_p3 },
+  { flip_sign_4d_ser_p0, flip_sign_4d_ser_p1, flip_sign_4d_ser_p2, flip_sign_4d_ser_p3 },
+  { flip_sign_5d_ser_p0, flip_sign_5d_ser_p1, flip_sign_5d_ser_p2, NULL },
+  { flip_sign_6d_ser_p0, flip_sign_6d_ser_p1, NULL, NULL },
+};
+
+// Number of basis functions: num_basis_list[ndim].count[poly_order]
+static struct { int count[4]; } num_basis_list[] = {
   { 1, 1, 1, 1 },
   { 1, 2, 3, 4 },
   { 1, 4, 8, 12 },
@@ -28,14 +39,15 @@ static struct { int count[4]; } numBasis_list[] = {
 };
 
 void
-gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim, int polyOrder)
+gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim, int poly_order)
 {
   assert(ndim>0 && ndim<=6);
-  assert(ev_list[ndim].ev[polyOrder]);
+  assert(ev_list[ndim].ev[poly_order]);
   
   basis->ndim = ndim;
-  basis->polyOrder = polyOrder;
-  basis->numBasis = numBasis_list[ndim].count[polyOrder];
+  basis->poly_order = poly_order;
+  basis->num_basis = num_basis_list[ndim].count[poly_order];
   strcpy(basis->id, "serendipity");
-  basis->eval = ev_list[ndim].ev[polyOrder];
+  basis->eval = ev_list[ndim].ev[poly_order];
+  basis->flip_sign = fs_list[ndim].fs[poly_order];
 }

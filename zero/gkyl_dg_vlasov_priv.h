@@ -20,7 +20,7 @@ typedef double (*vlasov_accel_surf_t)(const double *w, const double *dxv,
 
 typedef double (*vlasov_accel_boundary_surf_t)(const double *w, const double *dxv,
   const double amax, const double *qmem, const int edge,
-  const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out);
+  const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
@@ -185,7 +185,7 @@ static struct { vlasov_accel_boundary_surf_t kernels[3]; } accel_boundary_surf_v
 };
 
 // "Choose Kernel" based on cdim, vdim and polyorder
-#define CK(lst,cdim,vd,polyOrder) lst[cv_index[cdim].vdim[vd]].kernels[polyOrder]
+#define CK(lst,cdim,vd,poly_order) lst[cv_index[cdim].vdim[vd]].kernels[poly_order]
 
 struct dg_vlasov {
   struct gkyl_dg_eqn eqn; // Base object
@@ -249,7 +249,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
 
   double amax = 0.0;
-  if (dir > vlasov->cdim) {
+  if (dir >= vlasov->cdim) {
     long cidx = gkyl_range_idx(&vlasov->conf_range, idxSkin);
     amax = vlasov->accel_boundary_surf[dir-vlasov->cdim]
       (xcSkin, dxSkin, maxsOld, (const double*) gkyl_array_cfetch(vlasov->qmem, cidx),

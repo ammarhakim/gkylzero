@@ -4,9 +4,10 @@
 # make CC=mpicc 
 #
 
-CFLAGS = -O3 -g 
-LDFLAGS = 
-INCLUDES = -Iminus -Izero -Iapps -Iregression -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov
+CFLAGS = -O3 -g -ffast-math -march=native
+LDFLAGS =
+KERN_INCLUDES = -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov -Ikernels/bin_op
+INCLUDES = -Iminus -Izero -Iapps -Iregression ${KERN_INCLUDES}
 PREFIX = ${HOME}/gkylsoft
 
 NVCC = 
@@ -46,6 +47,9 @@ kernels/maxwell/%.o : kernels/maxwell/%.c
 	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
 
 kernels/vlasov/%.o : kernels/vlasov/%.c
+	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
+
+kernels/basis/%.o : kernels/basis/%.c
 	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
 endif
 
@@ -96,6 +100,8 @@ build/unit/ctest_hyper_dg: unit/ctest_hyper_dg.o unit/ctest_hyper_dg_cu.o build/
 
 endif
 
+.PHONY: check clean install
+
 # Run unit tests
 check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_alloc
@@ -103,11 +109,13 @@ check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_array_reduce
 	./build/unit/ctest_basis
 	./build/unit/ctest_block_topo
+	./build/unit/ctest_dg_bin_ops
 	./build/unit/ctest_dg_maxwell
 	./build/unit/ctest_dg_vlasov
 	./build/unit/ctest_fv_proj
 	./build/unit/ctest_gauss_quad
 	./build/unit/ctest_hyper_dg
+	./build/unit/ctest_mat
 	./build/unit/ctest_mom_calc
 	./build/unit/ctest_proj_on_basis
 	./build/unit/ctest_range

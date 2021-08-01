@@ -168,10 +168,10 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
     sm->mtype = gkyl_vlasov_mom_cu_dev_new(&app->confBasis, &app->basis, nm);
     sm->mcalc = gkyl_mom_calc_cu_dev_new(&s->grid, sm->mtype);
 
-    sm->marr = mkarr(app->use_gpu, mtype_host->num_mom*app->confBasis.numBasis,
+    sm->marr = mkarr(app->use_gpu, mtype_host->num_mom*app->confBasis.num_basis,
       app->local_ext.volume);
 
-    sm->marr_host = mkarr(false, mtype_host->num_mom*app->confBasis.numBasis,
+    sm->marr_host = mkarr(false, mtype_host->num_mom*app->confBasis.num_basis,
       app->local_ext.volume);
 
     gkyl_mom_type_release(mtype_host);
@@ -180,7 +180,7 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
     sm->mtype = gkyl_vlasov_mom_new(&app->confBasis, &app->basis, nm);
     sm->mcalc = gkyl_mom_calc_new(&s->grid, sm->mtype);
 
-    sm->marr = mkarr(app->use_gpu, sm->mtype->num_mom*app->confBasis.numBasis,
+    sm->marr = mkarr(app->use_gpu, sm->mtype->num_mom*app->confBasis.num_basis,
       app->local_ext.volume);
 
     sm->marr_host = sm->marr;
@@ -209,14 +209,14 @@ static void
 vm_field_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_field *f)
 {
   // allocate EM arrays
-  f->em = mkarr(app->use_gpu, 8*app->confBasis.numBasis, app->local_ext.volume);
-  f->em1 = mkarr(app->use_gpu, 8*app->confBasis.numBasis, app->local_ext.volume);
-  f->emnew = mkarr(app->use_gpu, 8*app->confBasis.numBasis, app->local_ext.volume);
-  f->qmem = mkarr(app->use_gpu, 8*app->confBasis.numBasis, app->local_ext.volume);
+  f->em = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
+  f->em1 = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
+  f->emnew = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
+  f->qmem = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
 
   f->em_host = f->em;  
   if (app->use_gpu)
-    f->em_host = mkarr(false, 8*app->confBasis.numBasis, app->local_ext.volume);
+    f->em_host = mkarr(false, 8*app->confBasis.num_basis, app->local_ext.volume);
 
   // allocate buffer for applying BCs (used for both periodic and copy BCs)
   long buff_sz = 0;
@@ -225,7 +225,7 @@ vm_field_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_field *
     long vol = app->skin_ghost.lower_skin[d].volume;
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
-  f->bc_buffer = mkarr(app->use_gpu, 8*app->confBasis.numBasis, buff_sz);
+  f->bc_buffer = mkarr(app->use_gpu, 8*app->confBasis.num_basis, buff_sz);
 
   // allocate cflrate (scalar array)
   f->cflrate = mkarr(app->use_gpu, 1, app->local_ext.volume);
@@ -377,13 +377,13 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   skin_ghost_ranges_init(&s->skin_ghost, &s->local_ext, ghost);
   
   // allocate distribution function arrays
-  s->f = mkarr(app->use_gpu, app->basis.numBasis, s->local_ext.volume);
-  s->f1 = mkarr(app->use_gpu, app->basis.numBasis, s->local_ext.volume);
-  s->fnew = mkarr(app->use_gpu, app->basis.numBasis, s->local_ext.volume);
+  s->f = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
+  s->f1 = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
+  s->fnew = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
 
   s->f_host = s->f;
   if (app->use_gpu)
-    s->f_host = mkarr(false, app->basis.numBasis, s->local_ext.volume);
+    s->f_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
 
   // allocate cflrate (scalar array) and maxs
   s->cflrate = mkarr(app->use_gpu, 1, s->local_ext.volume);
@@ -400,7 +400,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     long vol = s->skin_ghost.lower_skin[d].volume;
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
-  s->bc_buffer = mkarr(app->use_gpu, app->basis.numBasis, buff_sz);
+  s->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
   
   // allocate data for momentum (for use in current accumulation)
   vm_species_moment_init(app, s, &s->m1i, "M1i");
@@ -614,7 +614,10 @@ gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
     poly_order+1, 8, app->field.info.init, app->field.info.ctx);
 
+  struct timespec wtm = gkyl_wall_clock();
   gkyl_proj_on_basis_advance(proj, t0, &app->local, app->field.em_host);
+  app->stat.init_field_tm += gkyl_time_diff_now_sec(wtm);
+  
   gkyl_proj_on_basis_release(proj);
  
   if (app->use_gpu)
@@ -633,7 +636,10 @@ gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0)
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->species[sidx].grid, &app->basis,
     poly_order+1, 1, app->species[sidx].info.init, app->species[sidx].info.ctx);
 
+  struct timespec wtm = gkyl_wall_clock();
   gkyl_proj_on_basis_advance(proj, t0, &app->species[sidx].local, app->species[sidx].f_host);
+  app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
+  
   gkyl_proj_on_basis_release(proj);
 
   if (app->use_gpu)
@@ -648,13 +654,17 @@ gkyl_vlasov_app_calc_mom(gkyl_vlasov_app* app)
   for (int i=0; i<app->num_species; ++i) {
     struct vm_species *s = &app->species[i];
     
-    for (int m=0; m<app->species[i].info.num_diag_moments; ++m)
+    for (int m=0; m<app->species[i].info.num_diag_moments; ++m) {
+      struct timespec wst = gkyl_wall_clock();
       if (app->use_gpu)
         gkyl_mom_calc_advance_cu(s->moms[m].mcalc, s->local, app->local,
           s->f, s->moms[m].marr);
       else
         gkyl_mom_calc_advance(s->moms[m].mcalc, s->local, app->local,
           s->f, s->moms[m].marr);
+      app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
+      app->stat.nmom += 1;
+    }
   }
 }
 

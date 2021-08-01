@@ -12,8 +12,8 @@ gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, struct gkyl_range update_range,
   const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs, struct gkyl_array *maxs_by_cell)
 {
   int ndim = hdg->ndim;
-  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
-  double xcl[GKYL_MAX_DIM], xcc[GKYL_MAX_DIM], xcr[GKYL_MAX_DIM];
+  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM], idx_edge[GKYL_MAX_DIM];
+  double xcl[GKYL_MAX_DIM], xcc[GKYL_MAX_DIM], xcr[GKYL_MAX_DIM], xc_edge[GKYL_MAX_DIM];
   // integer used for selecting between left-edge zero-flux BCs and right-edge zero-flux BCs
   int edge;
 
@@ -36,27 +36,29 @@ gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, struct gkyl_range update_range,
     double *maxs_by_cell_d = gkyl_array_fetch(maxs_by_cell, linc);
     for (int d=0; d<hdg->num_up_dirs; ++d) {
       int dir = hdg->update_dirs[d];
-      gkyl_copy_int_arr(ndim, iter.idx, idxl);
-      gkyl_copy_int_arr(ndim, iter.idx, idxr);
       // TODO: fix for arbitrary subrange
       if (hdg->zero_flux_flags[d] && (idxc[dir] == update_range.lower[dir] || idxc[dir] == update_range.upper[dir])) {
+        gkyl_copy_int_arr(ndim, iter.idx, idx_edge);
         edge = (idxc[dir] == update_range.lower[dir]) ? -1 : 1;
-        // use idxl to store interior edge index (first index away from skin cell)
-        idxl[dir] = idxl[dir]-edge;
+        // idx_edge stores interior edge index (first index away from skin cell)
+        idx_edge[dir] = idx_edge[dir]-edge;
 
-        gkyl_rect_grid_cell_center(&hdg->grid, idxl, xcl);
-        long linl = gkyl_range_idx(&update_range, idxl);
+        gkyl_rect_grid_cell_center(&hdg->grid, idx_edge, xc_edge);
+        long lin_edge = gkyl_range_idx(&update_range, idx_edge);
 
         double mdir = hdg->equation->boundary_surf_term(hdg->equation,
-          dir, xcl, xcc, hdg->grid.dx, hdg->grid.dx,
-          hdg->maxs[dir], idxl, idxc, edge,
-          gkyl_array_cfetch(fIn, linl), gkyl_array_cfetch(fIn, linc),
+          dir, xc_edge, xcc, hdg->grid.dx, hdg->grid.dx,
+          hdg->maxs[dir], idx_edge, idxc, edge,
+          gkyl_array_cfetch(fIn, lin_edge), gkyl_array_cfetch(fIn, linc),
           gkyl_array_fetch(rhs, linc)
         );
         maxs_by_cell_d[dir] = mdir;
       }
       else {
+        gkyl_copy_int_arr(ndim, iter.idx, idxl);
+        gkyl_copy_int_arr(ndim, iter.idx, idxr);
         idxl[dir] = idxl[dir]-1; idxr[dir] = idxr[dir]+1;
+        
         gkyl_rect_grid_cell_center(&hdg->grid, idxl, xcl);
         gkyl_rect_grid_cell_center(&hdg->grid, idxr, xcr);
         long linl = gkyl_range_idx(&update_range, idxl); 
@@ -154,7 +156,7 @@ gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
 
   up->grid = *grid;
   up->ndim = basis->ndim;
-  up->numBasis = basis->numBasis;
+  up->num_basis = basis->num_basis;
   up->num_up_dirs = num_up_dirs;
 
   for (int i=0; i<num_up_dirs; ++i) {

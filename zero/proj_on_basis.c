@@ -13,7 +13,7 @@ struct gkyl_proj_on_basis {
   evalf_t eval; // function to project
   void *ctx; // evaluation context
 
-  int numBasis; // number of basis functions
+  int num_basis; // number of basis functions
   int tot_quad; // total number of quadrature points
   struct gkyl_array *ordinates; // ordinates for quadrature
   struct gkyl_array *weights; // weights for quadrature
@@ -31,7 +31,7 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
   up->num_ret_vals = num_ret_vals;
   up->eval = eval;
   up->ctx = ctx;
-  up->numBasis = basis->numBasis;
+  up->num_basis = basis->num_basis;
 
   double ordinates1[num_quad], weights1[num_quad];
 
@@ -76,7 +76,7 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
   }
 
   // pre-compute basis functions at ordinates
-  up->basis_at_ords = gkyl_array_new(GKYL_DOUBLE, basis->numBasis, tot_quad);
+  up->basis_at_ords = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, tot_quad);
   for (int n=0; n<tot_quad; ++n)
     basis->eval(gkyl_array_fetch(up->ordinates, n),
       gkyl_array_fetch(up->basis_at_ords, n));
@@ -95,7 +95,7 @@ comp_to_phys(int ndim, const double *eta,
 static void
 proj_on_basis(const gkyl_proj_on_basis *up, const struct gkyl_array *fun_at_ords, double* f)
 {
-  int numBasis = up->numBasis;
+  int num_basis = up->num_basis;
   int tot_quad = up->tot_quad;
   int num_ret_vals = up->num_ret_vals;
 
@@ -108,14 +108,14 @@ proj_on_basis(const gkyl_proj_on_basis *up, const struct gkyl_array *fun_at_ords
   // where c0, c1, ... are components of f (num_ret_vals)
   int offset = 0;
   for (int n=0; n<num_ret_vals; ++n) {
-    for (int k=0; k<numBasis; ++k) f[offset+k] = 0.0;
+    for (int k=0; k<num_basis; ++k) f[offset+k] = 0.0;
 
     for (int imu=0; imu<tot_quad; ++imu) {
       double tmp = weights[imu]*func_at_ords[n+num_ret_vals*imu];
-      for (int k=0; k<numBasis; ++k)
-        f[offset+k] += tmp*basis_at_ords[k+numBasis*imu];
+      for (int k=0; k<num_basis; ++k)
+        f[offset+k] += tmp*basis_at_ords[k+num_basis*imu];
     }
-    offset += numBasis;
+    offset += num_basis;
   }
 }
 

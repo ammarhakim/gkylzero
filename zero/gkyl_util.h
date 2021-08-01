@@ -110,7 +110,7 @@ enum gkyl_cu_memcpy_kind {
 
 // Computes length of string needed given a format specifier and data. Example:
 //
-// size_t len = silo_calc_strlen("%s-%d", "silo", 25);
+// size_t len = gkyl_calc_strlen("%s-%d", "silo", 25);
 // 
 #define gkyl_calc_strlen(fmt, ...) snprintf(0, 0, fmt, __VA_ARGS__)
 
@@ -121,9 +121,20 @@ enum gkyl_cu_memcpy_kind {
          _break;                                                \
          _break = false, fclose(fp))
 
-// Code 
+// Code
+
+#define GKYL_MIN(x,y) ((x)<(y) ? (x) : (y))
+#define GKYL_MAX(x,y) ((x)>(y) ? (x) : (y))
 
 EXTERN_C_BEG
+
+/**
+ * Kernel floating-point op-counts
+ */
+struct gkyl_kern_op_count {
+  size_t num_sum; // number of + and - operations
+  size_t num_prod; // number of * and / operations
+};
 
 /**
  * Time-trigger. Typical initialization is:

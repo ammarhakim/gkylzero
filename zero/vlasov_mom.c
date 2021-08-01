@@ -18,56 +18,56 @@ struct gkyl_mom_type*
 gkyl_vlasov_mom_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, const char *mom)
 {
-  assert(cbasis->polyOrder == pbasis->polyOrder);
+  assert(cbasis->poly_order == pbasis->poly_order);
   
   struct gkyl_mom_type *momt = gkyl_malloc(sizeof(struct gkyl_mom_type));
   int cdim = momt->cdim = cbasis->ndim;
   int pdim = momt->pdim = pbasis->ndim;
   int vdim = pdim-cdim;
-  int polyOrder = momt->polyOrder = cbasis->polyOrder;
-  momt->num_config = cbasis->numBasis;
-  momt->num_phase = pbasis->numBasis;
+  int poly_order = momt->poly_order = cbasis->poly_order;
+  momt->num_config = cbasis->num_basis;
+  momt->num_phase = pbasis->num_basis;
 
   if (strcmp(mom, "M0") == 0) { // density
     assert(cv_index[cdim].vdim[vdim] != -1);
-    assert(NULL != m0_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder]);
+    assert(NULL != m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
-    momt->kernel = m0_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder];
+    momt->kernel = m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     momt->num_mom = 1;
   }
   else if (strcmp(mom, "M1i") == 0) { // momentum
     assert(cv_index[cdim].vdim[vdim] != -1);
-    assert(NULL != m1i_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder]);
+    assert(NULL != m1i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
-    momt->kernel = m1i_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder];
+    momt->kernel = m1i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     momt->num_mom = vdim;
   }
   else if (strcmp(mom, "M2") == 0) { // energy
     assert(cv_index[cdim].vdim[vdim] != -1);
-    assert(NULL != m2_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder]);
+    assert(NULL != m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
-    momt->kernel = m2_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder];
+    momt->kernel = m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     momt->num_mom = 1;
   }
   else if (strcmp(mom, "M2ij") == 0) { // pressure tensor in lab-frame
     assert(cv_index[cdim].vdim[vdim] != -1);
-    assert(NULL != m2ij_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder]);
+    assert(NULL != m2ij_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
-    momt->kernel = m2ij_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder];
+    momt->kernel = m2ij_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     momt->num_mom = vdim*(vdim+1)/2;
   }
   else if (strcmp(mom, "M3i") == 0) { // heat-flux vector in lab-frame
     assert(cv_index[cdim].vdim[vdim] != -1);
-    assert(NULL != m3i_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder]);
+    assert(NULL != m3i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
-    momt->kernel = m3i_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder];
+    momt->kernel = m3i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     momt->num_mom = vdim;
   }
   else if (strcmp(mom, "M3ijk") == 0) { // heat-flux tensor in lab-frame
     assert(cv_index[cdim].vdim[vdim] != -1);
-    assert(NULL != m3ijk_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder]);
+    assert(NULL != m3ijk_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
-    momt->kernel = m3ijk_kernels[cv_index[cdim].vdim[vdim]].kernels[polyOrder];
+    momt->kernel = m3ijk_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 
     int m3ijk_count[] = { 1, 4, 10 };
     momt->num_mom = m3ijk_count[vdim-1];
