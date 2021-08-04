@@ -12,11 +12,21 @@ KERN_INCLUDES = -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov -Ikernels/bin
 # Install prefix
 PREFIX = ${HOME}/gkylsoft
 
-# Lapack include and libraries: we prefer linking to static library
-LAPACK_INC = ${HOME}/gkylsoft/OpenBLAS/include
+# Default lapack include and libraries: we prefer linking to static library
+LAPACK_INC = -I${HOME}/gkylsoft/OpenBLAS/include
 LAPACK_LIB = ${HOME}/gkylsoft/OpenBLAS/lib/libopenblas.a
 
-INCLUDES = -Iminus -Izero -Iapps -Iregression ${KERN_INCLUDES} -I${LAPACK_INC}
+# determine OS we are running on
+UNAME = $(shell uname)
+
+# On OSX we should use Accelerate framework
+ifeq ($(UNAME), Darwin)
+	LAPACK_INC =
+	LAPACK_LIB = -framework Accelerate
+	CFLAGS += -DGKYL_USING_FRAMEWORK_ACCELERATE
+endif
+
+INCLUDES = -Iminus -Izero -Iapps -Iregression ${KERN_INCLUDES} ${LAPACK_INC}
 
 NVCC = 
 USING_NVCC =

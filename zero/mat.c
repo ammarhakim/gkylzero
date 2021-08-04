@@ -3,8 +3,13 @@
 #include <gkyl_util.h>
 
 // BLAS and LAPACKE includes
-#include <cblas.h>
-#include <lapacke.h>
+#ifdef GKYL_USING_FRAMEWORK_ACCELERATE
+#include <Accelerate/Accelerate.h>
+#else
+// On non-Darwin platforms use OpenBLAS
+# include <cblas.h>
+# include <lapacke.h>
+#endif
 
 #include <assert.h>
 #include <string.h>
@@ -121,8 +126,21 @@ gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, void* ipiv)
 {
   assert( A->nr == A->nc );
 
+#ifdef GKYL_USING_FRAMEWORK_ACCELERATE
+  // On Darwin need to use old clapack interface. Of course Apple has
+  // to do everything "different"
+  __CLPK_integer info;
+  __CLPK_integer n = A->nr;
+  __CLPK_integer nrhs = x->nc;
+  __CLPK_integer lda = A->nr;
+  __CLPK_integer ldb = A->nr;
+  dgesv_(&n, &nrhs, A->data, &lda, ipiv, x->data, &ldb, &info);
+#else
+  // on non-Darwin platforms modern LAPACKE interface is available
   int info = LAPACKE_dgesv(LAPACK_COL_MAJOR,
     A->nr, x->nc, A->data, A->nr, ipiv, x->data, A->nr);
+#endif
+  
   return info == 0 ? true : false;
 }
 
