@@ -747,7 +747,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 {
   app->stat.nfeuler += 1;
   
-  double dtmin = dt;
+  double dtmin = DBL_MAX;
 
   // compute RHS of Vlasov equations
   for (int i=0; i<app->num_species; ++i) {

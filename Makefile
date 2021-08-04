@@ -4,11 +4,29 @@
 # make CC=mpicc 
 #
 
+# Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
 CFLAGS = -O3 -g -ffast-math -march=native
 LDFLAGS =
 KERN_INCLUDES = -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov -Ikernels/bin_op
-INCLUDES = -Iminus -Izero -Iapps -Iregression ${KERN_INCLUDES}
+
+# Install prefix
 PREFIX = ${HOME}/gkylsoft
+
+# Default lapack include and libraries: we prefer linking to static library
+LAPACK_INC = -I${HOME}/gkylsoft/OpenBLAS/include
+LAPACK_LIB = ${HOME}/gkylsoft/OpenBLAS/lib/libopenblas.a
+
+# determine OS we are running on
+UNAME = $(shell uname)
+
+# On OSX we should use Accelerate framework
+ifeq ($(UNAME), Darwin)
+	LAPACK_INC =
+	LAPACK_LIB = -framework Accelerate
+	CFLAGS += -DGKYL_USING_FRAMEWORK_ACCELERATE
+endif
+
+INCLUDES = -Iminus -Izero -Iapps -Iregression ${KERN_INCLUDES} ${LAPACK_INC}
 
 NVCC = 
 USING_NVCC =
@@ -67,11 +85,11 @@ build/regression/twostream.ini: regression/twostream.ini
 	cp regression/twostream.ini build/regression/twostream.ini
 
 build/regression/%: regression/%.c build/libgkylzero.a regression/app_arg_parse.h
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero -lm -lpthread 
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero ${LAPACK_LIB} -lm -lpthread 
 
 # Unit tests
 build/unit/%: unit/%.c build/libgkylzero.a
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero -lm -lpthread
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero ${LAPACK_LIB} -lm -lpthread
 
 
 ifdef USING_NVCC

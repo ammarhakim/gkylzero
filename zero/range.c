@@ -219,7 +219,7 @@ gkyl_range_shorten(struct gkyl_range *rng,
   const struct gkyl_range* range, int dir, int len)
 {
   int ndim = range->ndim;
-  int lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
+  int lo[GKYL_MAX_DIM] = {0}, up[GKYL_MAX_DIM] = {0};
   
   for (int i=0; i<ndim; ++i) {
     lo[i] = range->lower[i];
@@ -279,7 +279,8 @@ void
 gkyl_skin_ghost_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
   int dir, enum gkyl_edge_loc edge, const struct gkyl_range *parent, const int *nghost)
 {
-  int ndim = parent->ndim, lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
+  int ndim = parent->ndim;
+  int lo[GKYL_MAX_DIM] = {0}, up[GKYL_MAX_DIM] = {0};
 
   if (edge == GKYL_LOWER_EDGE) {
 

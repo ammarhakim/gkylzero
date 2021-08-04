@@ -5,136 +5,684 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_range.h>
+#include <gkyl_proj_on_basis.h>
 
-void
-test_mul_1d_p2_ss()
+void f_1d(double t, const double *xn, double* restrict fout, void *ctx)
 {
-  struct gkyl_range range;
-  gkyl_range_init(&range, 1, (const int[]) { 0 }, (const int[]) { 10 });
+  double x = xn[0];
+  fout[0] = 2 + x;
+}
 
-  struct gkyl_basis basis;
-  gkyl_cart_modal_serendip(&basis, range.ndim, 2);
-  
-  struct gkyl_array *f = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
-  gkyl_array_clear(f, 0.0);
-  for (size_t i=0; i<range.volume; ++i) {
-    double *d = gkyl_array_fetch(f, i);
-    d[0] = 1.5;
-  }  
-
-  struct gkyl_array *g = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
-  gkyl_array_clear(g, 0.0);
-  for (size_t i=0; i<range.volume; ++i) {
-    double *d = gkyl_array_fetch(g, i);
-    d[0] = 0.5;
-  }
-
-  struct gkyl_array *fg = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
-  gkyl_array_clear(fg, 0.0);
-
-  // fg = f*g
-  gkyl_dg_mul_op(basis, 0, fg, 0, f, 0, g);
-
-  for (size_t i=0; i<range.volume; ++i) {
-    const double *d = gkyl_array_cfetch(fg, i);
-    TEST_CHECK( gkyl_compare( 0.5*1.5/sqrt(2.0), d[0], 1e-15) );
-
-    for (int k=1; k<basis.num_basis; ++k)
-      TEST_CHECK( gkyl_compare( 0.0, d[k], 1e-15) );
-  }
-
-  gkyl_array_clear(fg, 0.0); // reset
-
-  // create subrange
-  struct gkyl_range sub_range;
-  gkyl_sub_range_init(&sub_range, &range, (const int[]) { 3 }, (const int[]) { 8 } );
-
-  gkyl_dg_mul_op_range(basis, 0, fg, 0, f, 0, g, sub_range);
-
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &sub_range);
-
-  while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(&sub_range, iter.idx);
-
-    const double *d = gkyl_array_cfetch(fg, loc);
-    TEST_CHECK( gkyl_compare( 0.5*1.5/sqrt(2.0), d[0], 1e-15) );
-
-    for (int k=1; k<basis.num_basis; ++k)
-      TEST_CHECK( gkyl_compare( 0.0, d[k], 1e-15) );
-  }
-
-  // ensure values not in range were not touched
-  gkyl_range_iter_init(&iter, &range);
-
-  long count = 0;
-  while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(&sub_range, iter.idx);
-    const double *d = gkyl_array_cfetch(fg, loc);
-    if (d[0] == 0.0) count += 1;
-  }
-
-  TEST_CHECK( count == range.volume-sub_range.volume );
-
-  gkyl_array_release(f);
-  gkyl_array_release(g);
-  gkyl_array_release(fg);
+void g_1d(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  fout[0] = 2*x*x + 8;
 }
 
 void
-test_mul_1d_p2_sv()
+test_1d_p1()
 {
-  struct gkyl_range range;
-  gkyl_range_init(&range, 1, (const int[]) { 0 }, (const int[]) { 10 });
+  int poly_order = 1;
+  double lower[] = {0.0}, upper[] = {1.0};
+  int cells[] = {2};
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
 
+  // basis functions
   struct gkyl_basis basis;
-  gkyl_cart_modal_serendip(&basis, range.ndim, 2);
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
-  int num_basis = basis.num_basis;
+  // projection updater for dist-function
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_1d, NULL);
+  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_1d, NULL);
 
-  // f is a scalar field
-  struct gkyl_array *f = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
-  gkyl_array_clear(f, 0.0);
-  for (size_t i=0; i<range.volume; ++i) {
-    double *d = gkyl_array_fetch(f, i);
-    d[0] = 1.5;
-  }  
+  // create array range: no ghost-cells in velocity space
+  struct gkyl_range arr_range;
+  gkyl_range_init_from_shape(&arr_range, ndim, cells);
 
-  // g is a vector field
-  struct gkyl_array *g = gkyl_array_new(GKYL_DOUBLE, 2*basis.num_basis, range.volume);
-  gkyl_array_clear(g, 0.0);
-  for (size_t i=0; i<range.volume; ++i) {
-    double *d = gkyl_array_fetch(g, i);
-    d[0] = 0.5;
-    d[num_basis] = 0.25;
-  }
+  // create distribution function
+  struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  struct gkyl_array *distg = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
 
-  // fg is a vector field
-  struct gkyl_array *fg = gkyl_array_new(GKYL_DOUBLE, 2*basis.num_basis, range.volume);
-  gkyl_array_clear(fg, 0.0);
+  // project distribution function on basis
+  gkyl_proj_on_basis_advance(projDistf, 0.0, &arr_range, distf);
+  gkyl_proj_on_basis_advance(projDistg, 0.0, &arr_range, distg);
 
-  // fg = f*g. f is a scalar and g is a vector
-  for (int d=0; d<2; ++d)
-    gkyl_dg_mul_op(basis, d, fg, 0, f, d, g);
+  struct gkyl_array *h = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(h, 0.0);
 
-  for (size_t i=0; i<range.volume; ++i) {
-    const double *d = gkyl_array_cfetch(fg, i);
-    TEST_CHECK( gkyl_compare( 0.5*1.5/sqrt(2.0), d[0], 1e-15) );
-    TEST_CHECK( gkyl_compare( 0.25*1.5/sqrt(2.0), d[num_basis], 1e-15) );
+  struct gkyl_array *f_bar = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(f_bar, 0.0);
 
-    for (int k=1; k<basis.num_basis; ++k) {
-      TEST_CHECK( gkyl_compare( 0.0, d[k], 1e-15) );
-      TEST_CHECK( gkyl_compare( 0.0, d[num_basis+k], 1e-15) );
+  struct gkyl_array *g_bar = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(g_bar, 0.0);
+
+  // h = f*g
+  gkyl_dg_mul_op(basis, 0, h, 0, distf, 0, distg);
+  // f_bar = h/g = f
+  gkyl_dg_div_op(basis, 0, f_bar, 0, h, 0, distg);
+  // g_bar = h/f = g
+  gkyl_dg_div_op(basis, 0, g_bar, 0, h, 0, distf);
+
+  for (size_t i=0; i<arr_range.volume; ++i) {
+    const double *f_d = gkyl_array_cfetch(distf, i);
+    const double *fbar_d = gkyl_array_cfetch(f_bar, i);
+    const double *g_d = gkyl_array_cfetch(distg, i);
+    const double *gbar_d = gkyl_array_cfetch(g_bar, i);
+    for (int k=0; k<basis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-15) );
+      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-15) );
     }
   }
-
-  gkyl_array_release(f);
-  gkyl_array_release(g);
-  gkyl_array_release(fg);
+  
+  gkyl_proj_on_basis_release(projDistf);
+  gkyl_proj_on_basis_release(projDistg);
+  gkyl_array_release(distf);
+  gkyl_array_release(distg);
+  gkyl_array_release(f_bar);
+  gkyl_array_release(g_bar);
+  gkyl_array_release(h);
 }
 
+void
+test_1d_p2()
+{
+  int poly_order = 2;
+  double lower[] = {0.0}, upper[] = {1.0};
+  int cells[] = {2};
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+
+  // basis functions
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+
+  // projection updater for dist-function
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_1d, NULL);
+  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_1d, NULL);
+
+  // create array range: no ghost-cells in velocity space
+  struct gkyl_range arr_range;
+  gkyl_range_init_from_shape(&arr_range, ndim, cells);
+
+  // create distribution function
+  struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  struct gkyl_array *distg = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+
+  // project distribution function on basis
+  gkyl_proj_on_basis_advance(projDistf, 0.0, &arr_range, distf);
+  gkyl_proj_on_basis_advance(projDistg, 0.0, &arr_range, distg);
+
+  struct gkyl_array *h = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(h, 0.0);
+
+  struct gkyl_array *f_bar = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(f_bar, 0.0);
+
+  struct gkyl_array *g_bar = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(g_bar, 0.0);
+
+  // h = f*g
+  gkyl_dg_mul_op(basis, 0, h, 0, distf, 0, distg);
+  // f_bar = h/g = f
+  gkyl_dg_div_op(basis, 0, f_bar, 0, h, 0, distg);
+  // g_bar = h/f = g
+  gkyl_dg_div_op(basis, 0, g_bar, 0, h, 0, distf);
+
+  for (size_t i=0; i<arr_range.volume; ++i) {
+    const double *f_d = gkyl_array_cfetch(distf, i);
+    const double *fbar_d = gkyl_array_cfetch(f_bar, i);
+    const double *g_d = gkyl_array_cfetch(distg, i);
+    const double *gbar_d = gkyl_array_cfetch(g_bar, i);
+    for (int k=0; k<basis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-15) );
+      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-15) );
+    }
+  }
+  
+  gkyl_proj_on_basis_release(projDistf);
+  gkyl_proj_on_basis_release(projDistg);
+  gkyl_array_release(distf);
+  gkyl_array_release(distg);
+  gkyl_array_release(f_bar);
+  gkyl_array_release(g_bar);
+  gkyl_array_release(h);
+}
+
+void
+test_1d_p3()
+{
+  int poly_order = 3;
+  double lower[] = {0.0}, upper[] = {1.0};
+  int cells[] = {2};
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+
+  // basis functions
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+
+  // projection updater for dist-function
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_1d, NULL);
+  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_1d, NULL);
+
+  // create array range: no ghost-cells in velocity space
+  struct gkyl_range arr_range;
+  gkyl_range_init_from_shape(&arr_range, ndim, cells);
+
+  // create distribution function
+  struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  struct gkyl_array *distg = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+
+  // project distribution function on basis
+  gkyl_proj_on_basis_advance(projDistf, 0.0, &arr_range, distf);
+  gkyl_proj_on_basis_advance(projDistg, 0.0, &arr_range, distg);
+
+  struct gkyl_array *h = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(h, 0.0);
+
+  struct gkyl_array *f_bar = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(f_bar, 0.0);
+
+  struct gkyl_array *g_bar = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(g_bar, 0.0);
+
+  // h = f*g
+  gkyl_dg_mul_op(basis, 0, h, 0, distf, 0, distg);
+  // f_bar = h/g = f
+  gkyl_dg_div_op(basis, 0, f_bar, 0, h, 0, distg);
+  // g_bar = h/f = g
+  gkyl_dg_div_op(basis, 0, g_bar, 0, h, 0, distf);
+
+  for (size_t i=0; i<arr_range.volume; ++i) {
+    const double *f_d = gkyl_array_cfetch(distf, i);
+    const double *fbar_d = gkyl_array_cfetch(f_bar, i);
+    const double *g_d = gkyl_array_cfetch(distg, i);
+    const double *gbar_d = gkyl_array_cfetch(g_bar, i);
+    for (int k=0; k<basis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-15) );
+      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-15) );
+    }
+  }
+  
+  gkyl_proj_on_basis_release(projDistf);
+  gkyl_proj_on_basis_release(projDistg);
+  gkyl_array_release(distf);
+  gkyl_array_release(distg);
+  gkyl_array_release(f_bar);
+  gkyl_array_release(g_bar);
+  gkyl_array_release(h);
+}
+
+void f_2d(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  double y = xn[1];
+  fout[0] = 2 + x + y;
+}
+
+void g_2d(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  double y = xn[1];
+  fout[0] = 2*x*y + 8;
+}
+
+void
+test_2d_p1()
+{
+  int poly_order = 1;
+  double lower[] = {0.0, 0.0}, upper[] = {1.0, 1.0};
+  int cells[] = {2, 2};
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+
+  // basis functions
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+
+  // projection updater for dist-function
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_2d, NULL);
+  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_2d, NULL);
+
+  // create array range: no ghost-cells in velocity space
+  struct gkyl_range arr_range;
+  gkyl_range_init_from_shape(&arr_range, ndim, cells);
+
+  // create distribution function
+  struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  struct gkyl_array *distg = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+
+  // project distribution function on basis
+  gkyl_proj_on_basis_advance(projDistf, 0.0, &arr_range, distf);
+  gkyl_proj_on_basis_advance(projDistg, 0.0, &arr_range, distg);
+
+  struct gkyl_array *h = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(h, 0.0);
+
+  struct gkyl_array *f_bar = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(f_bar, 0.0);
+
+  struct gkyl_array *g_bar = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(g_bar, 0.0);
+
+  // h = f*g
+  gkyl_dg_mul_op(basis, 0, h, 0, distf, 0, distg);
+  // f_bar = h/g = f
+  gkyl_dg_div_op(basis, 0, f_bar, 0, h, 0, distg);
+  // g_bar = h/f = g
+  gkyl_dg_div_op(basis, 0, g_bar, 0, h, 0, distf);
+
+  for (size_t i=0; i<arr_range.volume; ++i) {
+    const double *f_d = gkyl_array_cfetch(distf, i);
+    const double *fbar_d = gkyl_array_cfetch(f_bar, i);
+    const double *g_d = gkyl_array_cfetch(distg, i);
+    const double *gbar_d = gkyl_array_cfetch(g_bar, i);
+    for (int k=0; k<basis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-14) );
+      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-14) );
+    }
+  }
+  
+  gkyl_proj_on_basis_release(projDistf);
+  gkyl_proj_on_basis_release(projDistg);
+  gkyl_array_release(distf);
+  gkyl_array_release(distg);
+  gkyl_array_release(f_bar);
+  gkyl_array_release(g_bar);
+  gkyl_array_release(h);
+}
+
+void
+test_2d_p2()
+{
+  int poly_order = 2;
+  double lower[] = {0.0, 0.0}, upper[] = {1.0, 1.0};
+  int cells[] = {2, 2};
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+
+  // basis functions
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+
+  // projection updater for dist-function
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_2d, NULL);
+  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_2d, NULL);
+
+  // create array range: no ghost-cells in velocity space
+  struct gkyl_range arr_range;
+  gkyl_range_init_from_shape(&arr_range, ndim, cells);
+
+  // create distribution function
+  struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  struct gkyl_array *distg = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+
+  // project distribution function on basis
+  gkyl_proj_on_basis_advance(projDistf, 0.0, &arr_range, distf);
+  gkyl_proj_on_basis_advance(projDistg, 0.0, &arr_range, distg);
+
+  struct gkyl_array *h = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(h, 0.0);
+
+  struct gkyl_array *f_bar = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(f_bar, 0.0);
+
+  struct gkyl_array *g_bar = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(g_bar, 0.0);
+
+  // h = f*g
+  gkyl_dg_mul_op(basis, 0, h, 0, distf, 0, distg);
+  // f_bar = h/g = f
+  gkyl_dg_div_op(basis, 0, f_bar, 0, h, 0, distg);
+  // g_bar = h/f = g
+  gkyl_dg_div_op(basis, 0, g_bar, 0, h, 0, distf);
+
+  for (size_t i=0; i<arr_range.volume; ++i) {
+    const double *f_d = gkyl_array_cfetch(distf, i);
+    const double *fbar_d = gkyl_array_cfetch(f_bar, i);
+    const double *g_d = gkyl_array_cfetch(distg, i);
+    const double *gbar_d = gkyl_array_cfetch(g_bar, i);
+    for (int k=0; k<basis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-14) );
+      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-14) );
+    }
+  }
+  
+  gkyl_proj_on_basis_release(projDistf);
+  gkyl_proj_on_basis_release(projDistg);
+  gkyl_array_release(distf);
+  gkyl_array_release(distg);
+  gkyl_array_release(f_bar);
+  gkyl_array_release(g_bar);
+  gkyl_array_release(h);
+}
+
+void
+test_2d_p3()
+{
+  int poly_order = 3;
+  double lower[] = {0.0, 0.0}, upper[] = {1.0, 1.0};
+  int cells[] = {2, 2};
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+
+  // basis functions
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+
+  // projection updater for dist-function
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_2d, NULL);
+  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_2d, NULL);
+
+  // create array range: no ghost-cells in velocity space
+  struct gkyl_range arr_range;
+  gkyl_range_init_from_shape(&arr_range, ndim, cells);
+
+  // create distribution function
+  struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  struct gkyl_array *distg = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+
+  // project distribution function on basis
+  gkyl_proj_on_basis_advance(projDistf, 0.0, &arr_range, distf);
+  gkyl_proj_on_basis_advance(projDistg, 0.0, &arr_range, distg);
+
+  struct gkyl_array *h = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(h, 0.0);
+
+  struct gkyl_array *f_bar = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(f_bar, 0.0);
+
+  struct gkyl_array *g_bar = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(g_bar, 0.0);
+
+  // h = f*g
+  gkyl_dg_mul_op(basis, 0, h, 0, distf, 0, distg);
+  // f_bar = h/g = f
+  gkyl_dg_div_op(basis, 0, f_bar, 0, h, 0, distg);
+  // g_bar = h/f = g
+  gkyl_dg_div_op(basis, 0, g_bar, 0, h, 0, distf);
+
+  for (size_t i=0; i<arr_range.volume; ++i) {
+    const double *f_d = gkyl_array_cfetch(distf, i);
+    const double *fbar_d = gkyl_array_cfetch(f_bar, i);
+    const double *g_d = gkyl_array_cfetch(distg, i);
+    const double *gbar_d = gkyl_array_cfetch(g_bar, i);
+    for (int k=0; k<basis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-14) );
+      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-14) );
+    }
+  }
+  
+  gkyl_proj_on_basis_release(projDistf);
+  gkyl_proj_on_basis_release(projDistg);
+  gkyl_array_release(distf);
+  gkyl_array_release(distg);
+  gkyl_array_release(f_bar);
+  gkyl_array_release(g_bar);
+  gkyl_array_release(h);
+}
+
+void f_3d(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  double y = xn[1];
+  double z = xn[2];
+  fout[0] = ((5 + x)*(5 + y)*(5 + z)*(5 + x)*(5 + y)*(5 + z) + 100);
+}
+
+void g_3d(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  double y = xn[1];
+  double z = xn[2];
+  fout[0] = ((x*y*z + 8)*(x*y*z + 8) + 100);
+}
+
+void fg_3d(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  double y = xn[1];
+  double z = xn[2];
+
+  double f[1], g[1];
+  f_3d(t, xn, f, ctx);
+  g_3d(t, xn, g, ctx);
+  
+  fout[0] = f[0]*g[0];
+}
+
+
+void
+test_3d_p1()
+{
+  int poly_order = 1;
+  double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
+  int cells[] = {2, 2, 2};
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+
+  // basis functions
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+
+  // projection updater for dist-function
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, f_3d, NULL);
+  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, g_3d, NULL);
+
+  // create array range: no ghost-cells in velocity space
+  struct gkyl_range arr_range;
+  gkyl_range_init_from_shape(&arr_range, ndim, cells);
+
+  // create distribution function
+  struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  struct gkyl_array *distg = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+
+  // project distribution function on basis
+  gkyl_proj_on_basis_advance(projDistf, 0.0, &arr_range, distf);
+  gkyl_proj_on_basis_advance(projDistg, 0.0, &arr_range, distg);
+
+  struct gkyl_array *h = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(h, 0.0);
+
+  struct gkyl_array *f_bar = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(f_bar, 0.0);
+
+  struct gkyl_array *g_bar = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(g_bar, 0.0);
+
+  // h = f*g
+  gkyl_dg_mul_op(basis, 0, h, 0, distf, 0, distg);
+  // f_bar = h/g = f
+  gkyl_dg_div_op(basis, 0, f_bar, 0, h, 0, distg);
+  // g_bar = h/f = g
+  gkyl_dg_div_op(basis, 0, g_bar, 0, h, 0, distf);
+
+  for (size_t i=0; i<arr_range.volume; ++i) {
+    const double *f_d = gkyl_array_cfetch(distf, i);
+    const double *fbar_d = gkyl_array_cfetch(f_bar, i);
+    const double *g_d = gkyl_array_cfetch(distg, i);
+    const double *gbar_d = gkyl_array_cfetch(g_bar, i);
+    for (int k=0; k<basis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-14) );
+      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-14) );
+    }
+  }
+  
+  gkyl_proj_on_basis_release(projDistf);
+  gkyl_proj_on_basis_release(projDistg);
+  gkyl_array_release(distf);
+  gkyl_array_release(distg);
+  gkyl_array_release(f_bar);
+  gkyl_array_release(g_bar);
+  gkyl_array_release(h);
+}
+
+void
+test_3d_p2()
+{
+  int poly_order = 2;
+  double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
+  int cells[] = {2, 2, 2};
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+
+  // basis functions
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+
+  // projection updater for dist-function
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, 4, 1, f_3d, NULL);
+  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, 4, 1, g_3d, NULL);
+
+  // create array range: no ghost-cells in velocity space
+  struct gkyl_range arr_range;
+  gkyl_range_init_from_shape(&arr_range, ndim, cells);
+
+  // create distribution function
+  struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  struct gkyl_array *distg = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+
+  // project distribution function on basis
+  gkyl_proj_on_basis_advance(projDistf, 0.0, &arr_range, distf);
+  gkyl_proj_on_basis_advance(projDistg, 0.0, &arr_range, distg);
+
+  struct gkyl_array *h = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(h, 0.0);
+
+  struct gkyl_array *f_bar = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(f_bar, 0.0);
+
+  struct gkyl_array *g_bar = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(g_bar, 0.0);
+
+  // h = f*g
+  gkyl_dg_mul_op(basis, 0, h, 0, distf, 0, distg);
+  // f_bar = h/g = f
+  gkyl_dg_div_op(basis, 0, f_bar, 0, h, 0, distg);
+  // g_bar = h/f = g
+  gkyl_dg_div_op(basis, 0, g_bar, 0, h, 0, distf);
+
+  for (size_t i=0; i<arr_range.volume; ++i) {
+    const double *f_d = gkyl_array_cfetch(distf, i);
+    const double *fbar_d = gkyl_array_cfetch(f_bar, i);
+    const double *g_d = gkyl_array_cfetch(distg, i);
+    const double *gbar_d = gkyl_array_cfetch(g_bar, i);
+    for (int k=0; k<basis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-12) );
+      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-12) );
+    }
+  }
+  
+  gkyl_proj_on_basis_release(projDistf);
+  gkyl_proj_on_basis_release(projDistg);
+  gkyl_array_release(distf);
+  gkyl_array_release(distg);
+  gkyl_array_release(f_bar);
+  gkyl_array_release(g_bar);
+  gkyl_array_release(h);
+}
+
+void f_3d_p3(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  double y = xn[1];
+  double z = xn[2];
+  fout[0] = ((5 + x)*(5 + y)*(5 + z)*(5 + x)*(5 + y)*(5 + z)*(5 + x)*(5 + y)*(5 + z) + 100);
+}
+
+void g_3d_p3(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  double y = xn[1];
+  double z = xn[2];
+  fout[0] = ((x*y*z + 8)*(x*y*z + 8)*(x*y*z + 8) + 100);
+}
+
+void
+test_3d_p3()
+{
+  int poly_order = 3;
+  double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
+  int cells[] = {2, 2, 2};
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+
+  // basis functions
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+
+  // projection updater for dist-function
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, f_3d_p3, NULL);
+  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, g_3d_p3, NULL);
+
+  // create array range: no ghost-cells in velocity space
+  struct gkyl_range arr_range;
+  gkyl_range_init_from_shape(&arr_range, ndim, cells);
+
+  // create distribution function
+  struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  struct gkyl_array *distg = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  
+  // project distribution function on basis
+  gkyl_proj_on_basis_advance(projDistf, 0.0, &arr_range, distf);
+  gkyl_proj_on_basis_advance(projDistg, 0.0, &arr_range, distg);
+
+  struct gkyl_array *h = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(h, 0.0);
+
+  struct gkyl_array *f_bar = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(f_bar, 0.0);
+
+  struct gkyl_array *g_bar = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(g_bar, 0.0);
+
+  // h = f*g
+  gkyl_dg_mul_op(basis, 0, h, 0, distf, 0, distg);
+  // f_bar = h/g = f
+  gkyl_dg_div_op(basis, 0, f_bar, 0, h, 0, distg);
+  // g_bar = h/f = g
+  gkyl_dg_div_op(basis, 0, g_bar, 0, h, 0, distf);
+
+  for (size_t i=0; i<arr_range.volume; ++i) {
+    const double *f_d = gkyl_array_cfetch(distf, i);
+    const double *fbar_d = gkyl_array_cfetch(f_bar, i);
+    const double *g_d = gkyl_array_cfetch(distg, i);
+    const double *gbar_d = gkyl_array_cfetch(g_bar, i);
+    for (int k=0; k<basis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-10) );
+      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-10) );
+    }
+  }
+  
+  gkyl_proj_on_basis_release(projDistf);
+  gkyl_proj_on_basis_release(projDistg);
+  gkyl_array_release(distf);
+  gkyl_array_release(distg);
+  gkyl_array_release(f_bar);
+  gkyl_array_release(g_bar);
+  gkyl_array_release(h);
+}
+
+
 TEST_LIST = {
-  { "mul_1d_p2_ss", test_mul_1d_p2_ss },
-  { "mul_1d_p2_sv", test_mul_1d_p2_sv },
+  { "test_1d_p1", test_1d_p1 },
+  { "test_1d_p2", test_1d_p2 },
+  { "test_1d_p3", test_1d_p3 },
+  { "test_2d_p1", test_2d_p1 },
+  { "test_2d_p2", test_2d_p2 },
+  { "test_2d_p3", test_2d_p3 },
+  { "test_3d_p1", test_3d_p1 },
+  { "test_3d_p2", test_3d_p2 },
+  { "test_3d_p3", test_3d_p3 },
   { NULL, NULL },
 };
