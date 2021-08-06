@@ -6,7 +6,7 @@
 
 CFLAGS = -O3 -g -ffast-math -march=native
 LDFLAGS =
-KERN_INCLUDES = -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov -Ikernels/bin_op
+KERN_INCLUDES = -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov -Ikernels/bin_op -Ikernels/const_diffusion
 INCLUDES = -Iminus -Izero -Iapps -Iregression ${KERN_INCLUDES}
 PREFIX = ${HOME}/gkylsoft
 
