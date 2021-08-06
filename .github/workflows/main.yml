@@ -15,8 +15,12 @@ jobs:
     - uses: actions/checkout@v2
     - name: install-openblas
       run: sudo apt-get install libopenblas-dev
+    - name: where-openblas
+      run: dpkg -L libopenblas-dev
     - name: install-lapacke
       run: sudo apt-get install liblapacke-dev
+    - name: where-openblas
+      run: dpkg -L libopenblas-dev      
     - name: make
       run: make LAPACK_INC=/usr/include/x86_64-linux-gnu/openblas-pthread LAPACK_LIB="/usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblas.a /usr/lib/x86_64-linux-gnu/liblapacke.a /usr/lib/x86_64-linux-gnu/openblas-pthread/liblapack.a" -j
     - name: make check
