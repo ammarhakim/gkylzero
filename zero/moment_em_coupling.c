@@ -246,7 +246,7 @@ fluid_source_update(const gkyl_moment_em_coupling *mes, double dt,
       pressure_tensor_rotate(qbym, dt, em, ext_em, prInp, prTen[n]);
 
       // Divide out integrating factor from collisional relaxation
-      // W = exp(nu*t)*(P - pI); where p is the isotropic pressure 
+      // (P - pI) = exp(-nu*dt)*(P - pI); where p is the isotropic pressure 
       prTen[n][0] = (prTen[n][0] - p)/edt + p;
       prTen[n][1] = prTen[n][1]/edt;
       prTen[n][2] = prTen[n][2]/edt;
