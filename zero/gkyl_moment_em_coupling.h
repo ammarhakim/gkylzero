@@ -12,6 +12,7 @@ struct gkyl_moment_em_coupling_data {
   enum gkyl_eqn_type type;
   double charge; // species charge
   double mass; // species mass
+  double k0; // closure parameter (default is 0.0, used by 10 moment)
 };
 
 struct gkyl_moment_em_coupling_inp {
