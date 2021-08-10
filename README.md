@@ -1,4 +1,4 @@
-![Build Dist](https://github.com/ammarhakim/gkylzero/actions/workflows/main.yml/badge.svg)
+![Linux Build](https://github.com/ammarhakim/gkylzero/actions/workflows/main.yml/badge.svg)
 
 # About
 
