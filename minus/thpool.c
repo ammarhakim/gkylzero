@@ -110,7 +110,9 @@ static void  bsem_post(struct bsem *bsem_p);
 static void  bsem_post_all(struct bsem *bsem_p);
 static void  bsem_wait(struct bsem *bsem_p);
 
-
+#if defined(__APPLE__) && defined(__MACH__)
+int pthread_setname_np(pthread_t thread, const char *name);
+#endif
 
 
 
