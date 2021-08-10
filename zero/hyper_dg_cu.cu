@@ -117,7 +117,7 @@ gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid,
   gkyl_hyper_dg *up = (gkyl_hyper_dg*) gkyl_malloc(sizeof(gkyl_hyper_dg));
 
   up->ndim = basis->ndim;
-  up->numBasis = basis->numBasis;
+  up->num_basis = basis->num_basis;
   up->num_up_dirs = num_up_dirs;
   up->grid = *grid;
 

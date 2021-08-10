@@ -15,7 +15,7 @@ void ker_cu_vlasov_mom_test(const struct gkyl_mom_type *m2ij, int *nfail)
 
   GKYL_CU_CHECK( m2ij->cdim == 1, nfail );
   GKYL_CU_CHECK( m2ij->pdim == 4, nfail );
-  GKYL_CU_CHECK( m2ij->polyOrder == 2, nfail );
+  GKYL_CU_CHECK( m2ij->poly_order == 2, nfail );
   GKYL_CU_CHECK( m2ij->num_config == 3, nfail );
   GKYL_CU_CHECK( m2ij->num_phase == 48, nfail );
   GKYL_CU_CHECK( m2ij->num_mom == 6, nfail );
