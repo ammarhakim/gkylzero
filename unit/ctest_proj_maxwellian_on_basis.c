@@ -47,7 +47,7 @@ void eval_M0(double t, const double *xn, double* restrict fout, void *ctx)
 void eval_M1i_1v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
-  fout[0] = 0.0;
+  fout[0] = 0.5;
 }
 
 void eval_M2(double t, const double *xn, double* restrict fout, void *ctx)
@@ -57,9 +57,8 @@ void eval_M2(double t, const double *xn, double* restrict fout, void *ctx)
 }
 
 void
-test_1x1v_p1()
+test_1x1v(int poly_order)
 {
-  int poly_order = 1;
   double lower[] = {0.1, -6.0}, upper[] = {1.0, 6.0};
   int cells[] = {2, 32};
   int vdim = 1, cdim = 1;
@@ -119,7 +118,9 @@ test_1x1v_p1()
   gkyl_proj_maxwellian_on_basis_lab_mom(proj_max, local, confLocal, m0, m1i, m2, distf);
 
   // write distribution function to file
-  gkyl_grid_sub_array_write(&grid, &local, distf, "ctest_proj_maxwellian_on_basis_test_1x1v_p1.gkyl");
+  char fname[1024];
+  sprintf(fname, "ctest_proj_maxwellian_on_basis_test_1x1v_p%d.gkyl", poly_order);
+  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // release memory for moment data object
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
@@ -130,7 +131,15 @@ test_1x1v_p1()
   gkyl_proj_on_basis_release(proj_m2);
 }
 
+void test_1x1v_p0() { test_1x1v(0); }
+void test_1x1v_p1() { test_1x1v(1); }
+void test_1x1v_p2() { test_1x1v(2); }
+void test_1x1v_p3() { test_1x1v(3); }
+
 TEST_LIST = {
+  { "test_1x1v_p0", test_1x1v_p0 },
   { "test_1x1v_p1", test_1x1v_p1 },
+  { "test_1x1v_p2", test_1x1v_p2 },
+  { "test_1x1v_p3", test_1x1v_p3 },
   { NULL, NULL },
 };
