@@ -5,7 +5,7 @@
 #
 
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
-CFLAGS = -O3 -g -ffast-math -march=native
+CFLAGS = -O3 -g -ffast-math
 LDFLAGS =
 KERN_INCLUDES = -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov -Ikernels/bin_op
 
@@ -32,6 +32,7 @@ NVCC =
 USING_NVCC =
 NVCC_FLAGS = 
 ifeq ($(CC), nvcc)
+       CFLAGS = -O3 -g 
        USING_NVCC = yes
        NVCC_FLAGS = -x cu -dc -arch=sm_70 --compiler-options="-fPIC" 
        LDFLAGS += -arch=sm_70
