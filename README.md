@@ -1,4 +1,5 @@
 ![Linux Build](https://github.com/ammarhakim/gkylzero/actions/workflows/main.yml/badge.svg)
+![Mac Build](https://github.com/ammarhakim/gkylzero/actions/workflows/osx-build.yml/badge.svg)
 
 # About
 
