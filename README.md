@@ -78,6 +78,27 @@ This will install OpenBLAS in the $HOME/gkylsoft directory. Note that
 OpenBLAS requires you to have gfortran installed. You are responsible
 for installing this on your machine.
 
+# Using precompiled OpenBLAS
+
+If you can't (do not wish to) build the OpenBLAS library you can instead install the
+pre-built ones that are available on Ubuntu. (Similar libraries will
+be available on other Linux distros). First, install the libraries as:
+```
+sudo apt-get install libopenblas-dev
+sudo apt-get install liblapacke-dev
+```
+
+Then, to compile GkeyllZero itself type:
+```
+make LAPACK_INC=/usr/include/x86_64-linux-gnu/openblas-pthread LAPACK_LIB="/usr/lib/x86_64-linux-gnu/liblapacke.a /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblas.a /usr/lib/x86_64-linux-gnu/openblas-pthread/liblapack.a" -j
+```
+
+For other Linux distros you will need to adjust the paths shown above.
+
+You might want to store this command in a shell-script when building
+your own app drivers. Or, better yet, modify your Makefile to use
+these paths and flag instead.
+
 # Developing for GkeyllZero
 
 Out goal is to keep GkeyllZero as simple and dependency free as
