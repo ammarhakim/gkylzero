@@ -14,7 +14,7 @@ void ker_cu_hyper_dg_kernel_test(const gkyl_hyper_dg *slvr, int *nfail)
   *nfail = 0;
   
   GKYL_CU_CHECK( slvr->ndim == 5, nfail );
-  GKYL_CU_CHECK( slvr->numBasis == 32, nfail );
+  GKYL_CU_CHECK( slvr->num_basis == 32, nfail );
   GKYL_CU_CHECK( slvr->num_up_dirs == 5, nfail );
 
   GKYL_CU_CHECK( slvr->grid.ndim == 5, nfail );
