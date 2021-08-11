@@ -1,5 +1,5 @@
 #include <gkyl_lbo_kernels.h> 
-GKYL_CU_DH void lbo_constNu_surf_1x1v_ser_vx_p2(const double *w, const double *dxv, const double nuSum, const double *nuUSumL, const double *nuUSumR, const double *nuVtSqSumL, const double *nuVtSqSumR, const double *fl, const double *fc, const double *fr, double *out) 
+GKYL_CU_DH void lbo_constNu_surf_1x1v_ser_vx_p2(const double *w, const double *dxv, const double nuSum, const double *nuUSumL, const double *nuUSumR, const double *nuVtSqSumL, const double *nuVtSqSumR, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[2]:          Cell-center coordinates. 
   // dxv[2]:        Cell spacing. 

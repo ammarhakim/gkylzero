@@ -1,5 +1,5 @@
 #include <gkyl_lbo_kernels.h> 
-GKYL_CU_DH void lbo_constNu_surf_1x3v_ser_vx_p2(const double *w, const double *dxv, const double nuSum, const double *nuUSumL, const double *nuUSumR, const double *nuVtSqSumL, const double *nuVtSqSumR, const double *fl, const double *fc, const double *fr, double *out) 
+GKYL_CU_DH void lbo_constNu_surf_1x3v_ser_vx_p2(const double *w, const double *dxv, const double nuSum, const double *nuUSumL, const double *nuUSumR, const double *nuVtSqSumL, const double *nuVtSqSumR, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[4]:          Cell-center coordinates. 
   // dxv[4]:        Cell spacing. 
@@ -314,7 +314,7 @@ GKYL_CU_DH void lbo_constNu_surf_1x3v_ser_vx_p2(const double *w, const double *d
   out[46] += incr2_r[46]*rdvSq4+incr2_l[46]*rdvSq4-0.8660254037844387*GhatR[39]*rdv2-0.8660254037844387*GhatL[39]*rdv2; 
   out[47] += incr2_r[47]*rdvSq4+incr2_l[47]*rdvSq4-0.8660254037844387*GhatR[42]*rdv2-0.8660254037844387*GhatL[42]*rdv2; 
 } 
-GKYL_CU_DH void lbo_constNu_surf_1x3v_ser_vy_p2(const double *w, const double *dxv, const double nuSum, const double *nuUSumL, const double *nuUSumR, const double *nuVtSqSumL, const double *nuVtSqSumR, const double *fl, const double *fc, const double *fr, double *out) 
+GKYL_CU_DH void lbo_constNu_surf_1x3v_ser_vy_p2(const double *w, const double *dxv, const double nuSum, const double *nuUSumL, const double *nuUSumR, const double *nuVtSqSumL, const double *nuVtSqSumR, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[4]:          Cell-center coordinates. 
   // dxv[4]:        Cell spacing. 
@@ -629,7 +629,7 @@ GKYL_CU_DH void lbo_constNu_surf_1x3v_ser_vy_p2(const double *w, const double *d
   out[46] += incr2_r[46]*rdvSq4+incr2_l[46]*rdvSq4-1.118033988749895*GhatR[16]*rdv2+1.118033988749895*GhatL[16]*rdv2; 
   out[47] += incr2_r[47]*rdvSq4+incr2_l[47]*rdvSq4-0.8660254037844387*GhatR[41]*rdv2-0.8660254037844387*GhatL[41]*rdv2; 
 } 
-GKYL_CU_DH void lbo_constNu_surf_1x3v_ser_vz_p2(const double *w, const double *dxv, const double nuSum, const double *nuUSumL, const double *nuUSumR, const double *nuVtSqSumL, const double *nuVtSqSumR, const double *fl, const double *fc, const double *fr, double *out) 
+GKYL_CU_DH void lbo_constNu_surf_1x3v_ser_vz_p2(const double *w, const double *dxv, const double nuSum, const double *nuUSumL, const double *nuUSumR, const double *nuVtSqSumL, const double *nuVtSqSumR, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[4]:          Cell-center coordinates. 
   // dxv[4]:        Cell spacing. 
