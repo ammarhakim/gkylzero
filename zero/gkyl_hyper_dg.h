@@ -18,8 +18,6 @@ struct gkyl_hyper_dg {
   int zero_flux_flags[GKYL_MAX_DIM]; // directions with zero flux
   int update_vol_term; // should we update volume term?
   const struct gkyl_dg_eqn *equation; // equation object
- 
-  double maxs[GKYL_MAX_DIM];
 };
 
 /**
@@ -35,7 +33,7 @@ struct gkyl_hyper_dg {
  */
 gkyl_hyper_dg* gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation,
-  int num_up_dirs, int update_dirs[], int zero_flux_flags[], int update_vol_term, double maxs_init[]);
+  int num_up_dirs, int update_dirs[], int zero_flux_flags[], int update_vol_term);
 
 
 /**
@@ -51,7 +49,7 @@ gkyl_hyper_dg* gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
  */
 gkyl_hyper_dg* gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
   const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation_cu,
-  int num_up_dirs, int update_dirs[], int zero_flux_flags[], int update_vol_term, double maxs_init[]);
+  int num_up_dirs, int update_dirs[], int zero_flux_flags[], int update_vol_term);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
@@ -64,20 +62,19 @@ gkyl_hyper_dg* gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
  * @param fIn Input to updater
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
- * @param maxs Input/output: maximum speed
  */
 void gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, struct gkyl_range update_rng,
-  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs, struct gkyl_array *maxs_by_cell);
+  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs);
 
 /* 
  * Same as gkyl_hyper_dg_advance, but doesn't use iterators 
  */
 void gkyl_hyper_dg_advance_no_iter(gkyl_hyper_dg *hdg, struct gkyl_range update_rng,
-  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs, struct gkyl_array *maxs_by_cell);
+  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs);
 
 void gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* hdg, const struct gkyl_range update_range,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
-  struct gkyl_array* GKYL_RESTRICT rhs, struct gkyl_array* GKYL_RESTRICT maxs_by_cell);
+  struct gkyl_array* GKYL_RESTRICT rhs);
 
 /**
  * Set if volume term should be computed or not.

@@ -69,21 +69,19 @@ test_vlasov_1x2v_p2_(bool use_gpu)
   // initialize hyper_dg slvr
   int up_dirs[] = {0, 1, 2};
   int zero_flux_flags[] = {0, 1, 1};
-  double maxs_init[] = {0., 0., 0.};
 
   gkyl_hyper_dg *slvr;
   if (use_gpu)
-    slvr = gkyl_hyper_dg_cu_dev_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1, maxs_init);
+    slvr = gkyl_hyper_dg_cu_dev_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1);
   else
-    slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1, maxs_init);
+    slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1);
 
   // initialize arrays
-  struct gkyl_array *fin, *rhs, *cflrate, *maxs_by_cell, *qmem;
+  struct gkyl_array *fin, *rhs, *cflrate, *qmem;
   struct gkyl_array *fin_h, *qmem_h, *rhs_h;
   fin = mkarr1(use_gpu, basis.num_basis, phaseRange_ext.volume);
   rhs = mkarr1(use_gpu, basis.num_basis, phaseRange_ext.volume);
   cflrate = mkarr1(use_gpu, 1, phaseRange_ext.volume);
-  maxs_by_cell = mkarr1(use_gpu, pdim, phaseRange_ext.volume);
   qmem = mkarr1(use_gpu, 8*confBasis.num_basis, confRange_ext.volume);
 
   double *cfl_ptr;
@@ -122,21 +120,15 @@ test_vlasov_1x2v_p2_(bool use_gpu)
   // run hyper_dg_advance
   int nrep = 10;
   for(int n=0; n<nrep; n++) {
-    if (use_gpu)
-      gkyl_cu_memset(slvr->maxs, 0, GKYL_MAX_DIM*sizeof(double));
-    else
-      for (int i=0; i<pdim; i++) slvr->maxs[i] = 0.;
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
-    gkyl_array_clear(maxs_by_cell, 0.0);
     gkyl_vlasov_set_qmem(eqn, qmem); // must set EM fields to use
     if (use_gpu) 
-      gkyl_hyper_dg_advance_cu(slvr, phaseRange, fin, cflrate, rhs, maxs_by_cell);
+      gkyl_hyper_dg_advance_cu(slvr, phaseRange, fin, cflrate, rhs);
     else
-      gkyl_hyper_dg_advance(slvr, phaseRange, fin, cflrate, rhs, maxs_by_cell);
+      gkyl_hyper_dg_advance(slvr, phaseRange, fin, cflrate, rhs);
 
     gkyl_array_reduce(cfl_ptr, cflrate, GKYL_MAX);
-    gkyl_array_reduce_range(slvr->maxs, maxs_by_cell, GKYL_MAX, phaseRange);
   }
 
   double *cfl_ptr_h;
@@ -146,21 +138,6 @@ test_vlasov_1x2v_p2_(bool use_gpu)
     cfl_ptr = cfl_ptr_h;
   }
   TEST_CHECK( gkyl_compare_double(cfl_ptr[0], 2.5178875733842702e+01, 1e-12) );
-
-  // check results of maxs
-  double *maxs;
-  if (use_gpu) {
-    maxs = (double*) gkyl_malloc(GKYL_MAX_DIM*sizeof(double));
-    gkyl_cu_memcpy(maxs, slvr->maxs, GKYL_MAX_DIM*sizeof(double), GKYL_CU_MEMCPY_D2H);
-  } else {
-    maxs = slvr->maxs;
-  }
-    
-  //printf("maxs\n");
-  //for(int i=0; i<pdim; i++) printf("%.16e\n", maxs[i]);
-  TEST_CHECK( gkyl_compare_double(maxs[0], 0.0000000000000000e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(maxs[1], 9.6634593835823734e-02, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(maxs[2], 9.9844695137960127e-02, 1e-12) );
 
   // get linear index of first non-ghost cell
   int idx[] = {0, 0, 0, 0, 0};
@@ -241,7 +218,6 @@ test_vlasov_1x2v_p2_(bool use_gpu)
   gkyl_array_release(fin);
   gkyl_array_release(rhs);
   gkyl_array_release(cflrate);
-  gkyl_array_release(maxs_by_cell);
   gkyl_array_release(qmem);
 
   if (!use_gpu) {
@@ -291,26 +267,24 @@ test_vlasov_2x3v_p1_(bool use_gpu)
   // initialize hyper_dg slvr
   int up_dirs[] = {0, 1, 2, 3, 4};
   int zero_flux_flags[] = {0, 0, 1, 1, 1};
-  double maxs_init[] = {0., 0., 0., 0., 0.};
 
   gkyl_hyper_dg *slvr;
   if (use_gpu) {
-    slvr = gkyl_hyper_dg_cu_dev_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1, maxs_init);
+    slvr = gkyl_hyper_dg_cu_dev_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1);
     // basic check
     int nfail = hyper_dg_kernel_test(slvr);
 
     TEST_CHECK( nfail == 0 );
   } else {
-    slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1, maxs_init);
+    slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1);
   }
 
   // initialize arrays
-  struct gkyl_array *fin, *rhs, *cflrate, *maxs_by_cell, *qmem;
+  struct gkyl_array *fin, *rhs, *cflrate, *qmem;
   struct gkyl_array *fin_h, *qmem_h, *rhs_h;
   fin = mkarr1(use_gpu, basis.num_basis, phaseRange_ext.volume);
   rhs = mkarr1(use_gpu, basis.num_basis, phaseRange_ext.volume);
   cflrate = mkarr1(use_gpu, 1, phaseRange_ext.volume);
-  maxs_by_cell = mkarr1(use_gpu, pdim, phaseRange_ext.volume);
   qmem = mkarr1(use_gpu, 8*confBasis.num_basis, confRange_ext.volume);
 
   // set initial condition
@@ -343,36 +317,14 @@ test_vlasov_2x3v_p1_(bool use_gpu)
   // run hyper_dg_advance
   int nrep = 10;
   for(int n=0; n<nrep; n++) {
-    if (use_gpu)
-      gkyl_cu_memset(slvr->maxs, 0, GKYL_MAX_DIM*sizeof(double));
-    else
-      for (int i=0; i<pdim; i++) slvr->maxs[i] = 0.;
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
-    gkyl_array_clear(maxs_by_cell, 0.0);
     gkyl_vlasov_set_qmem(eqn, qmem); // must set EM fields to use
     if (use_gpu) 
-      gkyl_hyper_dg_advance_cu(slvr, phaseRange, fin, cflrate, rhs, maxs_by_cell);
+      gkyl_hyper_dg_advance_cu(slvr, phaseRange, fin, cflrate, rhs);
     else
-      gkyl_hyper_dg_advance(slvr, phaseRange, fin, cflrate, rhs, maxs_by_cell);
-
-    gkyl_array_reduce_range(slvr->maxs, maxs_by_cell, GKYL_MAX, phaseRange);
+      gkyl_hyper_dg_advance(slvr, phaseRange, fin, cflrate, rhs);
   }
-
-  // check results of maxs
-  double *maxs;
-  if (use_gpu) {
-    maxs = (double*) gkyl_malloc(GKYL_MAX_DIM*sizeof(double));
-    gkyl_cu_memcpy(maxs, slvr->maxs, GKYL_MAX_DIM*sizeof(double), GKYL_CU_MEMCPY_D2H);
-  } else {
-    maxs = slvr->maxs;
-  }
-    
-  TEST_CHECK( gkyl_compare_double(maxs[0], 0.0000000000000000e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(maxs[1], 0.0000000000000000e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(maxs[2], 1.1565625000000002e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(maxs[3], 1.1571875000000000e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(maxs[4], 1.1578125000000001e+00, 1e-12) );
 
   // get linear index of first non-ghost cell
   int idx[] = {0, 0, 0, 0, 0};
@@ -481,7 +433,6 @@ test_vlasov_2x3v_p1_(bool use_gpu)
   gkyl_array_release(fin);
   gkyl_array_release(rhs);
   gkyl_array_release(cflrate);
-  gkyl_array_release(maxs_by_cell);
   gkyl_array_release(qmem);
 
   if (!use_gpu) {
