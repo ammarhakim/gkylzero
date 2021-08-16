@@ -1,5 +1,5 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH void vlasov_surfx_1x1v_ser_p1(const double *w, const double *dxv, const double *fl, const double *fc, const double *fr, double* restrict out) 
+GKYL_CU_DH void vlasov_surfx_1x1v_ser_p1(const double *w, const double *dxv, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
