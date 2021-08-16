@@ -22,11 +22,23 @@ GKYL_CU_DH void vlasov_boundary_surfvx_1x1v_ser_p1(const double *w, const double
 
   if (edge == -1) { 
 
-  fUpwindQuad[0] = copysignf(1.0,alpha[0]-alpha[1])*((-0.8660254037844386*(fSkin[3]+fEdge[3]))+0.8660254037844386*(fSkin[2]+fEdge[2])-0.5*fSkin[1]+0.5*(fEdge[1]+fSkin[0])-0.5*fEdge[0])-0.8660254037844386*fSkin[3]+0.8660254037844386*(fEdge[3]+fSkin[2])-0.8660254037844386*fEdge[2]-0.5*(fSkin[1]+fEdge[1])+0.5*(fSkin[0]+fEdge[0]); 
-  fUpwindQuad[1] = copysignf(1.0,alpha[1]+alpha[0])*(0.8660254037844386*(fSkin[3]+fEdge[3]+fSkin[2]+fEdge[2])+0.5*(fSkin[1]+fSkin[0])-0.5*(fEdge[1]+fEdge[0]))+0.8660254037844386*(fSkin[3]+fSkin[2])-0.8660254037844386*(fEdge[3]+fEdge[2])+0.5*(fSkin[1]+fEdge[1]+fSkin[0]+fEdge[0]); 
+  if (alpha[0]-alpha[1] > 0) { 
 
-  fUpwind[0] = 0.3535533905932737*(fUpwindQuad[1]+fUpwindQuad[0]); 
-  fUpwind[1] = 0.3535533905932737*(fUpwindQuad[1]-1.0*fUpwindQuad[0]); 
+    fUpwindQuad[0] = (-0.8660254037844386*fSkin[3])+0.8660254037844386*fSkin[2]-0.5*fSkin[1]+0.5*fSkin[0]; 
+  } else { 
+
+    fUpwindQuad[0] = 0.8660254037844386*fEdge[3]-0.8660254037844386*fEdge[2]-0.5*fEdge[1]+0.5*fEdge[0]; 
+  } 
+  if (alpha[1]+alpha[0] > 0) { 
+
+    fUpwindQuad[1] = 0.8660254037844386*(fSkin[3]+fSkin[2])+0.5*(fSkin[1]+fSkin[0]); 
+  } else { 
+
+    fUpwindQuad[1] = 0.5*(fEdge[1]+fEdge[0])-0.8660254037844386*(fEdge[3]+fEdge[2]); 
+  } 
+
+  fUpwind[0] = 0.7071067811865475*(fUpwindQuad[1]+fUpwindQuad[0]); 
+  fUpwind[1] = 0.7071067811865475*(fUpwindQuad[1]-1.0*fUpwindQuad[0]); 
 
   Ghat[0] = 0.7071067811865475*(alpha[1]*fUpwind[1]+alpha[0]*fUpwind[0]); 
   Ghat[1] = 0.7071067811865475*(alpha[0]*fUpwind[1]+fUpwind[0]*alpha[1]); 
@@ -38,11 +50,23 @@ GKYL_CU_DH void vlasov_boundary_surfvx_1x1v_ser_p1(const double *w, const double
 
   } else { 
 
-  fUpwindQuad[0] = copysignf(1.0,alpha[0]-alpha[1])*((-0.8660254037844386*(fSkin[3]+fEdge[3]))+0.8660254037844386*(fSkin[2]+fEdge[2])+0.5*fSkin[1]-0.5*(fEdge[1]+fSkin[0])+0.5*fEdge[0])+0.8660254037844386*fSkin[3]-0.8660254037844386*(fEdge[3]+fSkin[2])+0.8660254037844386*fEdge[2]-0.5*(fSkin[1]+fEdge[1])+0.5*(fSkin[0]+fEdge[0]); 
-  fUpwindQuad[1] = copysignf(1.0,alpha[1]+alpha[0])*(0.8660254037844386*(fSkin[3]+fEdge[3]+fSkin[2]+fEdge[2])-0.5*(fSkin[1]+fSkin[0])+0.5*(fEdge[1]+fEdge[0]))-0.8660254037844386*(fSkin[3]+fSkin[2])+0.8660254037844386*(fEdge[3]+fEdge[2])+0.5*(fSkin[1]+fEdge[1]+fSkin[0]+fEdge[0]); 
+  if (alpha[0]-alpha[1] > 0) { 
 
-  fUpwind[0] = 0.3535533905932737*(fUpwindQuad[1]+fUpwindQuad[0]); 
-  fUpwind[1] = 0.3535533905932737*(fUpwindQuad[1]-1.0*fUpwindQuad[0]); 
+    fUpwindQuad[0] = (-0.8660254037844386*fEdge[3])+0.8660254037844386*fEdge[2]-0.5*fEdge[1]+0.5*fEdge[0]; 
+  } else { 
+
+    fUpwindQuad[0] = 0.8660254037844386*fSkin[3]-0.8660254037844386*fSkin[2]-0.5*fSkin[1]+0.5*fSkin[0]; 
+  } 
+  if (alpha[1]+alpha[0] > 0) { 
+
+    fUpwindQuad[1] = 0.8660254037844386*(fEdge[3]+fEdge[2])+0.5*(fEdge[1]+fEdge[0]); 
+  } else { 
+
+    fUpwindQuad[1] = 0.5*(fSkin[1]+fSkin[0])-0.8660254037844386*(fSkin[3]+fSkin[2]); 
+  } 
+
+  fUpwind[0] = 0.7071067811865475*(fUpwindQuad[1]+fUpwindQuad[0]); 
+  fUpwind[1] = 0.7071067811865475*(fUpwindQuad[1]-1.0*fUpwindQuad[0]); 
 
   Ghat[0] = 0.7071067811865475*(alpha[1]*fUpwind[1]+alpha[0]*fUpwind[0]); 
   Ghat[1] = 0.7071067811865475*(alpha[0]*fUpwind[1]+fUpwind[0]*alpha[1]); 

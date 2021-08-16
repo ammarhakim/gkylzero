@@ -17,17 +17,31 @@ GKYL_CU_DH void vlasov_surfvx_1x1v_ser_p1(const double *w, const double *dxv, co
 
   double fUpwindQuad_l[2];
   double fUpwindQuad_r[2];
-  fUpwindQuad_l[0] = copysignf(1.0,alpha[0]-alpha[1])*((-0.8660254037844386*(fl[3]+fc[3]))+0.8660254037844386*(fl[2]+fc[2])-0.5*fl[1]+0.5*(fc[1]+fl[0])-0.5*fc[0])-0.8660254037844386*fl[3]+0.8660254037844386*(fc[3]+fl[2])-0.8660254037844386*fc[2]-0.5*(fl[1]+fc[1])+0.5*(fl[0]+fc[0]); 
-  fUpwindQuad_r[0] = copysignf(1.0,alpha[0]-alpha[1])*((-0.8660254037844386*(fr[3]+fc[3]))+0.8660254037844386*(fr[2]+fc[2])+0.5*fr[1]-0.5*(fc[1]+fr[0])+0.5*fc[0])+0.8660254037844386*fr[3]-0.8660254037844386*(fc[3]+fr[2])+0.8660254037844386*fc[2]-0.5*(fr[1]+fc[1])+0.5*(fr[0]+fc[0]); 
-  fUpwindQuad_l[1] = copysignf(1.0,alpha[1]+alpha[0])*(0.8660254037844386*(fl[3]+fc[3]+fl[2]+fc[2])+0.5*(fl[1]+fl[0])-0.5*(fc[1]+fc[0]))+0.8660254037844386*(fl[3]+fl[2])-0.8660254037844386*(fc[3]+fc[2])+0.5*(fl[1]+fc[1]+fl[0]+fc[0]); 
-  fUpwindQuad_r[1] = copysignf(1.0,alpha[1]+alpha[0])*(0.8660254037844386*(fr[3]+fc[3]+fr[2]+fc[2])-0.5*(fr[1]+fr[0])+0.5*(fc[1]+fc[0]))-0.8660254037844386*(fr[3]+fr[2])+0.8660254037844386*(fc[3]+fc[2])+0.5*(fr[1]+fc[1]+fr[0]+fc[0]); 
+  if (alpha[0]-alpha[1] > 0) { 
+
+    fUpwindQuad_l[0] = (-0.8660254037844386*fl[3])+0.8660254037844386*fl[2]-0.5*fl[1]+0.5*fl[0]; 
+    fUpwindQuad_r[0] = (-0.8660254037844386*fc[3])+0.8660254037844386*fc[2]-0.5*fc[1]+0.5*fc[0]; 
+  } else { 
+
+    fUpwindQuad_l[0] = 0.8660254037844386*fc[3]-0.8660254037844386*fc[2]-0.5*fc[1]+0.5*fc[0]; 
+    fUpwindQuad_r[0] = 0.8660254037844386*fr[3]-0.8660254037844386*fr[2]-0.5*fr[1]+0.5*fr[0]; 
+  } 
+  if (alpha[1]+alpha[0] > 0) { 
+
+    fUpwindQuad_l[1] = 0.8660254037844386*(fl[3]+fl[2])+0.5*(fl[1]+fl[0]); 
+    fUpwindQuad_r[1] = 0.8660254037844386*(fc[3]+fc[2])+0.5*(fc[1]+fc[0]); 
+  } else { 
+
+    fUpwindQuad_l[1] = 0.5*(fc[1]+fc[0])-0.8660254037844386*(fc[3]+fc[2]); 
+    fUpwindQuad_r[1] = 0.5*(fr[1]+fr[0])-0.8660254037844386*(fr[3]+fr[2]); 
+  } 
   double fUpwind_l[2];
-  fUpwind_l[0] = 0.3535533905932737*(fUpwindQuad_l[1]+fUpwindQuad_l[0]); 
-  fUpwind_l[1] = 0.3535533905932737*(fUpwindQuad_l[1]-1.0*fUpwindQuad_l[0]); 
+  fUpwind_l[0] = 0.7071067811865475*(fUpwindQuad_l[1]+fUpwindQuad_l[0]); 
+  fUpwind_l[1] = 0.7071067811865475*(fUpwindQuad_l[1]-1.0*fUpwindQuad_l[0]); 
 
   double fUpwind_r[2];
-  fUpwind_r[0] = 0.3535533905932737*(fUpwindQuad_r[1]+fUpwindQuad_r[0]); 
-  fUpwind_r[1] = 0.3535533905932737*(fUpwindQuad_r[1]-1.0*fUpwindQuad_r[0]); 
+  fUpwind_r[0] = 0.7071067811865475*(fUpwindQuad_r[1]+fUpwindQuad_r[0]); 
+  fUpwind_r[1] = 0.7071067811865475*(fUpwindQuad_r[1]-1.0*fUpwindQuad_r[0]); 
 
   double Ghat_l[2]; 
   double Ghat_r[2]; 
