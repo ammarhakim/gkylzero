@@ -6,14 +6,14 @@
 
 // Types for various kernels
 typedef void (*vlasov_lbo_constNu_surf_t)(const double *w, const double *dxv,
-  const double nuSum, const double *nuUSumL, const double *nuUSumR,
-  const double *nuVtSqSumL, const double *nuVtSqSumR, const double *fl,
+  const double nuSum, const double *nuUSum_l, const double *nuUSum_r,
+  const double *nuVtSqSum_l, const double *nuVtSqSum_r, const double *fl,
   const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
 typedef void (*vlasov_lbo_constNu_boundary_surf_t)(const double *w, const double *dxv,
   const double nuSum, const double *nuUSum,
-  const double *nuVtSqSumL, const double *nuVtSqSumR, const int edge, const double *fl,
-  const double *fc, const double *fr, double* GKYL_RESTRICT out);
+  const double *nuVtSqSumL, const double *nuVtSqSumR, const int edge,
+  const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
