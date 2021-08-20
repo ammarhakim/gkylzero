@@ -1,0 +1,105 @@
+load("/home/kltrbrds/gkylcas/maxima/lenardBernsteinOperator-calc/g0/VmLBOconstNu-surf")$
+
+/* load("lenardBernsteinOperator-calc/VmLBOvarNu-surf")$ */
+
+;
+
+load(stringproc)$
+
+/* This script calls the functions which calculate the
+   updates from the surface term contributions. */
+
+/* ...... USER INPUTS........ */
+
+/* Generate kernels for "uni"form, "nonuni"form or "both" grid types. */
+
+grid : "uni"$
+
+/* Serendipity basis. */
+
+maxPolyOrder_Ser : 2$
+
+minCdim_Ser : 1$
+
+minVdim_Ser : 1$
+
+maxCdim_Ser : 3$
+
+maxVdim_Ser : 3$
+
+/* Maximal order basis. */
+
+maxPolyOrder_Max : 2$
+
+minCdim_Max : 1$
+
+minVdim_Max : 1$
+
+maxCdim_Max : 0$
+
+maxVdim_Max : 0$
+
+/* Tensor product basis. */
+
+maxPolyOrder_Tensor : 2$
+
+minCdim_Tensor : 1$
+
+minVdim_Tensor : 1$    /* see begining of v loop below though. */
+maxCdim_Tensor : 2$
+
+maxVdim_Tensor : 3$
+
+/* ...... END OF USER INPUTS........ */
+
+bName        : ["Ser"]$
+
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
+
+minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
+
+minVdim      : [minVdim_Ser, minVdim_Max, minVdim_Tensor]$
+
+maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
+
+maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
+
+varsV : [vx, vy, vz]$
+
+/* Is non-uniform booleans. */
+
+if     grid="uni"    then (gridType : [false])
+elseif grid="nonuni" then (gridType : [true])
+elseif grid="both"   then (gridType : [false,true])$
+
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    for v : max(c,minVdim[bInd]) thru maxVdim[bInd] do (
+
+      maxPolyOrderB : maxPolyOrder[bInd],
+      if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+      if (c+v=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
+
+      for polyOrder : 1 thru maxPolyOrderB do (
+      
+        for gridInd : 1 thru length(gridType) do (
+          isNonuniform : gridType[gridInd],
+
+          if isNonuniform then (gridStr : "Nonuniform") else (gridStr : ""),
+
+          disp(printf(false,sconcat("Creating surface VmLBOconstNu~a",bName[bInd]," ~ax~avP~a"),gridStr,c,v,polyOrder)),
+          for dir:1 thru v do (
+            fname : sconcat("~/gkylcas/maxima/lenardBernsteinOperator-calc/g0/vlasov_lbo_constNu_surf",varsV[dir],"_", gridStr, c, "x", v, "v_ser_p", polyOrder , ".c"),
+            fh : openw(fname),
+            funcName : sconcat("vlasov_lbo_constNu_surf",varsV[dir],"_", gridStr, c, "x", v, "v_ser"),
+            numFluxOp : 1,
+            calcConstNuUpdateInDir(dir, fh, funcName, c, v, bName[bInd], polyOrder, numFluxOp, isNonuniform),
+            close(fh)
+            )
+        )
+      )
+    )
+  )
+);
+
+

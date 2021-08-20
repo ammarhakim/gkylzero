@@ -7,7 +7,7 @@
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
 CFLAGS = -O3 -g -ffast-math
 LDFLAGS =
-KERN_INCLUDES = -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov -Ikernels/bin_op
+KERN_INCLUDES = -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov -Ikernels/bin_op -Ikernels/lbo
 
 # Install prefix
 PREFIX = ${HOME}/gkylsoft
