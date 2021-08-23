@@ -11,19 +11,19 @@ typedef double (*vol_termf_t)(const struct gkyl_dg_eqn *eqn,
   const double* qIn, double* GKYL_RESTRICT qRhsOut);
 
 // Function pointer type for surface kernel
-typedef double (*surf_termf_t)(const struct gkyl_dg_eqn *eqn, 
+typedef void (*surf_termf_t)(const struct gkyl_dg_eqn *eqn, 
   int dir,
   const double*  xcL, const double*  xcC, const double*  xcR, 
   const double*  dxL, const double* dxC, const double* dxR,
-  double maxsOld, const int*  idxL, const int*  idxC, const int*  idxR,
+  const int*  idxL, const int*  idxC, const int*  idxR,
   const double* qInL, const double*  qInC, const double*  qInR, double* GKYL_RESTRICT qRhsOut);
 
 // Function pointer type for surface kernel
-typedef double (*boundary_surf_termf_t)(const struct gkyl_dg_eqn *eqn,
+typedef void (*boundary_surf_termf_t)(const struct gkyl_dg_eqn *eqn,
   int dir,
   const double*  xcEdge, const double*  xcSkin,
   const double*  dxEdge, const double* dxSkin,
-  double maxsOld, const int* idxEdge, const int* idxSkin, const int edge,
+  const int* idxEdge, const int* idxSkin, const int edge,
   const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut);
 
 struct gkyl_dg_eqn {

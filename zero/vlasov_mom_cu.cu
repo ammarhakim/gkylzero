@@ -45,38 +45,38 @@ get_mom_id(const char *mom)
 
 __global__
 void vlasov_mom_set_cu_dev_ptrs(struct gkyl_mom_type* momt, int mom_id, int vdim,
-  int polyOrder, int tblidx)
+  int poly_order, int tblidx)
 {
   int m3ijk_count[] = { 1, 4, 10 };
   
   switch (mom_id) {
     case M0:
-      momt->kernel = m0_kernels[tblidx].kernels[polyOrder];
+      momt->kernel = m0_kernels[tblidx].kernels[poly_order];
       momt->num_mom = 1;
       break;
 
     case M1i:
-      momt->kernel = m1i_kernels[tblidx].kernels[polyOrder];
+      momt->kernel = m1i_kernels[tblidx].kernels[poly_order];
       momt->num_mom = vdim;
       break;
 
     case M2:
-      momt->kernel = m2_kernels[tblidx].kernels[polyOrder];
+      momt->kernel = m2_kernels[tblidx].kernels[poly_order];
       momt->num_mom = 1;
       break;
 
     case M2ij:
-      momt->kernel = m2ij_kernels[tblidx].kernels[polyOrder];
+      momt->kernel = m2ij_kernels[tblidx].kernels[poly_order];
       momt->num_mom = vdim*(vdim+1)/2;
       break;
 
     case M3i:
-      momt->kernel = m3i_kernels[tblidx].kernels[polyOrder];
+      momt->kernel = m3i_kernels[tblidx].kernels[poly_order];
       momt->num_mom = vdim;
       break;
 
     case M3ijk:
-      momt->kernel = m3ijk_kernels[tblidx].kernels[polyOrder];
+      momt->kernel = m3ijk_kernels[tblidx].kernels[poly_order];
       momt->num_mom = m3ijk_count[vdim-1];
       break;
       
@@ -89,15 +89,15 @@ struct gkyl_mom_type*
 gkyl_vlasov_mom_cu_dev_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, const char *mom)
 {
-  assert(cbasis->polyOrder == pbasis->polyOrder);
+  assert(cbasis->poly_order == pbasis->poly_order);
   
   struct gkyl_mom_type *momt = (struct gkyl_mom_type*) gkyl_malloc(sizeof(struct gkyl_mom_type));
   int cdim = momt->cdim = cbasis->ndim;
   int pdim = momt->pdim = pbasis->ndim;
   int vdim = pdim-cdim;
-  int polyOrder = momt->polyOrder = cbasis->polyOrder;
-  momt->num_config = cbasis->numBasis;
-  momt->num_phase = pbasis->numBasis;
+  int poly_order = momt->poly_order = cbasis->poly_order;
+  momt->num_config = cbasis->num_basis;
+  momt->num_phase = pbasis->num_basis;
 
   // copy struct to device
   struct gkyl_mom_type *momt_cu = (struct gkyl_mom_type*) gkyl_cu_malloc(sizeof(struct gkyl_mom_type));
@@ -107,7 +107,7 @@ gkyl_vlasov_mom_cu_dev_new(const struct gkyl_basis* cbasis,
   int mom_id = get_mom_id(mom);
   assert(mom_id != BAD);
 
-  vlasov_mom_set_cu_dev_ptrs<<<1,1>>>(momt_cu, mom_id, vdim, polyOrder, cv_index[cdim].vdim[vdim]);
+  vlasov_mom_set_cu_dev_ptrs<<<1,1>>>(momt_cu, mom_id, vdim, poly_order, cv_index[cdim].vdim[vdim]);
   
   gkyl_free(momt);
     

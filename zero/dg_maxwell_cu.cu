@@ -6,22 +6,22 @@ extern "C" {
 #include <gkyl_dg_maxwell_priv.h>
 }
 
-#define CK(lst,cdim,polyOrder) lst[cdim-1].kernels[polyOrder]
+#define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order]
 
 __global__ void
-dg_maxwell_set_cu_dev_ptrs(struct dg_maxwell* maxwell, int cdim, int polyOrder)
+dg_maxwell_set_cu_dev_ptrs(struct dg_maxwell* maxwell, int cdim, int poly_order)
 {
   maxwell->eqn.vol_term = vol;
   maxwell->eqn.surf_term = surf;
   maxwell->eqn.boundary_surf_term = boundary_surf;
 
-  maxwell->vol =  CK(vol_kernels, cdim, polyOrder);
+  maxwell->vol =  CK(vol_kernels, cdim, poly_order);
 
-  maxwell->surf[0] = CK(surf_x_kernels, cdim, polyOrder);
+  maxwell->surf[0] = CK(surf_x_kernels, cdim, poly_order);
   if (cdim>1)
-    maxwell->surf[1] = CK(surf_y_kernels, cdim, polyOrder);
+    maxwell->surf[1] = CK(surf_y_kernels, cdim, poly_order);
   if (cdim>2)
-    maxwell->surf[2] = CK(surf_z_kernels, cdim, polyOrder);
+    maxwell->surf[2] = CK(surf_z_kernels, cdim, poly_order);
 }
 
 struct gkyl_dg_eqn*
@@ -40,7 +40,7 @@ gkyl_dg_maxwell_cu_dev_new(const struct gkyl_basis* cbasis,
   struct dg_maxwell *maxwell_cu = (struct dg_maxwell*) gkyl_cu_malloc(sizeof(struct dg_maxwell));
   gkyl_cu_memcpy(maxwell_cu, maxwell, sizeof(struct dg_maxwell), GKYL_CU_MEMCPY_H2D);
 
-  dg_maxwell_set_cu_dev_ptrs<<<1,1>>>(maxwell_cu, cbasis->ndim, cbasis->polyOrder);
+  dg_maxwell_set_cu_dev_ptrs<<<1,1>>>(maxwell_cu, cbasis->ndim, cbasis->poly_order);
 
   gkyl_free(maxwell);
   

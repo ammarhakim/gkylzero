@@ -60,7 +60,7 @@ main(int argc, char **argv)
     exit(1);
   }
   
-  int polyOrder = 2;
+  int poly_order = 2;
   double lower[] = {-2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0};
   int cells[] = {100, 100, 100};
   struct gkyl_rect_grid grid;
@@ -68,11 +68,11 @@ main(int argc, char **argv)
 
   // basis functions
   struct gkyl_basis basis;
-  gkyl_cart_modal_serendip(&basis, 3, polyOrder);
+  gkyl_cart_modal_serendip(&basis, 3, poly_order);
 
   // projection updater for dist-function
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
-    polyOrder+1, 1, evalFunc, 0);
+    poly_order+1, 1, evalFunc, 0);
 
   // create array range: no ghost-cells 
   struct gkyl_range arr_range;

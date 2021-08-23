@@ -1,5 +1,12 @@
 #pragma once
 
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
+
+/** Flags for indicating (conjugate) transpose */
+enum gkyl_mat_trans { GKYL_NO_TRANS, GKYL_TRANS, GKYL_CONJ_TRANS };
+
 /**
  * Matrix object. Stored in column major order.
  */
@@ -70,6 +77,46 @@ struct gkyl_mat* gkyl_mat_clear(struct gkyl_mat *mat, double val);
  * are set to 0.0. Returns pointer to @a mat.
  */ 
 struct gkyl_mat* gkyl_mat_diag(struct gkyl_mat *mat, double val);
+
+/**
+ * Write matrix to file. Output is in Maxima matrix format
+ */
+void gkyl_mat_show(const char *name, FILE *fp, const struct gkyl_mat *mat);
+
+/**
+ * Computes matrix-matrix product:
+ *
+ * C = alpha*OP(A)*OP(B) + beta*C
+ *
+ * where OP(A) indicates transpose/no-transpose based on the
+ * transa/transb flags.
+ *
+ * C is returned
+ */
+struct gkyl_mat* gkyl_mat_mm(double alpha, double beta,
+  enum gkyl_mat_trans transa, const struct gkyl_mat *A,
+  enum gkyl_mat_trans transb, const struct gkyl_mat *B, struct gkyl_mat *C);
+
+/**
+ * Solve system of linear equations using LU decomposition. On input
+ * the RHS must be in the "x" matrix (each column represents a RHS
+ * vector) and on output "x" is replaced with the solution(s). Returns
+ * true on success, false otherwise. Note that on output A is replaced
+ * by its LU factors.
+ *
+ * The ipiv input is an chunk of memory that is sizeof(lapack_int[N]),
+ * where N is the number of equations. It is safest to assume
+ * lapack_int is long (it may be smaller). You must
+ * allocate/deallocate ipiv yourself! Use:
+ *
+ * ipiv = gkyl_mem_chunk_new(sizeof(long[N]));
+ * gkyl_mat_linsolve_lu(A, x, gkyl_mem_buff_data(ipiv));
+ * gkyl_mem_chunck_release(ipiv);
+ *
+ * The reason for passing ipiv to this function is that it avoids
+ * allocations inside this function.
+ */
+bool gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, void* ipiv);
 
 /**
  * Release matrix

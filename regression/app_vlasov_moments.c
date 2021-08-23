@@ -226,7 +226,7 @@ main(int argc, char **argv)
   printf("Running moment calculation on CPU with:\n");
 #endif
 
-  printf("cdim = %d; vdim = %d; polyOrder = %d\n", inp.cdim, inp.vdim, inp.poly_order);
+  printf("cdim = %d; vdim = %d; poly_order = %d\n", inp.cdim, inp.vdim, inp.poly_order);
   printf("cells = [");
   for (int d=0; d<inp.cdim; ++d)
     printf("%d ", inp.ccells[d]);

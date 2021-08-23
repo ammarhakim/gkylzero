@@ -82,6 +82,38 @@ gkyl_aligned_free(void* ptr)
   gkyl_free((uint8_t *)ptr - offset);
 }
 
+struct gkyl_mem_buff_tag {
+  size_t count; // size of memory in bytes
+  char data[]; // Allocated memory
+};
+
+gkyl_mem_buff
+gkyl_mem_buff_new(size_t count)
+{
+  size_t sz = sizeof(struct gkyl_mem_buff_tag) + sizeof(char[count]);
+  struct gkyl_mem_buff_tag *mem = gkyl_calloc(sz,1);
+  mem->count = count;
+  return mem;
+}
+
+size_t
+gkyl_mem_buff_size(gkyl_mem_buff mem)
+{
+  return mem->count;
+}
+
+char*
+gkyl_mem_buff_data(gkyl_mem_buff mem)
+{
+  return mem->data;
+}
+
+void
+gkyl_mem_buff_release(gkyl_mem_buff mem)
+{
+  gkyl_free(mem);
+}
+
 // CUDA specific code
 
 #ifdef GKYL_HAVE_CUDA
