@@ -165,26 +165,26 @@ test_vlasov_1x2v_p2_(bool use_gpu)
 
   //printf("first cell rhs\n");
   //for(int i=0; i<rhs->ncomp; i++) printf("%.16e\n", rhs_d[i]);
-  TEST_CHECK( gkyl_compare_double(rhs_d[0],  1.1320236618402684e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[1],  2.0361314458007387e-01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[2],  -5.1857412421055882e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[3],  -2.1453685291277935e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[4],  -3.1293103729644457e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[5],  -5.8164324771613201e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[6],  -5.1646769481157335e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[7],  1.6482691260866119e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[8],  -5.1140773680829221e-01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[9],  4.9072992677868799e-01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[10],  -3.0776549366736429e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[11],  -2.4591424381549899e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[12],  -1.1849014957738582e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[13],  9.0594676763230453e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[14],  -5.7000572980325037e-01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[15],  1.2020894404342696e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[16],  3.5188787568087099e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[17],  -2.4363172778197022e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[18],  -1.1657797482480145e+01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d[19],  1.8969319873234397e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[0],  1.1873679155168162e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[1],  2.2131609273296690e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[2],  -5.1421989058620037e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[3],  -2.1015559414749911e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[4],  -3.1274299616328875e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[5],  -5.7980678014735298e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[6],  -5.1794065426655207e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[7],  1.6555476342162777e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[8],  -3.7839306076374341e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[9],  6.0821819985513692e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[10],  -3.0765279980185458e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[11],  -2.4545628123190717e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[12],  -1.1912775540624752e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[13],  9.1266993445490581e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[14],  -4.5599700127748999e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[15],  1.1971791673432133e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[16],  3.6053906660129060e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[17],  -2.4385757910567278e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[18],  -1.1795732611711490e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[19],  1.8857755500762241e+01, 1e-12) );
 
   // get linear index of some other cell
   int idx2[] = {5, 2, 4};
