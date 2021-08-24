@@ -48,6 +48,7 @@ gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim, int poly_order)
   basis->poly_order = poly_order;
   basis->num_basis = num_basis_list[ndim].count[poly_order];
   strcpy(basis->id, "serendipity");
+  basis->type = GKYL_BASIS_MODAL_SERENDIPITY;
   basis->eval = ev_list[ndim].ev[poly_order];
   basis->flip_sign = fs_list[ndim].fs[poly_order];
 }

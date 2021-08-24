@@ -39,6 +39,7 @@ gkyl_cart_modal_tensor(struct gkyl_basis *basis, int ndim, int poly_order)
   basis->poly_order = poly_order;
   basis->num_basis = pow(poly_order+1, ndim);
   strcpy(basis->id, "tensor");
+  basis->type = GKYL_BASIS_MODAL_TENSOR;
   basis->eval = ev_list[ndim].ev[poly_order];
   basis->flip_sign = fs_list[ndim].fs[poly_order];
 }

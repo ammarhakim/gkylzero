@@ -1,11 +1,18 @@
 #pragma once
 
+/* Basis function identifiers */
+enum gkyl_basis_type {
+  GKYL_BASIS_MODAL_SERENDIPITY,
+  GKYL_BASIS_MODAL_TENSOR
+};
+
 /**
  * Basis function object
  */
 struct gkyl_basis {
   unsigned ndim, poly_order, num_basis;
   char id[64]; // "serendipity", "tensor", "maximal-order"
+  enum gkyl_basis_type type; // identifier for basis function
     
 /**
  * Evaluate basis in unit cell (i.e. a hypercube with each side
