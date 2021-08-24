@@ -96,7 +96,16 @@ test_ten_2d()
 
   z[1] = 0.0; z[2] = 0.0;
   basis.eval(z, b);
-  
+
+  TEST_CHECK( gkyl_compare(0.5, b[0], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[1], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[2], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[3], 1e-15) );
+  TEST_CHECK( gkyl_compare(-sqrt(5.0)/4, b[4], 1e-15) );
+  TEST_CHECK( gkyl_compare(-sqrt(5.0)/4, b[5], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[6], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[7], 1e-15) );
+  TEST_CHECK( gkyl_compare(5.0/8.0, b[8], 1e-15) );
 }
 
 TEST_LIST = {
