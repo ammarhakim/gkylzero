@@ -36,3 +36,13 @@ struct gkyl_basis {
  * @return Pointer to new basis function.
  */
 void gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim, int poly_order);
+
+/**
+ * Create new modal tensor-product basis function object.
+ *
+ * @param basis Basis object to initialize
+ * @param ndim Dimension of reference element.
+ * @param poly_order Polynomial order.
+ * @return Pointer to new basis function.
+ */
+void gkyl_cart_modal_tensor(struct gkyl_basis *basis, int ndim, int poly_order);

@@ -81,8 +81,27 @@ test_ser_2d()
   
 }
 
+void
+test_ten_2d()
+{
+  struct gkyl_basis basis;
+  gkyl_cart_modal_tensor(&basis, 2, 2);
+
+  TEST_CHECK( basis.ndim == 2 );
+  TEST_CHECK( basis.poly_order == 2 );
+  TEST_CHECK( basis.num_basis == 9 );
+  TEST_CHECK( strcmp(basis.id, "tensor") == 0 );
+
+  double z[basis.ndim], b[basis.num_basis];
+
+  z[1] = 0.0; z[2] = 0.0;
+  basis.eval(z, b);
+  
+}
+
 TEST_LIST = {
   { "ser_1d", test_ser_1d },
   { "ser_2d", test_ser_2d },
+  { "ten_2d", test_ten_2d },
   { NULL, NULL },
 };
