@@ -6,7 +6,7 @@
 #include <time.h>
 
 #include <gkyl_vlasov.h>
-#include <app_arg_parse.h>
+#include <rt_arg_parse.h>
 #include <rxi_ini.h>
 
 struct twostream_inp {

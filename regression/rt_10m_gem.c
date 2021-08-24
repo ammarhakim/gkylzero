@@ -3,8 +3,8 @@
 
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_euler.h>
-#include <app_arg_parse.h>
+#include <gkyl_wv_ten_moment.h>
+#include <rt_arg_parse.h>
 
 void
 evalElcInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -28,11 +28,12 @@ evalElcInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
 
   double rhoe = n*elcMass;
   double ezmom = (elcMass/elcCharge)*Jz*TeFrac;
-  double ere = n*Ttotal*TeFrac/(gasGamma-1) + 0.5*ezmom*ezmom/rhoe;
+  double pre = n*Ttotal*TeFrac;
 
   fout[0] = rhoe;
   fout[1] = 0.0; fout[2] = 0.0; fout[3] = ezmom;
-  fout[4] = ere;  
+  fout[4] = pre; fout[5] = 0.0; fout[6] = 0.0;  
+  fout[7] = pre; fout[8] = 0.0; fout[9] = pre + ezmom*ezmom/rhoe;  
 }
 
 void
@@ -57,11 +58,12 @@ evalIonInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
 
   double rhoi = n*ionMass;
   double izmom = (ionMass/ionCharge)*Jz*TiFrac;
-  double eri = n*Ttotal*TiFrac/(gasGamma-1) + 0.5*izmom*izmom/rhoi;
+  double pri = n*Ttotal*TiFrac;
 
   fout[0] = rhoi;
   fout[1] = 0.0; fout[2] = 0.0; fout[3] = izmom;
-  fout[4] = eri;    
+  fout[4] = pri; fout[5] = 0.0; fout[6] = 0.0;  
+  fout[7] = pri; fout[8] = 0.0; fout[9] = pri + izmom*izmom/rhoi;   
 }
 
 void
@@ -95,14 +97,14 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
   // electron/ion equations
-  struct gkyl_wv_eqn *elc_euler = gkyl_wv_euler_new(5.0/3.0);
-  struct gkyl_wv_eqn *ion_euler = gkyl_wv_euler_new(5.0/3.0);
+  struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new();
+  struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new();
 
   struct gkyl_moment_species elc = {
     .name = "elc",
     .charge = -1.0, .mass = 1.0/25.0,
-
-    .equation = elc_euler,
+    .k0 = 5.0,
+    .equation = elc_ten_moment,
     .evolve = 1,
     .init = evalElcInit,
 
@@ -111,8 +113,8 @@ main(int argc, char **argv)
   struct gkyl_moment_species ion = {
     .name = "ion",
     .charge = 1.0, .mass = 1.0,
-
-    .equation = ion_euler,
+    .k0 = 5.0,
+    .equation = ion_ten_moment,
     .evolve = 1,
     .init = evalIonInit,
 
@@ -121,12 +123,12 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "5m_gem",
+    .name = "10m_gem",
 
     .ndim = 2,
     .lower = { -12.8, -6.4 },
     .upper = { 12.8, 6.4 }, 
-    .cells = { 64, 32  },
+    .cells = { 128, 64  },
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
@@ -189,8 +191,8 @@ main(int argc, char **argv)
   printf("Total updates took %g secs\n", stat.total_tm);
 
   // simulation complete, free resources
-  gkyl_wv_eqn_release(elc_euler);
-  gkyl_wv_eqn_release(ion_euler);
+  gkyl_wv_eqn_release(elc_ten_moment);
+  gkyl_wv_eqn_release(ion_ten_moment);
   gkyl_moment_app_release(app);  
   
   return 0;

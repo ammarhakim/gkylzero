@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 #include <gkyl_vlasov.h>
-#include <app_arg_parse.h>
+#include <rt_arg_parse.h>
 
 struct weibel_ctx {
   // parameters for plasma streams
