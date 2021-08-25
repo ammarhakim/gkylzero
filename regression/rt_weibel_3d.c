@@ -121,6 +121,7 @@ main(int argc, char **argv)
     .upper = { 2*M_PI/ctx.k0 },
     .cells = { 24 },
     .poly_order = 2,
+    .basis_type = app_args.basis_type,
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
