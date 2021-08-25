@@ -21,7 +21,7 @@ test_proj(enum gkyl_basis_type type)
 {
   int poly_order = 2;
   double lower[] = {-2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0};
-  int cells[] = {32, 32, 32};
+  int cells[] = {8, 8, 8};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
 

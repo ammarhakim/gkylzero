@@ -13,7 +13,8 @@ static struct { int vdim[4]; } cv_index[] = {
   {-1, -1, -1,  5}, // 3x kernel indices  
 };
 
-typedef struct { momf_t kernels[3]; } mom_kern_list;
+// for use in kernel tables
+typedef struct { momf_t kernels[3]; } gkyl_mom_kern_list;
 
 //
 // Serendipity basis kernels
@@ -21,7 +22,7 @@ typedef struct { momf_t kernels[3]; } mom_kern_list;
 
 // M0 kernel list
 GKYL_CU_D
-static const mom_kern_list ser_m0_kernels[] = {
+static const gkyl_mom_kern_list ser_m0_kernels[] = {
   // 1x kernels
   { NULL, vlasov_M0_1x1v_ser_p1, vlasov_M0_1x1v_ser_p2 }, // 0
   { NULL, vlasov_M0_1x2v_ser_p1, vlasov_M0_1x2v_ser_p2 }, // 1
@@ -35,7 +36,7 @@ static const mom_kern_list ser_m0_kernels[] = {
 
 // M1i kernel list
 GKYL_CU_D
-static const mom_kern_list ser_m1i_kernels[] = {
+static const gkyl_mom_kern_list ser_m1i_kernels[] = {
   // 1x kernels
   { NULL, vlasov_M1i_1x1v_ser_p1, vlasov_M1i_1x1v_ser_p2 }, // 0
   { NULL, vlasov_M1i_1x2v_ser_p1, vlasov_M1i_1x2v_ser_p2 }, // 1
@@ -49,7 +50,7 @@ static const mom_kern_list ser_m1i_kernels[] = {
 
 // M2 kernel list
 GKYL_CU_D
-static const mom_kern_list ser_m2_kernels[] = {
+static const gkyl_mom_kern_list ser_m2_kernels[] = {
   // 1x kernels
   { NULL, vlasov_M2_1x1v_ser_p1, vlasov_M2_1x1v_ser_p2 }, // 0
   { NULL, vlasov_M2_1x2v_ser_p1, vlasov_M2_1x2v_ser_p2 }, // 1
@@ -63,7 +64,7 @@ static const mom_kern_list ser_m2_kernels[] = {
 
 // M2ij kernel list
 GKYL_CU_D
-static const mom_kern_list ser_m2ij_kernels[] = {
+static const gkyl_mom_kern_list ser_m2ij_kernels[] = {
   // 1x kernels
   { NULL, vlasov_M2ij_1x1v_ser_p1, vlasov_M2ij_1x1v_ser_p2 }, // 0
   { NULL, vlasov_M2ij_1x2v_ser_p1, vlasov_M2ij_1x2v_ser_p2 }, // 1
@@ -77,7 +78,7 @@ static const mom_kern_list ser_m2ij_kernels[] = {
 
 // M3i kernel list
 GKYL_CU_D
-static const mom_kern_list ser_m3i_kernels[] = {
+static const gkyl_mom_kern_list ser_m3i_kernels[] = {
   // 1x kernels
   { NULL, vlasov_M3i_1x1v_ser_p1, vlasov_M3i_1x1v_ser_p2 }, // 0
   { NULL, vlasov_M3i_1x2v_ser_p1, vlasov_M3i_1x2v_ser_p2 }, // 1
@@ -91,7 +92,7 @@ static const mom_kern_list ser_m3i_kernels[] = {
 
 // M3ijk kernel list
 GKYL_CU_D
-static const mom_kern_list ser_m3ijk_kernels[] = {
+static const gkyl_mom_kern_list ser_m3ijk_kernels[] = {
   // 1x kernels
   { NULL, vlasov_M3ijk_1x1v_ser_p1, vlasov_M3ijk_1x1v_ser_p2 }, // 0
   { NULL, vlasov_M3ijk_1x2v_ser_p1, vlasov_M3ijk_1x2v_ser_p2 }, // 1
@@ -109,7 +110,7 @@ static const mom_kern_list ser_m3ijk_kernels[] = {
 
 // M0 kernel list
 GKYL_CU_D
-static const mom_kern_list ten_m0_kernels[] = {
+static const gkyl_mom_kern_list ten_m0_kernels[] = {
   // 1x kernels
   { NULL, vlasov_M0_1x1v_ser_p1, vlasov_M0_1x1v_tensor_p2 }, // 0
   { NULL, vlasov_M0_1x2v_ser_p1, vlasov_M0_1x2v_tensor_p2 }, // 1
@@ -123,7 +124,7 @@ static const mom_kern_list ten_m0_kernels[] = {
 
 // M1i kernel list
 GKYL_CU_D
-static const mom_kern_list ten_m1i_kernels[] = {
+static const gkyl_mom_kern_list ten_m1i_kernels[] = {
   // 1x kernels
   { NULL, vlasov_M1i_1x1v_ser_p1, vlasov_M1i_1x1v_tensor_p2 }, // 0
   { NULL, vlasov_M1i_1x2v_ser_p1, vlasov_M1i_1x2v_tensor_p2 }, // 1
@@ -137,7 +138,7 @@ static const mom_kern_list ten_m1i_kernels[] = {
 
 // M2 kernel list
 GKYL_CU_D
-static const mom_kern_list ten_m2_kernels[] = {
+static const gkyl_mom_kern_list ten_m2_kernels[] = {
   // 1x kernels
   { NULL, vlasov_M2_1x1v_ser_p1, vlasov_M2_1x1v_tensor_p2 }, // 0
   { NULL, vlasov_M2_1x2v_ser_p1, vlasov_M2_1x2v_tensor_p2 }, // 1
@@ -151,7 +152,7 @@ static const mom_kern_list ten_m2_kernels[] = {
 
 // M2ij kernel list
 GKYL_CU_D
-static const mom_kern_list ten_m2ij_kernels[] = {
+static const gkyl_mom_kern_list ten_m2ij_kernels[] = {
   // 1x kernels
   { NULL, vlasov_M2ij_1x1v_ser_p1, vlasov_M2ij_1x1v_tensor_p2 }, // 0
   { NULL, vlasov_M2ij_1x2v_ser_p1, vlasov_M2ij_1x2v_tensor_p2 }, // 1
@@ -165,7 +166,7 @@ static const mom_kern_list ten_m2ij_kernels[] = {
 
 // M3i kernel list
 GKYL_CU_D
-static const mom_kern_list ten_m3i_kernels[] = {
+static const gkyl_mom_kern_list ten_m3i_kernels[] = {
   // 1x kernels
   { NULL, vlasov_M3i_1x1v_ser_p1, vlasov_M3i_1x1v_tensor_p2 }, // 0
   { NULL, vlasov_M3i_1x2v_ser_p1, vlasov_M3i_1x2v_tensor_p2 }, // 1
@@ -179,7 +180,7 @@ static const mom_kern_list ten_m3i_kernels[] = {
 
 // M3ijk kernel list
 GKYL_CU_D
-static const mom_kern_list ten_m3ijk_kernels[] = {
+static const gkyl_mom_kern_list ten_m3ijk_kernels[] = {
   // 1x kernels
   { NULL, vlasov_M3ijk_1x1v_ser_p1, vlasov_M3ijk_1x1v_tensor_p2 }, // 0
   { NULL, vlasov_M3ijk_1x2v_ser_p1, vlasov_M3ijk_1x2v_tensor_p2 }, // 1

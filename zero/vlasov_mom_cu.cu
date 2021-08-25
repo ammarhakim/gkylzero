@@ -51,7 +51,7 @@ vlasov_mom_set_cu_dev_ptrs(struct gkyl_mom_type* momt, int mom_id, enum gkyl_bas
   int m3ijk_count[] = { 1, 4, 10 };
 
   // choose kernel tables based on basis-function type
-  const mom_kern_list *m0_kernels, *m1i_kernels,
+  const gkyl_mom_kern_list *m0_kernels, *m1i_kernels,
     *m2_kernels, *m2ij_kernels, *m3i_kernels, *m3ijk_kernels;
 
   switch (b_type) {

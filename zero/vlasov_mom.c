@@ -29,7 +29,7 @@ gkyl_vlasov_mom_new(const struct gkyl_basis* cbasis,
   momt->num_phase = pbasis->num_basis;
 
   // choose kernel tables based on basis-function type
-  const mom_kern_list *m0_kernels, *m1i_kernels,
+  const gkyl_mom_kern_list *m0_kernels, *m1i_kernels,
     *m2_kernels, *m2ij_kernels, *m3i_kernels, *m3ijk_kernels;
 
   switch (cbasis->b_type) {
