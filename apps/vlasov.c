@@ -550,8 +550,21 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
   app->tcurr = 0.0; // reset on init
 
   // basis functions
-  gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
-  gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
+  switch (vm.basis_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
+      gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      gkyl_cart_modal_tensor(&app->basis, pdim, poly_order);
+      gkyl_cart_modal_tensor(&app->confBasis, cdim, poly_order);
+      break;
+
+    default:
+      assert(false);
+      break;
+  }
 
   gkyl_rect_grid_init(&app->grid, cdim, vm.lower, vm.upper, vm.cells);
 

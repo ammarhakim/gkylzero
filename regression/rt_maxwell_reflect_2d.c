@@ -1,84 +1,60 @@
 #include <math.h>
 #include <stdio.h>
 
+#include <gkyl_const.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_euler.h>
-#include <app_arg_parse.h>
-
-struct euler_ctx {
-  double gas_gamma; // gas constant
-};
+#include <rt_arg_parse.h>
 
 void
-evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct euler_ctx *app = ctx;
-  double gas_gamma = app->gas_gamma;
-
-  double x = xn[0];
-
-  double rhol = 3.0, ul = 0.0, pl = 3.0;
-  double rhor = 1.0, ur = 0.0, pr = 1.0;
-
-  double rho = rhor, u = ur, p = pr;
-  if (x<0.5) {
-    rho = rhol;
-    u = ul;
-    p = pl;
-  }
-
-  fout[0] = rho;
-  fout[1] = rho*u; fout[2] = 0.0; fout[3] = 0.0;
-  fout[4] = p/(gas_gamma-1) + 0.5*rho*u*u;
-}
-
-struct euler_ctx
-euler_ctx(void)
-{
-  return (struct euler_ctx) { .gas_gamma = 1.4 };
+  // assumes epsilon0 = mu0 = c = 1.0
+  double x = xn[0], y = xn[1];
+  double rad2 = x*x + y*y;
+  double Ez = exp(-25*rad2);
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = Ez;
+  fout[3] = 0.0;
+  fout[4] = 0.0;
+  fout[5] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = 0.0;  
 }
 
 int
 main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
-  struct euler_ctx ctx = euler_ctx(); // context for init functions
 
-  // equation object
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma);
-
-  struct gkyl_moment_species fluid = {
-    .name = "euler",
-
-    .equation = euler,
-    .evolve = 1,
-    .ctx = &ctx,
-    .init = evalEulerInit,
-
-    .bcx = { GKYL_MOMENT_COPY, GKYL_MOMENT_COPY },
-  };
-
-  // VM app
   struct gkyl_moment app_inp = {
-    .name = "euler_sodshock",
+    .name = "maxwell_reflect_2d",
 
-    .ndim = 1,
-    .lower = { 0.0 },
-    .upper = { 1.0 }, 
-    .cells = { 512 },
+    .ndim = 2,
+    .lower = { -1.0, -1.0 },
+    .upper = { 1.0, 1.0 }, 
+    .cells = { 128, 128 },
 
-    .cfl_frac = 0.9,
+    .cfl_frac = 1.0,
 
-    .num_species = 1,
-    .species = { fluid },
+    .field = {
+      .epsilon0 = 1.0, .mu0 = 1.0,
+      .evolve = 1,
+      .limiter = GKYL_NO_LIMITER,
+      .init = evalFieldInit,
+
+      .bcx = { GKYL_MOMENT_FIELD_COND, GKYL_MOMENT_FIELD_COND },
+      .bcy = { GKYL_MOMENT_FIELD_COND, GKYL_MOMENT_FIELD_COND },
+    }
   };
 
   // create app object
   gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.1;
+  double tcurr = 0.0, tend = 3.0;
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
@@ -109,7 +85,6 @@ main(int argc, char **argv)
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
 
   // simulation complete, free resources
-  gkyl_wv_eqn_release(euler);
   gkyl_moment_app_release(app);
 
   printf("\n");

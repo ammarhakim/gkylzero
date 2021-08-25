@@ -74,7 +74,7 @@ endif
 
 # Make targets: libraries, regression tests and unit tests
 all: build/libgkylzero.a \
-	$(patsubst %.c,build/%,$(wildcard regression/app_*.c)) build/regression/twostream.ini \
+	$(patsubst %.c,build/%,$(wildcard regression/rt_*.c)) build/regression/twostream.ini \
 	$(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 
 # Library archive
@@ -85,7 +85,7 @@ build/libgkylzero.a: ${libobjs} ${headers}
 build/regression/twostream.ini: regression/twostream.ini
 	cp regression/twostream.ini build/regression/twostream.ini
 
-build/regression/%: regression/%.c build/libgkylzero.a regression/app_arg_parse.h
+build/regression/%: regression/%.c build/libgkylzero.a regression/rt_arg_parse.h
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero ${LAPACK_LIB} -lm -lpthread 
 
 # Unit tests
@@ -158,10 +158,11 @@ install: all
 	cp ${headers} ${PREFIX}/gkylzero/include
 	cp -f build/libgkylzero.a ${PREFIX}/gkylzero/lib
 	cp -f build/Makefile.sample ${PREFIX}/gkylzero/share/Makefile
-	cp -f regression/app_arg_parse.h ${PREFIX}/gkylzero/share/app_arg_parse.h
-	cp -f regression/app_twostream.c ${PREFIX}/gkylzero/share/app_twostream.c
+	cp -f regression/rt_arg_parse.h ${PREFIX}/gkylzero/share/rt_arg_parse.h
+	cp -f regression/rt_twostream.c ${PREFIX}/gkylzero/share/rt_twostream.c
 	cp -f regression/twostream.ini ${PREFIX}/gkylzero/share/twostream.ini
-	cp -f build/regression/app_vlasov_kerntm ${PREFIX}/gkylzero/bin/
+	cp -f build/regression/rt_vlasov_kerntm ${PREFIX}/gkylzero/bin/
 
 clean:
-	rm -rf build/libgkylzero.a build/regression/twostream.ini */*.o kernels/*/*.o build/regression/app_* build/unit/ctest_*
+
+	rm -rf build/libgkylzero.a build/regression/twostream.ini */*.o kernels/*/*.o build/regression/rt_* build/unit/ctest_*

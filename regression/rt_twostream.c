@@ -6,7 +6,7 @@
 #include <time.h>
 
 #include <gkyl_vlasov.h>
-#include <app_arg_parse.h>
+#include <rt_arg_parse.h>
 #include <rxi_ini.h>
 
 struct twostream_inp {
@@ -203,6 +203,7 @@ main(int argc, char **argv)
     .upper = { M_PI/ctx.knumber },
     .cells = { tsinp.conf_cells },
     .poly_order = 2,
+    .basis_type = app_args.basis_type,
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },

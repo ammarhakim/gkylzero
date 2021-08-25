@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 #include <gkyl_vlasov.h>
-#include <app_arg_parse.h>
+#include <rt_arg_parse.h>
 
 struct weibel_ctx {
   // parameters for plasma streams
@@ -135,6 +135,7 @@ main(int argc, char **argv)
     .upper = { 2*M_PI/ctx.kx, 2*M_PI/ctx.ky },
     .cells = { 8, 8 },
     .poly_order = 2,
+    .basis_type = app_args.basis_type,
 
     .num_periodic_dir = 2,
     .periodic_dirs = { 0, 1},

@@ -3,7 +3,7 @@
 #include <time.h>
 
 #include <gkyl_vlasov.h>
-#include <app_arg_parse.h>
+#include <rt_arg_parse.h>
 
 struct esshock_ctx {
   double chargeElc; // electron charge
@@ -137,6 +137,7 @@ main(int argc, char **argv)
     .upper = { ctx.Lx },
     .cells = { 256 },
     .poly_order = 2,
+    .basis_type = app_args.basis_type,
 
     .num_periodic_dir = 0,
     .periodic_dirs = { },

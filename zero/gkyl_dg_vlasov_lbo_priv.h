@@ -129,8 +129,7 @@ surf(const struct gkyl_dg_eqn *eqn,
   const double*  xcL, const double*  xcC, const double*  xcR, 
   const double*  dxL, const double* dxC, const double* dxR,
   const int*  idxL, const int*  idxC, const int*  idxR,
-  const double* qInL, const double*  qInC, const double*  qInR, double* GKYL_RESTRICT qRhsOut);
-  struct dg_vlasov_lbo *vlasov_lbo = container_of(eqn, struct dg_vlasov_lbo, eqn);
+  const double* qInL, const double*  qInC, const double*  qInR, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_lbo *vlasov_lbo = container_of(eqn, struct dg_vlasov_lbo, eqn);
 

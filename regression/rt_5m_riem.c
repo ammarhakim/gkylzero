@@ -4,7 +4,7 @@
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_euler.h>
-#include <app_arg_parse.h>
+#include <rt_arg_parse.h>
 
 void
 evalElcInit(double t, const double * restrict xn, double* restrict fout, void *ctx)

@@ -5,38 +5,45 @@
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_euler.h>
-#include <app_arg_parse.h>
+#include <rt_arg_parse.h>
 
 void
 evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   // assumes epsilon0 = mu0 = c = 1.0
-  double x = xn[0], y = xn[1];
-  double rad2 = x*x + y*y;
-  double Ez = exp(-25*rad2);
+  double L = 1.0;
+  double kwave = 2.0;
+  double pi = 3.141592653589793238462643383279502884;
+  double phi = 2*pi/L*(kwave*xn[0]);
+  double knorm = sqrt(kwave*kwave);
+  double kxn = kwave/knorm;
+  //n = (0, 1, 1), n_hat = 1/math.sqrt(2)
+  double E0 = 1.0/sqrt(2.0);
   fout[0] = 0.0;
-  fout[1] = 0.0;
-  fout[2] = Ez;
+  fout[1] = E0*cos(phi);
+  fout[2] = E0*cos(phi);
   fout[3] = 0.0;
-  fout[4] = 0.0;
-  fout[5] = 0.0;
+  fout[4] = -E0*cos(phi)*kxn;
+  fout[5] = E0*cos(phi)*kxn;
   fout[6] = 0.0;
-  fout[7] = 0.0;  
+  fout[7] = 0.0;
 }
 
 int
 main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
-
+  
   struct gkyl_moment app_inp = {
-    .name = "maxwell_reflect_2d",
+    .name = "maxwell_plane_wave",
 
-    .ndim = 2,
-    .lower = { -1.0, -1.0 },
-    .upper = { 1.0, 1.0 }, 
-    .cells = { 128, 128 },
+    .ndim = 1,
+    .lower = { 0.0 },
+    .upper = { 1.0 }, 
+    .cells = { 128 },
 
+    .num_periodic_dir = 1,
+    .periodic_dirs = { 0 },
     .cfl_frac = 1.0,
 
     .field = {
@@ -44,9 +51,6 @@ main(int argc, char **argv)
       .evolve = 1,
       .limiter = GKYL_NO_LIMITER,
       .init = evalFieldInit,
-
-      .bcx = { GKYL_MOMENT_FIELD_COND, GKYL_MOMENT_FIELD_COND },
-      .bcy = { GKYL_MOMENT_FIELD_COND, GKYL_MOMENT_FIELD_COND },
     }
   };
 
@@ -54,7 +58,7 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 3.0;
+  double tcurr = 0.0, tend = 2.0;
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
@@ -62,7 +66,7 @@ main(int argc, char **argv)
 
   // compute estimate of maximum stable time-step
   double dt = gkyl_moment_app_max_dt(app);
-
+  
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
     printf("Taking time-step %ld at t = %g ...", step, tcurr);

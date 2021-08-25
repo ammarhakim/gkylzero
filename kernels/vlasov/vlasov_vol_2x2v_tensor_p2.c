@@ -19,8 +19,8 @@ GKYL_CU_DH double vlasov_vol_2x2v_tensor_p2(const double *w, const double *dxv, 
 
   const double *B2 = &qmem[45]; 
   double alpha_mid = 0.0; 
-  double alpha_cdim[162]; 
-  double alpha_vdim[162]; 
+  double alpha_cdim[162] = {0.0}; 
+  double alpha_vdim[162] = {0.0}; 
 
   alpha_cdim[0] = 8.0*w0dx0; 
   alpha_cdim[3] = 2.309401076758503*dv0dx0; 

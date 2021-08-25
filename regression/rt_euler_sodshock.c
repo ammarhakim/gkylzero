@@ -4,59 +4,33 @@
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_euler.h>
-#include <app_arg_parse.h>
+#include <rt_arg_parse.h>
 
 struct euler_ctx {
   double gas_gamma; // gas constant
 };
 
 void
-evalEulerInit(double t, const double * restrict xn, double* restrict fout, void *ctx)
+evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct euler_ctx *app = ctx;
   double gas_gamma = app->gas_gamma;
 
-  double sloc = 0.8;
-  double rho, u, v, pr;
+  double x = xn[0];
 
-  double x = xn[0], y = xn[1];
+  double rhol = 3.0, ul = 0.0, pl = 3.0;
+  double rhor = 1.0, ur = 0.0, pr = 1.0;
 
-  double upLeft[] = {0.0, 0.3, 0.5323, 1.206, 0.0};
-  double upRight[] = {0.0, 1.5, 1.5, 0.0, 0.0};
-  double loLeft[] = {0.0, 0.029, 0.138, 1.206, 1.206};
-  double loRight[] = {0.0, 0.3, 0.5323, 0.0, 1.206};
-
-  if (y>sloc) {
-    if (x<sloc) {
-      pr = upLeft[1];
-      rho = upLeft[2];
-      u = upLeft[3];
-      v = upLeft[4];
-    }
-    else {
-      pr = upRight[1];
-      rho = upRight[2];
-      u = upRight[3];
-      v = upRight[4];
-    }
+  double rho = rhor, u = ur, p = pr;
+  if (x<0.5) {
+    rho = rhol;
+    u = ul;
+    p = pl;
   }
-  else {
-    if (x<sloc) {
-      pr = loLeft[1];
-      rho = loLeft[2];
-      u = loLeft[3];
-      v = loLeft[4];
-    }
-    else {
-      pr = loRight[1];
-      rho = loRight[2];
-      u = loRight[3];
-      v = loRight[4];
-    }
-  }
+
   fout[0] = rho;
-  fout[1] = rho*u; fout[2] = rho*v; fout[3] = 0.0;
-  fout[4] = 0.5*rho*(u*u+v*v) + pr/(gas_gamma-1);
+  fout[1] = rho*u; fout[2] = 0.0; fout[3] = 0.0;
+  fout[4] = p/(gas_gamma-1) + 0.5*rho*u*u;
 }
 
 struct euler_ctx
@@ -68,7 +42,7 @@ euler_ctx(void)
 int
 main(int argc, char **argv)
 {
-  struct gkyl_app_args app_args = parse_app_args(argc, argv); 
+  struct gkyl_app_args app_args = parse_app_args(argc, argv);
   struct euler_ctx ctx = euler_ctx(); // context for init functions
 
   // equation object
@@ -81,16 +55,20 @@ main(int argc, char **argv)
     .evolve = 1,
     .ctx = &ctx,
     .init = evalEulerInit,
+
+    .bcx = { GKYL_MOMENT_COPY, GKYL_MOMENT_COPY },
   };
 
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "euler_riem_2d",
+    .name = "euler_sodshock",
 
-    .ndim = 2,
-    .lower = { 0.0, 0.0 },
-    .upper = { 1.0, 1.0 }, 
-    .cells = { 200, 200 },
+    .ndim = 1,
+    .lower = { 0.0 },
+    .upper = { 1.0 }, 
+    .cells = { 512 },
+
+    .cfl_frac = 0.9,
 
     .num_species = 1,
     .species = { fluid },
@@ -100,7 +78,7 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.8;
+  double tcurr = 0.0, tend = 0.1;
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
@@ -140,6 +118,6 @@ main(int argc, char **argv)
   printf("Species updates took %g secs\n", stat.species_tm);
   printf("Field updates took %g secs\n", stat.field_tm);
   printf("Total updates took %g secs\n", stat.total_tm);
-
+  
   return 0;
 }
