@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gkyl_app.h>
+#include <gkyl_basis.h>
 #include <gkyl_util.h>
 
 #include <stdbool.h>
@@ -42,6 +43,7 @@ struct gkyl_vm {
   double lower[3], upper[3]; // lower, upper bounds of config-space
   int cells[3]; // config-space cells
   int poly_order; // polynomial order
+  enum gkyl_basis_type basis_type; // type of basis functions to use
 
   double cfl_frac; // CFL fraction to use (default 1.0)
 
