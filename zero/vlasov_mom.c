@@ -28,6 +28,34 @@ gkyl_vlasov_mom_new(const struct gkyl_basis* cbasis,
   momt->num_config = cbasis->num_basis;
   momt->num_phase = pbasis->num_basis;
 
+  // choose kernel tables based on basis-function type
+  const mom_kern_list *m0_kernels, *m1i_kernels,
+    *m2_kernels, *m2ij_kernels, *m3i_kernels, *m3ijk_kernels;
+
+  switch (cbasis->b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      m0_kernels = ser_m0_kernels;
+      m1i_kernels = ser_m1i_kernels;
+      m2_kernels = ser_m2_kernels;
+      m2ij_kernels = ser_m2ij_kernels;
+      m3i_kernels = ser_m3i_kernels;
+      m3ijk_kernels = ser_m3ijk_kernels;
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      m0_kernels = ten_m0_kernels;
+      m1i_kernels = ten_m1i_kernels;
+      m2_kernels = ten_m2_kernels;
+      m2ij_kernels = ten_m2ij_kernels;
+      m3i_kernels = ten_m3i_kernels;
+      m3ijk_kernels = ten_m3ijk_kernels;
+      break;
+
+    default:
+      assert(false);
+      break;    
+  }
+
   if (strcmp(mom, "M0") == 0) { // density
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);

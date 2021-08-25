@@ -12,7 +12,7 @@ enum gkyl_basis_type {
 struct gkyl_basis {
   unsigned ndim, poly_order, num_basis;
   char id[64]; // "serendipity", "tensor", "maximal-order"
-  enum gkyl_basis_type type; // identifier for basis function
+  enum gkyl_basis_type b_type; // identifier for basis function
     
 /**
  * Evaluate basis in unit cell (i.e. a hypercube with each side

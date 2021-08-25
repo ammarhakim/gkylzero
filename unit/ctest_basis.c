@@ -14,7 +14,7 @@ test_ser_1d()
   TEST_CHECK( basis1.poly_order == 1 );
   TEST_CHECK( basis1.num_basis == 2 );
   TEST_CHECK( strcmp(basis1.id, "serendipity") == 0 );
-  TEST_CHECK( basis1.type == GKYL_BASIS_MODAL_SERENDIPITY );
+  TEST_CHECK( basis1.b_type == GKYL_BASIS_MODAL_SERENDIPITY );
 
   double z[1], b[basis1.num_basis];
 
@@ -39,7 +39,7 @@ test_ser_2d()
   TEST_CHECK( basis.poly_order == 2 );
   TEST_CHECK( basis.num_basis == 8 );
   TEST_CHECK( strcmp(basis.id, "serendipity") == 0 );
-  TEST_CHECK( basis.type == GKYL_BASIS_MODAL_SERENDIPITY );
+  TEST_CHECK( basis.b_type == GKYL_BASIS_MODAL_SERENDIPITY );
 
   double z[basis.ndim], b[basis.num_basis];
 
@@ -93,7 +93,7 @@ test_ten_2d()
   TEST_CHECK( basis.poly_order == 2 );
   TEST_CHECK( basis.num_basis == 9 );
   TEST_CHECK( strcmp(basis.id, "tensor") == 0 );
-  TEST_CHECK( basis.type == GKYL_BASIS_MODAL_TENSOR );
+  TEST_CHECK( basis.b_type == GKYL_BASIS_MODAL_TENSOR );
 
   double z[basis.ndim], b[basis.num_basis];
 
