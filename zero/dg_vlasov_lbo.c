@@ -62,9 +62,41 @@ gkyl_dg_vlasov_lbo_new(const struct gkyl_basis* cbasis, const struct gkyl_basis*
   vlasov_lbo->pdim = pdim;
 
   vlasov_lbo->eqn.num_equations = 1;
-  //vlasov_lbo->eqn.vol_term = vol;
+  vlasov_lbo->eqn.vol_term = vol;
   vlasov_lbo->eqn.surf_term = surf;
   vlasov_lbo->eqn.boundary_surf_term = boundary_surf;
+
+  const gkyl_dg_vlasov_lbo_vol_kern_list *vol_kernels;
+  const gkyl_dg_vlasov_lbo_surf_kern_list *surf_vx_kernels, *surf_vy_kernels, *surf_vz_kernels;
+  const gkyl_dg_vlasov_lbo_boundary_surf_kern_list *boundary_surf_vx_kernels, *boundary_surf_vy_kernels,
+    *boundary_surf_vz_kernels;
+  
+  switch (cbasis->b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      surf_vx_kernels = ser_surf_vx_kernels;
+      surf_vy_kernels = ser_surf_vy_kernels;
+      surf_vz_kernels = ser_surf_vz_kernels;
+      boundary_surf_vx_kernels = ser_boundary_surf_vx_kernels;
+      boundary_surf_vy_kernels = ser_boundary_surf_vy_kernels;
+      boundary_surf_vz_kernels = ser_boundary_surf_vz_kernels;
+      
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      vol_kernels = ten_vol_kernels;
+      surf_vx_kernels = ten_surf_vx_kernels;
+      surf_vy_kernels = ten_surf_vy_kernels;
+      surf_vz_kernels = ten_surf_vz_kernels;
+      boundary_surf_vx_kernels = ten_boundary_surf_vx_kernels;
+      boundary_surf_vy_kernels = ten_boundary_surf_vy_kernels;
+      boundary_surf_vz_kernels = ten_boundary_surf_vz_kernels;
+      break;
+
+    default:
+      assert(false);
+      break;    
+  }  
 
   //vlasov_lbo->vol = CK(vol_kernels, cdim, vdim, poly_order);
 
@@ -81,8 +113,9 @@ gkyl_dg_vlasov_lbo_new(const struct gkyl_basis* cbasis, const struct gkyl_basis*
     vlasov_lbo->boundary_surf[2] = CK(boundary_surf_vz_kernels, cdim, vdim, poly_order);
 
   // ensure non-NULL pointers
-  //assert(vlasov_lbo->vol);
+  assert(vlasov_lbo->vol);
   for (int i=0; i<vdim; ++i) assert(vlasov_lbo->surf[i]);
+  for (int i=0; i<vdim; ++i) assert(vlasov_lbo->boundary_surf[i]);
 
   vlasov_lbo->nuSum = 0;
   vlasov_lbo->nuUSum = 0;

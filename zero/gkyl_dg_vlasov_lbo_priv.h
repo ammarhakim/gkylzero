@@ -5,6 +5,10 @@
 #include <gkyl_vlasov_lbo_kernels.h>
 
 // Types for various kernels
+typedef double (*vlasov_lbo_vol_t)(const double *w, const double *dxv,
+  const double nuSum, const double *nuUSum, const double *nuVtSqSum,
+  const double *f, double* GKYL_RESTRICT out);
+
 typedef void (*vlasov_lbo_surf_t)(const double *w, const double *dxv,
   double nuSum, const double *nuUSum,
   const double *nuVtSqSum, const double *fl,
@@ -24,23 +28,41 @@ static struct { int vdim[4]; } cv_index[] = {
   {-1, -1, -1,  5}, // 3x kernel indices  
 };
 
+// for use in kernel tables
+typedef struct { vlasov_lbo_vol_t kernels[3]; } gkyl_dg_vlasov_lbo_vol_kern_list;
+typedef struct { vlasov_lbo_surf_t kernels[3]; } gkyl_dg_vlasov_lbo_surf_kern_list;
+typedef struct { vlasov_lbo__boundary_surf_t kernels[3]; } gkyl_dg_vlasov_lbo_boundary_surf_kern_list;
+
+GKYL_CU_D
+static const gkyl_dg_vlasov_lbo_vol_kern_list ser_vol_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_lbo_vol_1x1v_ser_p1, vlasov_lbo_vol_1x1v_ser_p2 }, // 0
+  { NULL, vlasov_lbo_vol_1x2v_ser_p1, vlasov_lbo_vol_1x2v_ser_p2 }, // 1
+  { NULL, vlasov_lbo_vol_1x3v_ser_p1, vlasov_lbo_vol_1x3v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, vlasov_lbo_vol_2x2v_ser_p1, vlasov_lbo_vol_2x2v_ser_p2 }, // 3
+  { NULL, vlasov_lbo_vol_2x3v_ser_p1, NULL               }, // 4
+  // 3x kernels
+  { NULL, vlasov_lbo_vol_3x3v_ser_p1, NULL               }, // 5
+};
+
 // Constant nu surface kernel list: vx-direction
 GKYL_CU_D
-static struct { vlasov_lbo_surf_t kernels[3]; } surf_vx_kernels[] = {
+static const gkyl_dg_vlasov_lbo_surf_kern_list ser_surf_vx_kernels[] = {
   // 1x kernels
   { NULL, vlasov_lbo_surfvx_1x1v_ser_p1, vlasov_lbo_surfvx_1x1v_ser_p2 }, // 0
   { NULL, vlasov_lbo_surfvx_1x2v_ser_p1, vlasov_lbo_surfvx_1x2v_ser_p2 }, // 1
   { NULL, vlasov_lbo_surfvx_1x3v_ser_p1, vlasov_lbo_surfvx_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, vlasov_lbo_surfvx_2x2v_ser_p1, vlasov_lbo_surfvx_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_lbo_surfvx_2x3v_ser_p1, NULL }, // 4
+  { NULL, vlasov_lbo_surfvx_2x3v_ser_p1, NULL }, // 
   // 3x kernels
   { NULL, vlasov_lbo_surfvx_3x3v_ser_p1, NULL                   }, // 5
 };
 
 // Constant nu surface kernel list: vy-direction
 GKYL_CU_D
-static struct { vlasov_lbo_surf_t kernels[3]; } surf_vy_kernels[] = {
+static const gkyl_dg_vlasov_lbo_surf_kern_list ser_surf_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, vlasov_lbo_surfvy_1x2v_ser_p1, vlasov_lbo_surfvy_1x2v_ser_p2 }, // 1
@@ -54,7 +76,7 @@ static struct { vlasov_lbo_surf_t kernels[3]; } surf_vy_kernels[] = {
 
 // Constant nu surface kernel list: vz-direction
 GKYL_CU_D
-static struct { vlasov_lbo_surf_t kernels[3]; } surf_vz_kernels[] = {
+static const gkyl_dg_vlasov_lbo_surf_kern_list ser_surf_vz_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
@@ -68,7 +90,7 @@ static struct { vlasov_lbo_surf_t kernels[3]; } surf_vz_kernels[] = {
 
 // Constant nu boundary surface kernel (zero-flux BCs) list: vx-direction
 GKYL_CU_D
-static struct { vlasov_lbo_boundary_surf_t kernels[3]; } boundary_surf_vx_kernels[] = {
+gkyl_dg_vlasov_lbo_boundary_surf_kern_list ser_boundary_surf_vx_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, vlasov_lbo_boundary_surfvx_1x2v_ser_p1, vlasov_lbo_boundary_surfvx_1x2v_ser_p2 }, // 1
@@ -82,7 +104,7 @@ static struct { vlasov_lbo_boundary_surf_t kernels[3]; } boundary_surf_vx_kernel
 
 // Constant nu boundary surface kernel (zero-flux BCs) list: vy-direction
 GKYL_CU_D
-static struct { vlasov_lbo_boundary_surf_t kernels[3]; } boundary_surf_vy_kernels[] = {
+gkyl_dg_vlasov_lbo_boundary_surf_kern_list ser_boundary_surf_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, vlasov_lbo_boundary_surfvy_1x2v_ser_p1, vlasov_lbo_boundary_surfvy_1x2v_ser_p2 }, // 1
@@ -96,7 +118,7 @@ static struct { vlasov_lbo_boundary_surf_t kernels[3]; } boundary_surf_vy_kernel
 
 // Constant nu boundary surface kernel (zero-flux BCs) list: vz-direction
 GKYL_CU_D
-static struct { vlasov_lbo_boundary_surf_t kernels[3]; } boundary_surf_vz_kernels[] = {
+gkyl_dg_vlasov_lbo_boundary_surf_kern_list ser_boundary_surf_vz_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
@@ -115,12 +137,23 @@ struct dg_vlasov_lbo {
   struct gkyl_dg_eqn eqn; // Base object
   int cdim; // Config-space dimensions
   int pdim; // Phase-space dimensions
+  vlasov_lbo_vol_t vol; // Volume kernel
   vlasov_lbo_surf_t surf[3]; // Surface terms for acceleration
   vlasov_lbo_boundary_surf_t boundary_surf[3]; // Surface terms for acceleration
   double nuSum;
   const double* nuUSum;
   const double* nuVtSqSum;
 };
+
+GKYL_CU_D
+static double
+vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov_lbo *vlasov_lbo = container_of(eqn, struct dg_vlasov_lbo, eqn);
+
+  vlasov_lbo->vol[dir](xc, dx, vlasov_lbo->nuSum, vlasov_lbo->nuUSum, vlasov_lbo->nuVtSqSum, qIn, qRhsOut);
+}
 
 GKYL_CU_D
 static void
