@@ -199,7 +199,100 @@ unmag_braginskii_update(const gkyl_moment_braginskii *bes,
   const double *fluid_d[][GKYL_MAX_SPECIES],
   double *cflrate, double *rhs[GKYL_MAX_SPECIES])
 {
-  int nfluids = bes->nfluids; 
+  const int ndim = bes->ndim;
+  const int nfluids = bes->nfluids;
+  const double dx = bes->grid.dx[0];
+
+  // For now we will asume one ion species
+  if (ndim == 1 && nfluids == 2)
+  {
+    const double m[2] = { bes->param[0].mass, bes->param[1].mass };
+
+    double rho[3][2];
+    for (int j = L_1D; j <= U_1D; ++j)
+      for (int n = 0; n < nfluids; ++n)
+        rho[j][n] = fluid_d[j][n][RHO];
+
+    double v[3][2][3];
+    for (int j = L_1D; j <= U_1D; ++j)
+      for (int n = 0; n < nfluids; ++n)
+        for (int k = MX; k <= MZ; ++k)
+          v[j][n][k - MX] = fluid_d[j][n][k] / fluid_d[j][n][RHO];
+
+    double p[3][2];
+    const double gas_gamma = 5.0 / 3.0;  // Note: Hard-coded value
+    for (int j = L_1D; j <= U_1D; ++j)
+      for (int n = 0; n < nfluids; ++n)
+      {
+        double KE = 0.5 * (fluid_d[j][n][MX] * fluid_d[j][n][MX] + fluid_d[j][n][MY] * fluid_d[j][n][MY] + fluid_d[j][n][MZ] * fluid_d[j][n][MZ]) / fluid_d[j][n][RHO];
+        p[j][n] = (gas_gamma - 1.0) * fluid_d[j][n][ER] - KE;
+      }
+
+    double T[3][2];
+    for (int j = L_1D; j <= U_1D; ++j)
+      for (int n = 0; n < nfluids; ++n)
+        T[j][n] = m[n] * p[j][n] / rho[j][n];
+
+    // Grab indices of electron and ion fluid arrays
+    const int ELC = bes->param[0].charge < 0.0 ? 0 : 1;
+    const int ION = (ELC + 1) % 2;
+
+    const double e = bes->param[ELC].charge;
+    const int Z = bes->param[ION].charge / abs(bes->param[ELC].charge);  // Note: May always round down on conversion
+
+    double lambda = 10.0; // Note: Change this
+
+    // Collision times for each species
+    double tau[3][2];
+    const double e4Z2 = e * e * e * e * Z * Z;
+    const double e4Z4 = e4Z2 * Z * Z;
+    for (int j = L_1D; j <= U_1D; ++j)
+    {
+      tau[j][ELC] = 3.0 * sqrt(m[ELC]) * m[ION] * pow(T[j][ELC], 3.0 / 2.0) / (4.0 * sqrt(2.0 * M_PI) * lambda * e4Z2 * rho[j][ION]);
+      tau[j][ION] = 3.0 * sqrt(m[ION]) * m[ION] * pow(T[j][ION], 3.0 / 2.0) / (4.0 * sqrt(M_PI) * lambda * e4Z4 * rho[j][ION]);
+    }
+
+    // Viscosity coefficients for each species
+    double eta[3][2];
+    for (int j = L_1D; j <= U_1D; ++j)
+    {
+      eta[j][ELC] = 0.73 * p[j][ELC] * tau[j][ELC];
+      eta[j][ION] = 0.96 * p[j][ION] * tau[j][ION];
+    }
+
+    // Calculate rhs
+    for (int n = 0; n < nfluids; ++n)
+    {
+      // Compute velocity derivatives at left and right edges
+      double dvdxL[3] = { calc_sym_grad_1D(dx, v[L_1D][n][0], v[C_1D][n][0]),
+                          calc_sym_grad_1D(dx, v[L_1D][n][1], v[C_1D][n][1]),
+                          calc_sym_grad_1D(dx, v[L_1D][n][2], v[C_1D][n][2]) };
+      double dvdxR[3] = { calc_sym_grad_1D(dx, v[C_1D][n][0], v[U_1D][n][0]),
+                          calc_sym_grad_1D(dx, v[C_1D][n][1], v[U_1D][n][1]),
+                          calc_sym_grad_1D(dx, v[C_1D][n][2], v[U_1D][n][2]) };
+
+      // Compute eta at left and right edges using harmonic average
+      double etaL = calc_harmonic_avg_1D(eta[L_1D][n], eta[C_1D][n]);
+      double etaR = calc_harmonic_avg_1D(eta[C_1D][n], eta[U_1D][n]);
+
+      // Viscous stress tensor
+      double piL[3] = { (4.0 / 3.0) * dvdxL[0], dvdxL[1], dvdxL[2] };
+      double piR[3] = { (4.0 / 3.0) * dvdxR[0], dvdxR[1], dvdxR[2] };
+
+      // Update momentum
+      rhs[n][MX] = calc_sym_grad_1D(dx, etaL * piL[0], etaR * piR[0]);
+      rhs[n][MY] = calc_sym_grad_1D(dx, etaL * piL[1], etaR * piR[1]);
+      rhs[n][MZ] = calc_sym_grad_1D(dx, etaL * piL[2], etaR * piR[2]);
+
+      // Compute velocity derivatives at center
+      double dvdxC[3] = { calc_harmonic_avg_1D(dvdxL[0], dvdxR[0]),
+                          calc_harmonic_avg_1D(dvdxL[1], dvdxR[1]),
+                          calc_harmonic_avg_1D(dvdxL[2], dvdxR[2]) };
+
+      // Update energy
+      rhs[n][ER] = -1.0 * eta[C_1D][n] * (4.0 / 3.0 * dvdxC[0] * dvdxC[0] + dvdxC[1] * dvdxC[1] + dvdxC[2] * dvdxC[2]);
+    }
+  }
 }
 
 gkyl_moment_braginskii*
