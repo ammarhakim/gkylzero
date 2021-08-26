@@ -40,7 +40,7 @@ gkyl_mom_calc* gkyl_mom_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
  *
  * @param calc Moment calculator updater to run
  * @param phase_rng Phase-space range
- * @param conf_rng Config-space rnage
+ * @param conf_rng Config-space range
  * @param fin Input distribution function array
  * @param mout Output moment array
  */

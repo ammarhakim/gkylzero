@@ -7,7 +7,7 @@
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
 CFLAGS = -O3 -g -ffast-math
 LDFLAGS =
-KERN_INCLUDES = -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov -Ikernels/bin_op
+KERN_INCLUDES = -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov -Ikernels/bin_op -Ikernels/lbo
 
 # Install prefix
 PREFIX = ${HOME}/gkylsoft
@@ -136,6 +136,7 @@ check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_hyper_dg
 	./build/unit/ctest_mat
 	./build/unit/ctest_mom_calc
+	./build/unit/ctest_proj_maxwellian_on_basis
 	./build/unit/ctest_proj_on_basis
 	./build/unit/ctest_range
 	./build/unit/ctest_rect_apply_bc
@@ -163,5 +164,5 @@ install: all
 	cp -f build/regression/rt_vlasov_kerntm ${PREFIX}/gkylzero/bin/
 
 clean:
-	rm -rf build/libgkylzero.a build/regression/twostream.ini */*.o kernels/*/*.o build/regression/rt_* build/unit/ctest_*
 
+	rm -rf build/libgkylzero.a build/regression/twostream.ini */*.o kernels/*/*.o build/regression/rt_* build/unit/ctest_*
