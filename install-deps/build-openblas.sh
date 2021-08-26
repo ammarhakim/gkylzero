@@ -17,7 +17,7 @@ curl -L https://github.com/xianyi/OpenBLAS/releases/download/v0.3.15/OpenBLAS-0.
 gunzip -f OpenBLAS-0.3.15.tar.gz
 tar xvf OpenBLAS-0.3.15.tar
 cd OpenBLAS-0.3.15
-make FC=$FC -j
+make USE_OPENMP=0 FC=$FC -j
 make install PREFIX=$PREFIX -j
 
 # soft-link 

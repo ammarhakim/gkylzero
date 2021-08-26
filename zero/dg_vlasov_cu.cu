@@ -6,6 +6,8 @@ extern "C" {
 #include <gkyl_dg_vlasov_priv.h>
 }
 
+#include <cassert>
+
 // CUDA kernel to set pointer to qmem = q/m*EM
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
@@ -25,34 +27,77 @@ gkyl_vlasov_set_qmem_cu(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *
 
 // CUDA kernel to set device pointers to range object and vlasov kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ void
-dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, int cv_index, int cdim, int vdim, int polyOrder)
+__global__ void static
+dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
+  int cv_index, int cdim, int vdim, int poly_order)
 {
   vlasov->qmem = 0; 
 
   vlasov->eqn.vol_term = vol;
   vlasov->eqn.surf_term = surf;
   vlasov->eqn.boundary_surf_term = boundary_surf;
+
+  const gkyl_dg_vlasov_steam_vol_kern_list *stream_vol_kernels;
+  const gkyl_dg_vlasov_vol_kern_list *vol_kernels;
+  const gkyl_dg_vlasov_steam_surf_kern_list *stream_surf_x_kernels, *stream_surf_y_kernels, *stream_surf_z_kernels;
+  const gkyl_dg_vlasov_accel_surf_kern_list *accel_surf_vx_kernels, *accel_surf_vy_kernels, *accel_surf_vz_kernels;
+  const gkyl_dg_vlasov_accel_boundary_surf_kern_list *accel_boundary_surf_vx_kernels, *accel_boundary_surf_vy_kernels,
+    *accel_boundary_surf_vz_kernels;
+  
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      stream_vol_kernels = ser_stream_vol_kernels;
+      vol_kernels = ser_vol_kernels;
+      stream_surf_x_kernels = ser_stream_surf_x_kernels;
+      stream_surf_y_kernels = ser_stream_surf_y_kernels;
+      stream_surf_z_kernels = ser_stream_surf_z_kernels;
+      accel_surf_vx_kernels = ser_accel_surf_vx_kernels;
+      accel_surf_vy_kernels = ser_accel_surf_vy_kernels;
+      accel_surf_vz_kernels = ser_accel_surf_vz_kernels;
+      accel_boundary_surf_vx_kernels = ser_accel_boundary_surf_vx_kernels;
+      accel_boundary_surf_vy_kernels = ser_accel_boundary_surf_vy_kernels;
+      accel_boundary_surf_vz_kernels = ser_accel_boundary_surf_vz_kernels;
+      
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      stream_vol_kernels = ten_stream_vol_kernels;
+      vol_kernels = ten_vol_kernels;
+      stream_surf_x_kernels = ten_stream_surf_x_kernels;
+      stream_surf_y_kernels = ten_stream_surf_y_kernels;
+      stream_surf_z_kernels = ten_stream_surf_z_kernels;
+      accel_surf_vx_kernels = ten_accel_surf_vx_kernels;
+      accel_surf_vy_kernels = ten_accel_surf_vy_kernels;
+      accel_surf_vz_kernels = ten_accel_surf_vz_kernels;
+      accel_boundary_surf_vx_kernels = ten_accel_boundary_surf_vx_kernels;
+      accel_boundary_surf_vy_kernels = ten_accel_boundary_surf_vy_kernels;
+      accel_boundary_surf_vz_kernels = ten_accel_boundary_surf_vz_kernels;
+      break;
+
+    default:
+      assert(false);
+      break;    
+  }  
  
-  vlasov->vol = vol_kernels[cv_index].kernels[polyOrder];
+  vlasov->vol = vol_kernels[cv_index].kernels[poly_order];
 
-  vlasov->stream_surf[0] = stream_surf_x_kernels[cv_index].kernels[polyOrder];
+  vlasov->stream_surf[0] = stream_surf_x_kernels[cv_index].kernels[poly_order];
   if (cdim>1)
-    vlasov->stream_surf[1] = stream_surf_y_kernels[cv_index].kernels[polyOrder];
+    vlasov->stream_surf[1] = stream_surf_y_kernels[cv_index].kernels[poly_order];
   if (cdim>2)
-    vlasov->stream_surf[2] = stream_surf_z_kernels[cv_index].kernels[polyOrder];
+    vlasov->stream_surf[2] = stream_surf_z_kernels[cv_index].kernels[poly_order];
 
-  vlasov->accel_surf[0] = accel_surf_vx_kernels[cv_index].kernels[polyOrder];
+  vlasov->accel_surf[0] = accel_surf_vx_kernels[cv_index].kernels[poly_order];
   if (vdim>1)
-    vlasov->accel_surf[1] = accel_surf_vy_kernels[cv_index].kernels[polyOrder];
+    vlasov->accel_surf[1] = accel_surf_vy_kernels[cv_index].kernels[poly_order];
   if (vdim>2)
-    vlasov->accel_surf[2] = accel_surf_vz_kernels[cv_index].kernels[polyOrder];
+    vlasov->accel_surf[2] = accel_surf_vz_kernels[cv_index].kernels[poly_order];
 
-  vlasov->accel_boundary_surf[0] = accel_boundary_surf_vx_kernels[cv_index].kernels[polyOrder];
+  vlasov->accel_boundary_surf[0] = accel_boundary_surf_vx_kernels[cv_index].kernels[poly_order];
   if (vdim>1)
-    vlasov->accel_boundary_surf[1] = accel_boundary_surf_vy_kernels[cv_index].kernels[polyOrder];
+    vlasov->accel_boundary_surf[1] = accel_boundary_surf_vy_kernels[cv_index].kernels[poly_order];
   if (vdim>2)
-    vlasov->accel_boundary_surf[2] = accel_boundary_surf_vz_kernels[cv_index].kernels[polyOrder];
+    vlasov->accel_boundary_surf[2] = accel_boundary_surf_vz_kernels[cv_index].kernels[poly_order];
 }
 
 struct gkyl_dg_eqn*
@@ -62,7 +107,7 @@ gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_bas
   struct dg_vlasov *vlasov = (struct dg_vlasov*) gkyl_malloc(sizeof(struct dg_vlasov));
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
-  int polyOrder = cbasis->polyOrder;
+  int poly_order = cbasis->poly_order;
 
   vlasov->cdim = cdim;
   vlasov->pdim = pdim;
@@ -74,7 +119,7 @@ gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_bas
   struct dg_vlasov *vlasov_cu = (struct dg_vlasov*) gkyl_cu_malloc(sizeof(struct dg_vlasov));
   gkyl_cu_memcpy(vlasov_cu, vlasov, sizeof(struct dg_vlasov), GKYL_CU_MEMCPY_H2D);
 
-  dg_vlasov_set_cu_dev_ptrs<<<1,1>>>(vlasov_cu, cv_index[cdim].vdim[vdim], cdim, vdim, polyOrder);
+  dg_vlasov_set_cu_dev_ptrs<<<1,1>>>(vlasov_cu, cbasis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order);
 
   gkyl_free(vlasov);  
   

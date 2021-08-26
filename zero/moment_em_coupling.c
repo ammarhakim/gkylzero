@@ -238,7 +238,21 @@ fluid_source_update(const gkyl_moment_em_coupling *mes, double dt,
       prInp[4] = f[P23] - f[MY] * f[MZ] / f[RHO];
       prInp[5] = f[P33] - f[MZ] * f[MZ] / f[RHO];
 
+      double p = 1.0/3.0*(prInp[0] + prInp[3] + prInp[5]);
+      double vth = sqrt(p/f[RHO]);
+      double nu = vth*mes->param[n].k0;
+      double edt = exp(nu*dt);
+
       pressure_tensor_rotate(qbym, dt, em, ext_em, prInp, prTen[n]);
+
+      // Divide out integrating factor from collisional relaxation
+      // (P - pI) = exp(-nu*dt)*(P - pI); where p is the isotropic pressure 
+      prTen[n][0] = (prTen[n][0] - p)/edt + p;
+      prTen[n][1] = prTen[n][1]/edt;
+      prTen[n][2] = prTen[n][2]/edt;
+      prTen[n][3] = (prTen[n][3] - p)/edt + p;
+      prTen[n][4] = prTen[n][4]/edt;
+      prTen[n][5] = (prTen[n][5] - p)/edt + p;
     }
   }
 

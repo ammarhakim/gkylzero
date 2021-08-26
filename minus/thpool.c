@@ -110,7 +110,11 @@ static void  bsem_post(struct bsem *bsem_p);
 static void  bsem_post_all(struct bsem *bsem_p);
 static void  bsem_wait(struct bsem *bsem_p);
 
-
+#if defined(__APPLE__) && defined(__MACH__)
+// OSX used BSD pthreads and the signature on it is not the same as
+// Linux method with the same name.
+void pthread_setname_np(const char *name);
+#endif
 
 
 

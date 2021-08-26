@@ -32,6 +32,7 @@ struct moment_species {
   int ndim;
   char name[128]; // species name
   double charge, mass;
+  double k0; // closure parameter (default is 0.0, used by 10 moment)
 
   int evolve; // evolve species? 1-yes, 0-no
 
@@ -126,6 +127,12 @@ static const int euler_dir_shuffle[][3] = {
   {2, 3, 1},
   {3, 1, 2}
 };
+// direction shuffle for off-diagonal components of pressure tensor
+static const int ten_moment_dir_shuffle[][3] = {
+  {8, 6, 5},
+  {6, 5, 8},
+  {5, 8, 6}
+};
 
 // function for copy BC
 static void
@@ -173,6 +180,31 @@ bc_euler_wall(double t, int dir, int nc, const double *skin, double * GKYL_RESTR
   ghost[d[2]] = skin[d[2]];
 }
 
+// Ten moment perfectly reflecting wall
+static void
+bc_ten_moment_wall(double t, int dir, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+{
+  const int *d = euler_dir_shuffle[dir];
+  const int *pd = ten_moment_dir_shuffle[dir];
+
+  // copy density and Pxx, Pyy, and Pzz
+  ghost[0] = skin[0];
+  ghost[4] = skin[4];
+  ghost[7] = skin[7];
+  ghost[9] = skin[9];
+
+  // zero-normal for momentum
+  ghost[d[0]] = -skin[d[0]];
+  ghost[d[1]] = skin[d[1]];
+  ghost[d[2]] = skin[d[2]];
+
+  // zero-tangent for off-diagonal components of pressure tensor
+  ghost[pd[0]] = skin[pd[0]];
+  ghost[pd[1]] = -skin[pd[1]];
+  ghost[pd[2]] = -skin[pd[2]];
+}
+
+
 // Create ghost and skin sub-ranges given a parent range
 static void
 skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
@@ -211,7 +243,8 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   strcpy(sp->name, mom_sp->name);
   sp->charge = mom_sp->charge;
   sp->mass = mom_sp->mass;
-
+  // set closure parameter (default is 0.0, used by 10 moment)
+  sp->k0 = mom_sp->k0 == 0 ? 0.0 : mom_sp->k0;
   sp->ctx = mom_sp->ctx;
   sp->init = mom_sp->init;
 
@@ -252,20 +285,32 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         bc = mom_sp->bcz;
 
       // lower BCs in X
-      if (bc[0] == GKYL_MOMENT_SPECIES_WALL)
-        sp->lower_bc[dir] = gkyl_rect_apply_bc_new(
-          &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_euler_wall, 0);
-      else
+      if (bc[0] == GKYL_MOMENT_SPECIES_WALL) {
+        if (sp->eqn_type == GKYL_EULER)
+          sp->lower_bc[dir] = gkyl_rect_apply_bc_new(
+            &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_euler_wall, 0);
+        else if (sp->eqn_type == GKYL_TEN_MOMENT)
+          sp->lower_bc[dir] = gkyl_rect_apply_bc_new(
+            &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_ten_moment_wall, 0);
+      }
+      else {
         sp->lower_bc[dir] = gkyl_rect_apply_bc_new(
           &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_copy, 0);
+      }
       
       // upper BCs in X
-      if (bc[1] == GKYL_MOMENT_SPECIES_WALL)
-        sp->upper_bc[dir] = gkyl_rect_apply_bc_new(
-          &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_euler_wall, 0);
-      else
+      if (bc[1] == GKYL_MOMENT_SPECIES_WALL) {
+        if (sp->eqn_type == GKYL_EULER)
+          sp->upper_bc[dir] = gkyl_rect_apply_bc_new(
+            &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_euler_wall, 0);
+        else if (sp->eqn_type == GKYL_TEN_MOMENT)
+          sp->upper_bc[dir] = gkyl_rect_apply_bc_new(
+            &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_ten_moment_wall, 0);
+      }
+      else {
         sp->upper_bc[dir] = gkyl_rect_apply_bc_new(
           &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_copy, 0);
+      }
     }
     else {
       sp->upper_bc[dir] = sp->lower_bc[dir] = 0;
@@ -560,7 +605,8 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     src_inp.param[i] = (struct gkyl_moment_em_coupling_data) {
       .type = app->species[i].eqn_type,
       .charge = app->species[i].charge,
-      .mass = app->species[i].mass
+      .mass = app->species[i].mass,
+      .k0 = app->species[i].k0
     };
 
   // create updater to solve for sources

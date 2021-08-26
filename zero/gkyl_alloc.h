@@ -44,6 +44,21 @@ void *gkyl_aligned_realloc(void *ptr, size_t align, size_t old_sz, size_t new_sz
  */
 void gkyl_aligned_free(void *ptr);
 
+// Represents a sized chunk of memory
+typedef struct gkyl_mem_buff_tag* gkyl_mem_buff;
+
+/** Allocate new memory buffer with count bytes */
+gkyl_mem_buff gkyl_mem_buff_new(size_t count);
+
+/** Get size of mem_buff */
+size_t gkyl_mem_buff_size(gkyl_mem_buff mem);
+
+/** Get pointer to data buffer */
+char* gkyl_mem_buff_data(gkyl_mem_buff mem);
+
+/** Free buffer */
+void gkyl_mem_buff_release(gkyl_mem_buff mem);
+
 // CUDA specific code (NV: Nvidia)
 
 /** Allocate memory on NV-GPU */

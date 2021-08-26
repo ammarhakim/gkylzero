@@ -26,8 +26,8 @@ GKYL_CU_DH double vlasov_vol_3x3v_ser_p1(const double *w, const double *dxv, con
   const double *B1 = &qmem[32]; 
   const double *B2 = &qmem[40]; 
   double alpha_mid = 0.0; 
-  double alpha_cdim[192]; 
-  double alpha_vdim[192]; 
+  double alpha_cdim[192] = {0.0}; 
+  double alpha_vdim[192] = {0.0}; 
 
   alpha_cdim[0] = 16.0*w0dx0; 
   alpha_cdim[4] = 4.618802153517007*dv0dx0; 

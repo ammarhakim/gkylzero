@@ -4,16 +4,35 @@
 # make CC=mpicc 
 #
 
-CFLAGS = -O3 -g -ffast-math -march=native
+# Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
+CFLAGS = -O3 -g -ffast-math
 LDFLAGS =
-KERN_INCLUDES = -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov -Ikernels/bin_op
-INCLUDES = -Iminus -Izero -Iapps -Iregression ${KERN_INCLUDES}
+KERN_INCLUDES = -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov -Ikernels/bin_op -Ikernels/lbo
+
+# Install prefix
 PREFIX = ${HOME}/gkylsoft
+
+# Default lapack include and libraries: we prefer linking to static library
+LAPACK_INC = ${HOME}/gkylsoft/OpenBLAS/include
+LAPACK_LIB = ${HOME}/gkylsoft/OpenBLAS/lib/libopenblas.a
+
+# determine OS we are running on
+UNAME = $(shell uname)
+
+# On OSX we should use Accelerate framework
+ifeq ($(UNAME), Darwin)
+	LAPACK_INC = zero # dummy
+	LAPACK_LIB = -framework Accelerate
+	CFLAGS += -DGKYL_USING_FRAMEWORK_ACCELERATE
+endif
+
+INCLUDES = -Iminus -Izero -Iapps -Iregression ${KERN_INCLUDES} -I${LAPACK_INC}
 
 NVCC = 
 USING_NVCC =
 NVCC_FLAGS = 
 ifeq ($(CC), nvcc)
+       CFLAGS = -O3 -g 
        USING_NVCC = yes
        NVCC_FLAGS = -x cu -dc -arch=sm_70 --compiler-options="-fPIC" 
        LDFLAGS += -arch=sm_70
@@ -55,7 +74,7 @@ endif
 
 # Make targets: libraries, regression tests and unit tests
 all: build/libgkylzero.a \
-	$(patsubst %.c,build/%,$(wildcard regression/app_*.c)) build/regression/twostream.ini \
+	$(patsubst %.c,build/%,$(wildcard regression/rt_*.c)) build/regression/twostream.ini \
 	$(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 
 # Library archive
@@ -66,12 +85,12 @@ build/libgkylzero.a: ${libobjs} ${headers}
 build/regression/twostream.ini: regression/twostream.ini
 	cp regression/twostream.ini build/regression/twostream.ini
 
-build/regression/%: regression/%.c build/libgkylzero.a regression/app_arg_parse.h
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero -lm -lpthread 
+build/regression/%: regression/%.c build/libgkylzero.a regression/rt_arg_parse.h
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero ${LAPACK_LIB} -lm -lpthread 
 
 # Unit tests
 build/unit/%: unit/%.c build/libgkylzero.a
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero -lm -lpthread
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero ${LAPACK_LIB} -lm -lpthread
 
 
 ifdef USING_NVCC
@@ -117,6 +136,7 @@ check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_hyper_dg
 	./build/unit/ctest_mat
 	./build/unit/ctest_mom_calc
+	./build/unit/ctest_proj_maxwellian_on_basis
 	./build/unit/ctest_proj_on_basis
 	./build/unit/ctest_range
 	./build/unit/ctest_rect_apply_bc
@@ -138,11 +158,11 @@ install: all
 	cp ${headers} ${PREFIX}/gkylzero/include
 	cp -f build/libgkylzero.a ${PREFIX}/gkylzero/lib
 	cp -f build/Makefile.sample ${PREFIX}/gkylzero/share/Makefile
-	cp -f regression/app_arg_parse.h ${PREFIX}/gkylzero/share/app_arg_parse.h
-	cp -f regression/app_twostream.c ${PREFIX}/gkylzero/share/app_twostream.c
+	cp -f regression/rt_arg_parse.h ${PREFIX}/gkylzero/share/rt_arg_parse.h
+	cp -f regression/rt_twostream.c ${PREFIX}/gkylzero/share/rt_twostream.c
 	cp -f regression/twostream.ini ${PREFIX}/gkylzero/share/twostream.ini
-	cp -f build/regression/app_vlasov_kerntm ${PREFIX}/gkylzero/bin/
+	cp -f build/regression/rt_vlasov_kerntm ${PREFIX}/gkylzero/bin/
 
 clean:
-	rm -rf build/libgkylzero.a build/regression/twostream.ini */*.o kernels/*/*.o build/regression/app_* build/unit/ctest_*
 
+	rm -rf build/libgkylzero.a build/regression/twostream.ini */*.o kernels/*/*.o build/regression/rt_* build/unit/ctest_*
