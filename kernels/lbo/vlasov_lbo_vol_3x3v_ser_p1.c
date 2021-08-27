@@ -1,5 +1,5 @@
 #include <gkyl_vlasov_lbo_kernels.h> 
-GKYL_CU_DH double vlasov_lbo_vol_3x3v_ser_p1(const double *w, const double *dxv, const double nuSum, const double *nuUSum, const double *nuVtSqSum, const double *f, double GKYL_RESTRICT *out) 
+GKYL_CU_DH double vlasov_lbo_vol_3x3v_ser_p1(const double *w, const double *dxv, const double nuSum, const double *nuUSum, const double *nuVtSqSum, const double *f, double* GKYL_RESTRICT out) 
 { 
   // w[6]:      Cell-center coordinates. 
   // dxv[6]:    Cell spacing. 
