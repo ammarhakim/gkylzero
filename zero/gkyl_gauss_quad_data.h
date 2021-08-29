@@ -6,7 +6,7 @@
 // Maximum order ordinate/weight data
 static const int gkyl_gauss_max = 8;
 
-// Ordinates
+// Gauss-Legendre Ordinates
 static const double gkyl_gauss_ordinates_1[] =
 { 0.0 };
 static const double gkyl_gauss_ordinates_2[] =
@@ -24,7 +24,7 @@ static const double gkyl_gauss_ordinates_7[] =
 static const double gkyl_gauss_ordinates_8[] =
 { -0.960289856497536231684, -0.7966664774136267395916, -0.5255324099163289858177, -0.1834346424956498049395, 0.1834346424956498049395, 0.525532409916328985818, 0.796666477413626739592, 0.9602898564975362316836 };
 
-// Weights
+// Gauss-Legendre Weights
 static const double gkyl_gauss_weights_1[] =
 { 2.0 };
 static const double gkyl_gauss_weights_2[] =
@@ -67,6 +67,50 @@ static const double* gkyl_gauss_weights[] = {
   gkyl_gauss_weights_6,
   gkyl_gauss_weights_7,
   gkyl_gauss_weights_8
+};
+
+// Gauss-Lobatto Ordinates (See https://mathworld.wolfram.com/LobattoQuadrature.html)
+static const double gkyl_lobatto_ordinates_2[] =
+{ -1.0, 1.0 };
+static const double gkyl_lobatto_ordinates_3[] =
+{ -1.0, 0.0, 1.0 };
+static const double gkyl_lobatto_ordinates_4[] =
+{ -1.0, -1.0/5.0*sqrt(5.0), 1.0/5.0*sqrt(5.0), 1.0 };
+static const double gkyl_lobatto_ordinates_5[] =
+{ -1.0, -1.0/7.0*sqrt(21.0), 0.0, 1.0/7.0*sqrt(21.0), 1.0 };
+static const double gkyl_lobatto_ordinates_6[] =
+{ -1.0, -sqrt((7.0+2.0*sqrt(7.0))/21.0), -sqrt((7.0-2.0*sqrt(7.0))/21.0), sqrt((7.0-2.0*sqrt(7.0))/21.0), sqrt((7.0+2.0*sqrt(7.0))/21.0), 1.0 };
+
+// Gauss-Lobatto Weights (see above URL)
+static const double gkyl_lobatto_weights_2[] =
+{ 1.0, 1.0 };
+static const double gkyl_lobatto_weights_3[] =
+{ 4.0/3.0, 1.0/3.0, 4.0/3.0 };
+static const double gkyl_lobatto_weights_4[] =
+{ 1.0/6.0, 5.0/6.0, 5.0/6.0, 1.0/6.0 };
+static const double gkyl_lobatto_weights_5[] =
+{ 1.0/10.0, 49.0/90.0,  32.0/45.0, 49.0/90.0, 1.0/10.0 };
+static const double gkyl_lobatto_weights_6[] =
+{ 1.0/15.0, (14.0-sqrt(7.0))/30.0, (14.0+sqrt(7.0))/30.0, (14.0+sqrt(7.0))/30.0, (14.0-sqrt(7.0))/30.0, 1.0/15.0 };
+
+static const double* gkyl_lobatto_ordinates[] = {
+  0, // N=0 makes no sense,
+  0, // N=1 makes no sense
+  gkyl_lobatto_ordinates_2,
+  gkyl_lobatto_ordinates_3,
+  gkyl_lobatto_ordinates_4,
+  gkyl_lobatto_ordinates_5,
+  gkyl_lobatto_ordinates_6
+};
+
+static const double* gkyl_lobatto_weights[] = {
+  0, // N=0 makes no sense,
+  0, // N=1 makes no sense
+  gkyl_lobatto_weights_2,
+  gkyl_lobatto_weights_3,
+  gkyl_lobatto_weights_4,
+  gkyl_lobatto_weights_5,
+  gkyl_lobatto_weights_6
 };
 
 /**

@@ -110,11 +110,11 @@ test_1x1v(int poly_order)
   m1i = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
   m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
 
-  gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
+  gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&confGrid, &confBasis, GKYL_QUAD_GAUSS_LEGENDRE,
     poly_order+1, 1, eval_M0, NULL);
-  gkyl_proj_on_basis *proj_m1i = gkyl_proj_on_basis_new(&confGrid, &confBasis,
+  gkyl_proj_on_basis *proj_m1i = gkyl_proj_on_basis_new(&confGrid, &confBasis, GKYL_QUAD_GAUSS_LEGENDRE,
     poly_order+1, vdim, eval_M1i_1v, NULL);
-  gkyl_proj_on_basis *proj_m2 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
+  gkyl_proj_on_basis *proj_m2 = gkyl_proj_on_basis_new(&confGrid, &confBasis, GKYL_QUAD_GAUSS_LEGENDRE,
     poly_order+1, 1, eval_M2_1v, NULL);
 
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0);
@@ -190,11 +190,11 @@ test_1x2v(int poly_order)
   m1i = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
   m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
 
-  gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
+  gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&confGrid, &confBasis, GKYL_QUAD_GAUSS_LEGENDRE,
     poly_order+1, 1, eval_M0, NULL);
-  gkyl_proj_on_basis *proj_m1i = gkyl_proj_on_basis_new(&confGrid, &confBasis,
+  gkyl_proj_on_basis *proj_m1i = gkyl_proj_on_basis_new(&confGrid, &confBasis, GKYL_QUAD_GAUSS_LEGENDRE,
     poly_order+1, vdim, eval_M1i_2v, NULL);
-  gkyl_proj_on_basis *proj_m2 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
+  gkyl_proj_on_basis *proj_m2 = gkyl_proj_on_basis_new(&confGrid, &confBasis, GKYL_QUAD_GAUSS_LEGENDRE,
     poly_order+1, 1, eval_M2_2v, NULL);
 
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0);

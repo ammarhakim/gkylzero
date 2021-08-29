@@ -11,7 +11,8 @@ gkyl_fv_proj_new(const struct gkyl_rect_grid *grid,
   // gkyl_proj_on_basis updater, however specialized to poly_order=0
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, grid->ndim, 0);
-  return gkyl_proj_on_basis_new(grid, &basis, num_quad, num_ret_vals, eval, ctx);
+  return gkyl_proj_on_basis_new(grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE,
+    num_quad, num_ret_vals, eval, ctx);
 }
 
 void

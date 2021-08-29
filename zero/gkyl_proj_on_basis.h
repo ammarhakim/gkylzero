@@ -5,6 +5,9 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
+/** Type of quadrature to use */
+enum gkyl_quad_type { GKYL_QUAD_GAUSS_LEGENDRE, GKYL_QUAD_GAUSS_LOBATTO };
+
 /**
  * Type of function to project.
  *
@@ -24,6 +27,7 @@ typedef struct gkyl_proj_on_basis gkyl_proj_on_basis;
  *
  * @param grid Grid object
  * @param basis Basis functions to project on
+ * @param q_type Type of quadrature to use
  * @param num_quad Number of quadrature nodes
  * @param num_ret_vals Number of values 'eval' sets
  * @param eval Function to project.
@@ -32,6 +36,7 @@ typedef struct gkyl_proj_on_basis gkyl_proj_on_basis;
  */
 gkyl_proj_on_basis* gkyl_proj_on_basis_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
+  enum gkyl_quad_type q_type,
   int num_quad, int num_ret_vals, evalf_t eval, void *ctx);
 
 /**

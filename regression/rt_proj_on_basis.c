@@ -33,7 +33,7 @@ test_proj(enum gkyl_basis_type type)
     gkyl_cart_modal_tensor(&basis, 3, poly_order);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE,
     poly_order+1, 1, evalFunc, 0);
 
   // create array range: no ghost-cells 
