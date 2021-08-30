@@ -129,14 +129,14 @@ array_combine(struct gkyl_array *out, double c1, const struct gkyl_array *arr1,
 static const char *const valid_moment_names[] = { "M0", "M1i", "M2ij", "M2", "M3i" };
 
 // check if name of moment is valid or not
-static bool
+static int
 is_moment_name_valid(const char *nm)
 {
   int n = sizeof(valid_moment_names)/sizeof(valid_moment_names[0]);
   for (int i=0; i<n; ++i)
     if (strcmp(valid_moment_names[i], nm) == 0)
-      return true;
-  return false;
+      return 1;
+  return 0;
 }
 
 // Create ghost and skin sub-ranges given a parent range
@@ -549,7 +549,7 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
   strcpy(app->name, vm.name);
   app->tcurr = 0.0; // reset on init
 
-  // initialize basis functions
+  // basis functions
   switch (vm.basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
@@ -607,7 +607,7 @@ gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
 {
   app->tcurr = t0;
   int poly_order = app->poly_order;
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, GKYL_QUAD_GAUSS_LEGENDRE,
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
     poly_order+1, 8, app->field.info.init, app->field.info.ctx);
 
   struct timespec wtm = gkyl_wall_clock();
@@ -629,7 +629,7 @@ gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0)
 
   app->tcurr = t0;
   int poly_order = app->poly_order;
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->species[sidx].grid, &app->basis, GKYL_QUAD_GAUSS_LEGENDRE,
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->species[sidx].grid, &app->basis,
     poly_order+1, 1, app->species[sidx].info.init, app->species[sidx].info.ctx);
 
   struct timespec wtm = gkyl_wall_clock();

@@ -96,7 +96,7 @@ test_1x1v_p1()
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE,
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, evalFunc, NULL);
 
   // create distribution function array
@@ -216,7 +216,7 @@ test_1x2v_p1()
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE,
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, evalFuncSimple, NULL);
 
   // create distribution function array
@@ -318,7 +318,7 @@ test_2x2v_p1()
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE,
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, evalFuncSimple, NULL);
 
   // create distribution function array
@@ -423,7 +423,7 @@ test_2x3v_p1()
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE,
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, evalFuncSimple, NULL);
 
   // create distribution function array
@@ -529,7 +529,7 @@ test_1x1v_p1_cu()
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE,
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, evalFunc, NULL);
 
   // create distribution function and moment arrays
@@ -646,7 +646,7 @@ test_1x2v_p1_cu()
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE,
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, evalFuncSimple, NULL);
 
   // create distribution function
@@ -756,7 +756,7 @@ test_2x2v_p1_cu()
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE,
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, evalFuncSimple, NULL);
 
   // create distribution function
@@ -869,7 +869,7 @@ test_2x3v_p1_cu()
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE,
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, evalFuncSimple, NULL);
 
   // create distribution function

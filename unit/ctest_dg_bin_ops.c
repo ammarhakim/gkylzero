@@ -34,10 +34,8 @@ test_1d_p1()
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE,
-    poly_order+1, 1, f_1d, NULL);
-  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE,
-    poly_order+1, 1, g_1d, NULL);
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_1d, NULL);
+  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_1d, NULL);
 
   // create array range: no ghost-cells in velocity space
   struct gkyl_range arr_range;
@@ -102,10 +100,8 @@ test_1d_p2()
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE,
-    poly_order+1, 1, f_1d, NULL);
-  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE,
-    poly_order+1, 1, g_1d, NULL);
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_1d, NULL);
+  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_1d, NULL);
 
   // create array range: no ghost-cells in velocity space
   struct gkyl_range arr_range;
@@ -170,10 +166,8 @@ test_1d_p3()
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE,
-    poly_order+1, 1, f_1d, NULL);
-  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE,
-    poly_order+1, 1, g_1d, NULL);
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_1d, NULL);
+  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_1d, NULL);
 
   // create array range: no ghost-cells in velocity space
   struct gkyl_range arr_range;
@@ -252,10 +246,8 @@ test_2d_p1()
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE,
-    poly_order+1, 1, f_2d, NULL);
-  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE,
-    poly_order+1, 1, g_2d, NULL);
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_2d, NULL);
+  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_2d, NULL);
 
   // create array range: no ghost-cells in velocity space
   struct gkyl_range arr_range;
@@ -320,10 +312,8 @@ test_2d_p2()
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE,
-    poly_order+1, 1, f_2d, NULL);
-  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE,
-    poly_order+1, 1, g_2d, NULL);
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_2d, NULL);
+  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_2d, NULL);
 
   // create array range: no ghost-cells in velocity space
   struct gkyl_range arr_range;
@@ -388,10 +378,8 @@ test_2d_p3()
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE,
-    poly_order+1, 1, f_2d, NULL);
-  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE,
-    poly_order+1, 1, g_2d, NULL);
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_2d, NULL);
+  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_2d, NULL);
 
   // create array range: no ghost-cells in velocity space
   struct gkyl_range arr_range;
@@ -486,8 +474,8 @@ test_3d_p1()
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE, 5, 1, f_3d, NULL);
-  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE, 5, 1, g_3d, NULL);
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, f_3d, NULL);
+  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, g_3d, NULL);
 
   // create array range: no ghost-cells in velocity space
   struct gkyl_range arr_range;
@@ -552,8 +540,8 @@ test_3d_p2()
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE, 4, 1, f_3d, NULL);
-  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE, 4, 1, g_3d, NULL);
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, 4, 1, f_3d, NULL);
+  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, 4, 1, g_3d, NULL);
 
   // create array range: no ghost-cells in velocity space
   struct gkyl_range arr_range;
@@ -634,8 +622,8 @@ test_3d_p3()
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE, 5, 1, f_3d_p3, NULL);
-  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE, 5, 1, g_3d_p3, NULL);
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, f_3d_p3, NULL);
+  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, g_3d_p3, NULL);
 
   // create array range: no ghost-cells in velocity space
   struct gkyl_range arr_range;

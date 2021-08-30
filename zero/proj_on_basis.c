@@ -22,7 +22,6 @@ struct gkyl_proj_on_basis {
 
 gkyl_proj_on_basis*
 gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
-  enum gkyl_quad_type q_type,
   int num_quad, int num_ret_vals, evalf_t eval, void *ctx)
 {
   gkyl_proj_on_basis *up = gkyl_malloc(sizeof(gkyl_proj_on_basis));

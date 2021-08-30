@@ -24,7 +24,7 @@ test_1()
   gkyl_cart_modal_serendip(&basis, 1, poly_order);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, GKYL_QUAD_GAUSS_LEGENDRE,
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, evalFunc, NULL);
 
   // create array range: no ghost-cells in velocity space
