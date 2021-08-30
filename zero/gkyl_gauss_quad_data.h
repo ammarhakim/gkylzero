@@ -85,7 +85,7 @@ static const double gkyl_lobatto_ordinates_6[] =
 static const double gkyl_lobatto_weights_2[] =
 { 1.0, 1.0 };
 static const double gkyl_lobatto_weights_3[] =
-{ 4.0/3.0, 1.0/3.0, 4.0/3.0 };
+{ 1.0/3.0, 4.0/3.0, 1.0/3.0 };
 static const double gkyl_lobatto_weights_4[] =
 { 1.0/6.0, 5.0/6.0, 5.0/6.0, 1.0/6.0 };
 static const double gkyl_lobatto_weights_5[] =
