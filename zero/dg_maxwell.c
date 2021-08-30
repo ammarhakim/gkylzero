@@ -27,6 +27,29 @@ gkyl_dg_maxwell_new(const struct gkyl_basis* cbasis,
   int cdim = cbasis->ndim;
   int poly_order = cbasis->poly_order;
 
+  const gkyl_dg_maxwell_vol_kern_list *vol_kernels;
+  const gkyl_dg_maxwell_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;
+
+  switch (cbasis->b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      surf_x_kernels = ser_surf_x_kernels;
+      surf_y_kernels = ser_surf_y_kernels;
+      surf_z_kernels = ser_surf_z_kernels;
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      vol_kernels = ten_vol_kernels;
+      surf_x_kernels = ten_surf_x_kernels;
+      surf_y_kernels = ten_surf_y_kernels;
+      surf_z_kernels = ten_surf_z_kernels;
+      break;
+
+    default:
+      assert(false);
+      break;    
+  }  
+    
   maxwell->eqn.num_equations = 8;
   maxwell->eqn.vol_term = vol;
   maxwell->eqn.surf_term = surf;

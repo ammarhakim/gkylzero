@@ -44,10 +44,39 @@ get_mom_id(const char *mom)
 }
 
 __global__
-void vlasov_mom_set_cu_dev_ptrs(struct gkyl_mom_type* momt, int mom_id, int vdim,
+static void
+vlasov_mom_set_cu_dev_ptrs(struct gkyl_mom_type* momt, int mom_id, enum gkyl_basis_type b_type, int vdim,
   int poly_order, int tblidx)
 {
   int m3ijk_count[] = { 1, 4, 10 };
+
+  // choose kernel tables based on basis-function type
+  const gkyl_mom_kern_list *m0_kernels, *m1i_kernels,
+    *m2_kernels, *m2ij_kernels, *m3i_kernels, *m3ijk_kernels;
+
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      m0_kernels = ser_m0_kernels;
+      m1i_kernels = ser_m1i_kernels;
+      m2_kernels = ser_m2_kernels;
+      m2ij_kernels = ser_m2ij_kernels;
+      m3i_kernels = ser_m3i_kernels;
+      m3ijk_kernels = ser_m3ijk_kernels;
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      m0_kernels = ten_m0_kernels;
+      m1i_kernels = ten_m1i_kernels;
+      m2_kernels = ten_m2_kernels;
+      m2ij_kernels = ten_m2ij_kernels;
+      m3i_kernels = ten_m3i_kernels;
+      m3ijk_kernels = ten_m3ijk_kernels;
+      break;
+
+    default:
+      assert(false);
+      break;    
+  }  
   
   switch (mom_id) {
     case M0:
@@ -107,7 +136,8 @@ gkyl_vlasov_mom_cu_dev_new(const struct gkyl_basis* cbasis,
   int mom_id = get_mom_id(mom);
   assert(mom_id != BAD);
 
-  vlasov_mom_set_cu_dev_ptrs<<<1,1>>>(momt_cu, mom_id, vdim, poly_order, cv_index[cdim].vdim[vdim]);
+  vlasov_mom_set_cu_dev_ptrs<<<1,1>>>(momt_cu, mom_id, cbasis->b_type,
+    vdim, poly_order, cv_index[cdim].vdim[vdim]);
   
   gkyl_free(momt);
     
