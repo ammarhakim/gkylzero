@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <string.h>
 
 #include <gkyl_alloc.h>
@@ -37,27 +36,14 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
 
   double ordinates1[num_quad], weights1[num_quad];
 
-  // choose ordinates and weights to use
-  if (q_type == GKYL_QUAD_GAUSS_LEGENDRE) {
-    
-    if (num_quad <= gkyl_gauss_max) {
-      // use pre-computed values if possible (these are more accurate
-      // than computing them on the fly)
-      memcpy(ordinates1, gkyl_gauss_ordinates[num_quad], sizeof(double[num_quad]));
-      memcpy(weights1, gkyl_gauss_weights[num_quad], sizeof(double[num_quad]));
-    }
-    else {
-      gkyl_gauleg(-1, 1, ordinates1, weights1, num_quad);
-    }
-    
+  if (num_quad <= gkyl_gauss_max) {
+    // use pre-computed values if possible (these are more accurate
+    // than computing them on the fly)
+    memcpy(ordinates1, gkyl_gauss_ordinates[num_quad], sizeof(double[num_quad]));
+    memcpy(weights1, gkyl_gauss_weights[num_quad], sizeof(double[num_quad]));
   }
-  else if (q_type == GKYL_QUAD_GAUSS_LOBATTO) {
-    
-    num_quad = (num_quad < 2) ? 2 : num_quad; // must use at-least 2 quadrature nodes
-    assert(num_quad <= 6); // for now not allowing more than 6 quadrature nodes
-    
-    memcpy(ordinates1, gkyl_lobatto_ordinates[num_quad], sizeof(double[num_quad]));
-    memcpy(weights1, gkyl_lobatto_weights[num_quad], sizeof(double[num_quad]));
+  else {
+    gkyl_gauleg(-1, 1, ordinates1, weights1, num_quad);
   }
 
   // create range to loop over quadrature points
