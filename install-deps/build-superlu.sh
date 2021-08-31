@@ -22,7 +22,7 @@ mkdir build
 cd build
 
 # configure build
-cmake .. -DCMAKE_INSTALL_PREFIX=$PREFIX -Denable_tests=NO -Denable_internal_blaslib=NO -DTPL_BLAS_LIBRARIES=$GKYLSOFT/OpenBLAS/lib/libopenblas.a
+cmake .. -DCMAKE_INSTALL_PREFIX=$PREFIX -Denable_tests=NO -Denable_internal_blaslib=NO 
 
 # build and install
 make -j
