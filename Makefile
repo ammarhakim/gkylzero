@@ -30,7 +30,7 @@ ifeq ($(UNAME), Darwin)
 	CFLAGS += -DGKYL_USING_FRAMEWORK_ACCELERATE
 endif
 
-INCLUDES = -Iminus -Izero -Iapps -Iregression ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC}
+INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iregression ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC}
 
 NVCC = 
 USING_NVCC =
