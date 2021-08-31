@@ -22,6 +22,7 @@ void test_slu_example()
   SuperLUStat_t stat;
 
   /* Initialize matrix A. */
+  /*  A : matrix([s,0,u,u,0],[l,u,0,0,0],[0,l,p,0,0],[0,0,0,e,u],[l,l,0,0,r]); */
   m = n = 5;
   nnz = 12;
   if ( !(a = doubleMalloc(nnz)) ) ABORT("Malloc fails for a[].");
@@ -41,6 +42,7 @@ void test_slu_example()
   /* Create right-hand side matrix B. */
   nrhs = 1;
   if ( !(rhs = doubleMalloc(m * nrhs)) ) ABORT("Malloc fails for rhs[].");
+  /* B : transpose([1,1,1,1,1]);*/
   for (i = 0; i < m; ++i) rhs[i] = 1.0;
   dCreate_Dense_Matrix(&B, m, nrhs, rhs, m, SLU_DN, SLU_D, SLU_GE);
 
@@ -54,14 +56,15 @@ void test_slu_example()
   /* Initialize the statistics variables. */
   StatInit(&stat);
 
-  /* Solve the linear system. */
+  /* Solve linear system */
   dgssv(&options, &A, perm_c, perm_r, &L, &U, &B, &stat, &info);
 
-  TEST_CHECK( gkyl_compare(-0.03124999999999998, rhs[0], 1e-14) );
-  TEST_CHECK( gkyl_compare( 0.06547619047619045, rhs[1], 1e-14) );
-  TEST_CHECK( gkyl_compare( 0.01339285714285716, rhs[2], 1e-14) );
-  TEST_CHECK( gkyl_compare( 0.06249999999999996, rhs[3], 1e-14) );
-  TEST_CHECK( gkyl_compare( 0.03273809523809525, rhs[4], 1e-14) );
+  /* Solution is: [-1/32, 11/168, 3/224, 1/16, 11/336] */
+  TEST_CHECK( gkyl_compare(-1.0/32.0, rhs[0], 1e-14) );
+  TEST_CHECK( gkyl_compare( 11.0/168.0, rhs[1], 1e-14) );
+  TEST_CHECK( gkyl_compare( 3.0/224.0, rhs[2], 1e-14) );
+  TEST_CHECK( gkyl_compare( 1.0/16.0, rhs[3], 1e-14) );
+  TEST_CHECK( gkyl_compare( 11.0/336.0, rhs[4], 1e-14) );
 
   /* De-allocate storage */
   SUPERLU_FREE (rhs);
