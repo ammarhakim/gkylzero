@@ -139,6 +139,7 @@ check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_gauss_quad
 	./build/unit/ctest_hyper_dg
 	./build/unit/ctest_mat
+	./build/unit/ctest_mat_triples
 	./build/unit/ctest_mom_calc
 	./build/unit/ctest_proj_maxwellian_on_basis
 	./build/unit/ctest_proj_on_basis

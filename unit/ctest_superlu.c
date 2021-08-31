@@ -1,4 +1,3 @@
-
 #include <acutest.h>
 #include <gkyl_util.h>
 #include <slu_ddefs.h>
