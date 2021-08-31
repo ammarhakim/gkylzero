@@ -1,10 +1,11 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH double vlasov_stream_vol_3x3v_ser_p1(const double *w, const double *dxv, const double *f, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_stream_vol_3x3v_ser_p1(const double *w, const double *dxv, const double *qmem, const double *f, double* GKYL_RESTRICT out) 
 { 
-  // w[NDIM]: Cell-center coordinates.
+  // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
-  // f: Input distribution function.
-  // out: Incremented output.
+  // qmem:      q/m*EM fields (unused in streaming-only update).
+  // f:         Input distribution function.
+  // out:       Incremented output.
   double w3Ddx0  = w[3]/dxv[0]; 
   double dv3Ddx0 = dxv[3]/dxv[0]; 
   double w4Ddx1  = w[4]/dxv[1]; 
