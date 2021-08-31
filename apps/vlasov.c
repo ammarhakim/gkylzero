@@ -96,7 +96,7 @@ struct gkyl_vlasov_app {
 
   struct skin_ghost_ranges skin_ghost; // conf-space skin/ghost
 
-  bool skip_field; // skip field update or no field is specified
+  bool has_field; // has field (false if no field is specified)
   struct vm_field field; // field data
 
   // species data
@@ -402,7 +402,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     vm_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
 
   // determine field-type to use in dg_vlasov
-  enum gkyl_field_id field_id = app->skip_field ? GKYL_FIELD_NULL : app->field.info.field_id;
+  enum gkyl_field_id field_id = app->has_field ? app->field.info.field_id : GKYL_FIELD_NULL;
 
   // create equation object
   if (app->use_gpu)
@@ -416,8 +416,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     zero_flux_flags[d] = 0;
   }
   int num_up_dirs = cdim;
-  // If skip_field is true, we do not update velocity space
-  if (!app->skip_field) {
+  // update velocity space only when field is present
+  if (app->has_field) {
     for (int d=cdim; d<pdim; ++d) {
       up_dirs[d] = d;
       zero_flux_flags[d] = 1; // zero-flux BCs in vel-space
@@ -581,9 +581,9 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
   gkyl_create_grid_ranges(&app->grid, ghost, &app->local_ext, &app->local);
   skin_ghost_ranges_init(&app->skin_ghost, &app->local_ext, ghost);
 
-  app->skip_field = vm.skip_field;
+  app->has_field = !vm.skip_field; // note inversion of truth value
 
-  if (!vm.skip_field) {
+  if (app->has_field) {
     // initialize EM field
     app->field.info = vm.field;
     vm_field_init(&vm, app, &app->field);
@@ -610,7 +610,7 @@ void
 gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0)
 {
   app->tcurr = t0;
-  if (!app->skip_field)
+  if (app->has_field)
     gkyl_vlasov_app_apply_ic_field(app, t0);
   for (int i=0;  i<app->num_species; ++i)
     gkyl_vlasov_app_apply_ic_species(app, i, t0);
@@ -681,7 +681,7 @@ gkyl_vlasov_app_calc_mom(gkyl_vlasov_app* app)
 void
 gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
 {
-  if (!app->skip_field)
+  if (app->has_field)
     gkyl_vlasov_app_write_field(app, tm, frame);
   for (int i=0; i<app->num_species; ++i)
     gkyl_vlasov_app_write_species(app, i, tm, frame);
@@ -762,16 +762,16 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 
   // compute RHS of Vlasov equations
   for (int i=0; i<app->num_species; ++i) {
-    if (!app->skip_field) {
+    if (app->has_field) {
       double qbym = app->species[i].info.charge/app->species[i].info.mass;
       gkyl_array_set(app->field.qmem, qbym, emin);
     }
     
-    double dt1 = vm_species_rhs(app, &app->species[i], fin[i], app->field.qmem ?  app->field.qmem : 0, fout[i]);
+    double dt1 = vm_species_rhs(app, &app->species[i], fin[i], app->has_field ? app->field.qmem : 0, fout[i]);
     dtmin = fmin(dtmin, dt1);
   }
   // compute RHS of Maxwell equations
-  if (!app->skip_field) {
+  if (app->has_field) {
     double dt1 = vm_field_rhs(app, &app->field, emin, emout);
     dtmin = fmin(dtmin, dt1);
   }
@@ -794,7 +794,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     vm_species_apply_bc(app, &app->species[i], fout[i]);
   }
 
-  if (!app->skip_field) {
+  if (app->has_field) {
     struct timespec wst = gkyl_wall_clock();
     // accumulate current contribution to electric field terms
     for (int i=0; i<app->num_species; ++i) {
@@ -868,7 +868,7 @@ rk3(gkyl_vlasov_app* app, double dt0)
           for (int i=0; i<app->num_species; ++i)
             array_combine(app->species[i].f1,
               3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew, app->species[i].local_ext);
-          if (!app->skip_field)
+          if (app->has_field)
             array_combine(app->field.em1,
               3.0/4.0, app->field.em, 1.0/4.0, app->field.emnew, app->local_ext);
 
@@ -903,7 +903,7 @@ rk3(gkyl_vlasov_app* app, double dt0)
               1.0/3.0, app->species[i].f, 2.0/3.0, app->species[i].fnew, app->species[i].local_ext);
             gkyl_array_copy_range(app->species[i].f, app->species[i].f1, app->species[i].local_ext);
           }
-          if (!app->skip_field) {
+          if (app->has_field) {
             array_combine(app->field.em1,
               1.0/3.0, app->field.em, 2.0/3.0, app->field.emnew, app->local_ext);
             gkyl_array_copy_range(app->field.em, app->field.em1, app->local_ext);
@@ -1000,11 +1000,11 @@ gkyl_vlasov_app_stat_write(const gkyl_vlasov_app* app)
     
     fprintf(fp, " \"total_tm\" : \"%lg\",\n", app->stat.total_tm);
     fprintf(fp, " \"init_species_tm\" : \"%lg\",\n", app->stat.init_species_tm);
-    if (!app->skip_field)
+    if (app->has_field)
       fprintf(fp, " \"init_field_tm\" : \"%lg\",\n", app->stat.init_field_tm);
     
     fprintf(fp, " \"species_rhs_tm\" : \"%lg\",\n", app->stat.species_rhs_tm);
-    if (!app->skip_field) {
+    if (app->has_field) {
       fprintf(fp, " \"field_rhs_tm\" : \"%lg\",\n", app->stat.field_rhs_tm);
       fprintf(fp, " \"current_tm\" : \"%lg\",\n", app->stat.current_tm);
     }
@@ -1022,7 +1022,7 @@ gkyl_vlasov_app_release(gkyl_vlasov_app* app)
   for (int i=0; i<app->num_species; ++i)
     vm_species_release(app, &app->species[i]);
   gkyl_free(app->species);
-  if(!app->skip_field)
+  if(app->has_field)
     vm_field_release(app, &app->field);
 
   gkyl_free(app);
