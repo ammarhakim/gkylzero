@@ -14,13 +14,13 @@ gkyl_mat_triples_new()
 }
 
 void
-gkyl_mat_triples_insert(int i, int j, double val)
+gkyl_mat_triples_insert(gkyl_mat_triples *tri, int i, int j, double val)
 {
   // TODO
 }
 
 double
-gkyl_mat_triples_accum(int i, int j, double val)
+gkyl_mat_triples_accum(gkyl_mat_triples *tri, int i, int j, double val)
 {
   // TODO
 

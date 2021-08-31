@@ -11,14 +11,14 @@ gkyl_mat_triples* gkyl_mat_triples_new();
 /**
  * Insert value 'val' in triples list at location (i,j)
  */
-void gkyl_mat_triples_insert(int i, int j, double val);
+void gkyl_mat_triples_insert(gkyl_mat_triples *tri, int i, int j, double val);
 
 /**
  * Accumulate value 'val' in triples list at location (i,j). If an
  * element at this location exists it is incremented by 'val'. New
  * value at the location is returned.
  */
-double gkyl_mat_triples_accum(int i, int j, double val);
+double gkyl_mat_triples_accum(gkyl_mat_triples *tri, int i, int j, double val);
 
 /**
  * Release triples
