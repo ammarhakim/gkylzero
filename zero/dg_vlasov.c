@@ -23,10 +23,7 @@ gkyl_vlasov_set_qmem(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qme
 #endif
 
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
-  if (vlasov->field_id == GKYL_EM)
-    vlasov->qmem = qmem;
-  else
-    vlasov->qmem = NULL;
+  vlasov->qmem = qmem;
 }
 
 struct gkyl_dg_eqn*

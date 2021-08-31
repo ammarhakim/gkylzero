@@ -15,7 +15,7 @@ test_dg_vlasov()
   struct gkyl_range crange;
   gkyl_range_init_from_shape(&crange, 1, (int[]) { 100 } );
 
-  enum gkyl_field_id field_id = GKYL_EM;
+  enum gkyl_field_id field_id = GKYL_FIELD_E_B;
   struct gkyl_dg_eqn* eqn = gkyl_dg_vlasov_new(&cbasis, &pbasis, &crange, field_id);
 
   TEST_CHECK( eqn->num_equations == 1 );

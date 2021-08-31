@@ -103,8 +103,6 @@ struct gkyl_vlasov_app {
   struct vm_species *species; // species data
 
   struct gkyl_vlasov_stat stat; // statistics
-
-  enum gkyl_field_id field_id; // enum to determine what type of EM fields (Vlasov-Maxwell vs. neutrals)
 };
 
 // allocate array (filled with zeros)
@@ -404,9 +402,11 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
   // create equation object
   if (app->use_gpu)
-    s->eqn = gkyl_dg_vlasov_cu_dev_new(&app->confBasis, &app->basis, &app->local, app->field_id);
+    s->eqn = gkyl_dg_vlasov_cu_dev_new(&app->confBasis, &app->basis, &app->local,
+      app->field.info.field_id);
   else
-    s->eqn = gkyl_dg_vlasov_new(&app->confBasis, &app->basis, &app->local, app->field_id);
+    s->eqn = gkyl_dg_vlasov_new(&app->confBasis, &app->basis, &app->local,
+      app->field.info.field_id);
 
   int up_dirs[GKYL_MAX_DIM], zero_flux_flags[GKYL_MAX_DIM];
   for (int d=0; d<cdim; ++d) {
@@ -538,8 +538,6 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
 
   double cfl_frac = vm.cfl_frac == 0 ? 1.0 : vm.cfl_frac;
   app->cfl = cfl_frac/(2*poly_order+1);
-
-  enum gkyl_field_id field_id = app->field_id == 0 ? GKYL_EM : app->field_id;
 
 #ifdef GKYL_HAVE_CUDA
   app->use_gpu = vm.use_gpu;

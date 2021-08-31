@@ -2,6 +2,7 @@
 
 #include <gkyl_app.h>
 #include <gkyl_basis.h>
+#include <gkyl_eqn_type.h>
 #include <gkyl_util.h>
 
 #include <stdbool.h>
@@ -13,7 +14,7 @@ struct gkyl_vlasov_species {
   double lower[3], upper[3]; // lower, upper bounds of velocity-space
   int cells[3]; // velocity-space cells
 
-  int evolve; // evolve species? 1-yes, 0-no
+  bool evolve; // evolve species? 1-yes, 0-no
 
   void *ctx; // context for initial condition init function
   // pointer to initialization function
@@ -25,10 +26,11 @@ struct gkyl_vlasov_species {
 
 // Parameter for EM field
 struct gkyl_vlasov_field {
+  enum gkyl_field_id field_id; // type of field (see gkyl_eqn_type.h)
+  bool evolve; // evolve field? 1-yes, 0-no
+  
   double epsilon0, mu0;
   double elcErrorSpeedFactor, mgnErrorSpeedFactor;
-
-  int evolve; // evolve field? 1-yes, 0-no
 
   void *ctx; // context for initial condition init function
   // pointer to initialization function
