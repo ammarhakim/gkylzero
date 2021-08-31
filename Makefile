@@ -147,6 +147,7 @@ check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_rect_decomp
 	./build/unit/ctest_rect_grid
 	./build/unit/ctest_ref_count
+	./build/unit/ctest_superlu
 	./build/unit/ctest_update_fsm
 	./build/unit/ctest_vlasov_mom
 	./build/unit/ctest_wv_euler
