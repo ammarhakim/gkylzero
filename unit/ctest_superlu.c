@@ -27,7 +27,9 @@ void test_slu_example()
   if ( !(a = doubleMalloc(nnz)) ) ABORT("Malloc fails for a[].");
   if ( !(asub = intMalloc(nnz)) ) ABORT("Malloc fails for asub[].");
   if ( !(xa = intMalloc(n+1)) ) ABORT("Malloc fails for xa[].");
+  
   s = 19.0; u = 21.0; p = 16.0; e = 5.0; r = 18.0; l = 12.0;
+  /*  A : matrix([s,0,u,u,0],[l,u,0,0,0],[0,l,p,0,0],[0,0,0,e,u],[l,l,0,0,r]); */
   a[0] = s; a[1] = l; a[2] = l; a[3] = u; a[4] = l; a[5] = l;
   a[6] = u; a[7] = p; a[8] = u; a[9] = e; a[10]= u; a[11]= r;
   asub[0] = 0; asub[1] = 1; asub[2] = 4; asub[3] = 1;
