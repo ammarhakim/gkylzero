@@ -10,7 +10,7 @@ struct mat_triple {
 };
 
 // map of index -> mat_triple
-using_cmap(triple, int, struct mat_triple);
+using_cmap(triple, long, struct mat_triple);
 
 struct gkyl_mat_triples {
   struct gkyl_range range; // range representing matrix shape
