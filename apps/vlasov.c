@@ -415,18 +415,22 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     up_dirs[d] = d;
     zero_flux_flags[d] = 0;
   }
-  for (int d=cdim; d<pdim; ++d) {
-    up_dirs[d] = d;
-    zero_flux_flags[d] = 1; // zero-flux BCs in vel-space
+  int num_up_dirs = cdim;
+  // If skip_field is true, we do not update velocity space
+  if (!app->skip_field) {
+    for (int d=cdim; d<pdim; ++d) {
+      up_dirs[d] = d;
+      zero_flux_flags[d] = 1; // zero-flux BCs in vel-space
+    }
+    num_up_dirs = pdim;
   }
-  
   // create solver
   if (app->use_gpu)
     s->slvr = gkyl_hyper_dg_cu_dev_new(&s->grid, &app->basis, s->eqn,
-      pdim, up_dirs, zero_flux_flags, 1);
+      num_up_dirs, up_dirs, zero_flux_flags, 1);
   else 
     s->slvr = gkyl_hyper_dg_new(&s->grid, &app->basis, s->eqn,
-      pdim, up_dirs, zero_flux_flags, 1);
+      num_up_dirs, up_dirs, zero_flux_flags, 1);
 }
 
 // Compute the RHS for species update, returning maximum stable
@@ -606,7 +610,8 @@ void
 gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0)
 {
   app->tcurr = t0;
-  gkyl_vlasov_app_apply_ic_field(app, t0);
+  if (!app->skip_field)
+    gkyl_vlasov_app_apply_ic_field(app, t0);
   for (int i=0;  i<app->num_species; ++i)
     gkyl_vlasov_app_apply_ic_species(app, i, t0);
 }
@@ -676,7 +681,8 @@ gkyl_vlasov_app_calc_mom(gkyl_vlasov_app* app)
 void
 gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
 {
-  gkyl_vlasov_app_write_field(app, tm, frame);
+  if (!app->skip_field)
+    gkyl_vlasov_app_write_field(app, tm, frame);
   for (int i=0; i<app->num_species; ++i)
     gkyl_vlasov_app_write_species(app, i, tm, frame);
 }
@@ -756,16 +762,19 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 
   // compute RHS of Vlasov equations
   for (int i=0; i<app->num_species; ++i) {
-    double qbym = app->species[i].info.charge/app->species[i].info.mass;
-    gkyl_array_set(app->field.qmem, qbym, emin);
+    if (!app->skip_field) {
+      double qbym = app->species[i].info.charge/app->species[i].info.mass;
+      gkyl_array_set(app->field.qmem, qbym, emin);
+    }
     
-    double dt1 = vm_species_rhs(app, &app->species[i], fin[i], app->field.qmem, fout[i]);
+    double dt1 = vm_species_rhs(app, &app->species[i], fin[i], app->field.qmem ?  app->field.qmem : 0, fout[i]);
     dtmin = fmin(dtmin, dt1);
   }
-
   // compute RHS of Maxwell equations
-  double dt1 = vm_field_rhs(app, &app->field, emin, emout);
-  dtmin = fmin(dtmin, dt1);
+  if (!app->skip_field) {
+    double dt1 = vm_field_rhs(app, &app->field, emin, emout);
+    dtmin = fmin(dtmin, dt1);
+  }
 
   double dt_max_rel_diff = 0.01;
   // check if dtmin is slightly smaller than dt. Use dt if it is
@@ -785,26 +794,28 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     vm_species_apply_bc(app, &app->species[i], fout[i]);
   }
 
-  struct timespec wst = gkyl_wall_clock();
-  // accumulate current contribution to electric field terms
-  for (int i=0; i<app->num_species; ++i) {
-    struct vm_species *s = &app->species[i];    
-    if (app->use_gpu)
-      gkyl_mom_calc_advance_cu(s->m1i.mcalc, s->local, app->local,
-        fin[i], s->m1i.marr);
-    else
-      gkyl_mom_calc_advance(s->m1i.mcalc, s->local, app->local,
-        fin[i], s->m1i.marr);
+  if (!app->skip_field) {
+    struct timespec wst = gkyl_wall_clock();
+    // accumulate current contribution to electric field terms
+    for (int i=0; i<app->num_species; ++i) {
+      struct vm_species *s = &app->species[i];    
+      if (app->use_gpu)
+        gkyl_mom_calc_advance_cu(s->m1i.mcalc, s->local, app->local,
+          fin[i], s->m1i.marr);
+      else
+        gkyl_mom_calc_advance(s->m1i.mcalc, s->local, app->local,
+          fin[i], s->m1i.marr);
     
-    double qbyeps = s->info.charge/app->field.info.epsilon0;
-    gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, app->local);
-  }
-  app->stat.current_tm += gkyl_time_diff_now_sec(wst);
+      double qbyeps = s->info.charge/app->field.info.epsilon0;
+      gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, app->local);
+    }
+    app->stat.current_tm += gkyl_time_diff_now_sec(wst);
   
-  // complete update of field
-  gkyl_array_accumulate_range(gkyl_array_scale_range(emout, dta, app->local),
-    1.0, emin, app->local);
-  vm_field_apply_bc(app, &app->field, emout);
+    // complete update of field
+    gkyl_array_accumulate_range(gkyl_array_scale_range(emout, dta, app->local),
+      1.0, emin, app->local);
+    vm_field_apply_bc(app, &app->field, emout);
+  }
 }
 
 // Take time-step using the RK3 method. Also sets the status object
@@ -857,8 +868,9 @@ rk3(gkyl_vlasov_app* app, double dt0)
           for (int i=0; i<app->num_species; ++i)
             array_combine(app->species[i].f1,
               3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew, app->species[i].local_ext);
-          array_combine(app->field.em1,
-            3.0/4.0, app->field.em, 1.0/4.0, app->field.emnew, app->local_ext);
+          if (!app->skip_field)
+            array_combine(app->field.em1,
+              3.0/4.0, app->field.em, 1.0/4.0, app->field.emnew, app->local_ext);
 
           state = RK_STAGE_3;
         }
@@ -891,9 +903,11 @@ rk3(gkyl_vlasov_app* app, double dt0)
               1.0/3.0, app->species[i].f, 2.0/3.0, app->species[i].fnew, app->species[i].local_ext);
             gkyl_array_copy_range(app->species[i].f, app->species[i].f1, app->species[i].local_ext);
           }
-          array_combine(app->field.em1,
-            1.0/3.0, app->field.em, 2.0/3.0, app->field.emnew, app->local_ext);
-          gkyl_array_copy_range(app->field.em, app->field.em1, app->local_ext);
+          if (!app->skip_field) {
+            array_combine(app->field.em1,
+              1.0/3.0, app->field.em, 2.0/3.0, app->field.emnew, app->local_ext);
+            gkyl_array_copy_range(app->field.em, app->field.em1, app->local_ext);
+          }
 
           state = RK_COMPLETE;
         }
@@ -986,11 +1000,14 @@ gkyl_vlasov_app_stat_write(const gkyl_vlasov_app* app)
     
     fprintf(fp, " \"total_tm\" : \"%lg\",\n", app->stat.total_tm);
     fprintf(fp, " \"init_species_tm\" : \"%lg\",\n", app->stat.init_species_tm);
-    fprintf(fp, " \"init_field_tm\" : \"%lg\",\n", app->stat.init_field_tm);
+    if (!app->skip_field)
+      fprintf(fp, " \"init_field_tm\" : \"%lg\",\n", app->stat.init_field_tm);
     
     fprintf(fp, " \"species_rhs_tm\" : \"%lg\",\n", app->stat.species_rhs_tm);
-    fprintf(fp, " \"field_rhs_tm\" : \"%lg\",\n", app->stat.field_rhs_tm);
-    fprintf(fp, " \"current_tm\" : \"%lg\",\n", app->stat.current_tm);
+    if (!app->skip_field) {
+      fprintf(fp, " \"field_rhs_tm\" : \"%lg\",\n", app->stat.field_rhs_tm);
+      fprintf(fp, " \"current_tm\" : \"%lg\",\n", app->stat.current_tm);
+    }
 
     fprintf(fp, " \"nmom\" : \"%ld\",\n", app->stat.nmom);
     fprintf(fp, " \"mom_tm\" : \"%lg\"\n", app->stat.mom_tm);
@@ -1005,8 +1022,8 @@ gkyl_vlasov_app_release(gkyl_vlasov_app* app)
   for (int i=0; i<app->num_species; ++i)
     vm_species_release(app, &app->species[i]);
   gkyl_free(app->species);
-  
-  vm_field_release(app, &app->field);
+  if(!app->skip_field)
+    vm_field_release(app, &app->field);
 
   gkyl_free(app);
 }

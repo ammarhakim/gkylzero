@@ -15,10 +15,7 @@ __global__ void
 gkyl_vlasov_set_qmem_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
-  if (vlasov->field_id == GKYL_EM)
-    vlasov->qmem = qmem;
-  else
-    vlasov->qmem = NULL;
+  vlasov->qmem = qmem;
 }
 
 // Host-side wrapper for set_qmem_cu_kernel
@@ -32,7 +29,7 @@ gkyl_vlasov_set_qmem_cu(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ void static
 dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
-  int cv_index, int cdim, int vdim, int poly_order)
+  int cv_index, int cdim, int vdim, int poly_order, enum gkyl_field_id field_id)
 {
   vlasov->qmem = 0; 
 
@@ -81,8 +78,10 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
       assert(false);
       break;    
   }  
- 
-  vlasov->vol = vol_kernels[cv_index].kernels[poly_order];
+  if (field_id == GKYL_FIELD_NULL)
+    vlasov->vol = stream_vol_kernels[cv_index].kernels[poly_order];
+  else
+    vlasov->vol = vol_kernels[cv_index].kernels[poly_order];
 
   vlasov->stream_surf[0] = stream_surf_x_kernels[cv_index].kernels[poly_order];
   if (cdim>1)
@@ -117,13 +116,12 @@ gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_bas
 
   vlasov->eqn.num_equations = 1;
   vlasov->conf_range = *conf_range;
-  vlasov->field_id = field_id;
 
   // copy the host struct to device struct
   struct dg_vlasov *vlasov_cu = (struct dg_vlasov*) gkyl_cu_malloc(sizeof(struct dg_vlasov));
   gkyl_cu_memcpy(vlasov_cu, vlasov, sizeof(struct dg_vlasov), GKYL_CU_MEMCPY_H2D);
 
-  dg_vlasov_set_cu_dev_ptrs<<<1,1>>>(vlasov_cu, cbasis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order);
+  dg_vlasov_set_cu_dev_ptrs<<<1,1>>>(vlasov_cu, cbasis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order, field_id);
 
   gkyl_free(vlasov);  
   
