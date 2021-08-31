@@ -6,7 +6,7 @@ struct gkyl_mat_triples {
 };
 
 gkyl_mat_triples*
-gkyl_mat_triples_new()
+gkyl_mat_triples_new(size_t nr, size_t nc)
 {
   struct gkyl_mat_triples *tri = gkyl_malloc(sizeof(struct gkyl_mat_triples));
 
@@ -14,13 +14,13 @@ gkyl_mat_triples_new()
 }
 
 void
-gkyl_mat_triples_insert(gkyl_mat_triples *tri, int i, int j, double val)
+gkyl_mat_triples_insert(gkyl_mat_triples *tri, size_t i, size_t j, double val)
 {
   // TODO
 }
 
 double
-gkyl_mat_triples_accum(gkyl_mat_triples *tri, int i, int j, double val)
+gkyl_mat_triples_accum(gkyl_mat_triples *tri, size_t i, size_t j, double val)
 {
   // TODO
 

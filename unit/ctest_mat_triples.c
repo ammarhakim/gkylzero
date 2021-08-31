@@ -4,7 +4,7 @@
 
 void test_tri_1()
 {
-  gkyl_mat_triples *tri = gkyl_mat_triples_new();
+  gkyl_mat_triples *tri = gkyl_mat_triples_new(5, 5);
 
   gkyl_mat_triples_release(tri);
 }

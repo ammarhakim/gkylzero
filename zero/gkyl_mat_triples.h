@@ -4,21 +4,25 @@
 typedef struct gkyl_mat_triples gkyl_mat_triples;
 
 /**
- * Create new triples list.
+ * Create new triples list in a matrix of shape (nr, nc).
+ *
+ * @param nr Number of rows
+ * @param nc Number of cols
+ * @return Pointer to new empty triples object.
  */
-gkyl_mat_triples* gkyl_mat_triples_new();
+gkyl_mat_triples* gkyl_mat_triples_new(size_t nr, size_t nc);
 
 /**
  * Insert value 'val' in triples list at location (i,j)
  */
-void gkyl_mat_triples_insert(gkyl_mat_triples *tri, int i, int j, double val);
+void gkyl_mat_triples_insert(gkyl_mat_triples *tri, size_t i, size_t j, double val);
 
 /**
  * Accumulate value 'val' in triples list at location (i,j). If an
  * element at this location exists it is incremented by 'val'. New
  * value at the location is returned.
  */
-double gkyl_mat_triples_accum(gkyl_mat_triples *tri, int i, int j, double val);
+double gkyl_mat_triples_accum(gkyl_mat_triples *tri, size_t i, size_t j, double val);
 
 /**
  * Release triples
