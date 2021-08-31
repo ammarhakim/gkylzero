@@ -3,6 +3,7 @@
 // Private header, not for direct use in user code
 
 #include <gkyl_vlasov_kernels.h>
+#include <gkyl_eqn_type.h>
 
 // Types for various kernels
 typedef double (*vlasov_stream_vol_t)(const double *w, const double *dxv,
@@ -362,6 +363,7 @@ struct dg_vlasov {
   vlasov_accel_surf_t accel_surf[3]; // Surface terms for acceleration
   vlasov_accel_boundary_surf_t accel_boundary_surf[3]; // Surface terms for acceleration
   struct gkyl_range conf_range; // configuration space range
+  enum gkyl_field_id field_id; // enum for if there is an EM field (switch between neutrals and Vlasov-Maxwell)
   const struct gkyl_array *qmem; // Pointer to q/m*EM field
 };
 
@@ -373,8 +375,10 @@ vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
 
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
-  return vlasov->vol(xc, dx, (const double*) gkyl_array_cfetch(vlasov->qmem, cidx),
-    qIn, qRhsOut);
+  if (vlasov->qmem)
+    return vlasov->vol(xc, dx, (const double*) gkyl_array_cfetch(vlasov->qmem, cidx), qIn, qRhsOut);
+  else
+    return vlasov->vol(xc, dx, NULL, qIn, qRhsOut);
 }
 
 GKYL_CU_D

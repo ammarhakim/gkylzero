@@ -15,7 +15,10 @@ __global__ void
 gkyl_vlasov_set_qmem_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
-  vlasov->qmem = qmem;
+  if (vlasov->field_id == GKYL_EM)
+    vlasov->qmem = qmem;
+  else
+    vlasov->qmem = NULL;
 }
 
 // Host-side wrapper for set_qmem_cu_kernel
@@ -102,7 +105,7 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
 
 struct gkyl_dg_eqn*
 gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range)
+  const struct gkyl_range* conf_range, enum gkyl_field_id field_id)
 {
   struct dg_vlasov *vlasov = (struct dg_vlasov*) gkyl_malloc(sizeof(struct dg_vlasov));
 
@@ -114,6 +117,7 @@ gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_bas
 
   vlasov->eqn.num_equations = 1;
   vlasov->conf_range = *conf_range;
+  vlasov->field_id = field_id;
 
   // copy the host struct to device struct
   struct dg_vlasov *vlasov_cu = (struct dg_vlasov*) gkyl_cu_malloc(sizeof(struct dg_vlasov));

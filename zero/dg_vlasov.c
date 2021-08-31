@@ -23,12 +23,15 @@ gkyl_vlasov_set_qmem(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qme
 #endif
 
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
-  vlasov->qmem = qmem;
+  if (vlasov->field_id == GKYL_EM)
+    vlasov->qmem = qmem;
+  else
+    vlasov->qmem = NULL;
 }
 
 struct gkyl_dg_eqn*
 gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range)
+  const struct gkyl_range* conf_range, enum gkyl_field_id field_id)
 {
   struct dg_vlasov *vlasov = gkyl_malloc(sizeof(struct dg_vlasov));
 
@@ -111,7 +114,8 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   for (int i=0; i<vdim; ++i) assert(vlasov->accel_surf[i]);
   for (int i=0; i<vdim; ++i) assert(vlasov->accel_boundary_surf[i]);
 
-  vlasov->qmem = 0; 
+  vlasov->field_id = field_id;
+  vlasov->qmem = 0;  
   vlasov->conf_range = *conf_range;
 
   // set reference counter
@@ -124,7 +128,7 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
 
 struct gkyl_dg_eqn*
 gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range)
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, enum gkyl_field_id field_id)
 {
   assert(false);
   return 0;
