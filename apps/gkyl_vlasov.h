@@ -56,6 +56,8 @@ struct gkyl_vm {
 
   int num_species; // number of species
   struct gkyl_vlasov_species species[GKYL_MAX_SPECIES]; // species objects
+
+  bool skip_field; // Skip field update or no field specified
   struct gkyl_vlasov_field field; // field object
 };
 

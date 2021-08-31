@@ -13,4 +13,5 @@ enum gkyl_field_id {
   GKYL_FIELD_E_B = 0, // Maxwell (E, B). This is default
   GKYL_FIELD_PHI, // Poisson (only phi)  
   GKYL_FIELD_PHI_A, // Poisson with static B = curl(A) (phi, A)
+  GKYL_FIELD_NULL // no field is present
 };

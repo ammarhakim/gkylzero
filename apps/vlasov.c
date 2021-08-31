@@ -96,6 +96,7 @@ struct gkyl_vlasov_app {
 
   struct skin_ghost_ranges skin_ghost; // conf-space skin/ghost
 
+  bool skip_field; // skip field update or no field is specified
   struct vm_field field; // field data
 
   // species data
@@ -400,13 +401,14 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   for (int m=0; m<ndm; ++m)
     vm_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
 
+  // determine field-type to use in dg_vlasov
+  enum gkyl_field_id field_id = app->skip_field ? GKYL_FIELD_NULL : app->field.info.field_id;
+
   // create equation object
   if (app->use_gpu)
-    s->eqn = gkyl_dg_vlasov_cu_dev_new(&app->confBasis, &app->basis, &app->local,
-      app->field.info.field_id);
+    s->eqn = gkyl_dg_vlasov_cu_dev_new(&app->confBasis, &app->basis, &app->local, field_id);
   else
-    s->eqn = gkyl_dg_vlasov_new(&app->confBasis, &app->basis, &app->local,
-      app->field.info.field_id);
+    s->eqn = gkyl_dg_vlasov_new(&app->confBasis, &app->basis, &app->local, field_id);
 
   int up_dirs[GKYL_MAX_DIM], zero_flux_flags[GKYL_MAX_DIM];
   for (int d=0; d<cdim; ++d) {
@@ -575,9 +577,13 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
   gkyl_create_grid_ranges(&app->grid, ghost, &app->local_ext, &app->local);
   skin_ghost_ranges_init(&app->skin_ghost, &app->local_ext, ghost);
 
-  // initialize EM field
-  app->field.info = vm.field;
-  vm_field_init(&vm, app, &app->field);
+  app->skip_field = vm.skip_field;
+
+  if (!vm.skip_field) {
+    // initialize EM field
+    app->field.info = vm.field;
+    vm_field_init(&vm, app, &app->field);
+  }
 
   // allocate space to store species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct vm_species[ns])) : 0;
