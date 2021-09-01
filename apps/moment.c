@@ -83,6 +83,8 @@ struct moment_coupling {
   gkyl_moment_em_coupling *slvr; // source solver function
   gkyl_moment_braginskii *brag_slvr; // Braginskii solver (if present)
   gkyl_ten_moment_grad_closure *grad_closure_slvr; // Gradient-based closure solver (if present)
+  struct gkyl_array *rhs[]; // array for storing RHS from non-ideal term updates (Braginskii/Gradient-based closure)
+  struct gkyl_array cflrate; // array for stable time-step from non-ideal terms
 };
 
 // Moment app object: used as opaque pointer in user code
@@ -622,8 +624,14 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   // create updater to solve for sources
   src->slvr = gkyl_moment_em_coupling_new(src_inp);
 
+  for (int n=0; n<app->num_species; ++n) {
+    int meqn = app->species[n]->num_equations;
+    src->rhs[n] = mkarr(meqn, app->local_ext.volume);
+  }
+  src->cflrate = mkarr(1, app->local_ext.volume); 
+  
   // check if Braginskii terms present
-  if (app->has_braginskii) {
+  if (app->type_brag) {
     struct gkyl_moment_braginskii_inp brag_inp = {
       .grid = &app->grid,
       .nfluids = app->num_species,
@@ -661,14 +669,23 @@ moment_coupling_update(const gkyl_moment_app *app, const struct moment_coupling 
   int sidx[] = { 0, app->ndim };
   struct gkyl_array *fluids[GKYL_MAX_SPECIES];
   struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
+  struct gkyl_array *rhs_s[GKYL_MAX_SPECIES];
 
   for (int i=0; i<app->num_species; ++i) {
     fluids[i] = app->species[i].f[sidx[nstrang]];
     app_accels[i] = app->species[i].app_accel;
+    rhs_s[i] = src->rhs[i];
+    if (app->species[i].eqn_type == GKYL_TEN_MOMENT && app->species[i].has_grad_closure) {
+      gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i], app->local, fluids[i], app->field.f[sidx[nstrang]], src->cflrate, rhs_s[i]);
+    }
   }
 
-  gkyl_moment_em_coupling_advance(src->slvr, dt, &app->local,
-    fluids, app_accels, app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em);
+  if (app->type_brag) {
+    gkyl_moment_braginskii_advance(src->brag_slvr, app->local, fluids, app->field.f[sidx[nstrang]], src->cflrate, rhs_s);
+  }
+  
+  gkyl_moment_em_coupling_advance(src->slvr, dt, app->local,
+    fluids, app_accels, rhs_s, app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em);
 
   for (int i=0; i<app->num_species; ++i)
     moment_species_apply_bc(app, tcurr, &app->species[i], fluids[i]);
@@ -679,11 +696,17 @@ moment_coupling_update(const gkyl_moment_app *app, const struct moment_coupling 
 // free sources
 static 
 void
-moment_coupling_release(const struct moment_coupling *src)
+moment_coupling_release(const gkyl_moment_app *app, const struct moment_coupling *src)
 {
   gkyl_moment_em_coupling_release(src->slvr);
-  gkyl_moment_braginskii_release(src->brag_slvr);
-  
+  if (app->type_brag)
+    gkyl_moment_braginskii_release(src->brag_slvr);
+  for (int i=0; i<app->num_species; ++i) {
+    gkyl_array_release(src->rhs[i]);
+    if (app->species[i].eqn_type == GKYL_TEN_MOMENT && app->species[i].has_grad_closure)
+      gkyl_ten_moment_grad_closure_release(src->grad_closure_slvr[i]);
+  }
+  gkyl_array_release(src->cflrate);
 }
 
 /** app methods */
@@ -1018,7 +1041,7 @@ gkyl_moment_app_release(gkyl_moment_app* app)
     moment_field_release(&app->field);
 
   if (app->update_sources)
-    moment_coupling_release(&app->sources);
+    moment_coupling_release(app, &app->sources);
   
   gkyl_free(app);
 }

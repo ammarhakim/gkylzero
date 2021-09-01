@@ -314,8 +314,8 @@ gkyl_ten_moment_grad_closure_new(struct gkyl_ten_moment_grad_closure_inp inp)
 
 void
 gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces, struct gkyl_range update_range,
-  const struct gkyl_array *fluid[], const struct gkyl_array *em_tot,
-  struct gkyl_array *cflrate, struct gkyl_array *rhs[])
+  const struct gkyl_array *fluid, const struct gkyl_array *em_tot,
+  struct gkyl_array *cflrate, struct gkyl_array *rhs)
 {
   int ndim = update_range.ndim;
   long sz[] = { 3, 9, 27 };
@@ -323,9 +323,8 @@ gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces, s
   long offsets[sz[ndim-1]];
   create_offsets(&update_range, offsets);
 
-  const double* fluid_d[GKYL_MAX_SPECIES][sz[ndim-1]];
-  const double* em_tot_d[sz[ndim-1]];
-  double *rhs_d[GKYL_MAX_SPECIES];
+  const double* fluid_d[sz[ndim-1]]];
+  double *rhs_d;
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &update_range);
@@ -333,13 +332,11 @@ gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces, s
     
     long linc = gkyl_range_idx(&update_range, iter.idx);
     
-    for (int i=0; i<sz[ndim-1]; ++i) {
-      em_tot_d[i] =  gkyl_array_cfetch(em_tot, linc + offsets[i]); 
-      for (int n=0; n<nfluids; ++n)
-        fluid_d[n][i] = gkyl_array_cfetch(fluid[n], linc + offsets[i]);
-    }
-    for (int n=0; n<nfluids; ++n)
-      unmag_grad_closure_update(gces, fluid_d[n], gkyl_array_fetch(cflrate, linc), gkyl_array_fetch(rhs[n], linc));
+    for (int i=0; i<sz[ndim-1]; ++i)
+      fluid_d[i] =  gkyl_array_cfetch(fluid, linc + offsets[i]); 
+
+    rhs_d = gkyl_array_fetch(rhs, linc);
+    unmag_grad_closure_update(gces, fluid_d, gkyl_array_fetch(cflrate, linc), rhs_d);
   }
 }
 

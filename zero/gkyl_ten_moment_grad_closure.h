@@ -41,8 +41,8 @@ gkyl_ten_moment_grad_closure* gkyl_ten_moment_grad_closure_new(struct gkyl_ten_m
  */
 
 void gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces, struct gkyl_range update_rng,
-  const struct gkyl_array *fluid[], const struct gkyl_array *em_tot,
-  struct gkyl_array *cflrate, struct gkyl_array *rhs[]);
+  const struct gkyl_array *fluid, const struct gkyl_array *em_tot,
+  struct gkyl_array *cflrate, struct gkyl_array *rhs);
 
 /**
  * Delete updater.
