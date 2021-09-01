@@ -83,7 +83,7 @@ struct moment_coupling {
   gkyl_moment_em_coupling *slvr; // source solver function
   gkyl_moment_braginskii *brag_slvr; // Braginskii solver (if present)
   gkyl_ten_moment_grad_closure *grad_closure_slvr; // Gradient-based closure solver (if present)
-  struct gkyl_array *rhs[]; // array for storing RHS from non-ideal term updates (Braginskii/Gradient-based closure)
+  struct gkyl_array *rhs[]; // array for storing RHS of each species from non-ideal term updates (Braginskii/Gradient-based closure)
   struct gkyl_array cflrate; // array for stable time-step from non-ideal terms
 };
 
@@ -669,23 +669,21 @@ moment_coupling_update(const gkyl_moment_app *app, const struct moment_coupling 
   int sidx[] = { 0, app->ndim };
   struct gkyl_array *fluids[GKYL_MAX_SPECIES];
   struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
-  struct gkyl_array *rhs_s[GKYL_MAX_SPECIES];
 
   for (int i=0; i<app->num_species; ++i) {
     fluids[i] = app->species[i].f[sidx[nstrang]];
     app_accels[i] = app->species[i].app_accel;
-    rhs_s[i] = src->rhs[i];
     if (app->species[i].eqn_type == GKYL_TEN_MOMENT && app->species[i].has_grad_closure) {
-      gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i], app->local, fluids[i], app->field.f[sidx[nstrang]], src->cflrate, rhs_s[i]);
+      gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i], app->local, fluids[i], app->field.f[sidx[nstrang]], src->cflrate, src->rhs[i]);
     }
   }
 
   if (app->type_brag) {
-    gkyl_moment_braginskii_advance(src->brag_slvr, app->local, fluids, app->field.f[sidx[nstrang]], src->cflrate, rhs_s);
+    gkyl_moment_braginskii_advance(src->brag_slvr, app->local, fluids, app->field.f[sidx[nstrang]], src->cflrate, src->rhs);
   }
   
   gkyl_moment_em_coupling_advance(src->slvr, dt, app->local,
-    fluids, app_accels, rhs_s, app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em);
+    fluids, app_accels, src->rhs, app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em);
 
   for (int i=0; i<app->num_species; ++i)
     moment_species_apply_bc(app, tcurr, &app->species[i], fluids[i]);
