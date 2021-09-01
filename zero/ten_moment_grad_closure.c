@@ -84,7 +84,7 @@ create_offsets(const struct gkyl_range *range, long offsets[])
 
 static void
 unmag_grad_closure_update(const gkyl_ten_moment_grad_closure *gces,
-  const double *fluid_d[], double *cflrate, double *rhs)
+  const double *fluid_d[], double *cflrate, double *rhs_d)
 {
   const int ndim = gces->ndim;
   if (ndim == 1) {
@@ -143,12 +143,16 @@ unmag_grad_closure_update(const gkyl_ten_moment_grad_closure *gces,
     qU[Q123] = alpha*vthU*rhoU*(dTdxU[T23])/3.0;
     qU[Q133] = alpha*vthU*rhoU*(dTdxU[T33])/3.0; 
 
-    rhs[0] = (qU[Q111] - qL[Q111])/dx;
-    rhs[1] = (qU[Q112] - qL[Q112])/dx;
-    rhs[2] = (qU[Q113] - qL[Q113])/dx;
-    rhs[3] = (qU[Q122] - qL[Q122])/dx;
-    rhs[4] = (qU[Q123] - qL[Q123])/dx;
-    rhs[5] = (qU[Q133] - qL[Q133])/dx;
+    rhs_d[RHO] = 0.0;
+    rhs_d[MX] = 0.0;
+    rhs_d[MY] = 0.0;
+    rhs_d[MZ] = 0.0;
+    rhs_d[P11] = (qU[Q111] - qL[Q111])/dx;
+    rhs_d[P12] = (qU[Q112] - qL[Q112])/dx;
+    rhs_d[P13] = (qU[Q113] - qL[Q113])/dx;
+    rhs_d[P22] = (qU[Q122] - qL[Q122])/dx;
+    rhs_d[P23] = (qU[Q123] - qL[Q123])/dx;
+    rhs_d[P33] = (qU[Q133] - qL[Q133])/dx;
   }
   else if (ndim == 2) {
     const double dx = gces->grid.dx[0];
@@ -298,12 +302,16 @@ unmag_grad_closure_update(const gkyl_ten_moment_grad_closure *gces,
                         calc_sym_grady_2D(dy, qLL[Q223], qLU[Q223], qUL[Q223], qUU[Q223]), 
                         calc_sym_grady_2D(dy, qLL[Q233], qLU[Q233], qUL[Q233], qUU[Q233]) };
 
-    rhs[0] = divQx[0] + divQy[0];
-    rhs[1] = divQx[1] + divQy[1];
-    rhs[2] = divQx[2] + divQy[2];
-    rhs[3] = divQx[3] + divQy[3];
-    rhs[4] = divQx[4] + divQy[4];
-    rhs[5] = divQx[5] + divQy[5];
+    rhs_d[RHO] = 0.0;
+    rhs_d[MX] = 0.0;
+    rhs_d[MY] = 0.0;
+    rhs_d[MZ] = 0.0;
+    rhs_d[P11] = divQx[0] + divQy[0];
+    rhs_d[P12] = divQx[1] + divQy[1];
+    rhs_d[P13] = divQx[2] + divQy[2];
+    rhs_d[P22] = divQx[3] + divQy[3];
+    rhs_d[P23] = divQx[4] + divQy[4];
+    rhs_d[P33] = divQx[5] + divQy[5];
   }
 }
 

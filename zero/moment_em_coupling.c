@@ -74,9 +74,8 @@ pressure_tensor_rotate(double qbym, double dt, const double *em, const double *e
 // et. al. 2020 for details.
 static void
 em_source_update(const gkyl_moment_em_coupling *mes, double dt,
-  double *fluids[], double *app_accels[],
-  double *em,
-  const double *app_current, const double *ext_em)
+  double *fluids[], const double *app_accels[], const double *rhs_s[],
+  double *em, const double *app_current, const double *ext_em)
 {
   // based on Smithe (2007) with corrections but using Hakim (2019) notations
   // full reference in Wang, Hakim, Ng, Dong, & Germaschewski JCP 2020
@@ -107,16 +106,18 @@ em_source_update(const gkyl_moment_em_coupling *mes, double dt,
     qbym[n] = mes->param[n].charge / mes->param[n].mass;
     const double *f = fluids[n];
     const double *app_accel = app_accels[n];
+    const double *rhs = rhs_s[n];
 
     JOld[n][0] = f[MX] * qbym[n];
     JOld[n][1] = f[MY] * qbym[n];
     JOld[n][2] = f[MZ] * qbym[n];
 
     // Add contributions from static electric field and applied acceleration to current
+    // Also add any contribution from non-ideal terms contains in rhs arrays
     // Note: Conversion from applied acceleration to force density occurs here
-    J[n][0] = JOld[n][0] + 0.5*dt*qbym[n]*f[RHO]*(qbym[n]*ext_em[EX] + app_accel[0]);
-    J[n][1] = JOld[n][1] + 0.5*dt*qbym[n]*f[RHO]*(qbym[n]*ext_em[EY] + app_accel[1]);
-    J[n][2] = JOld[n][2] + 0.5*dt*qbym[n]*f[RHO]*(qbym[n]*ext_em[EZ] + app_accel[2]);
+    J[n][0] = JOld[n][0] + 0.5*dt*qbym[n]*f[RHO]*(qbym[n]*ext_em[EX] + app_accel[0]) + 0.5*dt*qbym[n]*rhs[MX];
+    J[n][1] = JOld[n][1] + 0.5*dt*qbym[n]*f[RHO]*(qbym[n]*ext_em[EY] + app_accel[1]) + 0.5*dt*qbym[n]*rhs[MY];
+    J[n][2] = JOld[n][2] + 0.5*dt*qbym[n]*f[RHO]*(qbym[n]*ext_em[EZ] + app_accel[2]) + 0.5*dt*qbym[n]*rhs[MZ];
 
     // cyclotron frequency * dt
     Wc_dt[n] = qbym[n] * Bmag * dt;
@@ -215,21 +216,23 @@ em_source_update(const gkyl_moment_em_coupling *mes, double dt,
 // See Wang et. al. 2020 JCP for details
 static void
 fluid_source_update(const gkyl_moment_em_coupling *mes, double dt,
-  double* fluids[], double *app_accels[GKYL_MAX_SPECIES], double *rhs_s[],
+  double* fluids[GKYL_MAX_SPECIES], const double *app_accels[GKYL_MAX_SPECIES], const double *rhs_s[GKYL_MAX_SPECIES],
   double* em, const double* app_current, const double* ext_em)
 {
   int nfluids = mes->nfluids;
   double keOld[GKYL_MAX_SPECIES];
+  double ieOld[GKYL_MAX_SPECIES];
   double prInp[6], prTen[GKYL_MAX_SPECIES][6];
   
   for (int n=0; n < nfluids; ++n) {
     const double *f = fluids[n];
     // If Euler equations, store old value of the kinetic energy for later update.
-    if (mes->param[n].type == GKYL_EULER) {
+    if (mes->param[n].type == GKYL_EQN_EULER) {
       keOld[n] = 0.5 * (f[MX]*f[MX] + f[MY]*f[MY] + f[MZ]*f[MZ]) / f[RHO];
+      ieOld[n] = f[ER] - keOld[n];
     }
     // If Ten moment equations, rotate the pressure tensor based on local magnetic field.
-    else if (mes->param[n].type == GKYL_TEN_MOMENT) {
+    else if (mes->param[n].type == GKYL_EQN_TEN_MOMENT) {
       double qbym = mes->param[n].charge / mes->param[n].mass;
       prInp[0] = f[P11] - f[MX] * f[MX] / f[RHO];
       prInp[1] = f[P12] - f[MX] * f[MY] / f[RHO];
@@ -257,18 +260,19 @@ fluid_source_update(const gkyl_moment_em_coupling *mes, double dt,
   }
 
   // Update momentum and electric field using time-centered implicit solve.
-  em_source_update(mes, dt, fluids, app_accels, em, app_current, ext_em);
+  em_source_update(mes, dt, fluids, app_accels, rhs_s, em, app_current, ext_em);
 
   for (int n=0; n < nfluids; ++n) {
     double *f = fluids[n];
+    const double *rhs = rhs_s[n];
     // If Euler equations, get updated energy based on new kinetic energy
     // from updated momentum (pressure should be unaffected by source terms).
-    if (mes->param[n].type == GKYL_EULER) {
-      f[ER] += 0.5 * (f[MX]*f[MX] + f[MY]*f[MY] + f[MZ]*f[MZ]) / f[RHO] - keOld[n];
+    if (mes->param[n].type == GKYL_EQN_EULER) {
+      f[ER] = 0.5 * (f[MX]*f[MX] + f[MY]*f[MY] + f[MZ]*f[MZ]) / f[RHO] + ieOld[n] + dt*rhs[ER];
     }
     // If Ten moment equations, update full stress tensor (pressure tensor + Reynolds stress)
     // based on rotated pressure tensor and updated momentum.
-    else if (mes->param[n].type == GKYL_TEN_MOMENT) {
+    else if (mes->param[n].type == GKYL_EQN_TEN_MOMENT) {
       f[P11] = f[MX] * f[MX] / f[RHO] + prTen[n][0];
       f[P12] = f[MX] * f[MY] / f[RHO] + prTen[n][1];
       f[P13] = f[MX] * f[MZ] / f[RHO] + prTen[n][2];
@@ -296,13 +300,13 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
 void
 gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
   struct gkyl_range update_range,
-  struct gkyl_array *fluid[GKYL_MAX_SPECIES], struct gkyl_array *app_accel[], struct gkyl_array *rhs[GKYL_MAX_SPECIES],
-  struct gkyl_array *em, struct gkyl_array *app_current, struct gkyl_array *ext_em)
+  struct gkyl_array *fluid[GKYL_MAX_SPECIES], const struct gkyl_array *app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *rhs[GKYL_MAX_SPECIES],
+  struct gkyl_array *em, const struct gkyl_array *app_current, const struct gkyl_array *ext_em)
 {
   int nfluids = mes->nfluids;
   double *fluids[GKYL_MAX_SPECIES];
-  double *app_accels[GKYL_MAX_SPECIES];
-  double *rhs_s[GKYL_MAX_SPECIES];
+  const double *app_accels[GKYL_MAX_SPECIES];
+  const double *rhs_s[GKYL_MAX_SPECIES];
   
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &update_range);
@@ -312,14 +316,14 @@ gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
     
     for (int n=0; n<nfluids; ++n) {
       fluids[n] = gkyl_array_fetch(fluid[n], lidx);
-      app_accels[n] = gkyl_array_fetch(app_accel[n], lidx);
-      rhs_s[n] = gkyl_array_fetch(rhs[n], lidx);
+      app_accels[n] = gkyl_array_cfetch(app_accel[n], lidx);
+      rhs_s[n] = gkyl_array_cfetch(rhs[n], lidx);
     }
 
     fluid_source_update(mes, dt, fluids, app_accels, rhs_s,
       gkyl_array_fetch(em, lidx),
-      gkyl_array_fetch(app_current, lidx),
-      gkyl_array_fetch(ext_em, lidx)
+      gkyl_array_cfetch(app_current, lidx),
+      gkyl_array_cfetch(ext_em, lidx)
     );
   }
 }

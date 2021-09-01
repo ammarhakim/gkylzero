@@ -108,7 +108,7 @@ gkyl_wv_iso_euler_new(double vt)
 {
   struct wv_iso_euler *iso_euler = gkyl_malloc(sizeof(struct wv_iso_euler));
 
-  iso_euler->eqn.type = GKYL_ISO_EULER;
+  iso_euler->eqn.type = GKYL_EQN_ISO_EULER;
   iso_euler->eqn.num_equations = 4;
   iso_euler->eqn.num_waves = 3;
   iso_euler->vt = vt;
@@ -119,4 +119,11 @@ gkyl_wv_iso_euler_new(double vt)
   iso_euler->eqn.ref_count = (struct gkyl_ref_count) { iso_euler_free, 1 };
 
   return &iso_euler->eqn;
+}
+
+double
+gkyl_wv_iso_euler_vt(const struct gkyl_wv_eqn* eqn)
+{
+  const struct wv_iso_euler *iso_euler = container_of(eqn, struct wv_iso_euler, eqn);
+  return iso_euler->vt;
 }

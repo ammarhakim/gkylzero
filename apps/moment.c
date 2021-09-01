@@ -19,6 +19,8 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 #include <gkyl_wave_prop.h>
+#include <gkyl_wv_euler.h>
+#include <gkyl_wv_iso_euler.h>
 #include <gkyl_wv_maxwell.h>
 
 // ranges for use in BCs
@@ -50,6 +52,7 @@ struct moment_species {
 
   enum gkyl_eqn_type eqn_type; // type ID of equation
   int num_equations; // number of equations in species
+  const struct gkyl_wv_eqn *equation; // equation object for initializing solvers
   gkyl_wave_prop *slvr[3]; // solver in each direction
 
   // boundary conditions on lower/upper edges in each direction
@@ -261,6 +264,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   sp->eqn_type = mom_sp->equation->type;
   sp->num_equations = mom_sp->equation->num_equations;
+  sp->equation = gkyl_wv_eqn_aquire(mom_sp->equation);
 
   // choose default limiter
   enum gkyl_wave_limiter limiter =
@@ -271,7 +275,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   for (int d=0; d<ndim; ++d)
     sp->slvr[d] = gkyl_wave_prop_new( (struct gkyl_wave_prop_inp) {
         .grid = &app->grid,
-        .equation = mom_sp->equation,
+        .equation = sp->equation,
         .limiter = limiter,
         .num_up_dirs = 1,
         .update_dirs = { d },
@@ -297,10 +301,10 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
       // lower BCs in X
       if (bc[0] == GKYL_MOMENT_SPECIES_WALL) {
-        if (sp->eqn_type == GKYL_EULER)
+        if (sp->eqn_type == GKYL_EQN_EULER)
           sp->lower_bc[dir] = gkyl_rect_apply_bc_new(
             &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_euler_wall, 0);
-        else if (sp->eqn_type == GKYL_TEN_MOMENT)
+        else if (sp->eqn_type == GKYL_EQN_TEN_MOMENT)
           sp->lower_bc[dir] = gkyl_rect_apply_bc_new(
             &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_ten_moment_wall, 0);
       }
@@ -311,10 +315,10 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
       
       // upper BCs in X
       if (bc[1] == GKYL_MOMENT_SPECIES_WALL) {
-        if (sp->eqn_type == GKYL_EULER)
+        if (sp->eqn_type == GKYL_EQN_EULER)
           sp->upper_bc[dir] = gkyl_rect_apply_bc_new(
             &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_euler_wall, 0);
-        else if (sp->eqn_type == GKYL_TEN_MOMENT)
+        else if (sp->eqn_type == GKYL_EQN_TEN_MOMENT)
           sp->upper_bc[dir] = gkyl_rect_apply_bc_new(
             &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_ten_moment_wall, 0);
       }
@@ -407,6 +411,7 @@ moment_species_update(const gkyl_moment_app *app,
 static void
 moment_species_release(const struct moment_species *sp)
 {
+  gkyl_wv_eqn_release(sp->equation);
   for (int d=0; d<sp->ndim; ++d)
     gkyl_wave_prop_release(sp->slvr[d]);
 
@@ -637,18 +642,27 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       .epsilon0 = app->field.epsilon0,
       .type_brag = app->type_brag,
     };
-    for (int i=0; i<app->num_species; ++i)
+    for (int i=0; i<app->num_species; ++i) {
+      // Braginskii coefficients depend on pressure and coefficient to obtain
+      // pressure is different for different equation systems (gasGamma, vt, Tr(P))
+      double p_fac = 1.0;
+      if (app->species[i].eqn_type == GKYL_EQN_EULER)
+        p_fac =  gkyl_wv_euler_gas_gamma(app->species[i].equation);
+      else if (app->species[i].eqn_type == GKYL_EQN_ISO_EULER)
+        p_fac =  gkyl_wv_iso_euler_vt(app->species[i].equation);
       brag_inp.param[i] = (struct gkyl_moment_braginskii_data) {
         .type_eqn = app->species[i].eqn_type,
         .charge = app->species[i].charge,
         .mass = app->species[i].mass,
+        .p_fac = p_fac,
       };
+    }
     src->brag_slvr = gkyl_moment_braginskii_new(brag_inp);
   }
 
   // check if gradient-closure is present
   for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].eqn_type == GKYL_TEN_MOMENT && app->species[i].has_grad_closure) {
+    if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_grad_closure) {
       struct gkyl_ten_moment_grad_closure_inp grad_closure_inp = {
         .grid = &app->grid,
         .k0 = app->species[i].k0,
@@ -667,12 +681,13 @@ moment_coupling_update(const gkyl_moment_app *app, struct moment_coupling *src,
 {
   int sidx[] = { 0, app->ndim };
   struct gkyl_array *fluids[GKYL_MAX_SPECIES];
-  struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
+  const struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
+  const struct gkyl_array *rhs_const[GKYL_MAX_SPECIES];
 
   for (int i=0; i<app->num_species; ++i) {
     fluids[i] = app->species[i].f[sidx[nstrang]];
     app_accels[i] = app->species[i].app_accel;
-    if (app->species[i].eqn_type == GKYL_TEN_MOMENT && app->species[i].has_grad_closure) {
+    if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_grad_closure) {
       gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i], app->local, app->species[i].f[sidx[nstrang]], app->field.f[sidx[nstrang]], src->cflrate, src->rhs[i]);
     }
   }
@@ -680,9 +695,12 @@ moment_coupling_update(const gkyl_moment_app *app, struct moment_coupling *src,
   if (app->type_brag) {
     gkyl_moment_braginskii_advance(src->brag_slvr, app->local, fluids, app->field.f[sidx[nstrang]], src->cflrate, src->rhs);
   }
+
+  for (int i=0; i<app->num_species; ++i)
+    rhs_const[i] = src->rhs[i];
   
   gkyl_moment_em_coupling_advance(src->slvr, dt, app->local,
-    fluids, app_accels, src->rhs, app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em);
+    fluids, app_accels, rhs_const, app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em);
 
   for (int i=0; i<app->num_species; ++i)
     moment_species_apply_bc(app, tcurr, &app->species[i], fluids[i]);
@@ -700,7 +718,7 @@ moment_coupling_release(const gkyl_moment_app *app, const struct moment_coupling
     gkyl_moment_braginskii_release(src->brag_slvr);
   for (int i=0; i<app->num_species; ++i) {
     gkyl_array_release(src->rhs[i]);
-    if (app->species[i].eqn_type == GKYL_TEN_MOMENT && app->species[i].has_grad_closure)
+    if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_grad_closure)
       gkyl_ten_moment_grad_closure_release(src->grad_closure_slvr[i]);
   }
   gkyl_array_release(src->cflrate);

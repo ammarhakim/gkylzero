@@ -15,17 +15,18 @@ enum gkyl_braginskii_type {
 };
 
 struct gkyl_moment_braginskii_data {
-    enum gkyl_eqn_type type_eqn; // equation type
-    double charge; // species charge
-    double mass; // species mass
+  enum gkyl_eqn_type type_eqn; // equation type
+  double charge; // species charge
+  double mass; // species mass
+  double p_fac; // factor for obtaining pressure for Braginskii coefficients
 };
 
 struct gkyl_moment_braginskii_inp {
-    const struct gkyl_rect_grid *grid; // grid on which to solve equations
-    int nfluids; // number of fluids
-    struct gkyl_moment_braginskii_data param[GKYL_MAX_SPECIES]; // species data
-    enum gkyl_braginskii_type type_brag; // which Braginskii equations
-    double epsilon0;
+  const struct gkyl_rect_grid *grid; // grid on which to solve equations
+  int nfluids; // number of fluids
+  struct gkyl_moment_braginskii_data param[GKYL_MAX_SPECIES]; // species data
+  enum gkyl_braginskii_type type_brag; // which Braginskii equations
+  double epsilon0;
 };
 
 // Object type
