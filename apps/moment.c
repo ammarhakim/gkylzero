@@ -700,7 +700,8 @@ moment_coupling_update(const gkyl_moment_app *app, struct moment_coupling *src,
     rhs_const[i] = src->rhs[i];
   
   gkyl_moment_em_coupling_advance(src->slvr, dt, app->local,
-    fluids, app_accels, rhs_const, app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em);
+    fluids, app_accels, rhs_const,
+    app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em);
 
   for (int i=0; i<app->num_species; ++i)
     moment_species_apply_bc(app, tcurr, &app->species[i], fluids[i]);
