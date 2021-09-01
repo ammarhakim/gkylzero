@@ -18,9 +18,9 @@ dg_vlasov_lbo_free(const struct gkyl_ref_count* ref)
 void
 gkyl_vlasov_lbo_set_nuSum(const struct gkyl_dg_eqn *eqn, double nuSum)
 {
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(nuSum)) {gkyl_vlasov_lbo_set_nuSum_cu(eqn, nuSum); return;}
-#endif
+  //#ifdef GKYL_HAVE_CUDA
+  //if (gkyl_array_is_cu_dev(nuSum)) {gkyl_vlasov_lbo_set_nuSum_cu(eqn, nuSum); return;}
+  //#endif
 
   struct dg_vlasov_lbo *vlasov_lbo = container_of(eqn, struct dg_vlasov_lbo, eqn);
   vlasov_lbo->nuSum = nuSum;
@@ -29,9 +29,9 @@ gkyl_vlasov_lbo_set_nuSum(const struct gkyl_dg_eqn *eqn, double nuSum)
 void
 gkyl_vlasov_lbo_set_nuUSum(const struct gkyl_dg_eqn *eqn, const double *nuUSum)
 {
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(nuUSum)) {gkyl_vlasov_lbo_set_nuUSum_cu(eqn, nuUSum); return;}
-#endif
+  //#ifdef GKYL_HAVE_CUDA
+  //if (gkyl_array_is_cu_dev(nuUSum)) {gkyl_vlasov_lbo_set_nuUSum_cu(eqn, nuUSum); return;}
+  //#endif
 
   struct dg_vlasov_lbo *vlasov_lbo = container_of(eqn, struct dg_vlasov_lbo, eqn);
   vlasov_lbo->nuUSum = nuUSum;
@@ -41,9 +41,9 @@ gkyl_vlasov_lbo_set_nuUSum(const struct gkyl_dg_eqn *eqn, const double *nuUSum)
 void
 gkyl_vlasov_lbo_set_nuVtSqSum(const struct gkyl_dg_eqn *eqn, const double *nuVtSqSum)
 {
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(nuVtSqSum)) {gkyl_vlasov_lbo_set_nuVtSqSum_cu(eqn, nuVtSqSum); return;}
-#endif
+  //#ifdef GKYL_HAVE_CUDA
+  //if (gkyl_array_is_cu_dev(nuVtSqSum)) {gkyl_vlasov_lbo_set_nuVtSqSum_cu(eqn, nuVtSqSum); return;}
+  //#endif
 
   struct dg_vlasov_lbo *vlasov_lbo = container_of(eqn, struct dg_vlasov_lbo, eqn);
   vlasov_lbo->nuVtSqSum = nuVtSqSum;
@@ -98,7 +98,7 @@ gkyl_dg_vlasov_lbo_new(const struct gkyl_basis* cbasis, const struct gkyl_basis*
       break;    
   }  
 
-  //vlasov_lbo->vol = CK(vol_kernels, cdim, vdim, poly_order);
+  vlasov_lbo->vol = CK(vol_kernels, cdim, vdim, poly_order);
 
   vlasov_lbo->surf[0] = CK(surf_vx_kernels, cdim, vdim, poly_order);
   if (vdim>1)
