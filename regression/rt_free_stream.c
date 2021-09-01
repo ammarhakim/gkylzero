@@ -74,7 +74,7 @@ main(int argc, char **argv)
 
     .num_species = 1,
     .species = { neut },
-    .skip_field = 1,
+    .skip_field = true,
 
     .use_gpu = app_args.use_gpu,
   };

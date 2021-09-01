@@ -8,9 +8,9 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
-#include <gkyl_eqn_type.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_vlasov.h>
+#include <gkyl_eqn_type.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_proj_on_basis.h>
