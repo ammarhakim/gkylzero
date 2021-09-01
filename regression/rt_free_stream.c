@@ -48,7 +48,7 @@ main(int argc, char **argv)
     .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -6.0 * ctx.vt},
     .upper = { 6.0 * ctx.vt}, 
-    .cells = { 64 },
+    .cells = { 32 },
 
     .evolve = 1,
     .ctx = &ctx,
