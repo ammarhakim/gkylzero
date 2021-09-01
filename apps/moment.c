@@ -36,6 +36,7 @@ struct moment_species {
   char name[128]; // species name
   double charge, mass;
   double k0; // closure parameter (default is 0.0, used by 10 moment)
+  bool has_grad_closure; // has gradient-based closure (only for 10 moment)
 
   int evolve; // evolve species? 1-yes, 0-no
 
@@ -50,8 +51,6 @@ struct moment_species {
   enum gkyl_eqn_type eqn_type; // type ID of equation
   int num_equations; // number of equations in species
   gkyl_wave_prop *slvr[3]; // solver in each direction
-
-  bool has_grad_closure; // has gradient-based closure (only for 10 moment)
 
   // boundary conditions on lower/upper edges in each direction
   gkyl_rect_apply_bc *lower_bc[3], *upper_bc[3];
@@ -82,9 +81,9 @@ struct moment_field {
 struct moment_coupling {
   gkyl_moment_em_coupling *slvr; // source solver function
   gkyl_moment_braginskii *brag_slvr; // Braginskii solver (if present)
-  gkyl_ten_moment_grad_closure *grad_closure_slvr; // Gradient-based closure solver (if present)
-  struct gkyl_array *rhs[]; // array for storing RHS of each species from non-ideal term updates (Braginskii/Gradient-based closure)
-  struct gkyl_array cflrate; // array for stable time-step from non-ideal terms
+  gkyl_ten_moment_grad_closure *grad_closure_slvr[GKYL_MAX_SPECIES]; // Gradient-based closure solver (if present)
+  struct gkyl_array *cflrate; // array for stable time-step from non-ideal terms
+  struct gkyl_array *rhs[GKYL_MAX_SPECIES]; // array for storing RHS of each species from non-ideal term updates (Braginskii/Gradient-based closure)
 };
 
 // Moment app object: used as opaque pointer in user code
@@ -112,7 +111,7 @@ struct gkyl_moment_app {
   struct moment_species *species; // species data
 
   int update_sources; // flag to indicate if sources are to be updated
-  enum gkyl_braginskii_type brag_type; // enum for Braginskii type (if present)
+  enum gkyl_braginskii_type type_brag; // enum for Braginskii type (if present)
   struct moment_coupling sources; // sources
     
   struct gkyl_moment_stat stat; // statistics
@@ -625,7 +624,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   src->slvr = gkyl_moment_em_coupling_new(src_inp);
 
   for (int n=0; n<app->num_species; ++n) {
-    int meqn = app->species[n]->num_equations;
+    int meqn = app->species[n].num_equations;
     src->rhs[n] = mkarr(meqn, app->local_ext.volume);
   }
   src->cflrate = mkarr(1, app->local_ext.volume); 
@@ -640,7 +639,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     };
     for (int i=0; i<app->num_species; ++i)
       brag_inp.param[i] = (struct gkyl_moment_braginskii_data) {
-        .type = app->species[i].eqn_type,
+        .type_eqn = app->species[i].eqn_type,
         .charge = app->species[i].charge,
         .mass = app->species[i].mass,
       };
@@ -674,7 +673,7 @@ moment_coupling_update(const gkyl_moment_app *app, const struct moment_coupling 
     fluids[i] = app->species[i].f[sidx[nstrang]];
     app_accels[i] = app->species[i].app_accel;
     if (app->species[i].eqn_type == GKYL_TEN_MOMENT && app->species[i].has_grad_closure) {
-      gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i], app->local, fluids[i], app->field.f[sidx[nstrang]], src->cflrate, src->rhs[i]);
+      gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i], app->local, app->species[i].f[sidx[nstrang]], app->field.f[sidx[nstrang]], src->cflrate, src->rhs[i]);
     }
   }
 

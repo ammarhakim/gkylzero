@@ -52,8 +52,8 @@ gkyl_moment_em_coupling* gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupl
  */
 
 void gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
-  const struct gkyl_range *update_rng, 
-  struct gkyl_array *fluid[], struct gkyl_array *app_accel[], struct gkyl_array *rhs[],
+  struct gkyl_range update_rng, 
+  struct gkyl_array *fluid[GKYL_MAX_SPECIES], struct gkyl_array *app_accel[], struct gkyl_array *rhs[GKYL_MAX_SPECIES],
   struct gkyl_array *em, struct gkyl_array *app_current, struct gkyl_array *ext_em);
 
 /**

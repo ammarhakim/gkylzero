@@ -231,6 +231,13 @@ unmag_grad_closure_update(const gkyl_ten_moment_grad_closure *gces,
                          calc_sym_gradx_2D(dx, Tij[CC_2D][T23], Tij[CU_2D][T23], Tij[UC_2D][T23], Tij[UU_2D][T23]),
                          calc_sym_gradx_2D(dx, Tij[CC_2D][T33], Tij[CU_2D][T33], Tij[UC_2D][T33], Tij[UU_2D][T33]) };
 
+    double dTdyUU[6] = { calc_sym_grady_2D(dy, Tij[CC_2D][T11], Tij[CU_2D][T11], Tij[UC_2D][T11], Tij[UU_2D][T11]),
+                         calc_sym_grady_2D(dy, Tij[CC_2D][T12], Tij[CU_2D][T12], Tij[UC_2D][T12], Tij[UU_2D][T12]),
+                         calc_sym_grady_2D(dy, Tij[CC_2D][T13], Tij[CU_2D][T13], Tij[UC_2D][T13], Tij[UU_2D][T13]),
+                         calc_sym_grady_2D(dy, Tij[CC_2D][T22], Tij[CU_2D][T22], Tij[UC_2D][T22], Tij[UU_2D][T22]),
+                         calc_sym_grady_2D(dy, Tij[CC_2D][T23], Tij[CU_2D][T23], Tij[UC_2D][T23], Tij[UU_2D][T23]),
+                         calc_sym_grady_2D(dy, Tij[CC_2D][T33], Tij[CU_2D][T33], Tij[UC_2D][T33], Tij[UU_2D][T33]) };
+
     double qLL[9] = {0.0};
     double qLU[9] = {0.0};
     double qUL[9] = {0.0};
@@ -323,7 +330,7 @@ gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces, s
   long offsets[sz[ndim-1]];
   create_offsets(&update_range, offsets);
 
-  const double* fluid_d[sz[ndim-1]]];
+  const double* fluid_d[sz[ndim-1]];
   double *rhs_d;
 
   struct gkyl_range_iter iter;

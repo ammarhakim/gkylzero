@@ -238,7 +238,7 @@ unmag_braginskii_update(const gkyl_moment_braginskii *bes,
     const int ION = (ELC + 1) % 2;
 
     const double e = bes->param[ELC].charge;
-    const int Z = bes->param[ION].charge / abs(bes->param[ELC].charge);  // Note: May always round down on conversion
+    const int Z = bes->param[ION].charge / fabs(bes->param[ELC].charge);  // Note: May always round down on conversion
 
     double lambda = 10.0; // Note: Change this
 
@@ -312,8 +312,8 @@ gkyl_moment_braginskii_new(struct gkyl_moment_braginskii_inp inp)
 
 void
 gkyl_moment_braginskii_advance(const gkyl_moment_braginskii *bes, struct gkyl_range update_range,
-  const struct gkyl_array *fluid[], const struct gkyl_array *em_tot,
-  struct gkyl_array *cflrate, struct gkyl_array *rhs[])
+  const struct gkyl_array *fluid[GKYL_MAX_SPECIES], const struct gkyl_array *em_tot,
+  struct gkyl_array *cflrate, struct gkyl_array *rhs[GKYL_MAX_SPECIES])
 {
   int nfluids = bes->nfluids;
   int ndim = update_range.ndim;

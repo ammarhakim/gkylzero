@@ -56,8 +56,8 @@ gkyl_moment_braginskii* gkyl_moment_braginskii_new(struct gkyl_moment_braginskii
  */
 
 void gkyl_moment_braginskii_advance(const gkyl_moment_braginskii *bes, struct gkyl_range update_rng,
-  const struct gkyl_array *fluid[], const struct gkyl_array *em_tot,
-  struct gkyl_array *cflrate, struct gkyl_array *rhs[]);
+  const struct gkyl_array *fluid[GKYL_MAX_SPECIES], const struct gkyl_array *em_tot,
+  struct gkyl_array *cflrate, struct gkyl_array *rhs[GKYL_MAX_SPECIES]);
 
 /**
  * Delete updater.
