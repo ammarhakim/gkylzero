@@ -662,7 +662,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
 // the second step
 static 
 void
-moment_coupling_update(const gkyl_moment_app *app, const struct moment_coupling *src,
+moment_coupling_update(const gkyl_moment_app *app, struct moment_coupling *src,
   int nstrang, double tcurr, double dt)
 {
   int sidx[] = { 0, app->ndim };
