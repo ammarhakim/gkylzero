@@ -83,6 +83,7 @@ gkyl_dg_vlasov_lbo_new(const struct gkyl_basis* cbasis, const struct gkyl_basis*
   // ensure non-NULL pointers
   //assert(vlasov_lbo->vol);
   for (int i=0; i<vdim; ++i) assert(vlasov_lbo->surf[i]);
+  for (int i=0; i<vdim; ++i) assert(vlasov_lbo->boundary_surf[i]);
 
   vlasov_lbo->nuSum = 0;
   vlasov_lbo->nuUSum = 0;
