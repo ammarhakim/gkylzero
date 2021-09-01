@@ -215,8 +215,8 @@ em_source_update(const gkyl_moment_em_coupling *mes, double dt,
 // See Wang et. al. 2020 JCP for details
 static void
 fluid_source_update(const gkyl_moment_em_coupling *mes, double dt,
-  double* fluids[], double *app_accels[GKYL_MAX_SPECIES], double* em,
-  const double* app_current, const double* ext_em)
+  double* fluids[], double *app_accels[GKYL_MAX_SPECIES], double *rhs_s[],
+  double* em, const double* app_current, const double* ext_em)
 {
   int nfluids = mes->nfluids;
   double keOld[GKYL_MAX_SPECIES];
@@ -296,13 +296,14 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
 void
 gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
   const struct gkyl_range *update_range,
-  struct gkyl_array *fluid[], struct gkyl_array *app_accel[],
+  struct gkyl_array *fluid[], struct gkyl_array *app_accel[], struct gkyl_array *rhs[],
   struct gkyl_array *em, struct gkyl_array *app_current, struct gkyl_array *ext_em)
 {
   int nfluids = mes->nfluids;
   double *fluids[GKYL_MAX_SPECIES];
   double *app_accels[GKYL_MAX_SPECIES];
-
+  double *rhs_s[GKYL_MAX_SPECIES];
+  
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
   while (gkyl_range_iter_next(&iter)) {
@@ -312,9 +313,10 @@ gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
     for (int n=0; n<nfluids; ++n) {
       fluids[n] = gkyl_array_fetch(fluid[n], lidx);
       app_accels[n] = gkyl_array_fetch(app_accel[n], lidx);
+      rhs_s[n] = gkyl_array_fetch(rhs[n], lidx);
     }
 
-    fluid_source_update(mes, dt, fluids, app_accels,
+    fluid_source_update(mes, dt, fluids, app_accels, rhs_s,
       gkyl_array_fetch(em, lidx),
       gkyl_array_fetch(app_current, lidx),
       gkyl_array_fetch(ext_em, lidx)

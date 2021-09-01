@@ -45,6 +45,7 @@ gkyl_moment_em_coupling* gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupl
  * @param update_rng Range on which to solve implicit time-centered update.
  * @param fluid Array of fluid variables (array size: nfluids)
  * @param app_accel Array of applied acceleration terms to fluid equations (for external forces)
+ * @param rhs Array of additional time varying quantities on RHS of fluid equations (e.g., non-ideal terms)
  * @param em EM variables
  * @param app_current Applied current array (for external current driving)
  * @param ext_em External EM variables (for EM fields coming from external sources (coils, capacitors, etc.))
@@ -52,7 +53,7 @@ gkyl_moment_em_coupling* gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupl
 
 void gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
   const struct gkyl_range *update_rng, 
-  struct gkyl_array *fluid[], struct gkyl_array *app_accel[],
+  struct gkyl_array *fluid[], struct gkyl_array *app_accel[], struct gkyl_array *rhs[],
   struct gkyl_array *em, struct gkyl_array *app_current, struct gkyl_array *ext_em);
 
 /**

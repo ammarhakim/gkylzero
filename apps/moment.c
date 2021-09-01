@@ -10,6 +10,9 @@
 #include <gkyl_fv_proj.h>
 #include <gkyl_moment.h>
 #include <gkyl_moment_em_coupling.h>
+#include <gkyl_moment_braginskii.h>
+#include <gkyl_moment_braginskii_priv.h>
+#include <gkyl_ten_moment_grad_closure.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_apply_bc.h>
 #include <gkyl_rect_decomp.h>
@@ -48,6 +51,8 @@ struct moment_species {
   int num_equations; // number of equations in species
   gkyl_wave_prop *slvr[3]; // solver in each direction
 
+  bool has_grad_closure; // has gradient-based closure (only for 10 moment)
+
   // boundary conditions on lower/upper edges in each direction
   gkyl_rect_apply_bc *lower_bc[3], *upper_bc[3];
 };
@@ -76,6 +81,8 @@ struct moment_field {
 // Source data
 struct moment_coupling {
   gkyl_moment_em_coupling *slvr; // source solver function
+  gkyl_moment_braginskii *brag_slvr; // Braginskii solver (if present)
+  gkyl_ten_moment_grad_closure *grad_closure_slvr; // Gradient-based closure solver (if present)
 };
 
 // Moment app object: used as opaque pointer in user code
@@ -103,6 +110,7 @@ struct gkyl_moment_app {
   struct moment_species *species; // species data
 
   int update_sources; // flag to indicate if sources are to be updated
+  enum gkyl_braginskii_type brag_type; // enum for Braginskii type (if present)
   struct moment_coupling sources; // sources
     
   struct gkyl_moment_stat stat; // statistics
@@ -245,6 +253,8 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   sp->mass = mom_sp->mass;
   // set closure parameter (default is 0.0, used by 10 moment)
   sp->k0 = mom_sp->k0 == 0 ? 0.0 : mom_sp->k0;
+  // check if we are running with gradient-based closure
+  sp->has_grad_closure = mom_sp->has_grad_closure == 0 ? 0 : mom_sp->has_grad_closure;
   sp->ctx = mom_sp->ctx;
   sp->init = mom_sp->init;
 
@@ -606,11 +616,39 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       .type = app->species[i].eqn_type,
       .charge = app->species[i].charge,
       .mass = app->species[i].mass,
-      .k0 = app->species[i].k0
+      .k0 = app->species[i].has_grad_closure ? 0.0 : app->species[i].k0,
     };
 
   // create updater to solve for sources
   src->slvr = gkyl_moment_em_coupling_new(src_inp);
+
+  // check if Braginskii terms present
+  if (app->has_braginskii) {
+    struct gkyl_moment_braginskii_inp brag_inp = {
+      .grid = &app->grid,
+      .nfluids = app->num_species,
+      .epsilon0 = app->field.epsilon0,
+      .type_brag = app->type_brag,
+    };
+    for (int i=0; i<app->num_species; ++i)
+      brag_inp.param[i] = (struct gkyl_moment_braginskii_data) {
+        .type = app->species[i].eqn_type,
+        .charge = app->species[i].charge,
+        .mass = app->species[i].mass,
+      };
+    src->brag_slvr = gkyl_moment_braginskii_new(brag_inp);
+  }
+
+  // check if gradient-closure is present
+  for (int i=0; i<app->num_species; ++i) {
+    if (app->species[i].eqn_type == GKYL_TEN_MOMENT && app->species[i].has_grad_closure) {
+      struct gkyl_ten_moment_grad_closure_inp grad_closure_inp = {
+        .grid = &app->grid,
+        .k0 = app->species[i].k0,
+      };
+      src->grad_closure_slvr[i] = gkyl_ten_moment_grad_closure_new(grad_closure_inp);      
+    }
+  }
 }
 
 // update sources: 'nstrang' is 0 for the first Strang step and 1 for
@@ -644,6 +682,8 @@ void
 moment_coupling_release(const struct moment_coupling *src)
 {
   gkyl_moment_em_coupling_release(src->slvr);
+  gkyl_moment_braginskii_release(src->brag_slvr);
+  
 }
 
 /** app methods */
