@@ -244,6 +244,47 @@ moment_apply_periodic_bc(const gkyl_moment_app *app, struct gkyl_array *bc_buffe
   gkyl_array_copy_from_buffer(f, bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
 }
 
+static void
+moment_apply_periodic_corner_sync(const gkyl_moment_app *app, struct gkyl_array *f)
+{
+  long idx_src, idx_dest;
+  double *out;
+  const double *inp;
+  if (app->ndim == 2) {
+    // LL skin cell -> UU ghost cell
+    idx_src = gkyl_range_idx(&app->local, (int[]) {app->local.lower[0],app->local.lower[1]});
+    idx_dest = gkyl_range_idx(&app->local, (int[]) {app->local.upper[0]+1,app->local.upper[1]+1});
+    
+    out = (double*) gkyl_array_fetch(f, idx_dest);
+    inp = (const double*) gkyl_array_cfetch(f, idx_src);
+    gkyl_copy_double_arr(f->ncomp, inp, out);
+
+    // LU skin cell -> UL ghost cell
+    idx_src = gkyl_range_idx(&app->local, (int[]) {app->local.lower[0],app->local.upper[1]});
+    idx_dest = gkyl_range_idx(&app->local_ext, (int[]) {app->local.upper[0]+1,app->local.lower[1]-1});
+    
+    out = (double*) gkyl_array_fetch(f, idx_dest);
+    inp = (const double*) gkyl_array_cfetch(f, idx_src);
+    gkyl_copy_double_arr(f->ncomp, inp, out);
+
+    // UL skin cell -> LU ghost cell
+    idx_src = gkyl_range_idx(&app->local, (int[]) {app->local.upper[0],app->local.lower[1]});
+    idx_dest = gkyl_range_idx(&app->local_ext, (int[]) {app->local.lower[0]-1,app->local.upper[1]+1});
+    
+    out = (double*) gkyl_array_fetch(f, idx_dest);
+    inp = (const double*) gkyl_array_cfetch(f, idx_src);
+    gkyl_copy_double_arr(f->ncomp, inp, out);
+
+    // UU skin cell -> LL ghost cell
+    idx_src = gkyl_range_idx(&app->local, (int[]) {app->local.upper[0],app->local.upper[1]});
+    idx_dest = gkyl_range_idx(&app->local_ext, (int[]) {app->local.lower[0]-1,app->local.lower[1]-1});
+    
+    out = (double*) gkyl_array_fetch(f, idx_dest);
+    inp = (const double*) gkyl_array_cfetch(f, idx_src);
+    gkyl_copy_double_arr(f->ncomp, inp, out);
+  }
+}
+
 /** moment_species functions */
 
 // initialize species
@@ -360,7 +401,7 @@ moment_species_apply_bc(const gkyl_moment_app *app, double tcurr,
     moment_apply_periodic_bc(app, sp->bc_buffer, app->periodic_dirs[d], f);
     is_non_periodic[app->periodic_dirs[d]] = 0;
   }
-  
+  moment_apply_periodic_corner_sync(app, f);
   for (int d=0; d<ndim; ++d)
     if (is_non_periodic[d]) {
       gkyl_rect_apply_bc_advance(sp->lower_bc[d], tcurr, &app->local, f);
@@ -683,7 +724,7 @@ moment_coupling_update(const gkyl_moment_app *app, struct moment_coupling *src,
   struct gkyl_array *fluids[GKYL_MAX_SPECIES];
   const struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
   const struct gkyl_array *rhs_const[GKYL_MAX_SPECIES];
-
+  
   for (int i=0; i<app->num_species; ++i) {
     fluids[i] = app->species[i].f[sidx[nstrang]];
     app_accels[i] = app->species[i].app_accel;
