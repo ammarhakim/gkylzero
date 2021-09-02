@@ -258,7 +258,8 @@ main(int argc, char **argv)
   struct gkyl_moment_species elc = {
     .name = "elc",
     .charge = -1.0, .mass = 1.0/100.0,
-    .k0 = 1.0,
+    // rho_e ~ 0.1, k0 = 1/rho_e
+    .k0 = 10.0,
     .has_grad_closure = true,
     .equation = elc_ten_moment,
     .evolve = 1,
@@ -267,7 +268,8 @@ main(int argc, char **argv)
   struct gkyl_moment_species ion = {
     .name = "ion",
     .charge = 1.0, .mass = 1.0,
-    .k0 = 1.0,
+    // rho_i ~ 1.0, k0 = 10/(rho_i)
+    .k0 = 10.0,
     .has_grad_closure = true,
     .equation = ion_ten_moment,
     .evolve = 1,
@@ -303,7 +305,7 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 1.0;
+  double tcurr = 0.0, tend = 250.0;
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
