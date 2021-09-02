@@ -103,12 +103,12 @@ struct gkyl_vlasov_app {
 
   struct vm_skin_ghost_ranges skin_ghost; // conf-space skin/ghost
 
-  bool has_field; // has field (false if no field is specified)
-  struct vm_field field; // field data
+  bool has_field; // has field
+  struct vm_field *field; // pointer to field object
 
   // species data
   int num_species;
-  struct vm_species *species; // species data
+  struct vm_species *species; // data for each species
 
   struct gkyl_vlasov_stat stat; // statistics
 };
@@ -152,39 +152,144 @@ skin_ghost_ranges_init(struct vm_skin_ghost_ranges *sgr,
 
 /** vm_species_moment API */
 
+/**
+ * Initialize species moment object.
+ *
+ * @param app Vlasov app object
+ * @param s Species object 
+ * @param sm Species moment object
+ * @param nm Name string indicating moment type
+ */
 void vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   struct vm_species_moment *sm, const char *nm);
 
+/**
+ * Release species moment object.
+ *
+ * @param app Vlasov app object
+ * @param sm Species moment object to release
+ */
 void vm_species_moment_release(const struct gkyl_vlasov_app *app, const struct vm_species_moment *sm);
-
 
 /** vm_species API */
 
+/**
+ * Initialize species.
+ *
+ * @param vm Input VM data
+ * @param app Vlasov app object
+ * @param s On output, initialized species object
+ */
 void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_species *s);
 
+/**
+ * Compute RHS from species distribution function
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param fin Input distribution function
+ * @param qmem EM field scaled by q/m
+ * @param rhs On output, the RHS from the species object
+ * @return Maximum stable time-step
+ */
 double vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   const struct gkyl_array *fin, const struct gkyl_array *qmem, struct gkyl_array *rhs);
 
+/**
+ * Apply periodic BCs to species distribution function
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param dir Direction to apply BCs
+ * @param f Field to apply BCs
+ */
 void vm_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_species *species,
   int dir, struct gkyl_array *f);
 
+/**
+ * Apply copy BCs to species distribution function
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param dir Direction to apply BCs
+ * @param f Field to apply BCs
+ */
 void vm_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_species *species,
   int dir, struct gkyl_array *f);
 
+/**
+ * Apply BCs to species distribution function
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param dir Direction to apply BCs
+ * @param f Field to apply BCs
+ */
 void vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, struct gkyl_array *f);
 
+/**
+ * Delete resources used in species.
+ *
+ * @param app Vlasov app object
+ * @param species Species object to delete
+ */
 void vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s);
 
 /** vm_field API */
 
-void vm_field_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_field *f);
+/**
+ * Create new field object
+ *
+ * @param vm Input VM data
+ * @param app Vlasov app object
+ * @return Newly created field
+ */
+struct vm_field* vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app);
 
+/**
+ * Compute RHS from field equations
+ *
+ * @param app Vlasov app object
+ * @param field Pointer to field
+ * @param em Input field
+ * @param rhs On output, the RHS from the field solver
+ * @return Maximum stable time-step
+ */
 double vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *em, struct gkyl_array *rhs);
 
+/**
+ * Apply periodic BCs to field
+ *
+ * @param app Vlasov app object
+ * @param field Pointer to field
+ * @param dir Direction to apply BCs
+ * @param f Field to apply BCs
+ */
 void vm_field_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_field *field, int dir, struct gkyl_array *f);
 
+/**
+ * Apply copy BCs to field
+ *
+ * @param app Vlasov app object
+ * @param field Pointer to field
+ * @param dir Direction to apply BCs
+ * @param f Field to apply BCs
+ */
 void vm_field_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_field *field, int dir, struct gkyl_array *f);
 
+/**
+ * Apply BCs to field
+ *
+ * @param app Vlasov app object
+ * @param field Pointer to field
+ * @param f Field to apply BCs
+ */
 void vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gkyl_array *f);
 
-void vm_field_release(const gkyl_vlasov_app* app, const struct vm_field *f);
+/**
+ * Release resources allocated by field
+ *
+ * @param app Vlasov app object
+ * @param f Field object to release
+ */
+void vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f);

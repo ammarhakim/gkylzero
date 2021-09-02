@@ -63,7 +63,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     vm_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
 
   // determine field-type to use in dg_vlasov
-  enum gkyl_field_id field_id = app->has_field ? app->field.info.field_id : GKYL_FIELD_NULL;
+  enum gkyl_field_id field_id = app->has_field ? app->field->info.field_id : GKYL_FIELD_NULL;
 
   // create equation object
   if (app->use_gpu)

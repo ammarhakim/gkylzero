@@ -55,11 +55,8 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
 
   app->has_field = !vm.skip_field; // note inversion of truth value
 
-  if (app->has_field) {
-    // initialize EM field
-    app->field.info = vm.field;
-    vm_field_init(&vm, app, &app->field);
-  }
+  if (app->has_field)
+    app->field = vm_field_new(&vm, app);
 
   // allocate space to store species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct vm_species[ns])) : 0;
@@ -94,18 +91,18 @@ gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
   app->tcurr = t0;
   int poly_order = app->poly_order;
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-    poly_order+1, 8, app->field.info.init, app->field.info.ctx);
+    poly_order+1, 8, app->field->info.init, app->field->info.ctx);
 
   struct timespec wtm = gkyl_wall_clock();
-  gkyl_proj_on_basis_advance(proj, t0, &app->local, app->field.em_host);
+  gkyl_proj_on_basis_advance(proj, t0, &app->local, app->field->em_host);
   app->stat.init_field_tm += gkyl_time_diff_now_sec(wtm);
   
   gkyl_proj_on_basis_release(proj);
  
   if (app->use_gpu)
-    gkyl_array_copy(app->field.em, app->field.em_host);
+    gkyl_array_copy(app->field->em, app->field->em_host);
   
-  vm_field_apply_bc(app, &app->field, app->field.em);  
+  vm_field_apply_bc(app, &app->field, app->field->em);  
 }
 
 void
@@ -169,11 +166,11 @@ gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
 
   if (app->use_gpu) {
     // copy data from device to host before writing it out    
-    gkyl_array_copy(app->field.em_host, app->field.em);
-    gkyl_grid_sub_array_write(&app->grid, &app->local, app->field.em_host, fileNm);
+    gkyl_array_copy(app->field->em_host, app->field->em);
+    gkyl_grid_sub_array_write(&app->grid, &app->local, app->field->em_host, fileNm);
   }
   else {
-    gkyl_grid_sub_array_write(&app->grid, &app->local, app->field.em, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->local, app->field->em, fileNm);
   }
 }
 
@@ -236,10 +233,10 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   for (int i=0; i<app->num_species; ++i) {
     if (app->has_field) {
       double qbym = app->species[i].info.charge/app->species[i].info.mass;
-      gkyl_array_set(app->field.qmem, qbym, emin);
+      gkyl_array_set(app->field->qmem, qbym, emin);
     }
     
-    double dt1 = vm_species_rhs(app, &app->species[i], fin[i], app->has_field ? app->field.qmem : 0, fout[i]);
+    double dt1 = vm_species_rhs(app, &app->species[i], fin[i], app->has_field ? app->field->qmem : 0, fout[i]);
     dtmin = fmin(dtmin, dt1);
   }
   // compute RHS of Maxwell equations
@@ -278,7 +275,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
         gkyl_mom_calc_advance(s->m1i.mcalc, s->local, app->local,
           fin[i], s->m1i.marr);
     
-      double qbyeps = s->info.charge/app->field.info.epsilon0;
+      double qbyeps = s->info.charge/app->field->info.epsilon0;
       gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, app->local);
     }
     app->stat.current_tm += gkyl_time_diff_now_sec(wst);
@@ -311,7 +308,7 @@ rk3(gkyl_vlasov_app* app, double dt0)
           fin[i] = app->species[i].f;
           fout[i] = app->species[i].f1;
         }
-        forward_euler(app, tcurr, dt, fin, app->field.em, fout, app->field.em1, &st);
+        forward_euler(app, tcurr, dt, fin, app->field->em, fout, app->field->em1, &st);
         dt = st.dt_actual;
         state = RK_STAGE_2;
         break;
@@ -321,7 +318,7 @@ rk3(gkyl_vlasov_app* app, double dt0)
           fin[i] = app->species[i].f1;
           fout[i] = app->species[i].fnew;
         }
-        forward_euler(app, tcurr+dt, dt, fin, app->field.em1, fout, app->field.emnew, &st);
+        forward_euler(app, tcurr+dt, dt, fin, app->field->em1, fout, app->field->emnew, &st);
         if (st.dt_actual < dt) {
 
           // collect stats
@@ -341,8 +338,8 @@ rk3(gkyl_vlasov_app* app, double dt0)
             array_combine(app->species[i].f1,
               3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew, app->species[i].local_ext);
           if (app->has_field)
-            array_combine(app->field.em1,
-              3.0/4.0, app->field.em, 1.0/4.0, app->field.emnew, app->local_ext);
+            array_combine(app->field->em1,
+              3.0/4.0, app->field->em, 1.0/4.0, app->field->emnew, app->local_ext);
 
           state = RK_STAGE_3;
         }
@@ -353,7 +350,7 @@ rk3(gkyl_vlasov_app* app, double dt0)
           fin[i] = app->species[i].f1;
           fout[i] = app->species[i].fnew;
         }
-        forward_euler(app, tcurr+dt/2, dt, fin, app->field.em1, fout, app->field.emnew, &st);
+        forward_euler(app, tcurr+dt/2, dt, fin, app->field->em1, fout, app->field->emnew, &st);
         if (st.dt_actual < dt) {
 
           // collect stats
@@ -376,9 +373,9 @@ rk3(gkyl_vlasov_app* app, double dt0)
             gkyl_array_copy_range(app->species[i].f, app->species[i].f1, app->species[i].local_ext);
           }
           if (app->has_field) {
-            array_combine(app->field.em1,
-              1.0/3.0, app->field.em, 2.0/3.0, app->field.emnew, app->local_ext);
-            gkyl_array_copy_range(app->field.em, app->field.em1, app->local_ext);
+            array_combine(app->field->em1,
+              1.0/3.0, app->field->em, 2.0/3.0, app->field->emnew, app->local_ext);
+            gkyl_array_copy_range(app->field->em, app->field->em1, app->local_ext);
           }
 
           state = RK_COMPLETE;
@@ -420,7 +417,7 @@ gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
     
     struct vm_species *species = &app->species[i];
     
-    const struct gkyl_array *qmem = app->field.qmem;
+    const struct gkyl_array *qmem = app->field->qmem;
     gkyl_vlasov_set_qmem(species->eqn, qmem);
 
     const struct gkyl_array *fin = species->f;
