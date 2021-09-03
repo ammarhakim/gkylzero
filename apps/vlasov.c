@@ -1,4 +1,3 @@
-
 #include "gkyl_vlasov_priv.h"
 
 gkyl_vlasov_app*
@@ -102,7 +101,7 @@ gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
   if (app->use_gpu)
     gkyl_array_copy(app->field->em, app->field->em_host);
   
-  vm_field_apply_bc(app, &app->field, app->field->em);  
+  vm_field_apply_bc(app, app->field, app->field->em);  
 }
 
 void
@@ -241,7 +240,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   }
   // compute RHS of Maxwell equations
   if (app->has_field) {
-    double dt1 = vm_field_rhs(app, &app->field, emin, emout);
+    double dt1 = vm_field_rhs(app, app->field, emin, emout);
     dtmin = fmin(dtmin, dt1);
   }
 
@@ -283,7 +282,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     // complete update of field
     gkyl_array_accumulate_range(gkyl_array_scale_range(emout, dta, app->local),
       1.0, emin, app->local);
-    vm_field_apply_bc(app, &app->field, emout);
+    vm_field_apply_bc(app, app->field, emout);
   }
 }
 
@@ -308,7 +307,10 @@ rk3(gkyl_vlasov_app* app, double dt0)
           fin[i] = app->species[i].f;
           fout[i] = app->species[i].f1;
         }
-        forward_euler(app, tcurr, dt, fin, app->field->em, fout, app->field->em1, &st);
+        forward_euler(app, tcurr, dt, fin, app->has_field ? app->field->em : 0,
+          fout, app->has_field ? app->field->em1 : 0,
+          &st
+        );
         dt = st.dt_actual;
         state = RK_STAGE_2;
         break;
@@ -318,7 +320,10 @@ rk3(gkyl_vlasov_app* app, double dt0)
           fin[i] = app->species[i].f1;
           fout[i] = app->species[i].fnew;
         }
-        forward_euler(app, tcurr+dt, dt, fin, app->field->em1, fout, app->field->emnew, &st);
+        forward_euler(app, tcurr+dt, dt, fin, app->has_field ? app->field->em1 : 0,
+          fout, app->has_field ? app->field->emnew : 0,
+          &st
+        );
         if (st.dt_actual < dt) {
 
           // collect stats
@@ -350,7 +355,10 @@ rk3(gkyl_vlasov_app* app, double dt0)
           fin[i] = app->species[i].f1;
           fout[i] = app->species[i].fnew;
         }
-        forward_euler(app, tcurr+dt/2, dt, fin, app->field->em1, fout, app->field->emnew, &st);
+        forward_euler(app, tcurr+dt/2, dt, fin, app->has_field ? app->field->em1 : 0,
+          fout, app->has_field ? app->field->emnew : 0,
+          &st
+        );
         if (st.dt_actual < dt) {
 
           // collect stats
@@ -492,7 +500,7 @@ gkyl_vlasov_app_release(gkyl_vlasov_app* app)
     vm_species_release(app, &app->species[i]);
   gkyl_free(app->species);
   if(app->has_field)
-    vm_field_release(app, &app->field);
+    vm_field_release(app, app->field);
 
   gkyl_free(app);
 }
