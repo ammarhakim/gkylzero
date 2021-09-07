@@ -32,6 +32,20 @@ struct gkyl_basis {
  * @param fout On output, flipped version of @a f
  */
   void (*flip_sign)(int dir, const double *f, double *fout);
+
+/**
+ * Construct list of nodes corresponding to this basis set. The nodes
+ * coordinates are in the unit cell [-1,1]^ndim and stored such that
+ * the coodinates of a node are contiguous, starting at index ndim*n,
+ * n = 0, ... num_basis-1. The node_coords array must be pre-allocated
+ * by the caller.
+ */
+  void (*node_list)(double *node_coords);
+
+/**
+ * 
+ */
+  void (*nodal_to_modal)(const double *fnodal, double *fmodal);
 };
 
 /**

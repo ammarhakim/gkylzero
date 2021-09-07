@@ -109,9 +109,9 @@ struct gkyl_mat* gkyl_mat_mm(double alpha, double beta,
  * lapack_int is long (it may be smaller). You must
  * allocate/deallocate ipiv yourself! Use:
  *
- * ipiv = gkyl_mem_chunk_new(sizeof(long[N]));
+ * ipiv = gkyl_mem_buff_new(sizeof(long[N]));
  * gkyl_mat_linsolve_lu(A, x, gkyl_mem_buff_data(ipiv));
- * gkyl_mem_chunck_release(ipiv);
+ * gkyl_mem_buff_release(ipiv);
  *
  * The reason for passing ipiv to this function is that it avoids
  * allocations inside this function.
