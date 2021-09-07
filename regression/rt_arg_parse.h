@@ -49,6 +49,10 @@ parse_app_args(int argc, char **argv)
     {
       case 'h':
         printf("Usage: <app_name> -g -s num_steps -i inp_file -b [ms|mt]\n");
+        printf(" -g     Run on GPUs if GPUs are present and code built for GPUs\n");
+        printf(" -sN    Only run N steps of simulation\n");
+        printf(" -b     Basis function to use (ms: Modal serendipity; mt: Modal tensor-product)\n");
+        printf("        (Ignored for finite-volume solvers)\n");
         exit(-1);
         break;
 
