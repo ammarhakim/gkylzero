@@ -5,7 +5,7 @@
 #include <gkyl_alloc.h>
 
 struct gkyl_update_fsm*
-gkyl_update_fsm_new(int nactions, struct gkyl_update_fsm_action actions[],
+gkyl_update_fsm_with_transitions_new(int nactions, struct gkyl_update_fsm_action actions[],
   int ntransitions, struct gkyl_update_fsm_transition *transitions,
   struct gkyl_update_fsm_action redo)
 {
@@ -21,6 +21,37 @@ gkyl_update_fsm_new(int nactions, struct gkyl_update_fsm_action actions[],
   fsm->transitions = gkyl_malloc(sizeof(struct gkyl_update_fsm_transition[ntransitions]));
   for (int i=0; i<ntransitions; ++i)
     fsm->transitions[i] = transitions[i];
+
+  fsm->redo = redo;
+
+  return fsm;
+}
+
+struct gkyl_update_fsm*
+gkyl_update_fsm_new(int nactions, struct gkyl_update_fsm_action actions[],
+  struct gkyl_update_fsm_action redo)
+{
+  struct gkyl_update_fsm *fsm;
+  fsm = gkyl_malloc(sizeof *fsm);
+
+  fsm->nactions = nactions;
+  fsm->actions = gkyl_malloc(sizeof(struct gkyl_update_fsm_action[nactions]));
+  for (int i=0; i<nactions; ++i)
+    fsm->actions[i] = actions[i];
+
+  // construct default transition list
+  int nt = fsm->ntransitions = nactions;
+  fsm->transitions = gkyl_malloc(sizeof(struct gkyl_update_fsm_transition[nt]));
+
+  // following transition table ensures that each action is run in order specified
+  for (int i=0; i<nt-1; ++i)
+    fsm->transitions[i] = (struct gkyl_update_fsm_transition) {
+      i+1, GKYL_UPDATE_FSM_REDO
+    };
+  fsm->transitions[nt-1] = (struct gkyl_update_fsm_transition) {
+    GKYL_UPDATE_FSM_FINISH,
+    GKYL_UPDATE_FSM_REDO
+  };
 
   fsm->redo = redo;
 

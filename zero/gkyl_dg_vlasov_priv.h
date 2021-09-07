@@ -3,11 +3,9 @@
 // Private header, not for direct use in user code
 
 #include <gkyl_vlasov_kernels.h>
+#include <gkyl_eqn_type.h>
 
 // Types for various kernels
-typedef double (*vlasov_stream_vol_t)(const double *w, const double *dxv,
-  const double *f, double* GKYL_RESTRICT out);
-
 typedef double (*vlasov_vol_t)(const double *w, const double *dxv,
   const double *qmem, const double *f, double* GKYL_RESTRICT out);
 
@@ -30,9 +28,9 @@ static struct { int vdim[4]; } cv_index[] = {
 };
 
 // for use in kernel tables
-typedef struct { vlasov_stream_vol_t kernels[3]; } gkyl_dg_vlasov_steam_vol_kern_list;
+typedef struct { vlasov_vol_t kernels[3]; } gkyl_dg_vlasov_stream_vol_kern_list;
 typedef struct { vlasov_vol_t kernels[3]; } gkyl_dg_vlasov_vol_kern_list;
-typedef struct { vlasov_stream_surf_t kernels[3]; } gkyl_dg_vlasov_steam_surf_kern_list;
+typedef struct { vlasov_stream_surf_t kernels[3]; } gkyl_dg_vlasov_stream_surf_kern_list;
 typedef struct { vlasov_accel_surf_t kernels[3]; } gkyl_dg_vlasov_accel_surf_kern_list;
 typedef struct { vlasov_accel_boundary_surf_t kernels[3]; } gkyl_dg_vlasov_accel_boundary_surf_kern_list;
 
@@ -42,7 +40,7 @@ typedef struct { vlasov_accel_boundary_surf_t kernels[3]; } gkyl_dg_vlasov_accel
 
 // Volume kernel list
 GKYL_CU_D
-static const gkyl_dg_vlasov_steam_vol_kern_list ser_stream_vol_kernels[] = {
+static const gkyl_dg_vlasov_stream_vol_kern_list ser_stream_vol_kernels[] = {
   // 1x kernels
   { NULL, vlasov_stream_vol_1x1v_ser_p1, vlasov_stream_vol_1x1v_ser_p2 }, // 0
   { NULL, vlasov_stream_vol_1x2v_ser_p1, vlasov_stream_vol_1x2v_ser_p2 }, // 1
@@ -69,7 +67,7 @@ static const gkyl_dg_vlasov_vol_kern_list ser_vol_kernels[] = {
 
 // Streaming surface kernel list: x-direction
 GKYL_CU_D
-static const gkyl_dg_vlasov_steam_surf_kern_list ser_stream_surf_x_kernels[] = {
+static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_surf_x_kernels[] = {
   // 1x kernels
   { NULL, vlasov_surfx_1x1v_ser_p1, vlasov_surfx_1x1v_ser_p2 }, // 0
   { NULL, vlasov_surfx_1x2v_ser_p1, vlasov_surfx_1x2v_ser_p2 }, // 1
@@ -83,7 +81,7 @@ static const gkyl_dg_vlasov_steam_surf_kern_list ser_stream_surf_x_kernels[] = {
 
 // Streaming surface kernel list: y-direction
 GKYL_CU_D
-static const gkyl_dg_vlasov_steam_surf_kern_list ser_stream_surf_y_kernels[] = {
+static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_surf_y_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
@@ -97,7 +95,7 @@ static const gkyl_dg_vlasov_steam_surf_kern_list ser_stream_surf_y_kernels[] = {
 
 // Streaming surface kernel list: z-direction
 GKYL_CU_D
-static const gkyl_dg_vlasov_steam_surf_kern_list ser_stream_surf_z_kernels[] = {
+static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_surf_z_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
@@ -199,7 +197,7 @@ static const gkyl_dg_vlasov_accel_boundary_surf_kern_list ser_accel_boundary_sur
 
 // Volume kernel list
 GKYL_CU_D
-static const gkyl_dg_vlasov_steam_vol_kern_list ten_stream_vol_kernels[] = {
+static const gkyl_dg_vlasov_stream_vol_kern_list ten_stream_vol_kernels[] = {
   // 1x kernels
   { NULL, vlasov_stream_vol_1x1v_ser_p1, vlasov_stream_vol_1x1v_tensor_p2 }, // 0
   { NULL, vlasov_stream_vol_1x2v_ser_p1, vlasov_stream_vol_1x2v_tensor_p2 }, // 1
@@ -226,7 +224,7 @@ static const gkyl_dg_vlasov_vol_kern_list ten_vol_kernels[] = {
 
 // Streaming surface kernel list: x-direction
 GKYL_CU_D
-static const gkyl_dg_vlasov_steam_surf_kern_list ten_stream_surf_x_kernels[] = {
+static const gkyl_dg_vlasov_stream_surf_kern_list ten_stream_surf_x_kernels[] = {
   // 1x kernels
   { NULL, vlasov_surfx_1x1v_ser_p1, vlasov_surfx_1x1v_tensor_p2 }, // 0
   { NULL, vlasov_surfx_1x2v_ser_p1, vlasov_surfx_1x2v_tensor_p2 }, // 1
@@ -240,7 +238,7 @@ static const gkyl_dg_vlasov_steam_surf_kern_list ten_stream_surf_x_kernels[] = {
 
 // Streaming surface kernel list: y-direction
 GKYL_CU_D
-static const gkyl_dg_vlasov_steam_surf_kern_list ten_stream_surf_y_kernels[] = {
+static const gkyl_dg_vlasov_stream_surf_kern_list ten_stream_surf_y_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
@@ -254,7 +252,7 @@ static const gkyl_dg_vlasov_steam_surf_kern_list ten_stream_surf_y_kernels[] = {
 
 // Streaming surface kernel list: z-direction
 GKYL_CU_D
-static const gkyl_dg_vlasov_steam_surf_kern_list ten_stream_surf_z_kernels[] = {
+static const gkyl_dg_vlasov_stream_surf_kern_list ten_stream_surf_z_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
@@ -373,7 +371,8 @@ vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
 
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
-  return vlasov->vol(xc, dx, (const double*) gkyl_array_cfetch(vlasov->qmem, cidx),
+  return vlasov->vol(xc, dx,
+    vlasov->qmem ? (const double*) gkyl_array_cfetch(vlasov->qmem, cidx) : 0,
     qIn, qRhsOut);
 }
 
@@ -395,7 +394,8 @@ surf(const struct gkyl_dg_eqn *eqn,
   else {
     long cidx = gkyl_range_idx(&vlasov->conf_range, idxC);
     vlasov->accel_surf[dir-vlasov->cdim]
-      (xcC, dxC, (const double*) gkyl_array_cfetch(vlasov->qmem, cidx),
+      (xcC, dxC,
+        vlasov->qmem ? (const double*) gkyl_array_cfetch(vlasov->qmem, cidx) : 0,
         qInL, qInC, qInR, qRhsOut);
   }
 }
@@ -414,7 +414,8 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   if (dir >= vlasov->cdim) {
     long cidx = gkyl_range_idx(&vlasov->conf_range, idxSkin);
     vlasov->accel_boundary_surf[dir-vlasov->cdim]
-      (xcSkin, dxSkin, (const double*) gkyl_array_cfetch(vlasov->qmem, cidx),
+      (xcSkin, dxSkin,
+        vlasov->qmem ? (const double*) gkyl_array_cfetch(vlasov->qmem, cidx) : 0,
         edge, qInEdge, qInSkin, qRhsOut);
   }
 }

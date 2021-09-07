@@ -103,6 +103,42 @@ test_seq_1()
   struct gkyl_update_fsm *seq = gkyl_update_fsm_new(
     3, // number of actions
     (struct gkyl_update_fsm_action[3]) { // actions in sequence
+      { .ctx = &ctx, .u = seq_src_1 },
+      { .ctx = &ctx, .u = seq_fluid },
+      { .ctx = &ctx, .u = seq_src_2 }
+    },
+    (struct gkyl_update_fsm_action) { .ctx = &ctx, .u = seq_redo } // redo action
+  );
+
+  TEST_CHECK( 3 == seq->nactions );
+  TEST_CHECK( 3 == seq->ntransitions );
+  
+  struct gkyl_update_fsm_status status = gkyl_update_fsm_run(seq, 0.0, 1.0);
+
+  TEST_CHECK( GKYL_UPDATE_FSM_STATUS_SUCCESS == status.status );
+  TEST_CHECK( 1 == ctx.nredo );
+  TEST_CHECK( 2 == ctx.nfluid );
+  TEST_CHECK( 3 == ctx.nsrc );
+
+  //seq_ctx_print(ctx);
+
+  TEST_CHECK( 0.1 == status.dt_actual );
+  TEST_CHECK( 0.1 == status.dt_suggested );
+
+  status = gkyl_update_fsm_run(seq, 0.0, 200.0); // should abort
+  TEST_CHECK( GKYL_UPDATE_FSM_STATUS_FAIL == status.status );
+
+  gkyl_update_fsm_release(seq);
+}
+
+void
+test_seq_2()
+{
+  struct seq_ctx ctx = { };
+
+  struct gkyl_update_fsm *seq = gkyl_update_fsm_with_transitions_new(
+    3, // number of actions
+    (struct gkyl_update_fsm_action[3]) { // actions in sequence
       [SRC_1] = { .ctx = &ctx, .u = seq_src_1 },
       [FLUID] = { .ctx = &ctx, .u = seq_fluid },
       [SRC_2] = { .ctx = &ctx, .u = seq_src_2 }
@@ -117,6 +153,7 @@ test_seq_1()
   );
 
   TEST_CHECK( 3 == seq->nactions );
+  TEST_CHECK( 3 == seq->ntransitions );
   
   struct gkyl_update_fsm_status status = gkyl_update_fsm_run(seq, 0.0, 1.0);
 
@@ -138,5 +175,6 @@ test_seq_1()
 
 TEST_LIST = {
   { "seq_1", test_seq_1 },
+  { "seq_2", test_seq_2 },
   { NULL, NULL },  
 };
