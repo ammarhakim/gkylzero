@@ -22,7 +22,7 @@ mkdir build
 cd build
 
 # configure build
-cmake .. -DCMAKE_INSTALL_PREFIX=$PREFIX -Denable_tests=NO -Denable_internal_blaslib=NO 
+cmake .. -DCMAKE_INSTALL_PREFIX=$PREFIX -Denable_tests=NO -Denable_internal_blaslib=NO -DXSDK_ENABLE_Fortran=NO
 
 # build and install
 make -j
