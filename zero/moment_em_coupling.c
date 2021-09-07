@@ -225,11 +225,11 @@ fluid_source_update(const gkyl_moment_em_coupling *mes, double dt,
   for (int n=0; n < nfluids; ++n) {
     const double *f = fluids[n];
     // If Euler equations, store old value of the kinetic energy for later update.
-    if (mes->param[n].type == GKYL_EULER) {
+    if (mes->param[n].type == GKYL_EQN_EULER) {
       keOld[n] = 0.5 * (f[MX]*f[MX] + f[MY]*f[MY] + f[MZ]*f[MZ]) / f[RHO];
     }
     // If Ten moment equations, rotate the pressure tensor based on local magnetic field.
-    else if (mes->param[n].type == GKYL_TEN_MOMENT) {
+    else if (mes->param[n].type == GKYL_EQN_TEN_MOMENT) {
       double qbym = mes->param[n].charge / mes->param[n].mass;
       prInp[0] = f[P11] - f[MX] * f[MX] / f[RHO];
       prInp[1] = f[P12] - f[MX] * f[MY] / f[RHO];
@@ -263,12 +263,12 @@ fluid_source_update(const gkyl_moment_em_coupling *mes, double dt,
     double *f = fluids[n];
     // If Euler equations, get updated energy based on new kinetic energy
     // from updated momentum (pressure should be unaffected by source terms).
-    if (mes->param[n].type == GKYL_EULER) {
+    if (mes->param[n].type == GKYL_EQN_EULER) {
       f[ER] += 0.5 * (f[MX]*f[MX] + f[MY]*f[MY] + f[MZ]*f[MZ]) / f[RHO] - keOld[n];
     }
     // If Ten moment equations, update full stress tensor (pressure tensor + Reynolds stress)
     // based on rotated pressure tensor and updated momentum.
-    else if (mes->param[n].type == GKYL_TEN_MOMENT) {
+    else if (mes->param[n].type == GKYL_EQN_TEN_MOMENT) {
       f[P11] = f[MX] * f[MX] / f[RHO] + prTen[n][0];
       f[P12] = f[MX] * f[MY] / f[RHO] + prTen[n][1];
       f[P13] = f[MX] * f[MZ] / f[RHO] + prTen[n][2];

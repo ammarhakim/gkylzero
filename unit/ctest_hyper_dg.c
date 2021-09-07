@@ -61,10 +61,11 @@ test_vlasov_1x2v_p2_(bool use_gpu)
 
   // initialize eqn
   struct gkyl_dg_eqn *eqn;
+  enum gkyl_field_id field_id = GKYL_FIELD_E_B;
   if (use_gpu)
-    eqn = gkyl_dg_vlasov_cu_dev_new(&confBasis, &basis, &confRange);
+    eqn = gkyl_dg_vlasov_cu_dev_new(&confBasis, &basis, &confRange, field_id);
   else
-    eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &confRange);
+    eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &confRange, field_id);
 
   // initialize hyper_dg slvr
   int up_dirs[] = {0, 1, 2};
@@ -259,10 +260,11 @@ test_vlasov_2x3v_p1_(bool use_gpu)
 
   // initialize eqn
   struct gkyl_dg_eqn *eqn;
+  enum gkyl_field_id field_id = GKYL_FIELD_E_B;
   if (use_gpu)
-    eqn = gkyl_dg_vlasov_cu_dev_new(&confBasis, &basis, &confRange);
+    eqn = gkyl_dg_vlasov_cu_dev_new(&confBasis, &basis, &confRange, field_id);
   else
-    eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &confRange);
+    eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &confRange, field_id);
 
   // initialize hyper_dg slvr
   int up_dirs[] = {0, 1, 2, 3, 4};
