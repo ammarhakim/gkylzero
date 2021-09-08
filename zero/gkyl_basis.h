@@ -43,7 +43,11 @@ struct gkyl_basis {
   void (*node_list)(double *node_coords);
 
 /**
- * 
+ * Given expansion coefficients on nodal basis (nodes specified by the
+ * node_list method), compute modal expansion coefficients.
+ *
+ * @param fnodal Coefficients of nodal expansion
+ * @param fmodal On output, coefficients of modal expansion
  */
   void (*nodal_to_modal)(const double *fnodal, double *fmodal);
 };
