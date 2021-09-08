@@ -69,18 +69,18 @@ void mapc2p(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 
 void gaussian(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  double xp[2];
+  double xp[2], vth = 0.5, xc = 2.5;
   mapc2p(t, xn, xp, 0);
-  double r2 = (xp[0]-1.5)*(xp[0]-1.5) + xp[1]*xp[1];
-  fout[0] = exp(-r2/(0.1*0.1));
+  double r2 = (xp[0]-xc)*(xp[0]-xc) + xp[1]*xp[1];
+  fout[0] = exp(-r2/(2*vth*vth));
 }
 
 void
 test_eval_2(enum gkyl_basis_type type)
 {
   int poly_order = 2;
-  double lower[] = {1.0, 0.0}, upper[] = {2.0, 2.0*M_PI};
-  int cells[] = {16, 16*6};
+  double lower[] = {1.0, 0.0}, upper[] = {4.0, 2.0*M_PI};
+  int cells[] = {8, 8*2};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
