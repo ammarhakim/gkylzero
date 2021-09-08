@@ -18,15 +18,26 @@ static struct { const_diffusion_vol_t kernels[3]; } vol_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, const_diffusion_vol_1x_ser_p1, const_diffusion_vol_1x_ser_p2 }, // 1
+  { NULL, const_diffusion_vol_2x_ser_p1, NULL }, // 2
 };
 
 
-// Streaming surface kernel list: x-direction
+// Surface kernel list: x-direction
 GKYL_CU_D
 static struct { const_diffusion_surf_t kernels[3]; } surf_x_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, const_diffusion_surfx_1x_ser_p1, const_diffusion_surfx_1x_ser_p2 }, // 1
+  { NULL, const_diffusion_surfx_2x_ser_p1, NULL }, // 2
+};
+
+// Surface kernel list: x-direction
+GKYL_CU_D
+static struct { const_diffusion_surf_t kernels[3]; } surf_y_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, const_diffusion_surfy_2x_ser_p1, NULL }, // 2
 };
 
 

@@ -10,4 +10,9 @@ GKYL_CU_DH double const_diffusion_vol_1x_ser_p2(const double* w, const double* d
 GKYL_CU_DH void const_diffusion_surfx_1x_ser_p1(const double* w, const double* dx, const double* D, const double* fl, const double* fc, const double* fr, double* GKYL_RESTRICT out);
 GKYL_CU_DH void const_diffusion_surfx_1x_ser_p2(const double* w, const double* dx, const double* D, const double* fl, const double* fc, const double* fr, double* GKYL_RESTRICT out);
 
+GKYL_CU_DH double const_diffusion_vol_2x_ser_p1(const double* w, const double* dx, const double* D, const double* f, double* GKYL_RESTRICT out);
+
+GKYL_CU_DH void const_diffusion_surfx_2x_ser_p1(const double* w, const double* dx, const double* D, const double* fl, const double* fc, const double* fr, double* GKYL_RESTRICT out);
+GKYL_CU_DH void const_diffusion_surfy_2x_ser_p1(const double* w, const double* dx, const double* D, const double* fl, const double* fc, const double* fr, double* GKYL_RESTRICT out);
+
 EXTERN_C_END
