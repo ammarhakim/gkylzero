@@ -11,7 +11,7 @@ enum gkyl_basis_type {
  */
 struct gkyl_basis {
   unsigned ndim, poly_order, num_basis;
-  char id[64]; // "serendipity", "tensor", "maximal-order"
+  char id[64]; // "serendipity", "tensor"
   enum gkyl_basis_type b_type; // identifier for basis function
     
 /**
@@ -32,6 +32,24 @@ struct gkyl_basis {
  * @param fout On output, flipped version of @a f
  */
   void (*flip_sign)(int dir, const double *f, double *fout);
+
+/**
+ * Construct list of nodes corresponding to this basis set. The nodes
+ * coordinates are in the unit cell [-1,1]^ndim and stored such that
+ * the coodinates of a node are contiguous, starting at index ndim*n,
+ * n = 0, ... num_basis-1. The node_coords array must be pre-allocated
+ * by the caller.
+ */
+  void (*node_list)(double *node_coords);
+
+/**
+ * Given expansion coefficients on nodal basis (nodes specified by the
+ * node_list method), compute modal expansion coefficients.
+ *
+ * @param fnodal Coefficients of nodal expansion
+ * @param fmodal On output, coefficients of modal expansion
+ */
+  void (*nodal_to_modal)(const double *fnodal, double *fmodal);
 };
 
 /**

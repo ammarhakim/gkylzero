@@ -38,6 +38,17 @@ static struct { int count[4]; } num_basis_list[] = {
   { 1, 64, 256, 0 },
 };
 
+// Node list function: ev_list[ndim].ev[poly_order]
+static struct { void (*nl[4])(double * node_list); } nl_list[] = {
+  { NULL, NULL, NULL, NULL }, // No 0D basis functions
+  { node_coords_1d_ser_p0, node_coords_1d_ser_p1, node_coords_1d_ser_p2, NULL },
+  { node_coords_2d_ser_p0, node_coords_2d_ser_p1, node_coords_2d_ser_p2, NULL },
+  { node_coords_3d_ser_p0, node_coords_3d_ser_p1, node_coords_3d_ser_p2, NULL },
+  { node_coords_4d_ser_p0, node_coords_4d_ser_p1, node_coords_4d_ser_p2, NULL },
+  { node_coords_5d_ser_p0, node_coords_5d_ser_p1, node_coords_5d_ser_p2, NULL },
+  { node_coords_6d_ser_p0, node_coords_6d_ser_p1, NULL, NULL },
+};
+
 void
 gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim, int poly_order)
 {
@@ -51,4 +62,5 @@ gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim, int poly_order)
   basis->b_type = GKYL_BASIS_MODAL_SERENDIPITY;
   basis->eval = ev_list[ndim].ev[poly_order];
   basis->flip_sign = fs_list[ndim].fs[poly_order];
+  basis->node_list = nl_list[ndim].nl[poly_order];
 }

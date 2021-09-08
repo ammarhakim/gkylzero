@@ -16,9 +16,10 @@ test_ser_1d()
   TEST_CHECK( strcmp(basis1.id, "serendipity") == 0 );
   TEST_CHECK( basis1.b_type == GKYL_BASIS_MODAL_SERENDIPITY );
 
-  double z[1], b[basis1.num_basis];
+  double z[basis1.num_basis], b[basis1.num_basis];
 
-  z[0] = 0.0; basis1.eval(z, b);
+  z[0] = 0.0;
+  basis1.eval(z, b);
 
   TEST_CHECK( gkyl_compare(b[0], 1/sqrt(2.0), 1e-15) );
   TEST_CHECK( b[1] == 0.0 );
@@ -27,6 +28,12 @@ test_ser_1d()
   
   TEST_CHECK( gkyl_compare(b[0], 1/sqrt(2.0), 1e-15) );
   TEST_CHECK( b[1] == sqrt(3.0/2.0)*0.5 );
+
+  double nodes[basis1.ndim*basis1.num_basis];
+  basis1.node_list(nodes);
+
+  TEST_CHECK( nodes[0] == -1 );
+  TEST_CHECK( nodes[1] == 1 );
 }
 
 void
@@ -43,7 +50,7 @@ test_ser_2d()
 
   double z[basis.ndim], b[basis.num_basis];
 
-  z[1] = 0.0; z[2] = 0.0;
+  z[0] = 0.0; z[1] = 0.0;
   basis.eval(z, b);
 
   TEST_CHECK( gkyl_compare(0.5, b[0], 1e-15) );
@@ -80,7 +87,18 @@ test_ser_2d()
   TEST_CHECK( fin[5] == fout[5] );
   TEST_CHECK( -fin[6] == fout[6] );
   TEST_CHECK( fin[7] == fout[7] );
-  
+
+  double nodes[basis.ndim*basis.num_basis];
+  basis.node_list(nodes);
+
+  TEST_CHECK( nodes[0] == -1 );
+  TEST_CHECK( nodes[1] == -1 );
+
+  TEST_CHECK( nodes[2] == 0 );
+  TEST_CHECK( nodes[3] == -1 );
+
+  TEST_CHECK( nodes[4] == 1 );
+  TEST_CHECK( nodes[5] == -1 );
 }
 
 void
@@ -97,7 +115,7 @@ test_ten_2d()
 
   double z[basis.ndim], b[basis.num_basis];
 
-  z[1] = 0.0; z[2] = 0.0;
+  z[0] = 0.0; z[1] = 0.0;
   basis.eval(z, b);
 
   TEST_CHECK( gkyl_compare(0.5, b[0], 1e-15) );

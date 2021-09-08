@@ -599,7 +599,7 @@ moment_field_update(const gkyl_moment_app *app,
   const struct moment_field *fld, double tcurr, double dt)
 {
   int ndim = fld->ndim;
-  struct gkyl_wave_prop_status stat;
+  struct gkyl_wave_prop_status stat = { 1, DBL_MAX };
 
   for (int d=0; d<ndim; ++d) {
     // update solution
