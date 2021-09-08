@@ -247,6 +247,13 @@ evalFieldInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   fout[6] = 0.0; fout[7] = 0.0;
 }
 
+void
+write_data(struct gkyl_tm_trigger *iot, const gkyl_moment_app *app, double tcurr)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, tcurr))
+    gkyl_moment_app_write(app, tcurr, iot->curr-1);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -258,7 +265,7 @@ main(int argc, char **argv)
   struct gkyl_moment_species elc = {
     .name = "elc",
     .charge = -1.0, .mass = 1.0/100.0,
-    // rho_e ~ 0.1, k0 = 1/rho_e
+    // d_e = 0.1, k0 = 1/d_e
     .k0 = 10.0,
     .has_grad_closure = true,
     .equation = elc_ten_moment,
@@ -268,8 +275,8 @@ main(int argc, char **argv)
   struct gkyl_moment_species ion = {
     .name = "ion",
     .charge = 1.0, .mass = 1.0,
-    // rho_i ~ 1.0, k0 = 10/(rho_i)
-    .k0 = 10.0,
+    // d_i ~ 1.0, k0 = 1/(d_i)
+    .k0 = 1.0,
     .has_grad_closure = true,
     .equation = ion_ten_moment,
     .evolve = 1,
@@ -305,11 +312,15 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 250.0;
+  // OmegaCi^{-1} = 50 -> tend = 50 OmegaCi^{-1}
+  double tcurr = 0.0, tend = 2500.0;
+  int nframe = 50;
+  // create trigger for IO
+  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
-  gkyl_moment_app_write(app, tcurr, 0);
+  write_data(&io_trig, app, tcurr);
 
   // compute estimate of maximum stable time-step
   double dt = gkyl_moment_app_max_dt(app);
@@ -327,10 +338,11 @@ main(int argc, char **argv)
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
 
+    write_data(&io_trig, app, tcurr);
+
     step += 1;
   }
 
-  gkyl_moment_app_write(app, tcurr, 1);
   gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
