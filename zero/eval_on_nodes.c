@@ -11,6 +11,8 @@ struct gkyl_eval_on_nodes {
   int num_ret_vals; // number of values returned by eval function
   evalf_t eval; // function to project
   void *ctx; // evaluation context
+
+  void (*nodal_to_modal)(const double *fnodal, double *fmodal);  
   
   int num_basis; // number of basis functions
   struct gkyl_array *nodes; // local nodal coordinates
@@ -26,6 +28,7 @@ gkyl_eval_on_nodes_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
   up->num_ret_vals = num_ret_vals;
   up->eval = eval;
   up->ctx = ctx;
+  up->nodal_to_modal = basis->nodal_to_modal;
   up->num_basis = basis->num_basis;
 
   // initialize node local coordinates 
@@ -43,6 +46,12 @@ comp_to_phys(int ndim, const double *eta,
   for (int d=0; d<ndim; ++d) xout[d] = 0.5*dx[d]*eta[d]+xc[d];
 }
 
+static inline void
+copy_double_arr(int n, const double* GKYL_RESTRICT inp, double* GKYL_RESTRICT out)
+{
+  for (int i=0; i<n; ++i) out[i] = inp[i];
+}
+
 void
 gkyl_eval_on_nodes_advance(const gkyl_eval_on_nodes *up,
   double tm, const struct gkyl_range *update_range, struct gkyl_array *arr)
@@ -52,6 +61,8 @@ gkyl_eval_on_nodes_advance(const gkyl_eval_on_nodes *up,
   int num_ret_vals = up->num_ret_vals;
   int num_basis = up->num_basis;
   struct gkyl_array *fun_at_ords = gkyl_array_new(GKYL_DOUBLE, num_ret_vals, num_basis);
+
+  double fnodal[num_basis]; // to store nodal function values
   
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
@@ -65,9 +76,20 @@ gkyl_eval_on_nodes_advance(const gkyl_eval_on_nodes *up,
       up->eval(tm, xmu, gkyl_array_fetch(fun_at_ords, i), up->ctx);
     }
 
-    //long lidx = gkyl_range_idx(update_range, iter.idx);
-    // TODO: transform to modal expansion
+    long lidx = gkyl_range_idx(update_range, iter.idx);
 
+    double *arr_p = gkyl_array_fetch(arr, lidx); // pointer to expansion in cell
+    const double *fao = gkyl_array_cfetch(fun_at_ords, 0); // pointer to values at nodes
+    
+    for (int i=0; i<num_ret_vals; ++i) {
+      // copy so nodal values for each return value are contiguous
+      // (recall that function can have more than one return value)
+      for (int k=0; k<num_basis; ++k)
+        fnodal[k] = fao[num_ret_vals*k+i];
+
+      // transform to modal expansion
+      up->nodal_to_modal(fnodal, &arr_p[num_basis*i]);
+    }
   }
 
   gkyl_array_release(fun_at_ords);

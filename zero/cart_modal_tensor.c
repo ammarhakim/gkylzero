@@ -40,6 +40,17 @@ static struct { void (*nl[4])(double * node_list); } nl_list[] = {
   { node_coords_6d_ser_p0, node_coords_6d_ser_p1, NULL, NULL },
 };
 
+// Nodal -> modal conversion functions: ev_list[ndim].ev[poly_order]
+static struct { void (*n2m[4])(const double *fnodal, double *fmodal); } n2m_list[] = {
+  { NULL, NULL, NULL, NULL }, // No 0D basis functions
+  { NULL, nodal_to_modal_1d_ser_p1, nodal_to_modal_1d_ser_p2, NULL },
+  { NULL, nodal_to_modal_2d_ser_p1, nodal_to_modal_2d_tensor_p2, NULL },
+  { NULL, nodal_to_modal_3d_ser_p1, nodal_to_modal_3d_tensor_p2, NULL },
+  { NULL, nodal_to_modal_4d_ser_p1, nodal_to_modal_4d_tensor_p2, NULL },
+  { NULL, NULL, NULL, NULL }, // TODO
+  { NULL, NULL, NULL, NULL }, // TODO
+};
+
 void
 gkyl_cart_modal_tensor(struct gkyl_basis *basis, int ndim, int poly_order)
 {
@@ -54,4 +65,5 @@ gkyl_cart_modal_tensor(struct gkyl_basis *basis, int ndim, int poly_order)
   basis->eval = ev_list[ndim].ev[poly_order];
   basis->flip_sign = fs_list[ndim].fs[poly_order];
   basis->node_list = nl_list[ndim].nl[poly_order];
+  basis->nodal_to_modal = n2m_list[ndim].n2m[poly_order];
 }
