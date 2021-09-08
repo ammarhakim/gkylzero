@@ -16,9 +16,10 @@ test_ser_1d()
   TEST_CHECK( strcmp(basis1.id, "serendipity") == 0 );
   TEST_CHECK( basis1.b_type == GKYL_BASIS_MODAL_SERENDIPITY );
 
-  double z[1], b[basis1.num_basis];
+  double z[basis1.num_basis], b[basis1.num_basis];
 
-  z[0] = 0.0; basis1.eval(z, b);
+  z[0] = 0.0;
+  basis1.eval(z, b);
 
   TEST_CHECK( gkyl_compare(b[0], 1/sqrt(2.0), 1e-15) );
   TEST_CHECK( b[1] == 0.0 );
@@ -49,7 +50,7 @@ test_ser_2d()
 
   double z[basis.ndim], b[basis.num_basis];
 
-  z[1] = 0.0; z[2] = 0.0;
+  z[0] = 0.0; z[1] = 0.0;
   basis.eval(z, b);
 
   TEST_CHECK( gkyl_compare(0.5, b[0], 1e-15) );
@@ -114,7 +115,7 @@ test_ten_2d()
 
   double z[basis.ndim], b[basis.num_basis];
 
-  z[1] = 0.0; z[2] = 0.0;
+  z[0] = 0.0; z[1] = 0.0;
   basis.eval(z, b);
 
   TEST_CHECK( gkyl_compare(0.5, b[0], 1e-15) );
