@@ -9,7 +9,9 @@
 #include <gkyl_util.h>
 
 // Identifiers for different Braginskii types
-enum gkyl_braginskii_type {
+enum gkyl_braginskii_type
+{
+  NONE = 0,
   GKYL_UNMAG_BRAG, // Unmagnetized Braginskii
   GKYL_MAG_BRAG, // Magnetized Braginskii
 };

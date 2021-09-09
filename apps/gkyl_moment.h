@@ -4,6 +4,7 @@
 #include <gkyl_util.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wave_prop.h>
+#include <gkyl_moment_braginskii.h>
 
 #include <time.h>
 
@@ -75,6 +76,8 @@ struct gkyl_moment {
   int num_species; // number of species
   struct gkyl_moment_species species[GKYL_MAX_SPECIES]; // species objects
   struct gkyl_moment_field field; // field object
+
+  enum gkyl_braginskii_type type_brag;
 };
 
 // Simulation statistics

@@ -11,7 +11,6 @@
 #include <gkyl_moment.h>
 #include <gkyl_moment_em_coupling.h>
 #include <gkyl_moment_braginskii.h>
-#include <gkyl_moment_braginskii_priv.h>
 #include <gkyl_ten_moment_grad_closure.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_apply_bc.h>
@@ -804,6 +803,8 @@ gkyl_moment_app_new(struct gkyl_moment mom)
   // create species grid & ranges
   for (int i=0; i<ns; ++i)
     moment_species_init(&mom, &mom.species[i], app, &app->species[i]);
+
+  app->type_brag = mom.type_brag;
 
   // check if we should update sources
   app->update_sources = 0;
