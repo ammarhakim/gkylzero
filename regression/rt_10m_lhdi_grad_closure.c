@@ -249,6 +249,7 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
 
   // start, end and initial time-step
+  // OmegaCi^{-1} ~ 181 -> tend ~ 6 OmegaCi^{-1}
   double tcurr = 0.0, tend = 1100.0;
 
   // initialize simulation

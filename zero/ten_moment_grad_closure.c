@@ -125,8 +125,8 @@ unmag_grad_closure_update(const gkyl_ten_moment_grad_closure *gces,
                         calc_sym_grad_1D(dx, Tij[C_1D][T23], Tij[U_1D][T23]),
                         calc_sym_grad_1D(dx, Tij[C_1D][T33], Tij[U_1D][T33]) };
                         
-    double qL[9] = {0.0};
-    double qU[9] = {0.0};
+    double qL[10] = {0.0};
+    double qU[10] = {0.0};
     double alpha = 1.0/gces->k0;
     
     qL[Q111] = alpha*vthL*rhoL*(dTdxL[T11] + dTdxL[T11] + dTdxL[T11])/3.0;
@@ -156,7 +156,7 @@ unmag_grad_closure_update(const gkyl_ten_moment_grad_closure *gces,
   }
   else if (ndim == 2) {
     const double dx = gces->grid.dx[0];
-    const double dy = gces->grid.dx[0];
+    const double dy = gces->grid.dx[1];
     double Tij[9][6] = {0.0};
     double rho[9] = {0.0};
     double p[9] = {0.0}; 
@@ -242,10 +242,10 @@ unmag_grad_closure_update(const gkyl_ten_moment_grad_closure *gces,
                          calc_sym_grady_2D(dy, Tij[CC_2D][T23], Tij[CU_2D][T23], Tij[UC_2D][T23], Tij[UU_2D][T23]),
                          calc_sym_grady_2D(dy, Tij[CC_2D][T33], Tij[CU_2D][T33], Tij[UC_2D][T33], Tij[UU_2D][T33]) };
 
-    double qLL[9] = {0.0};
-    double qLU[9] = {0.0};
-    double qUL[9] = {0.0};
-    double qUU[9] = {0.0};
+    double qLL[10] = {0.0};
+    double qLU[10] = {0.0};
+    double qUL[10] = {0.0};
+    double qUU[10] = {0.0};
     double alpha = 1.0/gces->k0;
     
     qLL[Q111] = alpha*vthLL*rhoLL*(dTdxLL[T11] + dTdxLL[T11] + dTdxLL[T11])/3.0;
@@ -312,6 +312,352 @@ unmag_grad_closure_update(const gkyl_ten_moment_grad_closure *gces,
     rhs_d[P22] = divQx[3] + divQy[3];
     rhs_d[P23] = divQx[4] + divQy[4];
     rhs_d[P33] = divQx[5] + divQy[5];
+  }
+  else if (ndim == 3) {
+    const double dx = gces->grid.dx[0];
+    const double dy = gces->grid.dx[1];
+    const double dz = gces->grid.dx[2];
+    double Tij[27][6] = {0.0};
+    double rho[27] = {0.0};
+    double p[27] = {0.0}; 
+    for (int j = LLL_3D; j <= UUU_3D; ++j) {
+      rho[j] = fluid_d[j][RHO];
+      p[j] = (fluid_d[j][P11] - fluid_d[j][MX] * fluid_d[j][MX] / fluid_d[j][RHO]
+              + fluid_d[j][P22] - fluid_d[j][MY] * fluid_d[j][MY] / fluid_d[j][RHO]
+              + fluid_d[j][P33] - fluid_d[j][MZ] * fluid_d[j][MZ] / fluid_d[j][RHO])/3.0;
+      Tij[j][T11] = (fluid_d[j][P11] - fluid_d[j][MX] * fluid_d[j][MX] / fluid_d[j][RHO]) / fluid_d[j][RHO];
+      Tij[j][T12] = (fluid_d[j][P12] - fluid_d[j][MX] * fluid_d[j][MY] / fluid_d[j][RHO]) / fluid_d[j][RHO];
+      Tij[j][T13] = (fluid_d[j][P13] - fluid_d[j][MX] * fluid_d[j][MZ] / fluid_d[j][RHO]) / fluid_d[j][RHO];
+      Tij[j][T22] = (fluid_d[j][P22] - fluid_d[j][MY] * fluid_d[j][MY] / fluid_d[j][RHO]) / fluid_d[j][RHO];
+      Tij[j][T23] = (fluid_d[j][P23] - fluid_d[j][MY] * fluid_d[j][MZ] / fluid_d[j][RHO]) / fluid_d[j][RHO];
+      Tij[j][T33] = (fluid_d[j][P33] - fluid_d[j][MZ] * fluid_d[j][MZ] / fluid_d[j][RHO]) / fluid_d[j][RHO];    
+    }
+
+    double rhoLLL = calc_harmonic_avg_3D(rho[LLL_3D], rho[LLC_3D], rho[LCL_3D], rho[LCC_3D], rho[CLL_3D], rho[CLC_3D], rho[CCL_3D], rho[CCC_3D]);
+    double pLLL = calc_harmonic_avg_3D(p[LLL_3D], p[LLC_3D], p[LCL_3D], p[LCC_3D], p[CLL_3D], p[CLC_3D], p[CCL_3D], p[CCC_3D]);
+    double rhoLLU = calc_harmonic_avg_3D(rho[LLC_3D], rho[LLU_3D], rho[LCC_3D], rho[LCU_3D], rho[CLC_3D], rho[CLU_3D], rho[CCC_3D], rho[CCU_3D]);
+    double pLLU = calc_harmonic_avg_3D(p[LLC_3D], p[LLU_3D], p[LCC_3D], p[LCU_3D], p[CLC_3D], p[CLU_3D], p[CCC_3D], p[CCU_3D]);
+    double rhoLUL = calc_harmonic_avg_3D(rho[LCL_3D], rho[LCC_3D], rho[LUL_3D], rho[LUC_3D], rho[CCL_3D], rho[CCC_3D], rho[CUL_3D], rho[CUC_3D]);
+    double pLUL = calc_harmonic_avg_3D(p[LCL_3D], p[LCC_3D], p[LUL_3D], p[LUC_3D], p[CCL_3D], p[CCC_3D], p[CUL_3D], p[CUC_3D]);
+    double rhoLUU = calc_harmonic_avg_3D(rho[LCC_3D], rho[LCU_3D], rho[LUC_3D], rho[LUU_3D], rho[CCC_3D], rho[CCU_3D], rho[CUC_3D], rho[CUU_3D]);
+    double pLUU = calc_harmonic_avg_3D(p[LCC_3D], p[LCU_3D], p[LUC_3D], p[LUU_3D], p[CCC_3D], p[CCU_3D], p[CUC_3D], p[CUU_3D]);
+
+    double rhoULL = calc_harmonic_avg_3D(rho[CLL_3D], rho[CLC_3D], rho[CCL_3D], rho[CCC_3D], rho[ULL_3D], rho[ULC_3D], rho[UCL_3D], rho[UCC_3D]);
+    double pULL = calc_harmonic_avg_3D(p[CLL_3D], p[CLC_3D], p[CCL_3D], p[CCC_3D], p[ULL_3D], p[ULC_3D], p[UCL_3D], p[UCC_3D]);
+    double rhoULU = calc_harmonic_avg_3D(rho[CLC_3D], rho[CLU_3D], rho[CCC_3D], rho[CCU_3D], rho[ULC_3D], rho[ULU_3D], rho[UCC_3D], rho[UCU_3D]);
+    double pULU = calc_harmonic_avg_3D(p[CLC_3D], p[CLU_3D], p[CCC_3D], p[CCU_3D], p[ULC_3D], p[ULU_3D], p[UCC_3D], p[UCU_3D]);
+    double rhoUUL = calc_harmonic_avg_3D(rho[CCL_3D], rho[CCC_3D], rho[CUL_3D], rho[CUC_3D], rho[UCL_3D], rho[UCC_3D], rho[UUL_3D], rho[UUC_3D]);
+    double pUUL = calc_harmonic_avg_3D(p[CCL_3D], p[CCC_3D], p[CUL_3D], p[CUC_3D], p[UCL_3D], p[UCC_3D], p[UUL_3D], p[UUC_3D]);
+    double rhoUUU = calc_harmonic_avg_3D(rho[CCC_3D], rho[CCU_3D], rho[CUC_3D], rho[CUU_3D], rho[UCC_3D], rho[UCU_3D], rho[UUC_3D], rho[UUU_3D]);
+    double pUUU = calc_harmonic_avg_3D(p[CCC_3D], p[CCU_3D], p[CUC_3D], p[CUU_3D], p[UCC_3D], p[UCU_3D], p[UUC_3D], p[UUU_3D]);
+
+    double vthLLL = sqrt(pLLL/rhoLLL);
+    double vthLLU = sqrt(pLLU/rhoLLU);
+    double vthLUL = sqrt(pLUL/rhoLUL);
+    double vthLUU = sqrt(pLUU/rhoLUU);
+
+    double vthULL = sqrt(pULL/rhoULL);
+    double vthULU = sqrt(pULU/rhoULU);
+    double vthUUL = sqrt(pUUL/rhoUUL);
+    double vthUUU = sqrt(pUUU/rhoUUU);
+
+    double dTdxLLL[6] = { calc_sym_gradx_3D(dx, Tij[LLL_3D][T11], Tij[LLC_3D][T11], Tij[LCL_3D][T11], Tij[LCC_3D][T11], Tij[CLL_3D][T11], Tij[CLC_3D][T11], Tij[CCL_3D][T11], Tij[CCC_3D][T11]),
+                          calc_sym_gradx_3D(dx, Tij[LLL_3D][T12], Tij[LLC_3D][T12], Tij[LCL_3D][T12], Tij[LCC_3D][T12], Tij[CLL_3D][T12], Tij[CLC_3D][T12], Tij[CCL_3D][T12], Tij[CCC_3D][T12]),
+                          calc_sym_gradx_3D(dx, Tij[LLL_3D][T13], Tij[LLC_3D][T13], Tij[LCL_3D][T13], Tij[LCC_3D][T13], Tij[CLL_3D][T13], Tij[CLC_3D][T13], Tij[CCL_3D][T13], Tij[CCC_3D][T13]),
+                          calc_sym_gradx_3D(dx, Tij[LLL_3D][T22], Tij[LLC_3D][T22], Tij[LCL_3D][T22], Tij[LCC_3D][T22], Tij[CLL_3D][T22], Tij[CLC_3D][T22], Tij[CCL_3D][T22], Tij[CCC_3D][T22]),
+                          calc_sym_gradx_3D(dx, Tij[LLL_3D][T23], Tij[LLC_3D][T23], Tij[LCL_3D][T23], Tij[LCC_3D][T23], Tij[CLL_3D][T23], Tij[CLC_3D][T23], Tij[CCL_3D][T23], Tij[CCC_3D][T23]),
+                          calc_sym_gradx_3D(dx, Tij[LLL_3D][T33], Tij[LLC_3D][T33], Tij[LCL_3D][T33], Tij[LCC_3D][T33], Tij[CLL_3D][T33], Tij[CLC_3D][T33], Tij[CCL_3D][T33], Tij[CCC_3D][T33]) };
+
+    double dTdyLLL[6] = { calc_sym_grady_3D(dy, Tij[LLL_3D][T11], Tij[LLC_3D][T11], Tij[LCL_3D][T11], Tij[LCC_3D][T11], Tij[CLL_3D][T11], Tij[CLC_3D][T11], Tij[CCL_3D][T11], Tij[CCC_3D][T11]),
+                          calc_sym_grady_3D(dy, Tij[LLL_3D][T12], Tij[LLC_3D][T12], Tij[LCL_3D][T12], Tij[LCC_3D][T12], Tij[CLL_3D][T12], Tij[CLC_3D][T12], Tij[CCL_3D][T12], Tij[CCC_3D][T12]),
+                          calc_sym_grady_3D(dy, Tij[LLL_3D][T13], Tij[LLC_3D][T13], Tij[LCL_3D][T13], Tij[LCC_3D][T13], Tij[CLL_3D][T13], Tij[CLC_3D][T13], Tij[CCL_3D][T13], Tij[CCC_3D][T13]),
+                          calc_sym_grady_3D(dy, Tij[LLL_3D][T22], Tij[LLC_3D][T22], Tij[LCL_3D][T22], Tij[LCC_3D][T22], Tij[CLL_3D][T22], Tij[CLC_3D][T22], Tij[CCL_3D][T22], Tij[CCC_3D][T22]),
+                          calc_sym_grady_3D(dy, Tij[LLL_3D][T23], Tij[LLC_3D][T23], Tij[LCL_3D][T23], Tij[LCC_3D][T23], Tij[CLL_3D][T23], Tij[CLC_3D][T23], Tij[CCL_3D][T23], Tij[CCC_3D][T23]),
+                          calc_sym_grady_3D(dy, Tij[LLL_3D][T33], Tij[LLC_3D][T33], Tij[LCL_3D][T33], Tij[LCC_3D][T33], Tij[CLL_3D][T33], Tij[CLC_3D][T33], Tij[CCL_3D][T33], Tij[CCC_3D][T33]) };
+
+    double dTdzLLL[6] = { calc_sym_gradz_3D(dz, Tij[LLL_3D][T11], Tij[LLC_3D][T11], Tij[LCL_3D][T11], Tij[LCC_3D][T11], Tij[CLL_3D][T11], Tij[CLC_3D][T11], Tij[CCL_3D][T11], Tij[CCC_3D][T11]),
+                          calc_sym_gradz_3D(dz, Tij[LLL_3D][T12], Tij[LLC_3D][T12], Tij[LCL_3D][T12], Tij[LCC_3D][T12], Tij[CLL_3D][T12], Tij[CLC_3D][T12], Tij[CCL_3D][T12], Tij[CCC_3D][T12]),
+                          calc_sym_gradz_3D(dz, Tij[LLL_3D][T13], Tij[LLC_3D][T13], Tij[LCL_3D][T13], Tij[LCC_3D][T13], Tij[CLL_3D][T13], Tij[CLC_3D][T13], Tij[CCL_3D][T13], Tij[CCC_3D][T13]),
+                          calc_sym_gradz_3D(dz, Tij[LLL_3D][T22], Tij[LLC_3D][T22], Tij[LCL_3D][T22], Tij[LCC_3D][T22], Tij[CLL_3D][T22], Tij[CLC_3D][T22], Tij[CCL_3D][T22], Tij[CCC_3D][T22]),
+                          calc_sym_gradz_3D(dz, Tij[LLL_3D][T23], Tij[LLC_3D][T23], Tij[LCL_3D][T23], Tij[LCC_3D][T23], Tij[CLL_3D][T23], Tij[CLC_3D][T23], Tij[CCL_3D][T23], Tij[CCC_3D][T23]),
+                          calc_sym_gradz_3D(dz, Tij[LLL_3D][T33], Tij[LLC_3D][T33], Tij[LCL_3D][T33], Tij[LCC_3D][T33], Tij[CLL_3D][T33], Tij[CLC_3D][T33], Tij[CCL_3D][T33], Tij[CCC_3D][T33]) };
+
+    double dTdxLLU[6] = { calc_sym_gradx_3D(dx, Tij[LLC_3D][T11], Tij[LLU_3D][T11], Tij[LCC_3D][T11], Tij[LCU_3D][T11], Tij[CLC_3D][T11], Tij[CLU_3D][T11], Tij[CCC_3D][T11], Tij[CCU_3D][T11]),
+                          calc_sym_gradx_3D(dx, Tij[LLC_3D][T12], Tij[LLU_3D][T12], Tij[LCC_3D][T12], Tij[LCU_3D][T12], Tij[CLC_3D][T12], Tij[CLU_3D][T12], Tij[CCC_3D][T12], Tij[CCU_3D][T12]),
+                          calc_sym_gradx_3D(dx, Tij[LLC_3D][T13], Tij[LLU_3D][T13], Tij[LCC_3D][T13], Tij[LCU_3D][T13], Tij[CLC_3D][T13], Tij[CLU_3D][T13], Tij[CCC_3D][T13], Tij[CCU_3D][T13]),
+                          calc_sym_gradx_3D(dx, Tij[LLC_3D][T22], Tij[LLU_3D][T22], Tij[LCC_3D][T22], Tij[LCU_3D][T22], Tij[CLC_3D][T22], Tij[CLU_3D][T22], Tij[CCC_3D][T22], Tij[CCU_3D][T22]),
+                          calc_sym_gradx_3D(dx, Tij[LLC_3D][T23], Tij[LLU_3D][T23], Tij[LCC_3D][T23], Tij[LCU_3D][T23], Tij[CLC_3D][T23], Tij[CLU_3D][T23], Tij[CCC_3D][T23], Tij[CCU_3D][T23]),
+                          calc_sym_gradx_3D(dx, Tij[LLC_3D][T33], Tij[LLU_3D][T33], Tij[LCC_3D][T33], Tij[LCU_3D][T33], Tij[CLC_3D][T33], Tij[CLU_3D][T33], Tij[CCC_3D][T33], Tij[CCU_3D][T33]) };
+
+    double dTdyLLU[6] = { calc_sym_grady_3D(dy, Tij[LLC_3D][T11], Tij[LLU_3D][T11], Tij[LCC_3D][T11], Tij[LCU_3D][T11], Tij[CLC_3D][T11], Tij[CLU_3D][T11], Tij[CCC_3D][T11], Tij[CCU_3D][T11]),
+                          calc_sym_grady_3D(dy, Tij[LLC_3D][T12], Tij[LLU_3D][T12], Tij[LCC_3D][T12], Tij[LCU_3D][T12], Tij[CLC_3D][T12], Tij[CLU_3D][T12], Tij[CCC_3D][T12], Tij[CCU_3D][T12]),
+                          calc_sym_grady_3D(dy, Tij[LLC_3D][T13], Tij[LLU_3D][T13], Tij[LCC_3D][T13], Tij[LCU_3D][T13], Tij[CLC_3D][T13], Tij[CLU_3D][T13], Tij[CCC_3D][T13], Tij[CCU_3D][T13]),
+                          calc_sym_grady_3D(dy, Tij[LLC_3D][T22], Tij[LLU_3D][T22], Tij[LCC_3D][T22], Tij[LCU_3D][T22], Tij[CLC_3D][T22], Tij[CLU_3D][T22], Tij[CCC_3D][T22], Tij[CCU_3D][T22]),
+                          calc_sym_grady_3D(dy, Tij[LLC_3D][T23], Tij[LLU_3D][T23], Tij[LCC_3D][T23], Tij[LCU_3D][T23], Tij[CLC_3D][T23], Tij[CLU_3D][T23], Tij[CCC_3D][T23], Tij[CCU_3D][T23]),
+                          calc_sym_grady_3D(dy, Tij[LLC_3D][T33], Tij[LLU_3D][T33], Tij[LCC_3D][T33], Tij[LCU_3D][T33], Tij[CLC_3D][T33], Tij[CLU_3D][T33], Tij[CCC_3D][T33], Tij[CCU_3D][T33]) };
+
+    double dTdzLLU[6] = { calc_sym_gradz_3D(dz, Tij[LLC_3D][T11], Tij[LLU_3D][T11], Tij[LCC_3D][T11], Tij[LCU_3D][T11], Tij[CLC_3D][T11], Tij[CLU_3D][T11], Tij[CCC_3D][T11], Tij[CCU_3D][T11]),
+                          calc_sym_gradz_3D(dz, Tij[LLC_3D][T12], Tij[LLU_3D][T12], Tij[LCC_3D][T12], Tij[LCU_3D][T12], Tij[CLC_3D][T12], Tij[CLU_3D][T12], Tij[CCC_3D][T12], Tij[CCU_3D][T12]),
+                          calc_sym_gradz_3D(dz, Tij[LLC_3D][T13], Tij[LLU_3D][T13], Tij[LCC_3D][T13], Tij[LCU_3D][T13], Tij[CLC_3D][T13], Tij[CLU_3D][T13], Tij[CCC_3D][T13], Tij[CCU_3D][T13]),
+                          calc_sym_gradz_3D(dz, Tij[LLC_3D][T22], Tij[LLU_3D][T22], Tij[LCC_3D][T22], Tij[LCU_3D][T22], Tij[CLC_3D][T22], Tij[CLU_3D][T22], Tij[CCC_3D][T22], Tij[CCU_3D][T22]),
+                          calc_sym_gradz_3D(dz, Tij[LLC_3D][T23], Tij[LLU_3D][T23], Tij[LCC_3D][T23], Tij[LCU_3D][T23], Tij[CLC_3D][T23], Tij[CLU_3D][T23], Tij[CCC_3D][T23], Tij[CCU_3D][T23]),
+                          calc_sym_gradz_3D(dz, Tij[LLC_3D][T33], Tij[LLU_3D][T33], Tij[LCC_3D][T33], Tij[LCU_3D][T33], Tij[CLC_3D][T33], Tij[CLU_3D][T33], Tij[CCC_3D][T33], Tij[CCU_3D][T33]) };
+
+    double dTdxLUL[6] = { calc_sym_gradx_3D(dx, Tij[LCL_3D][T11], Tij[LCC_3D][T11], Tij[LUL_3D][T11], Tij[LUC_3D][T11], Tij[CCL_3D][T11], Tij[CCC_3D][T11], Tij[CUL_3D][T11], Tij[CUC_3D][T11]),
+                          calc_sym_gradx_3D(dx, Tij[LCL_3D][T12], Tij[LCC_3D][T12], Tij[LUL_3D][T12], Tij[LUC_3D][T12], Tij[CCL_3D][T12], Tij[CCC_3D][T12], Tij[CUL_3D][T12], Tij[CUC_3D][T12]),
+                          calc_sym_gradx_3D(dx, Tij[LCL_3D][T13], Tij[LCC_3D][T13], Tij[LUL_3D][T13], Tij[LUC_3D][T13], Tij[CCL_3D][T13], Tij[CCC_3D][T13], Tij[CUL_3D][T13], Tij[CUC_3D][T13]),
+                          calc_sym_gradx_3D(dx, Tij[LCL_3D][T22], Tij[LCC_3D][T22], Tij[LUL_3D][T22], Tij[LUC_3D][T22], Tij[CCL_3D][T22], Tij[CCC_3D][T22], Tij[CUL_3D][T22], Tij[CUC_3D][T22]),
+                          calc_sym_gradx_3D(dx, Tij[LCL_3D][T23], Tij[LCC_3D][T23], Tij[LUL_3D][T23], Tij[LUC_3D][T23], Tij[CCL_3D][T23], Tij[CCC_3D][T23], Tij[CUL_3D][T23], Tij[CUC_3D][T23]),
+                          calc_sym_gradx_3D(dx, Tij[LCL_3D][T33], Tij[LCC_3D][T33], Tij[LUL_3D][T33], Tij[LUC_3D][T33], Tij[CCL_3D][T33], Tij[CCC_3D][T33], Tij[CUL_3D][T33], Tij[CUC_3D][T33]) };
+
+    double dTdyLUL[6] = { calc_sym_grady_3D(dy, Tij[LCL_3D][T11], Tij[LCC_3D][T11], Tij[LUL_3D][T11], Tij[LUC_3D][T11], Tij[CCL_3D][T11], Tij[CCC_3D][T11], Tij[CUL_3D][T11], Tij[CUC_3D][T11]),
+                          calc_sym_grady_3D(dy, Tij[LCL_3D][T12], Tij[LCC_3D][T12], Tij[LUL_3D][T12], Tij[LUC_3D][T12], Tij[CCL_3D][T12], Tij[CCC_3D][T12], Tij[CUL_3D][T12], Tij[CUC_3D][T12]),
+                          calc_sym_grady_3D(dy, Tij[LCL_3D][T13], Tij[LCC_3D][T13], Tij[LUL_3D][T13], Tij[LUC_3D][T13], Tij[CCL_3D][T13], Tij[CCC_3D][T13], Tij[CUL_3D][T13], Tij[CUC_3D][T13]),
+                          calc_sym_grady_3D(dy, Tij[LCL_3D][T22], Tij[LCC_3D][T22], Tij[LUL_3D][T22], Tij[LUC_3D][T22], Tij[CCL_3D][T22], Tij[CCC_3D][T22], Tij[CUL_3D][T22], Tij[CUC_3D][T22]),
+                          calc_sym_grady_3D(dy, Tij[LCL_3D][T23], Tij[LCC_3D][T23], Tij[LUL_3D][T23], Tij[LUC_3D][T23], Tij[CCL_3D][T23], Tij[CCC_3D][T23], Tij[CUL_3D][T23], Tij[CUC_3D][T23]),
+                          calc_sym_grady_3D(dy, Tij[LCL_3D][T33], Tij[LCC_3D][T33], Tij[LUL_3D][T33], Tij[LUC_3D][T33], Tij[CCL_3D][T33], Tij[CCC_3D][T33], Tij[CUL_3D][T33], Tij[CUC_3D][T33]) };
+
+    double dTdzLUL[6] = { calc_sym_gradz_3D(dz, Tij[LCL_3D][T11], Tij[LCC_3D][T11], Tij[LUL_3D][T11], Tij[LUC_3D][T11], Tij[CCL_3D][T11], Tij[CCC_3D][T11], Tij[CUL_3D][T11], Tij[CUC_3D][T11]),
+                          calc_sym_gradz_3D(dz, Tij[LCL_3D][T12], Tij[LCC_3D][T12], Tij[LUL_3D][T12], Tij[LUC_3D][T12], Tij[CCL_3D][T12], Tij[CCC_3D][T12], Tij[CUL_3D][T12], Tij[CUC_3D][T12]),
+                          calc_sym_gradz_3D(dz, Tij[LCL_3D][T13], Tij[LCC_3D][T13], Tij[LUL_3D][T13], Tij[LUC_3D][T13], Tij[CCL_3D][T13], Tij[CCC_3D][T13], Tij[CUL_3D][T13], Tij[CUC_3D][T13]),
+                          calc_sym_gradz_3D(dz, Tij[LCL_3D][T22], Tij[LCC_3D][T22], Tij[LUL_3D][T22], Tij[LUC_3D][T22], Tij[CCL_3D][T22], Tij[CCC_3D][T22], Tij[CUL_3D][T22], Tij[CUC_3D][T22]),
+                          calc_sym_gradz_3D(dz, Tij[LCL_3D][T23], Tij[LCC_3D][T23], Tij[LUL_3D][T23], Tij[LUC_3D][T23], Tij[CCL_3D][T23], Tij[CCC_3D][T23], Tij[CUL_3D][T23], Tij[CUC_3D][T23]),
+                          calc_sym_gradz_3D(dz, Tij[LCL_3D][T33], Tij[LCC_3D][T33], Tij[LUL_3D][T33], Tij[LUC_3D][T33], Tij[CCL_3D][T33], Tij[CCC_3D][T33], Tij[CUL_3D][T33], Tij[CUC_3D][T33]) };
+
+    double dTdxLUU[6] = { calc_sym_gradx_3D(dx, Tij[LCC_3D][T11], Tij[LCU_3D][T11], Tij[LUC_3D][T11], Tij[LUU_3D][T11], Tij[CCC_3D][T11], Tij[CCU_3D][T11], Tij[CUC_3D][T11], Tij[CUU_3D][T11]),
+                          calc_sym_gradx_3D(dx, Tij[LCC_3D][T12], Tij[LCU_3D][T12], Tij[LUC_3D][T12], Tij[LUU_3D][T12], Tij[CCC_3D][T12], Tij[CCU_3D][T12], Tij[CUC_3D][T12], Tij[CUU_3D][T12]),
+                          calc_sym_gradx_3D(dx, Tij[LCC_3D][T13], Tij[LCU_3D][T13], Tij[LUC_3D][T13], Tij[LUU_3D][T13], Tij[CCC_3D][T13], Tij[CCU_3D][T13], Tij[CUC_3D][T13], Tij[CUU_3D][T13]),
+                          calc_sym_gradx_3D(dx, Tij[LCC_3D][T22], Tij[LCU_3D][T22], Tij[LUC_3D][T22], Tij[LUU_3D][T22], Tij[CCC_3D][T22], Tij[CCU_3D][T22], Tij[CUC_3D][T22], Tij[CUU_3D][T22]),
+                          calc_sym_gradx_3D(dx, Tij[LCC_3D][T23], Tij[LCU_3D][T23], Tij[LUC_3D][T23], Tij[LUU_3D][T23], Tij[CCC_3D][T23], Tij[CCU_3D][T23], Tij[CUC_3D][T23], Tij[CUU_3D][T23]),
+                          calc_sym_gradx_3D(dx, Tij[LCC_3D][T33], Tij[LCU_3D][T33], Tij[LUC_3D][T33], Tij[LUU_3D][T33], Tij[CCC_3D][T33], Tij[CCU_3D][T33], Tij[CUC_3D][T33], Tij[CUU_3D][T33]) };
+
+    double dTdyLUU[6] = { calc_sym_grady_3D(dy, Tij[LCC_3D][T11], Tij[LCU_3D][T11], Tij[LUC_3D][T11], Tij[LUU_3D][T11], Tij[CCC_3D][T11], Tij[CCU_3D][T11], Tij[CUC_3D][T11], Tij[CUU_3D][T11]),
+                          calc_sym_grady_3D(dy, Tij[LCC_3D][T12], Tij[LCU_3D][T12], Tij[LUC_3D][T12], Tij[LUU_3D][T12], Tij[CCC_3D][T12], Tij[CCU_3D][T12], Tij[CUC_3D][T12], Tij[CUU_3D][T12]),
+                          calc_sym_grady_3D(dy, Tij[LCC_3D][T13], Tij[LCU_3D][T13], Tij[LUC_3D][T13], Tij[LUU_3D][T13], Tij[CCC_3D][T13], Tij[CCU_3D][T13], Tij[CUC_3D][T13], Tij[CUU_3D][T13]),
+                          calc_sym_grady_3D(dy, Tij[LCC_3D][T22], Tij[LCU_3D][T22], Tij[LUC_3D][T22], Tij[LUU_3D][T22], Tij[CCC_3D][T22], Tij[CCU_3D][T22], Tij[CUC_3D][T22], Tij[CUU_3D][T22]),
+                          calc_sym_grady_3D(dy, Tij[LCC_3D][T23], Tij[LCU_3D][T23], Tij[LUC_3D][T23], Tij[LUU_3D][T23], Tij[CCC_3D][T23], Tij[CCU_3D][T23], Tij[CUC_3D][T23], Tij[CUU_3D][T23]),
+                          calc_sym_grady_3D(dy, Tij[LCC_3D][T33], Tij[LCU_3D][T33], Tij[LUC_3D][T33], Tij[LUU_3D][T33], Tij[CCC_3D][T33], Tij[CCU_3D][T33], Tij[CUC_3D][T33], Tij[CUU_3D][T33]) };
+
+    double dTdzLUU[6] = { calc_sym_gradz_3D(dz, Tij[LCC_3D][T11], Tij[LCU_3D][T11], Tij[LUC_3D][T11], Tij[LUU_3D][T11], Tij[CCC_3D][T11], Tij[CCU_3D][T11], Tij[CUC_3D][T11], Tij[CUU_3D][T11]),
+                          calc_sym_gradz_3D(dz, Tij[LCC_3D][T12], Tij[LCU_3D][T12], Tij[LUC_3D][T12], Tij[LUU_3D][T12], Tij[CCC_3D][T12], Tij[CCU_3D][T12], Tij[CUC_3D][T12], Tij[CUU_3D][T12]),
+                          calc_sym_gradz_3D(dz, Tij[LCC_3D][T13], Tij[LCU_3D][T13], Tij[LUC_3D][T13], Tij[LUU_3D][T13], Tij[CCC_3D][T13], Tij[CCU_3D][T13], Tij[CUC_3D][T13], Tij[CUU_3D][T13]),
+                          calc_sym_gradz_3D(dz, Tij[LCC_3D][T22], Tij[LCU_3D][T22], Tij[LUC_3D][T22], Tij[LUU_3D][T22], Tij[CCC_3D][T22], Tij[CCU_3D][T22], Tij[CUC_3D][T22], Tij[CUU_3D][T22]),
+                          calc_sym_gradz_3D(dz, Tij[LCC_3D][T23], Tij[LCU_3D][T23], Tij[LUC_3D][T23], Tij[LUU_3D][T23], Tij[CCC_3D][T23], Tij[CCU_3D][T23], Tij[CUC_3D][T23], Tij[CUU_3D][T23]),
+                          calc_sym_gradz_3D(dz, Tij[LCC_3D][T33], Tij[LCU_3D][T33], Tij[LUC_3D][T33], Tij[LUU_3D][T33], Tij[CCC_3D][T33], Tij[CCU_3D][T33], Tij[CUC_3D][T33], Tij[CUU_3D][T33]) };
+
+    double dTdxULL[6] = { calc_sym_gradx_3D(dx, Tij[CLL_3D][T11], Tij[CLC_3D][T11], Tij[CCL_3D][T11], Tij[CCC_3D][T11], Tij[ULL_3D][T11], Tij[ULC_3D][T11], Tij[UCL_3D][T11], Tij[UCC_3D][T11]),
+                          calc_sym_gradx_3D(dx, Tij[CLL_3D][T12], Tij[CLC_3D][T12], Tij[CCL_3D][T12], Tij[CCC_3D][T12], Tij[ULL_3D][T12], Tij[ULC_3D][T12], Tij[UCL_3D][T12], Tij[UCC_3D][T12]),
+                          calc_sym_gradx_3D(dx, Tij[CLL_3D][T13], Tij[CLC_3D][T13], Tij[CCL_3D][T13], Tij[CCC_3D][T13], Tij[ULL_3D][T13], Tij[ULC_3D][T13], Tij[UCL_3D][T13], Tij[UCC_3D][T13]),
+                          calc_sym_gradx_3D(dx, Tij[CLL_3D][T22], Tij[CLC_3D][T22], Tij[CCL_3D][T22], Tij[CCC_3D][T22], Tij[ULL_3D][T22], Tij[ULC_3D][T22], Tij[UCL_3D][T22], Tij[UCC_3D][T22]),
+                          calc_sym_gradx_3D(dx, Tij[CLL_3D][T23], Tij[CLC_3D][T23], Tij[CCL_3D][T23], Tij[CCC_3D][T23], Tij[ULL_3D][T23], Tij[ULC_3D][T23], Tij[UCL_3D][T23], Tij[UCC_3D][T23]),
+                          calc_sym_gradx_3D(dx, Tij[CLL_3D][T33], Tij[CLC_3D][T33], Tij[CCL_3D][T33], Tij[CCC_3D][T33], Tij[ULL_3D][T33], Tij[ULC_3D][T33], Tij[UCL_3D][T33], Tij[UCC_3D][T33]) };
+
+    double dTdyULL[6] = { calc_sym_grady_3D(dy, Tij[CLL_3D][T11], Tij[CLC_3D][T11], Tij[CCL_3D][T11], Tij[CCC_3D][T11], Tij[ULL_3D][T11], Tij[ULC_3D][T11], Tij[UCL_3D][T11], Tij[UCC_3D][T11]),
+                          calc_sym_grady_3D(dy, Tij[CLL_3D][T12], Tij[CLC_3D][T12], Tij[CCL_3D][T12], Tij[CCC_3D][T12], Tij[ULL_3D][T12], Tij[ULC_3D][T12], Tij[UCL_3D][T12], Tij[UCC_3D][T12]),
+                          calc_sym_grady_3D(dy, Tij[CLL_3D][T13], Tij[CLC_3D][T13], Tij[CCL_3D][T13], Tij[CCC_3D][T13], Tij[ULL_3D][T13], Tij[ULC_3D][T13], Tij[UCL_3D][T13], Tij[UCC_3D][T13]),
+                          calc_sym_grady_3D(dy, Tij[CLL_3D][T22], Tij[CLC_3D][T22], Tij[CCL_3D][T22], Tij[CCC_3D][T22], Tij[ULL_3D][T22], Tij[ULC_3D][T22], Tij[UCL_3D][T22], Tij[UCC_3D][T22]),
+                          calc_sym_grady_3D(dy, Tij[CLL_3D][T23], Tij[CLC_3D][T23], Tij[CCL_3D][T23], Tij[CCC_3D][T23], Tij[ULL_3D][T23], Tij[ULC_3D][T23], Tij[UCL_3D][T23], Tij[UCC_3D][T23]),
+                          calc_sym_grady_3D(dy, Tij[CLL_3D][T33], Tij[CLC_3D][T33], Tij[CCL_3D][T33], Tij[CCC_3D][T33], Tij[ULL_3D][T33], Tij[ULC_3D][T33], Tij[UCL_3D][T33], Tij[UCC_3D][T33]) };
+
+    double dTdzULL[6] = { calc_sym_gradz_3D(dz, Tij[CLL_3D][T11], Tij[CLC_3D][T11], Tij[CCL_3D][T11], Tij[CCC_3D][T11], Tij[ULL_3D][T11], Tij[ULC_3D][T11], Tij[UCL_3D][T11], Tij[UCC_3D][T11]),
+                          calc_sym_gradz_3D(dz, Tij[CLL_3D][T12], Tij[CLC_3D][T12], Tij[CCL_3D][T12], Tij[CCC_3D][T12], Tij[ULL_3D][T12], Tij[ULC_3D][T12], Tij[UCL_3D][T12], Tij[UCC_3D][T12]),
+                          calc_sym_gradz_3D(dz, Tij[CLL_3D][T13], Tij[CLC_3D][T13], Tij[CCL_3D][T13], Tij[CCC_3D][T13], Tij[ULL_3D][T13], Tij[ULC_3D][T13], Tij[UCL_3D][T13], Tij[UCC_3D][T13]),
+                          calc_sym_gradz_3D(dz, Tij[CLL_3D][T22], Tij[CLC_3D][T22], Tij[CCL_3D][T22], Tij[CCC_3D][T22], Tij[ULL_3D][T22], Tij[ULC_3D][T22], Tij[UCL_3D][T22], Tij[UCC_3D][T22]),
+                          calc_sym_gradz_3D(dz, Tij[CLL_3D][T23], Tij[CLC_3D][T23], Tij[CCL_3D][T23], Tij[CCC_3D][T23], Tij[ULL_3D][T23], Tij[ULC_3D][T23], Tij[UCL_3D][T23], Tij[UCC_3D][T23]),
+                          calc_sym_gradz_3D(dz, Tij[CLL_3D][T33], Tij[CLC_3D][T33], Tij[CCL_3D][T33], Tij[CCC_3D][T33], Tij[ULL_3D][T33], Tij[ULC_3D][T33], Tij[UCL_3D][T33], Tij[UCC_3D][T33]) };
+
+    double dTdxULU[6] = { calc_sym_gradx_3D(dx, Tij[CLC_3D][T11], Tij[CLU_3D][T11], Tij[CCC_3D][T11], Tij[CCU_3D][T11], Tij[ULC_3D][T11], Tij[ULU_3D][T11], Tij[UCC_3D][T11], Tij[UCU_3D][T11]),
+                          calc_sym_gradx_3D(dx, Tij[CLC_3D][T12], Tij[CLU_3D][T12], Tij[CCC_3D][T12], Tij[CCU_3D][T12], Tij[ULC_3D][T12], Tij[ULU_3D][T12], Tij[UCC_3D][T12], Tij[UCU_3D][T12]),
+                          calc_sym_gradx_3D(dx, Tij[CLC_3D][T13], Tij[CLU_3D][T13], Tij[CCC_3D][T13], Tij[CCU_3D][T13], Tij[ULC_3D][T13], Tij[ULU_3D][T13], Tij[UCC_3D][T13], Tij[UCU_3D][T13]),
+                          calc_sym_gradx_3D(dx, Tij[CLC_3D][T22], Tij[CLU_3D][T22], Tij[CCC_3D][T22], Tij[CCU_3D][T22], Tij[ULC_3D][T22], Tij[ULU_3D][T22], Tij[UCC_3D][T22], Tij[UCU_3D][T22]),
+                          calc_sym_gradx_3D(dx, Tij[CLC_3D][T23], Tij[CLU_3D][T23], Tij[CCC_3D][T23], Tij[CCU_3D][T23], Tij[ULC_3D][T23], Tij[ULU_3D][T23], Tij[UCC_3D][T23], Tij[UCU_3D][T23]),
+                          calc_sym_gradx_3D(dx, Tij[CLC_3D][T33], Tij[CLU_3D][T33], Tij[CCC_3D][T33], Tij[CCU_3D][T33], Tij[ULC_3D][T33], Tij[ULU_3D][T33], Tij[UCC_3D][T33], Tij[UCU_3D][T33]) };
+
+    double dTdyULU[6] = { calc_sym_grady_3D(dy, Tij[CLC_3D][T11], Tij[CLU_3D][T11], Tij[CCC_3D][T11], Tij[CCU_3D][T11], Tij[ULC_3D][T11], Tij[ULU_3D][T11], Tij[UCC_3D][T11], Tij[UCU_3D][T11]),
+                          calc_sym_grady_3D(dy, Tij[CLC_3D][T12], Tij[CLU_3D][T12], Tij[CCC_3D][T12], Tij[CCU_3D][T12], Tij[ULC_3D][T12], Tij[ULU_3D][T12], Tij[UCC_3D][T12], Tij[UCU_3D][T12]),
+                          calc_sym_grady_3D(dy, Tij[CLC_3D][T13], Tij[CLU_3D][T13], Tij[CCC_3D][T13], Tij[CCU_3D][T13], Tij[ULC_3D][T13], Tij[ULU_3D][T13], Tij[UCC_3D][T13], Tij[UCU_3D][T13]),
+                          calc_sym_grady_3D(dy, Tij[CLC_3D][T22], Tij[CLU_3D][T22], Tij[CCC_3D][T22], Tij[CCU_3D][T22], Tij[ULC_3D][T22], Tij[ULU_3D][T22], Tij[UCC_3D][T22], Tij[UCU_3D][T22]),
+                          calc_sym_grady_3D(dy, Tij[CLC_3D][T23], Tij[CLU_3D][T23], Tij[CCC_3D][T23], Tij[CCU_3D][T23], Tij[ULC_3D][T23], Tij[ULU_3D][T23], Tij[UCC_3D][T23], Tij[UCU_3D][T23]),
+                          calc_sym_grady_3D(dy, Tij[CLC_3D][T33], Tij[CLU_3D][T33], Tij[CCC_3D][T33], Tij[CCU_3D][T33], Tij[ULC_3D][T33], Tij[ULU_3D][T33], Tij[UCC_3D][T33], Tij[UCU_3D][T33]) };
+
+    double dTdzULU[6] = { calc_sym_gradz_3D(dz, Tij[CLC_3D][T11], Tij[CLU_3D][T11], Tij[CCC_3D][T11], Tij[CCU_3D][T11], Tij[ULC_3D][T11], Tij[ULU_3D][T11], Tij[UCC_3D][T11], Tij[UCU_3D][T11]),
+                          calc_sym_gradz_3D(dz, Tij[CLC_3D][T12], Tij[CLU_3D][T12], Tij[CCC_3D][T12], Tij[CCU_3D][T12], Tij[ULC_3D][T12], Tij[ULU_3D][T12], Tij[UCC_3D][T12], Tij[UCU_3D][T12]),
+                          calc_sym_gradz_3D(dz, Tij[CLC_3D][T13], Tij[CLU_3D][T13], Tij[CCC_3D][T13], Tij[CCU_3D][T13], Tij[ULC_3D][T13], Tij[ULU_3D][T13], Tij[UCC_3D][T13], Tij[UCU_3D][T13]),
+                          calc_sym_gradz_3D(dz, Tij[CLC_3D][T22], Tij[CLU_3D][T22], Tij[CCC_3D][T22], Tij[CCU_3D][T22], Tij[ULC_3D][T22], Tij[ULU_3D][T22], Tij[UCC_3D][T22], Tij[UCU_3D][T22]),
+                          calc_sym_gradz_3D(dz, Tij[CLC_3D][T23], Tij[CLU_3D][T23], Tij[CCC_3D][T23], Tij[CCU_3D][T23], Tij[ULC_3D][T23], Tij[ULU_3D][T23], Tij[UCC_3D][T23], Tij[UCU_3D][T23]),
+                          calc_sym_gradz_3D(dz, Tij[CLC_3D][T33], Tij[CLU_3D][T33], Tij[CCC_3D][T33], Tij[CCU_3D][T33], Tij[ULC_3D][T33], Tij[ULU_3D][T33], Tij[UCC_3D][T33], Tij[UCU_3D][T33]) };
+
+    double dTdxUUL[6] = { calc_sym_gradx_3D(dx, Tij[CCL_3D][T11], Tij[CCC_3D][T11], Tij[CUL_3D][T11], Tij[CUC_3D][T11], Tij[UCL_3D][T11], Tij[UCC_3D][T11], Tij[UUL_3D][T11], Tij[UUC_3D][T11]),
+                          calc_sym_gradx_3D(dx, Tij[CCL_3D][T12], Tij[CCC_3D][T12], Tij[CUL_3D][T12], Tij[CUC_3D][T12], Tij[UCL_3D][T12], Tij[UCC_3D][T12], Tij[UUL_3D][T12], Tij[UUC_3D][T12]),
+                          calc_sym_gradx_3D(dx, Tij[CCL_3D][T13], Tij[CCC_3D][T13], Tij[CUL_3D][T13], Tij[CUC_3D][T13], Tij[UCL_3D][T13], Tij[UCC_3D][T13], Tij[UUL_3D][T13], Tij[UUC_3D][T13]),
+                          calc_sym_gradx_3D(dx, Tij[CCL_3D][T22], Tij[CCC_3D][T22], Tij[CUL_3D][T22], Tij[CUC_3D][T22], Tij[UCL_3D][T22], Tij[UCC_3D][T22], Tij[UUL_3D][T22], Tij[UUC_3D][T22]),
+                          calc_sym_gradx_3D(dx, Tij[CCL_3D][T23], Tij[CCC_3D][T23], Tij[CUL_3D][T23], Tij[CUC_3D][T23], Tij[UCL_3D][T23], Tij[UCC_3D][T23], Tij[UUL_3D][T23], Tij[UUC_3D][T23]),
+                          calc_sym_gradx_3D(dx, Tij[CCL_3D][T33], Tij[CCC_3D][T33], Tij[CUL_3D][T33], Tij[CUC_3D][T33], Tij[UCL_3D][T33], Tij[UCC_3D][T33], Tij[UUL_3D][T33], Tij[UUC_3D][T33]) };
+
+    double dTdyUUL[6] = { calc_sym_grady_3D(dy, Tij[CCL_3D][T11], Tij[CCC_3D][T11], Tij[CUL_3D][T11], Tij[CUC_3D][T11], Tij[UCL_3D][T11], Tij[UCC_3D][T11], Tij[UUL_3D][T11], Tij[UUC_3D][T11]),
+                          calc_sym_grady_3D(dy, Tij[CCL_3D][T12], Tij[CCC_3D][T12], Tij[CUL_3D][T12], Tij[CUC_3D][T12], Tij[UCL_3D][T12], Tij[UCC_3D][T12], Tij[UUL_3D][T12], Tij[UUC_3D][T12]),
+                          calc_sym_grady_3D(dy, Tij[CCL_3D][T13], Tij[CCC_3D][T13], Tij[CUL_3D][T13], Tij[CUC_3D][T13], Tij[UCL_3D][T13], Tij[UCC_3D][T13], Tij[UUL_3D][T13], Tij[UUC_3D][T13]),
+                          calc_sym_grady_3D(dy, Tij[CCL_3D][T22], Tij[CCC_3D][T22], Tij[CUL_3D][T22], Tij[CUC_3D][T22], Tij[UCL_3D][T22], Tij[UCC_3D][T22], Tij[UUL_3D][T22], Tij[UUC_3D][T22]),
+                          calc_sym_grady_3D(dy, Tij[CCL_3D][T23], Tij[CCC_3D][T23], Tij[CUL_3D][T23], Tij[CUC_3D][T23], Tij[UCL_3D][T23], Tij[UCC_3D][T23], Tij[UUL_3D][T23], Tij[UUC_3D][T23]),
+                          calc_sym_grady_3D(dy, Tij[CCL_3D][T33], Tij[CCC_3D][T33], Tij[CUL_3D][T33], Tij[CUC_3D][T33], Tij[UCL_3D][T33], Tij[UCC_3D][T33], Tij[UUL_3D][T33], Tij[UUC_3D][T33]) };
+
+    double dTdzUUL[6] = { calc_sym_gradz_3D(dz, Tij[CCL_3D][T11], Tij[CCC_3D][T11], Tij[CUL_3D][T11], Tij[CUC_3D][T11], Tij[UCL_3D][T11], Tij[UCC_3D][T11], Tij[UUL_3D][T11], Tij[UUC_3D][T11]),
+                          calc_sym_gradz_3D(dz, Tij[CCL_3D][T12], Tij[CCC_3D][T12], Tij[CUL_3D][T12], Tij[CUC_3D][T12], Tij[UCL_3D][T12], Tij[UCC_3D][T12], Tij[UUL_3D][T12], Tij[UUC_3D][T12]),
+                          calc_sym_gradz_3D(dz, Tij[CCL_3D][T13], Tij[CCC_3D][T13], Tij[CUL_3D][T13], Tij[CUC_3D][T13], Tij[UCL_3D][T13], Tij[UCC_3D][T13], Tij[UUL_3D][T13], Tij[UUC_3D][T13]),
+                          calc_sym_gradz_3D(dz, Tij[CCL_3D][T22], Tij[CCC_3D][T22], Tij[CUL_3D][T22], Tij[CUC_3D][T22], Tij[UCL_3D][T22], Tij[UCC_3D][T22], Tij[UUL_3D][T22], Tij[UUC_3D][T22]),
+                          calc_sym_gradz_3D(dz, Tij[CCL_3D][T23], Tij[CCC_3D][T23], Tij[CUL_3D][T23], Tij[CUC_3D][T23], Tij[UCL_3D][T23], Tij[UCC_3D][T23], Tij[UUL_3D][T23], Tij[UUC_3D][T23]),
+                          calc_sym_gradz_3D(dz, Tij[CCL_3D][T33], Tij[CCC_3D][T33], Tij[CUL_3D][T33], Tij[CUC_3D][T33], Tij[UCL_3D][T33], Tij[UCC_3D][T33], Tij[UUL_3D][T33], Tij[UUC_3D][T33]) };
+
+    double dTdxUUU[6] = { calc_sym_gradx_3D(dx, Tij[CCC_3D][T11], Tij[CCU_3D][T11], Tij[CUC_3D][T11], Tij[CUU_3D][T11], Tij[UCC_3D][T11], Tij[UCU_3D][T11], Tij[UUC_3D][T11], Tij[UUU_3D][T11]),
+                          calc_sym_gradx_3D(dx, Tij[CCC_3D][T12], Tij[CCU_3D][T12], Tij[CUC_3D][T12], Tij[CUU_3D][T12], Tij[UCC_3D][T12], Tij[UCU_3D][T12], Tij[UUC_3D][T12], Tij[UUU_3D][T12]),
+                          calc_sym_gradx_3D(dx, Tij[CCC_3D][T13], Tij[CCU_3D][T13], Tij[CUC_3D][T13], Tij[CUU_3D][T13], Tij[UCC_3D][T13], Tij[UCU_3D][T13], Tij[UUC_3D][T13], Tij[UUU_3D][T13]),
+                          calc_sym_gradx_3D(dx, Tij[CCC_3D][T22], Tij[CCU_3D][T22], Tij[CUC_3D][T22], Tij[CUU_3D][T22], Tij[UCC_3D][T22], Tij[UCU_3D][T22], Tij[UUC_3D][T22], Tij[UUU_3D][T22]),
+                          calc_sym_gradx_3D(dx, Tij[CCC_3D][T23], Tij[CCU_3D][T23], Tij[CUC_3D][T23], Tij[CUU_3D][T23], Tij[UCC_3D][T23], Tij[UCU_3D][T23], Tij[UUC_3D][T23], Tij[UUU_3D][T23]),
+                          calc_sym_gradx_3D(dx, Tij[CCC_3D][T33], Tij[CCU_3D][T33], Tij[CUC_3D][T33], Tij[CUU_3D][T33], Tij[UCC_3D][T33], Tij[UCU_3D][T33], Tij[UUC_3D][T33], Tij[UUU_3D][T33]) };
+
+    double dTdyUUU[6] = { calc_sym_grady_3D(dy, Tij[CCC_3D][T11], Tij[CCU_3D][T11], Tij[CUC_3D][T11], Tij[CUU_3D][T11], Tij[UCC_3D][T11], Tij[UCU_3D][T11], Tij[UUC_3D][T11], Tij[UUU_3D][T11]),
+                          calc_sym_grady_3D(dy, Tij[CCC_3D][T12], Tij[CCU_3D][T12], Tij[CUC_3D][T12], Tij[CUU_3D][T12], Tij[UCC_3D][T12], Tij[UCU_3D][T12], Tij[UUC_3D][T12], Tij[UUU_3D][T12]),
+                          calc_sym_grady_3D(dy, Tij[CCC_3D][T13], Tij[CCU_3D][T13], Tij[CUC_3D][T13], Tij[CUU_3D][T13], Tij[UCC_3D][T13], Tij[UCU_3D][T13], Tij[UUC_3D][T13], Tij[UUU_3D][T13]),
+                          calc_sym_grady_3D(dy, Tij[CCC_3D][T22], Tij[CCU_3D][T22], Tij[CUC_3D][T22], Tij[CUU_3D][T22], Tij[UCC_3D][T22], Tij[UCU_3D][T22], Tij[UUC_3D][T22], Tij[UUU_3D][T22]),
+                          calc_sym_grady_3D(dy, Tij[CCC_3D][T23], Tij[CCU_3D][T23], Tij[CUC_3D][T23], Tij[CUU_3D][T23], Tij[UCC_3D][T23], Tij[UCU_3D][T23], Tij[UUC_3D][T23], Tij[UUU_3D][T23]),
+                          calc_sym_grady_3D(dy, Tij[CCC_3D][T33], Tij[CCU_3D][T33], Tij[CUC_3D][T33], Tij[CUU_3D][T33], Tij[UCC_3D][T33], Tij[UCU_3D][T33], Tij[UUC_3D][T33], Tij[UUU_3D][T33]) };
+
+    double dTdzUUU[6] = { calc_sym_gradz_3D(dz, Tij[CCC_3D][T11], Tij[CCU_3D][T11], Tij[CUC_3D][T11], Tij[CUU_3D][T11], Tij[UCC_3D][T11], Tij[UCU_3D][T11], Tij[UUC_3D][T11], Tij[UUU_3D][T11]),
+                          calc_sym_gradz_3D(dz, Tij[CCC_3D][T12], Tij[CCU_3D][T12], Tij[CUC_3D][T12], Tij[CUU_3D][T12], Tij[UCC_3D][T12], Tij[UCU_3D][T12], Tij[UUC_3D][T12], Tij[UUU_3D][T12]),
+                          calc_sym_gradz_3D(dz, Tij[CCC_3D][T13], Tij[CCU_3D][T13], Tij[CUC_3D][T13], Tij[CUU_3D][T13], Tij[UCC_3D][T13], Tij[UCU_3D][T13], Tij[UUC_3D][T13], Tij[UUU_3D][T13]),
+                          calc_sym_gradz_3D(dz, Tij[CCC_3D][T22], Tij[CCU_3D][T22], Tij[CUC_3D][T22], Tij[CUU_3D][T22], Tij[UCC_3D][T22], Tij[UCU_3D][T22], Tij[UUC_3D][T22], Tij[UUU_3D][T22]),
+                          calc_sym_gradz_3D(dz, Tij[CCC_3D][T23], Tij[CCU_3D][T23], Tij[CUC_3D][T23], Tij[CUU_3D][T23], Tij[UCC_3D][T23], Tij[UCU_3D][T23], Tij[UUC_3D][T23], Tij[UUU_3D][T23]),
+                          calc_sym_gradz_3D(dz, Tij[CCC_3D][T33], Tij[CCU_3D][T33], Tij[CUC_3D][T33], Tij[CUU_3D][T33], Tij[UCC_3D][T33], Tij[UCU_3D][T33], Tij[UUC_3D][T33], Tij[UUU_3D][T33]) };
+
+    double qLLL[10] = {0.0};
+    double qLLU[10] = {0.0};
+    double qLUL[10] = {0.0};
+    double qLUU[10] = {0.0};
+    double qULL[10] = {0.0};
+    double qULU[10] = {0.0};
+    double qUUL[10] = {0.0};
+    double qUUU[10] = {0.0};
+    double alpha = 1.0/gces->k0;
+
+    qLLL[Q111] = alpha*vthLLL*rhoLLL*(dTdxLLL[T11] + dTdxLLL[T11] + dTdxLLL[T11])/3.0;
+    qLLL[Q112] = alpha*vthLLL*rhoLLL*(dTdxLLL[T12] + dTdxLLL[T12] + dTdyLLL[T11])/3.0;
+    qLLL[Q113] = alpha*vthLLL*rhoLLL*(dTdxLLL[T13] + dTdxLLL[T13] + dTdzLLL[T11])/3.0;
+    qLLL[Q122] = alpha*vthLLL*rhoLLL*(dTdxLLL[T22] + dTdyLLL[T12] + dTdyLLL[T12])/3.0;
+    qLLL[Q123] = alpha*vthLLL*rhoLLL*(dTdxLLL[T23] + dTdyLLL[T13] + dTdzLLL[T12])/3.0;
+    qLLL[Q133] = alpha*vthLLL*rhoLLL*(dTdxLLL[T33] + dTdzLLL[T13] + dTdzLLL[T13])/3.0;
+    qLLL[Q222] = alpha*vthLLL*rhoLLL*(dTdyLLL[T22] + dTdyLLL[T22] + dTdyLLL[T22])/3.0;
+    qLLL[Q223] = alpha*vthLLL*rhoLLL*(dTdyLLL[T23] + dTdyLLL[T23] + dTdzLLL[T22])/3.0;
+    qLLL[Q233] = alpha*vthLLL*rhoLLL*(dTdyLLL[T33] + dTdzLLL[T23] + dTdzLLL[T23])/3.0;
+    qLLL[Q333] = alpha*vthLLL*rhoLLL*(dTdzLLL[T33] + dTdzLLL[T33] + dTdzLLL[T33])/3.0;
+
+    qLLU[Q111] = alpha*vthLLU*rhoLLU*(dTdxLLU[T11] + dTdxLLU[T11] + dTdxLLU[T11])/3.0;
+    qLLU[Q112] = alpha*vthLLU*rhoLLU*(dTdxLLU[T12] + dTdxLLU[T12] + dTdyLLU[T11])/3.0;
+    qLLU[Q113] = alpha*vthLLU*rhoLLU*(dTdxLLU[T13] + dTdxLLU[T13] + dTdzLLU[T11])/3.0;
+    qLLU[Q122] = alpha*vthLLU*rhoLLU*(dTdxLLU[T22] + dTdyLLU[T12] + dTdyLLU[T12])/3.0;
+    qLLU[Q123] = alpha*vthLLU*rhoLLU*(dTdxLLU[T23] + dTdyLLU[T13] + dTdzLLU[T12])/3.0;
+    qLLU[Q133] = alpha*vthLLU*rhoLLU*(dTdxLLU[T33] + dTdzLLU[T13] + dTdzLLU[T13])/3.0;
+    qLLU[Q222] = alpha*vthLLU*rhoLLU*(dTdyLLU[T22] + dTdyLLU[T22] + dTdyLLU[T22])/3.0;
+    qLLU[Q223] = alpha*vthLLU*rhoLLU*(dTdyLLU[T23] + dTdyLLU[T23] + dTdzLLU[T22])/3.0;
+    qLLU[Q233] = alpha*vthLLU*rhoLLU*(dTdyLLU[T33] + dTdzLLU[T23] + dTdzLLU[T23])/3.0;
+    qLLU[Q333] = alpha*vthLLU*rhoLLU*(dTdzLLU[T33] + dTdzLLU[T33] + dTdzLLU[T33])/3.0;
+
+    qLUL[Q111] = alpha*vthLUL*rhoLUL*(dTdxLUL[T11] + dTdxLUL[T11] + dTdxLUL[T11])/3.0;
+    qLUL[Q112] = alpha*vthLUL*rhoLUL*(dTdxLUL[T12] + dTdxLUL[T12] + dTdyLUL[T11])/3.0;
+    qLUL[Q113] = alpha*vthLUL*rhoLUL*(dTdxLUL[T13] + dTdxLUL[T13] + dTdzLUL[T11])/3.0;
+    qLUL[Q122] = alpha*vthLUL*rhoLUL*(dTdxLUL[T22] + dTdyLUL[T12] + dTdyLUL[T12])/3.0;
+    qLUL[Q123] = alpha*vthLUL*rhoLUL*(dTdxLUL[T23] + dTdyLUL[T13] + dTdzLUL[T12])/3.0;
+    qLUL[Q133] = alpha*vthLUL*rhoLUL*(dTdxLUL[T33] + dTdzLUL[T13] + dTdzLUL[T13])/3.0;
+    qLUL[Q222] = alpha*vthLUL*rhoLUL*(dTdyLUL[T22] + dTdyLUL[T22] + dTdyLUL[T22])/3.0;
+    qLUL[Q223] = alpha*vthLUL*rhoLUL*(dTdyLUL[T23] + dTdyLUL[T23] + dTdzLUL[T22])/3.0;
+    qLUL[Q233] = alpha*vthLUL*rhoLUL*(dTdyLUL[T33] + dTdzLUL[T23] + dTdzLUL[T23])/3.0;
+    qLUL[Q333] = alpha*vthLUL*rhoLUL*(dTdzLUL[T33] + dTdzLUL[T33] + dTdzLUL[T33])/3.0;
+
+    qLUU[Q111] = alpha*vthLUU*rhoLUU*(dTdxLUU[T11] + dTdxLUU[T11] + dTdxLUU[T11])/3.0;
+    qLUU[Q112] = alpha*vthLUU*rhoLUU*(dTdxLUU[T12] + dTdxLUU[T12] + dTdyLUU[T11])/3.0;
+    qLUU[Q113] = alpha*vthLUU*rhoLUU*(dTdxLUU[T13] + dTdxLUU[T13] + dTdzLUU[T11])/3.0;
+    qLUU[Q122] = alpha*vthLUU*rhoLUU*(dTdxLUU[T22] + dTdyLUU[T12] + dTdyLUU[T12])/3.0;
+    qLUU[Q123] = alpha*vthLUU*rhoLUU*(dTdxLUU[T23] + dTdyLUU[T13] + dTdzLUU[T12])/3.0;
+    qLUU[Q133] = alpha*vthLUU*rhoLUU*(dTdxLUU[T33] + dTdzLUU[T13] + dTdzLUU[T13])/3.0;
+    qLUU[Q222] = alpha*vthLUU*rhoLUU*(dTdyLUU[T22] + dTdyLUU[T22] + dTdyLUU[T22])/3.0;
+    qLUU[Q223] = alpha*vthLUU*rhoLUU*(dTdyLUU[T23] + dTdyLUU[T23] + dTdzLUU[T22])/3.0;
+    qLUU[Q233] = alpha*vthLUU*rhoLUU*(dTdyLUU[T33] + dTdzLUU[T23] + dTdzLUU[T23])/3.0;
+    qLUU[Q333] = alpha*vthLUU*rhoLUU*(dTdzLUU[T33] + dTdzLUU[T33] + dTdzLUU[T33])/3.0;
+
+    qULL[Q111] = alpha*vthULL*rhoULL*(dTdxULL[T11] + dTdxULL[T11] + dTdxULL[T11])/3.0;
+    qULL[Q112] = alpha*vthULL*rhoULL*(dTdxULL[T12] + dTdxULL[T12] + dTdyULL[T11])/3.0;
+    qULL[Q113] = alpha*vthULL*rhoULL*(dTdxULL[T13] + dTdxULL[T13] + dTdzULL[T11])/3.0;
+    qULL[Q122] = alpha*vthULL*rhoULL*(dTdxULL[T22] + dTdyULL[T12] + dTdyULL[T12])/3.0;
+    qULL[Q123] = alpha*vthULL*rhoULL*(dTdxULL[T23] + dTdyULL[T13] + dTdzULL[T12])/3.0;
+    qULL[Q133] = alpha*vthULL*rhoULL*(dTdxULL[T33] + dTdzULL[T13] + dTdzULL[T13])/3.0;
+    qULL[Q222] = alpha*vthULL*rhoULL*(dTdyULL[T22] + dTdyULL[T22] + dTdyULL[T22])/3.0;
+    qULL[Q223] = alpha*vthULL*rhoULL*(dTdyULL[T23] + dTdyULL[T23] + dTdzULL[T22])/3.0;
+    qULL[Q233] = alpha*vthULL*rhoULL*(dTdyULL[T33] + dTdzULL[T23] + dTdzULL[T23])/3.0;
+    qULL[Q333] = alpha*vthULL*rhoULL*(dTdzULL[T33] + dTdzULL[T33] + dTdzULL[T33])/3.0;
+
+    qULU[Q111] = alpha*vthULU*rhoULU*(dTdxULU[T11] + dTdxULU[T11] + dTdxULU[T11])/3.0;
+    qULU[Q112] = alpha*vthULU*rhoULU*(dTdxULU[T12] + dTdxULU[T12] + dTdyULU[T11])/3.0;
+    qULU[Q113] = alpha*vthULU*rhoULU*(dTdxULU[T13] + dTdxULU[T13] + dTdzULU[T11])/3.0;
+    qULU[Q122] = alpha*vthULU*rhoULU*(dTdxULU[T22] + dTdyULU[T12] + dTdyULU[T12])/3.0;
+    qULU[Q123] = alpha*vthULU*rhoULU*(dTdxULU[T23] + dTdyULU[T13] + dTdzULU[T12])/3.0;
+    qULU[Q133] = alpha*vthULU*rhoULU*(dTdxULU[T33] + dTdzULU[T13] + dTdzULU[T13])/3.0;
+    qULU[Q222] = alpha*vthULU*rhoULU*(dTdyULU[T22] + dTdyULU[T22] + dTdyULU[T22])/3.0;
+    qULU[Q223] = alpha*vthULU*rhoULU*(dTdyULU[T23] + dTdyULU[T23] + dTdzULU[T22])/3.0;
+    qULU[Q233] = alpha*vthULU*rhoULU*(dTdyULU[T33] + dTdzULU[T23] + dTdzULU[T23])/3.0;
+    qULU[Q333] = alpha*vthULU*rhoULU*(dTdzULU[T33] + dTdzULU[T33] + dTdzULU[T33])/3.0;
+
+    qUUL[Q111] = alpha*vthUUL*rhoUUL*(dTdxUUL[T11] + dTdxUUL[T11] + dTdxUUL[T11])/3.0;
+    qUUL[Q112] = alpha*vthUUL*rhoUUL*(dTdxUUL[T12] + dTdxUUL[T12] + dTdyUUL[T11])/3.0;
+    qUUL[Q113] = alpha*vthUUL*rhoUUL*(dTdxUUL[T13] + dTdxUUL[T13] + dTdzUUL[T11])/3.0;
+    qUUL[Q122] = alpha*vthUUL*rhoUUL*(dTdxUUL[T22] + dTdyUUL[T12] + dTdyUUL[T12])/3.0;
+    qUUL[Q123] = alpha*vthUUL*rhoUUL*(dTdxUUL[T23] + dTdyUUL[T13] + dTdzUUL[T12])/3.0;
+    qUUL[Q133] = alpha*vthUUL*rhoUUL*(dTdxUUL[T33] + dTdzUUL[T13] + dTdzUUL[T13])/3.0;
+    qUUL[Q222] = alpha*vthUUL*rhoUUL*(dTdyUUL[T22] + dTdyUUL[T22] + dTdyUUL[T22])/3.0;
+    qUUL[Q223] = alpha*vthUUL*rhoUUL*(dTdyUUL[T23] + dTdyUUL[T23] + dTdzUUL[T22])/3.0;
+    qUUL[Q233] = alpha*vthUUL*rhoUUL*(dTdyUUL[T33] + dTdzUUL[T23] + dTdzUUL[T23])/3.0;
+    qUUL[Q333] = alpha*vthUUL*rhoUUL*(dTdzUUL[T33] + dTdzUUL[T33] + dTdzUUL[T33])/3.0;
+
+    qUUU[Q111] = alpha*vthUUU*rhoUUU*(dTdxUUU[T11] + dTdxUUU[T11] + dTdxUUU[T11])/3.0;
+    qUUU[Q112] = alpha*vthUUU*rhoUUU*(dTdxUUU[T12] + dTdxUUU[T12] + dTdyUUU[T11])/3.0;
+    qUUU[Q113] = alpha*vthUUU*rhoUUU*(dTdxUUU[T13] + dTdxUUU[T13] + dTdzUUU[T11])/3.0;
+    qUUU[Q122] = alpha*vthUUU*rhoUUU*(dTdxUUU[T22] + dTdyUUU[T12] + dTdyUUU[T12])/3.0;
+    qUUU[Q123] = alpha*vthUUU*rhoUUU*(dTdxUUU[T23] + dTdyUUU[T13] + dTdzUUU[T12])/3.0;
+    qUUU[Q133] = alpha*vthUUU*rhoUUU*(dTdxUUU[T33] + dTdzUUU[T13] + dTdzUUU[T13])/3.0;
+    qUUU[Q222] = alpha*vthUUU*rhoUUU*(dTdyUUU[T22] + dTdyUUU[T22] + dTdyUUU[T22])/3.0;
+    qUUU[Q223] = alpha*vthUUU*rhoUUU*(dTdyUUU[T23] + dTdyUUU[T23] + dTdzUUU[T22])/3.0;
+    qUUU[Q233] = alpha*vthUUU*rhoUUU*(dTdyUUU[T33] + dTdzUUU[T23] + dTdzUUU[T23])/3.0;
+    qUUU[Q333] = alpha*vthUUU*rhoUUU*(dTdzUUU[T33] + dTdzUUU[T33] + dTdzUUU[T33])/3.0;
+
+    double divQx[6] = { calc_sym_gradx_3D(dx, qLLL[Q111], qLLU[Q111], qLUL[Q111], qLUU[Q111], qULL[Q111], qULU[Q111], qUUL[Q111], qUUU[Q111]), 
+                        calc_sym_gradx_3D(dx, qLLL[Q112], qLLU[Q112], qLUL[Q112], qLUU[Q112], qULL[Q112], qULU[Q112], qUUL[Q112], qUUU[Q112]), 
+                        calc_sym_gradx_3D(dx, qLLL[Q113], qLLU[Q113], qLUL[Q113], qLUU[Q113], qULL[Q113], qULU[Q113], qUUL[Q113], qUUU[Q113]), 
+                        calc_sym_gradx_3D(dx, qLLL[Q122], qLLU[Q122], qLUL[Q122], qLUU[Q122], qULL[Q122], qULU[Q122], qUUL[Q122], qUUU[Q122]), 
+                        calc_sym_gradx_3D(dx, qLLL[Q123], qLLU[Q123], qLUL[Q123], qLUU[Q123], qULL[Q123], qULU[Q123], qUUL[Q123], qUUU[Q123]), 
+                        calc_sym_gradx_3D(dx, qLLL[Q133], qLLU[Q133], qLUL[Q133], qLUU[Q133], qULL[Q133], qULU[Q133], qUUL[Q133], qUUU[Q133]) };
+
+    double divQy[6] = { calc_sym_grady_3D(dy, qLLL[Q112], qLLU[Q112], qLUL[Q112], qLUU[Q112], qULL[Q112], qULU[Q112], qUUL[Q112], qUUU[Q112]), 
+                        calc_sym_grady_3D(dy, qLLL[Q122], qLLU[Q122], qLUL[Q122], qLUU[Q122], qULL[Q122], qULU[Q122], qUUL[Q122], qUUU[Q122]), 
+                        calc_sym_grady_3D(dy, qLLL[Q123], qLLU[Q123], qLUL[Q123], qLUU[Q123], qULL[Q123], qULU[Q123], qUUL[Q123], qUUU[Q123]), 
+                        calc_sym_grady_3D(dy, qLLL[Q222], qLLU[Q222], qLUL[Q222], qLUU[Q222], qULL[Q222], qULU[Q222], qUUL[Q222], qUUU[Q222]), 
+                        calc_sym_grady_3D(dy, qLLL[Q223], qLLU[Q223], qLUL[Q223], qLUU[Q223], qULL[Q223], qULU[Q223], qUUL[Q223], qUUU[Q223]), 
+                        calc_sym_grady_3D(dy, qLLL[Q233], qLLU[Q233], qLUL[Q233], qLUU[Q233], qULL[Q233], qULU[Q233], qUUL[Q233], qUUU[Q233]) };
+
+    double divQz[6] = { calc_sym_gradz_3D(dz, qLLL[Q113], qLLU[Q113], qLUL[Q113], qLUU[Q113], qULL[Q113], qULU[Q113], qUUL[Q113], qUUU[Q113]), 
+                        calc_sym_gradz_3D(dz, qLLL[Q123], qLLU[Q123], qLUL[Q123], qLUU[Q123], qULL[Q123], qULU[Q123], qUUL[Q123], qUUU[Q123]), 
+                        calc_sym_gradz_3D(dz, qLLL[Q133], qLLU[Q133], qLUL[Q133], qLUU[Q133], qULL[Q133], qULU[Q133], qUUL[Q133], qUUU[Q133]), 
+                        calc_sym_gradz_3D(dz, qLLL[Q223], qLLU[Q223], qLUL[Q223], qLUU[Q223], qULL[Q223], qULU[Q223], qUUL[Q223], qUUU[Q223]), 
+                        calc_sym_gradz_3D(dz, qLLL[Q233], qLLU[Q233], qLUL[Q233], qLUU[Q233], qULL[Q233], qULU[Q233], qUUL[Q233], qUUU[Q233]), 
+                        calc_sym_gradz_3D(dz, qLLL[Q333], qLLU[Q333], qLUL[Q333], qLUU[Q333], qULL[Q333], qULU[Q333], qUUL[Q333], qUUU[Q333]) };
+
+    rhs_d[RHO] = 0.0;
+    rhs_d[MX] = 0.0;
+    rhs_d[MY] = 0.0;
+    rhs_d[MZ] = 0.0;
+    rhs_d[P11] = divQx[0] + divQy[0] + divQz[0];
+    rhs_d[P12] = divQx[1] + divQy[1] + divQz[1];
+    rhs_d[P13] = divQx[2] + divQy[2] + divQz[2];
+    rhs_d[P22] = divQx[3] + divQy[3] + divQz[3];
+    rhs_d[P23] = divQx[4] + divQy[4] + divQz[4];
+    rhs_d[P33] = divQx[5] + divQy[5] + divQz[5];
   }
 }
 

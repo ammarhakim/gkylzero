@@ -265,7 +265,7 @@ main(int argc, char **argv)
   struct gkyl_moment_species elc = {
     .name = "elc",
     .charge = -1.0, .mass = 1.0/100.0,
-    // rho_e ~ 0.1, k0 = 1/(rho_e)
+    // d_e = 0.1, k0 = 1/d_e
     .k0 = 10.0,
     .equation = elc_ten_moment,
     .evolve = 1,
@@ -274,7 +274,7 @@ main(int argc, char **argv)
   struct gkyl_moment_species ion = {
     .name = "ion",
     .charge = 1.0, .mass = 1.0,
-    // rho_i ~ 1.0, k0 = 1/(rho_i)
+    // d_i ~ 1.0, k0 = 1/(d_i)
     .k0 = 1.0,
     .equation = ion_ten_moment,
     .evolve = 1,

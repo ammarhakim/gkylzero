@@ -26,7 +26,25 @@ calc_sym_grady_2D(double dy, double a_ll, double a_lu, double a_ul, double a_uu)
   return (a_lu + a_uu - a_ll - a_ul)/(2*dy);
 }
 
-// Calculate arithmetic average
+// Calculate symmetrized gradients 3D
+static inline double
+calc_sym_gradx_3D(double dx, double a_lll, double a_llu, double a_lul, double a_luu, double a_ull, double a_ulu, double a_uul, double a_uuu)
+{
+  return (a_ull + a_ulu + a_uul + a_uuu - a_lll - a_llu - a_lul - a_luu)/(4*dx);
+}
+
+static inline double
+calc_sym_grady_3D(double dy, double a_lll, double a_llu, double a_lul, double a_luu, double a_ull, double a_ulu, double a_uul, double a_uuu)
+{
+  return (a_lul + a_luu + a_uul + a_uuu - a_lll - a_llu - a_ull - a_ulu)/(4*dy);
+}
+
+static inline double
+calc_sym_gradz_3D(double dz, double a_lll, double a_llu, double a_lul, double a_luu, double a_ull, double a_ulu, double a_uul, double a_uuu)
+{
+  return (a_llu + a_luu + a_ulu + a_uuu - a_lll - a_lul - a_ull - a_uul)/(4*dz);
+}
+
 // In 1D, computes quantity at cell edge of two-cell interface
 static inline double
 calc_arithm_avg_1D(double a_l, double a_u)
@@ -34,26 +52,36 @@ calc_arithm_avg_1D(double a_l, double a_u)
   return 0.5*(a_l + a_u);
 }
 
-// In 2D, computes quantity at cell corner of four-cell interface (down left, down right, up left, & up right)
-static inline double
-calc_arithm_avg_2D(double a_ll, double a_lu, double a_ul, double a_uu)
-{
-  return 0.25*(a_ll + a_lu + a_ul + a_uu);
-}
-
-// Calculate harmonic average
-// In 1D, computes quantity at cell edge of two-cell interface
 static inline double
 calc_harmonic_avg_1D(double a_l, double a_u)
 {
   return 1.0/(0.5/a_l + 0.5/a_u);
 }
 
-// In 2D, computes quantity at cell corner of four-cell interface (down left, down right, up left, & up right)
+// In 2D, computes quantity at cell corner of four-cell interface
+static inline double
+calc_arithm_avg_2D(double a_ll, double a_lu, double a_ul, double a_uu)
+{
+  return 0.25*(a_ll + a_lu + a_ul + a_uu);
+}
+
 static inline double
 calc_harmonic_avg_2D(double a_ll, double a_lu, double a_ul, double a_uu)
 {
   return 1.0/(0.25/a_ll + 0.25/a_lu + 0.25/a_ul + 0.25/a_uu);
+}
+
+// In 3D, computes quantity at cell corner of eight-cell interface
+static inline double
+calc_arithm_avg_3D(double a_lll, double a_llu, double a_lul, double a_luu, double a_ull, double a_ulu, double a_uul, double a_uuu)
+{
+  return 0.125*(a_lll + a_llu + a_lul + a_luu + a_ull + a_ulu + a_uul + a_uuu);
+}
+
+static inline double
+calc_harmonic_avg_3D(double a_lll, double a_llu, double a_lul, double a_luu, double a_ull, double a_ulu, double a_uul, double a_uuu)
+{
+  return 1.0/(0.125/a_lll + 0.125/a_llu + 0.125/a_lul + 0.125/a_luu + 0.125/a_ull + 0.125/a_ulu + 0.125/a_uul + 0.125/a_uuu);
 }
 
 // Calculate the collision time based on the species' parameters
