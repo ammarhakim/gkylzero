@@ -69,9 +69,9 @@ void mapc2p(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 
 void gaussian(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  double xp[2], vth = 0.5, xc = 2.5;
+  double xp[2], vth = 0.5, xc = 0.0, yc = 2.5;
   mapc2p(t, xn, xp, 0);
-  double r2 = (xp[0]-xc)*(xp[0]-xc) + xp[1]*xp[1];
+  double r2 = (xp[0]-xc)*(xp[0]-xc) + (xp[1]-yc)*(xp[1]-yc);
   fout[0] = exp(-r2/(2*vth*vth));
 }
 
