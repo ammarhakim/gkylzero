@@ -111,8 +111,7 @@ calc_ros_1D(double dx, double u_l[3], double u_u[3], double w[6])
   w[5] = -2.0/3.0*gradx_ux;
 }
 
-// Calculate rate of strain tensor
-// In 2D, computes a tensor in one corner of four-cell interface (down left, down right, up left, & up right)
+// In 2D, computes tensor in one corner of four-cell interface
 static void
 calc_ros_2D(double dx, double dy, double u_ll[3], double u_lu[3], double u_ul[3], double u_uu[3], double w[6])
 {
@@ -131,4 +130,29 @@ calc_ros_2D(double dx, double dy, double u_ll[3], double u_lu[3], double u_ul[3]
   w[3] = 2.0*grady_uy - 2.0/3.0*divu;
   w[4] = grady_uz;
   w[5] = -2.0/3.0*divu;
+}
+
+// In 3D, computes tensor in one corner of eight-cell interface
+static void
+calc_ros_3D(double dx, double dy, double dz, double u_lll[3], double u_llu[3], double u_lul[3], double u_luu[3], double u_ull[3], double u_ulu[3], double u_uul[3], double u_uuu[3], double w[6])
+{
+  double gradx_ux = calc_sym_gradx_3D(dx, u_lll[0], u_llu[0], u_lul[0], u_luu[0], u_ull[0], u_ulu[0], u_uul[0], u_uuu[0]);
+  double gradx_uy = calc_sym_gradx_3D(dx, u_lll[1], u_llu[1], u_lul[1], u_luu[1], u_ull[1], u_ulu[1], u_uul[1], u_uuu[1]);
+  double gradx_uz = calc_sym_gradx_3D(dx, u_lll[2], u_llu[2], u_lul[2], u_luu[2], u_ull[2], u_ulu[2], u_uul[2], u_uuu[2]);
+
+  double grady_ux = calc_sym_grady_3D(dy, u_lll[0], u_llu[0], u_lul[0], u_luu[0], u_ull[0], u_ulu[0], u_uul[0], u_uuu[0]);
+  double grady_uy = calc_sym_grady_3D(dy, u_lll[1], u_llu[1], u_lul[1], u_luu[1], u_ull[1], u_ulu[1], u_uul[1], u_uuu[1]);
+  double grady_uz = calc_sym_grady_3D(dy, u_lll[2], u_llu[2], u_lul[2], u_luu[2], u_ull[2], u_ulu[2], u_uul[2], u_uuu[2]);
+
+  double gradz_ux = calc_sym_gradz_3D(dz, u_lll[0], u_llu[0], u_lul[0], u_luu[0], u_ull[0], u_ulu[0], u_uul[0], u_uuu[0]);
+  double gradz_uy = calc_sym_gradz_3D(dz, u_lll[1], u_llu[1], u_lul[1], u_luu[1], u_ull[1], u_ulu[1], u_uul[1], u_uuu[1]);
+  double gradz_uz = calc_sym_gradz_3D(dz, u_lll[2], u_llu[2], u_lul[2], u_luu[2], u_ull[2], u_ulu[2], u_uul[2], u_uuu[2]);
+
+  double divu = gradx_ux + grady_uy + gradz_uz;
+  w[0] = 2.0*gradx_ux - 2.0/3.0*divu;
+  w[1] = gradx_uy + grady_ux;
+  w[2] = gradx_uz + gradz_ux;
+  w[3] = 2.0*grady_uy - 2.0/3.0*divu;
+  w[4] = grady_uz + gradz_uy;
+  w[5] = 2.0*gradz_uz - 2.0/3.0*divu;
 }
