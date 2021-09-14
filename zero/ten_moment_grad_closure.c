@@ -4,17 +4,6 @@
 #include <gkyl_moment_braginskii_priv.h>
 
 // Makes indexing cleaner
-static const unsigned RHO = 0;
-static const unsigned MX = 1;
-static const unsigned MY = 2;
-static const unsigned MZ = 3;
-static const unsigned P11 = 4;
-static const unsigned P12 = 5;
-static const unsigned P13 = 6;
-static const unsigned P22 = 7;
-static const unsigned P23 = 8;
-static const unsigned P33 = 9;
-
 static const unsigned T11 = 0;
 static const unsigned T12 = 1;
 static const unsigned T13 = 2;

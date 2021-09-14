@@ -28,7 +28,8 @@ struct gkyl_moment_braginskii_inp {
   int nfluids; // number of fluids
   struct gkyl_moment_braginskii_data param[GKYL_MAX_SPECIES]; // species data
   enum gkyl_braginskii_type type_brag; // which Braginskii equations
-  double epsilon0;
+  double epsilon0; // permittivity of free space
+  double coll_fac; // constant multiplicative factor for collision time to increase or decrease collisionality
 };
 
 // Object type

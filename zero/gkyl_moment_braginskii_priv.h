@@ -2,6 +2,28 @@
 #include <math.h>
 
 // Private header, not for direct use in user code
+// Makes indexing cleaner
+static const unsigned RHO = 0;
+static const unsigned MX = 1;
+static const unsigned MY = 2;
+static const unsigned MZ = 3;
+static const unsigned ER = 4;
+
+static const unsigned P11 = 4;
+static const unsigned P12 = 5;
+static const unsigned P13 = 6;
+static const unsigned P22 = 7;
+static const unsigned P23 = 8;
+static const unsigned P33 = 9;
+
+static const unsigned EX = 0;
+static const unsigned EY = 1;
+static const unsigned EZ = 2;
+static const unsigned BX = 3;
+static const unsigned BY = 4;
+static const unsigned BZ = 5;
+static const unsigned PHIE = 6;
+static const unsigned PHIM = 7;
 
 // lower case l/u denote lower/upper with respect to edge
 
@@ -84,16 +106,6 @@ calc_harmonic_avg_3D(double a_lll, double a_llu, double a_lul, double a_luu, dou
   return 1.0/(0.125/a_lll + 0.125/a_llu + 0.125/a_lul + 0.125/a_luu + 0.125/a_ull + 0.125/a_ulu + 0.125/a_uul + 0.125/a_uuu);
 }
 
-// Calculate the collision time based on the species' parameters
-// Note: assumes the electron-ion collision frequency so sqrt(2) may be missing
-//       coulomb_log considered constant, rho is mass density, temp is temperature
-static inline double
-calc_tau(double coulomb_log, double epsilon0, double charge, double mass, double rho, double temp)
-{
-  double a = M_PI*mass*temp;
-  return 6.0*sqrt(2.0*a*a*a)*epsilon0*epsilon0/(coulomb_log*charge*charge*charge*charge*rho);
-}
-
 // Calculate rate of strain tensor
 // In 1D, computes a single tensor at cell edge of two-cell interface
 static void
@@ -155,4 +167,48 @@ calc_ros_3D(double dx, double dy, double dz, double u_lll[3], double u_llu[3], d
   w[3] = 2.0*grady_uy - 2.0/3.0*divu;
   w[4] = grady_uz + gradz_uy;
   w[5] = 2.0*gradz_uz - 2.0/3.0*divu;
+}
+
+// Magnetized closure helper functions
+// Calculate the magnitude of the local magnetic field
+static inline double
+calc_mag_b(double em_tot[8])
+{
+  return sqrt(em_tot[BX]*em_tot[BX] + em_tot[BY]*em_tot[BY] + em_tot[BZ]*em_tot[BZ]);
+}
+
+// Calculate the cyclotron frequency based on the species' parameters
+static inline double
+calc_omega_c(double charge, double mass, double em_tot[8])
+{
+  double omega_c = 0.0;
+  double Bmag = calc_mag_b(em_tot);
+  if (Bmag > 0.0)
+    omega_c = charge*Bmag/mass;
+  return omega_c;
+}
+
+// Calculate magnetic field unit vector
+static inline void
+calc_bhat(double em_tot[8], double b[3])
+{
+  double Bx = em_tot[BX];
+  double By = em_tot[BY];
+  double Bz = em_tot[BZ];
+  double Bmag = calc_mag_b(em_tot);
+  // get magnetic field unit vector 
+  if (Bmag > 0.0) {
+    b[0] = Bx/Bmag;
+    b[1] = By/Bmag;
+    b[2] = Bz/Bmag;
+  }  
+}
+
+// Calculate the collision time based on the species' parameters
+// Note: assumes the electron-ion collision frequency so sqrt(2) may be missing
+//       coulomb_log considered constant, rho is mass density, temp is temperature
+static inline double
+calc_tau(double coulomb_log, double coll_fac, double epsilon0, double charge1, double charge2, double mass1, double mass2, double rho, double temp)
+{
+  return coll_fac*6.0*sqrt(2.0*M_PI*mass1*temp*M_PI*mass2*temp*M_PI*mass2*temp)*epsilon0*epsilon0/(coulomb_log*charge1*charge1*charge2*charge2*rho);
 }

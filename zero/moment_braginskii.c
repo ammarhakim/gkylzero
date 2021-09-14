@@ -2,29 +2,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_moment_braginskii.h>
 #include <gkyl_moment_braginskii_priv.h>
-
-// Makes indexing cleaner
-static const unsigned RHO = 0;
-static const unsigned MX = 1;
-static const unsigned MY = 2;
-static const unsigned MZ = 3;
-static const unsigned ER = 4;
-
-static const unsigned P11 = 4;
-static const unsigned P12 = 5;
-static const unsigned P13 = 6;
-static const unsigned P22 = 7;
-static const unsigned P23 = 8;
-static const unsigned P33 = 9;
-
-static const unsigned EX = 0;
-static const unsigned EY = 1;
-static const unsigned EZ = 2;
-static const unsigned BX = 3;
-static const unsigned BY = 4;
-static const unsigned BZ = 5;
-static const unsigned PHIE = 6;
-static const unsigned PHIM = 7;
+#include <gkyl_prim_euler.h>
 
 // 1D stencil locations (L: lower, C: center, U: upper)
 enum loc_1d {
@@ -60,6 +38,7 @@ struct gkyl_moment_braginskii {
   struct gkyl_moment_braginskii_data param[GKYL_MAX_SPECIES]; // struct of fluid parameters
   enum gkyl_braginskii_type type_brag; // which Braginskii equations (magnetized versus unmagnetized)
   double epsilon0; // permittivity of free space
+  double coll_fac; // constant multiplicative factor for collision time to increase or decrease collisionality
 };
 
 static void
@@ -76,40 +55,6 @@ create_offsets(const struct gkyl_range *range, long offsets[])
   int count = 0;
   while (gkyl_range_iter_next(&iter3))
     offsets[count++] = gkyl_range_offset(range, iter3.idx);
-}
-
-// Calculate the magnitude of the local magnetic field
-static inline double
-calc_mag_b(double em_tot[8])
-{
-  return sqrt(em_tot[BX]*em_tot[BX] + em_tot[BY]*em_tot[BY] + em_tot[BZ]*em_tot[BZ]);
-}
-
-// Calculate the cyclotron frequency based on the species' parameters
-static inline double
-calc_omega_c(double charge, double mass, double em_tot[8])
-{
-  double omega_c = 0.0;
-  double Bmag = calc_mag_b(em_tot);
-  if (Bmag > 0.0)
-    omega_c = charge*Bmag/mass;
-  return omega_c;
-}
-
-// Calculate magnetic field unit vector
-static void
-calc_bhat(double em_tot[8], double b[3])
-{
-  double Bx = em_tot[BX];
-  double By = em_tot[BY];
-  double Bz = em_tot[BZ];
-  double Bmag = calc_mag_b(em_tot);
-  // get magnetic field unit vector 
-  if (Bmag > 0.0) {
-    b[0] = Bx/Bmag;
-    b[1] = By/Bmag;
-    b[2] = Bz/Bmag;
-  }  
 }
 
 // Calculate viscous stress tensor Pi (magnetized)
@@ -191,7 +136,55 @@ mag_braginskii_update(const gkyl_moment_braginskii *bes,
   const double *fluid_d[][GKYL_MAX_SPECIES], const double *em_tot_d[],
   double *cflrate, double *rhs[GKYL_MAX_SPECIES])
 {
-  int nfluids = bes->nfluids; 
+  int nfluids = bes->nfluids;
+  const int ndim = bes->ndim;
+  if (ndim == 1 && nfluids == 2) {
+    const double dx = bes->grid.dx[0];
+    const double m[2] = { bes->param[0].mass, bes->param[1].mass };
+    const double q[2] = { bes->param[0].charge, bes->param[1].charge };
+    double rho[3][2] = {0.0};
+    double u[3][2][3] = {0.0};
+    double p[3][2] = {0.0};
+    double T[3][2] = {0.0};
+
+    for (int j = L_1D; j <= U_1D; ++j)
+    {
+      for (int n = 0; n < nfluids; ++n)
+      {
+        rho[j][n] = fluid_d[j][n][RHO];
+        for (int k = MX; k <= MZ; ++k)
+          u[j][n][k - MX] = fluid_d[j][n][k] / fluid_d[j][n][RHO];
+        if (bes->param[n].type_eqn == GKYL_EQN_EULER)
+          p[j][n] = gkyl_euler_pressure(bes->param[n].p_fac, fluid_d[j][n]);
+        else if (bes->param[n].type_eqn == GKYL_EQN_TEN_MOMENT)
+          p[j][n] = (fluid_d[j][n][P11] - fluid_d[j][n][MX] * fluid_d[j][n][MX] / fluid_d[j][n][RHO]
+            + fluid_d[j][n][P22] - fluid_d[j][n][MY] * fluid_d[j][n][MY] / fluid_d[j][n][RHO]
+            + fluid_d[j][n][P33] - fluid_d[j][n][MZ] * fluid_d[j][n][MZ] / fluid_d[j][n][RHO])/3.0;
+        else
+          p[j][n] = bes->param[n].p_fac;
+        T[j][n] = m[n] * p[j][n] / rho[j][n];
+      }
+    }
+    // Grab indices of electron and ion fluid arrays
+    const int ELC = bes->param[0].charge < 0.0 ? 0 : 1;
+    const int ION = (ELC + 1) % 2;
+
+    const double e = bes->param[ELC].charge;
+    const int Z = bes->param[ION].charge / fabs(bes->param[ELC].charge);  // Note: May always round down on conversion
+
+    // Collision times for each species
+    double tau[3][2] = {0.0};
+    for (int j = L_1D; j <= U_1D; ++j)
+    {
+      tau[j][ELC] = calc_tau(1.0, bes->coll_fac, bes->epsilon0, e, e*Z, m[ELC], m[ION], rho[j][ION], T[j][ELC]);
+      tau[j][ION] = calc_tau(1.0, sqrt(2.0)*bes->coll_fac, bes->epsilon0, e*Z, e*Z, m[ION], m[ION], rho[j][ION], T[j][ION]);
+    }
+  }
+  else if (ndim == 2 && nfluids == 2) {
+    const double dx = bes->grid.dx[0];
+    const double dy = bes->grid.dx[1];
+    const double m[2] = { bes->param[0].mass, bes->param[1].mass };
+  }
 }
 
 static void
@@ -306,6 +299,7 @@ gkyl_moment_braginskii_new(struct gkyl_moment_braginskii_inp inp)
   for (int n=0; n<inp.nfluids; ++n) up->param[n] = inp.param[n];
   up->type_brag = inp.type_brag;
   up->epsilon0 = inp.epsilon0;
+  up->coll_fac = inp.coll_fac;
 
   return up;
 }

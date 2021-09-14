@@ -77,7 +77,8 @@ struct gkyl_moment {
   struct gkyl_moment_species species[GKYL_MAX_SPECIES]; // species objects
   struct gkyl_moment_field field; // field object
 
-  enum gkyl_braginskii_type type_brag;
+  enum gkyl_braginskii_type type_brag; // enum for Braginskii type (if present)
+  double coll_fac; // multiplicative collisionality factor for Braginskii
 };
 
 // Simulation statistics

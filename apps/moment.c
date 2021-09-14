@@ -114,6 +114,7 @@ struct gkyl_moment_app {
 
   int update_sources; // flag to indicate if sources are to be updated
   enum gkyl_braginskii_type type_brag; // enum for Braginskii type (if present)
+  double coll_fac; // multiplicative collisionality factor for Braginskii
   struct moment_coupling sources; // sources
     
   struct gkyl_moment_stat stat; // statistics
@@ -681,6 +682,8 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       .nfluids = app->num_species,
       .epsilon0 = app->field.epsilon0,
       .type_brag = app->type_brag,
+      // Check for multiplicative collisionality factor, default is 1.0
+      .coll_fac = app->coll_fac == 0 ? 1.0 : app->coll_fac,
     };
     for (int i=0; i<app->num_species; ++i) {
       // Braginskii coefficients depend on pressure and coefficient to obtain
