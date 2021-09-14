@@ -65,8 +65,8 @@ test_iso_euler_waves()
     gkyl_wv_eqn_rotate_to_local(iso_euler, d, 0, 0, 0, ql, ql_local);
     gkyl_wv_eqn_rotate_to_local(iso_euler, d, 0, 0, 0, qr, qr_local);
 
-    double delta[5];
-    for (int i=0; i<5; ++i) delta[i] = qr_local[i]-ql_local[i];
+    double delta[4];
+    for (int i=0; i<4; ++i) delta[i] = qr_local[i]-ql_local[i];
     
     gkyl_wv_eqn_waves(iso_euler, d, delta, ql_local, qr_local, waves_local, speeds);
 
@@ -108,8 +108,8 @@ test_iso_euler_waves_2()
     gkyl_wv_eqn_rotate_to_local(iso_euler, d, 0, 0, 0, ql, ql_local);
     gkyl_wv_eqn_rotate_to_local(iso_euler, d, 0, 0, 0, qr, qr_local);
 
-    double delta[5];
-    for (int i=0; i<5; ++i) delta[i] = qr_local[i]-ql_local[i];
+    double delta[4];
+    for (int i=0; i<4; ++i) delta[i] = qr_local[i]-ql_local[i];
     
     gkyl_wv_eqn_waves(iso_euler, d, delta, ql_local, qr_local, waves_local, speeds);
 
