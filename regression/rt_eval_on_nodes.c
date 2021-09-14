@@ -172,16 +172,16 @@ test_eval_3(enum gkyl_basis_type type)
   };
 
   do {
-    int sz = snprintf(0, 0, fmt[type], "rt_eval_on_nodes_rtheta_3");
+    int sz = snprintf(0, 0, fmt[type], "rt_eval_on_nodes_rtheta_shock");
     char fileNm[sz+1]; // ensures no buffer overflow  
-    snprintf(fileNm, sizeof fileNm, fmt[type], "rt_eval_on_nodes_rtheta_3");
+    snprintf(fileNm, sizeof fileNm, fmt[type], "rt_eval_on_nodes_rtheta_shock");
     gkyl_grid_sub_array_write(&grid, &arr_range, rtheta, fileNm);
   } while (0);
 
   do {
-    int sz = snprintf(0, 0, fmt[type], "rt_eval_on_nodes_f_3");
+    int sz = snprintf(0, 0, fmt[type], "rt_eval_on_nodes_f_shock");
     char fileNm[sz+1]; // ensures no buffer overflow  
-    snprintf(fileNm, sizeof fileNm, fmt[type], "rt_eval_on_nodes_f_3");
+    snprintf(fileNm, sizeof fileNm, fmt[type], "rt_eval_on_nodes_f_shock");
     gkyl_grid_sub_array_write(&grid, &arr_range, f, fileNm);
   } while (0);
   
