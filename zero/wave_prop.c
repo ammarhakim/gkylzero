@@ -6,22 +6,9 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_util.h>
+#include <gkyl_wave_geom.h>
+#include <gkyl_wave_geom_priv.h>
 #include <gkyl_wave_prop.h>
-
-// Geometry information for a single cell: recall a cell "owns" the
-// faces on the lower side of cell
-struct wave_cell_geom {
-  double kappa; // ratio of cell-volume in phy to comp space
-  double lenr[GKYL_MAX_CDIM]; // ratio of face-area in phys to comp space for "lower" faces
-  double norm[GKYL_MAX_CDIM][GKYL_MAX_CDIM]; // norm[d] is the normal to face perp to direction 'd'
-  // tau1[d] X tau2[d] = norm[d] are tangents to face perp to direction 'd'
-  double tau1[GKYL_MAX_CDIM][GKYL_MAX_CDIM];
-  double tau2[GKYL_MAX_CDIM][GKYL_MAX_CDIM];
-};
-
-struct gkyl_wave_geom {
-  struct gkyl_array *geom; // geometry in each cell
-};
 
 struct gkyl_wave_prop {
   struct gkyl_rect_grid grid; // grid object
@@ -37,23 +24,6 @@ struct gkyl_wave_prop {
   // data for 1D slice update
   struct gkyl_array *waves, *speeds, *flux2;
 };
-
-struct gkyl_wave_geom*
-gkyl_wave_geom_new(const struct gkyl_rect_grid *grid, struct gkyl_range *ext_range,
-  evalf_t mapc2p, void *ctx)
-{
-  struct gkyl_wave_geom *wg = gkyl_malloc(sizeof(struct gkyl_wave_geom));
-  wg->geom = gkyl_array_new(GKYL_USER, sizeof(struct wave_cell_geom), ext_range->volume);
-
-  return wg;
-}
-
-void
-gkyl_wave_geom_release(struct gkyl_wave_geom *wg)
-{
-  gkyl_array_release(wg->geom);
-  gkyl_free(wg);
-}
 
 static inline double
 fmax3(double a, double b, double c)
@@ -241,7 +211,10 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
   int meqn = wv->equation->num_equations, mwaves = wv->equation->num_waves;
 
   double cfla = 0.0, cfl = wv->cfl, cflm = 1.1*cfl;
-  double delta[meqn], amdq[meqn], apdq[meqn];
+
+  double ql_local[meqn], qr_local[meqn];
+  double waves_local[meqn*mwaves];
+  double delta[meqn], amdq[meqn], apdq[meqn];  
 
   int idxl[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
 
@@ -280,13 +253,21 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
 
         const double *qinl = gkyl_array_cfetch(qin, lidx);
         const double *qinr = gkyl_array_cfetch(qin, ridx);
-
-        double *waves = gkyl_array_fetch(wv->waves, sidx);
         double *s = gkyl_array_fetch(wv->speeds, sidx);
 
-        calc_jump(meqn, qinl, qinr, delta);
+        // rotate to local tangent-normal frame
+        gkyl_wv_eqn_rotate_to_local(wv->equation, dir, 0, 0, 0, qinl, ql_local);
+        gkyl_wv_eqn_rotate_to_local(wv->equation, dir, 0, 0, 0, qinr, qr_local);
 
-        gkyl_wv_eqn_waves(wv->equation, dir, delta, qinl, qinr, waves, s);
+        calc_jump(meqn, ql_local, qr_local, delta);
+        gkyl_wv_eqn_waves(wv->equation, dir, delta, ql_local, qr_local, waves_local, s);
+
+        double *waves = gkyl_array_fetch(wv->waves, sidx);
+        // rotate waves back to global frame
+        for (int mw=0; mw<mwaves; ++mw)
+          gkyl_wv_eqn_rotate_to_global(wv->equation, dir, 0, 0, 0,
+            &waves_local[mw*meqn], &waves[mw*meqn]);
+        
         gkyl_wv_eqn_qfluct(wv->equation, dir, qinl, qinr, waves, s, amdq, apdq);
 
         double *qoutl = gkyl_array_fetch(qout, lidx);
