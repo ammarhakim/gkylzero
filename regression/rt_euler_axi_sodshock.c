@@ -74,8 +74,8 @@ main(int argc, char **argv)
 
     .ndim = 2,
     // grid in computational space
-    .lower = { 1.0, -0.1 },
-    .upper = { 2.0, 0.1 },
+    .lower = { 1.0, 0.0 },
+    .upper = { 2.0, 2*GKYL_PI },
     .cells = { 128, 4 },
 
     .mapc2p = mapc2p, // mapping of computational to physical space
