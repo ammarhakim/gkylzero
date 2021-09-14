@@ -31,6 +31,36 @@ maxwell_free(const struct gkyl_ref_count *ref)
   gkyl_free(maxwell);
 }
 
+static void
+rot_to_local_rect(int dir, const double *tau1, const double *tau2, const double *norm,
+  const double *qglobal, double *qlocal)
+{
+  const int *d = dir_shuffle[dir];  
+  qlocal[0] = qglobal[EX];
+  qlocal[1] = qglobal[EY];
+  qlocal[2] = qglobal[EZ];
+  qlocal[3] = qglobal[BX];
+  qlocal[4] = qglobal[BY];
+  qlocal[5] = qglobal[BZ];
+  qlocal[6] = qglobal[6];
+  qlocal[7] = qglobal[7];
+}
+
+static void
+rot_to_global_rect(int dir, const double *tau1, const double *tau2, const double *norm,
+  const double *qlocal, double *qglobal)
+{
+  const int *d = dir_shuffle[dir];  
+  qglobal[EX] = qlocal[0];
+  qglobal[EY] = qlocal[1];
+  qglobal[EZ] = qlocal[2];
+  qglobal[BX] = qlocal[3];
+  qglobal[BY] = qlocal[4];
+  qglobal[BZ] = qlocal[5];
+  qglobal[6] = qlocal[6];
+  qglobal[7] = qlocal[7];
+}
+
 // Waves and speeds using Roe averaging
 static double
 wave(const struct gkyl_wv_eqn *eqn, 
@@ -40,19 +70,17 @@ wave(const struct gkyl_wv_eqn *eqn,
 
   double c = maxwell->c, c1 = 1/c;
   double e_fact = maxwell->e_fact, b_fact = maxwell->b_fact;
-  
-  const int *d = dir_shuffle[dir];
     
   // compute projections of jump
   // Note correction potentials are scalars and no dir_shuffle required
-  double a1 = 0.5*(delta[BX]-delta[7]*c1);
-  double a2 = 0.5*(delta[BX]+delta[7]*c1);
-  double a3 = 0.5*(delta[EX]-delta[6]*c);
-  double a4 = 0.5*(delta[EX]+delta[6]*c);
-  double a5 = 0.5*(delta[EY]-delta[BZ]*c);
-  double a6 = 0.5*(delta[BY]*c+delta[EZ]);
-  double a7 = 0.5*(delta[BZ]*c+delta[EY]);
-  double a8 = 0.5*(delta[EZ]-delta[BY]*c);
+  double a1 = 0.5*(delta[3]-delta[7]*c1);
+  double a2 = 0.5*(delta[3]+delta[7]*c1);
+  double a3 = 0.5*(delta[0]-delta[6]*c);
+  double a4 = 0.5*(delta[0]+delta[6]*c);
+  double a5 = 0.5*(delta[1]-delta[5]*c);
+  double a6 = 0.5*(delta[4]*c+delta[2]);
+  double a7 = 0.5*(delta[5]*c+delta[1]);
+  double a8 = 0.5*(delta[2]-delta[4]*c);
 
   // set waves to 0.0 as most entries vanish
   for (int i=0; i<8*6; ++i) waves[i] = 0.0;
@@ -61,42 +89,42 @@ wave(const struct gkyl_wv_eqn *eqn,
 
   // wave 1:
   w = &waves[0*8];
-  w[BX] = a1;
+  w[3] = a1;
   w[7] = -a1*c;
   s[0] = -c*b_fact;
 
   // wave 2:
   w = &waves[1*8];
-  w[BX] = a2;
+  w[3] = a2;
   w[7] = a2*c;
   s[1] = c*b_fact;
 
   // wave 3:
   w = &waves[2*8];
-  w[EX] = a3;
+  w[0] = a3;
   w[6] = -a3*c1;
   s[2] = -c*e_fact;
 
   // wave 4:
   w = &waves[3*8];
-  w[EX] = a4;
+  w[0] = a4;
   w[6] = a4*c1;
   s[3] = c*e_fact;
 
   // wave 5: (two waves with EV -c, -c lumped into one)
   w = &waves[4*8];
-  w[EY] = a5;
-  w[EZ] = a6;
-  w[BY] = a6*c1;
-  w[BZ] = -a5*c1;
+  w[1] = a5;
+  w[2] = a6;
+  w[4] = a6*c1;
+  w[5] = -a5*c1;
   s[4] = -c;
 
   // wave 6: (two waves with EV c, c lumped into one)
   w = &waves[5*8];
-  w[EY] = a7;
-  w[EZ] = a8;
-  w[BY] = -a8*c1;
-  w[BZ] = a7*c1;
+  w[1] = a7;
+  w[2] = a8;
+  w[4] = -a8*c1;
+  w[5] = a7*c1;
   s[5] = c;
   
   return c;
@@ -145,6 +173,8 @@ gkyl_wv_maxwell_new(double c, double e_fact, double b_fact)
   maxwell->eqn.waves_func = wave;
   maxwell->eqn.qfluct_func = qfluct;
   maxwell->eqn.max_speed_func = max_speed;
+  maxwell->eqn.rotate_to_local_func = rot_to_local_rect;
+  maxwell->eqn.rotate_to_global_func = rot_to_global_rect;
 
   maxwell->eqn.ref_count = (struct gkyl_ref_count) { maxwell_free, 1 };
 

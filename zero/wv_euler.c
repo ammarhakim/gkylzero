@@ -58,7 +58,6 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   int dir, const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
   const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
-  const int *d = dir_shuffle[dir];
   double gas_gamma = euler->gas_gamma;
   double g1 = gas_gamma - 1;
 

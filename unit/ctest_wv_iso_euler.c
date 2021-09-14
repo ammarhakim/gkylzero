@@ -56,15 +56,24 @@ test_iso_euler_waves()
   double vr[4] = { 0.1, 1.0, 2.0, 3.0};
 
   double ql[4], qr[4];
+  double ql_local[4], qr_local[4];
   calcq(vl, ql); calcq(vr, qr);
 
-  double delta[4];
-  for (int i=0; i<4; ++i) delta[i] = qr[i]-ql[i];
-
   for (int d=0; d<3; ++d) {
-    double speeds[3], waves[3*4];
-    gkyl_wv_eqn_waves(iso_euler, d, delta, ql, qr, waves, speeds);
+    double speeds[3], waves[3*4], waves_local[3*4];
+    // rotate to local tangent-normal frame
+    gkyl_wv_eqn_rotate_to_local(iso_euler, d, 0, 0, 0, ql, ql_local);
+    gkyl_wv_eqn_rotate_to_local(iso_euler, d, 0, 0, 0, qr, qr_local);
 
+    double delta[5];
+    for (int i=0; i<5; ++i) delta[i] = qr_local[i]-ql_local[i];
+    
+    gkyl_wv_eqn_waves(iso_euler, d, delta, ql_local, qr_local, waves_local, speeds);
+
+    // rotate waves back to global frame
+    for (int mw=0; mw<3; ++mw)
+      gkyl_wv_eqn_rotate_to_global(iso_euler, d, 0, 0, 0, &waves_local[mw*4], &waves[mw*4]);
+    
     double apdq[4], amdq[4];
     gkyl_wv_eqn_qfluct(iso_euler, d, ql, qr, waves, speeds, amdq, apdq);
     
@@ -90,14 +99,23 @@ test_iso_euler_waves_2()
   double vr[4] = { 0.01, 1.0, 2.0, 3.0};
 
   double ql[4], qr[4];
+  double ql_local[4], qr_local[4];
   calcq(vl, ql); calcq(vr, qr);
 
-  double delta[4];
-  for (int i=0; i<4; ++i) delta[i] = qr[i]-ql[i];
-
   for (int d=0; d<3; ++d) {
-    double speeds[3], waves[3*4];
-    gkyl_wv_eqn_waves(iso_euler, d, delta, ql, qr, waves, speeds);
+    double speeds[3], waves[3*4], waves_local[3*4];
+    // rotate to local tangent-normal frame
+    gkyl_wv_eqn_rotate_to_local(iso_euler, d, 0, 0, 0, ql, ql_local);
+    gkyl_wv_eqn_rotate_to_local(iso_euler, d, 0, 0, 0, qr, qr_local);
+
+    double delta[5];
+    for (int i=0; i<5; ++i) delta[i] = qr_local[i]-ql_local[i];
+    
+    gkyl_wv_eqn_waves(iso_euler, d, delta, ql_local, qr_local, waves_local, speeds);
+
+    // rotate waves back to global frame
+    for (int mw=0; mw<3; ++mw)
+      gkyl_wv_eqn_rotate_to_global(iso_euler, d, 0, 0, 0, &waves_local[mw*4], &waves[mw*4]);
 
     double apdq[4], amdq[4];
     gkyl_wv_eqn_qfluct(iso_euler, d, ql, qr, waves, speeds, amdq, apdq);
