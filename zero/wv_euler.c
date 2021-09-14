@@ -28,9 +28,9 @@ euler_free(const struct gkyl_ref_count *ref)
   gkyl_free(euler);
 }
 
-static void
+static inline void
 rot_to_local_rect(int dir, const double *tau1, const double *tau2, const double *norm,
-  const double *qglobal, double *qlocal)
+  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
 {
   const int *d = dir_shuffle[dir];  
   qlocal[0] = qglobal[0];
@@ -40,9 +40,9 @@ rot_to_local_rect(int dir, const double *tau1, const double *tau2, const double 
   qlocal[4] = qglobal[4];
 }
 
-static void
+static inline void
 rot_to_global_rect(int dir, const double *tau1, const double *tau2, const double *norm,
-  const double *qlocal, double *qglobal)
+  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
 {
   const int *d = dir_shuffle[dir];  
   qglobal[0] = qlocal[0];

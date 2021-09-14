@@ -2,6 +2,7 @@
 
 #include <gkyl_eqn_type.h>
 #include <gkyl_ref_count.h>
+#include <gkyl_util.h>
 
 // Forward declare for use in function pointers
 struct gkyl_wv_eqn;
@@ -113,7 +114,7 @@ double gkyl_wv_eqn_max_speed(const struct gkyl_wv_eqn *eqn, int dir, const doubl
  */
 void gkyl_wv_eqn_rotate_to_local(const struct gkyl_wv_eqn* eqn,
   int dir,  const double *tau1, const double *tau2, const double *norm,
-  const double *qglobal, double *qlocal);
+  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal);
 
 /**
  * Rotate state (conserved/primitive) vector to global coordinate frame.
@@ -128,7 +129,7 @@ void gkyl_wv_eqn_rotate_to_local(const struct gkyl_wv_eqn* eqn,
  */
 void gkyl_wv_eqn_rotate_to_global(const struct gkyl_wv_eqn* eqn,
   int dir,  const double *tau1, const double *tau2, const double *norm,
-  const double *qlocal, double *qglobal);
+  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal);
 
 /**
  * Delete equation object

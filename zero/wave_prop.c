@@ -108,7 +108,7 @@ gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp)
   up->flux2 = gkyl_array_new(GKYL_DOUBLE, meqn, max_1d);
 
   // construct geometry
-  up->geom = gkyl_wave_geom_new(&up->grid, &ext_range, 0, 0);
+  up->geom = gkyl_wave_geom_new(&up->grid, &ext_range, winp.mapc2p, winp.ctx);
 
   return up;
 }

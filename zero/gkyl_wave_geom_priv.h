@@ -3,8 +3,9 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_evalf_def.h>
+#include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_wave_geom.h>
+#include <gkyl_wave_geom_priv.h>
 
 /**
  * Create a new wave geometry object. 
