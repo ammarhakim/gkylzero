@@ -7,7 +7,6 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_util.h>
 #include <gkyl_wave_geom.h>
-#include <gkyl_wave_geom_priv.h>
 #include <gkyl_wave_prop.h>
 
 struct gkyl_wave_prop {

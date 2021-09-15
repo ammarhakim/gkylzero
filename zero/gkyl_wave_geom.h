@@ -1,10 +1,48 @@
 #pragma once
 
-// Object type of geometry
-typedef struct gkyl_wave_geom gkyl_wave_geom;
+#include <gkyl_array.h>
+#include <gkyl_evalf_def.h>
+#include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
+#include <gkyl_util.h>
+
+// Geometry information for a single cell: recall a cell "owns" the
+// faces on the lower side of cell
+struct gkyl_wave_cell_geom {
+  double kappa; // ratio of cell-volume in phy to comp space
+  double lenr[GKYL_MAX_CDIM]; // ratio of face-area in phys to comp space for "lower" faces
+  double norm[GKYL_MAX_CDIM][GKYL_MAX_CDIM]; // norm[d] is the normal to face perp to direction 'd'
+  // tau1[d] X tau2[d] = norm[d] are tangents to face perp to direction 'd'
+  double tau1[GKYL_MAX_CDIM][GKYL_MAX_CDIM];
+  double tau2[GKYL_MAX_CDIM][GKYL_MAX_CDIM];
+};
+
+// geometry information over a range of cells
+struct gkyl_wave_geom {
+  struct gkyl_range range; // range over which geometry is defined
+  struct gkyl_array *geom; // geometry in each cell
+};
+
+/**
+ * Create a new wave geometry object. 
+ *
+ * @param grid Grid on which geometry lives
+ * @param range Range on which geometry should be constructed
+ * @param mapc2p Mapping from computational to physical space
+ * @param ctx Context for use in mapping
+ */
+struct gkyl_wave_geom* gkyl_wave_geom_new(const struct gkyl_rect_grid *grid,
+  struct gkyl_range *range, evalf_t mapc2p, void *ctx);
 
 /**
  * Set index into the geometry object. This method must be called
  * before any geometry information is actuall accessed.
  */
-void gkyl_wave_geom_set_idx(const gkyl_wave_geom *wg, const int *idx);
+void gkyl_wave_geom_set_idx(const struct gkyl_wave_geom *wg, const int *idx);
+
+/**
+ * Release geometry object.
+ *
+ * @param wg Wave geometry object to release.
+ */
+void gkyl_wave_geom_release(struct gkyl_wave_geom *wg);
