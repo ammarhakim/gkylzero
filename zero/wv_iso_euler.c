@@ -108,7 +108,7 @@ gkyl_wv_iso_euler_new(double vt)
 {
   struct wv_iso_euler *iso_euler = gkyl_malloc(sizeof(struct wv_iso_euler));
 
-  iso_euler->eqn.type = GKYL_ISO_EULER;
+  iso_euler->eqn.type = GKYL_EQN_ISO_EULER;
   iso_euler->eqn.num_equations = 4;
   iso_euler->eqn.num_waves = 3;
   iso_euler->vt = vt;

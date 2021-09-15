@@ -28,7 +28,7 @@ gkyl_vlasov_set_qmem(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qme
 
 struct gkyl_dg_eqn*
 gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range)
+  const struct gkyl_range* conf_range, enum gkyl_field_id field_id)
 {
   struct dg_vlasov *vlasov = gkyl_malloc(sizeof(struct dg_vlasov));
 
@@ -43,9 +43,9 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   vlasov->eqn.surf_term = surf;
   vlasov->eqn.boundary_surf_term = boundary_surf;
 
-  const gkyl_dg_vlasov_steam_vol_kern_list *stream_vol_kernels;
+  const gkyl_dg_vlasov_stream_vol_kern_list *stream_vol_kernels;
   const gkyl_dg_vlasov_vol_kern_list *vol_kernels;
-  const gkyl_dg_vlasov_steam_surf_kern_list *stream_surf_x_kernels, *stream_surf_y_kernels, *stream_surf_z_kernels;
+  const gkyl_dg_vlasov_stream_surf_kern_list *stream_surf_x_kernels, *stream_surf_y_kernels, *stream_surf_z_kernels;
   const gkyl_dg_vlasov_accel_surf_kern_list *accel_surf_vx_kernels, *accel_surf_vy_kernels, *accel_surf_vz_kernels;
   const gkyl_dg_vlasov_accel_boundary_surf_kern_list *accel_boundary_surf_vx_kernels, *accel_boundary_surf_vy_kernels,
     *accel_boundary_surf_vz_kernels;
@@ -84,8 +84,10 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
       assert(false);
       break;    
   }  
-
-  vlasov->vol = CK(vol_kernels,cdim,vdim,poly_order);
+  if (field_id == GKYL_FIELD_NULL)
+    vlasov->vol = CK(stream_vol_kernels,cdim,vdim,poly_order);
+  else
+    vlasov->vol = CK(vol_kernels,cdim,vdim,poly_order);
 
   vlasov->stream_surf[0] = CK(stream_surf_x_kernels,cdim,vdim,poly_order);
   if (cdim>1)
@@ -111,7 +113,7 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   for (int i=0; i<vdim; ++i) assert(vlasov->accel_surf[i]);
   for (int i=0; i<vdim; ++i) assert(vlasov->accel_boundary_surf[i]);
 
-  vlasov->qmem = 0; 
+  vlasov->qmem = 0;  
   vlasov->conf_range = *conf_range;
 
   // set reference counter
@@ -124,7 +126,7 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
 
 struct gkyl_dg_eqn*
 gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range)
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, enum gkyl_field_id field_id)
 {
   assert(false);
   return 0;

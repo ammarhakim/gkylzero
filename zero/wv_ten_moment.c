@@ -230,7 +230,7 @@ gkyl_wv_ten_moment_new()
 {
   struct wv_ten_moment *ten_moment = gkyl_malloc(sizeof(struct wv_ten_moment));
 
-  ten_moment->eqn.type = GKYL_TEN_MOMENT;
+  ten_moment->eqn.type = GKYL_EQN_TEN_MOMENT;
   ten_moment->eqn.num_equations = 10;
   ten_moment->eqn.num_waves = 5;
   ten_moment->eqn.waves_func = wave_roe;

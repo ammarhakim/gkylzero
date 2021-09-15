@@ -13,6 +13,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: install-superlu
+      run: cd install-deps; ./mkdeps.sh  --build-superlu=yes; cd ..    
     - name: make
       run: make -j
     - name: make check

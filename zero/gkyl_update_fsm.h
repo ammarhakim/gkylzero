@@ -46,7 +46,24 @@ struct gkyl_update_fsm {
 };
 
 /**
- * Allocate a new FSM update sequence object.
+ * Allocate a new FSM update sequence object. Actions specified in the
+ * @a actions list are run in the order specified (unless whole
+ * sequence needs to be redone, in which case the @ redo action is
+ * performed before re-running the whole sequence again).
+ * 
+ * @param nactions Number of actions
+ * @param actions List of actions
+ * @param ntransitions Number of transitions
+ * @param redo Default redo action  on transition to redo state
+ * @return New FSM update object
+ */
+struct gkyl_update_fsm* gkyl_update_fsm_new(int nactions, struct gkyl_update_fsm_action actions[],
+  struct gkyl_update_fsm_action redo);
+
+/**
+ * Allocate a new FSM update sequence object. This constructor allows
+ * an arbitrary transition table to be specified (in addition to the
+ * actions). Actions are run depending on transition table.
  * 
  * @param nactions Number of actions
  * @param actions List of actions
@@ -55,9 +72,10 @@ struct gkyl_update_fsm {
  * @param redo Default redo action  on transition to redo state
  * @return New FSM update object
  */
-struct gkyl_update_fsm* gkyl_update_fsm_new(int nactions, struct gkyl_update_fsm_action actions[],
+struct gkyl_update_fsm* gkyl_update_fsm_with_transitions_new(int nactions, struct gkyl_update_fsm_action actions[],
   int ntransitions, struct gkyl_update_fsm_transition *transitions,
   struct gkyl_update_fsm_action redo);
+
 
 /**
  * Given a update sequence, run it till sequence completes, returning

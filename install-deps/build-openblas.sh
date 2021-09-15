@@ -11,7 +11,7 @@ mkdir -p $DEP_SOURCES
 cd $DEP_SOURCES
 
 # delete old checkout and builds
-rm -rf cln-*
+rm -rf OpenBLAS-*
 
 curl -L https://github.com/xianyi/OpenBLAS/releases/download/v0.3.15/OpenBLAS-0.3.15.tar.gz > OpenBLAS-0.3.15.tar.gz
 gunzip -f OpenBLAS-0.3.15.tar.gz
