@@ -52,6 +52,28 @@ rot_to_global_rect(int dir, const double *tau1, const double *tau2, const double
   qglobal[4] = qlocal[4];
 }
 
+static inline void
+rot_to_local(int dir, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
+{
+  qlocal[0] = qglobal[0];
+  qlocal[1] = qglobal[1]*norm[0] + qglobal[2]*norm[1] + qglobal[3]*norm[2];
+  qlocal[2] = qglobal[1]*tau1[0] + qglobal[2]*tau1[1] + qglobal[3]*tau1[2];
+  qlocal[3] = qglobal[1]*tau2[0] + qglobal[2]*tau2[1] + qglobal[3]*tau2[2];
+  qlocal[4] = qglobal[4];
+}
+
+static inline void
+rot_to_global(int dir, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
+{
+  qglobal[0] = qlocal[0];
+  qglobal[1] = qlocal[1]*norm[0] + qlocal[2]*tau1[0] + qlocal[3]*tau2[0];
+  qglobal[2] = qlocal[1]*norm[1] + qlocal[2]*tau1[1] + qlocal[3]*tau2[1];
+  qglobal[3] = qlocal[1]*norm[2] + qlocal[2]*tau1[2] + qlocal[3]*tau2[2];
+  qglobal[4] = qlocal[4];
+}
+
 // Waves and speeds using Roe averaging
 static double
 wave_roe(const struct gkyl_wv_eqn *eqn, 

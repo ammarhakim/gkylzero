@@ -61,6 +61,40 @@ rot_to_global_rect(int dir, const double *tau1, const double *tau2, const double
   qglobal[7] = qlocal[7];
 }
 
+static inline void
+rot_to_local(int dir, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
+{
+  // Rotate E to local coordinates
+  qlocal[0] = qglobal[0]*norm[0] + qglobal[1]*norm[1] + qglobal[2]*norm[2];
+  qlocal[1] = qglobal[0]*tau1[0] + qglobal[1]*tau1[1] + qglobal[2]*tau1[2];
+  qlocal[2] = qglobal[0]*tau2[0] + qglobal[1]*tau2[1] + qglobal[2]*tau2[2];
+  // Rotate B to local coordinates
+  qlocal[3] = qglobal[3]*norm[0] + qglobal[4]*norm[1] + qglobal[5]*norm[2];
+  qlocal[4] = qglobal[3]*tau1[0] + qglobal[4]*tau1[1] + qglobal[5]*tau1[2];
+  qlocal[5] = qglobal[3]*tau2[0] + qglobal[4]*tau2[1] + qglobal[5]*tau2[2];
+  // Correction potentials are scalars and unchanged
+  qlocal[6] = qglobal[6];
+  qlocal[7] = qglobal[7];
+}
+
+static inline void
+rot_to_global(int dir, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
+{
+  // Rotate E back to global coordinates
+  qglobal[0] = qlocal[0]*norm[0] + qlocal[1]*tau1[0] + qlocal[2]*tau2[0];
+  qglobal[1] = qlocal[0]*norm[1] + qlocal[1]*tau1[1] + qlocal[2]*tau2[1];
+  qglobal[2] = qlocal[0]*norm[2] + qlocal[1]*tau1[2] + qlocal[2]*tau2[2];
+  // Rotate B back to global coordinates
+  qglobal[3] = qlocal[3]*norm[0] + qlocal[4]*tau1[0] + qlocal[5]*tau2[0];
+  qglobal[4] = qlocal[3]*norm[1] + qlocal[4]*tau1[1] + qlocal[5]*tau2[1];
+  qglobal[5] = qlocal[3]*norm[2] + qlocal[4]*tau1[2] + qlocal[5]*tau2[2];
+  // Correction potentials are scalars and unchanged
+  qglobal[6] = qlocal[6];
+  qglobal[7] = qlocal[7];
+}
+
 // Waves and speeds using Roe averaging
 static double
 wave(const struct gkyl_wv_eqn *eqn, 
