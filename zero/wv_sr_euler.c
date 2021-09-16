@@ -61,15 +61,15 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   const struct wv_sr_euler *sr_euler = container_of(eqn, struct wv_sr_euler, eqn);
   double vl[5], vr[5];
   double gas_gamma = sr_euler->gas_gamma;
-  double g1 = gas_gamma - 1;
+  double g1 = gas_gamma - 1.;
   double gFrac = gas_gamma/g1;
 
   // Get prim variables rho, p, u, v, w. 
   gkyl_sr_euler_prim_vars(gas_gamma, ql, vl);
   gkyl_sr_euler_prim_vars(gas_gamma, qr, vr);
-  double gammal = 1 / sqrt(1 - (vl[2]*vl[2] + vl[3]*vl[3] + vl[4]*vl[4]));
+  double gammal = 1. / sqrt(1. - (vl[2]*vl[2] + vl[3]*vl[3] + vl[4]*vl[4]));
   double pl = vl[1];
-  double gammar = 1 / sqrt(1 - (vr[2]*vr[2] + vr[3]*vr[3] + vr[4]*vr[4]));
+  double gammar = 1. / sqrt(1. - (vr[2]*vr[2] + vr[3]*vr[3] + vr[4]*vr[4]));
   double pr = vr[1];
 		    
   //Equation numbers in all of the following follows Eulderink AASS 110, 587 (1995)
@@ -77,13 +77,13 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   //double Kl = sqrt(rhol + gFrac*pl),  Kr = sqrt(rhor + gFrac*pr); //sqrt(10.3)
    
   double Kl = sqrt(ql[1] + pl) / gammal,  Kr = sqrt(qr[1] + pr) / gammar;  //sqrt(10.3)
-  double ravgK = 1/(Kl + Kr);
+  double ravgK = 1./(Kl + Kr);
   double v0 = (Kl*gammal + Kr*gammar)*ravgK; //10.7
   double v1 = (Kl*gammal*vl[2] + Kr*gammar*vr[2])*ravgK;
   double v2 = (Kl*gammal*vl[3] + Kr*gammar*vr[3])*ravgK;  
   double v3 = (Kl*gammal*vl[4] + Kr*gammar*vr[4])*ravgK;
   double v4 = (pl/Kl + pr/Kr)*ravgK;
-  double cm = 1 - gFrac*v4, cp = 1 + gFrac*v4;
+  double cm = 1. - gFrac*v4, cp = 1. + gFrac*v4;
   
   double vava = -v0*v0 + v1*v1 + v2*v2 + v3*v3; //v_alpha v^alpha
 
@@ -95,9 +95,9 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   // Compute projections of jump, Eq 10.16
   double k = v0*delta[1] - v1*delta[2];
   double vada = -v0*delta[1] + v1*delta[2] + v2*delta[3] + v3*delta[4]; // v_alpha Delta^alpha
-  double a1 = -(s2*k + sqrt(s2)*y*(v0*delta[2] - v1*delta[1]) + g1*e*(delta[0]+cp*vada))/(2*e*s2);
-  double a2 = -(s2*k - sqrt(s2)*y*(v0*delta[2] - v1*delta[1]) + g1*e*(delta[0]+cp*vada))/(2*e*s2);
-  double a3 = (2*s2*k + g1*e*(delta[0]+cp*vada))/(e*s2);
+  double a1 = -(s2*k + sqrt(s2)*y*(v0*delta[2] - v1*delta[1]) + g1*e*(delta[0]+cp*vada))/(2.*e*s2);
+  double a2 = -(s2*k - sqrt(s2)*y*(v0*delta[2] - v1*delta[1]) + g1*e*(delta[0]+cp*vada))/(2.*e*s2);
+  double a3 = (2.*s2*k + g1*e*(delta[0]+cp*vada))/(e*s2);
   double a4 = delta[3] - k*v2 / e;
   double a5 = delta[4] - k*v3 / e;
 
@@ -109,7 +109,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   wv[2] = a1*(v1-sqrt(s2)*v0/y);
   wv[3] = a1*v2;
   wv[4] = a1*v3;
-  s[0] = ((1-gas_gamma*v4)*v0*v1 - sqrt(s2)*y)/((1-gas_gamma*v4)*v0*v0+s2);//10.12
+  s[0] = ((1.-gas_gamma*v4)*v0*v1 - sqrt(s2)*y)/((1.-gas_gamma*v4)*v0*v0+s2);//10.12
 
   // Wave 2: eigenvalue is u, u, u three waves are lumped into one
   wv = &waves[5];
@@ -127,9 +127,9 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   wv[2] = a2*(v1+sqrt(s2)*v0/y);
   wv[3] = a2*v2;
   wv[4] = a2*v3;;
-  s[2] = ((1-gas_gamma*v4)*v0*v1 + sqrt(s2)*y)/((1-gas_gamma*v4)*v0*v0+s2);//10.12
+  s[2] = ((1.-gas_gamma*v4)*v0*v1 + sqrt(s2)*y)/((1.-gas_gamma*v4)*v0*v0+s2);//10.12
   
-  return ((1-gas_gamma*v4)*v0*fabs(v1) - sqrt(s2)*y)/((1-gas_gamma*v4)*v0*v0+s2);
+  return ((1.-gas_gamma*v4)*v0*fabs(v1) + sqrt(s2)*y)/((1.-gas_gamma*v4)*v0*v0+s2);
 }
 
 static void

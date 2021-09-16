@@ -15,17 +15,20 @@ static inline void gkyl_sr_euler_prim_vars(double gas_gamma, const double q[5], 
   double us=0., vs=0., ws=0., q2s = 0., cs2 = 0.;
   double gammas=0., rhos=0., rhoEpss = 0., fs = 0., dfs = 0., fac0 = 1.;
   double g1 = gas_gamma - 1;
-  double ps = 1., ps2 = 1.e6; 
+  double ps = 0., ps2 = 1.; 
   double tol = 1.e-6;
-
+  // int iter = 0;
   
   while (fabs(ps2 - ps) > tol) {
+    // iter += 1;
+    // printf("Iteration %i \n", iter);
+    ps = ps2;
     fac0 = q[1] + ps;
     us = q[2] / fac0;  
     vs = q[3] / fac0;
     ws = q[4] / fac0;
     q2s = us*us + vs*vs + ws*ws;
-    gammas = 1 / sqrt(1 - q2s);
+    gammas = 1. / sqrt(1. - q2s);
     
     rhos = q[0] / gammas;
     
@@ -37,9 +40,10 @@ static inline void gkyl_sr_euler_prim_vars(double gas_gamma, const double q[5], 
     dfs = q2s*cs2 - 1; //eqn 60 for df / dp
 
     ps2 = ps - fs / dfs;
+   
 
   }
-
+  
   fac0 = q[1] + ps2;
   us = q[2] / fac0;  
   vs = q[3] / fac0;
