@@ -45,6 +45,7 @@ extern "C" {
 #include <gkyl_vargm.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_vlasov_mom.h>
+#include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wv_euler.h>

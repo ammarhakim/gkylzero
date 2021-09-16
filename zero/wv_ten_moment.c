@@ -57,14 +57,47 @@ ten_moment_free(const struct gkyl_ref_count *ref)
   gkyl_free(ten_moment);
 }
 
+static void
+rot_to_local_rect(int dir, const double *tau1, const double *tau2, const double *norm,
+  const double *qglobal, double *qlocal)
+{
+  const int *d = dir_u_shuffle[dir];
+  const int *dp = dir_p_shuffle[dir];  
+  qlocal[0] = qglobal[0];
+  qlocal[1] = qglobal[RHOU];
+  qlocal[2] = qglobal[RHOV];
+  qlocal[3] = qglobal[RHOW];
+  qlocal[4] = qglobal[PXX];
+  qlocal[5] = qglobal[PXY];
+  qlocal[6] = qglobal[PXZ];
+  qlocal[7] = qglobal[PYY];
+  qlocal[8] = qglobal[PYZ];
+  qlocal[9] = qglobal[PZZ];
+}
+
+static void
+rot_to_global_rect(int dir, const double *tau1, const double *tau2, const double *norm,
+  const double *qlocal, double *qglobal)
+{
+  const int *d = dir_u_shuffle[dir];
+  const int *dp = dir_p_shuffle[dir];   
+  qglobal[0] = qlocal[0];
+  qglobal[RHOU] = qlocal[1];
+  qglobal[RHOV] = qlocal[2];
+  qglobal[RHOW] = qlocal[3];
+  qglobal[PXX] = qlocal[4];
+  qglobal[PXY] = qlocal[5];
+  qglobal[PXZ] = qlocal[6];
+  qglobal[PYY] = qlocal[7];
+  qglobal[PYZ] = qlocal[8];
+  qglobal[PZZ] = qlocal[9];
+}
+
 // Waves and speeds using Roe averaging
 static double
 wave_roe(const struct gkyl_wv_eqn *eqn, 
   int dir, const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
-  const int *d = dir_u_shuffle[dir];
-  const int *dp = dir_p_shuffle[dir];
-
   double vl[10], vr[10];
   gkyl_ten_moment_primitive(ql, vl);
   gkyl_ten_moment_primitive(qr, vr);
@@ -76,19 +109,19 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   double p0 = sqrl*sqrr;
   double p2s1 = sq(p0*sqr1);
   
-  double u1 = (sqrl*vl[RHOU] + sqrr*vr[RHOU])*sqr1;
-  double u2 = (sqrl*vl[RHOV] + sqrr*vr[RHOV])*sqr1;
-  double u3 = (sqrl*vl[RHOW] + sqrr*vr[RHOW])*sqr1;
-  double p11 = (sqrr*vl[PXX]+sqrl*vr[PXX])*sqr1 + 1.0/3.0*p2s1*(vr[RHOU]-vl[RHOU])*(vr[RHOU]-vl[RHOU]);
-  double p12 = (sqrr*vl[PXY]+sqrl*vr[PXY])*sqr1 + 1.0/3.0*p2s1*(vr[RHOU]-vl[RHOU])*(vr[RHOV]-vl[RHOV]);
-  double p13 = (sqrr*vl[PXZ]+sqrl*vr[PXZ])*sqr1 + 1.0/3.0*p2s1*(vr[RHOU]-vl[RHOU])*(vr[RHOW]-vl[RHOW]);
-  double p22 = (sqrr*vl[PYY]+sqrl*vr[PYY])*sqr1 + 1.0/3.0*p2s1*(vr[RHOV]-vl[RHOV])*(vr[RHOV]-vl[RHOV]);
-  double p23 = (sqrr*vl[PYZ]+sqrl*vr[PYZ])*sqr1 + 1.0/3.0*p2s1*(vr[RHOV]-vl[RHOV])*(vr[RHOW]-vl[RHOW]);
-  double p33 = (sqrr*vl[PZZ]+sqrl*vr[PZZ])*sqr1 + 1.0/3.0*p2s1*(vr[RHOW]-vl[RHOW])*(vr[RHOW]-vl[RHOW]);
+  double u1 = (sqrl*vl[1] + sqrr*vr[1])*sqr1;
+  double u2 = (sqrl*vl[2] + sqrr*vr[2])*sqr1;
+  double u3 = (sqrl*vl[3] + sqrr*vr[3])*sqr1;
+  double p11 = (sqrr*vl[4]+sqrl*vr[4])*sqr1 + 1.0/3.0*p2s1*(vr[1]-vl[1])*(vr[1]-vl[1]);
+  double p12 = (sqrr*vl[5]+sqrl*vr[5])*sqr1 + 1.0/3.0*p2s1*(vr[1]-vl[1])*(vr[2]-vl[2]);
+  double p13 = (sqrr*vl[6]+sqrl*vr[6])*sqr1 + 1.0/3.0*p2s1*(vr[1]-vl[1])*(vr[3]-vl[3]);
+  double p22 = (sqrr*vl[7]+sqrl*vr[7])*sqr1 + 1.0/3.0*p2s1*(vr[2]-vl[2])*(vr[2]-vl[2]);
+  double p23 = (sqrr*vl[8]+sqrl*vr[8])*sqr1 + 1.0/3.0*p2s1*(vr[2]-vl[2])*(vr[3]-vl[3]);
+  double p33 = (sqrr*vl[9]+sqrl*vr[9])*sqr1 + 1.0/3.0*p2s1*(vr[3]-vl[3])*(vr[3]-vl[3]);
 
   // for multiplication by phi' we need to use unrotated values
   double v[4];
-  v[RHOU] = u1; v[RHOV] = u2; v[RHOW] = u3;
+  v[1] = u1; v[2] = u2; v[3] = u3;
 
   double phiDelta[10];
 
@@ -96,15 +129,15 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   // jumps are in conserved variables, while left eigenvectors used
   // below are computed from primitive variables
   phiDelta[0] = delta[0];
-  phiDelta[1] = delta[RHOU]/p0-(1.0*delta[0]*u1)/p0; 
-  phiDelta[2] = delta[RHOV]/p0-(1.0*delta[0]*u2)/p0; 
-  phiDelta[3] = delta[RHOW]/p0-(1.0*delta[0]*u3)/p0; 
-  phiDelta[4] = delta[0]*sq(u1)-2.0*delta[RHOU]*u1+delta[PXX]; 
-  phiDelta[5] = delta[0]*u1*u2-1.0*delta[RHOU]*u2-1.0*delta[RHOV]*u1+delta[PXY]; 
-  phiDelta[6] = delta[0]*u1*u3-1.0*delta[RHOU]*u3-1.0*delta[RHOW]*u1+delta[PXZ]; 
-  phiDelta[7] = delta[0]*sq(u2)-2.0*delta[RHOV]*u2+delta[PYY]; 
-  phiDelta[8] = delta[0]*u2*u3-1.0*delta[RHOV]*u3-1.0*delta[RHOW]*u2+delta[PYZ]; 
-  phiDelta[9] = delta[0]*sq(u3)-2.0*delta[RHOW]*u3+delta[PZZ];
+  phiDelta[1] = delta[1]/p0-(1.0*delta[0]*u1)/p0; 
+  phiDelta[2] = delta[2]/p0-(1.0*delta[0]*u2)/p0; 
+  phiDelta[3] = delta[3]/p0-(1.0*delta[0]*u3)/p0; 
+  phiDelta[4] = delta[0]*sq(u1)-2.0*delta[1]*u1+delta[4]; 
+  phiDelta[5] = delta[0]*u1*u2-1.0*delta[1]*u2-1.0*delta[2]*u1+delta[5]; 
+  phiDelta[6] = delta[0]*u1*u3-1.0*delta[1]*u3-1.0*delta[3]*u1+delta[6]; 
+  phiDelta[7] = delta[0]*sq(u2)-2.0*delta[2]*u2+delta[7]; 
+  phiDelta[8] = delta[0]*u2*u3-1.0*delta[2]*u3-1.0*delta[3]*u2+delta[8]; 
+  phiDelta[9] = delta[0]*sq(u3)-2.0*delta[3]*u3+delta[9];
 
   // predefine some constants
   double p11sq = sq(p11), p12sq = sq(p12), p13sq = sq(p13), p11th = sqrt(p11*p11*p11);
@@ -129,75 +162,75 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   // Wave 1: (ev 1 and 2 are repeated)
   s[0] = u1-sqrt(p11/p0);
   wv[0] = 0.0; 
-  wv[RHOU] = 0.0; 
-  wv[RHOV] = -(1.0*leftProj[0]*sqp11)/sqp0; 
-  wv[RHOW] = -(1.0*leftProj[1]*sqp11)/sqp0; 
-  wv[PXX] = 0.0; 
-  wv[PXY] = leftProj[0]*p11; 
-  wv[PXZ] = leftProj[1]*p11; 
-  wv[PYY] = 2.0*leftProj[0]*p12; 
-  wv[PYZ] = leftProj[0]*p13+leftProj[1]*p12; 
-  wv[PZZ] = 2.0*leftProj[1]*p13;
+  wv[1] = 0.0; 
+  wv[2] = -(1.0*leftProj[0]*sqp11)/sqp0; 
+  wv[3] = -(1.0*leftProj[1]*sqp11)/sqp0; 
+  wv[4] = 0.0; 
+  wv[5] = leftProj[0]*p11; 
+  wv[6] = leftProj[1]*p11; 
+  wv[7] = 2.0*leftProj[0]*p12; 
+  wv[8] = leftProj[0]*p13+leftProj[1]*p12; 
+  wv[9] = 2.0*leftProj[1]*p13;
 
   mulByPhiPrime(p0, v[1], v[2], v[3], wv, &waves[0]);
 
   // Wave 2: (ev 3 and 4 are repeated)
   s[1] = u1+sqrt(p11/p0);
   wv[0] = 0.0; 
-  wv[RHOU] = 0.0; 
-  wv[RHOV] = (leftProj[2]*sqp11)/sqp0; 
-  wv[RHOW] = (leftProj[3]*sqp11)/sqp0; 
-  wv[PXX] = 0.0; 
-  wv[PXY] = leftProj[2]*p11; 
-  wv[PXZ] = leftProj[3]*p11; 
-  wv[PYY] = 2.0*leftProj[2]*p12; 
-  wv[PYZ] = leftProj[2]*p13+leftProj[3]*p12; 
-  wv[PZZ] = 2.0*leftProj[3]*p13;
+  wv[1] = 0.0; 
+  wv[2] = (leftProj[2]*sqp11)/sqp0; 
+  wv[3] = (leftProj[3]*sqp11)/sqp0; 
+  wv[4] = 0.0; 
+  wv[5] = leftProj[2]*p11; 
+  wv[6] = leftProj[3]*p11; 
+  wv[7] = 2.0*leftProj[2]*p12; 
+  wv[8] = leftProj[2]*p13+leftProj[3]*p12; 
+  wv[9] = 2.0*leftProj[3]*p13;
 
   mulByPhiPrime(p0, v[1], v[2], v[3], wv, &waves[10]);
   
   // Wave 3 (ev 5)
   s[2] = u1-sqrt(3*p11/p0);
   wv[0] = leftProj[4]*p0*p11; 
-  wv[RHOU] = -(1.732050807568877*leftProj[4]*p11th)/sqp0; 
-  wv[RHOV] = -(1.732050807568877*leftProj[4]*sqp11*p12)/sqp0; 
-  wv[RHOW] = -(1.732050807568877*leftProj[4]*sqp11*p13)/sqp0; 
-  wv[PXX] = 3.0*leftProj[4]*p11sq; 
-  wv[PXY] = 3.0*leftProj[4]*p11*p12; 
-  wv[PXZ] = 3.0*leftProj[4]*p11*p13; 
-  wv[PYY] = leftProj[4]*p11*p22+2.0*leftProj[4]*p12sq; 
-  wv[PYZ] = leftProj[4]*p11*p23+2.0*leftProj[4]*p12*p13; 
-  wv[PZZ] = leftProj[4]*p11*p33+2.0*leftProj[4]*p13sq;
+  wv[1] = -(1.732050807568877*leftProj[4]*p11th)/sqp0; 
+  wv[2] = -(1.732050807568877*leftProj[4]*sqp11*p12)/sqp0; 
+  wv[3] = -(1.732050807568877*leftProj[4]*sqp11*p13)/sqp0; 
+  wv[4] = 3.0*leftProj[4]*p11sq; 
+  wv[5] = 3.0*leftProj[4]*p11*p12; 
+  wv[6] = 3.0*leftProj[4]*p11*p13; 
+  wv[7] = leftProj[4]*p11*p22+2.0*leftProj[4]*p12sq; 
+  wv[8] = leftProj[4]*p11*p23+2.0*leftProj[4]*p12*p13; 
+  wv[9] = leftProj[4]*p11*p33+2.0*leftProj[4]*p13sq;
 
   mulByPhiPrime(p0, v[1], v[2], v[3], wv, &waves[20]);
 
   // Wave 4 (ev 6)
   s[3] = u1+sqrt(3*p11/p0);
   wv[0] = leftProj[5]*p0*p11; 
-  wv[RHOU] = (1.732050807568877*leftProj[5]*p11th)/sqp0; 
-  wv[RHOV] = (1.732050807568877*leftProj[5]*sqp11*p12)/sqp0; 
-  wv[RHOW] = (1.732050807568877*leftProj[5]*sqp11*p13)/sqp0; 
-  wv[PXX] = 3.0*leftProj[5]*p11sq; 
-  wv[PXY] = 3.0*leftProj[5]*p11*p12; 
-  wv[PXZ] = 3.0*leftProj[5]*p11*p13; 
-  wv[PYY] = leftProj[5]*p11*p22+2.0*leftProj[5]*p12sq; 
-  wv[PYZ] = leftProj[5]*p11*p23+2.0*leftProj[5]*p12*p13; 
-  wv[PZZ] = leftProj[5]*p11*p33+2.0*leftProj[5]*p13sq;
+  wv[1] = (1.732050807568877*leftProj[5]*p11th)/sqp0; 
+  wv[2] = (1.732050807568877*leftProj[5]*sqp11*p12)/sqp0; 
+  wv[3] = (1.732050807568877*leftProj[5]*sqp11*p13)/sqp0; 
+  wv[4] = 3.0*leftProj[5]*p11sq; 
+  wv[5] = 3.0*leftProj[5]*p11*p12; 
+  wv[6] = 3.0*leftProj[5]*p11*p13; 
+  wv[7] = leftProj[5]*p11*p22+2.0*leftProj[5]*p12sq; 
+  wv[8] = leftProj[5]*p11*p23+2.0*leftProj[5]*p12*p13; 
+  wv[9] = leftProj[5]*p11*p33+2.0*leftProj[5]*p13sq;
 
   mulByPhiPrime(p0, v[1], v[2], v[3], wv, &waves[30]);
 
   // Wave 5: (ev 7, 8, 9, 10 are repeated)
   s[4] = u1;
   wv[0] = leftProj[6]; 
-  wv[RHOU] = 0.0; 
-  wv[RHOV] = 0.0; 
-  wv[RHOW] = 0.0; 
-  wv[PXX] = 0.0; 
-  wv[PXY] = 0.0; 
-  wv[PXZ] = 0.0; 
-  wv[PYY] = leftProj[7]; 
-  wv[PYZ] = leftProj[8]; 
-  wv[PZZ] = leftProj[9];
+  wv[1] = 0.0; 
+  wv[2] = 0.0; 
+  wv[3] = 0.0; 
+  wv[4] = 0.0; 
+  wv[5] = 0.0; 
+  wv[6] = 0.0; 
+  wv[7] = leftProj[7]; 
+  wv[8] = leftProj[8]; 
+  wv[9] = leftProj[9];
 
   mulByPhiPrime(p0, v[1], v[2], v[3], wv, &waves[40]);
   
@@ -236,6 +269,8 @@ gkyl_wv_ten_moment_new()
   ten_moment->eqn.waves_func = wave_roe;
   ten_moment->eqn.qfluct_func = qfluct_roe;
   ten_moment->eqn.max_speed_func = max_speed;
+  ten_moment->eqn.rotate_to_local_func = rot_to_local_rect;
+  ten_moment->eqn.rotate_to_global_func = rot_to_global_rect;
 
   ten_moment->eqn.ref_count = (struct gkyl_ref_count) { ten_moment_free, 1 };
 

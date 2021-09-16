@@ -99,8 +99,6 @@ struct gkyl_moment_app {
   // pointer to mapc2p function
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
 
-  struct gkyl_array *c2p; // DG field representing coordinate mapping
-
   struct skin_ghost_ranges skin_ghost; // conf-space skin/ghost
 
   int has_field; // flag to indicate if we have a field
@@ -684,17 +682,19 @@ gkyl_moment_app_new(struct gkyl_moment mom)
     gkyl_cart_modal_tensor(&basis, ndim, 1);
 
     // initialize DG field representing mapping
-    app->c2p = mkarr(ndim*basis.num_basis, app->local_ext.volume);
+    struct gkyl_array *c2p = mkarr(ndim*basis.num_basis, app->local_ext.volume);
     gkyl_eval_on_nodes *ev_c2p = gkyl_eval_on_nodes_new(&app->grid, &basis, ndim, mom.mapc2p, mom.c2p_ctx);
-    gkyl_eval_on_nodes_advance(ev_c2p, 0.0, &app->local_ext, app->c2p);
-    gkyl_eval_on_nodes_release(ev_c2p);
+    gkyl_eval_on_nodes_advance(ev_c2p, 0.0, &app->local_ext, c2p);
 
     // write DG projection of mapc2p to file
     const char *fmt = "%s-mapc2p.gkyl";
     int sz = gkyl_calc_strlen(fmt, app->name);
     char fileNm[sz+1]; // ensures no buffer overflow  
     snprintf(fileNm, sizeof fileNm, fmt, app->name);
-    gkyl_grid_sub_array_write(&app->grid, &app->local, app->c2p, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->local, c2p, fileNm);
+
+    gkyl_array_release(c2p);
+    gkyl_eval_on_nodes_release(ev_c2p);
   }
 
   double cfl_frac = mom.cfl_frac == 0 ? 0.95 : mom.cfl_frac;
@@ -1002,9 +1002,6 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
 void
 gkyl_moment_app_release(gkyl_moment_app* app)
 {
-  if (app->has_mapc2p)
-    gkyl_array_release(app->c2p);
-  
   for (int i=0; i<app->num_species; ++i)
     moment_species_release(&app->species[i]);
   free(app->species);
