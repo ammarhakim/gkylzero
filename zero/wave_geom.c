@@ -5,14 +5,14 @@
 
 #include <math.h>
 
-void
+static void
 nomapc2p(double t, const double *xc, double *xp, void *ctx)
 {
   for (int i=0; i<GKYL_MAX_CDIM; ++i) xp[i] = xc[i];
 }
 
 // Computes 1D geometry
-void
+static void
 calc_geom_1d(const double *dx, const double *xc, evalf_t mapc2p, void *ctx, struct gkyl_wave_cell_geom *geo)
 {
   double xlc[GKYL_MAX_CDIM], xrc[GKYL_MAX_CDIM];
@@ -25,7 +25,7 @@ calc_geom_1d(const double *dx, const double *xc, evalf_t mapc2p, void *ctx, stru
   mapc2p(0.0, xlc, xlp, ctx);
   mapc2p(0.0, xrc, xrp, ctx);
 
-  geo->kappa = fabs(xrc-xlc)/dx[0];
+  geo->kappa = fabs(xrp[0]-xlp[0])/dx[0];
   geo->lenr[0] = 1.0;
 
   geo->norm[0][0] = 1.0; geo->norm[0][1] = 0.0; geo->norm[0][2] = 0.0;
@@ -33,12 +33,12 @@ calc_geom_1d(const double *dx, const double *xc, evalf_t mapc2p, void *ctx, stru
   geo->tau2[0][0] = 0.0; geo->tau2[0][1] = 0.0; geo->tau2[0][2] = 1.0;
 }
 
-void
+static void
 calc_geom_2d(const double *dx, const double *xc, evalf_t mapc2p, void *ctx, struct gkyl_wave_cell_geom *geo)
 {
 }
 
-void
+static void
 calc_geom_3d(const double *dx, const double *xc, evalf_t mapc2p, void *ctx, struct gkyl_wave_cell_geom *geo)
 {
 }
@@ -80,14 +80,16 @@ gkyl_wave_geom_new(const struct gkyl_rect_grid *grid, struct gkyl_range *range,
   return wg;
 }
 
+
+const struct gkyl_wave_cell_geom*
+gkyl_wave_geom_get(const struct gkyl_wave_geom *wg, const int *idx)
+{
+  return gkyl_array_cfetch(wg->geom, gkyl_range_idx(&wg->range, idx));
+}
+
 void
 gkyl_wave_geom_release(struct gkyl_wave_geom *wg)
 {
   gkyl_array_release(wg->geom);
   gkyl_free(wg);
-}
-
-void
-gkyl_wave_geom_set_idx(const struct gkyl_wave_geom *wg, const int *idx)
-{
 }

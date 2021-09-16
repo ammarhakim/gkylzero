@@ -35,10 +35,10 @@ struct gkyl_wave_geom* gkyl_wave_geom_new(const struct gkyl_rect_grid *grid,
   struct gkyl_range *range, evalf_t mapc2p, void *ctx);
 
 /**
- * Set index into the geometry object. This method must be called
- * before any geometry information is actuall accessed.
+ * Get pointer to geometry in a cell given by idx into the range over
+ * which the geometry was constructed.
  */
-void gkyl_wave_geom_set_idx(const struct gkyl_wave_geom *wg, const int *idx);
+const struct gkyl_wave_cell_geom* gkyl_wave_geom_get(const struct gkyl_wave_geom *wg, const int *idx);
 
 /**
  * Release geometry object.
