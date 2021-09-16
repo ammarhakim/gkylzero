@@ -286,10 +286,10 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
       // lower BCs in X
       if (bc[0] == GKYL_MOMENT_SPECIES_WALL) {
-        if (sp->eqn_type == GKYL_EULER)
+        if (sp->eqn_type == GKYL_EQN_EULER)
           sp->lower_bc[dir] = gkyl_rect_apply_bc_new(
             &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_euler_wall, 0);
-        else if (sp->eqn_type == GKYL_TEN_MOMENT)
+        else if (sp->eqn_type == GKYL_EQN_TEN_MOMENT)
           sp->lower_bc[dir] = gkyl_rect_apply_bc_new(
             &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_ten_moment_wall, 0);
       }
@@ -300,10 +300,10 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
       
       // upper BCs in X
       if (bc[1] == GKYL_MOMENT_SPECIES_WALL) {
-        if (sp->eqn_type == GKYL_EULER)
+        if (sp->eqn_type == GKYL_EQN_EULER)
           sp->upper_bc[dir] = gkyl_rect_apply_bc_new(
             &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_euler_wall, 0);
-        else if (sp->eqn_type == GKYL_TEN_MOMENT)
+        else if (sp->eqn_type == GKYL_EQN_TEN_MOMENT)
           sp->upper_bc[dir] = gkyl_rect_apply_bc_new(
             &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_ten_moment_wall, 0);
       }
@@ -542,7 +542,7 @@ moment_field_update(const gkyl_moment_app *app,
   const struct moment_field *fld, double tcurr, double dt)
 {
   int ndim = fld->ndim;
-  struct gkyl_wave_prop_status stat;
+  struct gkyl_wave_prop_status stat = { 1, DBL_MAX };
 
   for (int d=0; d<ndim; ++d) {
     // update solution

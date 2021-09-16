@@ -134,7 +134,7 @@ gkyl_wv_maxwell_new(double c, double e_fact, double b_fact)
 {
   struct wv_maxwell *maxwell = gkyl_malloc(sizeof(struct wv_maxwell));
 
-  maxwell->eqn.type = GKYL_MAXWELL;
+  maxwell->eqn.type = GKYL_EQN_MAXWELL;
   maxwell->eqn.num_equations = 8;
   maxwell->eqn.num_waves = 6;
   

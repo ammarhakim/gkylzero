@@ -9,6 +9,7 @@ CXX=g++
 FC=gfortran
 
 BUILD_OPENBLAS=no
+BUILD_SUPERLU=no
 
 # ----------------------------------------------------------------------------
 # Function definitions
@@ -33,6 +34,7 @@ FC                          Fortran compiler to use (only gfortran is supported)
 The following flags specify which libraries to build.
 
 --build-openblas            [no] Should we build OpenBLAS?
+--build-superlu             [no] Should we build SuperLU (serial)
 
 EOF
 }
@@ -101,6 +103,10 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_OPENBLAS="$value"
       ;;
+   --build-superlu)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_SUPERLU="$value"
+      ;;   
    *)
       die "Error: Unknown flag: $1"
       ;;
@@ -129,7 +135,16 @@ build_openblas() {
     fi
 }
 
+build_superlu() {
+    if [ "$BUILD_SUPERLU" = "yes" ]
+    then    
+	echo "Building SUPERLU"
+	./build-superlu.sh 
+    fi
+}
+
 echo "Installations will be in  $PREFIX"
 
 build_openblas
+build_superlu
 

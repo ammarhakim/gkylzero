@@ -21,6 +21,7 @@ extern "C" {
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_evalf_def.h>
 #include <gkyl_fv_proj.h>
 #include <gkyl_gauss_quad_data.h>
 #include <gkyl_hyper_dg.h>
