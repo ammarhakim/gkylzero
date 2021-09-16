@@ -122,14 +122,23 @@ test_ten_moment_waves()
   double vr[10] = { 0.1, 1.0, 2.0, 3.0, 0.1, 0.0, 0.0, 0.2, 0.0, 0.3};
 
   double ql[10], qr[10];
+  double ql_local[10], qr_local[10];
   calcq(vl, ql); calcq(vr, qr);
 
-  double delta[10];
-  for (int i=0; i<10; ++i) delta[i] = qr[i]-ql[i];
-
   for (int d=0; d<3; ++d) {
-    double speeds[5], waves[5*10];
-    gkyl_wv_eqn_waves(ten_moment, d, delta, ql, qr, waves, speeds);
+    double speeds[5], waves[5*10], waves_local[5*10];
+    // rotate to local tangent-normal frame
+    gkyl_wv_eqn_rotate_to_local(ten_moment, d, 0, 0, 0, ql, ql_local);
+    gkyl_wv_eqn_rotate_to_local(ten_moment, d, 0, 0, 0, qr, qr_local);
+
+    double delta[10];
+    for (int i=0; i<10; ++i) delta[i] = qr_local[i]-ql_local[i];
+    
+    gkyl_wv_eqn_waves(ten_moment, d, delta, ql_local, qr_local, waves_local, speeds);
+
+    // rotate waves back to global frame
+    for (int mw=0; mw<5; ++mw)
+      gkyl_wv_eqn_rotate_to_global(ten_moment, d, 0, 0, 0, &waves_local[mw*10], &waves[mw*10]);
 
     double apdq[10], amdq[10];
     gkyl_wv_eqn_qfluct(ten_moment, d, ql, qr, waves, speeds, amdq, apdq);

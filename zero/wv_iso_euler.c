@@ -28,13 +28,54 @@ iso_euler_free(const struct gkyl_ref_count *ref)
   gkyl_free(iso_euler);
 }
 
+static void
+rot_to_local_rect(int dir, const double *tau1, const double *tau2, const double *norm,
+  const double *qglobal, double *qlocal)
+{
+  const int *d = dir_shuffle[dir];  
+  qlocal[0] = qglobal[0];
+  qlocal[1] = qglobal[RHOU];
+  qlocal[2] = qglobal[RHOV];
+  qlocal[3] = qglobal[RHOW];
+}
+
+static void
+rot_to_global_rect(int dir, const double *tau1, const double *tau2, const double *norm,
+  const double *qlocal, double *qglobal)
+{
+  const int *d = dir_shuffle[dir];  
+  qglobal[0] = qlocal[0];
+  qglobal[RHOU] = qlocal[1];
+  qglobal[RHOV] = qlocal[2];
+  qglobal[RHOW] = qlocal[3];
+}
+
+static inline void
+rot_to_local(int dir, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
+{
+  qlocal[0] = qglobal[0];
+  qlocal[1] = qglobal[1]*norm[0] + qglobal[2]*norm[1] + qglobal[3]*norm[2];
+  qlocal[2] = qglobal[1]*tau1[0] + qglobal[2]*tau1[1] + qglobal[3]*tau1[2];
+  qlocal[3] = qglobal[1]*tau2[0] + qglobal[2]*tau2[1] + qglobal[3]*tau2[2];
+}
+
+static inline void
+rot_to_global(int dir, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
+{
+  qglobal[0] = qlocal[0];
+  qglobal[1] = qlocal[1]*norm[0] + qlocal[2]*tau1[0] + qlocal[3]*tau2[0];
+  qglobal[2] = qlocal[1]*norm[1] + qlocal[2]*tau1[1] + qlocal[3]*tau2[1];
+  qglobal[3] = qlocal[1]*norm[2] + qlocal[2]*tau1[2] + qlocal[3]*tau2[2];
+}
+
 // Waves and speeds using Roe averaging
 static double
 wave_roe(const struct gkyl_wv_eqn *eqn, 
   int dir, const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
   const struct wv_iso_euler *iso_euler = container_of(eqn, struct wv_iso_euler, eqn);
-  const int *d = dir_shuffle[dir];
   double vt = iso_euler->vt;
 
   double rhol = ql[0], rhor = qr[0];
@@ -43,39 +84,39 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   double srrhol = sqrt(rhol), srrhor = sqrt(rhor);
   double ravgl1 = 1/srrhol, ravgr1 = 1/srrhor;
   double ravg2 = 1/(srrhol+srrhor);
-  double u = (ql[RHOU]*ravgl1 + qr[RHOU]*ravgr1)*ravg2;
-  double v = (ql[RHOV]*ravgl1 + qr[RHOV]*ravgr1)*ravg2;
-  double w = (ql[RHOW]*ravgl1 + qr[RHOW]*ravgr1)*ravg2;
+  double u = (ql[1]*ravgl1 + qr[1]*ravgr1)*ravg2;
+  double v = (ql[2]*ravgl1 + qr[2]*ravgr1)*ravg2;
+  double w = (ql[3]*ravgl1 + qr[3]*ravgr1)*ravg2;
 
   // Compute projections of jump
-  double a0 = delta[0]*(vt+u)/vt/2.0-delta[RHOU]/vt/2.0;
-  double a1 = delta[RHOV]-delta[0]*v;
-  double a2 = delta[RHOW]-delta[0]*w;
-  double a3 = delta[0]*(vt-u)/vt/2.0+delta[RHOU]/vt/2.0;
+  double a0 = delta[0]*(vt+u)/vt/2.0-delta[1]/vt/2.0;
+  double a1 = delta[2]-delta[0]*v;
+  double a2 = delta[3]-delta[0]*w;
+  double a3 = delta[0]*(vt-u)/vt/2.0+delta[1]/vt/2.0;
 
   double *wv;
   // Wave 1: eigenvalue is u-vt
   wv = &waves[0];
   wv[0] = a0;
-  wv[RHOU] = a0*(u-vt);
-  wv[RHOV] = a0*v;
-  wv[RHOW] = a0*w;
+  wv[1] = a0*(u-vt);
+  wv[2] = a0*v;
+  wv[3] = a0*w;
   s[0] = u-vt;
 
   // Wave 2: eigenvalue is u & u, two waves are lumped into one
   wv = &waves[4];
   wv[0] = 0.0;
-  wv[RHOU] = 0.0;
-  wv[RHOV] = a1;
-  wv[RHOW] = a2;
+  wv[1] = 0.0;
+  wv[2] = a1;
+  wv[3] = a2;
   s[1] = u;
 
   // Wave 3: eigenvalue is u+vt
   wv = &waves[8];
   wv[0] = a3;
-  wv[RHOU] = a3*(u+vt);
-  wv[RHOV] = a3*v;
-  wv[RHOW] = a3*w;
+  wv[1] = a3*(u+vt);
+  wv[2] = a3*v;
+  wv[3] = a3*w;
   s[2] = u+vt;
   
   return fabs(u)+vt;
@@ -115,6 +156,8 @@ gkyl_wv_iso_euler_new(double vt)
   iso_euler->eqn.waves_func = wave_roe;
   iso_euler->eqn.qfluct_func = qfluct_roe;
   iso_euler->eqn.max_speed_func = max_speed;
+  iso_euler->eqn.rotate_to_local_func = rot_to_local_rect;
+  iso_euler->eqn.rotate_to_global_func = rot_to_global_rect;
 
   iso_euler->eqn.ref_count = (struct gkyl_ref_count) { iso_euler_free, 1 };
 
