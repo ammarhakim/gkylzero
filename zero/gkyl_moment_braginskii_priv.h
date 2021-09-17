@@ -106,67 +106,92 @@ calc_harmonic_avg_3D(double a_lll, double a_llu, double a_lul, double a_luu, dou
   return 1.0/(0.125/a_lll + 0.125/a_llu + 0.125/a_lul + 0.125/a_luu + 0.125/a_ull + 0.125/a_ulu + 0.125/a_uul + 0.125/a_uuu);
 }
 
+// Calculate grad(u)
+// In 1D, computes tensor at cell edge of two-cell interface
+static inline void
+calc_grad_u_1D(double dx, double u_l[3], double u_u[3], double grad_u[3])
+{
+  grad_u[0] = calc_sym_grad_1D(dx, u_l[0], u_u[0]);
+  grad_u[1] = calc_sym_grad_1D(dx, u_l[1], u_u[1]);
+  grad_u[2] = calc_sym_grad_1D(dx, u_l[2], u_u[2]);
+}
+
+// In 2D, computes tensor computes tensor in one corner of four-cell interface
+static inline void
+calc_grad_u_2D(double dx, double dy, double u_ll[3], double u_lu[3], double u_ul[3], double u_uu[3], double grad_u[6])
+{
+  grad_u[0] = calc_sym_gradx_2D(dx, u_ll[0], u_lu[0], u_ul[0], u_uu[0]);
+  grad_u[1] = calc_sym_gradx_2D(dx, u_ll[1], u_lu[1], u_ul[1], u_uu[1]);
+  grad_u[2] = calc_sym_gradx_2D(dx, u_ll[2], u_lu[2], u_ul[2], u_uu[2]);
+  
+  grad_u[3] = calc_sym_grady_2D(dy, u_ll[0], u_lu[0], u_ul[0], u_uu[0]);
+  grad_u[4] = calc_sym_grady_2D(dy, u_ll[1], u_lu[1], u_ul[1], u_uu[1]);
+  grad_u[5] = calc_sym_grady_2D(dy, u_ll[2], u_lu[2], u_ul[2], u_uu[2]);
+}
+
+// In 3D, computes tensor in one corner of eight-cell interface
+static inline void
+calc_grad_u_3D(double dx, double dy, double dz, double u_lll[3], double u_llu[3], double u_lul[3], double u_luu[3], double u_ull[3], double u_ulu[3], double u_uul[3], double u_uuu[3], double grad_u[9])
+{
+  grad_u[0] = calc_sym_gradx_3D(dx, u_lll[0], u_llu[0], u_lul[0], u_luu[0], u_ull[0], u_ulu[0], u_uul[0], u_uuu[0]);
+  grad_u[1] = calc_sym_gradx_3D(dx, u_lll[1], u_llu[1], u_lul[1], u_luu[1], u_ull[1], u_ulu[1], u_uul[1], u_uuu[1]);
+  grad_u[2] = calc_sym_gradx_3D(dx, u_lll[2], u_llu[2], u_lul[2], u_luu[2], u_ull[2], u_ulu[2], u_uul[2], u_uuu[2]);
+
+  grad_u[3] = calc_sym_grady_3D(dy, u_lll[0], u_llu[0], u_lul[0], u_luu[0], u_ull[0], u_ulu[0], u_uul[0], u_uuu[0]);
+  grad_u[4] = calc_sym_grady_3D(dy, u_lll[1], u_llu[1], u_lul[1], u_luu[1], u_ull[1], u_ulu[1], u_uul[1], u_uuu[1]);
+  grad_u[5] = calc_sym_grady_3D(dy, u_lll[2], u_llu[2], u_lul[2], u_luu[2], u_ull[2], u_ulu[2], u_uul[2], u_uuu[2]);
+
+  grad_u[6] = calc_sym_gradz_3D(dz, u_lll[0], u_llu[0], u_lul[0], u_luu[0], u_ull[0], u_ulu[0], u_uul[0], u_uuu[0]);
+  grad_u[7] = calc_sym_gradz_3D(dz, u_lll[1], u_llu[1], u_lul[1], u_luu[1], u_ull[1], u_ulu[1], u_uul[1], u_uuu[1]);
+  grad_u[8] = calc_sym_gradz_3D(dz, u_lll[2], u_llu[2], u_lul[2], u_luu[2], u_ull[2], u_ulu[2], u_uul[2], u_uuu[2]);
+}
+
 // Calculate rate of strain tensor
-// In 1D, computes a single tensor at cell edge of two-cell interface
-static void
+// In 1D, computes tensor at cell edge of two-cell interface
+static inline void
 calc_ros_1D(double dx, double u_l[3], double u_u[3], double w[6])
 {
-  double gradx_ux = calc_sym_grad_1D(dx, u_l[0], u_u[0]);
-  double gradx_uy = calc_sym_grad_1D(dx, u_l[1], u_u[1]);
-  double gradx_uz = calc_sym_grad_1D(dx, u_l[2], u_u[2]);
+  double grad_u[3] = {0.0};
+  calc_grad_u_1D(dx, u_l, u_u, grad_u);
 
-  w[0] = 4.0/3.0*gradx_ux;
-  w[1] = gradx_uy;
-  w[2] = gradx_uz;
-  w[3] = -2.0/3.0*gradx_ux;
+  w[0] = 4.0/3.0*grad_u[0];
+  w[1] = grad_u[1];
+  w[2] = grad_u[2];
+  w[3] = -2.0/3.0*grad_u[0];
   w[4] = 0.0;
-  w[5] = -2.0/3.0*gradx_ux;
+  w[5] = -2.0/3.0*grad_u[0];
 }
 
 // In 2D, computes tensor in one corner of four-cell interface
-static void
+static inline void
 calc_ros_2D(double dx, double dy, double u_ll[3], double u_lu[3], double u_ul[3], double u_uu[3], double w[6])
 {
-  double gradx_ux = calc_sym_gradx_2D(dx, u_ll[0], u_lu[0], u_ul[0], u_uu[0]);
-  double gradx_uy = calc_sym_gradx_2D(dx, u_ll[1], u_lu[1], u_ul[1], u_uu[1]);
-  double gradx_uz = calc_sym_gradx_2D(dx, u_ll[2], u_lu[2], u_ul[2], u_uu[2]);
+  double grad_u[6] = {0.0};
+  calc_grad_u_2D(dx, dy, u_ll, u_lu, u_ul, u_uu, grad_u);
 
-  double grady_ux = calc_sym_grady_2D(dy, u_ll[0], u_lu[0], u_ul[0], u_uu[0]);
-  double grady_uy = calc_sym_grady_2D(dy, u_ll[1], u_lu[1], u_ul[1], u_uu[1]);
-  double grady_uz = calc_sym_grady_2D(dy, u_ll[2], u_lu[2], u_ul[2], u_uu[2]);
-
-  double divu = gradx_ux + grady_uy;
-  w[0] = 2.0*gradx_ux - 2.0/3.0*divu;
-  w[1] = gradx_uy + grady_ux;
-  w[2] = gradx_uz;
-  w[3] = 2.0*grady_uy - 2.0/3.0*divu;
-  w[4] = grady_uz;
+  double divu = grad_u[0] + grad_u[4];
+  w[0] = 2.0*grad_u[0] - 2.0/3.0*divu;
+  w[1] = grad_u[1] + grad_u[3];
+  w[2] = grad_u[2];
+  w[3] = 2.0*grad_u[4] - 2.0/3.0*divu;
+  w[4] = grad_u[5];
   w[5] = -2.0/3.0*divu;
 }
 
 // In 3D, computes tensor in one corner of eight-cell interface
-static void
+static inline void
 calc_ros_3D(double dx, double dy, double dz, double u_lll[3], double u_llu[3], double u_lul[3], double u_luu[3], double u_ull[3], double u_ulu[3], double u_uul[3], double u_uuu[3], double w[6])
 {
-  double gradx_ux = calc_sym_gradx_3D(dx, u_lll[0], u_llu[0], u_lul[0], u_luu[0], u_ull[0], u_ulu[0], u_uul[0], u_uuu[0]);
-  double gradx_uy = calc_sym_gradx_3D(dx, u_lll[1], u_llu[1], u_lul[1], u_luu[1], u_ull[1], u_ulu[1], u_uul[1], u_uuu[1]);
-  double gradx_uz = calc_sym_gradx_3D(dx, u_lll[2], u_llu[2], u_lul[2], u_luu[2], u_ull[2], u_ulu[2], u_uul[2], u_uuu[2]);
+  double grad_u[9] = {0.0};
+  calc_grad_u_3D(dx, dy, dz, u_lll, u_llu, u_lul, u_luu, u_ull, u_ulu, u_uul, u_uuu, grad_u);
 
-  double grady_ux = calc_sym_grady_3D(dy, u_lll[0], u_llu[0], u_lul[0], u_luu[0], u_ull[0], u_ulu[0], u_uul[0], u_uuu[0]);
-  double grady_uy = calc_sym_grady_3D(dy, u_lll[1], u_llu[1], u_lul[1], u_luu[1], u_ull[1], u_ulu[1], u_uul[1], u_uuu[1]);
-  double grady_uz = calc_sym_grady_3D(dy, u_lll[2], u_llu[2], u_lul[2], u_luu[2], u_ull[2], u_ulu[2], u_uul[2], u_uuu[2]);
-
-  double gradz_ux = calc_sym_gradz_3D(dz, u_lll[0], u_llu[0], u_lul[0], u_luu[0], u_ull[0], u_ulu[0], u_uul[0], u_uuu[0]);
-  double gradz_uy = calc_sym_gradz_3D(dz, u_lll[1], u_llu[1], u_lul[1], u_luu[1], u_ull[1], u_ulu[1], u_uul[1], u_uuu[1]);
-  double gradz_uz = calc_sym_gradz_3D(dz, u_lll[2], u_llu[2], u_lul[2], u_luu[2], u_ull[2], u_ulu[2], u_uul[2], u_uuu[2]);
-
-  double divu = gradx_ux + grady_uy + gradz_uz;
-  w[0] = 2.0*gradx_ux - 2.0/3.0*divu;
-  w[1] = gradx_uy + grady_ux;
-  w[2] = gradx_uz + gradz_ux;
-  w[3] = 2.0*grady_uy - 2.0/3.0*divu;
-  w[4] = grady_uz + gradz_uy;
-  w[5] = 2.0*gradz_uz - 2.0/3.0*divu;
+  double divu = grad_u[0] + grad_u[4] + grad_u[8];
+  w[0] = 2.0*grad_u[0] - 2.0/3.0*divu;
+  w[1] = grad_u[1] + grad_u[3];
+  w[2] = grad_u[2] + grad_u[6];
+  w[3] = 2.0*grad_u[4] - 2.0/3.0*divu;
+  w[4] = grad_u[5] + grad_u[7];
+  w[5] = 2.0*grad_u[8] - 2.0/3.0*divu;
 }
 
 // Magnetized closure helper functions
