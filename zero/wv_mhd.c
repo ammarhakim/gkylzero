@@ -77,10 +77,12 @@ wave_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *dQ,
   const double *ql, const double *qr, double *waves, double *ev)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
-  const int *idx = dir_shuffle[0]; // no need for shuffle
+  const int *idx = dir_shuffle[0]; // no shuffle; data was previously rotated
   double gamma = mhd->gas_gamma;
 
-  // Compute primitive states
+  //////////////////////////////////////////////////////////////////////////////
+  // STEP 1: COMPUTE PRIMITIVE VARIABLES                                      //
+  //////////////////////////////////////////////////////////////////////////////
   double ul = ql[MX] / ql[DN], ur = qr[MX] / qr[DN];
   double vl = ql[MY] / ql[DN], vr = qr[MY] / qr[DN];
   double wl = ql[MZ] / ql[DN], wr = qr[MZ] / qr[DN];
@@ -92,7 +94,9 @@ wave_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *dQ,
   double Hl = (ql[ER] + pl + pbl) / ql[DN];
   double Hr = (qr[ER] + pr + pbr) / qr[DN];
 
-  // Compute Roe averages of primitive states
+  //////////////////////////////////////////////////////////////////////////////
+  // STEP 2: COMPUTE ROE AVERAGES OF PRIMITIVE VARIABLES                      //
+  //////////////////////////////////////////////////////////////////////////////
   double srrhol = sqrt(ql[DN]);
   double srrhor = sqrt(qr[DN]);
   double sl = srrhol / (srrhol + srrhor);
@@ -107,6 +111,9 @@ wave_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *dQ,
   double By = sr * ql[BY] + sl * qr[BY];
   double Bz = sr * ql[BZ] + sl * qr[BZ];
 
+  //////////////////////////////////////////////////////////////////////////////
+  // STEP 3: COMPUTE CHARACTERASTIC WAVE SPEEDS AND OTHER USEFUL QUANTITIES   //
+  //////////////////////////////////////////////////////////////////////////////
   // CG97 eq. 4.12; FIXME: dBx is included as needed by 8-wave scheme
   double X = (sq(dQ[BX]) + sq(dQ[BY]) + sq(dQ[BZ])) / (2*sq(srrhol+srrhor));
 
@@ -131,7 +138,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *dQ,
 
   double Bt = sqrt(By*By+Bz*Bz);
   double betay, betaz;
-  if (Bt>0) {
+  if (Bt>0) { // TODO compare wtih a tiny number
     betay = By / Bt;
     betaz = Bz / Bt;
   } else {
@@ -143,13 +150,21 @@ wave_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *dQ,
   double alphaf = sqrt(alphaf2);
   double alphas = sqrt(alphas2);
 
-  // For each eigensolution of the Roe linearizing matrix, compute:
-  // 0. Eigenvalue, which is the wave speed. The results are stored in ev array
-  //    and sorted by their values, that is,
-  //    u-c_fast < u-c_alfven < u-c_slow < u < u+c_slow < u+c_alfven < u+c_fast
-  // 1. Projection coefficient of jumps in conservative state on to the
-  //    left-eigenvector according to CG97 eq. 4.20.
-  // 2. The wave (fluctuations) due to this mode.
+  //////////////////////////////////////////////////////////////////////////////
+  // STEP 4: COMPUTE WAVE SPEEDS AND FLUCTUATIONS DUE TO ROE LINEARIZATION    //
+  //                                                                          //
+  // For each eigensolution of the Roe linearizing matrix, compute:           //
+  // 0. Eigenvalue, which is the wave speed. The results are stored in ev     //
+  //     array and sorted by their values, that is,                           //
+  //    u-c_fast<u-c_alfven<u-c_slow<u<u+c_slow<u+c_alfven<u+c_fast           //
+  // 1. Projection coefficient of jumps in conservative state on to the       //
+  //    left-eigenvector according to CG97 eq. 4.20.                          //
+  // 2. The wave (fluctuations) due to this mode.                             //
+  //////////////////////////////////////////////////////////////////////////////
+  // CG97 eq. 4.20 gave projection coefficients in primitive varialbles.
+  // Alternatively, one may compute the full left-eigenvectors and dot it with
+  // dQ. The left-eigenvector of the Roe matrix can be found in Stone et al.
+  // (2008), Appendix B2.
   double drho = dQ[DN];
   double du = ur - ul;
   double dv = vr - vl;
@@ -158,20 +173,22 @@ wave_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *dQ,
   double dBy = dQ[BY];
   double dBz = dQ[BZ];
 
-  const int meqns = 8;
-  for (int i=0; i<meqns*7; ++i) waves[i] = 0.0;
+  const int meqns = eqn->num_equations;
+  const int mwaves = eqn->num_waves;
+  for (int i=0; i<meqns*mwaves; ++i) waves[i] = 0.0;
   double *wv;
-  double eta[7];
+  double eta[mwaves];
 
-  /////////////////////////////////////////////////////////////
-  // Fast magnetosonic modes
+  /////////////////////////////
+  // Fast magnetosonic waves //
+  /////////////////////////////
 
   // For projection coefficients in eq. 4.20 for magnetosonic waves
   double t1 = alphaf * (X*drho + dp);
   double t2 = alphas * cs * rho * S * (betay*dv + betaz*dw);
   double t3 = alphaf * cf * rho * du;
   double t4 = alphas * sqrt(rho) * a * (betay*dBy + betaz*dBz);
-  // for right eigenvectors for magnetosonic waves in eq. 4.19
+  // For right eigenvectors for magnetosonic waves in eq. 4.19
   double t5 = alphas * cs * S * (v*betay + w*betaz);
   double t6 = alphas * a * Bt / sqrt(rho);
 
@@ -203,8 +220,9 @@ wave_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *dQ,
   wv[BY] = eta[6]*alphas*a*betay/sqrt(rho);
   wv[BZ] = eta[6]*alphas*a*betaz/sqrt(rho);
 
-  /////////////////////////////////////////////////////////////
-  // Alfven waves
+  //////////////////
+  // Alfven waves //
+  //////////////////
 
   // For projection coefficients in eq. 4.20 for alfven waves
   double t7 = betay*dw - betaz*dv;
@@ -234,8 +252,9 @@ wave_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *dQ,
   wv[BY] = -eta[5]*S*betaz/sqrt(rho);
   wv[BZ] = eta[5]*S*betay/sqrt(rho);
 
-  /////////////////////////////////////////////////////////////
-  // Slow magnetosonic waves
+  /////////////////////////////
+  // Slow magnetosonic waves //
+  /////////////////////////////
 
   // For projection coefficients in eq. 4.20 for magnetosonic waves
   // Compared to the fast wave coefficients, alphas/alphaf & cs/cf are switched
@@ -275,8 +294,9 @@ wave_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *dQ,
   wv[BY] = -eta[4]*alphaf*a*betay/sqrt(rho);
   wv[BZ] = -eta[4]*alphaf*a*betaz/sqrt(rho);
 
-  /////////////////////////////////////////////////////////////
-  // Enropy wave; TODO: merge divB wave
+  //////////////////
+  // Enropy wave  //
+  //////////////////
   ev[3] = u;
   // Coefficients of projection onto the left-eigenvector
   eta[3] = (a2 - X) * drho - dp; // eq. 4.20
@@ -289,6 +309,12 @@ wave_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *dQ,
   wv[MZ] = eta[3]*w;
   wv[ER] = eta[3]*(v2/2 + X*(gamma-2)/(gamma-1));
 
+  /////////////////
+  // div(B) wave //
+  /////////////////
+  // This wave exists in the eight-wave scheme. In this implementation, it is
+  // incorporated into the last wave, the entropy wave, since both have eigen
+  // value ev=u. This wave only advects jump in Bx at the speed u.
   if (mhd->divergence_constraint == DIVB_EIGHT_WAVES)
     wv[BX] = dQ[BX];
 
