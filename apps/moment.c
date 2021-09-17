@@ -270,7 +270,9 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         .limiter = limiter,
         .num_up_dirs = 1,
         .update_dirs = { d },
-        .cfl = app->cfl
+        .cfl = app->cfl,
+        .mapc2p = app->mapc2p,
+        .ctx = app->c2p_ctx
       }
     );
 
