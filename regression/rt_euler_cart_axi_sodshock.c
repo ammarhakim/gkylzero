@@ -17,7 +17,8 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   struct euler_ctx *app = ctx;
   double gas_gamma = app->gas_gamma;
 
-  double r = xn[0]; // radial coordinate
+  double x = xn[0], y = xn[1];
+  double r = sqrt(x*x+y*y);
 
   double rhol = 3.0, ul = 0.0, pl = 3.0;
   double rhor = 1.0, ur = 0.0, pr = 1.0;
@@ -34,14 +35,6 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[0] = rho;
   fout[1] = rho*u; fout[2] = 0.0; fout[3] = 0.0;
   fout[4] = p/(gas_gamma-1) + 0.5*rho*u*u;
-}
-
-// map (r,theta) -> (x,y)
-void
-mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
-{
-  double r = xc[0], th = xc[1];
-  xp[0] = r*cos(th); xp[1] = r*sin(th);
 }
 
 struct euler_ctx
@@ -72,19 +65,14 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "euler_axis_sodshock",
+    .name = "euler_cart_axis_sodshock",
 
     .ndim = 2,
     // grid in computational space
-    .lower = { 0.25, 0.0 },
-    .upper = { 1.25, 2*GKYL_PI },
-    .cells = { 64, 64*6 },
+    .lower = { -1.25, -1.25 },
+    .upper = { 1.25, 1.25 },
+    .cells = { 128, 128 },
 
-    .mapc2p = mapc2p, // mapping of computational to physical space
-
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 1 },
-    
     .cfl_frac = 0.9,
 
     .num_species = 1,
