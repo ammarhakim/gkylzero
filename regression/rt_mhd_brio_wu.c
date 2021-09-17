@@ -48,8 +48,7 @@ main(int argc, char **argv)
   struct mhd_ctx ctx = mhd_ctx(); // context for init functions
 
   // equation object
-  int has_eight_waves = 0;
-  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(ctx.gas_gamma, has_eight_waves);
+  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(ctx.gas_gamma, "none");
 
   struct gkyl_moment_species fluid = {
     .name = "mhd",

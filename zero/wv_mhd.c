@@ -1,9 +1,12 @@
 #include <math.h>
 #include <float.h>
+#include <string.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_prim_mhd.h>
 #include <gkyl_wv_mhd.h>
+
+enum { DIVB_NONE, DIVB_EIGHT_WAVES, DIVB_GLM };
 
 static const int dir_shuffle[][6] = {
   {1, 2, 3, 5, 6, 7},
@@ -56,7 +59,7 @@ rot_to_global_rect(int dir, const double *tau1, const double *tau2, const double
 struct wv_mhd {
   struct gkyl_wv_eqn eqn; // base object
   double gas_gamma; // gas adiabatic constant
-  int has_eight_waves; // set 1 to add divB wave for powell's 8-wave scheme
+  int divergence_constraint; // set 1 to add divB wave for powell's 8-wave scheme
 };
 
 static void
@@ -286,15 +289,8 @@ wave_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *dQ,
   wv[MZ] = eta[3]*w;
   wv[ER] = eta[3]*(v2/2 + X*(gamma-2)/(gamma-1));
 
-  if (mhd->has_eight_waves)
+  if (mhd->divergence_constraint == DIVB_EIGHT_WAVES)
     wv[BX] = dQ[BX];
-
-  /* printf("\n"); */
-  /* printf("u=%f, a=%f, ca=%f, cs=%f, cf=%f\n", u, a, ca, cs, cf); */
-  /* printf("alphaf=%f, alphas=%f, betay=%f, betaz=%f\n", */
-  /*        alphaf, alphas, betay, betaz); */
-  /* for(int i=0;i<7;++i) */
-  /*   printf("[%d], eta=%10g, ev=%10g\n", i, eta[i], ev[i]); */
 
   return fabs(u) + cf;
 }
@@ -304,23 +300,14 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *ql,
   const double *qr, const double *waves, const double *s, double *amdq,
   double *apdq)
 {
-  const double *w0 = &waves[0*8], *w1 = &waves[1*8], *w2 = &waves[2*8];
-  const double *w3 = &waves[3*8], *w4 = &waves[4*8], *w5 = &waves[5*8];
-  const double *w6 = &waves[6*8];
-
-  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]), s2m = fmin(0.0, s[2]);
-  double s3m = fmin(0.0, s[3]), s4m = fmin(0.0, s[4]), s5m = fmin(0.0, s[5]);
-  double s6m = fmin(0.0, s[6]);
-
-  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]), s2p = fmax(0.0, s[2]);
-  double s3p = fmax(0.0, s[3]), s4p = fmax(0.0, s[4]), s5p = fmax(0.0, s[5]);
-  double s6p = fmax(0.0, s[6]);
-
-  for (int i=0; i<8; ++i) {
-    amdq[i] = s0m*w0[i] + s1m*w1[i] + s2m*w2[i] + s3m*w3[i] + s4m*w4[i]
-      + s5m*w5[i] + s5m*w6[i];
-    apdq[i] = s0p*w0[i] + s1p*w1[i] + s2p*w2[i] + s3p*w3[i] + s4p*w4[i]
-      + s5p*w5[i] + s6p*w6[i];
+  int meqn = eqn->num_equations;
+  for (int i=0; i<meqn; ++i) {
+    amdq[i] = fmin(0.0, s[0]) * waves[i];
+    apdq[i] = fmax(0.0, s[0]) * waves[i];
+    for (int mw=1; mw<eqn->num_waves; ++mw) {
+      amdq[i] += fmin(0.0, s[mw]) * waves[meqn*mw+i];
+      apdq[i] += fmax(0.0, s[mw]) * waves[meqn*mw+i];
+    }
   }
 }
 
@@ -332,15 +319,36 @@ max_speed(const struct gkyl_wv_eqn *eqn, int dir, const double *q)
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_mhd_new(double gas_gamma, int has_eight_waves)
+gkyl_wv_mhd_new(double gas_gamma, const char *divergence_constraint)
 {
   struct wv_mhd *mhd = gkyl_malloc(sizeof(struct wv_mhd));
 
   mhd->eqn.type = GKYL_EQN_MHD;
-  mhd->eqn.num_equations = 8;
-  mhd->eqn.num_waves = 7;
+  if (strcmp(divergence_constraint, "none")==0)
+  {
+    mhd->divergence_constraint = DIVB_NONE;
+    mhd->eqn.num_equations = 8;
+    mhd->eqn.num_waves = 7;
+  }
+  else if (strcmp(divergence_constraint, "eight_waves")==0)
+  {
+    mhd->divergence_constraint = DIVB_EIGHT_WAVES;
+    mhd->eqn.num_equations = 8;
+    mhd->eqn.num_waves = 7;  // will merge the entropy wave and divB wave
+  }
+  else if (strcmp(divergence_constraint, "glm")==0)
+  {
+    mhd->divergence_constraint = DIVB_GLM;
+    mhd->eqn.num_equations = 9;
+    mhd->eqn.num_waves = 9;
+  }
+  else {
+    // Do not constrain divergence by default. TODO: Warn or throw an error
+    mhd->divergence_constraint = DIVB_NONE;
+    mhd->eqn.num_equations = 8;
+    mhd->eqn.num_waves = 7;
+  }
   mhd->gas_gamma = gas_gamma;
-  mhd->has_eight_waves = has_eight_waves;
   mhd->eqn.waves_func = wave_roe;
   mhd->eqn.qfluct_func = qfluct_roe;
   mhd->eqn.max_speed_func = max_speed;

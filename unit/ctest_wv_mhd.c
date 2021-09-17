@@ -18,8 +18,7 @@ void
 test_mhd_basic()
 {
   double gas_gamma = 1.4;
-  int has_eight_waves = 0;
-  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(gas_gamma, has_eight_waves);
+  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(gas_gamma, "none");
 
   TEST_CHECK( mhd->num_equations == 8 );
   TEST_CHECK( mhd->num_waves == 7 );
@@ -74,8 +73,7 @@ void
 test_mhd_waves()
 {
   double gas_gamma = 1.4;
-  int has_eight_waves = 0;
-  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(gas_gamma, has_eight_waves);
+  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(gas_gamma, "none");
 
   double ql[8], qr[8];
   double delta[8];
