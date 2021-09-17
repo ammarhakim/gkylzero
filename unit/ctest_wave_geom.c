@@ -122,10 +122,30 @@ test_wv_geom_2d_1()
     TEST_CHECK( gkyl_compare_double( cg->norm[0][1], 0.0, 1e-15) );
     TEST_CHECK( gkyl_compare_double( cg->norm[0][2], 0.0, 1e-15) );
 
+    // tangent1 to left face is ey
+    TEST_CHECK( gkyl_compare_double( cg->tau1[0][0], 0.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->tau1[0][1], 1.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->tau1[0][2], 0.0, 1e-15) );
+
+    // tangent2 to left face is ez
+    TEST_CHECK( gkyl_compare_double( cg->tau2[0][0], 0.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->tau2[0][1], 0.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->tau2[0][2], 1.0, 1e-15) );
+
     // normal to bottom face is ey
     TEST_CHECK( gkyl_compare_double( cg->norm[1][0], 0.0, 1e-15) );
     TEST_CHECK( gkyl_compare_double( cg->norm[1][1], 1.0, 1e-15) );
     TEST_CHECK( gkyl_compare_double( cg->norm[1][0], 0.0, 1e-15) );
+
+    // tangent1 to bottom face is ex
+    TEST_CHECK( gkyl_compare_double( cg->tau1[1][0], 1.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->tau1[1][1], 0.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->tau1[1][2], 0.0, 1e-15) );
+
+    // tangent2 to bottom face is ez
+    TEST_CHECK( gkyl_compare_double( cg->tau2[0][0], 0.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->tau2[0][1], 0.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->tau2[0][2], 1.0, 1e-15) );    
   }
 
   gkyl_wave_geom_release(wg);
