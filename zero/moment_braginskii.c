@@ -57,49 +57,28 @@ create_offsets(const struct gkyl_range *range, long offsets[])
     offsets[count++] = gkyl_range_offset(range, iter3.idx);
 }
 
-// Calculate viscous stress tensor Pi (magnetized)
-// In 1D, computes quantity at cell edge of two-cell interface
+// Calculate magnetized parallel viscous stress tensor
 static void
-calc_pi_1D(double dx, double fluid_l[5], double fluid_u[5], double em_tot_l[8], double em_tot_u[8], double pi[6])
-{
-  double rho_l = fluid_l[RHO];
-  double rho_u = fluid_u[RHO];
-  double u_l[3] = { fluid_l[MX]/rho_l, fluid_l[MY]/rho_l, fluid_l[MZ]/rho_l };
-  double u_u[3] = { fluid_u[MX]/rho_u, fluid_u[MY]/rho_u, fluid_u[MZ]/rho_u };
-  double p_l = fluid_l[ER] - (fluid_l[MX]*fluid_l[MX] + fluid_l[MY]*fluid_l[MY] + fluid_l[MZ]*fluid_l[MZ])/rho_l;
-  double p_u = fluid_u[ER] - (fluid_u[MX]*fluid_u[MX] + fluid_u[MY]*fluid_u[MY] + fluid_u[MZ]*fluid_u[MZ])/rho_u;
-  
-  double w[6];
-  calc_ros_1D(dx, u_l, u_u, w);
-
-  double b_l[3] = { 0.0, 0.0, 0.0 };
-  double b_u[3] = { 0.0, 0.0, 0.0 };
-  calc_bhat(em_tot_l, b_l);
-  calc_bhat(em_tot_u, b_u);
-  
-  double b_avg[3] = { 0.0, 0.0, 0.0 };
-
-  b_avg[0] = calc_arithm_avg_1D(b_l[0], b_u[0]);
-  b_avg[1] = calc_arithm_avg_1D(b_l[1], b_u[1]);
-  b_avg[2] = calc_arithm_avg_1D(b_l[2], b_u[2]);
-
-  // pi_parallel = (bb - 1/3 I) (bb - 1/3 I) : W
-  
+calc_pi_par(double eta_par, double b_avg[3], double w[6], double pi_par[6])
+{ 
   // parallel rate of strain = (bb - 1/3 I) : W
   double par_ros = (b_avg[0]*b_avg[0] - 1.0/3.0)*w[0] + 2.0*b_avg[0]*b_avg[1]*w[1] + 2.0*b_avg[0]*b_avg[2]*w[2] 
                   + (b_avg[1]*b_avg[1] - 1.0/3.0)*w[3] + 2.0*b_avg[1]*b_avg[2]*w[4] 
                   + (b_avg[2]*b_avg[2] - 1.0/3.0)*w[5];
 
-  double pi_par[6];
-  pi_par[0] = (b_avg[0]*b_avg[0] - 1.0/3.0)*par_ros;
-  pi_par[1] = b_avg[0]*b_avg[1]*par_ros;
-  pi_par[2] = b_avg[0]*b_avg[2]*par_ros;
-  pi_par[3] = (b_avg[1]*b_avg[1] - 1.0/3.0)*par_ros;
-  pi_par[4] = b_avg[1]*b_avg[2]*par_ros;
-  pi_par[5] = (b_avg[2]*b_avg[2] - 1.0/3.0)*par_ros;
+  // pi_par = -eta_par * (bb - 1/3 I) (bb - 1/3 I) : W
+  pi_par[0] = -eta_par*(b_avg[0]*b_avg[0] - 1.0/3.0)*par_ros;
+  pi_par[1] = -eta_par*b_avg[0]*b_avg[1]*par_ros;
+  pi_par[2] = -eta_par*b_avg[0]*b_avg[2]*par_ros;
+  pi_par[3] = -eta_par*(b_avg[1]*b_avg[1] - 1.0/3.0)*par_ros;
+  pi_par[4] = -eta_par*b_avg[1]*b_avg[2]*par_ros;
+  pi_par[5] = -eta_par*(b_avg[2]*b_avg[2] - 1.0/3.0)*par_ros;
+}
 
-  // pi_perp = (I - bb) . W . (I + 3bb) + (I + 3bb) . W . (I - bb)
-  
+// Calculate magnetized perpendicular viscous stress tensor
+static void
+calc_pi_perp(double eta_perp, double b_avg[3], double w[6], double pi_perp[6])
+{   
   // (b . W . I)_x = b_x W_xx + b_y W_xy + b_z W_xz
   double bWIx = w[0]*b_avg[0] + w[1]*b_avg[1] + w[2]*b_avg[2];
   // (b . W . I)_y = b_x W_xy + b_y W_yy + b_z W_yz  
@@ -112,25 +91,28 @@ calc_pi_1D(double dx, double fluid_l[5], double fluid_u[5], double em_tot_l[8], 
               + b_avg[1]*b_avg[1]*w[3] + 2.0*b_avg[1]*b_avg[2]*w[4] 
               + b_avg[2]*b_avg[2]*w[5];
   
-  double pi_perp[6];
-  pi_perp[0] = 2.0*(w[0] + 2.0*b_avg[0]*bWIx - 3.0*b_avg[0]*b_avg[0]*bWb);
-  pi_perp[1] = 2.0*w[1] + 2.0*(b_avg[1]*bWIx + b_avg[0]*bWIy) - 6.0*b_avg[0]*b_avg[1]*bWb;
-  pi_perp[2] = 2.0*w[2] + 2.0*(b_avg[2]*bWIx + b_avg[0]*bWIz) - 6.0*b_avg[0]*b_avg[2]*bWb;
-  pi_perp[3] = 2.0*(w[3] + 2.0*b_avg[1]*bWIy - 3.0*b_avg[1]*b_avg[1]*bWb);
-  pi_perp[4] = 2.0*w[4] + 2.0*(b_avg[2]*bWIy + b_avg[1]*bWIz) - 6.0*b_avg[1]*b_avg[2]*bWb;
-  pi_perp[5] = 2.0*(w[5] + 2.0*b_avg[2]*bWIz - 3.0*b_avg[2]*b_avg[2]*bWb);
+  // pi_perp = -eta_perp * ((I - bb) . W . (I + 3bb) + (I + 3bb) . W . (I - bb))
+  pi_perp[0] = -eta_perp*(2.0*(w[0] + 2.0*b_avg[0]*bWIx - 3.0*b_avg[0]*b_avg[0]*bWb));
+  pi_perp[1] = -eta_perp*(2.0*w[1] + 2.0*(b_avg[1]*bWIx + b_avg[0]*bWIy) - 6.0*b_avg[0]*b_avg[1]*bWb);
+  pi_perp[2] = -eta_perp*(2.0*w[2] + 2.0*(b_avg[2]*bWIx + b_avg[0]*bWIz) - 6.0*b_avg[0]*b_avg[2]*bWb);
+  pi_perp[3] = -eta_perp*(2.0*(w[3] + 2.0*b_avg[1]*bWIy - 3.0*b_avg[1]*b_avg[1]*bWb));
+  pi_perp[4] = -eta_perp*(2.0*w[4] + 2.0*(b_avg[2]*bWIy + b_avg[1]*bWIz) - 6.0*b_avg[1]*b_avg[2]*bWb);
+  pi_perp[5] = -eta_perp*(2.0*(w[5] + 2.0*b_avg[2]*bWIz - 3.0*b_avg[2]*b_avg[2]*bWb));
+}
+// Calculate magnetized gyroviscous viscous stress tensor
+static void
+calc_pi_cross(double eta_cross, double b_avg[3], double w[6], double pi_cross[6])
+{
 }
 
 // Compute the RHS for the Braginskii transport terms in 1D
 // If isothermal Euler, only update momentum
 // If Euler, update pressure due to viscous heating and heat conduction
-// If Ten moment, update momentum *only* due to inter-species collisions
 //
 // Logic is thus as follows: first compute RHS due to inter-species collisions,
-// then viscosity in momentum equation if equation system supports viscosity. 
-// Then add the corresponding contribution to the pressure variable from heating
-// due to the momentum evolution (Joule heating, viscous heating). 
-// Finally add thermal conduction and temperature equilibriation. 
+// and viscosity in momentum equation. Then add the corresponding contributions 
+// to the pressure variable (if it exists) from heating due to the momentum evolution,
+// i.e., Joule heating and viscous heating, and finally add thermal conduction and temperature equilibriation. 
 static void
 mag_braginskii_update(const gkyl_moment_braginskii *bes,
   const double *fluid_d[][GKYL_MAX_SPECIES], const double *em_tot_d[],
@@ -142,42 +124,312 @@ mag_braginskii_update(const gkyl_moment_braginskii *bes,
     const double dx = bes->grid.dx[0];
     const double m[2] = { bes->param[0].mass, bes->param[1].mass };
     const double q[2] = { bes->param[0].charge, bes->param[1].charge };
-    double rho[3][2] = {0.0};
-    double u[3][2][3] = {0.0};
-    double p[3][2] = {0.0};
-    double T[3][2] = {0.0};
-
-    for (int j = L_1D; j <= U_1D; ++j)
-    {
-      for (int n = 0; n < nfluids; ++n)
-      {
-        rho[j][n] = fluid_d[j][n][RHO];
-        for (int k = MX; k <= MZ; ++k)
-          u[j][n][k - MX] = fluid_d[j][n][k] / fluid_d[j][n][RHO];
-        if (bes->param[n].type_eqn == GKYL_EQN_EULER)
-          p[j][n] = gkyl_euler_pressure(bes->param[n].p_fac, fluid_d[j][n]);
-        else if (bes->param[n].type_eqn == GKYL_EQN_TEN_MOMENT)
-          p[j][n] = (fluid_d[j][n][P11] - fluid_d[j][n][MX] * fluid_d[j][n][MX] / fluid_d[j][n][RHO]
-            + fluid_d[j][n][P22] - fluid_d[j][n][MY] * fluid_d[j][n][MY] / fluid_d[j][n][RHO]
-            + fluid_d[j][n][P33] - fluid_d[j][n][MZ] * fluid_d[j][n][MZ] / fluid_d[j][n][RHO])/3.0;
-        else
-          p[j][n] = bes->param[n].p_fac;
-        T[j][n] = m[n] * p[j][n] / rho[j][n];
-      }
-    }
     // Grab indices of electron and ion fluid arrays
     const int ELC = bes->param[0].charge < 0.0 ? 0 : 1;
     const int ION = (ELC + 1) % 2;
 
-    const double e = bes->param[ELC].charge;
-    const int Z = bes->param[ION].charge / fabs(bes->param[ELC].charge);  // Note: May always round down on conversion
+    // Input quantities
+    double rho[3][2] = {0.0}; // Mass density for each species
+    double u[3][2][3] = {0.0}; // Flow for each species, ux, uy, & uz
+    double p[3][2] = {0.0}; // Pressure for each species
+    double T[3][2] = {0.0}; // Temperature for each species (m*p/rho)
+    double b[3][3] = {0.0}; // Magnetic field unit vector, Bx/|B|, By/|B|, & Bz/|B|
 
-    // Collision times for each species
-    double tau[3][2] = {0.0};
+    // Derived quantities
+    double omega_c[3][2] = {0.0}; // Cyclotron frequency for each species
+    double tau[3][2] = {0.0}; // Collision times for each species
+    double eta_par[3][2] = {0.0}; // Parallel viscosity for each species
+    double eta_perp[3][2] = {0.0}; // Perpendicular viscosity for each species
+    double eta_cross[3][2] = {0.0}; // Gyro-viscosity for each species
+    double kappa_par[3][2] = {0.0}; // Parallel conductivity for each species
+    double kappa_perp[3][2] = {0.0}; // Perpendicular conductivity for each species
+    double kappa_cross[3][2] = {0.0}; // Gyro-conductivity for each species
+    double thermal_par[3] = {0.0}; // Parallel thermal force coefficient (same for each species)
+    double thermal_perp[3] = {0.0}; // Perpendicular thermal force coefficient (same for each species)
+    double current_par[3][3] = {0.0}; // b_hat b_hat dot (u_i - u_e) 
+    double current_cross[3][3] = {0.0}; // b x (u_i - u_e)
     for (int j = L_1D; j <= U_1D; ++j)
     {
-      tau[j][ELC] = calc_tau(1.0, bes->coll_fac, bes->epsilon0, e, e*Z, m[ELC], m[ION], rho[j][ION], T[j][ELC]);
-      tau[j][ION] = calc_tau(1.0, sqrt(2.0)*bes->coll_fac, bes->epsilon0, e*Z, e*Z, m[ION], m[ION], rho[j][ION], T[j][ION]);
+      // Input density and flow in each cell
+      rho[j][ELC] = fluid_d[j][ELC][RHO];
+      rho[j][ION] = fluid_d[j][ION][RHO];
+      for (int k = MX; k <= MZ; ++k)
+      {
+        u[j][ELC][k - MX] = fluid_d[j][ELC][k] / rho[j][ELC];
+        u[j][ION][k - MX] = fluid_d[j][ION][k] / rho[j][ION];
+      }
+      // Input magnetic field in each cell
+      calc_bhat(em_tot_d[j], b[j]);
+      // Derived cyclotron frequency and collision time
+      omega_c[j][ELC] = calc_omega_c(q[ELC], m[ELC], em_tot_d[j]);
+      omega_c[j][ION] = calc_omega_c(q[ION], m[ION], em_tot_d[j]);
+      tau[j][ELC] = calc_tau(1.0, bes->coll_fac, bes->epsilon0, q[ELC], q[ION], m[ELC], m[ION], rho[j][ION], T[j][ELC]);
+      tau[j][ION] = calc_tau(1.0, sqrt(2.0)*bes->coll_fac, bes->epsilon0, q[ION], q[ION], m[ION], m[ION], rho[j][ION], T[j][ION]);
+      // Pressure information is different for each equation type
+      for (int n = 0; n < nfluids; ++n)
+      {
+        if (bes->param[n].type_eqn == GKYL_EQN_EULER)
+          p[j][n] = gkyl_euler_pressure(bes->param[n].p_fac, fluid_d[j][n]); // Euler needs to divide out gas_gamma factor to obtain pressure
+        else if (bes->param[n].type_eqn == GKYL_EQN_ISO_EULER)
+          p[j][n] = rho[j][n]*bes->param[n].p_fac; // isothermal Euler input is vth, pressure = rho*vth
+      }
+      T[j][ELC] = m[ELC] * p[j][ELC] / rho[j][ELC];
+      eta_par[j][ELC] = 1.5*0.73*p[j][ELC]*tau[j][ELC];
+      eta_perp[j][ELC] = 0.51*p[j][ELC]/(tau[j][ELC]*omega_c[j][ELC]*omega_c[j][ELC]);
+      eta_cross[j][ELC] = 0.25*p[j][ELC]/omega_c[j][ELC];
+      kappa_par[j][ELC] = 3.16*p[j][ELC]*tau[j][ELC]/m[ELC];
+      kappa_perp[j][ELC] = 4.66*p[j][ELC]/(m[ELC]*tau[j][ELC]*omega_c[j][ELC]*omega_c[j][ELC]);
+
+      T[j][ION] = m[ION] * p[j][ION] / rho[j][ION];
+      eta_par[j][ION] = 1.5*0.96*p[j][ION]*tau[j][ION];
+      eta_perp[j][ION] = 0.3*p[j][ION]/(tau[j][ION]*omega_c[j][ION]*omega_c[j][ION]);
+      eta_cross[j][ION] = 0.25*p[j][ION]/omega_c[j][ION];
+      kappa_par[j][ION] = 3.91*p[j][ION]*tau[j][ION]/m[ION];
+      kappa_perp[j][ION] = 2*p[j][ION]/(m[ION]*tau[j][ION]*omega_c[j][ION]*omega_c[j][ION]);
+      kappa_cross[j][ION] = 2.5*p[j][ION]/(m[ION]*omega_c[j][ION]);
+
+      thermal_par[j] = -0.71*rho[j][ELC]/m[ELC];
+      thermal_perp[j] = 1.5*rho[j][ELC]/(m[ELC]*omega_c[j][ELC]*tau[j][ELC]);
+      double b_dot_j = b[j][0]*(u[j][ION][0] - u[j][ELC][0]) + b[j][1]*(u[j][ION][1] - u[j][ELC][1]) + b[j][2]*(u[j][ION][2] - u[j][ELC][2]);
+      current_par[j][0] = b[j][0]*b_dot_j;
+      current_par[j][1] = b[j][1]*b_dot_j;
+      current_par[j][2] = b[j][2]*b_dot_j;
+      current_cross[j][0] = b[j][1]*(u[j][ION][2] - u[j][ELC][2]) - b[j][2]*(u[j][ION][1] - u[j][ELC][1]);
+      current_cross[j][1] = b[j][2]*(u[j][ION][0] - u[j][ELC][0]) - b[j][0]*(u[j][ION][2] - u[j][ELC][2]);
+      current_cross[j][2] = b[j][0]*(u[j][ION][1] - u[j][ELC][1]) - b[j][1]*(u[j][ION][0] - u[j][ELC][0]);
+    }
+
+    // Magnetic field at cell edges (using arithmetic average)
+    double b_avg_l[3] = {0.0};
+    double b_avg_u[3] = {0.0};
+    b_avg_l[0] = calc_arithm_avg_1D(b[L_1D][0], b[C_1D][0]);
+    b_avg_l[1] = calc_arithm_avg_1D(b[L_1D][1], b[C_1D][1]);
+    b_avg_l[2] = calc_arithm_avg_1D(b[L_1D][2], b[C_1D][2]);
+    b_avg_u[0] = calc_arithm_avg_1D(b[C_1D][0], b[U_1D][0]);
+    b_avg_u[1] = calc_arithm_avg_1D(b[C_1D][1], b[U_1D][1]);
+    b_avg_u[2] = calc_arithm_avg_1D(b[C_1D][2], b[U_1D][2]);
+
+    // Parallel thermal force coefficient at cell edges (using arithmetic average)
+    double thermal_par_l = calc_arithm_avg_1D(thermal_par[L_1D], thermal_par[C_1D]);
+    double thermal_par_u = calc_arithm_avg_1D(thermal_par[C_1D], thermal_par[U_1D]);
+    // Perpendicular thermal force coefficient at cell edges (using arithmetic average)
+    double thermal_perp_l = calc_arithm_avg_1D(thermal_perp[L_1D], thermal_perp[C_1D]);
+    double thermal_perp_u = calc_arithm_avg_1D(thermal_perp[C_1D], thermal_perp[U_1D]);
+    
+    // Parallel viscosity coefficients at cell edges (using harmonic average)
+    double eta_par_l[2] = {0.0};
+    double eta_par_u[2] = {0.0};
+    eta_par_l[ELC] = calc_harmonic_avg_1D(eta_par[L_1D][ELC], eta_par[C_1D][ELC]);
+    eta_par_l[ION] = calc_harmonic_avg_1D(eta_par[L_1D][ION], eta_par[C_1D][ION]);
+    eta_par_u[ELC] = calc_harmonic_avg_1D(eta_par[C_1D][ELC], eta_par[U_1D][ELC]);
+    eta_par_u[ION] = calc_harmonic_avg_1D(eta_par[C_1D][ION], eta_par[U_1D][ION]);
+    // Perpendicular viscosity coefficients at cell edges (using harmonic average)
+    double eta_perp_l[2] = {0.0};
+    double eta_perp_u[2] = {0.0};
+    eta_perp_l[ELC] = calc_harmonic_avg_1D(eta_perp[L_1D][ELC], eta_perp[C_1D][ELC]);
+    eta_perp_l[ION] = calc_harmonic_avg_1D(eta_perp[L_1D][ION], eta_perp[C_1D][ION]);
+    eta_perp_u[ELC] = calc_harmonic_avg_1D(eta_perp[C_1D][ELC], eta_perp[U_1D][ELC]);
+    eta_perp_u[ION] = calc_harmonic_avg_1D(eta_perp[C_1D][ION], eta_perp[U_1D][ION]);    
+
+    // Rate of strain tensor at cell edges for electrons and ions
+    double w_l[2][6] = {0.0};
+    double w_u[2][6] = {0.0};
+    calc_ros_1D(dx, u[L_1D][ELC], u[C_1D][ELC], w_l[ELC]);
+    calc_ros_1D(dx, u[L_1D][ION], u[C_1D][ION], w_l[ION]);
+    calc_ros_1D(dx, u[C_1D][ELC], u[U_1D][ELC], w_u[ELC]);
+    calc_ros_1D(dx, u[C_1D][ION], u[U_1D][ION], w_u[ION]);
+
+    // Parallel viscous stress tensor at cell edges for electrons and ions
+    double pi_par_l[2][6] = {0.0};
+    double pi_par_u[2][6] = {0.0};
+    calc_pi_par(eta_par_l[ELC], b_avg_l, w_l[ELC], pi_par_l[ELC]);
+    calc_pi_par(eta_par_l[ION], b_avg_l, w_l[ION], pi_par_l[ION]);
+    calc_pi_par(eta_par_u[ELC], b_avg_u, w_u[ELC], pi_par_u[ELC]);
+    calc_pi_par(eta_par_u[ION], b_avg_u, w_u[ION], pi_par_u[ION]); 
+
+    // Perpendicular viscous stress tensor at cell edges for electrons and ions
+    double pi_perp_l[2][6] = {0.0};
+    double pi_perp_u[2][6] = {0.0};
+    calc_pi_perp(eta_perp_l[ELC], b_avg_l, w_l[ELC], pi_perp_l[ELC]);
+    calc_pi_perp(eta_perp_l[ION], b_avg_l, w_l[ION], pi_perp_l[ION]);
+    calc_pi_perp(eta_perp_u[ELC], b_avg_u, w_u[ELC], pi_perp_u[ELC]);
+    calc_pi_perp(eta_perp_u[ION], b_avg_u, w_u[ION], pi_perp_u[ION]); 
+
+    // Temperature gradient, parallel, perp, and cross at cell edges
+    double gradxT_l[2] = {0.0};
+    double gradxT_u[2] = {0.0};
+    // Parallel temperature gradient (b_hat b_hat dot grad T)
+    double bbgradT_l[2][3] = {0.0};
+    double bbgradT_u[2][3] = {0.0};
+    // Perpendicular temperature gradient (grad T - b_hat b_hat dot grad T)
+    double perp_gradT_l[2][3] = {0.0};
+    double perp_gradT_u[2][3] = {0.0};
+    // Cross temperature gradient (b x grad T)
+    double cross_gradT_l[2][3] = {0.0};
+    double cross_gradT_u[2][3] = {0.0};
+    
+    // Only electrons needed for friction force; ions may be different equation system
+    gradxT_l[ELC] = calc_sym_grad_1D(dx, T[L_1D][ELC], T[C_1D][ELC]);
+    gradxT_u[ELC] = calc_sym_grad_1D(dx, T[C_1D][ELC], T[U_1D][ELC]);
+    
+    bbgradT_l[ELC][0] = b_avg_l[0]*b_avg_l[0]*gradxT_l[ELC];
+    bbgradT_l[ELC][1] = b_avg_l[1]*b_avg_l[0]*gradxT_l[ELC];
+    bbgradT_l[ELC][2] = b_avg_l[2]*b_avg_l[0]*gradxT_l[ELC];
+    
+    bbgradT_u[ELC][0] = b_avg_u[0]*b_avg_u[0]*gradxT_u[ELC];
+    bbgradT_u[ELC][1] = b_avg_u[1]*b_avg_u[0]*gradxT_u[ELC];
+    bbgradT_u[ELC][2] = b_avg_u[2]*b_avg_u[0]*gradxT_u[ELC];
+    
+    perp_gradT_l[ELC][0] = gradxT_l[ELC] - b_avg_l[0]*b_avg_l[0]*gradxT_l[ELC];
+    perp_gradT_u[ELC][0] = gradxT_u[ELC] - b_avg_u[0]*b_avg_u[0]*gradxT_u[ELC];
+    
+    cross_gradT_l[ELC][1] = b_avg_l[2]*gradxT_l[ELC];
+    cross_gradT_l[ELC][2] = -b_avg_l[1]*gradxT_l[ELC];
+    
+    cross_gradT_u[ELC][1] = b_avg_l[2]*gradxT_u[ELC];
+    cross_gradT_u[ELC][2] = -b_avg_l[1]*gradxT_u[ELC];
+      
+    double div_pi[2][3] = {0.0};
+    double perp_current[3] = {0.0};
+    double par_force_thermal[3] = {0.0};
+    double perp_force_thermal[3] = {0.0};
+    double friction_force[3] = {0.0};
+
+    // Compute momentum update -div(Pi) +/- F_friction (+ for electron, - for ion)
+    div_pi[ELC][0] = calc_sym_grad_1D(dx, pi_par_l[ELC][0]+pi_perp_l[ELC][0], pi_par_u[ELC][0]+pi_perp_u[ELC][0]);
+    div_pi[ELC][1] = calc_sym_grad_1D(dx, pi_par_l[ELC][1]+pi_perp_l[ELC][1], pi_par_u[ELC][1]+pi_perp_u[ELC][1]);
+    div_pi[ELC][2] = calc_sym_grad_1D(dx, pi_par_l[ELC][2]+pi_perp_l[ELC][2], pi_par_u[ELC][2]+pi_perp_u[ELC][2]);
+
+    div_pi[ION][0] = calc_sym_grad_1D(dx, pi_par_l[ION][0]+pi_perp_l[ION][0], pi_par_u[ION][0]+pi_perp_u[ION][0]);
+    div_pi[ION][1] = calc_sym_grad_1D(dx, pi_par_l[ION][1]+pi_perp_l[ION][1], pi_par_u[ION][1]+pi_perp_u[ION][1]);
+    div_pi[ION][2] = calc_sym_grad_1D(dx, pi_par_l[ION][2]+pi_perp_l[ION][2], pi_par_u[ION][2]+pi_perp_u[ION][2]);
+
+    // Perpendicular current j_perp/n = (u_i - u_e) - b_hat (bhat dot (u_i - u_e))
+    // Note: density factors are included in friction force coefficient    
+    perp_current[0] = u[C_1D][ION][0] - u[C_1D][ELC][0] - current_par[C_1D][0];
+    perp_current[1] = u[C_1D][ION][1] - u[C_1D][ELC][1] - current_par[C_1D][1];
+    perp_current[2] = u[C_1D][ION][2] - u[C_1D][ELC][2] - current_par[C_1D][2];
+
+    par_force_thermal[0] = 0.5*(thermal_par_l*bbgradT_l[ELC][0] + thermal_par_u*bbgradT_u[ELC][0]);
+    par_force_thermal[1] = 0.5*(thermal_par_l*bbgradT_l[ELC][1] + thermal_par_u*bbgradT_u[ELC][1]);
+    par_force_thermal[2] = 0.5*(thermal_par_l*bbgradT_l[ELC][2] + thermal_par_u*bbgradT_u[ELC][2]);
+
+    perp_force_thermal[0] = 0.0;
+    perp_force_thermal[1] = 0.5*(thermal_perp_l*cross_gradT_l[ELC][1] + thermal_perp_u*cross_gradT_u[ELC][1]);
+    perp_force_thermal[2] = 0.5*(thermal_perp_l*cross_gradT_l[ELC][2] + thermal_perp_u*cross_gradT_u[ELC][2]);
+
+    // F_friction = j_parallel/sigma_parallel + j_perp/sigma_perp - b_hat grad_par T - b_hat x grad T
+    // Thermal force signs included in respective coefficients thermal_par/perp
+    friction_force[0] = 0.51*rho[C_1D][ELC]/tau[C_1D][ELC]*current_par[C_1D][0] + rho[C_1D][ELC]/tau[C_1D][ELC]*perp_current[0] + par_force_thermal[0] + perp_force_thermal[0];
+    friction_force[1] = 0.51*rho[C_1D][ELC]/tau[C_1D][ELC]*current_par[C_1D][1] + rho[C_1D][ELC]/tau[C_1D][ELC]*perp_current[1] + par_force_thermal[1] + perp_force_thermal[1];
+    friction_force[2] = 0.51*rho[C_1D][ELC]/tau[C_1D][ELC]*current_par[C_1D][2] + rho[C_1D][ELC]/tau[C_1D][ELC]*perp_current[2] + par_force_thermal[2] + perp_force_thermal[2];
+        
+    rhs[ELC][RHO] = 0;
+    rhs[ELC][MX] = -div_pi[ELC][0] + friction_force[0];
+    rhs[ELC][MY] = -div_pi[ELC][1] + friction_force[1];
+    rhs[ELC][MZ] = -div_pi[ELC][2] + friction_force[2];
+
+    rhs[ION][RHO] = 0;
+    rhs[ION][MX] = -div_pi[ION][0] - friction_force[0];
+    rhs[ION][MY] = -div_pi[ION][1] - friction_force[1];
+    rhs[ION][MZ] = -div_pi[ION][2] - friction_force[2];
+    
+    // Add contributions to the pressure variable if it exists
+    if (bes->param[ELC].type_eqn == GKYL_EQN_EULER)
+    {
+      // Parallel conductivity coefficients at cell edges (using harmonic average)
+      double kappa_par_l = calc_harmonic_avg_1D(kappa_par[L_1D][ELC], kappa_par[C_1D][ELC]);
+      double kappa_par_u = calc_harmonic_avg_1D(kappa_par[C_1D][ELC], kappa_par[U_1D][ELC]);
+      // Perpendicular conductivity coefficients at cell edges (using harmonic average)
+      double kappa_perp_l = calc_harmonic_avg_1D(kappa_perp[L_1D][ELC], kappa_perp[C_1D][ELC]);
+      double kappa_perp_u = calc_harmonic_avg_1D(kappa_perp[C_1D][ELC], kappa_perp[U_1D][ELC]); 
+
+      // Parallel current multiplied by electron temperature at cell edges (using arithmetic average)
+      double current_par_l[3] = {calc_arithm_avg_1D(T[L_1D][ELC]*current_par[L_1D][0], T[C_1D][ELC]*current_par[C_1D][0]),
+                                 calc_arithm_avg_1D(T[L_1D][ELC]*current_par[L_1D][1], T[C_1D][ELC]*current_par[C_1D][1]),
+                                 calc_arithm_avg_1D(T[L_1D][ELC]*current_par[L_1D][2], T[C_1D][ELC]*current_par[C_1D][2]) };
+      double current_par_u[3] = {calc_arithm_avg_1D(T[C_1D][ELC]*current_par[C_1D][0], T[U_1D][ELC]*current_par[U_1D][0]),
+                                 calc_arithm_avg_1D(T[C_1D][ELC]*current_par[C_1D][1], T[U_1D][ELC]*current_par[U_1D][1]),
+                                 calc_arithm_avg_1D(T[C_1D][ELC]*current_par[C_1D][2], T[U_1D][ELC]*current_par[U_1D][2]) };
+      // Cross current multiplied by electron temperature at cell edges (using arithmetic average)
+      double current_cross_l[3] = {calc_arithm_avg_1D(T[L_1D][ELC]*current_cross[L_1D][0], T[C_1D][ELC]*current_cross[C_1D][0]),
+                                   calc_arithm_avg_1D(T[L_1D][ELC]*current_cross[L_1D][1], T[C_1D][ELC]*current_cross[C_1D][1]),
+                                   calc_arithm_avg_1D(T[L_1D][ELC]*current_cross[L_1D][2], T[C_1D][ELC]*current_cross[C_1D][2]) };
+      double current_cross_u[3] = {calc_arithm_avg_1D(T[C_1D][ELC]*current_cross[C_1D][0], T[U_1D][ELC]*current_cross[U_1D][0]),
+                                   calc_arithm_avg_1D(T[C_1D][ELC]*current_cross[C_1D][1], T[U_1D][ELC]*current_cross[U_1D][1]),
+                                   calc_arithm_avg_1D(T[C_1D][ELC]*current_cross[C_1D][2], T[U_1D][ELC]*current_cross[U_1D][2]) };
+      
+      double q_par_l[3] = {kappa_par_l*bbgradT_l[ELC][0] + thermal_par_l*current_par_l[0],
+                           kappa_par_l*bbgradT_l[ELC][1] + thermal_par_l*current_par_l[1],
+                           kappa_par_l*bbgradT_l[ELC][2] + thermal_par_l*current_par_l[2] };
+      double q_par_u[3] = {kappa_par_u*bbgradT_u[ELC][0] + thermal_par_u*current_par_u[0],
+                           kappa_par_u*bbgradT_u[ELC][1] + thermal_par_u*current_par_u[1],
+                           kappa_par_u*bbgradT_u[ELC][2] + thermal_par_u*current_par_u[2] };
+      double q_perp_l[3] = {kappa_perp_l*perp_gradT_l[ELC][0] + thermal_perp_l*current_cross_l[0],
+                            kappa_perp_l*perp_gradT_l[ELC][1] + thermal_perp_l*current_cross_l[1],
+                            kappa_perp_l*perp_gradT_l[ELC][2] + thermal_perp_l*current_cross_l[2] };
+      double q_perp_u[3] = {kappa_perp_u*perp_gradT_u[ELC][0] + thermal_perp_u*current_cross_u[0],
+                            kappa_perp_u*perp_gradT_u[ELC][1] + thermal_perp_u*current_cross_u[1],
+                            kappa_perp_u*perp_gradT_u[ELC][2] + thermal_perp_u*current_cross_u[2] };
+      
+      double div_q[3] = {calc_sym_grad_1D(dx, q_par_l[0] + q_perp_l[0], q_par_u[0] + q_perp_u[0]), 0.0, 0.0};
+      double friction_heating = (u[C_1D][ION][0] - u[C_1D][ELC][0])*friction_force[0]
+        + (u[C_1D][ION][1] - u[C_1D][ELC][1])*friction_force[1]
+        + (u[C_1D][ION][2] - u[C_1D][ELC][2])*friction_force[2]
+        - 3.0*m[ELC]/m[ION]*rho[C_1D][ELC]*(T[C_1D][ELC] - T[C_1D][ION])/tau[C_1D][ELC];
+      double viscous_heating[6] = {calc_arithm_avg_1D(pi_par_l[ELC][0]+pi_perp_l[ELC][0], pi_par_u[ELC][0]+pi_perp_u[ELC][0]),
+                                   calc_arithm_avg_1D(pi_par_l[ELC][1]+pi_perp_l[ELC][1], pi_par_u[ELC][1]+pi_perp_u[ELC][1]),
+                                   calc_arithm_avg_1D(pi_par_l[ELC][2]+pi_perp_l[ELC][2], pi_par_u[ELC][0]+pi_perp_u[ELC][2]),
+                                   0.0, 0.0, 0.0};
+      rhs[ELC][ER] = -div_q[0] - div_q[1] - div_q[2]
+        - viscous_heating[0] - viscous_heating[1] - viscous_heating[2] - viscous_heating[3] - viscous_heating[4] - viscous_heating[5]
+        + friction_heating;
+    }
+    if (bes->param[ION].type_eqn == GKYL_EQN_EULER)
+    {
+      // Parallel conductivity coefficients at cell edges (using harmonic average)
+      double kappa_par_l = calc_harmonic_avg_1D(kappa_par[L_1D][ION], kappa_par[C_1D][ION]);
+      double kappa_par_u = calc_harmonic_avg_1D(kappa_par[C_1D][ION], kappa_par[U_1D][ION]);
+      // Perpendicular conductivity coefficients at cell edges (using harmonic average)
+      double kappa_perp_l = calc_harmonic_avg_1D(kappa_perp[L_1D][ION], kappa_perp[C_1D][ION]);
+      double kappa_perp_u = calc_harmonic_avg_1D(kappa_perp[C_1D][ION], kappa_perp[U_1D][ION]);
+
+      // Ion Temperature gradient, parallel, perp and cross at cell edges
+      gradxT_l[ION] = calc_sym_grad_1D(dx, T[L_1D][ION], T[C_1D][ION]);
+      gradxT_u[ION] = calc_sym_grad_1D(dx, T[C_1D][ION], T[U_1D][ION]);
+      
+      bbgradT_l[ION][0] = b_avg_l[0]*b_avg_l[0]*gradxT_l[ION];
+      bbgradT_l[ION][1] = b_avg_l[1]*b_avg_l[0]*gradxT_l[ION];
+      bbgradT_l[ION][2] = b_avg_l[2]*b_avg_l[0]*gradxT_l[ION];
+    
+      bbgradT_u[ION][0] = b_avg_u[0]*b_avg_u[0]*gradxT_u[ION];
+      bbgradT_u[ION][1] = b_avg_u[1]*b_avg_u[0]*gradxT_u[ION];
+      bbgradT_u[ION][2] = b_avg_u[2]*b_avg_u[0]*gradxT_u[ION];
+    
+      perp_gradT_l[ION][0] = gradxT_l[ION] - b_avg_l[0]*b_avg_l[0]*gradxT_l[ION];
+      perp_gradT_u[ION][0] = gradxT_u[ION] - b_avg_u[0]*b_avg_u[0]*gradxT_u[ION];
+    
+      cross_gradT_l[ION][1] = b_avg_l[2]*gradxT_l[ION];
+      cross_gradT_l[ION][2] = -b_avg_l[1]*gradxT_l[ION];
+    
+      cross_gradT_u[ION][1] = b_avg_l[2]*gradxT_u[ION];
+      cross_gradT_u[ION][2] = -b_avg_l[1]*gradxT_u[ION];
+
+      double q_par_l[3] = {kappa_par_l*bbgradT_l[ION][0], kappa_par_l*bbgradT_l[ION][1], kappa_par_l*bbgradT_l[ION][2] };
+      double q_par_u[3] = {kappa_par_u*bbgradT_u[ION][0], kappa_par_u*bbgradT_u[ION][1], kappa_par_u*bbgradT_u[ION][2] };
+      double q_perp_l[3] = {kappa_perp_l*perp_gradT_l[ION][0], kappa_perp_l*perp_gradT_l[ION][1], kappa_perp_l*perp_gradT_l[ION][2] };
+      double q_perp_u[3] = {kappa_perp_u*perp_gradT_u[ION][0], kappa_perp_u*perp_gradT_u[ION][1], kappa_perp_u*perp_gradT_u[ION][2] };
+      
+      double div_q[3] = {calc_sym_grad_1D(dx, q_par_l[0] + q_perp_l[0], q_par_u[0] + q_perp_u[0]), 0.0, 0.0};
+      // Temperature equilibriation has opposite sign for ions
+      double friction_heating = 3.0*m[ELC]/m[ION]*rho[C_1D][ELC]*(T[C_1D][ELC] - T[C_1D][ION])/tau[C_1D][ELC];
+      double viscous_heating[6] = {calc_arithm_avg_1D(pi_par_l[ION][0]+pi_perp_l[ION][0], pi_par_u[ION][0]+pi_perp_u[ION][0]),
+                                   calc_arithm_avg_1D(pi_par_l[ION][1]+pi_perp_l[ION][1], pi_par_u[ION][1]+pi_perp_u[ION][1]),
+                                   calc_arithm_avg_1D(pi_par_l[ION][2]+pi_perp_l[ION][2], pi_par_u[ION][0]+pi_perp_u[ION][2]),
+                                   0.0, 0.0, 0.0};
+      rhs[ION][ER] = -div_q[0] - div_q[1] - div_q[2]
+        - viscous_heating[0] - viscous_heating[1] - viscous_heating[2] - viscous_heating[3] - viscous_heating[4] - viscous_heating[5]
+        + friction_heating;
     }
   }
   else if (ndim == 2 && nfluids == 2) {
@@ -334,7 +586,7 @@ gkyl_moment_braginskii_advance(const gkyl_moment_braginskii *bes, struct gkyl_ra
     for (int n=0; n<nfluids; ++n)
       rhs_d[n] = gkyl_array_fetch(rhs[n], linc);
 
-    if (bes->type_brag == GKYL_MAG_BRAG)
+    if (bes->type_brag == GKYL_MAG_BRAG || bes->type_brag == GKYL_MAG_BRAG_NO_CROSS)
       mag_braginskii_update(bes, fluid_d, em_tot_d, gkyl_array_fetch(cflrate, linc), rhs_d);
     else if (bes->type_brag == GKYL_UNMAG_BRAG)
       unmag_braginskii_update(bes, fluid_d, gkyl_array_fetch(cflrate, linc), rhs_d);

@@ -172,14 +172,14 @@ calc_ros_3D(double dx, double dy, double dz, double u_lll[3], double u_llu[3], d
 // Magnetized closure helper functions
 // Calculate the magnitude of the local magnetic field
 static inline double
-calc_mag_b(double em_tot[8])
+calc_mag_b(const double em_tot[8])
 {
   return sqrt(em_tot[BX]*em_tot[BX] + em_tot[BY]*em_tot[BY] + em_tot[BZ]*em_tot[BZ]);
 }
 
 // Calculate the cyclotron frequency based on the species' parameters
 static inline double
-calc_omega_c(double charge, double mass, double em_tot[8])
+calc_omega_c(double charge, double mass, const double em_tot[8])
 {
   double omega_c = 0.0;
   double Bmag = calc_mag_b(em_tot);
@@ -190,7 +190,7 @@ calc_omega_c(double charge, double mass, double em_tot[8])
 
 // Calculate magnetic field unit vector
 static inline void
-calc_bhat(double em_tot[8], double b[3])
+calc_bhat(const double em_tot[8], double b[3])
 {
   double Bx = em_tot[BX];
   double By = em_tot[BY];

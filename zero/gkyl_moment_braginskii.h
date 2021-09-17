@@ -14,6 +14,7 @@ enum gkyl_braginskii_type
   NONE = 0,
   GKYL_UNMAG_BRAG, // Unmagnetized Braginskii
   GKYL_MAG_BRAG, // Magnetized Braginskii
+  GKYL_MAG_BRAG_NO_CROSS, // Magnetized Braginskii, no gyroviscosity
 };
 
 struct gkyl_moment_braginskii_data {
