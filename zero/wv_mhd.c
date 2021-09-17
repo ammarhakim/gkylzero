@@ -23,6 +23,36 @@ static const int dir_shuffle[][6] = {
 
 #define sq(x) ((x)*(x))
 
+static inline void
+rot_to_local_rect(int dir, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
+{
+  const int *idx = dir_shuffle[dir];
+  qlocal[0] = qglobal[0];
+  qlocal[1] = qglobal[MX];
+  qlocal[2] = qglobal[MY];
+  qlocal[3] = qglobal[MZ];
+  qlocal[4] = qglobal[4];
+  qlocal[5] = qglobal[BX];
+  qlocal[6] = qglobal[BY];
+  qlocal[7] = qglobal[BZ];
+}
+
+static inline void
+rot_to_global_rect(int dir, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
+{
+  const int *idx = dir_shuffle[dir];  
+  qglobal[0] = qlocal[0];
+  qglobal[MX] = qlocal[1];
+  qglobal[MY] = qlocal[2];
+  qglobal[MZ] = qlocal[3];
+  qglobal[4] = qlocal[4];
+  qglobal[BX] = qlocal[5];
+  qglobal[BY] = qlocal[6];
+  qglobal[BZ] = qlocal[7];
+}
+
 struct wv_mhd {
   struct gkyl_wv_eqn eqn; // base object
   double gas_gamma; // gas adiabatic constant
@@ -41,10 +71,10 @@ mhd_free(const struct gkyl_ref_count *ref)
 // Following Cargo & Gallice 1997 section 4.2.
 static double
 wave_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *dQ,
-         const double *ql, const double *qr, double *waves, double *ev)
+  const double *ql, const double *qr, double *waves, double *ev)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
-  const int *idx = dir_shuffle[dir];
+  const int *idx = dir_shuffle[0]; // no need for shuffle
   double gamma = mhd->gas_gamma;
 
   // Compute primitive states
@@ -271,8 +301,8 @@ wave_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *dQ,
 
 static void
 qfluct_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *ql,
-           const double *qr, const double *waves, const double *s, double *amdq,
-           double *apdq)
+  const double *qr, const double *waves, const double *s, double *amdq,
+  double *apdq)
 {
   const double *w0 = &waves[0*8], *w1 = &waves[1*8], *w2 = &waves[2*8];
   const double *w3 = &waves[3*8], *w4 = &waves[4*8], *w5 = &waves[5*8];
@@ -288,9 +318,9 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *ql,
 
   for (int i=0; i<8; ++i) {
     amdq[i] = s0m*w0[i] + s1m*w1[i] + s2m*w2[i] + s3m*w3[i] + s4m*w4[i]
-            + s5m*w5[i] + s5m*w6[i];
+      + s5m*w5[i] + s5m*w6[i];
     apdq[i] = s0p*w0[i] + s1p*w1[i] + s2p*w2[i] + s3p*w3[i] + s4p*w4[i]
-            + s5p*w5[i] + s6p*w6[i];
+      + s5p*w5[i] + s6p*w6[i];
   }
 }
 
@@ -314,6 +344,8 @@ gkyl_wv_mhd_new(double gas_gamma, int has_eight_waves)
   mhd->eqn.waves_func = wave_roe;
   mhd->eqn.qfluct_func = qfluct_roe;
   mhd->eqn.max_speed_func = max_speed;
+  mhd->eqn.rotate_to_local_func = rot_to_local_rect;
+  mhd->eqn.rotate_to_global_func = rot_to_global_rect;
 
   mhd->eqn.ref_count = (struct gkyl_ref_count) { mhd_free, 1 };
 
