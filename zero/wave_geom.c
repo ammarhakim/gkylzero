@@ -56,7 +56,7 @@ vec3_cross(struct vec3 a, struct vec3 b)
 {
   return (struct vec3) { .x = {
       a.x[1]*b.x[2]-a.x[2]*b.x[1],
-      a.x[0]*b.x[2]-a.x[2]*b.x[0],
+      a.x[2]*b.x[0]-a.x[0]*b.x[2],
       a.x[0]*b.x[1]-a.x[1]*b.x[0]
     }
   };
@@ -110,7 +110,7 @@ calc_geom_2d(const double *dx, const double *xc, evalf_t mapc2p, void *ctx, stru
   // volume factor
   double area = 0.5*vec3_len( vec3_cross(vec3_sub(xlr_p,xll_p), vec3_sub(xul_p,xll_p)) )
     + 0.5*vec3_len( vec3_cross(vec3_sub(xlr_p,xur_p), vec3_sub(xul_p,xur_p)) );
-  
+
   geo->kappa = area/(dx[0]*dx[1]);
 
   // face-area ratios for faces (a face is an edge in 2D)
@@ -121,7 +121,7 @@ calc_geom_2d(const double *dx, const double *xc, evalf_t mapc2p, void *ctx, stru
   struct vec3 tau1_l = vec3_norm(vec3_sub(xul_p, xll_p));
   struct vec3 tau2_l = { .x = { 0.0, 0.0, 1.0 } }; // ez
   struct vec3 norm_l = vec3_cross(tau1_l, tau2_l);
-
+  
   for (int d=0; d<3; ++d) {
     geo->norm[0][d] = norm_l.x[d];
     geo->tau1[0][d] = tau1_l.x[d];
