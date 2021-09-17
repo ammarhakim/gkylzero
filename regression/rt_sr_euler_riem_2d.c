@@ -111,6 +111,7 @@ main(int argc, char **argv)
     .init = evalSREulerInit,
 
     .bcx = { GKYL_MOMENT_COPY, GKYL_MOMENT_COPY },
+    .bcy = { GKYL_MOMENT_COPY, GKYL_MOMENT_COPY },
     .limiter = GKYL_MIN_MOD,
   };
 
@@ -134,7 +135,7 @@ main(int argc, char **argv)
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 0.8;
-  int nframe = 1;
+  int nframe = 10;
   
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };

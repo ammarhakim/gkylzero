@@ -19,12 +19,16 @@ evalSREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double x = xn[0], y = xn[1];
   //ICs from KH test from sec 4.3.2 Stone Athena++ 2020
   
-  double rho = 1.0, p = 20.;
+  double rho, rhou = 1.5, rhol = 0.5, p = 20.;
   double pi = 3.141592653589793238462643383279502884;
   
   double u = 0.25*tanh(100*y);
   double v = sin(2*pi*x)*exp(-100*y*y)/400;
   
+  rho = rhol;
+  if (y > 0.) {
+    rho = rhou;
+  }
   
   double gamma = 1 / sqrt(1 - u*u - v*v);
   double rhoh = gas_gamma * p / (gas_gamma - 1)  + rho;
@@ -65,8 +69,6 @@ main(int argc, char **argv)
     .evolve = 1,
     .ctx = &ctx,
     .init = evalSREulerInit,
-
-    .bcx = { GKYL_MOMENT_COPY, GKYL_MOMENT_COPY },
   };
 
   // VM app
@@ -82,6 +84,8 @@ main(int argc, char **argv)
 
     .num_species = 1,
     .species = { fluid },
+    .num_periodic_dir = 1,
+    .periodic_dirs = { 0 },
   };
 
   // create app object
