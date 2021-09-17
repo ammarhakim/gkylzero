@@ -31,7 +31,7 @@ test_mhd_basic()
   double u_dot_b = u*bx+v*by+w*bz;
   double E = q[4];
 
-  TEST_CHECK ( pr == gkyl_mhd_pressure(gas_gamma, q) );
+  TEST_CHECK ( gkyl_compare(pr, gkyl_mhd_pressure(gas_gamma, q), 1e-15) );
 
   double flux[8];
  

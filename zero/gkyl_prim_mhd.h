@@ -22,7 +22,7 @@ double gkyl_mhd_pressure(double gas_gamma, const double q[8])
  * @param q Conserved variables
  * @return Maximum absolute speed for given q
  */
-double gkyl_mhd_max_abs_speed(int dir, double gas_gamma, const const double q[8]);
+double gkyl_mhd_max_abs_speed(int dir, double gas_gamma, const double q[8]);
 
 /**
  * Compute flux in direction 'dir'.
