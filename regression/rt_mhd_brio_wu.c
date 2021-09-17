@@ -63,14 +63,14 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "mhd_bio_wu",
+    .name = "mhd_brio_wu",
 
     .ndim = 1,
     .lower = { 0.0 },
     .upper = { 1.0 }, 
-    .cells = { 512 },
+    .cells = { 400 },
 
-    .cfl_frac = 0.1,
+    .cfl_frac = 0.8,
 
     .num_species = 1,
     .species = { fluid },
