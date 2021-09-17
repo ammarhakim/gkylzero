@@ -26,6 +26,7 @@ static const int dir_shuffle[][6] = {
 struct wv_mhd {
   struct gkyl_wv_eqn eqn; // base object
   double gas_gamma; // gas adiabatic constant
+  int has_eight_waves; // set 1 to add divB wave for powell's 8-wave scheme
 };
 
 static void
@@ -255,6 +256,9 @@ wave_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *dQ,
   wv[MZ] = eta[3]*w;
   wv[ER] = eta[3]*(v2/2 + X*(gamma-2)/(gamma-1));
 
+  if (mhd->has_eight_waves)
+    wv[BX] = dQ[BX];
+
   /* printf("\n"); */
   /* printf("u=%f, a=%f, ca=%f, cs=%f, cf=%f\n", u, a, ca, cs, cf); */
   /* printf("alphaf=%f, alphas=%f, betay=%f, betaz=%f\n", */
@@ -298,7 +302,7 @@ max_speed(const struct gkyl_wv_eqn *eqn, int dir, const double *q)
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_mhd_new(double gas_gamma)
+gkyl_wv_mhd_new(double gas_gamma, int has_eight_waves)
 {
   struct wv_mhd *mhd = gkyl_malloc(sizeof(struct wv_mhd));
 
@@ -306,6 +310,7 @@ gkyl_wv_mhd_new(double gas_gamma)
   mhd->eqn.num_equations = 8;
   mhd->eqn.num_waves = 7;
   mhd->gas_gamma = gas_gamma;
+  mhd->has_eight_waves = has_eight_waves;
   mhd->eqn.waves_func = wave_roe;
   mhd->eqn.qfluct_func = qfluct_roe;
   mhd->eqn.max_speed_func = max_speed;
