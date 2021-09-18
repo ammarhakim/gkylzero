@@ -114,8 +114,8 @@ wave_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *dQ,
   //////////////////////////////////////////////////////////////////////////////
   // STEP 3: COMPUTE CHARACTERASTIC WAVE SPEEDS AND OTHER USEFUL QUANTITIES   //
   //////////////////////////////////////////////////////////////////////////////
-  // CG97 eq. 4.12; FIXME: dBx is included as needed by 8-wave scheme
-  double X = (sq(dQ[BX]) + sq(dQ[BY]) + sq(dQ[BZ])) / (2*sq(srrhol+srrhor));
+  // CG97 eq. 4.12
+  double X = (sq(dQ[BY]) + sq(dQ[BZ])) / (2*sq(srrhol+srrhor));
 
   // CG97 eq 4.17, wave speeds
   double ca2 = Bx*Bx/rho; // for alfven speed due to normal B field
