@@ -283,7 +283,7 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
 
         double *qoutl = gkyl_array_fetch(qout, lidx);
         double *qoutr = gkyl_array_fetch(qout, ridx);
-
+        
         calc_first_order_update(meqn, dtdx/cg->kappa, qoutl, qoutr, amdq, apdq);
         cfla = calc_cfla(mwaves, cfla, dtdx/cg->kappa, s);
       }
