@@ -96,7 +96,7 @@ static const gkyl_dg_vlasov_lbo_surf_kern_list ser_surf_vz_kernels[] = {
 GKYL_CU_D
 gkyl_dg_vlasov_lbo_boundary_surf_kern_list ser_boundary_surf_vx_kernels[] = {
   // 1x kernels
-  { NULL, NULL, NULL }, // 0
+  { NULL, vlasov_lbo_boundary_surfvx_1x1v_ser_p1, vlasov_lbo_boundary_surfvx_1x1v_ser_p2 }, // 0
   { NULL, vlasov_lbo_boundary_surfvx_1x2v_ser_p1, vlasov_lbo_boundary_surfvx_1x2v_ser_p2 }, // 1
   { NULL, vlasov_lbo_boundary_surfvx_1x3v_ser_p1, vlasov_lbo_boundary_surfvx_1x3v_ser_p2 }, // 2
   // 2x kernels
@@ -197,7 +197,7 @@ static const gkyl_dg_vlasov_lbo_surf_kern_list ten_surf_vz_kernels[] = {
 GKYL_CU_D
 gkyl_dg_vlasov_lbo_boundary_surf_kern_list ten_boundary_surf_vx_kernels[] = {
   // 1x kernels
-  { NULL, NULL, NULL }, // 0
+  { NULL, vlasov_lbo_boundary_surfvx_1x1v_ser_p1, vlasov_lbo_boundary_surfvx_1x1v_tensor_p2 }, // 0
   { NULL, vlasov_lbo_boundary_surfvx_1x2v_ser_p1, vlasov_lbo_boundary_surfvx_1x2v_tensor_p2 }, // 1
   { NULL, vlasov_lbo_boundary_surfvx_1x3v_ser_p1, vlasov_lbo_boundary_surfvx_1x3v_tensor_p2 }, // 2
   // 2x kernels
@@ -271,7 +271,7 @@ surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_vlasov_lbo *vlasov_lbo = container_of(eqn, struct dg_vlasov_lbo, eqn);
 
-  vlasov_lbo->surf[dir](xcC, dxC, vlasov_lbo->nuSum, vlasov_lbo->nuUSum, vlasov_lbo->nuVtSqSum, qInL, qInC, qInR, qRhsOut);
+  vlasov_lbo->surf[dir-vlasov_lbo->cdim](xcC, dxC, vlasov_lbo->nuSum, vlasov_lbo->nuUSum, vlasov_lbo->nuVtSqSum, qInL, qInC, qInR, qRhsOut);
 }
 
 GKYL_CU_D
@@ -285,6 +285,9 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_vlasov_lbo *vlasov_lbo = container_of(eqn, struct dg_vlasov_lbo, eqn);
 
-  vlasov_lbo->boundary_surf[dir](xcSkin, dxSkin, vlasov_lbo->nuSum, vlasov_lbo->nuUSum, vlasov_lbo->nuVtSqSum, edge, qInSkin, qInEdge, qRhsOut);
+  if (dir >= vlasov->cdim) {
+    vlasov_lbo->boundary_surf[dir-vlasov_lbo->cdim](xcSkin, dxSkin, vlasov_lbo->nuSum, vlasov_lbo->nuUSum,
+      vlasov_lbo->nuVtSqSum, edge, qInSkin, qInEdge, qRhsOut);
+  }
 }
 
