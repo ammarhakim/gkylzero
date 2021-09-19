@@ -23,6 +23,7 @@ static const int dir_shuffle[][6] = {
 #define BX (idx[3])
 #define BY (idx[4])
 #define BZ (idx[5])
+#define PSI_GLM (8)
 
 #define sq(x) ((x)*(x))
 
@@ -56,10 +57,27 @@ rot_to_global_rect(int dir, const double *tau1, const double *tau2, const double
   qglobal[BZ] = qlocal[7];
 }
 
+static inline void
+rot_to_local_rect_glm(int dir, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
+{
+  rot_to_local_rect(dir, tau1, tau2, norm, qglobal, qlocal);
+  qlocal[8] = qglobal[8];
+}
+
+static inline void
+rot_to_global_rect_glm(int dir, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
+{
+  rot_to_global_rect(dir, tau1, tau2, norm, qlocal, qglobal);
+  qglobal[8] = qlocal[8];
+}
+
 struct wv_mhd {
   struct gkyl_wv_eqn eqn; // base object
   double gas_gamma; // gas adiabatic constant
-  int divergence_constraint; // set 1 to add divB wave for powell's 8-wave scheme
+  int divergence_constraint;
+  int glm_ch;
 };
 
 static void
@@ -318,7 +336,30 @@ wave_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *dQ,
   if (mhd->divergence_constraint == DIVB_EIGHT_WAVES)
     wv[BX] = dQ[BX];
 
-  return fabs(u) + cf;
+  double max_speed =  fabs(u) + cf;
+
+  // GLM divB and psi waves; XXX set ch properly.
+  if (mhd->divergence_constraint == DIVB_GLM)
+  {
+    // ch = eqn->glm_ch;
+    double ch = max_speed * 1.5;  // cfl * min(dx, dy, dz) / dt
+
+    ev[7] = -ch;
+    eta[7] = 0.5 * (-dQ[BX]*ch+dQ[PSI_GLM]);
+    wv = &waves[7*meqns];
+    wv[BX] = -eta[7]/ch;
+    wv[PSI_GLM] = eta[7];
+
+    ev[8] = ch;
+    eta[8] = 0.5 * (dQ[BX]*ch+dQ[PSI_GLM]);
+    wv = &waves[8*meqns];
+    wv[BX] = eta[8]/ch;
+    wv[PSI_GLM] = eta[8];
+
+    max_speed = max_speed > ch? max_speed : ch;
+  }
+
+  return max_speed;
 }
 
 static void
@@ -350,6 +391,13 @@ gkyl_wv_mhd_new(double gas_gamma, const char *divergence_constraint)
   struct wv_mhd *mhd = gkyl_malloc(sizeof(struct wv_mhd));
 
   mhd->eqn.type = GKYL_EQN_MHD;
+  mhd->gas_gamma = gas_gamma;
+  mhd->eqn.waves_func = wave_roe;
+  mhd->eqn.qfluct_func = qfluct_roe;
+  mhd->eqn.max_speed_func = max_speed;
+  mhd->eqn.rotate_to_local_func = rot_to_local_rect;
+  mhd->eqn.rotate_to_global_func = rot_to_global_rect;
+
   if (strcmp(divergence_constraint, "none")==0)
   {
     mhd->divergence_constraint = DIVB_NONE;
@@ -367,6 +415,8 @@ gkyl_wv_mhd_new(double gas_gamma, const char *divergence_constraint)
     mhd->divergence_constraint = DIVB_GLM;
     mhd->eqn.num_equations = 9;
     mhd->eqn.num_waves = 9;
+    mhd->eqn.rotate_to_local_func = rot_to_local_rect_glm;
+    mhd->eqn.rotate_to_global_func = rot_to_global_rect_glm;
   }
   else {
     // Do not constrain divergence by default. TODO: Warn or throw an error
@@ -374,12 +424,6 @@ gkyl_wv_mhd_new(double gas_gamma, const char *divergence_constraint)
     mhd->eqn.num_equations = 8;
     mhd->eqn.num_waves = 7;
   }
-  mhd->gas_gamma = gas_gamma;
-  mhd->eqn.waves_func = wave_roe;
-  mhd->eqn.qfluct_func = qfluct_roe;
-  mhd->eqn.max_speed_func = max_speed;
-  mhd->eqn.rotate_to_local_func = rot_to_local_rect;
-  mhd->eqn.rotate_to_global_func = rot_to_global_rect;
 
   mhd->eqn.ref_count = (struct gkyl_ref_count) { mhd_free, 1 };
 

@@ -104,57 +104,8 @@ test_mhd_waves()
   gkyl_wv_eqn_release(mhd);
 }
 
-/* check if sum of left/right going fluctuations sum to jump in flux */
-void
-test_glm_mhd_waves()
-{
-  double gas_gamma = 1.4;
-  double glm_ch = 1;
-  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(gas_gamma, "glm");
-
-  double ql[9], qr[9];
-  double delta[9];
-
-  /* double vl[9] = { 1.0,  0.1,  0.2,  0.3,  1.5, 0.3, 0.4, 0.3, 0.2}; */
-  /* double vr[9] = { 1.1, 0.13, 0.25, 0.34, 1.54, 0.4, 0.5, 0.2, 0.2}; */
-  double vl[9] = { 1, 0, 0, 0, 10, 1, 0, 0, 2};
-  double vr[9] = { 1, 0, 0, 0, 10, 2, 0, 0, 3};
-
-  calcq(gas_gamma, vl, ql); calcq(gas_gamma, vr, qr);
-  ql[8] = vl[8];
-  qr[8] = vr[8];
-
-  for (int i=0; i<9; ++i) delta[i] = qr[i]-ql[i];
-
-  for (int d=0; d<1; ++d) {
-    double speeds[9], waves[9*9];
-    gkyl_wv_eqn_waves(mhd, d, delta, ql, qr, waves, speeds);
-
-    double apdq[9], amdq[9];
-    gkyl_wv_eqn_qfluct(mhd, d, ql, qr, waves, speeds, amdq, apdq);
-    
-    double fl[9], fr[9];
-    gkyl_glm_mhd_flux(d, gas_gamma, glm_ch, ql, fl);
-    gkyl_glm_mhd_flux(d, gas_gamma, glm_ch, qr, fr);
-
-    printf("\n");
-    for (int i=0; i<9; ++i)
-    {
-      int a = gkyl_compare(fr[i]-fl[i], amdq[i]+apdq[i], 1e-9);
-      printf("[%d] equal? %d; df=%f, sum(A*dq)=%f; f %g, %g\n",
-          i, a, fr[i]-fl[i], amdq[i]+apdq[i], fl[i], fr[i]);
-    }
-
-    for (int i=0; i<9; ++i)
-      TEST_CHECK( gkyl_compare(fr[i]-fl[i], amdq[i]+apdq[i], 1e-9) );
-  }
-    
-  gkyl_wv_eqn_release(mhd);
-}
-
 TEST_LIST = {
   { "mhd_basic", test_mhd_basic },
   { "mhd_waves", test_mhd_waves },
-  { "glm_mhd_waves", test_glm_mhd_waves },
   { NULL, NULL },
 };
