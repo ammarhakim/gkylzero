@@ -130,7 +130,7 @@ calc_geom_2d(const double *dx, const double *xc, evalf_t mapc2p, void *ctx, stru
 
   // normal-tangent to bottom face
   struct vec3 tau1_b = vec3_norm(vec3_sub(xlr_p, xll_p));
-  struct vec3 tau2_b = { .x = { 0.0, 0.0, 1.0 } }; // ez
+  struct vec3 tau2_b = { .x = { 0.0, 0.0, -1.0 } }; // -ez (ensures normal points into cell)
   struct vec3 norm_b = vec3_cross(tau1_b, tau2_b);
 
   for (int d=0; d<3; ++d) {
