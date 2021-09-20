@@ -17,6 +17,7 @@ static const int dir_shuffle[][6] = {
 #define B1 (d[3])
 #define B2 (d[4])
 #define B3 (d[5])
+#define PSI_GLM (8)
 
 #define sq(x) ((x)*(x))
 
@@ -63,4 +64,16 @@ gkyl_mhd_flux(int dir, double gas_gamma, const double q[8], double flux[8])
   flux[B1] = 0;
   flux[B2] = u1*q[B2] - u2*q[B1];
   flux[B3] = u1*q[B3] - u3*q[B1];
+}
+
+void
+gkyl_glm_mhd_flux(int dir, double gas_gamma, double ch, const double q[9],
+                  double flux[9])
+{
+  int const *const d = dir_shuffle[dir];
+
+  gkyl_mhd_flux(dir, gas_gamma, q, flux);
+
+  flux[B1] = q[PSI_GLM];
+  flux[PSI_GLM] = ch*ch*q[B1];
 }

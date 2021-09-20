@@ -33,3 +33,15 @@ double gkyl_mhd_max_abs_speed(int dir, double gas_gamma, const double q[8]);
  * @param flux On output, the flux in direction 'dir'
  */
 void gkyl_mhd_flux(int dir, double gas_gamma, const double q[8], double flux[8]);
+
+/**
+ * Compute flux in direction 'dir' for the GLM-MHD equations.
+ *
+ * @param dir Direction to compute flux
+ * @param gas_gamma Gas adiabatic constant
+ * @param ch The propagation speed of div(B) errors in the GLM method.
+ * @param Conserved variables
+ * @param flux On output, the flux in direction 'dir'
+ */
+void gkyl_glm_mhd_flux(int dir, double gas_gamma, double ch, const double q[8],
+                       double flux[8]);

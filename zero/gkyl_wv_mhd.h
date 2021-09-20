@@ -8,7 +8,8 @@
  * @param gas_gamma Gas adiabatic constant
  * @return Pointer to mhd equation object.
  */
-struct gkyl_wv_eqn* gkyl_wv_mhd_new(double gas_gamma);
+struct gkyl_wv_eqn* gkyl_wv_mhd_new(
+    double gas_gamma, const char *divergence_constraint);
 
 /**
  * Get gas adiabatic constant.

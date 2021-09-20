@@ -11,34 +11,39 @@ struct mhd_ctx {
 };
 
 void
-evalMhdInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+calcq(double gas_gamma, const double pv[8], double q[8])
+{
+  double rho = pv[0], u = pv[1], v = pv[2], w = pv[3], pr = pv[4];
+  q[0] = rho;
+  q[1] = rho*u; q[2] = rho*v; q[3] = rho*w;
+  q[5] = pv[5]; q[6] = pv[6]; q[7] = pv[7];  // B field
+  double pb = 0.5*(pv[5]*pv[5]+pv[6]*pv[6]+pv[7]*pv[7]); // magnetic pressure
+  q[4] = pr/(gas_gamma-1) + 0.5*rho*(u*u+v*v+w*w) + pb;
+}
+
+/* Ryu & Jones (1995), the second test in Sec 4 and fig 2a, with all 7 waves. */
+void
+evalMhdInit(double t, const double* GKYL_RESTRICT xn,
+            double* GKYL_RESTRICT fout, void *ctx)
 {
   struct mhd_ctx *app = ctx;
   double x = xn[0];
   double gas_gamma = app->gas_gamma;
 
-  double bx = 0.75;
-  double rhol = 1.0, rhor = 0.125;
-  double byl = 1.0, byr = -1.0;
-  double pl = 1.0, pr = 0.1;
-
-  double rho = rhor, by = byr, p = pr;
-  if (x<0.5) {
-    rho = rhol;
-    by = byl;
-    p = pl;
-  }
-
-  fout[0] = rho;
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
-  fout[4] = p/(gas_gamma-1) + 0.5*(bx*bx + by*by);
-  fout[5] = bx; fout[6] = by; fout[7] = 0.0;
+  // primitive variables, rho, V, E, B
+  double tmp = 1 / sqrt(4*M_PI);
+  double vl[8] = {1.08, 1.2, 0.01, 0.5, 0.95, 2*tmp, 3.6*tmp, 2*tmp};
+  double vr[8] = {1,    0,   0,    0,   1,    2*tmp, 4*tmp,   2*tmp};
+  
+  calcq(gas_gamma, vr, fout);
+  if (x<0.5)
+    calcq(gas_gamma, vl, fout);
 }
 
 struct mhd_ctx
 mhd_ctx(void)
 {
-  return (struct mhd_ctx) { .gas_gamma = 2.0 };
+  return (struct mhd_ctx) { .gas_gamma = 5./3. };
 }
 
 int
@@ -63,12 +68,12 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "mhd_brio_wu",
+    .name = "mhd_rj2",
 
     .ndim = 1,
     .lower = { 0.0 },
     .upper = { 1.0 }, 
-    .cells = { 400 },
+    .cells = { 512 },
 
     .cfl_frac = 0.8,
 
@@ -80,7 +85,7 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.1;
+  double tcurr = 0.0, tend = 0.2;
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
