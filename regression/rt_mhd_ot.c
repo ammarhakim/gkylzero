@@ -11,34 +11,43 @@ struct mhd_ctx {
 };
 
 void
-evalMhdInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+calcq(double gas_gamma, const double pv[8], double q[8])
+{
+  double rho = pv[0], u = pv[1], v = pv[2], w = pv[3], pr = pv[4];
+  q[0] = rho;
+  q[1] = rho*u; q[2] = rho*v; q[3] = rho*w;
+  q[5] = pv[5]; q[6] = pv[6]; q[7] = pv[7];  // B field
+  double pb = 0.5*(pv[5]*pv[5]+pv[6]*pv[6]+pv[7]*pv[7]); // magnetic pressure
+  q[4] = pr/(gas_gamma-1) + 0.5*rho*(u*u+v*v+w*w) + pb;
+}
+
+void
+evalMhdInit(double t, const double* GKYL_RESTRICT xn,
+            double* GKYL_RESTRICT fout, void *ctx)
 {
   struct mhd_ctx *app = ctx;
-  double x = xn[0];
+  double x = xn[0], y =xn[1];
   double gas_gamma = app->gas_gamma;
 
-  double bx = 0.75;
-  double rhol = 1.0, rhor = 0.125;
-  double byl = 1.0, byr = -1.0;
-  double pl = 1.0, pr = 0.1;
+  double rho = 25/(36*M_PI);
+  double p = 5/(12*M_PI);
+  double vx = -sin(2*M_PI*y);
+  double vy = sin(2*M_PI*x);
+  double vz = 0;
+  double B0 = 1/sqrt(4*M_PI);
+  double Bx = -B0*sin(4*M_PI*x);
+  double By = B0*sin(4*M_PI*y);
+  double Bz = 0;
+  double v[8] = {rho, vx, vy, vz, p, Bx, By, Bz};
 
-  double rho = rhor, by = byr, p = pr;
-  if (x<0.5) {
-    rho = rhol;
-    by = byl;
-    p = pl;
-  }
-
-  fout[0] = rho;
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
-  fout[4] = p/(gas_gamma-1) + 0.5*(bx*bx + by*by);
-  fout[5] = bx; fout[6] = by; fout[7] = 0.0;
+  calcq(gas_gamma, v, fout);
+  fout[8] = 0; // for glm scheme
 }
 
 struct mhd_ctx
 mhd_ctx(void)
 {
-  return (struct mhd_ctx) { .gas_gamma = 2.0 };
+  return (struct mhd_ctx) { .gas_gamma = 5./3. };
 }
 
 int
@@ -48,7 +57,7 @@ main(int argc, char **argv)
   struct mhd_ctx ctx = mhd_ctx(); // context for init functions
 
   // equation object
-  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(ctx.gas_gamma, "none");
+  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(ctx.gas_gamma, "glm");
 
   struct gkyl_moment_species fluid = {
     .name = "mhd",
@@ -59,18 +68,19 @@ main(int argc, char **argv)
     .init = evalMhdInit,
 
     .bcx = { GKYL_MOMENT_COPY, GKYL_MOMENT_COPY },
+    .bcy = { GKYL_MOMENT_COPY, GKYL_MOMENT_COPY },
   };
 
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "mhd_brio_wu",
+    .name = "mhd_ot_glm",
 
-    .ndim = 1,
-    .lower = { 0.0 },
-    .upper = { 1.0 }, 
-    .cells = { 400 },
+    .ndim = 2,
+    .lower = { 0.0, 0.0 },
+    .upper = { 1.0, 1.0 }, 
+    .cells = { 512, 512 },
 
-    .cfl_frac = 0.8,
+    .cfl_frac = 0.4,
 
     .num_species = 1,
     .species = { fluid },
@@ -80,7 +90,8 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.1;
+  double tcurr = 0.0, tend = 0.2;
+  double tframe = 0.1;  // time interval between outputs
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
@@ -88,6 +99,9 @@ main(int argc, char **argv)
 
   // compute estimate of maximum stable time-step
   double dt = gkyl_moment_app_max_dt(app);
+
+  double tout_next = tcurr + tframe;
+  int frame = 1;
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
@@ -102,10 +116,18 @@ main(int argc, char **argv)
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
 
+    if (tcurr>=tout_next) {
+      printf(">>>>> Writing frame %d at t=%g\n", frame, tcurr);
+      gkyl_moment_app_write(app, tcurr, frame);
+      frame += 1;
+      tout_next += tframe;
+    }
+
     step += 1;
   }
 
-  gkyl_moment_app_write(app, tcurr, 1);
+  frame = frame + 1;
+  gkyl_moment_app_write(app, tcurr, frame);
   gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);

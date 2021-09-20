@@ -1,105 +1,107 @@
 #include <math.h>
 #include <stdio.h>
 
-#include <gkyl_const.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_euler.h>
+#include <gkyl_wv_sr_euler.h>
 #include <rt_arg_parse.h>
 
-struct euler_ctx {
+struct sr_euler_ctx {
   double gas_gamma; // gas constant
 };
 
 void
-evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalSREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct euler_ctx *app = ctx;
+  struct sr_euler_ctx *app = ctx;
   double gas_gamma = app->gas_gamma;
-
-  double r = xn[0]; // radial coordinate
-
-  double rhol = 3.0, ul = 0.0, pl = 3.0;
-  double rhor = 1.0, ur = 0.0, pr = 1.0;
-
-  double sloc = 0.5*(0.25+1.25);
-
-  double rho = rhor, u = ur, p = pr;
-  if (r<sloc) {
-    rho = rhol;
-    u = ul;
-    p = pl;
+  
+  double x = xn[0], y = xn[1];
+  //ICs from KH test from sec 4.3.2 Stone Athena++ 2020
+  
+  double rho, rhou = 1.5, rhol = 0.5, p = 20.;
+  double pi = 3.141592653589793238462643383279502884;
+  
+  double u = 0.25*tanh(100*y);
+  double v = sin(2*pi*x)*exp(-100*y*y)/400;
+  
+  rho = rhol;
+  if (y > 0.) {
+    rho = rhou;
   }
-
-  fout[0] = rho;
-  fout[1] = rho*u; fout[2] = 0.0; fout[3] = 0.0;
-  fout[4] = p/(gas_gamma-1) + 0.5*rho*u*u;
+  
+  double gamma = 1 / sqrt(1 - u*u - v*v);
+  double rhoh = gas_gamma * p / (gas_gamma - 1)  + rho;
+  
+  fout[0] = gamma*rho;
+  fout[1] = gamma*gamma*rhoh - p;
+  fout[2] = gamma*gamma*rhoh*u;
+  fout[3] = gamma*gamma*rhoh*v;
+  fout[4] = 0.;
 }
 
-// map (r,theta) -> (x,y)
+struct sr_euler_ctx
+sr_euler_ctx(void)
+{
+  return (struct sr_euler_ctx) { .gas_gamma = 4./3. };
+}
+
 void
-mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
+write_data(struct gkyl_tm_trigger *iot, const gkyl_moment_app *app, double tcurr)
 {
-  double r = xc[0], th = xc[1];
-  xp[0] = r*cos(th); xp[1] = r*sin(th);
-}
-
-struct euler_ctx
-euler_ctx(void)
-{
-  return (struct euler_ctx) { .gas_gamma = 1.4 };
+  if (gkyl_tm_trigger_check_and_bump(iot, tcurr))
+    gkyl_moment_app_write(app, tcurr, iot->curr-1);
 }
 
 int
 main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
-  struct euler_ctx ctx = euler_ctx(); // context for init functions
+  struct sr_euler_ctx ctx = sr_euler_ctx(); // context for init functions
 
   // equation object
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma);
+  struct gkyl_wv_eqn *sr_euler = gkyl_wv_sr_euler_new(ctx.gas_gamma);
 
   struct gkyl_moment_species fluid = {
-    .name = "euler",
+    .name = "sr_euler",
 
-    .equation = euler,
+    .equation = sr_euler,
     .evolve = 1,
     .ctx = &ctx,
-    .init = evalEulerInit,
-
-    .bcx = { GKYL_MOMENT_COPY, GKYL_MOMENT_COPY },
+    .init = evalSREulerInit,
   };
 
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "euler_axis_sodshock",
+    .name = "sr_euler_KH_2D",
 
     .ndim = 2,
-    // grid in computational space
-    .lower = { 0.25, 0.0 },
-    .upper = { 1.25, 2*GKYL_PI },
-    .cells = { 64, 64*6 },
+    .lower = { 0.0, -0.25 },
+    .upper = { 1.0, 0.25 }, 
+    .cells = { 128, 64 },
 
-    .mapc2p = mapc2p, // mapping of computational to physical space
-
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 1 },
-    
     .cfl_frac = 0.9,
 
     .num_species = 1,
     .species = { fluid },
+    .num_periodic_dir = 1,
+    .periodic_dirs = { 0 },
   };
 
   // create app object
   gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.1;
-
+  double tcurr = 0.0, tend = 5.;
+  int nframe = 1;
+  
+  // create trigger for IO
+  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
+  
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
-  gkyl_moment_app_write(app, tcurr, 0);
+  write_data(&io_trig, app, tcurr);
+  //gkyl_moment_app_write(app, tcurr, 0);
 
   // compute estimate of maximum stable time-step
   double dt = gkyl_moment_app_max_dt(app);
@@ -117,16 +119,18 @@ main(int argc, char **argv)
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
 
+    write_data(&io_trig, app, tcurr);
+    
     step += 1;
   }
 
-  gkyl_moment_app_write(app, tcurr, 1);
+  //gkyl_moment_app_write(app, tcurr, 1);
   gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
 
   // simulation complete, free resources
-  gkyl_wv_eqn_release(euler);
+  gkyl_wv_eqn_release(sr_euler);
   gkyl_moment_app_release(app);
 
   printf("\n");

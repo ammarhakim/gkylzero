@@ -174,8 +174,9 @@ gkyl_wv_euler_new(double gas_gamma)
   euler->eqn.waves_func = wave_roe;
   euler->eqn.qfluct_func = qfluct_roe;
   euler->eqn.max_speed_func = max_speed;
-  euler->eqn.rotate_to_local_func = rot_to_local_rect;
-  euler->eqn.rotate_to_global_func = rot_to_global_rect;
+
+  euler->eqn.rotate_to_local_func = rot_to_local;
+  euler->eqn.rotate_to_global_func = rot_to_global;  
 
   euler->eqn.ref_count = (struct gkyl_ref_count) { euler_free, 1 };
 

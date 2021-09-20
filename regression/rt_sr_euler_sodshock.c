@@ -3,74 +3,78 @@
 
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_mhd.h>
+#include <gkyl_wv_sr_euler.h>
 #include <rt_arg_parse.h>
 
-struct mhd_ctx {
+struct sr_euler_ctx {
   double gas_gamma; // gas constant
 };
 
 void
-evalMhdInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalSREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct mhd_ctx *app = ctx;
-  double x = xn[0];
+  struct sr_euler_ctx *app = ctx;
   double gas_gamma = app->gas_gamma;
 
-  double bx = 0.75;
-  double rhol = 1.0, rhor = 0.125;
-  double byl = 1.0, byr = -1.0;
-  double pl = 1.0, pr = 0.1;
+  double x = xn[0];
+  //ICs from test 4, shock tube, in Eulderink 1995
+  
+  double rhol = 10.0, ul = 0.0, pl = 40./3.;
+  double rhor = 1.0, ur = 0.0, pr = 2./(3.e7);
 
-  double rho = rhor, by = byr, p = pr;
-  if (x<0.5) {
+  double rho = rhor, u = ur, p = pr;
+  if (x<45.) {
     rho = rhol;
-    by = byl;
+    u = ul;
     p = pl;
   }
 
-  fout[0] = rho;
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
-  fout[4] = p/(gas_gamma-1) + 0.5*(bx*bx + by*by);
-  fout[5] = bx; fout[6] = by; fout[7] = 0.0;
+  double gamma = 1 / sqrt(1 - u*u);
+  double rhoh = gas_gamma * p / (gas_gamma - 1)  + rho;
+  
+  fout[0] = gamma*rho;
+  fout[1] = gamma*gamma*rhoh - p;
+  fout[2] = gamma*gamma*rhoh*u;
+  fout[3] = 0.;
+  fout[4] = 0.;
 }
 
-struct mhd_ctx
-mhd_ctx(void)
+struct sr_euler_ctx
+sr_euler_ctx(void)
 {
-  return (struct mhd_ctx) { .gas_gamma = 2.0 };
+  return (struct sr_euler_ctx) { .gas_gamma = 5./3. };
 }
 
 int
 main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
-  struct mhd_ctx ctx = mhd_ctx(); // context for init functions
+  struct sr_euler_ctx ctx = sr_euler_ctx(); // context for init functions
 
   // equation object
-  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(ctx.gas_gamma, "none");
+  struct gkyl_wv_eqn *sr_euler = gkyl_wv_sr_euler_new(ctx.gas_gamma);
 
   struct gkyl_moment_species fluid = {
-    .name = "mhd",
+    .name = "sr_euler",
 
-    .equation = mhd,
+    .equation = sr_euler,
     .evolve = 1,
     .ctx = &ctx,
-    .init = evalMhdInit,
+    .init = evalSREulerInit,
 
     .bcx = { GKYL_MOMENT_COPY, GKYL_MOMENT_COPY },
   };
 
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "mhd_brio_wu",
+    .name = "sr_euler_sodshock",
 
     .ndim = 1,
     .lower = { 0.0 },
-    .upper = { 1.0 }, 
-    .cells = { 400 },
+    .upper = { 100.0 }, 
+    .cells = { 100 },
 
-    .cfl_frac = 0.8,
+    .cfl_frac = 0.9,
 
     .num_species = 1,
     .species = { fluid },
@@ -80,7 +84,7 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.1;
+  double tcurr = 0.0, tend = 50.;
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
@@ -111,7 +115,7 @@ main(int argc, char **argv)
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
 
   // simulation complete, free resources
-  gkyl_wv_eqn_release(mhd);
+  gkyl_wv_eqn_release(sr_euler);
   gkyl_moment_app_release(app);
 
   printf("\n");

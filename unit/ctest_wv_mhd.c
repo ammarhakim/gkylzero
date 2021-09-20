@@ -18,7 +18,7 @@ void
 test_mhd_basic()
 {
   double gas_gamma = 1.4;
-  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(gas_gamma);
+  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(gas_gamma, "none");
 
   TEST_CHECK( mhd->num_equations == 8 );
   TEST_CHECK( mhd->num_waves == 7 );
@@ -31,7 +31,7 @@ test_mhd_basic()
   double u_dot_b = u*bx+v*by+w*bz;
   double E = q[4];
 
-  TEST_CHECK ( pr == gkyl_mhd_pressure(gas_gamma, q) );
+  TEST_CHECK ( gkyl_compare(pr, gkyl_mhd_pressure(gas_gamma, q), 1e-15) );
 
   double flux[8];
  
@@ -73,7 +73,7 @@ void
 test_mhd_waves()
 {
   double gas_gamma = 1.4;
-  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(gas_gamma);
+  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(gas_gamma, "none");
 
   double ql[8], qr[8];
   double delta[8];
