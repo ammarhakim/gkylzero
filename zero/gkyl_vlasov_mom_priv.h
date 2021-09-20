@@ -13,8 +13,11 @@ static struct { int vdim[4]; } cv_index[] = {
   {-1, -1, -1,  5}, // 3x kernel indices  
 };
 
+typedef void (*vlasov_momf_t)(const double *xc, const double *dx,
+  const int *idx, const double *fIn, double* GKYL_RESTRICT out);
+
 // for use in kernel tables
-typedef struct { momf_t kernels[3]; } gkyl_mom_kern_list;
+typedef struct { vlasov_momf_t kernels[3]; } gkyl_mom_kern_list;
 
 //
 // Serendipity basis kernels
@@ -191,3 +194,25 @@ static const gkyl_mom_kern_list ten_m3ijk_kernels[] = {
   // 3x kernels
   { NULL, vlasov_M3ijk_3x3v_ser_p1, NULL                     }, // 5
 };
+
+struct vlasov_mom_type {
+  struct gkyl_mom_type momt;
+  int cdim; // config-space dim
+  int pdim; // phase-space dim
+  int poly_order; // polynomal order
+  int num_config; // number of basis functions in config-space
+  int num_phase; // number of basis functions in phase-space
+  int num_mom; // number of components in moment
+  vlasov_momf_t kernel; // moment calculation kernel
+  struct gkyl_ref_count ref_count; // reference count
+};
+
+GKYL_CU_D
+static void
+kernel(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out)
+{
+  struct vlasov_mom_type *vlasov_mom = container_of(momt, struct vlasov_mom_type, momt);
+
+  return vlasov_mom->kernel(xc, dx, idx, f, out);
+}
