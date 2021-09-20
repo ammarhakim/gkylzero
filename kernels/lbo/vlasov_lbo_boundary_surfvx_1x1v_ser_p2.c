@@ -1,5 +1,6 @@
 #include <gkyl_vlasov_lbo_kernels.h> 
-#include <gkyl_basis_ser_1x1v_p2_surfvx_quad.h> 
+#include <gkyl_basis_ser_1x1v_p2_surfvx_quad.h>
+#include<stdio.h>
 GKYL_CU_DH void vlasov_lbo_boundary_surfvx_1x1v_ser_p2(const double *w, const double *dxv, const double nuSum, const double *nuUSum, const double *nuVtSqSum, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
 { 
   // w[2]:         Cell-center coordinates. 
@@ -8,7 +9,8 @@ GKYL_CU_DH void vlasov_lbo_boundary_surfvx_1x1v_ser_p2(const double *w, const do
   // nuUSum[3]:    sum of bulk velocities times their respective collisionalities. 
   // nuVtSqSum[3]: sum of thermal speeds squared time their respective collisionalities. 
   // fSkin/Edge:    Distribution function in cells 
-  // out:           Incremented distribution function in cell 
+  // out:           Incremented distribution function in cell
+
   double rdv2 = 2.0/dxv[1]; 
   double rdvSq4 = 4.0/(dxv[1]*dxv[1]); 
 

@@ -64,18 +64,18 @@ test_1x1v_p2()
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDist, 0.0, &arr_range, dist);
 
-  int up_dirs[] = {0, 1};
-  int zero_flux_flags[] = {0, 1};
+  int up_dirs[] = {1};
+  int zero_flux_flags[] = {1};
 
   struct gkyl_dg_eqn *eqn;
   gkyl_hyper_dg *slvr;
 
   eqn = gkyl_dg_vlasov_lbo_new(&confBasis, &basis);
-  slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1);
+  slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, vdim, up_dirs, zero_flux_flags, 1);
 
   double nuSum = 1.0;
-  double nuUSum[vdim];
-  double nuVtSqSum[vdim];
+  double nuUSum[vdim*confBasis.num_basis];
+  double nuVtSqSum[vdim*confBasis.num_basis];
   
   int nnu = vdim*confBasis.num_basis;
   for(int i=0; i< nnu; i++) {
@@ -93,7 +93,7 @@ test_1x1v_p2()
 
   // Write the initial distribution array to file.
   const char *fmt = "%s-%s_%d.gkyl";
-  char name[] = "distf";
+  char name[] = "vlasov_lbo_distf";
   char momName[] = "elc";
   int frame = 0;
   int sz = snprintf(0, 0, fmt, name, momName, frame);
@@ -102,7 +102,7 @@ test_1x1v_p2()
   gkyl_grid_sub_array_write(&phaseGrid, &phaseRange, dist, fileNm);
 
   // run hyper_dg_advance
-  int nrep = 10;
+  int nrep = 1;
   for(int n=0; n<nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
@@ -122,11 +122,14 @@ test_1x1v_p2()
   gkyl_grid_sub_array_write(&phaseGrid, &phaseRange, rhs, fileNm);
 
   // release memory for moment data object
+  gkyl_free(cfl_ptr);
   gkyl_proj_on_basis_release(projDist);
   gkyl_array_release(dist);
   gkyl_array_release(rhs);
+  gkyl_array_release(cflrate);
   gkyl_array_release(fIn);
   gkyl_dg_eqn_release(eqn);
+  gkyl_hyper_dg_release(slvr);
 }
 
 TEST_LIST = {

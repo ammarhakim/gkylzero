@@ -1,5 +1,6 @@
 #include <gkyl_vlasov_lbo_kernels.h> 
-#include <gkyl_basis_ser_1x1v_p2_surfvx_quad.h> 
+#include <gkyl_basis_ser_1x1v_p2_surfvx_quad.h>
+#include <stdio.h>
 GKYL_CU_DH void vlasov_lbo_surfvx_1x1v_ser_p2(const double *w, const double *dxv, const double nuSum, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[2]:         cell-center coordinates. 
@@ -10,7 +11,7 @@ GKYL_CU_DH void vlasov_lbo_surfvx_1x1v_ser_p2(const double *w, const double *dxv
   // fl/fc/fr:      distribution function in cells 
   // out:           incremented distribution function in cell 
   double rdv2 = 2.0/dxv[1]; 
-  double rdvSq4 = 4.0/(dxv[1]*dxv[1]); 
+  double rdvSq4 = 4.0/(dxv[1]*dxv[1]);
 
   const double *sumNuUx = &nuUSum[0]; 
 

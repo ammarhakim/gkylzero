@@ -285,9 +285,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_vlasov_lbo *vlasov_lbo = container_of(eqn, struct dg_vlasov_lbo, eqn);
 
-  if (dir >= vlasov->cdim) {
     vlasov_lbo->boundary_surf[dir-vlasov_lbo->cdim](xcSkin, dxSkin, vlasov_lbo->nuSum, vlasov_lbo->nuUSum,
       vlasov_lbo->nuVtSqSum, edge, qInSkin, qInEdge, qRhsOut);
-  }
 }
 

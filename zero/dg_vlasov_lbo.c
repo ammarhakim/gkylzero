@@ -80,7 +80,6 @@ gkyl_dg_vlasov_lbo_new(const struct gkyl_basis* cbasis, const struct gkyl_basis*
       boundary_surf_vx_kernels = ser_boundary_surf_vx_kernels;
       boundary_surf_vy_kernels = ser_boundary_surf_vy_kernels;
       boundary_surf_vz_kernels = ser_boundary_surf_vz_kernels;
-      
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
