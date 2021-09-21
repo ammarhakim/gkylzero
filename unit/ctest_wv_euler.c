@@ -21,37 +21,14 @@ test_euler_basic()
   TEST_CHECK( euler->num_waves == 3 );
 
   double rho = 1.0, u = 0.1, v = 0.2, w = 0.3, pr = 1.5;
-  double q[5], pv[5] = { rho, u, v, w, pr };
+  double q[5], q_local[5], pv[5] = { rho, u, v, w, pr };
   calcq(gas_gamma, pv, q);
 
-  TEST_CHECK ( pr == gkyl_euler_pressure(gas_gamma, q) );
-
-  double E = q[4], flux[5];
-
-  gkyl_euler_flux(0, gas_gamma, q, flux);
-  TEST_CHECK( flux[0] == rho*u );
-  TEST_CHECK( flux[1] == rho*u*u + pr );
-  TEST_CHECK( flux[2] == rho*u*v );
-  TEST_CHECK( flux[3] == rho*u*w );
-  TEST_CHECK( gkyl_compare(flux[4], (E+pr)*u, 1e-15) );
-
-  gkyl_euler_flux(1, gas_gamma, q, flux);
-  TEST_CHECK( flux[0] == rho*v );
-  TEST_CHECK( flux[1] == rho*v*u );
-  TEST_CHECK( flux[2] == rho*v*v + pr );
-  TEST_CHECK( flux[3] == rho*v*w );
-  TEST_CHECK( gkyl_compare(flux[4], (E+pr)*v, 1e-15) );
-
-  gkyl_euler_flux(2, gas_gamma, q, flux);
-  TEST_CHECK( flux[0] == rho*w );
-  TEST_CHECK( flux[1] == rho*w*u );
-  TEST_CHECK( flux[2] == rho*w*v );
-  TEST_CHECK( flux[3] == rho*w*w + pr );
-  TEST_CHECK( gkyl_compare(flux[4], (E+pr)*w, 1e-15) );
+  double E = q[4], flux_local[5], flux[5];
 
   double norm[3][3] = {
     { 1.0, 0.0, 0.0 },
-    { 0.0, -1.0, 0.0 },
+    { 0.0, 1.0, 0.0 },
     { 0.0, 0.0, 1.0 }
   };
 
@@ -63,9 +40,41 @@ test_euler_basic()
 
   double tau2[3][3] = {
     { 0.0, 0.0, 1.0 },
-    { 0.0, 0.0, 1.0 },
+    { 0.0, 0.0, -1.0 },
     { 0.0, 1.0, 0.0 }
   };
+
+  TEST_CHECK ( pr == gkyl_euler_pressure(gas_gamma, q) );
+
+  euler->rotate_to_local_func(0, tau1[0], tau2[0], norm[0], q, q_local);
+  gkyl_euler_flux(gas_gamma, q_local, flux_local);
+  euler->rotate_to_global_func(0, tau1[0], tau2[0], norm[0], flux_local, flux);  
+
+  TEST_CHECK( flux[0] == rho*u );
+  TEST_CHECK( flux[1] == rho*u*u + pr );
+  TEST_CHECK( flux[2] == rho*u*v );
+  TEST_CHECK( flux[3] == rho*u*w );
+  TEST_CHECK( gkyl_compare(flux[4], (E+pr)*u, 1e-15) );
+
+  euler->rotate_to_local_func(1, tau1[1], tau2[1], norm[1], q, q_local);
+  gkyl_euler_flux(gas_gamma, q_local, flux_local);
+  euler->rotate_to_global_func(1, tau1[1], tau2[1], norm[1], flux_local, flux);
+
+  TEST_CHECK( flux[0] == rho*v );
+  TEST_CHECK( flux[1] == rho*v*u );
+  TEST_CHECK( flux[2] == rho*v*v + pr );
+  TEST_CHECK( flux[3] == rho*v*w );
+  TEST_CHECK( gkyl_compare(flux[4], (E+pr)*v, 1e-15) );
+
+  euler->rotate_to_local_func(2, tau1[2], tau2[2], norm[2], q, q_local);
+  gkyl_euler_flux(gas_gamma, q_local, flux_local);
+  euler->rotate_to_global_func(2, tau1[2], tau2[2], norm[2], flux_local, flux);
+  
+  TEST_CHECK( flux[0] == rho*w );
+  TEST_CHECK( flux[1] == rho*w*u );
+  TEST_CHECK( flux[2] == rho*w*v );
+  TEST_CHECK( flux[3] == rho*w*w + pr );
+  TEST_CHECK( gkyl_compare(flux[4], (E+pr)*w, 1e-15) );
 
   double q_l[5], q_g[5];
   for (int d=1; d<3; ++d) {
@@ -129,8 +138,8 @@ test_euler_waves()
     
     // check if sum of left/right going fluctuations sum to jump in flux
     double fl_local[5], fr_local[5];
-    gkyl_euler_flux(0, gas_gamma, ql_local, fl_local);
-    gkyl_euler_flux(0, gas_gamma, qr_local, fr_local);
+    gkyl_euler_flux(gas_gamma, ql_local, fl_local);
+    gkyl_euler_flux(gas_gamma, qr_local, fr_local);
 
     double fl[5], fr[5];
     gkyl_wv_eqn_rotate_to_global(euler, d, tau1[d], tau2[d], norm[d], fl_local, fl);
@@ -194,8 +203,8 @@ test_euler_waves_2()
     
     // check if sum of left/right going fluctuations sum to jump in flux
     double fl_local[5], fr_local[5];
-    gkyl_euler_flux(0, gas_gamma, ql_local, fl_local);
-    gkyl_euler_flux(0, gas_gamma, qr_local, fr_local);
+    gkyl_euler_flux(gas_gamma, ql_local, fl_local);
+    gkyl_euler_flux(gas_gamma, qr_local, fr_local);
 
     double fl[5], fr[5];
     gkyl_wv_eqn_rotate_to_global(euler, d, tau1[d], tau2[d], norm[d], fl_local, fl);

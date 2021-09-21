@@ -4,17 +4,6 @@
 #include <gkyl_prim_iso_euler.h>
 #include <gkyl_wv_iso_euler.h>
 
-static const int dir_shuffle[][3] = {
-  {1, 2, 3},
-  {2, 3, 1},
-  {3, 1, 2}
-};
-
-// Make indexing cleaner with the dir_shuffle
-#define RHOU d[0]
-#define RHOV d[1]
-#define RHOW d[2]
-
 struct wv_iso_euler {
   struct gkyl_wv_eqn eqn; // base object
   double vt; // thermal velocity
@@ -26,28 +15,6 @@ iso_euler_free(const struct gkyl_ref_count *ref)
   struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
   struct wv_iso_euler *iso_euler = container_of(base, struct wv_iso_euler, eqn);
   gkyl_free(iso_euler);
-}
-
-static void
-rot_to_local_rect(int dir, const double *tau1, const double *tau2, const double *norm,
-  const double *qglobal, double *qlocal)
-{
-  const int *d = dir_shuffle[dir];  
-  qlocal[0] = qglobal[0];
-  qlocal[1] = qglobal[RHOU];
-  qlocal[2] = qglobal[RHOV];
-  qlocal[3] = qglobal[RHOW];
-}
-
-static void
-rot_to_global_rect(int dir, const double *tau1, const double *tau2, const double *norm,
-  const double *qlocal, double *qglobal)
-{
-  const int *d = dir_shuffle[dir];  
-  qglobal[0] = qlocal[0];
-  qglobal[RHOU] = qlocal[1];
-  qglobal[RHOV] = qlocal[2];
-  qglobal[RHOW] = qlocal[3];
 }
 
 static inline void
@@ -141,7 +108,7 @@ static double
 max_speed(const struct gkyl_wv_eqn *eqn, int dir, const double *q)
 {
   const struct wv_iso_euler *iso_euler = container_of(eqn, struct wv_iso_euler, eqn);
-  return gkyl_iso_euler_max_abs_speed(dir, iso_euler->vt, q);
+  return gkyl_iso_euler_max_abs_speed(iso_euler->vt, q);
 }
 
 struct gkyl_wv_eqn*
@@ -156,8 +123,8 @@ gkyl_wv_iso_euler_new(double vt)
   iso_euler->eqn.waves_func = wave_roe;
   iso_euler->eqn.qfluct_func = qfluct_roe;
   iso_euler->eqn.max_speed_func = max_speed;
-  iso_euler->eqn.rotate_to_local_func = rot_to_local_rect;
-  iso_euler->eqn.rotate_to_global_func = rot_to_global_rect;
+  iso_euler->eqn.rotate_to_local_func = rot_to_local;
+  iso_euler->eqn.rotate_to_global_func = rot_to_global;
 
   iso_euler->eqn.ref_count = (struct gkyl_ref_count) { iso_euler_free, 1 };
 

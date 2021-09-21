@@ -4,17 +4,6 @@
 #include <gkyl_prim_euler.h>
 #include <gkyl_wv_euler.h>
 
-static const int dir_shuffle[][3] = {
-  {1, 2, 3},
-  {2, 3, 1},
-  {3, 1, 2}
-};
-
-// Make indexing cleaner with the dir_shuffle
-#define RHOU d[0]
-#define RHOV d[1]
-#define RHOW d[2]
-
 struct wv_euler {
   struct gkyl_wv_eqn eqn; // base object
   double gas_gamma; // gas adiabatic constant
@@ -26,30 +15,6 @@ euler_free(const struct gkyl_ref_count *ref)
   struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
   struct wv_euler *euler = container_of(base, struct wv_euler, eqn);
   gkyl_free(euler);
-}
-
-static inline void
-rot_to_local_rect(int dir, const double *tau1, const double *tau2, const double *norm,
-  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
-{
-  const int *d = dir_shuffle[dir];  
-  qlocal[0] = qglobal[0];
-  qlocal[1] = qglobal[RHOU];
-  qlocal[2] = qglobal[RHOV];
-  qlocal[3] = qglobal[RHOW];
-  qlocal[4] = qglobal[4];
-}
-
-static inline void
-rot_to_global_rect(int dir, const double *tau1, const double *tau2, const double *norm,
-  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
-{
-  const int *d = dir_shuffle[dir];  
-  qglobal[0] = qlocal[0];
-  qglobal[RHOU] = qlocal[1];
-  qglobal[RHOV] = qlocal[2];
-  qglobal[RHOW] = qlocal[3];
-  qglobal[4] = qlocal[4];
 }
 
 static inline void
@@ -159,7 +124,7 @@ static double
 max_speed(const struct gkyl_wv_eqn *eqn, int dir, const double *q)
 {
   const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
-  return gkyl_euler_max_abs_speed(dir, euler->gas_gamma, q);
+  return gkyl_euler_max_abs_speed(euler->gas_gamma, q);
 }
 
 struct gkyl_wv_eqn*

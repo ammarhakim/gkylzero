@@ -66,8 +66,12 @@ struct gkyl_wv_eqn* gkyl_wv_eqn_aquire(const struct gkyl_wv_eqn* eqn);
  * @param speeds On output wave speeds[num_wave]
  * @return Maximum wave speed.
  */
-double gkyl_wv_eqn_waves(const struct gkyl_wv_eqn *eqn, 
-  int dir, const double *delta, const double *ql, const double *qr, double *waves, double *speeds);
+inline double
+gkyl_wv_eqn_waves(const struct gkyl_wv_eqn *eqn, 
+  int dir, const double *delta, const double *ql, const double *qr, double *waves, double *speeds)
+{
+  return eqn->waves_func(eqn, dir, delta, ql, qr, waves, speeds);  
+}
 
 /**
  * Compute waves and speeds from left/right conserved variables. The
@@ -84,9 +88,13 @@ double gkyl_wv_eqn_waves(const struct gkyl_wv_eqn *eqn,
  * @param amdq On output, the left-going fluctuations.
  * @param apdq On output, the right-going fluctuations.
  */
-void gkyl_wv_eqn_qfluct(const struct gkyl_wv_eqn *eqn,
+inline void
+gkyl_wv_eqn_qfluct(const struct gkyl_wv_eqn *eqn,
   int dir, const double *ql, const double *qr, const double *waves, const double *speeds,
-  double *amdq, double *apdq);
+  double *amdq, double *apdq)
+{
+  eqn->qfluct_func(eqn, dir, ql, qr, waves, speeds, amdq, apdq);  
+}
 
 /**
  * Compute waves and speeds from left/right conserved variables. The
@@ -99,7 +107,11 @@ void gkyl_wv_eqn_qfluct(const struct gkyl_wv_eqn *eqn,
  * @param q Conserved variables
  * @return maximum wave-speed in direction 'dir'
  */
-double gkyl_wv_eqn_max_speed(const struct gkyl_wv_eqn *eqn, int dir, const double *q);
+inline double
+gkyl_wv_eqn_max_speed(const struct gkyl_wv_eqn *eqn, int dir, const double *q)
+{
+  return eqn->max_speed_func(eqn, dir, q);  
+}
 
 /**
  * Rotate state (conserved/primitive) vector to local tangent-normal coordinate frame.
@@ -112,9 +124,13 @@ double gkyl_wv_eqn_max_speed(const struct gkyl_wv_eqn *eqn, int dir, const doubl
  * @param qglobal State vector in global coordinates
  * @param qlocal State vector in local coordinates
  */
-void gkyl_wv_eqn_rotate_to_local(const struct gkyl_wv_eqn* eqn,
+inline void
+gkyl_wv_eqn_rotate_to_local(const struct gkyl_wv_eqn* eqn,
   int dir,  const double *tau1, const double *tau2, const double *norm,
-  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal);
+  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
+{
+  return eqn->rotate_to_local_func(dir, tau1, tau2, norm, qglobal, qlocal);
+}
 
 /**
  * Rotate state (conserved/primitive) vector to global coordinate frame.
@@ -127,9 +143,13 @@ void gkyl_wv_eqn_rotate_to_local(const struct gkyl_wv_eqn* eqn,
  * @param qlocal State vector in local coordinates
  * @param qglobal State vector in local coordinates
  */
-void gkyl_wv_eqn_rotate_to_global(const struct gkyl_wv_eqn* eqn,
+inline void
+gkyl_wv_eqn_rotate_to_global(const struct gkyl_wv_eqn* eqn,
   int dir,  const double *tau1, const double *tau2, const double *norm,
-  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal);
+  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
+{
+  return eqn->rotate_to_global_func(dir, tau1, tau2, norm, qlocal, qglobal);  
+}
 
 /**
  * Delete equation object
