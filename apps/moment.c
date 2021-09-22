@@ -7,6 +7,7 @@
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_eval_on_nodes.h>
 #include <gkyl_fv_proj.h>
 #include <gkyl_moment.h>
 #include <gkyl_moment_em_coupling.h>
@@ -102,6 +103,11 @@ struct gkyl_moment_app {
     
   struct gkyl_rect_grid grid; // grid
   struct gkyl_range local, local_ext; // local, local-ext ranges
+
+  bool has_mapc2p; // flag to indicate if we have mapc2p
+  void *c2p_ctx; // context for mapc2p function
+  // pointer to mapc2p function
+  void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
 
   struct skin_ghost_ranges skin_ghost; // conf-space skin/ghost
 
@@ -320,7 +326,9 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         .limiter = limiter,
         .num_up_dirs = 1,
         .update_dirs = { d },
-        .cfl = app->cfl
+        .cfl = app->cfl,
+        .mapc2p = app->mapc2p,
+        .ctx = app->c2p_ctx
       }
     );
 
@@ -776,13 +784,42 @@ gkyl_moment_app_new(struct gkyl_moment mom)
   struct gkyl_moment_app *app = gkyl_malloc(sizeof(gkyl_moment_app));
 
   int ndim = app->ndim = mom.ndim;
+  strcpy(app->name, mom.name);
+  app->tcurr = 0.0; // reset on init
 
-  // create grid and ranges
+  // create grid and ranges (grid is in computational space)
   int ghost[3] = { 2, 2, 2 };
   gkyl_rect_grid_init(&app->grid, ndim, mom.lower, mom.upper, mom.cells);
   gkyl_create_grid_ranges(&app->grid, ghost, &app->local_ext, &app->local);
 
   skin_ghost_ranges_init(&app->skin_ghost, &app->local_ext, ghost);
+
+  app->has_mapc2p = mom.mapc2p ? true : false;
+
+  if (app->has_mapc2p) {
+    // initialize computational to physical space mapping
+    app->c2p_ctx = mom.c2p_ctx;
+    app->mapc2p = mom.mapc2p;
+
+    // we project mapc2p on p=1 basis functions
+    struct gkyl_basis basis;
+    gkyl_cart_modal_tensor(&basis, ndim, 1);
+
+    // initialize DG field representing mapping
+    struct gkyl_array *c2p = mkarr(ndim*basis.num_basis, app->local_ext.volume);
+    gkyl_eval_on_nodes *ev_c2p = gkyl_eval_on_nodes_new(&app->grid, &basis, ndim, mom.mapc2p, mom.c2p_ctx);
+    gkyl_eval_on_nodes_advance(ev_c2p, 0.0, &app->local_ext, c2p);
+
+    // write DG projection of mapc2p to file
+    const char *fmt = "%s-mapc2p.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name);
+    char fileNm[sz+1]; // ensures no buffer overflow  
+    snprintf(fileNm, sizeof fileNm, fmt, app->name);
+    gkyl_grid_sub_array_write(&app->grid, &app->local, c2p, fileNm);
+
+    gkyl_array_release(c2p);
+    gkyl_eval_on_nodes_release(ev_c2p);
+  }
 
   double cfl_frac = mom.cfl_frac == 0 ? 0.95 : mom.cfl_frac;
   app->cfl = 1.0*cfl_frac;
@@ -815,9 +852,6 @@ gkyl_moment_app_new(struct gkyl_moment mom)
     app->update_sources = 1; // only update if field and species are present
     moment_coupling_init(app, &app->sources);
   }
-
-  strcpy(app->name, mom.name);
-  app->tcurr = 0.0; // reset on init
 
   // initialize stat object to all zeros
   app->stat = (struct gkyl_moment_stat) {

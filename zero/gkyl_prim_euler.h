@@ -30,19 +30,17 @@ static inline void gkyl_euler_prim_vars(double gas_gamma, const double q[5], dou
 /**
  * Compute maximum absolute speed.
  * 
- * @param dir Direction 
  * @param gas_gamma Gas adiabatic constant
  * @param q Conserved variables
  * @return Maximum absolute speed for given q
  */
-double gkyl_euler_max_abs_speed(int dir, double gas_gamma, const double q[5]);
+double gkyl_euler_max_abs_speed(double gas_gamma, const double q[5]);
 
 /**
- * Compute flux in direction 'dir'.
+ * Compute flux given conserved variables
  * 
- * @param dir Direction to compute flux
  * @param gas_gamma Gas adiabatic constant
  * @param Conserved variables
  * @param flux On output, the flux in direction 'dir'
  */
-void gkyl_euler_flux(int dir, double gas_gamma, const double q[5], double flux[5]);
+void gkyl_euler_flux(double gas_gamma, const double q[5], double flux[5]);

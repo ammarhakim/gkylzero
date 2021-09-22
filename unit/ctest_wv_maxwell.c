@@ -84,13 +84,23 @@ test_maxwell_waves()
 
   double ql[8] = { 0.0, 1.0, 0.0, 1.0, -0.75, 0.0, 0.0, 0.0};
   double qr[8] = { 0.0, -1.0, 0.0, 1.0, 0.75, 0.0, 0.0, 0.0};
-
-  double delta[8];
-  for (int i=0; i<8; ++i) delta[i] = qr[i]-ql[i];
+  double ql_local[8] = { 0.0, 1.0, 0.0, 1.0, -0.75, 0.0, 0.0, 0.0};
+  double qr_local[8] = { 0.0, -1.0, 0.0, 1.0, 0.75, 0.0, 0.0, 0.0};
 
   for (int d=0; d<3; ++d) {
-    double speeds[6], waves[6*8];
-    gkyl_wv_eqn_waves(maxwell, d, delta, ql, qr, waves, speeds);
+    double speeds[6], waves[6*8], waves_local[6*8];
+    // rotate to local tangent-normal frame
+    gkyl_wv_eqn_rotate_to_local(maxwell, d, 0, 0, 0, ql, ql_local);
+    gkyl_wv_eqn_rotate_to_local(maxwell, d, 0, 0, 0, qr, qr_local);
+
+    double delta[8];
+    for (int i=0; i<8; ++i) delta[i] = qr_local[i]-ql_local[i];
+    
+    gkyl_wv_eqn_waves(maxwell, d, delta, ql_local, qr_local, waves_local, speeds);
+
+    // rotate waves back to global frame
+    for (int mw=0; mw<6; ++mw)
+      gkyl_wv_eqn_rotate_to_global(maxwell, d, 0, 0, 0, &waves_local[mw*8], &waves[mw*8]);
 
     double apdq[8], amdq[8];
     gkyl_wv_eqn_qfluct(maxwell, d, ql, qr, waves, speeds, amdq, apdq);

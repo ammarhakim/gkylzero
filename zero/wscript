@@ -27,6 +27,7 @@ def build(bld):
     prim_iso_euler.c
     prim_maxwell.c
     prim_ten_moment.c
+    prim_mhd.c
     proj_on_basis.c
     range.c
     rect_apply_bc.c
@@ -41,6 +42,7 @@ def build(bld):
     wv_iso_euler.c
     wv_maxwell.c
     wv_ten_moment.c
+    wv_mhd.c
     """
 
     # For now building static library. Probably should build shared

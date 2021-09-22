@@ -66,6 +66,12 @@ struct gkyl_moment {
   double lower[3], upper[3]; // lower, upper bounds
   int cells[3]; // config-space cells
 
+  void *c2p_ctx; // context for mapc2p function
+  // pointer to mapc2p function: xc are the computational space
+  // coordinates and on output xp are the corresponding physical space
+  // coordinates.
+  void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
+
   double cfl_frac; // CFL fraction to use
 
   enum gkyl_moment_fluid_scheme fluid_scheme; // scheme to update fluid equations

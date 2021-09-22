@@ -6,6 +6,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_util.h>
+#include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
 
 struct gkyl_wave_prop {
@@ -16,6 +17,8 @@ struct gkyl_wave_prop {
   enum gkyl_wave_limiter limiter; // limiter to use
   double cfl; // CFL number
   const struct gkyl_wv_eqn *equation; // equation object
+
+  struct gkyl_wave_geom *geom; // geometry object
 
   // data for 1D slice update
   struct gkyl_array *waves, *speeds, *flux2;
@@ -102,6 +105,9 @@ gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp)
   up->waves = gkyl_array_new(GKYL_DOUBLE, meqn*mwaves, max_1d);
   up->speeds = gkyl_array_new(GKYL_DOUBLE, mwaves, max_1d);
   up->flux2 = gkyl_array_new(GKYL_DOUBLE, meqn, max_1d);
+
+  // construct geometry
+  up->geom = gkyl_wave_geom_new(&up->grid, &ext_range, winp.mapc2p, winp.ctx);
 
   return up;
 }
@@ -204,7 +210,10 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
   int meqn = wv->equation->num_equations, mwaves = wv->equation->num_waves;
 
   double cfla = 0.0, cfl = wv->cfl, cflm = 1.1*cfl;
-  double delta[meqn], amdq[meqn], apdq[meqn];
+
+  double ql_local[meqn], qr_local[meqn];
+  double waves_local[meqn*mwaves];
+  double delta[meqn], amdq[meqn], apdq[meqn];  
 
   int idxl[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
 
@@ -237,6 +246,9 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
       for (int i=loidx; i<upidx; ++i) {
         idxl[dir] = i-1; idxr[dir] = i;
 
+        // geometry in cell
+        const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wv->geom, idxr);
+
         long sidx = gkyl_ridx(slice_range, i);
         long lidx = gkyl_range_idx(update_range, idxl);
         long ridx = gkyl_range_idx(update_range, idxr);        
@@ -244,19 +256,36 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
         const double *qinl = gkyl_array_cfetch(qin, lidx);
         const double *qinr = gkyl_array_cfetch(qin, ridx);
 
-        double *waves = gkyl_array_fetch(wv->waves, sidx);
+        wv->equation->rotate_to_local_func(
+          dir, cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qinl, ql_local
+        );
+        
+        wv->equation->rotate_to_local_func(
+          dir, cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qinr, qr_local
+        );
+
+        calc_jump(meqn, ql_local, qr_local, delta);
         double *s = gkyl_array_fetch(wv->speeds, sidx);
+        gkyl_wv_eqn_waves(wv->equation, dir, delta, ql_local, qr_local, waves_local, s);
 
-        calc_jump(meqn, qinl, qinr, delta);
+        double lenr = cg->lenr[dir];
+        double *waves = gkyl_array_fetch(wv->waves, sidx);
+        for (int mw=0; mw<mwaves; ++mw) {
+          // rotate waves back
+          wv->equation->rotate_to_global_func(
+            dir, cg->tau1[dir], cg->tau2[dir], cg->norm[dir], &waves_local[mw*meqn], &waves[mw*meqn]
+          );
 
-        gkyl_wv_eqn_waves(wv->equation, dir, delta, qinl, qinr, waves, s);
+          s[mw] *= lenr; // rescale speeds
+        }
+        
         gkyl_wv_eqn_qfluct(wv->equation, dir, qinl, qinr, waves, s, amdq, apdq);
 
         double *qoutl = gkyl_array_fetch(qout, lidx);
         double *qoutr = gkyl_array_fetch(qout, ridx);
-
-        calc_first_order_update(meqn, dtdx, qoutl, qoutr, amdq, apdq);
-        cfla = calc_cfla(mwaves, cfla, dtdx, s);
+        
+        calc_first_order_update(meqn, dtdx/cg->kappa, qoutl, qoutr, amdq, apdq);
+        cfla = calc_cfla(mwaves, cfla, dtdx/cg->kappa, s);
       }
 
       if (cfla > cflm)
@@ -266,6 +295,12 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
       // including edges that are on the range boundary
       limit_waves(wv, &slice_range,
         update_range->lower[dir], update_range->upper[dir]+1, wv->waves, wv->speeds);
+
+      // get the kappa in the first ghost cell on left (needed in the
+      // second order flux calculation)
+      idxl[dir] = update_range->lower[dir]-1;
+      const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wv->geom, idxl);
+      double kappal = cg->kappa;
 
       gkyl_array_clear(wv->flux2, 0.0);
       // compute second-order correction fluxes at each interface:
@@ -277,16 +312,24 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
         const double *s = gkyl_array_cfetch(wv->speeds, sidx);
         double *flux2 = gkyl_array_fetch(wv->flux2, sidx);
 
+        idxl[dir] = i;
+        const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wv->geom, idxl);
+        double kappar = cg->kappa;
+
         for (int mw=0; mw<mwaves; ++mw)
-          calc_second_order_flux(meqn, dtdx, s[mw], &waves[mw*meqn], flux2);
+          calc_second_order_flux(meqn, dtdx/(0.5*(kappal+kappar)), s[mw], &waves[mw*meqn], flux2);
+
+        kappal = kappar;
       }
 
       // add second correction flux to solution in each interior cell
       for (int i=update_range->lower[dir]; i<=update_range->upper[dir]; ++i) {
-        idxl[dir] = i;
         long sidx = gkyl_ridx(slice_range, i);
+
+        idxl[dir] = i;
+        const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wv->geom, idxl);
         
-        calc_second_order_update(meqn, dtdx,
+        calc_second_order_update(meqn, dtdx/cg->kappa,
           gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl)),
           gkyl_array_cfetch(wv->flux2, gkyl_ridx(slice_range, i)),
           gkyl_array_cfetch(wv->flux2, gkyl_ridx(slice_range, i+1))
@@ -338,6 +381,7 @@ gkyl_wave_prop_release(gkyl_wave_prop* up)
   gkyl_array_release(up->waves);
   gkyl_array_release(up->speeds);
   gkyl_array_release(up->flux2);
+  gkyl_wave_geom_release(up->geom);
   
   free(up);
 }
