@@ -20,11 +20,18 @@ test_euler_basic()
   TEST_CHECK( euler->num_equations == 5 );
   TEST_CHECK( euler->num_waves == 3 );
 
-  double rho = 1.0, u = 0.1, v = 0.2, w = 0.3, pr = 1.5;
-  double q[5], q_local[5], pv[5] = { rho, u, v, w, pr };
-  calcq(gas_gamma, pv, q);
+  //double rho = 1.0, u = 0.1, v = 0.2, w = 0.3, pr = 1.5;
+  double rho = 1.0, u = 0.1, v = 0.2, w = 0.3, pr = 0.0;
+  double q[5], pv[5] = { rho, u, v, w, pr };
 
-  double E = q[4], flux_local[5], flux[5];
+  calcq(gas_gamma, pv, q);
+  double E = q[4];
+
+  double fluxes[3][5] = {
+    { rho*u, rho*u*u+pr, rho*u*v, rho*u*w, (E+pr)*u },
+    { rho*v, rho*u*v, rho*v*v+pr, rho*v*w, (E+pr)*v },
+    { rho*w, rho*u*w, rho*v*w, rho*w*w, (E+pr)*w },
+  };
 
   double norm[3][3] = {
     { 1.0, 0.0, 0.0 },
@@ -46,35 +53,15 @@ test_euler_basic()
 
   TEST_CHECK ( pr == gkyl_euler_pressure(gas_gamma, q) );
 
-  euler->rotate_to_local_func(0, tau1[0], tau2[0], norm[0], q, q_local);
-  gkyl_euler_flux(gas_gamma, q_local, flux_local);
-  euler->rotate_to_global_func(0, tau1[0], tau2[0], norm[0], flux_local, flux);  
-
-  TEST_CHECK( flux[0] == rho*u );
-  TEST_CHECK( flux[1] == rho*u*u + pr );
-  TEST_CHECK( flux[2] == rho*u*v );
-  TEST_CHECK( flux[3] == rho*u*w );
-  TEST_CHECK( gkyl_compare(flux[4], (E+pr)*u, 1e-15) );
-
-  euler->rotate_to_local_func(1, tau1[1], tau2[1], norm[1], q, q_local);
-  gkyl_euler_flux(gas_gamma, q_local, flux_local);
-  euler->rotate_to_global_func(1, tau1[1], tau2[1], norm[1], flux_local, flux);
-
-  TEST_CHECK( flux[0] == rho*v );
-  TEST_CHECK( flux[1] == rho*v*u );
-  TEST_CHECK( flux[2] == rho*v*v + pr );
-  TEST_CHECK( flux[3] == rho*v*w );
-  TEST_CHECK( gkyl_compare(flux[4], (E+pr)*v, 1e-15) );
-
-  euler->rotate_to_local_func(2, tau1[2], tau2[2], norm[2], q, q_local);
-  gkyl_euler_flux(gas_gamma, q_local, flux_local);
-  euler->rotate_to_global_func(2, tau1[2], tau2[2], norm[2], flux_local, flux);
-  
-  TEST_CHECK( flux[0] == rho*w );
-  TEST_CHECK( flux[1] == rho*w*u );
-  TEST_CHECK( flux[2] == rho*w*v );
-  TEST_CHECK( flux[3] == rho*w*w + pr );
-  TEST_CHECK( gkyl_compare(flux[4], (E+pr)*w, 1e-15) );
+  double q_local[5], flux_local[5], flux[5];
+  for (int d=1; d<2; ++d) {
+    euler->rotate_to_local_func(d, tau1[d], tau2[d], norm[d], q, q_local);
+    gkyl_euler_flux(gas_gamma, q_local, flux_local);
+    euler->rotate_to_global_func(d, tau1[d], tau2[d], norm[d], flux_local, flux);
+    
+    for (int m=0; m<5; ++m)
+      TEST_CHECK( gkyl_compare(flux[m], fluxes[d][m], 1e-15) );
+  }
 
   double q_l[5], q_g[5];
   for (int d=1; d<3; ++d) {

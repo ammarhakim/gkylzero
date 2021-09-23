@@ -10,7 +10,7 @@
 double gkyl_iso_euler_max_abs_speed(double vt, const double q[4]);
 
 /**
- * Compute flux in direction 'dir'.
+ * Compute flux.
  * 
  * @param vt Thermal velocity
  * @param Conserved variables

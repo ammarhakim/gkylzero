@@ -23,7 +23,11 @@ test_iso_euler_basic()
   double q[4], q_local[4], pv[4] = { rho, u, v, w };
   calcq(pv, q);
 
-  double flux[4], flux_local[4];
+  double fluxes[3][4] = {
+    { rho*u, rho*(u*u+vt*vt), rho*u*v, rho*u*w },
+    { rho*v, rho*u*v, rho*(v*v+vt*vt), rho*v*w },
+    { rho*w, rho*u*w, rho*v*w, rho*(w*w+vt*vt) },
+  };  
 
   double norm[3][3] = {
     { 1.0, 0.0, 0.0 },
@@ -43,6 +47,15 @@ test_iso_euler_basic()
     { 0.0, 1.0, 0.0 }
   };  
 
+  double flux[4], flux_local[4];  
+  for (int d=1; d<2; ++d) {
+    iso_euler->rotate_to_local_func(d, tau1[d], tau2[d], norm[d], q, q_local);
+    gkyl_iso_euler_flux(vt, q_local, flux_local);
+    iso_euler->rotate_to_global_func(d, tau1[d], tau2[d], norm[d], flux_local, flux);
+    
+    for (int m=0; m<4; ++m)
+      TEST_CHECK( gkyl_compare(flux[m], fluxes[d][m], 1e-15) );
+  }  
 
   iso_euler->rotate_to_local_func(0, tau1[0], tau2[0], norm[0], q, q_local);
   gkyl_iso_euler_flux(vt, q_local, flux_local);
