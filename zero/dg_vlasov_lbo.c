@@ -16,7 +16,7 @@ dg_vlasov_lbo_free(const struct gkyl_ref_count* ref)
 }
 
 void
-gkyl_vlasov_lbo_set_nuSum(const struct gkyl_dg_eqn *eqn, double nuSum)
+gkyl_vlasov_lbo_set_nuSum(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuSum)
 {
   //#ifdef GKYL_HAVE_CUDA
   //if (gkyl_array_is_cu_dev(nuSum)) {gkyl_vlasov_lbo_set_nuSum_cu(eqn, nuSum); return;}
@@ -27,7 +27,7 @@ gkyl_vlasov_lbo_set_nuSum(const struct gkyl_dg_eqn *eqn, double nuSum)
 }
 
 void
-gkyl_vlasov_lbo_set_nuUSum(const struct gkyl_dg_eqn *eqn, const double *nuUSum)
+gkyl_vlasov_lbo_set_nuUSum(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuUSum)
 {
   //#ifdef GKYL_HAVE_CUDA
   //if (gkyl_array_is_cu_dev(nuUSum)) {gkyl_vlasov_lbo_set_nuUSum_cu(eqn, nuUSum); return;}
@@ -39,7 +39,7 @@ gkyl_vlasov_lbo_set_nuUSum(const struct gkyl_dg_eqn *eqn, const double *nuUSum)
 
 
 void
-gkyl_vlasov_lbo_set_nuVtSqSum(const struct gkyl_dg_eqn *eqn, const double *nuVtSqSum)
+gkyl_vlasov_lbo_set_nuVtSqSum(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuVtSqSum)
 {
   //#ifdef GKYL_HAVE_CUDA
   //if (gkyl_array_is_cu_dev(nuVtSqSum)) {gkyl_vlasov_lbo_set_nuVtSqSum_cu(eqn, nuVtSqSum); return;}
@@ -51,7 +51,7 @@ gkyl_vlasov_lbo_set_nuVtSqSum(const struct gkyl_dg_eqn *eqn, const double *nuVtS
 
 
 struct gkyl_dg_eqn*
-gkyl_dg_vlasov_lbo_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis)
+gkyl_dg_vlasov_lbo_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range)
 {
   struct dg_vlasov_lbo* vlasov_lbo = gkyl_malloc(sizeof(struct dg_vlasov_lbo));
 
@@ -119,6 +119,7 @@ gkyl_dg_vlasov_lbo_new(const struct gkyl_basis* cbasis, const struct gkyl_basis*
   vlasov_lbo->nuSum = 0;
   vlasov_lbo->nuUSum = 0;
   vlasov_lbo->nuVtSqSum = 0;
+  vlasov_lbo->conf_range = *conf_range;
 
   // set reference counter
   vlasov_lbo->eqn.ref_count = (struct gkyl_ref_count) { dg_vlasov_lbo_free, 1 };
@@ -129,7 +130,7 @@ gkyl_dg_vlasov_lbo_new(const struct gkyl_basis* cbasis, const struct gkyl_basis*
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_dg_eqn*
-gkyl_dg_vlasov_lbo_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis)
+gkyl_dg_vlasov_lbo_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range)
 {
   assert(false);
   return 0;

@@ -70,7 +70,7 @@ test_1x1v_p2()
   struct gkyl_dg_eqn *eqn;
   gkyl_hyper_dg *slvr;
 
-  eqn = gkyl_dg_vlasov_lbo_new(&confBasis, &basis);
+  eqn = gkyl_dg_vlasov_lbo_new(&confBasis, &basis, &confRange);
   slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, vdim, up_dirs, zero_flux_flags, 1);
 
   double nuSum = 1.0;
@@ -106,9 +106,9 @@ test_1x1v_p2()
   for(int n=0; n<nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
-    gkyl_vlasov_lbo_set_nuSum(eqn, nuSum);
-    gkyl_vlasov_lbo_set_nuUSum(eqn, nuUSum);
-    gkyl_vlasov_lbo_set_nuVtSqSum(eqn, nuVtSqSum);
+    //gkyl_vlasov_lbo_set_nuSum(eqn, nuSum);
+    //gkyl_vlasov_lbo_set_nuUSum(eqn, nuUSum);
+    //gkyl_vlasov_lbo_set_nuVtSqSum(eqn, nuVtSqSum);
     gkyl_hyper_dg_advance(slvr, phaseRange, dist, cflrate, rhs);
     gkyl_array_reduce(cfl_ptr, cflrate, GKYL_MAX);
     gkyl_array_copy_range(fIn, rhs, phaseRange);

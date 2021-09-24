@@ -3,6 +3,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_basis.h>
 #include <gkyl_vlasov_mom.h>
+#include <gkyl_vlasov_mom_priv.h>
 
 void
 test_vlasov_mom()
@@ -13,16 +14,20 @@ test_vlasov_mom()
   gkyl_cart_modal_serendip(&pbasis, 4, poly_order); // 1X3V
 
   struct gkyl_mom_type *m2ij = gkyl_vlasov_mom_new(&cbasis, &pbasis, "M2ij");
-
-  TEST_CHECK( m2ij->cdim == 1 );
-  TEST_CHECK( m2ij->pdim == 4 );
-  TEST_CHECK( m2ij->poly_order == 2 );
-  TEST_CHECK( m2ij->num_config == cbasis.num_basis );
-  TEST_CHECK( m2ij->num_phase == pbasis.num_basis );
-  TEST_CHECK( m2ij->num_mom == 6 );
-  
   struct gkyl_mom_type *m3ijk = gkyl_vlasov_mom_new(&cbasis, &pbasis, "M3ijk");
-  TEST_CHECK( m3ijk->num_mom == 10 );
+  // this is not possible from user code and should NOT be done. This
+  // is for testing only
+  struct vlasov_mom_type *vlasov_mom_m2ij = container_of(m2ij, struct vlasov_mom_type, momt);
+  struct vlasov_mom_type *vlasov_mom_m3ijk = container_of(m3ijk, struct vlasov_mom_type, momt);
+  
+  TEST_CHECK( vlasov_mom_m2ij->cdim == 1 );
+  TEST_CHECK( vlasov_mom_m2ij->pdim == 4 );
+  TEST_CHECK( vlasov_mom_m2ij->poly_order == 2 );
+  TEST_CHECK( vlasov_mom_m2ij->num_config == cbasis.num_basis );
+  TEST_CHECK( vlasov_mom_m2ij->num_phase == pbasis.num_basis );
+  TEST_CHECK( vlasov_mom_m2ij->num_mom == 6 );
+  
+  TEST_CHECK( vlasov_mom_m3ijk->num_mom == 10 );
 
   gkyl_mom_type_release(m2ij);
   gkyl_mom_type_release(m3ijk);

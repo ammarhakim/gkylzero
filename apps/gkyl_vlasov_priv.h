@@ -14,6 +14,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_vlasov.h>
+#include <gkyl_dg_vlasov_lbo.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_mom_calc.h>
@@ -59,10 +60,16 @@ struct vm_species {
   struct gkyl_array *f_host; // host copy for use IO and initialization
 
   struct vm_species_moment m1i; // for computing currents
+  struct vm_species_moment m0, m2; // for density and energy in collision update (if present)
   struct vm_species_moment *moms; // diagnostic moments
 
   struct gkyl_dg_eqn *eqn; // Vlasov equation
   gkyl_hyper_dg *slvr; // solver 
+
+  double nu; // Collision frequency
+  struct gkyl_array *nu_sum, *nu_u, *nu_vthsq; // Collision primitive moments
+  struct gkyl_dg_eqn *coll_eqn; // Collision equation
+  gkyl_hyper_dg *coll_slvr; // Collision solver
 
   double* omegaCfl_ptr;
 };

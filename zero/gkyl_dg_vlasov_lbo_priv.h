@@ -6,18 +6,16 @@
 
 // Types for various kernels
 typedef double (*vlasov_lbo_vol_t)(const double *w, const double *dxv,
-  const double nuSum, const double *nuUSum, const double *nuVtSqSum,
+  const double *nuSum, const double *nuUSum, const double *nuVtSqSum,
   const double *f, double* GKYL_RESTRICT out);
 
 typedef void (*vlasov_lbo_surf_t)(const double *w, const double *dxv,
-  double nuSum, const double *nuUSum,
-  const double *nuVtSqSum, const double *fl,
-  const double *fc, const double *fr, double* GKYL_RESTRICT out);
+  const double *nuSum, const double *nuUSum, const double *nuVtSqSum, 
+  const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
 typedef void (*vlasov_lbo_boundary_surf_t)(const double *w, const double *dxv,
-  double nuSum, const double *nuUSum,
-  const double *nuVtSqSum, const int edge,
-  const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out);
+  const double *nuSum, const double *nuUSum, const double *nuVtSqSum, 
+  const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
@@ -245,9 +243,10 @@ struct dg_vlasov_lbo {
   vlasov_lbo_vol_t vol; // Volume kernel
   vlasov_lbo_surf_t surf[3]; // Surface terms for acceleration
   vlasov_lbo_boundary_surf_t boundary_surf[3]; // Surface terms for acceleration
-  double nuSum;
-  const double* nuUSum;
-  const double* nuVtSqSum;
+  struct gkyl_range conf_range; // configuration space range
+  const struct gkyl_array *nuSum;
+  const struct gkyl_array *nuUSum;
+  const struct gkyl_array *nuVtSqSum;
 };
 
 GKYL_CU_D
@@ -256,8 +255,12 @@ vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_lbo *vlasov_lbo = container_of(eqn, struct dg_vlasov_lbo, eqn);
-
-  vlasov_lbo->vol(xc, dx, vlasov_lbo->nuSum, vlasov_lbo->nuUSum, vlasov_lbo->nuVtSqSum, qIn, qRhsOut);
+  long cidx = gkyl_range_idx(&vlasov_lbo->conf_range, idx);
+  vlasov_lbo->vol(xc, dx, 
+    (const double*) gkyl_array_cfetch(vlasov_lbo->nuSum, cidx), 
+    (const double*) gkyl_array_cfetch(vlasov_lbo->nuUSum, cidx), 
+    (const double*) gkyl_array_cfetch(vlasov_lbo->nuVtSqSum, cidx), 
+    qIn, qRhsOut);
 }
 
 GKYL_CU_D
@@ -270,8 +273,14 @@ surf(const struct gkyl_dg_eqn *eqn,
   const double* qInL, const double*  qInC, const double*  qInR, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_lbo *vlasov_lbo = container_of(eqn, struct dg_vlasov_lbo, eqn);
-
-  vlasov_lbo->surf[dir-vlasov_lbo->cdim](xcC, dxC, vlasov_lbo->nuSum, vlasov_lbo->nuUSum, vlasov_lbo->nuVtSqSum, qInL, qInC, qInR, qRhsOut);
+  long cidx = gkyl_range_idx(&vlasov_lbo->conf_range, idxC);
+  if (dir >= vlasov_lbo->cdim) {
+    vlasov_lbo->surf[dir-vlasov_lbo->cdim](xcC, dxC, 
+      (const double*) gkyl_array_cfetch(vlasov_lbo->nuSum, cidx), 
+      (const double*) gkyl_array_cfetch(vlasov_lbo->nuUSum, cidx), 
+      (const double*) gkyl_array_cfetch(vlasov_lbo->nuVtSqSum, cidx), 
+      qInL, qInC, qInR, qRhsOut);
+  }
 }
 
 GKYL_CU_D
@@ -284,8 +293,13 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_lbo *vlasov_lbo = container_of(eqn, struct dg_vlasov_lbo, eqn);
-
-    vlasov_lbo->boundary_surf[dir-vlasov_lbo->cdim](xcSkin, dxSkin, vlasov_lbo->nuSum, vlasov_lbo->nuUSum,
-      vlasov_lbo->nuVtSqSum, edge, qInSkin, qInEdge, qRhsOut);
+  long cidx = gkyl_range_idx(&vlasov_lbo->conf_range, idxSkin);
+  if (dir >= vlasov_lbo->cdim) {
+    vlasov_lbo->boundary_surf[dir-vlasov_lbo->cdim](xcSkin, dxSkin, 
+      (const double*) gkyl_array_cfetch(vlasov_lbo->nuSum, cidx), 
+      (const double*) gkyl_array_cfetch(vlasov_lbo->nuUSum, cidx), 
+      (const double*) gkyl_array_cfetch(vlasov_lbo->nuVtSqSum, cidx),  
+      edge, qInSkin, qInEdge, qRhsOut);
+  }
 }
 
