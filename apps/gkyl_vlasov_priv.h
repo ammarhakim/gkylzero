@@ -190,6 +190,23 @@ void vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
  */
 void vm_species_moment_release(const struct gkyl_vlasov_app *app, const struct vm_species_moment *sm);
 
+/**
+ * Initialize species LBO collisions object.
+ *
+ * @param app Vlasov app object
+ * @param s Species object 
+ * @param lbo Species LBO object
+ */
+void vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct lbo_collisions *lbo);
+
+/**
+ * Release species LBO object.
+ *
+ * @param app Vlasov app object
+ * @param sm Species LBO object to release
+ */
+void vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct lbo_collisions *lbo);
+
 /** vm_species API */
 
 /**
