@@ -256,7 +256,7 @@ vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
 {
   struct dg_vlasov_lbo *vlasov_lbo = container_of(eqn, struct dg_vlasov_lbo, eqn);
   long cidx = gkyl_range_idx(&vlasov_lbo->conf_range, idx);
-  vlasov_lbo->vol(xc, dx, 
+  return vlasov_lbo->vol(xc, dx, 
     (const double*) gkyl_array_cfetch(vlasov_lbo->nuSum, cidx), 
     (const double*) gkyl_array_cfetch(vlasov_lbo->nuUSum, cidx), 
     (const double*) gkyl_array_cfetch(vlasov_lbo->nuVtSqSum, cidx), 
