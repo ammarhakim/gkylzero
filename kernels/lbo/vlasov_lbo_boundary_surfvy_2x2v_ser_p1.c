@@ -1,6 +1,6 @@
 #include <gkyl_vlasov_lbo_kernels.h> 
 #include <gkyl_basis_ser_2x2v_p1_surfvy_quad.h> 
-GKYL_CU_DH void vlasov_lbo_boundary_surfvy_2x2v_ser_p1(const double *w, const double *dxv, const double nuSum, const double *nuUSum, const double *nuVtSqSum, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void vlasov_lbo_boundary_surfvy_2x2v_ser_p1(const double *w, const double *dxv, const double *nuSum, const double *nuUSum, const double *nuVtSqSum, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
 { 
   // w[4]:         Cell-center coordinates. 
   // dxv[4]:       Cell spacing. 
@@ -23,7 +23,7 @@ GKYL_CU_DH void vlasov_lbo_boundary_surfvy_2x2v_ser_p1(const double *w, const do
 
   if (edge == -1) { 
 
-  alphaDrSurf[0] = 0.7071067811865475*((4.0*w[3]+2.0*dxv[3])*nuSum-2.0*sumNuUy[0]); 
+  alphaDrSurf[0] = 0.7071067811865475*(nuSum[0]*(4.0*w[3]+2.0*dxv[3])-2.0*sumNuUy[0]); 
   alphaDrSurf[1] = -1.414213562373095*sumNuUy[1]; 
   alphaDrSurf[2] = -1.414213562373095*sumNuUy[2]; 
   alphaDrSurf[4] = -1.414213562373095*sumNuUy[3]; 
@@ -132,7 +132,7 @@ GKYL_CU_DH void vlasov_lbo_boundary_surfvy_2x2v_ser_p1(const double *w, const do
 
   } else { 
 
-  alphaDrSurf[0] = 0.7071067811865475*((4.0*w[3]+2.0*dxv[3])*nuSum-2.0*sumNuUy[0]); 
+  alphaDrSurf[0] = 0.7071067811865475*(nuSum[0]*(4.0*w[3]+2.0*dxv[3])-2.0*sumNuUy[0]); 
   alphaDrSurf[1] = -1.414213562373095*sumNuUy[1]; 
   alphaDrSurf[2] = -1.414213562373095*sumNuUy[2]; 
   alphaDrSurf[4] = -1.414213562373095*sumNuUy[3]; 

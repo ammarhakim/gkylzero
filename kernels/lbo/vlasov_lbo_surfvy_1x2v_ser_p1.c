@@ -1,6 +1,6 @@
 #include <gkyl_vlasov_lbo_kernels.h> 
 #include <gkyl_basis_ser_1x2v_p1_surfvy_quad.h> 
-GKYL_CU_DH void vlasov_lbo_surfvy_1x2v_ser_p1(const double *w, const double *dxv, const double nuSum, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void vlasov_lbo_surfvy_1x2v_ser_p1(const double *w, const double *dxv, const double *nuSum, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[3]:         cell-center coordinates. 
   // dxv[3]:       cell spacing. 
@@ -15,11 +15,11 @@ GKYL_CU_DH void vlasov_lbo_surfvy_1x2v_ser_p1(const double *w, const double *dxv
   const double *sumNuUy = &nuUSum[2]; 
 
   double alphaDrSurf_l[4] = {0.0}; 
-  alphaDrSurf_l[0] = 2.0*w[2]*nuSum-1.0*dxv[2]*nuSum-1.414213562373095*sumNuUy[0]; 
+  alphaDrSurf_l[0] = 2.0*nuSum[0]*w[2]-1.0*nuSum[0]*dxv[2]-1.414213562373095*sumNuUy[0]; 
   alphaDrSurf_l[1] = -1.414213562373095*sumNuUy[1]; 
 
   double alphaDrSurf_r[4] = {0.0}; 
-  alphaDrSurf_r[0] = 2.0*w[2]*nuSum+dxv[2]*nuSum-1.414213562373095*sumNuUy[0]; 
+  alphaDrSurf_r[0] = 2.0*nuSum[0]*w[2]+nuSum[0]*dxv[2]-1.414213562373095*sumNuUy[0]; 
   alphaDrSurf_r[1] = -1.414213562373095*sumNuUy[1]; 
 
   double fUpwindQuad_l[4] = {0.0};
@@ -108,10 +108,10 @@ GKYL_CU_DH void vlasov_lbo_surfvy_1x2v_ser_p1(const double *w, const double *dxv
   Ghat_l[2] = Gdiff_l[2]*rdv2+0.5*alphaDrSurf_l[1]*fUpwind_l[3]+0.5*alphaDrSurf_l[0]*fUpwind_l[2]; 
   Ghat_l[3] = Gdiff_l[3]*rdv2+0.5*alphaDrSurf_l[0]*fUpwind_l[3]+0.5*alphaDrSurf_l[1]*fUpwind_l[2]; 
 
-  Ghat_r[0] = (-1.0*Gdiff_r[0]*rdv2)+0.5*alphaDrSurf_r[1]*fUpwind_r[1]+0.5*alphaDrSurf_r[0]*fUpwind_r[0]; 
-  Ghat_r[1] = (-1.0*Gdiff_r[1]*rdv2)+0.5*alphaDrSurf_r[0]*fUpwind_r[1]+0.5*fUpwind_r[0]*alphaDrSurf_r[1]; 
-  Ghat_r[2] = (-1.0*Gdiff_r[2]*rdv2)+0.5*alphaDrSurf_r[1]*fUpwind_r[3]+0.5*alphaDrSurf_r[0]*fUpwind_r[2]; 
-  Ghat_r[3] = (-1.0*Gdiff_r[3]*rdv2)+0.5*alphaDrSurf_r[0]*fUpwind_r[3]+0.5*alphaDrSurf_r[1]*fUpwind_r[2]; 
+  Ghat_r[0] = Gdiff_r[0]*rdv2+0.5*alphaDrSurf_r[1]*fUpwind_r[1]+0.5*alphaDrSurf_r[0]*fUpwind_r[0]; 
+  Ghat_r[1] = Gdiff_r[1]*rdv2+0.5*alphaDrSurf_r[0]*fUpwind_r[1]+0.5*fUpwind_r[0]*alphaDrSurf_r[1]; 
+  Ghat_r[2] = Gdiff_r[2]*rdv2+0.5*alphaDrSurf_r[1]*fUpwind_r[3]+0.5*alphaDrSurf_r[0]*fUpwind_r[2]; 
+  Ghat_r[3] = Gdiff_r[3]*rdv2+0.5*alphaDrSurf_r[0]*fUpwind_r[3]+0.5*alphaDrSurf_r[1]*fUpwind_r[2]; 
 
   out[0] += 0.7071067811865475*Ghat_l[0]*rdv2-0.7071067811865475*Ghat_r[0]*rdv2; 
   out[1] += 0.7071067811865475*Ghat_l[1]*rdv2-0.7071067811865475*Ghat_r[1]*rdv2; 

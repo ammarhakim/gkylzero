@@ -1,5 +1,5 @@
 #include <gkyl_vlasov_lbo_kernels.h> 
-GKYL_CU_DH double vlasov_lbo_vol_1x2v_ser_p1(const double *w, const double *dxv, const double nuSum, const double *nuUSum, const double *nuVtSqSum, const double *f, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_lbo_vol_1x2v_ser_p1(const double *w, const double *dxv, const double *nuSum, const double *nuUSum, const double *nuVtSqSum, const double *f, double* GKYL_RESTRICT out) 
 { 
   // w[3]:      Cell-center coordinates. 
   // dxv[3]:    Cell spacing. 
@@ -15,14 +15,14 @@ GKYL_CU_DH double vlasov_lbo_vol_1x2v_ser_p1(const double *w, const double *dxv,
 
   double alphaDrag[16]; 
   // Expand rdv2*(nu*vx-nuUSumx) in phase basis.
-  alphaDrag[0] = (2.0*nuUSum[0]-2.828427124746191*w[1]*nuSum)*rdvx2; 
+  alphaDrag[0] = (2.0*nuUSum[0]-2.828427124746191*nuSum[0]*w[1])*rdvx2; 
   alphaDrag[1] = 2.0*nuUSum[1]*rdvx2; 
-  alphaDrag[2] = -0.8164965809277261*dxv[1]*nuSum*rdvx2; 
+  alphaDrag[2] = -0.8164965809277261*nuSum[0]*dxv[1]*rdvx2; 
 
   // Expand rdv2*(nu*vy-nuUSumy) in phase basis.
-  alphaDrag[8] = (2.0*nuUSum[2]-2.828427124746191*w[2]*nuSum)*rdvy2; 
+  alphaDrag[8] = (2.0*nuUSum[2]-2.828427124746191*nuSum[0]*w[2])*rdvy2; 
   alphaDrag[9] = 2.0*nuUSum[3]*rdvy2; 
-  alphaDrag[11] = -0.8164965809277261*dxv[2]*nuSum*rdvy2; 
+  alphaDrag[11] = -0.8164965809277261*nuSum[0]*dxv[2]*rdvy2; 
 
   // Put together updates due to drag and diffusion terms.
   out[2] += 0.6123724356957944*(alphaDrag[2]*f[2]+alphaDrag[1]*f[1]+alphaDrag[0]*f[0]); 

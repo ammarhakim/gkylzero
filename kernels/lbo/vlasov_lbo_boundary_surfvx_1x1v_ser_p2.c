@@ -1,7 +1,6 @@
 #include <gkyl_vlasov_lbo_kernels.h> 
-#include <gkyl_basis_ser_1x1v_p2_surfvx_quad.h>
-#include<stdio.h>
-GKYL_CU_DH void vlasov_lbo_boundary_surfvx_1x1v_ser_p2(const double *w, const double *dxv, const double nuSum, const double *nuUSum, const double *nuVtSqSum, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
+#include <gkyl_basis_ser_1x1v_p2_surfvx_quad.h> 
+GKYL_CU_DH void vlasov_lbo_boundary_surfvx_1x1v_ser_p2(const double *w, const double *dxv, const double *nuSum, const double *nuUSum, const double *nuVtSqSum, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
 { 
   // w[2]:         Cell-center coordinates. 
   // dxv[2]:       Cell spacing. 
@@ -9,8 +8,7 @@ GKYL_CU_DH void vlasov_lbo_boundary_surfvx_1x1v_ser_p2(const double *w, const do
   // nuUSum[3]:    sum of bulk velocities times their respective collisionalities. 
   // nuVtSqSum[3]: sum of thermal speeds squared time their respective collisionalities. 
   // fSkin/Edge:    Distribution function in cells 
-  // out:           Incremented distribution function in cell
-
+  // out:           Incremented distribution function in cell 
   double rdv2 = 2.0/dxv[1]; 
   double rdvSq4 = 4.0/(dxv[1]*dxv[1]); 
 
@@ -25,7 +23,7 @@ GKYL_CU_DH void vlasov_lbo_boundary_surfvx_1x1v_ser_p2(const double *w, const do
 
   if (edge == -1) { 
 
-  alphaDrSurf[0] = 0.7071067811865475*((2.0*w[1]+dxv[1])*nuSum-1.414213562373095*sumNuUx[0]); 
+  alphaDrSurf[0] = 0.7071067811865475*(nuSum[0]*(2.0*w[1]+dxv[1])-1.414213562373095*sumNuUx[0]); 
   alphaDrSurf[1] = -1.0*sumNuUx[1]; 
   alphaDrSurf[2] = -1.0*sumNuUx[2]; 
 
@@ -72,7 +70,7 @@ GKYL_CU_DH void vlasov_lbo_boundary_surfvx_1x1v_ser_p2(const double *w, const do
 
   } else { 
 
-  alphaDrSurf[0] = 0.7071067811865475*((2.0*w[1]+dxv[1])*nuSum-1.414213562373095*sumNuUx[0]); 
+  alphaDrSurf[0] = 0.7071067811865475*(nuSum[0]*(2.0*w[1]+dxv[1])-1.414213562373095*sumNuUx[0]); 
   alphaDrSurf[1] = -1.0*sumNuUx[1]; 
   alphaDrSurf[2] = -1.0*sumNuUx[2]; 
 

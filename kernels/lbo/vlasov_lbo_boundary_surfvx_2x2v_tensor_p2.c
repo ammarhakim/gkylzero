@@ -1,6 +1,6 @@
 #include <gkyl_vlasov_lbo_kernels.h> 
 #include <gkyl_basis_tensor_2x2v_p2_surfvx_quad.h> 
-GKYL_CU_DH void vlasov_lbo_boundary_surfvx_2x2v_tensor_p2(const double *w, const double *dxv, const double nuSum, const double *nuUSum, const double *nuVtSqSum, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void vlasov_lbo_boundary_surfvx_2x2v_tensor_p2(const double *w, const double *dxv, const double *nuSum, const double *nuUSum, const double *nuVtSqSum, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
 { 
   // w[4]:         Cell-center coordinates. 
   // dxv[4]:       Cell spacing. 
@@ -23,7 +23,7 @@ GKYL_CU_DH void vlasov_lbo_boundary_surfvx_2x2v_tensor_p2(const double *w, const
 
   if (edge == -1) { 
 
-  alphaDrSurf[0] = 0.7071067811865475*((4.0*w[2]+2.0*dxv[2])*nuSum-2.0*sumNuUx[0]); 
+  alphaDrSurf[0] = 0.7071067811865475*(nuSum[0]*(4.0*w[2]+2.0*dxv[2])-2.0*sumNuUx[0]); 
   alphaDrSurf[1] = -1.414213562373095*sumNuUx[1]; 
   alphaDrSurf[2] = -1.414213562373095*sumNuUx[2]; 
   alphaDrSurf[4] = -1.414213562373095*sumNuUx[3]; 
@@ -365,7 +365,7 @@ GKYL_CU_DH void vlasov_lbo_boundary_surfvx_2x2v_tensor_p2(const double *w, const
 
   } else { 
 
-  alphaDrSurf[0] = 0.7071067811865475*((4.0*w[2]+2.0*dxv[2])*nuSum-2.0*sumNuUx[0]); 
+  alphaDrSurf[0] = 0.7071067811865475*(nuSum[0]*(4.0*w[2]+2.0*dxv[2])-2.0*sumNuUx[0]); 
   alphaDrSurf[1] = -1.414213562373095*sumNuUx[1]; 
   alphaDrSurf[2] = -1.414213562373095*sumNuUx[2]; 
   alphaDrSurf[4] = -1.414213562373095*sumNuUx[3]; 

@@ -1,5 +1,5 @@
 #include <gkyl_vlasov_lbo_kernels.h> 
-GKYL_CU_DH double vlasov_lbo_vol_3x3v_ser_p1(const double *w, const double *dxv, const double nuSum, const double *nuUSum, const double *nuVtSqSum, const double *f, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_lbo_vol_3x3v_ser_p1(const double *w, const double *dxv, const double *nuSum, const double *nuUSum, const double *nuVtSqSum, const double *f, double* GKYL_RESTRICT out) 
 { 
   // w[6]:      Cell-center coordinates. 
   // dxv[6]:    Cell spacing. 
@@ -17,33 +17,33 @@ GKYL_CU_DH double vlasov_lbo_vol_3x3v_ser_p1(const double *w, const double *dxv,
 
   double alphaDrag[192]; 
   // Expand rdv2*(nu*vx-nuUSumx) in phase basis.
-  alphaDrag[0] = (2.828427124746191*nuUSum[0]-8.0*w[3]*nuSum)*rdvx2; 
+  alphaDrag[0] = (2.828427124746191*nuUSum[0]-8.0*nuSum[0]*w[3])*rdvx2; 
   alphaDrag[1] = 2.828427124746191*nuUSum[1]*rdvx2; 
   alphaDrag[2] = 2.828427124746191*nuUSum[2]*rdvx2; 
   alphaDrag[3] = 2.828427124746191*nuUSum[3]*rdvx2; 
-  alphaDrag[4] = -2.309401076758503*dxv[3]*nuSum*rdvx2; 
+  alphaDrag[4] = -2.309401076758503*nuSum[0]*dxv[3]*rdvx2; 
   alphaDrag[7] = 2.828427124746191*nuUSum[4]*rdvx2; 
   alphaDrag[8] = 2.828427124746191*nuUSum[5]*rdvx2; 
   alphaDrag[9] = 2.828427124746191*nuUSum[6]*rdvx2; 
   alphaDrag[22] = 2.828427124746191*nuUSum[7]*rdvx2; 
 
   // Expand rdv2*(nu*vy-nuUSumy) in phase basis.
-  alphaDrag[64] = (2.828427124746191*nuUSum[8]-8.0*w[4]*nuSum)*rdvy2; 
+  alphaDrag[64] = (2.828427124746191*nuUSum[8]-8.0*nuSum[0]*w[4])*rdvy2; 
   alphaDrag[65] = 2.828427124746191*nuUSum[9]*rdvy2; 
   alphaDrag[66] = 2.828427124746191*nuUSum[10]*rdvy2; 
   alphaDrag[67] = 2.828427124746191*nuUSum[11]*rdvy2; 
-  alphaDrag[69] = -2.309401076758503*dxv[4]*nuSum*rdvy2; 
+  alphaDrag[69] = -2.309401076758503*nuSum[0]*dxv[4]*rdvy2; 
   alphaDrag[71] = 2.828427124746191*nuUSum[12]*rdvy2; 
   alphaDrag[72] = 2.828427124746191*nuUSum[13]*rdvy2; 
   alphaDrag[73] = 2.828427124746191*nuUSum[14]*rdvy2; 
   alphaDrag[86] = 2.828427124746191*nuUSum[15]*rdvy2; 
 
   // Expand rdv2*(nu*vz-nuUSumz) in phase basis.
-  alphaDrag[128] = (2.828427124746191*nuUSum[16]-8.0*w[5]*nuSum)*rdvz2; 
+  alphaDrag[128] = (2.828427124746191*nuUSum[16]-8.0*nuSum[0]*w[5])*rdvz2; 
   alphaDrag[129] = 2.828427124746191*nuUSum[17]*rdvz2; 
   alphaDrag[130] = 2.828427124746191*nuUSum[18]*rdvz2; 
   alphaDrag[131] = 2.828427124746191*nuUSum[19]*rdvz2; 
-  alphaDrag[134] = -2.309401076758503*dxv[5]*nuSum*rdvz2; 
+  alphaDrag[134] = -2.309401076758503*nuSum[0]*dxv[5]*rdvz2; 
   alphaDrag[135] = 2.828427124746191*nuUSum[20]*rdvz2; 
   alphaDrag[136] = 2.828427124746191*nuUSum[21]*rdvz2; 
   alphaDrag[137] = 2.828427124746191*nuUSum[22]*rdvz2; 
