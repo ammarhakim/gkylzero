@@ -128,7 +128,8 @@ gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range *upd
         }
 
         double *cflrate_d = gkyl_array_fetch(cflrate, linp);
-        cflrate_d[0] += gkyl_euler_max_abs_speed(dir, gas_gamma, qp)/dx;
+        // TODO: Rotation Is Required!
+        cflrate_d[0] += gkyl_euler_max_abs_speed(gas_gamma, qp)/dx;
       }
     }
   }

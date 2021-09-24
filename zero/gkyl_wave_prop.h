@@ -2,9 +2,11 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
-#include <gkyl_wv_eqn.h>
+#include <gkyl_evalf_def.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_wave_geom.h>
+#include <gkyl_wv_eqn.h>
 
 // Limiters
 enum gkyl_wave_limiter {
@@ -22,9 +24,10 @@ struct gkyl_wave_prop_status {
   double dt_suggested; // suggested time-step
 };
 
-// Object type
+// Object type for updater
 typedef struct gkyl_wave_prop gkyl_wave_prop;
 
+// Parameters for constructor
 struct gkyl_wave_prop_inp {
   const struct gkyl_rect_grid *grid; // grid on which to solve equations
   const struct gkyl_wv_eqn *equation; // equation solver
@@ -32,6 +35,9 @@ struct gkyl_wave_prop_inp {
   int num_up_dirs; // number of update directions
   int update_dirs[GKYL_MAX_DIM]; // directions to update
   double cfl; // CFL number to use
+
+  evalf_t mapc2p; // mapping from computation to physical space
+  void *ctx; // context for mapping
 };
 
 /**

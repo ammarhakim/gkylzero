@@ -2,30 +2,23 @@
 
 #include <gkyl_prim_maxwell.h>
 
-static const int dir_shuffle[][6] = {
-  {0, 1, 2, 3, 4, 5},
-  {1, 2, 0, 4, 5, 3},
-  {2, 0, 1, 5, 3, 4}
-};
-
 // Make indexing cleaner with the dir_shuffle
-#define EX d[0]
-#define EY d[1]
-#define EZ d[2]
-#define BX d[3]
-#define BY d[4]
-#define BZ d[5]
+#define EX 0
+#define EY 1
+#define EZ 2
+#define BX 3
+#define BY 4
+#define BZ 5
 
 double
-gkyl_maxwell_max_abs_speed(int dir, double c, double e_fact, double b_fact, const double q[8])
+gkyl_maxwell_max_abs_speed(double c, double e_fact, double b_fact, const double q[8])
 {
   return c;
 }
 
 void
-gkyl_maxwell_flux(int dir, double c, double e_fact, double b_fact, const double q[8], double flux[8])
+gkyl_maxwell_flux(double c, double e_fact, double b_fact, const double q[8], double flux[8])
 {
-  int const *const d = dir_shuffle[dir];
   double c2 = c*c;
 
   flux[EX] = e_fact*c2*q[6]; // e_fact*c^2*phi
