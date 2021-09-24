@@ -45,6 +45,19 @@ struct vm_species_moment {
   struct gkyl_array *marr_host;  
 };
 
+struct lbo_collisions {
+  struct gkyl_array *nu_sum, *nu_u, *nu_vthsq; // LBO primitive moments
+  struct gkyl_dg_eqn *coll_eqn; // Collision equation
+  gkyl_hyper_dg *coll_slvr; // Collision solver
+};
+
+struct bgk_collisions {
+  struct gkyl_array *u, *vthsq; // BGK primitive moments
+  // BGK Collisions should probably own a project on Maxwellian updater
+  // so it can compute its contribution to the RHS
+  // struct proj_maxwellian;
+};
+
 // species data
 struct vm_species {
   struct gkyl_vlasov_species info; // data for species
@@ -67,10 +80,9 @@ struct vm_species {
   gkyl_hyper_dg *slvr; // solver 
 
   double nu; // Collision frequency
-  struct gkyl_array *nu_sum, *nu_u, *nu_vthsq; // Collision primitive moments
-  struct gkyl_dg_eqn *coll_eqn; // Collision equation
-  gkyl_hyper_dg *coll_slvr; // Collision solver
-
+  enum gkyl_collision_id collision_id; // type of collisions
+  struct lbo_collisions lbo;
+  struct bgk_collisions bgk;
   double* omegaCfl_ptr;
 };
 

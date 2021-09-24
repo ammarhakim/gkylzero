@@ -24,6 +24,7 @@ struct gkyl_vlasov_species {
   char diag_moments[16][16]; // list of diagnostic moments
 
   double nu; // collision frequency
+  enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
 };
 
 // Parameter for EM field

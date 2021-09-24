@@ -98,22 +98,32 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
   // set collision frequency (default is 0.0)
   s->nu = s->info.nu == 0 ? 0.0 : s->info.nu;
+  // determine field-type to use in dg_vlasov
+  enum gkyl_collision_id collision_id = s->nu ? s->info.collision_id : GKYL_NO_COLLISIONS;
 
-  // TO DO: Expose nu_u and nu_vthsq arrays above species object
-  //        for cross-species collisions. Just testing for now JJ 09/24/21
-  s->nu_sum = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  s->nu_u = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
-  s->nu_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume); 
-  // create collision equation object and solver
-  if (app->use_gpu)
+  if (s->collision_id == GKYL_LBO_COLLISIONS)
   {
-    s->coll_eqn = gkyl_dg_vlasov_lbo_cu_dev_new(&app->confBasis, &app->basis, &app->local);
-    s->coll_slvr = gkyl_hyper_dg_cu_dev_new(&s->grid, &app->basis, s->coll_eqn, num_up_dirs, up_dirs, zero_flux_flags, 1);
+    // TO DO: Expose nu_u and nu_vthsq arrays above species object
+    //        for cross-species collisions. Just testing for now JJ 09/24/21
+    s->lbo.nu_sum = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    s->lbo.nu_u = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
+    s->lbo.nu_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume); 
+    // create collision equation object and solver
+    if (app->use_gpu)
+    {
+      s->lbo.coll_eqn = gkyl_dg_vlasov_lbo_cu_dev_new(&app->confBasis, &app->basis, &app->local);
+      s->lbo.coll_slvr = gkyl_hyper_dg_cu_dev_new(&s->grid, &app->basis, s->lbo.coll_eqn, num_up_dirs, up_dirs, zero_flux_flags, 1);
+    }
+    else
+    {
+      s->lbo.coll_eqn = gkyl_dg_vlasov_lbo_new(&app->confBasis, &app->basis, &app->local);
+      s->lbo.coll_slvr = gkyl_hyper_dg_new(&s->grid, &app->basis, s->lbo.coll_eqn, num_up_dirs, up_dirs, zero_flux_flags, 1);
+    }
   }
-  else
+  else if (s->collision_id == GKYL_BGK_COLLISIONS)
   {
-    s->coll_eqn = gkyl_dg_vlasov_lbo_new(&app->confBasis, &app->basis, &app->local);
-    s->coll_slvr = gkyl_hyper_dg_new(&s->grid, &app->basis, s->coll_eqn, num_up_dirs, up_dirs, zero_flux_flags, 1);
+    s->bgk.u = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
+    s->bgk.vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume); 
   }
 }
 
@@ -133,7 +143,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   {
     gkyl_hyper_dg_advance_cu(species->slvr, species->local, fin, species->cflrate, rhs);
     // Collisions do not have a GPU implementation yet
-    /* if (species->nu != 0.0) */
+    /* if (species->collision_id == GKYL_LBO_COLLISIONS) */
     /* { */
     /*   // Compute the needed moments */
     /*   gkyl_mom_calc_advance_cu(species->m0.mcalc, species->local, app->local, fin, species->m0.marr); */
@@ -154,7 +164,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   else
   {
     gkyl_hyper_dg_advance(species->slvr, species->local, fin, species->cflrate, rhs);
-    if (species->nu != 0.0)
+    if (species->collision_id == GKYL_LBO_COLLISIONS)
     {
       // Compute the needed moments
       gkyl_mom_calc_advance(species->m0.mcalc, species->local, app->local, fin, species->m0.marr);
@@ -162,14 +172,14 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
       gkyl_mom_calc_advance(species->m2.mcalc, species->local, app->local, fin, species->m2.marr);
       // Construct the primitive moments
       // JUST SETTING ARRAYS FOR NOW
-      gkyl_array_clear(species->nu_sum, species->nu);
-      gkyl_array_set(species->nu_u, species->nu, species->m1i.marr);
-      gkyl_array_set(species->nu_vthsq, species->nu, species->m2.marr);
+      gkyl_array_clear(species->lbo.nu_sum, species->nu);
+      gkyl_array_set(species->lbo.nu_u, species->nu, species->m1i.marr);
+      gkyl_array_set(species->lbo.nu_vthsq, species->nu, species->m2.marr);
       // Set the arrays needed
-      gkyl_vlasov_lbo_set_nuSum(species->coll_eqn, species->nu_sum);
-      gkyl_vlasov_lbo_set_nuUSum(species->coll_eqn, species->nu_u);
-      gkyl_vlasov_lbo_set_nuVtSqSum(species->coll_eqn, species->nu_vthsq);
-      gkyl_hyper_dg_advance(species->coll_slvr, species->local, fin, species->cflrate, rhs);
+      gkyl_vlasov_lbo_set_nuSum(species->lbo.coll_eqn, species->lbo.nu_sum);
+      gkyl_vlasov_lbo_set_nuUSum(species->lbo.coll_eqn, species->lbo.nu_u);
+      gkyl_vlasov_lbo_set_nuVtSqSum(species->lbo.coll_eqn, species->lbo.nu_vthsq);
+      gkyl_hyper_dg_advance(species->lbo.coll_slvr, species->local, fin, species->cflrate, rhs);
     }
   }
 
@@ -230,10 +240,6 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   gkyl_array_release(s->fnew);
   gkyl_array_release(s->cflrate);
   gkyl_array_release(s->bc_buffer);
-
-  gkyl_array_release(s->nu_sum);
-  gkyl_array_release(s->nu_u);
-  gkyl_array_release(s->nu_vthsq);
   
   if (app->use_gpu) {
     gkyl_array_release(s->f_host);
@@ -247,6 +253,19 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     vm_species_moment_release(app, &s->moms[i]);
   gkyl_free(s->moms);
 
+
+  if (s->collision_id == GKYL_LBO_COLLISIONS)
+  {    
+    gkyl_array_release(s->lbo.nu_sum);
+    gkyl_array_release(s->lbo.nu_u);
+    gkyl_array_release(s->lbo.nu_vthsq);
+  }
+  else if (s->collision_id == GKYL_BGK_COLLISIONS)
+  {
+    gkyl_array_release(s->bgk.u);
+    gkyl_array_release(s->bgk.vthsq);
+  }
+  
   if (app->use_gpu) {
     gkyl_cu_free_host(s->omegaCfl_ptr);
     // TODO: NOT SURE HOW TO RELEASE ON DEVICE YET
@@ -255,7 +274,10 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     gkyl_free(s->omegaCfl_ptr);
     gkyl_dg_eqn_release(s->eqn);
     gkyl_hyper_dg_release(s->slvr);
-    gkyl_dg_eqn_release(s->coll_eqn);
-    gkyl_hyper_dg_release(s->coll_slvr);
+    if (s->collision_id == GKYL_LBO_COLLISIONS)
+    {    
+      gkyl_dg_eqn_release(s->lbo.coll_eqn);
+      gkyl_hyper_dg_release(s->lbo.coll_slvr);
+    }
   }
 }

@@ -53,7 +53,7 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
   skin_ghost_ranges_init(&app->skin_ghost, &app->local_ext, ghost);
 
   app->has_field = !vm.skip_field; // note inversion of truth value
-
+  
   if (app->has_field)
     app->field = vm_field_new(&vm, app);
 
