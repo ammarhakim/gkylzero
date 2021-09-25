@@ -20,3 +20,9 @@ gkyl_mom_type_calc(const struct gkyl_mom_type* momt,
 {
   momt->kernel(momt, xc, dx, idx, f, out);
 }
+
+int
+gkyl_mom_type_num_mom(const struct gkyl_mom_type* momt)
+{
+  return momt->num_mom;
+}

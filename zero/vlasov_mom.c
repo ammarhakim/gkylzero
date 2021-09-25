@@ -62,35 +62,35 @@ gkyl_vlasov_mom_new(const struct gkyl_basis* cbasis,
     assert(NULL != m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     vlasov_mom->kernel = m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    vlasov_mom->num_mom = 1;
+    vlasov_mom->momt.num_mom = 1;
   }
   else if (strcmp(mom, "M1i") == 0) { // momentum
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m1i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     vlasov_mom->kernel = m1i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    vlasov_mom->num_mom = vdim;
+    vlasov_mom->momt.num_mom = vdim;
   }
   else if (strcmp(mom, "M2") == 0) { // energy
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     vlasov_mom->kernel = m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    vlasov_mom->num_mom = 1;
+    vlasov_mom->momt.num_mom = 1;
   }
   else if (strcmp(mom, "M2ij") == 0) { // pressure tensor in lab-frame
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m2ij_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     vlasov_mom->kernel = m2ij_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    vlasov_mom->num_mom = vdim*(vdim+1)/2;
+    vlasov_mom->momt.num_mom = vdim*(vdim+1)/2;
   }
   else if (strcmp(mom, "M3i") == 0) { // heat-flux vector in lab-frame
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m3i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     vlasov_mom->kernel = m3i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    vlasov_mom->num_mom = vdim;
+    vlasov_mom->momt.num_mom = vdim;
   }
   else if (strcmp(mom, "M3ijk") == 0) { // heat-flux tensor in lab-frame
     assert(cv_index[cdim].vdim[vdim] != -1);
@@ -99,7 +99,7 @@ gkyl_vlasov_mom_new(const struct gkyl_basis* cbasis,
     vlasov_mom->kernel = m3ijk_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 
     int m3ijk_count[] = { 1, 4, 10 };
-    vlasov_mom->num_mom = m3ijk_count[vdim-1];
+    vlasov_mom->momt.num_mom = m3ijk_count[vdim-1];
   }
   else {
     // string not recognized
