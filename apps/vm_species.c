@@ -99,8 +99,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   // set collision frequency (default is 0.0)
   s->nu = s->info.nu;
   // determine collision type to use in vlasov update
-  enum gkyl_collision_id collision_id = s->info.collision_id;
-
+  s->collision_id = s->info.collision_id;
   if (s->collision_id == GKYL_LBO_COLLISIONS)
   {
     vm_species_lbo_init(app, s, &s->lbo);
