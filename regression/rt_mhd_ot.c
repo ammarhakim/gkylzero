@@ -50,6 +50,13 @@ mhd_ctx(void)
   return (struct mhd_ctx) { .gas_gamma = 5./3. };
 }
 
+void
+write_data(struct gkyl_tm_trigger *iot, const gkyl_moment_app *app, double tcurr)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, tcurr))
+    gkyl_moment_app_write(app, tcurr, iot->curr-1);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -78,7 +85,7 @@ main(int argc, char **argv)
     .ndim = 2,
     .lower = { 0.0, 0.0 },
     .upper = { 1.0, 1.0 }, 
-    .cells = { 512, 512 },
+    .cells = { 128, 128 },
 
     .num_species = 1,
     .species = { fluid },
@@ -89,17 +96,17 @@ main(int argc, char **argv)
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 0.2;
-  double tframe = 0.1;  // time interval between outputs
+  int nframe = 4;
+
+  // create trigger for IO
+  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
-  gkyl_moment_app_write(app, tcurr, 0);
+  write_data(&io_trig, app, tcurr);
 
   // compute estimate of maximum stable time-step
   double dt = gkyl_moment_app_max_dt(app);
-
-  double tout_next = tcurr + tframe;
-  int frame = 1;
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
@@ -114,18 +121,10 @@ main(int argc, char **argv)
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
 
-    if (tcurr>=tout_next) {
-      printf(">>>>> Writing frame %d at t=%g\n", frame, tcurr);
-      gkyl_moment_app_write(app, tcurr, frame);
-      frame += 1;
-      tout_next += tframe;
-    }
-
+    write_data(&io_trig, app, tcurr);
+    
     step += 1;
   }
-
-  frame = frame + 1;
-  gkyl_moment_app_write(app, tcurr, frame);
   gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
