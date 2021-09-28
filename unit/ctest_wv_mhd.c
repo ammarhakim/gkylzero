@@ -56,24 +56,24 @@ test_mhd_basic()
   };
 
 
-  TEST_CHECK ( gkyl_compare(pr, gkyl_mhd_pressure(gas_gamma, q), 1e-15) );
+  TEST_CHECK ( gkyl_compare(pr, gkyl_mhd_pressure(gas_gamma, q), 1e-14) );
  
-  double q_local[5], flux_local[5], flux[5];
+  double q_local[8], flux_local[8], flux[8];
   for (int d=1; d<2; ++d) {
     mhd->rotate_to_local_func(d, tau1[d], tau2[d], norm[d], q, q_local);
     gkyl_mhd_flux(gas_gamma, q_local, flux_local);
     mhd->rotate_to_global_func(d, tau1[d], tau2[d], norm[d], flux_local, flux);
     
-    for (int m=0; m<5; ++m)
-      TEST_CHECK( gkyl_compare(flux[m], fluxes[d][m], 1e-15) );
+    for (int m=0; m<8; ++m)
+      TEST_CHECK( gkyl_compare(flux[m], fluxes[d][m], 1e-14) );
   }
 
-  double q_l[5], q_g[5];
+  double q_l[8], q_g[8];
   for (int d=1; d<3; ++d) {
     gkyl_wv_eqn_rotate_to_local(mhd, d, tau1[d], tau2[d], norm[d], q, q_l);
     gkyl_wv_eqn_rotate_to_global(mhd, d, tau1[d], tau2[d], norm[d], q_l, q_g);
 
-    for (int m=0; m<5; ++m) TEST_CHECK( q[m] == q_g[m] );
+    for (int m=0; m<8; ++m) TEST_CHECK( gkyl_compare(q[m], q_g[m], 1e-14) );
   }
   
   gkyl_wv_eqn_release(mhd);
