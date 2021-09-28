@@ -2,47 +2,29 @@
 
 #include <gkyl_prim_ten_moment.h>
 
-static const int dir_u_shuffle[][3] = {
-  {1, 2, 3},
-  {2, 3, 1},
-  {3, 1, 2}
-};
-
-static const int dir_p_shuffle[][6] = {
-  {4, 5, 6, 7, 8, 9},
-  {7, 8, 5, 9, 6, 4},
-  {9, 6, 8, 4, 5, 7}
-};
-
 // Make indexing cleaner with the dir_shuffle
-#define RHOU d[0]
-#define RHOV d[1]
-#define RHOW d[2]
+#define RHOU 1
+#define RHOV 2
+#define RHOW 3
 
-#define PXX dp[0]
-#define PXY dp[1]
-#define PXZ dp[2]
-#define PYY dp[3]
-#define PYZ dp[4]
-#define PZZ dp[5]
+#define PXX 4
+#define PXY 5
+#define PXZ 6
+#define PYY 7
+#define PYZ 8
+#define PZZ 9
 
 double
-gkyl_ten_moment_max_abs_speed(int dir, const double q[10])
+gkyl_ten_moment_max_abs_speed(const double q[10])
 {
-  int const *const d = dir_u_shuffle[dir];
-  int const *const dp = dir_p_shuffle[dir];
-
   double u = q[RHOU]/q[0];
   double p11 = q[PXX] - q[0]*u*u;
   return fabs(u) + sqrt(3.0*p11/q[0]);
 }
 
 void
-gkyl_ten_moment_flux(int dir, const double q[10], double flux[10])
+gkyl_ten_moment_flux(const double q[10], double flux[10])
 {
-  int const *const d = dir_u_shuffle[dir];
-  int const *const dp = dir_p_shuffle[dir];
-
   double v[10];
   gkyl_ten_moment_primitive(q, v);
 

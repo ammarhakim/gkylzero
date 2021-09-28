@@ -61,36 +61,96 @@ static void
 rot_to_local_rect(int dir, const double *tau1, const double *tau2, const double *norm,
   const double *qglobal, double *qlocal)
 {
-  const int *d = dir_u_shuffle[dir];
-  const int *dp = dir_p_shuffle[dir];  
+  // Mass density is a scalar
   qlocal[0] = qglobal[0];
-  qlocal[1] = qglobal[RHOU];
-  qlocal[2] = qglobal[RHOV];
-  qlocal[3] = qglobal[RHOW];
-  qlocal[4] = qglobal[PXX];
-  qlocal[5] = qglobal[PXY];
-  qlocal[6] = qglobal[PXZ];
-  qlocal[7] = qglobal[PYY];
-  qlocal[8] = qglobal[PYZ];
-  qlocal[9] = qglobal[PZZ];
+  // Rotate momentum to local coordinates
+  qlocal[1] = qglobal[1]*norm[0] + qglobal[2]*norm[1] + qglobal[3]*norm[2];
+  qlocal[2] = qglobal[1]*tau1[0] + qglobal[2]*tau1[1] + qglobal[3]*tau1[2];
+  qlocal[3] = qglobal[1]*tau2[0] + qglobal[2]*tau2[1] + qglobal[3]*tau2[2];
+
+  // temp arrays to store rotated column vectors
+  double r1[3], r2[3], r3[3];
+  r1[0] = qglobal[4]*norm[0] + qglobal[5]*norm[1] + qglobal[6]*norm[2];
+  r1[1] = qglobal[4]*tau1[0] + qglobal[5]*tau1[1] + qglobal[6]*tau1[2];
+  r1[2] = qglobal[4]*tau2[0] + qglobal[5]*tau2[1] + qglobal[6]*tau2[2];
+
+  r2[0] = qglobal[5]*norm[0] + qglobal[7]*norm[1] + qglobal[8]*norm[2];
+  r2[1] = qglobal[5]*tau1[0] + qglobal[7]*tau1[1] + qglobal[8]*tau1[2];
+  r2[2] = qglobal[5]*tau2[0] + qglobal[7]*tau2[1] + qglobal[8]*tau2[2];
+
+  r3[0] = qglobal[6]*norm[0] + qglobal[8]*norm[1] + qglobal[9]*norm[2];
+  r3[1] = qglobal[6]*tau1[0] + qglobal[8]*tau1[1] + qglobal[9]*tau1[2];
+  r3[2] = qglobal[6]*tau2[0] + qglobal[8]*tau2[1] + qglobal[9]*tau2[2];
+
+  // temp arrays to store rotated row vectors
+  double v1[3], v2[3], v3[3];
+  v1[0] = r1[0]*norm[0] + r2[0]*norm[1] + r3[0]*norm[2];
+  v1[1] = r1[0]*tau1[0] + r2[0]*tau1[1] + r3[0]*tau1[2];
+  v1[2] = r1[0]*tau2[0] + r2[0]*tau2[1] + r3[0]*tau2[2];
+
+  v2[0] = r1[1]*norm[0] + r2[1]*norm[1] + r3[1]*norm[2];
+  v2[1] = r1[1]*tau1[0] + r2[1]*tau1[1] + r3[1]*tau1[2];
+  v2[2] = r1[1]*tau2[0] + r2[1]*tau2[1] + r3[1]*tau2[2]; 
+
+  v3[0] = r1[2]*norm[0] + r2[2]*norm[1] + r3[2]*norm[2];
+  v3[1] = r1[2]*tau1[0] + r2[2]*tau1[1] + r3[2]*tau1[2];
+  v3[2] = r1[2]*tau2[0] + r2[2]*tau2[1] + r3[2]*tau2[2];
+
+  qlocal[4] = v1[0];
+  qlocal[5] = v1[1];
+  qlocal[6] = v1[2];
+  qlocal[7] = v2[1];
+  qlocal[8] = v2[2];
+  qlocal[9] = v3[2];
 }
 
 static void
 rot_to_global_rect(int dir, const double *tau1, const double *tau2, const double *norm,
   const double *qlocal, double *qglobal)
 {
-  const int *d = dir_u_shuffle[dir];
-  const int *dp = dir_p_shuffle[dir];   
+ 
+  // Mass density is a scalar
   qglobal[0] = qlocal[0];
-  qglobal[RHOU] = qlocal[1];
-  qglobal[RHOV] = qlocal[2];
-  qglobal[RHOW] = qlocal[3];
-  qglobal[PXX] = qlocal[4];
-  qglobal[PXY] = qlocal[5];
-  qglobal[PXZ] = qlocal[6];
-  qglobal[PYY] = qlocal[7];
-  qglobal[PYZ] = qlocal[8];
-  qglobal[PZZ] = qlocal[9];
+  // Rotate momentum back to global coordinates
+  qglobal[1] = qlocal[1]*norm[0] + qlocal[2]*tau1[0] + qlocal[3]*tau2[0];
+  qglobal[2] = qlocal[1]*norm[1] + qlocal[2]*tau1[1] + qlocal[3]*tau2[1];
+  qglobal[3] = qlocal[1]*norm[2] + qlocal[2]*tau1[2] + qlocal[3]*tau2[2];
+
+  // temp arrays to store rotated column vectors
+  double r1[3], r2[3], r3[3];
+  r1[0] = qlocal[4]*norm[0] + qlocal[5]*tau1[0] + qlocal[6]*tau2[0];
+  r1[1] = qlocal[4]*norm[1] + qlocal[5]*tau1[1] + qlocal[6]*tau2[1];
+  r1[2] = qlocal[4]*norm[2] + qlocal[5]*tau1[2] + qlocal[6]*tau2[2];
+
+  r2[0] = qlocal[5]*norm[0] + qlocal[7]*tau1[0] + qlocal[8]*tau2[0];
+  r2[1] = qlocal[5]*norm[1] + qlocal[7]*tau1[1] + qlocal[8]*tau2[1];
+  r2[2] = qlocal[5]*norm[2] + qlocal[7]*tau1[2] + qlocal[8]*tau2[2];
+
+  r3[0] = qlocal[6]*norm[0] + qlocal[8]*tau1[0] + qlocal[9]*tau2[0];
+  r3[1] = qlocal[6]*norm[1] + qlocal[8]*tau1[1] + qlocal[9]*tau2[1];
+  r3[2] = qlocal[6]*norm[2] + qlocal[8]*tau1[2] + qlocal[9]*tau2[2];
+
+  // temp arrays to store rotated row vectors
+  double v1[3], v2[3], v3[3];
+  v1[0] = r1[0]*norm[0] + r2[0]*tau1[0] + r3[0]*tau2[0];
+  v1[1] = r1[0]*norm[1] + r2[0]*tau1[1] + r3[0]*tau2[1];
+  v1[2] = r1[0]*norm[2] + r2[0]*tau1[2] + r3[0]*tau2[2];
+
+  v2[0] = r1[1]*norm[0] + r2[1]*tau1[0] + r3[1]*tau2[0];
+  v2[1] = r1[1]*norm[1] + r2[1]*tau1[1] + r3[1]*tau2[1];
+  v2[2] = r1[1]*norm[2] + r2[1]*tau1[2] + r3[1]*tau2[2]; 
+
+  v3[0] = r1[2]*norm[0] + r2[2]*tau1[0] + r3[2]*tau2[0];
+  v3[1] = r1[2]*norm[1] + r2[2]*tau1[1] + r3[2]*tau2[1];
+  v3[2] = r1[2]*norm[2] + r2[2]*tau1[2] + r3[2]*tau2[2];
+
+  // Rotate pressure tensor back to local coordinates
+  qglobal[4] = v1[0];
+  qglobal[5] = v1[1];
+  qglobal[6] = v1[2];
+  qglobal[7] = v2[1];
+  qglobal[8] = v2[2];
+  qglobal[9] = v3[2];
 }
 
 // Waves and speeds using Roe averaging
@@ -255,7 +315,7 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn,
 static double
 max_speed(const struct gkyl_wv_eqn *eqn, int dir, const double *q)
 {
-  return gkyl_ten_moment_max_abs_speed(dir, q);
+  return gkyl_ten_moment_max_abs_speed(q);
 }
 
 struct gkyl_wv_eqn*
