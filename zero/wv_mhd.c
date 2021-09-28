@@ -341,7 +341,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *dQ,
   if (mhd->divergence_constraint == DIVB_GLM)
   {
     // ch = eqn->glm_ch;
-    double ch = max_speed * 1.5;  // cfl * min(dx, dy, dz) / dt
+    double ch = max_speed;  // cfl * min(dx, dy, dz) / dt
 
     ev[7] = -ch;
     eta[7] = 0.5 * (-dQ[BX]*ch+dQ[PSI_GLM]);
