@@ -4,17 +4,6 @@
 #include <gkyl_prim_sr_euler.h>
 #include <gkyl_wv_sr_euler.h>
 
-static const int dir_shuffle[][3] = {
-  {2, 3, 4},
-  {3, 4, 2},
-  {4, 2, 3}
-};
-
-// Make indexing cleaner with the dir_shuffle
-#define TU d[0]
-#define TV d[1]
-#define TW d[2]
-
 struct wv_sr_euler {
   struct gkyl_wv_eqn eqn; // base object
   double gas_gamma; // gas adiabatic constant
@@ -32,24 +21,26 @@ static inline void
 rot_to_local_rect(int dir, const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
 {
-  const int *d = dir_shuffle[dir];  
+  // Mass density and energy are scalars
   qlocal[0] = qglobal[0];
   qlocal[1] = qglobal[1];
-  qlocal[2] = qglobal[TU];
-  qlocal[3] = qglobal[TV];
-  qlocal[4] = qglobal[TW];
+  // Rotate momentum to local coordinates
+  qlocal[2] = qglobal[2]*norm[0] + qglobal[3]*norm[1] + qglobal[4]*norm[2];
+  qlocal[3] = qglobal[2]*tau1[0] + qglobal[3]*tau1[1] + qglobal[4]*tau1[2];
+  qlocal[4] = qglobal[2]*tau2[0] + qglobal[3]*tau2[1] + qglobal[4]*tau2[2];
 }
 
 static inline void
 rot_to_global_rect(int dir, const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
 {
-  const int *d = dir_shuffle[dir];  
+  // Mass density and energy are scalars
   qglobal[0] = qlocal[0];
   qglobal[1] = qlocal[1];
-  qglobal[TU] = qlocal[2];
-  qglobal[TV] = qlocal[3];
-  qglobal[TW] = qlocal[4];
+  // Rotate momentum back to global coordinates
+  qglobal[2] = qlocal[2]*norm[0] + qlocal[3]*tau1[0] + qlocal[4]*tau2[0];
+  qglobal[3] = qlocal[2]*norm[1] + qlocal[3]*tau1[1] + qlocal[4]*tau2[1];
+  qglobal[4] = qlocal[2]*norm[2] + qlocal[3]*tau1[2] + qlocal[4]*tau2[2];
   
 }
 
@@ -151,7 +142,7 @@ static double
 max_speed(const struct gkyl_wv_eqn *eqn, int dir, const double *q)
 {
   const struct wv_sr_euler *sr_euler = container_of(eqn, struct wv_sr_euler, eqn);
-  return gkyl_sr_euler_max_abs_speed(dir, sr_euler->gas_gamma, q);
+  return gkyl_sr_euler_max_abs_speed(sr_euler->gas_gamma, q);
 }
 
 struct gkyl_wv_eqn*

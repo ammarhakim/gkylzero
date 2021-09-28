@@ -61,20 +61,18 @@ static inline void gkyl_sr_euler_prim_vars(double gas_gamma, const double q[5], 
 
 /**
  * Compute maximum absolute speed.
- * 
- * @param dir Direction 
+ *  
  * @param gas_gamma Gas adiabatic constant
  * @param q Conserved variables
  * @return Maximum absolute speed for given q
  */
-double gkyl_sr_euler_max_abs_speed(int dir, double gas_gamma, const double q[5]);
+double gkyl_sr_euler_max_abs_speed(double gas_gamma, const double q[5]);
 
 /**
- * Compute flux in direction 'dir'.
+ * Compute flux. Assumes rotation to local coordinate system.
  * 
- * @param dir Direction to compute flux
  * @param gas_gamma Gas adiabatic constant
  * @param Conserved variables
  * @param flux On output, the flux in direction 'dir'
  */
-void gkyl_sr_euler_flux(int dir, double gas_gamma, const double q[5], double flux[5]);
+void gkyl_sr_euler_flux(double gas_gamma, const double q[5], double flux[5]);

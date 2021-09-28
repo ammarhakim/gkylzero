@@ -105,7 +105,7 @@ test_euler_waves()
     { 0.0, 1.0, 0.0 }
   };  
 
-  for (int d=0; d<2; ++d) {
+  for (int d=0; d<3; ++d) {
     double speeds[3], waves[3*5], waves_local[3*5];
     // rotate to local tangent-normal frame
     gkyl_wv_eqn_rotate_to_local(euler, d, tau1[d], tau2[d], norm[d], ql, ql_local);

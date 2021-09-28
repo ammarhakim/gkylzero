@@ -8,21 +8,15 @@
 
 enum { DIVB_NONE, DIVB_EIGHT_WAVES, DIVB_GLM };
 
-static const int dir_shuffle[][6] = {
-  {1, 2, 3, 5, 6, 7},
-  {2, 3, 1, 6, 7, 5},
-  {3, 1, 2, 7, 5, 6}
-};
-
-// Make indexing cleaner with the dir_shuffle
+// Make indexing cleaner and clearer
 #define DN (0)
-#define MX (idx[0])
-#define MY (idx[1])
-#define MZ (idx[2])
+#define MX (1)
+#define MY (2)
+#define MZ (3)
 #define ER (4)
-#define BX (idx[3])
-#define BY (idx[4])
-#define BZ (idx[5])
+#define BX (5)
+#define BY (6)
+#define BZ (7)
 #define PSI_GLM (8)
 
 #define sq(x) ((x)*(x))
@@ -31,30 +25,36 @@ static inline void
 rot_to_local_rect(int dir, const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
 {
-  const int *idx = dir_shuffle[dir];
+  // Mass density is a scalar
   qlocal[0] = qglobal[0];
-  qlocal[1] = qglobal[MX];
-  qlocal[2] = qglobal[MY];
-  qlocal[3] = qglobal[MZ];
+  // Rotate momentum to local coordinates
+  qlocal[1] = qglobal[1]*norm[0] + qglobal[2]*norm[1] + qglobal[3]*norm[2];
+  qlocal[2] = qglobal[1]*tau1[0] + qglobal[2]*tau1[1] + qglobal[3]*tau1[2];
+  qlocal[3] = qglobal[1]*tau2[0] + qglobal[2]*tau2[1] + qglobal[3]*tau2[2];
+  // Total energy is a scalar  
   qlocal[4] = qglobal[4];
-  qlocal[5] = qglobal[BX];
-  qlocal[6] = qglobal[BY];
-  qlocal[7] = qglobal[BZ];
+  // Rotate B to local coordinates
+  qlocal[5] = qglobal[5]*norm[0] + qglobal[6]*norm[1] + qglobal[7]*norm[2];
+  qlocal[6] = qglobal[5]*tau1[0] + qglobal[6]*tau1[1] + qglobal[7]*tau1[2];
+  qlocal[7] = qglobal[5]*tau2[0] + qglobal[6]*tau2[1] + qglobal[7]*tau2[2];
 }
 
 static inline void
 rot_to_global_rect(int dir, const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
 {
-  const int *idx = dir_shuffle[dir];  
+  // Mass density is a scalar
   qglobal[0] = qlocal[0];
-  qglobal[MX] = qlocal[1];
-  qglobal[MY] = qlocal[2];
-  qglobal[MZ] = qlocal[3];
+  // Rotate momentum back to global coordinates
+  qglobal[1] = qlocal[1]*norm[0] + qlocal[2]*tau1[0] + qlocal[3]*tau2[0];
+  qglobal[2] = qlocal[1]*norm[1] + qlocal[2]*tau1[1] + qlocal[3]*tau2[1];
+  qglobal[3] = qlocal[1]*norm[2] + qlocal[2]*tau1[2] + qlocal[3]*tau2[2];
+  // Total energy is a scalar  
   qglobal[4] = qlocal[4];
-  qglobal[BX] = qlocal[5];
-  qglobal[BY] = qlocal[6];
-  qglobal[BZ] = qlocal[7];
+  // Rotate B back to global coordinates
+  qglobal[5] = qlocal[5]*norm[0] + qlocal[6]*tau1[0] + qlocal[7]*tau2[0];
+  qglobal[6] = qlocal[5]*norm[1] + qlocal[6]*tau1[1] + qlocal[7]*tau2[1];
+  qglobal[7] = qlocal[5]*norm[2] + qlocal[6]*tau1[2] + qlocal[7]*tau2[2];
 }
 
 static inline void
@@ -95,7 +95,6 @@ wave_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *dQ,
   const double *ql, const double *qr, double *waves, double *ev)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
-  const int *idx = dir_shuffle[0]; // no shuffle; data was previously rotated
   double gamma = mhd->gas_gamma;
 
   //////////////////////////////////////////////////////////////////////////////
@@ -356,7 +355,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *dQ,
     wv[BX] = eta[8]/ch;
     wv[PSI_GLM] = eta[8];
 
-    max_speed = max_speed > ch? max_speed : ch;
+    max_speed = max_speed > ch ? max_speed : ch;
   }
 
   return max_speed;
@@ -382,7 +381,7 @@ static double
 max_speed(const struct gkyl_wv_eqn *eqn, int dir, const double *q)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
-  return gkyl_mhd_max_abs_speed(dir, mhd->gas_gamma, q);
+  return gkyl_mhd_max_abs_speed(mhd->gas_gamma, q);
 }
 
 struct gkyl_wv_eqn*
