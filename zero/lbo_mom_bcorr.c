@@ -62,29 +62,21 @@ gkyl_vlasov_lbo_mom_new(const struct gkyl_basis* cbasis,
       break;    
   }
   if (strcmp(mom, "f") == 0) { // density
-    printf("Gimme a v!\n");
-    fflush(stdout);
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != boundary_integral_f_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_bcorr->kernel = boundary_integral_f_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
   }
   else if (strcmp(mom, "vf") == 0) { // momentum
-    printf("Gimme a vf!\n");
-    fflush(stdout);
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != boundary_integral_vf_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_bcorr->kernel = boundary_integral_vf_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
   }
   mom_bcorr->num_mom = vdim;
-  if (mom_bcorr->kernel) {
-    printf("%s: Success!\n", mom);
-    fflush(stdout);
-  }
 
   // set reference counter
-  mom_bcorr->ref_count = (struct gkyl_ref_count) { mom_free, 1 };
+  mom_bcorr->momt.ref_count = (struct gkyl_ref_count) { mom_free, 1 };
     
   return &mom_bcorr->momt;
 }

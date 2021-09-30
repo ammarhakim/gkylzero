@@ -42,18 +42,13 @@ gkyl_mom_bcorr_advance(gkyl_mom_bcorr *bcorr,
     gkyl_range_iter_no_split_init(&vel_iter, &vel_edge);
 
     while (gkyl_range_iter_next(&vel_iter)) {
+      printf("Here!");
       
       copy_idx_arrays(conf_rng.ndim, phase_rng.ndim, conf_iter.idx, vel_iter.idx, pidx);
       gkyl_rect_grid_cell_center(&bcorr->grid, pidx, xc);
       
       long fidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
-      if (bcorr->momt) {
-        printf("momt is here!\n");
-        fflush(stdout);
-      }
-      printf("xc: %f\n", xc[0]);
-      printf("dx: %f\n", bcorr->grid.dx[0]);
-      fflush(stdout);
+      printf("fidx: %ld:\n", fidx);
 
       gkyl_mom_type_calc(bcorr->momt, xc, bcorr->grid.dx, pidx,
         gkyl_array_cfetch(fIn, fidx), gkyl_array_fetch(out, midx)
@@ -74,5 +69,5 @@ gkyl_mom_bcorr* gkyl_mom_bcorr_new(const struct gkyl_rect_grid *grid, const stru
 void gkyl_mom_bcorr_release(gkyl_mom_bcorr* bcorr)
 {
   gkyl_mom_type_release(bcorr->momt);
-  free(bcorr);
+  gkyl_free(bcorr);
 }
