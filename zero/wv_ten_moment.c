@@ -6,30 +6,6 @@
 
 static inline double sq(double x) { return x*x; }
 
-static const int dir_u_shuffle[][3] = {
-  {1, 2, 3},
-  {2, 3, 1},
-  {3, 1, 2}
-};
-
-static const int dir_p_shuffle[][6] = {
-  {4, 5, 6, 7, 8, 9},
-  {7, 8, 5, 9, 6, 4},
-  {9, 6, 8, 4, 5, 7}
-};
-
-// Make indexing cleaner with the dir_shuffle
-#define RHOU d[0]
-#define RHOV d[1]
-#define RHOW d[2]
-
-#define PXX dp[0]
-#define PXY dp[1]
-#define PXZ dp[2]
-#define PYY dp[3]
-#define PYZ dp[4]
-#define PZZ dp[5]
-
 /* Multiply by phi prime */
 static void mulByPhiPrime(double p0, double u1, double u2, double u3, const double w[10], double out[10]) 
 { 
@@ -58,7 +34,7 @@ ten_moment_free(const struct gkyl_ref_count *ref)
 }
 
 static void
-rot_to_local_rect(int dir, const double *tau1, const double *tau2, const double *norm,
+rot_to_local(const double *tau1, const double *tau2, const double *norm,
   const double *qglobal, double *qlocal)
 {
   // Mass density is a scalar
@@ -105,7 +81,7 @@ rot_to_local_rect(int dir, const double *tau1, const double *tau2, const double 
 }
 
 static void
-rot_to_global_rect(int dir, const double *tau1, const double *tau2, const double *norm,
+rot_to_global(const double *tau1, const double *tau2, const double *norm,
   const double *qlocal, double *qglobal)
 {
  
@@ -156,7 +132,7 @@ rot_to_global_rect(int dir, const double *tau1, const double *tau2, const double
 // Waves and speeds using Roe averaging
 static double
 wave_roe(const struct gkyl_wv_eqn *eqn, 
-  int dir, const double *delta, const double *ql, const double *qr, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
   double vl[10], vr[10];
   gkyl_ten_moment_primitive(ql, vl);
@@ -299,7 +275,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
 
 static void
 qfluct_roe(const struct gkyl_wv_eqn *eqn, 
-  int dir, const double *ql, const double *qr, const double *waves, const double *s,
+  const double *ql, const double *qr, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
   const double *w0 = &waves[0], *w1 = &waves[10], *w2 = &waves[20], *w3 = &waves[30], *w4 = &waves[40];
@@ -313,7 +289,7 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn,
 }
 
 static double
-max_speed(const struct gkyl_wv_eqn *eqn, int dir, const double *q)
+max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   return gkyl_ten_moment_max_abs_speed(q);
 }
@@ -329,8 +305,8 @@ gkyl_wv_ten_moment_new()
   ten_moment->eqn.waves_func = wave_roe;
   ten_moment->eqn.qfluct_func = qfluct_roe;
   ten_moment->eqn.max_speed_func = max_speed;
-  ten_moment->eqn.rotate_to_local_func = rot_to_local_rect;
-  ten_moment->eqn.rotate_to_global_func = rot_to_global_rect;
+  ten_moment->eqn.rotate_to_local_func = rot_to_local;
+  ten_moment->eqn.rotate_to_global_func = rot_to_global;
 
   ten_moment->eqn.ref_count = (struct gkyl_ref_count) { ten_moment_free, 1 };
 

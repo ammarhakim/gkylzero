@@ -18,7 +18,7 @@ sr_euler_free(const struct gkyl_ref_count *ref)
 }
 
 static inline void
-rot_to_local_rect(int dir, const double *tau1, const double *tau2, const double *norm,
+rot_to_local(const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
 {
   // Mass density and energy are scalars
@@ -31,7 +31,7 @@ rot_to_local_rect(int dir, const double *tau1, const double *tau2, const double 
 }
 
 static inline void
-rot_to_global_rect(int dir, const double *tau1, const double *tau2, const double *norm,
+rot_to_global(const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
 {
   // Mass density and energy are scalars
@@ -47,7 +47,7 @@ rot_to_global_rect(int dir, const double *tau1, const double *tau2, const double
 // Waves and speeds using Roe averaging
 static double
 wave_roe(const struct gkyl_wv_eqn *eqn, 
-  int dir, const double *delta, const double *ql, const double *qr, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
   const struct wv_sr_euler *sr_euler = container_of(eqn, struct wv_sr_euler, eqn);
   double vl[5], vr[5];
@@ -125,7 +125,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
 
 static void
 qfluct_roe(const struct gkyl_wv_eqn *eqn, 
-  int dir, const double *ql, const double *qr, const double *waves, const double *s,
+  const double *ql, const double *qr, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
   const double *w0 = &waves[0], *w1 = &waves[5], *w2 = &waves[10];
@@ -139,7 +139,7 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn,
 }
 
 static double
-max_speed(const struct gkyl_wv_eqn *eqn, int dir, const double *q)
+max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   const struct wv_sr_euler *sr_euler = container_of(eqn, struct wv_sr_euler, eqn);
   return gkyl_sr_euler_max_abs_speed(sr_euler->gas_gamma, q);
@@ -157,8 +157,8 @@ gkyl_wv_sr_euler_new(double gas_gamma)
   sr_euler->eqn.waves_func = wave_roe;
   sr_euler->eqn.qfluct_func = qfluct_roe;
   sr_euler->eqn.max_speed_func = max_speed;
-  sr_euler->eqn.rotate_to_local_func = rot_to_local_rect;
-  sr_euler->eqn.rotate_to_global_func = rot_to_global_rect;
+  sr_euler->eqn.rotate_to_local_func = rot_to_local;
+  sr_euler->eqn.rotate_to_global_func = rot_to_global;
 
   sr_euler->eqn.ref_count = (struct gkyl_ref_count) { sr_euler_free, 1 };
 

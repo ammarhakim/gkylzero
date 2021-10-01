@@ -256,30 +256,26 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
         const double *qinl = gkyl_array_cfetch(qin, lidx);
         const double *qinr = gkyl_array_cfetch(qin, ridx);
 
-        wv->equation->rotate_to_local_func(
-          dir, cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qinl, ql_local
-        );
+        wv->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qinl, ql_local);
         
-        wv->equation->rotate_to_local_func(
-          dir, cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qinr, qr_local
-        );
+        wv->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qinr, qr_local);
 
         calc_jump(meqn, ql_local, qr_local, delta);
         double *s = gkyl_array_fetch(wv->speeds, sidx);
-        gkyl_wv_eqn_waves(wv->equation, dir, delta, ql_local, qr_local, waves_local, s);
+        gkyl_wv_eqn_waves(wv->equation, delta, ql_local, qr_local, waves_local, s);
 
         double lenr = cg->lenr[dir];
         double *waves = gkyl_array_fetch(wv->waves, sidx);
         for (int mw=0; mw<mwaves; ++mw) {
           // rotate waves back
           wv->equation->rotate_to_global_func(
-            dir, cg->tau1[dir], cg->tau2[dir], cg->norm[dir], &waves_local[mw*meqn], &waves[mw*meqn]
+            cg->tau1[dir], cg->tau2[dir], cg->norm[dir], &waves_local[mw*meqn], &waves[mw*meqn]
           );
 
           s[mw] *= lenr; // rescale speeds
         }
         
-        gkyl_wv_eqn_qfluct(wv->equation, dir, qinl, qinr, waves, s, amdq, apdq);
+        gkyl_wv_eqn_qfluct(wv->equation, qinl, qinr, waves, s, amdq, apdq);
 
         double *qoutl = gkyl_array_fetch(qout, lidx);
         double *qoutr = gkyl_array_fetch(qout, ridx);
@@ -365,7 +361,8 @@ gkyl_wave_prop_max_dt(const gkyl_wave_prop *wv, const struct gkyl_range *update_
       double dx = wv->grid.dx[dir];
 
       const double *q = gkyl_array_cfetch(qin, gkyl_range_idx(update_range, iter.idx));
-      double maxs = gkyl_wv_eqn_max_speed(wv->equation, dir, q);
+      // TODO NEED TO ROTATE!!
+      double maxs = gkyl_wv_eqn_max_speed(wv->equation, q);
       max_dt = fmin(max_dt, wv->cfl*dx/maxs);
     }
     

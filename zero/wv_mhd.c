@@ -22,7 +22,7 @@ enum { DIVB_NONE, DIVB_EIGHT_WAVES, DIVB_GLM };
 #define sq(x) ((x)*(x))
 
 static inline void
-rot_to_local_rect(int dir, const double *tau1, const double *tau2, const double *norm,
+rot_to_local_rect(const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
 {
   // Mass density is a scalar
@@ -40,7 +40,7 @@ rot_to_local_rect(int dir, const double *tau1, const double *tau2, const double 
 }
 
 static inline void
-rot_to_global_rect(int dir, const double *tau1, const double *tau2, const double *norm,
+rot_to_global_rect(const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
 {
   // Mass density is a scalar
@@ -58,18 +58,18 @@ rot_to_global_rect(int dir, const double *tau1, const double *tau2, const double
 }
 
 static inline void
-rot_to_local_rect_glm(int dir, const double *tau1, const double *tau2, const double *norm,
+rot_to_local_rect_glm(const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
 {
-  rot_to_local_rect(dir, tau1, tau2, norm, qglobal, qlocal);
+  rot_to_local_rect(tau1, tau2, norm, qglobal, qlocal);
   qlocal[8] = qglobal[8];
 }
 
 static inline void
-rot_to_global_rect_glm(int dir, const double *tau1, const double *tau2, const double *norm,
+rot_to_global_rect_glm(const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
 {
-  rot_to_global_rect(dir, tau1, tau2, norm, qlocal, qglobal);
+  rot_to_global_rect(tau1, tau2, norm, qlocal, qglobal);
   qglobal[8] = qlocal[8];
 }
 
@@ -91,7 +91,7 @@ mhd_free(const struct gkyl_ref_count *ref)
 // Computing waves and waves speeds from Roe linearization.
 // Following Cargo & Gallice 1997 section 4.2.
 static double
-wave_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *dQ,
+wave_roe(const struct gkyl_wv_eqn *eqn, const double *dQ,
   const double *ql, const double *qr, double *waves, double *ev)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
@@ -362,7 +362,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *dQ,
 }
 
 static void
-qfluct_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *ql,
+qfluct_roe(const struct gkyl_wv_eqn *eqn, const double *ql,
   const double *qr, const double *waves, const double *s, double *amdq,
   double *apdq)
 {
@@ -378,7 +378,7 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn, int dir, const double *ql,
 }
 
 static double
-max_speed(const struct gkyl_wv_eqn *eqn, int dir, const double *q)
+max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   return gkyl_mhd_max_abs_speed(mhd->gas_gamma, q);
@@ -397,19 +397,19 @@ gkyl_wv_mhd_new(double gas_gamma, const char *divergence_constraint)
   mhd->eqn.rotate_to_local_func = rot_to_local_rect;
   mhd->eqn.rotate_to_global_func = rot_to_global_rect;
 
-  if (strcmp(divergence_constraint, "none")==0)
+  if (strcmp(divergence_constraint, "none") == 0)
   {
     mhd->divergence_constraint = DIVB_NONE;
     mhd->eqn.num_equations = 8;
     mhd->eqn.num_waves = 7;
   }
-  else if (strcmp(divergence_constraint, "eight_waves")==0)
+  else if (strcmp(divergence_constraint, "eight_waves") == 0)
   {
     mhd->divergence_constraint = DIVB_EIGHT_WAVES;
     mhd->eqn.num_equations = 8;
     mhd->eqn.num_waves = 7;  // will merge the entropy wave and divB wave
   }
-  else if (strcmp(divergence_constraint, "glm")==0)
+  else if (strcmp(divergence_constraint, "glm") == 0)
   {
     mhd->divergence_constraint = DIVB_GLM;
     mhd->eqn.num_equations = 9;

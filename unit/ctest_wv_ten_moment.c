@@ -98,9 +98,9 @@ test_ten_moment_basic()
 
   double q_local[10], flux_local[10], flux[10];
   for (int d=0; d<3; ++d) {
-    ten_moment->rotate_to_local_func(d, tau1[d], tau2[d], norm[d], q, q_local);
+    ten_moment->rotate_to_local_func(tau1[d], tau2[d], norm[d], q, q_local);
     gkyl_ten_moment_flux(q_local, flux_local);
-    ten_moment->rotate_to_global_func(d, tau1[d], tau2[d], norm[d], flux_local, flux);
+    ten_moment->rotate_to_global_func(tau1[d], tau2[d], norm[d], flux_local, flux);
     
     for (int m=0; m<10; ++m)
       TEST_CHECK( gkyl_compare(flux[m], fluxes[d][m], 1e-15) );
@@ -108,8 +108,8 @@ test_ten_moment_basic()
 
   double q_l[10], q_g[10];
   for (int d=0; d<3; ++d) {
-    gkyl_wv_eqn_rotate_to_local(ten_moment, d, tau1[d], tau2[d], norm[d], q, q_l);
-    gkyl_wv_eqn_rotate_to_global(ten_moment, d, tau1[d], tau2[d], norm[d], q_l, q_g);
+    gkyl_wv_eqn_rotate_to_local(ten_moment, tau1[d], tau2[d], norm[d], q, q_l);
+    gkyl_wv_eqn_rotate_to_global(ten_moment, tau1[d], tau2[d], norm[d], q_l, q_g);
 
     for (int m=0; m<10; ++m) TEST_CHECK( q[m] == q_g[m] );
   }
@@ -150,20 +150,20 @@ test_ten_moment_waves()
   for (int d=0; d<3; ++d) {
     double speeds[5], waves[5*10], waves_local[5*10];
     // rotate to local tangent-normal frame
-    gkyl_wv_eqn_rotate_to_local(ten_moment, d, tau1[d], tau2[d], norm[d], ql, ql_local);
-    gkyl_wv_eqn_rotate_to_local(ten_moment, d, tau1[d], tau2[d], norm[d], qr, qr_local);
+    gkyl_wv_eqn_rotate_to_local(ten_moment, tau1[d], tau2[d], norm[d], ql, ql_local);
+    gkyl_wv_eqn_rotate_to_local(ten_moment, tau1[d], tau2[d], norm[d], qr, qr_local);
 
     double delta[10];
     for (int i=0; i<10; ++i) delta[i] = qr_local[i]-ql_local[i];
     
-    gkyl_wv_eqn_waves(ten_moment, d, delta, ql_local, qr_local, waves_local, speeds);
+    gkyl_wv_eqn_waves(ten_moment, delta, ql_local, qr_local, waves_local, speeds);
 
     // rotate waves back to global frame
     for (int mw=0; mw<5; ++mw)
-      gkyl_wv_eqn_rotate_to_global(ten_moment, d, tau1[d], tau2[d], norm[d], &waves_local[mw*10], &waves[mw*10]);
+      gkyl_wv_eqn_rotate_to_global(ten_moment, tau1[d], tau2[d], norm[d], &waves_local[mw*10], &waves[mw*10]);
 
     double apdq[10], amdq[10];
-    gkyl_wv_eqn_qfluct(ten_moment, d, ql, qr, waves, speeds, amdq, apdq);
+    gkyl_wv_eqn_qfluct(ten_moment, ql, qr, waves, speeds, amdq, apdq);
     
     // check if sum of left/right going fluctuations sum to jump in flux
     double fl_local[10], fr_local[10];
@@ -171,8 +171,8 @@ test_ten_moment_waves()
     gkyl_ten_moment_flux(qr_local, fr_local);
 
     double fl[10], fr[10];
-    gkyl_wv_eqn_rotate_to_global(ten_moment, d, tau1[d], tau2[d], norm[d], fl_local, fl);
-    gkyl_wv_eqn_rotate_to_global(ten_moment, d, tau1[d], tau2[d], norm[d], fr_local, fr);
+    gkyl_wv_eqn_rotate_to_global(ten_moment, tau1[d], tau2[d], norm[d], fl_local, fl);
+    gkyl_wv_eqn_rotate_to_global(ten_moment, tau1[d], tau2[d], norm[d], fr_local, fr);
     
     for (int i=0; i<10; ++i)
       TEST_CHECK( gkyl_compare(fr[i]-fl[i], amdq[i]+apdq[i], 1e-14) );
