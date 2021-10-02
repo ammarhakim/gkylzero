@@ -105,7 +105,6 @@ main(int argc, char **argv)
   struct gkyl_moment_species elc = {
     .name = "elc",
     .charge = -1.0, .mass = 1.0/25.0,
-    .k0 = 5.0,
     .equation = elc_ten_moment,
     .evolve = 1,
     .init = evalElcInit,
@@ -115,7 +114,6 @@ main(int argc, char **argv)
   struct gkyl_moment_species ion = {
     .name = "ion",
     .charge = 1.0, .mass = 1.0,
-    .k0 = 5.0,
     .equation = ion_ten_moment,
     .evolve = 1,
     .init = evalIonInit,

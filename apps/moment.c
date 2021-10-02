@@ -17,7 +17,9 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 #include <gkyl_wave_prop.h>
+#include <gkyl_wv_euler.h>
 #include <gkyl_wv_maxwell.h>
+#include <gkyl_wv_ten_moment.h>
 
 // ranges for use in BCs
 struct skin_ghost_ranges {
@@ -249,13 +251,13 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   strcpy(sp->name, mom_sp->name);
   sp->charge = mom_sp->charge;
   sp->mass = mom_sp->mass;
-  // set closure parameter (default is 0.0, used by 10 moment)
-  sp->k0 = mom_sp->k0 == 0 ? 0.0 : mom_sp->k0;
   sp->ctx = mom_sp->ctx;
   sp->init = mom_sp->init;
 
   sp->eqn_type = mom_sp->equation->type;
   sp->num_equations = mom_sp->equation->num_equations;
+  // closure parameter, used by 10 moment
+  sp->k0 = mom_sp->equation->type == GKYL_EQN_TEN_MOMENT ? gkyl_wv_ten_moment_k0(mom_sp->equation) : 0.0;
 
   // choose default limiter
   enum gkyl_wave_limiter limiter =
