@@ -23,6 +23,7 @@ static void mulByPhiPrime(double p0, double u1, double u2, double u3, const doub
 
 struct wv_ten_moment {
   struct gkyl_wv_eqn eqn; // base object
+  double k0; // closure parameter
 };
 
 static void
@@ -295,9 +296,11 @@ max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_ten_moment_new()
+gkyl_wv_ten_moment_new(double k0)
 {
   struct wv_ten_moment *ten_moment = gkyl_malloc(sizeof(struct wv_ten_moment));
+
+  ten_moment->k0 = k0;
 
   ten_moment->eqn.type = GKYL_EQN_TEN_MOMENT;
   ten_moment->eqn.num_equations = 10;
@@ -311,4 +314,11 @@ gkyl_wv_ten_moment_new()
   ten_moment->eqn.ref_count = (struct gkyl_ref_count) { ten_moment_free, 1 };
 
   return &ten_moment->eqn;
+}
+
+double
+gkyl_wv_ten_moment_k0(const struct gkyl_wv_eqn* eqn)
+{
+  const struct wv_ten_moment *tm = container_of(eqn, struct wv_ten_moment, eqn);
+  return tm->k0;
 }

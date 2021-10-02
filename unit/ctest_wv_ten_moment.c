@@ -41,7 +41,7 @@ calcq(const double pv[10], double q[10])
 void
 test_ten_moment_basic()
 {
-  struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new();
+  struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new(0.0);
 
   TEST_CHECK( ten_moment->num_equations == 10 );
   TEST_CHECK( ten_moment->num_waves == 5 );
@@ -120,7 +120,7 @@ test_ten_moment_basic()
 void
 test_ten_moment_waves()
 {
-  struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new();
+  struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new(0.0);
 
   double vl[10] = { 1.0, 0.1, 0.2, 0.3, 0.5, 0.0, 0.0, 1.0, 0.0, 1.5};
   double vr[10] = { 0.1, 1.0, 2.0, 3.0, 0.1, 0.0, 0.0, 0.2, 0.0, 0.3};

@@ -252,8 +252,8 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
   // electron/ion equations
-  struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new();
-  struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new();
+  struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new(1.0);
+  struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new(0.1);
 
   struct gkyl_moment_species elc = {
     .name = "elc",
