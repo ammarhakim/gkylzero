@@ -18,6 +18,17 @@ static struct { void (*ev[4])(const double *z, double *b); } ev_list[] = {
   { eval_6d_ser_p0, eval_6d_ser_p1, NULL, NULL },
 };
 
+// Expansion eval for each dimension: eve_list[ndim].ev[poly_order]
+static struct { void (*ev[4])(const double *z, double *b); } eve_list[] = {
+  { NULL, NULL, NULL, NULL }, // No 0D basis functions
+  { eval_expand_1d_ser_p0, eval_expand_1d_ser_p1, eval_expand_1d_ser_p2, eval_expand_1d_ser_p3 },
+  { eval_expand_2d_ser_p0, eval_expand_2d_ser_p1, eval_expand_2d_tensor_p2, NULL },
+  { eval_expand_3d_ser_p0, eval_expand_3d_ser_p1, eval_expand_3d_tensor_p2, NULL },
+  { eval_expand_4d_ser_p0, eval_expand_4d_ser_p1, eval_expand_4d_tensor_p2, NULL },
+  { eval_expand_5d_ser_p0, eval_expand_5d_ser_p1, eval_expand_5d_tensor_p2, NULL },
+  { eval_expand_6d_ser_p0, eval_expand_6d_ser_p1, NULL, NULL },
+};
+
 // Flip-sign functions: ev_list[ndim].ev[poly_order]
 static struct { void (*fs[4])(int dir, const double *f, double *fout); } fs_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
@@ -63,6 +74,7 @@ gkyl_cart_modal_tensor(struct gkyl_basis *basis, int ndim, int poly_order)
   strcpy(basis->id, "tensor");
   basis->b_type = GKYL_BASIS_MODAL_TENSOR;
   basis->eval = ev_list[ndim].ev[poly_order];
+  basis->eval_expand = eve_list[ndim].ev[poly_order];
   basis->flip_sign = fs_list[ndim].fs[poly_order];
   basis->node_list = nl_list[ndim].nl[poly_order];
   basis->nodal_to_modal = n2m_list[ndim].n2m[poly_order];
