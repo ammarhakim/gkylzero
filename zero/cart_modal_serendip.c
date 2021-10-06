@@ -27,6 +27,17 @@ static struct { double (*ev[4])(const double *z, const double *f); } eve_list[] 
   { eval_expand_6d_ser_p0, eval_expand_6d_ser_p1, NULL, NULL },
 };
 
+// Expansion eval_grad for each dimension: eveg_list[ndim].ev[poly_order]
+static struct { double (*ev[4])(int dir, const double *z, const double *f); } eveg_list[] = {
+  { NULL, NULL, NULL, NULL }, // No 0D basis functions
+  { eval_grad_expand_1d_ser_p0, eval_grad_expand_1d_ser_p1, eval_grad_expand_1d_ser_p2, eval_grad_expand_1d_ser_p3 },
+  { eval_grad_expand_2d_ser_p0, eval_grad_expand_2d_ser_p1, eval_grad_expand_2d_ser_p2, eval_grad_expand_2d_ser_p3 },
+  { eval_grad_expand_3d_ser_p0, eval_grad_expand_3d_ser_p1, eval_grad_expand_3d_ser_p2, eval_grad_expand_3d_ser_p3 },
+  { eval_grad_expand_4d_ser_p0, eval_grad_expand_4d_ser_p1, eval_grad_expand_4d_ser_p2, eval_grad_expand_4d_ser_p3 },
+  { eval_grad_expand_5d_ser_p0, eval_grad_expand_5d_ser_p1, eval_grad_expand_5d_ser_p2, NULL },
+  { eval_grad_expand_6d_ser_p0, eval_grad_expand_6d_ser_p1, NULL, NULL },
+};
+
 // Flip-sign functions: ev_list[ndim].ev[poly_order]
 static struct { void (*fs[4])(int dir, const double *f, double *fout); } fs_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
@@ -82,8 +93,11 @@ gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim, int poly_order)
   basis->num_basis = num_basis_list[ndim].count[poly_order];
   strcpy(basis->id, "serendipity");
   basis->b_type = GKYL_BASIS_MODAL_SERENDIPITY;
+
+  // function pointers
   basis->eval = ev_list[ndim].ev[poly_order];
   basis->eval_expand = eve_list[ndim].ev[poly_order];
+  basis->eval_grad_expand = eveg_list[ndim].ev[poly_order];
   basis->flip_sign = fs_list[ndim].fs[poly_order];
   basis->node_list = nl_list[ndim].nl[poly_order];
   basis->nodal_to_modal = n2m_list[ndim].n2m[poly_order];

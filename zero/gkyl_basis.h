@@ -33,6 +33,17 @@ struct gkyl_basis {
   double (*eval_expand)(const double *z, const double *f);
 
 /**
+ * Evaluate gradient, given expansion at point in the logical cell
+ * (hypercube)
+ *
+ * @param dir Direction to compute gradient
+ * @param z Location to evaluate exansion. z \in [-1,1]^n
+ * @param f Expansion coefficients
+ * @return Expansion evaluated at z
+ */
+  double (*eval_grad_expand)(int dir, const double *z, const double *f);
+
+/**
  * Flip-sign function: changes signs of input expansion cofficients by
  * changing monomial terms in specified direction.
  *
