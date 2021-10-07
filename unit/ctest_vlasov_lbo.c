@@ -13,27 +13,23 @@
 #include <gkyl_array_rio.h>
 #include <math.h>
 
-static inline double sq(double x) { return x*x; }
-
-void evalFunc(double t, const double *xn, double* restrict fout, void *ctx)
+// allocate array (filled with zeros)
+static struct gkyl_array*
+mkarr(long nc, long size)
 {
-  double x = xn[0], vx = xn[1];
-  if(vx>-1.0 && vx<1.0) {
-    fout[0] = 1.0;
-  } else {
-    fout[0] = 0.0;
-  }
+  struct gkyl_array* a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  return a;
 }
 
 void
-test_1x1v_p2()
+test_1x2v_p2()
 {
   int poly_order = 2;
-  double lower[] = {0.0, -4.0}, upper[] = {1.0, 4.0};
-  int cells[] = {4, 24};
-  int ghost[] = {0, 0};
+  double lower[] = {0., 0., 0.}, upper[] = {1., 1., 1.};
+  int cells[] = {4, 4, 4};
+  int ghost[] = {0, 0, 0};
   int pdim = sizeof(lower)/sizeof(lower[0]);
-  int vdim = 1, cdim = 1;
+  int vdim = 2, cdim = 1;
 
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -50,89 +46,106 @@ test_1x1v_p2()
   gkyl_cart_modal_serendip(&basis, pdim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  // projection updater for dist-function
-  gkyl_proj_on_basis *projDist = gkyl_proj_on_basis_new(&phaseGrid, &basis, poly_order+1, 1, evalFunc, NULL);
-
-  // create array range: no ghost-cells in velocity space
-  struct gkyl_range arr_range;
-  gkyl_range_init_from_shape(&arr_range, pdim, cells);
-
-  // create distribution function
-  //struct gkyl_array *dist = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, phaseRange.volume);
-  struct gkyl_array *dist = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
-
-  // project distribution function on basis
-  gkyl_proj_on_basis_advance(projDist, 0.0, &arr_range, dist);
-
-  int up_dirs[] = {1};
-  int zero_flux_flags[] = {1};
-
+  // initialize eqn
   struct gkyl_dg_eqn *eqn;
-  gkyl_hyper_dg *slvr;
-
   eqn = gkyl_dg_vlasov_lbo_new(&confBasis, &basis, &confRange);
-  slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, vdim, up_dirs, zero_flux_flags, 1);
 
-  double nuSum = 1.0;
-  double nuUSum[vdim*confBasis.num_basis];
-  double nuVtSqSum[vdim*confBasis.num_basis];
-  
-  int nnu = vdim*confBasis.num_basis;
-  for(int i=0; i< nnu; i++) {
-   nuUSum[i] = 0.0;
-   if (i==0) {nuVtSqSum[i] = 1.0;} else {nuVtSqSum[i] = 0.0;}
-  }
+  // initialize hyper_dg slvr
+  int up_dirs[] = {0, 1, 2};
+  int zero_flux_flags[] = {0, 1, 1};
 
-  struct gkyl_array *cflrate, *rhs, *fIn;
+  gkyl_hyper_dg *slvr;
+  slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1);
+
+  struct gkyl_array *cflrate, *rhs, *fin, *nuSum, *nuUSum, *nuVtSqSum;
   double *cfl_ptr;
-  cflrate = gkyl_array_new(GKYL_DOUBLE, 1, phaseRange_ext.volume);
-  rhs = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, phaseRange_ext.volume);
-  fIn = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, phaseRange_ext.volume);
-  gkyl_array_copy_range(fIn, dist, phaseRange);
+  cflrate = mkarr(1, phaseRange_ext.volume);
+  rhs = mkarr(basis.num_basis, phaseRange_ext.volume);
+  fin = mkarr(basis.num_basis, phaseRange_ext.volume);
+  nuSum = mkarr(confBasis.num_basis, confRange_ext.volume);
+  nuUSum = mkarr(vdim*confBasis.num_basis, confRange_ext.volume);
+  nuVtSqSum = mkarr(confBasis.num_basis, confRange_ext.volume);
+  
   cfl_ptr = gkyl_malloc(sizeof(double));
 
-  // Write the initial distribution array to file.
-  const char *fmt = "%s-%s_%d.gkyl";
-  char name[] = "vlasov_lbo_distf";
-  char momName[] = "elc";
-  int frame = 0;
-  int sz = snprintf(0, 0, fmt, name, momName, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, name, momName, frame);
-  gkyl_grid_sub_array_write(&phaseGrid, &phaseRange, dist, fileNm);
+  // set initial condition
+  int nf = phaseRange_ext.volume;
+  double *fin_d;
+  fin_d = fin->data;
+  for(int i=0; i<nf; i++) {
+    for(int j=0; j<basis.num_basis; j++) {
+      fin_d[i*basis.num_basis + j] = (double)(2*i+(11 + j)% nf) / nf  * ((i%2 == 0) ? 1 : -1);
+      //printf("Values: %d, %d, \%f\n", nf, i, fin_d[i*basis.num_basis + j]);
+    }
+  }
+
+  int nem = confRange_ext.volume*confBasis.num_basis;
+  gkyl_array_clear(nuSum, 1.0);
+  gkyl_array_clear(nuUSum, 0.0);
+  gkyl_array_clear(nuVtSqSum, 0.0);
+  //double *nuUSum_d;
+  //double *nuVtSqSum_d;
+  //nuUSum_d = nuUSum->data;
+  //nuVtSqSum_d = nuVtSqSum->data;
+  //for(int i=0; i< nem; i++) {
+    //nuUSum_d[i] = (double)(i+27 % nem) / nem;
+    //}
+  //for(int i=0; i< vdim*nem; i++) {
+    //nuVtSqSum_d[i] = (double)(i+27 % nem) / nem;
+    //}
 
   // run hyper_dg_advance
-  int nrep = 1;
+  int nrep = 10;
   for(int n=0; n<nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
-    //gkyl_vlasov_lbo_set_nuSum(eqn, nuSum);
-    //gkyl_vlasov_lbo_set_nuUSum(eqn, nuUSum);
-    //gkyl_vlasov_lbo_set_nuVtSqSum(eqn, nuVtSqSum);
-    gkyl_hyper_dg_advance(slvr, phaseRange, dist, cflrate, rhs);
+    gkyl_vlasov_lbo_set_nuSum(eqn, nuSum);
+    gkyl_vlasov_lbo_set_nuUSum(eqn, nuUSum);
+    gkyl_vlasov_lbo_set_nuVtSqSum(eqn, nuVtSqSum);
+    gkyl_hyper_dg_advance(slvr, phaseRange, fin, cflrate, rhs);
+
     gkyl_array_reduce(cfl_ptr, cflrate, GKYL_MAX);
-    gkyl_array_copy_range(fIn, rhs, phaseRange);
   }
 
-  // Write the final distribution array to file.
-  frame = 1;
-  sz = snprintf(0, 0, fmt, name, momName, frame);
-  fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, name, momName, frame);
-  gkyl_grid_sub_array_write(&phaseGrid, &phaseRange, rhs, fileNm);
+  printf("CFL: %f\n", cfl_ptr[0]);
+  //TEST_CHECK( gkyl_compare_double(cfl_ptr[0], 2.5178875733842702e+01, 1e-12) );
+
+  // get linear index of first non-ghost cell
+  int idx[] = {0, 0, 0, 0, 0};
+  int linl = gkyl_range_idx(&phaseRange, idx);
+
+  // check that ghost cells are empty
+  double val = 0;
+  double *rhs_d;
+  int i = 0;
+  while(val==0) {
+    rhs_d = gkyl_array_fetch(rhs, i);
+    val = rhs_d[0];
+    if(val==0) i++;
+    }
+  TEST_CHECK(i == linl);
+
+  // get linear index of some other cell
+  int idx2[] = {5, 2, 4};
+  int linl2 = gkyl_range_idx(&phaseRange, idx2);
+  rhs_d = gkyl_array_fetch(rhs, linl2);
+  for(int i=0; i<basis.num_basis; i++) {
+    printf("[%d, %d, %d, %d] = %f\n", 1, 2, 2, i, rhs_d[i]);
+  }
 
   // release memory for moment data object
-  gkyl_free(cfl_ptr);
-  gkyl_proj_on_basis_release(projDist);
-  gkyl_array_release(dist);
+  //gkyl_free(cfl_ptr);
   gkyl_array_release(rhs);
   gkyl_array_release(cflrate);
-  gkyl_array_release(fIn);
+  gkyl_array_release(fin);
+  gkyl_array_release(nuSum);
+  gkyl_array_release(nuUSum);
+  gkyl_array_release(nuVtSqSum);
   gkyl_dg_eqn_release(eqn);
   gkyl_hyper_dg_release(slvr);
 }
 
 TEST_LIST = {
-  { "test_1x1v_p2", test_1x1v_p2 },
+  { "test_1x2v_p2", test_1x2v_p2 },
   { NULL, NULL },
 };
