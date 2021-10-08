@@ -121,16 +121,6 @@ test_1x1v_p2()
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
 
-  // Write the initial distribution array to file.
-  const char *fmt = "%s-%s_%d.gkyl";
-  char name[] = "bcorr_1x1v";
-  char momName[] = "distf";
-  int frame = 0;
-  int sz = snprintf(0, 0, fmt, name, momName, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, name, momName, frame);
-  gkyl_grid_sub_array_write(&grid, &local, distf, fileNm);
-
   struct gkyl_mom_type *F = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "f");
   struct gkyl_mom_type *VF = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "vf");
   gkyl_lbo_mom_set_atLower(F, v_edge_idx);
@@ -146,45 +136,30 @@ test_1x1v_p2()
   f = mkarr(2*confBasis.num_basis, confLocal_ext.volume);
   vf = mkarr(2*confBasis.num_basis, confLocal_ext.volume);
 
-  // compute the moments
+  // compute the moment corrections
   gkyl_mom_bcorr_advance(fcalc, local, confLocal, distf, f);
   gkyl_mom_bcorr_advance(vFcalc, local, confLocal, distf, vf);
-
-   // Write the initial distribution array to file.
-  char momName1[] = "f";
-  sz = snprintf(0, 0, fmt, name, momName1, frame);
-  fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, name, momName1, frame);
-  gkyl_grid_sub_array_write(&grid, &local, f, fileNm);
-
-  // Write the initial distribution array to file.
-  char momName2[] = "vf";
-  sz = snprintf(0, 0, fmt, name, momName2, frame);
-  fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, name, momName2, frame);
-  gkyl_grid_sub_array_write(&grid, &local, vf, fileNm);
  
-  // Check M0.
+  // Check f correction.
   for (unsigned int i=0; i<cells[0]; ++i) {
     int cidx[] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *fptr = gkyl_array_fetch(f, linc);
-    TEST_CHECK( gkyl_compare( 0.07635960492981765, fptr[0], 1e-12) );
-    for (unsigned int k=1; k<confBasis.num_basis; ++k) {
+    for (unsigned int k=0; k<confBasis.num_basis; ++k) {
       TEST_CHECK( gkyl_compare( 0., fptr[k], 1e-12) );
   }}
 
-  // Check M1i.
+  // Check vF correction.
   for (unsigned int i=0; i<cells[0]; ++i) {
     int cidx[] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *vfptr = gkyl_array_fetch(vf, linc);
-    TEST_CHECK( gkyl_compare( 0.1527192098596353, vfptr[0], 1e-12) );
+    TEST_CHECK( gkyl_compare( 0.30543841971927, vfptr[0], 1e-12) );
     for (unsigned int k=1; k<vf->ncomp; ++k) {
       TEST_CHECK( gkyl_compare( 0., vfptr[k], 1e-12) );
   }}
 
-  // release memory for moment data object
+  // release memory for objects
   gkyl_array_release(f); gkyl_array_release(vf);
   gkyl_mom_bcorr_release(fcalc); gkyl_mom_bcorr_release(vFcalc);
   gkyl_mom_type_release(F); gkyl_mom_type_release(VF);
@@ -242,16 +217,6 @@ test_1x2v_p2()
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
 
-  // Write the initial distribution array to file.
-  const char *fmt = "%s-%s_%d.gkyl";
-  char name[] = "bcorr_1x2v";
-  char momName[] = "distf";
-  int frame = 0;
-  int sz = snprintf(0, 0, fmt, name, momName, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, name, momName, frame);
-  gkyl_grid_sub_array_write(&grid, &local, distf, fileNm);
-
   struct gkyl_mom_type *F = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "f");
   struct gkyl_mom_type *VF = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "vf");
   gkyl_lbo_mom_set_atLower(F, v_edge_idx);
@@ -267,43 +232,29 @@ test_1x2v_p2()
   f = mkarr(2*confBasis.num_basis, confLocal_ext.volume);
   vf = mkarr(2*confBasis.num_basis, confLocal_ext.volume);
 
-  // compute the moments
+  // compute the moment corrections
   gkyl_mom_bcorr_advance(fcalc, local, confLocal, distf, f);
   gkyl_mom_bcorr_advance(vFcalc, local, confLocal, distf, vf);
-
-  // Write the initial distribution array to file.
-  char momName1[] = "f";
-  sz = snprintf(0, 0, fmt, name, momName1, frame);
-  fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, name, momName1, frame);
-  gkyl_grid_sub_array_write(&grid, &local, f, fileNm);
-
-  // Write the initial distribution array to file.
-  char momName2[] = "vf";
-  sz = snprintf(0, 0, fmt, name, momName2, frame);
-  fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, name, momName2, frame);
-  gkyl_grid_sub_array_write(&grid, &local, vf, fileNm);
  
-  // Check M0.
+  // Check f correction.
   for (unsigned int i=0; i<cells[0]; ++i) {
     int cidx[] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *fptr = gkyl_array_fetch(f, linc);
-    TEST_CHECK( gkyl_compare( 0.305438419719271, fptr[0], 1e-12) );
+    TEST_CHECK( gkyl_compare( 0.0, fptr[0], 1e-12) );
     TEST_CHECK( gkyl_compare( 0.0, fptr[1], 1e-12) );
     TEST_CHECK( gkyl_compare( 0.0, fptr[2], 1e-12) );
-    TEST_CHECK( gkyl_compare( 1.34986647204995, fptr[3], 1e-12) );
+    TEST_CHECK( gkyl_compare( 0.0, fptr[3], 1e-12) );
     TEST_CHECK( gkyl_compare( 0.0, fptr[4], 1e-12) );
     TEST_CHECK( gkyl_compare( 0.0, fptr[5], 1e-12) );
   }
 
-  // Check M1i.
+  // Check vF correction.
   for (unsigned int i=0; i<cells[0]; ++i) {
     int cidx[] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *vfptr = gkyl_array_fetch(vf, linc);
-    TEST_CHECK( gkyl_compare( 3.31060978353845, vfptr[0], 1e-12) );
+    TEST_CHECK( gkyl_compare( 6.62121956707690, vfptr[0], 1e-12) );
     TEST_CHECK( gkyl_compare( 0.0, vfptr[1], 1e-12) );
     TEST_CHECK( gkyl_compare( 0.0, vfptr[2], 1e-12) );
     TEST_CHECK( gkyl_compare( 0.0, vfptr[3], 1e-12) );
@@ -311,7 +262,7 @@ test_1x2v_p2()
     TEST_CHECK( gkyl_compare( 0.0, vfptr[5], 1e-12) );
     }
 
-  // release memory for moment data object
+  // release memory for objects
   gkyl_array_release(f); gkyl_array_release(vf);
   gkyl_mom_bcorr_release(fcalc); gkyl_mom_bcorr_release(vFcalc);
   gkyl_mom_type_release(F); gkyl_mom_type_release(VF);

@@ -39,11 +39,26 @@ gkyl_mom_bcorr_advance(gkyl_mom_bcorr *bcorr,
     for (int d=0; d<conf_rng.ndim; ++d) viter_idx[d] = conf_iter.idx[d];
     for (int d=0; d<phase_rng.ndim - conf_rng.ndim; ++d) {
       rem_dir[conf_rng.ndim + d] = 1;
+      // Loop over upper velocity space
       viter_idx[conf_rng.ndim + d] = phase_rng.upper[conf_rng.ndim + d];
       gkyl_range_deflate(&vel_rng, &phase_rng, rem_dir, viter_idx);
       gkyl_range_iter_no_split_init(&vel_iter, &vel_rng);
       while (gkyl_range_iter_next(&vel_iter)) {
+        copy_idx_arrays(conf_rng.ndim, phase_rng.ndim, conf_iter.idx, vel_iter.idx, pidx);
+	pidx[phase_rng.ndim-1] = viter_idx[conf_rng.ndim + d];
+	pidx[phase_rng.ndim] = d;
+        gkyl_rect_grid_cell_center(&bcorr->grid, pidx, xc);
       
+        long fidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
+        gkyl_mom_type_calc(bcorr->momt, xc, bcorr->grid.dx, pidx,
+          gkyl_array_cfetch(fIn, fidx), gkyl_array_fetch(out, midx)
+        );
+      }
+      // Loop over lower velocity space
+      viter_idx[conf_rng.ndim + d] = phase_rng.lower[conf_rng.ndim + d];
+      gkyl_range_deflate(&vel_rng, &phase_rng, rem_dir, viter_idx);
+      gkyl_range_iter_no_split_init(&vel_iter, &vel_rng);
+      while (gkyl_range_iter_next(&vel_iter)) {
         copy_idx_arrays(conf_rng.ndim, phase_rng.ndim, conf_iter.idx, vel_iter.idx, pidx);
 	pidx[phase_rng.ndim-1] = viter_idx[conf_rng.ndim + d];
 	pidx[phase_rng.ndim] = d;
