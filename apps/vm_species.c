@@ -96,8 +96,6 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->slvr = gkyl_hyper_dg_new(&s->grid, &app->basis, s->eqn,
       num_up_dirs, up_dirs, zero_flux_flags, 1);
 
-  // set collision frequency (default is 0.0)
-  s->nu = s->info.nu;
   // determine collision type to use in vlasov update
   s->collision_id = s->info.collision_id;
   if (s->collision_id == GKYL_LBO_COLLISIONS)
@@ -151,7 +149,6 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
       gkyl_mom_calc_advance(species->m2.mcalc, species->local, app->local, fin, species->m2.marr);
       // Construct the primitive moments
       // JUST SETTING ARRAYS FOR NOW
-      gkyl_array_clear(species->lbo.nu_sum, species->nu);
       gkyl_array_set(species->lbo.nu_u, species->nu, species->m1i.marr);
       gkyl_array_set(species->lbo.nu_vthsq, species->nu, species->m2.marr);
       // Set the arrays needed

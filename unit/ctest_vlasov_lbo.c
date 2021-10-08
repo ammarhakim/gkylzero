@@ -24,12 +24,14 @@ mkarr(long nc, long size)
 void
 test_1x2v_p2()
 {
-  int poly_order = 2;
-  double lower[] = {0., 0., 0.}, upper[] = {1., 1., 1.};
-  int cells[] = {4, 4, 4};
-  int ghost[] = {0, 0, 0};
-  int pdim = sizeof(lower)/sizeof(lower[0]);
-  int vdim = 2, cdim = 1;
+  // initialize grid and ranges
+  int cdim = 1, vdim = 2;
+  int pdim = cdim+vdim;
+
+  int cells[] = {24, 12, 12};
+  int ghost[] = {1, 0, 0};
+  double lower[] = {0., -1., -1.};
+  double upper[] = {1., 1., 1.};
 
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -41,8 +43,10 @@ test_1x2v_p2()
   gkyl_rect_grid_init(&phaseGrid, pdim, lower, upper, cells);
   gkyl_create_grid_ranges(&phaseGrid, ghost, &phaseRange_ext, &phaseRange);
 
-  // basis functions
-  struct gkyl_basis basis, confBasis;
+  // initialize basis
+  int poly_order = 2;
+  struct gkyl_basis basis, confBasis; // phase-space, conf-space basis
+
   gkyl_cart_modal_serendip(&basis, pdim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
@@ -51,11 +55,11 @@ test_1x2v_p2()
   eqn = gkyl_dg_vlasov_lbo_new(&confBasis, &basis, &confRange);
 
   // initialize hyper_dg slvr
-  int up_dirs[] = {0, 1, 2};
-  int zero_flux_flags[] = {0, 1, 1};
+  int up_dirs[] = {1, 2};
+  int zero_flux_flags[] = {1, 1};
 
   gkyl_hyper_dg *slvr;
-  slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1);
+  slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, vdim, up_dirs, zero_flux_flags, 1);
 
   struct gkyl_array *cflrate, *rhs, *fin, *nuSum, *nuUSum, *nuVtSqSum;
   double *cfl_ptr;
@@ -82,17 +86,7 @@ test_1x2v_p2()
   int nem = confRange_ext.volume*confBasis.num_basis;
   gkyl_array_clear(nuSum, 1.0);
   gkyl_array_clear(nuUSum, 0.0);
-  gkyl_array_clear(nuVtSqSum, 0.0);
-  //double *nuUSum_d;
-  //double *nuVtSqSum_d;
-  //nuUSum_d = nuUSum->data;
-  //nuVtSqSum_d = nuVtSqSum->data;
-  //for(int i=0; i< nem; i++) {
-    //nuUSum_d[i] = (double)(i+27 % nem) / nem;
-    //}
-  //for(int i=0; i< vdim*nem; i++) {
-    //nuVtSqSum_d[i] = (double)(i+27 % nem) / nem;
-    //}
+  gkyl_array_clear(nuVtSqSum, 1.0);
 
   // run hyper_dg_advance
   int nrep = 10;
