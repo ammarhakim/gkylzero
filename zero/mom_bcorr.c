@@ -25,7 +25,7 @@ gkyl_mom_bcorr_advance(gkyl_mom_bcorr *bcorr,
   struct gkyl_range vel_rng, vel_edge;
   struct gkyl_range_iter conf_iter, vel_iter;
   
-  int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
+  int pidx[GKYL_MAX_DIM], viter_idx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
   for (int d=0; d<conf_rng.ndim; ++d) rem_dir[d] = 1;
 
   gkyl_array_clear_range(out, 0.0, conf_rng);
@@ -36,23 +36,26 @@ gkyl_mom_bcorr_advance(gkyl_mom_bcorr *bcorr,
   gkyl_range_iter_init(&conf_iter, &conf_rng);
   while (gkyl_range_iter_next(&conf_iter)) {
     long midx = gkyl_range_idx(&conf_rng, conf_iter.idx);
-
-    gkyl_range_deflate(&vel_rng, &phase_rng, rem_dir, conf_iter.idx);
-    gkyl_sub_range_init(&vel_edge, &vel_rng, vel_rng.upper, vel_rng.upper);
-    gkyl_range_iter_no_split_init(&vel_iter, &vel_edge);
-
-    while (gkyl_range_iter_next(&vel_iter)) {
-      printf("Here!");
+    for (int d=0; d<conf_rng.ndim; ++d) viter_idx[d] = conf_iter.idx[d];
+    for (int d=0; d<phase_rng.ndim - conf_rng.ndim; ++d) {
+      rem_dir[conf_rng.ndim + d] = 1;
+      viter_idx[conf_rng.ndim + d] = phase_rng.upper[conf_rng.ndim + d];
+      gkyl_range_deflate(&vel_rng, &phase_rng, rem_dir, viter_idx);
+      gkyl_range_iter_no_split_init(&vel_iter, &vel_rng);
+      while (gkyl_range_iter_next(&vel_iter)) {
       
-      copy_idx_arrays(conf_rng.ndim, phase_rng.ndim, conf_iter.idx, vel_iter.idx, pidx);
-      gkyl_rect_grid_cell_center(&bcorr->grid, pidx, xc);
+        copy_idx_arrays(conf_rng.ndim, phase_rng.ndim, conf_iter.idx, vel_iter.idx, pidx);
+	pidx[phase_rng.ndim-1] = viter_idx[conf_rng.ndim + d];
+	pidx[phase_rng.ndim] = d;
+        gkyl_rect_grid_cell_center(&bcorr->grid, pidx, xc);
       
-      long fidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
-      printf("fidx: %ld:\n", fidx);
-
-      gkyl_mom_type_calc(bcorr->momt, xc, bcorr->grid.dx, pidx,
-        gkyl_array_cfetch(fIn, fidx), gkyl_array_fetch(out, midx)
-      );
+        long fidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
+        gkyl_mom_type_calc(bcorr->momt, xc, bcorr->grid.dx, pidx,
+          gkyl_array_cfetch(fIn, fidx), gkyl_array_fetch(out, midx)
+        );
+      }
+      rem_dir[conf_rng.ndim + d] = 0;
+      viter_idx[conf_rng.ndim + d] = 0;
     }
   }
 }

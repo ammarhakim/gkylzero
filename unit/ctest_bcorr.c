@@ -81,6 +81,9 @@ test_1x1v_p2()
   int ndim = sizeof(lower)/sizeof(lower[0]);
   int vdim = 1, cdim = 1;
 
+  double v_bounds[] = {lower[1], upper[1]};
+  int v_edge_idx[] = {cells[1]-1};
+
   double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
   int confCells[] = {cells[0]};
 
@@ -130,10 +133,10 @@ test_1x1v_p2()
 
   struct gkyl_mom_type *F = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "f");
   struct gkyl_mom_type *VF = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "vf");
-  gkyl_lbo_mom_set_atLower(F, false);
-  gkyl_lbo_mom_set_vBoundary(F, grid.upper[ndim-1]);
-  gkyl_lbo_mom_set_atLower(VF, false);
-  gkyl_lbo_mom_set_vBoundary(VF, grid.upper[ndim-1]);
+  gkyl_lbo_mom_set_atLower(F, v_edge_idx);
+  gkyl_lbo_mom_set_vBoundary(F, v_bounds);
+  gkyl_lbo_mom_set_atLower(VF, v_edge_idx);
+  gkyl_lbo_mom_set_vBoundary(VF, v_bounds);
   
   gkyl_mom_bcorr *fcalc = gkyl_mom_bcorr_new(&grid, F);
   gkyl_mom_bcorr *vFcalc = gkyl_mom_bcorr_new(&grid, VF);
@@ -199,6 +202,9 @@ test_1x2v_p2()
   int ndim = sizeof(lower)/sizeof(lower[0]);
   int vdim = 2, cdim = 1;
 
+  double v_bounds[] = {lower[1], lower[2], upper[1], upper[2]};
+  int v_edge_idx[] = {cells[1]-1, cells[2]-1};
+
   double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
   int confCells[] = {cells[0]};
 
@@ -248,10 +254,10 @@ test_1x2v_p2()
 
   struct gkyl_mom_type *F = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "f");
   struct gkyl_mom_type *VF = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "vf");
-  gkyl_lbo_mom_set_atLower(F, false);
-  gkyl_lbo_mom_set_vBoundary(F, grid.upper[ndim-1]);
-  gkyl_lbo_mom_set_atLower(VF, false);
-  gkyl_lbo_mom_set_vBoundary(VF, grid.upper[ndim-1]);
+  gkyl_lbo_mom_set_atLower(F, v_edge_idx);
+  gkyl_lbo_mom_set_vBoundary(F, v_bounds);
+  gkyl_lbo_mom_set_atLower(VF, v_edge_idx);
+  gkyl_lbo_mom_set_vBoundary(VF, v_bounds);
   
   gkyl_mom_bcorr *fcalc = gkyl_mom_bcorr_new(&grid, F);
   gkyl_mom_bcorr *vFcalc = gkyl_mom_bcorr_new(&grid, VF);
@@ -284,23 +290,26 @@ test_1x2v_p2()
     int cidx[] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *fptr = gkyl_array_fetch(f, linc);
-    TEST_CHECK( gkyl_compare( 0.07635960492981765, fptr[0], 1e-12) );
-    printf("Sol: %f", fptr[0]);
-    for (unsigned int k=1; k<2*confBasis.num_basis; ++k) {
-      printf("Sol: %f", fptr[k]);
-      TEST_CHECK( gkyl_compare( 0., fptr[k], 1e-12) );
-  }}
+    TEST_CHECK( gkyl_compare( 0.305438419719271, fptr[0], 1e-12) );
+    TEST_CHECK( gkyl_compare( 0.0, fptr[1], 1e-12) );
+    TEST_CHECK( gkyl_compare( 0.0, fptr[2], 1e-12) );
+    TEST_CHECK( gkyl_compare( 1.34986647204995, fptr[3], 1e-12) );
+    TEST_CHECK( gkyl_compare( 0.0, fptr[4], 1e-12) );
+    TEST_CHECK( gkyl_compare( 0.0, fptr[5], 1e-12) );
+  }
 
   // Check M1i.
   for (unsigned int i=0; i<cells[0]; ++i) {
     int cidx[] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *vfptr = gkyl_array_fetch(vf, linc);
-    TEST_CHECK( gkyl_compare( 0.1527192098596353, vfptr[0], 1e-12) );
-    printf("Sol: %f", vfptr[0]);
-    for (unsigned int k=1; k<vf->ncomp; ++k) {
-      TEST_CHECK( gkyl_compare( 0., vfptr[k], 1e-12) );
-  }}
+    TEST_CHECK( gkyl_compare( 3.31060978353845, vfptr[0], 1e-12) );
+    TEST_CHECK( gkyl_compare( 0.0, vfptr[1], 1e-12) );
+    TEST_CHECK( gkyl_compare( 0.0, vfptr[2], 1e-12) );
+    TEST_CHECK( gkyl_compare( 0.0, vfptr[3], 1e-12) );
+    TEST_CHECK( gkyl_compare( 0.0, vfptr[4], 1e-12) );
+    TEST_CHECK( gkyl_compare( 0.0, vfptr[5], 1e-12) );
+    }
 
   // release memory for moment data object
   gkyl_array_release(f); gkyl_array_release(vf);

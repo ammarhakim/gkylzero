@@ -16,18 +16,19 @@ mom_free(const struct gkyl_ref_count *ref)
 }
 
 void
-gkyl_lbo_mom_set_vBoundary(const struct gkyl_mom_type *momt, const double vBoundary)
+gkyl_lbo_mom_set_vBoundary(const struct gkyl_mom_type *momt, const double *vBoundary)
 {
   struct lbo_mom_type *mom_bcorr = container_of(momt, struct lbo_mom_type, momt);
   mom_bcorr->vBoundary = vBoundary;
 }
 
 void
-gkyl_lbo_mom_set_atLower(const struct gkyl_mom_type *momt, const bool atLower)
+gkyl_lbo_mom_set_atLower(const struct gkyl_mom_type *momt, const int *atLower)
 {
   struct lbo_mom_type *mom_bcorr = container_of(momt, struct lbo_mom_type, momt);
   mom_bcorr->atLower = atLower;
 }
+
 
 struct gkyl_mom_type*
 gkyl_vlasov_lbo_mom_new(const struct gkyl_basis* cbasis,

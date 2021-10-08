@@ -4,7 +4,7 @@
 
 #include <gkyl_vlasov_lbo_mom_kernels.h>
 
-typedef void (*lbo_momf_t)(const bool atLower, const double vBoundary,
+typedef void (*lbo_momf_t)(const int *idx, const int *atLower, const double *vBoundary,
   const double *dxv, const double *fIn, double* GKYL_RESTRICT out);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
@@ -61,8 +61,8 @@ struct lbo_mom_type {
   int num_mom; // number of components in moment
   lbo_momf_t kernel; // moment calculation kernel
   struct gkyl_ref_count ref_count; // reference count
-  double vBoundary;
-  bool atLower;
+  const double *vBoundary;
+  const int *atLower;
 };
 
 GKYL_CU_D
@@ -72,5 +72,5 @@ kernel(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
 {
   struct lbo_mom_type *mom_bcorr = container_of(momt, struct lbo_mom_type, momt);
 
-  return mom_bcorr->kernel(mom_bcorr->atLower, mom_bcorr->vBoundary, dx, f, out);
+  return mom_bcorr->kernel(idx, mom_bcorr->atLower, mom_bcorr->vBoundary, dx, f, out);
 }

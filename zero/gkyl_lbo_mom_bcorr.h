@@ -20,7 +20,7 @@ struct gkyl_mom_type* gkyl_vlasov_lbo_mom_new(const struct gkyl_basis* cbasis,
  * @param momt Moment type pointer
  * @param qmem Boundary value of v,
  */
-void gkyl_lbo_mom_set_vBoundary(const struct gkyl_mom_type *momt, const double vBoundary);
+void gkyl_lbo_mom_set_vBoundary(const struct gkyl_mom_type *momt, const double *vBoundary);
 
 /**
  * Set which boundary to evaluate.
@@ -28,4 +28,4 @@ void gkyl_lbo_mom_set_vBoundary(const struct gkyl_mom_type *momt, const double v
  * @param momt Moment type pointer
  * @param atLower True if evaluate at lower boundary, false if at upper,
  */
-void gkyl_lbo_mom_set_atLower(const struct gkyl_mom_type *momt, const bool atLower);
+void gkyl_lbo_mom_set_atLower(const struct gkyl_mom_type *momt, const int *atLower);
