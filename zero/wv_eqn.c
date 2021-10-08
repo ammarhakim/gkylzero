@@ -20,7 +20,7 @@ extern inline void gkyl_wv_eqn_rotate_to_global(const struct gkyl_wv_eqn *eqn,
   const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal);
 
 struct gkyl_wv_eqn*
-gkyl_wv_eqn_aquire(const struct gkyl_wv_eqn* eqn)
+gkyl_wv_eqn_acquire(const struct gkyl_wv_eqn* eqn)
 {
   gkyl_ref_count_inc(&eqn->ref_count);
   return (struct gkyl_wv_eqn*) eqn;

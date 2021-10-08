@@ -10,7 +10,7 @@ gkyl_mom_calc_new(const struct gkyl_rect_grid *grid,
 {
   gkyl_mom_calc *up = gkyl_malloc(sizeof(gkyl_mom_calc));
   up->grid = *grid;
-  up->momt = gkyl_mom_type_aquire(momt);
+  up->momt = gkyl_mom_type_acquire(momt);
   return up;
 }
 

@@ -20,11 +20,11 @@ struct gkyl_mom_type {
 };
 
 /**
- * Aquire pointer to moment object. Delete using the release() method
+ * Acquire pointer to moment object. Delete using the release() method
  *
  * @param momt Moment object.
  */
-struct gkyl_mom_type* gkyl_mom_type_aquire(const struct gkyl_mom_type* momt);
+struct gkyl_mom_type* gkyl_mom_type_acquire(const struct gkyl_mom_type* momt);
 
 /**
  * Delete moment object

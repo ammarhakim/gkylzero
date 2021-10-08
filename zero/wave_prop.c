@@ -87,7 +87,7 @@ gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp)
 
   up->limiter = winp.limiter;
   up->cfl = winp.cfl;
-  up->equation = gkyl_wv_eqn_aquire(winp.equation);
+  up->equation = gkyl_wv_eqn_acquire(winp.equation);
 
   int nghost[3] = { 2, 2, 2 };
   struct gkyl_range range, ext_range;

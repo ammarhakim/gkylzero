@@ -1,7 +1,7 @@
 #include <gkyl_mom_type.h>
 
 struct gkyl_mom_type*
-gkyl_mom_type_aquire(const struct gkyl_mom_type* momt)
+gkyl_mom_type_acquire(const struct gkyl_mom_type* momt)
 {
   gkyl_ref_count_inc(&momt->ref_count);
   return (struct gkyl_mom_type*) momt;
