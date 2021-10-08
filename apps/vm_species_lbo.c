@@ -14,7 +14,14 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct lb
     zero_flux_flags[d] = 1;
   }
 
+  // nu is now a gkyl_array and needs to be initialized
   lbo->nu_sum = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
+    app->poly_order, 8, s->info.nu, s->info.ctx);
+  gkyl_proj_on_basis_advance(proj, 0.0, &app->local, lbo->nu_sum);
+
+  gkyl_proj_on_basis_release(proj);
+  
   lbo->nu_u = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
   lbo->nu_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume); 
   // create collision equation object and solver

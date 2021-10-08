@@ -26,6 +26,14 @@ evalDistFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   }
 }
 
+void
+evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct free_stream_ctx *app = ctx;
+  double x = xn[0], v = xn[1];
+  fout[0] = 1.0;
+}
+
 struct free_stream_ctx
 create_ctx(void)
 {
@@ -55,7 +63,7 @@ main(int argc, char **argv)
     .evolve = 1,
     .ctx = &ctx,
     .init = evalDistFunc,
-    .nu = 1.0,
+    .nu = evalNu,
     .collision_id = GKYL_LBO_COLLISIONS,
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
