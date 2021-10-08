@@ -79,7 +79,7 @@ gkyl_mom_bcorr* gkyl_mom_bcorr_new(const struct gkyl_rect_grid *grid, const stru
 {
   gkyl_mom_bcorr *up = gkyl_malloc(sizeof(gkyl_mom_bcorr));
   up->grid = *grid;
-  up->momt = gkyl_mom_type_aquire(momt);
+  up->momt = gkyl_mom_type_acquire(momt);
   
   return up;
 }
