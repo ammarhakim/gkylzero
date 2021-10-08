@@ -18,7 +18,6 @@ enum gkyl_moment_bc_type {
 struct gkyl_moment_species {
   char name[128]; // species name
   double charge, mass; // charge and mass
-  double k0; // closure parameter 
   enum gkyl_wave_limiter limiter; // limiter to use
   const struct gkyl_wv_eqn *equation; // equation object
 

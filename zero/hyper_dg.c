@@ -158,7 +158,7 @@ gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
     up->zero_flux_flags[i] = zero_flux_flags[i];
   }
   up->update_vol_term = update_vol_term;
-  up->equation = gkyl_dg_eqn_aquire(equation);
+  up->equation = gkyl_dg_eqn_acquire(equation);
 
   return up;
 }

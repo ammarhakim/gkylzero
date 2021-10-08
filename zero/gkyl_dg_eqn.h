@@ -35,12 +35,12 @@ struct gkyl_dg_eqn {
 };
 
 /**
- * Aquire pointer to equation object. Delete using the release()
+ * Acquire pointer to equation object. Delete using the release()
  * method
  *
  * @param eqn Equation object.
  */
-struct gkyl_dg_eqn* gkyl_dg_eqn_aquire(const struct gkyl_dg_eqn* eqn);
+struct gkyl_dg_eqn* gkyl_dg_eqn_acquire(const struct gkyl_dg_eqn* eqn);
 
 /**
  * Delete equation object

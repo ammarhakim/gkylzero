@@ -8,11 +8,17 @@
 static void
 nomapc2p(double t, const double *xc, double *xp, void *ctx)
 {
-  for (int i=0; i<GKYL_MAX_CDIM; ++i) xp[i] = xc[i];
+  for (int i=0; i<3; ++i) xp[i] = xc[i];
 }
 
 // simple vector operations
 struct vec3 { double x[3]; };
+
+static struct vec3
+vec3_zeros()
+{
+  return (struct vec3) { .x = { 0.0, 0.0, 0.0} };
+}
 
 static void
 vec3_print(const char *nm, struct vec3 a)
@@ -90,8 +96,10 @@ calc_geom_2d(const double *dx, const double *xc, evalf_t mapc2p, void *ctx, stru
   // ll: lower-left; lr: lower-right
   // ul: upper-left; ur: upper-right
   
-  struct vec3 xll_p, xlr_p;
-  struct vec3 xul_p, xur_p;
+  struct vec3 xll_p = vec3_zeros();
+  struct vec3 xlr_p = vec3_zeros();
+  struct vec3 xul_p = vec3_zeros();
+  struct vec3 xur_p = vec3_zeros();
 
   struct vec3 xll_c = { .x = { xc[0] - 0.5*dx[0],  xc[1] - 0.5*dx[1], 0.0 } };
   struct vec3 xlr_c = { .x = { xc[0] + 0.5*dx[0],  xc[1] - 0.5*dx[1], 0.0 } };
@@ -163,6 +171,7 @@ gkyl_wave_geom_new(const struct gkyl_rect_grid *grid, struct gkyl_range *range,
     gkyl_rect_grid_cell_center(grid, iter.idx, xc);
 
     struct gkyl_wave_cell_geom *geo = gkyl_array_fetch(wg->geom, gkyl_range_idx(range, iter.idx));
+    
     // compute geometry based on grid dimensions
     switch (grid->ndim) {
       case 1:

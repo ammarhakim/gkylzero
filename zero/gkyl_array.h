@@ -103,13 +103,13 @@ gkyl_array_cfetch(const struct gkyl_array* arr, long loc)
 }
 
 /**
- * Aquire pointer to array. The pointer must be released using
+ * Acquire pointer to array. The pointer must be released using
  * gkyl_array_release method.
  *
  * @param arr Array to which a pointer is needed
- * @return Pointer to aquired array
+ * @return Pointer to acquired array
  */
-struct gkyl_array* gkyl_array_aquire(const struct gkyl_array* arr);
+struct gkyl_array* gkyl_array_acquire(const struct gkyl_array* arr);
 
 /**
  * Release pointer to array

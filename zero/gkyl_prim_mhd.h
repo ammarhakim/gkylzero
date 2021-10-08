@@ -17,31 +17,27 @@ double gkyl_mhd_pressure(double gas_gamma, const double q[8])
 /**
  * Compute maximum absolute speed.
  *
- * @param dir Direction 
  * @param gas_gamma Gas adiabatic constant
  * @param q Conserved variables
  * @return Maximum absolute speed for given q
  */
-double gkyl_mhd_max_abs_speed(int dir, double gas_gamma, const double q[8]);
+double gkyl_mhd_max_abs_speed(double gas_gamma, const double q[8]);
 
 /**
- * Compute flux in direction 'dir'.
+ * Compute flux. Assumes rotation to local coordinate system.
  *
- * @param dir Direction to compute flux
  * @param gas_gamma Gas adiabatic constant
  * @param Conserved variables
  * @param flux On output, the flux in direction 'dir'
  */
-void gkyl_mhd_flux(int dir, double gas_gamma, const double q[8], double flux[8]);
+void gkyl_mhd_flux(double gas_gamma, const double q[8], double flux[8]);
 
 /**
- * Compute flux in direction 'dir' for the GLM-MHD equations.
+ * Compute flux for the GLM-MHD equations. Assumes rotation to local coordinate system.
  *
- * @param dir Direction to compute flux
  * @param gas_gamma Gas adiabatic constant
  * @param ch The propagation speed of div(B) errors in the GLM method.
  * @param Conserved variables
  * @param flux On output, the flux in direction 'dir'
  */
-void gkyl_glm_mhd_flux(int dir, double gas_gamma, double ch, const double q[8],
-                       double flux[8]);
+void gkyl_glm_mhd_flux(double gas_gamma, double ch, const double q[9], double flux[9]);

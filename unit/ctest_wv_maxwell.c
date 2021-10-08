@@ -90,9 +90,9 @@ test_maxwell_basic()
   double q_local[8], flux_local[8], flux[8];
 
   for (int d=0; d<3; ++d) {
-    maxwell->rotate_to_local_func(d, tau1[d], tau2[d], norm[d], q, q_local);
+    maxwell->rotate_to_local_func(tau1[d], tau2[d], norm[d], q, q_local);
     gkyl_maxwell_flux(c, e_fact, b_fact, q_local, flux_local);
-    maxwell->rotate_to_global_func(d, tau1[d], tau2[d], norm[d], flux_local, flux);
+    maxwell->rotate_to_global_func(tau1[d], tau2[d], norm[d], flux_local, flux);
 
     for (int m=0; m<8; ++m)
       TEST_CHECK( gkyl_compare(flux[m], fluxes[d][m], 1e-15) );
@@ -137,20 +137,20 @@ test_maxwell_waves()
     double ql_local[8], qr_local[8];
     
     // rotate to local tangent-normal frame
-    gkyl_wv_eqn_rotate_to_local(maxwell, d, tau1[d], tau2[d], norm[d], ql, ql_local);
-    gkyl_wv_eqn_rotate_to_local(maxwell, d, tau1[d], tau2[d], norm[d], qr, qr_local);
+    gkyl_wv_eqn_rotate_to_local(maxwell, tau1[d], tau2[d], norm[d], ql, ql_local);
+    gkyl_wv_eqn_rotate_to_local(maxwell, tau1[d], tau2[d], norm[d], qr, qr_local);
 
     double delta[8];
     for (int i=0; i<8; ++i) delta[i] = qr_local[i]-ql_local[i];
     
-    gkyl_wv_eqn_waves(maxwell, d, delta, ql_local, qr_local, waves_local, speeds);
+    gkyl_wv_eqn_waves(maxwell, delta, ql_local, qr_local, waves_local, speeds);
 
     // rotate waves back to global frame
     for (int mw=0; mw<6; ++mw)
-      gkyl_wv_eqn_rotate_to_global(maxwell, d, tau1[d], tau2[d], norm[d], &waves_local[mw*8], &waves[mw*8]);
+      gkyl_wv_eqn_rotate_to_global(maxwell, tau1[d], tau2[d], norm[d], &waves_local[mw*8], &waves[mw*8]);
 
     double apdq[8], amdq[8];
-    gkyl_wv_eqn_qfluct(maxwell, d, ql, qr, waves, speeds, amdq, apdq);
+    gkyl_wv_eqn_qfluct(maxwell, ql, qr, waves, speeds, amdq, apdq);
     
     // check if sum of left/right going fluctuations sum to jump in flux
     double fl_local[8], fr_local[8];
@@ -158,8 +158,8 @@ test_maxwell_waves()
     gkyl_maxwell_flux(c, e_fact, b_fact, qr_local, fr_local);
     
     double fl[8], fr[8];
-    gkyl_wv_eqn_rotate_to_global(maxwell, d, tau1[d], tau2[d], norm[d], fl_local, fl);
-    gkyl_wv_eqn_rotate_to_global(maxwell, d, tau1[d], tau2[d], norm[d], fr_local, fr);
+    gkyl_wv_eqn_rotate_to_global(maxwell, tau1[d], tau2[d], norm[d], fl_local, fl);
+    gkyl_wv_eqn_rotate_to_global(maxwell, tau1[d], tau2[d], norm[d], fr_local, fr);
     
     for (int i=0; i<8; ++i)
       TEST_CHECK( gkyl_compare(fr[i]-fl[i], amdq[i]+apdq[i], 1e-14) );

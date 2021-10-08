@@ -9,25 +9,24 @@ struct gkyl_wv_eqn;
 
 // Function pointer for compute waves from RP solver
 typedef double (*wv_waves_t)(const struct gkyl_wv_eqn *eqn, 
-  int dir, const double *delta, const double *ql, const double *qr, double *waves, double *speeds);
+  const double *delta, const double *ql, const double *qr, double *waves, double *speeds);
 
 // Function pointer for compute q-fluctuations from waves
 typedef void (*wv_qfluct_t)(const struct gkyl_wv_eqn *eqn, 
-  int dir, const double *ql, const double *qr, const double *waves, const double *speeds,
+  const double *ql, const double *qr, const double *waves, const double *speeds,
   double *amdq, double *apdq);
 
 // Function pointer to compute maximum speed given local state
-typedef double (*wv_max_speed_t)(const struct gkyl_wv_eqn *eqn, 
-  int dir, const double *q);
+typedef double (*wv_max_speed_t)(const struct gkyl_wv_eqn *eqn, const double *q);
 
 // Function pointer to rotate conserved variables to local
 // tangent-normal frame: tau1 X tau2 = norm
-typedef void (*wv_rotate_to_local)(int dir, const double *tau1, const double *tau2, const double *norm,
+typedef void (*wv_rotate_to_local)(const double *tau1, const double *tau2, const double *norm,
   const double *qglobal, double *qlocal);
 
 // Function pointer to rotate conserved variables to local
 // tangent-normal frame: tau1 X tau2 = norm
-typedef void (*wv_rotate_to_global)(int dir, const double *tau1, const double *tau2, const double *norm,
+typedef void (*wv_rotate_to_global)(const double *tau1, const double *tau2, const double *norm,
   const double *qlocal, double *qglobal);
 
 struct gkyl_wv_eqn {
@@ -44,12 +43,12 @@ struct gkyl_wv_eqn {
 };
 
 /**
- * Aquire pointer to equation object. Delete using the release()
+ * Acquire pointer to equation object. Delete using the release()
  * method
  *
  * @param eqn Equation object.
  */
-struct gkyl_wv_eqn* gkyl_wv_eqn_aquire(const struct gkyl_wv_eqn* eqn);
+struct gkyl_wv_eqn* gkyl_wv_eqn_acquire(const struct gkyl_wv_eqn* eqn);
 
 /**
  * Compute waves and speeds from left/right conserved variables. The
@@ -58,7 +57,6 @@ struct gkyl_wv_eqn* gkyl_wv_eqn_aquire(const struct gkyl_wv_eqn* eqn);
  * waves[m*num_equations].
  *
  * @param eqn Equation object
- * @param dir Direction to compute waves/speeds
  * @param delta Jump across interface to split
  * @param ql Conserved variables on left of interface
  * @param qr Conserved variables on right of interface
@@ -68,9 +66,9 @@ struct gkyl_wv_eqn* gkyl_wv_eqn_aquire(const struct gkyl_wv_eqn* eqn);
  */
 inline double
 gkyl_wv_eqn_waves(const struct gkyl_wv_eqn *eqn, 
-  int dir, const double *delta, const double *ql, const double *qr, double *waves, double *speeds)
+  const double *delta, const double *ql, const double *qr, double *waves, double *speeds)
 {
-  return eqn->waves_func(eqn, dir, delta, ql, qr, waves, speeds);  
+  return eqn->waves_func(eqn, delta, ql, qr, waves, speeds);
 }
 
 /**
@@ -80,7 +78,6 @@ gkyl_wv_eqn_waves(const struct gkyl_wv_eqn *eqn,
  * waves[m*num_equations].
  *
  * @param eqn Equation object
- * @param dir Direction to compute waves/speeds
  * @param ql Conserved variables on left of interface
  * @param qr Conserved variables on right of interface
  * @param waves Waves computed from waves() method
@@ -90,10 +87,10 @@ gkyl_wv_eqn_waves(const struct gkyl_wv_eqn *eqn,
  */
 inline void
 gkyl_wv_eqn_qfluct(const struct gkyl_wv_eqn *eqn,
-  int dir, const double *ql, const double *qr, const double *waves, const double *speeds,
+  const double *ql, const double *qr, const double *waves, const double *speeds,
   double *amdq, double *apdq)
 {
-  eqn->qfluct_func(eqn, dir, ql, qr, waves, speeds, amdq, apdq);  
+  eqn->qfluct_func(eqn, ql, qr, waves, speeds, amdq, apdq);  
 }
 
 /**
@@ -103,21 +100,19 @@ gkyl_wv_eqn_qfluct(const struct gkyl_wv_eqn *eqn,
  * waves[m*num_equations].
  *
  * @param eqn Equation object
- * @param dir Direction to compute waves/speeds
  * @param q Conserved variables
  * @return maximum wave-speed in direction 'dir'
  */
 inline double
-gkyl_wv_eqn_max_speed(const struct gkyl_wv_eqn *eqn, int dir, const double *q)
+gkyl_wv_eqn_max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
-  return eqn->max_speed_func(eqn, dir, q);  
+  return eqn->max_speed_func(eqn, q);
 }
 
 /**
  * Rotate state (conserved/primitive) vector to local tangent-normal coordinate frame.
  *
  * @param eqn Equation object
- * @param dir Direction to perform rotation
  * @param tau1 Tangent vector
  * @param tau2 Tangent vector
  * @param norm Normal vector such that norm = tau1 x tau2
@@ -126,17 +121,16 @@ gkyl_wv_eqn_max_speed(const struct gkyl_wv_eqn *eqn, int dir, const double *q)
  */
 inline void
 gkyl_wv_eqn_rotate_to_local(const struct gkyl_wv_eqn* eqn,
-  int dir,  const double *tau1, const double *tau2, const double *norm,
+  const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
 {
-  return eqn->rotate_to_local_func(dir, tau1, tau2, norm, qglobal, qlocal);
+  return eqn->rotate_to_local_func(tau1, tau2, norm, qglobal, qlocal);
 }
 
 /**
  * Rotate state (conserved/primitive) vector to global coordinate frame.
  *
  * @param eqn Equation object
- * @param dir Direction to perform rotation
  * @param tau1 Tangent vector
  * @param tau2 Tangent vector
  * @param norm Normal vector such that norm = tau1 x tau2
@@ -145,10 +139,10 @@ gkyl_wv_eqn_rotate_to_local(const struct gkyl_wv_eqn* eqn,
  */
 inline void
 gkyl_wv_eqn_rotate_to_global(const struct gkyl_wv_eqn* eqn,
-  int dir,  const double *tau1, const double *tau2, const double *norm,
+  const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
 {
-  return eqn->rotate_to_global_func(dir, tau1, tau2, norm, qlocal, qglobal);  
+  return eqn->rotate_to_global_func(tau1, tau2, norm, qlocal, qglobal);
 }
 
 /**

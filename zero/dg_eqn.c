@@ -1,7 +1,7 @@
 #include <gkyl_dg_eqn.h>
 
 struct gkyl_dg_eqn*
-gkyl_dg_eqn_aquire(const struct gkyl_dg_eqn* eqn)
+gkyl_dg_eqn_acquire(const struct gkyl_dg_eqn* eqn)
 {
   gkyl_ref_count_inc(&eqn->ref_count);
   return (struct gkyl_dg_eqn*) eqn;
