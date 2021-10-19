@@ -126,8 +126,14 @@ test_1x1v(int poly_order)
   distf = mkarr(basis.num_basis, local_ext.volume);
 
   // projection updater to compute Maxwellian
-  gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&grid,
-    &confBasis, &basis, poly_order+1);
+  gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(
+    (struct gkyl_proj_maxwellian_on_basis_inp) {
+      .grid = &grid,
+      .conf_basis = &confBasis,
+      .phase_basis = &basis,
+      .num_quad = poly_order+1
+    }
+  );
 
   gkyl_proj_maxwellian_on_basis_lab_mom(proj_max, local, confLocal, m0, m1i, m2, distf);
 
@@ -206,8 +212,14 @@ test_1x2v(int poly_order)
   distf = mkarr(basis.num_basis, local_ext.volume);
 
   // projection updater to compute Maxwellian
-  gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&grid,
-    &confBasis, &basis, poly_order+1);
+  gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(
+    (struct gkyl_proj_maxwellian_on_basis_inp) {
+      .grid = &grid,
+      .conf_basis = &confBasis,
+      .phase_basis = &basis,
+      .num_quad = poly_order+1
+    }
+  );
 
   gkyl_proj_maxwellian_on_basis_lab_mom(proj_max, local, confLocal, m0, m1i, m2, distf);
 
