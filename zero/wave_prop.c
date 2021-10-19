@@ -257,7 +257,6 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
         const double *qinr = gkyl_array_cfetch(qin, ridx);
 
         wv->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qinl, ql_local);
-        
         wv->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qinr, qr_local);
 
         calc_jump(meqn, ql_local, qr_local, delta);
