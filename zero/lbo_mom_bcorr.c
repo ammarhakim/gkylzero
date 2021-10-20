@@ -37,13 +37,14 @@ gkyl_vlasov_lbo_mom_new(const struct gkyl_basis* cbasis,
   assert(cbasis->poly_order == pbasis->poly_order);
   
   struct lbo_mom_type *mom_bcorr = gkyl_malloc(sizeof(struct lbo_mom_type));
-  int cdim = mom_bcorr->cdim = cbasis->ndim;
-  int pdim = mom_bcorr->pdim = pbasis->ndim;
-  int vdim = pdim-cdim;
-  int poly_order = mom_bcorr->poly_order = cbasis->poly_order;
-  mom_bcorr->num_config = cbasis->num_basis;
-  mom_bcorr->num_phase = pbasis->num_basis;
+  int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
+  int poly_order = cbasis->poly_order;
 
+  mom_bcorr->momt.cdim = cdim;
+  mom_bcorr->momt.pdim = pdim;
+  mom_bcorr->momt.poly_order = poly_order;
+  mom_bcorr->momt.num_config = cbasis->num_basis;
+  mom_bcorr->momt.num_phase = pbasis->num_basis;
   mom_bcorr->momt.kernel = kernel;
 
   // choose kernel tables based on basis-function type
@@ -67,14 +68,15 @@ gkyl_vlasov_lbo_mom_new(const struct gkyl_basis* cbasis,
     assert(NULL != boundary_integral_f_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_bcorr->kernel = boundary_integral_f_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_bcorr->momt.num_mom = vdim;
   }
   else if (strcmp(mom, "vf") == 0) { // momentum
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != boundary_integral_vf_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_bcorr->kernel = boundary_integral_vf_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_bcorr->momt.num_mom = vdim;
   }
-  mom_bcorr->num_mom = vdim;
 
   // set reference counter
   mom_bcorr->momt.ref_count = (struct gkyl_ref_count) { mom_free, 1 };

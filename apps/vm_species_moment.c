@@ -26,12 +26,11 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
     struct gkyl_mom_type *mtype_host = gkyl_vlasov_mom_new(&app->confBasis, &app->basis, nm);
     sm->mtype = gkyl_vlasov_mom_cu_dev_new(&app->confBasis, &app->basis, nm);
     sm->mcalc = gkyl_mom_calc_cu_dev_new(&s->grid, sm->mtype);
-    int num_mom = gkyl_mom_type_num_mom(mtype_host);
-    
-    sm->marr = mkarr(app->use_gpu, num_mom*app->confBasis.num_basis,
+
+    sm->marr = mkarr(app->use_gpu, mtype_host->num_mom*app->confBasis.num_basis,
       app->local_ext.volume);
 
-    sm->marr_host = mkarr(false, num_mom*app->confBasis.num_basis,
+    sm->marr_host = mkarr(false, mtype_host->num_mom*app->confBasis.num_basis,
       app->local_ext.volume);
 
     gkyl_mom_type_release(mtype_host);
@@ -39,9 +38,8 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   else {
     sm->mtype = gkyl_vlasov_mom_new(&app->confBasis, &app->basis, nm);
     sm->mcalc = gkyl_mom_calc_new(&s->grid, sm->mtype);
-    int num_mom = gkyl_mom_type_num_mom(sm->mtype);
 
-    sm->marr = mkarr(app->use_gpu, num_mom*app->confBasis.num_basis,
+    sm->marr = mkarr(app->use_gpu, sm->mtype->num_mom*app->confBasis.num_basis,
       app->local_ext.volume);
 
     sm->marr_host = sm->marr;

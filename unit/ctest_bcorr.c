@@ -127,7 +127,14 @@ test_1x1v_p2()
   gkyl_lbo_mom_set_vBoundary(F, v_bounds);
   gkyl_lbo_mom_set_atLower(VF, v_edge_idx);
   gkyl_lbo_mom_set_vBoundary(VF, v_bounds);
-  
+
+  TEST_CHECK( VF->cdim == 1 );
+  TEST_CHECK( VF->pdim == 2 );
+  TEST_CHECK( VF->poly_order == 2 );
+  TEST_CHECK( VF->num_config == confBasis.num_basis );
+  TEST_CHECK( VF->num_phase == basis.num_basis );
+  TEST_CHECK( VF->num_mom == 1 );
+
   gkyl_mom_bcorr *fcalc = gkyl_mom_bcorr_new(&grid, F);
   gkyl_mom_bcorr *vFcalc = gkyl_mom_bcorr_new(&grid, VF);
   
@@ -223,6 +230,13 @@ test_1x2v_p2()
   gkyl_lbo_mom_set_vBoundary(F, v_bounds);
   gkyl_lbo_mom_set_atLower(VF, v_edge_idx);
   gkyl_lbo_mom_set_vBoundary(VF, v_bounds);
+
+  TEST_CHECK( VF->cdim == 1 );
+  TEST_CHECK( VF->pdim == 3 );
+  TEST_CHECK( VF->poly_order == 2 );
+  TEST_CHECK( VF->num_config == confBasis.num_basis );
+  TEST_CHECK( VF->num_phase == basis.num_basis );
+  TEST_CHECK( VF->num_mom == 2 );
   
   gkyl_mom_bcorr *fcalc = gkyl_mom_bcorr_new(&grid, F);
   gkyl_mom_bcorr *vFcalc = gkyl_mom_bcorr_new(&grid, VF);

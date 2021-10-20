@@ -21,12 +21,14 @@ gkyl_vlasov_mom_new(const struct gkyl_basis* cbasis,
   assert(cbasis->poly_order == pbasis->poly_order);
   
   struct vlasov_mom_type *vlasov_mom = gkyl_malloc(sizeof(struct vlasov_mom_type));
-  int cdim = vlasov_mom->cdim = cbasis->ndim;
-  int pdim = vlasov_mom->pdim = pbasis->ndim;
-  int vdim = pdim-cdim;
-  int poly_order = vlasov_mom->poly_order = cbasis->poly_order;
-  vlasov_mom->num_config = cbasis->num_basis;
-  vlasov_mom->num_phase = pbasis->num_basis;
+  int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
+  int poly_order = cbasis->poly_order;
+
+  vlasov_mom->momt.cdim = cdim;
+  vlasov_mom->momt.pdim = pdim;
+  vlasov_mom->momt.poly_order = poly_order;
+  vlasov_mom->momt.num_config = cbasis->num_basis;
+  vlasov_mom->momt.num_phase = pbasis->num_basis;
   vlasov_mom->momt.kernel = kernel;
 
   // choose kernel tables based on basis-function type

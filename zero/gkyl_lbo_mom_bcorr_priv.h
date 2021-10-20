@@ -53,14 +53,7 @@ static const gkyl_lbo_mom_kern_list ser_boundary_integral_vf_kernels[] = {
 
 struct lbo_mom_type {
   struct gkyl_mom_type momt;
-  int cdim; // config-space dim
-  int pdim; // phase-space dim
-  int poly_order; // polynomal order
-  int num_config; // number of basis functions in config-space
-  int num_phase; // number of basis functions in phase-space
-  int num_mom; // number of components in moment
   lbo_momf_t kernel; // moment calculation kernel
-  struct gkyl_ref_count ref_count; // reference count
   const double *vBoundary;
   const int *atLower;
 };
