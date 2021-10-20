@@ -3,12 +3,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <gkyl_util.h>
+#include <gkyl_array_rio.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_array_rio.h>
-#include <thpool.h>
+#include <gkyl_thread_pool.h>
+#include <gkyl_util.h>
 
 void evalFunc(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -92,13 +92,13 @@ main(int argc, char **argv)
   struct timespec tstart = gkyl_wall_clock();
 
   // run projection updater on threads
-  threadpool thpool = thpool_init(max_thread);
+  struct gkyl_job_pool *job_pool = gkyl_thread_pool_new(max_thread);
   for (int tid=0; tid<max_thread; ++tid)
-    thpool_add_work(thpool, thread_worker, &td[tid]);
-  thpool_wait(thpool);
+    gkyl_job_pool_add_work(job_pool, thread_worker, &td[tid]);
+  gkyl_job_pool_wait(job_pool);
 
   double tm = gkyl_time_sec(gkyl_time_diff(tstart, gkyl_wall_clock()));
-  printf("%d threads took %g to update\n", thpool_num_threads_alive(thpool), tm);
+  printf("%d threads took %g to update\n", job_pool->pool_size, tm);
 
   // construct file name and write data out
   const char *fmt = "%s-%d.gkyl";
@@ -110,7 +110,7 @@ main(int argc, char **argv)
   
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf);
-  thpool_destroy(thpool);
+  gkyl_job_pool_release(job_pool);
   
   return 0;
 }
