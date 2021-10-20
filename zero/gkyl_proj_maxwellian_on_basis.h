@@ -8,23 +8,20 @@
 // Object type
 typedef struct gkyl_proj_maxwellian_on_basis gkyl_proj_maxwellian_on_basis;
 
-// Parameters for constructor
-struct gkyl_proj_maxwellian_on_basis_inp {
-  const struct gkyl_rect_grid *grid; // grid on which to solve equations
-  const struct gkyl_basis *conf_basis; // Conf-space basis functions
-  const struct gkyl_basis *phase_basis; // Phase-space basis functions
-  int num_quad; // Number of quadrature points in each direction
-};
-
 /**
  * Create new updater to project Maxwellian on basis functions. Free
  * using gkyl_proj_maxwellian_on_basis_release method.
  *
- * @param inp Input for creating updater. See gkyl_proj_maxwellian_on_basis_inp.
- * @return Updater to project Maxwellian on basis
+ * @param grid Grid object
+ * @param conf_basis Conf-space basis functions
+ * @param phase_basis Phase-space basis functions
+ * @param num_quad Number of quadrature nodes
+ * @return New updater pointer.
  */
 gkyl_proj_maxwellian_on_basis* gkyl_proj_maxwellian_on_basis_new(
-  struct gkyl_proj_maxwellian_on_basis_inp inp);
+  const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
+  int num_quad);
 
 /**
  * Compute projection of Maxwellian on basis. This method takes

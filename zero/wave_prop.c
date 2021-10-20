@@ -85,7 +85,7 @@ gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp)
   for (int i=0; i<winp.num_up_dirs; ++i)
     up->update_dirs[i] = winp.update_dirs[i];
 
-  up->limiter = winp.limiter;
+  up->limiter = winp.limiter == 0 ? GKYL_MONOTONIZED_CENTERED : winp.limiter;
   up->cfl = winp.cfl;
   up->equation = gkyl_wv_eqn_acquire(winp.equation);
 

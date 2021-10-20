@@ -88,23 +88,26 @@ init_quad_values(const struct gkyl_basis *basis, int num_quad,
 }
 
 gkyl_proj_maxwellian_on_basis*
-gkyl_proj_maxwellian_on_basis_new(struct gkyl_proj_maxwellian_on_basis_inp inp)
+gkyl_proj_maxwellian_on_basis_new(
+  const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
+  int num_quad)
 {
   gkyl_proj_maxwellian_on_basis *up = gkyl_malloc(sizeof(gkyl_proj_maxwellian_on_basis));
 
-  up->grid = *inp.grid;
-  up->num_quad = inp.num_quad > 0 ? inp.num_quad : inp.conf_basis->poly_order+1;
-  up->cdim = inp.conf_basis->ndim;
-  up->pdim = inp.phase_basis->ndim;
-  up->num_conf_basis = inp.conf_basis->num_basis;
-  up->num_phase_basis = inp.phase_basis->num_basis;
+  up->grid = *grid;
+  up->num_quad = num_quad;
+  up->cdim = conf_basis->ndim;
+  up->pdim = phase_basis->ndim;
+  up->num_conf_basis = conf_basis->num_basis;
+  up->num_phase_basis = phase_basis->num_basis;
 
   // initialize data needed for phase-space quadrature 
-  up->tot_quad = init_quad_values(inp.phase_basis, up->num_quad,
+  up->tot_quad = init_quad_values(phase_basis, num_quad,
     &up->ordinates, &up->weights, &up->basis_at_ords);
 
   // initialize data needed for conf-space quadrature 
-  up->tot_conf_quad = init_quad_values(inp.conf_basis, up->num_quad,
+  up->tot_conf_quad = init_quad_values(conf_basis, num_quad,
     &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords);
 
   return up;
