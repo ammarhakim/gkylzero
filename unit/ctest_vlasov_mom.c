@@ -25,9 +25,9 @@ test_vlasov_mom()
   TEST_CHECK( vlasov_mom_m2ij->poly_order == 2 );
   TEST_CHECK( vlasov_mom_m2ij->num_config == cbasis.num_basis );
   TEST_CHECK( vlasov_mom_m2ij->num_phase == pbasis.num_basis );
-  TEST_CHECK( vlasov_mom_m2ij->num_mom == 6 );
+  TEST_CHECK( vlasov_mom_m2ij->momt.num_mom == 6 );
   
-  TEST_CHECK( vlasov_mom_m3ijk->num_mom == 10 );
+  TEST_CHECK( vlasov_mom_m3ijk->momt.num_mom == 10 );
 
   gkyl_mom_type_release(m2ij);
   gkyl_mom_type_release(m3ijk);
