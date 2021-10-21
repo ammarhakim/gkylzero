@@ -197,14 +197,7 @@ static const gkyl_mom_kern_list ten_m3ijk_kernels[] = {
 
 struct vlasov_mom_type {
   struct gkyl_mom_type momt;
-  int cdim; // config-space dim
-  int pdim; // phase-space dim
-  int poly_order; // polynomal order
-  int num_config; // number of basis functions in config-space
-  int num_phase; // number of basis functions in phase-space
-  int num_mom; // number of components in moment
   vlasov_momf_t kernel; // moment calculation kernel
-  struct gkyl_ref_count ref_count; // reference count
 };
 
 GKYL_CU_D
