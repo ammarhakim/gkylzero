@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include <gkyl_array_rio.h>
+#include <gkyl_null_pool.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
@@ -51,15 +52,9 @@ parse_args(int argc, char **argv)
   return nthread;
 }
 
-int
-main(int argc, char **argv)
+void
+proj_with_job_pool(const struct gkyl_job_pool *job_pool, const char *pname)
 {
-  int max_thread = parse_args(argc, argv);
-  if (max_thread < 1) {
-    printf("Usage: app_pthread_proj -n <num-threads>\n");
-    exit(1);
-  }
-  
   int poly_order = 2;
   double lower[] = {-2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0};
   int cells[] = {100, 100, 100};
@@ -81,6 +76,8 @@ main(int argc, char **argv)
   // create distribution function
   struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
 
+  int max_thread = job_pool->pool_size;
+  
   struct thread_data td[max_thread];
   for (int tid=0; tid<max_thread; ++tid)
     td[tid]  = (struct thread_data) {
@@ -92,25 +89,45 @@ main(int argc, char **argv)
   struct timespec tstart = gkyl_wall_clock();
 
   // run projection updater on threads
-  struct gkyl_job_pool *job_pool = gkyl_thread_pool_new(max_thread);
+
   for (int tid=0; tid<max_thread; ++tid)
     gkyl_job_pool_add_work(job_pool, thread_worker, &td[tid]);
   gkyl_job_pool_wait(job_pool);
 
   double tm = gkyl_time_sec(gkyl_time_diff(tstart, gkyl_wall_clock()));
-  printf("%d threads took %g to update\n", job_pool->pool_size, tm);
+  printf("%d %s took %g to update\n", job_pool->pool_size, pname, tm);
 
   // construct file name and write data out
   const char *fmt = "%s-%d.gkyl";
-  int sz = snprintf(0, 0, fmt, "pthread", max_thread);
+  int sz = snprintf(0, 0, fmt, pname, max_thread);
   char fileNm[sz+1]; // ensures no buffer overflow  
-  snprintf(fileNm, sizeof fileNm, fmt, "pthread", max_thread);
+  snprintf(fileNm, sizeof fileNm, fmt, pname, max_thread);
   
   gkyl_grid_sub_array_write(&grid, &arr_range, distf, fileNm);
   
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf);
-  gkyl_job_pool_release(job_pool);
+}
+
+int
+main(int argc, char **argv)
+{
+  int max_thread = parse_args(argc, argv);
+  if (max_thread < 1) {
+    printf("Usage: rt_job_pool_proj -n <num-threads>\n");
+    exit(1);
+  }
+
+  // run with thread-pool
+  struct gkyl_job_pool *thread_pool = gkyl_thread_pool_new(max_thread);
+  proj_with_job_pool(thread_pool, "thread_pool");
+
+  // run with null pool
+  struct gkyl_job_pool *null_pool = gkyl_null_pool_new(max_thread);
+  proj_with_job_pool(null_pool, "null_pool");
+  
+  gkyl_job_pool_release(thread_pool);
+  gkyl_job_pool_release(null_pool);
   
   return 0;
 }

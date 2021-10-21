@@ -27,6 +27,7 @@ extern "C" {
 #include <gkyl_job_pool.h>
 #include <gkyl_kep_scheme.h>
 #include <gkyl_mat.h>
+#include <gkyl_math.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_type.h>
 #include <gkyl_moment.h>
