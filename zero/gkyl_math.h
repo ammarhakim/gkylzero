@@ -1,6 +1,8 @@
 #pragma once
 
-// Three component vector
+#include <math.h>
+
+// Three-component vector
 struct  gkyl_vec3 { double x[3]; };
 
 // new vector with zeros 
@@ -8,6 +10,13 @@ static inline struct gkyl_vec3
 gkyl_vec3_zeros()
 {
   return (struct gkyl_vec3) { .x = { 0.0, 0.0, 0.0} };
+}
+
+// new vector with x,y,z components
+static inline struct gkyl_vec3
+gkyl_vec3_new(double x, double y, double z)
+{
+  return (struct gkyl_vec3) { .x = { x, y, z} };
 }
 
 // a+b

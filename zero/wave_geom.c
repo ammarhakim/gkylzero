@@ -45,11 +45,11 @@ calc_geom_2d(const double *dx, const double *xc, evalf_t mapc2p, void *ctx, stru
   struct gkyl_vec3 xul_p = gkyl_vec3_zeros();
   struct gkyl_vec3 xur_p = gkyl_vec3_zeros();
 
-  struct gkyl_vec3 xll_c = { .x = { xc[0] - 0.5*dx[0],  xc[1] - 0.5*dx[1], 0.0 } };
-  struct gkyl_vec3 xlr_c = { .x = { xc[0] + 0.5*dx[0],  xc[1] - 0.5*dx[1], 0.0 } };
+  struct gkyl_vec3 xll_c = gkyl_vec3_new(xc[0] - 0.5*dx[0],  xc[1] - 0.5*dx[1], 0.0);
+  struct gkyl_vec3 xlr_c = gkyl_vec3_new(xc[0] + 0.5*dx[0],  xc[1] - 0.5*dx[1], 0.0);
 
-  struct gkyl_vec3 xul_c = { .x = { xc[0] - 0.5*dx[0],  xc[1] + 0.5*dx[1], 0.0 } };
-  struct gkyl_vec3 xur_c = { .x = { xc[0] + 0.5*dx[0],  xc[1] + 0.5*dx[1], 0.0 } };
+  struct gkyl_vec3 xul_c = gkyl_vec3_new(xc[0] - 0.5*dx[0],  xc[1] + 0.5*dx[1], 0.0);
+  struct gkyl_vec3 xur_c = gkyl_vec3_new(xc[0] + 0.5*dx[0],  xc[1] + 0.5*dx[1], 0.0);
   
   mapc2p(0.0, xll_c.x, xll_p.x, ctx);
   mapc2p(0.0, xlr_c.x, xlr_p.x, ctx);
@@ -71,7 +71,7 @@ calc_geom_2d(const double *dx, const double *xc, evalf_t mapc2p, void *ctx, stru
 
   // normal-tangent to left face
   struct gkyl_vec3 tau1_l = gkyl_vec3_norm(gkyl_vec3_sub(xul_p, xll_p));
-  struct gkyl_vec3 tau2_l = { .x = { 0.0, 0.0, 1.0 } }; // ez
+  struct gkyl_vec3 tau2_l = gkyl_vec3_new(0.0, 0.0, 1.0); // ez
   struct gkyl_vec3 norm_l = gkyl_vec3_cross(tau1_l, tau2_l);
   
   for (int d=0; d<3; ++d) {
@@ -82,7 +82,7 @@ calc_geom_2d(const double *dx, const double *xc, evalf_t mapc2p, void *ctx, stru
 
   // normal-tangent to bottom face
   struct gkyl_vec3 tau1_b = gkyl_vec3_norm(gkyl_vec3_sub(xlr_p, xll_p));
-  struct gkyl_vec3 tau2_b = { .x = { 0.0, 0.0, -1.0 } }; // -ez (ensures normal points into cell)
+  struct gkyl_vec3 tau2_b = gkyl_vec3_new(0.0, 0.0, -1.0); // -ez (ensures normal points into cell)
   struct gkyl_vec3 norm_b = gkyl_vec3_cross(tau1_b, tau2_b);
 
   for (int d=0; d<3; ++d) {
