@@ -28,7 +28,7 @@ static struct { int vdim[4]; } cv_index[] = {
 
 // for use in kernel tables
 typedef struct { vlasov_poisson_vol_t kernels[3]; } gkyl_dg_vlasov_poisson_vol_kern_list;
-typedef struct { vlasov_poisson_stream_surf_t kernels[3]; } gkyl_dg_vlasov_poisson_steam_surf_kern_list;
+typedef struct { vlasov_poisson_stream_surf_t kernels[3]; } gkyl_dg_vlasov_poisson_stream_surf_kern_list;
 typedef struct { vlasov_poisson_accel_surf_t kernels[3]; } gkyl_dg_vlasov_poisson_accel_surf_kern_list;
 typedef struct { vlasov_poisson_accel_boundary_surf_t kernels[3]; } gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list;
 
@@ -52,7 +52,7 @@ static const gkyl_dg_vlasov_poisson_vol_kern_list ser_vol_kernels[] = {
 
 // Streaming surface kernel list: x-direction
 GKYL_CU_D
-static const gkyl_dg_vlasov_poisson_steam_surf_kern_list ser_stream_surf_x_kernels[] = {
+static const gkyl_dg_vlasov_poisson_stream_surf_kern_list ser_stream_surf_x_kernels[] = {
   // 1x kernels
   { NULL, vlasov_surfx_1x1v_ser_p1, vlasov_surfx_1x1v_ser_p2 }, // 0
   { NULL, vlasov_surfx_1x2v_ser_p1, vlasov_surfx_1x2v_ser_p2 }, // 1
@@ -66,7 +66,7 @@ static const gkyl_dg_vlasov_poisson_steam_surf_kern_list ser_stream_surf_x_kerne
 
 // Streaming surface kernel list: y-direction
 GKYL_CU_D
-static const gkyl_dg_vlasov_poisson_steam_surf_kern_list ser_stream_surf_y_kernels[] = {
+static const gkyl_dg_vlasov_poisson_stream_surf_kern_list ser_stream_surf_y_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
@@ -80,7 +80,7 @@ static const gkyl_dg_vlasov_poisson_steam_surf_kern_list ser_stream_surf_y_kerne
 
 // Streaming surface kernel list: z-direction
 GKYL_CU_D
-static const gkyl_dg_vlasov_poisson_steam_surf_kern_list ser_stream_surf_z_kernels[] = {
+static const gkyl_dg_vlasov_poisson_stream_surf_kern_list ser_stream_surf_z_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
@@ -196,7 +196,7 @@ static const gkyl_dg_vlasov_poisson_vol_kern_list ten_vol_kernels[] = {
 
 // Streaming surface kernel list: x-direction
 GKYL_CU_D
-static const gkyl_dg_vlasov_poisson_steam_surf_kern_list ten_stream_surf_x_kernels[] = {
+static const gkyl_dg_vlasov_poisson_stream_surf_kern_list ten_stream_surf_x_kernels[] = {
   // 1x kernels
   { NULL, vlasov_surfx_1x1v_ser_p1, vlasov_surfx_1x1v_tensor_p2 }, // 0
   { NULL, vlasov_surfx_1x2v_ser_p1, vlasov_surfx_1x2v_tensor_p2 }, // 1
@@ -210,7 +210,7 @@ static const gkyl_dg_vlasov_poisson_steam_surf_kern_list ten_stream_surf_x_kerne
 
 // Streaming surface kernel list: y-direction
 GKYL_CU_D
-static const gkyl_dg_vlasov_poisson_steam_surf_kern_list ten_stream_surf_y_kernels[] = {
+static const gkyl_dg_vlasov_poisson_stream_surf_kern_list ten_stream_surf_y_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
@@ -224,7 +224,7 @@ static const gkyl_dg_vlasov_poisson_steam_surf_kern_list ten_stream_surf_y_kerne
 
 // Streaming surface kernel list: z-direction
 GKYL_CU_D
-static const gkyl_dg_vlasov_poisson_steam_surf_kern_list ten_stream_surf_z_kernels[] = {
+static const gkyl_dg_vlasov_poisson_stream_surf_kern_list ten_stream_surf_z_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1

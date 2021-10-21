@@ -92,7 +92,7 @@ static const gkyl_dg_vlasov_lbo_surf_kern_list ser_surf_vz_kernels[] = {
 
 // Constant nu boundary surface kernel (zero-flux BCs) list: vx-direction
 GKYL_CU_D
-gkyl_dg_vlasov_lbo_boundary_surf_kern_list ser_boundary_surf_vx_kernels[] = {
+static const gkyl_dg_vlasov_lbo_boundary_surf_kern_list ser_boundary_surf_vx_kernels[] = {
   // 1x kernels
   { NULL, vlasov_lbo_boundary_surfvx_1x1v_ser_p1, vlasov_lbo_boundary_surfvx_1x1v_ser_p2 }, // 0
   { NULL, vlasov_lbo_boundary_surfvx_1x2v_ser_p1, vlasov_lbo_boundary_surfvx_1x2v_ser_p2 }, // 1
@@ -106,7 +106,7 @@ gkyl_dg_vlasov_lbo_boundary_surf_kern_list ser_boundary_surf_vx_kernels[] = {
 
 // Constant nu boundary surface kernel (zero-flux BCs) list: vy-direction
 GKYL_CU_D
-gkyl_dg_vlasov_lbo_boundary_surf_kern_list ser_boundary_surf_vy_kernels[] = {
+static const gkyl_dg_vlasov_lbo_boundary_surf_kern_list ser_boundary_surf_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, vlasov_lbo_boundary_surfvy_1x2v_ser_p1, vlasov_lbo_boundary_surfvy_1x2v_ser_p2 }, // 1
@@ -120,7 +120,7 @@ gkyl_dg_vlasov_lbo_boundary_surf_kern_list ser_boundary_surf_vy_kernels[] = {
 
 // Constant nu boundary surface kernel (zero-flux BCs) list: vz-direction
 GKYL_CU_D
-gkyl_dg_vlasov_lbo_boundary_surf_kern_list ser_boundary_surf_vz_kernels[] = {
+static const gkyl_dg_vlasov_lbo_boundary_surf_kern_list ser_boundary_surf_vz_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
@@ -193,7 +193,7 @@ static const gkyl_dg_vlasov_lbo_surf_kern_list ten_surf_vz_kernels[] = {
 
 // Constant nu boundary surface kernel (zero-flux BCs) list: vx-direction
 GKYL_CU_D
-gkyl_dg_vlasov_lbo_boundary_surf_kern_list ten_boundary_surf_vx_kernels[] = {
+static const gkyl_dg_vlasov_lbo_boundary_surf_kern_list ten_boundary_surf_vx_kernels[] = {
   // 1x kernels
   { NULL, vlasov_lbo_boundary_surfvx_1x1v_ser_p1, vlasov_lbo_boundary_surfvx_1x1v_tensor_p2 }, // 0
   { NULL, vlasov_lbo_boundary_surfvx_1x2v_ser_p1, vlasov_lbo_boundary_surfvx_1x2v_tensor_p2 }, // 1
@@ -207,7 +207,7 @@ gkyl_dg_vlasov_lbo_boundary_surf_kern_list ten_boundary_surf_vx_kernels[] = {
 
 // Constant nu boundary surface kernel (zero-flux BCs) list: vy-direction
 GKYL_CU_D
-gkyl_dg_vlasov_lbo_boundary_surf_kern_list ten_boundary_surf_vy_kernels[] = {
+static const gkyl_dg_vlasov_lbo_boundary_surf_kern_list ten_boundary_surf_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, vlasov_lbo_boundary_surfvy_1x2v_ser_p1, vlasov_lbo_boundary_surfvy_1x2v_tensor_p2 }, // 1
@@ -221,7 +221,7 @@ gkyl_dg_vlasov_lbo_boundary_surf_kern_list ten_boundary_surf_vy_kernels[] = {
 
 // Constant nu boundary surface kernel (zero-flux BCs) list: vz-direction
 GKYL_CU_D
-gkyl_dg_vlasov_lbo_boundary_surf_kern_list ten_boundary_surf_vz_kernels[] = {
+static const gkyl_dg_vlasov_lbo_boundary_surf_kern_list ten_boundary_surf_vz_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1

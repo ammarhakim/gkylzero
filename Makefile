@@ -18,7 +18,7 @@ LAPACK_LIB = ${HOME}/gkylsoft/OpenBLAS/lib/libopenblas.a
 
 # SuperLU includes and librararies
 SUPERLU_INC = ${HOME}/gkylsoft/superlu/include
-SUPERLU_LIB = ${HOME}/gkylsoft/superlu/lib/libsuperlu.a
+SUPERLU_LIB = ${HOME}/gkylsoft/superlu/lib64/libsuperlu.a
 
 # determine OS we are running on
 UNAME = $(shell uname)
@@ -70,6 +70,9 @@ kernels/maxwell/%.o : kernels/maxwell/%.c
 	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
 
 kernels/vlasov/%.o : kernels/vlasov/%.c
+	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
+
+kernels/lbo/%.o : kernels/lbo/%.c
 	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
 
 kernels/basis/%.o : kernels/basis/%.c
