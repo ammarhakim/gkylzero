@@ -18,7 +18,7 @@ LAPACK_LIB = ${HOME}/gkylsoft/OpenBLAS/lib/libopenblas.a
 
 # SuperLU includes and librararies
 SUPERLU_INC = ${HOME}/gkylsoft/superlu/include
-SUPERLU_LIB = ${HOME}/gkylsoft/superlu/lib64/libsuperlu.a
+SUPERLU_LIB = ${HOME}/gkylsoft/superlu/lib/libsuperlu.a
 
 # determine OS we are running on
 UNAME = $(shell uname)
