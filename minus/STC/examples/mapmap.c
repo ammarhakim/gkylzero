@@ -1,27 +1,46 @@
+// unordered_map<string, unordered_map<string, string>>:
 
-#include <stdio.h>
-#include <stc/cmap.h>
-#include <stc/cstr.h>
+#define i_key_str
+#define i_val_str
+#define i_tag sect
+#include <stc/csmap.h>
 
-// unordered_map<string, unordered_map<string, string>>: 
+#define i_key_str
+#define i_val csmap_sect
+#define i_valdel csmap_sect_del
+#define i_tag conf
+#include <stc/csmap.h>
 
-using_cmap_str();
-using_cmap_strkey(cfg, cmap_str, cmap_str_del, c_no_clone);
+void add(csmap_conf* map, const char* section, const char* entry, const char* value)
+{
+    csmap_sect *smap = &csmap_conf_insert(map, cstr_from(section), csmap_sect_init()).ref->second;
+    csmap_sect_emplace_or_assign(smap, entry, value);
+}
 
-int main(void) {
-    c_forvar (cmap_cfg cfg = cmap_cfg_init(), cmap_cfg_del(&cfg)) {
-        cmap_str init = cmap_str_init();
-        cmap_str_emplace(&cmap_cfg_insert(&cfg, cstr_from("user"), init).ref->second, "name", "Joe");
-        cmap_str_emplace(&cmap_cfg_insert(&cfg, cstr_from("user"), init).ref->second, "groups", "proj1,proj3");
-        cmap_str_emplace(&cmap_cfg_insert(&cfg, cstr_from("group"), init).ref->second, "proj1", "Energy");
-        cmap_str_emplace(&cmap_cfg_insert(&cfg, cstr_from("group"), init).ref->second, "proj2", "Windy");
-        cmap_str_emplace(&cmap_cfg_insert(&cfg, cstr_from("group"), init).ref->second, "proj3", "Oil");
-        cmap_str_emplace(&cmap_cfg_insert(&cfg, cstr_from("admin"), init).ref->second, "employees", "2302");
+bool contains(csmap_conf* map, const char* section, const char* entry)
+{
+    csmap_conf_value_t *val = csmap_conf_get(map, section);
+    return val && csmap_sect_get(&val->second, entry);
+}
 
-        cmap_str_emplace_or_assign(&cmap_cfg_insert(&cfg, cstr_from("group"), init).ref->second, "proj2", "Wind"); // Update
+int main(void)
+{
+    c_auto (csmap_conf, map)
+    {
+        add(&map, "user", "name", "Joe");
+        add(&map, "user", "groups", "proj1,proj3");
+        add(&map, "group", "proj1", "Energy");
+        add(&map, "group", "proj2", "Windy");
+        add(&map, "group", "proj3", "Oil");
+        add(&map, "admin", "employees", "2302");
+        add(&map, "group", "proj2", "Wind"); // Update
 
-        c_foreach (i, cmap_cfg, cfg)
-            c_foreach (j, cmap_str, i.ref->second)
-                printf("%s: %s - %s (%u)\n", i.ref->first.str, j.ref->first.str, j.ref->second.str, i.ref->second.bucket_count);
+        printf("contains: %d\n", contains(&map, "group", "employees"));
+        printf("contains: %d\n", contains(&map, "admin", "name"));
+        printf("contains: %d\n", contains(&map, "admin", "employees"));
+
+        c_foreach (i, csmap_conf, map)
+            c_foreach (j, csmap_sect, i.ref->second)
+                printf("%s: %s - %s\n", i.ref->first.str, j.ref->first.str, j.ref->second.str);
     }
 }

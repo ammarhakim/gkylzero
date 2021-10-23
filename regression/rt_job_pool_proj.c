@@ -89,7 +89,6 @@ proj_with_job_pool(const struct gkyl_job_pool *job_pool, const char *pname)
   struct timespec tstart = gkyl_wall_clock();
 
   // run projection updater on threads
-
   for (int tid=0; tid<max_thread; ++tid)
     gkyl_job_pool_add_work(job_pool, thread_worker, &td[tid]);
   gkyl_job_pool_wait(job_pool);

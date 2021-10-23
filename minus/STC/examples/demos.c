@@ -1,15 +1,9 @@
-#include <stc/cvec.h>
-#include <stc/clist.h>
-#include <stc/carray.h>
-#include <stc/cset.h>
-#include <stc/cmap.h>
 #include <stc/cstr.h>
-
 
 void stringdemo1()
 {
     printf("\nSTRINGDEMO1\n");
-    c_forvar (cstr cs = cstr_from("one-nine-three-seven-five"), cstr_del(&cs))
+    c_autovar (cstr cs = cstr_from("one-nine-three-seven-five"), cstr_del(&cs))
     {
         printf("%s.\n", cs.str);
 
@@ -34,13 +28,14 @@ void stringdemo1()
     }
 }
 
-
-using_cvec(ix, int64_t); // ix is just an example tag name.
+#define i_val int64_t
+#define i_tag ix
+#include <stc/cvec.h>
 
 void vectordemo1()
 {
     printf("\nVECTORDEMO1\n");
-    c_forvar (cvec_ix bignums = cvec_ix_with_capacity(100), cvec_ix_del(&bignums))
+    c_autovar (cvec_ix bignums = cvec_ix_with_capacity(100), cvec_ix_del(&bignums))
     {
         cvec_ix_reserve(&bignums, 100);
         for (size_t i = 10; i <= 100; i += 10)
@@ -58,13 +53,13 @@ void vectordemo1()
     }
 }
 
-
-using_cvec_str();
+#define i_val_str
+#include <stc/cvec.h>
 
 void vectordemo2()
 {
     printf("\nVECTORDEMO2\n");
-    c_forvar (cvec_str names = cvec_str_init(), cvec_str_del(&names)) {
+    c_autovar (cvec_str names = cvec_str_init(), cvec_str_del(&names)) {
         cvec_str_emplace_back(&names, "Mary");
         cvec_str_emplace_back(&names, "Joe");
         cvec_str_emplace_back(&names, "Chris");
@@ -77,13 +72,15 @@ void vectordemo2()
     }
 }
 
-using_clist(ix, int);
+#define i_val int
+#define i_tag ix
+#include <stc/clist.h>
 
 void listdemo1()
 {
     printf("\nLISTDEMO1\n");
-    c_forvar (clist_ix nums = clist_ix_init(), clist_ix_del(&nums))
-    c_forvar (clist_ix nums2 = clist_ix_init(), clist_ix_del(&nums2))
+    c_autovar (clist_ix nums = clist_ix_init(), clist_ix_del(&nums))
+    c_autovar (clist_ix nums2 = clist_ix_init(), clist_ix_del(&nums2))
     {
         for (int i = 0; i < 10; ++i)
             clist_ix_push_back(&nums, i);
@@ -99,7 +96,7 @@ void listdemo1()
         *clist_ix_find(&nums, 104).ref += 50;
         clist_ix_remove(&nums, 103);
         clist_ix_iter_t it = clist_ix_begin(&nums);
-        clist_ix_erase_range(&nums, clist_ix_fwd(it, 5), clist_ix_fwd(it, 15));
+        clist_ix_erase_range(&nums, clist_ix_advance(it, 5), clist_ix_advance(it, 15));
         clist_ix_pop_front(&nums);
         clist_ix_push_back(&nums, -99);
         clist_ix_sort(&nums);
@@ -109,7 +106,9 @@ void listdemo1()
     }
 }
 
-using_cset(i, int);
+#define i_key int
+#define i_tag i
+#include <stc/cset.h>
 
 void setdemo1()
 {
@@ -123,8 +122,10 @@ void setdemo1()
     cset_i_del(&nums);
 }
 
-
-using_cmap(ii, int, int);
+#define i_key int
+#define i_val int
+#define i_tag ii
+#include <stc/cmap.h>
 
 void mapdemo1()
 {
@@ -136,13 +137,15 @@ void mapdemo1()
     cmap_ii_del(&nums);
 }
 
-
-using_cmap_strkey(si, int); // Shorthand macro for the general using_cmap expansion.
+#define i_key_str
+#define i_val int
+#define i_tag si
+#include <stc/cmap.h>
 
 void mapdemo2()
 {
     printf("\nMAPDEMO2\n");
-    c_forvar (cmap_si nums = cmap_si_init(), cmap_si_del(&nums))
+    c_autovar (cmap_si nums = cmap_si_init(), cmap_si_del(&nums))
     {
         cmap_si_emplace_or_assign(&nums, "Hello", 64);
         cmap_si_emplace_or_assign(&nums, "Groovy", 121);
@@ -158,8 +161,9 @@ void mapdemo2()
     }
 }
 
-
-using_cmap_str();
+#define i_key_str
+#define i_val_str
+#include <stc/cmap.h>
 
 void mapdemo3()
 {
@@ -181,31 +185,34 @@ void mapdemo3()
     cmap_str_del(&table); // frees key and value cstrs, and hash table.
 }
 
-
-using_carray3(f, float);
+//#define i_prefix carray3 // backward compatible.
+#define i_val float
+#define i_tag f
+#include <stc/carr3.h>
 
 void arraydemo1()
 {
     printf("\nARRAYDEMO1\n");
-    carray3f arr3 = carray3f_with_values(30, 20, 10, 0.0f);
-    arr3.data[5][4][3] = 10.2f;
-    float **arr2 = arr3.data[5];
-    float *arr1 = arr3.data[5][4];
+    c_autovar (carr3_f arr3 = carr3_f_with_values(30, 20, 10, 0.0f), 
+                             carr3_f_del(&arr3))
+    {
+        arr3.data[5][4][3] = 10.2f;
+        float **arr2 = arr3.data[5];
+        float *arr1 = arr3.data[5][4];
 
-    printf("arr3: %zu: (%zu, %zu, %zu) = %zu\n", sizeof(arr3), arr3.xdim, arr3.ydim, arr3.zdim, carray3f_size(arr3));
+        printf("arr3: %zu: (%zu, %zu, %zu) = %zu\n", sizeof(arr3), 
+               arr3.xdim, arr3.ydim, arr3.zdim, carr3_f_size(arr3));
 
-    printf("%g\n", arr1[3]); // = 10.2
-    printf("%g\n", arr2[4][3]); // = 10.2
-    printf("%g\n", arr3.data[5][4][3]); // = 10.2
+        printf("%g\n", arr1[3]); // = 10.2
+        printf("%g\n", arr2[4][3]); // = 10.2
+        printf("%g\n", arr3.data[5][4][3]); // = 10.2
 
-    float x = 0.0;
-    c_foreach (i, carray3f, arr3)
-        *i.ref = ++x;
-    printf("%g\n", arr3.data[29][19][9]); // = 6000
-
-    carray3f_del(&arr3);
+        float x = 0.0;
+        c_foreach (i, carr3_f, arr3)
+            *i.ref = ++x;
+        printf("%g\n", arr3.data[29][19][9]); // = 6000
+    }
 }
-
 
 
 int main()

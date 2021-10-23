@@ -1,14 +1,17 @@
 #include <stdio.h>
 #include <time.h>
-#include <stc/clist.h>
 #include <stc/crandom.h>
-using_clist(fx, double);
+
+#define i_val double
+#define i_tag fx
+#include <stc/clist.h>
 
 int main() {
     int k;
     const int n = 2000000;
 
-    c_forvar (clist_fx list = clist_fx_init(), clist_fx_del(&list)) {
+    c_auto (clist_fx, list) 
+    {
         stc64_t rng = stc64_init(1234);
         stc64_uniformf_t dist = stc64_uniformf_init(100.0f, n);
         int m = 0;
@@ -33,7 +36,7 @@ int main() {
         puts("");
 
         clist_fx_clear(&list);
-        c_emplace(clist_fx, list, {10, 20, 30, 40, 30, 50});
+        c_apply(clist_fx, push_back, &list, {10, 20, 30, 40, 30, 50});
         c_foreach (i, clist_fx, list) printf(" %g", *i.ref);
         puts("");
 
@@ -46,7 +49,7 @@ int main() {
         c_foreach (i, clist_fx, list)
             printf(" %g", *i.ref);
         printf("\nSubs: ");
-        c_foreach (i, clist_fx, clist_fx_fwd(it, 4), clist_fx_end(&list))
+        c_foreach (i, clist_fx, clist_fx_advance(it, 4), clist_fx_end(&list))
             printf(" %g", *i.ref);
         puts("");
     }

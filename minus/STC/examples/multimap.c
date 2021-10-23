@@ -1,5 +1,3 @@
-#include <stc/csmap.h>
-#include <stc/clist.h>
 #include <stc/cstr.h>
 #include <stdio.h>
 
@@ -35,7 +33,6 @@ struct OlympicsData { int year; const char *city, *country, *date; } ol_data[] =
     {1924, "Chamonix", "France", "January 25 - February 5"},
 };
 
-
 typedef struct { int year; cstr city, date; } OlympicLocation;
 
 int OlympicLocation_compare(OlympicLocation* a, OlympicLocation* b) {
@@ -46,36 +43,44 @@ void OlympicLocation_del(OlympicLocation* self) {
 }
 
 // Create a clist<OlympicLocation>, can be sorted by year.
-using_clist(OL, OlympicLocation, OlympicLocation_compare, OlympicLocation_del);
+#define i_val OlympicLocation
+#define i_cmp OlympicLocation_compare
+#define i_del OlympicLocation_del
+#define i_tag OL
+#include <stc/clist.h>
 
-// Create a csmap<cstr, clist_OL> where key is country
-using_csmap_strkey(OL, clist_OL, clist_OL_del, c_no_clone);
-
+// Create a csmap<cstr, clist_OL> where key is country name
+#define i_key_str
+#define i_val clist_OL
+#define i_valdel clist_OL_del
+#define i_tag OL
+#include <stc/csmap.h>
 
 int main()
 {
     // Define the multimap with destructor defered to when block is completed.
-    c_forvar (csmap_OL multimap = csmap_OL_init(), csmap_OL_del(&multimap))
+    c_auto (csmap_OL, multimap)
     {
-        clist_OL empty = clist_OL_init();
+        const clist_OL empty = clist_OL_init();
 
         for (int i = 0; i < c_arraylen(ol_data); ++i)
         {
-            struct OlympicsData* it = &ol_data[i];
-            OlympicLocation loc = {.year = it->year,
-                                   .city = cstr_from(it->city),
-                                   .date = cstr_from(it->date)};
+            struct OlympicsData* d = &ol_data[i];
+            OlympicLocation loc = {.year = d->year,
+                                   .city = cstr_from(d->city),
+                                   .date = cstr_from(d->date)};
             // Insert an empty list for each new country, and append the entry to the list.
-            // If list already exist in map, it returns it from the insert function.
-            clist_OL_push_back(&csmap_OL_insert(&multimap, cstr_from(it->country), empty).ref->second, loc);
+            // If country already exist in map, its list is returned from the insert function.
+            clist_OL* list = &csmap_OL_insert(&multimap, cstr_from(d->country), empty).ref->second;
+            clist_OL_push_back(list, loc);
         }
-
-        // Iterate the multimap:
+        // Sort locations by year for each country.
         c_foreach (country, csmap_OL, multimap)
-        {
-            // Sort locations by year for each country.
             clist_OL_sort(&country.ref->second);
 
+        // Print the multimap:
+        c_foreach (country, csmap_OL, multimap)
+        {
             // Loop the locations for a country sorted by year
             c_foreach (loc, clist_OL, country.ref->second)
                 printf("%s: %d, %s, %s\n", country.ref->first.str, loc.ref->year,

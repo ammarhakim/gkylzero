@@ -12,36 +12,32 @@ See the c++ class [std::vector](https://en.cppreference.com/w/cpp/container/vect
 ## Header file and declaration
 
 ```c
+#define i_val       // value: REQUIRED
+#define i_cmp       // three-way compare two i_valraw* : REQUIRED IF i_valraw is a non-integral type
+#define i_del       // destroy value func - defaults to empty destruct
+#define i_valraw    // convertion "raw" type - defaults to i_val
+#define i_valfrom   // convertion func i_valraw => i_val - defaults to plain copy
+#define i_valto     // convertion func i_val* => i_valraw - defaults to plain copy
+#define i_tag       // defaults to i_val
 #include <stc/cvec.h>
-
-using_cvec(X, Value);
-using_cvec(X, Value, valueCompare);
-using_cvec(X, Value, valueCompare, valueDel, valueClone = c_no_clone);
-using_cvec(X, Value, valueCompareRaw, valueDel, valueFromRaw, valueToRaw, RawValue);
-
-using_cvec_str();    // using_cvec(str, cstr, ...)
 ```
-The macro `using_cvec()` must be instantiated in the global scope. `X` is a type tag name and
-will affect the names of all cvec types and methods. E.g. declaring `using_cvec(i, int);`, `X` should
-be replaced by `i` in all of the following documentation.
+`X` should be replaced by the value of `i_tag` in all of the following documentation.
 
-`using_cvec_str()` is a shorthand for:
-```
-using_cvec(str, cstr, c_rawstr_compare, cstr_del, cstr_from, cstr_str, const char*)
-```
+`i_del` may be defined instead of `i_valdel` (or `i_keydel`) for all non-map containers.
 
 ## Methods
 
 ```c
 cvec_X              cvec_X_init(void);
-cvec_X              cvec_X_with_size(size_t size, Value fill);
+cvec_X              cvec_X_with_size(size_t size, i_val fill);
 cvec_X              cvec_X_with_capacity(size_t size);
 cvec_X              cvec_X_clone(cvec_X vec);
 
 void                cvec_X_clear(cvec_X* self);
+void                cvec_X_copy(cvec_X* self, cvec_X other);
 void                cvec_X_shrink_to_fit(cvec_X* self);
 void                cvec_X_reserve(cvec_X* self, size_t cap);
-void                cvec_X_resize(cvec_X* self, size_t size, Value fill);
+void                cvec_X_resize(cvec_X* self, size_t size, i_val fill);
 void                cvec_X_swap(cvec_X* a, cvec_X* b);
 void                cvec_X_del(cvec_X* self);      // destructor
 
@@ -53,36 +49,36 @@ cvec_X_value_t*     cvec_X_at(const cvec_X* self, size_t idx);
 cvec_X_value_t*     cvec_X_front(const cvec_X* self);
 cvec_X_value_t*     cvec_X_back(const cvec_X* self);
 
-void                cvec_X_push_back(cvec_X* self, Value value);
-void                cvec_X_emplace_back(cvec_X* self, RawValue raw);
+cvec_X_value_t*     cvec_X_push_back(cvec_X* self, i_val value);
+cvec_X_value_t*     cvec_X_emplace_back(cvec_X* self, i_valraw raw);
 void                cvec_X_pop_back(cvec_X* self);
 
-cvec_X_iter_t       cvec_X_insert(cvec_X* self, size_t idx, Value value);                        // move value 
-cvec_X_iter_t       cvec_X_insert_n(cvec_X* self, size_t idx, const Value[] arr, size_t n);      // move arr values
-cvec_X_iter_t       cvec_X_insert_at(cvec_X* self, cvec_X_iter_t it, Value value);               // move value 
+cvec_X_iter_t       cvec_X_insert(cvec_X* self, size_t idx, i_val value);                        // move value 
+cvec_X_iter_t       cvec_X_insert_n(cvec_X* self, size_t idx, const i_val[] arr, size_t n);      // move arr values
+cvec_X_iter_t       cvec_X_insert_at(cvec_X* self, cvec_X_iter_t it, i_val value);               // move value 
 
-cvec_X_iter_t       cvec_X_emplace(cvec_X* self, size_t idx, RawValue raw);
-cvec_X_iter_t       cvec_X_emplace_n(cvec_X* self, size_t idx, const RawValue[] arr, size_t n);
-cvec_X_iter_t       cvec_X_emplace_at(cvec_X* self, cvec_X_iter_t it, RawValue raw);
+cvec_X_iter_t       cvec_X_emplace(cvec_X* self, size_t idx, i_valraw raw);
+cvec_X_iter_t       cvec_X_emplace_n(cvec_X* self, size_t idx, const i_valraw[] arr, size_t n);
+cvec_X_iter_t       cvec_X_emplace_at(cvec_X* self, cvec_X_iter_t it, i_valraw raw);
 cvec_X_iter_t       cvec_X_emplace_range(cvec_X* self, cvec_X_iter_t it, 
                                          cvec_X_iter_t it1, cvec_X_iter_t it2);                 // will clone
-cvec_X_iter_t       cvec_X_emplace_range_p(cvec_X* self, Value* pos, 
-                                           const Value* p1, const Value* p2);
+cvec_X_iter_t       cvec_X_emplace_range_p(cvec_X* self, i_val* pos, 
+                                           const i_val* p1, const i_val* p2);
 
 cvec_X_iter_t       cvec_X_erase(cvec_X* self, size_t idx);
 cvec_X_iter_t       cvec_X_erase_n(cvec_X* self, size_t idx, size_t n);
 cvec_X_iter_t       cvec_X_erase_at(cvec_X* self, cvec_X_iter_t it);
 cvec_X_iter_t       cvec_X_erase_range(cvec_X* self, cvec_X_iter_t it1, cvec_X_iter_t it2);
 
-cvec_X_iter_t       cvec_X_find(const cvec_X* self, RawValue raw);
-cvec_X_iter_t       cvec_X_find_in(cvec_X_iter_t i1, cvec_X_iter_t i2, RawValue raw);
-cvec_X_value_t*     cvec_X_get(const cvec_X* self, RawValue raw);                             // return NULL if not found
-cvec_X_iter_t       cvec_X_bsearch(const cvec_X* self, RawValue raw);
-cvec_X_iter_t       cvec_X_bsearch_in(cvec_X_iter_t i1, cvec_X_iter_t i2, RawValue raw);
+cvec_X_iter_t       cvec_X_find(const cvec_X* self, i_valraw raw);
+cvec_X_iter_t       cvec_X_find_in(cvec_X_iter_t i1, cvec_X_iter_t i2, i_valraw raw);
+cvec_X_value_t*     cvec_X_get(const cvec_X* self, i_valraw raw);                             // return NULL if not found
+cvec_X_iter_t       cvec_X_bsearch(const cvec_X* self, i_valraw raw);
+cvec_X_iter_t       cvec_X_bsearch_in(cvec_X_iter_t i1, cvec_X_iter_t i2, i_valraw raw);
 
 void                cvec_X_sort(cvec_X* self);
 void                cvec_X_sort_range(cvec_X_iter_t i1, cvec_X_iter_t i2,
-                                      int(*cmp)(const Value*, const Value*));
+                                      int(*cmp)(const i_val*, const i_val*));
 
 cvec_X_iter_t       cvec_X_begin(const cvec_X* self);
 cvec_X_iter_t       cvec_X_end(const cvec_X* self);
@@ -97,16 +93,17 @@ cvec_X_value_t      cvec_X_value_clone(cvec_X_value_t val);
 | Type name            | Type definition                     | Used to represent...   |
 |:---------------------|:------------------------------------|:-----------------------|
 | `cvec_X`             | `struct { cvec_X_value_t* data; }`  | The cvec type          |
-| `cvec_X_value_t`     | `Value`                             | The cvec value type    |
-| `cvec_X_rawvalue_t`  | `RawValue`                          | The raw value type     |
+| `cvec_X_value_t`     | `i_val`                             | The cvec value type    |
+| `cvec_X_rawvalue_t`  | `i_valraw`                          | The raw value type     |
 | `cvec_X_iter_t`      | `struct { cvec_X_value_t* ref; }`   | The iterator type      |
 
 ## Examples
 ```c
+#define i_val int
+#define i_tag i
 #include <stc/cvec.h>
-#include <stdio.h>
 
-using_cvec(i, int);
+#include <stdio.h>
 
 int main()
 {
@@ -118,7 +115,7 @@ int main()
     cvec_i_push_back(&vec, 13);
 
     // Append a set of numbers
-    c_emplace(cvec_i, vec, {7, 5, 16, 8});
+    c_apply(cvec_i, push_back, &vec, {7, 5, 16, 8});
 
     printf("initial:");
     c_foreach (k, cvec_i, vec) {
@@ -143,10 +140,10 @@ sorted: 5 7 8 13 16 25
 ```
 ### Example 2
 ```c
-#include <stc/cvec.h>
 #include <stc/cstr.h>
 
-using_cvec_str();
+#define i_val_str
+#include <stc/cvec.h>
 
 int main() {
     cvec_str names = cvec_str_init();
@@ -178,7 +175,6 @@ item: 2 elements so far
 Container with elements of structs:
 ```c
 #include <stc/cstr.h>
-#include <stc/cvec.h>
 
 typedef struct {
     cstr name; // dynamic string
@@ -197,8 +193,14 @@ User User_clone(User user) {
     return user;
 }
 
-// declare a memory managed, clonable vector of users:
-using_cvec(u, User, User_compare, User_del, User_clone);
+// Declare a memory managed, clonable vector of users.
+// Note that cvec_u_emplace_back() will clone input:
+#define i_val User
+#define i_cmp User_compare
+#define i_del User_del
+#define i_valfrom User_clone
+#define i_tag u
+#include <stc/cvec.h>
 
 int main(void) {
     cvec_u vec = cvec_u_init();

@@ -1,21 +1,30 @@
-#include <stc/csmap.h>
-#include <stc/cvec.h>
-#include <stc/csview.h>
+#include <stc/cstr.h>
 #include <stdio.h>
 
 // This implements the std::map insert c++ example at:
 // https://docs.microsoft.com/en-us/cpp/standard-library/map-class?view=msvc-160#example-19
 
+#define i_key int
+#define i_val int
+#define i_tag ii  // Map of int => int
+#include <stc/csmap.h>
 
-using_csmap(ii, int, int);     // Map of int => int
-using_csmap_strval(istr, int); // Map of int => cstr
-using_cvec(ii, csmap_ii_rawvalue_t, c_no_compare);
+#define i_key int
+#define i_val_str
+#define i_tag istr // Map of int => cstr
+#include <stc/csmap.h>
+
+#define i_val csmap_ii_rawvalue_t
+#define i_cmp c_no_compare
+#define i_tag ii
+#include <stc/cvec.h>
 
 void print_ii(csmap_ii map) {
     c_foreach (e, csmap_ii, map)
         printf("(%d, %d) ", e.ref->first, e.ref->second);
     puts("");
 }
+
 void print_istr(csmap_istr map) {
     c_foreach (e, csmap_istr, map)
         printf("(%d, %s) ", e.ref->first, e.ref->second.str);
@@ -25,7 +34,7 @@ void print_istr(csmap_istr map) {
 int main()
 {
     // insert single values
-    c_forvar (csmap_ii m1 = csmap_ii_init(), csmap_ii_del(&m1)) {
+    c_auto (csmap_ii, m1) {
         csmap_ii_insert(&m1, 1, 10);
         csmap_ii_insert(&m1, 2, 20);
 
@@ -52,27 +61,28 @@ int main()
     }
 
     // The templatized version inserting a jumbled range
-    c_forvar (csmap_ii m2 = csmap_ii_init(), csmap_ii_del(&m2))
-    c_forvar (cvec_ii v = cvec_ii_init(), cvec_ii_del(&v)) {
-        cvec_ii_push_back(&v, (cvec_ii_value_t){43, 294});
-        cvec_ii_push_back(&v, (cvec_ii_value_t){41, 262});
-        cvec_ii_push_back(&v, (cvec_ii_value_t){45, 330});
-        cvec_ii_push_back(&v, (cvec_ii_value_t){42, 277});
-        cvec_ii_push_back(&v, (cvec_ii_value_t){44, 311});
+    c_auto (csmap_ii, m2)
+    c_auto (cvec_ii, v) {
+        typedef cvec_ii_value_t ipair;
+        cvec_ii_push_back(&v, (ipair){43, 294});
+        cvec_ii_push_back(&v, (ipair){41, 262});
+        cvec_ii_push_back(&v, (ipair){45, 330});
+        cvec_ii_push_back(&v, (ipair){42, 277});
+        cvec_ii_push_back(&v, (ipair){44, 311});
 
         puts("Inserting the following vector data into m2:");
         c_foreach (e, cvec_ii, v) printf("(%d, %d) ", e.ref->first, e.ref->second);
         puts("");
 
-        csmap_ii_emplace_items(&m2, v.data, cvec_ii_size(v));
+        c_foreach (e, cvec_ii, v) csmap_ii_put(&m2, e.ref->first, e.ref->second);
 
         puts("The modified key and mapped values of m2 are:");
-        c_foreach (e, cvec_ii, v) printf("(%d, %d) ", e.ref->first, e.ref->second);
+        c_foreach (e, csmap_ii, m2) printf("(%d, %d) ", e.ref->first, e.ref->second);
         puts("\n");
     }
 
     // The templatized versions move-constructing elements
-    c_forvar (csmap_istr m3 = csmap_istr_init(), csmap_istr_del(&m3)) {
+    c_auto (csmap_istr, m3) {
         csmap_istr_value_t ip1 = {475, cstr_lit("blue")}, ip2 = {510, cstr_lit("green")};
 
         // single element
@@ -87,9 +97,9 @@ int main()
         puts("");
     }
 
-    c_forvar (csmap_ii m4 = csmap_ii_init(), csmap_ii_del(&m4)) {
+    c_auto (csmap_ii, m4) {
         // Insert the elements from an initializer_list
-        c_emplace(csmap_ii, m4, { { 4, 44 }, { 2, 22 }, { 3, 33 }, { 1, 11 }, { 5, 55 } });
+        c_apply_pair(csmap_ii, insert, &m4, { { 4, 44 }, { 2, 22 }, { 3, 33 }, { 1, 11 }, { 5, 55 } });
         puts("After initializer_list insertion, m4 contains:");
         print_ii(m4);
         puts("");
