@@ -13,14 +13,19 @@
 #include <gkyl_block_topo.h>
 #include <gkyl_fv_proj.h>
 #include <gkyl_moment.h>
+#include <gkyl_null_pool.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_apply_bc.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_thread_pool.h>
 #include <gkyl_util.h>
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_maxwell.h>
+#include <rt_arg_parse.h>
+
+#include <thpool.h>
 
 // Gas constant
 static const double gas_gamma = 1.4;
@@ -345,9 +350,32 @@ struct sim_stats {
   int nfail;
 };
 
+// context and functions for various tasks
+void
+init_job_func(void *ctx)
+{
+  struct block_data *bdata = ctx;
+  gkyl_fv_proj_advance(bdata->fv_proj, 0.0, &bdata->ext_range, bdata->f[0]);
+}
+
+struct copy_job_ctx {
+  int bidx;
+  const struct gkyl_array *inp;
+  struct gkyl_array *out;
+};
+void
+copy_job_func(void *ctx)
+{
+  struct copy_job_ctx *jctx = ctx;
+  //printf("Inside copy_job_func with index %d\n", jctx->bidx);
+  gkyl_array_copy(jctx->out, jctx->inp);
+}
+
+
 // function that takes a time-step
 struct gkyl_update_status
-update(const struct gkyl_block_topo *btopo, const struct block_data bdata[],
+update(struct gkyl_job_pool *job_pool,
+  const struct gkyl_block_topo *btopo, const struct block_data bdata[],
   double tcurr, double dt0, struct sim_stats *stats)
 {
   int num_blocks = btopo->num_blocks;
@@ -362,6 +390,8 @@ update(const struct gkyl_block_topo *btopo, const struct block_data bdata[],
     UPDATE_REDO,
   } state = PRE_UPDATE;
 
+  struct copy_job_ctx copy_ctx[num_blocks];
+
   double dt = dt0;
   while (state != UPDATE_DONE) {
     switch (state) {
@@ -369,12 +399,22 @@ update(const struct gkyl_block_topo *btopo, const struct block_data bdata[],
         state = FLUID_UPDATE; // next state
           
         // copy old solution in case we need to redo this step
+
+        // create context objects ...
         for (int i=0; i<num_blocks; ++i)
-          gkyl_array_copy(bdata[i].fdup, bdata[i].f[0]);
+          copy_ctx[i] = (struct copy_job_ctx) {
+            .bidx = i,
+            .inp = bdata[i].f[0],
+            .out = bdata[i].fdup
+          };
+
+        // ... run jobs
+        for (int i=0; i<num_blocks; ++i)
+          gkyl_job_pool_add_work(job_pool, copy_job_func, &copy_ctx[i]);
+        gkyl_job_pool_wait(job_pool);
 
         break;
           
-      
       case FLUID_UPDATE:
         state = POST_UPDATE; // next state
           
@@ -393,17 +433,35 @@ update(const struct gkyl_block_topo *btopo, const struct block_data bdata[],
         state = UPDATE_DONE;
 
         // copy solution in prep for next time-step
+
         for (int i=0; i<num_blocks; ++i)
-          gkyl_array_copy(bdata[i].f[0], bdata[i].f[2]);
+          copy_ctx[i] = (struct copy_job_ctx) {
+            .bidx = i,
+            .inp = bdata[i].f[2],
+            .out = bdata[i].f[0]
+          };
+        
+        for (int i=0; i<num_blocks; ++i)
+          gkyl_job_pool_add_work(job_pool, copy_job_func, &copy_ctx[i]);
+        gkyl_job_pool_wait(job_pool);
           
         break;
 
       case UPDATE_REDO:
         state = PRE_UPDATE; // start all-over again
-          
+
         // restore solution and retake step
+
         for (int i=0; i<num_blocks; ++i)
-          gkyl_array_copy(bdata[i].f[0], bdata[i].fdup);
+          copy_ctx[i] = (struct copy_job_ctx) {
+            .bidx = i,
+            .inp = bdata[i].fdup,
+            .out = bdata[i].f[0]
+          };
+        
+        for (int i=0; i<num_blocks; ++i)
+          gkyl_job_pool_add_work(job_pool, copy_job_func, &copy_ctx[i]);
+        gkyl_job_pool_wait(job_pool);
           
         break;
 
@@ -443,8 +501,14 @@ max_dt(int num_blocks, const struct block_data bdata[])
 int
 main(int argc, char **argv)
 {
+  struct gkyl_app_args app_args = parse_app_args(argc, argv);
+  
   int num_blocks = 3, nx = 128, ny = 128;
   struct block_data bdata[num_blocks];
+
+  // create as many threads as there are blocks
+  struct gkyl_job_pool *job_pool = gkyl_thread_pool_new(num_blocks);
+  //struct gkyl_job_pool *job_pool = gkyl_null_pool_new(num_blocks);
 
   // construct grid for each block
   gkyl_rect_grid_init(&bdata[0].grid, 2,
@@ -502,7 +566,8 @@ main(int argc, char **argv)
 
   // apply initial conditions
   for (int i=0; i<num_blocks; ++i)
-    gkyl_fv_proj_advance(bdata[i].fv_proj, 0.0, &bdata[i].ext_range, bdata[i].f[0]);
+    gkyl_job_pool_add_work(job_pool, init_job_func, &bdata[i]);
+  gkyl_job_pool_wait(job_pool);
 
   // write initial conditions to file
   write_sol("euler_multiblock_0", num_blocks, bdata);
@@ -513,10 +578,10 @@ main(int argc, char **argv)
 
   struct sim_stats stats = { };
 
-  long step = 1;
-  while (tcurr < tend) {
+  long step = 1, num_steps = app_args.num_steps;
+  while ((tcurr < tend) && (step <= num_steps)) {
     printf("Taking time-step %ld at t = %g ...", step, tcurr);
-    struct gkyl_update_status status = update(btopo, bdata, tcurr, dt, &stats);
+    struct gkyl_update_status status = update(job_pool, btopo, bdata, tcurr, dt, &stats);
     printf(" dt = %g\n", status.dt_actual);
     
     if (!status.success) {
