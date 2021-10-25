@@ -308,38 +308,74 @@ block_data_max_dt(const struct block_data *bdata)
   return dt;
 }
 
+// job pool info for updating blocks
+struct update_block_ctx {
+  const struct block_data *bdata; // block data
+  int bidx; // block index (for debuging)
+  int dir; // direction
+  double tcurr, dt; // current time and time-step
+  struct gkyl_wave_prop_status stat; // status of wave propagation (on output)
+};
+
+void
+update_block_job_func(void *ctx)
+{
+  struct update_block_ctx *ubctx = ctx;
+  int d = ubctx->dir;
+  double tcurr = ubctx->tcurr, dt = ubctx->dt;
+  const struct block_data *bdata = ubctx->bdata;
+
+  // run wave-prop updater
+  ubctx->stat = gkyl_wave_prop_advance(bdata->slvr[d], tcurr, dt,
+    &bdata->range, bdata->f[d], bdata->f[d+1]);
+
+  // apply block-local boundary conditions
+  block_bc_updaters_apply(bdata, tcurr, bdata->f[d+1]);
+}
+
 struct gkyl_update_status
-update_all_blocks(const struct gkyl_block_topo *btopo, const struct block_data bdata[], double tcurr, double dt)
+update_all_blocks(const struct gkyl_job_pool *job_pool,
+  const struct gkyl_block_topo *btopo, const struct block_data bdata[], double tcurr, double dt)
 {
   int num_blocks = btopo->num_blocks;
   double dt_suggested = DBL_MAX;
-  struct gkyl_wave_prop_status stat;
-  
+
+
   for (int d=0; d<2; ++d) {
 
-    struct gkyl_array *fld[num_blocks]; // VLA HERE PROBABLY NOT A GOOD IDEA!!
+    // initialize block ctx data
+    struct update_block_ctx block_ctx[num_blocks];
+    for (int i=0; i<num_blocks; ++i)
+      block_ctx[i] = (struct update_block_ctx) {
+        .bdata = &bdata[i],
+        .tcurr = tcurr,
+        .dir = d,
+        .dt = dt,
+        .bidx = i,
+    };
+    
+    for (int i=0; i<num_blocks; ++i)
+      gkyl_job_pool_add_work(job_pool, update_block_job_func, &block_ctx[i]);
+    gkyl_job_pool_wait(job_pool);
   
+    struct gkyl_array *fld[num_blocks];
     for (int i=0; i<num_blocks; ++i) {
-      stat = gkyl_wave_prop_advance(bdata[i].slvr[d], tcurr, dt,
-        &bdata[i].range, bdata[i].f[d], bdata[i].f[d+1]);
 
-      if (stat.success == 0) {
+      // return immediately if a block failed
+      if (block_ctx[i].stat.success == 0)
         return (struct gkyl_update_status) {
           .success = 0,
-          .dt_suggested = stat.dt_suggested
+          .dt_suggested = block_ctx[i].stat.dt_suggested
         };
-      }
 
-      dt_suggested = fmin(dt_suggested, stat.dt_suggested);
-
-      block_bc_updaters_apply(&bdata[i], tcurr, bdata[i].f[d+1]);
-      fld[i] = bdata[i].f[d+1];
+      dt_suggested = fmin(dt_suggested, block_ctx[i].stat.dt_suggested);
+      fld[i] = bdata[i].f[d+1]; // for use in block-boundary sync
     }
 
     // sync all block boundaries
     sync_blocks(btopo, bdata, fld);
   }
-
+  
   return (struct gkyl_update_status) {
     .success = 1,
     .dt_suggested = dt_suggested
@@ -374,7 +410,7 @@ copy_job_func(void *ctx)
 
 // function that takes a time-step
 struct gkyl_update_status
-update(struct gkyl_job_pool *job_pool,
+update(const struct gkyl_job_pool *job_pool,
   const struct gkyl_block_topo *btopo, const struct block_data bdata[],
   double tcurr, double dt0, struct sim_stats *stats)
 {
@@ -418,7 +454,7 @@ update(struct gkyl_job_pool *job_pool,
       case FLUID_UPDATE:
         state = POST_UPDATE; // next state
           
-        struct gkyl_update_status s = update_all_blocks(btopo, bdata, tcurr, dt);
+        struct gkyl_update_status s = update_all_blocks(job_pool, btopo, bdata, tcurr, dt);
         if (!s.success) {
           stats->nfail += 1;
           dt = s.dt_suggested;
@@ -506,9 +542,7 @@ main(int argc, char **argv)
   int num_blocks = 3, nx = 128, ny = 128;
   struct block_data bdata[num_blocks];
 
-  // create as many threads as there are blocks
-  struct gkyl_job_pool *job_pool = gkyl_thread_pool_new(num_blocks);
-  //struct gkyl_job_pool *job_pool = gkyl_null_pool_new(num_blocks);
+  struct gkyl_job_pool *job_pool = gkyl_thread_pool_new(app_args.num_threads);
 
   // construct grid for each block
   gkyl_rect_grid_init(&bdata[0].grid, 2,
@@ -578,6 +612,8 @@ main(int argc, char **argv)
 
   struct sim_stats stats = { };
 
+  struct timespec tm_start = gkyl_wall_clock();
+
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
     printf("Taking time-step %ld at t = %g ...", step, tcurr);
@@ -592,11 +628,13 @@ main(int argc, char **argv)
     dt = status.dt_suggested;
 
     step += 1;
-  }  
+  }
+
+  double tm_total_sec = gkyl_time_diff_now_sec(tm_start);
 
   write_sol("euler_multiblock_1", num_blocks, bdata);
 
-  printf("Total failed steps %d\n", stats.nfail);
+  printf("Total run-time: %g. failed steps: %d\n", tm_total_sec, stats.nfail);
 
   // free data
   for (int i=0; i<num_blocks; ++i) {
