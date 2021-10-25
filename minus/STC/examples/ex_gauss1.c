@@ -3,19 +3,23 @@
 #include <math.h>
 #include <stc/crandom.h>
 #include <stc/cstr.h>
-#include <stc/cmap.h>
-#include <stc/cvec.h>
 
 // Declare int -> int hashmap. Uses typetag 'ii' for ints.
-using_cmap(ii, int32_t, size_t);
+#define i_key int32_t
+#define i_val size_t
+#define i_tag ii
+#include <stc/cmap.h>
 
 // Declare int vector with map entries that can be sorted by map keys.
-typedef struct {int first; size_t second;} mapval;
+struct {int first; size_t second;} typedef mapval;
 static int compare(mapval *a, mapval *b) {
     return c_default_compare(&a->first, &b->first);
 }
 
-using_cvec(pair, mapval, compare);
+#define i_val mapval
+#define i_cmp compare
+#define i_tag pair
+#include <stc/cvec.h>
 
 int main()
 {
@@ -30,8 +34,8 @@ int main()
     stc64_normalf_t dist = stc64_normalf_init(Mean, StdDev);
 
     // Create and init histogram vec and map with defered destructors:
-    c_forauto (cvec_pair, histvec)
-    c_forauto (cmap_ii, histmap)
+    c_auto (cvec_pair, histvec)
+    c_auto (cmap_ii, histmap)
     {
         c_forrange (N) {
             int index = (int) round( stc64_normalf(&rng, &dist) );
@@ -45,7 +49,7 @@ int main()
         cvec_pair_sort(&histvec);
 
         // Print the gaussian bar chart
-        c_forauto (cstr, bar)
+        c_auto (cstr, bar)
         c_foreach (i, cvec_pair, histvec) {
             size_t n = (size_t) (i.ref->second * StdDev * Scale * 2.5 / (float)N);
             if (n > 0) {

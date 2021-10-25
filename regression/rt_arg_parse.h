@@ -15,6 +15,7 @@ struct gkyl_app_args {
   bool use_gpu; // should this be run on GPU?
   bool step_mode; // run for fixed number of steps? (for valgrind/cuda-memcheck)
   int num_steps; // number of steps
+  int num_threads; // number of threads
   char file_name[1024]; // name of input file
   enum gkyl_basis_type basis_type; // type of basis functions to use
 };
@@ -37,6 +38,7 @@ parse_app_args(int argc, char **argv)
   bool use_gpu = false;
   bool step_mode = false;
   int num_steps = INT_MAX;
+  int num_threads = 1; // by default use only 1 thread
 
   struct gkyl_app_args args;
 
@@ -44,13 +46,14 @@ parse_app_args(int argc, char **argv)
   args.basis_type = GKYL_BASIS_MODAL_SERENDIPITY;
 
   int c;
-  while ((c = getopt(argc, argv, "+hgs:i:b:")) != -1) {
+  while ((c = getopt(argc, argv, "+hgt:s:i:b:")) != -1) {
     switch (c)
     {
       case 'h':
-        printf("Usage: <app_name> -g -s num_steps -i inp_file -b [ms|mt]\n");
+        printf("Usage: <app_name> -g -s num_steps -t num_threads -i inp_file -b [ms|mt]\n");
         printf(" -g     Run on GPUs if GPUs are present and code built for GPUs\n");
         printf(" -sN    Only run N steps of simulation\n");
+        printf(" -tN    Use N threads (when available)\n");        
         printf(" -b     Basis function to use (ms: Modal serendipity; mt: Modal tensor-product)\n");
         printf("        (Ignored for finite-volume solvers)\n");
         exit(-1);
@@ -64,6 +67,10 @@ parse_app_args(int argc, char **argv)
         step_mode = true;
         num_steps = atoi(optarg);
         break;
+
+      case 't':
+        num_threads = atoi(optarg);
+        break;        
 
       case 'i':
         strcpy(args.file_name, optarg);
@@ -82,6 +89,7 @@ parse_app_args(int argc, char **argv)
   args.use_gpu = use_gpu;
   args.step_mode = step_mode;
   args.num_steps = num_steps;
+  args.num_threads = num_threads;
 
   return args;
 }

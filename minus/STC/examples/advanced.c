@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <stc/cmap.h>
 #include <stc/cstr.h>
 
 typedef struct Viking {
@@ -20,7 +19,7 @@ typedef struct VikingRaw {
 } VikingRaw;
 
 uint64_t vikingraw_hash(const VikingRaw* raw, size_t ignore) {
-    uint64_t hash = c_string_hash(raw->name) ^ (c_string_hash(raw->country) >> 15);
+    uint64_t hash = c_strhash(raw->name) ^ (c_strhash(raw->country) >> 15);
     return hash;
 }
 static inline int vikingraw_equals(const VikingRaw* rx, const VikingRaw* ry) {
@@ -34,18 +33,25 @@ static inline VikingRaw viking_toRaw(const Viking* vk) {
     return c_make(VikingRaw){vk->name.str, vk->country.str};
 }
 
-// With this in place, we use the using_cmap_keydef() macro to define {Viking -> int} hash map type:
-
-using_cmap_keydef(vk, Viking, int, vikingraw_equals, vikingraw_hash,
-                      viking_del, viking_fromRaw, viking_toRaw, VikingRaw, c_true);
+// With this in place, we define the Viking => int hash map type:
+#define i_tag     vk
+#define i_key     Viking
+#define i_val     int
+#define i_equ     vikingraw_equals
+#define i_hash    vikingraw_hash
+#define i_keyraw  VikingRaw
+#define i_keyfrom viking_fromRaw
+#define i_keyto   viking_toRaw
+#define i_keydel  viking_del
+#include <stc/cmap.h>
 
 int main()
 {
-    c_forvar (cmap_vk vikings = cmap_vk_init(), cmap_vk_del(&vikings)) {
-        c_emplace(cmap_vk, vikings, {
-            { {"Einar", "Norway"}, 20},
-            { {"Olaf", "Denmark"}, 24},
-            { {"Harald", "Iceland"}, 12},
+    c_auto (cmap_vk, vikings) {
+        c_apply_pair(cmap_vk, emplace, &vikings, {
+            {{"Einar", "Norway"}, 20},
+            {{"Olaf", "Denmark"}, 24},
+            {{"Harald", "Iceland"}, 12},
         });
         VikingRaw bjorn = {"Bjorn", "Sweden"};
         cmap_vk_emplace_or_assign(&vikings, bjorn, 10);

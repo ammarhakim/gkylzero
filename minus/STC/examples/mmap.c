@@ -1,13 +1,16 @@
-#include <stc/csmap.h>
-#include <stc/clist.h>
-#include <stc/cstr.h>
-
 // This implements the multimap c++ example found at:
 // https://en.cppreference.com/w/cpp/container/multimap/insert
 
 // Map of int => clist_str. Note the negation of c_default_compare
-using_clist_str();
-using_csmap(mult, int, clist_str, -c_default_compare, clist_str_del);
+#define i_val_str
+#include <stc/clist.h>
+
+#define i_key int
+#define i_val clist_str
+#define i_cmp -c_default_compare
+#define i_valdel clist_str_del
+#define i_tag mult
+#include <stc/csmap.h>
 
 void print(const csmap_mult mmap)
 {
@@ -26,7 +29,7 @@ void insert(csmap_mult* mmap, int key, const char* str)
 
 int main()
 {
-    c_forauto (csmap_mult, mmap)
+    c_auto (csmap_mult, mmap)
     {
         // list-initialize
         struct {int i; const char* s;} vals[] = {{2, "foo"}, {2, "bar"}, {3, "baz"}, {1, "abc"}, {5, "def"}};
@@ -56,7 +59,7 @@ int main()
         clist_str_iter_t pos;
         c_foreach (e, csmap_mult, mmap)
             if ((pos = clist_str_find(&e.ref->second, "bar")).ref != clist_str_end(&e.ref->second).ref) {
-                clist_str_erase(&e.ref->second, pos);
+                clist_str_erase_at(&e.ref->second, pos);
                 break;
             }
         print(mmap);
