@@ -23,21 +23,21 @@ GKYL_CU_DH void vlasov_lbo_boundary_surfvx_1x1v_tensor_p2(const double *w, const
 
   if (edge == -1) { 
 
-  alphaDrSurf[0] = -0.7071067811865475*(nuSum[0]*((-2.0*w[1])-1.0*dxv[1])+1.414213562373095*sumNuUx[0]); 
-  alphaDrSurf[1] = -1.0*sumNuUx[1]; 
-  alphaDrSurf[2] = -1.0*sumNuUx[2]; 
+  alphaDrSurf[0] = 0.5*(nuSum[0]*(2.0*w[1]+dxv[1])-2.0*sumNuUx[0]); 
+  alphaDrSurf[1] = 0.5*(2.0*nuSum[1]*w[1]-2.0*sumNuUx[1]+dxv[1]*nuSum[1]); 
+  alphaDrSurf[2] = -0.5*(2.0*sumNuUx[2]+((-2.0*w[1])-1.0*dxv[1])*nuSum[2]); 
 
-  if (0.6324555320336759*alphaDrSurf[2]-0.9486832980505137*alphaDrSurf[1]+0.7071067811865475*alphaDrSurf[0] > 0) { 
+  if (0.6324555320336759*alphaDrSurf[2]-0.9486832980505137*alphaDrSurf[1]+0.7071067811865475*alphaDrSurf[0] < 0) { 
     fUpwindQuad[0] = tensor_1x1v_p2_surfvx_quad_0(1, fSkin); 
   } else { 
     fUpwindQuad[0] = tensor_1x1v_p2_surfvx_quad_0(-1, fEdge); 
   } 
-  if (0.7071067811865475*alphaDrSurf[0]-0.7905694150420947*alphaDrSurf[2] > 0) { 
+  if (0.7071067811865475*alphaDrSurf[0]-0.7905694150420947*alphaDrSurf[2] < 0) { 
     fUpwindQuad[1] = tensor_1x1v_p2_surfvx_quad_1(1, fSkin); 
   } else { 
     fUpwindQuad[1] = tensor_1x1v_p2_surfvx_quad_1(-1, fEdge); 
   } 
-  if (0.6324555320336759*alphaDrSurf[2]+0.9486832980505137*alphaDrSurf[1]+0.7071067811865475*alphaDrSurf[0] > 0) { 
+  if (0.6324555320336759*alphaDrSurf[2]+0.9486832980505137*alphaDrSurf[1]+0.7071067811865475*alphaDrSurf[0] < 0) { 
     fUpwindQuad[2] = tensor_1x1v_p2_surfvx_quad_2(1, fSkin); 
   } else { 
     fUpwindQuad[2] = tensor_1x1v_p2_surfvx_quad_2(-1, fEdge); 
@@ -71,21 +71,21 @@ GKYL_CU_DH void vlasov_lbo_boundary_surfvx_1x1v_tensor_p2(const double *w, const
 
   } else { 
 
-  alphaDrSurf[0] = -0.7071067811865475*(nuSum[0]*((-2.0*w[1])-1.0*dxv[1])+1.414213562373095*sumNuUx[0]); 
-  alphaDrSurf[1] = -1.0*sumNuUx[1]; 
-  alphaDrSurf[2] = -1.0*sumNuUx[2]; 
+  alphaDrSurf[0] = 0.5*(nuSum[0]*(2.0*w[1]+dxv[1])-2.0*sumNuUx[0]); 
+  alphaDrSurf[1] = 0.5*(2.0*nuSum[1]*w[1]-2.0*sumNuUx[1]+dxv[1]*nuSum[1]); 
+  alphaDrSurf[2] = -0.5*(2.0*sumNuUx[2]+((-2.0*w[1])-1.0*dxv[1])*nuSum[2]); 
 
-  if (0.6324555320336759*alphaDrSurf[2]-0.9486832980505137*alphaDrSurf[1]+0.7071067811865475*alphaDrSurf[0] > 0) { 
+  if (0.6324555320336759*alphaDrSurf[2]-0.9486832980505137*alphaDrSurf[1]+0.7071067811865475*alphaDrSurf[0] < 0) { 
     fUpwindQuad[0] = tensor_1x1v_p2_surfvx_quad_0(1, fEdge); 
   } else { 
     fUpwindQuad[0] = tensor_1x1v_p2_surfvx_quad_0(-1, fSkin); 
   } 
-  if (0.7071067811865475*alphaDrSurf[0]-0.7905694150420947*alphaDrSurf[2] > 0) { 
+  if (0.7071067811865475*alphaDrSurf[0]-0.7905694150420947*alphaDrSurf[2] < 0) { 
     fUpwindQuad[1] = tensor_1x1v_p2_surfvx_quad_1(1, fEdge); 
   } else { 
     fUpwindQuad[1] = tensor_1x1v_p2_surfvx_quad_1(-1, fSkin); 
   } 
-  if (0.6324555320336759*alphaDrSurf[2]+0.9486832980505137*alphaDrSurf[1]+0.7071067811865475*alphaDrSurf[0] > 0) { 
+  if (0.6324555320336759*alphaDrSurf[2]+0.9486832980505137*alphaDrSurf[1]+0.7071067811865475*alphaDrSurf[0] < 0) { 
     fUpwindQuad[2] = tensor_1x1v_p2_surfvx_quad_2(1, fEdge); 
   } else { 
     fUpwindQuad[2] = tensor_1x1v_p2_surfvx_quad_2(-1, fSkin); 

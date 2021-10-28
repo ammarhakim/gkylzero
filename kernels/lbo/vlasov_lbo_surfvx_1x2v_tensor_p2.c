@@ -15,14 +15,14 @@ GKYL_CU_DH void vlasov_lbo_surfvx_1x2v_tensor_p2(const double *w, const double *
   const double *sumNuUx = &nuUSum[0]; 
 
   double alphaDrSurf_l[9] = {0.0}; 
-  alphaDrSurf_l[0] = 2.0*nuSum[0]*w[1]-1.0*nuSum[0]*dxv[1]-1.414213562373095*sumNuUx[0]; 
-  alphaDrSurf_l[1] = -1.414213562373095*sumNuUx[1]; 
-  alphaDrSurf_l[4] = -1.414213562373095*sumNuUx[2]; 
+  alphaDrSurf_l[0] = 1.414213562373095*nuSum[0]*w[1]-0.7071067811865475*nuSum[0]*dxv[1]-1.414213562373095*sumNuUx[0]; 
+  alphaDrSurf_l[1] = 1.414213562373095*nuSum[1]*w[1]-1.414213562373095*sumNuUx[1]-0.7071067811865475*dxv[1]*nuSum[1]; 
+  alphaDrSurf_l[4] = (-1.414213562373095*sumNuUx[2])+1.414213562373095*w[1]*nuSum[2]-0.7071067811865475*dxv[1]*nuSum[2]; 
 
   double alphaDrSurf_r[9] = {0.0}; 
-  alphaDrSurf_r[0] = 2.0*nuSum[0]*w[1]+nuSum[0]*dxv[1]-1.414213562373095*sumNuUx[0]; 
-  alphaDrSurf_r[1] = -1.414213562373095*sumNuUx[1]; 
-  alphaDrSurf_r[4] = -1.414213562373095*sumNuUx[2]; 
+  alphaDrSurf_r[0] = 1.414213562373095*nuSum[0]*w[1]+0.7071067811865475*nuSum[0]*dxv[1]-1.414213562373095*sumNuUx[0]; 
+  alphaDrSurf_r[1] = 1.414213562373095*nuSum[1]*w[1]-1.414213562373095*sumNuUx[1]+0.7071067811865475*dxv[1]*nuSum[1]; 
+  alphaDrSurf_r[4] = (-1.414213562373095*sumNuUx[2])+1.414213562373095*w[1]*nuSum[2]+0.7071067811865475*dxv[1]*nuSum[2]; 
 
   double fUpwindQuad_l[9] = {0.0};
   double fUpwindQuad_r[9] = {0.0};
@@ -35,92 +35,92 @@ GKYL_CU_DH void vlasov_lbo_surfvx_1x2v_tensor_p2(const double *w, const double *
   double Gdiff2_l[9] = {0.0}; 
   double Gdiff2_r[9] = {0.0}; 
 
-  if (0.4472135954999579*alphaDrSurf_l[4]-0.6708203932499369*alphaDrSurf_l[1]+0.5*alphaDrSurf_l[0] > 0) { 
+  if (0.4472135954999579*alphaDrSurf_l[4]-0.6708203932499369*alphaDrSurf_l[1]+0.5*alphaDrSurf_l[0] < 0) { 
     fUpwindQuad_l[0] = tensor_1x2v_p2_surfvx_quad_0(1, fl); 
   } else { 
     fUpwindQuad_l[0] = tensor_1x2v_p2_surfvx_quad_0(-1, fc); 
   } 
-  if (0.5*alphaDrSurf_l[0]-0.5590169943749475*alphaDrSurf_l[4] > 0) { 
+  if (0.5*alphaDrSurf_l[0]-0.5590169943749475*alphaDrSurf_l[4] < 0) { 
     fUpwindQuad_l[1] = tensor_1x2v_p2_surfvx_quad_1(1, fl); 
   } else { 
     fUpwindQuad_l[1] = tensor_1x2v_p2_surfvx_quad_1(-1, fc); 
   } 
-  if (0.4472135954999579*alphaDrSurf_l[4]+0.6708203932499369*alphaDrSurf_l[1]+0.5*alphaDrSurf_l[0] > 0) { 
+  if (0.4472135954999579*alphaDrSurf_l[4]+0.6708203932499369*alphaDrSurf_l[1]+0.5*alphaDrSurf_l[0] < 0) { 
     fUpwindQuad_l[2] = tensor_1x2v_p2_surfvx_quad_2(1, fl); 
   } else { 
     fUpwindQuad_l[2] = tensor_1x2v_p2_surfvx_quad_2(-1, fc); 
   } 
-  if (0.4472135954999579*alphaDrSurf_l[4]-0.6708203932499369*alphaDrSurf_l[1]+0.5*alphaDrSurf_l[0] > 0) { 
+  if (0.4472135954999579*alphaDrSurf_l[4]-0.6708203932499369*alphaDrSurf_l[1]+0.5*alphaDrSurf_l[0] < 0) { 
     fUpwindQuad_l[3] = tensor_1x2v_p2_surfvx_quad_3(1, fl); 
   } else { 
     fUpwindQuad_l[3] = tensor_1x2v_p2_surfvx_quad_3(-1, fc); 
   } 
-  if (0.5*alphaDrSurf_l[0]-0.5590169943749475*alphaDrSurf_l[4] > 0) { 
+  if (0.5*alphaDrSurf_l[0]-0.5590169943749475*alphaDrSurf_l[4] < 0) { 
     fUpwindQuad_l[4] = tensor_1x2v_p2_surfvx_quad_4(1, fl); 
   } else { 
     fUpwindQuad_l[4] = tensor_1x2v_p2_surfvx_quad_4(-1, fc); 
   } 
-  if (0.4472135954999579*alphaDrSurf_l[4]+0.6708203932499369*alphaDrSurf_l[1]+0.5*alphaDrSurf_l[0] > 0) { 
+  if (0.4472135954999579*alphaDrSurf_l[4]+0.6708203932499369*alphaDrSurf_l[1]+0.5*alphaDrSurf_l[0] < 0) { 
     fUpwindQuad_l[5] = tensor_1x2v_p2_surfvx_quad_5(1, fl); 
   } else { 
     fUpwindQuad_l[5] = tensor_1x2v_p2_surfvx_quad_5(-1, fc); 
   } 
-  if (0.4472135954999579*alphaDrSurf_l[4]-0.6708203932499369*alphaDrSurf_l[1]+0.5*alphaDrSurf_l[0] > 0) { 
+  if (0.4472135954999579*alphaDrSurf_l[4]-0.6708203932499369*alphaDrSurf_l[1]+0.5*alphaDrSurf_l[0] < 0) { 
     fUpwindQuad_l[6] = tensor_1x2v_p2_surfvx_quad_6(1, fl); 
   } else { 
     fUpwindQuad_l[6] = tensor_1x2v_p2_surfvx_quad_6(-1, fc); 
   } 
-  if (0.5*alphaDrSurf_l[0]-0.5590169943749475*alphaDrSurf_l[4] > 0) { 
+  if (0.5*alphaDrSurf_l[0]-0.5590169943749475*alphaDrSurf_l[4] < 0) { 
     fUpwindQuad_l[7] = tensor_1x2v_p2_surfvx_quad_7(1, fl); 
   } else { 
     fUpwindQuad_l[7] = tensor_1x2v_p2_surfvx_quad_7(-1, fc); 
   } 
-  if (0.4472135954999579*alphaDrSurf_l[4]+0.6708203932499369*alphaDrSurf_l[1]+0.5*alphaDrSurf_l[0] > 0) { 
+  if (0.4472135954999579*alphaDrSurf_l[4]+0.6708203932499369*alphaDrSurf_l[1]+0.5*alphaDrSurf_l[0] < 0) { 
     fUpwindQuad_l[8] = tensor_1x2v_p2_surfvx_quad_8(1, fl); 
   } else { 
     fUpwindQuad_l[8] = tensor_1x2v_p2_surfvx_quad_8(-1, fc); 
   } 
-  if (0.4472135954999579*alphaDrSurf_r[4]-0.6708203932499369*alphaDrSurf_r[1]+0.5*alphaDrSurf_r[0] > 0) { 
+  if (0.4472135954999579*alphaDrSurf_r[4]-0.6708203932499369*alphaDrSurf_r[1]+0.5*alphaDrSurf_r[0] < 0) { 
     fUpwindQuad_r[0] = tensor_1x2v_p2_surfvx_quad_0(1, fc); 
   } else { 
     fUpwindQuad_r[0] = tensor_1x2v_p2_surfvx_quad_0(-1, fr); 
   } 
-  if (0.5*alphaDrSurf_r[0]-0.5590169943749475*alphaDrSurf_r[4] > 0) { 
+  if (0.5*alphaDrSurf_r[0]-0.5590169943749475*alphaDrSurf_r[4] < 0) { 
     fUpwindQuad_r[1] = tensor_1x2v_p2_surfvx_quad_1(1, fc); 
   } else { 
     fUpwindQuad_r[1] = tensor_1x2v_p2_surfvx_quad_1(-1, fr); 
   } 
-  if (0.4472135954999579*alphaDrSurf_r[4]+0.6708203932499369*alphaDrSurf_r[1]+0.5*alphaDrSurf_r[0] > 0) { 
+  if (0.4472135954999579*alphaDrSurf_r[4]+0.6708203932499369*alphaDrSurf_r[1]+0.5*alphaDrSurf_r[0] < 0) { 
     fUpwindQuad_r[2] = tensor_1x2v_p2_surfvx_quad_2(1, fc); 
   } else { 
     fUpwindQuad_r[2] = tensor_1x2v_p2_surfvx_quad_2(-1, fr); 
   } 
-  if (0.4472135954999579*alphaDrSurf_r[4]-0.6708203932499369*alphaDrSurf_r[1]+0.5*alphaDrSurf_r[0] > 0) { 
+  if (0.4472135954999579*alphaDrSurf_r[4]-0.6708203932499369*alphaDrSurf_r[1]+0.5*alphaDrSurf_r[0] < 0) { 
     fUpwindQuad_r[3] = tensor_1x2v_p2_surfvx_quad_3(1, fc); 
   } else { 
     fUpwindQuad_r[3] = tensor_1x2v_p2_surfvx_quad_3(-1, fr); 
   } 
-  if (0.5*alphaDrSurf_r[0]-0.5590169943749475*alphaDrSurf_r[4] > 0) { 
+  if (0.5*alphaDrSurf_r[0]-0.5590169943749475*alphaDrSurf_r[4] < 0) { 
     fUpwindQuad_r[4] = tensor_1x2v_p2_surfvx_quad_4(1, fc); 
   } else { 
     fUpwindQuad_r[4] = tensor_1x2v_p2_surfvx_quad_4(-1, fr); 
   } 
-  if (0.4472135954999579*alphaDrSurf_r[4]+0.6708203932499369*alphaDrSurf_r[1]+0.5*alphaDrSurf_r[0] > 0) { 
+  if (0.4472135954999579*alphaDrSurf_r[4]+0.6708203932499369*alphaDrSurf_r[1]+0.5*alphaDrSurf_r[0] < 0) { 
     fUpwindQuad_r[5] = tensor_1x2v_p2_surfvx_quad_5(1, fc); 
   } else { 
     fUpwindQuad_r[5] = tensor_1x2v_p2_surfvx_quad_5(-1, fr); 
   } 
-  if (0.4472135954999579*alphaDrSurf_r[4]-0.6708203932499369*alphaDrSurf_r[1]+0.5*alphaDrSurf_r[0] > 0) { 
+  if (0.4472135954999579*alphaDrSurf_r[4]-0.6708203932499369*alphaDrSurf_r[1]+0.5*alphaDrSurf_r[0] < 0) { 
     fUpwindQuad_r[6] = tensor_1x2v_p2_surfvx_quad_6(1, fc); 
   } else { 
     fUpwindQuad_r[6] = tensor_1x2v_p2_surfvx_quad_6(-1, fr); 
   } 
-  if (0.5*alphaDrSurf_r[0]-0.5590169943749475*alphaDrSurf_r[4] > 0) { 
+  if (0.5*alphaDrSurf_r[0]-0.5590169943749475*alphaDrSurf_r[4] < 0) { 
     fUpwindQuad_r[7] = tensor_1x2v_p2_surfvx_quad_7(1, fc); 
   } else { 
     fUpwindQuad_r[7] = tensor_1x2v_p2_surfvx_quad_7(-1, fr); 
   } 
-  if (0.4472135954999579*alphaDrSurf_r[4]+0.6708203932499369*alphaDrSurf_r[1]+0.5*alphaDrSurf_r[0] > 0) { 
+  if (0.4472135954999579*alphaDrSurf_r[4]+0.6708203932499369*alphaDrSurf_r[1]+0.5*alphaDrSurf_r[0] < 0) { 
     fUpwindQuad_r[8] = tensor_1x2v_p2_surfvx_quad_8(1, fc); 
   } else { 
     fUpwindQuad_r[8] = tensor_1x2v_p2_surfvx_quad_8(-1, fr); 
