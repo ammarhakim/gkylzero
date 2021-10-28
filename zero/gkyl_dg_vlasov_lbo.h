@@ -48,3 +48,31 @@ void gkyl_vlasov_lbo_set_nuUSum(const struct gkyl_dg_eqn *eqn, const struct gkyl
  * @param nuVtSqSum Pointer to nu multiplied by thermal velocity.
  */
 void gkyl_vlasov_lbo_set_nuVtSqSum(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuVtSqSum);
+
+#ifdef GKYL_HAVE_CUDA
+
+/**
+ * CUDA device function to set nu needed in updating the lbo terms.
+ * 
+ * @param eqn Equation pointer
+ * @param nuSum Value of collision frequency in the cell.
+ */
+void gkyl_vlasov_lbo_set_nuSum_cu(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuSum);
+
+/**
+ * CUDA device function to set nu*u needed in updating the drag flux term.
+ * 
+ * @param eqn Equation pointer
+ * @param nuUSum Pointer to nu multiplied by drift.
+ */
+void gkyl_vlasov_lbo_set_nuUSum_cu(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuUSum);
+
+/**
+ * CUDA device function to set nu*vt^2 needed in updating the diffusion flux term.
+ * 
+ * @param eqn Equation pointer
+ * @param nuVtSqSum Pointer to nu multiplied by thermal velocity.
+ */
+void gkyl_vlasov_lbo_set_nuVtSqSum_cu(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuVtSqSum);
+
+#endif

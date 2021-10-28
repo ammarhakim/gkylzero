@@ -55,7 +55,7 @@ gkyl_dg_vlasov_poisson_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
   vlasov_poisson->eqn.boundary_surf_term = boundary_surf;
 
   const gkyl_dg_vlasov_poisson_vol_kern_list *vol_kernels;
-  const gkyl_dg_vlasov_poisson_steam_surf_kern_list *stream_surf_x_kernels, *stream_surf_y_kernels, *stream_surf_z_kernels;
+  const gkyl_dg_vlasov_poisson_stream_surf_kern_list *stream_surf_x_kernels, *stream_surf_y_kernels, *stream_surf_z_kernels;
   const gkyl_dg_vlasov_poisson_accel_surf_kern_list *accel_surf_vx_kernels, *accel_surf_vy_kernels, *accel_surf_vz_kernels;
   const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list *accel_boundary_surf_vx_kernels, *accel_boundary_surf_vy_kernels,
     *accel_boundary_surf_vz_kernels;
