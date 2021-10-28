@@ -5,6 +5,13 @@
 void
 vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_species *s)
 {
+  if (s->info.job_pool)
+    // use specified job pool if it exists ...
+    s->job_pool = gkyl_job_pool_acquire(s->info.job_pool);
+  else
+    // .. or app job pool if it does not
+    s->job_pool = gkyl_job_pool_acquire(app->job_pool);
+  
   int cdim = app->cdim, vdim = app->vdim;
   int pdim = cdim+vdim;
 
@@ -162,6 +169,8 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
 void
 vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
 {
+  gkyl_job_pool_release(s->job_pool);
+  
   // release various arrays
   gkyl_array_release(s->f);
   gkyl_array_release(s->f1);

@@ -17,12 +17,14 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_mom_calc.h>
+#include <gkyl_null_pool.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_vlasov_mom.h>
+
 
 // Definitions of private structs and APIs attached to these objects
 // for use in Vlasov app.
@@ -47,7 +49,8 @@ struct vm_species_moment {
 // species data
 struct vm_species {
   struct gkyl_vlasov_species info; // data for species
-    
+  
+  struct gkyl_job_pool *job_pool; // Job pool
   struct gkyl_rect_grid grid;
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   struct vm_skin_ghost_ranges skin_ghost; // conf-space skin/ghost
@@ -70,7 +73,8 @@ struct vm_species {
 // field data
 struct vm_field {
   struct gkyl_vlasov_field info; // data for field
-    
+
+  struct gkyl_job_pool *job_pool; // Job pool  
   struct gkyl_array *em, *em1, *emnew; // arrays for updates
   struct gkyl_array *qmem; // array for q/m*(E,B)
   struct gkyl_array *cflrate; // CFL rate in each cell
@@ -87,6 +91,8 @@ struct vm_field {
 // Vlasov object: used as opaque pointer in user code
 struct gkyl_vlasov_app {
   char name[128]; // name of app
+  struct gkyl_job_pool *job_pool; // Job pool
+  
   int cdim, vdim; // conf, velocity space dimensions
   int poly_order; // polynomial order
   double tcurr; // current time
