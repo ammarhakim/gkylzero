@@ -154,6 +154,7 @@ check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_superlu
 	./build/unit/ctest_update_fsm
 	./build/unit/ctest_vlasov_mom
+        ./build/unit/ctest_vlasov_lbo
 	./build/unit/ctest_wave_geom
 	./build/unit/ctest_wv_euler
 	./build/unit/ctest_wv_iso_euler
