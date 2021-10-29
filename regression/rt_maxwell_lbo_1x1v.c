@@ -19,11 +19,9 @@ evalDistFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct free_stream_ctx *app = ctx;
   double x = xn[0], v = xn[1];
-  if(v>-1.0 && v<1.0) {
-    fout[0] = 0.5;
-  } else {
-    fout[0] = 0.0;
-  }
+  double vt = app->vt;
+  double fv = 1.0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
+  fout[0] = fv;
 }
 
 void
@@ -41,7 +39,7 @@ create_ctx(void)
     .mass = 1.0,
     .charge = 1.0,
     .vt = 1.0,
-    .Lx = 2.0*M_PI
+    .Lx = 1.0
   };
   return ctx;
 }
@@ -58,7 +56,7 @@ main(int argc, char **argv)
     .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -4.0 * ctx.vt},
     .upper = { 4.0 * ctx.vt}, 
-    .cells = { 32 },
+    .cells = { 4 },
 
     .evolve = 1,
     .ctx = &ctx,
@@ -71,7 +69,7 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "top_hat_1x1v",
+    .name = "maxwell_1x1v",
 
     .cdim = 1, .vdim = 1,
     .lower = { 0.0 },
@@ -94,7 +92,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 10.0;
+  double tcurr = 0.0, tend = 100.0;
   double dt = tend-tcurr;
 
   // initialize simulation

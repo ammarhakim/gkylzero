@@ -149,8 +149,8 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
       gkyl_mom_calc_advance(species->m2.mcalc, species->local, app->local, fin, species->m2.marr);
       // Construct the primitive moments
       // JUST SETTING ARRAYS FOR NOW
-      gkyl_array_set(species->lbo.nu_u, species->nu, species->m1i.marr);
-      gkyl_array_set(species->lbo.nu_vthsq, species->nu, species->m2.marr);
+      gkyl_array_set(species->lbo.nu_u, 1.0, species->m1i.marr);
+      gkyl_array_set(species->lbo.nu_vthsq, 1.0, species->m2.marr);
       // Set the arrays needed
       gkyl_vlasov_lbo_set_nuSum(species->lbo.coll_eqn, species->lbo.nu_sum);
       gkyl_vlasov_lbo_set_nuUSum(species->lbo.coll_eqn, species->lbo.nu_u);
