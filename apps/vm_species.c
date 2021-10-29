@@ -101,6 +101,19 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       num_up_dirs, up_dirs, zero_flux_flags, 1);
 }
 
+void
+vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
+{
+  int poly_order = app->poly_order;
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&species->grid, &app->basis,
+    poly_order+1, 1, species->info.init, species->info.ctx);
+
+  // run updater
+  gkyl_proj_on_basis_advance(proj, t0, &species->local, species->f_host);
+  
+  gkyl_proj_on_basis_release(proj);  
+}
+
 // Compute the RHS for species update, returning maximum stable
 // time-step.
 double

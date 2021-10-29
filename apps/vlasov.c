@@ -94,16 +94,11 @@ void
 gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
 {
   app->tcurr = t0;
-  int poly_order = app->poly_order;
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-    poly_order+1, 8, app->field->info.init, app->field->info.ctx);
 
   struct timespec wtm = gkyl_wall_clock();
-  gkyl_proj_on_basis_advance(proj, t0, &app->local, app->field->em_host);
+  vm_field_apply_ic(app, app->field, t0);
   app->stat.init_field_tm += gkyl_time_diff_now_sec(wtm);
   
-  gkyl_proj_on_basis_release(proj);
- 
   if (app->use_gpu)
     gkyl_array_copy(app->field->em, app->field->em_host);
   
@@ -116,16 +111,10 @@ gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0)
   assert(sidx < app->num_species);
 
   app->tcurr = t0;
-  int poly_order = app->poly_order;
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->species[sidx].grid, &app->basis,
-    poly_order+1, 1, app->species[sidx].info.init, app->species[sidx].info.ctx);
-
   struct timespec wtm = gkyl_wall_clock();
-  gkyl_proj_on_basis_advance(proj, t0, &app->species[sidx].local, app->species[sidx].f_host);
+  vm_species_apply_ic(app, &app->species[sidx], t0);
   app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
   
-  gkyl_proj_on_basis_release(proj);
-
   if (app->use_gpu)
     gkyl_array_copy(app->species[sidx].f, app->species[sidx].f_host);
 

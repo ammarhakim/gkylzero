@@ -189,6 +189,15 @@ void vm_species_moment_release(const struct gkyl_vlasov_app *app, const struct v
 void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_species *s);
 
 /**
+ * Compute species initial conditions.
+ *
+ * @param app Vlasov app object
+ * @param species Species object
+ * @param t0 Time for use in ICs
+ */
+void vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0);
+
+/**
  * Compute RHS from species distribution function
  *
  * @param app Vlasov app object
@@ -251,6 +260,15 @@ void vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s);
  * @return Newly created field
  */
 struct vm_field* vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app);
+
+/**
+ * Compute field initial conditions.
+ *
+ * @param app Vlasov app object
+ * @param field Field object
+ * @param t0 Time for use in ICs
+ */
+void vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, double t0);
 
 /**
  * Compute RHS from field equations

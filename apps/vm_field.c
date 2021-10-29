@@ -66,6 +66,18 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   return f;
 }
 
+void
+vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, double t0)
+{
+  int poly_order = app->poly_order;
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
+    poly_order+1, 8, field->info.init, field->info.ctx);
+
+  gkyl_proj_on_basis_advance(proj, t0, &app->local, field->em_host);
+  
+  gkyl_proj_on_basis_release(proj);  
+}
+
 // Compute the RHS for field update, returning maximum stable
 // time-step.
 double
