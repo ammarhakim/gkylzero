@@ -49,6 +49,8 @@ struct moment_species {
     
   struct gkyl_array *fdup, *f[4]; // arrays for updates
   struct gkyl_array *app_accel; // array for applied acceleration/forces
+  // pointer to projection operator for applied acceleration/forces function
+  gkyl_fv_proj *proj_app_accel;
   struct gkyl_array *bc_buffer; // buffer for periodic BCs
 
   enum gkyl_eqn_type eqn_type; // type ID of equation
@@ -73,6 +75,10 @@ struct moment_field {
     
   struct gkyl_array *fdup, *f[4]; // arrays for updates
   struct gkyl_array *app_current, *ext_em; // arrays for applied currents/external fields
+  // pointer to projection operator for applied current function
+  gkyl_fv_proj *proj_app_current;
+  // pointer to projection operator for external fields
+  gkyl_fv_proj *proj_ext_em;
   struct gkyl_array *bc_buffer; // buffer for periodic BCs
 
   gkyl_wave_prop *slvr[3]; // solver in each direction
@@ -389,6 +395,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   // allocate array for applied acceleration/forces for each species
   sp->app_accel = mkarr(3, app->local_ext.volume);
+  sp->proj_app_accel = gkyl_fv_proj_new(&app->grid, 2, 3, mom_sp->app_accel_func, sp->ctx);
   // allocate buffer for applying BCs (used for periodic BCs)
   long buff_sz = 0;
   // compute buffer size needed
@@ -475,6 +482,7 @@ moment_species_release(const struct moment_species *sp)
     gkyl_array_release(sp->f[d]);
 
   gkyl_array_release(sp->app_accel);
+  gkyl_fv_proj_release(sp->proj_app_accel);
 
   gkyl_array_release(sp->bc_buffer);
 }
@@ -558,7 +566,9 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
 
   // allocate arrays for applied current/external fields
   fld->app_current = mkarr(3, app->local_ext.volume);
+  fld->proj_app_current = gkyl_fv_proj_new(&app->grid, 2, 3, mom_fld->app_current_func, fld->ctx);
   fld->ext_em = mkarr(6, app->local_ext.volume);
+  fld->proj_ext_em = gkyl_fv_proj_new(&app->grid, 2, 6, mom_fld->ext_em_func, fld->ctx);
 
   // allocate buffer for applying BCs (used for periodic BCs)
   long buff_sz = 0;
@@ -646,7 +656,9 @@ moment_field_release(const struct moment_field *fld)
     gkyl_array_release(fld->f[d]);
   
   gkyl_array_release(fld->app_current);
+  gkyl_fv_proj_release(fld->proj_app_current);
   gkyl_array_release(fld->ext_em);
+  gkyl_fv_proj_release(fld->proj_ext_em);
 
   gkyl_array_release(fld->bc_buffer);
 }
@@ -736,6 +748,7 @@ moment_coupling_update(const gkyl_moment_app *app, struct moment_coupling *src,
   
   for (int i=0; i<app->num_species; ++i) {
     fluids[i] = app->species[i].f[sidx[nstrang]];
+    gkyl_fv_proj_advance(app->species[i].proj_app_accel, tcurr, &app->local, app->species[i].app_accel);
     app_accels[i] = app->species[i].app_accel;
     if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_grad_closure) {
       gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i], app->local, app->species[i].f[sidx[nstrang]], app->field.f[sidx[nstrang]], src->cflrate, src->rhs[i]);
@@ -749,6 +762,8 @@ moment_coupling_update(const gkyl_moment_app *app, struct moment_coupling *src,
   for (int i=0; i<app->num_species; ++i)
     rhs_const[i] = src->rhs[i];
   
+  gkyl_fv_proj_advance(app->field.proj_app_current, tcurr, &app->local, app->field.app_current);
+  gkyl_fv_proj_advance(app->field.proj_ext_em, tcurr, &app->local, app->field.ext_em);
   gkyl_moment_em_coupling_advance(src->slvr, dt, app->local,
     fluids, app_accels, rhs_const,
     app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em);
