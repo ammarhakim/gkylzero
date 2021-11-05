@@ -46,13 +46,13 @@ void test_array_base()
   for (unsigned i=0; i<arr->size; ++i)
     TEST_CHECK( arrData[i] == brrData[i] );
 
-  // aquire pointer
-  struct gkyl_array *crr = gkyl_array_aquire(arr);
+  // acquire pointer
+  struct gkyl_array *crr = gkyl_array_acquire(arr);
 
   TEST_CHECK( crr->ref_count.count == 2 );
   TEST_CHECK( arr->ref_count.count == 2 );
 
-  struct gkyl_array *drr = gkyl_array_aquire(crr);
+  struct gkyl_array *drr = gkyl_array_acquire(crr);
 
   TEST_CHECK( drr->ref_count.count == 3 );
   TEST_CHECK( crr->ref_count.count == 3 );  

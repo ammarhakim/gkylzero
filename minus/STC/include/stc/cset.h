@@ -20,15 +20,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef CSET_H_INCLUDED
-#define CSET_H_INCLUDED
 
 // Unordered set - implemented as closed hashing with linear probing and no tombstones.
 /*
+#define i_tag sx
+#define i_key int
 #include <stc/cset.h>
 #include <stdio.h>
-
-using_cset(sx, int);    // Set of int
 
 int main(void) {
     cset_sx s = cset_sx_init();
@@ -41,30 +39,8 @@ int main(void) {
 }
 */
 
-#include "cmap.h"
-
-#define forward_cset(X, Key) _c_chash_types(cset_##X, cset_, Key, Key)
-
-#define using_cset(...) c_MACRO_OVERLOAD(using_cset, __VA_ARGS__)
-
-#define using_cset_2(X, Key) \
-            using_cset_4(X, Key, c_default_equals, c_default_hash)
-#define using_cset_4(X, Key, keyEquals, keyHash) \
-            using_cset_6(X, Key, keyEquals, keyHash, c_default_del, c_default_fromraw)
-#define using_cset_5(X, Key, keyEquals, keyHash, keyDel) \
-            using_cset_6(X, Key, keyEquals, keyHash, keyDel, c_no_clone)
-#define using_cset_6(X, Key, keyEquals, keyHash, keyDel, keyClone) \
-            using_cset_9(X, Key, keyEquals, keyHash, keyDel, keyClone, c_default_toraw, Key, c_true)
-#define using_cset_9(X, Key, keyEqualsRaw, keyHashRaw, keyDel, keyFromRaw, keyToRaw, RawKey, defTypes) \
-            _c_using_chash(cset_##X, cset_, Key, Key, keyEqualsRaw, keyHashRaw, \
-                           @@, @@, @@, void, defTypes, keyDel, keyFromRaw, keyToRaw, RawKey)
-
-/* cset_str: */
-#define using_cset_str() \
-            _c_using_chash_strkey(str, cset_, cstr, @@, @@, @@, void, c_true)
-
-#define SET_ONLY_cset_(...) __VA_ARGS__
-#define MAP_ONLY_cset_(...)
-#define KEY_REF_cset_(vp)   (vp)
-
+#ifndef i_prefix
+#define i_prefix cset_
 #endif
+#define i_isset
+#include "cmap.h"

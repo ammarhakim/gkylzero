@@ -27,7 +27,7 @@ static inline void gkyl_ten_moment_primitive(const double q[10], double out[10])
  * @param q Conserved variables
  * @return Maximum absolute speed for given q
  */
-double gkyl_ten_moment_max_abs_speed(int dir, const double q[10]);
+double gkyl_ten_moment_max_abs_speed(const double q[10]);
 
 /**
  * Compute flux in direction 'dir'.
@@ -36,4 +36,4 @@ double gkyl_ten_moment_max_abs_speed(int dir, const double q[10]);
  * @param Conserved variables
  * @param flux On output, the flux in direction 'dir'
  */
-void gkyl_ten_moment_flux(int dir, const double q[10], double flux[10]);
+void gkyl_ten_moment_flux(const double q[10], double flux[10]);

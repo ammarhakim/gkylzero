@@ -1,17 +1,18 @@
 // erasing from clist
-#include <stc/clist.h>
 #include <stdio.h>
 
-using_clist(i, int);
+#define i_val int
+#define i_tag i
+#include <stc/clist.h>
 
 int main ()
 {
-    c_forvar (clist_i L = clist_i_init(), clist_i_del(&L))
+    c_autovar (clist_i L = clist_i_init(), clist_i_del(&L))
     {
-        c_emplace(clist_i, L, {10, 20, 30, 40, 50});
+        c_apply(clist_i, push_back, &L, {10, 20, 30, 40, 50});
                                                     // 10 20 30 40 50
         clist_i_iter_t it = clist_i_begin(&L);      // ^
-        clist_i_next(&it); 
+        clist_i_next(&it);
         it = clist_i_erase_at(&L, it);              // 10 30 40 50
                                                     //    ^
         clist_i_iter_t end = clist_i_end(&L);       //

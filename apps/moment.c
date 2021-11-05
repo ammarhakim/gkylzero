@@ -22,6 +22,7 @@
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_iso_euler.h>
 #include <gkyl_wv_maxwell.h>
+#include <gkyl_wv_ten_moment.h>
 
 // ranges for use in BCs
 struct skin_ghost_ranges {
@@ -302,8 +303,6 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   strcpy(sp->name, mom_sp->name);
   sp->charge = mom_sp->charge;
   sp->mass = mom_sp->mass;
-  // set closure parameter (default is 0.0, used by 10 moment)
-  sp->k0 = mom_sp->k0 == 0 ? 0.0 : mom_sp->k0;
   // check if we are running with gradient-based closure
   sp->has_grad_closure = mom_sp->has_grad_closure == 0 ? 0 : mom_sp->has_grad_closure;
   sp->ctx = mom_sp->ctx;
@@ -311,7 +310,8 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   sp->eqn_type = mom_sp->equation->type;
   sp->num_equations = mom_sp->equation->num_equations;
-  sp->equation = gkyl_wv_eqn_aquire(mom_sp->equation);
+  // closure parameter, used by 10 moment
+  sp->k0 = mom_sp->equation->type == GKYL_EQN_TEN_MOMENT ? gkyl_wv_ten_moment_k0(mom_sp->equation) : 0.0;
 
   // choose default limiter
   enum gkyl_wave_limiter limiter =
@@ -322,7 +322,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   for (int d=0; d<ndim; ++d)
     sp->slvr[d] = gkyl_wave_prop_new( (struct gkyl_wave_prop_inp) {
         .grid = &app->grid,
-        .equation = sp->equation,
+        .equation = mom_sp->equation,
         .limiter = limiter,
         .num_up_dirs = 1,
         .update_dirs = { d },
@@ -460,7 +460,6 @@ moment_species_update(const gkyl_moment_app *app,
 static void
 moment_species_release(const struct moment_species *sp)
 {
-  gkyl_wv_eqn_release(sp->equation);
   for (int d=0; d<sp->ndim; ++d)
     gkyl_wave_prop_release(sp->slvr[d]);
 
@@ -794,6 +793,7 @@ gkyl_moment_app_new(struct gkyl_moment mom)
 
   skin_ghost_ranges_init(&app->skin_ghost, &app->local_ext, ghost);
 
+  app->c2p_ctx = app->mapc2p = 0;  
   app->has_mapc2p = mom.mapc2p ? true : false;
 
   if (app->has_mapc2p) {

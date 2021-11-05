@@ -190,14 +190,14 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
   // electron/ion equations
-  struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new();
-  struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new();
+  // d_e = 1.0, k0 = 1/d_e
+  struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new(1.0);
+  // d_i = 6.0, k0 = 1/d_i
+  struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new(1.0/6.0);
 
   struct gkyl_moment_species elc = {
     .name = "elc",
     .charge = -1.0, .mass = 1.0,
-    // d_e = 1.0, k0 = 1/d_e
-    .k0 = 1.0,
     .equation = elc_ten_moment,
     .evolve = 1,
     .init = evalElcInit,
@@ -207,8 +207,6 @@ main(int argc, char **argv)
   struct gkyl_moment_species ion = {
     .name = "ion",
     .charge = 1.0, .mass = 36.0,
-    // d_i = 6.0, k0 = 1/d_i
-    .k0 = 1.0/6.0,
     .equation = ion_ten_moment,
     .evolve = 1,
     .init = evalIonInit,

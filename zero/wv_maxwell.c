@@ -3,20 +3,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_wv_maxwell.h>
 
-static const int dir_shuffle[][6] = {
-  {0, 1, 2, 3, 4, 5},
-  {1, 2, 0, 4, 5, 3},
-  {2, 0, 1, 5, 3, 4}
-};
-
-// Make indexing cleaner with the dir_shuffle
-#define EX d[0]
-#define EY d[1]
-#define EZ d[2]
-#define BX d[3]
-#define BY d[4]
-#define BZ d[5]
-
 struct wv_maxwell {
   struct gkyl_wv_eqn eqn; // base object
   double c; // light speed
@@ -31,38 +17,8 @@ maxwell_free(const struct gkyl_ref_count *ref)
   gkyl_free(maxwell);
 }
 
-static void
-rot_to_local_rect(int dir, const double *tau1, const double *tau2, const double *norm,
-  const double *qglobal, double *qlocal)
-{
-  const int *d = dir_shuffle[dir];  
-  qlocal[0] = qglobal[EX];
-  qlocal[1] = qglobal[EY];
-  qlocal[2] = qglobal[EZ];
-  qlocal[3] = qglobal[BX];
-  qlocal[4] = qglobal[BY];
-  qlocal[5] = qglobal[BZ];
-  qlocal[6] = qglobal[6];
-  qlocal[7] = qglobal[7];
-}
-
-static void
-rot_to_global_rect(int dir, const double *tau1, const double *tau2, const double *norm,
-  const double *qlocal, double *qglobal)
-{
-  const int *d = dir_shuffle[dir];  
-  qglobal[EX] = qlocal[0];
-  qglobal[EY] = qlocal[1];
-  qglobal[EZ] = qlocal[2];
-  qglobal[BX] = qlocal[3];
-  qglobal[BY] = qlocal[4];
-  qglobal[BZ] = qlocal[5];
-  qglobal[6] = qlocal[6];
-  qglobal[7] = qlocal[7];
-}
-
 static inline void
-rot_to_local(int dir, const double *tau1, const double *tau2, const double *norm,
+rot_to_local(const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
 {
   // Rotate E to local coordinates
@@ -79,7 +35,7 @@ rot_to_local(int dir, const double *tau1, const double *tau2, const double *norm
 }
 
 static inline void
-rot_to_global(int dir, const double *tau1, const double *tau2, const double *norm,
+rot_to_global(const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
 {
   // Rotate E back to global coordinates
@@ -98,7 +54,7 @@ rot_to_global(int dir, const double *tau1, const double *tau2, const double *nor
 // Waves and speeds using Roe averaging
 static double
 wave(const struct gkyl_wv_eqn *eqn, 
-  int dir, const double *delta, const double *ql, const double *qr, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
   const struct wv_maxwell *maxwell = container_of(eqn, struct wv_maxwell, eqn);
 
@@ -106,7 +62,6 @@ wave(const struct gkyl_wv_eqn *eqn,
   double e_fact = maxwell->e_fact, b_fact = maxwell->b_fact;
     
   // compute projections of jump
-  // Note correction potentials are scalars and no dir_shuffle required
   double a1 = 0.5*(delta[3]-delta[7]*c1);
   double a2 = 0.5*(delta[3]+delta[7]*c1);
   double a3 = 0.5*(delta[0]-delta[6]*c);
@@ -166,7 +121,7 @@ wave(const struct gkyl_wv_eqn *eqn,
 
 static void
 qfluct(const struct gkyl_wv_eqn *eqn, 
-  int dir, const double *ql, const double *qr, const double *waves, const double *s,
+  const double *ql, const double *qr, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
   const double *w0 = &waves[0*8], *w1 = &waves[1*8], *w2 = &waves[2*8];
@@ -185,7 +140,7 @@ qfluct(const struct gkyl_wv_eqn *eqn,
 }
 
 static double
-max_speed(const struct gkyl_wv_eqn *eqn, int dir, const double *q)
+max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   const struct wv_maxwell *maxwell = container_of(eqn, struct wv_maxwell, eqn);
   return maxwell->c;
@@ -207,8 +162,8 @@ gkyl_wv_maxwell_new(double c, double e_fact, double b_fact)
   maxwell->eqn.waves_func = wave;
   maxwell->eqn.qfluct_func = qfluct;
   maxwell->eqn.max_speed_func = max_speed;
-  maxwell->eqn.rotate_to_local_func = rot_to_local_rect;
-  maxwell->eqn.rotate_to_global_func = rot_to_global_rect;
+  maxwell->eqn.rotate_to_local_func = rot_to_local;
+  maxwell->eqn.rotate_to_global_func = rot_to_global;
 
   maxwell->eqn.ref_count = (struct gkyl_ref_count) { maxwell_free, 1 };
 

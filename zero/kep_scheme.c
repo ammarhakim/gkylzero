@@ -31,7 +31,7 @@ gkyl_kep_scheme_new(struct gkyl_kep_scheme_inp inp)
   for (int i=0; i<inp.num_up_dirs; ++i)
     up->update_dirs[i] = inp.update_dirs[i];
 
-  up->equation = gkyl_wv_eqn_aquire(inp.equation);
+  up->equation = gkyl_wv_eqn_acquire(inp.equation);
 
   return up;
 }

@@ -126,7 +126,7 @@ main(int argc, char **argv)
     .ndim = 2,
     .lower = { -12.8, -6.4 },
     .upper = { 12.8, 6.4 }, 
-    .cells = { 64, 32  },
+    .cells = { 64, 32 },
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },

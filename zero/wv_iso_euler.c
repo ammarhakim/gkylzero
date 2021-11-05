@@ -18,7 +18,7 @@ iso_euler_free(const struct gkyl_ref_count *ref)
 }
 
 static inline void
-rot_to_local(int dir, const double *tau1, const double *tau2, const double *norm,
+rot_to_local(const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
 {
   qlocal[0] = qglobal[0];
@@ -28,7 +28,7 @@ rot_to_local(int dir, const double *tau1, const double *tau2, const double *norm
 }
 
 static inline void
-rot_to_global(int dir, const double *tau1, const double *tau2, const double *norm,
+rot_to_global(const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
 {
   qglobal[0] = qlocal[0];
@@ -40,7 +40,7 @@ rot_to_global(int dir, const double *tau1, const double *tau2, const double *nor
 // Waves and speeds using Roe averaging
 static double
 wave_roe(const struct gkyl_wv_eqn *eqn, 
-  int dir, const double *delta, const double *ql, const double *qr, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
   const struct wv_iso_euler *iso_euler = container_of(eqn, struct wv_iso_euler, eqn);
   double vt = iso_euler->vt;
@@ -91,7 +91,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
 
 static void
 qfluct_roe(const struct gkyl_wv_eqn *eqn, 
-  int dir, const double *ql, const double *qr, const double *waves, const double *s,
+  const double *ql, const double *qr, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
   const double *w0 = &waves[0], *w1 = &waves[4], *w2 = &waves[8];
@@ -105,7 +105,7 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn,
 }
 
 static double
-max_speed(const struct gkyl_wv_eqn *eqn, int dir, const double *q)
+max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   const struct wv_iso_euler *iso_euler = container_of(eqn, struct wv_iso_euler, eqn);
   return gkyl_iso_euler_max_abs_speed(iso_euler->vt, q);

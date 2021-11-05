@@ -95,15 +95,17 @@ evalFieldInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 int
 main(int argc, char **argv)
 {
+  // d_e = 0.2, k0 = 1/d_e
+  double k0 = 5.0;
+  
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
   // electron/ion equations
-  struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new();
-  struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new();
+  struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new(k0);
+  struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new(k0);
 
   struct gkyl_moment_species elc = {
     .name = "elc",
     .charge = -1.0, .mass = 1.0/25.0,
-    .k0 = 5.0,
     .has_grad_closure = true,
     .equation = elc_ten_moment,
     .evolve = 1,
@@ -114,7 +116,6 @@ main(int argc, char **argv)
   struct gkyl_moment_species ion = {
     .name = "ion",
     .charge = 1.0, .mass = 1.0,
-    .k0 = 5.0,
     .has_grad_closure = true,
     .equation = ion_ten_moment,
     .evolve = 1,

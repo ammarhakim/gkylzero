@@ -2,20 +2,13 @@
 
 #include <gkyl_prim_sr_euler.h>
 
-static const int dir_shuffle[][3] = {
-  {2, 3, 4},
-  {3, 4, 2},
-  {4, 2, 3}
-};
-
-#define TU d[0]
-#define TV d[1]
-#define TW d[2]
+#define TU 2
+#define TV 3
+#define TW 4
 
 double
-gkyl_sr_euler_max_abs_speed(int dir, double gas_gamma, const double q[5])
+gkyl_sr_euler_max_abs_speed(double gas_gamma, const double q[5])
 {
-  int const *const d = dir_shuffle[dir];
   double v[5];
   gkyl_sr_euler_prim_vars(gas_gamma, q, v);
 
@@ -30,9 +23,8 @@ gkyl_sr_euler_max_abs_speed(int dir, double gas_gamma, const double q[5])
 }
 
 void
-gkyl_sr_euler_flux(int dir, double gas_gamma, const double q[5], double flux[5])
+gkyl_sr_euler_flux(double gas_gamma, const double q[5], double flux[5])
 {
-  int const *const d = dir_shuffle[dir];
   double v[5];
   gkyl_sr_euler_prim_vars(gas_gamma, q, v);
   double pr = v[1];

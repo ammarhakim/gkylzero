@@ -24,8 +24,10 @@ extern "C" {
 #include <gkyl_fv_proj.h>
 #include <gkyl_gauss_quad_data.h>
 #include <gkyl_hyper_dg.h>
+#include <gkyl_job_pool.h>
 #include <gkyl_kep_scheme.h>
 #include <gkyl_mat.h>
+#include <gkyl_math.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_type.h>
 #include <gkyl_moment.h>
@@ -40,6 +42,7 @@ extern "C" {
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_ref_count.h>
+#include <gkyl_thread_pool.h>
 #include <gkyl_update_fsm.h>
 #include <gkyl_util.h>
 #include <gkyl_vargm.h>

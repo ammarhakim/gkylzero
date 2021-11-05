@@ -1,17 +1,19 @@
 
 #include <stdio.h>
 #include <stc/cstr.h>
+
+#define i_tag i
+#define i_val int
 #include <stc/cstack.h>
 
-using_cvec(i, int);
-using_cvec(c, char);
-using_cstack(i, cvec_i);
-using_cstack(c, cvec_c);
+#define i_tag c
+#define i_val char
+#include <stc/cstack.h>
 
 int main() {
     cstack_i stack = cstack_i_init();
     cstack_c chars = cstack_c_init();
-    c_fordefer (cstack_i_del(&stack), cstack_c_del(&chars))
+    c_autodefer (cstack_i_del(&stack), cstack_c_del(&chars))
     {
         c_forrange (i, int, 101)
             cstack_i_push(&stack, i*i);
