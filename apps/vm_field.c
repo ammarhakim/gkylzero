@@ -74,8 +74,10 @@ vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, double t0)
     poly_order+1, 8, field->info.init, field->info.ctx);
 
   gkyl_proj_on_basis_advance(proj, t0, &app->local, field->em_host);
-  
-  gkyl_proj_on_basis_release(proj);  
+  gkyl_proj_on_basis_release(proj);
+
+  if (app->use_gpu)
+    gkyl_array_copy(field->em, field->em_host);
 }
 
 // Compute the RHS for field update, returning maximum stable

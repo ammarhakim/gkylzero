@@ -110,8 +110,10 @@ vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
 
   // run updater
   gkyl_proj_on_basis_advance(proj, t0, &species->local, species->f_host);
-  
-  gkyl_proj_on_basis_release(proj);  
+  gkyl_proj_on_basis_release(proj);    
+
+  if (app->use_gpu) // note: f_host is same as f when not on GPUs
+    gkyl_array_copy(species->f, species->f_host);
 }
 
 // Compute the RHS for species update, returning maximum stable
