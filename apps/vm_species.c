@@ -5,6 +5,13 @@
 void
 vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_species *s)
 {
+  if (s->info.job_pool)
+    // use specified job pool if it exists ...
+    s->job_pool = gkyl_job_pool_acquire(s->info.job_pool);
+  else
+    // .. or app job pool if it does not
+    s->job_pool = gkyl_job_pool_acquire(app->job_pool);
+  
   int cdim = app->cdim, vdim = app->vdim;
   int pdim = cdim+vdim;
 
@@ -94,6 +101,21 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       num_up_dirs, up_dirs, zero_flux_flags, 1);
 }
 
+void
+vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
+{
+  int poly_order = app->poly_order;
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&species->grid, &app->basis,
+    poly_order+1, 1, species->info.init, species->info.ctx);
+
+  // run updater
+  gkyl_proj_on_basis_advance(proj, t0, &species->local, species->f_host);
+  gkyl_proj_on_basis_release(proj);    
+
+  if (app->use_gpu) // note: f_host is same as f when not on GPUs
+    gkyl_array_copy(species->f, species->f_host);
+}
+
 // Compute the RHS for species update, returning maximum stable
 // time-step.
 double
@@ -162,6 +184,8 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
 void
 vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
 {
+  gkyl_job_pool_release(s->job_pool);
+  
   // release various arrays
   gkyl_array_release(s->f);
   gkyl_array_release(s->f1);

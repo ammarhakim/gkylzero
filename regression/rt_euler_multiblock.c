@@ -652,6 +652,7 @@ main(int argc, char **argv)
   }
   
   gkyl_block_topo_release(btopo);
+  gkyl_job_pool_release(job_pool);
   
   return 0;
 }

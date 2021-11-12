@@ -266,7 +266,7 @@ main(int argc, char **argv)
   if (stat.nstage_2_fail > 0) {
     printf("Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
     printf("Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
-  }  
+  }
   printf("Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   printf("Species RHS calc took %g secs\n", stat.species_rhs_tm);
   printf("Field RHS calc took %g secs\n", stat.field_rhs_tm);
