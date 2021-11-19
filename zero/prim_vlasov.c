@@ -7,13 +7,13 @@
 #include <gkyl_prim_vlasov.h>
 #include <gkyl_prim_vlasov_priv.h>
 
-struct gkyl_prim_mom*
+struct gkyl_prim_vlasov*
 gkyl_prim_vlasov_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
   
-  struct gkyl_prim_mom *prim_vlasov = gkyl_malloc(sizeof(struct gkyl_prim_mom));
+  struct gkyl_prim_vlasov *prim_vlasov = gkyl_malloc(sizeof(struct gkyl_prim_vlasov));
   int cdim = prim_vlasov->cdim = cbasis->ndim;
   int pdim = prim_vlasov->pdim = pbasis->ndim;
   int vdim = pdim-cdim;
@@ -39,10 +39,13 @@ gkyl_prim_vlasov_new(const struct gkyl_basis* cbasis,
   assert(cv_index[cdim].vdim[vdim] != -1);
   assert(NULL != self_prim_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
-  prim_vlasov->kernel = self_prim_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-
-  // set reference counter
-  // prim_vlasov->ref_count = (struct gkyl_ref_count) { mom_free, 1 };
+  prim_vlasov->self_prim = self_prim_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     
   return prim_vlasov;
+}
+
+void
+gkyl_prim_vlasov_release(const struct gkyl_prim_vlasov* prim)
+{
+  gkyl_free(prim);
 }
