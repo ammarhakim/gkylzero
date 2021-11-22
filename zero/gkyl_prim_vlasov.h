@@ -27,4 +27,4 @@ struct gkyl_prim_vlasov* gkyl_prim_vlasov_new(const struct gkyl_basis* cbasis, c
  *
  * @param prim Primitive moment object to delete.
  */
-void gkyl_prim_vlasov_release(const struct gkyl_prim_vlasov* prim);
+void gkyl_prim_vlasov_release(struct gkyl_prim_vlasov* prim);

@@ -45,7 +45,7 @@ gkyl_prim_vlasov_new(const struct gkyl_basis* cbasis,
 }
 
 void
-gkyl_prim_vlasov_release(const struct gkyl_prim_vlasov* prim)
+gkyl_prim_vlasov_release(struct gkyl_prim_vlasov* prim)
 {
   gkyl_free(prim);
 }
