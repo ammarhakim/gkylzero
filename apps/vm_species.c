@@ -147,11 +147,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
       gkyl_mom_calc_advance(species->m0.mcalc, species->local, app->local, fin, species->m0.marr);
       gkyl_mom_calc_advance(species->m1i.mcalc, species->local, app->local, fin, species->m1i.marr);
       gkyl_mom_calc_advance(species->m2.mcalc, species->local, app->local, fin, species->m2.marr);
-      // Construct the boundary corrections
-      int viter_idx[app->vdim];
-      for (int d=0; d<app->vdim; ++d) viter_idx[d] = species->local.upper[app->cdim + d];
-      gkyl_lbo_mom_set_atLower(species->lbo.cM_mom, viter_idx);
-      
+      // Construct the boundary corrections      
       gkyl_mom_bcorr_advance(species->lbo.cM_bcorr, species->local, app->local, fin, species->lbo.cM);
       gkyl_mom_bcorr_advance(species->lbo.cE_bcorr, species->local, app->local, fin, species->lbo.cE);
       // Construct the primitive moments

@@ -68,7 +68,6 @@ vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct lbo_colli
     gkyl_mom_type_release(lbo->cE_mom);
     gkyl_mom_bcorr_release(lbo->cM_bcorr);
     gkyl_mom_bcorr_release(lbo->cE_bcorr);
-    gkyl_prim_vlasov_release(lbo->coll_prim);
     gkyl_prim_vlasov_calc_release(lbo->coll_pcalc);
     gkyl_dg_eqn_release(lbo->coll_eqn);
     gkyl_hyper_dg_release(lbo->coll_slvr);
