@@ -79,7 +79,6 @@ struct vm_species {
   struct gkyl_dg_eqn *eqn; // Vlasov equation
   gkyl_hyper_dg *slvr; // solver 
 
-  double nu; // Collision frequency
   enum gkyl_collision_id collision_id; // type of collisions
   struct lbo_collisions lbo;
   struct bgk_collisions bgk;
