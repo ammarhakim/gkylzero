@@ -7,7 +7,7 @@
 
 gkyl_prim_vlasov_calc*
 gkyl_prim_vlasov_calc_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_prim_vlasov *prim)
+  struct gkyl_prim_vlasov *prim)
 {
   gkyl_prim_vlasov_calc *up = gkyl_malloc(sizeof(gkyl_prim_vlasov_calc));
   up->grid = *grid;
@@ -16,7 +16,7 @@ gkyl_prim_vlasov_calc_new(const struct gkyl_rect_grid *grid,
 }
 
 void
-gkyl_prim_vlasov_calc_advance(const gkyl_prim_vlasov_calc* calc, const struct gkyl_basis cbasis,
+gkyl_prim_vlasov_calc_advance(gkyl_prim_vlasov_calc* calc, const struct gkyl_basis cbasis,
   const struct gkyl_range conf_rng, const struct gkyl_array *m0, const struct gkyl_array *m1,
   const struct gkyl_array *m2, const struct gkyl_array *cM, const struct gkyl_array *cE,
   struct gkyl_array *uout, struct gkyl_array *vtSqout)
@@ -24,7 +24,7 @@ gkyl_prim_vlasov_calc_advance(const gkyl_prim_vlasov_calc* calc, const struct gk
   struct gkyl_range_iter conf_iter;
 
   // allocate memory for use in kernels
-  int N = cbasis.num_basis*(calc->prim->pdim - calc->prim->cdim);
+  int N = (cbasis.num_basis)*(calc->prim->pdim - calc->prim->cdim + 1);
   struct gkyl_mat *A = gkyl_mat_new(N, N, 0.0);
   struct gkyl_mat *rhs = gkyl_mat_new(N, 1, 0.0);
 

@@ -25,7 +25,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   }
   gkyl_rect_grid_init(&s->grid, pdim, lower, upper, cells);
   gkyl_create_grid_ranges(&s->grid, ghost, &s->local_ext, &s->local);
-
+  
   skin_ghost_ranges_init(&s->skin_ghost, &s->local_ext, ghost);
   
   // allocate distribution function arrays
@@ -147,10 +147,18 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
       gkyl_mom_calc_advance(species->m0.mcalc, species->local, app->local, fin, species->m0.marr);
       gkyl_mom_calc_advance(species->m1i.mcalc, species->local, app->local, fin, species->m1i.marr);
       gkyl_mom_calc_advance(species->m2.mcalc, species->local, app->local, fin, species->m2.marr);
+      // Construct the boundary corrections
+      int viter_idx[app->vdim];
+      for (int d=0; d<app->vdim; ++d) viter_idx[d] = species->local.upper[app->cdim + d];
+      gkyl_lbo_mom_set_atLower(species->lbo.cM_mom, viter_idx);
+      
+      gkyl_mom_bcorr_advance(species->lbo.cM_bcorr, species->local, app->local, fin, species->lbo.cM);
+      gkyl_mom_bcorr_advance(species->lbo.cE_bcorr, species->local, app->local, fin, species->lbo.cE);
       // Construct the primitive moments
-      // JUST SETTING ARRAYS FOR NOW
-      gkyl_array_set(species->lbo.nu_u, 1.0, species->m1i.marr);
-      gkyl_array_set(species->lbo.nu_vthsq, 1.0, species->m2.marr);
+      gkyl_prim_vlasov_calc_advance(species->lbo.coll_pcalc, app->confBasis, app->local, species->m0.marr, species->m1i.marr,
+	species->m2.marr, species->lbo.cM, species->lbo.cE, species->lbo.nu_u, species->lbo.nu_vthsq);
+      // gkyl_array_set(species->lbo.nu_u, 1.0, species->m1i.marr);
+      // gkyl_array_set(species->lbo.nu_vthsq, 1.0, species->m2.marr);
       // Set the arrays needed
       gkyl_vlasov_lbo_set_nuSum(species->lbo.coll_eqn, species->lbo.nu_sum);
       gkyl_vlasov_lbo_set_nuUSum(species->lbo.coll_eqn, species->lbo.nu_u);

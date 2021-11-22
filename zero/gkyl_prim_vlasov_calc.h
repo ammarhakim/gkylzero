@@ -11,7 +11,7 @@ typedef struct gkyl_prim_vlasov_calc gkyl_prim_vlasov_calc;
 
 struct gkyl_prim_vlasov_calc {
   struct gkyl_rect_grid grid;
-  const struct gkyl_prim_vlasov *prim;
+  struct gkyl_prim_vlasov *prim;
 };
 
 /**
@@ -23,7 +23,7 @@ struct gkyl_prim_vlasov_calc {
  * @return New updater pointer.
  */
 gkyl_prim_vlasov_calc* gkyl_prim_vlasov_calc_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_prim_vlasov *prim);
+  struct gkyl_prim_vlasov *prim);
 
 /**
  * Compute moment of distribution function. The phase_rng and conf_rng
@@ -43,7 +43,7 @@ gkyl_prim_vlasov_calc* gkyl_prim_vlasov_calc_new(const struct gkyl_rect_grid *gr
  * @param uout Output drift velocity primitive moment array
  * @param vtSqout Output thermal velocity primitive moment array
  */
-void gkyl_prim_vlasov_calc_advance(const gkyl_prim_vlasov_calc* calc, const struct gkyl_basis cbasis,
+void gkyl_prim_vlasov_calc_advance(gkyl_prim_vlasov_calc* calc, const struct gkyl_basis cbasis,
   const struct gkyl_range conf_rng, const struct gkyl_array *m0, const struct gkyl_array *m1,
   const struct gkyl_array *m2, const struct gkyl_array *cM, const struct gkyl_array *cE,
   struct gkyl_array *uout, struct gkyl_array *vtSqout);

@@ -17,7 +17,11 @@
 #include <gkyl_dg_vlasov_lbo.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_hyper_dg.h>
+#include <gkyl_lbo_mom_bcorr.h>
+#include <gkyl_mom_bcorr.h>
 #include <gkyl_mom_calc.h>
+#include <gkyl_prim_vlasov.h>
+#include <gkyl_prim_vlasov_calc.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -46,7 +50,12 @@ struct vm_species_moment {
 };
 
 struct lbo_collisions {
+  struct gkyl_array *cM, *cE; // LBO boundary corrections
+  struct gkyl_mom_type *cM_mom, *cE_mom;
+  struct gkyl_mom_bcorr *cM_bcorr, *cE_bcorr;
   struct gkyl_array *nu_sum, *nu_u, *nu_vthsq; // LBO primitive moments
+  struct gkyl_prim_vlasov *coll_prim; // Primitive moments
+  gkyl_prim_vlasov_calc *coll_pcalc; // Primitive moment solver
   struct gkyl_dg_eqn *coll_eqn; // Collision equation
   gkyl_hyper_dg *coll_slvr; // Collision solver
 };
