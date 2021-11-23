@@ -57,7 +57,7 @@ gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
 bool
 gkyl_array_is_cu_dev(const struct gkyl_array *arr)
 {
-  return IS_CU_ARRAY(arr->flags);
+  return arr ? IS_CU_ARRAY(arr->flags) : false;  
 }
 
 struct gkyl_array*
