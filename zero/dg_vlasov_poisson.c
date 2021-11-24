@@ -18,9 +18,9 @@ vlasov_poisson_free(const struct gkyl_ref_count *ref)
 void
 gkyl_vlasov_poisson_set_fac_phi(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *fac_phi)
 {
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(fac_phi)) {gkyl_vlasov_poisson_set_fac_phi_cu(eqn, fac_phi); return;}
-#endif
+//#ifdef GKYL_HAVE_CUDA
+//  if (gkyl_array_is_cu_dev(fac_phi)) {gkyl_vlasov_poisson_set_fac_phi_cu(eqn, fac_phi); return;}
+//#endif
 
   struct dg_vlasov_poisson *vlasov_poisson = container_of(eqn, struct dg_vlasov_poisson, eqn);
   vlasov_poisson->fac_phi = fac_phi;
@@ -29,9 +29,9 @@ gkyl_vlasov_poisson_set_fac_phi(const struct gkyl_dg_eqn *eqn, const struct gkyl
 void
 gkyl_vlasov_poisson_set_vecA(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *vecA)
 {
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(vecA)) {gkyl_vlasov_poisson_set_vecA_cu(eqn, vecA); return;}
-#endif
+//#ifdef GKYL_HAVE_CUDA
+//  if (gkyl_array_is_cu_dev(vecA)) {gkyl_vlasov_poisson_set_vecA_cu(eqn, vecA); return;}
+//#endif
 
   struct dg_vlasov_poisson *vlasov_poisson = container_of(eqn, struct dg_vlasov_poisson, eqn);
   vlasov_poisson->vecA = vecA;
