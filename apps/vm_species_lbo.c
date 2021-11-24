@@ -28,6 +28,8 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct lb
 
   lbo->cM = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
   lbo->cE = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
+  lbo->u_drift = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
+  lbo->vth_sq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   lbo->nu_u = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
   lbo->nu_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   // create collision equation object and solver
@@ -58,6 +60,8 @@ vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct lbo_colli
 {
   gkyl_array_release(lbo->cM);
   gkyl_array_release(lbo->cE);
+  gkyl_array_release(lbo->u_drift);
+  gkyl_array_release(lbo->vth_sq);
   gkyl_array_release(lbo->nu_sum);
   gkyl_array_release(lbo->nu_u);
   gkyl_array_release(lbo->nu_vthsq);
