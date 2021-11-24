@@ -148,20 +148,24 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
       gkyl_mom_calc_advance(species->m0.mcalc, species->local, app->local, fin, species->m0.marr);
       gkyl_mom_calc_advance(species->m1i.mcalc, species->local, app->local, fin, species->m1i.marr);
       gkyl_mom_calc_advance(species->m2.mcalc, species->local, app->local, fin, species->m2.marr);
+
       // Construct the boundary corrections      
       gkyl_mom_bcorr_advance(species->lbo.cM_bcorr, species->local, app->local, fin, species->lbo.cM);
       gkyl_mom_bcorr_advance(species->lbo.cE_bcorr, species->local, app->local, fin, species->lbo.cE);
+
       // Construct the primitive moments
-      gkyl_prim_vlasov_calc_advance(species->lbo.coll_pcalc, app->confBasis, app->local, species->m0.marr, species->m1i.marr,
-	species->m2.marr, species->lbo.cM, species->lbo.cE, species->lbo.u_drift, species->lbo.vth_sq);
+      gkyl_prim_vlasov_calc_advance(species->lbo.coll_pcalc, app->confBasis, app->local, 
+        species->m0.marr, species->m1i.marr, species->m2.marr, species->lbo.cM, species->lbo.cE, 
+        species->lbo.u_drift, species->lbo.vth_sq);
       gkyl_dg_mul_op(app->confBasis, 0, species->lbo.nu_u, 0, species->lbo.u_drift, 0, species->lbo.nu_sum);
       gkyl_dg_mul_op(app->confBasis, 0, species->lbo.nu_vthsq, 0, species->lbo.vth_sq, 0, species->lbo.nu_sum);
-      // gkyl_array_set(species->lbo.nu_u, 1.0, species->m1i.marr);
-      // gkyl_array_set(species->lbo.nu_vthsq, 1.0, species->m2.marr);
+
       // Set the arrays needed
       gkyl_vlasov_lbo_set_nuSum(species->lbo.coll_eqn, species->lbo.nu_sum);
       gkyl_vlasov_lbo_set_nuUSum(species->lbo.coll_eqn, species->lbo.nu_u);
       gkyl_vlasov_lbo_set_nuVtSqSum(species->lbo.coll_eqn, species->lbo.nu_vthsq);
+
+      // Accumulate update due to collisions onto rhs
       gkyl_hyper_dg_advance(species->lbo.coll_slvr, species->local, fin, species->cflrate, rhs);
     }
   }
