@@ -301,7 +301,7 @@ test_1x2v_p2()
   TEST_CHECK( gkyl_compare_double(rhs_d2[9], -0.000056168510261349, 1e-8) );
   TEST_CHECK( gkyl_compare_double(rhs_d2[10], -0.00094472239586452, 1e-10) );
   TEST_CHECK( gkyl_compare_double(rhs_d2[11], -0.02102698691235, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d2[12], 0.00038921843594153, 1e-10) );
+  TEST_CHECK( gkyl_compare_double(rhs_d2[12], 0.00038921843594153, 1e-8) );
   TEST_CHECK( gkyl_compare_double(rhs_d2[13], -0.021026986912361, 1e-12) );
   TEST_CHECK( gkyl_compare_double(rhs_d2[14], -0.000010512115344419, 1e-8) );
   TEST_CHECK( gkyl_compare_double(rhs_d2[15], 0.00038921843590858, 1e-10) );

@@ -113,7 +113,8 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   struct timespec wst = gkyl_wall_clock();
   
   gkyl_array_clear(species->cflrate, 0.0);
-  gkyl_vlasov_set_qmem(species->eqn, qmem); // must set EM fields to use
+  if (qmem)
+    gkyl_vlasov_set_qmem(species->eqn, qmem); // must set EM fields to use
   
   gkyl_array_clear(rhs, 0.0);
   if (app->use_gpu)

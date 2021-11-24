@@ -35,8 +35,8 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct lb
   // create collision equation object and solver
   if (app->use_gpu)
   {
-    lbo->coll_eqn = gkyl_dg_vlasov_lbo_cu_dev_new(&app->confBasis, &app->basis, &app->local);
-    lbo->coll_slvr = gkyl_hyper_dg_cu_dev_new(&s->grid, &app->basis, lbo->coll_eqn, num_up_dirs, up_dirs, zero_flux_flags, 1);
+    //lbo->coll_eqn = gkyl_dg_vlasov_lbo_cu_dev_new(&app->confBasis, &app->basis, &app->local);
+    //lbo->coll_slvr = gkyl_hyper_dg_cu_dev_new(&s->grid, &app->basis, lbo->coll_eqn, num_up_dirs, up_dirs, zero_flux_flags, 1);
   }
   else
   {
