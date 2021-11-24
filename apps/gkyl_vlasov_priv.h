@@ -12,6 +12,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_dg_vlasov_lbo.h>
@@ -53,7 +54,7 @@ struct lbo_collisions {
   struct gkyl_array *cM, *cE; // LBO boundary corrections
   struct gkyl_mom_type *cM_mom, *cE_mom;
   struct gkyl_mom_bcorr *cM_bcorr, *cE_bcorr;
-  struct gkyl_array *nu_sum, *nu_u, *nu_vthsq; // LBO primitive moments
+  struct gkyl_array *nu_sum, *u_drift, *vth_sq, *nu_u, *nu_vthsq; // LBO primitive moments
   struct gkyl_prim_vlasov *coll_prim; // Primitive moments
   gkyl_prim_vlasov_calc *coll_pcalc; // Primitive moment solver
   struct gkyl_dg_eqn *coll_eqn; // Collision equation
