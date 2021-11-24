@@ -2,8 +2,12 @@
 
 // Private header, not for direct use in user code
 
-#include <gkyl_vlasov_kernels.h>
+#include <gkyl_array.h>
+#include <gkyl_dg_eqn.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_range.h>
+#include <gkyl_util.h>
+#include <gkyl_vlasov_kernels.h>
 
 // Types for various kernels
 typedef double (*vlasov_vol_t)(const double *w, const double *dxv,

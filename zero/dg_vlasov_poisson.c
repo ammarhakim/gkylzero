@@ -5,7 +5,6 @@
 #include <gkyl_array.h>
 #include <gkyl_dg_vlasov_poisson.h>
 #include <gkyl_dg_vlasov_poisson_priv.h>
-#include <gkyl_util.h>
 
 static void
 vlasov_poisson_free(const struct gkyl_ref_count *ref)
