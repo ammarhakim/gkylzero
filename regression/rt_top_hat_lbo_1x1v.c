@@ -58,7 +58,7 @@ main(int argc, char **argv)
     .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -4.0 * ctx.vt},
     .upper = { 4.0 * ctx.vt}, 
-    .cells = { 32 },
+    .cells = { 8 },
 
     .evolve = 1,
     .ctx = &ctx,
@@ -76,7 +76,7 @@ main(int argc, char **argv)
     .cdim = 1, .vdim = 1,
     .lower = { 0.0 },
     .upper = { ctx.Lx },
-    .cells = { 2 },
+    .cells = { 1 },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
