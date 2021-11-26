@@ -148,5 +148,4 @@ void
 gkyl_mat_release(struct gkyl_mat *mat)
 {
   if (mat) gkyl_free(mat);
-  mat = 0;
 }
