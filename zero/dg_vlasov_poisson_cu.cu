@@ -52,7 +52,13 @@ dg_vlasov_poisson_set_cu_dev_ptrs(struct dg_vlasov_poisson *vlasov_poisson, enum
   vlasov_poisson->fac_phi = 0; 
   vlasov_poisson->vecA = 0; 
 
-  vlasov_poisson->eqn.vol_term = vol;
+  printf("******** FIX BUG IN vlasov_poisson to enable it to run on GPUs!");    
+  assert(false);
+  // NOTE: FIX ME. the following line is a problem. However, the issue
+  // appears in the priv header and not here, apparently. The problem
+  // is the return statement in the volume method
+
+  // vlasov_poisson->eqn.vol_term = vol;
   vlasov_poisson->eqn.surf_term = surf;
   vlasov_poisson->eqn.boundary_surf_term = boundary_surf;
 
