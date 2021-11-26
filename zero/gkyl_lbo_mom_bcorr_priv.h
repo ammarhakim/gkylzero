@@ -54,8 +54,8 @@ static const gkyl_lbo_mom_kern_list ser_boundary_integral_vf_kernels[] = {
 struct lbo_mom_type {
   struct gkyl_mom_type momt;
   lbo_momf_t kernel; // moment calculation kernel
-  const double *vBoundary;
-  const int *atLower;
+  double vBoundary[2*GKYL_MAX_DIM];
+  int atLower[GKYL_MAX_DIM];
 };
 
 GKYL_CU_D

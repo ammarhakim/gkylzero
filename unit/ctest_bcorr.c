@@ -121,12 +121,8 @@ test_1x1v_p2()
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
 
-  struct gkyl_mom_type *F = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "f");
-  struct gkyl_mom_type *VF = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "vf");
-  gkyl_lbo_mom_set_atLower(F, v_edge_idx);
-  gkyl_lbo_mom_set_vBoundary(F, v_bounds);
-  gkyl_lbo_mom_set_atLower(VF, v_edge_idx);
-  gkyl_lbo_mom_set_vBoundary(VF, v_bounds);
+  struct gkyl_mom_type *F = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "f", v_bounds, v_edge_idx);
+  struct gkyl_mom_type *VF = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "vf", v_bounds, v_edge_idx);
 
   TEST_CHECK( VF->cdim == 1 );
   TEST_CHECK( VF->pdim == 2 );
@@ -224,12 +220,8 @@ test_1x2v_p2()
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
 
-  struct gkyl_mom_type *F = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "f");
-  struct gkyl_mom_type *VF = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "vf");
-  gkyl_lbo_mom_set_atLower(F, v_edge_idx);
-  gkyl_lbo_mom_set_vBoundary(F, v_bounds);
-  gkyl_lbo_mom_set_atLower(VF, v_edge_idx);
-  gkyl_lbo_mom_set_vBoundary(VF, v_bounds);
+  struct gkyl_mom_type *F = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "f", v_bounds, v_edge_idx);
+  struct gkyl_mom_type *VF = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "vf", v_bounds, v_edge_idx);
 
   TEST_CHECK( VF->cdim == 1 );
   TEST_CHECK( VF->pdim == 3 );

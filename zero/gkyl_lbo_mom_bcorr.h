@@ -11,8 +11,7 @@
  * @param pbasis Phase-space basis-functions
  * @param mom Name of moment to compute.
  */
-struct gkyl_mom_type* gkyl_vlasov_lbo_mom_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const char *mom);
+struct gkyl_mom_type* gkyl_vlasov_lbo_mom_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const char *mom, const double* vBoundary, const int* atLower);
 
 /**
  * Set the value of v at the boundary.

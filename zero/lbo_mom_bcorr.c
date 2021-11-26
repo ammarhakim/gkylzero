@@ -15,24 +15,10 @@ mom_free(const struct gkyl_ref_count *ref)
   gkyl_free(mom_bcorr);
 }
 
-void
-gkyl_lbo_mom_set_vBoundary(const struct gkyl_mom_type *momt, const double *vBoundary)
-{
-  struct lbo_mom_type *mom_bcorr = container_of(momt, struct lbo_mom_type, momt);
-  mom_bcorr->vBoundary = vBoundary;
-}
-
-void
-gkyl_lbo_mom_set_atLower(const struct gkyl_mom_type *momt, const int *atLower)
-{
-  struct lbo_mom_type *mom_bcorr = container_of(momt, struct lbo_mom_type, momt);
-  mom_bcorr->atLower = atLower;
-}
-
 
 struct gkyl_mom_type*
-gkyl_vlasov_lbo_mom_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const char *mom)
+gkyl_vlasov_lbo_mom_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
+  const char *mom, const double* vBoundary, const int* atLower)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
   
@@ -46,6 +32,11 @@ gkyl_vlasov_lbo_mom_new(const struct gkyl_basis* cbasis,
   mom_bcorr->momt.num_config = cbasis->num_basis;
   mom_bcorr->momt.num_phase = pbasis->num_basis;
   mom_bcorr->momt.kernel = kernel;
+  for (int d=0; d<vdim; ++d) {
+    mom_bcorr->atLower[d] = atLower[d];
+    mom_bcorr->vBoundary[d] = vBoundary[d];
+    mom_bcorr->vBoundary[d + vdim] = vBoundary[d + vdim];
+  }
 
   // choose kernel tables based on basis-function type
   const gkyl_lbo_mom_kern_list *boundary_integral_f_kernels, *boundary_integral_vf_kernels;
