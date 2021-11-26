@@ -89,7 +89,8 @@ gkyl_mom_bcorr_advance(gkyl_mom_bcorr *bcorr,
   }
 }
 
-gkyl_mom_bcorr* gkyl_mom_bcorr_new(const struct gkyl_rect_grid *grid, const struct gkyl_mom_type *momt)
+gkyl_mom_bcorr*
+gkyl_mom_bcorr_new(const struct gkyl_rect_grid *grid, const struct gkyl_mom_type *momt)
 {
   gkyl_mom_bcorr *up = gkyl_malloc(sizeof(gkyl_mom_bcorr));
   up->grid = *grid;
@@ -98,7 +99,8 @@ gkyl_mom_bcorr* gkyl_mom_bcorr_new(const struct gkyl_rect_grid *grid, const stru
   return up;
 }
 
-void gkyl_mom_bcorr_release(gkyl_mom_bcorr* bcorr)
+void
+gkyl_mom_bcorr_release(gkyl_mom_bcorr* bcorr)
 {
   gkyl_mom_type_release(bcorr->momt);
   gkyl_free(bcorr);
