@@ -481,6 +481,7 @@ gkyl_vlasov_app_stat_write(const gkyl_vlasov_app* app)
       fprintf(fp, " \"init_field_tm\" : \"%lg\",\n", app->stat.init_field_tm);
     
     fprintf(fp, " \"species_rhs_tm\" : \"%lg\",\n", app->stat.species_rhs_tm);
+    fprintf(fp, " \"species_coll_tm\" : \"%lg\",\n", app->stat.species_coll_tm);
     if (app->has_field) {
       fprintf(fp, " \"field_rhs_tm\" : \"%lg\",\n", app->stat.field_rhs_tm);
       fprintf(fp, " \"current_tm\" : \"%lg\",\n", app->stat.current_tm);

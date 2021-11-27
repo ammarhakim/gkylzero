@@ -80,7 +80,8 @@ struct gkyl_vlasov_stat {
   double init_species_tm; // time to initialize all species
   double init_field_tm; // time to initialize fields
 
-  double species_rhs_tm; // time to compute species RHS
+  double species_rhs_tm; // time to compute species collisionless RHS
+  double species_coll_tm; // time to compute collisions
   double field_rhs_tm; // time to compute field RHS
   double current_tm; // time to compute currents and accumulation
 

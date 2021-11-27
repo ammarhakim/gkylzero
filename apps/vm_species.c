@@ -110,19 +110,22 @@ double
 vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   const struct gkyl_array *fin, const struct gkyl_array *qmem, struct gkyl_array *rhs)
 {
-  struct timespec wst = gkyl_wall_clock();
-  
   gkyl_array_clear(species->cflrate, 0.0);
   if (qmem)
     gkyl_vlasov_set_qmem(species->eqn, qmem); // must set EM fields to use
   
   gkyl_array_clear(rhs, 0.0);
-  if (app->use_gpu)
-  {
+  if (app->use_gpu) {
+
+    // update collisionless terms
+    struct timespec wst = gkyl_wall_clock();
     gkyl_hyper_dg_advance_cu(species->slvr, species->local, fin, species->cflrate, rhs);
+    app->stat.species_rhs_tm += gkyl_time_diff_now_sec(wst);
+    
     // Collisions do not have a GPU implementation yet
-    /* if (species->collision_id == GKYL_LBO_COLLISIONS) */
-    /* { */
+    if (species->collision_id == GKYL_LBO_COLLISIONS) {
+      printf("Collisions do not have a GPU implementation yet!");
+      assert(false);
     /*   // Compute the needed moments */
     /*   gkyl_mom_calc_advance_cu(species->m0.mcalc, species->local, app->local, fin, species->m0.marr); */
     /*   gkyl_mom_calc_advance_cu(species->m1i.mcalc, species->local, app->local, fin, species->m1i.marr); */
@@ -137,13 +140,17 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
     /*   gkyl_vlasov_lbo_set_nuUSum(species->coll_eqn, species->nu_u); */
     /*   gkyl_vlasov_lbo_set_nuVtSqSum(species->coll_eqn, species->nu_vthsq); */
     /*   gkyl_hyper_dg_advance_cu(species->coll_slvr, species->local, fin, species->cflrate, rhs); */
-    /* } */
+    }
   }
-  else
-  {
+  else {
+    // update collisionless terms
+    struct timespec wst = gkyl_wall_clock();
     gkyl_hyper_dg_advance(species->slvr, species->local, fin, species->cflrate, rhs);
-    if (species->collision_id == GKYL_LBO_COLLISIONS)
-    {
+    app->stat.species_rhs_tm += gkyl_time_diff_now_sec(wst);
+
+    // update collisions
+    wst = gkyl_wall_clock();
+    if (species->collision_id == GKYL_LBO_COLLISIONS) {
       // Compute the needed moments
       gkyl_mom_calc_advance(species->m0.mcalc, species->local, app->local, fin, species->m0.marr);
       gkyl_mom_calc_advance(species->m1i.mcalc, species->local, app->local, fin, species->m1i.marr);
@@ -168,12 +175,12 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
       // Accumulate update due to collisions onto rhs
       gkyl_hyper_dg_advance(species->lbo.coll_slvr, species->local, fin, species->cflrate, rhs);
     }
+
+    app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
   }
 
   gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, species->local);
   double omegaCfl = species->omegaCfl_ptr[0];
-
-  app->stat.species_rhs_tm += gkyl_time_diff_now_sec(wst);
   
   return app->cfl/omegaCfl;
 }
