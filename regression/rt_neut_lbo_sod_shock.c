@@ -27,7 +27,7 @@ evalDistFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   struct free_stream_ctx *app = ctx;
   double x = xn[0], v = xn[1];
   if (x<0.5)
-    fout[0] = maxwellian(1.0, v, 0.75, 1.0);
+    fout[0] = maxwellian(1.0, v, 0.0, 1.0);
   else
     fout[0] = maxwellian(0.125, v, 0.0, sqrt(0.1/0.125));
 }
