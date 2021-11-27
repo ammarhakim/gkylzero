@@ -47,10 +47,10 @@ struct vm_species_moment {
   struct gkyl_mom_type *mtype;
   gkyl_mom_calc *mcalc;
   struct gkyl_array *marr;
-  struct gkyl_array *marr_host;  
+  struct gkyl_array *marr_host;
 };
 
-struct lbo_collisions {
+struct vm_lbo_collisions {
   struct gkyl_array *cM, *cE; // LBO boundary corrections
   struct gkyl_mom_type *cM_mom, *cE_mom;
   struct gkyl_mom_bcorr *cM_bcorr, *cE_bcorr;
@@ -61,7 +61,7 @@ struct lbo_collisions {
   gkyl_hyper_dg *coll_slvr; // Collision solver
 };
 
-struct bgk_collisions {
+struct vm_bgk_collisions {
   struct gkyl_array *u, *vthsq; // BGK primitive moments
   // BGK Collisions should probably own a project on Maxwellian updater
   // so it can compute its contribution to the RHS
@@ -90,8 +90,7 @@ struct vm_species {
   gkyl_hyper_dg *slvr; // solver 
 
   enum gkyl_collision_id collision_id; // type of collisions
-  struct lbo_collisions lbo;
-  struct bgk_collisions bgk;
+  struct vm_lbo_collisions lbo;
   double* omegaCfl_ptr;
 };
 
@@ -162,7 +161,6 @@ array_combine(struct gkyl_array *out, double c1, const struct gkyl_array *arr1,
     c2, arr2, rng);
 }
 
-
 // Create ghost and skin sub-ranges given a parent range
 static void
 skin_ghost_ranges_init(struct vm_skin_ghost_ranges *sgr,
@@ -199,6 +197,8 @@ void vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
  */
 void vm_species_moment_release(const struct gkyl_vlasov_app *app, const struct vm_species_moment *sm);
 
+/** vm_species_lbo API */
+
 /**
  * Initialize species LBO collisions object.
  *
@@ -206,7 +206,7 @@ void vm_species_moment_release(const struct gkyl_vlasov_app *app, const struct v
  * @param s Species object 
  * @param lbo Species LBO object
  */
-void vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct lbo_collisions *lbo);
+void vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_lbo_collisions *lbo);
 
 /**
  * Release species LBO object.
@@ -214,7 +214,7 @@ void vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, stru
  * @param app Vlasov app object
  * @param sm Species LBO object to release
  */
-void vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct lbo_collisions *lbo);
+void vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_collisions *lbo);
 
 /** vm_species API */
 

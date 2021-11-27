@@ -131,6 +131,7 @@ check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_array
 	./build/unit/ctest_array_reduce
 	./build/unit/ctest_basis
+	./build/unit/ctest_bcorr
 	./build/unit/ctest_block_topo
 	./build/unit/ctest_dg_bin_ops
 	./build/unit/ctest_dg_maxwell
@@ -150,8 +151,8 @@ check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_ref_count
 	./build/unit/ctest_superlu
 	./build/unit/ctest_update_fsm
-	./build/unit/ctest_vlasov_mom
 	./build/unit/ctest_vlasov_lbo
+	./build/unit/ctest_vlasov_mom
 	./build/unit/ctest_wave_geom
 	./build/unit/ctest_wv_euler
 	./build/unit/ctest_wv_iso_euler
@@ -159,7 +160,6 @@ check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_wv_mhd
 	./build/unit/ctest_wv_sr_euler
 	./build/unit/ctest_wv_ten_moment
-
 
 install: all
 	mkdir -p ${PREFIX}/gkylzero/include

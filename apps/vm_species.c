@@ -98,8 +98,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
   // determine collision type to use in vlasov update
   s->collision_id = s->info.collision_id;
-  if (s->collision_id == GKYL_LBO_COLLISIONS)
-  {
+  if (s->collision_id == GKYL_LBO_COLLISIONS) {
     vm_species_lbo_init(app, s, &s->lbo);
   }
 }
@@ -151,23 +150,23 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
     // update collisions
     wst = gkyl_wall_clock();
     if (species->collision_id == GKYL_LBO_COLLISIONS) {
-      // Compute the needed moments
+      // Compute needed moments
       gkyl_mom_calc_advance(species->m0.mcalc, species->local, app->local, fin, species->m0.marr);
       gkyl_mom_calc_advance(species->m1i.mcalc, species->local, app->local, fin, species->m1i.marr);
       gkyl_mom_calc_advance(species->m2.mcalc, species->local, app->local, fin, species->m2.marr);
 
-      // Construct the boundary corrections      
+      // Construct boundary corrections  
       gkyl_mom_bcorr_advance(species->lbo.cM_bcorr, species->local, app->local, fin, species->lbo.cM);
       gkyl_mom_bcorr_advance(species->lbo.cE_bcorr, species->local, app->local, fin, species->lbo.cE);
 
-      // Construct the primitive moments
+      // Construct primitive moments
       gkyl_prim_vlasov_calc_advance(species->lbo.coll_pcalc, app->confBasis, app->local, 
         species->m0.marr, species->m1i.marr, species->m2.marr, species->lbo.cM, species->lbo.cE, 
         species->lbo.u_drift, species->lbo.vth_sq);
       gkyl_dg_mul_op(app->confBasis, 0, species->lbo.nu_u, 0, species->lbo.u_drift, 0, species->lbo.nu_sum);
       gkyl_dg_mul_op(app->confBasis, 0, species->lbo.nu_vthsq, 0, species->lbo.vth_sq, 0, species->lbo.nu_sum);
 
-      // Set the arrays needed
+      // Set arrays needed
       gkyl_vlasov_lbo_set_nuSum(species->lbo.coll_eqn, species->lbo.nu_sum);
       gkyl_vlasov_lbo_set_nuUSum(species->lbo.coll_eqn, species->lbo.nu_u);
       gkyl_vlasov_lbo_set_nuVtSqSum(species->lbo.coll_eqn, species->lbo.nu_vthsq);
