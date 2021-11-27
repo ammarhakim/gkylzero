@@ -26,11 +26,10 @@ evalDistFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct free_stream_ctx *app = ctx;
   double x = xn[0], v = xn[1];
-  if(fabs(x)<0.3) {
+  if (x<0.5)
     fout[0] = maxwellian(1.0, v, 0.75, 1.0);
-  } else {
+  else
     fout[0] = maxwellian(0.125, v, 0.0, sqrt(0.1/0.125));
-  }
 }
 
 void
@@ -38,7 +37,7 @@ evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, vo
 {
   struct free_stream_ctx *app = ctx;
   double x = xn[0], v = xn[1];
-  fout[0] = 200.0;
+  fout[0] = 100.0;
 }
 
 struct free_stream_ctx
@@ -81,14 +80,14 @@ main(int argc, char **argv)
     .name = "neut_lbo_sod_shock_1x1v",
 
     .cdim = 1, .vdim = 1,
-    .lower = { -ctx.Lx },
+    .lower = { 0.0 },
     .upper = { ctx.Lx },
     .cells = { 128 },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
+    .num_periodic_dir = 0,
+    .periodic_dirs = {  },
 
     .num_species = 1,
     .species = { neut },
