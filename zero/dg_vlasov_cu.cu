@@ -11,7 +11,7 @@ extern "C" {
 // CUDA kernel to set pointer to qmem = q/m*EM
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ void
+__global__ static void
 gkyl_vlasov_set_qmem_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
@@ -27,7 +27,7 @@ gkyl_vlasov_set_qmem_cu(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *
 
 // CUDA kernel to set device pointers to range object and vlasov kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ void static
+__global__ static void 
 dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
   int cv_index, int cdim, int vdim, int poly_order, enum gkyl_field_id field_id)
 {
@@ -37,9 +37,9 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
   vlasov->eqn.surf_term = surf;
   vlasov->eqn.boundary_surf_term = boundary_surf;
 
-  const gkyl_dg_vlasov_steam_vol_kern_list *stream_vol_kernels;
+  const gkyl_dg_vlasov_stream_vol_kern_list *stream_vol_kernels;
   const gkyl_dg_vlasov_vol_kern_list *vol_kernels;
-  const gkyl_dg_vlasov_steam_surf_kern_list *stream_surf_x_kernels, *stream_surf_y_kernels, *stream_surf_z_kernels;
+  const gkyl_dg_vlasov_stream_surf_kern_list *stream_surf_x_kernels, *stream_surf_y_kernels, *stream_surf_z_kernels;
   const gkyl_dg_vlasov_accel_surf_kern_list *accel_surf_vx_kernels, *accel_surf_vy_kernels, *accel_surf_vz_kernels;
   const gkyl_dg_vlasov_accel_boundary_surf_kern_list *accel_boundary_surf_vx_kernels, *accel_boundary_surf_vy_kernels,
     *accel_boundary_surf_vz_kernels;

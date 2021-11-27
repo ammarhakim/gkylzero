@@ -26,6 +26,10 @@ struct gkyl_vlasov_species {
 
   int num_diag_moments; // number of diagnostic moments
   char diag_moments[16][16]; // list of diagnostic moments
+
+  // collision frequency
+  void (*nu)(double t, const double *xn, double *fout, void *ctx);
+  enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
 };
 
 // Parameter for EM field
@@ -84,7 +88,8 @@ struct gkyl_vlasov_stat {
   double init_species_tm; // time to initialize all species
   double init_field_tm; // time to initialize fields
 
-  double species_rhs_tm; // time to compute species RHS
+  double species_rhs_tm; // time to compute species collisionless RHS
+  double species_coll_tm; // time to compute collisions
   double field_rhs_tm; // time to compute field RHS
   double current_tm; // time to compute currents and accumulation
 

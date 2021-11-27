@@ -28,7 +28,7 @@ evalElcInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double w0 = 1.0*di;
   double psi0 = 0.1*B0*di;
   double guide1 = 0.099*B0;
-  double guide2 = 0.099*B0;
+  double guide2 = guide1;
 
   double b1 = 1.696*B0;
   double b2 = 1.00*B0;
@@ -117,7 +117,7 @@ evalIonInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double w0 = 1.0*di;
   double psi0 = 0.1*B0*di;
   double guide1 = 0.099*B0;
-  double guide2 = 0.099*B0;
+  double guide2 = guide1;
 
   double b1 = 1.696*B0;
   double b2 = 1.00*B0;
@@ -206,7 +206,7 @@ evalFieldInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   double w0 = 1.0*di;
   double psi0 = 0.1*B0*di;
   double guide1 = 0.099*B0;
-  double guide2 = 0.099*B0;
+  double guide2 = guide1;
 
   double b1 = 1.696*B0;
   double b2 = 1.00*B0;

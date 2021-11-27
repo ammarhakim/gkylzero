@@ -3,6 +3,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_basis.h>
 #include <gkyl_vlasov_mom.h>
+#include <gkyl_vlasov_mom_priv.h>
 
 void
 test_vlasov_mom()

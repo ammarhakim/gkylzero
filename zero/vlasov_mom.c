@@ -20,13 +20,16 @@ gkyl_vlasov_mom_new(const struct gkyl_basis* cbasis,
 {
   assert(cbasis->poly_order == pbasis->poly_order);
   
-  struct gkyl_mom_type *momt = gkyl_malloc(sizeof(struct gkyl_mom_type));
-  int cdim = momt->cdim = cbasis->ndim;
-  int pdim = momt->pdim = pbasis->ndim;
-  int vdim = pdim-cdim;
-  int poly_order = momt->poly_order = cbasis->poly_order;
-  momt->num_config = cbasis->num_basis;
-  momt->num_phase = pbasis->num_basis;
+  struct vlasov_mom_type *vlasov_mom = gkyl_malloc(sizeof(struct vlasov_mom_type));
+  int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
+  int poly_order = cbasis->poly_order;
+
+  vlasov_mom->momt.cdim = cdim;
+  vlasov_mom->momt.pdim = pdim;
+  vlasov_mom->momt.poly_order = poly_order;
+  vlasov_mom->momt.num_config = cbasis->num_basis;
+  vlasov_mom->momt.num_phase = pbasis->num_basis;
+  vlasov_mom->momt.kernel = kernel;
 
   // choose kernel tables based on basis-function type
   const gkyl_mom_kern_list *m0_kernels, *m1i_kernels,
@@ -60,45 +63,45 @@ gkyl_vlasov_mom_new(const struct gkyl_basis* cbasis,
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
-    momt->kernel = m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    momt->num_mom = 1;
+    vlasov_mom->kernel = m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    vlasov_mom->momt.num_mom = 1;
   }
   else if (strcmp(mom, "M1i") == 0) { // momentum
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m1i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
-    momt->kernel = m1i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    momt->num_mom = vdim;
+    vlasov_mom->kernel = m1i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    vlasov_mom->momt.num_mom = vdim;
   }
   else if (strcmp(mom, "M2") == 0) { // energy
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
-    momt->kernel = m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    momt->num_mom = 1;
+    vlasov_mom->kernel = m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    vlasov_mom->momt.num_mom = 1;
   }
   else if (strcmp(mom, "M2ij") == 0) { // pressure tensor in lab-frame
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m2ij_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
-    momt->kernel = m2ij_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    momt->num_mom = vdim*(vdim+1)/2;
+    vlasov_mom->kernel = m2ij_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    vlasov_mom->momt.num_mom = vdim*(vdim+1)/2;
   }
   else if (strcmp(mom, "M3i") == 0) { // heat-flux vector in lab-frame
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m3i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
-    momt->kernel = m3i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    momt->num_mom = vdim;
+    vlasov_mom->kernel = m3i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    vlasov_mom->momt.num_mom = vdim;
   }
   else if (strcmp(mom, "M3ijk") == 0) { // heat-flux tensor in lab-frame
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m3ijk_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
-    momt->kernel = m3ijk_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    vlasov_mom->kernel = m3ijk_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 
     int m3ijk_count[] = { 1, 4, 10 };
-    momt->num_mom = m3ijk_count[vdim-1];
+    vlasov_mom->momt.num_mom = m3ijk_count[vdim-1];
   }
   else {
     // string not recognized
@@ -106,9 +109,9 @@ gkyl_vlasov_mom_new(const struct gkyl_basis* cbasis,
   }
 
   // set reference counter
-  momt->ref_count = (struct gkyl_ref_count) { mom_free, 1 };
+  vlasov_mom->momt.ref_count = (struct gkyl_ref_count) { mom_free, 1 };
     
-  return momt;
+  return &vlasov_mom->momt;
 }
 
 #ifndef GKYL_HAVE_CUDA

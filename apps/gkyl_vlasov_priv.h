@@ -12,12 +12,18 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_vlasov.h>
+#include <gkyl_dg_vlasov_lbo.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_hyper_dg.h>
+#include <gkyl_lbo_mom_bcorr.h>
+#include <gkyl_mom_bcorr.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_null_pool.h>
+#include <gkyl_prim_vlasov.h>
+#include <gkyl_prim_vlasov_calc.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -43,7 +49,25 @@ struct vm_species_moment {
   struct gkyl_mom_type *mtype;
   gkyl_mom_calc *mcalc;
   struct gkyl_array *marr;
-  struct gkyl_array *marr_host;  
+  struct gkyl_array *marr_host;
+};
+
+struct vm_lbo_collisions {
+  struct gkyl_array *cM, *cE; // LBO boundary corrections
+  struct gkyl_mom_type *cM_mom, *cE_mom;
+  struct gkyl_mom_bcorr *cM_bcorr, *cE_bcorr;
+  struct gkyl_array *nu_sum, *u_drift, *vth_sq, *nu_u, *nu_vthsq; // LBO primitive moments
+  struct gkyl_prim_vlasov *coll_prim; // Primitive moments
+  gkyl_prim_vlasov_calc *coll_pcalc; // Primitive moment solver
+  struct gkyl_dg_eqn *coll_eqn; // Collision equation
+  gkyl_hyper_dg *coll_slvr; // Collision solver
+};
+
+struct vm_bgk_collisions {
+  struct gkyl_array *u, *vthsq; // BGK primitive moments
+  // BGK Collisions should probably own a project on Maxwellian updater
+  // so it can compute its contribution to the RHS
+  // struct proj_maxwellian;
 };
 
 // species data
@@ -62,11 +86,14 @@ struct vm_species {
   struct gkyl_array *f_host; // host copy for use IO and initialization
 
   struct vm_species_moment m1i; // for computing currents
+  struct vm_species_moment m0, m2; // for density and energy in collision update (if present)
   struct vm_species_moment *moms; // diagnostic moments
 
   struct gkyl_dg_eqn *eqn; // Vlasov equation
   gkyl_hyper_dg *slvr; // solver 
 
+  enum gkyl_collision_id collision_id; // type of collisions
+  struct vm_lbo_collisions lbo;
   double* omegaCfl_ptr;
 };
 
@@ -140,7 +167,6 @@ array_combine(struct gkyl_array *out, double c1, const struct gkyl_array *arr1,
     c2, arr2, rng);
 }
 
-
 // Create ghost and skin sub-ranges given a parent range
 static void
 skin_ghost_ranges_init(struct vm_skin_ghost_ranges *sgr,
@@ -176,6 +202,25 @@ void vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
  * @param sm Species moment object to release
  */
 void vm_species_moment_release(const struct gkyl_vlasov_app *app, const struct vm_species_moment *sm);
+
+/** vm_species_lbo API */
+
+/**
+ * Initialize species LBO collisions object.
+ *
+ * @param app Vlasov app object
+ * @param s Species object 
+ * @param lbo Species LBO object
+ */
+void vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_lbo_collisions *lbo);
+
+/**
+ * Release species LBO object.
+ *
+ * @param app Vlasov app object
+ * @param sm Species LBO object to release
+ */
+void vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_collisions *lbo);
 
 /** vm_species API */
 

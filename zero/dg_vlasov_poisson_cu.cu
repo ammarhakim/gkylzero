@@ -2,8 +2,8 @@
 
 extern "C" {
 #include <gkyl_alloc.h>
-#include <gkyl_dg_vlasov_poisson.h>    
-#include <gkyl_dg_vlasov_poisson_priv.h>
+#include <gkyl_dg_vlasov_poisson_priv.h>    
+#include <gkyl_dg_vlasov_poisson.h>
 }
 
 #include <cassert>
@@ -12,7 +12,7 @@ extern "C" {
 // This factor is q/m for plasmas and G*m for self-gravitating systems
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ void
+__global__ static void
 gkyl_vlasov_poisson_set_fac_phi_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *fac_phi)
 {
   struct dg_vlasov_poisson *vlasov_poisson = container_of(eqn, struct dg_vlasov_poisson, eqn);
@@ -29,7 +29,7 @@ gkyl_vlasov_poisson_set_fac_phi_cu(const struct gkyl_dg_eqn *eqn, const struct g
 // CUDA kernel to set pointer to vecA = q/m*A, where A is the vector potential
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ void
+__global__ static void
 gkyl_vlasov_poisson_set_vecA_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *vecA)
 {
   struct dg_vlasov_poisson *vlasov_poisson = container_of(eqn, struct dg_vlasov_poisson, eqn);
@@ -45,22 +45,27 @@ gkyl_vlasov_poisson_set_vecA_cu(const struct gkyl_dg_eqn *eqn, const struct gkyl
 
 // CUDA kernel to set device pointers to range object and vlasov kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ void static
+__global__ static void
 dg_vlasov_poisson_set_cu_dev_ptrs(struct dg_vlasov_poisson *vlasov_poisson, enum gkyl_basis_type b_type,
   int cv_index, int cdim, int vdim, int poly_order, enum gkyl_field_id field_id)
 {
   vlasov_poisson->fac_phi = 0; 
   vlasov_poisson->vecA = 0; 
 
-  vlasov_poisson->eqn.vol_term = vol;
+  printf("******** FIX BUG IN vlasov_poisson to enable it to run on GPUs!");    
+  assert(false);
+  // NOTE: FIX ME. the following line is a problem. However, the issue
+  // appears in the priv header and not here, apparently. The problem
+  // is the return statement in the volume method
+
+  // vlasov_poisson->eqn.vol_term = vol;
   vlasov_poisson->eqn.surf_term = surf;
   vlasov_poisson->eqn.boundary_surf_term = boundary_surf;
 
   const gkyl_dg_vlasov_poisson_vol_kern_list *vol_kernels;
   const gkyl_dg_vlasov_poisson_extem_vol_kern_list *extem_vol_kernels;
 
-  const gkyl_dg_vlasov_poisson_steam_surf_kern_list *stream_surf_x_kernels, *stream_surf_y_kernels, *stream_surf_z_kernels;
-
+  const gkyl_dg_vlasov_poisson_stream_surf_kern_list *stream_surf_x_kernels, *stream_surf_y_kernels, *stream_surf_z_kernels;
   const gkyl_dg_vlasov_poisson_accel_surf_kern_list *accel_surf_vx_kernels, *accel_surf_vy_kernels, *accel_surf_vz_kernels;
   const gkyl_dg_vlasov_poisson_extem_accel_surf_kern_list *extem_accel_surf_vx_kernels, *extem_accel_surf_vy_kernels, *extem_accel_surf_vz_kernels;
 
