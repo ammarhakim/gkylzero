@@ -29,6 +29,12 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
   strcpy(app->name, vm.name);
   app->tcurr = 0.0; // reset on init
 
+  // check if there is a job pool
+  if (vm.job_pool)
+    app->job_pool = gkyl_job_pool_acquire(vm.job_pool);
+  else
+    app->job_pool = gkyl_null_pool_new(1);
+
   // basis functions
   switch (vm.basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -88,19 +94,11 @@ void
 gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
 {
   app->tcurr = t0;
-  int poly_order = app->poly_order;
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-    poly_order+1, 8, app->field->info.init, app->field->info.ctx);
 
   struct timespec wtm = gkyl_wall_clock();
-  gkyl_proj_on_basis_advance(proj, t0, &app->local, app->field->em_host);
+  vm_field_apply_ic(app, app->field, t0);
   app->stat.init_field_tm += gkyl_time_diff_now_sec(wtm);
-  
-  gkyl_proj_on_basis_release(proj);
- 
-  if (app->use_gpu)
-    gkyl_array_copy(app->field->em, app->field->em_host);
-  
+    
   vm_field_apply_bc(app, app->field, app->field->em);  
 }
 
@@ -110,18 +108,9 @@ gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0)
   assert(sidx < app->num_species);
 
   app->tcurr = t0;
-  int poly_order = app->poly_order;
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->species[sidx].grid, &app->basis,
-    poly_order+1, 1, app->species[sidx].info.init, app->species[sidx].info.ctx);
-
   struct timespec wtm = gkyl_wall_clock();
-  gkyl_proj_on_basis_advance(proj, t0, &app->species[sidx].local, app->species[sidx].f_host);
+  vm_species_apply_ic(app, &app->species[sidx], t0);
   app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
-  
-  gkyl_proj_on_basis_release(proj);
-
-  if (app->use_gpu)
-    gkyl_array_copy(app->species[sidx].f, app->species[sidx].f_host);
 
   vm_species_apply_bc(app, &app->species[sidx], app->species[sidx].f);
 }
@@ -360,7 +349,6 @@ rk3(gkyl_vlasov_app* app, double dt0)
           &st
         );
         if (st.dt_actual < dt) {
-
           // collect stats
           double dt_rel_diff = (dt-st.dt_actual)/st.dt_actual;
           app->stat.stage_3_dt_diff[0] = fmin(app->stat.stage_3_dt_diff[0],
@@ -496,6 +484,8 @@ gkyl_vlasov_app_stat_write(const gkyl_vlasov_app* app)
 void
 gkyl_vlasov_app_release(gkyl_vlasov_app* app)
 {
+  gkyl_job_pool_release(app->job_pool);
+  
   for (int i=0; i<app->num_species; ++i)
     vm_species_release(app, &app->species[i]);
   gkyl_free(app->species);
