@@ -205,6 +205,21 @@ bc_euler_wall(double t, int dir, int nc, const double *skin, double * GKYL_RESTR
   ghost[d[2]] = skin[d[2]];
 }
 
+// Isothermal Euler perfectly reflecting wall
+static void
+bc_iso_euler_wall(double t, int dir, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+{
+  const int *d = euler_dir_shuffle[dir];
+
+  // copy density and pressure
+  ghost[0] = skin[0];
+
+  // zero-normal for momentum
+  ghost[d[0]] = -skin[d[0]];
+  ghost[d[1]] = skin[d[1]];
+  ghost[d[2]] = skin[d[2]];
+}
+
 // Ten moment perfectly reflecting wall
 static void
 bc_ten_moment_wall(double t, int dir, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
@@ -227,6 +242,37 @@ bc_ten_moment_wall(double t, int dir, int nc, const double *skin, double * GKYL_
   ghost[pd[0]] = skin[pd[0]];
   ghost[pd[1]] = -skin[pd[1]];
   ghost[pd[2]] = -skin[pd[2]];
+}
+
+// Euler no-slip reflecting wall
+static void
+bc_euler_no_slip(double t, int dir, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+{
+  const int *d = euler_dir_shuffle[dir];
+
+  // copy density and pressure
+  ghost[0] = skin[0];
+  ghost[4] = skin[4];
+
+  // zero-normal for momentum
+  ghost[d[0]] = -skin[d[0]];
+  ghost[d[1]] = -skin[d[1]];
+  ghost[d[2]] = -skin[d[2]];
+}
+
+// Isothermal Euler no-slip reflecting wall
+static void
+bc_iso_euler_no_slip(double t, int dir, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+{
+  const int *d = euler_dir_shuffle[dir];
+
+  // copy density and pressure
+  ghost[0] = skin[0];
+
+  // zero-normal for momentum
+  ghost[d[0]] = -skin[d[0]];
+  ghost[d[1]] = -skin[d[1]];
+  ghost[d[2]] = -skin[d[2]];
 }
 
 
@@ -316,6 +362,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   sp->eqn_type = mom_sp->equation->type;
   sp->num_equations = mom_sp->equation->num_equations;
+  sp->equation = mom_sp->equation;
   // closure parameter, used by 10 moment
   sp->k0 = mom_sp->equation->type == GKYL_EQN_TEN_MOMENT ? gkyl_wv_ten_moment_k0(mom_sp->equation) : 0.0;
 
@@ -328,7 +375,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   for (int d=0; d<ndim; ++d)
     sp->slvr[d] = gkyl_wave_prop_new( (struct gkyl_wave_prop_inp) {
         .grid = &app->grid,
-        .equation = mom_sp->equation,
+        .equation = sp->equation,
         .limiter = limiter,
         .num_up_dirs = 1,
         .update_dirs = { d },
@@ -359,9 +406,20 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         if (sp->eqn_type == GKYL_EQN_EULER)
           sp->lower_bc[dir] = gkyl_rect_apply_bc_new(
             &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_euler_wall, 0);
+        else if (sp->eqn_type == GKYL_EQN_ISO_EULER)
+          sp->lower_bc[dir] = gkyl_rect_apply_bc_new(
+            &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_iso_euler_wall, 0);
         else if (sp->eqn_type == GKYL_EQN_TEN_MOMENT)
           sp->lower_bc[dir] = gkyl_rect_apply_bc_new(
             &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_ten_moment_wall, 0);
+      }
+      else if (bc[0] == GKYL_MOMENT_SPECIES_NO_SLIP) {
+        if (sp->eqn_type == GKYL_EQN_EULER)
+          sp->lower_bc[dir] = gkyl_rect_apply_bc_new(
+            &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_euler_no_slip, 0);
+        else if (sp->eqn_type == GKYL_EQN_ISO_EULER)
+          sp->lower_bc[dir] = gkyl_rect_apply_bc_new(
+            &app->grid, dir, GKYL_LOWER_EDGE, nghost, bc_iso_euler_no_slip, 0);
       }
       else {
         sp->lower_bc[dir] = gkyl_rect_apply_bc_new(
@@ -373,9 +431,20 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         if (sp->eqn_type == GKYL_EQN_EULER)
           sp->upper_bc[dir] = gkyl_rect_apply_bc_new(
             &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_euler_wall, 0);
+        else if (sp->eqn_type == GKYL_EQN_ISO_EULER)
+          sp->upper_bc[dir] = gkyl_rect_apply_bc_new(
+            &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_iso_euler_wall, 0);          
         else if (sp->eqn_type == GKYL_EQN_TEN_MOMENT)
           sp->upper_bc[dir] = gkyl_rect_apply_bc_new(
             &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_ten_moment_wall, 0);
+      }
+      else if (bc[1] == GKYL_MOMENT_SPECIES_NO_SLIP) {
+        if (sp->eqn_type == GKYL_EQN_EULER)
+          sp->upper_bc[dir] = gkyl_rect_apply_bc_new(
+            &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_euler_no_slip, 0);
+        else if (sp->eqn_type == GKYL_EQN_ISO_EULER)
+          sp->upper_bc[dir] = gkyl_rect_apply_bc_new(
+            &app->grid, dir, GKYL_UPPER_EDGE, nghost, bc_iso_euler_no_slip, 0);
       }
       else {
         sp->upper_bc[dir] = gkyl_rect_apply_bc_new(
@@ -469,6 +538,7 @@ moment_species_update(const gkyl_moment_app *app,
 static void
 moment_species_release(const struct moment_species *sp)
 {
+  gkyl_wv_eqn_release(sp->equation);
   for (int d=0; d<sp->ndim; ++d)
     gkyl_wave_prop_release(sp->slvr[d]);
 

@@ -12,6 +12,7 @@
 enum gkyl_moment_bc_type {
   GKYL_MOMENT_COPY = 0, // copy BCs for fluid and field
   GKYL_MOMENT_SPECIES_WALL, // perfect reflector for moments
+  GKYL_MOMENT_SPECIES_NO_SLIP, // no slip BCs for moments
   GKYL_MOMENT_FIELD_COND, // perfect conductor for fields
 };
 
