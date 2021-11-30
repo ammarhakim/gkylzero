@@ -106,7 +106,7 @@ main(int argc, char **argv)
     .charge = ctx.chargeElc, .mass = ctx.massElc,
     .lower = { -6.0 * ctx.vte, -6.0 * ctx.vte, -6.0 * ctx.vte },
     .upper = { 6.0 * ctx.vte, 6.0 * ctx.vte, 6.0 * ctx.vte }, 
-    .cells = { 16, 16, 16 },
+    .cells = { 8, 8, 8 },
 
     .evolve = 1,
     .ctx = &ctx,
@@ -125,7 +125,7 @@ main(int argc, char **argv)
     .charge = ctx.chargeIon, .mass = ctx.massIon,
     .lower = { -16.0 * ctx.vti, -16.0 * ctx.vti, -16.0 * ctx.vti },
     .upper = { 16.0 * ctx.vti, 16.0 * ctx.vti, 16.0 * ctx.vti}, 
-    .cells = { 16, 16, 16 },
+    .cells = { 8, 8, 8 },
 
     .evolve = 1,
     .ctx = &ctx,
@@ -150,12 +150,12 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "esshock",
+    .name = "esshock_lbo_1x3v",
 
-    .cdim = 1, .vdim = 1,
+    .cdim = 1, .vdim = 3,
     .lower = { -ctx.Lx },
     .upper = { ctx.Lx },
-    .cells = { 128 },
+    .cells = { 64 },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
