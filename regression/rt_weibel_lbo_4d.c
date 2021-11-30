@@ -138,7 +138,7 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "weibel_4d",
+    .name = "weibel_lbo_4d",
 
     .cdim = 2, .vdim = 2,
     .lower = { 0.0, 0.0 },
