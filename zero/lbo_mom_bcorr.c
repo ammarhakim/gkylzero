@@ -33,7 +33,6 @@ gkyl_vlasov_lbo_mom_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
   mom_bcorr->momt.num_phase = pbasis->num_basis;
   mom_bcorr->momt.kernel = kernel;
   for (int d=0; d<vdim; ++d) {
-    mom_bcorr->atLower[d] = atLower[d];
     mom_bcorr->vBoundary[d] = vBoundary[d];
     mom_bcorr->vBoundary[d + vdim] = vBoundary[d + vdim];
   }

@@ -203,7 +203,7 @@ struct vlasov_mom_type {
 GKYL_CU_D
 static void
 kernel(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out)
+  const int *idx, const double *f, double* out, void *param)
 {
   struct vlasov_mom_type *vlasov_mom = container_of(momt, struct vlasov_mom_type, momt);
 

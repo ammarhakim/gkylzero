@@ -4,7 +4,7 @@
 
 #include <gkyl_vlasov_lbo_mom_kernels.h>
 
-typedef void (*lbo_momf_t)(const int *idx, const int *atLower, const double *vBoundary,
+typedef void (*lbo_momf_t)(const int *idx, enum gkyl_vel_edge edge, const double *vBoundary,
   const double *dxv, const double *fIn, double* GKYL_RESTRICT out);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
@@ -55,15 +55,15 @@ struct lbo_mom_type {
   struct gkyl_mom_type momt;
   lbo_momf_t kernel; // moment calculation kernel
   double vBoundary[2*GKYL_MAX_DIM];
-  int atLower[GKYL_MAX_DIM];
 };
 
 GKYL_CU_D
 static void
 kernel(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out)
+       const int *idx, const double *f, double* out, void *param)
 {
   struct lbo_mom_type *mom_bcorr = container_of(momt, struct lbo_mom_type, momt);
-
-  return mom_bcorr->kernel(idx, mom_bcorr->atLower, mom_bcorr->vBoundary, dx, f, out);
+  enum gkyl_vel_edge edge = *(enum gkyl_vel_edge *)param;
+  
+  return mom_bcorr->kernel(idx, edge, mom_bcorr->vBoundary, dx, f, out);
 }

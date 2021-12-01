@@ -26,15 +26,14 @@ gkyl_prim_lbo_calc* gkyl_prim_lbo_calc_new(const struct gkyl_rect_grid *grid,
   struct gkyl_prim_lbo *prim);
 
 /**
- * Compute moment of distribution function. The phase_rng and conf_rng
+ * Compute primitive moments of distribution function. The phase_rng and conf_rng
  * MUST be a sub-ranges of the range on which the distribution
  * function and the moments are defined. These ranges must be
  * on_dev-consistently constructed.
  *
  * @param calc Primitive moment calculator updater to run
+ * @param conf_rng Config-space basis functions
  * @param conf_rng Config-space range
- * @param A Empty left-hand side matrix
- * @param rhs Empty right-hand side matrix
  * @param m0 Zeroeth moment of distribution function
  * @param m1 First moment of distribution function
  * @param m2 Second moment of distribution function

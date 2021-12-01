@@ -10,7 +10,7 @@ struct gkyl_mom_type;
  */
 typedef void (*momf_t)(const struct gkyl_mom_type *momt,
   const double *xc, const double *dx,
-  const int *idx, const double *f, double* out);
+  const int *idx, const double *f, double* out, void *param);
 
 struct gkyl_mom_type {
   int cdim; // config-space dim
@@ -49,7 +49,7 @@ void gkyl_mom_type_release(const struct gkyl_mom_type* momt);
  */
 void gkyl_mom_type_calc(const struct gkyl_mom_type* momt,
   const double *xc, const double *dx, const int *idx,
-  const double *f, double* out);
+  const double *f, double* out, void *param);
 
 /**
  * Get number of moments specified by mom_type object
