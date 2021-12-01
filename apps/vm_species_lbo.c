@@ -48,8 +48,8 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
     lbo->cE_mom = gkyl_vlasov_lbo_mom_new(&app->confBasis, &app->basis, "vf",  v_bounds, viter_idx);
     lbo->cE_bcorr = gkyl_mom_bcorr_new(&s->grid, lbo->cE_mom);
 
-    lbo->coll_prim = gkyl_prim_vlasov_new(&app->confBasis, &app->basis);
-    lbo->coll_pcalc = gkyl_prim_vlasov_calc_new(&s->grid, lbo->coll_prim);
+    lbo->coll_prim = gkyl_prim_lbo_vlasov_new(&app->confBasis, &app->basis);
+    lbo->coll_pcalc = gkyl_prim_lbo_calc_new(&s->grid, lbo->coll_prim);
     lbo->coll_eqn = gkyl_dg_vlasov_lbo_new(&app->confBasis, &app->basis, &app->local);
     lbo->coll_slvr = gkyl_hyper_dg_new(&s->grid, &app->basis, lbo->coll_eqn, num_up_dirs, up_dirs, zero_flux_flags, 1);
   }
@@ -73,7 +73,7 @@ vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_co
     gkyl_mom_type_release(lbo->cE_mom);
     gkyl_mom_bcorr_release(lbo->cM_bcorr);
     gkyl_mom_bcorr_release(lbo->cE_bcorr);
-    gkyl_prim_vlasov_calc_release(lbo->coll_pcalc);
+    gkyl_prim_lbo_calc_release(lbo->coll_pcalc);
     gkyl_dg_eqn_release(lbo->coll_eqn);
     gkyl_hyper_dg_release(lbo->coll_slvr);
   }

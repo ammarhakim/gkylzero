@@ -160,7 +160,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
       gkyl_mom_bcorr_advance(species->lbo.cE_bcorr, species->local, app->local, fin, species->lbo.cE);
 
       // Construct primitive moments
-      gkyl_prim_vlasov_calc_advance(species->lbo.coll_pcalc, app->confBasis, app->local, 
+      gkyl_prim_lbo_calc_advance(species->lbo.coll_pcalc, app->confBasis, app->local, 
         species->m0.marr, species->m1i.marr, species->m2.marr, species->lbo.cM, species->lbo.cE, 
         species->lbo.u_drift, species->lbo.vth_sq);
       gkyl_dg_mul_op(app->confBasis, 0, species->lbo.nu_u, 0, species->lbo.u_drift, 0, species->lbo.nu_sum);

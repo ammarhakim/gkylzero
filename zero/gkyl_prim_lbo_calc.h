@@ -2,16 +2,16 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
-#include <gkyl_prim_vlasov.h>
+#include <gkyl_prim_lbo.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
 // Object type
-typedef struct gkyl_prim_vlasov_calc gkyl_prim_vlasov_calc;
+typedef struct gkyl_prim_lbo_calc gkyl_prim_lbo_calc;
 
-struct gkyl_prim_vlasov_calc {
+struct gkyl_prim_lbo_calc {
   struct gkyl_rect_grid grid;
-  struct gkyl_prim_vlasov *prim;
+  struct gkyl_prim_lbo *prim;
 };
 
 /**
@@ -22,8 +22,8 @@ struct gkyl_prim_vlasov_calc {
  * @param prim Pointer to primitive moment type object
  * @return New updater pointer.
  */
-gkyl_prim_vlasov_calc* gkyl_prim_vlasov_calc_new(const struct gkyl_rect_grid *grid,
-  struct gkyl_prim_vlasov *prim);
+gkyl_prim_lbo_calc* gkyl_prim_lbo_calc_new(const struct gkyl_rect_grid *grid,
+  struct gkyl_prim_lbo *prim);
 
 /**
  * Compute moment of distribution function. The phase_rng and conf_rng
@@ -43,7 +43,7 @@ gkyl_prim_vlasov_calc* gkyl_prim_vlasov_calc_new(const struct gkyl_rect_grid *gr
  * @param uout Output drift velocity primitive moment array
  * @param vtSqout Output thermal velocity primitive moment array
  */
-void gkyl_prim_vlasov_calc_advance(gkyl_prim_vlasov_calc* calc, const struct gkyl_basis cbasis,
+void gkyl_prim_lbo_calc_advance(gkyl_prim_lbo_calc* calc, const struct gkyl_basis cbasis,
   const struct gkyl_range conf_rng, const struct gkyl_array *m0, const struct gkyl_array *m1,
   const struct gkyl_array *m2, const struct gkyl_array *cM, const struct gkyl_array *cE,
   struct gkyl_array *uout, struct gkyl_array *vtSqout);
@@ -53,4 +53,4 @@ void gkyl_prim_vlasov_calc_advance(gkyl_prim_vlasov_calc* calc, const struct gky
  *
  * @param calc Updater to delete.
  */
-void gkyl_prim_vlasov_calc_release(gkyl_prim_vlasov_calc* calc);
+void gkyl_prim_lbo_calc_release(gkyl_prim_lbo_calc* calc);
