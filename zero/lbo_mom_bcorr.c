@@ -18,7 +18,7 @@ mom_free(const struct gkyl_ref_count *ref)
 
 struct gkyl_mom_type*
 gkyl_vlasov_lbo_mom_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const char *mom, const double* vBoundary, const int* atLower)
+  const char *mom, const double* vBoundary)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
   
@@ -53,14 +53,14 @@ gkyl_vlasov_lbo_mom_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
       assert(false);
       break;    
   }
-  if (strcmp(mom, "f") == 0) { // density
+  if (strcmp(mom, "f") == 0) { // momentum correction
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != boundary_integral_f_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_bcorr->kernel = boundary_integral_f_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_bcorr->momt.num_mom = vdim;
   }
-  else if (strcmp(mom, "vf") == 0) { // momentum
+  else if (strcmp(mom, "vf") == 0) { // energy correction
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != boundary_integral_vf_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     

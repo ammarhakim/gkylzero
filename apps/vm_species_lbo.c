@@ -8,12 +8,11 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   //        for cross-species collisions. Just testing for now JJ 09/24/21
   int cdim = app->cdim, vdim = app->vdim;
   int num_up_dirs = vdim;
-  int up_dirs[GKYL_MAX_DIM], zero_flux_flags[GKYL_MAX_DIM], viter_idx[GKYL_MAX_DIM];
+  int up_dirs[GKYL_MAX_DIM], zero_flux_flags[GKYL_MAX_DIM];
   double v_bounds[2*GKYL_MAX_DIM];
   for (int d=0; d<vdim; ++d) {
     up_dirs[d] = d+cdim;
     zero_flux_flags[d] = 1;
-    viter_idx[d] = s->local.upper[cdim + d];
     v_bounds[d] = s->info.lower[d];
     v_bounds[d + vdim] = s->info.upper[d];
   }
@@ -41,11 +40,11 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   }
   else {
     // edge of velocity space momentum correction 
-    lbo->cM_mom = gkyl_vlasov_lbo_mom_new(&app->confBasis, &app->basis, "f", v_bounds, viter_idx);
+    lbo->cM_mom = gkyl_vlasov_lbo_mom_new(&app->confBasis, &app->basis, "f", v_bounds);
     lbo->cM_bcorr = gkyl_mom_bcorr_new(&s->grid, lbo->cM_mom);
 
     // Edge of velocity space energy correction
-    lbo->cE_mom = gkyl_vlasov_lbo_mom_new(&app->confBasis, &app->basis, "vf",  v_bounds, viter_idx);
+    lbo->cE_mom = gkyl_vlasov_lbo_mom_new(&app->confBasis, &app->basis, "vf",  v_bounds);
     lbo->cE_bcorr = gkyl_mom_bcorr_new(&s->grid, lbo->cE_mom);
 
     lbo->coll_prim = gkyl_prim_lbo_vlasov_new(&app->confBasis, &app->basis);

@@ -82,7 +82,6 @@ test_1x1v_p2()
   int vdim = 1, cdim = 1;
 
   double v_bounds[] = {lower[1], upper[1]};
-  int v_edge_idx[] = {cells[1]-1};
 
   double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
   int confCells[] = {cells[0]};
@@ -121,8 +120,8 @@ test_1x1v_p2()
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
 
-  struct gkyl_mom_type *F = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "f", v_bounds, v_edge_idx);
-  struct gkyl_mom_type *VF = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "vf", v_bounds, v_edge_idx);
+  struct gkyl_mom_type *F = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "f", v_bounds);
+  struct gkyl_mom_type *VF = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "vf", v_bounds);
 
   TEST_CHECK( VF->cdim == 1 );
   TEST_CHECK( VF->pdim == 2 );
@@ -181,7 +180,6 @@ test_1x2v_p2()
   int vdim = 2, cdim = 1;
 
   double v_bounds[] = {lower[1], lower[2], upper[1], upper[2]};
-  int v_edge_idx[] = {cells[1]-1, cells[2]-1};
 
   double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
   int confCells[] = {cells[0]};
@@ -220,8 +218,8 @@ test_1x2v_p2()
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
 
-  struct gkyl_mom_type *F = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "f", v_bounds, v_edge_idx);
-  struct gkyl_mom_type *VF = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "vf", v_bounds, v_edge_idx);
+  struct gkyl_mom_type *F = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "f", v_bounds);
+  struct gkyl_mom_type *VF = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "vf", v_bounds);
 
   TEST_CHECK( VF->cdim == 1 );
   TEST_CHECK( VF->pdim == 3 );
