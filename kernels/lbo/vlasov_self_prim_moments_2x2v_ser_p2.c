@@ -1,4 +1,4 @@
-#include <gkyl_prim_vlasov_kernels.h> 
+#include <gkyl_prim_lbo_vlasov_kernels.h> 
  
 GKYL_CU_DH void vlasov_self_prim_moments_2x2v_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double* GKYL_RESTRICT u, double* GKYL_RESTRICT vtSq) 
 { 
