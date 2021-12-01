@@ -181,7 +181,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 1.0;
+  double tcurr = 0.0, tend = 2.0;
   double dt = tend-tcurr;
 
   // initialize simulation
@@ -225,6 +225,7 @@ main(int argc, char **argv)
   }  
   printf("Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   printf("Species RHS calc took %g secs\n", stat.species_rhs_tm);
+  printf("Species collisions took %g secs\n", stat.species_coll_tm);
   printf("Field RHS calc took %g secs\n", stat.field_rhs_tm);
   printf("Current evaluation and accumulate took %g secs\n", stat.current_tm);
   printf("Updates took %g secs\n", stat.total_tm);
