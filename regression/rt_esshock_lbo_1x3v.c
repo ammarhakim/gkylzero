@@ -24,13 +24,17 @@ void
 evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct esshock_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
+  double x = xn[0], vx = xn[1], vy = xn[2], vz = xn[3];
   double vt = app->vte, vdrift = app->uShock;
   double fv = 0.0;
-  if (x < 0)
-    fv = 1.0/(2.0*M_PI*sq(vt)*sqrt(2.0*M_PI*sq(vt)))*(exp(-sq(v-vdrift)/(2*sq(vt))));
-  else
-    fv = 1.0/(2.0*M_PI*sq(vt)*sqrt(2.0*M_PI*sq(vt)))*(exp(-sq(v+vdrift)/(2*sq(vt))));
+  if (x < 0) {
+    double v2 = (vx-vdrift)*(vx-vdrift) + vy*vy + vz*vz;
+    fv = 1.0/(2.0*M_PI*vt*sqrt(2.0*M_PI*sq(vt)))*(exp(-v2/(2*sq(vt))));
+  }
+  else {
+    double v2 = (vx+vdrift)*(vx+vdrift) + vy*vy + vz*vz;
+    fv = 1.0/(2.0*M_PI*vt*sqrt(2.0*M_PI*sq(vt)))*(exp(-v2/(2*sq(vt))));
+  }
   fout[0] = fv;
 }
 
@@ -38,13 +42,17 @@ void
 evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct esshock_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
+  double x = xn[0], vx = xn[1], vy = xn[2], vz = xn[3];
   double vt = app->vti, vdrift = app->uShock;
   double fv = 0.0;
-  if (x < 0)
-    fv = 1.0/(2.0*M_PI*sq(vt)*sqrt(2.0*M_PI*sq(vt)))*(exp(-sq(v-vdrift)/(2*sq(vt))));
-  else
-    fv = 1.0/(2.0*M_PI*sq(vt)*sqrt(2.0*M_PI*sq(vt)))*(exp(-sq(v+vdrift)/(2*sq(vt))));
+  if (x < 0) {
+    double v2 = (vx-vdrift)*(vx-vdrift) + vy*vy + vz*vz;
+    fv = 1.0/(2.0*M_PI*vt*sqrt(2.0*M_PI*sq(vt)))*(exp(-v2/(2*sq(vt))));
+  }
+  else {
+    double v2 = (vx+vdrift)*(vx+vdrift) + vy*vy + vz*vz;
+    fv = 1.0/(2.0*M_PI*vt*sqrt(2.0*M_PI*sq(vt)))*(exp(-v2/(2*sq(vt))));
+  }
   fout[0] = fv;
 }
 
@@ -113,7 +121,7 @@ main(int argc, char **argv)
     .init = evalDistFuncElc,
 
     .nu = evalNuElc,
-    .collision_id = GKYL_LBO_COLLISIONS,
+    //.collision_id = GKYL_LBO_COLLISIONS,
     
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
@@ -132,7 +140,7 @@ main(int argc, char **argv)
     .init = evalDistFuncIon,
 
     .nu = evalNuIon,
-    .collision_id = GKYL_LBO_COLLISIONS,
+    //.collision_id = GKYL_LBO_COLLISIONS,
     
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
