@@ -121,7 +121,7 @@ main(int argc, char **argv)
     .init = evalDistFuncElc,
 
     .nu = evalNuElc,
-    //.collision_id = GKYL_LBO_COLLISIONS,
+    .collision_id = GKYL_LBO_COLLISIONS,
     
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
@@ -140,7 +140,7 @@ main(int argc, char **argv)
     .init = evalDistFuncIon,
 
     .nu = evalNuIon,
-    //.collision_id = GKYL_LBO_COLLISIONS,
+    .collision_id = GKYL_LBO_COLLISIONS,
     
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
