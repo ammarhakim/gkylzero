@@ -2,15 +2,17 @@
 #include <gkyl_mat_triples.h>
 #include <gkyl_range.h>
 
-#include <stc/cmap.h>
-
 struct mat_triple {
   size_t row, col;
   double val;
 };
 
-// map of index -> mat_triple
-using_cmap(triple, long, struct mat_triple);
+// define map of index -> mat_triple
+#define i_key long
+#define i_val struct mat_triple
+#define i_tag triple
+#include <stc/cmap.h>
+// complete definition of map
 
 struct gkyl_mat_triples {
   struct gkyl_range range; // range representing matrix shape

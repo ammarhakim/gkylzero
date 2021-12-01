@@ -3,6 +3,7 @@
 #include <gkyl_app.h>
 #include <gkyl_basis.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_job_pool.h>
 #include <gkyl_util.h>
 
 #include <stdbool.h>
@@ -10,6 +11,9 @@
 // Parameters for Vlasov species
 struct gkyl_vlasov_species {
   char name[128]; // species name
+
+  struct gkyl_job_pool *job_pool; // Job pool for species: if not present, app job is used
+  
   double charge, mass; // charge and mass
   double lower[3], upper[3]; // lower, upper bounds of velocity-space
   int cells[3]; // velocity-space cells
@@ -32,6 +36,8 @@ struct gkyl_vlasov_species {
 struct gkyl_vlasov_field {
   enum gkyl_field_id field_id; // type of field (see gkyl_eqn_type.h)
   bool evolve; // evolve field? 1-yes, 0-no
+
+  struct gkyl_job_pool *job_pool; // Job pool for field: if not present, app job is used
   
   double epsilon0, mu0;
   double elcErrorSpeedFactor, mgnErrorSpeedFactor;
@@ -44,6 +50,8 @@ struct gkyl_vlasov_field {
 // Top-level app parameters
 struct gkyl_vm {
   char name[128]; // name of app: used as output prefix
+
+  struct gkyl_job_pool *job_pool; // Job pool for simulation: optional, can be 0
 
   int cdim, vdim; // conf, velocity space dimensions
   double lower[3], upper[3]; // lower, upper bounds of config-space

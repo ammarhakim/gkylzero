@@ -24,12 +24,14 @@
 #include <gkyl_prim_lbo.h>
 #include <gkyl_prim_lbo_calc.h>
 #include <gkyl_prim_lbo_vlasov.h>
+#include <gkyl_null_pool.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_vlasov_mom.h>
+
 
 // Definitions of private structs and APIs attached to these objects
 // for use in Vlasov app.
@@ -72,7 +74,8 @@ struct vm_bgk_collisions {
 // species data
 struct vm_species {
   struct gkyl_vlasov_species info; // data for species
-    
+  
+  struct gkyl_job_pool *job_pool; // Job pool
   struct gkyl_rect_grid grid;
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   struct vm_skin_ghost_ranges skin_ghost; // conf-space skin/ghost
@@ -98,7 +101,8 @@ struct vm_species {
 // field data
 struct vm_field {
   struct gkyl_vlasov_field info; // data for field
-    
+
+  struct gkyl_job_pool *job_pool; // Job pool  
   struct gkyl_array *em, *em1, *emnew; // arrays for updates
   struct gkyl_array *qmem; // array for q/m*(E,B)
   struct gkyl_array *cflrate; // CFL rate in each cell
@@ -115,6 +119,8 @@ struct vm_field {
 // Vlasov object: used as opaque pointer in user code
 struct gkyl_vlasov_app {
   char name[128]; // name of app
+  struct gkyl_job_pool *job_pool; // Job pool
+  
   int cdim, vdim; // conf, velocity space dimensions
   int poly_order; // polynomial order
   double tcurr; // current time
@@ -229,6 +235,15 @@ void vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_l
 void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_species *s);
 
 /**
+ * Compute species initial conditions.
+ *
+ * @param app Vlasov app object
+ * @param species Species object
+ * @param t0 Time for use in ICs
+ */
+void vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0);
+
+/**
  * Compute RHS from species distribution function
  *
  * @param app Vlasov app object
@@ -291,6 +306,15 @@ void vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s);
  * @return Newly created field
  */
 struct vm_field* vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app);
+
+/**
+ * Compute field initial conditions.
+ *
+ * @param app Vlasov app object
+ * @param field Field object
+ * @param t0 Time for use in ICs
+ */
+void vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, double t0);
 
 /**
  * Compute RHS from field equations

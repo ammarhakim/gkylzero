@@ -10,6 +10,13 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   struct vm_field *f = gkyl_malloc(sizeof(struct vm_field));
 
   f->info = vm->field;
+
+  if (vm->field.job_pool)
+    // use specified job pool if it exists ...
+    f->job_pool = gkyl_job_pool_acquire(vm->field.job_pool);
+  else
+    // .. or app job pool if it does not
+    f->job_pool = gkyl_job_pool_acquire(app->job_pool);
   
   // allocate EM arrays
   f->em = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
@@ -57,6 +64,20 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       app->cdim, up_dirs, zero_flux_flags, 1);
 
   return f;
+}
+
+void
+vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, double t0)
+{
+  int poly_order = app->poly_order;
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
+    poly_order+1, 8, field->info.init, field->info.ctx);
+
+  gkyl_proj_on_basis_advance(proj, t0, &app->local, field->em_host);
+  gkyl_proj_on_basis_release(proj);
+
+  if (app->use_gpu)
+    gkyl_array_copy(field->em, field->em_host);
 }
 
 // Compute the RHS for field update, returning maximum stable
@@ -126,6 +147,8 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
 void
 vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
 {
+  gkyl_job_pool_release(f->job_pool);
+  
   gkyl_array_release(f->em);
   gkyl_array_release(f->em1);
   gkyl_array_release(f->emnew);

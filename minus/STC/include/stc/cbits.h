@@ -30,7 +30,7 @@ Similar to boost::dynamic_bitset / std::bitset
 #include "cbits.h"
 
 int main() {
-    c_forvar (cbits bset = cbits_with_size(23, true), cbits_del(&bset))
+    c_autovar (cbits bset = cbits_with_size(23, true), cbits_del(&bset))
     {
         cbits_reset(&bset, 9);
         cbits_resize(&bset, 43, false);
@@ -56,10 +56,10 @@ int main() {
 #include <string.h>
 #include "ccommon.h"
 
-typedef struct {
-    uint64_t *data64; 
-    size_t size; 
-} cbits;
+struct cbits {
+    uint64_t *data64;
+    size_t size;
+} typedef cbits;
 
 STC_API cbits       cbits_with_size(size_t size, bool value);
 STC_API cbits       cbits_with_values(size_t size, uint64_t pattern);
@@ -67,7 +67,7 @@ STC_API cbits       cbits_from_str(const char* str);
 STC_API char*       cbits_to_str(cbits set, char* str, size_t start, intptr_t stop);
 STC_API cbits       cbits_clone(cbits other);
 STC_API void        cbits_resize(cbits* self, size_t size, bool value);
-STC_API cbits*      cbits_assign(cbits* self, cbits other);
+STC_API cbits*      cbits_copy(cbits* self, cbits other);
 STC_API size_t      cbits_count(cbits set);
 STC_API bool        cbits_subset_of(cbits set, cbits other);
 STC_API bool        cbits_disjoint(cbits set, cbits other);
@@ -160,7 +160,7 @@ STC_INLINE void cbits_xor(cbits *self, cbits other) {
 
 #if !defined(STC_HEADER) || defined(STC_IMPLEMENTATION)
 
-STC_DEF cbits* cbits_assign(cbits* self, cbits other) {
+STC_DEF cbits* cbits_copy(cbits* self, cbits other) {
     if (self->data64 == other.data64) return self;
     if (self->size != other.size) return cbits_take(self, cbits_clone(other));
     memcpy(self->data64, other.data64, ((other.size + 63) >> 6)*8);
