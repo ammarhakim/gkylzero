@@ -59,7 +59,7 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
   skin_ghost_ranges_init(&app->skin_ghost, &app->local_ext, ghost);
 
   app->has_field = !vm.skip_field; // note inversion of truth value
-
+  
   if (app->has_field)
     app->field = vm_field_new(&vm, app);
 
@@ -469,6 +469,7 @@ gkyl_vlasov_app_stat_write(const gkyl_vlasov_app* app)
       fprintf(fp, " \"init_field_tm\" : \"%lg\",\n", app->stat.init_field_tm);
     
     fprintf(fp, " \"species_rhs_tm\" : \"%lg\",\n", app->stat.species_rhs_tm);
+    fprintf(fp, " \"species_coll_tm\" : \"%lg\",\n", app->stat.species_coll_tm);
     if (app->has_field) {
       fprintf(fp, " \"field_rhs_tm\" : \"%lg\",\n", app->stat.field_rhs_tm);
       fprintf(fp, " \"current_tm\" : \"%lg\",\n", app->stat.current_tm);

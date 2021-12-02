@@ -2,11 +2,15 @@
 
 #include <gkyl_ref_count.h>
 
+// Forward declare for use in function pointers
+struct gkyl_mom_type;
+
 /**
  * Function pointer type to compute the needed moment.
  */
-typedef void (*momf_t)(const double *xc, const double *dx,
-  const int *idx, const double *f, double* out);
+typedef void (*momf_t)(const struct gkyl_mom_type *momt,
+  const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param);
 
 struct gkyl_mom_type {
   int cdim; // config-space dim
@@ -45,4 +49,12 @@ void gkyl_mom_type_release(const struct gkyl_mom_type* momt);
  */
 void gkyl_mom_type_calc(const struct gkyl_mom_type* momt,
   const double *xc, const double *dx, const int *idx,
-  const double *f, double* out);
+  const double *f, double* out, void *param);
+
+/**
+ * Get number of moments specified by mom_type object
+ *
+ * @param momt Moment type object
+ * returns int Number of moments
+ */
+int gkyl_mom_type_num_mom(const struct gkyl_mom_type* momt);
