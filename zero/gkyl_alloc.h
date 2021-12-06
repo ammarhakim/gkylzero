@@ -22,7 +22,7 @@ void gkyl_free(void *ptr);
  * @param align Alignment boundary. Must be power of 2.
  * @param size Number of bytes to allocate.
  */
-void *gkyl_aligned_alloc(size_t align, size_t size);
+void* gkyl_aligned_alloc(size_t align, size_t size);
 
 /**
  * Reallocate memory that is aligned to given byte boundary. The
@@ -35,7 +35,7 @@ void *gkyl_aligned_alloc(size_t align, size_t size);
  * @param old_sz Old size of memory.
  * @param new_sz New size of memory.
  */
-void *gkyl_aligned_realloc(void *ptr, size_t align, size_t old_sz, size_t new_sz);
+void* gkyl_aligned_realloc(void *ptr, size_t align, size_t old_sz, size_t new_sz);
 
 /**
  * Free memory allocated by gkyl_aligned_alloc().

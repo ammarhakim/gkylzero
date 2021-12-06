@@ -7,6 +7,12 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
+void test_array_0()
+{
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, 200);
+  gkyl_array_release(arr);
+}
+
 void test_array_base()
 {
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, 200);
@@ -1303,6 +1309,7 @@ void test_cu_array_copy_range()
 #endif
 
 TEST_LIST = {
+  { "array_0", test_array_0 },  
   { "array_base", test_array_base },
   { "array_fetch", test_array_fetch },
   { "array_clear", test_array_clear },
