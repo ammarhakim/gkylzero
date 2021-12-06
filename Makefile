@@ -4,8 +4,9 @@
 # make CC=mpicc 
 #
 
+ARCH_FLAGS = -march=native
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
-CFLAGS = -O3 -g -ffast-math -march=native
+CFLAGS = -O3 -g -ffast-math 
 LDFLAGS =
 KERN_INCLUDES = -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov -Ikernels/bin_op -Ikernels/lbo -Ikernels/fem
 
@@ -46,7 +47,7 @@ endif
 	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
 
 %.o : %.c
-	${CC} -c $(CFLAGS) $(INCLUDES) -o $@ $< 
+	${CC} -c $(CFLAGS) $(ARCH_FLAGS) $(INCLUDES) -o $@ $< 
 
 # Header dependencies
 headers = $(wildcard minus/*.h) $(wildcard zero/*.h) $(wildcard apps/*.h) $(wildcard kernels/*/*.h)
