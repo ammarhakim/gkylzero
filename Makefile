@@ -5,7 +5,7 @@
 #
 
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
-CFLAGS = -O3 -g -ffast-math
+CFLAGS = -O3 -g -ffast-math -march=native
 LDFLAGS =
 KERN_INCLUDES = -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov -Ikernels/bin_op -Ikernels/lbo -Ikernels/fem
 
