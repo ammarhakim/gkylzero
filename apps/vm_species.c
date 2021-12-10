@@ -189,12 +189,15 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
       gkyl_dg_mul_op(app->confBasis, 0, species->lbo.nu_vthsq, 0, species->lbo.vth_sq, 0, species->lbo.nu_sum);
 
       // Set arrays needed
-      gkyl_vlasov_lbo_set_nuSum(species->lbo.coll_eqn, species->lbo.nu_sum);
-      gkyl_vlasov_lbo_set_nuUSum(species->lbo.coll_eqn, species->lbo.nu_u);
-      gkyl_vlasov_lbo_set_nuVtSqSum(species->lbo.coll_eqn, species->lbo.nu_vthsq);
+      gkyl_vlasov_lbo_set_nuSum(species->lbo.coll_drag, species->lbo.nu_sum);
+      gkyl_vlasov_lbo_set_nuUSum(species->lbo.coll_drag, species->lbo.nu_u);
+      gkyl_vlasov_lbo_set_nuVtSqSum(species->lbo.coll_drag, species->lbo.nu_vthsq);
+      gkyl_vlasov_lbo_set_nuSum(species->lbo.coll_diff, species->lbo.nu_sum);
+      gkyl_vlasov_lbo_set_nuUSum(species->lbo.coll_diff, species->lbo.nu_u);
+      gkyl_vlasov_lbo_set_nuVtSqSum(species->lbo.coll_diff, species->lbo.nu_vthsq);
 
       // Accumulate update due to collisions onto rhs
-      gkyl_hyper_dg_advance(species->lbo.coll_slvr, species->local, fin, species->cflrate, rhs);
+      gkyl_dg_lbo_updater_advance(species->lbo.coll_slvr, species->local, fin, species->cflrate, rhs);
     }
 
     app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
