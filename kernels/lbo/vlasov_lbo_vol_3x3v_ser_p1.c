@@ -9,11 +9,8 @@ GKYL_CU_DH double vlasov_lbo_vol_3x3v_ser_p1(const double *w, const double *dxv,
   // f:         Input distribution function.
   // out:       Incremented output 
   const double rdvx2 = 2.0/dxv[3]; 
-  const double rdvxSq4 = 4.0/(dxv[3]*dxv[3]); 
   const double rdvy2 = 2.0/dxv[4]; 
-  const double rdvySq4 = 4.0/(dxv[4]*dxv[4]); 
   const double rdvz2 = 2.0/dxv[5]; 
-  const double rdvzSq4 = 4.0/(dxv[5]*dxv[5]); 
 
   double alphaDrag[192]; 
   // Expand rdv2*(nu*vx-nuUSumx) in phase basis.
@@ -70,7 +67,6 @@ GKYL_CU_DH double vlasov_lbo_vol_3x3v_ser_p1(const double *w, const double *dxv,
   alphaDrag[162] = -0.8164965809277261*dxv[5]*nuSum[6]*rdvz2; 
   alphaDrag[175] = -0.8164965809277261*dxv[5]*nuSum[7]*rdvz2; 
 
-  // Put together updates due to drag and diffusion terms.
   out[4] += 0.2165063509461096*(alphaDrag[42]*f[42]+alphaDrag[25]*f[25]+alphaDrag[24]*f[24]+alphaDrag[23]*f[23]+alphaDrag[22]*f[22]+alphaDrag[12]*f[12]+alphaDrag[11]*f[11]+alphaDrag[10]*f[10]+alphaDrag[9]*f[9]+alphaDrag[8]*f[8]+alphaDrag[7]*f[7]+alphaDrag[4]*f[4]+alphaDrag[3]*f[3]+alphaDrag[2]*f[2]+alphaDrag[1]*f[1]+alphaDrag[0]*f[0]); 
   out[5] += 0.2165063509461096*(f[43]*alphaDrag[107]+f[28]*alphaDrag[92]+f[27]*alphaDrag[91]+f[26]*alphaDrag[90]+f[22]*alphaDrag[86]+f[15]*alphaDrag[79]+f[14]*alphaDrag[78]+f[13]*alphaDrag[77]+f[9]*alphaDrag[73]+f[8]*alphaDrag[72]+f[7]*alphaDrag[71]+f[5]*alphaDrag[69]+f[3]*alphaDrag[67]+f[2]*alphaDrag[66]+f[1]*alphaDrag[65]+f[0]*alphaDrag[64]); 
   out[6] += 0.2165063509461096*(f[47]*alphaDrag[175]+f[34]*alphaDrag[162]+f[33]*alphaDrag[161]+f[32]*alphaDrag[160]+f[22]*alphaDrag[150]+f[19]*alphaDrag[147]+f[18]*alphaDrag[146]+f[17]*alphaDrag[145]+f[9]*alphaDrag[137]+f[8]*alphaDrag[136]+f[7]*alphaDrag[135]+f[6]*alphaDrag[134]+f[3]*alphaDrag[131]+f[2]*alphaDrag[130]+f[1]*alphaDrag[129]+f[0]*alphaDrag[128]); 
@@ -128,6 +124,6 @@ GKYL_CU_DH double vlasov_lbo_vol_3x3v_ser_p1(const double *w, const double *dxv,
   out[62] += 0.2165063509461096*(f[54]*alphaDrag[175]+f[41]*alphaDrag[162]+f[60]*alphaDrag[161]+f[61]*alphaDrag[160]+f[29]*alphaDrag[150]+f[55]*alphaDrag[147]+f[56]*alphaDrag[146]+f[63]*alphaDrag[145]+f[16]*alphaDrag[137]+f[44]*alphaDrag[136]+f[45]*alphaDrag[135]+f[62]*alphaDrag[134]+f[30]*alphaDrag[131]+f[31]*alphaDrag[130]+f[57]*alphaDrag[129]+f[46]*alphaDrag[128]+f[54]*alphaDrag[107]+f[41]*alphaDrag[92]+f[60]*alphaDrag[91]+f[61]*alphaDrag[90]+f[35]*alphaDrag[86]+f[55]*alphaDrag[79]+f[56]*alphaDrag[78]+f[63]*alphaDrag[77]+f[20]*alphaDrag[73]+f[48]*alphaDrag[72]+f[49]*alphaDrag[71]+f[62]*alphaDrag[69]+f[36]*alphaDrag[67]+f[37]*alphaDrag[66]+f[58]*alphaDrag[65]+f[50]*alphaDrag[64]+alphaDrag[10]*f[63]+alphaDrag[4]*f[62]+alphaDrag[23]*f[61]+alphaDrag[24]*f[60]+alphaDrag[1]*f[59]+alphaDrag[11]*f[56]+alphaDrag[12]*f[55]+alphaDrag[42]*f[54]+alphaDrag[0]*f[53]+alphaDrag[7]*f[52]+alphaDrag[8]*f[51]+alphaDrag[25]*f[41]+alphaDrag[2]*f[40]+alphaDrag[3]*f[39]+alphaDrag[22]*f[38]+alphaDrag[9]*f[21]); 
   out[63] += 0.2165063509461096*(f[41]*alphaDrag[175]+f[54]*alphaDrag[162]+f[55]*alphaDrag[161]+f[56]*alphaDrag[160]+f[16]*alphaDrag[150]+f[60]*alphaDrag[147]+f[61]*alphaDrag[146]+f[62]*alphaDrag[145]+f[29]*alphaDrag[137]+f[30]*alphaDrag[136]+f[31]*alphaDrag[135]+f[63]*alphaDrag[134]+f[44]*alphaDrag[131]+f[45]*alphaDrag[130]+f[46]*alphaDrag[129]+f[57]*alphaDrag[128]+f[41]*alphaDrag[107]+f[54]*alphaDrag[92]+f[55]*alphaDrag[91]+f[56]*alphaDrag[90]+f[20]*alphaDrag[86]+f[60]*alphaDrag[79]+f[61]*alphaDrag[78]+f[62]*alphaDrag[77]+f[35]*alphaDrag[73]+f[36]*alphaDrag[72]+f[37]*alphaDrag[71]+f[63]*alphaDrag[69]+f[48]*alphaDrag[67]+f[49]*alphaDrag[66]+f[50]*alphaDrag[65]+f[58]*alphaDrag[64]+alphaDrag[4]*f[63]+alphaDrag[10]*f[62]+alphaDrag[11]*f[61]+alphaDrag[12]*f[60]+alphaDrag[0]*f[59]+alphaDrag[23]*f[56]+alphaDrag[24]*f[55]+alphaDrag[25]*f[54]+alphaDrag[1]*f[53]+alphaDrag[2]*f[52]+alphaDrag[3]*f[51]+f[41]*alphaDrag[42]+alphaDrag[7]*f[40]+alphaDrag[8]*f[39]+alphaDrag[9]*f[38]+f[21]*alphaDrag[22]); 
 
-  return fabs(0.0625*alphaDrag[0])+fabs(0.0625*alphaDrag[64])+fabs(0.0625*alphaDrag[128])+fabs(0.4714045207910317*nuVtSqSum[0]*rdvxSq4)+fabs(0.4714045207910317*nuVtSqSum[0]*rdvySq4)+fabs(0.4714045207910317*nuVtSqSum[0]*rdvzSq4); 
+  return fabs(0.0625*alphaDrag[0])+fabs(0.0625*alphaDrag[64])+fabs(0.0625*alphaDrag[128]); 
 
 } 

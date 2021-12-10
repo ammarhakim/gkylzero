@@ -9,7 +9,6 @@ GKYL_CU_DH double vlasov_lbo_vol_1x1v_ser_p1(const double *w, const double *dxv,
   // f:         Input distribution function.
   // out:       Incremented output 
   const double rdvx2 = 2.0/dxv[1]; 
-  const double rdvxSq4 = 4.0/(dxv[1]*dxv[1]); 
 
   double alphaDrag[4]; 
   // Expand rdv2*(nu*vx-nuUSumx) in phase basis.
@@ -18,10 +17,9 @@ GKYL_CU_DH double vlasov_lbo_vol_1x1v_ser_p1(const double *w, const double *dxv,
   alphaDrag[2] = -0.408248290463863*nuSum[0]*dxv[1]*rdvx2; 
   alphaDrag[3] = -0.408248290463863*dxv[1]*nuSum[1]*rdvx2; 
 
-  // Put together updates due to drag and diffusion terms.
   out[2] += 0.8660254037844386*(alphaDrag[3]*f[3]+alphaDrag[2]*f[2]+alphaDrag[1]*f[1]+alphaDrag[0]*f[0]); 
   out[3] += 0.8660254037844386*(alphaDrag[2]*f[3]+f[2]*alphaDrag[3]+alphaDrag[0]*f[1]+f[0]*alphaDrag[1]); 
 
-  return fabs(0.25*alphaDrag[0])+fabs(0.9428090415820636*nuVtSqSum[0]*rdvxSq4); 
+  return fabs(0.25*alphaDrag[0]); 
 
 } 

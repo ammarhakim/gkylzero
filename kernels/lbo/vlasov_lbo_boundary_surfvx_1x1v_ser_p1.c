@@ -10,16 +10,13 @@ GKYL_CU_DH void vlasov_lbo_boundary_surfvx_1x1v_ser_p1(const double *w, const do
   // fSkin/Edge:    Distribution function in cells 
   // out:           Incremented distribution function in cell 
   double rdv2 = 2.0/dxv[1]; 
-  double rdvSq4 = 4.0/(dxv[1]*dxv[1]); 
 
   const double *sumNuUx = &nuUSum[0]; 
 
   double alphaDrSurf[2] = {0.0}; 
   double fUpwindQuad[2] = {0.0};
   double fUpwind[2] = {0.0};;
-  double Ghat[2] = {0.0}; 
-  double Gdiff[2] = {0.0}; 
-  double Gdiff2[2] = {0.0}; 
+  double drag_incr[2] = {0.0}; 
 
   if (edge == -1) { 
 
@@ -42,19 +39,13 @@ GKYL_CU_DH void vlasov_lbo_boundary_surfvx_1x1v_ser_p1(const double *w, const do
   fUpwind[0] = 0.7071067811865475*(fUpwindQuad[1]+fUpwindQuad[0]); 
   fUpwind[1] = 0.7071067811865475*(fUpwindQuad[1]-1.0*fUpwindQuad[0]); 
 
-  Gdiff2[0] = 0.2886751345948129*nuVtSqSum[1]*fSkin[3]-0.2886751345948129*nuVtSqSum[1]*fEdge[3]+0.2886751345948129*nuVtSqSum[0]*fSkin[2]-0.2886751345948129*nuVtSqSum[0]*fEdge[2]+0.25*fSkin[1]*nuVtSqSum[1]+0.25*fEdge[1]*nuVtSqSum[1]+0.25*fSkin[0]*nuVtSqSum[0]+0.25*fEdge[0]*nuVtSqSum[0]; 
-  Gdiff2[1] = 0.2886751345948129*nuVtSqSum[0]*fSkin[3]-0.2886751345948129*nuVtSqSum[0]*fEdge[3]+0.2886751345948129*nuVtSqSum[1]*fSkin[2]-0.2886751345948129*nuVtSqSum[1]*fEdge[2]+0.25*fSkin[0]*nuVtSqSum[1]+0.25*fEdge[0]*nuVtSqSum[1]+0.25*nuVtSqSum[0]*fSkin[1]+0.25*nuVtSqSum[0]*fEdge[1]; 
+  drag_incr[0] = 0.7071067811865475*alphaDrSurf[1]*fUpwind[1]+0.7071067811865475*alphaDrSurf[0]*fUpwind[0]; 
+  drag_incr[1] = 0.7071067811865475*alphaDrSurf[0]*fUpwind[1]+0.7071067811865475*fUpwind[0]*alphaDrSurf[1]; 
 
-  Gdiff[0] = (-0.5412658773652741*nuVtSqSum[1]*fSkin[3])-0.5412658773652741*nuVtSqSum[1]*fEdge[3]-0.5412658773652741*nuVtSqSum[0]*fSkin[2]-0.5412658773652741*nuVtSqSum[0]*fEdge[2]-0.5625*fSkin[1]*nuVtSqSum[1]+0.5625*fEdge[1]*nuVtSqSum[1]-0.5625*fSkin[0]*nuVtSqSum[0]+0.5625*fEdge[0]*nuVtSqSum[0]; 
-  Gdiff[1] = (-0.5412658773652741*nuVtSqSum[0]*fSkin[3])-0.5412658773652741*nuVtSqSum[0]*fEdge[3]-0.5412658773652741*nuVtSqSum[1]*fSkin[2]-0.5412658773652741*nuVtSqSum[1]*fEdge[2]-0.5625*fSkin[0]*nuVtSqSum[1]+0.5625*fEdge[0]*nuVtSqSum[1]-0.5625*nuVtSqSum[0]*fSkin[1]+0.5625*nuVtSqSum[0]*fEdge[1]; 
-
-  Ghat[0] = Gdiff[0]*rdv2+0.7071067811865475*alphaDrSurf[1]*fUpwind[1]+0.7071067811865475*alphaDrSurf[0]*fUpwind[0]; 
-  Ghat[1] = Gdiff[1]*rdv2+0.7071067811865475*alphaDrSurf[0]*fUpwind[1]+0.7071067811865475*fUpwind[0]*alphaDrSurf[1]; 
-
-  out[0] += 0.7071067811865475*Ghat[0]*rdv2; 
-  out[1] += 0.7071067811865475*Ghat[1]*rdv2; 
-  out[2] += (-1.060660171779821*nuVtSqSum[1]*fSkin[3]*rdvSq4)-1.060660171779821*nuVtSqSum[0]*fSkin[2]*rdvSq4+0.6123724356957944*fSkin[1]*nuVtSqSum[1]*rdvSq4+0.6123724356957944*fSkin[0]*nuVtSqSum[0]*rdvSq4-1.224744871391589*Gdiff2[0]*rdvSq4+1.224744871391589*Ghat[0]*rdv2; 
-  out[3] += (-1.060660171779821*nuVtSqSum[0]*fSkin[3]*rdvSq4)-1.060660171779821*nuVtSqSum[1]*fSkin[2]*rdvSq4+0.6123724356957944*fSkin[0]*nuVtSqSum[1]*rdvSq4+0.6123724356957944*nuVtSqSum[0]*fSkin[1]*rdvSq4-1.224744871391589*Gdiff2[1]*rdvSq4+1.224744871391589*Ghat[1]*rdv2; 
+  out[0] += 0.7071067811865475*drag_incr[0]*rdv2; 
+  out[1] += 0.7071067811865475*drag_incr[1]*rdv2; 
+  out[2] += 1.224744871391589*drag_incr[0]*rdv2; 
+  out[3] += 1.224744871391589*drag_incr[1]*rdv2; 
 
   } else { 
 
@@ -75,19 +66,13 @@ GKYL_CU_DH void vlasov_lbo_boundary_surfvx_1x1v_ser_p1(const double *w, const do
   fUpwind[0] = 0.7071067811865475*(fUpwindQuad[1]+fUpwindQuad[0]); 
   fUpwind[1] = 0.7071067811865475*(fUpwindQuad[1]-1.0*fUpwindQuad[0]); 
 
-  Gdiff2[0] = (-0.2886751345948129*nuVtSqSum[1]*fSkin[3])+0.2886751345948129*nuVtSqSum[1]*fEdge[3]-0.2886751345948129*nuVtSqSum[0]*fSkin[2]+0.2886751345948129*nuVtSqSum[0]*fEdge[2]+0.25*fSkin[1]*nuVtSqSum[1]+0.25*fEdge[1]*nuVtSqSum[1]+0.25*fSkin[0]*nuVtSqSum[0]+0.25*fEdge[0]*nuVtSqSum[0]; 
-  Gdiff2[1] = (-0.2886751345948129*nuVtSqSum[0]*fSkin[3])+0.2886751345948129*nuVtSqSum[0]*fEdge[3]-0.2886751345948129*nuVtSqSum[1]*fSkin[2]+0.2886751345948129*nuVtSqSum[1]*fEdge[2]+0.25*fSkin[0]*nuVtSqSum[1]+0.25*fEdge[0]*nuVtSqSum[1]+0.25*nuVtSqSum[0]*fSkin[1]+0.25*nuVtSqSum[0]*fEdge[1]; 
+  drag_incr[0] = 0.7071067811865475*alphaDrSurf[1]*fUpwind[1]+0.7071067811865475*alphaDrSurf[0]*fUpwind[0]; 
+  drag_incr[1] = 0.7071067811865475*alphaDrSurf[0]*fUpwind[1]+0.7071067811865475*fUpwind[0]*alphaDrSurf[1]; 
 
-  Gdiff[0] = (-0.5412658773652741*nuVtSqSum[1]*fSkin[3])-0.5412658773652741*nuVtSqSum[1]*fEdge[3]-0.5412658773652741*nuVtSqSum[0]*fSkin[2]-0.5412658773652741*nuVtSqSum[0]*fEdge[2]+0.5625*fSkin[1]*nuVtSqSum[1]-0.5625*fEdge[1]*nuVtSqSum[1]+0.5625*fSkin[0]*nuVtSqSum[0]-0.5625*fEdge[0]*nuVtSqSum[0]; 
-  Gdiff[1] = (-0.5412658773652741*nuVtSqSum[0]*fSkin[3])-0.5412658773652741*nuVtSqSum[0]*fEdge[3]-0.5412658773652741*nuVtSqSum[1]*fSkin[2]-0.5412658773652741*nuVtSqSum[1]*fEdge[2]+0.5625*fSkin[0]*nuVtSqSum[1]-0.5625*fEdge[0]*nuVtSqSum[1]+0.5625*nuVtSqSum[0]*fSkin[1]-0.5625*nuVtSqSum[0]*fEdge[1]; 
-
-  Ghat[0] = Gdiff[0]*rdv2+0.7071067811865475*alphaDrSurf[1]*fUpwind[1]+0.7071067811865475*alphaDrSurf[0]*fUpwind[0]; 
-  Ghat[1] = Gdiff[1]*rdv2+0.7071067811865475*alphaDrSurf[0]*fUpwind[1]+0.7071067811865475*fUpwind[0]*alphaDrSurf[1]; 
-
-  out[0] += -0.7071067811865475*Ghat[0]*rdv2; 
-  out[1] += -0.7071067811865475*Ghat[1]*rdv2; 
-  out[2] += (-1.060660171779821*nuVtSqSum[1]*fSkin[3]*rdvSq4)-1.060660171779821*nuVtSqSum[0]*fSkin[2]*rdvSq4-0.6123724356957944*fSkin[1]*nuVtSqSum[1]*rdvSq4-0.6123724356957944*fSkin[0]*nuVtSqSum[0]*rdvSq4+1.224744871391589*Gdiff2[0]*rdvSq4+1.224744871391589*Ghat[0]*rdv2; 
-  out[3] += (-1.060660171779821*nuVtSqSum[0]*fSkin[3]*rdvSq4)-1.060660171779821*nuVtSqSum[1]*fSkin[2]*rdvSq4-0.6123724356957944*fSkin[0]*nuVtSqSum[1]*rdvSq4-0.6123724356957944*nuVtSqSum[0]*fSkin[1]*rdvSq4+1.224744871391589*Gdiff2[1]*rdvSq4+1.224744871391589*Ghat[1]*rdv2; 
+  out[0] += 0.7071067811865475*drag_incr[0]*rdv2; 
+  out[1] += 0.7071067811865475*drag_incr[1]*rdv2; 
+  out[2] += 1.224744871391589*drag_incr[0]*rdv2; 
+  out[3] += 1.224744871391589*drag_incr[1]*rdv2; 
 
   } 
 } 
