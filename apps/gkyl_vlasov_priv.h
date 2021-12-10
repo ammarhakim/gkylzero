@@ -62,8 +62,8 @@ struct vm_lbo_collisions {
   struct gkyl_array *nu_sum, *u_drift, *vth_sq, *nu_u, *nu_vthsq; // LBO primitive moments
   struct gkyl_prim_lbo *coll_prim; // Primitive moments
   gkyl_prim_lbo_calc *coll_pcalc; // Primitive moment solver
-  struct gkyl_dg_eqn *coll_drag; // Collision equation
-  struct gkyl_dg_eqn *coll_diff; // Collision equation
+  struct gkyl_dg_eqn *coll_drag; // Collision drag equation
+  struct gkyl_dg_eqn *coll_diff; // Collision diffusion equation
   gkyl_dg_lbo_updater *coll_slvr; // Collision solver
 };
 

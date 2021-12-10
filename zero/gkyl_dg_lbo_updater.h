@@ -15,15 +15,13 @@ struct gkyl_dg_lbo_updater {
 };
 
 /**
- * Create new updater to update equations using DG algorithm.
+ * Create new updater to update lbo equations using hyper dg.
  *
  * @param grid Grid object
  * @param basis Basis functions
- * @param equation Equation object
- * @param num_up_dirs Number of directions to update
- * @param update_dirs List of directions to update (size 'num_up_dirs')
- * @param zero_flux_flags Flags with zero-flux BCs (size 'num_up_dirs')
- * @param update_vol_term Set to 0 to skip volume update
+ * @param vdim Number of velocity dimensions
+ * @param drag LBO drag equation term
+ * @param drag LBO diff equation term
  */
 gkyl_dg_lbo_updater* gkyl_dg_lbo_updater_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
   const int vdim, const struct gkyl_dg_eqn *drag, const struct gkyl_dg_eqn *diff);
@@ -34,7 +32,7 @@ gkyl_dg_lbo_updater* gkyl_dg_lbo_updater_new(const struct gkyl_rect_grid *grid, 
  * same range as the array range, or one created using the
  * gkyl_sub_range_init method.
  *
- * @param hdg Hyper DG updater object
+ * @param lbo LBO updater object
  * @param update_rng Range on which to compute.
  * @param fIn Input to updater
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
@@ -46,6 +44,6 @@ void gkyl_dg_lbo_updater_advance(gkyl_dg_lbo_updater *lbo, struct gkyl_range upd
 /**
  * Delete updater.
  *
- * @param hdg Updater to delete.
+ * @param lbo Updater to delete.
  */
 void gkyl_dg_lbo_updater_release(gkyl_dg_lbo_updater* lbo);
