@@ -4,8 +4,9 @@
 # make CC=mpicc 
 #
 
+ARCH_FLAGS = -march=native -ffast-math
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
-CFLAGS = -O3 -g -ffast-math
+CFLAGS = -O3 -g -ffast-math 
 LDFLAGS =
 KERN_INCLUDES = -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov -Ikernels/bin_op -Ikernels/lbo -Ikernels/fem
 
@@ -36,7 +37,7 @@ NVCC =
 USING_NVCC =
 NVCC_FLAGS = 
 ifeq ($(CC), nvcc)
-       CFLAGS = -O3 -g 
+       CFLAGS = -O3 -g --forward-unknown-to-host-compiler
        USING_NVCC = yes
        NVCC_FLAGS = -x cu -dc -arch=sm_70 --compiler-options="-fPIC" 
        LDFLAGS += -arch=sm_70
@@ -46,7 +47,7 @@ endif
 	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
 
 %.o : %.c
-	${CC} -c $(CFLAGS) $(INCLUDES) -o $@ $< 
+	${CC} -c $(CFLAGS) $(ARCH_FLAGS) $(INCLUDES) -o $@ $< 
 
 # Header dependencies
 headers = $(wildcard minus/*.h) $(wildcard zero/*.h) $(wildcard apps/*.h) $(wildcard kernels/*/*.h)
