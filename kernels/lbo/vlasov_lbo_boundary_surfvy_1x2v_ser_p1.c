@@ -103,11 +103,11 @@ GKYL_CU_DH void vlasov_lbo_boundary_surfvy_1x2v_ser_p1(const double *w, const do
   drag_incr[2] = 0.5*alphaDrSurf[1]*fUpwind[3]+0.5*alphaDrSurf[0]*fUpwind[2]; 
   drag_incr[3] = 0.5*alphaDrSurf[0]*fUpwind[3]+0.5*alphaDrSurf[1]*fUpwind[2]; 
 
-  out[0] += 0.7071067811865475*drag_incr[0]*rdv2; 
-  out[1] += 0.7071067811865475*drag_incr[1]*rdv2; 
-  out[2] += 0.7071067811865475*drag_incr[2]*rdv2; 
+  out[0] += -0.7071067811865475*drag_incr[0]*rdv2; 
+  out[1] += -0.7071067811865475*drag_incr[1]*rdv2; 
+  out[2] += -0.7071067811865475*drag_incr[2]*rdv2; 
   out[3] += 1.224744871391589*drag_incr[0]*rdv2; 
-  out[4] += 0.7071067811865475*drag_incr[3]*rdv2; 
+  out[4] += -0.7071067811865475*drag_incr[3]*rdv2; 
   out[5] += 1.224744871391589*drag_incr[1]*rdv2; 
   out[6] += 1.224744871391589*drag_incr[2]*rdv2; 
   out[7] += 1.224744871391589*drag_incr[3]*rdv2; 

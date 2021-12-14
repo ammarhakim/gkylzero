@@ -171,19 +171,19 @@ GKYL_CU_DH void vlasov_lbo_boundary_surfvy_1x3v_ser_p1(const double *w, const do
   drag_incr[6] = 0.3535533905932737*alphaDrSurf[1]*fUpwind[7]+0.3535533905932737*alphaDrSurf[0]*fUpwind[6]; 
   drag_incr[7] = 0.3535533905932737*alphaDrSurf[0]*fUpwind[7]+0.3535533905932737*alphaDrSurf[1]*fUpwind[6]; 
 
-  out[0] += 0.7071067811865475*drag_incr[0]*rdv2; 
-  out[1] += 0.7071067811865475*drag_incr[1]*rdv2; 
-  out[2] += 0.7071067811865475*drag_incr[2]*rdv2; 
+  out[0] += -0.7071067811865475*drag_incr[0]*rdv2; 
+  out[1] += -0.7071067811865475*drag_incr[1]*rdv2; 
+  out[2] += -0.7071067811865475*drag_incr[2]*rdv2; 
   out[3] += 1.224744871391589*drag_incr[0]*rdv2; 
-  out[4] += 0.7071067811865475*drag_incr[3]*rdv2; 
-  out[5] += 0.7071067811865475*drag_incr[4]*rdv2; 
+  out[4] += -0.7071067811865475*drag_incr[3]*rdv2; 
+  out[5] += -0.7071067811865475*drag_incr[4]*rdv2; 
   out[6] += 1.224744871391589*drag_incr[1]*rdv2; 
   out[7] += 1.224744871391589*drag_incr[2]*rdv2; 
-  out[8] += 0.7071067811865475*drag_incr[5]*rdv2; 
-  out[9] += 0.7071067811865475*drag_incr[6]*rdv2; 
+  out[8] += -0.7071067811865475*drag_incr[5]*rdv2; 
+  out[9] += -0.7071067811865475*drag_incr[6]*rdv2; 
   out[10] += 1.224744871391589*drag_incr[3]*rdv2; 
   out[11] += 1.224744871391589*drag_incr[4]*rdv2; 
-  out[12] += 0.7071067811865475*drag_incr[7]*rdv2; 
+  out[12] += -0.7071067811865475*drag_incr[7]*rdv2; 
   out[13] += 1.224744871391589*drag_incr[5]*rdv2; 
   out[14] += 1.224744871391589*drag_incr[6]*rdv2; 
   out[15] += 1.224744871391589*drag_incr[7]*rdv2; 

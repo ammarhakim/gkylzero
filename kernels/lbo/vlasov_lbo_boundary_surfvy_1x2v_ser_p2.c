@@ -179,26 +179,26 @@ GKYL_CU_DH void vlasov_lbo_boundary_surfvy_1x2v_ser_p2(const double *w, const do
   drag_incr[6] = 0.31943828249997*alphaDrSurf[4]*fUpwind[6]+0.5*alphaDrSurf[0]*fUpwind[6]+0.5000000000000001*fUpwind[2]*alphaDrSurf[4]+0.447213595499958*alphaDrSurf[1]*fUpwind[3]; 
   drag_incr[7] = 0.4472135954999579*alphaDrSurf[4]*fUpwind[7]+0.5*alphaDrSurf[0]*fUpwind[7]+0.5000000000000001*alphaDrSurf[1]*fUpwind[5]; 
 
-  out[0] += 0.7071067811865475*drag_incr[0]*rdv2; 
-  out[1] += 0.7071067811865475*drag_incr[1]*rdv2; 
-  out[2] += 0.7071067811865475*drag_incr[2]*rdv2; 
+  out[0] += -0.7071067811865475*drag_incr[0]*rdv2; 
+  out[1] += -0.7071067811865475*drag_incr[1]*rdv2; 
+  out[2] += -0.7071067811865475*drag_incr[2]*rdv2; 
   out[3] += 1.224744871391589*drag_incr[0]*rdv2; 
-  out[4] += 0.7071067811865475*drag_incr[3]*rdv2; 
+  out[4] += -0.7071067811865475*drag_incr[3]*rdv2; 
   out[5] += 1.224744871391589*drag_incr[1]*rdv2; 
   out[6] += 1.224744871391589*drag_incr[2]*rdv2; 
-  out[7] += 0.7071067811865475*drag_incr[4]*rdv2; 
-  out[8] += 0.7071067811865475*drag_incr[5]*rdv2; 
-  out[9] += 1.58113883008419*drag_incr[0]*rdv2; 
+  out[7] += -0.7071067811865475*drag_incr[4]*rdv2; 
+  out[8] += -0.7071067811865475*drag_incr[5]*rdv2; 
+  out[9] += -1.58113883008419*drag_incr[0]*rdv2; 
   out[10] += 1.224744871391589*drag_incr[3]*rdv2; 
-  out[11] += 0.7071067811865475*drag_incr[6]*rdv2; 
-  out[12] += 0.7071067811865475*drag_incr[7]*rdv2; 
+  out[11] += -0.7071067811865475*drag_incr[6]*rdv2; 
+  out[12] += -0.7071067811865475*drag_incr[7]*rdv2; 
   out[13] += 1.224744871391589*drag_incr[4]*rdv2; 
   out[14] += 1.224744871391589*drag_incr[5]*rdv2; 
-  out[15] += 1.58113883008419*drag_incr[1]*rdv2; 
-  out[16] += 1.58113883008419*drag_incr[2]*rdv2; 
+  out[15] += -1.58113883008419*drag_incr[1]*rdv2; 
+  out[16] += -1.58113883008419*drag_incr[2]*rdv2; 
   out[17] += 1.224744871391589*drag_incr[6]*rdv2; 
   out[18] += 1.224744871391589*drag_incr[7]*rdv2; 
-  out[19] += 1.58113883008419*drag_incr[3]*rdv2; 
+  out[19] += -1.58113883008419*drag_incr[3]*rdv2; 
 
   } 
 } 

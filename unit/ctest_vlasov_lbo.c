@@ -9,7 +9,8 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_dg_vlasov_lbo.h>
-#include <gkyl_hyper_dg.h>
+#include <gkyl_dg_vlasov_lbo_diff.h>
+#include <gkyl_dg_lbo_updater.h>
 #include <gkyl_array_rio.h>
 #include <math.h>
 
@@ -74,15 +75,16 @@ test_1x1v_p2()
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // initialize eqn
-  struct gkyl_dg_eqn *eqn;
-  eqn = gkyl_dg_vlasov_lbo_new(&confBasis, &basis, &confRange);
+  struct gkyl_dg_eqn *diff, *drag;
+  diff = gkyl_dg_vlasov_lbo_diff_new(&confBasis, &basis, &confRange);
+  drag = gkyl_dg_vlasov_lbo_new(&confBasis, &basis, &confRange);
 
   // initialize hyper_dg slvr
   int up_dirs[] = {1};
   int zero_flux_flags[] = {1};
 
-  gkyl_hyper_dg *slvr;
-  slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, vdim, up_dirs, zero_flux_flags, 1);
+  gkyl_dg_lbo_updater *slvr;
+  slvr = gkyl_dg_lbo_updater_new(&phaseGrid, &basis, vdim, drag, diff);
   
   gkyl_proj_on_basis *projF = gkyl_proj_on_basis_new(&phaseGrid, &basis, poly_order+1, 1, maxwellian1x1v, NULL);
   gkyl_proj_on_basis *projNu = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, nu_prof, NULL);
@@ -112,10 +114,13 @@ test_1x1v_p2()
   for(int n=0; n<nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
-    gkyl_vlasov_lbo_set_nuSum(eqn, nuSum);
-    gkyl_vlasov_lbo_set_nuUSum(eqn, nuUSum);
-    gkyl_vlasov_lbo_set_nuVtSqSum(eqn, nuVtSqSum);
-    gkyl_hyper_dg_advance(slvr, phaseRange, fin, cflrate, rhs);
+    gkyl_vlasov_lbo_set_nuSum(drag, nuSum);
+    gkyl_vlasov_lbo_set_nuUSum(drag, nuUSum);
+    gkyl_vlasov_lbo_set_nuVtSqSum(drag, nuVtSqSum);
+    gkyl_vlasov_lbo_set_nuSum(diff, nuSum);
+    gkyl_vlasov_lbo_set_nuUSum(diff, nuUSum);
+    gkyl_vlasov_lbo_set_nuVtSqSum(diff, nuVtSqSum);
+    gkyl_dg_lbo_updater_advance(slvr, phaseRange, fin, cflrate, rhs);
 
     gkyl_array_reduce(cfl_ptr, cflrate, GKYL_MAX);
   }
@@ -167,8 +172,9 @@ test_1x1v_p2()
   gkyl_array_release(nuSum);
   gkyl_array_release(nuUSum);
   gkyl_array_release(nuVtSqSum);
-  gkyl_dg_eqn_release(eqn);
-  gkyl_hyper_dg_release(slvr);
+  gkyl_dg_eqn_release(drag);
+  gkyl_dg_eqn_release(diff);
+  gkyl_dg_lbo_updater_release(slvr);
 }
 
 void
@@ -201,15 +207,16 @@ test_1x2v_p2()
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // initialize eqn
-  struct gkyl_dg_eqn *eqn;
-  eqn = gkyl_dg_vlasov_lbo_new(&confBasis, &basis, &confRange);
+  struct gkyl_dg_eqn *diff, *drag;
+  diff = gkyl_dg_vlasov_lbo_diff_new(&confBasis, &basis, &confRange);
+  drag = gkyl_dg_vlasov_lbo_new(&confBasis, &basis, &confRange);
 
   // initialize hyper_dg slvr
   int up_dirs[] = {1, 2};
   int zero_flux_flags[] = {1, 1};
 
-  gkyl_hyper_dg *slvr;
-  slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, vdim, up_dirs, zero_flux_flags, 1);
+  gkyl_dg_lbo_updater *slvr;
+  slvr = gkyl_dg_lbo_updater_new(&phaseGrid, &basis, vdim, drag, diff);
   
   gkyl_proj_on_basis *projF = gkyl_proj_on_basis_new(&phaseGrid, &basis, poly_order+1, 1, maxwellian1x2v, NULL);
   gkyl_proj_on_basis *projNu = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, nu_prof, NULL);
@@ -239,10 +246,13 @@ test_1x2v_p2()
   for(int n=0; n<nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
-    gkyl_vlasov_lbo_set_nuSum(eqn, nuSum);
-    gkyl_vlasov_lbo_set_nuUSum(eqn, nuUSum);
-    gkyl_vlasov_lbo_set_nuVtSqSum(eqn, nuVtSqSum);
-    gkyl_hyper_dg_advance(slvr, phaseRange, fin, cflrate, rhs);
+    gkyl_vlasov_lbo_set_nuSum(drag, nuSum);
+    gkyl_vlasov_lbo_set_nuUSum(drag, nuUSum);
+    gkyl_vlasov_lbo_set_nuVtSqSum(drag, nuVtSqSum);
+    gkyl_vlasov_lbo_set_nuSum(diff, nuSum);
+    gkyl_vlasov_lbo_set_nuUSum(diff, nuUSum);
+    gkyl_vlasov_lbo_set_nuVtSqSum(diff, nuVtSqSum);
+    gkyl_dg_lbo_updater_advance(slvr, phaseRange, fin, cflrate, rhs);
 
     gkyl_array_reduce(cfl_ptr, cflrate, GKYL_MAX);
   }
@@ -318,8 +328,9 @@ test_1x2v_p2()
   gkyl_array_release(nuSum);
   gkyl_array_release(nuUSum);
   gkyl_array_release(nuVtSqSum);
-  gkyl_dg_eqn_release(eqn);
-  gkyl_hyper_dg_release(slvr);
+  gkyl_dg_eqn_release(drag);
+  gkyl_dg_eqn_release(diff);
+  gkyl_dg_lbo_updater_release(slvr);
 }
 
 TEST_LIST = {

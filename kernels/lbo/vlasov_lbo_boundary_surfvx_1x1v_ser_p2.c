@@ -87,14 +87,14 @@ GKYL_CU_DH void vlasov_lbo_boundary_surfvx_1x1v_ser_p2(const double *w, const do
   drag_incr[1] = 0.6324555320336759*alphaDrSurf[1]*fUpwind[2]+0.6324555320336759*fUpwind[1]*alphaDrSurf[2]+0.7071067811865475*alphaDrSurf[0]*fUpwind[1]+0.7071067811865475*fUpwind[0]*alphaDrSurf[1]; 
   drag_incr[2] = 0.4517539514526256*alphaDrSurf[2]*fUpwind[2]+0.7071067811865475*alphaDrSurf[0]*fUpwind[2]+0.7071067811865475*fUpwind[0]*alphaDrSurf[2]+0.6324555320336759*alphaDrSurf[1]*fUpwind[1]; 
 
-  out[0] += 0.7071067811865475*drag_incr[0]*rdv2; 
-  out[1] += 0.7071067811865475*drag_incr[1]*rdv2; 
+  out[0] += -0.7071067811865475*drag_incr[0]*rdv2; 
+  out[1] += -0.7071067811865475*drag_incr[1]*rdv2; 
   out[2] += 1.224744871391589*drag_incr[0]*rdv2; 
   out[3] += 1.224744871391589*drag_incr[1]*rdv2; 
-  out[4] += 0.7071067811865475*drag_incr[2]*rdv2; 
-  out[5] += 1.58113883008419*drag_incr[0]*rdv2; 
+  out[4] += -0.7071067811865475*drag_incr[2]*rdv2; 
+  out[5] += -1.58113883008419*drag_incr[0]*rdv2; 
   out[6] += 1.224744871391589*drag_incr[2]*rdv2; 
-  out[7] += 1.58113883008419*drag_incr[1]*rdv2; 
+  out[7] += -1.58113883008419*drag_incr[1]*rdv2; 
 
   } 
 } 
