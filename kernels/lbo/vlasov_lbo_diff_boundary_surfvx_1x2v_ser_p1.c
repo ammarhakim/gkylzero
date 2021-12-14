@@ -54,19 +54,19 @@ GKYL_CU_DH void vlasov_lbo_diff_boundary_surfvx_1x2v_ser_p1(const double *w, con
 
   } else { 
 
-  temp_diff[0] = (-0.5412658773652741*fSkin[2])-0.5412658773652741*fEdge[2]-0.5625*fSkin[0]+0.5625*fEdge[0]; 
-  temp_diff[1] = (-0.5412658773652741*fSkin[4])-0.5412658773652741*fEdge[4]-0.5625*fSkin[1]+0.5625*fEdge[1]; 
-  temp_diff[2] = (-1.4375*fSkin[2])-0.4375*fEdge[2]-1.407291281149713*fSkin[0]+0.5412658773652741*fEdge[0]; 
-  temp_diff[3] = (-0.5412658773652741*fSkin[6])-0.5412658773652741*fEdge[6]-0.5625*fSkin[3]+0.5625*fEdge[3]; 
-  temp_diff[4] = (-1.4375*fSkin[4])-0.4375*fEdge[4]-1.407291281149713*fSkin[1]+0.5412658773652741*fEdge[1]; 
-  temp_diff[5] = (-0.5412658773652741*fSkin[7])-0.5412658773652741*fEdge[7]-0.5625*fSkin[5]+0.5625*fEdge[5]; 
-  temp_diff[6] = (-1.4375*fSkin[6])-0.4375*fEdge[6]-1.407291281149713*fSkin[3]+0.5412658773652741*fEdge[3]; 
-  temp_diff[7] = (-1.4375*fSkin[7])-0.4375*fEdge[7]-1.407291281149713*fSkin[5]+0.5412658773652741*fEdge[5]; 
+  temp_diff[0] = 0.5412658773652741*fSkin[2]+0.5412658773652741*fEdge[2]-0.5625*fSkin[0]+0.5625*fEdge[0]; 
+  temp_diff[1] = 0.5412658773652741*fSkin[4]+0.5412658773652741*fEdge[4]-0.5625*fSkin[1]+0.5625*fEdge[1]; 
+  temp_diff[2] = (-1.4375*fSkin[2])-0.4375*fEdge[2]+1.407291281149713*fSkin[0]-0.5412658773652741*fEdge[0]; 
+  temp_diff[3] = 0.5412658773652741*fSkin[6]+0.5412658773652741*fEdge[6]-0.5625*fSkin[3]+0.5625*fEdge[3]; 
+  temp_diff[4] = (-1.4375*fSkin[4])-0.4375*fEdge[4]+1.407291281149713*fSkin[1]-0.5412658773652741*fEdge[1]; 
+  temp_diff[5] = 0.5412658773652741*fSkin[7]+0.5412658773652741*fEdge[7]-0.5625*fSkin[5]+0.5625*fEdge[5]; 
+  temp_diff[6] = (-1.4375*fSkin[6])-0.4375*fEdge[6]+1.407291281149713*fSkin[3]-0.5412658773652741*fEdge[3]; 
+  temp_diff[7] = (-1.4375*fSkin[7])-0.4375*fEdge[7]+1.407291281149713*fSkin[5]-0.5412658773652741*fEdge[5]; 
 
-  temp_edge[2] = 0.8660254037844386*fSkin[0]-1.5*fSkin[2]; 
-  temp_edge[4] = 0.8660254037844386*fSkin[1]-1.5*fSkin[4]; 
-  temp_edge[6] = 0.8660254037844386*fSkin[3]-1.5*fSkin[6]; 
-  temp_edge[7] = 0.8660254037844386*fSkin[5]-1.5*fSkin[7]; 
+  temp_edge[2] = (-1.5*fSkin[2])-0.8660254037844386*fSkin[0]; 
+  temp_edge[4] = (-1.5*fSkin[4])-0.8660254037844386*fSkin[1]; 
+  temp_edge[6] = (-1.5*fSkin[6])-0.8660254037844386*fSkin[3]; 
+  temp_edge[7] = (-1.5*fSkin[7])-0.8660254037844386*fSkin[5]; 
 
   diff_incr[0] = 0.7071067811865475*nuVtSqSum[1]*temp_diff[1]+0.7071067811865475*nuVtSqSum[0]*temp_diff[0]; 
   diff_incr[1] = 0.7071067811865475*nuVtSqSum[0]*temp_diff[1]+0.7071067811865475*temp_diff[0]*nuVtSqSum[1]; 
