@@ -9,11 +9,8 @@ GKYL_CU_DH double vlasov_lbo_vol_2x3v_ser_p1(const double *w, const double *dxv,
   // f:         Input distribution function.
   // out:       Incremented output 
   const double rdvx2 = 2.0/dxv[2]; 
-  const double rdvxSq4 = 4.0/(dxv[2]*dxv[2]); 
   const double rdvy2 = 2.0/dxv[3]; 
-  const double rdvySq4 = 4.0/(dxv[3]*dxv[3]); 
   const double rdvz2 = 2.0/dxv[4]; 
-  const double rdvzSq4 = 4.0/(dxv[4]*dxv[4]); 
 
   double alphaDrag[96]; 
   // Expand rdv2*(nu*vx-nuUSumx) in phase basis.
@@ -46,7 +43,6 @@ GKYL_CU_DH double vlasov_lbo_vol_2x3v_ser_p1(const double *w, const double *dxv,
   alphaDrag[77] = -0.8164965809277261*nuSum[2]*dxv[4]*rdvz2; 
   alphaDrag[84] = -0.8164965809277261*nuSum[3]*dxv[4]*rdvz2; 
 
-  // Put together updates due to drag and diffusion terms.
   out[3] += 0.3061862178478971*(alphaDrag[16]*f[16]+alphaDrag[8]*f[8]+alphaDrag[7]*f[7]+alphaDrag[6]*f[6]+alphaDrag[3]*f[3]+alphaDrag[2]*f[2]+alphaDrag[1]*f[1]+alphaDrag[0]*f[0]); 
   out[4] += 0.3061862178478971*(f[17]*alphaDrag[49]+f[10]*alphaDrag[42]+f[9]*alphaDrag[41]+f[6]*alphaDrag[38]+f[4]*alphaDrag[36]+f[2]*alphaDrag[34]+f[1]*alphaDrag[33]+f[0]*alphaDrag[32]); 
   out[5] += 0.3061862178478971*(f[20]*alphaDrag[84]+f[13]*alphaDrag[77]+f[12]*alphaDrag[76]+f[6]*alphaDrag[70]+f[5]*alphaDrag[69]+f[2]*alphaDrag[66]+f[1]*alphaDrag[65]+f[0]*alphaDrag[64]); 
@@ -76,6 +72,6 @@ GKYL_CU_DH double vlasov_lbo_vol_2x3v_ser_p1(const double *w, const double *dxv,
   out[30] += 0.3061862178478971*(f[29]*alphaDrag[84]+f[25]*alphaDrag[77]+f[31]*alphaDrag[76]+f[18]*alphaDrag[70]+f[30]*alphaDrag[69]+f[11]*alphaDrag[66]+f[26]*alphaDrag[65]+f[19]*alphaDrag[64]+f[29]*alphaDrag[49]+f[25]*alphaDrag[42]+f[31]*alphaDrag[41]+f[21]*alphaDrag[38]+f[30]*alphaDrag[36]+f[14]*alphaDrag[34]+f[27]*alphaDrag[33]+f[22]*alphaDrag[32]+alphaDrag[7]*f[31]+alphaDrag[3]*f[30]+alphaDrag[16]*f[29]+alphaDrag[1]*f[28]+alphaDrag[8]*f[25]+alphaDrag[0]*f[24]+alphaDrag[6]*f[23]+alphaDrag[2]*f[15]); 
   out[31] += 0.3061862178478971*(f[25]*alphaDrag[84]+f[29]*alphaDrag[77]+f[30]*alphaDrag[76]+f[11]*alphaDrag[70]+f[31]*alphaDrag[69]+f[18]*alphaDrag[66]+f[19]*alphaDrag[65]+f[26]*alphaDrag[64]+f[25]*alphaDrag[49]+f[29]*alphaDrag[42]+f[30]*alphaDrag[41]+f[14]*alphaDrag[38]+f[31]*alphaDrag[36]+f[21]*alphaDrag[34]+f[22]*alphaDrag[33]+f[27]*alphaDrag[32]+alphaDrag[3]*f[31]+alphaDrag[7]*f[30]+alphaDrag[8]*f[29]+alphaDrag[0]*f[28]+alphaDrag[16]*f[25]+alphaDrag[1]*f[24]+alphaDrag[2]*f[23]+alphaDrag[6]*f[15]); 
 
-  return fabs(0.0883883476483184*alphaDrag[0])+fabs(0.0883883476483184*alphaDrag[32])+fabs(0.0883883476483184*alphaDrag[64])+fabs(0.6666666666666666*nuVtSqSum[0]*rdvxSq4)+fabs(0.6666666666666666*nuVtSqSum[0]*rdvySq4)+fabs(0.6666666666666666*nuVtSqSum[0]*rdvzSq4); 
+  return fabs(0.0883883476483184*alphaDrag[0])+fabs(0.0883883476483184*alphaDrag[32])+fabs(0.0883883476483184*alphaDrag[64]); 
 
 } 

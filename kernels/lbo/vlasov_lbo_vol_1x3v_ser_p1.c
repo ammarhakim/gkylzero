@@ -9,11 +9,8 @@ GKYL_CU_DH double vlasov_lbo_vol_1x3v_ser_p1(const double *w, const double *dxv,
   // f:         Input distribution function.
   // out:       Incremented output 
   const double rdvx2 = 2.0/dxv[1]; 
-  const double rdvxSq4 = 4.0/(dxv[1]*dxv[1]); 
   const double rdvy2 = 2.0/dxv[2]; 
-  const double rdvySq4 = 4.0/(dxv[2]*dxv[2]); 
   const double rdvz2 = 2.0/dxv[3]; 
-  const double rdvzSq4 = 4.0/(dxv[3]*dxv[3]); 
 
   double alphaDrag[48]; 
   // Expand rdv2*(nu*vx-nuUSumx) in phase basis.
@@ -34,7 +31,6 @@ GKYL_CU_DH double vlasov_lbo_vol_1x3v_ser_p1(const double *w, const double *dxv,
   alphaDrag[36] = -0.8164965809277261*nuSum[0]*dxv[3]*rdvz2; 
   alphaDrag[40] = -0.8164965809277261*nuSum[1]*dxv[3]*rdvz2; 
 
-  // Put together updates due to drag and diffusion terms.
   out[2] += 0.4330127018922193*(alphaDrag[5]*f[5]+alphaDrag[2]*f[2]+alphaDrag[1]*f[1]+alphaDrag[0]*f[0]); 
   out[3] += 0.4330127018922193*(f[6]*alphaDrag[22]+f[3]*alphaDrag[19]+f[1]*alphaDrag[17]+f[0]*alphaDrag[16]); 
   out[4] += 0.4330127018922193*(f[8]*alphaDrag[40]+f[4]*alphaDrag[36]+f[1]*alphaDrag[33]+f[0]*alphaDrag[32]); 
@@ -50,6 +46,6 @@ GKYL_CU_DH double vlasov_lbo_vol_1x3v_ser_p1(const double *w, const double *dxv,
   out[14] += 0.4330127018922193*(f[15]*alphaDrag[40]+f[14]*alphaDrag[36]+f[11]*alphaDrag[33]+f[7]*alphaDrag[32]+f[15]*alphaDrag[22]+f[14]*alphaDrag[19]+f[12]*alphaDrag[17]+f[9]*alphaDrag[16]+alphaDrag[5]*f[15]+alphaDrag[2]*f[14]+alphaDrag[1]*f[13]+alphaDrag[0]*f[10]); 
   out[15] += 0.4330127018922193*(f[14]*alphaDrag[40]+f[15]*alphaDrag[36]+f[7]*alphaDrag[33]+f[11]*alphaDrag[32]+f[14]*alphaDrag[22]+f[15]*alphaDrag[19]+f[9]*alphaDrag[17]+f[12]*alphaDrag[16]+alphaDrag[2]*f[15]+alphaDrag[5]*f[14]+alphaDrag[0]*f[13]+alphaDrag[1]*f[10]); 
 
-  return fabs(0.125*alphaDrag[0])+fabs(0.125*alphaDrag[16])+fabs(0.125*alphaDrag[32])+fabs(0.9428090415820636*nuVtSqSum[0]*rdvxSq4)+fabs(0.9428090415820636*nuVtSqSum[0]*rdvySq4)+fabs(0.9428090415820636*nuVtSqSum[0]*rdvzSq4); 
+  return fabs(0.125*alphaDrag[0])+fabs(0.125*alphaDrag[16])+fabs(0.125*alphaDrag[32]); 
 
 } 
