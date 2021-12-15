@@ -2,12 +2,10 @@
 
 #include <gkyl_ref_count.h>
 #include <gkyl_util.h>
+#include <gkyl_elem_type.h>
 
 #include <stdbool.h>
 #include <stdint.h>
-
-// Type of element stored in array
-enum gkyl_elem_type { GKYL_INT, GKYL_FLOAT, GKYL_DOUBLE, GKYL_USER };
 
 /**
  * Array object. This is an untype, undimensioned, reference counted
