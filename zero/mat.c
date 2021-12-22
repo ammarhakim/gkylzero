@@ -35,18 +35,31 @@ get_mat_sizes(enum gkyl_mat_trans trans, const struct gkyl_mat *A)
 struct gkyl_mat*
 gkyl_mat_new(size_t nr, size_t nc, double val)
 {
-  struct gkyl_mat *m = gkyl_malloc(sizeof(struct gkyl_mat) + sizeof(double[nr*nc]));
+  struct gkyl_mat *m = gkyl_malloc(sizeof(struct gkyl_mat));
+  m->data = gkyl_malloc(sizeof(double[nr*nc]));
   m->nr = nr; m->nc = nc;
   for (size_t i=0; i<nr*nc; ++i) m->data[i] = val;
   return m;
 }
 
+struct gkyl_nmat*
+gkyl_nmat_new(size_t num, size_t nr, size_t nc, double val)
+{
+  size_t tot = sizeof(struct gkyl_nmat) + sizeof(double[num*nr*nc]);
+  struct gkyl_nmat *mat = gkyl_malloc(tot);
+  mat->num = num; mat->nr = nr; mat->nc = nc;
+  for (size_t i=0; i<num*nr*nc; ++i) mat->data[i] = val;
+  return mat;
+}
+
 struct gkyl_mat*
 gkyl_mat_clone(const struct gkyl_mat *in)
 {
-  size_t tot = sizeof(struct gkyl_mat) + sizeof(double[in->nr*in->nc]);
-  struct gkyl_mat *m = gkyl_malloc(tot);
-  memcpy(m, in, tot);
+  struct gkyl_mat *m = gkyl_malloc(sizeof(struct gkyl_mat));
+  m->data = gkyl_malloc(sizeof(double[in->nr*in->nc]));
+  m->nc = in->nc; m->nr = in->nr;
+  size_t tot = sizeof(double[in->nr*in->nc]);
+  memcpy(m->data, in->data, tot);
   return m;
 }
 
@@ -146,6 +159,15 @@ gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, void* ipiv)
 
 void
 gkyl_mat_release(struct gkyl_mat *mat)
+{
+  if (mat) {
+    gkyl_free(mat->data);
+    gkyl_free(mat);
+  }
+}
+
+void
+gkyl_nmat_release(struct gkyl_nmat *mat)
 {
   if (mat) gkyl_free(mat);
 }

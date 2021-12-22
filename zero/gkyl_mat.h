@@ -12,6 +12,15 @@ enum gkyl_mat_trans { GKYL_NO_TRANS, GKYL_TRANS, GKYL_CONJ_TRANS };
  */
 struct gkyl_mat {
   size_t nr, nc; // Number of rows, columns
+  double *data; // Pointer to data
+};
+
+/**
+ * Multiple matrices, each stored in column major order
+ */
+struct gkyl_nmat {
+  size_t num; // Number of matrices
+  size_t nr, nc; // Number of rows, columns
   double data[]; // Pointer to data
 };
 
@@ -27,9 +36,38 @@ struct gkyl_mat {
 struct gkyl_mat* gkyl_mat_new(size_t nr, size_t nc, double val);
 
 /**
+ * Construct new multi-matrix (batch of matrices) with all elements in
+ * each matric initialized to @a val. Delete using gkyl_nmat_release
+ * method. Each matrix has the same shape.
+ *
+ * @param num Number of matrices
+ * @param nr Number of rows
+ * @param nc Number of cols
+ * @param val Initial value
+ * @return Pointer to new multi-matrix.
+ */
+struct gkyl_nmat* gkyl_nmat_new(size_t num, size_t nr, size_t nc, double val);
+
+/**
  * Clone matrix.
  */
 struct gkyl_mat* gkyl_mat_clone(const struct gkyl_mat *in);
+
+/**
+ * Get a matrix from multi-matrix. DO NOT free the returned matrix!
+ *
+ * @param n Matrix to fetch
+ * @return Matrix (DO NOT free/release this)
+ */
+static inline struct gkyl_mat
+gkyl_nmat_get(struct gkyl_nmat *mat, size_t num)
+{
+  return (struct gkyl_mat) {
+    .nr = mat->nr,
+    .nc = mat->nc,
+    .data = mat->data+num*mat->nr*mat->nc
+  };
+}
 
 /**
  * Set value in matrix.
@@ -124,3 +162,10 @@ bool gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, void* ipiv);
  * @param mat Pointer to matrix to release
  */
 void gkyl_mat_release(struct gkyl_mat *mat);
+
+/**
+ * Release multi-matrix
+ *
+ * @param mat Pointer to multi-matrix to release
+ */
+void gkyl_nmat_release(struct gkyl_nmat *nmat);

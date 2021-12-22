@@ -77,11 +77,3 @@ void gkyl_dg_div_op_range(struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop, struct gkyl_range range);
-
-/**
- * Return FLOP count for multiplication operation.
- *
- * @param basis Basis functions used in expansions
- * @return FLOP count
- */
-struct gkyl_kern_op_count gkyl_dg_mul_op_count(struct gkyl_basis basis);

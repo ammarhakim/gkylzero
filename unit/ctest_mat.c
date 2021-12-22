@@ -151,9 +151,35 @@ test_mat_linsolve()
   gkyl_mem_buff_release(ipiv);
 }
 
+void
+test_nmat_base()
+{
+  // 5 matrices with shape 10x20
+  struct gkyl_nmat *nmat = gkyl_nmat_new(5, 10, 20, 0.25);
+
+  TEST_CHECK( 5 == nmat->num );
+  TEST_CHECK( 10 == nmat->nr );
+  TEST_CHECK( 20 == nmat->nc );
+
+  struct gkyl_mat m = gkyl_nmat_get(nmat, 0);
+  TEST_CHECK( 10 == m.nr );
+  TEST_CHECK( 20 == m.nc );
+
+  for (size_t n=0; n<nmat->num; ++n) {
+    struct gkyl_mat m = gkyl_nmat_get(nmat, n);
+    
+    for (size_t j=0; j<nmat->nc; ++j)
+      for (size_t i=0; i<nmat->nr; ++i)
+        TEST_CHECK ( 0.25 == gkyl_mat_get(&m, i, j) );
+  }
+
+  gkyl_nmat_release(nmat);
+}
+
 TEST_LIST = {
   { "mat_base", test_mat_base },
   { "mat_mm_op", test_mat_mm_op },
   { "mat_linsolve", test_mat_linsolve },
+  { "nmat_base", test_nmat_base },  
   { NULL, NULL },
 };
