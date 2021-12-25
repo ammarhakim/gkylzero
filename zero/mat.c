@@ -70,6 +70,13 @@ gkyl_mat_clear(struct gkyl_mat *mat, double val)
   return mat;
 }
 
+struct gkyl_nmat*
+gkyl_nmat_clear(struct gkyl_nmat *mat, double val)
+{
+  for (size_t i=0; i<mat->num*mat->nr*mat->nc; ++i) mat->data[i] = val;
+  return mat;
+}
+
 struct gkyl_mat*
 gkyl_mat_diag(struct gkyl_mat *mat, double val)
 {
@@ -155,6 +162,26 @@ gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, void* ipiv)
 #endif
   
   return info == 0 ? true : false;
+}
+
+bool
+gkyl_nmat_linsolve_lu(struct gkyl_nmat *A, struct gkyl_nmat *x)
+{
+  size_t num = A->num;
+  assert( num <= x->num );
+
+  bool status = true;
+
+  long *ipiv = gkyl_malloc(sizeof(long[A->nr]));
+  for (int i=0; i<num; ++i) {
+    struct gkyl_mat Ai = gkyl_nmat_get(A,i);
+    struct gkyl_mat xi = gkyl_nmat_get(x,i);
+    status = gkyl_mat_linsolve_lu( &Ai, &xi, ipiv );
+    if (!status) break;
+  }
+  gkyl_free(ipiv);
+
+  return status;
 }
 
 void

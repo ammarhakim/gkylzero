@@ -111,6 +111,12 @@ gkyl_mat_get_col(struct gkyl_mat *mat, size_t c)
 struct gkyl_mat* gkyl_mat_clear(struct gkyl_mat *mat, double val);
 
 /**
+ * Set all elements of all matrices to specified value. Returns
+ * pointer to @a mat.
+ */ 
+struct gkyl_nmat* gkyl_nmat_clear(struct gkyl_nmat *mat, double val);
+
+/**
  * Set all elements on diagonal to specified value. All other elements
  * are set to 0.0. Returns pointer to @a mat.
  */ 
@@ -155,6 +161,16 @@ struct gkyl_mat* gkyl_mat_mm(double alpha, double beta,
  * allocations inside this function.
  */
 bool gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, void* ipiv);
+
+/**
+ * Solve a batched system of linear equations using LU
+ * decomposition. On input the RHSs must be in the "x" multi-matrix
+ * (each column represents a RHS vector) and on output "x" is replaced
+ * with the solution(s). Returns true on success, false
+ * otherwise. Note that on output each of the As is replaced by its LU
+ * factors.
+ */
+bool gkyl_nmat_linsolve_lu(struct gkyl_nmat *A, struct gkyl_nmat *x);
 
 /**
  * Release matrix

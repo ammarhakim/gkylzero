@@ -152,6 +152,48 @@ test_mat_linsolve()
 }
 
 void
+test_nmat_linsolve()
+{
+  struct gkyl_nmat *As = gkyl_nmat_new(5, 3, 3, 0.0);
+  struct gkyl_nmat *xs = gkyl_nmat_new(5, 3, 1, 0.0);
+
+  for (int n=0; n<As->num; ++n) {
+    struct gkyl_mat A = gkyl_nmat_get(As, n);
+    
+    double val = 1.0;
+    // A : matrix( [1,2,3], [4,5,6], [7,8,10] );
+    for (int i=0; i<A.nr; ++i)  
+      for (int j=0; j<A.nc; ++j) {
+        gkyl_mat_set(&A,i,j,val);
+        val += 1.0;
+      }
+    gkyl_mat_set(&A,2,2,10.0); // ensures determinant is not zero
+  }
+
+  // x = matrix( [1, 1, 1] );
+  gkyl_nmat_clear(xs, 1.0);
+
+  // solve all linear systems: sol : matrix( [-1, 1, 0] )
+  bool status = gkyl_nmat_linsolve_lu(As, xs);
+
+  TEST_CHECK( status );
+
+  //gkyl_mat_show("A", stdout, A);
+  //gkyl_mat_show("x", stdout, x);
+
+  for (int n=0; n<xs->num; ++n) {
+    struct gkyl_mat x = gkyl_nmat_get(xs, n);
+
+    TEST_CHECK( gkyl_compare(gkyl_mat_get(&x,0,0), -1.0, 1e-15) );
+    TEST_CHECK( gkyl_compare(gkyl_mat_get(&x,1,0), 1.0, 1e-15) );
+    TEST_CHECK( gkyl_compare(gkyl_mat_get(&x,2,0), 0.0, 1e-15) );
+  }
+  
+  gkyl_nmat_release(As);
+  gkyl_nmat_release(xs);
+}
+
+void
 test_nmat_base()
 {
   // 5 matrices with shape 10x20
@@ -173,6 +215,16 @@ test_nmat_base()
         TEST_CHECK ( 0.25 == gkyl_mat_get(&m, i, j) );
   }
 
+  gkyl_nmat_clear(nmat, 0.55);
+
+  for (size_t n=0; n<nmat->num; ++n) {
+    struct gkyl_mat m = gkyl_nmat_get(nmat, n);
+    
+    for (size_t j=0; j<nmat->nc; ++j)
+      for (size_t i=0; i<nmat->nr; ++i)
+        TEST_CHECK ( 0.55 == gkyl_mat_get(&m, i, j) );
+  }  
+
   gkyl_nmat_release(nmat);
 }
 
@@ -180,6 +232,7 @@ TEST_LIST = {
   { "mat_base", test_mat_base },
   { "mat_mm_op", test_mat_mm_op },
   { "mat_linsolve", test_mat_linsolve },
-  { "nmat_base", test_nmat_base },  
+  { "nmat_base", test_nmat_base },
+  { "nmat_linsolve", test_nmat_linsolve },  
   { NULL, NULL },
 };
