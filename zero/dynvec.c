@@ -121,10 +121,38 @@ gkyl_dynvec_clear(gkyl_dynvec dv)
   dv->tm_mesh = gkyl_realloc(dv->tm_mesh, dv->csize*sizeof(double));
 }
 
+void
+gkyl_dynvec_clear_all_but(gkyl_dynvec dv, size_t num)
+{
+  size_t cloc = dv->cloc;
+  dv->cloc = num;
+  dv->csize = DYNVEC_ALLOC_SZ;
+
+  // TODO: FINISH THE COPYING
+  void *data = gkyl_malloc(num*dv->esznc);
+  double *tm_mesh = gkyl_malloc(sizeof(double[num]));
+
+  size_t low = num>cloc ? 0 : cloc-num; // lower index to copy from
+  size_t ncpy = num>cloc ? cloc : num; // number of elemetns to copy
+
+  memcpy(tm_mesh, dv->tm_mesh+low, ncpy*sizeof(double));
+  memcpy(data, (char*)dv->data+low*dv->esznc, ncpy*dv->esznc);
+  
+  dv->data = gkyl_realloc(dv->data, dv->csize*dv->esznc);
+  dv->tm_mesh = gkyl_realloc(dv->tm_mesh, dv->csize*sizeof(double));
+
+  memcpy(dv->data, data, ncpy*dv->esznc);
+  memcpy(dv->tm_mesh, tm_mesh, ncpy*sizeof(double));
+
+  gkyl_free(data);
+  gkyl_free(tm_mesh);
+}
+
 gkyl_dynvec
 gkyl_dynvec_aquire(const gkyl_dynvec vec)
 {
-  return vec;
+  gkyl_ref_count_inc(&vec->ref_count);
+  return (struct gkyl_dynvec_tag*) vec;
 }
 
 void

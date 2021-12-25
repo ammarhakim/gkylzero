@@ -80,6 +80,17 @@ size_t gkyl_dynvec_size(const gkyl_dynvec vec);
 void gkyl_dynvec_clear(gkyl_dynvec vec);
 
 /**
+ * Clear contents of the vector, but keep the last @a num inserted
+ * elements, shifting them to the start of the vector. This is
+ * typically useful when the vector has been written to file and the
+ * data needs to be flushed, but the vector still is in use.
+ *
+ * @param vec Vector to clear
+ * @param num Number of final elements to keep.
+ */
+void gkyl_dynvec_clear_all_but(gkyl_dynvec vec, size_t num);
+
+/**
  * Acquire a reference to the dynvec. Delete using gkyl_dynvec_release method.
  *
  * @param vec Vector to acquire reference from
