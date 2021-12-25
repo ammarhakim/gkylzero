@@ -125,9 +125,53 @@ test_3()
   gkyl_dynvec_release(dv);
 }
 
+void
+test_4()
+{
+  gkyl_dynvec dv = gkyl_dynvec_new(GKYL_DOUBLE, 3);
+
+  double out[3];
+  TEST_CHECK( gkyl_dynvec_size(dv) == 0 );
+  TEST_CHECK( gkyl_dynvec_getlast(dv, out) == false );
+
+  gkyl_dynvec_clear_all_but(dv, 3);
+
+  TEST_CHECK( gkyl_dynvec_size(dv) == 0 );
+  TEST_CHECK( gkyl_dynvec_getlast(dv, out) == false );  
+
+  // add some data
+  for (int i=0; i<20; ++i)
+    gkyl_dynvec_append(dv, 0.1*i, (double[3]) { i, i+1, i+2 } );
+  
+  TEST_CHECK( gkyl_dynvec_size(dv) == 20 );
+
+  gkyl_dynvec_clear_all_but(dv, 30); // clearing more elements
+
+  TEST_CHECK( gkyl_dynvec_size(dv) == 20 );
+
+  TEST_CHECK( gkyl_dynvec_getlast_tm(dv) == 19*0.1 );
+  TEST_CHECK( gkyl_dynvec_getlast(dv, out) == true );
+  TEST_CHECK( out[0] == 19 );
+  TEST_CHECK( out[1] == 20 );
+  TEST_CHECK( out[2] == 21 );
+
+  for (int i=0; i<20; ++i) {
+    double d[3];
+    TEST_CHECK( gkyl_dynvec_get(dv, i, d) == true );
+    TEST_CHECK( d[0] == i );
+    TEST_CHECK( d[1] == i+1 );
+    TEST_CHECK( d[2] == i+2 );
+
+    TEST_CHECK( gkyl_dynvec_get_tm(dv, i) == i*0.1 );
+  }
+  
+  gkyl_dynvec_release(dv);
+}
+
 TEST_LIST = {
   { "test_1", test_1 },
   { "test_2", test_2 },
   { "test_3", test_3 },
+  { "test_4", test_4 },
   { NULL, NULL },
 };

@@ -85,6 +85,9 @@ void gkyl_dynvec_clear(gkyl_dynvec vec);
  * typically useful when the vector has been written to file and the
  * data needs to be flushed, but the vector still is in use.
  *
+ * If @a num is larger than the number of elements in the vector
+ * then nothing is done.
+ *
  * @param vec Vector to clear
  * @param num Number of final elements to keep.
  */

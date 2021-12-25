@@ -124,16 +124,17 @@ gkyl_dynvec_clear(gkyl_dynvec dv)
 void
 gkyl_dynvec_clear_all_but(gkyl_dynvec dv, size_t num)
 {
+  if (num>dv->cloc) return;
+  
   size_t cloc = dv->cloc;
-  dv->cloc = num;
   dv->csize = DYNVEC_ALLOC_SZ;
 
-  // TODO: FINISH THE COPYING
   void *data = gkyl_malloc(num*dv->esznc);
   double *tm_mesh = gkyl_malloc(sizeof(double[num]));
 
   size_t low = num>cloc ? 0 : cloc-num; // lower index to copy from
   size_t ncpy = num>cloc ? cloc : num; // number of elemetns to copy
+  dv->cloc = ncpy;
 
   memcpy(tm_mesh, dv->tm_mesh+low, ncpy*sizeof(double));
   memcpy(data, (char*)dv->data+low*dv->esznc, ncpy*dv->esznc);
