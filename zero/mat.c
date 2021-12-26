@@ -173,7 +173,7 @@ gkyl_nmat_linsolve_lu(struct gkyl_nmat *A, struct gkyl_nmat *x)
   bool status = true;
 
   long *ipiv = gkyl_malloc(sizeof(long[A->nr]));
-  for (int i=0; i<num; ++i) {
+  for (size_t i=0; i<num; ++i) {
     struct gkyl_mat Ai = gkyl_nmat_get(A,i);
     struct gkyl_mat xi = gkyl_nmat_get(x,i);
     status = gkyl_mat_linsolve_lu( &Ai, &xi, ipiv );
