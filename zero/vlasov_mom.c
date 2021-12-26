@@ -109,7 +109,7 @@ gkyl_vlasov_mom_new(const struct gkyl_basis* cbasis,
   }
 
   // set reference counter
-  vlasov_mom->momt.ref_count = (struct gkyl_ref_count) { mom_free, 1 };
+  vlasov_mom->momt.ref_count = gkyl_ref_count_init(mom_free);
     
   return &vlasov_mom->momt;
 }

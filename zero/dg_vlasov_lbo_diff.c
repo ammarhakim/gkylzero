@@ -122,7 +122,7 @@ gkyl_dg_vlasov_lbo_diff_new(const struct gkyl_basis* cbasis, const struct gkyl_b
   vlasov_lbo_diff->conf_range = *conf_range;
 
   // set reference counter
-  vlasov_lbo_diff->eqn.ref_count = (struct gkyl_ref_count) { dg_vlasov_lbo_diff_free, 1 };
+  vlasov_lbo_diff->eqn.ref_count = gkyl_ref_count_init(dg_vlasov_lbo_diff_free);
   
   return &vlasov_lbo_diff->eqn;
 }

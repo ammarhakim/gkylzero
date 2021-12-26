@@ -54,7 +54,7 @@ gkyl_dynvec_new(enum gkyl_elem_type type, size_t ncomp)
   dv->data = gkyl_calloc(dv->csize, dv->esznc);
   dv->tm_mesh = gkyl_calloc(dv->csize, sizeof(double));
   
-  dv->ref_count = (struct gkyl_ref_count) { dynvec_free, 1 }; 
+  dv->ref_count = gkyl_ref_count_init(dynvec_free);
   
   return dv;
 }
@@ -150,7 +150,7 @@ gkyl_dynvec_clear_all_but(gkyl_dynvec dv, size_t num)
 }
 
 gkyl_dynvec
-gkyl_dynvec_aquire(const gkyl_dynvec vec)
+gkyl_dynvec_acquire(const gkyl_dynvec vec)
 {
   gkyl_ref_count_inc(&vec->ref_count);
   return (struct gkyl_dynvec_tag*) vec;

@@ -99,7 +99,7 @@ void gkyl_dynvec_clear_all_but(gkyl_dynvec vec, size_t num);
  * @param vec Vector to acquire reference from
  * @return Dynamic vector
  */
-gkyl_dynvec gkyl_dynvec_aquire(const gkyl_dynvec vec);
+gkyl_dynvec gkyl_dynvec_acquire(const gkyl_dynvec vec);
 
 /**
  * Release dynvec.

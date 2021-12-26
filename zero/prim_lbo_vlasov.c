@@ -50,7 +50,7 @@ gkyl_prim_lbo_vlasov_new(const struct gkyl_basis* cbasis,
   prim_vlasov->self_prim = self_prim_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 
   // set reference counter
-  prim_vlasov->prim.ref_count = (struct gkyl_ref_count) { prim_lbo_vlasov_free, 1 };
+  prim_vlasov->prim.ref_count = gkyl_ref_count_init(prim_lbo_vlasov_free);
     
   return &prim_vlasov->prim;
 }

@@ -32,7 +32,7 @@ gkyl_null_pool_new(int nthreads)
   np->wait = null_pool_wait;
   
   // set reference counter
-  np->ref_count = (struct gkyl_ref_count) { null_pool_free, 1 };
+  np->ref_count = gkyl_ref_count_init(null_pool_free);
     
   return np;
 }

@@ -33,9 +33,12 @@ test_1()
 
   gkyl_dynvec_clear(dv);
   TEST_CHECK( gkyl_dynvec_size(dv) == 0 );
-  TEST_CHECK( gkyl_dynvec_getlast(dv, out) == false );  
+  TEST_CHECK( gkyl_dynvec_getlast(dv, out) == false );
+
+  gkyl_dynvec dv2 = gkyl_dynvec_acquire(dv);
   
   gkyl_dynvec_release(dv);
+  gkyl_dynvec_release(dv2);
 }
 
 void

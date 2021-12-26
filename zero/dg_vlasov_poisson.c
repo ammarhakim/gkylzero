@@ -123,7 +123,7 @@ gkyl_dg_vlasov_poisson_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
   vlasov_poisson->conf_range = *conf_range;
 
   // set reference counter
-  vlasov_poisson->eqn.ref_count = (struct gkyl_ref_count) { vlasov_poisson_free, 1 };
+  vlasov_poisson->eqn.ref_count = gkyl_ref_count_init(vlasov_poisson_free);
   
   return &vlasov_poisson->eqn;
 }

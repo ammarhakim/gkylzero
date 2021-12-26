@@ -143,7 +143,7 @@ gkyl_wv_euler_new(double gas_gamma)
   euler->eqn.rotate_to_local_func = rot_to_local;
   euler->eqn.rotate_to_global_func = rot_to_global;  
 
-  euler->eqn.ref_count = (struct gkyl_ref_count) { euler_free, 1 };
+  euler->eqn.ref_count = gkyl_ref_count_init(euler_free);
 
   return &euler->eqn;
 }
