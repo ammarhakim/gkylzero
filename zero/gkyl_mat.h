@@ -1,5 +1,7 @@
 #pragma once
 
+#include <gkyl_ref_count.h>
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -21,7 +23,12 @@ struct gkyl_mat {
 struct gkyl_nmat {
   size_t num; // Number of matrices
   size_t nr, nc; // Number of rows, columns
-  double data[]; // Pointer to data
+  double *data; // Pointer to data
+  double **mptr; // pointers to start of each sub-matrix  
+  struct gkyl_ref_count ref_count;
+
+  // Data needed to work on device
+  struct  gkyl_nmat *on_dev; // pointer to itself or device data
 };
 
 /**
@@ -36,38 +43,9 @@ struct gkyl_nmat {
 struct gkyl_mat* gkyl_mat_new(size_t nr, size_t nc, double val);
 
 /**
- * Construct new multi-matrix (batch of matrices) with all elements in
- * each matric initialized to @a val. Delete using gkyl_nmat_release
- * method. Each matrix has the same shape.
- *
- * @param num Number of matrices
- * @param nr Number of rows
- * @param nc Number of cols
- * @param val Initial value
- * @return Pointer to new multi-matrix.
- */
-struct gkyl_nmat* gkyl_nmat_new(size_t num, size_t nr, size_t nc, double val);
-
-/**
  * Clone matrix.
  */
 struct gkyl_mat* gkyl_mat_clone(const struct gkyl_mat *in);
-
-/**
- * Get a matrix from multi-matrix. DO NOT free the returned matrix!
- *
- * @param n Matrix to fetch
- * @return Matrix (DO NOT free/release this)
- */
-static inline struct gkyl_mat
-gkyl_nmat_get(struct gkyl_nmat *mat, size_t num)
-{
-  return (struct gkyl_mat) {
-    .nr = mat->nr,
-    .nc = mat->nc,
-    .data = mat->data+num*mat->nr*mat->nc
-  };
-}
 
 /**
  * Set value in matrix.
@@ -109,12 +87,6 @@ gkyl_mat_get_col(struct gkyl_mat *mat, size_t c)
  * Set all elements of matrix to specified value. Returns pointer to @a mat.
  */ 
 struct gkyl_mat* gkyl_mat_clear(struct gkyl_mat *mat, double val);
-
-/**
- * Set all elements of all matrices to specified value. Returns
- * pointer to @a mat.
- */ 
-struct gkyl_nmat* gkyl_nmat_clear(struct gkyl_nmat *mat, double val);
 
 /**
  * Set all elements on diagonal to specified value. All other elements
@@ -163,6 +135,59 @@ struct gkyl_mat* gkyl_mat_mm(double alpha, double beta,
 bool gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, void* ipiv);
 
 /**
+ * Release matrix
+ *
+ * @param mat Pointer to matrix to release
+ */
+void gkyl_mat_release(struct gkyl_mat *mat);
+
+//////////////// gkyl_nmat API
+
+/**
+ * Construct new multi-matrix (batch of matrices) with all elements in
+ * each matric initialized to @a val. Delete using gkyl_nmat_release
+ * method. Each matrix has the same shape.
+ *
+ * @param num Number of matrices
+ * @param nr Number of rows
+ * @param nc Number of cols
+ * @param val Initial value
+ * @return Pointer to new multi-matrix.
+ */
+struct gkyl_nmat *gkyl_nmat_new(size_t num, size_t nr, size_t nc, double val);
+
+/**
+ * Get a matrix from multi-matrix. DO NOT free the returned matrix!
+ *
+ * @param n Matrix to fetch
+ * @return Matrix (DO NOT free/release this)
+ */
+static inline struct gkyl_mat
+gkyl_nmat_get(struct gkyl_nmat *mat, size_t num)
+{
+  return (struct gkyl_mat) {
+    .nr = mat->nr,
+    .nc = mat->nc,
+    .data = mat->data+num*mat->nr*mat->nc
+  };
+}
+
+/**
+ * Acquire pointer to multi-matrix. The pointer must be released using
+ * gkyl_nmar_release method.
+ *
+ * @param mat Multi-matrix to which a pointer is needed
+ * @return Pointer to acquired multi-matrix.
+ */
+struct gkyl_nmat *gkyl_nmat_acquire(const struct gkyl_nmat *mat);
+
+/**
+ * Set all elements of all matrices to specified value. Returns
+ * pointer to @a mat.
+ */
+struct gkyl_nmat *gkyl_nmat_clear(struct gkyl_nmat *mat, double val);
+
+/**
  * Solve a batched system of linear equations using LU
  * decomposition. On input the RHSs must be in the "x" multi-matrix
  * (each column represents a RHS vector) and on output "x" is replaced
@@ -171,13 +196,6 @@ bool gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, void* ipiv);
  * factors.
  */
 bool gkyl_nmat_linsolve_lu(struct gkyl_nmat *A, struct gkyl_nmat *x);
-
-/**
- * Release matrix
- *
- * @param mat Pointer to matrix to release
- */
-void gkyl_mat_release(struct gkyl_mat *mat);
 
 /**
  * Release multi-matrix

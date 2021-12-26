@@ -1,3 +1,4 @@
+#include "gkyl_ref_count.h"
 #include <gkyl_alloc.h>
 #include <gkyl_mat.h>
 #include <gkyl_util.h>
@@ -42,16 +43,6 @@ gkyl_mat_new(size_t nr, size_t nc, double val)
   return m;
 }
 
-struct gkyl_nmat*
-gkyl_nmat_new(size_t num, size_t nr, size_t nc, double val)
-{
-  size_t tot = sizeof(struct gkyl_nmat) + sizeof(double[num*nr*nc]);
-  struct gkyl_nmat *mat = gkyl_malloc(tot);
-  mat->num = num; mat->nr = nr; mat->nc = nc;
-  for (size_t i=0; i<num*nr*nc; ++i) mat->data[i] = val;
-  return mat;
-}
-
 struct gkyl_mat*
 gkyl_mat_clone(const struct gkyl_mat *in)
 {
@@ -67,13 +58,6 @@ struct gkyl_mat*
 gkyl_mat_clear(struct gkyl_mat *mat, double val)
 {
   for (size_t i=0; i<mat->nr*mat->nc; ++i) mat->data[i] = val;
-  return mat;
-}
-
-struct gkyl_nmat*
-gkyl_nmat_clear(struct gkyl_nmat *mat, double val)
-{
-  for (size_t i=0; i<mat->num*mat->nr*mat->nc; ++i) mat->data[i] = val;
   return mat;
 }
 
@@ -164,6 +148,51 @@ gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, void* ipiv)
   return info == 0 ? true : false;
 }
 
+void
+gkyl_mat_release(struct gkyl_mat *mat)
+{
+  if (mat) {
+    gkyl_free(mat->data);
+    gkyl_free(mat);
+  }
+}
+
+static void
+nmat_free(const struct gkyl_ref_count *ref)
+{
+  struct gkyl_nmat *mat = container_of(ref, struct gkyl_nmat, ref_count);
+  gkyl_free(mat->data);
+  gkyl_free(mat->mptr);
+  gkyl_free(mat);
+}
+
+struct gkyl_nmat*
+gkyl_nmat_new(size_t num, size_t nr, size_t nc, double val)
+{
+  struct gkyl_nmat *mat = gkyl_malloc(sizeof(struct gkyl_nmat));
+  mat->num = num; mat->nr = nr; mat->nc = nc;
+  
+  mat->data = gkyl_malloc(sizeof(double[num*nr*nc]));  
+  for (size_t i=0; i<num*nr*nc; ++i)
+    mat->data[i] = val;
+
+  mat->mptr = gkyl_malloc(num*sizeof(double*));  
+  for (size_t i=0; i<num; ++i)
+    mat->mptr[i] = mat->data+nr*nc*i;
+
+  mat->ref_count = gkyl_ref_count_init(nmat_free);
+
+  return mat;
+}
+
+
+struct gkyl_nmat*
+gkyl_nmat_clear(struct gkyl_nmat *mat, double val)
+{
+  for (size_t i=0; i<mat->num*mat->nr*mat->nc; ++i) mat->data[i] = val;
+  return mat;
+}
+
 bool
 gkyl_nmat_linsolve_lu(struct gkyl_nmat *A, struct gkyl_nmat *x)
 {
@@ -185,16 +214,8 @@ gkyl_nmat_linsolve_lu(struct gkyl_nmat *A, struct gkyl_nmat *x)
 }
 
 void
-gkyl_mat_release(struct gkyl_mat *mat)
-{
-  if (mat) {
-    gkyl_free(mat->data);
-    gkyl_free(mat);
-  }
-}
-
-void
 gkyl_nmat_release(struct gkyl_nmat *mat)
 {
-  if (mat) gkyl_free(mat);
+  if (mat)
+    gkyl_ref_count_dec(&mat->ref_count);
 }
