@@ -2,6 +2,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_mat.h>
 #include <gkyl_util.h>
+#include <stdbool.h>
 
 // BLAS and LAPACKE includes
 #ifdef GKYL_USING_FRAMEWORK_ACCELERATE
@@ -21,6 +22,16 @@ static int cblas_trans_flags[] = {
   [GKYL_TRANS] = CblasTrans,
   [GKYL_CONJ_TRANS] = CblasConjTrans
 };
+
+// flags and corresponding bit-masks
+enum nmat_flags { A_IS_CU_NMAT, A_IS_ALLOC_ALIGNED };
+static const uint32_t masks[] =
+{ 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
+
+// NV-GPU flags
+#define SET_CU_NMAT(flags) (flags) |= masks[A_IS_CU_NMAT]
+#define CLEAR_CU_NMAT(flags) (flags) &= ~masks[A_IS_CU_NMAT]
+#define IS_CU_NMAT(flags) (((flags) & masks[A_IS_CU_NMAT]) != 0)
 
 /** Helper functions to determine sizes needed in BLAS/LAPACKE routines */
 struct mat_sizes { size_t nr, nc; };
@@ -167,29 +178,21 @@ nmat_free(const struct gkyl_ref_count *ref)
 }
 
 struct gkyl_nmat*
-gkyl_nmat_new(size_t num, size_t nr, size_t nc, double val)
+gkyl_nmat_new(size_t num, size_t nr, size_t nc)
 {
   struct gkyl_nmat *mat = gkyl_malloc(sizeof(struct gkyl_nmat));
   mat->num = num; mat->nr = nr; mat->nc = nc;
   
   mat->data = gkyl_malloc(sizeof(double[num*nr*nc]));  
-  for (size_t i=0; i<num*nr*nc; ++i)
-    mat->data[i] = val;
-
-  mat->mptr = gkyl_malloc(num*sizeof(double*));  
+  mat->mptr = gkyl_malloc(num*sizeof(double*));
+  
   for (size_t i=0; i<num; ++i)
     mat->mptr[i] = mat->data+nr*nc*i;
 
+  mat->on_dev = mat; // on CPU this is a self-reference
+
   mat->ref_count = gkyl_ref_count_init(nmat_free);
 
-  return mat;
-}
-
-
-struct gkyl_nmat*
-gkyl_nmat_clear(struct gkyl_nmat *mat, double val)
-{
-  for (size_t i=0; i<mat->num*mat->nr*mat->nc; ++i) mat->data[i] = val;
   return mat;
 }
 
@@ -219,3 +222,25 @@ gkyl_nmat_release(struct gkyl_nmat *mat)
   if (mat)
     gkyl_ref_count_dec(&mat->ref_count);
 }
+
+// CUDA specific code
+
+#ifdef GKYL_HAVE_CUDA
+
+struct gkyl_nmat*
+gkyl_nmat_cu_dev_new(size_t num, size_t nr, size_t nc)
+{
+  assert(false);
+  return 0;
+}
+
+#else
+
+struct gkyl_nmat*
+gkyl_nmat_cu_dev_new(size_t num, size_t nr, size_t nc)
+{
+  assert(false);
+  return 0;
+}
+
+#endif // CUDA specific code

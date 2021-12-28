@@ -24,7 +24,8 @@ struct gkyl_nmat {
   size_t num; // Number of matrices
   size_t nr, nc; // Number of rows, columns
   double *data; // Pointer to data
-  double **mptr; // pointers to start of each sub-matrix  
+  double **mptr; // pointers to start of each sub-matrix
+  uint32_t flags;
   struct gkyl_ref_count ref_count;
 
   // Data needed to work on device
@@ -144,17 +145,35 @@ void gkyl_mat_release(struct gkyl_mat *mat);
 //////////////// gkyl_nmat API
 
 /**
- * Construct new multi-matrix (batch of matrices) with all elements in
- * each matric initialized to @a val. Delete using gkyl_nmat_release
- * method. Each matrix has the same shape.
+ * Construct new multi-matrix (batch of matrices). Delete using
+ * gkyl_nmat_release method. Each matrix has the same shape.
  *
  * @param num Number of matrices
  * @param nr Number of rows
  * @param nc Number of cols
- * @param val Initial value
  * @return Pointer to new multi-matrix.
  */
-struct gkyl_nmat *gkyl_nmat_new(size_t num, size_t nr, size_t nc, double val);
+struct gkyl_nmat *gkyl_nmat_new(size_t num, size_t nr, size_t nc);
+
+/**
+ * Construct new multi-matrix (batch of matrices). Delete using
+ * gkyl_nmat_release method. Each matrix has the same shape.
+ *
+ * CAUTION: The nmat returned by this method lives on the GPU. You
+ * CAN'T modify it directly on the host! If you try, it will crash the
+ * program.
+ *
+ * NOTE: the data member lives on GPU, but the struct lives on the
+ * host.  However, the on_dev member for this cal is set to a device
+ * clone of the host struct, and is what should be used to pass to
+ * CUDA kernels which require the entire array struct on device.
+ * 
+ * @param num Number of matrices
+ * @param nr Number of rows
+ * @param nc Number of cols
+ * @return Pointer to new multi-matrix.
+ */
+struct gkyl_nmat *gkyl_nmat_cu_dev_new(size_t num, size_t nr, size_t nc);
 
 /**
  * Get a matrix from multi-matrix. DO NOT free the returned matrix!
@@ -180,12 +199,6 @@ gkyl_nmat_get(struct gkyl_nmat *mat, size_t num)
  * @return Pointer to acquired multi-matrix.
  */
 struct gkyl_nmat *gkyl_nmat_acquire(const struct gkyl_nmat *mat);
-
-/**
- * Set all elements of all matrices to specified value. Returns
- * pointer to @a mat.
- */
-struct gkyl_nmat *gkyl_nmat_clear(struct gkyl_nmat *mat, double val);
 
 /**
  * Solve a batched system of linear equations using LU

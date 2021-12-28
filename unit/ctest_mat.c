@@ -152,10 +152,47 @@ test_mat_linsolve()
 }
 
 void
+test_nmat_base()
+{
+  // 5 matrices with shape 10x20
+  struct gkyl_nmat *nmat = gkyl_nmat_new(5, 10, 20);
+
+  TEST_CHECK( 5 == nmat->num );
+  TEST_CHECK( 10 == nmat->nr );
+  TEST_CHECK( 20 == nmat->nc );
+
+  struct gkyl_mat m = gkyl_nmat_get(nmat, 0);
+  TEST_CHECK( 10 == m.nr );
+  TEST_CHECK( 20 == m.nc );
+
+  for (size_t n=0; n<nmat->num; ++n) {
+    struct gkyl_mat m = gkyl_nmat_get(nmat, n);
+    
+    for (size_t j=0; j<nmat->nc; ++j)
+      for (size_t i=0; i<nmat->nr; ++i)
+        gkyl_mat_set(&m, i, j, n*0.5);
+  }
+
+  for (size_t n=0; n<nmat->num; ++n) {
+    struct gkyl_mat m = gkyl_nmat_get(nmat, n);
+    
+    for (size_t j=0; j<nmat->nc; ++j)
+      for (size_t i=0; i<nmat->nr; ++i)
+        TEST_CHECK ( n*0.5 == gkyl_mat_get(&m, i, j) );
+  }  
+
+  for (size_t n=0; n<nmat->num; ++n)
+    for (size_t i=0; i<nmat->nr*nmat->nc; ++i)
+      TEST_CHECK( nmat->mptr[n][i] == n*0.5 );
+
+  gkyl_nmat_release(nmat);
+}
+
+void
 test_nmat_linsolve()
 {
-  struct gkyl_nmat *As = gkyl_nmat_new(5, 3, 3, 0.0);
-  struct gkyl_nmat *xs = gkyl_nmat_new(5, 3, 1, 0.0);
+  struct gkyl_nmat *As = gkyl_nmat_new(5, 3, 3);
+  struct gkyl_nmat *xs = gkyl_nmat_new(5, 3, 1);
 
   for (int n=0; n<As->num; ++n) {
     struct gkyl_mat A = gkyl_nmat_get(As, n);
@@ -171,7 +208,10 @@ test_nmat_linsolve()
   }
 
   // x = matrix( [1, 1, 1] );
-  gkyl_nmat_clear(xs, 1.0);
+  for (size_t n=0; n<As->num; ++n) {
+    struct gkyl_mat x = gkyl_nmat_get(xs, n);
+    gkyl_mat_clear(&x, 1.0);
+  }
 
   // solve all linear systems: sol : matrix( [-1, 1, 0] )
   bool status = gkyl_nmat_linsolve_lu(As, xs);
@@ -191,41 +231,6 @@ test_nmat_linsolve()
   
   gkyl_nmat_release(As);
   gkyl_nmat_release(xs);
-}
-
-void
-test_nmat_base()
-{
-  // 5 matrices with shape 10x20
-  struct gkyl_nmat *nmat = gkyl_nmat_new(5, 10, 20, 0.25);
-
-  TEST_CHECK( 5 == nmat->num );
-  TEST_CHECK( 10 == nmat->nr );
-  TEST_CHECK( 20 == nmat->nc );
-
-  struct gkyl_mat m = gkyl_nmat_get(nmat, 0);
-  TEST_CHECK( 10 == m.nr );
-  TEST_CHECK( 20 == m.nc );
-
-  for (size_t n=0; n<nmat->num; ++n) {
-    struct gkyl_mat m = gkyl_nmat_get(nmat, n);
-    
-    for (size_t j=0; j<nmat->nc; ++j)
-      for (size_t i=0; i<nmat->nr; ++i)
-        TEST_CHECK ( 0.25 == gkyl_mat_get(&m, i, j) );
-  }
-
-  gkyl_nmat_clear(nmat, 0.55);
-
-  for (size_t n=0; n<nmat->num; ++n) {
-    struct gkyl_mat m = gkyl_nmat_get(nmat, n);
-    
-    for (size_t j=0; j<nmat->nc; ++j)
-      for (size_t i=0; i<nmat->nr; ++i)
-        TEST_CHECK ( 0.55 == gkyl_mat_get(&m, i, j) );
-  }  
-
-  gkyl_nmat_release(nmat);
 }
 
 TEST_LIST = {
