@@ -157,6 +157,8 @@ test_nmat_base()
   // 5 matrices with shape 10x20
   struct gkyl_nmat *nmat = gkyl_nmat_new(5, 10, 20);
 
+  TEST_CHECK( false == gkyl_nmat_is_cu_dev(nmat) );
+
   TEST_CHECK( 5 == nmat->num );
   TEST_CHECK( 10 == nmat->nr );
   TEST_CHECK( 20 == nmat->nc );

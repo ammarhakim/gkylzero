@@ -192,6 +192,14 @@ gkyl_nmat_get(struct gkyl_nmat *mat, size_t num)
 }
 
 /**
+ * Returns true if multi-matrix lives on NV-GPU.
+ *
+ * @param mat Multi-matrix to check
+ * @return true if on NV-GPU, false otherwise
+ */
+bool gkyl_nmat_is_cu_dev(const struct gkyl_nmat *mat);
+
+/**
  * Acquire pointer to multi-matrix. The pointer must be released using
  * gkyl_nmar_release method.
  *

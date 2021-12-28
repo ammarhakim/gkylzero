@@ -24,14 +24,14 @@ static int cblas_trans_flags[] = {
 };
 
 // flags and corresponding bit-masks
-enum nmat_flags { A_IS_CU_NMAT, A_IS_ALLOC_ALIGNED };
+enum nmat_flags { M_IS_CU_NMAT };
 static const uint32_t masks[] =
 { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
 
 // NV-GPU flags
-#define SET_CU_NMAT(flags) (flags) |= masks[A_IS_CU_NMAT]
-#define CLEAR_CU_NMAT(flags) (flags) &= ~masks[A_IS_CU_NMAT]
-#define IS_CU_NMAT(flags) (((flags) & masks[A_IS_CU_NMAT]) != 0)
+#define SET_CU_NMAT(flags) (flags) |= masks[M_IS_CU_NMAT]
+#define CLEAR_CU_NMAT(flags) (flags) &= ~masks[M_IS_CU_NMAT]
+#define IS_CU_NMAT(flags) (((flags) & masks[M_IS_CU_NMAT]) != 0)
 
 /** Helper functions to determine sizes needed in BLAS/LAPACKE routines */
 struct mat_sizes { size_t nr, nc; };
@@ -182,7 +182,8 @@ gkyl_nmat_new(size_t num, size_t nr, size_t nc)
 {
   struct gkyl_nmat *mat = gkyl_malloc(sizeof(struct gkyl_nmat));
   mat->num = num; mat->nr = nr; mat->nc = nc;
-  
+
+  mat->flags = 0;
   mat->data = gkyl_malloc(sizeof(double[num*nr*nc]));  
   mat->mptr = gkyl_malloc(num*sizeof(double*));
   
@@ -194,6 +195,19 @@ gkyl_nmat_new(size_t num, size_t nr, size_t nc)
   mat->ref_count = gkyl_ref_count_init(nmat_free);
 
   return mat;
+}
+
+bool
+gkyl_nmat_is_cu_dev(const struct gkyl_nmat *mat)
+{
+  return IS_CU_NMAT(mat->flags);
+}
+
+struct gkyl_nmat*
+gkyl_nmat_acquire(const struct gkyl_nmat *mat)
+{
+  gkyl_ref_count_inc(&mat->ref_count);
+  return (struct gkyl_nmat*) mat;
 }
 
 bool
