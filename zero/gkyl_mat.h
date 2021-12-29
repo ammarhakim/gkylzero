@@ -173,7 +173,17 @@ struct gkyl_nmat *gkyl_nmat_new(size_t num, size_t nr, size_t nc);
  * @param nc Number of cols
  * @return Pointer to new multi-matrix.
  */
-struct gkyl_nmat *gkyl_nmat_cu_dev_new(size_t num, size_t nr, size_t nc);
+struct gkyl_nmat* gkyl_nmat_cu_dev_new(size_t num, size_t nr, size_t nc);
+
+/**
+ * Copy into nmat: pointer to dest nmat is returned. 'dest' and 'src'
+ * must not point to same data.
+ *
+ * @param dest Destination for copy.
+ * @param src Srouce to copy from.
+ * @return dest is returned
+ */
+struct gkyl_nmat* gkyl_nmat_copy(struct gkyl_nmat *dest, const struct gkyl_nmat *src);
 
 /**
  * Get a matrix from multi-matrix. DO NOT free the returned matrix!

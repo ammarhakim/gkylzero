@@ -200,6 +200,34 @@ gkyl_nmat_new(size_t num, size_t nr, size_t nc)
   return mat;
 }
 
+struct gkyl_nmat*
+gkyl_nmat_copy(struct gkyl_nmat *dest, const struct gkyl_nmat *src)
+{
+  assert( dest->num == src->num && dest->nr == src->nr && dest->nc == src->nc );
+
+  bool dest_is_cu_dev = gkyl_nmat_is_cu_dev(dest);
+  bool src_is_cu_dev = gkyl_nmat_is_cu_dev(src);
+
+  size_t nby = src->num*src->nr*src->nc*sizeof(double);
+
+  if (src_is_cu_dev) {
+    // source is on device
+    if (dest_is_cu_dev)
+      gkyl_cu_memcpy(dest->data, src->data, nby, GKYL_CU_MEMCPY_D2D);
+    else
+      gkyl_cu_memcpy(dest->data, src->data, nby, GKYL_CU_MEMCPY_D2H);
+  }
+  else {
+    // source is on host
+    if (dest_is_cu_dev)
+      gkyl_cu_memcpy(dest->data, src->data, nby, GKYL_CU_MEMCPY_H2D);
+    else
+      memcpy(dest->data, src->data, nby);
+  }
+  
+  return dest;
+}
+
 bool
 gkyl_nmat_is_cu_dev(const struct gkyl_nmat *mat)
 {

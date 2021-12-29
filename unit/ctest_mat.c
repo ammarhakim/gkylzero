@@ -187,7 +187,24 @@ test_nmat_base()
     for (size_t i=0; i<nmat->nr*nmat->nc; ++i)
       TEST_CHECK( nmat->mptr[n][i] == n*0.5 );
 
+  // copy matrix
+  struct gkyl_nmat *ncpy = gkyl_nmat_new(nmat->num, nmat->nr, nmat->nc);
+  gkyl_nmat_copy(ncpy, nmat);
+
+  for (size_t n=0; n<ncpy->num; ++n) {
+    struct gkyl_mat m = gkyl_nmat_get(ncpy, n);
+    
+    for (size_t j=0; j<ncpy->nc; ++j)
+      for (size_t i=0; i<ncpy->nr; ++i)
+        TEST_CHECK ( n*0.5 == gkyl_mat_get(&m, i, j) );
+  }  
+
+  for (size_t n=0; n<ncpy->num; ++n)
+    for (size_t i=0; i<ncpy->nr*ncpy->nc; ++i)
+      TEST_CHECK( ncpy->mptr[n][i] == n*0.5 );  
+
   gkyl_nmat_release(nmat);
+  gkyl_nmat_release(ncpy);
 }
 
 void
@@ -249,7 +266,36 @@ test_cu_nmat_base()
 
   TEST_CHECK( gkyl_nmat_is_cu_dev(nmat) == true );
 
+  // create host-side matrix
+  struct gkyl_nmat *h1 = gkyl_nmat_new(5, 10, 20);
+  for (size_t n=0; n<h1->num; ++n) {
+    struct gkyl_mat m = gkyl_nmat_get(h1, n);
+    
+    for (size_t j=0; j<h1->nc; ++j)
+      for (size_t i=0; i<h1->nr; ++i)
+        gkyl_mat_set(&m, i, j, n*0.5);
+  }
+
+  // copy to device
+  gkyl_nmat_copy(nmat, h1);
+
+  // copy it back to host
+  struct gkyl_nmat *h2 = gkyl_nmat_new(5, 10, 20);
+  gkyl_nmat_copy(h2, nmat);
+
+  // check
+  for (size_t n=0; n<h1->num; ++n) {
+    struct gkyl_mat m1 = gkyl_nmat_get(h1, n);
+    struct gkyl_mat m2 = gkyl_nmat_get(h2, n);
+    
+    for (size_t j=0; j<h1->nc; ++j)
+      for (size_t i=0; i<h1->nr; ++i)
+        TEST_CHECK( gkyl_mat_get(&m1, i, j) == gkyl_mat_get(&m2, i, j) );
+  }
+
   gkyl_nmat_release(nmat);
+  gkyl_nmat_release(h1);
+  gkyl_nmat_release(h2);
 }
 
 #endif
