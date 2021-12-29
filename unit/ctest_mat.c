@@ -235,11 +235,33 @@ test_nmat_linsolve()
   gkyl_nmat_release(xs);
 }
 
+#ifdef GKYL_HAVE_CUDA
+
+void
+test_cu_nmat_base()
+{
+  // 5 matrices with shape 10x20
+  struct gkyl_nmat *nmat = gkyl_nmat_cu_dev_new(5, 10, 20);
+
+  TEST_CHECK( 5 == nmat->num );
+  TEST_CHECK( 10 == nmat->nr );
+  TEST_CHECK( 20 == nmat->nc );  
+
+  TEST_CHECK( gkyl_nmat_is_cu_dev(nmat) == true );
+
+  gkyl_nmat_release(nmat);
+}
+
+#endif
+
 TEST_LIST = {
   { "mat_base", test_mat_base },
   { "mat_mm_op", test_mat_mm_op },
   { "mat_linsolve", test_mat_linsolve },
   { "nmat_base", test_nmat_base },
-  { "nmat_linsolve", test_nmat_linsolve },  
+  { "nmat_linsolve", test_nmat_linsolve },
+#ifdef GKYL_HAVE_CUDA
+  { "cu_nmat_base", test_cu_nmat_base },
+#endif
   { NULL, NULL },
 };

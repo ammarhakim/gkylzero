@@ -172,9 +172,16 @@ static void
 nmat_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_nmat *mat = container_of(ref, struct gkyl_nmat, ref_count);
-  gkyl_free(mat->data);
-  gkyl_free(mat->mptr);
-  gkyl_free(mat);
+  if (IS_CU_NMAT(mat->flags)) {
+    gkyl_cu_free(mat->data);
+    gkyl_cu_free(mat->mptr);
+    gkyl_cu_free(mat->on_dev);
+  }
+  else {
+    gkyl_free(mat->data);
+    gkyl_free(mat->mptr);
+  }
+  gkyl_free(mat);  
 }
 
 struct gkyl_nmat*
@@ -182,16 +189,12 @@ gkyl_nmat_new(size_t num, size_t nr, size_t nc)
 {
   struct gkyl_nmat *mat = gkyl_malloc(sizeof(struct gkyl_nmat));
   mat->num = num; mat->nr = nr; mat->nc = nc;
-
   mat->flags = 0;
   mat->data = gkyl_malloc(sizeof(double[num*nr*nc]));  
   mat->mptr = gkyl_malloc(num*sizeof(double*));
-  
   for (size_t i=0; i<num; ++i)
     mat->mptr[i] = mat->data+nr*nc*i;
-
   mat->on_dev = mat; // on CPU this is a self-reference
-
   mat->ref_count = gkyl_ref_count_init(nmat_free);
 
   return mat;
@@ -244,8 +247,37 @@ gkyl_nmat_release(struct gkyl_nmat *mat)
 struct gkyl_nmat*
 gkyl_nmat_cu_dev_new(size_t num, size_t nr, size_t nc)
 {
-  assert(false);
-  return 0;
+  struct gkyl_nmat *mat = gkyl_malloc(sizeof(struct gkyl_nmat));
+  mat->num = num; mat->nr = nr; mat->nc = nc;
+
+  mat->flags = 0;
+  SET_CU_NMAT(mat->flags);
+  mat->data = gkyl_cu_malloc(sizeof(double[num*nr*nc]));
+  mat->mptr = gkyl_cu_malloc(num*sizeof(double*));
+  mat->ref_count = gkyl_ref_count_init(nmat_free);
+
+  double **mptr_h = gkyl_malloc(num*sizeof(double*));
+  // create pointers to various matrices and copy to device
+  for (size_t i=0; i<num; ++i)
+    mptr_h[i] = mat->data+nr*nc*i;
+  gkyl_cu_memcpy(mat->mptr, mptr_h, num*sizeof(double*), GKYL_CU_MEMCPY_H2D);
+  gkyl_free(mptr_h);  
+
+  // create a clone of struct mat->on_dev that lives on device, so
+  // that the whole mat->on_dev struct can be passed to a device
+  // kernel
+  mat->on_dev = gkyl_cu_malloc(sizeof(struct gkyl_nmat));
+  gkyl_cu_memcpy(mat->on_dev, mat, sizeof(struct gkyl_nmat), GKYL_CU_MEMCPY_H2D);
+  
+  // set device-side data pointer in mat->on_dev to mat->data 
+  // (which is the host-side pointer to the device data)
+  gkyl_cu_memcpy(&((mat->on_dev)->data), &mat->data, sizeof(double*), GKYL_CU_MEMCPY_H2D);
+
+  // set device-side mptr pointer in mat->on_dev to mat->mptr 
+  // (which is the host-side pointer to the device mptr)
+  gkyl_cu_memcpy(&((mat->on_dev)->mptr), &mat->mptr, sizeof(double**), GKYL_CU_MEMCPY_H2D);
+
+  return mat;
 }
 
 #else
