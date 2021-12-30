@@ -36,11 +36,13 @@ INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iregression ${KERN_INCLUDE
 NVCC = 
 USING_NVCC =
 NVCC_FLAGS = 
+CUDA_LIBS = 
 ifeq ($(CC), nvcc)
        CFLAGS = -O3 -g --forward-unknown-to-host-compiler
        USING_NVCC = yes
        NVCC_FLAGS = -x cu -dc -arch=sm_70 --compiler-options="-fPIC" 
        LDFLAGS += -arch=sm_70
+	CUDA_LIBS = -lcublas
 endif
 
 %.o : %.cu
@@ -91,11 +93,11 @@ build/regression/twostream.ini: regression/twostream.ini
 	cp regression/twostream.ini build/regression/twostream.ini
 
 build/regression/%: regression/%.c build/libgkylzero.a regression/rt_arg_parse.h
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} -lm -lpthread 
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread 
 
 # Unit tests
 build/unit/%: unit/%.c build/libgkylzero.a
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} -lm -lpthread
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 
 
 ifdef USING_NVCC

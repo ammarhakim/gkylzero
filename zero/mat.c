@@ -1,8 +1,13 @@
-#include "gkyl_ref_count.h"
 #include <gkyl_alloc.h>
 #include <gkyl_mat.h>
+#include <gkyl_ref_count.h>
 #include <gkyl_util.h>
+
 #include <stdbool.h>
+
+#ifdef GKYL_HAVE_CUDA
+# include <cublas_v2.h>
+#endif
 
 // BLAS and LAPACKE includes
 #ifdef GKYL_USING_FRAMEWORK_ACCELERATE
@@ -241,8 +246,8 @@ gkyl_nmat_acquire(const struct gkyl_nmat *mat)
   return (struct gkyl_nmat*) mat;
 }
 
-bool
-gkyl_nmat_linsolve_lu(struct gkyl_nmat *A, struct gkyl_nmat *x)
+static bool
+ho_nmat_linsolve_lu(struct gkyl_nmat *A, struct gkyl_nmat *x)
 {
   size_t num = A->num;
   assert( num <= x->num );
@@ -259,6 +264,72 @@ gkyl_nmat_linsolve_lu(struct gkyl_nmat *A, struct gkyl_nmat *x)
   gkyl_free(ipiv);
 
   return status;
+}
+
+static bool
+cu_nmat_linsolve_lu(struct gkyl_nmat *A, struct gkyl_nmat *x)
+{
+#ifdef GKYL_HAVE_CUDA  
+  cublasHandle_t cuh = 0; cublasCreate_v2(&cuh);
+
+  bool status = true;
+  size_t num = A->num, nr = A->nr, nrhs = x->nc;
+  size_t lda = nr, ldb = nr;
+  cublasStatus_t cu_stat;  
+  
+  int *ipiv = gkyl_cu_malloc(num*nr*sizeof(int));
+  int *infos = gkyl_cu_malloc(num*sizeof(int));
+  int *infos_h = gkyl_malloc(num*sizeof(int));
+
+  // compute LU decomp
+  cu_stat = cublasDgetrfBatched(cuh, nr, A->mptr, lda, ipiv, infos, num);
+  if (cu_stat != CUBLAS_STATUS_SUCCESS) {
+    status = false;
+    goto cleanup;
+  }
+  // copy info back to host and check if there were any errors
+  gkyl_cu_memcpy(infos_h, infos, num*sizeof(int), GKYL_CU_MEMCPY_D2H);
+  for (size_t i=0; i<num; ++i)
+    if (infos_h[i] != 0) {
+      status = false;
+      goto cleanup;
+    }
+
+  // solve linear systems using back-subst of already LU decomposed
+  // matrices
+  int info;
+  // following call shows a warning due to the way in which cublas
+  // defines its input parameters. Probably should fix somehow or the
+  // other
+  cublasDgetrsBatched(cuh, CUBLAS_OP_N, nr, nrhs, A->mptr, lda, ipiv, x->mptr, ldb, &info, num);
+  if (info != 0) {
+    status = false;
+    goto cleanup;
+  }
+  
+  cleanup:
+  gkyl_cu_free(ipiv);
+  gkyl_cu_free(infos);
+  gkyl_free(infos_h);
+  cublasDestroy_v2(cuh);
+  
+  return status;
+
+#else  
+  return false;
+#endif  
+}
+
+bool
+gkyl_nmat_linsolve_lu(struct gkyl_nmat *A, struct gkyl_nmat *x)
+{
+  if (!gkyl_nmat_is_cu_dev(A) && !gkyl_nmat_is_cu_dev(x))
+    return ho_nmat_linsolve_lu(A, x);
+  
+  if (gkyl_nmat_is_cu_dev(A) && gkyl_nmat_is_cu_dev(x))
+    return cu_nmat_linsolve_lu(A, x);
+  
+  return false;
 }
 
 void
