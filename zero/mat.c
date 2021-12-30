@@ -11,7 +11,7 @@
 
 // BLAS and LAPACKE includes
 #ifdef GKYL_USING_FRAMEWORK_ACCELERATE
-#include <Accelerate/Accelerate.h>
+# include <Accelerate/Accelerate.h>
 #else
 // On non-Darwin platforms use OpenBLAS
 # include <cblas.h>
@@ -269,7 +269,7 @@ ho_nmat_linsolve_lu(struct gkyl_nmat *A, struct gkyl_nmat *x)
 static bool
 cu_nmat_linsolve_lu(struct gkyl_nmat *A, struct gkyl_nmat *x)
 {
-#ifdef GKYL_HAVE_CUDA  
+#ifdef GKYL_HAVE_CUDA
   cublasHandle_t cuh = 0; cublasCreate_v2(&cuh);
 
   bool status = true;
@@ -287,6 +287,7 @@ cu_nmat_linsolve_lu(struct gkyl_nmat *A, struct gkyl_nmat *x)
     status = false;
     goto cleanup;
   }
+  
   // copy info back to host and check if there were any errors
   gkyl_cu_memcpy(infos_h, infos, num*sizeof(int), GKYL_CU_MEMCPY_D2H);
   for (size_t i=0; i<num; ++i)
@@ -298,10 +299,11 @@ cu_nmat_linsolve_lu(struct gkyl_nmat *A, struct gkyl_nmat *x)
   // solve linear systems using back-subst of already LU decomposed
   // matrices
   int info;
-  // following call shows a warning due to the way in which cublas
-  // defines its input parameters. Probably should fix somehow or the
-  // other
-  cublasDgetrsBatched(cuh, CUBLAS_OP_N, nr, nrhs, A->mptr, lda, ipiv, x->mptr, ldb, &info, num);
+  // ugly cast below is needed due to signature of CUBLAS method
+  // (CUBLAS sig is correct, though it is inconsistent with the LU
+  // decomp sig)
+  cublasDgetrsBatched(cuh, CUBLAS_OP_N, nr, nrhs, (const double*const*) A->mptr,
+    lda, ipiv, x->mptr, ldb, &info, num);
   if (info != 0) {
     status = false;
     goto cleanup;

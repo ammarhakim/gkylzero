@@ -42,7 +42,7 @@ ifeq ($(CC), nvcc)
        USING_NVCC = yes
        NVCC_FLAGS = -x cu -dc -arch=sm_70 --compiler-options="-fPIC" 
        LDFLAGS += -arch=sm_70
-	CUDA_LIBS = -lcublas
+       CUDA_LIBS = -lcublas
 endif
 
 %.o : %.cu
