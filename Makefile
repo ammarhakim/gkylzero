@@ -1,8 +1,12 @@
 #
-# You can set compiler to use as:
+# You can set parameters on the command line:
 #
-# make CC=mpicc 
+# make CC=mpicc
 #
+# Or run the configure script to set various parameters. Usually
+# defaults are all you need, specially if the dependencies are in
+# $HOME/gkylsoft and you are using standard compilers (not building on
+# GPUs)
 
 ARCH_FLAGS = -march=native -ffast-math
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
@@ -20,6 +24,9 @@ LAPACK_LIB = ${HOME}/gkylsoft/OpenBLAS/lib/libopenblas.a
 # SuperLU includes and librararies
 SUPERLU_INC = ${HOME}/gkylsoft/superlu/include
 SUPERLU_LIB = ${HOME}/gkylsoft/superlu/lib/libsuperlu.a
+
+# Include config.mak file (if it exists) to overide defaults above
+-include config.mak
 
 # determine OS we are running on
 UNAME = $(shell uname)

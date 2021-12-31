@@ -1,0 +1,101 @@
+#!/bin/sh
+
+# Defaults
+PREFIX=$HOME/gkylsoft
+
+# default build options
+CC=cc
+
+# ----------------------------------------------------------------------------
+# Function definitions
+# ----------------------------------------------------------------------------
+
+show_help() {
+cat <<EOF
+
+./configure [options]
+
+Configure GkeyllZero build system. This step is optional if you are
+okay with the default parameters.
+
+CC                         C and C++ compilers to use
+
+-h
+--help                     This help.
+--prefix=DIR               Prefix where GkeyllZero is installed
+                           Default is $HOME/gkylsoft/
+
+EOF
+}
+
+# Helper functions
+
+find_program() {
+   prog=`command -v "$1" 2>/dev/null`
+   if [ -n "$prog" ]
+   then
+      dirname "$prog"
+   fi
+}
+
+die() {
+   echo "$*"
+   echo
+   echo "Configured failed."
+   echo
+   exit 1
+}
+
+# ----------------------------------------------------------------------------
+# MAIN PROGRAM
+# ----------------------------------------------------------------------------
+
+# Parse options
+
+while [ -n "$1" ]
+do
+   value="`echo $1 | sed 's/[^=]*.\(.*\)/\1/'`"
+   key="`echo $1 | sed 's/=.*//'`"
+   if `echo "$value" | grep "~" >/dev/null 2>/dev/null`
+   then
+      echo
+      echo '*WARNING*: the "~" sign is not expanded in flags.'
+      echo 'If you mean the home directory, use $HOME instead.'
+      echo
+   fi
+   case "$key" in
+   -h)
+      show_help
+      exit 0
+      ;;
+   --help)
+      show_help
+      exit 0
+      ;;
+   CC)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      CC="$value"
+      ;;
+   --prefix)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      PREFIX="$value"
+      ;;
+   *)
+      die "Error: Unknown flag: $1"
+      ;;
+   esac
+   shift
+done
+
+# Write out config.mak
+cat <<EOF1 > config.mak
+# Generated automatically! Do not edit
+
+# Installation directory
+PREFIX=$PREFIX
+# Compilers
+CC=$CC
+
+EOF1
+
+echo "Wrote config.mak"
