@@ -1,10 +1,18 @@
 #!/bin/sh
 
 # Defaults
-PREFIX=$HOME/gkylsoft
+PREFIX=${HOME}/gkylsoft
 
 # default build options
 CC=cc
+
+# Default lapack include and libraries: we prefer linking to static library
+LAPACK_INC = ${HOME}/gkylsoft/OpenBLAS/include
+LAPACK_LIB = ${HOME}/gkylsoft/OpenBLAS/lib/libopenblas.a
+
+# SuperLU includes and librararies
+SUPERLU_INC = ${HOME}/gkylsoft/superlu/include
+SUPERLU_LIB = ${HOME}/gkylsoft/superlu/lib/libsuperlu.a
 
 # ----------------------------------------------------------------------------
 # Function definitions
@@ -13,7 +21,7 @@ CC=cc
 show_help() {
 cat <<EOF
 
-./configure [options]
+./configure [options=value]
 
 Configure GkeyllZero build system. This step is optional if you are
 okay with the default parameters.
@@ -24,6 +32,14 @@ CC                         C and C++ compilers to use
 --help                     This help.
 --prefix=DIR               Prefix where GkeyllZero is installed
                            Default is $HOME/gkylsoft/
+
+Library Includes and Locations
+
+--lapack-inc               Location of Lapacke headers
+--lapack-lib               Full path to Lapack static library
+
+--superlu-inc              Location of SuperLU headers
+--superlu-lib              Full path to SuperLU static library
 
 EOF
 }
@@ -80,6 +96,22 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       PREFIX="$value"
       ;;
+   --lapack-inc)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      LAPACK_INC="$value"
+      ;;
+   --lapack-lib)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      LAPACK_LIB="$value"
+      ;;
+   --superlu-inc)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      SUPERLU_INC="$value"
+      ;;
+   --superlu-lib)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      SUPERLU_LIB="$value"
+      ;;   
    *)
       die "Error: Unknown flag: $1"
       ;;
@@ -95,6 +127,13 @@ cat <<EOF1 > config.mak
 PREFIX=$PREFIX
 # Compilers
 CC=$CC
+
+# Library paths
+LAPACK_INC=$LAPACK_INC
+LAPACK_LIB=$LAPACK_LIB
+
+SUPERLU_INC=$SUPERLU_INC
+SUPERLU_LIB=$SUPERLU_LIB
 
 EOF1
 
