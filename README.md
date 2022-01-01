@@ -20,11 +20,11 @@ Documentation is available at http://gkeyll.rtfd.io.
 
 GkeyllZero has just a few dependencies: OpenBLAS and SuperLU. If you
 are on a cluster these libraries are likely already installed. In that
-case you should use the configure to specify the location of the
-include and full path to the static libraries for these. See
-instructions below. If you are on your own machine please use the
+case you should use the configure script to specify the location of
+the include and full path to the static libraries for these. See
+configure help. If you are on your own machine please use the
 mkdeps.sh shell-script to install them and then follow the
-instructions below.
+instructions.
 
 Clone this repo and then optinally run the configure script to set the
 compiler you wish to use and the various paths to the
@@ -38,6 +38,14 @@ in the top-level directory. To run all unit tests do:
     make check
 ```
 
+Note that if your machine has more than one core (a highly likely
+situation) you can run make in parallel, for example:
+```
+    make -j
+```
+will use several cores while compiling the code, and can be
+potentially faster on most machines.
+
 If you do not run configure you can also specify the compiler when
 running make. For example:
 ```
@@ -48,14 +56,6 @@ compiler then the CUDA specific parts of the code will be built:
 ```
     make CC=nvcc
 ```
-Note that if your machine has more than one core (a highly likely
-situation) you can run make in parallel, for example:
-```
-    make -j
-```
-will use several cores while compiling the code, and can be
-potentially faster on most machines.
-
 The unit and regression test executables are written in the
 `build/unit` and `build/regression` directories.
 
@@ -90,7 +90,7 @@ cd install-deps
 ```
 
 This will install OpenBLAS and SuperLU in the $HOME/gkylsoft
-directory. Note that OpenBLAS requires you to have gfortran
+directory. Note that OpenBLAS **requires you to have gfortran**
 installed. You are responsible for installing this on your machine.
 
 # Using precompiled OpenBLAS

@@ -7,12 +7,12 @@ PREFIX=${HOME}/gkylsoft
 CC=cc
 
 # Default lapack include and libraries: we prefer linking to static library
-LAPACK_INC = ${HOME}/gkylsoft/OpenBLAS/include
-LAPACK_LIB = ${HOME}/gkylsoft/OpenBLAS/lib/libopenblas.a
+LAPACK_INC=${HOME}/gkylsoft/OpenBLAS/include
+LAPACK_LIB=${HOME}/gkylsoft/OpenBLAS/lib/libopenblas.a
 
 # SuperLU includes and librararies
-SUPERLU_INC = ${HOME}/gkylsoft/superlu/include
-SUPERLU_LIB = ${HOME}/gkylsoft/superlu/lib/libsuperlu.a
+SUPERLU_INC=${HOME}/gkylsoft/superlu/include
+SUPERLU_LIB=${HOME}/gkylsoft/superlu/lib/libsuperlu.a
 
 # ----------------------------------------------------------------------------
 # Function definitions
@@ -25,6 +25,9 @@ cat <<EOF
 
 Configure GkeyllZero build system. This step is optional if you are
 okay with the default parameters.
+
+NOTE: At present, the configure script DOES NOT check if you have
+specified valid paths. YOU are responsible for setting them correctly.
 
 CC                         C and C++ compilers to use
 
