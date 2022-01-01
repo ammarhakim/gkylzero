@@ -51,7 +51,8 @@ gkyl_vlasov_lbo_set_nuVtSqSum(const struct gkyl_dg_eqn *eqn, const struct gkyl_a
 
 
 struct gkyl_dg_eqn*
-gkyl_dg_vlasov_lbo_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range)
+gkyl_dg_vlasov_lbo_new(const struct gkyl_basis* cbasis,
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range)
 {
   struct dg_vlasov_lbo* vlasov_lbo = gkyl_malloc(sizeof(struct dg_vlasov_lbo));
 
@@ -130,7 +131,8 @@ gkyl_dg_vlasov_lbo_new(const struct gkyl_basis* cbasis, const struct gkyl_basis*
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_dg_eqn*
-gkyl_dg_vlasov_lbo_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range)
+gkyl_dg_vlasov_lbo_cu_dev_new(const struct gkyl_basis* cbasis,
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range)
 {
   assert(false);
   return 0;

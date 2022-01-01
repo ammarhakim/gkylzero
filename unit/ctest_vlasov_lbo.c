@@ -74,17 +74,12 @@ test_1x1v_p2()
   gkyl_cart_modal_serendip(&basis, pdim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  // initialize eqn
-  struct gkyl_dg_eqn *diff, *drag;
-  diff = gkyl_dg_vlasov_lbo_diff_new(&confBasis, &basis, &confRange);
-  drag = gkyl_dg_vlasov_lbo_new(&confBasis, &basis, &confRange);
-
   // initialize hyper_dg slvr
   int up_dirs[] = {1};
   int zero_flux_flags[] = {1};
 
   gkyl_dg_lbo_updater *slvr;
-  slvr = gkyl_dg_lbo_updater_new(&phaseGrid, &basis, vdim, drag, diff);
+  slvr = gkyl_dg_lbo_updater_new(&phaseGrid, &confBasis, &basis, &confRange);
   
   gkyl_proj_on_basis *projF = gkyl_proj_on_basis_new(&phaseGrid, &basis, poly_order+1, 1, maxwellian1x1v, NULL);
   gkyl_proj_on_basis *projNu = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, nu_prof, NULL);
@@ -114,14 +109,7 @@ test_1x1v_p2()
   for(int n=0; n<nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
-    gkyl_vlasov_lbo_set_nuSum(drag, nuSum);
-    gkyl_vlasov_lbo_set_nuUSum(drag, nuUSum);
-    gkyl_vlasov_lbo_set_nuVtSqSum(drag, nuVtSqSum);
-    gkyl_vlasov_lbo_set_nuSum(diff, nuSum);
-    gkyl_vlasov_lbo_set_nuUSum(diff, nuUSum);
-    gkyl_vlasov_lbo_set_nuVtSqSum(diff, nuVtSqSum);
-    gkyl_dg_lbo_updater_advance(slvr, phaseRange, fin, cflrate, rhs);
-
+    gkyl_dg_lbo_updater_advance(slvr, phaseRange, nuSum, nuUSum, nuVtSqSum, fin, cflrate, rhs);
     gkyl_array_reduce(cfl_ptr, cflrate, GKYL_MAX);
   }
 
@@ -172,8 +160,6 @@ test_1x1v_p2()
   gkyl_array_release(nuSum);
   gkyl_array_release(nuUSum);
   gkyl_array_release(nuVtSqSum);
-  gkyl_dg_eqn_release(drag);
-  gkyl_dg_eqn_release(diff);
   gkyl_dg_lbo_updater_release(slvr);
 }
 
@@ -206,17 +192,12 @@ test_1x2v_p2()
   gkyl_cart_modal_serendip(&basis, pdim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  // initialize eqn
-  struct gkyl_dg_eqn *diff, *drag;
-  diff = gkyl_dg_vlasov_lbo_diff_new(&confBasis, &basis, &confRange);
-  drag = gkyl_dg_vlasov_lbo_new(&confBasis, &basis, &confRange);
-
   // initialize hyper_dg slvr
   int up_dirs[] = {1, 2};
   int zero_flux_flags[] = {1, 1};
 
   gkyl_dg_lbo_updater *slvr;
-  slvr = gkyl_dg_lbo_updater_new(&phaseGrid, &basis, vdim, drag, diff);
+  slvr = gkyl_dg_lbo_updater_new(&phaseGrid, &confBasis, &basis, &confRange);
   
   gkyl_proj_on_basis *projF = gkyl_proj_on_basis_new(&phaseGrid, &basis, poly_order+1, 1, maxwellian1x2v, NULL);
   gkyl_proj_on_basis *projNu = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, nu_prof, NULL);
@@ -246,14 +227,8 @@ test_1x2v_p2()
   for(int n=0; n<nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
-    gkyl_vlasov_lbo_set_nuSum(drag, nuSum);
-    gkyl_vlasov_lbo_set_nuUSum(drag, nuUSum);
-    gkyl_vlasov_lbo_set_nuVtSqSum(drag, nuVtSqSum);
-    gkyl_vlasov_lbo_set_nuSum(diff, nuSum);
-    gkyl_vlasov_lbo_set_nuUSum(diff, nuUSum);
-    gkyl_vlasov_lbo_set_nuVtSqSum(diff, nuVtSqSum);
-    gkyl_dg_lbo_updater_advance(slvr, phaseRange, fin, cflrate, rhs);
-
+    
+    gkyl_dg_lbo_updater_advance(slvr, phaseRange, nuSum, nuUSum, nuVtSqSum, fin, cflrate, rhs);
     gkyl_array_reduce(cfl_ptr, cflrate, GKYL_MAX);
   }
 
@@ -301,7 +276,7 @@ test_1x2v_p2()
   TEST_CHECK( gkyl_compare_double(rhs_d1[19], 0.075366767497302, 1e-12) );
   TEST_CHECK( gkyl_compare_double(rhs_d2[0], 0.12351087529995, 1e-12) );
   TEST_CHECK( gkyl_compare_double(rhs_d2[1], -0.29806419452944, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(rhs_d2[2], 0.008464559638675, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d2[2], 0.008464559638675, 1e-11) );
   TEST_CHECK( gkyl_compare_double(rhs_d2[3], 0.0084645596386717, 1e-12) );
   TEST_CHECK( gkyl_compare_double(rhs_d2[4], -0.021026986912361, 1e-12) );
   TEST_CHECK( gkyl_compare_double(rhs_d2[5], -0.02102698691237, 1e-12) );
@@ -328,8 +303,6 @@ test_1x2v_p2()
   gkyl_array_release(nuSum);
   gkyl_array_release(nuUSum);
   gkyl_array_release(nuVtSqSum);
-  gkyl_dg_eqn_release(drag);
-  gkyl_dg_eqn_release(diff);
   gkyl_dg_lbo_updater_release(slvr);
 }
 

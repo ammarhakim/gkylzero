@@ -29,7 +29,7 @@ FC                          Fortran compiler to use (only gfortran is supported)
 -h
 --help                      This help.
 --prefix=DIR                Prefix where dependencies should be installed.
-                            Default is $HOME/aaisoft
+                            Default is $HOME/gkylsoft
 
 The following flags specify which libraries to build.
 
