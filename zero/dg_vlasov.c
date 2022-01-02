@@ -117,7 +117,7 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   vlasov->conf_range = *conf_range;
 
   // set reference counter
-  vlasov->eqn.ref_count = (struct gkyl_ref_count) { vlasov_free, 1 };
+  vlasov->eqn.ref_count = gkyl_ref_count_init(vlasov_free);
   
   return &vlasov->eqn;
 }

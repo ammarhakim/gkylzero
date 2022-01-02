@@ -46,13 +46,6 @@ void gkyl_dg_mul_op_range(struct gkyl_basis basis,
   }
 }
 
-struct gkyl_kern_op_count
-gkyl_dg_mul_op_count(struct gkyl_basis basis)
-{
-  mul_op_count_t mul_op = choose_ser_mul_op_count_kern(basis.ndim, basis.poly_order);
-  return mul_op();
-}
-
 // division
 void
 gkyl_dg_div_op(struct gkyl_basis basis,

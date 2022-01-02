@@ -1,5 +1,7 @@
 cppcheck-err.txt
 install-deps/build-opts.sh
+config.mak
+*.cache
 *.dat
 *~
 *.sw*

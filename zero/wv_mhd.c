@@ -424,7 +424,7 @@ gkyl_wv_mhd_new(double gas_gamma, const char *divergence_constraint)
     mhd->eqn.num_waves = 7;
   }
 
-  mhd->eqn.ref_count = (struct gkyl_ref_count) { mhd_free, 1 };
+  mhd->eqn.ref_count = gkyl_ref_count_init(mhd_free);
 
   return &mhd->eqn;
 }

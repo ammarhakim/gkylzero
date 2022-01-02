@@ -2,12 +2,11 @@
 
 #include <gkyl_ref_count.h>
 #include <gkyl_util.h>
+#include <gkyl_elem_type.h>
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
-
-// Type of element stored in array
-enum gkyl_elem_type { GKYL_INT, GKYL_FLOAT, GKYL_DOUBLE, GKYL_USER };
 
 /**
  * Array object. This is an untype, undimensioned, reference counted
@@ -65,9 +64,10 @@ bool gkyl_array_is_cu_dev(const struct gkyl_array *arr);
 /**
  * Copy into array: pointer to dest array is returned. 'dest' and
  * 'src' must not point to same data.
- * 
+ *
  * @param dest Destination for copy.
  * @param src Srouce to copy from.
+ * @return dest is returned
  */
 struct gkyl_array* gkyl_array_copy(struct gkyl_array* dest,
   const struct gkyl_array* src);

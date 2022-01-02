@@ -73,7 +73,7 @@ gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
   arr->flags = 0;
   arr->esznc = arr->elemsz*arr->ncomp;
   arr->data = g_array_alloc(arr->size, arr->esznc);
-  arr->ref_count = (struct gkyl_ref_count) { array_free, 1 };
+  arr->ref_count = gkyl_ref_count_init(array_free);
 
   arr->nthreads = 1;
   arr->nblocks = 1;
@@ -142,7 +142,7 @@ gkyl_array_clone(const struct gkyl_array* src)
     memcpy(arr->data, src->data, arr->size*arr->esznc);
   }
   
-  arr->ref_count = (struct gkyl_ref_count) { array_free, 1 };
+  arr->ref_count = gkyl_ref_count_init(array_free);
   
   return arr;
 }
@@ -177,7 +177,7 @@ gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
   arr->flags = 0;
   SET_CU_ARRAY(arr->flags);  
   arr->esznc = arr->elemsz*arr->ncomp;
-  arr->ref_count = (struct gkyl_ref_count) { array_free, 1 };  
+  arr->ref_count = gkyl_ref_count_init(array_free);
   arr->data = gkyl_cu_malloc(arr->size*arr->esznc);
   arr->nthreads = GKYL_DEFAULT_NUM_THREADS;
   arr->nblocks = gkyl_int_div_up(arr->size*arr->ncomp, arr->nthreads);

@@ -126,7 +126,7 @@ gkyl_wv_iso_euler_new(double vt)
   iso_euler->eqn.rotate_to_local_func = rot_to_local;
   iso_euler->eqn.rotate_to_global_func = rot_to_global;
 
-  iso_euler->eqn.ref_count = (struct gkyl_ref_count) { iso_euler_free, 1 };
+  iso_euler->eqn.ref_count = gkyl_ref_count_init(iso_euler_free);
 
   return &iso_euler->eqn;
 }

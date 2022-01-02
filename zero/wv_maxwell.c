@@ -165,7 +165,7 @@ gkyl_wv_maxwell_new(double c, double e_fact, double b_fact)
   maxwell->eqn.rotate_to_local_func = rot_to_local;
   maxwell->eqn.rotate_to_global_func = rot_to_global;
 
-  maxwell->eqn.ref_count = (struct gkyl_ref_count) { maxwell_free, 1 };
+  maxwell->eqn.ref_count = gkyl_ref_count_init(maxwell_free);
 
   return &maxwell->eqn;
 }

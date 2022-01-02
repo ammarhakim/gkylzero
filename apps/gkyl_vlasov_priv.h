@@ -15,8 +15,6 @@
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_vlasov.h>
-#include <gkyl_dg_vlasov_lbo.h>
-#include <gkyl_dg_vlasov_lbo_diff.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_dg_lbo_updater.h>
 #include <gkyl_hyper_dg.h>
@@ -62,8 +60,6 @@ struct vm_lbo_collisions {
   struct gkyl_array *nu_sum, *u_drift, *vth_sq, *nu_u, *nu_vthsq; // LBO primitive moments
   struct gkyl_prim_lbo *coll_prim; // Primitive moments
   gkyl_prim_lbo_calc *coll_pcalc; // Primitive moment solver
-  struct gkyl_dg_eqn *coll_drag; // Collision drag equation
-  struct gkyl_dg_eqn *coll_diff; // Collision diffusion equation
   gkyl_dg_lbo_updater *coll_slvr; // Collision solver
 };
 

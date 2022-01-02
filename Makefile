@@ -1,8 +1,12 @@
 #
-# You can set compiler to use as:
+# You can set parameters on the command line:
 #
-# make CC=mpicc 
+# make CC=mpicc
 #
+# Or run the configure script to set various parameters. Usually
+# defaults are all you need, specially if the dependencies are in
+# $HOME/gkylsoft and you are using standard compilers (not building on
+# GPUs)
 
 ARCH_FLAGS = -march=native -ffast-math
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
@@ -21,6 +25,9 @@ LAPACK_LIB = ${HOME}/gkylsoft/OpenBLAS/lib/libopenblas.a
 SUPERLU_INC = ${HOME}/gkylsoft/superlu/include
 SUPERLU_LIB = ${HOME}/gkylsoft/superlu/lib/libsuperlu.a
 
+# Include config.mak file (if it exists) to overide defaults above
+-include config.mak
+
 # determine OS we are running on
 UNAME = $(shell uname)
 
@@ -36,11 +43,13 @@ INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iregression ${KERN_INCLUDE
 NVCC = 
 USING_NVCC =
 NVCC_FLAGS = 
+CUDA_LIBS = 
 ifeq ($(CC), nvcc)
        CFLAGS = -O3 -g --forward-unknown-to-host-compiler
        USING_NVCC = yes
        NVCC_FLAGS = -x cu -dc -arch=sm_70 --compiler-options="-fPIC" 
        LDFLAGS += -arch=sm_70
+       CUDA_LIBS = -lcublas
 endif
 
 %.o : %.cu
@@ -91,11 +100,11 @@ build/regression/twostream.ini: regression/twostream.ini
 	cp regression/twostream.ini build/regression/twostream.ini
 
 build/regression/%: regression/%.c build/libgkylzero.a regression/rt_arg_parse.h
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} -lm -lpthread 
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread 
 
 # Unit tests
 build/unit/%: unit/%.c build/libgkylzero.a
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} -lm -lpthread
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 
 
 ifdef USING_NVCC
@@ -137,6 +146,7 @@ check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_dg_bin_ops
 	./build/unit/ctest_dg_maxwell
 	./build/unit/ctest_dg_vlasov
+	./build/unit/ctest_dynvec
 	./build/unit/ctest_fv_proj
 	./build/unit/ctest_gauss_quad
 	./build/unit/ctest_hyper_dg

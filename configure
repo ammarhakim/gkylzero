@@ -1,15 +1,18 @@
 #!/bin/sh
 
 # Defaults
-PREFIX=$HOME/gkylsoft
+PREFIX=${HOME}/gkylsoft
 
 # default build options
-CC=gcc
-CXX=g++
-FC=gfortran
+CC=cc
 
-BUILD_OPENBLAS=no
-BUILD_SUPERLU=no
+# Default lapack include and libraries: we prefer linking to static library
+LAPACK_INC=${HOME}/gkylsoft/OpenBLAS/include
+LAPACK_LIB=${HOME}/gkylsoft/OpenBLAS/lib/libopenblas.a
+
+# SuperLU includes and librararies
+SUPERLU_INC=${HOME}/gkylsoft/superlu/include
+SUPERLU_LIB=${HOME}/gkylsoft/superlu/lib/libsuperlu.a
 
 # ----------------------------------------------------------------------------
 # Function definitions
@@ -18,23 +21,28 @@ BUILD_SUPERLU=no
 show_help() {
 cat <<EOF
 
-./mkdeps.sh CC=cc CXX=cxx FC=gfortran
+./configure [options=value]
 
-Build GkylZero dependencies
+Configure GkeyllZero build system. This step is optional if you are
+okay with the default parameters.
 
-CC 
-CXX                         C and C++ compilers to use
-FC                          Fortran compiler to use (only gfortran is supported)
+NOTE: At present, the configure script DOES NOT check if you have
+specified valid paths. YOU are responsible for setting them correctly.
+
+CC                         C and C++ compilers to use
 
 -h
---help                      This help.
---prefix=DIR                Prefix where dependencies should be installed.
-                            Default is $HOME/gkylsoft
+--help                     This help.
+--prefix=DIR               Prefix where GkeyllZero is installed
+                           Default is $HOME/gkylsoft/
 
-The following flags specify which libraries to build.
+Library Includes and Locations
 
---build-openblas            [no] Should we build OpenBLAS?
---build-superlu             [no] Should we build SuperLU (serial)
+--lapack-inc               Location of Lapacke headers
+--lapack-lib               Full path to Lapack static library
+
+--superlu-inc              Location of SuperLU headers
+--superlu-lib              Full path to SuperLU static library
 
 EOF
 }
@@ -52,7 +60,7 @@ find_program() {
 die() {
    echo "$*"
    echo
-   echo "Dependency builds failed."
+   echo "Configured failed."
    echo
    exit 1
 }
@@ -87,25 +95,25 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       CC="$value"
       ;;
-   CXX)
-      [ -n "$value" ] || die "Missing value in flag $key."
-      CXX="$value"
-      ;;
-   FC)
-      [ -n "$value" ] || die "Missing value in flag $key."
-      FC="$value"
-      ;;   
    --prefix)
       [ -n "$value" ] || die "Missing value in flag $key."
       PREFIX="$value"
       ;;
-   --build-openblas)
+   --lapack-inc)
       [ -n "$value" ] || die "Missing value in flag $key."
-      BUILD_OPENBLAS="$value"
+      LAPACK_INC="$value"
       ;;
-   --build-superlu)
+   --lapack-lib)
       [ -n "$value" ] || die "Missing value in flag $key."
-      BUILD_SUPERLU="$value"
+      LAPACK_LIB="$value"
+      ;;
+   --superlu-inc)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      SUPERLU_INC="$value"
+      ;;
+   --superlu-lib)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      SUPERLU_LIB="$value"
       ;;   
    *)
       die "Error: Unknown flag: $1"
@@ -114,37 +122,22 @@ do
    shift
 done
 
-# Write out build options for scripts to use
-cat <<EOF1 > build-opts.sh
+# Write out config.mak
+cat <<EOF1 > config.mak
 # Generated automatically! Do not edit
 
 # Installation directory
-GKYLSOFT=$PREFIX
-# Various compilers
+PREFIX=$PREFIX
+# Compilers
 CC=$CC
-CXX=$CXX
-FC=gfortran
+
+# Library paths
+LAPACK_INC=$LAPACK_INC
+LAPACK_LIB=$LAPACK_LIB
+
+SUPERLU_INC=$SUPERLU_INC
+SUPERLU_LIB=$SUPERLU_LIB
 
 EOF1
 
-build_openblas() {
-    if [ "$BUILD_OPENBLAS" = "yes" ]
-    then    
-	echo "Building OpenBLAS"
-	./build-openblas.sh
-    fi
-}
-
-build_superlu() {
-    if [ "$BUILD_SUPERLU" = "yes" ]
-    then    
-	echo "Building SUPERLU"
-	./build-superlu.sh 
-    fi
-}
-
-echo "Installations will be in  $PREFIX"
-
-build_openblas
-build_superlu
-
+echo "Wrote config.mak"

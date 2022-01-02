@@ -46,13 +46,13 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
     // Edge of velocity space energy correction
     lbo->cE_mom = gkyl_vlasov_lbo_mom_new(&app->confBasis, &app->basis, "vf",  v_bounds);
     lbo->cE_bcorr = gkyl_mom_bcorr_new(&s->grid, lbo->cE_mom);
-
+    
+    // primitive moment calculators
     lbo->coll_prim = gkyl_prim_lbo_vlasov_new(&app->confBasis, &app->basis);
     lbo->coll_pcalc = gkyl_prim_lbo_calc_new(&s->grid, lbo->coll_prim);
-    lbo->coll_drag = gkyl_dg_vlasov_lbo_new(&app->confBasis, &app->basis, &app->local);
-    lbo->coll_diff = gkyl_dg_vlasov_lbo_diff_new(&app->confBasis, &app->basis, &app->local);
-    lbo->coll_slvr = gkyl_dg_lbo_updater_new(&s->grid, &app->basis, vdim, lbo->coll_drag, lbo->coll_diff);
-    // lbo->coll_slvr = gkyl_hyper_dg_new(&s->grid, &app->basis, lbo->coll_eqn, num_up_dirs, up_dirs, zero_flux_flags, 1);
+    
+    // LBO updater
+    lbo->coll_slvr = gkyl_dg_lbo_updater_new(&s->grid, &app->confBasis, &app->basis, &app->local);
   }
 }
 
@@ -75,8 +75,6 @@ vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_co
     gkyl_mom_bcorr_release(lbo->cM_bcorr);
     gkyl_mom_bcorr_release(lbo->cE_bcorr);
     gkyl_prim_lbo_calc_release(lbo->coll_pcalc);
-    gkyl_dg_eqn_release(lbo->coll_drag);
-    gkyl_dg_eqn_release(lbo->coll_diff);
     gkyl_dg_lbo_updater_release(lbo->coll_slvr);
   }
 }

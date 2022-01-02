@@ -311,7 +311,7 @@ gkyl_wv_ten_moment_new(double k0)
   ten_moment->eqn.rotate_to_local_func = rot_to_local;
   ten_moment->eqn.rotate_to_global_func = rot_to_global;
 
-  ten_moment->eqn.ref_count = (struct gkyl_ref_count) { ten_moment_free, 1 };
+  ten_moment->eqn.ref_count = gkyl_ref_count_init(ten_moment_free);
 
   return &ten_moment->eqn;
 }

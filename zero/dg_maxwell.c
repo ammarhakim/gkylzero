@@ -72,7 +72,7 @@ gkyl_dg_maxwell_new(const struct gkyl_basis* cbasis,
   for (int i=0; i<cdim; ++i) assert(maxwell->surf[i]);
 
   // set reference counter
-  maxwell->eqn.ref_count = (struct gkyl_ref_count) { maxwell_free, 1 };
+  maxwell->eqn.ref_count = gkyl_ref_count_init(maxwell_free);
   
   return &maxwell->eqn;
 }
