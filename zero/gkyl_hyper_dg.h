@@ -15,7 +15,7 @@ struct gkyl_hyper_dg {
   int num_basis; // number of basis functions
   int num_up_dirs; // number of update directions
   int update_dirs[GKYL_MAX_DIM]; // directions to update
-  int zero_flux_flags[GKYL_MAX_DIM]; // directions with zero flux
+  int zero_flux_flags[GKYL_MAX_DIM]; // zero_flux_flags[d] == 1 means zero-flux in 'd'
   int update_vol_term; // should we update volume term?
   const struct gkyl_dg_eqn *equation; // equation object
 };

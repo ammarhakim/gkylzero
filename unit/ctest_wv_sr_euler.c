@@ -1,3 +1,4 @@
+#include "gkyl_util.h"
 #include <acutest.h>
 #include <gkyl_prim_sr_euler.h>
 #include <gkyl_wv_sr_euler.h>
@@ -80,7 +81,7 @@ test_sr_euler_prim1()
     gkyl_wv_eqn_rotate_to_local(sr_euler, tau1[d], tau2[d], norm[d], q, q_l);
     gkyl_wv_eqn_rotate_to_global(sr_euler, tau1[d], tau2[d], norm[d], q_l, q_g);
 
-    for (int m=0; m<5; ++m) TEST_CHECK( q[m] == q_g[m] );
+    for (int m=0; m<5; ++m) TEST_CHECK( gkyl_compare(q[m], q_g[m], 1e-12) );
   }
   
   gkyl_wv_eqn_release(sr_euler);
@@ -146,7 +147,7 @@ test_sr_euler_waves()
     gkyl_wv_eqn_rotate_to_global(sr_euler, tau1[d], tau2[d], norm[d], fr_local, fr);
     
     for (int i=0; i<5; ++i)
-      TEST_CHECK( gkyl_compare(fr[i]-fl[i], amdq[i]+apdq[i], 1e-14) );
+      TEST_CHECK( gkyl_compare(fr[i]-fl[i], amdq[i]+apdq[i], 1e-12) );
   }
     
   gkyl_wv_eqn_release(sr_euler);

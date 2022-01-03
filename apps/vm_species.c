@@ -62,7 +62,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   
   // allocate data for momentum (for use in current accumulation)
   vm_species_moment_init(app, s, &s->m1i, "M1i");
-  // allocate data for density and energy (for use in collisions if present)
+  // allocate data for density and energy (for use in collisions) we
+  // always allocate these as they are cheap and if would be difficult
+  // to handle edge cases
   vm_species_moment_init(app, s, &s->m0, "M0");
   vm_species_moment_init(app, s, &s->m2, "M2");
   
