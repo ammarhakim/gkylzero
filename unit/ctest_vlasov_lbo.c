@@ -8,7 +8,7 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_rect_decomp.h>
-#include <gkyl_dg_vlasov_lbo.h>
+#include <gkyl_dg_vlasov_lbo_drag.h>
 #include <gkyl_dg_vlasov_lbo_diff.h>
 #include <gkyl_dg_lbo_updater.h>
 #include <gkyl_array_rio.h>

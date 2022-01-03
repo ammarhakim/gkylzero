@@ -7,12 +7,8 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   // TO DO: Expose nu_u and nu_vthsq arrays above species object
   //        for cross-species collisions. Just testing for now JJ 09/24/21
   int cdim = app->cdim, vdim = app->vdim;
-  int num_up_dirs = vdim;
-  int up_dirs[GKYL_MAX_DIM], zero_flux_flags[GKYL_MAX_DIM];
   double v_bounds[2*GKYL_MAX_DIM];
   for (int d=0; d<vdim; ++d) {
-    up_dirs[d] = d+cdim;
-    zero_flux_flags[d] = 1;
     v_bounds[d] = s->info.lower[d];
     v_bounds[d + vdim] = s->info.upper[d];
   }

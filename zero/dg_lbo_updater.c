@@ -5,7 +5,7 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_dg_lbo_updater.h>
-#include <gkyl_dg_vlasov_lbo.h>
+#include <gkyl_dg_vlasov_lbo_drag.h>
 #include <gkyl_dg_vlasov_lbo_diff.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_util.h>
@@ -23,7 +23,7 @@ gkyl_dg_lbo_updater_new(const struct gkyl_rect_grid *grid, const struct gkyl_bas
 {
   gkyl_dg_lbo_updater *lbo = gkyl_malloc(sizeof(gkyl_dg_lbo_updater));
 
-  lbo->coll_drag = gkyl_dg_vlasov_lbo_new(cbasis, pbasis, conf_range);
+  lbo->coll_drag = gkyl_dg_vlasov_lbo_drag_new(cbasis, pbasis, conf_range);
   lbo->coll_diff = gkyl_dg_vlasov_lbo_diff_new(cbasis, pbasis, conf_range);
 
   int vdim = pbasis->ndim-cbasis->ndim;
@@ -31,7 +31,7 @@ gkyl_dg_lbo_updater_new(const struct gkyl_rect_grid *grid, const struct gkyl_bas
   int up_dirs[GKYL_MAX_DIM], zero_flux_flags[GKYL_MAX_DIM];
   for (int d=0; d<vdim; ++d) {
     up_dirs[d] = d + pbasis->ndim - vdim;
-    zero_flux_flags[d] = 1; // JIMMY/KOLTER DOES THIS MAKE SENSE? This is setting conf dirs to be zero-flux!
+    zero_flux_flags[d] = 1;
   }
   
   lbo->diff = gkyl_hyper_dg_new(grid, pbasis, lbo->coll_diff, num_up_dirs, up_dirs, zero_flux_flags, 1);
@@ -46,12 +46,12 @@ gkyl_dg_lbo_updater_advance(gkyl_dg_lbo_updater *lbo, struct gkyl_range update_r
   const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs)
 {
   // Set arrays needed
-  gkyl_vlasov_lbo_set_nuSum(lbo->coll_drag, nu_sum);
-  gkyl_vlasov_lbo_set_nuUSum(lbo->coll_drag, nu_u);
-  gkyl_vlasov_lbo_set_nuVtSqSum(lbo->coll_drag, nu_vthsq);
-  gkyl_vlasov_lbo_set_nuSum(lbo->coll_diff, nu_sum);
-  gkyl_vlasov_lbo_set_nuUSum(lbo->coll_diff, nu_u);
-  gkyl_vlasov_lbo_set_nuVtSqSum(lbo->coll_diff, nu_vthsq);
+  gkyl_vlasov_lbo_drag_set_nuSum(lbo->coll_drag, nu_sum);
+  gkyl_vlasov_lbo_drag_set_nuUSum(lbo->coll_drag, nu_u);
+  gkyl_vlasov_lbo_drag_set_nuVtSqSum(lbo->coll_drag, nu_vthsq);
+  gkyl_vlasov_lbo_diff_set_nuSum(lbo->coll_diff, nu_sum);
+  gkyl_vlasov_lbo_diff_set_nuUSum(lbo->coll_diff, nu_u);
+  gkyl_vlasov_lbo_diff_set_nuVtSqSum(lbo->coll_diff, nu_vthsq);
   
   gkyl_hyper_dg_advance(lbo->diff, update_rng, fIn, cflrate, rhs);
   gkyl_hyper_dg_advance(lbo->drag, update_rng, fIn, cflrate, rhs);

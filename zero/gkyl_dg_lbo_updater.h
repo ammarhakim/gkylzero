@@ -2,7 +2,6 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
-#include <gkyl_dg_vlasov_lbo.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
