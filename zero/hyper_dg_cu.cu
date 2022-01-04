@@ -7,6 +7,7 @@ extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_hyper_dg.h>
+#include <gkyl_hyper_priv_dg.h>
 #include <gkyl_util.h>
 }
 
@@ -118,10 +119,11 @@ gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid,
   up->num_up_dirs = num_up_dirs;
   up->grid = *grid;
 
-  for (int i=0; i<num_up_dirs; ++i) {
+  for (int i=0; i<num_up_dirs; ++i)
     up->update_dirs[i] = update_dirs[i];
+  for (int i=0; i<GKYL_MAX_DIM; ++i)
     up->zero_flux_flags[i] = zero_flux_flags[i];
-  }
+    
   up->update_vol_term = update_vol_term;
 
   up->equation = equation_cu; // NB: RHS a pointer to device

@@ -5,7 +5,14 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_hyper_dg.h>
+#include <gkyl_hyper_dg_priv.h>
 #include <gkyl_util.h>
+
+void
+gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *hdg, int update_vol_term)
+{
+  hdg->update_vol_term = update_vol_term;
+}
 
 void
 gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, struct gkyl_range update_range,
@@ -37,7 +44,8 @@ gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, struct gkyl_range update_range,
     for (int d=0; d<hdg->num_up_dirs; ++d) {
       int dir = hdg->update_dirs[d];
       // TODO: fix for arbitrary subrange
-      if (hdg->zero_flux_flags[d] && (idxc[dir] == update_range.lower[dir] || idxc[dir] == update_range.upper[dir])) {
+      if (hdg->zero_flux_flags[dir] &&
+        (idxc[dir] == update_range.lower[dir] || idxc[dir] == update_range.upper[dir]) ) {
         gkyl_copy_int_arr(ndim, iter.idx, idx_edge);
         edge = (idxc[dir] == update_range.lower[dir]) ? -1 : 1;
         // idx_edge stores interior edge index (first index away from skin cell)
@@ -109,7 +117,8 @@ gkyl_hyper_dg_advance_no_iter(gkyl_hyper_dg *hdg, struct gkyl_range update_range
       gkyl_copy_int_arr(ndim, idxc, idxl);
       gkyl_copy_int_arr(ndim, idxc, idxr);
       // TODO: fix for arbitrary subrange
-      if (hdg->zero_flux_flags[d] && (idxc[dir] == update_range.lower[dir] || idxc[dir] == update_range.upper[dir])) {
+      if (hdg->zero_flux_flags[dir] &&
+        (idxc[dir] == update_range.lower[dir] || idxc[dir] == update_range.upper[dir])) {
         edge = (idxc[dir] == update_range.lower[dir]) ? -1 : 1;
         // use idxl to store interior edge index (first index away from skin cell)
         idxl[dir] = idxl[dir]-edge;
@@ -154,10 +163,11 @@ gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   up->num_basis = basis->num_basis;
   up->num_up_dirs = num_up_dirs;
 
-  for (int i=0; i<num_up_dirs; ++i) {
+  for (int i=0; i<num_up_dirs; ++i)
     up->update_dirs[i] = update_dirs[i];
+  for (int i=0; i<GKYL_MAX_DIM; ++i)
     up->zero_flux_flags[i] = zero_flux_flags[i];
-  }
+    
   up->update_vol_term = update_vol_term;
   up->equation = gkyl_dg_eqn_acquire(equation);
 

@@ -47,20 +47,21 @@ struct vm_skin_ghost_ranges {
 
 // data for moments
 struct vm_species_moment {
-  struct gkyl_mom_type *mtype;
-  gkyl_mom_calc *mcalc;
-  struct gkyl_array *marr;
-  struct gkyl_array *marr_host;
+  struct gkyl_mom_type *mtype; // moment object
+  gkyl_mom_calc *mcalc; // moment update
+  struct gkyl_array *marr; // array to moment data
+  struct gkyl_array *marr_host; // host copy (same as marr if not on GPUs)
 };
 
 struct vm_lbo_collisions {
   struct gkyl_array *cM, *cE; // LBO boundary corrections
-  struct gkyl_mom_type *cM_mom, *cE_mom;
-  struct gkyl_mom_bcorr *cM_bcorr, *cE_bcorr;
+  struct gkyl_mom_type *cM_mom, *cE_mom; // moments needed in update
+  struct gkyl_mom_bcorr *cM_bcorr, *cE_bcorr; // moments needed in update
   struct gkyl_array *nu_sum, *u_drift, *vth_sq, *nu_u, *nu_vthsq; // LBO primitive moments
-  struct gkyl_prim_lbo *coll_prim; // Primitive moments
-  gkyl_prim_lbo_calc *coll_pcalc; // Primitive moment solver
-  gkyl_dg_lbo_updater *coll_slvr; // Collision solver
+  struct gkyl_prim_lbo *coll_prim; // primitive moments
+  
+  gkyl_prim_lbo_calc *coll_pcalc; // primitive moment calculator
+  gkyl_dg_lbo_updater *coll_slvr; // collision solver
 };
 
 struct vm_bgk_collisions {
@@ -94,7 +95,7 @@ struct vm_species {
 
   enum gkyl_collision_id collision_id; // type of collisions
   struct vm_lbo_collisions lbo;
-  double* omegaCfl_ptr;
+  double *omegaCfl_ptr;
 };
 
 // field data

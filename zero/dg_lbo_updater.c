@@ -26,13 +26,16 @@ gkyl_dg_lbo_updater_new(const struct gkyl_rect_grid *grid, const struct gkyl_bas
   lbo->coll_drag = gkyl_dg_vlasov_lbo_drag_new(cbasis, pbasis, conf_range);
   lbo->coll_diff = gkyl_dg_vlasov_lbo_diff_new(cbasis, pbasis, conf_range);
 
-  int vdim = pbasis->ndim-cbasis->ndim;
+  int cdim = cbasis->ndim, pdim = pbasis->ndim;
+  int vdim =pdim-cdim;
   int num_up_dirs = vdim;
-  int up_dirs[GKYL_MAX_DIM], zero_flux_flags[GKYL_MAX_DIM];
-  for (int d=0; d<vdim; ++d) {
+  int up_dirs[GKYL_MAX_DIM];
+  for (int d=0; d<vdim; ++d)
     up_dirs[d] = d + pbasis->ndim - vdim;
+
+  int zero_flux_flags[GKYL_MAX_DIM] = { 0 };
+  for (int d=cdim; d<pdim; ++d)
     zero_flux_flags[d] = 1;
-  }
   
   lbo->diff = gkyl_hyper_dg_new(grid, pbasis, lbo->coll_diff, num_up_dirs, up_dirs, zero_flux_flags, 1);
   lbo->drag = gkyl_hyper_dg_new(grid, pbasis, lbo->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1);
