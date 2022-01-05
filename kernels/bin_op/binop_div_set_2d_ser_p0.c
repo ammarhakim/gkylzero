@@ -1,7 +1,7 @@
 #include <gkyl_mat.h> 
 #include <gkyl_binop_div_ser.h> 
  
-GKYL_CU_DH void binop_div_set_2d_ser_p0(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *f, const double *g) 
+GKYL_CU_DH void binop_div_set_2d_ser_p0(struct gkyl_mat A, struct gkyl_mat rhs, const double *f, const double *g) 
 { 
   // A:       preallocated LHS matrix. 
   // rhs:     preallocated RHS vector. 
