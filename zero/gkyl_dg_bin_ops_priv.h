@@ -38,18 +38,21 @@ static struct { div_set_op_t div[4]; } ser_div_set_list[] = {
   { binop_div_set_3d_ser_p0, binop_div_set_3d_ser_p1, binop_div_set_3d_ser_p2, binop_div_set_3d_ser_p3 } 
 };
 
+GKYL_CU_D
 static mul_op_t
 choose_ser_mul_kern(int dim, int poly_order)
 {
   return ser_mul_list[dim].mul[poly_order];
 }
 
+GKYL_CU_D
 static mul_op_count_t
 choose_ser_mul_op_count_kern(int dim, int poly_order)
 {
   return ser_mul_op_count_list[dim].mul[poly_order];
 }
 
+GKYL_CU_D
 static div_set_op_t
 choose_ser_div_set_kern(int dim, int poly_order)
 {

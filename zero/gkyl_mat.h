@@ -91,7 +91,8 @@ gkyl_mat_get_col(struct gkyl_mat *mat, size_t c)
 
 /**
  * Set all elements of matrix to specified value. Returns pointer to @a mat.
- */ 
+ */
+GKYL_CU_DH
 struct gkyl_mat* gkyl_mat_clear(struct gkyl_mat *mat, double val);
 
 /**

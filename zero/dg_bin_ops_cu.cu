@@ -73,7 +73,6 @@ gkyl_dg_mul_op_range_cu_kernel(struct gkyl_basis basis,
 
   long n = NCOM(out);
   int idx[GKYL_MAX_DIM];
-  int ndim = range.ndim;
   // ac1 = size of last dimension of range (fastest moving dimension)
   long ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
 
@@ -96,8 +95,9 @@ gkyl_dg_mul_op_range_cu_kernel(struct gkyl_basis basis,
     const double *lop_d = (const double*) gkyl_array_cfetch(lop, start);
     const double *rop_d = (const double*) gkyl_array_cfetch(rop, start);
     double *out_d = (double*) gkyl_array_fetch(out, start);
-
-    mul_op(lop_d+c_lop*num_basis, rop_d+c_rop*num_basis, out_d+c_oop*num_basis);  
+    // do operation on contiguous data block
+    if (linc1 < n*ac1)
+      mul_op(lop_d+c_lop*num_basis, rop_d+c_rop*num_basis, out_d+c_oop*num_basis);  
   }
 }
 
@@ -111,7 +111,7 @@ gkyl_dg_mul_op_range_cu(struct gkyl_basis basis,
   dim3 dimGrid, dimBlock;
   gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range, out->ncomp);
 
-  gkyl_array_clear_range_cu_kernel<<<dimGrid, dimBlock>>>(basis, c_oop, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev, range);
+  gkyl_dg_mul_op_range_cu_kernel<<<dimGrid, dimBlock>>>(basis, c_oop, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev, range);
 }
 
 __global__ void
@@ -157,6 +157,7 @@ gkyl_dg_div_op_cu(struct gkyl_basis basis,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop)
 {
+  int num_basis = basis.num_basis;  
   // allocate memory for use in kernels
   struct gkyl_nmat *A_d = gkyl_nmat_cu_dev_new(out->size, num_basis, num_basis);
   struct gkyl_nmat *x_d = gkyl_nmat_cu_dev_new(out->size, num_basis, 1);
@@ -165,10 +166,10 @@ gkyl_dg_div_op_cu(struct gkyl_basis basis,
 
   bool status = gkyl_nmat_linsolve_lu(A_d, x_d);
 
-  gkyl_dg_div_copy_sol_op_cu_kernel<<<out->nblocks, out->nthreads>>>(x_d, basis, c_oop, out->on_dev)
+  gkyl_dg_div_copy_sol_op_cu_kernel<<<out->nblocks, out->nthreads>>>(x_d, basis, c_oop, out->on_dev);
 
-  gkyl_nmat_release(As);
-  gkyl_nmat_release(xs);  
+  gkyl_nmat_release(A_d);
+  gkyl_nmat_release(x_d);  
 }
 
 __global__ void
@@ -184,7 +185,6 @@ gkyl_dg_div_set_op_range_cu_kernel(struct gkyl_nmat *As, struct gkyl_nmat *xs,
 
   long n = NCOM(out);
   int idx[GKYL_MAX_DIM];
-  int ndim = range.ndim;
   // ac1 = size of last dimension of range (fastest moving dimension)
   long ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
 
@@ -210,7 +210,9 @@ gkyl_dg_div_set_op_range_cu_kernel(struct gkyl_nmat *As, struct gkyl_nmat *xs,
     struct gkyl_mat A = gkyl_nmat_get(As, start);
     struct gkyl_mat x = gkyl_nmat_get(xs, start);
     gkyl_mat_clear(&A, 0.0); gkyl_mat_clear(&x, 0.0);  
-    div_set_op(&A, &x, lop_d+c_lop*num_basis, rop_d+c_rop*num_basis);
+    // do operation on contiguous data block
+    if (linc1 < n*ac1)
+      div_set_op(&A, &x, lop_d+c_lop*num_basis, rop_d+c_rop*num_basis);
   }  
 }
 
@@ -220,9 +222,10 @@ gkyl_dg_div_copy_sol_op_range_cu_kernel(struct gkyl_nmat *xs,
   int c_oop, struct gkyl_array* out, struct gkyl_range range)
 {
   int num_basis = basis.num_basis;
+  int ndim = basis.ndim;
   long n = NCOM(out);
   int idx[GKYL_MAX_DIM];
-  int ndim = range.ndim;
+
   // ac1 = size of last dimension of range (fastest moving dimension)
   long ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
 
@@ -244,7 +247,9 @@ gkyl_dg_div_copy_sol_op_range_cu_kernel(struct gkyl_nmat *xs,
 
     double *out_d = (double*) gkyl_array_fetch(out, start);
     struct gkyl_mat x = gkyl_nmat_get(xs, start);
-    binop_div_copy_sol(&x, out_d+c_oop*num_basis);
+    // do operation on contiguous data block
+    if (linc1 < n*ac1)
+      binop_div_copy_sol(&x, out_d+c_oop*num_basis);
   }  
 }
 
@@ -258,16 +263,17 @@ gkyl_dg_div_op_range_cu(struct gkyl_basis basis,
   dim3 dimGrid, dimBlock;
   gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range, out->ncomp);
 
+  int num_basis = basis.num_basis;    
   // allocate memory for use in kernels
   struct gkyl_nmat *A_d = gkyl_nmat_cu_dev_new(out->size, num_basis, num_basis);
   struct gkyl_nmat *x_d = gkyl_nmat_cu_dev_new(out->size, num_basis, 1);
 
-  gkyl_dg_div_set_op_cu_kernel<<<dimGrid, dimBlock>>>(A_d, x_d, basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev, range);
+  gkyl_dg_div_set_op_range_cu_kernel<<<dimGrid, dimBlock>>>(A_d, x_d, basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev, range);
 
   bool status = gkyl_nmat_linsolve_lu(A_d, x_d);
 
-  gkyl_dg_div_copy_sol_op_cu_kernel<<<dimGrid, dimBlock>>>(x_d, basis, c_oop, out->on_dev, range)
+  gkyl_dg_div_copy_sol_op_range_cu_kernel<<<dimGrid, dimBlock>>>(x_d, basis, c_oop, out->on_dev, range);
 
-  gkyl_nmat_release(As);
-  gkyl_nmat_release(xs);  
+  gkyl_nmat_release(A_d);
+  gkyl_nmat_release(x_d);  
 }

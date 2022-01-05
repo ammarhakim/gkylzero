@@ -7,14 +7,14 @@ extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_hyper_dg.h>
-#include <gkyl_hyper_priv_dg.h>
+#include <gkyl_hyper_dg_priv.h>
 #include <gkyl_util.h>
 }
 
 __global__ static void
 gkyl_hyper_dg_set_update_vol_cu_kernel(gkyl_hyper_dg *hdg, int update_vol_term)
 {
-  gkyl_hyper_dg_set_update_vol(hdg, update_vol_term);
+  hdg->update_vol_term = update_vol_term;
 }
 
 __global__ static void
