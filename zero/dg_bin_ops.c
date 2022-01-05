@@ -14,7 +14,9 @@ gkyl_dg_mul_op(struct gkyl_basis basis,
   int c_rop, const struct gkyl_array* rop)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(out)) { gkyl_dg_mul_op_cu(basis, c_oop, out, c_lop, lop, c_rop, rop); }
+  if (gkyl_array_is_cu_dev(out)) {
+    return gkyl_dg_mul_op_cu(basis, c_oop, out, c_lop, lop, c_rop, rop);
+  }
 #endif
 
   int num_basis = basis.num_basis;
@@ -38,7 +40,9 @@ void gkyl_dg_mul_op_range(struct gkyl_basis basis,
   int c_rop, const struct gkyl_array* rop, struct gkyl_range range)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(out)) { gkyl_dg_mul_op_range_cu(basis, c_oop, out, c_lop, lop, c_rop, rop, range); }
+  if (gkyl_array_is_cu_dev(out)) {
+    return gkyl_dg_mul_op_range_cu(basis, c_oop, out, c_lop, lop, c_rop, rop, range);
+  }
 #endif
 
   int num_basis = basis.num_basis;
@@ -68,7 +72,9 @@ gkyl_dg_div_op(struct gkyl_basis basis,
   int c_rop, const struct gkyl_array* rop)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(out)) { gkyl_dg_div_op_cu(basis, c_oop, out, c_lop, lop, c_rop, rop); }
+  if (gkyl_array_is_cu_dev(out)) {
+    return gkyl_dg_div_op_cu(basis, c_oop, out, c_lop, lop, c_rop, rop);
+  }
 #endif
 
   int num_basis = basis.num_basis;
@@ -109,7 +115,9 @@ void gkyl_dg_div_op_range(struct gkyl_basis basis,
   int c_rop, const struct gkyl_array* rop, struct gkyl_range range)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(out)) { gkyl_dg_div_op_range_cu(basis, c_oop, out, c_lop, lop, c_rop, rop, range); }
+  if (gkyl_array_is_cu_dev(out)) {
+    return gkyl_dg_div_op_range_cu(basis, c_oop, out, c_lop, lop, c_rop, rop, range);
+  }
 #endif
 
   int num_basis = basis.num_basis;
