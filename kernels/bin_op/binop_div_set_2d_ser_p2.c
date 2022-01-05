@@ -1,26 +1,25 @@
 #include <gkyl_mat.h> 
 #include <gkyl_binop_div_ser.h> 
  
-void binop_div_2d_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *f, const double *g, double *fdivg) 
+GKYL_CU_DH void binop_div_set_2d_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *f, const double *g) 
 { 
   // A:       preallocated LHS matrix. 
   // rhs:     preallocated RHS vector. 
   // f:       numerator field (must be a scalar). 
   // g:       denominator field (must be a scalar). 
-  // fdivg:   output field. 
  
   // If a corner value is below zero, use cell average g.
   bool avgg = false;
-  if ((-1.936491673103708*(g[7]+g[6]))+1.118033988749895*(g[5]+g[4])+1.5*g[3]-0.8660254037844386*(g[2]+g[1])+0.5*g[0] < 0.0) { 
+  if ((-1.936491673103709*(g[7]+g[6]))+1.118033988749895*(g[5]+g[4])+1.5*g[3]-0.8660254037844386*(g[2]+g[1])+0.5*g[0] < 0.0) { 
     avgg = true;
   }
-  if (1.936491673103708*g[7]-1.936491673103708*g[6]+1.118033988749895*(g[5]+g[4])-1.5*g[3]-0.8660254037844386*g[2]+0.8660254037844386*g[1]+0.5*g[0] < 0.0) { 
+  if (1.936491673103709*g[7]-1.936491673103709*g[6]+1.118033988749895*(g[5]+g[4])-1.5*g[3]-0.8660254037844386*g[2]+0.8660254037844386*g[1]+0.5*g[0] < 0.0) { 
     avgg = true;
   }
-  if ((-1.936491673103708*g[7])+1.936491673103708*g[6]+1.118033988749895*(g[5]+g[4])-1.5*g[3]+0.8660254037844386*g[2]-0.8660254037844386*g[1]+0.5*g[0] < 0.0) { 
+  if ((-1.936491673103709*g[7])+1.936491673103709*g[6]+1.118033988749895*(g[5]+g[4])-1.5*g[3]+0.8660254037844386*g[2]-0.8660254037844386*g[1]+0.5*g[0] < 0.0) { 
     avgg = true;
   }
-  if (1.936491673103708*(g[7]+g[6])+1.118033988749895*(g[5]+g[4])+1.5*g[3]+0.8660254037844386*(g[2]+g[1])+0.5*g[0] < 0.0) { 
+  if (1.936491673103709*(g[7]+g[6])+1.118033988749895*(g[5]+g[4])+1.5*g[3]+0.8660254037844386*(g[2]+g[1])+0.5*g[0] < 0.0) { 
     avgg = true;
   }
  
@@ -98,38 +97,31 @@ void binop_div_2d_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double 
   gkyl_mat_set(A,4,1,0.4472135954999579*lhs[1]); 
   gkyl_mat_set(A,4,2,0.5000000000000001*lhs[6]); 
   gkyl_mat_set(A,4,3,0.4472135954999579*lhs[3]); 
-  gkyl_mat_set(A,4,4,0.3194382824999699*lhs[4]+0.5*lhs[0]); 
-  gkyl_mat_set(A,4,6,0.3194382824999699*lhs[6]+0.5000000000000001*lhs[2]); 
+  gkyl_mat_set(A,4,4,0.31943828249997*lhs[4]+0.5*lhs[0]); 
+  gkyl_mat_set(A,4,6,0.31943828249997*lhs[6]+0.5000000000000001*lhs[2]); 
   gkyl_mat_set(A,4,7,0.4472135954999579*lhs[7]); 
   gkyl_mat_set(A,5,0,0.5*lhs[5]); 
   gkyl_mat_set(A,5,1,0.5000000000000001*lhs[7]); 
   gkyl_mat_set(A,5,2,0.4472135954999579*lhs[2]); 
   gkyl_mat_set(A,5,3,0.4472135954999579*lhs[3]); 
-  gkyl_mat_set(A,5,5,0.3194382824999699*lhs[5]+0.5*lhs[0]); 
+  gkyl_mat_set(A,5,5,0.31943828249997*lhs[5]+0.5*lhs[0]); 
   gkyl_mat_set(A,5,6,0.4472135954999579*lhs[6]); 
-  gkyl_mat_set(A,5,7,0.3194382824999699*lhs[7]+0.5000000000000001*lhs[1]); 
+  gkyl_mat_set(A,5,7,0.31943828249997*lhs[7]+0.5000000000000001*lhs[1]); 
   gkyl_mat_set(A,6,0,0.5*lhs[6]); 
   gkyl_mat_set(A,6,1,0.447213595499958*lhs[3]); 
   gkyl_mat_set(A,6,2,0.5000000000000001*lhs[4]); 
   gkyl_mat_set(A,6,3,0.4*lhs[7]+0.447213595499958*lhs[1]); 
-  gkyl_mat_set(A,6,4,0.3194382824999699*lhs[6]+0.5000000000000001*lhs[2]); 
+  gkyl_mat_set(A,6,4,0.31943828249997*lhs[6]+0.5000000000000001*lhs[2]); 
   gkyl_mat_set(A,6,5,0.4472135954999579*lhs[6]); 
-  gkyl_mat_set(A,6,6,0.4472135954999579*lhs[5]+0.3194382824999699*lhs[4]+0.5*lhs[0]); 
+  gkyl_mat_set(A,6,6,0.4472135954999579*lhs[5]+0.31943828249997*lhs[4]+0.5*lhs[0]); 
   gkyl_mat_set(A,6,7,0.4*lhs[3]); 
   gkyl_mat_set(A,7,0,0.5*lhs[7]); 
   gkyl_mat_set(A,7,1,0.5000000000000001*lhs[5]); 
   gkyl_mat_set(A,7,2,0.447213595499958*lhs[3]); 
   gkyl_mat_set(A,7,3,0.4*lhs[6]+0.447213595499958*lhs[2]); 
   gkyl_mat_set(A,7,4,0.4472135954999579*lhs[7]); 
-  gkyl_mat_set(A,7,5,0.3194382824999699*lhs[7]+0.5000000000000001*lhs[1]); 
+  gkyl_mat_set(A,7,5,0.31943828249997*lhs[7]+0.5000000000000001*lhs[1]); 
   gkyl_mat_set(A,7,6,0.4*lhs[3]); 
-  gkyl_mat_set(A,7,7,0.3194382824999699*lhs[5]+0.4472135954999579*lhs[4]+0.5*lhs[0]); 
+  gkyl_mat_set(A,7,7,0.31943828249997*lhs[5]+0.4472135954999579*lhs[4]+0.5*lhs[0]); 
 
-  // Solve the system of equations. 
-  long ipiv[8]; 
-  gkyl_mat_linsolve_lu(A,rhs,ipiv); 
-  for(size_t i=0; i<8; i++) 
-  { 
-    fdivg[i] = gkyl_mat_get(rhs,i,0); 
-  } 
 } 

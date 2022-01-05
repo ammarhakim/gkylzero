@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gkyl_ref_count.h>
+#include <gkyl_util.h>
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -51,6 +52,7 @@ struct gkyl_mat* gkyl_mat_clone(const struct gkyl_mat *in);
 /**
  * Set value in matrix.
  */
+GKYL_CU_DH
 static inline void
 gkyl_mat_set(struct gkyl_mat *mat, size_t r, size_t c, double val)
 {
@@ -60,6 +62,7 @@ gkyl_mat_set(struct gkyl_mat *mat, size_t r, size_t c, double val)
 /**
  * Get value from matrix.
  */
+GKYL_CU_DH
 static inline double
 gkyl_mat_get(const struct gkyl_mat *mat, size_t r, size_t c)
 {
@@ -69,6 +72,7 @@ gkyl_mat_get(const struct gkyl_mat *mat, size_t r, size_t c)
 /**
  * Get column of matrix as const pointer.
  */
+GKYL_CU_DH
 static inline const double*
 gkyl_mat_get_ccol(const struct gkyl_mat *mat, size_t c)
 {
@@ -78,6 +82,7 @@ gkyl_mat_get_ccol(const struct gkyl_mat *mat, size_t c)
 /**
  * Get column of matrix as pointer.
  */
+GKYL_CU_DH
 static inline double*
 gkyl_mat_get_col(struct gkyl_mat *mat, size_t c)
 {
@@ -191,6 +196,7 @@ struct gkyl_nmat* gkyl_nmat_copy(struct gkyl_nmat *dest, const struct gkyl_nmat 
  * @param n Matrix to fetch
  * @return Matrix (DO NOT free/release this)
  */
+GKYL_CU_DH
 static inline struct gkyl_mat
 gkyl_nmat_get(struct gkyl_nmat *mat, size_t num)
 {

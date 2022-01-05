@@ -10,8 +10,8 @@
 typedef void (*mul_op_t)(const double *f, const double *g, double *fg);
 typedef struct gkyl_kern_op_count (*mul_op_count_t)(void);
 
-// Function pointer type for division
-typedef void (*div_op_t)(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *f, const double *g, double *fg);
+// Function pointer type for setting matrices for division
+typedef void (*div_set_op_t)(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *f, const double *g);
 
 // Serendipity multiplication kernels
 GKYL_CU_D
@@ -31,11 +31,11 @@ static struct { mul_op_count_t mul[4]; } ser_mul_op_count_list[] = {
 
 // Serendipity division kernels
 GKYL_CU_D
-static struct { div_op_t div[4]; } ser_div_list[] = {
+static struct { div_set_op_t div[4]; } ser_div_set_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
-  { binop_div_1d_ser_p0, binop_div_1d_ser_p1, binop_div_1d_ser_p2, binop_div_1d_ser_p3 },
-  { binop_div_2d_ser_p0, binop_div_2d_ser_p1, binop_div_2d_ser_p2, binop_div_2d_ser_p3 },
-  { binop_div_3d_ser_p0, binop_div_3d_ser_p1, binop_div_3d_ser_p2, binop_div_3d_ser_p3 } 
+  { binop_div_set_1d_ser_p0, binop_div_set_1d_ser_p1, binop_div_set_1d_ser_p2, binop_div_set_1d_ser_p3 },
+  { binop_div_set_2d_ser_p0, binop_div_set_2d_ser_p1, binop_div_set_2d_ser_p2, binop_div_set_2d_ser_p3 },
+  { binop_div_set_3d_ser_p0, binop_div_set_3d_ser_p1, binop_div_set_3d_ser_p2, binop_div_set_3d_ser_p3 } 
 };
 
 static mul_op_t
@@ -50,8 +50,8 @@ choose_ser_mul_op_count_kern(int dim, int poly_order)
   return ser_mul_op_count_list[dim].mul[poly_order];
 }
 
-static div_op_t
-choose_ser_div_kern(int dim, int poly_order)
+static div_set_op_t
+choose_ser_div_set_kern(int dim, int poly_order)
 {
-  return ser_div_list[dim].div[poly_order];
+  return ser_div_set_list[dim].div[poly_order];
 }

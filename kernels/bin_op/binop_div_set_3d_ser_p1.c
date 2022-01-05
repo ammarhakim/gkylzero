@@ -1,13 +1,12 @@
 #include <gkyl_mat.h> 
 #include <gkyl_binop_div_ser.h> 
  
-void binop_div_3d_ser_p1(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *f, const double *g, double *fdivg) 
+GKYL_CU_DH void binop_div_set_3d_ser_p1(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *f, const double *g) 
 { 
   // A:       preallocated LHS matrix. 
   // rhs:     preallocated RHS vector. 
   // f:       numerator field (must be a scalar). 
   // g:       denominator field (must be a scalar). 
-  // fdivg:   output field. 
  
   // If a corner value is below zero, use cell average g.
   bool avgg = false;
@@ -139,11 +138,4 @@ void binop_div_3d_ser_p1(struct gkyl_mat *A, struct gkyl_mat *rhs, const double 
   gkyl_mat_set(A,7,6,0.3535533905932737*lhs[1]); 
   gkyl_mat_set(A,7,7,0.3535533905932737*lhs[0]); 
 
-  // Solve the system of equations. 
-  long ipiv[8]; 
-  gkyl_mat_linsolve_lu(A,rhs,ipiv); 
-  for(size_t i=0; i<8; i++) 
-  { 
-    fdivg[i] = gkyl_mat_get(rhs,i,0); 
-  } 
 } 
