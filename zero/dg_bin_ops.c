@@ -123,25 +123,34 @@ void gkyl_dg_div_op_range(struct gkyl_basis basis,
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
-
+  long count = 0;
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(&range, iter.idx);
 
     const double *lop_d = gkyl_array_cfetch(lop, loc);
     const double *rop_d = gkyl_array_cfetch(rop, loc);
 
-    struct gkyl_mat A = gkyl_nmat_get(As, loc);
-    struct gkyl_mat x = gkyl_nmat_get(xs, loc);
-    gkyl_mat_clear(&A, 0.0); gkyl_mat_clear(&x, 0.0);  
+    struct gkyl_mat A = gkyl_nmat_get(As, count);
+    struct gkyl_mat x = gkyl_nmat_get(xs, count);
+    gkyl_mat_clear(&A, 0.0); gkyl_mat_clear(&x, 0.0); 
+
     div_set_op(&A, &x, lop_d+c_lop*num_basis, rop_d+c_rop*num_basis);
+
+    count += 1;
   }
 
   bool status = gkyl_nmat_linsolve_lu(As, xs);
 
-  for (size_t i=0; i<out->size; ++i) {
-    double *out_d = gkyl_array_fetch(out, i);
-    struct gkyl_mat x = gkyl_nmat_get(xs, i);
+  gkyl_range_iter_init(&iter, &range);
+  count = 0;
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+
+    double *out_d = gkyl_array_fetch(out, loc);
+    struct gkyl_mat x = gkyl_nmat_get(xs, count);
     binop_div_copy_sol(&x, out_d+c_oop*num_basis);
+
+    count += 1;
   }
 
   gkyl_nmat_release(As);

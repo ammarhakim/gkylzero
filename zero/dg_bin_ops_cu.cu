@@ -188,6 +188,7 @@ gkyl_dg_div_set_op_range_cu_kernel(struct gkyl_nmat *As, struct gkyl_nmat *xs,
   // ac1 = size of last dimension of range (fastest moving dimension)
   long ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
 
+  long count = 0;
   // 2D thread grid
   // linc1 = c + n*idx1 (contiguous data, including component index c, with idx1 = 0,.., ac1-1)
   long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
@@ -207,12 +208,14 @@ gkyl_dg_div_set_op_range_cu_kernel(struct gkyl_nmat *As, struct gkyl_nmat *xs,
     const double *lop_d = (const double*) gkyl_array_cfetch(lop, start);
     const double *rop_d = (const double*) gkyl_array_cfetch(rop, start);
 
-    struct gkyl_mat A = gkyl_nmat_get(As, start);
-    struct gkyl_mat x = gkyl_nmat_get(xs, start);
+    struct gkyl_mat A = gkyl_nmat_get(As, count);
+    struct gkyl_mat x = gkyl_nmat_get(xs, count);
     gkyl_mat_clear(&A, 0.0); gkyl_mat_clear(&x, 0.0);  
     // do operation on contiguous data block
     if (linc1 < n*ac1)
       div_set_op(&A, &x, lop_d+c_lop*num_basis, rop_d+c_rop*num_basis);
+
+    count += 1;
   }  
 }
 
@@ -229,6 +232,7 @@ gkyl_dg_div_copy_sol_op_range_cu_kernel(struct gkyl_nmat *xs,
   // ac1 = size of last dimension of range (fastest moving dimension)
   long ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
 
+  long count = 0;
   // 2D thread grid
   // linc1 = c + n*idx1 (contiguous data, including component index c, with idx1 = 0,.., ac1-1)
   long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
@@ -246,10 +250,12 @@ gkyl_dg_div_copy_sol_op_range_cu_kernel(struct gkyl_nmat *xs,
     long start = gkyl_range_idx(&range, idx);
 
     double *out_d = (double*) gkyl_array_fetch(out, start);
-    struct gkyl_mat x = gkyl_nmat_get(xs, start);
+    struct gkyl_mat x = gkyl_nmat_get(xs, count);
     // do operation on contiguous data block
     if (linc1 < n*ac1)
       binop_div_copy_sol(&x, out_d+c_oop*num_basis);
+
+    count += 1;
   }  
 }
 
@@ -265,8 +271,8 @@ gkyl_dg_div_op_range_cu(struct gkyl_basis basis,
 
   int num_basis = basis.num_basis;    
   // allocate memory for use in kernels
-  struct gkyl_nmat *A_d = gkyl_nmat_cu_dev_new(out->size, num_basis, num_basis);
-  struct gkyl_nmat *x_d = gkyl_nmat_cu_dev_new(out->size, num_basis, 1);
+  struct gkyl_nmat *A_d = gkyl_nmat_cu_dev_new(range.volume, num_basis, num_basis);
+  struct gkyl_nmat *x_d = gkyl_nmat_cu_dev_new(range.volume, num_basis, 1);
 
   gkyl_dg_div_set_op_range_cu_kernel<<<dimGrid, dimBlock>>>(A_d, x_d, basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev, range);
 
