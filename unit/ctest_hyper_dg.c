@@ -68,8 +68,8 @@ test_vlasov_1x2v_p2_(bool use_gpu)
     eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &confRange, field_id);
 
   // initialize hyper_dg slvr
-  int up_dirs[] = {0, 1, 2};
-  int zero_flux_flags[] = {0, 1, 1};
+  int up_dirs[GKYL_MAX_DIM] = {0, 1, 2};
+  int zero_flux_flags[GKYL_MAX_DIM] = {0, 1, 1};
 
   gkyl_hyper_dg *slvr;
   if (use_gpu)
@@ -267,8 +267,8 @@ test_vlasov_2x3v_p1_(bool use_gpu)
     eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &confRange, field_id);
 
   // initialize hyper_dg slvr
-  int up_dirs[] = {0, 1, 2, 3, 4};
-  int zero_flux_flags[] = {0, 0, 1, 1, 1};
+  int up_dirs[GKYL_MAX_DIM] = {0, 1, 2, 3, 4};
+  int zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 1, 1, 1};
 
   gkyl_hyper_dg *slvr;
   if (use_gpu) {

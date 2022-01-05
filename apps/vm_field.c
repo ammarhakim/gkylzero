@@ -1,3 +1,4 @@
+#include <gkyl_util.h>
 #include <assert.h>
 
 #include <gkyl_alloc.h>
@@ -53,7 +54,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   else
     f->eqn = gkyl_dg_maxwell_new(&app->confBasis, c, ef, mf);
 
-  int up_dirs[] = {0, 1, 2}, zero_flux_flags[] = {0, 0, 0};
+  int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
 
   // Maxwell solver
   if (app->use_gpu)

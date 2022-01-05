@@ -29,7 +29,7 @@ gkyl_dg_lbo_updater_new(const struct gkyl_rect_grid *grid, const struct gkyl_bas
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int vdim =pdim-cdim;
   int num_up_dirs = vdim;
-  int up_dirs[GKYL_MAX_DIM];
+  int up_dirs[GKYL_MAX_DIM] = { 0 };
   for (int d=0; d<vdim; ++d)
     up_dirs[d] = d + pbasis->ndim - vdim;
 

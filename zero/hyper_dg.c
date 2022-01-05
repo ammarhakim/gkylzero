@@ -154,7 +154,8 @@ gkyl_hyper_dg_advance_no_iter(gkyl_hyper_dg *hdg, struct gkyl_range update_range
 gkyl_hyper_dg*
 gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation,
-  int num_up_dirs, int update_dirs[], int zero_flux_flags[], int update_vol_term)
+  int num_up_dirs, int update_dirs[GKYL_MAX_DIM], int zero_flux_flags[GKYL_MAX_DIM],
+  int update_vol_term)
 {
   gkyl_hyper_dg *up = gkyl_malloc(sizeof(gkyl_hyper_dg));
 

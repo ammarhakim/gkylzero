@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gkyl_util.h>
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_dg_eqn.h>
@@ -22,7 +23,8 @@ typedef struct gkyl_hyper_dg gkyl_hyper_dg;
  */
 gkyl_hyper_dg* gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation,
-  int num_up_dirs, int update_dirs[], int zero_flux_flags[], int update_vol_term);
+  int num_up_dirs, int update_dirs[GKYL_MAX_DIM], int zero_flux_flags[GKYL_MAX_DIM],
+  int update_vol_term);
 
 /**
  * Create new updater on CUDA device to update equations using DG algorithm.
@@ -37,7 +39,8 @@ gkyl_hyper_dg* gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
  */
 gkyl_hyper_dg* gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
   const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation_cu,
-  int num_up_dirs, int update_dirs[], int zero_flux_flags[], int update_vol_term);
+  int num_up_dirs, int update_dirs[GKYL_MAX_DIM], int zero_flux_flags[GKYL_MAX_DIM],
+  int update_vol_term);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
