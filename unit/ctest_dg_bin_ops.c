@@ -522,7 +522,7 @@ test_1d_cu(int poly_order)
 
   // make device copies of arrays
   struct gkyl_array *distf_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
-  struct gkyl_array *distf_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);  
+  struct gkyl_array *distg_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);  
 
   // project distribution function on basis on CPU
   gkyl_proj_on_basis_advance(projDistf, 0.0, &arr_range, distf);
@@ -581,7 +581,7 @@ test_1d_cu(int poly_order)
 }
 
 void
-test_2d(int poly_order)
+test_2d_cu(int poly_order)
 {
   double lower[] = {0.0, 0.0}, upper[] = {1.0, 1.0};
   int cells[] = {2, 2};
@@ -607,7 +607,7 @@ test_2d(int poly_order)
 
   // make device copies of arrays
   struct gkyl_array *distf_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
-  struct gkyl_array *distf_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);  
+  struct gkyl_array *distg_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);  
 
   // project distribution function on basis on CPU
   gkyl_proj_on_basis_advance(projDistf, 0.0, &arr_range, distf);
@@ -666,7 +666,7 @@ test_2d(int poly_order)
 }
 
 void
-test_3d(int poly_order)
+test_3d_cu(int poly_order)
 {
   double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
   int cells[] = {2, 2, 2};
@@ -692,7 +692,7 @@ test_3d(int poly_order)
 
   // make device copies of arrays
   struct gkyl_array *distf_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
-  struct gkyl_array *distf_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);  
+  struct gkyl_array *distg_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);  
 
   // project distribution function on basis on CPU
   gkyl_proj_on_basis_advance(projDistf, 0.0, &arr_range, distf);
@@ -826,7 +826,7 @@ test_3d_p3_cu()
 
   // make device copies of arrays
   struct gkyl_array *distf_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
-  struct gkyl_array *distf_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);  
+  struct gkyl_array *distg_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);  
 
   // project distribution function on basis on CPU
   gkyl_proj_on_basis_advance(projDistf, 0.0, &arr_range, distf);

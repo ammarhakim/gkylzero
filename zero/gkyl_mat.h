@@ -93,7 +93,12 @@ gkyl_mat_get_col(struct gkyl_mat *mat, size_t c)
  * Set all elements of matrix to specified value. Returns pointer to @a mat.
  */
 GKYL_CU_DH
-struct gkyl_mat* gkyl_mat_clear(struct gkyl_mat *mat, double val);
+static inline struct gkyl_mat*
+gkyl_mat_clear(struct gkyl_mat *mat, double val)
+{
+  for (size_t i=0; i<mat->nr*mat->nc; ++i) mat->data[i] = val;
+  return mat;
+}
 
 /**
  * Set all elements on diagonal to specified value. All other elements

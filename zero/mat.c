@@ -71,13 +71,6 @@ gkyl_mat_clone(const struct gkyl_mat *in)
 }
 
 struct gkyl_mat*
-gkyl_mat_clear(struct gkyl_mat *mat, double val)
-{
-  for (size_t i=0; i<mat->nr*mat->nc; ++i) mat->data[i] = val;
-  return mat;
-}
-
-struct gkyl_mat*
 gkyl_mat_diag(struct gkyl_mat *mat, double val)
 {
   gkyl_mat_clear(mat, 0.0);
