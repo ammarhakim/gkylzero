@@ -81,7 +81,8 @@ test_sr_euler_prim1()
     gkyl_wv_eqn_rotate_to_local(sr_euler, tau1[d], tau2[d], norm[d], q, q_l);
     gkyl_wv_eqn_rotate_to_global(sr_euler, tau1[d], tau2[d], norm[d], q_l, q_g);
 
-    for (int m=0; m<5; ++m) TEST_CHECK( gkyl_compare(q[m], q_g[m], 1e-12) );
+    for (int m=0; m<5; ++m)
+      TEST_CHECK( gkyl_compare(q[m], q_g[m], 1e-12) );
   }
   
   gkyl_wv_eqn_release(sr_euler);
