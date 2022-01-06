@@ -132,9 +132,9 @@ gkyl_dg_div_set_op_cu_kernel(struct gkyl_nmat *As, struct gkyl_nmat *xs,
 
     struct gkyl_mat A = gkyl_nmat_get(As, linc);
     struct gkyl_mat x = gkyl_nmat_get(xs, linc);
-    gkyl_mat_clear(&A, 0.0); gkyl_mat_clear(&x, 0.0);  
+    gkyl_mat_clear(&A, 0.0); gkyl_mat_clear(&x, 0.0);
     div_set_op(&A, &x, lop_d+c_lop*num_basis, rop_d+c_rop*num_basis);
-  }  
+  }
 }
 
 __global__ void
@@ -162,11 +162,13 @@ gkyl_dg_div_op_cu(struct gkyl_basis basis,
   struct gkyl_nmat *A_d = gkyl_nmat_cu_dev_new(out->size, num_basis, num_basis);
   struct gkyl_nmat *x_d = gkyl_nmat_cu_dev_new(out->size, num_basis, 1);
 
-  gkyl_dg_div_set_op_cu_kernel<<<out->nblocks, out->nthreads>>>(A_d, x_d, basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev);
-
+  // construct matrices using CUDA kernel
+  gkyl_dg_div_set_op_cu_kernel<<<out->nblocks, out->nthreads>>>(A_d->on_dev, x_d->on_dev,
+    basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev);
+  // invert all matrices in batch mode
   bool status = gkyl_nmat_linsolve_lu(A_d, x_d);
-
-  gkyl_dg_div_copy_sol_op_cu_kernel<<<out->nblocks, out->nthreads>>>(x_d, basis, c_oop, out->on_dev);
+  // copy solution into array (also lives on the device)
+  gkyl_dg_div_copy_sol_op_cu_kernel<<<out->nblocks, out->nthreads>>>(x_d->on_dev, basis, c_oop, out->on_dev);
 
   gkyl_nmat_release(A_d);
   gkyl_nmat_release(x_d);  
@@ -274,11 +276,13 @@ gkyl_dg_div_op_range_cu(struct gkyl_basis basis,
   struct gkyl_nmat *A_d = gkyl_nmat_cu_dev_new(range.volume, num_basis, num_basis);
   struct gkyl_nmat *x_d = gkyl_nmat_cu_dev_new(range.volume, num_basis, 1);
 
-  gkyl_dg_div_set_op_range_cu_kernel<<<dimGrid, dimBlock>>>(A_d, x_d, basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev, range);
-
+  // construct matrices using CUDA kernel  
+  gkyl_dg_div_set_op_range_cu_kernel<<<dimGrid, dimBlock>>>(A_d->on_dev, x_d->on_dev,
+    basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev, range);
+  // invert all matrices in batch mode
   bool status = gkyl_nmat_linsolve_lu(A_d, x_d);
-
-  gkyl_dg_div_copy_sol_op_range_cu_kernel<<<dimGrid, dimBlock>>>(x_d, basis, c_oop, out->on_dev, range);
+  // copy solution into array (also lives on the device)
+  gkyl_dg_div_copy_sol_op_range_cu_kernel<<<dimGrid, dimBlock>>>(x_d->on_dev, basis, c_oop, out->on_dev, range);
 
   gkyl_nmat_release(A_d);
   gkyl_nmat_release(x_d);  

@@ -296,8 +296,8 @@ test_3d(int poly_order)
     const double *g_d = gkyl_array_cfetch(distg, i);
     const double *gbar_d = gkyl_array_cfetch(g_bar, i);
     for (int k=0; k<basis.num_basis; ++k) {
-      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-12) );
-      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-12) );
+      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-11) );
+      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-11) );
     }
   }
 
@@ -322,8 +322,8 @@ test_3d(int poly_order)
     const double *g_d = gkyl_array_cfetch(distg, loc);
     const double *gbar_d = gkyl_array_cfetch(g_bar, loc);
     for (int k=0; k<basis.num_basis; ++k) {
-      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-12) );
-      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-12) );
+      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-11) );
+      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-11) );
     }
   }
   
@@ -732,8 +732,8 @@ test_3d_cu(int poly_order)
     const double *g_d = gkyl_array_cfetch(distg, i);
     const double *gbar_d = gkyl_array_cfetch(g_bar, i);
     for (int k=0; k<basis.num_basis; ++k) {
-      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-12) );
-      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-12) );
+      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-11) );
+      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-11) );
     }
   }
   
