@@ -8,15 +8,32 @@
 #include <gkyl_alloc.h>
 #include <gkyl_util.h>
 
+// Output command for use in debugging memory usage
+#define GKYL_MEMMSG(fmt, ...)                                           \
+    do {                                                                \
+      if (gkyl_mem_debug)                                               \
+        fprintf(stderr, fmt, __VA_ARGS__);                              \
+  } while (0);
+
+// Output command for use in debugging CUDA memory usage
+#define GKYL_CU_MEMMSG(fmt, ...) do {           \
+      if (gkyl_cu_dev_mem_debug)                \
+        fprintf(stderr, fmt, __VA_ARGS__);      \
+    } while (0);
+
 // by default, do not print memory allocation traces
 bool gkyl_mem_debug = false;
+bool gkyl_cu_dev_mem_debug = false;
 
-void
-gkyl_mem_debug_set(bool flag)
+void gkyl_mem_debug_set(bool flag)
 {
   gkyl_mem_debug = flag;
 }
-    
+
+void gkyl_cu_dev_mem_debug_set(bool flag)
+{
+  gkyl_cu_dev_mem_debug = flag;
+}
 
 // Compute first 'align' boundary after 'num'
 #define align_up(num, align)                    \
@@ -144,35 +161,41 @@ gkyl_mem_buff_release(gkyl_mem_buff mem)
 #include <cuda_runtime.h>
 
 void*
-gkyl_cu_malloc(size_t size)
+gkyl_cu_malloc_(const char *file, int line, const char *func, size_t size)
 {
   void *ptr;
   cudaError_t err = cudaMalloc(&ptr, size);
   if (err != cudaSuccess)
     gkyl_exit("cudaMalloc failed!");
+  
+  GKYL_CU_MEMMSG("%p 0.cudaMalloc: %s %s:%d\n", ptr, file, func, line);
   return ptr;
 }
 
 // for pinned host memory
 void*
-gkyl_cu_malloc_host(size_t size)
+gkyl_cu_malloc_host_(const char *file, int line, const char *func, size_t size)
 {
   void *ptr;
   cudaError_t err = cudaMallocHost(&ptr, size);
   if (err != cudaSuccess)
     gkyl_exit("cudaMallocHost failed!");
+
+  GKYL_CU_MEMMSG("%p 0.cudaMallocHost: %s %s:%d\n", ptr, file, func, line);
   return ptr;
 }
 
 void
-gkyl_cu_free(void *ptr)
+gkyl_cu_free_(const char *file, int line, const char *func, void *ptr)
 {
+  GKYL_CU_MEMMSG("%p 1.cudaFree: %s %s:%d\n", ptr, file, func, line);
   cudaFree(ptr);
 }
 
 void
-gkyl_cu_free_host(void *ptr)
+gkyl_cu_free_host_(const char *file, int line, const char *func, void *ptr)
 {
+  GKYL_CU_MEMMSG("%p 1.cudaFreeHost: %s %s:%d\n", ptr, file, func, line);
   cudaFreeHost(ptr);
 }
 
@@ -199,27 +222,27 @@ gkyl_cu_memset(void *data, int val, size_t count)
 // none of these methods should be called at all.
 
 void*
-gkyl_cu_malloc(size_t size)
+gkyl_cu_malloc_(const char *file, int line, const char *func, size_t size)
 {
   assert(false);
   return 0;
 }
 
 void*
-gkyl_cu_malloc_host(size_t size)
+gkyl_cu_malloc_host_(const char *file, int line, const char *func, size_t size)
 {
   assert(false);
   return 0;
 }
 
 void
-gkyl_cu_free(void *ptr)
+gkyl_cu_free_(const char *file, int line, const char *func, void *ptr)
 {
   assert(false);
 }
 
 void
-gkyl_cu_free_host(void *ptr)
+gkyl_cu_free_host_(const char *file, int line, const char *func, void *ptr)
 {
   assert(false);
 }

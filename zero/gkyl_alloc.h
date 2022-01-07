@@ -6,9 +6,13 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-/** Global flag to indicate if we should print memory messages to
- * stderr. */
+// Global flag to indicate if we should print memory messages to
+// stderr
 extern bool gkyl_mem_debug;
+
+// Global flag to indicate if we should print CUDA memory messages to
+// stderr.
+extern bool gkyl_cu_dev_mem_debug;
 
 /**
  * Set the global flag to turn on memory allocation/deallocation
@@ -18,11 +22,13 @@ extern bool gkyl_mem_debug;
  */
 void gkyl_mem_debug_set(bool flag);
 
-// Output command for use in debugging memory usage
-#define GKYL_MEMMSG(fmt, ...) do {              \
-      if (gkyl_mem_debug)                       \
-        fprintf(stderr, fmt, __VA_ARGS__);      \
-    } while (0);
+/**
+ * Set the global flag to turn on cuda memory allocation/deallocation
+ * tracing.
+ *
+ * @param flag Flag to set
+ */
+void gkyl_cu_dev_mem_debug_set(bool flag);
 
 // The following allocators are implemented as macros to allow
 // debugging memory leaks. In general, it is best to use
@@ -108,17 +114,27 @@ void gkyl_mem_buff_release(gkyl_mem_buff mem);
 
 // CUDA specific code (NV: Nvidia)
 
+#define gkyl_cu_malloc(size)                                    \
+    gkyl_cu_malloc_(__FILE__, __LINE__, __FUNCTION__, size)
+#define gkyl_cu_free(ptr)                                       \
+    gkyl_cu_free_(__FILE__, __LINE__, __FUNCTION__, ptr)
+
+#define gkyl_cu_malloc_host(size)                               \
+    gkyl_cu_malloc_host_(__FILE__, __LINE__, __FUNCTION__, size)
+#define gkyl_cu_free_host(ptr)                                  \
+    gkyl_cu_free_host_(__FILE__, __LINE__, __FUNCTION__, ptr)
+
 /** Allocate memory on NV-GPU */
-void* gkyl_cu_malloc(size_t size);
+void* gkyl_cu_malloc_(const char *file, int line, const char *func, size_t size);
 
 /** Free memory on device */
-void gkyl_cu_free(void *ptr);
+void gkyl_cu_free_(const char *file, int line, const char *func, void *ptr);
 
 /** Allocate pinned host memory on NV-GPU */
-void* gkyl_cu_malloc_host(size_t size);
+void* gkyl_cu_malloc_host_(const char *file, int line, const char *func, size_t size);
 
 /** Free pinned host memory on device */
-void gkyl_cu_free_host(void *ptr);
+void gkyl_cu_free_host_(const char *file, int line, const char *func, void *ptr);
 
 /** Copy data between host/device */
 void gkyl_cu_memcpy(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind);
