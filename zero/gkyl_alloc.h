@@ -4,15 +4,61 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+
+/** Global flag to indicate if we should print memory messages to
+ * stderr. */
+extern bool gkyl_mem_debug;
+
+/**
+ * Set the global flag to turn on memory allocation/deallocation
+ * tracing.
+ *
+ * @param flag Flag to set
+ */
+void gkyl_mem_debug_set(bool flag);
+
+// Output command for use in debugging memory usage
+#define GKYL_MEMMSG(fmt, ...) do {              \
+      if (gkyl_mem_debug)                       \
+        fprintf(stderr, fmt, __VA_ARGS__);      \
+    } while (0);
+
+// The following allocators are implemented as macros to allow
+// debugging memory leaks. In general, it is best to use
+// valgrind. However, valgrind can be very slow and also it gets
+// confused with CUDA symbols in the executable (even for host
+// code). Further, it seems that cuda-memcheck is not really tracking
+// memory leaks.
+
+#define gkyl_malloc(size)                                       \
+    gkyl_malloc_(__FILE__, __LINE__, __FUNCTION__, size)
+#define gkyl_calloc(num, size)                                  \
+    gkyl_calloc_(__FILE__, __LINE__, __FUNCTION__, num, size)
+#define gkyl_realloc(ptr, new_size)                                     \
+    gkyl_realloc_(__FILE__, __LINE__, __FUNCTION__, ptr, new_size)
+#define gkyl_free(ptr) \
+    gkyl_free_(__FILE__, __LINE__, __FUNCTION__, ptr)
+
+// Allocate memory that is aligned to given byte boundary. You must
+// only use gkyl_aligned_realloc() and gkyl_aligned_free() methods to
+// reallocate or free memory returned by this methods.
+
+#define gkyl_aligned_alloc(align, size)                                 \
+    gkyl_aligned_alloc_(__FILE__, __LINE__, __FUNCTION__, align, size)
+#define gkyl_aligned_realloc(ptr, align, old_sz, new_sz)                       \
+    gkyl_aligned_realloc_(__FILE__, __LINE__, __FUNCTION__, ptr, align, old_sz, new_sz)
+#define gkyl_aligned_free(ptr) \
+    gkyl_aligned_free_(__FILE__, __LINE__, __FUNCTION__, ptr)
 
 // The following allocators have the same calling/return behavior as
 // standard C allocators. However, an error is signaled if allocation
 // fails.
 
-void* gkyl_malloc(size_t size);
-void* gkyl_calloc(size_t num, size_t size);
-void* gkyl_realloc(void *ptr, size_t new_size);
-void gkyl_free(void *ptr);
+void* gkyl_malloc_(const char *file, int line, const char *func, size_t size);
+void* gkyl_calloc_(const char *file, int line, const char *func, size_t num, size_t size);
+void* gkyl_realloc_(const char *file, int line, const char *func, void *ptr, size_t new_size);
+void gkyl_free_(const char *file, int line, const char *func, void *ptr);
 
 /**
  * Allocate memory that is aligned to given byte boundary. You must
@@ -22,7 +68,7 @@ void gkyl_free(void *ptr);
  * @param align Alignment boundary. Must be power of 2.
  * @param size Number of bytes to allocate.
  */
-void* gkyl_aligned_alloc(size_t align, size_t size);
+void* gkyl_aligned_alloc_(const char *file, int line, const char *func, size_t align, size_t size);
 
 /**
  * Reallocate memory that is aligned to given byte boundary. The
@@ -35,14 +81,15 @@ void* gkyl_aligned_alloc(size_t align, size_t size);
  * @param old_sz Old size of memory.
  * @param new_sz New size of memory.
  */
-void* gkyl_aligned_realloc(void *ptr, size_t align, size_t old_sz, size_t new_sz);
+void* gkyl_aligned_realloc_(const char *file, int line, const char *func,
+  void *ptr, size_t align, size_t old_sz, size_t new_sz);
 
 /**
  * Free memory allocated by gkyl_aligned_alloc().
  *
  * @param ptr Memory to free.
  */
-void gkyl_aligned_free(void *ptr);
+void gkyl_aligned_free_(const char *file, int line, const char *func, void *ptr);
 
 // Represents a sized chunk of memory
 typedef struct gkyl_mem_buff_tag* gkyl_mem_buff;

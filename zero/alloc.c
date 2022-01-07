@@ -8,6 +8,16 @@
 #include <gkyl_alloc.h>
 #include <gkyl_util.h>
 
+// by default, do not print memory allocation traces
+bool gkyl_mem_debug = false;
+
+void
+gkyl_mem_debug_set(bool flag)
+{
+  gkyl_mem_debug = flag;
+}
+    
+
 // Compute first 'align' boundary after 'num'
 #define align_up(num, align)                    \
     (((num) + ((align) - 1)) & ~((align) - 1))
@@ -15,37 +25,42 @@
 static const size_t PTR_OFFSET_SZ = sizeof(uint16_t);
 
 void*
-gkyl_malloc(size_t size)
+gkyl_malloc_(const char *file, int line, const char *func, size_t size)
 {
   void *mem = malloc(size);
   if (0 == mem) gkyl_exit("malloc failed!");
+  GKYL_MEMMSG("%p 0.malloc: %s %s:%d\n", mem, file, func, line);
   return mem;
 }
 
 void*
-gkyl_calloc(size_t num, size_t size)
+gkyl_calloc_(const char *file, int line, const char *func, size_t num, size_t size)
 {
   void *mem = calloc(num, size);
   if (0 == mem) gkyl_exit("calloc failed!");
+  GKYL_MEMMSG("%p 0.calloc: %s %s:%d\n", mem, file, func, line);
   return mem;
 }
 
 void*
-gkyl_realloc(void *ptr, size_t new_size)
+gkyl_realloc_(const char *file, int line, const char *func, void *ptr, size_t new_size)
 {
   void *mem = realloc(ptr, new_size);
   if (0 == mem) gkyl_exit("realloc failed!");
+  GKYL_MEMMSG("%p 0.realloc: %s %s:%d\n", mem, file, func, line);
   return mem;
 }
 
 void
-gkyl_free(void *ptr)
+gkyl_free_(const char *file, int line, const char *func, void *ptr)
 {
+  GKYL_MEMMSG("%p 1.free: %s %s:%d\n", ptr, file, func, line);
   free(ptr);
 }
 
 void*
-gkyl_aligned_alloc(size_t align, size_t size)
+gkyl_aligned_alloc_(const char *file, int line, const char *func,
+  size_t align, size_t size)
 {
   void *ptr = 0;
   assert((align & (align-1)) == 0); // power of 2?
@@ -58,11 +73,14 @@ gkyl_aligned_alloc(size_t align, size_t size)
       *((uint16_t *)ptr - 1) = (uint16_t) ((uintptr_t) ptr - (uintptr_t) p);
     }
   }
+
+  GKYL_MEMMSG("%p 0.aligned_alloc: %s %s:%d\n", ptr, file, func, line);
   return ptr;
 }
 
 void*
-gkyl_aligned_realloc(void *ptr, size_t align, size_t old_sz, size_t new_sz)
+gkyl_aligned_realloc_(const char *file, int line, const char *func,
+  void *ptr, size_t align, size_t old_sz, size_t new_sz)
 {
   void *nptr = gkyl_aligned_alloc(align, new_sz);
   if (0 == nptr) {
@@ -71,13 +89,18 @@ gkyl_aligned_realloc(void *ptr, size_t align, size_t old_sz, size_t new_sz)
   }
   memcpy(nptr, ptr, old_sz < new_sz ? old_sz : new_sz);
   gkyl_aligned_free(ptr);
+
+  GKYL_MEMMSG("%p 0.aligned_realloc: %s %s:%d\n", ptr, file, func, line);
   return nptr;
 }
 
 void
-gkyl_aligned_free(void* ptr)
+gkyl_aligned_free_(const char *file, int line, const char *func,
+  void* ptr)
 {
   assert(ptr);
+  GKYL_MEMMSG("%p 1.aligned_free: %s %s:%d\n", ptr, file, func, line);
+    
   uint16_t offset = *((uint16_t *)ptr - 1);
   gkyl_free((uint8_t *)ptr - offset);
 }
