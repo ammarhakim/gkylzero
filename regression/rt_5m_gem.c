@@ -1,3 +1,4 @@
+#include <gkyl_alloc.h>
 #include <math.h>
 #include <stdio.h>
 

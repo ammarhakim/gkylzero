@@ -22,8 +22,8 @@
     } while (0);
 
 // by default, do not print memory allocation traces
-bool gkyl_mem_debug = false;
-bool gkyl_cu_dev_mem_debug = false;
+static bool gkyl_mem_debug = false;
+static bool gkyl_cu_dev_mem_debug = false;
 
 void gkyl_mem_debug_set(bool flag)
 {

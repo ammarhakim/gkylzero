@@ -15,7 +15,7 @@ maxwell_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_maxwell *maxwell = container_of(base, struct dg_maxwell, eqn);
-  free(maxwell);
+  gkyl_free(maxwell);
 }
 
 struct gkyl_dg_eqn*

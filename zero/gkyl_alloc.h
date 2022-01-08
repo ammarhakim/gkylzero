@@ -6,14 +6,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-// Global flag to indicate if we should print memory messages to
-// stderr
-extern bool gkyl_mem_debug;
-
-// Global flag to indicate if we should print CUDA memory messages to
-// stderr.
-extern bool gkyl_cu_dev_mem_debug;
-
 /**
  * Set the global flag to turn on memory allocation/deallocation
  * tracing.

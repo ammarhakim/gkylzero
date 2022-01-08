@@ -178,7 +178,7 @@ gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
 void gkyl_hyper_dg_release(gkyl_hyper_dg* hdg)
 {
   gkyl_dg_eqn_release(hdg->equation);
-  free(hdg);
+  gkyl_free(hdg);
 }
 
 #ifndef GKYL_HAVE_CUDA
