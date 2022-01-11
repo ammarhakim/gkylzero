@@ -1335,12 +1335,14 @@ unmag_braginskii_update(const gkyl_moment_braginskii *bes,
           v[j][n][k - MX] = fluid_d[j][n][k] / fluid_d[j][n][RHO];
 
     double p[3][2];
-    const double gas_gamma = 5.0 / 3.0;  // Note: Hard-coded value
-    for (int j = L_1D; j <= U_1D; ++j)
+    // Pressure information is different for each equation type
+    for (int j = L_1D; j < U_1D; ++j)
       for (int n = 0; n < nfluids; ++n)
       {
-        double KE = 0.5 * (fluid_d[j][n][MX] * fluid_d[j][n][MX] + fluid_d[j][n][MY] * fluid_d[j][n][MY] + fluid_d[j][n][MZ] * fluid_d[j][n][MZ]) / fluid_d[j][n][RHO];
-        p[j][n] = (gas_gamma - 1.0) * fluid_d[j][n][ER] - KE;
+        if (bes->param[n].type_eqn == GKYL_EQN_EULER)
+          p[j][n] = gkyl_euler_pressure(bes->param[n].p_fac, fluid_d[j][n]); // Euler needs to divide out gas_gamma factor to obtain pressure
+        else if (bes->param[n].type_eqn == GKYL_EQN_ISO_EULER)
+          p[j][n] = rho[j][n] * bes->param[n].p_fac * bes->param[n].p_fac; // isothermal Euler input is vth, pressure = rho*vth^2
       }
 
     double T[3][2];
@@ -1353,7 +1355,7 @@ unmag_braginskii_update(const gkyl_moment_braginskii *bes,
     const int ION = (ELC + 1) % 2;
 
     const double e = bes->param[ELC].charge;
-    const int Z = bes->param[ION].charge / fabs(bes->param[ELC].charge);  // Note: May always round down on conversion
+    const int Z = round(bes->param[ION].charge / fabs(bes->param[ELC].charge));
 
     double lambda = 10.0; // Note: Change this
 
@@ -1390,22 +1392,25 @@ unmag_braginskii_update(const gkyl_moment_braginskii *bes,
       double etaL = calc_harmonic_avg_1D(eta[L_1D][n], eta[C_1D][n]);
       double etaR = calc_harmonic_avg_1D(eta[C_1D][n], eta[U_1D][n]);
 
-      // Viscous stress tensor
-      double piL[3] = { (4.0 / 3.0) * dvdxL[0], dvdxL[1], dvdxL[2] };
-      double piR[3] = { (4.0 / 3.0) * dvdxR[0], dvdxR[1], dvdxR[2] };
-
+      // First column of viscous stress tensor (other terms will be 0 after divergence)
+      double piL[3] = { -(4.0 / 3.0) * etaL * dvdxL[0], -etaL * dvdxL[1], -etaL * dvdxL[2] };
+      double piR[3] = { -(4.0 / 3.0) * etaR * dvdxR[0], -etaR * dvdxR[1], -etaR * dvdxR[2] };
+      
       // Update momentum
-      rhs[n][MX] = calc_sym_grad_1D(dx, etaL * piL[0], etaR * piR[0]);
-      rhs[n][MY] = calc_sym_grad_1D(dx, etaL * piL[1], etaR * piR[1]);
-      rhs[n][MZ] = calc_sym_grad_1D(dx, etaL * piL[2], etaR * piR[2]);
+      rhs[n][MX] = -calc_sym_grad_1D(dx, piL[0], piR[0]);
+      rhs[n][MY] = -calc_sym_grad_1D(dx, piL[1], piR[1]);
+      rhs[n][MZ] = -calc_sym_grad_1D(dx, piL[2], piR[2]);
 
-      // Compute velocity derivatives at center
-      double dvdxC[3] = { calc_harmonic_avg_1D(dvdxL[0], dvdxR[0]),
-                          calc_harmonic_avg_1D(dvdxL[1], dvdxR[1]),
-                          calc_harmonic_avg_1D(dvdxL[2], dvdxR[2]) };
+      if (bes->param[n].type_eqn == GKYL_EQN_EULER)
+      {
+        // Compute velocity derivatives at center
+        double dvdxC[3] = { calc_harmonic_avg_1D(dvdxL[0], dvdxR[0]),
+                            calc_harmonic_avg_1D(dvdxL[1], dvdxR[1]),
+                            calc_harmonic_avg_1D(dvdxL[2], dvdxR[2]) };
 
-      // Update energy
-      rhs[n][ER] = -1.0 * eta[C_1D][n] * (4.0 / 3.0 * dvdxC[0] * dvdxC[0] + dvdxC[1] * dvdxC[1] + dvdxC[2] * dvdxC[2]);
+        // Update energy
+        rhs[n][ER] = eta[C_1D][n] * (4.0 / 3.0 * dvdxC[0] * dvdxC[0] + dvdxC[1] * dvdxC[1] + dvdxC[2] * dvdxC[2]);
+      }
     }
   }
 }

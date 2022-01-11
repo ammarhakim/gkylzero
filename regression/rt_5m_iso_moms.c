@@ -6,71 +6,93 @@
 #include <gkyl_wv_iso_euler.h>
 #include <rt_arg_parse.h>
 
-void
-evalElcInit(double t, const double * restrict xn, double* restrict fout, void *ctx)
-{
-  double x = xn[0];
-  double elcMass = 1.0/1836.2;
+static double Sin(double x) { return sin(x); }
+static double Cos(double x) { return cos(x); }
+static double Power(double x, double n) { return pow(x, n); }
 
-  fout[0] = elcMass*(1 - cos(x));
-  fout[1] = elcMass*(1 - cos(x))*cos(x); fout[2] = 0.0; fout[3] = 0.0; 
+void
+evalElcInit(double t, const double* restrict xn, double* restrict fout, void* ctx)
+{
+  enum VarID { RHO, MX, MY, MZ };
+
+  double x = xn[0];
+
+  fout[RHO] = 2.0 - cos(x) * sin(t);
+  fout[MX] = sin(x) * cos(t);
+  fout[MY] = 0.0;
+  fout[MZ] = 0.0;
 }
 
 void
-evalIonInit(double t, const double * restrict xn, double* restrict fout, void *ctx)
+evalIonInit(double t, const double* restrict xn, double* restrict fout, void* ctx)
 {
-  double x = xn[0];
-  double ionMass = 1.0;
+  enum VarID { RHO, MX, MY, MZ };
 
-  fout[0] = ionMass*(1 - sin(x));
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0; 
+  double x = xn[0];
+
+  fout[RHO] = 2.0 - sin(x) * cos(t);
+  fout[MX] = cos(x) * sin(t);
+  fout[MY] = 0.0;
+  fout[MZ] = 0.0;
 }
 
 void
-evalFieldInit(double t, const double * restrict xn, double* restrict fout, void *ctx)
+evalFieldInit(double t, const double* restrict xn, double* restrict fout, void* ctx)
 {
+  enum VarID { EX, EY, EZ, BX, BY, BZ };
+
   double x = xn[0];
-  // electric field
-  fout[0] = sin(x), fout[1] = 0.0; fout[2] = 0.0;
-  // magnetic field
-  fout[3] = 0.0, fout[4] = 0.0; fout[5] = 0.0;
+
+  fout[EX] = cos(x - t), fout[EY] = 0.0; fout[EZ] = 0.0;
+  fout[BX] = 0.0, fout[BY] = 0.0; fout[BZ] = 0.0;
 
   // correction potentials
   fout[6] = 0.0; fout[7] = 0.0;
 }
 
 void
-evalElcAppAccel(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalElcAppAccel(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
+  enum VarID { MX, MY, MZ };
+
   double x = xn[0];
-  double elcCharge = -1.0;
-  double elcMass = 1.0/1836.2;
-  double qbym = elcCharge/elcMass;
-  // first two terms are momentum sources and need to divide by qbym
-  fout[0] = 4.0/3.0*cos(t)*cos(t)*cos(x)*sin(x)/qbym - sin(t)*sin(x)/qbym + (cos(t)*sin(x));
-  fout[1] = 0.0;
-  fout[2] = 0.0;
+  double rho_0 = 2.0 - cos(x) * sin(t);
+
+  fout[MX] = Cos(t - x) * (2 - Cos(x) * Sin(t)) - 0.9999 * Sin(t) * Sin(x) + (2 * Power(Cos(t), 2) * Cos(x) * Sin(x)) / (2 - Cos(x) * Sin(t)) -
+    (Power(Cos(t), 2) * Sin(t) * Power(Sin(x), 3)) / Power(2 - Cos(x) * Sin(t), 2);
+  fout[MY] = 0.0;
+  fout[MZ] = 0.0;
+
+  // Convert force into acceleration
+  fout[MX] /= rho_0;
 }
 
 void
-evalIonAppAccel(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalIonAppAccel(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
+  enum VarID { MX, MY, MZ };
+
   double x = xn[0];
-  double ionCharge = 1.0;
-  double ionMass = 1.0;
-  double qbym = ionCharge/ionMass;
-  // first two terms are momentum sources and need to divide by qbym
-  fout[0] = -4.0/3.0*sin(t)*sin(t)*cos(x)*sin(x)/qbym + cos(t)*cos(x)/qbym - (cos(t)*sin(x));
-  fout[1] = 0.0;
-  fout[2] = 0.0;
+  double rho_0 = 2.0 - cos(t) * sin(x);
+
+  fout[MX] = 0.9999 * Cos(t) * Cos(x) + (Cos(t) * Power(Cos(x), 3) * Power(Sin(t), 2)) / Power(2 - Cos(t) * Sin(x), 2) -
+    (2 * Cos(x) * Power(Sin(t), 2) * Sin(x)) / (2 - Cos(t) * Sin(x)) - Cos(t - x) * (2 - Cos(t) * Sin(x));
+  fout[MY] = 0.0;
+  fout[MZ] = 0.0;
+
+  // Convert force into acceleration
+  fout[MX] /= rho_0;
 }
 
 
 void
-evalAppCurrent(double t, const double * restrict xn, double* restrict fout, void *ctx)
+evalAppCurrent(double t, const double* restrict xn, double* restrict fout, void* ctx)
 {
+  enum VarID { EX, EY, EZ };
+
   double x = xn[0];
-  fout[0] = -cos(x)*sin(t) + cos(t)*sin(x) + sin(t)*sin(x);
+
+  fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 0.0;
 }
@@ -94,7 +116,7 @@ main(int argc, char **argv)
 
   struct gkyl_moment_species elc = {
     .name = "elc",
-    .charge = -1.0, .mass = 1.0/1836.2,
+    .charge = -1.0, .mass = 1.0,
 
     .equation = elc_iso_euler,
     .evolve = 1,
@@ -116,9 +138,9 @@ main(int argc, char **argv)
     .name = "5m_iso_moms",
 
     .ndim = 1,
-    .lower = { -2.0*M_PI },
+    .lower = { 0.0 },
     .upper = { 2.0*M_PI }, 
-    .cells = { 128 },
+    .cells = { 2000 },
 
     .num_species = 2,
     .species = { elc, ion },
@@ -139,7 +161,7 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 1.0;
+  double tcurr = 0.0, tend = 3 * M_PI;
   int nframe = 1;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
