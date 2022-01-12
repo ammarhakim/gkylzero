@@ -31,14 +31,14 @@ create_ctx(void)
   double charge = 1.602176487e-19;
   double elcMass = 9.10938215e-31;
   double ionMass = 1.672621637e-27;
-  double epsilon0 = epsilon0 = 8.854187817620389850536563031710750260608e-12;
+  double epsilon0 = 8.854187817620389850536563031710750260608e-12;
   double mu0 = 12.56637061435917295385057353311801153679e-7;
-  // 1000 eV plasma
+  // 100 eV plasma
   double T_elc = 100*charge;
   double T_ion = 100*charge;
   // plasma beta = 2*mu0*n*T/B^2 = 0.01
   double beta = 0.1;
-  // 10 Tesla magnetic field
+  // 1 Tesla magnetic field
   double B0 = 1.0;
   // Compute density from specified parameters
   double n = beta*B0*B0/(2*mu0*T_elc);
