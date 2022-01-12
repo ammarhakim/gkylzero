@@ -139,7 +139,7 @@ build/unit/ctest_hyper_dg: unit/ctest_hyper_dg.o unit/ctest_hyper_dg_cu.o build/
 
 endif
 
-.PHONY: check clean install
+.PHONY: check clean partclean install
 
 # Run unit tests
 check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
@@ -194,3 +194,9 @@ install: all
 clean:
 
 	rm -rf build/libgkylzero.a build/regression/twostream.ini */*.o kernels/*/*.o build/regression/rt_* build/unit/ctest_*
+
+# partclean does not delete the kernel object files as they do not
+# always need to be rebuilt and are very expensive to build when using
+# nvcc
+partclean:
+	rm -rf build/libgkylzero.a app/*.o zero/*.o build/regression/rt_* build/unit/ctest_*

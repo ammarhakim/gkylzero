@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gkyl_alloc.h>
 #include <gkyl_app.h>
 #include <gkyl_basis.h>
 #include <gkyl_eqn_type.h>
