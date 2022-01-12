@@ -25,6 +25,9 @@ struct gkyl_prim_lbo_calc {
 gkyl_prim_lbo_calc* gkyl_prim_lbo_calc_new(const struct gkyl_rect_grid *grid,
   struct gkyl_prim_lbo *prim);
 
+gkyl_prim_lbo_calc* gkyl_prim_lbo_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
+  struct gkyl_prim_lbo *prim);
+
 /**
  * Compute primitive moments of distribution function. The phase_rng and conf_rng
  * MUST be a sub-ranges of the range on which the distribution
@@ -46,6 +49,11 @@ void gkyl_prim_lbo_calc_advance(gkyl_prim_lbo_calc* calc, const struct gkyl_basi
   const struct gkyl_range conf_rng, const struct gkyl_array *m0, const struct gkyl_array *m1,
   const struct gkyl_array *m2, const struct gkyl_array *cM, const struct gkyl_array *cE,
   struct gkyl_array *uout, struct gkyl_array *vtSqout);
+
+void gkyl_prim_lbo_calc_advance_cu(gkyl_prim_lbo_calc* calc, const struct gkyl_basis cbasis,
+  const struct gkyl_range conf_rng, const struct gkyl_array* m0, const struct gkyl_array* m1,
+  const struct gkyl_array* m2, const struct gkyl_array* cM, const struct gkyl_array* cE,
+  struct gkyl_array* uout, struct gkyl_array* vtSqout);
 
 /**
  * Delete pointer to primitive moment calculator updater.

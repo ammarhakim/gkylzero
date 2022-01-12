@@ -1,6 +1,6 @@
 #include <gkyl_prim_lbo_vlasov_kernels.h> 
  
-GKYL_CU_DH void vlasov_self_prim_moments_2x2v_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double* GKYL_RESTRICT u, double* GKYL_RESTRICT vtSq) 
+GKYL_CU_DH void vlasov_self_prim_moments_2x2v_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *m0, const double *m1, const double *m2, const double *cM, const double *cE) 
 { 
   // m0,m1,m2: moments of the distribution function. 
   // cM, cE:   vtSq*cM and vtSq*cE are corrections to u and vtSq, respectively. 
@@ -617,15 +617,6 @@ GKYL_CU_DH void vlasov_self_prim_moments_2x2v_ser_p2(struct gkyl_mat *A, struct 
   gkyl_mat_set(A,23,21,0.9583148474999099*m0r[7]-0.31943828249997*cEr[7]+1.5*m0r[1]-0.5000000000000001*cEr[1]); 
   gkyl_mat_set(A,23,22,1.2*m0r[3]-0.4*cEr[3]); 
   gkyl_mat_set(A,23,23,0.9583148474999099*m0r[5]-0.31943828249997*cEr[5]+1.341640786499874*m0r[4]-0.4472135954999579*cEr[4]+1.5*m0r[0]-0.5*cEr[0]); 
- 
-  long ipiv[24] = {0.0}; 
-  gkyl_mat_linsolve_lu(A,rhs,ipiv); 
-  for(size_t i=0; i<24; i++) { 
-    if (i<8) { 
-      vtSq[i] = gkyl_mat_get(rhs,i+16,0); 
-    } 
-    u[i] = gkyl_mat_get(rhs,i,0); 
-  } 
  
 } 
  

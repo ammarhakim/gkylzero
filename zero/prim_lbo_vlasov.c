@@ -54,3 +54,15 @@ gkyl_prim_lbo_vlasov_new(const struct gkyl_basis* cbasis,
     
   return &prim_vlasov->prim;
 }
+
+#ifndef GKYL_HAVE_CUDA
+
+struct gkyl_prim_lbo*
+gkyl_prim_lbo_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
+  const struct gkyl_basis* pbasis)
+{
+  assert(false);
+  return 0;
+}
+
+#endif
