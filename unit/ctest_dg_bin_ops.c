@@ -296,8 +296,8 @@ test_3d(int poly_order)
     const double *g_d = gkyl_array_cfetch(distg, i);
     const double *gbar_d = gkyl_array_cfetch(g_bar, i);
     for (int k=0; k<basis.num_basis; ++k) {
-      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-11) );
-      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-11) );
+      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-10) );
+      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-10) );
     }
   }
 
@@ -322,8 +322,8 @@ test_3d(int poly_order)
     const double *g_d = gkyl_array_cfetch(distg, loc);
     const double *gbar_d = gkyl_array_cfetch(g_bar, loc);
     for (int k=0; k<basis.num_basis; ++k) {
-      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-11) );
-      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-11) );
+      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-10) );
+      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-10) );
     }
   }
   
@@ -566,6 +566,34 @@ test_1d_cu(int poly_order)
       TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-12) );
     }
   }
+
+  // Test range methods
+  gkyl_array_clear(h_cu, 0.0);
+  gkyl_array_clear(f_bar_cu, 0.0);
+  gkyl_array_clear(g_bar_cu, 0.0);
+  // h = f*g
+  gkyl_dg_mul_op_range(basis, 0, h_cu, 0, distf_cu, 0, distg_cu, arr_range);
+  // f_bar = h/g = f
+  gkyl_dg_div_op_range(basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu, arr_range);
+  // g_bar = h/f = g
+  gkyl_dg_div_op_range(basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu, arr_range);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &arr_range);
+  // copy from device and check if things are ok
+  gkyl_array_copy(f_bar, f_bar_cu);
+  gkyl_array_copy(g_bar, g_bar_cu);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&arr_range, iter.idx);
+    const double *f_d = gkyl_array_cfetch(distf, loc);
+    const double *fbar_d = gkyl_array_cfetch(f_bar, loc);
+    const double *g_d = gkyl_array_cfetch(distg, loc);
+    const double *gbar_d = gkyl_array_cfetch(g_bar, loc);
+    for (int k=0; k<basis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-12) );
+      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-12) );
+    }
+  }
   
   gkyl_proj_on_basis_release(projDistf);
   gkyl_proj_on_basis_release(projDistg);
@@ -646,6 +674,34 @@ test_2d_cu(int poly_order)
     const double *fbar_d = gkyl_array_cfetch(f_bar, i);
     const double *g_d = gkyl_array_cfetch(distg, i);
     const double *gbar_d = gkyl_array_cfetch(g_bar, i);
+    for (int k=0; k<basis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-12) );
+      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-12) );
+    }
+  }
+
+  // Test range methods
+  gkyl_array_clear(h_cu, 0.0);
+  gkyl_array_clear(f_bar_cu, 0.0);
+  gkyl_array_clear(g_bar_cu, 0.0);
+  // h = f*g
+  gkyl_dg_mul_op_range(basis, 0, h_cu, 0, distf_cu, 0, distg_cu, arr_range);
+  // f_bar = h/g = f
+  gkyl_dg_div_op_range(basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu, arr_range);
+  // g_bar = h/f = g
+  gkyl_dg_div_op_range(basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu, arr_range);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &arr_range);
+  // copy from device and check if things are ok
+  gkyl_array_copy(f_bar, f_bar_cu);
+  gkyl_array_copy(g_bar, g_bar_cu);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&arr_range, iter.idx);
+    const double *f_d = gkyl_array_cfetch(distf, loc);
+    const double *fbar_d = gkyl_array_cfetch(f_bar, loc);
+    const double *g_d = gkyl_array_cfetch(distg, loc);
+    const double *gbar_d = gkyl_array_cfetch(g_bar, loc);
     for (int k=0; k<basis.num_basis; ++k) {
       TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-12) );
       TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-12) );
@@ -732,8 +788,36 @@ test_3d_cu(int poly_order)
     const double *g_d = gkyl_array_cfetch(distg, i);
     const double *gbar_d = gkyl_array_cfetch(g_bar, i);
     for (int k=0; k<basis.num_basis; ++k) {
-      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-11) );
-      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-11) );
+      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-10) );
+      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-10) );
+    }
+  }
+
+  // Test range methods
+  gkyl_array_clear(h_cu, 0.0);
+  gkyl_array_clear(f_bar_cu, 0.0);
+  gkyl_array_clear(g_bar_cu, 0.0);
+  // h = f*g
+  gkyl_dg_mul_op_range(basis, 0, h_cu, 0, distf_cu, 0, distg_cu, arr_range);
+  // f_bar = h/g = f
+  gkyl_dg_div_op_range(basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu, arr_range);
+  // g_bar = h/f = g
+  gkyl_dg_div_op_range(basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu, arr_range);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &arr_range);
+  // copy from device and check if things are ok
+  gkyl_array_copy(f_bar, f_bar_cu);
+  gkyl_array_copy(g_bar, g_bar_cu);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&arr_range, iter.idx);
+    const double *f_d = gkyl_array_cfetch(distf, loc);
+    const double *fbar_d = gkyl_array_cfetch(f_bar, loc);
+    const double *g_d = gkyl_array_cfetch(distg, loc);
+    const double *gbar_d = gkyl_array_cfetch(g_bar, loc);
+    for (int k=0; k<basis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-10) );
+      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-10) );
     }
   }
   
@@ -865,6 +949,34 @@ test_3d_p3_cu()
     const double *fbar_d = gkyl_array_cfetch(f_bar, i);
     const double *g_d = gkyl_array_cfetch(distg, i);
     const double *gbar_d = gkyl_array_cfetch(g_bar, i);
+    for (int k=0; k<basis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-10) );
+      TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-10) );
+    }
+  }
+
+  // Test range methods
+  gkyl_array_clear(h_cu, 0.0);
+  gkyl_array_clear(f_bar_cu, 0.0);
+  gkyl_array_clear(g_bar_cu, 0.0);
+  // h = f*g
+  gkyl_dg_mul_op_range(basis, 0, h_cu, 0, distf_cu, 0, distg_cu, arr_range);
+  // f_bar = h/g = f
+  gkyl_dg_div_op_range(basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu, arr_range);
+  // g_bar = h/f = g
+  gkyl_dg_div_op_range(basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu, arr_range);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &arr_range);
+  // copy from device and check if things are ok
+  gkyl_array_copy(f_bar, f_bar_cu);
+  gkyl_array_copy(g_bar, g_bar_cu);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&arr_range, iter.idx);
+    const double *f_d = gkyl_array_cfetch(distf, loc);
+    const double *fbar_d = gkyl_array_cfetch(f_bar, loc);
+    const double *g_d = gkyl_array_cfetch(distg, loc);
+    const double *gbar_d = gkyl_array_cfetch(g_bar, loc);
     for (int k=0; k<basis.num_basis; ++k) {
       TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-10) );
       TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-10) );

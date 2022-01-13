@@ -16,16 +16,16 @@ extern "C" {
 #define START_ID (threadIdx.x + blockIdx.x*blockDim.x)
 
 static void
-gkyl_get_array_range_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gkyl_range range, int ncomp)
+gkyl_get_array_range_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gkyl_range range)
 {
   int volume = range.volume;
   int ndim = range.ndim;
   // ac1 = size of last dimension of range (fastest moving dimension)
   int ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
-  dimBlock->x = min(ncomp*ac1, GKYL_DEFAULT_NUM_THREADS);
-  dimGrid->x = gkyl_int_div_up(ncomp*ac1, dimBlock->x);
+  dimBlock->x = min(ac1, GKYL_DEFAULT_NUM_THREADS);
+  dimGrid->x = gkyl_int_div_up(ac1, dimBlock->x);
 
-  dimBlock->y = gkyl_int_div_up(GKYL_DEFAULT_NUM_THREADS, ncomp*ac1);
+  dimBlock->y = gkyl_int_div_up(GKYL_DEFAULT_NUM_THREADS, ac1);
   dimGrid->y = gkyl_int_div_up(volume, ac1*dimBlock->y);
 }
 
@@ -71,13 +71,12 @@ gkyl_dg_mul_op_range_cu_kernel(struct gkyl_basis basis,
   int poly_order = basis.poly_order;
   mul_op_t mul_op = choose_ser_mul_kern(ndim, poly_order);
 
-  long n = NCOM(out);
   int idx[GKYL_MAX_DIM];
   // ac1 = size of last dimension of range (fastest moving dimension)
   long ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
 
   // 2D thread grid
-  // linc1 = c + n*idx1 (contiguous data, including component index c, with idx1 = 0,.., ac1-1)
+  // linc1 = c + idx1 (contiguous data, with idx1 = 0,.., ac1-1)
   long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
   // linc2 = idx2 + ac2*idx3 + ...
   for (unsigned long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
@@ -96,7 +95,7 @@ gkyl_dg_mul_op_range_cu_kernel(struct gkyl_basis basis,
     const double *rop_d = (const double*) gkyl_array_cfetch(rop, start);
     double *out_d = (double*) gkyl_array_fetch(out, start);
     // do operation on contiguous data block
-    if (linc1 < n*ac1)
+    if (linc1 < ac1)
       mul_op(lop_d+c_lop*num_basis, rop_d+c_rop*num_basis, out_d+c_oop*num_basis);  
   }
 }
@@ -109,7 +108,7 @@ gkyl_dg_mul_op_range_cu(struct gkyl_basis basis,
   int c_rop, const struct gkyl_array* rop, struct gkyl_range range)
 {
   dim3 dimGrid, dimBlock;
-  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range, out->ncomp);
+  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range);
 
   gkyl_dg_mul_op_range_cu_kernel<<<dimGrid, dimBlock>>>(basis, c_oop, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev, range);
 }
@@ -185,14 +184,13 @@ gkyl_dg_div_set_op_range_cu_kernel(struct gkyl_nmat *As, struct gkyl_nmat *xs,
   int poly_order = basis.poly_order;
   div_set_op_t div_set_op = choose_ser_div_set_kern(ndim, poly_order);
 
-  long n = NCOM(out);
   int idx[GKYL_MAX_DIM];
   // ac1 = size of last dimension of range (fastest moving dimension)
   long ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
 
   long count = 0;
   // 2D thread grid
-  // linc1 = c + n*idx1 (contiguous data, including component index c, with idx1 = 0,.., ac1-1)
+  // linc1 = c + idx1 (contiguous data, with idx1 = 0,.., ac1-1)
   long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
   // linc2 = idx2 + ac2*idx3 + ...
   for (unsigned long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
@@ -206,15 +204,15 @@ gkyl_dg_div_set_op_range_cu_kernel(struct gkyl_nmat *As, struct gkyl_nmat *xs,
     // so linear index of start of contiguous block is ac1*linc2.
     gkyl_sub_range_inv_idx(&range, ac1*linc2, idx);
     long start = gkyl_range_idx(&range, idx);
-    
+
     const double *lop_d = (const double*) gkyl_array_cfetch(lop, start);
     const double *rop_d = (const double*) gkyl_array_cfetch(rop, start);
 
-    struct gkyl_mat A = gkyl_nmat_get(As, count);
-    struct gkyl_mat x = gkyl_nmat_get(xs, count);
+    struct gkyl_mat A = gkyl_nmat_get(As, ac1*linc1+linc2);
+    struct gkyl_mat x = gkyl_nmat_get(xs, ac1*linc1+linc2);
     gkyl_mat_clear(&A, 0.0); gkyl_mat_clear(&x, 0.0);  
     // do operation on contiguous data block
-    if (linc1 < n*ac1)
+    if (linc1 < ac1)
       div_set_op(&A, &x, lop_d+c_lop*num_basis, rop_d+c_rop*num_basis);
 
     count += 1;
@@ -228,7 +226,6 @@ gkyl_dg_div_copy_sol_op_range_cu_kernel(struct gkyl_nmat *xs,
 {
   int num_basis = basis.num_basis;
   int ndim = basis.ndim;
-  long n = NCOM(out);
   int idx[GKYL_MAX_DIM];
 
   // ac1 = size of last dimension of range (fastest moving dimension)
@@ -236,7 +233,7 @@ gkyl_dg_div_copy_sol_op_range_cu_kernel(struct gkyl_nmat *xs,
 
   long count = 0;
   // 2D thread grid
-  // linc1 = c + n*idx1 (contiguous data, including component index c, with idx1 = 0,.., ac1-1)
+  // linc1 = c + n*idx1 (contiguous data, with idx1 = 0,.., ac1-1)
   long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
   // linc2 = idx2 + ac2*idx3 + ...
   for (unsigned long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
@@ -252,9 +249,9 @@ gkyl_dg_div_copy_sol_op_range_cu_kernel(struct gkyl_nmat *xs,
     long start = gkyl_range_idx(&range, idx);
 
     double *out_d = (double*) gkyl_array_fetch(out, start);
-    struct gkyl_mat x = gkyl_nmat_get(xs, count);
+    struct gkyl_mat x = gkyl_nmat_get(xs, ac1*linc1+linc2);
     // do operation on contiguous data block
-    if (linc1 < n*ac1)
+    if (linc1 < ac1)
       binop_div_copy_sol(&x, out_d+c_oop*num_basis);
 
     count += 1;
@@ -269,7 +266,7 @@ gkyl_dg_div_op_range_cu(struct gkyl_basis basis,
   int c_rop, const struct gkyl_array* rop, struct gkyl_range range)
 {
   dim3 dimGrid, dimBlock;
-  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range, out->ncomp);
+  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range);
 
   int num_basis = basis.num_basis;    
   // allocate memory for use in kernels
