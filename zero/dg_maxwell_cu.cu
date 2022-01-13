@@ -2,6 +2,7 @@
 
 extern "C" {
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_dg_maxwell.h>    
 #include <gkyl_dg_maxwell_priv.h>
 }
@@ -55,19 +56,22 @@ gkyl_dg_maxwell_cu_dev_new(const struct gkyl_basis* cbasis,
 {
   struct dg_maxwell *maxwell = (struct dg_maxwell*) gkyl_malloc(sizeof(struct dg_maxwell));
 
-  // set basic parameters  
+  // set basic parameters
   maxwell->eqn.num_equations = 8;
   maxwell->maxwell_data.c = lightSpeed;
   maxwell->maxwell_data.chi = lightSpeed*elcErrorSpeedFactor;
-  maxwell->maxwell_data.gamma = lightSpeed*mgnErrorSpeedFactor;  
+  maxwell->maxwell_data.gamma = lightSpeed*mgnErrorSpeedFactor;
+
+  GKYL_SET_CU_ALLOC(maxwell->eqn.flags);
+  maxwell->eqn.ref_count = gkyl_ref_count_init(gkyl_maxwell_free);
 
   // copy the host struct to device struct
   struct dg_maxwell *maxwell_cu = (struct dg_maxwell*) gkyl_cu_malloc(sizeof(struct dg_maxwell));
   gkyl_cu_memcpy(maxwell_cu, maxwell, sizeof(struct dg_maxwell), GKYL_CU_MEMCPY_H2D);
-
   dg_maxwell_set_cu_dev_ptrs<<<1,1>>>(maxwell_cu, cbasis->b_type, cbasis->ndim, cbasis->poly_order);
 
-  gkyl_free(maxwell);
-  
+  // set parent on_dev pointer
+  maxwell->eqn.on_dev = &maxwell_cu->eqn;
+
   return &maxwell_cu->eqn;
 }

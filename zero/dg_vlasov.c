@@ -2,13 +2,14 @@
 #include <stdio.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_dg_vlasov_priv.h>
 #include <gkyl_util.h>
 
-static void
-vlasov_free(const struct gkyl_ref_count *ref)
+void
+gkyl_vlasov_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_vlasov *vlasov = container_of(base, struct dg_vlasov, eqn);
@@ -116,8 +117,9 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   vlasov->qmem = 0;  
   vlasov->conf_range = *conf_range;
 
-  // set reference counter
-  vlasov->eqn.ref_count = gkyl_ref_count_init(vlasov_free);
+  GKYL_CLEAR_CU_ALLOC(vlasov->eqn.flags);
+  vlasov->eqn.ref_count = gkyl_ref_count_init(gkyl_vlasov_free);
+  vlasov->eqn.on_dev = &vlasov->eqn; // CPU eqn obj points to itself
   
   return &vlasov->eqn;
 }

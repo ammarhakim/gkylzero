@@ -367,6 +367,13 @@ struct dg_vlasov {
   const struct gkyl_array *qmem; // Pointer to q/m*EM field
 };
 
+/**
+ * Free vlasov eqn object.
+ *
+ * @param ref Reference counter for vlasov eqn
+ */
+void gkyl_vlasov_free(const struct gkyl_ref_count *ref);
+
 GKYL_CU_D
 static double
 vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 

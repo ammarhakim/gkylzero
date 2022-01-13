@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_maxwell_priv.h>
 #include <gkyl_util.h>
@@ -10,8 +11,8 @@
 // "Choose Kernel" based on cdim and polyorder
 #define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order]
 
-static void
-maxwell_free(const struct gkyl_ref_count *ref)
+void 
+gkyl_maxwell_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_maxwell *maxwell = container_of(base, struct dg_maxwell, eqn);
@@ -71,8 +72,9 @@ gkyl_dg_maxwell_new(const struct gkyl_basis* cbasis,
   // ensure non-NULL pointers 
   for (int i=0; i<cdim; ++i) assert(maxwell->surf[i]);
 
-  // set reference counter
-  maxwell->eqn.ref_count = gkyl_ref_count_init(maxwell_free);
+  GKYL_CLEAR_CU_ALLOC(maxwell->eqn.flags);
+  maxwell->eqn.ref_count = gkyl_ref_count_init(gkyl_maxwell_free);
+  maxwell->eqn.on_dev = &maxwell->eqn; // CPU eqn obj points to itself
   
   return &maxwell->eqn;
 }
