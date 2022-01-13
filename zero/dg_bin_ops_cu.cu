@@ -88,15 +88,17 @@ gkyl_dg_mul_op_range_cu_kernel(struct gkyl_basis basis,
     // we want to find the start linear index of each contiguous data block, 
     // which corresponds to idx1 = 0. 
     // so linear index of start of contiguous block is ac1*linc2.
-    gkyl_sub_range_inv_idx(&range, ac1*linc2, idx);
-    long start = gkyl_range_idx(&range, idx);
-
-    const double *lop_d = (const double*) gkyl_array_cfetch(lop, start);
-    const double *rop_d = (const double*) gkyl_array_cfetch(rop, start);
-    double *out_d = (double*) gkyl_array_fetch(out, start);
     // do operation on contiguous data block
-    if (linc1 < ac1)
-      mul_op(lop_d+c_lop*num_basis, rop_d+c_rop*num_basis, out_d+c_oop*num_basis);  
+    if (linc1 < ac1) {
+      gkyl_sub_range_inv_idx(&range, linc1+ac1*linc2, idx);
+      long start = gkyl_range_idx(&range, idx);
+
+      const double *lop_d = (const double*) gkyl_array_cfetch(lop, start);
+      const double *rop_d = (const double*) gkyl_array_cfetch(rop, start);
+      double *out_d = (double*) gkyl_array_fetch(out, start);
+ 
+      mul_op(lop_d+c_lop*num_basis, rop_d+c_rop*num_basis, out_d+c_oop*num_basis);
+    }
   }
 }
 
@@ -188,7 +190,6 @@ gkyl_dg_div_set_op_range_cu_kernel(struct gkyl_nmat *As, struct gkyl_nmat *xs,
   // ac1 = size of last dimension of range (fastest moving dimension)
   long ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
 
-  long count = 0;
   // 2D thread grid
   // linc1 = c + idx1 (contiguous data, with idx1 = 0,.., ac1-1)
   long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
@@ -202,20 +203,20 @@ gkyl_dg_div_set_op_range_cu_kernel(struct gkyl_nmat *As, struct gkyl_nmat *xs,
     // we want to find the start linear index of each contiguous data block, 
     // which corresponds to idx1 = 0. 
     // so linear index of start of contiguous block is ac1*linc2.
-    gkyl_sub_range_inv_idx(&range, ac1*linc2, idx);
-    long start = gkyl_range_idx(&range, idx);
-
-    const double *lop_d = (const double*) gkyl_array_cfetch(lop, start);
-    const double *rop_d = (const double*) gkyl_array_cfetch(rop, start);
-
-    struct gkyl_mat A = gkyl_nmat_get(As, ac1*linc1+linc2);
-    struct gkyl_mat x = gkyl_nmat_get(xs, ac1*linc1+linc2);
-    gkyl_mat_clear(&A, 0.0); gkyl_mat_clear(&x, 0.0);  
     // do operation on contiguous data block
-    if (linc1 < ac1)
-      div_set_op(&A, &x, lop_d+c_lop*num_basis, rop_d+c_rop*num_basis);
+    if (linc1 < ac1) {
+      gkyl_sub_range_inv_idx(&range, linc1+ac1*linc2, idx);
+      long start = gkyl_range_idx(&range, idx);
 
-    count += 1;
+      const double *lop_d = (const double*) gkyl_array_cfetch(lop, start);
+      const double *rop_d = (const double*) gkyl_array_cfetch(rop, start);
+
+      struct gkyl_mat A = gkyl_nmat_get(As, linc1+ac1*linc2);
+      struct gkyl_mat x = gkyl_nmat_get(xs, linc1+ac1*linc2);
+      gkyl_mat_clear(&A, 0.0); gkyl_mat_clear(&x, 0.0);  
+ 
+      div_set_op(&A, &x, lop_d+c_lop*num_basis, rop_d+c_rop*num_basis);
+    }
   }  
 }
 
@@ -231,7 +232,6 @@ gkyl_dg_div_copy_sol_op_range_cu_kernel(struct gkyl_nmat *xs,
   // ac1 = size of last dimension of range (fastest moving dimension)
   long ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
 
-  long count = 0;
   // 2D thread grid
   // linc1 = c + n*idx1 (contiguous data, with idx1 = 0,.., ac1-1)
   long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
@@ -245,16 +245,17 @@ gkyl_dg_div_copy_sol_op_range_cu_kernel(struct gkyl_nmat *xs,
     // we want to find the start linear index of each contiguous data block, 
     // which corresponds to idx1 = 0. 
     // so linear index of start of contiguous block is ac1*linc2.
-    gkyl_sub_range_inv_idx(&range, ac1*linc2, idx);
-    long start = gkyl_range_idx(&range, idx);
-
-    double *out_d = (double*) gkyl_array_fetch(out, start);
-    struct gkyl_mat x = gkyl_nmat_get(xs, ac1*linc1+linc2);
     // do operation on contiguous data block
-    if (linc1 < ac1)
-      binop_div_copy_sol(&x, out_d+c_oop*num_basis);
+    if (linc1 < ac1) {
+      gkyl_sub_range_inv_idx(&range, linc1+ac1*linc2, idx);
+      long start = gkyl_range_idx(&range, idx);
 
-    count += 1;
+      double *out_d = (double*) gkyl_array_fetch(out, start);
+
+      struct gkyl_mat x = gkyl_nmat_get(xs, linc1+ac1*linc2);
+
+      binop_div_copy_sol(&x, out_d+c_oop*num_basis);
+    }
   }  
 }
 
