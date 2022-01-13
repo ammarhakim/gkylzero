@@ -1,5 +1,4 @@
 /* -*- c++ -*- */
-#include <stdio.h>
 extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops_priv.h>
@@ -55,7 +54,6 @@ gkyl_prim_lbo_calc_set_cu_ker(gkyl_prim_lbo_calc* calc, struct gkyl_nmat *As, st
       const double *m2_d = (const double*) gkyl_array_cfetch(m2, start);
       const double *cM_d = (const double*) gkyl_array_cfetch(cM, start);
       const double *cE_d = (const double*) gkyl_array_cfetch(cE, start);
-      printf("indices = %ld, %ld\n", linc1 + ac1*linc2, start);
 
       gkyl_mat_clear(&lhs, 0.0); gkyl_mat_clear(&rhs, 0.0);
 
@@ -116,12 +114,7 @@ gkyl_prim_lbo_calc_advance_cu(gkyl_prim_lbo_calc* calc, const struct gkyl_basis 
   struct gkyl_nmat *x_d = gkyl_nmat_cu_dev_new(conf_rng.volume, N, 1);
 
   gkyl_prim_lbo_calc_set_cu_ker<<<dimGrid, dimBlock>>>(calc, A_d->on_dev, x_d->on_dev, cbasis, conf_rng, m0->on_dev, m1->on_dev, m2->on_dev, cM->on_dev, cE->on_dev);
-  printf("params = [%d, %d, %d]\n", nc, vdim, N);
-  printf("Completed set!\n");
-  fflush(stdout);
   bool status = gkyl_nmat_linsolve_lu(A_d, x_d);
-  printf("Completed linsolve!\n");
-  fflush(stdout);
 
   gkyl_prim_lbo_copy_sol_cu_ker<<<dimGrid, dimBlock>>>(x_d->on_dev, cbasis, conf_rng, nc, vdim, uout->on_dev, vtSqout->on_dev);
 

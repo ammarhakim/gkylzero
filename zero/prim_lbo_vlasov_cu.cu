@@ -12,6 +12,8 @@ extern "C" {
 __global__ static void
 prim_lbo_vlasov_set_cu_dev_ptrs(struct prim_lbo_vlasov *prim_vlasov, int cdim, int vdim, int poly_order, enum gkyl_basis_type b_type, int cv_index)
 {
+  prim_vlasov->prim.self_prim = self_prim;
+  
   // choose kernel tables based on basis-function type
   const gkyl_prim_lbo_vlasov_kern_list *self_prim_kernels;
 

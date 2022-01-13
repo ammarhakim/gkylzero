@@ -346,7 +346,6 @@ test_1x1v_p2_cu()
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *vthptr = gkyl_array_fetch(vth, linc);
     TEST_CHECK( gkyl_compare( 1.4142398195471544, vthptr[0], 1e-12) );
-    printf("vth: %f", vthptr[0]);
     for (unsigned int k=1; k<confBasis.num_basis; ++k) {
       TEST_CHECK( gkyl_compare( 0., vthptr[k], 1e-12) );
   }}
