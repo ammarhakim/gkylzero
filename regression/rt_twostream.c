@@ -153,6 +153,11 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
+  if (app_args.trace_mem) {
+    gkyl_cu_dev_mem_debug_set(true);
+    gkyl_mem_debug_set(true);
+  }
+
   if (strcmp(app_args.file_name, APP_ARGS_DEFAULT_FILE_NAME) == 0)
     strcpy(app_args.file_name, "twostream.ini");
 

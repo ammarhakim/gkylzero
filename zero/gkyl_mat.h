@@ -26,10 +26,9 @@ struct gkyl_nmat {
   size_t nr, nc; // Number of rows, columns
   double *data; // Pointer to data
   double **mptr; // pointers to start of each sub-matrix
-  uint32_t flags;
-  struct gkyl_ref_count ref_count;
 
-  // Data needed to work on device
+  uint32_t flags;  
+  struct gkyl_ref_count ref_count;
   struct  gkyl_nmat *on_dev; // pointer to itself or device data
 };
 
