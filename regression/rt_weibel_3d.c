@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdio.h>
 
+#include <gkyl_alloc.h>
 #include <gkyl_util.h>
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>

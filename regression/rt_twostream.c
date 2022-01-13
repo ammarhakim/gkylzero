@@ -5,6 +5,7 @@
 #include <string.h>
 #include <time.h>
 
+#include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
 #include <rxi_ini.h>

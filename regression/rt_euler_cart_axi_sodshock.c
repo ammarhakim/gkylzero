@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdio.h>
 
+#include <gkyl_alloc.h>
 #include <gkyl_const.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>

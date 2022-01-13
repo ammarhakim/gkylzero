@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <gkyl_alloc.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_util.h>
