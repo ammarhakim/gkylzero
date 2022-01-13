@@ -79,6 +79,9 @@ libobjs += $(patsubst %.cu,%.o,$(wildcard zero/*.cu))
 kernels/bin_op/%.o : kernels/bin_op/%.c
 	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
 
+kernels/lbo/%.o : kernels/lbo/%.c
+	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
+
 kernels/maxwell/%.o : kernels/maxwell/%.c
 	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
 
