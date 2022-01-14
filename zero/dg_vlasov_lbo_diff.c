@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
 #include <gkyl_dg_vlasov_lbo_diff.h>
 #include <gkyl_dg_vlasov_lbo_diff_priv.h>
@@ -121,8 +122,9 @@ gkyl_dg_vlasov_lbo_diff_new(const struct gkyl_basis* cbasis, const struct gkyl_b
   vlasov_lbo_diff->nuVtSqSum = 0;
   vlasov_lbo_diff->conf_range = *conf_range;
 
-  // set reference counter
+  GKYL_CLEAR_CU_ALLOC(vlasov_lbo_diff->eqn.flags);  
   vlasov_lbo_diff->eqn.ref_count = gkyl_ref_count_init(dg_vlasov_lbo_diff_free);
+  vlasov_lbo_diff->eqn.on_dev = &vlasov_lbo_diff->eqn;
   
   return &vlasov_lbo_diff->eqn;
 }
@@ -130,7 +132,8 @@ gkyl_dg_vlasov_lbo_diff_new(const struct gkyl_basis* cbasis, const struct gkyl_b
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_dg_eqn*
-gkyl_dg_vlasov_lbo_diff_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range)
+gkyl_dg_vlasov_lbo_diff_cu_dev_new(const struct gkyl_basis* cbasis,
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range)
 {
   assert(false);
   return 0;

@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
 #include <gkyl_dg_vlasov_lbo_drag.h>
 #include <gkyl_dg_vlasov_lbo_drag_priv.h>
@@ -122,8 +123,9 @@ gkyl_dg_vlasov_lbo_drag_new(const struct gkyl_basis* cbasis,
   vlasov_lbo_drag->nuVtSqSum = 0;
   vlasov_lbo_drag->conf_range = *conf_range;
 
-  // set reference counter
+  GKYL_CLEAR_CU_ALLOC(vlasov_lbo_drag->eqn.flags);
   vlasov_lbo_drag->eqn.ref_count = gkyl_ref_count_init(dg_vlasov_lbo_drag_free);
+  vlasov_lbo_drag->eqn.on_dev = &vlasov_lbo_drag->eqn;
   
   return &vlasov_lbo_drag->eqn;
 }
