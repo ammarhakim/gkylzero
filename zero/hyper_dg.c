@@ -1,8 +1,10 @@
+#include "gkyl_range.h"
 #include <assert.h>
 #include <math.h>
 #include <time.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_hyper_dg_priv.h>
@@ -172,12 +174,17 @@ gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   up->update_vol_term = update_vol_term;
   up->equation = gkyl_dg_eqn_acquire(equation);
 
+  GKYL_CLEAR_CU_ALLOC(up->flags);
+  up->on_dev = up; // on host, on_dev points to itself
+
   return up;
 }
 
 void gkyl_hyper_dg_release(gkyl_hyper_dg* hdg)
 {
   gkyl_dg_eqn_release(hdg->equation);
+  if (GKYL_IS_CU_ALLOC(hdg->flags))
+    gkyl_cu_free(hdg->on_dev);
   gkyl_free(hdg);
 }
 

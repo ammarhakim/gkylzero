@@ -1,5 +1,6 @@
 /* -*- c++ -*- */
 
+#include "gkyl_alloc_flags_priv.h"
 #include <math.h>
 #include <time.h>
 
@@ -97,7 +98,7 @@ gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* hdg, struct gkyl_range update_range,
   int nblocks = update_range.nblocks;
   int nthreads = update_range.nthreads;
 
-  gkyl_hyper_dg_advance_cu_kernel<<<nblocks, nthreads>>>(hdg, update_range,
+  gkyl_hyper_dg_advance_cu_kernel<<<nblocks, nthreads>>>(hdg->on_dev, update_range,
     fIn->on_dev, cflrate->on_dev, rhs->on_dev);
 }
 
@@ -109,7 +110,7 @@ gkyl_hyper_dg_set_update_vol_cu(gkyl_hyper_dg *hdg, int update_vol_term)
 
 gkyl_hyper_dg*
 gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation_cu,
+  const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation,
   int num_up_dirs, int update_dirs[GKYL_MAX_DIM], int zero_flux_flags[GKYL_MAX_DIM],
   int update_vol_term)
 {
@@ -127,13 +128,18 @@ gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid,
     
   up->update_vol_term = update_vol_term;
 
-  up->equation = equation_cu; // NB: RHS a pointer to device
+  // aquire pointer to equation object
+  struct gkyl_dg_eqn *eqn = gkyl_dg_eqn_acquire(equation);
+  up->equation = eqn->on_dev; // this is so the memcpy below has eqn on_dev
 
+  GKYL_SET_CU_ALLOC(up->flags);
+  
   // copy host struct to device struct
   gkyl_hyper_dg *up_cu = (gkyl_hyper_dg*) gkyl_cu_malloc(sizeof(gkyl_hyper_dg));
   gkyl_cu_memcpy(up_cu, up, sizeof(struct gkyl_hyper_dg), GKYL_CU_MEMCPY_H2D);
+  up->on_dev = up_cu; // set parent pointer
 
-  gkyl_free(up);
+  up->equation = eqn; // updater should store host pointer
 
-  return up_cu;
+  return up;
 }

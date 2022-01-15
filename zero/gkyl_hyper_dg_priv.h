@@ -14,4 +14,7 @@ struct gkyl_hyper_dg {
   int zero_flux_flags[GKYL_MAX_DIM];
   int update_vol_term; // should we update volume term?
   const struct gkyl_dg_eqn *equation; // equation object
+
+    uint32_t flags;
+  struct gkyl_hyper_dg *on_dev; // pointer to itself or device data
 };

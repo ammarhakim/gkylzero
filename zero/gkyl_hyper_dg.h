@@ -31,14 +31,14 @@ gkyl_hyper_dg* gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
  *
  * @param grid_cu Grid object (on device)
  * @param basis Basis functions
- * @param equation_cu Equation object (on device)
+ * @param equation Equation object
  * @param num_up_dirs Number of directions to update
  * @param update_dirs List of directions to update (size 'num_up_dirs')
  * @param zero_flux_flags Flags to indicate if direction has zero-flux BCs
  * @param update_vol_term Set to 0 to skip volume update
  */
 gkyl_hyper_dg* gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
-  const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation_cu,
+  const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation,
   int num_up_dirs, int update_dirs[GKYL_MAX_DIM], int zero_flux_flags[GKYL_MAX_DIM],
   int update_vol_term);
 
