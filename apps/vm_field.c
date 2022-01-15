@@ -157,13 +157,14 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   gkyl_array_release(f->bc_buffer);
   gkyl_array_release(f->cflrate);
 
+  gkyl_dg_eqn_release(f->eqn);
+  gkyl_hyper_dg_release(f->slvr);
+
   if (app->use_gpu) {
     gkyl_array_release(f->em_host);
     gkyl_cu_free_host(f->omegaCfl_ptr);
   }
   else {
-    gkyl_dg_eqn_release(f->eqn);
-    gkyl_hyper_dg_release(f->slvr);
     gkyl_free(f->omegaCfl_ptr);
   }
 

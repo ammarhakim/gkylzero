@@ -73,5 +73,5 @@ gkyl_dg_maxwell_cu_dev_new(const struct gkyl_basis* cbasis,
   // set parent on_dev pointer
   maxwell->eqn.on_dev = &maxwell_cu->eqn;
 
-  return &maxwell_cu->eqn;
+  return &maxwell->eqn;
 }

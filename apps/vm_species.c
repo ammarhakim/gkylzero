@@ -256,10 +256,9 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   gkyl_array_release(s->cflrate);
   gkyl_array_release(s->bc_buffer);
   
-  if (app->use_gpu) {
+  if (app->use_gpu)
     gkyl_array_release(s->f_host);
-  }
-
+  
   // release moment data
   vm_species_moment_release(app, &s->m1i);
   vm_species_moment_release(app, &s->m0);
@@ -268,19 +267,14 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     vm_species_moment_release(app, &s->moms[i]);
   gkyl_free(s->moms);
 
+  gkyl_dg_eqn_release(s->eqn);
+  gkyl_hyper_dg_release(s->slvr);  
 
   if (s->collision_id == GKYL_LBO_COLLISIONS)
-  {    
     vm_species_lbo_release(app, &s->lbo);
-  }
   
-  if (app->use_gpu) {
+  if (app->use_gpu)
     gkyl_cu_free_host(s->omegaCfl_ptr);
-    // TODO: NOT SURE HOW TO RELEASE ON DEVICE YET
-  }
-  else {
+  else
     gkyl_free(s->omegaCfl_ptr);
-    gkyl_dg_eqn_release(s->eqn);
-    gkyl_hyper_dg_release(s->slvr);
-  }
 }

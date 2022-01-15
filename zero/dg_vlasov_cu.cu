@@ -131,5 +131,5 @@ gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_bas
   // set parent on_dev pointer
   vlasov->eqn.on_dev = &vlasov_cu->eqn;
   
-  return &vlasov_cu->eqn;
+  return &vlasov->eqn;
 }

@@ -15,6 +15,13 @@ void
 gkyl_maxwell_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
+
+  if (gkyl_dg_eqn_is_cu_dev(base)) {
+    // free inner on_dev object
+    struct dg_maxwell *maxwell = container_of(base->on_dev, struct dg_maxwell, eqn);
+    gkyl_cu_free(maxwell);
+  }  
+  
   struct dg_maxwell *maxwell = container_of(base, struct dg_maxwell, eqn);
   gkyl_free(maxwell);
 }

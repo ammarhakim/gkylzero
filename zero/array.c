@@ -43,7 +43,13 @@ static void
 array_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_array *arr = container_of(ref, struct gkyl_array, ref_count);
-  GKYL_IS_CU_ALLOC(arr->flags) ? gkyl_cu_free(arr->data), gkyl_cu_free(arr->on_dev) : g_array_free(arr->data);
+  if (GKYL_IS_CU_ALLOC(arr->flags)) {
+    gkyl_cu_free(arr->data);
+    gkyl_cu_free(arr->on_dev);
+  }
+  else {
+    g_array_free(arr->data);
+  }
   gkyl_free(arr);
 }
 
