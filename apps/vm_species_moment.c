@@ -50,15 +50,10 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
 void
 vm_species_moment_release(const struct gkyl_vlasov_app *app, const struct vm_species_moment *sm)
 {
-  if (app->use_gpu) {
-    // TODO: release dev objects
-
+  if (app->use_gpu)
     gkyl_array_release(sm->marr_host);
-  }
-  else {
-    gkyl_mom_type_release(sm->mtype);
-    gkyl_mom_calc_release(sm->mcalc);
-  }
-  
+
+  gkyl_mom_type_release(sm->mtype);
+  gkyl_mom_calc_release(sm->mcalc);
   gkyl_array_release(sm->marr);
 }

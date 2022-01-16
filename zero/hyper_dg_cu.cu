@@ -132,6 +132,7 @@ gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid,
   struct gkyl_dg_eqn *eqn = gkyl_dg_eqn_acquire(equation);
   up->equation = eqn->on_dev; // this is so the memcpy below has eqn on_dev
 
+  up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
   
   // copy host struct to device struct

@@ -128,7 +128,9 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   vlasov->qmem = 0;  
   vlasov->conf_range = *conf_range;
 
+  vlasov->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(vlasov->eqn.flags);
+
   vlasov->eqn.ref_count = gkyl_ref_count_init(gkyl_vlasov_free);
   vlasov->eqn.on_dev = &vlasov->eqn; // CPU eqn obj points to itself
   

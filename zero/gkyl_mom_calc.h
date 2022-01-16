@@ -9,11 +9,6 @@
 // Object type
 typedef struct gkyl_mom_calc gkyl_mom_calc;
 
-struct gkyl_mom_calc {
-  struct gkyl_rect_grid grid;
-  const struct gkyl_mom_type *momt;
-};
-
 /**
  * Create new updater to compute moments of distribution
  * function. Free using gkyl_mom_calc_new_release.

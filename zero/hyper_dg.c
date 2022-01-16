@@ -174,7 +174,9 @@ gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   up->update_vol_term = update_vol_term;
   up->equation = gkyl_dg_eqn_acquire(equation);
 
+  up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
+  
   up->on_dev = up; // on host, on_dev points to itself
 
   return up;

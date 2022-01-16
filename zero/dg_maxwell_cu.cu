@@ -62,6 +62,7 @@ gkyl_dg_maxwell_cu_dev_new(const struct gkyl_basis* cbasis,
   maxwell->maxwell_data.chi = lightSpeed*elcErrorSpeedFactor;
   maxwell->maxwell_data.gamma = lightSpeed*mgnErrorSpeedFactor;
 
+  maxwell->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(maxwell->eqn.flags);
   maxwell->eqn.ref_count = gkyl_ref_count_init(gkyl_maxwell_free);
 

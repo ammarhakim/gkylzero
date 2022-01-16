@@ -2,6 +2,8 @@
 
 // Private header, not for direct use in user code
 
+#include <gkyl_mom_type.h>
+#include <gkyl_ref_count.h>
 #include <gkyl_vlasov_mom_kernels.h>
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
@@ -199,6 +201,13 @@ struct vlasov_mom_type {
   struct gkyl_mom_type momt;
   vlasov_momf_t kernel; // moment calculation kernel
 };
+
+/**
+ * Free moment object.
+ *
+ * @param ref Reference counter for moment to free
+ */
+void gkyl_mom_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D
 static void

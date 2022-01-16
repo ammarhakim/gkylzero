@@ -122,7 +122,8 @@ gkyl_dg_vlasov_lbo_diff_new(const struct gkyl_basis* cbasis, const struct gkyl_b
   vlasov_lbo_diff->nuVtSqSum = 0;
   vlasov_lbo_diff->conf_range = *conf_range;
 
-  GKYL_CLEAR_CU_ALLOC(vlasov_lbo_diff->eqn.flags);  
+  vlasov_lbo_diff->eqn.flags = 0;
+  GKYL_CLEAR_CU_ALLOC(vlasov_lbo_diff->eqn.flags);
   vlasov_lbo_diff->eqn.ref_count = gkyl_ref_count_init(dg_vlasov_lbo_diff_free);
   vlasov_lbo_diff->eqn.on_dev = &vlasov_lbo_diff->eqn;
   

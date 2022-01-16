@@ -118,6 +118,7 @@ gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_bas
   vlasov->eqn.num_equations = 1;
   vlasov->conf_range = *conf_range;
 
+  vlasov->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(vlasov->eqn.flags);
   vlasov->eqn.ref_count = gkyl_ref_count_init(gkyl_vlasov_free);
 

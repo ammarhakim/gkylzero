@@ -123,6 +123,7 @@ gkyl_dg_vlasov_lbo_drag_new(const struct gkyl_basis* cbasis,
   vlasov_lbo_drag->nuVtSqSum = 0;
   vlasov_lbo_drag->conf_range = *conf_range;
 
+  vlasov_lbo_drag->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(vlasov_lbo_drag->eqn.flags);
   vlasov_lbo_drag->eqn.ref_count = gkyl_ref_count_init(dg_vlasov_lbo_drag_free);
   vlasov_lbo_drag->eqn.on_dev = &vlasov_lbo_drag->eqn;

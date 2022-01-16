@@ -3,9 +3,10 @@
 #include <string.h>
 
 #include <gkyl_alloc.h>
-#include <gkyl_util.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_lbo_mom_bcorr.h>
 #include <gkyl_lbo_mom_bcorr_priv.h>
+#include <gkyl_util.h>
 
 static void
 mom_free(const struct gkyl_ref_count *ref)
@@ -68,8 +69,11 @@ gkyl_vlasov_lbo_mom_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
     mom_bcorr->momt.num_mom = vdim;
   }
 
-  // set reference counter
+  mom_bcorr->momt.flag = 0;
+  GKYL_CLEAR_CU_ALLOC(mom_bcorr->momt.flag);
   mom_bcorr->momt.ref_count = gkyl_ref_count_init(mom_free);
+
+  mom_bcorr->momt.on_dev = &mom_bcorr->momt;
     
   return &mom_bcorr->momt;
 }

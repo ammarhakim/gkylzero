@@ -79,6 +79,7 @@ gkyl_dg_maxwell_new(const struct gkyl_basis* cbasis,
   // ensure non-NULL pointers 
   for (int i=0; i<cdim; ++i) assert(maxwell->surf[i]);
 
+  maxwell->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(maxwell->eqn.flags);
   maxwell->eqn.ref_count = gkyl_ref_count_init(gkyl_maxwell_free);
   maxwell->eqn.on_dev = &maxwell->eqn; // CPU eqn obj points to itself

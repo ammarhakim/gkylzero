@@ -1,9 +1,13 @@
 /* -*- c++ -*- */
 
 extern "C" {
-#include <gkyl_mom_calc.h>
-#include <gkyl_util.h>
+#include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_mom_calc.h>
+#include <gkyl_mom_calc_priv.h>
+#include <gkyl_mom_type.h>
+#include <gkyl_util.h>
 }
 
 __global__ static void
@@ -49,6 +53,27 @@ gkyl_mom_calc_advance_cu(const gkyl_mom_calc* mcalc,
   int nblocks = phase_range.nblocks, nthreads = phase_range.nthreads;
   gkyl_array_clear_range(mout, 0.0, conf_range);
   gkyl_mom_calc_advance_cu_ker<<<nblocks, nthreads>>>
-    (mcalc, phase_range, conf_range, fin->on_dev, mout->on_dev);
+    (mcalc->on_dev, phase_range, conf_range, fin->on_dev, mout->on_dev);
+}
 
+gkyl_mom_calc*
+gkyl_mom_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_mom_type *momt)
+{
+  gkyl_mom_calc *up = (gkyl_mom_calc*) gkyl_malloc(sizeof(gkyl_mom_calc));
+  up->grid = *grid;
+
+  struct gkyl_mom_type *mt = gkyl_mom_type_acquire(momt);
+  up->momt = mt->on_dev; // so memcpy below gets dev copy
+
+  up->flags = 0;
+  GKYL_SET_CU_ALLOC(up->flags);
+
+  gkyl_mom_calc *up_cu = (gkyl_mom_calc*) gkyl_cu_malloc(sizeof(gkyl_mom_calc));
+  gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_mom_calc), GKYL_CU_MEMCPY_H2D);
+
+  up->momt = mt; // host portion of struct should have host copy
+  up->on_dev = up_cu; // host pointer
+
+  return up;
 }

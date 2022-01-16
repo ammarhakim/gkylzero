@@ -3,14 +3,17 @@
 #include <string.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_util.h>
 #include <gkyl_vlasov_mom.h>
 #include <gkyl_vlasov_mom_priv.h>
 
-static void
-mom_free(const struct gkyl_ref_count *ref)
+void
+gkyl_mom_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_mom_type *momt = container_of(ref, struct gkyl_mom_type, ref_count);
+  if (GKYL_IS_CU_ALLOC(momt->flag))
+    gkyl_cu_free(momt->on_dev);
   gkyl_free(momt);
 }
 
@@ -108,8 +111,11 @@ gkyl_vlasov_mom_new(const struct gkyl_basis* cbasis,
     gkyl_exit("gkyl_vlasov_mom_type: Unrecognized moment requested!");
   }
 
-  // set reference counter
-  vlasov_mom->momt.ref_count = gkyl_ref_count_init(mom_free);
+  vlasov_mom->momt.flag = 0;
+  GKYL_CLEAR_CU_ALLOC(vlasov_mom->momt.flag);
+  vlasov_mom->momt.ref_count = gkyl_ref_count_init(gkyl_mom_free);
+  
+  vlasov_mom->momt.on_dev = &vlasov_mom->momt; // on host, self-reference
     
   return &vlasov_mom->momt;
 }
