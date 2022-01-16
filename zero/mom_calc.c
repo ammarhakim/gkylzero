@@ -86,4 +86,11 @@ gkyl_mom_calc_advance_cu(const gkyl_mom_calc* mcalc,
   assert(false);
 }
 
+gkyl_mom_calc*
+gkyl_mom_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_mom_type *momt)
+{
+  assert(false);
+}
+
 #endif
