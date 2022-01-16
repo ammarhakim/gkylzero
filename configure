@@ -27,9 +27,9 @@ Configure GkeyllZero build system. This step is optional if you are
 okay with the default parameters.
 
 NOTE: At present, the configure script DOES NOT check if you have
-specified valid paths. YOU are responsible for setting them correctly.
+specified valid paths. YOU are responsible for setting them correctly!
 
-CC                         C and C++ compilers to use
+CC                         C compiler to use. Default is system cc
 
 -h
 --help                     This help.
