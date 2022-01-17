@@ -58,6 +58,8 @@ struct vm_lbo_collisions {
   struct gkyl_mom_bcorr *cM_bcorr, *cE_bcorr; // moments needed in update
   struct gkyl_array *nu_sum, *u_drift, *vth_sq, *nu_u, *nu_vthsq; // LBO primitive moments
   struct gkyl_prim_lbo *coll_prim; // primitive moments
+
+  struct vm_species_moment m0, m1i, m2; // moments needed in LBO
   
   gkyl_prim_lbo_calc *coll_pcalc; // primitive moment calculator
   gkyl_dg_lbo_updater *coll_slvr; // collision solver
@@ -86,7 +88,6 @@ struct vm_species {
   struct gkyl_array *f_host; // host copy for use IO and initialization
 
   struct vm_species_moment m1i; // for computing currents
-  struct vm_species_moment m0, m2; // for density and energy in collision update (if present)
   struct vm_species_moment *moms; // diagnostic moments
 
   struct gkyl_dg_eqn *eqn; // Vlasov equation
@@ -200,7 +201,8 @@ void vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
  * @param app Vlasov app object
  * @param sm Species moment object to release
  */
-void vm_species_moment_release(const struct gkyl_vlasov_app *app, const struct vm_species_moment *sm);
+void vm_species_moment_release(const struct gkyl_vlasov_app *app,
+  const struct vm_species_moment *sm);
 
 /** vm_species_lbo API */
 
@@ -211,7 +213,21 @@ void vm_species_moment_release(const struct gkyl_vlasov_app *app, const struct v
  * @param s Species object 
  * @param lbo Species LBO object
  */
-void vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_lbo_collisions *lbo);
+void vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s,
+  struct vm_lbo_collisions *lbo);
+
+/**
+ * Compute RHS from LBO collisions
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param lbo Pointer to LBO
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from LBO
+ * @return Maximum stable time-step
+ */
+double vm_species_lbo_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
+  struct vm_lbo_collisions *lbo, const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
  * Release species LBO object.

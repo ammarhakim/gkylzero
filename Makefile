@@ -202,4 +202,4 @@ clean:
 # always need to be rebuilt and are very expensive to build when using
 # nvcc
 partclean:
-	rm -rf build/libgkylzero.a app/*.o zero/*.o build/regression/rt_* build/unit/ctest_*
+	rm -rf build/libgkylzero.a app/*.o zero/*.o unit/*.o build/regression/rt_* build/unit/ctest_*

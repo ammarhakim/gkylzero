@@ -28,6 +28,11 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   lbo->vth_sq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   lbo->nu_u = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
   lbo->nu_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+
+  // allocate moments needed for LBO update
+  vm_species_moment_init(app, s, &lbo->m0, "M0");
+  vm_species_moment_init(app, s, &lbo->m1i, "M1i");
+  vm_species_moment_init(app, s, &lbo->m2, "M2");
   
   // create collision equation object and solver
   if (app->use_gpu) {
@@ -52,6 +57,35 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   }
 }
 
+double
+vm_species_lbo_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
+  struct vm_lbo_collisions *lbo, const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  // compute needed moments
+  gkyl_mom_calc_advance(lbo->m0.mcalc, species->local, app->local, fin, lbo->m0.marr);
+  gkyl_mom_calc_advance(lbo->m1i.mcalc, species->local, app->local, fin, lbo->m1i.marr);
+  gkyl_mom_calc_advance(lbo->m2.mcalc, species->local, app->local, fin, lbo->m2.marr);
+
+  // construct boundary corrections
+  gkyl_mom_bcorr_advance(lbo->cM_bcorr, species->local, app->local, fin, lbo->cM);
+  gkyl_mom_bcorr_advance(lbo->cE_bcorr, species->local, app->local, fin, lbo->cE);
+
+  // construct primitive moments
+  gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, app->confBasis, app->local, 
+    lbo->m0.marr, lbo->m1i.marr, lbo->m2.marr, lbo->cM, lbo->cE,
+        lbo->u_drift, lbo->vth_sq);
+  
+  gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_u, 0, lbo->u_drift, 0, lbo->nu_sum);
+  gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_vthsq, 0, lbo->vth_sq, 0, lbo->nu_sum);
+  
+  // acccumulate update due to collisions onto rhs
+  gkyl_dg_lbo_updater_advance(lbo->coll_slvr, species->local,
+    lbo->nu_sum, lbo->nu_u, lbo->nu_vthsq, fin, species->cflrate, rhs);
+
+  // TODO: This needs to be set properly!
+  return 0;
+}
+
 void 
 vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_collisions *lbo)
 {
@@ -62,6 +96,10 @@ vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_co
   gkyl_array_release(lbo->nu_sum);
   gkyl_array_release(lbo->nu_u);
   gkyl_array_release(lbo->nu_vthsq);
+
+  vm_species_moment_release(app, &lbo->m0);
+  vm_species_moment_release(app, &lbo->m1i);
+  vm_species_moment_release(app, &lbo->m2);
   
   if (app->use_gpu) {
   }
