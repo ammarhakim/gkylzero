@@ -123,12 +123,7 @@ gkyl_vlasov_app_calc_mom(gkyl_vlasov_app* app)
     
     for (int m=0; m<app->species[i].info.num_diag_moments; ++m) {
       struct timespec wst = gkyl_wall_clock();
-      if (app->use_gpu)
-        gkyl_mom_calc_advance_cu(s->moms[m].mcalc, s->local, app->local,
-          s->f, s->moms[m].marr);
-      else
-        gkyl_mom_calc_advance(s->moms[m].mcalc, s->local, app->local,
-          s->f, s->moms[m].marr);
+      vm_species_moment_calc(&s->moms[m], s->local, app->local, s->f);
       app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
       app->stat.nmom += 1;
     }
@@ -255,13 +250,8 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     struct timespec wst = gkyl_wall_clock();
     // accumulate current contribution to electric field terms
     for (int i=0; i<app->num_species; ++i) {
-      struct vm_species *s = &app->species[i];    
-      if (app->use_gpu)
-        gkyl_mom_calc_advance_cu(s->m1i.mcalc, s->local, app->local,
-          fin[i], s->m1i.marr);
-      else
-        gkyl_mom_calc_advance(s->m1i.mcalc, s->local, app->local,
-          fin[i], s->m1i.marr);
+      struct vm_species *s = &app->species[i];
+      vm_species_moment_calc(&s->m1i, s->local, app->local, fin[i]);
     
       double qbyeps = s->info.charge/app->field->info.epsilon0;
       gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, app->local);
