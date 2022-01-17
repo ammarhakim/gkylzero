@@ -47,6 +47,7 @@ struct vm_skin_ghost_ranges {
 
 // data for moments
 struct vm_species_moment {
+  bool use_gpu; // should we use GPU (if present)
   gkyl_mom_calc *mcalc; // moment update
   struct gkyl_array *marr; // array to moment data
   struct gkyl_array *marr_host; // host copy (same as marr if not on GPUs)
@@ -194,6 +195,17 @@ skin_ghost_ranges_init(struct vm_skin_ghost_ranges *sgr,
  */
 void vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   struct vm_species_moment *sm, const char *nm);
+
+/**
+ * Calculate moment, given distribution function @a fin.
+ *
+ * @param phase_rng Phase-space range
+ * @param conf_rng Config-space range
+ * @param fin Input distribution function array
+ */
+void vm_species_moment_calc(const struct vm_species_moment *sm,
+  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
+  const struct gkyl_array *fin);
 
 /**
  * Release species moment object.

@@ -62,9 +62,9 @@ vm_species_lbo_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   struct vm_lbo_collisions *lbo, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   // compute needed moments
-  gkyl_mom_calc_advance(lbo->m0.mcalc, species->local, app->local, fin, lbo->m0.marr);
-  gkyl_mom_calc_advance(lbo->m1i.mcalc, species->local, app->local, fin, lbo->m1i.marr);
-  gkyl_mom_calc_advance(lbo->m2.mcalc, species->local, app->local, fin, lbo->m2.marr);
+  vm_species_moment_calc(&lbo->m0, species->local, app->local, fin);
+  vm_species_moment_calc(&lbo->m1i, species->local, app->local, fin);
+  vm_species_moment_calc(&lbo->m2, species->local, app->local, fin);
 
   // construct boundary corrections
   gkyl_mom_bcorr_advance(lbo->cM_bcorr, species->local, app->local, fin, lbo->cM);

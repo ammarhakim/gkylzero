@@ -1,3 +1,4 @@
+#include "gkyl_mom_calc.h"
 #include <assert.h>
 #include <gkyl_vlasov_priv.h>
 
@@ -21,6 +22,8 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   struct vm_species_moment *sm, const char *nm)
 {
   assert(is_moment_name_valid(nm));
+
+  sm->use_gpu = app->use_gpu;
   
   if (app->use_gpu) {
     struct gkyl_mom_type *mtype = gkyl_vlasov_mom_cu_dev_new(&app->confBasis, &app->basis, nm);
@@ -44,6 +47,17 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
 
     gkyl_mom_type_release(mtype);
   }
+}
+
+void
+vm_species_moment_calc(const struct vm_species_moment *sm,
+  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
+  const struct gkyl_array *fin)
+{
+  if (sm->use_gpu)
+    gkyl_mom_calc_advance_cu(sm->mcalc, phase_rng, conf_rng, fin, sm->marr);
+  else
+    gkyl_mom_calc_advance(sm->mcalc, phase_rng, conf_rng, fin, sm->marr);
 }
 
 // release memory for moment data object
