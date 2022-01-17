@@ -44,6 +44,44 @@ get_mom_id(const char *mom)
   return mom_idx;
 }
 
+static int
+v_num_mom(int vdim, int mom_id)
+{
+  int m3ijk_count[] = { 1, 4, 10 };
+  int num_mom = 0;
+  
+  switch (mom_id) {
+    case M0:
+      num_mom = 1;
+      break;
+
+    case M1i:
+      num_mom = vdim;
+      break;
+
+    case M2:
+      num_mom = 1;
+      break;
+
+    case M2ij:
+      num_mom = vdim*(vdim+1)/2;
+      break;
+
+    case M3i:
+      num_mom = vdim;
+      break;
+
+    case M3ijk:
+      num_mom = m3ijk_count[vdim-1];
+      break;
+      
+    default: // can't happen
+      break;
+  }
+
+  return num_mom;
+}
+
 __global__
 static void
 vlasov_mom_set_cu_dev_ptrs(struct vlasov_mom_type* vlasov_mom, int mom_id, enum gkyl_basis_type b_type, int vdim,
@@ -135,6 +173,10 @@ gkyl_vlasov_mom_cu_dev_new(const struct gkyl_basis* cbasis,
   vlasov_mom->momt.num_config = cbasis->num_basis;
   vlasov_mom->momt.num_phase = pbasis->num_basis;
 
+  int mom_id = get_mom_id(mom);
+  assert(mom_id != BAD);
+  vlasov_mom->momt.num_mom = v_num_mom(vdim, mom_id); // number of moments
+
   vlasov_mom->momt.flag = 0;
   GKYL_SET_CU_ALLOC(vlasov_mom->momt.flag);
   vlasov_mom->momt.ref_count = gkyl_ref_count_init(gkyl_mom_free);
@@ -145,8 +187,7 @@ gkyl_vlasov_mom_cu_dev_new(const struct gkyl_basis* cbasis,
   gkyl_cu_memcpy(vlasov_mom_cu, vlasov_mom, sizeof(struct vlasov_mom_type), GKYL_CU_MEMCPY_H2D);
 
   assert(cv_index[cdim].vdim[vdim] != -1);
-  int mom_id = get_mom_id(mom);
-  assert(mom_id != BAD);
+
 
   vlasov_mom_set_cu_dev_ptrs<<<1,1>>>(vlasov_mom_cu, mom_id, cbasis->b_type,
     vdim, poly_order, cv_index[cdim].vdim[vdim]);

@@ -1,3 +1,4 @@
+#include <gkyl_dg_eqn.h>
 #include <gkyl_util.h>
 #include <assert.h>
 
@@ -49,20 +50,23 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   double c = 1/sqrt(f->info.epsilon0*f->info.mu0);
   double ef = f->info.elcErrorSpeedFactor, mf = f->info.mgnErrorSpeedFactor;
 
+  struct gkyl_dg_eqn *eqn;
   if (app->use_gpu)
-    f->eqn = gkyl_dg_maxwell_cu_dev_new(&app->confBasis, c, ef, mf);
+    eqn = gkyl_dg_maxwell_cu_dev_new(&app->confBasis, c, ef, mf);
   else
-    f->eqn = gkyl_dg_maxwell_new(&app->confBasis, c, ef, mf);
+    eqn = gkyl_dg_maxwell_new(&app->confBasis, c, ef, mf);
 
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
 
   // Maxwell solver
   if (app->use_gpu)
-    f->slvr = gkyl_hyper_dg_cu_dev_new(&app->grid, &app->confBasis, f->eqn,
+    f->slvr = gkyl_hyper_dg_cu_dev_new(&app->grid, &app->confBasis, eqn,
       app->cdim, up_dirs, zero_flux_flags, 1);
   else
-    f->slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, f->eqn,
+    f->slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, eqn,
       app->cdim, up_dirs, zero_flux_flags, 1);
+
+  gkyl_dg_eqn_release(eqn);
 
   return f;
 }
@@ -157,7 +161,6 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   gkyl_array_release(f->bc_buffer);
   gkyl_array_release(f->cflrate);
 
-  gkyl_dg_eqn_release(f->eqn);
   gkyl_hyper_dg_release(f->slvr);
 
   if (app->use_gpu) {

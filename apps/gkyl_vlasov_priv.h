@@ -13,18 +13,18 @@
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_dg_bin_ops.h>
+#include <gkyl_dg_lbo_updater.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_eqn_type.h>
-#include <gkyl_dg_lbo_updater.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_lbo_mom_bcorr.h>
 #include <gkyl_mom_bcorr.h>
 #include <gkyl_mom_calc.h>
+#include <gkyl_null_pool.h>
 #include <gkyl_prim_lbo.h>
 #include <gkyl_prim_lbo_calc.h>
 #include <gkyl_prim_lbo_vlasov.h>
-#include <gkyl_null_pool.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -47,7 +47,6 @@ struct vm_skin_ghost_ranges {
 
 // data for moments
 struct vm_species_moment {
-  struct gkyl_mom_type *mtype; // moment object
   gkyl_mom_calc *mcalc; // moment update
   struct gkyl_array *marr; // array to moment data
   struct gkyl_array *marr_host; // host copy (same as marr if not on GPUs)
@@ -110,8 +109,7 @@ struct vm_field {
 
   struct gkyl_array *em_host;  // host copy for use IO and initialization
 
-  struct gkyl_dg_eqn *eqn; // Maxwell equation
-  gkyl_hyper_dg *slvr; // solver
+  gkyl_hyper_dg *slvr; // Maxwell solver
 
   double* omegaCfl_ptr;
 };
