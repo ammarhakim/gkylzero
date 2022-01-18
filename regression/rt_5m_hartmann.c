@@ -18,6 +18,7 @@ struct hartmann_ctx {
 
   double epsilon0, mu0;
 
+  double coll_fac;
   double tau, lambda;
   double eta_par, eta_perp;
   double hartmann_num;
@@ -28,22 +29,29 @@ struct hartmann_ctx
 create_ctx(void)
 {
   double gasGamma = 5.0/3.0;
-  double charge = 1.602176487e-19;
-  double elcMass = 9.10938215e-31;
-  double ionMass = 1.672621637e-27;
-  double epsilon0 = 8.854187817620389850536563031710750260608e-12;
-  double mu0 = 12.56637061435917295385057353311801153679e-7;
-  // 100 eV plasma
-  double T_elc = 100*charge;
-  double T_ion = 100*charge;
-  // plasma beta = 2*mu0*n*T/B^2 = 0.01
-  double beta = 0.1;
-  // 1 Tesla magnetic field
-  double B0 = 1.0;
-  // Compute density from specified parameters
-  double n = beta*B0*B0/(2*mu0*T_elc);
+  double charge = 1.0;
+  double ionMass = 1.0;
+  double elcMass = ionMass/100.0;
+  double epsilon0 = 1.0;
+  double mu0 = 1.0;
+  // double charge = 1.602176487e-19;
+  // double elcMass = 9.10938215e-31;
+  // double ionMass = 1.672621637e-27;
+  // double epsilon0 = 8.854187817620389850536563031710750260608e-12;
+  // double mu0 = 12.56637061435917295385057353311801153679e-7;
+  double c = 1.0/sqrt(epsilon0*mu0);
+  double vAe = c;
+  // plasma density in particles per m^3
+  double n = 1.0;
+  // Compute magnetic field from specified parameters
+  double B0 = vAe*sqrt(mu0*n*elcMass);
 
-  double tau = 6.0*sqrt(2.0*M_PI*elcMass*T_elc*M_PI*T_elc*M_PI*T_elc)*epsilon0*epsilon0/(charge*charge*charge*charge*n);
+  double beta = 0.1;
+  double T_ion = beta*(B0*B0)/(2.0*n*mu0);
+  double T_elc = T_ion;
+
+  double coll_fac = 4e5;
+  double tau = coll_fac*6.0*sqrt(2.0*M_PI*elcMass*T_elc*M_PI*T_elc*M_PI*T_elc)*epsilon0*epsilon0/(charge*charge*charge*charge*n);
   double lambda = 1.0/mu0*(elcMass/(charge*charge*n*tau));
 
   double eta_par = 0.96*n*T_ion*sqrt(2.0)*tau;
@@ -51,7 +59,7 @@ create_ctx(void)
   double mu_par = 1.5*eta_par - 15.0/2.0*eta_perp;
   double hartmann_num = B0/sqrt(mu0*lambda*mu_par);
 
-  double accel = 100.0;
+  double accel = 0.01;
   double force_norm = mu0*n*accel/(B0*B0);
   struct hartmann_ctx ctx = {
     .gasGamma = gasGamma,
@@ -65,6 +73,7 @@ create_ctx(void)
     .beta = beta,
     .B0 = B0,
     .n = n,
+    .coll_fac = coll_fac,
     .tau = tau,
     .lambda = lambda,
     .eta_par = eta_par,
@@ -129,6 +138,13 @@ evalAppAccel(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[2] = 0.0;
 }
 
+void
+write_data(struct gkyl_tm_trigger *iot, const gkyl_moment_app *app, double tcurr)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, tcurr))
+    gkyl_moment_app_write(app, tcurr, iot->curr-1);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -176,16 +192,16 @@ main(int argc, char **argv)
     .ndim = 1,
     .lower = { 0.0 },
     .upper = { 1.0 }, 
-    .cells = { 64 },
+    .cells = { 32 },
 
     .num_periodic_dir = 0,
     .periodic_dirs = { },
-    .cfl_frac = 1.0,
+    .cfl_frac = 0.0002,
 
     .num_species = 2,
     .species = { elc, ion },
     .type_brag = GKYL_MAG_BRAG_NO_CROSS,
-    .coll_fac = 1.0,
+    .coll_fac = ctx.coll_fac,
     .field = {
       .epsilon0 = ctx.epsilon0,
       .mu0 = ctx.mu0,
@@ -202,7 +218,10 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 1.0e-6;
+  double tcurr = 0.0, tend = 0.1*ctx.tau;
+  int nframe = 1;
+  // create trigger for IO
+  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
@@ -224,10 +243,11 @@ main(int argc, char **argv)
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
 
+    write_data(&io_trig, app, tcurr);
+
     step += 1;
   }
 
-  gkyl_moment_app_write(app, tcurr, 1);
   gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
