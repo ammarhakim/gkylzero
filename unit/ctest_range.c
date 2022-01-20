@@ -1,3 +1,5 @@
+#include "gkyl_moment.h"
+#include "gkyl_util.h"
 #include <acutest.h>
 
 #include <gkyl_alloc.h>
@@ -110,6 +112,40 @@ void test_sub_range_inv_idx()
 
     TEST_CHECK(idx[0] == iter.idx[0]);
     TEST_CHECK(idx[1] == iter.idx[1]);
+  }
+}
+
+void test_sub_sub_range()
+{
+  int lower[] = {1, 1}, upper[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, lower, upper);
+
+  int sublower[] = {2, 2}, subupper[] = { 5, 10 };
+  struct gkyl_range subrange;
+  gkyl_sub_range_init(&subrange, &range, sublower, subupper);
+
+  // sub-range from sub-range
+  int s_sublower[] = {3, 3}, s_subupper[] = { 4, 8 };
+  struct gkyl_range s_subrange;
+  gkyl_sub_range_init(&s_subrange, &subrange, s_sublower, s_subupper);
+
+  TEST_CHECK( s_subrange.volume == 2*6 );
+  TEST_CHECK( gkyl_range_is_sub_range(&s_subrange) == 1 );
+
+  for (unsigned d=0; d<2; ++d) {
+    TEST_CHECK( s_subrange.lower[d] == s_sublower[d] );
+    TEST_CHECK( s_subrange.upper[d] == s_subupper[d] );
+  }
+
+  for (long i=0; i<s_subrange.volume; ++i) {
+    int idx1[GKYL_MAX_DIM], idx2[GKYL_MAX_DIM];
+
+    gkyl_range_inv_idx(&s_subrange, i, idx1);
+    gkyl_range_inv_idx(&range, i, idx2);
+
+    for (int d=0; d<2; ++d)
+      TEST_CHECK( idx1[d] == idx2[d] );
   }
 }
 
@@ -879,6 +915,7 @@ TEST_LIST = {
   { "range_1", test_range_1 },
   { "range_shape",  test_range_shape },
   { "sub_range",  test_sub_range },
+  { "sub_sub_range",  test_sub_sub_range },
   { "sub_range_inv_idx",  test_sub_range_inv_idx },
   { "shorten", test_shorten },
   { "skin", test_skin },
