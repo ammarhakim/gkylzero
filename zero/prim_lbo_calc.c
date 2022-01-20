@@ -94,8 +94,9 @@ gkyl_prim_lbo_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
 }
 
 void
-gkyl_prim_lbo_calc_advance_cu(gkyl_prim_lbo_calc* calc, const struct gkyl_basis cbasis, const struct gkyl_range conf_rng,
-  const struct gkyl_range phase_rng, const struct gkyl_array* m0, const struct gkyl_array* m1,
+gkyl_prim_lbo_calc_advance_cu(gkyl_prim_lbo_calc* calc, const struct gkyl_basis cbasis,
+  struct gkyl_range conf_rng,
+  const struct gkyl_array* m0, const struct gkyl_array* m1,
   const struct gkyl_array* m2, const struct gkyl_array* cM, const struct gkyl_array* cE,
   struct gkyl_array* uout, struct gkyl_array* vtSqout)
 {

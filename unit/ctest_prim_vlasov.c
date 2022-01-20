@@ -316,7 +316,7 @@ test_1x1v_p2_cu()
   vth_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment corrections
-  gkyl_prim_lbo_calc_advance_cu(primcalc, confBasis, confLocal, local, m0_cu, m1i_cu, m2_cu, f_cu, vf_cu, u_cu, vth_cu);
+  gkyl_prim_lbo_calc_advance_cu(primcalc, confBasis, confLocal, m0_cu, m1i_cu, m2_cu, f_cu, vf_cu, u_cu, vth_cu);
   gkyl_array_copy(u, u_cu);
   gkyl_array_copy(vth, vth_cu);
 
@@ -355,8 +355,8 @@ test_1x1v_p2_cu()
 
 TEST_LIST = {
   { "test_1x1v_p2", test_1x1v_p2 },
-  //#ifdef GKYL_HAVE_CUDA
-  //{ "test_1x1v_p2_cu", test_1x1v_p2_cu },
-  //#endif
+#ifdef GKYL_HAVE_CUDA
+  { "test_1x1v_p2_cu", test_1x1v_p2_cu },
+#endif
   { NULL, NULL },
 };

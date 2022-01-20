@@ -24,8 +24,12 @@ gkyl_get_array_range_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gkyl_rang
   dimGrid->y = gkyl_int_div_up(volume, ac1*dimBlock->y);
 }
 
-__global__ void
-gkyl_prim_lbo_calc_set_cu_ker(gkyl_prim_lbo_calc* calc, struct gkyl_nmat *As, struct gkyl_nmat *xs, struct gkyl_basis cbasis, struct gkyl_range conf_rng, const struct gkyl_array* m0, const struct gkyl_array* m1, const struct gkyl_array* m2, const struct gkyl_array* cM, const struct gkyl_array* cE)
+__global__ static void
+gkyl_prim_lbo_calc_set_cu_ker(gkyl_prim_lbo_calc* calc,
+  struct gkyl_nmat *As, struct gkyl_nmat *xs,
+  struct gkyl_basis cbasis, struct gkyl_range conf_rng,
+  const struct gkyl_array* m0, const struct gkyl_array* m1, const struct gkyl_array* m2,
+  const struct gkyl_array* cM, const struct gkyl_array* cE)
 {
   int ndim = cbasis.ndim;
   int idx[GKYL_MAX_DIM];
@@ -64,9 +68,11 @@ gkyl_prim_lbo_calc_set_cu_ker(gkyl_prim_lbo_calc* calc, struct gkyl_nmat *As, st
   }
 }
 
-__global__ void
-gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs, struct gkyl_basis cbasis, struct gkyl_range conf_rng,
-  int nc, int vdim, struct gkyl_array* uout, struct gkyl_array* vtSqout)
+__global__ static void
+gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs,
+  struct gkyl_basis cbasis, struct gkyl_range conf_rng,
+  int nc, int vdim,
+  struct gkyl_array* uout, struct gkyl_array* vtSqout)
 {
   int ndim = cbasis.ndim;
   int idx[GKYL_MAX_DIM];
@@ -102,7 +108,7 @@ gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs, struct gkyl_basis cbasis, st
 
 void
 gkyl_prim_lbo_calc_advance_cu(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis,
-  struct gkyl_range conf_rng, struct gkyl_range phase_rng,
+  struct gkyl_range conf_rng, 
   const struct gkyl_array* m0, const struct gkyl_array* m1,
   const struct gkyl_array* m2, const struct gkyl_array* cM, const struct gkyl_array* cE,
   struct gkyl_array* uout, struct gkyl_array* vtSqout)
@@ -110,13 +116,12 @@ gkyl_prim_lbo_calc_advance_cu(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis
   dim3 dimGrid, dimBlock;
   gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, conf_rng);
   int nc = cbasis.num_basis;
-  int cdim = conf_rng.ndim;
-  int vdim = phase_rng.ndim - cdim;
+  int vdim = calc->prim->pdim - calc->prim->cdim;
   int N = nc*(vdim + 1);      
   struct gkyl_nmat *A_d = gkyl_nmat_cu_dev_new(conf_rng.volume, N, N);
   struct gkyl_nmat *x_d = gkyl_nmat_cu_dev_new(conf_rng.volume, N, 1);
 
-  gkyl_prim_lbo_calc_set_cu_ker<<<dimGrid, dimBlock>>>(calc,
+  gkyl_prim_lbo_calc_set_cu_ker<<<dimGrid, dimBlock>>>(calc->on_dev,
     A_d->on_dev, x_d->on_dev, cbasis, conf_rng,
     m0->on_dev, m1->on_dev, m2->on_dev,
     cM->on_dev, cE->on_dev);
@@ -151,5 +156,5 @@ gkyl_prim_lbo_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
   up->prim = pt; // host portion of struct should have host copy
   up->on_dev = up_cu; // host pointer
   
-  return up_cu;
+  return up;
 }
