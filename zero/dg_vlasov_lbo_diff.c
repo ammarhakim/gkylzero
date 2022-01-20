@@ -8,8 +8,8 @@
 #include <gkyl_dg_vlasov_lbo_diff_priv.h>
 #include <gkyl_util.h>
 
-static void
-dg_vlasov_lbo_diff_free(const struct gkyl_ref_count* ref)
+void
+gkyl_vlasov_lbo_diff_free(const struct gkyl_ref_count* ref)
 {
   struct gkyl_dg_eqn* base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_vlasov_lbo_diff *vlasov_lbo_diff  = container_of(base, struct dg_vlasov_lbo_diff, eqn);
@@ -124,7 +124,7 @@ gkyl_dg_vlasov_lbo_diff_new(const struct gkyl_basis* cbasis, const struct gkyl_b
 
   vlasov_lbo_diff->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(vlasov_lbo_diff->eqn.flags);
-  vlasov_lbo_diff->eqn.ref_count = gkyl_ref_count_init(dg_vlasov_lbo_diff_free);
+  vlasov_lbo_diff->eqn.ref_count = gkyl_ref_count_init(gkyl_vlasov_lbo_diff_free);
   vlasov_lbo_diff->eqn.on_dev = &vlasov_lbo_diff->eqn;
   
   return &vlasov_lbo_diff->eqn;

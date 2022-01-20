@@ -8,12 +8,13 @@
 #include <gkyl_lbo_mom_bcorr_priv.h>
 #include <gkyl_util.h>
 
-static void
+void
 mom_free(const struct gkyl_ref_count *ref)
 {
-  struct gkyl_mom_type *base = container_of(ref, struct gkyl_mom_type, ref_count);
-  struct lbo_mom_type *mom_bcorr = container_of(base, struct lbo_mom_type, momt);
-  gkyl_free(mom_bcorr);
+  struct gkyl_mom_type *momt = container_of(ref, struct gkyl_mom_type, ref_count);
+  if (GKYL_IS_CU_ALLOC(momt->flag))
+    gkyl_cu_free(momt->on_dev);
+  gkyl_free(momt);
 }
 
 
@@ -77,3 +78,14 @@ gkyl_vlasov_lbo_mom_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
     
   return &mom_bcorr->momt;
 }
+
+#ifndef GKYL_HAVE_CUDA
+
+struct gkyl_mom_type*
+gkyl_vlasov_lbo_mom_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
+  const char *mom, const double* vBoundary)
+{
+  assert(false);
+}
+
+#endif

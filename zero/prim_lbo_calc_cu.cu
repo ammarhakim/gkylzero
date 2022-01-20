@@ -1,9 +1,11 @@
 /* -*- c++ -*- */
 extern "C" {
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_mat.h>
 #include <gkyl_prim_lbo_calc.h>
+#include <gkyl_prim_lbo_calc_priv.h>
 #include <gkyl_prim_lbo_vlasov_priv.h>
 #include <gkyl_util.h>
 }
@@ -130,9 +132,17 @@ gkyl_prim_lbo_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
   up->grid = *grid;
   up->prim = prim;
 
+  struct gkyl_prim_lbo *pt = gkyl_prim_lbo_acquire(prim);
+  up->prim = pt->on_dev; // so memcpy below gets dev copy
+
+  up->flags = 0;
+  GKYL_SET_CU_ALLOC(up->flags);
+
   gkyl_prim_lbo_calc *up_cu = (gkyl_prim_lbo_calc*) gkyl_cu_malloc(sizeof(gkyl_prim_lbo_calc));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_prim_lbo_calc), GKYL_CU_MEMCPY_H2D);
+
+  up->prim = pt; // host portion of struct should have host copy
+  up->on_dev = up_cu; // host pointer
   
-  gkyl_free(up);
   return up_cu;
 }

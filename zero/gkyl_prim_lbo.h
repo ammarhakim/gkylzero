@@ -18,7 +18,10 @@ struct gkyl_prim_lbo {
   int num_config; // number of basis functions in config-space
   int num_phase; // number of basis functions in phase-space
   self_prim_t self_prim; // moment calculation kernel
-  struct gkyl_ref_count ref_count; // reference count     
+  struct gkyl_ref_count ref_count; // reference count
+
+  uint32_t flag;
+  struct gkyl_prim_lbo *on_dev; // pointer to itself or device data
 };
 
 /**

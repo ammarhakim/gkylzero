@@ -19,6 +19,9 @@ struct gkyl_mom_bcorr {
   int num_up_dirs; // number of update directions
   int update_dirs[GKYL_MAX_DIM]; // directions to update
   const struct gkyl_mom_type *momt; // moment type object
+
+  uint32_t flags;
+  struct gkyl_mom_bcorr *on_dev;
 };
 
 /**
@@ -28,6 +31,9 @@ struct gkyl_mom_bcorr {
  * @param momt Moment type object for boundary correction
  */
 gkyl_mom_bcorr* gkyl_mom_bcorr_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_mom_type *momt);
+
+gkyl_mom_bcorr* gkyl_mom_bcorr_cu_dev_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_mom_type *momt);
 
 /**
@@ -41,10 +47,13 @@ gkyl_mom_bcorr* gkyl_mom_bcorr_new(const struct gkyl_rect_grid *grid,
  */
 void gkyl_mom_bcorr_advance(gkyl_mom_bcorr *bcorr, struct gkyl_range phase_rng, struct gkyl_range conf_rng,
   const struct gkyl_array *fIn, struct gkyl_array *out);
+
+void gkyl_mom_bcorr_advance_cu(gkyl_mom_bcorr *bcorr, struct gkyl_range phase_rng, struct gkyl_range conf_rng,
+  const struct gkyl_array *fIn, struct gkyl_array *out);
   
 /**
  * Delete updater.
  *
  * @param bcorr Updater to delete.
  */
-void gkyl_mom_bcorr_release(gkyl_mom_bcorr* bcorr);
+void gkyl_mom_bcorr_release(gkyl_mom_bcorr* up);

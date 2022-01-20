@@ -3,14 +3,17 @@
 #include <string.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_util.h>
 #include <gkyl_prim_lbo_vlasov.h>
 #include <gkyl_prim_lbo_vlasov_priv.h>
 
-static void
+void
 prim_lbo_vlasov_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_prim_lbo *prim = container_of(ref, struct gkyl_prim_lbo, ref_count);
+  if (GKYL_IS_CU_ALLOC(prim->flag))
+    gkyl_cu_free(prim->on_dev);
   gkyl_free(prim);
 }
 
@@ -49,8 +52,11 @@ gkyl_prim_lbo_vlasov_new(const struct gkyl_basis* cbasis,
     
   prim_vlasov->self_prim = self_prim_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 
-  // set reference counter
+  prim_vlasov->prim.flag = 0;
+  GKYL_CLEAR_CU_ALLOC(prim_vlasov->prim.flag);
   prim_vlasov->prim.ref_count = gkyl_ref_count_init(prim_lbo_vlasov_free);
+
+  prim_vlasov->prim.on_dev = &prim_vlasov->prim;
     
   return &prim_vlasov->prim;
 }

@@ -3,6 +3,7 @@
 #include <time.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_mom_bcorr.h>
 #include <gkyl_util.h>
@@ -90,13 +91,37 @@ gkyl_mom_bcorr_new(const struct gkyl_rect_grid *grid, const struct gkyl_mom_type
   gkyl_mom_bcorr *up = gkyl_malloc(sizeof(gkyl_mom_bcorr));
   up->grid = *grid;
   up->momt = gkyl_mom_type_acquire(momt);
+
+  up->flags = 0;
+  GKYL_CLEAR_CU_ALLOC(up->flags);
+  up->on_dev = up;
   
   return up;
 }
 
 void
-gkyl_mom_bcorr_release(gkyl_mom_bcorr* bcorr)
+gkyl_mom_bcorr_release(gkyl_mom_bcorr* up)
 {
-  gkyl_mom_type_release(bcorr->momt);
-  gkyl_free(bcorr);
+  gkyl_mom_type_release(up->momt);
+  if (GKYL_IS_CU_ALLOC(up->flags))
+    gkyl_cu_free(up->on_dev);
+  gkyl_free(up);
 }
+
+#ifndef GKYL_HAVE_CUDA
+
+void
+gkyl_mom_bcorr_advance_cu(gkyl_mom_bcorr *bcorr,
+  struct gkyl_range phase_rng, struct gkyl_range conf_rng,
+  const struct gkyl_array *fIn, struct gkyl_array *out)
+{
+  assert(false);
+}
+
+gkyl_mom_bcorr*
+gkyl_mom_bcorr_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_mom_type *momt)
+{
+  assert(false);
+}
+
+#endif

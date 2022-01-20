@@ -249,6 +249,8 @@ struct dg_vlasov_lbo_drag {
   const struct gkyl_array *nuVtSqSum;
 };
 
+void gkyl_vlasov_lbo_drag_free(const struct gkyl_ref_count* ref);
+
 GKYL_CU_D
 static double
 vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 

@@ -9,11 +9,6 @@
 // Object type
 typedef struct gkyl_prim_lbo_calc gkyl_prim_lbo_calc;
 
-struct gkyl_prim_lbo_calc {
-  struct gkyl_rect_grid grid;
-  struct gkyl_prim_lbo *prim;
-};
-
 /**
  * Create new updater to compute primitive moments of distribution
  * function. Free using gkyl_prim_vlasov_calc_release.

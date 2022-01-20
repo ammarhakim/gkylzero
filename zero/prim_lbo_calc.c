@@ -1,6 +1,8 @@
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_prim_lbo_calc.h>
+#include <gkyl_prim_lbo_calc_priv.h>
 #include <gkyl_prim_lbo_vlasov_priv.h>
 #include <gkyl_mat.h>
 #include <assert.h>
@@ -11,7 +13,12 @@ gkyl_prim_lbo_calc_new(const struct gkyl_rect_grid *grid,
 {
   gkyl_prim_lbo_calc *up = gkyl_malloc(sizeof(gkyl_prim_lbo_calc));
   up->grid = *grid;
-  up->prim = prim;
+  up->prim = gkyl_prim_lbo_acquire(prim);
+
+  up->flags = 0;
+  GKYL_CLEAR_CU_ALLOC(up->flags);
+  up->on_dev = up; // self-reference on host
+  
   return up;
 }
 
@@ -70,6 +77,8 @@ gkyl_prim_lbo_calc_advance(gkyl_prim_lbo_calc* calc, const struct gkyl_basis cba
 void gkyl_prim_lbo_calc_release(gkyl_prim_lbo_calc* up)
 {
   gkyl_prim_lbo_release(up->prim);
+  if (GKYL_IS_CU_ALLOC(up->flags))
+    gkyl_cu_free(up->on_dev);
   gkyl_free(up);
 }
 

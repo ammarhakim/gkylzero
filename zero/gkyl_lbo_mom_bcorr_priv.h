@@ -57,6 +57,8 @@ struct lbo_mom_type {
   double vBoundary[2*GKYL_MAX_DIM];
 };
 
+void gkyl_mom_free(const struct gkyl_ref_count *ref);
+
 GKYL_CU_D
 static void
 kernel(const struct gkyl_mom_type *momt, const double *xc, const double *dx,

@@ -8,8 +8,8 @@
 #include <gkyl_dg_vlasov_lbo_drag_priv.h>
 #include <gkyl_util.h>
 
-static void
-dg_vlasov_lbo_drag_free(const struct gkyl_ref_count* ref)
+void
+gkyl_vlasov_lbo_drag_free(const struct gkyl_ref_count* ref)
 {
   struct gkyl_dg_eqn* base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_vlasov_lbo_drag *vlasov_lbo_drag  = container_of(base, struct dg_vlasov_lbo_drag, eqn);
@@ -125,7 +125,7 @@ gkyl_dg_vlasov_lbo_drag_new(const struct gkyl_basis* cbasis,
 
   vlasov_lbo_drag->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(vlasov_lbo_drag->eqn.flags);
-  vlasov_lbo_drag->eqn.ref_count = gkyl_ref_count_init(dg_vlasov_lbo_drag_free);
+  vlasov_lbo_drag->eqn.ref_count = gkyl_ref_count_init(gkyl_vlasov_lbo_drag_free);
   vlasov_lbo_drag->eqn.on_dev = &vlasov_lbo_drag->eqn;
   
   return &vlasov_lbo_drag->eqn;
