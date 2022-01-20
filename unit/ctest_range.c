@@ -141,8 +141,9 @@ void test_sub_sub_range()
   for (long i=0; i<s_subrange.volume; ++i) {
     int idx1[GKYL_MAX_DIM], idx2[GKYL_MAX_DIM];
 
-    gkyl_range_inv_idx(&s_subrange, i, idx1);
-    gkyl_range_inv_idx(&range, i, idx2);
+    gkyl_sub_range_inv_idx(&s_subrange, i, idx1);
+    long loc = gkyl_range_idx(&s_subrange, idx1);
+    gkyl_range_inv_idx(&range, loc, idx2);
 
     for (int d=0; d<2; ++d)
       TEST_CHECK( idx1[d] == idx2[d] );
