@@ -3,6 +3,7 @@
 extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
+#include <gkyl_array.h>    
 #include <gkyl_array_ops.h>
 #include <gkyl_mom_bcorr.h>
 #include <gkyl_mom_bcorr_priv.h>
@@ -46,9 +47,9 @@ gkyl_mom_bcorr_advance_cu_ker(const gkyl_mom_bcorr* bcorr,
 }
 
 void
-gkyl_mom_bcorr_advance_cu(const gkyl_mom_bcorr* bcorr,
-  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
-  const struct gkyl_array* fin, struct gkyl_array* out)
+gkyl_mom_bcorr_advance_cu(gkyl_mom_bcorr *bcorr,
+  struct gkyl_range phase_rng, struct gkyl_range conf_rng,
+  const struct gkyl_array *fin, struct gkyl_array *out)
 {
   struct gkyl_range vel_rng;
   int nblocks, nthreads;
@@ -64,12 +65,14 @@ gkyl_mom_bcorr_advance_cu(const gkyl_mom_bcorr* bcorr,
     gkyl_range_deflate(&vel_rng, &phase_rng, rem_dir, viter_idx);
     nblocks = vel_rng.nblocks;
     nthreads = vel_rng.nthreads;
-    gkyl_mom_bcorr_advance_cu_ker<<<nblocks, nthreads>>>(bcorr, conf_rng, vel_rng, edge, fin->on_dev, out->on_dev);
+    gkyl_mom_bcorr_advance_cu_ker<<<nblocks, nthreads>>>(bcorr,
+      conf_rng, vel_rng, edge, fin->on_dev, out->on_dev);
 
     edge = gkyl_vel_edge(d);
     viter_idx[conf_rng.ndim + d] = phase_rng.lower[conf_rng.ndim + d];
     gkyl_range_deflate(&vel_rng, &phase_rng, rem_dir, viter_idx);
-    gkyl_mom_bcorr_advance_cu_ker<<<nblocks, nthreads>>>(bcorr, conf_rng, vel_rng, edge, fin->on_dev, out->on_dev);
+    gkyl_mom_bcorr_advance_cu_ker<<<nblocks, nthreads>>>(bcorr,
+      conf_rng, vel_rng, edge, fin->on_dev, out->on_dev);
   }
 }
 

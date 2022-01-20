@@ -9,6 +9,8 @@ extern "C" {
 #include <gkyl_array_ops.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_hyper_dg_priv.h>
+#include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 }
 

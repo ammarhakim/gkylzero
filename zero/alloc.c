@@ -9,10 +9,9 @@
 #include <gkyl_util.h>
 
 // Output command for use in debugging memory usage
-#define GKYL_MEMMSG(fmt, ...)                                           \
-    do {                                                                \
-      if (gkyl_mem_debug)                                               \
-        fprintf(stderr, fmt, __VA_ARGS__);                              \
+#define GKYL_MEMMSG(fmt, ...) do {              \
+      if (gkyl_mem_debug)                       \
+        fprintf(stderr, fmt, __VA_ARGS__);      \
   } while (0);
 
 // Output command for use in debugging CUDA memory usage
