@@ -61,11 +61,12 @@ gkyl_mom_bcorr_advance_cu(const gkyl_mom_bcorr* bcorr,
     edge = gkyl_vel_edge(d + GKYL_MAX_CDIM);
     viter_idx[conf_rng.ndim + d] = phase_rng.upper[conf_rng.ndim + d];
     gkyl_range_deflate(&vel_rng, &phase_rng, rem_dir, viter_idx);
-    gkyl_mom_bcorr_advance_cu_ker<<<nblocks, nthreads>>>                                                                    (bcorr, phase_rng, conf_rng, vel_rng, edge, fin->on_dev, out->on_dev);
+    gkyl_mom_bcorr_advance_cu_ker<<<nblocks, nthreads>>>(bcorr, phase_rng, conf_rng, vel_rng, edge, fin->on_dev, out->on_dev);
 
     edge = gkyl_vel_edge(d);
     viter_idx[conf_rng.ndim + d] = phase_rng.lower[conf_rng.ndim + d];
-    gkyl_range_deflate(&vel_rng, &phase_rng, rem_dir, viter_idx);                                                       gkyl_mom_bcorr_advance_cu_ker<<<nblocks, nthreads>>>								      (bcorr, phase_rng, conf_rng, vel_rng, edge, fin->on_dev, out->on_dev);
+    gkyl_range_deflate(&vel_rng, &phase_rng, rem_dir, viter_idx);
+    gkyl_mom_bcorr_advance_cu_ker<<<nblocks, nthreads>>>(bcorr, phase_rng, conf_rng, vel_rng, edge, fin->on_dev, out->on_dev);
   }
 }
 
