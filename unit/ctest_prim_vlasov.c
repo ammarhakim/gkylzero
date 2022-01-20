@@ -279,10 +279,7 @@ test_1x1v_p2_cu()
   gkyl_mom_calc *m2calc = gkyl_mom_calc_cu_dev_new(&grid, vmM2_t);
 
   // create moment arrays
-  struct gkyl_array *m0, *m1i, *m2, *m0_cu, *m1i_cu, *m2_cu;;
-  m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m1i = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
-  m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *m0_cu, *m1i_cu, *m2_cu;
   m0_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
   m1i_cu = mkarr_cu(vdim*confBasis.num_basis, confLocal_ext.volume);
   m2_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
@@ -291,9 +288,6 @@ test_1x1v_p2_cu()
   gkyl_mom_calc_advance_cu(m0calc, local, confLocal, distf_cu, m0_cu);
   gkyl_mom_calc_advance_cu(m1icalc, local, confLocal, distf_cu, m1i_cu);
   gkyl_mom_calc_advance_cu(m2calc, local, confLocal, distf_cu, m2_cu);
-  gkyl_array_copy(m0, m0_cu);
-  gkyl_array_copy(m1i, m1i_cu);
-  gkyl_array_copy(m2, m2_cu);
 
   struct gkyl_mom_type *F = gkyl_vlasov_lbo_mom_cu_dev_new(&confBasis, &basis, "f", v_bounds);
   struct gkyl_mom_type *VF = gkyl_vlasov_lbo_mom_cu_dev_new(&confBasis, &basis, "vf", v_bounds);
@@ -302,18 +296,13 @@ test_1x1v_p2_cu()
   gkyl_mom_bcorr *vFcalc = gkyl_mom_bcorr_cu_dev_new(&grid, VF);
   
   // create moment arrays
-  struct gkyl_array *f, *vf, *f_cu, *vf_cu;
-  f = mkarr(2*confBasis.num_basis, confLocal_ext.volume);
-  vf = mkarr(2*confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *f_cu, *vf_cu;
   f_cu = mkarr_cu(2*confBasis.num_basis, confLocal_ext.volume);
   vf_cu = mkarr_cu(2*confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment corrections
-  gkyl_mom_bcorr_advance_cu(fcalc, local, confLocal, distf, f_cu);
-  gkyl_mom_bcorr_advance_cu(vFcalc, local, confLocal, distf, vf_cu);
-
-  gkyl_array_copy(f, f_cu);
-  gkyl_array_copy(vf, vf_cu);
+  gkyl_mom_bcorr_advance_cu(fcalc, local, confLocal, distf_cu, f_cu);
+  gkyl_mom_bcorr_advance_cu(vFcalc, local, confLocal, distf_cu, vf_cu);
   
   struct gkyl_prim_lbo *prim = gkyl_prim_lbo_vlasov_cu_dev_new(&confBasis, &basis);
 
@@ -351,10 +340,8 @@ test_1x1v_p2_cu()
   }}
 
   // release memory for objects
-  gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
   gkyl_array_release(m0_cu); gkyl_array_release(m1i_cu); gkyl_array_release(m2_cu);
 
-  gkyl_array_release(f); gkyl_array_release(vf);
   gkyl_array_release(f_cu); gkyl_array_release(vf_cu);
   gkyl_mom_type_release(F); gkyl_mom_type_release(VF);
 

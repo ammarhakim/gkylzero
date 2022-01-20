@@ -6,6 +6,7 @@
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_mom_bcorr.h>
+#include <gkyl_mom_bcorr_priv.h>
 #include <gkyl_util.h>
 
 static inline void

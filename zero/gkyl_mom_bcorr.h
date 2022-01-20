@@ -12,18 +12,6 @@ enum gkyl_vel_edge { GKYL_VX_LOWER, GKYL_VY_LOWER, GKYL_VZ_LOWER, GKYL_VX_UPPER,
 // Object type
 typedef struct gkyl_mom_bcorr gkyl_mom_bcorr;
 
-struct gkyl_mom_bcorr {
-  struct gkyl_rect_grid grid; // grid object
-  int ndim; // number of dimensions
-  int num_basis; // number of basis functions
-  int num_up_dirs; // number of update directions
-  int update_dirs[GKYL_MAX_DIM]; // directions to update
-  const struct gkyl_mom_type *momt; // moment type object
-
-  uint32_t flags;
-  struct gkyl_mom_bcorr *on_dev;
-};
-
 /**
  * Create new updater to update boundary corrections.
  *
