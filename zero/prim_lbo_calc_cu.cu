@@ -101,8 +101,9 @@ gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs, struct gkyl_basis cbasis, st
 }
 
 void
-gkyl_prim_lbo_calc_advance_cu(gkyl_prim_lbo_calc* calc, const struct gkyl_basis cbasis,
-  const struct gkyl_range conf_rng, const struct gkyl_range phase_rng, const struct gkyl_array* m0, const struct gkyl_array* m1,
+gkyl_prim_lbo_calc_advance_cu(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis,
+  struct gkyl_range conf_rng, struct gkyl_range phase_rng,
+  const struct gkyl_array* m0, const struct gkyl_array* m1,
   const struct gkyl_array* m2, const struct gkyl_array* cM, const struct gkyl_array* cE,
   struct gkyl_array* uout, struct gkyl_array* vtSqout)
 {
@@ -115,10 +116,16 @@ gkyl_prim_lbo_calc_advance_cu(gkyl_prim_lbo_calc* calc, const struct gkyl_basis 
   struct gkyl_nmat *A_d = gkyl_nmat_cu_dev_new(conf_rng.volume, N, N);
   struct gkyl_nmat *x_d = gkyl_nmat_cu_dev_new(conf_rng.volume, N, 1);
 
-  gkyl_prim_lbo_calc_set_cu_ker<<<dimGrid, dimBlock>>>(calc, A_d->on_dev, x_d->on_dev, cbasis, conf_rng, m0->on_dev, m1->on_dev, m2->on_dev, cM->on_dev, cE->on_dev);
+  gkyl_prim_lbo_calc_set_cu_ker<<<dimGrid, dimBlock>>>(calc,
+    A_d->on_dev, x_d->on_dev, cbasis, conf_rng,
+    m0->on_dev, m1->on_dev, m2->on_dev,
+    cM->on_dev, cE->on_dev);
+  
   bool status = gkyl_nmat_linsolve_lu(A_d, x_d);
 
-  gkyl_prim_lbo_copy_sol_cu_ker<<<dimGrid, dimBlock>>>(x_d->on_dev, cbasis, conf_rng, nc, vdim, uout->on_dev, vtSqout->on_dev);
+  gkyl_prim_lbo_copy_sol_cu_ker<<<dimGrid, dimBlock>>>(x_d->on_dev,
+    cbasis, conf_rng, nc, vdim,
+    uout->on_dev, vtSqout->on_dev);
 
   gkyl_nmat_release(A_d);
   gkyl_nmat_release(x_d);

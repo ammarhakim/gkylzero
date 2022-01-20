@@ -47,7 +47,7 @@ gkyl_mom_calc_advance_cu_ker(const gkyl_mom_calc* mcalc,
 
 void
 gkyl_mom_calc_advance_cu(const gkyl_mom_calc* mcalc,
-  const struct gkyl_range phase_range, const struct gkyl_range conf_range,
+  struct gkyl_range phase_range, struct gkyl_range conf_range,
   const struct gkyl_array* GKYL_RESTRICT fin, struct gkyl_array* GKYL_RESTRICT mout)
 {
   int nblocks = phase_range.nblocks, nthreads = phase_range.nthreads;

@@ -32,7 +32,7 @@ copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 
 void
 gkyl_mom_calc_advance(const gkyl_mom_calc* calc,
-  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
+  struct gkyl_range phase_rng, struct gkyl_range conf_rng,
   const struct gkyl_array *fin, struct gkyl_array *mout)
 {
   double xc[GKYL_MAX_DIM];

@@ -40,7 +40,9 @@ gkyl_prim_lbo_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
 {
   assert(cbasis->poly_order == pbasis->poly_order);
   
-  struct prim_lbo_vlasov *prim_vlasov = (struct prim_lbo_vlasov*) gkyl_malloc(sizeof(struct prim_lbo_vlasov));
+  struct prim_lbo_vlasov *prim_vlasov =
+    (struct prim_lbo_vlasov*) gkyl_malloc(sizeof(struct prim_lbo_vlasov));
+  
   int cdim = prim_vlasov->prim.cdim = cbasis->ndim;
   int pdim = prim_vlasov->prim.pdim = pbasis->ndim;
   int vdim = pdim - cdim;
