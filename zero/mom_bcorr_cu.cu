@@ -53,17 +53,21 @@ gkyl_mom_bcorr_advance_cu(gkyl_mom_bcorr *bcorr,
 {
   struct gkyl_range vel_rng;
   int nblocks, nthreads;
-  int viter_idx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
+  int vlower_idx[GKYL_MAX_DIM], vupper_idx[GKYL_MAX_DIM] = { 0 };
+  for (int dim=0; dim<phase_rng.ndim; ++dim) {
+    vlower_idx[dim] = phase_rng.lower[dim];
+    vupper_idx[dim] = phase_rng.upper[dim];
+  }
   enum gkyl_vel_edge edge;
   
   gkyl_array_clear_range(out, 0.0, conf_rng);
   
   for(int d=0; d<phase_rng.ndim - conf_rng.ndim; ++d) {
-    rem_dir[conf_rng.ndim + d] = 1;
-
+    
     edge = gkyl_vel_edge(d + GKYL_MAX_CDIM);
-    viter_idx[conf_rng.ndim + d] = phase_rng.upper[conf_rng.ndim + d];
-    gkyl_range_deflate(&vel_rng, &phase_rng, rem_dir, viter_idx);
+    vlower_idx[conf_rng.ndim + d] = phase_rng.upper[conf_rng.ndim + d];
+    vupper_idx[conf_rng.ndim + d] = phase_rng.upper[conf_rng.ndim + d];
+    gkyl_sub_range_init(&vel_rng, &phase_rng, vlower_idx, vupper_idx);
     nblocks = vel_rng.nblocks;
     nthreads = vel_rng.nthreads;
 
@@ -71,16 +75,18 @@ gkyl_mom_bcorr_advance_cu(gkyl_mom_bcorr *bcorr,
       conf_rng, vel_rng, edge, fin->on_dev, out->on_dev);
 
     edge = gkyl_vel_edge(d);
-    viter_idx[conf_rng.ndim + d] = phase_rng.lower[conf_rng.ndim + d];
-    gkyl_range_deflate(&vel_rng, &phase_rng, rem_dir, viter_idx);
+    vlower_idx[conf_rng.ndim + d] = phase_rng.lower[conf_rng.ndim + d];
+    vupper_idx[conf_rng.ndim + d] = phase_rng.lower[conf_rng.ndim + d];
+    gkyl_sub_range_init(&vel_rng, &phase_rng, vlower_idx, vupper_idx);
     nblocks = vel_rng.nblocks;
     nthreads = vel_rng.nthreads;
 
     gkyl_mom_bcorr_advance_cu_ker<<<nblocks, nthreads>>>(bcorr->on_dev,
       conf_rng, vel_rng, edge, fin->on_dev, out->on_dev);
-    
-    rem_dir[conf_rng.ndim + d] = 0;
-    viter_idx[conf_rng.ndim + d] = 0;
+
+    // Reset indices for loop over each velocity dimension
+    vlower_idx[conf_rng.ndim + d] = phase_rng.lower[conf_rng.ndim + d];
+    vupper_idx[conf_rng.ndim + d] = phase_rng.upper[conf_rng.ndim + d];
   }
 }
 
