@@ -146,7 +146,7 @@ gkyl_dg_vlasov_lbo_drag_cu_dev_new(const struct gkyl_basis* cbasis, const struct
 
   dg_vlasov_lbo_drag_set_cu_dev_ptrs<<<1,1>>>(vlasov_lbo_drag_cu, cbasis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order);
 
-  gkyl_free(vlasov_lbo_drag);  
+  vlasov_lbo_drag->eqn.on_dev = &vlasov_lbo_drag_cu->eqn;  
   
-  return &vlasov_lbo_drag_cu->eqn;
+  return &vlasov_lbo_drag->eqn;
 }
