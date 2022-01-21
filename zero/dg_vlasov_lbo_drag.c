@@ -19,9 +19,12 @@ gkyl_vlasov_lbo_drag_free(const struct gkyl_ref_count* ref)
 void
 gkyl_vlasov_lbo_drag_set_nuSum(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuSum)
 {
-//#ifdef GKYL_HAVE_CUDA
-//  if (gkyl_array_is_cu_dev(nuSum)) {gkyl_vlasov_lbo_drag_set_nuSum_cu(eqn, nuSum); return;}
-//#endif
+#ifdef GKYL_HAVE_CUDA
+ if (gkyl_array_is_cu_dev(nuSum)) {
+   gkyl_vlasov_lbo_drag_set_nuSum_cu(eqn->on_dev, nuSum);
+   return;
+ }
+#endif
 
   struct dg_vlasov_lbo_drag *vlasov_lbo_drag = container_of(eqn, struct dg_vlasov_lbo_drag, eqn);
   vlasov_lbo_drag->nuSum = nuSum;
@@ -30,21 +33,26 @@ gkyl_vlasov_lbo_drag_set_nuSum(const struct gkyl_dg_eqn *eqn, const struct gkyl_
 void
 gkyl_vlasov_lbo_drag_set_nuUSum(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuUSum)
 {
-//#ifdef GKYL_HAVE_CUDA
-//  if (gkyl_array_is_cu_dev(nuUSum)) {gkyl_vlasov_lbo_drag_set_nuUSum_cu(eqn, nuUSum); return;}
-//#endif
+#ifdef GKYL_HAVE_CUDA
+ if (gkyl_array_is_cu_dev(nuUSum)) {
+   gkyl_vlasov_lbo_drag_set_nuUSum_cu(eqn->on_dev, nuUSum);
+   return;
+ }
+#endif
 
   struct dg_vlasov_lbo_drag *vlasov_lbo_drag = container_of(eqn, struct dg_vlasov_lbo_drag, eqn);
   vlasov_lbo_drag->nuUSum = nuUSum;
 }
 
-
 void
 gkyl_vlasov_lbo_drag_set_nuVtSqSum(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuVtSqSum)
 {
-//#ifdef GKYL_HAVE_CUDA
-//  if (gkyl_array_is_cu_dev(nuVtSqSum)) {gkyl_vlasov_lbo_drag_set_nuVtSqSum_cu(eqn, nuVtSqSum); return;}
-//#endif
+#ifdef GKYL_HAVE_CUDA
+ if (gkyl_array_is_cu_dev(nuVtSqSum)) {
+   gkyl_vlasov_lbo_drag_set_nuVtSqSum_cu(eqn->on_dev, nuVtSqSum);
+   return;
+ }
+#endif
 
   struct dg_vlasov_lbo_drag *vlasov_lbo_drag = container_of(eqn, struct dg_vlasov_lbo_drag, eqn);
   vlasov_lbo_drag->nuVtSqSum = nuVtSqSum;

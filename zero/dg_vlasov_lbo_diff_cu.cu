@@ -125,7 +125,8 @@ struct gkyl_dg_eqn*
 gkyl_dg_vlasov_lbo_diff_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
   const struct gkyl_range* conf_range)
 {
-  struct dg_vlasov_lbo_diff *vlasov_lbo_diff = (struct dg_vlasov_lbo_diff*) gkyl_malloc(sizeof(struct dg_vlasov_lbo_diff));
+  struct dg_vlasov_lbo_diff *vlasov_lbo_diff =
+    (struct dg_vlasov_lbo_diff*) gkyl_malloc(sizeof(struct dg_vlasov_lbo_diff));
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
   int poly_order = cbasis->poly_order;
@@ -141,10 +142,14 @@ gkyl_dg_vlasov_lbo_diff_cu_dev_new(const struct gkyl_basis* cbasis, const struct
   vlasov_lbo_diff->eqn.ref_count = gkyl_ref_count_init(gkyl_vlasov_lbo_diff_free);
 
   // copy the host struct to device struct
-  struct dg_vlasov_lbo_diff *vlasov_lbo_diff_cu = (struct dg_vlasov_lbo_diff*) gkyl_cu_malloc(sizeof(struct dg_vlasov_lbo_diff));
-  gkyl_cu_memcpy(vlasov_lbo_diff_cu, vlasov_lbo_diff, sizeof(struct dg_vlasov_lbo_diff), GKYL_CU_MEMCPY_H2D);
+  struct dg_vlasov_lbo_diff *vlasov_lbo_diff_cu =
+    (struct dg_vlasov_lbo_diff*) gkyl_cu_malloc(sizeof(struct dg_vlasov_lbo_diff));
 
-  dg_vlasov_lbo_diff_set_cu_dev_ptrs<<<1,1>>>(vlasov_lbo_diff_cu, cbasis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order);
+  gkyl_cu_memcpy(vlasov_lbo_diff_cu, vlasov_lbo_diff,
+    sizeof(struct dg_vlasov_lbo_diff), GKYL_CU_MEMCPY_H2D);
+
+  dg_vlasov_lbo_diff_set_cu_dev_ptrs<<<1,1>>>(vlasov_lbo_diff_cu,
+    cbasis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order);
 
   vlasov_lbo_diff->eqn.on_dev = &vlasov_lbo_diff_cu->eqn;
   
