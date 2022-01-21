@@ -347,8 +347,8 @@ test_1x1v_p2_cu()
   fin_cu = mkarr_cu(basis.num_basis, phaseRange_ext.volume);
   nuSum = mkarr(confBasis.num_basis, confRange_ext.volume);
   nuSum_cu = mkarr_cu(confBasis.num_basis, confRange_ext.volume);
-  nuUSum_cu = mkarr(vdim*confBasis.num_basis, confRange_ext.volume);
-  nuVtSqSum_cu = mkarr(confBasis.num_basis, confRange_ext.volume);
+  nuUSum_cu = mkarr_cu(vdim*confBasis.num_basis, confRange_ext.volume);
+  nuVtSqSum_cu = mkarr_cu(confBasis.num_basis, confRange_ext.volume);
 
   gkyl_proj_on_basis_advance(projF, 0.0, &phaseRange_ext, fin);
   gkyl_proj_on_basis_advance(projNu, 0.0, &confRange_ext, nuSum);
