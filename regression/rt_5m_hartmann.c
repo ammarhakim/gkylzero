@@ -15,10 +15,11 @@ struct hartmann_ctx {
   double beta;
   double B0;
   double n;
+  double Lx;
 
   double epsilon0, mu0;
 
-  double coll_fac;
+  double rel_fac, coll_fac;
   double tau, lambda;
   double eta_par, eta_perp;
   double hartmann_num;
@@ -31,7 +32,7 @@ create_ctx(void)
   double gasGamma = 5.0/3.0;
   double charge = 1.0;
   double ionMass = 1.0;
-  double elcMass = ionMass/100.0;
+  double elcMass = ionMass/sqrt(1836.153);
   double epsilon0 = 1.0;
   double mu0 = 1.0;
   // double charge = 1.602176487e-19;
@@ -50,17 +51,22 @@ create_ctx(void)
   double T_ion = beta*(B0*B0)/(2.0*n*mu0);
   double T_elc = T_ion;
 
-  double coll_fac = 4e5;
+  double wpi = sqrt(charge*charge*n/(epsilon0*ionMass));
+  double di = c/wpi;
+  double Lx = 256.0*di;
+  
+  double rel_fac = ionMass*c*c/T_ion;
+  double coll_fac = 1e5;
   double tau = coll_fac*6.0*sqrt(2.0*M_PI*elcMass*T_elc*M_PI*T_elc*M_PI*T_elc)*epsilon0*epsilon0/(charge*charge*charge*charge*n);
   double lambda = 1.0/mu0*(elcMass/(charge*charge*n*tau));
 
   double eta_par = 0.96*n*T_ion*sqrt(2.0)*tau;
   double eta_perp = 0.3*n*T_ion/(tau*charge*charge*B0*B0/(ionMass*ionMass));
   double mu_par = 1.5*eta_par - 15.0/2.0*eta_perp;
-  double hartmann_num = B0/sqrt(mu0*lambda*mu_par);
+  double hartmann_num = B0*Lx/sqrt(mu0*lambda*mu_par);
 
   double accel = 0.01;
-  double force_norm = mu0*n*accel/(B0*B0);
+  double force_norm = mu0*n*accel*Lx/(B0*B0);
   struct hartmann_ctx ctx = {
     .gasGamma = gasGamma,
     .charge = charge,
@@ -73,6 +79,8 @@ create_ctx(void)
     .beta = beta,
     .B0 = B0,
     .n = n,
+    .Lx = Lx,
+    .rel_fac = rel_fac,
     .coll_fac = coll_fac,
     .tau = tau,
     .lambda = lambda,
@@ -160,6 +168,7 @@ main(int argc, char **argv)
   printf("Collision time = %lg\n", ctx.tau);
   printf("Hartmann number = %lg\n", ctx.hartmann_num);
   printf("Normalized force value = %lg\n", ctx.force_norm);
+  printf("Estimated time step ratio = %lg\n", ctx.rel_fac/ctx.coll_fac);
   struct gkyl_moment_species elc = {
     .name = "elc",
     .charge = -1.0*ctx.charge, .mass = ctx.elcMass,
@@ -191,12 +200,12 @@ main(int argc, char **argv)
 
     .ndim = 1,
     .lower = { 0.0 },
-    .upper = { 1.0 }, 
-    .cells = { 32 },
+    .upper = { ctx.Lx }, 
+    .cells = { 256 },
 
     .num_periodic_dir = 0,
     .periodic_dirs = { },
-    .cfl_frac = 0.0002,
+    .cfl_frac = 0.001,
 
     .num_species = 2,
     .species = { elc, ion },
@@ -218,7 +227,7 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.1*ctx.tau;
+  double tcurr = 0.0, tend = 1.0*ctx.tau;
   int nframe = 1;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
