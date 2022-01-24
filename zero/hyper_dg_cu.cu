@@ -57,7 +57,7 @@ gkyl_hyper_dg_advance_cu_kernel(gkyl_hyper_dg* hdg, struct gkyl_range update_ran
       gkyl_copy_int_arr(ndim, idxc, idxl);
       gkyl_copy_int_arr(ndim, idxc, idxr);
       // TODO: fix for arbitrary subrange
-      if (hdg->zero_flux_flags[d] && (idxc[dir] == update_range.lower[dir] || idxc[dir] == update_range.upper[dir])) {
+      if (hdg->zero_flux_flags[dir] && (idxc[dir] == update_range.lower[dir] || idxc[dir] == update_range.upper[dir])) {
         edge = (idxc[dir] == update_range.lower[dir]) ? -1 : 1;
         // use idxl to store interior edge index (first index away from skin cell)
         idxl[dir] = idxl[dir]-edge;
