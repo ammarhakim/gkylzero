@@ -1310,9 +1310,9 @@ mag_braginskii_update(const gkyl_moment_braginskii *bes,
 }
 
 static void
-unmag_braginskii_update(const gkyl_moment_braginskii *bes,
-  const double *fluid_d[][GKYL_MAX_SPECIES],
-  double *cflrate, double *rhs[GKYL_MAX_SPECIES])
+unmag_braginskii_update(const gkyl_moment_braginskii* bes,
+  const double* fluid_d[][GKYL_MAX_SPECIES],
+  double* cflrate, double* rhs[GKYL_MAX_SPECIES])
 {
   const int ndim = bes->ndim;
   const int nfluids = bes->nfluids;
@@ -1323,18 +1323,18 @@ unmag_braginskii_update(const gkyl_moment_braginskii *bes,
   {
     const double m[2] = { bes->param[0].mass, bes->param[1].mass };
 
-    double rho[3][2];
+    double rho[3][2] = { 0.0 };
     for (int j = L_1D; j <= U_1D; ++j)
       for (int n = 0; n < nfluids; ++n)
         rho[j][n] = fluid_d[j][n][RHO];
 
-    double v[3][2][3];
+    double v[3][2][3] = { 0.0 };
     for (int j = L_1D; j <= U_1D; ++j)
       for (int n = 0; n < nfluids; ++n)
         for (int k = MX; k <= MZ; ++k)
           v[j][n][k - MX] = fluid_d[j][n][k] / fluid_d[j][n][RHO];
 
-    double p[3][2];
+    double p[3][2] = { 0.0 };
     // Pressure information is different for each equation type
     for (int j = L_1D; j < U_1D; ++j)
       for (int n = 0; n < nfluids; ++n)
@@ -1345,7 +1345,7 @@ unmag_braginskii_update(const gkyl_moment_braginskii *bes,
           p[j][n] = rho[j][n] * bes->param[n].p_fac * bes->param[n].p_fac; // isothermal Euler input is vth, pressure = rho*vth^2
       }
 
-    double T[3][2];
+    double T[3][2] = { 0.0 };
     for (int j = L_1D; j <= U_1D; ++j)
       for (int n = 0; n < nfluids; ++n)
         T[j][n] = m[n] * p[j][n] / rho[j][n];
@@ -1354,13 +1354,13 @@ unmag_braginskii_update(const gkyl_moment_braginskii *bes,
     const int ELC = bes->param[0].charge < 0.0 ? 0 : 1;
     const int ION = (ELC + 1) % 2;
 
-    const double e = bes->param[ELC].charge;
-    const int Z = round(bes->param[ION].charge / fabs(bes->param[ELC].charge));
+    const double e = fabs(bes->param[ELC].charge);
+    const int Z = round(bes->param[ION].charge / e);
 
     double lambda = 10.0; // Note: Change this
 
     // Collision times for each species
-    double tau[3][2];
+    double tau[3][2] = { 0.0 };
     const double e4Z2 = e * e * e * e * Z * Z;
     const double e4Z4 = e4Z2 * Z * Z;
     for (int j = L_1D; j <= U_1D; ++j)
@@ -1370,7 +1370,7 @@ unmag_braginskii_update(const gkyl_moment_braginskii *bes,
     }
 
     // Viscosity coefficients for each species
-    double eta[3][2];
+    double eta[3][2] = { 0.0 };
     for (int j = L_1D; j <= U_1D; ++j)
     {
       eta[j][ELC] = 0.73 * p[j][ELC] * tau[j][ELC];
@@ -1395,8 +1395,9 @@ unmag_braginskii_update(const gkyl_moment_braginskii *bes,
       // First column of viscous stress tensor (other terms will be 0 after divergence)
       double piL[3] = { -(4.0 / 3.0) * etaL * dvdxL[0], -etaL * dvdxL[1], -etaL * dvdxL[2] };
       double piR[3] = { -(4.0 / 3.0) * etaR * dvdxR[0], -etaR * dvdxR[1], -etaR * dvdxR[2] };
-      
+
       // Update momentum
+      rhs[n][RHO] = 0.0;
       rhs[n][MX] = -calc_sym_grad_1D(dx, piL[0], piR[0]);
       rhs[n][MY] = -calc_sym_grad_1D(dx, piL[1], piR[1]);
       rhs[n][MZ] = -calc_sym_grad_1D(dx, piL[2], piR[2]);
