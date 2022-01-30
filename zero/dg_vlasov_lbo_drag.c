@@ -13,6 +13,10 @@ gkyl_vlasov_lbo_drag_free(const struct gkyl_ref_count* ref)
 {
   struct gkyl_dg_eqn* base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_vlasov_lbo_drag *vlasov_lbo_drag  = container_of(base, struct dg_vlasov_lbo_drag, eqn);
+
+  if (GKYL_IS_CU_ALLOC(vlasov_lbo_drag->eqn.flags))
+    gkyl_cu_free(vlasov_lbo_drag->eqn.on_dev);
+  
   gkyl_free(vlasov_lbo_drag);
 }
 
