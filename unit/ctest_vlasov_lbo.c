@@ -102,6 +102,8 @@ test_1x1v_p2()
 
   gkyl_proj_on_basis_advance(projF, 0.0, &phaseRange_ext, fin);
   gkyl_proj_on_basis_advance(projNu, 0.0, &confRange_ext, nuSum);
+  gkyl_proj_on_basis_release(projF);
+  gkyl_proj_on_basis_release(projNu);
   
   gkyl_array_clear(nuUSum, 0.0);
   gkyl_array_clear(nuVtSqSum, 1.0);
@@ -212,7 +214,9 @@ test_1x2v_p2()
 
   gkyl_proj_on_basis_advance(projF, 0.0, &phaseRange_ext, fin);
   gkyl_proj_on_basis_advance(projNu, 0.0, &confRange_ext, nuSum);
-
+  gkyl_proj_on_basis_release(projF);
+  gkyl_proj_on_basis_release(projNu);
+  
   gkyl_array_clear(nuUSum, 0.0);
   gkyl_array_clear(nuVtSqSum, 1.0);
 
@@ -298,6 +302,7 @@ test_1x2v_p2()
   gkyl_dg_lbo_updater_release(slvr);
 }
 
+
 #ifdef GKYL_HAVE_CUDA
 
 void
@@ -352,6 +357,8 @@ test_1x1v_p2_cu()
 
   gkyl_proj_on_basis_advance(projF, 0.0, &phaseRange_ext, fin);
   gkyl_proj_on_basis_advance(projNu, 0.0, &confRange_ext, nuSum);
+  gkyl_proj_on_basis_release(projF);
+  gkyl_proj_on_basis_release(projNu);
   
   gkyl_array_clear(nuUSum_cu, 0.0);
   gkyl_array_clear(nuVtSqSum_cu, 1.0);
@@ -472,6 +479,8 @@ test_1x2v_p2_cu()
 
   gkyl_proj_on_basis_advance(projF, 0.0, &phaseRange_ext, fin);
   gkyl_proj_on_basis_advance(projNu, 0.0, &confRange_ext, nuSum);
+  gkyl_proj_on_basis_release(projF);
+  gkyl_proj_on_basis_release(projNu);
   
   gkyl_array_copy(fin_cu, fin);
   gkyl_array_copy(nuSum_cu, nuSum);

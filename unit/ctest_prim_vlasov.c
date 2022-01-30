@@ -216,6 +216,7 @@ test_1x1v_p2()
   gkyl_array_release(distf);
 
   gkyl_array_release(u); gkyl_array_release(vth);
+  gkyl_prim_lbo_release(prim);
   gkyl_prim_lbo_calc_release(primcalc);
 }
 
@@ -341,8 +342,11 @@ test_1x1v_p2_cu()
 
   // release memory for objects
   gkyl_array_release(m0_cu); gkyl_array_release(m1i_cu); gkyl_array_release(m2_cu);
-
+  gkyl_mom_calc_release(m0calc); gkyl_mom_calc_release(m1icalc); gkyl_mom_calc_release(m2calc);
+  gkyl_mom_type_release(vmM0_t); gkyl_mom_type_release(vmM1i_t); gkyl_mom_type_release(vmM2_t);
+  
   gkyl_array_release(f_cu); gkyl_array_release(vf_cu);
+  gkyl_mom_bcorr_release(fcalc); gkyl_mom_bcorr_release(vFcalc);
   gkyl_mom_type_release(F); gkyl_mom_type_release(VF);
 
   gkyl_proj_on_basis_release(projDistf);
@@ -350,6 +354,9 @@ test_1x1v_p2_cu()
 
   gkyl_array_release(u); gkyl_array_release(vth);
   gkyl_array_release(u_cu); gkyl_array_release(vth_cu);
+
+  gkyl_prim_lbo_release(prim);
+  gkyl_prim_lbo_calc_release(primcalc);
 }
 #endif
 

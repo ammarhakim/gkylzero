@@ -143,8 +143,8 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
     // update collisions
     wst = gkyl_wall_clock();    
     if (species->collision_id == GKYL_LBO_COLLISIONS)
-      //vm_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
-      assert(false); // NO COLLISIONS ON GPUs yet
+      vm_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
+      //assert(false); // NO COLLISIONS ON GPUs yet
     app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);    
   }
   else {
