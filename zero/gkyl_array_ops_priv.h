@@ -4,6 +4,8 @@
 
 // Compute number of elements stored in array 'arr'
 #define NELM(arr) (arr->size*arr->ncomp)
+// Compute size of 'arr' 
+#define NSIZE(arr) (arr->size)
 // Compute number of components stored in array 'arr'
 #define NCOM(arr) (arr->ncomp)
 

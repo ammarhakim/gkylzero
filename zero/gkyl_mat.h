@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gkyl_ref_count.h>
+#include <gkyl_util.h>
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -25,10 +26,9 @@ struct gkyl_nmat {
   size_t nr, nc; // Number of rows, columns
   double *data; // Pointer to data
   double **mptr; // pointers to start of each sub-matrix
-  uint32_t flags;
-  struct gkyl_ref_count ref_count;
 
-  // Data needed to work on device
+  uint32_t flags;  
+  struct gkyl_ref_count ref_count;
   struct  gkyl_nmat *on_dev; // pointer to itself or device data
 };
 
@@ -51,6 +51,7 @@ struct gkyl_mat* gkyl_mat_clone(const struct gkyl_mat *in);
 /**
  * Set value in matrix.
  */
+GKYL_CU_DH
 static inline void
 gkyl_mat_set(struct gkyl_mat *mat, size_t r, size_t c, double val)
 {
@@ -60,6 +61,7 @@ gkyl_mat_set(struct gkyl_mat *mat, size_t r, size_t c, double val)
 /**
  * Get value from matrix.
  */
+GKYL_CU_DH
 static inline double
 gkyl_mat_get(const struct gkyl_mat *mat, size_t r, size_t c)
 {
@@ -69,6 +71,7 @@ gkyl_mat_get(const struct gkyl_mat *mat, size_t r, size_t c)
 /**
  * Get column of matrix as const pointer.
  */
+GKYL_CU_DH
 static inline const double*
 gkyl_mat_get_ccol(const struct gkyl_mat *mat, size_t c)
 {
@@ -78,6 +81,7 @@ gkyl_mat_get_ccol(const struct gkyl_mat *mat, size_t c)
 /**
  * Get column of matrix as pointer.
  */
+GKYL_CU_DH
 static inline double*
 gkyl_mat_get_col(struct gkyl_mat *mat, size_t c)
 {
@@ -86,8 +90,14 @@ gkyl_mat_get_col(struct gkyl_mat *mat, size_t c)
 
 /**
  * Set all elements of matrix to specified value. Returns pointer to @a mat.
- */ 
-struct gkyl_mat* gkyl_mat_clear(struct gkyl_mat *mat, double val);
+ */
+GKYL_CU_DH
+static inline struct gkyl_mat*
+gkyl_mat_clear(struct gkyl_mat *mat, double val)
+{
+  for (size_t i=0; i<mat->nr*mat->nc; ++i) mat->data[i] = val;
+  return mat;
+}
 
 /**
  * Set all elements on diagonal to specified value. All other elements
@@ -191,6 +201,7 @@ struct gkyl_nmat* gkyl_nmat_copy(struct gkyl_nmat *dest, const struct gkyl_nmat 
  * @param n Matrix to fetch
  * @return Matrix (DO NOT free/release this)
  */
+GKYL_CU_DH
 static inline struct gkyl_mat
 gkyl_nmat_get(struct gkyl_nmat *mat, size_t num)
 {

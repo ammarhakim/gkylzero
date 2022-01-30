@@ -1009,7 +1009,7 @@ gkyl_moment_app_release(gkyl_moment_app* app)
 {
   for (int i=0; i<app->num_species; ++i)
     moment_species_release(&app->species[i]);
-  free(app->species);
+  gkyl_free(app->species);
 
   if (app->has_field)
     moment_field_release(&app->field);

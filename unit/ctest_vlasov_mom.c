@@ -43,7 +43,7 @@ test_cu_vlasov_mom()
 
   struct gkyl_mom_type *m2ij = gkyl_vlasov_mom_cu_dev_new(&cbasis, &pbasis, "M2ij");
 
-  int nfail = cu_vlasov_mom_test(m2ij);
+  int nfail = cu_vlasov_mom_test(m2ij->on_dev);
   TEST_CHECK( nfail == 0 );
 
   gkyl_cu_free(m2ij);

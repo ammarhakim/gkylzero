@@ -379,5 +379,5 @@ gkyl_wave_prop_release(gkyl_wave_prop* up)
   gkyl_array_release(up->flux2);
   gkyl_wave_geom_release(up->geom);
   
-  free(up);
+  gkyl_free(up);
 }

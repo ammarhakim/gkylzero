@@ -1,6 +1,8 @@
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_mom_calc.h>
+#include <gkyl_mom_calc_priv.h>
 
 #include <assert.h>
 
@@ -11,22 +13,12 @@ gkyl_mom_calc_new(const struct gkyl_rect_grid *grid,
   gkyl_mom_calc *up = gkyl_malloc(sizeof(gkyl_mom_calc));
   up->grid = *grid;
   up->momt = gkyl_mom_type_acquire(momt);
+
+  up->flags = 0;
+  GKYL_CLEAR_CU_ALLOC(up->flags);
+  up->on_dev = up; // self-reference on host
+
   return up;
-}
-
-gkyl_mom_calc*
-gkyl_mom_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_mom_type *momt)
-{
-  gkyl_mom_calc *up = gkyl_malloc(sizeof(gkyl_mom_calc));
-  up->momt = momt;
-  up->grid = *grid;
-
-  gkyl_mom_calc *up_cu = gkyl_cu_malloc(sizeof(gkyl_mom_calc));
-  gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_mom_calc), GKYL_CU_MEMCPY_H2D);
-
-  gkyl_free(up);
-  return up_cu;
 }
 
 static inline void
@@ -40,7 +32,7 @@ copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 
 void
 gkyl_mom_calc_advance(const gkyl_mom_calc* calc,
-  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
+  struct gkyl_range phase_rng, struct gkyl_range conf_rng,
   const struct gkyl_array *fin, struct gkyl_array *mout)
 {
   double xc[GKYL_MAX_DIM];
@@ -79,6 +71,8 @@ gkyl_mom_calc_advance(const gkyl_mom_calc* calc,
 void gkyl_mom_calc_release(gkyl_mom_calc* up)
 {
   gkyl_mom_type_release(up->momt);
+  if (GKYL_IS_CU_ALLOC(up->flags))
+    gkyl_cu_free(up->on_dev);
   gkyl_free(up);
 }
 
@@ -88,6 +82,13 @@ void
 gkyl_mom_calc_advance_cu(const gkyl_mom_calc* mcalc,
   const struct gkyl_range phase_range, const struct gkyl_range conf_range,
   const struct gkyl_array* GKYL_RESTRICT fin, struct gkyl_array* GKYL_RESTRICT mout)
+{
+  assert(false);
+}
+
+gkyl_mom_calc*
+gkyl_mom_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_mom_type *momt)
 {
   assert(false);
 }

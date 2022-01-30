@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <gkyl_alloc.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_proj_on_basis.h>

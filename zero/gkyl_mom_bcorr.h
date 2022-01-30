@@ -12,15 +12,6 @@ enum gkyl_vel_edge { GKYL_VX_LOWER, GKYL_VY_LOWER, GKYL_VZ_LOWER, GKYL_VX_UPPER,
 // Object type
 typedef struct gkyl_mom_bcorr gkyl_mom_bcorr;
 
-struct gkyl_mom_bcorr {
-  struct gkyl_rect_grid grid; // grid object
-  int ndim; // number of dimensions
-  int num_basis; // number of basis functions
-  int num_up_dirs; // number of update directions
-  int update_dirs[GKYL_MAX_DIM]; // directions to update
-  const struct gkyl_mom_type *momt; // moment type object
-};
-
 /**
  * Create new updater to update boundary corrections.
  *
@@ -28,6 +19,9 @@ struct gkyl_mom_bcorr {
  * @param momt Moment type object for boundary correction
  */
 gkyl_mom_bcorr* gkyl_mom_bcorr_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_mom_type *momt);
+
+gkyl_mom_bcorr* gkyl_mom_bcorr_cu_dev_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_mom_type *momt);
 
 /**
@@ -39,7 +33,12 @@ gkyl_mom_bcorr* gkyl_mom_bcorr_new(const struct gkyl_rect_grid *grid,
  * @param fIn Input to updater
  * @param out Output
  */
-void gkyl_mom_bcorr_advance(gkyl_mom_bcorr *bcorr, struct gkyl_range phase_rng, struct gkyl_range conf_rng,
+void gkyl_mom_bcorr_advance(gkyl_mom_bcorr *bcorr,
+  struct gkyl_range phase_rng, struct gkyl_range conf_rng,
+  const struct gkyl_array *fIn, struct gkyl_array *out);
+
+void gkyl_mom_bcorr_advance_cu(gkyl_mom_bcorr *bcorr,
+  struct gkyl_range phase_rng, struct gkyl_range conf_rng,
   const struct gkyl_array *fIn, struct gkyl_array *out);
   
 /**
@@ -47,4 +46,4 @@ void gkyl_mom_bcorr_advance(gkyl_mom_bcorr *bcorr, struct gkyl_range phase_rng, 
  *
  * @param bcorr Updater to delete.
  */
-void gkyl_mom_bcorr_release(gkyl_mom_bcorr* bcorr);
+void gkyl_mom_bcorr_release(gkyl_mom_bcorr* up);

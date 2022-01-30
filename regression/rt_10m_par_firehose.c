@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdio.h>
 
+#include <gkyl_alloc.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_ten_moment.h>
@@ -165,6 +166,11 @@ int
 main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
+
+  if (app_args.trace_mem) {
+    gkyl_cu_dev_mem_debug_set(true);
+    gkyl_mem_debug_set(true);
+  }
 
   double elc_k0 = 0.001; // rho_e ~ 10, k0e = 0.01/rho_e ~ 0.001
   double ion_k0 = 0.00002; // rho_i ~ 420, k0e = 0.01/rho_e ~ 0.00002

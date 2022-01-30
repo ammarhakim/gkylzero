@@ -26,11 +26,11 @@ endif
 
 INCLUDES = -I${G0_INC_DIR} -I${LAPACK_INC}
 
-all: app_twostream
+all: rt_twostream
 
-app_twostream: app_twostream.c
-	 ${CC} ${CFLAGS} ${INCLUDES} app_twostream.c -o app_twostream -L${G0_LIB_DIR} ${G0_LIBS} ${LAPACK_LIB}
+rt_twostream: rt_twostream.c
+	 ${CC} ${CFLAGS} ${INCLUDES} rt_twostream.c -o rt_twostream -L${G0_LIB_DIR} ${G0_LIBS} ${LAPACK_LIB}
 
 clean:
-	rm -rf app_twostream app_twostream.dSYM
+	rm -rf rt_twostream rt_twostream.dSYM
 

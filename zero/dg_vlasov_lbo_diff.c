@@ -2,25 +2,33 @@
 #include <stdio.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
 #include <gkyl_dg_vlasov_lbo_diff.h>
 #include <gkyl_dg_vlasov_lbo_diff_priv.h>
 #include <gkyl_util.h>
 
-static void
-dg_vlasov_lbo_diff_free(const struct gkyl_ref_count* ref)
+void
+gkyl_vlasov_lbo_diff_free(const struct gkyl_ref_count* ref)
 {
   struct gkyl_dg_eqn* base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_vlasov_lbo_diff *vlasov_lbo_diff  = container_of(base, struct dg_vlasov_lbo_diff, eqn);
+
+  if (GKYL_IS_CU_ALLOC(vlasov_lbo_diff->eqn.flags))
+    gkyl_cu_free(vlasov_lbo_diff->eqn.on_dev);
+  
   gkyl_free(vlasov_lbo_diff);
 }
 
 void
 gkyl_vlasov_lbo_diff_set_nuSum(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuSum)
 {
-//#ifdef GKYL_HAVE_CUDA
-//  if (gkyl_array_is_cu_dev(nuSum)) {gkyl_vlasov_lbo_diff_set_nuSum_cu(eqn, nuSum); return;}
-//#endif
+#ifdef GKYL_HAVE_CUDA
+ if (gkyl_array_is_cu_dev(nuSum)) {
+   gkyl_vlasov_lbo_diff_set_nuSum_cu(eqn->on_dev, nuSum);
+   return;
+ }
+#endif
 
   struct dg_vlasov_lbo_diff *vlasov_lbo_diff = container_of(eqn, struct dg_vlasov_lbo_diff, eqn);
   vlasov_lbo_diff->nuSum = nuSum;
@@ -29,21 +37,26 @@ gkyl_vlasov_lbo_diff_set_nuSum(const struct gkyl_dg_eqn *eqn, const struct gkyl_
 void
 gkyl_vlasov_lbo_diff_set_nuUSum(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuUSum)
 {
-//#ifdef GKYL_HAVE_CUDA
-//  if (gkyl_array_is_cu_dev(nuUSum)) {gkyl_vlasov_lbo_diff_set_nuUSum_cu(eqn, nuUSum); return;}
-//#endif
+#ifdef GKYL_HAVE_CUDA
+ if (gkyl_array_is_cu_dev(nuUSum)) {
+   gkyl_vlasov_lbo_diff_set_nuUSum_cu(eqn->on_dev, nuUSum);
+   return;
+ }
+#endif
 
   struct dg_vlasov_lbo_diff *vlasov_lbo_diff = container_of(eqn, struct dg_vlasov_lbo_diff, eqn);
   vlasov_lbo_diff->nuUSum = nuUSum;
 }
 
-
 void
 gkyl_vlasov_lbo_diff_set_nuVtSqSum(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuVtSqSum)
 {
-//#ifdef GKYL_HAVE_CUDA
-//  if (gkyl_array_is_cu_dev(nuVtSqSum)) {gkyl_vlasov_lbo_diff_set_nuVtSqSum_cu(eqn, nuVtSqSum); return;}
-//#endif
+#ifdef GKYL_HAVE_CUDA
+ if (gkyl_array_is_cu_dev(nuVtSqSum)) {
+   gkyl_vlasov_lbo_diff_set_nuVtSqSum_cu(eqn->on_dev, nuVtSqSum);
+   return;
+ }
+#endif
 
   struct dg_vlasov_lbo_diff *vlasov_lbo_diff = container_of(eqn, struct dg_vlasov_lbo_diff, eqn);
   vlasov_lbo_diff->nuVtSqSum = nuVtSqSum;
@@ -121,8 +134,10 @@ gkyl_dg_vlasov_lbo_diff_new(const struct gkyl_basis* cbasis, const struct gkyl_b
   vlasov_lbo_diff->nuVtSqSum = 0;
   vlasov_lbo_diff->conf_range = *conf_range;
 
-  // set reference counter
-  vlasov_lbo_diff->eqn.ref_count = gkyl_ref_count_init(dg_vlasov_lbo_diff_free);
+  vlasov_lbo_diff->eqn.flags = 0;
+  GKYL_CLEAR_CU_ALLOC(vlasov_lbo_diff->eqn.flags);
+  vlasov_lbo_diff->eqn.ref_count = gkyl_ref_count_init(gkyl_vlasov_lbo_diff_free);
+  vlasov_lbo_diff->eqn.on_dev = &vlasov_lbo_diff->eqn;
   
   return &vlasov_lbo_diff->eqn;
 }
@@ -130,7 +145,8 @@ gkyl_dg_vlasov_lbo_diff_new(const struct gkyl_basis* cbasis, const struct gkyl_b
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_dg_eqn*
-gkyl_dg_vlasov_lbo_diff_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range)
+gkyl_dg_vlasov_lbo_diff_cu_dev_new(const struct gkyl_basis* cbasis,
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range)
 {
   assert(false);
   return 0;

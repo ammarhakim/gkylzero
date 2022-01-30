@@ -13,18 +13,18 @@
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_dg_bin_ops.h>
+#include <gkyl_dg_lbo_updater.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_eqn_type.h>
-#include <gkyl_dg_lbo_updater.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_lbo_mom_bcorr.h>
 #include <gkyl_mom_bcorr.h>
 #include <gkyl_mom_calc.h>
+#include <gkyl_null_pool.h>
 #include <gkyl_prim_lbo.h>
 #include <gkyl_prim_lbo_calc.h>
 #include <gkyl_prim_lbo_vlasov.h>
-#include <gkyl_null_pool.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -47,20 +47,23 @@ struct vm_skin_ghost_ranges {
 
 // data for moments
 struct vm_species_moment {
-  struct gkyl_mom_type *mtype;
-  gkyl_mom_calc *mcalc;
-  struct gkyl_array *marr;
-  struct gkyl_array *marr_host;
+  bool use_gpu; // should we use GPU (if present)
+  gkyl_mom_calc *mcalc; // moment update
+  struct gkyl_array *marr; // array to moment data
+  struct gkyl_array *marr_host; // host copy (same as marr if not on GPUs)
 };
 
 struct vm_lbo_collisions {
   struct gkyl_array *cM, *cE; // LBO boundary corrections
-  struct gkyl_mom_type *cM_mom, *cE_mom;
-  struct gkyl_mom_bcorr *cM_bcorr, *cE_bcorr;
+  struct gkyl_mom_type *cM_mom, *cE_mom; // moments needed in update
+  struct gkyl_mom_bcorr *cM_bcorr, *cE_bcorr; // moments needed in update
   struct gkyl_array *nu_sum, *u_drift, *vth_sq, *nu_u, *nu_vthsq; // LBO primitive moments
-  struct gkyl_prim_lbo *coll_prim; // Primitive moments
-  gkyl_prim_lbo_calc *coll_pcalc; // Primitive moment solver
-  gkyl_dg_lbo_updater *coll_slvr; // Collision solver
+  struct gkyl_prim_lbo *coll_prim; // primitive moments
+
+  struct vm_species_moment m0, m1i, m2; // moments needed in LBO
+  
+  gkyl_prim_lbo_calc *coll_pcalc; // primitive moment calculator
+  gkyl_dg_lbo_updater *coll_slvr; // collision solver
 };
 
 struct vm_bgk_collisions {
@@ -86,7 +89,6 @@ struct vm_species {
   struct gkyl_array *f_host; // host copy for use IO and initialization
 
   struct vm_species_moment m1i; // for computing currents
-  struct vm_species_moment m0, m2; // for density and energy in collision update (if present)
   struct vm_species_moment *moms; // diagnostic moments
 
   struct gkyl_dg_eqn *eqn; // Vlasov equation
@@ -94,7 +96,7 @@ struct vm_species {
 
   enum gkyl_collision_id collision_id; // type of collisions
   struct vm_lbo_collisions lbo;
-  double* omegaCfl_ptr;
+  double *omegaCfl_ptr;
 };
 
 // field data
@@ -109,8 +111,7 @@ struct vm_field {
 
   struct gkyl_array *em_host;  // host copy for use IO and initialization
 
-  struct gkyl_dg_eqn *eqn; // Maxwell equation
-  gkyl_hyper_dg *slvr; // solver
+  gkyl_hyper_dg *slvr; // Maxwell solver
 
   double* omegaCfl_ptr;
 };
@@ -196,12 +197,24 @@ void vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   struct vm_species_moment *sm, const char *nm);
 
 /**
+ * Calculate moment, given distribution function @a fin.
+ *
+ * @param phase_rng Phase-space range
+ * @param conf_rng Config-space range
+ * @param fin Input distribution function array
+ */
+void vm_species_moment_calc(const struct vm_species_moment *sm,
+  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
+  const struct gkyl_array *fin);
+
+/**
  * Release species moment object.
  *
  * @param app Vlasov app object
  * @param sm Species moment object to release
  */
-void vm_species_moment_release(const struct gkyl_vlasov_app *app, const struct vm_species_moment *sm);
+void vm_species_moment_release(const struct gkyl_vlasov_app *app,
+  const struct vm_species_moment *sm);
 
 /** vm_species_lbo API */
 
@@ -212,7 +225,21 @@ void vm_species_moment_release(const struct gkyl_vlasov_app *app, const struct v
  * @param s Species object 
  * @param lbo Species LBO object
  */
-void vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_lbo_collisions *lbo);
+void vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s,
+  struct vm_lbo_collisions *lbo);
+
+/**
+ * Compute RHS from LBO collisions
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param lbo Pointer to LBO
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from LBO
+ * @return Maximum stable time-step
+ */
+double vm_species_lbo_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
+  struct vm_lbo_collisions *lbo, const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
  * Release species LBO object.

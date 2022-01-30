@@ -2,6 +2,7 @@
 
 extern "C" {
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_dg_vlasov.h>    
 #include <gkyl_dg_vlasov_priv.h>
 }
@@ -117,13 +118,19 @@ gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_bas
   vlasov->eqn.num_equations = 1;
   vlasov->conf_range = *conf_range;
 
+  vlasov->eqn.flags = 0;
+  GKYL_SET_CU_ALLOC(vlasov->eqn.flags);
+  vlasov->eqn.ref_count = gkyl_ref_count_init(gkyl_vlasov_free);
+
   // copy the host struct to device struct
   struct dg_vlasov *vlasov_cu = (struct dg_vlasov*) gkyl_cu_malloc(sizeof(struct dg_vlasov));
   gkyl_cu_memcpy(vlasov_cu, vlasov, sizeof(struct dg_vlasov), GKYL_CU_MEMCPY_H2D);
 
-  dg_vlasov_set_cu_dev_ptrs<<<1,1>>>(vlasov_cu, cbasis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order, field_id);
+  dg_vlasov_set_cu_dev_ptrs<<<1,1>>>(vlasov_cu, cbasis->b_type, cv_index[cdim].vdim[vdim],
+    cdim, vdim, poly_order, field_id);
 
-  gkyl_free(vlasov);  
+  // set parent on_dev pointer
+  vlasov->eqn.on_dev = &vlasov_cu->eqn;
   
-  return &vlasov_cu->eqn;
+  return &vlasov->eqn;
 }

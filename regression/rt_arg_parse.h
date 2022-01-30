@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -14,6 +15,7 @@
 struct gkyl_app_args {
   bool use_gpu; // should this be run on GPU?
   bool step_mode; // run for fixed number of steps? (for valgrind/cuda-memcheck)
+  bool trace_mem; // should we trace memory allocation/deallocations?
   int num_steps; // number of steps
   int num_threads; // number of threads
   char file_name[1024]; // name of input file
@@ -37,6 +39,7 @@ parse_app_args(int argc, char **argv)
 {
   bool use_gpu = false;
   bool step_mode = false;
+  bool trace_mem = false;
   int num_steps = INT_MAX;
   int num_threads = 1; // by default use only 1 thread
 
@@ -46,22 +49,28 @@ parse_app_args(int argc, char **argv)
   args.basis_type = GKYL_BASIS_MODAL_SERENDIPITY;
 
   int c;
-  while ((c = getopt(argc, argv, "+hgt:s:i:b:")) != -1) {
+  while ((c = getopt(argc, argv, "+hgmt:s:i:b:")) != -1) {
     switch (c)
     {
       case 'h':
-        printf("Usage: <app_name> -g -s num_steps -t num_threads -i inp_file -b [ms|mt]\n");
+        printf("Usage: <app_name> -g -m -s num_steps -t num_threads -i inp_file -b [ms|mt]\n");
+        printf(" All flags and parameters are optional.\n");
         printf(" -g     Run on GPUs if GPUs are present and code built for GPUs\n");
         printf(" -sN    Only run N steps of simulation\n");
         printf(" -tN    Use N threads (when available)\n");        
         printf(" -b     Basis function to use (ms: Modal serendipity; mt: Modal tensor-product)\n");
         printf("        (Ignored for finite-volume solvers)\n");
+        printf(" -m     Turn on memory allocation/deallocation tracing\n");
         exit(-1);
         break;
 
       case 'g':
         use_gpu = true;
-        break;        
+        break;
+
+      case 'm':
+        trace_mem = true;
+        break;
       
       case 's':
         step_mode = true;
@@ -87,6 +96,7 @@ parse_app_args(int argc, char **argv)
   }
   
   args.use_gpu = use_gpu;
+  args.trace_mem = trace_mem;
   args.step_mode = step_mode;
   args.num_steps = num_steps;
   args.num_threads = num_threads;

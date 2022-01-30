@@ -603,11 +603,14 @@ test_1x1v_p1_cu()
   TEST_CHECK( gkyl_compare(  16.874262672506337, m23[1], 1e-12) );
 
   // free allocated memory.
-  gkyl_array_release(distf);
-  gkyl_array_release(distf_cu);
+  gkyl_array_release(distf); gkyl_array_release(distf_cu);
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
   gkyl_array_release(m0_cu); gkyl_array_release(m1i_cu); gkyl_array_release(m2_cu);
 
+  gkyl_mom_calc_release(m0Calc); gkyl_mom_calc_release(m1iCalc); gkyl_mom_calc_release(m2Calc);
+  gkyl_mom_type_release(vmM0_t); gkyl_mom_type_release(vmM1i_t); gkyl_mom_type_release(vmM2_t);  
+
+  gkyl_proj_on_basis_release(projDistf);
 }
 
 void
@@ -718,6 +721,10 @@ test_1x2v_p1_cu()
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
   gkyl_array_release(m0_cu); gkyl_array_release(m1i_cu); gkyl_array_release(m2_cu);
 
+  gkyl_mom_calc_release(m0Calc); gkyl_mom_calc_release(m1iCalc); gkyl_mom_calc_release(m2Calc);
+  gkyl_mom_type_release(vmM0_t); gkyl_mom_type_release(vmM1i_t); gkyl_mom_type_release(vmM2_t);  
+
+  gkyl_proj_on_basis_release(projDistf);
 }
 
 void
@@ -831,6 +838,10 @@ test_2x2v_p1_cu()
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
   gkyl_array_release(m0_cu); gkyl_array_release(m1i_cu); gkyl_array_release(m2_cu);
 
+  gkyl_mom_calc_release(m0Calc); gkyl_mom_calc_release(m1iCalc); gkyl_mom_calc_release(m2Calc);
+  gkyl_mom_type_release(vmM0_t); gkyl_mom_type_release(vmM1i_t); gkyl_mom_type_release(vmM2_t);  
+
+  gkyl_proj_on_basis_release(projDistf);
 }
 
 void
@@ -943,6 +954,11 @@ test_2x3v_p1_cu()
   gkyl_array_release(distf_cu);
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
   gkyl_array_release(m0_cu); gkyl_array_release(m1i_cu); gkyl_array_release(m2_cu);
+
+  gkyl_mom_calc_release(m0Calc); gkyl_mom_calc_release(m1iCalc); gkyl_mom_calc_release(m2Calc);
+  gkyl_mom_type_release(vmM0_t); gkyl_mom_type_release(vmM1i_t); gkyl_mom_type_release(vmM2_t);
+
+  gkyl_proj_on_basis_release(projDistf);
 
 }
 #endif

@@ -1,3 +1,4 @@
+#include "gkyl_util.h"
 #include <acutest.h>
 #include <gkyl_prim_sr_euler.h>
 #include <gkyl_wv_sr_euler.h>

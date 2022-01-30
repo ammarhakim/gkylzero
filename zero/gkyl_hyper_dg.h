@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gkyl_util.h>
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_dg_eqn.h>
@@ -9,17 +10,6 @@
 // Object type
 typedef struct gkyl_hyper_dg gkyl_hyper_dg;
 
-struct gkyl_hyper_dg {
-  struct gkyl_rect_grid grid; // grid object
-  int ndim; // number of dimensions
-  int num_basis; // number of basis functions
-  int num_up_dirs; // number of update directions
-  int update_dirs[GKYL_MAX_DIM]; // directions to update
-  int zero_flux_flags[GKYL_MAX_DIM]; // directions with zero flux
-  int update_vol_term; // should we update volume term?
-  const struct gkyl_dg_eqn *equation; // equation object
-};
-
 /**
  * Create new updater to update equations using DG algorithm.
  *
@@ -28,28 +18,29 @@ struct gkyl_hyper_dg {
  * @param equation Equation object
  * @param num_up_dirs Number of directions to update
  * @param update_dirs List of directions to update (size 'num_up_dirs')
- * @param zero_flux_flags Flags with zero-flux BCs (size 'num_up_dirs')
+ * @param zero_flux_flags Flags to indicate if direction has zero-flux BCs
  * @param update_vol_term Set to 0 to skip volume update
  */
 gkyl_hyper_dg* gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation,
-  int num_up_dirs, int update_dirs[], int zero_flux_flags[], int update_vol_term);
-
+  int num_up_dirs, int update_dirs[GKYL_MAX_DIM], int zero_flux_flags[GKYL_MAX_DIM],
+  int update_vol_term);
 
 /**
  * Create new updater on CUDA device to update equations using DG algorithm.
  *
  * @param grid_cu Grid object (on device)
  * @param basis Basis functions
- * @param equation_cu Equation object (on device)
+ * @param equation Equation object
  * @param num_up_dirs Number of directions to update
  * @param update_dirs List of directions to update (size 'num_up_dirs')
- * @param zero_flux_flags Flags with zero-flux BCs (size 'num_up_dirs')
+ * @param zero_flux_flags Flags to indicate if direction has zero-flux BCs
  * @param update_vol_term Set to 0 to skip volume update
  */
 gkyl_hyper_dg* gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
-  const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation_cu,
-  int num_up_dirs, int update_dirs[], int zero_flux_flags[], int update_vol_term);
+  const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation,
+  int num_up_dirs, int update_dirs[GKYL_MAX_DIM], int zero_flux_flags[GKYL_MAX_DIM],
+  int update_vol_term);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
@@ -82,13 +73,8 @@ void gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* hdg, const struct gkyl_range update
  * @param hdg Hyper DG updater object
  * @param update_vol_term Set to 1 to update vol term, 0 otherwise
  */
-GKYL_CU_DH
-static inline
-void gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *hdg, int update_vol_term)
-{
-  hdg->update_vol_term = update_vol_term;
-}
-// On-device version of the same
+void gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *hdg, int update_vol_term);
+// On-device version
 void gkyl_hyper_dg_set_update_vol_cu(gkyl_hyper_dg *hdg, int update_vol_term);
   
 /**

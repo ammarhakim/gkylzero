@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdio.h>
 
+#include <gkyl_alloc.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_ten_moment.h>
@@ -98,6 +99,11 @@ main(int argc, char **argv)
   double k0 = 5.0;
   
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
+
+  if (app_args.trace_mem) {
+    gkyl_cu_dev_mem_debug_set(true);
+    gkyl_mem_debug_set(true);
+  }
   // electron/ion equations
   struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new(k0);
   struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new(k0);

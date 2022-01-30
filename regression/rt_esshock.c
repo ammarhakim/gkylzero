@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <time.h>
 
+#include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
 
@@ -84,6 +85,11 @@ int
 main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
+
+  if (app_args.trace_mem) {
+    gkyl_cu_dev_mem_debug_set(true);
+    gkyl_mem_debug_set(true);
+  }
   struct esshock_ctx ctx = create_ctx(); // context for init functions
 
   // electrons

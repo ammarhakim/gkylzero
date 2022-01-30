@@ -1,4 +1,5 @@
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_mat.h>
 #include <gkyl_ref_count.h>
 #include <gkyl_util.h>
@@ -27,16 +28,6 @@ static int cblas_trans_flags[] = {
   [GKYL_TRANS] = CblasTrans,
   [GKYL_CONJ_TRANS] = CblasConjTrans
 };
-
-// flags and corresponding bit-masks
-enum nmat_flags { M_IS_CU_NMAT };
-static const uint32_t masks[] =
-{ 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
-
-// NV-GPU flags
-#define SET_CU_NMAT(flags) (flags) |= masks[M_IS_CU_NMAT]
-#define CLEAR_CU_NMAT(flags) (flags) &= ~masks[M_IS_CU_NMAT]
-#define IS_CU_NMAT(flags) (((flags) & masks[M_IS_CU_NMAT]) != 0)
 
 /** Helper functions to determine sizes needed in BLAS/LAPACKE routines */
 struct mat_sizes { size_t nr, nc; };
@@ -68,13 +59,6 @@ gkyl_mat_clone(const struct gkyl_mat *in)
   size_t tot = sizeof(double[in->nr*in->nc]);
   memcpy(m->data, in->data, tot);
   return m;
-}
-
-struct gkyl_mat*
-gkyl_mat_clear(struct gkyl_mat *mat, double val)
-{
-  for (size_t i=0; i<mat->nr*mat->nc; ++i) mat->data[i] = val;
-  return mat;
 }
 
 struct gkyl_mat*
@@ -177,7 +161,7 @@ static void
 nmat_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_nmat *mat = container_of(ref, struct gkyl_nmat, ref_count);
-  if (IS_CU_NMAT(mat->flags)) {
+  if (GKYL_IS_CU_ALLOC(mat->flags)) {
     gkyl_cu_free(mat->data);
     gkyl_cu_free(mat->mptr);
     gkyl_cu_free(mat->on_dev);
@@ -236,7 +220,7 @@ gkyl_nmat_copy(struct gkyl_nmat *dest, const struct gkyl_nmat *src)
 bool
 gkyl_nmat_is_cu_dev(const struct gkyl_nmat *mat)
 {
-  return IS_CU_NMAT(mat->flags);
+  return GKYL_IS_CU_ALLOC(mat->flags);
 }
 
 struct gkyl_nmat*
@@ -352,7 +336,7 @@ gkyl_nmat_cu_dev_new(size_t num, size_t nr, size_t nc)
   mat->num = num; mat->nr = nr; mat->nc = nc;
 
   mat->flags = 0;
-  SET_CU_NMAT(mat->flags);
+  GKYL_SET_CU_ALLOC(mat->flags);
   mat->data = gkyl_cu_malloc(sizeof(double[num*nr*nc]));
   mat->mptr = gkyl_cu_malloc(num*sizeof(double*));
   mat->ref_count = gkyl_ref_count_init(nmat_free);

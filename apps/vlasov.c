@@ -1,4 +1,5 @@
-#include "gkyl_vlasov_priv.h"
+
+#include <gkyl_vlasov_priv.h>
 
 gkyl_vlasov_app*
 gkyl_vlasov_app_new(struct gkyl_vm vm)
@@ -73,6 +74,7 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
 
   // initialize stat object
   app->stat = (struct gkyl_vlasov_stat) {
+    .use_gpu = app->use_gpu,
     .stage_2_dt_diff = { DBL_MAX, 0.0 },
     .stage_3_dt_diff = { DBL_MAX, 0.0 },
   };
@@ -123,12 +125,7 @@ gkyl_vlasov_app_calc_mom(gkyl_vlasov_app* app)
     
     for (int m=0; m<app->species[i].info.num_diag_moments; ++m) {
       struct timespec wst = gkyl_wall_clock();
-      if (app->use_gpu)
-        gkyl_mom_calc_advance_cu(s->moms[m].mcalc, s->local, app->local,
-          s->f, s->moms[m].marr);
-      else
-        gkyl_mom_calc_advance(s->moms[m].mcalc, s->local, app->local,
-          s->f, s->moms[m].marr);
+      vm_species_moment_calc(&s->moms[m], s->local, app->local, s->f);
       app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
       app->stat.nmom += 1;
     }
@@ -255,13 +252,8 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     struct timespec wst = gkyl_wall_clock();
     // accumulate current contribution to electric field terms
     for (int i=0; i<app->num_species; ++i) {
-      struct vm_species *s = &app->species[i];    
-      if (app->use_gpu)
-        gkyl_mom_calc_advance_cu(s->m1i.mcalc, s->local, app->local,
-          fin[i], s->m1i.marr);
-      else
-        gkyl_mom_calc_advance(s->m1i.mcalc, s->local, app->local,
-          fin[i], s->m1i.marr);
+      struct vm_species *s = &app->species[i];
+      vm_species_moment_calc(&s->m1i, s->local, app->local, fin[i]);
     
       double qbyeps = s->info.charge/app->field->info.epsilon0;
       gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, app->local);
@@ -453,6 +445,7 @@ gkyl_vlasov_app_stat_write(const gkyl_vlasov_app* app)
     if (strftime(buff, sizeof buff, "%c", &curr_tm))
       fprintf(fp, " \"date\" : \"%s\",\n", buff);
 
+    fprintf(fp, " \"use_gpu\" : \"%d\",\n", app->stat.use_gpu);
     fprintf(fp, " \"nup\" : \"%ld\",\n", app->stat.nup);
     fprintf(fp, " \"nfeuler\" : \"%ld\",\n", app->stat.nfeuler);
     fprintf(fp, " \"nstage_2_fail\" : \"%ld\",\n", app->stat.nstage_2_fail);
@@ -490,7 +483,7 @@ gkyl_vlasov_app_release(gkyl_vlasov_app* app)
   for (int i=0; i<app->num_species; ++i)
     vm_species_release(app, &app->species[i]);
   gkyl_free(app->species);
-  if(app->has_field)
+  if (app->has_field)
     vm_field_release(app, app->field);
 
   gkyl_free(app);

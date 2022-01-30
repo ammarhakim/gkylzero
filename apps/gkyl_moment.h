@@ -2,8 +2,8 @@
 
 #include <gkyl_app.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_eqn.h>
 #include <gkyl_wave_prop.h>
+#include <gkyl_wv_eqn.h>
 
 #include <time.h>
 

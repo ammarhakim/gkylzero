@@ -8,7 +8,7 @@
 
 typedef void (*vlasov_self_prim_t)(struct gkyl_mat *A,
   struct gkyl_mat *rhs, const double *m0, const double *m1, const double *m2,
-  const double *cM, const double *cE, double *u, double *vtSq);
+  const double *cM, const double *cE);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
@@ -45,13 +45,20 @@ struct prim_lbo_vlasov {
   vlasov_self_prim_t self_prim; // Self-primitive moments kernel
 };
 
+/**
+ * Free primitive moment object.
+ *
+ * @param ref Reference counter for primitive moment to free
+ */
+void prim_lbo_vlasov_free(const struct gkyl_ref_count *ref);
+
 GKYL_CU_D
 static void
 self_prim(const struct gkyl_prim_lbo *prim, struct gkyl_mat *A,
   struct gkyl_mat *rhs, const double *m0, const double *m1, const double *m2,
-  const double *cM, const double *cE, double *u, double *vtSq)
+  const double *cM, const double *cE)
 {
   struct prim_lbo_vlasov *prim_vlasov = container_of(prim, struct prim_lbo_vlasov, prim);
 
-  return prim_vlasov->self_prim(A, rhs, m0, m1, m2, cM, cE, u, vtSq);
+  return prim_vlasov->self_prim(A, rhs, m0, m1, m2, cM, cE);
 }

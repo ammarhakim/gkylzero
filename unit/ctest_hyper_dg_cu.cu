@@ -1,4 +1,5 @@
 #include <gkylzero.h>
+#include <gkyl_hyper_dg_priv.h>
 #include <gkyl_dg_vlasov_priv.h>
 
 #define TEST_NO_MAIN

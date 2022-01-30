@@ -2,7 +2,6 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
-#include <gkyl_dg_vlasov_lbo.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
@@ -19,6 +18,9 @@ typedef struct gkyl_dg_lbo_updater gkyl_dg_lbo_updater;
  * @return New LBO updater object
  */
 gkyl_dg_lbo_updater* gkyl_dg_lbo_updater_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range);
+
+gkyl_dg_lbo_updater* gkyl_dg_lbo_updater_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
   const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range);
 
 /**
@@ -38,8 +40,13 @@ gkyl_dg_lbo_updater* gkyl_dg_lbo_updater_new(const struct gkyl_rect_grid *grid, 
  */
 void gkyl_dg_lbo_updater_advance(gkyl_dg_lbo_updater *lbo, struct gkyl_range update_rng,
   const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq,
-  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs);
-  
+  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
+
+void gkyl_dg_lbo_updater_advance_cu(gkyl_dg_lbo_updater *lbo, struct gkyl_range update_rng,
+  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq,
+  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
+
+
 /**
  * Delete updater.
  *

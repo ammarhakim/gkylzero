@@ -62,9 +62,6 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   
   // allocate data for momentum (for use in current accumulation)
   vm_species_moment_init(app, s, &s->m1i, "M1i");
-  // allocate data for density and energy (for use in collisions if present)
-  vm_species_moment_init(app, s, &s->m0, "M0");
-  vm_species_moment_init(app, s, &s->m2, "M2");
   
   int ndm = s->info.num_diag_moments;
   // allocate data for diagnostic moments
@@ -136,65 +133,18 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
     gkyl_vlasov_set_qmem(species->eqn, qmem); // must set EM fields to use
   
   gkyl_array_clear(rhs, 0.0);
-  if (app->use_gpu) {
 
-    // update collisionless terms
-    struct timespec wst = gkyl_wall_clock();
+  struct timespec wst = gkyl_wall_clock();  
+  if (app->use_gpu)
     gkyl_hyper_dg_advance_cu(species->slvr, species->local, fin, species->cflrate, rhs);
-    app->stat.species_rhs_tm += gkyl_time_diff_now_sec(wst);
-    
-    // Collisions do not have a GPU implementation yet
-    if (species->collision_id == GKYL_LBO_COLLISIONS) {
-      printf("Collisions do not have a GPU implementation yet!");
-      assert(false);
-    /*   // Compute the needed moments */
-    /*   gkyl_mom_calc_advance_cu(species->m0.mcalc, species->local, app->local, fin, species->m0.marr); */
-    /*   gkyl_mom_calc_advance_cu(species->m1i.mcalc, species->local, app->local, fin, species->m1i.marr); */
-    /*   gkyl_mom_calc_advance_cu(species->m2.mcalc, species->local, app->local, fin, species->m2.marr); */
-    /*   // Construct the primitive moments */
-    /*   // JUST SETTING ARRAYS FOR NOW */
-    /*   gkyl_array_clear(species->nu_sum, species->nu); */
-    /*   gkyl_array_set(species->nu_u, species->nu, species->m1i.marr); */
-    /*   gkyl_array_set(species->nu_vthsq, species->nu, species->m2.marr); */
-    /*   // Set the arrays needed */
-    /*   gkyl_vlasov_lbo_set_nuSum(species->coll_eqn, species->nu_sum); */
-    /*   gkyl_vlasov_lbo_set_nuUSum(species->coll_eqn, species->nu_u); */
-    /*   gkyl_vlasov_lbo_set_nuVtSqSum(species->coll_eqn, species->nu_vthsq); */
-    /*   gkyl_hyper_dg_advance_cu(species->coll_slvr, species->local, fin, species->cflrate, rhs); */
-    }
-  }
-  else {
-    // update collisionless terms
-    struct timespec wst = gkyl_wall_clock();
+  else
     gkyl_hyper_dg_advance(species->slvr, species->local, fin, species->cflrate, rhs);
-    app->stat.species_rhs_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.species_rhs_tm += gkyl_time_diff_now_sec(wst);
 
-    // update collisions
-    wst = gkyl_wall_clock();
-    if (species->collision_id == GKYL_LBO_COLLISIONS) {
-      // compute needed moments
-      gkyl_mom_calc_advance(species->m0.mcalc, species->local, app->local, fin, species->m0.marr);
-      gkyl_mom_calc_advance(species->m1i.mcalc, species->local, app->local, fin, species->m1i.marr);
-      gkyl_mom_calc_advance(species->m2.mcalc, species->local, app->local, fin, species->m2.marr);
-
-      // construct boundary corrections  
-      gkyl_mom_bcorr_advance(species->lbo.cM_bcorr, species->local, app->local, fin, species->lbo.cM);
-      gkyl_mom_bcorr_advance(species->lbo.cE_bcorr, species->local, app->local, fin, species->lbo.cE);
-
-      // construct primitive moments
-      gkyl_prim_lbo_calc_advance(species->lbo.coll_pcalc, app->confBasis, app->local, 
-        species->m0.marr, species->m1i.marr, species->m2.marr, species->lbo.cM, species->lbo.cE, 
-        species->lbo.u_drift, species->lbo.vth_sq);
-      gkyl_dg_mul_op(app->confBasis, 0, species->lbo.nu_u, 0, species->lbo.u_drift, 0, species->lbo.nu_sum);
-      gkyl_dg_mul_op(app->confBasis, 0, species->lbo.nu_vthsq, 0, species->lbo.vth_sq, 0, species->lbo.nu_sum);
-
-      // cccumulate update due to collisions onto rhs
-      gkyl_dg_lbo_updater_advance(species->lbo.coll_slvr, species->local,
-        species->lbo.nu_sum, species->lbo.nu_u, species->lbo.nu_vthsq, fin, species->cflrate, rhs);
-    }
-
-    app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
-  }
+  wst = gkyl_wall_clock();
+  if (species->collision_id == GKYL_LBO_COLLISIONS)
+    vm_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
+  app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);      
 
   gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, species->local);
   double omegaCfl = species->omegaCfl_ptr[0];
@@ -254,31 +204,23 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   gkyl_array_release(s->cflrate);
   gkyl_array_release(s->bc_buffer);
   
-  if (app->use_gpu) {
+  if (app->use_gpu)
     gkyl_array_release(s->f_host);
-  }
-
+  
   // release moment data
   vm_species_moment_release(app, &s->m1i);
-  vm_species_moment_release(app, &s->m0);
-  vm_species_moment_release(app, &s->m2);
   for (int i=0; i<s->info.num_diag_moments; ++i)
     vm_species_moment_release(app, &s->moms[i]);
   gkyl_free(s->moms);
 
+  gkyl_dg_eqn_release(s->eqn);
+  gkyl_hyper_dg_release(s->slvr);  
 
   if (s->collision_id == GKYL_LBO_COLLISIONS)
-  {    
     vm_species_lbo_release(app, &s->lbo);
-  }
   
-  if (app->use_gpu) {
+  if (app->use_gpu)
     gkyl_cu_free_host(s->omegaCfl_ptr);
-    // TODO: NOT SURE HOW TO RELEASE ON DEVICE YET
-  }
-  else {
+  else
     gkyl_free(s->omegaCfl_ptr);
-    gkyl_dg_eqn_release(s->eqn);
-    gkyl_hyper_dg_release(s->slvr);
-  }
 }

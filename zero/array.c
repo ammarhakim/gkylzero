@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
 #include <gkyl_util.h>
 
@@ -30,21 +31,6 @@ g_array_free(void* ptr)
 #endif  
 }
 
-// flags and corresponding bit-masks
-enum array_flags { A_IS_CU_ARRAY, A_IS_ALLOC_ALIGNED };
-static const uint32_t masks[] =
-{ 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
-
-// NV-GPU flags
-#define SET_CU_ARRAY(flags) (flags) |= masks[A_IS_CU_ARRAY]
-#define CLEAR_CU_ARRAY(flags) (flags) &= ~masks[A_IS_CU_ARRAY]
-#define IS_CU_ARRAY(flags) (((flags) & masks[A_IS_CU_ARRAY]) != 0)
-
-// Alignment flags
-#define SET_ALLOC_ALIGNED(flags) (flags) |= masks[A_IS_ALLOC_ALIGNED]
-#define CLEAR_ALLOC_ALIGNED(flags) (flags) &= ~masks[A_IS_ALLOC_ALIGNED]
-#define IS_ALLOC_ALIGNED(flags) (((flags) & masks[A_IS_ALLOC_ALIGNED]) != 0)
-
 // size in bytes for various data-types
 static const size_t array_elem_size[] = {
   [GKYL_INT] = sizeof(int),
@@ -57,7 +43,13 @@ static void
 array_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_array *arr = container_of(ref, struct gkyl_array, ref_count);
-  IS_CU_ARRAY(arr->flags) ? gkyl_cu_free(arr->data), gkyl_cu_free(arr->on_dev) : g_array_free(arr->data);
+  if (GKYL_IS_CU_ALLOC(arr->flags)) {
+    gkyl_cu_free(arr->data);
+    gkyl_cu_free(arr->on_dev);
+  }
+  else {
+    g_array_free(arr->data);
+  }
   gkyl_free(arr);
 }
 
@@ -71,6 +63,14 @@ gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
   arr->ncomp = ncomp;
   arr->size = size;
   arr->flags = 0;
+
+  GKYL_CLEAR_CU_ALLOC(arr->flags);
+#ifdef USE_ALIGNED_ALLOC  
+  GKYL_SET_ALLOC_ALIGNED(arr->flags);
+#else
+  GKYL_CLEAR_ALLOC_ALIGNED(arr->flags);
+#endif
+  
   arr->esznc = arr->elemsz*arr->ncomp;
   arr->data = g_array_alloc(arr->size, arr->esznc);
   arr->ref_count = gkyl_ref_count_init(array_free);
@@ -86,7 +86,7 @@ gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
 bool
 gkyl_array_is_cu_dev(const struct gkyl_array *arr)
 {
-  return IS_CU_ARRAY(arr->flags);  
+  return GKYL_IS_CU_ALLOC(arr->flags);  
 }
 
 struct gkyl_array*
@@ -128,7 +128,7 @@ gkyl_array_clone(const struct gkyl_array* src)
   arr->size = src->size;
   arr->flags = src->flags;
 
-  if (IS_CU_ARRAY(src->flags)) {
+  if (GKYL_IS_CU_ALLOC(src->flags)) {
     arr->nthreads = src->nthreads;
     arr->nblocks = src->nblocks;
     arr->data = gkyl_cu_malloc(arr->size*arr->esznc);
@@ -175,7 +175,10 @@ gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
   arr->ncomp = ncomp;
   arr->size = size;
   arr->flags = 0;
-  SET_CU_ARRAY(arr->flags);  
+  
+  GKYL_SET_CU_ALLOC(arr->flags);
+  GKYL_CLEAR_ALLOC_ALIGNED(arr->flags);
+  
   arr->esznc = arr->elemsz*arr->ncomp;
   arr->ref_count = gkyl_ref_count_init(array_free);
   arr->data = gkyl_cu_malloc(arr->size*arr->esznc);
