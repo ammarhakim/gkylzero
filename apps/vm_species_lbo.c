@@ -90,8 +90,8 @@ vm_species_lbo_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
       lbo->m0.marr, lbo->m1i.marr, lbo->m2.marr, lbo->cM, lbo->cE,
       lbo->u_drift, lbo->vth_sq);
   
-    gkyl_dg_mul_op_cu(app->confBasis, 0, lbo->nu_u, 0, lbo->u_drift, 0, lbo->nu_sum);
-    gkyl_dg_mul_op_cu(app->confBasis, 0, lbo->nu_vthsq, 0, lbo->vth_sq, 0, lbo->nu_sum);
+    gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_u, 0, lbo->u_drift, 0, lbo->nu_sum);
+    gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_vthsq, 0, lbo->vth_sq, 0, lbo->nu_sum);
   
     // acccumulate update due to collisions onto rhs
     gkyl_dg_lbo_updater_advance_cu(lbo->coll_slvr, species->local,
