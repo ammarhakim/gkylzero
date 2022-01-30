@@ -1,3 +1,4 @@
+
 #include <gkyl_vlasov_priv.h>
 
 gkyl_vlasov_app*
@@ -73,6 +74,7 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
 
   // initialize stat object
   app->stat = (struct gkyl_vlasov_stat) {
+    .use_gpu = app->use_gpu,
     .stage_2_dt_diff = { DBL_MAX, 0.0 },
     .stage_3_dt_diff = { DBL_MAX, 0.0 },
   };
@@ -443,6 +445,7 @@ gkyl_vlasov_app_stat_write(const gkyl_vlasov_app* app)
     if (strftime(buff, sizeof buff, "%c", &curr_tm))
       fprintf(fp, " \"date\" : \"%s\",\n", buff);
 
+    fprintf(fp, " \"use_gpu\" : \"%d\",\n", app->stat.use_gpu);
     fprintf(fp, " \"nup\" : \"%ld\",\n", app->stat.nup);
     fprintf(fp, " \"nfeuler\" : \"%ld\",\n", app->stat.nfeuler);
     fprintf(fp, " \"nstage_2_fail\" : \"%ld\",\n", app->stat.nstage_2_fail);

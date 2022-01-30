@@ -75,6 +75,8 @@ struct gkyl_vm {
 
 // Simulation statistics
 struct gkyl_vlasov_stat {
+  bool use_gpu; // did this sim use GPU?
+  
   long nup; // calls to update
   long nfeuler; // calls to forward-Euler method
     
