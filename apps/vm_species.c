@@ -133,31 +133,18 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
     gkyl_vlasov_set_qmem(species->eqn, qmem); // must set EM fields to use
   
   gkyl_array_clear(rhs, 0.0);
-  
-  if (app->use_gpu) {
-    // update collisionless terms
-    struct timespec wst = gkyl_wall_clock();
+
+  struct timespec wst = gkyl_wall_clock();  
+  if (app->use_gpu)
     gkyl_hyper_dg_advance_cu(species->slvr, species->local, fin, species->cflrate, rhs);
-    app->stat.species_rhs_tm += gkyl_time_diff_now_sec(wst);
-
-    // update collisions
-    wst = gkyl_wall_clock();
-    if (species->collision_id == GKYL_LBO_COLLISIONS)
-      vm_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
-    app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);    
-  }
-  else {
-    // update collisionless terms
-    struct timespec wst = gkyl_wall_clock();
+  else
     gkyl_hyper_dg_advance(species->slvr, species->local, fin, species->cflrate, rhs);
-    app->stat.species_rhs_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.species_rhs_tm += gkyl_time_diff_now_sec(wst);
 
-    // update collisions
-    wst = gkyl_wall_clock();
-    if (species->collision_id == GKYL_LBO_COLLISIONS)
-      vm_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
-    app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
-  }
+  wst = gkyl_wall_clock();
+  if (species->collision_id == GKYL_LBO_COLLISIONS)
+    vm_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
+  app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);      
 
   gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, species->local);
   double omegaCfl = species->omegaCfl_ptr[0];
