@@ -5,7 +5,7 @@
 
 #define i_key int
 #define i_val_str
-#define i_cnt mymap
+#define i_type mymap
 #include <stc/csmap.h>
 
 void printmap(mymap m)
@@ -20,11 +20,11 @@ int main()
     c_auto (mymap, m1)
     {
         // Fill in some data to test with, one at a time
-        mymap_insert(&m1, 1, cstr_lit("A"));
-        mymap_insert(&m1, 2, cstr_lit("B"));
-        mymap_insert(&m1, 3, cstr_lit("C"));
-        mymap_insert(&m1, 4, cstr_lit("D"));
-        mymap_insert(&m1, 5, cstr_lit("E"));
+        mymap_insert(&m1, 1, cstr_new("A"));
+        mymap_insert(&m1, 2, cstr_new("B"));
+        mymap_insert(&m1, 3, cstr_new("C"));
+        mymap_insert(&m1, 4, cstr_new("D"));
+        mymap_insert(&m1, 5, cstr_new("E"));
 
         puts("Starting data of map m1 is:");
         printmap(m1);
@@ -36,8 +36,8 @@ int main()
 
     c_auto (mymap, m2)
     {
-        // Fill in some data to test with, one at a time, using c_apply_pair()
-        c_apply_pair(mymap, emplace, &m2, {
+        // Fill in some data to test with, one at a time, using c_apply()
+        c_apply(v, mymap_emplace(&m2, c_pair(v)), mymap_raw, {
             {10, "Bob"},
             {11, "Rob"},
             {12, "Robert"},
@@ -47,8 +47,8 @@ int main()
 
         puts("Starting data of map m2 is:");
         printmap(m2);
-        mymap_iter_t it1 = mymap_advance(mymap_begin(&m2), 1);
-        mymap_iter_t it2 = mymap_find(&m2, mymap_back(&m2)->first);
+        mymap_iter it1 = mymap_advance(mymap_begin(&m2), 1);
+        mymap_iter it2 = mymap_find(&m2, mymap_back(&m2)->first);
         // The 2nd member function removes elements
         // in the range [First, Last)
         mymap_erase_range(&m2, it1, it2);

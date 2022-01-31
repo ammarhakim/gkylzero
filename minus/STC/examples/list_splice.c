@@ -17,12 +17,12 @@ int main ()
 {
     c_auto (clist_i, list1, list2)
     {
-        c_apply(clist_i, push_back, &list1, {1, 2, 3, 4, 5});
-        c_apply(clist_i, push_back, &list2, {10, 20, 30, 40, 50});
+        c_apply(v, clist_i_push_back(&list1, v), int, {1, 2, 3, 4, 5});
+        c_apply(v, clist_i_push_back(&list2, v), int, {10, 20, 30, 40, 50});
         print_ilist("list1:", list1);
         print_ilist("list2:", list2);
 
-        clist_i_iter_t it = clist_i_advance(clist_i_begin(&list1), 2);
+        clist_i_iter it = clist_i_advance(clist_i_begin(&list1), 2);
         it = clist_i_splice(&list1, it, &list2);
 
         puts("After splice");

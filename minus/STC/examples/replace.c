@@ -6,14 +6,13 @@ int main ()
     const char *base = "this is a test string.";
     const char *s2 = "n example";
     const char *s3 = "sample phrase";
-    const char *s4 = "useful.";
 
     // replace signatures used in the same order as described above:
 
     // Ustring positions:                        0123456789*123456789*12345
     cstr s = cstr_from(base);              // "this is a test string."
     cstr m = cstr_clone(s);
-    c_autodefer (cstr_del(&s), cstr_del(&m)) {
+    c_autodefer (cstr_drop(&s), cstr_drop(&m)) {
         cstr_append(&m, m.str);
         cstr_append(&m, m.str);
         printf("%s\n", m.str);

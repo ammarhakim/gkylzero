@@ -7,12 +7,12 @@
 #define i_tag istr
 #include <stc/csmap.h>
 
-#define i_val csmap_istr_rawvalue_t
-#define i_cmp c_no_compare
+#define i_val csmap_istr_raw
+#define i_opt c_no_cmp
 #define i_tag istr
 #include <stc/cvec.h>
 
-void print_elem(csmap_istr_rawvalue_t p) {
+void print_elem(csmap_istr_raw p) {
     printf("(%d, %s) ", p.first, p.second);
 }
 
@@ -29,11 +29,10 @@ void print_elem(csmap_istr_rawvalue_t p) {
 using_print_collection(csmap_istr)
 using_print_collection(cvec_istr)
 
-
-void findit(csmap_istr c, csmap_istr_key_t val)
+void findit(csmap_istr c, csmap_istr_key val)
 {
     printf("Trying find() on value %d\n", val);
-    csmap_istr_iter_t result = csmap_istr_find(&c, val); // prefer contains() or get()
+    csmap_istr_iter result = csmap_istr_find(&c, val); // prefer contains() or get()
     if (result.ref != csmap_istr_end(&c).ref) {
         printf("Element found: "); print_elem(csmap_istr_value_toraw(result.ref)); puts("");
     } else {
@@ -46,23 +45,24 @@ int main()
     c_auto (csmap_istr, m1)
     c_auto (cvec_istr, v)
     {
-        c_apply_pair(csmap_istr, emplace, &m1, {{40, "Zr"}, {45, "Rh"}});
+        c_apply(v, csmap_istr_emplace(&m1, c_pair(v)), csmap_istr_raw, 
+            {{40, "Zr"}, {45, "Rh"}});
         puts("The starting map m1 is (key, value):");
         print_collection_csmap_istr(m1);
 
-        typedef cvec_istr_value_t pair;
-        cvec_istr_emplace_back(&v, (pair){43, "Tc"});
-        cvec_istr_emplace_back(&v, (pair){41, "Nb"});
-        cvec_istr_emplace_back(&v, (pair){46, "Pd"});
-        cvec_istr_emplace_back(&v, (pair){42, "Mo"});
-        cvec_istr_emplace_back(&v, (pair){44, "Ru"});
-        cvec_istr_emplace_back(&v, (pair){44, "Ru"}); // attempt a duplicate
+        typedef cvec_istr_value pair;
+        cvec_istr_push_back(&v, (pair){43, "Tc"});
+        cvec_istr_push_back(&v, (pair){41, "Nb"});
+        cvec_istr_push_back(&v, (pair){46, "Pd"});
+        cvec_istr_push_back(&v, (pair){42, "Mo"});
+        cvec_istr_push_back(&v, (pair){44, "Ru"});
+        cvec_istr_push_back(&v, (pair){44, "Ru"}); // attempt a duplicate
 
         puts("Inserting the following vector data into m1:");
         print_collection_cvec_istr(v);
 
         c_foreach (i, cvec_istr, cvec_istr_begin(&v), cvec_istr_end(&v))
-            csmap_istr_emplace(&m1, i.ref->first, i.ref->second);
+            csmap_istr_emplace(&m1, c_pair(*i.ref));
 
         puts("The modified map m1 is (key, value):");
         print_collection_csmap_istr(m1);

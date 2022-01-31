@@ -48,7 +48,7 @@ gkyl_mat_triples_accum(gkyl_mat_triples *tri, size_t i, size_t j, double val)
   assert(i<gkyl_range_shape(&tri->range, 0) && j<gkyl_range_shape(&tri->range, 1));
   
   long loc = gkyl_ridx(tri->range, i, j);
-  struct cmap_triple_value_t *mt = cmap_triple_get(&tri->triples, loc);
+  struct cmap_triple_value *mt = cmap_triple_get_mut(&tri->triples, loc);
   double tot_val = val;
   if (mt) {
     // element exists, add to its current value
@@ -67,7 +67,7 @@ double
 gkyl_mat_triples_get(const gkyl_mat_triples *tri, size_t i, size_t j)
 {
   long loc = gkyl_ridx(tri->range, i, j);
-  struct cmap_triple_value_t *mt = cmap_triple_get(&tri->triples, loc);
+  const struct cmap_triple_value *mt = cmap_triple_get(&tri->triples, loc);
   return mt ? mt->second.val : 0.0;
 }
 
@@ -80,6 +80,6 @@ gkyl_mat_triples_size(const gkyl_mat_triples *tri)
 void
 gkyl_mat_triples_release(gkyl_mat_triples *tri)
 {
-  cmap_triple_del(&tri->triples);
+  cmap_triple_drop(&tri->triples);
   gkyl_free(tri);
 }

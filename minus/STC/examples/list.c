@@ -36,15 +36,15 @@ int main() {
         puts("");
 
         clist_fx_clear(&list);
-        c_apply(clist_fx, push_back, &list, {10, 20, 30, 40, 30, 50});
+        c_apply(v, clist_fx_push_back(&list, v), int, {10, 20, 30, 40, 30, 50});
         c_foreach (i, clist_fx, list) printf(" %g", *i.ref);
         puts("");
 
-        int removed = clist_fx_remove(&list, 30);
+        clist_fx_remove(&list, 30);
         clist_fx_insert(&list, clist_fx_begin(&list), 5); // same as push_front()
         clist_fx_push_back(&list, 500);
         clist_fx_push_front(&list, 1964);
-        clist_fx_iter_t it = clist_fx_begin(&list);
+        clist_fx_iter it = clist_fx_begin(&list);
         printf("Full: ");
         c_foreach (i, clist_fx, list)
             printf(" %g", *i.ref);
