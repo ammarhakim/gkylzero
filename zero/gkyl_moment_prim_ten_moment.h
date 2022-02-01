@@ -6,7 +6,8 @@
  * @param q Conserved variables
  * @param out Primitive variables
  */
-static inline void gkyl_ten_moment_primitive(const double q[10], double out[10])
+static inline void
+gkyl_ten_moment_primitive(const double q[10], double out[10])
 {
   out[0] = q[0]; 
   out[1] = q[1]/q[0]; 

@@ -1,5 +1,4 @@
 #include <math.h>
-
 #include <gkyl_moment_prim_sr_euler.h>
 
 #define TU 2

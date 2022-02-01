@@ -6,7 +6,8 @@
  * @param gas_gamma Gas adiabatic constant
  * @param q Conserved variables
  */
-static inline double gkyl_euler_pressure(double gas_gamma, const double q[5])
+static inline double
+gkyl_euler_pressure(double gas_gamma, const double q[5])
 {
   return (gas_gamma-1)*(q[4]-0.5*(q[1]*q[1]+q[2]*q[2]+q[3]*q[3])/q[0]);
 }
@@ -18,7 +19,8 @@ static inline double gkyl_euler_pressure(double gas_gamma, const double q[5])
  * @param q Conserved variables
  * @param v Primitive variables (output)
  */
-static inline void gkyl_euler_prim_vars(double gas_gamma, const double q[5], double v[5])
+static inline void
+gkyl_euler_prim_vars(double gas_gamma, const double q[5], double v[5])
 {
   v[0] = q[0];
   v[1] = q[1]/q[0];

@@ -1,4 +1,3 @@
-#include "gkyl_range.h"
 #include <assert.h>
 #include <math.h>
 #include <time.h>
@@ -8,6 +7,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_hyper_dg_priv.h>
+#include <gkyl_range.h>
 #include <gkyl_util.h>
 
 void
