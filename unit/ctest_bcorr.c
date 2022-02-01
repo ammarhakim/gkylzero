@@ -6,9 +6,9 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_mom_bcorr.h>
-#include <gkyl_lbo_mom_bcorr.h>
-#include <gkyl_lbo_mom_bcorr_priv.h>
+#include <gkyl_mom_bcorr_lbo_vlasov.h>
+#include <gkyl_mom_bcorr_lbo_vlasov_priv.h>
+#include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_array_rio.h>
 
 inline double
@@ -120,8 +120,8 @@ test_1x1v_p2()
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
 
-  struct gkyl_mom_type *F = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "f", v_bounds);
-  struct gkyl_mom_type *VF = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "vf", v_bounds);
+  struct gkyl_mom_type *F = gkyl_mom_bcorr_lbo_vlasov_new(&confBasis, &basis, "f", v_bounds);
+  struct gkyl_mom_type *VF = gkyl_mom_bcorr_lbo_vlasov_new(&confBasis, &basis, "vf", v_bounds);
 
   TEST_CHECK( VF->cdim == 1 );
   TEST_CHECK( VF->pdim == 2 );
@@ -130,8 +130,8 @@ test_1x1v_p2()
   TEST_CHECK( VF->num_phase == basis.num_basis );
   TEST_CHECK( VF->num_mom == 1 );
 
-  gkyl_mom_bcorr *fcalc = gkyl_mom_bcorr_new(&grid, F);
-  gkyl_mom_bcorr *vFcalc = gkyl_mom_bcorr_new(&grid, VF);
+  gkyl_mom_calc_bcorr *fcalc = gkyl_mom_calc_bcorr_new(&grid, F);
+  gkyl_mom_calc_bcorr *vFcalc = gkyl_mom_calc_bcorr_new(&grid, VF);
   
   // create moment arrays
   struct gkyl_array *f, *vf;
@@ -139,8 +139,8 @@ test_1x1v_p2()
   vf = mkarr(2*confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment corrections
-  gkyl_mom_bcorr_advance(fcalc, local, confLocal, distf, f);
-  gkyl_mom_bcorr_advance(vFcalc, local, confLocal, distf, vf);
+  gkyl_mom_calc_bcorr_advance(fcalc, local, confLocal, distf, f);
+  gkyl_mom_calc_bcorr_advance(vFcalc, local, confLocal, distf, vf);
  
   // Check f correction.
   for (unsigned int i=0; i<cells[0]; ++i) {
@@ -163,7 +163,7 @@ test_1x1v_p2()
 
   // release memory for objects
   gkyl_array_release(f); gkyl_array_release(vf);
-  gkyl_mom_bcorr_release(fcalc); gkyl_mom_bcorr_release(vFcalc);
+  gkyl_mom_calc_bcorr_release(fcalc); gkyl_mom_calc_bcorr_release(vFcalc);
   gkyl_mom_type_release(F); gkyl_mom_type_release(VF);
 
   gkyl_proj_on_basis_release(projDistf);
@@ -218,8 +218,8 @@ test_1x2v_p2()
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
 
-  struct gkyl_mom_type *F = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "f", v_bounds);
-  struct gkyl_mom_type *VF = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "vf", v_bounds);
+  struct gkyl_mom_type *F = gkyl_mom_bcorr_lbo_vlasov_new(&confBasis, &basis, "f", v_bounds);
+  struct gkyl_mom_type *VF = gkyl_mom_bcorr_lbo_vlasov_new(&confBasis, &basis, "vf", v_bounds);
 
   TEST_CHECK( VF->cdim == 1 );
   TEST_CHECK( VF->pdim == 3 );
@@ -228,8 +228,8 @@ test_1x2v_p2()
   TEST_CHECK( VF->num_phase == basis.num_basis );
   TEST_CHECK( VF->num_mom == 2 );
   
-  gkyl_mom_bcorr *fcalc = gkyl_mom_bcorr_new(&grid, F);
-  gkyl_mom_bcorr *vFcalc = gkyl_mom_bcorr_new(&grid, VF);
+  gkyl_mom_calc_bcorr *fcalc = gkyl_mom_calc_bcorr_new(&grid, F);
+  gkyl_mom_calc_bcorr *vFcalc = gkyl_mom_calc_bcorr_new(&grid, VF);
   
   // create moment arrays
   struct gkyl_array *f, *vf;
@@ -237,8 +237,8 @@ test_1x2v_p2()
   vf = mkarr(2*confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment corrections
-  gkyl_mom_bcorr_advance(fcalc, local, confLocal, distf, f);
-  gkyl_mom_bcorr_advance(vFcalc, local, confLocal, distf, vf);
+  gkyl_mom_calc_bcorr_advance(fcalc, local, confLocal, distf, f);
+  gkyl_mom_calc_bcorr_advance(vFcalc, local, confLocal, distf, vf);
  
   // Check f correction.
   for (unsigned int i=0; i<cells[0]; ++i) {
@@ -268,7 +268,7 @@ test_1x2v_p2()
 
   // release memory for objects
   gkyl_array_release(f); gkyl_array_release(vf);
-  gkyl_mom_bcorr_release(fcalc); gkyl_mom_bcorr_release(vFcalc);
+  gkyl_mom_calc_bcorr_release(fcalc); gkyl_mom_calc_bcorr_release(vFcalc);
   gkyl_mom_type_release(F); gkyl_mom_type_release(VF);
 
   gkyl_proj_on_basis_release(projDistf);

@@ -18,8 +18,8 @@ def build(bld):
     )
 
     bld.program(
-        source = 'ctest_vlasov_lbo.c',
-        target = 'ctest_vlasov_lbo',
+        source = 'ctest_dg_lbo_vlasov.c',
+        target = 'ctest_dg_lbo_vlasov',
         includes = '. ../zero ../minus',
         use = use,
     )

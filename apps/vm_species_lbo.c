@@ -39,35 +39,35 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   // create collision equation object and solver
   if (app->use_gpu) {
     // edge of velocity space momentum correction 
-    lbo->cM_mom = gkyl_vlasov_lbo_mom_cu_dev_new(&app->confBasis, &app->basis, "f", v_bounds);
-    lbo->cM_bcorr = gkyl_mom_bcorr_cu_dev_new(&s->grid, lbo->cM_mom);
+    lbo->cM_mom = gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(&app->confBasis, &app->basis, "f", v_bounds);
+    lbo->cM_bcorr = gkyl_mom_calc_bcorr_cu_dev_new(&s->grid, lbo->cM_mom);
 
     // edge of velocity space energy correction
-    lbo->cE_mom = gkyl_vlasov_lbo_mom_cu_dev_new(&app->confBasis, &app->basis, "vf",  v_bounds);
-    lbo->cE_bcorr = gkyl_mom_bcorr_cu_dev_new(&s->grid, lbo->cE_mom);
+    lbo->cE_mom = gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(&app->confBasis, &app->basis, "vf",  v_bounds);
+    lbo->cE_bcorr = gkyl_mom_calc_bcorr_cu_dev_new(&s->grid, lbo->cE_mom);
     
     // primitive moment calculators
     lbo->coll_prim = gkyl_prim_lbo_vlasov_cu_dev_new(&app->confBasis, &app->basis);
     lbo->coll_pcalc = gkyl_prim_lbo_calc_cu_dev_new(&s->grid, lbo->coll_prim);
     
     // LBO updater
-    lbo->coll_slvr = gkyl_dg_lbo_updater_cu_dev_new(&s->grid, &app->confBasis, &app->basis, &app->local);
+    lbo->coll_slvr = gkyl_dg_updater_lbo_vlasov_cu_dev_new(&s->grid, &app->confBasis, &app->basis, &app->local);
    }
   else {
     // edge of velocity space momentum correction 
-    lbo->cM_mom = gkyl_vlasov_lbo_mom_new(&app->confBasis, &app->basis, "f", v_bounds);
-    lbo->cM_bcorr = gkyl_mom_bcorr_new(&s->grid, lbo->cM_mom);
+    lbo->cM_mom = gkyl_mom_bcorr_lbo_vlasov_new(&app->confBasis, &app->basis, "f", v_bounds);
+    lbo->cM_bcorr = gkyl_mom_calc_bcorr_new(&s->grid, lbo->cM_mom);
 
     // edge of velocity space energy correction
-    lbo->cE_mom = gkyl_vlasov_lbo_mom_new(&app->confBasis, &app->basis, "vf",  v_bounds);
-    lbo->cE_bcorr = gkyl_mom_bcorr_new(&s->grid, lbo->cE_mom);
+    lbo->cE_mom = gkyl_mom_bcorr_lbo_vlasov_new(&app->confBasis, &app->basis, "vf",  v_bounds);
+    lbo->cE_bcorr = gkyl_mom_calc_bcorr_new(&s->grid, lbo->cE_mom);
     
     // primitive moment calculators
     lbo->coll_prim = gkyl_prim_lbo_vlasov_new(&app->confBasis, &app->basis);
     lbo->coll_pcalc = gkyl_prim_lbo_calc_new(&s->grid, lbo->coll_prim);
     
     // LBO updater
-    lbo->coll_slvr = gkyl_dg_lbo_updater_new(&s->grid, &app->confBasis, &app->basis, &app->local);
+    lbo->coll_slvr = gkyl_dg_updater_lbo_vlasov_new(&s->grid, &app->confBasis, &app->basis, &app->local);
   }
 }
 
@@ -82,8 +82,8 @@ vm_species_lbo_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
 
   if (app->use_gpu) {
     // construct boundary corrections
-    gkyl_mom_bcorr_advance_cu(lbo->cM_bcorr, species->local, app->local, fin, lbo->cM);
-    gkyl_mom_bcorr_advance_cu(lbo->cE_bcorr, species->local, app->local, fin, lbo->cE);
+    gkyl_mom_calc_bcorr_advance_cu(lbo->cM_bcorr, species->local, app->local, fin, lbo->cM);
+    gkyl_mom_calc_bcorr_advance_cu(lbo->cE_bcorr, species->local, app->local, fin, lbo->cE);
 
     // construct primitive moments
     gkyl_prim_lbo_calc_advance_cu(lbo->coll_pcalc, app->confBasis, app->local, 
@@ -94,12 +94,12 @@ vm_species_lbo_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
     gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_vthsq, 0, lbo->vth_sq, 0, lbo->nu_sum);
   
     // acccumulate update due to collisions onto rhs
-    gkyl_dg_lbo_updater_advance_cu(lbo->coll_slvr, species->local,
+    gkyl_dg_updater_lbo_vlasov_advance_cu(lbo->coll_slvr, species->local,
       lbo->nu_sum, lbo->nu_u, lbo->nu_vthsq, fin, species->cflrate, rhs);
   } else {
     // construct boundary corrections
-    gkyl_mom_bcorr_advance(lbo->cM_bcorr, species->local, app->local, fin, lbo->cM);
-    gkyl_mom_bcorr_advance(lbo->cE_bcorr, species->local, app->local, fin, lbo->cE);
+    gkyl_mom_calc_bcorr_advance(lbo->cM_bcorr, species->local, app->local, fin, lbo->cM);
+    gkyl_mom_calc_bcorr_advance(lbo->cE_bcorr, species->local, app->local, fin, lbo->cE);
 
     // construct primitive moments
     gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, app->confBasis, app->local, 
@@ -110,7 +110,7 @@ vm_species_lbo_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
     gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_vthsq, 0, lbo->vth_sq, 0, lbo->nu_sum);
   
     // acccumulate update due to collisions onto rhs
-    gkyl_dg_lbo_updater_advance(lbo->coll_slvr, species->local,
+    gkyl_dg_updater_lbo_vlasov_advance(lbo->coll_slvr, species->local,
       lbo->nu_sum, lbo->nu_u, lbo->nu_vthsq, fin, species->cflrate, rhs);
   }
   // TODO: This needs to be set properly!
@@ -134,9 +134,9 @@ vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_co
 
   gkyl_mom_type_release(lbo->cM_mom);
   gkyl_mom_type_release(lbo->cE_mom);
-  gkyl_mom_bcorr_release(lbo->cM_bcorr);
-  gkyl_mom_bcorr_release(lbo->cE_bcorr);
-  gkyl_prim_lbo_release(lbo->coll_prim);
+  gkyl_mom_calc_bcorr_release(lbo->cM_bcorr);
+  gkyl_mom_calc_bcorr_release(lbo->cE_bcorr);
+  gkyl_prim_lbo_type_release(lbo->coll_prim);
   gkyl_prim_lbo_calc_release(lbo->coll_pcalc);
-  gkyl_dg_lbo_updater_release(lbo->coll_slvr);
+  gkyl_dg_updater_lbo_vlasov_release(lbo->coll_slvr);
  }

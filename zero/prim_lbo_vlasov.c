@@ -11,19 +11,19 @@
 void
 prim_lbo_vlasov_free(const struct gkyl_ref_count *ref)
 {
-  struct gkyl_prim_lbo *prim = container_of(ref, struct gkyl_prim_lbo, ref_count);
+  struct gkyl_prim_lbo_type *prim = container_of(ref, struct gkyl_prim_lbo_type, ref_count);
   if (GKYL_IS_CU_ALLOC(prim->flag))
     gkyl_cu_free(prim->on_dev);
   gkyl_free(prim);
 }
 
-struct gkyl_prim_lbo*
+struct gkyl_prim_lbo_type*
 gkyl_prim_lbo_vlasov_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
   
-  struct prim_lbo_vlasov *prim_vlasov = gkyl_malloc(sizeof(struct prim_lbo_vlasov));
+  struct prim_lbo_type_vlasov *prim_vlasov = gkyl_malloc(sizeof(struct prim_lbo_type_vlasov));
   int cdim = prim_vlasov->prim.cdim = cbasis->ndim;
   int pdim = prim_vlasov->prim.pdim = pbasis->ndim;
   int vdim = pdim-cdim;
@@ -63,7 +63,7 @@ gkyl_prim_lbo_vlasov_new(const struct gkyl_basis* cbasis,
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_prim_lbo*
+struct gkyl_prim_lbo_type*
 gkyl_prim_lbo_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis)
 {

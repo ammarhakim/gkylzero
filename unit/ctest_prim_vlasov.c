@@ -6,14 +6,14 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_mom_bcorr.h>
-#include <gkyl_lbo_mom_bcorr.h>
-#include <gkyl_lbo_mom_bcorr_priv.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_mom_bcorr_lbo_vlasov.h>
+#include <gkyl_mom_bcorr_lbo_vlasov_priv.h>
+#include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_calc.h>
-#include <gkyl_vlasov_mom.h>
-#include <gkyl_prim_lbo.h>
+#include <gkyl_mom_vlasov.h>
 #include <gkyl_prim_lbo_calc.h>
+#include <gkyl_prim_lbo_type.h>
 #include <gkyl_prim_lbo_vlasov.h>
 
 inline double
@@ -133,9 +133,9 @@ test_1x1v_p2()
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
   
-  struct gkyl_mom_type *vmM0_t = gkyl_vlasov_mom_new(&confBasis, &basis, "M0");
-  struct gkyl_mom_type *vmM1i_t = gkyl_vlasov_mom_new(&confBasis, &basis, "M1i");
-  struct gkyl_mom_type *vmM2_t = gkyl_vlasov_mom_new(&confBasis, &basis, "M2");
+  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0");
+  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M1i");
+  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M2");
   gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, vmM0_t);
   gkyl_mom_calc *m1icalc = gkyl_mom_calc_new(&grid, vmM1i_t);
   gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, vmM2_t);
@@ -151,11 +151,11 @@ test_1x1v_p2()
   gkyl_mom_calc_advance(m1icalc, local, confLocal, distf, m1i);
   gkyl_mom_calc_advance(m2calc, local, confLocal, distf, m2);
 
-  struct gkyl_mom_type *F = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "f", v_bounds);
-  struct gkyl_mom_type *VF = gkyl_vlasov_lbo_mom_new(&confBasis, &basis, "vf", v_bounds);
+  struct gkyl_mom_type *F = gkyl_mom_bcorr_lbo_vlasov_new(&confBasis, &basis, "f", v_bounds);
+  struct gkyl_mom_type *VF = gkyl_mom_bcorr_lbo_vlasov_new(&confBasis, &basis, "vf", v_bounds);
 
-  gkyl_mom_bcorr *fcalc = gkyl_mom_bcorr_new(&grid, F);
-  gkyl_mom_bcorr *vFcalc = gkyl_mom_bcorr_new(&grid, VF);
+  gkyl_mom_calc_bcorr *fcalc = gkyl_mom_calc_bcorr_new(&grid, F);
+  gkyl_mom_calc_bcorr *vFcalc = gkyl_mom_calc_bcorr_new(&grid, VF);
   
   // create moment arrays
   struct gkyl_array *f, *vf;
@@ -163,10 +163,10 @@ test_1x1v_p2()
   vf = mkarr(2*confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment corrections
-  gkyl_mom_bcorr_advance(fcalc, local, confLocal, distf, f);
-  gkyl_mom_bcorr_advance(vFcalc, local, confLocal, distf, vf);
+  gkyl_mom_calc_bcorr_advance(fcalc, local, confLocal, distf, f);
+  gkyl_mom_calc_bcorr_advance(vFcalc, local, confLocal, distf, vf);
   
-  struct gkyl_prim_lbo *prim = gkyl_prim_lbo_vlasov_new(&confBasis, &basis);
+  struct gkyl_prim_lbo_type *prim = gkyl_prim_lbo_vlasov_new(&confBasis, &basis);
 
   TEST_CHECK( prim->cdim == 1 );
   TEST_CHECK( prim->pdim == 2 );
@@ -209,14 +209,14 @@ test_1x1v_p2()
   gkyl_mom_type_release(vmM0_t); gkyl_mom_type_release(vmM1i_t); gkyl_mom_type_release(vmM2_t);
 
   gkyl_array_release(f); gkyl_array_release(vf);
-  gkyl_mom_bcorr_release(fcalc); gkyl_mom_bcorr_release(vFcalc);
+  gkyl_mom_calc_bcorr_release(fcalc); gkyl_mom_calc_bcorr_release(vFcalc);
   gkyl_mom_type_release(F); gkyl_mom_type_release(VF);
 
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf);
 
   gkyl_array_release(u); gkyl_array_release(vth);
-  gkyl_prim_lbo_release(prim);
+  gkyl_prim_lbo_type_release(prim);
   gkyl_prim_lbo_calc_release(primcalc);
 }
 
@@ -272,9 +272,9 @@ test_1x1v_p2_cu()
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
   gkyl_array_copy(distf_cu, distf);
   
-  struct gkyl_mom_type *vmM0_t = gkyl_vlasov_mom_cu_dev_new(&confBasis, &basis, "M0");
-  struct gkyl_mom_type *vmM1i_t = gkyl_vlasov_mom_cu_dev_new(&confBasis, &basis, "M1i");
-  struct gkyl_mom_type *vmM2_t = gkyl_vlasov_mom_cu_dev_new(&confBasis, &basis, "M2");
+  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_cu_dev_new(&confBasis, &basis, "M0");
+  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_cu_dev_new(&confBasis, &basis, "M1i");
+  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_cu_dev_new(&confBasis, &basis, "M2");
   gkyl_mom_calc *m0calc = gkyl_mom_calc_cu_dev_new(&grid, vmM0_t);
   gkyl_mom_calc *m1icalc = gkyl_mom_calc_cu_dev_new(&grid, vmM1i_t);
   gkyl_mom_calc *m2calc = gkyl_mom_calc_cu_dev_new(&grid, vmM2_t);
@@ -290,11 +290,11 @@ test_1x1v_p2_cu()
   gkyl_mom_calc_advance_cu(m1icalc, local, confLocal, distf_cu, m1i_cu);
   gkyl_mom_calc_advance_cu(m2calc, local, confLocal, distf_cu, m2_cu);
 
-  struct gkyl_mom_type *F = gkyl_vlasov_lbo_mom_cu_dev_new(&confBasis, &basis, "f", v_bounds);
-  struct gkyl_mom_type *VF = gkyl_vlasov_lbo_mom_cu_dev_new(&confBasis, &basis, "vf", v_bounds);
+  struct gkyl_mom_type *F = gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(&confBasis, &basis, "f", v_bounds);
+  struct gkyl_mom_type *VF = gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(&confBasis, &basis, "vf", v_bounds);
 
-  gkyl_mom_bcorr *fcalc = gkyl_mom_bcorr_cu_dev_new(&grid, F);
-  gkyl_mom_bcorr *vFcalc = gkyl_mom_bcorr_cu_dev_new(&grid, VF);
+  gkyl_mom_calc_bcorr *fcalc = gkyl_mom_calc_bcorr_cu_dev_new(&grid, F);
+  gkyl_mom_calc_bcorr *vFcalc = gkyl_mom_calc_bcorr_cu_dev_new(&grid, VF);
   
   // create moment arrays
   struct gkyl_array *f_cu, *vf_cu;
@@ -302,10 +302,10 @@ test_1x1v_p2_cu()
   vf_cu = mkarr_cu(2*confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment corrections
-  gkyl_mom_bcorr_advance_cu(fcalc, local, confLocal, distf_cu, f_cu);
-  gkyl_mom_bcorr_advance_cu(vFcalc, local, confLocal, distf_cu, vf_cu);
+  gkyl_mom_calc_bcorr_advance_cu(fcalc, local, confLocal, distf_cu, f_cu);
+  gkyl_mom_calc_bcorr_advance_cu(vFcalc, local, confLocal, distf_cu, vf_cu);
   
-  struct gkyl_prim_lbo *prim = gkyl_prim_lbo_vlasov_cu_dev_new(&confBasis, &basis);
+  struct gkyl_prim_lbo_type *prim = gkyl_prim_lbo_vlasov_cu_dev_new(&confBasis, &basis);
 
   gkyl_prim_lbo_calc *primcalc = gkyl_prim_lbo_calc_cu_dev_new(&grid, prim);
   
@@ -346,7 +346,7 @@ test_1x1v_p2_cu()
   gkyl_mom_type_release(vmM0_t); gkyl_mom_type_release(vmM1i_t); gkyl_mom_type_release(vmM2_t);
   
   gkyl_array_release(f_cu); gkyl_array_release(vf_cu);
-  gkyl_mom_bcorr_release(fcalc); gkyl_mom_bcorr_release(vFcalc);
+  gkyl_mom_calc_bcorr_release(fcalc); gkyl_mom_calc_bcorr_release(vFcalc);
   gkyl_mom_type_release(F); gkyl_mom_type_release(VF);
 
   gkyl_proj_on_basis_release(projDistf);
@@ -355,7 +355,7 @@ test_1x1v_p2_cu()
   gkyl_array_release(u); gkyl_array_release(vth);
   gkyl_array_release(u_cu); gkyl_array_release(vth_cu);
 
-  gkyl_prim_lbo_release(prim);
+  gkyl_prim_lbo_type_release(prim);
   gkyl_prim_lbo_calc_release(primcalc);
 }
 #endif

@@ -1,5 +1,5 @@
 #include <acutest.h>
-#include <gkyl_prim_mhd.h>
+#include <gkyl_moment_prim_mhd.h>
 #include <gkyl_wv_mhd.h>
 
 void

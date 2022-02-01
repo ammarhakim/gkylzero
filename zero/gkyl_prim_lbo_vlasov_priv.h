@@ -1,7 +1,7 @@
 // Private header: not for direct use
 #pragma once
 
-#include <gkyl_prim_lbo.h>
+#include <gkyl_prim_lbo_type.h>
 #include <gkyl_prim_lbo_vlasov_kernels.h>
 #include <gkyl_mat.h>
 #include <gkyl_util.h>
@@ -40,8 +40,8 @@ static const gkyl_prim_lbo_vlasov_kern_list ser_self_prim_kernels[] = {
   { NULL, NULL, NULL }, // 5
 };
 
-struct prim_lbo_vlasov {
-  struct gkyl_prim_lbo prim; // Base object
+struct prim_lbo_type_vlasov {
+  struct gkyl_prim_lbo_type prim; // Base object
   vlasov_self_prim_t self_prim; // Self-primitive moments kernel
 };
 
@@ -54,11 +54,11 @@ void prim_lbo_vlasov_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D
 static void
-self_prim(const struct gkyl_prim_lbo *prim, struct gkyl_mat *A,
+self_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A,
   struct gkyl_mat *rhs, const double *m0, const double *m1, const double *m2,
   const double *cM, const double *cE)
 {
-  struct prim_lbo_vlasov *prim_vlasov = container_of(prim, struct prim_lbo_vlasov, prim);
+  struct prim_lbo_type_vlasov *prim_vlasov = container_of(prim, struct prim_lbo_type_vlasov, prim);
 
   return prim_vlasov->self_prim(A, rhs, m0, m1, m2, cM, cE);
 }
