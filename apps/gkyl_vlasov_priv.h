@@ -56,9 +56,9 @@ struct vm_species_moment {
 struct vm_lbo_collisions {
   struct gkyl_array *cM, *cE; // LBO boundary corrections
   struct gkyl_mom_type *cM_mom, *cE_mom; // LBO boundary corrections moment types
-  struct gkyl_mom_bcorr_calc *cM_bcorr, *cE_bcorr; // LBO boundary corrections calculators
+  struct gkyl_mom_calc_bcorr *cM_bcorr, *cE_bcorr; // LBO boundary corrections calculators
   struct gkyl_array *nu_sum, *u_drift, *vth_sq, *nu_u, *nu_vthsq; // LBO primitive moments
-  struct gkyl_prim_lbo *coll_prim; // LBO primitive moments type
+  struct gkyl_prim_lbo_type *coll_prim; // LBO primitive moments type
 
   struct vm_species_moment m0, m1i, m2; // moments needed in LBO
   
