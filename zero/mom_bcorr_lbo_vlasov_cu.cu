@@ -106,7 +106,7 @@ gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
   assert(cv_index[cdim].vdim[vdim] != -1);
 
 
-  gkyl_lbo_mom_set_cu_dev_ptrs<<<1,1>>>(mom_bcorr_cu, mom_id, cbasis->b_type,
+  gkyl_mom_bcorr_lbo_vlasov_set_cu_dev_ptrs<<<1,1>>>(mom_bcorr_cu, mom_id, cbasis->b_type,
     vdim, poly_order, cv_index[cdim].vdim[vdim]);
 
   mom_bcorr->momt.on_dev = &mom_bcorr_cu->momt;

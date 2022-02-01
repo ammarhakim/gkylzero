@@ -30,12 +30,13 @@ extern "C" {
 #include <gkyl_math.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_type.h>
+#include <gkyl_mom_vlasov.h>
 #include <gkyl_moment.h>
 #include <gkyl_moment_em_coupling.h>
-#include <gkyl_prim_euler.h>
-#include <gkyl_prim_iso_euler.h>
-#include <gkyl_prim_maxwell.h>
-#include <gkyl_prim_ten_moment.h>
+#include <gkyl_moment_prim_euler.h>
+#include <gkyl_moment_prim_iso_euler.h>
+#include <gkyl_moment_prim_maxwell.h>
+#include <gkyl_moment_prim_ten_moment.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_apply_bc.h>
@@ -47,7 +48,6 @@ extern "C" {
 #include <gkyl_util.h>
 #include <gkyl_vargm.h>
 #include <gkyl_vlasov.h>
-#include <gkyl_vlasov_mom.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_eqn.h>

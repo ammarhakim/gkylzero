@@ -138,13 +138,13 @@ gkyl_prim_lbo_calc_advance_cu(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis
 
 gkyl_prim_lbo_calc*
 gkyl_prim_lbo_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
-  struct gkyl_prim_lbo *prim)
+  struct gkyl_prim_lbo_type *prim)
 {
   gkyl_prim_lbo_calc *up = (gkyl_prim_lbo_calc*) gkyl_malloc(sizeof(gkyl_prim_lbo_calc));
   up->grid = *grid;
   up->prim = prim;
 
-  struct gkyl_prim_lbo *pt = gkyl_prim_lbo_acquire(prim);
+  struct gkyl_prim_lbo_type *pt = gkyl_prim_lbo_type_acquire(prim);
   up->prim = pt->on_dev; // so memcpy below gets dev copy
 
   up->flags = 0;
