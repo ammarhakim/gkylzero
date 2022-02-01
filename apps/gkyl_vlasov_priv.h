@@ -13,24 +13,24 @@
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_dg_bin_ops.h>
-#include <gkyl_dg_lbo_updater.h>
+#include <gkyl_dg_updater_lbo_vlasov.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_hyper_dg.h>
-#include <gkyl_lbo_mom_bcorr.h>
-#include <gkyl_mom_bcorr.h>
+#include <gkyl_mom_bcorr_lbo_vlasov.h>
+#include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_calc.h>
+#include <gkyl_mom_vlasov.h>
 #include <gkyl_null_pool.h>
-#include <gkyl_prim_lbo.h>
 #include <gkyl_prim_lbo_calc.h>
+#include <gkyl_prim_lbo_type.h>
 #include <gkyl_prim_lbo_vlasov.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_vlasov.h>
-#include <gkyl_vlasov_mom.h>
 
 
 // Definitions of private structs and APIs attached to these objects
@@ -55,15 +55,15 @@ struct vm_species_moment {
 
 struct vm_lbo_collisions {
   struct gkyl_array *cM, *cE; // LBO boundary corrections
-  struct gkyl_mom_type *cM_mom, *cE_mom; // moments needed in update
-  struct gkyl_mom_bcorr *cM_bcorr, *cE_bcorr; // moments needed in update
+  struct gkyl_mom_type *cM_mom, *cE_mom; // LBO boundary corrections moment types
+  struct gkyl_mom_bcorr_calc *cM_bcorr, *cE_bcorr; // LBO boundary corrections calculators
   struct gkyl_array *nu_sum, *u_drift, *vth_sq, *nu_u, *nu_vthsq; // LBO primitive moments
-  struct gkyl_prim_lbo *coll_prim; // primitive moments
+  struct gkyl_prim_lbo *coll_prim; // LBO primitive moments type
 
   struct vm_species_moment m0, m1i, m2; // moments needed in LBO
   
-  gkyl_prim_lbo_calc *coll_pcalc; // primitive moment calculator
-  gkyl_dg_lbo_updater *coll_slvr; // collision solver
+  gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
+  gkyl_dg_updater_lbo_vlasov *coll_slvr; // collision solver
 };
 
 struct vm_bgk_collisions {

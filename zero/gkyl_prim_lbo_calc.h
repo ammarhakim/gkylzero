@@ -2,7 +2,7 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
-#include <gkyl_prim_lbo.h>
+#include <gkyl_prim_lbo_type.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
@@ -18,10 +18,10 @@ typedef struct gkyl_prim_lbo_calc gkyl_prim_lbo_calc;
  * @return New updater pointer.
  */
 gkyl_prim_lbo_calc* gkyl_prim_lbo_calc_new(const struct gkyl_rect_grid *grid,
-  struct gkyl_prim_lbo *prim);
+  struct gkyl_prim_lbo_type *prim);
 
 gkyl_prim_lbo_calc* gkyl_prim_lbo_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
-  struct gkyl_prim_lbo *prim);
+  struct gkyl_prim_lbo_type *prim);
 
 /**
  * Compute primitive moments of distribution function. The phase_rng and conf_rng

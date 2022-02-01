@@ -134,8 +134,8 @@ build/unit/ctest_dg_maxwell: unit/ctest_dg_maxwell.o unit/ctest_dg_maxwell_cu.o 
 build/unit/ctest_dg_vlasov: unit/ctest_dg_vlasov.o unit/ctest_dg_vlasov_cu.o build/libgkylzero.a
 	${CC} ${LDFLAGS} unit/ctest_dg_vlasov.o unit/ctest_dg_vlasov_cu.o -o build/unit/ctest_dg_vlasov -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 
-build/unit/ctest_vlasov_mom: unit/ctest_vlasov_mom.o unit/ctest_vlasov_mom_cu.o build/libgkylzero.a
-	${CC} ${LDFLAGS} unit/ctest_vlasov_mom.o unit/ctest_vlasov_mom_cu.o -o build/unit/ctest_vlasov_mom -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
+build/unit/ctest_mom_vlasov: unit/ctest_mom_vlasov.o unit/ctest_mom_vlasov_cu.o build/libgkylzero.a
+	${CC} ${LDFLAGS} unit/ctest_mom_vlasov.o unit/ctest_mom_vlasov_cu.o -o build/unit/ctest_mom_vlasov -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 
 build/unit/ctest_hyper_dg: unit/ctest_hyper_dg.o unit/ctest_hyper_dg_cu.o build/libgkylzero.a
 	${CC} ${LDFLAGS} unit/ctest_hyper_dg.o unit/ctest_hyper_dg_cu.o -o build/unit/ctest_hyper_dg -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
@@ -153,6 +153,7 @@ check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_bcorr
 	./build/unit/ctest_block_topo
 	./build/unit/ctest_dg_bin_ops
+	./build/unit/ctest_dg_lbo_vlasov
 	./build/unit/ctest_dg_maxwell
 	./build/unit/ctest_dg_vlasov
 	./build/unit/ctest_dynvec
@@ -162,6 +163,7 @@ check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_mat
 	./build/unit/ctest_mat_triples
 	./build/unit/ctest_mom_calc
+	./build/unit/ctest_mom_vlasov
 	./build/unit/ctest_proj_maxwellian_on_basis
 	./build/unit/ctest_proj_on_basis
 	./build/unit/ctest_range
@@ -171,8 +173,6 @@ check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_ref_count
 	./build/unit/ctest_superlu
 	./build/unit/ctest_update_fsm
-	./build/unit/ctest_vlasov_lbo
-	./build/unit/ctest_vlasov_mom
 	./build/unit/ctest_wave_geom
 	./build/unit/ctest_wv_euler
 	./build/unit/ctest_wv_iso_euler

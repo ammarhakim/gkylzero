@@ -1,4 +1,4 @@
-#include <gkyl_vlasov_mom_kernels.h> 
+#include <gkyl_mom_vlasov_kernels.h> 
 GKYL_CU_DH void vlasov_M0_3x3v_ser_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out) 
 { 
   const double volFact = dxv[3]*dxv[4]*dxv[5]/8; 

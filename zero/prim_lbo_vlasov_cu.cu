@@ -11,7 +11,7 @@ extern "C" {
 }
 
 __global__ static void
-prim_lbo_vlasov_set_cu_dev_ptrs(struct prim_lbo_vlasov *prim_vlasov, int cdim, int vdim, int poly_order, enum gkyl_basis_type b_type, int tblidx)
+gkyl_prim_lbo_vlasov_set_cu_dev_ptrs(struct prim_lbo_type_vlasov *prim_vlasov, int cdim, int vdim, int poly_order, enum gkyl_basis_type b_type, int tblidx)
 {
   prim_vlasov->prim.self_prim = self_prim;
   
@@ -34,14 +34,14 @@ prim_lbo_vlasov_set_cu_dev_ptrs(struct prim_lbo_vlasov *prim_vlasov, int cdim, i
   prim_vlasov->self_prim = self_prim_kernels[tblidx].kernels[poly_order];
 }
 
-struct gkyl_prim_lbo*
+struct gkyl_prim_lbo_type*
 gkyl_prim_lbo_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
   
-  struct prim_lbo_vlasov *prim_vlasov =
-    (struct prim_lbo_vlasov*) gkyl_malloc(sizeof(struct prim_lbo_vlasov));
+  struct prim_lbo_type_vlasov *prim_vlasov =
+    (struct prim_lbo_type_vlasov*) gkyl_malloc(sizeof(struct prim_lbo_type_vlasov));
   
   int cdim = prim_vlasov->prim.cdim = cbasis->ndim;
   int pdim = prim_vlasov->prim.pdim = pbasis->ndim;
@@ -53,13 +53,13 @@ gkyl_prim_lbo_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
   prim_vlasov->prim.ref_count = gkyl_ref_count_init(prim_lbo_vlasov_free);
   
   // copy the host struct to device struct
-  struct prim_lbo_vlasov *prim_vlasov_cu = (struct prim_lbo_vlasov*)
-    gkyl_cu_malloc(sizeof(struct prim_lbo_vlasov));
-  gkyl_cu_memcpy(prim_vlasov_cu, prim_vlasov, sizeof(struct prim_lbo_vlasov), GKYL_CU_MEMCPY_H2D);
+  struct prim_lbo_type_vlasov *prim_vlasov_cu = (struct prim_lbo_type_vlasov*)
+    gkyl_cu_malloc(sizeof(struct prim_lbo_type_vlasov));
+  gkyl_cu_memcpy(prim_vlasov_cu, prim_vlasov, sizeof(struct prim_lbo_type_vlasov), GKYL_CU_MEMCPY_H2D);
 
   assert(cv_index[cdim].vdim[vdim] != -1);
   
-  prim_lbo_vlasov_set_cu_dev_ptrs<<<1,1>>>(prim_vlasov_cu, cdim, vdim, poly_order,
+  gkyl_prim_lbo_vlasov_set_cu_dev_ptrs<<<1,1>>>(prim_vlasov_cu, cdim, vdim, poly_order,
     cbasis->b_type, cv_index[cdim].vdim[vdim]);
 
   prim_vlasov->prim.on_dev = &prim_vlasov_cu->prim;

@@ -9,11 +9,11 @@
 
 gkyl_prim_lbo_calc*
 gkyl_prim_lbo_calc_new(const struct gkyl_rect_grid *grid,
-  struct gkyl_prim_lbo *prim)
+  struct gkyl_prim_lbo_type *prim)
 {
   gkyl_prim_lbo_calc *up = gkyl_malloc(sizeof(gkyl_prim_lbo_calc));
   up->grid = *grid;
-  up->prim = gkyl_prim_lbo_acquire(prim);
+  up->prim = gkyl_prim_lbo_type_acquire(prim);
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
@@ -77,7 +77,7 @@ gkyl_prim_lbo_calc_advance(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis,
 
 void gkyl_prim_lbo_calc_release(gkyl_prim_lbo_calc* up)
 {
-  gkyl_prim_lbo_release(up->prim);
+  gkyl_prim_lbo_type_release(up->prim);
   if (GKYL_IS_CU_ALLOC(up->flags))
     gkyl_cu_free(up->on_dev);
   gkyl_free(up);
@@ -87,7 +87,7 @@ void gkyl_prim_lbo_calc_release(gkyl_prim_lbo_calc* up)
 
 gkyl_prim_lbo_calc*
 gkyl_prim_lbo_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
-  struct gkyl_prim_lbo *prim)
+  struct gkyl_prim_lbo_type *prim)
 {
   assert(false);
   return 0;
