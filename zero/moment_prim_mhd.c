@@ -1,7 +1,7 @@
 #include <math.h>
 #include <float.h>
 
-#include <gkyl_prim_mhd.h>
+#include <gkyl_moment_prim_mhd.h>
 
 // Make indexing cleaner and clearer
 #define DN (0)

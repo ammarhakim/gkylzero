@@ -1,6 +1,6 @@
 #include <math.h>
 
-#include <gkyl_prim_euler.h>
+#include <gkyl_moment_prim_euler.h>
 
 #define RHOU 1
 #define RHOV 2

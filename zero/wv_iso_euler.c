@@ -1,7 +1,7 @@
 #include <math.h>
 
 #include <gkyl_alloc.h>
-#include <gkyl_prim_iso_euler.h>
+#include <gkyl_moment_prim_iso_euler.h>
 #include <gkyl_wv_iso_euler.h>
 
 struct wv_iso_euler {

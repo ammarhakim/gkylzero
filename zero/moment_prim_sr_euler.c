@@ -1,6 +1,6 @@
 #include <math.h>
 
-#include <gkyl_prim_sr_euler.h>
+#include <gkyl_moment_prim_sr_euler.h>
 
 #define TU 2
 #define TV 3

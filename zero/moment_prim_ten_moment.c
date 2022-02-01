@@ -1,6 +1,6 @@
 #include <math.h>
 
-#include <gkyl_prim_ten_moment.h>
+#include <gkyl_moment_prim_ten_moment.h>
 
 // Make indexing cleaner with the dir_shuffle
 #define RHOU 1

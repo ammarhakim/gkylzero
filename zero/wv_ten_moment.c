@@ -1,7 +1,7 @@
 #include <math.h>
 
 #include <gkyl_alloc.h>
-#include <gkyl_prim_ten_moment.h>
+#include <gkyl_moment_prim_ten_moment.h>
 #include <gkyl_wv_ten_moment.h>
 
 static inline double sq(double x) { return x*x; }

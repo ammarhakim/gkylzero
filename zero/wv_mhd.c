@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include <gkyl_alloc.h>
-#include <gkyl_prim_mhd.h>
+#include <gkyl_moment_prim_mhd.h>
 #include <gkyl_wv_mhd.h>
 
 enum { DIVB_NONE, DIVB_EIGHT_WAVES, DIVB_GLM };
