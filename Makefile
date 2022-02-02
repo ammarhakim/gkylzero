@@ -8,7 +8,7 @@
 # $HOME/gkylsoft and you are using standard compilers (not building on
 # GPUs)
 
-ARCH_FLAGS = -march=native -ffast-math
+ARCH_FLAGS = -march=native
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
 CFLAGS = -O3 -g -ffast-math 
 LDFLAGS =
