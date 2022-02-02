@@ -8,8 +8,13 @@ CC=gcc
 CXX=g++
 FC=gfortran
 
+# by default, do not build anything
 BUILD_OPENBLAS=no
 BUILD_SUPERLU=no
+
+# by default, download as well as build packages
+DOWNLOAD_PKGS=yes
+BUILD_PKGS=yes
 
 # ----------------------------------------------------------------------------
 # Function definitions
@@ -28,10 +33,14 @@ FC                          Fortran compiler to use (only gfortran is supported)
 
 -h
 --help                      This help.
+
+--download                  [yes] Download packages?
+--build                     [yes] Build packages?
+
 --prefix=DIR                Prefix where dependencies should be installed.
                             Default is $HOME/gkylsoft
 
-The following flags specify which libraries to build.
+The following flags specify the libraries to build.
 
 --build-openblas            [no] Should we build OpenBLAS?
 --build-superlu             [no] Should we build SuperLU (serial)
@@ -83,6 +92,14 @@ do
       show_help
       exit 0
       ;;
+   --build)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_PKGS="$value"
+      ;;      
+   --download)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      DOWNLOAD_PKGS="$value"
+      ;;
    CC)
       [ -n "$value" ] || die "Missing value in flag $key."
       CC="$value"
@@ -117,6 +134,10 @@ done
 # Write out build options for scripts to use
 cat <<EOF1 > build-opts.sh
 # Generated automatically! Do not edit
+
+# Download/Build options
+DOWNLOAD_PKGS=$DOWNLOAD_PKGS
+BUILD_PKGS=$BUILD_PKGS
 
 # Installation directory
 GKYLSOFT=$PREFIX
