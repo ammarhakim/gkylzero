@@ -5,6 +5,7 @@ PREFIX=${HOME}/gkylsoft
 
 # default build options
 CC=cc
+ARCH_FLAGS=-march=native
 
 # Default lapack include and libraries: we prefer linking to static library
 LAPACK_INC=${HOME}/gkylsoft/OpenBLAS/include
@@ -30,6 +31,7 @@ NOTE: At present, the configure script DOES NOT check if you have
 specified valid paths. YOU are responsible for setting them correctly!
 
 CC                         C compiler to use. Default is system cc
+ARCH_FLAGS                 Architecture flags to use. Default '-march=native'
 
 -h
 --help                     This help.
@@ -95,6 +97,10 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       CC="$value"
       ;;
+   ARCH_FLAGS)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      ARCH_FLAGS="$value"
+      ;;   
    --prefix)
       [ -n "$value" ] || die "Missing value in flag $key."
       PREFIX="$value"
@@ -130,6 +136,7 @@ cat <<EOF1 > config.mak
 PREFIX=$PREFIX
 # Compilers
 CC=$CC
+ARCH_FLAGS=$ARCH_FLAGS
 
 # Library paths
 LAPACK_INC=$LAPACK_INC

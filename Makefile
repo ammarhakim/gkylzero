@@ -8,7 +8,7 @@
 # $HOME/gkylsoft and you are using standard compilers (not building on
 # GPUs)
 
-ARCH_FLAGS = -march=native -ffast-math
+ARCH_FLAGS = -march=native
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
 CFLAGS = -O3 -g -ffast-math 
 LDFLAGS =
@@ -150,7 +150,6 @@ check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_array
 	./build/unit/ctest_array_reduce
 	./build/unit/ctest_basis
-	./build/unit/ctest_bcorr
 	./build/unit/ctest_block_topo
 	./build/unit/ctest_dg_bin_ops
 	./build/unit/ctest_dg_lbo_vlasov
@@ -164,6 +163,7 @@ check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_mat_triples
 	./build/unit/ctest_mom_calc
 	./build/unit/ctest_mom_vlasov
+	./build/unit/ctest_prim_vlasov
 	./build/unit/ctest_proj_maxwellian_on_basis
 	./build/unit/ctest_proj_on_basis
 	./build/unit/ctest_range
