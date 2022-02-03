@@ -85,29 +85,40 @@ skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
 }
 
 void
-test_1x1v_p2()
+test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_check[], double vf_check[], double u_check[], double vth_check[])
 {
-  int poly_order = 2;
-  double lower[] = {0.0, -2.0}, upper[] = {1.0, 2.0};
-  int cells[] = {4, 24};
-  int ndim = sizeof(lower)/sizeof(lower[0]);
-  int vdim = 1, cdim = 1;
-
-  double v_bounds[] = {lower[1], upper[1]};
-  int v_edge_idx[] = {cells[1]-1};
-
-  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
-  int confCells[] = {cells[0]};
+  int pdim = cdim + vdim;  
+  double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM], confLower[GKYL_MAX_DIM], confUpper[GKYL_MAX_DIM];
+  int cells[GKYL_MAX_DIM], confCells[GKYL_MAX_DIM];
+  
+  double v_bounds[2*vdim];
+  
+  for (int i=0; i<pdim; ++i) {
+    if (i<cdim) {
+      cells[i] = 4;
+      lower[i] = 0.0;
+      upper[i] = 1.0;
+      confLower[i] = lower[i];
+      confUpper[i] = upper[i];
+      confCells[i] = cells[i];
+    } else {
+      cells[i] = 24;
+      lower[i] = -2.0;
+      upper[i] = 2.0;
+      v_bounds[i - cdim] = lower[i];
+      v_bounds[i - cdim + vdim] = upper[i];
+    }
+  }
 
   // grids
   struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+  gkyl_rect_grid_init(&grid, pdim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  gkyl_cart_modal_serendip(&basis, pdim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 0 };
@@ -116,7 +127,14 @@ test_1x1v_p2()
   struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
-  int ghost[] = { confGhost[0], 0, 0};
+  int ghost[GKYL_MAX_DIM];
+  for (int i=0; i<pdim; ++i) {
+    if (i<cdim) {
+      ghost[i] = confGhost[i];
+    } else {
+      ghost[i] = 0;
+    }
+  }
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
@@ -124,7 +142,7 @@ test_1x1v_p2()
 
   // projection updater for dist-function
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
-    poly_order+1, 1, evalDistFunc1x1v, NULL);
+    poly_order+1, 1, evalDistFunc, NULL);
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -166,19 +184,39 @@ test_1x1v_p2()
   gkyl_mom_calc_bcorr_advance(fcalc, local, confLocal, distf, f);
   gkyl_mom_calc_bcorr_advance(vFcalc, local, confLocal, distf, vf);
   
+  // Check f correction.
+  for (unsigned int i=0; i<cells[0]; ++i) {
+    int cidx[] = {i};
+    long linc = gkyl_range_idx(&confLocal, cidx);
+    double *fptr = gkyl_array_fetch(f, linc);
+    for (unsigned int k=0; k<confBasis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare( f_check[k], fptr[k], 1e-12) );
+    }
+  }
+
+  // Check vF correction.
+  for (unsigned int i=0; i<cells[0]; ++i) {
+    int cidx[] = {i};
+    long linc = gkyl_range_idx(&confLocal, cidx);
+    double *vfptr = gkyl_array_fetch(vf, linc);
+    for (unsigned int k=0; k<confBasis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare( vf_check[k], vfptr[k], 1e-12) );
+    }
+  }
+  
   struct gkyl_prim_lbo_type *prim = gkyl_prim_lbo_vlasov_new(&confBasis, &basis);
 
-  TEST_CHECK( prim->cdim == 1 );
-  TEST_CHECK( prim->pdim == 2 );
-  TEST_CHECK( prim->poly_order == 2 );
+  TEST_CHECK( prim->cdim == cdim );
+  TEST_CHECK( prim->pdim == pdim );
+  TEST_CHECK( prim->poly_order == poly_order );
   TEST_CHECK( prim->num_config == confBasis.num_basis );
   TEST_CHECK( prim->num_phase == basis.num_basis );
 
   gkyl_prim_lbo_calc *primcalc = gkyl_prim_lbo_calc_new(&grid, prim);
-  
+
   // create moment arrays
   struct gkyl_array *u, *vth;
-  u = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  u = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
   vth = mkarr(confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment corrections
@@ -190,7 +228,7 @@ test_1x1v_p2()
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *uptr = gkyl_array_fetch(u, linc);
     for (unsigned int k=0; k<confBasis.num_basis; ++k) {
-      TEST_CHECK( gkyl_compare( 0., uptr[k], 1e-12) );
+      TEST_CHECK( gkyl_compare( u_check[k], uptr[k], 1e-12) );
   }}
 
   // Check vtSq.
@@ -198,12 +236,10 @@ test_1x1v_p2()
     int cidx[] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *vthptr = gkyl_array_fetch(vth, linc);
-    TEST_CHECK( gkyl_compare( 1.4142398195471544, vthptr[0], 1e-12) );
-    for (unsigned int k=1; k<confBasis.num_basis; ++k) {
-      TEST_CHECK( gkyl_compare( 0., vthptr[k], 1e-12) );
+    for (unsigned int k=0; k<confBasis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare( vth_check[k], vthptr[k], 1e-12) );
   }}
-
-  // release memory for objects
+  
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
   gkyl_mom_calc_release(m0calc); gkyl_mom_calc_release(m1icalc); gkyl_mom_calc_release(m2calc);
   gkyl_mom_type_release(vmM0_t); gkyl_mom_type_release(vmM1i_t); gkyl_mom_type_release(vmM2_t);
@@ -218,33 +254,45 @@ test_1x1v_p2()
   gkyl_array_release(u); gkyl_array_release(vth);
   gkyl_prim_lbo_type_release(prim);
   gkyl_prim_lbo_calc_release(primcalc);
+
 }
 
 #ifdef GKYL_HAVE_CUDA
 void
-test_1x1v_p2_cu()
+test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_check[], double vf_check[], double u_check[], double vth_check[])
 {
-  int poly_order = 2;
-  double lower[] = {0.0, -2.0}, upper[] = {1.0, 2.0};
-  int cells[] = {4, 24};
-  int ndim = sizeof(lower)/sizeof(lower[0]);
-  int vdim = 1, cdim = 1;
-
-  double v_bounds[] = {lower[1], upper[1]};
-  int v_edge_idx[] = {cells[1]-1};
-
-  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
-  int confCells[] = {cells[0]};
+  int pdim = cdim + vdim;  
+  double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM], confLower[GKYL_MAX_DIM], confUpper[GKYL_MAX_DIM];
+  int cells[GKYL_MAX_DIM], confCells[GKYL_MAX_DIM];
   
+  double v_bounds[2*vdim];
+  
+  for (int i=0; i<pdim; ++i) {
+    if (i<cdim) {
+      cells[i] = 4;
+      lower[i] = 0.0;
+      upper[i] = 1.0;
+      confLower[i] = lower[i];
+      confUpper[i] = upper[i];
+      confCells[i] = cells[i];
+    } else {
+      cells[i] = 24;
+      lower[i] = -2.0;
+      upper[i] = 2.0;
+      v_bounds[i - cdim] = lower[i];
+      v_bounds[i - cdim + vdim] = upper[i];
+    }
+  }
+
   // grids
   struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+  gkyl_rect_grid_init(&grid, pdim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  gkyl_cart_modal_serendip(&basis, pdim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 0 };
@@ -253,7 +301,14 @@ test_1x1v_p2_cu()
   struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
-  int ghost[] = { confGhost[0], 0, 0};
+  int ghost[GKYL_MAX_DIM];
+  for (int i=0; i<pdim; ++i) {
+    if (i<cdim) {
+      ghost[i] = confGhost[i];
+    } else {
+      ghost[i] = 0;
+    }
+  }
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
@@ -261,7 +316,7 @@ test_1x1v_p2_cu()
 
   // projection updater for dist-function
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
-    poly_order+1, 1, evalDistFunc1x1v, NULL);
+    poly_order+1, 1, evalDistFunc, NULL);
 
   // create distribution function array
   struct gkyl_array *distf, *distf_cu;
@@ -311,9 +366,9 @@ test_1x1v_p2_cu()
   
   // create moment arrays
   struct gkyl_array *u, *vth, *u_cu, *vth_cu;
-  u = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  u = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
   vth = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  u_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
+  u_cu = mkarr_cu(vdim*confBasis.num_basis, confLocal_ext.volume);
   vth_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment corrections
@@ -327,7 +382,7 @@ test_1x1v_p2_cu()
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *uptr = gkyl_array_fetch(u, linc);
     for (unsigned int k=0; k<confBasis.num_basis; ++k) {
-      TEST_CHECK( gkyl_compare( 0., uptr[k], 1e-12) );
+      TEST_CHECK( gkyl_compare( u_check[k], uptr[k], 1e-12) );
   }}
 
   // Check vtSq.
@@ -335,9 +390,8 @@ test_1x1v_p2_cu()
     int cidx[] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *vthptr = gkyl_array_fetch(vth, linc);
-    TEST_CHECK( gkyl_compare( 1.4142398195471544, vthptr[0], 1e-12) );
-    for (unsigned int k=1; k<confBasis.num_basis; ++k) {
-      TEST_CHECK( gkyl_compare( 0., vthptr[k], 1e-12) );
+    for (unsigned int k=0; k<confBasis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare( vth_check[k], vthptr[k], 1e-12) );
   }}
 
   // release memory for objects
@@ -360,10 +414,70 @@ test_1x1v_p2_cu()
 }
 #endif
 
+void
+test_1x1v_p2()
+{
+  int poly_order = 2;
+  int vdim = 1, cdim = 1;
+
+  double f_check[] = { 0.0, 0.0, 0.0 };
+  double vf_check[] = { 0.30543841971927, 0.0, 0.0 };
+  double u_check[] = { 0.0, 0.0, 0.0 };
+  double vth_check[] = { 1.4142398195471544, 0.0, 0.0 };
+
+  test_func(cdim, vdim, poly_order, evalDistFunc1x1v, f_check, vf_check, u_check, vth_check);
+}
+
+void
+test_1x2v_p2()
+{
+  int poly_order = 2;
+  int vdim = 2, cdim = 1;
+
+  double f_check[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+  double vf_check[] = { 0.583081782023233, 0.0, 0.0, 0.0, 0.0, 0.0 };
+  double u_check[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+  double vth_check[] = { 1.4142398195471586, 0.0, 0.0 };
+
+  test_func(cdim, vdim, poly_order, evalDistFunc1x2v, f_check, vf_check, u_check, vth_check);
+}
+
+#ifdef GKYL_HAVE_CUDA
+void
+test_1x1v_p2_cu()
+{
+  int poly_order = 2;
+  int vdim = 1, cdim = 1;
+
+  double f_check[] = { 0.0, 0.0, 0.0 };
+  double vf_check[] = { 0.30543841971927, 0.0, 0.0 };
+  double u_check[] = { 0.0, 0.0, 0.0 };
+  double vth_check[] = { 1.4142398195471544, 0.0, 0.0 };
+
+  test_func_cu(cdim, vdim, poly_order, evalDistFunc1x1v, f_check, vf_check, u_check, vth_check);
+}
+
+void
+test_1x2v_p2_cu()
+{
+  int poly_order = 2;
+  int vdim = 2, cdim = 1;
+
+  double f_check[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+  double vf_check[] = { 0.583081782023233, 0.0, 0.0, 0.0, 0.0, 0.0 };
+  double u_check[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+  double vth_check[] = { 1.4142398195471586, 0.0, 0.0 };
+
+  test_func_cu(cdim, vdim, poly_order, evalDistFunc1x2v, f_check, vf_check, u_check, vth_check);
+}
+#endif
+
 TEST_LIST = {
   { "test_1x1v_p2", test_1x1v_p2 },
+  { "test_1x2v_p2", test_1x2v_p2 },
 #ifdef GKYL_HAVE_CUDA
   { "test_1x1v_p2_cu", test_1x1v_p2_cu },
+  { "test_1x2v_p2_cu", test_1x2v_p2_cu },
 #endif
   { NULL, NULL },
 };
