@@ -107,13 +107,19 @@ main(int argc, char **argv)
   }
   struct weibel_ctx ctx = create_ctx(); // context for init functions
 
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 8);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 8);
+  
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
+  int VY = APP_ARGS_CHOOSE(app_args.vcells[1], 16);
+
   // electrons
   struct gkyl_vlasov_species elc = {
     .name = "elc",
     .charge = -1.0, .mass = 1.0,
     .lower = { -0.9, -0.9 },
     .upper = { 0.9, 0.9 }, 
-    .cells = { 16, 16 },
+    .cells = { VX, VY },
 
     .evolve = 1,
     .ctx = &ctx,
@@ -140,7 +146,7 @@ main(int argc, char **argv)
     .cdim = 2, .vdim = 2,
     .lower = { 0.0, 0.0 },
     .upper = { 2*M_PI/ctx.kx, 2*M_PI/ctx.ky },
-    .cells = { 8, 8 },
+    .cells = { NX, NY },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
