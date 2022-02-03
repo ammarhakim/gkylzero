@@ -65,13 +65,19 @@ main(int argc, char **argv)
   }
   struct free_stream_ctx ctx = create_ctx(); // context for init functions
 
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 32);
+  
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 12);
+  int VY = APP_ARGS_CHOOSE(app_args.vcells[1], 12);
+  int VZ = APP_ARGS_CHOOSE(app_args.vcells[2], 12);
+
   // electrons
   struct gkyl_vlasov_species neut = {
     .name = "neut",
     .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -6.0*ctx.vt, -6.0*ctx.vt, -6.0*ctx.vt},
     .upper = { 6.0*ctx.vt, 6.0*ctx.vt, 6.0*ctx.vt}, 
-    .cells = { 12, 12, 12 },
+    .cells = { VX, VY, VZ },
 
     .evolve = 1,
     .ctx = &ctx,
@@ -89,7 +95,7 @@ main(int argc, char **argv)
     .cdim = 1, .vdim = 3,
     .lower = { 0.0 },
     .upper = { ctx.Lx },
-    .cells = { 32 },
+    .cells = { NX },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
