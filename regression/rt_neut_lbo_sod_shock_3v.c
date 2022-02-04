@@ -65,11 +65,11 @@ main(int argc, char **argv)
   }
   struct free_stream_ctx ctx = create_ctx(); // context for init functions
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 32);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 16);
   
-  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 12);
-  int VY = APP_ARGS_CHOOSE(app_args.vcells[1], 12);
-  int VZ = APP_ARGS_CHOOSE(app_args.vcells[2], 12);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 8);
+  int VY = APP_ARGS_CHOOSE(app_args.vcells[1], 8);
+  int VZ = APP_ARGS_CHOOSE(app_args.vcells[2], 8);
 
   // electrons
   struct gkyl_vlasov_species neut = {
@@ -113,7 +113,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.05;
+  double tcurr = 0.0, tend = 0.1;
   double dt = tend-tcurr;
 
   // initialize simulation
