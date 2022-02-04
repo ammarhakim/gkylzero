@@ -8,7 +8,17 @@
 # $HOME/gkylsoft and you are using standard compilers (not building on
 # GPUs)
 
+# determine OS and machine hwd names we are running on
+UNAME = $(shell uname)
+MNAME = $(shell uname -m)
+
 ARCH_FLAGS = -march=native
+
+ifeq ($(MNAME), ppc64le)
+  # on IBM we march=native does not work
+  ARCH_FLAGS = -mcpu=native
+endif
+
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
 CFLAGS = -O3 -g -ffast-math 
 LDFLAGS =
@@ -45,7 +55,7 @@ USING_NVCC =
 NVCC_FLAGS = 
 CUDA_LIBS = 
 ifeq ($(CC), nvcc)
-       CFLAGS = -O3 -g --forward-unknown-to-host-compiler
+       CFLAGS = -O3 -g -ffast-math --forward-unknown-to-host-compiler
        USING_NVCC = yes
        NVCC_FLAGS = -x cu -dc -arch=sm_70 --compiler-options="-fPIC" 
        LDFLAGS += -arch=sm_70
