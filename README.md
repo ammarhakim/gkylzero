@@ -21,8 +21,8 @@ Documentation is available at http://gkeyll.rtfd.io.
 GkeyllZero has just a few dependencies: OpenBLAS and SuperLU. If you
 are on a cluster these libraries are likely already installed. In that
 case you should use the configure script to specify the location of
-the include and full path to the static libraries for these. See
-configure help.
+the include directories and the full path to the static libraries for
+these. See configure help.
 ```
    ./configure --help
 ```
@@ -35,7 +35,7 @@ compiler you wish to use and the various paths to the
 dependencies. Once you are done with installing/specifying the compiler 
 and dependencies simply type:
 ```
-    make-j
+    make -j
 ```
 in the top-level directory. To run all unit tests do:
 ```
@@ -62,10 +62,10 @@ If you want to use the code as a library you should install it:
 
 Note that GkeyllZero is meant to be used as a *library*. You can use
 it to create your own "app" for your particular problem. See that
-various "app_*.c" files for examples. Full documentation is available
-on the RTFD website linked above.
+various "rt_*.c" files in the regression directory for examples. Full
+documentation is available on the RTFD website linked above.
 
-# Buildin dependencies
+# Building dependencies
 
 Some parts of GkeyllZero rely on presence of LAPACK and BLAS. Its
 likely that highly optimized builds of these libraries are already
@@ -125,7 +125,7 @@ clean". Pay attention to all compiler warnings.
 
 Most importantly, **please internalize and follow** the programming
 philosophy outlined in the document ["A Minimalist Approach to
-Software"](https://ammar-hakim.org/cj/je0/je0-minimalism.html).
+Software"](https://ammar-hakim.org/sj/pn/pn0/pn0-minimalism.html).
 
 # License
 
