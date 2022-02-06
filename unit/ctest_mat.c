@@ -390,6 +390,7 @@ TEST_LIST = {
 #ifdef GKYL_HAVE_CUDA
   { "cu_nmat_base", test_cu_nmat_base },
   { "cu_nmat_linsolve", test_cu_nmat_linsolve },
+  { "cu_nmat_linsolve_pa", test_cu_nmat_linsolve_pa },
 #endif
   { NULL, NULL },
 };
