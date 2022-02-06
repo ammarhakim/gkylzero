@@ -208,7 +208,7 @@ test_nmat_base()
 }
 
 void
-test_nmat_linsolve()
+test_nmat_linsolve_(bool pre_alloc)
 {
   struct gkyl_nmat *As = gkyl_nmat_new(5, 3, 3);
   struct gkyl_nmat *xs = gkyl_nmat_new(5, 3, 1);
@@ -233,7 +233,16 @@ test_nmat_linsolve()
   }
 
   // solve all linear systems: sol : matrix( [-1, 1, 0] )
-  bool status = gkyl_nmat_linsolve_lu(As, xs);
+  bool status = false;
+
+  if (pre_alloc) {
+    gkyl_nmat_mem *mem = gkyl_nmat_linsolve_lu_alloc(As->num, As->nr);
+    status = gkyl_nmat_linsolve_lu_pa(mem, As, xs);
+    gkyl_nmat_linsolve_lu_release(mem);
+  }
+  else {
+    status = gkyl_nmat_linsolve_lu(As, xs);
+  }
 
   TEST_CHECK( status );
 
@@ -251,6 +260,9 @@ test_nmat_linsolve()
   gkyl_nmat_release(As);
   gkyl_nmat_release(xs);
 }
+
+void test_nmat_linsolve() { test_nmat_linsolve_(false); }
+void test_nmat_linsolve_pa() { test_nmat_linsolve_(true); }
 
 #ifdef GKYL_HAVE_CUDA
 
@@ -299,7 +311,7 @@ test_cu_nmat_base()
 }
 
 void
-test_cu_nmat_linsolve()
+test_cu_nmat_linsolve_(bool pre_alloc)
 {
   struct gkyl_nmat *As = gkyl_nmat_new(5, 3, 3);
   struct gkyl_nmat *xs = gkyl_nmat_new(5, 3, 1);
@@ -331,7 +343,16 @@ test_cu_nmat_linsolve()
   gkyl_nmat_copy(xs_d, xs);
 
   // solve all linear systems: sol : matrix( [-1, 1, 0] )
-  bool status = gkyl_nmat_linsolve_lu(As_d, xs_d);
+  bool status = false;
+
+  if (pre_alloc) {
+    gkyl_nmat_mem *mem = gkyl_nmat_linsolve_lu_alloc_cu_dev(As->num, As->nr);
+    status = gkyl_nmat_linsolve_lu_pa(mem, As_d, xs_d);
+    gkyl_nmat_linsolve_lu_release(mem);
+  }
+  else {
+    status = gkyl_nmat_linsolve_lu(As_d, xs_d);
+  }
 
   TEST_CHECK( status );
 
@@ -354,6 +375,9 @@ test_cu_nmat_linsolve()
   gkyl_nmat_release(xs_d);
 }
 
+void test_cu_nmat_linsolve() { test_cu_nmat_linsolve_(false); }
+void test_cu_nmat_linsolve_pa() { test_cu_nmat_linsolve_(true); }
+
 #endif
 
 TEST_LIST = {
@@ -362,6 +386,7 @@ TEST_LIST = {
   { "mat_linsolve", test_mat_linsolve },
   { "nmat_base", test_nmat_base },
   { "nmat_linsolve", test_nmat_linsolve },
+  { "nmat_linsolve_pa", test_nmat_linsolve_pa },
 #ifdef GKYL_HAVE_CUDA
   { "cu_nmat_base", test_cu_nmat_base },
   { "cu_nmat_linsolve", test_cu_nmat_linsolve },
