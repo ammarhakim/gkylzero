@@ -194,10 +194,12 @@ void
 vm_species_coll_tm(gkyl_vlasov_app *app)
 {
   for (int i=0; i<app->num_species; ++i) {
-    struct gkyl_dg_updater_lbo_vlasov_tm tm =
-      gkyl_dg_updater_lbo_vlasov_get_tm(app->species[i].lbo.coll_slvr);
-    app->stat.species_lbo_coll_diff_tm[i] = tm.diff_tm;
-    app->stat.species_lbo_coll_drag_tm[i] = tm.drag_tm;
+    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
+      struct gkyl_dg_updater_lbo_vlasov_tm tm =
+        gkyl_dg_updater_lbo_vlasov_get_tm(app->species[i].lbo.coll_slvr);
+      app->stat.species_lbo_coll_diff_tm[i] = tm.diff_tm;
+      app->stat.species_lbo_coll_drag_tm[i] = tm.drag_tm;
+    }
   }
 }
 

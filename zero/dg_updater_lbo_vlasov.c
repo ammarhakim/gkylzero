@@ -105,6 +105,9 @@ gkyl_dg_updater_lbo_vlasov_cu_dev_new(const struct gkyl_rect_grid *grid, const s
   up->diff = gkyl_hyper_dg_cu_dev_new(grid, pbasis, up->coll_diff, num_up_dirs, up_dirs, zero_flux_flags, 1);
   up->drag = gkyl_hyper_dg_cu_dev_new(grid, pbasis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1);
 
+  up->drag_tm = 0.0;
+  up->diff_tm = 0.0;  
+
   return up;
 }
 
@@ -121,8 +124,13 @@ gkyl_dg_updater_lbo_vlasov_advance_cu(gkyl_dg_updater_lbo_vlasov *lbo, struct gk
   gkyl_lbo_vlasov_diff_set_nuUSum(lbo->coll_diff, nu_u);
   gkyl_lbo_vlasov_diff_set_nuVtSqSum(lbo->coll_diff, nu_vthsq);
 
+  struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance_cu(lbo->diff, update_rng, fIn, cflrate, rhs);
+  lbo->diff_tm += gkyl_time_diff_now_sec(wst);
+
+  wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance_cu(lbo->drag, update_rng, fIn, cflrate, rhs);
+  lbo->drag_tm += gkyl_time_diff_now_sec(wst);
 }
 
 #endif
