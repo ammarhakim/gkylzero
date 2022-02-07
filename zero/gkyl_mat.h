@@ -241,9 +241,9 @@ struct gkyl_nmat* gkyl_nmat_acquire(const struct gkyl_nmat *mat);
  * @param nrow Number of rows in each matrix
  * @return Preallocated memory
  */
-gkyl_nmat_mem *gkyl_nmat_linsolve_lu_alloc(size_t num, size_t nrow);
+gkyl_nmat_mem *gkyl_nmat_linsolve_lu_new(size_t num, size_t nrow);
 // Same as above, except for GPUs
-gkyl_nmat_mem *gkyl_nmat_linsolve_lu_alloc_cu_dev(size_t num, size_t nrow);
+gkyl_nmat_mem *gkyl_nmat_linsolve_lu_cu_dev_new(size_t num, size_t nrow);
 
 /**
  * Release memory allocated for batched LU solves.

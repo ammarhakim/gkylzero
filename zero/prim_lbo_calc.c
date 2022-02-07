@@ -43,7 +43,7 @@ gkyl_prim_lbo_calc_advance(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis,
   if (calc->is_first) {
     calc->As = gkyl_nmat_new(conf_rng.volume, N, N);
     calc->xs = gkyl_nmat_new(conf_rng.volume, N, 1);
-    calc->mem = gkyl_nmat_linsolve_lu_alloc(calc->As->num, calc->As->nr);
+    calc->mem = gkyl_nmat_linsolve_lu_new(calc->As->num, calc->As->nr);
     calc->is_first = false;
   }
 

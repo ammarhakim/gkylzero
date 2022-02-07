@@ -236,7 +236,7 @@ test_nmat_linsolve_(bool pre_alloc)
   bool status = false;
 
   if (pre_alloc) {
-    gkyl_nmat_mem *mem = gkyl_nmat_linsolve_lu_alloc(As->num, As->nr);
+    gkyl_nmat_mem *mem = gkyl_nmat_linsolve_lu_new(As->num, As->nr);
     status = gkyl_nmat_linsolve_lu_pa(mem, As, xs);
     gkyl_nmat_linsolve_lu_release(mem);
   }
@@ -346,7 +346,7 @@ test_cu_nmat_linsolve_(bool pre_alloc)
   bool status = false;
 
   if (pre_alloc) {
-    gkyl_nmat_mem *mem = gkyl_nmat_linsolve_lu_alloc_cu_dev(As->num, As->nr);
+    gkyl_nmat_mem *mem = gkyl_nmat_linsolve_lu_cu_dev_new(As->num, As->nr);
     status = gkyl_nmat_linsolve_lu_pa(mem, As_d, xs_d);
     gkyl_nmat_linsolve_lu_release(mem);
   }
