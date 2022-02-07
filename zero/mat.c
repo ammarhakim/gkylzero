@@ -43,7 +43,7 @@ struct gkyl_nmat_mem {
   int *infos_ho; // host-side info flags
 
 #ifdef GKYL_HAVE_CUDA
-  cublasHandle_t cuh;
+  cublasHandle_t cuh; // cublas handle
 #endif  
 };
 
@@ -259,6 +259,10 @@ gkyl_nmat_linsolve_lu_new(size_t num, size_t nrow)
   
   mem->ipiv_ho = gkyl_malloc(sizeof(long[nrow]));
 
+#ifdef GKYL_HAVE_CUDA
+  mem->cuh = 0;
+#endif  
+
   return mem;
 }
 
@@ -290,14 +294,13 @@ gkyl_nmat_linsolve_lu_release(gkyl_nmat_mem *mem)
     gkyl_cu_free(mem->ipiv_cu);
     gkyl_cu_free(mem->infos_cu);
     gkyl_free(mem->infos_ho);
+#ifdef GKYL_HAVE_CUDA
+    cublasDestroy(mem->cuh);
+#endif
   }
   else {
     gkyl_free(mem->ipiv_ho);
   }
-
-#ifdef GKYL_HAVE_CUDA
-  cublasDestroy(mem->cuh);
-#endif
   
   gkyl_free(mem);
 }
