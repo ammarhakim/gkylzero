@@ -1,3 +1,4 @@
+#include "gkyl_dg_updater_lbo_vlasov.h"
 #include <assert.h>
 #include <gkyl_vlasov_priv.h>
 
@@ -141,10 +142,8 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
     gkyl_hyper_dg_advance(species->slvr, species->local, fin, species->cflrate, rhs);
   app->stat.species_rhs_tm += gkyl_time_diff_now_sec(wst);
 
-  wst = gkyl_wall_clock();
   if (species->collision_id == GKYL_LBO_COLLISIONS)
     vm_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
-  app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);      
 
   gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, species->local);
   double omegaCfl = species->omegaCfl_ptr[0];
@@ -189,6 +188,17 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
   for (int d=0; d<cdim; ++d)
     if (is_copy[d])
       vm_species_apply_copy_bc(app, species, d, f);
+}
+
+void
+vm_species_coll_tm(gkyl_vlasov_app *app)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    struct gkyl_dg_updater_lbo_vlasov_tm tm =
+      gkyl_dg_updater_lbo_vlasov_get_tm(app->species[i].lbo.coll_slvr);
+    app->stat.species_lbo_coll_diff_tm[i] = tm.diff_tm;
+    app->stat.species_lbo_coll_drag_tm[i] = tm.drag_tm;
+  }
 }
 
 // release resources for species

@@ -91,7 +91,12 @@ struct gkyl_vlasov_stat {
   double init_field_tm; // time to initialize fields
 
   double species_rhs_tm; // time to compute species collisionless RHS
-  double species_coll_tm; // time to compute collisions
+  
+  double species_coll_mom_tm; // time needed to compute various moments needed in LBO
+  double species_lbo_coll_drag_tm[GKYL_MAX_SPECIES]; // time to compute LBO drag terms
+  double species_lbo_coll_diff_tm[GKYL_MAX_SPECIES]; // time to compute LBO diffusion terms
+  double species_coll_tm; // total time for collision updater (excluded moments)
+  
   double field_rhs_tm; // time to compute field RHS
   double current_tm; // time to compute currents and accumulation
 
@@ -189,7 +194,7 @@ void gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame);
  *
  * @param app App object.
  */
-void gkyl_vlasov_app_stat_write(const gkyl_vlasov_app* app);
+void gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app);
 
 /**
  * Advance simulation by a suggested time-step 'dt'. The dt may be too

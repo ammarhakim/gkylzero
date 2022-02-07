@@ -395,6 +395,7 @@ gkyl_vlasov_update(gkyl_vlasov_app* app, double dt)
 struct gkyl_vlasov_stat
 gkyl_vlasov_app_stat(gkyl_vlasov_app* app)
 {
+  vm_species_coll_tm(app);
   return app->stat;
 }
 
@@ -426,7 +427,7 @@ gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
 }
 
 void
-gkyl_vlasov_app_stat_write(const gkyl_vlasov_app* app)
+gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
 {
   const char *fmt = "%s-%s";
   int sz = gkyl_calc_strlen(fmt, app->name, "stat.json");
@@ -436,6 +437,8 @@ gkyl_vlasov_app_stat_write(const gkyl_vlasov_app* app)
   char buff[70];
   time_t t = time(NULL);
   struct tm curr_tm = *localtime(&t);
+
+  vm_species_coll_tm(app);
 
   // append to existing file so we have a history of different runs
   FILE *fp = 0;
@@ -462,7 +465,17 @@ gkyl_vlasov_app_stat_write(const gkyl_vlasov_app* app)
       fprintf(fp, " \"init_field_tm\" : \"%lg\",\n", app->stat.init_field_tm);
     
     fprintf(fp, " \"species_rhs_tm\" : \"%lg\",\n", app->stat.species_rhs_tm);
+
+    for (int s=0; s<app->num_species; ++s) {
+      fprintf(fp, " \"species_coll_drag_tm[%d]\" : \"%lg\",\n", s,
+        app->stat.species_lbo_coll_drag_tm[s]);
+      fprintf(fp, " \"species_coll_diff_tm[%d]\" : \"%lg\",\n", s,
+        app->stat.species_lbo_coll_diff_tm[s]);
+    }
+    
+    fprintf(fp, " \"species_coll_mom_tm\" : \"%lg\",\n", app->stat.species_coll_mom_tm);
     fprintf(fp, " \"species_coll_tm\" : \"%lg\",\n", app->stat.species_coll_tm);
+    
     if (app->has_field) {
       fprintf(fp, " \"field_rhs_tm\" : \"%lg\",\n", app->stat.field_rhs_tm);
       fprintf(fp, " \"current_tm\" : \"%lg\",\n", app->stat.current_tm);

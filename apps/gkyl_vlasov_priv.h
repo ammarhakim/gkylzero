@@ -238,8 +238,10 @@ void vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s,
  * @param rhs On output, the RHS from LBO
  * @return Maximum stable time-step
  */
-double vm_species_lbo_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
-  struct vm_lbo_collisions *lbo, const struct gkyl_array *fin, struct gkyl_array *rhs);
+double vm_species_lbo_rhs(gkyl_vlasov_app *app,
+  const struct vm_species *species,
+  struct vm_lbo_collisions *lbo,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
  * Release species LBO object.
@@ -313,6 +315,13 @@ void vm_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_species *spe
  * @param f Field to apply BCs
  */
 void vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, struct gkyl_array *f);
+
+/**
+ * Fill stat object in app with collision timers.
+ *
+ * @param app App object to update stat timers
+ */
+void vm_species_coll_tm(gkyl_vlasov_app *app);
 
 /**
  * Delete resources used in species.
