@@ -97,6 +97,9 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 64);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 32);
+
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
@@ -133,7 +136,7 @@ main(int argc, char **argv)
     .ndim = 2,
     .lower = { -12.8, -6.4 },
     .upper = { 12.8, 6.4 }, 
-    .cells = { 64, 32 },
+    .cells = { NX, NY },
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
