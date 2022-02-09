@@ -20,7 +20,8 @@ evalSREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double gas_gamma = app->gas_gamma;
   
   double x = xn[0], y = xn[1];
-  //ICs from 2D Riemann test from 34.1.11 http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html
+  // ICs from 2D Riemann test from 34.1.11
+  // http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html
   double rho, u, v, p;
   
   double sloc = 0.;
@@ -84,7 +85,7 @@ evalSREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 struct sr_euler_ctx
 sr_euler_ctx(void)
 {
-  return (struct sr_euler_ctx) { .gas_gamma = 5./3. };
+  return (struct sr_euler_ctx) { .gas_gamma = 4./3. };
 }
 
 void
