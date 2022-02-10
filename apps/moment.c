@@ -1,3 +1,4 @@
+#include "gkyl_wave_geom.h"
 #include <assert.h>
 #include <float.h>
 #include <math.h>
@@ -100,6 +101,8 @@ struct gkyl_moment_app {
   void *c2p_ctx; // context for mapc2p function
   // pointer to mapc2p function
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
+
+  struct gkyl_wave_geom *geom; // geometry needed for species and field solvers
 
   struct skin_ghost_ranges skin_ghost; // conf-space skin/ghost
 
@@ -273,8 +276,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         .num_up_dirs = 1,
         .update_dirs = { d },
         .cfl = app->cfl,
-        .mapc2p = app->mapc2p,
-        .ctx = app->c2p_ctx
+        .geom = app->geom,
       }
     );
 
@@ -456,7 +458,8 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         .limiter = limiter,
         .num_up_dirs = 1,
         .update_dirs = { d },
-        .cfl = app->cfl
+        .cfl = app->cfl,
+        .geom = app->geom,
       }
     );
 
@@ -701,6 +704,10 @@ gkyl_moment_app_new(struct gkyl_moment mom)
     gkyl_array_release(c2p);
     gkyl_eval_on_nodes_release(ev_c2p);
   }
+
+  // create geometry object
+  app->geom = gkyl_wave_geom_new(&app->grid, &app->local_ext,
+    app->mapc2p, app->c2p_ctx);
 
   double cfl_frac = mom.cfl_frac == 0 ? 0.95 : mom.cfl_frac;
   app->cfl = 1.0*cfl_frac;
@@ -1016,6 +1023,8 @@ gkyl_moment_app_release(gkyl_moment_app* app)
 
   if (app->update_sources)
     moment_coupling_release(&app->sources);
-  
+
+  gkyl_wave_geom_release(app->geom);
+
   gkyl_free(app);
 }
