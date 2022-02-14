@@ -35,7 +35,7 @@ void test_slu_example()
   asub[0] = 0; asub[1] = 1; asub[2] = 4; asub[3] = 1;
   asub[4] = 2; asub[5] = 4; asub[6] = 0; asub[7] = 2;
   asub[8] = 0; asub[9] = 3; asub[10]= 3; asub[11]= 4;
-  xa[0] = 0; xa[1] = 3; xa[2] = 6; xa[3] = 8; xa[4] = 10; xa[5] = 12;
+  xa[0] = 0; xa[1] = 3; xa[2] = 6; xa[3] = 8; xa[4] = 10; xa[5] = nnz;
 
   /* Create matrix A in the format expected by SuperLU. */
   dCreate_CompCol_Matrix(&A, m, n, nnz, a, asub, xa, SLU_NC, SLU_D, SLU_GE);
