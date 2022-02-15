@@ -39,6 +39,27 @@ double gkyl_mat_triples_get(const gkyl_mat_triples *tri, size_t i, size_t j);
 size_t gkyl_mat_triples_size(const gkyl_mat_triples *tri);
 
 /**
+ * Return an array with the keys (location in flattened matrix) of each triple.
+ * 
+ * @return array with keys.
+ */
+long *gkyl_mat_triples_keys(const gkyl_mat_triples *tri);
+
+/**
+ * Returns value in triples list given its key (location in flattened matrix).
+ *
+ * @return value with key loc.
+ */
+double gkyl_mat_triples_val_at_key(const gkyl_mat_triples *tri, size_t loc);
+
+/**
+ * Returns an array with row and column indices corresponding to key loc (location in flattened matrix).
+ *
+ * @return int[2] with row/column indexes.
+ */
+int *gkyl_mat_triples_key_to_idx(const gkyl_mat_triples *tri, size_t loc);
+
+/**
  * Release triples
  *
  * @param tri Pointer to triples to release.

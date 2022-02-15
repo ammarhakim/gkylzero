@@ -1,6 +1,7 @@
 #include <acutest.h>
 #include <gkyl_mat_triples.h>
 #include <gkyl_util.h>
+#include <gkyl_range.h>
 
 void test_tri_1()
 {
@@ -40,7 +41,33 @@ void test_tri_1()
   gkyl_mat_triples_release(tri);
 }
 
+void test_tri_2()
+{
+  gkyl_mat_triples *tri = gkyl_mat_triples_new(3, 3);
+  /*  A : matrix([1,0,0],[0,2,0],[0,0,3]); */
+
+  // row 0
+  gkyl_mat_triples_insert(tri, 0, 0, 1.0);
+
+  // row 1
+  gkyl_mat_triples_insert(tri, 1, 1, 2.0);
+
+  // row 2
+  gkyl_mat_triples_insert(tri, 2, 2, 3.0);
+
+  // Loop through keys, obtain coordinates for each, the value,
+  // and check.
+  long *keys = gkyl_mat_triples_keys(tri);
+  for (size_t i=0; i<gkyl_mat_triples_size(tri); i++) {
+    int *idx = gkyl_mat_triples_key_to_idx(tri, keys[i]);
+    TEST_CHECK( gkyl_mat_triples_get(tri, idx[0], idx[1]) == gkyl_mat_triples_val_at_key(tri, keys[i]) );
+  }
+
+  gkyl_mat_triples_release(tri);
+}
+
 TEST_LIST = {
   { "tri_1", test_tri_1 },
+  { "tri_2", test_tri_2 },
   { NULL, NULL }
 };
