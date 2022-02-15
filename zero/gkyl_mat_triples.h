@@ -46,6 +46,13 @@ size_t gkyl_mat_triples_size(const gkyl_mat_triples *tri);
 long *gkyl_mat_triples_keys(const gkyl_mat_triples *tri);
 
 /**
+ * Return an array with the keys (location in flattened matrix) of each triple sorted in column-major order.
+ * 
+ * @return array with keys.
+ */
+long *gkyl_mat_triples_keys_colmo(const gkyl_mat_triples *tri);
+
+/**
  * Returns value in triples list given its key (location in flattened matrix).
  *
  * @return value with key loc.

@@ -14,6 +14,22 @@ struct mat_triple {
 #include <stc/cmap.h>
 // complete definition of map
 
+// define sorted (column-major) map of index[2] -> key.
+struct mat_idx {
+  size_t row, col;
+};
+static long mat_idx_cmp(const struct mat_idx *mia, const struct mat_idx *mib) {
+  long c;
+  if ((c = mia->col - mib->col) != 0) return c;
+  return mia->row - mib->row;
+}
+#define i_key struct mat_idx
+#define i_val long 
+#define i_cmp mat_idx_cmp
+#define i_tag idx2key
+#include <stc/csmap.h>
+// complete definition of sorted map.
+
 struct gkyl_mat_triples {
   struct gkyl_range range; // range representing matrix shape
   cmap_triple triples; // non-zero values in matrix
@@ -90,6 +106,29 @@ gkyl_mat_triples_keys(const gkyl_mat_triples *tri)
   return keys;
 }
 
+long *
+gkyl_mat_triples_keys_colmo(const gkyl_mat_triples *tri)
+{
+  // create a sorted map, sorted by row.
+  csmap_idx2key ikmap;
+  ikmap = csmap_idx2key_init();
+  c_foreach(kv, cmap_triple, tri->triples) {
+    csmap_idx2key_put(&ikmap, (struct mat_idx){.row = kv.ref->second.row, .col = kv.ref->second.col},
+      kv.ref->first);
+  }
+  
+  // return array of keys from sorted map.
+  long ikmapsize = csmap_idx2key_size(ikmap);
+  long *keys = gkyl_malloc(ikmapsize*sizeof(long));
+  long i = 0;
+  c_foreach(kv, csmap_idx2key, ikmap) {
+    keys[i] = kv.ref->second;
+    i += 1;
+  }
+  csmap_idx2key_drop(&ikmap);
+  return keys;
+}
+
 double
 gkyl_mat_triples_val_at_key(const gkyl_mat_triples *tri, long loc)
 {
@@ -103,6 +142,7 @@ gkyl_mat_triples_key_to_idx(const gkyl_mat_triples *tri, long loc, int idx[2])
   const struct cmap_triple_value *mt = cmap_triple_get(&tri->triples, loc);
   idx[0] = mt->second.row;
   idx[1] = mt->second.col;
+
 }
 
 void
