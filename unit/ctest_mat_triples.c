@@ -59,11 +59,13 @@ void test_tri_2()
   // and check.
   long *keys = gkyl_mat_triples_keys(tri);
   for (size_t i=0; i<gkyl_mat_triples_size(tri); i++) {
-    int *idx = gkyl_mat_triples_key_to_idx(tri, keys[i]);
+    int idx[2];
+    gkyl_mat_triples_key_to_idx(tri, keys[i], idx);
     TEST_CHECK( gkyl_mat_triples_get(tri, idx[0], idx[1]) == gkyl_mat_triples_val_at_key(tri, keys[i]) );
   }
 
   gkyl_mat_triples_release(tri);
+  gkyl_free(keys);
 }
 
 TEST_LIST = {

@@ -91,20 +91,18 @@ gkyl_mat_triples_keys(const gkyl_mat_triples *tri)
 }
 
 double
-gkyl_mat_triples_val_at_key(const gkyl_mat_triples *tri, size_t loc)
+gkyl_mat_triples_val_at_key(const gkyl_mat_triples *tri, long loc)
 {
   const struct cmap_triple_value *mt = cmap_triple_get(&tri->triples, loc);
   return mt ? mt->second.val : 0.0;
 }
 
-int *
-gkyl_mat_triples_key_to_idx(const gkyl_mat_triples *tri, size_t loc)
+void
+gkyl_mat_triples_key_to_idx(const gkyl_mat_triples *tri, long loc, int idx[2])
 {
   const struct cmap_triple_value *mt = cmap_triple_get(&tri->triples, loc);
-  int *idx = gkyl_malloc(2*sizeof(int));
   idx[0] = mt->second.row;
   idx[1] = mt->second.col;
-  return idx;
 }
 
 void
