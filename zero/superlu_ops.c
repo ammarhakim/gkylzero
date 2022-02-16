@@ -49,9 +49,9 @@ gkyl_superlu_amat_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *tri)
   // allocate some memory needed in superlu. NOTE: this memory is
   // deleted when Destroy_CompCol_Matrix is called, and so we do not
   // need to do it ourselves.
-  double *nzval = doubleMalloc(prob->nnz);
-  int *rowind = intMalloc(prob->nnz);
-  int *colptr = intMalloc(prob->ncol+1);
+  double *nzval = doubleMalloc(prob->nnz); // non-zero matrix elements.
+  int *rowind = intMalloc(prob->nnz); // row index of entries in nzval.
+  int *colptr = intMalloc(prob->ncol+1); // 1st entry of each column as index in nzval.
 
   bool *colptr_assigned = gkyl_malloc(sizeof(bool[prob->ncol]));
   for (size_t i=0; i<prob->ncol; i++)
