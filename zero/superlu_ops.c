@@ -64,7 +64,7 @@ gkyl_superlu_amat_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *tri)
 
     prob->a[i] = gkyl_mat_triples_get(tri, idx[0], idx[1]);
     prob->asub[i] = idx[0];
-    if (~colptr_assigned[idx[1]]) {
+    if (!colptr_assigned[idx[1]]) {
       prob->xa[idx[1]] = i;
       colptr_assigned[idx[1]] = true;
     }
@@ -77,6 +77,11 @@ gkyl_superlu_amat_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *tri)
   dCreate_CompCol_Matrix(&prob->A, prob->mrow, prob->ncol, prob->nnz,
     prob->a, prob->asub, prob->xa, SLU_NC, SLU_D, SLU_GE);
 
+}
+
+void gkyl_superlu_print_amat(gkyl_superlu_prob *prob)
+{
+  dPrint_CompCol_Matrix("A", &prob->A);
 }
 
 void

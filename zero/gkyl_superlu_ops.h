@@ -20,6 +20,11 @@ struct gkyl_superlu_prob* gkyl_superlu_prob_new(const int mrow, const int ncol, 
 void gkyl_superlu_amat_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *tri);
 
 /**
+ * Method to print the matrix A to screen.
+ */
+void gkyl_superlu_print_amat(gkyl_superlu_prob *prob);
+
+/**
  * Initialize right-hand-side SuperLU matrix B in Ax=B problem from a list of
  * triples.
  *

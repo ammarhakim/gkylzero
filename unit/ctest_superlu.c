@@ -102,7 +102,7 @@ void test_slu_ops()
   gkyl_mat_triples_insert(tri, 0, 2, u);
   gkyl_mat_triples_insert(tri, 0, 3, u);
   // row 1
-  gkyl_mat_triples_insert(tri, 1, 0, u);
+  gkyl_mat_triples_insert(tri, 1, 0, l);
   gkyl_mat_triples_insert(tri, 1, 1, u);
   // row 2
   gkyl_mat_triples_insert(tri, 2, 1, l);
@@ -135,12 +135,6 @@ void test_slu_ops()
   // Solve linear system.
   gkyl_superlu_solve(sluprob);
 
-  printf("x_a[%d]=%f | x[%d]=%f\n",0,-1.0/32.0,  0,gkyl_superlu_get_rhs(sluprob,0));
-  printf("x_a[%d]=%f | x[%d]=%f\n",1, 11.0/168.0,1,gkyl_superlu_get_rhs(sluprob,1));
-  printf("x_a[%d]=%f | x[%d]=%f\n",2, 3.0/224.0, 2,gkyl_superlu_get_rhs(sluprob,2));
-  printf("x_a[%d]=%f | x[%d]=%f\n",3, 1.0/16.0,  3,gkyl_superlu_get_rhs(sluprob,3));
-  printf("x_a[%d]=%f | x[%d]=%f\n",4, 11.0/336.0,4,gkyl_superlu_get_rhs(sluprob,4));
-
   // Solution is: [-1/32, 11/168, 3/224, 1/16, 11/336].
   TEST_CHECK( gkyl_compare(-1.0/32.0,   gkyl_superlu_get_rhs(sluprob,0), 1e-14) );
   TEST_CHECK( gkyl_compare( 11.0/168.0, gkyl_superlu_get_rhs(sluprob,1), 1e-14) );
@@ -154,6 +148,6 @@ void test_slu_ops()
 
 TEST_LIST = {
   { "slu_example", test_slu_example },
-//  { "slu_ops", test_slu_ops },
+  { "slu_ops", test_slu_ops },
   { NULL, NULL }
 };
