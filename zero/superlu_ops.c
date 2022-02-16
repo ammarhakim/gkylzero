@@ -1,3 +1,4 @@
+#include "gkyl_mat_triples.h"
 #include <gkyl_superlu_ops.h>
 #include <gkyl_alloc.h>
 #include <stdbool.h>
@@ -5,15 +6,15 @@
 struct gkyl_superlu_prob {
   SuperMatrix A, B; // matrices in Ax=B problem.
   SuperMatrix L, U; // L and U factors in LU decomposition.
-  double   *a; // non-zero elements in A.
-  int      *asub, *xa; // row index of entries in a, & element in xa corresponding to 1st entry of each column.
-  double   *rhs; // right-hand side entries. 
-  int      *perm_r; // row permutations from partial pivoting.
-  int      *perm_c; // column permutation vector.
-  int      mrow, ncol; // A is a mrow x ncol matrix.
-  int      nnz; // number of non-zero entries in A.
-  int      nrhs; // number of problems to solve (B is an mrow x nrhs matrix).
-  int      info, permc_spec;
+  double *a; // non-zero elements in A.
+  int *asub, *xa; // row index of entries in a, & element in xa corresponding to 1st entry of each column.
+  double *rhs; // right-hand side entries. 
+  int *perm_r; // row permutations from partial pivoting.
+  int *perm_c; // column permutation vector.
+  int mrow, ncol; // A is a mrow x ncol matrix.
+  int nnz; // number of non-zero entries in A.
+  int nrhs; // number of problems to solve (B is an mrow x nrhs matrix).
+  int info, permc_spec;
   superlu_options_t options;
   SuperLUStat_t stat;
 };
@@ -57,17 +58,18 @@ gkyl_superlu_amat_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *tri)
   if ( !(prob->xa = intMalloc(prob->ncol+1)) )
     ABORT("superlu_ops: Malloc fails for xa[].");
 
-  bool *colptr_assigned = gkyl_malloc(prob->ncol*sizeof(bool));
+  bool *colptr_assigned = gkyl_malloc(sizeof(bool[prob->ncol]));
   for (size_t i=0; i<prob->ncol; i++)
     colptr_assigned[i] = false;
 
   // sorted (column-major order) keys (linear indices to flattened matrix).
-  long *skeys = gkyl_mat_triples_keys_colmo(tri);
-  for (size_t i=0; i<prob->nnz; i++) {
-    int idx[2];
-    gkyl_mat_triples_key_to_idx(tri, skeys[i], idx);
-
-    prob->a[i] = gkyl_mat_triples_get(tri, idx[0], idx[1]);
+  gkyl_mat_triples_iter *iter = gkyl_mat_triples_iter_new(tri);
+  for (size_t i=0; i<prob->nnz; ++i) {
+    gkyl_mat_triples_iter_next(iter); // bump iterator
+    struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
+    size_t idx[2] = { mt.row, mt.col };
+    
+    prob->a[i] = mt.val;
     prob->asub[i] = idx[0];
     if (!colptr_assigned[idx[1]]) {
       prob->xa[idx[1]] = i;
@@ -75,7 +77,8 @@ gkyl_superlu_amat_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *tri)
     }
   }
   prob->xa[prob->ncol] = prob->nnz;
-  gkyl_free(skeys);
+  
+  gkyl_mat_triples_iter_release(iter);
   gkyl_free(colptr_assigned);
 
   // Create matrix A. See SuperLU manual for definitions.
@@ -92,12 +95,16 @@ void
 gkyl_superlu_brhs_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *tri)
 {
   long nnz_rhs = gkyl_mat_triples_size(tri);  // number of non-zero entries in RHS matrix B
-// sorted (column-major order) keys (linear indices to flattened matrix)
-  long *skeys = gkyl_mat_triples_keys_colmo(tri); 
-  for (size_t i=0; i<nnz_rhs; i++)
-    prob->rhs[i] = gkyl_mat_triples_val_at_key(tri, skeys[i]);
-  gkyl_free(skeys);
-
+  
+  // sorted (column-major order) keys (linear indices to flattened matrix)
+  gkyl_mat_triples_iter *iter = gkyl_mat_triples_iter_new(tri);
+  for (size_t i=0; i<nnz_rhs; i++) {
+    gkyl_mat_triples_iter_next(iter); // bump iterator
+    struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);    
+    prob->rhs[i] = mt.val;
+  }
+  gkyl_mat_triples_iter_release(iter);
+  
   // Create RHS matrix B. See SuperLU manual for definitions.
   dCreate_Dense_Matrix(&prob->B, prob->mrow, prob->nrhs, prob->rhs, prob->mrow,
     SLU_DN, SLU_D, SLU_GE);

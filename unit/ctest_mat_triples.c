@@ -44,7 +44,6 @@ void test_tri_1()
 void test_tri_2()
 {
   gkyl_mat_triples *tri = gkyl_mat_triples_new(3, 3);
-  /*  A : matrix([1,0,0],[0,2,0],[0,0,3]); */
 
   // row 1
   gkyl_mat_triples_insert(tri, 1, 1, 2.0);
@@ -57,26 +56,28 @@ void test_tri_2()
   // row 2
   gkyl_mat_triples_insert(tri, 2, 2, 3.0);
 
-  // Loop through keys, obtain coordinates for each, the value,
-  // and check.
-  long *keys = gkyl_mat_triples_keys(tri);
-  for (size_t i=0; i<gkyl_mat_triples_size(tri); i++) {
-    int idx[2];
-    gkyl_mat_triples_key_to_idx(tri, keys[i], idx);
-    TEST_CHECK( gkyl_mat_triples_get(tri, idx[0], idx[1]) == gkyl_mat_triples_val_at_key(tri, keys[i]) );
+  TEST_CHECK( gkyl_mat_triples_size(tri) == 5 );
+
+  // order in which col-maj sorting should return indices
+  size_t cm_idx[][2] = {
+    {0,0}, {1,0}, {1,1}, {0,2}, {2,2}
+  };
+
+  double vals[] = { 1.0, 2.1, 2.0, 1.1, 3.0 };
+
+  int i = 0;
+  gkyl_mat_triples_iter *iter = gkyl_mat_triples_iter_new(tri);
+  while (gkyl_mat_triples_iter_next(iter)) {
+    struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
+    
+    TEST_CHECK( (mt.row == cm_idx[i][0]) && (mt.col == cm_idx[i][1]) );
+    TEST_CHECK( mt.val == vals[i] );
+    
+    i += 1;
   }
 
-  // Do it again but in column-major order (colmo).
-  long *skeys = gkyl_mat_triples_keys_colmo(tri);
-  for (size_t i=0; i<gkyl_mat_triples_size(tri); i++) {
-    int idx[2];
-    gkyl_mat_triples_key_to_idx(tri, skeys[i], idx);
-    TEST_CHECK( gkyl_mat_triples_get(tri, idx[0], idx[1]) == gkyl_mat_triples_val_at_key(tri, skeys[i]) );
-  }
-
+  gkyl_mat_triples_iter_release(iter);
   gkyl_mat_triples_release(tri);
-  gkyl_free(keys);
-  gkyl_free(skeys);
 }
 
 TEST_LIST = {
