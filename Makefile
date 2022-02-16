@@ -12,7 +12,7 @@ ARCH_FLAGS = -march=native
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
 CFLAGS = -O3 -g -ffast-math 
 LDFLAGS =
-KERN_INCLUDES = -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov -Ikernels/bin_op -Ikernels/lbo -Ikernels/fem
+KERN_INCLUDES = -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov -Ikernels/bin_op -Ikernels/lbo -Ikernels/fem -Ikernels/fem_parproj
 
 # Install prefix
 PREFIX = ${HOME}/gkylsoft

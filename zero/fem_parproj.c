@@ -21,24 +21,24 @@ global_num_nodes(const int dim, const int poly_order, const int basis_type, cons
   if (dim==1) {
     if (poly_order == 1) {
       return fem_parproj_num_nodes_global_1x_ser_p1(parnum_cells);
-    } else (poly_order == 2) {
+    } else if (poly_order == 2) {
       return fem_parproj_num_nodes_global_1x_ser_p2(parnum_cells);
-    } else (poly_order == 3) {
+    } else if (poly_order == 3) {
       return fem_parproj_num_nodes_global_1x_ser_p3(parnum_cells);
     }
   } else if (dim==3) {
     if (basis_type == GKYL_BASIS_MODAL_SERENDIPITY) {
       if (poly_order == 1) {
         return fem_parproj_num_nodes_global_2x_ser_p1(parnum_cells);
-      } else (poly_order == 2) {
+      } else if (poly_order == 2) {
         return fem_parproj_num_nodes_global_2x_ser_p2(parnum_cells);
-      } else (poly_order == 3) {
+      } else if (poly_order == 3) {
         return fem_parproj_num_nodes_global_2x_ser_p3(parnum_cells);
       }
     } if (basis_type == GKYL_BASIS_MODAL_TENSOR) {
       if (poly_order == 1) {
         return fem_parproj_num_nodes_global_2x_tensor_p1(parnum_cells);
-      } else (poly_order == 2) {
+      } else if (poly_order == 2) {
         return fem_parproj_num_nodes_global_2x_tensor_p2(parnum_cells);
       }
     }
