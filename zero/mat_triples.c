@@ -63,7 +63,7 @@ gkyl_mat_triples_insert(gkyl_mat_triples *tri, size_t i, size_t j, double val)
 }
 
 double
-gkyl_gkyl_mat_triples_accum(gkyl_mat_triples *tri, size_t i, size_t j, double val)
+gkyl_mat_triples_accum(gkyl_mat_triples *tri, size_t i, size_t j, double val)
 {
   assert(i<gkyl_range_shape(&tri->range, 0) && j<gkyl_range_shape(&tri->range, 1));
   
