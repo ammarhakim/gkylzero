@@ -1,7 +1,7 @@
 #pragma once
 
-#include <slu_ddefs.h>
 #include <gkyl_mat_triples.h>
+#include <gkyl_superlu.h>
 
 // Object type
 typedef struct gkyl_superlu_prob gkyl_superlu_prob;

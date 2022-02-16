@@ -1,8 +1,9 @@
 #include <acutest.h>
-#include <gkyl_util.h>
-#include <slu_ddefs.h>
+
 #include <gkyl_mat_triples.h>
+#include <gkyl_superlu.h>
 #include <gkyl_superlu_ops.h>
+#include <gkyl_util.h>
 
 void test_slu_example()
 {

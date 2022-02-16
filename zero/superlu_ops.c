@@ -1,13 +1,12 @@
-#include "gkyl_mat_triples.h"
-#include <gkyl_superlu_ops.h>
 #include <gkyl_alloc.h>
+#include <gkyl_mat_triples.h>
+#include <gkyl_superlu_ops.h>
+
 #include <stdbool.h>
 
 struct gkyl_superlu_prob {
   SuperMatrix A, B; // matrices in Ax=B problem.
   SuperMatrix L, U; // L and U factors in LU decomposition.
-  double *nzval; // non-zero elements in A.
-  int *rowind, *colptr; // row index of entries in nzval, & element in colptr corresponding to 1st entry of each column.
   double *rhs; // right-hand side entries. 
   int *perm_r; // row permutations from partial pivoting.
   int *perm_c; // column permutation vector.
@@ -28,13 +27,9 @@ gkyl_superlu_prob_new(const int mrow, const int ncol, const int nprob)
   prob->ncol = ncol;
   prob->nrhs = nprob;
 
-  if ( !(prob->rhs = doubleMalloc(mrow*nprob)) )
-    ABORT("superlu_ops: Malloc fails for rhs[].");
-
-  if ( !(prob->perm_r = intMalloc(mrow)) )
-    ABORT("superlu_ops: Malloc fails for perm_r[].");
-  if ( !(prob->perm_c = intMalloc(ncol)) )
-    ABORT("superlu_ops: Malloc fails for perm_c[].");
+  prob->rhs = doubleMalloc(mrow*nprob);
+  prob->perm_r = intMalloc(mrow);
+  prob->perm_c = intMalloc(ncol);
 
   // Set the default input options.
   set_default_options(&prob->options);
@@ -51,12 +46,12 @@ gkyl_superlu_amat_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *tri)
 {
   prob->nnz = gkyl_mat_triples_size(tri);
 
-  if ( !(prob->nzval = doubleMalloc(prob->nnz)) )
-    ABORT("superlu_ops: Malloc fails for a[].");
-  if ( !(prob->rowind = intMalloc(prob->nnz)) )
-    ABORT("superlu_ops: Malloc fails for rowind[].");
-  if ( !(prob->colptr = intMalloc(prob->ncol+1)) )
-    ABORT("superlu_ops: Malloc fails for colptr[].");
+  // allocate some memory needed in superlu. NOTE: this memory is
+  // deleted when Destroy_CompCol_Matrix is called, and so we do not
+  // need to do it ourselves.
+  double *nzval = doubleMalloc(prob->nnz);
+  int *rowind = intMalloc(prob->nnz);
+  int *colptr = intMalloc(prob->ncol+1);
 
   bool *colptr_assigned = gkyl_malloc(sizeof(bool[prob->ncol]));
   for (size_t i=0; i<prob->ncol; i++)
@@ -69,21 +64,21 @@ gkyl_superlu_amat_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *tri)
     struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
     size_t idx[2] = { mt.row, mt.col };
     
-    prob->nzval[i] = mt.val;
-    prob->rowind[i] = idx[0];
+    nzval[i] = mt.val;
+    rowind[i] = idx[0];
     if (!colptr_assigned[idx[1]]) {
-      prob->colptr[idx[1]] = i;
+      colptr[idx[1]] = i;
       colptr_assigned[idx[1]] = true;
     }
   }
-  prob->colptr[prob->ncol] = prob->nnz;
+  colptr[prob->ncol] = prob->nnz;
   
   gkyl_mat_triples_iter_release(iter);
   gkyl_free(colptr_assigned);
 
   // Create matrix A. See SuperLU manual for definitions.
   dCreate_CompCol_Matrix(&prob->A, prob->mrow, prob->ncol, prob->nnz,
-    prob->nzval, prob->rowind, prob->colptr, SLU_NC, SLU_D, SLU_GE);
+    nzval, rowind, colptr, SLU_NC, SLU_D, SLU_GE);
 }
 
 void gkyl_superlu_print_amat(gkyl_superlu_prob *prob)
