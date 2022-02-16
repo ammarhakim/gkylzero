@@ -1,6 +1,9 @@
 #include <acutest.h>
+
+#include <gkyl_mat_triples.h>
+#include <gkyl_superlu.h>
+#include <gkyl_superlu_ops.h>
 #include <gkyl_util.h>
-#include <slu_ddefs.h>
 
 void test_slu_example()
 {
@@ -78,7 +81,74 @@ void test_slu_example()
   StatFree(&stat);
 }
 
+void test_slu_ops()
+{
+/*  
+ * Like test_slu_example but using superlu_ops.
+ *
+ */
+  double s, u, p, e, r, l;
+  int    nrhs, m, n, nnz;
+
+  /* Initialize matrix A. */
+  /*  A : matrix([s,0,u,u,0],[l,u,0,0,0],[0,l,p,0,0],[0,0,0,e,u],[l,l,0,0,r]); */
+  m = n = 5;
+  nrhs = 1;
+  
+  s = 19.0; u = 21.0; p = 16.0; e = 5.0; r = 18.0; l = 12.0;
+  /*  A : matrix([s,0,u,u,0],[l,u,0,0,0],[0,l,p,0,0],[0,0,0,e,u],[l,l,0,0,r]); */
+  gkyl_mat_triples *tri = gkyl_mat_triples_new(m, n);
+  // row 0
+  gkyl_mat_triples_insert(tri, 0, 0, s);
+  gkyl_mat_triples_insert(tri, 0, 2, u);
+  gkyl_mat_triples_insert(tri, 0, 3, u);
+  // row 1
+  gkyl_mat_triples_insert(tri, 1, 0, l);
+  gkyl_mat_triples_insert(tri, 1, 1, u);
+  // row 2
+  gkyl_mat_triples_insert(tri, 2, 1, l);
+  gkyl_mat_triples_insert(tri, 2, 2, p);
+  // row 3
+  gkyl_mat_triples_insert(tri, 3, 3, e);
+  gkyl_mat_triples_insert(tri, 3, 4, u);
+  // row 4
+  gkyl_mat_triples_insert(tri, 4, 0, l);
+  gkyl_mat_triples_insert(tri, 4, 1, l);
+  gkyl_mat_triples_insert(tri, 4, 4, r);
+
+  // Create the SuperLU linear problem setup.
+  gkyl_superlu_prob *sluprob = gkyl_superlu_prob_new(m, n, nrhs);
+
+  // Allocate the A matrix from triples.
+  gkyl_superlu_amat_from_triples(sluprob, tri);
+  gkyl_mat_triples_release(tri);
+
+  // Create right-hand side matrix B = transpose([1,1,1,1,1]).
+  gkyl_mat_triples *triRHS = gkyl_mat_triples_new(m, nrhs);
+  gkyl_mat_triples_insert(triRHS, 0, 0, 1.0);
+  gkyl_mat_triples_insert(triRHS, 1, 0, 1.0);
+  gkyl_mat_triples_insert(triRHS, 2, 0, 1.0);
+  gkyl_mat_triples_insert(triRHS, 3, 0, 1.0);
+  gkyl_mat_triples_insert(triRHS, 4, 0, 1.0);
+  gkyl_superlu_brhs_from_triples(sluprob, triRHS);
+  gkyl_mat_triples_release(triRHS);
+
+  // Solve linear system.
+  gkyl_superlu_solve(sluprob);
+
+  // Solution is: [-1/32, 11/168, 3/224, 1/16, 11/336].
+  TEST_CHECK( gkyl_compare(-1.0/32.0,   gkyl_superlu_get_rhs(sluprob,0), 1e-14) );
+  TEST_CHECK( gkyl_compare( 11.0/168.0, gkyl_superlu_get_rhs(sluprob,1), 1e-14) );
+  TEST_CHECK( gkyl_compare( 3.0/224.0,  gkyl_superlu_get_rhs(sluprob,2), 1e-14) );
+  TEST_CHECK( gkyl_compare( 1.0/16.0,   gkyl_superlu_get_rhs(sluprob,3), 1e-14) );
+  TEST_CHECK( gkyl_compare( 11.0/336.0, gkyl_superlu_get_rhs(sluprob,4), 1e-14) );
+
+  gkyl_superlu_prob_release(sluprob);
+
+}
+
 TEST_LIST = {
   { "slu_example", test_slu_example },
+  { "slu_ops", test_slu_ops },
   { NULL, NULL }
 };
