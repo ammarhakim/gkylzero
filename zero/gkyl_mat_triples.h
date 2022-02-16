@@ -1,5 +1,13 @@
 #pragma once
 
+#include <stddef.h>
+
+// A ,triple stores 'val' at (row, col)
+struct gkyl_mtriple {
+  size_t row, col;
+  double val;  
+};
+
 /** Triples stores list of (i,j,val) for use in contructing sparse matrices */
 typedef struct gkyl_mat_triples gkyl_mat_triples;
 
@@ -50,7 +58,7 @@ long *gkyl_mat_triples_keys(const gkyl_mat_triples *tri);
  * 
  * @return array with keys.
  */
-long *gkyl_mat_triples_keys_colmo(const gkyl_mat_triples *tri);
+long* gkyl_mat_triples_keys_colmo(const gkyl_mat_triples *tri);
 
 /**
  * Returns value in triples list given its key (location in flattened matrix).

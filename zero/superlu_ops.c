@@ -21,16 +21,19 @@ struct gkyl_superlu_prob {
 gkyl_superlu_prob*
 gkyl_superlu_prob_new(const int mrow, const int ncol, const int nprob)
 {
-  struct gkyl_superlu_prob *prob = gkyl_malloc(sizeof(struct gkyl_superlu_prob));
+  struct gkyl_superlu_prob *prob = gkyl_malloc(sizeof(*prob));
 
   prob->mrow = mrow;
   prob->ncol = ncol;
   prob->nrhs = nprob;
 
-  if ( !(prob->rhs = doubleMalloc(mrow * nprob)) ) ABORT("superlu_ops: Malloc fails for rhs[].");
+  if ( !(prob->rhs = doubleMalloc(mrow*nprob)) )
+    ABORT("superlu_ops: Malloc fails for rhs[].");
 
-  if ( !(prob->perm_r = intMalloc(mrow)) ) ABORT("superlu_ops: Malloc fails for perm_r[].");
-  if ( !(prob->perm_c = intMalloc(ncol)) ) ABORT("superlu_ops: Malloc fails for perm_c[].");
+  if ( !(prob->perm_r = intMalloc(mrow)) )
+    ABORT("superlu_ops: Malloc fails for perm_r[].");
+  if ( !(prob->perm_c = intMalloc(ncol)) )
+    ABORT("superlu_ops: Malloc fails for perm_c[].");
 
   // Set the default input options.
   set_default_options(&prob->options);
@@ -45,19 +48,21 @@ gkyl_superlu_prob_new(const int mrow, const int ncol, const int nprob)
 void
 gkyl_superlu_amat_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *tri)
 {
-
   prob->nnz = gkyl_mat_triples_size(tri);
 
-  if ( !(prob->a = doubleMalloc(prob->nnz)) ) ABORT("superlu_ops: Malloc fails for a[].");
-  if ( !(prob->asub = intMalloc(prob->nnz)) ) ABORT("superlu_ops: Malloc fails for asub[].");
-  if ( !(prob->xa = intMalloc(prob->ncol+1)) ) ABORT("superlu_ops: Malloc fails for xa[].");
+  if ( !(prob->a = doubleMalloc(prob->nnz)) )
+    ABORT("superlu_ops: Malloc fails for a[].");
+  if ( !(prob->asub = intMalloc(prob->nnz)) )
+    ABORT("superlu_ops: Malloc fails for asub[].");
+  if ( !(prob->xa = intMalloc(prob->ncol+1)) )
+    ABORT("superlu_ops: Malloc fails for xa[].");
 
   bool *colptr_assigned = gkyl_malloc(prob->ncol*sizeof(bool));
-  for (size_t i=0; i<prob->ncol; i++) {
+  for (size_t i=0; i<prob->ncol; i++)
     colptr_assigned[i] = false;
-  }
 
-  long *skeys = gkyl_mat_triples_keys_colmo(tri); // sorted (column-major order) keys (linear indices to flattened matrix).
+  // sorted (column-major order) keys (linear indices to flattened matrix).
+  long *skeys = gkyl_mat_triples_keys_colmo(tri);
   for (size_t i=0; i<prob->nnz; i++) {
     int idx[2];
     gkyl_mat_triples_key_to_idx(tri, skeys[i], idx);
@@ -76,7 +81,6 @@ gkyl_superlu_amat_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *tri)
   // Create matrix A. See SuperLU manual for definitions.
   dCreate_CompCol_Matrix(&prob->A, prob->mrow, prob->ncol, prob->nnz,
     prob->a, prob->asub, prob->xa, SLU_NC, SLU_D, SLU_GE);
-
 }
 
 void gkyl_superlu_print_amat(gkyl_superlu_prob *prob)
@@ -87,20 +91,16 @@ void gkyl_superlu_print_amat(gkyl_superlu_prob *prob)
 void
 gkyl_superlu_brhs_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *tri)
 {
-
-  if ( !(prob->rhs = doubleMalloc(prob->mrow*prob->nrhs)) ) ABORT("superlu_ops: Malloc fails for rhs[].");
-
-  long nnz_rhs = gkyl_mat_triples_size(tri);  // number of non-zero entries in RHS matrix B.
-  long *skeys = gkyl_mat_triples_keys_colmo(tri); // sorted (column-major order) keys (linear indices to flattened matrix).
-  for (size_t i=0; i<nnz_rhs; i++) {
+  long nnz_rhs = gkyl_mat_triples_size(tri);  // number of non-zero entries in RHS matrix B
+// sorted (column-major order) keys (linear indices to flattened matrix)
+  long *skeys = gkyl_mat_triples_keys_colmo(tri); 
+  for (size_t i=0; i<nnz_rhs; i++)
     prob->rhs[i] = gkyl_mat_triples_val_at_key(tri, skeys[i]);
-  }
   gkyl_free(skeys);
 
   // Create RHS matrix B. See SuperLU manual for definitions.
   dCreate_Dense_Matrix(&prob->B, prob->mrow, prob->nrhs, prob->rhs, prob->mrow,
     SLU_DN, SLU_D, SLU_GE);
-
 }
 
 void
@@ -127,4 +127,5 @@ gkyl_superlu_prob_release(gkyl_superlu_prob *prob)
   Destroy_SuperNode_Matrix(&prob->L);
   Destroy_CompCol_Matrix(&prob->U);
   StatFree(&prob->stat);
+  gkyl_free(prob);
 }
