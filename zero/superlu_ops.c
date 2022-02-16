@@ -6,8 +6,8 @@
 struct gkyl_superlu_prob {
   SuperMatrix A, B; // matrices in Ax=B problem.
   SuperMatrix L, U; // L and U factors in LU decomposition.
-  double *a; // non-zero elements in A.
-  int *asub, *xa; // row index of entries in a, & element in xa corresponding to 1st entry of each column.
+  double *nzval; // non-zero elements in A.
+  int *rowind, *colptr; // row index of entries in nzval, & element in colptr corresponding to 1st entry of each column.
   double *rhs; // right-hand side entries. 
   int *perm_r; // row permutations from partial pivoting.
   int *perm_c; // column permutation vector.
@@ -51,12 +51,12 @@ gkyl_superlu_amat_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *tri)
 {
   prob->nnz = gkyl_mat_triples_size(tri);
 
-  if ( !(prob->a = doubleMalloc(prob->nnz)) )
+  if ( !(prob->nzval = doubleMalloc(prob->nnz)) )
     ABORT("superlu_ops: Malloc fails for a[].");
-  if ( !(prob->asub = intMalloc(prob->nnz)) )
-    ABORT("superlu_ops: Malloc fails for asub[].");
-  if ( !(prob->xa = intMalloc(prob->ncol+1)) )
-    ABORT("superlu_ops: Malloc fails for xa[].");
+  if ( !(prob->rowind = intMalloc(prob->nnz)) )
+    ABORT("superlu_ops: Malloc fails for rowind[].");
+  if ( !(prob->colptr = intMalloc(prob->ncol+1)) )
+    ABORT("superlu_ops: Malloc fails for colptr[].");
 
   bool *colptr_assigned = gkyl_malloc(sizeof(bool[prob->ncol]));
   for (size_t i=0; i<prob->ncol; i++)
@@ -69,21 +69,21 @@ gkyl_superlu_amat_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *tri)
     struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
     size_t idx[2] = { mt.row, mt.col };
     
-    prob->a[i] = mt.val;
-    prob->asub[i] = idx[0];
+    prob->nzval[i] = mt.val;
+    prob->rowind[i] = idx[0];
     if (!colptr_assigned[idx[1]]) {
-      prob->xa[idx[1]] = i;
+      prob->colptr[idx[1]] = i;
       colptr_assigned[idx[1]] = true;
     }
   }
-  prob->xa[prob->ncol] = prob->nnz;
+  prob->colptr[prob->ncol] = prob->nnz;
   
   gkyl_mat_triples_iter_release(iter);
   gkyl_free(colptr_assigned);
 
   // Create matrix A. See SuperLU manual for definitions.
   dCreate_CompCol_Matrix(&prob->A, prob->mrow, prob->ncol, prob->nnz,
-    prob->a, prob->asub, prob->xa, SLU_NC, SLU_D, SLU_GE);
+    prob->nzval, prob->rowind, prob->colptr, SLU_NC, SLU_D, SLU_GE);
 }
 
 void gkyl_superlu_print_amat(gkyl_superlu_prob *prob)
