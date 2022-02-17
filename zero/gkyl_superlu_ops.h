@@ -25,6 +25,12 @@ void gkyl_superlu_amat_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *t
 void gkyl_superlu_print_amat(gkyl_superlu_prob *prob);
 
 /**
+ * Perform the LU decomposition of the A matrix.
+ * The _solve method will use these if they are pre-computed.
+ */
+void gkyl_superlu_ludecomp(gkyl_superlu_prob *prob);
+
+/**
  * Initialize right-hand-side SuperLU matrix B in Ax=B problem from a list of
  * triples.
  *
