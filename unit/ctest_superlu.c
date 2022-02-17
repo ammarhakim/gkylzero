@@ -5,6 +5,8 @@
 #include <gkyl_superlu_ops.h>
 #include <gkyl_util.h>
 
+#include <stdbool.h>
+
 void test_slu_example()
 {
 /*  
@@ -81,7 +83,7 @@ void test_slu_example()
   StatFree(&stat);
 }
 
-void test_slu_ops()
+void test_slu_ops(const bool separateLUdecomp)
 {
 /*  
  * Like test_slu_example but using superlu_ops.
@@ -134,7 +136,12 @@ void test_slu_ops()
   gkyl_mat_triples_release(triRHS);
 
   // Solve linear system.
-  gkyl_superlu_solve(sluprob);
+  if (separateLUdecomp) {
+    gkyl_superlu_ludecomp(sluprob);
+    gkyl_superlu_solve(sluprob);
+  } else {
+    gkyl_superlu_solve(sluprob);
+  }
 
   // Solution is: [-1/32, 11/168, 3/224, 1/16, 11/336].
   TEST_CHECK( gkyl_compare(-1.0/32.0,   gkyl_superlu_get_rhs(sluprob,0), 1e-14) );
@@ -147,8 +154,17 @@ void test_slu_ops()
 
 }
 
+void test_slu_basic() {
+  test_slu_ops(false);
+}
+
+void test_slu_separateLU() {
+  test_slu_ops(true);
+}
+
 TEST_LIST = {
   { "slu_example", test_slu_example },
-  { "slu_ops", test_slu_ops },
+  { "slu_basic", test_slu_basic },
+  { "slu_separateLU", test_slu_separateLU },
   { NULL, NULL }
 };

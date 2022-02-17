@@ -16,6 +16,8 @@ struct gkyl_superlu_prob {
   int info, permc_spec;
   superlu_options_t options;
   SuperLUStat_t stat;
+  trans_t trans;
+  GlobalLU_t Glu;
 };
 
 gkyl_superlu_prob*
@@ -37,6 +39,8 @@ gkyl_superlu_prob_new(const int mrow, const int ncol, const int nprob)
 
   // Initialize the statistics variables.
   StatInit(&prob->stat);
+
+  prob->trans = NOTRANS;
 
   return prob;
 }
@@ -79,11 +83,43 @@ gkyl_superlu_amat_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *tri)
   // Create matrix A. See SuperLU manual for definitions.
   dCreate_CompCol_Matrix(&prob->A, prob->mrow, prob->ncol, prob->nnz,
     nzval, rowind, colptr, SLU_NC, SLU_D, SLU_GE);
+
+  prob->options.Fact = DOFACT; // Haven't computed LU decomp yet.
 }
 
-void gkyl_superlu_print_amat(gkyl_superlu_prob *prob)
+void
+gkyl_superlu_print_amat(gkyl_superlu_prob *prob)
 {
   dPrint_CompCol_Matrix("A", &prob->A);
+}
+
+void
+gkyl_superlu_ludecomp(gkyl_superlu_prob *prob)
+{
+  /*
+  *   Get column permutation vector perm_c[], according to permc_spec:
+  * = 0: natural ordering
+  * = 1: minimum degree on structure of A’*A
+  * = 2: minimum degree on structure of A’+A
+  * = 3: approximate minimum degree for unsymmetric matrices
+  */
+  int permc_spec = 0; 
+  get_perm_c(permc_spec, &prob->A, prob->perm_c);
+
+  int *etree; // Column elimination tree.
+  if ( !(etree = intMalloc(prob->ncol)) ) ABORT("superlu_ops: Malloc fails for etree[].");
+  SuperMatrix AC; // permutation matrix time A.
+  sp_preorder(&prob->options, &prob->A, prob->perm_c, etree, &AC);
+
+  int panel_size = sp_ienv(1);
+  int relax = sp_ienv(2);
+  dgstrf(&prob->options, &AC, relax, panel_size, etree, NULL, 0, prob->perm_c,
+    prob->perm_r, &prob->L, &prob->U, &prob->Glu, &prob->stat, &prob->info);
+
+  prob->options.Fact = FACTORED; // LU decomp done.
+
+  SUPERLU_FREE(etree);
+  Destroy_CompCol_Permuted(&AC);
 }
 
 void
@@ -108,8 +144,13 @@ gkyl_superlu_brhs_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *tri)
 void
 gkyl_superlu_solve(gkyl_superlu_prob *prob)
 {
-  dgssv(&prob->options, &prob->A, prob->perm_c, prob->perm_r, &prob->L, &prob->U,
-    &prob->B, &prob->stat, &prob->info);
+  if (prob->options.Fact==FACTORED) {
+    dgstrs(prob->trans, &prob->L, &prob->U, prob->perm_c, prob->perm_r, &prob->B, &prob->stat, &prob->info);
+  } else {
+    dgssv(&prob->options, &prob->A, prob->perm_c, prob->perm_r, &prob->L, &prob->U,
+      &prob->B, &prob->stat, &prob->info);
+    prob->options.Fact = FACTORED; // LU decomp done.
+  }
 }
 
 double
