@@ -119,7 +119,7 @@ gkyl_superlu_ludecomp(gkyl_superlu_prob *prob)
   prob->options.Fact = FACTORED; // LU decomp done.
 
   SUPERLU_FREE(etree);
-  Destroy_SuperMatrix_Store(&AC);
+  Destroy_CompCol_Permuted(&AC);
 }
 
 void
