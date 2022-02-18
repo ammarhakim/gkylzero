@@ -4,7 +4,9 @@
 #include <gkyl_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_alloc.h>
+#include <gkyl_proj_on_basis.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_mat.h>
 #include <gkyl_mat_triples.h>
 #include <gkyl_superlu_ops.h>
 
@@ -34,7 +36,7 @@ gkyl_fem_parproj* gkyl_fem_parproj_new(
 /**
  * Set the multiplicative weight.
  *
- * @param up FEM project updater to run
+ * @param up FEM project updater to run.
  * @param tm Time at which projection must be computed
  * @param inw Input array weight.
  */
@@ -47,12 +49,27 @@ void gkyl_fem_parproj_set_weight(const gkyl_fem_parproj *up,
  * In parallel simulations there will be an option to use
  * non-blocking MPI here and later checking that assembly is complete.
  *
- * @param up FEM project updater to run
+ * @param up FEM project updater to run.
  * @param tm Time at which projection must be computed
  * @param src Input source field.
  */
 void gkyl_fem_parproj_begin_assembly(const gkyl_fem_parproj *up,
   double tm, const struct gkyl_array *src);
+
+/**
+ * Assign the right-side vector with the discontinuous (DG) source field.
+ *
+ * @param up FEM project updater to run.
+ * @param rhsin DG field to set as RHS source.
+ */
+void gkyl_fem_parproj_set_rhs(gkyl_fem_parproj* up, const struct gkyl_array *rhsin);
+
+/**
+ * Solve the linear problem.
+ *
+ * @param up FEM project updater to run.
+ */
+void gkyl_fem_parproj_solve(gkyl_fem_parproj* up);
 
 /**
  * Compute the projection onto the FEM basis. 
@@ -61,7 +78,7 @@ void gkyl_fem_parproj_begin_assembly(const gkyl_fem_parproj *up,
  * @param tm Time at which projection must be computed
  * @param out Output array
  */
-void gkyl_fem_parproj_advance(const gkyl_fem_parproj *up,
+void gkyl_fem_parproj_advance(gkyl_fem_parproj *up,
   double tm, struct gkyl_array *out);
 
 /**
