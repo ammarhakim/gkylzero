@@ -827,11 +827,14 @@ moment_coupling_update(const gkyl_moment_app *app, struct moment_coupling *src,
   
   for (int i=0; i<app->num_species; ++i) {
     fluids[i] = app->species[i].f[sidx[nstrang]];
+    
     if (app->species[i].proj_app_accel)
       gkyl_fv_proj_advance(app->species[i].proj_app_accel, tcurr, &app->local, app->species[i].app_accel);
     app_accels[i] = app->species[i].app_accel;
+    
     if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_grad_closure)
-      gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i], app->local, app->species[i].f[sidx[nstrang]], app->field.f[sidx[nstrang]], src->cflrate, src->rhs[i]);
+      gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i], app->local, app->species[i].f[sidx[nstrang]],
+        app->field.f[sidx[nstrang]], src->cflrate, src->rhs[i]);
   }
 
   if (app->type_brag)
@@ -842,6 +845,7 @@ moment_coupling_update(const gkyl_moment_app *app, struct moment_coupling *src,
   
   if (app->field.proj_app_current)
     gkyl_fv_proj_advance(app->field.proj_app_current, tcurr, &app->local, app->field.app_current);
+  
   if (app->field.proj_ext_em)
     gkyl_fv_proj_advance(app->field.proj_ext_em, tcurr, &app->local, app->field.ext_em);
 
