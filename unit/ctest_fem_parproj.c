@@ -55,9 +55,6 @@ test_1x_p1()
   int cells[] = {4};
   int dim = sizeof(lower)/sizeof(lower[0]);
 
-  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
-  int confCells[] = {cells[0]};
-
   // grids.
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
@@ -79,9 +76,13 @@ test_1x_p1()
   // create DG field we wish to make continuous.
   struct gkyl_array *rho;
   rho = mkarr(basis.num_basis, localRange_ext.volume);
+  // create array holding continuous field we'll compute.
+  struct gkyl_array *phi;
+  phi = mkarr(basis.num_basis, localRange_ext.volume);
 
   // project distribution function on basis.
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho);
+//  gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_parproj_1x1v_p1_rho_1.gkyl");
 
   // parallel FEM projection method.
   gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&grid, &basis, NULL);
@@ -90,12 +91,13 @@ test_1x_p1()
   gkyl_fem_parproj_set_rhs(parproj, rho);
 
   // Solve the problem.
-  gkyl_fem_parproj_solve(parproj);
-
+  gkyl_fem_parproj_solve(parproj, phi);
+//  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_parproj_1x1v_p1_phi_1.gkyl");
 
   gkyl_fem_parproj_release(parproj);
   gkyl_proj_on_basis_release(projob);
   gkyl_array_release(rho);
+  gkyl_array_release(phi);
 
 }
 

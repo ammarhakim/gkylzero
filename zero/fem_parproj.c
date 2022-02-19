@@ -23,6 +23,7 @@ struct gkyl_fem_parproj {
   struct gkyl_superlu_prob* prob;
   struct gkyl_mat *local_mass; // local mass matrix.
   struct gkyl_mat *local_mass_modtonod; // local mass matrix times modal-to-nodal matrix.
+  struct gkyl_mat *local_nodtomod; // local nodal-to-modal matrix.
 };
 
 long
@@ -62,26 +63,26 @@ local_mass(const int dim, const int poly_order, const int basis_type, struct gky
 {
   if (dim==1) {
     if (poly_order == 1) {
-      return fem_parproj_mass_matrix_1x_ser_p1(massout);
+      return fem_parproj_mass_1x_ser_p1(massout);
     } else if (poly_order == 2) {
-      return fem_parproj_mass_matrix_1x_ser_p2(massout);
+      return fem_parproj_mass_1x_ser_p2(massout);
     } else if (poly_order == 3) {
-      return fem_parproj_mass_matrix_1x_ser_p3(massout);
+      return fem_parproj_mass_1x_ser_p3(massout);
     }
   } else if (dim==3) {
     if (basis_type == GKYL_BASIS_MODAL_SERENDIPITY) {
       if (poly_order == 1) {
-        return fem_parproj_mass_matrix_3x_ser_p1(massout);
+        return fem_parproj_mass_3x_ser_p1(massout);
       } else if (poly_order == 2) {
-        return fem_parproj_mass_matrix_3x_ser_p2(massout);
+        return fem_parproj_mass_3x_ser_p2(massout);
       } else if (poly_order == 3) {
-        return fem_parproj_mass_matrix_3x_ser_p3(massout);
+        return fem_parproj_mass_3x_ser_p3(massout);
       }
     } if (basis_type == GKYL_BASIS_MODAL_TENSOR) {
       if (poly_order == 1) {
-        return fem_parproj_mass_matrix_3x_tensor_p1(massout);
+        return fem_parproj_mass_3x_tensor_p1(massout);
       } else if (poly_order == 2) {
-        return fem_parproj_mass_matrix_3x_tensor_p2(massout);
+        return fem_parproj_mass_3x_tensor_p2(massout);
       }
     }
   }
@@ -89,30 +90,61 @@ local_mass(const int dim, const int poly_order, const int basis_type, struct gky
 }
 
 void
-local_mass_modtonod(const int dim, const int poly_order, const int basis_type, struct gkyl_mat *mass_nod2mod)
+local_mass_modtonod(const int dim, const int poly_order, const int basis_type, struct gkyl_mat *mass_mod2nod)
 {
   if (dim==1) {
     if (poly_order == 1) {
-      return fem_parproj_massmat_times_modtonod_1x_ser_p1(mass_nod2mod);
+      return fem_parproj_mass_times_modtonod_1x_ser_p1(mass_mod2nod);
     } else if (poly_order == 2) {
-      return fem_parproj_massmat_times_modtonod_1x_ser_p2(mass_nod2mod);
+      return fem_parproj_mass_times_modtonod_1x_ser_p2(mass_mod2nod);
     } else if (poly_order == 3) {
-      return fem_parproj_massmat_times_modtonod_1x_ser_p3(mass_nod2mod);
+      return fem_parproj_mass_times_modtonod_1x_ser_p3(mass_mod2nod);
     }
   } else if (dim==3) {
     if (basis_type == GKYL_BASIS_MODAL_SERENDIPITY) {
       if (poly_order == 1) {
-        return fem_parproj_massmat_times_modtonod_3x_ser_p1(mass_nod2mod);
+        return fem_parproj_mass_times_modtonod_3x_ser_p1(mass_mod2nod);
       } else if (poly_order == 2) {
-        return fem_parproj_massmat_times_modtonod_3x_ser_p2(mass_nod2mod);
+        return fem_parproj_mass_times_modtonod_3x_ser_p2(mass_mod2nod);
       } else if (poly_order == 3) {
-        return fem_parproj_massmat_times_modtonod_3x_ser_p3(mass_nod2mod);
+        return fem_parproj_mass_times_modtonod_3x_ser_p3(mass_mod2nod);
       }
     } if (basis_type == GKYL_BASIS_MODAL_TENSOR) {
       if (poly_order == 1) {
-        return fem_parproj_massmat_times_modtonod_3x_tensor_p1(mass_nod2mod);
+        return fem_parproj_mass_times_modtonod_3x_tensor_p1(mass_mod2nod);
       } else if (poly_order == 2) {
-        return fem_parproj_massmat_times_modtonod_3x_tensor_p2(mass_nod2mod);
+        return fem_parproj_mass_times_modtonod_3x_tensor_p2(mass_mod2nod);
+      }
+    }
+  }
+  assert(false);  // Other dimensionalities not supported.
+}
+
+void
+local_nodtomod(const int dim, const int poly_order, const int basis_type, struct gkyl_mat *nod2mod)
+{
+  if (dim==1) {
+    if (poly_order == 1) {
+      return fem_parproj_nodtomod_1x_ser_p1(nod2mod);
+    } else if (poly_order == 2) {
+      return fem_parproj_nodtomod_1x_ser_p2(nod2mod);
+    } else if (poly_order == 3) {
+      return fem_parproj_nodtomod_1x_ser_p3(nod2mod);
+    }
+  } else if (dim==3) {
+    if (basis_type == GKYL_BASIS_MODAL_SERENDIPITY) {
+      if (poly_order == 1) {
+        return fem_parproj_nodtomod_3x_ser_p1(nod2mod);
+      } else if (poly_order == 2) {
+        return fem_parproj_nodtomod_3x_ser_p2(nod2mod);
+      } else if (poly_order == 3) {
+        return fem_parproj_nodtomod_3x_ser_p3(nod2mod);
+      }
+    } if (basis_type == GKYL_BASIS_MODAL_TENSOR) {
+      if (poly_order == 1) {
+        return fem_parproj_nodtomod_3x_tensor_p1(nod2mod);
+      } else if (poly_order == 2) {
+        return fem_parproj_nodtomod_3x_tensor_p2(nod2mod);
       }
     }
   }
@@ -197,6 +229,8 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   local_mass(up->ndim, up->poly_order, basis->b_type, up->local_mass);
   up->local_mass_modtonod = gkyl_mat_new(up->numnodes_local, up->numnodes_local, 0.);
   local_mass_modtonod(up->ndim, up->poly_order, basis->b_type, up->local_mass_modtonod);
+  up->local_nodtomod = gkyl_mat_new(up->numnodes_local, up->numnodes_local, 0.);
+  local_nodtomod(up->ndim, up->poly_order, basis->b_type, up->local_nodtomod);
 
   // Create a linear Ax=B problem. We envision two cases:
   //  a) No weight, or weight is a scalar so we can divide the RHS by it. Then
@@ -264,14 +298,36 @@ gkyl_fem_parproj_set_rhs(gkyl_fem_parproj* up, const struct gkyl_array *rhsin)
 }
 
 void
-gkyl_fem_parproj_solve(gkyl_fem_parproj* up) {
+gkyl_fem_parproj_solve(gkyl_fem_parproj* up, struct gkyl_array *phiout) {
   gkyl_superlu_solve(up->prob);
+
+  gkyl_range_iter_init(&up->par_iter, &up->par_range);
+  long *globalidx = gkyl_malloc(sizeof(long[up->num_basis]));
+  while (gkyl_range_iter_next(&up->par_iter)) {
+    long paridx = gkyl_range_idx(&up->par_range, up->par_iter.idx);
+
+    double *phiout_p = gkyl_array_fetch(phiout, paridx);
+
+    local_to_global(up->ndim, up->poly_order, up->basis_type, up->parnum_cells, paridx, globalidx);
+
+    for (size_t k=0; k<up->numnodes_local; ++k) {
+      phiout_p[k] = 0.;
+      for (size_t m=0; m<up->numnodes_local; ++m) {
+        long globalidx_m = globalidx[m];
+        phiout_p[k] += gkyl_mat_get(up->local_nodtomod,k,m) * gkyl_superlu_get_rhs(up->prob,globalidx_m);
+      }
+    }
+
+  }
+  gkyl_free(globalidx);
+
 }
 
 void gkyl_fem_parproj_release(gkyl_fem_parproj *up)
 {
   gkyl_mat_release(up->local_mass);
   gkyl_mat_release(up->local_mass_modtonod);
+  gkyl_mat_release(up->local_nodtomod);
   gkyl_array_release(up->weight);
   gkyl_superlu_prob_release(up->prob);
   gkyl_free(up);

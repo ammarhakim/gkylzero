@@ -69,7 +69,7 @@ void gkyl_fem_parproj_set_rhs(gkyl_fem_parproj* up, const struct gkyl_array *rhs
  *
  * @param up FEM project updater to run.
  */
-void gkyl_fem_parproj_solve(gkyl_fem_parproj* up);
+void gkyl_fem_parproj_solve(gkyl_fem_parproj* up, struct gkyl_array *phiout);
 
 /**
  * Compute the projection onto the FEM basis. 
