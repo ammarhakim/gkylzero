@@ -256,16 +256,15 @@ gkyl_fem_parproj_set_rhs(gkyl_fem_parproj* up, const struct gkyl_array *rhsin)
     }
 
   }
-
-  gkyl_mat_triples_release(tri);
   gkyl_free(globalidx);
 
   gkyl_superlu_brhs_from_triples(up->prob, tri);
+  gkyl_mat_triples_release(tri);
 
 }
 
 void
-gkyl_fem_parproj_set_solve(gkyl_fem_parproj* up) {
+gkyl_fem_parproj_solve(gkyl_fem_parproj* up) {
   gkyl_superlu_solve(up->prob);
 }
 

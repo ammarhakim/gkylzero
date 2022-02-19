@@ -90,7 +90,7 @@ test_1x_p1()
   gkyl_fem_parproj_set_rhs(parproj, rho);
 
   // Solve the problem.
-  gkyl_fem_parproj_set_solve(parproj);
+  gkyl_fem_parproj_solve(parproj);
 
 
   gkyl_fem_parproj_release(parproj);
