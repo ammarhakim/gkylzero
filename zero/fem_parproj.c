@@ -24,6 +24,8 @@ struct gkyl_fem_parproj {
   struct gkyl_mat *local_mass; // local mass matrix.
   struct gkyl_mat *local_mass_modtonod; // local mass matrix times modal-to-nodal matrix.
   struct gkyl_mat *local_nodtomod; // local nodal-to-modal matrix.
+
+  long *globalidx;
 };
 
 long
@@ -200,25 +202,29 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->num_basis = basis->num_basis;
   up->basis_type = basis->b_type;
   up->poly_order = basis->poly_order;
-  up->pardir = grid->ndim; // Assume parallel direction is always the last.
-  up->parnum_cells = grid->cells[up->pardir-1];
+  up->pardir = grid->ndim-1; // Assume parallel direction is always the last.
+  up->parnum_cells = grid->cells[up->pardir];
+
+  up->globalidx = gkyl_malloc(sizeof(long[up->num_basis]));
+
+  int ghost[GKYL_MAX_DIM];
+  for (int d=0; d<up->ndim; d++) ghost[d] = 1;
+  struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
+  gkyl_create_grid_ranges(grid, ghost, &localRange_ext, &localRange);
 
   // Range of perpendicular cells.
-  struct gkyl_range range;
-  gkyl_range_init_from_shape(&range, grid->ndim, grid->cells);
-  gkyl_range_shorten(&up->perp_range, &range, up->pardir, 1);
+  gkyl_range_shorten(&up->perp_range, &localRange, up->pardir, 1);
   // Range of parallel cells.
-  int par_shape[] = {up->parnum_cells};
-  gkyl_range_init_from_shape(&up->par_range, 1, par_shape);
+  gkyl_sub_range_init(&up->par_range, &localRange, localRange.lower, localRange.upper);
+  for (int d=0; d<up->ndim-1; d++) 
+    gkyl_range_shorten(&up->par_range, &localRange, d, 1);
 
   // Compute the number of local and global nodes.
   up->numnodes_local = up->num_basis;
   up->numnodes_global = global_num_nodes(up->ndim, up->poly_order, basis->b_type, up->parnum_cells);
 
   // Allocate array holding the weight and set it to 1.
-  struct gkyl_range localRange;
-  gkyl_range_init_from_shape(&localRange, up->ndim, grid->cells);
-  up->weight = gkyl_array_new(GKYL_DOUBLE, up->num_basis, localRange.volume);
+  up->weight = gkyl_array_new(GKYL_DOUBLE, up->num_basis, localRange_ext.volume);
   gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(grid, basis,
     up->poly_order+1, 1, unityFunc, NULL);
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, up->weight);
@@ -244,17 +250,16 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   // Assign non-zero elements in A.
   gkyl_mat_triples *tri = gkyl_mat_triples_new(up->numnodes_global, up->numnodes_global);
   gkyl_range_iter_init(&up->par_iter, &up->par_range);
-  long *globalidx = gkyl_malloc(sizeof(long[up->num_basis]));
   while (gkyl_range_iter_next(&up->par_iter)) {
     long paridx = gkyl_range_idx(&up->par_range, up->par_iter.idx);
 
-    local_to_global(up->ndim, up->poly_order, up->basis_type, up->parnum_cells, paridx, globalidx);
+    local_to_global(up->ndim, up->poly_order, up->basis_type, up->parnum_cells, paridx-1, up->globalidx);
 
     for (size_t k=0; k<up->numnodes_local; ++k) {
       for (size_t m=0; m<up->numnodes_local; ++m) {
         double val = gkyl_mat_get(up->local_mass,k,m);
-        long globalidx_k = globalidx[k];
-        long globalidx_m = globalidx[m];
+        long globalidx_k = up->globalidx[k];
+        long globalidx_m = up->globalidx[m];
         gkyl_mat_triples_accum(tri, globalidx_k, globalidx_m, val);
       }
     }
@@ -262,7 +267,6 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   gkyl_superlu_amat_from_triples(up->prob, tri);
 
   gkyl_mat_triples_release(tri);
-  gkyl_free(globalidx);
 
   return up;
 }
@@ -271,26 +275,24 @@ void
 gkyl_fem_parproj_set_rhs(gkyl_fem_parproj* up, const struct gkyl_array *rhsin)
 {
   gkyl_range_iter_init(&up->par_iter, &up->par_range);
-  long *globalidx = gkyl_malloc(sizeof(long[up->num_basis]));
   gkyl_mat_triples *tri = gkyl_mat_triples_new(up->numnodes_global, up->perp_range.volume);
   while (gkyl_range_iter_next(&up->par_iter)) {
     long paridx = gkyl_range_idx(&up->par_range, up->par_iter.idx);
 
     const double *rhsin_p = gkyl_array_cfetch(rhsin, paridx);
 
-    local_to_global(up->ndim, up->poly_order, up->basis_type, up->parnum_cells, paridx, globalidx);
+    local_to_global(up->ndim, up->poly_order, up->basis_type, up->parnum_cells, paridx-1, up->globalidx);
 
     for (size_t k=0; k<up->numnodes_local; ++k) {
-      long globalidx_k = globalidx[k];
+      long globalidx_k = up->globalidx[k];
       double massnod_rhs = 0.;
       for (size_t m=0; m<up->numnodes_local; ++m) {
         massnod_rhs += gkyl_mat_get(up->local_mass_modtonod,k,m) * rhsin_p[m];
       }
-      gkyl_mat_triples_accum(tri, globalidx_k, 1, massnod_rhs);
+      gkyl_mat_triples_accum(tri, globalidx_k, 0, massnod_rhs);
     }
 
   }
-  gkyl_free(globalidx);
 
   gkyl_superlu_brhs_from_triples(up->prob, tri);
   gkyl_mat_triples_release(tri);
@@ -302,24 +304,22 @@ gkyl_fem_parproj_solve(gkyl_fem_parproj* up, struct gkyl_array *phiout) {
   gkyl_superlu_solve(up->prob);
 
   gkyl_range_iter_init(&up->par_iter, &up->par_range);
-  long *globalidx = gkyl_malloc(sizeof(long[up->num_basis]));
   while (gkyl_range_iter_next(&up->par_iter)) {
     long paridx = gkyl_range_idx(&up->par_range, up->par_iter.idx);
 
     double *phiout_p = gkyl_array_fetch(phiout, paridx);
 
-    local_to_global(up->ndim, up->poly_order, up->basis_type, up->parnum_cells, paridx, globalidx);
+    local_to_global(up->ndim, up->poly_order, up->basis_type, up->parnum_cells, paridx-1, up->globalidx);
 
     for (size_t k=0; k<up->numnodes_local; ++k) {
       phiout_p[k] = 0.;
       for (size_t m=0; m<up->numnodes_local; ++m) {
-        long globalidx_m = globalidx[m];
+        long globalidx_m = up->globalidx[m];
         phiout_p[k] += gkyl_mat_get(up->local_nodtomod,k,m) * gkyl_superlu_get_rhs(up->prob,globalidx_m);
       }
     }
 
   }
-  gkyl_free(globalidx);
 
 }
 
@@ -330,5 +330,6 @@ void gkyl_fem_parproj_release(gkyl_fem_parproj *up)
   gkyl_mat_release(up->local_nodtomod);
   gkyl_array_release(up->weight);
   gkyl_superlu_prob_release(up->prob);
+  gkyl_free(up->globalidx);
   gkyl_free(up);
 }

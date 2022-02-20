@@ -82,7 +82,7 @@ test_1x_p1()
 
   // project distribution function on basis.
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho);
-//  gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_parproj_1x1v_p1_rho_1.gkyl");
+  gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_parproj_1x1v_p1_rho_1.gkyl");
 
   // parallel FEM projection method.
   gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&grid, &basis, NULL);
@@ -92,7 +92,26 @@ test_1x_p1()
 
   // Solve the problem.
   gkyl_fem_parproj_solve(parproj, phi);
-//  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_parproj_1x1v_p1_phi_1.gkyl");
+  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_parproj_1x1v_p1_phi_1.gkyl");
+
+  // Solution is:
+  //   [-0.9089542445638024 -0.4554124667453318]
+  //   [-0.8488758876834943  0.4900987222626481]
+  //   [ 0.8488758876834943  0.490098722262648 ]
+  //   [ 0.9089542445638024 -0.4554124667453318]
+  const double *phi_p;
+  phi_p = gkyl_array_cfetch(phi, 1);
+  TEST_CHECK( gkyl_compare(-0.9089542445638024, phi_p[0], 1e-14) );
+  TEST_CHECK( gkyl_compare(-0.4554124667453318, phi_p[1], 1e-14) );
+  phi_p = gkyl_array_cfetch(phi, 2);
+  TEST_CHECK( gkyl_compare(-0.8488758876834943, phi_p[0], 1e-14) );
+  TEST_CHECK( gkyl_compare(0.4900987222626481, phi_p[1], 1e-14) );
+  phi_p = gkyl_array_cfetch(phi, 3);
+  TEST_CHECK( gkyl_compare(0.8488758876834943, phi_p[0], 1e-14) );
+  TEST_CHECK( gkyl_compare(0.490098722262648, phi_p[1], 1e-14) );
+  phi_p = gkyl_array_cfetch(phi, 4);
+  TEST_CHECK( gkyl_compare(0.9089542445638024, phi_p[0], 1e-14) );
+  TEST_CHECK( gkyl_compare(-0.4554124667453318, phi_p[1], 1e-14) );
 
   gkyl_fem_parproj_release(parproj);
   gkyl_proj_on_basis_release(projob);

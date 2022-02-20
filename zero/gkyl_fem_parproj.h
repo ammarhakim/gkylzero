@@ -6,6 +6,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_rect_decomp.h>
 #include <gkyl_mat.h>
 #include <gkyl_mat_triples.h>
 #include <gkyl_superlu_ops.h>
