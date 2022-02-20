@@ -10,15 +10,22 @@ struct gkyl_fem_parproj {
   int poly_order;
   int pardir; // parallel (z) direction.
   int parnum_cells; // number of cells in parallel (z) direction.
+  bool isperiodic; // =true if parallel direction is periodic.
 
   struct gkyl_range perp_range; // range of perpendicular cells.
   struct gkyl_range_iter perp_iter;
   struct gkyl_range par_range; // range of parallel cells.
   struct gkyl_range_iter par_iter;
 
-  int numnodes_local, numnodes_global;
+  int bc_off;
+  // These are used with periodic BCs:
+  struct gkyl_array *parbc_buff;
+  struct gkyl_range parskin_lo, parskin_up, parghost_lo, parghost_up;
 
-  struct gkyl_array* weight; // weight field (DG).
+  int numnodes_local;
+  long numnodes_global;
+
+  struct gkyl_array *weight; // weight field (DG).
 
   struct gkyl_superlu_prob* prob;
   struct gkyl_mat *local_mass; // local mass matrix.
@@ -189,10 +196,21 @@ void unityFunc(double t, const double *xn, double* restrict fout, void *ctx)
   fout[0] = 1.0;
 }
 
+// Apply periodic BCs along parallel direction.
+void
+apply_parperiodic_bc(gkyl_fem_parproj* up, struct gkyl_array *fld)
+{
+  gkyl_array_copy_to_buffer(up->parbc_buff->data, fld, up->parskin_lo);
+  gkyl_array_copy_from_buffer(fld, up->parbc_buff->data, up->parghost_lo);
+
+  gkyl_array_copy_to_buffer(up->parbc_buff->data, fld, up->parskin_up);
+  gkyl_array_copy_from_buffer(fld, up->parbc_buff->data, up->parghost_up);
+}
+
 
 gkyl_fem_parproj*
 gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
-  void *ctx)
+  const bool isparperiodic, void *ctx)
 {
   gkyl_fem_parproj *up = gkyl_malloc(sizeof(gkyl_fem_parproj));
 
@@ -203,32 +221,60 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->basis_type = basis->b_type;
   up->poly_order = basis->poly_order;
   up->pardir = grid->ndim-1; // Assume parallel direction is always the last.
-  up->parnum_cells = grid->cells[up->pardir];
+  up->isperiodic = isparperiodic;
 
   up->globalidx = gkyl_malloc(sizeof(long[up->num_basis]));
 
+  // Local and local-ext ranges for whole-grid arrays.
   int ghost[GKYL_MAX_DIM];
   for (int d=0; d<up->ndim; d++) ghost[d] = 1;
-  struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
-  gkyl_create_grid_ranges(grid, ghost, &localRange_ext, &localRange);
-
-  // Range of perpendicular cells.
-  gkyl_range_shorten(&up->perp_range, &localRange, up->pardir, 1);
+  struct gkyl_range localrange, localrange_ext;
+  gkyl_create_grid_ranges(grid, ghost, &localrange_ext, &localrange);
   // Range of parallel cells.
-  gkyl_sub_range_init(&up->par_range, &localRange, localRange.lower, localRange.upper);
-  for (int d=0; d<up->ndim-1; d++) 
-    gkyl_range_shorten(&up->par_range, &localRange, d, 1);
+  int sublower[GKYL_MAX_DIM], subupper[GKYL_MAX_DIM];
+  for (int d=0; d<up->ndim-1; d++) {sublower[d] = localrange.lower[d];  subupper[d] = localrange.lower[d];}
+  sublower[up->pardir] = localrange.lower[up->pardir];
+  subupper[up->pardir] = localrange.upper[up->pardir];
+  up->bc_off = 1;
+  if (up->isperiodic) {
+    // Include ghost cells in parallel direction.
+    sublower[up->pardir] = localrange_ext.lower[up->pardir];
+    subupper[up->pardir] = localrange_ext.upper[up->pardir];
+    // Will also need an offset to convert indices in the grid to indices in
+    // the linear problem.
+    up->bc_off = 0;
+  }
+  gkyl_sub_range_init(&up->par_range, &localrange_ext, sublower, subupper);
+  up->parnum_cells = up->par_range.volume;
+  // Range of perpendicular cells.
+  gkyl_range_shorten(&up->perp_range, &localrange, up->pardir, 1);
+
+  // If periodic in par dir we may sync (fill ghost cells) of the weight
+  // along par dir. This may later be done outside of fem_parproj (due to MPI),
+  // and for the same reason we assume that the RHS source is synced before
+  // passing it to this updater, and that the final FEM field (phi) is synced
+  // outside fem_parproj after this updater is done.
+  if (up->isperiodic) {
+    // Skin and ghost ranges.
+    gkyl_skin_ghost_ranges(&up->parskin_lo, &up->parghost_lo, up->pardir, 
+      GKYL_LOWER_EDGE, &localrange_ext, ghost);
+    gkyl_skin_ghost_ranges(&up->parskin_up, &up->parghost_up, up->pardir, 
+      GKYL_UPPER_EDGE, &localrange_ext, ghost);
+    // Buffer to store skin data.
+    up->parbc_buff = gkyl_array_new(GKYL_DOUBLE, up->num_basis, up->parskin_up.volume);
+  }
 
   // Compute the number of local and global nodes.
   up->numnodes_local = up->num_basis;
-  up->numnodes_global = global_num_nodes(up->ndim, up->poly_order, basis->b_type, up->parnum_cells);
+  up->numnodes_global = global_num_nodes(up->ndim, up->poly_order, basis->b_type, up->par_range.volume);
 
   // Allocate array holding the weight and set it to 1.
-  up->weight = gkyl_array_new(GKYL_DOUBLE, up->num_basis, localRange_ext.volume);
+  up->weight = gkyl_array_new(GKYL_DOUBLE, up->num_basis, localrange_ext.volume);
   gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(grid, basis,
     up->poly_order+1, 1, unityFunc, NULL);
-  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, up->weight);
+  gkyl_proj_on_basis_advance(projob, 0.0, &localrange, up->weight);
   gkyl_proj_on_basis_release(projob);
+  if (up->isperiodic) apply_parperiodic_bc(up, up->weight); 
 
   // Create local matrices used later.
   up->local_mass = gkyl_mat_new(up->numnodes_local, up->numnodes_local, 0.);
@@ -253,7 +299,7 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   while (gkyl_range_iter_next(&up->par_iter)) {
     long paridx = gkyl_range_idx(&up->par_range, up->par_iter.idx);
 
-    local_to_global(up->ndim, up->poly_order, up->basis_type, up->parnum_cells, paridx-1, up->globalidx);
+    local_to_global(up->ndim, up->poly_order, up->basis_type, up->parnum_cells, paridx-up->bc_off, up->globalidx);
 
     for (size_t k=0; k<up->numnodes_local; ++k) {
       for (size_t m=0; m<up->numnodes_local; ++m) {
@@ -281,7 +327,7 @@ gkyl_fem_parproj_set_rhs(gkyl_fem_parproj* up, const struct gkyl_array *rhsin)
 
     const double *rhsin_p = gkyl_array_cfetch(rhsin, paridx);
 
-    local_to_global(up->ndim, up->poly_order, up->basis_type, up->parnum_cells, paridx-1, up->globalidx);
+    local_to_global(up->ndim, up->poly_order, up->basis_type, up->parnum_cells, paridx-up->bc_off, up->globalidx);
 
     for (size_t k=0; k<up->numnodes_local; ++k) {
       long globalidx_k = up->globalidx[k];
@@ -309,7 +355,7 @@ gkyl_fem_parproj_solve(gkyl_fem_parproj* up, struct gkyl_array *phiout) {
 
     double *phiout_p = gkyl_array_fetch(phiout, paridx);
 
-    local_to_global(up->ndim, up->poly_order, up->basis_type, up->parnum_cells, paridx-1, up->globalidx);
+    local_to_global(up->ndim, up->poly_order, up->basis_type, up->parnum_cells, paridx-up->bc_off, up->globalidx);
 
     for (size_t k=0; k<up->numnodes_local; ++k) {
       phiout_p[k] = 0.;
@@ -325,6 +371,9 @@ gkyl_fem_parproj_solve(gkyl_fem_parproj* up, struct gkyl_array *phiout) {
 
 void gkyl_fem_parproj_release(gkyl_fem_parproj *up)
 {
+  if (up->isperiodic) {
+    gkyl_array_release(up->parbc_buff);
+  }
   gkyl_mat_release(up->local_mass);
   gkyl_mat_release(up->local_mass_modtonod);
   gkyl_mat_release(up->local_nodtomod);

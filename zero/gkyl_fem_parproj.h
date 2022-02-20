@@ -7,6 +7,7 @@
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_rect_decomp.h>
+#include <gkyl_array_ops.h>
 #include <gkyl_mat.h>
 #include <gkyl_mat_triples.h>
 #include <gkyl_superlu_ops.h>
@@ -27,12 +28,13 @@ typedef struct gkyl_fem_parproj gkyl_fem_parproj;
  *
  * @param grid Grid object
  * @param basis Basis functions of the DG field.
+ * @param isparperiodic boolean indicating if parallel direction is periodic.
  * @param ctx Context for function evaluation. Can be NULL.
  * @return New updater pointer.
  */
 gkyl_fem_parproj* gkyl_fem_parproj_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
-  void *ctx);
+  const bool isparperiodic, void *ctx);
 
 /**
  * Set the multiplicative weight.
