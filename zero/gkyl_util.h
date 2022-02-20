@@ -106,7 +106,7 @@ enum gkyl_cu_memcpy_kind {
         *cntr += 1;                                                     \
         printf("%s failed! (%s:%d)\n", #expr, __FILE__, __LINE__);      \
       }                                                                 \
-    } while (0);
+    } while (0)
 
 // Computes length of string needed given a format specifier and data. Example:
 //

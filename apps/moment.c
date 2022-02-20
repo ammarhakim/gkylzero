@@ -1,4 +1,3 @@
-#include "gkyl_wave_geom.h"
 #include <assert.h>
 #include <float.h>
 #include <math.h>
@@ -17,6 +16,7 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
+#include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_maxwell.h>
