@@ -167,7 +167,6 @@ check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_proj_maxwellian_on_basis
 	./build/unit/ctest_proj_on_basis
 	./build/unit/ctest_range
-	./build/unit/ctest_rect_apply_bc
 	./build/unit/ctest_rect_decomp
 	./build/unit/ctest_rect_grid
 	./build/unit/ctest_ref_count
@@ -178,6 +177,7 @@ check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_wv_iso_euler
 	./build/unit/ctest_wv_maxwell
 	./build/unit/ctest_wv_mhd
+	./build/unit/ctest_wv_rect_apply_bc
 	./build/unit/ctest_wv_sr_euler
 	./build/unit/ctest_wv_ten_moment
 

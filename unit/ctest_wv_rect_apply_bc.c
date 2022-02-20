@@ -2,9 +2,9 @@
 
 #include <gkyl_array_ops.h>
 #include <gkyl_range.h>
-#include <gkyl_rect_apply_bc.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_wv_rect_apply_bc.h>
 
 static void
 bc_copy(double t, int dir, int nc, const double *skin, double *restrict ghost, void *ctx)
@@ -26,8 +26,8 @@ test_1()
   struct gkyl_range ext_range, range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
-  gkyl_rect_apply_bc *lbc = gkyl_rect_apply_bc_new(&grid, 0, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
-  gkyl_rect_apply_bc *rbc = gkyl_rect_apply_bc_new(&grid, 0, GKYL_UPPER_EDGE, nghost, bc_copy, NULL);  
+  gkyl_wv_rect_apply_bc *lbc = gkyl_wv_rect_apply_bc_new(&grid, 0, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
+  gkyl_wv_rect_apply_bc *rbc = gkyl_wv_rect_apply_bc_new(&grid, 0, GKYL_UPPER_EDGE, nghost, bc_copy, NULL);  
 
   struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, 1, ext_range.volume);
 
@@ -42,8 +42,8 @@ test_1()
   TEST_CHECK( 0.0 == data[19] );
   
   // apply BC
-  gkyl_rect_apply_bc_advance(lbc, 0.0, &range, distf);
-  gkyl_rect_apply_bc_advance(rbc, 0.0, &range, distf);
+  gkyl_wv_rect_apply_bc_advance(lbc, 0.0, &range, distf);
+  gkyl_wv_rect_apply_bc_advance(rbc, 0.0, &range, distf);
 
   // check if BCs applied correctly
   TEST_CHECK( 1.0 == data[0] );
@@ -52,8 +52,8 @@ test_1()
   TEST_CHECK( 1.0 == data[18] );
   TEST_CHECK( 1.0 == data[19] );  
 
-  gkyl_rect_apply_bc_release(lbc);
-  gkyl_rect_apply_bc_release(rbc);
+  gkyl_wv_rect_apply_bc_release(lbc);
+  gkyl_wv_rect_apply_bc_release(rbc);
   gkyl_array_release(distf);
 }
 
@@ -71,11 +71,11 @@ test_2()
   struct gkyl_range ext_range, range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
-  gkyl_rect_apply_bc *lbc = gkyl_rect_apply_bc_new(&grid, 0, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
-  gkyl_rect_apply_bc *rbc = gkyl_rect_apply_bc_new(&grid, 0, GKYL_UPPER_EDGE, nghost, bc_copy, NULL);
+  gkyl_wv_rect_apply_bc *lbc = gkyl_wv_rect_apply_bc_new(&grid, 0, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
+  gkyl_wv_rect_apply_bc *rbc = gkyl_wv_rect_apply_bc_new(&grid, 0, GKYL_UPPER_EDGE, nghost, bc_copy, NULL);
 
-  gkyl_rect_apply_bc *bbc = gkyl_rect_apply_bc_new(&grid, 1, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
-  gkyl_rect_apply_bc *tbc = gkyl_rect_apply_bc_new(&grid, 1, GKYL_UPPER_EDGE, nghost, bc_copy, NULL);  
+  gkyl_wv_rect_apply_bc *bbc = gkyl_wv_rect_apply_bc_new(&grid, 1, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
+  gkyl_wv_rect_apply_bc *tbc = gkyl_wv_rect_apply_bc_new(&grid, 1, GKYL_UPPER_EDGE, nghost, bc_copy, NULL);  
 
   struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, 1, ext_range.volume);
 
@@ -95,11 +95,11 @@ test_2()
 
   // apply various BCs
 
-  gkyl_rect_apply_bc_advance(lbc, 0.0, &range, distf);
-  gkyl_rect_apply_bc_advance(rbc, 0.0, &range, distf);
+  gkyl_wv_rect_apply_bc_advance(lbc, 0.0, &range, distf);
+  gkyl_wv_rect_apply_bc_advance(rbc, 0.0, &range, distf);
 
-  gkyl_rect_apply_bc_advance(bbc, 0.0, &range, distf);
-  gkyl_rect_apply_bc_advance(tbc, 0.0, &range, distf);
+  gkyl_wv_rect_apply_bc_advance(bbc, 0.0, &range, distf);
+  gkyl_wv_rect_apply_bc_advance(tbc, 0.0, &range, distf);
 
   gkyl_range_iter_init(&iter, &ext_range);
 
@@ -113,10 +113,10 @@ test_2()
   // touched by BC updater we need to subtract the volume of the 4 corners
   TEST_CHECK( vol == ext_range.volume-4*4 );
 
-  gkyl_rect_apply_bc_release(lbc);
-  gkyl_rect_apply_bc_release(rbc);
-  gkyl_rect_apply_bc_release(bbc);
-  gkyl_rect_apply_bc_release(tbc);
+  gkyl_wv_rect_apply_bc_release(lbc);
+  gkyl_wv_rect_apply_bc_release(rbc);
+  gkyl_wv_rect_apply_bc_release(bbc);
+  gkyl_wv_rect_apply_bc_release(tbc);
   gkyl_array_release(distf);  
 }
 
@@ -134,11 +134,11 @@ test_3()
   struct gkyl_range ext_range, range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
-  gkyl_rect_apply_bc *lbc = gkyl_rect_apply_bc_new(&grid, 0, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
-  gkyl_rect_apply_bc *rbc = gkyl_rect_apply_bc_new(&grid, 0, GKYL_UPPER_EDGE, nghost, bc_copy, NULL);
+  gkyl_wv_rect_apply_bc *lbc = gkyl_wv_rect_apply_bc_new(&grid, 0, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
+  gkyl_wv_rect_apply_bc *rbc = gkyl_wv_rect_apply_bc_new(&grid, 0, GKYL_UPPER_EDGE, nghost, bc_copy, NULL);
 
-  gkyl_rect_apply_bc *bbc = gkyl_rect_apply_bc_new(&grid, 1, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
-  gkyl_rect_apply_bc *tbc = gkyl_rect_apply_bc_new(&grid, 1, GKYL_UPPER_EDGE, nghost, bc_copy, NULL);  
+  gkyl_wv_rect_apply_bc *bbc = gkyl_wv_rect_apply_bc_new(&grid, 1, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
+  gkyl_wv_rect_apply_bc *tbc = gkyl_wv_rect_apply_bc_new(&grid, 1, GKYL_UPPER_EDGE, nghost, bc_copy, NULL);  
 
   struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, 1, ext_range.volume);
 
@@ -161,11 +161,11 @@ test_3()
   struct gkyl_range sub_range;
   gkyl_sub_range_init(&sub_range, &ext_range, (int []) { 0, 2 }, (int []) { 10, 6 });
 
-  gkyl_rect_apply_bc_advance(lbc, 0.0, &sub_range, distf);
-  gkyl_rect_apply_bc_advance(rbc, 0.0, &sub_range, distf);
+  gkyl_wv_rect_apply_bc_advance(lbc, 0.0, &sub_range, distf);
+  gkyl_wv_rect_apply_bc_advance(rbc, 0.0, &sub_range, distf);
 
-  gkyl_rect_apply_bc_advance(bbc, 0.0, &sub_range, distf);
-  gkyl_rect_apply_bc_advance(tbc, 0.0, &sub_range, distf);
+  gkyl_wv_rect_apply_bc_advance(bbc, 0.0, &sub_range, distf);
+  gkyl_wv_rect_apply_bc_advance(tbc, 0.0, &sub_range, distf);
 
   gkyl_range_iter_init(&iter, &ext_range);
 
@@ -186,11 +186,11 @@ test_3()
   
   gkyl_sub_range_init(&sub_range, &ext_range, (int []) { 2, 0 }, (int []) { 8, 4 });
 
-  gkyl_rect_apply_bc_advance(lbc, 0.0, &sub_range, distf);
-  gkyl_rect_apply_bc_advance(rbc, 0.0, &sub_range, distf);
+  gkyl_wv_rect_apply_bc_advance(lbc, 0.0, &sub_range, distf);
+  gkyl_wv_rect_apply_bc_advance(rbc, 0.0, &sub_range, distf);
 
-  gkyl_rect_apply_bc_advance(bbc, 0.0, &sub_range, distf);
-  gkyl_rect_apply_bc_advance(tbc, 0.0, &sub_range, distf);
+  gkyl_wv_rect_apply_bc_advance(bbc, 0.0, &sub_range, distf);
+  gkyl_wv_rect_apply_bc_advance(tbc, 0.0, &sub_range, distf);
 
   gkyl_range_iter_init(&iter, &ext_range);
 
@@ -211,11 +211,11 @@ test_3()
   
   gkyl_sub_range_init(&sub_range, &ext_range, (int []) { 2, 1 }, (int []) { 8, 4 });
 
-  gkyl_rect_apply_bc_advance(lbc, 0.0, &sub_range, distf);
-  gkyl_rect_apply_bc_advance(rbc, 0.0, &sub_range, distf);
+  gkyl_wv_rect_apply_bc_advance(lbc, 0.0, &sub_range, distf);
+  gkyl_wv_rect_apply_bc_advance(rbc, 0.0, &sub_range, distf);
 
-  gkyl_rect_apply_bc_advance(bbc, 0.0, &sub_range, distf);
-  gkyl_rect_apply_bc_advance(tbc, 0.0, &sub_range, distf);
+  gkyl_wv_rect_apply_bc_advance(bbc, 0.0, &sub_range, distf);
+  gkyl_wv_rect_apply_bc_advance(tbc, 0.0, &sub_range, distf);
 
   gkyl_range_iter_init(&iter, &ext_range);
 
@@ -228,10 +228,10 @@ test_3()
   // range does not touch boundaries
   TEST_CHECK( vol == range.volume );  
 
-  gkyl_rect_apply_bc_release(lbc);
-  gkyl_rect_apply_bc_release(rbc);
-  gkyl_rect_apply_bc_release(bbc);
-  gkyl_rect_apply_bc_release(tbc);
+  gkyl_wv_rect_apply_bc_release(lbc);
+  gkyl_wv_rect_apply_bc_release(rbc);
+  gkyl_wv_rect_apply_bc_release(bbc);
+  gkyl_wv_rect_apply_bc_release(tbc);
   gkyl_array_release(distf);  
 }
 

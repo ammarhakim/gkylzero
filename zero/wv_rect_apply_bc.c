@@ -1,26 +1,26 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
 #include <gkyl_range.h>
-#include <gkyl_rect_apply_bc.h>
 #include <gkyl_rect_decomp.h>
+#include <gkyl_wv_rect_apply_bc.h>
 
-struct gkyl_rect_apply_bc {
+struct gkyl_wv_rect_apply_bc {
   struct gkyl_rect_grid grid;
   int dir; // direction to apply BC
   enum gkyl_edge_loc edge; // edge to apply BC
   int nghost[GKYL_MAX_DIM]; // number of ghost cells
-  rect_bc_func_t bcfunc; // function pointer
+  wv_rect_bc_func_t bcfunc; // function pointer
   void *ctx; // context to pass to function
 
   struct gkyl_range ext_range, range; // ranges on grid
   struct gkyl_range skin, ghost; // skin and ghost ranges
 };
 
-gkyl_rect_apply_bc*
-gkyl_rect_apply_bc_new(const struct gkyl_rect_grid *grid,
-  int dir, enum gkyl_edge_loc edge, const int *nghost, rect_bc_func_t bcfunc, void *ctx)
+gkyl_wv_rect_apply_bc*
+gkyl_wv_rect_apply_bc_new(const struct gkyl_rect_grid *grid,
+  int dir, enum gkyl_edge_loc edge, const int *nghost, wv_rect_bc_func_t bcfunc, void *ctx)
 {
-  gkyl_rect_apply_bc *up = gkyl_malloc(sizeof(gkyl_rect_apply_bc));
+  gkyl_wv_rect_apply_bc *up = gkyl_malloc(sizeof(gkyl_wv_rect_apply_bc));
 
   up->grid = *grid;
   up->dir = dir;
@@ -38,7 +38,7 @@ gkyl_rect_apply_bc_new(const struct gkyl_rect_grid *grid,
 }
 
 void
-gkyl_rect_apply_bc_advance(const gkyl_rect_apply_bc *bc, double tm,
+gkyl_wv_rect_apply_bc_advance(const gkyl_wv_rect_apply_bc *bc, double tm,
   const struct gkyl_range *update_rng, struct gkyl_array *out)
 {
   enum gkyl_edge_loc edge = bc->edge;
@@ -83,7 +83,7 @@ gkyl_rect_apply_bc_advance(const gkyl_rect_apply_bc *bc, double tm,
 }
 
 void
-gkyl_rect_apply_bc_release(gkyl_rect_apply_bc* bc)
+gkyl_wv_rect_apply_bc_release(gkyl_wv_rect_apply_bc* bc)
 {
   gkyl_free(bc);
 }

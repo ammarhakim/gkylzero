@@ -54,7 +54,7 @@ extern "C" {
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
-#include <gkyl_rect_apply_bc.h>
+#include <gkyl_wv_rect_apply_bc.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_ref_count.h>

@@ -15,7 +15,6 @@
 #include <gkyl_moment.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_range.h>
-#include <gkyl_rect_apply_bc.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_thread_pool.h>
@@ -23,6 +22,7 @@
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_maxwell.h>
+#include <gkyl_wv_rect_apply_bc.h>
 #include <rt_arg_parse.h>
 
 #include <thpool.h>
@@ -166,7 +166,7 @@ struct block_data {
   struct gkyl_array *bc_buffer; // buffer for use in block BCs
 
   // boundary conditions on lower/upper edges in each direction
-  gkyl_rect_apply_bc *lower_bc[2], *upper_bc[2];
+  gkyl_wv_rect_apply_bc *lower_bc[2], *upper_bc[2];
 };
 
 void
@@ -182,12 +182,12 @@ block_bc_updaters_init(struct block_data *bdata, const struct gkyl_block_connect
 
     // create BC updater in dir 'd' on lower edge
     if (conn->connections[d][0].edge == GKYL_PHYSICAL)
-      bdata->lower_bc[d] = gkyl_rect_apply_bc_new(
+      bdata->lower_bc[d] = gkyl_wv_rect_apply_bc_new(
         &bdata->grid, d, GKYL_LOWER_EDGE, nghost, bc_euler_wall, 0);
 
     // create BC updater in dir 'd' on upper edge
     if (conn->connections[d][1].edge == GKYL_PHYSICAL)
-      bdata->upper_bc[d] = gkyl_rect_apply_bc_new(
+      bdata->upper_bc[d] = gkyl_wv_rect_apply_bc_new(
         &bdata->grid, d, GKYL_UPPER_EDGE, nghost, bc_euler_wall, 0);
   }
 
@@ -207,9 +207,9 @@ block_bc_updaters_release(struct block_data *bdata)
 {
   for (int d=0; d<2; ++d) {
     if (bdata->lower_bc[d])
-      gkyl_rect_apply_bc_release(bdata->lower_bc[d]);
+      gkyl_wv_rect_apply_bc_release(bdata->lower_bc[d]);
     if (bdata->upper_bc[d])
-      gkyl_rect_apply_bc_release(bdata->upper_bc[d]);
+      gkyl_wv_rect_apply_bc_release(bdata->upper_bc[d]);
   }
   gkyl_array_release(bdata->bc_buffer);
 }
@@ -219,9 +219,9 @@ block_bc_updaters_apply(const struct block_data *bdata, double tm, struct gkyl_a
 {
   for (int d=0; d<2; ++d) {
     if (bdata->lower_bc[d])
-      gkyl_rect_apply_bc_advance(bdata->lower_bc[d], tm, &bdata->range, fld);
+      gkyl_wv_rect_apply_bc_advance(bdata->lower_bc[d], tm, &bdata->range, fld);
     if (bdata->upper_bc[d])
-      gkyl_rect_apply_bc_advance(bdata->upper_bc[d], tm, &bdata->range, fld);
+      gkyl_wv_rect_apply_bc_advance(bdata->upper_bc[d], tm, &bdata->range, fld);
   }
 }
 
