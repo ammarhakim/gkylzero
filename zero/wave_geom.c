@@ -159,7 +159,7 @@ gkyl_wave_geom_get(const struct gkyl_wave_geom *wg, const int *idx)
 }
 
 void
-gkyl_wave_geom_release(struct gkyl_wave_geom *wg)
+gkyl_wave_geom_release(const struct gkyl_wave_geom *wg)
 {
   gkyl_ref_count_dec(&wg->ref_count);
 }

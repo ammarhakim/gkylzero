@@ -56,4 +56,4 @@ const struct gkyl_wave_cell_geom* gkyl_wave_geom_get(const struct gkyl_wave_geom
  *
  * @param wg Wave geometry object to release.
  */
-void gkyl_wave_geom_release(struct gkyl_wave_geom *wg);
+void gkyl_wave_geom_release(const struct gkyl_wave_geom *wg);

@@ -2,30 +2,42 @@
 #include <gkyl_array.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
-#include <gkyl_wv_rect_apply_bc.h>
+#include <gkyl_wave_geom.h>
+#include <gkyl_wv_apply_bc.h>
+#include <gkyl_wv_eqn.h>
 
-struct gkyl_wv_rect_apply_bc {
+struct gkyl_wv_apply_bc {
   struct gkyl_rect_grid grid;
   int dir; // direction to apply BC
   enum gkyl_edge_loc edge; // edge to apply BC
   int nghost[GKYL_MAX_DIM]; // number of ghost cells
-  wv_rect_bc_func_t bcfunc; // function pointer
-  void *ctx; // context to pass to function
 
+  const struct gkyl_wv_eqn *eqn; // equation 
+  const struct gkyl_wave_geom *geom; // geometry needed for BCs
+  
+  wv_bc_func_t bcfunc; // function pointer
+  void *ctx; // context to pass to function
+  
   struct gkyl_range ext_range, range; // ranges on grid
   struct gkyl_range skin, ghost; // skin and ghost ranges
 };
 
-gkyl_wv_rect_apply_bc*
-gkyl_wv_rect_apply_bc_new(const struct gkyl_rect_grid *grid,
-  int dir, enum gkyl_edge_loc edge, const int *nghost, wv_rect_bc_func_t bcfunc, void *ctx)
+gkyl_wv_apply_bc*
+gkyl_wv_apply_bc_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_wv_eqn *eqn, const struct gkyl_wave_geom *geom,
+  int dir, enum gkyl_edge_loc edge, const int *nghost,
+  wv_bc_func_t bcfunc, void *ctx)
 {
-  gkyl_wv_rect_apply_bc *up = gkyl_malloc(sizeof(gkyl_wv_rect_apply_bc));
+  gkyl_wv_apply_bc *up = gkyl_malloc(sizeof(gkyl_wv_apply_bc));
 
   up->grid = *grid;
   up->dir = dir;
   up->edge = edge;
   gkyl_copy_int_arr(grid->ndim, nghost, up->nghost);
+
+  up->eqn = gkyl_wv_eqn_acquire(eqn);
+  up->geom = gkyl_wave_geom_acquire(geom);
+  
   up->bcfunc = bcfunc;
   up->ctx = ctx;
 
@@ -38,7 +50,7 @@ gkyl_wv_rect_apply_bc_new(const struct gkyl_rect_grid *grid,
 }
 
 void
-gkyl_wv_rect_apply_bc_advance(const gkyl_wv_rect_apply_bc *bc, double tm,
+gkyl_wv_apply_bc_advance(const gkyl_wv_apply_bc *bc, double tm,
   const struct gkyl_range *update_rng, struct gkyl_array *out)
 {
   enum gkyl_edge_loc edge = bc->edge;
@@ -83,7 +95,9 @@ gkyl_wv_rect_apply_bc_advance(const gkyl_wv_rect_apply_bc *bc, double tm,
 }
 
 void
-gkyl_wv_rect_apply_bc_release(gkyl_wv_rect_apply_bc* bc)
+gkyl_wv_apply_bc_release(gkyl_wv_apply_bc* bc)
 {
+  gkyl_wv_eqn_release(bc->eqn);
+  gkyl_wave_geom_release(bc->geom);
   gkyl_free(bc);
 }

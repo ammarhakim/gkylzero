@@ -19,10 +19,11 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_thread_pool.h>
 #include <gkyl_util.h>
+#include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
+#include <gkyl_wv_apply_bc.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_maxwell.h>
-#include <gkyl_wv_rect_apply_bc.h>
 #include <rt_arg_parse.h>
 
 #include <thpool.h>
@@ -157,6 +158,9 @@ struct block_data {
   // arrays for solution
   struct gkyl_array *fdup, *f[3];
 
+  // geometry object
+  struct gkyl_wave_geom *geom;
+
   // equation system
   struct gkyl_wv_eqn *euler;
   // updaters
@@ -166,7 +170,7 @@ struct block_data {
   struct gkyl_array *bc_buffer; // buffer for use in block BCs
 
   // boundary conditions on lower/upper edges in each direction
-  gkyl_wv_rect_apply_bc *lower_bc[2], *upper_bc[2];
+  gkyl_wv_apply_bc *lower_bc[2], *upper_bc[2];
 };
 
 void
@@ -182,13 +186,13 @@ block_bc_updaters_init(struct block_data *bdata, const struct gkyl_block_connect
 
     // create BC updater in dir 'd' on lower edge
     if (conn->connections[d][0].edge == GKYL_PHYSICAL)
-      bdata->lower_bc[d] = gkyl_wv_rect_apply_bc_new(
-        &bdata->grid, d, GKYL_LOWER_EDGE, nghost, bc_euler_wall, 0);
+      bdata->lower_bc[d] = gkyl_wv_apply_bc_new(
+        &bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost, bc_euler_wall, 0);
 
     // create BC updater in dir 'd' on upper edge
     if (conn->connections[d][1].edge == GKYL_PHYSICAL)
-      bdata->upper_bc[d] = gkyl_wv_rect_apply_bc_new(
-        &bdata->grid, d, GKYL_UPPER_EDGE, nghost, bc_euler_wall, 0);
+      bdata->upper_bc[d] = gkyl_wv_apply_bc_new(
+        &bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost, bc_euler_wall, 0);
   }
 
   // create skin/ghost region
@@ -207,9 +211,9 @@ block_bc_updaters_release(struct block_data *bdata)
 {
   for (int d=0; d<2; ++d) {
     if (bdata->lower_bc[d])
-      gkyl_wv_rect_apply_bc_release(bdata->lower_bc[d]);
+      gkyl_wv_apply_bc_release(bdata->lower_bc[d]);
     if (bdata->upper_bc[d])
-      gkyl_wv_rect_apply_bc_release(bdata->upper_bc[d]);
+      gkyl_wv_apply_bc_release(bdata->upper_bc[d]);
   }
   gkyl_array_release(bdata->bc_buffer);
 }
@@ -219,9 +223,9 @@ block_bc_updaters_apply(const struct block_data *bdata, double tm, struct gkyl_a
 {
   for (int d=0; d<2; ++d) {
     if (bdata->lower_bc[d])
-      gkyl_wv_rect_apply_bc_advance(bdata->lower_bc[d], tm, &bdata->range, fld);
+      gkyl_wv_apply_bc_advance(bdata->lower_bc[d], tm, &bdata->range, fld);
     if (bdata->upper_bc[d])
-      gkyl_wv_rect_apply_bc_advance(bdata->upper_bc[d], tm, &bdata->range, fld);
+      gkyl_wv_apply_bc_advance(bdata->upper_bc[d], tm, &bdata->range, fld);
   }
 }
 
@@ -570,9 +574,12 @@ main(int argc, char **argv)
   for (int i=0; i<num_blocks; ++i)
     bdata[i].fv_proj = gkyl_fv_proj_new(&bdata[i].grid, 2, 5, initFluidSod, 0);
 
-  // create ranges
-  for (int i=0; i<num_blocks; ++i)
+  // create ranges and geometry
+  for (int i=0; i<num_blocks; ++i) {
     gkyl_create_grid_ranges(&bdata[i].grid, (int []) { 2, 2 }, &bdata[i].ext_range, &bdata[i].range);
+    bdata[i].geom = gkyl_wave_geom_new(&bdata[i].grid, &bdata[i].ext_range,
+      0, 0);
+  }
 
   // create FV updaters for dimensional sweeps
   for (int i=0; i<num_blocks; ++i) {
@@ -585,7 +592,8 @@ main(int argc, char **argv)
           .limiter = GKYL_MONOTONIZED_CENTERED,
           .num_up_dirs = 1,
           .update_dirs = { d },
-          .cfl = 0.95
+          .cfl = 0.95,
+          .geom = bdata[i].geom
         }
       );
   }
@@ -647,6 +655,8 @@ main(int argc, char **argv)
 
     gkyl_wv_eqn_release(bdata[i].euler);
     block_bc_updaters_release(&bdata[i]);
+
+    gkyl_wave_geom_release(bdata[i].geom);
 
     for (int d=0; d<2; ++d)
       gkyl_wave_prop_release(bdata[i].slvr[d]);
