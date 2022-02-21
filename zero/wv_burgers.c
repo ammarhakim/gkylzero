@@ -58,7 +58,7 @@ static double
 max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   const struct wv_burgers *burgers = container_of(eqn, struct wv_burgers, eqn);
-  return q[0];
+  return fabs(q[0]);
 }
 
 struct gkyl_wv_eqn*
