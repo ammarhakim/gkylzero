@@ -17,7 +17,7 @@ nomapc2p(double t, const double *xc, double *xp, void *ctx)
 }
 
 static void
-bc_copy(double t, int dir, int nc, const double *skin, double *restrict ghost, void *ctx)
+bc_copy(double t, int nc, const double *skin, double *restrict ghost, void *ctx)
 {
   for (int c=0; c<nc; ++c) ghost[c] = skin[c];
 }

@@ -55,6 +55,9 @@ gkyl_wv_apply_bc_advance(const gkyl_wv_apply_bc *bc, double tm,
 {
   enum gkyl_edge_loc edge = bc->edge;
   int dir = bc->dir, ndim = bc->grid.ndim, ncomp = out->ncomp;
+  int meqn = bc->eqn->num_equations;
+
+  double skin_local[meqn], ghost_local[meqn];
 
   // return immediately if update region does not touch boundary
   if ( (edge == GKYL_LOWER_EDGE) && (update_rng->lower[dir] > bc->range.lower[dir]) )
@@ -70,6 +73,7 @@ gkyl_wv_apply_bc_advance(const gkyl_wv_apply_bc *bc, double tm,
   int fact = (edge == GKYL_LOWER_EDGE) ? -1 : 1;
 
   int gidx[GKYL_MAX_DIM]; // index into ghost cell
+  int eidx[GKYL_MAX_DIM]; // index into geometry 
   
   // create iterator to walk over skin cells
   struct gkyl_range_iter iter;
@@ -79,8 +83,9 @@ gkyl_wv_apply_bc_advance(const gkyl_wv_apply_bc *bc, double tm,
 
     long sloc = gkyl_range_idx(update_rng, iter.idx);
 
-    // compute linear index into appropriate ghost-cell
     gkyl_copy_int_arr(ndim, iter.idx, gidx);
+    
+    // compute linear index into appropriate ghost-cell:
     // this strange indexing ensures that the ghost cell index is
     // essentially "reflection" of the skin cell index; might not be
     // correct for all BCs but I am not sure how else to handle
@@ -88,10 +93,32 @@ gkyl_wv_apply_bc_advance(const gkyl_wv_apply_bc *bc, double tm,
     gidx[dir] = 2*edge_idx-gidx[dir]+fact;
     long gloc = gkyl_range_idx(update_rng, gidx);
 
-    // apply boundary condition
-    bc->bcfunc(tm, dir, ncomp,
-      gkyl_array_fetch(out, sloc), gkyl_array_fetch(out, gloc), bc->ctx);
-  }  
+    // compute index into geometry: we always use the edge on the
+    // physical boundary as the geometry may not be defined in the
+    // ghost region. This is likely not right, but there does not seem
+    // any clean way to do this
+    if (edge == GKYL_LOWER_EDGE) {
+      gkyl_copy_int_arr(ndim, iter.idx, eidx);
+      eidx[dir] = edge_idx;
+    }
+    else {
+      gkyl_copy_int_arr(ndim, gidx, eidx);
+      eidx[dir] = edge_idx+1;
+    }
+
+    const struct gkyl_wave_cell_geom *wg = gkyl_wave_geom_get(bc->geom, eidx);
+
+    // rotate skin data to local coordinates
+    gkyl_wv_eqn_rotate_to_local(bc->eqn, wg->tau1[dir], wg->tau2[dir], wg->norm[dir],
+      gkyl_array_fetch(out, sloc), skin_local);
+      
+    // apply boundary condition in local coordinates
+    bc->bcfunc(tm, ncomp, skin_local, ghost_local, bc->ctx);
+
+    // rotate back to global
+    gkyl_wv_eqn_rotate_to_global(bc->eqn, wg->tau1[dir], wg->tau2[dir], wg->norm[dir],
+      ghost_local, gkyl_array_fetch(out, gloc));
+  }
 }
 
 void

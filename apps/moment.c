@@ -127,94 +127,12 @@ mkarr(long nc, long size)
   return a;
 }
 
-// for use in direction suffle in BCs
-static const int maxwell_dir_shuffle[][6] = {
-  {0, 1, 2, 3, 4, 5},
-  {1, 2, 0, 4, 5, 3},
-  {2, 0, 1, 5, 3, 4}
-};
-static const int euler_dir_shuffle[][3] = {
-  {1, 2, 3},
-  {2, 3, 1},
-  {3, 1, 2}
-};
-// direction shuffle for off-diagonal components of pressure tensor
-static const int ten_moment_dir_shuffle[][3] = {
-  {8, 6, 5},
-  {6, 5, 8},
-  {5, 8, 6}
-};
-
 // function for copy BC
 static void
-bc_copy(double t, int dir, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+bc_copy(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
 {
   for (int c=0; c<nc; ++c) ghost[c] = skin[c];
 }
-
-// SHOULD THESE REALLY BE HERE? PERHAPS PUT THEM IN EQN THEMSELVES.
-
-// Maxwell perfectly conducting BC
-static void
-bc_maxwell_wall(double t, int dir, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
-{
-  const int *d = maxwell_dir_shuffle[dir];
-  
-  // zero-tangent for E field
-  ghost[d[0]] = skin[d[0]];
-  ghost[d[1]] = -skin[d[1]];
-  ghost[d[2]] = -skin[d[2]];
-
-  // zero-normal for B field
-  ghost[d[3]] = -skin[d[3]];
-  ghost[d[4]] = skin[d[4]];
-  ghost[d[5]] = skin[d[5]];
-
-  // correction potential
-  ghost[6] = -skin[6];
-  ghost[7] = skin[7];
-}
-
-// Euler perfectly reflecting wall
-static void
-bc_euler_wall(double t, int dir, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
-{
-  const int *d = euler_dir_shuffle[dir];
-
-  // copy density and pressure
-  ghost[0] = skin[0];
-  ghost[4] = skin[4];
-
-  // zero-normal for momentum
-  ghost[d[0]] = -skin[d[0]];
-  ghost[d[1]] = skin[d[1]];
-  ghost[d[2]] = skin[d[2]];
-}
-
-// Ten moment perfectly reflecting wall
-static void
-bc_ten_moment_wall(double t, int dir, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
-{
-  const int *d = euler_dir_shuffle[dir];
-  const int *pd = ten_moment_dir_shuffle[dir];
-
-  // copy density and Pxx, Pyy, and Pzz
-  ghost[0] = skin[0];
-  ghost[4] = skin[4];
-  ghost[7] = skin[7];
-  ghost[9] = skin[9];
-
-  // zero-normal for momentum
-  ghost[d[0]] = -skin[d[0]];
-  ghost[d[1]] = skin[d[1]];
-  ghost[d[2]] = skin[d[2]];
-
-  // zero-tangent for off-diagonal components of pressure tensor
-  ghost[pd[0]] = skin[pd[0]];
-  ghost[pd[1]] = -skin[pd[1]];
-  ghost[pd[2]] = -skin[pd[2]];
-}
-
 
 // Create ghost and skin sub-ranges given a parent range
 static void
@@ -298,12 +216,9 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
       // lower BCs in X
       if (bc[0] == GKYL_MOMENT_SPECIES_WALL) {
-        if (sp->eqn_type == GKYL_EQN_EULER)
-          sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
-            &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_euler_wall, 0);
-        else if (sp->eqn_type == GKYL_EQN_TEN_MOMENT)
-          sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
-            &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_ten_moment_wall, 0);
+        sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
+          &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+          mom_sp->equation->wall_bc_func, 0);        
       }
       else {
         sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
@@ -312,12 +227,9 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
       
       // upper BCs in X
       if (bc[1] == GKYL_MOMENT_SPECIES_WALL) {
-        if (sp->eqn_type == GKYL_EQN_EULER)
-          sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
-            &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_euler_wall, 0);
-        else if (sp->eqn_type == GKYL_EQN_TEN_MOMENT)
-          sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
-            &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_ten_moment_wall, 0);
+        sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
+          &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
+          mom_sp->equation->wall_bc_func, 0);
       }
       else {
         sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
@@ -482,7 +394,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
       // lower BCs in X
       if (bc[0] == GKYL_MOMENT_FIELD_COND)
         fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_maxwell_wall, 0);
+          &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, maxwell->wall_bc_func, 0);
       else
         fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
           &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_copy, 0);
@@ -490,7 +402,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
       // upper BCs in X
       if (bc[1] == GKYL_MOMENT_FIELD_COND)
         fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_maxwell_wall, 0);
+          &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, maxwell->wall_bc_func, 0);
       else
         fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
           &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_copy, 0);

@@ -1,23 +1,11 @@
 #pragma once
 
 #include <gkyl_array.h>
+#include <gkyl_evalf_def.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
-
-/**
- * Type of function to apply BC
- *
- * @param t Time at which BC is applied
- * @param dir Direction in which BC is applied
- * @param ncomp Number of compontents (size of skin and ghost arrays)
- * @param skin Pointer to data in skin-cell
- * @param ghost Pointer to data in ghost-cell
- * @param ctx Context for function evaluation. Can be NULL
- */
-typedef void (*wv_bc_func_t)(double t, int dir, int ncomp,
-  const double *skin, double *ghost, void *ctx);
 
 // Object type
 typedef struct gkyl_wv_apply_bc gkyl_wv_apply_bc;

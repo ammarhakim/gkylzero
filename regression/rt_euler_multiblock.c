@@ -54,27 +54,18 @@ skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
   }
 }
 
-// for use in direction suffle in BCs
-static const int euler_dir_shuffle[][3] = {
-  {1, 2, 3},
-  {2, 3, 1},
-  {3, 1, 2}
-};
-
 // Euler perfectly reflecting wall
 static void
-bc_euler_wall(double t, int dir, int nc, const double *skin, double *restrict ghost, void *ctx)
+bc_euler_wall(double t, int nc, const double *skin, double *restrict ghost, void *ctx)
 {
-  const int *d = euler_dir_shuffle[dir];
-
   // copy density and pressure
   ghost[0] = skin[0];
   ghost[4] = skin[4];
 
   // zero-normal for momentum
-  ghost[d[0]] = -skin[d[0]];
-  ghost[d[1]] = skin[d[1]];
-  ghost[d[2]] = skin[d[2]];
+  ghost[1] = -skin[1];
+  ghost[2] = skin[2];
+  ghost[3] = skin[3];
 }
 
 struct gkyl_block_topo*
