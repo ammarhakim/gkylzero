@@ -10,7 +10,7 @@
 
 ARCH_FLAGS = -march=native
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
-CFLAGS = -O3 -g -ffast-math 
+CFLAGS = -O3 -g -ffast-math -fPIC
 LDFLAGS =
 KERN_INCLUDES = -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov -Ikernels/bin_op -Ikernels/lbo -Ikernels/fem -Ikernels/gyrokinetic
 
@@ -36,6 +36,9 @@ ifeq ($(UNAME), Darwin)
 	LAPACK_INC = zero # dummy
 	LAPACK_LIB = -framework Accelerate
 	CFLAGS += -DGKYL_USING_FRAMEWORK_ACCELERATE
+	SHFLAGS += -dynamiclib
+else
+	SHFLAGS += -shared
 endif
 
 INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iregression ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC}
@@ -93,13 +96,17 @@ kernels/basis/%.o : kernels/basis/%.c
 endif
 
 # Make targets: libraries, regression tests and unit tests
-all: build/libgkylzero.a \
+all: build/libgkylzero.a build/libgkylzero.so \
 	$(patsubst %.c,build/%,$(wildcard regression/rt_*.c)) build/regression/twostream.ini \
 	$(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 
 # Library archive
 build/libgkylzero.a: ${libobjs} ${headers}
 	ar -crs build/libgkylzero.a ${libobjs}
+
+# Dynamic (shared) library
+build/libgkylzero.so: ${libobjs} ${headers}
+	${CC} -o build/libgkylzero.so -install_name ${HOME}/gkylsoft/gkylzero/lib/libgkylzero.so ${SHFLAGS} ${LDFLAGS} ${libobjs} -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 
 # Regression tests
 build/regression/twostream.ini: regression/twostream.ini
@@ -188,6 +195,7 @@ install: all
 	mkdir -p ${PREFIX}/gkylzero/share
 	cp ${headers} ${PREFIX}/gkylzero/include
 	cp -f build/libgkylzero.a ${PREFIX}/gkylzero/lib
+	cp -f build/libgkylzero.so ${PREFIX}/gkylzero/lib
 	cp -f build/Makefile.sample ${PREFIX}/gkylzero/share/Makefile
 	cp -f regression/rt_arg_parse.h ${PREFIX}/gkylzero/share/rt_arg_parse.h
 	cp -f regression/rt_twostream.c ${PREFIX}/gkylzero/share/rt_twostream.c
