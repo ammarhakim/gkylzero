@@ -104,9 +104,15 @@ all: build/libgkylzero.a build/libgkylzero.so \
 build/libgkylzero.a: ${libobjs} ${headers}
 	ar -crs build/libgkylzero.a ${libobjs}
 
+ifeq ($(UNAME), Darwin)
 # Dynamic (shared) library
 build/libgkylzero.so: ${libobjs} ${headers}
 	${CC} -o build/libgkylzero.so -install_name ${HOME}/gkylsoft/gkylzero/lib/libgkylzero.so ${SHFLAGS} ${LDFLAGS} ${libobjs} -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
+else
+build/libgkylzero.so:
+	@echo "Not building shared lib on Linux! FIX THIS"
+	touch build/libgkylzero.so
+endif
 
 # Regression tests
 build/regression/twostream.ini: regression/twostream.ini
