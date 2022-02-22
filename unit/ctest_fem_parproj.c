@@ -92,7 +92,7 @@ test_1x(int poly_order, const bool isperiodic)
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho);
   struct gkyl_array *parbuff = mkarr(basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
   if (isperiodic) apply_periodic_bc(parbuff, rho, dim-1, skin_ghost);
-//  gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_parproj_1x1v_p1_rho_1.gkyl");
+  gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_parproj_1x1v_p2_rho_1.gkyl");
 
   // parallel FEM projection method.
   gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&grid, &basis, isperiodic, NULL);
@@ -105,53 +105,111 @@ test_1x(int poly_order, const bool isperiodic)
   if (isperiodic) {
     apply_periodic_bc(parbuff, phi, dim-1, skin_ghost);
   }
-//  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_parproj_1x1v_p1_phi_1.gkyl");
+  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_parproj_1x1v_p2_phi_1.gkyl");
 
-  if (!isperiodic) {
-    // Solution (checked visually, also checked that phi is actually continuous,
-    // and checked that visually looks like results in g2):
-    //   [-0.9089542445638024 -0.4554124667453318]
-    //   [-0.8488758876834943  0.4900987222626481]
-    //   [ 0.8488758876834943  0.490098722262648 ]
-    //   [ 0.9089542445638024 -0.4554124667453318]
-    const double *phi_p;
-    phi_p = gkyl_array_cfetch(phi, 1);
-    TEST_CHECK( gkyl_compare(-0.9089542445638024, phi_p[0], 1e-14) );
-    TEST_CHECK( gkyl_compare(-0.4554124667453318, phi_p[1], 1e-14) );
-    phi_p = gkyl_array_cfetch(phi, 2);
-    TEST_CHECK( gkyl_compare(-0.8488758876834943, phi_p[0], 1e-14) );
-    TEST_CHECK( gkyl_compare(0.4900987222626481, phi_p[1], 1e-14) );
-    phi_p = gkyl_array_cfetch(phi, 3);
-    TEST_CHECK( gkyl_compare(0.8488758876834943, phi_p[0], 1e-14) );
-    TEST_CHECK( gkyl_compare(0.490098722262648, phi_p[1], 1e-14) );
-    phi_p = gkyl_array_cfetch(phi, 4);
-    TEST_CHECK( gkyl_compare(0.9089542445638024, phi_p[0], 1e-14) );
-    TEST_CHECK( gkyl_compare(-0.4554124667453318, phi_p[1], 1e-14) );
-  } else {
-    // Solution (checked visually against g2):
-    // [-0.8638954769035714 -0.498770286141977 ]
-    // [-0.8638954769035713  0.498770286141977 ]
-    // [ 0.8638954769035713  0.498770286141977 ]
-    // [ 0.8638954769035713 -0.498770286141977 ]
-    const double *phi_p;
-    phi_p = gkyl_array_cfetch(phi, 0);
-    TEST_CHECK( gkyl_compare(0.8638954769035713, phi_p[0], 1e-14) );
-    TEST_CHECK( gkyl_compare(-0.498770286141977, phi_p[1], 1e-14) );
-    phi_p = gkyl_array_cfetch(phi, 1);
-    TEST_CHECK( gkyl_compare(-0.8638954769035714, phi_p[0], 1e-14) );
-    TEST_CHECK( gkyl_compare(-0.498770286141977, phi_p[1], 1e-14) );
-    phi_p = gkyl_array_cfetch(phi, 2);
-    TEST_CHECK( gkyl_compare(-0.8638954769035713, phi_p[0], 1e-14) );
-    TEST_CHECK( gkyl_compare(0.498770286141977, phi_p[1], 1e-14) );
-    phi_p = gkyl_array_cfetch(phi, 3);
-    TEST_CHECK( gkyl_compare(0.8638954769035713, phi_p[0], 1e-14) );
-    TEST_CHECK( gkyl_compare(0.498770286141977, phi_p[1], 1e-14) );
-    phi_p = gkyl_array_cfetch(phi, 4);
-    TEST_CHECK( gkyl_compare(0.8638954769035713, phi_p[0], 1e-14) );
-    TEST_CHECK( gkyl_compare(-0.498770286141977, phi_p[1], 1e-14) );
-    phi_p = gkyl_array_cfetch(phi, 5);
-    TEST_CHECK( gkyl_compare(-0.8638954769035714, phi_p[0], 1e-14) );
-    TEST_CHECK( gkyl_compare(-0.498770286141977, phi_p[1], 1e-14) );
+  if (poly_order == 1) {
+    if (!isperiodic) {
+      // Solution (checked visually, also checked that phi is actually continuous,
+      // and checked that visually looks like results in g2):
+      const double sol[8] = {-0.9089542445638024, -0.4554124667453318,
+                             -0.8488758876834943,  0.4900987222626481,
+                              0.8488758876834943,  0.490098722262648 ,
+                              0.9089542445638024, -0.4554124667453318};
+      const double *phi_p;
+      phi_p = gkyl_array_cfetch(phi, 1);
+      TEST_CHECK( gkyl_compare(sol[0], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[1], phi_p[1], 1e-14) );
+      phi_p = gkyl_array_cfetch(phi, 2);
+      TEST_CHECK( gkyl_compare(sol[2], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[3], phi_p[1], 1e-14) );
+      phi_p = gkyl_array_cfetch(phi, 3);
+      TEST_CHECK( gkyl_compare(sol[4], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[5], phi_p[1], 1e-14) );
+      phi_p = gkyl_array_cfetch(phi, 4);
+      TEST_CHECK( gkyl_compare(sol[6], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[7], phi_p[1], 1e-14) );
+    } else {
+      // Solution (checked visually against g2):
+      const double sol[8] = {-0.8638954769035714, -0.498770286141977,
+                             -0.8638954769035713,  0.498770286141977,
+                              0.8638954769035713,  0.498770286141977,
+                              0.8638954769035713, -0.498770286141977};
+      const double *phi_p;
+      phi_p = gkyl_array_cfetch(phi, 0);
+      TEST_CHECK( gkyl_compare(sol[6], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[7], phi_p[1], 1e-14) );
+      phi_p = gkyl_array_cfetch(phi, 1);
+      TEST_CHECK( gkyl_compare(sol[0], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[1], phi_p[1], 1e-14) );
+      phi_p = gkyl_array_cfetch(phi, 2);
+      TEST_CHECK( gkyl_compare(sol[2], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[3], phi_p[1], 1e-14) );
+      phi_p = gkyl_array_cfetch(phi, 3);
+      TEST_CHECK( gkyl_compare(sol[4], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[5], phi_p[1], 1e-14) );
+      phi_p = gkyl_array_cfetch(phi, 4);
+      TEST_CHECK( gkyl_compare(sol[6], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[7], phi_p[1], 1e-14) );
+      phi_p = gkyl_array_cfetch(phi, 5);
+      TEST_CHECK( gkyl_compare(sol[0], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[1], phi_p[1], 1e-14) );
+    }
+  } if (poly_order == 2) {
+    if (!isperiodic) {
+      // Solution (checked visually against g2):
+      const double sol[12] = {-0.9010465429057769, -0.4272439810948228,  0.0875367707148495,
+                              -0.9039382020247494,  0.4172269800703625,  0.08107082435707  ,
+                               0.9039382020247495,  0.4172269800703625, -0.0810708243570699,
+                               0.9010465429057768, -0.4272439810948229, -0.0875367707148495};
+      const double *phi_p;
+      phi_p = gkyl_array_cfetch(phi, 1);
+      TEST_CHECK( gkyl_compare(sol[0], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[1], phi_p[1], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[2], phi_p[2], 1e-14) );
+      phi_p = gkyl_array_cfetch(phi, 2);
+      TEST_CHECK( gkyl_compare(sol[3], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[4], phi_p[1], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[5], phi_p[2], 1e-14) );
+      phi_p = gkyl_array_cfetch(phi, 3);
+      TEST_CHECK( gkyl_compare(sol[6], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[7], phi_p[1], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[8], phi_p[2], 1e-14) );
+      phi_p = gkyl_array_cfetch(phi, 4);
+      TEST_CHECK( gkyl_compare(sol[9], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[10], phi_p[1], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[11], phi_p[2], 1e-14) );
+    } else {
+      // Solution (checked visually against g2):
+      const double sol[12] = {-0.9044201452112453, -0.418896480241106,   0.0799931666307734,
+                              -0.9044201452112451,  0.418896480241106,   0.0799931666307734,
+                               0.904420145211245 ,  0.418896480241106,  -0.0799931666307734,
+                               0.9044201452112451, -0.418896480241106,  -0.0799931666307734};
+      const double *phi_p;
+      phi_p = gkyl_array_cfetch(phi, 0);
+      TEST_CHECK( gkyl_compare(sol[9], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[10], phi_p[1], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[11], phi_p[2], 1e-14) );
+      phi_p = gkyl_array_cfetch(phi, 1);
+      TEST_CHECK( gkyl_compare(sol[0], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[1], phi_p[1], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[2], phi_p[2], 1e-14) );
+      phi_p = gkyl_array_cfetch(phi, 2);
+      TEST_CHECK( gkyl_compare(sol[3], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[4], phi_p[1], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[5], phi_p[2], 1e-14) );
+      phi_p = gkyl_array_cfetch(phi, 3);
+      TEST_CHECK( gkyl_compare(sol[6], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[7], phi_p[1], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[8], phi_p[2], 1e-14) );
+      phi_p = gkyl_array_cfetch(phi, 4);
+      TEST_CHECK( gkyl_compare(sol[9], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[10], phi_p[1], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[11], phi_p[2], 1e-14) );
+      phi_p = gkyl_array_cfetch(phi, 5);
+      TEST_CHECK( gkyl_compare(sol[0], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[1], phi_p[1], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[2], phi_p[2], 1e-14) );
+    }
   }
 
   gkyl_fem_parproj_release(parproj);
@@ -170,9 +228,19 @@ void test_1x_p1_periodic() {
   test_1x(1, true);
 }
 
+void test_1x_p2_nonperiodic() {
+  test_1x(2, false);
+}
+
+void test_1x_p2_periodic() {
+  test_1x(2, true);
+}
+
 TEST_LIST = {
   { "test_1x_p1_nonperiodic", test_1x_p1_nonperiodic },
   { "test_1x_p1_periodic", test_1x_p1_periodic },
+  { "test_1x_p2_nonperiodic", test_1x_p2_nonperiodic },
+  { "test_1x_p2_periodic", test_1x_p2_periodic },
   { NULL, NULL },
 };
 
