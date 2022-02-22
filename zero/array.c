@@ -122,6 +122,7 @@ gkyl_array_clone(const struct gkyl_array* src)
 {
   struct gkyl_array* arr = gkyl_malloc(sizeof(struct gkyl_array));
 
+  arr->type = src->type;
   arr->elemsz = src->elemsz;
   arr->ncomp = src->ncomp;
   arr->esznc = src->esznc;
