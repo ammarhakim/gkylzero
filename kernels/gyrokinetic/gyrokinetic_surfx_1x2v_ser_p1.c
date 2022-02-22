@@ -1,5 +1,5 @@
 #include <gkyl_gyrokinetic_kernels.h>
-GKYL_CU_DH double gyrokinetic_surfx_1x2v_ser(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_i, const double *phi, const double *Apar, const double *dApardt, const double *fL, const double *fC, const double *fR, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gyrokinetic_surfx_1x2v_ser(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_i, const double *phi, const double *Apar, const double *dApardt, const double *fL, const double *fC, const double *fR, double* GKYL_RESTRICT out) 
 { 
   // Apar: parallel component of magnetic vector potential.
   // dApardt: time derivative of Apar.
@@ -28,9 +28,9 @@ GKYL_CU_DH double gyrokinetic_surfx_1x2v_ser(const double q_, const double m_, c
   double wmuSq = w[2]*w[2];
   double rdmu2Sq = rdmu2*rdmu2;
 
-  double *b_x = &b_i[0];
-  double *b_y = &b_i[2];
-  double *b_z = &b_i[4];
+  const double *b_x = &b_i[0];
+  const double *b_y = &b_i[2];
+  const double *b_z = &b_i[4];
 
   double hamil[8]; 
   hamil[0] = (0.2357022603955158*(3.0*rdvpar2Sq*(2.0*m_*wvparSq+2.828427124746191*(bmag[0]*wmu+phi[0]*q_))+2.0*m_))/rdvpar2Sq; 
