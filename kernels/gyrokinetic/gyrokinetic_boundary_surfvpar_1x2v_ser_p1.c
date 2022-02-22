@@ -1,5 +1,5 @@
 #include <gkyl_gyrokinetic_kernels.h>
-GKYL_CU_DH void gyrokinetic_boundary_surfx_1x2v_ser(const double q_, const double m_, const double *w, const double *dxv, const int edge, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_i, const double *phi, const double *Apar, const double *dApardt, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gyrokinetic_boundary_surfx_1x2v_ser_p1(const double q_, const double m_, const double *w, const double *dxv, const int edge, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_i, const double *phi, const double *Apar, const double *dApardt, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
 { 
   // Apar: parallel component of magnetic vector potential.
   // dApardt: time derivative of Apar.
