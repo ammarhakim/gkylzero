@@ -107,7 +107,7 @@ build/libgkylzero.a: ${libobjs} ${headers}
 ifeq ($(UNAME), Darwin)
 # Dynamic (shared) library
 build/libgkylzero.so: ${libobjs} ${headers}
-	${CC} -o build/libgkylzero.so -install_name ${HOME}/gkylsoft/gkylzero/lib/libgkylzero.so ${SHFLAGS} ${LDFLAGS} ${libobjs} -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
+	${CC} -o build/libgkylzero.so -install_name ${HOME}/gkylsoft/gkylzero/lib/libgkylzero.so ${SHFLAGS} ${LDFLAGS} ${libobjs} ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 else
 build/libgkylzero.so:
 	@echo "Not building shared lib on Linux! FIX THIS"
