@@ -113,39 +113,39 @@ build/regression/twostream.ini: regression/twostream.ini
 	cp regression/twostream.ini build/regression/twostream.ini
 
 build/regression/%: regression/%.c build/libgkylzero.a regression/rt_arg_parse.h
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread 
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) build/libgkylzero.a ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread 
 
 # Unit tests
 build/unit/%: unit/%.c build/libgkylzero.a
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) build/libgkylzero.a ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 
 
 ifdef USING_NVCC
 # unit tests needing CUDA kernels
 
 build/unit/ctest_range: unit/ctest_range.o unit/ctest_range_cu.o build/libgkylzero.a
-	${CC} ${LDFLAGS} unit/ctest_range.o unit/ctest_range_cu.o -o build/unit/ctest_range -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
+	${CC} ${LDFLAGS} unit/ctest_range.o unit/ctest_range_cu.o -o build/unit/ctest_range build/libgkylzero.a ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 
 build/unit/ctest_rect_grid: unit/ctest_rect_grid.o unit/ctest_rect_grid_cu.o build/libgkylzero.a
-	${CC} ${LDFLAGS} unit/ctest_rect_grid.o unit/ctest_rect_grid_cu.o -o build/unit/ctest_rect_grid -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
+	${CC} ${LDFLAGS} unit/ctest_rect_grid.o unit/ctest_rect_grid_cu.o -o build/unit/ctest_rect_grid build/libgkylzero.a ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 
 build/unit/ctest_array: unit/ctest_array.o unit/ctest_array_cu.o build/libgkylzero.a
-	${CC} ${LDFLAGS} unit/ctest_array.o unit/ctest_array_cu.o -o build/unit/ctest_array -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
+	${CC} ${LDFLAGS} unit/ctest_array.o unit/ctest_array_cu.o -o build/unit/ctest_array build/libgkylzero.a ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 
 build/unit/ctest_dg_bin_op: unit/ctest_dg_bin_op.o unit/ctest_dg_bin_op_cu.o build/libgkylzero.a
-	${CC} ${LDFLAGS} unit/ctest_dg_bin_op.o unit/ctest_dg_bin_op_cu.o -o build/unit/ctest_dg_bin_op -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
+	${CC} ${LDFLAGS} unit/ctest_dg_bin_op.o unit/ctest_dg_bin_op_cu.o -o build/unit/ctest_dg_bin_op build/libgkylzero.a ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 
 build/unit/ctest_dg_maxwell: unit/ctest_dg_maxwell.o unit/ctest_dg_maxwell_cu.o build/libgkylzero.a
-	${CC} ${LDFLAGS} unit/ctest_dg_maxwell.o unit/ctest_dg_maxwell_cu.o -o build/unit/ctest_dg_maxwell -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
+	${CC} ${LDFLAGS} unit/ctest_dg_maxwell.o unit/ctest_dg_maxwell_cu.o -o build/unit/ctest_dg_maxwell build/libgkylzero.a ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 
 build/unit/ctest_dg_vlasov: unit/ctest_dg_vlasov.o unit/ctest_dg_vlasov_cu.o build/libgkylzero.a
-	${CC} ${LDFLAGS} unit/ctest_dg_vlasov.o unit/ctest_dg_vlasov_cu.o -o build/unit/ctest_dg_vlasov -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
+	${CC} ${LDFLAGS} unit/ctest_dg_vlasov.o unit/ctest_dg_vlasov_cu.o -o build/unit/ctest_dg_vlasov build/libgkylzero.a ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 
 build/unit/ctest_mom_vlasov: unit/ctest_mom_vlasov.o unit/ctest_mom_vlasov_cu.o build/libgkylzero.a
-	${CC} ${LDFLAGS} unit/ctest_mom_vlasov.o unit/ctest_mom_vlasov_cu.o -o build/unit/ctest_mom_vlasov -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
+	${CC} ${LDFLAGS} unit/ctest_mom_vlasov.o unit/ctest_mom_vlasov_cu.o -o build/unit/ctest_mom_vlasov build/libgkylzero.a ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 
 build/unit/ctest_hyper_dg: unit/ctest_hyper_dg.o unit/ctest_hyper_dg_cu.o build/libgkylzero.a
-	${CC} ${LDFLAGS} unit/ctest_hyper_dg.o unit/ctest_hyper_dg_cu.o -o build/unit/ctest_hyper_dg -Lbuild -lgkylzero ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
+	${CC} ${LDFLAGS} unit/ctest_hyper_dg.o unit/ctest_hyper_dg_cu.o -o build/unit/ctest_hyper_dg build/libgkylzero.a ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 
 endif
 
