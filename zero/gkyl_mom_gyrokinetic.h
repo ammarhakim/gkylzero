@@ -1,0 +1,22 @@
+#pragma once
+
+#include <gkyl_basis.h>
+#include <gkyl_mom_type.h>
+
+/**
+ * Create new Gyrokinetic moment type object. Valid 'mom' strings are "GkM0",
+ * "GkM1", "GkM2", "GkM2par", "GkM2perp", "GkM3par", "GkM3perp", "GkThreeMoments"
+ *
+ * @param cbasis Configuration-space basis-functions
+ * @param pbasis Phase-space basis-functions
+ * @param mom Name of moment to compute.
+ */
+struct gkyl_mom_type* gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis,
+  const struct gkyl_basis* pbasis, const char *mom);
+
+/**
+ * Create new Gyrokinetic moment type object on NV-GPU: see new() method
+ * above for documentation.
+ */
+struct gkyl_mom_type* gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis,
+  const struct gkyl_basis* pbasis, const char *mom);
