@@ -1,18 +1,18 @@
 #include <gkyl_gyrokinetic_kernels.h>
-GKYL_CU_DH void gyrokinetic_boundary_surfx_1x1v_ser_p1(const double q_, const double m_, const double *w, const double *dxv, const int edge, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_i, const double *phi, const double *Apar, const double *dApardt, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gyrokinetic_boundary_surfx_1x1v_ser_p1(const double *w, const double *dxv, const double q_, const double m_, const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, const double *phi, const double *apar, const double *apardot, const int edge, const double *fskin, const double *fedge, double* GKYL_RESTRICT out) 
 { 
-  // Apar: parallel component of magnetic vector potential.
-  // dApardt: time derivative of Apar.
-  // jacobTotInv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.
-  // b_i: covariant components of the field aligned unit vector.
-  // q_,m_: species charge and mass.
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
-  // edge: determines if the update is for the left edge (-1) or right edge (+1).
+  // q_,m_: species charge and mass.
   // bmag: magnetic field amplitude.
+  // jacobtot_inv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.
   // cmag: coefficient multiplying parallel gradient.
+  // b_i: covariant components of the field aligned unit vector.
   // phi: electrostatic potential .
-  // fSkin,fEdge: distribution function in skin cell/last edge cell.
+  // apar: parallel component of magnetic vector potential.
+  // apardot: time derivative of Apar.
+  // edge: determines if the update is for the left edge (-1) or right edge (+1).
+  // fskin,fedge: distribution function in skin cell/last edge cell.
   // out: output increment in center cell.
 
   double wx = w[0];
@@ -35,27 +35,27 @@ GKYL_CU_DH void gyrokinetic_boundary_surfx_1x1v_ser_p1(const double q_, const do
   hamil[2] = (1.154700538379252*m_*wvpar)/rdvpar2; 
 
   double BstarZdBmag[4]; 
-  BstarZdBmag[0] = (1.732050807568877*jacobTotInv[0]*b_y[1]*m_*rdx2*wvpar+(cmag[1]*jacobTotInv[1]+cmag[0]*jacobTotInv[0])*q_)/q_; 
-  BstarZdBmag[1] = (1.732050807568877*b_y[1]*jacobTotInv[1]*m_*rdx2*wvpar+(cmag[0]*jacobTotInv[1]+jacobTotInv[0]*cmag[1])*q_)/q_; 
-  BstarZdBmag[2] = (jacobTotInv[0]*b_y[1]*m_*rdx2)/(q_*rdvpar2); 
-  BstarZdBmag[3] = (b_y[1]*jacobTotInv[1]*m_*rdx2)/(q_*rdvpar2); 
+  BstarZdBmag[0] = (1.732050807568877*jacobtot_inv[0]*b_y[1]*m_*rdx2*wvpar+(cmag[1]*jacobtot_inv[1]+cmag[0]*jacobtot_inv[0])*q_)/q_; 
+  BstarZdBmag[1] = (1.732050807568877*b_y[1]*jacobtot_inv[1]*m_*rdx2*wvpar+(cmag[0]*jacobtot_inv[1]+jacobtot_inv[0]*cmag[1])*q_)/q_; 
+  BstarZdBmag[2] = (jacobtot_inv[0]*b_y[1]*m_*rdx2)/(q_*rdvpar2); 
+  BstarZdBmag[3] = (b_y[1]*jacobtot_inv[1]*m_*rdx2)/(q_*rdvpar2); 
 
   if (edge == -1) { 
 
   double alphaR[2]; 
-  alphaR[0] = -(0.3535533905932737*(hamil[1]*(3.0*BstarZdBmag[2]+1.732050807568877*BstarZdBmag[0])*rdx2+2.828427124746191*dApardt[0]*q_))/m_; 
-  alphaR[1] = -(0.3535533905932737*(hamil[1]*(3.0*BstarZdBmag[3]+1.732050807568877*BstarZdBmag[1])*rdx2+2.828427124746191*dApardt[1]*q_))/m_; 
+  alphaR[0] = -(0.3535533905932737*(hamil[1]*(3.0*BstarZdBmag[2]+1.732050807568877*BstarZdBmag[0])*rdx2+2.828427124746191*apardot[0]*q_))/m_; 
+  alphaR[1] = -(0.3535533905932737*(hamil[1]*(3.0*BstarZdBmag[3]+1.732050807568877*BstarZdBmag[1])*rdx2+2.828427124746191*apardot[1]*q_))/m_; 
 
   double fUpOrdR[2];
   if (alphaR[0]-1.0*alphaR[1] > 0.) {
-    fUpOrdR[0] = (-0.8660254037844386*fSkin[3])+0.8660254037844386*fSkin[2]-0.4999999999999999*fSkin[1]+0.5*fSkin[0]; 
+    fUpOrdR[0] = (-0.8660254037844386*fskin[3])+0.8660254037844386*fskin[2]-0.4999999999999999*fskin[1]+0.5*fskin[0]; 
   } else {
-    fUpOrdR[0] = 0.8660254037844386*fEdge[3]-0.8660254037844386*fEdge[2]-0.4999999999999999*fEdge[1]+0.5*fEdge[0]; 
+    fUpOrdR[0] = 0.8660254037844386*fedge[3]-0.8660254037844386*fedge[2]-0.4999999999999999*fedge[1]+0.5*fedge[0]; 
   }
   if (alphaR[1]+alphaR[0] > 0.) {
-    fUpOrdR[1] = 0.8660254037844386*(fSkin[3]+fSkin[2])+0.4999999999999999*fSkin[1]+0.5*fSkin[0]; 
+    fUpOrdR[1] = 0.8660254037844386*(fskin[3]+fskin[2])+0.4999999999999999*fskin[1]+0.5*fskin[0]; 
   } else {
-    fUpOrdR[1] = (-0.8660254037844386*(fEdge[3]+fEdge[2]))+0.4999999999999999*fEdge[1]+0.5*fEdge[0]; 
+    fUpOrdR[1] = (-0.8660254037844386*(fedge[3]+fedge[2]))+0.4999999999999999*fedge[1]+0.5*fedge[0]; 
   }
 
   double fUpR[2] = {0.};
@@ -74,19 +74,19 @@ GKYL_CU_DH void gyrokinetic_boundary_surfx_1x1v_ser_p1(const double q_, const do
   } else { 
 
   double alphaL[2]; 
-  alphaL[0] = (0.3535533905932737*(hamil[1]*(3.0*BstarZdBmag[2]-1.732050807568877*BstarZdBmag[0])*rdx2-2.828427124746191*dApardt[0]*q_))/m_; 
-  alphaL[1] = (0.3535533905932737*(hamil[1]*(3.0*BstarZdBmag[3]-1.732050807568877*BstarZdBmag[1])*rdx2-2.828427124746191*dApardt[1]*q_))/m_; 
+  alphaL[0] = (0.3535533905932737*(hamil[1]*(3.0*BstarZdBmag[2]-1.732050807568877*BstarZdBmag[0])*rdx2-2.828427124746191*apardot[0]*q_))/m_; 
+  alphaL[1] = (0.3535533905932737*(hamil[1]*(3.0*BstarZdBmag[3]-1.732050807568877*BstarZdBmag[1])*rdx2-2.828427124746191*apardot[1]*q_))/m_; 
 
   double fUpOrdL[2];
   if (alphaL[0]-1.0*alphaL[1] > 0.) {
-    fUpOrdL[0] = (-0.8660254037844386*fEdge[3])+0.8660254037844386*fEdge[2]-0.4999999999999999*fEdge[1]+0.5*fEdge[0]; 
+    fUpOrdL[0] = (-0.8660254037844386*fedge[3])+0.8660254037844386*fedge[2]-0.4999999999999999*fedge[1]+0.5*fedge[0]; 
   } else {
-    fUpOrdL[0] = 0.8660254037844386*fSkin[3]-0.8660254037844386*fSkin[2]-0.4999999999999999*fSkin[1]+0.5*fSkin[0]; 
+    fUpOrdL[0] = 0.8660254037844386*fskin[3]-0.8660254037844386*fskin[2]-0.4999999999999999*fskin[1]+0.5*fskin[0]; 
   }
   if (alphaL[1]+alphaL[0] > 0.) {
-    fUpOrdL[1] = 0.8660254037844386*(fEdge[3]+fEdge[2])+0.4999999999999999*fEdge[1]+0.5*fEdge[0]; 
+    fUpOrdL[1] = 0.8660254037844386*(fedge[3]+fedge[2])+0.4999999999999999*fedge[1]+0.5*fedge[0]; 
   } else {
-    fUpOrdL[1] = (-0.8660254037844386*(fSkin[3]+fSkin[2]))+0.4999999999999999*fSkin[1]+0.5*fSkin[0]; 
+    fUpOrdL[1] = (-0.8660254037844386*(fskin[3]+fskin[2]))+0.4999999999999999*fskin[1]+0.5*fskin[0]; 
   }
 
   double fUpL[2] = {0.};
