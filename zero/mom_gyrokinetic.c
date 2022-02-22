@@ -17,9 +17,23 @@ gkyl_gk_mom_free(const struct gkyl_ref_count *ref)
   gkyl_free(momt);
 }
 
+void
+gkyl_vlasov_set_Bmag(const struct gkyl_mom_type *momt, const struct gkyl_array *Bmag)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(Bmag)) {
+    gkyl_vlasov_set_Bmag_cu(momt->on_dev, Bmag);
+    return;
+  }
+#endif
+
+  struct mom_type_gyrokinetic *mom_gyrokinetic = container_of(momt, struct mom_type_gyrokinetic, momt);
+  mom_gyrokinetic->Bmag = Bmag;
+}
+
 struct gkyl_mom_type*
-gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const char *mom)
+gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
+  const struct gkyl_range* conf_range, double mass, const char *mom)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
   
@@ -118,6 +132,10 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis,
     gkyl_exit("gkyl_mom_type_gyrokinetic: Unrecognized moment requested!");
   }
 
+  mom_gyrokinetic->_m = mass;
+  mom_gyrokinetic->Bmag = 0;  
+  mom_gyrokinetic->conf_range = *conf_range;
+  
   mom_gyrokinetic->momt.flag = 0;
   GKYL_CLEAR_CU_ALLOC(mom_gyrokinetic->momt.flag);
   mom_gyrokinetic->momt.ref_count = gkyl_ref_count_init(gkyl_gk_mom_free);
@@ -130,8 +148,8 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis,
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_mom_type*
-gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const char *mom)
+gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
+  const struct gkyl_range* conf_range, double mass, const char *mom)
 {
   assert(false);
   return 0;

@@ -1,6 +1,8 @@
 #pragma once
 
+#include <gkyl_array.h>
 #include <gkyl_basis.h>
+#include <gkyl_range.h>
 #include <gkyl_mom_type.h>
 
 /**
@@ -11,12 +13,12 @@
  * @param pbasis Phase-space basis-functions
  * @param mom Name of moment to compute.
  */
-struct gkyl_mom_type* gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const char *mom);
+struct gkyl_mom_type* gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+  const struct gkyl_range* conf_range, double mass, const char *mom);
 
 /**
  * Create new Gyrokinetic moment type object on NV-GPU: see new() method
  * above for documentation.
  */
-struct gkyl_mom_type* gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const char *mom);
+struct gkyl_mom_type* gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+  const struct gkyl_range* conf_range, double mass, const char *mom);

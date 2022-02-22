@@ -2,7 +2,9 @@
 
 // Private header, not for direct use in user code
 
+#include <gkyl_array.h>
 #include <gkyl_mom_type.h>
+#include <gkyl_range.h>
 #include <gkyl_ref_count.h>
 #include <gkyl_mom_gyrokinetic_kernels.h>
 
@@ -202,7 +204,8 @@ struct mom_type_gyrokinetic {
   struct gkyl_mom_type momt;
   gyrokinetic_momf_t kernel; // moment calculation kernel
   double _m; // mass of species
-  const double *Bmag; // pointer to magnitude of magnetic field
+  struct gkyl_range conf_range; // configuration space range
+  const struct gkyl_array *Bmag; // Pointer to magnitude of magnetic field
 };
 
 /**
@@ -218,6 +221,6 @@ kernel(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_gyrokinetic *mom_gyrokinetic = container_of(momt, struct mom_type_gyrokinetic, momt);
-
-  return mom_gyrokinetic->kernel(xc, dx, idx, mom_gyrokinetic->_m, mom_gyrokinetic->Bmag, f, out);
+  long cidx = gkyl_range_idx(&mom_gyrokinetic->conf_range, idx);
+  return mom_gyrokinetic->kernel(xc, dx, idx, mom_gyrokinetic->_m, (const double*) gkyl_array_cfetch(mom_gyrokinetic->Bmag, cidx), f, out);
 }
