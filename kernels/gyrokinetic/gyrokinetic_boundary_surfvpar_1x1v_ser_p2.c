@@ -1,5 +1,5 @@
 #include <gkyl_gyrokinetic_kernels.h>
-GKYL_CU_DH void gyrokinetic_boundary_surfx_1x1v_ser_p2(const double *w, const double *dxv, const double q_, const double m_, const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, const double *phi, const double *apar, const double *apardot, const int edge, const double *fskin, const double *fedge, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gyrokinetic_boundary_surfvpar_1x1v_ser_p2(const double *w, const double *dxv, const double q_, const double m_, const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, const double *phi, const double *apar, const double *apardot, const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.

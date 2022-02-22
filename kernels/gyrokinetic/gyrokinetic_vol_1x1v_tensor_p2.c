@@ -104,7 +104,7 @@ GKYL_CU_DH double gyrokinetic_vol_1x1v_tensor_p2(const double *w, const double *
 
   return cflFreq; 
 } 
-GKYL_CU_DH double gyrokinetic_vol_step2_1x1v_tensor_p2(const double *w, const double *dxv, const double q_, const double m_, const double *apardot, const double *fin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double gyrokinetic_step2_vol_1x1v_tensor_p2(const double *w, const double *dxv, const double q_, const double m_, const double *apardot, const double *fin, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.

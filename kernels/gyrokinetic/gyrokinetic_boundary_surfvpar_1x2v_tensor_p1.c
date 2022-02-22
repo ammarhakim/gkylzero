@@ -1,5 +1,5 @@
 #include <gkyl_gyrokinetic_kernels.h>
-GKYL_CU_DH void gyrokinetic_boundary_surfvpar_1x2v_ser_p1(const double *w, const double *dxv, const double q_, const double m_, const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, const double *phi, const double *apar, const double *apardot, const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gyrokinetic_boundary_surfvpar_1x2v_tensor_p1(const double *w, const double *dxv, const double q_, const double m_, const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, const double *phi, const double *apar, const double *apardot, const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
@@ -100,10 +100,10 @@ GKYL_CU_DH void gyrokinetic_boundary_surfvpar_1x2v_ser_p1(const double *w, const
   } else { 
 
   double alphaL[4]; 
-  alphaL[0] = (0.25*(hamil[1]*(3.0*BstarZdBmag[2]-1.732050807568877*BstarZdBmag[0])*rdx2-5.656854249492382*apardot[0]*q_))/m_; 
-  alphaL[1] = (0.25*(hamil[1]*(3.0*BstarZdBmag[4]-1.732050807568877*BstarZdBmag[1])*rdx2-5.656854249492382*apardot[1]*q_))/m_; 
-  alphaL[2] = (0.25*(3.0*BstarZdBmag[2]-1.732050807568877*BstarZdBmag[0])*hamil[5]*rdx2)/m_; 
-  alphaL[3] = (0.25*(3.0*BstarZdBmag[4]-1.732050807568877*BstarZdBmag[1])*hamil[5]*rdx2)/m_; 
+  alphaL[0] = -(0.25*(hamil[1]*(1.732050807568877*BstarZdBmag[0]-3.0*BstarZdBmag[2])*rdx2+5.656854249492382*apardot[0]*q_))/m_; 
+  alphaL[1] = -(0.25*(hamil[1]*(1.732050807568877*BstarZdBmag[1]-3.0*BstarZdBmag[4])*rdx2+5.656854249492382*apardot[1]*q_))/m_; 
+  alphaL[2] = -(0.25*(1.732050807568877*BstarZdBmag[0]-3.0*BstarZdBmag[2])*hamil[5]*rdx2)/m_; 
+  alphaL[3] = -(0.25*(1.732050807568877*BstarZdBmag[1]-3.0*BstarZdBmag[4])*hamil[5]*rdx2)/m_; 
 
   double fUpOrdL[4];
   if (alphaL[3]-1.0*alphaL[2]-1.0*alphaL[1]+alphaL[0] > 0.) {
