@@ -107,11 +107,10 @@ build/libgkylzero.a: ${libobjs} ${headers}
 ifeq ($(UNAME), Darwin)
 # Dynamic (shared) library
 build/libgkylzero.so: ${libobjs} ${headers}
-	${CC} -o build/libgkylzero.so -install_name ${HOME}/gkylsoft/gkylzero/lib/libgkylzero.so ${SHFLAGS} ${LDFLAGS} ${libobjs} ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
+	${CC} -o build/libgkylzero.so -install_name ${PREFIX}/gkylzero/lib/libgkylzero.so ${SHFLAGS} ${LDFLAGS} ${libobjs} ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 else
 build/libgkylzero.so:
-	@echo "Not building shared lib on Linux! FIX THIS"
-	touch build/libgkylzero.so
+	${CC} -o build/libgkylzero.so ${SHFLAGS} ${LDFLAGS} ${libobjs}
 endif
 
 # Regression tests
@@ -210,10 +209,10 @@ install: all
 
 clean:
 
-	rm -rf build/libgkylzero.a build/regression/twostream.ini */*.o kernels/*/*.o build/regression/rt_* build/unit/ctest_*
+	rm -rf build/libgkylzero.a build/libgkylzero.so build/regression/twostream.ini */*.o kernels/*/*.o build/regression/rt_* build/unit/ctest_*
 
 # partclean does not delete the kernel object files as they do not
 # always need to be rebuilt and are very expensive to build when using
 # nvcc
 partclean:
-	rm -rf build/libgkylzero.a app/*.o zero/*.o unit/*.o build/regression/rt_* build/unit/ctest_*
+	rm -rf build/libgkylzero.a build/libgkylzero.so app/*.o zero/*.o unit/*.o build/regression/rt_* build/unit/ctest_*
