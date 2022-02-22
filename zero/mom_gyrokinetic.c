@@ -18,17 +18,17 @@ gkyl_gk_mom_free(const struct gkyl_ref_count *ref)
 }
 
 void
-gkyl_vlasov_set_Bmag(const struct gkyl_mom_type *momt, const struct gkyl_array *Bmag)
+gkyl_vlasov_set_bmag(const struct gkyl_mom_type *momt, const struct gkyl_array *bmag)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(Bmag)) {
-    gkyl_vlasov_set_Bmag_cu(momt->on_dev, Bmag);
+  if (gkyl_array_is_cu_dev(bmag)) {
+    gkyl_vlasov_set_bmag_cu(momt->on_dev, bmag);
     return;
   }
 #endif
 
   struct mom_type_gyrokinetic *mom_gyrokinetic = container_of(momt, struct mom_type_gyrokinetic, momt);
-  mom_gyrokinetic->Bmag = Bmag;
+  mom_gyrokinetic->bmag = bmag;
 }
 
 struct gkyl_mom_type*
@@ -133,7 +133,7 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
   }
 
   mom_gyrokinetic->_m = mass;
-  mom_gyrokinetic->Bmag = 0;  
+  mom_gyrokinetic->bmag = 0;  
   mom_gyrokinetic->conf_range = *conf_range;
   
   mom_gyrokinetic->momt.flag = 0;
