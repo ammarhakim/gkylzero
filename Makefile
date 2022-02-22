@@ -25,6 +25,8 @@ LAPACK_LIB = ${HOME}/gkylsoft/OpenBLAS/lib/libopenblas.a
 SUPERLU_INC = ${HOME}/gkylsoft/superlu/include
 SUPERLU_LIB = ${HOME}/gkylsoft/superlu/lib/libsuperlu.a
 
+SUPERLU_LIB_DIR = ${HOME}/gkylsoft/superlu/lib
+
 # Include config.mak file (if it exists) to overide defaults above
 -include config.mak
 
@@ -109,8 +111,8 @@ ifeq ($(UNAME), Darwin)
 build/libgkylzero.so: ${libobjs} ${headers}
 	${CC} -o build/libgkylzero.so -install_name ${PREFIX}/gkylzero/lib/libgkylzero.so ${SHFLAGS} ${LDFLAGS} ${libobjs} ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 else
-build/libgkylzero.so:
-	${CC} -o build/libgkylzero.so ${SHFLAGS} ${LDFLAGS} ${libobjs}
+build/libgkylzero.so: ${libobjs} ${headers}
+	${CC} -o build/libgkylzero.so ${SHFLAGS} ${LDFLAGS} ${libobjs} ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 endif
 
 # Regression tests
