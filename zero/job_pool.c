@@ -3,7 +3,7 @@
 bool
 gkyl_job_pool_add_work(const struct gkyl_job_pool *jp, jp_work_func func, void *ctx)
 {
-  jp->add_work(jp, func, ctx);
+  return jp->add_work(jp, func, ctx);
 }
 
 void
