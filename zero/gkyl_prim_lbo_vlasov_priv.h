@@ -6,9 +6,8 @@
 #include <gkyl_mat.h>
 #include <gkyl_util.h>
 
-typedef void (*vlasov_self_prim_t)(struct gkyl_mat *A,
-  struct gkyl_mat *rhs, const double *m0, const double *m1, const double *m2,
-  const double *cM, const double *cE);
+typedef void (*vlasov_self_prim_t)(struct gkyl_mat *A, struct gkyl_mat *rhs, 
+  const double *moms, const double *boundary_corrections);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
@@ -55,10 +54,9 @@ void prim_lbo_vlasov_free(const struct gkyl_ref_count *ref);
 GKYL_CU_D
 static void
 self_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A,
-  struct gkyl_mat *rhs, const double *m0, const double *m1, const double *m2,
-  const double *cM, const double *cE)
+  struct gkyl_mat *rhs, const double *moms, const double *boundary_corrections)
 {
   struct prim_lbo_type_vlasov *prim_vlasov = container_of(prim, struct prim_lbo_type_vlasov, prim);
 
-  return prim_vlasov->self_prim(A, rhs, m0, m1, m2, cM, cE);
+  return prim_vlasov->self_prim(A, rhs, moms, boundary_corrections);
 }

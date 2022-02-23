@@ -8,8 +8,7 @@ struct gkyl_prim_lbo_type;
 
 // Self-primitive moment kernel pointer type
 typedef void (*self_prim_t)(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A,
-  struct gkyl_mat *rhs, const double *m0, const double *m1, const double *m2,
-  const double *cM, const double *cE);
+  struct gkyl_mat *rhs, const double *moms, const double *boundary_corrections);
 
 struct gkyl_prim_lbo_type {
   int cdim; // config-space dim

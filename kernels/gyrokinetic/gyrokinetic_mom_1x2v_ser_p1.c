@@ -69,24 +69,22 @@ GKYL_CU_DH void gyrokinetic_M3_perp_1x2v_ser_p1(const double *w, const double *d
   out[0] += (volFact*(1.414213562373095*bmag[1]*f[1]*wx1*wx2+1.414213562373095*bmag[0]*f[0]*wx1*wx2+0.408248290463863*bmag[1]*f[4]*dv1*wx2+0.408248290463863*bmag[0]*f[2]*dv1*wx2+0.408248290463863*bmag[1]*f[5]*dv2*wx1+0.408248290463863*bmag[0]*f[3]*dv2*wx1+0.1178511301977579*bmag[1]*f[7]*dv1*dv2+0.1178511301977579*bmag[0]*f[6]*dv1*dv2))/m_; 
   out[1] += (volFact*(1.414213562373095*bmag[0]*f[1]*wx1*wx2+1.414213562373095*f[0]*bmag[1]*wx1*wx2+0.408248290463863*bmag[0]*f[4]*dv1*wx2+0.408248290463863*bmag[1]*f[2]*dv1*wx2+0.408248290463863*bmag[0]*f[5]*dv2*wx1+0.408248290463863*bmag[1]*f[3]*dv2*wx1+0.1178511301977579*bmag[0]*f[7]*dv1*dv2+0.1178511301977579*bmag[1]*f[6]*dv1*dv2))/m_; 
 } 
-GKYL_CU_DH void gyrokinetic_ThreeMoments_1x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT outM0, double* GKYL_RESTRICT outM1, double* GKYL_RESTRICT outM2) 
+GKYL_CU_DH void gyrokinetic_three_moments_1x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[1]*dxv[2]/4; 
   const double wx1 = w[1], dv1 = dxv[1]; 
   const double wx1_sq = wx1*wx1, dv1_sq = dv1*dv1; 
   const double wx2 = w[2], dv2 = dxv[2]; 
   const double wx2_sq = wx2*wx2, dv2_sq = dv2*dv2; 
-  outM0[0] += 2.0*f[0]*volFact; 
-  outM0[1] += 2.0*f[1]*volFact; 
-  outM1[0] += 0.3333333333333333*volFact*(6.0*f[0]*wx1+1.732050807568877*f[2]*dv1); 
-  outM1[1] += 0.3333333333333333*volFact*(6.0*f[1]*wx1+1.732050807568877*f[4]*dv1); 
-  outM2[0] += volFact*(2.0*f[0]*wx1_sq+1.154700538379252*f[2]*dv1*wx1+0.1666666666666667*f[0]*dv1_sq); 
-  outM2[1] += volFact*(2.0*f[1]*wx1_sq+1.154700538379252*f[4]*dv1*wx1+0.1666666666666667*f[1]*dv1_sq); 
   double tmp[2]; 
   tmp[0] = 2.0*f[0]*wx2+0.5773502691896258*f[3]*dv2; 
   tmp[1] = 2.0*f[1]*wx2+0.5773502691896258*f[5]*dv2; 
-  outM2[0] += (2.0*(0.7071067811865475*bmag[1]*tmp[1]+0.7071067811865475*bmag[0]*tmp[0])*volFact)/m_; 
-  outM2[1] += (2.0*(0.7071067811865475*bmag[0]*tmp[1]+0.7071067811865475*tmp[0]*bmag[1])*volFact)/m_; 
+  out[0] += 2.0*f[0]*volFact; 
+  out[1] += 2.0*f[1]*volFact; 
+  out[2] += volFact*(2.0*f[0]*wx1+0.5773502691896258*f[2]*dv1); 
+  out[3] += volFact*(2.0*f[1]*wx1+0.5773502691896258*f[4]*dv1); 
+  out[4] += volFact*(2.0*f[0]*wx1_sq+1.154700538379252*f[2]*dv1*wx1+(1.414213562373095*bmag[1]*tmp[1])/m_+(1.414213562373095*bmag[0]*tmp[0])/m_+0.1666666666666667*f[0]*dv1_sq); 
+  out[5] += volFact*(2.0*f[1]*wx1_sq+1.154700538379252*f[4]*dv1*wx1+(1.414213562373095*bmag[0]*tmp[1])/m_+(1.414213562373095*tmp[0]*bmag[1])/m_+0.1666666666666667*f[1]*dv1_sq); 
 } 
 GKYL_CU_DH void gyrokinetic_M0_step1_1x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out) 
 { 
