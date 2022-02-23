@@ -30,8 +30,6 @@ struct gkyl_fem_parproj {
   int numnodes_local;
   long numnodes_global;
 
-  struct gkyl_array *weight; // weight field (DG).
-
   struct gkyl_superlu_prob* prob;
   struct gkyl_mat *local_mass; // local mass matrix.
   struct gkyl_mat *local_mass_modtonod; // local mass matrix times modal-to-nodal matrix.
@@ -196,23 +194,6 @@ local_to_global(const int dim, const int poly_order, const int basis_type, const
   assert(false);  // Other dimensionalities not supported.
 }
 
-void unityFunc(double t, const double *xn, double* restrict fout, void *ctx)
-{
-  fout[0] = 1.0;
-}
-
-// Apply periodic BCs along parallel direction.
-void
-apply_parperiodic_bc(gkyl_fem_parproj* up, struct gkyl_array *fld)
-{
-  gkyl_array_copy_to_buffer(up->parbc_buff->data, fld, up->parskin_lo);
-  gkyl_array_copy_from_buffer(fld, up->parbc_buff->data, up->parghost_lo);
-
-  gkyl_array_copy_to_buffer(up->parbc_buff->data, fld, up->parskin_up);
-  gkyl_array_copy_from_buffer(fld, up->parbc_buff->data, up->parghost_up);
-}
-
-
 gkyl_fem_parproj*
 gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
   const bool isparperiodic, void *ctx)
@@ -259,32 +240,9 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   // 2D range of perpendicular cells.
   gkyl_range_init(&up->perp_range2d, up->ndim==3 ? 2 : 1, up->perp_range.lower, up->perp_range.upper);
 
-  // If periodic in par dir we may sync (fill ghost cells) of the weight
-  // along par dir. This may later be done outside of fem_parproj (due to MPI),
-  // and for the same reason we assume that the RHS source is synced before
-  // passing it to this updater, and that the final FEM field (phi) is synced
-  // outside fem_parproj after this updater is done.
-  if (up->isperiodic) {
-    // Skin and ghost ranges.
-    gkyl_skin_ghost_ranges(&up->parskin_lo, &up->parghost_lo, up->pardir, 
-      GKYL_LOWER_EDGE, &up->local_range_ext, ghost);
-    gkyl_skin_ghost_ranges(&up->parskin_up, &up->parghost_up, up->pardir, 
-      GKYL_UPPER_EDGE, &up->local_range_ext, ghost);
-    // Buffer to store skin data.
-    up->parbc_buff = gkyl_array_new(GKYL_DOUBLE, up->num_basis, up->parskin_up.volume);
-  }
-
   // Compute the number of local and global nodes.
   up->numnodes_local = up->num_basis;
   up->numnodes_global = global_num_nodes(up->ndim, up->poly_order, basis->b_type, up->par_range.volume);
-
-  // Allocate array holding the weight and set it to 1.
-  up->weight = gkyl_array_new(GKYL_DOUBLE, up->num_basis, up->local_range_ext.volume);
-  gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(grid, basis,
-    up->poly_order+1, 1, unityFunc, NULL);
-  gkyl_proj_on_basis_advance(projob, 0.0, &up->local_range, up->weight);
-  gkyl_proj_on_basis_release(projob);
-  if (up->isperiodic) apply_parperiodic_bc(up, up->weight); 
 
   // Create local matrices used later.
   up->local_mass = gkyl_mat_new(up->numnodes_local, up->numnodes_local, 0.);
@@ -298,8 +256,8 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   //  a) No weight, or weight is a scalar so we can divide the RHS by it. Then
   //     A is the same for every problem, and we can just populate B with a
   //     column for each problem.
-  //  b) Weight depends on space. Then we have to create a Ax=B for each
-  //     perpendicular cell.
+  //  b) Weight depends on space. Then we have to create an A matrix and a
+  //     separate Ax=B problem for each perpendicular cell.
   // For now we restrict ourselves to a).
   up->prob = gkyl_superlu_prob_new(up->numnodes_global, up->numnodes_global, up->perp_range.volume);
 
@@ -410,7 +368,6 @@ void gkyl_fem_parproj_release(gkyl_fem_parproj *up)
   gkyl_mat_release(up->local_mass);
   gkyl_mat_release(up->local_mass_modtonod);
   gkyl_mat_release(up->local_nodtomod);
-  gkyl_array_release(up->weight);
   gkyl_superlu_prob_release(up->prob);
   gkyl_free(up->globalidx);
   gkyl_free(up);

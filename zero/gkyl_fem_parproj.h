@@ -4,7 +4,6 @@
 #include <gkyl_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_alloc.h>
-#include <gkyl_proj_on_basis.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_array_ops.h>
