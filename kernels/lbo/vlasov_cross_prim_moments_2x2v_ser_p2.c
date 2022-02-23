@@ -1,6 +1,6 @@
 #include <gkyl_prim_lbo_vlasov_kernels.h> 
  
-GKYL_CU_DH void vlasov_cross_prim_moments_2x2v_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double betaGreenep1, const double mSelf, const double nuSelf, const double *uSelf, const double *vtSqSelf, const double mOther, const double nuOther, const double *uOther, const double *vtSqOther, const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *uCross, double *vtSqCross) 
+GKYL_CU_DH void vlasov_cross_prim_moments_2x2v_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double betaGreenep1, const double mSelf, const double nuSelf, const double *uSelf, const double *vtSqSelf, const double mOther, const double nuOther, const double *uOther, const double *vtSqOther, const double *m0, const double *m1, const double *m2, const double *cM, const double *cE) 
 { 
   // betaGreenep1:       free parameter beta+1. This has to be >0. 
   // nu, m:              collisionality and mass. 
