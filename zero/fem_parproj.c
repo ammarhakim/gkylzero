@@ -1,5 +1,5 @@
 #include <gkyl_fem_parproj.h>
-#include <gkyl_fem_parproj_kernels.h>
+#include <gkyl_fem_parproj_priv.h>
 
 struct gkyl_fem_parproj {
   void *ctx; // evaluation context.
@@ -22,11 +22,6 @@ struct gkyl_fem_parproj {
   struct gkyl_range perp_range2d; // 2D range of perpendicular cells.
   struct gkyl_range_iter perp_iter2d;
 
-  int bc_off;
-  // These are used with periodic BCs:
-  struct gkyl_array *parbc_buff;
-  struct gkyl_range parskin_lo, parskin_up, parghost_lo, parghost_up;
-
   int numnodes_local;
   long numnodes_global;
 
@@ -34,6 +29,8 @@ struct gkyl_fem_parproj {
   struct gkyl_mat *local_mass; // local mass matrix.
   struct gkyl_mat *local_mass_modtonod; // local mass matrix times modal-to-nodal matrix.
   struct gkyl_mat *local_nodtomod; // local nodal-to-modal matrix.
+
+  local2global_t l2g;  // Pointer to local-to-global kernel:
 
   long *globalidx;
 };
@@ -163,37 +160,6 @@ local_nodtomod(const int dim, const int poly_order, const int basis_type, struct
   assert(false);  // Other dimensionalities not supported.
 }
 
-static void
-local_to_global(const int dim, const int poly_order, const int basis_type, const int parnum_cells, const int paridx, long *globalidx)
-{
-  if (dim==1) {
-    if (poly_order == 1) {
-      return fem_parproj_local_to_global_1x_ser_p1(parnum_cells, paridx, globalidx);
-    } else if (poly_order == 2) {
-      return fem_parproj_local_to_global_1x_ser_p2(parnum_cells, paridx, globalidx);
-    } else if (poly_order == 3) {
-      return fem_parproj_local_to_global_1x_ser_p3(parnum_cells, paridx, globalidx);
-    }
-  } else if (dim==3) {
-    if (basis_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-      if (poly_order == 1) {
-        return fem_parproj_local_to_global_3x_ser_p1(parnum_cells, paridx, globalidx);
-      } else if (poly_order == 2) {
-        return fem_parproj_local_to_global_3x_ser_p2(parnum_cells, paridx, globalidx);
-      } else if (poly_order == 3) {
-        return fem_parproj_local_to_global_3x_ser_p3(parnum_cells, paridx, globalidx);
-      }
-    } if (basis_type == GKYL_BASIS_MODAL_TENSOR) {
-      if (poly_order == 1) {
-        return fem_parproj_local_to_global_3x_tensor_p1(parnum_cells, paridx, globalidx);
-      } else if (poly_order == 2) {
-        return fem_parproj_local_to_global_3x_tensor_p2(parnum_cells, paridx, globalidx);
-      }
-    }
-  }
-  assert(false);  // Other dimensionalities not supported.
-}
-
 gkyl_fem_parproj*
 gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
   const bool isparperiodic, void *ctx)
@@ -220,14 +186,10 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   for (int d=0; d<up->ndim-1; d++) {sublower[d] = up->local_range.lower[d];  subupper[d] = up->local_range.lower[d];}
   sublower[up->pardir] = up->local_range.lower[up->pardir];
   subupper[up->pardir] = up->local_range.upper[up->pardir];
-  up->bc_off = 1;
   if (up->isperiodic) {
     // Include ghost cells in parallel direction.
     sublower[up->pardir] = up->local_range_ext.lower[up->pardir];
     subupper[up->pardir] = up->local_range_ext.upper[up->pardir];
-    // Will also need an offset to convert indices in the grid to indices in
-    // the linear problem.
-    up->bc_off = 0;
   }
   gkyl_sub_range_init(&up->par_range, &up->local_range_ext, sublower, subupper);
   up->parnum_cells = up->par_range.volume;
@@ -252,6 +214,9 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->local_nodtomod = gkyl_mat_new(up->numnodes_local, up->numnodes_local, 0.);
   local_nodtomod(up->ndim, up->poly_order, basis->b_type, up->local_nodtomod);
 
+  // Select local-to-global mapping kernel:
+  up->l2g = choose_local2global_kern(up->ndim, basis->b_type, up->poly_order);
+
   // Create a linear Ax=B problem. We envision two cases:
   //  a) No weight, or weight is a scalar so we can divide the RHS by it. Then
   //     A is the same for every problem, and we can just populate B with a
@@ -267,7 +232,7 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   while (gkyl_range_iter_next(&up->par_iter1d)) {
     long paridx = gkyl_range_idx(&up->par_range1d, up->par_iter1d.idx);
 
-    local_to_global(up->ndim, up->poly_order, up->basis_type, up->parnum_cells, paridx, up->globalidx);
+    up->l2g(up->parnum_cells, paridx, up->globalidx);
     for (size_t k=0; k<up->numnodes_local; ++k) {
       for (size_t m=0; m<up->numnodes_local; ++m) {
         double val = gkyl_mat_get(up->local_mass,k,m);
@@ -306,7 +271,7 @@ gkyl_fem_parproj_set_rhs(gkyl_fem_parproj* up, const struct gkyl_array *rhsin)
       long linidx = gkyl_range_idx(&up->local_range, cidx);
       const double *rhsin_p = gkyl_array_cfetch(rhsin, linidx);
 
-      local_to_global(up->ndim, up->poly_order, up->basis_type, up->parnum_cells, paridx, up->globalidx);
+      up->l2g(up->parnum_cells, paridx, up->globalidx);
 
       for (size_t k=0; k<up->numnodes_local; k++) {
         long globalidx_k = up->globalidx[k];
@@ -345,7 +310,7 @@ gkyl_fem_parproj_solve(gkyl_fem_parproj* up, struct gkyl_array *phiout) {
       long linidx = gkyl_range_idx(&up->local_range, pidx);
       double *phiout_p = gkyl_array_fetch(phiout, linidx);
 
-      local_to_global(up->ndim, up->poly_order, up->basis_type, up->parnum_cells, paridx, up->globalidx);
+      up->l2g(up->parnum_cells, paridx, up->globalidx);
 
       for (size_t k=0; k<up->numnodes_local; k++) {
         phiout_p[k] = 0.;
@@ -362,9 +327,6 @@ gkyl_fem_parproj_solve(gkyl_fem_parproj* up, struct gkyl_array *phiout) {
 
 void gkyl_fem_parproj_release(gkyl_fem_parproj *up)
 {
-  if (up->isperiodic) {
-    gkyl_array_release(up->parbc_buff);
-  }
   gkyl_mat_release(up->local_mass);
   gkyl_mat_release(up->local_mass_modtonod);
   gkyl_mat_release(up->local_nodtomod);
