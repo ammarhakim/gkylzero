@@ -12,10 +12,15 @@ struct gkyl_fem_parproj {
   int parnum_cells; // number of cells in parallel (z) direction.
   bool isperiodic; // =true if parallel direction is periodic.
 
+  struct gkyl_range local_range, local_range_ext;
   struct gkyl_range perp_range; // range of perpendicular cells.
   struct gkyl_range_iter perp_iter;
   struct gkyl_range par_range; // range of parallel cells.
   struct gkyl_range_iter par_iter;
+  struct gkyl_range par_range1d; // 1D range of parallel cells.
+  struct gkyl_range_iter par_iter1d;
+  struct gkyl_range perp_range2d; // 2D range of perpendicular cells.
+  struct gkyl_range_iter perp_iter2d;
 
   int bc_off;
   // These are used with periodic BCs:
@@ -35,7 +40,7 @@ struct gkyl_fem_parproj {
   long *globalidx;
 };
 
-long
+static long
 global_num_nodes(const int dim, const int poly_order, const int basis_type, const int parnum_cells)
 {
   if (dim==1) {
@@ -67,7 +72,7 @@ global_num_nodes(const int dim, const int poly_order, const int basis_type, cons
   return -1;
 }
 
-void
+static void
 local_mass(const int dim, const int poly_order, const int basis_type, struct gkyl_mat *massout)
 {
   if (dim==1) {
@@ -98,7 +103,7 @@ local_mass(const int dim, const int poly_order, const int basis_type, struct gky
   assert(false);  // Other dimensionalities not supported.
 }
 
-void
+static void
 local_mass_modtonod(const int dim, const int poly_order, const int basis_type, struct gkyl_mat *mass_mod2nod)
 {
   if (dim==1) {
@@ -129,7 +134,7 @@ local_mass_modtonod(const int dim, const int poly_order, const int basis_type, s
   assert(false);  // Other dimensionalities not supported.
 }
 
-void
+static void
 local_nodtomod(const int dim, const int poly_order, const int basis_type, struct gkyl_mat *nod2mod)
 {
   if (dim==1) {
@@ -160,7 +165,7 @@ local_nodtomod(const int dim, const int poly_order, const int basis_type, struct
   assert(false);  // Other dimensionalities not supported.
 }
 
-void
+static void
 local_to_global(const int dim, const int poly_order, const int basis_type, const int parnum_cells, const int paridx, long *globalidx)
 {
   if (dim==1) {
@@ -228,26 +233,31 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   // Local and local-ext ranges for whole-grid arrays.
   int ghost[GKYL_MAX_DIM];
   for (int d=0; d<up->ndim; d++) ghost[d] = 1;
-  struct gkyl_range localrange, localrange_ext;
-  gkyl_create_grid_ranges(grid, ghost, &localrange_ext, &localrange);
-  // Range of parallel cells.
+  gkyl_create_grid_ranges(grid, ghost, &up->local_range_ext, &up->local_range);
+  // Range of parallel cells, as a sub-range of up->local_range.
   int sublower[GKYL_MAX_DIM], subupper[GKYL_MAX_DIM];
-  for (int d=0; d<up->ndim-1; d++) {sublower[d] = localrange.lower[d];  subupper[d] = localrange.lower[d];}
-  sublower[up->pardir] = localrange.lower[up->pardir];
-  subupper[up->pardir] = localrange.upper[up->pardir];
+  for (int d=0; d<up->ndim-1; d++) {sublower[d] = up->local_range.lower[d];  subupper[d] = up->local_range.lower[d];}
+  sublower[up->pardir] = up->local_range.lower[up->pardir];
+  subupper[up->pardir] = up->local_range.upper[up->pardir];
   up->bc_off = 1;
   if (up->isperiodic) {
     // Include ghost cells in parallel direction.
-    sublower[up->pardir] = localrange_ext.lower[up->pardir];
-    subupper[up->pardir] = localrange_ext.upper[up->pardir];
+    sublower[up->pardir] = up->local_range_ext.lower[up->pardir];
+    subupper[up->pardir] = up->local_range_ext.upper[up->pardir];
     // Will also need an offset to convert indices in the grid to indices in
     // the linear problem.
     up->bc_off = 0;
   }
-  gkyl_sub_range_init(&up->par_range, &localrange_ext, sublower, subupper);
+  gkyl_sub_range_init(&up->par_range, &up->local_range_ext, sublower, subupper);
   up->parnum_cells = up->par_range.volume;
   // Range of perpendicular cells.
-  gkyl_range_shorten(&up->perp_range, &localrange, up->pardir, 1);
+  gkyl_range_shorten(&up->perp_range, &up->local_range, up->pardir, 1);
+
+  // 1D range of parallel cells.
+  int lower1d[] = {up->par_range.lower[up->pardir]}, upper1d[] = {up->par_range.upper[up->pardir]};
+  gkyl_range_init(&up->par_range1d, 1, lower1d, upper1d);
+  // 2D range of perpendicular cells.
+  gkyl_range_init(&up->perp_range2d, up->ndim==3 ? 2 : 1, up->perp_range.lower, up->perp_range.upper);
 
   // If periodic in par dir we may sync (fill ghost cells) of the weight
   // along par dir. This may later be done outside of fem_parproj (due to MPI),
@@ -257,9 +267,9 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   if (up->isperiodic) {
     // Skin and ghost ranges.
     gkyl_skin_ghost_ranges(&up->parskin_lo, &up->parghost_lo, up->pardir, 
-      GKYL_LOWER_EDGE, &localrange_ext, ghost);
+      GKYL_LOWER_EDGE, &up->local_range_ext, ghost);
     gkyl_skin_ghost_ranges(&up->parskin_up, &up->parghost_up, up->pardir, 
-      GKYL_UPPER_EDGE, &localrange_ext, ghost);
+      GKYL_UPPER_EDGE, &up->local_range_ext, ghost);
     // Buffer to store skin data.
     up->parbc_buff = gkyl_array_new(GKYL_DOUBLE, up->num_basis, up->parskin_up.volume);
   }
@@ -269,10 +279,10 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->numnodes_global = global_num_nodes(up->ndim, up->poly_order, basis->b_type, up->par_range.volume);
 
   // Allocate array holding the weight and set it to 1.
-  up->weight = gkyl_array_new(GKYL_DOUBLE, up->num_basis, localrange_ext.volume);
+  up->weight = gkyl_array_new(GKYL_DOUBLE, up->num_basis, up->local_range_ext.volume);
   gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(grid, basis,
     up->poly_order+1, 1, unityFunc, NULL);
-  gkyl_proj_on_basis_advance(projob, 0.0, &localrange, up->weight);
+  gkyl_proj_on_basis_advance(projob, 0.0, &up->local_range, up->weight);
   gkyl_proj_on_basis_release(projob);
   if (up->isperiodic) apply_parperiodic_bc(up, up->weight); 
 
@@ -295,12 +305,11 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 
   // Assign non-zero elements in A.
   gkyl_mat_triples *tri = gkyl_mat_triples_new(up->numnodes_global, up->numnodes_global);
-  gkyl_range_iter_init(&up->par_iter, &up->par_range);
-  while (gkyl_range_iter_next(&up->par_iter)) {
-    long paridx = gkyl_range_idx(&up->par_range, up->par_iter.idx);
+  gkyl_range_iter_init(&up->par_iter1d, &up->par_range1d);
+  while (gkyl_range_iter_next(&up->par_iter1d)) {
+    long paridx = gkyl_range_idx(&up->par_range1d, up->par_iter1d.idx);
 
-    local_to_global(up->ndim, up->poly_order, up->basis_type, up->parnum_cells, paridx-up->bc_off, up->globalidx);
-
+    local_to_global(up->ndim, up->poly_order, up->basis_type, up->parnum_cells, paridx, up->globalidx);
     for (size_t k=0; k<up->numnodes_local; ++k) {
       for (size_t m=0; m<up->numnodes_local; ++m) {
         double val = gkyl_mat_get(up->local_mass,k,m);
@@ -320,22 +329,34 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 void
 gkyl_fem_parproj_set_rhs(gkyl_fem_parproj* up, const struct gkyl_array *rhsin)
 {
-  gkyl_range_iter_init(&up->par_iter, &up->par_range);
   gkyl_mat_triples *tri = gkyl_mat_triples_new(up->numnodes_global, up->perp_range.volume);
-  while (gkyl_range_iter_next(&up->par_iter)) {
-    long paridx = gkyl_range_idx(&up->par_range, up->par_iter.idx);
 
-    const double *rhsin_p = gkyl_array_cfetch(rhsin, paridx);
+  int cidx[GKYL_MAX_DIM] = {0};
 
-    local_to_global(up->ndim, up->poly_order, up->basis_type, up->parnum_cells, paridx-up->bc_off, up->globalidx);
+  gkyl_range_iter_init(&up->perp_iter, &up->perp_range);
+  while (gkyl_range_iter_next(&up->perp_iter)) {
+    long perpidx = gkyl_range_idx(&up->perp_range, up->perp_iter.idx);
+    long perpidx2d = gkyl_range_idx(&up->perp_range2d, up->perp_iter.idx);
 
-    for (size_t k=0; k<up->numnodes_local; ++k) {
-      long globalidx_k = up->globalidx[k];
-      double massnod_rhs = 0.;
-      for (size_t m=0; m<up->numnodes_local; ++m) {
-        massnod_rhs += gkyl_mat_get(up->local_mass_modtonod,k,m) * rhsin_p[m];
+    gkyl_range_iter_init(&up->par_iter1d, &up->par_range1d);
+    while (gkyl_range_iter_next(&up->par_iter1d)) {
+      long paridx = gkyl_range_idx(&up->par_range1d, up->par_iter1d.idx);
+
+      for (int d=0; d<up->ndim-1; d++) cidx[d] = up->perp_iter.idx[d];
+      cidx[up->pardir] = up->par_iter1d.idx[0];
+
+      long linidx = gkyl_range_idx(&up->local_range, cidx);
+      const double *rhsin_p = gkyl_array_cfetch(rhsin, linidx);
+
+      local_to_global(up->ndim, up->poly_order, up->basis_type, up->parnum_cells, paridx, up->globalidx);
+
+      for (size_t k=0; k<up->numnodes_local; k++) {
+        long globalidx_k = up->globalidx[k];
+        double massnod_rhs = 0.;
+        for (size_t m=0; m<up->numnodes_local; m++)
+          massnod_rhs += gkyl_mat_get(up->local_mass_modtonod,k,m) * rhsin_p[m];
+        gkyl_mat_triples_accum(tri, globalidx_k, perpidx2d, massnod_rhs);
       }
-      gkyl_mat_triples_accum(tri, globalidx_k, 0, massnod_rhs);
     }
 
   }
@@ -349,22 +370,34 @@ void
 gkyl_fem_parproj_solve(gkyl_fem_parproj* up, struct gkyl_array *phiout) {
   gkyl_superlu_solve(up->prob);
 
-  gkyl_range_iter_init(&up->par_iter, &up->par_range);
-  while (gkyl_range_iter_next(&up->par_iter)) {
-    long paridx = gkyl_range_idx(&up->par_range, up->par_iter.idx);
+  int pidx[GKYL_MAX_DIM] = {0};
 
-    double *phiout_p = gkyl_array_fetch(phiout, paridx);
+  gkyl_range_iter_init(&up->perp_iter, &up->perp_range);
+  while (gkyl_range_iter_next(&up->perp_iter)) {
+    long perpidx = gkyl_range_idx(&up->perp_range, up->perp_iter.idx);
+    long perpidx2d = gkyl_range_idx(&up->perp_range2d, up->perp_iter.idx);
 
-    local_to_global(up->ndim, up->poly_order, up->basis_type, up->parnum_cells, paridx-up->bc_off, up->globalidx);
+    gkyl_range_iter_init(&up->par_iter1d, &up->par_range1d);
+    while (gkyl_range_iter_next(&up->par_iter1d)) {
+      long paridx = gkyl_range_idx(&up->par_range1d, up->par_iter1d.idx);
 
-    for (size_t k=0; k<up->numnodes_local; ++k) {
-      phiout_p[k] = 0.;
-      for (size_t m=0; m<up->numnodes_local; ++m) {
-        long globalidx_m = up->globalidx[m];
-        phiout_p[k] += gkyl_mat_get(up->local_nodtomod,k,m) * gkyl_superlu_get_rhs(up->prob,globalidx_m);
+      for (int d=0; d<up->ndim-1; d++) pidx[d] = up->perp_iter.idx[d];
+      pidx[up->pardir] = up->par_iter1d.idx[0];
+
+      long linidx = gkyl_range_idx(&up->local_range, pidx);
+      double *phiout_p = gkyl_array_fetch(phiout, linidx);
+
+      local_to_global(up->ndim, up->poly_order, up->basis_type, up->parnum_cells, paridx, up->globalidx);
+
+      for (size_t k=0; k<up->numnodes_local; k++) {
+        phiout_p[k] = 0.;
+        for (size_t m=0; m<up->numnodes_local; m++) {
+          long globalidx_m = up->globalidx[m];
+          phiout_p[k] += gkyl_mat_get(up->local_nodtomod,k,m) * gkyl_superlu_get_rhs_ij(up->prob, globalidx_m, perpidx2d);
+        }
       }
-    }
 
+    }
   }
 
 }

@@ -144,11 +144,11 @@ void test_slu_ops(const bool separateLUdecomp)
   }
 
   // Solution is: [-1/32, 11/168, 3/224, 1/16, 11/336].
-  TEST_CHECK( gkyl_compare(-1.0/32.0,   gkyl_superlu_get_rhs(sluprob,0), 1e-14) );
-  TEST_CHECK( gkyl_compare( 11.0/168.0, gkyl_superlu_get_rhs(sluprob,1), 1e-14) );
-  TEST_CHECK( gkyl_compare( 3.0/224.0,  gkyl_superlu_get_rhs(sluprob,2), 1e-14) );
-  TEST_CHECK( gkyl_compare( 1.0/16.0,   gkyl_superlu_get_rhs(sluprob,3), 1e-14) );
-  TEST_CHECK( gkyl_compare( 11.0/336.0, gkyl_superlu_get_rhs(sluprob,4), 1e-14) );
+  TEST_CHECK( gkyl_compare(-1.0/32.0,   gkyl_superlu_get_rhs_lin(sluprob,0), 1e-14) );
+  TEST_CHECK( gkyl_compare( 11.0/168.0, gkyl_superlu_get_rhs_lin(sluprob,1), 1e-14) );
+  TEST_CHECK( gkyl_compare( 3.0/224.0,  gkyl_superlu_get_rhs_lin(sluprob,2), 1e-14) );
+  TEST_CHECK( gkyl_compare( 1.0/16.0,   gkyl_superlu_get_rhs_lin(sluprob,3), 1e-14) );
+  TEST_CHECK( gkyl_compare( 11.0/336.0, gkyl_superlu_get_rhs_lin(sluprob,4), 1e-14) );
 
   gkyl_superlu_prob_release(sluprob);
 

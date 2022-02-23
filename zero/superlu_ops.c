@@ -154,7 +154,14 @@ gkyl_superlu_solve(gkyl_superlu_prob *prob)
 }
 
 double
-gkyl_superlu_get_rhs(gkyl_superlu_prob *prob, const long loc)
+gkyl_superlu_get_rhs_ij(gkyl_superlu_prob *prob, const long ielement, const long jprob)
+{
+  return prob->rhs[jprob*prob->mrow+ielement];
+}
+
+
+double
+gkyl_superlu_get_rhs_lin(gkyl_superlu_prob *prob, const long loc)
 {
   return prob->rhs[loc];
 }
