@@ -27,8 +27,8 @@ void test_grid_2d()
       idx[0] = i; idx[1] = j;
       gkyl_rect_grid_cell_center(&grid, idx, xc);
 
-      TEST_CHECK( xc[0] == 1.0 + (i+0.5)*grid.dx[0] );
-      TEST_CHECK( xc[1] == 1.0 + (j+0.5)*grid.dx[1] );
+      TEST_CHECK( xc[0] == 1.0 + (i-0.5)*grid.dx[0] );
+      TEST_CHECK( xc[1] == 1.0 + (j-0.5)*grid.dx[1] );
     }
 }
 
