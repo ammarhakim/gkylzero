@@ -117,7 +117,8 @@ test_1x1v_p2()
   }
 
   // get linear index of first non-ghost cell
-  int idx[] = {0, 0, 0, 0, 0};
+  // 1-indexed for interfacing with G2 Lua layer
+  int idx[] = {1, 1, 1, 1, 1};
   int linl = gkyl_range_idx(&phaseRange, idx);
 
   // check that ghost cells are empty
@@ -132,8 +133,8 @@ test_1x1v_p2()
   TEST_CHECK(i == linl);
 
   // get linear index of some other cell
-  int idx1[] = {0, 0};
-  int idx2[] = {1, 2};
+  int idx1[] = {1, 1};
+  int idx2[] = {2, 3};
   int linl1 = gkyl_range_idx(&phaseRange, idx1);
   int linl2 = gkyl_range_idx(&phaseRange, idx2);
   rhs_d1 = gkyl_array_fetch(rhs, linl1);
@@ -230,9 +231,10 @@ test_1x2v_p2()
   }
 
   // get linear index of first non-ghost cell
-  int idx[] = {0, 0, 0, 0, 0};
+  // 1-indexed for interfacing with G2 Lua layer
+  int idx[] = {1, 1, 1, 1, 1};
   int linl = gkyl_range_idx(&phaseRange, idx);
-
+  
   // check that ghost cells are empty
   double val = 0;
   double *rhs_d1, *rhs_d2;
@@ -245,8 +247,8 @@ test_1x2v_p2()
   TEST_CHECK(i == linl);
 
   // get linear index of some other cell
-  int idx1[] = {0, 0, 0};
-  int idx2[] = {2, 2, 2};
+  int idx1[] = {1, 1, 1};
+  int idx2[] = {3, 3, 3};
   int linl1 = gkyl_range_idx(&phaseRange, idx1);
   int linl2 = gkyl_range_idx(&phaseRange, idx2);
   rhs_d1 = gkyl_array_fetch(rhs, linl1);
@@ -376,7 +378,8 @@ test_1x1v_p2_cu()
   gkyl_array_copy(rhs, rhs_cu);
 
   // get linear index of first non-ghost cell
-  int idx[] = {0, 0, 0, 0, 0};
+  // 1-indexed for interfacing with G2 Lua layer
+  int idx[] = {1, 1, 1, 1, 1};
   int linl = gkyl_range_idx(&phaseRange, idx);
 
   // check that ghost cells are empty
@@ -391,8 +394,8 @@ test_1x1v_p2_cu()
   TEST_CHECK(i == linl);
 
   // get linear index of some other cell
-  int idx1[] = {0, 0};
-  int idx2[] = {1, 2};
+  int idx1[] = {1, 1};
+  int idx2[] = {2, 3};
   int linl1 = gkyl_range_idx(&phaseRange, idx1);
   int linl2 = gkyl_range_idx(&phaseRange, idx2);
   rhs_d1 = gkyl_array_fetch(rhs, linl1);
@@ -499,7 +502,8 @@ test_1x2v_p2_cu()
   gkyl_array_copy(rhs, rhs_cu);
     
   // get linear index of first non-ghost cell
-  int idx[] = {0, 0, 0, 0, 0};
+  // 1-indexed for interfacing with G2 Lua layer
+  int idx[] = {1, 1, 1, 1, 1};
   int linl = gkyl_range_idx(&phaseRange, idx);
 
   // check that ghost cells are empty
@@ -514,8 +518,8 @@ test_1x2v_p2_cu()
   TEST_CHECK(i == linl);
   
   // get linear index of some other cell
-  int idx1[] = {0, 0, 0};
-  int idx2[] = {2, 2, 2};
+  int idx1[] = {1, 1, 1};
+  int idx2[] = {3, 3, 3};
   int linl1 = gkyl_range_idx(&phaseRange, idx1);
   int linl2 = gkyl_range_idx(&phaseRange, idx2);
   rhs_d1 = gkyl_array_fetch(rhs, linl1);
