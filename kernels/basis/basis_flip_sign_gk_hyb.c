@@ -1,8 +1,8 @@
-// Wed Feb 23 22:22:36 2022
+// Thu Feb 24 09:26:57 2022
 #include <gkyl_basis_gk_hyb_kernels.h>
 GKYL_CU_DH
 void
-flip_sign_2d_hyb_p1(int dir, const double *f, double *fout )
+flip_sign_2d_gk_hyb_p1(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -24,7 +24,7 @@ flip_sign_2d_hyb_p1(int dir, const double *f, double *fout )
 
 GKYL_CU_DH
 void
-flip_sign_3d_hyb_p1(int dir, const double *f, double *fout )
+flip_sign_3d_gk_hyb_p1(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -72,7 +72,7 @@ flip_sign_3d_hyb_p1(int dir, const double *f, double *fout )
 
 GKYL_CU_DH
 void
-flip_sign_4d_hyb_p1(int dir, const double *f, double *fout )
+flip_sign_4d_gk_hyb_p1(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -182,7 +182,7 @@ flip_sign_4d_hyb_p1(int dir, const double *f, double *fout )
 
 GKYL_CU_DH
 void
-flip_sign_5d_hyb_p1(int dir, const double *f, double *fout )
+flip_sign_5d_gk_hyb_p1(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
