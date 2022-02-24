@@ -22,7 +22,7 @@ gkyl_vlasov_set_bmag(const struct gkyl_mom_type *momt, const struct gkyl_array *
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(bmag)) {
-    gkyl_vlasov_set_bmag_cu(momt->on_dev, bmag);
+    //gkyl_vlasov_set_bmag_cu(momt->on_dev, bmag);
     return;
   }
 #endif
