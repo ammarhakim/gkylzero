@@ -172,7 +172,8 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   gkyl_mom_calc_bcorr_advance(bcorr_calc, local, confLocal, distf, boundary_corrections);
   
   // Check boundary corrections of momentum and energy.
-  for (unsigned int i=0; i<cells[0]; ++i) {
+  // 1-indexed for interfacing with G2 Lua layer
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
     int cidx[] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *fptr = gkyl_array_fetch(boundary_corrections, linc);
@@ -201,7 +202,8 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   gkyl_prim_lbo_calc_advance(primcalc, confBasis, confLocal, moms, boundary_corrections, u, vth);
 
   // Check u
-  for (unsigned int i=0; i<cells[0]; ++i) {
+  // 1-indexed for interfacing with G2 Lua layer
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
     int cidx[] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *uptr = gkyl_array_fetch(u, linc);
@@ -210,7 +212,8 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   }}
 
   // Check vtSq.
-  for (unsigned int i=0; i<cells[0]; ++i) {
+  // 1-indexed for interfacing with G2 Lua layer
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
     int cidx[] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *vthptr = gkyl_array_fetch(vth, linc);
@@ -341,7 +344,8 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   gkyl_array_copy(vth, vth_cu);
 
   // Check u
-  for (unsigned int i=0; i<cells[0]; ++i) {
+  // 1-indexed for interfacing with G2 Lua layer
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
     int cidx[] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *uptr = gkyl_array_fetch(u, linc);
@@ -350,7 +354,8 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   }}
 
   // Check vtSq.
-  for (unsigned int i=0; i<cells[0]; ++i) {
+  // 1-indexed for interfacing with G2 Lua layer
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
     int cidx[] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *vthptr = gkyl_array_fetch(vth, linc);
