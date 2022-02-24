@@ -50,7 +50,7 @@ USING_NVCC =
 NVCC_FLAGS = 
 CUDA_LIBS = 
 ifeq ($(CC), nvcc)
-       CFLAGS = -O3 -g --forward-unknown-to-host-compiler
+       CFLAGS = -O3 -g --forward-unknown-to-host-compiler -fPIC
        USING_NVCC = yes
        NVCC_FLAGS = -x cu -dc -arch=sm_70 --compiler-options="-fPIC" 
        LDFLAGS += -arch=sm_70
