@@ -34,10 +34,6 @@ gkyl_mom_bcorr_lbo_vlasov_set_cu_dev_ptrs(struct mom_type_bcorr_lbo_vlasov* mom_
   }
   mom_bcorr->kernel = mom_bcorr_lbo_vlasov_kernels[tblidx].kernels[poly_order];
   mom_bcorr->momt.num_mom = vdim+1;
-
-  default: // can't happen
-    break;
-  }
 }
 
 struct gkyl_mom_type*
@@ -73,7 +69,7 @@ gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const stru
   assert(cv_index[cdim].vdim[vdim] != -1);
 
 
-  gkyl_mom_bcorr_lbo_vlasov_set_cu_dev_ptrs<<<1,1>>>(mom_bcorr_cu, mom_id, cbasis->b_type,
+  gkyl_mom_bcorr_lbo_vlasov_set_cu_dev_ptrs<<<1,1>>>(mom_bcorr_cu, cbasis->b_type,
     vdim, poly_order, cv_index[cdim].vdim[vdim]);
 
   mom_bcorr->momt.on_dev = &mom_bcorr_cu->momt;

@@ -304,42 +304,28 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
   gkyl_array_copy(distf_cu, distf);
-  
-  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_cu_dev_new(&confBasis, &basis, "M0");
-  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_cu_dev_new(&confBasis, &basis, "M1i");
-  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_cu_dev_new(&confBasis, &basis, "M2");
-  gkyl_mom_calc *m0calc = gkyl_mom_calc_cu_dev_new(&grid, vmM0_t);
-  gkyl_mom_calc *m1icalc = gkyl_mom_calc_cu_dev_new(&grid, vmM1i_t);
-  gkyl_mom_calc *m2calc = gkyl_mom_calc_cu_dev_new(&grid, vmM2_t);
+
+  struct gkyl_mom_type *vm_moms_t = gkyl_mom_vlasov_cu_dev_new(&confBasis, &basis, "FiveMoments");
+  gkyl_mom_calc *moms_calc = gkyl_mom_calc_cu_dev_new(&grid, vm_moms_t);
 
   // create moment arrays
-  struct gkyl_array *m0_cu, *m1i_cu, *m2_cu;
-  m0_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
-  m1i_cu = mkarr_cu(vdim*confBasis.num_basis, confLocal_ext.volume);
-  m2_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *moms_cu;
+  moms_cu = mkarr_cu(confBasis.num_basis*(vdim+2), confLocal_ext.volume);
   
-  // compute the moment and copy back to host
-  gkyl_mom_calc_advance_cu(m0calc, local, confLocal, distf_cu, m0_cu);
-  gkyl_mom_calc_advance_cu(m1icalc, local, confLocal, distf_cu, m1i_cu);
-  gkyl_mom_calc_advance_cu(m2calc, local, confLocal, distf_cu, m2_cu);
+  // compute the moments
+  gkyl_mom_calc_advance_cu(moms_calc, local, confLocal, distf_cu, moms_cu);
 
-  struct gkyl_mom_type *F = gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(&confBasis, &basis, "f", v_bounds);
-  struct gkyl_mom_type *VF = gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(&confBasis, &basis, "vf", v_bounds);
-
-  gkyl_mom_calc_bcorr *fcalc = gkyl_mom_calc_bcorr_cu_dev_new(&grid, F);
-  gkyl_mom_calc_bcorr *vFcalc = gkyl_mom_calc_bcorr_cu_dev_new(&grid, VF);
+  struct gkyl_mom_type *bcorr_type = gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(&confBasis, &basis, v_bounds);
+  gkyl_mom_calc_bcorr *bcorr_calc = gkyl_mom_calc_bcorr_cu_dev_new(&grid, bcorr_type);
   
   // create moment arrays
-  struct gkyl_array *f_cu, *vf_cu;
-  f_cu = mkarr_cu(2*confBasis.num_basis, confLocal_ext.volume);
-  vf_cu = mkarr_cu(2*confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *boundary_corrections_cu;
+  boundary_corrections_cu = mkarr_cu((vdim+1)*confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment corrections
-  gkyl_mom_calc_bcorr_advance_cu(fcalc, local, confLocal, distf_cu, f_cu);
-  gkyl_mom_calc_bcorr_advance_cu(vFcalc, local, confLocal, distf_cu, vf_cu);
-  
-  struct gkyl_prim_lbo_type *prim = gkyl_prim_lbo_vlasov_cu_dev_new(&confBasis, &basis);
+  gkyl_mom_calc_bcorr_advance_cu(bcorr_calc, local, confLocal, distf_cu, boundary_corrections_cu);
 
+  struct gkyl_prim_lbo_type *prim = gkyl_prim_lbo_vlasov_cu_dev_new(&confBasis, &basis);
   gkyl_prim_lbo_calc *primcalc = gkyl_prim_lbo_calc_cu_dev_new(&grid, prim);
   
   // create moment arrays
@@ -350,7 +336,7 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   vth_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment corrections
-  gkyl_prim_lbo_calc_advance_cu(primcalc, confBasis, confLocal, m0_cu, m1i_cu, m2_cu, f_cu, vf_cu, u_cu, vth_cu);
+  gkyl_prim_lbo_calc_advance_cu(primcalc, confBasis, confLocal, moms_cu, boundary_corrections_cu, u_cu, vth_cu);
   gkyl_array_copy(u, u_cu);
   gkyl_array_copy(vth, vth_cu);
 
@@ -373,13 +359,13 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   }}
 
   // release memory for objects
-  gkyl_array_release(m0_cu); gkyl_array_release(m1i_cu); gkyl_array_release(m2_cu);
-  gkyl_mom_calc_release(m0calc); gkyl_mom_calc_release(m1icalc); gkyl_mom_calc_release(m2calc);
-  gkyl_mom_type_release(vmM0_t); gkyl_mom_type_release(vmM1i_t); gkyl_mom_type_release(vmM2_t);
-  
-  gkyl_array_release(f_cu); gkyl_array_release(vf_cu);
-  gkyl_mom_calc_bcorr_release(fcalc); gkyl_mom_calc_bcorr_release(vFcalc);
-  gkyl_mom_type_release(F); gkyl_mom_type_release(VF);
+  gkyl_array_release(moms_cu);
+  gkyl_mom_calc_release(moms_calc);
+  gkyl_mom_type_release(vm_moms_t);
+
+  gkyl_array_release(boundary_corrections_cu); 
+  gkyl_mom_calc_bcorr_release(bcorr_calc); 
+  gkyl_mom_type_release(bcorr_type);
 
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf); gkyl_array_release(distf_cu);

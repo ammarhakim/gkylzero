@@ -12,7 +12,7 @@ extern "C" {
 #include <gkyl_mom_vlasov_priv.h>
 }
 
-enum { M0, M1i, M2, M2ij, M3i, M3ijk, BAD };
+enum { M0, M1i, M2, M2ij, M3i, M3ijk, FiveMoments, BAD };
 
 static int
 get_mom_id(const char *mom)
@@ -36,6 +36,9 @@ get_mom_id(const char *mom)
   }
   else if (strcmp(mom, "M3ijk") == 0) { // heat-flux tensor in lab-frame
     mom_idx = M3ijk;
+  }
+  else if (strcmp(mom, "FiveMoments") == 0) { // heat-flux tensor in lab-frame
+    mom_idx = FiveMoments;
   }
   else {
     mom_idx = BAD;
@@ -74,6 +77,10 @@ v_num_mom(int vdim, int mom_id)
     case M3ijk:
       num_mom = m3ijk_count[vdim-1];
       break;
+
+    case FiveMoments:
+      num_mom = vdim+2;
+      break;      
       
     default: // can't happen
       break;
@@ -93,7 +100,7 @@ gkyl_mom_vlasov_set_cu_dev_ptrs(struct mom_type_vlasov* mom_vlasov, int mom_id, 
   
   // choose kernel tables based on basis-function type
   const gkyl_mom_kern_list *m0_kernels, *m1i_kernels,
-    *m2_kernels, *m2ij_kernels, *m3i_kernels, *m3ijk_kernels;
+    *m2_kernels, *m2ij_kernels, *m3i_kernels, *m3ijk_kernels, *five_moments_kernels;
   
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -103,6 +110,7 @@ gkyl_mom_vlasov_set_cu_dev_ptrs(struct mom_type_vlasov* mom_vlasov, int mom_id, 
       m2ij_kernels = ser_m2ij_kernels;
       m3i_kernels = ser_m3i_kernels;
       m3ijk_kernels = ser_m3ijk_kernels;
+      five_moments_kernels = ser_five_moments_kernels;
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
@@ -112,6 +120,7 @@ gkyl_mom_vlasov_set_cu_dev_ptrs(struct mom_type_vlasov* mom_vlasov, int mom_id, 
       m2ij_kernels = ten_m2ij_kernels;
       m3i_kernels = ten_m3i_kernels;
       m3ijk_kernels = ten_m3ijk_kernels;
+      five_moments_kernels = ten_five_moments_kernels;
       break;
 
     default:
@@ -148,6 +157,11 @@ gkyl_mom_vlasov_set_cu_dev_ptrs(struct mom_type_vlasov* mom_vlasov, int mom_id, 
     case M3ijk:
       mom_vlasov->kernel = m3ijk_kernels[tblidx].kernels[poly_order];
       mom_vlasov->momt.num_mom = m3ijk_count[vdim-1];
+      break;
+
+    case FiveMoments:
+      mom_vlasov->kernel = five_moments_kernels[tblidx].kernels[poly_order];
+      mom_vlasov->momt.num_mom = vdim+2;
       break;
       
     default: // can't happen
