@@ -56,6 +56,9 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 64);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 64*6);  
+
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
@@ -84,7 +87,7 @@ main(int argc, char **argv)
     // grid in computational space
     .lower = { 0.25, 0.0 },
     .upper = { 1.25, 2*GKYL_PI },
-    .cells = { 64, 64*6 },
+    .cells = { NX, NY },
 
     .mapc2p = mapc2p, // mapping of computational to physical space
 

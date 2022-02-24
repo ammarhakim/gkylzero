@@ -181,13 +181,13 @@ check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 	./build/unit/ctest_proj_maxwellian_on_basis
 	./build/unit/ctest_proj_on_basis
 	./build/unit/ctest_range
-	./build/unit/ctest_rect_apply_bc
 	./build/unit/ctest_rect_decomp
 	./build/unit/ctest_rect_grid
 	./build/unit/ctest_ref_count
 	./build/unit/ctest_superlu
 	./build/unit/ctest_update_fsm
 	./build/unit/ctest_wave_geom
+	./build/unit/ctest_wv_apply_bc
 	./build/unit/ctest_wv_euler
 	./build/unit/ctest_wv_iso_euler
 	./build/unit/ctest_wv_maxwell
@@ -210,7 +210,6 @@ install: all
 	cp -f build/regression/rt_vlasov_kerntm ${PREFIX}/gkylzero/bin/
 
 clean:
-
 	rm -rf build/libgkylzero.a build/libgkylzero.so build/regression/twostream.ini */*.o kernels/*/*.o build/regression/rt_* build/unit/ctest_*
 
 # partclean does not delete the kernel object files as they do not

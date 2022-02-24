@@ -1,30 +1,21 @@
 #pragma once
 
 #include <gkyl_array.h>
+#include <gkyl_evalf_def.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-
-
-/**
- * Type of function to apply BC
- *
- * @param t Time at which BC is applied
- * @param dir Direction in which BC is applied
- * @param ncomp Number of compontents (size of skin and ghost arrays)
- * @param skin Pointer to data in skin-cell
- * @param ghost Pointer to data in ghost-cell
- * @param ctx Context for function evaluation. Can be NULL
- */
-typedef void (*rect_bc_func_t)(double t, int dir, int ncomp,
-  const double *skin, double *ghost, void *ctx);
+#include <gkyl_wave_geom.h>
+#include <gkyl_wv_eqn.h>
 
 // Object type
-typedef struct gkyl_rect_apply_bc gkyl_rect_apply_bc;
+typedef struct gkyl_wv_apply_bc gkyl_wv_apply_bc;
 
 /**
  * Create new updater to apply set of boundary conditions.
  *
  * @param grid Grid object
+ * @param eqn Equation object to use
+ * @param geom Wave geometry to use in boundary conditions
  * @param dir Direction to apply BC 
  * @param edge Edge to apply BC (0: left-edge; 1: right-edge)
  * @param nghost Number of ghost cells in each direction
@@ -32,8 +23,10 @@ typedef struct gkyl_rect_apply_bc gkyl_rect_apply_bc;
  * @param ctx Context to pass to bcfunc.
  * @return New updater pointer.
  */
-gkyl_rect_apply_bc* gkyl_rect_apply_bc_new(const struct gkyl_rect_grid *grid,
-  int dir, enum gkyl_edge_loc edge, const int *nghost, rect_bc_func_t bcfunc, void *ctx);
+gkyl_wv_apply_bc* gkyl_wv_apply_bc_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_wv_eqn *eqn, const struct gkyl_wave_geom *geom,
+  int dir, enum gkyl_edge_loc edge, const int *nghost,
+  wv_bc_func_t bcfunc, void *ctx);
 
 /**
  * Apply boundary condition on specified field. If the update_rng does
@@ -44,7 +37,7 @@ gkyl_rect_apply_bc* gkyl_rect_apply_bc_new(const struct gkyl_rect_grid *grid,
  * @param update_rng Range on which BC is applied. See note above.
  * @param out Output array
  */
-void gkyl_rect_apply_bc_advance(const gkyl_rect_apply_bc *bc, double tm,
+void gkyl_wv_apply_bc_advance(const gkyl_wv_apply_bc *bc, double tm,
   const struct gkyl_range *update_rng, struct gkyl_array *out);
 
 /**
@@ -52,4 +45,4 @@ void gkyl_rect_apply_bc_advance(const gkyl_rect_apply_bc *bc, double tm,
  *
  * @param bc Updater to delete.
  */
-void gkyl_rect_apply_bc_release(gkyl_rect_apply_bc* bc);
+void gkyl_wv_apply_bc_release(gkyl_wv_apply_bc* bc);

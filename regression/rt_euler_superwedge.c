@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_const.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_euler.h>
@@ -9,6 +10,8 @@
 
 struct euler_ctx {
   double gas_gamma; // gas constant
+  double theta; // wedge angle
+  double ymax; // upper Y extent of domain
 };
 
 void
@@ -17,27 +20,53 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   struct euler_ctx *app = ctx;
   double gas_gamma = app->gas_gamma;
 
-  double x = xn[0];
+  double rho = 1.0, pr = 1.0;
+  double cs = sqrt(gas_gamma*pr/rho);
+  double u = 8.0*cs;
 
-  double rhol = 3.0, ul = 0.0, pl = 3.0;
-  double rhor = 1.0, ur = 0.0, pr = 1.0;
-
-  double rho = rhor, u = ur, p = pr;
-  if (x<0.5) {
-    rho = rhol;
-    u = ul;
-    p = pl;
+  if (xn[0] < -0.05) {
+    fout[0] = rho;
+    fout[1] = rho*u;  fout[2] = 0.0; fout[3] = 0.0;
+    fout[4] = pr/(gas_gamma-1) + 0.5*rho*u*u;
   }
+  else {
+    fout[0] = rho*1e-5;
+    fout[1] = 0.0;  fout[2] = 0.0; fout[3] = 0.0;
+    fout[4] = pr*1e-5/(gas_gamma-1);
+  }
+}
 
-  fout[0] = rho;
-  fout[1] = rho*u; fout[2] = 0.0; fout[3] = 0.0;
-  fout[4] = p/(gas_gamma-1) + 0.5*rho*u*u;
+// map (r,theta) -> (x,y)
+void
+mapc2p(double t, const double *xc_in, double* GKYL_RESTRICT xp, void *ctx)
+{
+  struct euler_ctx *app = ctx;  
+  double xc = xc_in[0], yc = xc_in[1];
+  
+  xp[0] = xc; xp[1] = yc;
+
+  if (xc > 0.0) {
+    double yb = tan(app->theta)*xc;
+    double a = (app->ymax-yb)/app->ymax;
+    xp[1] = a*yc + yb;
+  }
 }
 
 struct euler_ctx
 euler_ctx(void)
 {
-  return (struct euler_ctx) { .gas_gamma = 1.4 };
+  return (struct euler_ctx) {
+    .gas_gamma = 1.4,
+    .theta = 15*M_PI/180,
+    .ymax = 0.55,
+  };
+}
+
+void
+write_data(struct gkyl_tm_trigger *iot, const gkyl_moment_app *app, double tcurr)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, tcurr))
+    gkyl_moment_app_write(app, tcurr, iot->curr-1);
 }
 
 int
@@ -45,7 +74,8 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 512);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 200);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 100);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -65,17 +95,22 @@ main(int argc, char **argv)
     .init = evalEulerInit,
 
     .bcx = { GKYL_MOMENT_COPY, GKYL_MOMENT_COPY },
+    .bcy = { GKYL_MOMENT_SPECIES_WALL, GKYL_MOMENT_SPECIES_WALL },
   };
 
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "euler_sodshock",
+    .name = "euler_superwedge",
 
-    .ndim = 1,
-    .lower = { 0.0 },
-    .upper = { 1.0 }, 
-    .cells = { NX },
+    .ndim = 2,
+    // grid in computational space
+    .lower = { -0.1, 0.0 },
+    .upper = { 1.0, ctx.ymax },
+    .cells = { NX, NY },
 
+    .mapc2p = mapc2p, // mapping of computational to physical space
+    .c2p_ctx = &ctx,
+    
     .cfl_frac = 0.9,
 
     .num_species = 1,
@@ -86,11 +121,15 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.1;
+  double tcurr = 0.0, tend = 1.0;
+  int nframe = 1;
+  
+  // create trigger for IO
+  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
-  gkyl_moment_app_write(app, tcurr, 0);
+  write_data(&io_trig, app, tcurr);
 
   // compute estimate of maximum stable time-step
   double dt = gkyl_moment_app_max_dt(app);
@@ -108,12 +147,10 @@ main(int argc, char **argv)
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
 
+    write_data(&io_trig, app, tcurr);
+
     step += 1;
   }
-
-  gkyl_moment_app_write(app, tcurr, 1);
-  gkyl_moment_app_stat_write(app);
-
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
 
   // simulation complete, free resources

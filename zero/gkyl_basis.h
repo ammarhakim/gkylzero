@@ -3,7 +3,8 @@
 /* Basis function identifiers */
 enum gkyl_basis_type {
   GKYL_BASIS_MODAL_SERENDIPITY,
-  GKYL_BASIS_MODAL_TENSOR
+  GKYL_BASIS_MODAL_TENSOR,
+  GKYL_BASIS_MODAL_GK_HYBRID,
 };
 
 /**
@@ -11,7 +12,7 @@ enum gkyl_basis_type {
  */
 struct gkyl_basis {
   unsigned ndim, poly_order, num_basis;
-  char id[64]; // "serendipity", "tensor"
+  char id[64]; // "serendipity", "tensor", "gk_hybrid"
   enum gkyl_basis_type b_type; // identifier for basis function
     
 /**
@@ -91,3 +92,15 @@ void gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim, int poly_order
  * @return Pointer to new basis function.
  */
 void gkyl_cart_modal_tensor(struct gkyl_basis *basis, int ndim, int poly_order);
+
+/**
+ * Create new hybrid basis for use in gyrokinetics p=1
+ * simulations. These basis have the v_par^2 monomial and it's tensor
+ * product with other monomials included. 
+ *
+ * @param basis Basis object to initialize
+ * @param ndim Dimension of reference element.
+ * @param poly_order Polynomial order.
+ * @return Pointer to new basis function.
+ */
+void gkyl_cart_modal_gk_hybrid(struct gkyl_basis *basis, int ndim);

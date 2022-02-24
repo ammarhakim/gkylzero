@@ -21,8 +21,8 @@ test_1()
   gkyl_fv_proj *fv_proj = gkyl_fv_proj_new(&grid, 2, 1, evalFunc, NULL);
 
   // create array range: no ghost-cells in velocity space
-  struct gkyl_range arr_range;
-  gkyl_range_init_from_shape(&arr_range, 1, cells);
+    struct gkyl_range arr_range;
+  gkyl_range_init_from_shape(&arr_range, grid.ndim, cells);
 
   // create distribution function
   struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, 1, arr_range.volume);
