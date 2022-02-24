@@ -2,7 +2,7 @@
 #include <gkyl_vlasov_priv.h>
 
 // list of valid moment names
-static const char *const valid_moment_names[] = { "M0", "M1i", "M2ij", "M2", "M3i" };
+static const char *const valid_moment_names[] = { "M0", "M1i", "M2ij", "M2", "M3i", "FiveMoments" };
 
 // check if name of moment is valid or not
 static bool

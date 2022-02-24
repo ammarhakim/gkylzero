@@ -5,7 +5,7 @@
 
 /**
  * Create new Vlasov moment type object. Valid 'mom' strings are "M0",
- * "M1i", "M2", "M2ij", "M3i", "M3ijk"
+ * "M1i", "M2", "M2ij", "M3i", "M3ijk", "FiveMoments"
  *
  * @param cbasis Configuration-space basis-functions
  * @param pbasis Phase-space basis-functions

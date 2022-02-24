@@ -36,7 +36,7 @@ gkyl_mom_vlasov_new(const struct gkyl_basis* cbasis,
 
   // choose kernel tables based on basis-function type
   const gkyl_mom_kern_list *m0_kernels, *m1i_kernels,
-    *m2_kernels, *m2ij_kernels, *m3i_kernels, *m3ijk_kernels;
+    *m2_kernels, *m2ij_kernels, *m3i_kernels, *m3ijk_kernels, *five_moments_kernels;
 
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -46,6 +46,7 @@ gkyl_mom_vlasov_new(const struct gkyl_basis* cbasis,
       m2ij_kernels = ser_m2ij_kernels;
       m3i_kernels = ser_m3i_kernels;
       m3ijk_kernels = ser_m3ijk_kernels;
+      five_moments_kernels = ser_five_moments_kernels;
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
@@ -55,6 +56,7 @@ gkyl_mom_vlasov_new(const struct gkyl_basis* cbasis,
       m2ij_kernels = ten_m2ij_kernels;
       m3i_kernels = ten_m3i_kernels;
       m3ijk_kernels = ten_m3ijk_kernels;
+      five_moments_kernels = ten_five_moments_kernels;
       break;
 
     default:
@@ -105,6 +107,13 @@ gkyl_mom_vlasov_new(const struct gkyl_basis* cbasis,
 
     int m3ijk_count[] = { 1, 4, 10 };
     mom_vlasov->momt.num_mom = m3ijk_count[vdim-1];
+  }
+  else if (strcmp(mom, "FiveMoments") == 0) { // Zeroth, First, and Second moment computed together
+    assert(cv_index[cdim].vdim[vdim] != -1);
+    assert(NULL != five_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_vlasov->kernel = five_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_vlasov->momt.num_mom = 2+vdim;
   }
   else {
     // string not recognized
