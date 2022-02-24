@@ -50,7 +50,7 @@ gkyl_gyrokinetic_set_em_fields(const struct gkyl_dg_eqn *eqn, const struct gkyl_
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(phi) && gkyl_array_is_cu_dev(apar) &&
       gkyl_array_is_cu_dev(apardot) ) {
-    gkyl_gyrokinetic_set_geo_fields_cu(eqn->on_dev, phi, apar, apardot);
+    gkyl_gyrokinetic_set_em_fields_cu(eqn->on_dev, phi, apar, apardot);
     return;
   }
 #endif
