@@ -4,7 +4,7 @@
 #include <gkyl_range.h>
 
 // Array reduce operators
-enum gkyl_array_op { GKYL_MIN, GKYL_MAX };
+enum gkyl_array_op { GKYL_MIN, GKYL_MAX, GKYL_SUM };
 
 /**
  * Clear out = val. Returns out.
