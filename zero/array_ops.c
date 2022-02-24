@@ -107,6 +107,15 @@ gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op 
           out[k] = fmax(out[k], d[k]);
       }
       break;
+
+    case GKYL_SUM:
+      for (long k=0; k<nc; ++k) out[k] = 0;
+      for (size_t i=0; i<arr->size; ++i) {
+        const double *d = gkyl_array_cfetch(arr, i);
+        for (long k=0; k<nc; ++k)
+          out[k] += d[k];
+      }
+      break;
   }
 }
 
@@ -138,6 +147,7 @@ gkyl_array_accumulate_range(struct gkyl_array *out,
   double a, const struct gkyl_array *inp, struct gkyl_range range)
 {
   assert(out->type == GKYL_DOUBLE);
+
   assert(out->size == inp->size);
 
 #ifdef GKYL_HAVE_CUDA
@@ -236,6 +246,16 @@ gkyl_array_reduce_range(double *res,
         const double *d = gkyl_array_cfetch(arr, start);
         for (long i=0; i<n; ++i)
           res[i] = fmax(res[i], d[i]);
+      }
+      break;
+    case GKYL_SUM:
+      for (long i=0; i<n; ++i) res[i] = 0;
+
+      while (gkyl_range_iter_next(&iter)) {
+        long start = gkyl_range_idx(&range, iter.idx);
+        const double *d = gkyl_array_cfetch(arr, start);
+        for (long i=0; i<n; ++i)
+          res[i] += d[i];
       }
       break;
   }
