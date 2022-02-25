@@ -135,7 +135,8 @@ test_vlasov_1x2v_p2_(bool use_gpu)
   TEST_CHECK( gkyl_compare_double(cfl_ptr_h[0], 2.5178875733842702e+01, 1e-12) );
 
   // get linear index of first non-ghost cell
-  int idx[] = {0, 0, 0, 0, 0};
+  // 1-indexed for interfacing with G2 Lua layer
+  int idx[] = {1, 1, 1, 1, 1};
   int linl = gkyl_range_idx(&phaseRange, idx);
 
   rhs_h = mkarr1(false, basis.num_basis, phaseRange_ext.volume);
@@ -179,7 +180,8 @@ test_vlasov_1x2v_p2_(bool use_gpu)
   TEST_CHECK( gkyl_compare_double(rhs_d[19],  1.8857755500762241e+01, 1e-12) );
 
   // get linear index of some other cell
-  int idx2[] = {5, 2, 4};
+  // 1-indexed for interfacing with G2 Lua layer
+  int idx2[] = {6, 3, 5};
   int linl2 = gkyl_range_idx(&phaseRange, idx2);
   rhs_d = gkyl_array_fetch(rhs_h, linl2);
 
@@ -323,7 +325,8 @@ test_vlasov_2x3v_p1_(bool use_gpu)
   }
 
   // get linear index of first non-ghost cell
-  int idx[] = {0, 0, 0, 0, 0};
+  // 1-indexed for interfacing with G2 Lua layer
+  int idx[] = {1, 1, 1, 1, 1};
   int linl = gkyl_range_idx(&phaseRange, idx);
 
   rhs_h = mkarr1(false, basis.num_basis, phaseRange_ext.volume);
@@ -379,7 +382,8 @@ test_vlasov_2x3v_p1_(bool use_gpu)
   TEST_CHECK( gkyl_compare_double(rhs_d[31],  3.2089428097916851e+01, 1e-12) ); 
 
   // get linear index of some other cell
-  int idx2[] = {5, 2, 4, 7, 1};
+  // 1-indexed for interfacing with G2 Lua layer
+  int idx2[] = {6, 3, 5, 8, 2};
   int linl2 = gkyl_range_idx(&phaseRange, idx2);
   rhs_d = gkyl_array_fetch(rhs_h, linl2);
 
