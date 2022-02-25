@@ -14,13 +14,7 @@ __global__
 static void
 gkyl_mom_bcorr_lbo_gyrokinetic_set_cu_dev_ptrs(struct mom_type_bcorr_lbo_gyrokinetic* mom_bcorr, enum gkyl_basis_type b_type, int vdim, int poly_order, int tblidx)
 {
-  printf("******** FIX BUG IN mom_bcorr_lbo_gyrokinetic to enable it to run on GPUs!");    
-  assert(false);
-  // NOTE: FIX ME. the following line is a problem. However, the issue
-  // appears in the priv header and not here, apparently. The problem
-  // is the return statement exactly like the issue with vlasov_poisson volume
-  
-  //  mom_bcorr->momt.kernel = kernel;
+  mom_bcorr->momt.kernel = kernel;
 
   // choose kernel tables based on basis-function type
   const gkyl_mom_bcorr_lbo_gyrokinetic_kern_list *mom_bcorr_lbo_gyrokinetic_kernels;
