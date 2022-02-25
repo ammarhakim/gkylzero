@@ -13,7 +13,8 @@
  * @param conf_range Configuration space range for use in indexing primitive moments
  * @return Pointer to LBO equation object
  */
-struct gkyl_dg_eqn* gkyl_dg_lbo_vlasov_diff_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range);
+struct gkyl_dg_eqn* gkyl_dg_lbo_vlasov_diff_new(const struct gkyl_basis* cbasis,
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range);
 
 /**
  * Create a new LBO equation object that lives on NV-GPU
@@ -23,7 +24,8 @@ struct gkyl_dg_eqn* gkyl_dg_lbo_vlasov_diff_new(const struct gkyl_basis* cbasis,
  * @param conf_range Configuration space range for use in indexing primitive moments
  * @return Pointer to LBO equation object
  */
-struct gkyl_dg_eqn* gkyl_dg_lbo_vlasov_diff_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range);
+struct gkyl_dg_eqn* gkyl_dg_lbo_vlasov_diff_cu_dev_new(const struct gkyl_basis* cbasis,
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range);
 
 /**
  * Set the nu needed in updating the lbo terms.
