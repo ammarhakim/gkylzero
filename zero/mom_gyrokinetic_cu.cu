@@ -227,7 +227,7 @@ gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gk
   assert(mom_id != BAD);
   mom_gyrokinetic->momt.num_mom = gk_num_mom(vdim, mom_id); // number of moments
 
-  mom_gyrokinetic->_m = mass;
+  mom_gyrokinetic->mass = mass;
   mom_gyrokinetic->conf_range = *conf_range;
 
   mom_gyrokinetic->momt.flag = 0;

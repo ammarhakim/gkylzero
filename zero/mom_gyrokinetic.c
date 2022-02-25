@@ -141,7 +141,7 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
     gkyl_exit("gkyl_mom_type_gyrokinetic: Unrecognized moment requested!");
   }
 
-  mom_gyrokinetic->_m = mass;
+  mom_gyrokinetic->mass = mass;
   mom_gyrokinetic->bmag = 0;  
   mom_gyrokinetic->conf_range = *conf_range;
   

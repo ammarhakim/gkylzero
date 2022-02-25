@@ -18,7 +18,7 @@ static struct { int vdim[3]; } cv_index[] = {
 };
 
 typedef void (*gyrokinetic_momf_t)(const double *w, const double *dxv, 
-  const int *idx, const double m_, const double *bmag, 
+  const int *idx, double m_, const double *bmag, 
   const double *f, double* GKYL_RESTRICT out);
 
 // for use in kernel tables
@@ -229,7 +229,7 @@ static const gkyl_gyrokinetic_mom_kern_list ten_three_moments_kernels[] = {
 struct mom_type_gyrokinetic {
   struct gkyl_mom_type momt;
   gyrokinetic_momf_t kernel; // moment calculation kernel
-  double _m; // mass of species
+  double mass; // mass of species
   struct gkyl_range conf_range; // configuration space range
   const struct gkyl_array *bmag; // Pointer to magnitude of magnetic field
 };
@@ -248,5 +248,5 @@ kernel(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
 {
   struct mom_type_gyrokinetic *mom_gyrokinetic = container_of(momt, struct mom_type_gyrokinetic, momt);
   long cidx = gkyl_range_idx(&mom_gyrokinetic->conf_range, idx);
-  return mom_gyrokinetic->kernel(xc, dx, idx, mom_gyrokinetic->_m, (const double*) gkyl_array_cfetch(mom_gyrokinetic->bmag, cidx), f, out);
+  return mom_gyrokinetic->kernel(xc, dx, idx, mom_gyrokinetic->mass, (const double*) gkyl_array_cfetch(mom_gyrokinetic->bmag, cidx), f, out);
 }
