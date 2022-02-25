@@ -15,7 +15,7 @@ extern "C" {
 enum { GkM0, GkM1, GkM2, GkM2par, GkM2perp, GkM3par, GkM3perp, ThreeMoments, BAD };
 
 static int
-get_mom_id(const char *mom)
+get_gk_mom_id(const char *mom)
 {
   int mom_idx = BAD;
 
@@ -119,7 +119,13 @@ gkyl_mom_gyrokinetic_set_cu_dev_ptrs(struct mom_type_gyrokinetic* mom_gyrokineti
   int poly_order, int tblidx)
 {
 
-  mom_gyrokinetic->momt.kernel = kernel;  
+  printf("******** FIX BUG IN mom_gyrokinetic to enable it to run on GPUs!");    
+  assert(false);
+  // NOTE: FIX ME. the following line is a problem. However, the issue
+  // appears in the priv header and not here, apparently. The problem
+  // is the return statement exactly like the issue with vlasov_poisson volume
+  
+  //  mom_gyrokinetic->momt.kernel = kernel;  
   
   // choose kernel tables based on basis-function type
   const gkyl_gyrokinetic_mom_kern_list *m0_kernels, *m1_kernels, *m2_kernels, 
@@ -217,9 +223,9 @@ gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gk
   mom_gyrokinetic->momt.num_config = cbasis->num_basis;
   mom_gyrokinetic->momt.num_phase = pbasis->num_basis;
 
-  int mom_id = get_mom_id(mom);
+  int mom_id = get_gk_mom_id(mom);
   assert(mom_id != BAD);
-  mom_gyrokinetic->momt.num_mom = v_num_mom(vdim, mom_id); // number of moments
+  mom_gyrokinetic->momt.num_mom = gk_num_mom(vdim, mom_id); // number of moments
 
   mom_gyrokinetic->_m = mass;
   mom_gyrokinetic->conf_range = *conf_range;

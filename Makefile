@@ -84,6 +84,9 @@ libobjs += $(patsubst %.cu,%.o,$(wildcard zero/*.cu))
 kernels/bin_op/%.o : kernels/bin_op/%.c
 	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
 
+kernels/gyrokinetic/%.o : kernels/gyrokinetic/%.c
+	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
+
 kernels/lbo/%.o : kernels/lbo/%.c
 	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
 
