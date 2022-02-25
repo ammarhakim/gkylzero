@@ -21,45 +21,12 @@ gkyl_lbo_vlasov_diff_free(const struct gkyl_ref_count* ref)
 }
 
 void
-gkyl_lbo_vlasov_diff_set_nuSum(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuSum)
+gkyl_lbo_vlasov_diff_set_auxfields(const struct gkyl_dg_eqn *eqn, const struct gkyl_dg_lbo_vlasov_diff_auxfields auxin)
 {
-#ifdef GKYL_HAVE_CUDA
- if (gkyl_array_is_cu_dev(nuSum)) {
-   gkyl_lbo_vlasov_diff_set_nuSum_cu(eqn->on_dev, nuSum);
-   return;
- }
-#endif
-
   struct dg_lbo_vlasov_diff *lbo_vlasov_diff = container_of(eqn, struct dg_lbo_vlasov_diff, eqn);
-  lbo_vlasov_diff->nuSum = nuSum;
-}
-
-void
-gkyl_lbo_vlasov_diff_set_nuUSum(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuUSum)
-{
-#ifdef GKYL_HAVE_CUDA
- if (gkyl_array_is_cu_dev(nuUSum)) {
-   gkyl_lbo_vlasov_diff_set_nuUSum_cu(eqn->on_dev, nuUSum);
-   return;
- }
-#endif
-
-  struct dg_lbo_vlasov_diff *lbo_vlasov_diff = container_of(eqn, struct dg_lbo_vlasov_diff, eqn);
-  lbo_vlasov_diff->nuUSum = nuUSum;
-}
-
-void
-gkyl_lbo_vlasov_diff_set_nuVtSqSum(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuVtSqSum)
-{
-#ifdef GKYL_HAVE_CUDA
- if (gkyl_array_is_cu_dev(nuVtSqSum)) {
-   gkyl_lbo_vlasov_diff_set_nuVtSqSum_cu(eqn->on_dev, nuVtSqSum);
-   return;
- }
-#endif
-
-  struct dg_lbo_vlasov_diff *lbo_vlasov_diff = container_of(eqn, struct dg_lbo_vlasov_diff, eqn);
-  lbo_vlasov_diff->nuVtSqSum = nuVtSqSum;
+  lbo_vlasov_diff->auxfields.nuSum = auxin.nuSum;
+  lbo_vlasov_diff->auxfields.nuUSum = auxin.nuUSum;
+  lbo_vlasov_diff->auxfields.nuVtSqSum = auxin.nuVtSqSum;
 }
 
 
@@ -129,9 +96,9 @@ gkyl_dg_lbo_vlasov_diff_new(const struct gkyl_basis* cbasis, const struct gkyl_b
   for (int i=0; i<vdim; ++i) assert(lbo_vlasov_diff->surf[i]);
   for (int i=0; i<vdim; ++i) assert(lbo_vlasov_diff->boundary_surf[i]);
 
-  lbo_vlasov_diff->nuSum = 0;
-  lbo_vlasov_diff->nuUSum = 0;
-  lbo_vlasov_diff->nuVtSqSum = 0;
+  lbo_vlasov_diff->auxfields.nuSum = 0;
+  lbo_vlasov_diff->auxfields.nuUSum = 0;
+  lbo_vlasov_diff->auxfields.nuVtSqSum = 0;
   lbo_vlasov_diff->conf_range = *conf_range;
 
   lbo_vlasov_diff->eqn.flags = 0;

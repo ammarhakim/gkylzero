@@ -247,6 +247,7 @@ struct dg_lbo_vlasov_drag {
   const struct gkyl_array *nuSum;
   const struct gkyl_array *nuUSum;
   const struct gkyl_array *nuVtSqSum;
+  struct gkyl_dg_lbo_vlasov_drag_auxfields auxfields;
 };
 
 void gkyl_lbo_vlasov_drag_free(const struct gkyl_ref_count* ref);
@@ -259,9 +260,9 @@ vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
   struct dg_lbo_vlasov_drag *lbo_vlasov_drag = container_of(eqn, struct dg_lbo_vlasov_drag, eqn);
   long cidx = gkyl_range_idx(&lbo_vlasov_drag->conf_range, idx);
   return lbo_vlasov_drag->vol(xc, dx, 
-    (const double*) gkyl_array_cfetch(lbo_vlasov_drag->nuSum, cidx), 
-    (const double*) gkyl_array_cfetch(lbo_vlasov_drag->nuUSum, cidx), 
-    (const double*) gkyl_array_cfetch(lbo_vlasov_drag->nuVtSqSum, cidx), 
+    (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuSum, cidx), 
+    (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuUSum, cidx), 
+    (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuVtSqSum, cidx), 
     qIn, qRhsOut);
 }
 
@@ -278,9 +279,9 @@ surf(const struct gkyl_dg_eqn *eqn,
   long cidx = gkyl_range_idx(&lbo_vlasov_drag->conf_range, idxC);
   if (dir >= lbo_vlasov_drag->cdim) {
     lbo_vlasov_drag->surf[dir-lbo_vlasov_drag->cdim](xcC, dxC, 
-      (const double*) gkyl_array_cfetch(lbo_vlasov_drag->nuSum, cidx), 
-      (const double*) gkyl_array_cfetch(lbo_vlasov_drag->nuUSum, cidx), 
-      (const double*) gkyl_array_cfetch(lbo_vlasov_drag->nuVtSqSum, cidx), 
+      (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuSum, cidx), 
+      (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuUSum, cidx), 
+      (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuVtSqSum, cidx), 
       qInL, qInC, qInR, qRhsOut);
   }
 }
@@ -298,9 +299,9 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   long cidx = gkyl_range_idx(&lbo_vlasov_drag->conf_range, idxSkin);
   if (dir >= lbo_vlasov_drag->cdim) {
     lbo_vlasov_drag->boundary_surf[dir-lbo_vlasov_drag->cdim](xcSkin, dxSkin, 
-      (const double*) gkyl_array_cfetch(lbo_vlasov_drag->nuSum, cidx), 
-      (const double*) gkyl_array_cfetch(lbo_vlasov_drag->nuUSum, cidx), 
-      (const double*) gkyl_array_cfetch(lbo_vlasov_drag->nuVtSqSum, cidx),  
+      (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuSum, cidx), 
+      (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuUSum, cidx), 
+      (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuVtSqSum, cidx),  
       edge, qInSkin, qInEdge, qRhsOut);
   }
 }

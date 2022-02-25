@@ -244,9 +244,7 @@ struct dg_lbo_vlasov_diff {
   lbo_vlasov_diff_surf_t surf[3]; // Surface terms for acceleration
   lbo_vlasov_diff_boundary_surf_t boundary_surf[3]; // Surface terms for acceleration
   struct gkyl_range conf_range; // configuration space range
-  const struct gkyl_array *nuSum;
-  const struct gkyl_array *nuUSum;
-  const struct gkyl_array *nuVtSqSum;
+  struct gkyl_dg_lbo_vlasov_diff_auxfields auxfields;
 };
 
 void gkyl_lbo_vlasov_diff_free(const struct gkyl_ref_count* ref);
@@ -259,9 +257,9 @@ vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
   struct dg_lbo_vlasov_diff *lbo_vlasov_diff = container_of(eqn, struct dg_lbo_vlasov_diff, eqn);
   long cidx = gkyl_range_idx(&lbo_vlasov_diff->conf_range, idx);
   return lbo_vlasov_diff->vol(xc, dx, 
-    (const double*) gkyl_array_cfetch(lbo_vlasov_diff->nuSum, cidx), 
-    (const double*) gkyl_array_cfetch(lbo_vlasov_diff->nuUSum, cidx), 
-    (const double*) gkyl_array_cfetch(lbo_vlasov_diff->nuVtSqSum, cidx), 
+    (const double*) gkyl_array_cfetch(lbo_vlasov_diff->auxfields.nuSum, cidx), 
+    (const double*) gkyl_array_cfetch(lbo_vlasov_diff->auxfields.nuUSum, cidx), 
+    (const double*) gkyl_array_cfetch(lbo_vlasov_diff->auxfields.nuVtSqSum, cidx), 
     qIn, qRhsOut);
 }
 
@@ -278,9 +276,9 @@ surf(const struct gkyl_dg_eqn *eqn,
   long cidx = gkyl_range_idx(&lbo_vlasov_diff->conf_range, idxC);
   if (dir >= lbo_vlasov_diff->cdim) {
     lbo_vlasov_diff->surf[dir-lbo_vlasov_diff->cdim](xcC, dxC, 
-      (const double*) gkyl_array_cfetch(lbo_vlasov_diff->nuSum, cidx), 
-      (const double*) gkyl_array_cfetch(lbo_vlasov_diff->nuUSum, cidx), 
-      (const double*) gkyl_array_cfetch(lbo_vlasov_diff->nuVtSqSum, cidx), 
+      (const double*) gkyl_array_cfetch(lbo_vlasov_diff->auxfields.nuSum, cidx), 
+      (const double*) gkyl_array_cfetch(lbo_vlasov_diff->auxfields.nuUSum, cidx), 
+      (const double*) gkyl_array_cfetch(lbo_vlasov_diff->auxfields.nuVtSqSum, cidx), 
       qInL, qInC, qInR, qRhsOut);
   }
 }
@@ -298,9 +296,9 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   long cidx = gkyl_range_idx(&lbo_vlasov_diff->conf_range, idxSkin);
   if (dir >= lbo_vlasov_diff->cdim) {
     lbo_vlasov_diff->boundary_surf[dir-lbo_vlasov_diff->cdim](xcSkin, dxSkin, 
-      (const double*) gkyl_array_cfetch(lbo_vlasov_diff->nuSum, cidx), 
-      (const double*) gkyl_array_cfetch(lbo_vlasov_diff->nuUSum, cidx), 
-      (const double*) gkyl_array_cfetch(lbo_vlasov_diff->nuVtSqSum, cidx),  
+      (const double*) gkyl_array_cfetch(lbo_vlasov_diff->auxfields.nuSum, cidx), 
+      (const double*) gkyl_array_cfetch(lbo_vlasov_diff->auxfields.nuUSum, cidx), 
+      (const double*) gkyl_array_cfetch(lbo_vlasov_diff->auxfields.nuVtSqSum, cidx),  
       edge, qInSkin, qInEdge, qRhsOut);
   }
 }

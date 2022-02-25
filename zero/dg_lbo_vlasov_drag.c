@@ -21,47 +21,13 @@ gkyl_lbo_vlasov_drag_free(const struct gkyl_ref_count* ref)
 }
 
 void
-gkyl_lbo_vlasov_drag_set_nuSum(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuSum)
+gkyl_lbo_vlasov_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, const struct gkyl_dg_lbo_vlasov_drag_auxfields auxin)
 {
-#ifdef GKYL_HAVE_CUDA
- if (gkyl_array_is_cu_dev(nuSum)) {
-   gkyl_lbo_vlasov_drag_set_nuSum_cu(eqn->on_dev, nuSum);
-   return;
- }
-#endif
-
   struct dg_lbo_vlasov_drag *lbo_vlasov_drag = container_of(eqn, struct dg_lbo_vlasov_drag, eqn);
-  lbo_vlasov_drag->nuSum = nuSum;
+  lbo_vlasov_drag->auxfields.nuSum = auxin.nuSum;
+  lbo_vlasov_drag->auxfields.nuUSum = auxin.nuUSum;
+  lbo_vlasov_drag->auxfields.nuVtSqSum = auxin.nuVtSqSum;
 }
-
-void
-gkyl_lbo_vlasov_drag_set_nuUSum(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuUSum)
-{
-#ifdef GKYL_HAVE_CUDA
- if (gkyl_array_is_cu_dev(nuUSum)) {
-   gkyl_lbo_vlasov_drag_set_nuUSum_cu(eqn->on_dev, nuUSum);
-   return;
- }
-#endif
-
-  struct dg_lbo_vlasov_drag *lbo_vlasov_drag = container_of(eqn, struct dg_lbo_vlasov_drag, eqn);
-  lbo_vlasov_drag->nuUSum = nuUSum;
-}
-
-void
-gkyl_lbo_vlasov_drag_set_nuVtSqSum(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuVtSqSum)
-{
-#ifdef GKYL_HAVE_CUDA
- if (gkyl_array_is_cu_dev(nuVtSqSum)) {
-   gkyl_lbo_vlasov_drag_set_nuVtSqSum_cu(eqn->on_dev, nuVtSqSum);
-   return;
- }
-#endif
-
-  struct dg_lbo_vlasov_drag *lbo_vlasov_drag = container_of(eqn, struct dg_lbo_vlasov_drag, eqn);
-  lbo_vlasov_drag->nuVtSqSum = nuVtSqSum;
-}
-
 
 struct gkyl_dg_eqn*
 gkyl_dg_lbo_vlasov_drag_new(const struct gkyl_basis* cbasis,
@@ -130,9 +96,9 @@ gkyl_dg_lbo_vlasov_drag_new(const struct gkyl_basis* cbasis,
   for (int i=0; i<vdim; ++i) assert(lbo_vlasov_drag->surf[i]);
   for (int i=0; i<vdim; ++i) assert(lbo_vlasov_drag->boundary_surf[i]);
 
-  lbo_vlasov_drag->nuSum = 0;
-  lbo_vlasov_drag->nuUSum = 0;
-  lbo_vlasov_drag->nuVtSqSum = 0;
+  lbo_vlasov_drag->auxfields.nuSum = 0;
+  lbo_vlasov_drag->auxfields.nuUSum = 0;
+  lbo_vlasov_drag->auxfields.nuVtSqSum = 0;
   lbo_vlasov_drag->conf_range = *conf_range;
 
   lbo_vlasov_drag->eqn.flags = 0;
