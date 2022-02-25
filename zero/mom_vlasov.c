@@ -4,9 +4,9 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
-#include <gkyl_util.h>
 #include <gkyl_mom_vlasov.h>
 #include <gkyl_mom_vlasov_priv.h>
+#include <gkyl_util.h>
 
 void
 gkyl_mom_free(const struct gkyl_ref_count *ref)

@@ -2,6 +2,10 @@
 
 // Private header, not for direct use in user code
 
+#include <gkyl_array.h>
+#include <gkyl_mom_type.h>
+#include <gkyl_range.h>
+#include <gkyl_ref_count.h>
 #include <gkyl_mom_bcorr_lbo_vlasov_kernels.h>
 
 typedef void (*lbo_vlasov_momf_t)(const int *idx, enum gkyl_vel_edge edge, const double *vBoundary,

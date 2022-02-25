@@ -112,6 +112,19 @@ static const gkyl_gyrokinetic_mom_kern_list ser_m3_perp_kernels[] = {
   { NULL, gyrokinetic_M3_perp_3x2v_ser_p1, NULL                   }, // 3
 };
 
+// Zeroth (density), First (parallel momentum), 
+// and Second (total energy) computed together
+GKYL_CU_D
+static const gkyl_gyrokinetic_mom_kern_list ser_three_moments_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL }, // 0
+  { NULL, gyrokinetic_three_moments_1x2v_ser_p1, gyrokinetic_three_moments_1x2v_ser_p2 }, // 1
+  // 2x kernels
+  { NULL, gyrokinetic_three_moments_2x2v_ser_p1, gyrokinetic_three_moments_2x2v_ser_p2 }, // 2
+  // 3x kernels
+  { NULL, gyrokinetic_three_moments_3x2v_ser_p1, NULL                   }, // 3
+};
+
 //
 // Tensor-product basis kernels
 //
@@ -198,6 +211,19 @@ static const gkyl_gyrokinetic_mom_kern_list ten_m3_perp_kernels[] = {
   { NULL, gyrokinetic_M3_perp_2x2v_ser_p1, gyrokinetic_M3_perp_2x2v_tensor_p2 }, // 2
   // 3x kernels
   { NULL, gyrokinetic_M3_perp_3x2v_ser_p1, NULL                      }, // 3
+};
+
+// Zeroth (density), First (parallel momentum), 
+// and Second (total energy) computed together
+GKYL_CU_D
+static const gkyl_gyrokinetic_mom_kern_list ten_three_moments_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL }, // 0
+  { NULL, gyrokinetic_three_moments_1x2v_ser_p1, gyrokinetic_three_moments_1x2v_tensor_p2 }, // 1
+  // 2x kernels
+  { NULL, gyrokinetic_three_moments_2x2v_ser_p1, gyrokinetic_three_moments_2x2v_tensor_p2 }, // 2
+  // 3x kernels
+  { NULL, gyrokinetic_three_moments_3x2v_ser_p1, NULL                      }, // 3
 };
 
 struct mom_type_gyrokinetic {

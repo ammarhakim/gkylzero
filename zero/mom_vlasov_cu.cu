@@ -7,9 +7,9 @@
 extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
-#include <gkyl_util.h>
 #include <gkyl_mom_vlasov.h>
 #include <gkyl_mom_vlasov_priv.h>
+#include <gkyl_util.h>
 }
 
 enum { M0, M1i, M2, M2ij, M3i, M3ijk, FiveMoments, BAD };
@@ -201,7 +201,6 @@ gkyl_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
   gkyl_cu_memcpy(mom_vlasov_cu, mom_vlasov, sizeof(struct mom_type_vlasov), GKYL_CU_MEMCPY_H2D);
 
   assert(cv_index[cdim].vdim[vdim] != -1);
-
 
   gkyl_mom_vlasov_set_cu_dev_ptrs<<<1,1>>>(mom_vlasov_cu, mom_id, cbasis->b_type,
     vdim, poly_order, cv_index[cdim].vdim[vdim]);

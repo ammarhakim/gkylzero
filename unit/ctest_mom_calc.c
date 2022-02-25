@@ -245,7 +245,7 @@ test_1x2v_p1()
   gkyl_mom_calc_advance(m2calc, local, confLocal, distf, m2);
  
   // Check M0.
-  for (unsigned int i=0; i<cells[0]; ++i) {
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
     int cidx[] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *m0ptr = gkyl_array_fetch(m0, linc);
@@ -255,7 +255,7 @@ test_1x2v_p1()
   }}
 
   // Check M1i.
-  for (unsigned int i=0; i<cells[0]; ++i) {
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
     int cidx[] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *m1iptr = gkyl_array_fetch(m1i, linc);
@@ -264,7 +264,7 @@ test_1x2v_p1()
   }}
 
   // Check M2.
-  for (unsigned int i=0; i<cells[0]; ++i) {
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
     int cidx[] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *m2ptr = gkyl_array_fetch(m2, linc);
@@ -347,8 +347,8 @@ test_2x2v_p1()
   gkyl_mom_calc_advance(m2calc, local, confLocal, distf, m2);
  
   // Check M0.
-  for (unsigned int i=0; i<cells[0]; ++i) {
-    for (unsigned int j=0; j<cells[1]; ++j) {
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
+    for (unsigned int j=1; j<cells[1]+1; ++j) {
       int cidx[2] = {i,j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m0ptr = gkyl_array_fetch(m0, linc);
@@ -358,8 +358,8 @@ test_2x2v_p1()
   }}}
 
   // Check M1i.
-  for (unsigned int i=0; i<cells[0]; ++i) {
-    for (unsigned int j=0; j<cells[1]; ++j) {
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
+    for (unsigned int j=1; j<cells[1]+1; ++j) {
       int cidx[2] = {i,j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m1iptr = gkyl_array_fetch(m1i, linc);
@@ -368,8 +368,8 @@ test_2x2v_p1()
   }}}
 
   // Check M2.
-  for (unsigned int i=0; i<cells[0]; ++i) {
-    for (unsigned int j=0; j<cells[1]; ++j) {
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
+    for (unsigned int j=1; j<cells[1]+1; ++j) {
       int cidx[2] = {i,j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m2ptr = gkyl_array_fetch(m2, linc);
@@ -452,8 +452,8 @@ test_2x3v_p1()
   gkyl_mom_calc_advance(m2calc, local, confLocal, distf, m2);
  
   // Check M0.
-  for (unsigned int i=0; i<cells[0]; ++i) {
-    for (unsigned int j=0; j<cells[1]; ++j) {
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
+    for (unsigned int j=1; j<cells[1]+1; ++j) {
       int cidx[2] = {i,j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m0ptr = gkyl_array_fetch(m0, linc);
@@ -463,8 +463,8 @@ test_2x3v_p1()
   }}}
 
   // Check M1i.
-  for (unsigned int i=0; i<cells[0]; ++i) {
-    for (unsigned int j=0; j<cells[1]; ++j) {
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
+    for (unsigned int j=1; j<cells[1]+1; ++j) {
       int cidx[2] = {i,j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m1iptr = gkyl_array_fetch(m1i, linc);
@@ -473,8 +473,8 @@ test_2x3v_p1()
   }}}
 
   // Check M2.
-  for (unsigned int i=0; i<cells[0]; ++i) {
-    for (unsigned int j=0; j<cells[1]; ++j) {
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
+    for (unsigned int j=1; j<cells[1]+1; ++j) {
       int cidx[2] = {i,j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m2ptr = gkyl_array_fetch(m2, linc);
@@ -687,7 +687,7 @@ test_1x2v_p1_cu()
   gkyl_array_copy(m2, m2_cu);
 
   // Check M0.
-  for (unsigned int i=0; i<cells[0]; ++i) {
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
     int cidx[] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *m0ptr = gkyl_array_fetch(m0, linc);
@@ -697,7 +697,7 @@ test_1x2v_p1_cu()
   }}
 
   // Check M1i.
-  for (unsigned int i=0; i<cells[0]; ++i) {
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
     int cidx[] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *m1iptr = gkyl_array_fetch(m1i, linc);
@@ -706,7 +706,7 @@ test_1x2v_p1_cu()
   }}
 
   // Check M2.
-  for (unsigned int i=0; i<cells[0]; ++i) {
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
     int cidx[2] = {i};
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *m2ptr = gkyl_array_fetch(m2, linc);
@@ -801,8 +801,8 @@ test_2x2v_p1_cu()
   gkyl_array_copy(m2, m2_cu);
 
   // Check M0.
-  for (unsigned int i=0; i<cells[0]; ++i) {
-    for (unsigned int j=0; j<cells[1]; ++j) {
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
+    for (unsigned int j=1; j<cells[1]+1; ++j) {
       int cidx[2] = {i,j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m0ptr = gkyl_array_fetch(m0, linc);
@@ -812,8 +812,8 @@ test_2x2v_p1_cu()
   }}}
 
   //// Check M1i.
-  for (unsigned int i=0; i<cells[0]; ++i) {
-    for (unsigned int j=0; j<cells[1]; ++j) {
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
+    for (unsigned int j=1; j<cells[1]+1; ++j) {
       int cidx[2] = {i,j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m1iptr = gkyl_array_fetch(m1i, linc);
@@ -822,8 +822,8 @@ test_2x2v_p1_cu()
   }}}
 
   // Check M2.
-  for (unsigned int i=0; i<cells[0]; ++i) {
-    for (unsigned int j=0; j<cells[1]; ++j) {
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
+    for (unsigned int j=1; j<cells[1]+1; ++j) {
       int cidx[2] = {i,j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m2ptr = gkyl_array_fetch(m2, linc);
@@ -918,8 +918,8 @@ test_2x3v_p1_cu()
   gkyl_array_copy(m2, m2_cu);
 
   // Check M0.
-  for (unsigned int i=0; i<cells[0]; ++i) {
-    for (unsigned int j=0; j<cells[1]; ++j) {
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
+    for (unsigned int j=1; j<cells[1]+1; ++j) {
       int cidx[2] = {i,j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m0ptr = gkyl_array_fetch(m0, linc);
@@ -929,8 +929,8 @@ test_2x3v_p1_cu()
   }}}
 
   // Check M1i.
-  for (unsigned int i=0; i<cells[0]; ++i) {
-    for (unsigned int j=0; j<cells[1]; ++j) {
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
+    for (unsigned int j=1; j<cells[1]+1; ++j) {
       int cidx[2] = {i,j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m1iptr = gkyl_array_fetch(m1i, linc);
@@ -939,8 +939,8 @@ test_2x3v_p1_cu()
   }}}
 
   // Check M2.
-  for (unsigned int i=0; i<cells[0]; ++i) {
-    for (unsigned int j=0; j<cells[1]; ++j) {
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
+    for (unsigned int j=1; j<cells[1]+1; ++j) {
       int cidx[2] = {i,j};
       long linc = gkyl_range_idx(&confLocal, cidx);
       double *m2ptr = gkyl_array_fetch(m2, linc);
