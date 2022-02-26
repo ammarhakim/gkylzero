@@ -226,7 +226,7 @@ main(int argc, char **argv)
   strncpy(vm.name, inp_no_slash, strcspn(inp_no_slash, ".ini"));
   
   // create app object
-  gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
+  gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = tsinp.tend;
