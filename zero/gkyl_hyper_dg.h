@@ -24,7 +24,7 @@ typedef struct gkyl_hyper_dg gkyl_hyper_dg;
 gkyl_hyper_dg* gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation,
   int num_up_dirs, int update_dirs[GKYL_MAX_DIM], int zero_flux_flags[GKYL_MAX_DIM],
-  int update_vol_term);
+  int update_vol_term, bool use_gpu);
 
 /**
  * Create new updater on CUDA device to update equations using DG algorithm.

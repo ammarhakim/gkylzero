@@ -73,10 +73,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   enum gkyl_field_id field_id = app->has_field ? app->field->info.field_id : GKYL_FIELD_NULL;
 
   // create equation object
-  if (app->use_gpu)
-    s->eqn = gkyl_dg_vlasov_cu_dev_new(&app->confBasis, &app->basis, &app->local, field_id);
-  else
-    s->eqn = gkyl_dg_vlasov_new(&app->confBasis, &app->basis, &app->local, field_id);
+  s->eqn = gkyl_dg_vlasov_new(&app->confBasis, &app->basis, &app->local, field_id, app->use_gpu);
 
   int up_dirs[GKYL_MAX_DIM], zero_flux_flags[GKYL_MAX_DIM];
   for (int d=0; d<cdim; ++d) {
@@ -93,12 +90,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     num_up_dirs = pdim;
   }
   // create solver
-  if (app->use_gpu)
-    s->slvr = gkyl_hyper_dg_cu_dev_new(&s->grid, &app->basis, s->eqn,
-      num_up_dirs, up_dirs, zero_flux_flags, 1);
-  else 
-    s->slvr = gkyl_hyper_dg_new(&s->grid, &app->basis, s->eqn,
-      num_up_dirs, up_dirs, zero_flux_flags, 1);
+  s->slvr = gkyl_hyper_dg_new(&s->grid, &app->basis, s->eqn,
+    num_up_dirs, up_dirs, zero_flux_flags, 1, app->use_gpu);
 
   // determine collision type to use in vlasov update
   s->collision_id = s->info.collision_id;

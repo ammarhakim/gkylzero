@@ -31,8 +31,8 @@ gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid, const struct g
   for (int d=cdim; d<pdim; ++d)
     zero_flux_flags[d] = 1;
   
-  up->diff = gkyl_hyper_dg_new(grid, pbasis, up->coll_diff, num_up_dirs, up_dirs, zero_flux_flags, 1);
-  up->drag = gkyl_hyper_dg_new(grid, pbasis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1);
+  up->diff = gkyl_hyper_dg_new(grid, pbasis, up->coll_diff, num_up_dirs, up_dirs, zero_flux_flags, 1, false);
+  up->drag = gkyl_hyper_dg_new(grid, pbasis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1, false);
   
   return up;
 }

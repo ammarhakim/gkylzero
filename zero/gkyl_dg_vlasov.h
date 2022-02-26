@@ -16,7 +16,7 @@
  * @return Pointer to Vlasov equation object
  */
 struct gkyl_dg_eqn* gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, enum gkyl_field_id field_id);
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, enum gkyl_field_id field_id, bool use_gpu);
 
 /**
  * Create a new Vlasov equation object that lives on NV-GPU

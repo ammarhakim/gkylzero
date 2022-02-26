@@ -132,7 +132,7 @@ void gkyl_cu_free_host_(const char *file, int line, const char *func, void *ptr)
 void gkyl_cu_memcpy(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind);
 
 /** Copy data between host/device */
-void gkyl_cu_memcpy_async(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind, cudaStream_t stream);
+void gkyl_cu_memcpy_async(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind);
 
 /** Set memory on device */
 void gkyl_cu_memset(void *data, int val, size_t count);

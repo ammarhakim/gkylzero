@@ -56,20 +56,14 @@ test_vlasov_1x2v_p2_(bool use_gpu)
   // initialize eqn
   struct gkyl_dg_eqn *eqn;
   enum gkyl_field_id field_id = GKYL_FIELD_E_B;
-  if (use_gpu)
-    eqn = gkyl_dg_vlasov_cu_dev_new(&confBasis, &basis, &confRange, field_id);
-  else
-    eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &confRange, field_id);
+  eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &confRange, field_id, use_gpu);
 
   // initialize hyper_dg slvr
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2};
   int zero_flux_flags[GKYL_MAX_DIM] = {0, 1, 1};
 
   gkyl_hyper_dg *slvr;
-  if (use_gpu)
-    slvr = gkyl_hyper_dg_cu_dev_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1);
-  else
-    slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1);
+  slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1, use_gpu);
 
   // initialize arrays
   struct gkyl_array *fin, *rhs, *cflrate, *qmem;
@@ -261,20 +255,14 @@ test_vlasov_2x3v_p1_(bool use_gpu)
   // initialize eqn
   struct gkyl_dg_eqn *eqn;
   enum gkyl_field_id field_id = GKYL_FIELD_E_B;
-  if (use_gpu)
-    eqn = gkyl_dg_vlasov_cu_dev_new(&confBasis, &basis, &confRange, field_id);
-  else
-    eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &confRange, field_id);
+  eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &confRange, field_id, use_gpu);
 
   // initialize hyper_dg slvr
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2, 3, 4};
   int zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 1, 1, 1};
 
   gkyl_hyper_dg *slvr;
-  if (use_gpu)
-    slvr = gkyl_hyper_dg_cu_dev_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1);
-  else
-    slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1);
+  slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1, use_gpu);
 
   // initialize arrays
   struct gkyl_array *fin, *rhs, *cflrate, *qmem;

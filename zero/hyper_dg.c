@@ -157,8 +157,13 @@ gkyl_hyper_dg*
 gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation,
   int num_up_dirs, int update_dirs[GKYL_MAX_DIM], int zero_flux_flags[GKYL_MAX_DIM],
-  int update_vol_term)
+  int update_vol_term, bool use_gpu)
 {
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_hyper_dg_cu_dev_new(grid, basis, equation, num_up_dirs, update_dirs, zero_flux_flags, update_vol_term);
+  } 
+#endif
   gkyl_hyper_dg *up = gkyl_malloc(sizeof(gkyl_hyper_dg));
 
   up->grid = *grid;
