@@ -210,6 +210,17 @@ gkyl_cu_memcpy(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind
 }
 
 void
+gkyl_cu_memcpy_async(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind, cudaStream_t stream)
+{
+  cudaError_t err = cudaMemcpyAsync(dst, src, count, kind, stream);
+  if (err != cudaSuccess) {
+    char str[1024];
+    sprintf(str, "\nCUDA error: %s\n", cudaGetErrorString(err));
+    gkyl_exit(str);
+  }
+}
+
+void
 gkyl_cu_memset(void *data, int val, size_t count)
 {
   cudaMemset(data, val, count);

@@ -54,6 +54,17 @@ struct gkyl_array* gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t
 struct gkyl_array* gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size);
 
 /**
+ * Create new array with host-pinned data for use with NV-GPU. Delete using
+ * gkyl_array_release method.
+ *
+ * @param type Type of data in array
+ * @param ncomp Number of components at each index
+ * @param size Number of indices 
+ * @return Pointer to newly allocated array.
+ */
+struct gkyl_array* gkyl_array_cu_host_new(enum gkyl_elem_type type, size_t ncomp, size_t size);
+
+/**
  * Returns true if array lives on NV-GPU.
  *
  * @param arr Array to check

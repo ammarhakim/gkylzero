@@ -193,14 +193,52 @@ gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
   // set device-side data pointer in arr->on_dev to arr->data 
   // (which is the host-side pointer to the device data)
   gkyl_cu_memcpy(&((arr->on_dev)->data), &arr->data, sizeof(void*), GKYL_CU_MEMCPY_H2D);
+
+  return arr;
+}
+
+struct gkyl_array*
+gkyl_array_cu_host_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
+{
+  struct gkyl_array* arr = gkyl_cu_malloc_host(sizeof(struct gkyl_array));
+
+  arr->type = type;
+  arr->elemsz = array_elem_size[type];
+  arr->ncomp = ncomp;
+  arr->size = size;
+  arr->flags = 0;
+
+  GKYL_CLEAR_CU_ALLOC(arr->flags);
+#ifdef USE_ALIGNED_ALLOC  
+  GKYL_SET_ALLOC_ALIGNED(arr->flags);
+#else
+  GKYL_CLEAR_ALLOC_ALIGNED(arr->flags);
+#endif
+  
+  arr->esznc = arr->elemsz*arr->ncomp;
+  arr->data = gkyl_cu_malloc_host(arr->size*arr->esznc);
+  arr->ref_count = gkyl_ref_count_init(array_free);
+
+  arr->nthreads = 1;
+  arr->nblocks = 1;
+
+  arr->on_dev = arr; // on_dev reference
   
   return arr;
 }
+
 
 #else
 
 struct gkyl_array*
 gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
+{
+  assert(false);
+  return 0;
+}
+
+struct gkyl_array*
+gkyl_array_cu_host_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
 {
   assert(false);
   return 0;
