@@ -1,6 +1,7 @@
 #include <acutest.h>
 
 #include <gkyl_range.h>
+#include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_wave_geom.h>
 
@@ -23,13 +24,14 @@ test_wv_geom_1d_1()
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
 
   // create range
-  struct gkyl_range range;
-  gkyl_range_init_from_shape(&range, ndim, cells);
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range arr_range, arr_ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
-  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &range, nomapc2p, &ndim);
+  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &arr_range, nomapc2p, &ndim);
 
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &range);
+  gkyl_range_iter_init(&iter, &arr_range);
   
   while (gkyl_range_iter_next(&iter)) {
     const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wg, iter.idx);
@@ -63,8 +65,9 @@ test_wv_geom_1d_2()
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
 
   // create range
-  struct gkyl_range range;
-  gkyl_range_init_from_shape(&range, ndim, cells);
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range range, ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
   struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &range, mapc2p, &ndim);
 
@@ -104,8 +107,9 @@ test_wv_geom_2d_1()
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
 
   // create range
-  struct gkyl_range range;
-  gkyl_range_init_from_shape(&range, ndim, cells);
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range range, ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
   struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &range, nomapc2p, &ndim);
 
@@ -172,8 +176,9 @@ test_wv_geom_2d_2()
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
 
   // create range
-  struct gkyl_range range;
-  gkyl_range_init_from_shape(&range, ndim, cells);
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range range, ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
   struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &range, mapc2p_2d, &ndim);
 
