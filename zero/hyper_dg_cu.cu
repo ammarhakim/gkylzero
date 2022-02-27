@@ -93,12 +93,12 @@ gkyl_hyper_dg_advance_cu_kernel(gkyl_hyper_dg* hdg, struct gkyl_range update_ran
 
 // wrapper to call advance kernel on device
 void
-gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* hdg, struct gkyl_range *update_range,
+gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* hdg, const struct gkyl_range *update_range,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
   struct gkyl_array* GKYL_RESTRICT rhs)
 {
-  int nblocks = update_range.nblocks;
-  int nthreads = update_range.nthreads;
+  int nblocks = update_range->nblocks;
+  int nthreads = update_range->nthreads;
 
   gkyl_hyper_dg_advance_cu_kernel<<<nblocks, nthreads>>>(hdg->on_dev, *update_range,
     fIn->on_dev, cflrate->on_dev, rhs->on_dev);

@@ -17,7 +17,7 @@ gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *hdg, int update_vol_term)
 }
 
 void
-gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, struct gkyl_range *update_range,
+gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
   const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs)
 {
   int ndim = hdg->ndim;
