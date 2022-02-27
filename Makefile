@@ -102,7 +102,7 @@ endif
 
 # Make targets: libraries, regression tests and unit tests
 all: build/libgkylzero.a build/libgkylzero.so \
-	$(patsubst %.c,build/%,$(wildcard regression/rt_*.c)) build/regression/twostream.ini \
+	$(patsubst %.c,build/%,$(wildcard regression/rt_*.c)) \
 	$(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
 
 # Library archive
