@@ -113,7 +113,7 @@ test_1x1v_p2()
   for(int n=0; n<nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
-    gkyl_dg_updater_lbo_vlasov_advance(slvr, phaseRange, nuSum, nuUSum, nuVtSqSum, fin, cflrate, rhs);
+    gkyl_dg_updater_lbo_vlasov_advance(slvr, &phaseRange, nuSum, nuUSum, nuVtSqSum, fin, cflrate, rhs);
   }
 
   // get linear index of first non-ghost cell
@@ -227,7 +227,7 @@ test_1x2v_p2()
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
     
-    gkyl_dg_updater_lbo_vlasov_advance(slvr, phaseRange, nuSum, nuUSum, nuVtSqSum, fin, cflrate, rhs);
+    gkyl_dg_updater_lbo_vlasov_advance(slvr, &phaseRange, nuSum, nuUSum, nuVtSqSum, fin, cflrate, rhs);
   }
 
   // get linear index of first non-ghost cell

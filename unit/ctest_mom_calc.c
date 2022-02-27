@@ -120,9 +120,9 @@ test_1x1v_p1()
   m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
   
   // compute the moments
-  gkyl_mom_calc_advance(m0calc, local, confLocal, distf, m0);
-  gkyl_mom_calc_advance(m1icalc, local, confLocal, distf, m1i);
-  gkyl_mom_calc_advance(m2calc, local, confLocal, distf, m2);
+  gkyl_mom_calc_advance(m0calc, &local, &confLocal, distf, m0);
+  gkyl_mom_calc_advance(m1icalc, &local, &confLocal, distf, m1i);
+  gkyl_mom_calc_advance(m2calc, &local, &confLocal, distf, m2);
  
   // Check M0.
   double *m00 = gkyl_array_fetch(m0, 0+confGhost[0]); double *m01 = gkyl_array_fetch(m0, 1+confGhost[0]);
@@ -240,9 +240,9 @@ test_1x2v_p1()
   m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moments
-  gkyl_mom_calc_advance(m0calc, local, confLocal, distf, m0);
-  gkyl_mom_calc_advance(m1icalc, local, confLocal, distf, m1i);
-  gkyl_mom_calc_advance(m2calc, local, confLocal, distf, m2);
+  gkyl_mom_calc_advance(m0calc, &local, &confLocal, distf, m0);
+  gkyl_mom_calc_advance(m1icalc, &local, &confLocal, distf, m1i);
+  gkyl_mom_calc_advance(m2calc, &local, &confLocal, distf, m2);
  
   // Check M0.
   for (unsigned int i=1; i<cells[0]+1; ++i) {
@@ -342,9 +342,9 @@ test_2x2v_p1()
   m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moments
-  gkyl_mom_calc_advance(m0calc, local, confLocal, distf, m0);
-  gkyl_mom_calc_advance(m1icalc, local, confLocal, distf, m1i);
-  gkyl_mom_calc_advance(m2calc, local, confLocal, distf, m2);
+  gkyl_mom_calc_advance(m0calc, &local, &confLocal, distf, m0);
+  gkyl_mom_calc_advance(m1icalc, &local, &confLocal, distf, m1i);
+  gkyl_mom_calc_advance(m2calc, &local, &confLocal, distf, m2);
  
   // Check M0.
   for (unsigned int i=1; i<cells[0]+1; ++i) {
@@ -447,9 +447,9 @@ test_2x3v_p1()
   m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moments
-  gkyl_mom_calc_advance(m0calc, local, confLocal, distf, m0);
-  gkyl_mom_calc_advance(m1icalc, local, confLocal, distf, m1i);
-  gkyl_mom_calc_advance(m2calc, local, confLocal, distf, m2);
+  gkyl_mom_calc_advance(m0calc, &local, &confLocal, distf, m0);
+  gkyl_mom_calc_advance(m1icalc, &local, &confLocal, distf, m1i);
+  gkyl_mom_calc_advance(m2calc, &local, &confLocal, distf, m2);
  
   // Check M0.
   for (unsigned int i=1; i<cells[0]+1; ++i) {
@@ -559,9 +559,9 @@ test_1x1v_p1_cu()
   gkyl_mom_calc *m2Calc = gkyl_mom_calc_cu_dev_new(&grid, vmM2_t);
 
   // compute the moment and copy back to host
-  gkyl_mom_calc_advance_cu(m0Calc, local, confLocal, distf_cu, m0_cu);
-  gkyl_mom_calc_advance_cu(m1iCalc, local, confLocal, distf_cu, m1i_cu);
-  gkyl_mom_calc_advance_cu(m2Calc, local, confLocal, distf_cu, m2_cu);
+  gkyl_mom_calc_advance_cu(m0Calc, &local, &confLocal, distf_cu, m0_cu);
+  gkyl_mom_calc_advance_cu(m1iCalc, &local, &confLocal, distf_cu, m1i_cu);
+  gkyl_mom_calc_advance_cu(m2Calc, &local, &confLocal, distf_cu, m2_cu);
   gkyl_array_copy(m0, m0_cu);
   gkyl_array_copy(m1i, m1i_cu);
   gkyl_array_copy(m2, m2_cu);
@@ -679,9 +679,9 @@ test_1x2v_p1_cu()
   m2_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment and copy back to host
-  gkyl_mom_calc_advance_cu(m0Calc, local, confLocal, distf_cu, m0_cu);
-  gkyl_mom_calc_advance_cu(m1iCalc, local, confLocal, distf_cu, m1i_cu);
-  gkyl_mom_calc_advance_cu(m2Calc, local, confLocal, distf_cu, m2_cu);
+  gkyl_mom_calc_advance_cu(m0Calc, &local, &confLocal, distf_cu, m0_cu);
+  gkyl_mom_calc_advance_cu(m1iCalc, &local, &confLocal, distf_cu, m1i_cu);
+  gkyl_mom_calc_advance_cu(m2Calc, &local, &confLocal, distf_cu, m2_cu);
   gkyl_array_copy(m0, m0_cu);
   gkyl_array_copy(m1i, m1i_cu);
   gkyl_array_copy(m2, m2_cu);
@@ -793,9 +793,9 @@ test_2x2v_p1_cu()
   m2_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment and copy back to host
-  gkyl_mom_calc_advance_cu(m0Calc, local, confLocal, distf_cu, m0_cu);
-  gkyl_mom_calc_advance_cu(m1iCalc, local, confLocal, distf_cu, m1i_cu);
-  gkyl_mom_calc_advance_cu(m2Calc, local, confLocal, distf_cu, m2_cu);
+  gkyl_mom_calc_advance_cu(m0Calc, &local, &confLocal, distf_cu, m0_cu);
+  gkyl_mom_calc_advance_cu(m1iCalc, &local, &confLocal, distf_cu, m1i_cu);
+  gkyl_mom_calc_advance_cu(m2Calc, &local, &confLocal, distf_cu, m2_cu);
   gkyl_array_copy(m0, m0_cu);
   gkyl_array_copy(m1i, m1i_cu);
   gkyl_array_copy(m2, m2_cu);
@@ -910,9 +910,9 @@ test_2x3v_p1_cu()
   m2_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment and copy back to host
-  gkyl_mom_calc_advance_cu(m0Calc, local, confLocal, distf_cu, m0_cu);
-  gkyl_mom_calc_advance_cu(m1iCalc, local, confLocal, distf_cu, m1i_cu);
-  gkyl_mom_calc_advance_cu(m2Calc, local, confLocal, distf_cu, m2_cu);
+  gkyl_mom_calc_advance_cu(m0Calc, &local, &confLocal, distf_cu, m0_cu);
+  gkyl_mom_calc_advance_cu(m1iCalc, &local, &confLocal, distf_cu, m1i_cu);
+  gkyl_mom_calc_advance_cu(m2Calc, &local, &confLocal, distf_cu, m2_cu);
   gkyl_array_copy(m0, m0_cu);
   gkyl_array_copy(m1i, m1i_cu);
   gkyl_array_copy(m2, m2_cu);
