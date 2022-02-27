@@ -119,9 +119,6 @@ build/libgkylzero.so: ${libobjs} ${headers}
 endif
 
 # Regression tests
-build/regression/twostream.ini: regression/twostream.ini
-	cp regression/twostream.ini build/regression/twostream.ini
-
 build/regression/%: regression/%.c build/libgkylzero.a regression/rt_arg_parse.h
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) build/libgkylzero.a ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread 
 
@@ -209,7 +206,6 @@ install: all
 	cp -f build/Makefile.sample ${PREFIX}/gkylzero/share/Makefile
 	cp -f regression/rt_arg_parse.h ${PREFIX}/gkylzero/share/rt_arg_parse.h
 	cp -f regression/rt_twostream.c ${PREFIX}/gkylzero/share/rt_twostream.c
-	cp -f regression/twostream.ini ${PREFIX}/gkylzero/share/twostream.ini
 	cp -f build/regression/rt_vlasov_kerntm ${PREFIX}/gkylzero/bin/
 
 clean:
