@@ -90,9 +90,9 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
 
   gkyl_array_clear(rhs, 0.0);
   if (app->use_gpu)
-    gkyl_hyper_dg_advance_cu(field->slvr, app->local, em, field->cflrate, rhs);
+    gkyl_hyper_dg_advance_cu(field->slvr, &app->local, em, field->cflrate, rhs);
   else
-    gkyl_hyper_dg_advance(field->slvr, app->local, em, field->cflrate, rhs);
+    gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
 
   gkyl_array_reduce_range(field->omegaCfl_ptr, field->cflrate, GKYL_MAX, app->local);
   double omegaCfl = field->omegaCfl_ptr[0];

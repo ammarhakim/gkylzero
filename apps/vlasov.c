@@ -417,10 +417,10 @@ gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
       gkyl_hyper_dg_set_update_vol(species->slvr, update_vol_term);
     gkyl_array_clear_range(rhs, 0.0, species->local);
     if (app->use_gpu)
-      gkyl_hyper_dg_advance_cu(species->slvr, species->local, fin,
+      gkyl_hyper_dg_advance_cu(species->slvr, &species->local, fin,
         species->cflrate, rhs);
     else
-      gkyl_hyper_dg_advance(species->slvr, species->local, fin,
+      gkyl_hyper_dg_advance(species->slvr, &species->local, fin,
         species->cflrate, rhs);
   }
 }

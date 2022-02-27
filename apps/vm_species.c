@@ -129,9 +129,9 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
 
   struct timespec wst = gkyl_wall_clock();  
   if (app->use_gpu)
-    gkyl_hyper_dg_advance_cu(species->slvr, species->local, fin, species->cflrate, rhs);
+    gkyl_hyper_dg_advance_cu(species->slvr, &species->local, fin, species->cflrate, rhs);
   else
-    gkyl_hyper_dg_advance(species->slvr, species->local, fin, species->cflrate, rhs);
+    gkyl_hyper_dg_advance(species->slvr, &species->local, fin, species->cflrate, rhs);
   app->stat.species_rhs_tm += gkyl_time_diff_now_sec(wst);
 
   wst = gkyl_wall_clock();

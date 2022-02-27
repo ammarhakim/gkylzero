@@ -17,7 +17,7 @@ gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *hdg, int update_vol_term)
 }
 
 void
-gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, struct gkyl_range update_range,
+gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, struct gkyl_range *update_range,
   const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs)
 {
   int ndim = hdg->ndim;
@@ -27,12 +27,12 @@ gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, struct gkyl_range update_range,
   int edge;
 
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &update_range);
+  gkyl_range_iter_init(&iter, update_range);
   while (gkyl_range_iter_next(&iter)) {
     gkyl_copy_int_arr(ndim, iter.idx, idxc);
     gkyl_rect_grid_cell_center(&hdg->grid, idxc, xcc);
 
-    long linc = gkyl_range_idx(&update_range, idxc);
+    long linc = gkyl_range_idx(update_range, idxc);
     if (hdg->update_vol_term) {
       double cflr = hdg->equation->vol_term(
         hdg->equation, xcc, hdg->grid.dx, idxc,
@@ -47,14 +47,14 @@ gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, struct gkyl_range update_range,
       int dir = hdg->update_dirs[d];
       // TODO: fix for arbitrary subrange
       if (hdg->zero_flux_flags[dir] &&
-        (idxc[dir] == update_range.lower[dir] || idxc[dir] == update_range.upper[dir]) ) {
+        (idxc[dir] == update_range->lower[dir] || idxc[dir] == update_range->upper[dir]) ) {
         gkyl_copy_int_arr(ndim, iter.idx, idx_edge);
-        edge = (idxc[dir] == update_range.lower[dir]) ? -1 : 1;
+        edge = (idxc[dir] == update_range->lower[dir]) ? -1 : 1;
         // idx_edge stores interior edge index (first index away from skin cell)
         idx_edge[dir] = idx_edge[dir]-edge;
 
         gkyl_rect_grid_cell_center(&hdg->grid, idx_edge, xc_edge);
-        long lin_edge = gkyl_range_idx(&update_range, idx_edge);
+        long lin_edge = gkyl_range_idx(update_range, idx_edge);
 
         hdg->equation->boundary_surf_term(hdg->equation,
           dir, xc_edge, xcc, hdg->grid.dx, hdg->grid.dx,
@@ -70,8 +70,8 @@ gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, struct gkyl_range update_range,
         
         gkyl_rect_grid_cell_center(&hdg->grid, idxl, xcl);
         gkyl_rect_grid_cell_center(&hdg->grid, idxr, xcr);
-        long linl = gkyl_range_idx(&update_range, idxl); 
-        long linr = gkyl_range_idx(&update_range, idxr);
+        long linl = gkyl_range_idx(update_range, idxl); 
+        long linr = gkyl_range_idx(update_range, idxr);
 
         hdg->equation->surf_term(hdg->equation,
           dir, xcl, xcc, xcr, hdg->grid.dx, hdg->grid.dx, hdg->grid.dx,
@@ -138,7 +138,7 @@ gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
   return 0;
 }
 
-void gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* hdg, struct gkyl_range update_range,
+void gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* hdg, const struct gkyl_range *update_range,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
   struct gkyl_array* GKYL_RESTRICT rhs)
 {

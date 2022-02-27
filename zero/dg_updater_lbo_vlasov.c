@@ -51,8 +51,8 @@ gkyl_dg_updater_lbo_vlasov_advance(gkyl_dg_updater_lbo_vlasov *lbo, struct gkyl_
   gkyl_lbo_vlasov_diff_set_nuUSum(lbo->coll_diff, nu_u);
   gkyl_lbo_vlasov_diff_set_nuVtSqSum(lbo->coll_diff, nu_vthsq);
   
-  gkyl_hyper_dg_advance(lbo->diff, update_rng, fIn, cflrate, rhs);
-  gkyl_hyper_dg_advance(lbo->drag, update_rng, fIn, cflrate, rhs);
+  gkyl_hyper_dg_advance(lbo->diff, &update_rng, fIn, cflrate, rhs);
+  gkyl_hyper_dg_advance(lbo->drag, &update_rng, fIn, cflrate, rhs);
 }
 
 void
@@ -106,8 +106,8 @@ gkyl_dg_updater_lbo_vlasov_advance_cu(gkyl_dg_updater_lbo_vlasov *lbo, struct gk
   gkyl_lbo_vlasov_diff_set_nuUSum(lbo->coll_diff, nu_u);
   gkyl_lbo_vlasov_diff_set_nuVtSqSum(lbo->coll_diff, nu_vthsq);
 
-  gkyl_hyper_dg_advance_cu(lbo->diff, update_rng, fIn, cflrate, rhs);
-  gkyl_hyper_dg_advance_cu(lbo->drag, update_rng, fIn, cflrate, rhs);
+  gkyl_hyper_dg_advance_cu(lbo->diff, &update_rng, fIn, cflrate, rhs);
+  gkyl_hyper_dg_advance_cu(lbo->drag, &update_rng, fIn, cflrate, rhs);
 }
 
 #endif
