@@ -15,7 +15,7 @@
  * @return Pointer to Gyrokinetic equation object
  */
 struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range);
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, bool use_gpu);
 
 /**
  * Create a new Gyrokinetic equation object that lives on NV-GPU

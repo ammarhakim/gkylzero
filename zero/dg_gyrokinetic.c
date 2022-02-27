@@ -28,13 +28,13 @@ void
 gkyl_gyrokinetic_set_geo_fields(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *bmag,
   const struct gkyl_array *jacobtot_inv, const struct gkyl_array *cmag, const struct gkyl_array *b_i)
 {
-/* #ifdef GKYL_HAVE_CUDA */
-/*   if (gkyl_array_is_cu_dev(bmag) && gkyl_array_is_cu_dev(jacobtot_inv) && */
-/*       gkyl_array_is_cu_dev(cmag) && gkyl_array_is_cu_dev(b_i) ) { */
-/*     gkyl_gyrokinetic_set_geo_fields_cu(eqn->on_dev, bmag, jacobtot_inv, cmag, b_i); */
-/*     return; */
-/*   } */
-/* #endif */
+#ifdef GKYL_HAVE_CUDA 
+  if (gkyl_array_is_cu_dev(bmag) && gkyl_array_is_cu_dev(jacobtot_inv) && 
+      gkyl_array_is_cu_dev(cmag) && gkyl_array_is_cu_dev(b_i) ) { 
+    gkyl_gyrokinetic_set_geo_fields_cu(eqn->on_dev, bmag, jacobtot_inv, cmag, b_i); 
+    return; 
+  } 
+#endif 
 
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
   gyrokinetic->bmag         = bmag;
@@ -47,13 +47,13 @@ void
 gkyl_gyrokinetic_set_em_fields(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *phi,
   const struct gkyl_array *apar, const struct gkyl_array *apardot)
 {
-/* #ifdef GKYL_HAVE_CUDA */
-/*   if (gkyl_array_is_cu_dev(phi) && gkyl_array_is_cu_dev(apar) && */
-/*       gkyl_array_is_cu_dev(apardot) ) { */
-/*     gkyl_gyrokinetic_set_em_fields_cu(eqn->on_dev, phi, apar, apardot); */
-/*     return; */
-/*   } */
-/* #endif */
+#ifdef GKYL_HAVE_CUDA 
+  if (gkyl_array_is_cu_dev(phi) && gkyl_array_is_cu_dev(apar) && 
+      gkyl_array_is_cu_dev(apardot) ) { 
+    gkyl_gyrokinetic_set_em_fields_cu(eqn->on_dev, phi, apar, apardot); 
+    return; 
+  } 
+#endif 
 
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
   gyrokinetic->phi     = phi;
@@ -63,8 +63,13 @@ gkyl_gyrokinetic_set_em_fields(const struct gkyl_dg_eqn *eqn, const struct gkyl_
 
 struct gkyl_dg_eqn*
 gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range)
+  const struct gkyl_range* conf_range, bool use_gpu)
 {
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_dg_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range);
+  } 
+#endif
   struct dg_gyrokinetic *gyrokinetic = gkyl_malloc(sizeof(struct dg_gyrokinetic));
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
