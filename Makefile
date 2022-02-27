@@ -209,7 +209,7 @@ install: all
 	cp -f build/regression/rt_vlasov_kerntm ${PREFIX}/gkylzero/bin/
 
 clean:
-	rm -rf build/libgkylzero.a build/libgkylzero.so build/regression/twostream.ini */*.o kernels/*/*.o build/regression/rt_* build/unit/ctest_*
+	rm -rf build/libgkylzero.a build/libgkylzero.so */*.o kernels/*/*.o build/regression/rt_* build/unit/ctest_*
 
 # partclean does not delete the kernel object files as they do not
 # always need to be rebuilt and are very expensive to build when using
