@@ -129,7 +129,7 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
     mom_gyrokinetic->kernel = m3_perp_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_gyrokinetic->momt.num_mom = 1;
   }
-  else if (strcmp(mom, "ThreeMoments") == 0) { // Zeroth (density), First (parallel momentum),
+  else if (strcmp(mom, "GkThreeMoments") == 0) { // Zeroth (density), First (parallel momentum),
     assert(cv_index[cdim].vdim[vdim] != -1);   // and Second (total energy) computed together
     assert(NULL != three_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
@@ -138,6 +138,7 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
   }
   else {
     // string not recognized
+    printf("Error: requested moment %s.\n", mom);
     gkyl_exit("gkyl_mom_type_gyrokinetic: Unrecognized moment requested!");
   }
 
