@@ -243,11 +243,8 @@ struct dg_lbo_vlasov_drag {
   lbo_vlasov_drag_vol_t vol; // Volume kernel
   lbo_vlasov_drag_surf_t surf[3]; // Surface terms for acceleration
   lbo_vlasov_drag_boundary_surf_t boundary_surf[3]; // Surface terms for acceleration
-  struct gkyl_range conf_range; // configuration space range
-  const struct gkyl_array *nuSum;
-  const struct gkyl_array *nuUSum;
-  const struct gkyl_array *nuVtSqSum;
-  struct gkyl_dg_lbo_vlasov_drag_auxfields auxfields;
+  struct gkyl_range conf_range; // Configuration space range.
+  struct gkyl_dg_lbo_vlasov_drag_auxfields auxfields; // Auxiliary fields.
 };
 
 void gkyl_lbo_vlasov_drag_free(const struct gkyl_ref_count* ref);

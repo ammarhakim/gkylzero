@@ -243,8 +243,8 @@ struct dg_lbo_vlasov_diff {
   lbo_vlasov_diff_vol_t vol; // Volume kernel
   lbo_vlasov_diff_surf_t surf[3]; // Surface terms for acceleration
   lbo_vlasov_diff_boundary_surf_t boundary_surf[3]; // Surface terms for acceleration
-  struct gkyl_range conf_range; // configuration space range
-  struct gkyl_dg_lbo_vlasov_diff_auxfields auxfields;
+  struct gkyl_range conf_range; // Configuration space range.
+  struct gkyl_dg_lbo_vlasov_diff_auxfields auxfields; // Auxiliary fields.
 };
 
 void gkyl_lbo_vlasov_diff_free(const struct gkyl_ref_count* ref);

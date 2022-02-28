@@ -118,8 +118,9 @@ test_vlasov_1x2v_p2_(bool use_gpu)
   for(int n=0; n<nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
-    gkyl_vlasov_set_qmem(eqn, qmem); // must set EM fields to use
-    if (use_gpu) 
+    gkyl_vlasov_set_auxfields(eqn,
+      (struct gkyl_dg_vlasov_auxfields) { .qmem = qmem }); // Must set EM fields to use.
+    if (use_gpu)
       gkyl_hyper_dg_advance_cu(slvr, phaseRange, fin, cflrate, rhs);
     else
       gkyl_hyper_dg_advance(slvr, phaseRange, fin, cflrate, rhs);
@@ -315,8 +316,9 @@ test_vlasov_2x3v_p1_(bool use_gpu)
   for(int n=0; n<nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
-    gkyl_vlasov_set_qmem(eqn, qmem); // must set EM fields to use
-    if (use_gpu) 
+    gkyl_vlasov_set_auxfields(eqn,
+      (struct gkyl_dg_vlasov_auxfields) { .qmem = qmem }); // must set EM fields to use
+    if (use_gpu)
       gkyl_hyper_dg_advance_cu(slvr, phaseRange, fin, cflrate, rhs);
     else
       gkyl_hyper_dg_advance(slvr, phaseRange, fin, cflrate, rhs);

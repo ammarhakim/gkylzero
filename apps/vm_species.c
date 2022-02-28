@@ -130,7 +130,8 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
 {
   gkyl_array_clear(species->cflrate, 0.0);
   if (qmem)
-    gkyl_vlasov_set_qmem(species->eqn, qmem); // must set EM fields to use
+    gkyl_vlasov_set_auxfields(species->eqn, 
+      (struct gkyl_dg_vlasov_auxfields) { .qmem = qmem }); // must set EM fields to use
   
   gkyl_array_clear(rhs, 0.0);
 

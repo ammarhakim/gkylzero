@@ -25,17 +25,17 @@ gkyl_vlasov_free(const struct gkyl_ref_count *ref)
 }
 
 void
-gkyl_vlasov_set_qmem(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem)
+gkyl_vlasov_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(qmem)) {
-    gkyl_vlasov_set_qmem_cu(eqn->on_dev, qmem);
+  if (gkyl_array_is_cu_dev(auxin.qmem)) {
+    gkyl_vlasov_set_auxfields_cu(eqn->on_dev, auxin);
     return;
   }
 #endif
 
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
-  vlasov->qmem = qmem;
+  vlasov->auxfields.qmem = auxin.qmem;
 }
 
 struct gkyl_dg_eqn*
@@ -125,7 +125,7 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   for (int i=0; i<vdim; ++i) assert(vlasov->accel_surf[i]);
   for (int i=0; i<vdim; ++i) assert(vlasov->accel_boundary_surf[i]);
 
-  vlasov->qmem = 0;  
+  vlasov->auxfields.qmem = 0;  
   vlasov->conf_range = *conf_range;
 
   vlasov->eqn.flags = 0;

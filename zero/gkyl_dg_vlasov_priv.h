@@ -364,7 +364,7 @@ struct dg_vlasov {
   vlasov_accel_surf_t accel_surf[3]; // Surface terms for acceleration
   vlasov_accel_boundary_surf_t accel_boundary_surf[3]; // Surface terms for acceleration
   struct gkyl_range conf_range; // configuration space range
-  const struct gkyl_array *qmem; // Pointer to q/m*EM field
+  struct gkyl_dg_vlasov_auxfields auxfields; // Auxiliary fields.
 };
 
 /**
@@ -383,7 +383,7 @@ vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
 
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
   return vlasov->vol(xc, dx,
-    vlasov->qmem ? (const double*) gkyl_array_cfetch(vlasov->qmem, cidx) : 0,
+    vlasov->auxfields.qmem ? (const double*) gkyl_array_cfetch(vlasov->auxfields.qmem, cidx) : 0,
     qIn, qRhsOut);
 }
 
@@ -406,7 +406,7 @@ surf(const struct gkyl_dg_eqn *eqn,
     long cidx = gkyl_range_idx(&vlasov->conf_range, idxC);
     vlasov->accel_surf[dir-vlasov->cdim]
       (xcC, dxC,
-        vlasov->qmem ? (const double*) gkyl_array_cfetch(vlasov->qmem, cidx) : 0,
+        vlasov->auxfields.qmem ? (const double*) gkyl_array_cfetch(vlasov->auxfields.qmem, cidx) : 0,
         qInL, qInC, qInR, qRhsOut);
   }
 }
@@ -426,7 +426,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
     long cidx = gkyl_range_idx(&vlasov->conf_range, idxSkin);
     vlasov->accel_boundary_surf[dir-vlasov->cdim]
       (xcSkin, dxSkin,
-        vlasov->qmem ? (const double*) gkyl_array_cfetch(vlasov->qmem, cidx) : 0,
+        vlasov->auxfields.qmem ? (const double*) gkyl_array_cfetch(vlasov->auxfields.qmem, cidx) : 0,
         edge, qInEdge, qInSkin, qRhsOut);
   }
 }

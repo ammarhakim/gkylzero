@@ -6,6 +6,11 @@
 #include <gkyl_dg_eqn.h>
 #include <gkyl_range.h>
 
+// Struct containing the pointers to auxiliary fields.
+struct gkyl_dg_vlasov_auxfields { 
+  const struct gkyl_array *qmem;
+};
+
 /**
  * Create a new Vlasov equation object.
  *
@@ -31,20 +36,20 @@ struct gkyl_dg_eqn* gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, enum gkyl_field_id field_id);
 
 /**
- * Set the q/m*EM field needed in updating the force terms.
+ * Set the auxiliary fields (e.g. q/m*EM) needed in updating the force terms.
  * 
- * @param eqn Equation pointer
- * @param qmem Pointer to EM field scaled by q/m,
+ * @param eqn Equation pointer.
+ * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_vlasov_set_qmem(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem);
+void gkyl_vlasov_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin);
 
 #ifdef GKYL_HAVE_CUDA
 /**
- * CUDA device function to set the q/m*EM field needed in updating the force terms.
+ * CUDA device function to set auxiliary fields (e.g. q/m*EM) needed in updating the force terms.
  * 
- * @param eqn Equation pointer
- * @param qmem Pointer to EM field scaled by q/m,
+ * @param eqn Equation pointer.
+ * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_vlasov_set_qmem_cu(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem);
+void gkyl_vlasov_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin);
 
 #endif
