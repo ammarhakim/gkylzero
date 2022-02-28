@@ -23,6 +23,15 @@ gkyl_lbo_vlasov_drag_free(const struct gkyl_ref_count* ref)
 void
 gkyl_lbo_vlasov_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, const struct gkyl_dg_lbo_vlasov_drag_auxfields auxin)
 {
+
+#ifdef GKYL_HAVE_CUDA
+ if (gkyl_array_is_cu_dev(auxin.nuSum) && gkyl_array_is_cu_dev(auxin.nuUSum)
+     && gkyl_array_is_cu_dev(auxin.nuVtSqSum)) {
+   gkyl_lbo_vlasov_drag_set_auxfields_cu(eqn->on_dev, auxin);
+   return;
+ }
+#endif
+
   struct dg_lbo_vlasov_drag *lbo_vlasov_drag = container_of(eqn, struct dg_lbo_vlasov_drag, eqn);
   lbo_vlasov_drag->auxfields.nuSum = auxin.nuSum;
   lbo_vlasov_drag->auxfields.nuUSum = auxin.nuUSum;
