@@ -171,44 +171,11 @@ ${BUILD_DIR}/unit/%: unit/%.c ${BUILD_DIR}/${G0STLIB} ${UNIT_CU_OBJS}
 	$(MKDIR_P) ${BUILD_DIR}/unit
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${UNIT_CU_OBJS} ${BUILD_DIR}/${G0STLIB} ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 
-.PHONY: check clean partclean install
+.PHONY: check check1 clean partclean install
 
-# Run unit tests
-check: all
-	${BUILD_DIR}/unit/ctest_alloc
-	${BUILD_DIR}/unit/ctest_array
-	${BUILD_DIR}/unit/ctest_array_reduce
-	${BUILD_DIR}/unit/ctest_basis
-	${BUILD_DIR}/unit/ctest_block_topo
-	${BUILD_DIR}/unit/ctest_dg_bin_ops
-	${BUILD_DIR}/unit/ctest_dg_lbo_vlasov
-	${BUILD_DIR}/unit/ctest_dg_maxwell
-	${BUILD_DIR}/unit/ctest_dg_vlasov
-	${BUILD_DIR}/unit/ctest_dynvec
-	${BUILD_DIR}/unit/ctest_fv_proj
-	${BUILD_DIR}/unit/ctest_gauss_quad
-	${BUILD_DIR}/unit/ctest_hyper_dg
-	${BUILD_DIR}/unit/ctest_mat
-	${BUILD_DIR}/unit/ctest_mat_triples
-	${BUILD_DIR}/unit/ctest_mom_calc
-	${BUILD_DIR}/unit/ctest_mom_vlasov
-	${BUILD_DIR}/unit/ctest_prim_vlasov
-	${BUILD_DIR}/unit/ctest_proj_maxwellian_on_basis
-	${BUILD_DIR}/unit/ctest_proj_on_basis
-	${BUILD_DIR}/unit/ctest_range
-	${BUILD_DIR}/unit/ctest_rect_decomp
-	${BUILD_DIR}/unit/ctest_rect_grid
-	${BUILD_DIR}/unit/ctest_ref_count
-	${BUILD_DIR}/unit/ctest_superlu
-	${BUILD_DIR}/unit/ctest_update_fsm
-	${BUILD_DIR}/unit/ctest_wave_geom
-	${BUILD_DIR}/unit/ctest_wv_apply_bc
-	${BUILD_DIR}/unit/ctest_wv_euler
-	${BUILD_DIR}/unit/ctest_wv_iso_euler
-	${BUILD_DIR}/unit/ctest_wv_maxwell
-	${BUILD_DIR}/unit/ctest_wv_mhd
-	${BUILD_DIR}/unit/ctest_wv_sr_euler
-	${BUILD_DIR}/unit/ctest_wv_ten_moment
+# Run all unit tests
+check: ${UNITS}
+	$(foreach unit,${UNITS},$(unit);)
 
 install: all
 	$(MKDIR_P) ${PREFIX}/gkylzero/include
