@@ -336,9 +336,10 @@ struct dg_vlasov_poisson {
   vlasov_poisson_stream_surf_t stream_surf[3]; // Surface terms for streaming
   vlasov_poisson_accel_surf_t accel_surf[3]; // Surface terms for acceleration
   vlasov_poisson_accel_boundary_surf_t accel_boundary_surf[3]; // Surface terms for acceleration
-  struct gkyl_range conf_range; // configuration space range
+  struct gkyl_range conf_range; // Configuration space range.
   const struct gkyl_array *fac_phi; // Pointer to fac*phi, where phi is the potential
   const struct gkyl_array *vecA; // Pointer to q/m*A, where A is the vector potential
+  struct gkyl_dg_vlasov_poisson_auxfields auxfields; // Auxiliary fields.
 };
 
 GKYL_CU_D
@@ -349,7 +350,7 @@ vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
   struct dg_vlasov_poisson *vlasov_poisson = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
   long cidx = gkyl_range_idx(&vlasov_poisson->conf_range, idx);
-  return vlasov_poisson->vol(xc, dx, (const double*) gkyl_array_cfetch(vlasov_poisson->fac_phi, cidx), NULL,
+  return vlasov_poisson->vol(xc, dx, (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), NULL,
     qIn, qRhsOut);
 }
 
@@ -371,7 +372,7 @@ surf(const struct gkyl_dg_eqn *eqn,
   else {
     long cidx = gkyl_range_idx(&vlasov_poisson->conf_range, idxC);
     vlasov_poisson->accel_surf[dir-vlasov_poisson->cdim]
-      (xcC, dxC, (const double*) gkyl_array_cfetch(vlasov_poisson->fac_phi, cidx), NULL,
+      (xcC, dxC, (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), NULL,
         qInL, qInC, qInR, qRhsOut);
   }
 }
@@ -390,7 +391,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   if (dir >= vlasov_poisson->cdim) {
     long cidx = gkyl_range_idx(&vlasov_poisson->conf_range, idxSkin);
     vlasov_poisson->accel_boundary_surf[dir-vlasov_poisson->cdim]
-      (xcSkin, dxSkin, (const double*) gkyl_array_cfetch(vlasov_poisson->fac_phi, cidx), NULL,
+      (xcSkin, dxSkin, (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), NULL,
         edge, qInEdge, qInSkin, qRhsOut);
   }
 }

@@ -19,13 +19,6 @@ gkyl_vlasov_poisson_set_fac_phi_cu_kernel(const struct gkyl_dg_eqn *eqn, const s
   vlasov_poisson->fac_phi = fac_phi;
 }
 
-// Host-side wrapper for set_fac_phi_cu_kernel
-void
-gkyl_vlasov_poisson_set_fac_phi_cu(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *fac_phi)
-{
-  gkyl_vlasov_poisson_set_fac_phi_cu_kernel<<<1,1>>>(eqn, fac_phi->on_dev);
-}
-
 // CUDA kernel to set pointer to vecA = q/m*A, where A is the vector potential
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
@@ -36,11 +29,12 @@ gkyl_vlasov_poisson_set_vecA_cu_kernel(const struct gkyl_dg_eqn *eqn, const stru
   vlasov_poisson->vecA = vecA;
 }
 
-// Host-side wrapper for set_vecA_cu_kernel
+// Host-side wrapper for setting fac_phi and vecA.
 void
-gkyl_vlasov_poisson_set_vecA_cu(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *vecA)
+gkyl_vlasov_poisson_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_poisson_auxfields auxin)
 {
-  gkyl_vlasov_poisson_set_vecA_cu_kernel<<<1,1>>>(eqn, vecA->on_dev);
+  gkyl_vlasov_poisson_set_fac_phi_cu_kernel<<<1,1>>>(eqn, auxin.fac_phi->on_dev);
+  gkyl_vlasov_poisson_set_vecA_cu_kernel<<<1,1>>>(eqn, auxin.vecA->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and vlasov kernel function
@@ -49,8 +43,8 @@ __global__ static void
 dg_vlasov_poisson_set_cu_dev_ptrs(struct dg_vlasov_poisson *vlasov_poisson, enum gkyl_basis_type b_type,
   int cv_index, int cdim, int vdim, int poly_order)
 {
-  vlasov_poisson->fac_phi = 0; 
-  vlasov_poisson->vecA = 0; 
+  vlasov_poisson->auxfields.fac_phi = 0; 
+  vlasov_poisson->auxfields.vecA = 0; 
 
   printf("******** FIX BUG IN vlasov_poisson to enable it to run on GPUs!");    
   assert(false);

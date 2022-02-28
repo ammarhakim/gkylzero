@@ -5,6 +5,12 @@
 #include <gkyl_dg_eqn.h>
 #include <gkyl_range.h>
 
+// Struct containing the pointers to auxiliary fields.
+struct gkyl_dg_vlasov_poisson_auxfields {
+  const struct gkyl_array *fac_phi; // Pointer to fac*phi, where phi is the potential.
+  const struct gkyl_array *vecA; // Pointer to q/m*A, where A is the vector potential.
+};
+
 /**
  * Create a new Vlasov-Poisson equation object.
  *
@@ -28,37 +34,21 @@ struct gkyl_dg_eqn* gkyl_dg_vlasov_poisson_cu_dev_new(const struct gkyl_basis* c
   const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range);
 
 /**
- * Set the fac_phi = factor*phi array needed in updating the force terms.
- * This factor is fac = q/m for plasmas and fac = G*m for self-gravitating systems
+ * Set the auxiliary fields (e.g. q/m, external force) needed in updating the force terms.
  * 
  * @param eqn Equation pointer
- * @param fac_phi Pointer to potential scaled by fac,
+ * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_vlasov_poisson_set_fac_phi(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *fac_phi);
-
-/**
- * Set the vecA = q/m*A array needed in updating the force terms when running with external fields.
- * 
- * @param eqn Equation pointer
- * @param vecA Pointer to vector potential scaled by q/m,
- */
-void gkyl_vlasov_poisson_set_vecA(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *vecA);
+void gkyl_vlasov_poisson_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_poisson_auxfields auxin);
 
 #ifdef GKYL_HAVE_CUDA
 /**
- * CUDA device functions to set the fac_phi = factor*phi array needed in updating the force terms.
+ * CUDA device function to set auxiliary fields (e.g. q/m, external force) needed in
+ * updating the force terms.
  * 
  * @param eqn Equation pointer
- * @param fac_phi Pointer to potential scaled by fac,
+ * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_vlasov_poisson_set_fac_phi_cu(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *fac_phi);
-
-/**
- * CUDA device functions to set the vecA = q/m*A array needed in updating the force terms when running with external fields.
- * 
- * @param eqn Equation pointer
- * @param vecA Pointer to vector potential scaled by q/m,
- */
-void gkyl_vlasov_poisson_set_vecA_cu(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *vecA);
+void gkyl_vlasov_poisson_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_poisson_auxfields auxin);
 
 #endif

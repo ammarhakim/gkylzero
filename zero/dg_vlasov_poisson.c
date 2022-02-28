@@ -16,25 +16,15 @@ vlasov_poisson_free(const struct gkyl_ref_count *ref)
 }
 
 void
-gkyl_vlasov_poisson_set_fac_phi(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *fac_phi)
+gkyl_vlasov_poisson_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_poisson_auxfields auxin)
 {
 //#ifdef GKYL_HAVE_CUDA
-//  if (gkyl_array_is_cu_dev(fac_phi)) {gkyl_vlasov_poisson_set_fac_phi_cu(eqn, fac_phi); return;}
+//  if (gkyl_array_is_cu_dev(fac_phi)) {gkyl_vlasov_poisson_set_auxfields_cu(eqn, auxin); return;}
 //#endif
 
   struct dg_vlasov_poisson *vlasov_poisson = container_of(eqn, struct dg_vlasov_poisson, eqn);
-  vlasov_poisson->fac_phi = fac_phi;
-}
-
-void
-gkyl_vlasov_poisson_set_vecA(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *vecA)
-{
-//#ifdef GKYL_HAVE_CUDA
-//  if (gkyl_array_is_cu_dev(vecA)) {gkyl_vlasov_poisson_set_vecA_cu(eqn, vecA); return;}
-//#endif
-
-  struct dg_vlasov_poisson *vlasov_poisson = container_of(eqn, struct dg_vlasov_poisson, eqn);
-  vlasov_poisson->vecA = vecA;
+  vlasov_poisson->auxfields.fac_phi = auxin.fac_phi;
+  vlasov_poisson->auxfields.vecA = auxin.vecA;
 }
 
 struct gkyl_dg_eqn*
@@ -121,8 +111,8 @@ gkyl_dg_vlasov_poisson_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
   for (int i=0; i<vdim; ++i) assert(vlasov_poisson->accel_surf[i]);
   for (int i=0; i<vdim; ++i) assert(vlasov_poisson->accel_boundary_surf[i]);
 
-  vlasov_poisson->fac_phi = 0;
-  vlasov_poisson->vecA = 0; 
+  vlasov_poisson->auxfields.fac_phi = 0;
+  vlasov_poisson->auxfields.vecA = 0; 
   vlasov_poisson->conf_range = *conf_range;
 
   GKYL_CLEAR_CU_ALLOC(vlasov_poisson->eqn.flags);  
