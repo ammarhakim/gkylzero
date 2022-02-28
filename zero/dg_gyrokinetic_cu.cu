@@ -115,7 +115,7 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
 
 struct gkyl_dg_eqn*
 gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range)
+  const struct gkyl_range* conf_range, const double charge, const double mass)
 {
   struct dg_gyrokinetic *gyrokinetic = (struct dg_gyrokinetic*) gkyl_malloc(sizeof(struct dg_gyrokinetic));
 
@@ -124,6 +124,9 @@ gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gky
 
   gyrokinetic->cdim = cdim;
   gyrokinetic->pdim = pdim;
+
+  gyrokinetic->charge = charge;
+  gyrokinetic->mass = mass;
 
   gyrokinetic->eqn.num_equations = 1;
   gyrokinetic->conf_range = *conf_range;
