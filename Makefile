@@ -10,22 +10,45 @@
 
 ARCH_FLAGS = -march=native
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
-CFLAGS = -O3 -g -ffast-math -fPIC
+CFLAGS = -O3 -g -ffast-math -fPIC -MMD -MP
 LDFLAGS =
-KERN_INCLUDES = -Ikernels/basis -Ikernels/maxwell -Ikernels/vlasov -Ikernels/bin_op -Ikernels/lbo -Ikernels/fem -Ikernels/gyrokinetic
+
+# CUDA flags
+USING_NVCC =
+NVCC_FLAGS = 
+CUDA_LIBS =
+ifeq ($(CC), nvcc)
+       USING_NVCC = yes
+       CFLAGS = -O3 -g --forward-unknown-to-host-compiler -MMD -MP -fPIC
+       NVCC_FLAGS = -x cu -dc -arch=sm_70 --compiler-options="-fPIC" 
+       LDFLAGS += -arch=sm_70
+       CUDA_LIBS = -lcublas
+endif
 
 # Install prefix
 PREFIX = ${HOME}/gkylsoft
+# Build directory
+ifdef USING_NVCC
+	BUILD_DIR ?= cuda-build
+else
+	BUILD_DIR ?= build
+endif
+# Directories containing source code
+SRC_DIRS := minus zero apps kernels
 
 # Default lapack include and libraries: we prefer linking to static library
 LAPACK_INC = ${HOME}/gkylsoft/OpenBLAS/include
+LAPACK_LIB_DIR = ${HOME}/gkylsoft/OpenBLAS/lib
 LAPACK_LIB = ${HOME}/gkylsoft/OpenBLAS/lib/libopenblas.a
 
 # SuperLU includes and librararies
 SUPERLU_INC = ${HOME}/gkylsoft/superlu/include
+SUPERLU_LIB_DIR = ${HOME}/gkylsoft/superlu/lib
 SUPERLU_LIB = ${HOME}/gkylsoft/superlu/lib/libsuperlu.a
 
-SUPERLU_LIB_DIR = ${HOME}/gkylsoft/superlu/lib
+# list of includes from kernels
+KERN_INC_DIRS = $(shell find $(SRC_DIRS) -type d)
+KERN_INCLUDES = $(addprefix -I,$(KERN_INC_DIRS))
 
 # Include config.mak file (if it exists) to overide defaults above
 -include config.mak
@@ -38,181 +61,176 @@ ifeq ($(UNAME), Darwin)
 	LAPACK_INC = zero # dummy
 	LAPACK_LIB = -framework Accelerate
 	CFLAGS += -DGKYL_USING_FRAMEWORK_ACCELERATE
-	SHFLAGS += -dynamiclib
+	SHFLAGS += -dynamiclib -install_name ${PREFIX}/gkylzero/lib/libgkylzero.so
 else
 	SHFLAGS += -shared
 endif
 
+# all includes
 INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iregression ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC}
 
-NVCC = 
-USING_NVCC =
-NVCC_FLAGS = 
-CUDA_LIBS = 
-ifeq ($(CC), nvcc)
-       CFLAGS = -O3 -g --forward-unknown-to-host-compiler -fPIC
-       USING_NVCC = yes
-       NVCC_FLAGS = -x cu -dc -arch=sm_70 --compiler-options="-fPIC" 
-       LDFLAGS += -arch=sm_70
-       CUDA_LIBS = -lcublas
-endif
+# Build commands for CUDA source
+$(BUILD_DIR)/%.cu.o: %.cu
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
-%.o : %.cu
-	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
+# Build commands for C source
+$(BUILD_DIR)/%.c.o: %.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(ARCH_FLAGS) $(INCLUDES) -c $< -o $@
 
-%.o : %.c
-	${CC} -c $(CFLAGS) $(ARCH_FLAGS) $(INCLUDES) -o $@ $< 
-
-# Header dependencies
-headers = $(wildcard minus/*.h) $(wildcard zero/*.h) $(wildcard apps/*.h) $(wildcard kernels/*/*.h)
-
-# Object files to compile in library
-libobjs = $(patsubst %.c,%.o,$(wildcard minus/*.c)) \
-	$(patsubst %.c,%.o,$(wildcard zero/*.c)) \
-	$(patsubst %.c,%.o,$(wildcard apps/*.c)) \
-	$(patsubst %.c,%.o,$(wildcard kernels/*/*.c))
-
+# Specialized build commands for kernels when using nvcc
 ifdef USING_NVCC
-
-# Object constructed from cu files to include in library
-libobjs += $(patsubst %.cu,%.o,$(wildcard zero/*.cu))
 
 # Unfortunately, due to the limitations of the NVCC compiler to treat
 # device code in C files, we need to force compile the kernel code
 # using the -x cu flag
 
-kernels/bin_op/%.o : kernels/bin_op/%.c
-	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
+$(BUILD_DIR)/kernels/bin_op/%.c.o : kernels/bin_op/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
-kernels/gyrokinetic/%.o : kernels/gyrokinetic/%.c
-	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
+$(BUILD_DIR)/kernels/gyrokinetic/%.c.o : kernels/gyrokinetic/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
-kernels/lbo/%.o : kernels/lbo/%.c
-	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
+$(BUILD_DIR)/kernels/lbo/%.c.o : kernels/lbo/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
-kernels/maxwell/%.o : kernels/maxwell/%.c
-	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
+$(BUILD_DIR)/kernels/maxwell/%.c.o : kernels/maxwell/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
-kernels/vlasov/%.o : kernels/vlasov/%.c
-	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
+$(BUILD_DIR)/kernels/vlasov/%.c.o : kernels/vlasov/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
-kernels/basis/%.o : kernels/basis/%.c
-	${CC} -c $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -o $@ $<
+$(BUILD_DIR)/kernels/basis/%.c.o : kernels/basis/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
 endif
+
+# List of source files
+SRCS := $(shell find $(SRC_DIRS) -name *.c)
+ifdef USING_NVCC
+	SRCS += $(shell find zero -name *.cu)
+endif
+
+# List of object files that will be built
+OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
+
+# List of regression and unit tests
+REGS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard regression/rt_*.c))
+UNITS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard unit/ctest_*.c))
+
+# We need to build CUDA unit-test objects
+UNIT_CU_SRCS =
+UNIT_CU_OBJS =
+ifdef USING_NVCC
+	UNIT_CU_SRCS = $(shell find unit -name *.cu)
+	UNIT_CU_OBJS = $(UNIT_CU_SRCS:%=$(BUILD_DIR)/%.o)
+endif
+
+# Header files
+HEADERS := $(wildcard minus/*.h) $(wildcard zero/*.h) $(wildcard apps/*.h) $(wildcard kernels/*/*.h)
+
+# Library name
+ifeq ($(CC), nvcc)
+	G0LIB = gkylzerocuda
+else
+	G0LIB = gkylzero
+endif
+
+# Object files to compile in library
+LIBOBJS = ${OBJS}
+
+# names of libraries to build
+G0STLIB = lib${G0LIB}.a
+G0SHLIB = lib${G0LIB}.so
 
 # Make targets: libraries, regression tests and unit tests
-all: build/libgkylzero.a build/libgkylzero.so \
-	$(patsubst %.c,build/%,$(wildcard regression/rt_*.c)) \
-	$(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
+all: ${BUILD_DIR}/${G0STLIB} ${BUILD_DIR}/${G0SHLIB} ${REGS} ${UNITS}
 
 # Library archive
-build/libgkylzero.a: ${libobjs} ${headers}
-	ar -crs build/libgkylzero.a ${libobjs}
+${BUILD_DIR}/${G0STLIB}: ${LIBOBJS}
+	ar -crs $@ ${LIBOBJS}
 
-ifeq ($(UNAME), Darwin)
 # Dynamic (shared) library
-build/libgkylzero.so: ${libobjs} ${headers}
-	${CC} -o build/libgkylzero.so -install_name ${PREFIX}/gkylzero/lib/libgkylzero.so ${SHFLAGS} ${LDFLAGS} ${libobjs} ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
-else
-build/libgkylzero.so: ${libobjs} ${headers}
-	${CC} -o build/libgkylzero.so ${SHFLAGS} ${LDFLAGS} ${libobjs} ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
-endif
+${BUILD_DIR}/${G0SHLIB}: ${LIBOBJS}
+	${CC} ${SHFLAGS} ${LDFLAGS} ${LIBOBJS} ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread -o $@
 
 # Regression tests
-build/regression/%: regression/%.c build/libgkylzero.a regression/rt_arg_parse.h
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) build/libgkylzero.a ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread 
+${BUILD_DIR}/regression/%: regression/%.c ${BUILD_DIR}/${G0STLIB} regression/rt_arg_parse.h
+	$(MKDIR_P) ${BUILD_DIR}/regression
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${BUILD_DIR}/${G0STLIB} ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 
 # Unit tests
-build/unit/%: unit/%.c build/libgkylzero.a
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) build/libgkylzero.a ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
-
-
-ifdef USING_NVCC
-# unit tests needing CUDA kernels
-
-build/unit/ctest_range: unit/ctest_range.o unit/ctest_range_cu.o build/libgkylzero.a
-	${CC} ${LDFLAGS} unit/ctest_range.o unit/ctest_range_cu.o -o build/unit/ctest_range build/libgkylzero.a ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
-
-build/unit/ctest_rect_grid: unit/ctest_rect_grid.o unit/ctest_rect_grid_cu.o build/libgkylzero.a
-	${CC} ${LDFLAGS} unit/ctest_rect_grid.o unit/ctest_rect_grid_cu.o -o build/unit/ctest_rect_grid build/libgkylzero.a ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
-
-build/unit/ctest_array: unit/ctest_array.o unit/ctest_array_cu.o build/libgkylzero.a
-	${CC} ${LDFLAGS} unit/ctest_array.o unit/ctest_array_cu.o -o build/unit/ctest_array build/libgkylzero.a ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
-
-build/unit/ctest_dg_bin_op: unit/ctest_dg_bin_op.o unit/ctest_dg_bin_op_cu.o build/libgkylzero.a
-	${CC} ${LDFLAGS} unit/ctest_dg_bin_op.o unit/ctest_dg_bin_op_cu.o -o build/unit/ctest_dg_bin_op build/libgkylzero.a ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
-
-build/unit/ctest_dg_maxwell: unit/ctest_dg_maxwell.o unit/ctest_dg_maxwell_cu.o build/libgkylzero.a
-	${CC} ${LDFLAGS} unit/ctest_dg_maxwell.o unit/ctest_dg_maxwell_cu.o -o build/unit/ctest_dg_maxwell build/libgkylzero.a ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
-
-build/unit/ctest_dg_vlasov: unit/ctest_dg_vlasov.o unit/ctest_dg_vlasov_cu.o build/libgkylzero.a
-	${CC} ${LDFLAGS} unit/ctest_dg_vlasov.o unit/ctest_dg_vlasov_cu.o -o build/unit/ctest_dg_vlasov build/libgkylzero.a ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
-
-build/unit/ctest_mom_vlasov: unit/ctest_mom_vlasov.o unit/ctest_mom_vlasov_cu.o build/libgkylzero.a
-	${CC} ${LDFLAGS} unit/ctest_mom_vlasov.o unit/ctest_mom_vlasov_cu.o -o build/unit/ctest_mom_vlasov build/libgkylzero.a ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
-
-build/unit/ctest_hyper_dg: unit/ctest_hyper_dg.o unit/ctest_hyper_dg_cu.o build/libgkylzero.a
-	${CC} ${LDFLAGS} unit/ctest_hyper_dg.o unit/ctest_hyper_dg_cu.o -o build/unit/ctest_hyper_dg build/libgkylzero.a ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
-
-endif
+${BUILD_DIR}/unit/%: unit/%.c ${BUILD_DIR}/${G0STLIB} ${UNIT_CU_OBJS}
+	$(MKDIR_P) ${BUILD_DIR}/unit
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${UNIT_CU_OBJS} ${BUILD_DIR}/${G0STLIB} ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 
 .PHONY: check clean partclean install
 
 # Run unit tests
-check: $(patsubst %.c,build/%,$(wildcard unit/ctest_*.c))
-	./build/unit/ctest_alloc
-	./build/unit/ctest_array
-	./build/unit/ctest_array_reduce
-	./build/unit/ctest_basis
-	./build/unit/ctest_block_topo
-	./build/unit/ctest_dg_bin_ops
-	./build/unit/ctest_dg_lbo_vlasov
-	./build/unit/ctest_dg_maxwell
-	./build/unit/ctest_dg_vlasov
-	./build/unit/ctest_dynvec
-	./build/unit/ctest_fv_proj
-	./build/unit/ctest_gauss_quad
-	./build/unit/ctest_hyper_dg
-	./build/unit/ctest_mat
-	./build/unit/ctest_mat_triples
-	./build/unit/ctest_mom_calc
-	./build/unit/ctest_mom_vlasov
-	./build/unit/ctest_prim_vlasov
-	./build/unit/ctest_proj_maxwellian_on_basis
-	./build/unit/ctest_proj_on_basis
-	./build/unit/ctest_range
-	./build/unit/ctest_rect_decomp
-	./build/unit/ctest_rect_grid
-	./build/unit/ctest_ref_count
-	./build/unit/ctest_superlu
-	./build/unit/ctest_update_fsm
-	./build/unit/ctest_wave_geom
-	./build/unit/ctest_wv_apply_bc
-	./build/unit/ctest_wv_euler
-	./build/unit/ctest_wv_iso_euler
-	./build/unit/ctest_wv_maxwell
-	./build/unit/ctest_wv_mhd
-	./build/unit/ctest_wv_sr_euler
-	./build/unit/ctest_wv_ten_moment
+check: all
+	${BUILD_DIR}/unit/ctest_alloc
+	${BUILD_DIR}/unit/ctest_array
+	${BUILD_DIR}/unit/ctest_array_reduce
+	${BUILD_DIR}/unit/ctest_basis
+	${BUILD_DIR}/unit/ctest_block_topo
+	${BUILD_DIR}/unit/ctest_dg_bin_ops
+	${BUILD_DIR}/unit/ctest_dg_lbo_vlasov
+	${BUILD_DIR}/unit/ctest_dg_maxwell
+	${BUILD_DIR}/unit/ctest_dg_vlasov
+	${BUILD_DIR}/unit/ctest_dynvec
+	${BUILD_DIR}/unit/ctest_fv_proj
+	${BUILD_DIR}/unit/ctest_gauss_quad
+	${BUILD_DIR}/unit/ctest_hyper_dg
+	${BUILD_DIR}/unit/ctest_mat
+	${BUILD_DIR}/unit/ctest_mat_triples
+	${BUILD_DIR}/unit/ctest_mom_calc
+	${BUILD_DIR}/unit/ctest_mom_vlasov
+	${BUILD_DIR}/unit/ctest_prim_vlasov
+	${BUILD_DIR}/unit/ctest_proj_maxwellian_on_basis
+	${BUILD_DIR}/unit/ctest_proj_on_basis
+	${BUILD_DIR}/unit/ctest_range
+	${BUILD_DIR}/unit/ctest_rect_decomp
+	${BUILD_DIR}/unit/ctest_rect_grid
+	${BUILD_DIR}/unit/ctest_ref_count
+	${BUILD_DIR}/unit/ctest_superlu
+	${BUILD_DIR}/unit/ctest_update_fsm
+	${BUILD_DIR}/unit/ctest_wave_geom
+	${BUILD_DIR}/unit/ctest_wv_apply_bc
+	${BUILD_DIR}/unit/ctest_wv_euler
+	${BUILD_DIR}/unit/ctest_wv_iso_euler
+	${BUILD_DIR}/unit/ctest_wv_maxwell
+	${BUILD_DIR}/unit/ctest_wv_mhd
+	${BUILD_DIR}/unit/ctest_wv_sr_euler
+	${BUILD_DIR}/unit/ctest_wv_ten_moment
 
 install: all
-	mkdir -p ${PREFIX}/gkylzero/include
-	mkdir -p ${PREFIX}/gkylzero/lib
-	mkdir -p ${PREFIX}/gkylzero/bin
-	mkdir -p ${PREFIX}/gkylzero/share
-	cp ${headers} ${PREFIX}/gkylzero/include
-	cp -f build/libgkylzero.a ${PREFIX}/gkylzero/lib
-	cp -f build/libgkylzero.so ${PREFIX}/gkylzero/lib
-	cp -f build/Makefile.sample ${PREFIX}/gkylzero/share/Makefile
+	$(MKDIR_P) ${PREFIX}/gkylzero/include
+	${MKDIR_P} ${PREFIX}/gkylzero/lib
+	${MKDIR_P} ${PREFIX}/gkylzero/bin
+	${MKDIR_P} ${PREFIX}/gkylzero/share
+	cp ${HEADERS} ${PREFIX}/gkylzero/include
+	cp -f ${BUILD_DIR}/${G0STLIB} ${PREFIX}/gkylzero/lib
+	cp -f ${BUILD_DIR}/${G0SHLIB} ${PREFIX}/gkylzero/lib
+	cp -f Makefile.sample ${PREFIX}/gkylzero/share/Makefile
 	cp -f regression/rt_arg_parse.h ${PREFIX}/gkylzero/share/rt_arg_parse.h
 	cp -f regression/rt_twostream.c ${PREFIX}/gkylzero/share/rt_twostream.c
-	cp -f build/regression/rt_vlasov_kerntm ${PREFIX}/gkylzero/bin/
+	cp -f ${BUILD_DIR}/regression/rt_vlasov_kerntm ${PREFIX}/gkylzero/bin/
 
 clean:
-	rm -rf build/libgkylzero.a build/libgkylzero.so */*.o kernels/*/*.o build/regression/rt_* build/unit/ctest_*
+	rm -rf ${BUILD_DIR}
 
 # partclean does not delete the kernel object files as they do not
 # always need to be rebuilt and are very expensive to build when using
 # nvcc
 partclean:
-	rm -rf build/libgkylzero.a build/libgkylzero.so app/*.o zero/*.o unit/*.o build/regression/rt_* build/unit/ctest_*
+	rm -rf ${BUILD_DIR}/${G0STLIB} ${BUILD_DIR}/${G0SHLIB} ${BUILD_DIR}/zero ${BUILD_DIR}/app ${BUILD_DIR}/regression ${BUILD_DIR}/unit
+
+# command to make dir
+MKDIR_P ?= mkdir -p	

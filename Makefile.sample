@@ -1,4 +1,4 @@
-# -*- makefile -*-
+# -*- makefile-gmake -*-
 
 # Sample Makefile to use installed gkylzero library: copy and modify
 # for your needs
@@ -8,7 +8,15 @@ PREFIX = ${HOME}/gkylsoft
 
 G0_INC_DIR = ${PREFIX}/gkylzero/include
 G0_LIB_DIR = ${PREFIX}/gkylzero/lib
-G0_LIBS = -lgkylzero -lm -lpthread
+G0_STLIB = ${PREFIX}/gkylzero/lib/libgkylzero.a
+CUDA_LIBS = 
+
+ifeq ($(CC), nvcc)
+	G0_STLIBS = ${PREFIX}/gkylzero/lib/libgkylzerocuda.a
+	CUDA_LIBS = -lcublas
+endif
+
+G0_LIBS = ${G0_STLIBS} ${CUDA_LIBS} -lm -lpthread
 
 # Default lapack include and libraries: we prefer linking to static library
 LAPACK_INC = ${HOME}/gkylsoft/OpenBLAS/include
