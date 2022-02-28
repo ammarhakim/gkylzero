@@ -9,7 +9,7 @@ extern "C" {
 
 #include <cassert>
 
-// CUDA kernel to set pointer to qmem = q/m*EM
+// CUDA kernel to set pointer to auxiliary fields.
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
@@ -19,7 +19,7 @@ gkyl_vlasov_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct 
   vlasov->auxfields.qmem = qmem;
 }
 
-// Host-side wrapper for set_qmem_cu_kernel
+// Host-side wrapper for set_auxfields_cu_kernel
 void
 gkyl_vlasov_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin)
 {

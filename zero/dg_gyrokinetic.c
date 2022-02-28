@@ -25,40 +25,28 @@ gkyl_gyrokinetic_free(const struct gkyl_ref_count *ref)
 }
 
 void
-gkyl_gyrokinetic_set_geo_fields(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *bmag,
-  const struct gkyl_array *jacobtot_inv, const struct gkyl_array *cmag, const struct gkyl_array *b_i)
+gkyl_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin)
 {
-/* #ifdef GKYL_HAVE_CUDA */
-/*   if (gkyl_array_is_cu_dev(bmag) && gkyl_array_is_cu_dev(jacobtot_inv) && */
-/*       gkyl_array_is_cu_dev(cmag) && gkyl_array_is_cu_dev(b_i) ) { */
-/*     gkyl_gyrokinetic_set_geo_fields_cu(eqn->on_dev, bmag, jacobtot_inv, cmag, b_i); */
-/*     return; */
-/*   } */
-/* #endif */
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(auxin.bmag) && gkyl_array_is_cu_dev(auxin.jacobtot_inv) &&
+      gkyl_array_is_cu_dev(auxin.cmag) && gkyl_array_is_cu_dev(auxin.b_i) &&
+      gkyl_array_is_cu_dev(auxin.phi) && gkyl_array_is_cu_dev(auxin.apar) &&
+      gkyl_array_is_cu_dev(auxin.apardot) ) {
+    gkyl_gyrokinetic_set_auxfields_cu(eqn->on_dev, auxin);
+    return;
+  }
+#endif
 
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
-  gyrokinetic->bmag         = bmag;
-  gyrokinetic->jacobtot_inv = jacobtot_inv;
-  gyrokinetic->cmag         = cmag;
-  gyrokinetic->b_i          = b_i;
-}
-
-void
-gkyl_gyrokinetic_set_em_fields(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *phi,
-  const struct gkyl_array *apar, const struct gkyl_array *apardot)
-{
-/* #ifdef GKYL_HAVE_CUDA */
-/*   if (gkyl_array_is_cu_dev(phi) && gkyl_array_is_cu_dev(apar) && */
-/*       gkyl_array_is_cu_dev(apardot) ) { */
-/*     gkyl_gyrokinetic_set_em_fields_cu(eqn->on_dev, phi, apar, apardot); */
-/*     return; */
-/*   } */
-/* #endif */
-
-  struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
-  gyrokinetic->phi     = phi;
-  gyrokinetic->apar    = apar;
-  gyrokinetic->apardot = apardot;
+  gyrokinetic->auxfields.mass         = auxin.mass  ;
+  gyrokinetic->auxfields.charge       = auxin.charge;
+  gyrokinetic->auxfields.bmag         = auxin.bmag;
+  gyrokinetic->auxfields.jacobtot_inv = auxin.jacobtot_inv;
+  gyrokinetic->auxfields.cmag         = auxin.cmag;
+  gyrokinetic->auxfields.b_i          = auxin.b_i;
+  gyrokinetic->auxfields.phi     = auxin.phi;
+  gyrokinetic->auxfields.apar    = auxin.apar;
+  gyrokinetic->auxfields.apardot = auxin.apardot;
 }
 
 struct gkyl_dg_eqn*
@@ -107,6 +95,7 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
       assert(false);
       break;
   }
+
   gyrokinetic->vol = CK(vol_kernels,cdim,vdim,poly_order);
 
   gyrokinetic->surf[0] = CK(surf_x_kernels,cdim,vdim,poly_order);
@@ -125,13 +114,13 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
   assert(gyrokinetic->surf[cdim]);
   assert(gyrokinetic->boundary_surf);
 
-  gyrokinetic->bmag         = 0;
-  gyrokinetic->jacobtot_inv = 0;
-  gyrokinetic->cmag         = 0;
-  gyrokinetic->b_i          = 0;
-  gyrokinetic->phi     = 0;
-  gyrokinetic->apar    = 0;
-  gyrokinetic->apardot = 0;
+  gyrokinetic->auxfields.bmag         = 0;
+  gyrokinetic->auxfields.jacobtot_inv = 0;
+  gyrokinetic->auxfields.cmag         = 0;
+  gyrokinetic->auxfields.b_i          = 0;
+  gyrokinetic->auxfields.phi     = 0;
+  gyrokinetic->auxfields.apar    = 0;
+  gyrokinetic->auxfields.apardot = 0;
   gyrokinetic->conf_range = *conf_range;
 
   gyrokinetic->eqn.flags = 0;

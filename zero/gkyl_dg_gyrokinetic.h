@@ -6,6 +6,18 @@
 #include <gkyl_dg_eqn.h>
 #include <gkyl_range.h>
 
+// Struct containing the pointers to auxiliary fields.
+struct gkyl_dg_gyrokinetic_auxfields {
+  double charge, mass; // Species charge and mass.
+  const struct gkyl_array *bmag; // Pointer to magnetic field magnitude.
+  const struct gkyl_array *jacobtot_inv; // Pointer to 1/(conf Jacobian * gyro-center coords Jacobian).
+  const struct gkyl_array *cmag; // Pointer to parallel gradient coefficient.
+  const struct gkyl_array *b_i; // Pointer to covariant components of B-field unit vector.
+  const struct gkyl_array *phi; // Pointer to electrostatic potential.
+  const struct gkyl_array *apar; // Pointer to A_\parallel.
+  const struct gkyl_array *apardot; // Pointer to d(A_parallel)/dt.
+};
+
 /**
  * Create a new Gyrokinetic equation object.
  *
@@ -30,50 +42,22 @@ struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbas
   const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range);
 
 /**
- * Set the geometry-related fields needed in computing gyrokinetic updates.
+ * Set the auxiliary fields (e.g. geometry & EM fields) needed in computing
+ * gyrokinetic updates.
  *
  * @param eqn Equation pointer.
- * @param bmag Pointer to magnetic field magnitude.
- * @param jacobtot_inv Pointer to 1/(total jacobian field).
- * @param cmag Pointer to field with parallel gradient coefficient.
- * @param b_i Pointer to field with covariant components of B-field unit vector.
+ * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_gyrokinetic_set_geo_fields(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *bmag,
-  const struct gkyl_array *jacobtot_inv, const struct gkyl_array *cmag, const struct gkyl_array *b_i);
-
-/**
- * Set the electromanetic field pointers needed in computing gyrokinetic updates.
- *
- * @param eqn Equation pointer.
- * @param phi Pointer to electrostatic potential field.
- * @param apar Pointer to parallel vector potential field.
- * @param apardot Pointer to d(apar)/dt field.
- */
-void gkyl_gyrokinetic_set_em_fields(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *phi,
-  const struct gkyl_array *apar, const struct gkyl_array *apardot);
+void gkyl_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin);
 
 #ifdef GKYL_HAVE_CUDA
 /**
- * CUDA device functions to set the geometry-related fields needed in computing gyrokinetic updates.
+ * CUDA device function to set the auxiliary fields (e.g. geometry & EM fields)
+ * needed in computing gyrokinetic updates.
  *
  * @param eqn Equation pointer
- * @param bmag Pointer to magnetic field magnitude field.
- * @param jacobtot_inv Pointer to 1/(total jacobian field).
- * @param cmag Pointer to field with parallel gradient coefficient.
- * @param b_i Pointer to field with covariant components of B-field unit vector.
+ * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_gyrokinetic_set_geo_fields_cu(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *bmag,
-  const struct gkyl_array *jacobtot_inv, const struct gkyl_array *cmag, const struct gkyl_array *b_i);
-
-/**
- * Set the electromanetic field pointers needed in computing gyrokinetic updates.
- *
- * @param eqn Equation pointer.
- * @param phi Pointer to electrostatic potential field.
- * @param apar Pointer to parallel vector potential field.
- * @param apardot Pointer to d(apar)/dt field.
- */
-void gkyl_gyrokinetic_set_em_fields_cu(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *phi,
-  const struct gkyl_array *apar, const struct gkyl_array *apardot);
+void gkyl_gyrokinetic_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin);
 #endif
 
