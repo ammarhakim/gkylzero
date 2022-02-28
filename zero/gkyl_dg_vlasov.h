@@ -40,7 +40,7 @@ void gkyl_vlasov_set_qmem(const struct gkyl_dg_eqn *eqn, const struct gkyl_array
 
 #ifdef GKYL_HAVE_CUDA
 /**
- * CUDA device functions to set the q/m*EM field needed in updating the force terms.
+ * CUDA device function to set the q/m*EM field needed in updating the force terms.
  * 
  * @param eqn Equation pointer
  * @param qmem Pointer to EM field scaled by q/m,

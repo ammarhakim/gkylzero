@@ -44,12 +44,12 @@ void gkyl_lbo_vlasov_diff_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gk
 #ifdef GKYL_HAVE_CUDA
 
 /**
- * Set auxiliary fields needed in updating the diffusion flux term.
+ * CUDA device function to set auxiliary fields needed in updating the diffusion flux term.
  * These are nu, nu*u, and nu*vt^2.
  * 
  * @param eqn Equation pointer
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_lbo_vlasov_diff_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_vlasov_diff_auxfields auxin);
+void gkyl_lbo_vlasov_diff_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_vlasov_diff_auxfields auxin);
 
 #endif
