@@ -257,7 +257,6 @@ test_3()
     vol += f[0];
   }
 
-  printf("%lg %ld\n", vol, range.volume);
   // range does not touch boundaries
   TEST_CHECK( vol == range.volume );
 
