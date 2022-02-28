@@ -13,17 +13,17 @@ extern "C" {
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
-gkyl_vlasov_set_qmem_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem)
+gkyl_vlasov_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
-  vlasov->qmem = qmem;
+  vlasov->auxfields.qmem = qmem;
 }
 
 // Host-side wrapper for set_qmem_cu_kernel
 void
 gkyl_vlasov_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin)
 {
-  gkyl_vlasov_set_qmem_cu_kernel<<<1,1>>>(eqn, auxin.qmem->on_dev);
+  gkyl_vlasov_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.qmem->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and vlasov kernel function
