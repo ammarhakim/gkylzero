@@ -32,7 +32,8 @@ gkyl_array_accumulate(struct gkyl_array* out, double a,
   assert(out->size == inp->size && out->elemsz == inp->elemsz);
 
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(out)) { gkyl_array_accumulate_cu(out, a, inp); return out; }
+  assert(gkyl_array_is_cu_dev(out)==gkyl_array_is_cu_dev(inp));
+  if (gkyl_array_is_cu_dev(out) && gkyl_array_is_cu_dev(inp)) { gkyl_array_accumulate_cu(out, a, inp); return out; }
 #endif
 
   double *out_d = out->data;
@@ -50,6 +51,7 @@ gkyl_array_set(struct gkyl_array* out, double a,
   assert(out->size == inp->size && out->elemsz == inp->elemsz);
 
 #ifdef GKYL_HAVE_CUDA
+  assert(gkyl_array_is_cu_dev(out)==gkyl_array_is_cu_dev(inp));
   if (gkyl_array_is_cu_dev(out)) { gkyl_array_set_cu(out, a, inp); return out; }
 #endif
 
@@ -174,6 +176,7 @@ gkyl_array_accumulate_range(struct gkyl_array *out,
   assert(out->size == inp->size);
 
 #ifdef GKYL_HAVE_CUDA
+  assert(gkyl_array_is_cu_dev(out)==gkyl_array_is_cu_dev(inp));
   if (gkyl_array_is_cu_dev(out)) { gkyl_array_accumulate_range_cu(out, a, inp, range); return out; }
 #endif
 
@@ -200,6 +203,7 @@ gkyl_array_set_range(struct gkyl_array *out,
   assert(out->size == inp->size);
 
 #ifdef GKYL_HAVE_CUDA
+  assert(gkyl_array_is_cu_dev(out)==gkyl_array_is_cu_dev(inp));
   if (gkyl_array_is_cu_dev(out)) { gkyl_array_set_range_cu(out, a, inp, range); return out; }
 #endif
 
@@ -297,6 +301,7 @@ gkyl_array_copy_range(struct gkyl_array *out,
   assert(out->size == inp->size && out->elemsz == inp->elemsz);
 
 #ifdef GKYL_HAVE_CUDA
+  assert(gkyl_array_is_cu_dev(out)==gkyl_array_is_cu_dev(inp));
   if (gkyl_array_is_cu_dev(out)) { gkyl_array_copy_range_cu(out, inp, range); return out; }
 #endif
 
@@ -318,6 +323,7 @@ gkyl_array_copy_range_to_range(struct gkyl_array *out,
   assert(out_range.volume == inp_range.volume);
 
 #ifdef GKYL_HAVE_CUDA
+  assert(gkyl_array_is_cu_dev(out)==gkyl_array_is_cu_dev(inp));
   if (gkyl_array_is_cu_dev(out)) { gkyl_array_copy_range_to_range_cu(out, inp, out_range, inp_range); return out; }
 #endif
 
