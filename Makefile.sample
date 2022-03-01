@@ -12,7 +12,6 @@ G0_STLIB = ${PREFIX}/gkylzero/lib/libgkylzero.a
 CUDA_LIB = 
 
 ifeq ($(CC), nvcc)
-	G0_STLIB = ${PREFIX}/gkylzero/lib/libgkylzerocuda.a
 	CUDA_LIB = -lcublas
 endif
 
