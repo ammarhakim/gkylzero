@@ -109,7 +109,7 @@ typedef struct gkyl_vlasov_app gkyl_vlasov_app;
  *     initialized
  * @return New vlasov app object.
  */
-gkyl_vlasov_app* gkyl_vlasov_app_new(struct gkyl_vm vm);
+gkyl_vlasov_app* gkyl_vlasov_app_new(struct gkyl_vm *vm);
 
 /**
  * Initialize species and field by projecting initial conditions on

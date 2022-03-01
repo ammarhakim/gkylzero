@@ -2,6 +2,7 @@
 
 #include <gkyl_fv_proj.h>
 #include <gkyl_range.h>
+#include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 
 void evalFunc(double t, const double *xn, double* restrict fout, void *ctx)
@@ -20,9 +21,10 @@ test_1()
 
   gkyl_fv_proj *fv_proj = gkyl_fv_proj_new(&grid, 2, 1, evalFunc, NULL);
 
-  // create array range: no ghost-cells in velocity space
-    struct gkyl_range arr_range;
-  gkyl_range_init_from_shape(&arr_range, grid.ndim, cells);
+  // create array range: no ghost-cells
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range arr_range, arr_ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
   // create distribution function
   struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, 1, arr_range.volume);

@@ -56,20 +56,14 @@ test_vlasov_1x2v_p2_(bool use_gpu)
   // initialize eqn
   struct gkyl_dg_eqn *eqn;
   enum gkyl_field_id field_id = GKYL_FIELD_E_B;
-  if (use_gpu)
-    eqn = gkyl_dg_vlasov_cu_dev_new(&confBasis, &basis, &confRange, field_id);
-  else
-    eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &confRange, field_id);
+  eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &confRange, field_id, use_gpu);
 
   // initialize hyper_dg slvr
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2};
   int zero_flux_flags[GKYL_MAX_DIM] = {0, 1, 1};
 
   gkyl_hyper_dg *slvr;
-  if (use_gpu)
-    slvr = gkyl_hyper_dg_cu_dev_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1);
-  else
-    slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1);
+  slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1, use_gpu);
 
   // initialize arrays
   struct gkyl_array *fin, *rhs, *cflrate, *qmem;
@@ -121,9 +115,9 @@ test_vlasov_1x2v_p2_(bool use_gpu)
     gkyl_vlasov_set_auxfields(eqn,
       (struct gkyl_dg_vlasov_auxfields) { .qmem = qmem }); // Must set EM fields to use.
     if (use_gpu)
-      gkyl_hyper_dg_advance_cu(slvr, phaseRange, fin, cflrate, rhs);
+      gkyl_hyper_dg_advance_cu(slvr, &phaseRange, fin, cflrate, rhs);
     else
-      gkyl_hyper_dg_advance(slvr, phaseRange, fin, cflrate, rhs);
+      gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs);
 
     gkyl_array_reduce(cfl_ptr, cflrate, GKYL_MAX);
   }
@@ -136,7 +130,8 @@ test_vlasov_1x2v_p2_(bool use_gpu)
   TEST_CHECK( gkyl_compare_double(cfl_ptr_h[0], 2.5178875733842702e+01, 1e-12) );
 
   // get linear index of first non-ghost cell
-  int idx[] = {0, 0, 0, 0, 0};
+  // 1-indexed for interfacing with G2 Lua layer
+  int idx[] = {1, 1, 1, 1, 1};
   int linl = gkyl_range_idx(&phaseRange, idx);
 
   rhs_h = mkarr1(false, basis.num_basis, phaseRange_ext.volume);
@@ -180,7 +175,8 @@ test_vlasov_1x2v_p2_(bool use_gpu)
   TEST_CHECK( gkyl_compare_double(rhs_d[19],  1.8857755500762241e+01, 1e-12) );
 
   // get linear index of some other cell
-  int idx2[] = {5, 2, 4};
+  // 1-indexed for interfacing with G2 Lua layer
+  int idx2[] = {6, 3, 5};
   int linl2 = gkyl_range_idx(&phaseRange, idx2);
   rhs_d = gkyl_array_fetch(rhs_h, linl2);
 
@@ -260,20 +256,14 @@ test_vlasov_2x3v_p1_(bool use_gpu)
   // initialize eqn
   struct gkyl_dg_eqn *eqn;
   enum gkyl_field_id field_id = GKYL_FIELD_E_B;
-  if (use_gpu)
-    eqn = gkyl_dg_vlasov_cu_dev_new(&confBasis, &basis, &confRange, field_id);
-  else
-    eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &confRange, field_id);
+  eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &confRange, field_id, use_gpu);
 
   // initialize hyper_dg slvr
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2, 3, 4};
   int zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 1, 1, 1};
 
   gkyl_hyper_dg *slvr;
-  if (use_gpu)
-    slvr = gkyl_hyper_dg_cu_dev_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1);
-  else
-    slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1);
+  slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1, use_gpu);
 
   // initialize arrays
   struct gkyl_array *fin, *rhs, *cflrate, *qmem;
@@ -319,13 +309,14 @@ test_vlasov_2x3v_p1_(bool use_gpu)
     gkyl_vlasov_set_auxfields(eqn,
       (struct gkyl_dg_vlasov_auxfields) { .qmem = qmem }); // must set EM fields to use
     if (use_gpu)
-      gkyl_hyper_dg_advance_cu(slvr, phaseRange, fin, cflrate, rhs);
+      gkyl_hyper_dg_advance_cu(slvr, &phaseRange, fin, cflrate, rhs);
     else
-      gkyl_hyper_dg_advance(slvr, phaseRange, fin, cflrate, rhs);
+      gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs);
   }
 
   // get linear index of first non-ghost cell
-  int idx[] = {0, 0, 0, 0, 0};
+  // 1-indexed for interfacing with G2 Lua layer
+  int idx[] = {1, 1, 1, 1, 1};
   int linl = gkyl_range_idx(&phaseRange, idx);
 
   rhs_h = mkarr1(false, basis.num_basis, phaseRange_ext.volume);
@@ -381,7 +372,8 @@ test_vlasov_2x3v_p1_(bool use_gpu)
   TEST_CHECK( gkyl_compare_double(rhs_d[31],  3.2089428097916851e+01, 1e-12) ); 
 
   // get linear index of some other cell
-  int idx2[] = {5, 2, 4, 7, 1};
+  // 1-indexed for interfacing with G2 Lua layer
+  int idx2[] = {6, 3, 5, 8, 2};
   int linl2 = gkyl_range_idx(&phaseRange, idx2);
   rhs_d = gkyl_array_fetch(rhs_h, linl2);
 

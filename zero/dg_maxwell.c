@@ -28,8 +28,13 @@ gkyl_maxwell_free(const struct gkyl_ref_count *ref)
 
 struct gkyl_dg_eqn*
 gkyl_dg_maxwell_new(const struct gkyl_basis* cbasis,
-  double lightSpeed, double elcErrorSpeedFactor, double mgnErrorSpeedFactor)
+  double lightSpeed, double elcErrorSpeedFactor, double mgnErrorSpeedFactor, bool use_gpu)
 {
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_dg_maxwell_cu_dev_new(cbasis, lightSpeed, elcErrorSpeedFactor, mgnErrorSpeedFactor);
+  } 
+#endif
   struct dg_maxwell *maxwell = gkyl_malloc(sizeof(struct dg_maxwell));
 
   int cdim = cbasis->ndim;

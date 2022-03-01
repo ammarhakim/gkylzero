@@ -8,7 +8,6 @@
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_gyrokinetic_auxfields {
-  double charge, mass; // Species charge and mass.
   const struct gkyl_array *bmag; // Pointer to magnetic field magnitude.
   const struct gkyl_array *jacobtot_inv; // Pointer to 1/(conf Jacobian * gyro-center coords Jacobian).
   const struct gkyl_array *cmag; // Pointer to parallel gradient coefficient.
@@ -27,7 +26,7 @@ struct gkyl_dg_gyrokinetic_auxfields {
  * @return Pointer to Gyrokinetic equation object
  */
 struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range);
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, const double charge, const double mass, bool use_gpu);
 
 /**
  * Create a new Gyrokinetic equation object that lives on NV-GPU
@@ -39,7 +38,7 @@ struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis,
  * @return Pointer to Gyrokinetic equation object
  */
 struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range);
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, const double charge, const double mass);
 
 /**
  * Set the auxiliary fields (e.g. geometry & EM fields) needed in computing

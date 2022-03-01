@@ -14,13 +14,13 @@ void test_ranges_1d()
 
   TEST_CHECK( ext_range.ndim == 1 );
   TEST_CHECK( ext_range.volume ==  22 );
-  TEST_CHECK( ext_range.lower[0] == -1 );
-  TEST_CHECK( ext_range.upper[0] == 20 );
+  TEST_CHECK( ext_range.lower[0] == 0 );
+  TEST_CHECK( ext_range.upper[0] == 21 );
 
   TEST_CHECK( range.ndim == 1 );
   TEST_CHECK( range.volume ==  20 );
-  TEST_CHECK( range.lower[0] == 0 );
-  TEST_CHECK( range.upper[0] == 19 );
+  TEST_CHECK( range.lower[0] == 1 );
+  TEST_CHECK( range.upper[0] == 20 );
 
   TEST_CHECK( gkyl_range_is_sub_range(&range) == 1 );
 }
@@ -38,17 +38,17 @@ void test_ranges_2d()
 
   TEST_CHECK( ext_range.ndim == 2 );
   TEST_CHECK( ext_range.volume ==  22*40 );
-  TEST_CHECK( ext_range.lower[0] == -1 );
-  TEST_CHECK( ext_range.upper[0] == 20 );
-  TEST_CHECK( ext_range.lower[1] == 0 );
-  TEST_CHECK( ext_range.upper[1] == 39 );  
+  TEST_CHECK( ext_range.lower[0] == 0 );
+  TEST_CHECK( ext_range.upper[0] == 21 );
+  TEST_CHECK( ext_range.lower[1] == 1 );
+  TEST_CHECK( ext_range.upper[1] == 40 );  
 
   TEST_CHECK( range.ndim == 2 );
   TEST_CHECK( range.volume ==  20*40 );
-  TEST_CHECK( range.lower[0] == 0 );
-  TEST_CHECK( range.upper[0] == 19 );
-  TEST_CHECK( range.lower[1] == 0 );
-  TEST_CHECK( range.upper[1] == 39 );  
+  TEST_CHECK( range.lower[0] == 1 );
+  TEST_CHECK( range.upper[0] == 20 );
+  TEST_CHECK( range.lower[1] == 1 );
+  TEST_CHECK( range.upper[1] == 40 );  
 
   TEST_CHECK( gkyl_range_is_sub_range(&range) == 1 );  
 }
@@ -66,21 +66,21 @@ void test_ranges_3d()
 
   TEST_CHECK( ext_range.ndim == 3 );
   TEST_CHECK( ext_range.volume ==  22*40*14 );
-  TEST_CHECK( ext_range.lower[0] == -1 );
-  TEST_CHECK( ext_range.upper[0] == 20 );
-  TEST_CHECK( ext_range.lower[1] == 0 );
-  TEST_CHECK( ext_range.upper[1] == 39 );
-  TEST_CHECK( ext_range.lower[2] == -2 );
-  TEST_CHECK( ext_range.upper[2] == 11 );  
+  TEST_CHECK( ext_range.lower[0] == 0 );
+  TEST_CHECK( ext_range.upper[0] == 21 );
+  TEST_CHECK( ext_range.lower[1] == 1 );
+  TEST_CHECK( ext_range.upper[1] == 40 );
+  TEST_CHECK( ext_range.lower[2] == -1 );
+  TEST_CHECK( ext_range.upper[2] == 12 ); 
 
   TEST_CHECK( range.ndim == 3 );
   TEST_CHECK( range.volume ==  20*40*10 );
-  TEST_CHECK( range.lower[0] == 0 );
-  TEST_CHECK( range.upper[0] == 19 );
-  TEST_CHECK( range.lower[1] == 0 );
-  TEST_CHECK( range.upper[1] == 39 );
-  TEST_CHECK( range.lower[2] == 0 );
-  TEST_CHECK( range.upper[2] == 9 );  
+  TEST_CHECK( range.lower[0] == 1 );
+  TEST_CHECK( range.upper[0] == 20 );
+  TEST_CHECK( range.lower[1] == 1 );
+  TEST_CHECK( range.upper[1] == 40 );
+  TEST_CHECK( range.lower[2] == 1 );
+  TEST_CHECK( range.upper[2] == 10 );  
 
   TEST_CHECK( gkyl_range_is_sub_range(&range) == 1 );    
 }

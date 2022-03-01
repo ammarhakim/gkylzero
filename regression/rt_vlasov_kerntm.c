@@ -136,7 +136,7 @@ main(int argc, char **argv)
   };
 
   // create app object
-  gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
+  gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
   gkyl_vlasov_app_apply_ic(app, 0.0);
 
   struct timespec tm_start = gkyl_wall_clock();

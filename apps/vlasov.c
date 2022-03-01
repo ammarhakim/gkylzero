@@ -2,42 +2,42 @@
 #include <gkyl_vlasov_priv.h>
 
 gkyl_vlasov_app*
-gkyl_vlasov_app_new(struct gkyl_vm vm)
+gkyl_vlasov_app_new(struct gkyl_vm *vm)
 {
-  assert(vm.num_species <= GKYL_MAX_SPECIES);
+  assert(vm->num_species <= GKYL_MAX_SPECIES);
   
   gkyl_vlasov_app *app = gkyl_malloc(sizeof(gkyl_vlasov_app));
   
-  int cdim = app->cdim = vm.cdim;
-  int vdim = app->vdim = vm.vdim;
+  int cdim = app->cdim = vm->cdim;
+  int vdim = app->vdim = vm->vdim;
   int pdim = cdim+vdim;
-  int poly_order = app->poly_order = vm.poly_order;
-  int ns = app->num_species = vm.num_species;
+  int poly_order = app->poly_order = vm->poly_order;
+  int ns = app->num_species = vm->num_species;
 
-  double cfl_frac = vm.cfl_frac == 0 ? 1.0 : vm.cfl_frac;
+  double cfl_frac = vm->cfl_frac == 0 ? 1.0 : vm->cfl_frac;
   app->cfl = cfl_frac/(2*poly_order+1);
 
 #ifdef GKYL_HAVE_CUDA
-  app->use_gpu = vm.use_gpu;
+  app->use_gpu = vm->use_gpu;
 #else
   app->use_gpu = false; // can't use GPUs if we don't have them!
 #endif
   
-  app->num_periodic_dir = vm.num_periodic_dir;
+  app->num_periodic_dir = vm->num_periodic_dir;
   for (int d=0; d<cdim; ++d)
-    app->periodic_dirs[d] = vm.periodic_dirs[d];
+    app->periodic_dirs[d] = vm->periodic_dirs[d];
 
-  strcpy(app->name, vm.name);
+  strcpy(app->name, vm->name);
   app->tcurr = 0.0; // reset on init
 
   // check if there is a job pool
-  if (vm.job_pool)
-    app->job_pool = gkyl_job_pool_acquire(vm.job_pool);
+  if (vm->job_pool)
+    app->job_pool = gkyl_job_pool_acquire(vm->job_pool);
   else
     app->job_pool = gkyl_null_pool_new(1);
 
   // basis functions
-  switch (vm.basis_type) {
+  switch (vm->basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
       gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
@@ -53,23 +53,23 @@ gkyl_vlasov_app_new(struct gkyl_vm vm)
       break;
   }
 
-  gkyl_rect_grid_init(&app->grid, cdim, vm.lower, vm.upper, vm.cells);
+  gkyl_rect_grid_init(&app->grid, cdim, vm->lower, vm->upper, vm->cells);
 
   int ghost[] = { 1, 1, 1 };  
   gkyl_create_grid_ranges(&app->grid, ghost, &app->local_ext, &app->local);
   skin_ghost_ranges_init(&app->skin_ghost, &app->local_ext, ghost);
 
-  app->has_field = !vm.skip_field; // note inversion of truth value
+  app->has_field = !vm->skip_field; // note inversion of truth value
   
   if (app->has_field)
-    app->field = vm_field_new(&vm, app);
+    app->field = vm_field_new(vm, app);
 
   // allocate space to store species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct vm_species[ns])) : 0;
   // create species grid & ranges
   for (int i=0; i<ns; ++i) {
-    app->species[i].info = vm.species[i];
-    vm_species_init(&vm, app, &app->species[i]);
+    app->species[i].info = vm->species[i];
+    vm_species_init(vm, app, &app->species[i]);
   }
 
   // initialize stat object
@@ -418,10 +418,10 @@ gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
       gkyl_hyper_dg_set_update_vol(species->slvr, update_vol_term);
     gkyl_array_clear_range(rhs, 0.0, species->local);
     if (app->use_gpu)
-      gkyl_hyper_dg_advance_cu(species->slvr, species->local, fin,
+      gkyl_hyper_dg_advance_cu(species->slvr, &species->local, fin,
         species->cflrate, rhs);
     else
-      gkyl_hyper_dg_advance(species->slvr, species->local, fin,
+      gkyl_hyper_dg_advance(species->slvr, &species->local, fin,
         species->cflrate, rhs);
   }
 }

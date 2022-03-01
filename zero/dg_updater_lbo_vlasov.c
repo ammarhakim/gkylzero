@@ -31,16 +31,18 @@ gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid, const struct g
   for (int d=cdim; d<pdim; ++d)
     zero_flux_flags[d] = 1;
   
-  up->diff = gkyl_hyper_dg_new(grid, pbasis, up->coll_diff, num_up_dirs, up_dirs, zero_flux_flags, 1);
-  up->drag = gkyl_hyper_dg_new(grid, pbasis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1);
+  up->diff = gkyl_hyper_dg_new(grid, pbasis, up->coll_diff, num_up_dirs, up_dirs, zero_flux_flags, 1, false);
+  up->drag = gkyl_hyper_dg_new(grid, pbasis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1, false);
   
   return up;
 }
 
 void
-gkyl_dg_updater_lbo_vlasov_advance(gkyl_dg_updater_lbo_vlasov *lbo, struct gkyl_range update_rng,
+gkyl_dg_updater_lbo_vlasov_advance(gkyl_dg_updater_lbo_vlasov *lbo,
+  const struct gkyl_range *update_rng,
   const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq,
-  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
+  const struct gkyl_array* GKYL_RESTRICT fIn,
+  struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
   // Set arrays needed
   gkyl_lbo_vlasov_drag_set_auxfields(lbo->coll_drag,
@@ -90,17 +92,17 @@ gkyl_dg_updater_lbo_vlasov_cu_dev_new(const struct gkyl_rect_grid *grid, const s
 }
 
 void
-gkyl_dg_updater_lbo_vlasov_advance_cu(gkyl_dg_updater_lbo_vlasov *lbo, struct gkyl_range update_rng,
+gkyl_dg_updater_lbo_vlasov_advance_cu(gkyl_dg_updater_lbo_vlasov *lbo,
+  const struct gkyl_range *update_rng,
   const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq,
-  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
+  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
+  struct gkyl_array* GKYL_RESTRICT rhs)
 {
   // Set arrays needed
-  gkyl_lbo_vlasov_drag_set_nuSum(lbo->coll_drag, nu_sum);
-  gkyl_lbo_vlasov_drag_set_nuUSum(lbo->coll_drag, nu_u);
-  gkyl_lbo_vlasov_drag_set_nuVtSqSum(lbo->coll_drag, nu_vthsq);
-  gkyl_lbo_vlasov_diff_set_nuSum(lbo->coll_diff, nu_sum);
-  gkyl_lbo_vlasov_diff_set_nuUSum(lbo->coll_diff, nu_u);
-  gkyl_lbo_vlasov_diff_set_nuVtSqSum(lbo->coll_diff, nu_vthsq);
+  gkyl_lbo_vlasov_drag_set_auxfields(lbo->coll_drag,
+    (struct gkyl_dg_lbo_vlasov_drag_auxfields) { .nuSum = nu_sum, .nuUSum = nu_u, .nuVtSqSum = nu_vthsq });
+  gkyl_lbo_vlasov_diff_set_auxfields(lbo->coll_diff,
+    (struct gkyl_dg_lbo_vlasov_diff_auxfields) { .nuSum = nu_sum, .nuUSum = nu_u, .nuVtSqSum = nu_vthsq });
 
   gkyl_hyper_dg_advance_cu(lbo->diff, update_rng, fIn, cflrate, rhs);
   gkyl_hyper_dg_advance_cu(lbo->drag, update_rng, fIn, cflrate, rhs);
@@ -118,7 +120,8 @@ gkyl_dg_updater_lbo_vlasov_cu_dev_new(const struct gkyl_rect_grid *grid, const s
 }
 
 void
-gkyl_dg_updater_lbo_vlasov_advance_cu(gkyl_dg_updater_lbo_vlasov *lbo, struct gkyl_range update_rng,
+gkyl_dg_updater_lbo_vlasov_advance_cu(gkyl_dg_updater_lbo_vlasov *lbo,
+  const struct gkyl_range *update_rng,
   const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq, 
   const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs)
 {

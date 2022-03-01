@@ -38,8 +38,6 @@ gkyl_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyr
 #endif
 
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
-  gyrokinetic->auxfields.mass         = auxin.mass  ;
-  gyrokinetic->auxfields.charge       = auxin.charge;
   gyrokinetic->auxfields.bmag         = auxin.bmag;
   gyrokinetic->auxfields.jacobtot_inv = auxin.jacobtot_inv;
   gyrokinetic->auxfields.cmag         = auxin.cmag;
@@ -51,8 +49,13 @@ gkyl_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyr
 
 struct gkyl_dg_eqn*
 gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range)
+  const struct gkyl_range* conf_range, const double charge, const double mass, bool use_gpu)
 {
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_dg_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, charge, mass);
+  } 
+#endif
   struct dg_gyrokinetic *gyrokinetic = gkyl_malloc(sizeof(struct dg_gyrokinetic));
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
@@ -60,6 +63,9 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
 
   gyrokinetic->cdim = cdim;
   gyrokinetic->pdim = pdim;
+
+  gyrokinetic->charge = charge;
+  gyrokinetic->mass = mass;
 
   gyrokinetic->eqn.num_equations = 1;
   gyrokinetic->eqn.vol_term = vol;
@@ -136,7 +142,7 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
 
 struct gkyl_dg_eqn*
 gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range)
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, const double charge, const double mass) 
 {
   assert(false);
   return 0;

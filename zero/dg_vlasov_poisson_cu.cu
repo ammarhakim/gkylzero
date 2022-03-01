@@ -2,39 +2,31 @@
 
 extern "C" {
 #include <gkyl_alloc.h>
-#include <gkyl_dg_vlasov_poisson_priv.h>    
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_dg_vlasov_poisson.h>
+#include <gkyl_dg_vlasov_poisson_priv.h>    
 }
 
 #include <cassert>
 
-// CUDA kernel to set pointer to fac_phi = factor*phi
+// CUDA kernel to set pointer to fac_phi = factor*phi and to vecA = q/m*A,
+// where A is the vector potential.
 // This factor is q/m for plasmas and G*m for self-gravitating systems
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
-gkyl_vlasov_poisson_set_fac_phi_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *fac_phi)
+gkyl_vlasov_poisson_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *fac_phi, const struct gkyl_array *vecA)
 {
   struct dg_vlasov_poisson *vlasov_poisson = container_of(eqn, struct dg_vlasov_poisson, eqn);
-  vlasov_poisson->fac_phi = fac_phi;
-}
-
-// CUDA kernel to set pointer to vecA = q/m*A, where A is the vector potential
-// This is required because eqn object lives on device,
-// and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void
-gkyl_vlasov_poisson_set_vecA_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *vecA)
-{
-  struct dg_vlasov_poisson *vlasov_poisson = container_of(eqn, struct dg_vlasov_poisson, eqn);
-  vlasov_poisson->vecA = vecA;
+  vlasov_poisson->auxfields.fac_phi = fac_phi;
+  vlasov_poisson->auxfields.vecA = vecA;
 }
 
 // Host-side wrapper for setting fac_phi and vecA.
 void
 gkyl_vlasov_poisson_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_poisson_auxfields auxin)
 {
-  gkyl_vlasov_poisson_set_fac_phi_cu_kernel<<<1,1>>>(eqn, auxin.fac_phi->on_dev);
-  gkyl_vlasov_poisson_set_vecA_cu_kernel<<<1,1>>>(eqn, auxin.vecA->on_dev);
+  gkyl_vlasov_poisson_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.fac_phi->on_dev, auxin.vecA->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and vlasov kernel function
@@ -131,13 +123,19 @@ gkyl_dg_vlasov_poisson_cu_dev_new(const struct gkyl_basis* cbasis, const struct 
   vlasov_poisson->eqn.num_equations = 1;
   vlasov_poisson->conf_range = *conf_range;
 
+  vlasov_poisson->eqn.flags = 0;
+  GKYL_SET_CU_ALLOC(vlasov_poisson->eqn.flags);
+  vlasov_poisson->eqn.ref_count = gkyl_ref_count_init(gkyl_vlasov_poisson_free);
+
   // copy the host struct to device struct
   struct dg_vlasov_poisson *vlasov_poisson_cu = (struct dg_vlasov_poisson*) gkyl_cu_malloc(sizeof(struct dg_vlasov_poisson));
   gkyl_cu_memcpy(vlasov_poisson_cu, vlasov_poisson, sizeof(struct dg_vlasov_poisson), GKYL_CU_MEMCPY_H2D);
 
-  dg_vlasov_poisson_set_cu_dev_ptrs<<<1,1>>>(vlasov_poisson_cu, cbasis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order);
+  dg_vlasov_poisson_set_cu_dev_ptrs<<<1,1>>>(vlasov_poisson_cu, cbasis->b_type, cv_index[cdim].vdim[vdim],
+    cdim, vdim, poly_order);
 
-  gkyl_free(vlasov_poisson);  
+  // set parent on_dev pointer
+  vlasov_poisson->eqn.on_dev = &vlasov_poisson_cu->eqn;
   
-  return &vlasov_poisson_cu->eqn;
+  return &vlasov_poisson->eqn;
 }

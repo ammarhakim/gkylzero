@@ -25,7 +25,7 @@ gkyl_lbo_gyrokinetic_diff_set_nuSum(const struct gkyl_dg_eqn *eqn, const struct 
 {
 #ifdef GKYL_HAVE_CUDA
  if (gkyl_array_is_cu_dev(nuSum)) {
-   gkyl_lbo_gyrokinetic_diff_set_nuSum_cu(eqn->on_dev, nuSum);
+   //gkyl_lbo_gyrokinetic_diff_set_nuSum_cu(eqn->on_dev, nuSum);
    return;
  }
 #endif
@@ -39,7 +39,7 @@ gkyl_lbo_gyrokinetic_diff_set_nuUSum(const struct gkyl_dg_eqn *eqn, const struct
 {
 #ifdef GKYL_HAVE_CUDA
  if (gkyl_array_is_cu_dev(nuUSum)) {
-   gkyl_lbo_gyrokinetic_diff_set_nuUSum_cu(eqn->on_dev, nuUSum);
+   //gkyl_lbo_gyrokinetic_diff_set_nuUSum_cu(eqn->on_dev, nuUSum);
    return;
  }
 #endif
@@ -53,7 +53,7 @@ gkyl_lbo_gyrokinetic_diff_set_nuVtSqSum(const struct gkyl_dg_eqn *eqn, const str
 {
 #ifdef GKYL_HAVE_CUDA
  if (gkyl_array_is_cu_dev(nuVtSqSum)) {
-   gkyl_lbo_gyrokinetic_diff_set_nuVtSqSum_cu(eqn->on_dev, nuVtSqSum);
+   //gkyl_lbo_gyrokinetic_diff_set_nuVtSqSum_cu(eqn->on_dev, nuVtSqSum);
    return;
  }
 #endif

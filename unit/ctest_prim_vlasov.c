@@ -159,7 +159,7 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   moms = mkarr(confBasis.num_basis*(vdim+2), confLocal_ext.volume);
   
   // compute the moments
-  gkyl_mom_calc_advance(moms_calc, local, confLocal, distf, moms);
+  gkyl_mom_calc_advance(moms_calc, &local, &confLocal, distf, moms);
 
   struct gkyl_mom_type *bcorr_type = gkyl_mom_bcorr_lbo_vlasov_new(&confBasis, &basis, v_bounds);
   gkyl_mom_calc_bcorr *bcorr_calc = gkyl_mom_calc_bcorr_new(&grid, bcorr_type);
@@ -169,7 +169,7 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   boundary_corrections = mkarr((vdim+1)*confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment corrections
-  gkyl_mom_calc_bcorr_advance(bcorr_calc, local, confLocal, distf, boundary_corrections);
+  gkyl_mom_calc_bcorr_advance(bcorr_calc, &local, &confLocal, distf, boundary_corrections);
   
   // Check boundary corrections of momentum and energy.
   // 1-indexed for interfacing with G2 Lua layer
@@ -316,7 +316,7 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   moms_cu = mkarr_cu(confBasis.num_basis*(vdim+2), confLocal_ext.volume);
   
   // compute the moments
-  gkyl_mom_calc_advance_cu(moms_calc, local, confLocal, distf_cu, moms_cu);
+  gkyl_mom_calc_advance_cu(moms_calc, &local, &confLocal, distf_cu, moms_cu);
 
   struct gkyl_mom_type *bcorr_type = gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(&confBasis, &basis, v_bounds);
   gkyl_mom_calc_bcorr *bcorr_calc = gkyl_mom_calc_bcorr_cu_dev_new(&grid, bcorr_type);
@@ -326,7 +326,7 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   boundary_corrections_cu = mkarr_cu((vdim+1)*confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment corrections
-  gkyl_mom_calc_bcorr_advance_cu(bcorr_calc, local, confLocal, distf_cu, boundary_corrections_cu);
+  gkyl_mom_calc_bcorr_advance_cu(bcorr_calc, &local, &confLocal, distf_cu, boundary_corrections_cu);
 
   struct gkyl_prim_lbo_type *prim = gkyl_prim_lbo_vlasov_cu_dev_new(&confBasis, &basis);
   gkyl_prim_lbo_calc *primcalc = gkyl_prim_lbo_calc_cu_dev_new(&grid, prim);

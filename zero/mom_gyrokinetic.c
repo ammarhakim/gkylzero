@@ -18,11 +18,11 @@ gkyl_gk_mom_free(const struct gkyl_ref_count *ref)
 }
 
 void
-gkyl_vlasov_set_bmag(const struct gkyl_mom_type *momt, const struct gkyl_array *bmag)
+gkyl_gyrokinetic_set_bmag(const struct gkyl_mom_type *momt, const struct gkyl_array *bmag)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(bmag)) {
-    gkyl_vlasov_set_bmag_cu(momt->on_dev, bmag);
+    gkyl_gyrokinetic_set_bmag_cu(momt->on_dev, bmag);
     return;
   }
 #endif
@@ -50,7 +50,7 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
 
   // choose kernel tables based on basis-function type
   const gkyl_gyrokinetic_mom_kern_list *m0_kernels, *m1_kernels, *m2_kernels, 
-    *m2_par_kernels, *m2_perp_kernels, *m3_par_kernels, *m3_perp_kernels;
+    *m2_par_kernels, *m2_perp_kernels, *m3_par_kernels, *m3_perp_kernels, *three_moments_kernels;
 
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -61,6 +61,7 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
       m2_perp_kernels = ser_m2_perp_kernels;
       m3_par_kernels = ser_m3_par_kernels;
       m3_perp_kernels = ser_m3_perp_kernels;
+      three_moments_kernels = ser_three_moments_kernels;
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
@@ -71,6 +72,7 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
       m2_perp_kernels = ten_m2_perp_kernels;
       m3_par_kernels = ten_m3_par_kernels;
       m3_perp_kernels = ten_m3_perp_kernels;
+      three_moments_kernels = ten_three_moments_kernels;
       break;
 
     default:
@@ -92,7 +94,7 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
     mom_gyrokinetic->kernel = m1_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_gyrokinetic->momt.num_mom = 1;
   }
-  else if (strcmp(mom, "GkM2") == 0) { // energy
+  else if (strcmp(mom, "GkM2") == 0) { // total energy
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
@@ -127,12 +129,20 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
     mom_gyrokinetic->kernel = m3_perp_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_gyrokinetic->momt.num_mom = 1;
   }
+  else if (strcmp(mom, "GkThreeMoments") == 0) { // Zeroth (density), First (parallel momentum),
+    assert(cv_index[cdim].vdim[vdim] != -1);   // and Second (total energy) computed together
+    assert(NULL != three_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_gyrokinetic->kernel = three_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_gyrokinetic->momt.num_mom = 3;
+  }
   else {
     // string not recognized
+    printf("Error: requested moment %s.\n", mom);
     gkyl_exit("gkyl_mom_type_gyrokinetic: Unrecognized moment requested!");
   }
 
-  mom_gyrokinetic->_m = mass;
+  mom_gyrokinetic->mass = mass;
   mom_gyrokinetic->bmag = 0;  
   mom_gyrokinetic->conf_range = *conf_range;
   

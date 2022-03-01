@@ -18,7 +18,7 @@ static struct { int vdim[3]; } cv_index[] = {
 };
 
 typedef void (*gyrokinetic_momf_t)(const double *w, const double *dxv, 
-  const int *idx, const double m_, const double *bmag, 
+  const int *idx, double m_, const double *bmag, 
   const double *f, double* GKYL_RESTRICT out);
 
 // for use in kernel tables
@@ -112,6 +112,19 @@ static const gkyl_gyrokinetic_mom_kern_list ser_m3_perp_kernels[] = {
   { NULL, gyrokinetic_M3_perp_3x2v_ser_p1, NULL                   }, // 3
 };
 
+// Zeroth (density), First (parallel momentum), 
+// and Second (total energy) computed together
+GKYL_CU_D
+static const gkyl_gyrokinetic_mom_kern_list ser_three_moments_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL }, // 0
+  { NULL, gyrokinetic_three_moments_1x2v_ser_p1, gyrokinetic_three_moments_1x2v_ser_p2 }, // 1
+  // 2x kernels
+  { NULL, gyrokinetic_three_moments_2x2v_ser_p1, gyrokinetic_three_moments_2x2v_ser_p2 }, // 2
+  // 3x kernels
+  { NULL, gyrokinetic_three_moments_3x2v_ser_p1, NULL                   }, // 3
+};
+
 //
 // Tensor-product basis kernels
 //
@@ -200,10 +213,23 @@ static const gkyl_gyrokinetic_mom_kern_list ten_m3_perp_kernels[] = {
   { NULL, gyrokinetic_M3_perp_3x2v_ser_p1, NULL                      }, // 3
 };
 
+// Zeroth (density), First (parallel momentum), 
+// and Second (total energy) computed together
+GKYL_CU_D
+static const gkyl_gyrokinetic_mom_kern_list ten_three_moments_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL }, // 0
+  { NULL, gyrokinetic_three_moments_1x2v_ser_p1, gyrokinetic_three_moments_1x2v_tensor_p2 }, // 1
+  // 2x kernels
+  { NULL, gyrokinetic_three_moments_2x2v_ser_p1, gyrokinetic_three_moments_2x2v_tensor_p2 }, // 2
+  // 3x kernels
+  { NULL, gyrokinetic_three_moments_3x2v_ser_p1, NULL                      }, // 3
+};
+
 struct mom_type_gyrokinetic {
   struct gkyl_mom_type momt;
   gyrokinetic_momf_t kernel; // moment calculation kernel
-  double _m; // mass of species
+  double mass; // mass of species
   struct gkyl_range conf_range; // configuration space range
   const struct gkyl_array *bmag; // Pointer to magnitude of magnetic field
 };
@@ -222,5 +248,5 @@ kernel(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
 {
   struct mom_type_gyrokinetic *mom_gyrokinetic = container_of(momt, struct mom_type_gyrokinetic, momt);
   long cidx = gkyl_range_idx(&mom_gyrokinetic->conf_range, idx);
-  return mom_gyrokinetic->kernel(xc, dx, idx, mom_gyrokinetic->_m, (const double*) gkyl_array_cfetch(mom_gyrokinetic->bmag, cidx), f, out);
+  return mom_gyrokinetic->kernel(xc, dx, idx, mom_gyrokinetic->mass, (const double*) gkyl_array_cfetch(mom_gyrokinetic->bmag, cidx), f, out);
 }

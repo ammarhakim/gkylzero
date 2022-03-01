@@ -1,3 +1,5 @@
+#include "gkyl_array.h"
+#include "gkyl_util.h"
 #include <acutest.h>
 
 #include <gkyl_array_rio.h>
@@ -131,6 +133,35 @@ test_1x1v(int poly_order)
 
   gkyl_proj_maxwellian_on_basis_lab_mom(proj_max, local, confLocal, m0, m1i, m2, distf);
 
+  // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
+  double p1_vals[] = {  7.5585421616306459e-01, -2.1688605007995894e-17,  2.5560131294504802e-02,
+    0.0000000000000000e+00 };
+  double p2_vals[] = {  7.5586260555876306e-01,  3.3461741853476639e-17,  2.5444480361615243e-02,
+    9.2374888136351991e-18, 3.6409663532636887e-16, -3.5764626824658884e-03,
+    5.2417618568471655e-17, -3.0935326627861718e-18 };
+  double p3_vals[] = { 7.5586259435651881e-01, -3.7627349011120229e-17,  2.5444733034629394e-02,
+    -9.8131366622101836e-18, -1.1779064054377974e-16, -3.5692341122334492e-03,
+    -5.9602614442099326e-18, -5.9602614442099326e-18,  2.3674858872649741e-17,
+    -1.1364096470021106e-04,  5.7229637382275112e-19,  4.0417433257763653e-18
+  };
+
+  const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[2]) { 1, 17 }));
+  
+  if (poly_order == 1) {
+    for (int i=0; i<basis.num_basis; ++i)
+      TEST_CHECK( gkyl_compare_double(p1_vals[i], fv[i], 1e-12) );    
+  }
+
+  if (poly_order == 2) {
+    for (int i=0; i<basis.num_basis; ++i)
+      TEST_CHECK( gkyl_compare_double(p2_vals[i], fv[i], 1e-12) );
+  }
+
+  if (poly_order == 3) {
+    for (int i=0; i<basis.num_basis; ++i)
+      TEST_CHECK( gkyl_compare_double(p3_vals[i], fv[i], 1e-12) );
+  }
+
   // write distribution function to file
   char fname[1024];
   sprintf(fname, "ctest_proj_maxwellian_on_basis_test_1x1v_p%d.gkyl", poly_order);
@@ -211,6 +242,45 @@ test_1x2v(int poly_order)
 
   gkyl_proj_maxwellian_on_basis_lab_mom(proj_max, local, confLocal, m0, m1i, m2, distf);
 
+  // values to compare  at index (1, 9, 9) [remember, lower-left index is (1,1,1)]
+  double p1_vals[] = {  4.2319425948079414e-01,  1.2894963939286889e-17,  1.1450235276582092e-02,
+    -1.1450235276582088e-02, -9.8282386852756766e-19, -9.8282386852756766e-19,
+    -3.0980544974766697e-04, -9.8282386852756766e-19 };
+  double p2_vals[] = { 4.2337474137655023e-01,  5.0502880544733958e-17,  1.1241037221784692e-02,
+    -1.1241037221784697e-02, -4.7391077427032355e-18,  2.1997861612039929e-18,
+    -2.9846116329638447e-04,  1.7051554382338028e-16, -8.7555592875305649e-03,
+    -8.7555592875305441e-03,  2.7340310249380901e-20, -7.7853344310736426e-18,
+    -8.4644052716641422e-19, -1.2104293181211046e-18,  2.3246915375412010e-04,
+    -8.4644052716641422e-19, -2.3246915375411175e-04, -6.1682793769044501e-19,
+    2.8526190142631692e-18,  1.1178955382863621e-18  };
+  double p3_vals[] = { 4.2337367481234789e-01, -6.0016526586247659e-18,  1.1242923855289584e-02,
+    -1.1242923855289581e-02, -3.9968671012250635e-19, -3.9968671012250635e-19,
+    -2.9856210798149093e-04, -7.3108077460892585e-17, -8.6780466947367265e-03,
+    -8.6780466947367196e-03, -4.8918503715040388e-19, -1.0074751858744896e-17,
+    3.8030359490695606e-18,  1.2009507351043501e-18,  2.3045036573145683e-04,
+    1.2009507351043501e-18, -2.3045036573145770e-04, -5.3277715857024823e-18,
+    -2.0839365136087289e-04,  2.0839365136087100e-04,  6.2223560245147039e-18,
+    1.8855473345726862e-18,  1.8855473345726862e-18, -1.3367114158171800e-17,
+    5.1067364964265611e-19,  6.0263289067347938e-18,  5.5340095371337203e-06,
+    3.8847760981017097e-19,  5.5340095371246130e-06, -2.6567508608833698e-18,
+    2.5841550939375440e-18,  4.1575074896653521e-19 };
+
+  const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[3]) { 1, 9, 9 }));
+  
+  if (poly_order == 1) {
+    for (int i=0; i<basis.num_basis; ++i)
+      TEST_CHECK( gkyl_compare_double(p1_vals[i], fv[i], 1e-12) );    
+  }
+
+  if (poly_order == 2) {
+    for (int i=0; i<basis.num_basis; ++i)
+      TEST_CHECK( gkyl_compare_double(p2_vals[i], fv[i], 1e-12) );
+  }
+
+  if (poly_order == 3) {
+    for (int i=0; i<basis.num_basis; ++i)
+      TEST_CHECK( gkyl_compare_double(p3_vals[i], fv[i], 1e-10) );
+  }
   // write distribution function to file
   char fname[1024];
   sprintf(fname, "ctest_proj_maxwellian_on_basis_test_1x2v_p%d.gkyl", poly_order);

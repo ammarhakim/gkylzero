@@ -4,7 +4,7 @@
 #include <gkyl_mom_type.h>
 
 /**
- * Create new lbo boundary correction moment type object.
+ * Create new lbo vlasov boundary correction moment type object.
  *
  * @param cbasis Configuration-space basis-functions
  * @param pbasis Phase-space basis-functions

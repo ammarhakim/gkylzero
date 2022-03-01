@@ -44,6 +44,9 @@ array_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_array *arr = container_of(ref, struct gkyl_array, ref_count);
   if (GKYL_IS_CU_ALLOC(arr->flags)) {
+#ifdef GKYL_HAVE_CUDA 
+    cudaStreamDestroy(arr->iostream);
+#endif
     gkyl_cu_free(arr->data);
     gkyl_cu_free(arr->on_dev);
   }
@@ -79,7 +82,7 @@ gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
   arr->nblocks = 1;
 
   arr->on_dev = arr; // on_dev reference
-  
+
   return arr;
 }
 
@@ -110,6 +113,34 @@ gkyl_array_copy(struct gkyl_array* dest, const struct gkyl_array* src)
     // source is on host
     if (dest_is_cu_dev)
       gkyl_cu_memcpy(dest->data, src->data, ncopy*src->esznc, GKYL_CU_MEMCPY_H2D);
+    else
+      memcpy(dest->data, src->data, ncopy*src->esznc);
+  }
+  
+  return dest;
+}
+
+struct gkyl_array*
+gkyl_array_copy_async(struct gkyl_array* dest, const struct gkyl_array* src)
+{
+  assert(dest->esznc == src->esznc);
+  
+  long ncopy = src->size < dest->size ? src->size : dest->size;
+
+  bool dest_is_cu_dev = gkyl_array_is_cu_dev(dest);
+  bool src_is_cu_dev = gkyl_array_is_cu_dev(src);
+
+  if (src_is_cu_dev) {
+    // source is on device
+    if (dest_is_cu_dev)
+      gkyl_cu_memcpy_async(dest->data, src->data, ncopy*src->esznc, GKYL_CU_MEMCPY_D2D, src->iostream);
+    else
+      gkyl_cu_memcpy_async(dest->data, src->data, ncopy*src->esznc, GKYL_CU_MEMCPY_D2H, src->iostream);
+  }
+  else {
+    // source is on host
+    if (dest_is_cu_dev)
+      gkyl_cu_memcpy_async(dest->data, src->data, ncopy*src->esznc, GKYL_CU_MEMCPY_H2D, dest->iostream);
     else
       memcpy(dest->data, src->data, ncopy*src->esznc);
   }
@@ -186,6 +217,8 @@ gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
   arr->nthreads = GKYL_DEFAULT_NUM_THREADS;
   arr->nblocks = gkyl_int_div_up(arr->size*arr->ncomp, arr->nthreads);
 
+  cudaStreamCreate(&arr->iostream);
+
   // create a clone of the struct arr->on_dev that lives on the device,
   // so that the whole arr->on_dev struct can be passed to a device kernel
   arr->on_dev = gkyl_cu_malloc(sizeof(struct gkyl_array));
@@ -193,14 +226,52 @@ gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
   // set device-side data pointer in arr->on_dev to arr->data 
   // (which is the host-side pointer to the device data)
   gkyl_cu_memcpy(&((arr->on_dev)->data), &arr->data, sizeof(void*), GKYL_CU_MEMCPY_H2D);
+
+  return arr;
+}
+
+struct gkyl_array*
+gkyl_array_cu_host_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
+{
+  struct gkyl_array* arr = gkyl_cu_malloc_host(sizeof(struct gkyl_array));
+
+  arr->type = type;
+  arr->elemsz = array_elem_size[type];
+  arr->ncomp = ncomp;
+  arr->size = size;
+  arr->flags = 0;
+
+  GKYL_CLEAR_CU_ALLOC(arr->flags);
+#ifdef USE_ALIGNED_ALLOC  
+  GKYL_SET_ALLOC_ALIGNED(arr->flags);
+#else
+  GKYL_CLEAR_ALLOC_ALIGNED(arr->flags);
+#endif
+  
+  arr->esznc = arr->elemsz*arr->ncomp;
+  arr->data = gkyl_cu_malloc_host(arr->size*arr->esznc);
+  arr->ref_count = gkyl_ref_count_init(array_free);
+
+  arr->nthreads = 1;
+  arr->nblocks = 1;
+
+  arr->on_dev = arr; // on_dev reference
   
   return arr;
 }
+
 
 #else
 
 struct gkyl_array*
 gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
+{
+  assert(false);
+  return 0;
+}
+
+struct gkyl_array*
+gkyl_array_cu_host_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
 {
   assert(false);
   return 0;

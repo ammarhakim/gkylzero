@@ -230,6 +230,7 @@ struct dg_gyrokinetic {
   gyrokinetic_surf_t surf[4]; // Surface terms.
   gyrokinetic_boundary_surf_t boundary_surf; // Surface terms for velocity boundary.
   struct gkyl_range conf_range; // Configuration space range.
+  double charge, mass;
   struct gkyl_dg_gyrokinetic_auxfields auxfields; // Auxiliary fields.
 };
 
@@ -249,7 +250,7 @@ vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
 
   long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
   return gyrokinetic->vol(xc, dx,
-    gyrokinetic->auxfields.charge, gyrokinetic->auxfields.mass,
+    gyrokinetic->charge, gyrokinetic->mass,
     (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.bmag, cidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.jacobtot_inv, cidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.cmag, cidx),
@@ -269,7 +270,7 @@ vol_step2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
 
   long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
   return gyrokinetic->step2_vol(xc, dx,
-    gyrokinetic->auxfields.charge, gyrokinetic->auxfields.mass,
+    gyrokinetic->charge, gyrokinetic->mass,
     (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apardot, cidx),
     qIn, qRhsOut);
 }
@@ -289,7 +290,7 @@ surf(const struct gkyl_dg_eqn *eqn,
   if (dir < gyrokinetic->pdim-1) {
     long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idxC);
     gyrokinetic->surf[dir](xcC, dxC, 
-      gyrokinetic->auxfields.charge, gyrokinetic->auxfields.mass,
+      gyrokinetic->charge, gyrokinetic->mass,
       (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.bmag, cidx),
       (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.jacobtot_inv, cidx),
       (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.cmag, cidx),
@@ -315,7 +316,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   if (dir == gyrokinetic->cdim) {
     long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idxSkin);
     gyrokinetic->boundary_surf(xcSkin, dxSkin, 
-      gyrokinetic->auxfields.charge, gyrokinetic->auxfields.mass,
+      gyrokinetic->charge, gyrokinetic->mass,
       (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.bmag, cidx),
       (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.jacobtot_inv, cidx),
       (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.cmag, cidx),

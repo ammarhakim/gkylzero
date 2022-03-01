@@ -337,10 +337,15 @@ struct dg_vlasov_poisson {
   vlasov_poisson_accel_surf_t accel_surf[3]; // Surface terms for acceleration
   vlasov_poisson_accel_boundary_surf_t accel_boundary_surf[3]; // Surface terms for acceleration
   struct gkyl_range conf_range; // Configuration space range.
-  const struct gkyl_array *fac_phi; // Pointer to fac*phi, where phi is the potential
-  const struct gkyl_array *vecA; // Pointer to q/m*A, where A is the vector potential
   struct gkyl_dg_vlasov_poisson_auxfields auxfields; // Auxiliary fields.
 };
+
+/**
+ * Free vlasov eqn object.
+ *
+ * @param ref Reference counter for vlasov eqn
+ */
+void gkyl_vlasov_poisson_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D
 static double
@@ -350,7 +355,8 @@ vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
   struct dg_vlasov_poisson *vlasov_poisson = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
   long cidx = gkyl_range_idx(&vlasov_poisson->conf_range, idx);
-  return vlasov_poisson->vol(xc, dx, (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), NULL,
+  return vlasov_poisson->vol(xc, dx,
+    (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), NULL,
     qIn, qRhsOut);
 }
 

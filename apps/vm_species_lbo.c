@@ -70,7 +70,8 @@ vm_species_lbo_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
 
   if (app->use_gpu) {
     // construct boundary corrections
-    gkyl_mom_calc_bcorr_advance_cu(lbo->bcorr_calc, species->local, app->local, fin, lbo->boundary_corrections);
+    gkyl_mom_calc_bcorr_advance_cu(lbo->bcorr_calc,
+      &species->local, &app->local, fin, lbo->boundary_corrections);
 
     // construct primitive moments
     gkyl_prim_lbo_calc_advance_cu(lbo->coll_pcalc, app->confBasis, app->local, 
@@ -81,11 +82,12 @@ vm_species_lbo_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
     gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_vthsq, 0, lbo->vth_sq, 0, lbo->nu_sum);
   
     // acccumulate update due to collisions onto rhs
-    gkyl_dg_updater_lbo_vlasov_advance_cu(lbo->coll_slvr, species->local,
+    gkyl_dg_updater_lbo_vlasov_advance_cu(lbo->coll_slvr, &species->local,
       lbo->nu_sum, lbo->nu_u, lbo->nu_vthsq, fin, species->cflrate, rhs);
   } else {
     // construct boundary corrections
-    gkyl_mom_calc_bcorr_advance(lbo->bcorr_calc, species->local, app->local, fin, lbo->boundary_corrections);
+    gkyl_mom_calc_bcorr_advance(lbo->bcorr_calc,
+      &species->local, &app->local, fin, lbo->boundary_corrections);
 
     // construct primitive moments
     gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, app->confBasis, app->local, 
@@ -96,7 +98,7 @@ vm_species_lbo_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
     gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_vthsq, 0, lbo->vth_sq, 0, lbo->nu_sum);
   
     // acccumulate update due to collisions onto rhs
-    gkyl_dg_updater_lbo_vlasov_advance(lbo->coll_slvr, species->local,
+    gkyl_dg_updater_lbo_vlasov_advance(lbo->coll_slvr, &species->local,
       lbo->nu_sum, lbo->nu_u, lbo->nu_vthsq, fin, species->cflrate, rhs);
   }
   // TODO: This needs to be set properly!
