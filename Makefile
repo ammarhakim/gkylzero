@@ -1,7 +1,7 @@
 #
 # You can set parameters on the command line:
 #
-# make CC=mpicc
+# make CC=nvcc -j
 #
 # Or run the configure script to set various parameters. Usually
 # defaults are all you need, specially if the dependencies are in
@@ -42,7 +42,7 @@ NVCC_FLAGS =
 CUDA_LIBS =
 ifeq ($(CC), nvcc)
        USING_NVCC = yes
-       CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -MMD -MP -fPIC
+       CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC
        NVCC_FLAGS = -x cu -dc -arch=sm_70 --compiler-options="-fPIC" 
        LDFLAGS += -arch=sm_70
        CUDA_LIBS = -lcublas
@@ -173,7 +173,7 @@ ${BUILD_DIR}/unit/%: unit/%.c ${BUILD_DIR}/${G0STLIB} ${UNIT_CU_OBJS}
 	$(MKDIR_P) ${BUILD_DIR}/unit
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${UNIT_CU_OBJS} ${BUILD_DIR}/${G0STLIB} ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 
-.PHONY: check check1 clean partclean install
+.PHONY: check clean partclean install
 
 # Run all unit tests
 check: ${UNITS}
