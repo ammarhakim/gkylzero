@@ -13,26 +13,9 @@ ARCH_FLAGS = -march=native
 CFLAGS = -O3 -g -ffast-math -fPIC -MMD -MP
 LDFLAGS =
 
-# CUDA flags
-USING_NVCC =
-NVCC_FLAGS = 
-CUDA_LIBS =
-ifeq ($(CC), nvcc)
-       USING_NVCC = yes
-       CFLAGS = -O3 -g --forward-unknown-to-host-compiler -MMD -MP -fPIC
-       NVCC_FLAGS = -x cu -dc -arch=sm_70 --compiler-options="-fPIC" 
-       LDFLAGS += -arch=sm_70
-       CUDA_LIBS = -lcublas
-endif
-
 # Install prefix
 PREFIX = ${HOME}/gkylsoft
-# Build directory
-ifdef USING_NVCC
-	BUILD_DIR ?= cuda-build
-else
-	BUILD_DIR ?= build
-endif
+
 # Directories containing source code
 SRC_DIRS := minus zero apps kernels
 
@@ -52,6 +35,25 @@ KERN_INCLUDES = $(addprefix -I,$(KERN_INC_DIRS))
 
 # Include config.mak file (if it exists) to overide defaults above
 -include config.mak
+
+# CUDA flags
+USING_NVCC =
+NVCC_FLAGS = 
+CUDA_LIBS =
+ifeq ($(CC), nvcc)
+       USING_NVCC = yes
+       CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -MMD -MP -fPIC
+       NVCC_FLAGS = -x cu -dc -arch=sm_70 --compiler-options="-fPIC" 
+       LDFLAGS += -arch=sm_70
+       CUDA_LIBS = -lcublas
+endif
+
+# Build directory
+ifdef USING_NVCC
+	BUILD_DIR ?= cuda-build
+else
+	BUILD_DIR ?= build
+endif
 
 # determine OS we are running on
 UNAME = $(shell uname)
@@ -138,7 +140,7 @@ HEADERS := $(wildcard minus/*.h) $(wildcard zero/*.h) $(wildcard apps/*.h) $(wil
 
 # Library name
 ifeq ($(CC), nvcc)
-	G0LIB = gkylzerocuda
+	G0LIB = gkylzero
 else
 	G0LIB = gkylzero
 endif
