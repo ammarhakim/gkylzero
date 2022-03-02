@@ -118,8 +118,6 @@ static void
 set_cu_ptrs(struct mom_type_gyrokinetic *mom_gk,
   int mom_id, enum gkyl_basis_type b_type, int vdim, int poly_order, int tblidx)
 {
-  mom_gk->momt.kernel = kernel;
-  
   // choose kernel tables based on basis-function type
   const gkyl_gyrokinetic_mom_kern_list *m0_kernels, *m1_kernels, *m2_kernels, 
     *m2_par_kernels, *m2_perp_kernels, *m3_par_kernels, *m3_perp_kernels, *three_moments_kernels;
@@ -143,42 +141,42 @@ set_cu_ptrs(struct mom_type_gyrokinetic *mom_gk,
   
   switch (mom_id) {
     case GkM0:
-      mom_gk->g_kernel = m0_kernels[tblidx].kernels[poly_order];
+      mom_gk->momt.kernel = m0_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 1;
       break;
 
     case GkM1:
-      mom_gk->g_kernel = m1_kernels[tblidx].kernels[poly_order];
+      mom_gk->momt.kernel = m1_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 1;
       break;
 
     case GkM2:
-      mom_gk->g_kernel = m2_kernels[tblidx].kernels[poly_order];
+      mom_gk->momt.kernel = m2_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 1;
       break;
 
     case GkM2par:
-      mom_gk->g_kernel = m2_par_kernels[tblidx].kernels[poly_order];
+      mom_gk->momt.kernel = m2_par_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 1;
       break;
 
     case GkM2perp:
-      mom_gk->g_kernel = m2_perp_kernels[tblidx].kernels[poly_order];
+      mom_gk->momt.kernel = m2_perp_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 1;
       break;
 
     case GkM3par:
-      mom_gk->g_kernel = m3_par_kernels[tblidx].kernels[poly_order];
+      mom_gk->momt.kernel = m3_par_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 1;
       break;
 
     case GkM3perp:
-      mom_gk->g_kernel = m3_perp_kernels[tblidx].kernels[poly_order];
+      mom_gk->momt.kernel = m3_perp_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 1;
       break;
 
     case ThreeMoments:
-      mom_gk->g_kernel = three_moments_kernels[tblidx].kernels[poly_order];
+      mom_gk->momt.kernel = three_moments_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 3;
       break;
       
