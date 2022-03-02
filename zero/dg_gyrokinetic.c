@@ -88,15 +88,6 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
 
       break;
 
-    case GKYL_BASIS_MODAL_TENSOR:
-      vol_kernels = ten_vol_kernels;
-      surf_x_kernels = ten_surf_x_kernels;
-      surf_y_kernels = ten_surf_y_kernels;
-      surf_z_kernels = ten_surf_z_kernels;
-      surf_vpar_kernels = ten_surf_vpar_kernels;
-      boundary_surf_vpar_kernels = ten_boundary_surf_vpar_kernels;
-      break;
-
     default:
       assert(false);
       break;

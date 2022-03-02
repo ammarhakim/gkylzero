@@ -70,15 +70,6 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
       
       break;
 
-    case GKYL_BASIS_MODAL_TENSOR:
-      vol_kernels = ten_vol_kernels;
-      surf_x_kernels = ten_surf_x_kernels;
-      surf_y_kernels = ten_surf_y_kernels;
-      surf_z_kernels = ten_surf_z_kernels;
-      surf_vpar_kernels = ten_surf_vpar_kernels;
-      boundary_surf_vpar_kernels = ten_boundary_surf_vpar_kernels;
-      break;
-
     default:
       assert(false);
       break;    

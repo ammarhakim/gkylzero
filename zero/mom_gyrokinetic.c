@@ -64,17 +64,6 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
       three_moments_kernels = ser_three_moments_kernels;
       break;
 
-    case GKYL_BASIS_MODAL_TENSOR:
-      m0_kernels = ten_m0_kernels;
-      m1_kernels = ten_m1_kernels;
-      m2_kernels = ten_m2_kernels;
-      m2_par_kernels = ten_m2_par_kernels;
-      m2_perp_kernels = ten_m2_perp_kernels;
-      m3_par_kernels = ten_m3_par_kernels;
-      m3_perp_kernels = ten_m3_perp_kernels;
-      three_moments_kernels = ten_three_moments_kernels;
-      break;
-
     default:
       assert(false);
       break;    

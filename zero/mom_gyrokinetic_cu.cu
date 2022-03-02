@@ -118,7 +118,7 @@ static void
 set_cu_ptrs(struct mom_type_gyrokinetic *mom_gk,
   int mom_id, enum gkyl_basis_type b_type, int vdim, int poly_order, int tblidx)
 {
-  //mom_gk->momt.kernel = kernel;
+  mom_gk->momt.kernel = kernel;
   
   // choose kernel tables based on basis-function type
   const gkyl_gyrokinetic_mom_kern_list *m0_kernels, *m1_kernels, *m2_kernels, 
@@ -134,17 +134,6 @@ set_cu_ptrs(struct mom_type_gyrokinetic *mom_gk,
       m3_par_kernels = ser_m3_par_kernels;
       m3_perp_kernels = ser_m3_perp_kernels;
       three_moments_kernels = ser_three_moments_kernels;
-      break;
-
-    case GKYL_BASIS_MODAL_TENSOR:
-      m0_kernels = ten_m0_kernels;
-      m1_kernels = ten_m1_kernels;
-      m2_kernels = ten_m2_kernels;
-      m2_par_kernels = ten_m2_par_kernels;
-      m2_perp_kernels = ten_m2_perp_kernels;
-      m3_par_kernels = ten_m3_par_kernels;
-      m3_perp_kernels = ten_m3_perp_kernels;
-      three_moments_kernels = ten_three_moments_kernels;
       break;
 
     default:

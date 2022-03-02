@@ -2,7 +2,7 @@
 
 // Private header, not for direct use in user code
 
-#include "gkyl_util.h"
+#include <gkyl_util.h>
 #include <gkyl_array.h>
 #include <gkyl_mom_type.h>
 #include <gkyl_range.h>
@@ -124,107 +124,6 @@ static const gkyl_gyrokinetic_mom_kern_list ser_three_moments_kernels[] = {
   { NULL, gyrokinetic_three_moments_2x2v_ser_p1, gyrokinetic_three_moments_2x2v_ser_p2 }, // 2
   // 3x kernels
   { NULL, gyrokinetic_three_moments_3x2v_ser_p1, NULL                   }, // 3
-};
-
-//
-// Tensor-product basis kernels
-//
-
-// M0 kernel list
-GKYL_CU_D
-static const gkyl_gyrokinetic_mom_kern_list ten_m0_kernels[] = {
-  // 1x kernels
-  { NULL, gyrokinetic_M0_1x1v_ser_p1, gyrokinetic_M0_1x1v_tensor_p2 }, // 0
-  { NULL, gyrokinetic_M0_1x2v_ser_p1, gyrokinetic_M0_1x2v_tensor_p2 }, // 1
-  // 2x kernels
-  { NULL, gyrokinetic_M0_2x2v_ser_p1, gyrokinetic_M0_2x2v_tensor_p2 }, // 2
-  // 3x kernels
-  { NULL, gyrokinetic_M0_3x2v_ser_p1, NULL                 }, // 3
-};
-
-// M1 kernel list
-GKYL_CU_D
-static const gkyl_gyrokinetic_mom_kern_list ten_m1_kernels[] = {
-  // 1x kernels
-  { NULL, gyrokinetic_M1_1x1v_ser_p1, gyrokinetic_M1_1x1v_tensor_p2 }, // 0
-  { NULL, gyrokinetic_M1_1x2v_ser_p1, gyrokinetic_M1_1x2v_tensor_p2 }, // 1
-  // 2x kernels
-  { NULL, gyrokinetic_M1_2x2v_ser_p1, gyrokinetic_M1_2x2v_tensor_p2 }, // 2
-  // 3x kernels
-  { NULL, gyrokinetic_M1_3x2v_ser_p1, NULL                 }, // 3
-};
-
-// M2 kernel list
-GKYL_CU_D
-static const gkyl_gyrokinetic_mom_kern_list ten_m2_kernels[] = {
-  // 1x kernels
-  { NULL, gyrokinetic_M2_1x1v_ser_p1, gyrokinetic_M2_1x1v_tensor_p2 }, // 0
-  { NULL, gyrokinetic_M2_1x2v_ser_p1, gyrokinetic_M2_1x2v_tensor_p2 }, // 1
-  // 2x kernels
-  { NULL, gyrokinetic_M2_2x2v_ser_p1, gyrokinetic_M2_2x2v_tensor_p2 }, // 2
-  // 3x kernels
-  { NULL, gyrokinetic_M2_3x2v_ser_p1, NULL                 }, // 3
-};
-
-// M2 parallel kernel list
-GKYL_CU_D
-static const gkyl_gyrokinetic_mom_kern_list ten_m2_par_kernels[] = {
-  // 1x kernels
-  { NULL, gyrokinetic_M2_par_1x1v_ser_p1, gyrokinetic_M2_par_1x1v_tensor_p2 }, // 0
-  { NULL, gyrokinetic_M2_par_1x2v_ser_p1, gyrokinetic_M2_par_1x2v_tensor_p2 }, // 1
-  // 2x kernels
-  { NULL, gyrokinetic_M2_par_2x2v_ser_p1, gyrokinetic_M2_par_2x2v_tensor_p2 }, // 2
-  // 3x kernels
-  { NULL, gyrokinetic_M2_par_3x2v_ser_p1, NULL                     }, // 3
-};
-
-// M2 perpendicular kernel list
-GKYL_CU_D
-static const gkyl_gyrokinetic_mom_kern_list ten_m2_perp_kernels[] = {
-  // 1x kernels
-  { NULL, NULL, NULL }, // 0
-  { NULL, gyrokinetic_M2_perp_1x2v_ser_p1, gyrokinetic_M2_perp_1x2v_tensor_p2 }, // 1
-  // 2x kernels
-  { NULL, gyrokinetic_M2_perp_2x2v_ser_p1, gyrokinetic_M2_perp_2x2v_tensor_p2 }, // 2
-  // 3x kernels
-  { NULL, gyrokinetic_M2_perp_3x2v_ser_p1, NULL                      }, // 3
-};
-
-// M3 parallel kernel list
-GKYL_CU_D
-static const gkyl_gyrokinetic_mom_kern_list ten_m3_par_kernels[] = {
-  // 1x kernels
-  { NULL, gyrokinetic_M3_par_1x1v_ser_p1, gyrokinetic_M3_par_1x1v_tensor_p2 }, // 0
-  { NULL, gyrokinetic_M3_par_1x2v_ser_p1, gyrokinetic_M3_par_1x2v_tensor_p2 }, // 1
-  // 2x kernels
-  { NULL, gyrokinetic_M3_par_2x2v_ser_p1, gyrokinetic_M3_par_2x2v_tensor_p2 }, // 2
-  // 3x kernels
-  { NULL, gyrokinetic_M3_par_3x2v_ser_p1, NULL                     }, // 3
-};
-
-// M3 perpendicular kernel list
-GKYL_CU_D
-static const gkyl_gyrokinetic_mom_kern_list ten_m3_perp_kernels[] = {
-  // 1x kernels
-  { NULL, NULL, NULL }, // 0
-  { NULL, gyrokinetic_M3_perp_1x2v_ser_p1, gyrokinetic_M3_perp_1x2v_tensor_p2 }, // 1
-  // 2x kernels
-  { NULL, gyrokinetic_M3_perp_2x2v_ser_p1, gyrokinetic_M3_perp_2x2v_tensor_p2 }, // 2
-  // 3x kernels
-  { NULL, gyrokinetic_M3_perp_3x2v_ser_p1, NULL                      }, // 3
-};
-
-// Zeroth (density), First (parallel momentum), 
-// and Second (total energy) computed together
-GKYL_CU_D
-static const gkyl_gyrokinetic_mom_kern_list ten_three_moments_kernels[] = {
-  // 1x kernels
-  { NULL, NULL, NULL }, // 0
-  { NULL, gyrokinetic_three_moments_1x2v_ser_p1, gyrokinetic_three_moments_1x2v_tensor_p2 }, // 1
-  // 2x kernels
-  { NULL, gyrokinetic_three_moments_2x2v_ser_p1, gyrokinetic_three_moments_2x2v_tensor_p2 }, // 2
-  // 3x kernels
-  { NULL, gyrokinetic_three_moments_3x2v_ser_p1, NULL                      }, // 3
 };
 
 struct mom_type_gyrokinetic {
