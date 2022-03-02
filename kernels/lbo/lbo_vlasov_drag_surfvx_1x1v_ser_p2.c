@@ -10,7 +10,6 @@ GKYL_CU_DH void lbo_vlasov_drag_surfvx_1x1v_ser_p2(const double *w, const double
   // fl/fc/fr:      distribution function in cells 
   // out:           incremented distribution function in cell 
   double rdv2 = 2.0/dxv[1]; 
-  double rdvSq4 = 4.0/(dxv[1]*dxv[1]); 
 
   const double *sumNuUx = &nuUSum[0]; 
 
@@ -26,7 +25,7 @@ GKYL_CU_DH void lbo_vlasov_drag_surfvx_1x1v_ser_p2(const double *w, const double
 
   double fUpwindQuad_l[3] = {0.0};
   double fUpwindQuad_r[3] = {0.0};
-  double fUpwind_l[3] = {0.0};;
+  double fUpwind_l[3] = {0.0};
   double fUpwind_r[3] = {0.0};
   double Gdrag_l[3] = {0.0}; 
   double Gdrag_r[3] = {0.0}; 
@@ -36,25 +35,25 @@ GKYL_CU_DH void lbo_vlasov_drag_surfvx_1x1v_ser_p2(const double *w, const double
   } else { 
     fUpwindQuad_l[0] = ser_1x1v_p2_surfvx_quad_0(-1, fc); 
   } 
-  if (0.7071067811865475*alphaDrSurf_l[0]-0.7905694150420947*alphaDrSurf_l[2] < 0) { 
-    fUpwindQuad_l[1] = ser_1x1v_p2_surfvx_quad_1(1, fl); 
-  } else { 
-    fUpwindQuad_l[1] = ser_1x1v_p2_surfvx_quad_1(-1, fc); 
-  } 
-  if (0.6324555320336759*alphaDrSurf_l[2]+0.9486832980505137*alphaDrSurf_l[1]+0.7071067811865475*alphaDrSurf_l[0] < 0) { 
-    fUpwindQuad_l[2] = ser_1x1v_p2_surfvx_quad_2(1, fl); 
-  } else { 
-    fUpwindQuad_l[2] = ser_1x1v_p2_surfvx_quad_2(-1, fc); 
-  } 
   if (0.6324555320336759*alphaDrSurf_r[2]-0.9486832980505137*alphaDrSurf_r[1]+0.7071067811865475*alphaDrSurf_r[0] < 0) { 
     fUpwindQuad_r[0] = ser_1x1v_p2_surfvx_quad_0(1, fc); 
   } else { 
     fUpwindQuad_r[0] = ser_1x1v_p2_surfvx_quad_0(-1, fr); 
   } 
+  if (0.7071067811865475*alphaDrSurf_l[0]-0.7905694150420947*alphaDrSurf_l[2] < 0) { 
+    fUpwindQuad_l[1] = ser_1x1v_p2_surfvx_quad_1(1, fl); 
+  } else { 
+    fUpwindQuad_l[1] = ser_1x1v_p2_surfvx_quad_1(-1, fc); 
+  } 
   if (0.7071067811865475*alphaDrSurf_r[0]-0.7905694150420947*alphaDrSurf_r[2] < 0) { 
     fUpwindQuad_r[1] = ser_1x1v_p2_surfvx_quad_1(1, fc); 
   } else { 
     fUpwindQuad_r[1] = ser_1x1v_p2_surfvx_quad_1(-1, fr); 
+  } 
+  if (0.6324555320336759*alphaDrSurf_l[2]+0.9486832980505137*alphaDrSurf_l[1]+0.7071067811865475*alphaDrSurf_l[0] < 0) { 
+    fUpwindQuad_l[2] = ser_1x1v_p2_surfvx_quad_2(1, fl); 
+  } else { 
+    fUpwindQuad_l[2] = ser_1x1v_p2_surfvx_quad_2(-1, fc); 
   } 
   if (0.6324555320336759*alphaDrSurf_r[2]+0.9486832980505137*alphaDrSurf_r[1]+0.7071067811865475*alphaDrSurf_r[0] < 0) { 
     fUpwindQuad_r[2] = ser_1x1v_p2_surfvx_quad_2(1, fc); 

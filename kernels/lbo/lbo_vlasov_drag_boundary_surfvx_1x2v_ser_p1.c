@@ -25,26 +25,16 @@ GKYL_CU_DH void lbo_vlasov_drag_boundary_surfvx_1x2v_ser_p1(const double *w, con
 
   if (alphaDrSurf[0]-alphaDrSurf[1] < 0) { 
     fUpwindQuad[0] = ser_1x2v_p1_surfvx_quad_0(1, fSkin); 
-  } else { 
-
-    fUpwindQuad[0] = ser_1x2v_p1_surfvx_quad_0(-1, fEdge); 
-  } 
-  if (alphaDrSurf[1]+alphaDrSurf[0] < 0) { 
-    fUpwindQuad[1] = ser_1x2v_p1_surfvx_quad_1(1, fSkin); 
-  } else { 
-
-    fUpwindQuad[1] = ser_1x2v_p1_surfvx_quad_1(-1, fEdge); 
-  } 
-  if (alphaDrSurf[0]-alphaDrSurf[1] < 0) { 
     fUpwindQuad[2] = ser_1x2v_p1_surfvx_quad_2(1, fSkin); 
   } else { 
-
+    fUpwindQuad[0] = ser_1x2v_p1_surfvx_quad_0(-1, fEdge); 
     fUpwindQuad[2] = ser_1x2v_p1_surfvx_quad_2(-1, fEdge); 
   } 
   if (alphaDrSurf[1]+alphaDrSurf[0] < 0) { 
+    fUpwindQuad[1] = ser_1x2v_p1_surfvx_quad_1(1, fSkin); 
     fUpwindQuad[3] = ser_1x2v_p1_surfvx_quad_3(1, fSkin); 
   } else { 
-
+    fUpwindQuad[1] = ser_1x2v_p1_surfvx_quad_1(-1, fEdge); 
     fUpwindQuad[3] = ser_1x2v_p1_surfvx_quad_3(-1, fEdge); 
   } 
 
@@ -74,22 +64,16 @@ GKYL_CU_DH void lbo_vlasov_drag_boundary_surfvx_1x2v_ser_p1(const double *w, con
 
   if (alphaDrSurf[0]-alphaDrSurf[1] < 0) { 
     fUpwindQuad[0] = ser_1x2v_p1_surfvx_quad_0(1, fEdge); 
-  } else { 
-    fUpwindQuad[0] = ser_1x2v_p1_surfvx_quad_0(-1, fSkin); 
-  } 
-  if (alphaDrSurf[1]+alphaDrSurf[0] < 0) { 
-    fUpwindQuad[1] = ser_1x2v_p1_surfvx_quad_1(1, fEdge); 
-  } else { 
-    fUpwindQuad[1] = ser_1x2v_p1_surfvx_quad_1(-1, fSkin); 
-  } 
-  if (alphaDrSurf[0]-alphaDrSurf[1] < 0) { 
     fUpwindQuad[2] = ser_1x2v_p1_surfvx_quad_2(1, fEdge); 
   } else { 
+    fUpwindQuad[0] = ser_1x2v_p1_surfvx_quad_0(-1, fSkin); 
     fUpwindQuad[2] = ser_1x2v_p1_surfvx_quad_2(-1, fSkin); 
   } 
   if (alphaDrSurf[1]+alphaDrSurf[0] < 0) { 
+    fUpwindQuad[1] = ser_1x2v_p1_surfvx_quad_1(1, fEdge); 
     fUpwindQuad[3] = ser_1x2v_p1_surfvx_quad_3(1, fEdge); 
   } else { 
+    fUpwindQuad[1] = ser_1x2v_p1_surfvx_quad_1(-1, fSkin); 
     fUpwindQuad[3] = ser_1x2v_p1_surfvx_quad_3(-1, fSkin); 
   } 
 

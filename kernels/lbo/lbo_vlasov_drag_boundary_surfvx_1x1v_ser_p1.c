@@ -26,13 +26,11 @@ GKYL_CU_DH void lbo_vlasov_drag_boundary_surfvx_1x1v_ser_p1(const double *w, con
   if (alphaDrSurf[0]-alphaDrSurf[1] < 0) { 
     fUpwindQuad[0] = ser_1x1v_p1_surfvx_quad_0(1, fSkin); 
   } else { 
-
     fUpwindQuad[0] = ser_1x1v_p1_surfvx_quad_0(-1, fEdge); 
   } 
   if (alphaDrSurf[1]+alphaDrSurf[0] < 0) { 
     fUpwindQuad[1] = ser_1x1v_p1_surfvx_quad_1(1, fSkin); 
   } else { 
-
     fUpwindQuad[1] = ser_1x1v_p1_surfvx_quad_1(-1, fEdge); 
   } 
 
