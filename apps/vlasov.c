@@ -216,12 +216,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 
   // compute RHS of Vlasov equations
   for (int i=0; i<app->num_species; ++i) {
-    if (app->has_field) {
-      double qbym = app->species[i].info.charge/app->species[i].info.mass;
-      gkyl_array_set(app->field->qmem, qbym, emin);
-    }
-    
-    double dt1 = vm_species_rhs(app, &app->species[i], fin[i], app->has_field ? app->field->qmem : 0, fout[i]);
+    double dt1 = vm_species_rhs(app, &app->species[i], fin[i], emin, fout[i]);
     dtmin = fmin(dtmin, dt1);
   }
   // compute RHS of Maxwell equations
@@ -405,7 +400,7 @@ gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
     
     struct vm_species *species = &app->species[i];
     
-    const struct gkyl_array *qmem = app->field->qmem;
+    const struct gkyl_array *qmem = species->qmem;
     gkyl_vlasov_set_auxfields(species->eqn,
       (struct gkyl_dg_vlasov_auxfields) { .qmem = qmem });
 

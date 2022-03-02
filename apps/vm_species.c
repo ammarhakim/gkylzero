@@ -1,4 +1,6 @@
 #include <assert.h>
+#include <gkyl_array.h>
+#include <gkyl_eqn_type.h>
 #include <gkyl_vlasov_priv.h>
 
 // initialize species object
@@ -69,8 +71,13 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   for (int m=0; m<ndm; ++m)
     vm_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
 
-  // determine field-type to use in dg_vlasov
+  // determine field-type 
   enum gkyl_field_id field_id = app->has_field ? app->field->info.field_id : GKYL_FIELD_NULL;
+
+  // allocate array to store q/m*(E,B)
+  s->qmem = 0;
+  if (field_id != GKYL_FIELD_NULL)
+    s->qmem = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
 
   // create equation object
   s->eqn = gkyl_dg_vlasov_new(&app->confBasis, &app->basis, &app->local, field_id, app->use_gpu);
@@ -92,6 +99,14 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   // create solver
   s->slvr = gkyl_hyper_dg_new(&s->grid, &app->basis, s->eqn,
     num_up_dirs, up_dirs, zero_flux_flags, 1, app->use_gpu);
+
+  // check if there is applied acceleration
+  if (s->info.accel) {
+    s->has_accel = true;
+    // we need to ensure applied acceleration has same shape as EM
+    // field as it will get added to qmem
+    s->accel = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
+  }
 
   // determine collision type to use in vlasov update
   s->collision_id = s->info.collision_id;
@@ -119,12 +134,15 @@ vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
 // time-step.
 double
 vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
-  const struct gkyl_array *fin, const struct gkyl_array *qmem, struct gkyl_array *rhs)
+  const struct gkyl_array *fin, const struct gkyl_array *em, struct gkyl_array *rhs)
 {
   gkyl_array_clear(species->cflrate, 0.0);
-  if (qmem)
+  if (em) {
+    double qbym = species->info.charge/species->info.mass;
+    gkyl_array_set(species->qmem, qbym, em);
     gkyl_vlasov_set_auxfields(species->eqn, 
-      (struct gkyl_dg_vlasov_auxfields) { .qmem = qmem }); // must set EM fields to use
+      (struct gkyl_dg_vlasov_auxfields) { .qmem = species->qmem  }); // must set EM fields to use
+  }
   
   gkyl_array_clear(rhs, 0.0);
 
@@ -197,7 +215,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   gkyl_array_release(s->fnew);
   gkyl_array_release(s->cflrate);
   gkyl_array_release(s->bc_buffer);
-  
+
   if (app->use_gpu)
     gkyl_array_release(s->f_host);
   
@@ -208,7 +226,13 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   gkyl_free(s->moms);
 
   gkyl_dg_eqn_release(s->eqn);
-  gkyl_hyper_dg_release(s->slvr);  
+  gkyl_hyper_dg_release(s->slvr);
+
+  if (app->has_field)
+    gkyl_array_release(s->qmem);
+  
+  if (s->has_accel)
+    gkyl_array_release(s->accel);
 
   if (s->collision_id == GKYL_LBO_COLLISIONS)
     vm_species_lbo_release(app, &s->lbo);

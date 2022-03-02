@@ -86,13 +86,18 @@ struct vm_species {
   struct gkyl_array *cflrate; // CFL rate in each cell
   struct gkyl_array *bc_buffer; // buffer for BCs (used for both copy and periodic)
 
+  struct gkyl_array *qmem; // array for q/m*(E,B)
+
   struct gkyl_array *f_host; // host copy for use IO and initialization
 
   struct vm_species_moment m1i; // for computing currents
   struct vm_species_moment *moms; // diagnostic moments
 
   struct gkyl_dg_eqn *eqn; // Vlasov equation
-  gkyl_hyper_dg *slvr; // solver 
+  gkyl_hyper_dg *slvr; // solver
+
+  bool has_accel; // flag to indicate there is applied acceleration
+  struct gkyl_array *accel; // applied acceleration
 
   enum gkyl_collision_id collision_id; // type of collisions
   struct vm_lbo_collisions lbo;
@@ -105,7 +110,6 @@ struct vm_field {
 
   struct gkyl_job_pool *job_pool; // Job pool  
   struct gkyl_array *em, *em1, *emnew; // arrays for updates
-  struct gkyl_array *qmem; // array for q/m*(E,B)
   struct gkyl_array *cflrate; // CFL rate in each cell
   struct gkyl_array *bc_buffer; // buffer for BCs (used for both copy and periodic)
 
@@ -275,12 +279,12 @@ void vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, doubl
  * @param app Vlasov app object
  * @param species Pointer to species
  * @param fin Input distribution function
- * @param qmem EM field scaled by q/m
+ * @param em EM field
  * @param rhs On output, the RHS from the species object
  * @return Maximum stable time-step
  */
 double vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
-  const struct gkyl_array *fin, const struct gkyl_array *qmem, struct gkyl_array *rhs);
+  const struct gkyl_array *fin, const struct gkyl_array *em, struct gkyl_array *rhs);
 
 /**
  * Apply periodic BCs to species distribution function

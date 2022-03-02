@@ -24,7 +24,6 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   f->em = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
   f->em1 = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
   f->emnew = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
-  f->qmem = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
 
   f->em_host = f->em;  
   if (app->use_gpu)
@@ -150,7 +149,6 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   gkyl_array_release(f->em);
   gkyl_array_release(f->em1);
   gkyl_array_release(f->emnew);
-  gkyl_array_release(f->qmem);
   gkyl_array_release(f->bc_buffer);
   gkyl_array_release(f->cflrate);
 

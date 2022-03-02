@@ -122,6 +122,8 @@ endif
 
 # List of object files that will be built
 OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
+# List of dependencies
+DEPS := $(OBJS:.o=.d)
 
 # List of regression and unit tests
 REGS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard regression/rt_*.c))
@@ -200,6 +202,9 @@ clean:
 # nvcc
 partclean:
 	rm -rf ${BUILD_DIR}/${G0STLIB} ${BUILD_DIR}/${G0SHLIB} ${BUILD_DIR}/zero ${BUILD_DIR}/app ${BUILD_DIR}/regression ${BUILD_DIR}/unit
+
+# include dependencies
+-include $(DEPS)
 
 # command to make dir
 MKDIR_P ?= mkdir -p	
