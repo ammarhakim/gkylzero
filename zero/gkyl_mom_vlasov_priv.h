@@ -243,6 +243,5 @@ kernel(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
-
   return mom_vlasov->kernel(xc, dx, idx, f, out);
 }
