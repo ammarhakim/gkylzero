@@ -98,7 +98,8 @@ gk_num_mom(int vdim, int mom_id)
 // CUDA kernel to set pointer to bmag
 // This is required because moment type object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void
+__global__
+static void
 gkyl_gyrokinetic_set_bmag_cu_kernel(const struct gkyl_mom_type *momt, const struct gkyl_array *bmag)
 {
   struct mom_type_gyrokinetic *mom_gyrokinetic = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -114,23 +115,10 @@ gkyl_gyrokinetic_set_bmag_cu(const struct gkyl_mom_type *momt, const struct gkyl
 
 __global__
 static void
-kernel(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
-{
-  struct mom_type_gyrokinetic *mom_gyrokinetic = container_of(momt, struct mom_type_gyrokinetic, momt);
-  
-  long cidx = gkyl_range_idx(&mom_gyrokinetic->conf_range, idx);
-  mom_gyrokinetic->kernel(xc, dx, idx, mom_gyrokinetic->mass,
-    (const double*) gkyl_array_cfetch(mom_gyrokinetic->bmag, cidx), f, out);
-}
-
-__global__
-static void
-gkyl_mom_gyrokinetic_set_cu_dev_ptrs(struct mom_type_gyrokinetic *mom_gyrokinetic,
+set_cu_ptrs(struct mom_type_gyrokinetic *mom_gk,
   int mom_id, enum gkyl_basis_type b_type, int vdim, int poly_order, int tblidx)
 {
-
-  mom_gyrokinetic->momt.kernel = kernel;
+  //mom_gk->momt.kernel = kernel;
   
   // choose kernel tables based on basis-function type
   const gkyl_gyrokinetic_mom_kern_list *m0_kernels, *m1_kernels, *m2_kernels, 
@@ -166,43 +154,43 @@ gkyl_mom_gyrokinetic_set_cu_dev_ptrs(struct mom_type_gyrokinetic *mom_gyrokineti
   
   switch (mom_id) {
     case GkM0:
-      mom_gyrokinetic->kernel = m0_kernels[tblidx].kernels[poly_order];
-      mom_gyrokinetic->momt.num_mom = 1;
+      mom_gk->g_kernel = m0_kernels[tblidx].kernels[poly_order];
+      mom_gk->momt.num_mom = 1;
       break;
 
     case GkM1:
-      mom_gyrokinetic->kernel = m1_kernels[tblidx].kernels[poly_order];
-      mom_gyrokinetic->momt.num_mom = 1;
+      mom_gk->g_kernel = m1_kernels[tblidx].kernels[poly_order];
+      mom_gk->momt.num_mom = 1;
       break;
 
     case GkM2:
-      mom_gyrokinetic->kernel = m2_kernels[tblidx].kernels[poly_order];
-      mom_gyrokinetic->momt.num_mom = 1;
+      mom_gk->g_kernel = m2_kernels[tblidx].kernels[poly_order];
+      mom_gk->momt.num_mom = 1;
       break;
 
     case GkM2par:
-      mom_gyrokinetic->kernel = m2_par_kernels[tblidx].kernels[poly_order];
-      mom_gyrokinetic->momt.num_mom = 1;
+      mom_gk->g_kernel = m2_par_kernels[tblidx].kernels[poly_order];
+      mom_gk->momt.num_mom = 1;
       break;
 
     case GkM2perp:
-      mom_gyrokinetic->kernel = m2_perp_kernels[tblidx].kernels[poly_order];
-      mom_gyrokinetic->momt.num_mom = 1;
+      mom_gk->g_kernel = m2_perp_kernels[tblidx].kernels[poly_order];
+      mom_gk->momt.num_mom = 1;
       break;
 
     case GkM3par:
-      mom_gyrokinetic->kernel = m3_par_kernels[tblidx].kernels[poly_order];
-      mom_gyrokinetic->momt.num_mom = 1;
+      mom_gk->g_kernel = m3_par_kernels[tblidx].kernels[poly_order];
+      mom_gk->momt.num_mom = 1;
       break;
 
     case GkM3perp:
-      mom_gyrokinetic->kernel = m3_perp_kernels[tblidx].kernels[poly_order];
-      mom_gyrokinetic->momt.num_mom = 1;
+      mom_gk->g_kernel = m3_perp_kernels[tblidx].kernels[poly_order];
+      mom_gk->momt.num_mom = 1;
       break;
 
     case ThreeMoments:
-      mom_gyrokinetic->kernel = three_moments_kernels[tblidx].kernels[poly_order];
-      mom_gyrokinetic->momt.num_mom = 3;
+      mom_gk->g_kernel = three_moments_kernels[tblidx].kernels[poly_order];
+      mom_gk->momt.num_mom = 3;
       break;
       
     default: // can't happen
@@ -216,40 +204,40 @@ gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gk
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
-  struct mom_type_gyrokinetic *mom_gyrokinetic = (struct mom_type_gyrokinetic*)
+  struct mom_type_gyrokinetic *mom_gk = (struct mom_type_gyrokinetic*)
     gkyl_malloc(sizeof(struct mom_type_gyrokinetic));
   
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
   int poly_order = cbasis->poly_order;
 
-  mom_gyrokinetic->momt.cdim = cdim;
-  mom_gyrokinetic->momt.pdim = pdim;
-  mom_gyrokinetic->momt.poly_order = poly_order;
-  mom_gyrokinetic->momt.num_config = cbasis->num_basis;
-  mom_gyrokinetic->momt.num_phase = pbasis->num_basis;
+  mom_gk->momt.cdim = cdim;
+  mom_gk->momt.pdim = pdim;
+  mom_gk->momt.poly_order = poly_order;
+  mom_gk->momt.num_config = cbasis->num_basis;
+  mom_gk->momt.num_phase = pbasis->num_basis;
 
   int mom_id = get_gk_mom_id(mom);
   assert(mom_id != BAD);
-  mom_gyrokinetic->momt.num_mom = gk_num_mom(vdim, mom_id); // number of moments
+  mom_gk->momt.num_mom = gk_num_mom(vdim, mom_id); // number of moments
 
-  mom_gyrokinetic->mass = mass;
-  mom_gyrokinetic->conf_range = *conf_range;
+  mom_gk->mass = mass;
+  mom_gk->conf_range = *conf_range;
 
-  mom_gyrokinetic->momt.flag = 0;
-  GKYL_SET_CU_ALLOC(mom_gyrokinetic->momt.flag);
-  mom_gyrokinetic->momt.ref_count = gkyl_ref_count_init(gkyl_gk_mom_free);
+  mom_gk->momt.flag = 0;
+  GKYL_SET_CU_ALLOC(mom_gk->momt.flag);
+  mom_gk->momt.ref_count = gkyl_ref_count_init(gkyl_gk_mom_free);
   
   // copy struct to device
-  struct mom_type_gyrokinetic *mom_gyrokinetic_cu = (struct mom_type_gyrokinetic*)
+  struct mom_type_gyrokinetic *mom_gk_cu = (struct mom_type_gyrokinetic*)
     gkyl_cu_malloc(sizeof(struct mom_type_gyrokinetic));
-  gkyl_cu_memcpy(mom_gyrokinetic_cu, mom_gyrokinetic, sizeof(struct mom_type_gyrokinetic), GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(mom_gk_cu, mom_gk, sizeof(struct mom_type_gyrokinetic), GKYL_CU_MEMCPY_H2D);
 
   assert(cv_index[cdim].vdim[vdim] != -1);
 
-  gkyl_mom_gyrokinetic_set_cu_dev_ptrs<<<1,1>>>(mom_gyrokinetic_cu, mom_id, cbasis->b_type,
+  set_cu_ptrs<<<1,1>>>(mom_gk_cu, mom_id, cbasis->b_type,
     vdim, poly_order, cv_index[cdim].vdim[vdim]);
 
-  mom_gyrokinetic->momt.on_dev = &mom_gyrokinetic_cu->momt;
+  mom_gk->momt.on_dev = &mom_gk_cu->momt;
   
-  return &mom_gyrokinetic->momt;
+  return &mom_gk->momt;
 }
