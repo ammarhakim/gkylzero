@@ -240,13 +240,3 @@ struct mom_type_gyrokinetic {
  * @param ref Reference counter for moment to free
  */
 void gkyl_gk_mom_free(const struct gkyl_ref_count *ref);
-
-GKYL_CU_D
-static void
-kernel(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
-{
-  struct mom_type_gyrokinetic *mom_gyrokinetic = container_of(momt, struct mom_type_gyrokinetic, momt);
-  long cidx = gkyl_range_idx(&mom_gyrokinetic->conf_range, idx);
-  return mom_gyrokinetic->kernel(xc, dx, idx, mom_gyrokinetic->mass, (const double*) gkyl_array_cfetch(mom_gyrokinetic->bmag, cidx), f, out);
-}

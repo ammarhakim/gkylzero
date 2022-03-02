@@ -31,6 +31,17 @@ gkyl_gyrokinetic_set_bmag(const struct gkyl_mom_type *momt, const struct gkyl_ar
   mom_gyrokinetic->bmag = bmag;
 }
 
+static void
+kernel(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_gyrokinetic *mom_gyrokinetic = container_of(momt, struct mom_type_gyrokinetic, momt);
+  
+  long cidx = gkyl_range_idx(&mom_gyrokinetic->conf_range, idx);
+  mom_gyrokinetic->kernel(xc, dx, idx, mom_gyrokinetic->mass,
+    (const double*) gkyl_array_cfetch(mom_gyrokinetic->bmag, cidx), f, out);
+}
+
 struct gkyl_mom_type*
 gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
   const struct gkyl_range* conf_range, double mass, const char *mom)

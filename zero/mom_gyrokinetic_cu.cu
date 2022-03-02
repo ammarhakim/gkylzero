@@ -112,20 +112,25 @@ gkyl_gyrokinetic_set_bmag_cu(const struct gkyl_mom_type *momt, const struct gkyl
   gkyl_gyrokinetic_set_bmag_cu_kernel<<<1,1>>>(momt, bmag->on_dev);
 }
 
+__global__
+static void
+kernel(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_gyrokinetic *mom_gyrokinetic = container_of(momt, struct mom_type_gyrokinetic, momt);
+  
+  long cidx = gkyl_range_idx(&mom_gyrokinetic->conf_range, idx);
+  mom_gyrokinetic->kernel(xc, dx, idx, mom_gyrokinetic->mass,
+    (const double*) gkyl_array_cfetch(mom_gyrokinetic->bmag, cidx), f, out);
+}
 
 __global__
 static void
-gkyl_mom_gyrokinetic_set_cu_dev_ptrs(struct mom_type_gyrokinetic* mom_gyrokinetic, int mom_id, enum gkyl_basis_type b_type, int vdim,
-  int poly_order, int tblidx)
+gkyl_mom_gyrokinetic_set_cu_dev_ptrs(struct mom_type_gyrokinetic *mom_gyrokinetic,
+  int mom_id, enum gkyl_basis_type b_type, int vdim, int poly_order, int tblidx)
 {
 
-  printf("******** FIX BUG IN mom_gyrokinetic to enable it to run on GPUs!");    
-  assert(false);
-  // NOTE: FIX ME. the following line is a problem. However, the issue
-  // appears in the priv header and not here, apparently. The problem
-  // is the return statement exactly like the issue with vlasov_poisson volume
-  
-  //  mom_gyrokinetic->momt.kernel = kernel;  
+  mom_gyrokinetic->momt.kernel = kernel;
   
   // choose kernel tables based on basis-function type
   const gkyl_gyrokinetic_mom_kern_list *m0_kernels, *m1_kernels, *m2_kernels, 
