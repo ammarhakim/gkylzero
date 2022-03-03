@@ -73,6 +73,10 @@ struct vm_bgk_collisions {
   // struct proj_maxwellian;
 };
 
+
+// context for use in computing applied acceleration
+struct vm_eval_accel_ctx { evalf_t accel_func; void *accel_ctx; };
+
 // species data
 struct vm_species {
   struct gkyl_vlasov_species info; // data for species
@@ -98,6 +102,9 @@ struct vm_species {
 
   bool has_accel; // flag to indicate there is applied acceleration
   struct gkyl_array *accel; // applied acceleration
+  struct gkyl_array *accel_host; // host copy for use in IO and projecting
+  gkyl_proj_on_basis *accel_proj; // projector for acceleration
+  struct vm_eval_accel_ctx accel_ctx; // context for applied acceleration
 
   enum gkyl_collision_id collision_id; // type of collisions
   struct vm_lbo_collisions lbo;
@@ -263,6 +270,15 @@ void vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_l
  * @param s On output, initialized species object
  */
 void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_species *s);
+
+/**
+ * Compute species applied accleration term
+ *
+ * @param app Vlasov app object
+ * @param species Species object
+ * @param tm Time for use in acceleration
+ */
+void vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, double tm);
 
 /**
  * Compute species initial conditions.

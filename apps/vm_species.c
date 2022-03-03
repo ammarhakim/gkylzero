@@ -1,7 +1,20 @@
+#include "gkyl_array_ops.h"
 #include <assert.h>
 #include <gkyl_array.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_vlasov_priv.h>
+#include <gkyl_proj_on_basis.h>
+
+static void
+eval_accel(double t, const double *xn, double *aout, void *ctx)
+{
+  struct vm_eval_accel_ctx *a_ctx = ctx;
+  double a[3]; // output acceleration
+  a_ctx->accel_func(t, xn, a, a_ctx->accel_ctx);
+  
+  for (int i=0; i<3; ++i) aout[i] = a[i];
+  for (int i=3; i<8; ++i) aout[i] = 0.0;
+}
 
 // initialize species object
 void
@@ -100,12 +113,23 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   s->slvr = gkyl_hyper_dg_new(&s->grid, &app->basis, s->eqn,
     num_up_dirs, up_dirs, zero_flux_flags, 1, app->use_gpu);
 
-  // check if there is applied acceleration
+  s->has_accel = false;
+  // setup applied acceleration
   if (s->info.accel) {
     s->has_accel = true;
     // we need to ensure applied acceleration has same shape as EM
     // field as it will get added to qmem
     s->accel = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
+
+    s->accel_host = s->accel;
+    if (app->use_gpu)
+      s->accel_host = mkarr(false, 8*app->confBasis.num_basis, app->local_ext.volume);
+
+    s->accel_ctx = (struct vm_eval_accel_ctx) {
+      .accel_func = s->info.accel, .accel_ctx = s->info.accel_ctx
+    };
+    s->accel_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, app->confBasis.poly_order+1,
+      8, eval_accel, &s->accel_ctx);
   }
 
   // determine collision type to use in vlasov update
@@ -128,6 +152,19 @@ vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
 
   if (app->use_gpu) // note: f_host is same as f when not on GPUs
     gkyl_array_copy(species->f, species->f_host);
+
+  // we are computing acceleration for now as it is time-independent
+  vm_species_calc_accel(app, species, t0);
+}
+
+void
+vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, double tm)
+{
+  if (species->has_accel) {
+    gkyl_proj_on_basis_advance(species->accel_proj, tm, &species->local, species->accel_host);
+    if (app->use_gpu) // note: accel_host is same as accel when not on GPUs
+      gkyl_array_copy(species->accel, species->accel_host);
+  }
 }
 
 // Compute the RHS for species update, returning maximum stable
@@ -140,8 +177,12 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   if (em) {
     double qbym = species->info.charge/species->info.mass;
     gkyl_array_set(species->qmem, qbym, em);
+
+    if (species->has_accel)
+      gkyl_array_accumulate(species->qmem, 1.0, species->accel);
+    
     gkyl_vlasov_set_auxfields(species->eqn, 
-      (struct gkyl_dg_vlasov_auxfields) { .qmem = species->qmem  }); // must set EM fields to use
+      (struct gkyl_dg_vlasov_auxfields) { .qmem = species->qmem  }); // set total acceleration
   }
   
   gkyl_array_clear(rhs, 0.0);
@@ -231,8 +272,13 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   if (app->has_field)
     gkyl_array_release(s->qmem);
   
-  if (s->has_accel)
+  if (s->has_accel) {
     gkyl_array_release(s->accel);
+    if (app->use_gpu)
+      gkyl_array_release(s->accel_host);
+
+    gkyl_proj_on_basis_release(s->accel_proj);
+  }
 
   if (s->collision_id == GKYL_LBO_COLLISIONS)
     vm_species_lbo_release(app, &s->lbo);
