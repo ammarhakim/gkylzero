@@ -21,50 +21,27 @@ gkyl_lbo_gyrokinetic_diff_free(const struct gkyl_ref_count* ref)
 }
 
 void
-gkyl_lbo_gyrokinetic_diff_set_nuSum(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuSum)
+gkyl_lbo_gyrokinetic_diff_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_gyrokinetic_diff_auxfields auxin)
 {
+
 #ifdef GKYL_HAVE_CUDA
- if (gkyl_array_is_cu_dev(nuSum)) {
-   //gkyl_lbo_gyrokinetic_diff_set_nuSum_cu(eqn->on_dev, nuSum);
+ if (gkyl_array_is_cu_dev(auxin.bmag_inv) && gkyl_array_is_cu_dev(auxin.nuSum) &&
+     gkyl_array_is_cu_dev(auxin.nuUSum) && gkyl_array_is_cu_dev(auxin.nuVtSqSum)) {
+   gkyl_lbo_gyrokinetic_diff_set_auxfields_cu(eqn->on_dev, auxin);
    return;
  }
 #endif
 
   struct dg_lbo_gyrokinetic_diff *lbo_gyrokinetic_diff = container_of(eqn, struct dg_lbo_gyrokinetic_diff, eqn);
-  lbo_gyrokinetic_diff->nuSum = nuSum;
+  lbo_gyrokinetic_diff->auxfields.bmag_inv = auxin.bmag_inv;
+  lbo_gyrokinetic_diff->auxfields.nuSum = auxin.nuSum;
+  lbo_gyrokinetic_diff->auxfields.nuUSum = auxin.nuUSum;
+  lbo_gyrokinetic_diff->auxfields.nuVtSqSum = auxin.nuVtSqSum;
 }
-
-void
-gkyl_lbo_gyrokinetic_diff_set_nuUSum(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuUSum)
-{
-#ifdef GKYL_HAVE_CUDA
- if (gkyl_array_is_cu_dev(nuUSum)) {
-   //gkyl_lbo_gyrokinetic_diff_set_nuUSum_cu(eqn->on_dev, nuUSum);
-   return;
- }
-#endif
-
-  struct dg_lbo_gyrokinetic_diff *lbo_gyrokinetic_diff = container_of(eqn, struct dg_lbo_gyrokinetic_diff, eqn);
-  lbo_gyrokinetic_diff->nuUSum = nuUSum;
-}
-
-void
-gkyl_lbo_gyrokinetic_diff_set_nuVtSqSum(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuVtSqSum)
-{
-#ifdef GKYL_HAVE_CUDA
- if (gkyl_array_is_cu_dev(nuVtSqSum)) {
-   //gkyl_lbo_gyrokinetic_diff_set_nuVtSqSum_cu(eqn->on_dev, nuVtSqSum);
-   return;
- }
-#endif
-
-  struct dg_lbo_gyrokinetic_diff *lbo_gyrokinetic_diff = container_of(eqn, struct dg_lbo_gyrokinetic_diff, eqn);
-  lbo_gyrokinetic_diff->nuVtSqSum = nuVtSqSum;
-}
-
 
 struct gkyl_dg_eqn*
-gkyl_dg_lbo_gyrokinetic_diff_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range)
+gkyl_dg_lbo_gyrokinetic_diff_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+  const struct gkyl_range* conf_range, double mass)
 {
   struct dg_lbo_gyrokinetic_diff* lbo_gyrokinetic_diff = gkyl_malloc(sizeof(struct dg_lbo_gyrokinetic_diff));
 
@@ -92,14 +69,6 @@ gkyl_dg_lbo_gyrokinetic_diff_new(const struct gkyl_basis* cbasis, const struct g
       boundary_surf_mu_kernels = ser_boundary_surf_mu_kernels;
       break;
 
-    case GKYL_BASIS_MODAL_TENSOR:
-      vol_kernels = ten_vol_kernels;
-      surf_vpar_kernels = ten_surf_vpar_kernels;
-      surf_mu_kernels = ten_surf_mu_kernels;
-      boundary_surf_vpar_kernels = ten_boundary_surf_vpar_kernels;
-      boundary_surf_mu_kernels = ten_boundary_surf_mu_kernels;
-      break;
-
     default:
       assert(false);
       break;    
@@ -120,10 +89,11 @@ gkyl_dg_lbo_gyrokinetic_diff_new(const struct gkyl_basis* cbasis, const struct g
   for (int i=0; i<vdim; ++i) assert(lbo_gyrokinetic_diff->surf[i]);
   for (int i=0; i<vdim; ++i) assert(lbo_gyrokinetic_diff->boundary_surf[i]);
 
-  lbo_gyrokinetic_diff->bmag_inv = 0;
-  lbo_gyrokinetic_diff->nuSum = 0;
-  lbo_gyrokinetic_diff->nuUSum = 0;
-  lbo_gyrokinetic_diff->nuVtSqSum = 0;
+  lbo_gyrokinetic_diff->mass = mass;
+  lbo_gyrokinetic_diff->auxfields.bmag_inv = 0;
+  lbo_gyrokinetic_diff->auxfields.nuSum = 0;
+  lbo_gyrokinetic_diff->auxfields.nuUSum = 0;
+  lbo_gyrokinetic_diff->auxfields.nuVtSqSum = 0;
   lbo_gyrokinetic_diff->conf_range = *conf_range;
 
   lbo_gyrokinetic_diff->eqn.flags = 0;
@@ -137,8 +107,8 @@ gkyl_dg_lbo_gyrokinetic_diff_new(const struct gkyl_basis* cbasis, const struct g
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_dg_eqn*
-gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range)
+gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+  const struct gkyl_range* conf_range, double mass)
 {
   assert(false);
   return 0;

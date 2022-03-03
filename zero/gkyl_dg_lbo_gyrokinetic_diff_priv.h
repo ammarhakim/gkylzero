@@ -95,69 +95,6 @@ static const gkyl_dg_lbo_gyrokinetic_diff_boundary_surf_kern_list ser_boundary_s
   { NULL, lbo_gyrokinetic_diff_boundary_surfmu_3x2v_ser_p1, NULL                   }, // 3
 };
 
-//
-// Tensor-product basis kernels.
-//
-
-GKYL_CU_D
-static const gkyl_dg_lbo_gyrokinetic_diff_vol_kern_list ten_vol_kernels[] = {
-  // 1x kernels
-  { NULL, NULL, lbo_gyrokinetic_diff_vol_1x1v_tensor_p2 }, // 0
-  { NULL, NULL, lbo_gyrokinetic_diff_vol_1x2v_tensor_p2 }, // 1
-  // 2x kernels
-  { NULL, NULL, NULL }, // 2
-  // 3x kernels
-  { NULL, NULL, NULL }, // 3
-};
-
-// Surface kernel list: vpar-direction
-GKYL_CU_D
-static const gkyl_dg_lbo_gyrokinetic_diff_surf_kern_list ten_surf_vpar_kernels[] = {
-  // 1x kernels
-  { NULL, NULL, lbo_gyrokinetic_diff_surfvpar_1x1v_tensor_p2 }, // 0
-  { NULL, NULL, lbo_gyrokinetic_diff_surfvpar_1x2v_tensor_p2 }, // 1
-  // 2x kernels
-  { NULL, NULL, NULL }, // 2
-  // 3x kernels
-  { NULL, NULL, NULL }, // 3
-};
-
-// Surface kernel list: mu-direction
-GKYL_CU_D
-static const gkyl_dg_lbo_gyrokinetic_diff_surf_kern_list ten_surf_mu_kernels[] = {
-  // 1x kernels
-  { NULL, NULL, NULL }, // 0
-  { NULL, NULL, lbo_gyrokinetic_diff_surfmu_1x2v_tensor_p2 }, // 1
-  // 2x kernels
-  { NULL, NULL, NULL }, // 2
-  // 3x kernels
-  { NULL, NULL, NULL }, // 3
-};
-
-// Boundary surface kernel (zero-flux BCs) list: vpar-direction
-GKYL_CU_D
-static const gkyl_dg_lbo_gyrokinetic_diff_boundary_surf_kern_list ten_boundary_surf_vpar_kernels[] = {
-  // 1x kernels
-  { NULL, NULL, lbo_gyrokinetic_diff_boundary_surfvpar_1x1v_tensor_p2 }, // 0
-  { NULL, NULL, lbo_gyrokinetic_diff_boundary_surfvpar_1x2v_tensor_p2 }, // 1
-  // 2x kernels
-  { NULL, NULL, NULL }, // 2
-  // 3x kernels
-  { NULL, NULL, NULL }, // 3
-};
-
-// Constant nu boundary surface kernel (zero-flux BCs) list: mu-direction
-GKYL_CU_D
-static const gkyl_dg_lbo_gyrokinetic_diff_boundary_surf_kern_list ten_boundary_surf_mu_kernels[] = {
-  // 1x kernels
-  { NULL, NULL, NULL }, // 0
-  { NULL, NULL, lbo_gyrokinetic_diff_boundary_surfmu_1x2v_tensor_p2 }, // 1
-  // 2x kernels
-  { NULL, NULL, NULL }, // 2
-  // 3x kernels
-  { NULL, NULL, NULL }, // 3
-};
-
 // "Choose Kernel" based on cdim, vdim and polyorder
 #define CK(lst, cdim, vd, poly_order) lst[cv_index[cdim].vdim[vd]].kernels[poly_order]
 
@@ -170,10 +107,7 @@ struct dg_lbo_gyrokinetic_diff {
   lbo_gyrokinetic_diff_boundary_surf_t boundary_surf[2]; // Surface terms for acceleration.
   struct gkyl_range conf_range; // Configuration space range.
   double mass; // Species mass.
-  const struct gkyl_array *bmag_inv;
-  const struct gkyl_array *nuSum;
-  const struct gkyl_array *nuUSum;
-  const struct gkyl_array *nuVtSqSum;
+  struct gkyl_dg_lbo_gyrokinetic_diff_auxfields auxfields; // Auxiliary fields.
 };
 
 void gkyl_lbo_gyrokinetic_diff_free(const struct gkyl_ref_count* ref);
@@ -186,10 +120,10 @@ vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
   struct dg_lbo_gyrokinetic_diff *lbo_gyrokinetic_diff = container_of(eqn, struct dg_lbo_gyrokinetic_diff, eqn);
   long cidx = gkyl_range_idx(&lbo_gyrokinetic_diff->conf_range, idx);
   return lbo_gyrokinetic_diff->vol(xc, dx, lbo_gyrokinetic_diff->mass, 
-    (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->bmag_inv, cidx), 
-    (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->nuSum, cidx), 
-    (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->nuUSum, cidx), 
-    (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->nuVtSqSum, cidx), 
+    (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.bmag_inv, cidx), 
+    (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuSum, cidx), 
+    (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuUSum, cidx), 
+    (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuVtSqSum, cidx), 
     qIn, qRhsOut);
 }
 
@@ -206,10 +140,10 @@ surf(const struct gkyl_dg_eqn *eqn,
   long cidx = gkyl_range_idx(&lbo_gyrokinetic_diff->conf_range, idxC);
   if (dir >= lbo_gyrokinetic_diff->cdim) {
     lbo_gyrokinetic_diff->surf[dir-lbo_gyrokinetic_diff->cdim](xcC, dxC, lbo_gyrokinetic_diff->mass,
-      (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->bmag_inv, cidx), 
-      (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->nuSum, cidx), 
-      (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->nuUSum, cidx), 
-      (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->nuVtSqSum, cidx), 
+      (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.bmag_inv, cidx), 
+      (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuSum, cidx), 
+      (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuUSum, cidx), 
+      (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuVtSqSum, cidx), 
       qInL, qInC, qInR, qRhsOut);
   }
 }
@@ -228,10 +162,10 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   if (dir >= lbo_gyrokinetic_diff->cdim) {
     lbo_gyrokinetic_diff->boundary_surf[dir-lbo_gyrokinetic_diff->cdim](xcSkin, dxSkin, 
       lbo_gyrokinetic_diff->mass,
-      (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->bmag_inv, cidx), 
-      (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->nuSum, cidx), 
-      (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->nuUSum, cidx), 
-      (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->nuVtSqSum, cidx),  
+      (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.bmag_inv, cidx), 
+      (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuSum, cidx), 
+      (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuUSum, cidx), 
+      (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuVtSqSum, cidx),   
       edge, qInEdge, qInSkin, qRhsOut);
   }
 }
