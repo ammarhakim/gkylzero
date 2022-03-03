@@ -308,8 +308,10 @@ void test_array_scale_by_cell()
 
   gkyl_array_scale_by_cell(a1, s);
 
-  for (unsigned i=0; i<a1->size; ++i)
-    TEST_CHECK( gkyl_compare(a1_d[i], i*(i/(1.0*a1->ncomp)), 1e-14) );
+  for (unsigned i=0; i<a1->size; ++i) {
+    int fact = (i/a1->ncomp);
+    TEST_CHECK( gkyl_compare(a1_d[i], i*1.0*fact, 1e-14) );
+  }
 
   gkyl_array_release(a1);
   gkyl_array_release(s);
