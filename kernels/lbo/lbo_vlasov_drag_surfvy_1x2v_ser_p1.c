@@ -10,7 +10,6 @@ GKYL_CU_DH void lbo_vlasov_drag_surfvy_1x2v_ser_p1(const double *w, const double
   // fl/fc/fr:      distribution function in cells 
   // out:           incremented distribution function in cell 
   double rdv2 = 2.0/dxv[2]; 
-  double rdvSq4 = 4.0/(dxv[2]*dxv[2]); 
 
   const double *sumNuUy = &nuUSum[2]; 
 
@@ -24,49 +23,37 @@ GKYL_CU_DH void lbo_vlasov_drag_surfvy_1x2v_ser_p1(const double *w, const double
 
   double fUpwindQuad_l[4] = {0.0};
   double fUpwindQuad_r[4] = {0.0};
-  double fUpwind_l[4] = {0.0};;
+  double fUpwind_l[4] = {0.0};
   double fUpwind_r[4] = {0.0};
   double Gdrag_l[4] = {0.0}; 
   double Gdrag_r[4] = {0.0}; 
 
   if (alphaDrSurf_l[0]-alphaDrSurf_l[1] < 0) { 
     fUpwindQuad_l[0] = ser_1x2v_p1_surfvy_quad_0(1, fl); 
-  } else { 
-    fUpwindQuad_l[0] = ser_1x2v_p1_surfvy_quad_0(-1, fc); 
-  } 
-  if (alphaDrSurf_l[1]+alphaDrSurf_l[0] < 0) { 
-    fUpwindQuad_l[1] = ser_1x2v_p1_surfvy_quad_1(1, fl); 
-  } else { 
-    fUpwindQuad_l[1] = ser_1x2v_p1_surfvy_quad_1(-1, fc); 
-  } 
-  if (alphaDrSurf_l[0]-alphaDrSurf_l[1] < 0) { 
     fUpwindQuad_l[2] = ser_1x2v_p1_surfvy_quad_2(1, fl); 
   } else { 
+    fUpwindQuad_l[0] = ser_1x2v_p1_surfvy_quad_0(-1, fc); 
     fUpwindQuad_l[2] = ser_1x2v_p1_surfvy_quad_2(-1, fc); 
-  } 
-  if (alphaDrSurf_l[1]+alphaDrSurf_l[0] < 0) { 
-    fUpwindQuad_l[3] = ser_1x2v_p1_surfvy_quad_3(1, fl); 
-  } else { 
-    fUpwindQuad_l[3] = ser_1x2v_p1_surfvy_quad_3(-1, fc); 
   } 
   if (alphaDrSurf_r[0]-alphaDrSurf_r[1] < 0) { 
     fUpwindQuad_r[0] = ser_1x2v_p1_surfvy_quad_0(1, fc); 
+    fUpwindQuad_r[2] = ser_1x2v_p1_surfvy_quad_2(1, fc); 
   } else { 
     fUpwindQuad_r[0] = ser_1x2v_p1_surfvy_quad_0(-1, fr); 
+    fUpwindQuad_r[2] = ser_1x2v_p1_surfvy_quad_2(-1, fr); 
+  } 
+  if (alphaDrSurf_l[1]+alphaDrSurf_l[0] < 0) { 
+    fUpwindQuad_l[1] = ser_1x2v_p1_surfvy_quad_1(1, fl); 
+    fUpwindQuad_l[3] = ser_1x2v_p1_surfvy_quad_3(1, fl); 
+  } else { 
+    fUpwindQuad_l[1] = ser_1x2v_p1_surfvy_quad_1(-1, fc); 
+    fUpwindQuad_l[3] = ser_1x2v_p1_surfvy_quad_3(-1, fc); 
   } 
   if (alphaDrSurf_r[1]+alphaDrSurf_r[0] < 0) { 
     fUpwindQuad_r[1] = ser_1x2v_p1_surfvy_quad_1(1, fc); 
-  } else { 
-    fUpwindQuad_r[1] = ser_1x2v_p1_surfvy_quad_1(-1, fr); 
-  } 
-  if (alphaDrSurf_r[0]-alphaDrSurf_r[1] < 0) { 
-    fUpwindQuad_r[2] = ser_1x2v_p1_surfvy_quad_2(1, fc); 
-  } else { 
-    fUpwindQuad_r[2] = ser_1x2v_p1_surfvy_quad_2(-1, fr); 
-  } 
-  if (alphaDrSurf_r[1]+alphaDrSurf_r[0] < 0) { 
     fUpwindQuad_r[3] = ser_1x2v_p1_surfvy_quad_3(1, fc); 
   } else { 
+    fUpwindQuad_r[1] = ser_1x2v_p1_surfvy_quad_1(-1, fr); 
     fUpwindQuad_r[3] = ser_1x2v_p1_surfvy_quad_3(-1, fr); 
   } 
   fUpwind_l[0] = 0.5*(fUpwindQuad_l[3]+fUpwindQuad_l[2]+fUpwindQuad_l[1]+fUpwindQuad_l[0]); 

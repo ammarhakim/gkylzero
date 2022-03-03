@@ -1,36 +1,28 @@
 #include <gkyl_prim_lbo_vlasov_kernels.h> 
  
-GKYL_CU_DH void vlasov_cross_prim_moments_2x2v_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double betaGreenep1, const double mSelf, const double nuSelf, const double *uSelf, const double *vtSqSelf, const double mOther, const double nuOther, const double *uOther, const double *vtSqOther, const double *m0, const double *m1, const double *m2, const double *cM, const double *cE) 
+GKYL_CU_DH void vlasov_cross_prim_moments_2x2v_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double betaGreenep1, const double mSelf, const double nuSelf, const double *uSelf, const double *vtSqSelf, const double mOther, const double nuOther, const double *uOther, const double *vtSqOther, const double *moms, const double *boundary_corrections) 
 { 
-  // betaGreenep1:       free parameter beta+1. This has to be >0. 
-  // nu, m:              collisionality and mass. 
-  // m0,m1,m2:           moments of the distribution function. 
-  // u,vtSq:             self primitive moments: mean flow velocity and thermal speed squared. 
-  // cM,cE:              corrections to momentum and energy conservation due to finite velocity space. 
-  // uCross,vtSqCross:   cross primitive moments: mean flow velocity and thermal speed squared. 
+  // betaGreenep1:         free parameter beta+1. This has to be >0. 
+  // nu, m:                collisionality and mass. 
+  // moms:                 moments of the distribution function. 
+  // u,vtSq:               self primitive moments: mean flow velocity and thermal speed squared. 
+  // boundary_corrections: corrections to momentum and energy conservation due to finite velocity space. 
+  // uCross,vtSqCross:     cross primitive moments: mean flow velocity and thermal speed squared. 
  
   // If a corner value is below zero, use cell average m0.
   bool cellAvg = false;
-  if ((-1.936491673103708*m0[7])-1.936491673103708*m0[6]+1.118033988749895*m0[5]+1.118033988749895*m0[4]+1.5*m0[3]-0.8660254037844386*m0[2]-0.8660254037844386*m0[1]+0.5*m0[0] < 0) { 
-    cellAvg = true;
-  }
-  if ((-1.936491673103708*m0[7])+1.936491673103708*m0[6]+1.118033988749895*m0[5]+1.118033988749895*m0[4]-1.5*m0[3]+0.8660254037844386*m0[2]-0.8660254037844386*m0[1]+0.5*m0[0] < 0) { 
-    cellAvg = true;
-  }
-  if (1.936491673103708*m0[7]-1.936491673103708*m0[6]+1.118033988749895*m0[5]+1.118033988749895*m0[4]-1.5*m0[3]-0.8660254037844386*m0[2]+0.8660254037844386*m0[1]+0.5*m0[0] < 0) { 
-    cellAvg = true;
-  }
-  if (1.936491673103708*m0[7]+1.936491673103708*m0[6]+1.118033988749895*m0[5]+1.118033988749895*m0[4]+1.5*m0[3]+0.8660254037844386*m0[2]+0.8660254037844386*m0[1]+0.5*m0[0] < 0) { 
-    cellAvg = true;
-  }
+  if (-0.5*(3.872983346207417*(moms[7]+moms[6])-2.23606797749979*(moms[5]+moms[4])-3.0*moms[3]+1.732050807568877*(moms[2]+moms[1])-1.0*moms[0]) < 0) cellAvg = true; 
+  if (0.5*(3.872983346207417*moms[7]-3.872983346207417*moms[6]+2.23606797749979*(moms[5]+moms[4])-3.0*moms[3]-1.732050807568877*moms[2]+1.732050807568877*moms[1]+moms[0]) < 0) cellAvg = true; 
+  if (-0.5*(3.872983346207417*moms[7]-3.872983346207417*moms[6]-2.23606797749979*(moms[5]+moms[4])+3.0*moms[3]-1.732050807568877*moms[2]+1.732050807568877*moms[1]-1.0*moms[0]) < 0) cellAvg = true; 
+  if (0.5*(3.872983346207417*(moms[7]+moms[6])+2.23606797749979*(moms[5]+moms[4])+3.0*moms[3]+1.732050807568877*(moms[2]+moms[1])+moms[0]) < 0) cellAvg = true; 
  
-  double m0r[8]; 
-  double m1r[16]; 
-  double m2r[8]; 
-  double cMr[16]; 
-  double cEr[8]; 
+  double m0r[8] = {0.0}; 
+  double m1r[16] = {0.0}; 
+  double m2r[8] = {0.0}; 
+  double cMr[16] = {0.0}; 
+  double cEr[8] = {0.0}; 
   if (cellAvg) { 
-    m0r[0] = m0[0]; 
+    m0r[0] = moms[0]; 
     m0r[1] = 0.0; 
     m0r[2] = 0.0; 
     m0r[3] = 0.0; 
@@ -38,7 +30,7 @@ GKYL_CU_DH void vlasov_cross_prim_moments_2x2v_ser_p2(struct gkyl_mat *A, struct
     m0r[5] = 0.0; 
     m0r[6] = 0.0; 
     m0r[7] = 0.0; 
-    m1r[0] = m1[0]; 
+    m1r[0] = moms[8]; 
     m1r[1] = 0.0; 
     m1r[2] = 0.0; 
     m1r[3] = 0.0; 
@@ -46,7 +38,7 @@ GKYL_CU_DH void vlasov_cross_prim_moments_2x2v_ser_p2(struct gkyl_mat *A, struct
     m1r[5] = 0.0; 
     m1r[6] = 0.0; 
     m1r[7] = 0.0; 
-    cMr[0] = cM[0]; 
+    cMr[0] = boundary_corrections[0]; 
     cMr[1] = 0.0; 
     cMr[2] = 0.0; 
     cMr[3] = 0.0; 
@@ -54,7 +46,7 @@ GKYL_CU_DH void vlasov_cross_prim_moments_2x2v_ser_p2(struct gkyl_mat *A, struct
     cMr[5] = 0.0; 
     cMr[6] = 0.0; 
     cMr[7] = 0.0; 
-    m1r[8] = m1[8]; 
+    m1r[8] = moms[16]; 
     m1r[9] = 0.0; 
     m1r[10] = 0.0; 
     m1r[11] = 0.0; 
@@ -62,7 +54,7 @@ GKYL_CU_DH void vlasov_cross_prim_moments_2x2v_ser_p2(struct gkyl_mat *A, struct
     m1r[13] = 0.0; 
     m1r[14] = 0.0; 
     m1r[15] = 0.0; 
-    cMr[8] = cM[8]; 
+    cMr[8] = boundary_corrections[8]; 
     cMr[9] = 0.0; 
     cMr[10] = 0.0; 
     cMr[11] = 0.0; 
@@ -70,7 +62,7 @@ GKYL_CU_DH void vlasov_cross_prim_moments_2x2v_ser_p2(struct gkyl_mat *A, struct
     cMr[13] = 0.0; 
     cMr[14] = 0.0; 
     cMr[15] = 0.0; 
-    m2r[0] = m2[0]; 
+    m2r[0] = moms[24]; 
     m2r[1] = 0.0; 
     m2r[2] = 0.0; 
     m2r[3] = 0.0; 
@@ -78,7 +70,7 @@ GKYL_CU_DH void vlasov_cross_prim_moments_2x2v_ser_p2(struct gkyl_mat *A, struct
     m2r[5] = 0.0; 
     m2r[6] = 0.0; 
     m2r[7] = 0.0; 
-    cEr[0] = cE[0]; 
+    cEr[0] = boundary_corrections[16]; 
     cEr[1] = 0.0; 
     cEr[2] = 0.0; 
     cEr[3] = 0.0; 
@@ -87,72 +79,67 @@ GKYL_CU_DH void vlasov_cross_prim_moments_2x2v_ser_p2(struct gkyl_mat *A, struct
     cEr[6] = 0.0; 
     cEr[7] = 0.0; 
   } else { 
-    m0r[0] = m0[0]; 
-    m0r[1] = m0[1]; 
-    m0r[2] = m0[2]; 
-    m0r[3] = m0[3]; 
-    m0r[4] = m0[4]; 
-    m0r[5] = m0[5]; 
-    m0r[6] = m0[6]; 
-    m0r[7] = m0[7]; 
-    m1r[0] = m1[0]; 
-    m1r[1] = m1[1]; 
-    m1r[2] = m1[2]; 
-    m1r[3] = m1[3]; 
-    m1r[4] = m1[4]; 
-    m1r[5] = m1[5]; 
-    m1r[6] = m1[6]; 
-    m1r[7] = m1[7]; 
-    m1r[8] = m1[8]; 
-    m1r[9] = m1[9]; 
-    m1r[10] = m1[10]; 
-    m1r[11] = m1[11]; 
-    m1r[12] = m1[12]; 
-    m1r[13] = m1[13]; 
-    m1r[14] = m1[14]; 
-    m1r[15] = m1[15]; 
-    m2r[0] = m2[0]; 
-    m2r[1] = m2[1]; 
-    m2r[2] = m2[2]; 
-    m2r[3] = m2[3]; 
-    m2r[4] = m2[4]; 
-    m2r[5] = m2[5]; 
-    m2r[6] = m2[6]; 
-    m2r[7] = m2[7]; 
-    cMr[0] = cM[0]; 
-    cMr[1] = cM[1]; 
-    cMr[2] = cM[2]; 
-    cMr[3] = cM[3]; 
-    cMr[4] = cM[4]; 
-    cMr[5] = cM[5]; 
-    cMr[6] = cM[6]; 
-    cMr[7] = cM[7]; 
-    cMr[8] = cM[8]; 
-    cMr[9] = cM[9]; 
-    cMr[10] = cM[10]; 
-    cMr[11] = cM[11]; 
-    cMr[12] = cM[12]; 
-    cMr[13] = cM[13]; 
-    cMr[14] = cM[14]; 
-    cMr[15] = cM[15]; 
-    cEr[0] = cE[0]; 
-    cEr[1] = cE[1]; 
-    cEr[2] = cE[2]; 
-    cEr[3] = cE[3]; 
-    cEr[4] = cE[4]; 
-    cEr[5] = cE[5]; 
-    cEr[6] = cE[6]; 
-    cEr[7] = cE[7]; 
+    m0r[0] = moms[0]; 
+    m0r[1] = moms[1]; 
+    m0r[2] = moms[2]; 
+    m0r[3] = moms[3]; 
+    m0r[4] = moms[4]; 
+    m0r[5] = moms[5]; 
+    m0r[6] = moms[6]; 
+    m0r[7] = moms[7]; 
+    m1r[0] = moms[8]; 
+    m1r[1] = moms[9]; 
+    m1r[2] = moms[10]; 
+    m1r[3] = moms[11]; 
+    m1r[4] = moms[12]; 
+    m1r[5] = moms[13]; 
+    m1r[6] = moms[14]; 
+    m1r[7] = moms[15]; 
+    m1r[8] = moms[16]; 
+    m1r[9] = moms[17]; 
+    m1r[10] = moms[18]; 
+    m1r[11] = moms[19]; 
+    m1r[12] = moms[20]; 
+    m1r[13] = moms[21]; 
+    m1r[14] = moms[22]; 
+    m1r[15] = moms[23]; 
+    m2r[0] = moms[24]; 
+    m2r[1] = moms[25]; 
+    m2r[2] = moms[26]; 
+    m2r[3] = moms[27]; 
+    m2r[4] = moms[28]; 
+    m2r[5] = moms[29]; 
+    m2r[6] = moms[30]; 
+    m2r[7] = moms[31]; 
+    cMr[0] = boundary_corrections[0]; 
+    cMr[1] = boundary_corrections[1]; 
+    cMr[2] = boundary_corrections[2]; 
+    cMr[3] = boundary_corrections[3]; 
+    cMr[4] = boundary_corrections[4]; 
+    cMr[5] = boundary_corrections[5]; 
+    cMr[6] = boundary_corrections[6]; 
+    cMr[7] = boundary_corrections[7]; 
+    cMr[8] = boundary_corrections[8]; 
+    cMr[9] = boundary_corrections[9]; 
+    cMr[10] = boundary_corrections[10]; 
+    cMr[11] = boundary_corrections[11]; 
+    cMr[12] = boundary_corrections[12]; 
+    cMr[13] = boundary_corrections[13]; 
+    cMr[14] = boundary_corrections[14]; 
+    cMr[15] = boundary_corrections[15]; 
+    cEr[0] = boundary_corrections[16]; 
+    cEr[1] = boundary_corrections[17]; 
+    cEr[2] = boundary_corrections[18]; 
+    cEr[3] = boundary_corrections[19]; 
+    cEr[4] = boundary_corrections[20]; 
+    cEr[5] = boundary_corrections[21]; 
+    cEr[6] = boundary_corrections[22]; 
+    cEr[7] = boundary_corrections[23]; 
   } 
  
-  double mnuSelf   = mSelf*nuSelf; 
-  double mnuOther  = mOther*nuOther; 
-  double momRHS[16]; 
-  // zero out momentum RHS array. 
-  for (int vd=0; vd<16; vd++) 
-  { 
-    momRHS[vd] = 0.0; 
-  } 
+  double mnuSelf = mSelf*nuSelf; 
+  double mnuOther = mOther*nuOther; 
+  double momRHS[16] = {0.0}; 
  
   // ... Block from weak multiply of mSelf, nuSelf, M0 and uCrossX ... // 
   gkyl_mat_set(A,0,0,m0r[0]*mnuSelf); 
@@ -560,14 +547,8 @@ GKYL_CU_DH void vlasov_cross_prim_moments_2x2v_ser_p2(struct gkyl_mat *A, struct
   momRHS[14] += -0.004761904761904762*((84.0*m0r[3]*uSelf[15]-84.0*m0r[3]*uOther[15]+(93.91485505499117*m0r[5]+67.0820393249937*m0r[4]+105.0*m0r[0])*uSelf[14]+((-93.91485505499117*m0r[5])-67.0820393249937*m0r[4]-105.0*m0r[0])*uOther[14]+93.91485505499117*m0r[6]*uSelf[13]-93.91485505499117*m0r[6]*uOther[13]+(67.0820393249937*m0r[6]+105.0*m0r[2])*uSelf[12]+((-67.0820393249937*m0r[6])-105.0*m0r[2])*uOther[12]+(84.0*m0r[7]+93.91485505499117*m0r[1])*uSelf[11]+((-84.0*m0r[7])-93.91485505499117*m0r[1])*uOther[11]+105.0*m0r[4]*uSelf[10]-105.0*m0r[4]*uOther[10]+93.91485505499117*m0r[3]*uSelf[9]-93.91485505499117*m0r[3]*uOther[9]+105.0*m0r[6]*uSelf[8]-105.0*m0r[6]*uOther[8])*betaGreenep1-420.0*m1r[14])*mnuSelf; 
   momRHS[15] += -0.004761904761904762*(((67.0820393249937*m0r[5]+93.91485505499117*m0r[4]+105.0*m0r[0])*uSelf[15]+((-67.0820393249937*m0r[5])-93.91485505499117*m0r[4]-105.0*m0r[0])*uOther[15]+84.0*m0r[3]*uSelf[14]-84.0*m0r[3]*uOther[14]+(67.0820393249937*m0r[7]+105.0*m0r[1])*uSelf[13]+((-67.0820393249937*m0r[7])-105.0*m0r[1])*uOther[13]+93.91485505499117*m0r[7]*uSelf[12]-93.91485505499117*m0r[7]*uOther[12]+(84.0*m0r[6]+93.91485505499117*m0r[2])*uSelf[11]+((-84.0*m0r[6])-93.91485505499117*m0r[2])*uOther[11]+93.91485505499117*m0r[3]*uSelf[10]-93.91485505499117*m0r[3]*uOther[10]+105.0*m0r[5]*uSelf[9]-105.0*m0r[5]*uOther[9]+105.0*m0r[7]*uSelf[8]-105.0*m0r[7]*uOther[8])*betaGreenep1-420.0*m1r[15])*mnuSelf; 
  
-  double ucMSelf[8]; 
-  double ucMOther[8]; 
-  // Zero out array with dot product of uSelf and cMSelf. 
-  for (int vd=0; vd<8; vd++) 
-  { 
-    ucMSelf[vd] = 0.0; 
-    ucMOther[vd] = 0.0; 
-  } 
+  double ucMSelf[8] = {0.0}; 
+  double ucMOther[8] = {0.0}; 
   for (int vd=0; vd<2; vd++) 
   { 
     int a0 = 8*vd; 
@@ -654,16 +635,9 @@ GKYL_CU_DH void vlasov_cross_prim_moments_2x2v_ser_p2(struct gkyl_mat *A, struct
   gkyl_mat_set(A,47,22,0.4*ucMSelf[3]*mnuSelf+0.4*ucMOther[3]*mnuSelf+1.6*m0r[3]*mnuSelf-0.8*cEr[3]*mnuSelf); 
   gkyl_mat_set(A,47,23,0.3194382824999699*ucMSelf[5]*mnuSelf+0.3194382824999699*ucMOther[5]*mnuSelf+1.277753129999879*m0r[5]*mnuSelf-0.6388765649999399*cEr[5]*mnuSelf+0.4472135954999579*ucMSelf[4]*mnuSelf+0.4472135954999579*ucMOther[4]*mnuSelf+1.788854381999831*m0r[4]*mnuSelf-0.8944271909999159*cEr[4]*mnuSelf+0.5*ucMSelf[0]*mnuSelf+0.5*ucMOther[0]*mnuSelf+2.0*m0r[0]*mnuSelf-1.0*cEr[0]*mnuSelf); 
  
-  double uM1Self[8]; 
-  double uM1Other[8]; 
-  double uSumSq[8]; 
-  // Zero out array with dot product of uSelf and cMSelf. 
-  for (int vd=0; vd<8; vd++) 
-  { 
-    uM1Self[vd] = 0.0; 
-    uM1Other[vd] = 0.0; 
-    uSumSq[vd] = 0.0; 
-  } 
+  double uM1Self[8] = {0.0}; 
+  double uM1Other[8] = {0.0}; 
+  double uSumSq[8] = {0.0}; 
   for (int vd=0; vd<2; vd++) 
   { 
     int a0 = 8*vd; 
@@ -684,34 +658,9 @@ GKYL_CU_DH void vlasov_cross_prim_moments_2x2v_ser_p2(struct gkyl_mat *A, struct
     uM1Other[5] += 0.3194382824999699*m1r[15]*uOther[a0+7]+0.5000000000000001*m1r[9]*uOther[a0+7]+0.4472135954999579*m1r[14]*uOther[a0+6]+0.3194382824999699*m1r[13]*uOther[a0+5]+0.5*m1r[8]*uOther[a0+5]+0.4472135954999579*m1r[11]*uOther[a0+3]+0.4472135954999579*m1r[10]*uOther[a0+2]+0.5000000000000001*m1r[15]*uOther[a0+1]+0.5*m1r[13]*uOther[a0]; 
     uM1Other[6] += 0.4*m1r[11]*uOther[a0+7]+0.4472135954999579*m1r[13]*uOther[a0+6]+0.3194382824999699*m1r[12]*uOther[a0+6]+0.5*m1r[8]*uOther[a0+6]+0.4472135954999579*m1r[14]*uOther[a0+5]+0.3194382824999699*m1r[14]*uOther[a0+4]+0.5000000000000001*m1r[10]*uOther[a0+4]+0.4*m1r[15]*uOther[a0+3]+0.447213595499958*m1r[9]*uOther[a0+3]+0.5000000000000001*m1r[12]*uOther[a0+2]+0.447213595499958*m1r[11]*uOther[a0+1]+0.5*m1r[14]*uOther[a0]; 
     uM1Other[7] += 0.3194382824999699*m1r[13]*uOther[a0+7]+0.4472135954999579*m1r[12]*uOther[a0+7]+0.5*m1r[8]*uOther[a0+7]+0.4*m1r[11]*uOther[a0+6]+0.3194382824999699*m1r[15]*uOther[a0+5]+0.5000000000000001*m1r[9]*uOther[a0+5]+0.4472135954999579*m1r[15]*uOther[a0+4]+0.4*m1r[14]*uOther[a0+3]+0.447213595499958*m1r[10]*uOther[a0+3]+0.447213595499958*m1r[11]*uOther[a0+2]+0.5000000000000001*m1r[13]*uOther[a0+1]+0.5*m1r[15]*uOther[a0]; 
-  const double uSelf0R2 = pow(uSelf[a0],2);
-  const double uSelf1R2 = pow(uSelf[a0+1],2);
-  const double uSelf2R2 = pow(uSelf[a0+2],2);
-  const double uSelf3R2 = pow(uSelf[a0+3],2);
-  const double uSelf4R2 = pow(uSelf[a0+4],2);
-  const double uSelf5R2 = pow(uSelf[a0+5],2);
-  const double uSelf6R2 = pow(uSelf[a0+6],2);
-  const double uSelf7R2 = pow(uSelf[a0+7],2);
-  const double uOther0R2 = pow(uOther[a0],2);
-  const double uOther1R2 = pow(uOther[a0+1],2);
-  const double uOther2R2 = pow(uOther[a0+2],2);
-  const double uOther3R2 = pow(uOther[a0+3],2);
-  const double uOther4R2 = pow(uOther[a0+4],2);
-  const double uOther5R2 = pow(uOther[a0+5],2);
-  const double uOther6R2 = pow(uOther[a0+6],2);
-  const double uOther7R2 = pow(uOther[a0+7],2);
-
-  uSumSq[0] += 0.5*uSelf7R2-1.0*uOther[a0+7]*uSelf[a0+7]+0.5*uOther7R2+0.5*uSelf6R2-1.0*uOther[a0+6]*uSelf[a0+6]+0.5*uOther6R2+0.5*uSelf5R2-1.0*uOther[a0+5]*uSelf[a0+5]+0.5*uOther5R2+0.5*uSelf4R2-1.0*uOther[a0+4]*uSelf[a0+4]+0.5*uOther4R2+0.5*uSelf3R2-1.0*uOther[a0+3]*uSelf[a0+3]+0.5*uOther3R2+0.5*uSelf2R2-1.0*uOther[a0+2]*uSelf[a0+2]+0.5*uOther2R2+0.5*uSelf1R2-1.0*uOther[a0+1]*uSelf[a0+1]+0.5*uOther1R2+0.5*uSelf0R2-1.0*uOther[a0]*uSelf[a0]+0.5*uOther0R2; 
-  uSumSq[1] += 1.0*uSelf[a0+5]*uSelf[a0+7]-1.0*uOther[a0+5]*uSelf[a0+7]-1.0*uSelf[a0+5]*uOther[a0+7]+1.0*uOther[a0+5]*uOther[a0+7]+0.8944271909999161*uSelf[a0+3]*uSelf[a0+6]-0.8944271909999161*uOther[a0+3]*uSelf[a0+6]-0.8944271909999161*uSelf[a0+3]*uOther[a0+6]+0.8944271909999161*uOther[a0+3]*uOther[a0+6]+0.8944271909999159*uSelf[a0+1]*uSelf[a0+4]-0.8944271909999159*uOther[a0+1]*uSelf[a0+4]-0.8944271909999159*uSelf[a0+1]*uOther[a0+4]+0.8944271909999159*uOther[a0+1]*uOther[a0+4]+uSelf[a0+2]*uSelf[a0+3]-1.0*uOther[a0+2]*uSelf[a0+3]-1.0*uSelf[a0+2]*uOther[a0+3]+uOther[a0+2]*uOther[a0+3]+uSelf[a0]*uSelf[a0+1]-1.0*uOther[a0]*uSelf[a0+1]-1.0*uSelf[a0]*uOther[a0+1]+uOther[a0]*uOther[a0+1]; 
-  uSumSq[2] += 0.8944271909999161*uSelf[a0+3]*uSelf[a0+7]-0.8944271909999161*uOther[a0+3]*uSelf[a0+7]-0.8944271909999161*uSelf[a0+3]*uOther[a0+7]+0.8944271909999161*uOther[a0+3]*uOther[a0+7]+1.0*uSelf[a0+4]*uSelf[a0+6]-1.0*uOther[a0+4]*uSelf[a0+6]-1.0*uSelf[a0+4]*uOther[a0+6]+1.0*uOther[a0+4]*uOther[a0+6]+0.8944271909999159*uSelf[a0+2]*uSelf[a0+5]-0.8944271909999159*uOther[a0+2]*uSelf[a0+5]-0.8944271909999159*uSelf[a0+2]*uOther[a0+5]+0.8944271909999159*uOther[a0+2]*uOther[a0+5]+uSelf[a0+1]*uSelf[a0+3]-1.0*uOther[a0+1]*uSelf[a0+3]-1.0*uSelf[a0+1]*uOther[a0+3]+uOther[a0+1]*uOther[a0+3]+uSelf[a0]*uSelf[a0+2]-1.0*uOther[a0]*uSelf[a0+2]-1.0*uSelf[a0]*uOther[a0+2]+uOther[a0]*uOther[a0+2]; 
-  uSumSq[3] += 0.8*uSelf[a0+6]*uSelf[a0+7]-0.8*uOther[a0+6]*uSelf[a0+7]+0.8944271909999161*uSelf[a0+2]*uSelf[a0+7]-0.8944271909999161*uOther[a0+2]*uSelf[a0+7]-0.8*uSelf[a0+6]*uOther[a0+7]+0.8*uOther[a0+6]*uOther[a0+7]-0.8944271909999161*uSelf[a0+2]*uOther[a0+7]+0.8944271909999161*uOther[a0+2]*uOther[a0+7]+0.8944271909999161*uSelf[a0+1]*uSelf[a0+6]-0.8944271909999161*uOther[a0+1]*uSelf[a0+6]-0.8944271909999161*uSelf[a0+1]*uOther[a0+6]+0.8944271909999161*uOther[a0+1]*uOther[a0+6]+0.8944271909999159*uSelf[a0+3]*uSelf[a0+5]-0.8944271909999159*uOther[a0+3]*uSelf[a0+5]-0.8944271909999159*uSelf[a0+3]*uOther[a0+5]+0.8944271909999159*uOther[a0+3]*uOther[a0+5]+0.8944271909999159*uSelf[a0+3]*uSelf[a0+4]-0.8944271909999159*uOther[a0+3]*uSelf[a0+4]-0.8944271909999159*uSelf[a0+3]*uOther[a0+4]+0.8944271909999159*uOther[a0+3]*uOther[a0+4]+uSelf[a0]*uSelf[a0+3]-1.0*uOther[a0]*uSelf[a0+3]-1.0*uSelf[a0]*uOther[a0+3]+uOther[a0]*uOther[a0+3]+uSelf[a0+1]*uSelf[a0+2]-1.0*uOther[a0+1]*uSelf[a0+2]-1.0*uSelf[a0+1]*uOther[a0+2]+uOther[a0+1]*uOther[a0+2]; 
-  uSumSq[4] += 0.4472135954999579*uSelf7R2-0.8944271909999159*uOther[a0+7]*uSelf[a0+7]+0.4472135954999579*uOther7R2+0.3194382824999699*uSelf6R2-0.6388765649999399*uOther[a0+6]*uSelf[a0+6]+1.0*uSelf[a0+2]*uSelf[a0+6]-1.0*uOther[a0+2]*uSelf[a0+6]+0.3194382824999699*uOther6R2-1.0*uSelf[a0+2]*uOther[a0+6]+1.0*uOther[a0+2]*uOther[a0+6]+0.3194382824999699*uSelf4R2-0.6388765649999399*uOther[a0+4]*uSelf[a0+4]+uSelf[a0]*uSelf[a0+4]-1.0*uOther[a0]*uSelf[a0+4]+0.3194382824999699*uOther4R2-1.0*uSelf[a0]*uOther[a0+4]+uOther[a0]*uOther[a0+4]+0.4472135954999579*uSelf3R2-0.8944271909999159*uOther[a0+3]*uSelf[a0+3]+0.4472135954999579*uOther3R2+0.4472135954999579*uSelf1R2-0.8944271909999159*uOther[a0+1]*uSelf[a0+1]+0.4472135954999579*uOther1R2; 
-  uSumSq[5] += 0.3194382824999699*uSelf7R2-0.6388765649999399*uOther[a0+7]*uSelf[a0+7]+1.0*uSelf[a0+1]*uSelf[a0+7]-1.0*uOther[a0+1]*uSelf[a0+7]+0.3194382824999699*uOther7R2-1.0*uSelf[a0+1]*uOther[a0+7]+1.0*uOther[a0+1]*uOther[a0+7]+0.4472135954999579*uSelf6R2-0.8944271909999159*uOther[a0+6]*uSelf[a0+6]+0.4472135954999579*uOther6R2+0.3194382824999699*uSelf5R2-0.6388765649999399*uOther[a0+5]*uSelf[a0+5]+uSelf[a0]*uSelf[a0+5]-1.0*uOther[a0]*uSelf[a0+5]+0.3194382824999699*uOther5R2-1.0*uSelf[a0]*uOther[a0+5]+uOther[a0]*uOther[a0+5]+0.4472135954999579*uSelf3R2-0.8944271909999159*uOther[a0+3]*uSelf[a0+3]+0.4472135954999579*uOther3R2+0.4472135954999579*uSelf2R2-0.8944271909999159*uOther[a0+2]*uSelf[a0+2]+0.4472135954999579*uOther2R2; 
-  uSumSq[6] += 0.8*uSelf[a0+3]*uSelf[a0+7]-0.8*uOther[a0+3]*uSelf[a0+7]-0.8*uSelf[a0+3]*uOther[a0+7]+0.8*uOther[a0+3]*uOther[a0+7]+0.8944271909999159*uSelf[a0+5]*uSelf[a0+6]-0.8944271909999159*uOther[a0+5]*uSelf[a0+6]+0.6388765649999399*uSelf[a0+4]*uSelf[a0+6]-0.6388765649999399*uOther[a0+4]*uSelf[a0+6]+uSelf[a0]*uSelf[a0+6]-1.0*uOther[a0]*uSelf[a0+6]-0.8944271909999159*uSelf[a0+5]*uOther[a0+6]+0.8944271909999159*uOther[a0+5]*uOther[a0+6]-0.6388765649999399*uSelf[a0+4]*uOther[a0+6]+0.6388765649999399*uOther[a0+4]*uOther[a0+6]-1.0*uSelf[a0]*uOther[a0+6]+uOther[a0]*uOther[a0+6]+1.0*uSelf[a0+2]*uSelf[a0+4]-1.0*uOther[a0+2]*uSelf[a0+4]-1.0*uSelf[a0+2]*uOther[a0+4]+1.0*uOther[a0+2]*uOther[a0+4]+0.8944271909999161*uSelf[a0+1]*uSelf[a0+3]-0.8944271909999161*uOther[a0+1]*uSelf[a0+3]-0.8944271909999161*uSelf[a0+1]*uOther[a0+3]+0.8944271909999161*uOther[a0+1]*uOther[a0+3]; 
-  uSumSq[7] += 0.6388765649999399*uSelf[a0+5]*uSelf[a0+7]-0.6388765649999399*uOther[a0+5]*uSelf[a0+7]+0.8944271909999159*uSelf[a0+4]*uSelf[a0+7]-0.8944271909999159*uOther[a0+4]*uSelf[a0+7]+uSelf[a0]*uSelf[a0+7]-1.0*uOther[a0]*uSelf[a0+7]-0.6388765649999399*uSelf[a0+5]*uOther[a0+7]+0.6388765649999399*uOther[a0+5]*uOther[a0+7]-0.8944271909999159*uSelf[a0+4]*uOther[a0+7]+0.8944271909999159*uOther[a0+4]*uOther[a0+7]-1.0*uSelf[a0]*uOther[a0+7]+uOther[a0]*uOther[a0+7]+0.8*uSelf[a0+3]*uSelf[a0+6]-0.8*uOther[a0+3]*uSelf[a0+6]-0.8*uSelf[a0+3]*uOther[a0+6]+0.8*uOther[a0+3]*uOther[a0+6]+1.0*uSelf[a0+1]*uSelf[a0+5]-1.0*uOther[a0+1]*uSelf[a0+5]-1.0*uSelf[a0+1]*uOther[a0+5]+1.0*uOther[a0+1]*uOther[a0+5]+0.8944271909999161*uSelf[a0+2]*uSelf[a0+3]-0.8944271909999161*uOther[a0+2]*uSelf[a0+3]-0.8944271909999161*uSelf[a0+2]*uOther[a0+3]+0.8944271909999161*uOther[a0+2]*uOther[a0+3]; 
   } 
  
-  double enRHS[8]; 
+  double enRHS[8] = {0.0}; 
   enRHS[0] = (-(4.0*m0r[7]*vtSqSelf[7]*betaGreenep1*mSelf*mnuSelf)/(4.0*mSelf+4.0*mOther))-(1.0*m0r[7]*uSumSq[7]*betaGreenep1*mSelf*mnuSelf)/(4.0*mSelf+4.0*mOther)-(4.0*m0r[6]*vtSqSelf[6]*betaGreenep1*mSelf*mnuSelf)/(4.0*mSelf+4.0*mOther)-(1.0*m0r[6]*uSumSq[6]*betaGreenep1*mSelf*mnuSelf)/(4.0*mSelf+4.0*mOther)-(4.0*m0r[5]*vtSqSelf[5]*betaGreenep1*mSelf*mnuSelf)/(4.0*mSelf+4.0*mOther)-(1.0*m0r[5]*uSumSq[5]*betaGreenep1*mSelf*mnuSelf)/(4.0*mSelf+4.0*mOther)-(4.0*m0r[4]*vtSqSelf[4]*betaGreenep1*mSelf*mnuSelf)/(4.0*mSelf+4.0*mOther)-(1.0*m0r[4]*uSumSq[4]*betaGreenep1*mSelf*mnuSelf)/(4.0*mSelf+4.0*mOther)-(4.0*m0r[3]*vtSqSelf[3]*betaGreenep1*mSelf*mnuSelf)/(4.0*mSelf+4.0*mOther)-(1.0*m0r[3]*uSumSq[3]*betaGreenep1*mSelf*mnuSelf)/(4.0*mSelf+4.0*mOther)-(4.0*m0r[2]*vtSqSelf[2]*betaGreenep1*mSelf*mnuSelf)/(4.0*mSelf+4.0*mOther)-(1.0*m0r[2]*uSumSq[2]*betaGreenep1*mSelf*mnuSelf)/(4.0*mSelf+4.0*mOther)-(4.0*m0r[1]*vtSqSelf[1]*betaGreenep1*mSelf*mnuSelf)/(4.0*mSelf+4.0*mOther)-(1.0*m0r[1]*uSumSq[1]*betaGreenep1*mSelf*mnuSelf)/(4.0*mSelf+4.0*mOther)-(4.0*m0r[0]*vtSqSelf[0]*betaGreenep1*mSelf*mnuSelf)/(4.0*mSelf+4.0*mOther)-(1.0*m0r[0]*uSumSq[0]*betaGreenep1*mSelf*mnuSelf)/(4.0*mSelf+4.0*mOther)+(4.0*m0r[7]*vtSqOther[7]*betaGreenep1*mOther*mnuSelf)/(4.0*mSelf+4.0*mOther)+(m0r[7]*uSumSq[7]*betaGreenep1*mOther*mnuSelf)/(4.0*mSelf+4.0*mOther)+(4.0*m0r[6]*vtSqOther[6]*betaGreenep1*mOther*mnuSelf)/(4.0*mSelf+4.0*mOther)+(m0r[6]*uSumSq[6]*betaGreenep1*mOther*mnuSelf)/(4.0*mSelf+4.0*mOther)+(4.0*m0r[5]*vtSqOther[5]*betaGreenep1*mOther*mnuSelf)/(4.0*mSelf+4.0*mOther)+(m0r[5]*uSumSq[5]*betaGreenep1*mOther*mnuSelf)/(4.0*mSelf+4.0*mOther)+(4.0*m0r[4]*vtSqOther[4]*betaGreenep1*mOther*mnuSelf)/(4.0*mSelf+4.0*mOther)+(m0r[4]*uSumSq[4]*betaGreenep1*mOther*mnuSelf)/(4.0*mSelf+4.0*mOther)+(4.0*m0r[3]*vtSqOther[3]*betaGreenep1*mOther*mnuSelf)/(4.0*mSelf+4.0*mOther)+(m0r[3]*uSumSq[3]*betaGreenep1*mOther*mnuSelf)/(4.0*mSelf+4.0*mOther)+(4.0*m0r[2]*vtSqOther[2]*betaGreenep1*mOther*mnuSelf)/(4.0*mSelf+4.0*mOther)+(m0r[2]*uSumSq[2]*betaGreenep1*mOther*mnuSelf)/(4.0*mSelf+4.0*mOther)+(4.0*m0r[1]*vtSqOther[1]*betaGreenep1*mOther*mnuSelf)/(4.0*mSelf+4.0*mOther)+(m0r[1]*uSumSq[1]*betaGreenep1*mOther*mnuSelf)/(4.0*mSelf+4.0*mOther)+(4.0*m0r[0]*vtSqOther[0]*betaGreenep1*mOther*mnuSelf)/(4.0*mSelf+4.0*mOther)+(m0r[0]*uSumSq[0]*betaGreenep1*mOther*mnuSelf)/(4.0*mSelf+4.0*mOther)-1.0*uM1Self[0]*mnuSelf-1.0*uM1Other[0]*mnuSelf+2.0*m2r[0]*mnuSelf; 
   enRHS[1] = (-(60.00000000000001*m0r[5]*vtSqSelf[7]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther))-(15.0*m0r[5]*uSumSq[7]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(60.00000000000001*vtSqSelf[5]*m0r[7]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(15.0*uSumSq[5]*m0r[7]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(53.66563145999495*m0r[3]*vtSqSelf[6]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(13.41640786499873*m0r[3]*uSumSq[6]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(53.66563145999495*vtSqSelf[3]*m0r[6]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(13.41640786499873*uSumSq[3]*m0r[6]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(53.66563145999495*m0r[1]*vtSqSelf[4]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(13.41640786499873*m0r[1]*uSumSq[4]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(53.66563145999495*vtSqSelf[1]*m0r[4]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(13.41640786499873*uSumSq[1]*m0r[4]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(60.0*m0r[2]*vtSqSelf[3]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(15.0*m0r[2]*uSumSq[3]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(60.0*vtSqSelf[2]*m0r[3]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(15.0*uSumSq[2]*m0r[3]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(60.0*m0r[0]*vtSqSelf[1]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(15.0*m0r[0]*uSumSq[1]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(60.0*vtSqSelf[0]*m0r[1]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(15.0*uSumSq[0]*m0r[1]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)+(60.00000000000001*m0r[5]*vtSqOther[7]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(15.0*m0r[5]*uSumSq[7]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(60.00000000000001*vtSqOther[5]*m0r[7]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(15.0*uSumSq[5]*m0r[7]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(53.66563145999495*m0r[3]*vtSqOther[6]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(13.41640786499873*m0r[3]*uSumSq[6]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(53.66563145999495*vtSqOther[3]*m0r[6]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(13.41640786499873*uSumSq[3]*m0r[6]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(53.66563145999495*m0r[1]*vtSqOther[4]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(13.41640786499873*m0r[1]*uSumSq[4]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(53.66563145999495*vtSqOther[1]*m0r[4]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(13.41640786499873*uSumSq[1]*m0r[4]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(60.0*m0r[2]*vtSqOther[3]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(15.0*m0r[2]*uSumSq[3]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(60.0*vtSqOther[2]*m0r[3]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(15.0*uSumSq[2]*m0r[3]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(60.0*m0r[0]*vtSqOther[1]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(15.0*m0r[0]*uSumSq[1]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(60.0*vtSqOther[0]*m0r[1]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(15.0*uSumSq[0]*m0r[1]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)-1.0*uM1Self[1]*mnuSelf-1.0*uM1Other[1]*mnuSelf+2.0*m2r[1]*mnuSelf; 
   enRHS[2] = (-(53.66563145999495*m0r[3]*vtSqSelf[7]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther))-(13.41640786499873*m0r[3]*uSumSq[7]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(53.66563145999495*vtSqSelf[3]*m0r[7]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(13.41640786499873*uSumSq[3]*m0r[7]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(60.00000000000001*m0r[4]*vtSqSelf[6]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(15.0*m0r[4]*uSumSq[6]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(60.00000000000001*vtSqSelf[4]*m0r[6]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(15.0*uSumSq[4]*m0r[6]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(53.66563145999495*m0r[2]*vtSqSelf[5]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(13.41640786499873*m0r[2]*uSumSq[5]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(53.66563145999495*vtSqSelf[2]*m0r[5]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(13.41640786499873*uSumSq[2]*m0r[5]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(60.0*m0r[1]*vtSqSelf[3]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(15.0*m0r[1]*uSumSq[3]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(60.0*vtSqSelf[1]*m0r[3]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(15.0*uSumSq[1]*m0r[3]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(60.0*m0r[0]*vtSqSelf[2]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(15.0*m0r[0]*uSumSq[2]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(60.0*vtSqSelf[0]*m0r[2]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)-(15.0*uSumSq[0]*m0r[2]*betaGreenep1*mSelf*mnuSelf)/(60.0*mSelf+60.0*mOther)+(53.66563145999495*m0r[3]*vtSqOther[7]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(13.41640786499873*m0r[3]*uSumSq[7]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(53.66563145999495*vtSqOther[3]*m0r[7]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(13.41640786499873*uSumSq[3]*m0r[7]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(60.00000000000001*m0r[4]*vtSqOther[6]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(15.0*m0r[4]*uSumSq[6]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(60.00000000000001*vtSqOther[4]*m0r[6]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(15.0*uSumSq[4]*m0r[6]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(53.66563145999495*m0r[2]*vtSqOther[5]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(13.41640786499873*m0r[2]*uSumSq[5]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(53.66563145999495*vtSqOther[2]*m0r[5]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(13.41640786499873*uSumSq[2]*m0r[5]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(60.0*m0r[1]*vtSqOther[3]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(15.0*m0r[1]*uSumSq[3]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(60.0*vtSqOther[1]*m0r[3]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(15.0*uSumSq[1]*m0r[3]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(60.0*m0r[0]*vtSqOther[2]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(15.0*m0r[0]*uSumSq[2]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(60.0*vtSqOther[0]*m0r[2]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)+(15.0*uSumSq[0]*m0r[2]*betaGreenep1*mOther*mnuSelf)/(60.0*mSelf+60.0*mOther)-1.0*uM1Self[2]*mnuSelf-1.0*uM1Other[2]*mnuSelf+2.0*m2r[2]*mnuSelf; 

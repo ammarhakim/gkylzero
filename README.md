@@ -21,8 +21,8 @@ Documentation is available at http://gkeyll.rtfd.io.
 GkeyllZero has just a few dependencies: OpenBLAS and SuperLU. If you
 are on a cluster these libraries are likely already installed. In that
 case you should use the configure script to specify the location of
-the include directories and the full path to the static libraries for
-these. See configure help.
+the include and full path to the static libraries for these. See
+configure help.
 ```
    ./configure --help
 ```
@@ -35,7 +35,7 @@ compiler you wish to use and the various paths to the
 dependencies. Once you are done with installing/specifying the compiler 
 and dependencies simply type:
 ```
-    make -j
+    make-j
 ```
 in the top-level directory. To run all unit tests do:
 ```
@@ -62,10 +62,10 @@ If you want to use the code as a library you should install it:
 
 Note that GkeyllZero is meant to be used as a *library*. You can use
 it to create your own "app" for your particular problem. See that
-various "rt_*.c" files in the regression directory for examples. Full
-documentation is available on the RTFD website linked above.
+various "app_*.c" files for examples. Full documentation is available
+on the RTFD website linked above.
 
-# Building dependencies
+# Buildin dependencies
 
 Some parts of GkeyllZero rely on presence of LAPACK and BLAS. Its
 likely that highly optimized builds of these libraries are already
@@ -125,38 +125,4 @@ clean". Pay attention to all compiler warnings.
 
 Most importantly, **please internalize and follow** the programming
 philosophy outlined in the document ["A Minimalist Approach to
-Software"](https://ammar-hakim.org/sj/pn/pn0/pn0-minimalism.html).
-
-# License
-
-GkeyllZero and Gkeyll use the BSD-3 license. See below.
-
-Copyright 2020-2022 Ammar Hakim and the Gkeyll Team
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-
-1. Redistributions of source code must retain the above copyright
-   notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-   notice, this list of conditions and the following disclaimer in the
-   documentation and/or other materials provided with the
-   distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-   contributors may be used to endorse or promote products derived
-   from this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+Software"](https://ammar-hakim.org/cj/je0/je0-minimalism.html).

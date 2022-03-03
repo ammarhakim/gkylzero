@@ -11,7 +11,7 @@ test_dg_max()
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, 1, 1);
 
-  struct gkyl_dg_eqn* eqn = gkyl_dg_maxwell_new(&basis, 1.0, 0.5, 0.25);
+  struct gkyl_dg_eqn* eqn = gkyl_dg_maxwell_new(&basis, 1.0, 0.5, 0.25, false);
 
   TEST_CHECK( eqn->num_equations == 8 );
 

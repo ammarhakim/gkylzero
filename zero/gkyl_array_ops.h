@@ -4,7 +4,7 @@
 #include <gkyl_range.h>
 
 // Array reduce operators
-enum gkyl_array_op { GKYL_MIN, GKYL_MAX };
+enum gkyl_array_op { GKYL_MIN, GKYL_MAX, GKYL_SUM };
 
 /**
  * Clear out = val. Returns out.
@@ -45,6 +45,15 @@ struct gkyl_array* gkyl_array_set(struct gkyl_array *out,
  * @return out array
  */
 struct gkyl_array* gkyl_array_scale(struct gkyl_array *out, double a);
+
+/**
+ * Scale out = a*out. Returns out.
+ *
+ * @param out Output array
+ * @param a Factor to scale that varies by cell
+ * @return out array
+ */
+struct gkyl_array* gkyl_array_scale_by_cell(struct gkyl_array *out, const struct gkyl_array *a);
 
 /**
  * Clear out = val. Returns out.
@@ -167,6 +176,8 @@ void gkyl_array_accumulate_cu(struct gkyl_array* out, double a, const struct gky
 void gkyl_array_set_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp);
 
 void gkyl_array_scale_cu(struct gkyl_array* out, double a);
+
+void gkyl_array_scale_by_cell_cu(struct gkyl_array* out, const struct gkyl_array* a);
 
 /**
  * Host-side wrappers for range-based array operations

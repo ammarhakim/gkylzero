@@ -24,7 +24,6 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   f->em = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
   f->em1 = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
   f->emnew = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
-  f->qmem = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
 
   f->em_host = f->em;  
   if (app->use_gpu)
@@ -51,20 +50,13 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   double ef = f->info.elcErrorSpeedFactor, mf = f->info.mgnErrorSpeedFactor;
 
   struct gkyl_dg_eqn *eqn;
-  if (app->use_gpu)
-    eqn = gkyl_dg_maxwell_cu_dev_new(&app->confBasis, c, ef, mf);
-  else
-    eqn = gkyl_dg_maxwell_new(&app->confBasis, c, ef, mf);
+  eqn = gkyl_dg_maxwell_new(&app->confBasis, c, ef, mf, app->use_gpu);
 
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
 
   // Maxwell solver
-  if (app->use_gpu)
-    f->slvr = gkyl_hyper_dg_cu_dev_new(&app->grid, &app->confBasis, eqn,
-      app->cdim, up_dirs, zero_flux_flags, 1);
-  else
-    f->slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, eqn,
-      app->cdim, up_dirs, zero_flux_flags, 1);
+  f->slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, eqn,
+    app->cdim, up_dirs, zero_flux_flags, 1, app->use_gpu);
 
   gkyl_dg_eqn_release(eqn);
 
@@ -97,9 +89,9 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
 
   gkyl_array_clear(rhs, 0.0);
   if (app->use_gpu)
-    gkyl_hyper_dg_advance_cu(field->slvr, app->local, em, field->cflrate, rhs);
+    gkyl_hyper_dg_advance_cu(field->slvr, &app->local, em, field->cflrate, rhs);
   else
-    gkyl_hyper_dg_advance(field->slvr, app->local, em, field->cflrate, rhs);
+    gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
 
   gkyl_array_reduce_range(field->omegaCfl_ptr, field->cflrate, GKYL_MAX, app->local);
   double omegaCfl = field->omegaCfl_ptr[0];
@@ -157,7 +149,6 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   gkyl_array_release(f->em);
   gkyl_array_release(f->em1);
   gkyl_array_release(f->emnew);
-  gkyl_array_release(f->qmem);
   gkyl_array_release(f->bc_buffer);
   gkyl_array_release(f->cflrate);
 

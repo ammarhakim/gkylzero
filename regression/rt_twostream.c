@@ -8,7 +8,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
-#include <rxi_ini.h>
 
 struct twostream_inp {
   double tend;
@@ -51,93 +50,6 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[6] = 0.0; fout[7] = 0.0;
 }
 
-struct twostream_inp
-create_twostream_inp(rxi_ini_t *inp)
-{
-  struct twostream_inp tsinp = {
-    .charge = -1.0,
-    .mass = 1.0,
-  };
-
-  int read_failed = 0;
-  // read from input file
-  if (!rxi_ini_sget(inp, "conf-grid", "tend", "%lg", &tsinp.tend)) {
-    fprintf(stderr, "Must provide 'tend' in section '[conf-grid]'!\n");
-    read_failed = 1;
-  }
-  if (!rxi_ini_sget(inp, "conf-grid", "cells", "%d", &tsinp.conf_cells)) {
-    fprintf(stderr, "Must provide 'cells' in section '[conf-grid]'!\n");
-    read_failed = 1;
-  }
-
-  rxi_ini_sget(inp, "electrons", "charge", "%lg", &tsinp.charge);
-  rxi_ini_sget(inp, "electrons", "mass", "%lg", &tsinp.mass);
-
-  if (!rxi_ini_sget(inp, "electrons", "cells", "%d", &tsinp.vel_cells)) {
-    fprintf(stderr, "Must provide 'cells' in section '[electrons]'!\n");
-    read_failed = 1;
-  }
-
-  if (!rxi_ini_sget(inp, "electrons", "lower", "%lg", &tsinp.vel_extents[0])) {
-    fprintf(stderr, "Must provide 'lower' in section '[electrons]'!\n");
-    read_failed = 1;
-  }
-  if (!rxi_ini_sget(inp, "electrons", "upper", "%lg", &tsinp.vel_extents[1])) {
-    fprintf(stderr, "Must provide 'upper' in section '[electrons]'!\n");
-    read_failed = 1;
-  }
-
-  if (read_failed) {
-    fprintf(stderr, "... aborting!\n");
-    exit(1);
-  }  
-
-  return tsinp;
-}
-
-struct twostream_inp
-create_default_twostream_inp(void)
-{
-  return (struct twostream_inp) {
-    .tend = 40.0,
-    .charge = -1.0,
-    .mass = 1.0,
-    .conf_cells = 64,
-    .vel_cells = 32,
-    .vel_extents = { -6.0, 6.0 },
-  };
-}
-
-struct twostream_ctx
-create_ctx(rxi_ini_t *inp)
-{
-  struct twostream_ctx ctx = {
-    .perturbation = 1.0e-6
-  };
-
-  int read_failed = 0;
-  if (!rxi_ini_sget(inp, "electrons", "knumber", "%lg", &ctx.knumber)) {
-    fprintf(stderr, "Must provide 'knumber' in section '[electrons]'!\n");
-    read_failed = 1;
-  }
-  if (!rxi_ini_sget(inp, "electrons", "vth", "%lg", &ctx.vth)) {
-    fprintf(stderr, "Must provide 'vth' in section '[electrons]'!\n");
-    read_failed = 1;
-  }
-  if (!rxi_ini_sget(inp, "electrons", "vdrift", "%lg", &ctx.vdrift)) {
-    fprintf(stderr, "Must provide 'vdrift' in section '[electrons]'!\n");
-    read_failed = 1;
-  }
-  rxi_ini_sget(inp, "electrons", "perturbation", "%lg", &ctx.perturbation);
-
-  if (read_failed) {
-    fprintf(stderr, "... aborting!\n");
-    exit(1);
-  }
-  
-  return ctx;
-}
-
 struct twostream_ctx
 create_default_ctx(void)
 {
@@ -159,30 +71,21 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  if (strcmp(app_args.file_name, APP_ARGS_DEFAULT_FILE_NAME) == 0)
-    strcpy(app_args.file_name, "twostream.ini");
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 64);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 32);  
 
   struct twostream_ctx ctx;
-  struct twostream_inp tsinp;
   
-  rxi_ini_t *inp = rxi_ini_load(app_args.file_name);
-  if (inp) {
-    ctx = create_ctx(inp); // context for init functions
-    tsinp = create_twostream_inp(inp); // input parameters
-  }
-  else {
-    ctx = create_default_ctx(); // context for init functions
-    tsinp = create_default_twostream_inp(); // input parameters
-  }
+  ctx = create_default_ctx(); // context for init functions
 
   // electrons
   struct gkyl_vlasov_species elc = {
     .name = "elc",
-    .charge = tsinp.charge,
-    .mass = tsinp.mass,
-    .lower = { tsinp.vel_extents[0]},
-    .upper = { tsinp.vel_extents[1] }, 
-    .cells = { tsinp.vel_cells },
+    .charge = -1.0,
+    .mass = 1.0,
+    .lower = { -6.0 },
+    .upper = { 6.0 }, 
+    .cells = { VX },
 
     .evolve = 1,
     .ctx = &ctx,
@@ -204,10 +107,12 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
+    .name = "twostream",
+    
     .cdim = 1, .vdim = 1,
     .lower = { -M_PI/ctx.knumber },
     .upper = { M_PI/ctx.knumber },
-    .cells = { tsinp.conf_cells },
+    .cells = { NX },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
@@ -220,16 +125,12 @@ main(int argc, char **argv)
 
     .use_gpu = app_args.use_gpu,
   };
-  // construct sim name based on input file name
-  const char *inp_last_slash = strrchr(app_args.file_name, '/');
-  const char *inp_no_slash = inp_last_slash ? inp_last_slash+1 : app_args.file_name;
-  strncpy(vm.name, inp_no_slash, strcspn(inp_no_slash, ".ini"));
   
   // create app object
-  gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
+  gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = tsinp.tend;
+  double tcurr = 0.0, tend = 40.0;
   double dt = tend-tcurr;
 
   // initialize simulation
@@ -261,8 +162,6 @@ main(int argc, char **argv)
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
 
   // simulation complete, free objects
-  if (inp)
-    rxi_ini_free(inp);  
   gkyl_vlasov_app_release(app);
 
   printf("\n");

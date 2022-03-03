@@ -30,6 +30,10 @@ struct gkyl_vlasov_species {
   // collision frequency
   void (*nu)(double t, const double *xn, double *fout, void *ctx);
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
+
+  void *accel_ctx; // context for applied acceleration function
+  // pointer to applied acceleration function
+  void (*accel)(double t, const double *xn, double *aout, void *ctx);
 };
 
 // Parameter for EM field
@@ -114,7 +118,7 @@ typedef struct gkyl_vlasov_app gkyl_vlasov_app;
  *     initialized
  * @return New vlasov app object.
  */
-gkyl_vlasov_app* gkyl_vlasov_app_new(struct gkyl_vm vm);
+gkyl_vlasov_app* gkyl_vlasov_app_new(struct gkyl_vm *vm);
 
 /**
  * Initialize species and field by projecting initial conditions on

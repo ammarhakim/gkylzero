@@ -2,7 +2,7 @@
 #include <gkyl_vlasov_priv.h>
 
 // list of valid moment names
-static const char *const valid_moment_names[] = { "M0", "M1i", "M2ij", "M2", "M3i" };
+static const char *const valid_moment_names[] = { "M0", "M1i", "M2ij", "M2", "M3i", "FiveMoments" };
 
 // check if name of moment is valid or not
 static bool
@@ -54,9 +54,9 @@ vm_species_moment_calc(const struct vm_species_moment *sm,
   const struct gkyl_array *fin)
 {
   if (sm->use_gpu)
-    gkyl_mom_calc_advance_cu(sm->mcalc, phase_rng, conf_rng, fin, sm->marr);
+    gkyl_mom_calc_advance_cu(sm->mcalc, &phase_rng, &conf_rng, fin, sm->marr);
   else
-    gkyl_mom_calc_advance(sm->mcalc, phase_rng, conf_rng, fin, sm->marr);
+    gkyl_mom_calc_advance(sm->mcalc, &phase_rng, &conf_rng, fin, sm->marr);
 }
 
 // release memory for moment data object

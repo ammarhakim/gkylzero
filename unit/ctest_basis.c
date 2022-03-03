@@ -166,9 +166,23 @@ test_ten_2d()
   TEST_CHECK ( gkyl_compare(-0.8653711292220426, basis.eval_grad_expand(1, z, f), 1e-15) );
 }
 
+void
+test_gk_hyb()
+{
+  struct gkyl_basis basis;
+  gkyl_cart_modal_gk_hybrid(&basis, 2);
+
+  TEST_CHECK( basis.ndim == 2 );
+  TEST_CHECK( basis.poly_order == 1 );
+  TEST_CHECK( basis.num_basis == 6 );
+  TEST_CHECK( strcmp(basis.id, "gk_hybrid") == 0 );
+  TEST_CHECK( basis.b_type == GKYL_BASIS_MODAL_GK_HYBRID );
+}
+
 TEST_LIST = {
   { "ser_1d", test_ser_1d },
   { "ser_2d", test_ser_2d },
   { "ten_2d", test_ten_2d },
+  { "gk_hyb", test_gk_hyb },
   { NULL, NULL },
 };

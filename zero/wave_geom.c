@@ -7,6 +7,14 @@
 #include <math.h>
 
 static void
+wave_geom_free(const struct gkyl_ref_count *ref)
+{
+  struct gkyl_wave_geom *wg = container_of(ref, struct gkyl_wave_geom, ref_count);
+  gkyl_array_release(wg->geom);
+  gkyl_free(wg);
+}
+
+static void
 nomapc2p(double t, const double *xc, double *xp, void *ctx)
 {
   for (int i=0; i<3; ++i) xp[i] = xc[i];
@@ -132,9 +140,17 @@ gkyl_wave_geom_new(const struct gkyl_rect_grid *grid, struct gkyl_range *range,
     };   
   }
 
+  wg->ref_count = gkyl_ref_count_init(wave_geom_free);
+
   return wg;
 }
 
+struct gkyl_wave_geom *
+gkyl_wave_geom_acquire(const struct gkyl_wave_geom* wg)
+{
+  gkyl_ref_count_inc(&wg->ref_count);
+  return (struct gkyl_wave_geom*) wg;
+}
 
 const struct gkyl_wave_cell_geom*
 gkyl_wave_geom_get(const struct gkyl_wave_geom *wg, const int *idx)
@@ -143,8 +159,7 @@ gkyl_wave_geom_get(const struct gkyl_wave_geom *wg, const int *idx)
 }
 
 void
-gkyl_wave_geom_release(struct gkyl_wave_geom *wg)
+gkyl_wave_geom_release(const struct gkyl_wave_geom *wg)
 {
-  gkyl_array_release(wg->geom);
-  gkyl_free(wg);
+  gkyl_ref_count_dec(&wg->ref_count);
 }

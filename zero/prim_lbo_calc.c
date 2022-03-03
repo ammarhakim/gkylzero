@@ -29,8 +29,7 @@ gkyl_prim_lbo_calc_new(const struct gkyl_rect_grid *grid,
 void
 gkyl_prim_lbo_calc_advance(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis,
   struct gkyl_range conf_rng,
-  const struct gkyl_array *m0, const struct gkyl_array *m1,
-  const struct gkyl_array *m2, const struct gkyl_array *cM, const struct gkyl_array *cE,
+  const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
   struct gkyl_array *uout, struct gkyl_array *vtSqout)
 {
   struct gkyl_range_iter conf_iter;
@@ -60,8 +59,8 @@ gkyl_prim_lbo_calc_advance(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis,
     struct gkyl_mat rhs = gkyl_nmat_get(calc->xs, count);
     gkyl_mat_clear(&lhs, 0.0); gkyl_mat_clear(&rhs, 0.0);
 
-    calc->prim->self_prim(calc->prim, &lhs, &rhs, gkyl_array_cfetch(m0, midx), gkyl_array_cfetch(m1, midx),
-      gkyl_array_cfetch(m2, midx), gkyl_array_cfetch(cM, midx), gkyl_array_cfetch(cE, midx)
+    calc->prim->self_prim(calc->prim, &lhs, &rhs,
+      gkyl_array_cfetch(moms, midx), gkyl_array_cfetch(boundary_corrections, midx)
     );
 
     count += 1;
@@ -110,8 +109,7 @@ gkyl_prim_lbo_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
 void
 gkyl_prim_lbo_calc_advance_cu(gkyl_prim_lbo_calc* calc, const struct gkyl_basis cbasis,
   struct gkyl_range conf_rng,
-  const struct gkyl_array* m0, const struct gkyl_array* m1,
-  const struct gkyl_array* m2, const struct gkyl_array* cM, const struct gkyl_array* cE,
+  const struct gkyl_array* moms, const struct gkyl_array* boundary_corrections,
   struct gkyl_array* uout, struct gkyl_array* vtSqout)
 {
   assert(false);
