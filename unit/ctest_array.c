@@ -309,7 +309,7 @@ void test_array_scale_by_cell()
   gkyl_array_scale_by_cell(a1, s);
 
   for (unsigned i=0; i<a1->size; ++i)
-    TEST_CHECK( gkyl_compare(a1_d[i], i*(i/a1->ncomp), 1e-14) );
+    TEST_CHECK( gkyl_compare(a1_d[i], i*(i/(1.0*a1->ncomp)), 1e-14) );
 
   gkyl_array_release(a1);
   gkyl_array_release(s);
@@ -393,6 +393,56 @@ void test_array_copy_buffer()
   while (gkyl_range_iter_next(&iter)) {
     double *d = gkyl_array_fetch(arr, gkyl_range_idx(&sub_range, iter.idx));
     TEST_CHECK( d[0]  == iter.idx[0] + 10.5*iter.idx[1] );
+  }
+
+  gkyl_array_release(arr);
+  gkyl_free(buff);
+}
+
+// function for use in the buffer_fn method
+static void
+buffer_fn(size_t nc, double *out, const double *inp, void *ctx)
+{
+  for (size_t i=0; i<nc; ++i)
+    out[i] = 2*inp[i];
+}
+    
+
+void test_array_copy_buffer_fn()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+  
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    double *d = gkyl_array_fetch(arr, gkyl_range_idx(&range, iter.idx));
+    d[0] = iter.idx[0] + 10.5*iter.idx[1];
+  }
+
+  int lower[] = {1, 1}, upper[] = {5, 10};
+  struct gkyl_range sub_range;
+  gkyl_sub_range_init(&sub_range, &range, lower, upper);
+
+  double *buff = gkyl_malloc(sizeof(double)*sub_range.volume);
+  gkyl_array_copy_to_buffer_fn(buff, arr, sub_range, buffer_fn, 0);
+
+  long count = 0;
+  gkyl_range_iter_init(&iter, &sub_range);
+  while (gkyl_range_iter_next(&iter))
+    TEST_CHECK( buff[count++] == 2*(iter.idx[0] + 10.5*iter.idx[1]) );
+
+  gkyl_array_clear(arr, 0.0);
+  // copy back from buffer
+  gkyl_array_copy_from_buffer(arr, buff, sub_range);
+
+  gkyl_range_iter_init(&iter, &sub_range);
+  while (gkyl_range_iter_next(&iter)) {
+    double *d = gkyl_array_fetch(arr, gkyl_range_idx(&sub_range, iter.idx));
+    TEST_CHECK( d[0]  == 2*(iter.idx[0] + 10.5*iter.idx[1]) );
   }
 
   gkyl_array_release(arr);
@@ -1384,6 +1434,7 @@ TEST_LIST = {
   { "array_opcombine", test_array_opcombine },
   { "array_ops_comp", test_array_ops_comp },
   { "array_copy_buffer", test_array_copy_buffer },
+  { "array_copy_buffer_fn", test_array_copy_buffer_fn },
   { "array_copy_range", test_array_copy_range},
   { "array_copy_split", test_array_copy_split },
   { "non_numeric", test_non_numeric },

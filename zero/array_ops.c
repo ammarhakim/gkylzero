@@ -381,3 +381,35 @@ gkyl_array_copy_from_buffer(struct gkyl_array *arr,
 
 #undef _F
 }
+
+static inline void*
+flat_fetch(void *data, size_t loc)
+{
+  return ((char*) data) + loc;
+}
+
+void
+gkyl_array_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
+  struct gkyl_range range, array_copy_func_t func, void *ctx)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(arr)) {
+    printf("gkyl_array_copy_to_buffer_fn not on GPUs yet!");
+    assert(false);
+    return;
+  }
+#endif
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+
+  long count = 0;
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+
+    const double *inp = gkyl_array_cfetch(arr, loc);
+    double *out = flat_fetch(data, arr->esznc*count);
+    func(arr->ncomp, out, inp, ctx);
+    count += 1;
+  }
+}
