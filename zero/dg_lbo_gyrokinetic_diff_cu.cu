@@ -49,50 +49,33 @@ dg_lbo_gyrokinetic_diff_set_cu_dev_ptrs(struct dg_lbo_gyrokinetic_diff *lbo_gyro
   lbo_gyrokinetic_diff->eqn.boundary_surf_term = boundary_surf;
 
   const gkyl_dg_lbo_gyrokinetic_diff_vol_kern_list *vol_kernels;
-  const gkyl_dg_lbo_gyrokinetic_diff_surf_kern_list *surf_vx_kernels, *surf_vy_kernels, *surf_vz_kernels;
-  const gkyl_dg_lbo_gyrokinetic_diff_boundary_surf_kern_list *boundary_surf_vx_kernels, *boundary_surf_vy_kernels,
-    *boundary_surf_vz_kernels;
-  
+  const gkyl_dg_lbo_gyrokinetic_diff_surf_kern_list *surf_vpar_kernels, *surf_mu_kernels;
+  const gkyl_dg_lbo_gyrokinetic_diff_boundary_surf_kern_list *boundary_surf_vpar_kernels, *boundary_surf_mu_kernels;
+
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       vol_kernels = ser_vol_kernels;
-      surf_vx_kernels = ser_surf_vx_kernels;
-      surf_vy_kernels = ser_surf_vy_kernels;
-      surf_vz_kernels = ser_surf_vz_kernels;
-      boundary_surf_vx_kernels = ser_boundary_surf_vx_kernels;
-      boundary_surf_vy_kernels = ser_boundary_surf_vy_kernels;
-      boundary_surf_vz_kernels = ser_boundary_surf_vz_kernels;
-      
+      surf_vpar_kernels = ser_surf_vpar_kernels;
+      surf_mu_kernels = ser_surf_mu_kernels;
+      boundary_surf_vpar_kernels = ser_boundary_surf_vpar_kernels;
+      boundary_surf_mu_kernels = ser_boundary_surf_mu_kernels;
       break;
-
-    // case GKYL_BASIS_MODAL_TENSOR:
-    //   vol_kernels = ten_vol_kernels;
-    //   surf_vx_kernels = ten_surf_vx_kernels;
-    //   surf_vy_kernels = ten_surf_vy_kernels;
-    //   surf_vz_kernels = ten_surf_vz_kernels;
-    //   boundary_surf_vx_kernels = ten_boundary_surf_vx_kernels;
-    //   boundary_surf_vy_kernels = ten_boundary_surf_vy_kernels;
-    //   boundary_surf_vz_kernels = ten_boundary_surf_vz_kernels;
-    //   break;
 
     default:
       assert(false);
       break;    
   }  
- 
+
   lbo_gyrokinetic_diff->vol = vol_kernels[cv_index].kernels[poly_order];
 
-  lbo_gyrokinetic_diff->surf[0] = surf_vx_kernels[cv_index].kernels[poly_order];
+  lbo_gyrokinetic_diff->surf[0] = surf_vpar_kernels[cv_index].kernels[poly_order];
   if (vdim>1)
-    lbo_gyrokinetic_diff->surf[1] = surf_vy_kernels[cv_index].kernels[poly_order];
-  if (vdim>2)
-    lbo_gyrokinetic_diff->surf[2] = surf_vz_kernels[cv_index].kernels[poly_order];
+    lbo_gyrokinetic_diff->surf[1] = surf_mu_kernels[cv_index].kernels[poly_order];
 
-  lbo_gyrokinetic_diff->boundary_surf[0] = boundary_surf_vx_kernels[cv_index].kernels[poly_order];
+  lbo_gyrokinetic_diff->boundary_surf[0] = boundary_surf_vpar_kernels[cv_index].kernels[poly_order];
   if (vdim>1)
-    lbo_gyrokinetic_diff->boundary_surf[1] = boundary_surf_vy_kernels[cv_index].kernels[poly_order];
-  if (vdim>2)
-    lbo_gyrokinetic_diff->boundary_surf[2] = boundary_surf_vz_kernels[cv_index].kernels[poly_order];
+    lbo_gyrokinetic_diff->boundary_surf[1] = boundary_surf_mu_kernels[cv_index].kernels[poly_order];
+
 }
 
 struct gkyl_dg_eqn*
