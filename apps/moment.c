@@ -93,6 +93,9 @@ struct moment_coupling {
   gkyl_moment_braginskii *brag_slvr; // Braginskii solver (if present)
   gkyl_ten_moment_grad_closure *grad_closure_slvr[GKYL_MAX_SPECIES]; // Gradient-based closure solver (if present)
   struct gkyl_array *cflrate; // array for stable time-step from non-ideal terms
+  struct gkyl_array *brag_vars[GKYL_MAX_SPECIES]; // array for braginskii variables
+  struct gkyl_rect_grid brag_grid; // grid for braginskii variables (braginskii variables located at cell nodes)
+  struct gkyl_range brag_local, brag_local_ext; // local, local-ext ranges for braginskii variables (loop over nodes)
   struct gkyl_array *rhs[GKYL_MAX_SPECIES]; // array for storing RHS of each species from non-ideal term updates (Braginskii/Gradient-based closure)
 };
 
@@ -775,6 +778,23 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   
   // check if Braginskii terms present
   if (app->type_brag) {
+    // create grid and ranges for braginskii variables (grid is in computational space)
+    // this grid is the grid of node values
+    int ghost[3] = { 2, 2, 2 };
+    double brag_lower[3] = {0.0};
+    double brag_upper[3] = {0.0};
+    int brag_cells[3] = {0};
+    // braginskii grid has one "extra" cell and is half a grid cell larger past the lower and upper domain
+    for (int d=0; d<app->ndim; ++d) {
+      brag_lower[d] = app->grid.lower[d] - (app->grid.upper[d]-app->grid.lower[d])/(2.0* (double) app->grid.cells[d]);
+      brag_upper[d] = app->grid.upper[d] + (app->grid.upper[d]-app->grid.lower[d])/(2.0* (double) app->grid.cells[d]);
+      brag_cells[d] = app->grid.cells[d] + 1;
+    }
+    gkyl_rect_grid_init(&src->brag_grid, app->ndim, brag_lower, brag_upper, brag_cells);
+    gkyl_create_grid_ranges(&app->grid, ghost, &src->brag_local_ext, &src->brag_local);
+    for (int n=0;  n<app->num_species; ++n) 
+      src->brag_vars[n] = mkarr(10, src->brag_local_ext.volume);
+    
     struct gkyl_moment_braginskii_inp brag_inp = {
       .grid = &app->grid,
       .nfluids = app->num_species,
@@ -838,7 +858,10 @@ moment_coupling_update(const gkyl_moment_app *app, struct moment_coupling *src,
   }
 
   if (app->type_brag)
-    gkyl_moment_braginskii_advance(src->brag_slvr, app->local, fluids, app->field.f[sidx[nstrang]], src->cflrate, src->rhs);
+    gkyl_moment_braginskii_advance(src->brag_slvr,
+      src->brag_local, app->local,
+      fluids, app->field.f[sidx[nstrang]],
+      src->cflrate, src->brag_vars, src->rhs);
 
   for (int i=0; i<app->num_species; ++i)
     rhs_const[i] = src->rhs[i];
