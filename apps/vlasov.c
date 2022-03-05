@@ -478,7 +478,8 @@ gkyl_vlasov_app_release(gkyl_vlasov_app* app)
   
   for (int i=0; i<app->num_species; ++i)
     vm_species_release(app, &app->species[i]);
-  gkyl_free(app->species);
+  if (app->num_species > 1)
+    gkyl_free(app->species);
   if (app->has_field)
     vm_field_release(app, app->field);
 

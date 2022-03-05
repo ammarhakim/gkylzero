@@ -43,7 +43,7 @@ main(int argc, char **argv)
   }
   
   struct gkyl_moment app_inp = {
-    .name = "maxwell_plane_wave",
+    .name = "maxwell_plane_wave_1d",
 
     .ndim = 1,
     .lower = { 0.0 },
