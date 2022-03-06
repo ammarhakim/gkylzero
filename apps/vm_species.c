@@ -5,6 +5,9 @@
 #include <gkyl_vlasov_priv.h>
 #include <gkyl_proj_on_basis.h>
 
+// function to evaluate acceleration (this is needed as accel function
+// provided by the user returns 3 components, while the Vlasov solver
+// expects 8 components to match the EM field)
 static void
 eval_accel(double t, const double *xn, double *aout, void *ctx)
 {

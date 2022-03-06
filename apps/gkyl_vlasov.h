@@ -34,6 +34,9 @@ struct gkyl_vlasov_species {
   void *accel_ctx; // context for applied acceleration function
   // pointer to applied acceleration function
   void (*accel)(double t, const double *xn, double *aout, void *ctx);
+
+  // boundary conditions
+  enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
 };
 
 // Parameter for EM field
@@ -49,6 +52,9 @@ struct gkyl_vlasov_field {
   void *ctx; // context for initial condition init function
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
+  
+  // boundary conditions
+  enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
 };
 
 // Top-level app parameters

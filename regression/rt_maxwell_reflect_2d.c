@@ -54,8 +54,8 @@ main(int argc, char **argv)
       .limiter = GKYL_NO_LIMITER,
       .init = evalFieldInit,
 
-      .bcx = { GKYL_MOMENT_FIELD_COND, GKYL_MOMENT_FIELD_COND },
-      .bcy = { GKYL_MOMENT_FIELD_COND, GKYL_MOMENT_FIELD_COND },
+      .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
+      .bcy = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
     }
   };
 

@@ -70,7 +70,7 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalSREulerInit,
 
-    .bcx = { GKYL_MOMENT_COPY, GKYL_MOMENT_COPY },
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
 
   // VM app

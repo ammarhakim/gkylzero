@@ -35,7 +35,7 @@ main(int argc, char **argv)
     .evolve = 1,
     .init = evalBurgersInit,
 
-    .bcx = { GKYL_MOMENT_COPY, GKYL_MOMENT_COPY },
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
 
   // VM app
