@@ -52,7 +52,7 @@ struct moment_species {
   int num_equations; // number of equations in species
   gkyl_wave_prop *slvr[3]; // solver in each direction
 
-  // boundary conditions on lower/upper edges in each direction
+  // boundary condition solvers on lower/upper edges in each direction
   gkyl_wv_apply_bc *lower_bc[3], *upper_bc[3];
 };
 

@@ -99,6 +99,26 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
   gkyl_dg_eqn_release(eqn);
 
+  // determine which directions are not periodic
+  int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
+  for (int d=0; d<num_periodic_dir; ++d)
+    is_np[app->periodic_dirs[d]] = 0;
+
+  for (int dir=0; dir<app->cdim; ++dir) {
+    if (is_np[dir]) {
+      const enum gkyl_field_bc_type *bc;
+      if (dir == 0)
+        bc = f->info.bcx;
+      else if (dir == 1)
+        bc = f->info.bcy;
+      else
+        bc = f->info.bcz;
+
+      f->lower_bc[dir] = bc[0];
+      f->upper_bc[dir] = bc[1];
+    }
+  }
+  
   return f;
 }
 
@@ -152,16 +172,40 @@ vm_field_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_field *field,
   gkyl_array_copy_from_buffer(f, field->bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
 }
 
+
 // Apply copy BCs on EM fields
 void
 vm_field_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_field *field,
-  int dir, struct gkyl_array *f)
+  int dir, enum vm_domain_edge edge, struct gkyl_array *f)
 {
-  gkyl_array_copy_to_buffer(field->bc_buffer->data, f, app->skin_ghost.lower_skin[dir]);
-  gkyl_array_copy_from_buffer(f, field->bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
+  if (edge == VM_EDGE_LOWER) {
+    gkyl_array_copy_to_buffer(field->bc_buffer->data, f, app->skin_ghost.lower_skin[dir]);
+    gkyl_array_copy_from_buffer(f, field->bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
+  }
 
-  gkyl_array_copy_to_buffer(field->bc_buffer->data, f, app->skin_ghost.upper_skin[dir]);
-  gkyl_array_copy_from_buffer(f, field->bc_buffer->data, app->skin_ghost.upper_ghost[dir]);
+  if (edge == VM_EDGE_UPPER) {
+    gkyl_array_copy_to_buffer(field->bc_buffer->data, f, app->skin_ghost.upper_skin[dir]);
+    gkyl_array_copy_from_buffer(f, field->bc_buffer->data, app->skin_ghost.upper_ghost[dir]);
+  }
+}
+
+void
+vm_field_apply_pec_bc(gkyl_vlasov_app *app, const struct vm_field *field,
+  int dir, enum vm_domain_edge edge, struct gkyl_array *f)
+{
+  if (edge == VM_EDGE_LOWER) {
+    gkyl_array_copy_to_buffer_fn(field->bc_buffer->data, f, app->skin_ghost.lower_skin[dir],
+      maxwell_wall_bc, &(struct maxwell_wall_bc_ctx) { .dir = dir, .basis = &app->confBasis }
+    );
+    gkyl_array_copy_from_buffer(f, field->bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
+  }
+
+  if (edge == VM_EDGE_UPPER) {
+    gkyl_array_copy_to_buffer_fn(field->bc_buffer->data, f, app->skin_ghost.upper_skin[dir],
+      maxwell_wall_bc, &(struct maxwell_wall_bc_ctx) { .dir = dir, .basis = &app->confBasis }
+    );
+    gkyl_array_copy_from_buffer(f, field->bc_buffer->data, app->skin_ghost.upper_ghost[dir]);
+  }  
 }
 
 // Determine which directions are periodic and which directions are copy,
@@ -169,14 +213,33 @@ vm_field_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_field *field,
 void
 vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gkyl_array *f)
 {
-  int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim, is_copy[3] = {1, 1, 1};
+  int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
+  int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
   for (int d=0; d<num_periodic_dir; ++d) {
     vm_field_apply_periodic_bc(app, field, app->periodic_dirs[d], f);
-    is_copy[app->periodic_dirs[d]] = 0;
+    is_np_bc[app->periodic_dirs[d]] = 0;
   }
   for (int d=0; d<cdim; ++d)
-    if (is_copy[d])
-      vm_field_apply_copy_bc(app, field, d, f);
+    if (is_np_bc[d]) {
+
+      switch (field->lower_bc[d]) {
+        case GKYL_FIELD_COPY:
+          vm_field_apply_copy_bc(app, field, d, VM_EDGE_LOWER, f);
+          break;
+        case GKYL_FIELD_PEC_WALL:
+          vm_field_apply_pec_bc(app, field, d, VM_EDGE_LOWER, f);
+          break;
+      }
+
+      switch (field->upper_bc[d]) {
+        case GKYL_FIELD_COPY:
+          vm_field_apply_copy_bc(app, field, d, VM_EDGE_UPPER, f);
+          break;
+        case GKYL_FIELD_PEC_WALL:
+          vm_field_apply_pec_bc(app, field, d, VM_EDGE_UPPER, f);
+          break;
+      }      
+    }
 }
 
 // release resources for field

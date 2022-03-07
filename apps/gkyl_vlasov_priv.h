@@ -36,6 +36,9 @@
 // Definitions of private structs and APIs attached to these objects
 // for use in Vlasov app.
 
+// Labels for lower, upper edge of domain
+enum vm_domain_edge { VM_EDGE_LOWER, VM_EDGE_UPPER };
+
 // ranges for use in BCs
 struct vm_skin_ghost_ranges {
   struct gkyl_range lower_skin[GKYL_MAX_DIM];
@@ -99,6 +102,9 @@ struct vm_species {
 
   struct gkyl_dg_eqn *eqn; // Vlasov equation
   gkyl_hyper_dg *slvr; // solver
+ 
+  // boundary conditions on lower/upper edges in each direction  
+  enum gkyl_species_bc_type lower_bc[3], upper_bc[3];
 
   bool has_accel; // flag to indicate there is applied acceleration
   struct gkyl_array *accel; // applied acceleration
@@ -123,6 +129,9 @@ struct vm_field {
   struct gkyl_array *em_host;  // host copy for use IO and initialization
 
   gkyl_hyper_dg *slvr; // Maxwell solver
+
+  // boundary conditions on lower/upper edges in each direction  
+  enum gkyl_field_bc_type lower_bc[3], upper_bc[3];
 
   double* omegaCfl_ptr;
 };
@@ -319,9 +328,11 @@ void vm_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_species 
  * @param app Vlasov app object
  * @param species Pointer to species
  * @param dir Direction to apply BCs
+ * @param edge Edge to apply BCs
  * @param f Field to apply BCs
  */
-void vm_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_species *species,
+void
+vm_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_species *species,
   int dir, struct gkyl_array *f);
 
 /**
@@ -391,7 +402,19 @@ void vm_field_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_field *fie
  * @param dir Direction to apply BCs
  * @param f Field to apply BCs
  */
-void vm_field_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_field *field, int dir, struct gkyl_array *f);
+void vm_field_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_field *field,
+  int dir, enum vm_domain_edge edge, struct gkyl_array *f);
+
+/**
+ * Apply PEC wall BCs to field
+ *
+ * @param app Vlasov app object
+ * @param field Pointer to field
+ * @param dir Direction to apply BCs
+ * @param f Field to apply BCs
+ */
+void vm_field_apply_pec_bc(gkyl_vlasov_app *app, const struct vm_field *field,
+  int dir, enum vm_domain_edge edge, struct gkyl_array *f);
 
 /**
  * Apply BCs to field
