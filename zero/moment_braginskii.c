@@ -342,21 +342,30 @@ mag_brag_calc_vars(const gkyl_moment_braginskii *bes,
     calc_pi_cross(eta_cross_avg[n], b_avg, w[n], pi_cross[n]);
 
     // Total viscous stress tensor
-    for (int k = 0; k < 6; ++k)
-      brag_d[n][PIXX + k] = pi_par[n][k] + pi_perp[n][k] + pi_cross[n][k];
+    if (bes->type_brag & GKYL_BRAG_VISC)
+      for (int k = 0; k < 6; ++k)
+        brag_d[n][PIXX + k] = pi_par[n][k] + pi_perp[n][k] + pi_cross[n][k];
+    else
+      for (int k = 0; k < 6; ++k)
+        brag_d[n][PIXX + k] = 0.0;
 
-    // Divergence of Pi dot u
-    double div_Piu[3] = { brag_d[n][PIXX]*u_avg[n][0] + brag_d[n][PIXY]*u_avg[n][1] + brag_d[n][PIXZ]*u_avg[n][2],
-                          brag_d[n][PIXY]*u_avg[n][0] + brag_d[n][PIYY]*u_avg[n][1] + brag_d[n][PIYZ]*u_avg[n][2],
-                          brag_d[n][PIXZ]*u_avg[n][0] + brag_d[n][PIYZ]*u_avg[n][1] + brag_d[n][PIZZ]*u_avg[n][2] };
+    // Pi dot u
+    double Piu[3] = { brag_d[n][PIXX]*u_avg[n][0] + brag_d[n][PIXY]*u_avg[n][1] + brag_d[n][PIXZ]*u_avg[n][2],
+                      brag_d[n][PIXY]*u_avg[n][0] + brag_d[n][PIYY]*u_avg[n][1] + brag_d[n][PIYZ]*u_avg[n][2],
+                      brag_d[n][PIXZ]*u_avg[n][0] + brag_d[n][PIYZ]*u_avg[n][1] + brag_d[n][PIZZ]*u_avg[n][2] };
 
     // Total heat flux + viscous heating
-    for (int k = 0; k < 3; ++k)
-      brag_d[n][QX + k] = -kappa_par_avg[n]*bbgradT[n][k] - kappa_perp_avg[n]*perp_gradT[n][k] + kappa_cross_avg[n]*cross_gradT[n][k] + div_Piu[k];
+    if (bes->type_brag & GKYL_BRAG_HEATFLUX)
+      for (int k = 0; k < 3; ++k)
+        brag_d[n][QX + k] = -kappa_par_avg[n]*bbgradT[n][k] - kappa_perp_avg[n]*perp_gradT[n][k] + kappa_cross_avg[n]*cross_gradT[n][k] + Piu[k];
+    else
+      for (int k = 0; k < 3; ++k)
+        brag_d[n][QX + k] = Piu[k];
   }
 
-  for (int k = 0; k < 3; ++k)
-    brag_d[ELC][QX + k] += current_par_avg[k] + current_cross_avg[k];
+  if (bes->type_brag & GKYL_BRAG_HEATFLUX)
+    for (int k = 0; k < 3; ++k)
+      brag_d[ELC][QX + k] += current_par_avg[k] + current_cross_avg[k];
 }
 
 // Fetch input quantities and compute derived quantities for UNmagnetized Braginskii
@@ -539,23 +548,32 @@ unmag_brag_calc_vars(const gkyl_moment_braginskii *bes,
   for (int n = 0; n < nfluids; ++n)
   {
     // Total viscous stress tensor
-    for (int k = 0; k < 6; ++k)
-      brag_d[n][PIXX + k] = -eta_avg[n] * w[n][k];
+    if (bes->type_brag & GKYL_BRAG_VISC)
+      for (int k = 0; k < 6; ++k)
+        brag_d[n][PIXX + k] = -eta_avg[n] * w[n][k];
+    else
+      for (int k = 0; k < 6; ++k)
+        brag_d[n][PIXX + k] = 0.0;
 
     double gradT[3] = { gradxT[n], gradyT[n] , gradzT[n] };
 
-    // Divergence of Pi dot u
-    double div_Piu[3] = { brag_d[n][PIXX]*u_avg[n][0] + brag_d[n][PIXY]*u_avg[n][1] + brag_d[n][PIXZ]*u_avg[n][2],
-                          brag_d[n][PIXY]*u_avg[n][0] + brag_d[n][PIYY]*u_avg[n][1] + brag_d[n][PIYZ]*u_avg[n][2],
-                          brag_d[n][PIXZ]*u_avg[n][0] + brag_d[n][PIYZ]*u_avg[n][1] + brag_d[n][PIZZ]*u_avg[n][2] };
+    // Pi dot u
+    double Piu[3] = { brag_d[n][PIXX]*u_avg[n][0] + brag_d[n][PIXY]*u_avg[n][1] + brag_d[n][PIXZ]*u_avg[n][2],
+                      brag_d[n][PIXY]*u_avg[n][0] + brag_d[n][PIYY]*u_avg[n][1] + brag_d[n][PIYZ]*u_avg[n][2],
+                      brag_d[n][PIXZ]*u_avg[n][0] + brag_d[n][PIYZ]*u_avg[n][1] + brag_d[n][PIZZ]*u_avg[n][2] };
 
     // Total heat flux + viscous heating
-    for (int k = 0; k < 3; ++k)
-      brag_d[n][QX + k] = -kappa_avg[n]*gradT[k] + div_Piu[k];
+    if (bes->type_brag & GKYL_BRAG_HEATFLUX)
+      for (int k = 0; k < 3; ++k)
+        brag_d[n][QX + k] = -kappa_avg[n]*gradT[k] + Piu[k];
+    else
+      for (int k = 0; k < 3; ++k)
+        brag_d[n][QX + k] = Piu[k];
   }
 
-  for (int k = 0; k < 3; ++k)
-    brag_d[ELC][QX + k] += current_avg[k];
+  if (bes->type_brag & GKYL_BRAG_HEATFLUX)
+    for (int k = 0; k < 3; ++k)
+      brag_d[ELC][QX + k] += current_avg[k];
 }
 
 static void
@@ -692,9 +710,9 @@ gkyl_moment_braginskii_advance(const gkyl_moment_braginskii *bes,
     for (int n=0; n<nfluids; ++n)
       brag_vars_d[n] = gkyl_array_fetch(brag_vars[n], linc_vertex);
 
-    if (bes->type_brag == GKYL_MAG_BRAG)
+    if (bes->type_brag & GKYL_BRAG_MAG)
       mag_brag_calc_vars(bes, fluid_d, em_tot_d, gkyl_array_fetch(cflrate, linc_center), brag_vars_d);
-    else if (bes->type_brag == GKYL_UNMAG_BRAG)
+    else
       unmag_brag_calc_vars(bes, fluid_d, gkyl_array_fetch(cflrate, linc_center), brag_vars_d);
   }
 

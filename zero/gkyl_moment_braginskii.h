@@ -12,8 +12,12 @@
 enum gkyl_braginskii_type
 {
   NONE = 0,
-  GKYL_UNMAG_BRAG, // Unmagnetized Braginskii
-  GKYL_MAG_BRAG, // Magnetized Braginskii
+  GKYL_BRAG_MAG = 1 << 0,
+  GKYL_BRAG_VISC = 1 << 1,
+  GKYL_BRAG_HEATFLUX = 1 << 2,
+
+  GKYL_BRAG_UNMAG_FULL = GKYL_BRAG_VISC | GKYL_BRAG_HEATFLUX,
+  GKYL_BRAG_MAG_FULL = GKYL_BRAG_MAG | GKYL_BRAG_VISC | GKYL_BRAG_HEATFLUX
 };
 
 struct gkyl_moment_braginskii_data {
