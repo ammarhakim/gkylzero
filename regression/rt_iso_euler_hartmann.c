@@ -125,7 +125,7 @@ main(int argc, char **argv)
 
     .num_species = 2,
     .species = { elc, ion },
-    .type_brag = GKYL_MAG_BRAG,
+    .type_brag = GKYL_BRAG_MAG_FULL,
     .coll_fac = 1.0,
     .field = {
       .epsilon0 = 8.854187817620389850536563031710750260608e-12,

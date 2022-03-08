@@ -209,7 +209,7 @@ main(int argc, char **argv)
 
     .num_species = 2,
     .species = { elc, ion },
-    .type_brag = GKYL_MAG_BRAG,
+    .type_brag = GKYL_BRAG_MAG_FULL,
     .coll_fac = ctx.coll_fac,
     .field = {
       .epsilon0 = ctx.epsilon0,
