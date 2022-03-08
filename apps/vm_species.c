@@ -1,4 +1,3 @@
-#include "gkyl_array_ops.h"
 #include <assert.h>
 #include <gkyl_array.h>
 #include <gkyl_eqn_type.h>
@@ -164,7 +163,7 @@ void
 vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, double tm)
 {
   if (species->has_accel) {
-    gkyl_proj_on_basis_advance(species->accel_proj, tm, &species->local, species->accel_host);
+    gkyl_proj_on_basis_advance(species->accel_proj, tm, &app->local_ext, species->accel_host);
     if (app->use_gpu) // note: accel_host is same as accel when not on GPUs
       gkyl_array_copy(species->accel, species->accel_host);
   }

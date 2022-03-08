@@ -79,7 +79,6 @@ main(int argc, char **argv)
     .upper = { 6.0*ctx.vt, 6.0*ctx.vt, 6.0*ctx.vt}, 
     .cells = { VX, VY, VZ },
 
-    .evolve = 1,
     .ctx = &ctx,
     .init = evalDistFunc,
     .nu = evalNu,

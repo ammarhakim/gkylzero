@@ -1,33 +1,33 @@
+#include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
 
+static inline double sq(double x) { return x*x; }
+
+void
+evalDistFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xn[0], v = xn[1];
+
+  fout[0] = 1/sqrt(2*M_PI)*exp(-sq(v)/2);
+}
+
 void
 evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  // assumes epsilon0 = mu0 = c = 1.0
-  double L = 1.0;
-  double kwave = 2.0;
-  double lwave = 2.0;
-  double pi = 3.141592653589793238462643383279502884;
-  double phi = 2*pi/L*(kwave*xn[0] + lwave*xn[1]);
-  double knorm = sqrt(kwave*kwave + lwave*lwave);
-  double kxn = kwave/knorm;
-  double kyn = lwave/knorm;
-  //n = (-1, 1, 1), n_hat = 1/math.sqrt(3)
-  double E0 = 1.0/sqrt(3.0);
-  fout[0] = -E0*cos(phi);
-  fout[1] = E0*cos(phi);
-  fout[2] = E0*cos(phi);
-  fout[3] = E0*cos(phi)*2*pi/L*kyn;
-  fout[4] = -E0*cos(phi)*2*pi/L*kxn;
-  fout[5] = E0*cos(phi)*2*pi/L*(-kxn - kyn);
-  fout[6] = 0.0;
-  fout[7] = 0.0;  
+  double x = xn[0];
+  double E_x = -sin(x);
+  
+  fout[0] = E_x; fout[1] = 0.0, fout[2] = 0.0;
+  fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
+  fout[6] = 0.0; fout[7] = 0.0;
 }
 
 int
@@ -40,50 +40,68 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 16);
-  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 16);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 32);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 24);
+
+  // electrons
+  struct gkyl_vlasov_species elc = {
+    .name = "elc",
+    .charge = -1.0,
+    .mass = 1.0,
+    .lower = { -6.0 },
+    .upper = { 6.0 }, 
+    .cells = { VX },
+
+    .init = evalDistFunc,
+
+    .num_diag_moments = 3,
+    .diag_moments = { "M0", "M1i", "M2" },
+  };
 
   // field
   struct gkyl_vlasov_field field = {
     .epsilon0 = 1.0, .mu0 = 1.0,
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
-    .ctx = 0,
-    .init = evalFieldFunc
+
+    .is_static = true,
+
+    .init = evalFieldFunc,
   };
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "dg_maxwell_plane_wave_2d",
-
-    .cdim = 2, .vdim = 0,
-    .lower = { 0.0, 0.0 },
-    .upper = { 1.0, 1.0 },
-    .cells = { NX, NY },
+    .name = "es_pot_well",
+    
+    .cdim = 1, .vdim = 1,
+    .lower = { 0.0 },
+    .upper = { 2*M_PI },
+    .cells = { NX },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
-    .num_periodic_dir = 2,
-    .periodic_dirs = { 0, 1 },
+    .num_periodic_dir = 1,
+    .periodic_dirs = { 0 },
 
-    .num_species = 0,
-    .species = {  },
+    .num_species = 1,
+    .species = { elc },
     .field = field,
- 
+
     .use_gpu = app_args.use_gpu,
   };
-
+  
   // create app object
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 2.0;
+  double tcurr = 0.0, tend = 3.0;
   double dt = tend-tcurr;
 
   // initialize simulation
   gkyl_vlasov_app_apply_ic(app, tcurr);
   
   gkyl_vlasov_app_write(app, tcurr, 0);
+  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 0);
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
@@ -92,7 +110,7 @@ main(int argc, char **argv)
     printf(" dt = %g\n", status.dt_actual);
     
     if (!status.success) {
-      printf("** Update method failed! Aborting simulation ....\n");
+      fprintf(stderr, "** Update method failed! Aborting simulation ....\n");
       break;
     }
     tcurr += status.dt_actual;
@@ -101,12 +119,13 @@ main(int argc, char **argv)
   }
 
   gkyl_vlasov_app_write(app, tcurr, 1);
+  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1);
   gkyl_vlasov_app_stat_write(app);
 
   // fetch simulation statistics
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
 
-  // simulation complete, free app
+  // simulation complete, free objects
   gkyl_vlasov_app_release(app);
 
   printf("\n");

@@ -87,7 +87,6 @@ main(int argc, char **argv)
     .upper = { 6.0 }, 
     .cells = { VX },
 
-    .evolve = 1,
     .ctx = &ctx,
     .init = evalDistFunc,
 
@@ -100,7 +99,7 @@ main(int argc, char **argv)
     .epsilon0 = 1.0, .mu0 = 1.0,
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
-    .evolve = 1,
+
     .ctx = &ctx,
     .init = evalFieldFunc,
   };

@@ -1,3 +1,4 @@
+#include <float.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_util.h>
 #include <assert.h>
@@ -144,16 +145,20 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
 {
   struct timespec wst = gkyl_wall_clock();
   
+  double omegaCfl = 1/DBL_MAX;
+  
   gkyl_array_clear(field->cflrate, 0.0);
-
   gkyl_array_clear(rhs, 0.0);
-  if (app->use_gpu)
-    gkyl_hyper_dg_advance_cu(field->slvr, &app->local, em, field->cflrate, rhs);
-  else
-    gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
 
-  gkyl_array_reduce_range(field->omegaCfl_ptr, field->cflrate, GKYL_MAX, app->local);
-  double omegaCfl = field->omegaCfl_ptr[0];
+  if (!field->info.is_static) {
+    if (app->use_gpu)
+      gkyl_hyper_dg_advance_cu(field->slvr, &app->local, em, field->cflrate, rhs);
+    else
+      gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
+    
+    gkyl_array_reduce_range(field->omegaCfl_ptr, field->cflrate, GKYL_MAX, app->local);
+    omegaCfl = field->omegaCfl_ptr[0];
+  }
 
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
   

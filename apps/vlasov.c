@@ -245,19 +245,25 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 
   if (app->has_field) {
     struct timespec wst = gkyl_wall_clock();
-    // accumulate current contribution to electric field terms
-    for (int i=0; i<app->num_species; ++i) {
-      struct vm_species *s = &app->species[i];
-      vm_species_moment_calc(&s->m1i, s->local, app->local, fin[i]);
+
+    // (can't accumulate current when field is static)
+    if (!app->field->info.is_static) {
+      // accumulate current contribution to electric field terms
+      for (int i=0; i<app->num_species; ++i) {
+        struct vm_species *s = &app->species[i];
+        vm_species_moment_calc(&s->m1i, s->local, app->local, fin[i]);
     
-      double qbyeps = s->info.charge/app->field->info.epsilon0;
-      gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, app->local);
+        double qbyeps = s->info.charge/app->field->info.epsilon0;
+        gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, app->local);
+      }
+      app->stat.current_tm += gkyl_time_diff_now_sec(wst);
     }
-    app->stat.current_tm += gkyl_time_diff_now_sec(wst);
   
-    // complete update of field
+    // complete update of field (even when field is static, it is
+    // safest to do this accumulate as it ensure emout = emin)
     gkyl_array_accumulate_range(gkyl_array_scale_range(emout, dta, app->local),
       1.0, emin, app->local);
+    
     vm_field_apply_bc(app, app->field, emout);
   }
 }
