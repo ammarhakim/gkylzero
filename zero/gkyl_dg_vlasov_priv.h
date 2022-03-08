@@ -51,7 +51,7 @@ static const gkyl_dg_vlasov_stream_vol_kern_list ser_stream_vol_kernels[] = {
   { NULL, vlasov_stream_vol_1x3v_ser_p1, vlasov_stream_vol_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, vlasov_stream_vol_2x2v_ser_p1, vlasov_stream_vol_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_stream_vol_2x3v_ser_p1, NULL               }, // 4
+  { NULL, vlasov_stream_vol_2x3v_ser_p1, vlasov_stream_vol_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_stream_vol_3x3v_ser_p1, NULL               }, // 5
 };
@@ -64,7 +64,7 @@ static const gkyl_dg_vlasov_vol_kern_list ser_vol_kernels[] = {
   { NULL, vlasov_vol_1x3v_ser_p1, vlasov_vol_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, vlasov_vol_2x2v_ser_p1, vlasov_vol_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_vol_2x3v_ser_p1, NULL               }, // 4
+  { NULL, vlasov_vol_2x3v_ser_p1, vlasov_vol_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_vol_3x3v_ser_p1, NULL               }, // 5
 };
@@ -78,7 +78,7 @@ static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_surf_x_kernels[] = 
   { NULL, vlasov_surfx_1x3v_ser_p1, vlasov_surfx_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, vlasov_surfx_2x2v_ser_p1, vlasov_surfx_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_surfx_2x3v_ser_p1, NULL                  }, // 4
+  { NULL, vlasov_surfx_2x3v_ser_p1, vlasov_surfx_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_surfx_3x3v_ser_p1, NULL                  }, // 5
 };
@@ -92,7 +92,7 @@ static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_surf_y_kernels[] = 
   { NULL, NULL, NULL }, // 2  
   // 2x kernels
   { NULL, vlasov_surfy_2x2v_ser_p1, vlasov_surfy_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_surfy_2x3v_ser_p1, NULL                  }, // 4
+  { NULL, vlasov_surfy_2x3v_ser_p1, vlasov_surfy_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_surfy_3x3v_ser_p1, NULL                  }, // 5
 };
@@ -120,7 +120,7 @@ static const gkyl_dg_vlasov_accel_surf_kern_list ser_accel_surf_vx_kernels[] = {
   { NULL, vlasov_surfvx_1x3v_ser_p1, vlasov_surfvx_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, vlasov_surfvx_2x2v_ser_p1, vlasov_surfvx_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_surfvx_2x3v_ser_p1, NULL                   }, // 4
+  { NULL, vlasov_surfvx_2x3v_ser_p1, vlasov_surfvx_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_surfvx_3x3v_ser_p1, NULL                   }, // 5
 };
@@ -134,7 +134,7 @@ static const gkyl_dg_vlasov_accel_surf_kern_list ser_accel_surf_vy_kernels[] = {
   { NULL, vlasov_surfvy_1x3v_ser_p1, vlasov_surfvy_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, vlasov_surfvy_2x2v_ser_p1, vlasov_surfvy_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_surfvy_2x3v_ser_p1, NULL                   }, // 4
+  { NULL, vlasov_surfvy_2x3v_ser_p1, vlasov_surfvy_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_surfvy_3x3v_ser_p1, NULL                   }, // 5
 };
@@ -145,10 +145,10 @@ static const gkyl_dg_vlasov_accel_surf_kern_list ser_accel_surf_vz_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
-  { NULL, vlasov_surfvz_1x3v_ser_p1, vlasov_surfvz_1x3v_ser_p2}, // 2
+  { NULL, vlasov_surfvz_1x3v_ser_p1, vlasov_surfvz_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, NULL, NULL }, // 3
-  { NULL, vlasov_surfvz_2x3v_ser_p1, NULL }, // 4
+  { NULL, vlasov_surfvz_2x3v_ser_p1, vlasov_surfvz_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_surfvz_3x3v_ser_p1, NULL }, // 5
 };
@@ -162,7 +162,7 @@ static const gkyl_dg_vlasov_accel_boundary_surf_kern_list ser_accel_boundary_sur
   { NULL, vlasov_boundary_surfvx_1x3v_ser_p1, vlasov_boundary_surfvx_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, vlasov_boundary_surfvx_2x2v_ser_p1, vlasov_boundary_surfvx_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_boundary_surfvx_2x3v_ser_p1, NULL                   }, // 4
+  { NULL, vlasov_boundary_surfvx_2x3v_ser_p1, vlasov_boundary_surfvx_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_boundary_surfvx_3x3v_ser_p1, NULL                   }, // 5
 };
@@ -176,7 +176,7 @@ static const gkyl_dg_vlasov_accel_boundary_surf_kern_list ser_accel_boundary_sur
   { NULL, vlasov_boundary_surfvy_1x3v_ser_p1, vlasov_boundary_surfvy_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, vlasov_boundary_surfvy_2x2v_ser_p1, vlasov_boundary_surfvy_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_boundary_surfvy_2x3v_ser_p1, NULL                   }, // 4
+  { NULL, vlasov_boundary_surfvy_2x3v_ser_p1, vlasov_boundary_surfvy_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_boundary_surfvy_3x3v_ser_p1, NULL                   }, // 5
 };
@@ -187,10 +187,10 @@ static const gkyl_dg_vlasov_accel_boundary_surf_kern_list ser_accel_boundary_sur
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
-  { NULL, vlasov_boundary_surfvz_1x3v_ser_p1, vlasov_boundary_surfvz_1x3v_ser_p2}, // 2
+  { NULL, vlasov_boundary_surfvz_1x3v_ser_p1, vlasov_boundary_surfvz_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, NULL, NULL }, // 3
-  { NULL, vlasov_boundary_surfvz_2x3v_ser_p1, NULL }, // 4
+  { NULL, vlasov_boundary_surfvz_2x3v_ser_p1, vlasov_boundary_surfvz_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_boundary_surfvz_3x3v_ser_p1, NULL }, // 5
 };

@@ -1,5 +1,6 @@
 #include <gkyl_vlasov_kernels.h> 
-#include <gkyl_basis_ser_1x2v_p1_surfvx_quad.h> 
+#include <gkyl_basis_ser_3x_p1_surfx2_quad.h> 
+#include <gkyl_basis_ser_3x_p1_upwind.h> 
 GKYL_CU_DH void vlasov_poisson_extem_boundary_surfvx_1x2v_ser_p1(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
 { 
   // w:           Cell-center coordinates.
@@ -28,38 +29,28 @@ GKYL_CU_DH void vlasov_poisson_extem_boundary_surfvx_1x2v_ser_p1(const double *w
   if (edge == -1) { 
 
   if (alpha[0]-alpha[2] > 0) { 
-
-    fUpwindQuad[0] = ser_1x2v_p1_surfvx_quad_0(1, fSkin); 
+    fUpwindQuad[0] = ser_3x_p1_surfx2_quad_0_r(fSkin); 
   } else { 
-
-    fUpwindQuad[0] = ser_1x2v_p1_surfvx_quad_0(-1, fEdge); 
+    fUpwindQuad[0] = ser_3x_p1_surfx2_quad_0_l(fEdge); 
   } 
   if (alpha[0]-alpha[2] > 0) { 
-
-    fUpwindQuad[1] = ser_1x2v_p1_surfvx_quad_1(1, fSkin); 
+    fUpwindQuad[1] = ser_3x_p1_surfx2_quad_1_r(fSkin); 
   } else { 
-
-    fUpwindQuad[1] = ser_1x2v_p1_surfvx_quad_1(-1, fEdge); 
+    fUpwindQuad[1] = ser_3x_p1_surfx2_quad_1_l(fEdge); 
   } 
   if (alpha[2]+alpha[0] > 0) { 
-
-    fUpwindQuad[2] = ser_1x2v_p1_surfvx_quad_2(1, fSkin); 
+    fUpwindQuad[2] = ser_3x_p1_surfx2_quad_2_r(fSkin); 
   } else { 
-
-    fUpwindQuad[2] = ser_1x2v_p1_surfvx_quad_2(-1, fEdge); 
+    fUpwindQuad[2] = ser_3x_p1_surfx2_quad_2_l(fEdge); 
   } 
   if (alpha[2]+alpha[0] > 0) { 
-
-    fUpwindQuad[3] = ser_1x2v_p1_surfvx_quad_3(1, fSkin); 
+    fUpwindQuad[3] = ser_3x_p1_surfx2_quad_3_r(fSkin); 
   } else { 
-
-    fUpwindQuad[3] = ser_1x2v_p1_surfvx_quad_3(-1, fEdge); 
+    fUpwindQuad[3] = ser_3x_p1_surfx2_quad_3_l(fEdge); 
   } 
 
-  fUpwind[0] = 0.5*(fUpwindQuad[3]+fUpwindQuad[2]+fUpwindQuad[1]+fUpwindQuad[0]); 
-  fUpwind[1] = 0.5*(fUpwindQuad[3]-1.0*fUpwindQuad[2]+fUpwindQuad[1]-1.0*fUpwindQuad[0]); 
-  fUpwind[2] = 0.5*(fUpwindQuad[3]+fUpwindQuad[2]-1.0*(fUpwindQuad[1]+fUpwindQuad[0])); 
-  fUpwind[3] = 0.5*(fUpwindQuad[3]-1.0*(fUpwindQuad[2]+fUpwindQuad[1])+fUpwindQuad[0]); 
+  // Project nodal basis back onto modal basis. 
+  ser_3x_p1_upwind(fUpwindQuad, fUpwind); 
 
   Ghat[0] += 0.5*(alpha[2]*fUpwind[2]+alpha[0]*fUpwind[0]); 
   Ghat[1] += 0.5*(alpha[2]*fUpwind[3]+alpha[0]*fUpwind[1]); 
@@ -78,38 +69,28 @@ GKYL_CU_DH void vlasov_poisson_extem_boundary_surfvx_1x2v_ser_p1(const double *w
   } else { 
 
   if (alpha[0]-alpha[2] > 0) { 
-
-    fUpwindQuad[0] = ser_1x2v_p1_surfvx_quad_0(1, fEdge); 
+    fUpwindQuad[0] = ser_3x_p1_surfx2_quad_0_r(fEdge); 
   } else { 
-
-    fUpwindQuad[0] = ser_1x2v_p1_surfvx_quad_0(-1, fSkin); 
+    fUpwindQuad[0] = ser_3x_p1_surfx2_quad_0_l(fSkin); 
   } 
   if (alpha[0]-alpha[2] > 0) { 
-
-    fUpwindQuad[1] = ser_1x2v_p1_surfvx_quad_1(1, fEdge); 
+    fUpwindQuad[1] = ser_3x_p1_surfx2_quad_1_r(fEdge); 
   } else { 
-
-    fUpwindQuad[1] = ser_1x2v_p1_surfvx_quad_1(-1, fSkin); 
+    fUpwindQuad[1] = ser_3x_p1_surfx2_quad_1_l(fSkin); 
   } 
   if (alpha[2]+alpha[0] > 0) { 
-
-    fUpwindQuad[2] = ser_1x2v_p1_surfvx_quad_2(1, fEdge); 
+    fUpwindQuad[2] = ser_3x_p1_surfx2_quad_2_r(fEdge); 
   } else { 
-
-    fUpwindQuad[2] = ser_1x2v_p1_surfvx_quad_2(-1, fSkin); 
+    fUpwindQuad[2] = ser_3x_p1_surfx2_quad_2_l(fSkin); 
   } 
   if (alpha[2]+alpha[0] > 0) { 
-
-    fUpwindQuad[3] = ser_1x2v_p1_surfvx_quad_3(1, fEdge); 
+    fUpwindQuad[3] = ser_3x_p1_surfx2_quad_3_r(fEdge); 
   } else { 
-
-    fUpwindQuad[3] = ser_1x2v_p1_surfvx_quad_3(-1, fSkin); 
+    fUpwindQuad[3] = ser_3x_p1_surfx2_quad_3_l(fSkin); 
   } 
 
-  fUpwind[0] = 0.5*(fUpwindQuad[3]+fUpwindQuad[2]+fUpwindQuad[1]+fUpwindQuad[0]); 
-  fUpwind[1] = 0.5*(fUpwindQuad[3]-1.0*fUpwindQuad[2]+fUpwindQuad[1]-1.0*fUpwindQuad[0]); 
-  fUpwind[2] = 0.5*(fUpwindQuad[3]+fUpwindQuad[2]-1.0*(fUpwindQuad[1]+fUpwindQuad[0])); 
-  fUpwind[3] = 0.5*(fUpwindQuad[3]-1.0*(fUpwindQuad[2]+fUpwindQuad[1])+fUpwindQuad[0]); 
+  // Project nodal basis back onto modal basis. 
+  ser_3x_p1_upwind(fUpwindQuad, fUpwind); 
 
   Ghat[0] += 0.5*(alpha[2]*fUpwind[2]+alpha[0]*fUpwind[0]); 
   Ghat[1] += 0.5*(alpha[2]*fUpwind[3]+alpha[0]*fUpwind[1]); 

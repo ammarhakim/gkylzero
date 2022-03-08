@@ -23,9 +23,6 @@ gkyl_prim_lbo_gyrokinetic_set_cu_dev_ptrs(struct prim_lbo_type_gyrokinetic *prim
       self_prim_kernels = ser_self_prim_kernels;
       break;
 
-    case GKYL_BASIS_MODAL_TENSOR:
-      break;
-
     default:
       assert(false);
       break;    

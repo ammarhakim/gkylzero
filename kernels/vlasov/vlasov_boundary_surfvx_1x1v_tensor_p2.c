@@ -1,5 +1,6 @@
 #include <gkyl_vlasov_kernels.h> 
-#include <gkyl_basis_tensor_1x1v_p2_surfvx_quad.h> 
+#include <gkyl_basis_tensor_2x_p2_surfx2_quad.h> 
+#include <gkyl_basis_tensor_2x_p2_upwind.h> 
 GKYL_CU_DH void vlasov_boundary_surfvx_1x1v_tensor_p2(const double *w, const double *dxv, const double *qmem, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
 { 
   // w:           Cell-center coordinates.
@@ -25,30 +26,23 @@ GKYL_CU_DH void vlasov_boundary_surfvx_1x1v_tensor_p2(const double *w, const dou
   if (edge == -1) { 
 
   if (0.6324555320336759*alpha[2]-0.9486832980505137*alpha[1]+0.7071067811865475*alpha[0] > 0) { 
-
-    fUpwindQuad[0] = tensor_1x1v_p2_surfvx_quad_0(1, fSkin); 
+    fUpwindQuad[0] = tensor_2x_p2_surfx2_quad_0_r(fSkin); 
   } else { 
-
-    fUpwindQuad[0] = tensor_1x1v_p2_surfvx_quad_0(-1, fEdge); 
+    fUpwindQuad[0] = tensor_2x_p2_surfx2_quad_0_l(fEdge); 
   } 
   if (0.7071067811865475*alpha[0]-0.7905694150420947*alpha[2] > 0) { 
-
-    fUpwindQuad[1] = tensor_1x1v_p2_surfvx_quad_1(1, fSkin); 
+    fUpwindQuad[1] = tensor_2x_p2_surfx2_quad_1_r(fSkin); 
   } else { 
-
-    fUpwindQuad[1] = tensor_1x1v_p2_surfvx_quad_1(-1, fEdge); 
+    fUpwindQuad[1] = tensor_2x_p2_surfx2_quad_1_l(fEdge); 
   } 
   if (0.6324555320336759*alpha[2]+0.9486832980505137*alpha[1]+0.7071067811865475*alpha[0] > 0) { 
-
-    fUpwindQuad[2] = tensor_1x1v_p2_surfvx_quad_2(1, fSkin); 
+    fUpwindQuad[2] = tensor_2x_p2_surfx2_quad_2_r(fSkin); 
   } else { 
-
-    fUpwindQuad[2] = tensor_1x1v_p2_surfvx_quad_2(-1, fEdge); 
+    fUpwindQuad[2] = tensor_2x_p2_surfx2_quad_2_l(fEdge); 
   } 
 
-  fUpwind[0] = 0.392837100659193*fUpwindQuad[2]+0.6285393610547091*fUpwindQuad[1]+0.392837100659193*fUpwindQuad[0]; 
-  fUpwind[1] = 0.5270462766947298*fUpwindQuad[2]-0.5270462766947298*fUpwindQuad[0]; 
-  fUpwind[2] = 0.3513641844631533*fUpwindQuad[2]-0.7027283689263066*fUpwindQuad[1]+0.3513641844631533*fUpwindQuad[0]; 
+  // Project nodal basis back onto modal basis. 
+  tensor_2x_p2_upwind(fUpwindQuad, fUpwind); 
 
   Ghat[0] += 0.7071067811865475*(alpha[2]*fUpwind[2]+alpha[1]*fUpwind[1]+alpha[0]*fUpwind[0]); 
   Ghat[1] += 0.6324555320336759*(alpha[1]*fUpwind[2]+fUpwind[1]*alpha[2])+0.7071067811865475*(alpha[0]*fUpwind[1]+fUpwind[0]*alpha[1]); 
@@ -67,30 +61,23 @@ GKYL_CU_DH void vlasov_boundary_surfvx_1x1v_tensor_p2(const double *w, const dou
   } else { 
 
   if (0.6324555320336759*alpha[2]-0.9486832980505137*alpha[1]+0.7071067811865475*alpha[0] > 0) { 
-
-    fUpwindQuad[0] = tensor_1x1v_p2_surfvx_quad_0(1, fEdge); 
+    fUpwindQuad[0] = tensor_2x_p2_surfx2_quad_0_r(fEdge); 
   } else { 
-
-    fUpwindQuad[0] = tensor_1x1v_p2_surfvx_quad_0(-1, fSkin); 
+    fUpwindQuad[0] = tensor_2x_p2_surfx2_quad_0_l(fSkin); 
   } 
   if (0.7071067811865475*alpha[0]-0.7905694150420947*alpha[2] > 0) { 
-
-    fUpwindQuad[1] = tensor_1x1v_p2_surfvx_quad_1(1, fEdge); 
+    fUpwindQuad[1] = tensor_2x_p2_surfx2_quad_1_r(fEdge); 
   } else { 
-
-    fUpwindQuad[1] = tensor_1x1v_p2_surfvx_quad_1(-1, fSkin); 
+    fUpwindQuad[1] = tensor_2x_p2_surfx2_quad_1_l(fSkin); 
   } 
   if (0.6324555320336759*alpha[2]+0.9486832980505137*alpha[1]+0.7071067811865475*alpha[0] > 0) { 
-
-    fUpwindQuad[2] = tensor_1x1v_p2_surfvx_quad_2(1, fEdge); 
+    fUpwindQuad[2] = tensor_2x_p2_surfx2_quad_2_r(fEdge); 
   } else { 
-
-    fUpwindQuad[2] = tensor_1x1v_p2_surfvx_quad_2(-1, fSkin); 
+    fUpwindQuad[2] = tensor_2x_p2_surfx2_quad_2_l(fSkin); 
   } 
 
-  fUpwind[0] = 0.392837100659193*fUpwindQuad[2]+0.6285393610547091*fUpwindQuad[1]+0.392837100659193*fUpwindQuad[0]; 
-  fUpwind[1] = 0.5270462766947298*fUpwindQuad[2]-0.5270462766947298*fUpwindQuad[0]; 
-  fUpwind[2] = 0.3513641844631533*fUpwindQuad[2]-0.7027283689263066*fUpwindQuad[1]+0.3513641844631533*fUpwindQuad[0]; 
+  // Project nodal basis back onto modal basis. 
+  tensor_2x_p2_upwind(fUpwindQuad, fUpwind); 
 
   Ghat[0] += 0.7071067811865475*(alpha[2]*fUpwind[2]+alpha[1]*fUpwind[1]+alpha[0]*fUpwind[0]); 
   Ghat[1] += 0.6324555320336759*(alpha[1]*fUpwind[2]+fUpwind[1]*alpha[2])+0.7071067811865475*(alpha[0]*fUpwind[1]+fUpwind[0]*alpha[1]); 
