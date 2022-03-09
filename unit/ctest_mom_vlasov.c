@@ -1,4 +1,4 @@
-// A test of calculation of moments of a distribution function.
+// Test calculation of Vlasov moments of a distribution function.
 //
 #include <acutest.h>
 
