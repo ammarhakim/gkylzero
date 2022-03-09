@@ -204,7 +204,10 @@ gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gk
   mom_gk->momt.num_phase = pbasis->num_basis;
 
   int mom_id = get_gk_mom_id(mom);
-  assert(mom_id != BAD);
+  if(mom_id == BAD) {
+     printf("Error: requested GK moment %s not valid\n", mom);
+     assert(mom_id != BAD);
+  }
   mom_gk->momt.num_mom = gk_num_mom(vdim, mom_id); // number of moments
 
   mom_gk->mass = mass;
