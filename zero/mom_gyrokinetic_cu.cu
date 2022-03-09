@@ -12,7 +12,7 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-enum { M0, GkM1, GkM2, GkM2par, GkM2perp, GkM3par, GkM3perp, ThreeMoments, BAD };
+enum { M0, M1, M2, M2par, M2perp, M3par, M3perp, ThreeMoments, BAD };
 
 static int
 get_gk_mom_id(const char *mom)
