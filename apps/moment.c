@@ -10,15 +10,16 @@
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_fv_proj.h>
 #include <gkyl_moment.h>
-#include <gkyl_moment_em_coupling.h>
 #include <gkyl_moment_braginskii.h>
-#include <gkyl_ten_moment_grad_closure.h>
+#include <gkyl_moment_em_coupling.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_apply_bc.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_ten_moment_grad_closure.h>
 #include <gkyl_util.h>
 #include <gkyl_wave_prop.h>
+#include <gkyl_wv_eqn.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_iso_euler.h>
 #include <gkyl_wv_maxwell.h>
@@ -369,7 +370,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   sp->eqn_type = mom_sp->equation->type;
   sp->num_equations = mom_sp->equation->num_equations;
-  sp->equation = mom_sp->equation;
+  sp->equation = gkyl_wv_eqn_acquire(mom_sp->equation);
 
   // choose default limiter
   enum gkyl_wave_limiter limiter =
@@ -766,7 +767,8 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       .type = app->species[i].eqn_type,
       .charge = app->species[i].charge,
       .mass = app->species[i].mass,
-      .k0 = app->has_grad_closure ? 0.0 : gkyl_wv_ten_moment_k0(app->species[i].equation),
+//      .k0 = app->has_grad_closure ? 0.0 : gkyl_wv_ten_moment_k0(app->species[i].equation),
+      .k0 = 0.0,
     };
 
   // create updater to solve for sources
