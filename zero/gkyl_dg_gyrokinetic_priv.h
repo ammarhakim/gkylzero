@@ -78,9 +78,9 @@ static const gkyl_dg_gyrokinetic_surf_kern_list ser_surf_x_kernels[] = {
   { NULL, gyrokinetic_surfx_1x1v_ser_p1, gyrokinetic_surfx_1x1v_ser_p2 }, // 0
   { NULL, gyrokinetic_surfx_1x2v_ser_p1, gyrokinetic_surfx_1x2v_ser_p2 }, // 1
   // 2x kernels
-  { NULL, gyrokinetic_surfx_2x2v_ser_p1, NULL }, // 1
+  { NULL, gyrokinetic_surfx_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
-  { NULL, gyrokinetic_surfx_3x2v_ser_p1, NULL }, // 1
+  { NULL, gyrokinetic_surfx_3x2v_ser_p1, NULL }, // 3
 };
 
 // Surface kernel list: y-direction
@@ -90,9 +90,9 @@ static const gkyl_dg_gyrokinetic_surf_kern_list ser_surf_y_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
   // 2x kernels
-  { NULL, gyrokinetic_surfy_2x2v_ser_p1, NULL }, // 1
+  { NULL, gyrokinetic_surfy_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
-  { NULL, gyrokinetic_surfy_3x2v_ser_p1, NULL }, // 1
+  { NULL, gyrokinetic_surfy_3x2v_ser_p1, NULL }, // 3
 };
 
 // Surface kernel list: z-direction
@@ -104,7 +104,7 @@ static const gkyl_dg_gyrokinetic_surf_kern_list ser_surf_z_kernels[] = {
   // 2x kernels
   { NULL, NULL, NULL }, // 2
   // 3x kernels
-  { NULL, gyrokinetic_surfz_3x2v_ser_p1, NULL }, // 1
+  { NULL, gyrokinetic_surfz_3x2v_ser_p1, NULL }, // 3
 };
 
 // Acceleration surface kernel list: vpar-direction
@@ -114,9 +114,9 @@ static const gkyl_dg_gyrokinetic_surf_kern_list ser_surf_vpar_kernels[] = {
   { NULL, gyrokinetic_surfvpar_1x1v_ser_p1, gyrokinetic_surfvpar_1x1v_ser_p2 }, // 0
   { NULL, gyrokinetic_surfvpar_1x2v_ser_p1, gyrokinetic_surfvpar_1x2v_ser_p2 }, // 1
   // 2x kernels
-  { NULL, gyrokinetic_surfvpar_2x2v_ser_p1, NULL }, // 1
+  { NULL, gyrokinetic_surfvpar_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
-  { NULL, gyrokinetic_surfvpar_3x2v_ser_p1, NULL }, // 1
+  { NULL, gyrokinetic_surfvpar_3x2v_ser_p1, NULL }, // 3
 };
 
 // Acceleration boundary surface kernel (zero-flux BCs) list: vpar-direction
@@ -126,9 +126,9 @@ static const gkyl_dg_gyrokinetic_boundary_surf_kern_list ser_boundary_surf_vpar_
   { NULL, gyrokinetic_boundary_surfvpar_1x1v_ser_p1, gyrokinetic_boundary_surfvpar_1x1v_ser_p2 }, // 0
   { NULL, gyrokinetic_boundary_surfvpar_1x2v_ser_p1, gyrokinetic_boundary_surfvpar_1x2v_ser_p2 }, // 1
   // 2x kernels
-  { NULL, gyrokinetic_boundary_surfvpar_2x2v_ser_p1, NULL }, // 1
+  { NULL, gyrokinetic_boundary_surfvpar_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
-  { NULL, gyrokinetic_boundary_surfvpar_3x2v_ser_p1, NULL }, // 1
+  { NULL, gyrokinetic_boundary_surfvpar_3x2v_ser_p1, NULL }, // 3
 };
 
 // "Choose Kernel" based on cdim, vdim and polyorder
@@ -200,7 +200,7 @@ surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (dir < gyrokinetic->pdim-1) {
+  if (gyrokinetic->pdim - gyrokinetic->cdim == 1 || dir < gyrokinetic->pdim-1) {
     long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idxC);
     gyrokinetic->surf[dir](xcC, dxC, 
       gyrokinetic->charge, gyrokinetic->mass,
@@ -226,6 +226,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
+  // only in vpar direction
   if (dir == gyrokinetic->cdim) {
     long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idxSkin);
     gyrokinetic->boundary_surf(xcSkin, dxSkin, 
