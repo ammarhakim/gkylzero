@@ -28,14 +28,14 @@ GKYL_CU_DH double gyrokinetic_vol_1x1v_ser_p2(const double *w, const double *dxv
   const double *b_y = &b_i[3];
   const double *b_z = &b_i[6];
 
-  double hamil[8]; 
+  double hamil[8] = {0.}; 
   hamil[0] = (0.3333333333333333*(3.0*rdvpar2Sq*(m_*wvparSq+1.414213562373095*phi[0]*q_)+m_))/rdvpar2Sq; 
   hamil[1] = 1.414213562373095*phi[1]*q_; 
   hamil[2] = (1.154700538379252*m_*wvpar)/rdvpar2; 
   hamil[4] = 1.414213562373095*phi[2]*q_; 
   hamil[5] = (0.2981423969999719*m_)/rdvpar2Sq; 
 
-  double BstarZdBmag[8]; 
+  double BstarZdBmag[8] = {0.}; 
   BstarZdBmag[0] = (1.732050807568877*(2.23606797749979*jacobtot_inv[1]*b_y[2]+jacobtot_inv[0]*b_y[1])*m_*rdx2*wvpar+(cmag[2]*jacobtot_inv[2]+cmag[1]*jacobtot_inv[1]+cmag[0]*jacobtot_inv[0])*q_)/q_; 
   BstarZdBmag[1] = (0.2*(1.732050807568877*(b_y[2]*(10.0*jacobtot_inv[2]+11.18033988749895*jacobtot_inv[0])+5.0*b_y[1]*jacobtot_inv[1])*m_*rdx2*wvpar+(4.47213595499958*(cmag[1]*jacobtot_inv[2]+jacobtot_inv[1]*cmag[2])+5.0*(cmag[0]*jacobtot_inv[1]+jacobtot_inv[0]*cmag[1]))*q_))/q_; 
   BstarZdBmag[2] = ((2.23606797749979*jacobtot_inv[1]*b_y[2]+jacobtot_inv[0]*b_y[1])*m_*rdx2)/(q_*rdvpar2); 
@@ -46,7 +46,8 @@ GKYL_CU_DH double gyrokinetic_vol_1x1v_ser_p2(const double *w, const double *dxv
   double cflFreq = 0.0; 
   double alphaL = 0.0; 
   double alphaR = 0.0; 
-  double alphax[8]; 
+
+  double alphax[8] = {0.}; 
   alphax[0] = (0.8660254037844386*(2.23606797749979*BstarZdBmag[2]*hamil[5]+BstarZdBmag[0]*hamil[2])*rdvpar2*rdx2)/m_; 
   alphax[1] = (0.8660254037844386*(2.23606797749979*BstarZdBmag[3]*hamil[5]+BstarZdBmag[1]*hamil[2])*rdvpar2*rdx2)/m_; 
   alphax[2] = (0.8660254037844386*(2.23606797749979*BstarZdBmag[0]*hamil[5]+BstarZdBmag[2]*hamil[2])*rdvpar2*rdx2)/m_; 
@@ -70,7 +71,7 @@ GKYL_CU_DH double gyrokinetic_vol_1x1v_ser_p2(const double *w, const double *dxv
   alphaR = 0.25*(0.7745966692414834*alphax[7]+1.5*alphax[6]+0.447213595499958*alphax[5]+1.118033988749895*alphax[4]+1.161895003862225*alphax[3]+0.6708203932499369*alphax[2]+0.8660254037844386*alphax[1]+0.5*alphax[0]); 
   cflFreq += 0.5*(alphaR+fabs(alphaR)); 
 
-  double alphavpar[8]; 
+  double alphavpar[8] = {0.}; 
   alphavpar[0] = -(0.8660254037844386*(2.23606797749979*BstarZdBmag[1]*hamil[4]+BstarZdBmag[0]*hamil[1])*rdvpar2*rdx2)/m_; 
   alphavpar[1] = -(1.732050807568877*(0.5*(2.23606797749979*BstarZdBmag[0]*hamil[4]+BstarZdBmag[1]*hamil[1])+BstarZdBmag[4]*hamil[4])*rdvpar2*rdx2)/m_; 
   alphavpar[2] = -(0.8660254037844386*(2.23606797749979*BstarZdBmag[3]*hamil[4]+hamil[1]*BstarZdBmag[2])*rdvpar2*rdx2)/m_; 

@@ -28,12 +28,12 @@ GKYL_CU_DH double gyrokinetic_vol_1x1v_ser_p1(const double *w, const double *dxv
   const double *b_y = &b_i[2];
   const double *b_z = &b_i[4];
 
-  double hamil[4]; 
+  double hamil[4] = {0.}; 
   hamil[0] = (0.3333333333333333*(3.0*rdvpar2Sq*(m_*wvparSq+1.414213562373095*phi[0]*q_)+m_))/rdvpar2Sq; 
   hamil[1] = 1.414213562373095*phi[1]*q_; 
   hamil[2] = (1.154700538379252*m_*wvpar)/rdvpar2; 
 
-  double BstarZdBmag[4]; 
+  double BstarZdBmag[4] = {0.}; 
   BstarZdBmag[0] = (1.732050807568877*jacobtot_inv[0]*b_y[1]*m_*rdx2*wvpar+(cmag[1]*jacobtot_inv[1]+cmag[0]*jacobtot_inv[0])*q_)/q_; 
   BstarZdBmag[1] = (1.732050807568877*b_y[1]*jacobtot_inv[1]*m_*rdx2*wvpar+(cmag[0]*jacobtot_inv[1]+jacobtot_inv[0]*cmag[1])*q_)/q_; 
   BstarZdBmag[2] = (jacobtot_inv[0]*b_y[1]*m_*rdx2)/(q_*rdvpar2); 
@@ -42,7 +42,8 @@ GKYL_CU_DH double gyrokinetic_vol_1x1v_ser_p1(const double *w, const double *dxv
   double cflFreq = 0.0; 
   double alphaL = 0.0; 
   double alphaR = 0.0; 
-  double alphax[4]; 
+
+  double alphax[4] = {0.}; 
   alphax[0] = (0.8660254037844386*BstarZdBmag[0]*hamil[2]*rdvpar2*rdx2)/m_; 
   alphax[1] = (0.8660254037844386*BstarZdBmag[1]*hamil[2]*rdvpar2*rdx2)/m_; 
   alphax[2] = (0.8660254037844386*BstarZdBmag[2]*hamil[2]*rdvpar2*rdx2)/m_; 
@@ -58,7 +59,7 @@ GKYL_CU_DH double gyrokinetic_vol_1x1v_ser_p1(const double *w, const double *dxv
   alphaR = 0.25*(0.8660254037844386*alphax[3]+0.4999999999999999*alphax[2]+0.8660254037844386*alphax[1]+0.5*alphax[0]); 
   cflFreq += 0.5*(alphaR+fabs(alphaR)); 
 
-  double alphavpar[4]; 
+  double alphavpar[4] = {0.}; 
   alphavpar[0] = -(0.8660254037844386*BstarZdBmag[0]*hamil[1]*rdvpar2*rdx2)/m_; 
   alphavpar[1] = -(0.8660254037844386*BstarZdBmag[1]*hamil[1]*rdvpar2*rdx2)/m_; 
   alphavpar[2] = -(0.8660254037844386*hamil[1]*BstarZdBmag[2]*rdvpar2*rdx2)/m_; 
