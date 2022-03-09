@@ -9,6 +9,11 @@
 typedef void (*vlasov_self_prim_t)(struct gkyl_mat *A, struct gkyl_mat *rhs, 
   const double *moms, const double *boundary_corrections);
 
+typedef void (*vlasov_cross_prim_t)(struct gkyl_mat *A, struct gkyl_mat *rhs, const double betaGreenep1,
+  const double m_self, const double nu_self, const double *u_self, const double *vtSq_self,
+  const double m_other, const double nu_other, const double *u_other, const double *vtSq_other,
+  const double *moms, const double *boundary_corrections);
+
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
 static struct { int vdim[4]; } cv_index[] = {
@@ -19,15 +24,17 @@ static struct { int vdim[4]; } cv_index[] = {
 };
 
 // for use in kernel tables
-typedef struct { vlasov_self_prim_t kernels[3]; } gkyl_prim_lbo_vlasov_kern_list;
+typedef struct { vlasov_self_prim_t kernels[3]; } gkyl_prim_lbo_vlasov_self_kern_list;
+typedef struct { vlasov_cross_prim_t kernels[3]; } gkyl_prim_lbo_vlasov_cross_kern_list;
+
 
 //
 // Serendipity basis kernels
 //
 
-// self primitive moment kernel list
+// self-primitive moment kernel list
 GKYL_CU_D
-static const gkyl_prim_lbo_vlasov_kern_list ser_self_prim_kernels[] = {
+static const gkyl_prim_lbo_vlasov_self_kern_list ser_self_prim_kernels[] = {
   // 1x kernels
   { NULL, NULL, vlasov_self_prim_moments_1x1v_ser_p2 }, // 0
   { NULL, NULL, vlasov_self_prim_moments_1x2v_ser_p2 }, // 1
@@ -39,9 +46,24 @@ static const gkyl_prim_lbo_vlasov_kern_list ser_self_prim_kernels[] = {
   { NULL, NULL, NULL }, // 5
 };
 
+// cross-primitive moment kernel list
+GKYL_CU_D
+static const gkyl_prim_lbo_vlasov_cross_kern_list ser_cross_prim_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, vlasov_cross_prim_moments_1x1v_ser_p2 }, // 0
+  { NULL, NULL, vlasov_cross_prim_moments_1x2v_ser_p2 }, // 1
+  { NULL, NULL, vlasov_cross_prim_moments_1x3v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, NULL, vlasov_cross_prim_moments_2x2v_ser_p2 }, // 3
+  { NULL, NULL, NULL }, // 4
+  // 3x kernels
+  { NULL, NULL, NULL }, // 5
+};
+
 struct prim_lbo_type_vlasov {
   struct gkyl_prim_lbo_type prim; // Base object
   vlasov_self_prim_t self_prim; // Self-primitive moments kernel
+  vlasov_cross_prim_t cross_prim; // Cross-primitive moments kernels
 };
 
 /**
@@ -59,4 +81,16 @@ self_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A,
   struct prim_lbo_type_vlasov *prim_vlasov = container_of(prim, struct prim_lbo_type_vlasov, prim);
 
   return prim_vlasov->self_prim(A, rhs, moms, boundary_corrections);
+}
+
+GKYL_CU_D
+static void
+cross_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A,
+  struct gkyl_mat *rhs, const double betaGreenep1, const double m_self, const double nu_self,
+  const double *u_self, const double *vtSq_self, const double m_other, const double nu_other,
+  const double *u_other, const double *vtSq_other, const double *moms, const double *boundary_corrections)
+{
+  struct prim_lbo_type_vlasov *prim_vlasov = container_of(prim, struct prim_lbo_type_vlasov, prim);
+
+  return prim_vlasov->cross_prim(A, rhs, betaGreenep1, m_self, nu_self, u_self, vtSq_self, m_other, nu_other, u_other, vtSq_other, moms, boundary_corrections);
 }
