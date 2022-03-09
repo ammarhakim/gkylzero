@@ -144,7 +144,7 @@ mag_var_setup(const gkyl_moment_braginskii *bes, int start, int end,
 static void
 mag_brag_calc_vars(const gkyl_moment_braginskii *bes,
   const double *fluid_d[][GKYL_MAX_SPECIES], const double *em_tot_d[],
-  double *cflrate, double *brag_d[GKYL_MAX_SPECIES])
+  double *cflrate[GKYL_MAX_SPECIES], double *brag_d[GKYL_MAX_SPECIES])
 {
   int nfluids = bes->nfluids;
   const int ndim = bes->ndim;
@@ -425,7 +425,7 @@ unmag_var_setup(const gkyl_moment_braginskii *bes, int start, int end,
 static void
 unmag_brag_calc_vars(const gkyl_moment_braginskii *bes,
   const double *fluid_d[][GKYL_MAX_SPECIES],
-  double *cflrate, double *brag_d[GKYL_MAX_SPECIES])
+  double *cflrate[GKYL_MAX_SPECIES], double *brag_d[GKYL_MAX_SPECIES])
 {
   int nfluids = bes->nfluids;
   const int ndim = bes->ndim;
@@ -584,13 +584,11 @@ brag_calc_update(const gkyl_moment_braginskii *bes,
   const int ndim = bes->ndim;
   double div_pi[GKYL_MAX_SPECIES][3] = {};
   double div_q[GKYL_MAX_SPECIES] = {};
-  if (ndim == 1) 
-  {
+  if (ndim == 1) {
     const double dx = bes->grid.dx[0];
     double pi[2][GKYL_MAX_SPECIES][6] = {};
     double q[2][GKYL_MAX_SPECIES][3] = {};
-    for (int n=0; n < nfluids; ++n) 
-    {
+    for (int n=0; n < nfluids; ++n) {
       for (int j = L_1D; j <= U_1D; ++j)
         for (int k = 0; k < 6; ++k)
           pi[j][n][k] = brag_d[j][n][PIXX + k];
@@ -605,8 +603,7 @@ brag_calc_update(const gkyl_moment_braginskii *bes,
       rhs[n][MZ] = -div_pi[n][2];
 
       // If energy variable exists, increment heat flux and viscous heating
-      if (bes->param[n].type_eqn == GKYL_EQN_EULER) 
-      {
+      if (bes->param[n].type_eqn == GKYL_EQN_EULER) {
         for (int j = L_1D; j <= U_1D; ++j)
           for (int k = 0; k < 3; ++k)
             q[j][n][k] = brag_d[j][n][QX + k];
@@ -616,14 +613,12 @@ brag_calc_update(const gkyl_moment_braginskii *bes,
       }
     }
   }
-  else if (ndim == 2) 
-  {
+  else if (ndim == 2) {
     const double dx = bes->grid.dx[0];
     const double dy = bes->grid.dx[1];
     double pi[4][GKYL_MAX_SPECIES][6] = {};
     double q[4][GKYL_MAX_SPECIES][3] = {};
-    for (int n=0; n < nfluids; ++n) 
-    {
+    for (int n=0; n < nfluids; ++n) {
       for (int j = LL_2D; j <= UU_2D; ++j)
         for (int k = 0; k < 6; ++k)
           pi[j][n][k] = brag_d[j][n][PIXX + k];
@@ -643,9 +638,8 @@ brag_calc_update(const gkyl_moment_braginskii *bes,
       rhs[n][MZ] = -div_pi[n][2];
 
       // If energy variable exists, increment heat flux and viscous heating
-      if (bes->param[n].type_eqn == GKYL_EQN_EULER) 
-      {
-        for (int j = L_1D; j <= U_1D; ++j)
+      if (bes->param[n].type_eqn == GKYL_EQN_EULER) {
+        for (int j = LL_2D; j <= UU_2D; ++j)
           for (int k = 0; k < 3; ++k)
             q[j][n][k] = brag_d[j][n][QX + k];
 
@@ -677,7 +671,7 @@ void
 gkyl_moment_braginskii_advance(const gkyl_moment_braginskii *bes,
   struct gkyl_range brag_vars_range, struct gkyl_range update_range,
   struct gkyl_array *fluid[GKYL_MAX_SPECIES], const struct gkyl_array *em_tot,
-  struct gkyl_array *cflrate, struct gkyl_array *brag_vars[GKYL_MAX_SPECIES], struct gkyl_array *rhs[GKYL_MAX_SPECIES])
+  struct gkyl_array *cflrate[GKYL_MAX_SPECIES], struct gkyl_array *brag_vars[GKYL_MAX_SPECIES], struct gkyl_array *rhs[GKYL_MAX_SPECIES])
 {
   int nfluids = bes->nfluids;
   int ndim = update_range.ndim;
@@ -691,6 +685,7 @@ gkyl_moment_braginskii_advance(const gkyl_moment_braginskii *bes,
   
   const double* fluid_d[sz[ndim-1]][GKYL_MAX_SPECIES];
   const double* em_tot_d[sz[ndim-1]];
+  double *cflrate_d[GKYL_MAX_SPECIES];
   double *brag_vars_d[GKYL_MAX_SPECIES];
   const double* brag_vars_up[sz[ndim-1]][GKYL_MAX_SPECIES];
   double *rhs_d[GKYL_MAX_SPECIES];
@@ -707,13 +702,15 @@ gkyl_moment_braginskii_advance(const gkyl_moment_braginskii *bes,
       for (int n=0; n<nfluids; ++n)
         fluid_d[i][n] = gkyl_array_cfetch(fluid[n], linc_center + offsets_vertices[i]);
     }
-    for (int n=0; n<nfluids; ++n)
+    for (int n=0; n<nfluids; ++n) {
       brag_vars_d[n] = gkyl_array_fetch(brag_vars[n], linc_vertex);
+      cflrate_d[n] = gkyl_array_fetch(cflrate[n], linc_center);
+    }
 
     if (bes->type_brag & GKYL_BRAG_MAG)
-      mag_brag_calc_vars(bes, fluid_d, em_tot_d, gkyl_array_fetch(cflrate, linc_center), brag_vars_d);
+      mag_brag_calc_vars(bes, fluid_d, em_tot_d, cflrate_d, brag_vars_d);
     else
-      unmag_brag_calc_vars(bes, fluid_d, gkyl_array_fetch(cflrate, linc_center), brag_vars_d);
+      unmag_brag_calc_vars(bes, fluid_d, cflrate_d, brag_vars_d);
   }
 
   struct gkyl_range_iter iter_center;

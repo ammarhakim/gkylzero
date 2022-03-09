@@ -38,8 +38,6 @@ struct moment_species {
   int ndim;
   char name[128]; // species name
   double charge, mass;
-  double k0; // closure parameter (default is 0.0, used by 10 moment)
-  bool has_grad_closure; // has gradient-based closure (only for 10 moment)
 
   int evolve; // evolve species? 1-yes, 0-no
 
@@ -90,12 +88,16 @@ struct moment_field {
 // Source data
 struct moment_coupling {
   gkyl_moment_em_coupling *slvr; // source solver function
+};
+
+struct moment_non_ideal {
+  struct gkyl_rect_grid non_ideal_grid; // grid for braginskii variables (braginskii variables located at cell nodes)
+  struct gkyl_range non_ideal_local, non_ideal_local_ext; // local, local-ext ranges for braginskii variables (loop over nodes)
+
   gkyl_moment_braginskii *brag_slvr; // Braginskii solver (if present)
   gkyl_ten_moment_grad_closure *grad_closure_slvr[GKYL_MAX_SPECIES]; // Gradient-based closure solver (if present)
-  struct gkyl_array *cflrate; // array for stable time-step from non-ideal terms
-  struct gkyl_array *brag_vars[GKYL_MAX_SPECIES]; // array for braginskii variables
-  struct gkyl_rect_grid brag_grid; // grid for braginskii variables (braginskii variables located at cell nodes)
-  struct gkyl_range brag_local, brag_local_ext; // local, local-ext ranges for braginskii variables (loop over nodes)
+  struct gkyl_array *non_ideal_cflrate[GKYL_MAX_SPECIES]; // array for stable time-step from non-ideal terms
+  struct gkyl_array *non_ideal_vars[GKYL_MAX_SPECIES]; // array for braginskii variables
   struct gkyl_array *rhs[GKYL_MAX_SPECIES]; // array for storing RHS of each species from non-ideal term updates (Braginskii/Gradient-based closure)
 };
 
@@ -129,9 +131,13 @@ struct gkyl_moment_app {
   struct moment_species *species; // species data
 
   int update_sources; // flag to indicate if sources are to be updated
+  struct moment_coupling sources; // sources
+
+  int has_non_ideal; // flag to indicate if non-ideal terms are present
   enum gkyl_braginskii_type type_brag; // enum for Braginskii type (if present)
   double coll_fac; // multiplicative collisionality factor for Braginskii
-  struct moment_coupling sources; // sources
+  bool has_grad_closure; // has gradient-based closure (only for 10 moment)
+  struct moment_non_ideal non_ideal; // non-ideal terms
     
   struct gkyl_moment_stat stat; // statistics
 };
@@ -358,16 +364,12 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   strcpy(sp->name, mom_sp->name);
   sp->charge = mom_sp->charge;
   sp->mass = mom_sp->mass;
-  // check if we are running with gradient-based closure
-  sp->has_grad_closure = mom_sp->has_grad_closure == 0 ? 0 : mom_sp->has_grad_closure;
   sp->ctx = mom_sp->ctx;
   sp->init = mom_sp->init;
 
   sp->eqn_type = mom_sp->equation->type;
   sp->num_equations = mom_sp->equation->num_equations;
   sp->equation = mom_sp->equation;
-  // closure parameter, used by 10 moment
-  sp->k0 = mom_sp->equation->type == GKYL_EQN_TEN_MOMENT ? gkyl_wv_ten_moment_k0(mom_sp->equation) : 0.0;
 
   // choose default limiter
   enum gkyl_wave_limiter limiter =
@@ -764,37 +766,90 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       .type = app->species[i].eqn_type,
       .charge = app->species[i].charge,
       .mass = app->species[i].mass,
-      .k0 = app->species[i].has_grad_closure ? 0.0 : app->species[i].k0,
+      .k0 = app->has_grad_closure ? 0.0 : gkyl_wv_ten_moment_k0(app->species[i].equation),
     };
 
   // create updater to solve for sources
   src->slvr = gkyl_moment_em_coupling_new(src_inp);
+}
 
+// update sources: 'nstrang' is 0 for the first Strang step and 1 for
+// the second step
+static 
+void
+moment_coupling_update(const gkyl_moment_app *app, struct moment_coupling *src,
+  int nstrang, double tcurr, double dt)
+{
+  int sidx[] = { 0, app->ndim };
+  struct gkyl_array *fluids[GKYL_MAX_SPECIES];
+  const struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
+  const struct gkyl_array *rhs_const[GKYL_MAX_SPECIES];
+  
+  for (int i=0; i<app->num_species; ++i) {
+    fluids[i] = app->species[i].f[sidx[nstrang]];
+    
+    if (app->species[i].proj_app_accel)
+      gkyl_fv_proj_advance(app->species[i].proj_app_accel, tcurr, &app->local, app->species[i].app_accel);
+    app_accels[i] = app->species[i].app_accel;
+  }
+  
+  if (app->field.proj_app_current)
+    gkyl_fv_proj_advance(app->field.proj_app_current, tcurr, &app->local, app->field.app_current);
+  
+  if (app->field.proj_ext_em)
+    gkyl_fv_proj_advance(app->field.proj_ext_em, tcurr, &app->local, app->field.ext_em);
+
+  gkyl_moment_em_coupling_advance(src->slvr, dt, app->local,
+    fluids, app_accels,
+    app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em);
+
+  for (int i=0; i<app->num_species; ++i)
+    moment_species_apply_bc(app, tcurr, &app->species[i], fluids[i]);
+
+  moment_field_apply_bc(app, tcurr, &app->field, app->field.f[sidx[nstrang]]);
+}
+
+// free sources
+static 
+void
+moment_coupling_release(const gkyl_moment_app *app, const struct moment_coupling *src)
+{
+  gkyl_moment_em_coupling_release(src->slvr);
+}
+
+// initialize non-ideal solver: this should be called after all species
+// and fields are initialized
+static 
+void
+moment_non_ideal_init(const struct gkyl_moment_app *app, struct moment_non_ideal *non_ideal)
+{
   for (int n=0; n<app->num_species; ++n) {
     int meqn = app->species[n].num_equations;
-    src->rhs[n] = mkarr(meqn, app->local_ext.volume);
+    non_ideal->rhs[n] = mkarr(meqn, app->local_ext.volume);
+    non_ideal->non_ideal_cflrate[n] = mkarr(1, app->local_ext.volume); 
   }
-  src->cflrate = mkarr(1, app->local_ext.volume); 
-  
+
+  // create grid and ranges for non-ideal variables (grid is in computational space)
+  // this grid is the grid of node values
+  int ghost[3] = { 2, 2, 2 };
+  double non_ideal_lower[3] = {0.0};
+  double non_ideal_upper[3] = {0.0};
+  int non_ideal_cells[3] = {0};
+  // braginskii grid has one "extra" cell and is half a grid cell larger past the lower and upper domain
+  for (int d=0; d<app->ndim; ++d) {
+    non_ideal_lower[d] = app->grid.lower[d] - (app->grid.upper[d]-app->grid.lower[d])/(2.0* (double) app->grid.cells[d]);
+    non_ideal_upper[d] = app->grid.upper[d] + (app->grid.upper[d]-app->grid.lower[d])/(2.0* (double) app->grid.cells[d]);
+    non_ideal_cells[d] = app->grid.cells[d] + 1;
+  }
+  gkyl_rect_grid_init(&non_ideal->non_ideal_grid, app->ndim, non_ideal_lower, non_ideal_upper, non_ideal_cells);
+  gkyl_create_grid_ranges(&app->grid, ghost, &non_ideal->non_ideal_local_ext, &non_ideal->non_ideal_local);
+  // In Braginskii case, non-ideal variables are 6 pressure tensor + 3 heat flux
+  // In Gradient-closure case, non-ideal variables are 10 heat flux tensor components
+  for (int n=0;  n<app->num_species; ++n) 
+    non_ideal->non_ideal_vars[n] = mkarr(10, non_ideal->non_ideal_local_ext.volume);
+
   // check if Braginskii terms present
   if (app->type_brag) {
-    // create grid and ranges for braginskii variables (grid is in computational space)
-    // this grid is the grid of node values
-    int ghost[3] = { 2, 2, 2 };
-    double brag_lower[3] = {0.0};
-    double brag_upper[3] = {0.0};
-    int brag_cells[3] = {0};
-    // braginskii grid has one "extra" cell and is half a grid cell larger past the lower and upper domain
-    for (int d=0; d<app->ndim; ++d) {
-      brag_lower[d] = app->grid.lower[d] - (app->grid.upper[d]-app->grid.lower[d])/(2.0* (double) app->grid.cells[d]);
-      brag_upper[d] = app->grid.upper[d] + (app->grid.upper[d]-app->grid.lower[d])/(2.0* (double) app->grid.cells[d]);
-      brag_cells[d] = app->grid.cells[d] + 1;
-    }
-    gkyl_rect_grid_init(&src->brag_grid, app->ndim, brag_lower, brag_upper, brag_cells);
-    gkyl_create_grid_ranges(&app->grid, ghost, &src->brag_local_ext, &src->brag_local);
-    for (int n=0;  n<app->num_species; ++n) 
-      src->brag_vars[n] = mkarr(10, src->brag_local_ext.volume);
-    
     struct gkyl_moment_braginskii_inp brag_inp = {
       .grid = &app->grid,
       .nfluids = app->num_species,
@@ -818,17 +873,17 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
         .p_fac = p_fac,
       };
     }
-    src->brag_slvr = gkyl_moment_braginskii_new(brag_inp);
+    non_ideal->brag_slvr = gkyl_moment_braginskii_new(brag_inp);
   }
 
   // check if gradient-closure is present
   for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_grad_closure) {
+    if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->has_grad_closure) {
       struct gkyl_ten_moment_grad_closure_inp grad_closure_inp = {
         .grid = &app->grid,
-        .k0 = app->species[i].k0,
+        .k0 = gkyl_wv_ten_moment_k0(app->species[i].equation),
       };
-      src->grad_closure_slvr[i] = gkyl_ten_moment_grad_closure_new(grad_closure_inp);      
+      non_ideal->grad_closure_slvr[i] = gkyl_ten_moment_grad_closure_new(grad_closure_inp);      
     }
   }
 }
@@ -837,67 +892,52 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
 // the second step
 static 
 void
-moment_coupling_update(const gkyl_moment_app *app, struct moment_coupling *src,
+moment_non_ideal_update(const gkyl_moment_app *app, struct moment_non_ideal *non_ideal,
   int nstrang, double tcurr, double dt)
 {
   int sidx[] = { 0, app->ndim };
   struct gkyl_array *fluids[GKYL_MAX_SPECIES];
-  const struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
-  const struct gkyl_array *rhs_const[GKYL_MAX_SPECIES];
-  
+
   for (int i=0; i<app->num_species; ++i) {
     fluids[i] = app->species[i].f[sidx[nstrang]];
-    
-    if (app->species[i].proj_app_accel)
-      gkyl_fv_proj_advance(app->species[i].proj_app_accel, tcurr, &app->local, app->species[i].app_accel);
-    app_accels[i] = app->species[i].app_accel;
-    
-    if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_grad_closure)
-      gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i], app->local, app->species[i].f[sidx[nstrang]],
-        app->field.f[sidx[nstrang]], src->cflrate, src->rhs[i]);
+
+    if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->has_grad_closure)
+      gkyl_ten_moment_grad_closure_advance(non_ideal->grad_closure_slvr[i], 
+        non_ideal->non_ideal_local, app->local, 
+        app->species[i].f[sidx[nstrang]], app->field.f[sidx[nstrang]], 
+        non_ideal->non_ideal_cflrate[i], non_ideal->non_ideal_vars[i], non_ideal->rhs[i]);
   }
 
   if (app->type_brag)
-    gkyl_moment_braginskii_advance(src->brag_slvr,
-      src->brag_local, app->local,
+    gkyl_moment_braginskii_advance(non_ideal->brag_slvr,
+      non_ideal->non_ideal_local, app->local,
       fluids, app->field.f[sidx[nstrang]],
-      src->cflrate, src->brag_vars, src->rhs);
+      non_ideal->non_ideal_cflrate, non_ideal->non_ideal_vars, non_ideal->rhs);
 
-  for (int i=0; i<app->num_species; ++i)
-    rhs_const[i] = src->rhs[i];
-  
-  if (app->field.proj_app_current)
-    gkyl_fv_proj_advance(app->field.proj_app_current, tcurr, &app->local, app->field.app_current);
-  
-  if (app->field.proj_ext_em)
-    gkyl_fv_proj_advance(app->field.proj_ext_em, tcurr, &app->local, app->field.ext_em);
-
-  gkyl_moment_em_coupling_advance(src->slvr, dt, app->local,
-    fluids, app_accels, rhs_const,
-    app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em);
-
-  for (int i=0; i<app->num_species; ++i)
-    moment_species_apply_bc(app, tcurr, &app->species[i], fluids[i]);
-
-  moment_field_apply_bc(app, tcurr, &app->field, app->field.f[sidx[nstrang]]);
+  // Accumulate RHS onto solution (forward Euler step in time)
+  for (int i=0; i<app->num_species; ++i) {
+    gkyl_array_accumulate_range(gkyl_array_scale_range(non_ideal->rhs[i], dt, app->local),
+      1.0, fluids[i], app->local);
+    moment_species_apply_bc(app, tcurr, &app->species[i], non_ideal->rhs[i]);
+    gkyl_array_copy_range(fluids[i], non_ideal->rhs[i], app->local_ext);
+  }
 }
 
 // free sources
 static 
 void
-moment_coupling_release(const gkyl_moment_app *app, const struct moment_coupling *src)
+moment_non_ideal_release(const gkyl_moment_app *app, const struct moment_non_ideal *non_ideal)
 {
-  gkyl_moment_em_coupling_release(src->slvr);
-  if (app->type_brag)
-    gkyl_moment_braginskii_release(src->brag_slvr);
   for (int i=0; i<app->num_species; ++i) {
-    gkyl_array_release(src->rhs[i]);
-    if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_grad_closure)
-      gkyl_ten_moment_grad_closure_release(src->grad_closure_slvr[i]);
+    gkyl_array_release(non_ideal->non_ideal_vars[i]);
+    gkyl_array_release(non_ideal->non_ideal_cflrate[i]);
+    gkyl_array_release(non_ideal->rhs[i]);
+    if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->has_grad_closure)
+      gkyl_ten_moment_grad_closure_release(non_ideal->grad_closure_slvr[i]);
   }
-  gkyl_array_release(src->cflrate);
+  if (app->type_brag)
+    gkyl_moment_braginskii_release(non_ideal->brag_slvr);
 }
-
 /** app methods */
 
 gkyl_moment_app*
@@ -967,13 +1007,19 @@ gkyl_moment_app_new(struct gkyl_moment mom)
   for (int i=0; i<ns; ++i)
     moment_species_init(&mom, &mom.species[i], app, &app->species[i]);
 
-  app->type_brag = mom.type_brag;
-
   // check if we should update sources
   app->update_sources = 0;
   if (app->has_field && ns>0) {
     app->update_sources = 1; // only update if field and species are present
     moment_coupling_init(app, &app->sources);
+  }
+
+  app->type_brag = mom.type_brag;
+  app->has_grad_closure = mom.has_grad_closure;
+  app->has_non_ideal = 0;
+  if (app->type_brag || app->has_grad_closure) {
+    app->has_non_ideal = 1; // only update if non-ideal terms present
+    moment_non_ideal_init(app, &app->non_ideal);
   }
 
   // initialize stat object to all zeros
@@ -1110,7 +1156,14 @@ moment_update(gkyl_moment_app* app, double dt0)
           moment_coupling_update(app, &app->sources, 0, tcurr, dt/2);
           app->stat.sources_tm += gkyl_time_diff_now_sec(src1_tm);
         }
-            
+        // non-ideal terms handled separately from source update
+        // non-ideal terms need to happen after first source update
+        // for proper operator split
+        if (app->has_non_ideal) {
+          struct timespec non_ideal_tm = gkyl_wall_clock();
+          moment_non_ideal_update(app, &app->non_ideal, 0, tcurr, dt/2);
+          app->stat.non_ideal_tm += gkyl_time_diff_now_sec(non_ideal_tm);
+        }    
         break;
 
       case FIELD_UPDATE:
@@ -1155,6 +1208,14 @@ moment_update(gkyl_moment_app* app, double dt0)
       case SECOND_COUPLING_UPDATE:
         state = POST_UPDATE; // next state
 
+        // non-ideal terms handled separately from source update
+        // non-ideal terms need to happen before second source update
+        // for proper operator split
+        if (app->has_non_ideal) {
+          struct timespec non_ideal_tm = gkyl_wall_clock();
+          moment_non_ideal_update(app, &app->non_ideal, 0, tcurr, dt/2);
+          app->stat.non_ideal_tm += gkyl_time_diff_now_sec(non_ideal_tm);
+        } 
         if (app->update_sources) {
           struct timespec src2_tm = gkyl_wall_clock();
           moment_coupling_update(app, &app->sources, 1, tcurr, dt/2);
@@ -1243,6 +1304,7 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
     fprintf(fp, " \"species_tm\" : \"%lg\",\n", app->stat.species_tm);
     fprintf(fp, " \"field_tm\" : \"%lg\",\n", app->stat.field_tm);
     fprintf(fp, " \"sources_tm\" : \"%lg\"\n", app->stat.sources_tm);
+    fprintf(fp, " \"non_ideal_tm\" : \"%lg\"\n", app->stat.non_ideal_tm);
   
     fprintf(fp, "}\n");
   }
@@ -1260,6 +1322,9 @@ gkyl_moment_app_release(gkyl_moment_app* app)
 
   if (app->update_sources)
     moment_coupling_release(app, &app->sources);
+
+  if (app->has_non_ideal)
+    moment_non_ideal_release(app, &app->non_ideal);
   
   gkyl_free(app);
 }

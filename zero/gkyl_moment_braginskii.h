@@ -56,17 +56,20 @@ gkyl_moment_braginskii* gkyl_moment_braginskii_new(struct gkyl_moment_braginskii
  * gkyl_sub_range_init method.
  *
  * @param bes Braginskii updater object.
- * @param update_rng Range on which to compute.
+ * @param brag_vars_rng Range on which to compute Braginskii variables (cell nodes)
+ * @param update_rng Range on which to compute update.
  * @param fluid Input array of fluid variables (array size: nfluids)
  * @param em Total EM variables (plasma + external)
- * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
+ * @param cflrate CFL scalar rate (frequency: units of 1/[T]) (array size: nfluids)
+ * @param brag_vars Array for storing intermediate computation of Braginskii variables (cell nodes)
  * @param rhs RHS output (NOTE: Returns RHS output of all nfluids)
  */
 
 void gkyl_moment_braginskii_advance(const gkyl_moment_braginskii *bes,   
   struct gkyl_range brag_vars_range, struct gkyl_range update_range,
   struct gkyl_array *fluid[GKYL_MAX_SPECIES], const struct gkyl_array *em_tot,
-  struct gkyl_array *cflrate, struct gkyl_array *brag_vars[GKYL_MAX_SPECIES], struct gkyl_array *rhs[GKYL_MAX_SPECIES]);
+  struct gkyl_array *cflrate[GKYL_MAX_SPECIES], 
+  struct gkyl_array *brag_vars[GKYL_MAX_SPECIES], struct gkyl_array *rhs[GKYL_MAX_SPECIES]);
 
 /**
  * Delete updater.

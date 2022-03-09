@@ -198,7 +198,6 @@ main(int argc, char **argv)
   struct gkyl_moment_species elc = {
     .name = "elc",
     .charge = -1.0, .mass = 1.0,
-    .has_grad_closure = true,
     .equation = elc_ten_moment,
     .evolve = 1,
     .init = evalElcInit,
@@ -208,7 +207,6 @@ main(int argc, char **argv)
   struct gkyl_moment_species ion = {
     .name = "ion",
     .charge = 1.0, .mass = 36.0,
-    .has_grad_closure = true,
     .equation = ion_ten_moment,
     .evolve = 1,
     .init = evalIonInit,
@@ -229,6 +227,7 @@ main(int argc, char **argv)
     .periodic_dirs = { 0 },
     .cfl_frac = 1.0,
 
+    .has_grad_closure = true,
     .num_species = 2,
     .species = { elc, ion },
 

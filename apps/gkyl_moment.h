@@ -20,7 +20,6 @@ enum gkyl_moment_bc_type {
 struct gkyl_moment_species {
   char name[128]; // species name
   double charge, mass; // charge and mass
-  bool has_grad_closure; // has gradient-based closure (only for 10 moment)
   enum gkyl_wave_limiter limiter; // limiter to use
   const struct gkyl_wv_eqn *equation; // equation object
 
@@ -88,6 +87,7 @@ struct gkyl_moment {
 
   enum gkyl_braginskii_type type_brag; // enum for Braginskii type (if present)
   double coll_fac; // multiplicative collisionality factor for Braginskii
+  bool has_grad_closure; // has gradient-based closure (only for 10 moment)
 };
 
 // Simulation statistics
@@ -99,6 +99,7 @@ struct gkyl_moment_stat {
   double species_tm; // time to compute species updates
   double field_tm; // time to compute field updates
   double sources_tm; // time to compute source terms
+  double non_ideal_tm; // time to compute non-ideal terms
 };
 
 // Object representing moments app
