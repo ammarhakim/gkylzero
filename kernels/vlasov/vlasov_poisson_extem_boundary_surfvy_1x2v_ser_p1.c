@@ -1,6 +1,6 @@
 #include <gkyl_vlasov_kernels.h> 
-#include <gkyl_basis_ser_3x_p1_surfx3_quad.h> 
-#include <gkyl_basis_ser_3x_p1_upwind.h> 
+#include <gkyl_basis_ser_3x_p1_surfx3_eval_quad.h> 
+#include <gkyl_basis_ser_3x_p1_upwind_quad_to_modal.h> 
 GKYL_CU_DH void vlasov_poisson_extem_boundary_surfvy_1x2v_ser_p1(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
 { 
   // w:           Cell-center coordinates.
@@ -29,33 +29,33 @@ GKYL_CU_DH void vlasov_poisson_extem_boundary_surfvy_1x2v_ser_p1(const double *w
   if (edge == -1) { 
 
   if (alpha[0]-alpha[2] > 0) { 
-    fUpwindQuad[0] = ser_3x_p1_surfx3_quad_0_r(fSkin); 
+    fUpwindQuad[0] = ser_3x_p1_surfx3_eval_quad_node_0_r(fSkin); 
   } else { 
-    fUpwindQuad[0] = ser_3x_p1_surfx3_quad_0_l(fEdge); 
+    fUpwindQuad[0] = ser_3x_p1_surfx3_eval_quad_node_0_l(fEdge); 
+  } 
+  if (alpha[2]+alpha[0] > 0) { 
+    fUpwindQuad[1] = ser_3x_p1_surfx3_eval_quad_node_1_r(fSkin); 
+  } else { 
+    fUpwindQuad[1] = ser_3x_p1_surfx3_eval_quad_node_1_l(fEdge); 
   } 
   if (alpha[0]-alpha[2] > 0) { 
-    fUpwindQuad[1] = ser_3x_p1_surfx3_quad_1_r(fSkin); 
+    fUpwindQuad[2] = ser_3x_p1_surfx3_eval_quad_node_2_r(fSkin); 
   } else { 
-    fUpwindQuad[1] = ser_3x_p1_surfx3_quad_1_l(fEdge); 
+    fUpwindQuad[2] = ser_3x_p1_surfx3_eval_quad_node_2_l(fEdge); 
   } 
   if (alpha[2]+alpha[0] > 0) { 
-    fUpwindQuad[2] = ser_3x_p1_surfx3_quad_2_r(fSkin); 
+    fUpwindQuad[3] = ser_3x_p1_surfx3_eval_quad_node_3_r(fSkin); 
   } else { 
-    fUpwindQuad[2] = ser_3x_p1_surfx3_quad_2_l(fEdge); 
-  } 
-  if (alpha[2]+alpha[0] > 0) { 
-    fUpwindQuad[3] = ser_3x_p1_surfx3_quad_3_r(fSkin); 
-  } else { 
-    fUpwindQuad[3] = ser_3x_p1_surfx3_quad_3_l(fEdge); 
+    fUpwindQuad[3] = ser_3x_p1_surfx3_eval_quad_node_3_l(fEdge); 
   } 
 
-  // Project nodal basis back onto modal basis. 
-  ser_3x_p1_upwind(fUpwindQuad, fUpwind); 
+  // Project tensor nodal quadrature basis back onto modal basis. 
+  ser_3x_p1_upwind_quad_to_modal(fUpwindQuad, fUpwind); 
 
-  Ghat[0] += 0.5*(alpha[2]*fUpwind[2]+alpha[0]*fUpwind[0]); 
-  Ghat[1] += 0.5*(alpha[2]*fUpwind[3]+alpha[0]*fUpwind[1]); 
-  Ghat[2] += 0.5*(alpha[0]*fUpwind[2]+fUpwind[0]*alpha[2]); 
-  Ghat[3] += 0.5*(alpha[0]*fUpwind[3]+fUpwind[1]*alpha[2]); 
+  Ghat[0] = 0.5*(alpha[2]*fUpwind[2]+alpha[0]*fUpwind[0]); 
+  Ghat[1] = 0.5*(alpha[2]*fUpwind[3]+alpha[0]*fUpwind[1]); 
+  Ghat[2] = 0.5*(alpha[0]*fUpwind[2]+fUpwind[0]*alpha[2]); 
+  Ghat[3] = 0.5*(alpha[0]*fUpwind[3]+fUpwind[1]*alpha[2]); 
 
   out[0] += -0.7071067811865475*Ghat[0]*dv11; 
   out[1] += -0.7071067811865475*Ghat[1]*dv11; 
@@ -69,33 +69,33 @@ GKYL_CU_DH void vlasov_poisson_extem_boundary_surfvy_1x2v_ser_p1(const double *w
   } else { 
 
   if (alpha[0]-alpha[2] > 0) { 
-    fUpwindQuad[0] = ser_3x_p1_surfx3_quad_0_r(fEdge); 
+    fUpwindQuad[0] = ser_3x_p1_surfx3_eval_quad_node_0_r(fEdge); 
   } else { 
-    fUpwindQuad[0] = ser_3x_p1_surfx3_quad_0_l(fSkin); 
+    fUpwindQuad[0] = ser_3x_p1_surfx3_eval_quad_node_0_l(fSkin); 
+  } 
+  if (alpha[2]+alpha[0] > 0) { 
+    fUpwindQuad[1] = ser_3x_p1_surfx3_eval_quad_node_1_r(fEdge); 
+  } else { 
+    fUpwindQuad[1] = ser_3x_p1_surfx3_eval_quad_node_1_l(fSkin); 
   } 
   if (alpha[0]-alpha[2] > 0) { 
-    fUpwindQuad[1] = ser_3x_p1_surfx3_quad_1_r(fEdge); 
+    fUpwindQuad[2] = ser_3x_p1_surfx3_eval_quad_node_2_r(fEdge); 
   } else { 
-    fUpwindQuad[1] = ser_3x_p1_surfx3_quad_1_l(fSkin); 
+    fUpwindQuad[2] = ser_3x_p1_surfx3_eval_quad_node_2_l(fSkin); 
   } 
   if (alpha[2]+alpha[0] > 0) { 
-    fUpwindQuad[2] = ser_3x_p1_surfx3_quad_2_r(fEdge); 
+    fUpwindQuad[3] = ser_3x_p1_surfx3_eval_quad_node_3_r(fEdge); 
   } else { 
-    fUpwindQuad[2] = ser_3x_p1_surfx3_quad_2_l(fSkin); 
-  } 
-  if (alpha[2]+alpha[0] > 0) { 
-    fUpwindQuad[3] = ser_3x_p1_surfx3_quad_3_r(fEdge); 
-  } else { 
-    fUpwindQuad[3] = ser_3x_p1_surfx3_quad_3_l(fSkin); 
+    fUpwindQuad[3] = ser_3x_p1_surfx3_eval_quad_node_3_l(fSkin); 
   } 
 
-  // Project nodal basis back onto modal basis. 
-  ser_3x_p1_upwind(fUpwindQuad, fUpwind); 
+  // Project tensor nodal quadrature basis back onto modal basis. 
+  ser_3x_p1_upwind_quad_to_modal(fUpwindQuad, fUpwind); 
 
-  Ghat[0] += 0.5*(alpha[2]*fUpwind[2]+alpha[0]*fUpwind[0]); 
-  Ghat[1] += 0.5*(alpha[2]*fUpwind[3]+alpha[0]*fUpwind[1]); 
-  Ghat[2] += 0.5*(alpha[0]*fUpwind[2]+fUpwind[0]*alpha[2]); 
-  Ghat[3] += 0.5*(alpha[0]*fUpwind[3]+fUpwind[1]*alpha[2]); 
+  Ghat[0] = 0.5*(alpha[2]*fUpwind[2]+alpha[0]*fUpwind[0]); 
+  Ghat[1] = 0.5*(alpha[2]*fUpwind[3]+alpha[0]*fUpwind[1]); 
+  Ghat[2] = 0.5*(alpha[0]*fUpwind[2]+fUpwind[0]*alpha[2]); 
+  Ghat[3] = 0.5*(alpha[0]*fUpwind[3]+fUpwind[1]*alpha[2]); 
 
   out[0] += 0.7071067811865475*Ghat[0]*dv11; 
   out[1] += 0.7071067811865475*Ghat[1]*dv11; 

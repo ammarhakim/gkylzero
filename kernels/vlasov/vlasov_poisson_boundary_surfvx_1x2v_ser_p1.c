@@ -1,6 +1,6 @@
 #include <gkyl_vlasov_kernels.h> 
-#include <gkyl_basis_ser_3x_p1_surfx2_quad.h> 
-#include <gkyl_basis_ser_3x_p1_upwind.h> 
+#include <gkyl_basis_ser_3x_p1_surfx2_eval_quad.h> 
+#include <gkyl_basis_ser_3x_p1_upwind_quad_to_modal.h> 
 GKYL_CU_DH void vlasov_poisson_boundary_surfvx_1x2v_ser_p1(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
 { 
   // w:           Cell-center coordinates.
@@ -26,27 +26,27 @@ GKYL_CU_DH void vlasov_poisson_boundary_surfvx_1x2v_ser_p1(const double *w, cons
   if (edge == -1) { 
 
   if (alpha[0] > 0) { 
-    fUpwindQuad[0] = ser_3x_p1_surfx2_quad_0_r(fSkin); 
-    fUpwindQuad[2] = ser_3x_p1_surfx2_quad_2_r(fSkin); 
+    fUpwindQuad[0] = ser_3x_p1_surfx2_eval_quad_node_0_r(fSkin); 
+    fUpwindQuad[1] = ser_3x_p1_surfx2_eval_quad_node_1_r(fSkin); 
   } else { 
-    fUpwindQuad[0] = ser_3x_p1_surfx2_quad_0_l(fEdge); 
-    fUpwindQuad[2] = ser_3x_p1_surfx2_quad_2_l(fEdge); 
+    fUpwindQuad[0] = ser_3x_p1_surfx2_eval_quad_node_0_l(fEdge); 
+    fUpwindQuad[1] = ser_3x_p1_surfx2_eval_quad_node_1_l(fEdge); 
   } 
   if (alpha[0] > 0) { 
-    fUpwindQuad[1] = ser_3x_p1_surfx2_quad_1_r(fSkin); 
-    fUpwindQuad[3] = ser_3x_p1_surfx2_quad_3_r(fSkin); 
+    fUpwindQuad[2] = ser_3x_p1_surfx2_eval_quad_node_2_r(fSkin); 
+    fUpwindQuad[3] = ser_3x_p1_surfx2_eval_quad_node_3_r(fSkin); 
   } else { 
-    fUpwindQuad[1] = ser_3x_p1_surfx2_quad_1_l(fEdge); 
-    fUpwindQuad[3] = ser_3x_p1_surfx2_quad_3_l(fEdge); 
+    fUpwindQuad[2] = ser_3x_p1_surfx2_eval_quad_node_2_l(fEdge); 
+    fUpwindQuad[3] = ser_3x_p1_surfx2_eval_quad_node_3_l(fEdge); 
   } 
 
-  // Project nodal basis back onto modal basis. 
-  ser_3x_p1_upwind(fUpwindQuad, fUpwind); 
+  // Project tensor nodal quadrature basis back onto modal basis. 
+  ser_3x_p1_upwind_quad_to_modal(fUpwindQuad, fUpwind); 
 
-  Ghat[0] += 0.5*alpha[0]*fUpwind[0]; 
-  Ghat[1] += 0.5*alpha[0]*fUpwind[1]; 
-  Ghat[2] += 0.5*alpha[0]*fUpwind[2]; 
-  Ghat[3] += 0.5*alpha[0]*fUpwind[3]; 
+  Ghat[0] = 0.5*alpha[0]*fUpwind[0]; 
+  Ghat[1] = 0.5*alpha[0]*fUpwind[1]; 
+  Ghat[2] = 0.5*alpha[0]*fUpwind[2]; 
+  Ghat[3] = 0.5*alpha[0]*fUpwind[3]; 
 
   out[0] += -0.7071067811865475*Ghat[0]*dv10; 
   out[1] += -0.7071067811865475*Ghat[1]*dv10; 
@@ -60,27 +60,27 @@ GKYL_CU_DH void vlasov_poisson_boundary_surfvx_1x2v_ser_p1(const double *w, cons
   } else { 
 
   if (alpha[0] > 0) { 
-    fUpwindQuad[0] = ser_3x_p1_surfx2_quad_0_r(fEdge); 
-    fUpwindQuad[2] = ser_3x_p1_surfx2_quad_2_r(fEdge); 
+    fUpwindQuad[0] = ser_3x_p1_surfx2_eval_quad_node_0_r(fEdge); 
+    fUpwindQuad[1] = ser_3x_p1_surfx2_eval_quad_node_1_r(fEdge); 
   } else { 
-    fUpwindQuad[0] = ser_3x_p1_surfx2_quad_0_l(fSkin); 
-    fUpwindQuad[2] = ser_3x_p1_surfx2_quad_2_l(fSkin); 
+    fUpwindQuad[0] = ser_3x_p1_surfx2_eval_quad_node_0_l(fSkin); 
+    fUpwindQuad[1] = ser_3x_p1_surfx2_eval_quad_node_1_l(fSkin); 
   } 
   if (alpha[0] > 0) { 
-    fUpwindQuad[1] = ser_3x_p1_surfx2_quad_1_r(fEdge); 
-    fUpwindQuad[3] = ser_3x_p1_surfx2_quad_3_r(fEdge); 
+    fUpwindQuad[2] = ser_3x_p1_surfx2_eval_quad_node_2_r(fEdge); 
+    fUpwindQuad[3] = ser_3x_p1_surfx2_eval_quad_node_3_r(fEdge); 
   } else { 
-    fUpwindQuad[1] = ser_3x_p1_surfx2_quad_1_l(fSkin); 
-    fUpwindQuad[3] = ser_3x_p1_surfx2_quad_3_l(fSkin); 
+    fUpwindQuad[2] = ser_3x_p1_surfx2_eval_quad_node_2_l(fSkin); 
+    fUpwindQuad[3] = ser_3x_p1_surfx2_eval_quad_node_3_l(fSkin); 
   } 
 
-  // Project nodal basis back onto modal basis. 
-  ser_3x_p1_upwind(fUpwindQuad, fUpwind); 
+  // Project tensor nodal quadrature basis back onto modal basis. 
+  ser_3x_p1_upwind_quad_to_modal(fUpwindQuad, fUpwind); 
 
-  Ghat[0] += 0.5*alpha[0]*fUpwind[0]; 
-  Ghat[1] += 0.5*alpha[0]*fUpwind[1]; 
-  Ghat[2] += 0.5*alpha[0]*fUpwind[2]; 
-  Ghat[3] += 0.5*alpha[0]*fUpwind[3]; 
+  Ghat[0] = 0.5*alpha[0]*fUpwind[0]; 
+  Ghat[1] = 0.5*alpha[0]*fUpwind[1]; 
+  Ghat[2] = 0.5*alpha[0]*fUpwind[2]; 
+  Ghat[3] = 0.5*alpha[0]*fUpwind[3]; 
 
   out[0] += 0.7071067811865475*Ghat[0]*dv10; 
   out[1] += 0.7071067811865475*Ghat[1]*dv10; 
