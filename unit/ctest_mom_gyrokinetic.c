@@ -98,6 +98,11 @@ void bmag_1x(double t, const double *xn, double* restrict fout, void *ctx)
   double x = xn[0];
   fout[0] = cos((2.*M_PI/(2.*2.*M_PI))*x);
 }
+void bmag_2x(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], y = xn[1];
+  fout[0] = (1.+0.5*cos((2.*M_PI/(2.*2.*M_PI))*x))*exp(-(y*y)/(2.*pow(M_PI/3,2)));
+}
 
 void distf_1x1v(double t, const double *xn, double* restrict fout, void *ctx)
 {
@@ -105,6 +110,20 @@ void distf_1x1v(double t, const double *xn, double* restrict fout, void *ctx)
   double bmag[1];
   bmag_1x(t, xn, &bmag[0], ctx); 
   fout[0] = bmag[0]*(x*x)*(vpar-0.5)*(vpar-0.5);
+}
+void distf_1x2v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], vpar = xn[1], mu = xn[2];
+  double bmag[1];
+  bmag_1x(t, xn, &bmag[0], ctx); 
+  fout[0] = bmag[0]*(x*x)*(vpar-0.5)*(vpar-0.5);
+}
+void distf_2x2v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], y = xn[1], vpar = xn[2], mu = xn[3];
+  double bmag[1];
+  bmag_2x(t, xn, &bmag[0], ctx); 
+  fout[0] = bmag[0]*(x*x+y*y)*(vpar-0.5)*(vpar-0.5);
 }
 
 void
@@ -325,7 +344,7 @@ test_1x2v(int poly_order)
   struct gkyl_array *distf;
   distf = mkarr(basis.num_basis, local_ext.volume);
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
-    poly_order+1, 1, distf_1x1v, NULL);
+    poly_order+1, 1, distf_1x2v, NULL);
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
 
   // create bmag array and project magnetic field amplitude function on basis
@@ -445,10 +464,171 @@ test_1x2v(int poly_order)
   gkyl_array_release(distf);
 }
 
+void
+test_2x2v(int poly_order)
+{
+  double mass = 1.;
+  double lower[] = {-M_PI, -M_PI, -2.0, 0.0}, upper[] = {M_PI, M_PI, 2.0, 2.0};
+  int cells[] = {4, 4, 2, 2};
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int vdim = 2, cdim = 2;
+
+  double confLower[] = {lower[0], lower[1]}, confUpper[] = {upper[0], upper[1]};
+  int confCells[] = {cells[0], cells[1]};
+
+  // grids
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+  struct gkyl_rect_grid confGrid;
+  gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+
+  // basis functions
+  struct gkyl_basis basis, confBasis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
+
+  int confGhost[] = { 1, 1 };
+  struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
+  gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
+  struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
+  skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
+
+  int ghost[] = { confGhost[0], confGhost[1], 0, 0 };
+  struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+  struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
+  skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
+
+  // create distribution function array and project distribution function on basis
+  struct gkyl_array *distf;
+  distf = mkarr(basis.num_basis, local_ext.volume);
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
+    poly_order+1, 1, distf_2x2v, NULL);
+  gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
+
+  // create bmag array and project magnetic field amplitude function on basis
+  struct gkyl_array *bmag;
+  bmag = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  gkyl_proj_on_basis *projbmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
+    poly_order+1, 1, bmag_2x, NULL);
+  gkyl_proj_on_basis_advance(projbmag, 0.0, &confLocal, bmag);
+
+  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M0");
+  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M1");
+  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M2");
+  gkyl_gyrokinetic_set_bmag(M0_t, bmag);
+  gkyl_gyrokinetic_set_bmag(M1_t, bmag);
+  gkyl_gyrokinetic_set_bmag(M2_t, bmag);
+  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t);
+  gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t);
+  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t);
+
+  // create moment arrays
+  struct gkyl_array *m0, *m1, *m2;
+  m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m1 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+
+  // compute the moments
+  gkyl_mom_calc_advance(m0calc, &local, &confLocal, distf, m0);
+  gkyl_mom_calc_advance(m1calc, &local, &confLocal, distf, m1);
+  gkyl_mom_calc_advance(m2calc, &local, &confLocal, distf, m2);
+
+  double *m00 = gkyl_array_fetch(m0, 0+confGhost[0]); double *m01 = gkyl_array_fetch(m0, 1+confGhost[0]);
+  double *m02 = gkyl_array_fetch(m0, 2+confGhost[0]); double *m03 = gkyl_array_fetch(m0, 3+confGhost[0]);
+  double *m10 = gkyl_array_fetch(m1, 0+confGhost[0]); double *m11 = gkyl_array_fetch(m1, 1+confGhost[0]);
+  double *m12 = gkyl_array_fetch(m1, 2+confGhost[0]); double *m13 = gkyl_array_fetch(m1, 3+confGhost[0]);
+  double *m20 = gkyl_array_fetch(m2, 0+confGhost[0]); double *m21 = gkyl_array_fetch(m2, 1+confGhost[0]);
+  double *m22 = gkyl_array_fetch(m2, 2+confGhost[0]); double *m23 = gkyl_array_fetch(m2, 3+confGhost[0]);
+  if (poly_order==1) {
+    // Check M0.
+    TEST_CHECK( gkyl_compare(  191.6841953662915, m00[0], 1e-12) );
+    TEST_CHECK( gkyl_compare(  44.89144731817122, m00[1], 1e-12) );
+    TEST_CHECK( gkyl_compare(   76.4395079823428, m01[0], 1e-12) );
+    TEST_CHECK( gkyl_compare(  -64.2077564653283, m01[1], 1e-12) );
+    TEST_CHECK( gkyl_compare(  76.43950798234282, m02[0], 1e-12) );
+    TEST_CHECK( gkyl_compare(  64.20775646532829, m02[1], 1e-12) );
+    TEST_CHECK( gkyl_compare( 191.68419536629153, m03[0], 1e-12) );
+    TEST_CHECK( gkyl_compare( -44.89144731817124, m03[1], 1e-12) );
+  
+    // Check M1.
+    TEST_CHECK( gkyl_compare( -161.41826978214021, m10[0], 1e-12) );
+    TEST_CHECK( gkyl_compare(  -37.80332405740736, m10[1], 1e-12) );
+    TEST_CHECK( gkyl_compare(  -64.37011198513079, m11[0], 1e-12) );
+    TEST_CHECK( gkyl_compare(  54.069689655013306, m11[1], 1e-12) );
+    TEST_CHECK( gkyl_compare(  -64.37011198513079, m12[0], 1e-12) );
+    TEST_CHECK( gkyl_compare(  -54.06968965501329, m12[1], 1e-12) );
+    TEST_CHECK( gkyl_compare( -161.41826978214021, m13[0], 1e-12) );
+    TEST_CHECK( gkyl_compare(   37.80332405740738, m13[1], 1e-12) );
+  
+    // Check M2.
+    TEST_CHECK( gkyl_compare(   578.5971330556217, m20[0], 1e-12) );
+    TEST_CHECK( gkyl_compare(  210.75432886828457, m20[1], 1e-12) );
+    TEST_CHECK( gkyl_compare(   292.8699479183419, m21[0], 1e-12) );
+    TEST_CHECK( gkyl_compare(  -242.1332009483718, m21[1], 1e-12) );
+    TEST_CHECK( gkyl_compare(   292.8699479183419, m22[0], 1e-12) );
+    TEST_CHECK( gkyl_compare(  242.13320094837178, m22[1], 1e-12) );
+    TEST_CHECK( gkyl_compare(   578.5971330556217, m23[0], 1e-12) );
+    TEST_CHECK( gkyl_compare( -210.75432886828463, m23[1], 1e-12) );
+  } else if (poly_order==2) {
+    // Check M0.
+    TEST_CHECK( gkyl_compare(  1.918680388146181e+02, m00[0], 1e-12) );
+    TEST_CHECK( gkyl_compare(  4.965624243631351e+01, m00[1], 1e-12) );
+    TEST_CHECK( gkyl_compare( -4.226503392363477e+01, m00[2], 1e-12) );
+    TEST_CHECK( gkyl_compare(  7.605808393388897e+01, m01[0], 1e-12) );
+    TEST_CHECK( gkyl_compare( -6.117597028054660e+01, m01[1], 1e-12) );
+    TEST_CHECK( gkyl_compare(  1.065677233807588e+01, m01[2], 1e-12) );
+    TEST_CHECK( gkyl_compare(  7.605808393388898e+01, m02[0], 1e-12) );
+    TEST_CHECK( gkyl_compare(  6.117597028054661e+01, m02[1], 1e-12) );
+    TEST_CHECK( gkyl_compare(  1.065677233807589e+01, m02[2], 1e-12) );
+    TEST_CHECK( gkyl_compare(  1.918680388146182e+02, m03[0], 1e-12) );
+    TEST_CHECK( gkyl_compare( -4.965624243631353e+01, m03[1], 1e-12) );
+    TEST_CHECK( gkyl_compare( -4.226503392363478e+01, m03[2], 1e-12) );
+  
+    // Check M1.
+    TEST_CHECK( gkyl_compare( -1.615730853175732e+02, m10[0], 1e-12) );
+    TEST_CHECK( gkyl_compare( -4.181578310426401e+01, m10[1], 1e-12) );
+    TEST_CHECK( gkyl_compare(  3.559160751463980e+01, m10[2], 1e-12) );
+    TEST_CHECK( gkyl_compare( -6.404891278643279e+01, m11[0], 1e-12) );
+    TEST_CHECK( gkyl_compare(  5.151660655203925e+01, m11[1], 1e-12) );
+    TEST_CHECK( gkyl_compare( -8.974124074169159e+00, m11[2], 1e-12) );
+    TEST_CHECK( gkyl_compare( -6.404891278643282e+01, m12[0], 1e-12) );
+    TEST_CHECK( gkyl_compare( -5.151660655203925e+01, m12[1], 1e-12) );
+    TEST_CHECK( gkyl_compare( -8.974124074169165e+00, m12[2], 1e-12) );
+    TEST_CHECK( gkyl_compare( -1.615730853175732e+02, m13[0], 1e-12) );
+    TEST_CHECK( gkyl_compare(  4.181578310426401e+01, m13[1], 1e-12) );
+    TEST_CHECK( gkyl_compare(  3.559160751463981e+01, m13[2], 1e-12) );
+  
+    // Check M2.
+    TEST_CHECK( gkyl_compare(  5.924940346248225e+02, m20[0], 1e-12) );
+    TEST_CHECK( gkyl_compare(  2.106245140015062e+02, m20[1], 1e-12) );
+    TEST_CHECK( gkyl_compare( -1.080258558862571e+02, m20[2], 1e-09) );
+    TEST_CHECK( gkyl_compare(  2.957803339447422e+02, m21[0], 1e-12) );
+    TEST_CHECK( gkyl_compare( -2.297438543767285e+02, m21[1], 1e-12) );
+    TEST_CHECK( gkyl_compare(  2.952994007812927e+01, m21[2], 1e-12) );
+    TEST_CHECK( gkyl_compare(  2.957803339447422e+02, m22[0], 1e-12) );
+    TEST_CHECK( gkyl_compare(  2.297438543767285e+02, m22[1], 1e-12) );
+    TEST_CHECK( gkyl_compare(  2.952994007812929e+01, m22[2], 1e-12) );
+    TEST_CHECK( gkyl_compare(  5.924940346248227e+02, m23[0], 1e-12) );
+    TEST_CHECK( gkyl_compare( -2.106245140015063e+02, m23[1], 1e-12) );
+    TEST_CHECK( gkyl_compare( -1.080258558862570e+02, m23[2], 1e-12) );
+  }
+
+  // release memory for moment data object
+  gkyl_array_release(m0); gkyl_array_release(m1); gkyl_array_release(m2);
+  gkyl_mom_calc_release(m0calc); gkyl_mom_calc_release(m1calc); gkyl_mom_calc_release(m2calc);
+  gkyl_mom_type_release(M0_t); gkyl_mom_type_release(M1_t); gkyl_mom_type_release(M2_t);
+
+  gkyl_proj_on_basis_release(projDistf);
+  gkyl_array_release(distf);
+}
+
 void test_1x1v_p1() { test_1x1v(1); } 
 void test_1x1v_p2() { test_1x1v(2); } 
 void test_1x2v_p1() { test_1x2v(1); } 
 void test_1x2v_p2() { test_1x2v(2); } 
+void test_2x2v_p1() { test_2x2v(1); } 
+void test_2x2v_p2() { test_2x2v(2); } 
 
 TEST_LIST = {
   { "mom_gyrokinetic", test_mom_gyrokinetic },
@@ -457,6 +637,7 @@ TEST_LIST = {
   { "test_1x1v_p2", test_1x1v_p2 },
   { "test_1x2v_p2", test_1x2v_p2 },
 //  { "test_2x2v_p1", test_2x2v_p1 },
+//  { "test_2x2v_p2", test_2x2v_p2 },
 //  { "test_3x2v_p1", test_3x2v_p1 },
 #ifdef GKYL_HAVE_CUDA
 //  { "cu_mom_gyrokinetic", test_cu_mom_gyrokinetic },
