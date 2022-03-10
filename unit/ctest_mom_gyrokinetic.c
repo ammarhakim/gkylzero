@@ -101,7 +101,7 @@ void bmag_1x(double t, const double *xn, double* restrict fout, void *ctx)
 void bmag_2x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
-  fout[0] = (1.+0.5*cos((2.*M_PI/(2.*2.*M_PI))*x))*exp(-(y*y)/(2.*pow(M_PI/3,2)));
+  fout[0] = cos((2.*M_PI/(2.*2.*M_PI))*x)*exp(-(y*y)/(2.*pow(M_PI/3,2)));
 }
 
 void distf_1x1v(double t, const double *xn, double* restrict fout, void *ctx)
@@ -375,7 +375,8 @@ test_1x2v(int poly_order)
   gkyl_mom_calc_advance(m1calc, &local, &confLocal, distf, m1);
   gkyl_mom_calc_advance(m2calc, &local, &confLocal, distf, m2);
 
-  double *m00 = gkyl_array_fetch(m0, 0+confGhost[0]); double *m01 = gkyl_array_fetch(m0, 1+confGhost[0]);
+  double *m00 = gkyl_array_fetch(m0, gkyl_range_idx(&confLocal, &(int) {0+confGhost[0]})); 
+  double *m01 = gkyl_array_fetch(m0, gkyl_range_idx(&confLocal, &(int) {1+confGhost[0]}));
   double *m02 = gkyl_array_fetch(m0, 2+confGhost[0]); double *m03 = gkyl_array_fetch(m0, 3+confGhost[0]);
   double *m10 = gkyl_array_fetch(m1, 0+confGhost[0]); double *m11 = gkyl_array_fetch(m1, 1+confGhost[0]);
   double *m12 = gkyl_array_fetch(m1, 2+confGhost[0]); double *m13 = gkyl_array_fetch(m1, 3+confGhost[0]);
@@ -534,84 +535,81 @@ test_2x2v(int poly_order)
   gkyl_mom_calc_advance(m1calc, &local, &confLocal, distf, m1);
   gkyl_mom_calc_advance(m2calc, &local, &confLocal, distf, m2);
 
-  double *m00 = gkyl_array_fetch(m0, 0+confGhost[0]); double *m01 = gkyl_array_fetch(m0, 1+confGhost[0]);
-  double *m02 = gkyl_array_fetch(m0, 2+confGhost[0]); double *m03 = gkyl_array_fetch(m0, 3+confGhost[0]);
-  double *m10 = gkyl_array_fetch(m1, 0+confGhost[0]); double *m11 = gkyl_array_fetch(m1, 1+confGhost[0]);
-  double *m12 = gkyl_array_fetch(m1, 2+confGhost[0]); double *m13 = gkyl_array_fetch(m1, 3+confGhost[0]);
-  double *m20 = gkyl_array_fetch(m2, 0+confGhost[0]); double *m21 = gkyl_array_fetch(m2, 1+confGhost[0]);
-  double *m22 = gkyl_array_fetch(m2, 2+confGhost[0]); double *m23 = gkyl_array_fetch(m2, 3+confGhost[0]);
   if (poly_order==1) {
-    // Check M0.
-    TEST_CHECK( gkyl_compare(  191.6841953662915, m00[0], 1e-12) );
-    TEST_CHECK( gkyl_compare(  44.89144731817122, m00[1], 1e-12) );
-    TEST_CHECK( gkyl_compare(   76.4395079823428, m01[0], 1e-12) );
-    TEST_CHECK( gkyl_compare(  -64.2077564653283, m01[1], 1e-12) );
-    TEST_CHECK( gkyl_compare(  76.43950798234282, m02[0], 1e-12) );
-    TEST_CHECK( gkyl_compare(  64.20775646532829, m02[1], 1e-12) );
-    TEST_CHECK( gkyl_compare( 191.68419536629153, m03[0], 1e-12) );
-    TEST_CHECK( gkyl_compare( -44.89144731817124, m03[1], 1e-12) );
+    double m0Correct[] = {
+       5.674373976691270e+01,  2.201144875962325e+01,  3.651966323006221e+01,  1.314016650990054e+01,
+       2.219569636062632e+02,  6.028640616624954e+01,  4.206235100555175e+01,  3.552942178215428e+00,
+       2.219569636062633e+02,  6.028640616624952e+01, -4.206235100555176e+01, -3.552942178215411e+00,
+       5.674373976691270e+01,  2.201144875962326e+01, -3.651966323006221e+01, -1.314016650990054e+01,
+       7.709667278852976e+01, -3.719961743450785e+00,  4.321049456829391e+01, -4.192642488321794e+00,
+       1.403753088009537e+02, -5.979190987388544e+01, -2.255457479022396e+01, -2.512741619288884e+01,
+       1.403753088009537e+02, -5.979190987388544e+01,  2.255457479022397e+01,  2.512741619288884e+01,
+       7.709667278852976e+01, -3.719961743450784e+00, -4.321049456829390e+01,  4.192642488321796e+00,
+       7.709667278852976e+01,  3.719961743450789e+00,  4.321049456829391e+01,  4.192642488321798e+00,
+       1.403753088009537e+02,  5.979190987388544e+01, -2.255457479022396e+01,  2.512741619288883e+01,
+       1.403753088009538e+02,  5.979190987388544e+01,  2.255457479022397e+01, -2.512741619288886e+01,
+       7.709667278852974e+01,  3.719961743450781e+00, -4.321049456829391e+01, -4.192642488321795e+00,
+       5.674373976691270e+01, -2.201144875962325e+01,  3.651966323006221e+01, -1.314016650990054e+01,
+       2.219569636062632e+02, -6.028640616624953e+01,  4.206235100555175e+01, -3.552942178215412e+00,
+       2.219569636062632e+02, -6.028640616624953e+01, -4.206235100555175e+01,  3.552942178215411e+00,
+       5.674373976691268e+01, -2.201144875962326e+01, -3.651966323006221e+01,  1.314016650990054e+01
+    };
+    double m1Correct[] = {
+      -4.778420190897913e+01, -1.853595685020905e+01, -3.075340061478923e+01, -1.106540337675835e+01,
+      -1.869111272473795e+02, -5.076749992947330e+01, -3.542092716256990e+01, -2.991951307970891e+00,
+      -1.869111272473796e+02, -5.076749992947327e+01,  3.542092716256991e+01,  2.991951307970870e+00,
+      -4.778420190897913e+01, -1.853595685020905e+01,  3.075340061478923e+01,  1.106540337675835e+01,
+      -6.492351392718295e+01,  3.132599362905920e+00, -3.638778489961594e+01,  3.530646305955197e+00,
+      -1.182107863586978e+02,  5.035108199906144e+01,  1.899332613913597e+01,  2.115992942559060e+01,
+      -1.182107863586978e+02,  5.035108199906144e+01, -1.899332613913598e+01, -2.115992942559060e+01,
+      -6.492351392718297e+01,  3.132599362905925e+00,  3.638778489961592e+01, -3.530646305955196e+00,
+      -6.492351392718297e+01, -3.132599362905928e+00, -3.638778489961594e+01, -3.530646305955196e+00,
+      -1.182107863586979e+02, -5.035108199906144e+01,  1.899332613913597e+01, -2.115992942559060e+01,
+      -1.182107863586979e+02, -5.035108199906144e+01, -1.899332613913597e+01,  2.115992942559062e+01,
+      -6.492351392718295e+01, -3.132599362905919e+00,  3.638778489961592e+01,  3.530646305955196e+00,
+      -4.778420190897911e+01,  1.853595685020907e+01, -3.075340061478922e+01,  1.106540337675835e+01,
+      -1.869111272473795e+02,  5.076749992947325e+01, -3.542092716256990e+01,  2.991951307970878e+00,
+      -1.869111272473796e+02,  5.076749992947332e+01,  3.542092716256988e+01, -2.991951307970872e+00,
+      -4.778420190897911e+01,  1.853595685020906e+01,  3.075340061478923e+01, -1.106540337675835e+01
+    };
+    double m2Correct[] = {
+       1.317741859760154e+02,  5.432242387904527e+01,  8.726478357864879e+01,  3.461290078036008e+01,
+       6.282598132762612e+02,  2.349967248260282e+02,  1.585668164431439e+02,  5.344698656702761e+01,
+       6.282598132762612e+02,  2.349967248260282e+02, -1.585668164431439e+02, -5.344698656702760e+01,
+       1.317741859760154e+02,  5.432242387904527e+01, -8.726478357864879e+01, -3.461290078036008e+01,
+       1.892086113026537e+02, -7.382118864615809e+00,  1.138208348715406e+02, -8.593088099826790e+00,
+       4.706732142611326e+02, -2.016751811606539e+02, -2.651705819234549e+01, -1.091874194410921e+02,
+       4.706732142611326e+02, -2.016751811606539e+02,  2.651705819234548e+01,  1.091874194410921e+02,
+       1.892086113026537e+02, -7.382118864615817e+00, -1.138208348715406e+02,  8.593088099826790e+00,
+       1.892086113026537e+02,  7.382118864615816e+00,  1.138208348715406e+02,  8.593088099826790e+00,
+       4.706732142611326e+02,  2.016751811606539e+02, -2.651705819234548e+01,  1.091874194410921e+02,
+       4.706732142611327e+02,  2.016751811606539e+02,  2.651705819234547e+01, -1.091874194410922e+02,
+       1.892086113026537e+02,  7.382118864615806e+00, -1.138208348715406e+02, -8.593088099826787e+00,
+       1.317741859760154e+02, -5.432242387904528e+01,  8.726478357864879e+01, -3.461290078036008e+01,
+       6.282598132762611e+02, -2.349967248260282e+02,  1.585668164431439e+02, -5.344698656702759e+01,
+       6.282598132762612e+02, -2.349967248260283e+02, -1.585668164431438e+02,  5.344698656702758e+01,
+       1.317741859760154e+02, -5.432242387904529e+01, -8.726478357864879e+01,  3.461290078036008e+01
+    };
+    for (int i=0; i<cells[0]; i++) {
+      for (int j=0; j<cells[1]; j++) {
+        int idx[] = {i+confGhost[0], j+confGhost[1]};
+        // Check M0.
+        double *m0ptr = gkyl_array_fetch(m0, gkyl_range_idx(&confLocal, idx)); 
+        for (int k=0; k<confBasis.num_basis; k++)
+          TEST_CHECK( gkyl_compare( m0Correct[(i*cells[1]+j)*confBasis.num_basis+k], m0ptr[k], 1e-12) );
+        // Check M1.
+        double *m1ptr = gkyl_array_fetch(m1, gkyl_range_idx(&confLocal, idx)); 
+        for (int k=0; k<confBasis.num_basis; k++)
+          TEST_CHECK( gkyl_compare( m1Correct[(i*cells[1]+j)*confBasis.num_basis+k], m1ptr[k], 1e-12) );
+        // Check M2.
+        double *m2ptr = gkyl_array_fetch(m2, gkyl_range_idx(&confLocal, idx)); 
+        for (int k=0; k<confBasis.num_basis; k++)
+          TEST_CHECK( gkyl_compare( m2Correct[(i*cells[1]+j)*confBasis.num_basis+k], m2ptr[k], 1e-12) );
+      }
+    }
   
-    // Check M1.
-    TEST_CHECK( gkyl_compare( -161.41826978214021, m10[0], 1e-12) );
-    TEST_CHECK( gkyl_compare(  -37.80332405740736, m10[1], 1e-12) );
-    TEST_CHECK( gkyl_compare(  -64.37011198513079, m11[0], 1e-12) );
-    TEST_CHECK( gkyl_compare(  54.069689655013306, m11[1], 1e-12) );
-    TEST_CHECK( gkyl_compare(  -64.37011198513079, m12[0], 1e-12) );
-    TEST_CHECK( gkyl_compare(  -54.06968965501329, m12[1], 1e-12) );
-    TEST_CHECK( gkyl_compare( -161.41826978214021, m13[0], 1e-12) );
-    TEST_CHECK( gkyl_compare(   37.80332405740738, m13[1], 1e-12) );
-  
-    // Check M2.
-    TEST_CHECK( gkyl_compare(   578.5971330556217, m20[0], 1e-12) );
-    TEST_CHECK( gkyl_compare(  210.75432886828457, m20[1], 1e-12) );
-    TEST_CHECK( gkyl_compare(   292.8699479183419, m21[0], 1e-12) );
-    TEST_CHECK( gkyl_compare(  -242.1332009483718, m21[1], 1e-12) );
-    TEST_CHECK( gkyl_compare(   292.8699479183419, m22[0], 1e-12) );
-    TEST_CHECK( gkyl_compare(  242.13320094837178, m22[1], 1e-12) );
-    TEST_CHECK( gkyl_compare(   578.5971330556217, m23[0], 1e-12) );
-    TEST_CHECK( gkyl_compare( -210.75432886828463, m23[1], 1e-12) );
   } else if (poly_order==2) {
-    // Check M0.
-    TEST_CHECK( gkyl_compare(  1.918680388146181e+02, m00[0], 1e-12) );
-    TEST_CHECK( gkyl_compare(  4.965624243631351e+01, m00[1], 1e-12) );
-    TEST_CHECK( gkyl_compare( -4.226503392363477e+01, m00[2], 1e-12) );
-    TEST_CHECK( gkyl_compare(  7.605808393388897e+01, m01[0], 1e-12) );
-    TEST_CHECK( gkyl_compare( -6.117597028054660e+01, m01[1], 1e-12) );
-    TEST_CHECK( gkyl_compare(  1.065677233807588e+01, m01[2], 1e-12) );
-    TEST_CHECK( gkyl_compare(  7.605808393388898e+01, m02[0], 1e-12) );
-    TEST_CHECK( gkyl_compare(  6.117597028054661e+01, m02[1], 1e-12) );
-    TEST_CHECK( gkyl_compare(  1.065677233807589e+01, m02[2], 1e-12) );
-    TEST_CHECK( gkyl_compare(  1.918680388146182e+02, m03[0], 1e-12) );
-    TEST_CHECK( gkyl_compare( -4.965624243631353e+01, m03[1], 1e-12) );
-    TEST_CHECK( gkyl_compare( -4.226503392363478e+01, m03[2], 1e-12) );
   
-    // Check M1.
-    TEST_CHECK( gkyl_compare( -1.615730853175732e+02, m10[0], 1e-12) );
-    TEST_CHECK( gkyl_compare( -4.181578310426401e+01, m10[1], 1e-12) );
-    TEST_CHECK( gkyl_compare(  3.559160751463980e+01, m10[2], 1e-12) );
-    TEST_CHECK( gkyl_compare( -6.404891278643279e+01, m11[0], 1e-12) );
-    TEST_CHECK( gkyl_compare(  5.151660655203925e+01, m11[1], 1e-12) );
-    TEST_CHECK( gkyl_compare( -8.974124074169159e+00, m11[2], 1e-12) );
-    TEST_CHECK( gkyl_compare( -6.404891278643282e+01, m12[0], 1e-12) );
-    TEST_CHECK( gkyl_compare( -5.151660655203925e+01, m12[1], 1e-12) );
-    TEST_CHECK( gkyl_compare( -8.974124074169165e+00, m12[2], 1e-12) );
-    TEST_CHECK( gkyl_compare( -1.615730853175732e+02, m13[0], 1e-12) );
-    TEST_CHECK( gkyl_compare(  4.181578310426401e+01, m13[1], 1e-12) );
-    TEST_CHECK( gkyl_compare(  3.559160751463981e+01, m13[2], 1e-12) );
-  
-    // Check M2.
-    TEST_CHECK( gkyl_compare(  5.924940346248225e+02, m20[0], 1e-12) );
-    TEST_CHECK( gkyl_compare(  2.106245140015062e+02, m20[1], 1e-12) );
-    TEST_CHECK( gkyl_compare( -1.080258558862571e+02, m20[2], 1e-09) );
-    TEST_CHECK( gkyl_compare(  2.957803339447422e+02, m21[0], 1e-12) );
-    TEST_CHECK( gkyl_compare( -2.297438543767285e+02, m21[1], 1e-12) );
-    TEST_CHECK( gkyl_compare(  2.952994007812927e+01, m21[2], 1e-12) );
-    TEST_CHECK( gkyl_compare(  2.957803339447422e+02, m22[0], 1e-12) );
-    TEST_CHECK( gkyl_compare(  2.297438543767285e+02, m22[1], 1e-12) );
-    TEST_CHECK( gkyl_compare(  2.952994007812929e+01, m22[2], 1e-12) );
-    TEST_CHECK( gkyl_compare(  5.924940346248227e+02, m23[0], 1e-12) );
-    TEST_CHECK( gkyl_compare( -2.106245140015063e+02, m23[1], 1e-12) );
-    TEST_CHECK( gkyl_compare( -1.080258558862570e+02, m23[2], 1e-12) );
   }
 
   // release memory for moment data object
@@ -628,7 +626,7 @@ void test_1x1v_p2() { test_1x1v(2); }
 void test_1x2v_p1() { test_1x2v(1); } 
 void test_1x2v_p2() { test_1x2v(2); } 
 void test_2x2v_p1() { test_2x2v(1); } 
-void test_2x2v_p2() { test_2x2v(2); } 
+//void test_2x2v_p2() { test_2x2v(2); } 
 
 TEST_LIST = {
   { "mom_gyrokinetic", test_mom_gyrokinetic },
@@ -636,7 +634,7 @@ TEST_LIST = {
   { "test_1x2v_p1", test_1x2v_p1 },
   { "test_1x1v_p2", test_1x1v_p2 },
   { "test_1x2v_p2", test_1x2v_p2 },
-//  { "test_2x2v_p1", test_2x2v_p1 },
+  { "test_2x2v_p1", test_2x2v_p1 },
 //  { "test_2x2v_p2", test_2x2v_p2 },
 //  { "test_3x2v_p1", test_3x2v_p1 },
 #ifdef GKYL_HAVE_CUDA
