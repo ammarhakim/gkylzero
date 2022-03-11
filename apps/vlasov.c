@@ -30,12 +30,6 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   strcpy(app->name, vm->name);
   app->tcurr = 0.0; // reset on init
 
-  // check if there is a job pool
-  if (vm->job_pool)
-    app->job_pool = gkyl_job_pool_acquire(vm->job_pool);
-  else
-    app->job_pool = gkyl_null_pool_new(1);
-
   // basis functions
   switch (vm->basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -480,8 +474,6 @@ gkyl_vlasov_app_stat_write(const gkyl_vlasov_app* app)
 void
 gkyl_vlasov_app_release(gkyl_vlasov_app* app)
 {
-  gkyl_job_pool_release(app->job_pool);
-  
   for (int i=0; i<app->num_species; ++i)
     vm_species_release(app, &app->species[i]);
   if (app->num_species > 1)

@@ -114,6 +114,7 @@ struct vm_species {
 
   enum gkyl_collision_id collision_id; // type of collisions
   struct vm_lbo_collisions lbo;
+
   double *omegaCfl_ptr;
 };
 
@@ -333,7 +334,7 @@ void vm_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_species 
  */
 void
 vm_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_species *species,
-  int dir, struct gkyl_array *f);
+  int dir, enum vm_domain_edge edge, struct gkyl_array *f);
 
 /**
  * Apply BCs to species distribution function

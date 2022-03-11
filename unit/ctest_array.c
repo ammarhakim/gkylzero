@@ -451,6 +451,43 @@ void test_array_copy_buffer_fn()
   gkyl_free(buff);
 }
 
+void test_array_flip_copy_buffer_fn()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+  
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    double *d = gkyl_array_fetch(arr, gkyl_range_idx(&range, iter.idx));
+    d[0] = iter.idx[0] + 10.5*iter.idx[1];
+  }
+
+  int lower[] = {1, 1}, upper[] = {5, 10};
+  struct gkyl_range sub_range;
+  gkyl_sub_range_init(&sub_range, &range, lower, upper);
+
+  double *buff = gkyl_malloc(sizeof(double)*sub_range.volume);
+
+  gkyl_array_flip_copy_to_buffer_fn(buff, arr, 0, sub_range, buffer_fn, 0);
+  long count = 0;
+  gkyl_range_iter_init(&iter, &sub_range);
+  while (gkyl_range_iter_next(&iter))
+    TEST_CHECK( buff[count++] == 2*((5+1)-iter.idx[0] + 10.5*iter.idx[1]) );
+
+  gkyl_array_flip_copy_to_buffer_fn(buff, arr, 1, sub_range, buffer_fn, 0);
+  count = 0;
+  gkyl_range_iter_init(&iter, &sub_range);
+  while (gkyl_range_iter_next(&iter))
+    TEST_CHECK( buff[count++] == 2*(iter.idx[0] + 10.5*((10+1)-iter.idx[1])) );
+
+  gkyl_array_release(arr);
+  gkyl_free(buff);
+}
+
 void test_array_copy_range()
 {
   int shape[] = {10, 20};
@@ -1437,6 +1474,7 @@ TEST_LIST = {
   { "array_ops_comp", test_array_ops_comp },
   { "array_copy_buffer", test_array_copy_buffer },
   { "array_copy_buffer_fn", test_array_copy_buffer_fn },
+  { "array_flip_copy_buffer_fn", test_array_flip_copy_buffer_fn },
   { "array_copy_range", test_array_copy_range},
   { "array_copy_split", test_array_copy_split },
   { "non_numeric", test_non_numeric },

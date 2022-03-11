@@ -1,9 +1,9 @@
-#include <float.h>
-#include <gkyl_dg_eqn.h>
-#include <gkyl_util.h>
 #include <assert.h>
+#include <float.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_dg_eqn.h>
+#include <gkyl_util.h>
 #include <gkyl_vlasov_priv.h>
 
 // context for use in Wall BCs
@@ -53,13 +53,6 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
   f->info = vm->field;
 
-  if (vm->field.job_pool)
-    // use specified job pool if it exists ...
-    f->job_pool = gkyl_job_pool_acquire(vm->field.job_pool);
-  else
-    // .. or app job pool if it does not
-    f->job_pool = gkyl_job_pool_acquire(app->job_pool);
-  
   // allocate EM arrays
   f->em = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
   f->em1 = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
@@ -251,8 +244,6 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
 void
 vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
 {
-  gkyl_job_pool_release(f->job_pool);
-  
   gkyl_array_release(f->em);
   gkyl_array_release(f->em1);
   gkyl_array_release(f->emnew);

@@ -179,7 +179,25 @@ void gkyl_array_copy_from_buffer(struct gkyl_array *arr, const void *data,
  * @param ctx Context for function application
  */
 void gkyl_array_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
-  struct gkyl_range range, array_copy_func_t func, void *ctx);
+  struct gkyl_range range,
+  array_copy_func_t func, void *ctx);
+
+/**
+ * Copy region of array into a buffer, calling user-specified function
+ * as the copying is done. While the copying is being performed the
+ * index in @a dir is "flipped". (TODO: WHAT DOES THIS MEAN?). The
+ * buffer must be preallocated and at least of size
+ * arr->size*arr->elemSz bytes.
+ *
+ * @param data Output data buffer.
+ * @param arr Array to copy from
+ * @dir Direction to apply index flip
+ * @param range Range specifying region to copy from
+ * @param func Function to apply during copy
+ * @param ctx Context for function application
+ */
+void gkyl_array_flip_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
+  int dir, struct gkyl_range range, array_copy_func_t func, void *ctx);
 
 /**
  * Host-side wrappers for array operations
