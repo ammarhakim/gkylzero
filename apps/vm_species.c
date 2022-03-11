@@ -32,7 +32,7 @@ species_wall_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   struct species_wall_bc_ctx *mc = ctx;
   int dir = mc->dir, cdim = mc->cdim;
-  
+
   mc->basis->flip_odd_sign(dir, inp, out);
   mc->basis->flip_odd_sign(dir+cdim, inp, out);
 }
@@ -272,24 +272,26 @@ void
 vm_species_apply_wall_bc(gkyl_vlasov_app *app, const struct vm_species *species,
   int dir, enum vm_domain_edge edge, struct gkyl_array *f)
 {
-  /* struct species_wall_bc_ctx ctx = { */
-  /*   .dir = dir, .cdim = app->cdim, */
-  /*   .basis = &app->basis */
-  /* }; */
-  
-  /* if (edge == VM_EDGE_LOWER) { */
-  /*   gkyl_array_flip_copy_to_buffer_fn(species->bc_buffer->data, f, dir, */
-  /*     species->skin_ghost.lower_skin[dir], species_wall_bc, &ctx); */
-    
-  /*   gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.lower_ghost[dir]); */
-  /* } */
+  struct species_wall_bc_ctx ctx = {
+    .dir = dir, .cdim = app->cdim,
+    .basis = &app->basis
+  };
 
-  /* if (edge == VM_EDGE_UPPER) { */
-  /*   gkyl_array_flip_copy_to_buffer_fn(species->bc_buffer->data, f, dir, */
-  /*     species->skin_ghost.upper_skin[dir], species_wall_bc, &ctx); */
+  int cdim = app->cdim;
+  
+  if (edge == VM_EDGE_LOWER) {
+    gkyl_array_flip_copy_to_buffer_fn(species->bc_buffer->data, f, dir+cdim,
+      species->skin_ghost.lower_skin[dir], species_wall_bc, &ctx);
     
-  /*   gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.upper_ghost[dir]); */
-  /* } */
+    gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.lower_ghost[dir]);
+  }
+
+  if (edge == VM_EDGE_UPPER) {
+    gkyl_array_flip_copy_to_buffer_fn(species->bc_buffer->data, f, dir+cdim,
+      species->skin_ghost.upper_skin[dir], species_wall_bc, &ctx);
+    
+    gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.upper_ghost[dir]);
+  }
 }
 
 // Determine which directions are periodic and which directions are copy,
