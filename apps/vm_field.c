@@ -187,6 +187,7 @@ vm_field_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_field *field,
   }
 }
 
+// Perfect electrical conductor
 void
 vm_field_apply_pec_bc(gkyl_vlasov_app *app, const struct vm_field *field,
   int dir, enum vm_domain_edge edge, struct gkyl_array *f)

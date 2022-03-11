@@ -20,6 +20,23 @@ eval_accel(double t, const double *xn, double *aout, void *ctx)
   for (int i=3; i<8; ++i) aout[i] = 0.0;
 }
 
+// context for use in Wall BCs
+struct species_wall_bc_ctx {
+  int dir; // direction for BCs
+  int cdim; // config-space dimensions
+  const struct gkyl_basis *basis; // phase-space basis function
+};
+
+static void
+species_wall_bc(size_t nc, double *out, const double *inp, void *ctx)
+{
+  struct species_wall_bc_ctx *mc = ctx;
+  int dir = mc->dir, cdim = mc->cdim;
+  
+  mc->basis->flip_odd_sign(dir, inp, out);
+  mc->basis->flip_odd_sign(dir+cdim, inp, out);
+}
+
 // initialize species object
 void
 vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_species *s)
@@ -250,6 +267,31 @@ vm_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_species *species,
   }
 }
 
+// Apply copy BCs on distribution function
+void
+vm_species_apply_wall_bc(gkyl_vlasov_app *app, const struct vm_species *species,
+  int dir, enum vm_domain_edge edge, struct gkyl_array *f)
+{
+  /* struct species_wall_bc_ctx ctx = { */
+  /*   .dir = dir, .cdim = app->cdim, */
+  /*   .basis = &app->basis */
+  /* }; */
+  
+  /* if (edge == VM_EDGE_LOWER) { */
+  /*   gkyl_array_flip_copy_to_buffer_fn(species->bc_buffer->data, f, dir, */
+  /*     species->skin_ghost.lower_skin[dir], species_wall_bc, &ctx); */
+    
+  /*   gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.lower_ghost[dir]); */
+  /* } */
+
+  /* if (edge == VM_EDGE_UPPER) { */
+  /*   gkyl_array_flip_copy_to_buffer_fn(species->bc_buffer->data, f, dir, */
+  /*     species->skin_ghost.upper_skin[dir], species_wall_bc, &ctx); */
+    
+  /*   gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.upper_ghost[dir]); */
+  /* } */
+}
+
 // Determine which directions are periodic and which directions are copy,
 // and then apply boundary conditions for distribution function
 void
@@ -269,7 +311,7 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
           vm_species_apply_copy_bc(app, species, d, VM_EDGE_LOWER, f);
           break;
         case GKYL_SPECIES_WALL:
-          //vm_species_apply_pec_bc(app, species, d, VM_EDGE_LOWER, f);
+          vm_species_apply_wall_bc(app, species, d, VM_EDGE_LOWER, f);
           break;
       }
 
@@ -278,7 +320,7 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
           vm_species_apply_copy_bc(app, species, d, VM_EDGE_UPPER, f);
           break;
         case GKYL_SPECIES_WALL:
-          //vm_species_apply_pec_bc(app, species, d, VM_EDGE_UPPER, f);
+          vm_species_apply_wall_bc(app, species, d, VM_EDGE_UPPER, f);
           break;
       }      
     }

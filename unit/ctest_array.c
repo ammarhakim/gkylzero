@@ -484,6 +484,16 @@ void test_array_flip_copy_buffer_fn()
   while (gkyl_range_iter_next(&iter))
     TEST_CHECK( buff[count++] == 2*(iter.idx[0] + 10.5*((10+1)-iter.idx[1])) );
 
+  gkyl_array_clear(arr, 0.0);
+  // copy back from buffer
+  gkyl_array_copy_from_buffer(arr, buff, sub_range);
+
+  gkyl_range_iter_init(&iter, &sub_range);
+  while (gkyl_range_iter_next(&iter)) {
+    double *d = gkyl_array_fetch(arr, gkyl_range_idx(&sub_range, iter.idx));
+    TEST_CHECK( d[0]  == 2*(iter.idx[0] + 10.5*((10+1)-iter.idx[1])) );
+  }
+
   gkyl_array_release(arr);
   gkyl_free(buff);
 }
