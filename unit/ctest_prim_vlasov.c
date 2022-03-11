@@ -13,6 +13,7 @@
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_vlasov.h>
 #include <gkyl_prim_lbo_calc.h>
+#include <gkyl_prim_lbo_cross_calc.h>
 #include <gkyl_prim_lbo_type.h>
 #include <gkyl_prim_lbo_vlasov.h>
 
@@ -85,7 +86,7 @@ skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
 }
 
 void
-test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_check[], double vf_check[], double u_check[], double vth_check[])
+test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_check[], double vf_check[], double u_check[], double vth_check[], double ucross_check[], double vthcross_check[])
 {
   int pdim = cdim + vdim;  
   double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM], confLower[GKYL_MAX_DIM], confUpper[GKYL_MAX_DIM];
@@ -192,7 +193,8 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   TEST_CHECK( prim->num_phase == basis.num_basis );
 
   gkyl_prim_lbo_calc *primcalc = gkyl_prim_lbo_calc_new(&grid, prim);
-
+  gkyl_prim_lbo_cross_calc *crossprimcalc = gkyl_prim_lbo_cross_calc_new(&grid, prim, 1);
+  
   // create moment arrays
   struct gkyl_array *u, *vth;
   u = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
@@ -220,7 +222,44 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
     for (unsigned int k=0; k<confBasis.num_basis; ++k) {
       TEST_CHECK( gkyl_compare( vth_check[k], vthptr[k], 1e-12) );
   }}
+
+  struct gkyl_array *cross_u[GKYL_MAX_SPECIES];
+  struct gkyl_array *cross_vtsq[GKYL_MAX_SPECIES];
+  struct gkyl_array *u_out[GKYL_MAX_SPECIES];
+  struct gkyl_array *vtsq_out[GKYL_MAX_SPECIES];
+
+  u_out[0] = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
+  vtsq_out[0] = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  cross_u[0] = u;
+  cross_vtsq[0] = vth;
+  double self_m = 1.;
+  double cross_m[1] = {0.0};
+  double betaGreenep1 = 1.;
+  double nu = 1.;
+  cross_m[0] = self_m;
+
+  gkyl_prim_lbo_cross_calc_advance(crossprimcalc, confBasis, confLocal, betaGreenep1, nu, self_m, u, vth, cross_m, cross_u, cross_vtsq, moms, boundary_corrections, u_out, vtsq_out);
   
+  // Check cross u
+  // 1-indexed for interfacing with G2 Lua layer
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
+    int cidx[] = {i};
+    long linc = gkyl_range_idx(&confLocal, cidx);
+    double *uptr = gkyl_array_fetch(u_out[0], linc);
+    for (unsigned int k=0; k<confBasis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare( ucross_check[k], uptr[k], 1e-12) );
+  }}
+
+  // Check cross vtsq
+  // 1-indexed for interfacing with G2 Lua layer
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
+    int cidx[] = {i};
+    long linc = gkyl_range_idx(&confLocal, cidx);
+    double *vthptr = gkyl_array_fetch(vtsq_out[0], linc);
+    for (unsigned int k=0; k<confBasis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare( vthcross_check[k], vthptr[k], 1e-12) );
+  }}
+
   gkyl_array_release(moms);
   gkyl_mom_calc_release(moms_calc);
   gkyl_mom_type_release(vm_moms_t);
@@ -393,8 +432,10 @@ test_1x1v_p2()
   double vf_check[] = { 0.30543841971927, 0.0, 0.0 };
   double u_check[] = { 0.0, 0.0, 0.0 };
   double vth_check[] = { 1.4142398195471544, 0.0, 0.0 };
+  double ucross_check[] = { 0.0, 0.0, 0.0 };
+  double vthcross_check[] = { 1.4142398195471544, 0.0, 0.0 };
 
-  test_func(cdim, vdim, poly_order, evalDistFunc1x1v, f_check, vf_check, u_check, vth_check);
+  test_func(cdim, vdim, poly_order, evalDistFunc1x1v, f_check, vf_check, u_check, vth_check, ucross_check, vthcross_check);
 }
 
 void
@@ -407,8 +448,10 @@ test_1x2v_p2()
   double vf_check[] = { 0.583081782023233, 0.0, 0.0, 0.0, 0.0, 0.0 };
   double u_check[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
   double vth_check[] = { 1.4142398195471586, 0.0, 0.0 };
+  double ucross_check[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+  double vthcross_check[] = { 1.4142398195471586, 0.0, 0.0 };
 
-  test_func(cdim, vdim, poly_order, evalDistFunc1x2v, f_check, vf_check, u_check, vth_check);
+  test_func(cdim, vdim, poly_order, evalDistFunc1x2v, f_check, vf_check, u_check, vth_check, ucross_check, vthcross_check);
 }
 
 #ifdef GKYL_HAVE_CUDA
