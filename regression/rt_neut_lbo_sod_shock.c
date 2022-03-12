@@ -58,6 +58,9 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
+  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
+
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
@@ -70,7 +73,7 @@ main(int argc, char **argv)
     .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -6.0*ctx.vt},
     .upper = { 6.0*ctx.vt}, 
-    .cells = { 16 },
+    .cells = { NV },
 
     .ctx = &ctx,
     .init = evalDistFunc,
@@ -87,7 +90,7 @@ main(int argc, char **argv)
     .cdim = 1, .vdim = 1,
     .lower = { 0.0 },
     .upper = { ctx.Lx },
-    .cells = { 128 },
+    .cells = { NX },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
