@@ -47,6 +47,14 @@ evalDistFunc1x2v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT
   fout[0] = maxwellian2D(1.0, vx, vy, 0.0, 0.0, 1.0);
 }
 
+void nu_prof(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  double vx = xn[1];
+  double vy  = xn[2];
+  fout[0] = 1.0;
+}
+
 // allocate array (filled with zeros)
 static struct gkyl_array*
 mkarr(long nc, long size)
@@ -144,13 +152,24 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   // projection updater for dist-function
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, evalDistFunc, NULL);
-
+  
   // create distribution function array
   struct gkyl_array *distf;
   distf = mkarr(basis.num_basis, local_ext.volume);
 
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
+
+  // projection updater for collision frequency
+  gkyl_proj_on_basis *projNu = gkyl_proj_on_basis_new(&confGrid, &confBasis,
+    poly_order+1, 1, nu_prof, NULL);
+
+  // create collision frequency array
+  struct gkyl_array *nu;
+  nu = mkarr(confBasis.num_basis, confLocal_ext.volume);
+
+  // project collision frequency on basis
+  gkyl_proj_on_basis_advance(projNu, 0.0, &confLocal_ext, nu);
   
   struct gkyl_mom_type *vm_moms_t = gkyl_mom_vlasov_new(&confBasis, &basis, "FiveMoments");
   gkyl_mom_calc *moms_calc = gkyl_mom_calc_new(&grid, vm_moms_t);
@@ -223,11 +242,13 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
       TEST_CHECK( gkyl_compare( vth_check[k], vthptr[k], 1e-12) );
   }}
 
+  struct gkyl_array *cross_nu[GKYL_MAX_SPECIES];
   struct gkyl_array *cross_u[GKYL_MAX_SPECIES];
   struct gkyl_array *cross_vtsq[GKYL_MAX_SPECIES];
   struct gkyl_array *u_out[GKYL_MAX_SPECIES];
   struct gkyl_array *vtsq_out[GKYL_MAX_SPECIES];
 
+  cross_nu[0] = nu;
   u_out[0] = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
   vtsq_out[0] = mkarr(confBasis.num_basis, confLocal_ext.volume);
   cross_u[0] = u;
@@ -235,10 +256,9 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   double self_m = 1.;
   double cross_m[1] = {0.0};
   double betaGreenep1 = 1.;
-  double nu = 1.;
   cross_m[0] = self_m;
 
-  gkyl_prim_lbo_cross_calc_advance(crossprimcalc, confBasis, confLocal, betaGreenep1, nu, self_m, u, vth, cross_m, cross_u, cross_vtsq, moms, boundary_corrections, u_out, vtsq_out);
+  gkyl_prim_lbo_cross_calc_advance(crossprimcalc, confBasis, confLocal, betaGreenep1, cross_nu, self_m, u, vth, cross_m, cross_u, cross_vtsq, moms, boundary_corrections, u_out, vtsq_out);
   
   // Check cross u
   // 1-indexed for interfacing with G2 Lua layer
