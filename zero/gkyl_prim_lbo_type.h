@@ -14,7 +14,7 @@ typedef void (*self_prim_t)(const struct gkyl_prim_lbo_type *prim, struct gkyl_m
 typedef void (*cross_prim_t)(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A,
   struct gkyl_mat *rhs, const double betaGreenep1, const double m_self,
   const double *u_self, const double *vtsq_self, const double m_other,
-  const double *u_other, const double *vtsq_other, const double *nu, const double *moms, const double *boundary_corrections);
+  const double *u_other, const double *vtsq_other, const double *moms, const double *boundary_corrections);
 
 struct gkyl_prim_lbo_type {
   int cdim; // config-space dim
