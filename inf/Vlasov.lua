@@ -287,6 +287,22 @@ int gkyl_tm_trigger_check_and_bump(struct gkyl_tm_trigger *tmt, double tcurr);
 -- module table
 local _M = { }
 
+
+-- time-trigger object
+local tm_trigger_type = ffi.typeof("struct gkyl_tm_trigger")
+local tm_trigger_mt = {
+   __new = function(self, dt)
+      local tmt = ffi.new(self, { curr = 0, dt = dt, tcurr = 0.0 })
+      return tmt
+   end,
+   __index = {
+      checkAndBump = function(self, tcurr)
+	 return C.gkyl_tm_trigger_check_and_bump(self, tcurr) == 1
+      end
+   }
+}
+_M.TimeTrigger = ffi.metatype(tm_trigger_type, tm_trigger_mt)
+
 -- Wraps user given distribution function in a function that can be
 -- passed to the C callback APIs
 local function gkyl_eval_dist(func)
@@ -600,23 +616,55 @@ local app_mt = {
       update = function(self, dt)
 	 return C.gkyl_vlasov_update(self.app, dt)
       end,
+      run = function(self)
+	 
+	 local frame_trig = _M.TimeTrigger(self.tend/self.nframe)
+
+	 -- function to write data to file
+	 local function writeData(tcurr)
+	    if frame_trig:checkAndBump(tcurr) then
+	       self:write(tcurr, frame_trig.curr-1)
+	       self:calcMom()
+	       self:writeMom(tcurr, frame_trig.curr-1)
+	    end
+	 end
+
+	 local count = 0
+	 local p1_trig = _M.TimeTrigger(self.tend/99)
+	 -- log messages
+	 local function writeLogMessage(tcurr, step, dt)
+	    if p1_trig:checkAndBump(tcurr) then
+	       if count % 10 == 0 then
+		  io.write(string.format(" Step %6d %.4e. Time-step  %.6e \n", step, tcurr, dt))
+	       end
+	       count = count+1
+	    end
+	 end
+
+	 io.write(string.format("Starting GkeyllZero simulation\n"))
+	 self:init()
+	 writeData(0.0)
+
+	 local tcurr, tend = 0.0, self.tend
+	 local dt = tend-tcurr
+	 local step = 1
+	 while tcurr < tend do
+	    local status = self:update(dt);
+	    tcurr = tcurr + status.dt_actual
+
+	    dt = status.dt_suggested
+	    writeLogMessage(tcurr, step, dt)
+	    writeData(tcurr)
+
+	    step = step + 1
+	 end
+	 io.write(string.format("Completed in %d steps. Final time-step %.6e\n", step-1, dt))
+
+	 self:writeStat()
+	 
+      end,
    }
 }
 _M.App = ffi.metatype(app_type, app_mt)
-
--- time-trigger object
-local tm_trigger_type = ffi.typeof("struct gkyl_tm_trigger")
-local tm_trigger_mt = {
-   __new = function(self, dt)
-      local tmt = ffi.new(self, { curr = 0, dt = dt, tcurr = 0.0 })
-      return tmt
-   end,
-   __index = {
-      checkAndBump = function(self, tcurr)
-	 return C.gkyl_tm_trigger_check_and_bump(self, tcurr) == 1
-      end
-   }
-}
-_M.TimeTrigger = ffi.metatype(tm_trigger_type, tm_trigger_mt)
 
 return _M
