@@ -27,6 +27,7 @@ struct species_wall_bc_ctx {
   const struct gkyl_basis *basis; // phase-space basis function
 };
 
+GKYL_CU_D
 static void
 species_wall_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
