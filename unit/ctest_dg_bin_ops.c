@@ -4,8 +4,9 @@
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_dg_bin_ops.h>
-#include <gkyl_range.h>
 #include <gkyl_proj_on_basis.h>
+#include <gkyl_range.h>
+#include <gkyl_rect_decomp.h>
 
 void f_1d(double t, const double *xn, double* restrict fout, void *ctx)
 {
@@ -37,8 +38,9 @@ test_1d(int poly_order)
   gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_1d, NULL);
 
   // create array range: no ghost-cells in velocity space
-  struct gkyl_range arr_range;
-  gkyl_range_init_from_shape(&arr_range, ndim, cells);
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range arr_range, arr_ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);  
 
   // create distribution function
   struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
@@ -142,8 +144,9 @@ test_2d(int poly_order)
   gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_2d, NULL);
 
   // create array range: no ghost-cells in velocity space
-  struct gkyl_range arr_range;
-  gkyl_range_init_from_shape(&arr_range, ndim, cells);
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range arr_range, arr_ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
   // create distribution function
   struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
@@ -263,8 +266,9 @@ test_3d(int poly_order)
   gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, g_3d, NULL);
 
   // create array range: no ghost-cells in velocity space
-  struct gkyl_range arr_range;
-  gkyl_range_init_from_shape(&arr_range, ndim, cells);
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range arr_range, arr_ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
   // create distribution function
   struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
@@ -419,8 +423,9 @@ test_3d_p3()
   gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, g_3d_p3, NULL);
 
   // create array range: no ghost-cells in velocity space
-  struct gkyl_range arr_range;
-  gkyl_range_init_from_shape(&arr_range, ndim, cells);
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range arr_range, arr_ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
   // create distribution function
   struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
@@ -513,8 +518,9 @@ test_1d_cu(int poly_order)
   gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_1d, NULL);
 
   // create array range: no ghost-cells in velocity space
-  struct gkyl_range arr_range;
-  gkyl_range_init_from_shape(&arr_range, ndim, cells);
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range arr_range, arr_ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
   // create distribution function
   struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
@@ -626,8 +632,9 @@ test_2d_cu(int poly_order)
   gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_2d, NULL);
 
   // create array range: no ghost-cells in velocity space
-  struct gkyl_range arr_range;
-  gkyl_range_init_from_shape(&arr_range, ndim, cells);
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range arr_range, arr_ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
   // create distribution function
   struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
@@ -739,8 +746,9 @@ test_3d_cu(int poly_order)
   gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, g_3d, NULL);
 
   // create array range: no ghost-cells in velocity space
-  struct gkyl_range arr_range;
-  gkyl_range_init_from_shape(&arr_range, ndim, cells);
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range arr_range, arr_ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
   // create distribution function
   struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
@@ -901,8 +909,9 @@ test_3d_p3_cu()
   gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, g_3d_p3, NULL);
 
   // create array range: no ghost-cells in velocity space
-  struct gkyl_range arr_range;
-  gkyl_range_init_from_shape(&arr_range, ndim, cells);
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range arr_range, arr_ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
   // create distribution function
   struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);

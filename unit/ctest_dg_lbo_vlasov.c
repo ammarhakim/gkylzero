@@ -113,11 +113,12 @@ test_1x1v_p2()
   for(int n=0; n<nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
-    gkyl_dg_updater_lbo_vlasov_advance(slvr, phaseRange, nuSum, nuUSum, nuVtSqSum, fin, cflrate, rhs);
+    gkyl_dg_updater_lbo_vlasov_advance(slvr, &phaseRange, nuSum, nuUSum, nuVtSqSum, fin, cflrate, rhs);
   }
 
   // get linear index of first non-ghost cell
-  int idx[] = {0, 0, 0, 0, 0};
+  // 1-indexed for interfacing with G2 Lua layer
+  int idx[] = {1, 1, 1, 1, 1};
   int linl = gkyl_range_idx(&phaseRange, idx);
 
   // check that ghost cells are empty
@@ -132,8 +133,8 @@ test_1x1v_p2()
   TEST_CHECK(i == linl);
 
   // get linear index of some other cell
-  int idx1[] = {0, 0};
-  int idx2[] = {1, 2};
+  int idx1[] = {1, 1};
+  int idx2[] = {2, 3};
   int linl1 = gkyl_range_idx(&phaseRange, idx1);
   int linl2 = gkyl_range_idx(&phaseRange, idx2);
   rhs_d1 = gkyl_array_fetch(rhs, linl1);
@@ -226,13 +227,14 @@ test_1x2v_p2()
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
     
-    gkyl_dg_updater_lbo_vlasov_advance(slvr, phaseRange, nuSum, nuUSum, nuVtSqSum, fin, cflrate, rhs);
+    gkyl_dg_updater_lbo_vlasov_advance(slvr, &phaseRange, nuSum, nuUSum, nuVtSqSum, fin, cflrate, rhs);
   }
 
   // get linear index of first non-ghost cell
-  int idx[] = {0, 0, 0, 0, 0};
+  // 1-indexed for interfacing with G2 Lua layer
+  int idx[] = {1, 1, 1, 1, 1};
   int linl = gkyl_range_idx(&phaseRange, idx);
-
+  
   // check that ghost cells are empty
   double val = 0;
   double *rhs_d1, *rhs_d2;
@@ -245,8 +247,8 @@ test_1x2v_p2()
   TEST_CHECK(i == linl);
 
   // get linear index of some other cell
-  int idx1[] = {0, 0, 0};
-  int idx2[] = {2, 2, 2};
+  int idx1[] = {1, 1, 1};
+  int idx2[] = {3, 3, 3};
   int linl1 = gkyl_range_idx(&phaseRange, idx1);
   int linl2 = gkyl_range_idx(&phaseRange, idx2);
   rhs_d1 = gkyl_array_fetch(rhs, linl1);
@@ -371,12 +373,14 @@ test_1x1v_p2_cu()
   for(int n=0; n<nrep; n++) {
     gkyl_array_clear(rhs_cu, 0.0);
     gkyl_array_clear(cflrate_cu, 0.0);
-    gkyl_dg_updater_lbo_vlasov_advance_cu(slvr, phaseRange, nuSum_cu, nuUSum_cu, nuVtSqSum_cu, fin_cu, cflrate_cu, rhs_cu);
+    gkyl_dg_updater_lbo_vlasov_advance_cu(slvr, &phaseRange,
+      nuSum_cu, nuUSum_cu, nuVtSqSum_cu, fin_cu, cflrate_cu, rhs_cu);
   }
   gkyl_array_copy(rhs, rhs_cu);
 
   // get linear index of first non-ghost cell
-  int idx[] = {0, 0, 0, 0, 0};
+  // 1-indexed for interfacing with G2 Lua layer
+  int idx[] = {1, 1, 1, 1, 1};
   int linl = gkyl_range_idx(&phaseRange, idx);
 
   // check that ghost cells are empty
@@ -391,8 +395,8 @@ test_1x1v_p2_cu()
   TEST_CHECK(i == linl);
 
   // get linear index of some other cell
-  int idx1[] = {0, 0};
-  int idx2[] = {1, 2};
+  int idx1[] = {1, 1};
+  int idx2[] = {2, 3};
   int linl1 = gkyl_range_idx(&phaseRange, idx1);
   int linl2 = gkyl_range_idx(&phaseRange, idx2);
   rhs_d1 = gkyl_array_fetch(rhs, linl1);
@@ -494,12 +498,14 @@ test_1x2v_p2_cu()
     gkyl_array_clear(rhs_cu, 0.0);
     gkyl_array_clear(cflrate_cu, 0.0);
     
-    gkyl_dg_updater_lbo_vlasov_advance_cu(slvr, phaseRange, nuSum_cu, nuUSum_cu, nuVtSqSum_cu, fin_cu, cflrate_cu, rhs_cu);
+    gkyl_dg_updater_lbo_vlasov_advance_cu(slvr, &phaseRange,
+      nuSum_cu, nuUSum_cu, nuVtSqSum_cu, fin_cu, cflrate_cu, rhs_cu);
   }
   gkyl_array_copy(rhs, rhs_cu);
     
   // get linear index of first non-ghost cell
-  int idx[] = {0, 0, 0, 0, 0};
+  // 1-indexed for interfacing with G2 Lua layer
+  int idx[] = {1, 1, 1, 1, 1};
   int linl = gkyl_range_idx(&phaseRange, idx);
 
   // check that ghost cells are empty
@@ -514,8 +520,8 @@ test_1x2v_p2_cu()
   TEST_CHECK(i == linl);
   
   // get linear index of some other cell
-  int idx1[] = {0, 0, 0};
-  int idx2[] = {2, 2, 2};
+  int idx1[] = {1, 1, 1};
+  int idx2[] = {3, 3, 3};
   int linl1 = gkyl_range_idx(&phaseRange, idx1);
   int linl2 = gkyl_range_idx(&phaseRange, idx2);
   rhs_d1 = gkyl_array_fetch(rhs, linl1);

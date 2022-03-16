@@ -20,7 +20,8 @@ evalSREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double gas_gamma = app->gas_gamma;
   
   double x = xn[0], y = xn[1];
-  //ICs from 2D Riemann test from 34.1.11 http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html
+  // ICs from 2D Riemann test from 34.1.11
+  // http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html
   double rho, u, v, p;
   
   double sloc = 0.;
@@ -84,7 +85,7 @@ evalSREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 struct sr_euler_ctx
 sr_euler_ctx(void)
 {
-  return (struct sr_euler_ctx) { .gas_gamma = 5./3. };
+  return (struct sr_euler_ctx) { .gas_gamma = 4./3. };
 }
 
 void
@@ -98,6 +99,9 @@ int
 main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
+
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 256);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 256);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -116,8 +120,8 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalSREulerInit,
 
-    .bcx = { GKYL_MOMENT_COPY, GKYL_MOMENT_COPY },
-    .bcy = { GKYL_MOMENT_COPY, GKYL_MOMENT_COPY },
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+    .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
     .limiter = GKYL_MIN_MOD,
   };
 
@@ -128,7 +132,7 @@ main(int argc, char **argv)
     .ndim = 2,
     .lower = { -1., -1. },
     .upper = { 1.0, 1. }, 
-    .cells = { 256, 256 },
+    .cells = { NX, NY },
 
     .cfl_frac = 0.9,
 

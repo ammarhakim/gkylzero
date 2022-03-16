@@ -123,7 +123,6 @@ main(int argc, char **argv)
     .upper = { 6.0 * ctx.vte, 6.0 * ctx.vte, 6.0 * ctx.vte }, 
     .cells = { 8, 8, 8 },
 
-    .evolve = 1,
     .ctx = &ctx,
     .init = evalDistFuncElc,
 
@@ -142,7 +141,6 @@ main(int argc, char **argv)
     .upper = { 16.0 * ctx.vti, 16.0 * ctx.vti, 16.0 * ctx.vti}, 
     .cells = { 8, 8, 8 },
 
-    .evolve = 1,
     .ctx = &ctx,
     .init = evalDistFuncIon,
 
@@ -158,7 +156,7 @@ main(int argc, char **argv)
     .epsilon0 = 1.0, .mu0 = 1.0,
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
-    .evolve = 1,
+
     .ctx = &ctx,
     .init = evalFieldFunc
   };
@@ -185,7 +183,7 @@ main(int argc, char **argv)
   };
 
   // create app object
-  gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
+  gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 2.0;

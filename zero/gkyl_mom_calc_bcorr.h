@@ -34,12 +34,12 @@ gkyl_mom_calc_bcorr* gkyl_mom_calc_bcorr_cu_dev_new(const struct gkyl_rect_grid 
  * @param out Output
  */
 void gkyl_mom_calc_bcorr_advance(gkyl_mom_calc_bcorr *bcorr,
-  struct gkyl_range phase_rng, struct gkyl_range conf_rng,
-  const struct gkyl_array *fIn, struct gkyl_array *out);
+  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
+  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT out);
 
 void gkyl_mom_calc_bcorr_advance_cu(gkyl_mom_calc_bcorr *bcorr,
-  struct gkyl_range phase_rng, struct gkyl_range conf_rng,
-  const struct gkyl_array *fIn, struct gkyl_array *out);
+  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
+  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT out);
   
 /**
  * Delete updater.

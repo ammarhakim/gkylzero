@@ -88,7 +88,6 @@ main(int argc, char **argv)
     .upper = { 6.0*ctx.vt}, 
     .cells = { 32 },
 
-    .evolve = 1,
     .ctx = &ctx,
     .init = evalDistFunc,
     .nu = evalNu,
@@ -100,7 +99,7 @@ main(int argc, char **argv)
   // field
   struct gkyl_vlasov_field field = {
     .epsilon0 = 1.0, .mu0 = 1.0,
-    .evolve = 1,
+
     .ctx = &ctx,
     .init = evalFieldFunc
   };
@@ -127,7 +126,7 @@ main(int argc, char **argv)
   };
 
   // create app object
-  gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
+  gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 20.;

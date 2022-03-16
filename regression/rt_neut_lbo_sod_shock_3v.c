@@ -79,7 +79,6 @@ main(int argc, char **argv)
     .upper = { 6.0*ctx.vt, 6.0*ctx.vt, 6.0*ctx.vt}, 
     .cells = { VX, VY, VZ },
 
-    .evolve = 1,
     .ctx = &ctx,
     .init = evalDistFunc,
     .nu = evalNu,
@@ -110,7 +109,7 @@ main(int argc, char **argv)
   };
 
   // create app object
-  gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
+  gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 0.05;

@@ -43,7 +43,7 @@ static const gkyl_dg_lbo_vlasov_drag_vol_kern_list ser_vol_kernels[] = {
   { NULL, lbo_vlasov_drag_vol_1x3v_ser_p1, lbo_vlasov_drag_vol_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, lbo_vlasov_drag_vol_2x2v_ser_p1, lbo_vlasov_drag_vol_2x2v_ser_p2 }, // 3
-  { NULL, lbo_vlasov_drag_vol_2x3v_ser_p1, NULL               }, // 4
+  { NULL, lbo_vlasov_drag_vol_2x3v_ser_p1, lbo_vlasov_drag_vol_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, lbo_vlasov_drag_vol_3x3v_ser_p1, NULL               }, // 5
 };
@@ -57,7 +57,7 @@ static const gkyl_dg_lbo_vlasov_drag_surf_kern_list ser_surf_vx_kernels[] = {
   { NULL, lbo_vlasov_drag_surfvx_1x3v_ser_p1, lbo_vlasov_drag_surfvx_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, lbo_vlasov_drag_surfvx_2x2v_ser_p1, lbo_vlasov_drag_surfvx_2x2v_ser_p2 }, // 3
-  { NULL, lbo_vlasov_drag_surfvx_2x3v_ser_p1, NULL }, // 
+  { NULL, lbo_vlasov_drag_surfvx_2x3v_ser_p1, lbo_vlasov_drag_surfvx_2x3v_ser_p2 }, // 
   // 3x kernels
   { NULL, lbo_vlasov_drag_surfvx_3x3v_ser_p1, NULL                   }, // 5
 };
@@ -71,7 +71,7 @@ static const gkyl_dg_lbo_vlasov_drag_surf_kern_list ser_surf_vy_kernels[] = {
   { NULL, lbo_vlasov_drag_surfvy_1x3v_ser_p1, lbo_vlasov_drag_surfvy_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, lbo_vlasov_drag_surfvy_2x2v_ser_p1, lbo_vlasov_drag_surfvy_2x2v_ser_p2 }, // 3
-  { NULL, lbo_vlasov_drag_surfvy_2x3v_ser_p1, NULL }, // 4
+  { NULL, lbo_vlasov_drag_surfvy_2x3v_ser_p1, lbo_vlasov_drag_surfvy_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, lbo_vlasov_drag_surfvy_3x3v_ser_p1, NULL                   }, // 5
 };
@@ -85,7 +85,7 @@ static const gkyl_dg_lbo_vlasov_drag_surf_kern_list ser_surf_vz_kernels[] = {
   { NULL, lbo_vlasov_drag_surfvz_1x3v_ser_p1, lbo_vlasov_drag_surfvz_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, NULL, NULL }, // 3
-  { NULL, lbo_vlasov_drag_surfvz_2x3v_ser_p1, NULL }, // 4
+  { NULL, lbo_vlasov_drag_surfvz_2x3v_ser_p1, lbo_vlasov_drag_surfvz_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, lbo_vlasov_drag_surfvz_3x3v_ser_p1, NULL }, // 5
 };
@@ -99,7 +99,7 @@ static const gkyl_dg_lbo_vlasov_drag_boundary_surf_kern_list ser_boundary_surf_v
   { NULL, lbo_vlasov_drag_boundary_surfvx_1x3v_ser_p1, lbo_vlasov_drag_boundary_surfvx_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, lbo_vlasov_drag_boundary_surfvx_2x2v_ser_p1, lbo_vlasov_drag_boundary_surfvx_2x2v_ser_p2 }, // 3
-  { NULL, lbo_vlasov_drag_boundary_surfvx_2x3v_ser_p1, NULL }, // 4
+  { NULL, lbo_vlasov_drag_boundary_surfvx_2x3v_ser_p1, lbo_vlasov_drag_boundary_surfvx_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, lbo_vlasov_drag_boundary_surfvx_3x3v_ser_p1, NULL                   }, // 5
 };
@@ -113,7 +113,7 @@ static const gkyl_dg_lbo_vlasov_drag_boundary_surf_kern_list ser_boundary_surf_v
   { NULL, lbo_vlasov_drag_boundary_surfvy_1x3v_ser_p1, lbo_vlasov_drag_boundary_surfvy_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, lbo_vlasov_drag_boundary_surfvy_2x2v_ser_p1, lbo_vlasov_drag_boundary_surfvy_2x2v_ser_p2 }, // 3
-  { NULL, lbo_vlasov_drag_boundary_surfvy_2x3v_ser_p1, NULL }, // 4
+  { NULL, lbo_vlasov_drag_boundary_surfvy_2x3v_ser_p1, lbo_vlasov_drag_boundary_surfvy_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, lbo_vlasov_drag_boundary_surfvy_3x3v_ser_p1, NULL                   }, // 5
 };
@@ -127,7 +127,7 @@ static const gkyl_dg_lbo_vlasov_drag_boundary_surf_kern_list ser_boundary_surf_v
   { NULL, lbo_vlasov_drag_boundary_surfvz_1x3v_ser_p1, lbo_vlasov_drag_boundary_surfvz_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, NULL, NULL }, // 3
-  { NULL, lbo_vlasov_drag_boundary_surfvz_2x3v_ser_p1, NULL }, // 4
+  { NULL, lbo_vlasov_drag_boundary_surfvz_2x3v_ser_p1, lbo_vlasov_drag_boundary_surfvz_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, lbo_vlasov_drag_boundary_surfvz_3x3v_ser_p1, NULL }, // 5
 };
@@ -243,10 +243,8 @@ struct dg_lbo_vlasov_drag {
   lbo_vlasov_drag_vol_t vol; // Volume kernel
   lbo_vlasov_drag_surf_t surf[3]; // Surface terms for acceleration
   lbo_vlasov_drag_boundary_surf_t boundary_surf[3]; // Surface terms for acceleration
-  struct gkyl_range conf_range; // configuration space range
-  const struct gkyl_array *nuSum;
-  const struct gkyl_array *nuUSum;
-  const struct gkyl_array *nuVtSqSum;
+  struct gkyl_range conf_range; // Configuration space range.
+  struct gkyl_dg_lbo_vlasov_drag_auxfields auxfields; // Auxiliary fields.
 };
 
 void gkyl_lbo_vlasov_drag_free(const struct gkyl_ref_count* ref);
@@ -259,9 +257,9 @@ vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
   struct dg_lbo_vlasov_drag *lbo_vlasov_drag = container_of(eqn, struct dg_lbo_vlasov_drag, eqn);
   long cidx = gkyl_range_idx(&lbo_vlasov_drag->conf_range, idx);
   return lbo_vlasov_drag->vol(xc, dx, 
-    (const double*) gkyl_array_cfetch(lbo_vlasov_drag->nuSum, cidx), 
-    (const double*) gkyl_array_cfetch(lbo_vlasov_drag->nuUSum, cidx), 
-    (const double*) gkyl_array_cfetch(lbo_vlasov_drag->nuVtSqSum, cidx), 
+    (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuSum, cidx), 
+    (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuUSum, cidx), 
+    (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuVtSqSum, cidx), 
     qIn, qRhsOut);
 }
 
@@ -278,9 +276,9 @@ surf(const struct gkyl_dg_eqn *eqn,
   long cidx = gkyl_range_idx(&lbo_vlasov_drag->conf_range, idxC);
   if (dir >= lbo_vlasov_drag->cdim) {
     lbo_vlasov_drag->surf[dir-lbo_vlasov_drag->cdim](xcC, dxC, 
-      (const double*) gkyl_array_cfetch(lbo_vlasov_drag->nuSum, cidx), 
-      (const double*) gkyl_array_cfetch(lbo_vlasov_drag->nuUSum, cidx), 
-      (const double*) gkyl_array_cfetch(lbo_vlasov_drag->nuVtSqSum, cidx), 
+      (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuSum, cidx), 
+      (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuUSum, cidx), 
+      (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuVtSqSum, cidx), 
       qInL, qInC, qInR, qRhsOut);
   }
 }
@@ -298,9 +296,9 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   long cidx = gkyl_range_idx(&lbo_vlasov_drag->conf_range, idxSkin);
   if (dir >= lbo_vlasov_drag->cdim) {
     lbo_vlasov_drag->boundary_surf[dir-lbo_vlasov_drag->cdim](xcSkin, dxSkin, 
-      (const double*) gkyl_array_cfetch(lbo_vlasov_drag->nuSum, cidx), 
-      (const double*) gkyl_array_cfetch(lbo_vlasov_drag->nuUSum, cidx), 
-      (const double*) gkyl_array_cfetch(lbo_vlasov_drag->nuVtSqSum, cidx),  
+      (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuSum, cidx), 
+      (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuUSum, cidx), 
+      (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuVtSqSum, cidx),  
       edge, qInSkin, qInEdge, qRhsOut);
   }
 }

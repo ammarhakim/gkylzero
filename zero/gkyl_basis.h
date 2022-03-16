@@ -3,7 +3,8 @@
 /* Basis function identifiers */
 enum gkyl_basis_type {
   GKYL_BASIS_MODAL_SERENDIPITY,
-  GKYL_BASIS_MODAL_TENSOR
+  GKYL_BASIS_MODAL_TENSOR,
+  GKYL_BASIS_MODAL_GK_HYBRID,
 };
 
 /**
@@ -11,7 +12,7 @@ enum gkyl_basis_type {
  */
 struct gkyl_basis {
   unsigned ndim, poly_order, num_basis;
-  char id[64]; // "serendipity", "tensor"
+  char id[64]; // "serendipity", "tensor", "gk_hybrid"
   enum gkyl_basis_type b_type; // identifier for basis function
     
 /**
@@ -45,13 +46,26 @@ struct gkyl_basis {
 
 /**
  * Flip-sign function: changes signs of input expansion cofficients by
- * changing monomial terms in specified direction.
+ * changing sign of odd monomial powers in specified direction. So if
+ * dir=0, all odd powers of x appearing in the expansion will have
+ * sign flipped.
  *
  * @param dir Direction to flip sign
  * @param f Input expansion
  * @param fout On output, flipped version of @a f
  */
-  void (*flip_sign)(int dir, const double *f, double *fout);
+  void (*flip_odd_sign)(int dir, const double *f, double *fout);
+
+  /**
+ * Flip-sign function: changes signs of input expansion cofficients by
+ * changing sign of even monomial powers in specified direction. So if dir=0, all
+ * even powers of x appearing in the expansion will have sign flipped.
+ *
+ * @param dir Direction to flip sign
+ * @param f Input expansion
+ * @param fout On output, flipped version of @a f
+ */
+  void (*flip_even_sign)(int dir, const double *f, double *fout);
 
 /**
  * Construct list of nodes corresponding to this basis set. The nodes
@@ -91,3 +105,15 @@ void gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim, int poly_order
  * @return Pointer to new basis function.
  */
 void gkyl_cart_modal_tensor(struct gkyl_basis *basis, int ndim, int poly_order);
+
+/**
+ * Create new hybrid basis for use in gyrokinetics p=1
+ * simulations. These basis have the v_par^2 monomial and it's tensor
+ * product with other monomials included. 
+ *
+ * @param basis Basis object to initialize
+ * @param ndim Dimension of reference element.
+ * @param poly_order Polynomial order.
+ * @return Pointer to new basis function.
+ */
+void gkyl_cart_modal_gk_hybrid(struct gkyl_basis *basis, int ndim);

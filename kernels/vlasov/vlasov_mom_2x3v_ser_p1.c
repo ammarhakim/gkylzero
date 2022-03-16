@@ -40,56 +40,6 @@ GKYL_CU_DH void vlasov_M2_2x3v_ser_p1(const double *w, const double *dxv, const 
   out[2] += volFact*(2.828427124746191*f[2]*wx3_sq+1.632993161855453*f[13]*dv3*wx3+2.828427124746191*f[2]*wx2_sq+1.632993161855453*f[10]*dv2*wx2+2.828427124746191*f[2]*wx1_sq+1.632993161855453*f[8]*dv1*wx1+0.2357022603955158*f[2]*dv3_sq+0.2357022603955158*f[2]*dv2_sq+0.2357022603955158*f[2]*dv1_sq); 
   out[3] += volFact*(2.828427124746191*f[6]*wx3_sq+1.632993161855453*f[20]*dv3*wx3+2.828427124746191*f[6]*wx2_sq+1.632993161855453*f[17]*dv2*wx2+2.828427124746191*f[6]*wx1_sq+1.632993161855453*f[16]*dv1*wx1+0.2357022603955158*f[6]*dv3_sq+0.2357022603955158*f[6]*dv2_sq+0.2357022603955158*f[6]*dv1_sq); 
 } 
-GKYL_CU_DH void vlasov_FiveMoments_2x3v_ser_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT outM0, double* GKYL_RESTRICT outM1i, double* GKYL_RESTRICT outM2) 
-{ 
-  const double volFact = dxv[2]*dxv[3]*dxv[4]/8; 
-  const double wx1 = w[2], dv1 = dxv[2]; 
-  const double wx1_sq = wx1*wx1, dv1_sq = dv1*dv1; 
-  const double wx2 = w[3], dv2 = dxv[3]; 
-  const double wx2_sq = wx2*wx2, dv2_sq = dv2*dv2; 
-  const double wx3 = w[4], dv3 = dxv[4]; 
-  const double wx3_sq = wx3*wx3, dv3_sq = dv3*dv3; 
-  double tempM0[4], tempM1i[12]; 
-
-  tempM0[0] = 2.828427124746191*f[0]*volFact; 
-  tempM0[1] = 2.828427124746191*f[1]*volFact; 
-  tempM0[2] = 2.828427124746191*f[2]*volFact; 
-  tempM0[3] = 2.828427124746191*f[6]*volFact; 
-
-  tempM1i[0] = tempM0[0]*wx1+0.8164965809277261*f[3]*dv1*volFact; 
-  tempM1i[1] = tempM0[1]*wx1+0.8164965809277261*f[7]*dv1*volFact; 
-  tempM1i[2] = tempM0[2]*wx1+0.8164965809277261*f[8]*dv1*volFact; 
-  tempM1i[3] = tempM0[3]*wx1+0.8164965809277261*f[16]*dv1*volFact; 
-  tempM1i[4] = tempM0[0]*wx2+0.8164965809277261*f[4]*dv2*volFact; 
-  tempM1i[5] = tempM0[1]*wx2+0.8164965809277261*f[9]*dv2*volFact; 
-  tempM1i[6] = tempM0[2]*wx2+0.8164965809277261*f[10]*dv2*volFact; 
-  tempM1i[7] = tempM0[3]*wx2+0.8164965809277261*f[17]*dv2*volFact; 
-  tempM1i[8] = tempM0[0]*wx3+0.8164965809277261*f[5]*dv3*volFact; 
-  tempM1i[9] = tempM0[1]*wx3+0.8164965809277261*f[12]*dv3*volFact; 
-  tempM1i[10] = tempM0[2]*wx3+0.8164965809277261*f[13]*dv3*volFact; 
-  tempM1i[11] = tempM0[3]*wx3+0.8164965809277261*f[20]*dv3*volFact; 
-
-  outM0[0] += tempM0[0]; 
-  outM0[1] += tempM0[1]; 
-  outM0[2] += tempM0[2]; 
-  outM0[3] += tempM0[3]; 
-  outM1i[0] += tempM1i[0]; 
-  outM1i[1] += tempM1i[1]; 
-  outM1i[2] += tempM1i[2]; 
-  outM1i[3] += tempM1i[3]; 
-  outM1i[4] += tempM1i[4]; 
-  outM1i[5] += tempM1i[5]; 
-  outM1i[6] += tempM1i[6]; 
-  outM1i[7] += tempM1i[7]; 
-  outM1i[8] += tempM1i[8]; 
-  outM1i[9] += tempM1i[9]; 
-  outM1i[10] += tempM1i[10]; 
-  outM1i[11] += tempM1i[11]; 
-  outM2[0] += tempM0[0]*((-1.0*wx3_sq)-1.0*wx2_sq-1.0*wx1_sq)+2.0*tempM1i[8]*wx3+2.0*tempM1i[4]*wx2+2.0*tempM1i[0]*wx1+(0.2357022603955158*f[0]*dv3_sq+0.2357022603955158*f[0]*dv2_sq+0.2357022603955158*f[0]*dv1_sq)*volFact; 
-  outM2[1] += tempM0[1]*((-1.0*wx3_sq)-1.0*wx2_sq-1.0*wx1_sq)+2.0*tempM1i[9]*wx3+2.0*tempM1i[5]*wx2+2.0*tempM1i[1]*wx1+(0.2357022603955158*f[1]*dv3_sq+0.2357022603955158*f[1]*dv2_sq+0.2357022603955158*f[1]*dv1_sq)*volFact; 
-  outM2[2] += tempM0[2]*((-1.0*wx3_sq)-1.0*wx2_sq-1.0*wx1_sq)+2.0*tempM1i[10]*wx3+2.0*tempM1i[6]*wx2+2.0*tempM1i[2]*wx1+(0.2357022603955158*f[2]*dv3_sq+0.2357022603955158*f[2]*dv2_sq+0.2357022603955158*f[2]*dv1_sq)*volFact; 
-  outM2[3] += tempM0[3]*((-1.0*wx3_sq)-1.0*wx2_sq-1.0*wx1_sq)+2.0*tempM1i[11]*wx3+2.0*tempM1i[7]*wx2+2.0*tempM1i[3]*wx1+(0.2357022603955158*f[6]*dv3_sq+0.2357022603955158*f[6]*dv2_sq+0.2357022603955158*f[6]*dv1_sq)*volFact; 
-} 
 GKYL_CU_DH void vlasov_M2ij_2x3v_ser_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out) 
 { 
   const double volFact = dxv[2]*dxv[3]*dxv[4]/8; 
@@ -201,4 +151,54 @@ GKYL_CU_DH void vlasov_M3ijk_2x3v_ser_p1(const double *w, const double *dxv, con
   out[37] += volFact*(2.828427124746191*f[1]*wx3*wx3_sq+2.449489742783178*f[12]*dv3*wx3_sq+0.7071067811865475*f[1]*dv3_sq*wx3+0.1224744871391589*f[12]*dv3*dv3_sq); 
   out[38] += volFact*(2.828427124746191*f[2]*wx3*wx3_sq+2.449489742783178*f[13]*dv3*wx3_sq+0.7071067811865475*f[2]*dv3_sq*wx3+0.1224744871391589*f[13]*dv3*dv3_sq); 
   out[39] += volFact*(2.828427124746191*f[6]*wx3*wx3_sq+2.449489742783178*f[20]*dv3*wx3_sq+0.7071067811865475*f[6]*dv3_sq*wx3+0.1224744871391589*f[20]*dv3*dv3_sq); 
+} 
+GKYL_CU_DH void vlasov_five_moments_2x3v_ser_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out) 
+{ 
+  const double volFact = dxv[2]*dxv[3]*dxv[4]/8; 
+  const double wx1 = w[2], dv1 = dxv[2]; 
+  const double wx1_sq = wx1*wx1, dv1_sq = dv1*dv1; 
+  const double wx2 = w[3], dv2 = dxv[3]; 
+  const double wx2_sq = wx2*wx2, dv2_sq = dv2*dv2; 
+  const double wx3 = w[4], dv3 = dxv[4]; 
+  const double wx3_sq = wx3*wx3, dv3_sq = dv3*dv3; 
+  double tempM0[4], tempM1i[12]; 
+
+  tempM0[0] = 2.828427124746191*f[0]*volFact; 
+  tempM0[1] = 2.828427124746191*f[1]*volFact; 
+  tempM0[2] = 2.828427124746191*f[2]*volFact; 
+  tempM0[3] = 2.828427124746191*f[6]*volFact; 
+
+  tempM1i[0] = tempM0[0]*wx1+0.8164965809277261*f[3]*dv1*volFact; 
+  tempM1i[1] = tempM0[1]*wx1+0.8164965809277261*f[7]*dv1*volFact; 
+  tempM1i[2] = tempM0[2]*wx1+0.8164965809277261*f[8]*dv1*volFact; 
+  tempM1i[3] = tempM0[3]*wx1+0.8164965809277261*f[16]*dv1*volFact; 
+  tempM1i[4] = tempM0[0]*wx2+0.8164965809277261*f[4]*dv2*volFact; 
+  tempM1i[5] = tempM0[1]*wx2+0.8164965809277261*f[9]*dv2*volFact; 
+  tempM1i[6] = tempM0[2]*wx2+0.8164965809277261*f[10]*dv2*volFact; 
+  tempM1i[7] = tempM0[3]*wx2+0.8164965809277261*f[17]*dv2*volFact; 
+  tempM1i[8] = tempM0[0]*wx3+0.8164965809277261*f[5]*dv3*volFact; 
+  tempM1i[9] = tempM0[1]*wx3+0.8164965809277261*f[12]*dv3*volFact; 
+  tempM1i[10] = tempM0[2]*wx3+0.8164965809277261*f[13]*dv3*volFact; 
+  tempM1i[11] = tempM0[3]*wx3+0.8164965809277261*f[20]*dv3*volFact; 
+
+  out[0] += tempM0[0]; 
+  out[1] += tempM0[1]; 
+  out[2] += tempM0[2]; 
+  out[3] += tempM0[3]; 
+  out[4] += tempM1i[0]; 
+  out[5] += tempM1i[1]; 
+  out[6] += tempM1i[2]; 
+  out[7] += tempM1i[3]; 
+  out[8] += tempM1i[4]; 
+  out[9] += tempM1i[5]; 
+  out[10] += tempM1i[6]; 
+  out[11] += tempM1i[7]; 
+  out[12] += tempM1i[8]; 
+  out[13] += tempM1i[9]; 
+  out[14] += tempM1i[10]; 
+  out[15] += tempM1i[11]; 
+  out[16] += tempM0[0]*((-1.0*wx3_sq)-1.0*wx2_sq-1.0*wx1_sq)+2.0*tempM1i[8]*wx3+2.0*tempM1i[4]*wx2+2.0*tempM1i[0]*wx1+(0.2357022603955158*f[0]*dv3_sq+0.2357022603955158*f[0]*dv2_sq+0.2357022603955158*f[0]*dv1_sq)*volFact; 
+  out[17] += tempM0[1]*((-1.0*wx3_sq)-1.0*wx2_sq-1.0*wx1_sq)+2.0*tempM1i[9]*wx3+2.0*tempM1i[5]*wx2+2.0*tempM1i[1]*wx1+(0.2357022603955158*f[1]*dv3_sq+0.2357022603955158*f[1]*dv2_sq+0.2357022603955158*f[1]*dv1_sq)*volFact; 
+  out[18] += tempM0[2]*((-1.0*wx3_sq)-1.0*wx2_sq-1.0*wx1_sq)+2.0*tempM1i[10]*wx3+2.0*tempM1i[6]*wx2+2.0*tempM1i[2]*wx1+(0.2357022603955158*f[2]*dv3_sq+0.2357022603955158*f[2]*dv2_sq+0.2357022603955158*f[2]*dv1_sq)*volFact; 
+  out[19] += tempM0[3]*((-1.0*wx3_sq)-1.0*wx2_sq-1.0*wx1_sq)+2.0*tempM1i[11]*wx3+2.0*tempM1i[7]*wx2+2.0*tempM1i[3]*wx1+(0.2357022603955158*f[6]*dv3_sq+0.2357022603955158*f[6]*dv2_sq+0.2357022603955158*f[6]*dv1_sq)*volFact; 
 } 

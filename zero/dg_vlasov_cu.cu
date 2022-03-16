@@ -9,21 +9,21 @@ extern "C" {
 
 #include <cassert>
 
-// CUDA kernel to set pointer to qmem = q/m*EM
+// CUDA kernel to set pointer to auxiliary fields.
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
-gkyl_vlasov_set_qmem_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem)
+gkyl_vlasov_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
-  vlasov->qmem = qmem;
+  vlasov->auxfields.qmem = qmem;
 }
 
-// Host-side wrapper for set_qmem_cu_kernel
+// Host-side wrapper for set_auxfields_cu_kernel
 void
-gkyl_vlasov_set_qmem_cu(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem)
+gkyl_vlasov_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin)
 {
-  gkyl_vlasov_set_qmem_cu_kernel<<<1,1>>>(eqn, qmem->on_dev);
+  gkyl_vlasov_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.qmem->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and vlasov kernel function
@@ -32,7 +32,7 @@ __global__ static void
 dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
   int cv_index, int cdim, int vdim, int poly_order, enum gkyl_field_id field_id)
 {
-  vlasov->qmem = 0; 
+  vlasov->auxfields.qmem = 0; 
 
   vlasov->eqn.vol_term = vol;
   vlasov->eqn.surf_term = surf;

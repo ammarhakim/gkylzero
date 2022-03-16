@@ -1,4 +1,3 @@
-#include "gkyl_alloc.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -121,7 +120,6 @@ main(int argc, char **argv)
     .upper = { 0.9, 0.9 }, 
     .cells = { VX, VY },
 
-    .evolve = 1,
     .ctx = &ctx,
     .init = evalDistFunc,
 
@@ -134,7 +132,7 @@ main(int argc, char **argv)
     .epsilon0 = 1.0, .mu0 = 1.0,
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
-    .evolve = 1,
+
     .ctx = &ctx,
     .init = evalFieldFunc
   };
@@ -161,7 +159,7 @@ main(int argc, char **argv)
   };
 
   // create app object
-  gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
+  gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 5.0;
