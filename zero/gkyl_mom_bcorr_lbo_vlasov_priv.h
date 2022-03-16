@@ -44,19 +44,19 @@ static const gkyl_mom_bcorr_lbo_vlasov_kern_list ser_mom_bcorr_lbo_vlasov_kernel
 //
 // Tensor-product basis kernels
 //
-// boundary integral moment correction kernel lists (both momentum and energy)
-GKYL_CU_D
-static const gkyl_mom_bcorr_lbo_vlasov_kern_list ten_mom_bcorr_lbo_vlasov_kernels[] = {
-  // 1x kernels
-  { NULL, NULL, mom_bcorr_lbo_vlasov_1x1v_tensor_p2 }, // 0
-  { NULL, NULL, mom_bcorr_lbo_vlasov_1x2v_tensor_p2 }, // 1
-  { NULL, NULL, mom_bcorr_lbo_vlasov_1x3v_tensor_p2 }, // 2
-  // 2x kernels
-  { NULL, NULL, mom_bcorr_lbo_vlasov_2x2v_tensor_p2 }, // 3
-  { NULL, NULL, NULL }, // 4
-  // 3x kernels
-  { NULL, NULL, NULL }, // 5
-};
+// // boundary integral moment correction kernel lists (both momentum and energy)
+// GKYL_CU_D
+// static const gkyl_mom_bcorr_lbo_vlasov_kern_list ten_mom_bcorr_lbo_vlasov_kernels[] = {
+//   // 1x kernels
+//   { NULL, NULL, mom_bcorr_lbo_vlasov_1x1v_tensor_p2 }, // 0
+//   { NULL, NULL, mom_bcorr_lbo_vlasov_1x2v_tensor_p2 }, // 1
+//   { NULL, NULL, mom_bcorr_lbo_vlasov_1x3v_tensor_p2 }, // 2
+//   // 2x kernels
+//   { NULL, NULL, mom_bcorr_lbo_vlasov_2x2v_tensor_p2 }, // 3
+//   { NULL, NULL, NULL }, // 4
+//   // 3x kernels
+//   { NULL, NULL, NULL }, // 5
+// };
 
 struct mom_type_bcorr_lbo_vlasov {
   struct gkyl_mom_type momt;

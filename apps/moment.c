@@ -52,7 +52,7 @@ struct moment_species {
   int num_equations; // number of equations in species
   gkyl_wave_prop *slvr[3]; // solver in each direction
 
-  // boundary conditions on lower/upper edges in each direction
+  // boundary condition solvers on lower/upper edges in each direction
   gkyl_wv_apply_bc *lower_bc[3], *upper_bc[3];
 };
 
@@ -206,7 +206,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   int nghost[3] = {2, 2, 2};
   for (int dir=0; dir<app->ndim; ++dir) {
     if (is_np[dir]) {
-      const enum gkyl_moment_bc_type *bc;
+      const enum gkyl_species_bc_type *bc;
       if (dir == 0)
         bc = mom_sp->bcx;
       else if (dir == 1)
@@ -215,7 +215,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         bc = mom_sp->bcz;
 
       // lower BCs in X
-      if (bc[0] == GKYL_MOMENT_SPECIES_WALL) {
+      if (bc[0] == GKYL_SPECIES_WALL) {
         sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
           &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
           mom_sp->equation->wall_bc_func, 0);        
@@ -226,7 +226,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
       }
       
       // upper BCs in X
-      if (bc[1] == GKYL_MOMENT_SPECIES_WALL) {
+      if (bc[1] == GKYL_SPECIES_WALL) {
         sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
           &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
           mom_sp->equation->wall_bc_func, 0);
@@ -383,7 +383,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   int nghost[3] = {2, 2, 2};
   for (int dir=0; dir<app->ndim; ++dir) {
     if (is_np[dir]) {
-      const enum gkyl_moment_bc_type *bc;
+      const enum gkyl_field_bc_type *bc;
       if (dir == 0)
         bc = mom_fld->bcx;
       else if (dir == 1)
@@ -392,7 +392,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         bc = mom_fld->bcz;
 
       // lower BCs in X
-      if (bc[0] == GKYL_MOMENT_FIELD_COND)
+      if (bc[0] == GKYL_FIELD_PEC_WALL)
         fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
           &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, maxwell->wall_bc_func, 0);
       else
@@ -400,7 +400,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
           &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_copy, 0);
       
       // upper BCs in X
-      if (bc[1] == GKYL_MOMENT_FIELD_COND)
+      if (bc[1] == GKYL_FIELD_PEC_WALL)
         fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
           &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, maxwell->wall_bc_func, 0);
       else

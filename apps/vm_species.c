@@ -1,11 +1,14 @@
-#include "gkyl_array_ops.h"
-#include "gkyl_dg_updater_lbo_vlasov.h"
+#include "gkyl_app.h"
 #include <assert.h>
+
 #include <gkyl_array.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_vlasov_priv.h>
 #include <gkyl_proj_on_basis.h>
 
+// function to evaluate acceleration (this is needed as accel function
+// provided by the user returns 3 components, while the Vlasov solver
+// expects 8 components to match the EM field)
 static void
 eval_accel(double t, const double *xn, double *aout, void *ctx)
 {
@@ -17,17 +20,27 @@ eval_accel(double t, const double *xn, double *aout, void *ctx)
   for (int i=3; i<8; ++i) aout[i] = 0.0;
 }
 
+// context for use in Wall BCs
+struct species_wall_bc_ctx {
+  int dir; // direction for BCs
+  int cdim; // config-space dimensions
+  const struct gkyl_basis *basis; // phase-space basis function
+};
+
+static void
+species_wall_bc(size_t nc, double *out, const double *inp, void *ctx)
+{
+  struct species_wall_bc_ctx *mc = ctx;
+  int dir = mc->dir, cdim = mc->cdim;
+
+  mc->basis->flip_odd_sign(dir, inp, out);
+  mc->basis->flip_odd_sign(dir+cdim, out, out);
+}
+
 // initialize species object
 void
 vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_species *s)
 {
-  if (s->info.job_pool)
-    // use specified job pool if it exists ...
-    s->job_pool = gkyl_job_pool_acquire(s->info.job_pool);
-  else
-    // .. or app job pool if it does not
-    s->job_pool = gkyl_job_pool_acquire(app->job_pool);
-  
   int cdim = app->cdim, vdim = app->vdim;
   int pdim = cdim+vdim;
 
@@ -138,6 +151,26 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   if (s->collision_id == GKYL_LBO_COLLISIONS) {
     vm_species_lbo_init(app, s, &s->lbo);
   }
+
+  // determine which directions are not periodic
+  int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
+  for (int d=0; d<num_periodic_dir; ++d)
+    is_np[app->periodic_dirs[d]] = 0;
+
+  for (int dir=0; dir<app->cdim; ++dir) {
+    if (is_np[dir]) {
+      const enum gkyl_species_bc_type *bc;
+      if (dir == 0)
+        bc = s->info.bcx;
+      else if (dir == 1)
+        bc = s->info.bcy;
+      else
+        bc = s->info.bcz;
+
+      s->lower_bc[dir] = bc[0];
+      s->upper_bc[dir] = bc[1];
+    }
+  }  
 }
 
 void
@@ -162,7 +195,7 @@ void
 vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, double tm)
 {
   if (species->has_accel) {
-    gkyl_proj_on_basis_advance(species->accel_proj, tm, &species->local, species->accel_host);
+    gkyl_proj_on_basis_advance(species->accel_proj, tm, &app->local_ext, species->accel_host);
     if (app->use_gpu) // note: accel_host is same as accel when not on GPUs
       gkyl_array_copy(species->accel, species->accel_host);
   }
@@ -219,13 +252,44 @@ vm_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_species *spec
 // Apply copy BCs on distribution function
 void
 vm_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_species *species,
-  int dir, struct gkyl_array *f)
+  int dir, enum vm_domain_edge edge, struct gkyl_array *f)
 {
-  gkyl_array_copy_to_buffer(species->bc_buffer->data, f, species->skin_ghost.lower_skin[dir]);
-  gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.lower_ghost[dir]);
+  if (edge == VM_EDGE_LOWER) {
+    gkyl_array_copy_to_buffer(species->bc_buffer->data, f, species->skin_ghost.lower_skin[dir]);
+    gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.lower_ghost[dir]);
+  }
 
-  gkyl_array_copy_to_buffer(species->bc_buffer->data, f, species->skin_ghost.upper_skin[dir]);
-  gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.upper_ghost[dir]);
+  if (edge == VM_EDGE_UPPER) {
+    gkyl_array_copy_to_buffer(species->bc_buffer->data, f, species->skin_ghost.upper_skin[dir]);
+    gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.upper_ghost[dir]);
+  }
+}
+
+// Apply copy BCs on distribution function
+void
+vm_species_apply_wall_bc(gkyl_vlasov_app *app, const struct vm_species *species,
+  int dir, enum vm_domain_edge edge, struct gkyl_array *f)
+{
+  struct species_wall_bc_ctx ctx = {
+    .dir = dir, .cdim = app->cdim,
+    .basis = &app->basis
+  };
+
+  int cdim = app->cdim;
+  
+  if (edge == VM_EDGE_LOWER) {
+    gkyl_array_flip_copy_to_buffer_fn(species->bc_buffer->data, f, dir+cdim,
+      species->skin_ghost.lower_skin[dir], species_wall_bc, &ctx);
+    
+    gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.lower_ghost[dir]);
+  }
+
+  if (edge == VM_EDGE_UPPER) {
+    gkyl_array_flip_copy_to_buffer_fn(species->bc_buffer->data, f, dir+cdim,
+      species->skin_ghost.upper_skin[dir], species_wall_bc, &ctx);
+    
+    gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.upper_ghost[dir]);
+  }
 }
 
 // Determine which directions are periodic and which directions are copy,
@@ -233,14 +297,33 @@ vm_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_species *species,
 void
 vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, struct gkyl_array *f)
 {
-  int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim, is_copy[3] = {1, 1, 1};
+  int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
+  int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
   for (int d=0; d<num_periodic_dir; ++d) {
     vm_species_apply_periodic_bc(app, species, app->periodic_dirs[d], f);
-    is_copy[app->periodic_dirs[d]] = 0;
+    is_np_bc[app->periodic_dirs[d]] = 0;
   }
   for (int d=0; d<cdim; ++d)
-    if (is_copy[d])
-      vm_species_apply_copy_bc(app, species, d, f);
+    if (is_np_bc[d]) {
+
+      switch (species->lower_bc[d]) {
+        case GKYL_SPECIES_COPY:
+          vm_species_apply_copy_bc(app, species, d, VM_EDGE_LOWER, f);
+          break;
+        case GKYL_SPECIES_WALL:
+          vm_species_apply_wall_bc(app, species, d, VM_EDGE_LOWER, f);
+          break;
+      }
+
+      switch (species->upper_bc[d]) {
+        case GKYL_SPECIES_COPY:
+          vm_species_apply_copy_bc(app, species, d, VM_EDGE_UPPER, f);
+          break;
+        case GKYL_SPECIES_WALL:
+          vm_species_apply_wall_bc(app, species, d, VM_EDGE_UPPER, f);
+          break;
+      }      
+    }
 }
 
 void
@@ -260,8 +343,6 @@ vm_species_coll_tm(gkyl_vlasov_app *app)
 void
 vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
 {
-  gkyl_job_pool_release(s->job_pool);
-  
   // release various arrays
   gkyl_array_release(s->f);
   gkyl_array_release(s->f1);

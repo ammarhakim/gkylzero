@@ -68,56 +68,56 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
       break;    
   }
 
-  if (strcmp(mom, "GkM0") == 0) { // density
+  if (strcmp(mom, "M0") == 0) { // density
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_gk->momt.kernel = m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_gk->momt.num_mom = 1;
   }
-  else if (strcmp(mom, "GkM1") == 0) { // parallel momentum
+  else if (strcmp(mom, "M1") == 0) { // parallel momentum
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m1_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_gk->momt.kernel = m1_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_gk->momt.num_mom = 1;
   }
-  else if (strcmp(mom, "GkM2") == 0) { // total energy
+  else if (strcmp(mom, "M2") == 0) { // total energy
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_gk->momt.kernel = m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_gk->momt.num_mom = 1;
   }
-  else if (strcmp(mom, "GkM2par") == 0) { // parallel energy
+  else if (strcmp(mom, "M2par") == 0) { // parallel energy
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m2_par_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_gk->momt.kernel = m2_par_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_gk->momt.num_mom = 1;
   }
-  else if (strcmp(mom, "GkM2perp") == 0) { // perpendicular energy
+  else if (strcmp(mom, "M2perp") == 0) { // perpendicular energy
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m2_perp_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_gk->momt.kernel = m2_perp_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_gk->momt.num_mom = 1;
   }
-  else if (strcmp(mom, "GkM3par") == 0) { // parallel heat flux
+  else if (strcmp(mom, "M3par") == 0) { // parallel heat flux
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m3_par_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_gk->momt.kernel = m3_par_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_gk->momt.num_mom = 1;
   }
-  else if (strcmp(mom, "GkM3perp") == 0) { // perpendicular heat flux
+  else if (strcmp(mom, "M3perp") == 0) { // perpendicular heat flux
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m3_perp_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_gk->momt.kernel = m3_perp_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_gk->momt.num_mom = 1;
   }
-  else if (strcmp(mom, "GkThreeMoments") == 0) { // Zeroth (density), First (parallel momentum),
+  else if (strcmp(mom, "ThreeMoments") == 0) { // Zeroth (density), First (parallel momentum),
     assert(cv_index[cdim].vdim[vdim] != -1);   // and Second (total energy) computed together
     assert(NULL != three_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     

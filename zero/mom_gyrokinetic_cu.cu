@@ -12,33 +12,33 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-enum { GkM0, GkM1, GkM2, GkM2par, GkM2perp, GkM3par, GkM3perp, ThreeMoments, BAD };
+enum { M0, M1, M2, M2par, M2perp, M3par, M3perp, ThreeMoments, BAD };
 
 static int
 get_gk_mom_id(const char *mom)
 {
   int mom_idx = BAD;
 
-  if (strcmp(mom, "GkM0") == 0) { // density
-    mom_idx = GkM0;
+  if (strcmp(mom, "M0") == 0) { // density
+    mom_idx = M0;
   }
-  else if (strcmp(mom, "GkM1") == 0) { // parallel momentum
-    mom_idx = GkM1;
+  else if (strcmp(mom, "M1") == 0) { // parallel momentum
+    mom_idx = M1;
   }
-  else if (strcmp(mom, "GkM2") == 0) { // total energy
-    mom_idx = GkM2;
+  else if (strcmp(mom, "M2") == 0) { // total energy
+    mom_idx = M2;
   }
-  else if (strcmp(mom, "GkM2par") == 0) { // parallel energy
-    mom_idx = GkM2par;
+  else if (strcmp(mom, "M2par") == 0) { // parallel energy
+    mom_idx = M2par;
   }
-  else if (strcmp(mom, "GkM2perp") == 0) { // perpendicular energy
-    mom_idx = GkM2perp;
+  else if (strcmp(mom, "M2perp") == 0) { // perpendicular energy
+    mom_idx = M2perp;
   }
-  else if (strcmp(mom, "GkM3par") == 0) { // parallel heat flux
-    mom_idx = GkM3par;
+  else if (strcmp(mom, "M3par") == 0) { // parallel heat flux
+    mom_idx = M3par;
   }
-  else if (strcmp(mom, "GkM3perp") == 0) { // perpendicular heat flux
-    mom_idx = GkM3perp;
+  else if (strcmp(mom, "M3perp") == 0) { // perpendicular heat flux
+    mom_idx = M3perp;
   }
   else if (strcmp(mom, "ThreeMoments") == 0) { // Zeroth (density), First (parallel momentum), 
     mom_idx = ThreeMoments;                    // and Second (total energy) computed together
@@ -56,31 +56,31 @@ gk_num_mom(int vdim, int mom_id)
   int num_mom = 0;
   
   switch (mom_id) {
-    case GkM0:
+    case M0:
       num_mom = 1;
       break;
 
-    case GkM1:
+    case M1:
       num_mom = 1;
       break;
 
-    case GkM2:
+    case M2:
       num_mom = 1;
       break;
 
-    case GkM2par:
+    case M2par:
       num_mom = 1;
       break;
 
-    case GkM2perp:
+    case M2perp:
       num_mom = 1;
       break;
 
-    case GkM3par:
+    case M3par:
       num_mom = 1;
       break;
 
-    case GkM3perp:
+    case M3perp:
       num_mom = 1;
       break;
 
@@ -140,37 +140,37 @@ set_cu_ptrs(struct mom_type_gyrokinetic *mom_gk,
   }  
   
   switch (mom_id) {
-    case GkM0:
+    case M0:
       mom_gk->momt.kernel = m0_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 1;
       break;
 
-    case GkM1:
+    case M1:
       mom_gk->momt.kernel = m1_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 1;
       break;
 
-    case GkM2:
+    case M2:
       mom_gk->momt.kernel = m2_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 1;
       break;
 
-    case GkM2par:
+    case M2par:
       mom_gk->momt.kernel = m2_par_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 1;
       break;
 
-    case GkM2perp:
+    case M2perp:
       mom_gk->momt.kernel = m2_perp_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 1;
       break;
 
-    case GkM3par:
+    case M3par:
       mom_gk->momt.kernel = m3_par_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 1;
       break;
 
-    case GkM3perp:
+    case M3perp:
       mom_gk->momt.kernel = m3_perp_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 1;
       break;
@@ -204,7 +204,10 @@ gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gk
   mom_gk->momt.num_phase = pbasis->num_basis;
 
   int mom_id = get_gk_mom_id(mom);
-  assert(mom_id != BAD);
+  if(mom_id == BAD) {
+     printf("Error: requested GK moment %s not valid\n", mom);
+     assert(mom_id != BAD);
+  }
   mom_gk->momt.num_mom = gk_num_mom(vdim, mom_id); // number of moments
 
   mom_gk->mass = mass;

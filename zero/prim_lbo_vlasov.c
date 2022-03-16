@@ -43,9 +43,6 @@ gkyl_prim_lbo_vlasov_new(const struct gkyl_basis* cbasis,
       cross_prim_kernels = ser_cross_prim_kernels;
       break;
 
-    case GKYL_BASIS_MODAL_TENSOR:
-      break;
-
     default:
       assert(false);
       break;    

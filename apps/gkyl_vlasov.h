@@ -24,13 +24,9 @@ struct gkyl_vlasov_collisions {
 struct gkyl_vlasov_species {
   char name[128]; // species name
 
-  struct gkyl_job_pool *job_pool; // Job pool for species: if not present, app job is used
-  
   double charge, mass; // charge and mass
   double lower[3], upper[3]; // lower, upper bounds of velocity-space
   int cells[3]; // velocity-space cells
-
-  bool evolve; // evolve species? 1-yes, 0-no
 
   void *ctx; // context for initial condition init function
   // pointer to initialization function
@@ -45,28 +41,30 @@ struct gkyl_vlasov_species {
   void *accel_ctx; // context for applied acceleration function
   // pointer to applied acceleration function
   void (*accel)(double t, const double *xn, double *aout, void *ctx);
+
+  // boundary conditions
+  enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
 };
 
 // Parameter for EM field
 struct gkyl_vlasov_field {
   enum gkyl_field_id field_id; // type of field (see gkyl_eqn_type.h)
-  bool evolve; // evolve field? 1-yes, 0-no
+  bool is_static; // set to true if field does not change in time
 
-  struct gkyl_job_pool *job_pool; // Job pool for field: if not present, app job is used
-  
   double epsilon0, mu0;
   double elcErrorSpeedFactor, mgnErrorSpeedFactor;
 
   void *ctx; // context for initial condition init function
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
+  
+  // boundary conditions
+  enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
 };
 
 // Top-level app parameters
 struct gkyl_vm {
   char name[128]; // name of app: used as output prefix
-
-  struct gkyl_job_pool *job_pool; // Job pool for simulation: optional, can be 0
 
   int cdim, vdim; // conf, velocity space dimensions
   double lower[3], upper[3]; // lower, upper bounds of config-space

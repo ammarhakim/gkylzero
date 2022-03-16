@@ -47,9 +47,9 @@ gkyl_mom_bcorr_lbo_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct
       mom_bcorr_lbo_gyrokinetic_kernels = ser_mom_bcorr_lbo_gyrokinetic_kernels;
       break;
 
-    case GKYL_BASIS_MODAL_TENSOR:
-      mom_bcorr_lbo_gyrokinetic_kernels = ten_mom_bcorr_lbo_gyrokinetic_kernels;
-      break;
+    /* case GKYL_BASIS_MODAL_TENSOR: */
+    /*   mom_bcorr_lbo_gyrokinetic_kernels = ten_mom_bcorr_lbo_gyrokinetic_kernels; */
+    /*   break; */
 
     default:
       assert(false);

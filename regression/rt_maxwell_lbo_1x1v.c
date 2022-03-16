@@ -64,7 +64,6 @@ main(int argc, char **argv)
     .upper = { 4.0 * ctx.vt}, 
     .cells = { 4 },
 
-    .evolve = 1,
     .ctx = &ctx,
     .init = evalDistFunc,
 

@@ -40,9 +40,6 @@ gkyl_prim_lbo_gyrokinetic_new(const struct gkyl_basis* cbasis,
       self_prim_kernels = ser_self_prim_kernels;
       break;
 
-    case GKYL_BASIS_MODAL_TENSOR:
-      break;
-
     default:
       assert(false);
       break;    

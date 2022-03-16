@@ -106,7 +106,6 @@ main(int argc, char **argv)
     .upper = { 1.0, 1.0 }, 
     .cells = { VX, VY },
 
-    .evolve = 1,
     .ctx = &ctx,
     .init = evalDistFunc,
 
@@ -117,7 +116,7 @@ main(int argc, char **argv)
   // field
   struct gkyl_vlasov_field field = {
     .epsilon0 = 1.0, .mu0 = 1.0,
-    .evolve = 1,
+
     .ctx = &ctx,
     .init = evalFieldFunc
   };

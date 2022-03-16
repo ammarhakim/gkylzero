@@ -42,17 +42,17 @@ static const gkyl_mom_bcorr_lbo_gyrokinetic_kern_list ser_mom_bcorr_lbo_gyrokine
 //
 // Tensor-product basis kernels
 //
-// boundary integral moment correction kernel lists (both momentum and energy)
-GKYL_CU_D
-static const gkyl_mom_bcorr_lbo_gyrokinetic_kern_list ten_mom_bcorr_lbo_gyrokinetic_kernels[] = {
-  // 1x kernels
-  { NULL, NULL, mom_bcorr_lbo_gyrokinetic_1x1v_tensor_p2 }, // 0
-  { NULL, NULL, mom_bcorr_lbo_gyrokinetic_1x2v_tensor_p2 }, // 1
-  // 2x kernels
-  { NULL, NULL, mom_bcorr_lbo_gyrokinetic_2x2v_tensor_p2 }, // 2
-  // 3x kernels
-  { NULL, NULL, NULL }, // 3
-};
+// // boundary integral moment correction kernel lists (both momentum and energy)
+// GKYL_CU_D
+// static const gkyl_mom_bcorr_lbo_gyrokinetic_kern_list ten_mom_bcorr_lbo_gyrokinetic_kernels[] = {
+//   // 1x kernels
+//   { NULL, NULL, mom_bcorr_lbo_gyrokinetic_1x1v_tensor_p2 }, // 0
+//   { NULL, NULL, mom_bcorr_lbo_gyrokinetic_1x2v_tensor_p2 }, // 1
+//   // 2x kernels
+//   { NULL, NULL, mom_bcorr_lbo_gyrokinetic_2x2v_tensor_p2 }, // 2
+//   // 3x kernels
+//   { NULL, NULL, NULL }, // 3
+// };
 
 struct mom_type_bcorr_lbo_gyrokinetic {
   struct gkyl_mom_type momt;
