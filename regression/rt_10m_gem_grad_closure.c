@@ -110,7 +110,7 @@ main(int argc, char **argv)
     .evolve = 1,
     .init = evalElcInit,
 
-    .bcy = { GKYL_MOMENT_SPECIES_WALL, GKYL_MOMENT_SPECIES_WALL },
+    .bcy = { GKYL_SPECIES_WALL, GKYL_SPECIES_WALL },
   };
   struct gkyl_moment_species ion = {
     .name = "ion",
@@ -119,7 +119,7 @@ main(int argc, char **argv)
     .evolve = 1,
     .init = evalIonInit,
 
-    .bcy = { GKYL_MOMENT_SPECIES_WALL, GKYL_MOMENT_SPECIES_WALL },    
+    .bcy = { GKYL_SPECIES_WALL, GKYL_SPECIES_WALL },    
   };  
 
   // VM app
@@ -146,7 +146,7 @@ main(int argc, char **argv)
       .evolve = 1,
       .init = evalFieldInit,
       
-      .bcy = { GKYL_MOMENT_FIELD_COND, GKYL_MOMENT_FIELD_COND },
+      .bcy = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
     }
   };
 

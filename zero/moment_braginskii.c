@@ -2,7 +2,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_moment_braginskii.h>
 #include <gkyl_moment_braginskii_priv.h>
-#include <gkyl_prim_euler.h>
+#include <gkyl_moment_prim_euler.h>
 
 // 1D stencil locations (L: lower, U: upper)
 enum loc_1d {

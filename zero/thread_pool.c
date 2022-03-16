@@ -44,7 +44,7 @@ gkyl_thread_pool_new(int nthreads)
   th->jp.wait = thread_pool_wait;
 
   // set reference counter
-  th->jp.ref_count = (struct gkyl_ref_count) { thread_pool_free, 1 };
+  th->jp.ref_count = gkyl_ref_count_init(thread_pool_free);
     
   return &th->jp;
 }

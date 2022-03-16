@@ -1,6 +1,6 @@
 /* MIT License
  *
- * Copyright (c) 2021 Tyge Løvset, NORCE, www.norceresearch.no
+ * Copyright (c) 2022 Tyge Løvset, NORCE, www.norceresearch.no
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -53,10 +53,10 @@ int main() {
 }
 */
 
-#ifndef i_prefix
-#define i_prefix cqueue_
+#ifndef _i_prefix
+#define _i_prefix cqueue_
 #endif
-#define i_queue
+#define _i_queue
 #define _push_back _push
 #define _pop_front _pop
 
@@ -64,4 +64,4 @@ int main() {
 
 #undef _push_back
 #undef _pop_front
-#undef i_queue
+#undef _i_queue

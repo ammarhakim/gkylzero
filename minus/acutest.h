@@ -59,6 +59,7 @@
  *
  * Note the list has to be ended with a zeroed record.
  */
+#include "gkyl_alloc.h"
 #define TEST_LIST               const struct test_ test_list_[]
 
 
@@ -393,6 +394,7 @@ static int test_verbose_level_ = 2;
 static int test_current_failures_ = 0;
 static int test_colorize_ = 0;
 static int test_timer_ = 0;
+static int test_gkyl_mem_check_ = 0; // gkyl specific flag
 
 static int test_abort_has_jmp_buf_ = 0;
 static jmp_buf test_abort_jmp_buf_;
@@ -1401,6 +1403,7 @@ test_help_(void)
     printf("  -q, --quiet           Same as --verbose=0\n");
     printf("      --color[=WHEN]    Enable colorized output\n");
     printf("                          (WHEN is one of 'auto', 'always', 'never')\n");
+    printf("  -m  --mem-trace       Turn on memory tracing\n");
     printf("      --no-color        Same as --color=never\n");
     printf("  -h, --help            Display this help and exit\n");
 
@@ -1428,6 +1431,7 @@ static const TEST_CMDLINE_OPTION_ test_cmdline_options_[] = {
     { 'q',  "quiet",        'q', 0 },
     {  0,   "color",        'c', TEST_CMDLINE_OPTFLAG_OPTIONALARG_ },
     {  0,   "no-color",     'C', 0 },
+    { 'm',  "mem-trace",    'm', 0 },
     { 'h',  "help",         'h', 0 },
     {  0,   "worker",       'w', TEST_CMDLINE_OPTFLAG_REQUIREDARG_ },  /* internal */
     { 'x',  "xml-output",   'x', TEST_CMDLINE_OPTFLAG_REQUIREDARG_ },
@@ -1512,6 +1516,10 @@ test_cmdline_callback_(int id, const char* arg)
 
         case 'C':
             test_colorize_ = 0;
+            break;
+
+        case 'm':
+            test_gkyl_mem_check_ = 1;
             break;
 
         case 'h':
@@ -1608,6 +1616,9 @@ test_is_tracer_present_(void)
 }
 #endif
 
+extern void gkyl_mem_debug_set(bool flag);
+extern void gkyl_cu_dev_mem_debug_set(bool flag);
+
 int
 main(int argc, char** argv)
 {
@@ -1639,6 +1650,11 @@ main(int argc, char** argv)
 
     /* Parse options */
     test_cmdline_read_(test_cmdline_options_, argc, argv, test_cmdline_callback_);
+
+    if (test_gkyl_mem_check_) {
+      gkyl_mem_debug_set(true);
+      gkyl_cu_dev_mem_debug_set(true);
+    }
 
     /* Initialize the proper timer. */
     test_timer_init_();

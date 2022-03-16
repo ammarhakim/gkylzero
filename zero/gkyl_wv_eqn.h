@@ -3,6 +3,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_ref_count.h>
 #include <gkyl_util.h>
+#include <gkyl_evalf_def.h>
 
 // Forward declare for use in function pointers
 struct gkyl_wv_eqn;
@@ -38,6 +39,9 @@ struct gkyl_wv_eqn {
   wv_max_speed_t max_speed_func; // function to compute max-speed
   wv_rotate_to_local rotate_to_local_func; // function to rotate to local frame
   wv_rotate_to_global rotate_to_global_func; // function to rotate to global frame
+
+  wv_bc_func_t wall_bc_func; // function to apply wall BC
+  wv_bc_func_t no_slip_bc_func; // function to apply no slip BC
   
   struct gkyl_ref_count ref_count; // reference count
 };

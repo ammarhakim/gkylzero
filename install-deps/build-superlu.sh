@@ -10,23 +10,31 @@ DEP_SOURCES=$HOME/gkylsoft/dep_src/
 mkdir -p $DEP_SOURCES
 cd $DEP_SOURCES
 
-# delete old checkout and builds
-rm -rf superlu-*
+if [ "$DOWNLOAD_PKGS" = "yes" ]
+then
+    echo "Downloading SuperLU .."
+    # delete old checkout and builds
+    rm -rf superlu-*
+    curl -L https://github.com/xiaoyeli/superlu/archive/refs/tags/v5.2.2.tar.gz > superlu-5.2.2.tar.gz
+fi
 
-curl -L https://github.com/xiaoyeli/superlu/archive/refs/tags/v5.2.2.tar.gz > superlu-5.2.2.tar.gz
-gunzip -f superlu-5.2.2.tar.gz
-tar xvf superlu-5.2.2.tar
+if [ "$BUILD_PKGS" = "yes" ]
+then
+    echo "Building SuperLU .."
+    gunzip -f superlu-5.2.2.tar.gz
+    tar xvf superlu-5.2.2.tar
 
-cd superlu-5.2.2
-mkdir build
-cd build
+    cd superlu-5.2.2
+    mkdir build
+    cd build
 
-# configure build
-cmake .. -DCMAKE_INSTALL_PREFIX=$PREFIX -Denable_tests=NO -Denable_internal_blaslib=NO -DXSDK_ENABLE_Fortran=NO
+    # configure build
+    cmake .. -DCMAKE_C_FLAGS="-g -O3 -fPIC" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$PREFIX -Denable_tests=NO -Denable_internal_blaslib=NO -DXSDK_ENABLE_Fortran=NO
 
-# build and install
-make -j
-make install
+    # build and install
+    make -j VERBOSE=1
+    make install
 
-# soft-link 
-ln -sfn $PREFIX $GKYLSOFT/superlu
+    # soft-link 
+    ln -sfn $PREFIX $GKYLSOFT/superlu
+fi

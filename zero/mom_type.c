@@ -16,7 +16,13 @@ gkyl_mom_type_release(const struct gkyl_mom_type* momt)
 void
 gkyl_mom_type_calc(const struct gkyl_mom_type* momt,
   const double *xc, const double *dx, const int *idx,
-  const double *f, double* GKYL_RESTRICT out)
+  const double *f, double* GKYL_RESTRICT out, void *param)
 {
-  momt->kernel(xc, dx, idx, f, out);
+  momt->kernel(momt, xc, dx, idx, f, out, param);
+}
+
+int
+gkyl_mom_type_num_mom(const struct gkyl_mom_type* momt)
+{
+  return momt->num_mom;
 }

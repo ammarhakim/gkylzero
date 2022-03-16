@@ -24,6 +24,6 @@ jobs:
     - name: install-superlu
       run: cd install-deps; ./mkdeps.sh  --build-superlu=yes; cd ..
     - name: make
-      run: make LAPACK_INC=/usr/include/x86_64-linux-gnu/openblas-pthread LAPACK_LIB="/usr/lib/x86_64-linux-gnu/liblapacke.a /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblas.a /usr/lib/x86_64-linux-gnu/openblas-pthread/liblapack.a" -j
+      run: make CC=clang LAPACK_INC=/usr/include/x86_64-linux-gnu/openblas-pthread LAPACK_LIB="/usr/lib/x86_64-linux-gnu/liblapacke.a /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblas.a /usr/lib/x86_64-linux-gnu/openblas-pthread/liblapack.a" -j
     - name: make check
-      run: make check
+      run: make CC=clang check

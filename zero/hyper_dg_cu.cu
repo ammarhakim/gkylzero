@@ -1,5 +1,6 @@
 /* -*- c++ -*- */
 
+#include "gkyl_alloc_flags_priv.h"
 #include <math.h>
 #include <time.h>
 
@@ -7,13 +8,16 @@ extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_hyper_dg.h>
+#include <gkyl_hyper_dg_priv.h>
+#include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 }
 
 __global__ static void
 gkyl_hyper_dg_set_update_vol_cu_kernel(gkyl_hyper_dg *hdg, int update_vol_term)
 {
-  gkyl_hyper_dg_set_update_vol(hdg, update_vol_term);
+  hdg->update_vol_term = update_vol_term;
 }
 
 __global__ static void
@@ -53,7 +57,7 @@ gkyl_hyper_dg_advance_cu_kernel(gkyl_hyper_dg* hdg, struct gkyl_range update_ran
       gkyl_copy_int_arr(ndim, idxc, idxl);
       gkyl_copy_int_arr(ndim, idxc, idxr);
       // TODO: fix for arbitrary subrange
-      if (hdg->zero_flux_flags[d] && (idxc[dir] == update_range.lower[dir] || idxc[dir] == update_range.upper[dir])) {
+      if (hdg->zero_flux_flags[dir] && (idxc[dir] == update_range.lower[dir] || idxc[dir] == update_range.upper[dir])) {
         edge = (idxc[dir] == update_range.lower[dir]) ? -1 : 1;
         // use idxl to store interior edge index (first index away from skin cell)
         idxl[dir] = idxl[dir]-edge;
@@ -89,14 +93,14 @@ gkyl_hyper_dg_advance_cu_kernel(gkyl_hyper_dg* hdg, struct gkyl_range update_ran
 
 // wrapper to call advance kernel on device
 void
-gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* hdg, struct gkyl_range update_range,
+gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* hdg, const struct gkyl_range *update_range,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
   struct gkyl_array* GKYL_RESTRICT rhs)
 {
-  int nblocks = update_range.nblocks;
-  int nthreads = update_range.nthreads;
+  int nblocks = update_range->nblocks;
+  int nthreads = update_range->nthreads;
 
-  gkyl_hyper_dg_advance_cu_kernel<<<nblocks, nthreads>>>(hdg, update_range,
+  gkyl_hyper_dg_advance_cu_kernel<<<nblocks, nthreads>>>(hdg->on_dev, *update_range,
     fIn->on_dev, cflrate->on_dev, rhs->on_dev);
 }
 
@@ -108,8 +112,9 @@ gkyl_hyper_dg_set_update_vol_cu(gkyl_hyper_dg *hdg, int update_vol_term)
 
 gkyl_hyper_dg*
 gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation_cu,
-  int num_up_dirs, int update_dirs[], int zero_flux_flags[], int update_vol_term)
+  const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation,
+  int num_up_dirs, int update_dirs[GKYL_MAX_DIM], int zero_flux_flags[GKYL_MAX_DIM],
+  int update_vol_term)
 {
   gkyl_hyper_dg *up = (gkyl_hyper_dg*) gkyl_malloc(sizeof(gkyl_hyper_dg));
 
@@ -118,19 +123,26 @@ gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid,
   up->num_up_dirs = num_up_dirs;
   up->grid = *grid;
 
-  for (int i=0; i<num_up_dirs; ++i) {
+  for (int i=0; i<num_up_dirs; ++i)
     up->update_dirs[i] = update_dirs[i];
+  for (int i=0; i<GKYL_MAX_DIM; ++i)
     up->zero_flux_flags[i] = zero_flux_flags[i];
-  }
+    
   up->update_vol_term = update_vol_term;
 
-  up->equation = equation_cu; // NB: RHS a pointer to device
+  // aquire pointer to equation object
+  struct gkyl_dg_eqn *eqn = gkyl_dg_eqn_acquire(equation);
+  up->equation = eqn->on_dev; // this is so the memcpy below has eqn on_dev
 
+  up->flags = 0;
+  GKYL_SET_CU_ALLOC(up->flags);
+  
   // copy host struct to device struct
   gkyl_hyper_dg *up_cu = (gkyl_hyper_dg*) gkyl_cu_malloc(sizeof(gkyl_hyper_dg));
   gkyl_cu_memcpy(up_cu, up, sizeof(struct gkyl_hyper_dg), GKYL_CU_MEMCPY_H2D);
+  up->on_dev = up_cu; // set parent pointer
 
-  gkyl_free(up);
+  up->equation = eqn; // updater should store host pointer
 
-  return up_cu;
+  return up;
 }

@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdio.h>
 
+#include <gkyl_alloc.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_euler.h>
@@ -68,7 +69,15 @@ euler_ctx(void)
 int
 main(int argc, char **argv)
 {
-  struct gkyl_app_args app_args = parse_app_args(argc, argv); 
+  struct gkyl_app_args app_args = parse_app_args(argc, argv);
+
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 200);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 200);
+
+  if (app_args.trace_mem) {
+    gkyl_cu_dev_mem_debug_set(true);
+    gkyl_mem_debug_set(true);
+  } 
   struct euler_ctx ctx = euler_ctx(); // context for init functions
 
   // equation object
@@ -90,7 +99,7 @@ main(int argc, char **argv)
     .ndim = 2,
     .lower = { 0.0, 0.0 },
     .upper = { 1.0, 1.0 }, 
-    .cells = { 200, 200 },
+    .cells = { NX, NY },
 
     .num_species = 1,
     .species = { fluid },

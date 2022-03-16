@@ -1,7 +1,7 @@
 #include <math.h>
 
 #include <gkyl_alloc.h>
-#include <gkyl_prim_iso_euler.h>
+#include <gkyl_moment_prim_iso_euler.h>
 #include <gkyl_wv_iso_euler.h>
 
 struct wv_iso_euler {
@@ -15,6 +15,32 @@ iso_euler_free(const struct gkyl_ref_count *ref)
   struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
   struct wv_iso_euler *iso_euler = container_of(base, struct wv_iso_euler, eqn);
   gkyl_free(iso_euler);
+}
+
+// Euler perfectly reflecting wall
+static void
+iso_euler_wall(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+{
+  // copy density
+  ghost[0] = skin[0];
+
+  // zero-normal for momentum
+  ghost[1] = -skin[1];
+  ghost[2] = skin[2];
+  ghost[3] = skin[3];
+}
+
+// Euler no-slip reflecting wall
+static void
+iso_euler_no_slip(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+{
+  // copy density
+  ghost[0] = skin[0];
+
+  // zero-normal for momentum
+  ghost[1] = -skin[1];
+  ghost[2] = -skin[2];
+  ghost[3] = -skin[3];
 }
 
 static inline void
@@ -123,10 +149,14 @@ gkyl_wv_iso_euler_new(double vt)
   iso_euler->eqn.waves_func = wave_roe;
   iso_euler->eqn.qfluct_func = qfluct_roe;
   iso_euler->eqn.max_speed_func = max_speed;
+
   iso_euler->eqn.rotate_to_local_func = rot_to_local;
   iso_euler->eqn.rotate_to_global_func = rot_to_global;
 
-  iso_euler->eqn.ref_count = (struct gkyl_ref_count) { iso_euler_free, 1 };
+  iso_euler->eqn.wall_bc_func = iso_euler_wall;
+  iso_euler->eqn.no_slip_bc_func = iso_euler_no_slip;
+
+  iso_euler->eqn.ref_count = gkyl_ref_count_init(iso_euler_free);
 
   return &iso_euler->eqn;
 }

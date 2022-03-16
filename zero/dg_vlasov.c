@@ -1,36 +1,54 @@
+#include "gkyl_dg_eqn.h"
 #include <assert.h>
 #include <stdio.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_dg_vlasov_priv.h>
 #include <gkyl_util.h>
 
-static void
-vlasov_free(const struct gkyl_ref_count *ref)
+void
+gkyl_vlasov_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
+  
+  if (gkyl_dg_eqn_is_cu_dev(base)) {
+    // free inner on_dev object
+    struct dg_vlasov *vlasov = container_of(base->on_dev, struct dg_vlasov, eqn);
+    gkyl_cu_free(vlasov);
+  }
+  
   struct dg_vlasov *vlasov = container_of(base, struct dg_vlasov, eqn);
   gkyl_free(vlasov);
 }
 
 void
-gkyl_vlasov_set_qmem(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem)
+gkyl_vlasov_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(qmem)) {gkyl_vlasov_set_qmem_cu(eqn, qmem); return;}
+  if (gkyl_array_is_cu_dev(auxin.qmem)) {
+    gkyl_vlasov_set_auxfields_cu(eqn->on_dev, auxin);
+    return;
+  }
 #endif
 
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
-  vlasov->qmem = qmem;
+  vlasov->auxfields.qmem = auxin.qmem;
 }
 
 struct gkyl_dg_eqn*
 gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, enum gkyl_field_id field_id)
+  const struct gkyl_range* conf_range, enum gkyl_field_id field_id, bool use_gpu)
 {
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_dg_vlasov_cu_dev_new(cbasis, pbasis, conf_range, field_id);
+  } 
+#endif
   struct dg_vlasov *vlasov = gkyl_malloc(sizeof(struct dg_vlasov));
+
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
   int poly_order = cbasis->poly_order;
@@ -113,11 +131,14 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   for (int i=0; i<vdim; ++i) assert(vlasov->accel_surf[i]);
   for (int i=0; i<vdim; ++i) assert(vlasov->accel_boundary_surf[i]);
 
-  vlasov->qmem = 0;  
+  vlasov->auxfields.qmem = 0;  
   vlasov->conf_range = *conf_range;
 
-  // set reference counter
-  vlasov->eqn.ref_count = (struct gkyl_ref_count) { vlasov_free, 1 };
+  vlasov->eqn.flags = 0;
+  GKYL_CLEAR_CU_ALLOC(vlasov->eqn.flags);
+
+  vlasov->eqn.ref_count = gkyl_ref_count_init(gkyl_vlasov_free);
+  vlasov->eqn.on_dev = &vlasov->eqn; // CPU eqn obj points to itself
   
   return &vlasov->eqn;
 }

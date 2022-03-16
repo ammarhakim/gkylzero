@@ -13,7 +13,8 @@ extern "C" {
 // start ID for use in various loops
 #define START_ID (threadIdx.x + blockIdx.x*blockDim.x)
 
-void
+// NOTE: This is duplicated in dg_bin_ops_cu. Should be cleaned up 01/05/22
+static void
 gkyl_get_array_range_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gkyl_range range, int ncomp)
 {
   int volume = range.volume;
@@ -55,6 +56,15 @@ gkyl_array_set_cu_kernel(struct gkyl_array* out, double a,
     out_d[linc] = a*inp_d[linc];
 }
 
+__global__ void
+gkyl_array_scale_by_cell_cu_kernel(struct gkyl_array* out, const struct gkyl_array* a)
+{
+  double *out_d = (double*) out->data;
+  const double *a_d = (double*) a->data;
+  for (unsigned long linc = START_ID; linc < NELM(out); linc += blockDim.x*gridDim.x)
+    out_d[linc] = a_d[linc/out->ncomp]*out_d[linc];
+} 
+
 // Host-side wrappers for array operations
 void
 gkyl_array_clear_cu(struct gkyl_array* out, double val)
@@ -78,6 +88,12 @@ void
 gkyl_array_scale_cu(struct gkyl_array* out, double a)
 {
   gkyl_array_set_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a, out->on_dev);
+}
+
+void
+gkyl_array_scale_by_cell_cu(struct gkyl_array* out, const struct gkyl_array* a)
+{
+  gkyl_array_scale_by_cell_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a->on_dev);
 }
 
 // Range-based methods

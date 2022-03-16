@@ -8,11 +8,11 @@ gkyl_create_grid_ranges(const struct gkyl_rect_grid *grid,
   int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
   
   for (int i=0; i<grid->ndim; ++i) {
-    lower_ext[i] = 0-nghost[i];
-    upper_ext[i] = grid->cells[i]-1+nghost[i];
+    lower_ext[i] = 1-nghost[i];
+    upper_ext[i] = grid->cells[i]+nghost[i];
 
-    lower[i] = 0;
-    upper[i] = grid->cells[i]-1;
+    lower[i] = 1;
+    upper[i] = grid->cells[i];
   }
   gkyl_range_init(ext_range, grid->ndim, lower_ext, upper_ext);
   gkyl_sub_range_init(range, ext_range, lower, upper);

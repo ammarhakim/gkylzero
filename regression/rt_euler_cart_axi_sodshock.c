@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdio.h>
 
+#include <gkyl_alloc.h>
 #include <gkyl_const.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
@@ -47,6 +48,14 @@ int
 main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
+
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 128);  
+
+  if (app_args.trace_mem) {
+    gkyl_cu_dev_mem_debug_set(true);
+    gkyl_mem_debug_set(true);
+  }
   struct euler_ctx ctx = euler_ctx(); // context for init functions
 
   // equation object
@@ -60,7 +69,7 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalEulerInit,
 
-    .bcx = { GKYL_MOMENT_COPY, GKYL_MOMENT_COPY },
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
 
   // VM app
@@ -71,7 +80,7 @@ main(int argc, char **argv)
     // grid in computational space
     .lower = { -1.25, -1.25 },
     .upper = { 1.25, 1.25 },
-    .cells = { 128, 128 },
+    .cells = { NX, NY },
 
     .cfl_frac = 0.9,
 

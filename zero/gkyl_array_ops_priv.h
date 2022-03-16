@@ -4,6 +4,8 @@
 
 // Compute number of elements stored in array 'arr'
 #define NELM(arr) (arr->size*arr->ncomp)
+// Compute size of 'arr' 
+#define NSIZE(arr) (arr->size)
 // Compute number of components stored in array 'arr'
 #define NCOM(arr) (arr->ncomp)
 
@@ -17,7 +19,7 @@ array_clear1(long n, double *out, double val)
 
 GKYL_CU_DH
 static inline void
-array_acc1(long n, double * GKYL_RESTRICT out, double a, const double *inp)
+array_acc1(long n, double * GKYL_RESTRICT out, double a, const double * GKYL_RESTRICT inp)
 {
   for (int c=0; c<n; ++c)
     out[c] += a*inp[c];
@@ -26,7 +28,7 @@ array_acc1(long n, double * GKYL_RESTRICT out, double a, const double *inp)
 GKYL_CU_DH
 static inline void
 array_set1(long n,
-  double * GKYL_RESTRICT out, double a, const double *inp)
+  double * GKYL_RESTRICT out, double a, const double * GKYL_RESTRICT inp)
 {
   for (int c=0; c<n; ++c)
     out[c] = a*inp[c];

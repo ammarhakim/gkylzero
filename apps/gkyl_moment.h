@@ -2,19 +2,11 @@
 
 #include <gkyl_app.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_eqn.h>
 #include <gkyl_wave_prop.h>
 #include <gkyl_moment_braginskii.h>
+#include <gkyl_wv_eqn.h>
 
 #include <time.h>
-
-// Boundary conditions on fields and fluids
-enum gkyl_moment_bc_type {
-  GKYL_MOMENT_COPY = 0, // copy BCs for fluid and field
-  GKYL_MOMENT_SPECIES_WALL, // perfect reflector for moments
-  GKYL_MOMENT_SPECIES_NO_SLIP, // no slip BCs for moments
-  GKYL_MOMENT_FIELD_COND, // perfect conductor for fields
-};
 
 // Parameters for moment species
 struct gkyl_moment_species {
@@ -31,7 +23,7 @@ struct gkyl_moment_species {
   // pointer to applied acceleration/forces function
   void (*app_accel_func)(double t, const double *xn, double *fout, void *ctx);
   // boundary conditions
-  enum gkyl_moment_bc_type bcx[2], bcy[2], bcz[2];
+  enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
 };
 
 // Parameter for EM field
@@ -51,7 +43,7 @@ struct gkyl_moment_field {
   // pointer to external fields
   void (*ext_em_func)(double t, const double *xn, double *fout, void *ctx);
   // boundary conditions
-  enum gkyl_moment_bc_type bcx[2], bcy[2], bcz[2];
+  enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
 };
 
 // Choices of schemes to use in the fluid solver 

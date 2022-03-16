@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdio.h>
 
+#include <gkyl_alloc.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_ten_moment.h>
@@ -28,7 +29,7 @@ evalElcInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double w0 = 1.0*di;
   double psi0 = 0.1*B0*di;
   double guide1 = 0.099*B0;
-  double guide2 = 0.099*B0;
+  double guide2 = guide1;
 
   double b1 = 1.696*B0;
   double b2 = 1.00*B0;
@@ -117,7 +118,7 @@ evalIonInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double w0 = 1.0*di;
   double psi0 = 0.1*B0*di;
   double guide1 = 0.099*B0;
-  double guide2 = 0.099*B0;
+  double guide2 = guide1;
 
   double b1 = 1.696*B0;
   double b2 = 1.00*B0;
@@ -206,7 +207,7 @@ evalFieldInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   double w0 = 1.0*di;
   double psi0 = 0.1*B0*di;
   double guide1 = 0.099*B0;
-  double guide2 = 0.099*B0;
+  double guide2 = guide1;
 
   double b1 = 1.696*B0;
   double b2 = 1.00*B0;
@@ -258,6 +259,15 @@ int
 main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
+
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 256);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 128);
+
+  if (app_args.trace_mem) {
+    gkyl_cu_dev_mem_debug_set(true);
+    gkyl_mem_debug_set(true);
+  }
+  
   // electron/ion equations
   // d_e = 0.1, k0 = 1/d_e
   struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new(10.0);
@@ -286,7 +296,7 @@ main(int argc, char **argv)
     .ndim = 2,
     .lower = { 0.0, 0.0 },
     .upper = { 40.96, 20.48 }, 
-    .cells = { 256, 128  },
+    .cells = { NX, NY },
 
     .num_periodic_dir = 2,
     .periodic_dirs = { 0, 1 },

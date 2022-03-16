@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdio.h>
 
+#include <gkyl_alloc.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_sr_euler.h>
@@ -57,6 +58,14 @@ int
 main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
+
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 64);
+
+  if (app_args.trace_mem) {
+    gkyl_cu_dev_mem_debug_set(true);
+    gkyl_mem_debug_set(true);
+  }
   struct sr_euler_ctx ctx = sr_euler_ctx(); // context for init functions
 
   // equation object
@@ -78,7 +87,7 @@ main(int argc, char **argv)
     .ndim = 2,
     .lower = { 0.0, -0.25 },
     .upper = { 1.0, 0.25 }, 
-    .cells = { 128, 64 },
+    .cells = { NX, NY },
 
     .cfl_frac = 0.9,
 

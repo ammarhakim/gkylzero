@@ -1,7 +1,7 @@
 #include <math.h>
 
 #include <gkyl_alloc.h>
-#include <gkyl_prim_euler.h>
+#include <gkyl_moment_prim_euler.h>
 #include <gkyl_wv_euler.h>
 
 struct wv_euler {
@@ -15,6 +15,34 @@ euler_free(const struct gkyl_ref_count *ref)
   struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
   struct wv_euler *euler = container_of(base, struct wv_euler, eqn);
   gkyl_free(euler);
+}
+
+// Euler perfectly reflecting wall
+static void
+euler_wall(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+{
+  // copy density and pressure
+  ghost[0] = skin[0];
+  ghost[4] = skin[4];
+
+  // zero-normal for momentum
+  ghost[1] = -skin[1];
+  ghost[2] = skin[2];
+  ghost[3] = skin[3];
+}
+
+// Euler no-slip reflecting wall
+static void
+euler_no_slip(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+{
+  // copy density and pressure
+  ghost[0] = skin[0];
+  ghost[4] = skin[4];
+
+  // zero-normal for momentum
+  ghost[1] = -skin[1];
+  ghost[2] = -skin[2];
+  ghost[3] = -skin[3];
 }
 
 static inline void
@@ -141,9 +169,12 @@ gkyl_wv_euler_new(double gas_gamma)
   euler->eqn.max_speed_func = max_speed;
 
   euler->eqn.rotate_to_local_func = rot_to_local;
-  euler->eqn.rotate_to_global_func = rot_to_global;  
+  euler->eqn.rotate_to_global_func = rot_to_global;
 
-  euler->eqn.ref_count = (struct gkyl_ref_count) { euler_free, 1 };
+  euler->eqn.wall_bc_func = euler_wall;
+  euler->eqn.no_slip_bc_func = euler_no_slip;
+
+  euler->eqn.ref_count = gkyl_ref_count_init(euler_free);
 
   return &euler->eqn;
 }

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <gkyl_maxwell_kernels.h>
+#include <gkyl_ref_count.h>
+#include <gkyl_dg_eqn.h>
 
 // private header for use in Maxwell DG equation object creation
 // functions
@@ -94,6 +96,14 @@ struct dg_maxwell {
   maxwell_vol_t vol; // pointer to volume kernel
   maxwell_surf_t surf[3]; // pointers to surface kernels
 };
+
+
+/**
+ * Free Maxwell equation object
+ *
+ * @param ref Reference counter for Maxwell equation
+ */
+void gkyl_maxwell_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D
 static double

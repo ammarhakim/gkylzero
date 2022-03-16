@@ -106,7 +106,7 @@ enum gkyl_cu_memcpy_kind {
         *cntr += 1;                                                     \
         printf("%s failed! (%s:%d)\n", #expr, __FILE__, __LINE__);      \
       }                                                                 \
-    } while (0);
+    } while (0)
 
 // Computes length of string needed given a format specifier and data. Example:
 //
@@ -116,10 +116,9 @@ enum gkyl_cu_memcpy_kind {
 
 // Open file 'fname' with 'mode; into handle 'fp'. Handle is closed
 // when block attached to with_file exits
-#define with_file(fp, fname, mode)                              \
-    for (bool _break = (fp = fopen(fname, mode), (fp != NULL)); \
-         _break;                                                \
-         _break = false, fclose(fp))
+#define with_file(fp, fname, mode)                                             \
+  for (bool _break = (fp = fopen(fname, mode), (fp != NULL)); _break;          \
+       _break = false, fclose(fp))
 
 // Code
 

@@ -96,7 +96,7 @@ main(int argc, char **argv)
     .init = evalElcInit,
     .app_accel_func = evalAppAccel,
 
-    .bcx = { GKYL_MOMENT_SPECIES_NO_SLIP, GKYL_MOMENT_SPECIES_NO_SLIP },
+    .bcx = { GKYL_SPECIES_NO_SLIP, GKYL_SPECIES_NO_SLIP },
   };
   struct gkyl_moment_species ion = {
     .name = "ion",
@@ -107,7 +107,7 @@ main(int argc, char **argv)
     .init = evalIonInit,
     .app_accel_func = evalAppAccel,
 
-    .bcx = { GKYL_MOMENT_SPECIES_NO_SLIP, GKYL_MOMENT_SPECIES_NO_SLIP },    
+    .bcx = { GKYL_SPECIES_NO_SLIP, GKYL_SPECIES_NO_SLIP },    
   };  
 
   // VM app
@@ -134,7 +134,7 @@ main(int argc, char **argv)
       .evolve = 1,
       .init = evalFieldInit,
       
-      .bcx = { GKYL_MOMENT_FIELD_COND, GKYL_MOMENT_FIELD_COND },
+      .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
     }
   };
 

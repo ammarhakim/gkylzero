@@ -41,14 +41,25 @@ static struct { double (*ev[4])(int dir, const double *z, const double *f); } ev
 };
 
 // Flip-sign functions: ev_list[ndim].ev[poly_order]
-static struct { void (*fs[4])(int dir, const double *f, double *fout); } fs_list[] = {
+static struct { void (*fs[4])(int dir, const double *f, double *fout); } fos_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
-  { flip_sign_1d_ser_p0, flip_sign_1d_ser_p1, flip_sign_1d_ser_p2, flip_sign_1d_ser_p3 },
-  { flip_sign_2d_ser_p0, flip_sign_2d_ser_p1, flip_sign_2d_tensor_p2, NULL },
-  { flip_sign_3d_ser_p0, flip_sign_3d_ser_p1, flip_sign_3d_tensor_p2, NULL },
-  { flip_sign_4d_ser_p0, flip_sign_4d_ser_p1, flip_sign_4d_tensor_p2, NULL },
-  { flip_sign_5d_ser_p0, flip_sign_5d_ser_p1, flip_sign_5d_tensor_p2, NULL },
-  { flip_sign_6d_ser_p0, flip_sign_6d_ser_p1, NULL, NULL },
+  { flip_odd_sign_1d_ser_p0, flip_odd_sign_1d_ser_p1, flip_odd_sign_1d_ser_p2, flip_odd_sign_1d_ser_p3 },
+  { flip_odd_sign_2d_ser_p0, flip_odd_sign_2d_ser_p1, flip_odd_sign_2d_tensor_p2, NULL },
+  { flip_odd_sign_3d_ser_p0, flip_odd_sign_3d_ser_p1, flip_odd_sign_3d_tensor_p2, NULL },
+  { flip_odd_sign_4d_ser_p0, flip_odd_sign_4d_ser_p1, flip_odd_sign_4d_tensor_p2, NULL },
+  { flip_odd_sign_5d_ser_p0, flip_odd_sign_5d_ser_p1, flip_odd_sign_5d_tensor_p2, NULL },
+  { flip_odd_sign_6d_ser_p0, flip_odd_sign_6d_ser_p1, NULL, NULL },
+};
+
+// Flip-sign functions: ev_list[ndim].ev[poly_order]
+static struct { void (*fs[4])(int dir, const double *f, double *fout); } fes_list[] = {
+  { NULL, NULL, NULL, NULL }, // No 0D basis functions
+  { flip_even_sign_1d_ser_p0, flip_even_sign_1d_ser_p1, flip_even_sign_1d_ser_p2, flip_even_sign_1d_ser_p3 },
+  { flip_even_sign_2d_ser_p0, flip_even_sign_2d_ser_p1, flip_even_sign_2d_tensor_p2, NULL },
+  { flip_even_sign_3d_ser_p0, flip_even_sign_3d_ser_p1, flip_even_sign_3d_tensor_p2, NULL },
+  { flip_even_sign_4d_ser_p0, flip_even_sign_4d_ser_p1, flip_even_sign_4d_tensor_p2, NULL },
+  { flip_even_sign_5d_ser_p0, flip_even_sign_5d_ser_p1, flip_even_sign_5d_tensor_p2, NULL },
+  { flip_even_sign_6d_ser_p0, flip_even_sign_6d_ser_p1, NULL, NULL },
 };
 
 // Node list function: ev_list[ndim].ev[poly_order]
@@ -89,7 +100,8 @@ gkyl_cart_modal_tensor(struct gkyl_basis *basis, int ndim, int poly_order)
   basis->eval = ev_list[ndim].ev[poly_order];
   basis->eval_expand = eve_list[ndim].ev[poly_order];
   basis->eval_grad_expand = eveg_list[ndim].ev[poly_order];
-  basis->flip_sign = fs_list[ndim].fs[poly_order];
+  basis->flip_odd_sign = fos_list[ndim].fs[poly_order];
+  basis->flip_even_sign = fes_list[ndim].fs[poly_order];
   basis->node_list = nl_list[ndim].nl[poly_order];
   basis->nodal_to_modal = n2m_list[ndim].n2m[poly_order];
 }

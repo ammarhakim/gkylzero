@@ -50,11 +50,12 @@ gkyl_compare_double(double a, double b, double eps)
 struct timespec
 gkyl_wall_clock(void)
 {
-  struct timespec tm;
+  struct timespec tm = { 0 };
 #ifdef GKYL_HAVE_CUDA
   cudaDeviceSynchronize();
 #endif
-  clock_gettime(CLOCK_REALTIME, &tm);
+  // we were using CLOCK_REALTIME here
+  clock_gettime(CLOCK_MONOTONIC, &tm);
   return tm;
 }
 

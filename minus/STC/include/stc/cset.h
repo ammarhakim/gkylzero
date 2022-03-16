@@ -1,6 +1,6 @@
 /* MIT License
  *
- * Copyright (c) 2021 Tyge Løvset, NORCE, www.norceresearch.no
+ * Copyright (c) 2022 Tyge Løvset, NORCE, www.norceresearch.no
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,12 +35,12 @@ int main(void) {
 
     c_foreach (i, cset_sx, s)
         printf("set %d\n", *i.ref);
-    cset_sx_del(&s);
+    cset_sx_drop(&s);
 }
 */
 
-#ifndef i_prefix
-#define i_prefix cset_
+#ifndef _i_prefix
+#define _i_prefix cset_
 #endif
-#define i_isset
+#define _i_isset
 #include "cmap.h"

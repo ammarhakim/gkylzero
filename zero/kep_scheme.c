@@ -1,7 +1,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_kep_scheme.h>
-#include <gkyl_prim_euler.h>
+#include <gkyl_moment_prim_euler.h>
 #include <gkyl_wv_euler.h>
 
 static const int dir_shuffle[][3] = {

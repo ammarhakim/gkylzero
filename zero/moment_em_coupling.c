@@ -325,5 +325,5 @@ gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
 void
 gkyl_moment_em_coupling_release(gkyl_moment_em_coupling* up)
 {
-  free(up);
+  gkyl_free(up);
 }

@@ -17,6 +17,24 @@ maxwell_free(const struct gkyl_ref_count *ref)
   gkyl_free(maxwell);
 }
 
+static void
+maxwell_wall(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+{
+  // zero-tangent for E field
+  ghost[0] = skin[0];
+  ghost[1] = -skin[1];
+  ghost[2] = -skin[2];
+
+  // zero-normal for B field
+  ghost[3] = -skin[3];
+  ghost[4] = skin[4];
+  ghost[5] = skin[5];
+
+  // correction potential
+  ghost[6] = -skin[6];
+  ghost[7] = skin[7];
+}
+
 static inline void
 rot_to_local(const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
@@ -165,7 +183,9 @@ gkyl_wv_maxwell_new(double c, double e_fact, double b_fact)
   maxwell->eqn.rotate_to_local_func = rot_to_local;
   maxwell->eqn.rotate_to_global_func = rot_to_global;
 
-  maxwell->eqn.ref_count = (struct gkyl_ref_count) { maxwell_free, 1 };
+  maxwell->eqn.wall_bc_func = maxwell_wall;
+
+  maxwell->eqn.ref_count = gkyl_ref_count_init(maxwell_free);
 
   return &maxwell->eqn;
 }
