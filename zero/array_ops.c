@@ -383,12 +383,6 @@ gkyl_array_copy_from_buffer(struct gkyl_array *arr,
 #undef _F
 }
 
-static inline void*
-flat_fetch(void *data, size_t loc)
-{
-  return ((char*) data) + loc;
-}
-
 void
 gkyl_array_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
   struct gkyl_range range, array_copy_func_t func, void *ctx)
