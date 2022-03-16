@@ -74,16 +74,23 @@ main(int argc, char **argv)
   // electrons
   struct gkyl_vlasov_species neut = {
     .name = "neut",
-    .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -6.0*ctx.vt, -6.0*ctx.vt, -6.0*ctx.vt},
-    .upper = { 6.0*ctx.vt, 6.0*ctx.vt, 6.0*ctx.vt}, 
-    .cells = { VX, VY, VZ },
+    .charge = ctx.charge,
+    .mass = ctx.mass,
+    .lower = {-6.0 * ctx.vt, -6.0 * ctx.vt, -6.0 * ctx.vt},
+    .upper = {6.0 * ctx.vt, 6.0 * ctx.vt, 6.0 * ctx.vt},
+    .cells = {VX, VY, VZ},
 
     .evolve = 1,
     .ctx = &ctx,
     .init = evalDistFunc,
-    .nu = evalNu,
-    .collision_id = GKYL_LBO_COLLISIONS,
+
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+
+      .ctx = &ctx,
+      .self_nu = evalNu,
+    },    
+
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
   };

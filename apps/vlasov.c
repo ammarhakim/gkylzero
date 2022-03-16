@@ -82,6 +82,15 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   return app;
 }
 
+struct vm_species *
+vm_find_species(const gkyl_vlasov_app *app, const char *nm)
+{
+  for (int i=0; i<app->num_species; ++i)
+    if (strcmp(nm, app->species[i].info.name) == 0)
+      return &app->species[i];
+  return 0;
+}
+
 void
 gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0)
 {

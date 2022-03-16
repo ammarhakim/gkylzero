@@ -107,7 +107,8 @@ struct vm_species {
   struct vm_eval_accel_ctx accel_ctx; // context for applied acceleration
 
   enum gkyl_collision_id collision_id; // type of collisions
-  struct vm_lbo_collisions lbo;
+  struct vm_lbo_collisions lbo; // for now, only LBO collisins
+  
   double *omegaCfl_ptr;
 };
 
@@ -193,6 +194,17 @@ skin_ghost_ranges_init(struct vm_skin_ghost_ranges *sgr,
       d, GKYL_UPPER_EDGE, parent, ghost);
   }
 }
+
+/** gkyl_vlasov_app private API */
+
+/**
+ * Find species with given name.
+ *
+ * @param app Top-level app to look into
+ * @param nm Name of species
+ * @return Pointer to species with given name. NULL if not found.o
+ */
+struct vm_species* vm_find_species(const gkyl_vlasov_app *app, const char *nm);
 
 /** vm_species_moment API */
 

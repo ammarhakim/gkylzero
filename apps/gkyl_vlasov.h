@@ -8,6 +8,18 @@
 
 #include <stdbool.h>
 
+// Parameters for species collisions
+struct gkyl_vlasov_collisions {
+  enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
+
+  void *ctx; // context for collision function
+  // function for computing self-collision frequency
+  void (*self_nu)(double t, const double *xn, double *fout, void *ctx);
+
+  int num_cross_collisions; // number of species to cross-collide with
+  char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
+};
+
 // Parameters for Vlasov species
 struct gkyl_vlasov_species {
   char name[128]; // species name
@@ -27,9 +39,8 @@ struct gkyl_vlasov_species {
   int num_diag_moments; // number of diagnostic moments
   char diag_moments[16][16]; // list of diagnostic moments
 
-  // collision frequency
-  void (*nu)(double t, const double *xn, double *fout, void *ctx);
-  enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
+  // collisions to include
+  struct gkyl_vlasov_collisions collisions;
 
   void *accel_ctx; // context for applied acceleration function
   // pointer to applied acceleration function
