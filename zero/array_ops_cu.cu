@@ -338,14 +338,11 @@ gkyl_array_copy_to_buffer_fn_cu_kernel(void *data, const struct gkyl_array *arr,
 }
 
 __global__ void 
-gkyl_array_copy_to_buffer_fn_cu_kernel(void *data, const struct gkyl_array *arr,
-  int dir, struct gkyl_range range, array_copy_func_t func, void *ctx)
+gkyl_array_flip_copy_to_buffer_fn_cu_kernel(void *data, const struct gkyl_array *arr,
+  int dir, struct gkyl_range range, struct gkyl_range buff_range, array_copy_func_t func, void *ctx)
 {
   int idx[GKYL_MAX_DIM];
   int fidx[GKYL_MAX_DIM]; // flipped index
-
-  struct gkyl_range buff_range;
-  gkyl_range_init(&buff_range, range.ndim, range.lower, range.upper);
 
   int uplo = range.upper[dir]+range.lower[dir];
 
@@ -473,5 +470,8 @@ gkyl_array_flip_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
   int nblocks = range.nblocks;
   int nthreads = range.nthreads;
 
-  gkyl_array_flip_copy_to_buffer_fn_cu_kernel<<<nblocks, nthreads>>>(data, arr, dir, range, func, ctx);  
+  struct gkyl_range buff_range;
+  gkyl_range_init(&buff_range, range.ndim, range.lower, range.upper);
+  
+  gkyl_array_flip_copy_to_buffer_fn_cu_kernel<<<nblocks, nthreads>>>(data, arr, dir, range, buff_range, func, ctx);  
 }

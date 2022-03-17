@@ -1474,7 +1474,7 @@ void test_cu_array_flip_copy_buffer_fn()
   double *buff_cu = gkyl_cu_malloc(sizeof(double)*sub_range.volume);
 
   // test flip copy on first direction of 2D array
-  gkyl_array_flip_copy_to_buffer_fn_cu(buff, arr, 0, sub_range, buffer_fn, 0);
+  gkyl_array_flip_copy_to_buffer_fn_cu(buff_cu, arr_cu, 0, sub_range, buffer_fn, 0);
 
   gkyl_array_clear(arr, 0.0);
   // copy back from buffer
@@ -1489,7 +1489,7 @@ void test_cu_array_flip_copy_buffer_fn()
   }
 
   // test flip copy on second direction of 2D array
-  gkyl_array_flip_copy_to_buffer_fn(buff, arr, 1, sub_range, buffer_fn, 0);
+  gkyl_array_flip_copy_to_buffer_fn(buff_cu, arr_cu, 1, sub_range, buffer_fn, 0);
 
   gkyl_array_clear(arr, 0.0);
   // copy back from buffer
