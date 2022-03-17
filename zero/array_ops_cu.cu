@@ -337,6 +337,39 @@ gkyl_array_copy_to_buffer_fn_cu_kernel(void *data, const struct gkyl_array *arr,
   }
 }
 
+__global__ void 
+gkyl_array_copy_to_buffer_fn_cu_kernel(void *data, const struct gkyl_array *arr,
+  int dir, struct gkyl_range range, array_copy_func_t func, void *ctx)
+{
+  int idx[GKYL_MAX_DIM];
+  int fidx[GKYL_MAX_DIM]; // flipped index
+
+  struct gkyl_range buff_range;
+  gkyl_range_init(&buff_range, range.ndim, range.lower, range.upper);
+
+  int uplo = range.upper[dir]+range.lower[dir];
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume; linc1 += blockDim.x*gridDim.x) {
+    // inverse index from linc1 to idxc
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idxc={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&range, linc1, idx);
+
+    gkyl_copy_int_arr(range.ndim, idx, fidx);
+    fidx[dir] = uplo - idx[dir];
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc and flipped linc (flinc) will have jumps in it to jump over ghost cells
+    long linc = gkyl_range_idx(&range, idx);
+    long flinc = gkyl_range_idx(&buff_range, fidx);
+
+    const double *inp = (const double*) gkyl_array_cfetch(arr, linc);
+    double *out = (double*) flat_fetch(data, arr->esznc*flinc);
+    func(arr->ncomp, out, inp, ctx);
+  }
+}
+
 // Host-side wrappers for range-based array operations
 void
 gkyl_array_clear_range_cu(struct gkyl_array *out, double val, struct gkyl_range range)
@@ -431,4 +464,14 @@ gkyl_array_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
   int nthreads = range.nthreads;
 
   gkyl_array_copy_to_buffer_fn_cu_kernel<<<nblocks, nthreads>>>(data, arr, range, func, ctx);  
+}
+
+void
+gkyl_array_flip_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
+  int dir, struct gkyl_range range, array_copy_func_t func, void *ctx)
+{
+  int nblocks = range.nblocks;
+  int nthreads = range.nthreads;
+
+  gkyl_array_flip_copy_to_buffer_fn_cu_kernel<<<nblocks, nthreads>>>(data, arr, dir, range, func, ctx);  
 }

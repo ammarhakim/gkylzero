@@ -411,9 +411,7 @@ gkyl_array_flip_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(arr)) {
-    printf("gkyl_array_flip_copy_to_buffer_fn not on GPUs yet!");
-    assert(false);
-    return;
+    if (gkyl_array_is_cu_dev(arr)) { gkyl_array_flip_copy_to_buffer_fn_cu(data, arr, dir, range, func, ctx); return; }
   }
 #endif
 

@@ -248,3 +248,7 @@ void gkyl_array_copy_from_buffer_cu(struct gkyl_array *arr, const void *data,
 void gkyl_array_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
   struct gkyl_range range,
   array_copy_func_t func, void *ctx);
+
+void gkyl_array_flip_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
+  int dir, struct gkyl_range range, 
+  array_copy_func_t func, void *ctx);
