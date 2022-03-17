@@ -19,8 +19,7 @@ mom_free(const struct gkyl_ref_count *ref)
 
 
 struct gkyl_mom_type*
-gkyl_mom_bcorr_lbo_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const char *mom, const double* vBoundary)
+gkyl_mom_bcorr_lbo_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const double* vBoundary)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
   
@@ -40,35 +39,26 @@ gkyl_mom_bcorr_lbo_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl
   }
 
   // choose kernel tables based on basis-function type
-  const gkyl_mom_bcorr_lbo_vlasov_kern_list *mom_bcorr_lbo_vlasov_f_kernels, *mom_bcorr_lbo_vlasov_vf_kernels;
+  const gkyl_mom_bcorr_lbo_vlasov_kern_list *mom_bcorr_lbo_vlasov_kernels;
 
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      mom_bcorr_lbo_vlasov_f_kernels = ser_mom_bcorr_lbo_vlasov_f_kernels;
-      mom_bcorr_lbo_vlasov_vf_kernels = ser_mom_bcorr_lbo_vlasov_vf_kernels;
+      mom_bcorr_lbo_vlasov_kernels = ser_mom_bcorr_lbo_vlasov_kernels;
       break;
 
-    case GKYL_BASIS_MODAL_TENSOR:
-      break;
+    /* case GKYL_BASIS_MODAL_TENSOR: */
+    /*   mom_bcorr_lbo_vlasov_kernels = ten_mom_bcorr_lbo_vlasov_kernels; */
+    /*   break; */
 
     default:
       assert(false);
       break;    
   }
-  if (strcmp(mom, "f") == 0) { // momentum correction
-    assert(cv_index[cdim].vdim[vdim] != -1);
-    assert(NULL != mom_bcorr_lbo_vlasov_f_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-    
-    mom_bcorr->kernel = mom_bcorr_lbo_vlasov_f_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    mom_bcorr->momt.num_mom = vdim;
-  }
-  else if (strcmp(mom, "vf") == 0) { // energy correction
-    assert(cv_index[cdim].vdim[vdim] != -1);
-    assert(NULL != mom_bcorr_lbo_vlasov_vf_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-    
-    mom_bcorr->kernel = mom_bcorr_lbo_vlasov_vf_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    mom_bcorr->momt.num_mom = vdim;
-  }
+  assert(cv_index[cdim].vdim[vdim] != -1);
+  assert(NULL != mom_bcorr_lbo_vlasov_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+
+  mom_bcorr->kernel = mom_bcorr_lbo_vlasov_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+  mom_bcorr->momt.num_mom = vdim+1;
 
   mom_bcorr->momt.flag = 0;
   GKYL_CLEAR_CU_ALLOC(mom_bcorr->momt.flag);
@@ -82,8 +72,7 @@ gkyl_mom_bcorr_lbo_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_mom_type*
-gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const char *mom, const double* vBoundary)
+gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const double* vBoundary)
 {
   assert(false);
 }

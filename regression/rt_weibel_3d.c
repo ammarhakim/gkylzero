@@ -94,15 +94,18 @@ main(int argc, char **argv)
   }
   struct weibel_ctx ctx = create_ctx(); // context for init functions
 
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 24);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 12);
+  int VY = APP_ARGS_CHOOSE(app_args.vcells[1], 12);
+
   // electrons
   struct gkyl_vlasov_species elc = {
     .name = "elc",
     .charge = -1.0, .mass = 1.0,
     .lower = { -1.0, -1.0 },
     .upper = { 1.0, 1.0 }, 
-    .cells = { 12, 12 },
+    .cells = { VX, VY },
 
-    .evolve = 1,
     .ctx = &ctx,
     .init = evalDistFunc,
 
@@ -113,7 +116,7 @@ main(int argc, char **argv)
   // field
   struct gkyl_vlasov_field field = {
     .epsilon0 = 1.0, .mu0 = 1.0,
-    .evolve = 1,
+
     .ctx = &ctx,
     .init = evalFieldFunc
   };
@@ -125,7 +128,7 @@ main(int argc, char **argv)
     .cdim = 1, .vdim = 2,
     .lower = { 0.0 },
     .upper = { 2*M_PI/ctx.k0 },
-    .cells = { 24 },
+    .cells = { NX },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
@@ -140,7 +143,7 @@ main(int argc, char **argv)
   };
 
   // create app object
-  gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
+  gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 50.0;

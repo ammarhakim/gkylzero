@@ -46,13 +46,26 @@ struct gkyl_basis {
 
 /**
  * Flip-sign function: changes signs of input expansion cofficients by
- * changing monomial terms in specified direction.
+ * changing sign of odd monomial powers in specified direction. So if
+ * dir=0, all odd powers of x appearing in the expansion will have
+ * sign flipped.
  *
  * @param dir Direction to flip sign
  * @param f Input expansion
  * @param fout On output, flipped version of @a f
  */
-  void (*flip_sign)(int dir, const double *f, double *fout);
+  void (*flip_odd_sign)(int dir, const double *f, double *fout);
+
+  /**
+ * Flip-sign function: changes signs of input expansion cofficients by
+ * changing sign of even monomial powers in specified direction. So if dir=0, all
+ * even powers of x appearing in the expansion will have sign flipped.
+ *
+ * @param dir Direction to flip sign
+ * @param f Input expansion
+ * @param fout On output, flipped version of @a f
+ */
+  void (*flip_even_sign)(int dir, const double *f, double *fout);
 
 /**
  * Construct list of nodes corresponding to this basis set. The nodes

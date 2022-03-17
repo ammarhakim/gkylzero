@@ -1,5 +1,6 @@
 #include <gkyl_lbo_vlasov_kernels.h> 
-#include <gkyl_basis_ser_1x1v_p1_surfvx_quad.h> 
+#include <gkyl_basis_ser_2x_p1_surfx2_eval_quad.h> 
+#include <gkyl_basis_ser_2x_p1_upwind_quad_to_modal.h> 
 GKYL_CU_DH void lbo_vlasov_drag_boundary_surfvx_1x1v_ser_p1(const double *w, const double *dxv, const double *nuSum, const double *nuUSum, const double *nuVtSqSum, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
 { 
   // w[2]:         Cell-center coordinates. 
@@ -16,7 +17,7 @@ GKYL_CU_DH void lbo_vlasov_drag_boundary_surfvx_1x1v_ser_p1(const double *w, con
   double alphaDrSurf[2] = {0.0}; 
   double fUpwindQuad[2] = {0.0};
   double fUpwind[2] = {0.0};;
-  double drag_incr[2] = {0.0}; 
+  double Ghat[2] = {0.0}; 
 
   if (edge == -1) { 
 
@@ -24,28 +25,26 @@ GKYL_CU_DH void lbo_vlasov_drag_boundary_surfvx_1x1v_ser_p1(const double *w, con
   alphaDrSurf[1] = 0.5*(2.0*nuSum[1]*w[1]-2.0*sumNuUx[1]+dxv[1]*nuSum[1]); 
 
   if (alphaDrSurf[0]-alphaDrSurf[1] < 0) { 
-    fUpwindQuad[0] = ser_1x1v_p1_surfvx_quad_0(1, fSkin); 
+    fUpwindQuad[0] = ser_2x_p1_surfx2_eval_quad_node_0_r(fSkin); 
   } else { 
-
-    fUpwindQuad[0] = ser_1x1v_p1_surfvx_quad_0(-1, fEdge); 
+    fUpwindQuad[0] = ser_2x_p1_surfx2_eval_quad_node_0_l(fEdge); 
   } 
   if (alphaDrSurf[1]+alphaDrSurf[0] < 0) { 
-    fUpwindQuad[1] = ser_1x1v_p1_surfvx_quad_1(1, fSkin); 
+    fUpwindQuad[1] = ser_2x_p1_surfx2_eval_quad_node_1_r(fSkin); 
   } else { 
-
-    fUpwindQuad[1] = ser_1x1v_p1_surfvx_quad_1(-1, fEdge); 
+    fUpwindQuad[1] = ser_2x_p1_surfx2_eval_quad_node_1_l(fEdge); 
   } 
 
-  fUpwind[0] = 0.7071067811865475*(fUpwindQuad[1]+fUpwindQuad[0]); 
-  fUpwind[1] = 0.7071067811865475*(fUpwindQuad[1]-1.0*fUpwindQuad[0]); 
+  // Project tensor nodal quadrature basis back onto modal basis. 
+  ser_2x_p1_upwind_quad_to_modal(fUpwindQuad, fUpwind); 
 
-  drag_incr[0] = 0.7071067811865475*alphaDrSurf[1]*fUpwind[1]+0.7071067811865475*alphaDrSurf[0]*fUpwind[0]; 
-  drag_incr[1] = 0.7071067811865475*alphaDrSurf[0]*fUpwind[1]+0.7071067811865475*fUpwind[0]*alphaDrSurf[1]; 
+  Ghat[0] = 0.7071067811865475*(alphaDrSurf[1]*fUpwind[1]+alphaDrSurf[0]*fUpwind[0]); 
+  Ghat[1] = 0.7071067811865475*(alphaDrSurf[0]*fUpwind[1]+fUpwind[0]*alphaDrSurf[1]); 
 
-  out[0] += 0.7071067811865475*drag_incr[0]*rdv2; 
-  out[1] += 0.7071067811865475*drag_incr[1]*rdv2; 
-  out[2] += 1.224744871391589*drag_incr[0]*rdv2; 
-  out[3] += 1.224744871391589*drag_incr[1]*rdv2; 
+  out[0] += 0.7071067811865475*Ghat[0]*rdv2; 
+  out[1] += 0.7071067811865475*Ghat[1]*rdv2; 
+  out[2] += 1.224744871391589*Ghat[0]*rdv2; 
+  out[3] += 1.224744871391589*Ghat[1]*rdv2; 
 
   } else { 
 
@@ -53,26 +52,26 @@ GKYL_CU_DH void lbo_vlasov_drag_boundary_surfvx_1x1v_ser_p1(const double *w, con
   alphaDrSurf[1] = 0.5*(2.0*nuSum[1]*w[1]-2.0*sumNuUx[1]-1.0*dxv[1]*nuSum[1]); 
 
   if (alphaDrSurf[0]-alphaDrSurf[1] < 0) { 
-    fUpwindQuad[0] = ser_1x1v_p1_surfvx_quad_0(1, fEdge); 
+    fUpwindQuad[0] = ser_2x_p1_surfx2_eval_quad_node_0_r(fEdge); 
   } else { 
-    fUpwindQuad[0] = ser_1x1v_p1_surfvx_quad_0(-1, fSkin); 
+    fUpwindQuad[0] = ser_2x_p1_surfx2_eval_quad_node_0_l(fSkin); 
   } 
   if (alphaDrSurf[1]+alphaDrSurf[0] < 0) { 
-    fUpwindQuad[1] = ser_1x1v_p1_surfvx_quad_1(1, fEdge); 
+    fUpwindQuad[1] = ser_2x_p1_surfx2_eval_quad_node_1_r(fEdge); 
   } else { 
-    fUpwindQuad[1] = ser_1x1v_p1_surfvx_quad_1(-1, fSkin); 
+    fUpwindQuad[1] = ser_2x_p1_surfx2_eval_quad_node_1_l(fSkin); 
   } 
 
-  fUpwind[0] = 0.7071067811865475*(fUpwindQuad[1]+fUpwindQuad[0]); 
-  fUpwind[1] = 0.7071067811865475*(fUpwindQuad[1]-1.0*fUpwindQuad[0]); 
+  // Project tensor nodal quadrature basis back onto modal basis. 
+  ser_2x_p1_upwind_quad_to_modal(fUpwindQuad, fUpwind); 
 
-  drag_incr[0] = 0.7071067811865475*alphaDrSurf[1]*fUpwind[1]+0.7071067811865475*alphaDrSurf[0]*fUpwind[0]; 
-  drag_incr[1] = 0.7071067811865475*alphaDrSurf[0]*fUpwind[1]+0.7071067811865475*fUpwind[0]*alphaDrSurf[1]; 
+  Ghat[0] = 0.7071067811865475*(alphaDrSurf[1]*fUpwind[1]+alphaDrSurf[0]*fUpwind[0]); 
+  Ghat[1] = 0.7071067811865475*(alphaDrSurf[0]*fUpwind[1]+fUpwind[0]*alphaDrSurf[1]); 
 
-  out[0] += -0.7071067811865475*drag_incr[0]*rdv2; 
-  out[1] += -0.7071067811865475*drag_incr[1]*rdv2; 
-  out[2] += 1.224744871391589*drag_incr[0]*rdv2; 
-  out[3] += 1.224744871391589*drag_incr[1]*rdv2; 
+  out[0] += -0.7071067811865475*Ghat[0]*rdv2; 
+  out[1] += -0.7071067811865475*Ghat[1]*rdv2; 
+  out[2] += 1.224744871391589*Ghat[0]*rdv2; 
+  out[3] += 1.224744871391589*Ghat[1]*rdv2; 
 
   } 
 } 

@@ -30,18 +30,34 @@ void gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
   const double *lower, const double *upper, const int *cells);
 
 /**
- * Get cell-center coordinates. idx is the zero-based cell index.
+ * Get cell-center coordinates. Note that idx is a 1-based cell index,
+ * i.e. the lower-left corner is (1,1,...).
  *
  * @param grid Grid object
- * @param idx Index of cell (lower-left corner has all index (0,0,...) )
+ * @param idx Index of cell (lower-left corner has all index (1,1,...) )
  * @param xc On output, cell-center coordinates of cell 'idx'
  */
 GKYL_CU_DH
-static inline void gkyl_rect_grid_cell_center(const struct gkyl_rect_grid *grid,
+static inline void
+gkyl_rect_grid_cell_center(const struct gkyl_rect_grid *grid,
   const int *idx, double *xc)
 {
   for (int i=0; i<grid->ndim; ++i)
-    xc[i] = grid->lower[i]+(idx[i]+0.5)*grid->dx[i];
+    xc[i] = grid->lower[i]+(idx[i]-0.5)*grid->dx[i];
+}
+
+/**
+ * Get index extents in direction @a dir. The extents are inclusive.
+ *
+ * @param grid Grid object
+ * @param dir Direction in which to get extents
+ * @param ext On output, inclusive extents in direction @a dir.
+ */
+GKYL_CU_DH
+static inline void
+gkyl_rect_grid_extents(const struct gkyl_rect_grid *grid, int dir, int ext[2])
+{
+  ext[0] = 1; ext[1] = grid->cells[dir];
 }
 
 /**

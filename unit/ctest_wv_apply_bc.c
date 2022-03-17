@@ -31,11 +31,10 @@ test_1()
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
 
-  int nghost[] = { 2 };
-
-  struct gkyl_range ext_range, range;
+  int nghost[GKYL_MAX_DIM] = { 2 };
+  struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
-
+  
   struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &ext_range, nomapc2p, &ndim);
   struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new();
 
@@ -192,7 +191,7 @@ test_3()
 
   /** apply BCs on restricted range: test 1 */
   struct gkyl_range sub_range;
-  gkyl_sub_range_init(&sub_range, &ext_range, (int []) { 0, 2 }, (int []) { 10, 6 });
+  gkyl_sub_range_init(&sub_range, &ext_range, (int []) { 1, 2 }, (int []) { 10, 6 });
 
   gkyl_wv_apply_bc_advance(lbc, 0.0, &sub_range, distf);
   gkyl_wv_apply_bc_advance(rbc, 0.0, &sub_range, distf);
@@ -217,7 +216,7 @@ test_3()
   gkyl_array_clear(distf, 0.0);
   gkyl_array_clear_range(distf, 1.0, range);
   
-  gkyl_sub_range_init(&sub_range, &ext_range, (int []) { 2, 0 }, (int []) { 8, 4 });
+  gkyl_sub_range_init(&sub_range, &ext_range, (int []) { 2, 1 }, (int []) { 8, 4 });
 
   gkyl_wv_apply_bc_advance(lbc, 0.0, &sub_range, distf);
   gkyl_wv_apply_bc_advance(rbc, 0.0, &sub_range, distf);
@@ -242,7 +241,7 @@ test_3()
   gkyl_array_clear(distf, 0.0);
   gkyl_array_clear_range(distf, 1.0, range);
   
-  gkyl_sub_range_init(&sub_range, &ext_range, (int []) { 2, 1 }, (int []) { 8, 4 });
+  gkyl_sub_range_init(&sub_range, &ext_range, (int []) { 2, 2 }, (int []) { 8, 4 });
 
   gkyl_wv_apply_bc_advance(lbc, 0.0, &sub_range, distf);
   gkyl_wv_apply_bc_advance(rbc, 0.0, &sub_range, distf);
@@ -257,7 +256,7 @@ test_3()
     double *f = gkyl_array_fetch(distf, gkyl_range_idx(&ext_range, iter.idx));
     vol += f[0];
   }
-  
+
   // range does not touch boundaries
   TEST_CHECK( vol == range.volume );
 

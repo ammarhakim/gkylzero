@@ -39,12 +39,22 @@ static struct { double (*ev[4])(int dir, const double *z, const double *f); } ev
 };
 
 // Flip-sign functions: ev_list[ndim].ev[poly_order]
-static struct { void (*fs[4])(int dir, const double *f, double *fout); } fs_list[] = {
+static struct { void (*fs[4])(int dir, const double *f, double *fout); } fos_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
-  { NULL, flip_sign_2d_gk_hyb_p1, NULL, NULL },
-  { NULL, flip_sign_3d_gk_hyb_p1, NULL, NULL },
-  { NULL, flip_sign_4d_gk_hyb_p1, NULL, NULL },     
-  { NULL, flip_sign_5d_gk_hyb_p1, NULL, NULL },
+  { NULL, flip_odd_sign_2d_gk_hyb_p1, NULL, NULL },
+  { NULL, flip_odd_sign_3d_gk_hyb_p1, NULL, NULL },
+  { NULL, flip_odd_sign_4d_gk_hyb_p1, NULL, NULL },     
+  { NULL, flip_odd_sign_5d_gk_hyb_p1, NULL, NULL },
+  { NULL, NULL, NULL, NULL }, // No 6D basis functions  
+};
+
+// Flip-sign functions: ev_list[ndim].ev[poly_order]
+static struct { void (*fs[4])(int dir, const double *f, double *fout); } fes_list[] = {
+  { NULL, NULL, NULL, NULL }, // No 0D basis functions
+  { NULL, flip_even_sign_2d_gk_hyb_p1, NULL, NULL },
+  { NULL, flip_even_sign_3d_gk_hyb_p1, NULL, NULL },
+  { NULL, flip_even_sign_4d_gk_hyb_p1, NULL, NULL },     
+  { NULL, flip_even_sign_5d_gk_hyb_p1, NULL, NULL },
   { NULL, NULL, NULL, NULL }, // No 6D basis functions  
 };
 
@@ -92,7 +102,8 @@ gkyl_cart_modal_gk_hybrid(struct gkyl_basis *basis, int ndim)
   basis->eval = ev_list[ndim].ev[1];
   basis->eval_expand = eve_list[ndim].ev[1];
   basis->eval_grad_expand = eveg_list[ndim].ev[1];
-  basis->flip_sign = fs_list[ndim].fs[1];
+  basis->flip_odd_sign = fos_list[ndim].fs[1];
+  basis->flip_even_sign = fes_list[ndim].fs[1];
   basis->node_list = NULL; // TODO nl_list[ndim].nl[1];
   basis->nodal_to_modal = NULL; //TODO n2m_list[ndim].n2m[1];
 }
