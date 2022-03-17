@@ -299,7 +299,7 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
 
 #ifdef GKYL_HAVE_CUDA
 void
-test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_check[], double vf_check[], double u_check[], double vth_check[])
+test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_check[], double vf_check[], double u_check[], double vth_check[], double ucross_check[], double vthcross_check[])
 {
   int pdim = cdim + vdim;  
   double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM], confLower[GKYL_MAX_DIM], confUpper[GKYL_MAX_DIM];
@@ -389,6 +389,7 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
 
   struct gkyl_prim_lbo_type *prim = gkyl_prim_lbo_vlasov_cu_dev_new(&confBasis, &basis);
   gkyl_prim_lbo_calc *primcalc = gkyl_prim_lbo_calc_cu_dev_new(&grid, prim);
+  gkyl_prim_lbo_cross_calc *crossprimcalc = gkyl_prim_lbo_cross_calc_cu_dev_new(&grid, prim, 1); 
   
   // create moment arrays
   struct gkyl_array *u, *vth, *u_cu, *vth_cu;
@@ -420,6 +421,47 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
     double *vthptr = gkyl_array_fetch(vth, linc);
     for (unsigned int k=0; k<confBasis.num_basis; ++k) {
       TEST_CHECK( gkyl_compare( vth_check[k], vthptr[k], 1e-12) );
+  }}
+
+  struct gkyl_array *cross_u[GKYL_MAX_SPECIES];
+  struct gkyl_array *cross_vtsq[GKYL_MAX_SPECIES];
+  struct gkyl_array *u_out_cu[GKYL_MAX_SPECIES];
+  struct gkyl_array *vtsq_out_cu[GKYL_MAX_SPECIES];
+  struct gkyl_array *u_out[GKYL_MAX_SPECIES];
+  struct gkyl_array *vtsq_out[GKYL_MAX_SPECIES];
+
+  u_out_cu[0] = mkarr_cu(vdim*confBasis.num_basis, confLocal_ext.volume);
+  vtsq_out_cu[0] = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
+  cross_u[0] = u_cu;
+  cross_vtsq[0] = vth_cu;
+  double self_m = 1.;
+  double cross_m[1] = {0.0};
+  double betaGreenep1 = 1.;
+  cross_m[0] = self_m;
+
+  gkyl_prim_lbo_cross_calc_advance_cu(crossprimcalc, confBasis, confLocal, betaGreenep1, self_m, u_cu, vth_cu, cross_m, cross_u, cross_vtsq, moms_cu, boundary_corrections_cu, u_out_cu, vtsq_out_cu);
+  
+  gkyl_array_copy(u_out[0], u_out_cu[0]);
+  gkyl_array_copy(vtsq_out[0], vtsq_out_cu[0]);
+  
+  // Check cross u
+  // 1-indexed for interfacing with G2 Lua layer
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
+    int cidx[] = {i};
+    long linc = gkyl_range_idx(&confLocal, cidx);
+    double *uptr = gkyl_array_fetch(u_out[0], linc);
+    for (unsigned int k=0; k<confBasis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare( ucross_check[k], uptr[k], 1e-12) );
+  }}
+
+  // Check cross vtsq
+  // 1-indexed for interfacing with G2 Lua layer
+  for (unsigned int i=1; i<cells[0]+1; ++i) {
+    int cidx[] = {i};
+    long linc = gkyl_range_idx(&confLocal, cidx);
+    double *vthptr = gkyl_array_fetch(vtsq_out[0], linc);
+    for (unsigned int k=0; k<confBasis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare( vthcross_check[k], vthptr[k], 1e-12) );
   }}
 
   // release memory for objects
@@ -485,8 +527,10 @@ test_1x1v_p2_cu()
   double vf_check[] = { 0.30543841971927, 0.0, 0.0 };
   double u_check[] = { 0.0, 0.0, 0.0 };
   double vth_check[] = { 1.4142398195471544, 0.0, 0.0 };
+  double ucross_check[] = { 0.0, 0.0, 0.0 };
+  double vthcross_check[] = { 1.4142398195471544, 0.0, 0.0 };
 
-  test_func_cu(cdim, vdim, poly_order, evalDistFunc1x1v, f_check, vf_check, u_check, vth_check);
+  test_func_cu(cdim, vdim, poly_order, evalDistFunc1x1v, f_check, vf_check, u_check, vth_check, ucross_check, vthcross_check);
 }
 
 void
@@ -499,8 +543,11 @@ test_1x2v_p2_cu()
   double vf_check[] = { 0.583081782023233, 0.0, 0.0, 0.0, 0.0, 0.0 };
   double u_check[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
   double vth_check[] = { 1.4142398195471586, 0.0, 0.0 };
+  double ucross_check[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+  double vthcross_check[] = { 1.4142398195471586, 0.0, 0.0 };
 
-  test_func_cu(cdim, vdim, poly_order, evalDistFunc1x2v, f_check, vf_check, u_check, vth_check);
+
+  test_func_cu(cdim, vdim, poly_order, evalDistFunc1x2v, f_check, vf_check, u_check, vth_check, ucross_check, vthcross_check);
 }
 #endif
 

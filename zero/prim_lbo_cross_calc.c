@@ -28,15 +28,17 @@ gkyl_prim_lbo_cross_calc_new(const struct gkyl_rect_grid *grid,
 }
 
 void
-gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc, struct gkyl_basis cbasis, const struct gkyl_range conf_rng,
-  const double betaGreenep1, const double self_m, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
-  const double *cross_m, struct gkyl_array *cross_u[GKYL_MAX_SPECIES], struct gkyl_array *cross_vtsq[GKYL_MAX_SPECIES], const struct gkyl_array *moms,
-  const struct gkyl_array *boundary_corrections, struct gkyl_array *u_out[GKYL_MAX_SPECIES], struct gkyl_array *vtsq_out[GKYL_MAX_SPECIES])
+gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc, struct gkyl_basis cbasis,
+  const struct gkyl_range conf_rng, const double betaGreenep1, const double self_m,
+  const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
+  const double cross_m[GKYL_MAX_SPECIES], struct gkyl_array *cross_u[GKYL_MAX_SPECIES],
+  struct gkyl_array *cross_vtsq[GKYL_MAX_SPECIES], const struct gkyl_array *moms,
+  const struct gkyl_array *boundary_corrections, struct gkyl_array *u_out[GKYL_MAX_SPECIES],
+  struct gkyl_array *vtsq_out[GKYL_MAX_SPECIES])
 {
   struct gkyl_range_iter conf_iter;
 
   int nspecies = calc->nspecies;
-  double cross_ms[GKYL_MAX_SPECIES];
   double *cross_us[GKYL_MAX_SPECIES];
   double *cross_vtsqs[GKYL_MAX_SPECIES];
   double *u_outs[GKYL_MAX_SPECIES];
@@ -60,7 +62,6 @@ gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc, struct gkyl_bas
   while (gkyl_range_iter_next(&conf_iter)) {
     long midx = gkyl_range_idx(&conf_rng, conf_iter.idx);
     for (int n=0; n<nspecies; ++n) {
-      cross_ms[n] = cross_m[n];
       cross_us[n] = gkyl_array_fetch(cross_u[n], midx);
       cross_vtsqs[n] = gkyl_array_fetch(cross_vtsq[n], midx);
 
@@ -71,7 +72,7 @@ gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc, struct gkyl_bas
 
       calc->prim->cross_prim(calc->prim, &lhs, &rhs, betaGreenep1, self_m,
 	gkyl_array_cfetch(self_u, midx), gkyl_array_cfetch(self_vtsq, midx),
-        cross_ms[n], cross_us[n], cross_vtsqs[n], gkyl_array_cfetch(moms, midx),
+        cross_m[n], cross_us[n], cross_vtsqs[n], gkyl_array_cfetch(moms, midx),
         gkyl_array_cfetch(boundary_corrections, midx)
       );
 
@@ -121,10 +122,13 @@ gkyl_prim_lbo_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
 }
 
 void
-gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc, struct gkyl_basis cbasis, const struct gkyl_range conf_rng,
-  const double betaGreenep1, const double self_m, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
-  const double *cross_m, struct gkyl_array *cross_u[GKYL_MAX_SPECIES], struct gkyl_array *cross_vtsq[GKYL_MAX_SPECIES], const struct gkyl_array *moms,
-  const struct gkyl_array *boundary_corrections, struct gkyl_array *u_out[GKYL_MAX_SPECIES], struct gkyl_array *vtsq_out[GKYL_MAX_SPECIES])
+gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc, struct gkyl_basis cbasis,
+  const struct gkyl_range conf_rng, const double betaGreenep1, const double self_m,
+  const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
+  const double cross_m[GKYL_MAX_SPECIES], struct gkyl_array *cross_u[GKYL_MAX_SPECIES],
+  struct gkyl_array *cross_vtsq[GKYL_MAX_SPECIES], const struct gkyl_array *moms,
+  const struct gkyl_array *boundary_corrections, struct gkyl_array *u_out[GKYL_MAX_SPECIES],
+  struct gkyl_array *vtsq_out[GKYL_MAX_SPECIES])
 {
   assert(false);
 }
