@@ -314,7 +314,7 @@ gkyl_array_copy_from_buffer_cu_kernel(struct gkyl_array *arr, const void *data,
 
 __global__ void 
 gkyl_array_copy_to_buffer_fn_cu_kernel(void *data, const struct gkyl_array *arr,
-  struct gkyl_range range, array_copy_func_t func, void *ctx)
+  struct gkyl_range range, struct gkyl_array_copy_func *cf)
 {
   long count = 0;
   int idx[GKYL_MAX_DIM];
@@ -331,7 +331,7 @@ gkyl_array_copy_to_buffer_fn_cu_kernel(void *data, const struct gkyl_array *arr,
 
     const double *inp = (const double*) gkyl_array_cfetch(arr, linc);
     double *out = (double*) flat_fetch(data, arr->esznc*count);
-    func(arr->ncomp, out, inp, ctx);
+    cf->func(arr->ncomp, out, inp, cf->ctx);
 
     count += 1;
   }
@@ -339,7 +339,8 @@ gkyl_array_copy_to_buffer_fn_cu_kernel(void *data, const struct gkyl_array *arr,
 
 __global__ void 
 gkyl_array_flip_copy_to_buffer_fn_cu_kernel(void *data, const struct gkyl_array *arr,
-  int dir, struct gkyl_range range, struct gkyl_range buff_range, array_copy_func_t func, void *ctx)
+  int dir, struct gkyl_range range, struct gkyl_range buff_range,
+  struct gkyl_array_copy_func *cf)
 {
   int idx[GKYL_MAX_DIM];
   int fidx[GKYL_MAX_DIM]; // flipped index
@@ -363,7 +364,7 @@ gkyl_array_flip_copy_to_buffer_fn_cu_kernel(void *data, const struct gkyl_array 
 
     const double *inp = (const double*) gkyl_array_cfetch(arr, linc);
     double *out = (double*) flat_fetch(data, arr->esznc*flinc);
-    func(arr->ncomp, out, inp, ctx);
+    cf->func(arr->ncomp, out, inp, cf->ctx);
   }
 }
 

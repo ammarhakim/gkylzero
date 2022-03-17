@@ -385,10 +385,10 @@ gkyl_array_copy_from_buffer(struct gkyl_array *arr,
 
 void
 gkyl_array_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
-  struct gkyl_range range, array_copy_func_t func, void *ctx)
+  struct gkyl_range range, struct gkyl_array_copy_func *cf)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(arr)) { gkyl_array_copy_to_buffer_fn_cu(data, arr, range, func, ctx); return; }
+  if (gkyl_array_is_cu_dev(arr)) { gkyl_array_copy_to_buffer_fn_cu(data, arr, range, cf); return; }
 #endif
 
   struct gkyl_range_iter iter;
@@ -400,18 +400,18 @@ gkyl_array_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
 
     const double *inp = gkyl_array_cfetch(arr, loc);
     double *out = flat_fetch(data, arr->esznc*count);
-    func(arr->ncomp, out, inp, ctx);
+    cf->func(arr->ncomp, out, inp, cf->ctx);
     count += 1;
   }
 }
 
 void
 gkyl_array_flip_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
-  int dir, struct gkyl_range range, array_copy_func_t func, void *ctx)
+  int dir, struct gkyl_range range, struct gkyl_array_copy_func *cf)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(arr)) {
-    if (gkyl_array_is_cu_dev(arr)) { gkyl_array_flip_copy_to_buffer_fn_cu(data, arr, dir, range, func, ctx); return; }
+    if (gkyl_array_is_cu_dev(arr)) { gkyl_array_flip_copy_to_buffer_fn_cu(data, arr, dir, range, cf); return; }
   }
 #endif
 
@@ -434,7 +434,7 @@ gkyl_array_flip_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
 
     const double *inp = gkyl_array_cfetch(arr, loc);
     double *out = flat_fetch(data, arr->esznc*count);
-    func(arr->ncomp, out, inp, ctx);
+    cf->func(arr->ncomp, out, inp, cf->ctx);
     count += 1;
   }  
 }

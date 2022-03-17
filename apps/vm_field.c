@@ -1,3 +1,4 @@
+#include "gkyl_array_ops.h"
 #include <assert.h>
 #include <float.h>
 
@@ -192,16 +193,22 @@ void
 vm_field_apply_pec_bc(gkyl_vlasov_app *app, const struct vm_field *field,
   int dir, enum vm_domain_edge edge, struct gkyl_array *f)
 {
+  struct maxwell_wall_bc_ctx ctx = { .dir = dir, .basis = &app->confBasis };
+  
   if (edge == VM_EDGE_LOWER) {
     gkyl_array_copy_to_buffer_fn(field->bc_buffer->data, f, app->skin_ghost.lower_skin[dir],
-      maxwell_wall_bc, &(struct maxwell_wall_bc_ctx) { .dir = dir, .basis = &app->confBasis }
+      &(struct gkyl_array_copy_func) {
+        .func = maxwell_wall_bc, .ctx = &ctx
+      }
     );
     gkyl_array_copy_from_buffer(f, field->bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
   }
 
   if (edge == VM_EDGE_UPPER) {
     gkyl_array_copy_to_buffer_fn(field->bc_buffer->data, f, app->skin_ghost.upper_skin[dir],
-      maxwell_wall_bc, &(struct maxwell_wall_bc_ctx) { .dir = dir, .basis = &app->confBasis }
+      &(struct gkyl_array_copy_func) {
+        .func = maxwell_wall_bc, .ctx = &ctx
+      }
     );
     gkyl_array_copy_from_buffer(f, field->bc_buffer->data, app->skin_ghost.upper_ghost[dir]);
   }  
