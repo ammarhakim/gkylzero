@@ -122,7 +122,7 @@ gkyl_prim_lbo_calc_advance_cu(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis
   }
 
   gkyl_prim_lbo_calc_set_cu_ker<<<dimGrid, dimBlock>>>(calc->on_dev,
-    A_d->on_dev, x_d->on_dev, cbasis, conf_rng,
+    calc->As->on_dev, calc->xs->on_dev, cbasis, conf_rng,
     moms->on_dev, boundary_corrections->on_dev);
   
   bool status = gkyl_nmat_linsolve_lu_pa(calc->mem, calc->As, calc->xs);

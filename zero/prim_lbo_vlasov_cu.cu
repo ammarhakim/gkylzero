@@ -16,7 +16,7 @@ gkyl_prim_lbo_vlasov_set_cu_dev_ptrs(struct prim_lbo_type_vlasov *prim_vlasov, i
   prim_vlasov->prim.self_prim = self_prim;
   
   // choose kernel tables based on basis-function type
-  const gkyl_prim_lbo_vlasov_kern_list *self_prim_kernels;
+  const gkyl_prim_lbo_vlasov_self_kern_list *self_prim_kernels;
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
