@@ -60,11 +60,15 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 
   // allocate space to store species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct vm_species[ns])) : 0;
-  // create species grid & ranges
-  for (int i=0; i<ns; ++i) {
+  
+  // set info for each species: this needs to be done here as we need
+  // to access species name from vm_species_init
+  for (int i=0; i<ns; ++i)
     app->species[i].info = vm->species[i];
-    vm_species_init(vm, app, &app->species[i]);
-  }
+  
+  // initialize each species
+  for (int i=0; i<ns; ++i)
+    vm_species_init(vm, app, &app->species[i]);  
 
   // initialize stat object
   app->stat = (struct gkyl_vlasov_stat) {
@@ -471,12 +475,12 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
     
     fprintf(fp, " \"species_rhs_tm\" : \"%lg\",\n", app->stat.species_rhs_tm);
 
-    for (int s=0; s<app->num_species; ++s) {
-      fprintf(fp, " \"species_coll_drag_tm[%d]\" : \"%lg\",\n", s,
-        app->stat.species_lbo_coll_drag_tm[s]);
-      fprintf(fp, " \"species_coll_diff_tm[%d]\" : \"%lg\",\n", s,
-        app->stat.species_lbo_coll_diff_tm[s]);
-    }
+    /* for (int s=0; s<app->num_species; ++s) { */
+    /*   fprintf(fp, " \"species_coll_drag_tm[%d]\" : \"%lg\",\n", s, */
+    /*     app->stat.species_lbo_coll_drag_tm[s]); */
+    /*   fprintf(fp, " \"species_coll_diff_tm[%d]\" : \"%lg\",\n", s, */
+    /*     app->stat.species_lbo_coll_diff_tm[s]); */
+    /* } */
     
     fprintf(fp, " \"species_coll_mom_tm\" : \"%lg\",\n", app->stat.species_coll_mom_tm);
     fprintf(fp, " \"species_coll_tm\" : \"%lg\",\n", app->stat.species_coll_tm);
