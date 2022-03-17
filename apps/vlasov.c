@@ -475,13 +475,13 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
     
     fprintf(fp, " \"species_rhs_tm\" : \"%lg\",\n", app->stat.species_rhs_tm);
 
-    /* for (int s=0; s<app->num_species; ++s) { */
-    /*   fprintf(fp, " \"species_coll_drag_tm[%d]\" : \"%lg\",\n", s, */
-    /*     app->stat.species_lbo_coll_drag_tm[s]); */
-    /*   fprintf(fp, " \"species_coll_diff_tm[%d]\" : \"%lg\",\n", s, */
-    /*     app->stat.species_lbo_coll_diff_tm[s]); */
-    /* } */
-    
+    for (int s=0; s<app->num_species; ++s) {
+      fprintf(fp, " \"species_coll_drag_tm[%d]\" : \"%lg\",\n", s,
+        app->stat.species_lbo_coll_drag_tm[s]);
+      fprintf(fp, " \"species_coll_diff_tm[%d]\" : \"%lg\",\n", s,
+        app->stat.species_lbo_coll_diff_tm[s]);
+    }
+
     fprintf(fp, " \"species_coll_mom_tm\" : \"%lg\",\n", app->stat.species_coll_mom_tm);
     fprintf(fp, " \"species_coll_tm\" : \"%lg\",\n", app->stat.species_coll_tm);
     
