@@ -3,7 +3,6 @@
 #include <gkyl_app.h>
 #include <gkyl_basis.h>
 #include <gkyl_eqn_type.h>
-#include <gkyl_job_pool.h>
 #include <gkyl_util.h>
 
 #include <stdbool.h>

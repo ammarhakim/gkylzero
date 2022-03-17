@@ -4,6 +4,13 @@
 #include <gkyl_evalf_def.h>
 #include <gkyl_range.h>
 
+GKYL_CU_DH
+static inline void*
+flat_fetch(void *data, size_t loc)
+{
+  return ((char*) data) + loc;
+}
+
 // Array reduce operators
 enum gkyl_array_op { GKYL_MIN, GKYL_MAX, GKYL_SUM };
 
@@ -237,3 +244,11 @@ void gkyl_array_copy_to_buffer_cu(void *data, const struct gkyl_array *arr,
 
 void gkyl_array_copy_from_buffer_cu(struct gkyl_array *arr, const void *data, 
   struct gkyl_range range);
+
+void gkyl_array_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
+  struct gkyl_range range,
+  array_copy_func_t func, void *ctx);
+
+void gkyl_array_flip_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
+  int dir, struct gkyl_range range, 
+  array_copy_func_t func, void *ctx);

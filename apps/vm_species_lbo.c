@@ -4,6 +4,11 @@
 void 
 vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_lbo_collisions *lbo)
 {
+  // set pointers to species we cross-collide with
+  lbo->num_cross_collisions = s->info.collisions.num_cross_collisions;
+  for (int i=0; i<lbo->num_cross_collisions; ++i)
+    lbo->collide_with[i] = vm_find_species(app, s->info.collisions.collide_with[i]);
+  
   // TO DO: Expose nu_u and nu_vthsq arrays above species object
   //        for cross-species collisions. Just testing for now JJ 09/24/21
   int cdim = app->cdim, vdim = app->vdim;

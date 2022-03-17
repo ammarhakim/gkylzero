@@ -13,14 +13,14 @@
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_dg_bin_ops.h>
-#include <gkyl_dg_updater_lbo_vlasov.h>
 #include <gkyl_dg_maxwell.h>
+#include <gkyl_dg_updater_lbo_vlasov.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_mom_bcorr_lbo_vlasov.h>
-#include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_calc.h>
+#include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_vlasov.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_prim_lbo_calc.h>
@@ -30,8 +30,8 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_util.h>
 #include <gkyl_vlasov.h>
-
 
 // Definitions of private structs and APIs attached to these objects
 // for use in Vlasov app.
@@ -56,6 +56,9 @@ struct vm_species_moment {
   struct gkyl_array *marr_host; // host copy (same as marr if not on GPUs)
 };
 
+// forward declare species struct
+struct vm_species;
+
 struct vm_lbo_collisions {
   struct gkyl_array *boundary_corrections; // LBO boundary corrections
   struct gkyl_mom_type *bcorr_type; // LBO boundary corrections moment type
@@ -64,7 +67,10 @@ struct vm_lbo_collisions {
   struct gkyl_prim_lbo_type *coll_prim; // LBO primitive moments type
 
   struct vm_species_moment moms; // moments needed in LBO (single array includes Zeroth, First, and Second moment)
-  
+
+  int num_cross_collisions; // number of species we cross-collide with
+  struct vm_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
+
   gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
   gkyl_dg_updater_lbo_vlasov *coll_slvr; // collision solver
 };
@@ -113,7 +119,7 @@ struct vm_species {
   struct vm_eval_accel_ctx accel_ctx; // context for applied acceleration
 
   enum gkyl_collision_id collision_id; // type of collisions
-  struct vm_lbo_collisions lbo;
+  struct vm_lbo_collisions lbo; // collisions object
 
   double *omegaCfl_ptr;
 };
