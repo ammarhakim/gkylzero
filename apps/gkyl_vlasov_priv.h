@@ -111,6 +111,10 @@ struct vm_species {
  
   // boundary conditions on lower/upper edges in each direction  
   enum gkyl_species_bc_type lower_bc[3], upper_bc[3];
+  // Note: we need to store pointers to the struct as these may
+  // actually be on the GPUs. Seems ugly, but I am not sure how else
+  // to ensure the function and context lives on the GPU
+  struct gkyl_array_copy_func *wall_bc_func[3]; // for wall BCs
 
   bool has_accel; // flag to indicate there is applied acceleration
   struct gkyl_array *accel; // applied acceleration
@@ -139,6 +143,10 @@ struct vm_field {
 
   // boundary conditions on lower/upper edges in each direction  
   enum gkyl_field_bc_type lower_bc[3], upper_bc[3];
+  // Note: we need to store pointers to the struct as these may
+  // actually be on the GPUs. Seems ugly, but I am not sure how else
+  // to ensure the function and context lives on the GPU
+  struct gkyl_array_copy_func *wall_bc_func[3]; // for wall BCs
 
   double* omegaCfl_ptr;
 };

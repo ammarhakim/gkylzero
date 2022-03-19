@@ -1,8 +1,8 @@
-#include "gkyl_array_ops.h"
 #include <assert.h>
 #include <float.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_array_ops.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_util.h>
 #include <gkyl_vlasov_priv.h>
@@ -113,6 +113,10 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       f->upper_bc[dir] = bc[1];
     }
   }
+  for (int d=0; d<3; ++d) {
+    f->wall_bc_func[d] = gkyl_malloc(sizeof(struct gkyl_array_copy_func));
+    //f->wall_bc_func->func = species_wall_bc    
+  }  
   
   return f;
 }
@@ -267,6 +271,9 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   else {
     gkyl_free(f->omegaCfl_ptr);
   }
+
+  for (int d=0; d<3; ++d)
+    gkyl_free(f->wall_bc_func[d]);
 
   gkyl_free(f);
 }

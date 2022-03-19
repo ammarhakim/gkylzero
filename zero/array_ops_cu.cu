@@ -456,17 +456,17 @@ gkyl_array_copy_from_buffer_cu(struct gkyl_array *arr,
 
 void
 gkyl_array_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
-  struct gkyl_range range, array_copy_func_t func, void *ctx)
+  struct gkyl_range range, struct gkyl_array_copy_func *cf)
 {
   int nblocks = range.nblocks;
   int nthreads = range.nthreads;
 
-  gkyl_array_copy_to_buffer_fn_cu_kernel<<<nblocks, nthreads>>>(data, arr, range, func, ctx);  
+  gkyl_array_copy_to_buffer_fn_cu_kernel<<<nblocks, nthreads>>>(data, arr, range, cf);
 }
 
 void
 gkyl_array_flip_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
-  int dir, struct gkyl_range range, array_copy_func_t func, void *ctx)
+  int dir, struct gkyl_range range, struct gkyl_array_copy_func *cf)
 {
   int nblocks = range.nblocks;
   int nthreads = range.nthreads;
@@ -474,5 +474,6 @@ gkyl_array_flip_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
   struct gkyl_range buff_range;
   gkyl_range_init(&buff_range, range.ndim, range.lower, range.upper);
   
-  gkyl_array_flip_copy_to_buffer_fn_cu_kernel<<<nblocks, nthreads>>>(data, arr, dir, range, buff_range, func, ctx);  
+  gkyl_array_flip_copy_to_buffer_fn_cu_kernel<<<nblocks, nthreads>>>(data, arr, dir, range,
+    buff_range, cf);
 }

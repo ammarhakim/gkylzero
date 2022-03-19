@@ -1,3 +1,4 @@
+#include "gkyl_alloc.h"
 #include "gkyl_array_ops.h"
 #include <assert.h>
 
@@ -172,7 +173,11 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       s->lower_bc[dir] = bc[0];
       s->upper_bc[dir] = bc[1];
     }
-  }  
+  }
+  for (int d=0; d<3; ++d) {
+    s->wall_bc_func[d] = gkyl_malloc(sizeof(struct gkyl_array_copy_func));
+    //s->wall_bc_func->func = species_wall_bc    
+  }
 }
 
 void
@@ -267,7 +272,7 @@ vm_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_species *species,
   }
 }
 
-// Apply copy BCs on distribution function
+// Apply wall BCs on distribution function
 void
 vm_species_apply_wall_bc(gkyl_vlasov_app *app, const struct vm_species *species,
   int dir, enum vm_domain_edge edge, struct gkyl_array *f)
@@ -381,6 +386,9 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
 
   if (s->collision_id == GKYL_LBO_COLLISIONS)
     vm_species_lbo_release(app, &s->lbo);
+
+  for (int d=0; d<3; ++d)
+    gkyl_free(s->wall_bc_func[d]);
   
   if (app->use_gpu)
     gkyl_cu_free_host(s->omegaCfl_ptr);
