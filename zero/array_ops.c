@@ -435,6 +435,5 @@ gkyl_array_flip_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
     const double *inp = gkyl_array_cfetch(arr, loc);
     double *out = flat_fetch(data, arr->esznc*count);
     cf->func(arr->ncomp, out, inp, cf->ctx);
-    count += 1;
   }  
 }

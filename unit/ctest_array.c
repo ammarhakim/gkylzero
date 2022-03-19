@@ -496,6 +496,7 @@ void test_array_flip_copy_buffer_fn()
   gkyl_range_iter_init(&iter, &sub_range);
   while (gkyl_range_iter_next(&iter)) {
     double *d = gkyl_array_fetch(arr, gkyl_range_idx(&sub_range, iter.idx));
+    //printf("%lg %lg\n", d[0], 2*(iter.idx[0] + 10.5*((10+1)-iter.idx[1])) );
     TEST_CHECK( d[0]  == 2*(iter.idx[0] + 10.5*((10+1)-iter.idx[1])) );
   }
 
@@ -1477,7 +1478,6 @@ void test_cu_array_flip_copy_buffer_fn()
     double *d = gkyl_array_fetch(arr, gkyl_range_idx(&range, iter.idx));
     d[0] = iter.idx[0] + 10.5*iter.idx[1];
   }
-
   // copy host array to device
   gkyl_array_copy(arr_cu, arr);
 
@@ -1494,7 +1494,7 @@ void test_cu_array_flip_copy_buffer_fn()
   // test flip copy on first direction of 2D array
   gkyl_array_flip_copy_to_buffer_fn_cu(buff_cu, arr_cu, 0, sub_range, fn);
 
-  gkyl_array_clear(arr, 0.0);
+  gkyl_array_clear(arr_cu, 0.0);
   // copy back from buffer
   gkyl_array_copy_from_buffer(arr_cu, buff_cu, sub_range);
 
@@ -1506,10 +1506,19 @@ void test_cu_array_flip_copy_buffer_fn()
     TEST_CHECK( d[0]  == 2*((5+1)-iter.idx[0] + 10.5*iter.idx[1]) );
   }
 
+  // re-initialize the array
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    double *d = gkyl_array_fetch(arr, gkyl_range_idx(&range, iter.idx));
+    d[0] = iter.idx[0] + 10.5*iter.idx[1];
+  }
+  // copy host array to device
+  gkyl_array_copy(arr_cu, arr);
+  
   // test flip copy on second direction of 2D array
   gkyl_array_flip_copy_to_buffer_fn(buff_cu, arr_cu, 1, sub_range, fn);
 
-  gkyl_array_clear(arr, 0.0);
+  gkyl_array_clear(arr_cu, 0.0);
   // copy back from buffer
   gkyl_array_copy_from_buffer(arr_cu, buff_cu, sub_range);
 
@@ -1518,6 +1527,7 @@ void test_cu_array_flip_copy_buffer_fn()
   gkyl_range_iter_init(&iter, &sub_range);
   while (gkyl_range_iter_next(&iter)) {
     double *d = gkyl_array_fetch(arr, gkyl_range_idx(&sub_range, iter.idx));
+    //printf("%lg %lg\n", d[0], 2*(iter.idx[0] + 10.5*((10+1)-iter.idx[1])) );
     TEST_CHECK( d[0]  == 2*(iter.idx[0] + 10.5*((10+1)-iter.idx[1])) );
   }
 
