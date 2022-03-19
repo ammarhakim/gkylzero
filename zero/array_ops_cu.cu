@@ -1,5 +1,6 @@
 /* -*- c++ -*- */
 
+#include <cstdio>
 #include <math.h>
 #include <time.h>
 
@@ -9,6 +10,9 @@ extern "C" {
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_util.h>
 }
+
+#include <cstdio>
+#include <cassert>
 
 // start ID for use in various loops
 #define START_ID (threadIdx.x + blockIdx.x*blockDim.x)
@@ -422,6 +426,9 @@ void
 gkyl_array_copy_range_to_range_cu(struct gkyl_array *out,
   const struct gkyl_array *inp, struct gkyl_range out_range, struct gkyl_range inp_range)
 {
+  printf("gkyl_array_copy_range_to_range_cu is not working properly. Please FIX!!\n");
+  assert(false);
+  
   dim3 dimGrid, dimBlock;
   gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, inp_range, out->ncomp);
 
