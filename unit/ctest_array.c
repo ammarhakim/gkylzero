@@ -1498,6 +1498,7 @@ void test_cu_array_flip_copy_buffer_fn()
   // copy back from buffer
   gkyl_array_copy_from_buffer(arr_cu, buff_cu, sub_range);
 
+  gkyl_array_clear(arr, 0.0);  
   // copy from device and check if things are ok
   gkyl_array_copy(arr, arr_cu);
   gkyl_range_iter_init(&iter, &sub_range);
@@ -1522,6 +1523,7 @@ void test_cu_array_flip_copy_buffer_fn()
   // copy back from buffer
   gkyl_array_copy_from_buffer(arr_cu, buff_cu, sub_range);
 
+  gkyl_array_clear(arr, 0.0);
   // copy from device and check if things are ok
   gkyl_array_copy(arr, arr_cu);
   gkyl_range_iter_init(&iter, &sub_range);
