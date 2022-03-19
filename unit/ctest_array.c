@@ -1409,6 +1409,9 @@ void test_cu_array_copy_buffer()
   gkyl_cu_free(buff_cu);
 }
 
+// declare so we can use below
+void set_array_copy_fn(struct gkyl_array_copy_func *fn);
+
 void test_cu_array_copy_buffer_fn()
 {
   int shape[] = {10, 20};
@@ -1434,10 +1437,12 @@ void test_cu_array_copy_buffer_fn()
   struct gkyl_range sub_range;
   gkyl_sub_range_init(&sub_range, &range, lower, upper);
 
+  // create function pointer on device
+  struct gkyl_array_copy_func *fn = gkyl_cu_malloc(sizeof(*fn));
+  set_array_copy_fn(fn);
+  
   double *buff_cu = gkyl_cu_malloc(sizeof(double)*sub_range.volume);
-  gkyl_array_copy_to_buffer_fn_cu(buff_cu, arr_cu, sub_range,
-    &(struct gkyl_array_copy_func) { .func = buffer_fn, .ctx = 0 }
-  );
+  gkyl_array_copy_to_buffer_fn_cu(buff_cu, arr_cu, sub_range, fn);
   // copy back from buffer
   gkyl_array_copy_from_buffer(arr_cu, buff_cu, sub_range);
 
@@ -1452,6 +1457,7 @@ void test_cu_array_copy_buffer_fn()
   gkyl_array_release(arr);
   gkyl_array_release(arr_cu);
   gkyl_cu_free(buff_cu);
+  gkyl_cu_free(fn);
 }
 
 void test_cu_array_flip_copy_buffer_fn()
