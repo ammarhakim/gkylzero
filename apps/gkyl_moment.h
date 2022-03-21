@@ -93,7 +93,7 @@ typedef struct gkyl_moment_app gkyl_moment_app;
  * @param vm App inputs. See struct docs.
  * @return New moment app object.
  */
-gkyl_moment_app* gkyl_moment_app_new(struct gkyl_moment mom);
+gkyl_moment_app* gkyl_moment_app_new(struct gkyl_moment *mom);
 
 /**
  * Compute maximum estimated stable dt wtih current app state. Call

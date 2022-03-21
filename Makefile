@@ -193,6 +193,8 @@ install: all
 	cp -f regression/rt_arg_parse.h ${PREFIX}/gkylzero/share/rt_arg_parse.h
 	cp -f regression/rt_twostream.c ${PREFIX}/gkylzero/share/rt_twostream.c
 	cp -f ${BUILD_DIR}/regression/rt_vlasov_kerntm ${PREFIX}/gkylzero/bin/
+	cp -f inf/Vlasov.lua ${PREFIX}/gkylzero/lib/
+	cp -f inf/Moments.lua ${PREFIX}/gkylzero/lib/
 
 clean:
 	rm -rf ${BUILD_DIR}
