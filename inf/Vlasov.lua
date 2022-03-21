@@ -24,8 +24,24 @@ end
 -- set global package paths
 package.path = package.path .. ";" .. install_prefix .. "/lib/?.lua"
 
--- declare functions from Vlasov C app
+-- declare some top-level things we want to expose
 ffi.cdef [[
+/**
+ * Set the global flag to turn on memory allocation/deallocation
+ * tracing.
+ *
+ * @param flag Flag to set
+ */
+void gkyl_mem_debug_set(bool flag);
+
+/**
+ * Set the global flag to turn on cuda memory allocation/deallocation
+ * tracing.
+ *
+ * @param flag Flag to set
+ */
+void gkyl_cu_dev_mem_debug_set(bool flag);
+
 // Identifiers for specific field object types
 enum gkyl_field_id {
   GKYL_FIELD_E_B = 0, // Maxwell (E, B). This is default
@@ -62,6 +78,39 @@ enum gkyl_field_bc_type {
 
 // This needs to be enum to allow usage below
 enum { GKYL_MAX_SPECIES = 8 };
+
+struct gkyl_update_status {
+  bool success; // status of update
+  double dt_actual; // actual time-step taken
+  double dt_suggested; // suggested stable time-step
+};
+
+
+/**
+ * Time-trigger. Typical initialization is:
+ * 
+ * struct gkyl_tm_trigger tmt = { .dt = tend/nframe };
+ */
+struct gkyl_tm_trigger {
+  int curr; // current counter
+  double dt, tcurr; // Time-interval, current time
+};
+
+/**
+ * Check if the tcurr should trigger and bump internal counters if it
+ * does. This only works if sequential calls to this method have the
+ * tcurr monotonically increasing.
+ *
+ * @param tmt Time trigger object
+ * @param tcurr Current time.
+ * @return 1 if triggered, 0 otherwise
+ */
+int gkyl_tm_trigger_check_and_bump(struct gkyl_tm_trigger *tmt, double tcurr);
+
+]]
+
+-- declare functions from Vlasov C app
+ffi.cdef [[
 
 // Parameters for Vlasov species
 struct gkyl_vlasov_species {
@@ -140,12 +189,6 @@ struct gkyl_vlasov_app_cont {
   int nspecies; // number of species
 
   gkyl_vlasov_app *app; // pointer to app
-};
-
-struct gkyl_update_status {
-  bool success; // status of update
-  double dt_actual; // actual time-step taken
-  double dt_suggested; // suggested stable time-step
 };
 
 /**
@@ -261,32 +304,18 @@ struct gkyl_update_status gkyl_vlasov_update(gkyl_vlasov_app* app, double dt);
  * @param app App to release.
  */
 void gkyl_vlasov_app_release(gkyl_vlasov_app* app);
-
-/**
- * Time-trigger. Typical initialization is:
- * 
- * struct gkyl_tm_trigger tmt = { .dt = tend/nframe };
- */
-struct gkyl_tm_trigger {
-  int curr; // current counter
-  double dt, tcurr; // Time-interval, current time
-};
-
-/**
- * Check if the tcurr should trigger and bump internal counters if it
- * does. This only works if sequential calls to this method have the
- * tcurr monotonically increasing.
- *
- * @param tmt Time trigger object
- * @param tcurr Current time.
- * @return 1 if triggered, 0 otherwise
- */
-int gkyl_tm_trigger_check_and_bump(struct gkyl_tm_trigger *tmt, double tcurr);
 ]]
 
 -- module table
 local _M = { }
 
+-- methods to turn on/off memory tracing
+_M.mem_debug_set = function(flag)
+   C.gkyl_mem_debug_set(flag)
+end
+_M.cu_dev_mem_debug_set = function(flag)
+   C.gkyl_cu_dev_mem_debug_set(flag)
+end
 
 -- time-trigger object
 local tm_trigger_type = ffi.typeof("struct gkyl_tm_trigger")

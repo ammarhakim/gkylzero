@@ -78,7 +78,7 @@ main(int argc, char **argv)
   };
 
   // create app object
-  gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
+  gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // start, end
   double tcurr = 0.0, tend = 0.1;
