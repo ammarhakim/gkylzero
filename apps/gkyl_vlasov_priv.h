@@ -275,6 +275,22 @@ void vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   struct vm_lbo_collisions *lbo);
 
 /**
+ * Compute necessary moments and boundary
+ * corrections for LBO collisions
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param lbo Pointer to LBO
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from LBO
+ * @return Maximum stable time-step
+ */
+double vm_species_lbo_moms(gkyl_vlasov_app *app,
+  const struct vm_species *species,
+  struct vm_lbo_collisions *lbo,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
  * Compute RHS from LBO collisions
  *
  * @param app Vlasov app object

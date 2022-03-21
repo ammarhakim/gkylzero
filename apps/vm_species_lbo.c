@@ -66,8 +66,8 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   }
 }
 
-double
-vm_species_lbo_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
+// computes moments, boundary corrections, and primitive moments
+double vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
   struct vm_lbo_collisions *lbo, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -90,15 +90,6 @@ vm_species_lbo_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
     gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_vthsq, 0, lbo->vth_sq, 0, lbo->nu_sum);
 
     app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);
-
-    wst = gkyl_wall_clock();
-
-    // acccumulate update due to collisions onto rhs
-    gkyl_dg_updater_lbo_vlasov_advance_cu(lbo->coll_slvr, &species->local,
-      lbo->nu_sum, lbo->nu_u, lbo->nu_vthsq, fin, species->cflrate, rhs);
-    
-    app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
-    
   } else {
     wst = gkyl_wall_clock();    
     // construct boundary corrections
@@ -114,9 +105,26 @@ vm_species_lbo_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
     gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_vthsq, 0, lbo->vth_sq, 0, lbo->nu_sum);
 
     app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
+  }
+  return 0;
+}
 
+// computes cross-primitive moments and updates the collision terms in the rhs
+double
+vm_species_lbo_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
+  struct vm_lbo_collisions *lbo, const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  struct timespec wst = gkyl_wall_clock();
+  if (app->use_gpu) {
     wst = gkyl_wall_clock();
+    // accumulate update due to collisions onto rhs
+    gkyl_dg_updater_lbo_vlasov_advance_cu(lbo->coll_slvr, &species->local,
+      lbo->nu_sum, lbo->nu_u, lbo->nu_vthsq, fin, species->cflrate, rhs);
     
+    app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
+    
+  } else {
+    wst = gkyl_wall_clock();
     // acccumulate update due to collisions onto rhs
     gkyl_dg_updater_lbo_vlasov_advance(lbo->coll_slvr, &species->local,
       lbo->nu_sum, lbo->nu_u, lbo->nu_vthsq, fin, species->cflrate, rhs);

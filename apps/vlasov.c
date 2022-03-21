@@ -221,6 +221,13 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   
   double dtmin = DBL_MAX;
 
+  // compute necessary moments and boundary corrections for collisions
+  for (int i=0; i<app->num_species; ++i) {
+    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
+      vm_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i], fout[i]);
+    }
+  }
+  
   // compute RHS of Vlasov equations
   for (int i=0; i<app->num_species; ++i) {
     double dt1 = vm_species_rhs(app, &app->species[i], fin[i], emin, fout[i]);
