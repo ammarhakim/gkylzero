@@ -20,7 +20,7 @@ struct weibel_ctx {
   bool use_gpu;
 };
 
-inline double
+static inline double
 maxwellian2D(double n, double vx, double vy, double ux, double uy, double vth)
 {
   double v2 = (vx-ux)*(vx-ux) + (vy-uy)*(vy-uy);

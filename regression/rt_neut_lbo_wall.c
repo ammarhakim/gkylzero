@@ -15,7 +15,7 @@ struct free_stream_ctx {
 
 static inline double sq(double x) { return x*x; }
 
-inline double
+static inline double
 maxwellian(double n, double v, double u, double vth)
 {
   double v2 = (v - u)*(v - u);
