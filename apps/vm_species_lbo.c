@@ -4,10 +4,6 @@
 void 
 vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_lbo_collisions *lbo)
 {
-  // set pointers to species we cross-collide with
-  lbo->num_cross_collisions = s->info.collisions.num_cross_collisions;
-  for (int i=0; i<lbo->num_cross_collisions; ++i)
-    lbo->collide_with[i] = vm_find_species(app, s->info.collisions.collide_with[i]);
   
   // TO DO: Expose nu_u and nu_vthsq arrays above species object
   //        for cross-species collisions. Just testing for now JJ 09/24/21
@@ -30,7 +26,34 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   gkyl_array_copy(lbo->nu_sum, nu_sum);
   gkyl_array_release(nu_sum);
 
-  lbo->boundary_corrections = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume); 
+  struct gkyl_array *other_nu = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+
+  // set pointers to species we cross-collide with
+  lbo->num_cross_collisions = s->info.collisions.num_cross_collisions;
+  for (int i=0; i<lbo->num_cross_collisions; ++i) {
+    lbo->collide_with[i] = vm_find_species(app, s->info.collisions.collide_with[i]);
+    lbo->other_m[i] = lbo->collide_with[i]->info.mass;
+    lbo->other_u_drift[i] = lbo->collide_with[i]->lbo.u_drift;
+    lbo->other_vth_sq[i] = lbo->collide_with[i]->lbo.vth_sq;
+    lbo->cross_u_drift[i] = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
+    lbo->cross_vth_sq[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    if (lbo->other_m[i] > s->info.mass) {
+      gkyl_array_set(lbo->cross_nu[i], sqrt(2), lbo->nu_sum);
+    } else {
+      // need the self_nu from the low-mass species to determine cross-primitive collision
+      // frequency, but can't guarantee that species has been initialized
+      gkyl_proj_on_basis *other_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
+        app->poly_order+1, 1, lbo->collide_with[i]->info.collisions.self_nu,
+        lbo->collide_with[i]->info.ctx);
+      gkyl_proj_on_basis_advance(other_proj, 0.0, &app->local, lbo->nu_sum);
+      gkyl_proj_on_basis_release(other_proj);
+      gkyl_array_set(lbo->cross_nu[i], (lbo->other_m[i])/(s->info.mass), lbo->nu_sum);
+    }
+  }
+  lbo->betaGreenep1 = 1.0;
+
+  lbo->boundary_corrections = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
+  gkyl_array_release(other_nu);
 
   lbo->u_drift = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
   lbo->vth_sq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -125,6 +148,25 @@ vm_species_lbo_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
     
   } else {
     wst = gkyl_wall_clock();
+    // calculate cross-primitive moments
+    if (lbo->num_cross_collisions) {
+      gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc, app->confBasis, app->local,
+        lbo->betaGreenep1, species->info.mass, lbo->u_drift, lbo->vth_sq, lbo->other_m,
+	lbo->other_u_drift, lbo->other_vth_sq, lbo->moms.marr, lbo->boundary_corrections,
+        lbo->cross_u_drift, lbo->cross_vth_sq);
+
+      int vdim = app->vdim;
+      struct gkyl_array *cross_nu_u = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
+      struct gkyl_array *cross_nu_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+
+      for (int i=0; i<lbo->num_cross_collisions; ++i) {
+        gkyl_dg_mul_op(app->confBasis, 0, cross_nu_u, 0, lbo->cross_u_drift[i], 0, lbo->cross_nu[i]);
+        gkyl_dg_mul_op(app->confBasis, 0, cross_nu_vthsq, 0, lbo->cross_vth_sq[i], 0, lbo->cross_nu[i]);
+	gkyl_array_accumulate(lbo->nu_u, 1.0, cross_nu_u);
+	gkyl_array_accumulate(lbo->nu_vthsq, 1.0, cross_nu_vthsq);
+      }
+    }
+    
     // acccumulate update due to collisions onto rhs
     gkyl_dg_updater_lbo_vlasov_advance(lbo->coll_slvr, &species->local,
       lbo->nu_sum, lbo->nu_u, lbo->nu_vthsq, fin, species->cflrate, rhs);

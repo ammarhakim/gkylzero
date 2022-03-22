@@ -24,6 +24,7 @@
 #include <gkyl_mom_vlasov.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_prim_lbo_calc.h>
+#include <gkyl_prim_lbo_cross_calc.h>
 #include <gkyl_prim_lbo_type.h>
 #include <gkyl_prim_lbo_vlasov.h>
 #include <gkyl_proj_on_basis.h>
@@ -64,6 +65,11 @@ struct vm_lbo_collisions {
   struct gkyl_mom_type *bcorr_type; // LBO boundary corrections moment type
   struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator
   struct gkyl_array *nu_sum, *u_drift, *vth_sq, *nu_u, *nu_vthsq; // LBO primitive moments
+  double betaGreenep1; // value of Greene's factor beta + 1
+  double other_m[GKYL_MAX_SPECIES]; // masses of species being collided with
+  struct gkyl_array *other_u_drift[GKYL_MAX_SPECIES], *other_vth_sq[GKYL_MAX_SPECIES]; // self-primitive moments of species being collided with
+  struct gkyl_array *cross_u_drift[GKYL_MAX_SPECIES], *cross_vth_sq[GKYL_MAX_SPECIES]; // LBO cross-primitive moments
+  struct gkyl_array *cross_nu[GKYL_MAX_SPECIES]; // LBO cross-species collision frequencies
   struct gkyl_prim_lbo_type *coll_prim; // LBO primitive moments type
 
   struct vm_species_moment moms; // moments needed in LBO (single array includes Zeroth, First, and Second moment)
@@ -72,6 +78,7 @@ struct vm_lbo_collisions {
   struct vm_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
 
   gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
+  gkyl_prim_lbo_cross_calc *cross_calc; // LBO cross-primitive moment calculator
   gkyl_dg_updater_lbo_vlasov *coll_slvr; // collision solver
 };
 
