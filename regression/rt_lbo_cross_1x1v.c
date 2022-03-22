@@ -156,7 +156,7 @@ main(int argc, char **argv)
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
 
-    .num_species = 1,
+    .num_species = 2,
     .species = { neut1, neut2 },
     .skip_field = true,
 
