@@ -17,14 +17,14 @@
 #include <gkyl_prim_lbo_type.h>
 #include <gkyl_prim_lbo_vlasov.h>
 
-inline double
+static inline double
 maxwellian1D(double n, double vx, double ux, double vth)
 {
   double v2 = (vx-ux)*(vx-ux);
   return n/sqrt(2*M_PI*vth*vth)*exp(-v2/(2*vth*vth));
 }
 
-inline double
+static inline double
 maxwellian2D(double n, double vx, double vy, double ux, double uy, double vth)
 {
   double v2 = (vx-ux)*(vx-ux) + (vy-uy)*(vy-uy);

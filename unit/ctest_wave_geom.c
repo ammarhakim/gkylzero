@@ -226,10 +226,87 @@ test_wv_geom_2d_2()
   gkyl_wave_geom_release(wg);
 }
 
+void
+test_wv_geom_3d_1()
+{
+  int ndim = 3;
+  double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
+  int cells[] = {2, 2, 2};
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+
+  // create range
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range range, ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
+
+  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &range, nomapc2p, &ndim);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  
+  while (gkyl_range_iter_next(&iter)) {
+    const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wg, iter.idx);
+
+    TEST_CHECK( gkyl_compare_double( cg->kappa, 1.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->lenr[0], 1.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->lenr[1], 1.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->lenr[2], 1.0, 1e-15) );
+
+    // normal to lower-x face is ex
+    TEST_CHECK( gkyl_compare_double( cg->norm[0][0], 1.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->norm[0][1], 0.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->norm[0][2], 0.0, 1e-15) );
+
+    // tangent1 to lower-x face is ey
+    TEST_CHECK( gkyl_compare_double( cg->tau1[0][0], 0.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->tau1[0][1], 1.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->tau1[0][2], 0.0, 1e-15) );
+
+    // tangent2 to lower-x face is ez
+    TEST_CHECK( gkyl_compare_double( cg->tau2[0][0], 0.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->tau2[0][1], 0.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->tau2[0][2], 1.0, 1e-15) );
+
+    // normal to lower-y face is ey
+    TEST_CHECK( gkyl_compare_double( cg->norm[1][0], 0.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->norm[1][1], 1.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->norm[1][2], 0.0, 1e-15) );
+
+    // tangent1 to lower-y face is ez
+    TEST_CHECK( gkyl_compare_double( cg->tau1[1][0], 0.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->tau1[1][1], 0.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->tau1[1][2], 1.0, 1e-15) );
+
+    // tangent2 to lower-y face is ex
+    TEST_CHECK( gkyl_compare_double( cg->tau2[1][0], 1.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->tau2[1][1], 0.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->tau2[1][2], 0.0, 1e-15) );
+
+    // normal to lower-z face is ez
+    TEST_CHECK( gkyl_compare_double( cg->norm[2][0], 0.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->norm[2][1], 0.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->norm[2][2], 1.0, 1e-15) );
+
+    // tangent1 to lower-z face is ex
+    TEST_CHECK( gkyl_compare_double( cg->tau1[2][0], 1.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->tau1[2][1], 0.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->tau1[2][2], 0.0, 1e-15) );
+
+    // tangent2 to lower-z face is ey
+    TEST_CHECK( gkyl_compare_double( cg->tau2[2][0], 0.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->tau2[2][1], 1.0, 1e-15) );
+    TEST_CHECK( gkyl_compare_double( cg->tau2[2][2], 0.0, 1e-15) );
+  }
+
+  gkyl_wave_geom_release(wg);
+}
+
 TEST_LIST = {
   { "wv_geom_1d_1", test_wv_geom_1d_1 },
   { "wv_geom_1d_2", test_wv_geom_1d_2 },
   { "wv_geom_2d_1", test_wv_geom_2d_1 },
   { "wv_geom_2d_2", test_wv_geom_2d_2 },
+  { "wv_geom_3d_1", test_wv_geom_3d_1 },
   { NULL, NULL },
 };

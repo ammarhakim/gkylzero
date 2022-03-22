@@ -35,7 +35,7 @@ compiler you wish to use and the various paths to the
 dependencies. Once you are done with installing/specifying the compiler 
 and dependencies simply type:
 ```
-    make-j
+    make -j
 ```
 in the top-level directory. To run all unit tests do:
 ```
@@ -65,20 +65,14 @@ it to create your own "app" for your particular problem. See that
 various "app_*.c" files for examples. Full documentation is available
 on the RTFD website linked above.
 
-# Buildin dependencies
+# Building dependencies
 
-Some parts of GkeyllZero rely on presence of LAPACK and BLAS. Its
-likely that highly optimized builds of these libraries are already
-installed on your platform (Framework Accelerator on Mac, MKL on Intel
-machines etc). In this case there is no need to install anything and
-simply set the appropriate configure flags to the make command to
-find/use your installed BLAS/LAPACK libraries. Note that on Macs you
-do not need to do anything special to use LAPACK/BLAS as it comes with
-the developer tools.
+Some parts of GkeyllZero rely on presence of LAPACK and BLAS. Note
+that on Macs you do not need to do anything special to use LAPACK/BLAS
+as it comes with the developer tools. GkeyllZero also relies on
+SuperLU for sparse, direct linear solvers.
 
-GkeyllZero also relies on SuperLU for sparse, direct linear solvers.
-
-If you must install these yourself please use the mkdep.sh script to do so.
+To install these yourself please use the mkdep.sh script to do so.
 From the top-level directory do:
 ```
 cd install-deps
@@ -89,24 +83,6 @@ This will install OpenBLAS and SuperLU in the $HOME/gkylsoft
 directory. Note that OpenBLAS **requires you to have gfortran**
 installed. **You** are responsible for installing this on your
 machine.
-
-# Using precompiled OpenBLAS
-
-If you can't (do not wish to) build the OpenBLAS library you can
-instead install the pre-built ones that are available on
-Ubuntu. (Similar libraries will be available on other Linux
-distros). First, install the libraries as:
-```
-sudo apt-get install libopenblas-dev
-sudo apt-get install liblapacke-dev
-```
-
-Then, configure the build system:
-```
-./configure --lapack-inc=/usr/include/x86_64-linux-gnu/openblas-pthread --lapack-inc="/usr/lib/x86_64-linux-gnu/liblapacke.a /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblas.a /usr/lib/x86_64-linux-gnu/openblas-pthread/liblapack.a"
-```
-
-For other Linux distros you will need to adjust the paths shown above.
 
 # Developing for GkeyllZero
 
@@ -125,4 +101,4 @@ clean". Pay attention to all compiler warnings.
 
 Most importantly, **please internalize and follow** the programming
 philosophy outlined in the document ["A Minimalist Approach to
-Software"](https://ammar-hakim.org/cj/je0/je0-minimalism.html).
+Software"](https://www.ammar-hakim.org/sj/pn/pn0/pn0-minimalism.html).
