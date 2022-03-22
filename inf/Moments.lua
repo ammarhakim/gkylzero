@@ -258,6 +258,9 @@ struct gkyl_moment {
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
 
+  int num_skip_dirs; // number of directions to skip
+  int skip_dirs[3]; // directions to skip
+
   int num_species; // number of species
   struct gkyl_moment_species species[GKYL_MAX_SPECIES]; // species objects
   struct gkyl_moment_field field; // field object
@@ -474,6 +477,10 @@ local limiter_tags = {
    ["zero"] = C.GKYL_ZERO,
 }
 
+-- this tables stores pointer to the species equation objects so they
+-- are not deleted by the GC while the simulation is being constructed
+local species_eqn_tbl = { }
+
 local species_type = ffi.typeof("struct gkyl_moment_species")
 local species_mt = {
    __new = function(self, tbl)
@@ -486,7 +493,10 @@ local species_mt = {
 	 s.limiter = limiter_tags[tbl.limiter]
       end
 
-      s.equation = C.gkyl_wv_eqn_acquire(tbl.equation)
+      -- we need to insert equation into species_eqn_tbl to prevent it
+      -- from getting GC-ed while sim is being constructed.
+      table.insert(species_eqn_tbl, tbl.equation)
+      s.equation = tbl.equation
 
       -- initial conditions
       s.ctx = nil -- no need for a context
@@ -642,6 +652,15 @@ local app_mt = {
 	 vm.num_periodic_dir = #tbl.periodicDirs
 	 for i=1, #tbl.periodicDirs do
 	    vm.periodic_dirs[i-1] = tbl.periodicDirs[i]-1 -- note indexing transforms
+	 end
+      end
+
+      -- determine directions to skip, if any
+      vm.num_skip_dirs = 0
+      if tbl.skip_dirs then
+	 vm.num_skip_dirs = #tbl.skip_dirs
+	 for i=1, #tbl.skip_dirs do
+	    vm.skip_dir[i-1] = tbl.skip_dir[i]
 	 end
       end
 
