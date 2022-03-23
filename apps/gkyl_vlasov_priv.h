@@ -282,6 +282,17 @@ void vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   struct vm_lbo_collisions *lbo);
 
 /**
+ * Initialize species LBO cross-collisions object.
+ *
+ * @param app Vlasov app object
+ * @param s Species object 
+ * @param lbo Species LBO object
+ */
+void vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s,
+  struct vm_lbo_collisions *lbo);
+
+
+/**
  * Compute necessary moments and boundary
  * corrections for LBO collisions
  *

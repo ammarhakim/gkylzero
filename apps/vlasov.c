@@ -68,8 +68,17 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   
   // initialize each species
   for (int i=0; i<ns; ++i)
-    vm_species_init(vm, app, &app->species[i]);  
+    vm_species_init(vm, app, &app->species[i]);
 
+  // initialize each species cross-species terms: this has to be done here
+  // as need pointers to colliding species' collision objects
+  // allocated in the previous step
+  for (int i=0; i<ns; ++i)
+    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS
+      && app->species[i].lbo.num_cross_collisions) {
+      vm_species_lbo_cross_init(app, &app->species[i], &app->species[i].lbo);
+    }
+  
   // initialize stat object
   app->stat = (struct gkyl_vlasov_stat) {
     .use_gpu = app->use_gpu,
