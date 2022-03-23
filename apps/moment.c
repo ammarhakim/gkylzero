@@ -92,6 +92,8 @@ struct gkyl_moment_app {
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
 
+  int is_dir_skipped[3]; // flags to tell if update in direction are skipped
+
   enum gkyl_moment_fluid_scheme fluid_scheme; // scheme to update fluid equations
     
   struct gkyl_rect_grid grid; // grid
@@ -191,7 +193,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         .grid = &app->grid,
         .equation = mom_sp->equation,
         .limiter = limiter,
-        .num_up_dirs = 1,
+        .num_up_dirs = app->is_dir_skipped[d] ? 0 : 1,
         .update_dirs = { d },
         .cfl = app->cfl,
         .geom = app->geom,
@@ -240,7 +242,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
       sp->upper_bc[dir] = sp->lower_bc[dir] = 0;
     }
   }
-    
+
   int meqn = sp->num_equations;
   sp->fdup = mkarr(meqn, app->local_ext.volume);
   // allocate arrays
@@ -368,7 +370,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         .grid = &app->grid,
         .equation = maxwell,
         .limiter = limiter,
-        .num_up_dirs = 1,
+        .num_up_dirs = app->is_dir_skipped[d] ? 0 : 1,
         .update_dirs = { d },
         .cfl = app->cfl,
         .geom = app->geom,
@@ -629,6 +631,12 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   app->num_periodic_dir = mom->num_periodic_dir;
   for (int d=0; d<ndim; ++d)
     app->periodic_dirs[d] = mom->periodic_dirs[d];
+
+  // construct list of directions to skip
+  for (int d=0; d<3; ++d)
+    app->is_dir_skipped[d] = 0;
+  for (int i=0; i<mom->num_skip_dirs; ++i)
+    app->is_dir_skipped[mom->skip_dirs[i]] = 1;
 
   app->has_field = 0;
   // initialize field if we have one

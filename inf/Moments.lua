@@ -189,6 +189,13 @@ struct gkyl_wv_ten_moment { struct gkyl_wv_eqn *eqn; };
  */
 struct gkyl_wv_eqn* gkyl_wv_ten_moment_new(double k0);
 
+/**
+ * Acquire pointer to equation object. Delete using the release()
+ * method
+ *
+ * @param eqn Equation object.
+ */
+struct gkyl_wv_eqn* gkyl_wv_eqn_acquire(const struct gkyl_wv_eqn* eqn);
 
 // Parameters for moment species
 struct gkyl_moment_species {
@@ -250,6 +257,9 @@ struct gkyl_moment {
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
+
+  int num_skip_dirs; // number of directions to skip
+  int skip_dirs[3]; // directions to skip
 
   int num_species; // number of species
   struct gkyl_moment_species species[GKYL_MAX_SPECIES]; // species objects
@@ -417,26 +427,24 @@ local tm_trigger_mt = {
 _M.TimeTrigger = ffi.metatype(tm_trigger_type, tm_trigger_mt)
 
 -- Euler equation
-local wv_euler_type = ffi.typeof("struct gkyl_wv_euler")
-local wv_euler_mt = {
-   __new = function(self, tbl)
-      local eq = ffi.new(self)
-      eq.eqn = C.gkyl_wv_euler_new(tbl.gasGamma)
-      return eq
-   end,
-   __gc = function(self)
-      C.gkyl_wv_eqn_release(self.eqn)
-   end,
-   __index = {
-      bcWall = C.GKYL_SPECIES_WALL,
-      bcCopy = C.GKYL_SPECIES_COPY
-   }
-}
-_M.Euler = ffi.metatype(wv_euler_type, wv_euler_mt)
+_M.Euler = function(tbl)
+   return ffi.gc(C.gkyl_wv_euler_new(tbl.gasGamma), C.gkyl_wv_eqn_release)
+end
 
 -- Wraps user given init function in a function that can be passed to
 -- the C callback APIs
 local function gkyl_eval_moment(func)
+   return function(t, xn, fout, ctx)
+      local xnl = ffi.new("double[10]")
+      for i=1, 3 do xnl[i] = xn[i-1] end -- might not be safe?
+      local ret = { func(t, xnl) } -- package return into table
+      for i=1,#ret do
+	 fout[i-1] = ret[i]
+      end
+   end
+end
+
+local function gkyl_eval_mapc2p(func)
    return function(t, xn, fout, ctx)
       local xnl = ffi.new("double[10]")
       for i=1, 3 do xnl[i] = xn[i-1] end -- might not be safe?
@@ -469,6 +477,10 @@ local limiter_tags = {
    ["zero"] = C.GKYL_ZERO,
 }
 
+-- this tables stores pointer to the species equation objects so they
+-- are not deleted by the GC while the simulation is being constructed
+local species_eqn_tbl = { }
+
 local species_type = ffi.typeof("struct gkyl_moment_species")
 local species_mt = {
    __new = function(self, tbl)
@@ -481,7 +493,10 @@ local species_mt = {
 	 s.limiter = limiter_tags[tbl.limiter]
       end
 
-      s.equation = tbl.equation.eqn
+      -- we need to insert equation into species_eqn_tbl to prevent it
+      -- from getting GC-ed while sim is being constructed.
+      table.insert(species_eqn_tbl, tbl.equation)
+      s.equation = tbl.equation
 
       -- initial conditions
       s.ctx = nil -- no need for a context
@@ -503,7 +518,7 @@ local species_mt = {
    __index = {
       -- we need this here also to be consistent with G2 App
       bcWall = C.GKYL_SPECIES_WALL,
-      bcCopy = C.GKYL_SPECIES_COPY      
+      bcCopy = C.GKYL_SPECIES_COPY,
    }
 }
 _M.Species = ffi.metatype(species_type, species_mt)
@@ -596,7 +611,7 @@ local app_mt = {
       end
       local num_species = #species
 
-      local name = "vlasov"
+      local name = "moment"
       if GKYL_OUT_PREFIX then
 	 -- if G0 is being run from gkyl then GKYL_OUT_PREFIX is
 	 -- defined
@@ -622,12 +637,30 @@ local app_mt = {
 	 vm.cfl_frac = tbl.cflFrac
       end
 
+      vm.fluid_scheme = C.GKYL_MOMENT_FLUID_WAVE_PROP
+
+      -- mapc2p
+      vm.c2p_ctx = nil -- no need for context
+      vm.mapc2p = nil
+      if tbl.mapc2p then
+	 vm.mapc2p = gkyl_eval_mapc2p(tbl.mapc2p)
+      end
+
       -- determine periodic BCs
       vm.num_periodic_dir = 0
       if tbl.periodicDirs then
 	 vm.num_periodic_dir = #tbl.periodicDirs
 	 for i=1, #tbl.periodicDirs do
 	    vm.periodic_dirs[i-1] = tbl.periodicDirs[i]-1 -- note indexing transforms
+	 end
+      end
+
+      -- determine directions to skip, if any
+      vm.num_skip_dirs = 0
+      if tbl.skip_dirs then
+	 vm.num_skip_dirs = #tbl.skip_dirs
+	 for i=1, #tbl.skip_dirs do
+	    vm.skip_dir[i-1] = tbl.skip_dir[i]
 	 end
       end
 

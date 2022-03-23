@@ -44,8 +44,8 @@ void*
 gkyl_malloc_(const char *file, int line, const char *func, size_t size)
 {
   void *mem = malloc(size);
+  GKYL_MEMMSG("%p [%ld] 0.malloc: %s %s:%d\n", mem, size, file, func, line);  
   if (0 == mem) gkyl_exit("malloc failed!");
-  GKYL_MEMMSG("%p 0.malloc: %s %s:%d\n", mem, file, func, line);
   return mem;
 }
 
@@ -53,8 +53,8 @@ void*
 gkyl_calloc_(const char *file, int line, const char *func, size_t num, size_t size)
 {
   void *mem = calloc(num, size);
+  GKYL_MEMMSG("%p [%ld] 0.calloc: %s %s:%d\n", mem, size, file, func, line);
   if (0 == mem) gkyl_exit("calloc failed!");
-  GKYL_MEMMSG("%p 0.calloc: %s %s:%d\n", mem, file, func, line);
   return mem;
 }
 
@@ -62,8 +62,8 @@ void*
 gkyl_realloc_(const char *file, int line, const char *func, void *ptr, size_t new_size)
 {
   void *mem = realloc(ptr, new_size);
+  GKYL_MEMMSG("%p [%ld] 0.realloc: %s %s:%d\n", mem, new_size, file, func, line);  
   if (0 == mem) gkyl_exit("realloc failed!");
-  GKYL_MEMMSG("%p 0.realloc: %s %s:%d\n", mem, file, func, line);
   return mem;
 }
 
