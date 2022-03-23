@@ -24,6 +24,30 @@ gkyl_vlasov_free(const struct gkyl_ref_count *ref)
   gkyl_free(vlasov);
 }
 
+struct gkyl_array_copy_func*
+gkyl_vlasov_wall_bc_create(const struct gkyl_dg_eqn *eqn, int dir, const struct gkyl_basis* pbasis)
+{
+  struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
+
+  struct species_wall_bc_ctx *ctx = (struct species_wall_bc_ctx*) gkyl_malloc(sizeof(struct species_wall_bc_ctx));
+  ctx->dir = dir;
+  ctx->cdim = vlasov->cdim;
+  ctx->basis = pbasis;
+
+  struct gkyl_array_copy_func *bc = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
+  bc->func = vlasov->wall_bc;
+  bc->ctx = ctx;
+
+  return bc;
+}
+
+void
+gkyl_vlasov_wall_bc_release(struct gkyl_array_copy_func* bc)
+{
+  gkyl_free(bc->ctx);
+  gkyl_free(bc);
+}
+
 void
 gkyl_vlasov_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin)
 {
@@ -124,6 +148,9 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
     vlasov->accel_boundary_surf[1] = CK(accel_boundary_surf_vy_kernels,cdim,vdim,poly_order);
   if (vdim>2)
     vlasov->accel_boundary_surf[2] = CK(accel_boundary_surf_vz_kernels,cdim,vdim,poly_order);
+
+  // setup pointer for wall BC function
+  vlasov->wall_bc = species_wall_bc;
 
   // ensure non-NULL pointers
   assert(vlasov->vol);

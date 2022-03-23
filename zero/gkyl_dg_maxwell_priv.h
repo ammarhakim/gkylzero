@@ -7,12 +7,32 @@
 // private header for use in Maxwell DG equation object creation
 // functions
 
+// context for use in Wall BCs
+struct maxwell_wall_bc_ctx {
+  int dir; // direction for BCs
+  const struct gkyl_basis *basis; // basis function
+};
+
+enum { M_EX, M_EY, M_EZ, M_BX, M_BY, M_BZ }; // components of EM field
+static const int m_flip_even[3][3] = { // zero tangent E and zero normal B
+  {M_BX, M_EY, M_EZ},
+  {M_BY, M_EX, M_EZ},
+  {M_BZ, M_EX, M_EY},
+};
+static const int m_flip_odd[3][3] = { // zero gradient
+  { M_EX, M_BY, M_BZ },
+  { M_EY, M_BX, M_BZ },
+  { M_EZ, M_BX, M_BY },
+};
+
 // Types for various kernels
 typedef double (*maxwell_vol_t)(const gkyl_maxwell_inp *meq,
   const double *w, const double *dx, const double *q, double* GKYL_RESTRICT out);
 
 typedef void (*maxwell_surf_t)(const gkyl_maxwell_inp *meq, const double *w, const double *dx,
   const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out);
+
+typedef void (*bc_funcf_t)(size_t nc, double *out, const double *inp, void *ctx);
 
 // for use in kernel tables
 typedef struct { maxwell_vol_t kernels[3]; } gkyl_dg_maxwell_vol_kern_list;
@@ -95,6 +115,7 @@ struct dg_maxwell {
   gkyl_maxwell_inp maxwell_data; // Parameters needed by kernels
   maxwell_vol_t vol; // pointer to volume kernel
   maxwell_surf_t surf[3]; // pointers to surface kernels
+  bc_funcf_t wall_bc; // wall BCs function
 };
 
 
@@ -138,4 +159,25 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
 {
   
+}
+
+static void
+maxwell_wall_bc(size_t nc, double *out, const double *inp, void *ctx)
+{
+  struct maxwell_wall_bc_ctx *mc = ctx;
+  int dir = mc->dir;
+  int nbasis = mc->basis->num_basis;
+
+  const int *feven = m_flip_even[dir];
+  const int *fodd = m_flip_odd[dir];
+
+  for (int i=0; i<3; ++i) {
+    int eloc = nbasis*feven[i], oloc = nbasis*fodd[i];
+    mc->basis->flip_even_sign(dir, &inp[eloc], &out[eloc]);
+    mc->basis->flip_odd_sign(dir, &inp[oloc], &out[oloc]);
+  }
+  // correction potentials
+  int eloc = nbasis*6, oloc = nbasis*7;
+  mc->basis->flip_even_sign(dir, &inp[eloc], &out[eloc]);
+  mc->basis->flip_odd_sign(dir, &inp[oloc], &out[oloc]);
 }
