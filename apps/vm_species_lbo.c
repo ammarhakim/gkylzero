@@ -81,14 +81,7 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s, str
     if (lbo->other_m[i] > s->info.mass) {
       gkyl_array_set(lbo->cross_nu[i], sqrt(2), lbo->nu_sum);
     } else {
-      // need the self_nu from the low-mass species to determine cross-primitive collision
-      // frequency, but can't guarantee that species has been initialized
-      gkyl_proj_on_basis *other_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-        app->poly_order+1, 1, lbo->collide_with[i]->info.collisions.self_nu,
-        lbo->collide_with[i]->info.ctx);
-      gkyl_proj_on_basis_advance(other_proj, 0.0, &app->local, lbo->cross_nu[i]);
-      gkyl_proj_on_basis_release(other_proj);
-      gkyl_array_scale(lbo->cross_nu[i], (lbo->other_m[i])/(s->info.mass));
+      gkyl_array_set(lbo->cross_nu[i], (lbo->other_m[i])/(s->info.mass), lbo->collide_with[i]->lbo.nu_sum);
     }
   }
   lbo->betaGreenep1 = 1.0;
