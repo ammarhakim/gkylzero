@@ -1,6 +1,7 @@
-#include "gkyl_wv_eqn.h"
 #include <acutest.h>
+#include <math.h>
 
+#include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -8,12 +9,21 @@
 #include <gkyl_wave_geom.h>
 #include <gkyl_wv_apply_bc.h>
 #include <gkyl_wv_burgers.h>
+#include <gkyl_wv_eqn.h>
+#include <gkyl_wv_euler.h>
 
 static void
 nomapc2p(double t, const double *xc, double *xp, void *ctx)
 {
   int *ndim = ctx;
   for (int i=0; i<(*ndim); ++i) xp[i] = xc[i];
+}
+
+static void
+rtheta_map(double t, const double *xc, double *xp, void *ctx)
+{
+  double r = xc[0], th  = xc[1];
+  xp[0] = r*cos(th); xp[1] = r*sin(th);
 }
 
 static void
@@ -102,7 +112,7 @@ test_2()
 
   struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, 1, ext_range.volume);
 
-  // clear interior of arrat
+  // clear interior of array
   gkyl_array_clear_range(distf, 1.0, range);
 
   // check if only interior is cleared
@@ -269,9 +279,72 @@ test_3()
   gkyl_array_release(distf);
 }
 
+void
+test_4_bc_buff()
+{
+  int ndim = 2;
+  double lower[] = {0.25, 0.0}, upper[] = {1.25, 2*M_PI/4};
+  int cells[] = {16, 8};
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+
+  int nghost[] = { 2, 2 };
+
+  struct gkyl_range ext_range, range;
+  gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
+
+  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &ext_range, rtheta_map, &ndim);
+  struct gkyl_wv_eqn *eqn = gkyl_wv_euler_new(1.4);
+
+  gkyl_wv_apply_bc *lbc = gkyl_wv_apply_bc_new(&grid, eqn, wg,
+    0, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
+  gkyl_wv_apply_bc *rbc = gkyl_wv_apply_bc_new(&grid, eqn, wg,
+    0, GKYL_UPPER_EDGE, nghost, bc_copy, NULL);
+
+  gkyl_wv_apply_bc *bbc = gkyl_wv_apply_bc_new(&grid, eqn, wg,
+    1, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
+  gkyl_wv_apply_bc *tbc = gkyl_wv_apply_bc_new(&grid, eqn, wg,
+    1, GKYL_UPPER_EDGE, nghost, bc_copy, NULL);
+
+  struct gkyl_array *fluid = gkyl_array_new(GKYL_DOUBLE,
+    eqn->num_equations, ext_range.volume);
+
+  // set interior of array
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+
+  while (gkyl_range_iter_next(&iter)) {
+    long sloc = gkyl_range_idx(&range, iter.idx);
+    double *q = gkyl_array_fetch(fluid, sloc);
+
+    q[0] = 0.1;
+    q[1] = 0.5;
+    q[2] = 1.5;
+    q[3] = 2.5;
+    q[4] = 10.5;
+  }
+
+  // apply various BCs, copying output to a buffer
+
+  gkyl_wv_apply_bc_advance(lbc, 0.0, &range, fluid);
+  gkyl_wv_apply_bc_advance(rbc, 0.0, &range, fluid);
+
+  gkyl_wv_apply_bc_advance(bbc, 0.0, &range, fluid);
+  gkyl_wv_apply_bc_advance(tbc, 0.0, &range, fluid);
+
+  gkyl_wv_apply_bc_release(lbc);
+  gkyl_wv_apply_bc_release(rbc);
+  gkyl_wv_apply_bc_release(bbc);
+  gkyl_wv_apply_bc_release(tbc);
+  gkyl_wv_eqn_release(eqn);
+  gkyl_wave_geom_release(wg);
+  gkyl_array_release(fluid);  
+}
+
 TEST_LIST = {
   { "test_1", test_1 },
   { "test_2", test_2 },
   { "test_3", test_3 },
+  { "test_4_bc_buff", test_4_bc_buff },
   { NULL, NULL },
 };

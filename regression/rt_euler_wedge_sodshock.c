@@ -56,10 +56,10 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 512);
-  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 3);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 64);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 2);
 
-  double theta = 0.01*M_PI/180; // wedge angle
+  double theta = 0.01; // wedge angle
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -79,6 +79,7 @@ main(int argc, char **argv)
     .init = evalEulerInit,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+    .bcy = { GKYL_SPECIES_WALL, GKYL_SPECIES_WALL },
   };
 
   // VM app
@@ -93,9 +94,6 @@ main(int argc, char **argv)
 
     .mapc2p = mapc2p, // mapping of computational to physical space
 
-    .num_skip_dirs = 1,
-    .skip_dirs = { 1 }, // do not update theta direction
-    
     .cfl_frac = 0.9,
 
     .num_species = 1,

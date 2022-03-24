@@ -122,6 +122,64 @@ gkyl_wv_apply_bc_advance(const gkyl_wv_apply_bc *bc, double tm,
 }
 
 void
+gkyl_wv_apply_bc_to_buff(const gkyl_wv_apply_bc *bc, double tm,
+  const struct gkyl_range *update_rng, const struct gkyl_array *inp, double *buffer)
+{
+  enum gkyl_edge_loc edge = bc->edge;
+  int dir = bc->dir, ndim = bc->grid.ndim, ncomp = inp->ncomp;
+  int meqn = bc->eqn->num_equations;
+
+  double skin_local[meqn], ghost_local[meqn];
+
+  // return immediately if update region does not touch boundary
+  if ( (edge == GKYL_LOWER_EDGE) && (update_rng->lower[dir] > bc->range.lower[dir]) )
+    return;
+  if ( (edge == GKYL_UPPER_EDGE) && (update_rng->upper[dir] < bc->range.upper[dir]) )
+    return;
+
+  // compute intersection for region to update
+  struct gkyl_range up_range;
+  gkyl_range_intersect(&up_range, update_rng, &bc->skin);
+
+  int edge_idx = (edge == GKYL_LOWER_EDGE) ? bc->range.lower[dir] : bc->range.upper[dir];
+  int fact = (edge == GKYL_LOWER_EDGE) ? -1 : 1;
+
+  int eidx[GKYL_MAX_DIM]; // index into geometry 
+  
+  // create iterator to walk over skin cells
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &up_range);
+  
+  while (gkyl_range_iter_next(&iter)) {
+
+    long sloc = gkyl_range_idx(update_rng, iter.idx);
+
+    // compute index into geometry
+    if (edge == GKYL_LOWER_EDGE) {
+      gkyl_copy_int_arr(ndim, iter.idx, eidx);
+      eidx[dir] = iter.idx[dir];
+    }
+    else {
+      gkyl_copy_int_arr(ndim, iter.idx, eidx);
+      eidx[dir] = iter.idx[dir]+1;
+    }
+
+    const struct gkyl_wave_cell_geom *wg = gkyl_wave_geom_get(bc->geom, eidx);
+
+    // rotate skin data to local coordinates
+    gkyl_wv_eqn_rotate_to_local(bc->eqn, wg->tau1[dir], wg->tau2[dir], wg->norm[dir],
+      gkyl_array_cfetch(inp, sloc), skin_local);
+      
+    // apply boundary condition in local coordinates
+    bc->bcfunc(tm, ncomp, skin_local, ghost_local, bc->ctx);
+
+    // rotate back to global
+    /* gkyl_wv_eqn_rotate_to_global(bc->eqn, wg->tau1[dir], wg->tau2[dir], wg->norm[dir], */
+    /*   ghost_local, gkyl_array_fetch(out, gloc)); */
+  }  
+}
+
+void
 gkyl_wv_apply_bc_release(gkyl_wv_apply_bc* bc)
 {
   gkyl_wv_eqn_release(bc->eqn);

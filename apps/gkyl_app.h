@@ -13,10 +13,12 @@ struct gkyl_update_status {
 enum gkyl_species_bc_type {
   GKYL_SPECIES_COPY = 0, // copy BCs
   GKYL_SPECIES_WALL, // perfect reflector
+  GKYL_SPECIES_WEDGE, // specialized "wedge" BCs for RZ-theta
 };
 
 // Boundary conditions on fields
 enum gkyl_field_bc_type {
   GKYL_FIELD_COPY = 0, // copy BCs
   GKYL_FIELD_PEC_WALL, // perfect electrical conductor (PEC) BCs
+  GKYL_FIELD_WEDGE, // specialized "wedge" BCs for RZ-theta
 };
