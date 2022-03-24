@@ -9,6 +9,25 @@ extern "C" {
 
 #include <cassert>
 
+// __global__ static void
+// gkyl_vlasov_wall_bc_create_set_cu_dev_ptrs(const struct gkyl_dg_eqn *eqn, 
+//   struct species_wall_bc_ctx *ctx, struct gkyl_array_copy_func *bc)
+// {
+//   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
+
+//   ctx->dir = dir;
+//   ctx->cdim = vlasov->cdim;
+//   ctx->basis = ;
+
+//   bc->func = vlasov->wall_bc;
+//   bc->ctx = ctx;
+// }
+
+// struct gkyl_array_copy_func*
+// gkyl_vlasov_wall_bc_create_cu(const struct gkyl_dg_eqn *eqn, int dir, const struct gkyl_basis* pbasis)
+// {
+// }
+
 // CUDA kernel to set pointer to auxiliary fields.
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.

@@ -27,6 +27,10 @@ gkyl_vlasov_free(const struct gkyl_ref_count *ref)
 struct gkyl_array_copy_func*
 gkyl_vlasov_wall_bc_create(const struct gkyl_dg_eqn *eqn, int dir, const struct gkyl_basis* pbasis)
 {
+  // if (gkyl_dg_eqn_is_cu_dev(eqn)) {
+  //   return gkyl_vlasov_wall_bc_create_cu(eqn->on_dev, dir, pbasis);
+  // }
+
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
 
   struct species_wall_bc_ctx *ctx = (struct species_wall_bc_ctx*) gkyl_malloc(sizeof(struct species_wall_bc_ctx));

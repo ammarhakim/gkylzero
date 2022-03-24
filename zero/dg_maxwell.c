@@ -29,6 +29,10 @@ gkyl_maxwell_free(const struct gkyl_ref_count *ref)
 struct gkyl_array_copy_func*
 gkyl_maxwell_wall_bc_create(const struct gkyl_dg_eqn *eqn, int dir, const struct gkyl_basis* cbasis)
 {
+  // if (gkyl_dg_eqn_is_cu_dev(eqn)) {
+  //   return gkyl_maxwell_wall_bc_create_cu(eqn->on_dev, dir, cbasis);
+  // }
+
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
 
   struct maxwell_wall_bc_ctx *ctx = (struct maxwell_wall_bc_ctx*) gkyl_malloc(sizeof(struct maxwell_wall_bc_ctx));

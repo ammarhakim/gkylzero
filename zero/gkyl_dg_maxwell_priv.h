@@ -161,6 +161,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   
 }
 
+GKYL_CU_D
 static void
 maxwell_wall_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
