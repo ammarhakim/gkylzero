@@ -279,8 +279,32 @@ test_3()
   gkyl_array_release(distf);
 }
 
+// stuff to help in wedge BCs
+struct skin_ghost_ranges {
+  struct gkyl_range lower_skin[GKYL_MAX_DIM];
+  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
+
+  struct gkyl_range upper_skin[GKYL_MAX_DIM];
+  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
+};
+
+// Create ghost and skin sub-ranges given a parent range
+static void
+skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
+  const struct gkyl_range *parent, const int *ghost)
+{
+  int ndim = parent->ndim;
+  
+  for (int d=0; d<ndim; ++d) {
+    gkyl_skin_ghost_ranges(&sgr->lower_skin[d], &sgr->lower_ghost[d],
+      d, GKYL_LOWER_EDGE, parent, ghost);
+    gkyl_skin_ghost_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d],
+      d, GKYL_UPPER_EDGE, parent, ghost);
+  }
+}
+
 void
-test_4_bc_buff()
+test_bc_buff_rtheta()
 {
   int ndim = 2;
   double lower[] = {0.25, 0.0}, upper[] = {1.25, 2*M_PI/4};
@@ -288,18 +312,27 @@ test_4_bc_buff()
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
 
+  struct gkyl_wv_eqn *eqn = gkyl_wv_euler_new(1.4);  
+
   int nghost[] = { 2, 2 };
 
   struct gkyl_range ext_range, range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
-  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &ext_range, rtheta_map, &ndim);
-  struct gkyl_wv_eqn *eqn = gkyl_wv_euler_new(1.4);
+  struct skin_ghost_ranges skin_ghost; // conf-space skin/ghost
+  skin_ghost_ranges_init(&skin_ghost, &ext_range, nghost);
 
-  gkyl_wv_apply_bc *lbc = gkyl_wv_apply_bc_new(&grid, eqn, wg,
-    0, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
-  gkyl_wv_apply_bc *rbc = gkyl_wv_apply_bc_new(&grid, eqn, wg,
-    0, GKYL_UPPER_EDGE, nghost, bc_copy, NULL);
+  long buff_sz = 0;
+  // compute buffer size needed
+  for (int d=0; d<grid.ndim; ++d) {
+    long vol = skin_ghost.lower_skin[d].volume;
+    buff_sz = buff_sz > vol ? buff_sz : vol;
+  }
+  struct gkyl_array *bc_buffer = gkyl_array_new(GKYL_DOUBLE,
+    eqn->num_equations, buff_sz);
+
+  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &ext_range,
+    rtheta_map, &ndim);
 
   gkyl_wv_apply_bc *bbc = gkyl_wv_apply_bc_new(&grid, eqn, wg,
     1, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
@@ -317,34 +350,82 @@ test_4_bc_buff()
     long sloc = gkyl_range_idx(&range, iter.idx);
     double *q = gkyl_array_fetch(fluid, sloc);
 
-    q[0] = 0.1;
-    q[1] = 0.5;
-    q[2] = 1.5;
-    q[3] = 2.5;
-    q[4] = 10.5;
+    double xc[GKYL_MAX_DIM];
+    gkyl_rect_grid_cell_center(&grid, iter.idx, xc);
+
+    double r = xc[0], th = xc[1];
+
+    q[0] = r*th*0.1;
+    q[1] = r*th*0.5;
+    q[2] = r*th*1.5;
+    q[3] = r*th*2.5;
+    q[4] = r*th*10.5;
   }
 
   // apply various BCs, copying output to a buffer
 
-  gkyl_wv_apply_bc_advance(lbc, 0.0, &range, fluid);
-  gkyl_wv_apply_bc_advance(rbc, 0.0, &range, fluid);
+  // bottom
+  gkyl_array_clear(bc_buffer, 0.0);
+  gkyl_wv_apply_bc_to_buff(bbc, 0.0, &range, fluid, bc_buffer->data);
 
-  gkyl_wv_apply_bc_advance(bbc, 0.0, &range, fluid);
-  gkyl_wv_apply_bc_advance(tbc, 0.0, &range, fluid);
+  // check if data copied properly into buffer
+  long count = 0;    
+  gkyl_range_iter_init(&iter, &skin_ghost.lower_skin[1]);
+  while (gkyl_range_iter_next(&iter)) {
+    double xc[GKYL_MAX_DIM];
+    gkyl_rect_grid_cell_center(&grid, iter.idx, xc);
 
-  gkyl_wv_apply_bc_release(lbc);
-  gkyl_wv_apply_bc_release(rbc);
+    double r = xc[0], th = xc[1];
+
+    const double *q = gkyl_array_cfetch(bc_buffer, count++);
+
+    TEST_CHECK( q[0] == r*th*0.1 );
+
+    // rotate counter-clockwise by pi/4
+    TEST_CHECK( gkyl_compare(q[1], -r*th*1.5, 1e-14) );
+    TEST_CHECK( gkyl_compare(q[2], r*th*0.5, 1e-14) );
+    
+    TEST_CHECK( gkyl_compare(q[3], r*th*2.5, 1e-14) );
+    TEST_CHECK( q[4] == r*th*10.5 );
+  }
+
+  // right
+  gkyl_array_clear(bc_buffer, 0.0);
+  gkyl_wv_apply_bc_to_buff(tbc, 0.0, &range, fluid, bc_buffer->data);
+
+  // check if data copied properly into buffer
+  count = 0;  
+  gkyl_range_iter_init(&iter, &skin_ghost.upper_skin[1]);
+  while (gkyl_range_iter_next(&iter)) {
+    double xc[GKYL_MAX_DIM];
+    gkyl_rect_grid_cell_center(&grid, iter.idx, xc);
+
+    double r = xc[0], th = xc[1];
+
+    const double *q = gkyl_array_cfetch(bc_buffer, count++);
+
+    TEST_CHECK( q[0] == r*th*0.1 );
+
+    // rotate clockwise by pi/4
+    TEST_CHECK( gkyl_compare(q[1], r*th*1.5, 1e-14) );
+    TEST_CHECK( gkyl_compare(q[2], -r*th*0.5, 1e-14) );
+    
+    TEST_CHECK( gkyl_compare(q[3], r*th*2.5, 1e-14) );
+    TEST_CHECK( q[4] == r*th*10.5 );
+  }  
+
   gkyl_wv_apply_bc_release(bbc);
   gkyl_wv_apply_bc_release(tbc);
   gkyl_wv_eqn_release(eqn);
   gkyl_wave_geom_release(wg);
-  gkyl_array_release(fluid);  
+  gkyl_array_release(fluid);
+  gkyl_array_release(bc_buffer);
 }
 
 TEST_LIST = {
   { "test_1", test_1 },
   { "test_2", test_2 },
   { "test_3", test_3 },
-  { "test_4_bc_buff", test_4_bc_buff },
+  { "test_bc_buff_rtheta", test_bc_buff_rtheta },
   { NULL, NULL },
 };

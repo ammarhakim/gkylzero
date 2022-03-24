@@ -611,7 +611,7 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     // write DG projection of mapc2p to file
     const char *fmt = "%s-mapc2p.gkyl";
     int sz = gkyl_calc_strlen(fmt, app->name);
-    char fileNm[sz+1]; // ensures no buffer overflow  
+    char fileNm[sz+1]; // ensures no buffer overflow
     snprintf(fileNm, sizeof fileNm, fmt, app->name);
     gkyl_grid_sub_array_write(&app->grid, &app->local, c2p, fileNm);
 
