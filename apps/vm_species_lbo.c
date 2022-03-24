@@ -68,6 +68,9 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s, str
 {
   int vdim = app->vdim;
   lbo->cross_calc = gkyl_prim_lbo_cross_calc_new(&s->grid, lbo->coll_prim, lbo->num_cross_collisions);
+
+  lbo->cross_nu_u = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
+  lbo->cross_nu_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   
   // set pointers to species we cross-collide with
   for (int i=0; i<lbo->num_cross_collisions; ++i) {
@@ -83,6 +86,7 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s, str
     } else {
       gkyl_array_set(lbo->cross_nu[i], (lbo->other_m[i])/(s->info.mass), lbo->collide_with[i]->lbo.nu_sum);
     }
+    gkyl_array_accumulate(lbo->nu_sum, 1.0, lbo->cross_nu[i]);
   }
   lbo->betaGreenep1 = 1.0;
 }
@@ -153,18 +157,12 @@ vm_species_lbo_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
 	lbo->other_u_drift, lbo->other_vth_sq, lbo->moms.marr, lbo->boundary_corrections,
         lbo->cross_u_drift, lbo->cross_vth_sq);
 
-      int vdim = app->vdim;
-      struct gkyl_array *cross_nu_u = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
-      struct gkyl_array *cross_nu_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-
       for (int i=0; i<lbo->num_cross_collisions; ++i) {
-	gkyl_dg_mul_op(app->confBasis, 0, cross_nu_u, 0, lbo->cross_u_drift[i], 0, lbo->cross_nu[i]);
-        gkyl_dg_mul_op(app->confBasis, 0, cross_nu_vthsq, 0, lbo->cross_vth_sq[i], 0, lbo->cross_nu[i]);
-	gkyl_array_accumulate(lbo->nu_u, 1.0, cross_nu_u);
-	gkyl_array_accumulate(lbo->nu_vthsq, 1.0, cross_nu_vthsq);
+	gkyl_dg_mul_op(app->confBasis, 0, lbo->cross_nu_u, 0, lbo->cross_u_drift[i], 0, lbo->cross_nu[i]);
+        gkyl_dg_mul_op(app->confBasis, 0, lbo->cross_nu_vthsq, 0, lbo->cross_vth_sq[i], 0, lbo->cross_nu[i]);
+	gkyl_array_accumulate(lbo->nu_u, 1.0, lbo->cross_nu_u);
+	gkyl_array_accumulate(lbo->nu_vthsq, 1.0, lbo->cross_nu_vthsq);
       }
-      gkyl_array_release(cross_nu_u);
-      gkyl_array_release(cross_nu_vthsq);
     }
     
     // acccumulate update due to collisions onto rhs
@@ -194,6 +192,8 @@ vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_co
   gkyl_prim_lbo_type_release(lbo->coll_prim);
   gkyl_prim_lbo_calc_release(lbo->coll_pcalc);
   for (int i=0; i<lbo->num_cross_collisions; ++i) {
+    gkyl_array_release(lbo->cross_nu_u);
+    gkyl_array_release(lbo->cross_nu_vthsq);
     gkyl_array_release(lbo->cross_u_drift[i]);
     gkyl_array_release(lbo->cross_vth_sq[i]);
     gkyl_array_release(lbo->cross_nu[i]);
