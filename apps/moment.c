@@ -169,7 +169,7 @@ moment_apply_periodic_bc(const gkyl_moment_app *app, struct gkyl_array *bc_buffe
 
 // apply wedge BCs
 static void
-moment_apply_wdge_bc(const gkyl_moment_app *app, double tcurr,
+moment_apply_wedge_bc(const gkyl_moment_app *app, double tcurr,
   const struct gkyl_range *update_rng, struct gkyl_array *bc_buffer,
   int dir, const struct gkyl_wv_apply_bc *lo, const struct gkyl_wv_apply_bc *up,
   struct gkyl_array *f)
@@ -312,7 +312,7 @@ moment_species_apply_bc(const gkyl_moment_app *app, double tcurr,
 
       // wedge BCs for upper/lower must be handled in one shot
       if (sp->lower_bct[d] == GKYL_SPECIES_WEDGE)
-        moment_apply_wdge_bc(app, tcurr, &app->local,
+        moment_apply_wedge_bc(app, tcurr, &app->local,
           sp->bc_buffer, d, sp->lower_bc[d], sp->upper_bc[d], f);
     }
 }
@@ -495,8 +495,16 @@ moment_field_apply_bc(const gkyl_moment_app *app, double tcurr,
 
   for (int d=0; d<ndim; ++d)
     if (is_non_periodic[d]) {
-      gkyl_wv_apply_bc_advance(field->lower_bc[d], tcurr, &app->local, f);
-      gkyl_wv_apply_bc_advance(field->upper_bc[d], tcurr, &app->local, f);
+      // handle non-wedge BCs
+      if (field->lower_bct[d] != GKYL_FIELD_WEDGE)
+        gkyl_wv_apply_bc_advance(field->lower_bc[d], tcurr, &app->local, f);
+      if (field->upper_bct[d] != GKYL_FIELD_WEDGE)      
+        gkyl_wv_apply_bc_advance(field->upper_bc[d], tcurr, &app->local, f);
+
+      // wedge BCs for upper/lower must be handled in one shot
+      if (field->lower_bct[d] == GKYL_FIELD_WEDGE)
+        moment_apply_wedge_bc(app, tcurr, &app->local,
+          field->bc_buffer, d, field->lower_bc[d], field->upper_bc[d], f);
     }  
 }
 
