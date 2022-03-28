@@ -16,16 +16,18 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
 
   // allocate nu and initialize it
   lbo->nu_sum = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  struct gkyl_array *nu_sum = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+  lbo->self_nu = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  struct gkyl_array *self_nu = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
 
   lbo->num_cross_collisions = s->info.collisions.num_cross_collisions;
   
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
     app->poly_order+1, 1, s->info.collisions.self_nu, s->info.collisions.ctx);
-  gkyl_proj_on_basis_advance(proj, 0.0, &app->local, nu_sum);
+  gkyl_proj_on_basis_advance(proj, 0.0, &app->local, self_nu);
   gkyl_proj_on_basis_release(proj);
-  gkyl_array_copy(lbo->nu_sum, nu_sum);
-  gkyl_array_release(nu_sum);
+  gkyl_array_copy(lbo->self_nu, self_nu);
+  gkyl_array_copy(lbo->nu_sum, self_nu);
+  gkyl_array_release(self_nu);
 
   lbo->boundary_corrections = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
 
@@ -82,9 +84,9 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s, str
     lbo->cross_vth_sq[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     lbo->cross_nu[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     if (lbo->other_m[i] > s->info.mass) {
-      gkyl_array_set(lbo->cross_nu[i], sqrt(2), lbo->nu_sum);
+      gkyl_array_set(lbo->cross_nu[i], 1/sqrt(2), lbo->self_nu);
     } else {
-      gkyl_array_set(lbo->cross_nu[i], (lbo->other_m[i])/(s->info.mass), lbo->collide_with[i]->lbo.nu_sum);
+      gkyl_array_set(lbo->cross_nu[i], (lbo->other_m[i])/(s->info.mass), lbo->collide_with[i]->lbo.self_nu);
     }
     gkyl_array_accumulate(lbo->nu_sum, 1.0, lbo->cross_nu[i]);
   }
@@ -111,8 +113,8 @@ double vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *specie
       lbo->moms.marr, lbo->boundary_corrections,
       lbo->u_drift, lbo->vth_sq);
   
-    gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_u, 0, lbo->u_drift, 0, lbo->nu_sum);
-    gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_vthsq, 0, lbo->vth_sq, 0, lbo->nu_sum);
+    gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_u, 0, lbo->u_drift, 0, lbo->self_nu);
+    gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_vthsq, 0, lbo->vth_sq, 0, lbo->self_nu);
 
     app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);
   } else {
@@ -126,8 +128,8 @@ double vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *specie
       lbo->moms.marr, lbo->boundary_corrections,
       lbo->u_drift, lbo->vth_sq);
   
-    gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_u, 0, lbo->u_drift, 0, lbo->nu_sum);
-    gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_vthsq, 0, lbo->vth_sq, 0, lbo->nu_sum);
+    gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_u, 0, lbo->u_drift, 0, lbo->self_nu);
+    gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_vthsq, 0, lbo->vth_sq, 0, lbo->self_nu);
 
     app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
   }

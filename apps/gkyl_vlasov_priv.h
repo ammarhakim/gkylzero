@@ -71,6 +71,7 @@ struct vm_lbo_collisions {
   struct gkyl_array *cross_u_drift[GKYL_MAX_SPECIES], *cross_vth_sq[GKYL_MAX_SPECIES]; // LBO cross-primitive moments
   struct gkyl_array *cross_nu[GKYL_MAX_SPECIES]; // LBO cross-species collision frequencies
   struct gkyl_array *cross_nu_u, *cross_nu_vthsq; // weak multiplication of collision frequency and primitive moments
+  struct gkyl_array *self_nu, *self_nu_u, *self_nu_vthsq; // LBO self-primitive moments
   struct gkyl_prim_lbo_type *coll_prim; // LBO primitive moments type
 
   struct vm_species_moment moms; // moments needed in LBO (single array includes Zeroth, First, and Second moment)
