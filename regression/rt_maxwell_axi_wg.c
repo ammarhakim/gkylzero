@@ -5,34 +5,39 @@
 #include <gkyl_const.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_euler.h>
 #include <rt_arg_parse.h>
 
-static inline double sq(double x) { return x * x; }
-
-struct wg_ctx {
-  double Lx, Ly;
-  int n, m;
-};
+// map (r,theta) -> (x,y)
+void
+mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
+{
+  double r = xc[0], th = xc[1], z = xc[2];
+  xp[0] = r*cos(th);
+  xp[1] = r*sin(th);
+  xp[2] = z;
+}
 
 void
 evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct wg_ctx *wc = ctx;
-  
-  // assumes epsilon0 = mu0 = c = 1.0
-  double Lx = wc->Lx, Ly = wc->Ly;
-  int n = wc->n, m = wc->m;
-  double x = xn[0], y = xn[1];
+  double r = xn[0], phi = xn[1], z = xn[2];
+  int m = 0, n = 1;  
+  double kn = 2*M_PI*n/10.0;
+
+  double w = 1.212168982106865; // frequency of mode
+  double a = 1.0, b = -0.351948050727361;
+
+  double Ez_r = a*jn(m,r*sqrt(w*w-kn*kn)) + b*yn(m,r*sqrt(w*w-kn*kn));
+  double Ez = Ez_r*cos(m*phi)*cos(kn*z);
 
   fout[0] = 0.0;
   fout[1] = 0.0;
-  fout[2] = sin(n*M_PI*x/Lx)*sin(m*M_PI*y/Ly);
+  fout[2] = Ez;
   fout[3] = 0.0;
   fout[4] = 0.0;
-  fout[5] = cos(n*M_PI*x/Lx)*cos(m*M_PI*y/Ly);
+  fout[5] = 0.0;
   fout[6] = 0.0;
-  fout[7] = 0.0;
+  fout[7] = 0.0;  
 }
 
 int
@@ -40,53 +45,51 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 10*7);
-  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 10*5);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 32);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 3);
+  int NZ = APP_ARGS_CHOOSE(app_args.xcells[1], 32*3);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
 
-  struct wg_ctx wc =  {
-    .Lx = 7.0, .Ly = 5.0,
-    .n = 7, .m = 5
-  };
+  // VM app
+  struct gkyl_moment app_inp = {
+    .name = "maxwell_axi_wg",
 
-  struct gkyl_moment app_inp =
-  {
-    .name = "maxwell_wg_2d",
+    .ndim = 3,
+    // grid in computational space
+    .lower = { 2.0, -0.05, 0.0 },
+    .upper = { 5.0, 0.05, 10.0 },
+    .cells = { NX, NY, NZ },
 
-   .ndim = 2,
-   .lower = {0.0, 0.0},
-   .upper = {wc.Lx, wc.Ly},
-   .cells = {NX, NY},
+    .mapc2p = mapc2p, // mapping of computational to physical space
 
-   .num_periodic_dir = 0,
-   .periodic_dirs = {},
-   .cfl_frac = 1.0,
+    .num_periodic_dir = 1,
+    .periodic_dirs = { 2 },
 
-   .field = {
-     .epsilon0 = 1.0,
-     .mu0 = 1.0,
-     .evolve = 1,
-     .limiter = GKYL_NO_LIMITER,
+    .cfl_frac = 0.9,
 
-     .init = evalFieldInit,
-     .ctx = &wc,
-     
-     .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
-     .bcy = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL }
+    .field = {
+      .epsilon0 = 1.0, .mu0 = 1.0,
+      .evolve = 1,
+      .limiter = GKYL_NO_LIMITER,
+      .init = evalFieldInit,
+
+      .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
+      .bcy = { GKYL_FIELD_WEDGE, GKYL_FIELD_WEDGE },
     }
   };
 
   // create app object
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
-  double omega = sqrt( sq(wc.n*M_PI/wc.Lx) + sq(wc.m*M_PI/wc.Ly) );
-  double tperiod = 2*M_PI/omega; // time-period
+  double w = 1.212168982106865; // frequency of mode
+  double tperiod = 2*M_PI/w;
+
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 10*tperiod;
+  double tcurr = 0.0, tend = 2*tperiod;
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
@@ -106,7 +109,7 @@ main(int argc, char **argv)
       break;
     }
     tcurr += status.dt_actual;
-    dt = fmin(status.dt_suggested, tend-tcurr);
+    dt = status.dt_suggested;
 
     step += 1;
   }

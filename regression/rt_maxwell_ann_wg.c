@@ -84,7 +84,7 @@ main(int argc, char **argv)
   double tperiod = 2*M_PI/w;
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = tperiod;
+  double tcurr = 0.0, tend = 2*tperiod;
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
