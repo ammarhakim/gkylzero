@@ -316,6 +316,7 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
           vm_species_apply_wall_bc(app, species, d, VM_EDGE_LOWER, f);
           break;
         case GKYL_SPECIES_NO_SLIP:
+        case GKYL_SPECIES_WEDGE: // wedge and no-slip not defined for Vlasov
           assert(false);
           break;
       }
@@ -328,6 +329,7 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
           vm_species_apply_wall_bc(app, species, d, VM_EDGE_UPPER, f);
           break;
         case GKYL_SPECIES_NO_SLIP:
+        case GKYL_SPECIES_WEDGE: // wedge and no-slip not defined for Vlasov
           assert(false);
           break;
       }      

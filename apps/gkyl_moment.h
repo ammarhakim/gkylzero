@@ -73,6 +73,9 @@ struct gkyl_moment {
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
 
+  int num_skip_dirs; // number of directions to skip
+  int skip_dirs[3]; // directions to skip
+
   int num_species; // number of species
   struct gkyl_moment_species species[GKYL_MAX_SPECIES]; // species objects
   struct gkyl_moment_field field; // field object
@@ -103,7 +106,7 @@ typedef struct gkyl_moment_app gkyl_moment_app;
  * @param vm App inputs. See struct docs.
  * @return New moment app object.
  */
-gkyl_moment_app* gkyl_moment_app_new(struct gkyl_moment mom);
+gkyl_moment_app* gkyl_moment_app_new(struct gkyl_moment *mom);
 
 /**
  * Compute maximum estimated stable dt wtih current app state. Call

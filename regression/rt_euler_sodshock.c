@@ -23,7 +23,7 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double rhor = 1.0, ur = 0.0, pr = 1.0;
 
   double rho = rhor, u = ur, p = pr;
-  if (x<0.5) {
+  if (x<0.75) {
     rho = rhol;
     u = ul;
     p = pl;
@@ -72,8 +72,8 @@ main(int argc, char **argv)
     .name = "euler_sodshock",
 
     .ndim = 1,
-    .lower = { 0.0 },
-    .upper = { 1.0 }, 
+    .lower = { 0.25 },
+    .upper = { 1.25 }, 
     .cells = { NX },
 
     .cfl_frac = 0.9,
@@ -83,7 +83,7 @@ main(int argc, char **argv)
   };
 
   // create app object
-  gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
+  gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 0.1;

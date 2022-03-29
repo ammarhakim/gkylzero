@@ -81,7 +81,7 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "euler_axis_sodshock",
+    .name = "euler_axi_sodshock",
 
     .ndim = 2,
     // grid in computational space
@@ -93,7 +93,7 @@ main(int argc, char **argv)
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 1 },
-    
+
     .cfl_frac = 0.9,
 
     .num_species = 1,
@@ -101,7 +101,7 @@ main(int argc, char **argv)
   };
 
   // create app object
-  gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
+  gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 0.1;

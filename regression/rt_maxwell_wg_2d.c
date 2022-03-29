@@ -54,7 +54,8 @@ main(int argc, char **argv)
   };
 
   struct gkyl_moment app_inp =
-  {.name = "maxwell_wg_2d",
+  {
+    .name = "maxwell_wg_2d",
 
    .ndim = 2,
    .lower = {0.0, 0.0},
@@ -80,7 +81,7 @@ main(int argc, char **argv)
   };
 
   // create app object
-  gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
+  gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   double omega = sqrt( sq(wc.n*M_PI/wc.Lx) + sq(wc.m*M_PI/wc.Ly) );
   double tperiod = 2*M_PI/omega; // time-period

@@ -2,49 +2,53 @@
 #include <stdio.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_const.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_mhd.h>
+#include <gkyl_wv_euler.h>
 #include <rt_arg_parse.h>
 
-struct mhd_ctx {
+struct euler_ctx {
   double gas_gamma; // gas constant
 };
 
 void
-calcq(double gas_gamma, const double pv[8], double q[8])
+evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  double rho = pv[0], u = pv[1], v = pv[2], w = pv[3], pr = pv[4];
-  q[0] = rho;
-  q[1] = rho*u; q[2] = rho*v; q[3] = rho*w;
-  q[5] = pv[5]; q[6] = pv[6]; q[7] = pv[7];  // B field
-  double pb = 0.5*(pv[5]*pv[5]+pv[6]*pv[6]+pv[7]*pv[7]); // magnetic pressure
-  q[4] = pr/(gas_gamma-1) + 0.5*rho*(u*u+v*v+w*w) + pb;
-}
-
-/* Ryu & Jones (1995), the second test in Sec 4 and fig 2a, with all 7 waves. */
-void
-evalMhdInit(double t, const double* GKYL_RESTRICT xn,
-            double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct mhd_ctx *app = ctx;
-  double x = xn[0];
+  struct euler_ctx *app = ctx;
   double gas_gamma = app->gas_gamma;
 
-  // primitive variables, rho, V, E, B
-  double tmp = 1 / sqrt(4*M_PI);
-  double vl[8] = {1.08, 1.2, 0.01, 0.5, 0.95, 2*tmp, 3.6*tmp, 2*tmp};
-  double vr[8] = {1,    0,   0,    0,   1,    2*tmp, 4*tmp,   2*tmp};
-  
-  calcq(gas_gamma, vr, fout);
-  if (x<0.5)
-    calcq(gas_gamma, vl, fout);
+  double r = xn[0]; // radial coordinate
+
+  double rhol = 3.0, ul = 0.0, pl = 3.0;
+  double rhor = 1.0, ur = 0.0, pr = 1.0;
+
+  double sloc = 0.5*(0.25+1.25);
+
+  double rho = rhor, u = ur, p = pr;
+  if (r<sloc) {
+    rho = rhol;
+    u = ul;
+    p = pl;
+  }
+
+  fout[0] = rho;
+  fout[1] = rho*u; fout[2] = 0.0; fout[3] = 0.0;
+  fout[4] = p/(gas_gamma-1) + 0.5*rho*u*u;
 }
 
-struct mhd_ctx
-mhd_ctx(void)
+// map (r,theta) -> (x,y)
+void
+mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 {
-  return (struct mhd_ctx) { .gas_gamma = 5./3. };
+  double r = xc[0], th = xc[1];
+  xp[0] = r*cos(th); xp[1] = r*sin(th);
+}
+
+struct euler_ctx
+euler_ctx(void)
+{
+  return (struct euler_ctx) { .gas_gamma = 1.4 };
 }
 
 int
@@ -52,38 +56,45 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 512);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 64);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 2);
+
+  double theta = 0.01; // wedge angle
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  struct mhd_ctx ctx = mhd_ctx(); // context for init functions
+  struct euler_ctx ctx = euler_ctx(); // context for init functions
 
   // equation object
-  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(ctx.gas_gamma, "none");
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma);
 
   struct gkyl_moment_species fluid = {
-    .name = "mhd",
+    .name = "euler",
 
-    .equation = mhd,
+    .equation = euler,
     .evolve = 1,
     .ctx = &ctx,
-    .init = evalMhdInit,
+    .init = evalEulerInit,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+    .bcy = { GKYL_SPECIES_WEDGE, GKYL_SPECIES_WEDGE },
   };
 
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "mhd_rj2",
+    .name = "euler_wedge_sodshock",
 
-    .ndim = 1,
-    .lower = { 0.0 },
-    .upper = { 1.0 }, 
-    .cells = { NX },
+    .ndim = 2,
+    // grid in computational space
+    .lower = { 0.25, -theta/2 },
+    .upper = { 1.25,  theta/2 },
+    .cells = { NX, NY },
 
-    .cfl_frac = 0.8,
+    .mapc2p = mapc2p, // mapping of computational to physical space
+
+    .cfl_frac = 0.9,
 
     .num_species = 1,
     .species = { fluid },
@@ -93,7 +104,7 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.2;
+  double tcurr = 0.0, tend = 0.1;
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
@@ -124,7 +135,7 @@ main(int argc, char **argv)
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
 
   // simulation complete, free resources
-  gkyl_wv_eqn_release(mhd);
+  gkyl_wv_eqn_release(euler);
   gkyl_moment_app_release(app);
 
   printf("\n");

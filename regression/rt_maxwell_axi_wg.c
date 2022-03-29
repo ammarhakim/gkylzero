@@ -2,44 +2,42 @@
 #include <stdio.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_const.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_mhd.h>
 #include <rt_arg_parse.h>
 
-struct mhd_ctx {
-  double gas_gamma; // gas constant
-};
-
+// map (r,theta) -> (x,y)
 void
-evalMhdInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 {
-  struct mhd_ctx *app = ctx;
-  double x = xn[0];
-  double gas_gamma = app->gas_gamma;
-
-  double bx = 0.75;
-  double rhol = 1.0, rhor = 0.125;
-  double byl = 1.0, byr = -1.0;
-  double pl = 1.0, pr = 0.1;
-
-  double rho = rhor, by = byr, p = pr;
-  if (x<0.5) {
-    rho = rhol;
-    by = byl;
-    p = pl;
-  }
-
-  fout[0] = rho;
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
-  fout[4] = p/(gas_gamma-1) + 0.5*(bx*bx + by*by);
-  fout[5] = bx; fout[6] = by; fout[7] = 0.0;
+  double r = xc[0], th = xc[1], z = xc[2];
+  xp[0] = r*cos(th);
+  xp[1] = r*sin(th);
+  xp[2] = z;
 }
 
-struct mhd_ctx
-mhd_ctx(void)
+void
+evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  return (struct mhd_ctx) { .gas_gamma = 2.0 };
+  double r = xn[0], phi = xn[1], z = xn[2];
+  int m = 0, n = 1;  
+  double kn = 2*M_PI*n/10.0;
+
+  double w = 1.212168982106865; // frequency of mode
+  double a = 1.0, b = -0.351948050727361;
+
+  double Ez_r = a*jn(m,r*sqrt(w*w-kn*kn)) + b*yn(m,r*sqrt(w*w-kn*kn));
+  double Ez = Ez_r*cos(m*phi)*cos(kn*z);
+
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = Ez;
+  fout[3] = 0.0;
+  fout[4] = 0.0;
+  fout[5] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = 0.0;  
 }
 
 int
@@ -47,48 +45,51 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 400);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 32);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 3);
+  int NZ = APP_ARGS_CHOOSE(app_args.xcells[1], 32*3);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  struct mhd_ctx ctx = mhd_ctx(); // context for init functions
-
-  // equation object
-  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(ctx.gas_gamma, "none");
-
-  struct gkyl_moment_species fluid = {
-    .name = "mhd",
-
-    .equation = mhd,
-    .evolve = 1,
-    .ctx = &ctx,
-    .init = evalMhdInit,
-
-    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
-  };
 
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "mhd_brio_wu",
+    .name = "maxwell_axi_wg",
 
-    .ndim = 1,
-    .lower = { 0.0 },
-    .upper = { 1.0 }, 
-    .cells = { NX },
+    .ndim = 3,
+    // grid in computational space
+    .lower = { 2.0, -0.05, 0.0 },
+    .upper = { 5.0, 0.05, 10.0 },
+    .cells = { NX, NY, NZ },
 
-    .cfl_frac = 0.8,
+    .mapc2p = mapc2p, // mapping of computational to physical space
 
-    .num_species = 1,
-    .species = { fluid },
+    .num_periodic_dir = 1,
+    .periodic_dirs = { 2 },
+
+    .cfl_frac = 0.9,
+
+    .field = {
+      .epsilon0 = 1.0, .mu0 = 1.0,
+      .evolve = 1,
+      .limiter = GKYL_NO_LIMITER,
+      .init = evalFieldInit,
+
+      .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
+      .bcy = { GKYL_FIELD_WEDGE, GKYL_FIELD_WEDGE },
+    }
   };
 
   // create app object
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
+  double w = 1.212168982106865; // frequency of mode
+  double tperiod = 2*M_PI/w;
+
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.1;
+  double tcurr = 0.0, tend = 2*tperiod;
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
@@ -119,7 +120,6 @@ main(int argc, char **argv)
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
 
   // simulation complete, free resources
-  gkyl_wv_eqn_release(mhd);
   gkyl_moment_app_release(app);
 
   printf("\n");

@@ -58,6 +58,8 @@ struct moment_species {
   const struct gkyl_wv_eqn *equation; // equation object for initializing solvers
   gkyl_wave_prop *slvr[3]; // solver in each direction
 
+  // boundary condition type
+  enum gkyl_species_bc_type lower_bct[3], upper_bct[3];
   // boundary condition solvers on lower/upper edges in each direction
   gkyl_wv_apply_bc *lower_bc[3], *upper_bc[3];
 };
@@ -83,6 +85,8 @@ struct moment_field {
 
   gkyl_wave_prop *slvr[3]; // solver in each direction
 
+  // boundary condition type
+  enum gkyl_field_bc_type lower_bct[3], upper_bct[3];
   // boundary conditions on lower/upper edges in each direction
   gkyl_wv_apply_bc *lower_bc[3], *upper_bc[3];    
 };
@@ -112,6 +116,8 @@ struct gkyl_moment_app {
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
+
+  int is_dir_skipped[3]; // flags to tell if update in direction are skipped
 
   enum gkyl_moment_fluid_scheme fluid_scheme; // scheme to update fluid equations
     
@@ -229,6 +235,20 @@ moment_apply_periodic_corner_sync(const gkyl_moment_app *app, struct gkyl_array 
   }
 }
 
+// apply wedge BCs
+static void
+moment_apply_wedge_bc(const gkyl_moment_app *app, double tcurr,
+  const struct gkyl_range *update_rng, struct gkyl_array *bc_buffer,
+  int dir, const struct gkyl_wv_apply_bc *lo, const struct gkyl_wv_apply_bc *up,
+  struct gkyl_array *f)
+{
+  gkyl_wv_apply_bc_to_buff(lo, tcurr, update_rng, f, bc_buffer->data);
+  gkyl_array_copy_from_buffer(f, bc_buffer->data, app->skin_ghost.upper_ghost[dir]);
+
+  gkyl_wv_apply_bc_to_buff(up, tcurr, update_rng, f, bc_buffer->data);
+  gkyl_array_copy_from_buffer(f, bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
+}
+
 /** moment_species functions */
 
 // initialize species
@@ -258,7 +278,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         .grid = &app->grid,
         .equation = sp->equation,
         .limiter = limiter,
-        .num_up_dirs = 1,
+        .num_up_dirs = app->is_dir_skipped[d] ? 0 : 1,
         .update_dirs = { d },
         .cfl = app->cfl,
         .geom = app->geom,
@@ -281,43 +301,53 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
       else
         bc = mom_sp->bcz;
 
+      sp->lower_bct[dir] = bc[0];
+      sp->upper_bct[dir] = bc[1];
+
       // lower BCs
-      if (bc[0] == GKYL_SPECIES_WALL) {
-        sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
-          mom_sp->equation->wall_bc_func, 0);        
-      }
-      else if (bc[0] == GKYL_SPECIES_NO_SLIP) {
-        sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
-          mom_sp->equation->no_slip_bc_func, 0);        
-      }
-      else {
-        sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_copy, 0);
+      switch (bc[0]) {
+        case GKYL_SPECIES_WALL:
+          sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            mom_sp->equation->wall_bc_func, 0);
+          break;
+        case GKYL_SPECIES_NO_SLIP:
+          sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            mom_sp->equation->no_slip_bc_func, 0);
+          break;
+        case GKYL_SPECIES_COPY:
+        case GKYL_SPECIES_WEDGE: // wedge also uses bc_copy
+          sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_copy, 0);
+          break;
+
+        default:
+          // can't happen
+          break;
       }
       
       // upper BCs
-      if (bc[1] == GKYL_SPECIES_WALL) {
-        sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
-          mom_sp->equation->wall_bc_func, 0);
+      switch (bc[1]) {
+        case GKYL_SPECIES_WALL:      
+          sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
+            mom_sp->equation->wall_bc_func, 0);
+          break;
+        case GKYL_SPECIES_NO_SLIP:
+          sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
+            mom_sp->equation->no_slip_bc_func, 0);
+          break;
+        case GKYL_SPECIES_COPY:
+        case GKYL_SPECIES_WEDGE:
+          sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_copy, 0);
+          break;
       }
-      else if (bc[1] == GKYL_SPECIES_NO_SLIP) {
-        sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
-          mom_sp->equation->no_slip_bc_func, 0);        
-      }
-      else {
-        sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_copy, 0);
-      }
-    }
-    else {
-      sp->upper_bc[dir] = sp->lower_bc[dir] = 0;
     }
   }
-    
+
   int meqn = sp->num_equations;
   sp->fdup = mkarr(meqn, app->local_ext.volume);
   // allocate arrays
@@ -352,8 +382,16 @@ moment_species_apply_bc(const gkyl_moment_app *app, double tcurr,
   moment_apply_periodic_corner_sync(app, f);
   for (int d=0; d<ndim; ++d)
     if (is_non_periodic[d]) {
-      gkyl_wv_apply_bc_advance(sp->lower_bc[d], tcurr, &app->local, f);
-      gkyl_wv_apply_bc_advance(sp->upper_bc[d], tcurr, &app->local, f);
+      // handle non-wedge BCs
+      if (sp->lower_bct[d] != GKYL_SPECIES_WEDGE)
+        gkyl_wv_apply_bc_advance(sp->lower_bc[d], tcurr, &app->local, f);
+      if (sp->upper_bct[d] != GKYL_SPECIES_WEDGE)
+        gkyl_wv_apply_bc_advance(sp->upper_bc[d], tcurr, &app->local, f);
+
+      // wedge BCs for upper/lower must be handled in one shot
+      if (sp->lower_bct[d] == GKYL_SPECIES_WEDGE)
+        moment_apply_wedge_bc(app, tcurr, &app->local,
+          sp->bc_buffer, d, sp->lower_bc[d], sp->upper_bc[d], f);
     }
 }
 
@@ -451,7 +489,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         .grid = &app->grid,
         .equation = maxwell,
         .limiter = limiter,
-        .num_up_dirs = 1,
+        .num_up_dirs = app->is_dir_skipped[d] ? 0 : 1,
         .update_dirs = { d },
         .cfl = app->cfl,
         .geom = app->geom,
@@ -474,24 +512,33 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
       else
         bc = mom_fld->bcz;
 
-      // lower BCs in X
-      if (bc[0] == GKYL_FIELD_PEC_WALL)
-        fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
+      fld->lower_bct[dir] = bc[0];
+      fld->upper_bct[dir] = bc[1];
+
+      switch (bc[0]) {
+        case GKYL_FIELD_PEC_WALL:
+          fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
           &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, maxwell->wall_bc_func, 0);
-      else
-        fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_copy, 0);
-      
-      // upper BCs in X
-      if (bc[1] == GKYL_FIELD_PEC_WALL)
-        fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, maxwell->wall_bc_func, 0);
-      else
-        fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_copy, 0);
-    }
-    else {
-      fld->upper_bc[dir] = fld->lower_bc[dir] = 0;
+          break;
+
+        case GKYL_FIELD_COPY:
+        case GKYL_FIELD_WEDGE:
+          fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_copy, 0);
+          break;
+      }
+
+      switch (bc[1]) {
+        case GKYL_FIELD_PEC_WALL:
+          fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, maxwell->wall_bc_func, 0);
+          break;
+
+        case GKYL_FIELD_COPY:
+        case GKYL_FIELD_WEDGE:
+          fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_copy, 0);
+      }
     }
   }
 
@@ -535,8 +582,16 @@ moment_field_apply_bc(const gkyl_moment_app *app, double tcurr,
 
   for (int d=0; d<ndim; ++d)
     if (is_non_periodic[d]) {
-      gkyl_wv_apply_bc_advance(field->lower_bc[d], tcurr, &app->local, f);
-      gkyl_wv_apply_bc_advance(field->upper_bc[d], tcurr, &app->local, f);
+      // handle non-wedge BCs
+      if (field->lower_bct[d] != GKYL_FIELD_WEDGE)
+        gkyl_wv_apply_bc_advance(field->lower_bc[d], tcurr, &app->local, f);
+      if (field->upper_bct[d] != GKYL_FIELD_WEDGE)      
+        gkyl_wv_apply_bc_advance(field->upper_bc[d], tcurr, &app->local, f);
+
+      // wedge BCs for upper/lower must be handled in one shot
+      if (field->lower_bct[d] == GKYL_FIELD_WEDGE)
+        moment_apply_wedge_bc(app, tcurr, &app->local,
+          field->bc_buffer, d, field->lower_bc[d], field->upper_bc[d], f);
     }  
 }
 
@@ -624,8 +679,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       .type = app->species[i].eqn_type,
       .charge = app->species[i].charge,
       .mass = app->species[i].mass,
-//      .k0 = app->has_grad_closure ? 0.0 : gkyl_wv_ten_moment_k0(app->species[i].equation),
-      .k0 = 0.0,
+      .k0 = app->has_grad_closure ? 0.0 : gkyl_wv_ten_moment_k0(app->species[i].equation),
     };
 
   // create updater to solve for sources
@@ -800,28 +854,28 @@ moment_non_ideal_release(const gkyl_moment_app *app, const struct moment_non_ide
 /** app methods */
 
 gkyl_moment_app*
-gkyl_moment_app_new(struct gkyl_moment mom)
+gkyl_moment_app_new(struct gkyl_moment *mom)
 {
   struct gkyl_moment_app *app = gkyl_malloc(sizeof(gkyl_moment_app));
 
-  int ndim = app->ndim = mom.ndim;
-  strcpy(app->name, mom.name);
+  int ndim = app->ndim = mom->ndim;
+  strcpy(app->name, mom->name);
   app->tcurr = 0.0; // reset on init
 
   // create grid and ranges (grid is in computational space)
   int ghost[3] = { 2, 2, 2 };
-  gkyl_rect_grid_init(&app->grid, ndim, mom.lower, mom.upper, mom.cells);
+  gkyl_rect_grid_init(&app->grid, ndim, mom->lower, mom->upper, mom->cells);
   gkyl_create_grid_ranges(&app->grid, ghost, &app->local_ext, &app->local);
 
   skin_ghost_ranges_init(&app->skin_ghost, &app->local_ext, ghost);
 
   app->c2p_ctx = app->mapc2p = 0;  
-  app->has_mapc2p = mom.mapc2p ? true : false;
+  app->has_mapc2p = mom->mapc2p ? true : false;
 
   if (app->has_mapc2p) {
     // initialize computational to physical space mapping
-    app->c2p_ctx = mom.c2p_ctx;
-    app->mapc2p = mom.mapc2p;
+    app->c2p_ctx = mom->c2p_ctx;
+    app->mapc2p = mom->mapc2p;
 
     // we project mapc2p on p=1 basis functions
     struct gkyl_basis basis;
@@ -829,13 +883,13 @@ gkyl_moment_app_new(struct gkyl_moment mom)
 
     // initialize DG field representing mapping
     struct gkyl_array *c2p = mkarr(ndim*basis.num_basis, app->local_ext.volume);
-    gkyl_eval_on_nodes *ev_c2p = gkyl_eval_on_nodes_new(&app->grid, &basis, ndim, mom.mapc2p, mom.c2p_ctx);
+    gkyl_eval_on_nodes *ev_c2p = gkyl_eval_on_nodes_new(&app->grid, &basis, ndim, mom->mapc2p, mom->c2p_ctx);
     gkyl_eval_on_nodes_advance(ev_c2p, 0.0, &app->local_ext, c2p);
 
     // write DG projection of mapc2p to file
     const char *fmt = "%s-mapc2p.gkyl";
     int sz = gkyl_calc_strlen(fmt, app->name);
-    char fileNm[sz+1]; // ensures no buffer overflow  
+    char fileNm[sz+1]; // ensures no buffer overflow
     snprintf(fileNm, sizeof fileNm, fmt, app->name);
     gkyl_grid_sub_array_write(&app->grid, &app->local, c2p, fileNm);
 
@@ -847,28 +901,34 @@ gkyl_moment_app_new(struct gkyl_moment mom)
   app->geom = gkyl_wave_geom_new(&app->grid, &app->local_ext,
     app->mapc2p, app->c2p_ctx);
 
-  double cfl_frac = mom.cfl_frac == 0 ? 0.95 : mom.cfl_frac;
+  double cfl_frac = mom->cfl_frac == 0 ? 0.95 : mom->cfl_frac;
   app->cfl = 1.0*cfl_frac;
 
-  app->fluid_scheme = mom.fluid_scheme;
+  app->fluid_scheme = mom->fluid_scheme;
 
-  app->num_periodic_dir = mom.num_periodic_dir;
+  app->num_periodic_dir = mom->num_periodic_dir;
   for (int d=0; d<ndim; ++d)
-    app->periodic_dirs[d] = mom.periodic_dirs[d];
+    app->periodic_dirs[d] = mom->periodic_dirs[d];
+
+  // construct list of directions to skip
+  for (int d=0; d<3; ++d)
+    app->is_dir_skipped[d] = 0;
+  for (int i=0; i<mom->num_skip_dirs; ++i)
+    app->is_dir_skipped[mom->skip_dirs[i]] = 1;
 
   app->has_field = 0;
   // initialize field if we have one
-  if (mom.field.init) {
+  if (mom->field.init) {
     app->has_field = 1;
-    moment_field_init(&mom, &mom.field, app, &app->field);
+    moment_field_init(mom, &mom->field, app, &app->field);
   }
 
-  int ns = app->num_species = mom.num_species;
+  int ns = app->num_species = mom->num_species;
   // allocate space to store species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct moment_species[ns])) : 0;
   // create species grid & ranges
   for (int i=0; i<ns; ++i)
-    moment_species_init(&mom, &mom.species[i], app, &app->species[i]);
+    moment_species_init(mom, &mom->species[i], app, &app->species[i]);
 
   // check if we should update sources
   app->update_sources = 0;
@@ -877,8 +937,8 @@ gkyl_moment_app_new(struct gkyl_moment mom)
     moment_coupling_init(app, &app->sources);
   }
 
-  app->type_brag = mom.type_brag;
-  app->has_grad_closure = mom.has_grad_closure;
+  app->type_brag = mom->type_brag;
+  app->has_grad_closure = mom->has_grad_closure;
   app->has_non_ideal = 0;
   if (app->type_brag || app->has_grad_closure) {
     app->has_non_ideal = 1; // only update if non-ideal terms present
