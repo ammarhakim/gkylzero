@@ -69,12 +69,14 @@ enum gkyl_collision_id {
 enum gkyl_species_bc_type {
   GKYL_SPECIES_COPY = 0, // copy BCs
   GKYL_SPECIES_WALL, // perfect reflector
+  GKYL_SPECIES_WEDGE, // specialized "wedge" BCs for RZ-theta
 };
 
 // Boundary conditions on fields
 enum gkyl_field_bc_type {
   GKYL_FIELD_COPY = 0, // copy BCs
   GKYL_FIELD_PEC_WALL, // perfect electrical conductor (PEC) BCs
+  GKYL_FIELD_WEDGE, // specialized "wedge" BCs for RZ-theta
 };
 
 // This needs to be enum to allow usage below
@@ -519,6 +521,7 @@ local species_mt = {
       -- we need this here also to be consistent with G2 App
       bcWall = C.GKYL_SPECIES_WALL,
       bcCopy = C.GKYL_SPECIES_COPY,
+      bcWedge = C.GKYL_SPECIES_WEDGE
    }
 }
 _M.Species = ffi.metatype(species_type, species_mt)
@@ -586,6 +589,8 @@ local field_mt = {
       bcOpen = C.GKYL_FIELD_COPY,
       bcCopy = C.GKYL_FIELD_COPY,
       bcReflect = C.GKYL_FIELD_PEC_WALL,
+      bcPEC = C.GKYL_FIELD_PEC_WALL,
+      bcWedge = C.GKYL_FIELD_WEDGE
    }
 }
 _M.Field = ffi.metatype(field_type, field_mt)
