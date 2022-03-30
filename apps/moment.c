@@ -223,6 +223,11 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   for (int d=0; d<num_periodic_dir; ++d)
     is_np[app->periodic_dirs[d]] = 0;
 
+  for (int i=0; i<3; ++i) {
+    sp->lower_bc[i] = 0;
+    sp->upper_bc[i] = 0;
+  }
+
   int nghost[3] = {2, 2, 2};
   for (int dir=0; dir<app->ndim; ++dir) {
     if (is_np[dir]) {
@@ -419,6 +424,11 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
   for (int d=0; d<num_periodic_dir; ++d)
     is_np[app->periodic_dirs[d]] = 0;
+
+  for (int i=0; i<3; ++i) {
+    fld->lower_bc[i] = 0;
+    fld->upper_bc[i] = 0;
+  }  
 
   int nghost[3] = {2, 2, 2};
   for (int dir=0; dir<app->ndim; ++dir) {
