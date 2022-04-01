@@ -17,11 +17,12 @@ enum gkyl_braginskii_type
   GKYL_BRAG_HEATFLUX = 1 << 2,
 
   GKYL_BRAG_UNMAG_FULL = GKYL_BRAG_VISC | GKYL_BRAG_HEATFLUX,
-  GKYL_BRAG_MAG_FULL = GKYL_BRAG_MAG | GKYL_BRAG_VISC | GKYL_BRAG_HEATFLUX
+  GKYL_BRAG_MAG_FULL = GKYL_BRAG_MAG | GKYL_BRAG_UNMAG_FULL
 };
 
 struct gkyl_moment_braginskii_data {
   enum gkyl_eqn_type type_eqn; // equation type
+  enum gkyl_braginskii_type type_brag; // which Braginskii equations
   double charge; // species charge
   double mass; // species mass
   double p_fac; // factor for obtaining pressure for Braginskii coefficients
@@ -31,7 +32,6 @@ struct gkyl_moment_braginskii_inp {
   const struct gkyl_rect_grid *grid; // grid on which to solve equations
   int nfluids; // number of fluids
   struct gkyl_moment_braginskii_data param[GKYL_MAX_SPECIES]; // species data
-  enum gkyl_braginskii_type type_brag; // which Braginskii equations
   double epsilon0; // permittivity of free space
   double coll_fac; // constant multiplicative factor for collision time to increase or decrease collisionality
 };

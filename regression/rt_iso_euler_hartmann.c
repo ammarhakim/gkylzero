@@ -95,6 +95,7 @@ main(int argc, char **argv)
     .evolve = 1,
     .init = evalElcInit,
     .app_accel_func = evalAppAccel,
+    .type_brag = GKYL_BRAG_MAG_FULL,
 
     .bcx = { GKYL_SPECIES_NO_SLIP, GKYL_SPECIES_NO_SLIP },
   };
@@ -106,6 +107,7 @@ main(int argc, char **argv)
     .evolve = 1,
     .init = evalIonInit,
     .app_accel_func = evalAppAccel,
+    .type_brag = GKYL_BRAG_MAG_FULL,
 
     .bcx = { GKYL_SPECIES_NO_SLIP, GKYL_SPECIES_NO_SLIP },    
   };  
@@ -125,7 +127,6 @@ main(int argc, char **argv)
 
     .num_species = 2,
     .species = { elc, ion },
-    .type_brag = GKYL_BRAG_MAG_FULL,
     .coll_fac = 1.0,
     .field = {
       .epsilon0 = 8.854187817620389850536563031710750260608e-12,

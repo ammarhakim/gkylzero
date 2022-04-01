@@ -54,6 +54,7 @@ struct moment_species {
   struct gkyl_array *bc_buffer; // buffer for periodic BCs
 
   enum gkyl_eqn_type eqn_type; // type ID of equation
+  enum gkyl_braginskii_type type_brag; // which Braginskii equations
   int num_equations; // number of equations in species
   const struct gkyl_wv_eqn *equation; // equation object for initializing solvers
   gkyl_wave_prop *slvr[3]; // solver in each direction
@@ -143,8 +144,8 @@ struct gkyl_moment_app {
   int update_sources; // flag to indicate if sources are to be updated
   struct moment_coupling sources; // sources
 
+  bool has_brag;
   int has_non_ideal; // flag to indicate if non-ideal terms are present
-  enum gkyl_braginskii_type type_brag; // enum for Braginskii type (if present)
   double coll_fac; // multiplicative collisionality factor for Braginskii
   bool has_grad_closure; // has gradient-based closure (only for 10 moment)
   struct moment_non_ideal non_ideal; // non-ideal terms
@@ -264,6 +265,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   sp->init = mom_sp->init;
 
   sp->eqn_type = mom_sp->equation->type;
+  sp->type_brag = mom_sp->type_brag;
   sp->num_equations = mom_sp->equation->num_equations;
   sp->equation = gkyl_wv_eqn_acquire(mom_sp->equation);
 
@@ -762,12 +764,11 @@ moment_non_ideal_init(const struct gkyl_moment_app *app, struct moment_non_ideal
     non_ideal->non_ideal_vars[n] = mkarr(10, non_ideal->non_ideal_local_ext.volume);
 
   // check if Braginskii terms present
-  if (app->type_brag) {
+  if (app->has_brag) {
     struct gkyl_moment_braginskii_inp brag_inp = {
       .grid = &app->grid,
       .nfluids = app->num_species,
       .epsilon0 = app->field.epsilon0,
-      .type_brag = app->type_brag,
       // Check for multiplicative collisionality factor, default is 1.0
       .coll_fac = app->coll_fac == 0 ? 1.0 : app->coll_fac,
     };
@@ -781,6 +782,7 @@ moment_non_ideal_init(const struct gkyl_moment_app *app, struct moment_non_ideal
         p_fac =  gkyl_wv_iso_euler_vt(app->species[i].equation);
       brag_inp.param[i] = (struct gkyl_moment_braginskii_data) {
         .type_eqn = app->species[i].eqn_type,
+        .type_brag = app->species[i].type_brag,
         .charge = app->species[i].charge,
         .mass = app->species[i].mass,
         .p_fac = p_fac,
@@ -821,7 +823,7 @@ moment_non_ideal_update(const gkyl_moment_app *app, struct moment_non_ideal *non
         non_ideal->non_ideal_cflrate[i], non_ideal->non_ideal_vars[i], non_ideal->rhs[i]);
   }
 
-  if (app->type_brag)
+  if (app->has_brag)
     gkyl_moment_braginskii_advance(non_ideal->brag_slvr,
       non_ideal->non_ideal_local, app->local,
       fluids, app->field.f[sidx[nstrang]],
@@ -848,7 +850,7 @@ moment_non_ideal_release(const gkyl_moment_app *app, const struct moment_non_ide
     if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->has_grad_closure)
       gkyl_ten_moment_grad_closure_release(non_ideal->grad_closure_slvr[i]);
   }
-  if (app->type_brag)
+  if (app->has_brag)
     gkyl_moment_braginskii_release(non_ideal->brag_slvr);
 }
 /** app methods */
@@ -937,11 +939,17 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     moment_coupling_init(app, &app->sources);
   }
 
-  app->type_brag = mom->type_brag;
+  // check if braginskii terms are present for any species
+  app->has_brag = false;
+  for (int n = 0; n < ns; ++n)
+    if (app->species[n].type_brag)
+      app->has_brag = true;
+
   app->has_grad_closure = mom->has_grad_closure;
   app->has_non_ideal = 0;
-  if (app->type_brag || app->has_grad_closure) {
+  if (app->has_brag || app->has_grad_closure) {
     app->has_non_ideal = 1; // only update if non-ideal terms present
+    app->coll_fac = mom->coll_fac;
     moment_non_ideal_init(app, &app->non_ideal);
   }
 

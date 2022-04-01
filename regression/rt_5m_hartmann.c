@@ -178,6 +178,7 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalElcInit,
     .app_accel_func = evalAppAccel,
+    .type_brag = GKYL_BRAG_MAG_FULL,
 
     .bcx = { GKYL_SPECIES_NO_SLIP, GKYL_SPECIES_NO_SLIP },
   };
@@ -190,6 +191,7 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalIonInit,
     .app_accel_func = evalAppAccel,
+    .type_brag = GKYL_BRAG_MAG_FULL,
 
     .bcx = { GKYL_SPECIES_NO_SLIP, GKYL_SPECIES_NO_SLIP },    
   };  
@@ -209,7 +211,6 @@ main(int argc, char **argv)
 
     .num_species = 2,
     .species = { elc, ion },
-    .type_brag = GKYL_BRAG_MAG_FULL,
     .coll_fac = ctx.coll_fac,
     .field = {
       .epsilon0 = ctx.epsilon0,

@@ -346,6 +346,7 @@ main(int argc, char **argv)
     .evolve = 1,
     .ctx = &ctx,
     .init = evalElcInit,
+    .type_brag = GKYL_BRAG_MAG_FULL,
   };
   struct gkyl_moment_species ion = {
     .name = "ion",
@@ -355,6 +356,7 @@ main(int argc, char **argv)
     .evolve = 1,
     .ctx = &ctx,
     .init = evalIonInit,
+    .type_brag = GKYL_BRAG_MAG_FULL,
   };  
 
   // VM app
@@ -372,7 +374,6 @@ main(int argc, char **argv)
 
     .num_species = 2,
     .species = { elc, ion },
-    .type_brag = GKYL_BRAG_MAG_FULL,
     .coll_fac = ctx.coll_fac,
     .field = {
       .epsilon0 = ctx.epsilon0,

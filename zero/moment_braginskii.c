@@ -28,7 +28,6 @@ struct gkyl_moment_braginskii {
   int ndim; // number of dimensions
   int nfluids; // number of fluids in multi-fluid system
   struct gkyl_moment_braginskii_data param[GKYL_MAX_SPECIES]; // struct of fluid parameters
-  enum gkyl_braginskii_type type_brag; // which Braginskii equations (magnetized versus unmagnetized)
   double epsilon0; // permittivity of free space
   double coll_fac; // constant multiplicative factor for collision time to increase or decrease collisionality
 };
@@ -88,10 +87,8 @@ mag_var_setup(const gkyl_moment_braginskii *bes, int start, int end,
   double p[2] = {};       // Pressure for each species
   double omega_c[2] = {}; // Cyclotron frequency for each species
 
-  for (int j = start; j <= end; ++j) 
-  {
-    for (int n = 0; n < nfluids; ++n)
-    {
+  for (int j = start; j <= end; ++j) {
+    for (int n = 0; n < nfluids; ++n) {
       // Input density and flow in each cell
       rho[n] = fluid_d[j][n][RHO];
       for (int k = 0; k < 3; ++k)
@@ -115,22 +112,28 @@ mag_var_setup(const gkyl_moment_braginskii *bes, int start, int end,
     tau[j][ELC] = calc_tau(1.0, bes->coll_fac, bes->epsilon0, q[ELC], q[ION], m[ELC], m[ION], rho[ION], T[j][ELC]);
     tau[j][ION] = calc_tau(1.0, sqrt(2.0)*bes->coll_fac, bes->epsilon0, q[ION], q[ION], m[ION], m[ION], rho[ION], T[j][ION]);
 
-    eta_par[j][ELC] = 1.5*0.73*p[ELC]*tau[j][ELC];
-    eta_perp[j][ELC] = 0.51*p[ELC]/(tau[j][ELC]*omega_c[ELC]*omega_c[ELC]);
-    eta_cross[j][ELC] = 0.25*p[ELC]/omega_c[ELC];
-    kappa_par[j][ELC] = 3.16*p[ELC]*tau[j][ELC]/m[ELC];
-    kappa_perp[j][ELC] = 4.66*p[ELC]/(m[ELC]*tau[j][ELC]*omega_c[ELC]*omega_c[ELC]);
-    kappa_cross[j][ELC] = 2.5*p[ELC]/(m[ELC]*omega_c[ELC]);
+    // Brag-type enum is used to turn coefficients on/off in a branchless fashion
+    bool electron_viscosity = (bes->param[ELC].type_brag & GKYL_BRAG_VISC);
+    bool electron_heatFlux = (bes->param[ELC].type_brag & GKYL_BRAG_HEATFLUX);
+    bool ion_viscosity = (bes->param[ION].type_brag & GKYL_BRAG_VISC);
+    bool ion_heatFlux = (bes->param[ION].type_brag & GKYL_BRAG_HEATFLUX);
 
-    eta_par[j][ION] = 1.5*0.96*p[ION]*tau[j][ION];
-    eta_perp[j][ION] = 0.3*p[ION]/(tau[j][ION]*omega_c[ION]*omega_c[ION]);
-    eta_cross[j][ION] = 0.25*p[ION]/omega_c[ION];
-    kappa_par[j][ION] = 3.91*p[ION]*tau[j][ION]/m[ION];
-    kappa_perp[j][ION] = 2*p[ION]/(m[ION]*tau[j][ION]*omega_c[ION]*omega_c[ION]);
-    kappa_cross[j][ION] = 2.5*p[ION]/(m[ION]*omega_c[ION]);
+    eta_par[j][ELC] = electron_viscosity * 1.5*0.73*p[ELC]*tau[j][ELC];
+    eta_perp[j][ELC] = electron_viscosity * 0.51*p[ELC]/(tau[j][ELC]*omega_c[ELC]*omega_c[ELC]);
+    eta_cross[j][ELC] = electron_viscosity * 0.25*p[ELC]/omega_c[ELC];
+    kappa_par[j][ELC] = electron_heatFlux * 3.16*p[ELC]*tau[j][ELC]/m[ELC];
+    kappa_perp[j][ELC] = electron_heatFlux * 4.66*p[ELC]/(m[ELC]*tau[j][ELC]*omega_c[ELC]*omega_c[ELC]);
+    kappa_cross[j][ELC] = electron_heatFlux * 2.5*p[ELC]/(m[ELC]*omega_c[ELC]);
 
-    double thermal_par = -0.71*p[ELC]; // Parallel thermal force coefficient (same for each species)
-    double thermal_perp = 1.5*p[ELC]/(omega_c[ELC]*tau[j][ELC]); // Perpendicular thermal force coefficient (same for each species)
+    eta_par[j][ION] = ion_viscosity * 1.5*0.96*p[ION]*tau[j][ION];
+    eta_perp[j][ION] = ion_viscosity * 0.3*p[ION]/(tau[j][ION]*omega_c[ION]*omega_c[ION]);
+    eta_cross[j][ION] = ion_viscosity * 0.25*p[ION]/omega_c[ION];
+    kappa_par[j][ION] = ion_heatFlux * 3.91*p[ION]*tau[j][ION]/m[ION];
+    kappa_perp[j][ION] = ion_heatFlux * 2*p[ION]/(m[ION]*tau[j][ION]*omega_c[ION]*omega_c[ION]);
+    kappa_cross[j][ION] = ion_heatFlux * 2.5*p[ION]/(m[ION]*omega_c[ION]);
+
+    double thermal_par = electron_heatFlux * -0.71*p[ELC]; // Parallel thermal force coefficient (same for each species)
+    double thermal_perp = electron_heatFlux * 1.5*p[ELC]/(omega_c[ELC]*tau[j][ELC]); // Perpendicular thermal force coefficient (same for each species)
     double b_dot_j = b[j][0]*(u[j][ION][0] - u[j][ELC][0]) + b[j][1]*(u[j][ION][1] - u[j][ELC][1]) + b[j][2]*(u[j][ION][2] - u[j][ELC][2]);
     current_par[j][0] = thermal_par*b[j][0]*b_dot_j;
     current_par[j][1] = thermal_par*b[j][1]*b_dot_j;
@@ -183,8 +186,7 @@ mag_brag_calc_vars(const gkyl_moment_braginskii *bes,
   // Average velocity at cell edges
   double u_avg[2][3] = {0.0};
 
-  if (ndim == 1)
-  {
+  if (ndim == 1) {
     double dx = bes->grid.dx[0];
 
     // Derived quantities
@@ -213,8 +215,7 @@ mag_brag_calc_vars(const gkyl_moment_braginskii *bes,
     for (int k = 0; k < 3; ++k)
       b_avg[k] = calc_arithm_avg_1D(b[L_1D][k], b[U_1D][k]);
     
-    for (int n = 0; n < nfluids; ++n)
-    {
+    for (int n = 0; n < nfluids; ++n) {
       // Parallel viscosity, perpendicular viscosity, and gyro-viscosity coefficients at cell edges (using harmonic average)
       eta_par_avg[n] = calc_harmonic_avg_1D(eta_par[L_1D][n], eta_par[U_1D][n]);
       eta_perp_avg[n] = calc_harmonic_avg_1D(eta_perp[L_1D][n], eta_perp[U_1D][n]);
@@ -224,8 +225,7 @@ mag_brag_calc_vars(const gkyl_moment_braginskii *bes,
       calc_ros_1D(dx, u[L_1D][n], u[U_1D][n], w[n]);
 
       // Calculate heat flux and viscous heating if energy variable exists
-      if (bes->param[n].type_eqn == GKYL_EQN_EULER)
-      {
+      if (bes->param[n].type_eqn == GKYL_EQN_EULER) {
         // Parallel conductivity, perpendicular conductivity, and gyro-conductivity coefficients at cell edges (using harmonic average)
         kappa_par_avg[n] = calc_harmonic_avg_1D(kappa_par[L_1D][n], kappa_par[U_1D][n]);
         kappa_perp_avg[n] = calc_harmonic_avg_1D(kappa_perp[L_1D][n], kappa_perp[U_1D][n]);
@@ -248,16 +248,14 @@ mag_brag_calc_vars(const gkyl_moment_braginskii *bes,
     }
     
     if (bes->param[ELC].type_eqn == GKYL_EQN_EULER) 
-      for (int k = 0; k < 3; ++k)
-      {
+      for (int k = 0; k < 3; ++k) {
         // Parallel current multiplied by parallel thermal force coefficient at cell edges (using arithmetic average)
         current_par_avg[k] = calc_arithm_avg_1D(current_par[L_1D][k], current_par[U_1D][k]);
         // Cross current multiplied by perpendicular thermal force coefficient at cell edges (using arithmetic average)
         current_cross_avg[k] = calc_arithm_avg_1D(current_cross[L_1D][k], current_cross[U_1D][k]);
       }
   }
-  else if (ndim == 2) 
-  {
+  else if (ndim == 2) {
     double dx = bes->grid.dx[0];
     double dy = bes->grid.dx[1];
 
@@ -287,8 +285,7 @@ mag_brag_calc_vars(const gkyl_moment_braginskii *bes,
     for (int k = 0; k < 3; ++k)
       b_avg[k] = calc_arithm_avg_2D(b[LL_2D][k], b[LU_2D][k], b[UL_2D][k], b[UU_2D][k]);
 
-    for (int n = 0; n < nfluids; ++n)
-    {
+    for (int n = 0; n < nfluids; ++n) {
       // Parallel viscosity, perpendicular viscosity, and gyro-viscosity coefficients at cell edges (using harmonic average)
       eta_par_avg[n] = calc_harmonic_avg_2D(eta_par[LL_2D][n], eta_par[LU_2D][n], eta_par[UL_2D][n], eta_par[UU_2D][n]);
       eta_perp_avg[n] = calc_harmonic_avg_2D(eta_perp[LL_2D][n], eta_perp[LU_2D][n], eta_perp[UL_2D][n], eta_perp[UU_2D][n]);
@@ -298,8 +295,7 @@ mag_brag_calc_vars(const gkyl_moment_braginskii *bes,
       calc_ros_2D(dx, dy, u[LL_2D][n], u[LU_2D][n], u[UL_2D][n], u[UU_2D][n], w[n]);
 
       // Calculate heat flux and viscous heating if energy variable exists
-      if (bes->param[n].type_eqn == GKYL_EQN_EULER)
-      {
+      if (bes->param[n].type_eqn == GKYL_EQN_EULER) {
         // Parallel conductivity, perpendicular conductivity, and gyro-conductivity coefficients at cell edges (using harmonic average)
         kappa_par_avg[n] = calc_harmonic_avg_2D(kappa_par[LL_2D][n], kappa_par[LU_2D][n], kappa_par[UL_2D][n], kappa_par[UU_2D][n]);
         kappa_perp_avg[n] = calc_harmonic_avg_2D(kappa_perp[LL_2D][n], kappa_perp[LU_2D][n], kappa_perp[UL_2D][n], kappa_perp[UU_2D][n]);
@@ -325,8 +321,7 @@ mag_brag_calc_vars(const gkyl_moment_braginskii *bes,
     }
     
     if (bes->param[ELC].type_eqn == GKYL_EQN_EULER) 
-      for (int k = 0; k < 3; ++k)
-      {
+      for (int k = 0; k < 3; ++k) {
         // Parallel current multiplied by parallel thermal force coefficient at cell edges (using arithmetic average)
         current_par_avg[k] = calc_arithm_avg_2D(current_par[LL_2D][k], current_par[LU_2D][k], current_par[UL_2D][k], current_par[UU_2D][k]);
         // Cross current multiplied by perpendicular thermal force coefficient at cell edges (using arithmetic average)
@@ -334,20 +329,15 @@ mag_brag_calc_vars(const gkyl_moment_braginskii *bes,
       }
   }
 
-  for (int n = 0; n < nfluids; ++n)
-  {
+  for (int n = 0; n < nfluids; ++n) {
     // Parallel, perpendicular, and gyro-viscous stree tensors at cell edges
     calc_pi_par(eta_par_avg[n], b_avg, w[n], pi_par[n]);
     calc_pi_perp(eta_perp_avg[n], b_avg, w[n], pi_perp[n]);
     calc_pi_cross(eta_cross_avg[n], b_avg, w[n], pi_cross[n]);
 
     // Total viscous stress tensor
-    if (bes->type_brag & GKYL_BRAG_VISC)
-      for (int k = 0; k < 6; ++k)
-        brag_d[n][PIXX + k] = pi_par[n][k] + pi_perp[n][k] + pi_cross[n][k];
-    else
-      for (int k = 0; k < 6; ++k)
-        brag_d[n][PIXX + k] = 0.0;
+    for (int k = 0; k < 6; ++k)
+      brag_d[n][PIXX + k] = pi_par[n][k] + pi_perp[n][k] + pi_cross[n][k];
 
     // Pi dot u
     double Piu[3] = { brag_d[n][PIXX]*u_avg[n][0] + brag_d[n][PIXY]*u_avg[n][1] + brag_d[n][PIXZ]*u_avg[n][2],
@@ -355,17 +345,12 @@ mag_brag_calc_vars(const gkyl_moment_braginskii *bes,
                       brag_d[n][PIXZ]*u_avg[n][0] + brag_d[n][PIYZ]*u_avg[n][1] + brag_d[n][PIZZ]*u_avg[n][2] };
 
     // Total heat flux + viscous heating
-    if (bes->type_brag & GKYL_BRAG_HEATFLUX)
-      for (int k = 0; k < 3; ++k)
-        brag_d[n][QX + k] = -kappa_par_avg[n]*bbgradT[n][k] - kappa_perp_avg[n]*perp_gradT[n][k] + kappa_cross_avg[n]*cross_gradT[n][k] + Piu[k];
-    else
-      for (int k = 0; k < 3; ++k)
-        brag_d[n][QX + k] = Piu[k];
+    for (int k = 0; k < 3; ++k)
+      brag_d[n][QX + k] = -kappa_par_avg[n]*bbgradT[n][k] - kappa_perp_avg[n]*perp_gradT[n][k] + kappa_cross_avg[n]*cross_gradT[n][k] + Piu[k];
   }
 
-  if (bes->type_brag & GKYL_BRAG_HEATFLUX)
-    for (int k = 0; k < 3; ++k)
-      brag_d[ELC][QX + k] += current_par_avg[k] + current_cross_avg[k];
+  for (int k = 0; k < 3; ++k)
+    brag_d[ELC][QX + k] += current_par_avg[k] + current_cross_avg[k];
 }
 
 // Fetch input quantities and compute derived quantities for UNmagnetized Braginskii
@@ -389,10 +374,8 @@ unmag_var_setup(const gkyl_moment_braginskii *bes, int start, int end,
   double rho[2] = {};   // Mass density for each species
   double p[2] = {};     // Pressure for each species
 
-  for (int j = start; j <= end; ++j) 
-  {
-    for (int n = 0; n < nfluids; ++n)
-    {
+  for (int j = start; j <= end; ++j) {
+    for (int n = 0; n < nfluids; ++n) {
       // Input density and flow in each cell
       rho[n] = fluid_d[j][n][RHO];
       for (int k = 0; k < 3; ++k)
@@ -410,13 +393,19 @@ unmag_var_setup(const gkyl_moment_braginskii *bes, int start, int end,
     tau[j][ELC] = calc_tau(1.0, bes->coll_fac, bes->epsilon0, q[ELC], q[ION], m[ELC], m[ION], rho[ION], T[j][ELC]);
     tau[j][ION] = calc_tau(1.0, sqrt(2.0)*bes->coll_fac, bes->epsilon0, q[ION], q[ION], m[ION], m[ION], rho[ION], T[j][ION]);
 
-    eta[j][ELC] = 0.73*p[ELC]*tau[j][ELC];
-    eta[j][ION] = 0.96*p[ION]*tau[j][ION];
+    // Brag-type enum is used to turn coefficients on/off in a branchless fashion
+    bool electron_viscosity = (bes->param[ELC].type_brag & GKYL_BRAG_VISC);
+    bool electron_heatFlux = (bes->param[ELC].type_brag & GKYL_BRAG_HEATFLUX);
+    bool ion_viscosity = (bes->param[ION].type_brag & GKYL_BRAG_VISC);
+    bool ion_heatFlux = (bes->param[ION].type_brag & GKYL_BRAG_HEATFLUX);
 
-    kappa[j][ELC] = 3.16*p[ELC]*tau[j][ELC]/m[ELC];
-    kappa[j][ION] = 3.91*p[ION]*tau[j][ION]/m[ION];
+    eta[j][ELC] = electron_viscosity * 0.73*p[ELC]*tau[j][ELC];
+    eta[j][ION] = ion_viscosity * 0.96*p[ION]*tau[j][ION];
 
-    double thermal = -0.71*p[ELC]; // thermal force coefficient (same for each species)
+    kappa[j][ELC] = electron_heatFlux * 3.16*p[ELC]*tau[j][ELC]/m[ELC];
+    kappa[j][ION] = ion_heatFlux * 3.91*p[ION]*tau[j][ION]/m[ION];
+
+    double thermal = electron_heatFlux * -0.71*p[ELC]; // thermal force coefficient (same for each species)
     for (int k = 0; k < 3; ++k)
       current[j][k] = thermal*(u[j][ION][k] - u[j][ELC][k]);
   }
@@ -427,7 +416,7 @@ unmag_brag_calc_vars(const gkyl_moment_braginskii *bes,
   const double *fluid_d[][GKYL_MAX_SPECIES],
   double *cflrate[GKYL_MAX_SPECIES], double *brag_d[GKYL_MAX_SPECIES])
 {
-  int nfluids = bes->nfluids;
+  const int nfluids = bes->nfluids;
   const int ndim = bes->ndim;
 
   // Allocate some memory on stack regardless of dimensionality or equation type (Euler vs. isothermal Euler)
@@ -455,8 +444,7 @@ unmag_brag_calc_vars(const gkyl_moment_braginskii *bes,
   // Average velocity at cell edges
   double u_avg[2][3] = {};
 
-  if (ndim == 1) 
-  {
+  if (ndim == 1) {
     double dx = bes->grid.dx[0]; 
 
     // Derived quantities
@@ -472,8 +460,7 @@ unmag_brag_calc_vars(const gkyl_moment_braginskii *bes,
       u, T, tau,
       eta, kappa, current);
 
-    for (int n = 0; n < nfluids; ++n)
-    {
+    for (int n = 0; n < nfluids; ++n) {
       // Viscosity coefficients at cell edges (using harmonic average)
       eta_avg[n] = calc_harmonic_avg_1D(eta[L_1D][n], eta[U_1D][n]);
 
@@ -481,8 +468,7 @@ unmag_brag_calc_vars(const gkyl_moment_braginskii *bes,
       calc_ros_1D(dx, u[L_1D][n], u[U_1D][n], w[n]);
 
       // Calculate heat flux and viscous heating if energy variable exists
-      if (bes->param[n].type_eqn == GKYL_EQN_EULER)
-      {
+      if (bes->param[n].type_eqn == GKYL_EQN_EULER) {
         // Conductivity coefficients at cell edges (using harmonic average)
         kappa_avg[n] = calc_harmonic_avg_1D(kappa[L_1D][n], kappa[U_1D][n]);
 
@@ -516,8 +502,7 @@ unmag_brag_calc_vars(const gkyl_moment_braginskii *bes,
       u, T, tau,
       eta, kappa, current);
 
-    for (int n = 0; n < nfluids; ++n)
-    {
+    for (int n = 0; n < nfluids; ++n) {
       // Viscosity coefficients at cell edges (using harmonic average)
       eta_avg[n] = calc_harmonic_avg_2D(eta[LL_2D][n], eta[LU_2D][n], eta[UL_2D][n], eta[UU_2D][n]);
 
@@ -525,8 +510,7 @@ unmag_brag_calc_vars(const gkyl_moment_braginskii *bes,
       calc_ros_2D(dx, dy, u[LL_2D][n], u[LU_2D][n], u[UL_2D][n], u[UU_2D][n], w[n]);
 
       // Calculate heat flux and viscous heating if energy variable exists
-      if (bes->param[n].type_eqn == GKYL_EQN_EULER)
-      {
+      if (bes->param[n].type_eqn == GKYL_EQN_EULER) {
         // Conductivity coefficients at cell edges (using harmonic average)
         kappa_avg[n] = calc_harmonic_avg_2D(kappa[LL_2D][n], kappa[LU_2D][n], kappa[UL_2D][n], kappa[UU_2D][n]);
 
@@ -545,15 +529,10 @@ unmag_brag_calc_vars(const gkyl_moment_braginskii *bes,
         current_avg[k] = calc_arithm_avg_2D(current[LL_2D][k], current[LU_2D][k], current[UL_2D][k], current[UU_2D][k]);
   }
 
-  for (int n = 0; n < nfluids; ++n)
-  {
+  for (int n = 0; n < nfluids; ++n) {
     // Total viscous stress tensor
-    if (bes->type_brag & GKYL_BRAG_VISC)
-      for (int k = 0; k < 6; ++k)
-        brag_d[n][PIXX + k] = -eta_avg[n] * w[n][k];
-    else
-      for (int k = 0; k < 6; ++k)
-        brag_d[n][PIXX + k] = 0.0;
+    for (int k = 0; k < 6; ++k)
+      brag_d[n][PIXX + k] = -eta_avg[n] * w[n][k];
 
     double gradT[3] = { gradxT[n], gradyT[n] , gradzT[n] };
 
@@ -563,17 +542,12 @@ unmag_brag_calc_vars(const gkyl_moment_braginskii *bes,
                       brag_d[n][PIXZ]*u_avg[n][0] + brag_d[n][PIYZ]*u_avg[n][1] + brag_d[n][PIZZ]*u_avg[n][2] };
 
     // Total heat flux + viscous heating
-    if (bes->type_brag & GKYL_BRAG_HEATFLUX)
-      for (int k = 0; k < 3; ++k)
-        brag_d[n][QX + k] = -kappa_avg[n]*gradT[k] + Piu[k];
-    else
-      for (int k = 0; k < 3; ++k)
-        brag_d[n][QX + k] = Piu[k];
+    for (int k = 0; k < 3; ++k)
+      brag_d[n][QX + k] = -kappa_avg[n]*gradT[k] + Piu[k];
   }
 
-  if (bes->type_brag & GKYL_BRAG_HEATFLUX)
-    for (int k = 0; k < 3; ++k)
-      brag_d[ELC][QX + k] += current_avg[k];
+  for (int k = 0; k < 3; ++k)
+    brag_d[ELC][QX + k] += current_avg[k];
 }
 
 static void
@@ -660,11 +634,21 @@ gkyl_moment_braginskii_new(struct gkyl_moment_braginskii_inp inp)
   up->ndim = up->grid.ndim;
   up->nfluids = inp.nfluids;
   for (int n=0; n<inp.nfluids; ++n) up->param[n] = inp.param[n];
-  up->type_brag = inp.type_brag;
   up->epsilon0 = inp.epsilon0;
   up->coll_fac = inp.coll_fac;
 
   return up;
+}
+
+static bool
+has_mag(const gkyl_moment_braginskii *bes)
+{
+  bool mag = false;
+  for (int n = 0; n < bes->nfluids; ++n)
+    if (bes->param[n].type_brag & GKYL_BRAG_MAG)
+      mag = true;
+
+  return mag;
 }
 
 void
@@ -676,6 +660,8 @@ gkyl_moment_braginskii_advance(const gkyl_moment_braginskii *bes,
   int nfluids = bes->nfluids;
   int ndim = update_range.ndim;
   long sz[] = { 2, 4, 8 };
+
+  bool mag = has_mag(bes);
 
   long offsets_vertices[sz[ndim-1]];
   create_offsets_vertices(&brag_vars_range, offsets_vertices);
@@ -707,7 +693,7 @@ gkyl_moment_braginskii_advance(const gkyl_moment_braginskii *bes,
       cflrate_d[n] = gkyl_array_fetch(cflrate[n], linc_center);
     }
 
-    if (bes->type_brag & GKYL_BRAG_MAG)
+    if (mag)
       mag_brag_calc_vars(bes, fluid_d, em_tot_d, cflrate_d, brag_vars_d);
     else
       unmag_brag_calc_vars(bes, fluid_d, cflrate_d, brag_vars_d);
