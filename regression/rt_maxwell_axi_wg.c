@@ -5,50 +5,39 @@
 #include <gkyl_const.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_euler.h>
 #include <rt_arg_parse.h>
-
-struct euler_ctx {
-  double gas_gamma; // gas constant
-};
-
-void
-evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct euler_ctx *app = ctx;
-  double gas_gamma = app->gas_gamma;
-
-  double r = xn[0]; // radial coordinate
-
-  double rhol = 3.0, ul = 0.0, pl = 3.0;
-  double rhor = 1.0, ur = 0.0, pr = 1.0;
-
-  double sloc = 0.5*(0.25+1.25);
-
-  double rho = rhor, u = ur, p = pr;
-  if (r<sloc) {
-    rho = rhol;
-    u = ul;
-    p = pl;
-  }
-
-  fout[0] = rho;
-  fout[1] = rho*u; fout[2] = 0.0; fout[3] = 0.0;
-  fout[4] = p/(gas_gamma-1) + 0.5*rho*u*u;
-}
 
 // map (r,theta) -> (x,y)
 void
 mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 {
-  double r = xc[0], th = xc[1];
-  xp[0] = r*cos(th); xp[1] = r*sin(th);
+  double r = xc[0], th = xc[1], z = xc[2];
+  xp[0] = r*cos(th);
+  xp[1] = r*sin(th);
+  xp[2] = z;
 }
 
-struct euler_ctx
-euler_ctx(void)
+void
+evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  return (struct euler_ctx) { .gas_gamma = 1.4 };
+  double r = xn[0], phi = xn[1], z = xn[2];
+  int m = 0, n = 1;  
+  double kn = 2*M_PI*n/10.0;
+
+  double w = 1.212168982106865; // frequency of mode
+  double a = 1.0, b = -0.351948050727361;
+
+  double Ez_r = a*jn(m,r*sqrt(w*w-kn*kn)) + b*yn(m,r*sqrt(w*w-kn*kn));
+  double Ez = Ez_r*cos(m*phi)*cos(kn*z);
+
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = Ez;
+  fout[3] = 0.0;
+  fout[4] = 0.0;
+  fout[5] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = 0.0;  
 }
 
 int
@@ -56,55 +45,51 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 64);
-  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 64*6);  
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 32);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 3);
+  int NZ = APP_ARGS_CHOOSE(app_args.xcells[1], 32*3);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  struct euler_ctx ctx = euler_ctx(); // context for init functions
-
-  // equation object
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma);
-
-  struct gkyl_moment_species fluid = {
-    .name = "euler",
-
-    .equation = euler,
-    .evolve = 1,
-    .ctx = &ctx,
-    .init = evalEulerInit,
-
-    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
-  };
 
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "euler_axi_sodshock",
+    .name = "maxwell_axi_wg",
 
-    .ndim = 2,
+    .ndim = 3,
     // grid in computational space
-    .lower = { 0.25, 0.0 },
-    .upper = { 1.25, 2*GKYL_PI },
-    .cells = { NX, NY },
+    .lower = { 2.0, -0.05, 0.0 },
+    .upper = { 5.0, 0.05, 10.0 },
+    .cells = { NX, NY, NZ },
 
     .mapc2p = mapc2p, // mapping of computational to physical space
 
     .num_periodic_dir = 1,
-    .periodic_dirs = { 1 },
+    .periodic_dirs = { 2 },
 
     .cfl_frac = 0.9,
 
-    .num_species = 1,
-    .species = { fluid },
+    .field = {
+      .epsilon0 = 1.0, .mu0 = 1.0,
+      .evolve = 1,
+      .limiter = GKYL_NO_LIMITER,
+      .init = evalFieldInit,
+
+      .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
+      .bcy = { GKYL_FIELD_WEDGE, GKYL_FIELD_WEDGE },
+    }
   };
 
   // create app object
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
+  double w = 1.212168982106865; // frequency of mode
+  double tperiod = 2*M_PI/w;
+
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.1;
+  double tcurr = 0.0, tend = 2*tperiod;
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
@@ -135,7 +120,6 @@ main(int argc, char **argv)
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
 
   // simulation complete, free resources
-  gkyl_wv_eqn_release(euler);
   gkyl_moment_app_release(app);
 
   printf("\n");

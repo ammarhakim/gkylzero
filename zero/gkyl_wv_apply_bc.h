@@ -41,6 +41,20 @@ void gkyl_wv_apply_bc_advance(const gkyl_wv_apply_bc *bc, double tm,
   const struct gkyl_range *update_rng, struct gkyl_array *out);
 
 /**
+ * Apply boundary condition on specified field, however, copying the
+ * output to a buffer instead of the field itself. If the update_rng
+ * does not touch the edge in specified dir then nothing is done.
+ *
+ * @param bc BC updater to run
+ * @param tm Time at which BC is applied
+ * @param update_rng Range on which BC is applied. See note above.
+ * @param inp Input array
+ * @param buffer Output buffer in which BCs are copied
+ */
+void gkyl_wv_apply_bc_to_buff(const gkyl_wv_apply_bc *bc, double tm,
+  const struct gkyl_range *update_rng, const struct gkyl_array *inp, double *buffer);
+
+/**
  * Delete updater.
  *
  * @param bc Updater to delete.

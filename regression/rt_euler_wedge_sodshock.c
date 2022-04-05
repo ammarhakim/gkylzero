@@ -57,7 +57,9 @@ main(int argc, char **argv)
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 64);
-  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 64*6);  
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 2);
+
+  double theta = 0.01; // wedge angle
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -77,22 +79,20 @@ main(int argc, char **argv)
     .init = evalEulerInit,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+    .bcy = { GKYL_SPECIES_WEDGE, GKYL_SPECIES_WEDGE },
   };
 
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "euler_axi_sodshock",
+    .name = "euler_wedge_sodshock",
 
     .ndim = 2,
     // grid in computational space
-    .lower = { 0.25, 0.0 },
-    .upper = { 1.25, 2*GKYL_PI },
+    .lower = { 0.25, -theta/2 },
+    .upper = { 1.25,  theta/2 },
     .cells = { NX, NY },
 
     .mapc2p = mapc2p, // mapping of computational to physical space
-
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 1 },
 
     .cfl_frac = 0.9,
 

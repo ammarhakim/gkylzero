@@ -54,7 +54,8 @@ main(int argc, char **argv)
   };
 
   struct gkyl_moment app_inp =
-  {.name = "maxwell_wg_2d",
+  {
+    .name = "maxwell_wg_2d",
 
    .ndim = 2,
    .lower = {0.0, 0.0},
