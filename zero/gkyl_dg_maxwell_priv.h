@@ -165,7 +165,7 @@ GKYL_CU_D
 static void
 maxwell_wall_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
-  struct maxwell_wall_bc_ctx *mc = ctx;
+  struct maxwell_wall_bc_ctx *mc = (struct maxwell_wall_bc_ctx*) ctx;
   int dir = mc->dir;
   int nbasis = mc->basis->num_basis;
 
