@@ -88,7 +88,7 @@ ifdef USING_NVCC
 # device code in C files, we need to force compile the kernel code
 # using the -x cu flag
 
-$(BUILD_DIR)/kernels/advection/%.c.o : kernels/bin_op/%.c
+$(BUILD_DIR)/kernels/advection/%.c.o : kernels/advection/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 

@@ -45,7 +45,7 @@ gkyl_dg_advection_new(const struct gkyl_basis* cbasis, const struct gkyl_range* 
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_advection_cu_dev_new(cbasis);
+    return gkyl_dg_advection_cu_dev_new(cbasis, conf_range);
   } 
 #endif
   struct dg_advection *advection = gkyl_malloc(sizeof(struct dg_advection));

@@ -445,7 +445,7 @@ GKYL_CU_D
 static void
 species_wall_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
-  struct species_wall_bc_ctx *mc = ctx;
+  struct species_wall_bc_ctx *mc = (struct species_wall_bc_ctx*) ctx;
   int dir = mc->dir, cdim = mc->cdim;
 
   mc->basis->flip_odd_sign(dir, inp, out);

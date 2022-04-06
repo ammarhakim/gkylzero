@@ -17,7 +17,7 @@ struct gkyl_wv_apply_bc {
   
   wv_bc_func_t bcfunc; // function pointer
   void *ctx; // context to pass to function
-  
+
   struct gkyl_range ext_range, range; // ranges on grid
   struct gkyl_range skin, ghost; // skin and ghost ranges
 };
@@ -72,8 +72,8 @@ gkyl_wv_apply_bc_advance(const gkyl_wv_apply_bc *bc, double tm,
   int edge_idx = (edge == GKYL_LOWER_EDGE) ? bc->range.lower[dir] : bc->range.upper[dir];
   int fact = (edge == GKYL_LOWER_EDGE) ? -1 : 1;
 
+  int eidx[GKYL_MAX_DIM]; // index into geometry
   int gidx[GKYL_MAX_DIM]; // index into ghost cell
-  int eidx[GKYL_MAX_DIM]; // index into geometry 
   
   // create iterator to walk over skin cells
   struct gkyl_range_iter iter;
@@ -119,6 +119,77 @@ gkyl_wv_apply_bc_advance(const gkyl_wv_apply_bc *bc, double tm,
     gkyl_wv_eqn_rotate_to_global(bc->eqn, wg->tau1[dir], wg->tau2[dir], wg->norm[dir],
       ghost_local, gkyl_array_fetch(out, gloc));
   }
+}
+
+void
+gkyl_wv_apply_bc_to_buff(const gkyl_wv_apply_bc *bc, double tm,
+  const struct gkyl_range *update_rng, const struct gkyl_array *inp, double *buffer)
+{
+  enum gkyl_edge_loc edge = bc->edge;
+  int dir = bc->dir, ndim = bc->grid.ndim, ncomp = inp->ncomp;
+  int meqn = bc->eqn->num_equations;
+
+  double skin_local[meqn], ghost_local[meqn];
+
+  // return immediately if update region does not touch boundary
+  if ( (edge == GKYL_LOWER_EDGE) && (update_rng->lower[dir] > bc->range.lower[dir]) )
+    return;
+  if ( (edge == GKYL_UPPER_EDGE) && (update_rng->upper[dir] < bc->range.upper[dir]) )
+    return;
+
+  // compute intersection for region to update
+  struct gkyl_range up_range;
+  gkyl_range_intersect(&up_range, update_rng, &bc->skin);
+
+  int edge_idx = (edge == GKYL_LOWER_EDGE) ? bc->range.lower[dir] : bc->range.upper[dir];
+  int fact = (edge == GKYL_LOWER_EDGE) ? -1 : 1;
+
+  int ncells = bc->range.upper[dir]-bc->range.lower[dir]+1; // cells in 'dir'
+
+  int sidx[GKYL_MAX_DIM]; // index into skin-cell geometry
+  int gidx[GKYL_MAX_DIM]; // index into ghost-cell geometry
+  
+  // create iterator to walk over skin cells
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &up_range);
+
+  long count = 0;
+  while (gkyl_range_iter_next(&iter)) {
+
+    long sloc = gkyl_range_idx(update_rng, iter.idx);
+
+    // compute index into geometry
+    if (edge == GKYL_LOWER_EDGE) {
+      gkyl_copy_int_arr(ndim, iter.idx, sidx);
+      sidx[dir] = iter.idx[dir];
+      
+      gkyl_copy_int_arr(ndim, iter.idx, gidx);
+      gidx[dir] = sidx[dir]+ncells;
+    }
+    else {
+      gkyl_copy_int_arr(ndim, iter.idx, sidx);
+      sidx[dir] = iter.idx[dir]+1;
+      
+      gkyl_copy_int_arr(ndim, iter.idx, gidx);
+      gidx[dir] = sidx[dir]-ncells;
+    }
+
+    const struct gkyl_wave_cell_geom *wgs = gkyl_wave_geom_get(bc->geom, sidx);
+
+    // rotate skin data to local coordinates of skin-cell edge
+    gkyl_wv_eqn_rotate_to_local(bc->eqn, wgs->tau1[dir], wgs->tau2[dir], wgs->norm[dir],
+      gkyl_array_cfetch(inp, sloc), skin_local);
+      
+    // apply boundary condition in local coordinates
+    bc->bcfunc(tm, ncomp, skin_local, ghost_local, bc->ctx);
+
+    // rotate back to global coordinates as defined on ghost cell edge
+    const struct gkyl_wave_cell_geom *wgg = gkyl_wave_geom_get(bc->geom, gidx);
+    gkyl_wv_eqn_rotate_to_global(bc->eqn, wgg->tau1[dir], wgg->tau2[dir], wgg->norm[dir],
+      ghost_local, buffer+meqn*count);
+
+    count += 1;
+  }  
 }
 
 void

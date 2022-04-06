@@ -41,7 +41,7 @@ static const gkyl_prim_lbo_vlasov_self_kern_list ser_self_prim_kernels[] = {
   { NULL, NULL, vlasov_self_prim_moments_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, NULL, vlasov_self_prim_moments_2x2v_ser_p2 }, // 3
-  { NULL, NULL, NULL }, // 4
+  { NULL, NULL, vlasov_self_prim_moments_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, NULL, NULL }, // 5
 };
