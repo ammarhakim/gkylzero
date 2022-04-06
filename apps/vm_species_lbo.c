@@ -84,8 +84,9 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s, str
     lbo->cross_vth_sq[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     lbo->cross_nu[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     if (lbo->other_m[i] > s->info.mass) {
-      gkyl_array_set(lbo->cross_nu[i], 1/sqrt(2), lbo->self_nu);
+      gkyl_array_set(lbo->cross_nu[i], sqrt(2), lbo->self_nu);
     } else {
+      // gkyl_array_set(lbo->cross_nu[i], 1, lbo->collide_with[i]->lbo.self_nu);
       gkyl_array_set(lbo->cross_nu[i], (lbo->other_m[i])/(s->info.mass), lbo->collide_with[i]->lbo.self_nu);
     }
     gkyl_array_accumulate(lbo->nu_sum, 1.0, lbo->cross_nu[i]);
@@ -183,6 +184,7 @@ vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_co
   gkyl_array_release(lbo->boundary_corrections);
   gkyl_array_release(lbo->u_drift);
   gkyl_array_release(lbo->vth_sq);
+  gkyl_array_release(lbo->self_nu);
   gkyl_array_release(lbo->nu_sum);
   gkyl_array_release(lbo->nu_u);
   gkyl_array_release(lbo->nu_vthsq);
@@ -193,13 +195,15 @@ vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_co
   gkyl_mom_calc_bcorr_release(lbo->bcorr_calc);
   gkyl_prim_lbo_type_release(lbo->coll_prim);
   gkyl_prim_lbo_calc_release(lbo->coll_pcalc);
-  for (int i=0; i<lbo->num_cross_collisions; ++i) {
+  if (lbo->num_cross_collisions) {
     gkyl_array_release(lbo->cross_nu_u);
     gkyl_array_release(lbo->cross_nu_vthsq);
-    gkyl_array_release(lbo->cross_u_drift[i]);
-    gkyl_array_release(lbo->cross_vth_sq[i]);
-    gkyl_array_release(lbo->cross_nu[i]);
-    gkyl_prim_lbo_cross_calc_release(lbo->cross_calc);
+    for (int i=0; i<lbo->num_cross_collisions; ++i) {
+      gkyl_array_release(lbo->cross_u_drift[i]);
+      gkyl_array_release(lbo->cross_vth_sq[i]);
+      gkyl_array_release(lbo->cross_nu[i]);
+      gkyl_prim_lbo_cross_calc_release(lbo->cross_calc);
+    }
   }
   gkyl_dg_updater_lbo_vlasov_release(lbo->coll_slvr);
  }
