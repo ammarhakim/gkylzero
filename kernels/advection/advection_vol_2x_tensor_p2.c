@@ -9,8 +9,8 @@ GKYL_CU_DH double advection_vol_2x_tensor_p2(const double *w, const double *dxv,
   const double dx2 = 2.0/dxv[0]; 
   const double dy2 = 2.0/dxv[1]; 
   double alpha_mid = 0.0; 
-  alpha_mid += fabs(0.3125*u[8]-0.2795084971874737*(u[5]+u[4])+0.25*u[0]); 
-  alpha_mid += fabs(0.3125*u[17]-0.2795084971874737*(u[14]+u[13])+0.25*u[9]); 
+  alpha_mid += fabs(0.3125*u[8]-0.2795084971874737*(u[5]+u[4])+0.25*u[0])/dxv[0]; 
+  alpha_mid += fabs(0.3125*u[17]-0.2795084971874737*(u[14]+u[13])+0.25*u[9])/dxv[1]; 
 
   out[1] += 0.8660254037844386*(f[8]*u[8]+f[7]*u[7]+f[6]*u[6]+f[5]*u[5]+f[4]*u[4]+f[3]*u[3]+f[2]*u[2]+f[1]*u[1]+f[0]*u[0])*dx2; 
   out[2] += 0.8660254037844386*(f[8]*u[17]+f[7]*u[16]+f[6]*u[15]+f[5]*u[14]+f[4]*u[13]+f[3]*u[12]+f[2]*u[11]+f[1]*u[10]+f[0]*u[9])*dy2; 

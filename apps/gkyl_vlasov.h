@@ -19,6 +19,11 @@ struct gkyl_vlasov_collisions {
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
 };
 
+// Parameters for fluid species advection
+struct gkyl_vlasov_fluid_advection {
+  char advect_with[GKYL_MAX_SPECIES][128]; // names of species to advect with
+};
+
 // Parameters for Vlasov species
 struct gkyl_vlasov_species {
   char name[128]; // species name
@@ -61,6 +66,27 @@ struct gkyl_vlasov_field {
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
 };
 
+// Parameter for Vlasov fluid species
+struct gkyl_vlasov_fluid_species {
+  char name[128]; // species name
+
+  double charge, mass; // charge and mass
+  
+  void *ctx; // context for initial condition init function
+  // pointer to initialization function
+  void (*init)(double t, const double *xn, double *fout, void *ctx);
+
+  // advection coupling to include
+  struct gkyl_vlasov_fluid_advection advection;
+
+  void *advect_ctx; // context for applied advection function
+  // pointer to applied advection function
+  void (*advect)(double t, const double *xn, double *aout, void *ctx);
+  
+  // boundary conditions
+  enum gkyl_fluid_species_bc_type bcx[2], bcy[2], bcz[2];
+};
+
 // Top-level app parameters
 struct gkyl_vm {
   char name[128]; // name of app: used as output prefix
@@ -81,6 +107,9 @@ struct gkyl_vm {
   int num_species; // number of species
   struct gkyl_vlasov_species species[GKYL_MAX_SPECIES]; // species objects
 
+  int num_fluid_species; // number of fluid species
+  struct gkyl_vlasov_fluid_species fluid_species[GKYL_MAX_SPECIES]; // fluid species objects
+  
   bool skip_field; // Skip field update or no field specified
   struct gkyl_vlasov_field field; // field object
 };
@@ -100,9 +129,11 @@ struct gkyl_vlasov_stat {
     
   double total_tm; // time for simulation (not including ICs)
   double init_species_tm; // time to initialize all species
+  double init_fluid_species_tm; // time to initialize all fluid species
   double init_field_tm; // time to initialize fields
 
   double species_rhs_tm; // time to compute species collisionless RHS
+  double fluid_species_rhs_tm; // time to compute fluid species RHS
   
   double species_coll_mom_tm; // time needed to compute various moments needed in LBO
   double species_lbo_coll_drag_tm[GKYL_MAX_SPECIES]; // time to compute LBO drag terms
@@ -158,6 +189,17 @@ void gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0);
 void gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0);
 
 /**
+ * Initialize fluid species by projecting initial conditions on basis
+ * functions. Fluid species index (sidx) is the same index used to specify
+ * the species in the gkyl_vm object used to construct app.
+ *
+ * @param app App object.
+ * @param sidx Index of fluid species to initialize.
+ * @param t0 Time for initial conditions
+ */
+void gkyl_vlasov_app_apply_ic_fluid_species(gkyl_vlasov_app* app, int sidx, double t0);
+
+/**
  * Calculate diagnostic moments.
  *
  * @param app App object.
@@ -191,6 +233,16 @@ void gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame);
  * @param frame Frame number
  */
 void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+
+/**
+ * Write fluid species data to file.
+ * 
+ * @param app App object.
+ * @param sidx Index of fluid species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
  * Write diagnostic moments for species to file.
