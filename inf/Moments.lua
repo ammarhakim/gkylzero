@@ -730,19 +730,16 @@ local app_mt = {
 	    end
 	 end
 
-	 local count = 0
-	 local p1_trig = _M.TimeTrigger(self.tend/99)
+	 local p1_trig = _M.TimeTrigger(self.tend/10)
 	 -- log messages
 	 local function writeLogMessage(tcurr, step, dt)
 	    if p1_trig:checkAndBump(tcurr) then
-	       if count % 10 == 0 then
-		  io.write(string.format(" Step %6d %.4e. Time-step  %.6e \n", step, tcurr, dt))
-	       end
-	       count = count+1
+	       io.write(string.format(" Step %6d %.4e. Time-step  %.6e \n", step, tcurr, dt))
 	    end
 	 end
 
 	 io.write(string.format("Starting GkeyllZero simulation\n"))
+	 io.write(string.format("  tstart: %.6e. tend: %.6e\n", 0.0, self.tend))
 	 self:init()
 	 writeData(0.0)
 
@@ -753,14 +750,13 @@ local app_mt = {
 	    local status = self:update(dt);
 	    tcurr = tcurr + status.dt_actual
 
-	    dt = status.dt_suggested
-	    writeLogMessage(tcurr, step, dt)
+	    writeLogMessage(tcurr, step, status.dt_actual)
 	    writeData(tcurr)
 
+	    dt = math.min(status.dt_suggested, (tend-tcurr)*(1+1e-6))
 	    step = step + 1
 	 end
-	 io.write(string.format("Completed in %d steps. Final time-step %.6e\n", step-1, dt))
-
+	 io.write(string.format("Completed in %d steps (tend: %.6e). \n", step-1, tcurr))
 	 self:writeStat()
 	 
       end,
