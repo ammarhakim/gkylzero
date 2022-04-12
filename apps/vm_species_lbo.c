@@ -4,9 +4,6 @@
 void 
 vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_lbo_collisions *lbo)
 {
-  
-  // TO DO: Expose nu_u and nu_vthsq arrays above species object
-  //        for cross-species collisions. Just testing for now JJ 09/24/21
   int cdim = app->cdim, vdim = app->vdim;
   double v_bounds[2*GKYL_MAX_DIM];
   for (int d=0; d<vdim; ++d) {
@@ -95,13 +92,14 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s, str
 }
 
 // computes moments, boundary corrections, and primitive moments
-double vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
-  struct vm_lbo_collisions *lbo, const struct gkyl_array *fin, struct gkyl_array *rhs)
+void
+vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
+  struct vm_lbo_collisions *lbo, const struct gkyl_array *fin)
 {
   struct timespec wst = gkyl_wall_clock();
   // compute needed moments
   vm_species_moment_calc(&lbo->moms, species->local, app->local, fin);
-
+  
   if (app->use_gpu) {
     wst = gkyl_wall_clock();
     
@@ -134,7 +132,6 @@ double vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *specie
 
     app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
   }
-  return 0;
 }
 
 // computes cross-primitive moments and updates the collision terms in the rhs
@@ -154,6 +151,7 @@ vm_species_lbo_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   } else {
     wst = gkyl_wall_clock();
     // calculate cross-primitive moments
+    // collisions with kinetic species
     if (lbo->num_cross_collisions) {
       gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc, app->confBasis, app->local,
         lbo->betaGreenep1, species->info.mass, lbo->u_drift, lbo->vth_sq, lbo->other_m,

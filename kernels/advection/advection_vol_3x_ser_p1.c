@@ -10,9 +10,9 @@ GKYL_CU_DH double advection_vol_3x_ser_p1(const double *w, const double *dxv, co
   const double dy2 = 2.0/dxv[1]; 
   const double dz2 = 2.0/dxv[2]; 
   double alpha_mid = 0.0; 
-  alpha_mid += fabs(0.1767766952966368*u[0]); 
-  alpha_mid += fabs(0.1767766952966368*u[8]); 
-  alpha_mid += fabs(0.1767766952966368*u[16]); 
+  alpha_mid += fabs(0.1767766952966368*u[0])/dxv[0]; 
+  alpha_mid += fabs(0.1767766952966368*u[8])/dxv[1]; 
+  alpha_mid += fabs(0.1767766952966368*u[16])/dxv[2]; 
 
   out[1] += 0.6123724356957944*(f[7]*u[7]+f[6]*u[6]+f[5]*u[5]+f[4]*u[4]+f[3]*u[3]+f[2]*u[2]+f[1]*u[1]+f[0]*u[0])*dx2; 
   out[2] += 0.6123724356957944*(f[7]*u[15]+f[6]*u[14]+f[5]*u[13]+f[4]*u[12]+f[3]*u[11]+f[2]*u[10]+f[1]*u[9]+f[0]*u[8])*dy2; 
