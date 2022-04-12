@@ -133,7 +133,7 @@ vol_tetra(const struct gkyl_vec3 p1,
 0---+---\--1   |
  \  |    \  \  |
   \ |     \  \ |
-   \|      x  \|
+   \|      z  \|
     4----------5
 */
 static double
