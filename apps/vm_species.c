@@ -289,7 +289,7 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
     vm_species_apply_periodic_bc(app, species, app->periodic_dirs[d], f);
     is_np_bc[app->periodic_dirs[d]] = 0;
   }
-  for (int d=0; d<cdim; ++d)
+  for (int d=0; d<cdim; ++d) {
     if (is_np_bc[d]) {
 
       switch (species->lower_bc[d]) {
@@ -310,6 +310,7 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
           break;
       }      
     }
+  }
 }
 
 void

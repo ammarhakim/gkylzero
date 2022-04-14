@@ -55,7 +55,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   skin_ghost_ranges_init(&app->skin_ghost, &app->local_ext, ghost);
 
   app->has_field = !vm->skip_field; // note inversion of truth value
-  
+
   if (app->has_field)
     app->field = vm_field_new(vm, app);
 
@@ -351,11 +351,11 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
       }
       // accumulate current contribution from fluid species to electric field terms
       for (int i=0; i<app->num_fluid_species; ++i) {
-        struct vm_fluid_species *s = &app->fluid_species[i];
+        struct vm_fluid_species *f = &app->fluid_species[i];
 
-	// when charge is specified in fluid species, compute qbyeps, otherwise assume zero
-	double qbyeps = s->info.charge ? s->info.charge/app->field->info.epsilon0 : 0.0;
-        gkyl_array_accumulate_range(emout, -qbyeps, s->u, app->local);
+        // when charge is specified in fluid species, compute qbyeps, otherwise assume zero
+        double qbyeps = f->info.charge ? f->info.charge/app->field->info.epsilon0 : 0.0;
+        gkyl_array_accumulate_range(emout, -qbyeps, f->u, app->local);
       }
       app->stat.current_tm += gkyl_time_diff_now_sec(wst);
     }
@@ -392,12 +392,12 @@ rk3(gkyl_vlasov_app* app, double dt0)
           fin[i] = app->species[i].f;
           fout[i] = app->species[i].f1;
         }
-	for (int i=0; i<app->num_fluid_species; ++i) {
+        for (int i=0; i<app->num_fluid_species; ++i) {
           fluidin[i] = app->fluid_species[i].fluid;
           fluidout[i] = app->fluid_species[i].fluid1;
-	}
+        }
         forward_euler(app, tcurr, dt, fin, fluidin, app->has_field ? app->field->em : 0,
-	  fout, fluidout, app->has_field ? app->field->em1 : 0,
+          fout, fluidout, app->has_field ? app->field->em1 : 0,
           &st
         );
         dt = st.dt_actual;
@@ -409,12 +409,12 @@ rk3(gkyl_vlasov_app* app, double dt0)
           fin[i] = app->species[i].f1;
           fout[i] = app->species[i].fnew;
         }
-	for (int i=0; i<app->num_fluid_species; ++i) {
+        for (int i=0; i<app->num_fluid_species; ++i) {
           fluidin[i] = app->fluid_species[i].fluid1;
           fluidout[i] = app->fluid_species[i].fluidnew;
-	}
-        forward_euler(app, tcurr+dt, dt, fin, fluidin, app->has_field ? app->field->em : 0,
-	  fout, fluidout, app->has_field ? app->field->em1 : 0,
+        }
+        forward_euler(app, tcurr+dt, dt, fin, fluidin, app->has_field ? app->field->em1 : 0,
+          fout, fluidout, app->has_field ? app->field->emnew : 0,
           &st
         );
         if (st.dt_actual < dt) {
@@ -451,12 +451,12 @@ rk3(gkyl_vlasov_app* app, double dt0)
           fin[i] = app->species[i].f1;
           fout[i] = app->species[i].fnew;
         }
-	for (int i=0; i<app->num_fluid_species; ++i) {
+        for (int i=0; i<app->num_fluid_species; ++i) {
           fluidin[i] = app->fluid_species[i].fluid1;
           fluidout[i] = app->fluid_species[i].fluidnew;
-	}
-        forward_euler(app, tcurr+dt/2, dt, fin, fluidin, app->has_field ? app->field->em : 0,
-	  fout, fluidout, app->has_field ? app->field->em1 : 0,
+        }
+        forward_euler(app, tcurr+dt/2, dt, fin, fluidin, app->has_field ? app->field->em1 : 0,
+          fout, fluidout, app->has_field ? app->field->emnew : 0,
           &st
         );
         if (st.dt_actual < dt) {

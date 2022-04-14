@@ -203,7 +203,7 @@ vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *f
     vm_fluid_species_apply_periodic_bc(app, fluid_species, app->periodic_dirs[d], f);
     is_np_bc[app->periodic_dirs[d]] = 0;
   }
-  for (int d=0; d<cdim; ++d)
+  for (int d=0; d<cdim; ++d) {
     if (is_np_bc[d]) {
 
       switch (fluid_species->lower_bc[d]) {
@@ -218,6 +218,7 @@ vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *f
           break;
       }      
     }
+  }
 }
 
 // release resources for field
