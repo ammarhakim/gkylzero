@@ -21,7 +21,10 @@ struct gkyl_vlasov_collisions {
 
 // Parameters for fluid species advection
 struct gkyl_vlasov_fluid_advection {
-  char advect_with[GKYL_MAX_SPECIES][128]; // names of species to advect with
+  void *advect_ctx; // context for applied advection function
+  // pointer to applied advection function
+  void (*advect)(double t, const double *xn, double *aout, void *ctx);
+  char advect_with[128]; // names of species to advect with
 };
 
 // Parameters for Vlasov species
@@ -78,10 +81,6 @@ struct gkyl_vlasov_fluid_species {
 
   // advection coupling to include
   struct gkyl_vlasov_fluid_advection advection;
-
-  void *advect_ctx; // context for applied advection function
-  // pointer to applied advection function
-  void (*advect)(double t, const double *xn, double *aout, void *ctx);
   
   // boundary conditions
   enum gkyl_fluid_species_bc_type bcx[2], bcy[2], bcz[2];

@@ -53,9 +53,10 @@ main(int argc, char **argv)
     .mass = 1.0,
 
     .init = evalFunc,
-
-    .advect = evalAdvectFunc,
-    .advect_ctx = 0,
+    .advection = {
+      .advect = evalAdvectFunc,
+      .advect_ctx = 0,
+    },
   };
 
   // field
