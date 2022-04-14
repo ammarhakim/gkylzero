@@ -27,25 +27,15 @@
 # define GKYL_RESTRICT restrict
 #endif
 
-// Maximum configuration-space dimensions supported
-#ifndef GKYL_MAX_CDIM
-# define GKYL_MAX_CDIM 3
-#endif
+// some global constants
+enum GKYL_GLOBAL_INTS {
+  GKYL_MAX_CDIM = 3, // maximum configuration space dimensions
+  GKYL_MAX_DIM = 7, // maximum phase-space dimensions
+  GKYL_MAX_SPECIES = 8, // maximum number of species
 
-// Maximum dimensions supported
-#ifndef GKYL_MAX_DIM
-# define GKYL_MAX_DIM 7
-#endif
+  GKYL_DEF_ALIGN = 64, // default alignment boundary
+};
 
-// Maximum number of supported species
-#ifndef GKYL_MAX_SPECIES
-# define GKYL_MAX_SPECIES 8
-#endif
-
-// Default alignment boundary
-#ifndef GKYL_DEF_ALIGN
-# define GKYL_DEF_ALIGN 64
-#endif
 
 // CUDA specific defines etc
 #ifdef __NVCC__

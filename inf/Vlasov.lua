@@ -76,8 +76,14 @@ enum gkyl_field_bc_type {
   GKYL_FIELD_PEC_WALL, // perfect electrical conductor (PEC) BCs
 };
 
-// This needs to be enum to allow usage below
-enum { GKYL_MAX_SPECIES = 8 };
+// some global constants
+enum GKYL_GLOBAL_INTS {
+  GKYL_MAX_CDIM = 3, // maximum configuration space dimensions
+  GKYL_MAX_DIM = 7, // maximum phase-space dimensions
+  GKYL_MAX_SPECIES = 8, // maximum number of species
+
+  GKYL_DEF_ALIGN = 64, // default alignment boundary
+};
 
 struct gkyl_update_status {
   bool success; // status of update
