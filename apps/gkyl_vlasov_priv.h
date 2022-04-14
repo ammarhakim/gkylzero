@@ -13,6 +13,7 @@
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_dg_bin_ops.h>
+#include <gkyl_dg_advection.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_updater_lbo_vlasov.h>
 #include <gkyl_dg_vlasov.h>
@@ -65,6 +66,7 @@ struct vm_lbo_collisions {
   struct gkyl_mom_type *bcorr_type; // LBO boundary corrections moment type
   struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator
   struct gkyl_array *nu_sum, *u_drift, *vth_sq, *nu_u, *nu_vthsq; // LBO primitive moments
+
   double betaGreenep1; // value of Greene's factor beta + 1
   double other_m[GKYL_MAX_SPECIES]; // masses of species being collided with
   struct gkyl_array *other_u_drift[GKYL_MAX_SPECIES], *other_vth_sq[GKYL_MAX_SPECIES]; // self-primitive moments of species being collided with
@@ -72,6 +74,7 @@ struct vm_lbo_collisions {
   struct gkyl_array *cross_nu[GKYL_MAX_SPECIES]; // LBO cross-species collision frequencies
   struct gkyl_array *other_nu[GKYL_MAX_SPECIES];
   struct gkyl_array *cross_nu_u, *cross_nu_vthsq; // weak multiplication of collision frequency and primitive moments
+  
   struct gkyl_array *self_nu, *self_nu_u, *self_nu_vthsq; // LBO self-primitive moments
   struct gkyl_prim_lbo_type *coll_prim; // LBO primitive moments type
 
@@ -166,6 +169,43 @@ struct vm_field {
   double* omegaCfl_ptr;
 };
 
+// context for use in computing applied advection
+struct vm_eval_advect_ctx { evalf_t advect_func; void *advect_ctx; };
+
+// fluid species data
+struct vm_fluid_species {
+  struct gkyl_vlasov_fluid_species info; // data for fluid
+
+  struct gkyl_job_pool *job_pool; // Job pool  
+  struct gkyl_array *fluid, *fluid1, *fluidnew; // arrays for updates
+  struct gkyl_array *cflrate; // CFL rate in each cell
+  struct gkyl_array *bc_buffer; // buffer for BCs (used for both copy and periodic)
+
+  struct gkyl_array *fluid_host;  // host copy for use IO and initialization
+
+  struct gkyl_array *u; // array for advection flow
+
+  struct gkyl_dg_eqn *eqn; // Fluid equation  
+  gkyl_hyper_dg *slvr; // Fluid equation solver
+
+  // boundary conditions on lower/upper edges in each direction  
+  enum gkyl_fluid_species_bc_type lower_bc[3], upper_bc[3];
+
+  // specified advection
+  bool has_advect; // flag to indicate there is applied advection
+  struct gkyl_array *advect; // applied advection
+  struct gkyl_array *advect_host; // host copy for use in IO and projecting
+  gkyl_proj_on_basis *advect_proj; // projector for advection
+  struct vm_eval_advect_ctx advect_ctx; // context for applied advection
+
+  // advection with another species present
+  bool advects_with; // flag to indicate we are advecting with another species
+  struct vm_species *advection_species; // pointer to species we advect with
+  struct gkyl_array *other_advect; // pointer to that species drift velocity
+  
+  double* omegaCfl_ptr;
+};
+
 // Vlasov object: used as opaque pointer in user code
 struct gkyl_vlasov_app {
   char name[128]; // name of app
@@ -194,6 +234,10 @@ struct gkyl_vlasov_app {
   int num_species;
   struct vm_species *species; // data for each species
 
+  // fluid data
+  int num_fluid_species;
+  struct vm_fluid_species *fluid_species; // data for each fluid species
+  
   struct gkyl_vlasov_stat stat; // statistics
 };
 
@@ -243,6 +287,15 @@ skin_ghost_ranges_init(struct vm_skin_ghost_ranges *sgr,
  * @return Pointer to species with given name. NULL if not found.o
  */
 struct vm_species* vm_find_species(const gkyl_vlasov_app *app, const char *nm);
+
+/**
+ * Find fluid species with given name.
+ *
+ * @param app Top-level app to look into
+ * @param nm Name of fluid species
+ * @return Pointer to fluid species with given name. NULL if not found.o
+ */
+struct vm_fluid_species* vm_find_fluid_species(const gkyl_vlasov_app *app, const char *nm);
 
 /** vm_species_moment API */
 
@@ -299,7 +352,6 @@ void vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s,
 void vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   struct vm_lbo_collisions *lbo);
 
-
 /**
  * Compute necessary moments and boundary
  * corrections for LBO collisions
@@ -308,13 +360,11 @@ void vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
  * @param species Pointer to species
  * @param lbo Pointer to LBO
  * @param fin Input distribution function
- * @param rhs On output, the RHS from LBO
- * @return Maximum stable time-step
  */
-double vm_species_lbo_moms(gkyl_vlasov_app *app,
+void vm_species_lbo_moms(gkyl_vlasov_app *app,
   const struct vm_species *species,
   struct vm_lbo_collisions *lbo,
-  const struct gkyl_array *fin, struct gkyl_array *rhs);
+  const struct gkyl_array *fin);
 
 /**
  * Compute RHS from LBO collisions
@@ -351,15 +401,6 @@ void vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_l
 void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_species *s);
 
 /**
- * Compute species applied accleration term
- *
- * @param app Vlasov app object
- * @param species Species object
- * @param tm Time for use in acceleration
- */
-void vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, double tm);
-
-/**
  * Compute species initial conditions.
  *
  * @param app Vlasov app object
@@ -367,6 +408,15 @@ void vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, dou
  * @param t0 Time for use in ICs
  */
 void vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0);
+
+/**
+ * Compute species applied acceleration term
+ *
+ * @param app Vlasov app object
+ * @param species Species object
+ * @param tm Time for use in acceleration
+ */
+void vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, double tm);
 
 /**
  * Compute RHS from species distribution function
@@ -509,3 +559,81 @@ void vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struc
  * @param f Field object to release
  */
 void vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f);
+
+/** vm_fluid_species API */
+
+/**
+ * Create new fluid species object
+ *
+ * @param vm Input VM data
+ * @param app Vlasov app object
+ * @param f On output, initialized fluid species object
+ */
+void vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_fluid_species *f);
+
+/**
+ * Compute fluid species initial conditions.
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Fluid Species object
+ * @param t0 Time for use in ICs
+ */
+void vm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double t0);
+
+/**
+ * Compute species applied advection term
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Fluid Species object
+ * @param tm Time for use in advection
+ */
+void vm_fluid_species_calc_advect(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm);
+
+/**
+ * Compute RHS from fluid species equations
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Pointer to fluid species
+ * @param fluid Input fluid species
+ * @param rhs On output, the RHS from the fluid species solver
+ * @return Maximum stable time-step
+ */
+double vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, const struct gkyl_array *fluid, struct gkyl_array *rhs);
+
+/**
+ * Apply periodic BCs to fluid species
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Pointer to fluid species
+ * @param dir Direction to apply BCs
+ * @param f Fluid Species to apply BCs
+ */
+void vm_fluid_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species, int dir, struct gkyl_array *f);
+
+/**
+ * Apply copy BCs to fluid species
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Pointer to fluid species
+ * @param dir Direction to apply BCs
+ * @param f Fluid Species to apply BCs
+ */
+void vm_fluid_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species,
+  int dir, enum vm_domain_edge edge, struct gkyl_array *f);
+
+/**
+ * Apply BCs to fluid species
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Pointer to fluid species
+ * @param f Fluid Species to apply BCs
+ */
+void vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species, struct gkyl_array *f);
+
+/**
+ * Release resources allocated by fluid species
+ *
+ * @param app Vlasov app object
+ * @param f Fluid_Species object to release
+ */
+void vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f);
