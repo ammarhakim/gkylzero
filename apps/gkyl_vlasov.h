@@ -21,9 +21,10 @@ struct gkyl_vlasov_collisions {
 
 // Parameters for fluid species advection
 struct gkyl_vlasov_fluid_advection {
-  void *advect_ctx; // context for applied advection function
-  // pointer to applied advection function
-  void (*advect)(double t, const double *xn, double *aout, void *ctx);
+  void *velocity_ctx; // context for applied advection function
+  // pointer to applied advection velocity function
+  void (*velocity)(double t, const double *xn, double *aout, void *ctx);
+  
   char advect_with[128]; // names of species to advect with
 };
 

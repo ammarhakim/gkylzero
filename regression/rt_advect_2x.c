@@ -14,16 +14,20 @@ static inline double sq(double x) { return x*x; }
 void
 eval_fun(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  double x = xn[0];
-
-  fout[0] = sin(x);
+  double x = xn[0], y = xn[1];
+  double r0 = 0.2;
+  double x0 = 1.0/4.0, y0 = 1.0/2.0;
+  
+  double r = fmin(sqrt(sq(x-x0)+sq(y-y0)),r0)/r0;
+  fout[0] = 0.25*(1+cos(M_PI*r));  
 }
 
 void
 eval_advect_vel(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  double x = xn[0];
-  fout[0] = 1.0;
+  double x = xn[0], y = xn[1];
+  fout[0] = -y+0.5;
+  fout[1] = x-0.5;
 }
 
 int
@@ -37,6 +41,7 @@ main(int argc, char **argv)
   }
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 16);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[0], 16);  
 
   // f
   struct gkyl_vlasov_fluid_species f = {
@@ -53,18 +58,18 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "advect_1x",
+    .name = "advect_2x",
 
-    .cdim = 1,
+    .cdim = 2,
     .vdim = 0,
-    .lower = {0.0},
-    .upper = {2 * M_PI},
-    .cells = {NX},
+    .lower = {0.0, 0.0},
+    .upper = {1.0, 1.0},
+    .cells = {NX, NY},
     .poly_order = 2,
     .basis_type = app_args.basis_type,
     .cfl_frac = 0.5,
-    .num_periodic_dir = 1,
-    .periodic_dirs = {0},
+    .num_periodic_dir = 2,
+    .periodic_dirs = {0, 1},
 
     .num_species = 0,
     .species = {},
@@ -81,7 +86,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 20.0*M_PI;
+  double tcurr = 0.0, tend = 3*M_PI/2;
   double dt = tend-tcurr;
 
   // initialize simulation

@@ -53,7 +53,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   f->has_advect = false;
   f->advects_with_species = false;  
   // setup applied advection or advection with other species                                                                               
-  if (f->info.advection.advect) {
+  if (f->info.advection.velocity) {
     f->has_advect = true;
     // we need to ensure applied advection has same shape as current                                             
     f->advect = mkarr(app->use_gpu, cdim*app->confBasis.num_basis, app->local_ext.volume);
@@ -63,10 +63,10 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       f->advect_host = mkarr(false, cdim*app->confBasis.num_basis, app->local_ext.volume);
 
     f->advect_ctx = (struct vm_eval_advect_ctx) {
-      .advect_func = f->info.advection.advect, .advect_ctx = f->info.advection.advect_ctx
+      .advect_func = f->info.advection.velocity, .advect_ctx = f->info.advection.velocity_ctx
     };
     f->advect_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, app->confBasis.poly_order+1,
-      cdim, f->info.advection.advect, &f->advect_ctx);
+      cdim, f->info.advection.velocity, &f->advect_ctx);
   }
   else {
     f->advects_with_species = true;

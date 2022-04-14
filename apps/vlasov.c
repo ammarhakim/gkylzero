@@ -600,6 +600,8 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
 
     fprintf(fp, " \"species_coll_mom_tm\" : \"%lg\",\n", app->stat.species_coll_mom_tm);
     fprintf(fp, " \"species_coll_tm\" : \"%lg\",\n", app->stat.species_coll_tm);
+
+    fprintf(fp, " \"fluid_species_rhs_tm\" : \"%lg\",\n", app->stat.fluid_species_rhs_tm);
     
     if (app->has_field) {
       fprintf(fp, " \"field_rhs_tm\" : \"%lg\",\n", app->stat.field_rhs_tm);
