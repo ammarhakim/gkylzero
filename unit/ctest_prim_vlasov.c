@@ -7,6 +7,7 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_array_ops.h>
 #include <gkyl_mom_bcorr_lbo_vlasov.h>
 #include <gkyl_mom_bcorr_lbo_vlasov_priv.h>
 #include <gkyl_mom_calc_bcorr.h>
@@ -247,10 +248,13 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   struct gkyl_array *cross_vtsq[GKYL_MAX_SPECIES];
   struct gkyl_array *u_out[GKYL_MAX_SPECIES];
   struct gkyl_array *vtsq_out[GKYL_MAX_SPECIES];
+  struct gkyl_array *greene[GKYL_MAX_SPECIES];
 
   cross_nu[0] = nu;
   u_out[0] = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
   vtsq_out[0] = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  greene[0] = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  gkyl_array_clear(greene[0], 1.0);
   cross_u[0] = u;
   cross_vtsq[0] = vth;
   double self_m = 1.;
@@ -258,7 +262,7 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   double betaGreenep1 = 1.;
   cross_m[0] = self_m;
 
-  gkyl_prim_lbo_cross_calc_advance(crossprimcalc, confBasis, confLocal, betaGreenep1, self_m, u, vth, cross_m, cross_u, cross_vtsq, moms, boundary_corrections, u_out, vtsq_out);
+  gkyl_prim_lbo_cross_calc_advance(crossprimcalc, confBasis, confLocal, betaGreenep1, greene, self_m, u, vth, cross_m, cross_u, cross_vtsq, moms, boundary_corrections, u_out, vtsq_out);
   
   // Check cross u
   // 1-indexed for interfacing with G2 Lua layer

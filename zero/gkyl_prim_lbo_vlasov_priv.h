@@ -10,7 +10,7 @@ typedef void (*vlasov_self_prim_t)(struct gkyl_mat *A, struct gkyl_mat *rhs,
   const double *moms, const double *boundary_corrections);
 
 typedef void (*vlasov_cross_prim_t)(struct gkyl_mat *A, struct gkyl_mat *rhs, const double betaGreenep1,
-  const double m_self, const double *u_self, const double *vtsq_self,
+  const double *greene, const double m_self, const double *u_self, const double *vtsq_self,
   const double m_other, const double *u_other, const double *vtsq_other,
   const double *moms, const double *boundary_corrections);
 
@@ -86,12 +86,12 @@ self_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A,
 GKYL_CU_D
 static void
 cross_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A,
-  struct gkyl_mat *rhs, const double betaGreenep1, const double m_self,
+  struct gkyl_mat *rhs, const double betaGreenep1, const double *greene, const double m_self,
   const double *u_self, const double *vtsq_self, const double m_other,
   const double*u_other, const double *vtsq_other,
   const double *moms, const double *boundary_corrections)
 {
   struct prim_lbo_type_vlasov *prim_vlasov = container_of(prim, struct prim_lbo_type_vlasov, prim);
 
-  return prim_vlasov->cross_prim(A, rhs, betaGreenep1, m_self, u_self, vtsq_self, m_other, u_other, vtsq_other, moms, boundary_corrections);
+  return prim_vlasov->cross_prim(A, rhs, betaGreenep1, greene, m_self, u_self, vtsq_self, m_other, u_other, vtsq_other, moms, boundary_corrections);
 }

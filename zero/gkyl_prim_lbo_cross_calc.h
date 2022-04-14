@@ -47,16 +47,16 @@ gkyl_prim_lbo_cross_calc* gkyl_prim_lbo_cross_calc_cu_dev_new(const struct gkyl_
  * @param vtsq_out Output thermal velocity primitive moment array
  */
 void gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc, struct gkyl_basis cbasis,
-  const struct gkyl_range conf_rng, const double betaGreenep1, const double self_m,
-  const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
+  const struct gkyl_range conf_rng, const double betaGreenep1, struct gkyl_array *greene[GKYL_MAX_SPECIES],
+  const double self_m, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
   const double cross_m[GKYL_MAX_SPECIES], struct gkyl_array *cross_u[GKYL_MAX_SPECIES],
   struct gkyl_array *cross_vtsq[GKYL_MAX_SPECIES], const struct gkyl_array *moms,
   const struct gkyl_array *boundary_corrections, struct gkyl_array *u_out[GKYL_MAX_SPECIES],
   struct gkyl_array *vtsq_out[GKYL_MAX_SPECIES]);
 
 void gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc, struct gkyl_basis cbasis,
-  const struct gkyl_range conf_rng, const double betaGreenep1, const double self_m,
-  const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
+  const struct gkyl_range conf_rng, const double betaGreenep1, struct gkyl_array *greene[GKYL_MAX_SPECIES],
+  const double self_m, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
   const double cross_m[GKYL_MAX_SPECIES], struct gkyl_array *cross_u[GKYL_MAX_SPECIES],
   struct gkyl_array *cross_vtsq[GKYL_MAX_SPECIES], const struct gkyl_array *moms,
   const struct gkyl_array *boundary_corrections, struct gkyl_array *u_out[GKYL_MAX_SPECIES],
