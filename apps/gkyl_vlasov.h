@@ -3,6 +3,7 @@
 #include <gkyl_app.h>
 #include <gkyl_basis.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_job_pool.h>
 #include <gkyl_util.h>
 
 #include <stdbool.h>
@@ -10,11 +11,10 @@
 // Parameters for Vlasov species
 struct gkyl_vlasov_species {
   char name[128]; // species name
+
   double charge, mass; // charge and mass
   double lower[3], upper[3]; // lower, upper bounds of velocity-space
   int cells[3]; // velocity-space cells
-
-  bool evolve; // evolve species? 1-yes, 0-no
 
   void *ctx; // context for initial condition init function
   // pointer to initialization function
@@ -22,19 +22,33 @@ struct gkyl_vlasov_species {
 
   int num_diag_moments; // number of diagnostic moments
   char diag_moments[16][16]; // list of diagnostic moments
+
+  // collision frequency
+  void (*nu)(double t, const double *xn, double *fout, void *ctx);
+  enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
+
+  void *accel_ctx; // context for applied acceleration function
+  // pointer to applied acceleration function
+  void (*accel)(double t, const double *xn, double *aout, void *ctx);
+
+  // boundary conditions
+  enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
 };
 
 // Parameter for EM field
 struct gkyl_vlasov_field {
   enum gkyl_field_id field_id; // type of field (see gkyl_eqn_type.h)
-  bool evolve; // evolve field? 1-yes, 0-no
-  
+  bool is_static; // set to true if field does not change in time
+
   double epsilon0, mu0;
   double elcErrorSpeedFactor, mgnErrorSpeedFactor;
 
   void *ctx; // context for initial condition init function
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
+  
+  // boundary conditions
+  enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
 };
 
 // Top-level app parameters
@@ -63,6 +77,8 @@ struct gkyl_vm {
 
 // Simulation statistics
 struct gkyl_vlasov_stat {
+  bool use_gpu; // did this sim use GPU?
+  
   long nup; // calls to update
   long nfeuler; // calls to forward-Euler method
     
@@ -76,7 +92,8 @@ struct gkyl_vlasov_stat {
   double init_species_tm; // time to initialize all species
   double init_field_tm; // time to initialize fields
 
-  double species_rhs_tm; // time to compute species RHS
+  double species_rhs_tm; // time to compute species collisionless RHS
+  double species_coll_tm; // time to compute collisions
   double field_rhs_tm; // time to compute field RHS
   double current_tm; // time to compute currents and accumulation
 
@@ -94,7 +111,7 @@ typedef struct gkyl_vlasov_app gkyl_vlasov_app;
  *     initialized
  * @return New vlasov app object.
  */
-gkyl_vlasov_app* gkyl_vlasov_app_new(struct gkyl_vm vm);
+gkyl_vlasov_app* gkyl_vlasov_app_new(struct gkyl_vm *vm);
 
 /**
  * Initialize species and field by projecting initial conditions on

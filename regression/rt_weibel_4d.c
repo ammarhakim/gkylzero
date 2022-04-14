@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
 
@@ -19,7 +20,7 @@ struct weibel_ctx {
   bool use_gpu;
 };
 
-inline double
+static inline double
 maxwellian2D(double n, double vx, double vy, double ux, double uy, double vth)
 {
   double v2 = (vx-ux)*(vx-ux) + (vy-uy)*(vy-uy);
@@ -98,7 +99,18 @@ int
 main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
+
+  if (app_args.trace_mem) {
+    gkyl_cu_dev_mem_debug_set(true);
+    gkyl_mem_debug_set(true);
+  }
   struct weibel_ctx ctx = create_ctx(); // context for init functions
+
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 8);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 8);
+  
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
+  int VY = APP_ARGS_CHOOSE(app_args.vcells[1], 16);
 
   // electrons
   struct gkyl_vlasov_species elc = {
@@ -106,9 +118,8 @@ main(int argc, char **argv)
     .charge = -1.0, .mass = 1.0,
     .lower = { -0.9, -0.9 },
     .upper = { 0.9, 0.9 }, 
-    .cells = { 16, 16 },
+    .cells = { VX, VY },
 
-    .evolve = 1,
     .ctx = &ctx,
     .init = evalDistFunc,
 
@@ -121,7 +132,7 @@ main(int argc, char **argv)
     .epsilon0 = 1.0, .mu0 = 1.0,
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
-    .evolve = 1,
+
     .ctx = &ctx,
     .init = evalFieldFunc
   };
@@ -133,7 +144,7 @@ main(int argc, char **argv)
     .cdim = 2, .vdim = 2,
     .lower = { 0.0, 0.0 },
     .upper = { 2*M_PI/ctx.kx, 2*M_PI/ctx.ky },
-    .cells = { 8, 8 },
+    .cells = { NX, NY },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
@@ -148,10 +159,10 @@ main(int argc, char **argv)
   };
 
   // create app object
-  gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
+  gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 15.0;
+  double tcurr = 0.0, tend = 5.0;
   double dt = tend-tcurr;
 
   // initialize simulation

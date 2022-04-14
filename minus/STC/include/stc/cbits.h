@@ -1,6 +1,6 @@
 /* MIT License
  *
- * Copyright (c) 2021 Tyge Løvset, NORCE, www.norceresearch.no
+ * Copyright (c) 2022 Tyge Løvset, NORCE, www.norceresearch.no
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,6 @@
  */
 #ifndef CBITS_H_INCLUDED
 #define CBITS_H_INCLUDED
-
 /*
 Similar to boost::dynamic_bitset / std::bitset
 
@@ -30,7 +29,7 @@ Similar to boost::dynamic_bitset / std::bitset
 #include "cbits.h"
 
 int main() {
-    c_forvar (cbits bset = cbits_with_size(23, true), cbits_del(&bset))
+    c_autovar (cbits bset = cbits_with_size(23, true), cbits_drop(&bset))
     {
         cbits_reset(&bset, 9);
         cbits_resize(&bset, 43, false);
@@ -52,33 +51,37 @@ int main() {
     }
 }
 */
+#include "ccommon.h"
 #include <stdlib.h>
 #include <string.h>
-#include "ccommon.h"
 
-typedef struct {
-    uint64_t *data64; 
-    size_t size; 
-} cbits;
+struct cbits {
+    uint64_t *data64;
+    size_t size;
+} typedef cbits;
 
+STC_API cbits       cbits_from_n(const char* str, size_t n);
 STC_API cbits       cbits_with_size(size_t size, bool value);
 STC_API cbits       cbits_with_values(size_t size, uint64_t pattern);
-STC_API cbits       cbits_from_str(const char* str);
 STC_API char*       cbits_to_str(cbits set, char* str, size_t start, intptr_t stop);
 STC_API cbits       cbits_clone(cbits other);
 STC_API void        cbits_resize(cbits* self, size_t size, bool value);
-STC_API cbits*      cbits_assign(cbits* self, cbits other);
+STC_API cbits*      cbits_copy(cbits* self, cbits other);
 STC_API size_t      cbits_count(cbits set);
 STC_API bool        cbits_subset_of(cbits set, cbits other);
 STC_API bool        cbits_disjoint(cbits set, cbits other);
 
 STC_INLINE cbits    cbits_init() { return c_make(cbits){NULL, 0}; }
+STC_INLINE cbits    cbits_from(const char* s) { return cbits_from_n(s, strlen(s)); }
 STC_INLINE void     cbits_clear(cbits* self) { self->size = 0; }
-STC_INLINE void     cbits_del(cbits* self) { c_free(self->data64); }
+STC_INLINE void     cbits_drop(cbits* self) { c_free(self->data64); }
 STC_INLINE size_t   cbits_size(cbits set) { return set.size; }
 
+#define cbits_new(literal) \
+    cbits_from_n(literal, sizeof c_make(c_strlit){literal} - 1)
+
 STC_INLINE cbits* cbits_take(cbits* self, cbits other) {
-    if (self->data64 != other.data64) {cbits_del(self); *self = other;}
+    if (self->data64 != other.data64) {cbits_drop(self); *self = other;}
     return self;
 }
 
@@ -103,9 +106,15 @@ STC_INLINE void cbits_reset(cbits *self, size_t i) {
     self->data64[i >> 6] &= ~(1ull << (i & 63));
 }
 
+#ifdef _MSC_VER
+#pragma warning(disable: 4146) // unary minus operator applied to unsigned type
+#endif
 STC_INLINE void cbits_set_value(cbits *self, size_t i, bool value) {
     self->data64[i >> 6] ^= (-(uint64_t)value ^ self->data64[i >> 6]) & 1ull << (i & 63);
 }
+#ifdef _MSC_VER
+#pragma warning(default: 4146)
+#endif
 
 STC_INLINE void cbits_flip(cbits *self, size_t i) {
     self->data64[i >> 6] ^= 1ull << (i & 63);
@@ -158,9 +167,9 @@ STC_INLINE void cbits_xor(cbits *self, cbits other) {
     }
 #endif
 
-#if !defined(STC_HEADER) || defined(STC_IMPLEMENTATION)
+#if defined(_i_implement)
 
-STC_DEF cbits* cbits_assign(cbits* self, cbits other) {
+STC_DEF cbits* cbits_copy(cbits* self, cbits other) {
     if (self->data64 == other.data64) return self;
     if (self->size != other.size) return cbits_take(self, cbits_clone(other));
     memcpy(self->data64, other.data64, ((other.size + 63) >> 6)*8);
@@ -190,16 +199,19 @@ STC_DEF cbits cbits_with_values(size_t size, uint64_t pattern) {
     cbits_set_values(&set, pattern);
     return set;
 }
-STC_DEF cbits cbits_from_str(const char* str) {
-    const char* p = str; while (*p) ++p;
-    cbits set = cbits_with_size(p - str, false);
-    for (size_t i=0; i<set.size; ++i) if (str[i] == '1') cbits_set(&set, i);
+STC_DEF cbits cbits_from_n(const char* str, size_t n) {
+    cbits set = cbits_with_size(n, false);
+    for (size_t i=0; i<set.size; ++i)
+        if (str[i] == '1') cbits_set(&set, i);
     return set;
 }
 STC_DEF char* cbits_to_str(cbits set, char* out, size_t start, intptr_t stop) {
-    size_t end = stop < 0 ? set.size : stop;
-    for (size_t i=start; i<end; ++i) out[i] = cbits_test(set, i) ? '1' : '0';
-    out[end] = '\0'; return out;
+    if (stop < 0) stop = set.size;
+    memset(out, '0', stop - start);
+    for (intptr_t i=start; i<stop; ++i) 
+        if (cbits_test(set, i)) out[i - start] = '1';
+    out[stop - start] = '\0';
+    return out;
 }
 STC_DEF cbits cbits_clone(cbits other) {
     size_t bytes = ((other.size + 63) >> 6) * 8;
@@ -228,3 +240,4 @@ STC_DEF bool cbits_disjoint(cbits s, cbits other) { _cbits_SETOP(&, 0); }
 
 #endif
 #endif
+#undef i_opt

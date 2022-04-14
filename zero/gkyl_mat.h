@@ -1,5 +1,8 @@
 #pragma once
 
+#include <gkyl_ref_count.h>
+#include <gkyl_util.h>
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -12,7 +15,21 @@ enum gkyl_mat_trans { GKYL_NO_TRANS, GKYL_TRANS, GKYL_CONJ_TRANS };
  */
 struct gkyl_mat {
   size_t nr, nc; // Number of rows, columns
-  double data[]; // Pointer to data
+  double *data; // Pointer to data
+};
+
+/**
+ * Multiple matrices, each stored in column major order
+ */
+struct gkyl_nmat {
+  size_t num; // Number of matrices
+  size_t nr, nc; // Number of rows, columns
+  double *data; // Pointer to data
+  double **mptr; // pointers to start of each sub-matrix
+
+  uint32_t flags;  
+  struct gkyl_ref_count ref_count;
+  struct  gkyl_nmat *on_dev; // pointer to itself or device data
 };
 
 /**
@@ -34,6 +51,7 @@ struct gkyl_mat* gkyl_mat_clone(const struct gkyl_mat *in);
 /**
  * Set value in matrix.
  */
+GKYL_CU_DH
 static inline void
 gkyl_mat_set(struct gkyl_mat *mat, size_t r, size_t c, double val)
 {
@@ -43,6 +61,7 @@ gkyl_mat_set(struct gkyl_mat *mat, size_t r, size_t c, double val)
 /**
  * Get value from matrix.
  */
+GKYL_CU_DH
 static inline double
 gkyl_mat_get(const struct gkyl_mat *mat, size_t r, size_t c)
 {
@@ -52,6 +71,7 @@ gkyl_mat_get(const struct gkyl_mat *mat, size_t r, size_t c)
 /**
  * Get column of matrix as const pointer.
  */
+GKYL_CU_DH
 static inline const double*
 gkyl_mat_get_ccol(const struct gkyl_mat *mat, size_t c)
 {
@@ -61,6 +81,7 @@ gkyl_mat_get_ccol(const struct gkyl_mat *mat, size_t c)
 /**
  * Get column of matrix as pointer.
  */
+GKYL_CU_DH
 static inline double*
 gkyl_mat_get_col(struct gkyl_mat *mat, size_t c)
 {
@@ -69,8 +90,14 @@ gkyl_mat_get_col(struct gkyl_mat *mat, size_t c)
 
 /**
  * Set all elements of matrix to specified value. Returns pointer to @a mat.
- */ 
-struct gkyl_mat* gkyl_mat_clear(struct gkyl_mat *mat, double val);
+ */
+GKYL_CU_DH
+static inline struct gkyl_mat*
+gkyl_mat_clear(struct gkyl_mat *mat, double val)
+{
+  for (size_t i=0; i<mat->nr*mat->nc; ++i) mat->data[i] = val;
+  return mat;
+}
 
 /**
  * Set all elements on diagonal to specified value. All other elements
@@ -124,3 +151,97 @@ bool gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, void* ipiv);
  * @param mat Pointer to matrix to release
  */
 void gkyl_mat_release(struct gkyl_mat *mat);
+
+//////////////// gkyl_nmat API
+
+/**
+ * Construct new multi-matrix (batch of matrices). Delete using
+ * gkyl_nmat_release method. Each matrix has the same shape.
+ *
+ * @param num Number of matrices
+ * @param nr Number of rows
+ * @param nc Number of cols
+ * @return Pointer to new multi-matrix.
+ */
+struct gkyl_nmat *gkyl_nmat_new(size_t num, size_t nr, size_t nc);
+
+/**
+ * Construct new multi-matrix (batch of matrices). Delete using
+ * gkyl_nmat_release method. Each matrix has the same shape.
+ *
+ * CAUTION: The nmat returned by this method lives on the GPU. You
+ * CAN'T modify it directly on the host! If you try, it will crash the
+ * program.
+ *
+ * NOTE: the data member lives on GPU, but the struct lives on the
+ * host.  However, the on_dev member for this cal is set to a device
+ * clone of the host struct, and is what should be used to pass to
+ * CUDA kernels which require the entire array struct on device.
+ * 
+ * @param num Number of matrices
+ * @param nr Number of rows
+ * @param nc Number of cols
+ * @return Pointer to new multi-matrix.
+ */
+struct gkyl_nmat* gkyl_nmat_cu_dev_new(size_t num, size_t nr, size_t nc);
+
+/**
+ * Copy into nmat: pointer to dest nmat is returned. 'dest' and 'src'
+ * must not point to same data.
+ *
+ * @param dest Destination for copy.
+ * @param src Srouce to copy from.
+ * @return dest is returned
+ */
+struct gkyl_nmat* gkyl_nmat_copy(struct gkyl_nmat *dest, const struct gkyl_nmat *src);
+
+/**
+ * Get a matrix from multi-matrix. DO NOT free the returned matrix!
+ *
+ * @param n Matrix to fetch
+ * @return Matrix (DO NOT free/release this)
+ */
+GKYL_CU_DH
+static inline struct gkyl_mat
+gkyl_nmat_get(struct gkyl_nmat *mat, size_t num)
+{
+  return (struct gkyl_mat) {
+    .nr = mat->nr,
+    .nc = mat->nc,
+    .data = mat->data+num*mat->nr*mat->nc
+  };
+}
+
+/**
+ * Returns true if multi-matrix lives on NV-GPU.
+ *
+ * @param mat Multi-matrix to check
+ * @return true if on NV-GPU, false otherwise
+ */
+bool gkyl_nmat_is_cu_dev(const struct gkyl_nmat *mat);
+
+/**
+ * Acquire pointer to multi-matrix. The pointer must be released using
+ * gkyl_nmar_release method.
+ *
+ * @param mat Multi-matrix to which a pointer is needed
+ * @return Pointer to acquired multi-matrix.
+ */
+struct gkyl_nmat *gkyl_nmat_acquire(const struct gkyl_nmat *mat);
+
+/**
+ * Solve a batched system of linear equations using LU
+ * decomposition. On input the RHSs must be in the "x" multi-matrix
+ * (each column represents a RHS vector) and on output "x" is replaced
+ * with the solution(s). Returns true on success, false
+ * otherwise. Note that on output each of the As is replaced by its LU
+ * factors.
+ */
+bool gkyl_nmat_linsolve_lu(struct gkyl_nmat *A, struct gkyl_nmat *x);
+
+/**
+ * Release multi-matrix
+ *
+ * @param mat Pointer to multi-matrix to release
+ */
+void gkyl_nmat_release(struct gkyl_nmat *nmat);

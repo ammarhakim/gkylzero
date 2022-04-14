@@ -9,11 +9,6 @@
 // Object type
 typedef struct gkyl_mom_calc gkyl_mom_calc;
 
-struct gkyl_mom_calc {
-  struct gkyl_rect_grid grid;
-  const struct gkyl_mom_type *momt;
-};
-
 /**
  * Create new updater to compute moments of distribution
  * function. Free using gkyl_mom_calc_new_release.
@@ -45,12 +40,12 @@ gkyl_mom_calc* gkyl_mom_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
  * @param mout Output moment array
  */
 void gkyl_mom_calc_advance(const gkyl_mom_calc* calc,
-  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
-  const struct gkyl_array *fin, struct gkyl_array *mout);
+  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
+  const struct gkyl_array *GKYL_RESTRICT fin, struct gkyl_array *GKYL_RESTRICT mout);
 
 void gkyl_mom_calc_advance_cu(const gkyl_mom_calc* mcalc,
-  const struct gkyl_range phase_range, const struct gkyl_range conf_range,
-  const struct gkyl_array* GKYL_RESTRICT fin, struct gkyl_array* GKYL_RESTRICT mout);
+  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
+  const struct gkyl_array *GKYL_RESTRICT fin, struct gkyl_array *GKYL_RESTRICT mout);
 
 /**
  * Delete pointer to moment calculator updater.

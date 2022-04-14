@@ -14,6 +14,22 @@ struct gkyl_ref_count {
 };
 
 /**
+ * Create a new ref object with specified function pointer that
+ * deletes the container object.
+ *
+ * @param free Function pointer to the delete function
+ * @return Ref object
+ */
+static inline struct gkyl_ref_count
+gkyl_ref_count_init(void (*free)(const struct gkyl_ref_count* ))
+{
+  return (struct gkyl_ref_count) {
+    .free = free,
+    .count = 1,
+  };
+}
+
+/**
  * Increment use count.
  *
  * @param ref Object to increment.

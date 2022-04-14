@@ -18,16 +18,17 @@ All cbits definitions and prototypes are available by including a single header 
 
 ```c
 cbits            cbits_init(void);
+cbits            cbits_new(c_strlit literal);
+cbits            cbits_from(const char* str);
 cbits            cbits_with_size(size_t size, bool value);
 cbits            cbits_with_values(size_t size, uint64_t pattern);
-cbits            cbits_from_str(const char* str);
 cbits            cbits_clone(cbits other);
 
 void             cbits_clear(cbits* self);
+cbits*           cbits_copy(cbits* self, cbits other);
 void             cbits_resize(cbits* self, size_t size, bool value);
-void             cbits_del(cbits* self);
+void             cbits_drop(cbits* self);
 
-cbits*           cbits_assign(cbits* self, cbits other);
 cbits*           cbits_take(cbits* self, cbits other);       // give other to self
 cbits            cbits_move(cbits* self);                    // transfer self to caller
 
@@ -58,7 +59,7 @@ void             cbits_xor(cbits *self, cbits other);        // set of disjoint 
 | cbits               | Type definition           | Used to represent...         |
 |:--------------------|:--------------------------|:-----------------------------|
 | `cbits`             | `struct { ... }`          | The cbits type               |
-| `cbits_iter_t`      | `struct { ... }`          | The cbits iterator type      |
+| `cbits_iter`        | `struct { ... }`          | The cbits iterator type      |
 
 ## Example
 ```c
@@ -102,7 +103,7 @@ int main(void)
        if (cbits_test(primes, i>>1)) printf(" %zu", i);
     puts("");
 
-    cbits_del(&primes);
+    cbits_drop(&primes);
 }
 ```
 Output:

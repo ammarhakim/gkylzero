@@ -1,5 +1,5 @@
 #include <acutest.h>
-#include <gkyl_prim_ten_moment.h>
+#include <gkyl_moment_prim_ten_moment.h>
 #include <gkyl_wv_ten_moment.h>
 
 static const int dir_u_shuffle[][3] = {
@@ -41,7 +41,7 @@ calcq(const double pv[10], double q[10])
 void
 test_ten_moment_basic()
 {
-  struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new();
+  struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new(0.0);
 
   TEST_CHECK( ten_moment->num_equations == 10 );
   TEST_CHECK( ten_moment->num_waves == 5 );
@@ -66,49 +66,53 @@ test_ten_moment_basic()
   TEST_CHECK ( var[8] == pv[8] );
   TEST_CHECK ( var[9] == pv[9] );
 
-  double flux[10];
+  double fluxes[3][10] = {
+    { rho*u, rho*u*u + pxx, rho*u*v + pxy, rho*u*w + pxz, 
+      rho*u*u*u + 3*u*pxx, rho*u*u*v + 2*u*pxy + v*pxx, rho*u*u*w + 2*u*pxz + w*pxx,
+      rho*u*v*v + 2*v*pxy + u*pyy, rho*u*v*w + u*pyz + v*pxz + w*pxy, rho*u*w*w + 2*w*pxz + u*pzz },
+    { rho*v, rho*u*v + pxy, rho*v*v + pyy, rho*v*w + pyz, 
+      rho*v*u*u + 2*u*pxy + v*pxx, rho*u*v*v + 2*v*pxy + u*pyy, rho*u*v*w + u*pyz + v*pxz + w*pxy,
+      rho*v*v*v + 3*v*pyy, rho*v*v*w + 2*v*pyz + w*pyy, rho*v*w*w + 2*w*pyz + v*pzz},
+    { rho*w, rho*u*w + pxz, rho*v*w + pyz, rho*w*w + pzz, 
+      rho*u*u*w + 2*u*pxz + w*pxx, rho*u*v*w + u*pyz + v*pxz + w*pxy, rho*u*w*w + 2*w*pxz + u*pzz,
+      rho*v*v*w + 2*v*pyz + w*pyy, rho*v*w*w + 2*w*pyz + v*pzz, rho*w*w*w + 3*w*pzz },
+  };
 
-  gkyl_ten_moment_flux(0, q, flux);
-  const int *d = dir_u_shuffle[0];
-  const int *dp = dir_p_shuffle[0];
-  TEST_CHECK( flux[0] == q[RHOU] );
-  TEST_CHECK( flux[RHOU] == q[PXX] );
-  TEST_CHECK( flux[RHOV] == q[PXY] );
-  TEST_CHECK( flux[RHOW] == q[PXZ] );
-  TEST_CHECK( gkyl_compare( flux[PXX] , var[0]*var[RHOU]*var[RHOU]*var[RHOU] + 3*var[RHOU]*var[PXX], 1e-15) );
-  TEST_CHECK( gkyl_compare( flux[PXY] , var[0]*var[RHOU]*var[RHOU]*var[RHOV] + 2*var[RHOU]*var[PXY] + var[RHOV]*var[PXX], 1e-15) );
-  TEST_CHECK( gkyl_compare( flux[PXZ] , var[0]*var[RHOU]*var[RHOU]*var[RHOW] + 2*var[RHOU]*var[PXZ] + var[RHOW]*var[PXX], 1e-15) );
-  TEST_CHECK( gkyl_compare( flux[PYY] , var[0]*var[RHOU]*var[RHOV]*var[RHOV] + 2*var[RHOV]*var[PXY] + var[RHOU]*var[PYY], 1e-15) );
-  TEST_CHECK( gkyl_compare( flux[PYZ] , var[0]*var[RHOU]*var[RHOV]*var[RHOW] + var[RHOU]*var[PYZ] + var[RHOV]*var[PXZ] + var[RHOW]*var[PXY], 1e-15) );
-  TEST_CHECK( gkyl_compare( flux[PZZ] , var[0]*var[RHOU]*var[RHOW]*var[RHOW] + 2*var[RHOW]*var[PXZ] + var[RHOU]*var[PZZ], 1e-15) );
+  double norm[3][3] = {
+    { 1.0, 0.0, 0.0 },
+    { 0.0, 1.0, 0.0 },
+    { 0.0, 0.0, 1.0 }
+  };
 
-  gkyl_ten_moment_flux(1, q, flux);
-  d = dir_u_shuffle[1];
-  dp = dir_p_shuffle[1];
-  TEST_CHECK( gkyl_compare( flux[0] , q[RHOU], 1e-15) );
-  TEST_CHECK( gkyl_compare( flux[RHOU] , q[PXX], 1e-15) );
-  TEST_CHECK( gkyl_compare( flux[RHOV] , q[PXY], 1e-15) );
-  TEST_CHECK( gkyl_compare( flux[RHOW] , q[PXZ], 1e-15) );
-  TEST_CHECK( gkyl_compare( flux[PXX] , var[0]*var[RHOU]*var[RHOU]*var[RHOU] + 3*var[RHOU]*var[PXX], 1e-15) );
-  TEST_CHECK( gkyl_compare( flux[PXY] , var[0]*var[RHOU]*var[RHOU]*var[RHOV] + 2*var[RHOU]*var[PXY] + var[RHOV]*var[PXX], 1e-15) );
-  TEST_CHECK( gkyl_compare( flux[PXZ] , var[0]*var[RHOU]*var[RHOU]*var[RHOW] + 2*var[RHOU]*var[PXZ] + var[RHOW]*var[PXX], 1e-15) );
-  TEST_CHECK( gkyl_compare( flux[PYY] , var[0]*var[RHOU]*var[RHOV]*var[RHOV] + 2*var[RHOV]*var[PXY] + var[RHOU]*var[PYY], 1e-15) );
-  TEST_CHECK( gkyl_compare( flux[PYZ] , var[0]*var[RHOU]*var[RHOV]*var[RHOW] + var[RHOU]*var[PYZ] + var[RHOV]*var[PXZ] + var[RHOW]*var[PXY], 1e-15) );
-  TEST_CHECK( gkyl_compare( flux[PZZ] , var[0]*var[RHOU]*var[RHOW]*var[RHOW] + 2*var[RHOW]*var[PXZ] + var[RHOU]*var[PZZ], 1e-15) );
+  double tau1[3][3] = {
+    { 0.0, 1.0, 0.0 },
+    { 1.0, 0.0, 0.0 },
+    { 1.0, 0.0, 0.0 }
+  };
 
-  gkyl_ten_moment_flux(2, q, flux);
-  d = dir_u_shuffle[2];
-  dp = dir_p_shuffle[2];
-  TEST_CHECK( gkyl_compare( flux[0] , q[RHOU], 1e-15) );
-  TEST_CHECK( gkyl_compare( flux[RHOU] , q[PXX], 1e-15) );
-  TEST_CHECK( gkyl_compare( flux[RHOV] , q[PXY], 1e-15) );
-  TEST_CHECK( gkyl_compare( flux[RHOW] , q[PXZ], 1e-15) );
-  TEST_CHECK( gkyl_compare( flux[PXX] , var[0]*var[RHOU]*var[RHOU]*var[RHOU] + 3*var[RHOU]*var[PXX], 1e-15) );
-  TEST_CHECK( gkyl_compare( flux[PXY] , var[0]*var[RHOU]*var[RHOU]*var[RHOV] + 2*var[RHOU]*var[PXY] + var[RHOV]*var[PXX], 1e-15) );
-  TEST_CHECK( gkyl_compare( flux[PXZ] , var[0]*var[RHOU]*var[RHOU]*var[RHOW] + 2*var[RHOU]*var[PXZ] + var[RHOW]*var[PXX], 1e-15) );
-  TEST_CHECK( gkyl_compare( flux[PYY] , var[0]*var[RHOU]*var[RHOV]*var[RHOV] + 2*var[RHOV]*var[PXY] + var[RHOU]*var[PYY], 1e-15) );
-  TEST_CHECK( gkyl_compare( flux[PYZ] , var[0]*var[RHOU]*var[RHOV]*var[RHOW] + var[RHOU]*var[PYZ] + var[RHOV]*var[PXZ] + var[RHOW]*var[PXY], 1e-15) );
-  TEST_CHECK( gkyl_compare( flux[PZZ] , var[0]*var[RHOU]*var[RHOW]*var[RHOW] + 2*var[RHOW]*var[PXZ] + var[RHOU]*var[PZZ], 1e-15) );
+  double tau2[3][3] = {
+    { 0.0, 0.0, 1.0 },
+    { 0.0, 0.0, -1.0 },
+    { 0.0, 1.0, 0.0 }
+  };
+
+  double q_local[10], flux_local[10], flux[10];
+  for (int d=0; d<3; ++d) {
+    ten_moment->rotate_to_local_func(tau1[d], tau2[d], norm[d], q, q_local);
+    gkyl_ten_moment_flux(q_local, flux_local);
+    ten_moment->rotate_to_global_func(tau1[d], tau2[d], norm[d], flux_local, flux);
+    
+    for (int m=0; m<10; ++m)
+      TEST_CHECK( gkyl_compare(flux[m], fluxes[d][m], 1e-15) );
+  }
+
+  double q_l[10], q_g[10];
+  for (int d=0; d<3; ++d) {
+    gkyl_wv_eqn_rotate_to_local(ten_moment, tau1[d], tau2[d], norm[d], q, q_l);
+    gkyl_wv_eqn_rotate_to_global(ten_moment, tau1[d], tau2[d], norm[d], q_l, q_g);
+
+    for (int m=0; m<10; ++m) TEST_CHECK( q[m] == q_g[m] );
+  }
   
   gkyl_wv_eqn_release(ten_moment);
 }
@@ -116,28 +120,59 @@ test_ten_moment_basic()
 void
 test_ten_moment_waves()
 {
-  struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new();
+  struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new(0.0);
 
   double vl[10] = { 1.0, 0.1, 0.2, 0.3, 0.5, 0.0, 0.0, 1.0, 0.0, 1.5};
   double vr[10] = { 0.1, 1.0, 2.0, 3.0, 0.1, 0.0, 0.0, 0.2, 0.0, 0.3};
 
   double ql[10], qr[10];
+  double ql_local[10], qr_local[10];
   calcq(vl, ql); calcq(vr, qr);
 
-  double delta[10];
-  for (int i=0; i<10; ++i) delta[i] = qr[i]-ql[i];
+  double norm[3][3] = {
+    { 1.0, 0.0, 0.0 },
+    { 0.0, -1.0, 0.0 },
+    { 0.0, 0.0, 1.0 }
+  };
+
+  double tau1[3][3] = {
+    { 0.0, 1.0, 0.0 },
+    { 1.0, 0.0, 0.0 },
+    { 1.0, 0.0, 0.0 }
+  };
+
+  double tau2[3][3] = {
+    { 0.0, 0.0, 1.0 },
+    { 0.0, 0.0, 1.0 },
+    { 0.0, 1.0, 0.0 }
+  };  
 
   for (int d=0; d<3; ++d) {
-    double speeds[5], waves[5*10];
-    gkyl_wv_eqn_waves(ten_moment, d, delta, ql, qr, waves, speeds);
+    double speeds[5], waves[5*10], waves_local[5*10];
+    // rotate to local tangent-normal frame
+    gkyl_wv_eqn_rotate_to_local(ten_moment, tau1[d], tau2[d], norm[d], ql, ql_local);
+    gkyl_wv_eqn_rotate_to_local(ten_moment, tau1[d], tau2[d], norm[d], qr, qr_local);
+
+    double delta[10];
+    for (int i=0; i<10; ++i) delta[i] = qr_local[i]-ql_local[i];
+    
+    gkyl_wv_eqn_waves(ten_moment, delta, ql_local, qr_local, waves_local, speeds);
+
+    // rotate waves back to global frame
+    for (int mw=0; mw<5; ++mw)
+      gkyl_wv_eqn_rotate_to_global(ten_moment, tau1[d], tau2[d], norm[d], &waves_local[mw*10], &waves[mw*10]);
 
     double apdq[10], amdq[10];
-    gkyl_wv_eqn_qfluct(ten_moment, d, ql, qr, waves, speeds, amdq, apdq);
+    gkyl_wv_eqn_qfluct(ten_moment, ql, qr, waves, speeds, amdq, apdq);
     
     // check if sum of left/right going fluctuations sum to jump in flux
+    double fl_local[10], fr_local[10];
+    gkyl_ten_moment_flux(ql_local, fl_local);
+    gkyl_ten_moment_flux(qr_local, fr_local);
+
     double fl[10], fr[10];
-    gkyl_ten_moment_flux(d, ql, fl);
-    gkyl_ten_moment_flux(d, qr, fr);
+    gkyl_wv_eqn_rotate_to_global(ten_moment, tau1[d], tau2[d], norm[d], fl_local, fl);
+    gkyl_wv_eqn_rotate_to_global(ten_moment, tau1[d], tau2[d], norm[d], fr_local, fr);
     
     for (int i=0; i<10; ++i)
       TEST_CHECK( gkyl_compare(fr[i]-fl[i], amdq[i]+apdq[i], 1e-14) );

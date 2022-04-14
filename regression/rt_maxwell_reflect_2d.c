@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdio.h>
 
+#include <gkyl_alloc.h>
 #include <gkyl_const.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
@@ -29,13 +30,21 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 128);
+
+  if (app_args.trace_mem) {
+    gkyl_cu_dev_mem_debug_set(true);
+    gkyl_mem_debug_set(true);
+  }
+
   struct gkyl_moment app_inp = {
     .name = "maxwell_reflect_2d",
 
     .ndim = 2,
     .lower = { -1.0, -1.0 },
     .upper = { 1.0, 1.0 }, 
-    .cells = { 128, 128 },
+    .cells = { NX, NY },
 
     .cfl_frac = 1.0,
 
@@ -45,13 +54,13 @@ main(int argc, char **argv)
       .limiter = GKYL_NO_LIMITER,
       .init = evalFieldInit,
 
-      .bcx = { GKYL_MOMENT_FIELD_COND, GKYL_MOMENT_FIELD_COND },
-      .bcy = { GKYL_MOMENT_FIELD_COND, GKYL_MOMENT_FIELD_COND },
+      .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
+      .bcy = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
     }
   };
 
   // create app object
-  gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
+  gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 3.0;

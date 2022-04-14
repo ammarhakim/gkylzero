@@ -151,9 +151,220 @@ test_mat_linsolve()
   gkyl_mem_buff_release(ipiv);
 }
 
+void
+test_nmat_base()
+{
+  // 5 matrices with shape 10x20
+  struct gkyl_nmat *nmat = gkyl_nmat_new(5, 10, 20);
+
+  TEST_CHECK( false == gkyl_nmat_is_cu_dev(nmat) );
+
+  TEST_CHECK( 5 == nmat->num );
+  TEST_CHECK( 10 == nmat->nr );
+  TEST_CHECK( 20 == nmat->nc );
+
+  struct gkyl_mat m = gkyl_nmat_get(nmat, 0);
+  TEST_CHECK( 10 == m.nr );
+  TEST_CHECK( 20 == m.nc );
+
+  for (size_t n=0; n<nmat->num; ++n) {
+    struct gkyl_mat m = gkyl_nmat_get(nmat, n);
+    
+    for (size_t j=0; j<nmat->nc; ++j)
+      for (size_t i=0; i<nmat->nr; ++i)
+        gkyl_mat_set(&m, i, j, n*0.5);
+  }
+
+  for (size_t n=0; n<nmat->num; ++n) {
+    struct gkyl_mat m = gkyl_nmat_get(nmat, n);
+    
+    for (size_t j=0; j<nmat->nc; ++j)
+      for (size_t i=0; i<nmat->nr; ++i)
+        TEST_CHECK ( n*0.5 == gkyl_mat_get(&m, i, j) );
+  }  
+
+  for (size_t n=0; n<nmat->num; ++n)
+    for (size_t i=0; i<nmat->nr*nmat->nc; ++i)
+      TEST_CHECK( nmat->mptr[n][i] == n*0.5 );
+
+  // copy matrix
+  struct gkyl_nmat *ncpy = gkyl_nmat_new(nmat->num, nmat->nr, nmat->nc);
+  gkyl_nmat_copy(ncpy, nmat);
+
+  for (size_t n=0; n<ncpy->num; ++n) {
+    struct gkyl_mat m = gkyl_nmat_get(ncpy, n);
+    
+    for (size_t j=0; j<ncpy->nc; ++j)
+      for (size_t i=0; i<ncpy->nr; ++i)
+        TEST_CHECK ( n*0.5 == gkyl_mat_get(&m, i, j) );
+  }  
+
+  for (size_t n=0; n<ncpy->num; ++n)
+    for (size_t i=0; i<ncpy->nr*ncpy->nc; ++i)
+      TEST_CHECK( ncpy->mptr[n][i] == n*0.5 );  
+
+  gkyl_nmat_release(nmat);
+  gkyl_nmat_release(ncpy);
+}
+
+void
+test_nmat_linsolve()
+{
+  struct gkyl_nmat *As = gkyl_nmat_new(5, 3, 3);
+  struct gkyl_nmat *xs = gkyl_nmat_new(5, 3, 1);
+
+  for (int n=0; n<As->num; ++n) {
+    struct gkyl_mat A = gkyl_nmat_get(As, n);
+    
+    double val = 1.0;
+    // A : matrix( [1,2,3], [4,5,6], [7,8,10] );
+    for (int i=0; i<A.nr; ++i)  
+      for (int j=0; j<A.nc; ++j) {
+        gkyl_mat_set(&A,i,j,val);
+        val += 1.0;
+      }
+    gkyl_mat_set(&A,2,2,10.0); // ensures determinant is not zero
+  }
+
+  // x = matrix( [1, 1, 1] );
+  for (size_t n=0; n<As->num; ++n) {
+    struct gkyl_mat x = gkyl_nmat_get(xs, n);
+    gkyl_mat_clear(&x, 1.0);
+  }
+
+  // solve all linear systems: sol : matrix( [-1, 1, 0] )
+  bool status = gkyl_nmat_linsolve_lu(As, xs);
+
+  TEST_CHECK( status );
+
+  //gkyl_mat_show("A", stdout, A);
+  //gkyl_mat_show("x", stdout, x);
+
+  for (int n=0; n<xs->num; ++n) {
+    struct gkyl_mat x = gkyl_nmat_get(xs, n);
+
+    TEST_CHECK( gkyl_compare(gkyl_mat_get(&x,0,0), -1.0, 1e-15) );
+    TEST_CHECK( gkyl_compare(gkyl_mat_get(&x,1,0), 1.0, 1e-15) );
+    TEST_CHECK( gkyl_compare(gkyl_mat_get(&x,2,0), 0.0, 1e-15) );
+  }
+  
+  gkyl_nmat_release(As);
+  gkyl_nmat_release(xs);
+}
+
+#ifdef GKYL_HAVE_CUDA
+
+void
+test_cu_nmat_base()
+{
+  // 5 matrices with shape 10x20
+  struct gkyl_nmat *nmat = gkyl_nmat_cu_dev_new(5, 10, 20);
+
+  TEST_CHECK( 5 == nmat->num );
+  TEST_CHECK( 10 == nmat->nr );
+  TEST_CHECK( 20 == nmat->nc );
+
+  TEST_CHECK( gkyl_nmat_is_cu_dev(nmat) == true );
+
+  // create host-side matrix
+  struct gkyl_nmat *h1 = gkyl_nmat_new(5, 10, 20);
+  for (size_t n=0; n<h1->num; ++n) {
+    struct gkyl_mat m = gkyl_nmat_get(h1, n);
+    
+    for (size_t j=0; j<h1->nc; ++j)
+      for (size_t i=0; i<h1->nr; ++i)
+        gkyl_mat_set(&m, i, j, n*0.5);
+  }
+
+  // copy to device
+  gkyl_nmat_copy(nmat, h1);
+
+  // copy it back to host
+  struct gkyl_nmat *h2 = gkyl_nmat_new(5, 10, 20);
+  gkyl_nmat_copy(h2, nmat);
+
+  // check
+  for (size_t n=0; n<h1->num; ++n) {
+    struct gkyl_mat m1 = gkyl_nmat_get(h1, n);
+    struct gkyl_mat m2 = gkyl_nmat_get(h2, n);
+    
+    for (size_t j=0; j<h1->nc; ++j)
+      for (size_t i=0; i<h1->nr; ++i)
+        TEST_CHECK( gkyl_mat_get(&m1, i, j) == gkyl_mat_get(&m2, i, j) );
+  }
+
+  gkyl_nmat_release(nmat);
+  gkyl_nmat_release(h1);
+  gkyl_nmat_release(h2);
+}
+
+void
+test_cu_nmat_linsolve()
+{
+  struct gkyl_nmat *As = gkyl_nmat_new(5, 3, 3);
+  struct gkyl_nmat *xs = gkyl_nmat_new(5, 3, 1);
+
+  for (int n=0; n<As->num; ++n) {
+    struct gkyl_mat A = gkyl_nmat_get(As, n);
+    
+    double val = 1.0;
+    // A : matrix( [1,2,3], [4,5,6], [7,8,10] );
+    for (int i=0; i<A.nr; ++i)  
+      for (int j=0; j<A.nc; ++j) {
+        gkyl_mat_set(&A,i,j,val);
+        val += 1.0;
+      }
+    gkyl_mat_set(&A,2,2,10.0); // ensures determinant is not zero
+  }
+
+  // x = matrix( [1, 1, 1] );
+  for (size_t n=0; n<As->num; ++n) {
+    struct gkyl_mat x = gkyl_nmat_get(xs, n);
+    gkyl_mat_clear(&x, 1.0);
+  }
+
+  // copy data to GPU matrices
+  struct gkyl_nmat *As_d = gkyl_nmat_cu_dev_new(5, 3, 3);
+  struct gkyl_nmat *xs_d = gkyl_nmat_cu_dev_new(5, 3, 1);
+
+  gkyl_nmat_copy(As_d, As);
+  gkyl_nmat_copy(xs_d, xs);
+
+  // solve all linear systems: sol : matrix( [-1, 1, 0] )
+  bool status = gkyl_nmat_linsolve_lu(As_d, xs_d);
+
+  TEST_CHECK( status );
+
+  // copy solution back
+  gkyl_nmat_copy(As, As_d);
+  gkyl_nmat_copy(xs, xs_d);
+
+  for (int n=0; n<xs->num; ++n) {
+    struct gkyl_mat x = gkyl_nmat_get(xs, n);
+
+    TEST_CHECK( gkyl_compare(gkyl_mat_get(&x,0,0), -1.0, 1e-15) );
+    TEST_CHECK( gkyl_compare(gkyl_mat_get(&x,1,0), 1.0, 1e-15) );
+    TEST_CHECK( gkyl_compare(gkyl_mat_get(&x,2,0), 0.0, 1e-15) );
+  }
+  
+  gkyl_nmat_release(As);
+  gkyl_nmat_release(xs);
+
+  gkyl_nmat_release(As_d);
+  gkyl_nmat_release(xs_d);
+}
+
+#endif
+
 TEST_LIST = {
   { "mat_base", test_mat_base },
   { "mat_mm_op", test_mat_mm_op },
   { "mat_linsolve", test_mat_linsolve },
+  { "nmat_base", test_nmat_base },
+  { "nmat_linsolve", test_nmat_linsolve },
+#ifdef GKYL_HAVE_CUDA
+  { "cu_nmat_base", test_cu_nmat_base },
+  { "cu_nmat_linsolve", test_cu_nmat_linsolve },
+#endif
   { NULL, NULL },
 };

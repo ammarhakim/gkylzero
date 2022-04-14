@@ -14,6 +14,6 @@ struct gkyl_wv_eqn* gkyl_wv_euler_new(double gas_gamma);
  * Get gas adiabatic constant.
  * 
  * @param wv Euler equation object
- * @return Get gas adiabatic constant
+ * @return Gas adiabatic constant
  */
 double gkyl_wv_euler_gas_gamma(const struct gkyl_wv_eqn* wv);

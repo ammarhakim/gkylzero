@@ -106,20 +106,19 @@ enum gkyl_cu_memcpy_kind {
         *cntr += 1;                                                     \
         printf("%s failed! (%s:%d)\n", #expr, __FILE__, __LINE__);      \
       }                                                                 \
-    } while (0);
+    } while (0)
 
 // Computes length of string needed given a format specifier and data. Example:
 //
-// size_t len = gkyl_calc_strlen("%s-%d", "silo", 25);
+// size_t len = gkyl_calc_strlen("%s-%d", "gkyl", 25);
 // 
 #define gkyl_calc_strlen(fmt, ...) snprintf(0, 0, fmt, __VA_ARGS__)
 
 // Open file 'fname' with 'mode; into handle 'fp'. Handle is closed
-// when block attached to with_file exists
-#define with_file(fp, fname, mode)                              \
-    for (bool _break = (fp = fopen(fname, mode), (fp != NULL)); \
-         _break;                                                \
-         _break = false, fclose(fp))
+// when block attached to with_file exits
+#define with_file(fp, fname, mode)                                             \
+  for (bool _break = (fp = fopen(fname, mode), (fp != NULL)); _break;          \
+       _break = false, fclose(fp))
 
 // Code
 

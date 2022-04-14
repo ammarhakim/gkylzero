@@ -8,6 +8,7 @@
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_rect_decomp.h>
 #include <gkyl_util.h>
 
 void evalFunc(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -36,8 +37,9 @@ test_eval_1(enum gkyl_basis_type type)
   gkyl_eval_on_nodes *evalDistf = gkyl_eval_on_nodes_new(&grid, &basis,1, evalFunc, 0);
 
   // create array range: no ghost-cells 
-  struct gkyl_range arr_range;
-  gkyl_range_init_from_shape(&arr_range, 3, cells);
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range arr_range, arr_ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
   // create distribution function
   struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
@@ -69,9 +71,9 @@ void mapc2p(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 
 void gaussian(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  double xp[2], vth = 0.5, xc = 2.5;
+  double xp[2], vth = 0.5, xc = 0.0, yc = 2.5;
   mapc2p(t, xn, xp, 0);
-  double r2 = (xp[0]-xc)*(xp[0]-xc) + xp[1]*xp[1];
+  double r2 = (xp[0]-xc)*(xp[0]-xc) + (xp[1]-yc)*(xp[1]-yc);
   fout[0] = exp(-r2/(2*vth*vth));
 }
 
@@ -92,8 +94,9 @@ test_eval_2(enum gkyl_basis_type type)
     gkyl_cart_modal_tensor(&basis, 2, poly_order);
 
   // create array range: no ghost-cells 
-  struct gkyl_range arr_range;
-  gkyl_range_init_from_shape(&arr_range, 2, cells);
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range arr_range, arr_ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);  
 
   // create DG expansion of mapping
   gkyl_eval_on_nodes *eval_mapc2p = gkyl_eval_on_nodes_new(&grid, &basis, 2, mapc2p, 0);
@@ -130,6 +133,67 @@ test_eval_2(enum gkyl_basis_type type)
   gkyl_array_release(rtheta);
 }
 
+void shock(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
+{
+  xp[0] = xc[0] > 2.5 ? 1.0 : 0.0;
+}
+
+void
+test_eval_3(enum gkyl_basis_type type)
+{
+  int poly_order = 1;
+  double lower[] = {1.0, 0.0}, upper[] = {4.0, 2.0*M_PI};
+  int cells[] = {8, 8};
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
+
+  // basis functions
+  struct gkyl_basis basis;
+  if (type == GKYL_BASIS_MODAL_SERENDIPITY)
+    gkyl_cart_modal_serendip(&basis, 2, poly_order);
+  else
+    gkyl_cart_modal_tensor(&basis, 2, poly_order);
+
+  // create array range: no ghost-cells 
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range arr_range, arr_ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);  
+
+  // create DG expansion of mapping
+  gkyl_eval_on_nodes *eval_mapc2p = gkyl_eval_on_nodes_new(&grid, &basis, 2, mapc2p, 0);
+  struct gkyl_array *rtheta = gkyl_array_new(GKYL_DOUBLE, 2*basis.num_basis, arr_range.volume);
+  gkyl_eval_on_nodes_advance(eval_mapc2p, 0.0, &arr_range, rtheta);
+
+  // ICs on mapped grid
+  gkyl_proj_on_basis *proj_ic = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, shock, 0);
+  struct gkyl_array *f = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_proj_on_basis_advance(proj_ic, 0.0, &arr_range, f);
+
+  // construct file name and write data out
+  const char *fmt[] = {
+    [GKYL_BASIS_MODAL_SERENDIPITY] = "%s-ser.gkyl",
+    [GKYL_BASIS_MODAL_TENSOR] = "%s-ten.gkyl",
+  };
+
+  do {
+    int sz = snprintf(0, 0, fmt[type], "rt_eval_on_nodes_rtheta_shock");
+    char fileNm[sz+1]; // ensures no buffer overflow  
+    snprintf(fileNm, sizeof fileNm, fmt[type], "rt_eval_on_nodes_rtheta_shock");
+    gkyl_grid_sub_array_write(&grid, &arr_range, rtheta, fileNm);
+  } while (0);
+
+  do {
+    int sz = snprintf(0, 0, fmt[type], "rt_eval_on_nodes_f_shock");
+    char fileNm[sz+1]; // ensures no buffer overflow  
+    snprintf(fileNm, sizeof fileNm, fmt[type], "rt_eval_on_nodes_f_shock");
+    gkyl_grid_sub_array_write(&grid, &arr_range, f, fileNm);
+  } while (0);
+  
+  gkyl_eval_on_nodes_release(eval_mapc2p);
+  gkyl_proj_on_basis_release(proj_ic);
+  gkyl_array_release(rtheta);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -138,6 +202,9 @@ main(int argc, char **argv)
 
   test_eval_2(GKYL_BASIS_MODAL_SERENDIPITY);
   test_eval_2(GKYL_BASIS_MODAL_TENSOR);
+
+  test_eval_3(GKYL_BASIS_MODAL_SERENDIPITY);
+  test_eval_3(GKYL_BASIS_MODAL_TENSOR);  
 
   return 0;
 }

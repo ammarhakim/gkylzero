@@ -29,7 +29,7 @@ range_new(int value)
 }
 
 struct range*
-range_aquire(const struct range *rng)
+range_acquire(const struct range *rng)
 {
   gkyl_ref_count_inc(&rng->ref_count);
   return (struct range*) rng;
@@ -47,7 +47,7 @@ test_ref_count()
   struct range *rng = range_new(10);
   TEST_CHECK( rng->ref_count.count == 1 );
 
-  struct range *rngp = range_aquire(rng);
+  struct range *rngp = range_acquire(rng);
   TEST_CHECK( rng->ref_count.count == 2 );
 
   range_release(rngp);

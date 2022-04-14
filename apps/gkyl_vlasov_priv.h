@@ -12,20 +12,32 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_dg_bin_ops.h>
+#include <gkyl_dg_updater_lbo_vlasov.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_hyper_dg.h>
+#include <gkyl_mom_bcorr_lbo_vlasov.h>
+#include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_calc.h>
+#include <gkyl_mom_vlasov.h>
+#include <gkyl_null_pool.h>
+#include <gkyl_prim_lbo_calc.h>
+#include <gkyl_prim_lbo_type.h>
+#include <gkyl_prim_lbo_vlasov.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_vlasov.h>
-#include <gkyl_vlasov_mom.h>
+
 
 // Definitions of private structs and APIs attached to these objects
 // for use in Vlasov app.
+
+// Labels for lower, upper edge of domain
+enum vm_domain_edge { VM_EDGE_LOWER, VM_EDGE_UPPER };
 
 // ranges for use in BCs
 struct vm_skin_ghost_ranges {
@@ -38,16 +50,41 @@ struct vm_skin_ghost_ranges {
 
 // data for moments
 struct vm_species_moment {
-  struct gkyl_mom_type *mtype;
-  gkyl_mom_calc *mcalc;
-  struct gkyl_array *marr;
-  struct gkyl_array *marr_host;  
+  bool use_gpu; // should we use GPU (if present)
+  gkyl_mom_calc *mcalc; // moment update
+  struct gkyl_array *marr; // array to moment data
+  struct gkyl_array *marr_host; // host copy (same as marr if not on GPUs)
 };
+
+struct vm_lbo_collisions {
+  struct gkyl_array *boundary_corrections; // LBO boundary corrections
+  struct gkyl_mom_type *bcorr_type; // LBO boundary corrections moment type
+  struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator
+  struct gkyl_array *nu_sum, *u_drift, *vth_sq, *nu_u, *nu_vthsq; // LBO primitive moments
+  struct gkyl_prim_lbo_type *coll_prim; // LBO primitive moments type
+
+  struct vm_species_moment moms; // moments needed in LBO (single array includes Zeroth, First, and Second moment)
+  
+  gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
+  gkyl_dg_updater_lbo_vlasov *coll_slvr; // collision solver
+};
+
+struct vm_bgk_collisions {
+  struct gkyl_array *u, *vthsq; // BGK primitive moments
+  // BGK Collisions should probably own a project on Maxwellian updater
+  // so it can compute its contribution to the RHS
+  // struct proj_maxwellian;
+};
+
+
+// context for use in computing applied acceleration
+struct vm_eval_accel_ctx { evalf_t accel_func; void *accel_ctx; };
 
 // species data
 struct vm_species {
   struct gkyl_vlasov_species info; // data for species
-    
+  
+  struct gkyl_job_pool *job_pool; // Job pool
   struct gkyl_rect_grid grid;
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   struct vm_skin_ghost_ranges skin_ghost; // conf-space skin/ghost
@@ -56,30 +93,46 @@ struct vm_species {
   struct gkyl_array *cflrate; // CFL rate in each cell
   struct gkyl_array *bc_buffer; // buffer for BCs (used for both copy and periodic)
 
+  struct gkyl_array *qmem; // array for q/m*(E,B)
+
   struct gkyl_array *f_host; // host copy for use IO and initialization
 
   struct vm_species_moment m1i; // for computing currents
   struct vm_species_moment *moms; // diagnostic moments
 
   struct gkyl_dg_eqn *eqn; // Vlasov equation
-  gkyl_hyper_dg *slvr; // solver 
+  gkyl_hyper_dg *slvr; // solver
+ 
+  // boundary conditions on lower/upper edges in each direction  
+  enum gkyl_species_bc_type lower_bc[3], upper_bc[3];
 
-  double* omegaCfl_ptr;
+  bool has_accel; // flag to indicate there is applied acceleration
+  struct gkyl_array *accel; // applied acceleration
+  struct gkyl_array *accel_host; // host copy for use in IO and projecting
+  gkyl_proj_on_basis *accel_proj; // projector for acceleration
+  struct vm_eval_accel_ctx accel_ctx; // context for applied acceleration
+
+  enum gkyl_collision_id collision_id; // type of collisions
+  struct vm_lbo_collisions lbo;
+
+  double *omegaCfl_ptr;
 };
 
 // field data
 struct vm_field {
   struct gkyl_vlasov_field info; // data for field
-    
+
+  struct gkyl_job_pool *job_pool; // Job pool  
   struct gkyl_array *em, *em1, *emnew; // arrays for updates
-  struct gkyl_array *qmem; // array for q/m*(E,B)
   struct gkyl_array *cflrate; // CFL rate in each cell
   struct gkyl_array *bc_buffer; // buffer for BCs (used for both copy and periodic)
 
   struct gkyl_array *em_host;  // host copy for use IO and initialization
 
-  struct gkyl_dg_eqn *eqn; // Maxwell equation
-  gkyl_hyper_dg *slvr; // solver
+  gkyl_hyper_dg *slvr; // Maxwell solver
+
+  // boundary conditions on lower/upper edges in each direction  
+  enum gkyl_field_bc_type lower_bc[3], upper_bc[3];
 
   double* omegaCfl_ptr;
 };
@@ -87,6 +140,8 @@ struct vm_field {
 // Vlasov object: used as opaque pointer in user code
 struct gkyl_vlasov_app {
   char name[128]; // name of app
+  struct gkyl_job_pool *job_pool; // Job pool
+  
   int cdim, vdim; // conf, velocity space dimensions
   int poly_order; // polynomial order
   double tcurr; // current time
@@ -134,7 +189,6 @@ array_combine(struct gkyl_array *out, double c1, const struct gkyl_array *arr1,
     c2, arr2, rng);
 }
 
-
 // Create ghost and skin sub-ranges given a parent range
 static void
 skin_ghost_ranges_init(struct vm_skin_ghost_ranges *sgr,
@@ -164,12 +218,57 @@ void vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   struct vm_species_moment *sm, const char *nm);
 
 /**
+ * Calculate moment, given distribution function @a fin.
+ *
+ * @param phase_rng Phase-space range
+ * @param conf_rng Config-space range
+ * @param fin Input distribution function array
+ */
+void vm_species_moment_calc(const struct vm_species_moment *sm,
+  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
+  const struct gkyl_array *fin);
+
+/**
  * Release species moment object.
  *
  * @param app Vlasov app object
  * @param sm Species moment object to release
  */
-void vm_species_moment_release(const struct gkyl_vlasov_app *app, const struct vm_species_moment *sm);
+void vm_species_moment_release(const struct gkyl_vlasov_app *app,
+  const struct vm_species_moment *sm);
+
+/** vm_species_lbo API */
+
+/**
+ * Initialize species LBO collisions object.
+ *
+ * @param app Vlasov app object
+ * @param s Species object 
+ * @param lbo Species LBO object
+ */
+void vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s,
+  struct vm_lbo_collisions *lbo);
+
+/**
+ * Compute RHS from LBO collisions
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param lbo Pointer to LBO
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from LBO
+ * @return Maximum stable time-step
+ */
+double vm_species_lbo_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
+  struct vm_lbo_collisions *lbo, const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Release species LBO object.
+ *
+ * @param app Vlasov app object
+ * @param sm Species LBO object to release
+ */
+void vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_collisions *lbo);
 
 /** vm_species API */
 
@@ -183,17 +282,35 @@ void vm_species_moment_release(const struct gkyl_vlasov_app *app, const struct v
 void vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_species *s);
 
 /**
+ * Compute species applied accleration term
+ *
+ * @param app Vlasov app object
+ * @param species Species object
+ * @param tm Time for use in acceleration
+ */
+void vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, double tm);
+
+/**
+ * Compute species initial conditions.
+ *
+ * @param app Vlasov app object
+ * @param species Species object
+ * @param t0 Time for use in ICs
+ */
+void vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0);
+
+/**
  * Compute RHS from species distribution function
  *
  * @param app Vlasov app object
  * @param species Pointer to species
  * @param fin Input distribution function
- * @param qmem EM field scaled by q/m
+ * @param em EM field
  * @param rhs On output, the RHS from the species object
  * @return Maximum stable time-step
  */
 double vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
-  const struct gkyl_array *fin, const struct gkyl_array *qmem, struct gkyl_array *rhs);
+  const struct gkyl_array *fin, const struct gkyl_array *em, struct gkyl_array *rhs);
 
 /**
  * Apply periodic BCs to species distribution function
@@ -212,10 +329,12 @@ void vm_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_species 
  * @param app Vlasov app object
  * @param species Pointer to species
  * @param dir Direction to apply BCs
+ * @param edge Edge to apply BCs
  * @param f Field to apply BCs
  */
-void vm_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_species *species,
-  int dir, struct gkyl_array *f);
+void
+vm_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_species *species,
+  int dir, enum vm_domain_edge edge, struct gkyl_array *f);
 
 /**
  * Apply BCs to species distribution function
@@ -247,6 +366,15 @@ void vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s);
 struct vm_field* vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app);
 
 /**
+ * Compute field initial conditions.
+ *
+ * @param app Vlasov app object
+ * @param field Field object
+ * @param t0 Time for use in ICs
+ */
+void vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, double t0);
+
+/**
  * Compute RHS from field equations
  *
  * @param app Vlasov app object
@@ -275,7 +403,19 @@ void vm_field_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_field *fie
  * @param dir Direction to apply BCs
  * @param f Field to apply BCs
  */
-void vm_field_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_field *field, int dir, struct gkyl_array *f);
+void vm_field_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_field *field,
+  int dir, enum vm_domain_edge edge, struct gkyl_array *f);
+
+/**
+ * Apply PEC wall BCs to field
+ *
+ * @param app Vlasov app object
+ * @param field Pointer to field
+ * @param dir Direction to apply BCs
+ * @param f Field to apply BCs
+ */
+void vm_field_apply_pec_bc(gkyl_vlasov_app *app, const struct vm_field *field,
+  int dir, enum vm_domain_edge edge, struct gkyl_array *f);
 
 /**
  * Apply BCs to field

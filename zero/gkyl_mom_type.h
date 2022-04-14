@@ -1,12 +1,17 @@
 #pragma once
 
 #include <gkyl_ref_count.h>
+#include <stdint.h>
+
+// Forward declare for use in function pointers
+struct gkyl_mom_type;
 
 /**
  * Function pointer type to compute the needed moment.
  */
-typedef void (*momf_t)(const double *xc, const double *dx,
-  const int *idx, const double *f, double* out);
+typedef void (*momf_t)(const struct gkyl_mom_type *momt,
+  const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param);
 
 struct gkyl_mom_type {
   int cdim; // config-space dim
@@ -17,14 +22,18 @@ struct gkyl_mom_type {
   int num_mom; // number of components in moment
   momf_t kernel; // moment calculation kernel
   struct gkyl_ref_count ref_count; // reference count
+
+  uint32_t flag;
+  struct gkyl_mom_type *on_dev; // pointer to itself or device data
 };
 
 /**
- * Aquire pointer to moment object. Delete using the release() method
+ * Acquire pointer to moment object. Delete using the release() method
  *
- * @param momt Moment object.
+ * @param momt Moment object to get pointer from.
+ * @return acquired object
  */
-struct gkyl_mom_type* gkyl_mom_type_aquire(const struct gkyl_mom_type* momt);
+struct gkyl_mom_type* gkyl_mom_type_acquire(const struct gkyl_mom_type* momt);
 
 /**
  * Delete moment object
@@ -45,4 +54,12 @@ void gkyl_mom_type_release(const struct gkyl_mom_type* momt);
  */
 void gkyl_mom_type_calc(const struct gkyl_mom_type* momt,
   const double *xc, const double *dx, const int *idx,
-  const double *f, double* out);
+  const double *f, double* out, void *param);
+
+/**
+ * Get number of moments specified by mom_type object
+ *
+ * @param momt Moment type object
+ * returns int Number of moments
+ */
+int gkyl_mom_type_num_mom(const struct gkyl_mom_type* momt);

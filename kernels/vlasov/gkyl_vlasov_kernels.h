@@ -160,6 +160,29 @@ GKYL_CU_DH void vlasov_poisson_extem_boundary_surfvz_2x3v_ser_p1(const double *w
 GKYL_CU_DH void vlasov_surfvz_2x3v_ser_p1(const double *w, const double *dxv, const double *qmem, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void vlasov_boundary_surfvz_2x3v_ser_p1(const double *w, const double *dxv, const double *qmem, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
 
+GKYL_CU_DH double vlasov_poisson_vol_2x3v_ser_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_poisson_extem_vol_2x3v_ser_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_stream_vol_2x3v_ser_p2(const double *w, const double *dxv, const double *qmem, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_vol_2x3v_ser_p2(const double *w, const double *dxv, const double *qmem, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_surfx_2x3v_ser_p2(const double *w, const double *dxv, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_poisson_surfvx_2x3v_ser_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_poisson_boundary_surfvx_2x3v_ser_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_surfy_2x3v_ser_p2(const double *w, const double *dxv, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_poisson_surfvy_2x3v_ser_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_poisson_boundary_surfvy_2x3v_ser_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_poisson_extem_surfvx_2x3v_ser_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_poisson_extem_boundary_surfvx_2x3v_ser_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_surfvx_2x3v_ser_p2(const double *w, const double *dxv, const double *qmem, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_boundary_surfvx_2x3v_ser_p2(const double *w, const double *dxv, const double *qmem, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_poisson_extem_surfvy_2x3v_ser_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_poisson_extem_boundary_surfvy_2x3v_ser_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_surfvy_2x3v_ser_p2(const double *w, const double *dxv, const double *qmem, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_boundary_surfvy_2x3v_ser_p2(const double *w, const double *dxv, const double *qmem, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_poisson_extem_surfvz_2x3v_ser_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_poisson_extem_boundary_surfvz_2x3v_ser_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_surfvz_2x3v_ser_p2(const double *w, const double *dxv, const double *qmem, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_boundary_surfvz_2x3v_ser_p2(const double *w, const double *dxv, const double *qmem, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
+
 GKYL_CU_DH double vlasov_poisson_vol_3x3v_ser_p1(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_vol_3x3v_ser_p1(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_stream_vol_3x3v_ser_p1(const double *w, const double *dxv, const double *qmem, const double *f, double* GKYL_RESTRICT out); 
@@ -252,5 +275,28 @@ GKYL_CU_DH void vlasov_poisson_extem_surfvy_2x2v_tensor_p2(const double *w, cons
 GKYL_CU_DH void vlasov_poisson_extem_boundary_surfvy_2x2v_tensor_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void vlasov_surfvy_2x2v_tensor_p2(const double *w, const double *dxv, const double *qmem, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void vlasov_boundary_surfvy_2x2v_tensor_p2(const double *w, const double *dxv, const double *qmem, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
+
+GKYL_CU_DH double vlasov_poisson_vol_2x3v_tensor_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_poisson_extem_vol_2x3v_tensor_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_stream_vol_2x3v_tensor_p2(const double *w, const double *dxv, const double *qmem, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_vol_2x3v_tensor_p2(const double *w, const double *dxv, const double *qmem, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_surfx_2x3v_tensor_p2(const double *w, const double *dxv, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_poisson_surfvx_2x3v_tensor_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_poisson_boundary_surfvx_2x3v_tensor_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_surfy_2x3v_tensor_p2(const double *w, const double *dxv, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_poisson_surfvy_2x3v_tensor_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_poisson_boundary_surfvy_2x3v_tensor_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_poisson_extem_surfvx_2x3v_tensor_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_poisson_extem_boundary_surfvx_2x3v_tensor_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_surfvx_2x3v_tensor_p2(const double *w, const double *dxv, const double *qmem, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_boundary_surfvx_2x3v_tensor_p2(const double *w, const double *dxv, const double *qmem, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_poisson_extem_surfvy_2x3v_tensor_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_poisson_extem_boundary_surfvy_2x3v_tensor_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_surfvy_2x3v_tensor_p2(const double *w, const double *dxv, const double *qmem, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_boundary_surfvy_2x3v_tensor_p2(const double *w, const double *dxv, const double *qmem, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_poisson_extem_surfvz_2x3v_tensor_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_poisson_extem_boundary_surfvz_2x3v_tensor_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_surfvz_2x3v_tensor_p2(const double *w, const double *dxv, const double *qmem, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_boundary_surfvz_2x3v_tensor_p2(const double *w, const double *dxv, const double *qmem, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
 
 EXTERN_C_END 

@@ -1,0 +1,150 @@
+#!/bin/sh
+
+# Defaults
+PREFIX=${HOME}/gkylsoft
+
+# default build options
+CC=cc
+ARCH_FLAGS=-march=native
+
+# Default lapack include and libraries: we prefer linking to static library
+LAPACK_INC=${HOME}/gkylsoft/OpenBLAS/include
+LAPACK_LIB=${HOME}/gkylsoft/OpenBLAS/lib/libopenblas.a
+
+# SuperLU includes and librararies
+SUPERLU_INC=${HOME}/gkylsoft/superlu/include
+SUPERLU_LIB=${HOME}/gkylsoft/superlu/lib/libsuperlu.a
+
+# ----------------------------------------------------------------------------
+# Function definitions
+# ----------------------------------------------------------------------------
+
+show_help() {
+cat <<EOF
+
+./configure [options=value]
+
+Configure GkeyllZero build system. This step is optional if you are
+okay with the default parameters.
+
+NOTE: At present, the configure script DOES NOT check if you have
+specified valid paths. YOU are responsible for setting them correctly!
+
+CC                         C compiler to use. Default is system cc
+ARCH_FLAGS                 Architecture flags to use. Default '-march=native'
+
+-h
+--help                     This help.
+--prefix=DIR               Prefix where GkeyllZero is installed
+                           Default is $HOME/gkylsoft/
+
+Library Includes and Locations
+
+--lapack-inc               Location of Lapacke headers
+--lapack-lib               Full path to Lapack static library
+
+--superlu-inc              Location of SuperLU headers
+--superlu-lib              Full path to SuperLU static library
+
+EOF
+}
+
+# Helper functions
+
+find_program() {
+   prog=`command -v "$1" 2>/dev/null`
+   if [ -n "$prog" ]
+   then
+      dirname "$prog"
+   fi
+}
+
+die() {
+   echo "$*"
+   echo
+   echo "Configured failed."
+   echo
+   exit 1
+}
+
+# ----------------------------------------------------------------------------
+# MAIN PROGRAM
+# ----------------------------------------------------------------------------
+
+# Parse options
+
+while [ -n "$1" ]
+do
+   value="`echo $1 | sed 's/[^=]*.\(.*\)/\1/'`"
+   key="`echo $1 | sed 's/=.*//'`"
+   if `echo "$value" | grep "~" >/dev/null 2>/dev/null`
+   then
+      echo
+      echo '*WARNING*: the "~" sign is not expanded in flags.'
+      echo 'If you mean the home directory, use $HOME instead.'
+      echo
+   fi
+   case "$key" in
+   -h)
+      show_help
+      exit 0
+      ;;
+   --help)
+      show_help
+      exit 0
+      ;;
+   CC)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      CC="$value"
+      ;;
+   ARCH_FLAGS)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      ARCH_FLAGS="$value"
+      ;;   
+   --prefix)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      PREFIX="$value"
+      ;;
+   --lapack-inc)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      LAPACK_INC="$value"
+      ;;
+   --lapack-lib)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      LAPACK_LIB="$value"
+      ;;
+   --superlu-inc)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      SUPERLU_INC="$value"
+      ;;
+   --superlu-lib)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      SUPERLU_LIB="$value"
+      ;;   
+   *)
+      die "Error: Unknown flag: $1"
+      ;;
+   esac
+   shift
+done
+
+# Write out config.mak
+cat <<EOF1 > config.mak
+# Generated automatically! Do not edit
+
+# Installation directory
+PREFIX=$PREFIX
+# Compilers
+CC=$CC
+ARCH_FLAGS=$ARCH_FLAGS
+
+# Library paths
+LAPACK_INC=$LAPACK_INC
+LAPACK_LIB=$LAPACK_LIB
+
+SUPERLU_INC=$SUPERLU_INC
+SUPERLU_LIB=$SUPERLU_LIB
+
+EOF1
+
+echo "Wrote config.mak"
