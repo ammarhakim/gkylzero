@@ -8,6 +8,7 @@ extern "C" {
 #include <gkyl_prim_lbo_cross_calc_priv.h>
 #include <gkyl_prim_lbo_vlasov_priv.h>
 #include <gkyl_util.h>
+#include <stdio.h>
 }
 
 __global__ static void
@@ -36,7 +37,7 @@ gkyl_prim_lbo_cross_calc_set_cu_ker(gkyl_prim_lbo_cross_calc* calc,
     // linc will have jumps in it to jump over ghost cells
     long linc = gkyl_range_idx(&conf_rng, idx);
 
-    for (int n=1; n<nspecies; ++n) {
+    for (int n=0; n<nspecies; ++n) {
       struct gkyl_mat lhs = gkyl_nmat_get(As, count);
       struct gkyl_mat rhs = gkyl_nmat_get(xs, count);
       const double *self_u_d = (const double*) gkyl_array_cfetch(self_u, linc);
@@ -46,7 +47,7 @@ gkyl_prim_lbo_cross_calc_set_cu_ker(gkyl_prim_lbo_cross_calc* calc,
       const double *cross_vtsq_d = (const double*) gkyl_array_cfetch(cross_vtsq[n], linc);
       const double *moms_d = (const double*) gkyl_array_cfetch(moms, linc);
       const double *boundary_corrections_d = (const double*) gkyl_array_cfetch(boundary_corrections, linc);
-
+      
       gkyl_mat_clear(&lhs, 0.0); gkyl_mat_clear(&rhs, 0.0);
 
       calc->prim->cross_prim(calc->prim, &lhs, &rhs, greene_d, self_m,
