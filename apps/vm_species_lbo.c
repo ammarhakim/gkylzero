@@ -217,6 +217,7 @@ vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_co
   gkyl_array_release(lbo->nu_sum);
   gkyl_array_release(lbo->nu_u);
   gkyl_array_release(lbo->nu_vthsq);
+  gkyl_array_release(lbo->m0);
 
   vm_species_moment_release(app, &lbo->moms);
 
@@ -231,6 +232,14 @@ vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_co
       gkyl_array_release(lbo->cross_u_drift[i]);
       gkyl_array_release(lbo->cross_vth_sq[i]);
       gkyl_array_release(lbo->cross_nu[i]);
+      gkyl_array_release(lbo->other_nu[i]);
+      gkyl_array_release(lbo->self_mnu[i]);
+      gkyl_array_release(lbo->self_mnu_m0[i]);
+      gkyl_array_release(lbo->other_mnu[i]);
+      gkyl_array_release(lbo->other_mnu_m0[i]);
+      gkyl_array_release(lbo->greene_num[i]);
+      gkyl_array_release(lbo->greene_den[i]);
+      gkyl_array_release(lbo->greene_factor[i]);
       gkyl_prim_lbo_cross_calc_release(lbo->cross_calc);
     }
   }
