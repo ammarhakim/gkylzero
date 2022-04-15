@@ -28,9 +28,10 @@ gkyl_prim_lbo_cross_calc_new(const struct gkyl_rect_grid *grid,
 }
 
 void
-gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc, struct gkyl_basis cbasis,
-  const struct gkyl_range conf_rng, const double betaGreenep1, struct gkyl_array *greene[GKYL_MAX_SPECIES],
-  const double self_m, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
+gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc,
+  struct gkyl_basis cbasis, const struct gkyl_range conf_rng,
+  struct gkyl_array *greene[GKYL_MAX_SPECIES], const double self_m,
+  const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
   const double cross_m[GKYL_MAX_SPECIES], struct gkyl_array *cross_u[GKYL_MAX_SPECIES],
   struct gkyl_array *cross_vtsq[GKYL_MAX_SPECIES], const struct gkyl_array *moms,
   const struct gkyl_array *boundary_corrections, struct gkyl_array *u_out[GKYL_MAX_SPECIES],
@@ -72,7 +73,7 @@ gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc, struct gkyl_bas
 
       gkyl_mat_clear(&lhs, 0.0); gkyl_mat_clear(&rhs, 0.0);
 
-      calc->prim->cross_prim(calc->prim, &lhs, &rhs, betaGreenep1, greenes[n], self_m,
+      calc->prim->cross_prim(calc->prim, &lhs, &rhs, greenes[n], self_m,
 	gkyl_array_cfetch(self_u, midx), gkyl_array_cfetch(self_vtsq, midx),
         cross_m[n], cross_us[n], cross_vtsqs[n], gkyl_array_cfetch(moms, midx),
         gkyl_array_cfetch(boundary_corrections, midx)
@@ -124,9 +125,10 @@ gkyl_prim_lbo_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
 }
 
 void
-gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc, struct gkyl_basis cbasis,
-  const struct gkyl_range conf_rng, const double betaGreenep1, struct gkyl_array *greene[GKYL_MAX_SPECIES],
-  const double self_m, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
+gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc,
+  struct gkyl_basis cbasis, const struct gkyl_range conf_rng,
+  struct gkyl_array *greene[GKYL_MAX_SPECIES], const double self_m,
+  const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
   const double cross_m[GKYL_MAX_SPECIES], struct gkyl_array *cross_u[GKYL_MAX_SPECIES],
   struct gkyl_array *cross_vtsq[GKYL_MAX_SPECIES], const struct gkyl_array *moms,
   const struct gkyl_array *boundary_corrections, struct gkyl_array *u_out[GKYL_MAX_SPECIES],

@@ -259,10 +259,9 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   cross_vtsq[0] = vth;
   double self_m = 1.;
   double cross_m[1] = {0.0};
-  double betaGreenep1 = 1.;
   cross_m[0] = self_m;
 
-  gkyl_prim_lbo_cross_calc_advance(crossprimcalc, confBasis, confLocal, betaGreenep1, greene, self_m, u, vth, cross_m, cross_u, cross_vtsq, moms, boundary_corrections, u_out, vtsq_out);
+  gkyl_prim_lbo_cross_calc_advance(crossprimcalc, confBasis, confLocal, greene, self_m, u, vth, cross_m, cross_u, cross_vtsq, moms, boundary_corrections, u_out, vtsq_out);
   
   // Check cross u
   // 1-indexed for interfacing with G2 Lua layer
@@ -443,7 +442,7 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   double betaGreenep1 = 1.;
   cross_m[0] = self_m;
 
-  gkyl_prim_lbo_cross_calc_advance_cu(crossprimcalc, confBasis, confLocal, betaGreenep1, self_m, u_cu, vth_cu, cross_m, cross_u, cross_vtsq, moms_cu, boundary_corrections_cu, u_out_cu, vtsq_out_cu);
+  gkyl_prim_lbo_cross_calc_advance_cu(crossprimcalc, confBasis, confLocal, self_m, u_cu, vth_cu, cross_m, cross_u, cross_vtsq, moms_cu, boundary_corrections_cu, u_out_cu, vtsq_out_cu);
   
   gkyl_array_copy(u_out[0], u_out_cu[0]);
   gkyl_array_copy(vtsq_out[0], vtsq_out_cu[0]);

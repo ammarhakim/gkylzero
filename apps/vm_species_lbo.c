@@ -32,6 +32,7 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   lbo->vth_sq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   lbo->nu_u = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
   lbo->nu_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  lbo->m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     
   // allocate moments needed for LBO update
   vm_species_moment_init(app, s, &lbo->moms, "FiveMoments");
@@ -71,8 +72,6 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s, str
   lbo->cross_nu_u = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
   lbo->cross_nu_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
-  vm_species_moment_init(app, s, &lbo->m0, "M0");
-  
   // set pointers to species we cross-collide with
   for (int i=0; i<lbo->num_cross_collisions; ++i) {
     lbo->collide_with[i] = vm_find_species(app, s->info.collisions.collide_with[i]);
@@ -115,10 +114,8 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
 {
   struct timespec wst = gkyl_wall_clock();
   // compute needed moments
-  if (lbo->num_cross_collisions) {
-    vm_species_moment_calc(&lbo->m0, species->local, app->local, fin);
-  }
   vm_species_moment_calc(&lbo->moms, species->local, app->local, fin);
+  gkyl_array_set_range(lbo->m0, 1.0, lbo->moms.marr, app->local);
   
   if (app->use_gpu) {
     wst = gkyl_wall_clock();
@@ -175,21 +172,22 @@ vm_species_lbo_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
     // collisions with kinetic species
     if (lbo->num_cross_collisions) {
       for (int i=0; i<lbo->num_cross_collisions; ++i) {
-	gkyl_dg_mul_op_range(app->confBasis, 0, lbo->self_mnu_m0[i], 0, lbo->self_mnu[i], 0, lbo->m0.marr, app->local);
-        gkyl_dg_mul_op_range(app->confBasis, 0, lbo->other_mnu_m0[i], 0, lbo->other_mnu[i], 0, lbo->collide_with[i]->lbo.m0.marr, app->local);
+	gkyl_dg_mul_op_range(app->confBasis, 0, lbo->self_mnu_m0[i], 0, lbo->self_mnu[i], 0, lbo->m0, app->local);
+        gkyl_dg_mul_op_range(app->confBasis, 0, lbo->other_mnu_m0[i], 0, lbo->other_mnu[i], 0, lbo->collide_with[i]->lbo.m0, app->local);
 
-	gkyl_dg_mul_op_range(app->confBasis, 0, lbo->greene_num[i], 0, lbo->other_mnu_m0[i], 0, lbo->m0.marr, app->local);
+	gkyl_dg_mul_op_range(app->confBasis, 0, lbo->greene_num[i], 0, lbo->other_mnu_m0[i], 0, lbo->m0, app->local);
 	
         gkyl_array_set(lbo->greene_den[i], 1.0, lbo->self_mnu_m0[i]);
         gkyl_array_accumulate(lbo->greene_den[i], 1.0, lbo->other_mnu_m0[i]);
 
 	gkyl_dg_div_op_range(app->confBasis, 0, lbo->greene_factor[i], 0, lbo->greene_num[i], 0, lbo->greene_den[i], app->local);
-        gkyl_array_scale(lbo->greene_factor[i], 2);
+        gkyl_array_scale(lbo->greene_factor[i], 2*lbo->betaGreenep1);
       }
-      gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc, app->confBasis, app->local,
-	lbo->betaGreenep1, lbo->greene_factor, species->info.mass, lbo->u_drift,
-	lbo->vth_sq, lbo->other_m, lbo->other_u_drift, lbo->other_vth_sq, lbo->moms.marr,
-	lbo->boundary_corrections, lbo->cross_u_drift, lbo->cross_vth_sq);
+      gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc, app->confBasis,
+	app->local, lbo->greene_factor, species->info.mass, lbo->u_drift,
+	lbo->vth_sq, lbo->other_m, lbo->other_u_drift, lbo->other_vth_sq,
+	lbo->moms.marr, lbo->boundary_corrections, lbo->cross_u_drift,
+	lbo->cross_vth_sq);
 
       for (int i=0; i<lbo->num_cross_collisions; ++i) {
         gkyl_dg_mul_op(app->confBasis, 0, lbo->cross_nu_u, 0, lbo->cross_u_drift[i], 0, lbo->cross_nu[i]);
