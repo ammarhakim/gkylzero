@@ -432,17 +432,19 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   struct gkyl_array *vtsq_out_cu[GKYL_MAX_SPECIES];
   struct gkyl_array *u_out[GKYL_MAX_SPECIES];
   struct gkyl_array *vtsq_out[GKYL_MAX_SPECIES];
+  struct gkyl_array *greene[GKYL_MAX_SPECIES];
 
   u_out_cu[0] = mkarr_cu(vdim*confBasis.num_basis, confLocal_ext.volume);
   vtsq_out_cu[0] = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
+  greene[0] = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
   cross_u[0] = u_cu;
   cross_vtsq[0] = vth_cu;
   double self_m = 1.;
   double cross_m[1] = {0.0};
-  double betaGreenep1 = 1.;
+  gkyl_array_clear(greene[0], 1.0);
   cross_m[0] = self_m;
 
-  gkyl_prim_lbo_cross_calc_advance_cu(crossprimcalc, confBasis, confLocal, self_m, u_cu, vth_cu, cross_m, cross_u, cross_vtsq, moms_cu, boundary_corrections_cu, u_out_cu, vtsq_out_cu);
+  gkyl_prim_lbo_cross_calc_advance_cu(crossprimcalc, confBasis, confLocal, greene, self_m, u_cu, vth_cu, cross_m, cross_u, cross_vtsq, moms_cu, boundary_corrections_cu, u_out_cu, vtsq_out_cu);
   
   gkyl_array_copy(u_out[0], u_out_cu[0]);
   gkyl_array_copy(vtsq_out[0], vtsq_out_cu[0]);
