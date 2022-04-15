@@ -1,5 +1,4 @@
 #include <gkyl_prim_lbo_vlasov_kernels.h>
-#include <stdio.h>
  
 GKYL_CU_DH void vlasov_cross_prim_moments_1x1v_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double betaGreenep1, const double *greene, const double m_self, const double *u_self, const double *vtsq_self, const double m_other, const double *u_other, const double *vtsq_other, const double *moms, const double *boundary_corrections) 
 { 
@@ -55,8 +54,8 @@ GKYL_CU_DH void vlasov_cross_prim_moments_1x1v_ser_p2(struct gkyl_mat *A, struct
     cEr[2] = boundary_corrections[5]; 
   } 
  
-  double momRHS[3] = {0.0}; 
- 
+  double momRHS[3] = {0.0};
+
   // ... Block from weak multiply of m_self, nu, M0 and uCrossX ... // 
   gkyl_mat_set(A,0,0,1.414213562373095*m0r[0]); 
   gkyl_mat_set(A,0,1,1.414213562373095*m0r[1]); 
