@@ -51,8 +51,9 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     app->cdim, up_dirs, zero_flux_flags, 1, app->use_gpu);
 
   f->has_advect = false;
-  // setup applied advection                                                                                   
-  if (f->info.advect) {
+  f->advects_with_species = false;  
+  // setup applied advection or advection with other species                                                                               
+  if (f->info.advection.velocity) {
     f->has_advect = true;
     // we need to ensure applied advection has same shape as current                                             
     f->advect = mkarr(app->use_gpu, cdim*app->confBasis.num_basis, app->local_ext.volume);
@@ -62,19 +63,17 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       f->advect_host = mkarr(false, cdim*app->confBasis.num_basis, app->local_ext.volume);
 
     f->advect_ctx = (struct vm_eval_advect_ctx) {
-      .advect_func = f->info.advect, .advect_ctx = f->info.advect_ctx
+      .advect_func = f->info.advection.velocity, .advect_ctx = f->info.advection.velocity_ctx
     };
     f->advect_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, app->confBasis.poly_order+1,
-      cdim, f->info.advect, &f->advect_ctx);
+      cdim, f->info.advection.velocity, &f->advect_ctx);
+  }
+  else {
+    f->advects_with_species = true;
+    f->advection_species = vm_find_species(app, f->info.advection.advect_with);
+    f->other_advect = f->advection_species->lbo.u_drift;     
   }
 
-  // determine if fluid is advecting with kinetic species
-  f->advects_with = false;  
-  if (f->info.advection.advect_with) {
-    f->advects_with = true;
-    f->advection_species = vm_find_species(app, f->info.advection.advect_with);
-    f->other_advect = f->advection_species->lbo.u_drift; 
-  }
   // determine which directions are not periodic
   int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
   for (int d=0; d<num_periodic_dir; ++d)
@@ -139,7 +138,7 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
   if (fluid_species->has_advect)
     gkyl_array_accumulate(fluid_species->u, 1.0, fluid_species->advect);
 
-  if (fluid_species->advects_with) {
+  if (fluid_species->advects_with_species) {
     // Need to apply boundary conditions to the drift velocity
     vm_fluid_species_apply_bc(app, fluid_species, fluid_species->other_advect);    
     gkyl_array_accumulate(fluid_species->u, 1.0, fluid_species->other_advect);

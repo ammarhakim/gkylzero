@@ -199,7 +199,7 @@ struct vm_fluid_species {
   struct vm_eval_advect_ctx advect_ctx; // context for applied advection
 
   // advection with another species present
-  bool advects_with; // flag to indicate we are advecting with another species
+  bool advects_with_species; // flag to indicate we are advecting with another species
   struct vm_species *advection_species; // pointer to species we advect with
   struct gkyl_array *other_advect; // pointer to that species drift velocity
   
