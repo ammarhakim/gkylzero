@@ -21,6 +21,11 @@ G0_LIBS = ${G0_STLIB} ${CUDA_LIB} -lm -lpthread
 LAPACK_INC = ${HOME}/gkylsoft/OpenBLAS/include
 LAPACK_LIB = ${HOME}/gkylsoft/OpenBLAS/lib/libopenblas.a
 
+# SuperLU includes and librararies
+SUPERLU_INC = ${HOME}/gkylsoft/superlu/include
+SUPERLU_LIB_DIR = ${HOME}/gkylsoft/superlu/lib
+SUPERLU_LIB = ${HOME}/gkylsoft/superlu/lib/libsuperlu.a
+
 # determine OS we are running on
 UNAME = $(shell uname)
 
@@ -31,12 +36,12 @@ ifeq ($(UNAME), Darwin)
 	CFLAGS += -DGKYL_USING_FRAMEWORK_ACCELERATE
 endif
 
-INCLUDES = -I${G0_INC_DIR} -I${LAPACK_INC}
+INCLUDES = -I${G0_INC_DIR} -I${LAPACK_INC} -I${SUPERLU_INC}
 
 all: rt_twostream
 
 rt_twostream: rt_twostream.c
-	 ${CC} ${CFLAGS} ${INCLUDES} rt_twostream.c -o rt_twostream -L${G0_LIB_DIR} ${G0_LIBS} ${LAPACK_LIB}
+	 ${CC} ${CFLAGS} ${INCLUDES} rt_twostream.c -o rt_twostream -L${G0_LIB_DIR} ${G0_LIBS} ${LAPACK_LIB} ${SUPERLU_LIB}
 
 clean:
 	rm -rf rt_twostream rt_twostream.dSYM
