@@ -26,12 +26,7 @@ struct gkyl_vlasov_fluid_advection {
   void (*velocity)(double t, const double *xn, double *aout, void *ctx);
   
   char advect_with[128]; // names of species to advect with
-};
-
-struct gkyl_vlasov_fluid_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
-
-  char collide_with[128]; // names of species to cross collide with
 };
 
 // Parameters for Vlasov species
@@ -88,9 +83,6 @@ struct gkyl_vlasov_fluid_species {
 
   // advection coupling to include
   struct gkyl_vlasov_fluid_advection advection;
-
-  // collision coupling to include
-  struct gkyl_vlasov_fluid_collisions collisions;
   
   // boundary conditions
   enum gkyl_fluid_species_bc_type bcx[2], bcy[2], bcz[2];

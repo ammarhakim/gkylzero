@@ -71,19 +71,17 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   else {
     f->advects_with_species = true;
     f->advection_species = vm_find_species(app, f->info.advection.advect_with);
-    f->other_advect = f->advection_species->lbo.u_drift;     
-  }
-
-  // determine collision type to use in vlasov update
-  f->collision_id = f->info.collisions.collision_id;
-  if (f->collision_id == GKYL_LBO_COLLISIONS) {
-    f->collision_species = vm_find_species(app, f->info.collisions.collide_with);
-    f->other_nu = f->collision_species->lbo.nu_sum;
-    f->other_m0 = f->collision_species->lbo.m0;
-    f->other_nu_vthsq = f->advection_species->lbo.nu_vthsq;     
-    // allocate arrays to store collisional relaxation terms (nu*n*vthsq and nu*n*T_perp or nu*n*T_z)
-    f->nu_fluid = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    f->nu_n_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    f->other_advect = f->advection_species->lbo.u_drift;   
+    // determine collision type to use in vlasov update
+    f->collision_id = f->info.advection.collision_id;
+    if (f->collision_id == GKYL_LBO_COLLISIONS) {
+      f->other_nu = f->advection_species->lbo.nu_sum;
+      f->other_m0 = f->advection_species->lbo.m0;
+      f->other_nu_vthsq = f->advection_species->lbo.nu_vthsq;     
+      // allocate arrays to store collisional relaxation terms (nu*n*vthsq and nu*n*T_perp or nu*n*T_z)
+      f->nu_fluid = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+      f->nu_n_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    }  
   }
 
   // determine which directions are not periodic

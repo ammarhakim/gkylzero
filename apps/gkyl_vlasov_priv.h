@@ -205,7 +205,6 @@ struct vm_fluid_species {
 
   // collisions with another species present
   enum gkyl_collision_id collision_id; // type of collisions
-  struct vm_species *collision_species; // pointer to species we collide with
   struct gkyl_array *other_nu; // pointer to that species collision frequency
   struct gkyl_array *other_m0; // pointer to that species density
   struct gkyl_array *other_nu_vthsq; // pointer to that species nu*vth_sq
