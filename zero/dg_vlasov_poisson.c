@@ -52,7 +52,6 @@ gkyl_dg_vlasov_poisson_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
   vlasov_poisson->pdim = pdim;
 
   vlasov_poisson->eqn.num_equations = 1;
-  vlasov_poisson->eqn.vol_term = vol;
   vlasov_poisson->eqn.surf_term = surf;
   vlasov_poisson->eqn.boundary_surf_term = boundary_surf;
 
@@ -117,7 +116,7 @@ gkyl_dg_vlasov_poisson_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
   }  
 
   if (field_id == GKYL_FIELD_PHI_A) {
-    vlasov_poisson->vol = extem_vol_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    vlasov_poisson->eqn.vol_term = extem_vol_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     vlasov_poisson->accel_surf[0] = extem_accel_surf_vx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     if (vdim>1)
       vlasov_poisson->accel_surf[1] = extem_accel_surf_vy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
@@ -131,7 +130,7 @@ gkyl_dg_vlasov_poisson_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
       vlasov_poisson->accel_boundary_surf[2] = extem_accel_boundary_surf_vz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
   }
   else {
-    vlasov_poisson->vol = vol_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    vlasov_poisson->eqn.vol_term = vol_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     vlasov_poisson->accel_surf[0] = accel_surf_vx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     if (vdim>1)
       vlasov_poisson->accel_surf[1] = accel_surf_vy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
@@ -152,7 +151,6 @@ gkyl_dg_vlasov_poisson_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
     vlasov_poisson->stream_surf[2] = stream_surf_z_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 
   // ensure non-NULL pointers
-  assert(vlasov_poisson->vol);
   for (int i=0; i<cdim; ++i) assert(vlasov_poisson->stream_surf[i]);
   for (int i=0; i<vdim; ++i) assert(vlasov_poisson->accel_surf[i]);
   for (int i=0; i<vdim; ++i) assert(vlasov_poisson->accel_boundary_surf[i]);

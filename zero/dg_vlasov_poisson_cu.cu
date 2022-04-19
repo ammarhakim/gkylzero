@@ -38,13 +38,6 @@ dg_vlasov_poisson_set_cu_dev_ptrs(struct dg_vlasov_poisson *vlasov_poisson, enum
   vlasov_poisson->auxfields.fac_phi = 0; 
   vlasov_poisson->auxfields.vecA = 0; 
 
-  printf("******** FIX BUG IN vlasov_poisson to enable it to run on GPUs!");    
-  assert(false);
-  // NOTE: FIX ME. the following line is a problem. However, the issue
-  // appears in the priv header and not here, apparently. The problem
-  // is the return statement in the volume method
-
-  // vlasov_poisson->eqn.vol_term = vol;
   vlasov_poisson->eqn.surf_term = surf;
   vlasov_poisson->eqn.boundary_surf_term = boundary_surf;
 
@@ -109,7 +102,7 @@ dg_vlasov_poisson_set_cu_dev_ptrs(struct dg_vlasov_poisson *vlasov_poisson, enum
   }  
 
   if (field_id == GKYL_FIELD_PHI_A) {
-    vlasov_poisson->vol = extem_vol_kernels[cv_index].kernels[poly_order];
+    vlasov_poisson->eqn.vol_term = extem_vol_kernels[cv_index].kernels[poly_order];
     vlasov_poisson->accel_surf[0] = extem_accel_surf_vx_kernels[cv_index].kernels[poly_order];
     if (vdim>1)
       vlasov_poisson->accel_surf[1] = extem_accel_surf_vy_kernels[cv_index].kernels[poly_order];
@@ -123,7 +116,7 @@ dg_vlasov_poisson_set_cu_dev_ptrs(struct dg_vlasov_poisson *vlasov_poisson, enum
       vlasov_poisson->accel_boundary_surf[2] = extem_accel_boundary_surf_vz_kernels[cv_index].kernels[poly_order];
   }
   else {
-    vlasov_poisson->vol = extem_vol_kernels[cv_index].kernels[poly_order];
+    vlasov_poisson->eqn.vol_term = vol_kernels[cv_index].kernels[poly_order];
     vlasov_poisson->accel_surf[0] = accel_surf_vx_kernels[cv_index].kernels[poly_order];
     if (vdim>1)
       vlasov_poisson->accel_surf[1] = accel_surf_vy_kernels[cv_index].kernels[poly_order];

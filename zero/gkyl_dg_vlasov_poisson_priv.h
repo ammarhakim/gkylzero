@@ -11,9 +11,6 @@
 #include <gkyl_vlasov_kernels.h>
 
 // Types for various kernels
-typedef double (*vlasov_poisson_vol_t)(const double *w, const double *dxv,
-  const double *fac_phi, const double *vecA, const double *f, double* GKYL_RESTRICT out);
-
 typedef void (*vlasov_poisson_stream_surf_t)(const double *w, const double *dxv,
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
@@ -33,13 +30,24 @@ static struct { int vdim[4]; } cv_index[] = {
 };
 
 // for use in kernel tables
-typedef struct { vlasov_poisson_vol_t kernels[3]; } gkyl_dg_vlasov_poisson_vol_kern_list;
-typedef struct { vlasov_poisson_vol_t kernels[3]; } gkyl_dg_vlasov_poisson_extem_vol_kern_list;
+typedef struct { vol_termf_t kernels[3]; } gkyl_dg_vlasov_poisson_vol_kern_list;
+typedef struct { vol_termf_t kernels[3]; } gkyl_dg_vlasov_poisson_extem_vol_kern_list;
 typedef struct { vlasov_poisson_stream_surf_t kernels[3]; } gkyl_dg_vlasov_poisson_stream_surf_kern_list;
 typedef struct { vlasov_poisson_accel_surf_t kernels[3]; } gkyl_dg_vlasov_poisson_accel_surf_kern_list;
 typedef struct { vlasov_poisson_accel_surf_t kernels[3]; } gkyl_dg_vlasov_poisson_extem_accel_surf_kern_list;
 typedef struct { vlasov_poisson_accel_boundary_surf_t kernels[3]; } gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list;
 typedef struct { vlasov_poisson_accel_boundary_surf_t kernels[3]; } gkyl_dg_vlasov_poisson_extem_accel_boundary_surf_kern_list;
+
+struct dg_vlasov_poisson {
+  struct gkyl_dg_eqn eqn; // Base object
+  int cdim; // Config-space dimensions
+  int pdim; // Phase-space dimensions
+  vlasov_poisson_stream_surf_t stream_surf[3]; // Surface terms for streaming
+  vlasov_poisson_accel_surf_t accel_surf[3]; // Surface terms for acceleration
+  vlasov_poisson_accel_boundary_surf_t accel_boundary_surf[3]; // Surface terms for acceleration
+  struct gkyl_range conf_range; // Configuration space range.
+  struct gkyl_dg_vlasov_poisson_auxfields auxfields; // Auxiliary fields.
+};
 
 //
 // Serendipity volume kernels
@@ -829,18 +837,6 @@ static const gkyl_dg_vlasov_poisson_extem_accel_boundary_surf_kern_list ser_exte
 //   // 3x kernels
 //   { NULL, vlasov_poisson_extem_boundary_surfvz_3x3v_ser_p1, NULL }, // 5
 // };
-
-struct dg_vlasov_poisson {
-  struct gkyl_dg_eqn eqn; // Base object
-  int cdim; // Config-space dimensions
-  int pdim; // Phase-space dimensions
-  vlasov_poisson_vol_t vol; // Volume kernel
-  vlasov_poisson_stream_surf_t stream_surf[3]; // Surface terms for streaming
-  vlasov_poisson_accel_surf_t accel_surf[3]; // Surface terms for acceleration
-  vlasov_poisson_accel_boundary_surf_t accel_boundary_surf[3]; // Surface terms for acceleration
-  struct gkyl_range conf_range; // Configuration space range.
-  struct gkyl_dg_vlasov_poisson_auxfields auxfields; // Auxiliary fields.
-};
 
 /**
  * Free vlasov eqn object.
