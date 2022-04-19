@@ -202,7 +202,16 @@ struct vm_fluid_species {
   bool advects_with_species; // flag to indicate we are advecting with another species
   struct vm_species *advection_species; // pointer to species we advect with
   struct gkyl_array *other_advect; // pointer to that species drift velocity
-  
+
+  // collisions with another species present
+  enum gkyl_collision_id collision_id; // type of collisions
+  struct vm_species *collision_species; // pointer to species we collide with
+  struct gkyl_array *other_nu; // pointer to that species collision frequency
+  struct gkyl_array *other_m0; // pointer to that species density
+  struct gkyl_array *other_nu_vthsq; // pointer to that species nu*vth_sq
+
+  struct gkyl_array *nu_fluid; // collision frequency multiplying fluid_species (nu*nT_perp or nu*nT_z)
+  struct gkyl_array *nu_n_vthsq; // nu*n*vthsq (what collisions relax auxiliary temperature to)
   double* omegaCfl_ptr;
 };
 

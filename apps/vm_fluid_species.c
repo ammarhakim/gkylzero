@@ -74,6 +74,18 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     f->other_advect = f->advection_species->lbo.u_drift;     
   }
 
+  // determine collision type to use in vlasov update
+  f->collision_id = f->info.collisions.collision_id;
+  if (f->collision_id == GKYL_LBO_COLLISIONS) {
+    f->collision_species = vm_find_species(app, f->info.collisions.collide_with);
+    f->other_nu = f->collision_species->lbo.nu_sum;
+    f->other_m0 = f->collision_species->lbo.m0;
+    f->other_nu_vthsq = f->advection_species->lbo.nu_vthsq;     
+    // allocate arrays to store collisional relaxation terms (nu*n*vthsq and nu*n*T_perp or nu*n*T_z)
+    f->nu_fluid = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    f->nu_n_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  }
+
   // determine which directions are not periodic
   int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
   for (int d=0; d<num_periodic_dir; ++d)
@@ -153,7 +165,17 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
     gkyl_hyper_dg_advance_cu(fluid_species->slvr, &app->local, fluid, fluid_species->cflrate, rhs);
   else
     gkyl_hyper_dg_advance(fluid_species->slvr, &app->local, fluid, fluid_species->cflrate, rhs);
-    
+
+  // accumulate nu*n*T - nu*fluid_species
+  // where fluid_species = nT_perp or nT_z
+  if (fluid_species->collision_id == GKYL_LBO_COLLISIONS) {
+    gkyl_dg_mul_op_range(app->confBasis, 0, fluid_species->nu_fluid, 0,
+      fluid_species->other_nu, 0, fluid, app->local);
+    gkyl_dg_mul_op_range(app->confBasis, 0, fluid_species->nu_n_vthsq, 0,
+      fluid_species->other_m0, 0, fluid_species->other_nu_vthsq, app->local);
+    gkyl_array_accumulate(rhs, 1.0, fluid_species->nu_n_vthsq);
+    gkyl_array_accumulate(rhs, -1.0, fluid_species->nu_fluid);
+  }    
   gkyl_array_reduce_range(fluid_species->omegaCfl_ptr, fluid_species->cflrate, GKYL_MAX, app->local);
   omegaCfl = fluid_species->omegaCfl_ptr[0];
 
@@ -241,6 +263,11 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
       gkyl_array_release(f->advect_host);
 
     gkyl_proj_on_basis_release(f->advect_proj);
+  }
+
+  if (f->collision_id == GKYL_LBO_COLLISIONS) {
+    gkyl_array_release(f->nu_fluid);
+    gkyl_array_release(f->nu_n_vthsq);
   }
 
   if (app->use_gpu) {
