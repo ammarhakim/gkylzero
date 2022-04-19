@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <time.h>
 
+#include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
 
@@ -16,7 +17,7 @@ struct langmuir_ctx {
 
 static inline double sq(double x) { return x*x; }
 
-inline double
+static inline double
 maxwellian(double n, double v, double u, double vth)
 {
   double v2 = (v - u)*(v - u);
@@ -72,6 +73,11 @@ int
 main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
+
+  if (app_args.trace_mem) {
+    gkyl_cu_dev_mem_debug_set(true);
+    gkyl_mem_debug_set(true);
+  }
   struct langmuir_ctx ctx = create_ctx(); // context for init functions
 
   // electrons
@@ -82,7 +88,6 @@ main(int argc, char **argv)
     .upper = { 6.0*ctx.vt}, 
     .cells = { 32 },
 
-    .evolve = 1,
     .ctx = &ctx,
     .init = evalDistFunc,
     .nu = evalNu,
@@ -94,7 +99,7 @@ main(int argc, char **argv)
   // field
   struct gkyl_vlasov_field field = {
     .epsilon0 = 1.0, .mu0 = 1.0,
-    .evolve = 1,
+
     .ctx = &ctx,
     .init = evalFieldFunc
   };
@@ -121,7 +126,7 @@ main(int argc, char **argv)
   };
 
   // create app object
-  gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
+  gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 20.;

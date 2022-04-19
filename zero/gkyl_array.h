@@ -2,12 +2,11 @@
 
 #include <gkyl_ref_count.h>
 #include <gkyl_util.h>
+#include <gkyl_elem_type.h>
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
-
-// Type of element stored in array
-enum gkyl_elem_type { GKYL_INT, GKYL_FLOAT, GKYL_DOUBLE, GKYL_USER };
 
 /**
  * Array object. This is an untype, undimensioned, reference counted
@@ -26,6 +25,11 @@ struct gkyl_array {
 
   int nthreads, nblocks; // threads per block, number of blocks
   struct gkyl_array *on_dev; // pointer to itself or device data
+#ifdef GKYL_HAVE_CUDA
+  cudaStream_t iostream;
+#else
+  int iostream;
+#endif
 };
 
 /**
@@ -55,6 +59,17 @@ struct gkyl_array* gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t
 struct gkyl_array* gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size);
 
 /**
+ * Create new array with host-pinned data for use with NV-GPU. Delete using
+ * gkyl_array_release method.
+ *
+ * @param type Type of data in array
+ * @param ncomp Number of components at each index
+ * @param size Number of indices 
+ * @return Pointer to newly allocated array.
+ */
+struct gkyl_array* gkyl_array_cu_host_new(enum gkyl_elem_type type, size_t ncomp, size_t size);
+
+/**
  * Returns true if array lives on NV-GPU.
  *
  * @param arr Array to check
@@ -65,11 +80,23 @@ bool gkyl_array_is_cu_dev(const struct gkyl_array *arr);
 /**
  * Copy into array: pointer to dest array is returned. 'dest' and
  * 'src' must not point to same data.
- * 
+ *
  * @param dest Destination for copy.
  * @param src Srouce to copy from.
+ * @return dest is returned
  */
 struct gkyl_array* gkyl_array_copy(struct gkyl_array* dest,
+  const struct gkyl_array* src);
+
+/**
+ * Copy into array using async methods for cuda arrays: pointer to dest array is returned. 'dest' and
+ * 'src' must not point to same data.
+ *
+ * @param dest Destination for copy.
+ * @param src Srouce to copy from.
+ * @return dest is returned
+ */
+struct gkyl_array* gkyl_array_copy_async(struct gkyl_array* dest,
   const struct gkyl_array* src);
 
 /**

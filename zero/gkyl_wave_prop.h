@@ -36,8 +36,7 @@ struct gkyl_wave_prop_inp {
   int update_dirs[GKYL_MAX_DIM]; // directions to update
   double cfl; // CFL number to use
 
-  evalf_t mapc2p; // mapping from computation to physical space
-  void *ctx; // context for mapping
+  const struct gkyl_wave_geom *geom; // geometry
 };
 
 /**

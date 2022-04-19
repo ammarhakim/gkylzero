@@ -2,17 +2,10 @@
 
 #include <gkyl_app.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_eqn.h>
 #include <gkyl_wave_prop.h>
+#include <gkyl_wv_eqn.h>
 
 #include <time.h>
-
-// Boundary conditions on fields and fluids
-enum gkyl_moment_bc_type {
-  GKYL_MOMENT_COPY = 0, // copy BCs for fluid and field
-  GKYL_MOMENT_SPECIES_WALL, // perfect reflector for moments
-  GKYL_MOMENT_FIELD_COND, // perfect conductor for fields
-};
 
 // Parameters for moment species
 struct gkyl_moment_species {
@@ -28,7 +21,7 @@ struct gkyl_moment_species {
   void (*init)(double t, const double *xn, double *fout, void *ctx);
 
   // boundary conditions
-  enum gkyl_moment_bc_type bcx[2], bcy[2], bcz[2];
+  enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
 };
 
 // Parameter for EM field
@@ -45,7 +38,7 @@ struct gkyl_moment_field {
   void (*init)(double t, const double *xn, double *fout, void *ctx);
 
   // boundary conditions
-  enum gkyl_moment_bc_type bcx[2], bcy[2], bcz[2];
+  enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
 };
 
 // Choices of schemes to use in the fluid solver 
@@ -75,6 +68,9 @@ struct gkyl_moment {
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
 
+  int num_skip_dirs; // number of directions to skip
+  int skip_dirs[3]; // directions to skip
+
   int num_species; // number of species
   struct gkyl_moment_species species[GKYL_MAX_SPECIES]; // species objects
   struct gkyl_moment_field field; // field object
@@ -100,7 +96,7 @@ typedef struct gkyl_moment_app gkyl_moment_app;
  * @param vm App inputs. See struct docs.
  * @return New moment app object.
  */
-gkyl_moment_app* gkyl_moment_app_new(struct gkyl_moment mom);
+gkyl_moment_app* gkyl_moment_app_new(struct gkyl_moment *mom);
 
 /**
  * Compute maximum estimated stable dt wtih current app state. Call

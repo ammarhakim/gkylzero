@@ -1,6 +1,6 @@
 /* MIT License
  *
- * Copyright (c) 2021 Tyge Løvset, NORCE, www.norceresearch.no
+ * Copyright (c) 2022 Tyge Løvset, NORCE, www.norceresearch.no
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,125 +20,132 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#include "ccommon.h"
 
 #ifndef CPQUE_H_INCLUDED
 #include <stdlib.h>
-#include "ccommon.h"
 #include "forward.h"
 #endif
 
-#ifndef i_prefix
-#define i_prefix cpque_
+#ifndef _i_prefix
+#define _i_prefix cpque_
 #endif
 
 #include "template.h"
 
-#if !defined i_fwd
-   cx_deftypes(_c_cpque_types, Self, i_val);
+#if !c_option(c_is_fwd)
+   _cx_deftypes(_c_cpque_types, _cx_self, i_val);
 #endif
-typedef i_valraw cx_rawvalue_t;
+typedef i_valraw _cx_raw;
 
-STC_API void cx_memb(_make_heap)(Self* self);
-STC_API void cx_memb(_erase_at)(Self* self, size_t idx);
-STC_API void cx_memb(_push)(Self* self, cx_value_t value);
-STC_API Self cx_memb(_clone)(Self q);
+STC_API void _cx_memb(_make_heap)(_cx_self* self);
+STC_API void _cx_memb(_erase_at)(_cx_self* self, size_t idx);
+STC_API void _cx_memb(_push)(_cx_self* self, _cx_value value);
 
-STC_INLINE Self cx_memb(_init)(void)
-    { return c_make(Self){0, 0, 0}; }
+STC_INLINE _cx_self _cx_memb(_init)(void)
+    { return c_make(_cx_self){NULL}; }
 
-STC_INLINE Self cx_memb(_with_capacity)(size_t cap) {
-    Self out = {(cx_value_t *) c_malloc(cap*sizeof(cx_value_t)), 0, cap};
+STC_INLINE bool _cx_memb(_reserve)(_cx_self* self, const size_t cap) {
+    if (cap != self->size && cap <= self->capacity) return true;
+    _cx_value *d = (_cx_value *)c_realloc(self->data, cap*sizeof *d);
+    return d ? (self->data = d, self->capacity = cap, true) : false;
+}
+
+STC_INLINE void _cx_memb(_shrink_to_fit)(_cx_self* self)
+    { _cx_memb(_reserve)(self, self->size); }
+
+STC_INLINE _cx_self _cx_memb(_with_capacity)(const size_t cap) {
+    _cx_self out = {NULL}; _cx_memb(_reserve)(&out, cap);
     return out;
 }
 
-STC_INLINE void cx_memb(_reserve)(Self* self, size_t n) {
-    if (n >= self->size)
-        self->data = (cx_value_t *)c_realloc(self->data, (self->capacity = n)*sizeof(cx_rawvalue_t));
+STC_INLINE _cx_self _cx_memb(_with_size)(const size_t size, i_val null) {
+    _cx_self out = {NULL}; _cx_memb(_reserve)(&out, size);
+    while (out.size < size) out.data[out.size++] = null;
+    return out;
 }
 
-STC_INLINE void cx_memb(_clear)(Self* self) {
+STC_INLINE void _cx_memb(_clear)(_cx_self* self) {
     size_t i = self->size; self->size = 0;
-    while (i--) i_valdel(&self->data[i]);
+    while (i--) { i_valdrop(&self->data[i]); }
 }
 
-STC_INLINE void cx_memb(_del)(Self* self)
-    { cx_memb(_clear)(self); c_free(self->data); }
+STC_INLINE void _cx_memb(_drop)(_cx_self* self)
+    { _cx_memb(_clear)(self); c_free(self->data); }
 
-STC_INLINE void cx_memb(_copy)(Self *self, Self other) {
-    if (self->data == other.data) return;
-    cx_memb(_del)(self); *self = cx_memb(_clone)(other);
-}
-
-STC_INLINE size_t cx_memb(_size)(Self q)
+STC_INLINE size_t _cx_memb(_size)(_cx_self q)
     { return q.size; }
 
-STC_INLINE bool cx_memb(_empty)(Self q)
+STC_INLINE bool _cx_memb(_empty)(_cx_self q)
     { return !q.size; }
 
-STC_INLINE size_t cx_memb(_capacity)(Self q)
+STC_INLINE size_t _cx_memb(_capacity)(_cx_self q)
     { return q.capacity; }
 
-STC_INLINE cx_value_t* cx_memb(_top)(const Self* self)
+STC_INLINE _cx_value* _cx_memb(_top)(const _cx_self* self)
     { return &self->data[0]; }
 
-STC_INLINE void cx_memb(_pop)(Self* self)
-    { cx_memb(_erase_at)(self, 0); }
+STC_INLINE void _cx_memb(_pop)(_cx_self* self)
+    { _cx_memb(_erase_at)(self, 0); }
 
-STC_INLINE void cx_memb(_emplace)(Self* self, cx_rawvalue_t raw)
-    { cx_memb(_push)(self, i_valfrom(raw)); }
+#if !c_option(c_no_clone)
+STC_API _cx_self _cx_memb(_clone)(_cx_self q);
 
-STC_INLINE i_val cx_memb(_value_clone)(cx_value_t val)
+STC_INLINE void _cx_memb(_copy)(_cx_self *self, _cx_self other) {
+    if (self->data == other.data) return;
+    _cx_memb(_drop)(self); *self = _cx_memb(_clone)(other);
+}
+STC_INLINE i_val _cx_memb(_value_clone)(_cx_value val)
     { return i_valfrom(i_valto(&val)); }
 
-STC_INLINE void
-cx_memb(_push_back)(Self* self, cx_value_t value) {
-    if (self->size == self->capacity) cx_memb(_reserve)(self, self->size*3/2 + 4);
-    self->data[ self->size++ ] = value;
-}
-
-STC_INLINE void
-cx_memb(_pop_back)(Self* self)
-    { cx_value_t* p = &self->data[--self->size]; i_valdel(p); }
+#if !defined _i_no_raw
+STC_INLINE void _cx_memb(_emplace)(_cx_self* self, _cx_raw raw)
+    { _cx_memb(_push)(self, i_valfrom(raw)); }
+#endif
+#endif
 
 /* -------------------------- IMPLEMENTATION ------------------------- */
-#if !defined(STC_HEADER) || defined(STC_IMPLEMENTATION) || defined(i_imp)
+#if defined(_i_implement)
 
 STC_DEF void
-cx_memb(_sift_down_)(cx_value_t* arr, size_t idx, size_t n) {
+_cx_memb(_sift_down_)(_cx_value* arr, const size_t idx, const size_t n) {
     for (size_t r = idx, c = idx << 1; c <= n; c <<= 1) {
         c += (c < n && i_cmp(&arr[c], &arr[c + 1]) < 0);
         if (i_cmp(&arr[r], &arr[c]) >= 0) return;
-        cx_value_t t = arr[r]; arr[r] = arr[c]; arr[r = c] = t;
+        _cx_value t = arr[r]; arr[r] = arr[c]; arr[r = c] = t;
     }
 }
 
 STC_DEF void
-cx_memb(_make_heap)(Self* self) {
-    size_t n = cx_memb(_size)(*self);
-    cx_value_t *arr = self->data - 1;
+_cx_memb(_make_heap)(_cx_self* self) {
+    size_t n = _cx_memb(_size)(*self);
+    _cx_value *arr = self->data - 1;
     for (size_t k = n >> 1; k != 0; --k)
-        cx_memb(_sift_down_)(arr, k, n);
+        _cx_memb(_sift_down_)(arr, k, n);
 }
 
-STC_DEF Self cx_memb(_clone)(Self q) {
-    Self out = {(cx_value_t *) c_malloc(q.size*sizeof(cx_value_t)), q.size, q.size};
-    for (size_t i = 0; i < q.size; ++i, ++q.data) out.data[i] = i_valfrom(i_valto(q.data));
+#if !c_option(c_no_clone)
+STC_DEF _cx_self _cx_memb(_clone)(_cx_self q) {
+    _cx_self out = _cx_memb(_with_capacity)(q.size);
+    for (; out.size < out.capacity; ++out.size, ++q.data)
+        out.data[out.size] = i_valfrom(i_valto(q.data));
     return out;
 }
+#endif
 
 STC_DEF void
-cx_memb(_erase_at)(Self* self, size_t idx) {
-    size_t n = cx_memb(_size)(*self) - 1;
+_cx_memb(_erase_at)(_cx_self* self, const size_t idx) {
+    i_valdrop(&self->data[idx]);
+    const size_t n = --self->size;
     self->data[idx] = self->data[n];
-    cx_memb(_pop_back)(self);
-    cx_memb(_sift_down_)(self->data - 1, idx + 1, n);
+    _cx_memb(_sift_down_)(self->data - 1, idx + 1, n);
 }
 
 STC_DEF void
-cx_memb(_push)(Self* self, cx_value_t value) {
+_cx_memb(_push)(_cx_self* self, _cx_value value) {
     if (self->size == self->capacity)
-        cx_memb(_reserve)(self, self->size*3/2 + 4);
-    cx_value_t *arr = self->data - 1; /* base 1 */
+        _cx_memb(_reserve)(self, self->size*3/2 + 4);
+    _cx_value *arr = self->data - 1; /* base 1 */
     size_t c = ++self->size;
     for (; c > 1 && i_cmp(&arr[c >> 1], &value) < 0; c >>= 1)
         arr[c] = arr[c >> 1];
@@ -146,5 +153,5 @@ cx_memb(_push)(Self* self, cx_value_t value) {
 }
 
 #endif
-#include "template.h"
 #define CPQUE_H_INCLUDED
+#include "template.h"

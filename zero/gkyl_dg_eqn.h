@@ -1,6 +1,9 @@
 #pragma once
 
 #include <gkyl_ref_count.h>
+#include <gkyl_util.h>
+
+#include <stdbool.h>
 
 // Forward declare for use in function pointers
 struct gkyl_dg_eqn;
@@ -31,8 +34,19 @@ struct gkyl_dg_eqn {
   vol_termf_t vol_term; // volume term kernel
   surf_termf_t surf_term; // surface term kernel
   boundary_surf_termf_t boundary_surf_term; // boundary surface term kernel
-  struct gkyl_ref_count ref_count; // reference count     
+
+  uint32_t flags;
+  struct gkyl_ref_count ref_count; // reference count
+  struct  gkyl_dg_eqn *on_dev; // pointer to itself or device data
 };
+
+/**
+ * Check if equation is on device.
+ *
+ * @param eqn Equation to check
+ * @return true if eqn on device, false otherwise
+ */
+bool gkyl_dg_eqn_is_cu_dev(const struct gkyl_dg_eqn *eqn);
 
 /**
  * Acquire pointer to equation object. Delete using the release()
@@ -47,4 +61,4 @@ struct gkyl_dg_eqn* gkyl_dg_eqn_acquire(const struct gkyl_dg_eqn* eqn);
  *
  * @param eqn Equation object to delete.
  */
-void gkyl_dg_eqn_release(const struct gkyl_dg_eqn* eqn);
+void gkyl_dg_eqn_release(const struct gkyl_dg_eqn *eqn);

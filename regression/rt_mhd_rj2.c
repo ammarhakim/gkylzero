@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdio.h>
 
+#include <gkyl_alloc.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_mhd.h>
@@ -50,6 +51,13 @@ int
 main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
+
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 512);
+
+  if (app_args.trace_mem) {
+    gkyl_cu_dev_mem_debug_set(true);
+    gkyl_mem_debug_set(true);
+  }
   struct mhd_ctx ctx = mhd_ctx(); // context for init functions
 
   // equation object
@@ -63,7 +71,7 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalMhdInit,
 
-    .bcx = { GKYL_MOMENT_COPY, GKYL_MOMENT_COPY },
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
 
   // VM app
@@ -73,7 +81,7 @@ main(int argc, char **argv)
     .ndim = 1,
     .lower = { 0.0 },
     .upper = { 1.0 }, 
-    .cells = { 512 },
+    .cells = { NX },
 
     .cfl_frac = 0.8,
 
@@ -82,7 +90,7 @@ main(int argc, char **argv)
   };
 
   // create app object
-  gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
+  gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 0.2;

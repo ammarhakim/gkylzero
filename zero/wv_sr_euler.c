@@ -1,7 +1,7 @@
 #include <math.h>
 
 #include <gkyl_alloc.h>
-#include <gkyl_prim_sr_euler.h>
+#include <gkyl_moment_prim_sr_euler.h>
 #include <gkyl_wv_sr_euler.h>
 
 struct wv_sr_euler {
@@ -160,7 +160,7 @@ gkyl_wv_sr_euler_new(double gas_gamma)
   sr_euler->eqn.rotate_to_local_func = rot_to_local;
   sr_euler->eqn.rotate_to_global_func = rot_to_global;
 
-  sr_euler->eqn.ref_count = (struct gkyl_ref_count) { sr_euler_free, 1 };
+  sr_euler->eqn.ref_count = gkyl_ref_count_init(sr_euler_free);
 
   return &sr_euler->eqn;
 }

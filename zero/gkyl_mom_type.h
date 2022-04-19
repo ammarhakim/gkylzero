@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gkyl_ref_count.h>
+#include <stdint.h>
 
 // Forward declare for use in function pointers
 struct gkyl_mom_type;
@@ -10,7 +11,7 @@ struct gkyl_mom_type;
  */
 typedef void (*momf_t)(const struct gkyl_mom_type *momt,
   const double *xc, const double *dx,
-  const int *idx, const double *f, double* out);
+  const int *idx, const double *f, double* out, void *param);
 
 struct gkyl_mom_type {
   int cdim; // config-space dim
@@ -21,12 +22,16 @@ struct gkyl_mom_type {
   int num_mom; // number of components in moment
   momf_t kernel; // moment calculation kernel
   struct gkyl_ref_count ref_count; // reference count
+
+  uint32_t flag;
+  struct gkyl_mom_type *on_dev; // pointer to itself or device data
 };
 
 /**
  * Acquire pointer to moment object. Delete using the release() method
  *
- * @param momt Moment object.
+ * @param momt Moment object to get pointer from.
+ * @return acquired object
  */
 struct gkyl_mom_type* gkyl_mom_type_acquire(const struct gkyl_mom_type* momt);
 
@@ -49,7 +54,7 @@ void gkyl_mom_type_release(const struct gkyl_mom_type* momt);
  */
 void gkyl_mom_type_calc(const struct gkyl_mom_type* momt,
   const double *xc, const double *dx, const int *idx,
-  const double *f, double* out);
+  const double *f, double* out, void *param);
 
 /**
  * Get number of moments specified by mom_type object

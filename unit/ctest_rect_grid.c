@@ -20,15 +20,18 @@ void test_grid_2d()
   }
   TEST_CHECK( grid.cellVolume == 0.075*0.2 );
 
-  int idx[2];
-  double xc[2];
-  for (int i=0; i<grid.cells[0]; ++i)
-    for (int j=0; j<grid.cells[1]; ++j) {
-      idx[0] = i; idx[1] = j;
-      gkyl_rect_grid_cell_center(&grid, idx, xc);
+  double xc[2];  
+  int x_ext[2], y_ext[2];
+  
+  gkyl_rect_grid_extents(&grid, 0, x_ext);
+  gkyl_rect_grid_extents(&grid, 1, y_ext);  
 
-      TEST_CHECK( xc[0] == 1.0 + (i+0.5)*grid.dx[0] );
-      TEST_CHECK( xc[1] == 1.0 + (j+0.5)*grid.dx[1] );
+  for (int i=x_ext[0]; i<=x_ext[1]; ++i)
+    for (int j=y_ext[0]; j<=y_ext[1]; ++j) {
+      gkyl_rect_grid_cell_center(&grid, (int[2]) { i, j }, xc);
+
+      TEST_CHECK( xc[0] == 1.0 + (i-0.5)*grid.dx[0] );
+      TEST_CHECK( xc[1] == 1.0 + (j-0.5)*grid.dx[1] );
     }
 }
 

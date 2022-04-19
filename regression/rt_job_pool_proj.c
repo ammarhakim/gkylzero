@@ -3,10 +3,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <gkyl_alloc.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
+#include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_thread_pool.h>
 #include <gkyl_util.h>
@@ -69,9 +71,10 @@ proj_with_job_pool(const struct gkyl_job_pool *job_pool, const char *pname)
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, evalFunc, 0);
 
-  // create array range: no ghost-cells 
-  struct gkyl_range arr_range;
-  gkyl_range_init_from_shape(&arr_range, 3, cells);
+  // create array range: no ghost-cells
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range arr_range, arr_ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
   // create distribution function
   struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);

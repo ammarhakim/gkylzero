@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdio.h>
 
+#include <gkyl_alloc.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_ten_moment.h>
@@ -251,6 +252,15 @@ int
 main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
+
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 256);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 128);
+
+  if (app_args.trace_mem) {
+    gkyl_cu_dev_mem_debug_set(true);
+    gkyl_mem_debug_set(true);
+  }
+  
   // electron/ion equations
   struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new(1.0);
   struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new(0.1);
@@ -277,7 +287,7 @@ main(int argc, char **argv)
     .ndim = 2,
     .lower = { 0.0, 0.0 },
     .upper = { 40.96, 20.48 }, 
-    .cells = { 256, 128  },
+    .cells = { NX, NY },
 
     .num_periodic_dir = 2,
     .periodic_dirs = { 0, 1 },
@@ -296,7 +306,7 @@ main(int argc, char **argv)
   };
 
   // create app object
-  gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
+  gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 250.0;

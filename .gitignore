@@ -1,9 +1,13 @@
 cppcheck-err.txt
 install-deps/build-opts.sh
+build-opts.sh
+config.mak
+*.cache
 *.dat
 *~
 *.sw*
 */.nfs*
+cuda-build/*
 build/*
 build-*/*
 *.gkyl

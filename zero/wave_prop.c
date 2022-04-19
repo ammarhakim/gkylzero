@@ -107,7 +107,7 @@ gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp)
   up->flux2 = gkyl_array_new(GKYL_DOUBLE, meqn, max_1d);
 
   // construct geometry
-  up->geom = gkyl_wave_geom_new(&up->grid, &ext_range, winp.mapc2p, winp.ctx);
+  up->geom = gkyl_wave_geom_acquire(winp.geom);
 
   return up;
 }
@@ -337,7 +337,7 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
   // bigger time-step; (Only way dt can reduce is if the update
   // fails. If the code comes here the update suceeded and so we
   // should not allow dt to reduce).
-  double dt_suggested = dt*cfl/cfla;
+  double dt_suggested = dt*cfl/fmax(cfla, DBL_MIN);
 
   return (struct gkyl_wave_prop_status) {
     .success = 1,
@@ -379,5 +379,5 @@ gkyl_wave_prop_release(gkyl_wave_prop* up)
   gkyl_array_release(up->flux2);
   gkyl_wave_geom_release(up->geom);
   
-  free(up);
+  gkyl_free(up);
 }

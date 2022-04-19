@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_maxwell_priv.h>
 #include <gkyl_util.h>
@@ -10,18 +11,30 @@
 // "Choose Kernel" based on cdim and polyorder
 #define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order]
 
-static void
-maxwell_free(const struct gkyl_ref_count *ref)
+void 
+gkyl_maxwell_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
+
+  if (gkyl_dg_eqn_is_cu_dev(base)) {
+    // free inner on_dev object
+    struct dg_maxwell *maxwell = container_of(base->on_dev, struct dg_maxwell, eqn);
+    gkyl_cu_free(maxwell);
+  }  
+  
   struct dg_maxwell *maxwell = container_of(base, struct dg_maxwell, eqn);
-  free(maxwell);
+  gkyl_free(maxwell);
 }
 
 struct gkyl_dg_eqn*
 gkyl_dg_maxwell_new(const struct gkyl_basis* cbasis,
-  double lightSpeed, double elcErrorSpeedFactor, double mgnErrorSpeedFactor)
+  double lightSpeed, double elcErrorSpeedFactor, double mgnErrorSpeedFactor, bool use_gpu)
 {
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_dg_maxwell_cu_dev_new(cbasis, lightSpeed, elcErrorSpeedFactor, mgnErrorSpeedFactor);
+  } 
+#endif
   struct dg_maxwell *maxwell = gkyl_malloc(sizeof(struct dg_maxwell));
 
   int cdim = cbasis->ndim;
@@ -71,8 +84,10 @@ gkyl_dg_maxwell_new(const struct gkyl_basis* cbasis,
   // ensure non-NULL pointers 
   for (int i=0; i<cdim; ++i) assert(maxwell->surf[i]);
 
-  // set reference counter
-  maxwell->eqn.ref_count = (struct gkyl_ref_count) { maxwell_free, 1 };
+  maxwell->eqn.flags = 0;
+  GKYL_CLEAR_CU_ALLOC(maxwell->eqn.flags);
+  maxwell->eqn.ref_count = gkyl_ref_count_init(gkyl_maxwell_free);
+  maxwell->eqn.on_dev = &maxwell->eqn; // CPU eqn obj points to itself
   
   return &maxwell->eqn;
 }

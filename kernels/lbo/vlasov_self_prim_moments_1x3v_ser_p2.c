@@ -1,97 +1,95 @@
-#include <gkyl_prim_vlasov_kernels.h> 
+#include <gkyl_prim_lbo_vlasov_kernels.h> 
  
-GKYL_CU_DH void vlasov_self_prim_moments_1x3v_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double* GKYL_RESTRICT u, double* GKYL_RESTRICT vtSq) 
+GKYL_CU_DH void vlasov_self_prim_moments_1x3v_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *moms, const double *boundary_corrections) 
 { 
-  // m0,m1,m2: moments of the distribution function. 
-  // cM, cE:   vtSq*cM and vtSq*cE are corrections to u and vtSq, respectively. 
-  // u:        velocity. 
-  // vtSq:     squared thermal speed, sqrt(T/m). 
+  // A:                    Matrix to be inverted to solve Ax = rhs (set by this function). 
+  // rhs:                  right-hand side of Ax = rhs (set by this function). 
+  // moms:                 moments of the distribution function (Zeroth, First, and Second in single array). 
+  // boundary_corrections: boundary corrections to u and vtSq. 
  
   // If a corner value is below zero, use cell average m0.
   bool cellAvg = false;
-  if (0.7071067811865475*(2.23606797749979*m0[2]-1.732050807568877*m0[1]+m0[0]) < 0) cellAvg = true; 
-  if (0.7071067811865475*(2.23606797749979*m0[2]+1.732050807568877*m0[1]+m0[0]) < 0) cellAvg = true; 
-  if (0.7071067811865475*(2.23606797749979*m2[2]-1.732050807568877*m2[1]+m2[0]) < 0) cellAvg = true; 
-  if (0.7071067811865475*(2.23606797749979*m2[2]+1.732050807568877*m2[1]+m2[0]) < 0) cellAvg = true; 
+  if (0.7071067811865475*(2.23606797749979*moms[2]-1.732050807568877*moms[1]+moms[0]) < 0) cellAvg = true; 
+  if (0.7071067811865475*(2.23606797749979*moms[2]+1.732050807568877*moms[1]+moms[0]) < 0) cellAvg = true; 
  
   double m0r[3] = {0.0}; 
   double m1r[9] = {0.0}; 
   double cMr[9] = {0.0}; 
   double cEr[3] = {0.0}; 
   if (cellAvg) { 
-    m0r[0] = m0[0]; 
+    m0r[0] = moms[0]; 
     m0r[1] = 0.0; 
     m0r[2] = 0.0; 
-    m1r[0] = m1[0]; 
+    m1r[0] = moms[3]; 
     m1r[1] = 0.0; 
     m1r[2] = 0.0; 
-    gkyl_mat_set(rhs,0,0,m1[0]); 
+    gkyl_mat_set(rhs,0,0,moms[3]); 
     gkyl_mat_set(rhs,1,0,0.0); 
     gkyl_mat_set(rhs,2,0,0.0); 
-    cMr[0] = cM[0]; 
+    cMr[0] = boundary_corrections[0]; 
     cMr[1] = 0.0; 
     cMr[2] = 0.0; 
-    m1r[3] = m1[3]; 
+    m1r[3] = moms[6]; 
     m1r[4] = 0.0; 
     m1r[5] = 0.0; 
-    gkyl_mat_set(rhs,0,0,m1[3]); 
+    gkyl_mat_set(rhs,0,0,moms[6]); 
     gkyl_mat_set(rhs,1,0,0.0); 
     gkyl_mat_set(rhs,2,0,0.0); 
-    cMr[3] = cM[3]; 
+    cMr[3] = boundary_corrections[3]; 
     cMr[4] = 0.0; 
     cMr[5] = 0.0; 
-    m1r[6] = m1[6]; 
+    m1r[6] = moms[9]; 
     m1r[7] = 0.0; 
     m1r[8] = 0.0; 
-    gkyl_mat_set(rhs,0,0,m1[6]); 
+    gkyl_mat_set(rhs,0,0,moms[9]); 
     gkyl_mat_set(rhs,1,0,0.0); 
     gkyl_mat_set(rhs,2,0,0.0); 
-    cMr[6] = cM[6]; 
+    cMr[6] = boundary_corrections[6]; 
     cMr[7] = 0.0; 
     cMr[8] = 0.0; 
-    cEr[0] = cE[0]; 
+    cEr[0] = boundary_corrections[9]; 
     cEr[1] = 0.0; 
     cEr[2] = 0.0; 
-    gkyl_mat_set(rhs,9,0,m2[0]); 
+    gkyl_mat_set(rhs,9,0,moms[12]); 
     gkyl_mat_set(rhs,10,0,0.0); 
     gkyl_mat_set(rhs,11,0,0.0); 
   } else { 
-    m0r[0] = m0[0]; 
-    m0r[1] = m0[1]; 
-    m0r[2] = m0[2]; 
-    m1r[0] = m1[0]; 
-    m1r[1] = m1[1]; 
-    m1r[2] = m1[2]; 
-    m1r[3] = m1[3]; 
-    m1r[4] = m1[4]; 
-    m1r[5] = m1[5]; 
-    m1r[6] = m1[6]; 
-    m1r[7] = m1[7]; 
-    m1r[8] = m1[8]; 
-    gkyl_mat_set(rhs,0,0,m1[0]); 
-    gkyl_mat_set(rhs,1,0,m1[1]); 
-    gkyl_mat_set(rhs,2,0,m1[2]); 
-    gkyl_mat_set(rhs,3,0,m1[3]); 
-    gkyl_mat_set(rhs,4,0,m1[4]); 
-    gkyl_mat_set(rhs,5,0,m1[5]); 
-    gkyl_mat_set(rhs,6,0,m1[6]); 
-    gkyl_mat_set(rhs,7,0,m1[7]); 
-    gkyl_mat_set(rhs,8,0,m1[8]); 
-    cMr[0] = cM[0]; 
-    cMr[1] = cM[1]; 
-    cMr[2] = cM[2]; 
-    cMr[3] = cM[3]; 
-    cMr[4] = cM[4]; 
-    cMr[5] = cM[5]; 
-    cMr[6] = cM[6]; 
-    cMr[7] = cM[7]; 
-    cMr[8] = cM[8]; 
-    cEr[0] = cE[0]; 
-    cEr[1] = cE[1]; 
-    cEr[2] = cE[2]; 
-    gkyl_mat_set(rhs,9,0,m2[0]); 
-    gkyl_mat_set(rhs,10,0,m2[1]); 
-    gkyl_mat_set(rhs,11,0,m2[2]); 
+    m0r[0] = moms[0]; 
+    m0r[1] = moms[1]; 
+    m0r[2] = moms[2]; 
+    m1r[0] = moms[3]; 
+    m1r[1] = moms[4]; 
+    m1r[2] = moms[5]; 
+    m1r[3] = moms[6]; 
+    m1r[4] = moms[7]; 
+    m1r[5] = moms[8]; 
+    m1r[6] = moms[9]; 
+    m1r[7] = moms[10]; 
+    m1r[8] = moms[11]; 
+    gkyl_mat_set(rhs,0,0,moms[3]); 
+    gkyl_mat_set(rhs,1,0,moms[4]); 
+    gkyl_mat_set(rhs,2,0,moms[5]); 
+    gkyl_mat_set(rhs,3,0,moms[6]); 
+    gkyl_mat_set(rhs,4,0,moms[7]); 
+    gkyl_mat_set(rhs,5,0,moms[8]); 
+    gkyl_mat_set(rhs,6,0,moms[9]); 
+    gkyl_mat_set(rhs,7,0,moms[10]); 
+    gkyl_mat_set(rhs,8,0,moms[11]); 
+    cMr[0] = boundary_corrections[0]; 
+    cMr[1] = boundary_corrections[1]; 
+    cMr[2] = boundary_corrections[2]; 
+    cMr[3] = boundary_corrections[3]; 
+    cMr[4] = boundary_corrections[4]; 
+    cMr[5] = boundary_corrections[5]; 
+    cMr[6] = boundary_corrections[6]; 
+    cMr[7] = boundary_corrections[7]; 
+    cMr[8] = boundary_corrections[8]; 
+    cEr[0] = boundary_corrections[9]; 
+    cEr[1] = boundary_corrections[10]; 
+    cEr[2] = boundary_corrections[11]; 
+    gkyl_mat_set(rhs,9,0,moms[12]); 
+    gkyl_mat_set(rhs,10,0,moms[13]); 
+    gkyl_mat_set(rhs,11,0,moms[14]); 
   } 
  
   // ....... Block from weak multiply of uX and m0  .......... // 
@@ -194,24 +192,15 @@ GKYL_CU_DH void vlasov_self_prim_moments_1x3v_ser_p2(struct gkyl_mat *A, struct 
   gkyl_mat_set(A,11,8,0.4517539514526256*m1r[8]+0.7071067811865475*m1r[6]); 
  
   // ....... Block from correction to vtSq .......... // 
-  gkyl_mat_set(A,9,9,3.535533905932737*m0r[0]-0.7071067811865475*cEr[0]); 
-  gkyl_mat_set(A,9,10,3.535533905932737*m0r[1]-0.7071067811865475*cEr[1]); 
-  gkyl_mat_set(A,9,11,3.535533905932737*m0r[2]-0.7071067811865475*cEr[2]); 
-  gkyl_mat_set(A,10,9,3.535533905932737*m0r[1]-0.7071067811865475*cEr[1]); 
-  gkyl_mat_set(A,10,10,3.16227766016838*m0r[2]-0.6324555320336759*cEr[2]+3.535533905932737*m0r[0]-0.7071067811865475*cEr[0]); 
-  gkyl_mat_set(A,10,11,3.16227766016838*m0r[1]-0.6324555320336759*cEr[1]); 
-  gkyl_mat_set(A,11,9,3.535533905932737*m0r[2]-0.7071067811865475*cEr[2]); 
-  gkyl_mat_set(A,11,10,3.16227766016838*m0r[1]-0.6324555320336759*cEr[1]); 
-  gkyl_mat_set(A,11,11,2.258769757263129*m0r[2]-0.4517539514526256*cEr[2]+3.535533905932737*m0r[0]-0.7071067811865475*cEr[0]); 
- 
-  long ipiv[12] = {0.0}; 
-  gkyl_mat_linsolve_lu(A,rhs,ipiv); 
-  for(size_t i=0; i<12; i++) { 
-    if (i<3) { 
-      vtSq[i] = gkyl_mat_get(rhs,i+9,0); 
-    } 
-    u[i] = gkyl_mat_get(rhs,i,0); 
-  } 
+  gkyl_mat_set(A,9,9,2.121320343559642*m0r[0]-0.7071067811865475*cEr[0]); 
+  gkyl_mat_set(A,9,10,2.121320343559642*m0r[1]-0.7071067811865475*cEr[1]); 
+  gkyl_mat_set(A,9,11,2.121320343559642*m0r[2]-0.7071067811865475*cEr[2]); 
+  gkyl_mat_set(A,10,9,2.121320343559642*m0r[1]-0.7071067811865475*cEr[1]); 
+  gkyl_mat_set(A,10,10,1.897366596101028*m0r[2]-0.6324555320336759*cEr[2]+2.121320343559642*m0r[0]-0.7071067811865475*cEr[0]); 
+  gkyl_mat_set(A,10,11,1.897366596101028*m0r[1]-0.6324555320336759*cEr[1]); 
+  gkyl_mat_set(A,11,9,2.121320343559642*m0r[2]-0.7071067811865475*cEr[2]); 
+  gkyl_mat_set(A,11,10,1.897366596101028*m0r[1]-0.6324555320336759*cEr[1]); 
+  gkyl_mat_set(A,11,11,1.355261854357877*m0r[2]-0.4517539514526256*cEr[2]+2.121320343559642*m0r[0]-0.7071067811865475*cEr[0]); 
  
 } 
  

@@ -1,10 +1,11 @@
 #pragma once
 
 #include <gkyl_array.h>
+#include <gkyl_evalf_def.h>
 #include <gkyl_range.h>
 
 // Array reduce operators
-enum gkyl_array_op { GKYL_MIN, GKYL_MAX };
+enum gkyl_array_op { GKYL_MIN, GKYL_MAX, GKYL_SUM };
 
 /**
  * Clear out = val. Returns out.
@@ -45,6 +46,15 @@ struct gkyl_array* gkyl_array_set(struct gkyl_array *out,
  * @return out array
  */
 struct gkyl_array* gkyl_array_scale(struct gkyl_array *out, double a);
+
+/**
+ * Scale out = a*out. Returns out.
+ *
+ * @param out Output array
+ * @param a Factor to scale that varies by cell
+ * @return out array
+ */
+struct gkyl_array* gkyl_array_scale_by_cell(struct gkyl_array *out, const struct gkyl_array *a);
 
 /**
  * Clear out = val. Returns out.
@@ -140,8 +150,8 @@ void gkyl_array_reduce_range(double *res,
  * Copy region of array into a buffer. The buffer must be preallocated
  * and at least of size arr->size*arr->elemSz bytes.
  *
- * @param arr Array to copy from
  * @param data Output data buffer.
+ * @param arr Array to copy from
  * @param range Range specifying region to copy from
  */
 void gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
@@ -154,8 +164,40 @@ void gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
  * @param data Output data buffer.
  * @param range Range specifying region to copy into
  */
-void gkyl_array_copy_from_buffer(struct gkyl_array *arr,
-  const void *data, struct gkyl_range range);
+void gkyl_array_copy_from_buffer(struct gkyl_array *arr, const void *data,
+  struct gkyl_range range);
+
+/**
+ * Copy region of array into a buffer, calling user-specified function
+ * as the copying is done. The buffer must be preallocated and at
+ * least of size arr->size*arr->elemSz bytes.
+ *
+ * @param data Output data buffer.
+ * @param arr Array to copy from
+ * @param range Range specifying region to copy from
+ * @param func Function to apply during copy
+ * @param ctx Context for function application
+ */
+void gkyl_array_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
+  struct gkyl_range range,
+  array_copy_func_t func, void *ctx);
+
+/**
+ * Copy region of array into a buffer, calling user-specified function
+ * as the copying is done. While the copying is being performed the
+ * index in @a dir is "flipped". (TODO: WHAT DOES THIS MEAN?). The
+ * buffer must be preallocated and at least of size
+ * arr->size*arr->elemSz bytes.
+ *
+ * @param data Output data buffer.
+ * @param arr Array to copy from
+ * @dir Direction to apply index flip
+ * @param range Range specifying region to copy from
+ * @param func Function to apply during copy
+ * @param ctx Context for function application
+ */
+void gkyl_array_flip_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
+  int dir, struct gkyl_range range, array_copy_func_t func, void *ctx);
 
 /**
  * Host-side wrappers for array operations
@@ -167,6 +209,8 @@ void gkyl_array_accumulate_cu(struct gkyl_array* out, double a, const struct gky
 void gkyl_array_set_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp);
 
 void gkyl_array_scale_cu(struct gkyl_array* out, double a);
+
+void gkyl_array_scale_by_cell_cu(struct gkyl_array* out, const struct gkyl_array* a);
 
 /**
  * Host-side wrappers for range-based array operations

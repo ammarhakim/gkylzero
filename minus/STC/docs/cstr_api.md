@@ -16,7 +16,7 @@ All cstr definitions and prototypes are available by including a single header f
 
 ```c
 cstr         cstr_init(void);                                         // constructor; same as cstr_null.
-cstr         cstr_lit(const char literal_only[]);                     // cstr from literal; no strlen().
+cstr         cstr_new(const char literal_only[]);                     // cstr from literal; no strlen() call.
 cstr         cstr_from(const char* str);                              // constructor using strlen()
 cstr         cstr_from_n(const char* str, size_t n);                  // constructor with specified length
 cstr         cstr_with_capacity(size_t cap);
@@ -26,7 +26,7 @@ cstr         cstr_clone(cstr s);
 
 cstr*        cstr_take(cstr* self, cstr s);                           // take the constructed or moved string
 cstr         cstr_move(cstr* self);                                   // move string to caller, leave empty string
-void         cstr_del(cstr *self);                                    // destructor
+void         cstr_drop(cstr *self);                                   // destructor
 
 const char*  cstr_str(const cstr* self);                              // self->str
 char*        cstr_data(cstr* self);                                   // self->str
@@ -41,8 +41,8 @@ void         cstr_clear(cstr* self);
 
 cstr*        cstr_assign(cstr* self, const char* str);
 cstr*        cstr_assign_n(cstr* self, const char* str, size_t n);    // assign n first chars of str
-cstr*        cstr_assign_fmt(cstr* self, const char* fmt, ...);       // printf() formatting
 cstr*        cstr_copy(cstr* self, cstr s);                           // cstr_take(self, cstr_clone(s))
+int          cstr_printf(cstr* self, const char* fmt, ...);           // printf() formatting
 
 cstr*        cstr_append(cstr* self, const char* str);
 cstr*        cstr_append_s(cstr* self, cstr s);
@@ -60,8 +60,8 @@ void         cstr_replace_all(cstr* self, const char* find, const char* replace)
 void         cstr_erase(cstr* self, size_t pos);
 void         cstr_erase_n(cstr* self, size_t pos, size_t n);
 
-bool         cstr_equalto(cstr s, const char* str);
-bool         cstr_equalto_s(cstr s, cstr s2);
+bool         cstr_equals(cstr s, const char* str);
+bool         cstr_equals_s(cstr s, cstr s2);
 size_t       cstr_find(cstr s, const char* needle);
 size_t       cstr_find_n(cstr s, const char* needle, size_t pos, size_t nmax);
 bool         cstr_contains(cstr s, const char* needle);
@@ -73,10 +73,6 @@ void         cstr_pop_back(cstr* self);
 char*        cstr_front(cstr* self);
 char*        cstr_back(cstr* self);
 
-cstr_iter_t  cstr_begin(cstr* self);
-cstr_iter_t  cstr_end(cstr* self);
-void         cstr_next(cstr_iter_t* it);
-
 bool         cstr_getline(cstr *self, FILE *stream);                  // cstr_getdelim(self, '\n', stream)
 bool         cstr_getdelim(cstr *self, int delim, FILE *stream);      // does not append delim to result
 ```
@@ -85,26 +81,20 @@ Note that all methods with arguments `(..., const char* str, size_t n)`, `n` mus
 
 #### Helper methods:
 ```c
-int          cstr_compare(const cstr *s1, const cstr *s2);
-bool         cstr_equals(const cstr *s1, const cstr *s2);
+int          cstr_cmp(const cstr *s1, const cstr *s2);
+bool         cstr_eq(const cstr *s1, const cstr *s2);
 bool         cstr_hash(const cstr *s, ...);
 
-int          c_rawstr_compare(const char** x, const char** y);
-bool         c_rawstr_equals(const char** x, const char** y);
-uint64_t     c_rawstr_hash(const char* const* x, ...);
-
-uint64_t     c_strhash(const char* str);
 char*        c_strnstrn(const char* str, const char* needle, size_t slen, size_t nlen);
 int          c_strncasecmp(const char* str1, const char* str2, size_t n);
 ```
 
 ## Types
 
-| Type name         | Type definition                  | Used to represent...     |
-|:------------------|:---------------------------------|:-------------------------|
-| `cstr`            | `struct { char *str; }`          | The string type          |
-| `cstr_value_t`    | `char`                           | The string element type  |
-| `cstr_iter_t`     | `struct { cstr_value_t *ref; }`  | cstr iterator            |
+| Type name       | Type definition                | Used to represent...     |
+|:----------------|:-------------------------------|:-------------------------|
+| `cstr`          | `struct { char *str; }`        | The string type          |
+| `cstr_value`    | `char`                         | The string element type  |
 
 ## Constants and macros
 
@@ -118,10 +108,10 @@ int          c_strncasecmp(const char* str1, const char* str2, size_t n);
 #include <stc/cstr.h>
 
 int main() {
-    cstr s0 = cstr_lit("Initialization without using strlen().");
+    cstr s0 = cstr_new("Initialization without using strlen().");
     printf("%s\nLength: %zu\n\n", s0.str, cstr_size(s0));
 
-    cstr s1 = cstr_from("one-nine-three-seven-five.");
+    cstr s1 = cstr_new("one-nine-three-seven-five.");
     printf("%s\n", s1.str);
 
     cstr_insert(&s1, 3, "-two");
@@ -141,7 +131,7 @@ int main() {
     cstr full_path = cstr_from_fmt("%s/%s.%s", "directory", "filename", "ext");
     printf("%s\n", full_path.str);
 
-    c_del(cstr, &s0, &s1, &full_path);
+    c_drop(cstr, &s0, &s1, &full_path);
 }
 ```
 Output:

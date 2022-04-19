@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <time.h>
 
+#include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
 
@@ -14,7 +15,7 @@ struct free_stream_ctx {
 
 static inline double sq(double x) { return x*x; }
 
-inline double
+static inline double
 maxwellian(double n, double v, double u, double vth)
 {
   double v2 = (v - u)*(v - u);
@@ -56,6 +57,14 @@ int
 main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
+
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
+  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
+
+  if (app_args.trace_mem) {
+    gkyl_cu_dev_mem_debug_set(true);
+    gkyl_mem_debug_set(true);
+  }
   struct free_stream_ctx ctx = create_ctx(); // context for init functions
 
   // electrons
@@ -64,9 +73,8 @@ main(int argc, char **argv)
     .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -6.0*ctx.vt},
     .upper = { 6.0*ctx.vt}, 
-    .cells = { 16 },
+    .cells = { NV },
 
-    .evolve = 1,
     .ctx = &ctx,
     .init = evalDistFunc,
     .nu = evalNu,
@@ -82,7 +90,7 @@ main(int argc, char **argv)
     .cdim = 1, .vdim = 1,
     .lower = { 0.0 },
     .upper = { ctx.Lx },
-    .cells = { 128 },
+    .cells = { NX },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
@@ -97,7 +105,7 @@ main(int argc, char **argv)
   };
 
   // create app object
-  gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
+  gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 0.1;

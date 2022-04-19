@@ -51,7 +51,7 @@ static const gkyl_dg_vlasov_stream_vol_kern_list ser_stream_vol_kernels[] = {
   { NULL, vlasov_stream_vol_1x3v_ser_p1, vlasov_stream_vol_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, vlasov_stream_vol_2x2v_ser_p1, vlasov_stream_vol_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_stream_vol_2x3v_ser_p1, NULL               }, // 4
+  { NULL, vlasov_stream_vol_2x3v_ser_p1, vlasov_stream_vol_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_stream_vol_3x3v_ser_p1, NULL               }, // 5
 };
@@ -64,7 +64,7 @@ static const gkyl_dg_vlasov_vol_kern_list ser_vol_kernels[] = {
   { NULL, vlasov_vol_1x3v_ser_p1, vlasov_vol_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, vlasov_vol_2x2v_ser_p1, vlasov_vol_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_vol_2x3v_ser_p1, NULL               }, // 4
+  { NULL, vlasov_vol_2x3v_ser_p1, vlasov_vol_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_vol_3x3v_ser_p1, NULL               }, // 5
 };
@@ -78,7 +78,7 @@ static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_surf_x_kernels[] = 
   { NULL, vlasov_surfx_1x3v_ser_p1, vlasov_surfx_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, vlasov_surfx_2x2v_ser_p1, vlasov_surfx_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_surfx_2x3v_ser_p1, NULL                  }, // 4
+  { NULL, vlasov_surfx_2x3v_ser_p1, vlasov_surfx_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_surfx_3x3v_ser_p1, NULL                  }, // 5
 };
@@ -92,7 +92,7 @@ static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_surf_y_kernels[] = 
   { NULL, NULL, NULL }, // 2  
   // 2x kernels
   { NULL, vlasov_surfy_2x2v_ser_p1, vlasov_surfy_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_surfy_2x3v_ser_p1, NULL                  }, // 4
+  { NULL, vlasov_surfy_2x3v_ser_p1, vlasov_surfy_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_surfy_3x3v_ser_p1, NULL                  }, // 5
 };
@@ -120,7 +120,7 @@ static const gkyl_dg_vlasov_accel_surf_kern_list ser_accel_surf_vx_kernels[] = {
   { NULL, vlasov_surfvx_1x3v_ser_p1, vlasov_surfvx_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, vlasov_surfvx_2x2v_ser_p1, vlasov_surfvx_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_surfvx_2x3v_ser_p1, NULL                   }, // 4
+  { NULL, vlasov_surfvx_2x3v_ser_p1, vlasov_surfvx_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_surfvx_3x3v_ser_p1, NULL                   }, // 5
 };
@@ -134,7 +134,7 @@ static const gkyl_dg_vlasov_accel_surf_kern_list ser_accel_surf_vy_kernels[] = {
   { NULL, vlasov_surfvy_1x3v_ser_p1, vlasov_surfvy_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, vlasov_surfvy_2x2v_ser_p1, vlasov_surfvy_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_surfvy_2x3v_ser_p1, NULL                   }, // 4
+  { NULL, vlasov_surfvy_2x3v_ser_p1, vlasov_surfvy_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_surfvy_3x3v_ser_p1, NULL                   }, // 5
 };
@@ -145,10 +145,10 @@ static const gkyl_dg_vlasov_accel_surf_kern_list ser_accel_surf_vz_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
-  { NULL, vlasov_surfvz_1x3v_ser_p1, vlasov_surfvz_1x3v_ser_p2}, // 2
+  { NULL, vlasov_surfvz_1x3v_ser_p1, vlasov_surfvz_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, NULL, NULL }, // 3
-  { NULL, vlasov_surfvz_2x3v_ser_p1, NULL }, // 4
+  { NULL, vlasov_surfvz_2x3v_ser_p1, vlasov_surfvz_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_surfvz_3x3v_ser_p1, NULL }, // 5
 };
@@ -162,7 +162,7 @@ static const gkyl_dg_vlasov_accel_boundary_surf_kern_list ser_accel_boundary_sur
   { NULL, vlasov_boundary_surfvx_1x3v_ser_p1, vlasov_boundary_surfvx_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, vlasov_boundary_surfvx_2x2v_ser_p1, vlasov_boundary_surfvx_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_boundary_surfvx_2x3v_ser_p1, NULL                   }, // 4
+  { NULL, vlasov_boundary_surfvx_2x3v_ser_p1, vlasov_boundary_surfvx_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_boundary_surfvx_3x3v_ser_p1, NULL                   }, // 5
 };
@@ -176,7 +176,7 @@ static const gkyl_dg_vlasov_accel_boundary_surf_kern_list ser_accel_boundary_sur
   { NULL, vlasov_boundary_surfvy_1x3v_ser_p1, vlasov_boundary_surfvy_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, vlasov_boundary_surfvy_2x2v_ser_p1, vlasov_boundary_surfvy_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_boundary_surfvy_2x3v_ser_p1, NULL                   }, // 4
+  { NULL, vlasov_boundary_surfvy_2x3v_ser_p1, vlasov_boundary_surfvy_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_boundary_surfvy_3x3v_ser_p1, NULL                   }, // 5
 };
@@ -187,10 +187,10 @@ static const gkyl_dg_vlasov_accel_boundary_surf_kern_list ser_accel_boundary_sur
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
-  { NULL, vlasov_boundary_surfvz_1x3v_ser_p1, vlasov_boundary_surfvz_1x3v_ser_p2}, // 2
+  { NULL, vlasov_boundary_surfvz_1x3v_ser_p1, vlasov_boundary_surfvz_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, NULL, NULL }, // 3
-  { NULL, vlasov_boundary_surfvz_2x3v_ser_p1, NULL }, // 4
+  { NULL, vlasov_boundary_surfvz_2x3v_ser_p1, vlasov_boundary_surfvz_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_boundary_surfvz_3x3v_ser_p1, NULL }, // 5
 };
@@ -364,8 +364,15 @@ struct dg_vlasov {
   vlasov_accel_surf_t accel_surf[3]; // Surface terms for acceleration
   vlasov_accel_boundary_surf_t accel_boundary_surf[3]; // Surface terms for acceleration
   struct gkyl_range conf_range; // configuration space range
-  const struct gkyl_array *qmem; // Pointer to q/m*EM field
+  struct gkyl_dg_vlasov_auxfields auxfields; // Auxiliary fields.
 };
+
+/**
+ * Free vlasov eqn object.
+ *
+ * @param ref Reference counter for vlasov eqn
+ */
+void gkyl_vlasov_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D
 static double
@@ -376,7 +383,7 @@ vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
 
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
   return vlasov->vol(xc, dx,
-    vlasov->qmem ? (const double*) gkyl_array_cfetch(vlasov->qmem, cidx) : 0,
+    vlasov->auxfields.qmem ? (const double*) gkyl_array_cfetch(vlasov->auxfields.qmem, cidx) : 0,
     qIn, qRhsOut);
 }
 
@@ -399,7 +406,7 @@ surf(const struct gkyl_dg_eqn *eqn,
     long cidx = gkyl_range_idx(&vlasov->conf_range, idxC);
     vlasov->accel_surf[dir-vlasov->cdim]
       (xcC, dxC,
-        vlasov->qmem ? (const double*) gkyl_array_cfetch(vlasov->qmem, cidx) : 0,
+        vlasov->auxfields.qmem ? (const double*) gkyl_array_cfetch(vlasov->auxfields.qmem, cidx) : 0,
         qInL, qInC, qInR, qRhsOut);
   }
 }
@@ -419,7 +426,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
     long cidx = gkyl_range_idx(&vlasov->conf_range, idxSkin);
     vlasov->accel_boundary_surf[dir-vlasov->cdim]
       (xcSkin, dxSkin,
-        vlasov->qmem ? (const double*) gkyl_array_cfetch(vlasov->qmem, cidx) : 0,
+        vlasov->auxfields.qmem ? (const double*) gkyl_array_cfetch(vlasov->auxfields.qmem, cidx) : 0,
         edge, qInEdge, qInSkin, qRhsOut);
   }
 }
