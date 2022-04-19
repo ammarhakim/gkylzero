@@ -82,24 +82,24 @@ dg_vlasov_poisson_set_cu_dev_ptrs(struct dg_vlasov_poisson *vlasov_poisson, enum
       
       break;
 
-    case GKYL_BASIS_MODAL_TENSOR:
-      vol_kernels = ten_vol_kernels;
-      extem_vol_kernels = ten_extem_vol_kernels;
-      stream_surf_x_kernels = ten_stream_surf_x_kernels;
-      stream_surf_y_kernels = ten_stream_surf_y_kernels;
-      stream_surf_z_kernels = ten_stream_surf_z_kernels;
-      accel_surf_vx_kernels = ten_accel_surf_vx_kernels;
-      extem_accel_surf_vx_kernels = ten_extem_accel_surf_vx_kernels;
-      accel_surf_vy_kernels = ten_accel_surf_vy_kernels;
-      extem_accel_surf_vy_kernels = ten_extem_accel_surf_vy_kernels;
-      accel_surf_vz_kernels = ten_accel_surf_vz_kernels;
-      extem_accel_surf_vz_kernels = ten_extem_accel_surf_vz_kernels;
-      accel_boundary_surf_vx_kernels = ten_accel_boundary_surf_vx_kernels;
-      extem_accel_boundary_surf_vx_kernels = ten_extem_accel_boundary_surf_vx_kernels;
-      accel_boundary_surf_vy_kernels = ten_accel_boundary_surf_vy_kernels;
-      extem_accel_boundary_surf_vy_kernels = ten_extem_accel_boundary_surf_vy_kernels;
-      accel_boundary_surf_vz_kernels = ten_accel_boundary_surf_vz_kernels;
-      extem_accel_boundary_surf_vz_kernels = ten_extem_accel_boundary_surf_vz_kernels;
+    // case GKYL_BASIS_MODAL_TENSOR:
+    //   vol_kernels = ten_vol_kernels;
+    //   extem_vol_kernels = ten_extem_vol_kernels;
+    //   stream_surf_x_kernels = ten_stream_surf_x_kernels;
+    //   stream_surf_y_kernels = ten_stream_surf_y_kernels;
+    //   stream_surf_z_kernels = ten_stream_surf_z_kernels;
+    //   accel_surf_vx_kernels = ten_accel_surf_vx_kernels;
+    //   extem_accel_surf_vx_kernels = ten_extem_accel_surf_vx_kernels;
+    //   accel_surf_vy_kernels = ten_accel_surf_vy_kernels;
+    //   extem_accel_surf_vy_kernels = ten_extem_accel_surf_vy_kernels;
+    //   accel_surf_vz_kernels = ten_accel_surf_vz_kernels;
+    //   extem_accel_surf_vz_kernels = ten_extem_accel_surf_vz_kernels;
+    //   accel_boundary_surf_vx_kernels = ten_accel_boundary_surf_vx_kernels;
+    //   extem_accel_boundary_surf_vx_kernels = ten_extem_accel_boundary_surf_vx_kernels;
+    //   accel_boundary_surf_vy_kernels = ten_accel_boundary_surf_vy_kernels;
+    //   extem_accel_boundary_surf_vy_kernels = ten_extem_accel_boundary_surf_vy_kernels;
+    //   accel_boundary_surf_vz_kernels = ten_accel_boundary_surf_vz_kernels;
+    //   extem_accel_boundary_surf_vz_kernels = ten_extem_accel_boundary_surf_vz_kernels;
 
       break;
 
@@ -168,7 +168,7 @@ gkyl_dg_vlasov_poisson_cu_dev_new(const struct gkyl_basis* cbasis, const struct 
   gkyl_cu_memcpy(vlasov_poisson_cu, vlasov_poisson, sizeof(struct dg_vlasov_poisson), GKYL_CU_MEMCPY_H2D);
 
   dg_vlasov_poisson_set_cu_dev_ptrs<<<1,1>>>(vlasov_poisson_cu, cbasis->b_type, cv_index[cdim].vdim[vdim],
-    cdim, vdim, poly_order);
+    cdim, vdim, poly_order, field_id);
 
   // set parent on_dev pointer
   vlasov_poisson->eqn.on_dev = &vlasov_poisson_cu->eqn;
