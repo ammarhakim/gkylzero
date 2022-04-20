@@ -1,4 +1,6 @@
 
+#include "gkyl_alloc.h"
+#include "gkyl_basis.h"
 #include <gkyl_vlasov_priv.h>
 
 gkyl_vlasov_app*
@@ -31,11 +33,26 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   strcpy(app->name, vm->name);
   app->tcurr = 0.0; // reset on init
 
+  if (app->use_gpu) {
+    // allocate device basis if we are using GPUs    
+    app->basis_on_dev.basis = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+    app->basis_on_dev.confBasis = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+  }
+  else {
+    app->basis_on_dev.basis = &app->basis;
+    app->basis_on_dev.confBasis = &app->confBasis;
+  }  
+
   // basis functions
   switch (vm->basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
       gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
+
+      if (app->use_gpu) {
+        gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
+        gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.confBasis, cdim, poly_order);
+      }
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
@@ -48,13 +65,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
       break;
   }
 
-  if (app->use_gpu) {
-    // TODO
-  }
-  else {
-    app->basis_on_dev.basis = &app->basis;
-    app->basis_on_dev.confBasis = &app->confBasis;
-  }
+
 
   gkyl_rect_grid_init(&app->grid, cdim, vm->lower, vm->upper, vm->cells);
 
@@ -636,6 +647,11 @@ gkyl_vlasov_app_release(gkyl_vlasov_app* app)
     gkyl_free(app->fluid_species);
   if (app->has_field)
     vm_field_release(app, app->field);
+
+  if (app->use_gpu) {
+    gkyl_cu_free(app->basis_on_dev.basis);
+    gkyl_cu_free(app->basis_on_dev.confBasis);
+  }
 
   gkyl_free(app);
 }
