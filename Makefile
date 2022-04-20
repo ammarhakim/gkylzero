@@ -183,7 +183,7 @@ ${BUILD_DIR}/unit/%: unit/%.c ${BUILD_DIR}/${G0STLIB} ${UNIT_CU_OBJS}
 
 # Run all unit tests
 check: ${UNITS}
-	$(foreach unit,${UNITS},echo $(unit); $(unit);)
+	$(foreach unit,${UNITS},echo $(unit); $(unit) --exec=never;)
 
 install: all
 	$(MKDIR_P) ${PREFIX}/gkylzero/include
