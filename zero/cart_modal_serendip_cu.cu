@@ -16,6 +16,13 @@ extern "C" {
 __global__ void static
 gkyl_cart_modal_serendip_cu_dev_kern(struct gkyl_basis *basis, int ndim, int poly_order)
 {
+  assert(ev_list[ndim].ev[poly_order]);
+
+  basis->ndim = ndim;
+  basis->poly_order = poly_order;
+  basis->num_basis = num_basis_list[ndim].count[poly_order];
+  basis->b_type = GKYL_BASIS_MODAL_SERENDIPITY;  
+  
   // function pointers
   basis->eval = ev_list[ndim].ev[poly_order];
   basis->eval_expand = eve_list[ndim].ev[poly_order];
@@ -30,15 +37,10 @@ void
 gkyl_cart_modal_serendip_cu_dev(struct gkyl_basis *basis, int ndim, int poly_order)
 {
   assert(ndim>0 && ndim<=6);
-  assert(ev_list[ndim].ev[poly_order]);
 
   struct gkyl_basis ho_basis;
-  
-  ho_basis.ndim = ndim;
-  ho_basis.poly_order = poly_order;
-  ho_basis.num_basis = num_basis_list[ndim].count[poly_order];
-  ho_basis.b_type = GKYL_BASIS_MODAL_SERENDIPITY;
 
+  strcpy(ho_basis.id, "serendipity");
   // this copy needs to be done here as the strcpy needed in the
   // "type" field can't be done on the device
   gkyl_cu_memcpy(basis, &ho_basis, sizeof(struct gkyl_basis),
