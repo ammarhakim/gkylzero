@@ -48,6 +48,14 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
       break;
   }
 
+  if (app->use_gpu) {
+    // TODO
+  }
+  else {
+    app->basis_on_dev.basis = &app->basis;
+    app->basis_on_dev.confBasis = &app->confBasis;
+  }
+
   gkyl_rect_grid_init(&app->grid, cdim, vm->lower, vm->upper, vm->cells);
 
   int ghost[] = { 1, 1, 1 };  

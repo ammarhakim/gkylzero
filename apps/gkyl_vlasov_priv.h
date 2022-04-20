@@ -233,6 +233,12 @@ struct gkyl_vlasov_app {
   struct gkyl_range local, local_ext; // local, local-ext conf-space ranges
   struct gkyl_basis basis, confBasis; // phase-space, conf-space basis
 
+  // pointers to basis on device (these point to host structs if not
+  // on GPU)
+  struct {
+    struct gkyl_basis *basis, *confBasis;
+  } basis_on_dev;
+
   struct vm_skin_ghost_ranges skin_ghost; // conf-space skin/ghost
 
   bool has_field; // has field

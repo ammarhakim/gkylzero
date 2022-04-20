@@ -73,7 +73,8 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     }
   }
   for (int d=0; d<3; ++d)
-    f->wall_bc_func[d] = gkyl_maxwell_wall_bc_create(eqn, d, &app->confBasis);
+    f->wall_bc_func[d] = gkyl_maxwell_wall_bc_create(eqn, d,
+      app->basis_on_dev.confBasis);
 
   gkyl_dg_eqn_release(eqn);
 

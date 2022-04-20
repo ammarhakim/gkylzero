@@ -157,7 +157,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     }
   }
   for (int d=0; d<3; ++d)
-    s->wall_bc_func[d] = gkyl_vlasov_wall_bc_create(s->eqn, d, &app->basis);
+    s->wall_bc_func[d] = gkyl_vlasov_wall_bc_create(s->eqn, d,
+      app->basis_on_dev.basis);
 }
 
 void
