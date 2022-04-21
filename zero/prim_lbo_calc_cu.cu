@@ -59,7 +59,7 @@ gkyl_prim_lbo_calc_set_cu_ker(gkyl_prim_lbo_calc* calc,
 
       gkyl_mat_clear(&lhs, 0.0); gkyl_mat_clear(&rhs, 0.0);
 
-      calc->prim->self_prim(calc->prim, &lhs, &rhs, moms_d, boundary_corrections_d);
+      calc->prim->self_prim(calc->prim, &lhs, &rhs, idx, moms_d, boundary_corrections_d);
     }
   }
 }

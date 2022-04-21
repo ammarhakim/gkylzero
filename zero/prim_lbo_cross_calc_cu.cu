@@ -50,7 +50,7 @@ gkyl_prim_lbo_cross_calc_set_cu_ker(gkyl_prim_lbo_cross_calc* calc,
       
       gkyl_mat_clear(&lhs, 0.0); gkyl_mat_clear(&rhs, 0.0);
 
-      calc->prim->cross_prim(calc->prim, &lhs, &rhs, greene_d, self_m,
+      calc->prim->cross_prim(calc->prim, &lhs, &rhs, idx, greene_d, self_m,
         self_u_d, self_vtsq_d,
         cross_m[n], cross_u_d, cross_vtsq_d, moms_d,
         boundary_corrections_d

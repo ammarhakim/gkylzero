@@ -85,6 +85,14 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   // to access species name from vm_species_init
   for (int i=0; i<ns; ++i)
     app->species[i].info = vm->species[i];
+
+  // allocate space to store fluid species objects
+  app->fluid_species = nsf>0 ? gkyl_malloc(sizeof(struct vm_fluid_species[nsf])) : 0;
+  
+  // set info for each species: this needs to be done here as we need
+  // to access species name from vm_fluid_species_init
+  for (int i=0; i<nsf; ++i)
+    app->fluid_species[i].info = vm->fluid_species[i];
   
   // initialize each species
   for (int i=0; i<ns; ++i)
@@ -98,14 +106,6 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
       && app->species[i].lbo.num_cross_collisions) {
       vm_species_lbo_cross_init(app, &app->species[i], &app->species[i].lbo);
     }
-
-  // allocate space to store fluid species objects
-  app->fluid_species = nsf>0 ? gkyl_malloc(sizeof(struct vm_fluid_species[nsf])) : 0;
-  
-  // set info for each species: this needs to be done here as we need
-  // to access species name from vm_fluid_species_init
-  for (int i=0; i<nsf; ++i)
-    app->fluid_species[i].info = vm->fluid_species[i];
   
   // initialize each fluid species
   for (int i=0; i<nsf; ++i)
@@ -311,7 +311,19 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   // compute necessary moments and boundary corrections for collisions
   for (int i=0; i<app->num_species; ++i) {
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
-      vm_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
+      // Pass full fluidin array to be agnostic to species ordering
+      // vm_species_lbo_moms will find the particular fluid species being collided with if it exists
+      vm_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i], app->species[i].collides_with_fluid, fluidin);
+    }
+  }
+
+  // compute necessary moments for cross-species collisions
+  // needs to be done after self-collisions moments, so separate loop over species
+  for (int i=0; i<app->num_species; ++i) {
+    if (app->species[i].lbo.num_cross_collisions) {
+      // Pass full fluidin array to be agnostic to species ordering
+      // vm_species_lbo_moms will find the particular fluid species being collided with if it exists
+      vm_species_lbo_cross_moms(app, &app->species[i], &app->species[i].lbo, fin[i], app->species[i].collides_with_fluid, fluidin);
     }
   }
   

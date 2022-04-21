@@ -17,6 +17,10 @@ struct gkyl_vlasov_collisions {
 
   int num_cross_collisions; // number of species to cross-collide with
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
+
+  char collide_with_fluid[128]; // name of fluid species to cross collide with
+  int fluid_index; // index of the fluid species being collided with
+                   // index corresponds to location in fluid_species array (size num_fluid_species)
 };
 
 // Parameters for fluid species advection

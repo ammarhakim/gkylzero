@@ -59,7 +59,7 @@ gkyl_prim_lbo_calc_advance(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis,
     struct gkyl_mat rhs = gkyl_nmat_get(calc->xs, count);
     gkyl_mat_clear(&lhs, 0.0); gkyl_mat_clear(&rhs, 0.0);
 
-    calc->prim->self_prim(calc->prim, &lhs, &rhs,
+    calc->prim->self_prim(calc->prim, &lhs, &rhs, conf_iter.idx,
       gkyl_array_cfetch(moms, midx), gkyl_array_cfetch(boundary_corrections, midx)
     );
 

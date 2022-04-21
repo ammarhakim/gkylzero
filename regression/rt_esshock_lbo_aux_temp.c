@@ -128,7 +128,7 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalTperpElc,
 
-    .advection = {.advect_with = "elc"},
+    .advection = {.advect_with = "elc", .collision_id = GKYL_LBO_COLLISIONS},
   };  
   
   // electrons
@@ -147,6 +147,8 @@ main(int argc, char **argv)
 
       .ctx = &ctx,
       .self_nu = evalNuElc,
+      .collide_with_fluid = "Tperp_elc",
+      .fluid_index = 0,
     },    
 
     .num_diag_moments = 3,
@@ -155,12 +157,12 @@ main(int argc, char **argv)
 
   // ion Tperp                                                                                              
   struct gkyl_vlasov_fluid_species Tperp_ion = {
-    .name = "Tperp_elc",
+    .name = "Tperp_ion",
 
     .ctx = &ctx,
     .init = evalTperpIon,
 
-    .advection = {.advect_with = "ion"},
+    .advection = {.advect_with = "ion", .collision_id = GKYL_LBO_COLLISIONS},
   };  
   
   // ions
@@ -179,6 +181,8 @@ main(int argc, char **argv)
 
       .ctx = &ctx,
       .self_nu = evalNuIon,
+      .collide_with_fluid = "Tperp_ion" ,
+      .fluid_index = 1,
     },    
 
     .num_diag_moments = 3,

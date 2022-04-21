@@ -133,8 +133,14 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
   // determine collision type to use in vlasov update
   s->collision_id = s->info.collisions.collision_id;
+  s->collides_with_fluid = false;
   if (s->collision_id == GKYL_LBO_COLLISIONS) {
-    vm_species_lbo_init(app, s, &s->lbo);
+    if (vm_find_fluid_species(app, s->info.collisions.collide_with_fluid)) {
+      s->collides_with_fluid = true;
+      // index in fluid_species struct of fluid species kinetic species is colliding with
+      s->fluid_index = s->info.collisions.fluid_index;
+    }
+    vm_species_lbo_init(app, s, &s->lbo, s->collides_with_fluid);
   }
 
   // determine which directions are not periodic

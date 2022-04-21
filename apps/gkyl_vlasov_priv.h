@@ -28,6 +28,7 @@
 #include <gkyl_prim_lbo_cross_calc.h>
 #include <gkyl_prim_lbo_type.h>
 #include <gkyl_prim_lbo_vlasov.h>
+#include <gkyl_prim_lbo_vlasov_with_fluid.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -141,6 +142,9 @@ struct vm_species {
   struct vm_eval_accel_ctx accel_ctx; // context for applied acceleration
 
   enum gkyl_collision_id collision_id; // type of collisions
+  bool collides_with_fluid; // boolean for if kinetic species collides with a fluid speceis
+  int fluid_index; // index of the fluid species being collided with
+                   // index corresponds to location in fluid_species array (size num_fluid_species)
   struct vm_lbo_collisions lbo; // collisions object
 
   double *omegaCfl_ptr;
@@ -352,9 +356,10 @@ void vm_species_moment_release(const struct gkyl_vlasov_app *app,
  * @param app Vlasov app object
  * @param s Species object 
  * @param lbo Species LBO object
+ * @param collides_with_fluid Boolean for if kinetic species collides with a fluid species
  */
 void vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s,
-  struct vm_lbo_collisions *lbo);
+  struct vm_lbo_collisions *lbo, bool collides_with_fluid);
 
 /**
  * Initialize species LBO cross-collisions object.
@@ -374,11 +379,30 @@ void vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
  * @param species Pointer to species
  * @param lbo Pointer to LBO
  * @param fin Input distribution function
+ * @param collides_with_fluid Boolean for if kinetic species collides with a fluid species
+ * @param fluidin Input fluid array (size: num_fluid_species)
  */
 void vm_species_lbo_moms(gkyl_vlasov_app *app,
   const struct vm_species *species,
   struct vm_lbo_collisions *lbo,
-  const struct gkyl_array *fin);
+  const struct gkyl_array *fin,
+  bool collides_with_fluid, const struct gkyl_array *fluidin[]);
+
+/**
+ * Compute necessary moments for cross-species LBO collisions
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param lbo Pointer to LBO
+ * @param fin Input distribution function
+ * @param collides_with_fluid Boolean for if kinetic species collides with a fluid species
+ * @param fluidin Input fluid array (size: num_fluid_species)
+ */
+void vm_species_lbo_cross_moms(gkyl_vlasov_app *app,
+  const struct vm_species *species,
+  struct vm_lbo_collisions *lbo,
+  const struct gkyl_array *fin,
+  bool collides_with_fluid, const struct gkyl_array *fluidin[]);
 
 /**
  * Compute RHS from LBO collisions

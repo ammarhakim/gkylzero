@@ -75,8 +75,8 @@ void prim_lbo_vlasov_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D
 static void
-self_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A,
-  struct gkyl_mat *rhs, const double *moms, const double *boundary_corrections)
+self_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A, struct gkyl_mat *rhs, 
+  const int* idx, const double *moms, const double *boundary_corrections)
 {
   struct prim_lbo_type_vlasov *prim_vlasov = container_of(prim, struct prim_lbo_type_vlasov, prim);
 
@@ -85,8 +85,8 @@ self_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A,
 
 GKYL_CU_D
 static void
-cross_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A,
-  struct gkyl_mat *rhs, const double *greene, const double m_self,
+cross_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A, struct gkyl_mat *rhs, 
+  const int* idx, const double *greene, const double m_self,
   const double *u_self, const double *vtsq_self, const double m_other,
   const double*u_other, const double *vtsq_other,
   const double *moms, const double *boundary_corrections)
