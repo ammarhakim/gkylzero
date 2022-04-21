@@ -320,7 +320,8 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   // compute necessary moments for cross-species collisions
   // needs to be done after self-collisions moments, so separate loop over species
   for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].lbo.num_cross_collisions) {
+    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS
+      && app->species[i].lbo.num_cross_collisions) {
       // Pass full fluidin array to be agnostic to species ordering
       // vm_species_lbo_moms will find the particular fluid species being collided with if it exists
       vm_species_lbo_cross_moms(app, &app->species[i], &app->species[i].lbo, fin[i], app->species[i].collides_with_fluid, fluidin);
