@@ -21,7 +21,6 @@ gkyl_prim_lbo_cross_calc_set_cu_ker(gkyl_prim_lbo_cross_calc* calc,
   const struct gkyl_array* cross_vtsq[GKYL_MAX_SPECIES],
   const struct gkyl_array* moms, const struct gkyl_array* boundary_corrections)
 {
-  long count = 0;
   int idx[GKYL_MAX_DIM];
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
@@ -38,15 +37,15 @@ gkyl_prim_lbo_cross_calc_set_cu_ker(gkyl_prim_lbo_cross_calc* calc,
     long linc = gkyl_range_idx(&conf_rng, idx);
 
     for (int n=0; n<nspecies; ++n) {
-      struct gkyl_mat lhs = gkyl_nmat_get(As, count);
-      struct gkyl_mat rhs = gkyl_nmat_get(xs, count);
-      const double *self_u_d = (const double*) gkyl_array_cfetch(self_u, linc);
-      const double *greene_d = (const double*) gkyl_array_cfetch(greene[n], linc);
-      const double *self_vtsq_d = (const double*) gkyl_array_cfetch(self_vtsq, linc);
-      const double *cross_u_d = (const double*) gkyl_array_cfetch(cross_u[n], linc);
-      const double *cross_vtsq_d = (const double*) gkyl_array_cfetch(cross_vtsq[n], linc);
-      const double *moms_d = (const double*) gkyl_array_cfetch(moms, linc);
-      const double *boundary_corrections_d = (const double*) gkyl_array_cfetch(boundary_corrections, linc);
+      struct gkyl_mat lhs = gkyl_nmat_get(As, linc1*nspecies + n);
+      struct gkyl_mat rhs = gkyl_nmat_get(xs, linc1*nspecies + n);
+      const double *self_u_d = (const double*) gkyl_array_cfetch(self_u, linc1);
+      const double *greene_d = (const double*) gkyl_array_cfetch(greene[n], linc1);
+      const double *self_vtsq_d = (const double*) gkyl_array_cfetch(self_vtsq, linc1);
+      const double *cross_u_d = (const double*) gkyl_array_cfetch(cross_u[n], linc1);
+      const double *cross_vtsq_d = (const double*) gkyl_array_cfetch(cross_vtsq[n], linc1);
+      const double *moms_d = (const double*) gkyl_array_cfetch(moms, linc1);
+      const double *boundary_corrections_d = (const double*) gkyl_array_cfetch(boundary_corrections, linc1);
       
       gkyl_mat_clear(&lhs, 0.0); gkyl_mat_clear(&rhs, 0.0);
 
@@ -55,7 +54,6 @@ gkyl_prim_lbo_cross_calc_set_cu_ker(gkyl_prim_lbo_cross_calc* calc,
         cross_m[n], cross_u_d, cross_vtsq_d, moms_d,
         boundary_corrections_d
       );
-      count += 1;
     }
   }
 }
@@ -66,7 +64,6 @@ gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs,
   int nc, int vdim, int nspecies,
   struct gkyl_array* u_out[GKYL_MAX_DIM], struct gkyl_array* vtsq_out[GKYL_MAX_DIM])
 {
-  long count = 0;
   int idx[GKYL_MAX_DIM];
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
@@ -83,12 +80,11 @@ gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs,
     long linc = gkyl_range_idx(&conf_rng, idx);
 
     for (int n=0; n<nspecies; ++n) {
-      struct gkyl_mat out_d = gkyl_nmat_get(xs, count);
-      double *u_d = (double*) gkyl_array_fetch(u_out[n], linc);
-      double *vtsq_d = (double*) gkyl_array_fetch(vtsq_out[n], linc);
+      struct gkyl_mat out_d = gkyl_nmat_get(xs, linc1*nspecies + n);
+      double *u_d = (double*) gkyl_array_fetch(u_out[n], linc1);
+      double *vtsq_d = (double*) gkyl_array_fetch(vtsq_out[n], linc1);
     
       prim_lbo_copy_sol(&out_d, nc, vdim, u_d, vtsq_d);
-      count += 1;
     }
   }
 }
@@ -136,7 +132,6 @@ gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc, struct gkyl_
     moms->on_dev, boundary_corrections->on_dev);
   
   bool status = gkyl_nmat_linsolve_lu_pa(calc->mem, calc->As, calc->xs);
-
   gkyl_prim_lbo_copy_sol_cu_ker<<<conf_rng.nblocks, conf_rng.nthreads>>>(calc->xs->on_dev,
     cbasis, conf_rng, nc, vdim, nspecies,
     u_outs, vtsq_outs);
