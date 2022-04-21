@@ -17,15 +17,15 @@ __global__ static void
 gkyl_prim_lbo_vlasov_with_fluid_set_auxfields_cu_kernel(const struct gkyl_prim_lbo_type *prim, const struct gkyl_array *fluid)
 {
   struct prim_lbo_type_vlasov_with_fluid *prim_vlasov_with_fluid = container_of(prim, struct prim_lbo_type_vlasov_with_fluid, prim);
-  prim_vlasov_with_fluid->auxfields.fluid = auxin.fluid;
+  prim_vlasov_with_fluid->auxfields.fluid = fluid;
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
 void
-gkyl_prim_lbo_vlasov_with_fluid_set_auxfields_cu(const struct gkyl_prim_lbo_type *prim_lbo,
+gkyl_prim_lbo_vlasov_with_fluid_set_auxfields_cu(const struct gkyl_prim_lbo_type *prim,
   struct gkyl_prim_lbo_vlasov_with_fluid_auxfields auxin)
 {
-  gkyl_prim_lbo_vlasov_with_fluid_set_auxfields_cu_kernel<<<1,1>>>(prim_lbo, auxin.fluid->on_dev);
+  gkyl_prim_lbo_vlasov_with_fluid_set_auxfields_cu_kernel<<<1,1>>>(prim, auxin.fluid->on_dev);
 }
 
 __global__ static void

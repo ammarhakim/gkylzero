@@ -23,7 +23,7 @@ gkyl_prim_lbo_vlasov_with_fluid_set_auxfields(const struct gkyl_prim_lbo_type *p
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(auxin.fluid)) {
-    gkyl_prim_lbo_vlasov_with_fluid_set_auxfields_cu(prim_lbo->on_dev, auxin);
+    gkyl_prim_lbo_vlasov_with_fluid_set_auxfields_cu(prim->on_dev, auxin);
     return;
   }
 #endif

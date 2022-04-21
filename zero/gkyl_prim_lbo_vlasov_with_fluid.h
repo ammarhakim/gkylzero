@@ -34,22 +34,22 @@ struct gkyl_prim_lbo_type* gkyl_prim_lbo_vlasov_with_fluid_cu_dev_new(const stru
   const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range);
 
 /**
- * Set the auxiliary fields (e.g. q/m*EM) needed in updating the force terms.
+ * Set the auxiliary fields (e.g. nT_perp or nT_z) needed in calculating the primitive moments.
  * 
- * @param eqn Equation pointer.
+ * @param prim prim_lbo_type pointer.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_prim_lbo_vlasov_with_fluid_set_auxfields(const struct gkyl_prim_lbo_type *prim_lbo,
+void gkyl_prim_lbo_vlasov_with_fluid_set_auxfields(const struct gkyl_prim_lbo_type *prim,
   struct gkyl_prim_lbo_vlasov_with_fluid_auxfields auxin);
 
 #ifdef GKYL_HAVE_CUDA
 /**
- * CUDA device function to set auxiliary fields (e.g. q/m*EM) needed in updating the force terms.
+ * CUDA device function to set the auxiliary fields (e.g. nT_perp or nT_z) needed in calculating the primitive moments.
  * 
- * @param eqn Equation pointer.
+ * @param prim prim_lbo_type pointer.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_prim_lbo_vlasov_with_fluid_set_auxfields_cu(const struct gkyl_prim_lbo_type *prim_lbo,
+void gkyl_prim_lbo_vlasov_with_fluid_set_auxfields_cu(const struct gkyl_prim_lbo_type *prim,
   struct gkyl_prim_lbo_vlasov_with_fluid_auxfields auxin);
 
 #endif
