@@ -18,8 +18,7 @@ gkyl_prim_lbo_cross_calc_set_cu_ker(gkyl_prim_lbo_cross_calc* calc,
   const struct gkyl_array *greene,
   double self_m, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
   double cross_m, const struct gkyl_array *cross_u, const struct gkyl_array *cross_vtsq, 
-  const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections, 
-  struct gkyl_array *u_out, struct gkyl_array *vtsq_out)
+				    const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -123,7 +122,7 @@ gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc,
 
 gkyl_prim_lbo_cross_calc*
 gkyl_prim_lbo_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
-  struct gkyl_prim_lbo_type *prim, int nspecies)
+  struct gkyl_prim_lbo_type *prim)
 {
   gkyl_prim_lbo_cross_calc *up = (gkyl_prim_lbo_cross_calc*) gkyl_malloc(sizeof(gkyl_prim_lbo_cross_calc));
   up->grid = *grid;
