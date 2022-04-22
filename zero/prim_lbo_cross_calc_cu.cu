@@ -33,18 +33,17 @@ gkyl_prim_lbo_cross_calc_set_cu_ker(gkyl_prim_lbo_cross_calc* calc,
 
     // convert back to a linear index on the super-range (with ghost cells)
     // linc will have jumps in it to jump over ghost cells
-    long linc = gkyl_range_idx(&conf_rng, idx);
-
+    long start = gkyl_range_idx(&conf_rng, idx);
 
     struct gkyl_mat lhs = gkyl_nmat_get(As, linc1);
     struct gkyl_mat rhs = gkyl_nmat_get(xs, linc1);
-    const double *self_u_d = (const double*) gkyl_array_cfetch(self_u, linc1);
-    const double *greene_d = (const double*) gkyl_array_cfetch(greene, linc1);
-    const double *self_vtsq_d = (const double*) gkyl_array_cfetch(self_vtsq, linc1);
-    const double *cross_u_d = (const double*) gkyl_array_cfetch(cross_u, linc1);
-    const double *cross_vtsq_d = (const double*) gkyl_array_cfetch(cross_vtsq, linc1);
-    const double *moms_d = (const double*) gkyl_array_cfetch(moms, linc1);
-    const double *boundary_corrections_d = (const double*) gkyl_array_cfetch(boundary_corrections, linc1);
+    const double *self_u_d = (const double*) gkyl_array_cfetch(self_u, start);
+    const double *greene_d = (const double*) gkyl_array_cfetch(greene, start);
+    const double *self_vtsq_d = (const double*) gkyl_array_cfetch(self_vtsq, start);
+    const double *cross_u_d = (const double*) gkyl_array_cfetch(cross_u, start);
+    const double *cross_vtsq_d = (const double*) gkyl_array_cfetch(cross_vtsq, start);
+    const double *moms_d = (const double*) gkyl_array_cfetch(moms, start);
+    const double *boundary_corrections_d = (const double*) gkyl_array_cfetch(boundary_corrections, start);
     
     gkyl_mat_clear(&lhs, 0.0); gkyl_mat_clear(&rhs, 0.0);
 
@@ -75,12 +74,11 @@ gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs,
 
     // convert back to a linear index on the super-range (with ghost cells)
     // linc will have jumps in it to jump over ghost cells
-    long linc = gkyl_range_idx(&conf_rng, idx);
-
+    long start = gkyl_range_idx(&conf_rng, idx);
 
     struct gkyl_mat out_d = gkyl_nmat_get(xs, linc1);
-    double *u_d = (double*) gkyl_array_fetch(u_out, linc1);
-    double *vtsq_d = (double*) gkyl_array_fetch(vtsq_out, linc1);
+    double *u_d = (double*) gkyl_array_fetch(u_out, start);
+    double *vtsq_d = (double*) gkyl_array_fetch(vtsq_out, start);
   
     prim_lbo_copy_sol(&out_d, nc, vdim, u_d, vtsq_d);
   }
@@ -115,6 +113,7 @@ gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc,
     moms->on_dev, boundary_corrections->on_dev);
   
   bool status = gkyl_nmat_linsolve_lu_pa(calc->mem, calc->As, calc->xs);
+  
   gkyl_prim_lbo_copy_sol_cu_ker<<<conf_rng.nblocks, conf_rng.nthreads>>>(calc->xs->on_dev,
     cbasis, conf_rng, nc, vdim, 
     u_out->on_dev, vtsq_out->on_dev);
