@@ -60,7 +60,7 @@ gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc,
 
     gkyl_mat_clear(&lhs, 0.0); gkyl_mat_clear(&rhs, 0.0);
 
-    calc->prim->cross_prim(calc->prim, &lhs, &rhs, conf_iter.idx, greene, 
+    calc->prim->cross_prim(calc->prim, &lhs, &rhs, conf_iter.idx, gkyl_array_cfetch(greene, midx),
       self_m, gkyl_array_cfetch(self_u, midx), gkyl_array_cfetch(self_vtsq, midx),
       cross_m, gkyl_array_cfetch(cross_u, midx), gkyl_array_cfetch(cross_vtsq, midx),
       gkyl_array_cfetch(moms, midx), gkyl_array_cfetch(boundary_corrections, midx)
