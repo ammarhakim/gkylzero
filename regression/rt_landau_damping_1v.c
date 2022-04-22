@@ -112,7 +112,7 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "landau_damping_1x1v",
+    .name = "landau_damping_1v",
 
     .cdim = 1, .vdim = 1,
     .lower = { -ctx.Lx },
