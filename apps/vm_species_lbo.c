@@ -74,9 +74,9 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s, str
 {
   int vdim = app->vdim;
   if (app->use_gpu) {
-    lbo->cross_calc = gkyl_prim_lbo_cross_calc_cu_dev_new(&s->grid, lbo->coll_prim, lbo->num_cross_collisions);
+    lbo->cross_calc = gkyl_prim_lbo_cross_calc_cu_dev_new(&s->grid, lbo->coll_prim);
   } else {
-    lbo->cross_calc = gkyl_prim_lbo_cross_calc_new(&s->grid, lbo->coll_prim, lbo->num_cross_collisions);
+    lbo->cross_calc = gkyl_prim_lbo_cross_calc_new(&s->grid, lbo->coll_prim);
   }
   lbo->cross_nu_u = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
   lbo->cross_nu_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -173,11 +173,14 @@ vm_species_lbo_cross_moms(gkyl_vlasov_app *app, const struct vm_species *species
   struct vm_lbo_collisions *lbo, const struct gkyl_array *fin,
   bool collides_with_fluid, const struct gkyl_array *fluidin[])
 {
+  struct timespec wst = gkyl_wall_clock();
+
   // get pointer to fluid species if kinetic species is colliding with fluid species
   if (collides_with_fluid)
     gkyl_prim_lbo_vlasov_with_fluid_set_auxfields(lbo->coll_prim, 
       (struct gkyl_prim_lbo_vlasov_with_fluid_auxfields) { .fluid = fluidin[species->fluid_index]  });
   
+  wst = gkyl_wall_clock();  
   for (int i=0; i<lbo->num_cross_collisions; ++i) {
     gkyl_dg_mul_op_range(app->confBasis, 0, lbo->self_mnu_m0[i], 0,
       lbo->self_mnu[i], 0, lbo->m0, app->local);
@@ -193,27 +196,30 @@ vm_species_lbo_cross_moms(gkyl_vlasov_app *app, const struct vm_species *species
     gkyl_dg_div_op_range(app->confBasis, 0, lbo->greene_factor[i], 0,
       lbo->greene_num[i], 0, lbo->greene_den[i], app->local);
     gkyl_array_scale(lbo->greene_factor[i], 2*lbo->betaGreenep1);
-  }
-  
-  if (app->use_gpu)
-    gkyl_prim_lbo_cross_calc_advance_cu(lbo->cross_calc, app->confBasis,
-      app->local, lbo->greene_factor, species->info.mass, lbo->u_drift,
-      lbo->vth_sq, lbo->other_m, lbo->other_u_drift, lbo->other_vth_sq,
-      lbo->moms.marr, lbo->boundary_corrections, lbo->cross_u_drift,
-      lbo->cross_vth_sq);
-  else 
-    gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc, app->confBasis,
-      app->local, lbo->greene_factor, species->info.mass, lbo->u_drift,
-      lbo->vth_sq, lbo->other_m, lbo->other_u_drift, lbo->other_vth_sq,
-      lbo->moms.marr, lbo->boundary_corrections, lbo->cross_u_drift,
-      lbo->cross_vth_sq);
 
-  for (int i=0; i<lbo->num_cross_collisions; ++i) {
+    if (app->use_gpu)
+      gkyl_prim_lbo_cross_calc_advance_cu(lbo->cross_calc, 
+        app->confBasis, app->local, 
+        lbo->greene_factor[i], 
+        species->info.mass, lbo->u_drift, lbo->vth_sq, 
+        lbo->other_m[i], lbo->other_u_drift[i], lbo->other_vth_sq[i],
+        lbo->moms.marr, lbo->boundary_corrections, 
+        lbo->cross_u_drift[i], lbo->cross_vth_sq[i]);
+    else 
+      gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc, 
+        app->confBasis, app->local, 
+        lbo->greene_factor[i], 
+        species->info.mass, lbo->u_drift, lbo->vth_sq, 
+        lbo->other_m[i], lbo->other_u_drift[i], lbo->other_vth_sq[i],
+        lbo->moms.marr, lbo->boundary_corrections, 
+        lbo->cross_u_drift[i], lbo->cross_vth_sq[i]);
+
     gkyl_dg_mul_op(app->confBasis, 0, lbo->cross_nu_u, 0, lbo->cross_u_drift[i], 0, lbo->cross_nu[i]);
     gkyl_dg_mul_op(app->confBasis, 0, lbo->cross_nu_vthsq, 0, lbo->cross_vth_sq[i], 0, lbo->cross_nu[i]);
     gkyl_array_accumulate(lbo->nu_u, 1.0, lbo->cross_nu_u);
     gkyl_array_accumulate(lbo->nu_vthsq, 1.0, lbo->cross_nu_vthsq);
   }
+  app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
 }
 
 // computes cross-primitive moments and updates the collision terms in the rhs

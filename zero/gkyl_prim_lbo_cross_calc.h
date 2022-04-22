@@ -15,14 +15,13 @@ typedef struct gkyl_prim_lbo_cross_calc gkyl_prim_lbo_cross_calc;
  *
  * @param grid Grid object
  * @param prim Pointer to primitive moment type object
- * @param nspecies Number of species (not including self) to collide with
  * @return New updater pointer.
  */
 gkyl_prim_lbo_cross_calc* gkyl_prim_lbo_cross_calc_new(const struct gkyl_rect_grid *grid,
-  struct gkyl_prim_lbo_type *prim, int nspecies);
+  struct gkyl_prim_lbo_type *prim);
 
 gkyl_prim_lbo_cross_calc* gkyl_prim_lbo_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
-  struct gkyl_prim_lbo_type *prim, int nspecies);
+  struct gkyl_prim_lbo_type *prim);
 
 /**
  * Compute cross-primitive moments of distribution function. The conf_rng
@@ -34,7 +33,6 @@ gkyl_prim_lbo_cross_calc* gkyl_prim_lbo_cross_calc_cu_dev_new(const struct gkyl_
  * @param cbasis_rng Config-space basis functions
  * @param conf_rng Config-space range
  * @param greene Greene's factor
- * @param nu Collision frequency with the colliding species
  * @param self_m Mass of the species
  * @param self_u Drift velocity of the species
  * @param self_vtsq Thermal velocity of the species
@@ -48,21 +46,19 @@ gkyl_prim_lbo_cross_calc* gkyl_prim_lbo_cross_calc_cu_dev_new(const struct gkyl_
  */
 void gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc,
   struct gkyl_basis cbasis, const struct gkyl_range conf_rng,
-  struct gkyl_array *greene[GKYL_MAX_SPECIES], const double self_m,
-  const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
-  const double cross_m[GKYL_MAX_SPECIES], struct gkyl_array *cross_u[GKYL_MAX_SPECIES],
-  struct gkyl_array *cross_vtsq[GKYL_MAX_SPECIES], const struct gkyl_array *moms,
-  const struct gkyl_array *boundary_corrections, struct gkyl_array *u_out[GKYL_MAX_SPECIES],
-  struct gkyl_array *vtsq_out[GKYL_MAX_SPECIES]);
+  const struct gkyl_array *greene,
+  double self_m, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
+  double cross_m, const struct gkyl_array *cross_u, const struct gkyl_array *cross_vtsq, 
+  const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections, 
+  struct gkyl_array *u_out, struct gkyl_array *vtsq_out);
 
 void gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc,
   struct gkyl_basis cbasis, const struct gkyl_range conf_rng,
-  struct gkyl_array *greene[GKYL_MAX_SPECIES], const double self_m,
-  const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
-  const double cross_m[GKYL_MAX_SPECIES], struct gkyl_array *cross_u[GKYL_MAX_SPECIES],
-  struct gkyl_array *cross_vtsq[GKYL_MAX_SPECIES], const struct gkyl_array *moms,
-  const struct gkyl_array *boundary_corrections, struct gkyl_array *u_out[GKYL_MAX_SPECIES],
-  struct gkyl_array *vtsq_out[GKYL_MAX_SPECIES]);
+  const struct gkyl_array *greene,
+  double self_m, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
+  double cross_m, const struct gkyl_array *cross_u, const struct gkyl_array *cross_vtsq, 
+  const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections, 
+  struct gkyl_array *u_out, struct gkyl_array *vtsq_out);
 
 /**
  * Delete pointer to primitive moment calculator updater.
