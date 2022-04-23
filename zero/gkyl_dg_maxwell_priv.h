@@ -14,12 +14,12 @@ struct maxwell_wall_bc_ctx {
 };
 
 enum { M_EX, M_EY, M_EZ, M_BX, M_BY, M_BZ }; // components of EM field
-static const int m_flip_even[3][3] = { // zero tangent E and zero normal B
+GKYL_CU_D static const int m_flip_even[3][3] = { // zero tangent E and zero normal B
   {M_BX, M_EY, M_EZ},
   {M_BY, M_EX, M_EZ},
   {M_BZ, M_EX, M_EY},
 };
-static const int m_flip_odd[3][3] = { // zero gradient
+GKYL_CU_D static const int m_flip_odd[3][3] = { // zero gradient
   { M_EX, M_BY, M_BZ },
   { M_EY, M_BX, M_BZ },
   { M_EZ, M_BX, M_BY },
