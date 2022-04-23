@@ -10,6 +10,12 @@
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_array_reduce.h>
 
+bool
+gkyl_array_copy_func_is_cu_dev(const struct gkyl_array_copy_func *bc)
+{
+  return GKYL_IS_CU_ALLOC(bc->flags);
+}
+
 struct gkyl_array*
 gkyl_array_clear(struct gkyl_array* out, double val)
 {

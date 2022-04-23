@@ -91,6 +91,6 @@ struct gkyl_array_copy_func* gkyl_vlasov_wall_bc_create_cu(const struct gkyl_dg_
  * @param bc Pointer to array_copy_func.
  */
 
-// void gkyl_vlasov_wall_bc_release_cu(struct gkyl_array_copy_func* bc);
+void gkyl_vlasov_wall_bc_release_cu(struct gkyl_array_copy_func* bc);
 
 #endif

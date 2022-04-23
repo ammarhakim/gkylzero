@@ -29,9 +29,11 @@ gkyl_maxwell_free(const struct gkyl_ref_count *ref)
 struct gkyl_array_copy_func*
 gkyl_maxwell_wall_bc_create(const struct gkyl_dg_eqn *eqn, int dir, const struct gkyl_basis* cbasis)
 {
-  // if (gkyl_dg_eqn_is_cu_dev(eqn)) {
-  //   return gkyl_maxwell_wall_bc_create_cu(eqn->on_dev, dir, cbasis);
-  // }
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_dg_eqn_is_cu_dev(eqn)) {
+    return gkyl_maxwell_wall_bc_create_cu(eqn->on_dev, dir, cbasis);
+  }
+#endif
 
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
 
@@ -43,12 +45,19 @@ gkyl_maxwell_wall_bc_create(const struct gkyl_dg_eqn *eqn, int dir, const struct
   bc->func = maxwell->wall_bc;
   bc->ctx = ctx;
 
+  bc->flags = 0;
+  GKYL_CLEAR_CU_ALLOC(bc->flags);
+  bc->on_dev = bc; // CPU eqn obj points to itself
   return bc;
 }
 
 void
 gkyl_maxwell_wall_bc_release(struct gkyl_array_copy_func* bc)
 {
+  if (gkyl_array_copy_func_is_cu_dev(bc)) {
+    gkyl_cu_free(bc->on_dev->ctx);
+    gkyl_cu_free(bc->on_dev);
+  }
   gkyl_free(bc->ctx);
   gkyl_free(bc);
 }

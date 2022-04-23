@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
 #include <gkyl_evalf_def.h>
 #include <gkyl_range.h>
@@ -19,7 +20,18 @@ enum gkyl_array_op { GKYL_MIN, GKYL_MAX, GKYL_SUM };
 struct gkyl_array_copy_func {
   array_copy_func_t func;
   void *ctx;
+  uint32_t flags;
+  struct gkyl_array_copy_func *on_dev; // pointer to itself or device data
 };
+
+/**
+ * Check if array_copy_func is on device.
+ *
+ * @param bc BC function to check
+ * @return true if eqn on device, false otherwise
+ */
+bool
+gkyl_array_copy_func_is_cu_dev(const struct gkyl_array_copy_func *bc);
 
 /**
  * Clear out = val. Returns out.
