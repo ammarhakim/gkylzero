@@ -6,65 +6,57 @@
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
 
-struct langmuir_ctx {
+struct free_stream_ctx {
   double charge; // charge
   double mass; // mass
   double vt; // thermal velocity
   double Lx; // size of the box
-  double k0; // wave number
-  double perturb; // perturbation amplitude
 };
 
 static inline double sq(double x) { return x*x; }
 
 static inline double
-maxwellian(double n, double v, double u, double vth)
+bump_maxwellian(double n, double vx, double ux, double vt, double bA, double bU, double bS, double bVt)
 {
-  double v2 = (v - u)*(v - u);
-  return n/sqrt(2*M_PI*vth*vth)*exp(-v2/(2*vth*vth));
+  double v2 = (vx-ux)*(vx-ux);
+  double bv2 = (vx-bU)*(vx-bU);
+  return n/sqrt(2*M_PI*vt*vt)*exp(-v2/(2*vt*vt)) + n/sqrt(2*M_PI*bVt*bVt)*exp(-bv2/(2*bVt*bVt))*(bA*bA)/(bv2 + bS*bS);
 }
 
 void
-evalDistFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalDistFuncSquare(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct langmuir_ctx *app = ctx;
+  struct free_stream_ctx *app = ctx;
   double x = xn[0], v = xn[1];
-  double k = app->k0, alpha = app->perturb;
-  fout[0] = (1 + alpha*cos(k*x))*maxwellian(1.0, v, 0.0, 1.0);
+  if(v>-1.0 && v<1.0) {
+    fout[0] = 0.5;
+  } else {
+    fout[0] = 0.0;
+  }
 }
 
 void
-evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalDistFuncBump(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct langmuir_ctx *app = ctx;
-
-  double k = app->k0, alpha = app->perturb;
-  double x = xn[0];
-  double E_x = -alpha*sin(k*x)/k;
-  
-  fout[0] = E_x; fout[1] = 0.0, fout[2] = 0.0;
-  fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
-  fout[6] = 0.0; fout[7] = 0.0;
+  struct free_stream_ctx *app = ctx;
+  double x = xn[0], v = xn[1];
+  fout[0] = bump_maxwellian(1.0, v, 0.0, 1.0/3.0, sqrt(0.1), 4*sqrt(0.25/3), 0.12, 1.0);
 }
 
 void
 evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct langmuir_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
-  fout[0] = 0.1;
+  fout[0] = 0.01;
 }
 
-struct langmuir_ctx
+struct free_stream_ctx
 create_ctx(void)
 {
-  struct langmuir_ctx ctx = {
+  struct free_stream_ctx ctx = {
     .mass = 1.0,
-    .charge = -1.0,
-    .vt = 1.0,
-    .Lx = M_PI/0.5,
-    .k0 = 0.5,
-    .perturb = 1e-4
+    .charge = 0.0,
+    .vt = 1.0/3.0,
+    .Lx = 1.0
   };
   return ctx;
 }
@@ -78,49 +70,64 @@ main(int argc, char **argv)
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  struct langmuir_ctx ctx = create_ctx(); // context for init functions
+  struct free_stream_ctx ctx = create_ctx(); // context for init functions
 
   // electrons
-  struct gkyl_vlasov_species elc = {
-    .name = "elc",
+  struct gkyl_vlasov_species square = {
+    .name = "square",
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -6.0*ctx.vt},
-    .upper = { 6.0*ctx.vt}, 
-    .cells = { 32 },
+    .lower = { -8.0 * ctx.vt},
+    .upper = { 8.0 * ctx.vt}, 
+    .cells = { 48 },
 
     .ctx = &ctx,
-    .init = evalDistFunc,
-    .nu = evalNu,
-    .collision_id = GKYL_LBO_COLLISIONS,
+    .init = evalDistFuncSquare,
+
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .self_nu = evalNu,
+    },
+    
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
   };
 
-  // field
-  struct gkyl_vlasov_field field = {
-    .epsilon0 = 1.0, .mu0 = 1.0,
+  struct gkyl_vlasov_species bump = {
+    .name = "bump",
+    .charge = ctx.charge, .mass = ctx.mass,
+    .lower = { -8.0 * ctx.vt},
+    .upper = { 8.0 * ctx.vt}, 
+    .cells = { 48 },
 
     .ctx = &ctx,
-    .init = evalFieldFunc
+    .init = evalDistFuncBump,
+
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .self_nu = evalNu,
+    },
+    
+    .num_diag_moments = 3,
+    .diag_moments = { "M0", "M1i", "M2" },
   };
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "landau_damping_1x1v",
+    .name = "lbo_relax_1v",
 
     .cdim = 1, .vdim = 1,
-    .lower = { -ctx.Lx },
+    .lower = { 0.0 },
     .upper = { ctx.Lx },
-    .cells = { 32 },
+    .cells = { 2 },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
 
-    .num_species = 1,
-    .species = { elc },
-    .field = field,
+    .num_species = 2,
+    .species = { square, bump },
+    .skip_field = true,
 
     .use_gpu = app_args.use_gpu,
   };
@@ -129,7 +136,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 20.;
+  double tcurr = 0.0, tend = 100.0;
   double dt = tend-tcurr;
 
   // initialize simulation
@@ -173,7 +180,6 @@ main(int argc, char **argv)
   }  
   printf("Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   printf("Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  printf("Field RHS calc took %g secs\n", stat.field_rhs_tm);
   printf("Updates took %g secs\n", stat.total_tm);
   
   return 0;

@@ -1,11 +1,37 @@
 #pragma once
 
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
 #include <gkyl_evalf_def.h>
 #include <gkyl_range.h>
 
+GKYL_CU_DH
+static inline void*
+flat_fetch(void *data, size_t loc)
+{
+  return ((char*) data) + loc;
+}
+
 // Array reduce operators
 enum gkyl_array_op { GKYL_MIN, GKYL_MAX, GKYL_SUM };
+
+// Struct used to pass function pointer and context to various buffer
+// copy operators
+struct gkyl_array_copy_func {
+  array_copy_func_t func;
+  void *ctx;
+  uint32_t flags;
+  struct gkyl_array_copy_func *on_dev; // pointer to itself or device data
+};
+
+/**
+ * Check if array_copy_func is on device.
+ *
+ * @param bc BC function to check
+ * @return true if eqn on device, false otherwise
+ */
+bool
+gkyl_array_copy_func_is_cu_dev(const struct gkyl_array_copy_func *bc);
 
 /**
  * Clear out = val. Returns out.
@@ -175,12 +201,10 @@ void gkyl_array_copy_from_buffer(struct gkyl_array *arr, const void *data,
  * @param data Output data buffer.
  * @param arr Array to copy from
  * @param range Range specifying region to copy from
- * @param func Function to apply during copy
- * @param ctx Context for function application
+ * @param cf Function pointer and context
  */
 void gkyl_array_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
-  struct gkyl_range range,
-  array_copy_func_t func, void *ctx);
+  struct gkyl_range range, struct gkyl_array_copy_func *cf);
 
 /**
  * Copy region of array into a buffer, calling user-specified function
@@ -193,11 +217,10 @@ void gkyl_array_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
  * @param arr Array to copy from
  * @dir Direction to apply index flip
  * @param range Range specifying region to copy from
- * @param func Function to apply during copy
- * @param ctx Context for function application
+ * @param cf Function pointer and context
  */
 void gkyl_array_flip_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
-  int dir, struct gkyl_range range, array_copy_func_t func, void *ctx);
+  int dir, struct gkyl_range range, struct gkyl_array_copy_func *cf);
 
 /**
  * Host-side wrappers for array operations
@@ -237,3 +260,9 @@ void gkyl_array_copy_to_buffer_cu(void *data, const struct gkyl_array *arr,
 
 void gkyl_array_copy_from_buffer_cu(struct gkyl_array *arr, const void *data, 
   struct gkyl_range range);
+
+void gkyl_array_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
+  struct gkyl_range range, struct gkyl_array_copy_func *cf);
+
+void gkyl_array_flip_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
+  int dir, struct gkyl_range range, struct gkyl_array_copy_func *cf);

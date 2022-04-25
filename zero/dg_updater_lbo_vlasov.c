@@ -1,13 +1,13 @@
-#include "gkyl_dg_eqn.h"
 #include <assert.h>
 #include <math.h>
 #include <time.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_dg_eqn.h>
+#include <gkyl_dg_lbo_vlasov_diff.h>
+#include <gkyl_dg_lbo_vlasov_drag.h>
 #include <gkyl_dg_updater_lbo_vlasov.h>
 #include <gkyl_dg_updater_lbo_vlasov_priv.h>
-#include <gkyl_dg_lbo_vlasov_drag.h>
-#include <gkyl_dg_lbo_vlasov_diff.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_util.h>
 
@@ -33,6 +33,8 @@ gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid, const struct g
   
   up->diff = gkyl_hyper_dg_new(grid, pbasis, up->coll_diff, num_up_dirs, up_dirs, zero_flux_flags, 1, false);
   up->drag = gkyl_hyper_dg_new(grid, pbasis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1, false);
+
+  up->diff_tm = 0.0; up->drag_tm = 0.0;
   
   return up;
 }
@@ -49,9 +51,23 @@ gkyl_dg_updater_lbo_vlasov_advance(gkyl_dg_updater_lbo_vlasov *lbo,
     (struct gkyl_dg_lbo_vlasov_drag_auxfields) { .nuSum = nu_sum, .nuUSum = nu_u, .nuVtSqSum = nu_vthsq });
   gkyl_lbo_vlasov_diff_set_auxfields(lbo->coll_diff,
     (struct gkyl_dg_lbo_vlasov_diff_auxfields) { .nuSum = nu_sum, .nuUSum = nu_u, .nuVtSqSum = nu_vthsq });
-  
+
+  struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance(lbo->diff, update_rng, fIn, cflrate, rhs);
+  lbo->diff_tm += gkyl_time_diff_now_sec(wst);
+
+  wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance(lbo->drag, update_rng, fIn, cflrate, rhs);
+  lbo->drag_tm += gkyl_time_diff_now_sec(wst);
+}
+
+struct gkyl_dg_updater_lbo_vlasov_tm
+gkyl_dg_updater_lbo_vlasov_get_tm(const gkyl_dg_updater_lbo_vlasov *lbo)
+{
+  return (struct gkyl_dg_updater_lbo_vlasov_tm) {
+    .diff_tm = lbo->diff_tm,
+    .drag_tm = lbo->drag_tm
+  };
 }
 
 void
@@ -88,6 +104,8 @@ gkyl_dg_updater_lbo_vlasov_cu_dev_new(const struct gkyl_rect_grid *grid, const s
   up->diff = gkyl_hyper_dg_cu_dev_new(grid, pbasis, up->coll_diff, num_up_dirs, up_dirs, zero_flux_flags, 1);
   up->drag = gkyl_hyper_dg_cu_dev_new(grid, pbasis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1);
 
+  up->drag_tm = 0.0; up->diff_tm = 0.0;
+
   return up;
 }
 
@@ -104,8 +122,13 @@ gkyl_dg_updater_lbo_vlasov_advance_cu(gkyl_dg_updater_lbo_vlasov *lbo,
   gkyl_lbo_vlasov_diff_set_auxfields(lbo->coll_diff,
     (struct gkyl_dg_lbo_vlasov_diff_auxfields) { .nuSum = nu_sum, .nuUSum = nu_u, .nuVtSqSum = nu_vthsq });
 
+  struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance_cu(lbo->diff, update_rng, fIn, cflrate, rhs);
+  lbo->diff_tm += gkyl_time_diff_now_sec(wst);
+
+  wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance_cu(lbo->drag, update_rng, fIn, cflrate, rhs);
+  lbo->drag_tm += gkyl_time_diff_now_sec(wst);
 }
 
 #endif
