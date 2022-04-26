@@ -385,9 +385,13 @@ vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idx[vlasov_sr->cdim+i];
 
   long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
-  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx);
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
   return vlasov_sr->vol(xc, dx,
     (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx),
     vlasov_sr->auxfields.qmem ? (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.qmem, cidx) : 0,
@@ -405,7 +409,11 @@ surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
 
-  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idxC);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idxC[vlasov_sr->cdim+i];
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
   if (dir < vlasov_sr->cdim) {
     vlasov_sr->stream_surf[dir]
       (xcC, dxC, 
@@ -433,9 +441,13 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
 
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idxSkin[vlasov_sr->cdim+i];
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
   if (dir >= vlasov_sr->cdim) {
     long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idxSkin);
-    long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idxSkin);
     vlasov_sr->accel_boundary_surf[dir-vlasov_sr->cdim]
       (xcSkin, dxSkin,
         (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx),
