@@ -19,6 +19,7 @@ struct twostream_inp {
 struct twostream_ctx {
   double knumber; // wave-number
   double perturbation;
+  double vth;
 };
 
 static inline double sq(double x) { return x*x; }
@@ -29,8 +30,9 @@ evalDistFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   struct twostream_ctx *app = ctx;
   double x = xn[0], v = xn[1];
   double alpha = app->perturbation, k = app->knumber;
+  double vt = app->vth;
 
-  fout[0] = (1+alpha*cos(k*x))*exp(-sq(v)/2);
+  fout[0] = (1+alpha*cos(k*x))*exp(-sq(v)/(2*vt*vt));
 }
 
 void
@@ -47,6 +49,7 @@ create_default_ctx(void)
   return (struct twostream_ctx) {
     .knumber = 0.5,
     .perturbation = 1.0e-2,
+    .vth = 1.0
   };
 }
 
@@ -72,8 +75,8 @@ main(int argc, char **argv)
     .name = "elc",
     .charge = 0.0,
     .mass = 1.0,
-    .lower = { -6.0 },
-    .upper = { 6.0 }, 
+    .lower = { -6.0*ctx.vth },
+    .upper = { 6.0*ctx.vth }, 
     .cells = { VX },
 
     .ctx = &ctx,
@@ -119,7 +122,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 10.0;
+  double tcurr = 0.0, tend = 20.0;
   double dt = tend-tcurr;
 
   // initialize simulation
