@@ -30,7 +30,7 @@ evalDistFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double x = xn[0], v = xn[1];
   double alpha = app->perturbation, k = app->knumber;
 
-  fout[0] = (1+alpha*cos(k*x));
+  fout[0] = (1+alpha*cos(k*x))*exp(-sq(v)/2);
 }
 
 void
@@ -72,8 +72,8 @@ main(int argc, char **argv)
     .name = "elc",
     .charge = 0.0,
     .mass = 1.0,
-    .lower = { -4.0 },
-    .upper = { 4.0 }, 
+    .lower = { -6.0 },
+    .upper = { 6.0 }, 
     .cells = { VX },
 
     .ctx = &ctx,
@@ -119,7 +119,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 100.0;
+  double tcurr = 0.0, tend = 10.0;
   double dt = tend-tcurr;
 
   // initialize simulation
