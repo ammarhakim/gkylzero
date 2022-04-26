@@ -24,14 +24,29 @@ gkyl_proj_on_basis*
 gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
   int num_quad, int num_ret_vals, evalf_t eval, void *ctx)
 {
+  return gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+      .grid = grid,
+      .basis = basis,
+      .qtype = GKYL_GAUSS_QUAD,
+      .num_quad = num_quad,
+      .num_ret_vals = num_ret_vals,
+      .eval = eval,
+      .ctx = ctx
+    }
+  );
+}
+
+gkyl_proj_on_basis*
+gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp)
+{
   gkyl_proj_on_basis *up = gkyl_malloc(sizeof(gkyl_proj_on_basis));
 
-  up->grid = *grid;
-  up->num_quad = num_quad;
-  up->num_ret_vals = num_ret_vals;
-  up->eval = eval;
-  up->ctx = ctx;
-  up->num_basis = basis->num_basis;
+  up->grid = *inp->grid;
+  int num_quad = up->num_quad = inp->num_quad;
+  int num_ret_vals = up->num_ret_vals = inp->num_ret_vals;
+  up->eval = inp->eval;
+  up->ctx = inp->ctx;
+  up->num_basis = inp->basis->num_basis;
 
   double ordinates1[num_quad], weights1[num_quad];
 
@@ -47,14 +62,14 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
 
   // create range to loop over quadrature points
   int qshape[GKYL_MAX_DIM];
-  for (int i=0; i<grid->ndim; ++i) qshape[i] = num_quad;
+  for (int i=0; i<inp->grid->ndim; ++i) qshape[i] = num_quad;
   struct gkyl_range qrange;
-  gkyl_range_init_from_shape(&qrange, grid->ndim, qshape);
+  gkyl_range_init_from_shape(&qrange, inp->grid->ndim, qshape);
 
   int tot_quad = up->tot_quad = qrange.volume;
 
   // create ordinates and weights for multi-D quadrature  
-  up->ordinates = gkyl_array_new(GKYL_DOUBLE, grid->ndim, tot_quad);
+  up->ordinates = gkyl_array_new(GKYL_DOUBLE, inp->grid->ndim, tot_quad);
   up->weights = gkyl_array_new(GKYL_DOUBLE, 1, tot_quad);
 
   struct gkyl_range_iter iter;
@@ -65,7 +80,7 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
     
     // set ordinates
     double *ord = gkyl_array_fetch(up->ordinates, node);
-    for (int i=0; i<grid->ndim; ++i)
+    for (int i=0; i<inp->grid->ndim; ++i)
       ord[i] = ordinates1[iter.idx[i]-qrange.lower[i]];
     
     // set weights
@@ -76,9 +91,9 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
   }
 
   // pre-compute basis functions at ordinates
-  up->basis_at_ords = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, tot_quad);
+  up->basis_at_ords = gkyl_array_new(GKYL_DOUBLE, inp->basis->num_basis, tot_quad);
   for (int n=0; n<tot_quad; ++n)
-    basis->eval(gkyl_array_fetch(up->ordinates, n),
+    inp->basis->eval(gkyl_array_fetch(up->ordinates, n),
       gkyl_array_fetch(up->basis_at_ords, n));
 
   return up;
