@@ -2,17 +2,13 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
+#include <gkyl_eqn_type.h>
+#include <gkyl_evalf_def.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_evalf_def.h>
 
 // Object type
 typedef struct gkyl_proj_on_basis gkyl_proj_on_basis;
-
-enum gkyl_quad_type {
-  GKYL_GAUSS_QUAD,
-  GKYL_GAUSS_LOBATTO_QUAD
-};
 
 struct gkyl_proj_on_basis_inp {
   const struct gkyl_rect_grid *grid; // grid on which to project

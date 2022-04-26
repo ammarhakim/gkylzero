@@ -28,6 +28,7 @@ struct gkyl_vlasov_fluid_advection {
   void *velocity_ctx; // context for applied advection function
   // pointer to applied advection velocity function
   void (*velocity)(double t, const double *xn, double *aout, void *ctx);
+  enum gkyl_quad_type qtype; // quadrature to use
   
   char advect_with[128]; // names of species to advect with
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)

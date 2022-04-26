@@ -25,3 +25,10 @@ enum gkyl_collision_id {
   GKYL_BGK_COLLISIONS, // BGK Collision operator
   GKYL_LBO_COLLISIONS // LBO Collision operator
 };
+
+// type of quadrature to use
+enum gkyl_quad_type {
+  GKYL_GAUSS_QUAD, // Gauss-Legendre quadrature
+  GKYL_GAUSS_LOBATTO_QUAD // Gauss-Lobatto quadrature
+};
+

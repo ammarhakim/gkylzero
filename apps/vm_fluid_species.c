@@ -65,8 +65,17 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     f->advect_ctx = (struct vm_eval_advect_ctx) {
       .advect_func = f->info.advection.velocity, .advect_ctx = f->info.advection.velocity_ctx
     };
-    f->advect_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, app->confBasis.poly_order+1,
-      cdim, f->info.advection.velocity, &f->advect_ctx);
+    
+    f->advect_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+        .grid = &app->grid,
+        .basis = &app->confBasis,
+        .qtype = f->info.advection.qtype,
+        .num_quad = app->confBasis.poly_order+1,
+        .num_ret_vals = cdim,
+        .eval = f->info.advection.velocity,
+        .ctx = f->info.advection.velocity_ctx
+      }
+    );
   }
   else {
     f->advects_with_species = true;

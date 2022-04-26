@@ -1,4 +1,5 @@
 #include <string.h>
+#include <assert.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
@@ -50,14 +51,23 @@ gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp)
 
   double ordinates1[num_quad], weights1[num_quad];
 
-  if (num_quad <= gkyl_gauss_max) {
-    // use pre-computed values if possible (these are more accurate
-    // than computing them on the fly)
-    memcpy(ordinates1, gkyl_gauss_ordinates[num_quad], sizeof(double[num_quad]));
-    memcpy(weights1, gkyl_gauss_weights[num_quad], sizeof(double[num_quad]));
+  if (inp->qtype == GKYL_GAUSS_QUAD) {
+    if (num_quad <= gkyl_gauss_max) {
+      // use pre-computed values if possible (these are more accurate
+      // than computing them on the fly)
+      memcpy(ordinates1, gkyl_gauss_ordinates[num_quad], sizeof(double[num_quad]));
+      memcpy(weights1, gkyl_gauss_weights[num_quad], sizeof(double[num_quad]));
+    }
+    else {
+      gkyl_gauleg(-1, 1, ordinates1, weights1, num_quad);
+    }
   }
   else {
-    gkyl_gauleg(-1, 1, ordinates1, weights1, num_quad);
+    assert( (num_quad > 1) && (num_quad <= gkyl_gauss_max) );
+    
+    // Gauss-Lobatto quadrature
+    memcpy(ordinates1, gkyl_gauss_lobatto_ordinates[num_quad], sizeof(double[num_quad]));
+    memcpy(weights1, gkyl_gauss_lobatto_weights[num_quad], sizeof(double[num_quad]));
   }
 
   // create range to loop over quadrature points
