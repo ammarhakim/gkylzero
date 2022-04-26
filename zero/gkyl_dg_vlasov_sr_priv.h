@@ -68,7 +68,7 @@ static const gkyl_dg_vlasov_sr_vol_kern_list ser_vol_kernels[] = {
   { NULL, vlasov_sr_vol_1x3v_ser_p1, vlasov_sr_vol_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, vlasov_sr_vol_2x2v_ser_p1, vlasov_sr_vol_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_sr_vol_2x3v_ser_p1, NULL }, // 4
+  { NULL, vlasov_sr_vol_2x3v_ser_p1, vlasov_sr_vol_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_sr_vol_3x3v_ser_p1, NULL               }, // 5
 };

@@ -28,7 +28,7 @@ void
 gkyl_vlasov_sr_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_sr_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(auxin.qmem)) {
+  if (gkyl_dg_eqn_is_cu_dev(eqn)) {
     gkyl_vlasov_sr_set_auxfields_cu(eqn->on_dev, auxin);
     return;
   }
@@ -36,6 +36,7 @@ gkyl_vlasov_sr_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlaso
 
   struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
   vlasov_sr->auxfields.qmem = auxin.qmem;
+  vlasov_sr->auxfields.p_over_gamma = auxin.p_over_gamma;
 }
 
 struct gkyl_dg_eqn*
@@ -103,7 +104,7 @@ gkyl_dg_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* 
       assert(false);
       break;    
   }  
-  if (field_id == GKYL_FIELD_NULL)
+  if (field_id == GKYL_FIELD_SR_NULL)
     vlasov_sr->vol = CK(stream_vol_kernels,cdim,vdim,poly_order);
   else
     vlasov_sr->vol = CK(vol_kernels,cdim,vdim,poly_order);

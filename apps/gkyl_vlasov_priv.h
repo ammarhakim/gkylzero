@@ -16,6 +16,7 @@
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_updater_lbo_vlasov.h>
+#include <gkyl_dg_updater_vlasov.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_hyper_dg.h>
@@ -114,20 +115,27 @@ struct vm_species {
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   struct vm_skin_ghost_ranges skin_ghost; // conf-space skin/ghost
 
+  struct gkyl_rect_grid grid_vel; // velocity space grid
+  struct gkyl_range local_vel, local_ext_vel; // local, local-ext velocity-space ranges
+
   struct gkyl_array *f, *f1, *fnew; // arrays for updates
   struct gkyl_array *cflrate; // CFL rate in each cell
   struct gkyl_array *bc_buffer; // buffer for BCs (used for both copy and periodic)
-
-  struct gkyl_array *qmem; // array for q/m*(E,B)
 
   struct gkyl_array *f_host; // host copy for use IO and initialization
 
   struct vm_species_moment m1i; // for computing currents
   struct vm_species_moment *moms; // diagnostic moments
 
-  struct gkyl_dg_eqn *eqn; // Vlasov equation
-  gkyl_hyper_dg *slvr; // solver
- 
+  enum gkyl_field_id field_id; // type of Vlasov equation (based on type of field solve)
+  struct gkyl_array *qmem; // array for q/m*(E,B)
+  struct gkyl_array *fac_phi; // array for potential (electrostatic or gravitational)
+  struct gkyl_array *vecA; // array for vector potential
+  struct gkyl_array *p_over_gamma; // array for p/gamma (velocity) in special relativistic equation
+
+  gkyl_dg_updater_vlasov *slvr; // Vlasov solver 
+  struct gkyl_dg_eqn *eqn_vlasov; // Vlasov equation object
+
   // boundary conditions on lower/upper edges in each direction  
   enum gkyl_species_bc_type lower_bc[3], upper_bc[3];
   // Note: we need to store pointers to the struct as these may
@@ -509,6 +517,13 @@ void vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species,
  * @param app App object to update stat timers
  */
 void vm_species_coll_tm(gkyl_vlasov_app *app);
+
+/**
+ * Fill stat object in app with collisionless timers.
+ *
+ * @param app App object to update stat timers
+ */
+void vm_species_tm(gkyl_vlasov_app *app);
 
 /**
  * Delete resources used in species.

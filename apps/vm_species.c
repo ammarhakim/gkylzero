@@ -32,6 +32,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   int cells[GKYL_MAX_DIM], ghost[GKYL_MAX_DIM];
   double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
 
+  int cells_vel[GKYL_MAX_DIM], ghost_vel[GKYL_MAX_DIM];
+  double lower_vel[GKYL_MAX_DIM], upper_vel[GKYL_MAX_DIM];
+
   for (int d=0; d<cdim; ++d) {
     cells[d] = vm->cells[d];
     lower[d] = vm->lower[d];
@@ -39,16 +42,28 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     ghost[d] = 1;
   }
   for (int d=0; d<vdim; ++d) {
+    // full phase space grid
     cells[cdim+d] = s->info.cells[d];
     lower[cdim+d] = s->info.lower[d];
     upper[cdim+d] = s->info.upper[d];
     ghost[cdim+d] = 0; // no ghost-cells in velocity space
+
+    // only velocity space
+    cells_vel[d] = s->info.cells[d];
+    lower_vel[d] = s->info.lower[d];
+    upper_vel[d] = s->info.upper[d];
+    ghost_vel[d] = 0; // no ghost-cells in velocity space
   }
+  // full phase space grid
   gkyl_rect_grid_init(&s->grid, pdim, lower, upper, cells);
   gkyl_create_grid_ranges(&s->grid, ghost, &s->local_ext, &s->local);
   
   skin_ghost_ranges_init(&s->skin_ghost, &s->local_ext, ghost);
   
+  // velocity space grid
+  gkyl_rect_grid_init(&s->grid_vel, vdim, lower_vel, upper_vel, cells_vel);
+  gkyl_create_grid_ranges(&s->grid_vel, ghost_vel, &s->local_ext_vel, &s->local_vel);
+
   // allocate distribution function arrays
   s->f = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
   s->f1 = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
@@ -84,33 +99,31 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     vm_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
 
   // determine field-type 
-  enum gkyl_field_id field_id = app->has_field ? app->field->info.field_id : GKYL_FIELD_NULL;
+  s->field_id = app->has_field ? app->field->info.field_id : GKYL_FIELD_NULL;
 
-  // allocate array to store q/m*(E,B)
+  // allocate array to store q/m*(E,B) or potential depending on equation system
   s->qmem = 0;
-  if (field_id != GKYL_FIELD_NULL)
+  s->fac_phi = 0;
+  if (s->field_id  == GKYL_FIELD_E_B || s->field_id  == GKYL_FIELD_SR_E_B)
     s->qmem = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
+  else if (s->field_id == GKYL_FIELD_PHI || s->field_id == GKYL_FIELD_PHI_A)
+    s->fac_phi = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
-  // create equation object
-  s->eqn = gkyl_dg_vlasov_new(&app->confBasis, &app->basis, &app->local, field_id, app->use_gpu);
+  // allocate array to store vector potential if present
+  s->vecA = 0;
+  if (s->field_id == GKYL_FIELD_PHI_A)
+    s->vecA = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
 
-  int up_dirs[GKYL_MAX_DIM], zero_flux_flags[GKYL_MAX_DIM];
-  for (int d=0; d<cdim; ++d) {
-    up_dirs[d] = d;
-    zero_flux_flags[d] = 0;
-  }
-  int num_up_dirs = cdim;
-  // update velocity space only when field is present
-  if (app->has_field) {
-    for (int d=cdim; d<pdim; ++d) {
-      up_dirs[d] = d;
-      zero_flux_flags[d] = 1; // zero-flux BCs in vel-space
-    }
-    num_up_dirs = pdim;
-  }
+  // allocate array to store p/gamma (velocity) if present
+  s->p_over_gamma = 0;
+  if (s->field_id  == GKYL_FIELD_SR_E_B)
+    s->p_over_gamma = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
+
   // create solver
-  s->slvr = gkyl_hyper_dg_new(&s->grid, &app->basis, s->eqn,
-    num_up_dirs, up_dirs, zero_flux_flags, 1, app->use_gpu);
+  s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, &app->local, &s->local_vel, s->field_id, app->use_gpu);
+
+  // acquire equation object
+  s->eqn_vlasov = gkyl_dg_updater_vlasov_acquire_eqn(s->slvr);
 
   s->has_accel = false;
   // setup applied acceleration
@@ -163,7 +176,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     }
   }
   for (int d=0; d<3; ++d)
-    s->wall_bc_func[d] = gkyl_vlasov_wall_bc_create(s->eqn, d,
+    s->wall_bc_func[d] = gkyl_vlasov_wall_bc_create(s->eqn_vlasov, d,
       app->basis_on_dev.basis);
 }
 
@@ -202,25 +215,24 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   const struct gkyl_array *fin, const struct gkyl_array *em, struct gkyl_array *rhs)
 {
   gkyl_array_clear(species->cflrate, 0.0);
-  if (em) {
+  if (species->field_id  == GKYL_FIELD_E_B || species->field_id  == GKYL_FIELD_SR_E_B) {
     double qbym = species->info.charge/species->info.mass;
     gkyl_array_set(species->qmem, qbym, em);
 
     if (species->has_accel)
       gkyl_array_accumulate(species->qmem, 1.0, species->accel);
-    
-    gkyl_vlasov_set_auxfields(species->eqn, 
-      (struct gkyl_dg_vlasov_auxfields) { .qmem = species->qmem  }); // set total acceleration
   }
   
   gkyl_array_clear(rhs, 0.0);
-
-  struct timespec wst = gkyl_wall_clock();  
+ 
   if (app->use_gpu)
-    gkyl_hyper_dg_advance_cu(species->slvr, &species->local, fin, species->cflrate, rhs);
+    gkyl_dg_updater_vlasov_advance_cu(species->slvr, species->field_id, &species->local, 
+      species->qmem, species->p_over_gamma, 
+      fin, species->cflrate, rhs);
   else
-    gkyl_hyper_dg_advance(species->slvr, &species->local, fin, species->cflrate, rhs);
-  app->stat.species_rhs_tm += gkyl_time_diff_now_sec(wst);
+    gkyl_dg_updater_vlasov_advance(species->slvr, species->field_id, &species->local, 
+      species->qmem, species->p_over_gamma, 
+      fin, species->cflrate, rhs);
 
   if (species->collision_id == GKYL_LBO_COLLISIONS)
     vm_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
@@ -333,6 +345,16 @@ vm_species_coll_tm(gkyl_vlasov_app *app)
   }
 }
 
+void
+vm_species_tm(gkyl_vlasov_app *app)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    struct gkyl_dg_updater_vlasov_tm tm =
+      gkyl_dg_updater_vlasov_get_tm(app->species[i].slvr);
+    app->stat.species_rhs_tm += tm.vlasov_tm;
+  }
+}
+
 // release resources for species
 void
 vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
@@ -353,11 +375,20 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     vm_species_moment_release(app, &s->moms[i]);
   gkyl_free(s->moms);
 
-  gkyl_dg_eqn_release(s->eqn);
-  gkyl_hyper_dg_release(s->slvr);
+  gkyl_dg_eqn_release(s->eqn_vlasov);
+  gkyl_dg_updater_vlasov_release(s->slvr);
 
-  if (app->has_field)
+  // Release arrays for different types of Vlasov equations
+  if (s->field_id  == GKYL_FIELD_E_B || s->field_id  == GKYL_FIELD_SR_E_B)
     gkyl_array_release(s->qmem);
+  else if (s->field_id == GKYL_FIELD_PHI || s->field_id == GKYL_FIELD_PHI_A)
+    gkyl_array_release(s->fac_phi);
+
+  if (s->field_id == GKYL_FIELD_PHI_A)
+    gkyl_array_release(s->vecA);
+
+  if (s->field_id  == GKYL_FIELD_SR_E_B)
+    gkyl_array_release(s->p_over_gamma);
   
   if (s->has_accel) {
     gkyl_array_release(s->accel);
