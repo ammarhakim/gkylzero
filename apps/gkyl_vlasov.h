@@ -241,6 +241,16 @@ void gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame);
 void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
+ * Write species p/gamma to file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_vlasov_app_write_species_gamma(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+
+/**
  * Write fluid species data to file.
  * 
  * @param app App object.

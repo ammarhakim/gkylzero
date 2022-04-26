@@ -8,6 +8,27 @@
 #include <gkyl_vlasov_priv.h>
 #include <gkyl_proj_on_basis.h>
 
+static void 
+ev_p_over_gamma_1p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = xn[0]/sqrt(1 + xn[0]*xn[0]);
+}
+static void 
+ev_p_over_gamma_2p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = xn[0]/sqrt(1 + xn[0]*xn[0] + xn[1]*xn[1]);
+  out[1] = xn[1]/sqrt(1 + xn[0]*xn[0] + xn[1]*xn[1]);
+}
+static void 
+ev_p_over_gamma_3p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = xn[0]/sqrt(1 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+  out[1] = xn[1]/sqrt(1 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+  out[2] = xn[2]/sqrt(1 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+}
+
+static const evalf_t p_over_gamma_func[3] = {ev_p_over_gamma_1p, ev_p_over_gamma_2p, ev_p_over_gamma_3p};
+
 // function to evaluate acceleration (this is needed as accel function
 // provided by the user returns 3 components, while the Vlasov solver
 // expects 8 components to match the EM field)
@@ -115,9 +136,24 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->vecA = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
 
   // allocate array to store p/gamma (velocity) if present
+  // Since p/gamma is a geometric quantity, can pre-compute it here
   s->p_over_gamma = 0;
-  if (s->field_id  == GKYL_FIELD_SR_E_B)
-    s->p_over_gamma = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
+  if (s->field_id  == GKYL_FIELD_SR_E_B) {
+    s->p_over_gamma = mkarr(app->use_gpu, vdim*app->velBasis.num_basis, s->local_vel.volume);
+    gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+        .grid = &s->grid_vel,
+        .basis = &app->velBasis,
+        .qtype = GKYL_GAUSS_LOBATTO_QUAD,
+        .num_quad = 8,
+        .num_ret_vals = vdim,
+        .eval = p_over_gamma_func[vdim-1],
+        .ctx = 0
+      }
+    );  
+    // run updater
+    gkyl_proj_on_basis_advance(p_over_gamma_proj, 0.0, &s->local_vel, s->p_over_gamma);
+    gkyl_proj_on_basis_release(p_over_gamma_proj);    
+  }
 
   // create solver
   s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, &app->local, &s->local_vel, s->field_id, app->use_gpu);

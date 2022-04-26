@@ -48,6 +48,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     case GKYL_BASIS_MODAL_SERENDIPITY:
       gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
       gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
+      gkyl_cart_modal_serendip(&app->velBasis, vdim, poly_order);
 
       if (app->use_gpu) {
         gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
@@ -58,6 +59,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     case GKYL_BASIS_MODAL_TENSOR:
       gkyl_cart_modal_tensor(&app->basis, pdim, poly_order);
       gkyl_cart_modal_tensor(&app->confBasis, cdim, poly_order);
+      gkyl_cart_modal_tensor(&app->velBasis, vdim, poly_order);
       break;
 
     default:
@@ -209,8 +211,11 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
 {
   if (app->has_field)
     gkyl_vlasov_app_write_field(app, tm, frame);
-  for (int i=0; i<app->num_species; ++i)
+  for (int i=0; i<app->num_species; ++i) {
     gkyl_vlasov_app_write_species(app, i, tm, frame);
+    if (app->species[i].field_id == GKYL_FIELD_SR_E_B)
+      gkyl_vlasov_app_write_species_gamma(app, i, tm, frame);
+  }
   for (int i=0; i<app->num_fluid_species; ++i)
     gkyl_vlasov_app_write_fluid_species(app, i, tm, frame);
 }
@@ -251,6 +256,18 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int fra
     gkyl_grid_sub_array_write(&app->species[sidx].grid, &app->species[sidx].local,
       app->species[sidx].f, fileNm);
   }
+}
+
+void
+gkyl_vlasov_app_write_species_gamma(gkyl_vlasov_app* app, int sidx, double tm, int frame)
+{
+  const char *fmt = "%s-%s_p_over_gamma_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow  
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame);
+
+  gkyl_grid_sub_array_write(&app->species[sidx].grid_vel, &app->species[sidx].local_vel,
+    app->species[sidx].p_over_gamma, fileNm);
 }
 
 void
