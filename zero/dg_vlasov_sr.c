@@ -59,7 +59,6 @@ gkyl_dg_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* 
   vlasov_sr->pdim = pdim;
 
   vlasov_sr->eqn.num_equations = 1;
-  vlasov_sr->eqn.vol_term = vol;
   vlasov_sr->eqn.surf_term = surf;
   vlasov_sr->eqn.boundary_surf_term = boundary_surf;
 
@@ -105,9 +104,9 @@ gkyl_dg_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* 
       break;    
   }  
   if (field_id == GKYL_FIELD_SR_NULL)
-    vlasov_sr->vol = CK(stream_vol_kernels,cdim,vdim,poly_order);
+    vlasov_sr->eqn.vol_term = CK(stream_vol_kernels,cdim,vdim,poly_order);
   else
-    vlasov_sr->vol = CK(vol_kernels,cdim,vdim,poly_order);
+    vlasov_sr->eqn.vol_term = CK(vol_kernels,cdim,vdim,poly_order);
 
   vlasov_sr->stream_surf[0] = CK(stream_surf_x_kernels,cdim,vdim,poly_order);
   if (cdim>1)
@@ -128,7 +127,6 @@ gkyl_dg_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* 
     vlasov_sr->accel_boundary_surf[2] = CK(accel_boundary_surf_vz_kernels,cdim,vdim,poly_order);
 
   // ensure non-NULL pointers
-  assert(vlasov_sr->vol);
   for (int i=0; i<cdim; ++i) assert(vlasov_sr->stream_surf[i]);
   for (int i=0; i<vdim; ++i) assert(vlasov_sr->accel_surf[i]);
   for (int i=0; i<vdim; ++i) assert(vlasov_sr->accel_boundary_surf[i]);

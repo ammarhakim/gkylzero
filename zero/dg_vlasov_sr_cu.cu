@@ -37,7 +37,6 @@ dg_vlasov_sr_set_cu_dev_ptrs(struct dg_vlasov_sr *vlasov_sr, enum gkyl_basis_typ
   vlasov_sr->auxfields.qmem = 0; 
   vlasov_sr->auxfields.p_over_gamma= 0; 
 
-  //vlasov_sr->eqn.vol_term = vol;
   vlasov_sr->eqn.surf_term = surf;
   vlasov_sr->eqn.boundary_surf_term = boundary_surf;
 
@@ -83,9 +82,9 @@ dg_vlasov_sr_set_cu_dev_ptrs(struct dg_vlasov_sr *vlasov_sr, enum gkyl_basis_typ
       break;    
   }  
   if (field_id == GKYL_FIELD_SR_NULL)
-    vlasov_sr->vol = stream_vol_kernels[cv_index].kernels[poly_order];
+    vlasov_sr->eqn.vol_term = stream_vol_kernels[cv_index].kernels[poly_order];
   else
-    vlasov_sr->vol = vol_kernels[cv_index].kernels[poly_order];
+    vlasov_sr->eqn.vol_term = vol_kernels[cv_index].kernels[poly_order];
 
   vlasov_sr->stream_surf[0] = stream_surf_x_kernels[cv_index].kernels[poly_order];
   if (cdim>1)

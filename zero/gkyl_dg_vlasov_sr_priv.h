@@ -10,10 +10,6 @@
 #include <gkyl_vlasov_kernels.h>
 
 // Types for various kernels
-typedef double (*vlasov_sr_vol_t)(const double *w, const double *dxv,
-  const double *p_over_gamma, const double *qmem, 
-  const double *f, double* GKYL_RESTRICT out);
-
 typedef void (*vlasov_sr_stream_surf_t)(const double *w, const double *dxv,
   const double *p_over_gamma, 
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
@@ -36,42 +32,472 @@ static struct { int vdim[4]; } cv_index[] = {
 };
 
 // for use in kernel tables
-typedef struct { vlasov_sr_vol_t kernels[3]; } gkyl_dg_vlasov_sr_stream_vol_kern_list;
-typedef struct { vlasov_sr_vol_t kernels[3]; } gkyl_dg_vlasov_sr_vol_kern_list;
+typedef struct { vol_termf_t kernels[3]; } gkyl_dg_vlasov_sr_stream_vol_kern_list;
+typedef struct { vol_termf_t kernels[3]; } gkyl_dg_vlasov_sr_vol_kern_list;
 typedef struct { vlasov_sr_stream_surf_t kernels[3]; } gkyl_dg_vlasov_sr_stream_surf_kern_list;
 typedef struct { vlasov_sr_accel_surf_t kernels[3]; } gkyl_dg_vlasov_sr_accel_surf_kern_list;
 typedef struct { vlasov_sr_accel_boundary_surf_t kernels[3]; } gkyl_dg_vlasov_sr_accel_boundary_surf_kern_list;
 
+struct dg_vlasov_sr {
+  struct gkyl_dg_eqn eqn; // Base object
+  int cdim; // Config-space dimensions
+  int pdim; // Phase-space dimensions
+  vlasov_sr_stream_surf_t stream_surf[3]; // Surface terms for streaming
+  vlasov_sr_accel_surf_t accel_surf[3]; // Surface terms for acceleration
+  vlasov_sr_accel_boundary_surf_t accel_boundary_surf[3]; // Surface terms for acceleration
+  struct gkyl_range conf_range; // configuration space range
+  struct gkyl_range vel_range; // velocity space range
+  struct gkyl_dg_vlasov_sr_auxfields auxfields; // Auxiliary fields.
+};
+
 //
-// Serendipity basis kernels
+// Serendipity volume kernels relativistic streaming only
+// Need to be separated like this for GPU build
 //
 
-// Volume kernel list
+GKYL_CU_DH
+static double
+kernel_vlasov_sr_stream_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+  long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+  return vlasov_sr_stream_vol_1x1v_ser_p1(xc, dx,
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 0,
+    qIn, qRhsOut);  
+}
+
+GKYL_CU_DH
+static double
+kernel_vlasov_sr_stream_vol_1x1v_ser_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+  long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+  return vlasov_sr_stream_vol_1x1v_ser_p2(xc, dx,
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 0,
+    qIn, qRhsOut);  
+}
+
+GKYL_CU_DH
+static double
+kernel_vlasov_sr_stream_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+  long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+  return vlasov_sr_stream_vol_1x2v_ser_p1(xc, dx,
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 0,
+    qIn, qRhsOut);  
+}
+
+GKYL_CU_DH
+static double
+kernel_vlasov_sr_stream_vol_1x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+  long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+  return vlasov_sr_stream_vol_1x2v_ser_p2(xc, dx,
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 0,
+    qIn, qRhsOut);  
+}
+
+GKYL_CU_DH
+static double
+kernel_vlasov_sr_stream_vol_1x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+  long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+  return vlasov_sr_stream_vol_1x3v_ser_p1(xc, dx,
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 0,
+    qIn, qRhsOut);  
+}
+
+GKYL_CU_DH
+static double
+kernel_vlasov_sr_stream_vol_1x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+  long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+  return vlasov_sr_stream_vol_1x3v_ser_p2(xc, dx,
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 0,
+    qIn, qRhsOut);  
+}
+
+GKYL_CU_DH
+static double
+kernel_vlasov_sr_stream_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+  long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+  return vlasov_sr_stream_vol_2x2v_ser_p1(xc, dx,
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 0,
+    qIn, qRhsOut);  
+}
+
+GKYL_CU_DH
+static double
+kernel_vlasov_sr_stream_vol_2x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+  long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+  return vlasov_sr_stream_vol_2x2v_ser_p2(xc, dx,
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 0,
+    qIn, qRhsOut);  
+}
+
+GKYL_CU_DH
+static double
+kernel_vlasov_sr_stream_vol_2x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+  long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+  return vlasov_sr_stream_vol_2x3v_ser_p1(xc, dx,
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 0,
+    qIn, qRhsOut);  
+}
+
+GKYL_CU_DH
+static double
+kernel_vlasov_sr_stream_vol_2x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+  long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+  return vlasov_sr_stream_vol_2x3v_ser_p2(xc, dx,
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 0,
+    qIn, qRhsOut);  
+}
+
+GKYL_CU_DH
+static double
+kernel_vlasov_sr_stream_vol_3x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+  long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+  return vlasov_sr_stream_vol_3x3v_ser_p1(xc, dx,
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 0,
+    qIn, qRhsOut);  
+}
+
+// Volume kernel list for relativistic streaming only
 GKYL_CU_D
 static const gkyl_dg_vlasov_sr_stream_vol_kern_list ser_stream_vol_kernels[] = {
   // 1x kernels
-  { NULL, vlasov_sr_stream_vol_1x1v_ser_p1, vlasov_sr_stream_vol_1x1v_ser_p2 }, // 0
-  { NULL, vlasov_sr_stream_vol_1x2v_ser_p1, vlasov_sr_stream_vol_1x2v_ser_p2 }, // 1
-  { NULL, vlasov_sr_stream_vol_1x3v_ser_p1, vlasov_sr_stream_vol_1x3v_ser_p2 }, // 2
+  { NULL, kernel_vlasov_sr_stream_vol_1x1v_ser_p1, kernel_vlasov_sr_stream_vol_1x1v_ser_p2 }, // 0
+  { NULL, kernel_vlasov_sr_stream_vol_1x2v_ser_p1, kernel_vlasov_sr_stream_vol_1x2v_ser_p2 }, // 1
+  { NULL, kernel_vlasov_sr_stream_vol_1x3v_ser_p1, kernel_vlasov_sr_stream_vol_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, vlasov_sr_stream_vol_2x2v_ser_p1, vlasov_sr_stream_vol_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_sr_stream_vol_2x3v_ser_p1, vlasov_sr_stream_vol_2x3v_ser_p2 }, // 4
+  { NULL, kernel_vlasov_sr_stream_vol_2x2v_ser_p1, kernel_vlasov_sr_stream_vol_2x2v_ser_p2 }, // 3
+  { NULL, kernel_vlasov_sr_stream_vol_2x3v_ser_p1, kernel_vlasov_sr_stream_vol_2x3v_ser_p2 }, // 4
   // 3x kernels
-  { NULL, vlasov_sr_stream_vol_3x3v_ser_p1, NULL               }, // 5
+  { NULL, kernel_vlasov_sr_stream_vol_3x3v_ser_p1, NULL               }, // 5
 };
 
+//
+// Serendipity volume kernels (streaming + EM) kernels
+// Need to be separated like this for GPU build
+//
+
+GKYL_CU_DH
+static double
+kernel_vlasov_sr_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+  long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vol_1x1v_ser_p1(xc, dx,
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.qmem, cidx),
+    qIn, qRhsOut);  
+}
+
+GKYL_CU_DH
+static double
+kernel_vlasov_sr_vol_1x1v_ser_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+  long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vol_1x1v_ser_p2(xc, dx,
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.qmem, cidx),
+    qIn, qRhsOut);  
+}
+
+GKYL_CU_DH
+static double
+kernel_vlasov_sr_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+  long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vol_1x2v_ser_p1(xc, dx,
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.qmem, cidx),
+    qIn, qRhsOut);  
+}
+
+GKYL_CU_DH
+static double
+kernel_vlasov_sr_vol_1x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+  long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vol_1x2v_ser_p2(xc, dx,
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.qmem, cidx),
+    qIn, qRhsOut);  
+}
+
+GKYL_CU_DH
+static double
+kernel_vlasov_sr_vol_1x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+  long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vol_1x3v_ser_p1(xc, dx,
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.qmem, cidx),
+    qIn, qRhsOut);  
+}
+
+GKYL_CU_DH
+static double
+kernel_vlasov_sr_vol_1x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+  long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vol_1x3v_ser_p2(xc, dx,
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.qmem, cidx),
+    qIn, qRhsOut);  
+}
+
+GKYL_CU_DH
+static double
+kernel_vlasov_sr_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+  long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vol_2x2v_ser_p1(xc, dx,
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.qmem, cidx),
+    qIn, qRhsOut);  
+}
+
+GKYL_CU_DH
+static double
+kernel_vlasov_sr_vol_2x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+  long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vol_2x2v_ser_p2(xc, dx,
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.qmem, cidx),
+    qIn, qRhsOut);  
+}
+
+GKYL_CU_DH
+static double
+kernel_vlasov_sr_vol_2x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+  long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vol_2x3v_ser_p1(xc, dx,
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.qmem, cidx),
+    qIn, qRhsOut);  
+}
+
+GKYL_CU_DH
+static double
+kernel_vlasov_sr_vol_2x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+  long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vol_2x3v_ser_p2(xc, dx,
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.qmem, cidx),
+    qIn, qRhsOut);  
+}
+
+GKYL_CU_DH
+static double
+kernel_vlasov_sr_vol_3x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+  long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vol_3x3v_ser_p1(xc, dx,
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.qmem, cidx),
+    qIn, qRhsOut);  
+}
+
+// Volume kernel list for relativistic streaming + EM
 GKYL_CU_D
 static const gkyl_dg_vlasov_sr_vol_kern_list ser_vol_kernels[] = {
   // 1x kernels
-  { NULL, vlasov_sr_vol_1x1v_ser_p1, vlasov_sr_vol_1x1v_ser_p2 }, // 0
-  { NULL, vlasov_sr_vol_1x2v_ser_p1, vlasov_sr_vol_1x2v_ser_p2 }, // 1
-  { NULL, vlasov_sr_vol_1x3v_ser_p1, vlasov_sr_vol_1x3v_ser_p2 }, // 2
+  { NULL, kernel_vlasov_sr_vol_1x1v_ser_p1, kernel_vlasov_sr_vol_1x1v_ser_p2 }, // 0
+  { NULL, kernel_vlasov_sr_vol_1x2v_ser_p1, kernel_vlasov_sr_vol_1x2v_ser_p2 }, // 1
+  { NULL, kernel_vlasov_sr_vol_1x3v_ser_p1, kernel_vlasov_sr_vol_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, vlasov_sr_vol_2x2v_ser_p1, vlasov_sr_vol_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_sr_vol_2x3v_ser_p1, vlasov_sr_vol_2x3v_ser_p2 }, // 4
+  { NULL, kernel_vlasov_sr_vol_2x2v_ser_p1, kernel_vlasov_sr_vol_2x2v_ser_p2 }, // 3
+  { NULL, kernel_vlasov_sr_vol_2x3v_ser_p1, kernel_vlasov_sr_vol_2x3v_ser_p2 }, // 4
   // 3x kernels
-  { NULL, vlasov_sr_vol_3x3v_ser_p1, NULL               }, // 5
+  { NULL, kernel_vlasov_sr_vol_3x3v_ser_p1, NULL               }, // 5
 };
+
+//
+// Serendipity surface kernels
+//
 
 // Streaming surface kernel list: x-direction
 GKYL_CU_D
@@ -359,44 +785,12 @@ static const gkyl_dg_vlasov_sr_accel_boundary_surf_kern_list ser_accel_boundary_
 // "Choose Kernel" based on cdim, vdim and polyorder
 #define CK(lst,cdim,vd,poly_order) lst[cv_index[cdim].vdim[vd]].kernels[poly_order]
 
-struct dg_vlasov_sr {
-  struct gkyl_dg_eqn eqn; // Base object
-  int cdim; // Config-space dimensions
-  int pdim; // Phase-space dimensions
-  vlasov_sr_vol_t vol; // Volume kernel
-  vlasov_sr_stream_surf_t stream_surf[3]; // Surface terms for streaming
-  vlasov_sr_accel_surf_t accel_surf[3]; // Surface terms for acceleration
-  vlasov_sr_accel_boundary_surf_t accel_boundary_surf[3]; // Surface terms for acceleration
-  struct gkyl_range conf_range; // configuration space range
-  struct gkyl_range vel_range; // velocity space range
-  struct gkyl_dg_vlasov_sr_auxfields auxfields; // Auxiliary fields.
-};
-
 /**
  * Free vlasov eqn object.
  *
  * @param ref Reference counter for vlasov eqn
  */
 void gkyl_vlasov_sr_free(const struct gkyl_ref_count *ref);
-
-GKYL_CU_D
-static double
-vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
-  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
-    idx_vel[i] = idx[vlasov_sr->cdim+i];
-
-  long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
-  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
-
-  return vlasov_sr->vol(xc, dx,
-    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx),
-    vlasov_sr->auxfields.qmem ? (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.qmem, cidx) : 0,
-    qIn, qRhsOut);
-}
 
 GKYL_CU_D
 static void
