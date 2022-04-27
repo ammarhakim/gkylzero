@@ -40,6 +40,10 @@
 
 // Definitions of private structs and APIs attached to these objects
 // for use in Vlasov app.
+// context for use in special relativistic simulations
+struct gamma_ctx {
+  double mass; // species mass
+};
 
 // Labels for lower, upper edge of domain
 enum vm_domain_edge { VM_EDGE_LOWER, VM_EDGE_UPPER };
@@ -133,6 +137,7 @@ struct vm_species {
   struct gkyl_array *fac_phi; // array for potential (electrostatic or gravitational)
   struct gkyl_array *vecA; // array for vector potential
   struct gkyl_array *p_over_gamma; // array for p/gamma (velocity) in special relativistic equation
+  struct gkyl_array *p_over_gamma_host; // host copy for use in projecting before copying over to GPU
 
   gkyl_dg_updater_vlasov *slvr; // Vlasov solver 
   struct gkyl_dg_eqn *eqn_vlasov; // Vlasov equation object

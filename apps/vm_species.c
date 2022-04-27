@@ -8,23 +8,31 @@
 #include <gkyl_vlasov_priv.h>
 #include <gkyl_proj_on_basis.h>
 
+// Projection functions for p/(m*gamma) = v in special relativistic systems
+// Simplifies to p/sqrt(m^2 + p^2) where c = 1
 static void 
 ev_p_over_gamma_1p(double t, const double *xn, double *out, void *ctx)
 {
-  out[0] = xn[0]/sqrt(1 + xn[0]*xn[0]);
+  struct gamma_ctx *gtx = (struct gamma_ctx*) ctx;
+  double mass = gtx->mass;
+  out[0] = xn[0]/sqrt(mass*mass + xn[0]*xn[0]);
 }
 static void 
 ev_p_over_gamma_2p(double t, const double *xn, double *out, void *ctx)
 {
-  out[0] = xn[0]/sqrt(1 + xn[0]*xn[0] + xn[1]*xn[1]);
-  out[1] = xn[1]/sqrt(1 + xn[0]*xn[0] + xn[1]*xn[1]);
+  struct gamma_ctx *gtx = (struct gamma_ctx*) ctx;
+  double mass = gtx->mass;
+  out[0] = xn[0]/sqrt(mass*mass + xn[0]*xn[0] + xn[1]*xn[1]);
+  out[1] = xn[1]/sqrt(mass*mass + xn[0]*xn[0] + xn[1]*xn[1]);
 }
 static void 
 ev_p_over_gamma_3p(double t, const double *xn, double *out, void *ctx)
 {
-  out[0] = xn[0]/sqrt(1 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
-  out[1] = xn[1]/sqrt(1 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
-  out[2] = xn[2]/sqrt(1 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+  struct gamma_ctx *gtx = (struct gamma_ctx*) ctx;
+  double mass = gtx->mass;
+  out[0] = xn[0]/sqrt(mass*mass + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+  out[1] = xn[1]/sqrt(mass*mass + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+  out[2] = xn[2]/sqrt(mass*mass + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
 }
 
 static const evalf_t p_over_gamma_func[3] = {ev_p_over_gamma_1p, ev_p_over_gamma_2p, ev_p_over_gamma_3p};
@@ -131,6 +139,10 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   s->p_over_gamma = 0;
   if (s->field_id  == GKYL_FIELD_SR_E_B) {
     s->p_over_gamma = mkarr(app->use_gpu, vdim*app->velBasis.num_basis, s->local_vel.volume);
+    s->p_over_gamma_host = s->p_over_gamma;
+    if (app->use_gpu)
+      s->p_over_gamma_host = mkarr(false, vdim*app->velBasis.num_basis, s->local_vel.volume);
+    struct gamma_ctx ctx = { .mass = s->info.mass };
     gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
         .grid = &s->grid_vel,
         .basis = &app->velBasis,
@@ -138,12 +150,14 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
         .num_quad = 8,
         .num_ret_vals = vdim,
         .eval = p_over_gamma_func[vdim-1],
-        .ctx = 0
+        .ctx = &ctx
       }
     );  
     // run updater
-    gkyl_proj_on_basis_advance(p_over_gamma_proj, 0.0, &s->local_vel, s->p_over_gamma);
+    gkyl_proj_on_basis_advance(p_over_gamma_proj, 0.0, &s->local_vel, s->p_over_gamma_host);
     gkyl_proj_on_basis_release(p_over_gamma_proj);    
+    if (app->use_gpu) // note: p_over_gamma_host is same as p_over_gamma when not on GPUs
+      gkyl_array_copy(s->p_over_gamma, s->p_over_gamma_host);
   }
 
   // create solver
@@ -423,8 +437,11 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   if (s->field_id == GKYL_FIELD_PHI_A)
     gkyl_array_release(s->vecA);
 
-  if (s->field_id  == GKYL_FIELD_SR_E_B)
+  if (s->field_id  == GKYL_FIELD_SR_E_B) {
     gkyl_array_release(s->p_over_gamma);
+    if (app->use_gpu)
+      gkyl_array_release(s->p_over_gamma_host);
+  }
   
   if (s->has_accel) {
     gkyl_array_release(s->accel);
