@@ -21,7 +21,7 @@ struct gkyl_dg_vlasov_sr_auxfields {
  * @param vel_range Velocity space range for use in indexing p/gamma (velocity)
  * @param field_id enum to determine what type of EM fields
  * (special relativistic Vlasov-Maxwell vs. special relativistic neutrals)
-* @param use_gpu bool to determine if on GPU
+ * @param use_gpu bool to determine if on GPU
  * @return Pointer to special relativistic Vlasov equation object
  */
 struct gkyl_dg_eqn* gkyl_dg_vlasov_sr_new(const struct gkyl_basis* cbasis,
