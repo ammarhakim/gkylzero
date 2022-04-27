@@ -1,5 +1,6 @@
 /* -*- c++ -*- */
 
+#include <cstdio>
 #include <math.h>
 #include <time.h>
 
@@ -9,6 +10,9 @@ extern "C" {
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_util.h>
 }
+
+#include <cstdio>
+#include <cassert>
 
 // start ID for use in various loops
 #define START_ID (threadIdx.x + blockIdx.x*blockDim.x)
@@ -312,6 +316,59 @@ gkyl_array_copy_from_buffer_cu_kernel(struct gkyl_array *arr, const void *data,
   }
 }
 
+__global__ void 
+gkyl_array_copy_to_buffer_fn_cu_kernel(void *data, const struct gkyl_array *arr,
+  struct gkyl_range range, struct gkyl_array_copy_func *cf)
+{
+  int idx[GKYL_MAX_DIM];
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume; linc1 += blockDim.x*gridDim.x) {
+    // inverse index from linc1 to idxc
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idxc={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&range, linc1, idx);
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long linc = gkyl_range_idx(&range, idx);
+
+    const double *inp = (const double*) gkyl_array_cfetch(arr, linc);
+    double *out = (double*) flat_fetch(data, arr->esznc*linc1);
+    cf->func(arr->ncomp, out, inp, cf->ctx);
+  }
+}
+
+__global__ void 
+gkyl_array_flip_copy_to_buffer_fn_cu_kernel(void *data, const struct gkyl_array *arr,
+  int dir, struct gkyl_range range, struct gkyl_range buff_range,
+  struct gkyl_array_copy_func *cf)
+{
+  int idx[GKYL_MAX_DIM];
+  int fidx[GKYL_MAX_DIM]; // flipped index
+
+  int uplo = range.upper[dir]+range.lower[dir];
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume; linc1 += blockDim.x*gridDim.x) {
+    // inverse index from linc1 to idxc
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idxc={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&range, linc1, idx);
+
+    gkyl_copy_int_arr(range.ndim, idx, fidx);
+    fidx[dir] = uplo - idx[dir];
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc and flipped linc (flinc) will have jumps in it to jump over ghost cells
+    long linc = gkyl_range_idx(&range, idx);
+    long flinc = gkyl_range_idx(&buff_range, fidx);
+    
+    const double *inp = (const double*) gkyl_array_cfetch(arr, linc);
+    double *out = (double*) flat_fetch(data, arr->esznc*flinc);
+    cf->func(arr->ncomp, out, inp, cf->ctx);
+  }
+}
+
 // Host-side wrappers for range-based array operations
 void
 gkyl_array_clear_range_cu(struct gkyl_array *out, double val, struct gkyl_range range)
@@ -369,6 +426,9 @@ void
 gkyl_array_copy_range_to_range_cu(struct gkyl_array *out,
   const struct gkyl_array *inp, struct gkyl_range out_range, struct gkyl_range inp_range)
 {
+  printf("gkyl_array_copy_range_to_range_cu is not working properly. Please FIX!!\n");
+  assert(false);
+  
   dim3 dimGrid, dimBlock;
   gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, inp_range, out->ncomp);
 
@@ -396,4 +456,29 @@ gkyl_array_copy_from_buffer_cu(struct gkyl_array *arr,
   int nblocks = gkyl_int_div_up(nelem, nthreads);
   gkyl_array_copy_from_buffer_cu_kernel<<<nblocks, nthreads>>>(arr->on_dev,
     data, range);
+}
+
+void
+gkyl_array_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
+  struct gkyl_range range, struct gkyl_array_copy_func *cf)
+{
+  int nblocks = range.nblocks;
+  int nthreads = range.nthreads;
+
+  gkyl_array_copy_to_buffer_fn_cu_kernel<<<nblocks, nthreads>>>(
+    data, arr->on_dev, range, cf);
+}
+
+void
+gkyl_array_flip_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
+  int dir, struct gkyl_range range, struct gkyl_array_copy_func *cf)
+{
+  int nblocks = range.nblocks;
+  int nthreads = range.nthreads;
+
+  struct gkyl_range buff_range;
+  gkyl_range_init(&buff_range, range.ndim, range.lower, range.upper);
+  
+  gkyl_array_flip_copy_to_buffer_fn_cu_kernel<<<nblocks, nthreads>>>(data,
+    arr->on_dev, dir, range, buff_range, cf);
 }

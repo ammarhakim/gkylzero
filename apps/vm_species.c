@@ -1,6 +1,8 @@
-#include "gkyl_app.h"
+#include "gkyl_alloc.h"
+#include "gkyl_array_ops.h"
 #include <assert.h>
 
+#include <gkyl_app.h>
 #include <gkyl_array.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_vlasov_priv.h>
@@ -18,23 +20,6 @@ eval_accel(double t, const double *xn, double *aout, void *ctx)
   
   for (int i=0; i<3; ++i) aout[i] = a[i];
   for (int i=3; i<8; ++i) aout[i] = 0.0;
-}
-
-// context for use in Wall BCs
-struct species_wall_bc_ctx {
-  int dir; // direction for BCs
-  int cdim; // config-space dimensions
-  const struct gkyl_basis *basis; // phase-space basis function
-};
-
-static void
-species_wall_bc(size_t nc, double *out, const double *inp, void *ctx)
-{
-  struct species_wall_bc_ctx *mc = ctx;
-  int dir = mc->dir, cdim = mc->cdim;
-
-  mc->basis->flip_odd_sign(dir, inp, out);
-  mc->basis->flip_odd_sign(dir+cdim, out, out);
 }
 
 // initialize species object
@@ -147,9 +132,15 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   }
 
   // determine collision type to use in vlasov update
-  s->collision_id = s->info.collision_id;
+  s->collision_id = s->info.collisions.collision_id;
+  s->collides_with_fluid = false;
   if (s->collision_id == GKYL_LBO_COLLISIONS) {
-    vm_species_lbo_init(app, s, &s->lbo);
+    if (vm_find_fluid_species(app, s->info.collisions.collide_with_fluid)) {
+      s->collides_with_fluid = true;
+      // index in fluid_species struct of fluid species kinetic species is colliding with
+      s->fluid_index = s->info.collisions.fluid_index;
+    }
+    vm_species_lbo_init(app, s, &s->lbo, s->collides_with_fluid);
   }
 
   // determine which directions are not periodic
@@ -170,7 +161,10 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       s->lower_bc[dir] = bc[0];
       s->upper_bc[dir] = bc[1];
     }
-  }  
+  }
+  for (int d=0; d<3; ++d)
+    s->wall_bc_func[d] = gkyl_vlasov_wall_bc_create(s->eqn, d,
+      app->basis_on_dev.basis);
 }
 
 void
@@ -228,10 +222,8 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
     gkyl_hyper_dg_advance(species->slvr, &species->local, fin, species->cflrate, rhs);
   app->stat.species_rhs_tm += gkyl_time_diff_now_sec(wst);
 
-  wst = gkyl_wall_clock();
   if (species->collision_id == GKYL_LBO_COLLISIONS)
     vm_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
-  app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);      
 
   gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, species->local);
   double omegaCfl = species->omegaCfl_ptr[0];
@@ -267,28 +259,27 @@ vm_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_species *species,
   }
 }
 
-// Apply copy BCs on distribution function
+// Apply wall BCs on distribution function
 void
 vm_species_apply_wall_bc(gkyl_vlasov_app *app, const struct vm_species *species,
   int dir, enum vm_domain_edge edge, struct gkyl_array *f)
 {
-  struct species_wall_bc_ctx ctx = {
-    .dir = dir, .cdim = app->cdim,
-    .basis = &app->basis
-  };
-
   int cdim = app->cdim;
   
   if (edge == VM_EDGE_LOWER) {
     gkyl_array_flip_copy_to_buffer_fn(species->bc_buffer->data, f, dir+cdim,
-      species->skin_ghost.lower_skin[dir], species_wall_bc, &ctx);
+      species->skin_ghost.lower_skin[dir],
+      species->wall_bc_func[dir]
+    );
     
     gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.lower_ghost[dir]);
   }
 
   if (edge == VM_EDGE_UPPER) {
     gkyl_array_flip_copy_to_buffer_fn(species->bc_buffer->data, f, dir+cdim,
-      species->skin_ghost.upper_skin[dir], species_wall_bc, &ctx);
+      species->skin_ghost.upper_skin[dir],
+      species->wall_bc_func[dir]
+    );
     
     gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.upper_ghost[dir]);
   }
@@ -305,7 +296,7 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
     vm_species_apply_periodic_bc(app, species, app->periodic_dirs[d], f);
     is_np_bc[app->periodic_dirs[d]] = 0;
   }
-  for (int d=0; d<cdim; ++d)
+  for (int d=0; d<cdim; ++d) {
     if (is_np_bc[d]) {
 
       switch (species->lower_bc[d]) {
@@ -326,6 +317,20 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
           break;
       }      
     }
+  }
+}
+
+void
+vm_species_coll_tm(gkyl_vlasov_app *app)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
+      struct gkyl_dg_updater_lbo_vlasov_tm tm =
+        gkyl_dg_updater_lbo_vlasov_get_tm(app->species[i].lbo.coll_slvr);
+      app->stat.species_lbo_coll_diff_tm[i] = tm.diff_tm;
+      app->stat.species_lbo_coll_drag_tm[i] = tm.drag_tm;
+    }
+  }
 }
 
 // release resources for species
@@ -364,6 +369,9 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
 
   if (s->collision_id == GKYL_LBO_COLLISIONS)
     vm_species_lbo_release(app, &s->lbo);
+
+  for (int d=0; d<3; ++d)
+    gkyl_vlasov_wall_bc_release(s->wall_bc_func[d]);
   
   if (app->use_gpu)
     gkyl_cu_free_host(s->omegaCfl_ptr);

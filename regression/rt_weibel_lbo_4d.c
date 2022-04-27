@@ -130,8 +130,10 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalDistFunc,
 
-    .nu = evalNu,
-    .collision_id = GKYL_LBO_COLLISIONS,
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .self_nu = evalNu,
+    },
     
     .num_diag_moments = 2,
     .diag_moments = { "M0", "M1i" },
@@ -216,6 +218,7 @@ main(int argc, char **argv)
   }
   printf("Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   printf("Species RHS calc took %g secs\n", stat.species_rhs_tm);
+  printf("Species collisions took %g secs\n", stat.species_coll_mom_tm);  
   printf("Species collisions took %g secs\n", stat.species_coll_tm);
   printf("Field RHS calc took %g secs\n", stat.field_rhs_tm);
   printf("Current evaluation and accumulate took %g secs\n", stat.current_tm);
