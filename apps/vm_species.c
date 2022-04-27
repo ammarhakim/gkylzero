@@ -225,9 +225,17 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       s->upper_bc[dir] = bc[1];
     }
   }
-  for (int d=0; d<3; ++d)
-    s->wall_bc_func[d] = gkyl_vlasov_wall_bc_create(s->eqn_vlasov, d,
-      app->basis_on_dev.basis);
+  for (int d=0; d<3; ++d) {
+    if (s->field_id == GKYL_FIELD_SR_E_B)
+      s->wall_bc_func[d] = gkyl_vlasov_sr_wall_bc_create(s->eqn_vlasov, d,
+        app->basis_on_dev.basis);
+    else if (s->field_id == GKYL_FIELD_PHI || s->field_id == GKYL_FIELD_PHI_A)
+      s->wall_bc_func[d] = gkyl_vlasov_poisson_wall_bc_create(s->eqn_vlasov, d,
+        app->basis_on_dev.basis);
+    else
+      s->wall_bc_func[d] = gkyl_vlasov_wall_bc_create(s->eqn_vlasov, d,
+        app->basis_on_dev.basis);
+  }
 }
 
 void

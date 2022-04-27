@@ -9,6 +9,45 @@ extern "C" {
 
 #include <cassert>
 
+__global__ static void
+gkyl_vlasov_poisson_wall_bc_create_set_cu_dev_ptrs(const struct gkyl_dg_eqn *eqn, int dir,
+  const struct gkyl_basis* pbasis, struct species_wall_bc_ctx *ctx, struct gkyl_array_copy_func *bc)
+{
+  struct dg_vlasov_poisson *vlasov_poisson = container_of(eqn, struct dg_vlasov_poisson, eqn);
+
+  ctx->dir = dir;
+  ctx->cdim = vlasov_poisson->cdim;
+  ctx->basis = pbasis;
+
+  bc->func = vlasov_poisson->wall_bc;
+  bc->ctx = ctx;
+}
+
+struct gkyl_array_copy_func*
+gkyl_vlasov_poisson_wall_bc_create_cu(const struct gkyl_dg_eqn *eqn, int dir, const struct gkyl_basis* pbasis)
+{
+  // create host context and bc func structs
+  struct species_wall_bc_ctx *ctx = (struct species_wall_bc_ctx*) gkyl_malloc(sizeof(struct species_wall_bc_ctx));
+  struct gkyl_array_copy_func *bc = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
+  bc->ctx = ctx;
+
+  bc->flags = 0;
+  GKYL_SET_CU_ALLOC(bc->flags);
+
+  // create device context and bc func structs
+  struct species_wall_bc_ctx *ctx_cu = (struct species_wall_bc_ctx*) gkyl_cu_malloc(sizeof(struct species_wall_bc_ctx));
+  struct gkyl_array_copy_func *bc_cu = (struct gkyl_array_copy_func*) gkyl_cu_malloc(sizeof(struct gkyl_array_copy_func));
+
+  gkyl_cu_memcpy(ctx_cu, ctx, sizeof(struct species_wall_bc_ctx), GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(bc_cu, bc, sizeof(struct gkyl_array_copy_func), GKYL_CU_MEMCPY_H2D);
+
+  gkyl_vlasov_poisson_wall_bc_create_set_cu_dev_ptrs<<<1,1>>>(eqn, dir, pbasis, ctx_cu, bc_cu);
+
+  // set parent on_dev pointer 
+  bc->on_dev = bc_cu;  
+  return bc;
+}
+
 // CUDA kernel to set pointer to fac_phi = factor*phi and to vecA = q/m*A,
 // where A is the vector potential.
 // This factor is q/m for plasmas and G*m for self-gravitating systems
@@ -135,6 +174,9 @@ dg_vlasov_poisson_set_cu_dev_ptrs(struct dg_vlasov_poisson *vlasov_poisson, enum
     vlasov_poisson->stream_surf[1] = stream_surf_y_kernels[cv_index].kernels[poly_order];
   if (cdim>2)
     vlasov_poisson->stream_surf[2] = stream_surf_z_kernels[cv_index].kernels[poly_order];
+
+  // setup pointer for wall BC function
+  vlasov_poisson->wall_bc = species_wall_bc;
 }
 
 struct gkyl_dg_eqn*

@@ -86,12 +86,4 @@ void gkyl_vlasov_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_
 struct gkyl_array_copy_func* gkyl_vlasov_wall_bc_create_cu(const struct gkyl_dg_eqn *eqn, 
   int dir, const struct gkyl_basis* pbasis);
 
-/**
- * CUDA device function to release wall boundary conditions function.
- * 
- * @param bc Pointer to array_copy_func.
- */
-
-void gkyl_vlasov_wall_bc_release_cu(struct gkyl_array_copy_func* bc);
-
 #endif

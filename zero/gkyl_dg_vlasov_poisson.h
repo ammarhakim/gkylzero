@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gkyl_array.h>
+#include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_dg_eqn.h>
@@ -47,6 +48,26 @@ struct gkyl_dg_eqn* gkyl_dg_vlasov_poisson_cu_dev_new(const struct gkyl_basis* c
  */
 void gkyl_vlasov_poisson_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_poisson_auxfields auxin);
 
+/**
+ * Set up function to apply wall boundary conditions.
+ * 
+ * @param eqn Equation pointer.
+ * @param dir Direction to apply wall boundary conditions.
+ * @param pbasis Phase space basis
+ * @return Pointer to array_copy_func which can be passed to array_copy_fn methods
+ */
+
+struct gkyl_array_copy_func* gkyl_vlasov_poisson_wall_bc_create(const struct gkyl_dg_eqn *eqn, 
+  int dir, const struct gkyl_basis* pbasis);
+
+/**
+ * Release wall boundary conditions function.
+ * 
+ * @param bc Pointer to array_copy_func.
+ */
+
+void gkyl_vlasov_poisson_wall_bc_release(struct gkyl_array_copy_func* bc);
+
 #ifdef GKYL_HAVE_CUDA
 /**
  * CUDA device function to set auxiliary fields (e.g. q/m, external force) needed in
@@ -56,5 +77,17 @@ void gkyl_vlasov_poisson_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gky
  * @param auxfields Pointer to struct of aux fields.
  */
 void gkyl_vlasov_poisson_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_poisson_auxfields auxin);
+
+/**
+ * CUDA device function to set up function to apply wall boundary conditions.
+ * 
+ * @param eqn Equation pointer.
+ * @param dir Direction to apply wall boundary conditions.
+ * @param pbasis Phase space basis
+ * @return Pointer to array_copy_func which can be passed to array_copy_fn methods
+ */
+
+struct gkyl_array_copy_func* gkyl_vlasov_poisson_wall_bc_create_cu(const struct gkyl_dg_eqn *eqn, 
+  int dir, const struct gkyl_basis* pbasis);
 
 #endif

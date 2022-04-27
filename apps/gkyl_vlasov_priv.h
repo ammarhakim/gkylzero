@@ -18,6 +18,8 @@
 #include <gkyl_dg_updater_lbo_vlasov.h>
 #include <gkyl_dg_updater_vlasov.h>
 #include <gkyl_dg_vlasov.h>
+#include <gkyl_dg_vlasov_poisson.h>
+#include <gkyl_dg_vlasov_sr.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_mom_bcorr_lbo_vlasov.h>

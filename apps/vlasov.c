@@ -213,7 +213,7 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
     gkyl_vlasov_app_write_field(app, tm, frame);
   for (int i=0; i<app->num_species; ++i) {
     gkyl_vlasov_app_write_species(app, i, tm, frame);
-    if (app->species[i].field_id == GKYL_FIELD_SR_E_B)
+    if (app->species[i].field_id == GKYL_FIELD_SR_E_B && frame == 0)
       gkyl_vlasov_app_write_species_gamma(app, i, tm, frame);
   }
   for (int i=0; i<app->num_fluid_species; ++i)

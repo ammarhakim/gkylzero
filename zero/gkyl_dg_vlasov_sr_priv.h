@@ -9,6 +9,14 @@
 #include <gkyl_util.h>
 #include <gkyl_vlasov_kernels.h>
 
+// context for use in Wall BCs
+struct species_wall_bc_ctx {
+  int dir; // direction for BCs
+  int cdim; // config-space dimensions
+  const struct gkyl_basis *basis; // phase-space basis function
+};
+
+
 // Types for various kernels
 typedef void (*vlasov_sr_stream_surf_t)(const double *w, const double *dxv,
   const double *p_over_gamma, 
@@ -21,6 +29,8 @@ typedef void (*vlasov_sr_accel_surf_t)(const double *w, const double *dxv,
 typedef void (*vlasov_sr_accel_boundary_surf_t)(const double *w, const double *dxv,
   const double *p_over_gamma, const double *qmem, 
   const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out);
+
+typedef void (*bc_funcf_t)(size_t nc, double *out, const double *inp, void *ctx);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
@@ -45,6 +55,7 @@ struct dg_vlasov_sr {
   vlasov_sr_stream_surf_t stream_surf[3]; // Surface terms for streaming
   vlasov_sr_accel_surf_t accel_surf[3]; // Surface terms for acceleration
   vlasov_sr_accel_boundary_surf_t accel_boundary_surf[3]; // Surface terms for acceleration
+  bc_funcf_t wall_bc; // wall BCs function
   struct gkyl_range conf_range; // configuration space range
   struct gkyl_range vel_range; // velocity space range
   struct gkyl_dg_vlasov_sr_auxfields auxfields; // Auxiliary fields.
@@ -850,3 +861,13 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   }
 }
 
+GKYL_CU_D
+static void
+species_wall_bc(size_t nc, double *out, const double *inp, void *ctx)
+{
+  struct species_wall_bc_ctx *mc = (struct species_wall_bc_ctx*) ctx;
+  int dir = mc->dir, cdim = mc->cdim;
+
+  mc->basis->flip_odd_sign(dir, inp, out);
+  mc->basis->flip_odd_sign(dir+cdim, out, out);
+}
