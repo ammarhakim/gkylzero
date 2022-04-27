@@ -37,7 +37,7 @@ dg_vlasov_sr_set_cu_dev_ptrs(struct dg_vlasov_sr *vlasov_sr, enum gkyl_basis_typ
   vlasov_sr->auxfields.qmem = 0; 
   vlasov_sr->auxfields.p_over_gamma= 0; 
 
-  vlasov_sr->eqn.vol_term = vol;
+  //vlasov_sr->eqn.vol_term = vol;
   vlasov_sr->eqn.surf_term = surf;
   vlasov_sr->eqn.boundary_surf_term = boundary_surf;
 

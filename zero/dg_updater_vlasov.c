@@ -114,10 +114,10 @@ gkyl_dg_updater_vlasov_advance_cu(gkyl_dg_updater_vlasov *vlasov,
       (struct gkyl_dg_vlasov_auxfields) { .qmem = aux1 });
   else if (field_id == GKYL_FIELD_PHI || field_id == GKYL_FIELD_PHI_A)
     gkyl_vlasov_poisson_set_auxfields(vlasov->eqn_vlasov, 
-      (struct gkyl_dg_vlasov_auxfields) { .fac_phi = aux1, .vecA = aux2 });
+      (struct gkyl_dg_vlasov_poisson_auxfields) { .fac_phi = aux1, .vecA = aux2 });
   else if (field_id == GKYL_FIELD_SR_E_B || field_id == GKYL_FIELD_SR_NULL)
     gkyl_vlasov_sr_set_auxfields(vlasov->eqn_vlasov, 
-      (struct gkyl_dg_vlasov_auxfields) { .qmem = aux1, .p_over_gamma = aux2 });
+      (struct gkyl_dg_vlasov_sr_auxfields) { .qmem = aux1, .p_over_gamma = aux2 });
 
   struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance_cu(vlasov->up_vlasov, update_rng, fIn, cflrate, rhs);

@@ -65,7 +65,7 @@ gkyl_mom_vlasov_sr_set_auxfields_cu_kernel(const struct gkyl_mom_type *momt, con
 
 // Host-side wrapper for set_auxfields_cu_kernel
 void
-gkyl_mom_vlasov_sr_set_auxfields_cu(cconst struct gkyl_mom_type *momt, struct gkyl_mom_vlasov_sr_auxfields auxin)
+gkyl_mom_vlasov_sr_set_auxfields_cu(const struct gkyl_mom_type *momt, struct gkyl_mom_vlasov_sr_auxfields auxin)
 {
   gkyl_mom_vlasov_sr_set_auxfields_cu_kernel<<<1,1>>>(momt, auxin.p_over_gamma->on_dev);
 }
@@ -141,7 +141,7 @@ gkyl_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis* cbasis,
 
   momt->momt.flags = 0;
   GKYL_SET_CU_ALLOC(momt->momt.flags);
-  momt->momt.ref_count = gkyl_ref_count_init(gkyl_mom_free);
+  momt->momt.ref_count = gkyl_ref_count_init(gkyl_mom_vm_sr_free);
   
   // copy struct to device
   struct mom_type_vlasov_sr *momt_cu = (struct mom_type_vlasov_sr*)
