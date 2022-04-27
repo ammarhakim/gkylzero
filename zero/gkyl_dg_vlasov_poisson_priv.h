@@ -63,7 +63,7 @@ kernel_vlasov_poisson_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
 
   long cidx = gkyl_range_idx(&vlasov_poisson->conf_range, idx);
   return vlasov_poisson_vol_1x1v_ser_p1(xc, dx,
-    (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), NULL,
+    (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), 0,
     qIn, qRhsOut);
 }
 
@@ -76,7 +76,7 @@ kernel_vlasov_poisson_vol_1x1v_ser_p2(const struct gkyl_dg_eqn *eqn, const doubl
 
   long cidx = gkyl_range_idx(&vlasov_poisson->conf_range, idx);
   return vlasov_poisson_vol_1x1v_ser_p2(xc, dx,
-    (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), NULL,
+    (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), 0,
     qIn, qRhsOut);
 }
 
@@ -89,7 +89,7 @@ kernel_vlasov_poisson_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
 
   long cidx = gkyl_range_idx(&vlasov_poisson->conf_range, idx);
   return vlasov_poisson_vol_1x2v_ser_p1(xc, dx,
-    (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), NULL,
+    (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), 0,
     qIn, qRhsOut);
 }
 
@@ -102,7 +102,7 @@ kernel_vlasov_poisson_vol_1x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const doubl
 
   long cidx = gkyl_range_idx(&vlasov_poisson->conf_range, idx);
   return vlasov_poisson_vol_1x2v_ser_p2(xc, dx,
-    (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), NULL,
+    (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), 0,
     qIn, qRhsOut);
 }
 
@@ -115,7 +115,7 @@ kernel_vlasov_poisson_vol_1x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
 
   long cidx = gkyl_range_idx(&vlasov_poisson->conf_range, idx);
   return vlasov_poisson_vol_1x3v_ser_p1(xc, dx,
-    (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), NULL,
+    (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), 0,
     qIn, qRhsOut);
 }
 
@@ -128,7 +128,7 @@ kernel_vlasov_poisson_vol_1x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const doubl
 
   long cidx = gkyl_range_idx(&vlasov_poisson->conf_range, idx);
   return vlasov_poisson_vol_1x3v_ser_p2(xc, dx,
-    (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), NULL,
+    (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), 0,
     qIn, qRhsOut);
 }
 
@@ -141,7 +141,7 @@ kernel_vlasov_poisson_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
 
   long cidx = gkyl_range_idx(&vlasov_poisson->conf_range, idx);
   return vlasov_poisson_vol_2x2v_ser_p1(xc, dx,
-    (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), NULL,
+    (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), 0,
     qIn, qRhsOut);
 }
 
@@ -154,7 +154,7 @@ kernel_vlasov_poisson_vol_2x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const doubl
 
   long cidx = gkyl_range_idx(&vlasov_poisson->conf_range, idx);
   return vlasov_poisson_vol_2x2v_ser_p2(xc, dx,
-    (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), NULL,
+    (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), 0,
     qIn, qRhsOut);
 }
 
@@ -167,7 +167,7 @@ kernel_vlasov_poisson_vol_2x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
 
   long cidx = gkyl_range_idx(&vlasov_poisson->conf_range, idx);
   return vlasov_poisson_vol_2x3v_ser_p1(xc, dx,
-    (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), NULL,
+    (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), 0,
     qIn, qRhsOut);
 }
 
@@ -180,7 +180,7 @@ kernel_vlasov_poisson_vol_2x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const doubl
 
   long cidx = gkyl_range_idx(&vlasov_poisson->conf_range, idx);
   return vlasov_poisson_vol_2x3v_ser_p2(xc, dx,
-    (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), NULL,
+    (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), 0,
     qIn, qRhsOut);
 }
 
@@ -193,7 +193,7 @@ kernel_vlasov_poisson_vol_3x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const doubl
 
   long cidx = gkyl_range_idx(&vlasov_poisson->conf_range, idx);
   return vlasov_poisson_vol_3x3v_ser_p1(xc, dx,
-    (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), NULL,
+    (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.fac_phi, cidx), 0,
     qIn, qRhsOut);
 }
 
