@@ -640,31 +640,229 @@ static const gkyl_dg_vlasov_sr_accel_boundary_surf_kern_list ser_accel_boundary_
 // Tensor-product basis kernels
 //
 
-// // Volume kernel list
+//
+// Tensor volume kernels relativistic streaming only
+// Only need p>1
+// Need to be separated like this for GPU build
+//
+
+// GKYL_CU_DH
+// static double
+// kernel_vlasov_sr_stream_vol_1x1v_tensor_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+//   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+// {
+//   struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+//   int idx_vel[GKYL_MAX_DIM];
+//   for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+//     idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+//   long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+//   long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+//   return vlasov_sr_stream_vol_1x1v_tensor_p2(xc, dx,
+//     (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 0,
+//     qIn, qRhsOut);  
+// }
+
+// GKYL_CU_DH
+// static double
+// kernel_vlasov_sr_stream_vol_1x2v_tensor_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+//   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+// {
+//   struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+//   int idx_vel[GKYL_MAX_DIM];
+//   for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+//     idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+//   long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+//   long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+//   return vlasov_sr_stream_vol_1x2v_tensor_p2(xc, dx,
+//     (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 0,
+//     qIn, qRhsOut);  
+// }
+
+// GKYL_CU_DH
+// static double
+// kernel_vlasov_sr_stream_vol_1x3v_tensor_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+//   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+// {
+//   struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+//   int idx_vel[GKYL_MAX_DIM];
+//   for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+//     idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+//   long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+//   long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+//   return vlasov_sr_stream_vol_1x3v_tensor_p2(xc, dx,
+//     (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 0,
+//     qIn, qRhsOut);  
+// }
+
+// GKYL_CU_DH
+// static double
+// kernel_vlasov_sr_stream_vol_2x2v_tensor_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+//   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+// {
+//   struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+//   int idx_vel[GKYL_MAX_DIM];
+//   for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+//     idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+//   long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+//   long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+//   return vlasov_sr_stream_vol_2x2v_tensor_p2(xc, dx,
+//     (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 0,
+//     qIn, qRhsOut);  
+// }
+
+// GKYL_CU_DH
+// static double
+// kernel_vlasov_sr_stream_vol_2x3v_tensor_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+//   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+// {
+//   struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+//   int idx_vel[GKYL_MAX_DIM];
+//   for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+//     idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+//   long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+//   long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+//   return vlasov_sr_stream_vol_2x3v_tensor_p2(xc, dx,
+//     (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 0,
+//     qIn, qRhsOut);  
+// }
+
+// // Volume kernel list for relativistic streaming only
 // GKYL_CU_D
 // static const gkyl_dg_vlasov_sr_stream_vol_kern_list ten_stream_vol_kernels[] = {
 //   // 1x kernels
-//   { NULL, vlasov_sr_stream_vol_1x1v_ser_p1, vlasov_sr_stream_vol_1x1v_tensor_p2 }, // 0
-//   { NULL, vlasov_sr_stream_vol_1x2v_ser_p1, vlasov_sr_stream_vol_1x2v_tensor_p2 }, // 1
-//   { NULL, vlasov_sr_stream_vol_1x3v_ser_p1, vlasov_sr_stream_vol_1x3v_tensor_p2 }, // 2
+//   { NULL, kernel_vlasov_sr_stream_vol_1x1v_ser_p1, kernel_vlasov_sr_stream_vol_1x1v_tensor_p2 }, // 0
+//   { NULL, kernel_vlasov_sr_stream_vol_1x2v_ser_p1, kernel_vlasov_sr_stream_vol_1x2v_tensor_p2 }, // 1
+//   { NULL, kernel_vlasov_sr_stream_vol_1x3v_ser_p1, kernel_vlasov_sr_stream_vol_1x3v_tensor_p2 }, // 2
 //   // 2x kernels
-//   { NULL, vlasov_sr_stream_vol_2x2v_ser_p1, vlasov_sr_stream_vol_2x2v_tensor_p2 }, // 3
-//   { NULL, vlasov_sr_stream_vol_2x3v_ser_p1, NULL               }, // 4
+//   { NULL, kernel_vlasov_sr_stream_vol_2x2v_ser_p1, kernel_vlasov_sr_stream_vol_2x2v_tensor_p2 }, // 3
+//   { NULL, kernel_vlasov_sr_stream_vol_2x3v_ser_p1, kernel_vlasov_sr_stream_vol_2x3v_tensor_p2 }, // 4
 //   // 3x kernels
-//   { NULL, vlasov_sr_stream_vol_3x3v_ser_p1, NULL               }, // 5
+//   { NULL, kernel_vlasov_sr_stream_vol_3x3v_ser_p1, NULL               }, // 5
 // };
 
+// //
+// // Tensor volume kernels (streaming + EM) kernels
+// // Only needed for p>1
+// // Need to be separated like this for GPU build
+// //
+
+// GKYL_CU_DH
+// static double
+// kernel_vlasov_sr_vol_1x1v_tensor_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+//   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+// {
+//   struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+//   int idx_vel[GKYL_MAX_DIM];
+//   for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+//     idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+//   long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+//   long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+//   return vlasov_sr_vol_1x1v_tensor_p2(xc, dx,
+//     (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 
+//     (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.qmem, cidx),
+//     qIn, qRhsOut);  
+// }
+
+// GKYL_CU_DH
+// static double
+// kernel_vlasov_sr_vol_1x2v_tensor_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+//   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+// {
+//   struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+//   int idx_vel[GKYL_MAX_DIM];
+//   for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+//     idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+//   long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+//   long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+//   return vlasov_sr_vol_1x2v_tensor_p2(xc, dx,
+//     (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 
+//     (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.qmem, cidx),
+//     qIn, qRhsOut);  
+// }
+
+// GKYL_CU_DH
+// static double
+// kernel_vlasov_sr_vol_1x3v_tensor_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+//   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+// {
+//   struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+//   int idx_vel[GKYL_MAX_DIM];
+//   for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+//     idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+//   long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+//   long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+//   return vlasov_sr_vol_1x3v_tensor_p2(xc, dx,
+//     (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 
+//     (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.qmem, cidx),
+//     qIn, qRhsOut);  
+// }
+
+// GKYL_CU_DH
+// static double
+// kernel_vlasov_sr_vol_2x2v_tensor_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+//   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+// {
+//   struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+//   int idx_vel[GKYL_MAX_DIM];
+//   for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+//     idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+//   long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+//   long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+//   return vlasov_sr_vol_2x2v_tensor_p2(xc, dx,
+//     (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 
+//     (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.qmem, cidx),
+//     qIn, qRhsOut);  
+// }
+
+// GKYL_CU_DH
+// static double
+// kernel_vlasov_sr_vol_2x3v_tensor_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+//   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+// {
+//   struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+//   int idx_vel[GKYL_MAX_DIM];
+//   for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+//     idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+//   long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+//   long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+//   return vlasov_sr_vol_2x3v_tensor_p2(xc, dx,
+//     (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 
+//     (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.qmem, cidx),
+//     qIn, qRhsOut);  
+// }
+
+// // Volume kernel list for relativistic streaming + EM
 // GKYL_CU_D
 // static const gkyl_dg_vlasov_sr_vol_kern_list ten_vol_kernels[] = {
 //   // 1x kernels
-//   { NULL, vlasov_sr_vol_1x1v_ser_p1, vlasov_sr_vol_1x1v_tensor_p2 }, // 0
-//   { NULL, vlasov_sr_vol_1x2v_ser_p1, vlasov_sr_vol_1x2v_tensor_p2 }, // 1
-//   { NULL, vlasov_sr_vol_1x3v_ser_p1, vlasov_sr_vol_1x3v_tensor_p2 }, // 2
+//   { NULL, kernel_vlasov_sr_vol_1x1v_ser_p1, kernel_vlasov_sr_vol_1x1v_tensor_p2 }, // 0
+//   { NULL, kernel_vlasov_sr_vol_1x2v_ser_p1, kernel_vlasov_sr_vol_1x2v_tensor_p2 }, // 1
+//   { NULL, kernel_vlasov_sr_vol_1x3v_ser_p1, kernel_vlasov_sr_vol_1x3v_tensor_p2 }, // 2
 //   // 2x kernels
-//   { NULL, vlasov_sr_vol_2x2v_ser_p1, vlasov_sr_vol_2x2v_tensor_p2 }, // 3
-//   { NULL, vlasov_sr_vol_2x3v_ser_p1, NULL               }, // 4
+//   { NULL, kernel_vlasov_sr_vol_2x2v_ser_p1, kernel_vlasov_sr_vol_2x2v_tensor_p2 }, // 3
+//   { NULL, kernel_vlasov_sr_vol_2x3v_ser_p1, kernel_vlasov_sr_vol_2x3v_tensor_p2 }, // 4
 //   // 3x kernels
-//   { NULL, vlasov_sr_vol_3x3v_ser_p1, NULL               }, // 5
+//   { NULL, kernel_vlasov_sr_vol_3x3v_ser_p1, NULL               }, // 5
 // };
 
 // // Streaming surface kernel list: x-direction
