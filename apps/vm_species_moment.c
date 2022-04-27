@@ -25,7 +25,15 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   sm->use_gpu = app->use_gpu;
   
   if (app->use_gpu) {
-    struct gkyl_mom_type *mtype = gkyl_mom_vlasov_cu_dev_new(&app->confBasis, &app->basis, nm);
+    struct gkyl_mom_type *mtype;
+    if (s->field_id == GKYL_FIELD_SR_E_B) {
+      mtype = gkyl_mom_vlasov_sr_cu_dev_new(&app->confBasis, &app->basis, &s->local_vel, nm);
+      gkyl_mom_vlasov_sr_set_auxfields(mtype, 
+        (struct gkyl_mom_vlasov_sr_auxfields) { .p_over_gamma = s->p_over_gamma });
+    }
+    else {
+      mtype = gkyl_mom_vlasov_cu_dev_new(&app->confBasis, &app->basis, nm);
+    }
     sm->mcalc = gkyl_mom_calc_cu_dev_new(&s->grid, mtype);
 
     sm->marr = mkarr(app->use_gpu, mtype->num_mom*app->confBasis.num_basis,
@@ -37,7 +45,15 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
     gkyl_mom_type_release(mtype);
   }
   else {
-    struct gkyl_mom_type *mtype = gkyl_mom_vlasov_new(&app->confBasis, &app->basis, nm);
+    struct gkyl_mom_type *mtype;
+    if (s->field_id == GKYL_FIELD_SR_E_B) {
+      mtype = gkyl_mom_vlasov_sr_new(&app->confBasis, &app->basis, &s->local_vel, nm);
+      gkyl_mom_vlasov_sr_set_auxfields(mtype, 
+        (struct gkyl_mom_vlasov_sr_auxfields) { .p_over_gamma = s->p_over_gamma });
+    }
+    else {
+      mtype = gkyl_mom_vlasov_new(&app->confBasis, &app->basis, nm);
+    }
     sm->mcalc = gkyl_mom_calc_new(&s->grid, mtype);
 
     sm->marr = mkarr(app->use_gpu, mtype->num_mom*app->confBasis.num_basis,

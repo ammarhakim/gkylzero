@@ -191,8 +191,8 @@ gkyl_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
   assert(mom_id != BAD);
   momt->momt.num_mom = v_num_mom(vdim, mom_id); // number of moments
 
-  momt->momt.flag = 0;
-  GKYL_SET_CU_ALLOC(momt->momt.flag);
+  momt->momt.flags = 0;
+  GKYL_SET_CU_ALLOC(momt->momt.flags);
   momt->momt.ref_count = gkyl_ref_count_init(gkyl_mom_free);
   
   // copy struct to device

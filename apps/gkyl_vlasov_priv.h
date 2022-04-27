@@ -24,6 +24,7 @@
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_vlasov.h>
+#include <gkyl_mom_vlasov_sr.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_prim_lbo_calc.h>
 #include <gkyl_prim_lbo_cross_calc.h>

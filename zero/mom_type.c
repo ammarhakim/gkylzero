@@ -1,4 +1,11 @@
 #include <gkyl_mom_type.h>
+#include <gkyl_alloc_flags_priv.h>
+
+bool
+gkyl_mom_type_is_cu_dev(const struct gkyl_mom_type* momt)
+{
+  return GKYL_IS_CU_ALLOC(momt->flags);
+}
 
 struct gkyl_mom_type*
 gkyl_mom_type_acquire(const struct gkyl_mom_type* momt)

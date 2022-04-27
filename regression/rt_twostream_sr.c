@@ -34,14 +34,16 @@ evalDistFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   // modified Bessel function of the second kind evaluated for T = mc^2 (K_2(1))
   //double K_2 = 1.6248388986351774828107073822838437146593935281628733843345054697;
   // modified Bessel function of the second kind evaluated for T = 0.1 mc^2 (K_2(10))
-  double K_2 = 0.0000215098170069327687306645644239671272492068461808732468335569;
+  //double K_2 = 0.0000215098170069327687306645644239671272492068461808732468335569;
+  // modified Bessel function of the second kind evaluated for T = 0.04 mc^2 (K_2(25))
+  double K_2 = 3.7467838080691090570137658745889511812329380156362352887017e-12;
   // Lorentz factor for drift velocity
   double gamma = 1.0/sqrt(1 - vdrift*vdrift);
-  //double n = 1+alpha*(cos(k*x) + cos(2*k*x) + cos(3*k*x) + cos(4*k*x) + cos(5*k*x) + cos(6*k*x));
+
   double n = 1+alpha*cos(k*x);
   double mc2_T = 1.0/T;
 
-  double fv = n/(4*M_PI*K_2)*(exp(-mc2_T*gamma*(sqrt(1 + p*p) - vdrift*p)) + exp(-mc2_T*gamma*(sqrt(1 + p*p) + vdrift*p)));
+  double fv = 0.5*n/(4*M_PI*K_2)*(exp(-mc2_T*gamma*(sqrt(1 + p*p) - vdrift*p)) + exp(-mc2_T*gamma*(sqrt(1 + p*p) + vdrift*p)));
   fout[0] = (1+alpha*cos(k*x))*fv;
 }
 
@@ -52,7 +54,6 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double x = xn[0];
   double alpha = app->perturbation, k = app->knumber;
 
-  //double E_x = -alpha*(sin(k*x)/k + sin(2*k*x)/(2*k) + sin(3*k*x)/(3*k) + sin(4*k*x)/(4*k) + sin(5*k*x)/(5*k) + sin(6*k*x)/(6*k));
   double E_x = -alpha*sin(k*x)/k;
 
   fout[0] = E_x; fout[1] = 0.0, fout[2] = 0.0;
@@ -64,8 +65,8 @@ struct twostream_ctx
 create_default_ctx(void)
 {
   return (struct twostream_ctx) {
-    .knumber = 0.5,
-    .T = 0.1,
+    .knumber = 0.02,
+    .T = 0.04,
     .vdrift = 0.99,
     .perturbation = 1.0e-4,
   };
@@ -81,8 +82,8 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 64);
-  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 64);  
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 128);  
 
   struct twostream_ctx ctx;
   
@@ -140,7 +141,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.5;
+  double tcurr = 0.0, tend = 500.0;
   double dt = tend-tcurr;
 
   // initialize simulation

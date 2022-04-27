@@ -110,15 +110,6 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   }
   s->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
   
-  // allocate data for momentum (for use in current accumulation)
-  vm_species_moment_init(app, s, &s->m1i, "M1i");
-  
-  int ndm = s->info.num_diag_moments;
-  // allocate data for diagnostic moments
-  s->moms = gkyl_malloc(sizeof(struct vm_species_moment[ndm]));
-  for (int m=0; m<ndm; ++m)
-    vm_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
-
   // determine field-type 
   s->field_id = app->has_field ? app->field->info.field_id : GKYL_FIELD_NULL;
 
@@ -160,6 +151,15 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
   // acquire equation object
   s->eqn_vlasov = gkyl_dg_updater_vlasov_acquire_eqn(s->slvr);
+
+  // allocate data for momentum (for use in current accumulation)
+  vm_species_moment_init(app, s, &s->m1i, "M1i");
+  
+  int ndm = s->info.num_diag_moments;
+  // allocate data for diagnostic moments
+  s->moms = gkyl_malloc(sizeof(struct vm_species_moment[ndm]));
+  for (int m=0; m<ndm; ++m)
+    vm_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
 
   s->has_accel = false;
   // setup applied acceleration
