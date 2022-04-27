@@ -29,7 +29,7 @@ gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid,
   if (field_id == GKYL_FIELD_E_B || field_id == GKYL_FIELD_NULL)
     up->eqn_vlasov = gkyl_dg_vlasov_new(cbasis, pbasis, conf_range, field_id, use_gpu);
   else if (field_id == GKYL_FIELD_PHI || field_id == GKYL_FIELD_PHI_A)
-    up->eqn_vlasov = gkyl_dg_vlasov_poisson_new(cbasis, pbasis, conf_range);
+    up->eqn_vlasov = gkyl_dg_vlasov_poisson_new(cbasis, pbasis, conf_range, field_id, use_gpu);
   else if (field_id == GKYL_FIELD_SR_E_B || field_id == GKYL_FIELD_SR_NULL)
     up->eqn_vlasov = gkyl_dg_vlasov_sr_new(cbasis, pbasis, conf_range, vel_range, field_id, use_gpu);
 

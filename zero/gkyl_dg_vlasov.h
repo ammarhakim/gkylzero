@@ -19,6 +19,7 @@ struct gkyl_dg_vlasov_auxfields {
  * @param pbasis Phase-space basis functions
  * @param conf_range Configuration space range for use in indexing EM field
  * @param field_id enum to determine what type of EM fields (Vlasov-Maxwell vs. neutrals)
+ * @param use_gpu bool to determine if on GPU
  * @return Pointer to Vlasov equation object
  */
 struct gkyl_dg_eqn* gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis,

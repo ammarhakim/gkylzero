@@ -28,7 +28,7 @@ void
 gkyl_vlasov_poisson_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_poisson_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(auxin.fac_phi) && (gkyl_array_is_cu_dev(auxin.vecA))) {
+  if (gkyl_dg_eqn_is_cu_dev(eqn)) {
     gkyl_vlasov_poisson_set_auxfields_cu(eqn->on_dev, auxin);
     return;
   }
@@ -41,8 +41,13 @@ gkyl_vlasov_poisson_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_
 
 struct gkyl_dg_eqn*
 gkyl_dg_vlasov_poisson_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, enum gkyl_field_id field_id)
+  const struct gkyl_range* conf_range, enum gkyl_field_id field_id, bool use_gpu)
 {
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_dg_vlasov_poisson_cu_dev_new(cbasis, pbasis, conf_range, field_id);
+  } 
+#endif
   struct dg_vlasov_poisson *vlasov_poisson = gkyl_malloc(sizeof(struct dg_vlasov_poisson));
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
