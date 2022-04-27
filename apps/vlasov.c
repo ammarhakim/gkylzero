@@ -266,8 +266,16 @@ gkyl_vlasov_app_write_species_gamma(gkyl_vlasov_app* app, int sidx, double tm, i
   char fileNm[sz+1]; // ensures no buffer overflow  
   snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame);
 
-  gkyl_grid_sub_array_write(&app->species[sidx].grid_vel, &app->species[sidx].local_vel,
-    app->species[sidx].p_over_gamma, fileNm);
+  if (app->use_gpu) {
+    // copy data from device to host before writing it out
+    gkyl_array_copy(app->species[sidx].p_over_gamma_host, app->species[sidx].p_over_gamma);
+    gkyl_grid_sub_array_write(&app->species[sidx].grid_vel, &app->species[sidx].local_vel,
+      app->species[sidx].p_over_gamma_host, fileNm);
+  }
+  else {
+    gkyl_grid_sub_array_write(&app->species[sidx].grid_vel, &app->species[sidx].local_vel,
+      app->species[sidx].p_over_gamma, fileNm);
+  }  
 }
 
 void
