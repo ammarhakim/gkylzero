@@ -15,24 +15,24 @@ ev_p_over_gamma_1p(double t, const double *xn, double *out, void *ctx)
 {
   struct gamma_ctx *gtx = (struct gamma_ctx*) ctx;
   double mass = gtx->mass;
-  out[0] = xn[0]/sqrt(mass*mass + xn[0]*xn[0]);
+  out[0] = xn[0]/sqrt(1.0 + xn[0]*xn[0]);
 }
 static void 
 ev_p_over_gamma_2p(double t, const double *xn, double *out, void *ctx)
 {
   struct gamma_ctx *gtx = (struct gamma_ctx*) ctx;
   double mass = gtx->mass;
-  out[0] = xn[0]/sqrt(mass*mass + xn[0]*xn[0] + xn[1]*xn[1]);
-  out[1] = xn[1]/sqrt(mass*mass + xn[0]*xn[0] + xn[1]*xn[1]);
+  out[0] = xn[0]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1]);
+  out[1] = xn[1]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1]);
 }
 static void 
 ev_p_over_gamma_3p(double t, const double *xn, double *out, void *ctx)
 {
   struct gamma_ctx *gtx = (struct gamma_ctx*) ctx;
   double mass = gtx->mass;
-  out[0] = xn[0]/sqrt(mass*mass + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
-  out[1] = xn[1]/sqrt(mass*mass + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
-  out[2] = xn[2]/sqrt(mass*mass + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+  out[0] = xn[0]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+  out[1] = xn[1]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+  out[2] = xn[2]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
 }
 
 static const evalf_t p_over_gamma_func[3] = {ev_p_over_gamma_1p, ev_p_over_gamma_2p, ev_p_over_gamma_3p};
@@ -161,7 +161,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   }
 
   // create solver
-  s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, &app->local, &s->local_vel, s->field_id, app->use_gpu);
+  s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
+    &app->local, &s->local_vel, s->field_id, app->use_gpu);
 
   // acquire equation object
   s->eqn_vlasov = gkyl_dg_updater_vlasov_acquire_eqn(s->slvr);
@@ -192,6 +193,33 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     };
     s->accel_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, app->confBasis.poly_order+1,
       8, eval_accel, &s->accel_ctx);
+  }
+
+  s->has_source = false;
+  // setup constant source
+  if (s->info.source) {
+    s->has_source = true;
+    // we need to ensure source has same shape as distribution function
+    s->source = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
+
+    s->source_host = s->source;
+    if (app->use_gpu)
+      s->source_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
+
+    s->source_ctx = (struct vm_eval_source_ctx) {
+      .source_func = s->info.source, .source_ctx = s->info.source_ctx
+    };
+
+    s->source_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+        .grid = &s->grid,
+        .basis = &app->basis,
+        .qtype = GKYL_GAUSS_QUAD,
+        .num_quad = app->basis.poly_order+1,
+        .num_ret_vals = 1,
+        .eval = s->info.source,
+        .ctx = s->info.source_ctx
+      }
+    );
   }
 
   // determine collision type to use in vlasov update
@@ -254,6 +282,9 @@ vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
 
   // we are computing acceleration for now as it is time-independent
   vm_species_calc_accel(app, species, t0);
+
+  // we are computing source for now as it is time-independent
+  vm_species_calc_source(app, species, t0);
 }
 
 void
@@ -263,6 +294,16 @@ vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, double t
     gkyl_proj_on_basis_advance(species->accel_proj, tm, &app->local_ext, species->accel_host);
     if (app->use_gpu) // note: accel_host is same as accel when not on GPUs
       gkyl_array_copy(species->accel, species->accel_host);
+  }
+}
+
+void
+vm_species_calc_source(gkyl_vlasov_app *app, struct vm_species *species, double tm)
+{
+  if (species->has_source) {
+    gkyl_proj_on_basis_advance(species->source_proj, tm, &species->local_ext, species->source_host);
+    if (app->use_gpu) // note: source_host is same as source when not on GPUs
+      gkyl_array_copy(species->source, species->source_host);
   }
 }
 
@@ -294,6 +335,9 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
 
   if (species->collision_id == GKYL_LBO_COLLISIONS)
     vm_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
+
+  if (species->has_source)
+    gkyl_array_accumulate(rhs, 1.0, species->source);
 
   gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, species->local);
   double omegaCfl = species->omegaCfl_ptr[0];
@@ -457,6 +501,14 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
       gkyl_array_release(s->accel_host);
 
     gkyl_proj_on_basis_release(s->accel_proj);
+  }
+
+  if (s->has_source) {
+    gkyl_array_release(s->source);
+    if (app->use_gpu)
+      gkyl_array_release(s->source_host);
+
+    gkyl_proj_on_basis_release(s->source_proj);
   }
 
   if (s->collision_id == GKYL_LBO_COLLISIONS)

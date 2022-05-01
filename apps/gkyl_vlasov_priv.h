@@ -113,6 +113,9 @@ struct vm_bgk_collisions {
 // context for use in computing applied acceleration
 struct vm_eval_accel_ctx { evalf_t accel_func; void *accel_ctx; };
 
+// context for use in computing applied source
+struct vm_eval_source_ctx { evalf_t source_func; void *source_ctx; };
+
 // species data
 struct vm_species {
   struct gkyl_vlasov_species info; // data for species
@@ -156,6 +159,12 @@ struct vm_species {
   struct gkyl_array *accel_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *accel_proj; // projector for acceleration
   struct vm_eval_accel_ctx accel_ctx; // context for applied acceleration
+
+  bool has_source; // flag to indicate there is applied source
+  struct gkyl_array *source; // applied source
+  struct gkyl_array *source_host; // host copy for use in IO and projecting
+  gkyl_proj_on_basis *source_proj; // projector for source
+  struct vm_eval_source_ctx source_ctx; // context for applied source
 
   enum gkyl_collision_id collision_id; // type of collisions
   bool collides_with_fluid; // boolean for if kinetic species collides with a fluid speceis
@@ -471,6 +480,15 @@ void vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, doubl
  * @param tm Time for use in acceleration
  */
 void vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, double tm);
+
+/**
+ * Compute species applied source term
+ *
+ * @param app Vlasov app object
+ * @param species Species object
+ * @param tm Time for use in source
+ */
+void vm_species_calc_source(gkyl_vlasov_app *app, struct vm_species *species, double tm);
 
 /**
  * Compute RHS from species distribution function

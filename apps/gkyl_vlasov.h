@@ -56,6 +56,10 @@ struct gkyl_vlasov_species {
   // pointer to applied acceleration function
   void (*accel)(double t, const double *xn, double *aout, void *ctx);
 
+  void *source_ctx; // context for applied source function
+  // pointer to applied source function
+  void (*source)(double t, const double *xn, double *aout, void *ctx);
+
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
 };
