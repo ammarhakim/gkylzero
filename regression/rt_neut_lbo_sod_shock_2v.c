@@ -75,8 +75,14 @@ main(int argc, char **argv)
 
     .ctx = &ctx,
     .init = evalDistFunc,
-    .nu = evalNu,
-    .collision_id = GKYL_LBO_COLLISIONS,
+
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+
+      .ctx = &ctx,
+      .self_nu = evalNu,
+    },    
+    
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
   };

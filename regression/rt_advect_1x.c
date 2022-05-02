@@ -1,48 +1,29 @@
+#include <assert.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
 
-struct free_stream_ctx {
-  double charge; // charge
-  double mass; // mass
-  double vt; // thermal velocity
-  double Lx; // size of the box
-};
-
 static inline double sq(double x) { return x*x; }
 
 void
-evalDistFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+eval_fun(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct free_stream_ctx *app = ctx;
-  double x = xn[0], vx = xn[1], vy = xn[2], vz = xn[3];
-  if(vx>-1.0 && vx<1.0 && vy>-1.0 && vy<1.0 && vz>-1.0 && vz<1.0) {
-    fout[0] = 0.5;
-  } else {
-    fout[0] = 0.0;
-  }
+  double x = xn[0];
+
+  fout[0] = sin(x);
 }
 
 void
-evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+eval_advect_vel(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
+  double x = xn[0];
   fout[0] = 1.0;
-}
-
-struct free_stream_ctx
-create_ctx(void)
-{
-  struct free_stream_ctx ctx = {
-    .mass = 1.0,
-    .charge = 1.0,
-    .vt = 1.0,
-    .Lx = 2.0*M_PI
-  };
-  return ctx;
 }
 
 int
@@ -54,50 +35,53 @@ main(int argc, char **argv)
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  struct free_stream_ctx ctx = create_ctx(); // context for init functions
 
-  // electrons
-  struct gkyl_vlasov_species neut = {
-    .name = "neut",
-    .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -4.0*ctx.vt, -4.0*ctx.vt, -4.0*ctx.vt },
-    .upper = { 4.0*ctx.vt, 4.0*ctx.vt, 4.0*ctx.vt }, 
-    .cells = { 8, 8, 8 },
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 16);
 
-    .ctx = &ctx,
-    .init = evalDistFunc,
-    .nu = evalNu,
-    .collision_id = GKYL_LBO_COLLISIONS,
-    .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "M2" },
+  // f
+  struct gkyl_vlasov_fluid_species f = {
+    .name = "f",
+    .charge = 0.0,
+    .mass = 1.0,
+
+    .init = eval_fun,
+    .advection = {
+      .velocity = eval_advect_vel,
+      .velocity_ctx = 0,
+    },
   };
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "top_hat_1x3v",
+    .name = "advect_1x",
 
-    .cdim = 1, .vdim = 3,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx },
-    .cells = { 1 },
+    .cdim = 1,
+    .vdim = 0,
+    .lower = {0.0},
+    .upper = {2 * M_PI},
+    .cells = {NX},
     .poly_order = 2,
     .basis_type = app_args.basis_type,
-
+    .cfl_frac = 0.5,
     .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
+    .periodic_dirs = {0},
 
-    .num_species = 1,
-    .species = { neut },
+    .num_species = 0,
+    .species = {},
+    
+    .num_fluid_species = 1,
+    .fluid_species = {f},
+
     .skip_field = true,
 
     .use_gpu = app_args.use_gpu,
   };
-
+  
   // create app object
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 10.0;
+  double tcurr = 0.0, tend = 20.0*M_PI;
   double dt = tend-tcurr;
 
   // initialize simulation
@@ -113,7 +97,7 @@ main(int argc, char **argv)
     printf(" dt = %g\n", status.dt_actual);
     
     if (!status.success) {
-      printf("** Update method failed! Aborting simulation ....\n");
+      fprintf(stderr, "** Update method failed! Aborting simulation ....\n");
       break;
     }
     tcurr += status.dt_actual;
@@ -128,7 +112,7 @@ main(int argc, char **argv)
   // fetch simulation statistics
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
 
-  // simulation complete, free app
+  // simulation complete, free objects
   gkyl_vlasov_app_release(app);
 
   printf("\n");
@@ -138,9 +122,11 @@ main(int argc, char **argv)
   if (stat.nstage_2_fail > 0) {
     printf("Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
     printf("Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
-  }  
+  }
   printf("Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   printf("Species RHS calc took %g secs\n", stat.species_rhs_tm);
+  printf("Field RHS calc took %g secs\n", stat.field_rhs_tm);
+  printf("Current evaluation and accumulate took %g secs\n", stat.current_tm);
   printf("Updates took %g secs\n", stat.total_tm);
   
   return 0;

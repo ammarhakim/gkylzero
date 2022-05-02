@@ -2,48 +2,10 @@
 #include <float.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_array_ops.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_util.h>
 #include <gkyl_vlasov_priv.h>
-
-// context for use in Wall BCs
-struct maxwell_wall_bc_ctx {
-  int dir; // direction for BCs
-  const struct gkyl_basis *basis; // basis function
-};
-
-enum { M_EX, M_EY, M_EZ, M_BX, M_BY, M_BZ }; // components of EM field
-static const int m_flip_even[3][3] = { // zero tangent E and zero normal B
-  {M_BX, M_EY, M_EZ},
-  {M_BY, M_EX, M_EZ},
-  {M_BZ, M_EX, M_EY},
-};
-static const int m_flip_odd[3][3] = { // zero gradient
-  { M_EX, M_BY, M_BZ },
-  { M_EY, M_BX, M_BZ },
-  { M_EZ, M_BX, M_BY },
-};
-
-static void
-maxwell_wall_bc(size_t nc, double *out, const double *inp, void *ctx)
-{
-  struct maxwell_wall_bc_ctx *mc = ctx;
-  int dir = mc->dir;
-  int nbasis = mc->basis->num_basis;
-
-  const int *feven = m_flip_even[dir];
-  const int *fodd = m_flip_odd[dir];
-
-  for (int i=0; i<3; ++i) {
-    int eloc = nbasis*feven[i], oloc = nbasis*fodd[i];
-    mc->basis->flip_even_sign(dir, &inp[eloc], &out[eloc]);
-    mc->basis->flip_odd_sign(dir, &inp[oloc], &out[oloc]);
-  }
-  // correction potentials
-  int eloc = nbasis*6, oloc = nbasis*7;
-  mc->basis->flip_even_sign(dir, &inp[eloc], &out[eloc]);
-  mc->basis->flip_odd_sign(dir, &inp[oloc], &out[oloc]);
-}
 
 // initialize field object
 struct vm_field* 
@@ -91,8 +53,6 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   f->slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, eqn,
     app->cdim, up_dirs, zero_flux_flags, 1, app->use_gpu);
 
-  gkyl_dg_eqn_release(eqn);
-
   // determine which directions are not periodic
   int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
   for (int d=0; d<num_periodic_dir; ++d)
@@ -112,7 +72,12 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       f->upper_bc[dir] = bc[1];
     }
   }
-  
+  for (int d=0; d<3; ++d)
+    f->wall_bc_func[d] = gkyl_maxwell_wall_bc_create(eqn, d,
+      app->basis_on_dev.confBasis);
+
+  gkyl_dg_eqn_release(eqn);
+
   return f;
 }
 
@@ -192,16 +157,17 @@ void
 vm_field_apply_pec_bc(gkyl_vlasov_app *app, const struct vm_field *field,
   int dir, enum vm_domain_edge edge, struct gkyl_array *f)
 {
+  
   if (edge == VM_EDGE_LOWER) {
     gkyl_array_copy_to_buffer_fn(field->bc_buffer->data, f, app->skin_ghost.lower_skin[dir],
-      maxwell_wall_bc, &(struct maxwell_wall_bc_ctx) { .dir = dir, .basis = &app->confBasis }
+      field->wall_bc_func[dir]
     );
     gkyl_array_copy_from_buffer(f, field->bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
   }
 
   if (edge == VM_EDGE_UPPER) {
     gkyl_array_copy_to_buffer_fn(field->bc_buffer->data, f, app->skin_ghost.upper_skin[dir],
-      maxwell_wall_bc, &(struct maxwell_wall_bc_ctx) { .dir = dir, .basis = &app->confBasis }
+      field->wall_bc_func[dir]
     );
     gkyl_array_copy_from_buffer(f, field->bc_buffer->data, app->skin_ghost.upper_ghost[dir]);
   }  
@@ -260,6 +226,9 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   else {
     gkyl_free(f->omegaCfl_ptr);
   }
+
+  for (int d=0; d<3; ++d)
+    gkyl_maxwell_wall_bc_release(f->wall_bc_func[d]);
 
   gkyl_free(f);
 }

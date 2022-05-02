@@ -199,10 +199,32 @@ test_gk_hyb()
   TEST_CHECK( basis.b_type == GKYL_BASIS_MODAL_GK_HYBRID );
 }
 
+#ifdef GKYL_HAVE_CUDA
+
+int dev_cu_ser_2d(struct gkyl_basis *basis);
+
+void
+test_cu_ser_2d()
+{
+  struct gkyl_basis *basis = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+  gkyl_cart_modal_serendip_cu_dev(basis, 2, 2);
+
+  int nfail = dev_cu_ser_2d(basis);
+
+  TEST_CHECK(nfail == 0);
+
+  gkyl_cu_free(basis);
+}
+
+#endif
+
 TEST_LIST = {
   { "ser_1d", test_ser_1d },
   { "ser_2d", test_ser_2d },
   { "ten_2d", test_ten_2d },
   { "gk_hyb", test_gk_hyb },
+#ifdef GKYL_HAVE_CUDA
+  { "cu_ser_2d", test_cu_ser_2d },
+#endif    
   { NULL, NULL },
 };

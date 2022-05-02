@@ -14,13 +14,16 @@ __global__ static void
 gkyl_prim_lbo_vlasov_set_cu_dev_ptrs(struct prim_lbo_type_vlasov *prim_vlasov, int cdim, int vdim, int poly_order, enum gkyl_basis_type b_type, int tblidx)
 {
   prim_vlasov->prim.self_prim = self_prim;
+  prim_vlasov->prim.cross_prim = cross_prim;
   
   // choose kernel tables based on basis-function type
-  const gkyl_prim_lbo_vlasov_kern_list *self_prim_kernels;
+  const gkyl_prim_lbo_vlasov_self_kern_list *self_prim_kernels;
+  const gkyl_prim_lbo_vlasov_cross_kern_list *cross_prim_kernels;
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       self_prim_kernels = ser_self_prim_kernels;
+      cross_prim_kernels = ser_cross_prim_kernels;
       break;
 
     default:
@@ -29,6 +32,7 @@ gkyl_prim_lbo_vlasov_set_cu_dev_ptrs(struct prim_lbo_type_vlasov *prim_vlasov, i
   }
 
   prim_vlasov->self_prim = self_prim_kernels[tblidx].kernels[poly_order];
+  prim_vlasov->cross_prim = cross_prim_kernels[tblidx].kernels[poly_order];
 }
 
 struct gkyl_prim_lbo_type*

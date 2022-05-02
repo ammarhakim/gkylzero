@@ -8,6 +8,11 @@
 // Object type
 typedef struct gkyl_dg_updater_lbo_vlasov gkyl_dg_updater_lbo_vlasov;
 
+// return type for drag and diffusion timers
+struct gkyl_dg_updater_lbo_vlasov_tm {
+  double drag_tm, diff_tm; // time for drag and diffusion updates
+};
+
 /**
  * Create new updater to update lbo equations using hyper dg.
  *
@@ -49,6 +54,14 @@ void gkyl_dg_updater_lbo_vlasov_advance_cu(gkyl_dg_updater_lbo_vlasov *lbo,
   const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq,
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
+
+/**
+ * Return total time spent in drag and diffusion terms
+ *
+ * @param lbo Updater object
+ * @return timers
+ */
+struct gkyl_dg_updater_lbo_vlasov_tm gkyl_dg_updater_lbo_vlasov_get_tm(const gkyl_dg_updater_lbo_vlasov *lbo);
 
 /**
  * Delete updater.
