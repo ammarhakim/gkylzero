@@ -3,6 +3,49 @@
 #include <stdint.h>
 #include <stdio.h>
 
+/*
+  IF THIS FORMAT IF MODIFIED, PLEASE COPY AND THEN CHANGE THE
+  DESCRIPTION SO WE HAVE THE OLDER VERSIONS DOCUMENTED HERE. UPDATE
+  VERSION BY 1 EACH TIME YOU CHANGE THE FORMAT.
+
+  The format of the gkyl binary output is as follows.
+
+  ## Version 0: Jan 2021. Created by A.H. Note Version 0 has no header
+     information
+
+  Data      Type and meaning
+  --------------------------
+  ndim      uint64_t Dimension of field
+  cells     uint64_t[ndim] number of cells in each direction
+  lower     float64[ndim] Lower bounds of grid
+  upper     float64[ndim] Upper bounds of grid
+  esznc     uint64_t Element-size * number of components in field
+  size      uint64_t Total number of cells in field
+  DATA      size*esznc bytes of data  
+  
+  ## Version 1: May 9th 2022. Created by A.H
+
+  Data      Type and meaning
+  --------------------------
+  gkyl0     5 bytes
+  version   uint64_t 
+  file_type uint64_t (0: field data, 1: diagnostic data)
+  meta_size uint64_t Number of bytes of meta-data
+  DATA      meta_size bytes of data. This is in msgpack format
+
+  For file_type = 0 (field) the above header is followed by
+
+  real_type uint64_t. Indicates real type of data 
+  ndim      uint64_t Dimension of field
+  cells     uint64_t[ndim] number of cells in each direction
+  lower     float64[ndim] Lower bounds of grid
+  upper     float64[ndim] Upper bounds of grid
+  esznc     uint64_t Element-size * number of components in field
+  size      uint64_t Total number of cells in field
+  DATA      size*esznc bytes of data
+  
+ */
+
 #include <gkyl_array_rio.h>
 
 // code for array datatype for use in IO
@@ -20,6 +63,9 @@ static const size_t array_elem_size[] = {
   [GKYL_DOUBLE] = sizeof(double),
   [GKYL_USER] = 1,
 };
+
+// type-id for field data
+static const uint64_t field_file_type = 1;
 
 void
 gkyl_array_write(const struct gkyl_array *arr, FILE *fp)
@@ -61,6 +107,17 @@ gkyl_grid_sub_array_write(const struct gkyl_rect_grid *grid, const struct gkyl_r
 {
   FILE *fp = 0;
   with_file (fp, fname, "w") {
+    const char g0[5] = "gkyl0";
+
+    // Version 1 header
+    fwrite(g0, sizeof(char[5]), 1, fp);
+    uint64_t version = 1;
+    fwrite(&version, sizeof(uint64_t), 1, fp);
+    fwrite(&field_file_type, sizeof(uint64_t), 1, fp);
+    uint64_t meta_size = 0; // THIS WILL CHANGE ONCE METADATA IS EMBEDDED
+    fwrite(&meta_size, sizeof(uint64_t), 1, fp);
+
+    // Version 0 format is used for rest of the file
     uint64_t real_type = array_data_type[arr->type];
     fwrite(&real_type, sizeof(uint64_t), 1, fp);
     gkyl_rect_grid_write(grid, fp);
