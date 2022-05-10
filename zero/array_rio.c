@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 /*
   IF THIS FORMAT IF MODIFIED, PLEASE COPY AND THEN CHANGE THE
@@ -29,11 +30,11 @@
   --------------------------
   gkyl0     5 bytes
   version   uint64_t 
-  file_type uint64_t (0: field data, 1: diagnostic data)
+  file_type uint64_t (1: field data, 2: diagnostic data)
   meta_size uint64_t Number of bytes of meta-data
   DATA      meta_size bytes of data. This is in msgpack format
 
-  For file_type = 0 (field) the above header is followed by
+  For file_type = 1 (field) the above header is followed by
 
   real_type uint64_t. Indicates real type of data 
   ndim      uint64_t Dimension of field
@@ -47,6 +48,7 @@
  */
 
 #include <gkyl_array_rio.h>
+#include <unistd.h>
 
 // code for array datatype for use in IO
 static const uint64_t array_data_type[] = {
@@ -184,6 +186,32 @@ gkyl_grid_sub_array_read(struct gkyl_rect_grid *grid, const struct gkyl_range *r
 {
   FILE *fp = 0;
   with_file (fp, fname, "r") {
+
+    size_t frr;
+    // Version 1 header
+    
+    char g0[6];
+    frr = fread(g0, sizeof(char[5]), 1, fp); // no trailing '\0'
+    g0[5] = '\0'; // add the NULL
+    if (strcmp(g0, "gkyl0") != 0)
+      return 1;
+
+    uint64_t version;
+    frr = fread(&version, sizeof(uint64_t), 1, fp);
+    if (version != 1)
+      return 1;
+
+    uint64_t file_type;
+    frr = fread(&file_type, sizeof(uint64_t), 1, fp);
+    if (file_type != 1)
+      return 1;
+
+    uint64_t meta_size;
+    frr = fread(&meta_size, sizeof(uint64_t), 1, fp);
+
+    // read ahead by specified bytes: READ META-DATA HERE
+    fseek(fp, meta_size, SEEK_CUR);
+    
     uint64_t real_type = 0;
     if (1 != fread(&real_type, sizeof(uint64_t), 1, fp))
       break;
@@ -200,6 +228,32 @@ gkyl_grid_array_new_from_file(struct gkyl_rect_grid *grid, const char* fname)
   struct gkyl_array *arr = 0;
   FILE *fp = 0;
   with_file (fp, fname, "r") {
+
+    size_t frr;
+    // Version 1 header
+    
+    char g0[6];
+    frr = fread(g0, sizeof(char[5]), 1, fp); // no trailing '\0'
+    g0[5] = '\0'; // add the NULL
+    if (strcmp(g0, "gkyl0") != 0)
+      return 0;
+
+    uint64_t version;
+    frr = fread(&version, sizeof(uint64_t), 1, fp);
+    if (version != 1)
+      return 0;
+
+    uint64_t file_type;
+    frr = fread(&file_type, sizeof(uint64_t), 1, fp);
+    if (file_type != 1)
+      return 0;
+
+    uint64_t meta_size;
+    frr = fread(&meta_size, sizeof(uint64_t), 1, fp);
+
+    // read ahead by specified bytes: READ META-DATA HERE
+    fseek(fp, meta_size, SEEK_CUR);    
+    
     uint64_t real_type = 0;
     if (1 != fread(&real_type, sizeof(uint64_t), 1, fp))
       break;

@@ -844,25 +844,31 @@ test_grid_array_rio_1()
   struct gkyl_rect_grid grid2;
   
   // read back the grid and the array
-  gkyl_grid_sub_array_read(&grid2, &range, arr2, "ctest_array_grid_array_1.gkyl");
+  int err =
+    gkyl_grid_sub_array_read(&grid2, &range, arr2, "ctest_array_grid_array_1.gkyl");
 
-  TEST_CHECK( grid.ndim == grid2.ndim );
-  for (int d=0; d<grid.ndim; ++d) {
-    TEST_CHECK( grid.lower[d] == grid2.lower[d] );
-    TEST_CHECK( grid.upper[d] == grid2.upper[d] );
-    TEST_CHECK( grid.cells[d] == grid2.cells[d] );
-    TEST_CHECK( grid.dx[d] == grid2.dx[d] );
-  }
-  TEST_CHECK( grid.cellVolume == grid2.cellVolume );  
+  TEST_CHECK( err == 0 );
 
-  gkyl_range_iter_init(&iter, &range);
-  while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(&range, iter.idx);
+  if (err == 0) {
 
-    const double *rhs = gkyl_array_cfetch(arr, loc);
-    const double *lhs = gkyl_array_cfetch(arr2, loc);
-    for (int k=0; k<2; ++k)
-      TEST_CHECK( lhs[k] == rhs[k] );
+    TEST_CHECK( grid.ndim == grid2.ndim );
+    for (int d=0; d<grid.ndim; ++d) {
+      TEST_CHECK( grid.lower[d] == grid2.lower[d] );
+      TEST_CHECK( grid.upper[d] == grid2.upper[d] );
+      TEST_CHECK( grid.cells[d] == grid2.cells[d] );
+      TEST_CHECK( grid.dx[d] == grid2.dx[d] );
+    }
+    TEST_CHECK( grid.cellVolume == grid2.cellVolume );  
+    
+    gkyl_range_iter_init(&iter, &range);
+    while (gkyl_range_iter_next(&iter)) {
+      long loc = gkyl_range_idx(&range, iter.idx);
+      
+      const double *rhs = gkyl_array_cfetch(arr, loc);
+      const double *lhs = gkyl_array_cfetch(arr2, loc);
+      for (int k=0; k<2; ++k)
+        TEST_CHECK( lhs[k] == rhs[k] );
+    }
   }
   
   gkyl_array_release(arr);
@@ -910,7 +916,7 @@ test_grid_array_rio_2()
   TEST_CHECK( grid.cellVolume == grid2.cellVolume );  
 
   // NOTE: array read from file is not the same shape as "arr". This
-  // is because the new_file_file does not read ghost cells.
+  // is because the new_from_file does not read ghost cells.
   long lhs_loc = 0;
   gkyl_range_iter_init(&iter, &range);
   while (gkyl_range_iter_next(&iter)) {
