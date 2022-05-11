@@ -1,6 +1,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_ref_count.h>
+#include <gkyl_util.h>
 
 #include <errno.h>
 #include <stdbool.h>
@@ -69,6 +70,15 @@ gkyl_dynvec_new(enum gkyl_elem_type type, size_t ncomp)
   dv->ref_count = gkyl_ref_count_init(dynvec_free);
   
   return dv;
+}
+
+void
+gkyl_dynvec_reserve_more(gkyl_dynvec dv, size_t rsize)
+{
+  int n = gkyl_int_div_up(rsize, DYNVEC_ALLOC_SZ);
+  dv->csize = n*DYNVEC_ALLOC_SZ + dv->csize;
+  dv->data = gkyl_realloc(dv->data, dv->csize*dv->esznc);
+  dv->tm_mesh = gkyl_realloc(dv->tm_mesh, dv->csize*sizeof(double));  
 }
 
 void
@@ -233,8 +243,64 @@ gkyl_dynvec_write(const gkyl_dynvec vec, const char *fname)
 bool
 gkyl_dynvec_read(gkyl_dynvec vec, const char *fname)
 {
+  FILE *fp = 0;
+  with_file (fp, fname, "r") {
 
-  return false;
+    size_t frr;
+    // Version 1 header
+    
+    char g0[6];
+    frr = fread(g0, sizeof(char[5]), 1, fp); // no trailing '\0'
+    g0[5] = '\0'; // add the NULL
+    if (strcmp(g0, "gkyl0") != 0)
+      return false;
+
+    uint64_t version;
+    frr = fread(&version, sizeof(uint64_t), 1, fp);
+    if (version != 1)
+      return false;
+
+    uint64_t file_type;
+    frr = fread(&file_type, sizeof(uint64_t), 1, fp);
+    if (file_type != dynvec_file_type)
+      return false;
+
+    uint64_t meta_size;
+    frr = fread(&meta_size, sizeof(uint64_t), 1, fp);
+
+    // read ahead by specified bytes: meta-data is not read in this
+    // method
+    fseek(fp, meta_size, SEEK_CUR);
+    
+    uint64_t real_type = 0;
+    if (1 != fread(&real_type, sizeof(uint64_t), 1, fp))
+      break;
+    if (real_type != array_data_type[vec->type])
+      return false;
+
+    uint64_t esznc, size;
+    if (1 != fread(&esznc, sizeof(uint64_t), 1, fp))
+      return 0;
+    if (vec->esznc != esznc)
+      return false;
+    
+    if (1 != fread(&size, sizeof(uint64_t), 1, fp))
+      return 0;
+
+    // resize vector to allow storing new data
+    gkyl_dynvec_reserve_more(vec, size);
+
+    // read time-mesh data
+    frr = fread(&vec->tm_mesh[vec->cloc], sizeof(double[size]), 1, fp);
+    // read dynvec data
+    frr = fread((char*)vec->data + vec->esznc*vec->cloc,
+      size*esznc, 1, fp);
+
+    // bump location so further inserts occurs after newly read data
+    vec->cloc = vec->cloc+size;
+  }
+  
+  return true; 
 }
 
 void

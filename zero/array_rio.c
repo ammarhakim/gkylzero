@@ -213,14 +213,15 @@ gkyl_grid_sub_array_read(struct gkyl_rect_grid *grid, const struct gkyl_range *r
       return 1;
 
     uint64_t file_type;
-    frr = fread(&file_type, sizeof(uint64_t), 1, fp);
+    frr = fread(&file_type, sizeof(uint64_t), field_file_type, fp);
     if (file_type != 1)
       return 1;
 
     uint64_t meta_size;
     frr = fread(&meta_size, sizeof(uint64_t), 1, fp);
 
-    // read ahead by specified bytes: READ META-DATA HERE
+    // read ahead by specified bytes: meta-data is not read in this
+    // method
     fseek(fp, meta_size, SEEK_CUR);
     
     uint64_t real_type = 0;
