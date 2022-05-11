@@ -104,28 +104,39 @@ gkyl_sub_array_write(const struct gkyl_range *range,
 }
 
 int
+gkyl_grid_sub_array_write_fp(const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *range,
+  const struct gkyl_array *arr, FILE *fp)
+{
+  const char g0[5] = "gkyl0";
+
+  // Version 1 header
+  fwrite(g0, sizeof(char[5]), 1, fp);
+  uint64_t version = 1;
+  fwrite(&version, sizeof(uint64_t), 1, fp);
+  fwrite(&field_file_type, sizeof(uint64_t), 1, fp);
+  uint64_t meta_size = 0; // THIS WILL CHANGE ONCE METADATA IS EMBEDDED
+  fwrite(&meta_size, sizeof(uint64_t), 1, fp);
+  
+  // Version 0 format is used for rest of the file
+  uint64_t real_type = array_data_type[arr->type];
+  fwrite(&real_type, sizeof(uint64_t), 1, fp);
+  gkyl_rect_grid_write(grid, fp);
+  gkyl_sub_array_write(range, arr, fp);
+
+  return errno;
+}
+
+int
 gkyl_grid_sub_array_write(const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
   const struct gkyl_array *arr, const char *fname)
 {
   FILE *fp = 0;
+  int err;
   with_file (fp, fname, "w") {
-    const char g0[5] = "gkyl0";
-
-    // Version 1 header
-    fwrite(g0, sizeof(char[5]), 1, fp);
-    uint64_t version = 1;
-    fwrite(&version, sizeof(uint64_t), 1, fp);
-    fwrite(&field_file_type, sizeof(uint64_t), 1, fp);
-    uint64_t meta_size = 0; // THIS WILL CHANGE ONCE METADATA IS EMBEDDED
-    fwrite(&meta_size, sizeof(uint64_t), 1, fp);
-
-    // Version 0 format is used for rest of the file
-    uint64_t real_type = array_data_type[arr->type];
-    fwrite(&real_type, sizeof(uint64_t), 1, fp);
-    gkyl_rect_grid_write(grid, fp);
-    gkyl_sub_array_write(range, arr, fp);
+    err = gkyl_grid_sub_array_write_fp(grid, range, arr, fp);
   }
-  return errno;
+  return err;
 }
 
 struct gkyl_array*
