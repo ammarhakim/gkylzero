@@ -123,6 +123,20 @@ static const gkyl_mom_kern_list ser_five_moments_kernels[] = {
   { NULL, vlasov_five_moments_3x3v_ser_p1, NULL                     }, // 5
 };
 
+// Integrated moments kernel list
+GKYL_CU_D
+static const gkyl_mom_kern_list ser_int_mom_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_int_mom_1x1v_ser_p1, vlasov_int_mom_1x1v_ser_p2 }, // 0
+  { NULL, vlasov_int_mom_1x2v_ser_p1, vlasov_int_mom_1x2v_ser_p2 }, // 1
+  { NULL, vlasov_int_mom_1x3v_ser_p1, vlasov_int_mom_1x3v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, vlasov_int_mom_2x2v_ser_p1, vlasov_int_mom_2x2v_ser_p2 }, // 3
+  { NULL, vlasov_int_mom_2x3v_ser_p1, NULL }, // 4
+  // 3x kernels
+  { NULL, vlasov_int_mom_3x3v_ser_p1, NULL                     }, // 5
+};
+
 //
 // Tensor-product basis kernels
 //
@@ -215,14 +229,28 @@ static const gkyl_mom_kern_list ten_m3ijk_kernels[] = {
 GKYL_CU_D
 static const gkyl_mom_kern_list ten_five_moments_kernels[] = {
   // 1x kernels
-  { NULL, vlasov_five_moments_1x1v_ser_p1, vlasov_five_moments_1x1v_tensor_p2 }, // 0
-  { NULL, vlasov_five_moments_1x2v_ser_p1, vlasov_five_moments_1x2v_tensor_p2 }, // 1
-  { NULL, vlasov_five_moments_1x3v_ser_p1, vlasov_five_moments_1x3v_tensor_p2 }, // 2
+  {NULL, vlasov_five_moments_1x1v_ser_p1, vlasov_five_moments_1x1v_tensor_p2}, // 0
+  {NULL, vlasov_five_moments_1x2v_ser_p1, vlasov_five_moments_1x2v_tensor_p2}, // 1
+  {NULL, vlasov_five_moments_1x3v_ser_p1, vlasov_five_moments_1x3v_tensor_p2}, // 2
   // 2x kernels
-  { NULL, vlasov_five_moments_2x2v_ser_p1, vlasov_five_moments_2x2v_tensor_p2 }, // 3
-  { NULL, vlasov_five_moments_2x3v_ser_p1, NULL                     }, // 4
+  {NULL, vlasov_five_moments_2x2v_ser_p1, vlasov_five_moments_2x2v_tensor_p2}, // 3
+  {NULL, vlasov_five_moments_2x3v_ser_p1, NULL}, // 4
   // 3x kernels
-  { NULL, vlasov_five_moments_3x3v_ser_p1, NULL                     }, // 5
+  {NULL, vlasov_five_moments_3x3v_ser_p1, NULL}, // 5
+};
+
+// Integrated moments kernel list
+GKYL_CU_D
+static const gkyl_mom_kern_list ten_int_mom_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_int_mom_1x1v_ser_p1, vlasov_int_mom_1x1v_tensor_p2 }, // 0
+  { NULL, vlasov_int_mom_1x2v_ser_p1, vlasov_int_mom_1x2v_tensor_p2 }, // 1
+  { NULL, vlasov_int_mom_1x3v_ser_p1, vlasov_int_mom_1x3v_tensor_p2 }, // 2
+  // 2x kernels
+  { NULL, vlasov_int_mom_2x2v_ser_p1, vlasov_int_mom_2x2v_tensor_p2 }, // 3
+  { NULL, vlasov_int_mom_2x3v_ser_p1, NULL                     }, // 4
+  // 3x kernels
+  { NULL, vlasov_int_mom_3x3v_ser_p1, NULL                     }, // 5
 };
 
 struct mom_type_vlasov {
