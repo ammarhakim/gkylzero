@@ -2,13 +2,14 @@
 //
 #include <acutest.h>
 
+#include <gkyl_array_ops.h>
+#include <gkyl_array_rio.h>
+#include <gkyl_mom_calc.h>
+#include <gkyl_mom_vlasov.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_mom_calc.h>
-#include <gkyl_mom_vlasov.h>
-#include <gkyl_array_rio.h>
 
 void
 test_mom_vlasov()
@@ -133,20 +134,25 @@ test_1x1v_p1()
   struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0");
   struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M1i");
   struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M2");
+  struct gkyl_mom_type *int_t = gkyl_int_mom_vlasov_new(&confBasis, &basis);
+  
   gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, vmM0_t);
   gkyl_mom_calc *m1icalc = gkyl_mom_calc_new(&grid, vmM1i_t);
   gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, vmM2_t);
+  gkyl_mom_calc *intcalc = gkyl_mom_calc_new(&grid, int_t);
 
   // create moment arrays
-  struct gkyl_array *m0, *m1i, *m2;
+  struct gkyl_array *m0, *m1i, *m2, *int_mom;
   m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
   m1i = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
   m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  int_mom = mkarr(vdim+2, confLocal_ext.volume);
   
   // compute the moments
   gkyl_mom_calc_advance(m0calc, &local, &confLocal, distf, m0);
   gkyl_mom_calc_advance(m1icalc, &local, &confLocal, distf, m1i);
   gkyl_mom_calc_advance(m2calc, &local, &confLocal, distf, m2);
+  gkyl_mom_calc_advance(intcalc, &local, &confLocal, distf, int_mom);
  
   // Check M0.
   double *m00 = gkyl_array_fetch(m0, 0+confGhost[0]); double *m01 = gkyl_array_fetch(m0, 1+confGhost[0]);
@@ -184,6 +190,14 @@ test_1x1v_p1()
   TEST_CHECK( gkyl_compare(  45.464347116290611, m23[0], 1e-12) );
   TEST_CHECK( gkyl_compare(  16.874262672506337, m23[1], 1e-12) );
 
+  // sum the integrated moments
+  double red_mom[vdim+2];
+  gkyl_array_reduce_range(red_mom, int_mom, GKYL_SUM, confLocal);
+
+  TEST_CHECK( gkyl_compare(  33.7777777777778, red_mom[0], 1e-12) );
+  TEST_CHECK( gkyl_compare(  -28.4444444444444, red_mom[1], 1e-12) );
+  TEST_CHECK( gkyl_compare(  73.4814814814815, red_mom[2], 1e-12) );
+
   //// Write the moment array to file.
   //const char *fmt = "%s-%s-%s_%d.gkyl";
   //char name[] = "mom_calc";
@@ -197,8 +211,13 @@ test_1x1v_p1()
 
   // release memory for moment data object
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
+  gkyl_array_release(int_mom);
+  
   gkyl_mom_calc_release(m0calc); gkyl_mom_calc_release(m1icalc); gkyl_mom_calc_release(m2calc);
+  gkyl_mom_calc_release(intcalc);
+  
   gkyl_mom_type_release(vmM0_t); gkyl_mom_type_release(vmM1i_t); gkyl_mom_type_release(vmM2_t);
+  gkyl_mom_type_release(int_t);
 
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf);
