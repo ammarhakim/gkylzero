@@ -206,10 +206,6 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     if (app->use_gpu)
       s->source_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
 
-    s->source_ctx = (struct vm_eval_source_ctx) {
-      .source_func = s->info.source, .source_ctx = s->info.source_ctx
-    };
-
     s->source_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
         .grid = &s->grid,
         .basis = &app->basis,
@@ -232,6 +228,65 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       s->fluid_index = s->info.collisions.fluid_index;
     }
     vm_species_lbo_init(app, s, &s->lbo, s->collides_with_fluid);
+  }
+
+  // setup mirror force from fluid species if present
+  s->has_mirror_force = false;
+  if (vm_find_fluid_species(app, s->info.mirror_force.fluid_mirror_force)) {
+    s->has_mirror_force = true;
+    // index in fluid_species struct of fluid species kinetic species 
+    s->fluid_index = s->info.mirror_force.fluid_mirror_force_index;
+
+    // gradB and Bmag are both scalar fields in configuration space
+    s->magB = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    s->gradB = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+
+    // Additional arrays for computing mirror force and current density for EM field coupling
+    s->mirror_force = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    s->m1i_no_J = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+
+    s->gradB_host = s->gradB;
+    s->magB_host = s->magB;
+    s->mirror_force_host = s->mirror_force;
+    s->m1i_no_J_host = s->m1i_no_J;
+    if (app->use_gpu) {
+      s->gradB_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+      s->magB_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+      s->mirror_force_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+      s->m1i_no_J_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+    }
+
+    gkyl_proj_on_basis *gradB_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+        .grid = &app->grid,
+        .basis = &app->confBasis,
+        .qtype = GKYL_GAUSS_QUAD,
+        .num_quad = app->confBasis.poly_order+1,
+        .num_ret_vals = 1,
+        .eval = s->info.mirror_force.gradB,
+        .ctx = s->info.mirror_force.gradB_ctx
+      }
+    );
+
+    // run updater
+    gkyl_proj_on_basis_advance(gradB_proj, 0.0, &app->local, s->gradB_host);
+    gkyl_proj_on_basis_release(gradB_proj);    
+    if (app->use_gpu) // note: p_over_gamma_host is same as p_over_gamma when not on GPUs
+      gkyl_array_copy(s->gradB, s->gradB_host);
+
+    gkyl_proj_on_basis *magB_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+        .grid = &app->grid,
+        .basis = &app->confBasis,
+        .qtype = GKYL_GAUSS_QUAD,
+        .num_quad = app->confBasis.poly_order+1,
+        .num_ret_vals = 1,
+        .eval = s->info.mirror_force.magB,
+        .ctx = s->info.mirror_force.magB_ctx
+      }
+    );
+    gkyl_proj_on_basis_advance(magB_proj, 0.0, &app->local, s->magB_host);
+    gkyl_proj_on_basis_release(magB_proj);    
+    if (app->use_gpu) // note: p_over_gamma_host is same as p_over_gamma when not on GPUs
+      gkyl_array_copy(s->magB, s->magB_host);
   }
 
   // determine which directions are not periodic
@@ -280,10 +335,10 @@ vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
   if (app->use_gpu) // note: f_host is same as f when not on GPUs
     gkyl_array_copy(species->f, species->f_host);
 
-  // we are computing acceleration for now as it is time-independent
+  // we are pre-computing acceleration for now as it is time-independent
   vm_species_calc_accel(app, species, t0);
 
-  // we are computing source for now as it is time-independent
+  // we are pre-computing source for now as it is time-independent
   vm_species_calc_source(app, species, t0);
 }
 
@@ -311,7 +366,8 @@ vm_species_calc_source(gkyl_vlasov_app *app, struct vm_species *species, double 
 // time-step.
 double
 vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
-  const struct gkyl_array *fin, const struct gkyl_array *em, struct gkyl_array *rhs)
+  const struct gkyl_array *fin, const struct gkyl_array *em, struct gkyl_array *rhs,
+  const struct gkyl_array *fluidin[])
 {
   gkyl_array_clear(species->cflrate, 0.0);
   if (species->field_id  == GKYL_FIELD_E_B || species->field_id  == GKYL_FIELD_SR_E_B) {
@@ -320,6 +376,12 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
 
     if (species->has_accel)
       gkyl_array_accumulate(species->qmem, 1.0, species->accel);
+
+    if (species->has_mirror_force) {
+      gkyl_dg_mul_op_range(app->confBasis, 0, species->mirror_force, 0,
+        species->gradB, 0, fluidin[species->fluid_index], app->local);      
+      gkyl_array_accumulate_range(species->qmem, species->info.mass, species->mirror_force, app->local);
+    }
   }
   
   gkyl_array_clear(rhs, 0.0);
@@ -509,6 +571,19 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
       gkyl_array_release(s->source_host);
 
     gkyl_proj_on_basis_release(s->source_proj);
+  }
+
+  if (s->has_mirror_force) {
+    gkyl_array_release(s->gradB);
+    gkyl_array_release(s->magB);
+    gkyl_array_release(s->mirror_force);
+    gkyl_array_release(s->m1i_no_J);
+    if (app->use_gpu) {
+      gkyl_array_release(s->gradB_host);
+      gkyl_array_release(s->magB_host);
+      gkyl_array_release(s->mirror_force_host);
+      gkyl_array_release(s->m1i_no_J_host);
+    }
   }
 
   if (s->collision_id == GKYL_LBO_COLLISIONS)

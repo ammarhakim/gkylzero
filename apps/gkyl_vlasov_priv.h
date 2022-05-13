@@ -113,9 +113,6 @@ struct vm_bgk_collisions {
 // context for use in computing applied acceleration
 struct vm_eval_accel_ctx { evalf_t accel_func; void *accel_ctx; };
 
-// context for use in computing applied source
-struct vm_eval_source_ctx { evalf_t source_func; void *source_ctx; };
-
 // species data
 struct vm_species {
   struct gkyl_vlasov_species info; // data for species
@@ -164,7 +161,18 @@ struct vm_species {
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *source_proj; // projector for source
-  struct vm_eval_source_ctx source_ctx; // context for applied source
+
+  bool has_mirror_force; // flag to indicate Vlasov includes mirror force from external magnetic field
+  struct gkyl_array *gradB; // gradient of magnetic field
+  struct gkyl_array *magB; // magnitude of magnetic field (J = 1/B)
+  struct gkyl_array *mirror_force; // array storing full mirror force (J*p_perp*gradB)
+  struct gkyl_array *m1i_no_J; // current density without Jacobian (for coupling to EM fields)
+
+  // host copy for use in IO and projecting
+  struct gkyl_array *gradB_host;
+  struct gkyl_array *magB_host;
+  struct gkyl_array *mirror_force_host;
+  struct gkyl_array *m1i_no_J_host;
 
   enum gkyl_collision_id collision_id; // type of collisions
   bool collides_with_fluid; // boolean for if kinetic species collides with a fluid speceis
@@ -491,6 +499,15 @@ void vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, dou
 void vm_species_calc_source(gkyl_vlasov_app *app, struct vm_species *species, double tm);
 
 /**
+ * Compute gradient and magnitude of magnetic field
+ *
+ * @param app Vlasov app object
+ * @param species Species object
+ * @param tm Time for use in source
+ */
+void vm_species_calc_magB_gradB(gkyl_vlasov_app *app, struct vm_species *species, double tm);
+
+/**
  * Compute RHS from species distribution function
  *
  * @param app Vlasov app object
@@ -498,10 +515,13 @@ void vm_species_calc_source(gkyl_vlasov_app *app, struct vm_species *species, do
  * @param fin Input distribution function
  * @param em EM field
  * @param rhs On output, the RHS from the species object
+ * @param fluidin Input fluid array for potential fluid force (size: num_fluid_species)
  * @return Maximum stable time-step
  */
 double vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
-  const struct gkyl_array *fin, const struct gkyl_array *em, struct gkyl_array *rhs);
+  const struct gkyl_array *fin, const struct gkyl_array *em, 
+  struct gkyl_array *rhs,
+  const struct gkyl_array *fluidin[]);
 
 /**
  * Apply periodic BCs to species distribution function
