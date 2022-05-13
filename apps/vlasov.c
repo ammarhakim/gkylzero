@@ -447,7 +447,9 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     
         double qbyeps = s->info.charge/app->field->info.epsilon0;
         if (s->has_mirror_force) {
-          gkyl_dg_div_op_range(app->confBasis, 0, s->m1i_no_J, 0,
+	  // if has_mirror_force, m1i = m1i/B = J*m1i
+	  // need to multiply by magB to get the right current density
+          gkyl_dg_mul_op_range(app->confBasis, 0, s->m1i_no_J, 0,
             s->m1i.marr, 0, s->magB, app->local);
           gkyl_array_copy_range(s->m1i.marr, s->m1i_no_J, app->local);    
         } 

@@ -104,6 +104,9 @@ main(int argc, char **argv)
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 16);  
+
   struct esshock_ctx ctx = create_ctx(); // context for init functions
 
   // electrons
@@ -112,7 +115,7 @@ main(int argc, char **argv)
     .charge = ctx.chargeElc, .mass = ctx.massElc,
     .lower = { -6.0 * ctx.vte},
     .upper = { 6.0 * ctx.vte}, 
-    .cells = { 64 },
+    .cells = { VX },
 
     .ctx = &ctx,
     .init = evalDistFuncElc,
@@ -137,7 +140,7 @@ main(int argc, char **argv)
     .charge = ctx.chargeIon, .mass = ctx.massIon,
     .lower = { -16.0 * ctx.vti},
     .upper = { 16.0 * ctx.vti}, 
-    .cells = { 64 },
+    .cells = { VX },
 
     .ctx = &ctx,
     .init = evalDistFuncIon,
@@ -173,7 +176,7 @@ main(int argc, char **argv)
     .cdim = 1, .vdim = 1,
     .lower = { -ctx.Lx },
     .upper = { ctx.Lx },
-    .cells = { 256 },
+    .cells = { NX },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 

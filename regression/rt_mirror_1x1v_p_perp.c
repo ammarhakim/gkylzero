@@ -146,6 +146,15 @@ create_ctx(void)
   return ctx;
 }
 
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double tcurr)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) {
+    gkyl_vlasov_app_write(app, tcurr, iot->curr-1);
+    gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, iot->curr-1);
+  }
+}
+
 int
 main(int argc, char **argv)
 {
@@ -155,6 +164,10 @@ main(int argc, char **argv)
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
+  
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 256);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 64);  
+  
   struct mirror_ctx ctx = create_ctx(); // context for init functions
   printf("Debye length = %lg\n", ctx.lambdaD);
   printf("Plasma frequency = %lg\n", ctx.wpe);
@@ -176,7 +189,7 @@ main(int argc, char **argv)
     .charge = ctx.chargeElc, .mass = ctx.massElc,
     .lower = { -6.0 * ctx.vte},
     .upper = { 6.0 * ctx.vte}, 
-    .cells = { 64 },
+    .cells = { VX },
 
     .ctx = &ctx,
     .init = evalDistFuncElc,
@@ -221,7 +234,7 @@ main(int argc, char **argv)
     .charge = ctx.chargeIon, .mass = ctx.massIon,
     .lower = { -6.0 * ctx.vti},
     .upper = { 6.0 * ctx.vti}, 
-    .cells = { 64 },
+    .cells = { VX },
 
     .ctx = &ctx,
     .init = evalDistFuncIon,
@@ -267,7 +280,7 @@ main(int argc, char **argv)
     .cdim = 1, .vdim = 1,
     .lower = { -ctx.Lx },
     .upper = { ctx.Lx },
-    .cells = { 256 },
+    .cells = { NX },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
@@ -287,14 +300,15 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 1.0e-9;
+  double tcurr = 0.0, tend = 1.0e-7;
   double dt = tend-tcurr;
+  int nframe = 10;
+  // create trigger for IO
+  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
   // initialize simulation
   gkyl_vlasov_app_apply_ic(app, tcurr);
-  
-  gkyl_vlasov_app_write(app, tcurr, 0);
-  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 0);
+  write_data(&io_trig, app, tcurr);
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
@@ -308,11 +322,11 @@ main(int argc, char **argv)
     }
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
+    write_data(&io_trig, app, tcurr);
+
     step += 1;
   }
 
-  gkyl_vlasov_app_write(app, tcurr, 1);
-  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1);
   gkyl_vlasov_app_stat_write(app);
 
   // fetch simulation statistics
@@ -331,8 +345,11 @@ main(int argc, char **argv)
   }  
   printf("Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   printf("Species RHS calc took %g secs\n", stat.species_rhs_tm);
+  printf("Species Collisions calc took %g secs\n", stat.species_coll_tm);
   printf("Field RHS calc took %g secs\n", stat.field_rhs_tm);
   printf("Current evaluation and accumulate took %g secs\n", stat.current_tm);
+  printf("Collisional moment calc took %g secs\n", stat.species_coll_mom_tm);
+  printf("Fluid Species RHS calc took %g secs\n", stat.fluid_species_rhs_tm);
   printf("Updates took %g secs\n", stat.total_tm);
   
   return 0;

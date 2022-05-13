@@ -106,6 +106,15 @@ create_default_ctx(void)
   return ctx;
 }
 
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double tcurr)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) {
+    gkyl_vlasov_app_write(app, tcurr, iot->curr-1);
+    gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, iot->curr-1);
+  }
+}
+
 int
 main(int argc, char **argv)
 {
@@ -119,7 +128,7 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 32);
   int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 32);  
   int VY = APP_ARGS_CHOOSE(app_args.vcells[1], 32);  
-  int VZ = APP_ARGS_CHOOSE(app_args.vcells[2], 16);  
+  int VZ = APP_ARGS_CHOOSE(app_args.vcells[2], 32);  
 
   struct twostream_ctx ctx;
   
@@ -179,6 +188,9 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = 1.0;
   double dt = tend-tcurr;
+  int nframe = 1;
+  // create trigger for IO
+  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
   // initialize simulation
   gkyl_vlasov_app_apply_ic(app, tcurr);
@@ -198,11 +210,11 @@ main(int argc, char **argv)
     }
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
+    write_data(&io_trig, app, tcurr);
+
     step += 1;
   }
 
-  gkyl_vlasov_app_write(app, tcurr, 1);
-  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1);
   gkyl_vlasov_app_stat_write(app);
 
   // fetch simulation statistics
