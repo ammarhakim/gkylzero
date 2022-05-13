@@ -1,3 +1,4 @@
+#include "gkyl_util.h"
 #include <acutest.h>
 #include <math.h>
 
@@ -102,7 +103,23 @@ test_1d(int poly_order)
       TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-12) );
     }
   }
-          
+
+  // mean ops
+  struct gkyl_array *mvals = gkyl_array_new(GKYL_DOUBLE, 2, arr_range.volume);
+  gkyl_array_clear(mvals, 0.0);
+
+  // means are stored in h[0]
+  gkyl_dg_calc_average_range(basis, 0, mvals, 0, distf, arr_range);
+  // L2 are stored in h[1]
+  gkyl_dg_calc_l2_range(basis, 1, mvals, 0, distf, arr_range);
+
+  double al2[2];
+  gkyl_array_reduce_range(al2, mvals, GKYL_SUM, arr_range);
+
+  double vol = grid.cellVolume;
+  TEST_CHECK( gkyl_compare(al2[0]*vol, 2.5, 1e-14) );
+  TEST_CHECK( gkyl_compare(al2[1]*vol, 19.0/3.0, 1e-14) );
+  
   gkyl_proj_on_basis_release(projDistf);
   gkyl_proj_on_basis_release(projDistg);
   gkyl_array_release(distf);
@@ -110,6 +127,12 @@ test_1d(int poly_order)
   gkyl_array_release(f_bar);
   gkyl_array_release(g_bar);
   gkyl_array_release(h);
+  gkyl_array_release(mvals);
+}
+
+void
+test_mean_ops_1d(int poly_order)
+{
 }
 
 void f_2d(double t, const double *xn, double* restrict fout, void *ctx)
@@ -208,6 +231,22 @@ test_2d(int poly_order)
       TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-12) );
     }
   }
+
+  // mean ops
+  struct gkyl_array *mvals = gkyl_array_new(GKYL_DOUBLE, 2, arr_range.volume);
+  gkyl_array_clear(mvals, 0.0);
+
+  // means are stored in h[0]
+  gkyl_dg_calc_average_range(basis, 0, mvals, 0, distf, arr_range);
+  // L2 are stored in h[1]
+  gkyl_dg_calc_l2_range(basis, 1, mvals, 0, distf, arr_range);
+
+  double al2[2];
+  gkyl_array_reduce_range(al2, mvals, GKYL_SUM, arr_range);
+
+  double vol = grid.cellVolume;
+  TEST_CHECK( gkyl_compare(al2[0]*vol, 3.0, 1e-14) );
+  TEST_CHECK( gkyl_compare(al2[1]*vol, 55.0/6.0, 1e-14) );  
   
   gkyl_proj_on_basis_release(projDistf);
   gkyl_proj_on_basis_release(projDistg);
@@ -216,6 +255,7 @@ test_2d(int poly_order)
   gkyl_array_release(f_bar);
   gkyl_array_release(g_bar);
   gkyl_array_release(h);
+  gkyl_array_release(mvals);
 }
 
 void f_3d(double t, const double *xn, double* restrict fout, void *ctx)
@@ -223,7 +263,7 @@ void f_3d(double t, const double *xn, double* restrict fout, void *ctx)
   double x = xn[0];
   double y = xn[1];
   double z = xn[2];
-  fout[0] = ((5 + x)*(5 + y)*(5 + z)*(5 + x)*(5 + y)*(5 + z) + 100);
+  fout[0] = 5 + x + y + z;
 }
 
 void g_3d(double t, const double *xn, double* restrict fout, void *ctx)
@@ -330,6 +370,22 @@ test_3d(int poly_order)
       TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-10) );
     }
   }
+
+  // mean ops
+  struct gkyl_array *mvals = gkyl_array_new(GKYL_DOUBLE, 2, arr_range.volume);
+  gkyl_array_clear(mvals, 0.0);
+
+  // means are stored in h[0]
+  gkyl_dg_calc_average_range(basis, 0, mvals, 0, distf, arr_range);
+  // L2 are stored in h[1]
+  gkyl_dg_calc_l2_range(basis, 1, mvals, 0, distf, arr_range);
+
+  double al2[2];
+  gkyl_array_reduce_range(al2, mvals, GKYL_SUM, arr_range);
+
+  double vol = grid.cellVolume;
+  TEST_CHECK( gkyl_compare(al2[0]*vol, 6.5, 1e-14) );
+  TEST_CHECK( gkyl_compare(al2[1]*vol, 85.0/2.0, 1e-14) );
   
   gkyl_proj_on_basis_release(projDistf);
   gkyl_proj_on_basis_release(projDistg);
@@ -338,6 +394,7 @@ test_3d(int poly_order)
   gkyl_array_release(f_bar);
   gkyl_array_release(g_bar);
   gkyl_array_release(h);
+  gkyl_array_release(mvals);
 }
 
 void

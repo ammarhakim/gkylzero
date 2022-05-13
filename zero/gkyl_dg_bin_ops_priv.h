@@ -1,10 +1,14 @@
 // Private header: not for direct use
 #pragma once
 
+#include <math.h>
+
 #include <gkyl_mat.h>
 #include <gkyl_util.h>
 #include <gkyl_binop_div_ser.h>
 #include <gkyl_binop_mul_ser.h>
+
+enum gkyl_dg_op { GKYL_DG_OP_MEAN, GKYL_DG_OP_MEAN_L2 };
 
 // Function pointer type for multiplication
 typedef void (*mul_op_t)(const double *f, const double *g, double *fg);
@@ -61,4 +65,32 @@ static div_set_op_t
 choose_ser_div_set_kern(int dim, int poly_order)
 {
   return ser_div_set_list[dim].kernels[poly_order];
+}
+
+GKYL_CU_D
+static inline double
+dg_cell_mean(int nc, const double *f)
+{
+  return f[0];
+}
+
+GKYL_CU_D
+static inline double
+dg_cell_mean_l2(int nb, const double *f)
+{
+  double sum = 0.0;
+  for (int i=0; i<nb; ++i)
+    sum += f[i]*f[i];
+  return sum;
+}
+
+typedef double (*dp_op_t)(int nb, const double *f);
+
+GKYL_CU_D
+static dp_op_t
+dg_get_op_func(enum gkyl_dg_op op)
+{
+  if (op == GKYL_DG_OP_MEAN)
+    return dg_cell_mean;
+  return dg_cell_mean_l2;
 }
