@@ -290,6 +290,14 @@ void gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double 
 void gkyl_vlasov_app_write_mom(gkyl_vlasov_app *app, double tm, int frame);
 
 /**
+ * Write integrated diagnostic moments for species to file.
+ * 
+ * @param app App object.
+ * @param frame Frame number
+ */
+void gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app, int frame);
+
+/**
  * Write field energy to file
  * 
  * @param app App object.

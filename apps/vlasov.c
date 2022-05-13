@@ -344,7 +344,13 @@ gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
       
       gkyl_grid_sub_array_write(&app->grid, &app->local, app->species[i].moms[m].marr_host, fileNm);
     }
+  }
+}
 
+void
+gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app, int frame)
+{
+  for (int i=0; i<app->num_species; ++i) {
     // write out diagnostic moments
     const char *fmt = "%s-%s-%s_%d.gkyl";
     int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
