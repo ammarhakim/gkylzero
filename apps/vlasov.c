@@ -229,6 +229,12 @@ gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
 }
 
 void
+gkyl_vlasov_app_calc_field_energy(gkyl_vlasov_app* app, double tm)
+{
+  vm_field_calc_energy(app, tm, app->field, app->field->em);
+}
+
+void
 gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
 {
   if (app->has_field)
@@ -350,6 +356,19 @@ gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
     gkyl_dynvec_write(app->species[i].integ_diag, fileNm);
     gkyl_dynvec_clear(app->species[i].integ_diag);
   }
+}
+
+void
+gkyl_vlasov_app_write_field_energy(gkyl_vlasov_app* app, int frame)
+{
+  // write out diagnostic moments
+  const char *fmt = "%s-field-energy_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow  
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
+  
+  gkyl_dynvec_write(app->field->integ_energy, fileNm);
+  gkyl_dynvec_clear(app->field->integ_energy);
 }
 
 // Take a forward Euler step with the suggested time-step dt. This may

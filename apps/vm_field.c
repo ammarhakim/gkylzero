@@ -1,3 +1,6 @@
+#include "gkyl_dg_bin_ops.h"
+#include "gkyl_dynvec.h"
+#include "gkyl_elem_type.h"
 #include <assert.h>
 #include <float.h>
 
@@ -19,11 +22,18 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   f->em = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
   f->em1 = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
   f->emnew = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
+  f->em_energy = mkarr(app->use_gpu, 6, app->local_ext.volume);
 
   f->em_host = f->em;  
   if (app->use_gpu)
     f->em_host = mkarr(false, 8*app->confBasis.num_basis, app->local_ext.volume);
 
+  f->em_energy_host = f->em_energy;
+  if (app->use_gpu)
+    f->em_energy_host = mkarr(false, 6, app->local_ext.volume);
+
+  f->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 6);
+  
   // allocate buffer for applying BCs (used for both periodic and copy BCs)
   long buff_sz = 0;
   // compute buffer size needed
@@ -194,6 +204,8 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
         case GKYL_FIELD_PEC_WALL:
           vm_field_apply_pec_bc(app, field, d, VM_EDGE_LOWER, f);
           break;
+        default:
+          break;
       }
 
       switch (field->upper_bc[d]) {
@@ -203,8 +215,23 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
         case GKYL_FIELD_PEC_WALL:
           vm_field_apply_pec_bc(app, field, d, VM_EDGE_UPPER, f);
           break;
+        default:
+          break;          
       }      
     }
+}
+
+void
+vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field,
+  struct gkyl_array *f)
+{
+  for (int i=0; i<6; ++i)
+    gkyl_dg_calc_l2_range(app->basis, i, field->em_energy, i, f, app->local);
+  gkyl_array_scale_range(field->em_energy, app->grid.cellVolume, app->local);
+  
+  double energy[6];
+  gkyl_array_reduce_range(energy, field->em_energy, GKYL_SUM, app->local);
+  gkyl_dynvec_append(field->integ_energy, tm, energy);
 }
 
 // release resources for field
@@ -216,11 +243,14 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   gkyl_array_release(f->emnew);
   gkyl_array_release(f->bc_buffer);
   gkyl_array_release(f->cflrate);
+  gkyl_array_release(f->em_energy);
+  gkyl_dynvec_release(f->integ_energy);
 
   gkyl_hyper_dg_release(f->slvr);
 
   if (app->use_gpu) {
     gkyl_array_release(f->em_host);
+    gkyl_array_release(f->em_energy_host);
     gkyl_cu_free_host(f->omegaCfl_ptr);
   }
   else {

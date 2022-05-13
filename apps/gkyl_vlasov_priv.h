@@ -192,6 +192,10 @@ struct vm_field {
 
   gkyl_hyper_dg *slvr; // Maxwell solver
 
+  struct gkyl_array *em_energy; // EM energy components in each cell
+  struct gkyl_array *em_energy_host; // host copy of EM energy
+  gkyl_dynvec integ_energy; // integrated energy components
+
   // boundary conditions on lower/upper edges in each direction  
   enum gkyl_field_bc_type lower_bc[3], upper_bc[3];
   // Note: we need to store pointers to the struct as these may
@@ -602,7 +606,8 @@ double vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field, const struct g
  * @param dir Direction to apply BCs
  * @param f Field to apply BCs
  */
-void vm_field_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_field *field, int dir, struct gkyl_array *f);
+void vm_field_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_field *field,
+  int dir, struct gkyl_array *f);
 
 /**
  * Apply copy BCs to field
@@ -633,7 +638,19 @@ void vm_field_apply_pec_bc(gkyl_vlasov_app *app, const struct vm_field *field,
  * @param field Pointer to field
  * @param f Field to apply BCs
  */
-void vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gkyl_array *f);
+void vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field,
+  struct gkyl_array *f);
+
+/**
+ * Compute field energy diagnostic
+ *
+ * @param app Vlasov app object
+ * @param tm Time at which diagnostic is computed
+ * @param field Pointer to field
+ * @param f Field array
+ */
+void vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field,
+  struct gkyl_array *f);
 
 /**
  * Release resources allocated by field

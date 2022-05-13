@@ -225,6 +225,14 @@ void gkyl_vlasov_app_calc_mom(gkyl_vlasov_app *app);
 void gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm);
 
 /**
+ * Calculate integrated field energy
+ *
+ * @param tm Time at which integrated diagnostic are to be computed
+ * @param app App object.
+ */
+void gkyl_vlasov_app_calc_field_energy(gkyl_vlasov_app* app, double tm);
+
+/**
  * Write field and species data to file.
  * 
  * @param app App object.
@@ -279,7 +287,15 @@ void gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double 
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame);
+void gkyl_vlasov_app_write_mom(gkyl_vlasov_app *app, double tm, int frame);
+
+/**
+ * Write field energy to file
+ * 
+ * @param app App object.
+ * @param frame Frame number
+ */
+void gkyl_vlasov_app_write_field_energy(gkyl_vlasov_app* app, int frame);
 
 /**
  * Write stats to file. Data is written in json format.
