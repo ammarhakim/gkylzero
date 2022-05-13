@@ -100,12 +100,29 @@ gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis,
   return &mom_vm_sr->momt;
 }
 
+struct gkyl_mom_type *
+gkyl_int_mom_vlasov_sr_new(const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis,
+  const struct gkyl_range *vel_range)
+{
+  assert(false);
+  return 0;
+}
+
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_mom_type*
 gkyl_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, const struct gkyl_range* vel_range,
   const char *mom)
+{
+  assert(false);
+  return 0;
+}
+
+struct gkyl_mom_type *
+gkyl_int_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis* cbasis,
+  const struct gkyl_basis* pbasis, const struct gkyl_range* vel_range)
 {
   assert(false);
   return 0;

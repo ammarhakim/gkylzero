@@ -214,7 +214,15 @@ void gkyl_vlasov_app_apply_ic_fluid_species(gkyl_vlasov_app* app, int sidx, doub
  *
  * @param app App object.
  */
-void gkyl_vlasov_app_calc_mom(gkyl_vlasov_app* app);
+void gkyl_vlasov_app_calc_mom(gkyl_vlasov_app *app);
+
+/**
+ * Calculate integrated diagnostic moments.
+ *
+ * @param tm Time at which integrated diagnostic are to be computed
+ * @param app App object.
+ */
+void gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm);
 
 /**
  * Write field and species data to file.

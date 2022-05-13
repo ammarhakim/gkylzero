@@ -144,7 +144,8 @@ gkyl_int_mom_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
   mom_vm->momt.num_config = cbasis->num_basis;
   mom_vm->momt.num_phase = pbasis->num_basis;
   mom_vm->momt.kernel = kernel;
-
+  mom_vm->momt.num_mom = 2+vdim;
+  
   // set kernel pointer
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -152,7 +153,7 @@ gkyl_int_mom_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
       assert(NULL != ser_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
       
       mom_vm->kernel = ser_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-      mom_vm->momt.num_mom = 2+vdim;
+
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
@@ -160,7 +161,6 @@ gkyl_int_mom_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
       assert(NULL != ten_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
       
       mom_vm->kernel = ten_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-      mom_vm->momt.num_mom = 2+vdim;
       
       break;
 
@@ -186,6 +186,14 @@ gkyl_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
 {
   assert(false);
   return 0;
+}
+
+struct gkyl_mom_type *
+gkyl_int_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
+  const struct gkyl_basis* pbasis)
+{
+  assert(false);
+  return 0;  
 }
 
 #endif

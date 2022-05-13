@@ -1,5 +1,7 @@
 #include "gkyl_alloc.h"
 #include "gkyl_array_ops.h"
+#include "gkyl_dynvec.h"
+#include "gkyl_elem_type.h"
 #include <assert.h>
 
 #include <gkyl_app.h>
@@ -175,6 +177,12 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   s->moms = gkyl_malloc(sizeof(struct vm_species_moment[ndm]));
   for (int m=0; m<ndm; ++m)
     vm_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
+
+  // allocate data for integrated moments
+  vm_species_moment_init(app, s, &s->integ_moms, "Integrated");
+
+  // allocate dynamic-vector to store all-reduced integrated moments
+  s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
 
   s->has_accel = false;
   // setup applied acceleration
@@ -420,6 +428,8 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
         case GKYL_SPECIES_WALL:
           vm_species_apply_wall_bc(app, species, d, VM_EDGE_LOWER, f);
           break;
+        default:
+          break;
       }
 
       switch (species->upper_bc[d]) {
@@ -429,6 +439,8 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
         case GKYL_SPECIES_WALL:
           vm_species_apply_wall_bc(app, species, d, VM_EDGE_UPPER, f);
           break;
+        default:
+          break;          
       }      
     }
   }
@@ -476,6 +488,9 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   for (int i=0; i<s->info.num_diag_moments; ++i)
     vm_species_moment_release(app, &s->moms[i]);
   gkyl_free(s->moms);
+  vm_species_moment_release(app, &s->integ_moms);
+
+  gkyl_dynvec_release(s->integ_diag);
 
   gkyl_dg_eqn_release(s->eqn_vlasov);
   gkyl_dg_updater_vlasov_release(s->slvr);

@@ -12,14 +12,15 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
-#include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_advection.h>
+#include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_updater_lbo_vlasov.h>
 #include <gkyl_dg_updater_vlasov.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_dg_vlasov_poisson.h>
 #include <gkyl_dg_vlasov_sr.h>
+#include <gkyl_dynvec.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_mom_bcorr_lbo_vlasov.h>
@@ -136,6 +137,9 @@ struct vm_species {
 
   struct vm_species_moment m1i; // for computing currents
   struct vm_species_moment *moms; // diagnostic moments
+  struct vm_species_moment integ_moms; // integrated moments
+
+  gkyl_dynvec integ_diag; // integrated moments reduced across grid
 
   enum gkyl_field_id field_id; // type of Vlasov equation (based on type of field solve)
   struct gkyl_array *qmem; // array for q/m*(E,B)

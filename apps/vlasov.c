@@ -1,6 +1,8 @@
 
 #include "gkyl_alloc.h"
+#include "gkyl_array_ops.h"
 #include "gkyl_basis.h"
+#include "gkyl_dynvec.h"
 #include <gkyl_vlasov_priv.h>
 
 gkyl_vlasov_app*
@@ -207,6 +209,26 @@ gkyl_vlasov_app_calc_mom(gkyl_vlasov_app* app)
 }
 
 void
+gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
+{
+  double avals[2+GKYL_MAX_DIM];
+  
+  for (int i=0; i<app->num_species; ++i) {
+    struct vm_species *s = &app->species[i];
+    
+    struct timespec wst = gkyl_wall_clock();
+    vm_species_moment_calc(&s->integ_moms, s->local, app->local, s->f);
+
+    // reduce to compute sum over whole domain, append to diagnostics
+    gkyl_array_reduce_range(avals, s->integ_moms.marr_host, GKYL_SUM, app->local);
+    gkyl_dynvec_append(s->integ_diag, tm, avals);
+    
+    app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
+    app->stat.nmom += 1;
+  }
+}
+
+void
 gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
 {
   if (app->has_field)
@@ -316,6 +338,17 @@ gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
       
       gkyl_grid_sub_array_write(&app->grid, &app->local, app->species[i].moms[m].marr_host, fileNm);
     }
+
+    // write out diagnostic moments
+    const char *fmt = "%s-%s-%s_%d.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
+      "imom", frame);
+    char fileNm[sz+1]; // ensures no buffer overflow  
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
+      "imom", frame);
+
+    gkyl_dynvec_write(app->species[i].integ_diag, fileNm);
+    gkyl_dynvec_clear(app->species[i].integ_diag);
   }
 }
 
