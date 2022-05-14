@@ -3,10 +3,14 @@
 
 #include <math.h>
 
-#include <gkyl_mat.h>
-#include <gkyl_util.h>
+#include <gkyl_array.h>
+#include <gkyl_array.h>
+#include <gkyl_basis.h>
 #include <gkyl_binop_div_ser.h>
 #include <gkyl_binop_mul_ser.h>
+#include <gkyl_mat.h>
+#include <gkyl_range.h>
+#include <gkyl_util.h>
 
 enum gkyl_dg_op { GKYL_DG_OP_MEAN, GKYL_DG_OP_MEAN_L2 };
 
@@ -94,3 +98,12 @@ dg_get_op_func(enum gkyl_dg_op op)
     return dg_cell_mean;
   return dg_cell_mean_l2;
 }
+
+void gkyl_dg_calc_op_range(struct gkyl_basis basis, int c_oop,
+  struct gkyl_array *out, int c_iop,
+  const struct gkyl_array *iop,
+  struct gkyl_range range, enum gkyl_dg_op op);
+
+void gkyl_dg_calc_op_range_cu(struct gkyl_basis basis, int c_oop, struct gkyl_array *out,
+  int c_iop, const struct gkyl_array *iop,
+  struct gkyl_range range, enum gkyl_dg_op op);

@@ -285,3 +285,10 @@ gkyl_dg_div_op_range_cu(struct gkyl_basis basis,
   gkyl_nmat_release(A_d);
   gkyl_nmat_release(x_d);  
 }
+
+void
+gkyl_dg_calc_op_range_cu(struct gkyl_basis basis, int c_oop, struct gkyl_array *out,
+  int c_iop, const struct gkyl_array *iop,
+  struct gkyl_range range, enum gkyl_dg_op op)
+{
+}

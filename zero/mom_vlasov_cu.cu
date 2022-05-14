@@ -209,3 +209,10 @@ gkyl_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
   
   return &momt->momt;
 }
+
+struct gkyl_mom_type *
+gkyl_int_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
+  const struct gkyl_basis* pbasis)
+{
+  
+}

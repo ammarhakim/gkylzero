@@ -165,13 +165,17 @@ void gkyl_dg_div_op_range(struct gkyl_basis basis,
   gkyl_nmat_release(xs);
 }
 
-static void
-gkyl_dg_calc_op_range(struct gkyl_basis basis, int c_oop,
-  struct gkyl_array *out, int c_iop,
-  const struct gkyl_array *iop,
-  struct gkyl_range range,
-  enum gkyl_dg_op op)
+void
+gkyl_dg_calc_op_range(struct gkyl_basis basis, int c_oop, struct gkyl_array *out,
+  int c_iop, const struct gkyl_array *iop,
+  struct gkyl_range range, enum gkyl_dg_op op)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(out)) {
+    return gkyl_dg_calc_op_range_cu(basis, c_oop, out, c_iop, iop, range, op);
+  }
+#endif
+  
   int num_basis = basis.num_basis;
   int ndim = basis.ndim;
   int poly_order = basis.poly_order;
