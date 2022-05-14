@@ -165,12 +165,16 @@ struct vm_species {
   bool has_mirror_force; // flag to indicate Vlasov includes mirror force from external magnetic field
   struct gkyl_array *gradB; // gradient of magnetic field
   struct gkyl_array *magB; // magnitude of magnetic field (J = 1/B)
-  struct gkyl_array *mirror_force; // array storing full mirror force (J*p_perp*gradB)
+  struct gkyl_array *n; // array storing density (no Jacobian)
+  struct gkyl_array *Tperp; // array storing J*Tperp (J*p_perp/n)
+  struct gkyl_array *mirror_force; // array storing full mirror force (J*T_perp*gradB)
   struct gkyl_array *m1i_no_J; // current density without Jacobian (for coupling to EM fields)
 
   // host copy for use in IO and projecting
   struct gkyl_array *gradB_host;
   struct gkyl_array *magB_host;
+  struct gkyl_array *n_host;
+  struct gkyl_array *Tperp_host;
   struct gkyl_array *mirror_force_host;
   struct gkyl_array *m1i_no_J_host;
 

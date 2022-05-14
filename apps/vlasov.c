@@ -451,9 +451,11 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 	  // need to multiply by magB to get the right current density
           gkyl_dg_mul_op_range(app->confBasis, 0, s->m1i_no_J, 0,
             s->m1i.marr, 0, s->magB, app->local);
-          gkyl_array_copy_range(s->m1i.marr, s->m1i_no_J, app->local);    
-        } 
-        gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, app->local);
+	  gkyl_array_accumulate_range(emout, -qbyeps, s->m1i_no_J, app->local);
+        }
+	else {
+          gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, app->local);
+	}
       }
       // accumulate current contribution from fluid species to electric field terms
       for (int i=0; i<app->num_fluid_species; ++i) {

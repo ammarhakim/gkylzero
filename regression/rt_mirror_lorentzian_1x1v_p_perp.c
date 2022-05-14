@@ -27,6 +27,8 @@ struct mirror_ctx {
   double gamma; // FWHM of Lorentzian
   double loc; // location of Lorentzian
   double mag; // magnitude of Lorentzian
+
+  double b_z0; // magnetic field at z = 0, for parameter checking
 };
 
 static inline double sq(double x) { return x*x; }
@@ -38,7 +40,7 @@ evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   struct mirror_ctx *app = ctx;
   double x = xn[0], v = xn[1];
   double vt = app->vte, n0 = app->n0;
-  double fv = n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
+  double fv = n0*exp(-sq(0.0))/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
   double gamma = app->gamma;
   double loc = app->loc;
   double mag = app->mag;
@@ -52,7 +54,7 @@ evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   struct mirror_ctx *app = ctx;
   double x = xn[0], v = xn[1];
   double vt = app->vti, n0 = app->n0;
-  double fv = n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
+  double fv = n0*exp(-sq(0.0))/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
   double gamma = app->gamma;
   double loc = app->loc;
   double mag = app->mag;
@@ -70,7 +72,7 @@ evalPperpElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double loc = app->loc;
   double mag = app->mag;
   double magB = mag/(gamma*(1.0 + sq((x-loc)/gamma))) + mag/(gamma*(1.0 + sq((x+loc)/gamma)));
-  fout[0] = n*vt*vt/magB;
+  fout[0] = n*exp(-sq(0.0))*vt*vt/magB;
 }
 
 void
@@ -83,7 +85,7 @@ evalPperpIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double loc = app->loc;
   double mag = app->mag;
   double magB = mag/(gamma*(1.0 + sq((x-loc)/gamma))) + mag/(gamma*(1.0 + sq((x+loc)/gamma)));
-  fout[0] = n*vt*vt/magB;
+  fout[0] = n*exp(-sq(0.0))*vt*vt/magB;
 }
 
 void
@@ -101,7 +103,7 @@ void
 evalNuElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct mirror_ctx *app = ctx;
-  fout[0] = app->wpe/app->Lambda;
+  fout[0] = app->wpe/app->Lambda*log(app->Lambda);
 }
 
 void
@@ -109,7 +111,7 @@ evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
 {
   struct mirror_ctx *app = ctx;
   double Te_Ti = app->vte*app->vte*app->massElc/(app->vti*app->vti*app->massIon);
-  double nu_ee = app->wpe/app->Lambda;
+  double nu_ee = app->wpe/app->Lambda*log(app->Lambda);
   fout[0] = nu_ee/sqrt(app->massIon/app->massElc)*(Te_Ti*sqrt(Te_Ti));
 }
 
@@ -142,9 +144,14 @@ create_ctx(void)
   double epsilon0 = 8.8541878128e-12;
   double massElc = 9.109384e-31;
   double charge = 1.602177e-19;
-  double n0 = 1e19;
-  double vte = 1.0e7;
+  double n0 = 1e18;
+  double vte = 4.0e7;
   double lambdaD = sqrt(epsilon0*vte*vte*massElc/(charge*charge*n0));
+
+  double loc = 1.0;
+  double gamma = 0.1;
+  double mag = 1.0;
+  double b_z0 = mag/(gamma*(1.0 + sq((loc)/gamma))) + mag/(gamma*(1.0 + sq((loc)/gamma)));
   struct mirror_ctx ctx = {
     .epsilon0 = epsilon0,
     .mu0 = 1.256637062e-6,
@@ -165,9 +172,10 @@ create_ctx(void)
     .Lambda = n0*lambdaD*lambdaD*lambdaD,
     .Lx = 2.0,
 
-    .gamma = 0.1,
-    .loc = 1.0,
-    .mag = 1.0
+    .gamma = gamma,
+    .loc = loc,
+    .mag = mag,
+    .b_z0 = b_z0
   };
   return ctx;
 }
@@ -198,8 +206,13 @@ main(int argc, char **argv)
   printf("Debye length = %lg\n", ctx.lambdaD);
   printf("Plasma frequency = %lg\n", ctx.wpe);
   printf("Plasma Parameter = %lg\n", ctx.Lambda);
-  printf("Electron-Electron collision frequency = %lg\n", ctx.wpe/ctx.Lambda);
-  // electron Pperp                                                                                              
+  printf("Electron-Electron collision frequency = %lg\n", ctx.wpe/ctx.Lambda*log(ctx.Lambda));
+  // electron beta at z = 0
+  printf("Electron beta = %lg\n", 2.0*ctx.mu0*ctx.n0*ctx.vte*ctx.vte*ctx.massElc/(ctx.b_z0*ctx.b_z0));
+  // electron gyroradius at z = 0
+  printf("Electron gyroradius = %lg\n", ctx.vte/(ctx.chargeIon*ctx.b_z0/ctx.massElc));
+  
+  // electron Pperp
   struct gkyl_vlasov_fluid_species Pperp_elc = {
     .name = "Pperp_elc",
 
@@ -301,7 +314,7 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "mirror_1x1v_p_perp",
+    .name = "mirror_lorentzian_1x1v_p_perp",
 
     .cdim = 1, .vdim = 1,
     .lower = { -ctx.Lx },
@@ -328,7 +341,7 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = 1.0e-7;
   double dt = tend-tcurr;
-  int nframe = 10;
+  int nframe = 1;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
