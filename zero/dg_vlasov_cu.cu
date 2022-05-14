@@ -41,6 +41,8 @@ gkyl_vlasov_wall_bc_create_cu(const struct gkyl_dg_eqn *eqn, int dir, const stru
   gkyl_cu_memcpy(ctx_cu, ctx, sizeof(struct species_wall_bc_ctx), GKYL_CU_MEMCPY_H2D);
   gkyl_cu_memcpy(bc_cu, bc, sizeof(struct gkyl_array_copy_func), GKYL_CU_MEMCPY_H2D);
 
+  bc->ctx_on_dev = ctx_cu;
+
   gkyl_vlasov_wall_bc_create_set_cu_dev_ptrs<<<1,1>>>(eqn, dir, pbasis, ctx_cu, bc_cu);
 
   // set parent on_dev pointer 

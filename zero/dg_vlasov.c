@@ -43,6 +43,7 @@ gkyl_vlasov_wall_bc_create(const struct gkyl_dg_eqn *eqn, int dir, const struct 
   struct gkyl_array_copy_func *bc = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
   bc->func = vlasov->wall_bc;
   bc->ctx = ctx;
+  bc->ctx_on_dev = bc->ctx;
 
   bc->flags = 0;
   GKYL_CLEAR_CU_ALLOC(bc->flags);
@@ -54,9 +55,7 @@ void
 gkyl_vlasov_wall_bc_release(struct gkyl_array_copy_func* bc)
 {
   if (gkyl_array_copy_func_is_cu_dev(bc)) {
-    //I think the context also needs to be freed but this produces
-    //a segmentation faults (JJ 05/14/2022)
-    //gkyl_cu_free(bc->on_dev->ctx);
+    gkyl_cu_free(bc->ctx_on_dev);
     gkyl_cu_free(bc->on_dev);
   }
   gkyl_free(bc->ctx);
