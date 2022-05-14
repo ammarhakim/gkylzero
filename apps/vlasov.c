@@ -48,7 +48,8 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     case GKYL_BASIS_MODAL_SERENDIPITY:
       gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
       gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
-      gkyl_cart_modal_serendip(&app->velBasis, vdim, poly_order);
+      if (vdim > 0)
+        gkyl_cart_modal_serendip(&app->velBasis, vdim, poly_order);
 
       if (app->use_gpu) {
         gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
@@ -59,7 +60,8 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     case GKYL_BASIS_MODAL_TENSOR:
       gkyl_cart_modal_tensor(&app->basis, pdim, poly_order);
       gkyl_cart_modal_tensor(&app->confBasis, cdim, poly_order);
-      gkyl_cart_modal_tensor(&app->velBasis, vdim, poly_order);
+      if (vdim > 0)
+        gkyl_cart_modal_tensor(&app->velBasis, vdim, poly_order);
       break;
 
     default:

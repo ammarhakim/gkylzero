@@ -459,7 +459,7 @@ vm_species_apply_wall_bc(gkyl_vlasov_app *app, const struct vm_species *species,
   if (edge == VM_EDGE_LOWER) {
     gkyl_array_flip_copy_to_buffer_fn(species->bc_buffer->data, f, dir+cdim,
       species->skin_ghost.lower_skin[dir],
-      species->wall_bc_func[dir]
+      species->wall_bc_func[dir]->on_dev
     );
     
     gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.lower_ghost[dir]);
@@ -468,7 +468,7 @@ vm_species_apply_wall_bc(gkyl_vlasov_app *app, const struct vm_species *species,
   if (edge == VM_EDGE_UPPER) {
     gkyl_array_flip_copy_to_buffer_fn(species->bc_buffer->data, f, dir+cdim,
       species->skin_ghost.upper_skin[dir],
-      species->wall_bc_func[dir]
+      species->wall_bc_func[dir]->on_dev
     );
     
     gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.upper_ghost[dir]);
