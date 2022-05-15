@@ -181,7 +181,7 @@ gkyl_dg_calc_op_range(struct gkyl_basis basis, int c_oop, struct gkyl_array *out
   int poly_order = basis.poly_order;
 
   dp_op_t op_func = dg_get_op_func(op);
-  double fact = // factor for rescaling return valu of op_func
+  double fact = // factor for rescaling return value of op_func
     op == GKYL_DG_OP_MEAN ? sqrt(pow(2,ndim)) : pow(2,ndim);
 
   struct gkyl_range_iter iter;

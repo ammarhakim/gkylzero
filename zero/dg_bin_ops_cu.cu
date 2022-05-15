@@ -57,7 +57,8 @@ gkyl_dg_mul_op_cu(struct gkyl_basis basis,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop)
 {
-  gkyl_dg_mul_op_cu_kernel<<<out->nblocks, out->nthreads>>>(basis, c_oop, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev);
+  gkyl_dg_mul_op_cu_kernel<<<out->nblocks, out->nthreads>>>(basis, c_oop, out->on_dev,
+    c_lop, lop->on_dev, c_rop, rop->on_dev);
 }
 
 __global__ void
@@ -112,7 +113,8 @@ gkyl_dg_mul_op_range_cu(struct gkyl_basis basis,
   dim3 dimGrid, dimBlock;
   gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range);
 
-  gkyl_dg_mul_op_range_cu_kernel<<<dimGrid, dimBlock>>>(basis, c_oop, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev, range);
+  gkyl_dg_mul_op_range_cu_kernel<<<dimGrid, dimBlock>>>(basis, c_oop, out->on_dev,
+    c_lop, lop->on_dev, c_rop, rop->on_dev, range);
 }
 
 __global__ void
@@ -286,9 +288,38 @@ gkyl_dg_div_op_range_cu(struct gkyl_basis basis,
   gkyl_nmat_release(x_d);  
 }
 
+__global__ void
+gkyl_dg_calc_op_range_cu_kernel(struct gkyl_basis basis, int c_oop, struct gkyl_array *out,
+  int c_iop, const struct gkyl_array *iop,
+  struct gkyl_range range, enum gkyl_dg_op op)
+{
+  int num_basis = basis.num_basis;
+  int ndim = basis.ndim;
+  int poly_order = basis.poly_order;
+
+  dp_op_t op_func = dg_get_op_func(op);
+  double fact = // factor for rescaling return value of op_func
+    op == GKYL_DG_OP_MEAN ? sqrt(pow(2,ndim)) : pow(2,ndim);
+
+  for (unsigned long linc = START_ID; linc < NSIZE(out); linc += blockDim.x*gridDim.x) {
+    
+    const double *iop_d = (const double*) gkyl_array_cfetch(iop, linc);
+    double *out_d = (double*) gkyl_array_fetch(out, linc);
+
+    out_d[c_oop] =
+      op_func(num_basis, iop_d+c_iop*num_basis)/fact;
+  }
+}
+
 void
 gkyl_dg_calc_op_range_cu(struct gkyl_basis basis, int c_oop, struct gkyl_array *out,
   int c_iop, const struct gkyl_array *iop,
   struct gkyl_range range, enum gkyl_dg_op op)
 {
+  dim3 dimGrid, dimBlock;
+  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range);
+
+  gkyl_dg_calc_op_range_cu_kernel<<<dimGrid, dimBlock>>>(basis, c_oop, out->on_dev,
+    c_iop, iop->on_dev, range, op);
+  
 }

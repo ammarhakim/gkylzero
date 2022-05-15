@@ -689,6 +689,7 @@ test_1d_cu(int poly_order)
   gkyl_array_release(g_bar_cu);
   gkyl_array_release(h_cu);
   gkyl_array_release(mvals_cu);
+  gkyl_cu_free(al2_cu);
 }
 
 void
@@ -791,6 +792,25 @@ test_2d_cu(int poly_order)
       TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-12) );
     }
   }
+
+  // mean ops
+  struct gkyl_array *mvals_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2, arr_range.volume);
+  gkyl_array_clear(mvals_cu, 0.0);
+
+  // means are stored in h[0]
+  gkyl_dg_calc_average_range(basis, 0, mvals_cu, 0, distf_cu, arr_range);
+  // L2 are stored in h[1]
+  gkyl_dg_calc_l2_range(basis, 1, mvals_cu, 0, distf_cu, arr_range);
+
+  double* al2_cu = (double*) gkyl_cu_malloc(sizeof(double[2]));
+  gkyl_array_reduce_range(al2_cu, mvals_cu, GKYL_SUM, arr_range);
+
+  double al2[2];
+  gkyl_cu_memcpy(al2, al2_cu, sizeof(double[2]), GKYL_CU_MEMCPY_D2H);
+
+  double vol = grid.cellVolume;
+  TEST_CHECK( gkyl_compare(al2[0]*vol, 3.0, 1e-14) );
+  TEST_CHECK( gkyl_compare(al2[1]*vol, 55.0/6.0, 1e-14) );
   
   gkyl_proj_on_basis_release(projDistf);
   gkyl_proj_on_basis_release(projDistg);
@@ -803,6 +823,8 @@ test_2d_cu(int poly_order)
   gkyl_array_release(f_bar_cu);
   gkyl_array_release(g_bar_cu);
   gkyl_array_release(h_cu);
+  gkyl_array_release(mvals_cu);
+  gkyl_cu_free(al2_cu);  
 }
 
 void
@@ -905,6 +927,25 @@ test_3d_cu(int poly_order)
       TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-10) );
     }
   }
+
+  // mean ops
+  struct gkyl_array *mvals_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2, arr_range.volume);
+  gkyl_array_clear(mvals_cu, 0.0);
+
+  // means are stored in h[0]
+  gkyl_dg_calc_average_range(basis, 0, mvals_cu, 0, distf_cu, arr_range);
+  // L2 are stored in h[1]
+  gkyl_dg_calc_l2_range(basis, 1, mvals_cu, 0, distf_cu, arr_range);
+
+  double* al2_cu = (double*) gkyl_cu_malloc(sizeof(double[2]));
+  gkyl_array_reduce_range(al2_cu, mvals_cu, GKYL_SUM, arr_range);
+
+  double al2[2];
+  gkyl_cu_memcpy(al2, al2_cu, sizeof(double[2]), GKYL_CU_MEMCPY_D2H);
+
+  double vol = grid.cellVolume;
+  TEST_CHECK( gkyl_compare(al2[0]*vol, 6.5, 1e-14) );
+  TEST_CHECK( gkyl_compare(al2[1]*vol, 85.0/2.0, 1e-14) );
   
   gkyl_proj_on_basis_release(projDistf);
   gkyl_proj_on_basis_release(projDistg);
@@ -917,6 +958,8 @@ test_3d_cu(int poly_order)
   gkyl_array_release(f_bar_cu);
   gkyl_array_release(g_bar_cu);
   gkyl_array_release(h_cu);
+  gkyl_array_release(mvals_cu);
+  gkyl_cu_free(al2_cu);
 }
 
 void
