@@ -1,8 +1,8 @@
+#include <gkyl_alloc.h>
+#include <gkyl_array_ops.h>
+#include <gkyl_basis.h>
+#include <gkyl_dynvec.h>
 
-#include "gkyl_alloc.h"
-#include "gkyl_array_ops.h"
-#include "gkyl_basis.h"
-#include "gkyl_dynvec.h"
 #include <gkyl_vlasov_priv.h>
 
 gkyl_vlasov_app*
@@ -50,7 +50,8 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     case GKYL_BASIS_MODAL_SERENDIPITY:
       gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
       gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
-      gkyl_cart_modal_serendip(&app->velBasis, vdim, poly_order);
+      if (vdim > 0)
+        gkyl_cart_modal_serendip(&app->velBasis, vdim, poly_order);
 
       if (app->use_gpu) {
         gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
@@ -61,15 +62,14 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     case GKYL_BASIS_MODAL_TENSOR:
       gkyl_cart_modal_tensor(&app->basis, pdim, poly_order);
       gkyl_cart_modal_tensor(&app->confBasis, cdim, poly_order);
-      gkyl_cart_modal_tensor(&app->velBasis, vdim, poly_order);
+      if (vdim > 0)
+        gkyl_cart_modal_tensor(&app->velBasis, vdim, poly_order);
       break;
 
     default:
       assert(false);
       break;
   }
-
-
 
   gkyl_rect_grid_init(&app->grid, cdim, vm->lower, vm->upper, vm->cells);
 
@@ -249,6 +249,10 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
     gkyl_vlasov_app_write_species(app, i, tm, frame);
     if (app->species[i].field_id == GKYL_FIELD_SR_E_B && frame == 0)
       gkyl_vlasov_app_write_species_gamma(app, i, tm, frame);
+    if (app->species[i].has_mirror_force && frame == 0) {
+      gkyl_vlasov_app_write_magB(app, i, tm, frame);
+      gkyl_vlasov_app_write_gradB(app, i, tm, frame);
+    }
   }
   for (int i=0; i<app->num_fluid_species; ++i)
     gkyl_vlasov_app_write_fluid_species(app, i, tm, frame);
@@ -309,6 +313,46 @@ gkyl_vlasov_app_write_species_gamma(gkyl_vlasov_app* app, int sidx, double tm, i
   else {
     gkyl_grid_sub_array_write(&app->species[sidx].grid_vel, &app->species[sidx].local_vel,
       app->species[sidx].p_over_gamma, fileNm);
+  }  
+}
+
+void
+gkyl_vlasov_app_write_magB(gkyl_vlasov_app* app, int sidx, double tm, int frame)
+{
+  const char *fmt = "%s-%s_magB_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow  
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame);
+
+  if (app->use_gpu) {
+    // copy data from device to host before writing it out
+    gkyl_array_copy(app->species[sidx].magB_host, app->species[sidx].magB);
+    gkyl_grid_sub_array_write(&app->grid, &app->local,
+      app->species[sidx].magB_host, fileNm);
+  }
+  else {
+    gkyl_grid_sub_array_write(&app->grid, &app->local,
+      app->species[sidx].magB, fileNm);
+  }  
+}
+
+void
+gkyl_vlasov_app_write_gradB(gkyl_vlasov_app* app, int sidx, double tm, int frame)
+{
+  const char *fmt = "%s-%s_gradB_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow  
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame);
+
+  if (app->use_gpu) {
+    // copy data from device to host before writing it out
+    gkyl_array_copy(app->species[sidx].gradB_host, app->species[sidx].gradB);
+    gkyl_grid_sub_array_write(&app->grid, &app->local,
+      app->species[sidx].gradB_host, fileNm);
+  }
+  else {
+    gkyl_grid_sub_array_write(&app->grid, &app->local,
+      app->species[sidx].gradB, fileNm);
   }  
 }
 
@@ -419,7 +463,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   
   // compute RHS of Vlasov equations
   for (int i=0; i<app->num_species; ++i) {
-    double dt1 = vm_species_rhs(app, &app->species[i], fin[i], emin, fout[i]);
+    double dt1 = vm_species_rhs(app, &app->species[i], fin[i], emin, fout[i], fluidin);
     dtmin = fmin(dtmin, dt1);
   }
   for (int i=0; i<app->num_fluid_species; ++i) {
@@ -468,7 +512,15 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
         vm_species_moment_calc(&s->m1i, s->local, app->local, fin[i]);
     
         double qbyeps = s->info.charge/app->field->info.epsilon0;
-        gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, app->local);
+        if (s->has_mirror_force) {
+	  // if has_mirror_force, m1i = m1i/B = J*m1i
+	  // need to multiply by magB to get the right current density
+          gkyl_dg_mul_op_range(app->confBasis, 0, s->m1i_no_J, 0,
+            s->m1i.marr, 0, s->magB, app->local);
+	  gkyl_array_accumulate_range(emout, -qbyeps, s->m1i_no_J, app->local);
+        } else {
+          gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, app->local);
+	}
       }
       // accumulate current contribution from fluid species to electric field terms
       for (int i=0; i<app->num_fluid_species; ++i) {

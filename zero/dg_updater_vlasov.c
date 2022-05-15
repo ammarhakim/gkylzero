@@ -66,7 +66,7 @@ gkyl_dg_updater_vlasov_advance(gkyl_dg_updater_vlasov *vlasov,
   // Set arrays needed
   // Assumes a particular order of the arrays
   // TO DO: More intelligent way to do these aux field sets? (JJ: 04/26/22)
-  if (field_id == GKYL_FIELD_E_B || field_id == GKYL_FIELD_NULL)
+  if (field_id == GKYL_FIELD_E_B)
     gkyl_vlasov_set_auxfields(vlasov->eqn_vlasov, 
       (struct gkyl_dg_vlasov_auxfields) { .qmem = aux1 });
   else if (field_id == GKYL_FIELD_PHI || field_id == GKYL_FIELD_PHI_A)
@@ -109,7 +109,7 @@ gkyl_dg_updater_vlasov_advance_cu(gkyl_dg_updater_vlasov *vlasov,
   // Set arrays needed
   // Assumes a particular order of the arrays
   // TO DO: More intelligent way to do these aux field sets? (JJ: 04/26/22)
-  if (field_id == GKYL_FIELD_E_B || field_id == GKYL_FIELD_NULL)
+  if (field_id == GKYL_FIELD_E_B)
     gkyl_vlasov_set_auxfields(vlasov->eqn_vlasov, 
       (struct gkyl_dg_vlasov_auxfields) { .qmem = aux1 });
   else if (field_id == GKYL_FIELD_PHI || field_id == GKYL_FIELD_PHI_A)

@@ -112,6 +112,9 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       f->upper_bc[dir] = bc[1];
     }
   }
+  for (int d=0; d<3; ++d)
+    f->absorb_bc_func[d] = gkyl_advection_absorb_bc_create(f->eqn, d,
+      app->basis_on_dev.confBasis);
 }
 
 void
@@ -220,6 +223,27 @@ vm_fluid_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_fluid_speci
   }
 }
 
+// Apply absorbing BCs on fluid species
+void
+vm_fluid_species_apply_absorb_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species,
+  int dir, enum vm_domain_edge edge, struct gkyl_array *f)
+{
+  
+  if (edge == VM_EDGE_LOWER) {
+    gkyl_array_copy_to_buffer_fn(fluid_species->bc_buffer->data, f, app->skin_ghost.lower_skin[dir],
+      fluid_species->absorb_bc_func[dir]->on_dev
+    );
+    gkyl_array_copy_from_buffer(f, fluid_species->bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
+  }
+
+  if (edge == VM_EDGE_UPPER) {
+    gkyl_array_copy_to_buffer_fn(fluid_species->bc_buffer->data, f, app->skin_ghost.upper_skin[dir],
+      fluid_species->absorb_bc_func[dir]->on_dev
+    );
+    gkyl_array_copy_from_buffer(f, fluid_species->bc_buffer->data, app->skin_ghost.upper_ghost[dir]);
+  }  
+}
+
 // Determine which directions are periodic and which directions are copy,
 // and then apply boundary conditions for fluid species
 void
@@ -238,18 +262,24 @@ vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *f
         case GKYL_FLUID_SPECIES_COPY:
           vm_fluid_species_apply_copy_bc(app, fluid_species, d, VM_EDGE_LOWER, f);
           break;
+        case GKYL_FLUID_SPECIES_ABSORB:
+          vm_fluid_species_apply_absorb_bc(app, fluid_species, d, VM_EDGE_LOWER, f);
+          break;
       }
 
       switch (fluid_species->upper_bc[d]) {
         case GKYL_FLUID_SPECIES_COPY:
           vm_fluid_species_apply_copy_bc(app, fluid_species, d, VM_EDGE_UPPER, f);
           break;
+        case GKYL_FLUID_SPECIES_ABSORB:
+          vm_fluid_species_apply_absorb_bc(app, fluid_species, d, VM_EDGE_UPPER, f);
+          break;
       }      
     }
   }
 }
 
-// release resources for field
+// release resources for fluid species
 void
 vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
 {
@@ -284,5 +314,7 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
   else {
     gkyl_free(f->omegaCfl_ptr);
   }
+  for (int d=0; d<3; ++d)
+    gkyl_advection_bc_release(f->absorb_bc_func[d]);
 }
 

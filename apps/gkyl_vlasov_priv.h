@@ -114,9 +114,6 @@ struct vm_bgk_collisions {
 // context for use in computing applied acceleration
 struct vm_eval_accel_ctx { evalf_t accel_func; void *accel_ctx; };
 
-// context for use in computing applied source
-struct vm_eval_source_ctx { evalf_t source_func; void *source_ctx; };
-
 // species data
 struct vm_species {
   struct gkyl_vlasov_species info; // data for species
@@ -158,6 +155,7 @@ struct vm_species {
   // actually be on the GPUs. Seems ugly, but I am not sure how else
   // to ensure the function and context lives on the GPU
   struct gkyl_array_copy_func *wall_bc_func[3]; // for wall BCs
+  struct gkyl_array_copy_func *absorb_bc_func[3]; // for absorbing BCs
 
   bool has_accel; // flag to indicate there is applied acceleration
   struct gkyl_array *accel; // applied acceleration
@@ -169,7 +167,22 @@ struct vm_species {
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *source_proj; // projector for source
-  struct vm_eval_source_ctx source_ctx; // context for applied source
+
+  bool has_mirror_force; // flag to indicate Vlasov includes mirror force from external magnetic field
+  struct gkyl_array *gradB; // gradient of magnetic field
+  struct gkyl_array *magB; // magnitude of magnetic field (J = 1/B)
+  struct gkyl_array *n; // array storing density (no Jacobian)
+  struct gkyl_array *Tperp; // array storing J*Tperp (J*p_perp/n)
+  struct gkyl_array *mirror_force; // array storing full mirror force (J*T_perp*gradB)
+  struct gkyl_array *m1i_no_J; // current density without Jacobian (for coupling to EM fields)
+
+  // host copy for use in IO and projecting
+  struct gkyl_array *gradB_host;
+  struct gkyl_array *magB_host;
+  struct gkyl_array *n_host;
+  struct gkyl_array *Tperp_host;
+  struct gkyl_array *mirror_force_host;
+  struct gkyl_array *m1i_no_J_host;
 
   enum gkyl_collision_id collision_id; // type of collisions
   bool collides_with_fluid; // boolean for if kinetic species collides with a fluid speceis
@@ -228,6 +241,10 @@ struct vm_fluid_species {
 
   // boundary conditions on lower/upper edges in each direction  
   enum gkyl_fluid_species_bc_type lower_bc[3], upper_bc[3];
+  // Note: we need to store pointers to the struct as these may
+  // actually be on the GPUs. Seems ugly, but I am not sure how else
+  // to ensure the function and context lives on the GPU
+  struct gkyl_array_copy_func *absorb_bc_func[3]; // for absorbing BCs
 
   // specified advection
   bool has_advect; // flag to indicate there is applied advection
@@ -500,6 +517,15 @@ void vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, dou
 void vm_species_calc_source(gkyl_vlasov_app *app, struct vm_species *species, double tm);
 
 /**
+ * Compute gradient and magnitude of magnetic field
+ *
+ * @param app Vlasov app object
+ * @param species Species object
+ * @param tm Time for use in source
+ */
+void vm_species_calc_magB_gradB(gkyl_vlasov_app *app, struct vm_species *species, double tm);
+
+/**
  * Compute RHS from species distribution function
  *
  * @param app Vlasov app object
@@ -507,10 +533,13 @@ void vm_species_calc_source(gkyl_vlasov_app *app, struct vm_species *species, do
  * @param fin Input distribution function
  * @param em EM field
  * @param rhs On output, the RHS from the species object
+ * @param fluidin Input fluid array for potential fluid force (size: num_fluid_species)
  * @return Maximum stable time-step
  */
 double vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
-  const struct gkyl_array *fin, const struct gkyl_array *em, struct gkyl_array *rhs);
+  const struct gkyl_array *fin, const struct gkyl_array *em, 
+  struct gkyl_array *rhs,
+  const struct gkyl_array *fluidin[]);
 
 /**
  * Apply periodic BCs to species distribution function
@@ -534,6 +563,32 @@ void vm_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_species 
  */
 void
 vm_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_species *species,
+  int dir, enum vm_domain_edge edge, struct gkyl_array *f);
+
+/**
+ * Apply wall BCs to species distribution function
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param dir Direction to apply BCs
+ * @param edge Edge to apply BCs
+ * @param f Field to apply BCs
+ */
+void
+vm_species_apply_wall_bc(gkyl_vlasov_app *app, const struct vm_species *species,
+  int dir, enum vm_domain_edge edge, struct gkyl_array *f);
+
+/**
+ * Apply absorbing BCs to species distribution function
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param dir Direction to apply BCs
+ * @param edge Edge to apply BCs
+ * @param f Field to apply BCs
+ */
+void
+vm_species_apply_absorb_bc(gkyl_vlasov_app *app, const struct vm_species *species,
   int dir, enum vm_domain_edge edge, struct gkyl_array *f);
 
 /**
@@ -709,7 +764,8 @@ double vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid
  * @param dir Direction to apply BCs
  * @param f Fluid Species to apply BCs
  */
-void vm_fluid_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species, int dir, struct gkyl_array *f);
+void vm_fluid_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species, 
+  int dir, struct gkyl_array *f);
 
 /**
  * Apply copy BCs to fluid species
@@ -720,6 +776,17 @@ void vm_fluid_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_fl
  * @param f Fluid Species to apply BCs
  */
 void vm_fluid_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species,
+  int dir, enum vm_domain_edge edge, struct gkyl_array *f);
+
+/**
+ * Apply absorbing BCs to fluid species
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Pointer to fluid species
+ * @param dir Direction to apply BCs
+ * @param f Fluid Species to apply BCs
+ */
+void vm_fluid_species_apply_absorb_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species,
   int dir, enum vm_domain_edge edge, struct gkyl_array *f);
 
 /**

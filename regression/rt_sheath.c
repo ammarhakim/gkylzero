@@ -6,7 +6,7 @@
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
 
-struct esshock_ctx {
+struct sheath_ctx {
   double chargeElc; // electron charge
   double massElc; // electron mass
   double chargeIon; // ion charge
@@ -14,10 +14,7 @@ struct esshock_ctx {
   double Te_Ti; // electron to ion temperature ratio
   double vte; // electron thermal velocity
   double vti; // ion thermal velocity
-  double cs; // sound speed
-  double uShock; // in-flow velocity
   double Lx; // size of the box
-  double n0; // initial number density
 };
 
 static inline double sq(double x) { return x*x; }
@@ -25,53 +22,27 @@ static inline double sq(double x) { return x*x; }
 void
 evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct esshock_ctx *app = ctx;
+  struct sheath_ctx *app = ctx;
   double x = xn[0], v = xn[1];
-  double vt = app->vte, vdrift = app->uShock, n0 = app->n0;
-  double fv = 0.0;
-  if (x < 0)
-    fv = n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v-vdrift)/(2*sq(vt))));
-  else
-    fv = n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v+vdrift)/(2*sq(vt))));
+  double vt = app->vte;
+  double fv = 1.0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
   fout[0] = fv;
 }
 
 void
 evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct esshock_ctx *app = ctx;
+  struct sheath_ctx *app = ctx;
   double x = xn[0], v = xn[1];
-  double vt = app->vti, vdrift = app->uShock, n0 = app->n0;
-  double fv = 0.0;
-  if (x < 0)
-    fv = n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v-vdrift)/(2*sq(vt))));
-  else
-    fv = n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v+vdrift)/(2*sq(vt))));
+  double vt = app->vti;
+  double fv = 1.0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
   fout[0] = fv;
-}
-
-void
-evalTperpElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct esshock_ctx *app = ctx;
-  double x = xn[0];
-  double vt = app->vte, n = app->n0;
-  fout[0] = n*vt*vt;
-}
-
-void
-evalTperpIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct esshock_ctx *app = ctx;
-  double x = xn[0];
-  double vt = app->vti, n = app->n0;
-  fout[0] = n*vt*vt;
 }
 
 void
 evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct esshock_ctx *app = ctx;
+  struct sheath_ctx *app = ctx;
   double x = xn[0];
   
   fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
@@ -79,35 +50,18 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[6] = 0.0; fout[7] = 0.0;
 }
 
-void
-evalNuElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct esshock_ctx *app = ctx;
-  fout[0] = 1.0e-4;
-}
-
-void
-evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct esshock_ctx *app = ctx;
-  fout[0] = 1.0e-4/sqrt(app->massIon)*(app->Te_Ti*sqrt(app->Te_Ti));
-}
-
-struct esshock_ctx
+struct sheath_ctx
 create_ctx(void)
 {
-  struct esshock_ctx ctx = {
+  struct sheath_ctx ctx = {
     .chargeElc = -1.0,
     .massElc = 1.0,
     .chargeIon = 1.0,
     .massIon = 1836.153,
-    .Te_Ti = 4.0,
+    .Te_Ti = 1.0,
     .vte = 1.0,
     .vti = ctx.vte/sqrt(ctx.Te_Ti*ctx.massIon),
-    .cs = ctx.vte/sqrt(ctx.massIon),
-    .uShock = 2.0*ctx.cs,
-    .Lx = 128.0,
-    .n0 = 1.0
+    .Lx = 128.0
   };
   return ctx;
 }
@@ -121,74 +75,37 @@ main(int argc, char **argv)
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
-  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 16);  
+  struct sheath_ctx ctx = create_ctx(); // context for init functions
 
-  struct esshock_ctx ctx = create_ctx(); // context for init functions
-
-  // electron Tperp                                                                                              
-  struct gkyl_vlasov_fluid_species Tperp_elc = {
-    .name = "Tperp_elc",
-
-    .ctx = &ctx,
-    .init = evalTperpElc,
-
-    .advection = {.advect_with = "elc", .collision_id = GKYL_LBO_COLLISIONS},
-  };  
-  
   // electrons
   struct gkyl_vlasov_species elc = {
     .name = "elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
     .lower = { -6.0 * ctx.vte},
     .upper = { 6.0 * ctx.vte}, 
-    .cells = { VX },
+    .cells = { 64 },
 
     .ctx = &ctx,
     .init = evalDistFuncElc,
 
-    .collisions = {
-      .collision_id = GKYL_LBO_COLLISIONS,
-
-      .ctx = &ctx,
-      .self_nu = evalNuElc,
-      .collide_with_fluid = "Tperp_elc",
-      .fluid_index = 0,
-    },    
+    .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
 
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
   };
 
-  // ion Tperp                                                                                              
-  struct gkyl_vlasov_fluid_species Tperp_ion = {
-    .name = "Tperp_ion",
-
-    .ctx = &ctx,
-    .init = evalTperpIon,
-
-    .advection = {.advect_with = "ion", .collision_id = GKYL_LBO_COLLISIONS},
-  };  
-  
   // ions
   struct gkyl_vlasov_species ion = {
     .name = "ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
-    .lower = { -16.0 * ctx.vti},
-    .upper = { 16.0 * ctx.vti}, 
-    .cells = { VX },
+    .lower = { -6.0 * ctx.vti},
+    .upper = { 6.0 * ctx.vti}, 
+    .cells = { 64 },
 
     .ctx = &ctx,
     .init = evalDistFuncIon,
 
-    .collisions = {
-      .collision_id = GKYL_LBO_COLLISIONS,
-
-      .ctx = &ctx,
-      .self_nu = evalNuIon,
-      .collide_with_fluid = "Tperp_ion" ,
-      .fluid_index = 1,
-    },    
+    .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
 
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
@@ -201,17 +118,19 @@ main(int argc, char **argv)
     .mgnErrorSpeedFactor = 0.0,
 
     .ctx = &ctx,
-    .init = evalFieldFunc
+    .init = evalFieldFunc,
+
+    .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL }
   };
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "esshock_lbo_aux_temp",
+    .name = "sheath",
 
     .cdim = 1, .vdim = 1,
     .lower = { -ctx.Lx },
     .upper = { ctx.Lx },
-    .cells = { NX },
+    .cells = { 256 },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
@@ -220,8 +139,6 @@ main(int argc, char **argv)
 
     .num_species = 2,
     .species = { elc, ion },
-    .num_fluid_species = 2,
-    .fluid_species = { Tperp_elc, Tperp_ion },
     .field = field,
 
     .use_gpu = app_args.use_gpu,

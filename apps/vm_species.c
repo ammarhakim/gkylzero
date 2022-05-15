@@ -217,10 +217,6 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     if (app->use_gpu)
       s->source_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
 
-    s->source_ctx = (struct vm_eval_source_ctx) {
-      .source_func = s->info.source, .source_ctx = s->info.source_ctx
-    };
-
     s->source_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
         .grid = &s->grid,
         .basis = &app->basis,
@@ -245,6 +241,71 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     vm_species_lbo_init(app, s, &s->lbo, s->collides_with_fluid);
   }
 
+  // setup mirror force from fluid species if present
+  s->has_mirror_force = false;
+  if (vm_find_fluid_species(app, s->info.mirror_force.fluid_mirror_force)) {
+    s->has_mirror_force = true;
+    // index in fluid_species struct of fluid species kinetic species 
+    s->fluid_index = s->info.mirror_force.fluid_mirror_force_index;
+
+    // gradB and Bmag are both scalar fields in configuration space
+    s->magB = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    s->gradB = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+
+    // Additional arrays for computing mirror force and current density for EM field coupling
+    s->n = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    s->Tperp = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    s->mirror_force = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    s->m1i_no_J = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+
+    s->gradB_host = s->gradB;
+    s->magB_host = s->magB;
+    s->n_host = s->n;
+    s->Tperp_host = s->Tperp;
+    s->mirror_force_host = s->mirror_force;
+    s->m1i_no_J_host = s->m1i_no_J;
+    if (app->use_gpu) {
+      s->gradB_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+      s->magB_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+      s->n_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+      s->Tperp_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+      s->mirror_force_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+      s->m1i_no_J_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+    }
+
+    gkyl_proj_on_basis *gradB_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+        .grid = &app->grid,
+        .basis = &app->confBasis,
+        .qtype = GKYL_GAUSS_LOBATTO_QUAD,
+        .num_quad = 8,
+        .num_ret_vals = 1,
+        .eval = s->info.mirror_force.gradB,
+        .ctx = s->info.mirror_force.gradB_ctx
+      }
+    );
+
+    // run updater
+    gkyl_proj_on_basis_advance(gradB_proj, 0.0, &app->local, s->gradB_host);
+    gkyl_proj_on_basis_release(gradB_proj);    
+    if (app->use_gpu) // note: p_over_gamma_host is same as p_over_gamma when not on GPUs
+      gkyl_array_copy(s->gradB, s->gradB_host);
+
+    gkyl_proj_on_basis *magB_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+        .grid = &app->grid,
+        .basis = &app->confBasis,
+        .qtype = GKYL_GAUSS_LOBATTO_QUAD,
+        .num_quad = 8,
+        .num_ret_vals = 1,
+        .eval = s->info.mirror_force.magB,
+        .ctx = s->info.mirror_force.magB_ctx
+      }
+    );
+    gkyl_proj_on_basis_advance(magB_proj, 0.0, &app->local, s->magB_host);
+    gkyl_proj_on_basis_release(magB_proj);    
+    if (app->use_gpu) // note: p_over_gamma_host is same as p_over_gamma when not on GPUs
+      gkyl_array_copy(s->magB, s->magB_host);
+  }
+
   // determine which directions are not periodic
   int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
   for (int d=0; d<num_periodic_dir; ++d)
@@ -265,15 +326,24 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     }
   }
   for (int d=0; d<3; ++d) {
-    if (s->field_id == GKYL_FIELD_SR_E_B)
+    if (s->field_id == GKYL_FIELD_SR_E_B) {
       s->wall_bc_func[d] = gkyl_vlasov_sr_wall_bc_create(s->eqn_vlasov, d,
         app->basis_on_dev.basis);
-    else if (s->field_id == GKYL_FIELD_PHI || s->field_id == GKYL_FIELD_PHI_A)
+      s->absorb_bc_func[d] = gkyl_vlasov_sr_absorb_bc_create(s->eqn_vlasov, d,
+        app->basis_on_dev.basis);
+    }
+    else if (s->field_id == GKYL_FIELD_PHI || s->field_id == GKYL_FIELD_PHI_A) {
       s->wall_bc_func[d] = gkyl_vlasov_poisson_wall_bc_create(s->eqn_vlasov, d,
         app->basis_on_dev.basis);
-    else
+      s->absorb_bc_func[d] = gkyl_vlasov_poisson_absorb_bc_create(s->eqn_vlasov, d,
+        app->basis_on_dev.basis);
+    }
+    else {
       s->wall_bc_func[d] = gkyl_vlasov_wall_bc_create(s->eqn_vlasov, d,
         app->basis_on_dev.basis);
+      s->absorb_bc_func[d] = gkyl_vlasov_absorb_bc_create(s->eqn_vlasov, d,
+        app->basis_on_dev.basis);
+    }
   }
 }
 
@@ -291,10 +361,10 @@ vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
   if (app->use_gpu) // note: f_host is same as f when not on GPUs
     gkyl_array_copy(species->f, species->f_host);
 
-  // we are computing acceleration for now as it is time-independent
+  // we are pre-computing acceleration for now as it is time-independent
   vm_species_calc_accel(app, species, t0);
 
-  // we are computing source for now as it is time-independent
+  // we are pre-computing source for now as it is time-independent
   vm_species_calc_source(app, species, t0);
 }
 
@@ -322,7 +392,8 @@ vm_species_calc_source(gkyl_vlasov_app *app, struct vm_species *species, double 
 // time-step.
 double
 vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
-  const struct gkyl_array *fin, const struct gkyl_array *em, struct gkyl_array *rhs)
+  const struct gkyl_array *fin, const struct gkyl_array *em, struct gkyl_array *rhs,
+  const struct gkyl_array *fluidin[])
 {
   gkyl_array_clear(species->cflrate, 0.0);
   if (species->field_id  == GKYL_FIELD_E_B || species->field_id  == GKYL_FIELD_SR_E_B) {
@@ -331,6 +402,20 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
 
     if (species->has_accel)
       gkyl_array_accumulate(species->qmem, 1.0, species->accel);
+
+    if (species->has_mirror_force) {
+      // get n = J*M0*magB (since J = 1/B)
+      gkyl_dg_mul_op_range(app->confBasis, 0, species->n, 0,
+        species->magB, 0, species->lbo.m0, app->local);
+      // get J*T_perp = J*p_perp/n
+      gkyl_dg_div_op_range(app->confBasis, 0, species->Tperp, 0,
+        fluidin[species->fluid_index], 0, species->n, app->local);
+      // get mirror force = J*T_perp*grad(B)
+      gkyl_dg_mul_op_range(app->confBasis, 0, species->mirror_force, 0,
+        species->gradB, 0, species->Tperp, app->local);
+
+      gkyl_array_accumulate_range(species->qmem, -1.0, species->mirror_force, app->local);
+    }
   }
   
   gkyl_array_clear(rhs, 0.0);
@@ -394,7 +479,7 @@ vm_species_apply_wall_bc(gkyl_vlasov_app *app, const struct vm_species *species,
   if (edge == VM_EDGE_LOWER) {
     gkyl_array_flip_copy_to_buffer_fn(species->bc_buffer->data, f, dir+cdim,
       species->skin_ghost.lower_skin[dir],
-      species->wall_bc_func[dir]
+      species->wall_bc_func[dir]->on_dev
     );
     
     gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.lower_ghost[dir]);
@@ -403,7 +488,31 @@ vm_species_apply_wall_bc(gkyl_vlasov_app *app, const struct vm_species *species,
   if (edge == VM_EDGE_UPPER) {
     gkyl_array_flip_copy_to_buffer_fn(species->bc_buffer->data, f, dir+cdim,
       species->skin_ghost.upper_skin[dir],
-      species->wall_bc_func[dir]
+      species->wall_bc_func[dir]->on_dev
+    );
+    
+    gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.upper_ghost[dir]);
+  }
+}
+
+// Apply absorbing BCs on distribution function
+void
+vm_species_apply_absorb_bc(gkyl_vlasov_app *app, const struct vm_species *species,
+  int dir, enum vm_domain_edge edge, struct gkyl_array *f)
+{
+  if (edge == VM_EDGE_LOWER) {
+    gkyl_array_copy_to_buffer_fn(species->bc_buffer->data, f,
+      species->skin_ghost.lower_skin[dir],
+      species->absorb_bc_func[dir]->on_dev
+    );
+    
+    gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.lower_ghost[dir]);
+  }
+
+  if (edge == VM_EDGE_UPPER) {
+    gkyl_array_copy_to_buffer_fn(species->bc_buffer->data, f,
+      species->skin_ghost.upper_skin[dir],
+      species->absorb_bc_func[dir]->on_dev
     );
     
     gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.upper_ghost[dir]);
@@ -431,6 +540,9 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
         case GKYL_SPECIES_WALL:
           vm_species_apply_wall_bc(app, species, d, VM_EDGE_LOWER, f);
           break;
+        case GKYL_SPECIES_ABSORB:
+          vm_species_apply_absorb_bc(app, species, d, VM_EDGE_LOWER, f);
+          break;
         default:
           break;
       }
@@ -442,8 +554,11 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
         case GKYL_SPECIES_WALL:
           vm_species_apply_wall_bc(app, species, d, VM_EDGE_UPPER, f);
           break;
+        case GKYL_SPECIES_ABSORB:
+          vm_species_apply_absorb_bc(app, species, d, VM_EDGE_UPPER, f);
+          break;
         default:
-          break;          
+          break;
       }      
     }
   }
@@ -529,11 +644,40 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     gkyl_proj_on_basis_release(s->source_proj);
   }
 
+  if (s->has_mirror_force) {
+    gkyl_array_release(s->gradB);
+    gkyl_array_release(s->magB);
+    gkyl_array_release(s->n);
+    gkyl_array_release(s->Tperp);
+    gkyl_array_release(s->mirror_force);
+    gkyl_array_release(s->m1i_no_J);
+    if (app->use_gpu) {
+      gkyl_array_release(s->gradB_host);
+      gkyl_array_release(s->magB_host);
+      gkyl_array_release(s->n_host);
+      gkyl_array_release(s->Tperp_host);
+      gkyl_array_release(s->mirror_force_host);
+      gkyl_array_release(s->m1i_no_J_host);
+    }
+  }
+
   if (s->collision_id == GKYL_LBO_COLLISIONS)
     vm_species_lbo_release(app, &s->lbo);
 
-  for (int d=0; d<3; ++d)
-    gkyl_vlasov_wall_bc_release(s->wall_bc_func[d]);
+  for (int d=0; d<3; ++d) {
+    if (s->field_id == GKYL_FIELD_SR_E_B) {
+      gkyl_vlasov_sr_bc_release(s->wall_bc_func[d]);
+      gkyl_vlasov_sr_bc_release(s->absorb_bc_func[d]); 
+    }
+    else if (s->field_id == GKYL_FIELD_PHI || s->field_id == GKYL_FIELD_PHI_A) {
+      gkyl_vlasov_poisson_bc_release(s->wall_bc_func[d]);
+      gkyl_vlasov_poisson_bc_release(s->absorb_bc_func[d]); 
+    }
+    else {
+      gkyl_vlasov_bc_release(s->wall_bc_func[d]);
+      gkyl_vlasov_bc_release(s->absorb_bc_func[d]);      
+    }
+  }
   
   if (app->use_gpu) {
     gkyl_cu_free_host(s->omegaCfl_ptr);

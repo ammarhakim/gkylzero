@@ -168,14 +168,14 @@ vm_field_apply_pec_bc(gkyl_vlasov_app *app, const struct vm_field *field,
   
   if (edge == VM_EDGE_LOWER) {
     gkyl_array_copy_to_buffer_fn(field->bc_buffer->data, f, app->skin_ghost.lower_skin[dir],
-      field->wall_bc_func[dir]
+      field->wall_bc_func[dir]->on_dev
     );
     gkyl_array_copy_from_buffer(f, field->bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
   }
 
   if (edge == VM_EDGE_UPPER) {
     gkyl_array_copy_to_buffer_fn(field->bc_buffer->data, f, app->skin_ghost.upper_skin[dir],
-      field->wall_bc_func[dir]
+      field->wall_bc_func[dir]->on_dev
     );
     gkyl_array_copy_from_buffer(f, field->bc_buffer->data, app->skin_ghost.upper_ghost[dir]);
   }  
@@ -263,7 +263,7 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   }
 
   for (int d=0; d<3; ++d)
-    gkyl_maxwell_wall_bc_release(f->wall_bc_func[d]);
+    gkyl_maxwell_bc_release(f->wall_bc_func[d]);
 
   gkyl_free(f);
 }

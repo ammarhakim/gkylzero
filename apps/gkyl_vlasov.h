@@ -7,6 +7,23 @@
 
 #include <stdbool.h>
 
+// Parameters for applying the mirror force in Vlasov simulations
+// Used in simulations where advecting fluid species can couple 
+// to Vlasov simulation 
+struct gkyl_vlasov_mirror_force {
+  void *magB_ctx; // context for magnitude of B
+  // pointer to magnitude of B function
+  void (*magB)(double t, const double *xn, double *Bout, void *ctx);
+
+  void *gradB_ctx; // context for gradient of B
+  // pointer to gradient of B function
+  void (*gradB)(double t, const double *xn, double *gradBout, void *ctx);
+
+  char fluid_mirror_force[128]; // name of fluid species for the mirror force
+  int fluid_mirror_force_index; // index of the fluid species being used for mirror force
+                                // index corresponds to location in fluid_species array (size num_fluid_species)
+};
+
 // Parameters for species collisions
 struct gkyl_vlasov_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
@@ -51,6 +68,9 @@ struct gkyl_vlasov_species {
 
   // collisions to include
   struct gkyl_vlasov_collisions collisions;
+
+  // mirror force to include
+  struct gkyl_vlasov_mirror_force mirror_force;
 
   void *accel_ctx; // context for applied acceleration function
   // pointer to applied acceleration function
@@ -269,6 +289,26 @@ void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, in
  * @param frame Frame number
  */
 void gkyl_vlasov_app_write_species_gamma(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+
+/**
+ * Write magnitude of magnetic field to file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_vlasov_app_write_magB(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+
+/**
+ * Write gradient of magnetic field to file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_vlasov_app_write_gradB(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
  * Write fluid species data to file.
