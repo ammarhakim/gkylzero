@@ -25,12 +25,10 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   f->em_energy = mkarr(app->use_gpu, 6, app->local_ext.volume);
 
   f->em_host = f->em;  
-  if (app->use_gpu)
+  if (app->use_gpu) {
     f->em_host = mkarr(false, 8*app->confBasis.num_basis, app->local_ext.volume);
-
-  f->em_energy_host = f->em_energy;
-  if (app->use_gpu)
-    f->em_energy_host = mkarr(false, 6, app->local_ext.volume);
+    f->em_energy_red = gkyl_cu_malloc(sizeof(double[6]));
+  }
 
   f->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 6);
   
@@ -230,7 +228,14 @@ vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *fie
   gkyl_array_scale_range(field->em_energy, app->grid.cellVolume, app->local);
   
   double energy[6];
-  gkyl_array_reduce_range(energy, field->em_energy, GKYL_SUM, app->local);
+  if (app->use_gpu) {
+    gkyl_array_reduce_range(field->em_energy_red, field->em_energy, GKYL_SUM, app->local);
+    gkyl_cu_memcpy(energy, field->em_energy_red, sizeof(double[6]), GKYL_CU_MEMCPY_D2H);
+  }
+  else { 
+    gkyl_array_reduce_range(energy, field->em_energy, GKYL_SUM, app->local);
+  }
+  
   gkyl_dynvec_append(field->integ_energy, tm, energy);
 }
 
@@ -250,8 +255,8 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
 
   if (app->use_gpu) {
     gkyl_array_release(f->em_host);
-    gkyl_array_release(f->em_energy_host);
     gkyl_cu_free_host(f->omegaCfl_ptr);
+    gkyl_cu_free(f->em_energy_red);
   }
   else {
     gkyl_free(f->omegaCfl_ptr);

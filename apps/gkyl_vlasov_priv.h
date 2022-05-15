@@ -139,6 +139,7 @@ struct vm_species {
   struct vm_species_moment *moms; // diagnostic moments
   struct vm_species_moment integ_moms; // integrated moments
 
+  double *red_integ_diag; // for reduction on GPU
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
 
   enum gkyl_field_id field_id; // type of Vlasov equation (based on type of field solve)
@@ -193,7 +194,7 @@ struct vm_field {
   gkyl_hyper_dg *slvr; // Maxwell solver
 
   struct gkyl_array *em_energy; // EM energy components in each cell
-  struct gkyl_array *em_energy_host; // host copy of EM energy
+  double *em_energy_red; // memory for use in GPU reduction of EM energy
   gkyl_dynvec integ_energy; // integrated energy components
 
   // boundary conditions on lower/upper edges in each direction  

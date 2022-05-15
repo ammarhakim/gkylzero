@@ -181,6 +181,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   // allocate data for integrated moments
   vm_species_moment_init(app, s, &s->integ_moms, "Integrated");
 
+  if (app->use_gpu)
+    s->red_integ_diag = gkyl_cu_malloc(sizeof(double[2+GKYL_MAX_DIM]));
+  
   // allocate dynamic-vector to store all-reduced integrated moments
   s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
 
@@ -532,8 +535,10 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   for (int d=0; d<3; ++d)
     gkyl_vlasov_wall_bc_release(s->wall_bc_func[d]);
   
-  if (app->use_gpu)
+  if (app->use_gpu) {
     gkyl_cu_free_host(s->omegaCfl_ptr);
+    gkyl_cu_free(s->red_integ_diag);
+  }
   else
     gkyl_free(s->omegaCfl_ptr);
 }

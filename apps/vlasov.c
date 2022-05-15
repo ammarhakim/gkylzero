@@ -220,7 +220,13 @@ gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
     vm_species_moment_calc(&s->integ_moms, s->local, app->local, s->f);
 
     // reduce to compute sum over whole domain, append to diagnostics
-    gkyl_array_reduce_range(avals, s->integ_moms.marr_host, GKYL_SUM, app->local);
+    if (app->use_gpu) {
+      gkyl_array_reduce_range(s->red_integ_diag, s->integ_moms.marr, GKYL_SUM, app->local);
+      gkyl_cu_memcpy(avals, s->red_integ_diag, sizeof(double[2+GKYL_MAX_DIM]), GKYL_CU_MEMCPY_D2H);
+    }
+    else {
+      gkyl_array_reduce_range(avals, s->integ_moms.marr_host, GKYL_SUM, app->local);
+    }
     gkyl_dynvec_append(s->integ_diag, tm, avals);
     
     app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
