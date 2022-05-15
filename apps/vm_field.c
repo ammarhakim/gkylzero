@@ -224,10 +224,10 @@ vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *fie
   struct gkyl_array *f)
 {
   for (int i=0; i<6; ++i)
-    gkyl_dg_calc_l2_range(app->basis, i, field->em_energy, i, f, app->local);
+    gkyl_dg_calc_l2_range(app->confBasis, i, field->em_energy, i, f, app->local);
   gkyl_array_scale_range(field->em_energy, app->grid.cellVolume, app->local);
   
-  double energy[6];
+  double energy[6] = { 0.0 };
   if (app->use_gpu) {
     gkyl_array_reduce_range(field->em_energy_red, field->em_energy, GKYL_SUM, app->local);
     gkyl_cu_memcpy(energy, field->em_energy_red, sizeof(double[6]), GKYL_CU_MEMCPY_D2H);

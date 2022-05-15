@@ -694,6 +694,34 @@ void test_reduce_range()
   gkyl_array_release(arr);
 }
 
+void test_sum_reduce_range()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+  
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 3, range.volume);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+    double *d = gkyl_array_fetch(arr, loc);
+    d[0] = 0.5;
+    d[1] = 1.5;
+    d[2] = 2.5;
+  }
+
+  double asum[3];
+  gkyl_array_reduce_range(asum, arr, GKYL_SUM, range);
+
+  TEST_CHECK( asum[0] == 0.5*range.volume );
+  TEST_CHECK( asum[1] == 1.5*range.volume );
+  TEST_CHECK( asum[2] == 2.5*range.volume );
+
+  gkyl_array_release(arr);
+}
+
 void test_rio_1()
 {
   long num = 1000;
@@ -1634,6 +1662,7 @@ TEST_LIST = {
   { "non_numeric", test_non_numeric },
   { "reduce", test_reduce },
   { "reduce_range", test_reduce_range },
+  { "sum_reduce_range", test_sum_reduce_range },
   { "rio_1", test_rio_1 },
   { "rio_2", test_rio_2 },
   { "rio_3", test_rio_3 },
