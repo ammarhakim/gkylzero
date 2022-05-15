@@ -161,8 +161,8 @@ main(int argc, char **argv)
   gkyl_vlasov_app_write(app, tcurr, 1);
   gkyl_vlasov_app_calc_mom(app);
   gkyl_vlasov_app_write_mom(app, tcurr, 1);
-  gkyl_vlasov_app_write_integrated_mom(app, 0);
-  gkyl_vlasov_app_write_field_energy(app, 0);
+  gkyl_vlasov_app_write_integrated_mom(app);
+  gkyl_vlasov_app_write_field_energy(app);
   gkyl_vlasov_app_stat_write(app);
 
   // fetch simulation statistics

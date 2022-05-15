@@ -139,6 +139,8 @@ struct vm_species {
   double *red_integ_diag; // for reduction on GPU
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
 
+  bool is_first_integ_write_call; // flag for int-moments dynvec written first time
+
   enum gkyl_field_id field_id; // type of Vlasov equation (based on type of field solve)
   struct gkyl_array *qmem; // array for q/m*(E,B)
   struct gkyl_array *fac_phi; // array for potential (electrostatic or gravitational)
@@ -209,6 +211,8 @@ struct vm_field {
   struct gkyl_array *em_energy; // EM energy components in each cell
   double *em_energy_red; // memory for use in GPU reduction of EM energy
   gkyl_dynvec integ_energy; // integrated energy components
+
+  bool is_first_energy_write_call; // flag for energy dynvec written first time
 
   // boundary conditions on lower/upper edges in each direction  
   enum gkyl_field_bc_type lower_bc[3], upper_bc[3];

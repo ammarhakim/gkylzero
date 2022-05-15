@@ -186,6 +186,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   
   // allocate dynamic-vector to store all-reduced integrated moments
   s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
+  s->is_first_integ_write_call = true;
 
   s->has_accel = false;
   // setup applied acceleration

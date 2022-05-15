@@ -398,32 +398,46 @@ gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
 }
 
 void
-gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app, int frame)
+gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app)
 {
   for (int i=0; i<app->num_species; ++i) {
     // write out diagnostic moments
-    const char *fmt = "%s-%s-%s_%d.gkyl";
+    const char *fmt = "%s-%s-%s.gkyl";
     int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
-      "imom", frame);
+      "imom");
     char fileNm[sz+1]; // ensures no buffer overflow  
     snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
-      "imom", frame);
+      "imom");
 
-    gkyl_dynvec_write(app->species[i].integ_diag, fileNm);
+    if (app->species[i].is_first_integ_write_call) {
+      gkyl_dynvec_write(app->species[i].integ_diag, fileNm);
+      app->species[i].is_first_integ_write_call = false;
+    }
+    else {
+      gkyl_dynvec_awrite(app->species[i].integ_diag, fileNm);
+    }
     gkyl_dynvec_clear(app->species[i].integ_diag);
   }
 }
 
 void
-gkyl_vlasov_app_write_field_energy(gkyl_vlasov_app* app, int frame)
+gkyl_vlasov_app_write_field_energy(gkyl_vlasov_app* app)
 {
   // write out diagnostic moments
-  const char *fmt = "%s-field-energy_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, frame);
+  const char *fmt = "%s-field-energy.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name);
   char fileNm[sz+1]; // ensures no buffer overflow  
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
-  
-  gkyl_dynvec_write(app->field->integ_energy, fileNm);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name);
+
+  if (app->field->is_first_energy_write_call) {
+    // write to a new file (this ensure previous output is removed)
+    gkyl_dynvec_write(app->field->integ_energy, fileNm);
+    app->field->is_first_energy_write_call = false;
+  }
+  else {
+    // append to existing file
+    gkyl_dynvec_awrite(app->field->integ_energy, fileNm);
+  }
   gkyl_dynvec_clear(app->field->integ_energy);
 }
 

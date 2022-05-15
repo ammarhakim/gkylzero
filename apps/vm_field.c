@@ -31,6 +31,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   }
 
   f->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 6);
+  f->is_first_energy_write_call = true;
   
   // allocate buffer for applying BCs (used for both periodic and copy BCs)
   long buff_sz = 0;
