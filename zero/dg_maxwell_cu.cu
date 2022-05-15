@@ -13,7 +13,7 @@ extern "C" {
 
 __global__ static void
 gkyl_maxwell_wall_bc_create_set_cu_dev_ptrs(const struct gkyl_dg_eqn *eqn, int dir,
-  const struct gkyl_basis* cbasis, struct maxwell_wall_bc_ctx *ctx, struct gkyl_array_copy_func *bc)
+  const struct gkyl_basis* cbasis, struct dg_bc_ctx *ctx, struct gkyl_array_copy_func *bc)
 {
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
 
@@ -28,7 +28,7 @@ struct gkyl_array_copy_func*
 gkyl_maxwell_wall_bc_create_cu(const struct gkyl_dg_eqn *eqn, int dir, const struct gkyl_basis* cbasis)
 {
   // create host context and bc func structs
-  struct maxwell_wall_bc_ctx *ctx = (struct maxwell_wall_bc_ctx*) gkyl_malloc(sizeof(struct maxwell_wall_bc_ctx));
+  struct dg_bc_ctx *ctx = (struct dg_bc_ctx*) gkyl_malloc(sizeof(struct dg_bc_ctx));
   struct gkyl_array_copy_func *bc = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
   bc->ctx = ctx;
 
@@ -36,11 +36,13 @@ gkyl_maxwell_wall_bc_create_cu(const struct gkyl_dg_eqn *eqn, int dir, const str
   GKYL_SET_CU_ALLOC(bc->flags);
 
   // create device context and bc func structs
-  struct maxwell_wall_bc_ctx *ctx_cu = (struct maxwell_wall_bc_ctx*) gkyl_cu_malloc(sizeof(struct maxwell_wall_bc_ctx));
+  struct dg_bc_ctx *ctx_cu = (struct dg_bc_ctx*) gkyl_cu_malloc(sizeof(struct dg_bc_ctx));
   struct gkyl_array_copy_func *bc_cu = (struct gkyl_array_copy_func*) gkyl_cu_malloc(sizeof(struct gkyl_array_copy_func));
 
-  gkyl_cu_memcpy(ctx_cu, ctx, sizeof(struct maxwell_wall_bc_ctx), GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(ctx_cu, ctx, sizeof(struct dg_bc_ctx), GKYL_CU_MEMCPY_H2D);
   gkyl_cu_memcpy(bc_cu, bc, sizeof(struct gkyl_array_copy_func), GKYL_CU_MEMCPY_H2D);
+
+  bc->ctx_on_dev = ctx_cu;
 
   gkyl_maxwell_wall_bc_create_set_cu_dev_ptrs<<<1,1>>>(eqn, dir, cbasis, ctx_cu, bc_cu);
 

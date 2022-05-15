@@ -150,6 +150,7 @@ struct vm_species {
   // actually be on the GPUs. Seems ugly, but I am not sure how else
   // to ensure the function and context lives on the GPU
   struct gkyl_array_copy_func *wall_bc_func[3]; // for wall BCs
+  struct gkyl_array_copy_func *absorb_bc_func[3]; // for absorbing BCs
 
   bool has_accel; // flag to indicate there is applied acceleration
   struct gkyl_array *accel; // applied acceleration
@@ -231,6 +232,10 @@ struct vm_fluid_species {
 
   // boundary conditions on lower/upper edges in each direction  
   enum gkyl_fluid_species_bc_type lower_bc[3], upper_bc[3];
+  // Note: we need to store pointers to the struct as these may
+  // actually be on the GPUs. Seems ugly, but I am not sure how else
+  // to ensure the function and context lives on the GPU
+  struct gkyl_array_copy_func *absorb_bc_func[3]; // for absorbing BCs
 
   // specified advection
   bool has_advect; // flag to indicate there is applied advection
@@ -552,6 +557,32 @@ vm_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_species *species,
   int dir, enum vm_domain_edge edge, struct gkyl_array *f);
 
 /**
+ * Apply wall BCs to species distribution function
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param dir Direction to apply BCs
+ * @param edge Edge to apply BCs
+ * @param f Field to apply BCs
+ */
+void
+vm_species_apply_wall_bc(gkyl_vlasov_app *app, const struct vm_species *species,
+  int dir, enum vm_domain_edge edge, struct gkyl_array *f);
+
+/**
+ * Apply absorbing BCs to species distribution function
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param dir Direction to apply BCs
+ * @param edge Edge to apply BCs
+ * @param f Field to apply BCs
+ */
+void
+vm_species_apply_absorb_bc(gkyl_vlasov_app *app, const struct vm_species *species,
+  int dir, enum vm_domain_edge edge, struct gkyl_array *f);
+
+/**
  * Apply BCs to species distribution function
  *
  * @param app Vlasov app object
@@ -711,7 +742,8 @@ double vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid
  * @param dir Direction to apply BCs
  * @param f Fluid Species to apply BCs
  */
-void vm_fluid_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species, int dir, struct gkyl_array *f);
+void vm_fluid_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species, 
+  int dir, struct gkyl_array *f);
 
 /**
  * Apply copy BCs to fluid species
@@ -722,6 +754,17 @@ void vm_fluid_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_fl
  * @param f Fluid Species to apply BCs
  */
 void vm_fluid_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species,
+  int dir, enum vm_domain_edge edge, struct gkyl_array *f);
+
+/**
+ * Apply absorbing BCs to fluid species
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Pointer to fluid species
+ * @param dir Direction to apply BCs
+ * @param f Fluid Species to apply BCs
+ */
+void vm_fluid_species_apply_absorb_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species,
   int dir, enum vm_domain_edge edge, struct gkyl_array *f);
 
 /**

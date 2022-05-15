@@ -228,7 +228,7 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   }
 
   for (int d=0; d<3; ++d)
-    gkyl_maxwell_wall_bc_release(f->wall_bc_func[d]);
+    gkyl_maxwell_bc_release(f->wall_bc_func[d]);
 
   gkyl_free(f);
 }
