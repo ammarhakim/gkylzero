@@ -29,6 +29,7 @@ struct mirror_ctx {
   double mag; // magnitude of Lorentzian
 
   double b_z0; // magnetic field at z = 0, for parameter checking
+  double b_zL; // magnetic field at z = Lx, for parameter checking
 };
 
 static inline double sq(double x) { return x*x; }
@@ -40,7 +41,7 @@ evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   struct mirror_ctx *app = ctx;
   double x = xn[0], v = xn[1];
   double vt = app->vte, n0 = app->n0;
-  double fv = n0*exp(-sq(0.0))/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
+  double fv = n0*exp(-sq(x))/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
   double gamma = app->gamma;
   double loc = app->loc;
   double mag = app->mag;
@@ -54,7 +55,7 @@ evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   struct mirror_ctx *app = ctx;
   double x = xn[0], v = xn[1];
   double vt = app->vti, n0 = app->n0;
-  double fv = n0*exp(-sq(0.0))/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
+  double fv = n0*exp(-sq(x))/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
   double gamma = app->gamma;
   double loc = app->loc;
   double mag = app->mag;
@@ -72,7 +73,7 @@ evalPperpElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double loc = app->loc;
   double mag = app->mag;
   double magB = mag/(gamma*(1.0 + sq((x-loc)/gamma))) + mag/(gamma*(1.0 + sq((x+loc)/gamma)));
-  fout[0] = n*exp(-sq(0.0))*vt*vt/magB;
+  fout[0] = n*exp(-sq(x))*vt*vt/magB;
 }
 
 void
@@ -85,7 +86,7 @@ evalPperpIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double loc = app->loc;
   double mag = app->mag;
   double magB = mag/(gamma*(1.0 + sq((x-loc)/gamma))) + mag/(gamma*(1.0 + sq((x+loc)/gamma)));
-  fout[0] = n*exp(-sq(0.0))*vt*vt/magB;
+  fout[0] = n*exp(-sq(x))*vt*vt/magB;
 }
 
 void
@@ -144,14 +145,16 @@ create_ctx(void)
   double epsilon0 = 8.8541878128e-12;
   double massElc = 9.109384e-31;
   double charge = 1.602177e-19;
-  double n0 = 1e18;
-  double vte = 4.0e7;
+  double n0 = 3e19;
+  double vte = 1.0e7;
   double lambdaD = sqrt(epsilon0*vte*vte*massElc/(charge*charge*n0));
 
   double loc = 1.0;
   double gamma = 0.1;
   double mag = 1.0;
   double b_z0 = mag/(gamma*(1.0 + sq((loc)/gamma))) + mag/(gamma*(1.0 + sq((loc)/gamma)));
+  double Lx = 2.0;
+  double b_zL = mag/(gamma*(1.0 + sq((Lx + loc)/gamma))) + mag/(gamma*(1.0 + sq((Lx - loc)/gamma)));
   struct mirror_ctx ctx = {
     .epsilon0 = epsilon0,
     .mu0 = 1.256637062e-6,
@@ -170,12 +173,13 @@ create_ctx(void)
     .lambdaD = lambdaD,
     .wpe = vte/lambdaD,
     .Lambda = n0*lambdaD*lambdaD*lambdaD,
-    .Lx = 2.0,
+    .Lx = Lx,
 
     .gamma = gamma,
     .loc = loc,
     .mag = mag,
-    .b_z0 = b_z0
+    .b_z0 = b_z0,
+    .b_zL = b_zL
   };
   return ctx;
 }
@@ -211,6 +215,11 @@ main(int argc, char **argv)
   printf("Electron beta = %lg\n", 2.0*ctx.mu0*ctx.n0*ctx.vte*ctx.vte*ctx.massElc/(ctx.b_z0*ctx.b_z0));
   // electron gyroradius at z = 0
   printf("Electron gyroradius = %lg\n", ctx.vte/(ctx.chargeIon*ctx.b_z0/ctx.massElc));
+
+  // magnetic field at z = Lx
+  printf("Magnetic field at z = Lx, %lg\n", ctx.b_zL);
+  // Debye length at z = Lx
+  printf("Debye length at z = Lx, %lg\n", ctx.lambdaD/sqrt(exp(-sq(ctx.Lx))));
   
   // electron Pperp
   struct gkyl_vlasov_fluid_species Pperp_elc = {
@@ -220,6 +229,8 @@ main(int argc, char **argv)
     .init = evalPperpElc,
 
     .advection = {.advect_with = "elc", .collision_id = GKYL_LBO_COLLISIONS},
+
+    .bcx = { GKYL_FLUID_SPECIES_ABSORB, GKYL_FLUID_SPECIES_ABSORB },
   };  
   
   // electrons
@@ -233,6 +244,8 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalDistFuncElc,
 
+    .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
+    
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
 
@@ -265,6 +278,8 @@ main(int argc, char **argv)
     .init = evalPperpIon,
 
     .advection = {.advect_with = "ion", .collision_id = GKYL_LBO_COLLISIONS},
+
+    .bcx = { GKYL_FLUID_SPECIES_ABSORB, GKYL_FLUID_SPECIES_ABSORB },
   };  
   
   // ions
@@ -278,6 +293,8 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalDistFuncIon,
 
+    .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
+    
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
 
@@ -309,7 +326,9 @@ main(int argc, char **argv)
     .mgnErrorSpeedFactor = 0.0,
 
     .ctx = &ctx,
-    .init = evalFieldFunc
+    .init = evalFieldFunc,
+
+    .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL }
   };
 
   // VM app
@@ -323,8 +342,8 @@ main(int argc, char **argv)
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
+    .num_periodic_dir = 0,
+    .periodic_dirs = { },
 
     .num_species = 2,
     .species = { elc, ion },
@@ -348,12 +367,17 @@ main(int argc, char **argv)
   // initialize simulation
   gkyl_vlasov_app_apply_ic(app, tcurr);
   write_data(&io_trig, app, tcurr);
-
+  gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
+  gkyl_vlasov_app_calc_field_energy(app, tcurr);
+  
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
     printf("Taking time-step at t = %g ...", tcurr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
+
+    gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
+    gkyl_vlasov_app_calc_field_energy(app, tcurr);    
     
     if (!status.success) {
       printf("** Update method failed! Aborting simulation ....\n");
@@ -366,6 +390,8 @@ main(int argc, char **argv)
     step += 1;
   }
 
+  gkyl_vlasov_app_write_integrated_mom(app);
+  gkyl_vlasov_app_write_field_energy(app);  
   gkyl_vlasov_app_stat_write(app);
 
   // fetch simulation statistics
