@@ -30,11 +30,11 @@ evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   double fv = 0.0;
   if (x < 0) {
     double v2 = (vx-vdrift)*(vx-vdrift) + vy*vy + vz*vz;
-    fv = 1.0/(2.0*M_PI*vt*sqrt(2.0*M_PI*sq(vt)))*(exp(-v2/(2*sq(vt))));
+    fv = 1.0/pow(sqrt(2.0*M_PI*sq(vt)), 3)*(exp(-v2/(2*sq(vt))));
   }
   else {
     double v2 = (vx+vdrift)*(vx+vdrift) + vy*vy + vz*vz;
-    fv = 1.0/(2.0*M_PI*vt*sqrt(2.0*M_PI*sq(vt)))*(exp(-v2/(2*sq(vt))));
+    fv = 1.0/pow(sqrt(2.0*M_PI*sq(vt)), 3)*(exp(-v2/(2*sq(vt))));
   }
   fout[0] = fv;
 }
@@ -48,11 +48,11 @@ evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   double fv = 0.0;
   if (x < 0) {
     double v2 = (vx-vdrift)*(vx-vdrift) + vy*vy + vz*vz;
-    fv = 1.0/(2.0*M_PI*vt*sqrt(2.0*M_PI*sq(vt)))*(exp(-v2/(2*sq(vt))));
+    fv = 1.0/pow(sqrt(2.0*M_PI*sq(vt)), 3)*(exp(-v2/(2*sq(vt))));
   }
   else {
     double v2 = (vx+vdrift)*(vx+vdrift) + vy*vy + vz*vz;
-    fv = 1.0/(2.0*M_PI*vt*sqrt(2.0*M_PI*sq(vt)))*(exp(-v2/(2*sq(vt))));
+    fv = 1.0/pow(sqrt(2.0*M_PI*sq(vt)), 3)*(exp(-v2/(2*sq(vt))));
   }
   fout[0] = fv;
 }
@@ -112,10 +112,10 @@ main(int argc, char **argv)
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
-  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
-  int VY = APP_ARGS_CHOOSE(app_args.vcells[1], 16);
-  int VZ = APP_ARGS_CHOOSE(app_args.vcells[2], 16);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 32);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 12);
+  int VY = APP_ARGS_CHOOSE(app_args.vcells[1], 12);
+  int VZ = APP_ARGS_CHOOSE(app_args.vcells[2], 12);
   
   struct esshock_ctx ctx = create_ctx(); // context for init functions
 

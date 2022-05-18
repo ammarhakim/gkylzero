@@ -100,12 +100,13 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 256);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 64);  
+
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
-  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 16);  
 
   struct esshock_ctx ctx = create_ctx(); // context for init functions
 
