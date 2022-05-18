@@ -1,14 +1,14 @@
-#include "gkyl_alloc.h"
-#include "gkyl_array_ops.h"
-#include "gkyl_dynvec.h"
-#include "gkyl_elem_type.h"
 #include <assert.h>
 
+#include <gkyl_alloc.h>
 #include <gkyl_app.h>
 #include <gkyl_array.h>
+#include <gkyl_array_ops.h>
+#include <gkyl_dynvec.h>
+#include <gkyl_elem_type.h>
 #include <gkyl_eqn_type.h>
-#include <gkyl_vlasov_priv.h>
 #include <gkyl_proj_on_basis.h>
+#include <gkyl_vlasov_priv.h>
 
 // Projection functions for p/(m*gamma) = v in special relativistic systems
 // Simplifies to p/sqrt(m^2 + p^2) where c = 1
@@ -581,6 +581,7 @@ vm_species_coll_tm(gkyl_vlasov_app *app)
 void
 vm_species_tm(gkyl_vlasov_app *app)
 {
+  app->stat.species_rhs_tm = 0.0;
   for (int i=0; i<app->num_species; ++i) {
     struct gkyl_dg_updater_vlasov_tm tm =
       gkyl_dg_updater_vlasov_get_tm(app->species[i].slvr);

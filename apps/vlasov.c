@@ -753,6 +753,7 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
   struct tm curr_tm = *localtime(&t);
 
   vm_species_coll_tm(app);
+  vm_species_tm(app);
 
   // append to existing file so we have a history of different runs
   FILE *fp = 0;
