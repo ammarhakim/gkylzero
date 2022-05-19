@@ -173,6 +173,9 @@ struct gkyl_vlasov_stat {
   double field_rhs_tm; // time to compute field RHS
   double current_tm; // time to compute currents and accumulation
 
+  long nspecies_omega_cfl; // number of times CFL-omega all-reduce is called
+  double species_omega_cfl_tm; // time spent in all-reduce for omega-cfl
+
   long nmom; // calls to moment calculation
   double mom_tm; // time to compute moments
 

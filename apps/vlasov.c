@@ -811,6 +811,9 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
 
     fprintf(fp, " \"ndiag\" : \"%ld\",\n", app->stat.ndiag);
     fprintf(fp, " \"diag_tm\" : \"%lg\"\n", app->stat.diag_tm);
+
+    fprintf(fp, " \"nspecies_omega_cfl\" : \"%ld\",\n", app->stat.nspecies_omega_cfl);
+    fprintf(fp, " \"species_omega_cfl_tm\" : \"%lg\"\n", app->stat.species_omega_cfl_tm);
   
     fprintf(fp, "}\n");
   }

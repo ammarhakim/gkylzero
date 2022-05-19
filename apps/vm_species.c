@@ -1,3 +1,4 @@
+#include "gkyl_util.h"
 #include <assert.h>
 
 #include <gkyl_alloc.h>
@@ -9,6 +10,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_vlasov_priv.h>
+#include <time.h>
 
 // Projection functions for p/(m*gamma) = v in special relativistic systems
 // Simplifies to p/sqrt(m^2 + p^2) where c = 1
@@ -436,8 +438,13 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   if (species->has_source)
     gkyl_array_accumulate(rhs, 1.0, species->source);
 
+  app->stat.nspecies_omega_cfl +=1;
+  struct timespec tm = gkyl_wall_clock();
+    
   gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, species->local);
   double omegaCfl = species->omegaCfl_ptr[0];
+
+  app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
   
   return app->cfl/omegaCfl;
 }
