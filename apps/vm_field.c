@@ -9,6 +9,7 @@
 #include <gkyl_dg_eqn.h>
 #include <gkyl_util.h>
 #include <gkyl_vlasov_priv.h>
+#include <time.h>
 
 // initialize field object
 struct vm_field* 
@@ -45,7 +46,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   // allocate cflrate (scalar array)
   f->cflrate = mkarr(app->use_gpu, 1, app->local_ext.volume);
   if (app->use_gpu)
-    f->omegaCfl_ptr = gkyl_cu_malloc_host(sizeof(double));
+    f->omegaCfl_ptr = gkyl_cu_malloc(sizeof(double));
   else
     f->omegaCfl_ptr = gkyl_malloc(sizeof(double));
 
@@ -124,7 +125,18 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
       gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
     
     gkyl_array_reduce_range(field->omegaCfl_ptr, field->cflrate, GKYL_MAX, app->local);
-    omegaCfl = field->omegaCfl_ptr[0];
+
+    app->stat.nfield_omega_cfl += 1;
+    struct timespec tm = gkyl_wall_clock();
+    
+    double omegaCfl_ho[1];
+    if (app->use_gpu)
+      gkyl_cu_memcpy(omegaCfl_ho, field->omegaCfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
+    else
+      omegaCfl_ho[0] = field->omegaCfl_ptr[0];
+    double omegaCfl = omegaCfl_ho[0];
+
+    app->stat.field_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
   }
 
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
@@ -256,7 +268,7 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
 
   if (app->use_gpu) {
     gkyl_array_release(f->em_host);
-    gkyl_cu_free_host(f->omegaCfl_ptr);
+    gkyl_cu_free(f->omegaCfl_ptr);
     gkyl_cu_free(f->em_energy_red);
   }
   else {

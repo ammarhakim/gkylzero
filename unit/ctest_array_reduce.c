@@ -156,6 +156,11 @@ void test_cu_array_reduce_range_2d_max()
   gkyl_cu_free(a1max_cu);
   gkyl_array_release(a1);
   gkyl_array_release(a1_cu);
+
+  gkyl_cu_free(b1max);
+  gkyl_cu_free(b1max_cu);   
+  gkyl_array_release(b1);
+  gkyl_array_release(b1_cu);
 }
 
 void
@@ -193,8 +198,10 @@ test_cu_array_reduce_range_max_timer(int NX, int NY, int VX, int VY)
   double* a1max = gkyl_malloc(numComp*sizeof(double));
   double* a1max_correct = gkyl_malloc(numComp*sizeof(double));
   double* a1max_cu = (double*) gkyl_cu_malloc(numComp*sizeof(double));
+    
   double* b1max = gkyl_malloc(1*sizeof(double));
   double* b1max_cu = (double*) gkyl_cu_malloc(1*sizeof(double));
+  
   gkyl_cu_memset(a1max_cu, 0, sizeof(double)*numComp);
   gkyl_cu_memset(b1max_cu, 0, sizeof(double)*1);
 
@@ -214,6 +221,9 @@ test_cu_array_reduce_range_max_timer(int NX, int NY, int VX, int VY)
   gkyl_cu_free(a1max_cu);
   gkyl_array_release(a1);
   gkyl_array_release(a1_cu);
+
+  gkyl_cu_free(b1max);
+  gkyl_cu_free(b1max_cu);   
   gkyl_array_release(b1);
   gkyl_array_release(b1_cu);
 }

@@ -270,6 +270,7 @@ struct vm_fluid_species {
 
   struct gkyl_array *nu_fluid; // collision frequency multiplying fluid_species (nu*nT_perp or nu*nT_z)
   struct gkyl_array *nu_n_vthsq; // nu*n*vthsq (what collisions relax auxiliary temperature to)
+  
   double* omegaCfl_ptr;
 };
 

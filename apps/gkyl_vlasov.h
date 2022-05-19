@@ -176,6 +176,9 @@ struct gkyl_vlasov_stat {
   long nspecies_omega_cfl; // number of times CFL-omega all-reduce is called
   double species_omega_cfl_tm; // time spent in all-reduce for omega-cfl
 
+  long nfield_omega_cfl; // number of times CFL-omega for field all-reduce is called
+  double field_omega_cfl_tm; // time spent in all-reduce for omega-cfl for field
+
   long nmom; // calls to moment calculation
   double mom_tm; // time to compute moments
 

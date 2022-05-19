@@ -814,6 +814,9 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
 
     fprintf(fp, " \"nspecies_omega_cfl\" : \"%ld\",\n", app->stat.nspecies_omega_cfl);
     fprintf(fp, " \"species_omega_cfl_tm\" : \"%lg\"\n", app->stat.species_omega_cfl_tm);
+
+    fprintf(fp, " \"nfield_omega_cfl\" : \"%ld\",\n", app->stat.nfield_omega_cfl);
+    fprintf(fp, " \"field_omega_cfl_tm\" : \"%lg\"\n", app->stat.field_omega_cfl_tm);
   
     fprintf(fp, "}\n");
   }

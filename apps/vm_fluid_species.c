@@ -34,7 +34,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   // allocate cflrate (scalar array)
   f->cflrate = mkarr(app->use_gpu, 1, app->local_ext.volume);
   if (app->use_gpu)
-    f->omegaCfl_ptr = gkyl_cu_malloc_host(sizeof(double));
+    f->omegaCfl_ptr = gkyl_cu_malloc(sizeof(double));
   else
     f->omegaCfl_ptr = gkyl_malloc(sizeof(double));
 
@@ -51,8 +51,8 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     app->cdim, up_dirs, zero_flux_flags, 1, app->use_gpu);
 
   f->has_advect = false;
-  f->advects_with_species = false;  
-  // setup applied advection or advection with other species                                                                               
+  f->advects_with_species = false;
+  // setup applied advection or advection with other species
   if (f->info.advection.velocity) {
     f->has_advect = true;
     // we need to ensure applied advection has same shape as current                                             
@@ -185,9 +185,16 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
       fluid_species->other_m0, 0, fluid_species->other_nu_vthsq, app->local);
     gkyl_array_accumulate(rhs, 1.0, fluid_species->nu_n_vthsq);
     gkyl_array_accumulate(rhs, -1.0, fluid_species->nu_fluid);
-  }    
+  }
+
   gkyl_array_reduce_range(fluid_species->omegaCfl_ptr, fluid_species->cflrate, GKYL_MAX, app->local);
-  omegaCfl = fluid_species->omegaCfl_ptr[0];
+
+  double omegaCfl_ho[1];
+  if (app->use_gpu)
+    gkyl_cu_memcpy(omegaCfl_ho, fluid_species->omegaCfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  else
+    omegaCfl_ho[0] = fluid_species->omegaCfl_ptr[0];
+  omegaCfl = omegaCfl_ho[0];
 
   app->stat.fluid_species_rhs_tm += gkyl_time_diff_now_sec(wst);
   
@@ -309,7 +316,7 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
 
   if (app->use_gpu) {
     gkyl_array_release(f->fluid_host);
-    gkyl_cu_free_host(f->omegaCfl_ptr);
+    gkyl_cu_free(f->omegaCfl_ptr);
   }
   else {
     gkyl_free(f->omegaCfl_ptr);

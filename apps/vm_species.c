@@ -108,8 +108,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
   // allocate cflrate (scalar array)
   s->cflrate = mkarr(app->use_gpu, 1, s->local_ext.volume);
+
   if (app->use_gpu)
-    s->omegaCfl_ptr = gkyl_cu_malloc_host(sizeof(double));
+    s->omegaCfl_ptr = gkyl_cu_malloc(sizeof(double));
   else
     s->omegaCfl_ptr = gkyl_malloc(sizeof(double));
 
@@ -442,7 +443,13 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   struct timespec tm = gkyl_wall_clock();
     
   gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, species->local);
-  double omegaCfl = species->omegaCfl_ptr[0];
+
+  double omegaCfl_ho[1];
+  if (app->use_gpu)
+    gkyl_cu_memcpy(omegaCfl_ho, species->omegaCfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  else
+    omegaCfl_ho[0] = species->omegaCfl_ptr[0];
+  double omegaCfl = omegaCfl_ho[0];
 
   app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
   
@@ -689,7 +696,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   }
   
   if (app->use_gpu) {
-    gkyl_cu_free_host(s->omegaCfl_ptr);
+    gkyl_cu_free(s->omegaCfl_ptr);
     gkyl_cu_free(s->red_integ_diag);
   }
   else
