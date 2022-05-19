@@ -212,6 +212,8 @@ void
 gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
 {
   double avals[2+GKYL_MAX_DIM];
+
+  struct timespec wst = gkyl_wall_clock();
   
   for (int i=0; i<app->num_species; ++i) {
     struct vm_species *s = &app->species[i];
@@ -232,12 +234,18 @@ gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
     app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
     app->stat.nmom += 1;
   }
+
+  app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.ndiag += 1;  
 }
 
 void
 gkyl_vlasov_app_calc_field_energy(gkyl_vlasov_app* app, double tm)
 {
+  struct timespec wst = gkyl_wall_clock();
   vm_field_calc_energy(app, tm, app->field, app->field->em);
+  app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.ndiag += 1;
 }
 
 void
@@ -800,6 +808,9 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
 
     fprintf(fp, " \"nmom\" : \"%ld\",\n", app->stat.nmom);
     fprintf(fp, " \"mom_tm\" : \"%lg\"\n", app->stat.mom_tm);
+
+    fprintf(fp, " \"ndiag\" : \"%ld\",\n", app->stat.ndiag);
+    fprintf(fp, " \"diag_tm\" : \"%lg\"\n", app->stat.diag_tm);
   
     fprintf(fp, "}\n");
   }

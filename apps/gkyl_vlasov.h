@@ -175,6 +175,9 @@ struct gkyl_vlasov_stat {
 
   long nmom; // calls to moment calculation
   double mom_tm; // time to compute moments
+
+  long ndiag; // calls to diagnostics
+  double diag_tm; // time to compute diagnostics
 };
 
 // Object representing Vlasov app
