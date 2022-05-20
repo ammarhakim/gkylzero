@@ -189,8 +189,10 @@ struct vm_fluid_species {
 
   struct gkyl_array *u; // array for advection flow
 
-  struct gkyl_dg_eqn *eqn; // Fluid equation  
-  gkyl_hyper_dg *slvr; // Fluid equation solver
+  struct gkyl_dg_eqn *advect_eqn; // Fluid advection equation
+  struct gkyl_dg_eqn *diff_eqn; // Fluid diffusion equation  
+  gkyl_hyper_dg *advect_slvr; // Fluid equation solver
+  gkyl_hyper_dg *diff_slvr; // Fluid equation solver
 
   // boundary conditions on lower/upper edges in each direction  
   enum gkyl_fluid_species_bc_type lower_bc[3], upper_bc[3];

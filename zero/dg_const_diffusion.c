@@ -1,14 +1,18 @@
 #include <assert.h>
-#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include <gkyl_alloc.h>
-#include <gkyl_array.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_dg_const_diffusion.h>
 #include <gkyl_dg_const_diffusion_priv.h>
 #include <gkyl_util.h>
 
-static void
-dg_const_diffusion_free(const struct gkyl_ref_count* ref)
+// "Choose Kernel" based on cdim, vdim and polyorder
+#define CK(lst,dim,poly_order) lst[dim-1].kernels[poly_order]
+
+void
+gkyl_const_diffusion_free(const struct gkyl_ref_count* ref)
 {
   struct gkyl_dg_eqn* base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_const_diffusion* const_diffusion = container_of(base, struct dg_const_diffusion, eqn);
@@ -22,8 +26,6 @@ gkyl_dg_const_diffusion_new(const struct gkyl_basis* basis, const double* D)
 
   int dim = basis->ndim;
   int poly_order = basis->poly_order;
-
-  const_diffusion->dim = dim;
 
   const_diffusion->eqn.num_equations = 1;
   const_diffusion->eqn.vol_term = vol;
@@ -42,10 +44,12 @@ gkyl_dg_const_diffusion_new(const struct gkyl_basis* basis, const double* D)
   assert(const_diffusion->vol);
   for (int i=0; i<dim; ++i) assert(const_diffusion->surf[i]);
 
-  const_diffusion->D = D; 
+  for (int i=0; i<dim; ++i) 
+    const_diffusion->D[i] = D[i]; 
 
-  // set reference counter
-  const_diffusion->eqn.ref_count = (struct gkyl_ref_count) { dg_const_diffusion_free, 1 };
+  const_diffusion->eqn.flags = 0;
+  const_diffusion->eqn.ref_count = gkyl_ref_count_init(gkyl_const_diffusion_free);
+  const_diffusion->eqn.on_dev = &const_diffusion->eqn;
   
   return &const_diffusion->eqn;
 }

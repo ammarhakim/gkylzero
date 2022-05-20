@@ -1,7 +1,9 @@
 #pragma once
 
 #include <gkyl_array.h>
+#include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
+#include <gkyl_eqn_type.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_range.h>
 
