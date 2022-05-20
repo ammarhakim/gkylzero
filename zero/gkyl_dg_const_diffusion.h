@@ -14,7 +14,7 @@
  * @param range Range for use in indexing diffusion tensor
  * @return Pointer to diffusion equation object
  */
-struct gkyl_dg_eqn* gkyl_dg_const_diffusion_new(const struct gkyl_basis* basis, const double* D);
+struct gkyl_dg_eqn* gkyl_dg_const_diffusion_new(const struct gkyl_basis* basis);
 
 /**
  * Create a new diffusion equation object that lives on NV-GPU

@@ -20,7 +20,7 @@ gkyl_const_diffusion_free(const struct gkyl_ref_count* ref)
 }
 
 struct gkyl_dg_eqn*
-gkyl_dg_const_diffusion_new(const struct gkyl_basis* basis, const double* D)
+gkyl_dg_const_diffusion_new(const struct gkyl_basis* basis)
 {
   struct dg_const_diffusion* const_diffusion = gkyl_malloc(sizeof(struct dg_const_diffusion));
 
@@ -44,8 +44,7 @@ gkyl_dg_const_diffusion_new(const struct gkyl_basis* basis, const double* D)
   assert(const_diffusion->vol);
   for (int i=0; i<dim; ++i) assert(const_diffusion->surf[i]);
 
-  for (int i=0; i<dim; ++i) 
-    const_diffusion->D[i] = D[i]; 
+  for (int i=0; i<dim; ++i) const_diffusion->D[i] = 1; 
 
   const_diffusion->eqn.flags = 0;
   const_diffusion->eqn.ref_count = gkyl_ref_count_init(gkyl_const_diffusion_free);

@@ -43,9 +43,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   
   // equation objects
   f->advect_eqn = gkyl_dg_advection_new(&app->confBasis, &app->local, app->use_gpu);
-  // HACK!!
-  double D[GKYL_MAX_DIM] = {1, 1, 1};
-  f->diff_eqn = gkyl_dg_const_diffusion_new(&app->confBasis, D);
+  f->diff_eqn = gkyl_dg_const_diffusion_new(&app->confBasis);
 
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
 
