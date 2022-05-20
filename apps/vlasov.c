@@ -748,6 +748,15 @@ gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
   }
 }
 
+static void
+range_stat_write(const char *nm, const struct gkyl_range *r, FILE *fp)
+{
+  fprintf(fp, " %s_cells : [ ", nm);
+  for (int i=0; i<r->ndim; ++i)
+    fprintf(fp, " %d, ", gkyl_range_shape(r, i));
+  fprintf(fp, " ],\n");
+}
+
 void
 gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
 {
@@ -769,54 +778,58 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
     fprintf(fp, "{\n");
 
     if (strftime(buff, sizeof buff, "%c", &curr_tm))
-      fprintf(fp, " \"date\" : \"%s\",\n", buff);
+      fprintf(fp, " date : %s,\n", buff);
 
-    fprintf(fp, " \"use_gpu\" : \"%d\",\n", app->stat.use_gpu);
-    fprintf(fp, " \"nup\" : \"%ld\",\n", app->stat.nup);
-    fprintf(fp, " \"nfeuler\" : \"%ld\",\n", app->stat.nfeuler);
-    fprintf(fp, " \"nstage_2_fail\" : \"%ld\",\n", app->stat.nstage_2_fail);
-    fprintf(fp, " \"nstage_3_fail\" : \"%ld\",\n", app->stat.nstage_3_fail);
+    fprintf(fp, " use_gpu : %d,\n", app->stat.use_gpu);
 
-    fprintf(fp, " \"stage_2_dt_diff\" : [ \"%lg\", \"%lg\" ],\n",
+    for (int s=0; s<app->num_species; ++s)
+      range_stat_write(app->species[s].info.name, &app->species[s].local, fp);
+    
+    fprintf(fp, " nup : %ld,\n", app->stat.nup);
+    fprintf(fp, " nfeuler : %ld,\n", app->stat.nfeuler);
+    fprintf(fp, " nstage_2_fail : %ld,\n", app->stat.nstage_2_fail);
+    fprintf(fp, " nstage_3_fail : %ld,\n", app->stat.nstage_3_fail);
+
+    fprintf(fp, " stage_2_dt_diff : [ %lg, %lg ],\n",
       app->stat.stage_2_dt_diff[0], app->stat.stage_2_dt_diff[1]);
-    fprintf(fp, " \"stage_3_dt_diff\" : [ \"%lg\", \"%lg\" ],\n",
+    fprintf(fp, " stage_3_dt_diff : [ %lg, %lg ],\n",
       app->stat.stage_3_dt_diff[0], app->stat.stage_3_dt_diff[1]);
     
-    fprintf(fp, " \"total_tm\" : \"%lg\",\n", app->stat.total_tm);
-    fprintf(fp, " \"init_species_tm\" : \"%lg\",\n", app->stat.init_species_tm);
+    fprintf(fp, " total_tm : %lg,\n", app->stat.total_tm);
+    fprintf(fp, " init_species_tm : %lg,\n", app->stat.init_species_tm);
     if (app->has_field)
-      fprintf(fp, " \"init_field_tm\" : \"%lg\",\n", app->stat.init_field_tm);
+      fprintf(fp, " init_field_tm : %lg,\n", app->stat.init_field_tm);
     
-    fprintf(fp, " \"species_rhs_tm\" : \"%lg\",\n", app->stat.species_rhs_tm);
+    fprintf(fp, " species_rhs_tm : %lg,\n", app->stat.species_rhs_tm);
 
     for (int s=0; s<app->num_species; ++s) {
-      fprintf(fp, " \"species_coll_drag_tm[%d]\" : \"%lg\",\n", s,
+      fprintf(fp, " species_coll_drag_tm[%d] : %lg,\n", s,
         app->stat.species_lbo_coll_drag_tm[s]);
-      fprintf(fp, " \"species_coll_diff_tm[%d]\" : \"%lg\",\n", s,
+      fprintf(fp, " species_coll_diff_tm[%d] : %lg,\n", s,
         app->stat.species_lbo_coll_diff_tm[s]);
     }
 
-    fprintf(fp, " \"species_coll_mom_tm\" : \"%lg\",\n", app->stat.species_coll_mom_tm);
-    fprintf(fp, " \"species_coll_tm\" : \"%lg\",\n", app->stat.species_coll_tm);
+    fprintf(fp, " species_coll_mom_tm : %lg,\n", app->stat.species_coll_mom_tm);
+    fprintf(fp, " species_coll_tm : %lg,\n", app->stat.species_coll_tm);
 
-    fprintf(fp, " \"fluid_species_rhs_tm\" : \"%lg\",\n", app->stat.fluid_species_rhs_tm);
+    fprintf(fp, " fluid_species_rhs_tm : %lg,\n", app->stat.fluid_species_rhs_tm);
     
     if (app->has_field) {
-      fprintf(fp, " \"field_rhs_tm\" : \"%lg\",\n", app->stat.field_rhs_tm);
-      fprintf(fp, " \"current_tm\" : \"%lg\",\n", app->stat.current_tm);
+      fprintf(fp, " field_rhs_tm : %lg,\n", app->stat.field_rhs_tm);
+      fprintf(fp, " current_tm : %lg,\n", app->stat.current_tm);
     }
 
-    fprintf(fp, " \"nmom\" : \"%ld\",\n", app->stat.nmom);
-    fprintf(fp, " \"mom_tm\" : \"%lg\"\n", app->stat.mom_tm);
+    fprintf(fp, " nmom : %ld,\n", app->stat.nmom);
+    fprintf(fp, " mom_tm : %lg\n", app->stat.mom_tm);
 
-    fprintf(fp, " \"ndiag\" : \"%ld\",\n", app->stat.ndiag);
-    fprintf(fp, " \"diag_tm\" : \"%lg\"\n", app->stat.diag_tm);
+    fprintf(fp, " ndiag : %ld,\n", app->stat.ndiag);
+    fprintf(fp, " diag_tm : %lg\n", app->stat.diag_tm);
 
-    fprintf(fp, " \"nspecies_omega_cfl\" : \"%ld\",\n", app->stat.nspecies_omega_cfl);
-    fprintf(fp, " \"species_omega_cfl_tm\" : \"%lg\"\n", app->stat.species_omega_cfl_tm);
+    fprintf(fp, " nspecies_omega_cfl : %ld,\n", app->stat.nspecies_omega_cfl);
+    fprintf(fp, " species_omega_cfl_tm : %lg\n", app->stat.species_omega_cfl_tm);
 
-    fprintf(fp, " \"nfield_omega_cfl\" : \"%ld\",\n", app->stat.nfield_omega_cfl);
-    fprintf(fp, " \"field_omega_cfl_tm\" : \"%lg\"\n", app->stat.field_omega_cfl_tm);
+    fprintf(fp, " nfield_omega_cfl : %ld,\n", app->stat.nfield_omega_cfl);
+    fprintf(fp, " field_omega_cfl_tm : %lg\n", app->stat.field_omega_cfl_tm);
   
     fprintf(fp, "}\n");
   }
