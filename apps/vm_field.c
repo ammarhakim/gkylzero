@@ -134,7 +134,7 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
       gkyl_cu_memcpy(omegaCfl_ho, field->omegaCfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
     else
       omegaCfl_ho[0] = field->omegaCfl_ptr[0];
-    double omegaCfl = omegaCfl_ho[0];
+    omegaCfl = omegaCfl_ho[0];
 
     app->stat.field_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
   }
