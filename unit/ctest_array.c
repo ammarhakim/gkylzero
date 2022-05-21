@@ -1,3 +1,4 @@
+#include "gkyl_range.h"
 #include <acutest.h>
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
@@ -1200,6 +1201,56 @@ void test_cu_array_accumulate_range()
   gkyl_array_release(a2_cu);
 }
 
+void test_cu_array_accumulate_range_4d()
+{
+  int lower[] = { 1, 1, 1, 1 };
+  int upper[] = { 44, 44, 34, 34};
+  struct gkyl_range range;
+  gkyl_range_init(&range, 4, lower, upper);
+  
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 3, range.volume);
+  struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 3, range.volume);
+
+  // make device copies of arrays
+  struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3, range.volume);
+  struct gkyl_array *a2_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3, range.volume);
+
+  // initialize data
+  gkyl_array_clear(a1, 0.5);
+  gkyl_array_clear(a2, 1.5);
+  
+  // copy initialized arrays to device
+  gkyl_array_copy(a1_cu, a1);
+  gkyl_array_copy(a2_cu, a2);
+
+  int slower[] = { 1, 1, 2, 2 };
+  int supper[] = { 44, 44, 33, 33 };
+  struct gkyl_range sub_range;
+  gkyl_sub_range_init(&sub_range, &range, slower, supper);
+
+  // a1 = a1 + 0.5*a2
+  gkyl_array_accumulate_range(a1_cu, 0.5, a2_cu, sub_range);
+
+ // copy from device and check if things are ok
+  gkyl_array_clear(a1, 0.0);  
+  gkyl_array_copy(a1, a1_cu);
+  
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &sub_range);
+  
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+    double *a1d = gkyl_array_fetch(a1, loc);
+    for (int c=0; c<a2->ncomp; ++c)
+      TEST_CHECK( a1d[c] == 0.5 + 0.5*1.5 );
+  }
+
+  gkyl_array_release(a1);
+  gkyl_array_release(a2);
+  gkyl_array_release(a1_cu);
+  gkyl_array_release(a2_cu);
+}
+
 void test_cu_array_combine()
 {
   // create host arrays 
@@ -1674,6 +1725,7 @@ TEST_LIST = {
   { "cu_array_clear_range", test_cu_array_clear_range},
   { "cu_array_accumulate", test_cu_array_accumulate},
   { "cu_array_accumulate_range", test_cu_array_accumulate_range},
+  { "cu_array_accumulate_range_4d", test_cu_array_accumulate_range_4d  },
   { "cu_array_combine", test_cu_array_combine},
   { "cu_array_set", test_cu_array_set },
   { "cu_array_set_range", test_cu_array_set_range },
