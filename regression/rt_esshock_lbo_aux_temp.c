@@ -17,6 +17,7 @@ struct esshock_ctx {
   double cs; // sound speed
   double uShock; // in-flow velocity
   double Lx; // size of the box
+  double n0; // initial number density
 };
 
 static inline double sq(double x) { return x*x; }
@@ -26,12 +27,12 @@ evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
 {
   struct esshock_ctx *app = ctx;
   double x = xn[0], v = xn[1];
-  double vt = app->vte, vdrift = app->uShock;
+  double vt = app->vte, vdrift = app->uShock, n0 = app->n0;
   double fv = 0.0;
   if (x < 0)
-    fv = 1.0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v-vdrift)/(2*sq(vt))));
+    fv = n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v-vdrift)/(2*sq(vt))));
   else
-    fv = 1.0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v+vdrift)/(2*sq(vt))));
+    fv = n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v+vdrift)/(2*sq(vt))));
   fout[0] = fv;
 }
 
@@ -40,12 +41,12 @@ evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
 {
   struct esshock_ctx *app = ctx;
   double x = xn[0], v = xn[1];
-  double vt = app->vti, vdrift = app->uShock;
+  double vt = app->vti, vdrift = app->uShock, n0 = app->n0;
   double fv = 0.0;
   if (x < 0)
-    fv = 1.0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v-vdrift)/(2*sq(vt))));
+    fv = n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v-vdrift)/(2*sq(vt))));
   else
-    fv = 1.0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v+vdrift)/(2*sq(vt))));
+    fv = n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v+vdrift)/(2*sq(vt))));
   fout[0] = fv;
 }
 
@@ -54,8 +55,8 @@ evalTperpElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct esshock_ctx *app = ctx;
   double x = xn[0];
-  double vt = app->vte;
-  fout[0] = vt;
+  double vt = app->vte, n = app->n0;
+  fout[0] = n*vt*vt;
 }
 
 void
@@ -63,8 +64,8 @@ evalTperpIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct esshock_ctx *app = ctx;
   double x = xn[0];
-  double vt = app->vti;
-  fout[0] = vt;
+  double vt = app->vti, n = app->n0;
+  fout[0] = n*vt*vt;
 }
 
 void
@@ -105,7 +106,8 @@ create_ctx(void)
     .vti = ctx.vte/sqrt(ctx.Te_Ti*ctx.massIon),
     .cs = ctx.vte/sqrt(ctx.massIon),
     .uShock = 2.0*ctx.cs,
-    .Lx = 128.0
+    .Lx = 128.0,
+    .n0 = 1.0
   };
   return ctx;
 }
