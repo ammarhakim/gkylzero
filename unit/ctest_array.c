@@ -1204,15 +1204,15 @@ void test_cu_array_accumulate_range()
 void test_cu_array_accumulate_range_4d()
 {
   int lower[] = { 1, 1, 1, 1 };
-  int upper[] = { 44, 44, 34, 34};
+  int upper[] = { 46, 46, 32, 32};
   struct gkyl_range range;
   gkyl_range_init(&range, 4, lower, upper);
   
-  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 3, range.volume);
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 8, range.volume);
   struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 3, range.volume);
 
   // make device copies of arrays
-  struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3, range.volume);
+  struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 8, range.volume);
   struct gkyl_array *a2_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3, range.volume);
 
   // initialize data
@@ -1223,16 +1223,16 @@ void test_cu_array_accumulate_range_4d()
   gkyl_array_copy(a1_cu, a1);
   gkyl_array_copy(a2_cu, a2);
 
-  int slower[] = { 1, 1, 2, 2 };
-  int supper[] = { 44, 44, 33, 33 };
+  int slower[] = { 2, 2, 1, 1 };
+  int supper[] = { 45, 45, 32, 32 };
   struct gkyl_range sub_range;
   gkyl_sub_range_init(&sub_range, &range, slower, supper);
 
-  // a1 = a1 + 0.5*a2
+  // a1 = a1 + 0.5*a2 (only first 3 components of a1 are modified)
   gkyl_array_accumulate_range(a1_cu, 0.5, a2_cu, sub_range);
 
  // copy from device and check if things are ok
-  gkyl_array_clear(a1, 0.0);  
+  gkyl_array_clear(a1, 0.0); 
   gkyl_array_copy(a1, a1_cu);
   
   struct gkyl_range_iter iter;
@@ -1241,8 +1241,10 @@ void test_cu_array_accumulate_range_4d()
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(&range, iter.idx);
     double *a1d = gkyl_array_fetch(a1, loc);
-    for (int c=0; c<a2->ncomp; ++c)
+    for (int c=0; c<3; ++c)
       TEST_CHECK( a1d[c] == 0.5 + 0.5*1.5 );
+    for (int c=3; c<8; ++c)
+      TEST_CHECK( a1d[c] == 0.5 );
   }
 
   gkyl_array_release(a1);
