@@ -160,7 +160,7 @@ gkyl_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis* cbasis,
 
 __global__
 static void
-set_int_cu_ptrs(struct mom_type_vlasov* momt, enum gkyl_basis_type b_type, int vdim,
+set_int_cu_ptrs(struct mom_type_vlasov_sr* momt, enum gkyl_basis_type b_type, int vdim,
   int poly_order, int tblidx)
 {
   momt->auxfields.p_over_gamma= 0; 
@@ -184,7 +184,7 @@ set_int_cu_ptrs(struct mom_type_vlasov* momt, enum gkyl_basis_type b_type, int v
 
 struct gkyl_mom_type *
 gkyl_int_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis)
+  const struct gkyl_basis* pbasis, const struct gkyl_range* vel_range)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -209,7 +209,7 @@ gkyl_int_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis* cbasis,
   momt->momt.ref_count = gkyl_ref_count_init(gkyl_mom_vm_sr_free);
   
   // copy struct to device
-  struct mom_type_vlasov *momt_cu = (struct mom_type_vlasov_sr*)
+  struct mom_type_vlasov_sr *momt_cu = (struct mom_type_vlasov_sr*)
     gkyl_cu_malloc(sizeof(struct mom_type_vlasov_sr));
   gkyl_cu_memcpy(momt_cu, momt, sizeof(struct mom_type_vlasov_sr), GKYL_CU_MEMCPY_H2D);
 
