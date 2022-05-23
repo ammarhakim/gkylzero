@@ -105,8 +105,54 @@ gkyl_int_mom_vlasov_sr_new(const struct gkyl_basis *cbasis,
   const struct gkyl_basis *pbasis,
   const struct gkyl_range *vel_range)
 {
-  assert(false);
-  return 0;
+  assert(cbasis->poly_order == pbasis->poly_order);
+  
+  struct mom_type_vlasov_sr *mom_vm_sr = gkyl_malloc(sizeof(struct mom_type_vlasov_sr));
+  int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
+  int poly_order = cbasis->poly_order;
+
+  mom_vm_sr->momt.cdim = cdim;
+  mom_vm_sr->momt.pdim = pdim;
+  mom_vm_sr->momt.poly_order = poly_order;
+  mom_vm_sr->momt.num_config = cbasis->num_basis;
+  mom_vm_sr->momt.num_phase = pbasis->num_basis;
+  mom_vm_sr->momt.kernel = kernel;
+  mom_vm_sr->momt.num_mom = 2+vdim;
+  
+  // set kernel pointer
+  switch (cbasis->b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      assert(cv_index[cdim].vdim[vdim] != -1);
+      assert(NULL != ser_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+      
+      mom_vm_sr->kernel = ser_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+
+      break;
+
+    // case GKYL_BASIS_MODAL_TENSOR:
+    //   assert(cv_index[cdim].vdim[vdim] != -1);
+    //   assert(NULL != ten_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+      
+    //   mom_vm_sr->kernel = ten_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      
+    //   break;
+
+    default:
+      assert(false);
+      break;    
+  }  
+
+  mom_vm_sr->vel_range = *vel_range;
+
+  mom_vm_sr->auxfields.p_over_gamma = 0;
+
+  mom_vm_sr->momt.flags = 0;
+  GKYL_CLEAR_CU_ALLOC(mom_vm_sr->momt.flags);
+  mom_vm_sr->momt.ref_count = gkyl_ref_count_init(gkyl_mom_vm_sr_free);
+  
+  mom_vm_sr->momt.on_dev = &mom_vm_sr->momt; // on host, self-reference
+    
+  return &mom_vm_sr->momt;  
 }
 
 #ifndef GKYL_HAVE_CUDA
