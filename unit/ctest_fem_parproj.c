@@ -100,7 +100,7 @@ test_1x(int poly_order, const bool isperiodic)
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho);
   struct gkyl_array *parbuff = mkarr(basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
   if (isperiodic) apply_periodic_bc(parbuff, rho, dim-1, skin_ghost);
-  gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_parproj_1x_p2_rho_1.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_parproj_1x_p2_rho_1.gkyl");
 
   // parallel FEM projection method.
   gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&grid, &basis, isperiodic, NULL);
@@ -113,7 +113,7 @@ test_1x(int poly_order, const bool isperiodic)
   if (isperiodic) {
     apply_periodic_bc(parbuff, phi, dim-1, skin_ghost);
   }
-  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_parproj_1x_p2_phi_1.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_parproj_1x_p2_phi_1.gkyl");
 
   if (poly_order == 1) {
     if (!isperiodic) {
@@ -262,7 +262,7 @@ test_3x(const int poly_order, const bool isperiodic)
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho);
   struct gkyl_array *parbuff = mkarr(basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
   if (isperiodic) apply_periodic_bc(parbuff, rho, dim-1, skin_ghost);
-  gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_parproj_3x_p2_rho_1.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_parproj_3x_p2_rho_1.gkyl");
 
   // parallel FEM projection method.
   gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&grid, &basis, isperiodic, NULL);
@@ -274,7 +274,7 @@ test_3x(const int poly_order, const bool isperiodic)
   gkyl_fem_parproj_solve(parproj, phi);
   if (isperiodic)
     apply_periodic_bc(parbuff, phi, dim-1, skin_ghost);
-  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_parproj_3x_p2_phi_1.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_parproj_3x_p1_phi_1.gkyl");
 
   if (poly_order == 1) {
     if (!isperiodic) {
@@ -335,19 +335,19 @@ test_3x(const int poly_order, const bool isperiodic)
       for (int k=0; k<cells[2]; k++) {
         long linidx;
         const double *phi_p;
-        int idx0[] = {0,1,k};
+        int idx0[] = {1,2,k+1};
         linidx= gkyl_range_idx(&localRange, idx0); 
         phi_p = gkyl_array_cfetch(phi, linidx);
         for (int m=0; m<basis.num_basis; m++)
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-14) );
 
-        int idx1[] = {1,0,k};
+        int idx1[] = {2,1,k+1};
         linidx= gkyl_range_idx(&localRange, idx1); 
         phi_p = gkyl_array_cfetch(phi, linidx);
         for (int m=0; m<basis.num_basis; m++)
           TEST_CHECK( gkyl_compare(sol[32+k*basis.num_basis+m], phi_p[m], 1e-14) );
 
-        int idx2[] = {1,2,k};
+        int idx2[] = {2,3,k+1};
         linidx= gkyl_range_idx(&localRange, idx2); 
         phi_p = gkyl_array_cfetch(phi, linidx);
         for (int m=0; m<basis.num_basis; m++)
@@ -412,19 +412,19 @@ test_3x(const int poly_order, const bool isperiodic)
       for (int k=0; k<cells[2]; k++) {
         long linidx;
         const double *phi_p;
-        int idx0[] = {0,0,k};
+        int idx0[] = {1,1,k+1};
         linidx= gkyl_range_idx(&localRange, idx0); 
         phi_p = gkyl_array_cfetch(phi, linidx);
         for (int m=0; m<basis.num_basis; m++)
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-14) );
 
-        int idx1[] = {1,1,k};
+        int idx1[] = {2,2,k+1};
         linidx= gkyl_range_idx(&localRange, idx1); 
         phi_p = gkyl_array_cfetch(phi, linidx);
         for (int m=0; m<basis.num_basis; m++)
           TEST_CHECK( gkyl_compare(sol[32+k*basis.num_basis+m], phi_p[m], 1e-14) );
 
-        int idx2[] = {2,1,k};
+        int idx2[] = {3,2,k+1};
         linidx= gkyl_range_idx(&localRange, idx2); 
         phi_p = gkyl_array_cfetch(phi, linidx);
         for (int m=0; m<basis.num_basis; m++)
@@ -483,19 +483,19 @@ test_3x(const int poly_order, const bool isperiodic)
       for (int k=0; k<cells[2]; k++) {
         long linidx;
         const double *phi_p;
-        int idx0[] = {0,1,k};
+        int idx0[] = {1,2,k+1};
         linidx= gkyl_range_idx(&localRange, idx0); 
         phi_p = gkyl_array_cfetch(phi, linidx);
         for (int m=0; m<basis.num_basis; m++)
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
 
-        int idx1[] = {1,0,k};
+        int idx1[] = {2,1,k+1};
         linidx= gkyl_range_idx(&localRange, idx1); 
         phi_p = gkyl_array_cfetch(phi, linidx);
         for (int m=0; m<basis.num_basis; m++)
           TEST_CHECK( gkyl_compare(sol[80+k*basis.num_basis+m], phi_p[m], 1e-12) );
 
-        int idx2[] = {1,2,k};
+        int idx2[] = {2,3,k+1};
         linidx= gkyl_range_idx(&localRange, idx2); 
         phi_p = gkyl_array_cfetch(phi, linidx);
         for (int m=0; m<basis.num_basis; m++)
@@ -552,19 +552,19 @@ test_3x(const int poly_order, const bool isperiodic)
       for (int k=0; k<cells[2]; k++) {
         long linidx;
         const double *phi_p;
-        int idx0[] = {0,0,k};
+        int idx0[] = {1,1,k+1};
         linidx= gkyl_range_idx(&localRange, idx0); 
         phi_p = gkyl_array_cfetch(phi, linidx);
         for (int m=0; m<basis.num_basis; m++)
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
 
-        int idx1[] = {1,1,k};
+        int idx1[] = {2,2,k+1};
         linidx= gkyl_range_idx(&localRange, idx1); 
         phi_p = gkyl_array_cfetch(phi, linidx);
         for (int m=0; m<basis.num_basis; m++)
           TEST_CHECK( gkyl_compare(sol[80+k*basis.num_basis+m], phi_p[m], 1e-12) );
 
-        int idx2[] = {2,1,k};
+        int idx2[] = {3,2,k+1};
         linidx= gkyl_range_idx(&localRange, idx2); 
         phi_p = gkyl_array_cfetch(phi, linidx);
         for (int m=0; m<basis.num_basis; m++)
