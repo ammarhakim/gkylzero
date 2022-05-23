@@ -31,16 +31,16 @@ gkyl_prim_lbo_vlasov_new(const struct gkyl_basis* cbasis,
   prim_vlasov->prim.num_config = cbasis->num_basis;
   prim_vlasov->prim.num_phase = pbasis->num_basis;
   prim_vlasov->prim.self_prim = self_prim;
+  prim_vlasov->prim.cross_prim = cross_prim;
 
   // choose kernel tables based on basis-function type
-  const gkyl_prim_lbo_vlasov_kern_list *self_prim_kernels;
+  const gkyl_prim_lbo_vlasov_self_kern_list *self_prim_kernels;
+  const gkyl_prim_lbo_vlasov_cross_kern_list *cross_prim_kernels;
 
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       self_prim_kernels = ser_self_prim_kernels;
-      break;
-
-    case GKYL_BASIS_MODAL_TENSOR:
+      cross_prim_kernels = ser_cross_prim_kernels;
       break;
 
     default:
@@ -49,8 +49,10 @@ gkyl_prim_lbo_vlasov_new(const struct gkyl_basis* cbasis,
   }
   assert(cv_index[cdim].vdim[vdim] != -1);
   assert(NULL != self_prim_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+  assert(NULL != cross_prim_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
   prim_vlasov->self_prim = self_prim_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+  prim_vlasov->cross_prim = cross_prim_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 
   prim_vlasov->prim.flag = 0;
   GKYL_CLEAR_CU_ALLOC(prim_vlasov->prim.flag);

@@ -133,6 +133,8 @@ done
 
 # Write out build options for scripts to use
 cat <<EOF1 > build-opts.sh
+#!/bin/bash
+
 # Generated automatically! Do not edit
 
 # Download/Build options

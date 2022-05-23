@@ -15,7 +15,7 @@ struct free_stream_ctx {
 
 static inline double sq(double x) { return x*x; }
 
-inline double
+static inline double
 maxwellian(double n, double vx, double vy, double u, double vth)
 {
   double v2 = (vx - u)*(vx - u) + vy*vy;
@@ -73,11 +73,16 @@ main(int argc, char **argv)
     .upper = { 6.0*ctx.vt, 6.0*ctx.vt }, 
     .cells = { 16, 16 },
 
-    .evolve = 1,
     .ctx = &ctx,
     .init = evalDistFunc,
-    .nu = evalNu,
-    .collision_id = GKYL_LBO_COLLISIONS,
+
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+
+      .ctx = &ctx,
+      .self_nu = evalNu,
+    },    
+    
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
   };
@@ -104,7 +109,7 @@ main(int argc, char **argv)
   };
 
   // create app object
-  gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
+  gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 0.1;

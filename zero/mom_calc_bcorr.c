@@ -20,8 +20,8 @@ copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 
 void
 gkyl_mom_calc_bcorr_advance(gkyl_mom_calc_bcorr *bcorr,
-  struct gkyl_range phase_rng, struct gkyl_range conf_rng,
-  const struct gkyl_array *fIn, struct gkyl_array *out)
+  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
+  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT out)
 {
   double xc[GKYL_MAX_DIM];
   struct gkyl_range vel_rng;
@@ -30,58 +30,58 @@ gkyl_mom_calc_bcorr_advance(gkyl_mom_calc_bcorr *bcorr,
   int pidx[GKYL_MAX_DIM], viter_idx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
   enum gkyl_vel_edge edge;
   
-  for (int d=0; d<conf_rng.ndim; ++d) rem_dir[d] = 1;
+  for (int d=0; d<conf_rng->ndim; ++d) rem_dir[d] = 1;
 
-  gkyl_array_clear_range(out, 0.0, conf_rng);
+  gkyl_array_clear_range(out, 0.0, *conf_rng);
 
   // outer loop is over configuration space cells; for each
   // config-space cell inner loop walks over the edges of velocity
   // space
-  gkyl_range_iter_init(&conf_iter, &conf_rng);
+  gkyl_range_iter_init(&conf_iter, conf_rng);
   while (gkyl_range_iter_next(&conf_iter)) {
-    long midx = gkyl_range_idx(&conf_rng, conf_iter.idx);
+    long midx = gkyl_range_idx(conf_rng, conf_iter.idx);
     
-    for (int d=0; d<conf_rng.ndim; ++d)
+    for (int d=0; d<conf_rng->ndim; ++d)
       viter_idx[d] = conf_iter.idx[d];
     
-    for (int d=0; d<phase_rng.ndim - conf_rng.ndim; ++d) {
-      rem_dir[conf_rng.ndim + d] = 1;
+    for (int d=0; d<phase_rng->ndim - conf_rng->ndim; ++d) {
+      rem_dir[conf_rng->ndim + d] = 1;
       
       // loop over upper edge of velocity space
       edge = d + GKYL_MAX_CDIM;
-      viter_idx[conf_rng.ndim + d] = phase_rng.upper[conf_rng.ndim + d];
-      gkyl_range_deflate(&vel_rng, &phase_rng, rem_dir, viter_idx);
+      viter_idx[conf_rng->ndim + d] = phase_rng->upper[conf_rng->ndim + d];
+      gkyl_range_deflate(&vel_rng, phase_rng, rem_dir, viter_idx);
       gkyl_range_iter_no_split_init(&vel_iter, &vel_rng);
       
       while (gkyl_range_iter_next(&vel_iter)) {
-        copy_idx_arrays(conf_rng.ndim, phase_rng.ndim, conf_iter.idx, vel_iter.idx, pidx);
+        copy_idx_arrays(conf_rng->ndim, phase_rng->ndim, conf_iter.idx, vel_iter.idx, pidx);
 
         gkyl_rect_grid_cell_center(&bcorr->grid, pidx, xc);
       
         long fidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
         gkyl_mom_type_calc(bcorr->momt, xc, bcorr->grid.dx, pidx,
-	  gkyl_array_cfetch(fIn, fidx), gkyl_array_fetch(out, midx), &edge
+          gkyl_array_cfetch(fIn, fidx), gkyl_array_fetch(out, midx), &edge
         );
       }
       
       // loop over lower edge of velocity space
       edge = d;
-      viter_idx[conf_rng.ndim + d] = phase_rng.lower[conf_rng.ndim + d];
-      gkyl_range_deflate(&vel_rng, &phase_rng, rem_dir, viter_idx);
+      viter_idx[conf_rng->ndim + d] = phase_rng->lower[conf_rng->ndim + d];
+      gkyl_range_deflate(&vel_rng, phase_rng, rem_dir, viter_idx);
       gkyl_range_iter_no_split_init(&vel_iter, &vel_rng);
       
       while (gkyl_range_iter_next(&vel_iter)) {
-        copy_idx_arrays(conf_rng.ndim, phase_rng.ndim, conf_iter.idx, vel_iter.idx, pidx);
+        copy_idx_arrays(conf_rng->ndim, phase_rng->ndim, conf_iter.idx, vel_iter.idx, pidx);
 	
         gkyl_rect_grid_cell_center(&bcorr->grid, pidx, xc);
       
         long fidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
         gkyl_mom_type_calc(bcorr->momt, xc, bcorr->grid.dx, pidx,
-	  gkyl_array_cfetch(fIn, fidx), gkyl_array_fetch(out, midx), &edge
+          gkyl_array_cfetch(fIn, fidx), gkyl_array_fetch(out, midx), &edge
         );
       }
-      rem_dir[conf_rng.ndim + d] = 0;
-      viter_idx[conf_rng.ndim + d] = 0;
+      rem_dir[conf_rng->ndim + d] = 0;
+      viter_idx[conf_rng->ndim + d] = 0;
     }
   }
 }
@@ -113,8 +113,8 @@ gkyl_mom_calc_bcorr_release(gkyl_mom_calc_bcorr* up)
 
 void
 gkyl_mom_calc_bcorr_advance_cu(gkyl_mom_calc_bcorr *bcorr,
-  struct gkyl_range phase_rng, struct gkyl_range conf_rng,
-  const struct gkyl_array *fIn, struct gkyl_array *out)
+  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
+  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT out)
 {
   assert(false);
 }

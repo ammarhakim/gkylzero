@@ -54,7 +54,6 @@ extern "C" {
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
-#include <gkyl_rect_apply_bc.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_ref_count.h>
@@ -65,6 +64,8 @@ extern "C" {
 #include <gkyl_vargm.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
+#include <gkyl_wv_apply_bc.h>
+#include <gkyl_wv_burgers.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_iso_euler.h>

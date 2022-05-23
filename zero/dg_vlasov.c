@@ -24,25 +24,68 @@ gkyl_vlasov_free(const struct gkyl_ref_count *ref)
   gkyl_free(vlasov);
 }
 
+struct gkyl_array_copy_func*
+gkyl_vlasov_wall_bc_create(const struct gkyl_dg_eqn *eqn, int dir, const struct gkyl_basis* pbasis)
+{
+// #ifdef GKYL_HAVE_CUDA
+//   if (gkyl_dg_eqn_is_cu_dev(eqn)) {
+//     return gkyl_vlasov_wall_bc_create_cu(eqn->on_dev, dir, pbasis);
+//   }
+// #endif
+
+  struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
+
+  struct species_wall_bc_ctx *ctx = (struct species_wall_bc_ctx*) gkyl_malloc(sizeof(struct species_wall_bc_ctx));
+  ctx->dir = dir;
+  ctx->cdim = vlasov->cdim;
+  ctx->basis = pbasis;
+
+  struct gkyl_array_copy_func *bc = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
+  bc->func = vlasov->wall_bc;
+  bc->ctx = ctx;
+
+  bc->flags = 0;
+  GKYL_CLEAR_CU_ALLOC(bc->flags);
+  bc->on_dev = bc; // CPU eqn obj points to itself
+  return bc;
+}
+
 void
-gkyl_vlasov_set_qmem(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *qmem)
+gkyl_vlasov_wall_bc_release(struct gkyl_array_copy_func* bc)
+{
+  // if (gkyl_array_copy_func_is_cu_dev(bc)) {
+  //   gkyl_cu_free(bc->on_dev->ctx);
+  //   gkyl_cu_free(bc->on_dev);
+  // }
+  gkyl_free(bc->ctx);
+  gkyl_free(bc);
+}
+
+void
+gkyl_vlasov_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(qmem)) {
-    gkyl_vlasov_set_qmem_cu(eqn->on_dev, qmem);
+  if (gkyl_array_is_cu_dev(auxin.qmem)) {
+    gkyl_vlasov_set_auxfields_cu(eqn->on_dev, auxin);
     return;
   }
 #endif
 
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
-  vlasov->qmem = qmem;
+  vlasov->auxfields.qmem = auxin.qmem;
 }
 
 struct gkyl_dg_eqn*
 gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, enum gkyl_field_id field_id)
+  const struct gkyl_range* conf_range, enum gkyl_field_id field_id, bool use_gpu)
 {
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_dg_vlasov_cu_dev_new(cbasis, pbasis, conf_range, field_id);
+  } 
+#endif
   struct dg_vlasov *vlasov = gkyl_malloc(sizeof(struct dg_vlasov));
+
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
   int poly_order = cbasis->poly_order;
@@ -119,13 +162,16 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   if (vdim>2)
     vlasov->accel_boundary_surf[2] = CK(accel_boundary_surf_vz_kernels,cdim,vdim,poly_order);
 
+  // setup pointer for wall BC function
+  vlasov->wall_bc = species_wall_bc;
+
   // ensure non-NULL pointers
   assert(vlasov->vol);
   for (int i=0; i<cdim; ++i) assert(vlasov->stream_surf[i]);
   for (int i=0; i<vdim; ++i) assert(vlasov->accel_surf[i]);
   for (int i=0; i<vdim; ++i) assert(vlasov->accel_boundary_surf[i]);
 
-  vlasov->qmem = 0;  
+  vlasov->auxfields.qmem = 0;  
   vlasov->conf_range = *conf_range;
 
   vlasov->eqn.flags = 0;

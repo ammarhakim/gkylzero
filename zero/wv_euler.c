@@ -17,6 +17,20 @@ euler_free(const struct gkyl_ref_count *ref)
   gkyl_free(euler);
 }
 
+// Euler perfectly reflecting wall
+static void
+euler_wall(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+{
+  // copy density and pressure
+  ghost[0] = skin[0];
+  ghost[4] = skin[4];
+
+  // zero-normal for momentum
+  ghost[1] = -skin[1];
+  ghost[2] = skin[2];
+  ghost[3] = skin[3];
+}
+
 static inline void
 rot_to_local(const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
@@ -141,7 +155,9 @@ gkyl_wv_euler_new(double gas_gamma)
   euler->eqn.max_speed_func = max_speed;
 
   euler->eqn.rotate_to_local_func = rot_to_local;
-  euler->eqn.rotate_to_global_func = rot_to_global;  
+  euler->eqn.rotate_to_global_func = rot_to_global;
+
+  euler->eqn.wall_bc_func = euler_wall;
 
   euler->eqn.ref_count = gkyl_ref_count_init(euler_free);
 

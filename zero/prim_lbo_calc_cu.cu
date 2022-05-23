@@ -28,8 +28,7 @@ __global__ static void
 gkyl_prim_lbo_calc_set_cu_ker(gkyl_prim_lbo_calc* calc,
   struct gkyl_nmat *As, struct gkyl_nmat *xs,
   struct gkyl_basis cbasis, struct gkyl_range conf_rng,
-  const struct gkyl_array* m0, const struct gkyl_array* m1, const struct gkyl_array* m2,
-  const struct gkyl_array* cM, const struct gkyl_array* cE)
+  const struct gkyl_array* moms, const struct gkyl_array* boundary_corrections)
 {
   int ndim = cbasis.ndim;
   int idx[GKYL_MAX_DIM];
@@ -55,15 +54,12 @@ gkyl_prim_lbo_calc_set_cu_ker(gkyl_prim_lbo_calc* calc,
     
       struct gkyl_mat lhs = gkyl_nmat_get(As, linc1 + ac1*linc2);
       struct gkyl_mat rhs = gkyl_nmat_get(xs, linc1 + ac1*linc2);
-      const double *m0_d = (const double*) gkyl_array_cfetch(m0, start);
-      const double *m1_d = (const double*) gkyl_array_cfetch(m1, start);
-      const double *m2_d = (const double*) gkyl_array_cfetch(m2, start);
-      const double *cM_d = (const double*) gkyl_array_cfetch(cM, start);
-      const double *cE_d = (const double*) gkyl_array_cfetch(cE, start);
+      const double *moms_d = (const double*) gkyl_array_cfetch(moms, start);
+      const double *boundary_corrections_d = (const double*) gkyl_array_cfetch(boundary_corrections, start);
 
       gkyl_mat_clear(&lhs, 0.0); gkyl_mat_clear(&rhs, 0.0);
 
-      calc->prim->self_prim(calc->prim, &lhs, &rhs, m0_d, m1_d, m2_d, cM_d, cE_d);
+      calc->prim->self_prim(calc->prim, &lhs, &rhs, idx, moms_d, boundary_corrections_d);
     }
   }
 }
@@ -109,31 +105,31 @@ gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs,
 void
 gkyl_prim_lbo_calc_advance_cu(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis,
   struct gkyl_range conf_rng, 
-  const struct gkyl_array* m0, const struct gkyl_array* m1,
-  const struct gkyl_array* m2, const struct gkyl_array* cM, const struct gkyl_array* cE,
+  const struct gkyl_array* moms, const struct gkyl_array* boundary_corrections,
   struct gkyl_array* uout, struct gkyl_array* vtSqout)
 {
   dim3 dimGrid, dimBlock;
   gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, conf_rng);
   int nc = cbasis.num_basis;
   int vdim = calc->prim->pdim - calc->prim->cdim;
-  int N = nc*(vdim + 1);      
-  struct gkyl_nmat *A_d = gkyl_nmat_cu_dev_new(conf_rng.volume, N, N);
-  struct gkyl_nmat *x_d = gkyl_nmat_cu_dev_new(conf_rng.volume, N, 1);
+  int N = nc*(vdim + 1);
+
+  if (calc->is_first) {
+    calc->As = gkyl_nmat_cu_dev_new(conf_rng.volume, N, N);
+    calc->xs = gkyl_nmat_cu_dev_new(conf_rng.volume, N, 1);
+    calc->mem = gkyl_nmat_linsolve_lu_cu_dev_new(calc->As->num, calc->As->nr);
+    calc->is_first = false;
+  }
 
   gkyl_prim_lbo_calc_set_cu_ker<<<dimGrid, dimBlock>>>(calc->on_dev,
-    A_d->on_dev, x_d->on_dev, cbasis, conf_rng,
-    m0->on_dev, m1->on_dev, m2->on_dev,
-    cM->on_dev, cE->on_dev);
+    calc->As->on_dev, calc->xs->on_dev, cbasis, conf_rng,
+    moms->on_dev, boundary_corrections->on_dev);
   
-  bool status = gkyl_nmat_linsolve_lu(A_d, x_d);
+  bool status = gkyl_nmat_linsolve_lu_pa(calc->mem, calc->As, calc->xs);
 
-  gkyl_prim_lbo_copy_sol_cu_ker<<<dimGrid, dimBlock>>>(x_d->on_dev,
+  gkyl_prim_lbo_copy_sol_cu_ker<<<dimGrid, dimBlock>>>(calc->xs->on_dev,
     cbasis, conf_rng, nc, vdim,
     uout->on_dev, vtSqout->on_dev);
-
-  gkyl_nmat_release(A_d);
-  gkyl_nmat_release(x_d);
 }
 
 gkyl_prim_lbo_calc*
@@ -143,6 +139,10 @@ gkyl_prim_lbo_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
   gkyl_prim_lbo_calc *up = (gkyl_prim_lbo_calc*) gkyl_malloc(sizeof(gkyl_prim_lbo_calc));
   up->grid = *grid;
   up->prim = prim;
+
+  up->is_first = true;
+  up->As = up->xs = 0;
+  up->mem = 0;
 
   struct gkyl_prim_lbo_type *pt = gkyl_prim_lbo_type_acquire(prim);
   up->prim = pt->on_dev; // so memcpy below gets dev copy

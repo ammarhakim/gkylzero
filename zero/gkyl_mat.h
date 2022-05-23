@@ -32,6 +32,10 @@ struct gkyl_nmat {
   struct  gkyl_nmat *on_dev; // pointer to itself or device data
 };
 
+// Type for storing preallocating memory needed in various batch
+// operations
+typedef struct gkyl_nmat_mem gkyl_nmat_mem;
+
 /**
  * Construct new matrix with all elements initialized to @a
  * val. Delete using gkyl_mat_release method.
@@ -227,7 +231,26 @@ bool gkyl_nmat_is_cu_dev(const struct gkyl_nmat *mat);
  * @param mat Multi-matrix to which a pointer is needed
  * @return Pointer to acquired multi-matrix.
  */
-struct gkyl_nmat *gkyl_nmat_acquire(const struct gkyl_nmat *mat);
+struct gkyl_nmat* gkyl_nmat_acquire(const struct gkyl_nmat *mat);
+
+/**
+ * Allocate memory needed in batched LU solves on host. Free using the
+ * release method.
+ *
+ * @param num Number of matrices in batch.
+ * @param nrow Number of rows in each matrix
+ * @return Preallocated memory
+ */
+gkyl_nmat_mem *gkyl_nmat_linsolve_lu_new(size_t num, size_t nrow);
+// Same as above, except for GPUs
+gkyl_nmat_mem *gkyl_nmat_linsolve_lu_cu_dev_new(size_t num, size_t nrow);
+
+/**
+ * Release memory allocated for batched LU solves.
+ *
+ * @param mem Memory to release
+ */
+void gkyl_nmat_linsolve_lu_release(gkyl_nmat_mem *mem);
 
 /**
  * Solve a batched system of linear equations using LU
@@ -238,6 +261,22 @@ struct gkyl_nmat *gkyl_nmat_acquire(const struct gkyl_nmat *mat);
  * factors.
  */
 bool gkyl_nmat_linsolve_lu(struct gkyl_nmat *A, struct gkyl_nmat *x);
+
+/**
+ * Solve a batched system of linear equations using LU
+ * decomposition. On input the RHSs must be in the "x" multi-matrix
+ * (each column represents a RHS vector) and on output "x" is replaced
+ * with the solution(s). Returns true on success, false
+ * otherwise. Note that on output each of the As is replaced by its LU
+ * factors.
+ *
+ * The memory required in this call must be pre-allocated.
+ *
+ * @param mem Preallocated memory needed in the solve
+ * @param A list of LHS matrices, replaced by LU factors on return
+ * @param x list of RHS vectors, replace by solution in exit.
+ */
+bool gkyl_nmat_linsolve_lu_pa(gkyl_nmat_mem *mem, struct gkyl_nmat *A, struct gkyl_nmat *x);
 
 /**
  * Release multi-matrix

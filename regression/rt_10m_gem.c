@@ -100,6 +100,9 @@ main(int argc, char **argv)
   
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 64);  
+
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
@@ -115,7 +118,7 @@ main(int argc, char **argv)
     .evolve = 1,
     .init = evalElcInit,
 
-    .bcy = { GKYL_MOMENT_SPECIES_WALL, GKYL_MOMENT_SPECIES_WALL },
+    .bcy = { GKYL_SPECIES_WALL, GKYL_SPECIES_WALL },
   };
   struct gkyl_moment_species ion = {
     .name = "ion",
@@ -124,7 +127,7 @@ main(int argc, char **argv)
     .evolve = 1,
     .init = evalIonInit,
 
-    .bcy = { GKYL_MOMENT_SPECIES_WALL, GKYL_MOMENT_SPECIES_WALL },    
+    .bcy = { GKYL_SPECIES_WALL, GKYL_SPECIES_WALL },    
   };  
 
   // VM app
@@ -134,7 +137,7 @@ main(int argc, char **argv)
     .ndim = 2,
     .lower = { -12.8, -6.4 },
     .upper = { 12.8, 6.4 }, 
-    .cells = { 128, 64  },
+    .cells = { NX, NY },
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
@@ -150,12 +153,12 @@ main(int argc, char **argv)
       .evolve = 1,
       .init = evalFieldInit,
       
-      .bcy = { GKYL_MOMENT_FIELD_COND, GKYL_MOMENT_FIELD_COND },
+      .bcy = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
     }
   };
 
   // create app object
-  gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
+  gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 250.0;

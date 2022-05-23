@@ -1,14 +1,15 @@
-#include <math.h>
+#include<math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
 #include <gkyl_alloc.h>
-#include <gkyl_util.h>
+#include <gkyl_array_rio.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
+#include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_array_rio.h>
+#include <gkyl_util.h>
 #include <thpool.h>
 
 void evalFunc(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -37,9 +38,10 @@ test_proj_1(enum gkyl_basis_type type)
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, evalFunc, 0);
 
-  // create array range: no ghost-cells 
-  struct gkyl_range arr_range;
-  gkyl_range_init_from_shape(&arr_range, 3, cells);
+  // create array range: no ghost-cells
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range arr_range, arr_ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
   // create distribution function
   struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
@@ -88,9 +90,10 @@ test_proj_2(enum gkyl_basis_type type)
   // projection updater for dist-function
   gkyl_proj_on_basis *proj_mapc2p = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 2, mapc2p, 0);
 
-  // create array range: no ghost-cells 
-  struct gkyl_range arr_range;
-  gkyl_range_init_from_shape(&arr_range, 2, cells);
+  // create array range: no ghost-cells
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range arr_range, arr_ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
   // create DG expansion of mapping
   struct gkyl_array *rtheta = gkyl_array_new(GKYL_DOUBLE, 2*basis.num_basis, arr_range.volume);

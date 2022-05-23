@@ -123,12 +123,15 @@ main(int argc, char **argv)
     .upper = { 6.0 * ctx.vte, 6.0 * ctx.vte, 6.0 * ctx.vte }, 
     .cells = { 8, 8, 8 },
 
-    .evolve = 1,
     .ctx = &ctx,
     .init = evalDistFuncElc,
 
-    .nu = evalNuElc,
-    .collision_id = GKYL_LBO_COLLISIONS,
+    .collisions = {
+      .collision_id = GKYL_LBO_COLLISIONS,
+
+      .ctx = &ctx,
+      .self_nu = evalNuElc,
+    },
     
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
@@ -142,12 +145,16 @@ main(int argc, char **argv)
     .upper = { 16.0 * ctx.vti, 16.0 * ctx.vti, 16.0 * ctx.vti}, 
     .cells = { 8, 8, 8 },
 
-    .evolve = 1,
     .ctx = &ctx,
     .init = evalDistFuncIon,
 
-    .nu = evalNuIon,
-    .collision_id = GKYL_LBO_COLLISIONS,
+    .collisions = {
+      .collision_id = GKYL_LBO_COLLISIONS,
+
+      .ctx = &ctx,
+      .self_nu = evalNuIon,
+
+    },
     
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
@@ -158,7 +165,7 @@ main(int argc, char **argv)
     .epsilon0 = 1.0, .mu0 = 1.0,
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
-    .evolve = 1,
+
     .ctx = &ctx,
     .init = evalFieldFunc
   };
@@ -185,7 +192,7 @@ main(int argc, char **argv)
   };
 
   // create app object
-  gkyl_vlasov_app *app = gkyl_vlasov_app_new(vm);
+  gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 2.0;
@@ -232,6 +239,7 @@ main(int argc, char **argv)
   }  
   printf("Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   printf("Species RHS calc took %g secs\n", stat.species_rhs_tm);
+  printf("Species collisions took %g secs\n", stat.species_coll_mom_tm);
   printf("Species collisions took %g secs\n", stat.species_coll_tm);
   printf("Field RHS calc took %g secs\n", stat.field_rhs_tm);
   printf("Current evaluation and accumulate took %g secs\n", stat.current_tm);

@@ -8,6 +8,7 @@
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_rect_decomp.h>
 #include <gkyl_util.h>
 
 void evalFunc(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -36,8 +37,9 @@ test_eval_1(enum gkyl_basis_type type)
   gkyl_eval_on_nodes *evalDistf = gkyl_eval_on_nodes_new(&grid, &basis,1, evalFunc, 0);
 
   // create array range: no ghost-cells 
-  struct gkyl_range arr_range;
-  gkyl_range_init_from_shape(&arr_range, 3, cells);
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range arr_range, arr_ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
   // create distribution function
   struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
@@ -92,8 +94,9 @@ test_eval_2(enum gkyl_basis_type type)
     gkyl_cart_modal_tensor(&basis, 2, poly_order);
 
   // create array range: no ghost-cells 
-  struct gkyl_range arr_range;
-  gkyl_range_init_from_shape(&arr_range, 2, cells);
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range arr_range, arr_ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);  
 
   // create DG expansion of mapping
   gkyl_eval_on_nodes *eval_mapc2p = gkyl_eval_on_nodes_new(&grid, &basis, 2, mapc2p, 0);
@@ -152,8 +155,9 @@ test_eval_3(enum gkyl_basis_type type)
     gkyl_cart_modal_tensor(&basis, 2, poly_order);
 
   // create array range: no ghost-cells 
-  struct gkyl_range arr_range;
-  gkyl_range_init_from_shape(&arr_range, 2, cells);
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range arr_range, arr_ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);  
 
   // create DG expansion of mapping
   gkyl_eval_on_nodes *eval_mapc2p = gkyl_eval_on_nodes_new(&grid, &basis, 2, mapc2p, 0);

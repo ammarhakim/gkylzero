@@ -70,6 +70,8 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 1024);
+
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
@@ -102,7 +104,7 @@ main(int argc, char **argv)
     .ndim = 1,
     .lower = { 0.0 },
     .upper = { 1.0 }, 
-    .cells = { 1024  },
+    .cells = { NX },
 
     .num_species = 2,
     .species = { elc, ion },
@@ -116,7 +118,7 @@ main(int argc, char **argv)
   };
 
   // create app object
-  gkyl_moment_app *app = gkyl_moment_app_new(app_inp);
+  gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 10.0;

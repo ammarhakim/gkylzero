@@ -2,6 +2,10 @@
 
 // Private header, not for direct use in user code
 
+#include <gkyl_array.h>
+#include <gkyl_mom_type.h>
+#include <gkyl_range.h>
+#include <gkyl_ref_count.h>
 #include <gkyl_mom_bcorr_lbo_vlasov_kernels.h>
 
 typedef void (*lbo_vlasov_momf_t)(const int *idx, enum gkyl_vel_edge edge, const double *vBoundary,
@@ -23,33 +27,36 @@ typedef struct { lbo_vlasov_momf_t kernels[3]; } gkyl_mom_bcorr_lbo_vlasov_kern_
 // Serendipity basis kernels
 //
 
-// f boundary integral moment correction kernel lists
+// boundary integral moment correction kernel lists (both momentum and energy)
 GKYL_CU_D
-static const gkyl_mom_bcorr_lbo_vlasov_kern_list ser_mom_bcorr_lbo_vlasov_f_kernels[] = {
+static const gkyl_mom_bcorr_lbo_vlasov_kern_list ser_mom_bcorr_lbo_vlasov_kernels[] = {
   // 1x kernels
-  { NULL, mom_bcorr_lbo_vlasov_1x1v_ser_f_p1, mom_bcorr_lbo_vlasov_1x1v_ser_f_p2 }, // 0
-  { NULL, mom_bcorr_lbo_vlasov_1x2v_ser_f_p1, mom_bcorr_lbo_vlasov_1x2v_ser_f_p2 }, // 1
-  { NULL, mom_bcorr_lbo_vlasov_1x3v_ser_f_p1, mom_bcorr_lbo_vlasov_1x3v_ser_f_p2 }, // 2
+  { NULL, NULL, mom_bcorr_lbo_vlasov_1x1v_ser_p2 }, // 0
+  { NULL, NULL, mom_bcorr_lbo_vlasov_1x2v_ser_p2 }, // 1
+  { NULL, NULL, mom_bcorr_lbo_vlasov_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, mom_bcorr_lbo_vlasov_2x2v_ser_f_p1, mom_bcorr_lbo_vlasov_2x2v_ser_f_p2 }, // 3
-  { NULL, mom_bcorr_lbo_vlasov_2x3v_ser_f_p1, NULL }, // 4
+  { NULL, NULL, mom_bcorr_lbo_vlasov_2x2v_ser_p2 }, // 3
+  { NULL, NULL, mom_bcorr_lbo_vlasov_2x3v_ser_p2 }, // 4
   // 3x kernels
-  { NULL, mom_bcorr_lbo_vlasov_3x3v_ser_f_p1, NULL }, // 5
+  { NULL, NULL, NULL }, // 5
 };
 
-// v*f boundary integral moment correction kernel lists
-GKYL_CU_D
-static const gkyl_mom_bcorr_lbo_vlasov_kern_list ser_mom_bcorr_lbo_vlasov_vf_kernels[] = {
-  // 1x kernels
-  { NULL, mom_bcorr_lbo_vlasov_1x1v_ser_vf_p1, mom_bcorr_lbo_vlasov_1x1v_ser_vf_p2 }, // 0
-  { NULL, mom_bcorr_lbo_vlasov_1x2v_ser_vf_p1, mom_bcorr_lbo_vlasov_1x2v_ser_vf_p2 }, // 1
-  { NULL, mom_bcorr_lbo_vlasov_1x3v_ser_vf_p1, mom_bcorr_lbo_vlasov_1x3v_ser_vf_p2 }, // 2
-  // 2x kernels
-  { NULL, mom_bcorr_lbo_vlasov_2x2v_ser_vf_p1, mom_bcorr_lbo_vlasov_2x2v_ser_vf_p2 }, // 3
-  { NULL, mom_bcorr_lbo_vlasov_2x3v_ser_vf_p1, NULL }, // 4
-  // 3x kernels
-  { NULL, mom_bcorr_lbo_vlasov_3x3v_ser_vf_p1, NULL }, // 5
-};
+//
+// Tensor-product basis kernels
+//
+// // boundary integral moment correction kernel lists (both momentum and energy)
+// GKYL_CU_D
+// static const gkyl_mom_bcorr_lbo_vlasov_kern_list ten_mom_bcorr_lbo_vlasov_kernels[] = {
+//   // 1x kernels
+//   { NULL, NULL, mom_bcorr_lbo_vlasov_1x1v_tensor_p2 }, // 0
+//   { NULL, NULL, mom_bcorr_lbo_vlasov_1x2v_tensor_p2 }, // 1
+//   { NULL, NULL, mom_bcorr_lbo_vlasov_1x3v_tensor_p2 }, // 2
+//   // 2x kernels
+//   { NULL, NULL, mom_bcorr_lbo_vlasov_2x2v_tensor_p2 }, // 3
+//   { NULL, NULL, NULL }, // 4
+//   // 3x kernels
+//   { NULL, NULL, NULL }, // 5
+// };
 
 struct mom_type_bcorr_lbo_vlasov {
   struct gkyl_mom_type momt;
@@ -62,7 +69,7 @@ void gkyl_mom_free(const struct gkyl_ref_count *ref);
 GKYL_CU_D
 static void
 kernel(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-       const int *idx, const double *f, double* out, void *param)
+  const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_bcorr_lbo_vlasov *mom_bcorr = container_of(momt, struct mom_type_bcorr_lbo_vlasov, momt);
   enum gkyl_vel_edge edge = *(enum gkyl_vel_edge *)param;

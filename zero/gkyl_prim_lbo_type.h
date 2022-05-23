@@ -7,9 +7,16 @@
 struct gkyl_prim_lbo_type;
 
 // Self-primitive moment kernel pointer type
-typedef void (*self_prim_t)(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A,
-  struct gkyl_mat *rhs, const double *m0, const double *m1, const double *m2,
-  const double *cM, const double *cE);
+typedef void (*self_prim_t)(const struct gkyl_prim_lbo_type *prim,
+  struct gkyl_mat *A, struct gkyl_mat *rhs, const int* idx, 
+  const double *moms, const double *boundary_corrections);
+
+// Cross-primitive moment kernel pointer type
+typedef void (*cross_prim_t)(const struct gkyl_prim_lbo_type *prim,
+  struct gkyl_mat *A, struct gkyl_mat *rhs, const int* idx, 
+  const double *greene, const double m_self, const double *u_self, const double *vtsq_self,
+  const double m_other, const double *u_other, const double *vtsq_other,
+  const double *moms, const double *boundary_corrections);
 
 struct gkyl_prim_lbo_type {
   int cdim; // config-space dim
@@ -17,7 +24,8 @@ struct gkyl_prim_lbo_type {
   int poly_order; // polynomal order
   int num_config; // number of basis functions in config-space
   int num_phase; // number of basis functions in phase-space
-  self_prim_t self_prim; // moment calculation kernel
+  self_prim_t self_prim; // self-primitive moment calculation kernel
+  cross_prim_t cross_prim; // cross-primitive moment calculation kernels
   struct gkyl_ref_count ref_count; // reference count
 
   uint32_t flag;

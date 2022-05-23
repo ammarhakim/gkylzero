@@ -32,6 +32,6 @@ gkyl_sr_euler_flux(double gas_gamma, const double q[5], double flux[5])
   flux[0] = q[0]*q[TU]/fac0; // gamma*rho*u
   flux[1] = q[TU]; //gamma^2*rho*h*u
   flux[TU] = q[TU]*q[TU]/fac0 + pr; // gamma^2*rho*h*u*u + pr
-  flux[TV] = q[TU]*q[TV]/fac0; //  gamma^2*rho*h*u*v
-  flux[TW] = q[TU]*q[TW]/fac0; //  gamma^2*rho*h*u*w
+  flux[TV] = q[TU]*q[TV]/fac0; // gamma^2*rho*h*u*v
+  flux[TW] = q[TU]*q[TW]/fac0; // gamma^2*rho*h*u*w
 }

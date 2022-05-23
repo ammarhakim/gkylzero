@@ -9,55 +9,25 @@ extern "C" {
 
 #include <cassert>
 
-// CUDA kernel to set pointer to nuSum, sum of collisionalities
+// CUDA kernel to set pointer to nuSum, nuUSum and nuVtSqSum.
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
-gkyl_lbo_vlasov_diff_set_nuSum_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuSum)
+gkyl_lbo_vlasov_diff_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuSum,
+  const struct gkyl_array *nuUSum, const struct gkyl_array *nuVtSqSum)
 {
   struct dg_lbo_vlasov_diff *lbo_vlasov_diff = container_of(eqn, struct dg_lbo_vlasov_diff, eqn);
-  lbo_vlasov_diff->nuSum = nuSum;
+  lbo_vlasov_diff->auxfields.nuSum = nuSum;
+  lbo_vlasov_diff->auxfields.nuUSum = nuUSum;
+  lbo_vlasov_diff->auxfields.nuVtSqSum = nuVtSqSum;
 }
 
-// Host-side wrapper for set_nuSum_cu_kernel
+//// Host-side wrapper for device kernels setting nuSum, nuUSum and nuVtSqSum.
 void
-gkyl_lbo_vlasov_diff_set_nuSum_cu(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuSum)
+gkyl_lbo_vlasov_diff_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_vlasov_diff_auxfields auxin)
 {
-  gkyl_lbo_vlasov_diff_set_nuSum_cu_kernel<<<1,1>>>(eqn, nuSum->on_dev);
-}
-
-// CUDA kernel to set pointer to nuUSum, sum of nu*u for updating the drag flux term
-// This is required because eqn object lives on device,
-// and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void
-gkyl_lbo_vlasov_diff_set_nuUSum_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuUSum)
-{
-  struct dg_lbo_vlasov_diff *lbo_vlasov_diff = container_of(eqn, struct dg_lbo_vlasov_diff, eqn);
-  lbo_vlasov_diff->nuUSum = nuUSum;
-}
-
-// Host-side wrapper for set_nuUSum_cu_kernel
-void
-gkyl_lbo_vlasov_diff_set_nuUSum_cu(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuUSum)
-{
-  gkyl_lbo_vlasov_diff_set_nuUSum_cu_kernel<<<1,1>>>(eqn, nuUSum->on_dev);
-}
-
-// CUDA kernel to set pointer to nuVtSqSum, sum of nu*vth^2 for updating the diffusion flux term.
-// This is required because eqn object lives on device,
-// and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void
-gkyl_lbo_vlasov_diff_set_nuVtSqSum_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuVtSqSum)
-{
-  struct dg_lbo_vlasov_diff *lbo_vlasov_diff = container_of(eqn, struct dg_lbo_vlasov_diff, eqn);
-  lbo_vlasov_diff->nuVtSqSum = nuVtSqSum;
-}
-
-// Host-side wrapper for set_nuVtSqSum_cu_kernel
-void
-gkyl_lbo_vlasov_diff_set_nuVtSqSum_cu(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuVtSqSum)
-{
-  gkyl_lbo_vlasov_diff_set_nuVtSqSum_cu_kernel<<<1,1>>>(eqn, nuVtSqSum->on_dev);
+  gkyl_lbo_vlasov_diff_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.nuSum->on_dev,
+    auxin.nuUSum->on_dev, auxin.nuVtSqSum->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and vlasov LBO kernel function
@@ -66,9 +36,9 @@ __global__ static void
 dg_lbo_vlasov_diff_set_cu_dev_ptrs(struct dg_lbo_vlasov_diff *lbo_vlasov_diff, enum gkyl_basis_type b_type,
   int cv_index, int cdim, int vdim, int poly_order)
 {
-  lbo_vlasov_diff->nuSum = 0; 
-  lbo_vlasov_diff->nuUSum = 0; 
-  lbo_vlasov_diff->nuVtSqSum = 0; 
+  lbo_vlasov_diff->auxfields.nuSum = 0; 
+  lbo_vlasov_diff->auxfields.nuUSum = 0; 
+  lbo_vlasov_diff->auxfields.nuVtSqSum = 0; 
 
   lbo_vlasov_diff->eqn.vol_term = vol;
   lbo_vlasov_diff->eqn.surf_term = surf;

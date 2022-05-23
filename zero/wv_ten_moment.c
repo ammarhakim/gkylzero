@@ -34,6 +34,27 @@ ten_moment_free(const struct gkyl_ref_count *ref)
   gkyl_free(ten_moment);
 }
 
+// Ten moment perfectly reflecting wall
+static void
+ten_moment_wall(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+{
+  // copy density and Pxx, Pyy, and Pzz
+  ghost[0] = skin[0];
+  ghost[4] = skin[4];
+  ghost[7] = skin[7];
+  ghost[9] = skin[9];
+
+  // zero-normal for momentum
+  ghost[1] = -skin[1];
+  ghost[2] = skin[2];
+  ghost[3] = skin[3];
+
+  // zero-tangent for off-diagonal components of pressure tensor
+  ghost[8] = skin[8];
+  ghost[6] = -skin[6];
+  ghost[5] = -skin[5];
+}
+
 static void
 rot_to_local(const double *tau1, const double *tau2, const double *norm,
   const double *qglobal, double *qlocal)
@@ -310,6 +331,8 @@ gkyl_wv_ten_moment_new(double k0)
   ten_moment->eqn.max_speed_func = max_speed;
   ten_moment->eqn.rotate_to_local_func = rot_to_local;
   ten_moment->eqn.rotate_to_global_func = rot_to_global;
+
+  ten_moment->eqn.wall_bc_func = ten_moment_wall;
 
   ten_moment->eqn.ref_count = gkyl_ref_count_init(ten_moment_free);
 

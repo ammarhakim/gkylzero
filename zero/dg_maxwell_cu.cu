@@ -11,6 +11,44 @@ extern "C" {
 
 #define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order]
 
+__global__ static void
+gkyl_maxwell_wall_bc_create_set_cu_dev_ptrs(const struct gkyl_dg_eqn *eqn, int dir,
+  const struct gkyl_basis* cbasis, struct maxwell_wall_bc_ctx *ctx, struct gkyl_array_copy_func *bc)
+{
+  struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
+
+  ctx->dir = dir;
+  ctx->basis = cbasis;
+
+  bc->func = maxwell->wall_bc;
+  bc->ctx = ctx;
+}
+
+struct gkyl_array_copy_func*
+gkyl_maxwell_wall_bc_create_cu(const struct gkyl_dg_eqn *eqn, int dir, const struct gkyl_basis* cbasis)
+{
+  // create host context and bc func structs
+  struct maxwell_wall_bc_ctx *ctx = (struct maxwell_wall_bc_ctx*) gkyl_malloc(sizeof(struct maxwell_wall_bc_ctx));
+  struct gkyl_array_copy_func *bc = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
+  bc->ctx = ctx;
+
+  bc->flags = 0;
+  GKYL_SET_CU_ALLOC(bc->flags);
+
+  // create device context and bc func structs
+  struct maxwell_wall_bc_ctx *ctx_cu = (struct maxwell_wall_bc_ctx*) gkyl_cu_malloc(sizeof(struct maxwell_wall_bc_ctx));
+  struct gkyl_array_copy_func *bc_cu = (struct gkyl_array_copy_func*) gkyl_cu_malloc(sizeof(struct gkyl_array_copy_func));
+
+  gkyl_cu_memcpy(ctx_cu, ctx, sizeof(struct maxwell_wall_bc_ctx), GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(bc_cu, bc, sizeof(struct gkyl_array_copy_func), GKYL_CU_MEMCPY_H2D);
+
+  gkyl_maxwell_wall_bc_create_set_cu_dev_ptrs<<<1,1>>>(eqn->on_dev, dir, cbasis, ctx_cu, bc_cu);
+
+  // set parent on_dev pointer 
+  bc->on_dev = bc_cu;  
+  return bc;
+}
+
 __global__ void static
 dg_maxwell_set_cu_dev_ptrs(struct dg_maxwell* maxwell, enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
@@ -48,6 +86,9 @@ dg_maxwell_set_cu_dev_ptrs(struct dg_maxwell* maxwell, enum gkyl_basis_type b_ty
     maxwell->surf[1] = CK(surf_y_kernels, cdim, poly_order);
   if (cdim>2)
     maxwell->surf[2] = CK(surf_z_kernels, cdim, poly_order);
+
+  // setup pointer for wall BC function
+  maxwell->wall_bc = maxwell_wall_bc;
 }
 
 struct gkyl_dg_eqn*
