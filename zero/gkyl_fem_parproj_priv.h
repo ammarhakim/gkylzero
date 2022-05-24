@@ -1,4 +1,4 @@
-// Private header for fem_proj updater.
+// Private header for fem_parproj updater.
 #pragma once
 #include <gkyl_fem_parproj_kernels.h>
 
