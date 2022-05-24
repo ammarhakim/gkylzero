@@ -240,7 +240,7 @@ gkyl_array_copy_range_cu_kernel(struct gkyl_array *out, const struct gkyl_array*
   long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
   // linc1 = idx2 + ac2*idx3 + ...
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
-      linc1 < range.volume/ac1;
+      linc1 < inp_range.volume/ac1;
       linc1 += gridDim.x*blockDim.x)
   {
     // full linear cell index (not including components) is 
