@@ -41,13 +41,16 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   // allocate array to store advection velocity
   f->u = mkarr(app->use_gpu, cdim*app->confBasis.num_basis, app->local_ext.volume);
   
+  // allocate array to store diffusion tensor
+  f->D = mkarr(app->use_gpu, cdim*app->confBasis.num_basis, app->local_ext.volume);
+  
   // equation objects
   f->advect_eqn = gkyl_dg_advection_new(&app->confBasis, &app->local, app->use_gpu);
-  f->diff_eqn = gkyl_dg_const_diffusion_new(&app->confBasis);
+  f->diff_eqn = gkyl_dg_diffusion_new(&app->confBasis, &app->local, app->use_gpu);
 
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
 
-  // fluid solver
+  // fluid solvers
   f->advect_slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, f->advect_eqn,
     app->cdim, up_dirs, zero_flux_flags, 1, app->use_gpu);
   f->diff_slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, f->diff_eqn,
@@ -68,7 +71,8 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     f->advect_ctx = (struct vm_eval_advect_ctx) {
       .advect_func = f->info.advection.velocity, .advect_ctx = f->info.advection.velocity_ctx
     };
-    f->advect_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, app->confBasis.poly_order+1,
+    f->advect_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
+      app->confBasis.poly_order+1,
       cdim, f->info.advection.velocity, &f->advect_ctx);
   }
   else {
@@ -86,6 +90,13 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       f->nu_n_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     }  
   }
+
+  f->diff_ctx = (struct vm_eval_diffusion_ctx) {
+    .diff_func = f->info.diffusion.D, .diff_ctx = f->info.diffusion.D_ctx
+  };
+  f->diff_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
+    app->confBasis.poly_order+1,
+    cdim, f->info.diffusion.D, &f->diff_ctx);
 
   // determine which directions are not periodic
   int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
@@ -123,7 +134,9 @@ vm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_s
     gkyl_array_copy(fluid_species->fluid, fluid_species->fluid_host);
 
   // we are computing acceleration for now as it is time-independent
-  vm_fluid_species_calc_advect(app, fluid_species, t0);  
+  vm_fluid_species_calc_advect(app, fluid_species, t0);
+  // project diffusion tensor
+  vm_fluid_species_calc_diff(app, fluid_species, t0);
 }
 
 void
@@ -134,6 +147,12 @@ vm_fluid_species_calc_advect(gkyl_vlasov_app *app, struct vm_fluid_species *flui
     if (app->use_gpu) // note: advect_host is same as advect when not on GPUs
       gkyl_array_copy(fluid_species->advect, fluid_species->advect_host);
   }
+}
+
+void
+vm_fluid_species_calc_diff(gkyl_vlasov_app* app, struct vm_fluid_species* fluid_species, double tm)
+{
+  gkyl_proj_on_basis_advance(fluid_species->diff_proj, tm, &app->local_ext, fluid_species->D);
 }
 
 // Compute the RHS for fluid species update, returning maximum stable
@@ -159,15 +178,17 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
   
   gkyl_advection_set_auxfields(fluid_species->advect_eqn,
     (struct gkyl_dg_advection_auxfields) { .u = fluid_species->u  }); // set total advection
+  gkyl_diffusion_set_auxfields(fluid_species->diff_eqn,
+    (struct gkyl_dg_diffusion_auxfields) { .D = fluid_species->D  }); // set total advection
   
   gkyl_array_clear(rhs, 0.0);
 
   if (app->use_gpu)
     gkyl_hyper_dg_advance_cu(fluid_species->advect_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
-  else
+  else {
     gkyl_hyper_dg_advance(fluid_species->advect_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
-
-  gkyl_hyper_dg_advance(fluid_species->diff_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
+    gkyl_hyper_dg_advance(fluid_species->diff_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
+  }
 
   // accumulate nu*n*T - nu*fluid_species
   // where fluid_species = nT_perp or nT_z
@@ -261,6 +282,7 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
   gkyl_hyper_dg_release(f->diff_slvr);
 
   gkyl_array_release(f->u);
+  gkyl_array_release(f->D);
 
   if (f->has_advect) {
     gkyl_array_release(f->advect);

@@ -33,6 +33,13 @@ struct gkyl_vlasov_fluid_advection {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
 };
 
+// Parameters for fluid species diffusion
+struct gkyl_vlasov_fluid_diffusion {
+  void* D_ctx; // context for applied diffusion function
+  // pointer to applied advection diffusion tensor function
+  void (*D)(double t, const double* xn, double* Dout, void* ctx);
+};
+
 // Parameters for Vlasov species
 struct gkyl_vlasov_species {
   char name[128]; // species name
@@ -87,6 +94,9 @@ struct gkyl_vlasov_fluid_species {
 
   // advection coupling to include
   struct gkyl_vlasov_fluid_advection advection;
+  
+  // diffusion coupling to include
+  struct gkyl_vlasov_fluid_diffusion diffusion;
   
   // boundary conditions
   enum gkyl_fluid_species_bc_type bcx[2], bcy[2], bcz[2];
