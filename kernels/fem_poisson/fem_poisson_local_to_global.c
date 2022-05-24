@@ -1,31 +1,57 @@
-#include <gkyl_fem_poisson.h> 
+#include <gkyl_fem_poisson_kernels.h> 
  
-int fem_poisson_num_nodes_global_2x_ser_p1_periodicx_periodicy(const int *numCells) 
+void fem_poisson_local_to_global_1x_ser_p1_periodicx(const int *numCells, const int *idx, long *globalIdxs) 
 { 
-  // numCells:       number of cells in each direction.
+  // numCells:   number of cells in each direction.
+  // idx:        multi-dimensional index of current cell.
+  // globalIdxs: global linear index of each basis function/node in current cell.
 
-  return numCells[1]+(numCells[0]-1)*(numCells[1]-1)+numCells[0]-1;
+  globalIdxs[0] = idx[0]; 
+  if ((idx[0]+1==numCells[0]-1)) {
+    globalIdxs[1] = idx[0]+1; 
+  } else {
+    globalIdxs[1] = idx[0]+1; 
+  }
+
+
 }
 
-int fem_poisson_num_nodes_global_2x_ser_p1_periodicx_nonperiodicy(const int *numCells) 
+void fem_poisson_local_to_global_1x_ser_p1_nonperiodicx(const int *numCells, const int *idx, long *globalIdxs) 
 { 
-  // numCells:       number of cells in each direction.
+  // numCells:   number of cells in each direction.
+  // idx:        multi-dimensional index of current cell.
+  // globalIdxs: global linear index of each basis function/node in current cell.
 
-  return numCells[1]+(numCells[0]-1)*(numCells[1]-1)+2*(numCells[0]-1)+1;
+  globalIdxs[0] = idx[0]; 
+  if ((idx[0]+1==numCells[0]-1)) {
+    globalIdxs[1] = idx[0]+1; 
+  } else {
+    globalIdxs[1] = idx[0]+1; 
+  }
+
+
 }
 
-int fem_poisson_num_nodes_global_2x_ser_p1_nonperiodicx_periodicy(const int *numCells) 
+void fem_poisson_local_to_global_1x_ser_p1_upx_periodicx(const int *numCells, const int *idx, long *globalIdxs) 
 { 
-  // numCells:       number of cells in each direction.
+  // numCells:   number of cells in each direction.
+  // idx:        multi-dimensional index of current cell.
+  // globalIdxs: global linear index of each basis function/node in current cell.
 
-  return (numCells[0]-1)*(numCells[1]-1)+2*(numCells[1]-1)+numCells[0]+1;
+  globalIdxs[0] = idx[0]; 
+  globalIdxs[1] = 0; 
+
 }
 
-int fem_poisson_num_nodes_global_2x_ser_p1_nonperiodicx_nonperiodicy(const int *numCells) 
+void fem_poisson_local_to_global_1x_ser_p1_upx_nonperiodicx(const int *numCells, const int *idx, long *globalIdxs) 
 { 
-  // numCells:       number of cells in each direction.
+  // numCells:   number of cells in each direction.
+  // idx:        multi-dimensional index of current cell.
+  // globalIdxs: global linear index of each basis function/node in current cell.
 
-  return (numCells[0]-1)*(numCells[1]-1)+2*(numCells[1]-1)+2*(numCells[0]-1)+4;
+  globalIdxs[0] = idx[0]; 
+  globalIdxs[1] = idx[0]+1; 
+
 }
 
 void fem_poisson_local_to_global_2x_ser_p1_periodicx_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
