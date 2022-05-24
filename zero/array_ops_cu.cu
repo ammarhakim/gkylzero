@@ -25,11 +25,10 @@ gkyl_get_array_range_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gkyl_rang
   int ndim = range.ndim;
   // ac1 = size of last dimension of range (fastest moving dimension)
   int ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
-  dimBlock->x = min(ncomp*ac1, GKYL_DEFAULT_NUM_THREADS);
+  dimBlock->x = GKYL_MIN(ncomp*ac1, GKYL_DEFAULT_NUM_THREADS);
   dimGrid->x = gkyl_int_div_up(ncomp*ac1, dimBlock->x);
-
   dimBlock->y = gkyl_int_div_up(GKYL_DEFAULT_NUM_THREADS, ncomp*ac1);
-  dimGrid->y = gkyl_int_div_up(volume, ac1*dimBlock->y);
+  dimGrid->y = GKYL_MIN(32768,gkyl_int_div_up(volume, ac1*dimBlock->y));
 }
 
 __global__ void

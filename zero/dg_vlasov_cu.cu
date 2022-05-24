@@ -5,6 +5,7 @@ extern "C" {
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_dg_vlasov.h>    
 #include <gkyl_dg_vlasov_priv.h>
+#include <gkyl_util.h>
 }
 
 #include <cassert>
@@ -63,6 +64,7 @@ void
 gkyl_vlasov_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin)
 {
   gkyl_vlasov_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.qmem->on_dev);
+  checkCuda(cudaGetLastError());
 }
 
 // CUDA kernel to set device pointers to range object and vlasov kernel function
