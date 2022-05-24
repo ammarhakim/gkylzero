@@ -7,12 +7,6 @@
 // private header for use in Maxwell DG equation object creation
 // functions
 
-// context for use in Wall BCs
-struct maxwell_wall_bc_ctx {
-  int dir; // direction for BCs
-  const struct gkyl_basis *basis; // basis function
-};
-
 enum { M_EX, M_EY, M_EZ, M_BX, M_BY, M_BZ }; // components of EM field
 GKYL_CU_D static const int m_flip_even[3][3] = { // zero tangent E and zero normal B
   {M_BX, M_EY, M_EZ},
@@ -165,7 +159,7 @@ GKYL_CU_D
 static void
 maxwell_wall_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
-  struct maxwell_wall_bc_ctx *mc = (struct maxwell_wall_bc_ctx*) ctx;
+  struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
   int dir = mc->dir;
   int nbasis = mc->basis->num_basis;
 

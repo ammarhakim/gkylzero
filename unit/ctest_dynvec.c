@@ -1,5 +1,8 @@
+#include "gkyl_vlasov_priv.h"
 #include <gkyl_dynvec.h>
 #include <acutest.h>
+
+#include <math.h>
 
 void
 test_1()
@@ -30,6 +33,22 @@ test_1()
 
     TEST_CHECK( gkyl_dynvec_get_tm(dv, i) == i*0.1 );
   }
+
+  TEST_CHECK( gkyl_dynvec_capacity(dv) > 2000 );
+  TEST_CHECK( gkyl_dynvec_capacity(dv) < 5000 );
+
+  gkyl_dynvec_reserve_more(dv, 5000);
+  TEST_CHECK( gkyl_dynvec_capacity(dv) > 2000+5000 );
+  
+  for (int i=0; i<2000; ++i) {
+    double d[3];
+    TEST_CHECK( gkyl_dynvec_get(dv, i, d) == true );
+    TEST_CHECK( d[0] == i );
+    TEST_CHECK( d[1] == i+1 );
+    TEST_CHECK( d[2] == i+2 );
+
+    TEST_CHECK( gkyl_dynvec_get_tm(dv, i) == i*0.1 );
+  }  
 
   gkyl_dynvec_clear(dv);
   TEST_CHECK( gkyl_dynvec_size(dv) == 0 );
@@ -171,10 +190,128 @@ test_4()
   gkyl_dynvec_release(dv);
 }
 
+void
+test_io()
+{
+  gkyl_dynvec dv = gkyl_dynvec_new(GKYL_DOUBLE, 3);
+
+  double out[3];
+
+  for (int i=0; i<1000; ++i) {
+    out[0] = cos(0.1*i);
+    out[1] = sin(0.1*i);
+    out[2] = cos(0.1*i)*sin(0.1*i);
+    gkyl_dynvec_append(dv, i*0.1, out);
+  }
+
+  // write and clear
+  gkyl_dynvec_write(dv, "ctest_dynvec_test_io_1.gkyl");
+  gkyl_dynvec_clear(dv);
+
+  bool res = gkyl_dynvec_read(dv, "ctest_dynvec_test_io_1.gkyl");
+  TEST_CHECK( res );
+
+  TEST_CHECK( gkyl_dynvec_size(dv) == 1000 );
+
+  for (int i=0; i<1000; ++i) {
+    gkyl_dynvec_get(dv, i, out);
+    TEST_CHECK( out[0] == cos(0.1*i) );
+    TEST_CHECK( out[1] == sin(0.1*i) );
+    TEST_CHECK( out[2] == cos(0.1*i)*sin(0.1*i) );
+
+    TEST_CHECK( gkyl_dynvec_get_tm(dv, i) == i*0.1 );
+  }
+
+  gkyl_dynvec_clear(dv);
+
+  // add some elements before reading
+  for (int i=0; i<10; ++i) {
+    out[0] = 0.1*i;
+    out[1] = 0.2*i;
+    out[2] = 0.3*i;
+    gkyl_dynvec_append(dv, i*0.1, out);
+  }
+
+  TEST_CHECK( gkyl_dynvec_size(dv) == 10 );
+
+  res = gkyl_dynvec_read(dv, "ctest_dynvec_test_io_1.gkyl");
+  TEST_CHECK( res );
+
+  for (int i=0; i<10; ++i) {
+    gkyl_dynvec_get(dv, i, out);
+    TEST_CHECK( out[0] == 0.1*i );
+    TEST_CHECK( out[1] == 0.2*i );
+    TEST_CHECK( out[2] == 0.3*i );
+
+    TEST_CHECK( gkyl_dynvec_get_tm(dv, i) == i*0.1 );
+  }
+
+  TEST_CHECK( gkyl_dynvec_size(dv) == 10+1000 );
+
+  for (int i=10; i<1000+10; ++i) {
+    gkyl_dynvec_get(dv, i, out);
+    TEST_CHECK( out[0] == cos(0.1*(i-10)) );
+    TEST_CHECK( out[1] == sin(0.1*(i-10)) );
+    TEST_CHECK( out[2] == cos(0.1*(i-10))*sin(0.1*(i-10)) );
+
+    TEST_CHECK( gkyl_dynvec_get_tm(dv, i) == (i-10)*0.1 );
+  }  
+
+  gkyl_dynvec_release(dv);
+}
+
+void
+test_io_2()
+{
+  gkyl_dynvec dv = gkyl_dynvec_new(GKYL_DOUBLE, 3);
+
+  double out[3];
+
+  for (int i=0; i<1000; ++i) {
+    out[0] = cos(0.1*i);
+    out[1] = sin(0.1*i);
+    out[2] = cos(0.1*i)*sin(0.1*i);
+    gkyl_dynvec_append(dv, i*0.1, out);
+  }
+
+  // write twice to the same file
+  gkyl_dynvec_write(dv, "ctest_dynvec_test_io_2.gkyl");
+  gkyl_dynvec_awrite(dv, "ctest_dynvec_test_io_2.gkyl");
+  
+  gkyl_dynvec_clear(dv);
+
+  bool res = gkyl_dynvec_read(dv, "ctest_dynvec_test_io_2.gkyl");
+  TEST_CHECK( res );
+
+  TEST_CHECK( gkyl_dynvec_size(dv) == 2000 );
+
+  for (int i=0; i<1000; ++i) {
+    gkyl_dynvec_get(dv, i, out);
+    TEST_CHECK( out[0] == cos(0.1*i) );
+    TEST_CHECK( out[1] == sin(0.1*i) );
+    TEST_CHECK( out[2] == cos(0.1*i)*sin(0.1*i) );
+
+    TEST_CHECK( gkyl_dynvec_get_tm(dv, i) == i*0.1 );
+  }
+  for (int j=1000; j<2000; ++j) {
+    int i = j-1000;
+    gkyl_dynvec_get(dv, i, out);
+    TEST_CHECK( out[0] == cos(0.1*i) );
+    TEST_CHECK( out[1] == sin(0.1*i) );
+    TEST_CHECK( out[2] == cos(0.1*i)*sin(0.1*i) );
+
+    TEST_CHECK( gkyl_dynvec_get_tm(dv, i) == i*0.1 );
+  }  
+
+  gkyl_dynvec_release(dv);
+}
+
 TEST_LIST = {
   { "test_1", test_1 },
   { "test_2", test_2 },
   { "test_3", test_3 },
   { "test_4", test_4 },
+  { "test_io", test_io },
+  { "test_io_2", test_io_2 }, 
   { NULL, NULL },
 };

@@ -1,6 +1,8 @@
+#include <gkyl_alloc.h>
+#include <gkyl_array_ops.h>
+#include <gkyl_basis.h>
+#include <gkyl_dynvec.h>
 
-#include "gkyl_alloc.h"
-#include "gkyl_basis.h"
 #include <gkyl_vlasov_priv.h>
 
 gkyl_vlasov_app*
@@ -48,6 +50,8 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     case GKYL_BASIS_MODAL_SERENDIPITY:
       gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
       gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
+      if (vdim > 0)
+        gkyl_cart_modal_serendip(&app->velBasis, vdim, poly_order);
 
       if (app->use_gpu) {
         gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
@@ -58,14 +62,14 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     case GKYL_BASIS_MODAL_TENSOR:
       gkyl_cart_modal_tensor(&app->basis, pdim, poly_order);
       gkyl_cart_modal_tensor(&app->confBasis, cdim, poly_order);
+      if (vdim > 0)
+        gkyl_cart_modal_tensor(&app->velBasis, vdim, poly_order);
       break;
 
     default:
       assert(false);
       break;
   }
-
-
 
   gkyl_rect_grid_init(&app->grid, cdim, vm->lower, vm->upper, vm->cells);
 
@@ -205,12 +209,59 @@ gkyl_vlasov_app_calc_mom(gkyl_vlasov_app* app)
 }
 
 void
+gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
+{
+  double avals[2+GKYL_MAX_DIM];
+
+  struct timespec wst = gkyl_wall_clock();
+  
+  for (int i=0; i<app->num_species; ++i) {
+    struct vm_species *s = &app->species[i];
+    
+    struct timespec wst = gkyl_wall_clock();
+    vm_species_moment_calc(&s->integ_moms, s->local, app->local, s->f);
+
+    // reduce to compute sum over whole domain, append to diagnostics
+    if (app->use_gpu) {
+      gkyl_array_reduce_range(s->red_integ_diag, s->integ_moms.marr, GKYL_SUM, app->local);
+      gkyl_cu_memcpy(avals, s->red_integ_diag, sizeof(double[2+GKYL_MAX_DIM]), GKYL_CU_MEMCPY_D2H);
+    }
+    else {
+      gkyl_array_reduce_range(avals, s->integ_moms.marr_host, GKYL_SUM, app->local);
+    }
+    gkyl_dynvec_append(s->integ_diag, tm, avals);
+    
+    app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
+    app->stat.nmom += 1;
+  }
+
+  app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.ndiag += 1;  
+}
+
+void
+gkyl_vlasov_app_calc_field_energy(gkyl_vlasov_app* app, double tm)
+{
+  struct timespec wst = gkyl_wall_clock();
+  vm_field_calc_energy(app, tm, app->field, app->field->em);
+  app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.ndiag += 1;
+}
+
+void
 gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
 {
   if (app->has_field)
     gkyl_vlasov_app_write_field(app, tm, frame);
-  for (int i=0; i<app->num_species; ++i)
+  for (int i=0; i<app->num_species; ++i) {
     gkyl_vlasov_app_write_species(app, i, tm, frame);
+    if (app->species[i].field_id == GKYL_FIELD_SR_E_B && frame == 0)
+      gkyl_vlasov_app_write_species_gamma(app, i, tm, frame);
+    if (app->species[i].has_mirror_force && frame == 0) {
+      gkyl_vlasov_app_write_magB(app, i, tm, frame);
+      gkyl_vlasov_app_write_gradB(app, i, tm, frame);
+    }
+  }
   for (int i=0; i<app->num_fluid_species; ++i)
     gkyl_vlasov_app_write_fluid_species(app, i, tm, frame);
 }
@@ -254,6 +305,66 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int fra
 }
 
 void
+gkyl_vlasov_app_write_species_gamma(gkyl_vlasov_app* app, int sidx, double tm, int frame)
+{
+  const char *fmt = "%s-%s_p_over_gamma_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow  
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame);
+
+  if (app->use_gpu) {
+    // copy data from device to host before writing it out
+    gkyl_array_copy(app->species[sidx].p_over_gamma_host, app->species[sidx].p_over_gamma);
+    gkyl_grid_sub_array_write(&app->species[sidx].grid_vel, &app->species[sidx].local_vel,
+      app->species[sidx].p_over_gamma_host, fileNm);
+  }
+  else {
+    gkyl_grid_sub_array_write(&app->species[sidx].grid_vel, &app->species[sidx].local_vel,
+      app->species[sidx].p_over_gamma, fileNm);
+  }  
+}
+
+void
+gkyl_vlasov_app_write_magB(gkyl_vlasov_app* app, int sidx, double tm, int frame)
+{
+  const char *fmt = "%s-%s_magB_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow  
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame);
+
+  if (app->use_gpu) {
+    // copy data from device to host before writing it out
+    gkyl_array_copy(app->species[sidx].magB_host, app->species[sidx].magB);
+    gkyl_grid_sub_array_write(&app->grid, &app->local,
+      app->species[sidx].magB_host, fileNm);
+  }
+  else {
+    gkyl_grid_sub_array_write(&app->grid, &app->local,
+      app->species[sidx].magB, fileNm);
+  }  
+}
+
+void
+gkyl_vlasov_app_write_gradB(gkyl_vlasov_app* app, int sidx, double tm, int frame)
+{
+  const char *fmt = "%s-%s_gradB_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow  
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame);
+
+  if (app->use_gpu) {
+    // copy data from device to host before writing it out
+    gkyl_array_copy(app->species[sidx].gradB_host, app->species[sidx].gradB);
+    gkyl_grid_sub_array_write(&app->grid, &app->local,
+      app->species[sidx].gradB_host, fileNm);
+  }
+  else {
+    gkyl_grid_sub_array_write(&app->grid, &app->local,
+      app->species[sidx].gradB, fileNm);
+  }  
+}
+
+void
 gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
   const char *fmt = "%s-%s_%d.gkyl";
@@ -294,6 +405,50 @@ gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
   }
 }
 
+void
+gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    // write out diagnostic moments
+    const char *fmt = "%s-%s-%s.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
+      "imom");
+    char fileNm[sz+1]; // ensures no buffer overflow  
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
+      "imom");
+
+    if (app->species[i].is_first_integ_write_call) {
+      gkyl_dynvec_write(app->species[i].integ_diag, fileNm);
+      app->species[i].is_first_integ_write_call = false;
+    }
+    else {
+      gkyl_dynvec_awrite(app->species[i].integ_diag, fileNm);
+    }
+    gkyl_dynvec_clear(app->species[i].integ_diag);
+  }
+}
+
+void
+gkyl_vlasov_app_write_field_energy(gkyl_vlasov_app* app)
+{
+  // write out diagnostic moments
+  const char *fmt = "%s-field-energy.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name);
+  char fileNm[sz+1]; // ensures no buffer overflow  
+  snprintf(fileNm, sizeof fileNm, fmt, app->name);
+
+  if (app->field->is_first_energy_write_call) {
+    // write to a new file (this ensure previous output is removed)
+    gkyl_dynvec_write(app->field->integ_energy, fileNm);
+    app->field->is_first_energy_write_call = false;
+  }
+  else {
+    // append to existing file
+    gkyl_dynvec_awrite(app->field->integ_energy, fileNm);
+  }
+  gkyl_dynvec_clear(app->field->integ_energy);
+}
+
 // Take a forward Euler step with the suggested time-step dt. This may
 // not be the actual time-step taken. However, the function will never
 // take a time-step larger than dt even if it is allowed by
@@ -330,7 +485,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   
   // compute RHS of Vlasov equations
   for (int i=0; i<app->num_species; ++i) {
-    double dt1 = vm_species_rhs(app, &app->species[i], fin[i], emin, fout[i]);
+    double dt1 = vm_species_rhs(app, &app->species[i], fin[i], emin, fout[i], fluidin);
     dtmin = fmin(dtmin, dt1);
   }
   for (int i=0; i<app->num_fluid_species; ++i) {
@@ -379,7 +534,15 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
         vm_species_moment_calc(&s->m1i, s->local, app->local, fin[i]);
     
         double qbyeps = s->info.charge/app->field->info.epsilon0;
-        gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, app->local);
+        if (s->has_mirror_force) {
+	  // if has_mirror_force, m1i = m1i/B = J*m1i
+	  // need to multiply by magB to get the right current density
+          gkyl_dg_mul_op_range(app->confBasis, 0, s->m1i_no_J, 0,
+            s->m1i.marr, 0, s->magB, app->local);
+	  gkyl_array_accumulate_range(emout, -qbyeps, s->m1i_no_J, app->local);
+        } else {
+          gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, app->local);
+	}
       }
       // accumulate current contribution from fluid species to electric field terms
       for (int i=0; i<app->num_fluid_species; ++i) {
@@ -553,6 +716,7 @@ gkyl_vlasov_update(gkyl_vlasov_app* app, double dt)
 struct gkyl_vlasov_stat
 gkyl_vlasov_app_stat(gkyl_vlasov_app* app)
 {
+  vm_species_tm(app);
   vm_species_coll_tm(app);
   return app->stat;
 }
@@ -565,24 +729,34 @@ gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
     struct vm_species *species = &app->species[i];
     
     const struct gkyl_array *qmem = species->qmem;
-    gkyl_vlasov_set_auxfields(species->eqn,
-      (struct gkyl_dg_vlasov_auxfields) { .qmem = qmem });
+    const struct gkyl_array *p_over_gamma = species->p_over_gamma;
 
     const struct gkyl_array *fin = species->f;
     struct gkyl_array *rhs = species->f1;
 
-    if (app->use_gpu)
-      gkyl_hyper_dg_set_update_vol_cu(species->slvr, update_vol_term);
-    else
-      gkyl_hyper_dg_set_update_vol(species->slvr, update_vol_term);
+    // if (app->use_gpu)
+    //   gkyl_hyper_dg_set_update_vol_cu(species->slvr, update_vol_term);
+    // else
+    //   gkyl_hyper_dg_set_update_vol(species->slvr, update_vol_term);
     gkyl_array_clear_range(rhs, 0.0, species->local);
     if (app->use_gpu)
-      gkyl_hyper_dg_advance_cu(species->slvr, &species->local, fin,
-        species->cflrate, rhs);
+      gkyl_dg_updater_vlasov_advance_cu(species->slvr, species->field_id, &species->local, 
+        species->qmem, species->p_over_gamma, 
+        fin, species->cflrate, rhs);
     else
-      gkyl_hyper_dg_advance(species->slvr, &species->local, fin,
-        species->cflrate, rhs);
+      gkyl_dg_updater_vlasov_advance(species->slvr, species->field_id, &species->local, 
+        species->qmem, species->p_over_gamma, 
+        fin, species->cflrate, rhs);
   }
+}
+
+static void
+range_stat_write(const char *nm, const struct gkyl_range *r, FILE *fp)
+{
+  fprintf(fp, " %s_cells : [ ", nm);
+  for (int i=0; i<r->ndim; ++i)
+    fprintf(fp, " %d, ", gkyl_range_shape(r, i));
+  fprintf(fp, " ],\n");
 }
 
 void
@@ -598,6 +772,7 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
   struct tm curr_tm = *localtime(&t);
 
   vm_species_coll_tm(app);
+  vm_species_tm(app);
 
   // append to existing file so we have a history of different runs
   FILE *fp = 0;
@@ -605,45 +780,58 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
     fprintf(fp, "{\n");
 
     if (strftime(buff, sizeof buff, "%c", &curr_tm))
-      fprintf(fp, " \"date\" : \"%s\",\n", buff);
+      fprintf(fp, " date : %s,\n", buff);
 
-    fprintf(fp, " \"use_gpu\" : \"%d\",\n", app->stat.use_gpu);
-    fprintf(fp, " \"nup\" : \"%ld\",\n", app->stat.nup);
-    fprintf(fp, " \"nfeuler\" : \"%ld\",\n", app->stat.nfeuler);
-    fprintf(fp, " \"nstage_2_fail\" : \"%ld\",\n", app->stat.nstage_2_fail);
-    fprintf(fp, " \"nstage_3_fail\" : \"%ld\",\n", app->stat.nstage_3_fail);
+    fprintf(fp, " use_gpu : %d,\n", app->stat.use_gpu);
 
-    fprintf(fp, " \"stage_2_dt_diff\" : [ \"%lg\", \"%lg\" ],\n",
+    for (int s=0; s<app->num_species; ++s)
+      range_stat_write(app->species[s].info.name, &app->species[s].local, fp);
+    
+    fprintf(fp, " nup : %ld,\n", app->stat.nup);
+    fprintf(fp, " nfeuler : %ld,\n", app->stat.nfeuler);
+    fprintf(fp, " nstage_2_fail : %ld,\n", app->stat.nstage_2_fail);
+    fprintf(fp, " nstage_3_fail : %ld,\n", app->stat.nstage_3_fail);
+
+    fprintf(fp, " stage_2_dt_diff : [ %lg, %lg ],\n",
       app->stat.stage_2_dt_diff[0], app->stat.stage_2_dt_diff[1]);
-    fprintf(fp, " \"stage_3_dt_diff\" : [ \"%lg\", \"%lg\" ],\n",
+    fprintf(fp, " stage_3_dt_diff : [ %lg, %lg ],\n",
       app->stat.stage_3_dt_diff[0], app->stat.stage_3_dt_diff[1]);
     
-    fprintf(fp, " \"total_tm\" : \"%lg\",\n", app->stat.total_tm);
-    fprintf(fp, " \"init_species_tm\" : \"%lg\",\n", app->stat.init_species_tm);
+    fprintf(fp, " total_tm : %lg,\n", app->stat.total_tm);
+    fprintf(fp, " init_species_tm : %lg,\n", app->stat.init_species_tm);
     if (app->has_field)
-      fprintf(fp, " \"init_field_tm\" : \"%lg\",\n", app->stat.init_field_tm);
+      fprintf(fp, " init_field_tm : %lg,\n", app->stat.init_field_tm);
     
-    fprintf(fp, " \"species_rhs_tm\" : \"%lg\",\n", app->stat.species_rhs_tm);
+    fprintf(fp, " species_rhs_tm : %lg,\n", app->stat.species_rhs_tm);
 
     for (int s=0; s<app->num_species; ++s) {
-      fprintf(fp, " \"species_coll_drag_tm[%d]\" : \"%lg\",\n", s,
+      fprintf(fp, " species_coll_drag_tm[%d] : %lg,\n", s,
         app->stat.species_lbo_coll_drag_tm[s]);
-      fprintf(fp, " \"species_coll_diff_tm[%d]\" : \"%lg\",\n", s,
+      fprintf(fp, " species_coll_diff_tm[%d] : %lg,\n", s,
         app->stat.species_lbo_coll_diff_tm[s]);
     }
 
-    fprintf(fp, " \"species_coll_mom_tm\" : \"%lg\",\n", app->stat.species_coll_mom_tm);
-    fprintf(fp, " \"species_coll_tm\" : \"%lg\",\n", app->stat.species_coll_tm);
+    fprintf(fp, " species_coll_mom_tm : %lg,\n", app->stat.species_coll_mom_tm);
+    fprintf(fp, " species_coll_tm : %lg,\n", app->stat.species_coll_tm);
 
-    fprintf(fp, " \"fluid_species_rhs_tm\" : \"%lg\",\n", app->stat.fluid_species_rhs_tm);
+    fprintf(fp, " fluid_species_rhs_tm : %lg,\n", app->stat.fluid_species_rhs_tm);
     
     if (app->has_field) {
-      fprintf(fp, " \"field_rhs_tm\" : \"%lg\",\n", app->stat.field_rhs_tm);
-      fprintf(fp, " \"current_tm\" : \"%lg\",\n", app->stat.current_tm);
+      fprintf(fp, " field_rhs_tm : %lg,\n", app->stat.field_rhs_tm);
+      fprintf(fp, " current_tm : %lg,\n", app->stat.current_tm);
     }
 
-    fprintf(fp, " \"nmom\" : \"%ld\",\n", app->stat.nmom);
-    fprintf(fp, " \"mom_tm\" : \"%lg\"\n", app->stat.mom_tm);
+    fprintf(fp, " nmom : %ld,\n", app->stat.nmom);
+    fprintf(fp, " mom_tm : %lg\n", app->stat.mom_tm);
+
+    fprintf(fp, " ndiag : %ld,\n", app->stat.ndiag);
+    fprintf(fp, " diag_tm : %lg\n", app->stat.diag_tm);
+
+    fprintf(fp, " nspecies_omega_cfl : %ld,\n", app->stat.nspecies_omega_cfl);
+    fprintf(fp, " species_omega_cfl_tm : %lg\n", app->stat.species_omega_cfl_tm);
+
+    fprintf(fp, " nfield_omega_cfl : %ld,\n", app->stat.nfield_omega_cfl);
+    fprintf(fp, " field_omega_cfl_tm : %lg\n", app->stat.field_omega_cfl_tm);
   
     fprintf(fp, "}\n");
   }

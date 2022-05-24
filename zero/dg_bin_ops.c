@@ -60,7 +60,7 @@ void gkyl_dg_mul_op_range(struct gkyl_basis basis,
     const double *rop_d = gkyl_array_cfetch(rop, loc);
     double *out_d = gkyl_array_fetch(out, loc);
 
-    mul_op(lop_d+c_lop*num_basis, rop_d+c_rop*num_basis, out_d+c_oop*num_basis);    
+    mul_op(lop_d+c_lop*num_basis, rop_d+c_rop*num_basis, out_d+c_oop*num_basis);
   }
 }
 
@@ -162,5 +162,54 @@ void gkyl_dg_div_op_range(struct gkyl_basis basis,
   }
 
   gkyl_nmat_release(As);
-  gkyl_nmat_release(xs);  
+  gkyl_nmat_release(xs);
+}
+
+void
+gkyl_dg_calc_op_range(struct gkyl_basis basis, int c_oop, struct gkyl_array *out,
+  int c_iop, const struct gkyl_array *iop,
+  struct gkyl_range range, enum gkyl_dg_op op)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(out)) {
+    return gkyl_dg_calc_op_range_cu(basis, c_oop, out, c_iop, iop, range, op);
+  }
+#endif
+  
+  int num_basis = basis.num_basis;
+  int ndim = basis.ndim;
+  int poly_order = basis.poly_order;
+
+  dp_op_t op_func = dg_get_op_func(op);
+  double fact = // factor for rescaling return value of op_func
+    op == GKYL_DG_OP_MEAN ? sqrt(pow(2,ndim)) : pow(2,ndim);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+
+    const double *iop_d = gkyl_array_cfetch(iop, loc);
+    double *out_d = gkyl_array_fetch(out, loc);
+
+    out_d[c_oop] =
+      op_func(num_basis, iop_d+c_iop*num_basis)/fact;
+  }  
+}
+
+void
+gkyl_dg_calc_average_range(struct gkyl_basis basis,
+  int c_oop, struct gkyl_array* out,
+  int c_iop, const struct gkyl_array* iop, struct gkyl_range range)
+{
+  gkyl_dg_calc_op_range(basis, c_oop, out, c_iop, iop, range, GKYL_DG_OP_MEAN);
+}
+
+void
+gkyl_dg_calc_l2_range(struct gkyl_basis basis,
+  int c_oop, struct gkyl_array* out,
+  int c_iop, const struct gkyl_array* iop, struct gkyl_range range)
+{
+  gkyl_dg_calc_op_range(basis, c_oop, out, c_iop, iop, range, GKYL_DG_OP_MEAN_L2);
 }

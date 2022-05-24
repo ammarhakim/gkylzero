@@ -57,7 +57,7 @@ static const double* gkyl_gauss_ordinates[] = {
 };
 
 // gkyl_gauss_weights[N] are weights for N-point Guassian integration
-static const double* gkyl_gauss_weights[] = {
+static const double *gkyl_gauss_weights[] = {
   0, // N=0 makes no sense,
   gkyl_gauss_weights_1,
   gkyl_gauss_weights_2,
@@ -67,6 +67,69 @@ static const double* gkyl_gauss_weights[] = {
   gkyl_gauss_weights_6,
   gkyl_gauss_weights_7,
   gkyl_gauss_weights_8
+};
+
+
+// Lobatto quadrature
+
+// Ordinates
+static const double gkyl_gauss_lobatto_ordinates_2[] = 
+{ -1.0,1.0 }; 
+static const double gkyl_gauss_lobatto_ordinates_3[] = 
+{ -1.0,0.0,1.0 }; 
+static const double gkyl_gauss_lobatto_ordinates_4[] = 
+{ -1.0,-0.4472135954999579,0.4472135954999579,1.0 }; 
+static const double gkyl_gauss_lobatto_ordinates_5[] = 
+{ -1.0,-0.6546536707079771,0.0,0.6546536707079771,1.0 }; 
+static const double gkyl_gauss_lobatto_ordinates_6[] = 
+{ -1.0,-0.7650553239294646,-0.285231516480645,0.285231516480645,0.7650553239294646,1.0 }; 
+static const double gkyl_gauss_lobatto_ordinates_7[] = 
+{ -1.0,-0.8302238962785669,-0.4688487934707142,0.0,0.4688487934707142,0.8302238962785669,1.0 }; 
+static const double gkyl_gauss_lobatto_ordinates_8[] = 
+{ -1.0,-0.8717401485096066,-0.5917001814331423,-0.2092992179024789,0.2092992179024789,0.5917001814331423,0.8717401485096066,1.0 };
+
+// Weights
+static const double gkyl_gauss_lobatto_weights_2[] = 
+{ 1.0,1.0 }; 
+static const double gkyl_gauss_lobatto_weights_3[] = 
+{ 0.3333333333333333,1.333333333333333,0.3333333333333333 }; 
+static const double gkyl_gauss_lobatto_weights_4[] = 
+{ 0.1666666666666667,0.8333333333333334,0.8333333333333334,0.1666666666666667 }; 
+static const double gkyl_gauss_lobatto_weights_5[] = 
+{ 0.1,0.5444444444444444,0.7111111111111111,0.5444444444444444,0.1 }; 
+static const double gkyl_gauss_lobatto_weights_6[] = 
+{ 0.06666666666666667,0.378474956297847,0.5548583770354863,0.5548583770354863,0.378474956297847,0.06666666666666667 }; 
+static const double gkyl_gauss_lobatto_weights_7[] = 
+{ 0.04761904761904762,0.276826047361566,0.4317453812098626,0.4876190476190476,0.4317453812098626,0.276826047361566,0.04761904761904762 }; 
+static const double gkyl_gauss_lobatto_weights_8[] = 
+{ 0.03571428571428571,0.210704227143506,0.3411226924835044,0.4124587946587039,0.4124587946587039,0.3411226924835044,0.210704227143506,0.03571428571428571 };
+
+// gkyl_gauss_lobatto_ordinates[N] are ordinates for N-point
+// Guass-Lobatto integration
+static const double* gkyl_gauss_lobatto_ordinates[] = {
+  0, // N=0 makes no sense,
+  0, // N=1 makes no sense,
+  gkyl_gauss_lobatto_ordinates_2,
+  gkyl_gauss_lobatto_ordinates_3,
+  gkyl_gauss_lobatto_ordinates_4,
+  gkyl_gauss_lobatto_ordinates_5,
+  gkyl_gauss_lobatto_ordinates_6,
+  gkyl_gauss_lobatto_ordinates_7,
+  gkyl_gauss_lobatto_ordinates_8
+};
+
+// gkyl_gauss_lobatto_weights[N] are weights for N-point Guass-Lobatto
+// integration
+static const double *gkyl_gauss_lobatto_weights[] = {
+  0, // N=0 makes no sense,
+  0, // N=1 makes no sense,  
+  gkyl_gauss_lobatto_weights_2,
+  gkyl_gauss_lobatto_weights_3,
+  gkyl_gauss_lobatto_weights_4,
+  gkyl_gauss_lobatto_weights_5,
+  gkyl_gauss_lobatto_weights_6,
+  gkyl_gauss_lobatto_weights_7,
+  gkyl_gauss_lobatto_weights_8
 };
 
 /**

@@ -46,7 +46,7 @@ struct gkyl_array_copy_func* gkyl_maxwell_wall_bc_create(const struct gkyl_dg_eq
  * @param bc Pointer to array_copy_func.
  */
 
-void gkyl_maxwell_wall_bc_release(struct gkyl_array_copy_func* bc);
+void gkyl_maxwell_bc_release(struct gkyl_array_copy_func* bc);
 
 #ifdef GKYL_HAVE_CUDA
 
@@ -61,13 +61,5 @@ void gkyl_maxwell_wall_bc_release(struct gkyl_array_copy_func* bc);
 
 struct gkyl_array_copy_func* gkyl_maxwell_wall_bc_create_cu(const struct gkyl_dg_eqn *eqn, 
   int dir, const struct gkyl_basis* cbasis);
-
-/**
- * CUDA device function to release wall boundary conditions function.
- * 
- * @param bc Pointer to array_copy_func.
- */
-
-void gkyl_maxwell_wall_bc_release_cu(struct gkyl_array_copy_func* bc);
 
 #endif

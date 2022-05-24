@@ -2,7 +2,16 @@
 #include <gkyl_vlasov_priv.h>
 
 // list of valid moment names
-static const char *const valid_moment_names[] = { "M0", "M1i", "M2ij", "M2", "M3i", "M3ijk", "FiveMoments" };
+static const char *const valid_moment_names[] = {
+  "M0",
+  "M1i",
+  "M2ij",
+  "M2",
+  "M3i",
+  "M3ijk",
+  "FiveMoments",
+  "Integrated" // this is an internal flag, not for passing to moment type
+};
 
 // check if name of moment is valid or not
 static bool
@@ -22,26 +31,73 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
 {
   assert(is_moment_name_valid(nm));
 
+  bool is_integrated = strcmp(nm, "Integrated") == 0;
   sm->use_gpu = app->use_gpu;
   
   if (app->use_gpu) {
-    struct gkyl_mom_type *mtype = gkyl_mom_vlasov_cu_dev_new(&app->confBasis, &app->basis, nm);
+    struct gkyl_mom_type *mtype;
+    if (s->field_id == GKYL_FIELD_SR_E_B) {
+
+      if (is_integrated)
+        mtype = gkyl_int_mom_vlasov_sr_cu_dev_new(&app->confBasis, &app->basis, &s->local_vel);
+      else
+        mtype = gkyl_mom_vlasov_sr_cu_dev_new(&app->confBasis, &app->basis, &s->local_vel, nm);
+      
+      gkyl_mom_vlasov_sr_set_auxfields(mtype, 
+        (struct gkyl_mom_vlasov_sr_auxfields) { .p_over_gamma = s->p_over_gamma });
+    }
+    else {
+
+      if (is_integrated)
+        mtype = gkyl_int_mom_vlasov_cu_dev_new(&app->confBasis, &app->basis);
+      else 
+        mtype = gkyl_mom_vlasov_cu_dev_new(&app->confBasis, &app->basis, nm);
+      
+    }
     sm->mcalc = gkyl_mom_calc_cu_dev_new(&s->grid, mtype);
 
-    sm->marr = mkarr(app->use_gpu, mtype->num_mom*app->confBasis.num_basis,
-      app->local_ext.volume);
-
-    sm->marr_host = mkarr(false, mtype->num_mom*app->confBasis.num_basis,
-      app->local_ext.volume);
+    if (is_integrated) {
+      sm->marr = mkarr(app->use_gpu, mtype->num_mom, app->local_ext.volume);
+      sm->marr_host = mkarr(false, mtype->num_mom, app->local_ext.volume);      
+    }
+    else {
+      sm->marr = mkarr(app->use_gpu, mtype->num_mom*app->confBasis.num_basis,
+        app->local_ext.volume);
+      sm->marr_host = mkarr(false, mtype->num_mom*app->confBasis.num_basis,
+        app->local_ext.volume);
+    }
 
     gkyl_mom_type_release(mtype);
   }
   else {
-    struct gkyl_mom_type *mtype = gkyl_mom_vlasov_new(&app->confBasis, &app->basis, nm);
+    struct gkyl_mom_type *mtype;
+    if (s->field_id == GKYL_FIELD_SR_E_B) {
+
+      if (is_integrated)
+        mtype = gkyl_int_mom_vlasov_sr_new(&app->confBasis, &app->basis, &s->local_vel);
+      else 
+        mtype = gkyl_mom_vlasov_sr_new(&app->confBasis, &app->basis, &s->local_vel, nm);
+      
+      gkyl_mom_vlasov_sr_set_auxfields(mtype, 
+        (struct gkyl_mom_vlasov_sr_auxfields) { .p_over_gamma = s->p_over_gamma });
+    }
+    else {
+      
+      if (is_integrated)
+        mtype = gkyl_int_mom_vlasov_new(&app->confBasis, &app->basis);
+      else
+        mtype = gkyl_mom_vlasov_new(&app->confBasis, &app->basis, nm);
+      
+    }
     sm->mcalc = gkyl_mom_calc_new(&s->grid, mtype);
 
-    sm->marr = mkarr(app->use_gpu, mtype->num_mom*app->confBasis.num_basis,
-      app->local_ext.volume);
+    if (is_integrated)
+      sm->marr = mkarr(app->use_gpu, mtype->num_mom, app->local_ext.volume);
+    else 
+      sm->marr = mkarr(app->use_gpu, mtype->num_mom*app->confBasis.num_basis,
+        app->local_ext.volume);
+
+    // host and dev are same
     sm->marr_host = sm->marr;
 
     gkyl_mom_type_release(mtype);

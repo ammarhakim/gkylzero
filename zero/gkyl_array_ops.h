@@ -21,6 +21,8 @@ struct gkyl_array_copy_func {
   array_copy_func_t func;
   void *ctx;
   uint32_t flags;
+
+  void *ctx_on_dev; // pointer to on-device context (or itself)
   struct gkyl_array_copy_func *on_dev; // pointer to itself or device data
 };
 

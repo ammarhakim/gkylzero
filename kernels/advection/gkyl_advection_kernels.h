@@ -22,6 +22,11 @@ GKYL_CU_DH void advection_surfx_3x_ser_p1(const double *w, const double *dxv, co
 GKYL_CU_DH void advection_surfy_3x_ser_p1(const double *w, const double *dxv, const double *ul, const double *uc, const double *ur, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void advection_surfz_3x_ser_p1(const double *w, const double *dxv, const double *ul, const double *uc, const double *ur, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 
+GKYL_CU_DH double advection_vol_3x_ser_p2(const double *w, const double *dxv, const double *u, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void advection_surfx_3x_ser_p2(const double *w, const double *dxv, const double *ul, const double *uc, const double *ur, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void advection_surfy_3x_ser_p2(const double *w, const double *dxv, const double *ul, const double *uc, const double *ur, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void advection_surfz_3x_ser_p2(const double *w, const double *dxv, const double *ul, const double *uc, const double *ur, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+
 GKYL_CU_DH double advection_vol_1x_tensor_p2(const double *w, const double *dxv, const double *u, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void advection_surfx_1x_tensor_p2(const double *w, const double *dxv, const double *ul, const double *uc, const double *ur, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 

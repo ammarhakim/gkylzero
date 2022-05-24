@@ -11,6 +11,45 @@ extern "C" {
 
 #define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order]
 
+__global__ static void
+gkyl_advection_absorb_bc_create_set_cu_dev_ptrs(const struct gkyl_dg_eqn *eqn, int dir,
+  const struct gkyl_basis* cbasis, struct dg_bc_ctx *ctx, struct gkyl_array_copy_func *bc)
+{
+  struct dg_advection *advection = container_of(eqn, struct dg_advection, eqn);
+  
+  ctx->basis = cbasis;
+
+  bc->func = advection->absorb_bc;
+  bc->ctx = ctx;
+}
+
+struct gkyl_array_copy_func*
+gkyl_advection_absorb_bc_create_cu(const struct gkyl_dg_eqn *eqn, int dir, const struct gkyl_basis* cbasis)
+{
+  // create host context and bc func structs
+  struct dg_bc_ctx *ctx = (struct dg_bc_ctx*) gkyl_malloc(sizeof(struct dg_bc_ctx));
+  struct gkyl_array_copy_func *bc = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
+  bc->ctx = ctx;
+
+  bc->flags = 0;
+  GKYL_SET_CU_ALLOC(bc->flags);
+
+  // create device context and bc func structs
+  struct dg_bc_ctx *ctx_cu = (struct dg_bc_ctx*) gkyl_cu_malloc(sizeof(struct dg_bc_ctx));
+  struct gkyl_array_copy_func *bc_cu = (struct gkyl_array_copy_func*) gkyl_cu_malloc(sizeof(struct gkyl_array_copy_func));
+
+  gkyl_cu_memcpy(ctx_cu, ctx, sizeof(struct dg_bc_ctx), GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(bc_cu, bc, sizeof(struct gkyl_array_copy_func), GKYL_CU_MEMCPY_H2D);
+
+  bc->ctx_on_dev = ctx_cu;
+
+  gkyl_advection_absorb_bc_create_set_cu_dev_ptrs<<<1,1>>>(eqn, dir, cbasis, ctx_cu, bc_cu);
+
+  // set parent on_dev pointer 
+  bc->on_dev = bc_cu;  
+  return bc;
+}
+
 // CUDA kernel to set pointer to auxiliary fields.
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
@@ -67,6 +106,9 @@ dg_advection_set_cu_dev_ptrs(struct dg_advection* advection, enum gkyl_basis_typ
     advection->surf[1] = CK(surf_y_kernels, cdim, poly_order);
   if (cdim>2)
     advection->surf[2] = CK(surf_z_kernels, cdim, poly_order);
+
+  // setup pointer for absorbing BC function
+  advection->absorb_bc = advection_absorb_bc;
 }
 
 struct gkyl_dg_eqn*

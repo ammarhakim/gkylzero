@@ -213,8 +213,8 @@ gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gk
   mom_gk->mass = mass;
   mom_gk->conf_range = *conf_range;
 
-  mom_gk->momt.flag = 0;
-  GKYL_SET_CU_ALLOC(mom_gk->momt.flag);
+  mom_gk->momt.flags = 0;
+  GKYL_SET_CU_ALLOC(mom_gk->momt.flags);
   mom_gk->momt.ref_count = gkyl_ref_count_init(gkyl_gk_mom_free);
   
   // copy struct to device

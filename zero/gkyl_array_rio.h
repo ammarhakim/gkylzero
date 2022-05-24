@@ -36,8 +36,15 @@ void gkyl_sub_array_write(const struct gkyl_range *range,
  * @param fname Name of output file (include .gkyl extension)
  * @return Status flag: 0 if write succeeded, 'errno' otherwise
  */
-int gkyl_grid_sub_array_write(const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
-  const struct gkyl_array *arr, const char* fname);
+int gkyl_grid_sub_array_write(const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *range,
+  const struct gkyl_array *arr, const char *fname);
+
+// Same as above method, except takes an open FILE pointer. @a fp must
+// be opened with right permissions.
+int gkyl_grid_sub_array_write_fp(const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *range,
+  const struct gkyl_array *arr, FILE *fp);
 
 /**
  * Read data from file and create new array. 

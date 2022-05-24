@@ -18,6 +18,15 @@ typedef struct gkyl_dynvec_tag* gkyl_dynvec;
 gkyl_dynvec gkyl_dynvec_new(enum gkyl_elem_type type, size_t ncomp);
 
 /**
+ * Reserve @a rsize more elements so additional @a rsize append calls
+ * do not require memory allocations.
+ *
+ * @param vec Vector to reserve data for
+ * @param rsize Additional number of elements to reserve
+ */
+void gkyl_dynvec_reserve_more(gkyl_dynvec vec, size_t rsize);
+
+/**
  * Append data to vector. You must ensure the data has the proper type
  * and ncomp number of elements.
  * 
@@ -73,6 +82,22 @@ double gkyl_dynvec_getlast_tm(const gkyl_dynvec vec);
 size_t gkyl_dynvec_size(const gkyl_dynvec vec);
 
 /**
+ * Get capacity of dynvec.
+ *
+ * @param vec Vector
+ * @return Capacity (elements that can be stored witout reallocation)
+ */
+size_t gkyl_dynvec_capacity(const gkyl_dynvec vec);
+
+/**
+ * Get capacity of dynvec.
+ * 
+ * @param vec Vector 
+ * @return Capacity of vector
+ */
+size_t gkyl_dynvec_capacity(const gkyl_dynvec vec);
+
+/**
  * Clear contents of the vector
  *
  * @param vec Vector to clear
@@ -100,6 +125,36 @@ void gkyl_dynvec_clear_all_but(gkyl_dynvec vec, size_t num);
  * @return Dynamic vector
  */
 gkyl_dynvec gkyl_dynvec_acquire(const gkyl_dynvec vec);
+
+/**
+ * Write out dynvec to file. File is overwritten with new data, and
+ * existing contents will lost.
+ *
+ * @param vec Vector to write
+ * @param fname Name of output file.
+ * @return 0 if succeeded.
+ */
+int gkyl_dynvec_write(const gkyl_dynvec vec, const char *fname);
+
+/**
+ * Write out dynvec to file. The dynvec is appened to the end of the
+ * file if it already exists.
+ *
+ * @param vec Vector to write
+ * @param fname Name of output file.
+ * @return 0 if succeeded.
+ */
+int gkyl_dynvec_awrite(const gkyl_dynvec vec, const char *fname);
+
+/**
+ * Read dynvector from file, appending data to end of the
+ * vector. Existing data in vector is retained, and read data is
+ * appended.
+ *
+ * @param vec Vector to read into
+ * @param fname Name of input file.
+ */
+bool gkyl_dynvec_read(gkyl_dynvec vec, const char *fname);
 
 /**
  * Release dynvec.

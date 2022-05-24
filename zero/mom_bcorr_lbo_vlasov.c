@@ -12,7 +12,7 @@ void
 mom_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_mom_type *momt = container_of(ref, struct gkyl_mom_type, ref_count);
-  if (GKYL_IS_CU_ALLOC(momt->flag))
+  if (GKYL_IS_CU_ALLOC(momt->flags))
     gkyl_cu_free(momt->on_dev);
   gkyl_free(momt);
 }
@@ -60,8 +60,8 @@ gkyl_mom_bcorr_lbo_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl
   mom_bcorr->kernel = mom_bcorr_lbo_vlasov_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
   mom_bcorr->momt.num_mom = vdim+1;
 
-  mom_bcorr->momt.flag = 0;
-  GKYL_CLEAR_CU_ALLOC(mom_bcorr->momt.flag);
+  mom_bcorr->momt.flags = 0;
+  GKYL_CLEAR_CU_ALLOC(mom_bcorr->momt.flags);
   mom_bcorr->momt.ref_count = gkyl_ref_count_init(mom_free);
 
   mom_bcorr->momt.on_dev = &mom_bcorr->momt;
