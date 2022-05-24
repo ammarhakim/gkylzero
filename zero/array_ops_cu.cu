@@ -25,10 +25,12 @@ gkyl_get_array_range_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gkyl_rang
   int ndim = range.ndim;
   // ac1 = size of last dimension of range (fastest moving dimension)
   int ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
-  dimBlock->x = GKYL_MIN(ncomp*ac1, GKYL_DEFAULT_NUM_THREADS);
-  dimGrid->x = gkyl_int_div_up(ncomp*ac1, dimBlock->x);
-  dimBlock->y = gkyl_int_div_up(GKYL_DEFAULT_NUM_THREADS, ncomp*ac1);
-  dimGrid->y = GKYL_MIN(32768,gkyl_int_div_up(volume, ac1*dimBlock->y));
+  // CUDA Max block size in x is 2^31 - 1, Max block size in y is 2^16-1
+  // Thus, x block size should be bigger to avoid max block size limits
+  dimBlock->y = GKYL_MIN(ncomp*ac1, GKYL_DEFAULT_NUM_THREADS);
+  dimGrid->y = gkyl_int_div_up(ncomp*ac1, dimBlock->y);
+  dimBlock->x = gkyl_int_div_up(GKYL_DEFAULT_NUM_THREADS, ncomp*ac1);
+  dimGrid->x = gkyl_int_div_up(volume, ac1*dimBlock->x);
 }
 
 __global__ void
@@ -101,7 +103,7 @@ gkyl_array_scale_by_cell_cu(struct gkyl_array* out, const struct gkyl_array* a)
 
 // Range-based methods
 // Range-based methods need to inverse index from linc to idx.
-// Must use gkyl_sub_range_inv_idx so that linc=0 maps to idxc={0,0,...}
+// Must use gkyl_sub_range_inv_idx so that linc=0 maps to idxc={1,1,...}
 // since range can be a subrange.
 // Then, convert back to a linear index on the super-range.
 // This super range can include ghost cells and thus linear index will have
@@ -117,25 +119,25 @@ gkyl_array_clear_range_cu_kernel(struct gkyl_array *out, double val, struct gkyl
   long ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
 
   // 2D thread grid
-  // linc1 = c + n*idx1 (contiguous data, including component index c, with idx1 = 0,.., ac1-1)
-  long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
-  // linc2 = idx2 + ac2*idx3 + ...
-  for (unsigned long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
-      linc2 < range.volume/ac1;
-      linc2 += gridDim.y*blockDim.y)
+  // linc2 = c + n*idx1 (contiguous data, including component index c, with idx1 = 0,.., ac1-1)
+  long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
+  // linc1 = idx2 + ac2*idx3 + ...
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume/ac1;
+      linc1 += gridDim.x*blockDim.x)
   {
     // full linear cell index (not including components) is 
-    // idx1 + ac1*idx2 + ac1*ac2*idx3 + ... = idx1 + ac1*linc2.
+    // idx1 + ac1*idx2 + ac1*ac2*idx3 + ... = idx1 + ac1*linc1.
     // we want to find the start linear index of each contiguous data block, 
     // which corresponds to idx1 = 0. 
     // so linear index of start of contiguous block is ac1*linc2.
-    gkyl_sub_range_inv_idx(&range, ac1*linc2, idx);
+    gkyl_sub_range_inv_idx(&range, ac1*linc1, idx);
     long start = gkyl_range_idx(&range, idx);
     
     double* out_d = (double*) gkyl_array_fetch(out, start);
     // do operation on contiguous data block
-    if (linc1 < n*ac1)
-      out_d[linc1] = val;
+    if (linc2 < n*ac1)
+      out_d[linc2] = val;
   }
 }
 
@@ -152,32 +154,32 @@ gkyl_array_accumulate_range_cu_kernel(struct gkyl_array *out,
   long ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
 
   // 2D thread grid
-  // linc1 = c + n*idx1 (contiguous data, including component index c, with idx1 = 0,.., ac1-1)
-  long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
-  long c = linc1 % n;
-  long idx1 = linc1 / n;
+  // linc2 = c + n*idx1 (contiguous data, including component index c, with idx1 = 0,.., ac1-1)
+  long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
+  long c = linc2 % n;
+  long idx1 = linc2 / n;
   // get corresponding linc1 index for inp and out 
   // (one of these will not be contiguous if outnc!=inpnc)
-  long linc1_in = c + inpnc*idx1; 
-  long linc1_out = c + outnc*idx1; 
-  // linc2 = idx2 + ac2*idx3 + ...
-  for (unsigned long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
-      linc2 < range.volume/ac1;
-      linc2 += gridDim.y*blockDim.y)
+  long linc2_in = c + inpnc*idx1; 
+  long linc2_out = c + outnc*idx1; 
+  // linc1 = idx2 + ac2*idx3 + ...
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume/ac1;
+      linc1 += gridDim.x*blockDim.x)
   {
     // full linear cell index (not including components) is 
-    // idx1 + ac1*idx2 + ac1*ac2*idx3 + ... = idx1 + ac1*linc2.
+    // idx1 + ac1*idx2 + ac1*ac2*idx3 + ... = idx1 + ac1*linc1.
     // we want to find the start linear index of each contiguous data block, 
     // which corresponds to idx1 = 0. 
     // so linear index of start of contiguous block is ac1*linc2.
-    gkyl_sub_range_inv_idx(&range, ac1*linc2, idx);
+    gkyl_sub_range_inv_idx(&range, ac1*linc1, idx);
     long start = gkyl_range_idx(&range, idx);
     
     double* out_d = (double*) gkyl_array_fetch(out, start);
     const double* inp_d = (const double*) gkyl_array_cfetch(inp, start);
     // do operation on contiguous data block
-    if (linc1 < n*ac1)
-      out_d[linc1_out] += a*inp_d[linc1_in];
+    if (linc2 < n*ac1)
+      out_d[linc2_out] += a*inp_d[linc2_in];
   }
 }
 
@@ -194,32 +196,32 @@ gkyl_array_set_range_cu_kernel(struct gkyl_array *out,
   long ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
 
   // 2D thread grid
-  // linc1 = c + n*idx1 (contiguous data, including component index c, with idx1 = 0,.., ac1-1)
-  long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
-  long c = linc1 % n;
-  long idx1 = linc1 / n;
+  // linc2 = c + n*idx1 (contiguous data, including component index c, with idx1 = 0,.., ac1-1)
+  long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
+  long c = linc2 % n;
+  long idx1 = linc2 / n;
   // get corresponding linc1 index for inp and out 
   // (one of these will not be contiguous if outnc!=inpnc)
-  long linc1_in = c + inpnc*idx1; 
-  long linc1_out = c + outnc*idx1; 
-  // linc2 = idx2 + ac2*idx3 + ...
-  for (unsigned long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
-      linc2 < range.volume/ac1;
-      linc2 += gridDim.y*blockDim.y)
+  long linc2_in = c + inpnc*idx1; 
+  long linc2_out = c + outnc*idx1; 
+  // linc1 = idx2 + ac2*idx3 + ...
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume/ac1;
+      linc1 += gridDim.x*blockDim.x)
   {
     // full linear cell index (not including components) is 
-    // idx1 + ac1*idx2 + ac1*ac2*idx3 + ... = idx1 + ac1*linc2.
+    // idx1 + ac1*idx2 + ac1*ac2*idx3 + ... = idx1 + ac1*linc1.
     // we want to find the start linear index of each contiguous data block, 
     // which corresponds to idx1 = 0. 
     // so linear index of start of contiguous block is ac1*linc2.
-    gkyl_sub_range_inv_idx(&range, ac1*linc2, idx);
+    gkyl_sub_range_inv_idx(&range, ac1*linc1, idx);
     long start = gkyl_range_idx(&range, idx);
     
     double* out_d = (double*) gkyl_array_fetch(out, start);
     const double* inp_d = (const double*) gkyl_array_cfetch(inp, start);
     // do operation on contiguous data block
-    if (linc1 < n*ac1)
-      out_d[linc1_out] = a*inp_d[linc1_in];
+    if (linc2 < n*ac1)
+      out_d[linc2_out] = a*inp_d[linc2_in];
   }
 }
 
@@ -234,29 +236,29 @@ gkyl_array_copy_range_cu_kernel(struct gkyl_array *out, const struct gkyl_array*
   long ac1 = inp_range.iac[ndim-1] > 0 ? inp_range.iac[ndim-1] : 1;
 
   // 2D thread grid
-  // linc1 = c + n*idx1 (contiguous data, including component index c, with idx1 = 0,.., ac1-1)
-  long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
-  // linc2 = idx2 + ac2*idx3 + ...
-  for (unsigned long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
-      linc2 < inp_range.volume/ac1;
-      linc2 += gridDim.y*blockDim.y)
+  // linc2 = c + n*idx1 (contiguous data, including component index c, with idx1 = 0,.., ac1-1)
+  long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
+  // linc1 = idx2 + ac2*idx3 + ...
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume/ac1;
+      linc1 += gridDim.x*blockDim.x)
   {
     // full linear cell index (not including components) is 
-    // idx1 + ac1*idx2 + ac1*ac2*idx3 + ... = idx1 + ac1*linc2.
+    // idx1 + ac1*idx2 + ac1*ac2*idx3 + ... = idx1 + ac1*linc1.
     // we want to find the start linear index of each contiguous data block, 
     // which corresponds to idx1 = 0. 
-    // so linear index of start of contiguous block is ac1*linc2.
+    // so linear index of start of contiguous block is ac1*linc1.
     // NOTE: the above necessarily applies only to inp_range
-    gkyl_sub_range_inv_idx(&out_range, ac1*linc2, idx_out);
-    gkyl_sub_range_inv_idx(&inp_range, ac1*linc2, idx_inp);
+    gkyl_sub_range_inv_idx(&out_range, ac1*linc1, idx_out);
+    gkyl_sub_range_inv_idx(&inp_range, ac1*linc1, idx_inp);
     long start_out = gkyl_range_idx(&out_range, idx_out);
     long start_inp = gkyl_range_idx(&inp_range, idx_inp);
     
     double* out_d = (double*) gkyl_array_fetch(out, start_out);
     const double* inp_d = (const double*) gkyl_array_cfetch(inp, start_inp);
     // do operation on contiguous data block
-    if (linc1 < n*ac1)
-      out_d[linc1] = inp_d[linc1];
+    if (linc2 < n*ac1)
+      out_d[linc2] = inp_d[linc2];
   }
 }
 
@@ -272,25 +274,25 @@ gkyl_array_copy_to_buffer_cu_kernel(void *data, const struct gkyl_array *arr,
   long ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
 
   // 2D thread grid
-  // linc1 = c + n*idx1 (contiguous data, including component index c, with idx1 = 0,.., ac1-1)
-  long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
-  // linc2 = idx2 + ac2*idx3 + ...
-  for (unsigned long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
-      linc2 < range.volume/ac1;
-      linc2 += gridDim.y*blockDim.y)
+  // linc2 = c + n*idx1 (contiguous data, including component index c, with idx1 = 0,.., ac1-1)
+  long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
+  // linc1 = idx2 + ac2*idx3 + ...
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume/ac1;
+      linc1 += gridDim.x*blockDim.x)
   {
     // full linear cell index (not including components) is 
-    // idx1 + ac1*idx2 + ac1*ac2*idx3 + ... = idx1 + ac1*linc2.
+    // idx1 + ac1*idx2 + ac1*ac2*idx3 + ... = idx1 + ac1*linc1.
     // we want to find the start linear index of each contiguous data block, 
     // which corresponds to idx1 = 0. 
     // so linear index of start of contiguous block is ac1*linc2.
-    gkyl_sub_range_inv_idx(&range, ac1*linc2, idx);
+    gkyl_sub_range_inv_idx(&range, ac1*linc1, idx);
     long start = gkyl_range_idx(&range, idx);
     
     const double* arr_d = (const double*) gkyl_array_cfetch(arr, start);
     // read from contiguous data block
-    if (linc1 < n*ac1)
-      d_data[linc1 + n*ac1*linc2] = arr_d[linc1];
+    if (linc2 < n*ac1)
+      d_data[linc2 + n*ac1*linc1] = arr_d[linc2];
   }
 }
 
