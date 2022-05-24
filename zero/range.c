@@ -84,7 +84,7 @@ gkyl_range_init(struct gkyl_range *rng, int ndim,
 
   // for CUDA ops
   rng->nthreads = GKYL_DEFAULT_NUM_THREADS;
-  rng->nblocks = GKYL_MIN(32768, rng->volume/rng->nthreads + 1);
+  rng->nblocks = rng->volume/rng->nthreads + 1;
 }
 
 void
@@ -134,7 +134,7 @@ gkyl_sub_range_init(struct gkyl_range *rng,
 
   // for CUDA ops
   rng->nthreads = GKYL_DEFAULT_NUM_THREADS;
-  rng->nblocks = GKYL_MIN(32768, rng->volume/rng->nthreads + 1);
+  rng->nblocks = rng->volume/rng->nthreads + 1;
 }
 
 struct gkyl_range
@@ -211,7 +211,7 @@ gkyl_range_deflate(struct gkyl_range* srng,
 
   // for CUDA ops
   srng->nthreads = GKYL_DEFAULT_NUM_THREADS;
-  srng->nblocks = GKYL_MIN(32768, srng->volume/srng->nthreads + 1);
+  srng->nblocks = srng->volume/srng->nthreads + 1;
 }
 
 void

@@ -544,7 +544,9 @@ gkyl_vlasov_update(gkyl_vlasov_app* app, double dt)
   app->tcurr += status.dt_actual;
   
   app->stat.total_tm += gkyl_time_diff_now_sec(wst);
-  
+  // Check for any CUDA errors during time step
+  if (app->use_gpu)
+    checkCuda(cudaGetLastError());  
   return status;
 }
 
