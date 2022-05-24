@@ -86,7 +86,7 @@ inline cudaError_t __checkCudaErrors__(cudaError_t code, const char *func, const
 #undef GKYL_HAVE_CUDA
 #define GKYL_CU_DH
 #define GKYL_CU_D
-
+#define checkCuda(val) 
 // for directional copies
 enum gkyl_cu_memcpy_kind {
   GKYL_CU_MEMCPY_H2H,
