@@ -1,6 +1,6 @@
 #pragma once
 
-#include <gkyl_diffusion_kernels.h>
+#include <gkyl_dg_diffusion_kernels.h>
 #include <gkyl_ref_count.h>
 #include <gkyl_dg_eqn.h>
 
@@ -12,8 +12,7 @@ typedef double (*diffusion_vol_t)(const double* w, const double* dx,
   const double* D, const double* q, double* GKYL_RESTRICT out);
 
 typedef void (*diffusion_surf_t)(const double *w, const double *dx,
-  const double* Dl, const double* Dc, const double* Dr,
-  const double *ql, const double *qc, const double *qr,
+  const double* D, const double *ql, const double *qc, const double *qr,
   double* GKYL_RESTRICT out);
 
 // for use in kernel tables
@@ -23,7 +22,7 @@ typedef struct { diffusion_surf_t kernels[3]; } gkyl_dg_diffusion_surf_kern_list
 // Volume kernel list
 GKYL_CU_D
 static const gkyl_dg_diffusion_vol_kern_list vol_kernels[] = {
-  { NULL, diffusion_vol_1x_ser_p1, NULL }, // 1
+  { NULL, dg_diffusion_vol_1x_ser_p1, NULL }, // 1
   { NULL, NULL, NULL }, // 2
   { NULL, NULL, NULL },
 };
@@ -31,7 +30,7 @@ static const gkyl_dg_diffusion_vol_kern_list vol_kernels[] = {
 // Surface kernel list: x-direction
 GKYL_CU_D
 static const gkyl_dg_diffusion_surf_kern_list surf_x_kernels[] = {
-  { NULL, diffusion_surfx_1x_ser_p1, NULL },
+  { NULL, dg_diffusion_surfx_1x_ser_p1, NULL },
   { NULL, NULL, NULL },
   { NULL, NULL, NULL },
 };
@@ -93,14 +92,10 @@ surf(const struct gkyl_dg_eqn* eqn, int dir,
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
   
-  long cidx_l = gkyl_range_idx(&diffusion->conf_range, idxL);
-  long cidx_c = gkyl_range_idx(&diffusion->conf_range, idxC);
-  long cidx_r = gkyl_range_idx(&diffusion->conf_range, idxR);
+  long cidx = gkyl_range_idx(&diffusion->conf_range, idxC);
   
   diffusion->surf[dir](xcC, dxC,
-    (const double*) gkyl_array_cfetch(diffusion->auxfields.D, cidx_l),
-    (const double*) gkyl_array_cfetch(diffusion->auxfields.D, cidx_c),
-    (const double*) gkyl_array_cfetch(diffusion->auxfields.D, cidx_r), 
+    (const double*) gkyl_array_cfetch(diffusion->auxfields.D, cidx), 
     qInL, qInC, qInR, qRhsOut);
 }
 

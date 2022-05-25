@@ -133,7 +133,6 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     }
   }
   for (int d=0; d<3; ++d)
-    // ask Jimmy about this
     f->absorb_bc_func[d] = gkyl_advection_absorb_bc_create(f->advect_eqn, d,
       app->basis_on_dev.confBasis);
 }
