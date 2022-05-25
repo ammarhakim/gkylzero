@@ -102,9 +102,16 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   f->diff_ctx = (struct vm_eval_diffusion_ctx) {
     .diff_func = f->info.diffusion.D, .diff_ctx = f->info.diffusion.D_ctx
   };
-  f->diff_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-    app->confBasis.poly_order+1,
-    cdim, f->info.diffusion.D, &f->diff_ctx);
+  f->diff_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+      .grid = &app->grid,
+      .basis = &app->confBasis,
+      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
+      .num_quad = app->confBasis.poly_order+1,
+      .num_ret_vals = cdim,
+      .eval = f->info.diffusion.D,
+      .ctx = f->info.diffusion.D_ctx
+    }
+  );
 
   // determine which directions are not periodic
   int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
@@ -126,7 +133,8 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     }
   }
   for (int d=0; d<3; ++d)
-    f->absorb_bc_func[d] = gkyl_advection_absorb_bc_create(f->eqn, d,
+    // ask Jimmy about this
+    f->absorb_bc_func[d] = gkyl_advection_absorb_bc_create(f->advect_eqn, d,
       app->basis_on_dev.confBasis);
 }
 
