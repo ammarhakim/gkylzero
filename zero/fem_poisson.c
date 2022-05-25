@@ -134,6 +134,15 @@ local_nodtomod(const int dim, const int poly_order, const int basis_type, struct
   assert(false);  // Other dimensionalities not supported.
 }
 
+int idx_to_inup_ker(const int dim, const int *num_cells, const int *idx) {
+  // Return the index of the in-up kernel given the grid index.
+  int iout = 0;
+  for (int d=0; d<dim; d++) {
+    if (idx[d] == num_cells[d]) iout += (int)(pow(2,d)+0.5);
+  }
+  return iout;
+}
+
 gkyl_fem_poisson*
 gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
   const bool *isdirperiodic, const double epsilon, void *ctx)
@@ -160,13 +169,13 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   int sublower[GKYL_MAX_DIM], subupper[GKYL_MAX_DIM];
   for (int d=0; d<up->ndim; d++) {
     sublower[d] = up->local_range.lower[d];
-    subupper[d] = up->local_range.lower[d];
-    if (up->isdirperiodic[d]) {
-      // Include ghost cells if periodic in this direction. Assume that
-      // periodic directions are sync-ed outside of Poisson solver.
-      sublower[d] = up->local_range_ext.lower[d];
-      subupper[d] = up->local_range_ext.upper[d];
-    }
+    subupper[d] = up->local_range.upper[d];
+//    if (up->isdirperiodic[d]) {
+//      // Include ghost cells if periodic in this direction. Assume that
+//      // periodic directions are sync-ed outside of Poisson solver.
+//      sublower[d] = up->local_range_ext.lower[d];
+//      subupper[d] = up->local_range_ext.upper[d];
+//    }
   }
   gkyl_sub_range_init(&up->solve_range, &up->local_range_ext, sublower, subupper);
   for (int d=0; d<up->ndim; d++) up->num_cells[d] = up->solve_range.upper[d]-up->solve_range.lower[d]+1;
@@ -190,29 +199,86 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 
   // Create a linear Ax=B problem. Here A is the discrete (global) stiffness
   // matrix times -epsilon.
-//  up->prob = gkyl_superlu_prob_new(up->numnodes_global, up->numnodes_global, 1);
+  up->prob = gkyl_superlu_prob_new(up->numnodes_global, up->numnodes_global, 1);
 
   // Assign non-zero elements in A.
-//  gkyl_mat_triples *tri = gkyl_mat_triples_new(up->numnodes_global, up->numnodes_global);
-//  gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
-//  while (gkyl_range_iter_next(&up->solve_iter)) {
-//    long idx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
-//
-////    up->l2g(up->num_cells, up->solve_iter.idx, up->globalidx);
-//    for (size_t k=0; k<up->numnodes_local; ++k) {
-//      for (size_t m=0; m<up->numnodes_local; ++m) {
-//        double val = -epsilon*gkyl_mat_get(up->local_stiff,k,m);
-//        long globalidx_k = up->globalidx[k];
-//        long globalidx_m = up->globalidx[m];
-//        gkyl_mat_triples_accum(tri, globalidx_k, globalidx_m, val);
-//      }
-//    }
-//  }
-//  gkyl_superlu_amat_from_triples(up->prob, tri);
-//
-//  gkyl_mat_triples_release(tri);
+  gkyl_mat_triples *tri = gkyl_mat_triples_new(up->numnodes_global, up->numnodes_global);
+  gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
+  while (gkyl_range_iter_next(&up->solve_iter)) {
+    long idx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
+
+    int keri = idx_to_inup_ker(up->ndim, &up->num_cells[0], up->solve_iter.idx);
+    up->l2g[keri](&up->num_cells[0], &up->solve_iter.idx[0], &up->globalidx[0]);
+    for (size_t k=0; k<up->numnodes_local; ++k) {
+      for (size_t m=0; m<up->numnodes_local; ++m) {
+        double val = -epsilon*gkyl_mat_get(up->local_stiff,k,m);
+        long globalidx_k = up->globalidx[k];
+        long globalidx_m = up->globalidx[m];
+        gkyl_mat_triples_accum(tri, globalidx_k, globalidx_m, val);
+      }
+    }
+  }
+  gkyl_superlu_amat_from_triples(up->prob, tri);
+
+  gkyl_mat_triples_release(tri);
 
   return up;
+}
+
+void
+gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, const struct gkyl_array *rhsin)
+{
+  gkyl_mat_triples *tri = gkyl_mat_triples_new(up->numnodes_global, 1);
+
+  printf("\n");
+  gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
+  while (gkyl_range_iter_next(&up->solve_iter)) {
+    long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
+
+    const double *rhsin_p = gkyl_array_cfetch(rhsin, linidx);
+
+    int keri = idx_to_inup_ker(up->ndim, &up->num_cells[0], up->solve_iter.idx);
+    up->l2g[keri](&up->num_cells[0], &up->solve_iter.idx[0], &up->globalidx[0]);
+
+    for (size_t k=0; k<up->numnodes_local; k++) {
+      long globalidx_k = up->globalidx[k];
+      double massnod_rhs = 0.;
+      for (size_t m=0; m<up->numnodes_local; m++)
+        massnod_rhs += gkyl_mat_get(up->local_mass_modtonod,k,m) * rhsin_p[m];
+      gkyl_mat_triples_accum(tri, globalidx_k, 0, massnod_rhs);
+    }
+  }
+
+  gkyl_superlu_brhs_from_triples(up->prob, tri);
+  gkyl_mat_triples_release(tri);
+
+}
+
+
+void
+gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout) {
+  gkyl_superlu_solve(up->prob);
+
+  int pidx[GKYL_MAX_DIM] = {0};
+
+  gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
+  while (gkyl_range_iter_next(&up->solve_iter)) {
+    long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
+
+    double *phiout_p = gkyl_array_fetch(phiout, linidx);
+
+    int keri = idx_to_inup_ker(up->ndim, &up->num_cells[0], up->solve_iter.idx);
+    up->l2g[keri](&up->num_cells[0], &up->solve_iter.idx[0], &up->globalidx[0]);
+
+    for (size_t k=0; k<up->numnodes_local; k++) {
+      phiout_p[k] = 0.;
+      for (size_t m=0; m<up->numnodes_local; m++) {
+        long globalidx_m = up->globalidx[m];
+        phiout_p[k] += gkyl_mat_get(up->local_nodtomod,k,m) * gkyl_superlu_get_rhs_ij(up->prob, globalidx_m, 0);
+      }
+    }
+  }
+
 }
 
 void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
@@ -220,7 +286,7 @@ void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
   gkyl_mat_release(up->local_stiff);
   gkyl_mat_release(up->local_mass_modtonod);
   gkyl_mat_release(up->local_nodtomod);
-//  gkyl_superlu_prob_release(up->prob);
+  gkyl_superlu_prob_release(up->prob);
   gkyl_free(up->globalidx);
   gkyl_free(up);
 }

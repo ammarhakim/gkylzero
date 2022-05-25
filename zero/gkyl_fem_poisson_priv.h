@@ -75,6 +75,7 @@ static const local2global_kern_bcx_list_2x ser_loc2glob_list_2x[] = {
 // "Choose Kernel" based on cdim, vdim and polyorder
 #define CK1(lst,poly_order,loc,bcx) lst[bcx].list[poly_order].kernels[loc]
 #define CK2(lst,poly_order,loc,bcx,bcy) lst[bcx].list[bcy].list[poly_order].kernels[loc]
+#define CK3(lst,poly_order,loc,bcx,bcy,bcz) lst[bcx].list[bcy].list[bcz].list[poly_order].kernels[loc]
 
 struct gkyl_fem_poisson {
   void *ctx; // evaluation context.
@@ -118,13 +119,15 @@ choose_local2global_kernels(const struct gkyl_basis* basis, const bool *isdirper
   int ki = 0;
   switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-        for (int k=0; k<(int)(pow(dim,2)+0.5); k++) {
-          if (dim == 1) {
-            l2gout[k] = CK1(ser_loc2glob_list_1x, poly_order, k, bckey[0]);
-          } else if (dim == 2) {
-            l2gout[k] = CK2(ser_loc2glob_list_2x, poly_order, k, bckey[0], bckey[1]);
-          }
+      for (int k=0; k<(int)(pow(2,dim)+0.5); k++) {
+        if (dim == 1) {
+          l2gout[k] = CK1(ser_loc2glob_list_1x, poly_order, k, bckey[0]);
+        } else if (dim == 2) {
+          l2gout[k] = CK2(ser_loc2glob_list_2x, poly_order, k, bckey[0], bckey[1]);
+//        } else if (dim == 3) {
+//          l2gout[k] = CK3(ser_loc2glob_list_3x, poly_order, k, bckey[0], bckey[1], bckey[2]);
         }
+      }
       break;
 //    case GKYL_BASIS_MODAL_TENSOR:
 //      break;

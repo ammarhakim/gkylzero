@@ -33,6 +33,21 @@ gkyl_fem_poisson* gkyl_fem_poisson_new(
   const bool *isdirperiodic, const double epsilon, void *ctx);
 
 /**
+ * Assign the right-side vector with the discontinuous (DG) source field.
+ *
+ * @param up FEM poisson updater to run.
+ * @param rhsin DG field to set as RHS source.
+ */
+void gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, const struct gkyl_array *rhsin);
+
+/**
+ * Solve the linear problem.
+ *
+ * @param up FEM project updater to run.
+ */
+void gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout);
+
+/**
  * Delete updater.
  *
  * @param up Updater to delete.

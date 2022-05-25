@@ -98,6 +98,11 @@ test_1x(int poly_order, const bool *isdirperiodic)
   // FEM poisson solver.
   gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, &basis, isdirperiodic, epsilon_0, NULL);
 
+  // Set the RHS source.
+  gkyl_fem_poisson_set_rhs(poisson, rho);
+
+  // Solve the problem.
+  gkyl_fem_poisson_solve(poisson, phi);
   for (int d=0; d<dim; d++)
     if (isdirperiodic[d]) apply_periodic_bc(perbuff, phi, d, skin_ghost);
 
