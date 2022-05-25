@@ -16,7 +16,7 @@ typedef struct gkyl_fem_poisson gkyl_fem_poisson;
 
 /**
  * Create new updater to solve the Poisson problem
- *   - nabla^2 phi = rho
+ *   - epsilon * nabla^2 phi = rho
  * using a FEM to ensure phi is continuous. The input is the
  * DG field rho, which is translated to FEM. The output is the
  * DG field phi, after we've translted the FEM solution to DG.
@@ -30,7 +30,7 @@ typedef struct gkyl_fem_poisson gkyl_fem_poisson;
  */
 gkyl_fem_poisson* gkyl_fem_poisson_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
-  const bool *isdirperiodic, void *ctx);
+  const bool *isdirperiodic, const double epsilon, void *ctx);
 
 /**
  * Delete updater.
