@@ -7,6 +7,23 @@
 
 #include <stdbool.h>
 
+// Parameters for applying the mirror force in Vlasov simulations
+// Used in simulations where advecting fluid species can couple 
+// to Vlasov simulation 
+struct gkyl_vlasov_mirror_force {
+  void *magB_ctx; // context for magnitude of B
+  // pointer to magnitude of B function
+  void (*magB)(double t, const double *xn, double *Bout, void *ctx);
+
+  void *gradB_ctx; // context for gradient of B
+  // pointer to gradient of B function
+  void (*gradB)(double t, const double *xn, double *gradBout, void *ctx);
+
+  char fluid_mirror_force[128]; // name of fluid species for the mirror force
+  int fluid_mirror_force_index; // index of the fluid species being used for mirror force
+                                // index corresponds to location in fluid_species array (size num_fluid_species)
+};
+
 // Parameters for species collisions
 struct gkyl_vlasov_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
@@ -28,6 +45,7 @@ struct gkyl_vlasov_fluid_advection {
   void *velocity_ctx; // context for applied advection function
   // pointer to applied advection velocity function
   void (*velocity)(double t, const double *xn, double *aout, void *ctx);
+  enum gkyl_quad_type qtype; // quadrature to use
   
   char advect_with[128]; // names of species to advect with
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
@@ -58,9 +76,16 @@ struct gkyl_vlasov_species {
   // collisions to include
   struct gkyl_vlasov_collisions collisions;
 
+  // mirror force to include
+  struct gkyl_vlasov_mirror_force mirror_force;
+
   void *accel_ctx; // context for applied acceleration function
   // pointer to applied acceleration function
   void (*accel)(double t, const double *xn, double *aout, void *ctx);
+
+  void *source_ctx; // context for applied source function
+  // pointer to applied source function
+  void (*source)(double t, const double *xn, double *aout, void *ctx);
 
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
@@ -158,8 +183,17 @@ struct gkyl_vlasov_stat {
   double field_rhs_tm; // time to compute field RHS
   double current_tm; // time to compute currents and accumulation
 
+  long nspecies_omega_cfl; // number of times CFL-omega all-reduce is called
+  double species_omega_cfl_tm; // time spent in all-reduce for omega-cfl
+
+  long nfield_omega_cfl; // number of times CFL-omega for field all-reduce is called
+  double field_omega_cfl_tm; // time spent in all-reduce for omega-cfl for field
+
   long nmom; // calls to moment calculation
   double mom_tm; // time to compute moments
+
+  long ndiag; // calls to diagnostics
+  double diag_tm; // time to compute diagnostics
 };
 
 // Object representing Vlasov app
@@ -219,7 +253,23 @@ void gkyl_vlasov_app_apply_ic_fluid_species(gkyl_vlasov_app* app, int sidx, doub
  *
  * @param app App object.
  */
-void gkyl_vlasov_app_calc_mom(gkyl_vlasov_app* app);
+void gkyl_vlasov_app_calc_mom(gkyl_vlasov_app *app);
+
+/**
+ * Calculate integrated diagnostic moments.
+ *
+ * @param tm Time at which integrated diagnostic are to be computed
+ * @param app App object.
+ */
+void gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm);
+
+/**
+ * Calculate integrated field energy
+ *
+ * @param tm Time at which integrated diagnostic are to be computed
+ * @param app App object.
+ */
+void gkyl_vlasov_app_calc_field_energy(gkyl_vlasov_app* app, double tm);
 
 /**
  * Write field and species data to file.
@@ -250,6 +300,36 @@ void gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame);
 void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
+ * Write species p/gamma to file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_vlasov_app_write_species_gamma(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+
+/**
+ * Write magnitude of magnetic field to file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_vlasov_app_write_magB(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+
+/**
+ * Write gradient of magnetic field to file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_vlasov_app_write_gradB(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+
+/**
  * Write fluid species data to file.
  * 
  * @param app App object.
@@ -266,7 +346,23 @@ void gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double 
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame);
+void gkyl_vlasov_app_write_mom(gkyl_vlasov_app *app, double tm, int frame);
+
+/**
+ * Write integrated diagnostic moments for species to file. Integrated
+ * moments are appened to the same file.
+ * 
+ * @param app App object.
+ */
+void gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app);
+
+/**
+ * Write field energy to file. Field energy data is appened to the
+ * same file.
+ * 
+ * @param app App object.
+ */
+void gkyl_vlasov_app_write_field_energy(gkyl_vlasov_app* app);
 
 /**
  * Write stats to file. Data is written in json format.

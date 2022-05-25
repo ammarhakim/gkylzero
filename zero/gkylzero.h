@@ -63,6 +63,7 @@ extern "C" {
 #include <gkyl_update_fsm.h>
 #include <gkyl_util.h>
 #include <gkyl_vargm.h>
+#include <gkyl_vlasov.h>    
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_apply_bc.h>

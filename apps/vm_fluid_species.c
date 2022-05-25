@@ -34,7 +34,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   // allocate cflrate (scalar array)
   f->cflrate = mkarr(app->use_gpu, 1, app->local_ext.volume);
   if (app->use_gpu)
-    f->omegaCfl_ptr = gkyl_cu_malloc_host(sizeof(double));
+    f->omegaCfl_ptr = gkyl_cu_malloc(sizeof(double));
   else
     f->omegaCfl_ptr = gkyl_malloc(sizeof(double));
 
@@ -57,8 +57,8 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     app->cdim, up_dirs, zero_flux_flags, 1, app->use_gpu);
 
   f->has_advect = false;
-  f->advects_with_species = false;  
-  // setup applied advection or advection with other species                                                                               
+  f->advects_with_species = false;
+  // setup applied advection or advection with other species
   if (f->info.advection.velocity) {
     f->has_advect = true;
     // we need to ensure applied advection has same shape as current                                             
@@ -71,9 +71,17 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     f->advect_ctx = (struct vm_eval_advect_ctx) {
       .advect_func = f->info.advection.velocity, .advect_ctx = f->info.advection.velocity_ctx
     };
-    f->advect_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-      app->confBasis.poly_order+1,
-      cdim, f->info.advection.velocity, &f->advect_ctx);
+
+    f->advect_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+        .grid = &app->grid,
+        .basis = &app->confBasis,
+        .qtype = f->info.advection.qtype,
+        .num_quad = app->confBasis.poly_order+1,
+        .num_ret_vals = cdim,
+        .eval = f->info.advection.velocity,
+        .ctx = f->info.advection.velocity_ctx
+      }
+    );
   }
   else {
     f->advects_with_species = true;
@@ -117,6 +125,9 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       f->upper_bc[dir] = bc[1];
     }
   }
+  for (int d=0; d<3; ++d)
+    f->absorb_bc_func[d] = gkyl_advection_absorb_bc_create(f->eqn, d,
+      app->basis_on_dev.confBasis);
 }
 
 void
@@ -199,9 +210,16 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
       fluid_species->other_m0, 0, fluid_species->other_nu_vthsq, app->local);
     gkyl_array_accumulate(rhs, 1.0, fluid_species->nu_n_vthsq);
     gkyl_array_accumulate(rhs, -1.0, fluid_species->nu_fluid);
-  }    
+  }
+
   gkyl_array_reduce_range(fluid_species->omegaCfl_ptr, fluid_species->cflrate, GKYL_MAX, app->local);
-  omegaCfl = fluid_species->omegaCfl_ptr[0];
+
+  double omegaCfl_ho[1];
+  if (app->use_gpu)
+    gkyl_cu_memcpy(omegaCfl_ho, fluid_species->omegaCfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  else
+    omegaCfl_ho[0] = fluid_species->omegaCfl_ptr[0];
+  omegaCfl = omegaCfl_ho[0];
 
   app->stat.fluid_species_rhs_tm += gkyl_time_diff_now_sec(wst);
   
@@ -237,6 +255,27 @@ vm_fluid_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_fluid_speci
   }
 }
 
+// Apply absorbing BCs on fluid species
+void
+vm_fluid_species_apply_absorb_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species,
+  int dir, enum vm_domain_edge edge, struct gkyl_array *f)
+{
+  
+  if (edge == VM_EDGE_LOWER) {
+    gkyl_array_copy_to_buffer_fn(fluid_species->bc_buffer->data, f, app->skin_ghost.lower_skin[dir],
+      fluid_species->absorb_bc_func[dir]->on_dev
+    );
+    gkyl_array_copy_from_buffer(f, fluid_species->bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
+  }
+
+  if (edge == VM_EDGE_UPPER) {
+    gkyl_array_copy_to_buffer_fn(fluid_species->bc_buffer->data, f, app->skin_ghost.upper_skin[dir],
+      fluid_species->absorb_bc_func[dir]->on_dev
+    );
+    gkyl_array_copy_from_buffer(f, fluid_species->bc_buffer->data, app->skin_ghost.upper_ghost[dir]);
+  }  
+}
+
 // Determine which directions are periodic and which directions are copy,
 // and then apply boundary conditions for fluid species
 void
@@ -255,18 +294,24 @@ vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *f
         case GKYL_FLUID_SPECIES_COPY:
           vm_fluid_species_apply_copy_bc(app, fluid_species, d, VM_EDGE_LOWER, f);
           break;
+        case GKYL_FLUID_SPECIES_ABSORB:
+          vm_fluid_species_apply_absorb_bc(app, fluid_species, d, VM_EDGE_LOWER, f);
+          break;
       }
 
       switch (fluid_species->upper_bc[d]) {
         case GKYL_FLUID_SPECIES_COPY:
           vm_fluid_species_apply_copy_bc(app, fluid_species, d, VM_EDGE_UPPER, f);
           break;
+        case GKYL_FLUID_SPECIES_ABSORB:
+          vm_fluid_species_apply_absorb_bc(app, fluid_species, d, VM_EDGE_UPPER, f);
+          break;
       }      
     }
   }
 }
 
-// release resources for field
+// release resources for fluid species
 void
 vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
 {
@@ -300,10 +345,12 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
 
   if (app->use_gpu) {
     gkyl_array_release(f->fluid_host);
-    gkyl_cu_free_host(f->omegaCfl_ptr);
+    gkyl_cu_free(f->omegaCfl_ptr);
   }
   else {
     gkyl_free(f->omegaCfl_ptr);
   }
+  for (int d=0; d<3; ++d)
+    gkyl_advection_bc_release(f->absorb_bc_func[d]);
 }
 

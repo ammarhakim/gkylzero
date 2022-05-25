@@ -29,21 +29,22 @@ gkyl_maxwell_free(const struct gkyl_ref_count *ref)
 struct gkyl_array_copy_func*
 gkyl_maxwell_wall_bc_create(const struct gkyl_dg_eqn *eqn, int dir, const struct gkyl_basis* cbasis)
 {
-// #ifdef GKYL_HAVE_CUDA
-//   if (gkyl_dg_eqn_is_cu_dev(eqn)) {
-//     return gkyl_maxwell_wall_bc_create_cu(eqn->on_dev, dir, cbasis);
-//   }
-// #endif
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_dg_eqn_is_cu_dev(eqn)) {
+    return gkyl_maxwell_wall_bc_create_cu(eqn->on_dev, dir, cbasis);
+  }
+#endif
 
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
 
-  struct maxwell_wall_bc_ctx *ctx = (struct maxwell_wall_bc_ctx*) gkyl_malloc(sizeof(struct maxwell_wall_bc_ctx));
+  struct dg_bc_ctx *ctx = (struct dg_bc_ctx*) gkyl_malloc(sizeof(struct dg_bc_ctx));
   ctx->dir = dir;
   ctx->basis = cbasis;
 
   struct gkyl_array_copy_func *bc = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
   bc->func = maxwell->wall_bc;
   bc->ctx = ctx;
+  bc->ctx_on_dev = bc->ctx;
 
   bc->flags = 0;
   GKYL_CLEAR_CU_ALLOC(bc->flags);
@@ -52,15 +53,16 @@ gkyl_maxwell_wall_bc_create(const struct gkyl_dg_eqn *eqn, int dir, const struct
 }
 
 void
-gkyl_maxwell_wall_bc_release(struct gkyl_array_copy_func* bc)
+gkyl_maxwell_bc_release(struct gkyl_array_copy_func* bc)
 {
-  // if (gkyl_array_copy_func_is_cu_dev(bc)) {
-  //   gkyl_cu_free(bc->on_dev->ctx);
-  //   gkyl_cu_free(bc->on_dev);
-  // }
+  if (gkyl_array_copy_func_is_cu_dev(bc)) {
+    gkyl_cu_free(bc->ctx_on_dev);
+    gkyl_cu_free(bc->on_dev);
+  }
   gkyl_free(bc->ctx);
   gkyl_free(bc);
 }
+
 
 struct gkyl_dg_eqn*
 gkyl_dg_maxwell_new(const struct gkyl_basis* cbasis,

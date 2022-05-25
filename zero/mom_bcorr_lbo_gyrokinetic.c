@@ -12,7 +12,7 @@ void
 gk_mom_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_mom_type *momt = container_of(ref, struct gkyl_mom_type, ref_count);
-  if (GKYL_IS_CU_ALLOC(momt->flag))
+  if (GKYL_IS_CU_ALLOC(momt->flags))
     gkyl_cu_free(momt->on_dev);
   gkyl_free(momt);
 }
@@ -63,8 +63,8 @@ gkyl_mom_bcorr_lbo_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct
 
   mom_bcorr->_m = mass;
   
-  mom_bcorr->momt.flag = 0;
-  GKYL_CLEAR_CU_ALLOC(mom_bcorr->momt.flag);
+  mom_bcorr->momt.flags = 0;
+  GKYL_CLEAR_CU_ALLOC(mom_bcorr->momt.flags);
   mom_bcorr->momt.ref_count = gkyl_ref_count_init(gk_mom_free);
 
   mom_bcorr->momt.on_dev = &mom_bcorr->momt;

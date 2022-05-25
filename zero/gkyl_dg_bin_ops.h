@@ -79,6 +79,36 @@ void gkyl_dg_div_op_range(struct gkyl_basis basis,
   int c_rop, const struct gkyl_array* rop, struct gkyl_range range);
 
 /**
+ * Compute the cell-average of input array iop and store it in out
+ * array.
+ *
+ * @param basis Basis functions used in expansions
+ * @param c_oop Component of output field 
+ * @param out Output DG field
+ * @param c_iop Component of input DG field
+ * @param iop Input DG field
+ * @param range Range to apply multiplication operator
+ */
+void gkyl_dg_calc_average_range(struct gkyl_basis basis,
+  int c_oop, struct gkyl_array* out,
+  int c_iop, const struct gkyl_array* iop, struct gkyl_range range);
+
+/**
+ * Compute the mean L2 norm of input array iop and store it in out
+ * array.
+ *
+ * @param basis Basis functions used in expansions
+ * @param c_oop Component of output field 
+ * @param out Output DG field
+ * @param c_iop Component of input DG field
+ * @param iop Input DG field
+ * @param range Range to apply multiplication operator
+ */
+void gkyl_dg_calc_l2_range(struct gkyl_basis basis,
+  int c_oop, struct gkyl_array* out,
+  int c_iop, const struct gkyl_array* iop, struct gkyl_range range);
+
+/**
  * Host-side wrappers for dg_bin_op operations
  */
 void

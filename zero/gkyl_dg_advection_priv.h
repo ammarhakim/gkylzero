@@ -19,6 +19,8 @@ typedef void (*advection_surf_t)(const double *w, const double *dx,
 typedef struct { advection_vol_t kernels[3]; } gkyl_dg_advection_vol_kern_list;
 typedef struct { advection_surf_t kernels[3]; } gkyl_dg_advection_surf_kern_list;
 
+typedef void (*bc_funcf_t)(size_t nc, double *out, const double *inp, void *ctx);
+
 //
 // Serendipity basis kernels
 // 
@@ -28,7 +30,7 @@ GKYL_CU_D
 static const gkyl_dg_advection_vol_kern_list ser_vol_kernels[] = {
   { NULL, advection_vol_1x_ser_p1, advection_vol_1x_ser_p2 }, // 0
   { NULL, advection_vol_2x_ser_p1, advection_vol_2x_ser_p2 }, // 1
-  { NULL, advection_vol_3x_ser_p1, NULL },              // 2
+  { NULL, advection_vol_3x_ser_p1, advection_vol_3x_ser_p2 }, // 2
 };
 
 // Surface kernel list: x-direction
@@ -36,7 +38,7 @@ GKYL_CU_D
 static const gkyl_dg_advection_surf_kern_list ser_surf_x_kernels[] = {
   { NULL, advection_surfx_1x_ser_p1, advection_surfx_1x_ser_p2 }, // 0
   { NULL, advection_surfx_2x_ser_p1, advection_surfx_2x_ser_p2 }, // 1
-  { NULL, advection_surfx_3x_ser_p1, NULL },                 // 2
+  { NULL, advection_surfx_3x_ser_p1, advection_surfx_3x_ser_p2 }, // 2
 };
 
 // Surface kernel list: y-direction
@@ -44,7 +46,7 @@ GKYL_CU_D
 static const gkyl_dg_advection_surf_kern_list ser_surf_y_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, advection_surfy_2x_ser_p1, advection_surfy_2x_ser_p2 }, // 1
-  { NULL, advection_surfy_3x_ser_p1, NULL },                 // 2
+  { NULL, advection_surfy_3x_ser_p1, advection_surfy_3x_ser_p2 }, // 2
 };
 
 // Surface kernel list: z-direction
@@ -52,7 +54,7 @@ GKYL_CU_D
 static const gkyl_dg_advection_surf_kern_list ser_surf_z_kernels[] = {
   { NULL, NULL, NULL },                 // 0
   { NULL, NULL, NULL },                 // 1
-  { NULL, advection_surfz_3x_ser_p1, NULL }, // 2
+  { NULL, advection_surfz_3x_ser_p1, advection_surfz_3x_ser_p2 }, // 2
 };
 
 //
@@ -95,6 +97,7 @@ struct dg_advection {
   struct gkyl_dg_eqn eqn; // Base object    
   advection_vol_t vol; // pointer to volume kernel
   advection_surf_t surf[3]; // pointers to surface kernels
+  bc_funcf_t absorb_bc; // Absorbing BCs function
   struct gkyl_range conf_range; // configuration space range
   struct gkyl_dg_advection_auxfields auxfields; // Auxiliary fields.
 };
@@ -150,4 +153,13 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
 {
   
+}
+
+GKYL_CU_D
+static void
+advection_absorb_bc(size_t nc, double *out, const double *inp, void *ctx)
+{
+  struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
+  int nbasis = mc->basis->num_basis;
+  for (int c=0; c<nbasis; ++c) out[c] = 0.0;
 }

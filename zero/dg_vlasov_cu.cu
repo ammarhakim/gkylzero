@@ -11,7 +11,7 @@ extern "C" {
 
 __global__ static void
 gkyl_vlasov_wall_bc_create_set_cu_dev_ptrs(const struct gkyl_dg_eqn *eqn, int dir,
-  const struct gkyl_basis* pbasis, struct species_wall_bc_ctx *ctx, struct gkyl_array_copy_func *bc)
+  const struct gkyl_basis* pbasis, struct dg_bc_ctx *ctx, struct gkyl_array_copy_func *bc)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
 
@@ -27,7 +27,7 @@ struct gkyl_array_copy_func*
 gkyl_vlasov_wall_bc_create_cu(const struct gkyl_dg_eqn *eqn, int dir, const struct gkyl_basis* pbasis)
 {
   // create host context and bc func structs
-  struct species_wall_bc_ctx *ctx = (struct species_wall_bc_ctx*) gkyl_malloc(sizeof(struct species_wall_bc_ctx));
+  struct dg_bc_ctx *ctx = (struct dg_bc_ctx*) gkyl_malloc(sizeof(struct dg_bc_ctx));
   struct gkyl_array_copy_func *bc = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
   bc->ctx = ctx;
 
@@ -35,13 +35,54 @@ gkyl_vlasov_wall_bc_create_cu(const struct gkyl_dg_eqn *eqn, int dir, const stru
   GKYL_SET_CU_ALLOC(bc->flags);
 
   // create device context and bc func structs
-  struct species_wall_bc_ctx *ctx_cu = (struct species_wall_bc_ctx*) gkyl_cu_malloc(sizeof(struct species_wall_bc_ctx));
+  struct dg_bc_ctx *ctx_cu = (struct dg_bc_ctx*) gkyl_cu_malloc(sizeof(struct dg_bc_ctx));
   struct gkyl_array_copy_func *bc_cu = (struct gkyl_array_copy_func*) gkyl_cu_malloc(sizeof(struct gkyl_array_copy_func));
 
-  gkyl_cu_memcpy(ctx_cu, ctx, sizeof(struct species_wall_bc_ctx), GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(ctx_cu, ctx, sizeof(struct dg_bc_ctx), GKYL_CU_MEMCPY_H2D);
   gkyl_cu_memcpy(bc_cu, bc, sizeof(struct gkyl_array_copy_func), GKYL_CU_MEMCPY_H2D);
 
-  gkyl_vlasov_wall_bc_create_set_cu_dev_ptrs<<<1,1>>>(eqn->on_dev, dir, pbasis, ctx_cu, bc_cu);
+  bc->ctx_on_dev = ctx_cu;
+
+  gkyl_vlasov_wall_bc_create_set_cu_dev_ptrs<<<1,1>>>(eqn, dir, pbasis, ctx_cu, bc_cu);
+
+  // set parent on_dev pointer 
+  bc->on_dev = bc_cu;  
+  return bc;
+}
+
+__global__ static void
+gkyl_vlasov_absorb_bc_create_set_cu_dev_ptrs(const struct gkyl_dg_eqn *eqn, int dir,
+  const struct gkyl_basis* pbasis, struct dg_bc_ctx *ctx, struct gkyl_array_copy_func *bc)
+{
+  struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
+  
+  ctx->basis = pbasis;
+
+  bc->func = vlasov->absorb_bc;
+  bc->ctx = ctx;
+}
+
+struct gkyl_array_copy_func*
+gkyl_vlasov_absorb_bc_create_cu(const struct gkyl_dg_eqn *eqn, int dir, const struct gkyl_basis* pbasis)
+{
+  // create host context and bc func structs
+  struct dg_bc_ctx *ctx = (struct dg_bc_ctx*) gkyl_malloc(sizeof(struct dg_bc_ctx));
+  struct gkyl_array_copy_func *bc = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
+  bc->ctx = ctx;
+
+  bc->flags = 0;
+  GKYL_SET_CU_ALLOC(bc->flags);
+
+  // create device context and bc func structs
+  struct dg_bc_ctx *ctx_cu = (struct dg_bc_ctx*) gkyl_cu_malloc(sizeof(struct dg_bc_ctx));
+  struct gkyl_array_copy_func *bc_cu = (struct gkyl_array_copy_func*) gkyl_cu_malloc(sizeof(struct gkyl_array_copy_func));
+
+  gkyl_cu_memcpy(ctx_cu, ctx, sizeof(struct dg_bc_ctx), GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(bc_cu, bc, sizeof(struct gkyl_array_copy_func), GKYL_CU_MEMCPY_H2D);
+
+  bc->ctx_on_dev = ctx_cu;
+
+  gkyl_vlasov_absorb_bc_create_set_cu_dev_ptrs<<<1,1>>>(eqn, dir, pbasis, ctx_cu, bc_cu);
 
   // set parent on_dev pointer 
   bc->on_dev = bc_cu;  
@@ -143,6 +184,8 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
 
   // setup pointer for wall BC function
   vlasov->wall_bc = species_wall_bc;
+  // setup pointer for absorbing BC function
+  vlasov->absorb_bc = species_absorb_bc;
 }
 
 struct gkyl_dg_eqn*

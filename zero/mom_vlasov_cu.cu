@@ -191,8 +191,8 @@ gkyl_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
   assert(mom_id != BAD);
   momt->momt.num_mom = v_num_mom(vdim, mom_id); // number of moments
 
-  momt->momt.flag = 0;
-  GKYL_SET_CU_ALLOC(momt->momt.flag);
+  momt->momt.flags = 0;
+  GKYL_SET_CU_ALLOC(momt->momt.flags);
   momt->momt.ref_count = gkyl_ref_count_init(gkyl_mom_free);
   
   // copy struct to device
@@ -203,6 +203,66 @@ gkyl_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
   assert(cv_index[cdim].vdim[vdim] != -1);
 
   set_cu_ptrs<<<1,1>>>(momt_cu, mom_id, cbasis->b_type,
+    vdim, poly_order, cv_index[cdim].vdim[vdim]);
+
+  momt->momt.on_dev = &momt_cu->momt;
+  
+  return &momt->momt;
+}
+
+__global__
+static void
+set_int_cu_ptrs(struct mom_type_vlasov* momt, enum gkyl_basis_type b_type, int vdim,
+  int poly_order, int tblidx)
+{
+  momt->momt.kernel = kernel;
+
+  // set kernel pointer
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      momt->kernel = ser_int_mom_kernels[tblidx].kernels[poly_order];
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      momt->kernel = ten_int_mom_kernels[tblidx].kernels[poly_order];
+      break;
+
+    default:
+      assert(false);
+      break;    
+  }
+}
+
+struct gkyl_mom_type *
+gkyl_int_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
+  const struct gkyl_basis* pbasis)
+{
+  assert(cbasis->poly_order == pbasis->poly_order);
+
+  struct mom_type_vlasov *momt = (struct mom_type_vlasov*)
+    gkyl_malloc(sizeof(struct mom_type_vlasov));
+  
+  int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
+  int poly_order = cbasis->poly_order;
+
+  momt->momt.cdim = cdim;
+  momt->momt.pdim = pdim;
+  momt->momt.poly_order = poly_order;
+  momt->momt.num_config = cbasis->num_basis;
+  momt->momt.num_phase = pbasis->num_basis;
+
+  momt->momt.num_mom = vdim+2;
+
+  momt->momt.flags = 0;
+  GKYL_SET_CU_ALLOC(momt->momt.flags);
+  momt->momt.ref_count = gkyl_ref_count_init(gkyl_mom_free);
+  
+  // copy struct to device
+  struct mom_type_vlasov *momt_cu = (struct mom_type_vlasov*)
+    gkyl_cu_malloc(sizeof(struct mom_type_vlasov));
+  gkyl_cu_memcpy(momt_cu, momt, sizeof(struct mom_type_vlasov), GKYL_CU_MEMCPY_H2D);
+
+  set_int_cu_ptrs<<<1,1>>>(momt_cu, cbasis->b_type,
     vdim, poly_order, cv_index[cdim].vdim[vdim]);
 
   momt->momt.on_dev = &momt_cu->momt;
