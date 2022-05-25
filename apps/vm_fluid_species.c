@@ -291,6 +291,7 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
 
     gkyl_proj_on_basis_release(f->advect_proj);
   }
+  gkyl_proj_on_basis_release(f->diff_proj);
 
   if (f->collision_id == GKYL_LBO_COLLISIONS) {
     gkyl_array_release(f->nu_fluid);
