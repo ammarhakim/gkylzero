@@ -22,7 +22,7 @@ typedef struct { diffusion_surf_t kernels[3]; } gkyl_dg_diffusion_surf_kern_list
 // Volume kernel list
 GKYL_CU_D
 static const gkyl_dg_diffusion_vol_kern_list vol_kernels[] = {
-  { NULL, dg_diffusion_vol_1x_ser_p1, NULL }, // 1
+  { NULL, dg_diffusion_vol_1x_ser_p1, dg_diffusion_vol_1x_ser_p2 }, // 1
   { NULL, NULL, NULL }, // 2
   { NULL, NULL, NULL },
 };
@@ -30,7 +30,7 @@ static const gkyl_dg_diffusion_vol_kern_list vol_kernels[] = {
 // Surface kernel list: x-direction
 GKYL_CU_D
 static const gkyl_dg_diffusion_surf_kern_list surf_x_kernels[] = {
-  { NULL, dg_diffusion_surfx_1x_ser_p1, NULL },
+  { NULL, dg_diffusion_surfx_1x_ser_p1, dg_diffusion_surfx_1x_ser_p2 },
   { NULL, NULL, NULL },
   { NULL, NULL, NULL },
 };
