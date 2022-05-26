@@ -85,6 +85,15 @@ struct gkyl_array* gkyl_array_scale(struct gkyl_array *out, double a);
 struct gkyl_array* gkyl_array_scale_by_cell(struct gkyl_array *out, const struct gkyl_array *a);
 
 /**
+ * Shift the zeroth coefficient in every cell, out_0 = a+out_0. Returns out.
+ *
+ * @param out Output array.
+ * @param a Factor to shift 0th coefficient by.
+ * @return out array.
+ */
+struct gkyl_array* gkyl_array_shiftc0(struct gkyl_array *out, double a);
+
+/**
  * Clear out = val. Returns out.
  *
  * @param out Output array
