@@ -85,7 +85,8 @@ struct gkyl_fem_poisson {
   enum gkyl_basis_type basis_type;
   int poly_order;
   int num_cells[GKYL_MAX_DIM];
-  bool isdirperiodic[GKYL_MAX_DIM]; // =true if parallel direction is periodic.
+  bool isdirperiodic[GKYL_MAX_DIM]; // =true if direction is periodic.
+  bool isdomperiodic; // =true if all directions are periodic.
 
   struct gkyl_range local_range, local_range_ext;
   struct gkyl_range solve_range, solve_range_ext;

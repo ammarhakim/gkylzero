@@ -12,7 +12,7 @@
 void evalFunc1x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
-  fout[0] = sin(2.*M_PI*x);
+  fout[0] = sin((2.*M_PI/(2.*M_PI))*x);
 }
 
 // allocate array (filled with zeros)
@@ -62,7 +62,7 @@ test_1x(int poly_order, const bool *isdirperiodic)
 {
   double epsilon_0 = 1.0;
   double lower[] = {-M_PI}, upper[] = {M_PI};
-  int cells[] = {4};
+  int cells[] = {8};
   int dim = sizeof(lower)/sizeof(lower[0]);
 
   // grids.
@@ -93,7 +93,7 @@ test_1x(int poly_order, const bool *isdirperiodic)
   struct gkyl_array *perbuff = mkarr(basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
   for (int d=0; d<dim; d++)
     if (isdirperiodic[d]) apply_periodic_bc(perbuff, rho, d, skin_ghost);
-//  gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_poisson_1x_p2_rho_1.gkyl");
+  gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_poisson_1x_p1_rho_1.gkyl");
 
   // FEM poisson solver.
   gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, &basis, isdirperiodic, epsilon_0, NULL);
@@ -105,6 +105,19 @@ test_1x(int poly_order, const bool *isdirperiodic)
   gkyl_fem_poisson_solve(poisson, phi);
   for (int d=0; d<dim; d++)
     if (isdirperiodic[d]) apply_periodic_bc(perbuff, phi, d, skin_ghost);
+  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_poisson_1x_p1_phi_1.gkyl");
+
+//  if (poly_order == 1) {
+//    if (!isperiodic) {
+//    } else {
+//      // Solution (checked visually against g2):
+//      const double sol[96] = {
+//    }
+//  } if (poly_order == 2) {
+//    if (!isperiodic) {
+//    } else {
+//    }
+//  }
 
   gkyl_fem_poisson_release(poisson);
   gkyl_proj_on_basis_release(projob);

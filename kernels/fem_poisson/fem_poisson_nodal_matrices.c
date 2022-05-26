@@ -5,10 +5,13 @@ void fem_poisson_stiff_1x_ser_p1(const double *dx, struct gkyl_mat *matout)
   // dx: cell length in each direction.
   // matout: local stiffness matrix.
 
-  gkyl_mat_set(matout,0,0,1/dx[0]); 
-  gkyl_mat_set(matout,0,1,-1.0/dx[0]); 
-  gkyl_mat_set(matout,1,0,-1.0/dx[0]); 
-  gkyl_mat_set(matout,1,1,1/dx[0]); 
+  double rdx2Sq[1];
+  rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
+
+  gkyl_mat_set(matout,0,0,0.5*rdx2Sq[0]); 
+  gkyl_mat_set(matout,0,1,-0.5*rdx2Sq[0]); 
+  gkyl_mat_set(matout,1,0,-0.5*rdx2Sq[0]); 
+  gkyl_mat_set(matout,1,1,0.5*rdx2Sq[0]); 
 }
 
 void fem_poisson_stiff_1x_ser_p2(const double *dx, struct gkyl_mat *matout) 
@@ -16,15 +19,18 @@ void fem_poisson_stiff_1x_ser_p2(const double *dx, struct gkyl_mat *matout)
   // dx: cell length in each direction.
   // matout: local stiffness matrix.
 
-  gkyl_mat_set(matout,0,0,2.333333333333333/dx[0]); 
-  gkyl_mat_set(matout,0,1,-2.666666666666667/dx[0]); 
-  gkyl_mat_set(matout,0,2,0.3333333333333333/dx[0]); 
-  gkyl_mat_set(matout,1,0,-2.666666666666667/dx[0]); 
-  gkyl_mat_set(matout,1,1,5.333333333333333/dx[0]); 
-  gkyl_mat_set(matout,1,2,-2.666666666666667/dx[0]); 
-  gkyl_mat_set(matout,2,0,0.3333333333333333/dx[0]); 
-  gkyl_mat_set(matout,2,1,-2.666666666666667/dx[0]); 
-  gkyl_mat_set(matout,2,2,2.333333333333333/dx[0]); 
+  double rdx2Sq[1];
+  rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
+
+  gkyl_mat_set(matout,0,0,1.166666666666667*rdx2Sq[0]); 
+  gkyl_mat_set(matout,0,1,-1.333333333333333*rdx2Sq[0]); 
+  gkyl_mat_set(matout,0,2,0.1666666666666667*rdx2Sq[0]); 
+  gkyl_mat_set(matout,1,0,-1.333333333333333*rdx2Sq[0]); 
+  gkyl_mat_set(matout,1,1,2.666666666666667*rdx2Sq[0]); 
+  gkyl_mat_set(matout,1,2,-1.333333333333333*rdx2Sq[0]); 
+  gkyl_mat_set(matout,2,0,0.1666666666666667*rdx2Sq[0]); 
+  gkyl_mat_set(matout,2,1,-1.333333333333333*rdx2Sq[0]); 
+  gkyl_mat_set(matout,2,2,1.166666666666667*rdx2Sq[0]); 
 }
 
 void fem_poisson_mass_times_modtonod_1x_ser_p1(struct gkyl_mat *matout) 
@@ -82,22 +88,26 @@ void fem_poisson_stiff_2x_ser_p1(const double *dx, struct gkyl_mat *matout)
   // dx: cell length in each direction.
   // matout: local stiffness matrix.
 
-  gkyl_mat_set(matout,0,0,0.6666666666666666/dx[1]+0.6666666666666666/dx[0]); 
-  gkyl_mat_set(matout,0,1,0.3333333333333333/dx[1]-0.6666666666666666/dx[0]); 
-  gkyl_mat_set(matout,0,2,0.3333333333333333/dx[0]-0.6666666666666666/dx[1]); 
-  gkyl_mat_set(matout,0,3,(-0.3333333333333333/dx[1])-0.3333333333333333/dx[0]); 
-  gkyl_mat_set(matout,1,0,0.3333333333333333/dx[1]-0.6666666666666666/dx[0]); 
-  gkyl_mat_set(matout,1,1,0.6666666666666666/dx[1]+0.6666666666666666/dx[0]); 
-  gkyl_mat_set(matout,1,2,(-0.3333333333333333/dx[1])-0.3333333333333333/dx[0]); 
-  gkyl_mat_set(matout,1,3,0.3333333333333333/dx[0]-0.6666666666666666/dx[1]); 
-  gkyl_mat_set(matout,2,0,0.3333333333333333/dx[0]-0.6666666666666666/dx[1]); 
-  gkyl_mat_set(matout,2,1,(-0.3333333333333333/dx[1])-0.3333333333333333/dx[0]); 
-  gkyl_mat_set(matout,2,2,0.6666666666666666/dx[1]+0.6666666666666666/dx[0]); 
-  gkyl_mat_set(matout,2,3,0.3333333333333333/dx[1]-0.6666666666666666/dx[0]); 
-  gkyl_mat_set(matout,3,0,(-0.3333333333333333/dx[1])-0.3333333333333333/dx[0]); 
-  gkyl_mat_set(matout,3,1,0.3333333333333333/dx[0]-0.6666666666666666/dx[1]); 
-  gkyl_mat_set(matout,3,2,0.3333333333333333/dx[1]-0.6666666666666666/dx[0]); 
-  gkyl_mat_set(matout,3,3,0.6666666666666666/dx[1]+0.6666666666666666/dx[0]); 
+  double rdx2Sq[2];
+  rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
+  rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
+
+  gkyl_mat_set(matout,0,0,0.3333333333333333*rdx2Sq[1]+0.3333333333333333*rdx2Sq[0]); 
+  gkyl_mat_set(matout,0,1,0.1666666666666667*rdx2Sq[1]-0.3333333333333333*rdx2Sq[0]); 
+  gkyl_mat_set(matout,0,2,0.1666666666666667*rdx2Sq[0]-0.3333333333333333*rdx2Sq[1]); 
+  gkyl_mat_set(matout,0,3,(-0.1666666666666667*rdx2Sq[1])-0.1666666666666667*rdx2Sq[0]); 
+  gkyl_mat_set(matout,1,0,0.1666666666666667*rdx2Sq[1]-0.3333333333333333*rdx2Sq[0]); 
+  gkyl_mat_set(matout,1,1,0.3333333333333333*rdx2Sq[1]+0.3333333333333333*rdx2Sq[0]); 
+  gkyl_mat_set(matout,1,2,(-0.1666666666666667*rdx2Sq[1])-0.1666666666666667*rdx2Sq[0]); 
+  gkyl_mat_set(matout,1,3,0.1666666666666667*rdx2Sq[0]-0.3333333333333333*rdx2Sq[1]); 
+  gkyl_mat_set(matout,2,0,0.1666666666666667*rdx2Sq[0]-0.3333333333333333*rdx2Sq[1]); 
+  gkyl_mat_set(matout,2,1,(-0.1666666666666667*rdx2Sq[1])-0.1666666666666667*rdx2Sq[0]); 
+  gkyl_mat_set(matout,2,2,0.3333333333333333*rdx2Sq[1]+0.3333333333333333*rdx2Sq[0]); 
+  gkyl_mat_set(matout,2,3,0.1666666666666667*rdx2Sq[1]-0.3333333333333333*rdx2Sq[0]); 
+  gkyl_mat_set(matout,3,0,(-0.1666666666666667*rdx2Sq[1])-0.1666666666666667*rdx2Sq[0]); 
+  gkyl_mat_set(matout,3,1,0.1666666666666667*rdx2Sq[0]-0.3333333333333333*rdx2Sq[1]); 
+  gkyl_mat_set(matout,3,2,0.1666666666666667*rdx2Sq[1]-0.3333333333333333*rdx2Sq[0]); 
+  gkyl_mat_set(matout,3,3,0.3333333333333333*rdx2Sq[1]+0.3333333333333333*rdx2Sq[0]); 
 }
 
 void fem_poisson_stiff_2x_ser_p2(const double *dx, struct gkyl_mat *matout) 
@@ -105,70 +115,74 @@ void fem_poisson_stiff_2x_ser_p2(const double *dx, struct gkyl_mat *matout)
   // dx: cell length in each direction.
   // matout: local stiffness matrix.
 
-  gkyl_mat_set(matout,0,0,1.155555555555555/dx[1]+1.155555555555555/dx[0]); 
-  gkyl_mat_set(matout,0,1,0.1333333333333333/dx[1]-1.777777777777778/dx[0]); 
-  gkyl_mat_set(matout,0,2,0.3777777777777778/dx[1]+0.6222222222222222/dx[0]); 
-  gkyl_mat_set(matout,0,3,0.1333333333333333/dx[0]-1.777777777777778/dx[1]); 
-  gkyl_mat_set(matout,0,4,(-0.8888888888888888/dx[1])-0.1333333333333333/dx[0]); 
-  gkyl_mat_set(matout,0,5,0.6222222222222222/dx[1]+0.3777777777777778/dx[0]); 
-  gkyl_mat_set(matout,0,6,(-0.1333333333333333/dx[1])-0.8888888888888888/dx[0]); 
-  gkyl_mat_set(matout,0,7,0.5111111111111111/dx[1]+0.5111111111111111/dx[0]); 
-  gkyl_mat_set(matout,1,0,0.1333333333333333/dx[1]-1.777777777777778/dx[0]); 
-  gkyl_mat_set(matout,1,1,1.066666666666667/dx[1]+3.555555555555555/dx[0]); 
-  gkyl_mat_set(matout,1,2,0.1333333333333333/dx[1]-1.777777777777778/dx[0]); 
+  double rdx2Sq[2];
+  rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
+  rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
+
+  gkyl_mat_set(matout,0,0,0.5777777777777777*rdx2Sq[1]+0.5777777777777777*rdx2Sq[0]); 
+  gkyl_mat_set(matout,0,1,0.06666666666666667*rdx2Sq[1]-0.8888888888888888*rdx2Sq[0]); 
+  gkyl_mat_set(matout,0,2,0.1888888888888889*rdx2Sq[1]+0.3111111111111111*rdx2Sq[0]); 
+  gkyl_mat_set(matout,0,3,0.06666666666666667*rdx2Sq[0]-0.8888888888888888*rdx2Sq[1]); 
+  gkyl_mat_set(matout,0,4,(-0.4444444444444444*rdx2Sq[1])-0.06666666666666667*rdx2Sq[0]); 
+  gkyl_mat_set(matout,0,5,0.3111111111111111*rdx2Sq[1]+0.1888888888888889*rdx2Sq[0]); 
+  gkyl_mat_set(matout,0,6,(-0.06666666666666667*rdx2Sq[1])-0.4444444444444444*rdx2Sq[0]); 
+  gkyl_mat_set(matout,0,7,0.2555555555555555*rdx2Sq[1]+0.2555555555555555*rdx2Sq[0]); 
+  gkyl_mat_set(matout,1,0,0.06666666666666667*rdx2Sq[1]-0.8888888888888888*rdx2Sq[0]); 
+  gkyl_mat_set(matout,1,1,0.5333333333333333*rdx2Sq[1]+1.777777777777778*rdx2Sq[0]); 
+  gkyl_mat_set(matout,1,2,0.06666666666666667*rdx2Sq[1]-0.8888888888888888*rdx2Sq[0]); 
   gkyl_mat_set(matout,1,3,0.0); 
   gkyl_mat_set(matout,1,4,0.0); 
-  gkyl_mat_set(matout,1,5,(-0.1333333333333333/dx[1])-0.8888888888888888/dx[0]); 
-  gkyl_mat_set(matout,1,6,1.777777777777778/dx[0]-1.066666666666667/dx[1]); 
-  gkyl_mat_set(matout,1,7,(-0.1333333333333333/dx[1])-0.8888888888888888/dx[0]); 
-  gkyl_mat_set(matout,2,0,0.3777777777777778/dx[1]+0.6222222222222222/dx[0]); 
-  gkyl_mat_set(matout,2,1,0.1333333333333333/dx[1]-1.777777777777778/dx[0]); 
-  gkyl_mat_set(matout,2,2,1.155555555555555/dx[1]+1.155555555555555/dx[0]); 
-  gkyl_mat_set(matout,2,3,(-0.8888888888888888/dx[1])-0.1333333333333333/dx[0]); 
-  gkyl_mat_set(matout,2,4,0.1333333333333333/dx[0]-1.777777777777778/dx[1]); 
-  gkyl_mat_set(matout,2,5,0.5111111111111111/dx[1]+0.5111111111111111/dx[0]); 
-  gkyl_mat_set(matout,2,6,(-0.1333333333333333/dx[1])-0.8888888888888888/dx[0]); 
-  gkyl_mat_set(matout,2,7,0.6222222222222222/dx[1]+0.3777777777777778/dx[0]); 
-  gkyl_mat_set(matout,3,0,0.1333333333333333/dx[0]-1.777777777777778/dx[1]); 
+  gkyl_mat_set(matout,1,5,(-0.06666666666666667*rdx2Sq[1])-0.4444444444444444*rdx2Sq[0]); 
+  gkyl_mat_set(matout,1,6,0.8888888888888888*rdx2Sq[0]-0.5333333333333333*rdx2Sq[1]); 
+  gkyl_mat_set(matout,1,7,(-0.06666666666666667*rdx2Sq[1])-0.4444444444444444*rdx2Sq[0]); 
+  gkyl_mat_set(matout,2,0,0.1888888888888889*rdx2Sq[1]+0.3111111111111111*rdx2Sq[0]); 
+  gkyl_mat_set(matout,2,1,0.06666666666666667*rdx2Sq[1]-0.8888888888888888*rdx2Sq[0]); 
+  gkyl_mat_set(matout,2,2,0.5777777777777777*rdx2Sq[1]+0.5777777777777777*rdx2Sq[0]); 
+  gkyl_mat_set(matout,2,3,(-0.4444444444444444*rdx2Sq[1])-0.06666666666666667*rdx2Sq[0]); 
+  gkyl_mat_set(matout,2,4,0.06666666666666667*rdx2Sq[0]-0.8888888888888888*rdx2Sq[1]); 
+  gkyl_mat_set(matout,2,5,0.2555555555555555*rdx2Sq[1]+0.2555555555555555*rdx2Sq[0]); 
+  gkyl_mat_set(matout,2,6,(-0.06666666666666667*rdx2Sq[1])-0.4444444444444444*rdx2Sq[0]); 
+  gkyl_mat_set(matout,2,7,0.3111111111111111*rdx2Sq[1]+0.1888888888888889*rdx2Sq[0]); 
+  gkyl_mat_set(matout,3,0,0.06666666666666667*rdx2Sq[0]-0.8888888888888888*rdx2Sq[1]); 
   gkyl_mat_set(matout,3,1,0.0); 
-  gkyl_mat_set(matout,3,2,(-0.8888888888888888/dx[1])-0.1333333333333333/dx[0]); 
-  gkyl_mat_set(matout,3,3,3.555555555555555/dx[1]+1.066666666666667/dx[0]); 
-  gkyl_mat_set(matout,3,4,1.777777777777778/dx[1]-1.066666666666667/dx[0]); 
-  gkyl_mat_set(matout,3,5,0.1333333333333333/dx[0]-1.777777777777778/dx[1]); 
+  gkyl_mat_set(matout,3,2,(-0.4444444444444444*rdx2Sq[1])-0.06666666666666667*rdx2Sq[0]); 
+  gkyl_mat_set(matout,3,3,1.777777777777778*rdx2Sq[1]+0.5333333333333333*rdx2Sq[0]); 
+  gkyl_mat_set(matout,3,4,0.8888888888888888*rdx2Sq[1]-0.5333333333333333*rdx2Sq[0]); 
+  gkyl_mat_set(matout,3,5,0.06666666666666667*rdx2Sq[0]-0.8888888888888888*rdx2Sq[1]); 
   gkyl_mat_set(matout,3,6,0.0); 
-  gkyl_mat_set(matout,3,7,(-0.8888888888888888/dx[1])-0.1333333333333333/dx[0]); 
-  gkyl_mat_set(matout,4,0,(-0.8888888888888888/dx[1])-0.1333333333333333/dx[0]); 
+  gkyl_mat_set(matout,3,7,(-0.4444444444444444*rdx2Sq[1])-0.06666666666666667*rdx2Sq[0]); 
+  gkyl_mat_set(matout,4,0,(-0.4444444444444444*rdx2Sq[1])-0.06666666666666667*rdx2Sq[0]); 
   gkyl_mat_set(matout,4,1,0.0); 
-  gkyl_mat_set(matout,4,2,0.1333333333333333/dx[0]-1.777777777777778/dx[1]); 
-  gkyl_mat_set(matout,4,3,1.777777777777778/dx[1]-1.066666666666667/dx[0]); 
-  gkyl_mat_set(matout,4,4,3.555555555555555/dx[1]+1.066666666666667/dx[0]); 
-  gkyl_mat_set(matout,4,5,(-0.8888888888888888/dx[1])-0.1333333333333333/dx[0]); 
+  gkyl_mat_set(matout,4,2,0.06666666666666667*rdx2Sq[0]-0.8888888888888888*rdx2Sq[1]); 
+  gkyl_mat_set(matout,4,3,0.8888888888888888*rdx2Sq[1]-0.5333333333333333*rdx2Sq[0]); 
+  gkyl_mat_set(matout,4,4,1.777777777777778*rdx2Sq[1]+0.5333333333333333*rdx2Sq[0]); 
+  gkyl_mat_set(matout,4,5,(-0.4444444444444444*rdx2Sq[1])-0.06666666666666667*rdx2Sq[0]); 
   gkyl_mat_set(matout,4,6,0.0); 
-  gkyl_mat_set(matout,4,7,0.1333333333333333/dx[0]-1.777777777777778/dx[1]); 
-  gkyl_mat_set(matout,5,0,0.6222222222222222/dx[1]+0.3777777777777778/dx[0]); 
-  gkyl_mat_set(matout,5,1,(-0.1333333333333333/dx[1])-0.8888888888888888/dx[0]); 
-  gkyl_mat_set(matout,5,2,0.5111111111111111/dx[1]+0.5111111111111111/dx[0]); 
-  gkyl_mat_set(matout,5,3,0.1333333333333333/dx[0]-1.777777777777778/dx[1]); 
-  gkyl_mat_set(matout,5,4,(-0.8888888888888888/dx[1])-0.1333333333333333/dx[0]); 
-  gkyl_mat_set(matout,5,5,1.155555555555555/dx[1]+1.155555555555555/dx[0]); 
-  gkyl_mat_set(matout,5,6,0.1333333333333333/dx[1]-1.777777777777778/dx[0]); 
-  gkyl_mat_set(matout,5,7,0.3777777777777778/dx[1]+0.6222222222222222/dx[0]); 
-  gkyl_mat_set(matout,6,0,(-0.1333333333333333/dx[1])-0.8888888888888888/dx[0]); 
-  gkyl_mat_set(matout,6,1,1.777777777777778/dx[0]-1.066666666666667/dx[1]); 
-  gkyl_mat_set(matout,6,2,(-0.1333333333333333/dx[1])-0.8888888888888888/dx[0]); 
+  gkyl_mat_set(matout,4,7,0.06666666666666667*rdx2Sq[0]-0.8888888888888888*rdx2Sq[1]); 
+  gkyl_mat_set(matout,5,0,0.3111111111111111*rdx2Sq[1]+0.1888888888888889*rdx2Sq[0]); 
+  gkyl_mat_set(matout,5,1,(-0.06666666666666667*rdx2Sq[1])-0.4444444444444444*rdx2Sq[0]); 
+  gkyl_mat_set(matout,5,2,0.2555555555555555*rdx2Sq[1]+0.2555555555555555*rdx2Sq[0]); 
+  gkyl_mat_set(matout,5,3,0.06666666666666667*rdx2Sq[0]-0.8888888888888888*rdx2Sq[1]); 
+  gkyl_mat_set(matout,5,4,(-0.4444444444444444*rdx2Sq[1])-0.06666666666666667*rdx2Sq[0]); 
+  gkyl_mat_set(matout,5,5,0.5777777777777777*rdx2Sq[1]+0.5777777777777777*rdx2Sq[0]); 
+  gkyl_mat_set(matout,5,6,0.06666666666666667*rdx2Sq[1]-0.8888888888888888*rdx2Sq[0]); 
+  gkyl_mat_set(matout,5,7,0.1888888888888889*rdx2Sq[1]+0.3111111111111111*rdx2Sq[0]); 
+  gkyl_mat_set(matout,6,0,(-0.06666666666666667*rdx2Sq[1])-0.4444444444444444*rdx2Sq[0]); 
+  gkyl_mat_set(matout,6,1,0.8888888888888888*rdx2Sq[0]-0.5333333333333333*rdx2Sq[1]); 
+  gkyl_mat_set(matout,6,2,(-0.06666666666666667*rdx2Sq[1])-0.4444444444444444*rdx2Sq[0]); 
   gkyl_mat_set(matout,6,3,0.0); 
   gkyl_mat_set(matout,6,4,0.0); 
-  gkyl_mat_set(matout,6,5,0.1333333333333333/dx[1]-1.777777777777778/dx[0]); 
-  gkyl_mat_set(matout,6,6,1.066666666666667/dx[1]+3.555555555555555/dx[0]); 
-  gkyl_mat_set(matout,6,7,0.1333333333333333/dx[1]-1.777777777777778/dx[0]); 
-  gkyl_mat_set(matout,7,0,0.5111111111111111/dx[1]+0.5111111111111111/dx[0]); 
-  gkyl_mat_set(matout,7,1,(-0.1333333333333333/dx[1])-0.8888888888888888/dx[0]); 
-  gkyl_mat_set(matout,7,2,0.6222222222222222/dx[1]+0.3777777777777778/dx[0]); 
-  gkyl_mat_set(matout,7,3,(-0.8888888888888888/dx[1])-0.1333333333333333/dx[0]); 
-  gkyl_mat_set(matout,7,4,0.1333333333333333/dx[0]-1.777777777777778/dx[1]); 
-  gkyl_mat_set(matout,7,5,0.3777777777777778/dx[1]+0.6222222222222222/dx[0]); 
-  gkyl_mat_set(matout,7,6,0.1333333333333333/dx[1]-1.777777777777778/dx[0]); 
-  gkyl_mat_set(matout,7,7,1.155555555555555/dx[1]+1.155555555555555/dx[0]); 
+  gkyl_mat_set(matout,6,5,0.06666666666666667*rdx2Sq[1]-0.8888888888888888*rdx2Sq[0]); 
+  gkyl_mat_set(matout,6,6,0.5333333333333333*rdx2Sq[1]+1.777777777777778*rdx2Sq[0]); 
+  gkyl_mat_set(matout,6,7,0.06666666666666667*rdx2Sq[1]-0.8888888888888888*rdx2Sq[0]); 
+  gkyl_mat_set(matout,7,0,0.2555555555555555*rdx2Sq[1]+0.2555555555555555*rdx2Sq[0]); 
+  gkyl_mat_set(matout,7,1,(-0.06666666666666667*rdx2Sq[1])-0.4444444444444444*rdx2Sq[0]); 
+  gkyl_mat_set(matout,7,2,0.3111111111111111*rdx2Sq[1]+0.1888888888888889*rdx2Sq[0]); 
+  gkyl_mat_set(matout,7,3,(-0.4444444444444444*rdx2Sq[1])-0.06666666666666667*rdx2Sq[0]); 
+  gkyl_mat_set(matout,7,4,0.06666666666666667*rdx2Sq[0]-0.8888888888888888*rdx2Sq[1]); 
+  gkyl_mat_set(matout,7,5,0.1888888888888889*rdx2Sq[1]+0.3111111111111111*rdx2Sq[0]); 
+  gkyl_mat_set(matout,7,6,0.06666666666666667*rdx2Sq[1]-0.8888888888888888*rdx2Sq[0]); 
+  gkyl_mat_set(matout,7,7,0.5777777777777777*rdx2Sq[1]+0.5777777777777777*rdx2Sq[0]); 
 }
 
 void fem_poisson_mass_times_modtonod_2x_ser_p1(struct gkyl_mat *matout) 

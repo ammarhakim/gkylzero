@@ -157,6 +157,8 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->basis_type = basis->b_type;
   up->poly_order = basis->poly_order;
   for (int d=0; d<up->ndim; d++) up->isdirperiodic[d] = isdirperiodic[d];
+  up->isdomperiodic = true;
+  for (int d=0; d<up->ndim; d++) up->isdomperiodic = up->isdomperiodic && isdirperiodic[d];
 
   up->globalidx = gkyl_malloc(sizeof(long[up->num_basis])); // global index, one for each basis in a cell.
 
