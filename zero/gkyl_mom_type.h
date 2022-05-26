@@ -23,9 +23,17 @@ struct gkyl_mom_type {
   momf_t kernel; // moment calculation kernel
   struct gkyl_ref_count ref_count; // reference count
 
-  uint32_t flag;
+  uint32_t flags;
   struct gkyl_mom_type *on_dev; // pointer to itself or device data
 };
+
+/**
+ * Check if moment type is on device.
+ *
+ * @param momt Moment type to check
+ * @return true if momt on device, false otherwise
+ */
+bool gkyl_mom_type_is_cu_dev(const struct gkyl_mom_type *momt);
 
 /**
  * Acquire pointer to moment object. Delete using the release() method

@@ -6,6 +6,7 @@
 #include <time.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_eqn_type.h>
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
 
@@ -52,6 +53,7 @@ main(int argc, char **argv)
     .init = eval_fun,
     .advection = {
       .velocity = eval_advect_vel,
+      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
       .velocity_ctx = 0,
     },
   };

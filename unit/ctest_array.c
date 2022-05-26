@@ -1,3 +1,4 @@
+#include "gkyl_range.h"
 #include <acutest.h>
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
@@ -694,6 +695,34 @@ void test_reduce_range()
   gkyl_array_release(arr);
 }
 
+void test_sum_reduce_range()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+  
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 3, range.volume);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+    double *d = gkyl_array_fetch(arr, loc);
+    d[0] = 0.5;
+    d[1] = 1.5;
+    d[2] = 2.5;
+  }
+
+  double asum[3];
+  gkyl_array_reduce_range(asum, arr, GKYL_SUM, range);
+
+  TEST_CHECK( asum[0] == 0.5*range.volume );
+  TEST_CHECK( asum[1] == 1.5*range.volume );
+  TEST_CHECK( asum[2] == 2.5*range.volume );
+
+  gkyl_array_release(arr);
+}
+
 void test_rio_1()
 {
   long num = 1000;
@@ -844,25 +873,31 @@ test_grid_array_rio_1()
   struct gkyl_rect_grid grid2;
   
   // read back the grid and the array
-  gkyl_grid_sub_array_read(&grid2, &range, arr2, "ctest_array_grid_array_1.gkyl");
+  int err =
+    gkyl_grid_sub_array_read(&grid2, &range, arr2, "ctest_array_grid_array_1.gkyl");
 
-  TEST_CHECK( grid.ndim == grid2.ndim );
-  for (int d=0; d<grid.ndim; ++d) {
-    TEST_CHECK( grid.lower[d] == grid2.lower[d] );
-    TEST_CHECK( grid.upper[d] == grid2.upper[d] );
-    TEST_CHECK( grid.cells[d] == grid2.cells[d] );
-    TEST_CHECK( grid.dx[d] == grid2.dx[d] );
-  }
-  TEST_CHECK( grid.cellVolume == grid2.cellVolume );  
+  TEST_CHECK( err == 0 );
 
-  gkyl_range_iter_init(&iter, &range);
-  while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(&range, iter.idx);
+  if (err == 0) {
 
-    const double *rhs = gkyl_array_cfetch(arr, loc);
-    const double *lhs = gkyl_array_cfetch(arr2, loc);
-    for (int k=0; k<2; ++k)
-      TEST_CHECK( lhs[k] == rhs[k] );
+    TEST_CHECK( grid.ndim == grid2.ndim );
+    for (int d=0; d<grid.ndim; ++d) {
+      TEST_CHECK( grid.lower[d] == grid2.lower[d] );
+      TEST_CHECK( grid.upper[d] == grid2.upper[d] );
+      TEST_CHECK( grid.cells[d] == grid2.cells[d] );
+      TEST_CHECK( grid.dx[d] == grid2.dx[d] );
+    }
+    TEST_CHECK( grid.cellVolume == grid2.cellVolume );  
+    
+    gkyl_range_iter_init(&iter, &range);
+    while (gkyl_range_iter_next(&iter)) {
+      long loc = gkyl_range_idx(&range, iter.idx);
+      
+      const double *rhs = gkyl_array_cfetch(arr, loc);
+      const double *lhs = gkyl_array_cfetch(arr2, loc);
+      for (int k=0; k<2; ++k)
+        TEST_CHECK( lhs[k] == rhs[k] );
+    }
   }
   
   gkyl_array_release(arr);
@@ -910,7 +945,7 @@ test_grid_array_rio_2()
   TEST_CHECK( grid.cellVolume == grid2.cellVolume );  
 
   // NOTE: array read from file is not the same shape as "arr". This
-  // is because the new_file_file does not read ghost cells.
+  // is because the new_from_file does not read ghost cells.
   long lhs_loc = 0;
   gkyl_range_iter_init(&iter, &range);
   while (gkyl_range_iter_next(&iter)) {
@@ -1159,6 +1194,58 @@ void test_cu_array_accumulate_range()
     for (int i=0; i<a2->ncomp; ++i)
       TEST_CHECK( a2d[i] == 1.5 + 0.5*0.5 );
   }  
+
+  gkyl_array_release(a1);
+  gkyl_array_release(a2);
+  gkyl_array_release(a1_cu);
+  gkyl_array_release(a2_cu);
+}
+
+void test_cu_array_accumulate_range_4d()
+{
+  int lower[] = { 1, 1, 1, 1 };
+  int upper[] = { 46, 46, 32, 32};
+  struct gkyl_range range;
+  gkyl_range_init(&range, 4, lower, upper);
+  
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 8, range.volume);
+  struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 3, range.volume);
+
+  // make device copies of arrays
+  struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 8, range.volume);
+  struct gkyl_array *a2_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3, range.volume);
+
+  // initialize data
+  gkyl_array_clear(a1, 0.5);
+  gkyl_array_clear(a2, 1.5);
+  
+  // copy initialized arrays to device
+  gkyl_array_copy(a1_cu, a1);
+  gkyl_array_copy(a2_cu, a2);
+
+  int slower[] = { 2, 2, 1, 1 };
+  int supper[] = { 45, 45, 32, 32 };
+  struct gkyl_range sub_range;
+  gkyl_sub_range_init(&sub_range, &range, slower, supper);
+
+  // a1 = a1 + 0.5*a2 (only first 3 components of a1 are modified)
+  gkyl_array_accumulate_range(a1_cu, 0.5, a2_cu, sub_range);
+
+ // copy from device and check if things are ok
+  gkyl_array_clear(a1, 0.0); 
+  gkyl_array_copy(a1, a1_cu);
+  
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &sub_range);
+  
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+    double *a1d = gkyl_array_fetch(a1, loc);
+    for (int c=0; c<3; ++c)
+      TEST_CHECK( a1d[c] == 0.5 + 0.5*1.5 );
+    for (int c=3; c<8; ++c)
+      TEST_CHECK( a1d[c] == 0.5 );
+  }
 
   gkyl_array_release(a1);
   gkyl_array_release(a2);
@@ -1628,6 +1715,7 @@ TEST_LIST = {
   { "non_numeric", test_non_numeric },
   { "reduce", test_reduce },
   { "reduce_range", test_reduce_range },
+  { "sum_reduce_range", test_sum_reduce_range },
   { "rio_1", test_rio_1 },
   { "rio_2", test_rio_2 },
   { "rio_3", test_rio_3 },
@@ -1639,6 +1727,7 @@ TEST_LIST = {
   { "cu_array_clear_range", test_cu_array_clear_range},
   { "cu_array_accumulate", test_cu_array_accumulate},
   { "cu_array_accumulate_range", test_cu_array_accumulate_range},
+  { "cu_array_accumulate_range_4d", test_cu_array_accumulate_range_4d  },
   { "cu_array_combine", test_cu_array_combine},
   { "cu_array_set", test_cu_array_set },
   { "cu_array_set_range", test_cu_array_set_range },

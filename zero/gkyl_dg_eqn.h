@@ -40,6 +40,13 @@ struct gkyl_dg_eqn {
   struct  gkyl_dg_eqn *on_dev; // pointer to itself or device data
 };
 
+// context for use in BCs
+struct dg_bc_ctx {
+  int dir; // direction for BCs
+  int cdim; // config-space dimensions
+  const struct gkyl_basis *basis; // basis function
+};
+
 /**
  * Check if equation is on device.
  *

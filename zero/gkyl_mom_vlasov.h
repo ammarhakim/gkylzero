@@ -20,3 +20,19 @@ struct gkyl_mom_type* gkyl_mom_vlasov_new(const struct gkyl_basis* cbasis,
  */
 struct gkyl_mom_type* gkyl_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, const char *mom);
+
+/**
+ * Create new integrated Vlasov moment type object. Lab-frame
+ * integrated moments (M0, M1i and M2) are computed.
+ *
+ * @param cbasis Configuration-space basis-functions
+ * @param pbasis Phase-space basis-functions
+ */
+struct gkyl_mom_type *gkyl_int_mom_vlasov_new(const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis);
+
+/**
+ * Create new integrated Vlasov moment type object on GPU
+ */
+struct gkyl_mom_type* gkyl_int_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
+  const struct gkyl_basis* pbasis);
