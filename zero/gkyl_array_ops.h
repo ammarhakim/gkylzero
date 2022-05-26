@@ -246,6 +246,8 @@ void gkyl_array_scale_cu(struct gkyl_array* out, double a);
 
 void gkyl_array_scale_by_cell_cu(struct gkyl_array* out, const struct gkyl_array* a);
 
+void gkyl_array_shiftc0_cu(struct gkyl_array* out, double a);
+
 /**
  * Host-side wrappers for range-based array operations
  */

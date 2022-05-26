@@ -1490,7 +1490,7 @@ void test_cu_array_shiftc0()
   // copy host arrays to device
   gkyl_array_copy(a1_cu, a1);
 
-  gkyl_array_shift(a1_cu, s);
+  gkyl_array_shiftc0(a1_cu, s);
 
   // copy from device and check if things are ok
   gkyl_array_copy(a1, a1_cu);
