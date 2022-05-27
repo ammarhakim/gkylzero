@@ -318,6 +318,27 @@ void test_array_scale_by_cell()
   gkyl_array_release(s);
 }
 
+void test_array_shiftc0()
+{
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 3, 10);
+
+  double s = -0.5;
+  double *a1_d = a1->data;
+  for (unsigned i=0; i<a1->size; ++i) {
+    for (size_t k=0; k<a1->ncomp; ++k) a1_d[i*a1->ncomp+k] = i*2.0+k;
+  }
+
+  gkyl_array_shiftc0(a1, s);
+
+  TEST_CHECK( gkyl_compare(a1_d[0], 0*1.0+0-0.5, 1e-14) );
+  for (unsigned i=0; i<a1->size; ++i) {
+    for (size_t k=1; k<a1->ncomp; ++k) 
+      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+k], i*2.0+k, 1e-14) );
+  }
+
+  gkyl_array_release(a1);
+}
+
 void test_array_opcombine()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);  
@@ -1452,6 +1473,37 @@ void test_cu_array_scale_by_cell()
   gkyl_array_release(s_cu);
 }
 
+void test_cu_array_shiftc0()
+{
+  double s = -0.5;
+
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 3, 10);
+  // make device copies
+  struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3, 10);
+
+  // initialize data
+  double *a1_d  = a1->data;
+  for (unsigned i=0; i<a1->size; ++i) {
+    for (size_t k=0; k<a1->ncomp; ++k) a1_d[i*a1->ncomp+k] = i*2.0+k;
+  }
+
+  // copy host arrays to device
+  gkyl_array_copy(a1_cu, a1);
+
+  gkyl_array_shiftc0(a1_cu, s);
+
+  // copy from device and check if things are ok
+  gkyl_array_copy(a1, a1_cu);
+  TEST_CHECK( gkyl_compare(a1_d[0], 0*1.0+0-0.5, 1e-14) );
+  for (unsigned i=0; i<a1->size; ++i) {
+    for (size_t k=1; k<a1->ncomp; ++k)
+      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+k], i*2.0+k, 1e-14) );
+  }
+
+  gkyl_array_release(a1);
+  gkyl_array_release(a1_cu);
+}
+
 void test_cu_array_copy_buffer()
 {
   int shape[] = {10, 20};
@@ -1705,6 +1757,7 @@ TEST_LIST = {
   { "array_set_range", test_array_set_range },
   { "array_scale", test_array_scale },
   { "array_scale_by_cell", test_array_scale_by_cell },
+  { "array_shiftc0", test_array_shiftc0 },
   { "array_opcombine", test_array_opcombine },
   { "array_ops_comp", test_array_ops_comp },
   { "array_copy_buffer", test_array_copy_buffer },
@@ -1733,6 +1786,7 @@ TEST_LIST = {
   { "cu_array_set_range", test_cu_array_set_range },
   { "cu_array_scale", test_cu_array_scale },
   { "cu_array_scale_by_cell", test_cu_array_scale_by_cell },
+  { "cu_array_shiftc0", test_cu_array_shiftc0 },
   { "cu_array_copy_buffer", test_cu_array_copy_buffer },
   { "cu_array_copy_buffer_fn", test_cu_array_copy_buffer_fn },
   { "cu_array_flip_copy_buffer_fn", test_cu_array_flip_copy_buffer_fn },
