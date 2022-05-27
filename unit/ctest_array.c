@@ -897,9 +897,9 @@ test_grid_array_rio_1()
   int err =
     gkyl_grid_sub_array_read(&grid2, &range, arr2, "ctest_array_grid_array_1.gkyl");
 
-  TEST_CHECK( err == 0 );
+  TEST_CHECK( err < 1 );
 
-  if (err == 0) {
+  if (err < 1) {
 
     TEST_CHECK( grid.ndim == grid2.ndim );
     for (int d=0; d<grid.ndim; ++d) {
