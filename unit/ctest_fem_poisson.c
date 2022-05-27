@@ -58,7 +58,7 @@ apply_periodic_bc(struct gkyl_array *buff, struct gkyl_array *fld, const int dir
 }
 
 void
-test_1x(int poly_order, const bool *isdirperiodic)
+test_1x(int poly_order, struct gkyl_poisson_bc bcs)
 {
   double epsilon_0 = 1.0;
   double lower[] = {-M_PI}, upper[] = {M_PI};
@@ -92,11 +92,11 @@ test_1x(int poly_order, const bool *isdirperiodic)
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho);
   struct gkyl_array *perbuff = mkarr(basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
   for (int d=0; d<dim; d++)
-    if (isdirperiodic[d]) apply_periodic_bc(perbuff, rho, d, skin_ghost);
+    if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, rho, d, skin_ghost);
   gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_poisson_1x_p1_rho_1.gkyl");
 
   // FEM poisson solver.
-  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, &basis, isdirperiodic, epsilon_0, NULL);
+  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, bcs, epsilon_0, NULL);
 
   // Set the RHS source.
   gkyl_fem_poisson_set_rhs(poisson, rho);
@@ -104,7 +104,7 @@ test_1x(int poly_order, const bool *isdirperiodic)
   // Solve the problem.
   gkyl_fem_poisson_solve(poisson, phi);
   for (int d=0; d<dim; d++)
-    if (isdirperiodic[d]) apply_periodic_bc(perbuff, phi, d, skin_ghost);
+    if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, phi, d, skin_ghost);
   gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_poisson_1x_p1_phi_1.gkyl");
 
 //  if (poly_order == 1) {
@@ -126,13 +126,15 @@ test_1x(int poly_order, const bool *isdirperiodic)
   gkyl_array_release(perbuff);
 }
 
-void test_1x_p1_periodic() {
-  const bool isdirperiodic[] = {true};
-  test_1x(1, &isdirperiodic[0]);
+void test_1x_p1_periodicx() {
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC;
+  bc_tv.up_type[0] = GKYL_POISSON_PERIODIC;
+  test_1x(1, bc_tv);
 }
 
 
 TEST_LIST = {
-  { "test_1x_p1_periodic", test_1x_p1_periodic },
+  { "test_1x_p1_periodicx", test_1x_p1_periodicx },
   { NULL, NULL },
 };

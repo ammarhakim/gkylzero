@@ -144,8 +144,8 @@ int idx_to_inup_ker(const int dim, const int *num_cells, const int *idx) {
 }
 
 gkyl_fem_poisson*
-gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
-  const bool *isdirperiodic, const double epsilon, void *ctx)
+gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
+  struct gkyl_poisson_bc bcs, const double epsilon, void *ctx)
 {
 
   gkyl_fem_poisson *up = gkyl_malloc(sizeof(gkyl_fem_poisson));
@@ -153,51 +153,54 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->ctx = ctx;
   up->ndim = grid->ndim;
   up->grid = *grid;
-  up->num_basis = basis->num_basis;
-  up->basis_type = basis->b_type;
-  up->poly_order = basis->poly_order;
-  for (int d=0; d<up->ndim; d++) up->isdirperiodic[d] = isdirperiodic[d];
-  up->isdomperiodic = true;
-  for (int d=0; d<up->ndim; d++) up->isdomperiodic = up->isdomperiodic && isdirperiodic[d];
+  up->num_basis =  basis.num_basis;
+  up->basis_type = basis.b_type;
+  up->poly_order = basis.poly_order;
+  up->basis = basis;
+
+  for (int d=0; d<up->ndim; d++) up->isdirperiodic[d] = bcs.lo_type[d] == GKYL_POISSON_PERIODIC;
 
   up->globalidx = gkyl_malloc(sizeof(long[up->num_basis])); // global index, one for each basis in a cell.
 
   // Local and local-ext ranges for whole-grid arrays.
-  int ghost[GKYL_MAX_DIM];
+  int ghost[POISSON_MAX_DIM];
   for (int d=0; d<up->ndim; d++) ghost[d] = 1;
   gkyl_create_grid_ranges(grid, ghost, &up->local_range_ext, &up->local_range);
   // Range of cells we'll solve Poisson in, as
   // a sub-range of up->local_range_ext.
-  int sublower[GKYL_MAX_DIM], subupper[GKYL_MAX_DIM];
+  int sublower[POISSON_MAX_DIM], subupper[POISSON_MAX_DIM];
   for (int d=0; d<up->ndim; d++) {
     sublower[d] = up->local_range.lower[d];
     subupper[d] = up->local_range.upper[d];
-//    if (up->isdirperiodic[d]) {
-//      // Include ghost cells if periodic in this direction. Assume that
-//      // periodic directions are sync-ed outside of Poisson solver.
-//      sublower[d] = up->local_range_ext.lower[d];
-//      subupper[d] = up->local_range_ext.upper[d];
-//    }
   }
   gkyl_sub_range_init(&up->solve_range, &up->local_range_ext, sublower, subupper);
   for (int d=0; d<up->ndim; d++) up->num_cells[d] = up->solve_range.upper[d]-up->solve_range.lower[d]+1;
 
   // Compute the number of local and global nodes.
   up->numnodes_local = up->num_basis;
-  up->numnodes_global = global_num_nodes(up->ndim, up->poly_order, basis->b_type, &up->num_cells[0]);
+  up->numnodes_global = global_num_nodes(up->ndim, up->poly_order, basis.b_type, &up->num_cells[0]);
+
+  // Prepare for periodic domain case.
+  up->isdomperiodic = true;
+  for (int d=0; d<up->ndim; d++) up->isdomperiodic = up->isdomperiodic && up->isdirperiodic[d];
+  if (up->isdomperiodic) {
+    up->rhs_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, up->solve_range.volume);
+    gkyl_array_clear(up->rhs_cellavg, 0.0);
+    up->mavgfac = -pow(sqrt(2.),up->ndim);
+  }
 
   // Create local matrices used later.
-  double dx[GKYL_MAX_DIM];
+  double dx[POISSON_MAX_DIM];
   for (int d=0; d<up->ndim; d++) dx[d] = up->grid.dx[d];
   up->local_stiff = gkyl_mat_new(up->numnodes_local, up->numnodes_local, 0.);
   up->local_mass_modtonod = gkyl_mat_new(up->numnodes_local, up->numnodes_local, 0.);
   up->local_nodtomod = gkyl_mat_new(up->numnodes_local, up->numnodes_local, 0.);
-  local_stiff(up->ndim, up->poly_order, basis->b_type, &dx[0], up->local_stiff);
-  local_mass_modtonod(up->ndim, up->poly_order, basis->b_type, up->local_mass_modtonod);
-  local_nodtomod(up->ndim, up->poly_order, basis->b_type, up->local_nodtomod);
+  local_stiff(up->ndim, up->poly_order, basis.b_type, &dx[0], up->local_stiff);
+  local_mass_modtonod(up->ndim, up->poly_order, basis.b_type, up->local_mass_modtonod);
+  local_nodtomod(up->ndim, up->poly_order, basis.b_type, up->local_nodtomod);
 
   // Select local-to-global mapping kernels:
-  choose_local2global_kernels(basis, &isdirperiodic[0], &up->l2g[0]);
+  choose_local2global_kernels(&basis, &up->isdirperiodic[0], &up->l2g[0]);
 
   // Create a linear Ax=B problem. Here A is the discrete (global) stiffness
   // matrix times -epsilon.
@@ -230,9 +233,16 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 void
 gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, const struct gkyl_array *rhsin)
 {
+
+  if (up->isdomperiodic) {
+    // Subtract the volume averaged RHS.
+    gkyl_dg_calc_average_range(up->basis, 0, up->rhs_cellavg, 0, rhsin, up->solve_range);
+    gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->solve_range);
+//    gkyl_array_shiftc0(rhsin, up->mavgfac*up->rhs_avg);
+  }
+
   gkyl_mat_triples *tri = gkyl_mat_triples_new(up->numnodes_global, 1);
 
-  printf("\n");
   gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
   while (gkyl_range_iter_next(&up->solve_iter)) {
     long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
@@ -261,7 +271,7 @@ void
 gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout) {
   gkyl_superlu_solve(up->prob);
 
-  int pidx[GKYL_MAX_DIM] = {0};
+  int pidx[POISSON_MAX_DIM] = {0};
 
   gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
   while (gkyl_range_iter_next(&up->solve_iter)) {
@@ -285,6 +295,7 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout) {
 
 void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
 {
+  if (up->isdomperiodic) gkyl_array_release(up->rhs_cellavg);
   gkyl_mat_release(up->local_stiff);
   gkyl_mat_release(up->local_mass_modtonod);
   gkyl_mat_release(up->local_nodtomod);

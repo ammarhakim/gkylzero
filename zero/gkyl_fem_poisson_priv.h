@@ -3,6 +3,10 @@
 #include <gkyl_fem_poisson_kernels.h>
 #include <gkyl_basis.h>
 
+#ifndef POISSON_MAX_DIM
+# define POISSON_MAX_DIM 3
+#endif
+
 // Function pointer type for local-to-global mapping.
 typedef void (*local2global_t)(const int *numCells, const int *idx,
   long *globalIdxs);
@@ -84,9 +88,13 @@ struct gkyl_fem_poisson {
   int num_basis; // number of basis functions.
   enum gkyl_basis_type basis_type;
   int poly_order;
-  int num_cells[GKYL_MAX_DIM];
-  bool isdirperiodic[GKYL_MAX_DIM]; // =true if direction is periodic.
+  struct gkyl_basis basis;
+  int num_cells[POISSON_MAX_DIM];
+  bool isdirperiodic[POISSON_MAX_DIM]; // =true if direction is periodic.
+
   bool isdomperiodic; // =true if all directions are periodic.
+  struct gkyl_array *rhs_cellavg;
+  double rhs_avg[1], mavgfac;
 
   struct gkyl_range local_range, local_range_ext;
   struct gkyl_range solve_range, solve_range_ext;
@@ -114,7 +122,7 @@ choose_local2global_kernels(const struct gkyl_basis* basis, const bool *isdirper
   int dim = basis->ndim;
   int poly_order = basis->poly_order;
 
-  int bckey[GKYL_MAX_DIM] = {-1};
+  int bckey[POISSON_MAX_DIM] = {-1};
   for (int d=0; d<basis->ndim; d++) bckey[d] = isdirperiodic[d] ? 0 : 1;
 
   int ki = 0;

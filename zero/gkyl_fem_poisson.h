@@ -10,9 +10,31 @@
 #include <gkyl_mat.h>
 #include <gkyl_mat_triples.h>
 #include <gkyl_superlu_ops.h>
+#include <gkyl_dg_bin_ops.h>
+
+#ifndef POISSON_MAX_DIM
+# define POISSON_MAX_DIM 3
+#endif
 
 // Object type
 typedef struct gkyl_fem_poisson gkyl_fem_poisson;
+
+// Boundary condition types.
+enum gkyl_poisson_bc_type {
+  GKYL_POISSON_PERIODIC,
+  GKYL_POISSON_DIRICHLET,  // sets the value. 
+  GKYL_POISSON_NEUMANN,  // sets the slope normal to the boundary.
+  GKYL_POISSON_ROBIN,  // a combination of dirichlet and neumann.
+};
+
+// Boundary condition values. Dirichlet and Neumann use only one value,
+// Robin uses 3, and periodic ignores the value.
+struct gkyl_poisson_bc_value { double v[3]; };
+
+struct gkyl_poisson_bc {
+  enum gkyl_poisson_bc_type lo_type[POISSON_MAX_DIM], up_type[POISSON_MAX_DIM];
+  struct gkyl_poisson_bc_value lo_value[POISSON_MAX_DIM], up_value[POISSON_MAX_DIM];
+};
 
 /**
  * Create new updater to solve the Poisson problem
@@ -29,8 +51,8 @@ typedef struct gkyl_fem_poisson gkyl_fem_poisson;
  * @return New updater pointer.
  */
 gkyl_fem_poisson* gkyl_fem_poisson_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
-  const bool *isdirperiodic, const double epsilon, void *ctx);
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
+  struct gkyl_poisson_bc bcs, const double epsilon, void *ctx);
 
 /**
  * Assign the right-side vector with the discontinuous (DG) source field.
