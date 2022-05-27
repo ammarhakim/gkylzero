@@ -96,6 +96,20 @@ gkyl_array_scale_by_cell(struct gkyl_array* out, const struct gkyl_array* a)
   return out;
 }
 
+struct gkyl_array*
+gkyl_array_shiftc0(struct gkyl_array* out, double a)
+{
+  assert(out->type == GKYL_DOUBLE);
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_shiftc0_cu(out, a); return out; }
+#endif
+
+  double *out_d = out->data;
+  for (size_t i=0; i<out->size; ++i)
+    out_d[i*out->ncomp] = a+out_d[i*out->ncomp];
+  return out;
+}
+
 void 
 gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op op)
 {
