@@ -17,8 +17,8 @@ void
 evalInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct sim_ctx *app = ctx;
-  double x = xn[0];
-  if (x > -1 & x < 1) {
+  double x = xn[0], y = xn[1];
+  if (x > -1 & x < 1 & y > -1 & y < 1) {
     fout[0] = 1.0;
   } else {
     fout[0] = 0.0;
@@ -29,16 +29,18 @@ void
 D(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct sim_ctx *app = ctx;
-  double x = xn[0];
+  double x = xn[0], y = xn[1];
   fout[0] = x + 2.0;
+  fout[1] = y + 2.0;
 }
 
 void
 velocity(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct sim_ctx *app = ctx;
-  double x = xn[0];
+  double x = xn[0], y = xn[1];
   fout[0] = 0.0;
+  fout[1] = 0.0;
 }
 
 struct sim_ctx
@@ -76,17 +78,17 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "rt-diffusion-1x",
+    .name = "rt-diffusion-2x",
 
-    .cdim = 1, .vdim = 0,
-    .lower = { -2 },
-    .upper = { 2 },
-    .cells = { 256 },
-    .poly_order = 1,
+    .cdim = 2, .vdim = 0,
+    .lower = { -2, -2 },
+    .upper = { 2, 2 },
+    .cells = { 32, 32 },
+    .poly_order = 2,
     .basis_type = app_args.basis_type,
 
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
+    .num_periodic_dir = 2,
+    .periodic_dirs = { 0, 1 },
 
     .num_species = 0,
     .species = { },

@@ -22,33 +22,33 @@ typedef struct { diffusion_surf_t kernels[3]; } gkyl_dg_diffusion_surf_kern_list
 // Volume kernel list
 GKYL_CU_D
 static const gkyl_dg_diffusion_vol_kern_list vol_kernels[] = {
-  { NULL, dg_diffusion_vol_1x_ser_p1, dg_diffusion_vol_1x_ser_p2 }, // 1
-  { NULL, NULL, NULL }, // 2
-  { NULL, NULL, NULL },
+  { NULL, dg_diffusion_vol_1x_ser_p1, dg_diffusion_vol_1x_ser_p2 },
+  { NULL, dg_diffusion_vol_2x_ser_p1, dg_diffusion_vol_2x_ser_p2 },
+  { NULL, dg_diffusion_vol_3x_ser_p1, dg_diffusion_vol_3x_ser_p2 },
 };
 
 // Surface kernel list: x-direction
 GKYL_CU_D
 static const gkyl_dg_diffusion_surf_kern_list surf_x_kernels[] = {
   { NULL, dg_diffusion_surfx_1x_ser_p1, dg_diffusion_surfx_1x_ser_p2 },
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL },
+  { NULL, dg_diffusion_surfx_2x_ser_p1, dg_diffusion_surfx_2x_ser_p2 },
+  { NULL, dg_diffusion_surfx_3x_ser_p1, dg_diffusion_surfx_3x_ser_p2 },
 };
 
 // Surface kernel list: y-direction
 GKYL_CU_D
 static const gkyl_dg_diffusion_surf_kern_list surf_y_kernels[] = {
   { NULL, NULL, NULL }, // no y-direction in 1D
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL },
+  { NULL, dg_diffusion_surfy_2x_ser_p1, dg_diffusion_surfy_2x_ser_p2 },
+  { NULL, dg_diffusion_surfy_3x_ser_p1, dg_diffusion_surfy_3x_ser_p2 },
 };
 
 // Surface kernel list: z-direction
 GKYL_CU_D
 static const gkyl_dg_diffusion_surf_kern_list surf_z_kernels[] = {
+  { NULL, NULL, NULL }, // no z-direction in 1D
   { NULL, NULL, NULL }, // no z-direction in 2D
-  { NULL, NULL, NULL }, // no z-direction in 2D
-  { NULL, NULL, NULL },
+  { NULL, dg_diffusion_surfz_3x_ser_p1, dg_diffusion_surfz_3x_ser_p2 },
 };
 
 struct dg_diffusion {

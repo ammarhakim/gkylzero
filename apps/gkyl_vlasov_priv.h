@@ -263,7 +263,8 @@ struct vm_fluid_species {
   struct gkyl_array *advect_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *advect_proj; // projector for advection
   struct vm_eval_advect_ctx advect_ctx; // context for applied advection
-
+  
+  bool has_diffusion; // flag to indicate there is applied diffusion
   gkyl_proj_on_basis* diff_proj; // projector for diffusion
   struct vm_eval_diffusion_ctx diff_ctx; // context for applied diffusion
 

@@ -44,8 +44,8 @@ gkyl_dg_diffusion_new(const struct gkyl_basis* cbasis, const struct gkyl_range* 
   diffusion->surf[0] = CK(surf_x_kernels, cdim, poly_order);
   if (cdim>1)
     diffusion->surf[1] = CK(surf_y_kernels, cdim, poly_order);
-  /* if (cdim>2) */
-  /*   diffusion->surf[2] = CK(const_surf_z_kernels, cdim, poly_order); */
+  if (cdim>2)
+    diffusion->surf[2] = CK(surf_z_kernels, cdim, poly_order);
 
   // ensure non-NULL pointers
   assert(diffusion->vol);

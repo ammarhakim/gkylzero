@@ -99,19 +99,22 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     }  
   }
 
-  f->diff_ctx = (struct vm_eval_diffusion_ctx) {
-    .diff_func = f->info.diffusion.D, .diff_ctx = f->info.diffusion.D_ctx
-  };
-  f->diff_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-      .grid = &app->grid,
-      .basis = &app->confBasis,
-      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-      .num_quad = app->confBasis.poly_order+1,
-      .num_ret_vals = cdim,
-      .eval = f->info.diffusion.D,
-      .ctx = f->info.diffusion.D_ctx
-    }
-  );
+  f->has_diffusion = false;
+  if (f->info.diffusion.D) {
+    f->has_diffusion = true;
+    f->diff_ctx = (struct vm_eval_diffusion_ctx) {
+      .diff_func = f->info.diffusion.D, .diff_ctx = f->info.diffusion.D_ctx
+    };
+    f->diff_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+        .grid = &app->grid,
+        .basis = &app->confBasis,
+        .qtype = GKYL_GAUSS_LOBATTO_QUAD,
+        .num_quad = app->confBasis.poly_order+1,
+        .num_ret_vals = cdim,
+        .eval = f->info.diffusion.D,
+        .ctx = f->info.diffusion.D_ctx
+      } );
+  }
 
   // determine which directions are not periodic
   int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
@@ -170,7 +173,9 @@ vm_fluid_species_calc_advect(gkyl_vlasov_app *app, struct vm_fluid_species *flui
 void
 vm_fluid_species_calc_diff(gkyl_vlasov_app* app, struct vm_fluid_species* fluid_species, double tm)
 {
-  gkyl_proj_on_basis_advance(fluid_species->diff_proj, tm, &app->local_ext, fluid_species->D);
+  if (fluid_species->has_diffusion) {
+    gkyl_proj_on_basis_advance(fluid_species->diff_proj, tm, &app->local_ext, fluid_species->D);
+  }
 }
 
 // Compute the RHS for fluid species update, returning maximum stable
@@ -205,7 +210,8 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
     gkyl_hyper_dg_advance_cu(fluid_species->advect_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
   else {
     gkyl_hyper_dg_advance(fluid_species->advect_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
-    gkyl_hyper_dg_advance(fluid_species->diff_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
+    if (fluid_species->has_diffusion)
+      gkyl_hyper_dg_advance(fluid_species->diff_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
   }
 
   // accumulate nu*n*T - nu*fluid_species
@@ -343,7 +349,8 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
 
     gkyl_proj_on_basis_release(f->advect_proj);
   }
-  gkyl_proj_on_basis_release(f->diff_proj);
+  if (f->has_diffusion)
+    gkyl_proj_on_basis_release(f->diff_proj);
 
   if (f->collision_id == GKYL_LBO_COLLISIONS) {
     gkyl_array_release(f->nu_fluid);
