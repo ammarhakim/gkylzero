@@ -70,6 +70,14 @@ gkyl_array_scale_by_cell_cu_kernel(struct gkyl_array* out, const struct gkyl_arr
     out_d[linc] = a_d[linc/out->ncomp]*out_d[linc];
 } 
 
+__global__ void
+gkyl_array_shiftc0_cu_kernel(struct gkyl_array* out, double a)
+{
+  double *out_d = (double*) out->data;
+  for (unsigned long linc = START_ID; linc < NSIZE(out); linc += blockDim.x*gridDim.x)
+    out_d[linc*out->ncomp] = a+out_d[linc*out->ncomp];
+} 
+
 // Host-side wrappers for array operations
 void
 gkyl_array_clear_cu(struct gkyl_array* out, double val)
@@ -99,6 +107,12 @@ void
 gkyl_array_scale_by_cell_cu(struct gkyl_array* out, const struct gkyl_array* a)
 {
   gkyl_array_scale_by_cell_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a->on_dev);
+}
+
+void
+gkyl_array_shiftc0_cu(struct gkyl_array* out, double a)
+{
+  gkyl_array_shiftc0_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a);
 }
 
 // Range-based methods
