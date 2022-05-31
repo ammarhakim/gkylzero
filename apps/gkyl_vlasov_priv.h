@@ -244,6 +244,7 @@ struct vm_fluid_species {
 
   struct gkyl_array *u; // array for advection flow
   struct gkyl_array *D; // array for diffusion tensor
+  struct gkyl_array *D_host; // host copy of diffusion tensor
 
   struct gkyl_dg_eqn *advect_eqn; // Fluid advection equation
   struct gkyl_dg_eqn *diff_eqn; // Fluid diffusion equation  

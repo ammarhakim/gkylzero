@@ -43,6 +43,9 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   
   // allocate array to store diffusion tensor
   f->D = mkarr(app->use_gpu, cdim*app->confBasis.num_basis, app->local_ext.volume);
+  f->D_host = f->D;
+  if (app->use_gpu)
+    f->D_host = mkarr(false, cdim*app->confBasis.num_basis, app->local_ext.volume);
   
   // equation objects
   f->advect_eqn = gkyl_dg_advection_new(&app->confBasis, &app->local, app->use_gpu);
@@ -174,7 +177,9 @@ void
 vm_fluid_species_calc_diff(gkyl_vlasov_app* app, struct vm_fluid_species* fluid_species, double tm)
 {
   if (fluid_species->has_diffusion) {
-    gkyl_proj_on_basis_advance(fluid_species->diff_proj, tm, &app->local_ext, fluid_species->D);
+    gkyl_proj_on_basis_advance(fluid_species->diff_proj, tm, &app->local_ext, fluid_species->D_host);
+    if (app->use_gpu) // note: D_host is same as advect when not on GPUs
+      gkyl_array_copy(fluid_species->D, fluid_species->D_host);
   }
 }
 
@@ -206,9 +211,11 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
   
   gkyl_array_clear(rhs, 0.0);
 
-  if (app->use_gpu)
+  if (app->use_gpu) {
     gkyl_hyper_dg_advance_cu(fluid_species->advect_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
-  else {
+    if (fluid_species->has_diffusion)
+      gkyl_hyper_dg_advance_cu(fluid_species->diff_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
+  } else {
     gkyl_hyper_dg_advance(fluid_species->advect_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
     if (fluid_species->has_diffusion)
       gkyl_hyper_dg_advance(fluid_species->diff_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
@@ -340,8 +347,6 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
   gkyl_hyper_dg_release(f->diff_slvr);
 
   gkyl_array_release(f->u);
-  gkyl_array_release(f->D);
-
   if (f->has_advect) {
     gkyl_array_release(f->advect);
     if (app->use_gpu)
@@ -349,6 +354,10 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
 
     gkyl_proj_on_basis_release(f->advect_proj);
   }
+
+  gkyl_array_release(f->D);
+  if (app->use_gpu)
+    gkyl_array_release(f->D_host);
   if (f->has_diffusion)
     gkyl_proj_on_basis_release(f->diff_proj);
 
