@@ -15,7 +15,6 @@ extern "C" {
 #include <gkyl_block_topo.h>
 #include <gkyl_const.h>
 #include <gkyl_dg_bin_ops.h>
-#include <gkyl_dg_const_diffusion.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_dg_lbo_vlasov_diff.h>
 #include <gkyl_dg_lbo_vlasov_drag.h>
