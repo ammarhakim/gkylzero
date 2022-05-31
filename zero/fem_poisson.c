@@ -6,11 +6,11 @@ global_num_nodes(const int dim, const int poly_order, const int basis_type, cons
 {
   if (dim==1) {
     if (poly_order == 1) {
-      return fem_poisson_num_nodes_global_1x_ser_p1_nonperiodicx(num_cells);
+      return fem_poisson_num_nodes_global_1x_ser_p1_periodicx(num_cells);
     } else if (poly_order == 2) {
-      return fem_poisson_num_nodes_global_1x_ser_p2_nonperiodicx(num_cells);
+      return fem_poisson_num_nodes_global_1x_ser_p2_periodicx(num_cells);
 //    } else if (poly_order == 3) {
-//      return fem_poisson_num_nodes_global_1x_ser_p3_nonperiodicx(num_cells);
+//      return fem_poisson_num_nodes_global_1x_ser_p3_periodicx(num_cells);
     }
   }
   assert(false);  // Other dimensionalities not supported.
@@ -22,38 +22,38 @@ local_stiff(const int dim, const int poly_order, const int basis_type, const dou
 {
   if (dim==1) {
     if (poly_order == 1) {
-      return fem_poisson_stiff_1x_ser_p1(dx,stiffout);
+      fem_poisson_stiff_1x_ser_p1(dx,stiffout);
     } else if (poly_order == 2) {
-      return fem_poisson_stiff_1x_ser_p2(dx,stiffout);
+      fem_poisson_stiff_1x_ser_p2(dx,stiffout);
 //    } else if (poly_order == 3) {
-//      return fem_poisson_stiff_1x_ser_p3(dx,stiffout);
+//      fem_poisson_stiff_1x_ser_p3(dx,stiffout);
     }
   } else if (dim==2) {
     if (poly_order == 1) {
-      return fem_poisson_stiff_2x_ser_p1(dx,stiffout);
+      fem_poisson_stiff_2x_ser_p1(dx,stiffout);
     } else if (poly_order == 2) {
-      return fem_poisson_stiff_2x_ser_p2(dx,stiffout);
+      fem_poisson_stiff_2x_ser_p2(dx,stiffout);
 //    } else if (poly_order == 3) {
-//      return fem_poisson_stiff_2x_ser_p3(dx,stiffout);
+//      fem_poisson_stiff_2x_ser_p3(dx,stiffout);
     }
-//  } else if (dim==3) {
+  } else if (dim==3) {
 //    if (basis_type == GKYL_BASIS_MODAL_SERENDIPITY) {
 //      if (poly_order == 1) {
-//        return fem_poisson_stiff_3x_ser_p1(dx,stiffout);
+//        fem_poisson_stiff_3x_ser_p1(dx,stiffout);
 //      } else if (poly_order == 2) {
-//        return fem_poisson_stiff_3x_ser_p2(dx,stiffout);
+//        fem_poisson_stiff_3x_ser_p2(dx,stiffout);
 //      } else if (poly_order == 3) {
-//        return fem_poisson_stiff_3x_ser_p3(dx,stiffout);
+//        fem_poisson_stiff_3x_ser_p3(dx,stiffout);
 //      }
 //    } if (basis_type == GKYL_BASIS_MODAL_TENSOR) {
 //      if (poly_order == 1) {
-//        return fem_poisson_stiff_3x_tensor_p1(dx,stiffout);
+//        fem_poisson_stiff_3x_tensor_p1(dx,stiffout);
 //      } else if (poly_order == 2) {
-//        return fem_poisson_stiff_3x_tensor_p2(dx,stiffout);
+//        fem_poisson_stiff_3x_tensor_p2(dx,stiffout);
 //      }
 //    }
+    assert(false);  // Other dimensionalities not supported.
   }
-  assert(false);  // Other dimensionalities not supported.
 }
 
 static void
@@ -184,9 +184,11 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->isdomperiodic = true;
   for (int d=0; d<up->ndim; d++) up->isdomperiodic = up->isdomperiodic && up->isdirperiodic[d];
   if (up->isdomperiodic) {
-    up->rhs_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, up->solve_range.volume);
+    up->rhs_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, up->local_range_ext.volume);
     gkyl_array_clear(up->rhs_cellavg, 0.0);
-    up->mavgfac = -pow(sqrt(2.),up->ndim);
+    // Factor accounting for normalization when subtracting a constant from a
+    // DG field and the 1/N to properly compute the volume averaged RHS.
+    up->mavgfac = -pow(sqrt(2.),up->ndim)/up->solve_range.volume;
   }
 
   // Create local matrices used later.
@@ -203,20 +205,22 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   choose_local2global_kernels(&basis, &up->isdirperiodic[0], &up->l2g[0]);
 
   // Create a linear Ax=B problem. Here A is the discrete (global) stiffness
-  // matrix times -epsilon.
+  // matrix times epsilon.
   up->prob = gkyl_superlu_prob_new(up->numnodes_global, up->numnodes_global, 1);
 
   // Assign non-zero elements in A.
   gkyl_mat_triples *tri = gkyl_mat_triples_new(up->numnodes_global, up->numnodes_global);
   gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
+  int idx0[POISSON_MAX_DIM];
   while (gkyl_range_iter_next(&up->solve_iter)) {
-    long idx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
+    long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
 
     int keri = idx_to_inup_ker(up->ndim, &up->num_cells[0], up->solve_iter.idx);
-    up->l2g[keri](&up->num_cells[0], &up->solve_iter.idx[0], &up->globalidx[0]);
+    for (size_t d=0; d<up->ndim; d++) idx0[d] = up->solve_iter.idx[d]-1;
+    up->l2g[keri](&up->num_cells[0], &idx0[0], &up->globalidx[0]);
     for (size_t k=0; k<up->numnodes_local; ++k) {
       for (size_t m=0; m<up->numnodes_local; ++m) {
-        double val = -epsilon*gkyl_mat_get(up->local_stiff,k,m);
+        double val = epsilon * gkyl_mat_get(up->local_stiff,k,m);
         long globalidx_k = up->globalidx[k];
         long globalidx_m = up->globalidx[m];
         gkyl_mat_triples_accum(tri, globalidx_k, globalidx_m, val);
@@ -231,26 +235,28 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 }
 
 void
-gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, const struct gkyl_array *rhsin)
+gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
 {
 
   if (up->isdomperiodic) {
     // Subtract the volume averaged RHS.
     gkyl_dg_calc_average_range(up->basis, 0, up->rhs_cellavg, 0, rhsin, up->solve_range);
     gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->solve_range);
-//    gkyl_array_shiftc0(rhsin, up->mavgfac*up->rhs_avg);
+    gkyl_array_shiftc0(rhsin, up->mavgfac*up->rhs_avg[0]);
   }
 
   gkyl_mat_triples *tri = gkyl_mat_triples_new(up->numnodes_global, 1);
 
   gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
+  int idx0[POISSON_MAX_DIM];
   while (gkyl_range_iter_next(&up->solve_iter)) {
     long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
 
-    const double *rhsin_p = gkyl_array_cfetch(rhsin, linidx);
+    double *rhsin_p = gkyl_array_fetch(rhsin, linidx);
 
     int keri = idx_to_inup_ker(up->ndim, &up->num_cells[0], up->solve_iter.idx);
-    up->l2g[keri](&up->num_cells[0], &up->solve_iter.idx[0], &up->globalidx[0]);
+    for (size_t d=0; d<up->ndim; d++) idx0[d] = up->solve_iter.idx[d]-1;
+    up->l2g[keri](&up->num_cells[0], &idx0[0], &up->globalidx[0]);
 
     for (size_t k=0; k<up->numnodes_local; k++) {
       long globalidx_k = up->globalidx[k];
@@ -266,21 +272,20 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, const struct gkyl_array *rhsin)
 
 }
 
-
 void
 gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout) {
   gkyl_superlu_solve(up->prob);
 
-  int pidx[POISSON_MAX_DIM] = {0};
-
   gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
+  int idx0[POISSON_MAX_DIM];
   while (gkyl_range_iter_next(&up->solve_iter)) {
     long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
 
     double *phiout_p = gkyl_array_fetch(phiout, linidx);
 
     int keri = idx_to_inup_ker(up->ndim, &up->num_cells[0], up->solve_iter.idx);
-    up->l2g[keri](&up->num_cells[0], &up->solve_iter.idx[0], &up->globalidx[0]);
+    for (size_t d=0; d<up->ndim; d++) idx0[d] = up->solve_iter.idx[d]-1;
+    up->l2g[keri](&up->num_cells[0], &idx0[0], &up->globalidx[0]);
 
     for (size_t k=0; k<up->numnodes_local; k++) {
       phiout_p[k] = 0.;

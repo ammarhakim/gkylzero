@@ -60,7 +60,7 @@ gkyl_fem_poisson* gkyl_fem_poisson_new(
  * @param up FEM poisson updater to run.
  * @param rhsin DG field to set as RHS source.
  */
-void gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, const struct gkyl_array *rhsin);
+void gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin);
 
 /**
  * Solve the linear problem.
