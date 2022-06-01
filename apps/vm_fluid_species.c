@@ -116,7 +116,8 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
         .num_ret_vals = cdim,
         .eval = f->info.diffusion.D,
         .ctx = f->info.diffusion.D_ctx
-      } );
+      }
+    );
   }
 
   // determine which directions are not periodic
@@ -178,7 +179,7 @@ vm_fluid_species_calc_diff(gkyl_vlasov_app* app, struct vm_fluid_species* fluid_
 {
   if (fluid_species->has_diffusion) {
     gkyl_proj_on_basis_advance(fluid_species->diff_proj, tm, &app->local_ext, fluid_species->D_host);
-    if (app->use_gpu) // note: D_host is same as advect when not on GPUs
+    if (app->use_gpu) // note: D_host is same as D when not on GPUs
       gkyl_array_copy(fluid_species->D, fluid_species->D_host);
   }
 }

@@ -19,12 +19,33 @@ struct gkyl_dg_diffusion_auxfields {
  * @param range Range for use in indexing diffusion tensor
  * @return Pointer to diffusion equation object
  */
-struct gkyl_dg_eqn* gkyl_dg_diffusion_new(const struct gkyl_basis* basis, const struct gkyl_range* conf_range, bool use_gpu);
+struct gkyl_dg_eqn* gkyl_dg_diffusion_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range, bool use_gpu);
 
 /**
- * Set the auxiliary fields (e.g. advection velocity u) needed in updating advection equation.
+ * Create a new diffusion equation object that lives on NV-GPU
+ *
+ * @param cbasis Configuration space basis functions
+ * @param conf_range Configuration space range for use in indexing diffusion tensor
+ * @return Pointer to diffusion equation object
+ */
+struct gkyl_dg_eqn* gkyl_dg_diffusion_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range);
+
+/**
+ * Set the auxiliary fields (e.g. diffsuion tensor D) needed in updating diffusion equation.
  * 
  * @param eqn Equation pointer.
  * @param auxfields Pointer to struct of aux fields.
  */
 void gkyl_diffusion_set_auxfields(const struct gkyl_dg_eqn* eqn, struct gkyl_dg_diffusion_auxfields auxin);
+
+#ifdef GKYL_HAVE_CUDA
+
+/**
+ * CUDA device function to set auxiliary fields (e.g. diffsuion tensor D) needed in updating diffusion equation.
+ * 
+ * @param eqn Equation pointer.
+ * @param auxfields Pointer to struct of aux fields.
+ */
+void gkyl_diffusion_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_auxfields auxin);
+
+#endif
