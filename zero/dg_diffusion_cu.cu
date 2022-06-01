@@ -33,28 +33,23 @@ dg_diffusion_set_cu_dev_ptrs(struct dg_diffusion* diffusion, enum gkyl_basis_typ
 {
   diffusion->auxfields.D = 0; 
 
-  //const gkyl_dg_diffusion_vol_kern_list *vol_kernels;
-  //const gkyl_dg_diffusion_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;  
-  
-  // switch (b_type) {
-  //   case GKYL_BASIS_MODAL_SERENDIPITY:
-  //     vol_kernels = ser_vol_kernels;
-  //     surf_x_kernels = ser_surf_x_kernels;
-  //     surf_y_kernels = ser_surf_y_kernels;
-  //     surf_z_kernels = ser_surf_z_kernels;
-  //     break;
+  const gkyl_dg_diffusion_vol_kern_list* vol_kernels;
+  const gkyl_dg_diffusion_surf_kern_list* surf_x_kernels;
+  const gkyl_dg_diffusion_surf_kern_list* surf_y_kernels;
+  const gkyl_dg_diffusion_surf_kern_list* surf_z_kernels; 
 
-  //   case GKYL_BASIS_MODAL_TENSOR:
-  //     vol_kernels = ten_vol_kernels;
-  //     surf_x_kernels = ten_surf_x_kernels;
-  //     surf_y_kernels = ten_surf_y_kernels;
-  //     surf_z_kernels = ten_surf_z_kernels;
-  //     break;
+  switch (cbasis->b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      surf_x_kernels = ser_surf_x_kernels;
+      surf_y_kernels = ser_surf_y_kernels;
+      surf_z_kernels = ser_surf_z_kernels;
+      break;
 
-  //   default:
-  //     assert(false);
-  //     break;    
-  // } 
+    default:
+      assert(false);
+      break;    
+  } 
   
   diffusion->eqn.vol_term = vol;
   diffusion->eqn.surf_term = surf;

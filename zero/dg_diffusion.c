@@ -53,6 +53,24 @@ gkyl_dg_diffusion_new(const struct gkyl_basis* cbasis, const struct gkyl_range* 
   int cdim = cbasis->ndim;
   int poly_order = cbasis->poly_order;
 
+  const gkyl_dg_diffusion_vol_kern_list* vol_kernels;
+  const gkyl_dg_diffusion_surf_kern_list* surf_x_kernels;
+  const gkyl_dg_diffusion_surf_kern_list* surf_y_kernels;
+  const gkyl_dg_diffusion_surf_kern_list* surf_z_kernels; 
+
+  switch (cbasis->b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      surf_x_kernels = ser_surf_x_kernels;
+      surf_y_kernels = ser_surf_y_kernels;
+      surf_z_kernels = ser_surf_z_kernels;
+      break;
+
+    default:
+      assert(false);
+      break;    
+  } 
+
   diffusion->eqn.num_equations = 1;
   diffusion->eqn.vol_term = vol;
   diffusion->eqn.surf_term = surf;
