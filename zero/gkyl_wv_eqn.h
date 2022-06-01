@@ -43,6 +43,7 @@ struct gkyl_wv_eqn {
   wv_bc_func_t wall_bc_func; // function to apply wall BC
   
   struct gkyl_ref_count ref_count; // reference count
+  struct gkyl_wv_eqn *on_dev; // pointer to itself or device data
 };
 
 /**

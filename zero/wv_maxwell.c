@@ -187,5 +187,6 @@ gkyl_wv_maxwell_new(double c, double e_fact, double b_fact)
 
   maxwell->eqn.ref_count = gkyl_ref_count_init(maxwell_free);
 
+  maxwell->eqn.on_dev = &maxwell->eqn; // CPU eqn obj points to itself
   return &maxwell->eqn;
 }

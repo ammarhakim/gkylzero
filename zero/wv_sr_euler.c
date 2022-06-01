@@ -162,6 +162,7 @@ gkyl_wv_sr_euler_new(double gas_gamma)
 
   sr_euler->eqn.ref_count = gkyl_ref_count_init(sr_euler_free);
 
+  sr_euler->eqn.on_dev = &sr_euler->eqn; // CPU eqn obj points to itself
   return &sr_euler->eqn;
 }
 

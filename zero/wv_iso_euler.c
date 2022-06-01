@@ -128,5 +128,6 @@ gkyl_wv_iso_euler_new(double vt)
 
   iso_euler->eqn.ref_count = gkyl_ref_count_init(iso_euler_free);
 
+  iso_euler->eqn.on_dev = &iso_euler->eqn; // CPU eqn obj points to itself
   return &iso_euler->eqn;
 }
