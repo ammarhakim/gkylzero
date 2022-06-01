@@ -137,20 +137,20 @@ test_maxwell_waves()
     double ql_local[8], qr_local[8];
     
     // rotate to local tangent-normal frame
-    gkyl_wv_eqn_rotate_to_local(maxwell, tau1[d], tau2[d], norm[d], ql, ql_local);
-    gkyl_wv_eqn_rotate_to_local(maxwell, tau1[d], tau2[d], norm[d], qr, qr_local);
+    maxwell->rotate_to_local_func(tau1[d], tau2[d], norm[d], ql, ql_local);
+    maxwell->rotate_to_local_func(tau1[d], tau2[d], norm[d], qr, qr_local);
 
     double delta[8];
     for (int i=0; i<8; ++i) delta[i] = qr_local[i]-ql_local[i];
     
-    gkyl_wv_eqn_waves(maxwell, delta, ql_local, qr_local, waves_local, speeds);
+    maxwell->waves_func(maxwell, delta, ql_local, qr_local, waves_local, speeds);
 
     // rotate waves back to global frame
     for (int mw=0; mw<6; ++mw)
-      gkyl_wv_eqn_rotate_to_global(maxwell, tau1[d], tau2[d], norm[d], &waves_local[mw*8], &waves[mw*8]);
+      maxwell->rotate_to_global_func(tau1[d], tau2[d], norm[d], &waves_local[mw*8], &waves[mw*8]);
 
     double apdq[8], amdq[8];
-    gkyl_wv_eqn_qfluct(maxwell, ql, qr, waves, speeds, amdq, apdq);
+    maxwell->qfluct_func(maxwell, ql, qr, waves, speeds, amdq, apdq);
     
     // check if sum of left/right going fluctuations sum to jump in flux
     double fl_local[8], fr_local[8];
@@ -158,8 +158,8 @@ test_maxwell_waves()
     gkyl_maxwell_flux(c, e_fact, b_fact, qr_local, fr_local);
     
     double fl[8], fr[8];
-    gkyl_wv_eqn_rotate_to_global(maxwell, tau1[d], tau2[d], norm[d], fl_local, fl);
-    gkyl_wv_eqn_rotate_to_global(maxwell, tau1[d], tau2[d], norm[d], fr_local, fr);
+    maxwell->rotate_to_global_func(tau1[d], tau2[d], norm[d], fl_local, fl);
+    maxwell->rotate_to_global_func(tau1[d], tau2[d], norm[d], fr_local, fr);
     
     for (int i=0; i<8; ++i)
       TEST_CHECK( gkyl_compare(fr[i]-fl[i], amdq[i]+apdq[i], 1e-14) );

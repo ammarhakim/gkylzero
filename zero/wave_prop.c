@@ -261,7 +261,7 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
 
         calc_jump(meqn, ql_local, qr_local, delta);
         double *s = gkyl_array_fetch(wv->speeds, sidx);
-        gkyl_wv_eqn_waves(wv->equation, delta, ql_local, qr_local, waves_local, s);
+        wv->equation->waves_func(wv->equation, delta, ql_local, qr_local, waves_local, s);
 
         double lenr = cg->lenr[dir];
         double *waves = gkyl_array_fetch(wv->waves, sidx);
@@ -274,7 +274,7 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
           s[mw] *= lenr; // rescale speeds
         }
         
-        gkyl_wv_eqn_qfluct(wv->equation, qinl, qinr, waves, s, amdq, apdq);
+        wv->equation->qfluct_func(wv->equation, qinl, qinr, waves, s, amdq, apdq);
 
         double *qoutl = gkyl_array_fetch(qout, lidx);
         double *qoutr = gkyl_array_fetch(qout, ridx);
@@ -361,7 +361,7 @@ gkyl_wave_prop_max_dt(const gkyl_wave_prop *wv, const struct gkyl_range *update_
 
       const double *q = gkyl_array_cfetch(qin, gkyl_range_idx(update_range, iter.idx));
       // TODO NEED TO ROTATE!!
-      double maxs = gkyl_wv_eqn_max_speed(wv->equation, q);
+      double maxs = wv->equation->max_speed_func(wv->equation, q);
       max_dt = fmin(max_dt, wv->cfl*dx/maxs);
     }
     
