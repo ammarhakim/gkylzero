@@ -176,7 +176,7 @@ max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 }
 
 /**
- * Compute flux.
+ * Compute flux. Assumes rotation to local coordinate system.
  * 
  * @param c Speed of light
  * @param e_fact Correction speed for div(E) correction
