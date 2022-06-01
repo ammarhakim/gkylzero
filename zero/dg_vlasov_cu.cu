@@ -106,7 +106,7 @@ gkyl_vlasov_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlaso
   gkyl_vlasov_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.qmem->on_dev);
 }
 
-// CUDA kernel to set device pointers to range object and vlasov kernel function
+// CUDA kernel to set device pointers to vlasov kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
 dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,

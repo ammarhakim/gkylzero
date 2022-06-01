@@ -11,6 +11,14 @@
 struct gkyl_wv_eqn* gkyl_wv_sr_euler_new(double gas_gamma);
 
 /**
+ * Create a new SR Euler equation object that lives on NV-GPU.
+ * 
+ * @param gas_gamma Gas adiabatic constant
+ * @return Pointer to SR Euler equation object.
+ */
+struct gkyl_wv_eqn* gkyl_wv_sr_euler_cu_dev_new(double gas_gamma);
+
+/**
  * Get gas adiabatic constant.
  * 
  * @param wv SR Euler equation object

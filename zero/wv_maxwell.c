@@ -1,6 +1,8 @@
+#include <assert.h>
 #include <math.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_wv_maxwell.h>
 #include <gkyl_wv_maxwell_priv.h>
 
@@ -40,8 +42,21 @@ gkyl_wv_maxwell_new(double c, double e_fact, double b_fact)
 
   maxwell->eqn.wall_bc_func = maxwell_wall;
 
+  maxwell->eqn.flags = 0;
+  GKYL_CLEAR_CU_ALLOC(maxwell->eqn.flags);
   maxwell->eqn.ref_count = gkyl_ref_count_init(gkyl_wv_maxwell_free);
 
   maxwell->eqn.on_dev = &maxwell->eqn; // CPU eqn obj points to itself
   return &maxwell->eqn;
 }
+
+#ifndef GKYL_HAVE_CUDA
+
+struct gkyl_wv_eqn*
+gkyl_wv_maxwell_cu_dev_new(double c, double e_fact, double b_fact)
+{
+  assert(false);
+  return 0;
+}
+
+#endif

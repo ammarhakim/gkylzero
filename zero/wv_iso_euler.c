@@ -1,6 +1,8 @@
+#include <assert.h>
 #include <math.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_wv_iso_euler.h>
 #include <gkyl_wv_iso_euler_priv.h>
 
@@ -34,8 +36,21 @@ gkyl_wv_iso_euler_new(double vt)
   iso_euler->eqn.rotate_to_local_func = rot_to_local;
   iso_euler->eqn.rotate_to_global_func = rot_to_global;
 
+  iso_euler->eqn.flags = 0;
+  GKYL_CLEAR_CU_ALLOC(iso_euler->eqn.flags);
   iso_euler->eqn.ref_count = gkyl_ref_count_init(gkyl_iso_euler_free);
 
   iso_euler->eqn.on_dev = &iso_euler->eqn; // CPU eqn obj points to itself
   return &iso_euler->eqn;
 }
+
+#ifndef GKYL_HAVE_CUDA
+
+struct gkyl_wv_eqn*
+gkyl_wv_iso_euler_cu_dev_new(double vt)
+{
+  assert(false);
+  return 0;
+}
+
+#endif
