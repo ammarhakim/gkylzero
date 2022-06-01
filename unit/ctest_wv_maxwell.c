@@ -1,6 +1,6 @@
 #include <acutest.h>
-#include <gkyl_moment_prim_maxwell.h>
 #include <gkyl_wv_maxwell.h>
+#include <gkyl_wv_maxwell_priv.h>
 
 // Make indexing cleaner with the dir_shuffle
 #define EX 0
