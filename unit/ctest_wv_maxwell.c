@@ -168,8 +168,43 @@ test_maxwell_waves()
   gkyl_wv_eqn_release(maxwell);
 }
 
+#ifdef GKYL_HAVE_CUDA
+
+int cu_maxwell_test(const struct gkyl_wv_eqn *eqn);
+
+void
+test_cu_wv_maxwell()
+{
+  // speed of light in SI units so tests are non-trivial
+  double c = 299792458.0;
+  double c2 = c*c;
+  double e_fact = 2.0;
+  double b_fact = 2.5;
+  struct gkyl_wv_eqn *eqn = gkyl_wv_maxwell_cu_dev_new(c, e_fact, b_fact);
+
+  // this is not possible from user code and should NOT be done. This
+  // is for testing only
+  struct wv_maxwell *maxwell = container_of(eqn, struct wv_maxwell, eqn);
+
+  TEST_CHECK( maxwell->c == 299792458.0 );
+  TEST_CHECK( maxwell->e_fact == 0.5 );
+  TEST_CHECK( maxwell->b_fact == 0.25 );  
+  
+  // call CUDA test
+  int nfail = cu_maxwell_test(eqn->on_dev);
+
+  TEST_CHECK( nfail == 0 );
+
+  gkyl_wv_eqn_release(eqn);
+}
+
+#endif
+
 TEST_LIST = {
   { "maxwell_basic", test_maxwell_basic },
   { "maxwell_waves", test_maxwell_waves },
+#ifdef GKYL_HAVE_CUDA
+  { "cu_wv_maxwell", test_cu_wv_maxwell },
+#endif  
   { NULL, NULL },
 };
