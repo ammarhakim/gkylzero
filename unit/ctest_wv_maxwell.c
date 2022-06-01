@@ -187,8 +187,8 @@ test_cu_wv_maxwell()
   struct wv_maxwell *maxwell = container_of(eqn, struct wv_maxwell, eqn);
 
   TEST_CHECK( maxwell->c == 299792458.0 );
-  TEST_CHECK( maxwell->e_fact == 0.5 );
-  TEST_CHECK( maxwell->b_fact == 0.25 );  
+  TEST_CHECK( maxwell->e_fact == 2.0 );
+  TEST_CHECK( maxwell->b_fact == 2.5 );  
   
   // call CUDA test
   int nfail = cu_wv_maxwell_test(eqn->on_dev);
