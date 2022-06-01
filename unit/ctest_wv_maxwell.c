@@ -170,7 +170,7 @@ test_maxwell_waves()
 
 #ifdef GKYL_HAVE_CUDA
 
-int cu_maxwell_test(const struct gkyl_wv_eqn *eqn);
+int cu_wv_maxwell_test(const struct gkyl_wv_eqn *eqn);
 
 void
 test_cu_wv_maxwell()
@@ -191,7 +191,7 @@ test_cu_wv_maxwell()
   TEST_CHECK( maxwell->b_fact == 0.25 );  
   
   // call CUDA test
-  int nfail = cu_maxwell_test(eqn->on_dev);
+  int nfail = cu_wv_maxwell_test(eqn->on_dev);
 
   TEST_CHECK( nfail == 0 );
 

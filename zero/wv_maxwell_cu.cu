@@ -14,8 +14,8 @@ extern "C" {
 __global__ static void 
 wv_maxwell_set_cu_dev_ptrs(struct wv_maxwell *maxwell)
 {
-  maxwell->eqn.waves_func = wave_roe;
-  maxwell->eqn.qfluct_func = qfluct_roe;
+  maxwell->eqn.waves_func = wave;
+  maxwell->eqn.qfluct_func = qfluct;
   maxwell->eqn.max_speed_func = max_speed;
   maxwell->eqn.rotate_to_local_func = rot_to_local;
   maxwell->eqn.rotate_to_global_func = rot_to_global;
@@ -26,7 +26,7 @@ wv_maxwell_set_cu_dev_ptrs(struct wv_maxwell *maxwell)
 struct gkyl_wv_eqn*
 gkyl_wv_maxwell_cu_dev_new(double c, double e_fact, double b_fact)
 {
-  struct wv_maxwell *maxwell = gkyl_malloc(sizeof(struct wv_maxwell));
+  struct wv_maxwell *maxwell = (struct wv_maxwell*) gkyl_malloc(sizeof(struct wv_maxwell));
 
   maxwell->eqn.type = GKYL_EQN_MAXWELL;
   maxwell->eqn.num_equations = 8;
@@ -38,7 +38,7 @@ gkyl_wv_maxwell_cu_dev_new(double c, double e_fact, double b_fact)
 
   maxwell->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(maxwell->eqn.flags);
-  maxwell->eqn.ref_count = gkyl_ref_count_init(gkyl_maxwell_free);
+  maxwell->eqn.ref_count = gkyl_ref_count_init(gkyl_wv_maxwell_free);
 
   // copy the host struct to device struct
   struct wv_maxwell *maxwell_cu = (struct wv_maxwell*) gkyl_cu_malloc(sizeof(struct wv_maxwell));

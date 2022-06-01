@@ -24,7 +24,7 @@ wv_sr_euler_set_cu_dev_ptrs(struct wv_sr_euler *sr_euler)
 struct gkyl_wv_eqn*
 gkyl_wv_sr_euler_cu_dev_new(double gas_gamma)
 {
-  struct wv_sr_euler *sr_euler = gkyl_malloc(sizeof(struct wv_sr_euler));
+  struct wv_sr_euler *sr_euler = (struct wv_sr_euler*) gkyl_malloc(sizeof(struct wv_sr_euler));
 
   sr_euler->eqn.type = GKYL_EQN_SR_EULER;
   sr_euler->eqn.num_equations = 5;

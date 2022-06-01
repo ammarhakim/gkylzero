@@ -24,7 +24,7 @@ wv_iso_euler_set_cu_dev_ptrs(struct wv_iso_euler *iso_euler)
 struct gkyl_wv_eqn*
 gkyl_wv_iso_euler_cu_dev_new(double vt)
 {
-  struct wv_iso_euler *iso_euler = gkyl_malloc(sizeof(struct wv_iso_euler));
+  struct wv_iso_euler *iso_euler = (struct wv_iso_euler*) gkyl_malloc(sizeof(struct wv_iso_euler));
 
   iso_euler->eqn.type = GKYL_EQN_ISO_EULER;
   iso_euler->eqn.num_equations = 4;
