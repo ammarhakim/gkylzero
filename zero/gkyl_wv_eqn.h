@@ -77,6 +77,14 @@ struct gkyl_wv_eqn {
 };
 
 /**
+ * Check if equation is on device.
+ *
+ * @param eqn Equation to check
+ * @return true if eqn on device, false otherwise
+ */
+bool gkyl_wv_eqn_is_cu_dev(const struct gkyl_wv_eqn *eqn);
+
+/**
  * Acquire pointer to equation object. Delete using the release()
  * method
  *
