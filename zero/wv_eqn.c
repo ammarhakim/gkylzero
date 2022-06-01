@@ -2,7 +2,7 @@
 #include <gkyl_alloc_flags_priv.h>
 
 bool
-gkyl_wvn_eq_is_cu_dev(const struct gkyl_wv_eqn *eqn)
+gkyl_wv_eqn_is_cu_dev(const struct gkyl_wv_eqn *eqn)
 {
   return GKYL_IS_CU_ALLOC(eqn->flags);
 }
