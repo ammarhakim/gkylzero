@@ -9,9 +9,15 @@ global_num_nodes(const int dim, const int poly_order, const int basis_type, cons
       return fem_poisson_num_nodes_global_1x_ser_p1_periodicx(num_cells);
     } else if (poly_order == 2) {
       return fem_poisson_num_nodes_global_1x_ser_p2_periodicx(num_cells);
-//    } else if (poly_order == 3) {
-//      return fem_poisson_num_nodes_global_1x_ser_p3_periodicx(num_cells);
     }
+  } else if (dim==2) {
+    if (poly_order == 1) {
+      return fem_poisson_num_nodes_global_2x_ser_p1_periodicx_periodicy(num_cells);
+    } else if (poly_order == 2) {
+      return fem_poisson_num_nodes_global_2x_ser_p2_periodicx_periodicy(num_cells);
+    }
+  } else if (dim==3) {
+    assert(false);  // Other dimensionalities not supported.
   }
   assert(false);  // Other dimensionalities not supported.
   return -1;
@@ -25,33 +31,14 @@ local_stiff(const int dim, const int poly_order, const int basis_type, const dou
       fem_poisson_stiff_1x_ser_p1(dx,stiffout);
     } else if (poly_order == 2) {
       fem_poisson_stiff_1x_ser_p2(dx,stiffout);
-//    } else if (poly_order == 3) {
-//      fem_poisson_stiff_1x_ser_p3(dx,stiffout);
     }
   } else if (dim==2) {
     if (poly_order == 1) {
       fem_poisson_stiff_2x_ser_p1(dx,stiffout);
     } else if (poly_order == 2) {
       fem_poisson_stiff_2x_ser_p2(dx,stiffout);
-//    } else if (poly_order == 3) {
-//      fem_poisson_stiff_2x_ser_p3(dx,stiffout);
     }
   } else if (dim==3) {
-//    if (basis_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-//      if (poly_order == 1) {
-//        fem_poisson_stiff_3x_ser_p1(dx,stiffout);
-//      } else if (poly_order == 2) {
-//        fem_poisson_stiff_3x_ser_p2(dx,stiffout);
-//      } else if (poly_order == 3) {
-//        fem_poisson_stiff_3x_ser_p3(dx,stiffout);
-//      }
-//    } if (basis_type == GKYL_BASIS_MODAL_TENSOR) {
-//      if (poly_order == 1) {
-//        fem_poisson_stiff_3x_tensor_p1(dx,stiffout);
-//      } else if (poly_order == 2) {
-//        fem_poisson_stiff_3x_tensor_p2(dx,stiffout);
-//      }
-//    }
     assert(false);  // Other dimensionalities not supported.
   }
 }
@@ -212,6 +199,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   gkyl_mat_triples *tri = gkyl_mat_triples_new(up->numnodes_global, up->numnodes_global);
   gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
   int idx0[POISSON_MAX_DIM];
+  printf("\n");
   while (gkyl_range_iter_next(&up->solve_iter)) {
     long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
 
@@ -239,7 +227,7 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
 {
 
   if (up->isdomperiodic) {
-    // Subtract the volume averaged RHS.
+    // Subtract the volume averaged RHS from the RHS.
     gkyl_dg_calc_average_range(up->basis, 0, up->rhs_cellavg, 0, rhsin, up->solve_range);
     gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->solve_range);
     gkyl_array_shiftc0(rhsin, up->mavgfac*up->rhs_avg[0]);

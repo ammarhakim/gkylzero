@@ -160,9 +160,9 @@ void fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_iny_periodicy(const int
 
   globalIdxs[3] = 3*idx[0]*numCells[1]+3*idx[1]+2; 
   if ((idx[0]+1==numCells[0]-1)) {
-    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+3*idx[1]+3; 
+    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+3*idx[1]+2; 
   } else {
-    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+3*idx[1]+3; 
+    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+3*idx[1]+2; 
   }
 
   if ((idx[1]+1==numCells[1]-1)) {
@@ -238,9 +238,9 @@ void fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_iny_nonperiodicy(const 
 
   globalIdxs[3] = 3*idx[0]*numCells[1]+3*idx[1]+2*idx[0]+2; 
   if ((idx[0]+1==numCells[0]-1)) {
-    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+3*idx[1]+2*idx[0]+5; 
+    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+3*idx[1]+2*idx[0]+4; 
   } else {
-    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+3*idx[1]+2*idx[0]+5; 
+    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+3*idx[1]+2*idx[0]+4; 
   }
 
   if ((idx[1]+1==numCells[1]-1)) {
@@ -316,9 +316,9 @@ void fem_poisson_local_to_global_2x_ser_p2_inx_nonperiodicx_iny_periodicy(const 
 
   globalIdxs[3] = 3*idx[0]*numCells[1]+3*idx[1]+2; 
   if ((idx[0]+1==numCells[0]-1)) {
-    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+5*idx[1]+3; 
+    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+5*idx[1]+2; 
   } else {
-    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+3*idx[1]+3; 
+    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+3*idx[1]+2; 
   }
 
   if ((idx[1]+1==numCells[1]-1)) {
@@ -394,9 +394,9 @@ void fem_poisson_local_to_global_2x_ser_p2_inx_nonperiodicx_iny_nonperiodicy(con
 
   globalIdxs[3] = 3*idx[0]*numCells[1]+3*idx[1]+2*idx[0]+2; 
   if ((idx[0]+1==numCells[0]-1)) {
-    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+5*idx[1]+2*idx[0]+5; 
+    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+5*idx[1]+2*idx[0]+4; 
   } else {
-    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+3*idx[1]+2*idx[0]+5; 
+    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+3*idx[1]+2*idx[0]+4; 
   }
 
   if ((idx[1]+1==numCells[1]-1)) {
@@ -638,9 +638,9 @@ void fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_upy_periodicy(const int
 
   globalIdxs[3] = 3*idx[0]*numCells[1]+3*idx[1]+2; 
   if ((idx[0]+1==numCells[0]-1)) {
-    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+3*idx[1]+3; 
+    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+3*idx[1]+2; 
   } else {
-    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+3*idx[1]+3; 
+    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+3*idx[1]+2; 
   }
 
   globalIdxs[5] = 3*idx[0]*numCells[1]; 
@@ -683,9 +683,9 @@ void fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_upy_nonperiodicy(const 
 
   globalIdxs[3] = 3*idx[0]*numCells[1]+3*idx[1]+2*idx[0]+2; 
   if ((idx[0]+1==numCells[0]-1)) {
-    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+3*idx[1]+2*idx[0]+5; 
+    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+3*idx[1]+2*idx[0]+4; 
   } else {
-    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+3*idx[1]+2*idx[0]+5; 
+    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+3*idx[1]+2*idx[0]+4; 
   }
 
   globalIdxs[5] = 3*idx[0]*numCells[1]+3*idx[1]+2*idx[0]+3; 
@@ -728,9 +728,9 @@ void fem_poisson_local_to_global_2x_ser_p2_inx_nonperiodicx_upy_periodicy(const 
 
   globalIdxs[3] = 3*idx[0]*numCells[1]+3*idx[1]+2; 
   if ((idx[0]+1==numCells[0]-1)) {
-    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+5*idx[1]+3; 
+    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+5*idx[1]+2; 
   } else {
-    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+3*idx[1]+3; 
+    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+3*idx[1]+2; 
   }
 
   globalIdxs[5] = 3*idx[0]*numCells[1]; 
@@ -773,9 +773,9 @@ void fem_poisson_local_to_global_2x_ser_p2_inx_nonperiodicx_upy_nonperiodicy(con
 
   globalIdxs[3] = 3*idx[0]*numCells[1]+3*idx[1]+2*idx[0]+2; 
   if ((idx[0]+1==numCells[0]-1)) {
-    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+5*idx[1]+2*idx[0]+5; 
+    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+5*idx[1]+2*idx[0]+4; 
   } else {
-    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+3*idx[1]+2*idx[0]+5; 
+    globalIdxs[4] = (3*idx[0]+3)*numCells[1]+3*idx[1]+2*idx[0]+4; 
   }
 
   globalIdxs[5] = 3*idx[0]*numCells[1]+3*idx[1]+2*idx[0]+3; 
