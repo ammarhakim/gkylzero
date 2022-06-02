@@ -281,10 +281,39 @@ test_mhd_waves_3()
   gkyl_wv_eqn_release(mhd);
 }
 
+#ifdef GKYL_HAVE_CUDA
+
+int cu_wv_mhd_test(const struct gkyl_wv_eqn *eqn);
+
+void
+test_cu_wv_mhd()
+{
+  double gas_gamma = 5.0/3.0;
+  struct gkyl_wv_eqn *eqn = gkyl_wv_mhd_cu_dev_new(gas_gamma, "none");
+
+  // this is not possible from user code and should NOT be done. This
+  // is for testing only
+  struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
+
+  TEST_CHECK( mhd->gas_gamma == 5.0/3.0 );
+  
+  // call CUDA test
+  int nfail = cu_wv_mhd_test(eqn->on_dev);
+
+  TEST_CHECK( nfail == 0 );
+
+  gkyl_wv_eqn_release(eqn);
+}
+
+#endif
+
 TEST_LIST = {
   { "mhd_basic", test_mhd_basic },
   { "mhd_waves", test_mhd_waves },
   { "mhd_waves_2", test_mhd_waves_2 },
   { "mhd_waves_3", test_mhd_waves_3 },
+#ifdef GKYL_HAVE_CUDA
+  { "mhd_waves_cuda", test_cu_wv_mhd },
+#endif
   { NULL, NULL },
 };

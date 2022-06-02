@@ -43,7 +43,7 @@ gkyl_wv_mhd_free(const struct gkyl_ref_count *ref)
   gkyl_free(mhd);
 }
 
-
+GKYL_CU_D
 static inline void
 rot_to_local_rect(const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
@@ -62,6 +62,7 @@ rot_to_local_rect(const double *tau1, const double *tau2, const double *norm,
   qlocal[7] = qglobal[5]*tau2[0] + qglobal[6]*tau2[1] + qglobal[7]*tau2[2];
 }
 
+GKYL_CU_D
 static inline void
 rot_to_global_rect(const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
@@ -80,6 +81,7 @@ rot_to_global_rect(const double *tau1, const double *tau2, const double *norm,
   qglobal[7] = qlocal[5]*norm[2] + qlocal[6]*tau1[2] + qlocal[7]*tau2[2];
 }
 
+GKYL_CU_D
 static inline void
 rot_to_local_rect_glm(const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
@@ -88,6 +90,7 @@ rot_to_local_rect_glm(const double *tau1, const double *tau2, const double *norm
   qlocal[8] = qglobal[8];
 }
 
+GKYL_CU_D
 static inline void
 rot_to_global_rect_glm(const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
@@ -103,6 +106,7 @@ rot_to_global_rect_glm(const double *tau1, const double *tau2, const double *nor
  * @param gas_gamma Gas adiabatic constant
  * @param q Conserved variables
  */
+GKYL_CU_D
 static inline
 double gkyl_mhd_pressure(double gas_gamma, const double q[8])
 {
@@ -113,6 +117,7 @@ double gkyl_mhd_pressure(double gas_gamma, const double q[8])
 
 // Computing waves and waves speeds from Roe linearization.
 // Following Cargo & Gallice 1997 section 4.2.
+GKYL_CU_D
 static double
 wave_roe(const struct gkyl_wv_eqn *eqn, const double *dQ,
   const double *ql, const double *qr, double *waves, double *ev)
@@ -182,7 +187,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn, const double *dQ,
     betay = By / Bt;
     betaz = Bz / Bt;
   } else {
-    betay = betaz = 1/sqrt(2);
+    betay = betaz = 1/sqrt(2.);
   }
 
   double alphaf2 = (a2 - cs2) / (cf2 - cs2);
@@ -217,7 +222,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn, const double *dQ,
   const int mwaves = eqn->num_waves;
   for (int i=0; i<meqns*mwaves; ++i) waves[i] = 0.0;
   double *wv;
-  double eta[mwaves];
+  double eta[9]; // eta[mwaves];
 
   /////////////////////////////
   // Fast magnetosonic waves //
@@ -384,6 +389,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn, const double *dQ,
   return max_speed;
 }
 
+GKYL_CU_D
 static void
 qfluct_roe(const struct gkyl_wv_eqn *eqn, const double *ql,
   const double *qr, const double *waves, const double *s, double *amdq,
@@ -430,6 +436,7 @@ gkyl_mhd_max_abs_speed(double gas_gamma, const double q[8])
   return fabs(u1) + cf;
 }
 
+GKYL_CU_D
 static double
 max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
@@ -473,6 +480,7 @@ gkyl_mhd_flux(double gas_gamma, const double q[8], double flux[8])
  * @param Conserved variables
  * @param flux On output, the flux in direction 'dir'
  */
+GKYL_CU_D
 static void
 gkyl_glm_mhd_flux(double gas_gamma, double ch, const double q[9], double flux[9])
 {
