@@ -25,7 +25,7 @@ then
     tar xvf OpenBLAS-0.3.15.tar
     cd OpenBLAS-0.3.15
     make USE_OPENMP=0 NUM_THREADS=1 FC=$FC -j
-    make install PREFIX=$PREFIX -j
+    make USE_OPENMP=0 NUM_THREADS=1 install PREFIX=$PREFIX -j
 
     # soft-link 
     ln -sfn $PREFIX $GKYLSOFT/OpenBLAS
