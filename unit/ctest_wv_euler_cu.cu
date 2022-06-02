@@ -21,7 +21,8 @@ void ker_cu_wv_euler_test(const struct gkyl_wv_eqn *eqn, int *nfail)
   struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
 
   GKYL_CU_CHECK( euler->gas_gamma == 1.4, nfail );
-
+  double gas_gamma = euler->gas_gamma;
+  
   double rho = 1.0, u = 0.1, v = 0.2, w = 0.3, pr = 0.0;
   double q[5];
 

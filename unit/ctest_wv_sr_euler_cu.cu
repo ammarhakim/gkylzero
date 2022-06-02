@@ -21,7 +21,8 @@ void ker_cu_wv_sr_euler_test(const struct gkyl_wv_eqn *eqn, int *nfail)
   struct wv_sr_euler *sr_euler = container_of(eqn, struct wv_sr_euler, eqn);
 
   GKYL_CU_CHECK( sr_euler->gas_gamma == 1.333, nfail );
-
+  double gas_gamma = sr_euler->gas_gamma;
+  
   double rho = 1.0, u = 0.9999, v = 0.5, w = 0.01, pr = 1.5;
   double q[5], pv2[5];
 
@@ -42,8 +43,8 @@ void ker_cu_wv_sr_euler_test(const struct gkyl_wv_eqn *eqn, int *nfail)
   GKYL_CU_CHECK( v == pv2[3], nfail );
   GKYL_CU_CHECK( w == pv2[4], nfail );
 
-  double gamma = 1 / sqrt(1 - u*u - v*v - w*w);
-  double rhoh = gas_gamma * pr / (gas_gamma - 1)  + rho;
+  gamma = 1 / sqrt(1 - u*u - v*v - w*w);
+  rhoh = gas_gamma * pr / (gas_gamma - 1)  + rho;
 
   double fluxes[3][5] = {
     { gamma*rho*u, gamma*gamma*rhoh*u, gamma*gamma*rhoh*u*u + pr, gamma*gamma*rhoh*u*v, gamma*gamma*rhoh*u*w },

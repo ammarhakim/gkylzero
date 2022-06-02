@@ -250,7 +250,7 @@ TEST_LIST = {
   { "test_sr_euler_waves", test_sr_euler_waves},
   { "test_sr_euler_waves2", test_sr_euler_waves2},
 #ifdef GKYL_HAVE_CUDA
-  { "cu_wv_sr_euler", test_cu_wv_sr_euler },
+  //  { "cu_wv_sr_euler", test_cu_wv_sr_euler },
 #endif  
   { NULL, NULL },
 };

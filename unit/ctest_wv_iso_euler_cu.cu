@@ -21,7 +21,8 @@ void ker_cu_wv_iso_euler_test(const struct gkyl_wv_eqn *eqn, int *nfail)
   struct wv_iso_euler *iso_euler = container_of(eqn, struct wv_iso_euler, eqn);
 
   GKYL_CU_CHECK( iso_euler->vt == 2.0, nfail );
-
+  double vt = iso_euler->vt;
+  
   double rho = 1.0, u = 0.1, v = 0.2, w = 0.3;
   double q[4];
 
@@ -55,7 +56,7 @@ void ker_cu_wv_iso_euler_test(const struct gkyl_wv_eqn *eqn, int *nfail)
   double q_local[4], flux_local[4], flux[4];
   for (int d=0; d<3; ++d) {
     eqn->rotate_to_local_func(tau1[d], tau2[d], norm[d], q, q_local);
-    gkyl_euler_flux(gas_gamma, q_local, flux_local);
+    gkyl_iso_euler_flux(vt, q_local, flux_local);
     eqn->rotate_to_global_func(tau1[d], tau2[d], norm[d], flux_local, flux);
     
     for (int m=0; m<4; ++m)
