@@ -18,3 +18,13 @@ struct gkyl_wv_eqn* gkyl_wv_mhd_new(
  * @return Get gas adiabatic constant
  */
 double gkyl_wv_mhd_gas_gamma(const struct gkyl_wv_eqn* wv);
+
+/**
+ * Create a new ideal MHD equation object on gpu.
+ *
+ * @param gas_gamma Gas adiabatic constant
+ * @return Pointer to mhd equation object.
+ */
+struct gkyl_wv_eqn* gkyl_wv_mhd_cu_dev_new(
+    double gas_gamma, const char *divergence_constraint);
+

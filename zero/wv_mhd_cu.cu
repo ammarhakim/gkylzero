@@ -1,24 +1,36 @@
-#include <math.h>
-#include <float.h>
-#include <string.h>
-#include <assert.h>
+/* -*- c++ -*- */
 
+extern "C" {
 #include <gkyl_alloc.h>
-#include <gkyl_wv_mhd.h>
+#include <gkyl_alloc_flags_priv.h>
+#include <gkyl_wv_mhd.h>    
 #include <gkyl_wv_mhd_priv.h>
+}
 
-struct gkyl_wv_eqn*
-gkyl_wv_mhd_new(double gas_gamma, const char *divergence_constraint)
+#include <cassert>
+
+// CUDA kernel to set device pointers to isothermal mhd kernel functions
+// Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
+__global__ static void 
+wv_mhd_set_cu_dev_ptrs(struct wv_mhd *mhd)
 {
-  struct wv_mhd *mhd = gkyl_malloc(sizeof(struct wv_mhd));
-
-  mhd->eqn.type = GKYL_EQN_MHD;
-  mhd->gas_gamma = gas_gamma;
   mhd->eqn.waves_func = wave_roe;
   mhd->eqn.qfluct_func = qfluct_roe;
   mhd->eqn.max_speed_func = max_speed;
   mhd->eqn.rotate_to_local_func = rot_to_local_rect;
   mhd->eqn.rotate_to_global_func = rot_to_global_rect;
+
+  // mhd->eqn.wall_bc_func = mhd_wall; // TODO
+}
+
+struct gkyl_wv_eqn*
+gkyl_wv_mhd_cu_dev_new(double gas_gamma, const char *divergence_constraint)
+{
+  struct wv_mhd *mhd = (struct wv_mhd*) gkyl_malloc(sizeof(struct wv_mhd));
+
+  /* STEP 1. SET PRIMITIVE DATA */
+  mhd->eqn.type = GKYL_EQN_MHD;
+  mhd->gas_gamma = gas_gamma;
 
   if (strcmp(divergence_constraint, "none") == 0)
   {
@@ -47,25 +59,17 @@ gkyl_wv_mhd_new(double gas_gamma, const char *divergence_constraint)
     mhd->eqn.num_waves = 7;
   }
 
+  mhd->eqn.flags = 0;
+  GKYL_SET_CU_ALLOC(mhd->eqn.flags);
   mhd->eqn.ref_count = gkyl_ref_count_init(gkyl_wv_mhd_free);
 
+  /* STEP 2. COPY HOST OBJECT TO DEVICE OBJECT */
+  struct wv_mhd *mhd_cu = (struct wv_mhd*) gkyl_cu_malloc(sizeof(struct wv_mhd));
+  gkyl_cu_memcpy(mhd_cu, mhd, sizeof(struct wv_mhd), GKYL_CU_MEMCPY_H2D);
+
+  /* STEP 3. SET DEVICE FUNCTION POINTERS IN DEVICE OBJECT */
+  wv_mhd_set_cu_dev_ptrs<<<1,1>>>(mhd_cu);
+
+  mhd->eqn.on_dev = &mhd_cu->eqn; // CPU eqn obj points to itself
   return &mhd->eqn;
-}
-
-#ifndef GKYL_HAVE_CUDA
-
-struct gkyl_wv_eqn*
-gkyl_wv_mhd_cu_dev_new(double gas_gamma, const char *divergence_constraint)
-{
-  assert(false);
-  return 0;
-}
-
-#endif
-
-double
-gkyl_wv_mhd_gas_gamma(const struct gkyl_wv_eqn* eqn)
-{
-  const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
-  return mhd->gas_gamma;
 }
