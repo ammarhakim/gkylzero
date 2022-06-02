@@ -67,7 +67,7 @@ test_sr_euler_prim1()
   };
 
   double q_local[5], flux_local[5], flux[5];
-  for (int d=1; d<2; ++d) {
+  for (int d=0; d<3; ++d) {
     sr_euler->rotate_to_local_func(tau1[d], tau2[d], norm[d], q, q_local);
     gkyl_sr_euler_flux(gas_gamma, q_local, flux_local);
     sr_euler->rotate_to_global_func(tau1[d], tau2[d], norm[d], flux_local, flux);
@@ -77,7 +77,7 @@ test_sr_euler_prim1()
   }
 
   double q_l[5], q_g[5];
-  for (int d=1; d<3; ++d) {
+  for (int d=0; d<3; ++d) {
     sr_euler->rotate_to_local_func(tau1[d], tau2[d], norm[d], q, q_l);
     sr_euler->rotate_to_global_func(tau1[d], tau2[d], norm[d], q_l, q_g);
 
@@ -219,10 +219,38 @@ test_sr_euler_waves2()
   gkyl_wv_eqn_release(sr_euler);
 }
 
+#ifdef GKYL_HAVE_CUDA
+
+int cu_wv_sr_euler_test(const struct gkyl_wv_eqn *eqn);
+
+void
+test_cu_wv_sr_euler()
+{
+  double gas_gamma = 1.333;
+  struct gkyl_wv_eqn *eqn = gkyl_wv_sr_euler_cu_dev_new(gas_gamma);
+
+  // this is not possible from user code and should NOT be done. This
+  // is for testing only
+  struct wv_sr_euler *sr_euler = container_of(eqn, struct wv_sr_euler, eqn);
+
+  TEST_CHECK( sr_euler->gas_gamma == 1.333 ); 
+  
+  // call CUDA test
+  int nfail = cu_wv_sr_euler_test(eqn->on_dev);
+
+  TEST_CHECK( nfail == 0 );
+
+  gkyl_wv_eqn_release(eqn);
+}
+
+#endif
 
 TEST_LIST = {
   { "euler_sr_prim1", test_sr_euler_prim1 },
   { "test_sr_euler_waves", test_sr_euler_waves},
   { "test_sr_euler_waves2", test_sr_euler_waves2},
+#ifdef GKYL_HAVE_CUDA
+  { "cu_wv_sr_euler", test_cu_wv_sr_euler },
+#endif  
   { NULL, NULL },
 };

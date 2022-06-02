@@ -98,6 +98,14 @@ test_maxwell_basic()
       TEST_CHECK( gkyl_compare(flux[m], fluxes[d][m], 1e-15) );
   }
 
+  double q_l[8], q_g[8];
+  for (int d=0; d<3; ++d) {
+    maxwell->rotate_to_local_func(tau1[d], tau2[d], norm[d], q, q_l);
+    maxwell->rotate_to_global_func(tau1[d], tau2[d], norm[d], q_l, q_g);
+
+    for (int m=0; m<8; ++m) TEST_CHECK( q[m] == q_g[m] );
+  }
+
   gkyl_wv_eqn_release(maxwell);
 }
 
