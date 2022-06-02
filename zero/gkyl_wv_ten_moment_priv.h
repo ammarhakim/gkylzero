@@ -14,6 +14,13 @@ struct wv_ten_moment {
   double k0; // closure parameter
 };
 
+/**
+ * Free ten moment eqn object.
+ *
+ * @param ref Reference counter for ten moment eqn
+ */
+void gkyl_ten_moment_free(const struct gkyl_ref_count *ref);
+
 GKYL_CU_D static inline double sq(double x) { return x*x; }
 
 /**
