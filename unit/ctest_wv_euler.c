@@ -1,6 +1,6 @@
 #include <acutest.h>
-#include <gkyl_moment_prim_euler.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_euler_priv.h>
 
 void
 calcq(double gas_gamma, const double pv[5], double q[5])

@@ -1,8 +1,8 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_kep_scheme.h>
-#include <gkyl_moment_prim_euler.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_euler_priv.h>
 
 static const int dir_shuffle[][3] = {
   {1, 2, 3},
@@ -129,7 +129,7 @@ gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range *upd
 
         double *cflrate_d = gkyl_array_fetch(cflrate, linp);
         // TODO: Rotation Is Required!
-        cflrate_d[0] += gkyl_euler_max_abs_speed(gas_gamma, qp)/dx;
+        cflrate_d[0] += kep->equation->max_speed_func(kep->equation, qp)/dx;
       }
     }
   }

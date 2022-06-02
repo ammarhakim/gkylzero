@@ -41,9 +41,7 @@ extern "C" {
 #include <gkyl_mom_type.h>
 #include <gkyl_mom_vlasov.h>
 #include <gkyl_moment_em_coupling.h>
-#include <gkyl_moment_prim_euler.h>
 #include <gkyl_moment_prim_mhd.h>
-#include <gkyl_moment_prim_ten_moment.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_prim_lbo_calc.h>
 #include <gkyl_prim_lbo_type.h>
