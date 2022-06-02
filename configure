@@ -6,6 +6,7 @@ PREFIX=${HOME}/gkylsoft
 # default build options
 CC=cc
 ARCH_FLAGS=-march=native
+CUDA_ARCH=70
 
 # Default lapack include and libraries: we prefer linking to static library
 LAPACK_INC=${HOME}/gkylsoft/OpenBLAS/include
@@ -32,6 +33,9 @@ specified valid paths. YOU are responsible for setting them correctly!
 
 CC                         C compiler to use. Default is system cc
 ARCH_FLAGS                 Architecture flags to use. Default '-march=native'
+CUDA_ARCH                  CUDA architecture flag to specify compute capability. 
+                           Use CUDA_ARCH=70 for V100, CUDA_ARCH=80 for A100, etc. 
+                           Default is CUDA_ARCH=70.
 
 -h
 --help                     This help.
@@ -101,6 +105,10 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       ARCH_FLAGS="$value"
       ;;   
+   CUDA_ARCH)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      CUDA_ARCH="$value"
+      ;;   
    --prefix)
       [ -n "$value" ] || die "Missing value in flag $key."
       PREFIX="$value"
@@ -137,6 +145,7 @@ PREFIX=$PREFIX
 # Compilers
 CC=$CC
 ARCH_FLAGS=$ARCH_FLAGS
+CUDA_ARCH=$CUDA_ARCH
 
 # Library paths
 LAPACK_INC=$LAPACK_INC

@@ -8,13 +8,18 @@
 # $HOME/gkylsoft and you are using standard compilers (not building on
 # GPUs)
 
+# these flags may be overwritten by the configure script
 ARCH_FLAGS = -march=native
+CUDA_ARCH = 70
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
 CFLAGS = -O3 -g -ffast-math -fPIC -MMD -MP
 LDFLAGS =
 
 # Install prefix
 PREFIX = ${HOME}/gkylsoft
+
+# determine OS we are running on
+UNAME = $(shell uname)
 
 # Directories containing source code
 SRC_DIRS := minus zero apps kernels
@@ -26,8 +31,13 @@ LAPACK_LIB = ${HOME}/gkylsoft/OpenBLAS/lib/libopenblas.a
 
 # SuperLU includes and librararies
 SUPERLU_INC = ${HOME}/gkylsoft/superlu/include
-SUPERLU_LIB_DIR = ${HOME}/gkylsoft/superlu/lib
-SUPERLU_LIB = ${HOME}/gkylsoft/superlu/lib/libsuperlu.a
+ifeq ($(UNAME),Linux)
+	SUPERLU_LIB_DIR = ${HOME}/gkylsoft/superlu/lib64
+	SUPERLU_LIB = ${HOME}/gkylsoft/superlu/lib64/libsuperlu.a
+else
+	SUPERLU_LIB_DIR = ${HOME}/gkylsoft/superlu/lib
+	SUPERLU_LIB = ${HOME}/gkylsoft/superlu/lib/libsuperlu.a
+endif
 
 # list of includes from kernels
 KERN_INC_DIRS = $(shell find $(SRC_DIRS) -type d)
@@ -43,9 +53,9 @@ CUDA_LIBS =
 ifeq ($(CC), nvcc)
        USING_NVCC = yes
        CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC
-       NVCC_FLAGS = -x cu -dc -arch=sm_70 --compiler-options="-fPIC" 
-       LDFLAGS += -arch=sm_70
-       CUDA_LIBS = -lcublas
+       NVCC_FLAGS = -x cu -dc -arch=sm_${CUDA_ARCH} --compiler-options="-fPIC"
+       LDFLAGS += -arch=sm_${CUDA_ARCH}
+       CUDA_LIBS = -lcublas -lcusparse -lcusolver
 endif
 
 # Build directory
@@ -54,9 +64,6 @@ ifdef USING_NVCC
 else
 	BUILD_DIR ?= build
 endif
-
-# determine OS we are running on
-UNAME = $(shell uname)
 
 # On OSX we should use Accelerate framework
 ifeq ($(UNAME), Darwin)
@@ -179,7 +186,7 @@ ${BUILD_DIR}/regression/%: regression/%.c ${BUILD_DIR}/${G0STLIB} regression/rt_
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${BUILD_DIR}/${G0STLIB} ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 
 # Unit tests
-${BUILD_DIR}/unit/%: unit/%.c ${BUILD_DIR}/${G0STLIB} ${UNIT_CU_OBJS}
+${BUILD_DIR}/unit/%: unit/%.c ${BUILD_DIR}/${G0STLIB} ${UNIT_CU_OBJS} ${UNIT_CU_SRCS}
 	$(MKDIR_P) ${BUILD_DIR}/unit
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${UNIT_CU_OBJS} ${BUILD_DIR}/${G0STLIB} ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 
