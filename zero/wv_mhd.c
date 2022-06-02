@@ -42,6 +42,27 @@ gkyl_wv_mhd_new(double gas_gamma, const char *divergence_constraint)
   return &mhd->eqn;
 }
 
+void
+gkyl_wv_mhd_free(const struct gkyl_ref_count *ref)
+{
+  struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
+ 
+  if (gkyl_wv_eqn_is_cu_dev(base)) {
+    struct wv_mhd *mhd = container_of(base->on_dev, struct wv_mhd, eqn);
+    gkyl_cu_free(mhd);
+  }
+
+  struct wv_mhd *mhd = container_of(base, struct wv_mhd, eqn);
+  gkyl_free(mhd);
+}
+
+double
+gkyl_wv_mhd_gas_gamma(const struct gkyl_wv_eqn* eqn)
+{
+  const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
+  return mhd->gas_gamma;
+}
+
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_wv_eqn*
@@ -53,9 +74,3 @@ gkyl_wv_mhd_cu_dev_new(double gas_gamma, const char *divergence_constraint)
 
 #endif
 
-double
-gkyl_wv_mhd_gas_gamma(const struct gkyl_wv_eqn* eqn)
-{
-  const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
-  return mhd->gas_gamma;
-}
