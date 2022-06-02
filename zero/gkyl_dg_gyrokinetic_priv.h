@@ -200,7 +200,7 @@ surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (gyrokinetic->pdim - gyrokinetic->cdim == 1 || dir < gyrokinetic->pdim-1) {
+  if (dir <= gyrokinetic->cdim) {
     long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idxC);
     gyrokinetic->surf[dir](xcC, dxC, 
       gyrokinetic->charge, gyrokinetic->mass,
