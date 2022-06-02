@@ -31,13 +31,8 @@ LAPACK_LIB = ${HOME}/gkylsoft/OpenBLAS/lib/libopenblas.a
 
 # SuperLU includes and librararies
 SUPERLU_INC = ${HOME}/gkylsoft/superlu/include
-ifeq ($(UNAME),Linux)
-	SUPERLU_LIB_DIR = ${HOME}/gkylsoft/superlu/lib64
-	SUPERLU_LIB = ${HOME}/gkylsoft/superlu/lib64/libsuperlu.a
-else
-	SUPERLU_LIB_DIR = ${HOME}/gkylsoft/superlu/lib
-	SUPERLU_LIB = ${HOME}/gkylsoft/superlu/lib/libsuperlu.a
-endif
+SUPERLU_LIB_DIR = ${HOME}/gkylsoft/superlu/lib
+SUPERLU_LIB = ${HOME}/gkylsoft/superlu/lib/libsuperlu.a
 
 # list of includes from kernels
 KERN_INC_DIRS = $(shell find $(SRC_DIRS) -type d)
