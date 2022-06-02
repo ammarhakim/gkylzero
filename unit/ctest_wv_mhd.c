@@ -1,6 +1,6 @@
 #include <acutest.h>
-#include <gkyl_moment_prim_mhd.h>
 #include <gkyl_wv_mhd.h>
+#include <gkyl_wv_mhd_priv.h>
 
 void
 calcq(double gas_gamma, const double pv[8], double q[8])
