@@ -38,7 +38,7 @@ dg_diffusion_set_cu_dev_ptrs(struct dg_diffusion* diffusion, enum gkyl_basis_typ
   const gkyl_dg_diffusion_surf_kern_list* surf_y_kernels;
   const gkyl_dg_diffusion_surf_kern_list* surf_z_kernels; 
 
-  switch (cbasis->b_type) {
+  switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       vol_kernels = ser_vol_kernels;
       surf_x_kernels = ser_surf_x_kernels;
