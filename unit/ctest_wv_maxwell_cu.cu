@@ -108,8 +108,8 @@ void ker_cu_wv_maxwell_test(const struct gkyl_wv_eqn *eqn, int *nfail)
     gkyl_maxwell_flux(c, e_fact, b_fact, q_local, flux_local);
     eqn->rotate_to_global_func(tau1[d], tau2[d], norm[d], flux_local, flux);
 
-    //for (int m=0; m<8; ++m)
-    //  GKYL_CU_CHECK( gkyl_compare(flux[m], fluxes[d][m], 1e-15) , nfail );
+    for (int m=0; m<8; ++m)
+      GKYL_CU_CHECK( flux[m] == fluxes[d][m], nfail );
   }
 }
 

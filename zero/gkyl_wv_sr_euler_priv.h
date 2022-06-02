@@ -15,9 +15,9 @@ struct wv_sr_euler {
 };
 
 /**
- * Free special relativistic euler eqn object.
+ * Free SR Euler eqn object.
  *
- * @param ref Reference counter for special relativistic euler eqn
+ * @param ref Reference counter for SR Euler eqn
  */
 void gkyl_sr_euler_free(const struct gkyl_ref_count *ref);
 
@@ -80,6 +80,29 @@ gkyl_sr_euler_prim_vars(double gas_gamma, const double q[5], double v[5])
   v[2] = us; 
   v[3] = vs;
   v[4] = ws;
+}
+
+/**
+ * Compute flux. Assumes rotation to local coordinate system.
+ * 
+ * @param gas_gamma Gas adiabatic constant
+ * @param Conserved variables
+ * @param flux On output, the flux in direction 'dir'
+ */
+GKYL_CU_D
+static void
+gkyl_sr_euler_flux(double gas_gamma, const double q[5], double flux[5])
+{
+  double v[5];
+  gkyl_sr_euler_prim_vars(gas_gamma, q, v);
+  double pr = v[1];
+
+  double fac0 = q[1] + pr;
+  flux[0] = q[0]*q[2]/fac0; // gamma*rho*u
+  flux[1] = q[2]; //gamma^2*rho*h*u
+  flux[2] = q[2]*q[2]/fac0 + pr; // gamma^2*rho*h*u*u + pr
+  flux[3] = q[2]*q[3]/fac0; // gamma^2*rho*h*u*v
+  flux[4] = q[2]*q[4]/fac0; // gamma^2*rho*h*u*w
 }
 
 GKYL_CU_D
@@ -224,27 +247,4 @@ max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
   double fac2 = gas_gamma*pr*fac1*(fac0 - q[2]*q[2] / fac0) + gas_gamma*gas_gamma*pr*pr;
   
   return (fac1*q[2] + sqrt(fac2)) / (fac1*fac0 + gas_gamma*pr);
-}
-
-/**
- * Compute flux. Assumes rotation to local coordinate system.
- * 
- * @param gas_gamma Gas adiabatic constant
- * @param Conserved variables
- * @param flux On output, the flux in direction 'dir'
- */
-GKYL_CU_D
-static void
-gkyl_sr_euler_flux(double gas_gamma, const double q[5], double flux[5])
-{
-  double v[5];
-  gkyl_sr_euler_prim_vars(gas_gamma, q, v);
-  double pr = v[1];
-
-  double fac0 = q[1] + pr;
-  flux[0] = q[0]*q[2]/fac0; // gamma*rho*u
-  flux[1] = q[2]; //gamma^2*rho*h*u
-  flux[2] = q[2]*q[2]/fac0 + pr; // gamma^2*rho*h*u*u + pr
-  flux[3] = q[2]*q[3]/fac0; // gamma^2*rho*h*u*v
-  flux[4] = q[2]*q[4]/fac0; // gamma^2*rho*h*u*w
 }

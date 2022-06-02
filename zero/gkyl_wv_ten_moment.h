@@ -11,6 +11,14 @@
 struct gkyl_wv_eqn* gkyl_wv_ten_moment_new(double k0);
 
 /**
+ * Create a new Ten moment equation object that lives on NV-GPU.
+ * 
+ * @param k0 Closure parameter
+ * @return Pointer to Ten moment equation object.
+ */
+struct gkyl_wv_eqn* gkyl_wv_ten_moment_cu_dev_new(double k0);
+
+/**
  * Get closure parameter.
  * 
  * @param wv Ten-moment equation object
