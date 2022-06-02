@@ -21,7 +21,8 @@ struct gkyl_wave_cell_geom {
 struct gkyl_wave_geom {
   struct gkyl_range range; // range over which geometry is defined
   struct gkyl_array *geom; // geometry in each cell
-  struct gkyl_ref_count ref_count;  
+  struct gkyl_ref_count ref_count;
+  struct gkyl_wave_geom *on_dev; // pointer to itself or device object
 };
 
 /**

@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_geom_priv.h>
 
@@ -59,3 +60,17 @@ gkyl_wave_geom_release(const struct gkyl_wave_geom *wg)
 {
   gkyl_ref_count_dec(&wg->ref_count);
 }
+
+#ifndef GKYL_HAVE_CUDA
+
+struct gkyl_wave_geom*
+gkyl_wave_geom_cu_dev_new(const struct gkyl_rect_grid *grid,
+                          struct gkyl_range *range,
+                          evalf_t mapc2p,
+                          void *ctx)
+{
+  assert(false);
+  return 0;
+}
+
+#endif
