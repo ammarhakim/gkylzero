@@ -1,6 +1,3 @@
-/* -*- c -*- */
-
-#include <stdio.h>
 #include <gkylzero.h>
 #include <gkyl_wv_mhd.h>
 #include <gkyl_wv_mhd_priv.h>

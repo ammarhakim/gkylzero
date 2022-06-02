@@ -33,12 +33,18 @@ struct wv_mhd {
 /**
  * Free wave mhd eqn object.
  *
- * @param ref Reference counter for special relativistic euler eqn
+ * @param ref Reference counter for mhd eqn
  */
 static void
 gkyl_wv_mhd_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
+ 
+  if (gkyl_wv_eqn_is_cu_dev(base)) {
+    struct wv_mhd *mhd = container_of(base->on_dev, struct wv_mhd, eqn);
+    gkyl_cu_free(mhd);
+  }
+
   struct wv_mhd *mhd = container_of(base, struct wv_mhd, eqn);
   gkyl_free(mhd);
 }

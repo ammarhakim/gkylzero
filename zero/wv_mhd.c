@@ -1,8 +1,5 @@
-#include <math.h>
-#include <float.h>
 #include <string.h>
 #include <assert.h>
-
 #include <gkyl_alloc.h>
 #include <gkyl_wv_mhd.h>
 #include <gkyl_wv_mhd_priv.h>
@@ -20,28 +17,21 @@ gkyl_wv_mhd_new(double gas_gamma, const char *divergence_constraint)
   mhd->eqn.rotate_to_local_func = rot_to_local_rect;
   mhd->eqn.rotate_to_global_func = rot_to_global_rect;
 
-  if (strcmp(divergence_constraint, "none") == 0)
-  {
+  if (strcmp(divergence_constraint, "none") == 0) {
     mhd->divergence_constraint = DIVB_NONE;
     mhd->eqn.num_equations = 8;
     mhd->eqn.num_waves = 7;
-  }
-  else if (strcmp(divergence_constraint, "eight_waves") == 0)
-  {
+  } else if (strcmp(divergence_constraint, "eight_waves") == 0) {
     mhd->divergence_constraint = DIVB_EIGHT_WAVES;
     mhd->eqn.num_equations = 8;
-    mhd->eqn.num_waves = 7;  // will merge the entropy wave and divB wave
-  }
-  else if (strcmp(divergence_constraint, "glm") == 0)
-  {
+    mhd->eqn.num_waves = 7;  // entropy and divB waves are merged into one wave
+  } else if (strcmp(divergence_constraint, "glm") == 0) {
     mhd->divergence_constraint = DIVB_GLM;
     mhd->eqn.num_equations = 9;
     mhd->eqn.num_waves = 9;
     mhd->eqn.rotate_to_local_func = rot_to_local_rect_glm;
     mhd->eqn.rotate_to_global_func = rot_to_global_rect_glm;
-  }
-  else {
-    // Do not constrain divergence by default. TODO: Warn or throw an error
+  } else { // TODO: Warn or throw an error
     mhd->divergence_constraint = DIVB_NONE;
     mhd->eqn.num_equations = 8;
     mhd->eqn.num_waves = 7;
