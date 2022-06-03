@@ -42,6 +42,14 @@ gkyl_wave_geom_new(const struct gkyl_rect_grid *grid, struct gkyl_range *range,
   return wg;
 }
 
+void
+wave_geom_free(const struct gkyl_ref_count *ref)
+{
+  struct gkyl_wave_geom *wg = container_of(ref, struct gkyl_wave_geom, ref_count);
+  gkyl_array_release(wg->geom);
+  gkyl_free(wg);
+}
+
 struct gkyl_wave_geom *
 gkyl_wave_geom_acquire(const struct gkyl_wave_geom* wg)
 {

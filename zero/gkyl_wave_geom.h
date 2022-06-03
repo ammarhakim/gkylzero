@@ -38,6 +38,13 @@ struct gkyl_wave_geom *gkyl_wave_geom_new(const struct gkyl_rect_grid *grid,
   evalf_t mapc2p, void *ctx);
 
 /**
+ * Free wave geometry object.
+ *
+ * @param ref Reference counter for wave geometry object
+ */
+void wave_geom_free(const struct gkyl_ref_count *ref);
+
+/**
  * Acquire pointer to geometry object. The pointer must be released
  * using gkyl_wave_geom_release method.
  *

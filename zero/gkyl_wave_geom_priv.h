@@ -7,14 +7,6 @@
 #include <gkyl_util.h>
 
 static void
-wave_geom_free(const struct gkyl_ref_count *ref)
-{
-  struct gkyl_wave_geom *wg = container_of(ref, struct gkyl_wave_geom, ref_count);
-  gkyl_array_release(wg->geom);
-  gkyl_free(wg);
-}
-
-static void
 nomapc2p(double t, const double *xc, double *xp, void *ctx)
 {
   for (int i=0; i<3; ++i) xp[i] = xc[i];
