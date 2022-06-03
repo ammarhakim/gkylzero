@@ -22,7 +22,6 @@ gkyl_wave_geom_cu_dev_new(const struct gkyl_rect_grid *grid,
   // STEP: CREATE NECESSARY DEVICE DATA AND TRACK THEM IN HOST OBJECT
   struct gkyl_array *geom = gkyl_array_new(
       GKYL_USER, sizeof(struct gkyl_wave_cell_geom), range->volume);
-
   double xc[GKYL_MAX_CDIM];
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, range);
@@ -45,10 +44,10 @@ gkyl_wave_geom_cu_dev_new(const struct gkyl_rect_grid *grid,
         break;
     };
   }
-
   wg->geom = gkyl_array_cu_dev_new(
       GKYL_USER, sizeof(struct gkyl_wave_cell_geom), range->volume);
   gkyl_array_copy(wg->geom, geom);
+  gkyl_array_release(geom);
 
   wg->ref_count = gkyl_ref_count_init(wave_geom_free);
 
