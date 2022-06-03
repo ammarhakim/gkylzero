@@ -35,25 +35,25 @@ void ker_cu_wave_geom_test(const struct gkyl_wave_geom *wg, int *nfail)
     const struct gkyl_wave_cell_geom *cg = (const struct gkyl_wave_cell_geom *)
       gkyl_array_cfetch(wg->geom, gkyl_range_idx(&wg->range, idx));
 
-    GKYL_CU_CHECK(compare(cg->kappa, area / area_c, 1e-15), nfail);
-    GKYL_CU_CHECK(compare(cg->lenr[0], edge_inn / phi_max, 1e-15), nfail);
-    GKYL_CU_CHECK(compare(cg->lenr[1], 1, 1e-15), nfail);
-    GKYL_CU_CHECK(compare(cg->lenr[2], area / area_c, 1e-15), nfail);
+    GKYL_CU_CHECK(compare(cg->kappa, area / area_c, 1e-8), nfail);
+    GKYL_CU_CHECK(compare(cg->lenr[0], edge_inn / phi_max, 1e-8), nfail);
+    GKYL_CU_CHECK(compare(cg->lenr[1], 1, 1e-8), nfail);
+    GKYL_CU_CHECK(compare(cg->lenr[2], area / area_c, 1e-8), nfail);
 
     // normal to left face has phi angle 45 deg
-    GKYL_CU_CHECK(compare(cg->norm[0][0], 1/sqrtf(2.), 1e-15), nfail);
-    GKYL_CU_CHECK(compare(cg->norm[0][1], 1/sqrtf(2.), 1e-15), nfail);
-    GKYL_CU_CHECK(compare(cg->norm[0][2], 0.0, 1e-15), nfail);
+    GKYL_CU_CHECK(compare(cg->norm[0][0], 1/sqrtf(2.), 1e-8), nfail);
+    GKYL_CU_CHECK(compare(cg->norm[0][1], 1/sqrtf(2.), 1e-8), nfail);
+    GKYL_CU_CHECK(compare(cg->norm[0][2], 0.0, 1e-8), nfail);
 
     // tangent1 to left face has phi angle 135 deg
-    GKYL_CU_CHECK(compare(cg->tau1[0][0], -1/sqrtf(2.), 1e-15), nfail);
-    GKYL_CU_CHECK(compare(cg->tau1[0][1], 1/sqrtf(2.), 1e-15), nfail);
-    GKYL_CU_CHECK(compare(cg->tau1[0][2], 0.0, 1e-15), nfail);
+    GKYL_CU_CHECK(compare(cg->tau1[0][0], -1/sqrtf(2.), 1e-8), nfail);
+    GKYL_CU_CHECK(compare(cg->tau1[0][1], 1/sqrtf(2.), 1e-8), nfail);
+    GKYL_CU_CHECK(compare(cg->tau1[0][2], 0.0, 1e-8), nfail);
 
     // tangent2 to left face is ez
-    GKYL_CU_CHECK(compare(cg->tau2[0][0], 0.0, 1e-15), nfail);
-    GKYL_CU_CHECK(compare(cg->tau2[0][1], 0.0, 1e-15), nfail);
-    GKYL_CU_CHECK(compare(cg->tau2[0][2], 1.0, 1e-15), nfail);
+    GKYL_CU_CHECK(compare(cg->tau2[0][0], 0.0, 1e-8), nfail);
+    GKYL_CU_CHECK(compare(cg->tau2[0][1], 0.0, 1e-8), nfail);
+    GKYL_CU_CHECK(compare(cg->tau2[0][2], 1.0, 1e-8), nfail);
   }
 }
 
