@@ -480,7 +480,7 @@ test_wv_geom_3d_cu()
   struct gkyl_wave_geom *wg =
     gkyl_wave_geom_cu_dev_new(&grid, &range, mapc2p_cylind, &ndim);
 
-  cu_wave_geom_test(wg);
+  cu_wave_geom_test(wg->on_dev);
 
   gkyl_wave_geom_release(wg);
 }
