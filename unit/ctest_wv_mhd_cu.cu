@@ -1,3 +1,4 @@
+#include <float.h>
 #include <gkylzero.h>
 #include <gkyl_wv_mhd.h>
 #include <gkyl_wv_mhd_priv.h>
@@ -6,7 +7,19 @@ extern "C" {
     int cu_wv_mhd_test(const struct gkyl_wv_eqn *eqn);
 }
 
-// FIXME: duplicate
+// FIXME: duplicate of gkyl_compare_double in util.c
+GKYL_CU_DH static int
+compare(double a, double b, double eps)
+{
+  double absa = fabs(a), absb = fabs(b), diff = fabs(a-b);
+  if (a == b) return 1;
+  if (a == 0 || b == 0 || (absa+absb < DBL_MIN)) return diff < eps;
+  if (absa < eps) return diff < eps;
+  if (absb < eps) return diff < eps;
+  return diff/fmin(absa+absb, DBL_MAX) < eps;
+}
+
+// FIXME: duplicate of that in ctest_wv_mhd.c
 GKYL_CU_D static void
 calcq(double gas_gamma, const double pv[8], double q[8])
 {
@@ -72,7 +85,8 @@ void ker_cu_wv_mhd_test(const struct gkyl_wv_eqn *eqn, int *nfail)
 
     // rotate waves back to global frame
     for (int mw=0; mw<7; ++mw)
-      eqn->rotate_to_global_func(tau1[d], tau2[d], norm[d], &waves_local[mw*8], &waves[mw*8]);
+      eqn->rotate_to_global_func(
+          tau1[d], tau2[d], norm[d], &waves_local[mw*8], &waves[mw*8]);
     
     double apdq[8], amdq[8];
     eqn->qfluct_func(eqn, ql, qr, waves, speeds, amdq, apdq);
@@ -87,7 +101,7 @@ void ker_cu_wv_mhd_test(const struct gkyl_wv_eqn *eqn, int *nfail)
     eqn->rotate_to_global_func(tau1[d], tau2[d], norm[d], fr_local, fr);
     
     for (int i=0; i<8; ++i)
-      GKYL_CU_CHECK( fabs((fr[i]-fl[i]) - (amdq[i]+apdq[i])) < 1e-13, nfail );
+      GKYL_CU_CHECK( compare(fr[i]-fl[i], amdq[i]+apdq[i], 1e-13), nfail);
   }
 }
 
