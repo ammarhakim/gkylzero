@@ -62,6 +62,7 @@ int cu_wave_geom_test(const struct gkyl_wave_geom *wg)
   int *nfail_dev = (int *) gkyl_cu_malloc(sizeof(int));
 
   ker_cu_wave_geom_test<<<1, 1>>>(wg, nfail_dev);
+  checkCuda(cudaGetLastError());
 
   int nfail;
   gkyl_cu_memcpy(&nfail, nfail_dev, sizeof(int), GKYL_CU_MEMCPY_D2H);

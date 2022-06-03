@@ -70,7 +70,7 @@ void ker_cu_wv_mhd_test(const struct gkyl_wv_eqn *eqn, int *nfail)
     { 0.0, 0.0, 1.0 },
     { 0.0, 0.0, 1.0 },
     { 0.0, 1.0, 0.0 }
-  };  
+  };
 
   for (int d=0; d<1; ++d) {
     double speeds[7], waves[7*8], waves_local[7*8];
@@ -80,17 +80,17 @@ void ker_cu_wv_mhd_test(const struct gkyl_wv_eqn *eqn, int *nfail)
 
     double delta[8];
     for (int i=0; i<8; ++i) delta[i] = qr_local[i]-ql_local[i];
-    
+
     eqn->waves_func(eqn, delta, ql_local, qr_local, waves_local, speeds);
 
     // rotate waves back to global frame
     for (int mw=0; mw<7; ++mw)
       eqn->rotate_to_global_func(
           tau1[d], tau2[d], norm[d], &waves_local[mw*8], &waves[mw*8]);
-    
+
     double apdq[8], amdq[8];
     eqn->qfluct_func(eqn, ql, qr, waves, speeds, amdq, apdq);
-    
+
     // check if sum of left/right going fluctuations sum to jump in flux
     double fl_local[8], fr_local[8];
     gkyl_mhd_flux(gas_gamma, ql_local, fl_local);
@@ -99,7 +99,7 @@ void ker_cu_wv_mhd_test(const struct gkyl_wv_eqn *eqn, int *nfail)
     double fl[8], fr[8];
     eqn->rotate_to_global_func(tau1[d], tau2[d], norm[d], fl_local, fl);
     eqn->rotate_to_global_func(tau1[d], tau2[d], norm[d], fr_local, fr);
-    
+
     for (int i=0; i<8; ++i)
       GKYL_CU_CHECK( compare(fr[i]-fl[i], amdq[i]+apdq[i], 1e-13), nfail);
   }
@@ -108,7 +108,9 @@ void ker_cu_wv_mhd_test(const struct gkyl_wv_eqn *eqn, int *nfail)
 int cu_wv_mhd_test(const struct gkyl_wv_eqn *eqn)
 {
   int *nfail_dev = (int *) gkyl_cu_malloc(sizeof(int));
-  ker_cu_wv_mhd_test<<<1,1>>>(eqn, nfail_dev);
+
+  ker_cu_wv_mhd_test<<<1, 1>>>(eqn, nfail_dev);
+  checkCuda(cudaGetLastError());
 
   int nfail;
   gkyl_cu_memcpy(&nfail, nfail_dev, sizeof(int), GKYL_CU_MEMCPY_D2H);
