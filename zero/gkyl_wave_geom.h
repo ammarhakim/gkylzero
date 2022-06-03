@@ -58,3 +58,17 @@ const struct gkyl_wave_cell_geom* gkyl_wave_geom_get(const struct gkyl_wave_geom
  * @param wg Wave geometry object to release.
  */
 void gkyl_wave_geom_release(const struct gkyl_wave_geom *wg);
+
+/**
+ * Create a new wave geometry object on GPU device. 
+ *
+ * @param grid Grid on which geometry lives
+ * @param range Range on which geometry should be constructed
+ * @param mapc2p Mapping from computational to physical space
+ * @param ctx Context for use in mapping
+ */
+struct gkyl_wave_geom *
+gkyl_wave_geom_cu_dev_new(const struct gkyl_rect_grid *grid,
+                          struct gkyl_range *range,
+                          evalf_t mapc2p,
+                          void *ctx);
