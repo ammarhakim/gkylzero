@@ -20,7 +20,7 @@ gkyl_wave_geom_new(const struct gkyl_rect_grid *grid, struct gkyl_range *range,
     gkyl_rect_grid_cell_center(grid, iter.idx, xc);
 
     struct gkyl_wave_cell_geom *geo = gkyl_array_fetch(wg->geom, gkyl_range_idx(range, iter.idx));
-    
+
     // compute geometry based on grid dimensions
     switch (grid->ndim) {
       case 1:
@@ -34,7 +34,7 @@ gkyl_wave_geom_new(const struct gkyl_rect_grid *grid, struct gkyl_range *range,
       case 3:
         calc_geom_3d(grid->dx, xc, mapc2p ? mapc2p : nomapc2p, ctx, geo);
         break;
-    };   
+    };
   }
 
   wg->ref_count = gkyl_ref_count_init(wave_geom_free);

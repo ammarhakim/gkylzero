@@ -46,7 +46,7 @@ void
 gkyl_wv_mhd_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
- 
+
   if (gkyl_wv_eqn_is_cu_dev(base)) {
     struct wv_mhd *mhd = container_of(base->on_dev, struct wv_mhd, eqn);
     gkyl_cu_free(mhd);

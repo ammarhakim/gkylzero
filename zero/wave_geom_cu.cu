@@ -1,7 +1,7 @@
 extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
-#include <gkyl_wave_geom.h>    
+#include <gkyl_wave_geom.h>
 #include <gkyl_wave_geom_priv.h>
 }
 
@@ -13,10 +13,10 @@ gkyl_wave_geom_cu_dev_new(const struct gkyl_rect_grid *grid,
                           void *ctx)
 {
   // STEP: CREATE HOST OBJECT
-  struct gkyl_wave_geom *wg = 
+  struct gkyl_wave_geom *wg =
     (struct gkyl_wave_geom*) gkyl_malloc(sizeof(struct gkyl_wave_geom));
 
-  // STEP: SET HOST OR COMMON HOST/DEVICE DATA IN HOST OBJECT 
+  // STEP: SET HOST OR COMMON HOST/DEVICE DATA IN HOST OBJECT
   wg->range = *range;
 
   // STEP: CREATE NECESSARY DEVICE DATA AND TRACK THEM IN HOST OBJECT
@@ -29,10 +29,10 @@ gkyl_wave_geom_cu_dev_new(const struct gkyl_rect_grid *grid,
   while (gkyl_range_iter_next(&iter)) {
     gkyl_rect_grid_cell_center(grid, iter.idx, xc);
 
-    struct gkyl_wave_cell_geom *geo = 
+    struct gkyl_wave_cell_geom *geo =
       (struct gkyl_wave_cell_geom*) gkyl_array_fetch(
           geom, gkyl_range_idx(range, iter.idx));
-    
+
     switch (grid->ndim) {
       case 1:
         calc_geom_1d(grid->dx, xc, mapc2p ? mapc2p : nomapc2p, ctx, geo);
@@ -43,7 +43,7 @@ gkyl_wave_geom_cu_dev_new(const struct gkyl_rect_grid *grid,
       case 3:
         calc_geom_3d(grid->dx, xc, mapc2p ? mapc2p : nomapc2p, ctx, geo);
         break;
-    };   
+    };
   }
 
   wg->geom = gkyl_array_cu_dev_new(

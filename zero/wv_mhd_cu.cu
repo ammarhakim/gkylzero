@@ -1,12 +1,12 @@
 extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
-#include <gkyl_wv_mhd.h>    
+#include <gkyl_wv_mhd.h>
 #include <gkyl_wv_mhd_priv.h>
 }
 
 // CUDA kernel to set device pointers to mhd kernel functions
-__global__ static void 
+__global__ static void
 wv_mhd_set_cu_dev_ptrs(struct wv_mhd *mhd)
 {
   mhd->eqn.waves_func = wave_roe;
@@ -23,7 +23,7 @@ gkyl_wv_mhd_cu_dev_new(double gas_gamma, const char *divergence_constraint)
   // STEP 0. CREATE OBJECT ON CPU
   struct wv_mhd *mhd = (struct wv_mhd*) gkyl_malloc(sizeof(struct wv_mhd));
 
-  // STEP 1. SET PRIMITIVE DATA IN THE CPU OBJECT 
+  // STEP 1. SET PRIMITIVE DATA IN THE CPU OBJECT
   // These data are either primitive data (numbers and flags) that can be
   // used by GPU directly, or functions not used by GPU
   mhd->eqn.type = GKYL_EQN_MHD;
