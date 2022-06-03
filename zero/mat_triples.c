@@ -11,8 +11,18 @@ cmp_long(long a, long b)
   return a==b ? 0 : a<b ? -1 : 1;
 }
 
+static int
+(*mat_idx_cmp)(const struct mat_idx *mia, const struct mat_idx *mib);
+
 static inline int
-mat_idx_cmp(const struct mat_idx *mia, const struct mat_idx *mib)
+mat_idx_cmp_row(const struct mat_idx *mia, const struct mat_idx *mib)
+{
+  return cmp_long(mia->row, mib->row) == 0 ? cmp_long(mia->col, mib->col) :
+    cmp_long(mia->row, mib->row);
+}
+
+static inline int
+mat_idx_cmp_col(const struct mat_idx *mia, const struct mat_idx *mib)
 {
   return cmp_long(mia->col, mib->col) == 0 ? cmp_long(mia->row, mib->row) :
     cmp_long(mia->col, mib->col);
@@ -30,6 +40,7 @@ mat_idx_cmp(const struct mat_idx *mia, const struct mat_idx *mib)
 struct gkyl_mat_triples {
   struct gkyl_range range; // range representing matrix shape
   csmap_triple triples; // non-zero values in matrix
+  int ordering;
 };
 
 struct gkyl_mat_triples_iter {
@@ -45,15 +56,35 @@ gkyl_mat_triples_new(size_t nr, size_t nc)
   struct gkyl_mat_triples *tri = gkyl_malloc(sizeof(struct gkyl_mat_triples));
 
   gkyl_range_init_from_shape(&tri->range, 2, (const int[]) { nr, nc} );
-  tri->triples = csmap_triple_init();
 
+  // set column-major order by default
+  tri->ordering = COLMAJOR;
+
+  tri->triples = csmap_triple_init();
   return tri;
+}
+
+void gkyl_mat_triples_set_rowmaj_order(gkyl_mat_triples *tri)
+{
+  tri->ordering = ROWMAJOR;
+}
+
+bool gkyl_mat_triples_is_rowmaj(gkyl_mat_triples *tri) {
+  return tri->ordering == ROWMAJOR;
+}
+
+bool gkyl_mat_triples_is_colmaj(gkyl_mat_triples *tri) {
+  return tri->ordering == COLMAJOR;
 }
 
 double
 gkyl_mat_triples_insert(gkyl_mat_triples *tri, size_t i, size_t j, double val)
 {
   assert(i<gkyl_range_shape(&tri->range, 0) && j<gkyl_range_shape(&tri->range, 1));
+  if(tri->ordering == COLMAJOR) 
+    mat_idx_cmp = mat_idx_cmp_col;
+  else
+    mat_idx_cmp = mat_idx_cmp_row;
   
   long loc = gkyl_ridx(tri->range, i, j);
   csmap_triple_put(&tri->triples, (struct mat_idx) { .row = i, .col = j },
@@ -66,6 +97,10 @@ double
 gkyl_mat_triples_accum(gkyl_mat_triples *tri, size_t i, size_t j, double val)
 {
   assert(i<gkyl_range_shape(&tri->range, 0) && j<gkyl_range_shape(&tri->range, 1));
+  if(tri->ordering == COLMAJOR) 
+    mat_idx_cmp = mat_idx_cmp_col;
+  else
+    mat_idx_cmp = mat_idx_cmp_row;
   
   long loc = gkyl_ridx(tri->range, i, j);
   struct csmap_triple_value *mt = csmap_triple_get_mut(&tri->triples,

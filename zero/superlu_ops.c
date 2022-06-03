@@ -49,6 +49,8 @@ void
 gkyl_superlu_amat_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *tri)
 {
   prob->nnz = gkyl_mat_triples_size(tri);
+  // triples must be in colmaj order for superlu
+  assert(gkyl_mat_triples_is_colmaj(tri));
 
   // Allocate some memory needed in superlu. NOTE: this memory is
   // deleted when Destroy_CompCol_Matrix is called, and so we do not
