@@ -29,7 +29,7 @@ void ker_cu_wave_geom_test(const struct gkyl_wave_geom *wg, int *nfail)
   double edge_inn = sqrtf(2) * r_inn;
   double area_c = (r_out - r_inn) * phi_max;
 
-  int idx[] = {0, 0, 0};
+  int idx[] = {1, 1, 1};
   {
     // const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wg, idx);
     const struct gkyl_wave_cell_geom *cg = (const struct gkyl_wave_cell_geom *)
