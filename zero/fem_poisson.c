@@ -2,19 +2,43 @@
 #include <gkyl_fem_poisson_priv.h>
 
 static long
-global_num_nodes(const int dim, const int poly_order, const int basis_type, const int *num_cells)
+global_num_nodes(const int dim, const int poly_order, const int basis_type, const int *num_cells, bool *isdirperiodic)
 {
   if (dim==1) {
     if (poly_order == 1) {
-      return fem_poisson_num_nodes_global_1x_ser_p1_periodicx(num_cells);
+      if (isdirperiodic[0]) {
+        return fem_poisson_num_nodes_global_1x_ser_p1_periodicx(num_cells);
+      } else {
+        return fem_poisson_num_nodes_global_1x_ser_p1_nonperiodicx(num_cells);
+      }
     } else if (poly_order == 2) {
-      return fem_poisson_num_nodes_global_1x_ser_p2_periodicx(num_cells);
+      if (isdirperiodic[0]) {
+        return fem_poisson_num_nodes_global_1x_ser_p2_periodicx(num_cells);
+      } else {
+        return fem_poisson_num_nodes_global_1x_ser_p2_nonperiodicx(num_cells);
+      }
     }
   } else if (dim==2) {
     if (poly_order == 1) {
-      return fem_poisson_num_nodes_global_2x_ser_p1_periodicx_periodicy(num_cells);
+      if (isdirperiodic[0] && isdirperiodic[1]) {
+        return fem_poisson_num_nodes_global_2x_ser_p1_periodicx_periodicy(num_cells);
+      } else if (!isdirperiodic[0] && isdirperiodic[1]) {
+        return fem_poisson_num_nodes_global_2x_ser_p1_nonperiodicx_periodicy(num_cells);
+      } else if (isdirperiodic[0] && !isdirperiodic[1]) {
+        return fem_poisson_num_nodes_global_2x_ser_p1_periodicx_nonperiodicy(num_cells);
+      } else {
+        return fem_poisson_num_nodes_global_2x_ser_p1_nonperiodicx_nonperiodicy(num_cells);
+      }
     } else if (poly_order == 2) {
-      return fem_poisson_num_nodes_global_2x_ser_p2_periodicx_periodicy(num_cells);
+      if (isdirperiodic[0] && isdirperiodic[1]) {
+        return fem_poisson_num_nodes_global_2x_ser_p2_periodicx_periodicy(num_cells);
+      } else if (!isdirperiodic[0] && isdirperiodic[1]) {
+        return fem_poisson_num_nodes_global_2x_ser_p2_nonperiodicx_periodicy(num_cells);
+      } else if (isdirperiodic[0] && !isdirperiodic[1]) {
+        return fem_poisson_num_nodes_global_2x_ser_p2_periodicx_nonperiodicy(num_cells);
+      } else {
+        return fem_poisson_num_nodes_global_2x_ser_p2_nonperiodicx_nonperiodicy(num_cells);
+      }
     }
   } else if (dim==3) {
     assert(false);  // Other dimensionalities not supported.
@@ -122,10 +146,27 @@ local_nodtomod(const int dim, const int poly_order, const int basis_type, struct
 }
 
 int idx_to_inup_ker(const int dim, const int *num_cells, const int *idx) {
-  // Return the index of the in-up kernel given the grid index.
+  // Return the index of the kernel (in the array of kernels) needed given the grid index.
+  // This function is for kernels that differentiate between upper cells and
+  // elsewhere.
   int iout = 0;
   for (int d=0; d<dim; d++) {
     if (idx[d] == num_cells[d]) iout += (int)(pow(2,d)+0.5);
+  }
+  return iout;
+}
+
+int idx_to_inloup_ker(const int dim, const int *num_cells, const int *idx) {
+  // Return the index of the kernel (in the array of kernels) needed given the grid index.
+  // This function is for kernels that differentiate between lower, interior
+  // and upper cells.
+  int iout = 0;
+  for (int d=0; d<dim; d++) {
+    if (idx[d] == 1) {
+      iout = 2*iout+(int)(pow(3,d)+0.5);
+    } else if (idx[d] == num_cells[d]) {
+      iout = 2*iout+(int)(pow(3,d)+0.5)+1;
+    }
   }
   return iout;
 }
@@ -145,8 +186,6 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->poly_order = basis.poly_order;
   up->basis = basis;
 
-  for (int d=0; d<up->ndim; d++) up->isdirperiodic[d] = bcs.lo_type[d] == GKYL_POISSON_PERIODIC;
-
   up->globalidx = gkyl_malloc(sizeof(long[up->num_basis])); // global index, one for each basis in a cell.
 
   // Local and local-ext ranges for whole-grid arrays.
@@ -163,11 +202,14 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   gkyl_sub_range_init(&up->solve_range, &up->local_range_ext, sublower, subupper);
   for (int d=0; d<up->ndim; d++) up->num_cells[d] = up->solve_range.upper[d]-up->solve_range.lower[d]+1;
 
-  // Compute the number of local and global nodes.
-  up->numnodes_local = up->num_basis;
-  up->numnodes_global = global_num_nodes(up->ndim, up->poly_order, basis.b_type, &up->num_cells[0]);
-
   // Prepare for periodic domain case.
+  for (int d=0; d<up->ndim; d++) {
+    // Sanity check.
+    if ((bcs.lo_type[d] == GKYL_POISSON_PERIODIC && bcs.up_type[d] != GKYL_POISSON_PERIODIC) ||
+        (bcs.lo_type[d] != GKYL_POISSON_PERIODIC && bcs.up_type[d] == GKYL_POISSON_PERIODIC))
+      assert(false);
+  }
+  for (int d=0; d<up->ndim; d++) up->isdirperiodic[d] = bcs.lo_type[d] == GKYL_POISSON_PERIODIC;
   up->isdomperiodic = true;
   for (int d=0; d<up->ndim; d++) up->isdomperiodic = up->isdomperiodic && up->isdirperiodic[d];
   if (up->isdomperiodic) {
@@ -177,6 +219,24 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
     // DG field and the 1/N to properly compute the volume averaged RHS.
     up->mavgfac = -pow(sqrt(2.),up->ndim)/up->solve_range.volume;
   }
+
+  // Pack BC values into a single array for easier use in kernels.
+  for (int d=0; d<up->ndim; d++) {
+    for (int k=0; k<6; k++) up->bcvals[d*2*3+k] = 0.0; // default. Not used in some cases (e.g. periodic).
+    if (bcs.lo_type[d] != GKYL_POISSON_PERIODIC) {
+      int vnum = bcs.lo_type[d] == GKYL_POISSON_ROBIN ? 3 : 1;
+      int voff = bcs.lo_type[d] == GKYL_POISSON_ROBIN ? 0 : 2;
+      for (int k=0; k<vnum; k++) up->bcvals[d*2*3+voff+k] = bcs.lo_value[d].v[k];
+
+      vnum = bcs.up_type[d] == GKYL_POISSON_ROBIN ? 3 : 1;
+      voff = bcs.up_type[d] == GKYL_POISSON_ROBIN ? 0 : 2;
+      for (int k=0; k<vnum; k++) up->bcvals[d*2*3+voff+3+k] = bcs.lo_value[d].v[k];
+    }
+  }
+
+  // Compute the number of local and global nodes.
+  up->numnodes_local = up->num_basis;
+  up->numnodes_global = global_num_nodes(up->ndim, up->poly_order, basis.b_type, &up->num_cells[0], &up->isdirperiodic[0]);
 
   // Create local matrices used later.
   double dx[POISSON_MAX_DIM];
@@ -191,6 +251,12 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   // Select local-to-global mapping kernels:
   choose_local2global_kernels(&basis, &up->isdirperiodic[0], &up->l2g[0]);
 
+  // Select lhs kernels:
+  choose_lhs_kernels(&basis, bcs, &up->lhsker[0]);
+
+  // Select rhs src kernels:
+  choose_src_kernels(&basis, bcs, &up->srcker[0]);
+
   // Create a linear Ax=B problem. Here A is the discrete (global) stiffness
   // matrix times epsilon.
   up->prob = gkyl_superlu_prob_new(up->numnodes_global, up->numnodes_global, 1);
@@ -199,21 +265,16 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   gkyl_mat_triples *tri = gkyl_mat_triples_new(up->numnodes_global, up->numnodes_global);
   gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
   int idx0[POISSON_MAX_DIM];
-  printf("\n");
   while (gkyl_range_iter_next(&up->solve_iter)) {
     long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
 
     int keri = idx_to_inup_ker(up->ndim, &up->num_cells[0], up->solve_iter.idx);
     for (size_t d=0; d<up->ndim; d++) idx0[d] = up->solve_iter.idx[d]-1;
     up->l2g[keri](&up->num_cells[0], &idx0[0], &up->globalidx[0]);
-    for (size_t k=0; k<up->numnodes_local; ++k) {
-      for (size_t m=0; m<up->numnodes_local; ++m) {
-        double val = epsilon * gkyl_mat_get(up->local_stiff,k,m);
-        long globalidx_k = up->globalidx[k];
-        long globalidx_m = up->globalidx[m];
-        gkyl_mat_triples_accum(tri, globalidx_k, globalidx_m, val);
-      }
-    }
+
+    // Apply the -epsilon*nabla^2 stencil.
+    keri = idx_to_inloup_ker(up->ndim, &up->num_cells[0], up->solve_iter.idx);
+    up->lhsker[keri](epsilon, &dx[0], &up->bcvals[0], &up->globalidx[0], tri);
   }
   gkyl_superlu_amat_from_triples(up->prob, tri);
 
@@ -246,13 +307,10 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
     for (size_t d=0; d<up->ndim; d++) idx0[d] = up->solve_iter.idx[d]-1;
     up->l2g[keri](&up->num_cells[0], &idx0[0], &up->globalidx[0]);
 
-    for (size_t k=0; k<up->numnodes_local; k++) {
-      long globalidx_k = up->globalidx[k];
-      double massnod_rhs = 0.;
-      for (size_t m=0; m<up->numnodes_local; m++)
-        massnod_rhs += gkyl_mat_get(up->local_mass_modtonod,k,m) * rhsin_p[m];
-      gkyl_mat_triples_accum(tri, globalidx_k, 0, massnod_rhs);
-    }
+    // Apply the RHS source stencil. It's mostly the mass matrix times a
+    // modal-to-nodal operator times the source, modified by BCs in skin cells.
+    keri = idx_to_inloup_ker(up->ndim, &up->num_cells[0], up->solve_iter.idx);
+    up->srcker[keri](&rhsin_p[0], &up->bcvals[0], &up->globalidx[0], tri);
   }
 
   gkyl_superlu_brhs_from_triples(up->prob, tri);
