@@ -14,6 +14,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
+#include <gkyl_dg_diffusion.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_updater_lbo_vlasov.h>
 #include <gkyl_dg_updater_vlasov.h>
@@ -227,6 +228,9 @@ struct vm_field {
 // context for use in computing applied advection
 struct vm_eval_advect_ctx { evalf_t advect_func; void *advect_ctx; };
 
+// context for use in computing applied diffusion
+struct vm_eval_diffusion_ctx { evalf_t diff_func; void* diff_ctx; };
+
 // fluid species data
 struct vm_fluid_species {
   struct gkyl_vlasov_fluid_species info; // data for fluid
@@ -239,9 +243,13 @@ struct vm_fluid_species {
   struct gkyl_array *fluid_host;  // host copy for use IO and initialization
 
   struct gkyl_array *u; // array for advection flow
+  struct gkyl_array *D; // array for diffusion tensor
+  struct gkyl_array *D_host; // host copy of diffusion tensor
 
-  struct gkyl_dg_eqn *eqn; // Fluid equation  
-  gkyl_hyper_dg *slvr; // Fluid equation solver
+  struct gkyl_dg_eqn *advect_eqn; // Fluid advection equation
+  struct gkyl_dg_eqn *diff_eqn; // Fluid diffusion equation  
+  gkyl_hyper_dg *advect_slvr; // Fluid equation solver
+  gkyl_hyper_dg *diff_slvr; // Fluid equation solver
 
   // boundary conditions on lower/upper edges in each direction  
   enum gkyl_fluid_species_bc_type lower_bc[3], upper_bc[3];
@@ -256,6 +264,10 @@ struct vm_fluid_species {
   struct gkyl_array *advect_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *advect_proj; // projector for advection
   struct vm_eval_advect_ctx advect_ctx; // context for applied advection
+  
+  bool has_diffusion; // flag to indicate there is applied diffusion
+  gkyl_proj_on_basis* diff_proj; // projector for diffusion
+  struct vm_eval_diffusion_ctx diff_ctx; // context for applied diffusion
 
   // advection with another species present
   bool advects_with_species; // flag to indicate we are advecting with another species
@@ -749,6 +761,15 @@ void vm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fl
  * @param tm Time for use in advection
  */
 void vm_fluid_species_calc_advect(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm);
+
+/**
+ * Compute species applied diffusion term
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Fluid Species object
+ * @param tm Time for use in advection
+ */
+void vm_fluid_species_calc_diff(gkyl_vlasov_app* app, struct vm_fluid_species* fluid_species, double tm);
 
 /**
  * Compute RHS from fluid species equations
