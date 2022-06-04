@@ -5,13 +5,6 @@ extern "C" {
 #include <gkyl_wave_geom_priv.h>
 }
 
-__global__ static void
-wave_geom_set_cu_dev_ptrs(struct gkyl_wave_geom *wg_dev,
-                          struct gkyl_array *geom_dev)
-{
-  wg_dev->geom = geom_dev;
-}
-
 // CPU interface to create and track a GPU object
 struct gkyl_wave_geom*
 gkyl_wave_geom_cu_dev_new(const struct gkyl_rect_grid *grid,
@@ -48,6 +41,14 @@ gkyl_wave_geom_cu_dev_new(const struct gkyl_rect_grid *grid,
         break;
     };
   }
+  struct gkyl_array *geom_dev = gkyl_array_cu_dev_new(
+      GKYL_USER, sizeof(struct gkyl_wave_cell_geom), range->volume);
+  gkyl_array_copy(geom_dev, wg->geom);
+  gkyl_array_release(wg->geom);
+  // The value below will be copeid to wg_dev, then be rewritten. Eventually,
+  // wg->geom will be the host object that can be free'd by gkyl_array_release,
+  // wg_dev->geom will be the device object that can be used in cuda kernel.
+  wg->geom = geom_dev->on_dev;
 
   wg->ref_count = gkyl_ref_count_init(wave_geom_free);
 
@@ -55,12 +56,9 @@ gkyl_wave_geom_cu_dev_new(const struct gkyl_rect_grid *grid,
   struct gkyl_wave_geom *wg_dev =
     (struct gkyl_wave_geom*) gkyl_cu_malloc(sizeof(struct gkyl_wave_geom));
   gkyl_cu_memcpy(wg_dev, wg, sizeof(struct gkyl_wave_geom), GKYL_CU_MEMCPY_H2D);
+  wg->geom = geom_dev;
 
-  // STEP: SET OTHER DEVICE DATA IN DEVICE OBJECT
-  struct gkyl_array *geom_dev = gkyl_array_cu_dev_new(
-      GKYL_USER, sizeof(struct gkyl_wave_cell_geom), range->volume);
-  gkyl_array_copy(geom_dev, wg->geom);
-  wave_geom_set_cu_dev_ptrs<<<1, 1>>>(wg_dev, geom_dev->on_dev);
+  // STEP: SET DEVICE DATA
 
   // STEP: KEEP POINTER TO THE DEVICE OBJECT
   wg->on_dev = wg_dev;
