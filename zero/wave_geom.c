@@ -39,6 +39,8 @@ gkyl_wave_geom_new(const struct gkyl_rect_grid *grid, struct gkyl_range *range,
 
   wg->ref_count = gkyl_ref_count_init(wave_geom_free);
 
+  wg->on_dev = wg;
+
   return wg;
 }
 
