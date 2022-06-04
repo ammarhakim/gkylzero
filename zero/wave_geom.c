@@ -49,6 +49,9 @@ wave_geom_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_wave_geom *wg = container_of(ref, struct gkyl_wave_geom, ref_count);
   gkyl_array_release(wg->geom);
+  if (wg != wg->on_dev) { // TODO: proper gkyl way to detect device copy
+    gkyl_cu_free(wg->on_dev); // wg->on_dev->geom was released with wg->geom
+  }
   gkyl_free(wg);
 }
 
