@@ -94,6 +94,8 @@ gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp)
   // construct geometry
   up->geom = gkyl_wave_geom_acquire(winp.geom);
 
+  up->on_dev = up;
+
   return up;
 }
 
