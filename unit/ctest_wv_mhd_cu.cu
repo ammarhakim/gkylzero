@@ -8,8 +8,7 @@ extern "C" {
 }
 
 // FIXME: duplicate of gkyl_compare_double in util.c
-GKYL_CU_DH static int
-compare(double a, double b, double eps)
+GKYL_CU_D static int compare(double a, double b, double eps)
 {
   double absa = fabs(a), absb = fabs(b), diff = fabs(a-b);
   if (a == b) return 1;
