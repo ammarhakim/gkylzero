@@ -56,16 +56,20 @@ test_wave_prop_2d()
 }
 
 #ifdef GKYL_HAVE_CUDA
+int cu_wave_prop_test(gkyl_wave_prop **slvr, const int ndim);
+
 void
 test_wave_prop_2d_cu()
 {
   /* create grid and wave_geom */
+  // in order to conveniently check validity of the wave_geom object on device,
+  // use only one cell and no ghost cell
   int ndim = 2;
   double lower[] = {0.25, 0}, upper[] = {1.25, M_PI / 2.};
-  int cells[] = {10, 10};
+  int cells[] = {1, 1};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
-  int nghost[GKYL_MAX_DIM] = { 2, 2 };
+  int nghost[GKYL_MAX_DIM] = { 0, 0 };
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
   struct gkyl_wave_geom *wg = gkyl_wave_geom_cu_dev_new(
@@ -89,6 +93,8 @@ test_wave_prop_2d_cu()
       }
     );
   }
+
+  cu_wave_prop_test(slvr, ndim);
 
   gkyl_wave_geom_release(wg);
   for (int d=0; d<ndim; ++d) {
