@@ -74,6 +74,8 @@ struct gkyl_moment {
   int num_species; // number of species
   struct gkyl_moment_species species[GKYL_MAX_SPECIES]; // species objects
   struct gkyl_moment_field field; // field object
+
+  bool use_gpu;
 };
 
 // Simulation statistics
