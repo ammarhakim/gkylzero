@@ -60,6 +60,15 @@ struct gkyl_wave_prop_inp {
 gkyl_wave_prop* gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp);
 
 /**
+ * Create new updater on CUDA device to update equations using wave-propagation
+ * algorithm.
+ *
+ * @param winp Input for creating updater. See gkyl_wave_prop_inp above.
+ */
+gkyl_wave_prop* gkyl_wave_prop_cu_dev_new(struct gkyl_wave_prop_inp winp);
+
+
+/**
  * Compute wave-propagation update. The update_rng MUST be a sub-range
  * of the range on which the array is defined. That is, it must be
  * either the same range as the array range, or one created using the

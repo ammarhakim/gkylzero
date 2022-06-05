@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <float.h>
 #include <math.h>
 #include <time.h>
@@ -368,3 +369,12 @@ gkyl_wave_prop_release(gkyl_wave_prop* up)
   
   gkyl_free(up);
 }
+
+#ifndef GKYL_HAVE_CUDA
+gkyl_wave_prop*
+gkyl_wave_prop_cu_dev_new(struct gkyl_wave_prop_inp winp)
+{
+  assert(false);
+  return 0;
+}
+#endif
