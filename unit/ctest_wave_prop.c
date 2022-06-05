@@ -78,7 +78,7 @@ test_wave_prop_2d_cu()
   /* create gkyl_wave_prop */
   gkyl_wave_prop *slvr[ndim];
   for (int d=0; d<ndim; ++d) {
-    slvr[d] = gkyl_wave_prop_new( (struct gkyl_wave_prop_inp) {
+    slvr[d] = gkyl_wave_prop_cu_dev_new( (struct gkyl_wave_prop_inp) {
         .grid = &grid,
         .equation = eqn,
         .limiter = GKYL_MONOTONIZED_CENTERED,

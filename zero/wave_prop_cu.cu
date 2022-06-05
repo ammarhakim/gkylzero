@@ -27,7 +27,7 @@ gkyl_wave_prop_cu_dev_new(gkyl_wave_prop_inp winp)
   up->equation = winp.equation->on_dev;
   up->geom = winp.geom->on_dev;
 
-  // avoid random pointers passed to gkyl_array_release
+  // force null pointers that can be handled by gkyl_array_release
   up->waves = NULL;
   up->speeds = NULL;
   up->flux2 = NULL;
