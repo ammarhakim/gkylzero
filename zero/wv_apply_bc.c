@@ -3,6 +3,7 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_wave_geom.h>
+#include <gkyl_wave_geom_priv.h>
 #include <gkyl_wv_apply_bc.h>
 #include <gkyl_wv_eqn.h>
 

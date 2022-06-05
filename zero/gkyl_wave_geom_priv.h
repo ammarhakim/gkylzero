@@ -6,6 +6,18 @@
 #include <gkyl_math.h>
 #include <gkyl_util.h>
 
+/**
+ * Get pointer to geometry in a cell given by idx into the range over
+ * which the geometry was constructed.
+ */
+GKYL_CU_DH
+static const struct gkyl_wave_cell_geom*
+gkyl_wave_geom_get(const struct gkyl_wave_geom *wg, const int *idx)
+{
+  return (const struct gkyl_wave_cell_geom*)gkyl_array_cfetch(
+      wg->geom, gkyl_range_idx(&wg->range, idx));
+}
+
 static void
 nomapc2p(double t, const double *xc, double *xp, void *ctx)
 {

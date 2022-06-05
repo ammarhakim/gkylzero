@@ -62,12 +62,6 @@ gkyl_wave_geom_acquire(const struct gkyl_wave_geom* wg)
   return (struct gkyl_wave_geom*) wg;
 }
 
-const struct gkyl_wave_cell_geom*
-gkyl_wave_geom_get(const struct gkyl_wave_geom *wg, const int *idx)
-{
-  return gkyl_array_cfetch(wg->geom, gkyl_range_idx(&wg->range, idx));
-}
-
 void
 gkyl_wave_geom_release(const struct gkyl_wave_geom *wg)
 {

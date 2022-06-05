@@ -31,9 +31,7 @@ void ker_cu_wave_geom_test(const struct gkyl_wave_geom *wg, int *nfail)
 
   int idx[] = {1, 1, 1};
   {
-    // const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wg, idx);
-    const struct gkyl_wave_cell_geom *cg = (const struct gkyl_wave_cell_geom *)
-      gkyl_array_cfetch(wg->geom, gkyl_range_idx(&wg->range, idx));
+    const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wg, idx);
 
     GKYL_CU_CHECK(compare(cg->kappa, area / area_c, 1e-8), nfail);
     GKYL_CU_CHECK(compare(cg->lenr[0], edge_inn / phi_max, 1e-8), nfail);

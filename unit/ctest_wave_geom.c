@@ -4,11 +4,12 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_wave_geom.h>
+#include <gkyl_wave_geom_priv.h>
 
 #include <math.h>
 
 static void
-nomapc2p(double t, const double *xc, double *xp, void *ctx)
+my_nomapc2p(double t, const double *xc, double *xp, void *ctx)
 {
   int *ndim = ctx;
   for (int i=0; i<(*ndim); ++i) xp[i] = xc[i];
@@ -28,7 +29,8 @@ test_wv_geom_1d_1()
   struct gkyl_range arr_range, arr_ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
-  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &arr_range, nomapc2p, &ndim);
+  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(
+      &grid, &arr_range, my_nomapc2p, &ndim);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &arr_range);
@@ -111,7 +113,8 @@ test_wv_geom_2d_1()
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
-  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &range, nomapc2p, &ndim);
+  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(
+      &grid, &range, my_nomapc2p, &ndim);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -314,7 +317,8 @@ test_wv_geom_3d_1()
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
-  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &range, nomapc2p, &ndim);
+  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(
+      &grid, &range, my_nomapc2p, &ndim);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
