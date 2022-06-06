@@ -28,7 +28,7 @@ test_wave_prop_2d()
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
   struct gkyl_wave_geom *wg = gkyl_wave_geom_new(
-      &grid, &range, mapc2p_polar, &ndim);
+      &grid, &ext_range, mapc2p_polar, &ndim);
 
   /* create gkyl_wv_eqn */
   double c = 299792458.0, e_fact = 2.0, b_fact = 2.5;
