@@ -7,6 +7,147 @@
 #include <gkyl_wave_prop.h>
 #include <acutest.h>
 
+#ifdef GKYL_HAVE_CUDA
+
+// XXX following is for dev testing only, not for real unit test
+
+static struct gkyl_array*
+mkarr1(bool use_gpu, long nc, long size)
+{
+  struct gkyl_array* a;
+  if (use_gpu)
+    a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
+  else
+    a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  return a;
+}
+
+static void
+nomapc2p(double t, const double *xc, double *xp, void *ctx)
+{
+  for (int i=0; i<1; ++i) xp[i] = xc[i];
+}
+
+void
+do_test_wave_prop_maxwel_1d(bool use_gpu)
+{
+  int nthreads = 64;
+  int nblocks = 64;
+  int ncells_per_block = nthreads - 3;
+  int ncells = nblocks * ncells_per_block;
+
+  int ndim = 1;
+  int cells[] = {ncells};
+  int ghost[] = {2};
+  double lower[] = {0.};
+  double upper[] = {1.};
+
+  struct gkyl_rect_grid grid;
+  struct gkyl_range range, range_ext;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+  gkyl_create_grid_ranges(&grid, ghost, &range_ext, &range);
+
+  if (use_gpu) {
+    range.nthreads = nthreads;
+    range.nblocks = nblocks;
+  }
+
+  // create geometry, equation, and solver
+  struct gkyl_wave_geom *geom;
+  struct gkyl_wv_eqn *eqn;
+  struct gkyl_wave_prop *wv;
+
+  double c = 1.0, e_fact = 0.5, b_fact = 0.5;
+  if (use_gpu) {
+    geom = gkyl_wave_geom_cu_dev_new(&grid, &range_ext, nomapc2p, &ndim);
+    eqn = gkyl_wv_maxwell_cu_dev_new(c, e_fact, b_fact);
+    wv = gkyl_wave_prop_cu_dev_new( (struct gkyl_wave_prop_inp) {
+        .grid = &grid,
+        .equation = eqn,
+        .limiter = GKYL_MONOTONIZED_CENTERED,
+        .num_up_dirs = 1,
+        .update_dirs = { 0 },
+        .cfl = 1.0,
+        .geom = geom,
+        }
+      );
+  } else {
+    geom = gkyl_wave_geom_new(&grid, &range_ext, nomapc2p, &ndim);
+    eqn = gkyl_wv_maxwell_new(c, e_fact, b_fact);
+    wv = gkyl_wave_prop_new( (struct gkyl_wave_prop_inp) {
+        .grid = &grid,
+        .equation = eqn,
+        .limiter = GKYL_MONOTONIZED_CENTERED,
+        .num_up_dirs = 1,
+        .update_dirs = { 0 },
+        .cfl = 1.0,
+        .geom = geom,
+        }
+      );
+  }
+
+  // allocate and set data
+  struct gkyl_array *qin_h = mkarr1(false, 8, range_ext.volume);
+  struct gkyl_array *qou_h = mkarr1(false, 8, range_ext.volume);
+  struct gkyl_array *qin_d, *qou_d;
+  if (use_gpu) {
+    qin_d = mkarr1(true, 8, range_ext.volume);
+    qou_d = mkarr1(true, 8, range_ext.volume);
+  } else {
+    qin_d = qin_h;
+    qou_d = qou_h;
+  }
+
+  // apply initial condition
+  double *ptr = qin_h->data;
+  for(int i=0; i< ncells+4; i++) {
+    ptr[i] = i;
+  }
+  gkyl_array_copy(qin_d, qin_h);
+
+  // advance solution
+  double t = 0.0;
+  double dt = 0.1;
+  double nsteps = 100;
+  double step = 0;
+
+  struct gkyl_wave_prop_status status;
+  if (use_gpu) {
+    while(step < nsteps) {
+      status = gkyl_wave_prop_cu_dev_advance(wv, t, dt, &range, qin_d, qou_d);
+      t += dt;
+      step += 1;
+    }
+  } else {
+    while(step < nsteps) {
+      status = gkyl_wave_prop_advance(wv, t, dt, &range, qin_h, qou_h);
+      t += dt;
+      step += 1;
+    }
+  }
+
+  // release data
+  gkyl_wave_prop_release(wv);
+  gkyl_wv_eqn_release(eqn);
+  gkyl_wave_geom_release(geom);
+  gkyl_array_release(qin_h);
+  gkyl_array_release(qou_h);
+  gkyl_array_release(qin_d);
+  gkyl_array_release(qou_d);
+}
+
+void
+test_wave_prop_maxwel_1d_cpu() {
+  do_test_wave_prop_maxwel_1d(false); 
+}
+
+void
+test_wave_prop_maxwel_1d_gpu() {
+  do_test_wave_prop_maxwel_1d(true); 
+  checkCuda(cudaGetLastError());
+}
+#endif
+
 // map (r,theta) -> (x,y)
 void
 mapc2p_polar(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
@@ -108,6 +249,8 @@ test_wave_prop_2d_cu()
 TEST_LIST = {
   { "wave_prop_2d", test_wave_prop_2d },
 #ifdef GKYL_HAVE_CUDA
+  { "wave_prop_maxwell_1d_cpu", test_wave_prop_maxwel_1d_cpu },
+  { "wave_prop_maxwell_1d_gpu", test_wave_prop_maxwel_1d_gpu },
   { "wave_prop_2d_cu", test_wave_prop_2d_cu },
 #endif
   { NULL, NULL },
