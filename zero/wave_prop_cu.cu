@@ -48,6 +48,18 @@ gkyl_wave_prop_cu_dev_new(gkyl_wave_prop_inp winp)
   return up;
 }
 
+__global__ void
+do_gkyl_wave_prop_cu_dev_advance(
+    const gkyl_wave_prop *wv,
+    double tm,
+    double dt,
+    const struct gkyl_range *update_range,
+    const struct gkyl_array *qin,
+    struct gkyl_array *qout,
+    struct gkyl_wave_prop_status *status_dev)
+{
+}
+
 struct gkyl_wave_prop_status
 gkyl_wave_prop_cu_dev_advance(
     const gkyl_wave_prop *wv,
@@ -57,6 +69,21 @@ gkyl_wave_prop_cu_dev_advance(
     const struct gkyl_array *qin,
     struct gkyl_array *qout)
 {
-  return (struct gkyl_wave_prop_status) { .success = 0, .dt_suggested = 0 };
+  int nthreads = update_range->nthreads;
+  int nblocks = update_range->nblocks;
+
+  struct gkyl_wave_prop_status *status_dev =
+    (struct gkyl_wave_prop_status *) gkyl_cu_malloc(
+       sizeof(struct gkyl_wave_prop_status));
+
+  do_gkyl_wave_prop_cu_dev_advance<<<nthreads, nblocks>>>(
+      wv, tm, dt, update_range, qin, qout, status_dev);
+
+  struct gkyl_wave_prop_status status;
+  gkyl_cu_memcpy(&status, status_dev, sizeof(struct gkyl_wave_prop_status),
+                 GKYL_CU_MEMCPY_D2H);
+  gkyl_cu_free(status_dev);
+
+  return status;
 }
 
