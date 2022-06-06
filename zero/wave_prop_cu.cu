@@ -125,6 +125,7 @@ do_gkyl_wave_prop_cu_dev_advance(
   double *flux2 = dummy + base + (meqn * 4) * (threadIdx.x);
   base += (meqn * 4) * (blockDim.x);
 
+  // assign cells to threads, each thread updates one cell a time
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
       linc1 < update_range.volume; linc1 += blockDim.x*gridDim.x) {
     // inverse index from linc1 to idxc
@@ -146,8 +147,8 @@ do_gkyl_wave_prop_cu_dev_advance(
 
       // solve RP on four edges to update one cell
       for (int i=-1; i<3; ++i) {
-        idxl[dir] = i-1; idxr[dir] = i;
-        int sidx = i + 1;
+        idxl[dir] += i-1; idxr[dir] += i; // index of the left and right cell
+        int j = i + 1; // 0-based index for the edge being worked on
 
         // geometry in cell
         const struct gkyl_wave_cell_geom *cg =
@@ -165,12 +166,12 @@ do_gkyl_wave_prop_cu_dev_advance(
             cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qinr, qr_local);
 
         calc_jump(meqn, ql_local, qr_local, delta);
-        double *s = speeds + mwave * sidx;
+        double *s = speeds + mwave * j;
         wv->equation->waves_func(
             wv->equation, delta, ql_local, qr_local, waves_local, s);
 
         double lenr = cg->lenr[dir];
-        double *my_waves = waves + mwave * meqn * sidx;
+        double *my_waves = waves + mwave * meqn * j;
         for (int mw=0; mw<mwave; ++mw) {
           // rotate waves back
           wv->equation->rotate_to_global_func(cg->tau1[dir], cg->tau2[dir],
@@ -212,11 +213,11 @@ do_gkyl_wave_prop_cu_dev_advance(
       // compute second-order correction fluxes at each interface:
       // note that there is one extra edge than cell
       for (int i=0; i<2; ++i) {
-        int sidx = i + 1;
+        int j = i + 1;
 
-        const double *my_waves = waves + mwave * meqn * sidx;
-        const double *s = speeds + mwave * sidx;
-        double *flux2 = flux2 + meqn * sidx;
+        const double *my_waves = waves + mwave * meqn * j;
+        const double *s = speeds + mwave * j;
+        double *flux2 = flux2 + meqn * j;
 
         idxl[dir] = i;
         const struct gkyl_wave_cell_geom *cg =
