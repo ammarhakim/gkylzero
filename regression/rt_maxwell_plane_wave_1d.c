@@ -35,6 +35,10 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
+#ifndef GKYL_HAVE_CUDA
+  app_args.use_gpu = false;
+#endif
+
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
 
   if (app_args.trace_mem) {
@@ -59,7 +63,9 @@ main(int argc, char **argv)
       .evolve = 1,
       .limiter = GKYL_NO_LIMITER,
       .init = evalFieldInit,
-    }
+    },
+
+    .use_gpu = app_args.use_gpu,
   };
 
   // create app object
