@@ -8,7 +8,42 @@ extern "C" {
 #include <gkyl_wave_prop_priv.h>
 }
 
-GKYL_CU_D static void limit_waves_cu() {}
+GKYL_CU_D static void
+limit_waves_cu(const gkyl_wave_prop *wv, const struct gkyl_range *slice_range,
+  int lower, int upper, struct gkyl_array *waves, const struct gkyl_array *speed)
+{
+  int meqn = wv->equation->num_equations, mwaves = wv->equation->num_waves;
+
+  for (int mw=0; mw<mwaves; ++mw) {
+    const double *wl = (const double*)gkyl_array_cfetch(
+        waves, gkyl_ridx(*slice_range, lower-1));
+    const double *wr = (const double*)gkyl_array_cfetch(
+        waves, gkyl_ridx(*slice_range, lower));
+
+    double dotr = wave_dot_prod(meqn, &wl[mw*meqn], &wr[mw*meqn]);
+
+    for (int i=lower; i<=upper; ++i) {
+      double dotl = dotr;
+      
+      double * GKYL_RESTRICT wi =
+        (double *)gkyl_array_fetch(waves, gkyl_ridx(*slice_range, i));
+      const double * GKYL_RESTRICT wi1 =
+        (double *)gkyl_array_cfetch(waves, gkyl_ridx(*slice_range, i+1));
+      
+      double wnorm2 = wave_dot_prod(meqn, &wi[mw*meqn], &wi[mw*meqn]);
+      dotr = wave_dot_prod(meqn, &wi[mw*meqn], &wi1[mw*meqn]);
+
+      if (wnorm2 > 0) {
+        const double *s = (const double *)gkyl_array_cfetch(
+            speed, gkyl_ridx(*slice_range, i));
+        double r = s[mw] > 0 ? dotl/wnorm2 : dotr/wnorm2;
+        double theta = limiter_function(r, wv->limiter);
+        wave_rescale(meqn, theta, &wi[mw*meqn]);
+      }
+    }
+  }
+}
+
 
 // CPU interface to create and track a GPU object
 gkyl_wave_prop*
@@ -67,6 +102,7 @@ do_gkyl_wave_prop_cu_dev_advance(
 
   int ndim = update_range->ndim;
   // int meqn = wv->equation->num_equations, mwaves = wv->equation->num_waves;
+  // FIXME
   const int meqn = 8;
   const int mwaves = 6;
 
@@ -84,19 +120,22 @@ do_gkyl_wave_prop_cu_dev_advance(
     double dtdx = dt/wv->grid.dx[dir];
 
     // upper/lower bounds in direction 'd'. Note these are edge indices
-    // int loidx = update_range->lower[dir]-1;
-    // int upidx = update_range->upper[dir]+2;
+    int loidx = update_range->lower[dir]-1;
+    int upidx = update_range->upper[dir]+2;
 
-    struct gkyl_range slice_range = *update_range;
+    struct gkyl_range slice_range;
+    gkyl_range_init(&slice_range, 1, (int[]) { loidx }, (int[]) { upidx } );
+
+    struct gkyl_range perp_range;
+    gkyl_range_shorten(&perp_range, update_range, dir, 1);
     struct gkyl_range_iter iter;
-    // gkyl_range_init(&slice_range, 1, (int[]) { loidx }, (int[]) { upidx } );
-    // while (gkyl_range_iter_next(&iter)) {
-    {
+    gkyl_range_iter_init(&iter, &perp_range);
+
+    while (gkyl_range_iter_next(&iter)) {
       gkyl_copy_int_arr(ndim, iter.idx, idxl);
       gkyl_copy_int_arr(ndim, iter.idx, idxr);
 
-      // for (int i=loidx; i<upidx; ++i) {
-      {
+      for (int i=loidx; i<upidx; ++i) {
         int i = 0;
         idxl[dir] = i-1; idxr[dir] = i;
 
@@ -125,9 +164,8 @@ do_gkyl_wave_prop_cu_dev_advance(
         double *waves = (double *)gkyl_array_fetch(wv->waves, sidx);
         for (int mw=0; mw<mwaves; ++mw) {
           // rotate waves back
-          wv->equation->rotate_to_global_func(
-            cg->tau1[dir], cg->tau2[dir], cg->norm[dir], &waves_local[mw*meqn],
-            &waves[mw*meqn]
+          wv->equation->rotate_to_global_func(cg->tau1[dir], cg->tau2[dir],
+              cg->norm[dir], &waves_local[mw*meqn], &waves[mw*meqn]
           );
 
           s[mw] *= lenr; // rescale speeds
@@ -151,10 +189,8 @@ do_gkyl_wave_prop_cu_dev_advance(
 
       // apply limiters to waves for all edges in update range,
       // including edges that are on the range boundary
-      // limit_waves_cu(wv, &slice_range,
-      //   update_range->lower[dir], update_range->upper[dir]+1, wv->waves,
-      //   wv->speeds);
-      limit_waves_cu();
+      limit_waves_cu(wv, &slice_range, update_range->lower[dir],
+         update_range->upper[dir]+1, wv->waves, wv->speeds);
 
       // get the kappa in the first ghost cell on left (needed in the
       // second order flux calculation)
