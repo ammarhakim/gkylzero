@@ -374,7 +374,7 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   gkyl_mom_calc_advance_cu(moms_calc, &local, &confLocal, distf_cu, moms_cu);
 
   struct gkyl_mom_type *bcorr_type = gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(&confBasis, &basis, v_bounds);
-  gkyl_mom_calc_bcorr *bcorr_calc = gkyl_mom_calc_bcorr_cu_dev_new(&grid, bcorr_type);
+  gkyl_mom_calc_bcorr *bcorr_calc = gkyl_mom_calc_bcorr_cu_dev_new(&grid, bcorr_type, "phase");
   
   // create moment arrays
   struct gkyl_array *boundary_corrections_cu;

@@ -22,7 +22,7 @@ gkyl_mom_calc_bcorr* gkyl_mom_calc_bcorr_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_mom_type *momt, const char *space);
 
 gkyl_mom_calc_bcorr* gkyl_mom_calc_bcorr_cu_dev_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_mom_type *momt);
+  const struct gkyl_mom_type *momt, const char *space);
 
 /**
  * Compute boundary correction moments.
