@@ -9,6 +9,7 @@ struct gkyl_mom_calc_bcorr {
   int num_basis; // number of basis functions
   int num_up_dirs; // number of update directions
   int update_dirs[GKYL_MAX_DIM]; // directions to update
+  int space;
   const struct gkyl_mom_type *momt; // moment type object
 
   uint32_t flags;

@@ -1,6 +1,8 @@
 #pragma once 
 #include <math.h> 
-#include <gkyl_util.h> 
+#include <gkyl_util.h>
+#include <gkyl_mom_calc_bcorr.h>
+
 EXTERN_C_BEG 
 
 GKYL_CU_DH void vlasov_bflux_1x1v_ser_p1(const int *idx, const double *w, enum gkyl_vel_edge edge, const double *dxv, const double *fIn, double* GKYL_RESTRICT out);

@@ -183,7 +183,7 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   gkyl_mom_calc_advance(moms_calc, &local, &confLocal, distf, moms);
 
   struct gkyl_mom_type *bcorr_type = gkyl_mom_bcorr_lbo_vlasov_new(&confBasis, &basis, v_bounds);
-  gkyl_mom_calc_bcorr *bcorr_calc = gkyl_mom_calc_bcorr_new(&grid, bcorr_type);
+  gkyl_mom_calc_bcorr *bcorr_calc = gkyl_mom_calc_bcorr_new(&grid, bcorr_type, "phase");
   
   // create moment arrays
   struct gkyl_array *boundary_corrections;
@@ -200,7 +200,9 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
     double *fptr = gkyl_array_fetch(boundary_corrections, linc);
     for (unsigned int k=0; k<confBasis.num_basis; ++k) {
       TEST_CHECK( gkyl_compare( f_check[k], fptr[k], 1e-12) );
+      printf("[%f, %f]\n", f_check[k], fptr[k]);
       TEST_CHECK( gkyl_compare( vf_check[k], fptr[k+vdim*confBasis.num_basis], 1e-12) );
+      printf("[%f, %f]\n", vf_check[k], fptr[k+vdim*confBasis.num_basis]);
     }
   }
   
