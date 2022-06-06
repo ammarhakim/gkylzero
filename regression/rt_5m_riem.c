@@ -69,6 +69,10 @@ int
 main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
+  
+#ifndef GKYL_HAVE_CUDA
+  app_args.use_gpu = false;
+#endif
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 1024);
 
@@ -77,8 +81,15 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
   // electron/ion equations
-  struct gkyl_wv_eqn *elc_euler = gkyl_wv_euler_new(5.0/3.0);
-  struct gkyl_wv_eqn *ion_euler = gkyl_wv_euler_new(5.0/3.0);
+  struct gkyl_wv_eqn *elc_euler;
+  struct gkyl_wv_eqn *ion_euler;
+  if (app_args.use_gpu) {
+    elc_euler = gkyl_wv_euler_new(5.0/3.0);
+    ion_euler = gkyl_wv_euler_new(5.0/3.0);
+  } else {
+    elc_euler = gkyl_wv_euler_new(5.0/3.0);
+    ion_euler = gkyl_wv_euler_new(5.0/3.0);
+  }
 
   struct gkyl_moment_species elc = {
     .name = "elc",
@@ -114,7 +125,9 @@ main(int argc, char **argv)
       
       .evolve = 1,
       .init = evalFieldInit,
-    }
+    },
+
+    .use_gpu = app_args.use_gpu,
   };
 
   // create app object
