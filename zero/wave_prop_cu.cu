@@ -113,13 +113,12 @@ do_gkyl_wave_prop_cu_dev_advance(
   double waves_local[meqn*mwave];
   double delta[meqn], amdq[meqn], apdq[meqn];
 
-  // assign buffer for each thread; note that each thread does RP on four edges
-  // to update one cell
+  // assign buffers for each thread to solve RP on four edges to update one cell
   extern __shared__ double dummy[];
   int base = 0;
 
   double *waves = dummy + base + (meqn * mwave * 4) * (threadIdx.x);
-  base += (meqn * mwave * 5) * (blockDim.x);
+  base += (meqn * mwave * 4) * (blockDim.x);
 
   double *speeds = dummy + base + (mwave * 4) * (threadIdx.x);
   base += (mwave * 4) * (blockDim.x);
