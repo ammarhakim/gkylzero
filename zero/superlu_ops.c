@@ -144,6 +144,18 @@ gkyl_superlu_brhs_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *tri)
 }
 
 void
+gkyl_superlu_brhs_from_array(gkyl_superlu_prob *prob, const double *bin)
+{
+  for (size_t i=0; i<prob->ncol; i++) {
+    prob->rhs[i] = bin[i];
+  }
+  
+  // Create RHS matrix B. See SuperLU manual for definitions.
+  dCreate_Dense_Matrix(&prob->B, prob->mrow, prob->nrhs, prob->rhs, prob->mrow,
+    SLU_DN, SLU_D, SLU_GE);
+}
+
+void
 gkyl_superlu_solve(gkyl_superlu_prob *prob)
 {
   if (prob->options.Fact==FACTORED) {

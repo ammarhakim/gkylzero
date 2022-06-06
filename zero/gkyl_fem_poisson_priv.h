@@ -209,7 +209,7 @@ static const lhsstencil_kern_bcx_list_2x ser_lhsstencil_list_2x[] = {
 
 // Function pointer type for rhs source kernels.
 typedef void (*srcstencil_t)(const double *rho, const double *bcVals, const long *globalIdxs,
-  gkyl_mat_triples *tri);
+  double *bsrc);
 
 // For use in kernel tables.
 typedef struct { srcstencil_t kernels[3]; } srcstencil_kern_loc_list_1x;
@@ -377,6 +377,8 @@ struct gkyl_fem_poisson {
 
   int numnodes_local;
   long numnodes_global;
+
+  double *brhs;
 
   struct gkyl_superlu_prob* prob;
   struct gkyl_mat *local_stiff; // local stiffness matrix.

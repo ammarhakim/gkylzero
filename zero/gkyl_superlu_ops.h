@@ -40,6 +40,16 @@ void gkyl_superlu_ludecomp(gkyl_superlu_prob *prob);
 void gkyl_superlu_brhs_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *tri);
 
 /**
+ * Initialize right-hand-side SuperLU matrix B in Ax=B problem from a simple
+ * array. This is enough especially when solving a single Ax=B problem (with B
+ * a vector) and makes the GPU interface implementation easier.
+ *
+ * @param prob SuperLu struct holding arrays used in problem.
+ * @param bin column array for the right side source.
+ */
+void gkyl_superlu_brhs_from_array(gkyl_superlu_prob *prob, const double *bin);
+
+/**
  * Solve Ax=B problem.
  *
  * @param prob SuperLu struct holding arrays used in problem.

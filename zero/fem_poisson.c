@@ -248,6 +248,8 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   local_mass_modtonod(up->ndim, up->poly_order, basis.b_type, up->local_mass_modtonod);
   local_nodtomod(up->ndim, up->poly_order, basis.b_type, up->local_nodtomod);
 
+  up->brhs = gkyl_malloc(sizeof(double[up->numnodes_global])); // Global right side vector.
+
   // Select local-to-global mapping kernels:
   choose_local2global_kernels(&basis, &up->isdirperiodic[0], &up->l2g[0]);
 
@@ -294,8 +296,6 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
     gkyl_array_shiftc0(rhsin, up->mavgfac*up->rhs_avg[0]);
   }
 
-  gkyl_mat_triples *tri = gkyl_mat_triples_new(up->numnodes_global, 1);
-
   gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
   int idx0[POISSON_MAX_DIM];
   while (gkyl_range_iter_next(&up->solve_iter)) {
@@ -310,11 +310,10 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
     // Apply the RHS source stencil. It's mostly the mass matrix times a
     // modal-to-nodal operator times the source, modified by BCs in skin cells.
     keri = idx_to_inloup_ker(up->ndim, &up->num_cells[0], up->solve_iter.idx);
-    up->srcker[keri](&rhsin_p[0], &up->bcvals[0], &up->globalidx[0], tri);
+    up->srcker[keri](&rhsin_p[0], &up->bcvals[0], &up->globalidx[0], &up->brhs[0]);
   }
 
-  gkyl_superlu_brhs_from_triples(up->prob, tri);
-  gkyl_mat_triples_release(tri);
+  gkyl_superlu_brhs_from_array(up->prob, &up->brhs[0]);
 
 }
 
@@ -352,5 +351,6 @@ void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
   gkyl_mat_release(up->local_nodtomod);
   gkyl_superlu_prob_release(up->prob);
   gkyl_free(up->globalidx);
+  gkyl_free(up->brhs);
   gkyl_free(up);
 }
