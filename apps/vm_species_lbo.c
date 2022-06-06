@@ -40,7 +40,7 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   if (app->use_gpu) {
     // edge of velocity space corrections to momentum and energy 
     lbo->bcorr_type = gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(&app->confBasis, &app->basis, v_bounds);
-    lbo->bcorr_calc = gkyl_mom_calc_bcorr_cu_dev_new(&s->grid, lbo->bcorr_type);
+    lbo->bcorr_calc = gkyl_mom_calc_bcorr_cu_dev_new(&s->grid, lbo->bcorr_type, "phase");
     
     // primitive moment calculators
     if (collides_with_fluid)

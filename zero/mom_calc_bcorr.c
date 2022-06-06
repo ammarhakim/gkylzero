@@ -84,7 +84,8 @@ gkyl_mom_calc_bcorr_advance(gkyl_mom_calc_bcorr *bcorr,
 }
 
 gkyl_mom_calc_bcorr*
-gkyl_mom_calc_bcorr_new(const struct gkyl_rect_grid *grid, const struct gkyl_mom_type *momt, const char *space)
+gkyl_mom_calc_bcorr_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_mom_type *momt, const char *space)
 {
   gkyl_mom_calc_bcorr *up = gkyl_malloc(sizeof(gkyl_mom_calc_bcorr));
   up->grid = *grid;
@@ -122,7 +123,8 @@ gkyl_mom_calc_bcorr_advance_cu(gkyl_mom_calc_bcorr *bcorr,
 }
 
 gkyl_mom_calc_bcorr*
-gkyl_mom_calc_bcorr_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_mom_type *momt)
+gkyl_mom_calc_bcorr_cu_dev_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_mom_type *momt, const char *space)
 {
   assert(false);
 }
