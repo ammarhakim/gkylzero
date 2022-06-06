@@ -1,4 +1,4 @@
-#include <gkyl_vlasov_kernels.h> 
+#include <gkyl_vlasov_bflux_kernels.h> 
 GKYL_CU_DH void vlasov_bflux_3x3v_ser_p1(const int *idx, const double *w, enum gkyl_vel_edge edge, const double *dxv, const double *fIn, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
@@ -110,6 +110,9 @@ GKYL_CU_DH void vlasov_bflux_3x3v_ser_p1(const int *idx, const double *w, enum g
 
  } else if (edge == GKYL_VX_LOWER) {
 
+  const double dx10 = 2/dxv[0]; 
+  const double dv = dxv[3], wv = w[3]; 
+  double Ghat[32]; 
   Ghat[0] = -0.1178511301977578*((10.39230484541326*fIn[1]-6.0*fIn[0])*wv+(3.0*fIn[10]-1.732050807568877*fIn[4])*dv); 
   Ghat[1] = -0.1178511301977578*((10.39230484541326*fIn[7]-6.0*fIn[2])*wv+(3.0*fIn[23]-1.732050807568877*fIn[11])*dv); 
   Ghat[2] = -0.1178511301977578*((10.39230484541326*fIn[8]-6.0*fIn[3])*wv+(3.0*fIn[24]-1.732050807568877*fIn[12])*dv); 
@@ -314,6 +317,9 @@ GKYL_CU_DH void vlasov_bflux_3x3v_ser_p1(const int *idx, const double *w, enum g
 
  } else if (edge == GKYL_VY_LOWER) {
 
+  const double dx11 = 2/dxv[1]; 
+  const double dv = dxv[4], wv = w[4]; 
+  double Ghat[32]; 
   Ghat[0] = -0.1178511301977578*((10.39230484541326*fIn[2]-6.0*fIn[0])*wv+(3.0*fIn[14]-1.732050807568877*fIn[5])*dv); 
   Ghat[1] = -0.1178511301977578*((10.39230484541326*fIn[7]-6.0*fIn[1])*wv+(3.0*fIn[26]-1.732050807568877*fIn[13])*dv); 
   Ghat[2] = -0.1178511301977578*((10.39230484541326*fIn[9]-6.0*fIn[3])*wv+(3.0*fIn[28]-1.732050807568877*fIn[15])*dv); 
@@ -518,6 +524,9 @@ GKYL_CU_DH void vlasov_bflux_3x3v_ser_p1(const int *idx, const double *w, enum g
 
  } else if (edge == GKYL_VZ_LOWER) {
 
+  const double dx12 = 2/dxv[2]; 
+  const double dv = dxv[5], wv = w[5]; 
+  double Ghat[32]; 
   Ghat[0] = -0.1178511301977578*((10.39230484541326*fIn[3]-6.0*fIn[0])*wv+(3.0*fIn[19]-1.732050807568877*fIn[6])*dv); 
   Ghat[1] = -0.1178511301977578*((10.39230484541326*fIn[8]-6.0*fIn[1])*wv+(3.0*fIn[33]-1.732050807568877*fIn[17])*dv); 
   Ghat[2] = -0.1178511301977578*((10.39230484541326*fIn[9]-6.0*fIn[2])*wv+(3.0*fIn[34]-1.732050807568877*fIn[18])*dv); 

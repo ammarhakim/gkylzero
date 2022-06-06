@@ -1,4 +1,4 @@
-#include <gkyl_vlasov_kernels.h> 
+#include <gkyl_vlasov_bflux_kernels.h> 
 GKYL_CU_DH void vlasov_bflux_2x3v_ser_p1(const int *idx, const double *w, enum gkyl_vel_edge edge, const double *dxv, const double *fIn, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
@@ -62,6 +62,9 @@ GKYL_CU_DH void vlasov_bflux_2x3v_ser_p1(const int *idx, const double *w, enum g
 
  } else if (edge == GKYL_VX_LOWER) {
 
+  const double dx10 = 2/dxv[0]; 
+  const double dv = dxv[2], wv = w[2]; 
+  double Ghat[16]; 
   Ghat[0] = -0.08333333333333333*((14.69693845669906*fIn[1]-8.485281374238572*fIn[0])*wv+(4.242640687119286*fIn[7]-2.449489742783178*fIn[3])*dv); 
   Ghat[1] = -0.08333333333333333*((14.69693845669906*fIn[6]-8.485281374238572*fIn[2])*wv+(4.242640687119286*fIn[16]-2.449489742783178*fIn[8])*dv); 
   Ghat[2] = -0.08333333333333333*((14.69693845669906*fIn[7]-8.485281374238572*fIn[3])*wv+(4.242640687119286*fIn[1]-2.449489742783178*fIn[0])*dv); 
@@ -170,6 +173,9 @@ GKYL_CU_DH void vlasov_bflux_2x3v_ser_p1(const int *idx, const double *w, enum g
 
  } else if (edge == GKYL_VY_LOWER) {
 
+  const double dx11 = 2/dxv[1]; 
+  const double dv = dxv[3], wv = w[3]; 
+  double Ghat[16]; 
   Ghat[0] = -0.08333333333333333*((14.69693845669906*fIn[2]-8.485281374238572*fIn[0])*wv+(4.242640687119286*fIn[10]-2.449489742783178*fIn[4])*dv); 
   Ghat[1] = -0.08333333333333333*((14.69693845669906*fIn[6]-8.485281374238572*fIn[1])*wv+(4.242640687119286*fIn[17]-2.449489742783178*fIn[9])*dv); 
   Ghat[2] = -0.08333333333333333*((14.69693845669906*fIn[8]-8.485281374238572*fIn[3])*wv+(4.242640687119286*fIn[19]-2.449489742783178*fIn[11])*dv); 
