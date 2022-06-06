@@ -49,6 +49,7 @@ test_wave_prop_2d()
     );
   }
 
+  gkyl_wv_eqn_release(eqn);
   gkyl_wave_geom_release(wg);
   for (int d=0; d<ndim; ++d) {
     gkyl_wave_prop_release(slvr[d]);
@@ -96,6 +97,7 @@ test_wave_prop_2d_cu()
 
   cu_wave_prop_test(slvr, ndim);
 
+  gkyl_wv_eqn_release(eqn);
   gkyl_wave_geom_release(wg);
   for (int d=0; d<ndim; ++d) {
     gkyl_wave_prop_release(slvr[d]);
