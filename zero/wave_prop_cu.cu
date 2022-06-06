@@ -76,6 +76,7 @@ gkyl_wave_prop_cu_dev_advance(
     (struct gkyl_wave_prop_status *) gkyl_cu_malloc(
        sizeof(struct gkyl_wave_prop_status));
 
+  gkyl_array_copy(qout, qin);
   do_gkyl_wave_prop_cu_dev_advance<<<nthreads, nblocks>>>(
       wv, tm, dt, update_range, qin, qout, status_dev);
 
