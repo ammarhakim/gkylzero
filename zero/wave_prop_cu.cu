@@ -100,7 +100,6 @@ do_gkyl_wave_prop_cu_dev_advance(
 {
   int ndim = update_range.ndim;
   int idxl[3], idxc[3], idxr[3];
-  double xcl[3], xcc[3], xcr[3];
 
   // int meqn = wv->equation->num_equations, mwave = wv->equation->num_waves;
   // FIXME
@@ -132,7 +131,6 @@ do_gkyl_wave_prop_cu_dev_advance(
     // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idxc={1,1,...}
     // since update_range is a subrange
     gkyl_sub_range_inv_idx(&update_range, linc1, idxc);
-    gkyl_rect_grid_cell_center(&wv->grid, idxc, xcc);
 
     // convert back to a linear index on the super-range (with ghost cells)
     // linc will have jumps in it to jump over ghost cells
