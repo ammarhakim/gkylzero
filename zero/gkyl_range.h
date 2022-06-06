@@ -85,6 +85,7 @@ struct gkyl_range_skip_iter {
  * @param lower Lower indices of range
  * @param upper Upper indices of range
  */
+GKYL_CU_DH
 void gkyl_range_init(struct gkyl_range *rng, int ndim,
   const int *lower, const int *upper);
 
@@ -182,6 +183,7 @@ void gkyl_range_deflate(struct gkyl_range* srng,
  * @param dir Direction to shorten
  * @param len Length of shortened direction
  */
+GKYL_CU_DH
 void gkyl_range_shorten(struct gkyl_range *rng,
   const struct gkyl_range* range, int dir, int len);
 
@@ -347,6 +349,7 @@ gkyl_sub_range_inv_idx(const struct gkyl_range *range, long loc, int *idx)
  * @param range Range object.
  * @return New iterator object for 'range'
  */
+GKYL_CU_DH
 void gkyl_range_iter_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range);
 
@@ -366,6 +369,7 @@ void gkyl_range_iter_no_split_init(struct gkyl_range_iter *iter,
  * @param iter Iterator object. On exit, iter->idx has the next index
  * @return 1 if there are more indices remaining, 0 if done.
  */
+GKYL_CU_DH
 int gkyl_range_iter_next(struct gkyl_range_iter *iter);
 
 /**
