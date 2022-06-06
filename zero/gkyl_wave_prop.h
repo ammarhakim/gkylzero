@@ -102,3 +102,21 @@ double gkyl_wave_prop_max_dt(const gkyl_wave_prop *wv, const struct gkyl_range *
  * @param wv Updater to delete.
  */
 void gkyl_wave_prop_release(gkyl_wave_prop* wv);
+
+/**
+ * Compute wave-propagation update on GPU. The update_rng MUST be a sub-range
+ * of the range on which the array is defined. That is, it must be
+ * either the same range as the array range, or one created using the
+ * gkyl_sub_range_init method.
+ *
+ * @param wv Updater object
+ * @param tm Current time
+ * @param dt time-step
+ * @param update_rng Range on which to compute.
+ * @param qin Input to updater
+ * @param qout Solution at tm+dt
+ */
+struct gkyl_wave_prop_status gkyl_wave_prop_cu_dev_advance(const gkyl_wave_prop *wv,
+  double tm, double dt, const struct gkyl_range *update_range,
+  const struct gkyl_array *qin, struct gkyl_array *qout);
+

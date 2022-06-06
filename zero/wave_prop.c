@@ -378,4 +378,17 @@ gkyl_wave_prop_cu_dev_new(struct gkyl_wave_prop_inp winp)
   assert(false);
   return 0;
 }
+
+struct gkyl_wave_prop_status
+gkyl_wave_prop_cu_dev_advance(
+    const gkyl_wave_prop *wv,
+    double tm,
+    double dt,
+    const struct gkyl_range *update_range,
+    const struct gkyl_array *qin,
+    struct gkyl_array *qout)
+{
+  assert(false);
+  return (struct gkyl_wave_prop_status) { .success = 0, .dt_suggested = 0 };
+}
 #endif
