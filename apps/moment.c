@@ -207,17 +207,31 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   int ndim = mom->ndim;
   // create updaters for each directional update
-  for (int d=0; d<ndim; ++d)
-    sp->slvr[d] = gkyl_wave_prop_new( (struct gkyl_wave_prop_inp) {
-        .grid = &app->grid,
-        .equation = mom_sp->equation,
-        .limiter = limiter,
-        .num_up_dirs = app->is_dir_skipped[d] ? 0 : 1,
-        .update_dirs = { d },
-        .cfl = app->cfl,
-        .geom = app->geom,
-      }
-    );
+  if (app->use_gpu) {
+    for (int d=0; d<ndim; ++d)
+      sp->slvr[d] = gkyl_wave_prop_cu_dev_new( (struct gkyl_wave_prop_inp) {
+          .grid = &app->grid,
+          .equation = mom_sp->equation,
+          .limiter = limiter,
+          .num_up_dirs = app->is_dir_skipped[d] ? 0 : 1,
+          .update_dirs = { d },
+          .cfl = app->cfl,
+          .geom = app->geom,
+        }
+      );
+  } else {
+    for (int d=0; d<ndim; ++d)
+      sp->slvr[d] = gkyl_wave_prop_new( (struct gkyl_wave_prop_inp) {
+          .grid = &app->grid,
+          .equation = mom_sp->equation,
+          .limiter = limiter,
+          .num_up_dirs = app->is_dir_skipped[d] ? 0 : 1,
+          .update_dirs = { d },
+          .cfl = app->cfl,
+          .geom = app->geom,
+        }
+      );
+  }
 
   // determine which directions are not periodic
   int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
@@ -404,22 +418,40 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
     mom_fld->limiter == 0 ? GKYL_MONOTONIZED_CENTERED : mom_fld->limiter;
 
   double c = 1/sqrt(epsilon0*mu0);
-  struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c,
-    mom_fld->elc_error_speed_fact, mom_fld->mag_error_speed_fact);
-
   int ndim = mom->ndim;
-  // create updaters for each directional update
-  for (int d=0; d<ndim; ++d)
-    fld->slvr[d] = gkyl_wave_prop_new( (struct gkyl_wave_prop_inp) {
-        .grid = &app->grid,
-        .equation = maxwell,
-        .limiter = limiter,
-        .num_up_dirs = app->is_dir_skipped[d] ? 0 : 1,
-        .update_dirs = { d },
-        .cfl = app->cfl,
-        .geom = app->geom,
-      }
-    );
+  struct gkyl_wv_eqn *maxwell;
+
+  if (app->use_gpu) {
+    maxwell = gkyl_wv_maxwell_cu_dev_new(
+        c, mom_fld->elc_error_speed_fact, mom_fld->mag_error_speed_fact);
+
+    for (int d=0; d<ndim; ++d)
+      fld->slvr[d] = gkyl_wave_prop_cu_dev_new( (struct gkyl_wave_prop_inp) {
+          .grid = &app->grid,
+          .equation = maxwell,
+          .limiter = limiter,
+          .num_up_dirs = app->is_dir_skipped[d] ? 0 : 1,
+          .update_dirs = { d },
+          .cfl = app->cfl,
+          .geom = app->geom,
+        }
+      );
+  } else { 
+    maxwell = gkyl_wv_maxwell_new(
+        c, mom_fld->elc_error_speed_fact, mom_fld->mag_error_speed_fact);
+
+    for (int d=0; d<ndim; ++d)
+      fld->slvr[d] = gkyl_wave_prop_new( (struct gkyl_wave_prop_inp) {
+          .grid = &app->grid,
+          .equation = maxwell,
+          .limiter = limiter,
+          .num_up_dirs = app->is_dir_skipped[d] ? 0 : 1,
+          .update_dirs = { d },
+          .cfl = app->cfl,
+          .geom = app->geom,
+        }
+      );
+  }
 
   // determine which directions are not periodic
   int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
@@ -691,8 +723,12 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   }
 
   // create geometry object
-  app->geom = gkyl_wave_geom_new(&app->grid, &app->local_ext,
-    app->mapc2p, app->c2p_ctx);
+  if (app->use_gpu)
+    app->geom = gkyl_wave_geom_cu_dev_new(&app->grid, &app->local_ext,
+      app->mapc2p, app->c2p_ctx);
+  else
+    app->geom = gkyl_wave_geom_new(&app->grid, &app->local_ext,
+      app->mapc2p, app->c2p_ctx);
 
   double cfl_frac = mom->cfl_frac == 0 ? 0.95 : mom->cfl_frac;
   app->cfl = 1.0*cfl_frac;
