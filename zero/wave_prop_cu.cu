@@ -112,7 +112,8 @@ do_gkyl_wave_prop_cu_dev_advance(
   double waves_local[meqn*mwave];
   double delta[meqn], amdq[meqn], apdq[meqn];
 
-  // assign buffers for each thread to solve RP on four edges to update one cell
+  // assign buffers for each thread to solve RP on four edges, and computing
+  // fluxes on two edges for updating one cell
   extern __shared__ double dummy[];
   int base = 0;
 
@@ -122,8 +123,8 @@ do_gkyl_wave_prop_cu_dev_advance(
   double *speeds = dummy + base + (mwave * 4) * (threadIdx.x);
   base += (mwave * 4) * (blockDim.x);
 
-  double *flux2 = dummy + base + (meqn * 4) * (threadIdx.x);
-  base += (meqn * 4) * (blockDim.x);
+  double *flux2 = dummy + base + (meqn * 2) * (threadIdx.x);
+  base += (meqn * 2) * (blockDim.x);
 
   // assign cells to threads, each thread updates one cell a time
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
@@ -203,24 +204,22 @@ do_gkyl_wave_prop_cu_dev_advance(
     //   limit_waves_cu(wv, &slice_range, update_range.lower[dir],
     //      update_range.upper[dir]+1, waves, wv->speeds);
 
-      // get the kappa in the first ghost cell on left (needed in the
-      // second order flux calculation)
-      idxl[dir] = -1;
-      const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wv->geom, idxl);
-      double kappal = cg->kappa;
-
       for (int i=0; i < meqn * 4; ++i)
         flux2[i] = 0.;
+
+      idxl[dir] = idxc[dir] - 1;
+      const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wv->geom, idxl);
+      double kappal = cg->kappa;
 
       // compute 2nd-order fluxes on the left and right edges of the target cell
       for (int i=0; i<2; ++i) {
         int j = i + 1;
-
         const double *my_waves = waves + mwave * meqn * j;
         const double *s = speeds + mwave * j;
-        double *flux2 = flux2 + meqn * j;
 
-        idxl[dir] = i;
+        double *flux2 = flux2 + meqn * i;
+        idxl[dir] = idxc[dir] + i; // FIXME i or i-1?
+
         const struct gkyl_wave_cell_geom *cg =
           gkyl_wave_geom_get(wv->geom, idxl);
         double kappar = cg->kappa;
@@ -233,11 +232,10 @@ do_gkyl_wave_prop_cu_dev_advance(
       }
 
       // add second correction flux to solution in each interior cell
-      idxl[dir] = 0;
-      cg = gkyl_wave_geom_get(wv->geom, idxl);
+      cg = gkyl_wave_geom_get(wv->geom, idxc);
 
       calc_second_order_update(meqn, dtdx/cg->kappa,
-        (double *)gkyl_array_fetch( qout, gkyl_range_idx(&update_range, idxl)),
+        (double *)gkyl_array_fetch( qout, gkyl_range_idx(&update_range, idxc)),
         flux2 + meqn * 0, flux2 + meqn * 1);
     }
   }
@@ -265,7 +263,7 @@ gkyl_wave_prop_cu_dev_advance(
   int shared_mem_size = 0;
   shared_mem_size += (meqn * mwave * 4) * (nthreads);
   shared_mem_size += (mwave * 4) * (nthreads);
-  shared_mem_size += (meqn * 4) * (nthreads);
+  shared_mem_size += (meqn * 2) * (nthreads);
   shared_mem_size *= sizeof(double);
 
   struct gkyl_wave_prop_status *status_dev =
