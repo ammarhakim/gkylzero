@@ -209,9 +209,10 @@ do_gkyl_wave_prop_cu_dev_advance(
       const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wv->geom, idxl);
       double kappal = cg->kappa;
 
-      // FIXME gkyl_array_clear(wv->flux2, 0.0);
-      // compute second-order correction fluxes at each interface:
-      // note that there is one extra edge than cell
+      for (int i=0; i < meqn * 4; ++i)
+        flux2[i] = 0.;
+
+      // compute 2nd-order fluxes on the left and right edges of the target cell
       for (int i=0; i<2; ++i) {
         int j = i + 1;
 
