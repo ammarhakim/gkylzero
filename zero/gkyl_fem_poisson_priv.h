@@ -367,6 +367,19 @@ static const solstencil_kern_list ser_solstencil_list[] = {
 #define CK2(lst,poly_order,loc,bcx,bcy) lst[bcx].list[bcy].list[poly_order].kernels[loc]
 #define CK3(lst,poly_order,loc,bcx,bcy,bcz) lst[bcx].list[bcy].list[bcz].list[poly_order].kernels[loc]
 
+struct gkyl_fem_poisson_kernels { 
+  // Pointer to local-to-global kernels. 2^3, 2 (interior and upper) in each direction.
+  local2global_t l2g[8];
+
+  // LHS kernels (one for each position in the domain, up to 3^3).
+  lhsstencil_t lhsker[27];
+
+  // RHS source kernels (one for each position in the domain, up to 3^3).
+  srcstencil_t srcker[27];
+
+  solstencil_t solker;
+};
+
 // Updater type
 struct gkyl_fem_poisson {
   void *ctx; // evaluation context.
@@ -399,18 +412,10 @@ struct gkyl_fem_poisson {
   struct gkyl_mat *local_mass_modtonod; // local mass matrix times modal-to-nodal matrix.
   struct gkyl_mat *local_nodtomod; // local nodal-to-modal matrix.
 
-  // Pointer to local-to-global kernels. 2^3, 2 (interior and upper) in each direction.
-  local2global_t l2g[8];
-
-  // LHS kernels (one for each position in the domain, up to 3^3).
-  lhsstencil_t lhsker[27];
-
-  // RHS source kernels (one for each position in the domain, up to 3^3).
-  srcstencil_t srcker[27];
-
-  solstencil_t solker;
-
   long *globalidx;
+
+  struct gkyl_fem_poisson_kernels *kernels;
+  struct gkyl_fem_poisson_kernels *kernels_cu;
 };
 
 

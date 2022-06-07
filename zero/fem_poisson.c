@@ -178,6 +178,12 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 
   gkyl_fem_poisson *up = gkyl_malloc(sizeof(gkyl_fem_poisson));
 
+  up->kernels = gkyl_malloc(sizeof(struct gkyl_fem_poisson_kernels));
+  up->kernels_cu = up->kernels;
+#ifdef GKYL_HAVE_CUDA
+  up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_fem_poisson_kernels));
+#endif
+
   up->ctx = ctx;
   up->ndim = grid->ndim;
   up->grid = *grid;
@@ -251,16 +257,20 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->brhs = gkyl_array_new(GKYL_DOUBLE, 1, up->numnodes_global); // Global right side vector.
 
   // Select local-to-global mapping kernels:
-  choose_local2global_kernels(&basis, up->isdirperiodic, up->l2g);
+  choose_local2global_kernels(&basis, up->isdirperiodic, up->kernels->l2g);
 
   // Select lhs kernels:
-  choose_lhs_kernels(&basis, bcs, up->lhsker);
+  choose_lhs_kernels(&basis, bcs, up->kernels->lhsker);
 
   // Select rhs src kernels:
-  choose_src_kernels(&basis, bcs, up->srcker);
+  choose_src_kernels(&basis, bcs, up->kernels->srcker);
 
   // Select sol kernel:
-  up->solker = choose_sol_kernels(&basis);
+  up->kernels->solker = choose_sol_kernels(&basis);
+
+#ifdef GKYL_HAVE_CUDA
+  choose_kernels_cu(&basis, bcs,  up->isdirperiodic, up->kernels_cu);
+#endif
 
   // Create a linear Ax=B problem. Here A is the discrete (global) stiffness
   // matrix times epsilon.
@@ -275,11 +285,11 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 
     int keri = idx_to_inup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
     for (size_t d=0; d<up->ndim; d++) idx0[d] = up->solve_iter.idx[d]-1;
-    up->l2g[keri](up->num_cells, idx0, up->globalidx);
+    up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
 
     // Apply the -epsilon*nabla^2 stencil.
     keri = idx_to_inloup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
-    up->lhsker[keri](epsilon, dx, up->bcvals, up->globalidx, tri);
+    up->kernels->lhsker[keri](epsilon, dx, up->bcvals, up->globalidx, tri);
   }
   gkyl_superlu_amat_from_triples(up->prob, tri);
 
@@ -311,12 +321,12 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
 
     int keri = idx_to_inup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
     for (size_t d=0; d<up->ndim; d++) idx0[d] = up->solve_iter.idx[d]-1;
-    up->l2g[keri](up->num_cells, idx0, up->globalidx);
+    up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
 
     // Apply the RHS source stencil. It's mostly the mass matrix times a
     // modal-to-nodal operator times the source, modified by BCs in skin cells.
     keri = idx_to_inloup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
-    up->srcker[keri](rhsin_p, up->bcvals, up->globalidx, brhs_p);
+    up->kernels->srcker[keri](rhsin_p, up->bcvals, up->globalidx, brhs_p);
   }
 
   gkyl_superlu_brhs_from_array(up->prob, brhs_p);
@@ -337,9 +347,9 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout) {
 
     int keri = idx_to_inup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
     for (size_t d=0; d<up->ndim; d++) idx0[d] = up->solve_iter.idx[d]-1;
-    up->l2g[keri](up->num_cells, idx0, up->globalidx);
+    up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
 
-    up->solker(gkyl_superlu_get_rhs_ptr(up->prob, 0), up->globalidx, phiout_p);
+    up->kernels->solker(gkyl_superlu_get_rhs_ptr(up->prob, 0), up->globalidx, phiout_p);
 
   }
 
@@ -354,5 +364,6 @@ void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
   gkyl_superlu_prob_release(up->prob);
   gkyl_free(up->globalidx);
   gkyl_free(up->brhs);
+  gkyl_free(up->kernels);
   gkyl_free(up);
 }
