@@ -25,7 +25,7 @@ mkarr1(bool use_gpu, long nc, long size)
 static void
 my_mapc2p(double t, const double *xc, double *xp, void *ctx)
 {
-  for (int i=0; i<1; ++i) xp[i] = xc[i] * xc[i];
+  for (int i=0; i<1; ++i) xp[i] = xc[i] * 1.1;
 }
 
 void
@@ -39,8 +39,8 @@ do_test_wave_prop_maxwel_1d(bool use_gpu)
   int ndim = 1;
   int cells[] = {ncells};
   int ghost[] = {2};
-  double lower[] = {0.};
-  double upper[] = {1.};
+  double lower[] = {1.};
+  double upper[] = {2.};
 
   struct gkyl_rect_grid grid;
   struct gkyl_range range, range_ext;
@@ -101,13 +101,13 @@ do_test_wave_prop_maxwel_1d(bool use_gpu)
   // apply initial condition
   double *ptr = qin_h->data;
   for(int i=0; i< 8 * (ncells+4); i++) {
-    ptr[i] = sqrtf(i+10.);
+    ptr[i] = 1. + sin(i + 1.);
   }
   gkyl_array_copy(qin_d, qin_h);
 
   // advance solution
   double t = 0.0;
-  double dt = 0.1;
+  double dt = 1e-4;
   double nsteps = 100;
   double step = 0;
 
@@ -125,6 +125,8 @@ do_test_wave_prop_maxwel_1d(bool use_gpu)
       step += 1;
     }
   }
+
+  printf("status OK? %d, dt %g\n", status.success, status.dt_suggested);
 
   // release data
   gkyl_wave_prop_release(wv);
