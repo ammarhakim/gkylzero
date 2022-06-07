@@ -9,8 +9,11 @@
 #pragma once
 #include <gkyl_util.h> 
 #include <gkyl_mat.h> 
-#include <gkyl_mat_triples.h>
+
 EXTERN_C_BEG 
+
+// This needs to be inside EXTERN_C
+#include <gkyl_mat_triples.h>
  
 long fem_poisson_num_nodes_global_1x_ser_p1_periodicx(const int *numCells);
 long fem_poisson_num_nodes_global_1x_ser_p1_nonperiodicx(const int *numCells);

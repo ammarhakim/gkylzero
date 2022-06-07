@@ -77,7 +77,7 @@ bool gkyl_mat_triples_is_colmaj(gkyl_mat_triples *tri) {
   return tri->ordering == COLMAJOR;
 }
 
-double
+GKYL_CU_DH double
 gkyl_mat_triples_insert(gkyl_mat_triples *tri, size_t i, size_t j, double val)
 {
   assert(i<gkyl_range_shape(&tri->range, 0) && j<gkyl_range_shape(&tri->range, 1));
@@ -93,7 +93,7 @@ gkyl_mat_triples_insert(gkyl_mat_triples *tri, size_t i, size_t j, double val)
   return val;
 }
 
-double
+GKYL_CU_DH double
 gkyl_mat_triples_accum(gkyl_mat_triples *tri, size_t i, size_t j, double val)
 {
   assert(i<gkyl_range_shape(&tri->range, 0) && j<gkyl_range_shape(&tri->range, 1));

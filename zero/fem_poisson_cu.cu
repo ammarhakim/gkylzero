@@ -46,30 +46,30 @@ fem_poisson_set_cu_ker_ptrs(struct gkyl_fem_poisson_kernels* kers, enum gkyl_bas
   int dim, int poly_order, const int *bckey)
 {
 
-  // Set LHS stencil kernels.
-  const lhsstencil_kern_bcx_list_1x *lhsstencil_1x_kernels;
-  const lhsstencil_kern_bcx_list_2x *lhsstencil_2x_kernels;
-
-  switch (b_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-        lhsstencil_1x_kernels = ser_lhsstencil_list_1x;
-        lhsstencil_2x_kernels = ser_lhsstencil_list_2x;
-      break;
-//    case GKYL_BASIS_MODAL_TENSOR:
+//  // Set LHS stencil kernels.
+//  const lhsstencil_kern_bcx_list_1x *lhsstencil_1x_kernels;
+//  const lhsstencil_kern_bcx_list_2x *lhsstencil_2x_kernels;
+//
+//  switch (b_type) {
+//    case GKYL_BASIS_MODAL_SERENDIPITY:
+//        lhsstencil_1x_kernels = ser_lhsstencil_list_1x;
+//        lhsstencil_2x_kernels = ser_lhsstencil_list_2x;
 //      break;
-    default:
-      assert(false);
-  }
-
-  for (int k=0; k<(int)(pow(3,dim)+0.5); k++) {
-    if (dim == 1) {
-      kers->lhsker[k] = CK1(lhsstencil_1x_kernels, poly_order, k, bckey[0]);
-    } else if (dim == 2) {
-      kers->lhsker[k] = CK2(lhsstencil_2x_kernels, poly_order, k, bckey[0], bckey[1]);
-//  } else if (dim == 3) {
-//    kers->lhsker[k] = CK3(lhsstencil_3x_kernels, poly_order, k, bckey[0], bckey[1], bckey[2]);
-    }
-  }
+////    case GKYL_BASIS_MODAL_TENSOR:
+////      break;
+//    default:
+//      assert(false);
+//  }
+//
+//  for (int k=0; k<(int)(pow(3,dim)+0.5); k++) {
+//    if (dim == 1) {
+//      kers->lhsker[k] = CK1(lhsstencil_1x_kernels, poly_order, k, bckey[0]);
+//    } else if (dim == 2) {
+//      kers->lhsker[k] = CK2(lhsstencil_2x_kernels, poly_order, k, bckey[0], bckey[1]);
+////  } else if (dim == 3) {
+////    kers->lhsker[k] = CK3(lhsstencil_3x_kernels, poly_order, k, bckey[0], bckey[1], bckey[2]);
+//    }
+//  }
 
   // Set RHS stencil kernels.
   const srcstencil_kern_bcx_list_1x *srcstencil_1x_kernels;

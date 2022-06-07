@@ -79,7 +79,6 @@ typedef struct { lhsstencil_kern_loc_list_2x list[3]; } lhsstencil_kern_bcy_list
 typedef struct { lhsstencil_kern_bcy_list_2x list[9]; } lhsstencil_kern_bcx_list_2x;
 
 // Serendipity lhs kernels.
-GKYL_CU_D
 static const lhsstencil_kern_bcx_list_1x ser_lhsstencil_list_1x[] = {
   // periodicx
   { .list = {{NULL, NULL},
@@ -107,7 +106,6 @@ static const lhsstencil_kern_bcx_list_1x ser_lhsstencil_list_1x[] = {
              {fem_poisson_lhs_stencil_1x_ser_p2_inx_periodicx, fem_poisson_lhs_stencil_1x_ser_p2_lox_robinx, fem_poisson_lhs_stencil_1x_ser_p2_upx_dirichletx}}, },
 };
 
-GKYL_CU_D
 static const lhsstencil_kern_bcx_list_2x ser_lhsstencil_list_2x[] = {
   // periodicx
   { .list = {

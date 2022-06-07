@@ -38,14 +38,14 @@ bool gkyl_mat_triples_is_colmaj(gkyl_mat_triples *tri);
  *
  * @return value inserted (val)
  */
-double gkyl_mat_triples_insert(gkyl_mat_triples *tri, size_t i, size_t j, double val);
+GKYL_CU_DH double gkyl_mat_triples_insert(gkyl_mat_triples *tri, size_t i, size_t j, double val);
 
 /**
  * Accumulate value 'val' in triples list at location (i,j). If an
  * element at this location exists it is incremented by 'val'. New
  * value at the location is returned.
  */
-double gkyl_mat_triples_accum(gkyl_mat_triples *tri, size_t i, size_t j, double val);
+GKYL_CU_DH double gkyl_mat_triples_accum(gkyl_mat_triples *tri, size_t i, size_t j, double val);
 
 /**
  * Returns value in triples list at location (i,j)
