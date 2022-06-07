@@ -85,21 +85,35 @@ __global__ void do_gkyl_wave_prop_cu_dev_advance(
   int ndim = update_range.ndim;
   int idxl[3], idxc[3], idxr[3];
 
-  // int meqn = wv->equation->num_equations, mwave = wv->equation->num_waves;
-  // FIXME
-  const int meqn = 8;
-  const int mwave = 6;
+  int meqn = wv->equation->num_equations, mwave = wv->equation->num_waves;
 
   double cfla = 0.0, cfl = wv->cfl, cflm = 1.1 * cfl;
-
-  double ql_local[meqn], qr_local[meqn];
-  double waves_local[meqn * mwave];
-  double delta[meqn], amdq[meqn], apdq[meqn];
 
   // assign buffers for each thread to solve RP on four edges, and computing
   // fluxes on two edges for updating one cell
   extern __shared__ double dummy[];
   int base = 0;
+
+  // TODO: compare performance by moving ql_local, qr_local, delta, waves_local,
+  //  amdq, apdq into RP loop as fixed-length arrays in the register
+  // TODO: compare performance of different assignment patterns
+  double *ql_local = dummy + base + (meqn) * (threadIdx.x);
+  base += (meqn) * (blockDim.x);
+
+  double *qr_local = dummy + base + (meqn) * (threadIdx.x);
+  base += (meqn) * (blockDim.x);
+
+  double *delta = dummy + base + (meqn) * (threadIdx.x);
+  base += (meqn) * (blockDim.x);
+
+  double *waves_local = dummy + base + (meqn * mwave) * (threadIdx.x);
+  base += (meqn * mwave) * (blockDim.x);
+
+  double *amdq = dummy + base + (meqn) * (threadIdx.x);
+  base += (meqn) * (blockDim.x);
+
+  double *apdq = dummy + base + (meqn) * (threadIdx.x);
+  base += (meqn) * (blockDim.x);
 
   double *waves = dummy + base + (meqn * mwave * 4) * (threadIdx.x);
   base += (meqn * mwave * 4) * (blockDim.x);
@@ -240,6 +254,7 @@ gkyl_wave_prop_cu_dev_advance(const gkyl_wave_prop *wv, double tm, double dt,
 
   int meqn = wv->equation->num_equations, mwave = wv->equation->num_waves;
   int shared_mem_size = 0;
+  shared_mem_size += (meqn * (mwave + 5)) * (nthreads);
   shared_mem_size += (meqn * mwave * 4) * (nthreads);
   shared_mem_size += (mwave * 4) * (nthreads);
   shared_mem_size += (meqn * 2) * (nthreads);
