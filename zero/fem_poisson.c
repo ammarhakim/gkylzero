@@ -236,7 +236,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 
   // Compute the number of local and global nodes.
   up->numnodes_local = up->num_basis;
-  up->numnodes_global = global_num_nodes(up->ndim, up->poly_order, basis.b_type, &up->num_cells[0], &up->isdirperiodic[0]);
+  up->numnodes_global = global_num_nodes(up->ndim, up->poly_order, basis.b_type, up->num_cells, up->isdirperiodic);
 
   // Create local matrices used later.
   double dx[POISSON_MAX_DIM];
@@ -244,20 +244,20 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->local_stiff = gkyl_mat_new(up->numnodes_local, up->numnodes_local, 0.);
   up->local_mass_modtonod = gkyl_mat_new(up->numnodes_local, up->numnodes_local, 0.);
   up->local_nodtomod = gkyl_mat_new(up->numnodes_local, up->numnodes_local, 0.);
-  local_stiff(up->ndim, up->poly_order, basis.b_type, &dx[0], up->local_stiff);
+  local_stiff(up->ndim, up->poly_order, basis.b_type, dx, up->local_stiff);
   local_mass_modtonod(up->ndim, up->poly_order, basis.b_type, up->local_mass_modtonod);
   local_nodtomod(up->ndim, up->poly_order, basis.b_type, up->local_nodtomod);
 
   up->brhs = gkyl_array_new(GKYL_DOUBLE, 1, up->numnodes_global); // Global right side vector.
 
   // Select local-to-global mapping kernels:
-  choose_local2global_kernels(&basis, &up->isdirperiodic[0], &up->l2g[0]);
+  choose_local2global_kernels(&basis, up->isdirperiodic, up->l2g);
 
   // Select lhs kernels:
-  choose_lhs_kernels(&basis, bcs, &up->lhsker[0]);
+  choose_lhs_kernels(&basis, bcs, up->lhsker);
 
   // Select rhs src kernels:
-  choose_src_kernels(&basis, bcs, &up->srcker[0]);
+  choose_src_kernels(&basis, bcs, up->srcker);
 
   // Select sol kernel:
   up->solker = choose_sol_kernels(&basis);
@@ -273,13 +273,13 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   while (gkyl_range_iter_next(&up->solve_iter)) {
     long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
 
-    int keri = idx_to_inup_ker(up->ndim, &up->num_cells[0], up->solve_iter.idx);
+    int keri = idx_to_inup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
     for (size_t d=0; d<up->ndim; d++) idx0[d] = up->solve_iter.idx[d]-1;
-    up->l2g[keri](&up->num_cells[0], &idx0[0], &up->globalidx[0]);
+    up->l2g[keri](up->num_cells, idx0, up->globalidx);
 
     // Apply the -epsilon*nabla^2 stencil.
-    keri = idx_to_inloup_ker(up->ndim, &up->num_cells[0], up->solve_iter.idx);
-    up->lhsker[keri](epsilon, &dx[0], &up->bcvals[0], &up->globalidx[0], tri);
+    keri = idx_to_inloup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
+    up->lhsker[keri](epsilon, dx, up->bcvals, up->globalidx, tri);
   }
   gkyl_superlu_amat_from_triples(up->prob, tri);
 
@@ -309,14 +309,14 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
 
     double *rhsin_p = gkyl_array_fetch(rhsin, linidx);
 
-    int keri = idx_to_inup_ker(up->ndim, &up->num_cells[0], up->solve_iter.idx);
+    int keri = idx_to_inup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
     for (size_t d=0; d<up->ndim; d++) idx0[d] = up->solve_iter.idx[d]-1;
-    up->l2g[keri](&up->num_cells[0], &idx0[0], &up->globalidx[0]);
+    up->l2g[keri](up->num_cells, idx0, up->globalidx);
 
     // Apply the RHS source stencil. It's mostly the mass matrix times a
     // modal-to-nodal operator times the source, modified by BCs in skin cells.
-    keri = idx_to_inloup_ker(up->ndim, &up->num_cells[0], up->solve_iter.idx);
-    up->srcker[keri](&rhsin_p[0], &up->bcvals[0], &up->globalidx[0], brhs_p);
+    keri = idx_to_inloup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
+    up->srcker[keri](rhsin_p, up->bcvals, up->globalidx, brhs_p);
   }
 
   gkyl_superlu_brhs_from_array(up->prob, brhs_p);
@@ -335,9 +335,9 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout) {
 
     double *phiout_p = gkyl_array_fetch(phiout, linidx);
 
-    int keri = idx_to_inup_ker(up->ndim, &up->num_cells[0], up->solve_iter.idx);
+    int keri = idx_to_inup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
     for (size_t d=0; d<up->ndim; d++) idx0[d] = up->solve_iter.idx[d]-1;
-    up->l2g[keri](&up->num_cells[0], &idx0[0], &up->globalidx[0]);
+    up->l2g[keri](up->num_cells, idx0, up->globalidx);
 
     up->solker(gkyl_superlu_get_rhs_ptr(up->prob, 0), up->globalidx, phiout_p);
 

@@ -392,7 +392,7 @@ struct gkyl_fem_poisson {
   int numnodes_local;
   long numnodes_global;
 
-  double *brhs;
+  struct gkyl_array *brhs;
 
   struct gkyl_superlu_prob* prob;
   struct gkyl_mat *local_stiff; // local stiffness matrix.
