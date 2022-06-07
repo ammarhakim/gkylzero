@@ -147,9 +147,8 @@ do_gkyl_wave_prop_cu_dev_advance(
       double dtdx = dt/wv->grid.dx[dir];
 
       // solve RP on four edges to update one cell
-      for (int i=-1; i<3; ++i) {
-        idxl[dir] += i-1; idxr[dir] += i; // index of the left and right cell
-        int j = i + 1; // 0-based index for the edge being worked on
+      for (int i=0; i<=3; ++i) {
+        idxl[dir] += i-2; idxr[dir] += i-1; // indices of the left and right cell
 
         // geometry in cell
         const struct gkyl_wave_cell_geom *cg =
@@ -167,19 +166,18 @@ do_gkyl_wave_prop_cu_dev_advance(
             cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qinr, qr_local);
 
         calc_jump(meqn, ql_local, qr_local, delta);
-        double *s = speeds + mwave * j;
+        double *s = speeds + mwave * i;
         wv->equation->waves_func(
             wv->equation, delta, ql_local, qr_local, waves_local, s);
 
         double lenr = cg->lenr[dir];
-        double *my_waves = waves + mwave * meqn * j;
+        double *my_waves = waves + mwave * meqn * i;
         for (int mw=0; mw<mwave; ++mw) {
-          // rotate waves back
           wv->equation->rotate_to_global_func(cg->tau1[dir], cg->tau2[dir],
               cg->norm[dir], &waves_local[mw*meqn], &my_waves[mw*meqn]
           );
 
-          s[mw] *= lenr; // rescale speeds
+          s[mw] *= lenr;
         }
 
         wv->equation->qfluct_func(
@@ -204,7 +202,7 @@ do_gkyl_wave_prop_cu_dev_advance(
     //   limit_waves_cu(wv, &slice_range, update_range.lower[dir],
     //      update_range.upper[dir]+1, waves, wv->speeds);
 
-      for (int i=0; i < meqn * 4; ++i)
+      for (int i=0; i < meqn * 2; ++i)
         flux2[i] = 0.;
 
       idxl[dir] = idxc[dir] - 1;
@@ -212,13 +210,14 @@ do_gkyl_wave_prop_cu_dev_advance(
       double kappal = cg->kappa;
 
       // compute 2nd-order fluxes on the left and right edges of the target cell
-      for (int i=0; i<2; ++i) {
-        int j = i + 1;
-        const double *my_waves = waves + mwave * meqn * j;
-        const double *s = speeds + mwave * j;
+      for (int i=1; i<=2; ++i) {
+        const double *my_waves = waves + mwave * meqn * i;
+        const double *s = speeds + mwave * i;
 
-        double *flux2 = flux2 + meqn * i;
-        idxl[dir] = idxc[dir] + i; // FIXME i or i-1?
+        // we stored flux2 on two edges only, thus the shift is i-1 not i
+        double *my_flux2 = flux2 + meqn * (i-1);
+
+        idxl[dir] = idxc[dir] + i - 1;
 
         const struct gkyl_wave_cell_geom *cg =
           gkyl_wave_geom_get(wv->geom, idxl);
@@ -226,14 +225,12 @@ do_gkyl_wave_prop_cu_dev_advance(
 
         for (int mw=0; mw<mwave; ++mw)
           calc_second_order_flux(
-              meqn, dtdx/(0.5*(kappal+kappar)), s[mw], &my_waves[mw*meqn], flux2);
+              meqn, dtdx/(0.5*(kappal+kappar)), s[mw], &my_waves[mw*meqn], my_flux2);
 
         kappal = kappar;
       }
 
-      // add second correction flux to solution in each interior cell
-      cg = gkyl_wave_geom_get(wv->geom, idxc);
-
+      cg = gkyl_wave_geom_get(wv->geom, idxc); // FIXME
       calc_second_order_update(meqn, dtdx/cg->kappa,
         (double *)gkyl_array_fetch( qout, gkyl_range_idx(&update_range, idxc)),
         flux2 + meqn * 0, flux2 + meqn * 1);
