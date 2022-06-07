@@ -58,6 +58,7 @@ gkyl_mom_calc_bcorr_advance(gkyl_mom_calc_bcorr *bcorr,
       for (int i=0; i<conf_rng->ndim; ++i) {
         conf_idx[i] = edge_iter.idx[i];
       }
+
       long fidx = gkyl_range_idx(&edge_rng, edge_iter.idx);
       long midx = gkyl_range_idx(conf_rng, conf_idx);
       
@@ -67,8 +68,8 @@ gkyl_mom_calc_bcorr_advance(gkyl_mom_calc_bcorr *bcorr,
     }
 
     edge = d;
-    elower_idx[d] = phase_rng->lower[bcorr->space + d];
-    eupper_idx[d] = phase_rng->lower[bcorr->space + d];
+    elower_idx[bcorr->space + d] = phase_rng->lower[bcorr->space + d];
+    eupper_idx[bcorr->space + d] = phase_rng->lower[bcorr->space + d];
     gkyl_sub_range_init(&edge_rng, phase_rng, elower_idx, eupper_idx);
     gkyl_range_iter_no_split_init(&edge_iter, &edge_rng);
 

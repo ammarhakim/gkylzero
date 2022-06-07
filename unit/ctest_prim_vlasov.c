@@ -200,9 +200,7 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
     double *fptr = gkyl_array_fetch(boundary_corrections, linc);
     for (unsigned int k=0; k<confBasis.num_basis; ++k) {
       TEST_CHECK( gkyl_compare( f_check[k], fptr[k], 1e-12) );
-      printf("[%f, %f]\n", f_check[k], fptr[k]);
       TEST_CHECK( gkyl_compare( vf_check[k], fptr[k+vdim*confBasis.num_basis], 1e-12) );
-      printf("[%f, %f]\n", vf_check[k], fptr[k+vdim*confBasis.num_basis]);
     }
   }
   
