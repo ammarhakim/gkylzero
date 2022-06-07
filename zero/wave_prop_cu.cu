@@ -130,8 +130,8 @@ __global__ void do_gkyl_wave_prop_cu_dev_advance(
       /* SOLVE RIEMANN PROBLEMS ON FOUR EDGES */
       /****************************************/
       for (int i = 0; i <= 3; ++i) {
-        idxl[dir] += i - 2;
-        idxr[dir] += i - 1; // left and right cells of the edge
+        idxl[dir] = idxc[dir] + i - 2;
+        idxr[dir] = idxc[dir] + i - 1; // left and right cells of the edge
 
         const struct gkyl_wave_cell_geom *cg =
             gkyl_wave_geom_get(wv->geom, idxr);
