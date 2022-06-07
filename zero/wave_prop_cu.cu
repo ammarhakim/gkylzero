@@ -289,10 +289,21 @@ gkyl_wave_prop_cu_dev_advance(const gkyl_wave_prop *wv, double tm, double dt,
       (struct gkyl_wave_prop_status *)gkyl_cu_malloc(
           sizeof(struct gkyl_wave_prop_status));
 
+  cudaFuncSetAttribute(
+      do_gkyl_wave_prop_cu_dev_advance,
+      cudaFuncAttributeMaxDynamicSharedMemorySize,
+      shared_mem_size);
+
   gkyl_array_copy(qout, qin);
   do_gkyl_wave_prop_cu_dev_advance<<<nthreads, nblocks, shared_mem_size>>>(
       wv->on_dev, tm, dt, *update_range, qin->on_dev, qout->on_dev, status_dev);
-  checkCuda(cudaGetLastError());
+
+  cudaError_t err = cudaGetLastError();
+  if ( err != cudaSuccess )
+  {
+     printf("CUDA Error: %s\n", cudaGetErrorString(err));
+     exit(-1);
+  }
 
   struct gkyl_wave_prop_status status;
   gkyl_cu_memcpy(&status, status_dev, sizeof(struct gkyl_wave_prop_status),
