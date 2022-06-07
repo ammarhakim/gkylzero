@@ -172,6 +172,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   // acquire equation object
   s->eqn_vlasov = gkyl_dg_updater_vlasov_acquire_eqn(s->slvr);
 
+  if (s->boundary_fluxes)
+    s->flux_slvr = gkyl_ghost_surf_calc_new(&s->grid, s->eqn_vlasov);
+  
   // allocate data for momentum (for use in current accumulation)
   vm_species_moment_init(app, s, &s->m1i, "M1i");
   
@@ -439,6 +442,9 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   if (species->has_source)
     gkyl_array_accumulate(rhs, 1.0, species->source);
 
+  if (species->boundary_fluxes)
+    gkyl_ghost_surf_calc_advance(species->flux_slvr, &species->local_ext, &app->local_ext, fin, rhs);
+  
   app->stat.nspecies_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
     

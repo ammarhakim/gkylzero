@@ -23,6 +23,7 @@
 #include <gkyl_dg_vlasov_sr.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_ghost_surf_calc.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_mom_bcorr_lbo_vlasov.h>
 #include <gkyl_mom_calc.h>
@@ -170,6 +171,9 @@ struct vm_species {
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *source_proj; // projector for source
+
+  bool boundary_fluxes; // flag to indicate if boundary fluxes should be calculated
+  gkyl_ghost_surf_calc *flux_slvr; // Boundary flux solver
 
   bool has_mirror_force; // flag to indicate Vlasov includes mirror force from external magnetic field
   struct gkyl_array *gradB; // gradient of magnetic field
