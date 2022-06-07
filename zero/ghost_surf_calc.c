@@ -81,6 +81,8 @@ gkyl_ghost_surf_calc_advance(gkyl_ghost_surf_calc *gcalc,
 	fBlank, fBlank, gkyl_array_cfetch(fIn, linr), gkyl_array_fetch(rhs, linc)
       );
     }
+    clower_idx[dir] = phase_rng->lower[dir];
+    cupper_idx[dir] = phase_rng->upper[dir];
   }
 }
 
