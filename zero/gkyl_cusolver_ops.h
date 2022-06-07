@@ -14,6 +14,8 @@ extern "C" {
 }
 #include <cusparse.h>
 #include <cusolverSp.h>
+#include <cusolverRf.h>
+#include <cusolverSp_LOWLEVEL_PREVIEW.h>
 
 // Object type
 typedef struct gkyl_cusolver_prob gkyl_cusolver_prob;
