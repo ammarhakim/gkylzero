@@ -89,18 +89,18 @@ __global__ void do_gkyl_wave_prop_cu_dev_advance(
 
   double cfla = 0.0, cfl = wv->cfl, cflm = 1.1 * cfl;
 
-  // assign buffers for each thread to solve RP on four edges, and computing
-  // fluxes on two edges for updating one cell
+  // assign buffers for each thread to solve RP on four edges, compute fluxes on
+  // two edges, and accumulate corrections to the target cell
   extern __shared__ double dummy[];
   int base = 0;
 
-  // TODO: compare performance by moving ql_local, qr_local, delta, waves_local,
-  //  amdq, apdq into RP loop as fixed-length arrays in the register
-  // TODO: compare performance of different assignment patterns
-  // 1st-order correction for the target cell
+  // TODO: compare assignment patterns for coalesence?
+
+  // accumulated correction (all directions, 1st- and 2nd-order) for target cell
   double *dq = dummy + base + (meqn) * (threadIdx.x);
   base += (meqn) * (blockDim.x);
 
+  // TODO: move ql_local, qr_local, delta, waves_local, amdq, apdq to register?
   double *ql_local = dummy + base + (meqn) * (threadIdx.x);
   base += (meqn) * (blockDim.x);
 
@@ -151,8 +151,8 @@ __global__ void do_gkyl_wave_prop_cu_dev_advance(
       /* SOLVE RIEMANN PROBLEMS ON 4 EDGES AND GET 1ST-ORDER CORRECTION */
       /******************************************************************/
       for (int i = 0; i <= 3; ++i) {
-        idxl[dir] = idxc[dir] + i - 2;
-        idxr[dir] = idxc[dir] + i - 1; // left and right cells of the edge
+        idxl[dir] = idxc[dir] + i - 2; // left cell of the cell
+        idxr[dir] = idxc[dir] + i - 1; // right cells of the edge
 
         const struct gkyl_wave_cell_geom *cg =
             gkyl_wave_geom_get(wv->geom, idxr);
@@ -173,13 +173,12 @@ __global__ void do_gkyl_wave_prop_cu_dev_advance(
         wv->equation->waves_func(wv->equation, delta, ql_local, qr_local,
                                  waves_local, s);
 
-        double lenr = cg->lenr[dir];
         double *my_waves = waves + mwave * meqn * i;
         for (int mw = 0; mw < mwave; ++mw) {
           wv->equation->rotate_to_global_func(
               cg->tau1[dir], cg->tau2[dir], cg->norm[dir],
               &waves_local[mw * meqn], &my_waves[mw * meqn]);
-          s[mw] *= lenr;
+          s[mw] *= cg->lenr[dir];
         }
 
       /************************************/
@@ -218,14 +217,14 @@ __global__ void do_gkyl_wave_prop_cu_dev_advance(
       /* COMPUTE 2ND-ORDER FLUXES ON LEFT AND RIGHT EDGES OF TARGET CELL */
       /*******************************************************************/
 
-      for (int i = 0; i < meqn * 2; ++i)
+      for (int i = 0; i < meqn * 2; ++i) // clear flux2 on left and right edges
         flux2[i] = 0.;
 
       idxl[dir] = idxc[dir] - 1;
       const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wv->geom, idxl);
       double kappal = cg->kappa;
 
-      for (int i = 1; i <= 2; ++i) {
+      for (int i = 1; i <= 2; ++i) { // compute flux2 on left and right edges
         const double *my_waves = waves + mwave * meqn * i;
         const double *s = speeds + mwave * i;
 
@@ -280,10 +279,10 @@ gkyl_wave_prop_cu_dev_advance(const gkyl_wave_prop *wv, double tm, double dt,
 
   int meqn = wv->equation->num_equations, mwave = wv->equation->num_waves;
   int shared_mem_size = 0;
-  shared_mem_size += (meqn * (mwave + 6)) * (nthreads);
-  shared_mem_size += (meqn * mwave * 4) * (nthreads);
-  shared_mem_size += (mwave * 4) * (nthreads);
-  shared_mem_size += (meqn * 2) * (nthreads);
+  shared_mem_size += (meqn * (mwave + 6)) * (nthreads); // dq and one-time vars
+  shared_mem_size += (meqn * mwave * 4) * (nthreads); // waves on four edges
+  shared_mem_size += (mwave * 4) * (nthreads); // speeds on four edges
+  shared_mem_size += (meqn * 2) * (nthreads); // left- and right-edge flux2
   shared_mem_size *= sizeof(double);
 
   struct gkyl_wave_prop_status *status_dev =
