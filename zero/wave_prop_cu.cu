@@ -248,6 +248,7 @@ __global__ void do_gkyl_wave_prop_cu_dev_advance(
       /************************************/
       /* ACCUMULATE 2ND-ORDER CORRECTIONS */
       /************************************/
+      cg = gkyl_wave_geom_get(wv->geom, idxc);
       for (int c = 0; c < meqn; ++c) {
         double *fl = flux2;
         double *fr = flux2 + meqn;
