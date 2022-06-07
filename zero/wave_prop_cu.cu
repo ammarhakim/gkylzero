@@ -8,35 +8,27 @@ extern "C" {
 #include <gkyl_wave_prop_priv.h>
 }
 
-GKYL_CU_D static void limit_waves_cu(const gkyl_wave_prop *wv,
-                                     const struct gkyl_range *slice_range,
-                                     int lower, int upper,
-                                     struct gkyl_array *waves,
-                                     const struct gkyl_array *speed) {
+GKYL_CU_D static void limit_waves_cu(const gkyl_wave_prop *wv, const int lower,
+                                     const int upper, double *waves,
+                                     const double *speeds) {
   int meqn = wv->equation->num_equations, mwave = wv->equation->num_waves;
 
   for (int mw = 0; mw < mwave; ++mw) {
-    const double *wl = (const double *)gkyl_array_cfetch(
-        waves, gkyl_ridx(*slice_range, lower - 1));
-    const double *wr = (const double *)gkyl_array_cfetch(
-        waves, gkyl_ridx(*slice_range, lower));
-
+    const double *wl = waves + mwave * meqn * (lower - 1);
+    const double *wr = waves + mwave * meqn * (lower);
     double dotr = wave_dot_prod(meqn, &wl[mw * meqn], &wr[mw * meqn]);
 
     for (int i = lower; i <= upper; ++i) {
       double dotl = dotr;
 
-      double *GKYL_RESTRICT wi =
-          (double *)gkyl_array_fetch(waves, gkyl_ridx(*slice_range, i));
-      const double *GKYL_RESTRICT wi1 =
-          (double *)gkyl_array_cfetch(waves, gkyl_ridx(*slice_range, i + 1));
+      double *GKYL_RESTRICT wi = waves + mwave * meqn * i;
+      const double *GKYL_RESTRICT wi1 = waves + mwave * meqn * (i + 1);
 
       double wnorm2 = wave_dot_prod(meqn, &wi[mw * meqn], &wi[mw * meqn]);
       dotr = wave_dot_prod(meqn, &wi[mw * meqn], &wi1[mw * meqn]);
 
       if (wnorm2 > 0) {
-        const double *s = (const double *)gkyl_array_cfetch(
-            speed, gkyl_ridx(*slice_range, i));
+        const double *s = speeds + mwave * i;
         double r = s[mw] > 0 ? dotl / wnorm2 : dotr / wnorm2;
         double theta = limiter_function(r, wv->limiter);
         wave_rescale(meqn, theta, &wi[mw * meqn]);
@@ -190,8 +182,7 @@ __global__ void do_gkyl_wave_prop_cu_dev_advance(
       /* LIMIT WAVES ON TWO EDGES */
       /****************************/
 
-      //   limit_waves_cu(wv, &slice_range, update_range.lower[dir],
-      //      update_range.upper[dir]+1, waves, wv->speeds);
+      limit_waves_cu(wv, 1, 2, waves, speeds);
 
       /*******************************************************************/
       /* COMPUTE 2ND-ORDER FLUXES ON LEFT AND RIGHT EDGES OF TARGET CELL */
