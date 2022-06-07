@@ -7,15 +7,6 @@
 #include <gkyl_mat.h>
 #include <gkyl_util.h>
 
-// Memory for use in the bin ops
-struct gkyl_dg_bin_op_mem {
-  bool on_gpu; // flag to indicate if we are on GPU  
-  size_t batch_sz; // number of elements in batch
-  size_t nrows, ncols; // number of rows and colsx
-  struct gkyl_nmat *As, *xs; // data for matrices needed in division
-  gkyl_nmat_mem *lu_mem; // data for use in LU solve
-};
-
 gkyl_dg_bin_op_mem*
 gkyl_dg_bin_op_mem_new(size_t nbatch, size_t neqn)
 {

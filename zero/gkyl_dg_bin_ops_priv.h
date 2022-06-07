@@ -14,6 +14,15 @@
 
 enum gkyl_dg_op { GKYL_DG_OP_MEAN, GKYL_DG_OP_MEAN_L2 };
 
+// Memory for use in the bin ops
+struct gkyl_dg_bin_op_mem {
+  bool on_gpu; // flag to indicate if we are on GPU  
+  size_t batch_sz; // number of elements in batch
+  size_t nrows, ncols; // number of rows and colsx
+  struct gkyl_nmat *As, *xs; // data for matrices needed in division
+  gkyl_nmat_mem *lu_mem; // data for use in LU solve
+};
+
 // Function pointer type for multiplication
 typedef void (*mul_op_t)(const double *f, const double *g, double *fg);
 typedef struct gkyl_kern_op_count (*mul_op_count_t)(void);

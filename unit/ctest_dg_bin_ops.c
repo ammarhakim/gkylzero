@@ -625,12 +625,15 @@ test_1d_cu(int poly_order)
   gkyl_array_clear(g_bar, 0.0);
   gkyl_array_clear(g_bar_cu, 0.0);
 
+  // allocate memory
+  gkyl_dg_bin_op_mem *mem = gkyl_dg_bin_op_mem_cu_dev_new(f_bar->size, basis.num_basis);
+  
   // h = f*g
   gkyl_dg_mul_op(basis, 0, h_cu, 0, distf_cu, 0, distg_cu);
   // f_bar = h/g = f
-  gkyl_dg_div_op(basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu);
+  gkyl_dg_div_op(mem, basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu);
   // g_bar = h/f = g
-  gkyl_dg_div_op(basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu);
+  gkyl_dg_div_op(mem, basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu);
 
   // copy from device and check if things are ok
   gkyl_array_copy(f_bar, f_bar_cu);
@@ -706,6 +709,7 @@ test_1d_cu(int poly_order)
   gkyl_array_release(h_cu);
   gkyl_array_release(mvals_cu);
   gkyl_cu_free(al2_cu);
+  gkyl_dg_bin_op_mem_release(mem);  
 }
 
 void
@@ -760,12 +764,14 @@ test_2d_cu(int poly_order)
   gkyl_array_clear(g_bar, 0.0);
   gkyl_array_clear(g_bar_cu, 0.0);
 
+  gkyl_dg_bin_op_mem *mem = gkyl_dg_bin_op_mem_cu_dev_new(f_bar->size, basis.num_basis);  
+
   // h = f*g
   gkyl_dg_mul_op(basis, 0, h_cu, 0, distf_cu, 0, distg_cu);
   // f_bar = h/g = f
-  gkyl_dg_div_op(basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu);
+  gkyl_dg_div_op(mem, basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu);
   // g_bar = h/f = g
-  gkyl_dg_div_op(basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu);
+  gkyl_dg_div_op(mem, basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu);
 
   // copy from device and check if things are ok
   gkyl_array_copy(f_bar, f_bar_cu);
@@ -840,7 +846,8 @@ test_2d_cu(int poly_order)
   gkyl_array_release(g_bar_cu);
   gkyl_array_release(h_cu);
   gkyl_array_release(mvals_cu);
-  gkyl_cu_free(al2_cu);  
+  gkyl_cu_free(al2_cu);
+  gkyl_dg_bin_op_mem_release(mem);
 }
 
 void
@@ -895,12 +902,14 @@ test_3d_cu(int poly_order)
   gkyl_array_clear(g_bar, 0.0);
   gkyl_array_clear(g_bar_cu, 0.0);
 
+  gkyl_dg_bin_op_mem *mem = gkyl_dg_bin_op_mem_cu_dev_new(f_bar->size, basis.num_basis);
+
   // h = f*g
   gkyl_dg_mul_op(basis, 0, h_cu, 0, distf_cu, 0, distg_cu);
   // f_bar = h/g = f
-  gkyl_dg_div_op(basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu);
+  gkyl_dg_div_op(mem, basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu);
   // g_bar = h/f = g
-  gkyl_dg_div_op(basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu);
+  gkyl_dg_div_op(mem, basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu);
 
   // copy from device and check if things are ok
   gkyl_array_copy(f_bar, f_bar_cu);
@@ -976,6 +985,7 @@ test_3d_cu(int poly_order)
   gkyl_array_release(h_cu);
   gkyl_array_release(mvals_cu);
   gkyl_cu_free(al2_cu);
+  gkyl_dg_bin_op_mem_release(mem);
 }
 
 void
@@ -1079,12 +1089,14 @@ test_3d_p3_cu()
   gkyl_array_clear(g_bar, 0.0);
   gkyl_array_clear(g_bar_cu, 0.0);
 
+  gkyl_dg_bin_op_mem *mem = gkyl_dg_bin_op_mem_cu_dev_new(f_bar->size, basis.num_basis);
+
   // h = f*g
   gkyl_dg_mul_op(basis, 0, h_cu, 0, distf_cu, 0, distg_cu);
   // f_bar = h/g = f
-  gkyl_dg_div_op(basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu);
+  gkyl_dg_div_op(mem, basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu);
   // g_bar = h/f = g
-  gkyl_dg_div_op(basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu);
+  gkyl_dg_div_op(mem, basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu);
 
   // copy from device and check if things are ok
   gkyl_array_copy(f_bar, f_bar_cu);
@@ -1139,6 +1151,7 @@ test_3d_p3_cu()
   gkyl_array_release(f_bar_cu);
   gkyl_array_release(g_bar_cu);
   gkyl_array_release(h_cu);
+  gkyl_dg_bin_op_mem_release(mem);
 }
 
 #endif
