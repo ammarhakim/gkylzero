@@ -97,6 +97,10 @@ __global__ void do_gkyl_wave_prop_cu_dev_advance(
   // TODO: compare performance by moving ql_local, qr_local, delta, waves_local,
   //  amdq, apdq into RP loop as fixed-length arrays in the register
   // TODO: compare performance of different assignment patterns
+  // 1st-order correction for the target cell
+  double *dq = dummy + base + (meqn) * (threadIdx.x);
+  base += (meqn) * (blockDim.x);
+
   double *ql_local = dummy + base + (meqn) * (threadIdx.x);
   base += (meqn) * (blockDim.x);
 
@@ -135,11 +139,12 @@ __global__ void do_gkyl_wave_prop_cu_dev_advance(
     gkyl_copy_int_arr(ndim, idxc, idxl);
     gkyl_copy_int_arr(ndim, idxc, idxr);
 
+    for (int c=0; c<meqn; ++c) dq[c] = 0.;
+
     for (int d = 0; d < wv->num_up_dirs; ++d) {
       int dir = wv->update_dirs[d];
 
       double dtdx = dt / wv->grid.dx[dir];
-      double dq[8] = {0}; // meqn
 
       /******************************************************************/
       /* SOLVE RIEMANN PROBLEMS ON 4 EDGES AND GET 1ST-ORDER CORRECTION */
@@ -236,19 +241,23 @@ __global__ void do_gkyl_wave_prop_cu_dev_advance(
         kappal = kappar;
       }
 
-      /*******************************************************/
-      /* ADD 1ST- AND 2ND-ORDER CORRECTIONS ONTO TARGET CELL */
-      /*******************************************************/
-      long linc = gkyl_range_idx(&update_range, idxc);
-      double *qc = (double *)gkyl_array_fetch(qout, linc);
-      cg = gkyl_wave_geom_get(wv->geom, idxc);
-      for (int i = 0; i < meqn; ++i) {
+      /*********************************************/
+      /* ACCUMULATE 1ST- AND 2ND-ORDER CORRECTIONS */
+      /*********************************************/
+      for (int c = 0; c < meqn; ++c) {
         double *fl = flux2;
         double *fr = flux2 + meqn;
-        qc[i] += dq[i] - dtdx / cg->kappa * (fr[i] - fl[i]);
+        dq[c] -= dtdx / cg->kappa * (fr[c] - fl[c]);
       }
-    }
-  }
+    } // end of loop over update directions
+
+    /******************************************/
+    /* ADD TOTAL CORRECTIONS ONTO TARGET CELL */
+    /******************************************/
+    double *qc = (double *)gkyl_array_fetch(
+        qout, gkyl_range_idx(&update_range, idxc));
+    for (int c = 0; c < meqn; ++c) qc[c] += dq[c];
+  } // end of loop over cells
 
   double dt_suggested = dt * cfl / fmax(cfla, DBL_MIN);
   status->dt_suggested = dt_suggested > dt ? dt_suggested : dt;
@@ -265,7 +274,7 @@ gkyl_wave_prop_cu_dev_advance(const gkyl_wave_prop *wv, double tm, double dt,
 
   int meqn = wv->equation->num_equations, mwave = wv->equation->num_waves;
   int shared_mem_size = 0;
-  shared_mem_size += (meqn * (mwave + 5)) * (nthreads);
+  shared_mem_size += (meqn * (mwave + 6)) * (nthreads);
   shared_mem_size += (meqn * mwave * 4) * (nthreads);
   shared_mem_size += (mwave * 4) * (nthreads);
   shared_mem_size += (meqn * 2) * (nthreads);
