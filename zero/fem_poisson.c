@@ -145,35 +145,10 @@ local_nodtomod(const int dim, const int poly_order, const int basis_type, struct
   assert(false);  // Other dimensionalities not supported.
 }
 
-int idx_to_inup_ker(const int dim, const int *num_cells, const int *idx) {
-  // Return the index of the kernel (in the array of kernels) needed given the grid index.
-  // This function is for kernels that differentiate between upper cells and
-  // elsewhere.
-  int iout = 0;
-  for (int d=0; d<dim; d++) {
-    if (idx[d] == num_cells[d]) iout += (int)(pow(2,d)+0.5);
-  }
-  return iout;
-}
-
-int idx_to_inloup_ker(const int dim, const int *num_cells, const int *idx) {
-  // Return the index of the kernel (in the array of kernels) needed given the grid index.
-  // This function is for kernels that differentiate between lower, interior
-  // and upper cells.
-  int iout = 0;
-  for (int d=0; d<dim; d++) {
-    if (idx[d] == 1) {
-      iout = 2*iout+(int)(pow(3,d)+0.5);
-    } else if (idx[d] == num_cells[d]) {
-      iout = 2*iout+(int)(pow(3,d)+0.5)+1;
-    }
-  }
-  return iout;
-}
 
 gkyl_fem_poisson*
 gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-  struct gkyl_poisson_bc bcs, const double epsilon, void *ctx)
+  struct gkyl_poisson_bc bcs, const double epsilon, void *ctx, bool use_gpu)
 {
 
   gkyl_fem_poisson *up = gkyl_malloc(sizeof(gkyl_fem_poisson));
@@ -191,8 +166,13 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->basis_type = basis.b_type;
   up->poly_order = basis.poly_order;
   up->basis = basis;
+  up->use_gpu = use_gpu;
 
   up->globalidx = gkyl_malloc(sizeof(long[up->num_basis])); // global index, one for each basis in a cell.
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu)
+    up->globalidx_cu = gkyl_cu_malloc(sizeof(long[up->num_basis])); // global index, one for each basis in a cell.
+#endif
 
   // Local and local-ext ranges for whole-grid arrays.
   int ghost[POISSON_MAX_DIM];
@@ -255,6 +235,10 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   local_nodtomod(up->ndim, up->poly_order, basis.b_type, up->local_nodtomod);
 
   up->brhs = gkyl_array_new(GKYL_DOUBLE, 1, up->numnodes_global); // Global right side vector.
+#ifdef GKYL_HAVE_CUDA
+  if(up->use_gpu) 
+    up->brhs_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, up->numnodes_global); // Global right side vector.
+#endif
 
   // Select local-to-global mapping kernels:
   choose_local2global_kernels(&basis, up->isdirperiodic, up->kernels->l2g);
@@ -274,10 +258,19 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 
   // Create a linear Ax=B problem. Here A is the discrete (global) stiffness
   // matrix times epsilon.
-  up->prob = gkyl_superlu_prob_new(up->numnodes_global, up->numnodes_global, 1);
+#ifdef GKYL_HAVE_CUDA
+  if(up->use_gpu) 
+    up->prob_cu = gkyl_cusolver_prob_new(up->numnodes_global, up->numnodes_global, 1);
+  else
+#endif
+    up->prob = gkyl_superlu_prob_new(up->numnodes_global, up->numnodes_global, 1);
 
   // Assign non-zero elements in A.
   gkyl_mat_triples *tri = gkyl_mat_triples_new(up->numnodes_global, up->numnodes_global);
+#ifdef GKYL_HAVE_CUDA
+  if(up->use_gpu)
+    gkyl_mat_triples_set_rowmaj_order(tri);
+#endif
   gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
   int idx0[POISSON_MAX_DIM];
   while (gkyl_range_iter_next(&up->solve_iter)) {
@@ -291,7 +284,12 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
     keri = idx_to_inloup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
     up->kernels->lhsker[keri](epsilon, dx, up->bcvals, up->globalidx, tri);
   }
-  gkyl_superlu_amat_from_triples(up->prob, tri);
+#ifdef GKYL_HAVE_CUDA
+  if(up->use_gpu)
+    gkyl_cusolver_amat_from_triples(up->prob_cu, tri);
+  else
+#endif
+    gkyl_superlu_amat_from_triples(up->prob, tri);
 
   gkyl_mat_triples_release(tri);
 
@@ -308,6 +306,18 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
     gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->solve_range);
     gkyl_array_shiftc0(rhsin, up->mavgfac*up->rhs_avg[0]);
   }
+
+
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    assert(gkyl_array_is_cu_dev(rhsin));
+
+    gkyl_array_clear(up->brhs_cu, 0.0);
+
+    gkyl_fem_poisson_set_rhs_cu(up, rhsin);
+    return;
+  }
+#endif
 
   gkyl_array_clear(up->brhs, 0.0);
 
@@ -335,6 +345,14 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
 
 void
 gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout) {
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    assert(gkyl_array_is_cu_dev(phiout));
+    //gkyl_fem_poisson_solve_cu(up, phiout);
+    return;
+  }
+#endif
+
   gkyl_superlu_solve(up->prob);
 
   gkyl_range_iter_init(&up->solve_iter, &up->solve_range);

@@ -2,6 +2,10 @@
 #pragma once
 #include <gkyl_fem_poisson_kernels.h>
 #include <gkyl_basis.h>
+#include <gkyl_superlu_ops.h>
+#ifdef GKYL_HAVE_CUDA
+#include <gkyl_cusolver_ops.h>
+#endif
 
 #ifndef POISSON_MAX_DIM
 # define POISSON_MAX_DIM 3
@@ -406,6 +410,11 @@ struct gkyl_fem_poisson {
   struct gkyl_array *brhs;
 
   struct gkyl_superlu_prob* prob;
+#ifdef GKYL_HAVE_CUDA
+  struct gkyl_cusolver_prob* prob_cu;
+  long *globalidx_cu;
+  struct gkyl_array *brhs_cu;
+#endif
   struct gkyl_mat *local_stiff; // local stiffness matrix.
   struct gkyl_mat *local_mass_modtonod; // local mass matrix times modal-to-nodal matrix.
   struct gkyl_mat *local_nodtomod; // local nodal-to-modal matrix.
@@ -414,6 +423,7 @@ struct gkyl_fem_poisson {
 
   struct gkyl_fem_poisson_kernels *kernels;
   struct gkyl_fem_poisson_kernels *kernels_cu;
+  bool use_gpu;
 };
 
 void

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <math.h>
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_range.h>
@@ -9,10 +10,6 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_mat.h>
 #include <gkyl_mat_triples.h>
-#include <gkyl_superlu_ops.h>
-#ifdef GKYL_HAVE_CUDA
-#include <gkyl_cusolver_ops.h>
-#endif
 #include <gkyl_dg_bin_ops.h>
 
 #ifndef POISSON_MAX_DIM
@@ -55,7 +52,7 @@ struct gkyl_poisson_bc {
  */
 gkyl_fem_poisson* gkyl_fem_poisson_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-  struct gkyl_poisson_bc bcs, const double epsilon, void *ctx);
+  struct gkyl_poisson_bc bcs, const double epsilon, void *ctx, bool use_gpu);
 
 /**
  * Assign the right-side vector with the discontinuous (DG) source field.
@@ -65,6 +62,8 @@ gkyl_fem_poisson* gkyl_fem_poisson_new(
  */
 void gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin);
 
+void gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin);
+
 /**
  * Solve the linear problem.
  *
@@ -72,9 +71,39 @@ void gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin);
  */
 void gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout);
 
+void gkyl_fem_poisson_solve_cu(gkyl_fem_poisson* up, struct gkyl_array *phiout);
+
 /**
  * Delete updater.
  *
  * @param up Updater to delete.
  */
 void gkyl_fem_poisson_release(gkyl_fem_poisson *up);
+
+GKYL_CU_DH
+static inline int idx_to_inup_ker(const int dim, const int *num_cells, const int *idx) {
+  // Return the index of the kernel (in the array of kernels) needed given the grid index.
+  // This function is for kernels that differentiate between upper cells and
+  // elsewhere.
+  int iout = 0;
+  for (int d=0; d<dim; d++) {
+    if (idx[d] == num_cells[d]) iout += (int)(pow(2,d)+0.5);
+  }
+  return iout;
+}
+
+GKYL_CU_DH
+static inline int idx_to_inloup_ker(const int dim, const int *num_cells, const int *idx) {
+  // Return the index of the kernel (in the array of kernels) needed given the grid index.
+  // This function is for kernels that differentiate between lower, interior
+  // and upper cells.
+  int iout = 0;
+  for (int d=0; d<dim; d++) {
+    if (idx[d] == 1) {
+      iout = 2*iout+(int)(pow(3,d)+0.5);
+    } else if (idx[d] == num_cells[d]) {
+      iout = 2*iout+(int)(pow(3,d)+0.5)+1;
+    }
+  }
+  return iout;
+}

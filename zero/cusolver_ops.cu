@@ -14,6 +14,13 @@ extern "C" {
 }
 
 
+#ifdef GKYL_HAVE_CUDA
+#include <cusparse.h>
+#include <cusolverSp.h>
+#include <cusolverRf.h>
+#include <cusolverSp_LOWLEVEL_PREVIEW.h>
+#endif
+
 struct gkyl_cusolver_prob {
   double *rhs, *rhs_cu; // right-hand side entries. 
   double *x, *x_cu;

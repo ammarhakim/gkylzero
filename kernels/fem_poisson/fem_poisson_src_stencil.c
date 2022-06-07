@@ -1,13 +1,5 @@
 #include <gkyl_fem_poisson_kernels.h> 
  
-#ifdef GKYL_HAVE_CUDA
-#define ACCUMULATE(x, y) atomicAdd(x, y)
-#define ASSIGN(x, y) atomicExch(x, y)
-#else
-#define ACCUMULATE(x, y) x += y
-#define ASSIGN(x, y) x = y
-#endif
- 
 GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p1_inx_periodicx(const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // rho: right side source.

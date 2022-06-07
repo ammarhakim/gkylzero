@@ -2,6 +2,7 @@
 //
 #include <acutest.h>
 
+#include <math.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -132,7 +133,7 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs)
   gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_poisson_1x_rho_1.gkyl");
 
   // FEM poisson solver.
-  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, bcs, epsilon_0, NULL);
+  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, bcs, epsilon_0, NULL, false);
 
   // Set the RHS source.
   gkyl_fem_poisson_set_rhs(poisson, rho);
@@ -312,7 +313,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs)
   gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_poisson_2x_rho_1.gkyl");
 
   // FEM poisson solver.
-  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, bcs, epsilon_0, NULL);
+  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, bcs, epsilon_0, NULL, false);
 
   // Set the RHS source.
   gkyl_fem_poisson_set_rhs(poisson, rho);
