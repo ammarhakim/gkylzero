@@ -127,7 +127,7 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
       gkyl_copy_int_arr(ndim, iter.idx, idxl);
       gkyl_copy_int_arr(ndim, iter.idx, idxr);
 
-      for (int i=loidx; i<upidx; ++i) {
+      for (int i=loidx; i<=upidx; ++i) {
         idxl[dir] = i-1; idxr[dir] = i;
 
         // geometry in cell
