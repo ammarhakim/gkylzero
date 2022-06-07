@@ -4,18 +4,12 @@
 #include <stdbool.h>
 #include "gkyl_alloc_flags_priv.h"
 
-extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_mat_triples.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
-}
-#include <cusparse.h>
-#include <cusolverSp.h>
-#include <cusolverRf.h>
-#include <cusolverSp_LOWLEVEL_PREVIEW.h>
 
 // Object type
 typedef struct gkyl_cusolver_prob gkyl_cusolver_prob;

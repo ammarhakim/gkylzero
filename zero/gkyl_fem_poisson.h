@@ -10,6 +10,9 @@
 #include <gkyl_mat.h>
 #include <gkyl_mat_triples.h>
 #include <gkyl_superlu_ops.h>
+#ifdef GKYL_HAVE_CUDA
+#include <gkyl_cusolver_ops.h>
+#endif
 #include <gkyl_dg_bin_ops.h>
 
 #ifndef POISSON_MAX_DIM

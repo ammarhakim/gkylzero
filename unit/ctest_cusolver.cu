@@ -1,4 +1,17 @@
+#include <cusparse.h>
+#include <cusolverSp.h>
+#include <cusolverRf.h>
+#include <cusolverSp_LOWLEVEL_PREVIEW.h>
+
+extern "C" {
+#include <gkyl_alloc.h>
+#include <gkyl_mat_triples.h>
+#include <gkyl_array_ops.h>
+#include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
+#include <gkyl_util.h>
 #include <gkyl_cusolver_ops.h>
+}
 
 #define TEST_NO_MAIN
 #include <acutest.h>
