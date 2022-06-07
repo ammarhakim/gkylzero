@@ -139,7 +139,8 @@ __global__ void do_gkyl_wave_prop_cu_dev_advance(
     gkyl_copy_int_arr(ndim, idxc, idxl);
     gkyl_copy_int_arr(ndim, idxc, idxr);
 
-    for (int c=0; c<meqn; ++c) dq[c] = 0.;
+    for (int c = 0; c < meqn; ++c)
+      dq[c] = 0.;
 
     for (int d = 0; d < wv->num_up_dirs; ++d) {
       int dir = wv->update_dirs[d];
@@ -181,6 +182,9 @@ __global__ void do_gkyl_wave_prop_cu_dev_advance(
           s[mw] *= lenr;
         }
 
+      /************************************/
+      /* ACCUMULATE 1ST-ORDER CORRECTIONS */
+      /************************************/
         if (i == 1 or i == 2) { // only compute amdq/apdq on left/right edges
           wv->equation->qfluct_func(wv->equation, qinl, qinr, my_waves, s, amdq,
                                     apdq);
@@ -241,9 +245,9 @@ __global__ void do_gkyl_wave_prop_cu_dev_advance(
         kappal = kappar;
       }
 
-      /*********************************************/
-      /* ACCUMULATE 1ST- AND 2ND-ORDER CORRECTIONS */
-      /*********************************************/
+      /************************************/
+      /* ACCUMULATE 2ND-ORDER CORRECTIONS */
+      /************************************/
       for (int c = 0; c < meqn; ++c) {
         double *fl = flux2;
         double *fr = flux2 + meqn;
@@ -254,9 +258,10 @@ __global__ void do_gkyl_wave_prop_cu_dev_advance(
     /******************************************/
     /* ADD TOTAL CORRECTIONS ONTO TARGET CELL */
     /******************************************/
-    double *qc = (double *)gkyl_array_fetch(
-        qout, gkyl_range_idx(&update_range, idxc));
-    for (int c = 0; c < meqn; ++c) qc[c] += dq[c];
+    double *qc =
+        (double *)gkyl_array_fetch(qout, gkyl_range_idx(&update_range, idxc));
+    for (int c = 0; c < meqn; ++c)
+      qc[c] += dq[c];
   } // end of loop over cells
 
   double dt_suggested = dt * cfl / fmax(cfla, DBL_MIN);
