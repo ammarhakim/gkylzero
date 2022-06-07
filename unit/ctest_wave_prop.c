@@ -5,6 +5,7 @@
 #include <gkyl_wave_geom.h>
 #include <gkyl_wv_maxwell.h>
 #include <gkyl_wave_prop.h>
+#include <gkyl_array_rio.h>
 #include <acutest.h>
 
 #ifdef GKYL_HAVE_CUDA
@@ -125,8 +126,6 @@ do_test_wave_prop_maxwel_1d(bool use_gpu)
       step += 1;
     }
   }
-
-  printf("status OK? %d, dt %g\n", status.success, status.dt_suggested);
 
   // release data
   gkyl_wave_prop_release(wv);
