@@ -139,7 +139,7 @@ __global__ void do_gkyl_wave_prop_cu_dev_advance(
       int dir = wv->update_dirs[d];
 
       double dtdx = dt / wv->grid.dx[dir];
-      double dq[8]; // meqn
+      double dq[8] = {0}; // meqn
 
       /******************************************************************/
       /* SOLVE RIEMANN PROBLEMS ON 4 EDGES AND GET 1ST-ORDER CORRECTION */
@@ -180,12 +180,12 @@ __global__ void do_gkyl_wave_prop_cu_dev_advance(
           wv->equation->qfluct_func(wv->equation, qinl, qinr, my_waves, s, amdq,
                                     apdq);
 
-          for (int i = 0; i < meqn; ++i) {
+          for (int c = 0; c < meqn; ++c) {
             if (i == 1) { // right-going waves from left edge
-              dq[i] -= dtdx / cg->kappa * apdq[i];
+              dq[c] -= dtdx / cg->kappa * apdq[c];
             }
             if (i == 2) { // left-going waves from right edge
-              dq[i] -= dtdx / cg->kappa * amdq[i];
+              dq[c] -= dtdx / cg->kappa * amdq[c];
             }
           }
         }
