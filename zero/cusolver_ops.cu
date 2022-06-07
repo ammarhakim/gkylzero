@@ -160,6 +160,18 @@ gkyl_cusolver_finish_host(gkyl_cusolver_prob *prob)
   gkyl_cu_memcpy(prob->x, prob->x_cu, sizeof(double)*prob->mrow*prob->nrhs, GKYL_CU_MEMCPY_D2H);
 }
 
+double*
+gkyl_cusolver_get_rhs_ptr(gkyl_cusolver_prob *prob, const long loc)
+{
+  return &prob->rhs_cu[loc];
+}
+
+double*
+gkyl_cusolver_get_sol_ptr(gkyl_cusolver_prob *prob, const long loc)
+{
+  return &prob->x_cu[loc];
+}
+
 double
 gkyl_cusolver_get_sol_ij(gkyl_cusolver_prob *prob, const long ielement, const long jprob)
 {

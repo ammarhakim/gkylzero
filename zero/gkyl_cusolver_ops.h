@@ -61,6 +61,10 @@ void gkyl_cusolver_solve(gkyl_cusolver_prob *prob);
  */
 void gkyl_cusolver_finish_host(gkyl_cusolver_prob *prob);
 
+double* gkyl_cusolver_get_rhs_ptr(gkyl_cusolver_prob *prob, const long loc);
+
+double* gkyl_cusolver_get_sol_ptr(gkyl_cusolver_prob *prob, const long loc);
+
 /**
  * Obtain the RHS ielement-th value of the jprob-th linear problem.
  * Recall the RHS is a mrow x nrhs matrix.
