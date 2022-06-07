@@ -10,15 +10,6 @@
 #include <gkyl_mom_calc_bcorr_priv.h>
 #include <gkyl_util.h>
 
-static inline void
-idx_array(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
-{
-  for (int i=0; i<cdim; ++i)
-    out[i] = cidx[i];
-  for (int i=cdim; i<pdim; ++i)
-    out[i] = vidx[i-cdim];
-}
-
 void
 gkyl_mom_calc_bcorr_advance(gkyl_mom_calc_bcorr *bcorr,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
