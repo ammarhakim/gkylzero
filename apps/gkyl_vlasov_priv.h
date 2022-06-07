@@ -94,6 +94,7 @@ struct vm_lbo_collisions {
   struct gkyl_array *self_mnu_m0[GKYL_MAX_SPECIES], *self_mnu[GKYL_MAX_SPECIES];
   struct gkyl_array *other_mnu_m0[GKYL_MAX_SPECIES], *other_mnu[GKYL_MAX_SPECIES];
   struct gkyl_array *greene_num[GKYL_MAX_SPECIES], *greene_den[GKYL_MAX_SPECIES];
+  gkyl_dg_bin_op_mem *greene_factor_mem; // memory needed in computing Greene factor
   struct gkyl_array *greene_factor[GKYL_MAX_SPECIES];
 
   int num_cross_collisions; // number of species we cross-collide with
@@ -175,6 +176,7 @@ struct vm_species {
   struct gkyl_array *gradB; // gradient of magnetic field
   struct gkyl_array *magB; // magnitude of magnetic field (J = 1/B)
   struct gkyl_array *n; // array storing density (no Jacobian)
+  struct gkyl_dg_bin_op_mem *Tperp_mem; // memory used in the div-op for Tperpq
   struct gkyl_array *Tperp; // array storing J*Tperp (J*p_perp/n)
   struct gkyl_array *mirror_force; // array storing full mirror force (J*T_perp*gradB)
   struct gkyl_array *m1i_no_J; // current density without Jacobian (for coupling to EM fields)
