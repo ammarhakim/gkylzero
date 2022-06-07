@@ -23,17 +23,17 @@ mkarr1(bool use_gpu, long nc, long size)
 }
 
 static void
-nomapc2p(double t, const double *xc, double *xp, void *ctx)
+my_mapc2p(double t, const double *xc, double *xp, void *ctx)
 {
-  for (int i=0; i<1; ++i) xp[i] = xc[i];
+  for (int i=0; i<1; ++i) xp[i] = xc[i] * xc[i];
 }
 
 void
 do_test_wave_prop_maxwel_1d(bool use_gpu)
 {
-  int nthreads = 64;
-  int nblocks = 64;
-  int ncells_per_block = nthreads - 3;
+  int nthreads = 16;
+  int nblocks = 16;
+  int ncells_per_block = nthreads;
   int ncells = nblocks * ncells_per_block;
 
   int ndim = 1;
@@ -59,7 +59,7 @@ do_test_wave_prop_maxwel_1d(bool use_gpu)
 
   double c = 1.0, e_fact = 0.5, b_fact = 0.5;
   if (use_gpu) {
-    geom = gkyl_wave_geom_cu_dev_new(&grid, &range_ext, nomapc2p, &ndim);
+    geom = gkyl_wave_geom_cu_dev_new(&grid, &range_ext, my_mapc2p, &ndim);
     eqn = gkyl_wv_maxwell_cu_dev_new(c, e_fact, b_fact);
     wv = gkyl_wave_prop_cu_dev_new( (struct gkyl_wave_prop_inp) {
         .grid = &grid,
@@ -72,7 +72,7 @@ do_test_wave_prop_maxwel_1d(bool use_gpu)
         }
       );
   } else {
-    geom = gkyl_wave_geom_new(&grid, &range_ext, nomapc2p, &ndim);
+    geom = gkyl_wave_geom_new(&grid, &range_ext, my_mapc2p, &ndim);
     eqn = gkyl_wv_maxwell_new(c, e_fact, b_fact);
     wv = gkyl_wave_prop_new( (struct gkyl_wave_prop_inp) {
         .grid = &grid,
@@ -100,8 +100,8 @@ do_test_wave_prop_maxwel_1d(bool use_gpu)
 
   // apply initial condition
   double *ptr = qin_h->data;
-  for(int i=0; i< ncells+4; i++) {
-    ptr[i] = i;
+  for(int i=0; i< 8 * (ncells+4); i++) {
+    ptr[i] = sqrtf(i+10.);
   }
   gkyl_array_copy(qin_d, qin_h);
 
