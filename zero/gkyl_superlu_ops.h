@@ -73,6 +73,8 @@ double gkyl_superlu_get_rhs_ij(gkyl_superlu_prob *prob, const long ielement, con
  */
 double gkyl_superlu_get_rhs_lin(gkyl_superlu_prob *prob, const long loc);
 
+double* gkyl_superlu_get_rhs_ptr(gkyl_superlu_prob *prob, const long loc);
+
 /**
  * Release SuperLU problem
  *

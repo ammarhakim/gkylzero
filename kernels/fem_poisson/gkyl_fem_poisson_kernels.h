@@ -44,6 +44,8 @@ void fem_poisson_src_stencil_1x_ser_p1_upx_dirichletx(const double *rho, const d
 void fem_poisson_src_stencil_1x_ser_p1_upx_neumannx(const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc);
 void fem_poisson_src_stencil_1x_ser_p1_upx_robinx(const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc);
 
+GKYL_CU_D void fem_poisson_sol_stencil_1x_ser_p1(const double *sol_nodal_global, const long *globalIdxs, double *sol_modal_local);
+
 long fem_poisson_num_nodes_global_2x_ser_p1_periodicx_periodicy(const int *numCells);
 long fem_poisson_num_nodes_global_2x_ser_p1_periodicx_nonperiodicy(const int *numCells);
 long fem_poisson_num_nodes_global_2x_ser_p1_nonperiodicx_periodicy(const int *numCells);
@@ -233,6 +235,8 @@ void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_upy_periodicy(const double *rh
 void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_upy_dirichlety(const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc);
 void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_upy_neumanny(const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc);
 void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_upy_robiny(const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc);
+
+GKYL_CU_D void fem_poisson_sol_stencil_2x_ser_p1(const double *sol_nodal_global, const long *globalIdxs, double *sol_modal_local);
 
 long fem_poisson_num_nodes_global_3x_ser_p1_periodicx_periodicy_periodicz(const int *numCells);
 long fem_poisson_num_nodes_global_3x_ser_p1_periodicx_periodicy_nonperiodicz(const int *numCells);
@@ -1772,6 +1776,8 @@ void fem_poisson_src_stencil_3x_ser_p1_upx_robinx_upy_robiny_upz_dirichletz(cons
 void fem_poisson_src_stencil_3x_ser_p1_upx_robinx_upy_robiny_upz_neumannz(const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc);
 void fem_poisson_src_stencil_3x_ser_p1_upx_robinx_upy_robiny_upz_robinz(const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc);
 
+GKYL_CU_D void fem_poisson_sol_stencil_3x_ser_p1(const double *sol_nodal_global, const long *globalIdxs, double *sol_modal_local);
+
 
 long fem_poisson_num_nodes_global_1x_ser_p2_periodicx(const int *numCells);
 long fem_poisson_num_nodes_global_1x_ser_p2_nonperiodicx(const int *numCells);
@@ -1804,6 +1810,8 @@ void fem_poisson_src_stencil_1x_ser_p2_upx_periodicx(const double *rho, const do
 void fem_poisson_src_stencil_1x_ser_p2_upx_dirichletx(const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc);
 void fem_poisson_src_stencil_1x_ser_p2_upx_neumannx(const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc);
 void fem_poisson_src_stencil_1x_ser_p2_upx_robinx(const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc);
+
+GKYL_CU_D void fem_poisson_sol_stencil_1x_ser_p2(const double *sol_nodal_global, const long *globalIdxs, double *sol_modal_local);
 
 long fem_poisson_num_nodes_global_2x_ser_p2_periodicx_periodicy(const int *numCells);
 long fem_poisson_num_nodes_global_2x_ser_p2_periodicx_nonperiodicy(const int *numCells);
@@ -1994,6 +2002,8 @@ void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_upy_periodicy(const double *rh
 void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_upy_dirichlety(const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc);
 void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_upy_neumanny(const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc);
 void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_upy_robiny(const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc);
+
+GKYL_CU_D void fem_poisson_sol_stencil_2x_ser_p2(const double *sol_nodal_global, const long *globalIdxs, double *sol_modal_local);
 
 long fem_poisson_num_nodes_global_3x_ser_p2_periodicx_periodicy_periodicz(const int *numCells);
 long fem_poisson_num_nodes_global_3x_ser_p2_periodicx_periodicy_nonperiodicz(const int *numCells);
@@ -3532,6 +3542,8 @@ void fem_poisson_src_stencil_3x_ser_p2_upx_robinx_upy_robiny_upz_periodicz(const
 void fem_poisson_src_stencil_3x_ser_p2_upx_robinx_upy_robiny_upz_dirichletz(const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc);
 void fem_poisson_src_stencil_3x_ser_p2_upx_robinx_upy_robiny_upz_neumannz(const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc);
 void fem_poisson_src_stencil_3x_ser_p2_upx_robinx_upy_robiny_upz_robinz(const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc);
+
+GKYL_CU_D void fem_poisson_sol_stencil_3x_ser_p2(const double *sol_nodal_global, const long *globalIdxs, double *sol_modal_local);
 
 
 EXTERN_C_END 

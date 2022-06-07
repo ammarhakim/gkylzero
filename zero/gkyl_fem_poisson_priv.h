@@ -348,6 +348,20 @@ static const srcstencil_kern_bcx_list_2x ser_srcstencil_list_2x[] = {
   },
 };
 
+// Function pointer type for sol kernels.
+typedef void (*solstencil_t)(const double *sol_nodal_global, const long *globalIdxs, double *sol_modal_local);
+
+typedef struct { solstencil_t kernels[3]; } solstencil_kern_list;
+
+GKYL_CU_D
+static const solstencil_kern_list ser_solstencil_list[] = {
+  { NULL, NULL, NULL },
+  // 1x kernels
+  { NULL, fem_poisson_sol_stencil_1x_ser_p1, fem_poisson_sol_stencil_1x_ser_p2 }, // 0
+  // 2x kernels
+  { NULL, fem_poisson_sol_stencil_2x_ser_p1, fem_poisson_sol_stencil_2x_ser_p2 }, // 1
+};
+
 // "Choose Kernel" based on cdim, vdim and polyorder
 #define CK1(lst,poly_order,loc,bcx) lst[bcx].list[poly_order].kernels[loc]
 #define CK2(lst,poly_order,loc,bcx,bcy) lst[bcx].list[bcy].list[poly_order].kernels[loc]
@@ -393,6 +407,8 @@ struct gkyl_fem_poisson {
 
   // RHS source kernels (one for each position in the domain, up to 3^3).
   srcstencil_t srcker[27];
+
+  solstencil_t solker;
 
   long *globalidx;
 };
@@ -495,6 +511,26 @@ choose_src_kernels(const struct gkyl_basis* basis, const struct gkyl_poisson_bc 
 //        srcout[k] = CK3(ser_srcstencil_list_3x, poly_order, k, bckey[0], bckey[1], bckey[2]);
         }
       }
+      break;
+//    case GKYL_BASIS_MODAL_TENSOR:
+//      break;
+    default:
+      assert(false);
+      break;
+  }
+}
+
+GKYL_CU_D
+static solstencil_t
+choose_sol_kernels(const struct gkyl_basis* basis)
+{
+  int dim = basis->ndim;
+  int poly_order = basis->poly_order;
+
+  switch (basis->b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_solstencil_list[dim].kernels[poly_order];
+      
       break;
 //    case GKYL_BASIS_MODAL_TENSOR:
 //      break;

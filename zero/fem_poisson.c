@@ -248,7 +248,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   local_mass_modtonod(up->ndim, up->poly_order, basis.b_type, up->local_mass_modtonod);
   local_nodtomod(up->ndim, up->poly_order, basis.b_type, up->local_nodtomod);
 
-  up->brhs = gkyl_malloc(sizeof(double[up->numnodes_global])); // Global right side vector.
+  up->brhs = gkyl_array_new(GKYL_DOUBLE, 1, up->numnodes_global); // Global right side vector.
 
   // Select local-to-global mapping kernels:
   choose_local2global_kernels(&basis, &up->isdirperiodic[0], &up->l2g[0]);
@@ -258,6 +258,9 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 
   // Select rhs src kernels:
   choose_src_kernels(&basis, bcs, &up->srcker[0]);
+
+  // Select sol kernel:
+  up->solker = choose_sol_kernels(&basis);
 
   // Create a linear Ax=B problem. Here A is the discrete (global) stiffness
   // matrix times epsilon.
@@ -296,8 +299,11 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
     gkyl_array_shiftc0(rhsin, up->mavgfac*up->rhs_avg[0]);
   }
 
+  gkyl_array_clear(up->brhs, 0.0);
+
   gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
   int idx0[POISSON_MAX_DIM];
+  double *brhs_p = gkyl_array_fetch(up->brhs, 0);
   while (gkyl_range_iter_next(&up->solve_iter)) {
     long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
 
@@ -310,10 +316,10 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
     // Apply the RHS source stencil. It's mostly the mass matrix times a
     // modal-to-nodal operator times the source, modified by BCs in skin cells.
     keri = idx_to_inloup_ker(up->ndim, &up->num_cells[0], up->solve_iter.idx);
-    up->srcker[keri](&rhsin_p[0], &up->bcvals[0], &up->globalidx[0], &up->brhs[0]);
+    up->srcker[keri](&rhsin_p[0], &up->bcvals[0], &up->globalidx[0], brhs_p);
   }
 
-  gkyl_superlu_brhs_from_array(up->prob, &up->brhs[0]);
+  gkyl_superlu_brhs_from_array(up->prob, brhs_p);
 
 }
 
@@ -323,6 +329,7 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout) {
 
   gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
   int idx0[POISSON_MAX_DIM];
+  gkyl_array_clear(phiout, 0.0);
   while (gkyl_range_iter_next(&up->solve_iter)) {
     long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
 
@@ -332,13 +339,8 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout) {
     for (size_t d=0; d<up->ndim; d++) idx0[d] = up->solve_iter.idx[d]-1;
     up->l2g[keri](&up->num_cells[0], &idx0[0], &up->globalidx[0]);
 
-    for (size_t k=0; k<up->numnodes_local; k++) {
-      phiout_p[k] = 0.;
-      for (size_t m=0; m<up->numnodes_local; m++) {
-        long globalidx_m = up->globalidx[m];
-        phiout_p[k] += gkyl_mat_get(up->local_nodtomod,k,m) * gkyl_superlu_get_rhs_ij(up->prob, globalidx_m, 0);
-      }
-    }
+    up->solker(gkyl_superlu_get_rhs_ptr(up->prob, 0), up->globalidx, phiout_p);
+
   }
 
 }

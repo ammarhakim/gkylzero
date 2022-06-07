@@ -180,6 +180,12 @@ gkyl_superlu_get_rhs_lin(gkyl_superlu_prob *prob, const long loc)
   return prob->rhs[loc];
 }
 
+double*
+gkyl_superlu_get_rhs_ptr(gkyl_superlu_prob *prob, const long loc)
+{
+  return &prob->rhs[loc];
+}
+
 void
 gkyl_superlu_prob_release(gkyl_superlu_prob *prob)
 {

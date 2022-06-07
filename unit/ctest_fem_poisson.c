@@ -171,8 +171,9 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs)
         int idx0[] = {k+1};
         linidx = gkyl_range_idx(&localRange, idx0);
         phi_p  = gkyl_array_cfetch(phi, linidx);
-        for (int m=0; m<basis.num_basis; m++)
-          TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-1) );
+        for (int m=0; m<basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-13) );
+        }
       }
     } else if (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
       // Solution with N=16 (checked visually against g2):
@@ -961,8 +962,11 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs)
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
           const double *phi_p  = gkyl_array_cfetch(phi, linidx);
-          for (int m=0; m<basis.num_basis; m++)
-            TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-13) );
+          for (int m=0; m<basis.num_basis; m++) {
+            TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-12) );
+            TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
+            TEST_MSG("Produced: %.13e", phi_p[m]);
+          }
         }
       }
     } else {
