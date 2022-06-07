@@ -1,7 +1,6 @@
 #include <gkyl_fem_poisson_kernels.h> 
  
-GKYL_CU_D 
-void fem_poisson_sol_stencil_1x_ser_p1(const double *sol_nodal_global, const long *globalIdxs, double *sol_modal_local) 
+GKYL_CU_DH void fem_poisson_sol_stencil_1x_ser_p1(const double *sol_nodal_global, const long *globalIdxs, double *sol_modal_local) 
 { 
   // sol_nodal_global: global nodal solution vector.
   // sol_modal_local: local modal solution vector.
@@ -10,8 +9,7 @@ void fem_poisson_sol_stencil_1x_ser_p1(const double *sol_nodal_global, const lon
   sol_modal_local[1] += 0.408248290463863*sol_nodal_global[globalIdxs[1]]-0.408248290463863*sol_nodal_global[globalIdxs[0]];
 
 }
-GKYL_CU_D 
-void fem_poisson_sol_stencil_1x_ser_p2(const double *sol_nodal_global, const long *globalIdxs, double *sol_modal_local) 
+GKYL_CU_DH void fem_poisson_sol_stencil_1x_ser_p2(const double *sol_nodal_global, const long *globalIdxs, double *sol_modal_local) 
 { 
   // sol_nodal_global: global nodal solution vector.
   // sol_modal_local: local modal solution vector.
@@ -21,8 +19,7 @@ void fem_poisson_sol_stencil_1x_ser_p2(const double *sol_nodal_global, const lon
   sol_modal_local[2] += 0.210818510677892*sol_nodal_global[globalIdxs[2]]-0.421637021355784*sol_nodal_global[globalIdxs[1]]+0.210818510677892*sol_nodal_global[globalIdxs[0]];
 
 }
-GKYL_CU_D 
-void fem_poisson_sol_stencil_2x_ser_p1(const double *sol_nodal_global, const long *globalIdxs, double *sol_modal_local) 
+GKYL_CU_DH void fem_poisson_sol_stencil_2x_ser_p1(const double *sol_nodal_global, const long *globalIdxs, double *sol_modal_local) 
 { 
   // sol_nodal_global: global nodal solution vector.
   // sol_modal_local: local modal solution vector.
@@ -33,8 +30,7 @@ void fem_poisson_sol_stencil_2x_ser_p1(const double *sol_nodal_global, const lon
   sol_modal_local[3] += 0.1666666666666667*sol_nodal_global[globalIdxs[3]]-0.1666666666666667*sol_nodal_global[globalIdxs[2]]-0.1666666666666667*sol_nodal_global[globalIdxs[1]]+0.1666666666666667*sol_nodal_global[globalIdxs[0]];
 
 }
-GKYL_CU_D 
-void fem_poisson_sol_stencil_2x_ser_p2(const double *sol_nodal_global, const long *globalIdxs, double *sol_modal_local) 
+GKYL_CU_DH void fem_poisson_sol_stencil_2x_ser_p2(const double *sol_nodal_global, const long *globalIdxs, double *sol_modal_local) 
 { 
   // sol_nodal_global: global nodal solution vector.
   // sol_modal_local: local modal solution vector.

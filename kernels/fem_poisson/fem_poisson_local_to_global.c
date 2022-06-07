@@ -1,6 +1,6 @@
 #include <gkyl_fem_poisson_kernels.h> 
  
-void fem_poisson_local_to_global_1x_ser_p1_inx_periodicx(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_1x_ser_p1_inx_periodicx(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -19,7 +19,7 @@ void fem_poisson_local_to_global_1x_ser_p1_inx_periodicx(const int *numCells, co
 
 }
 
-void fem_poisson_local_to_global_1x_ser_p2_inx_periodicx(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_1x_ser_p2_inx_periodicx(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -40,7 +40,7 @@ void fem_poisson_local_to_global_1x_ser_p2_inx_periodicx(const int *numCells, co
 
 }
 
-void fem_poisson_local_to_global_1x_ser_p1_inx_nonperiodicx(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_1x_ser_p1_inx_nonperiodicx(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -59,7 +59,7 @@ void fem_poisson_local_to_global_1x_ser_p1_inx_nonperiodicx(const int *numCells,
 
 }
 
-void fem_poisson_local_to_global_1x_ser_p2_inx_nonperiodicx(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_1x_ser_p2_inx_nonperiodicx(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -80,7 +80,7 @@ void fem_poisson_local_to_global_1x_ser_p2_inx_nonperiodicx(const int *numCells,
 
 }
 
-void fem_poisson_local_to_global_1x_ser_p1_upx_periodicx(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_1x_ser_p1_upx_periodicx(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -93,7 +93,7 @@ void fem_poisson_local_to_global_1x_ser_p1_upx_periodicx(const int *numCells, co
 
 }
 
-void fem_poisson_local_to_global_1x_ser_p2_upx_periodicx(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_1x_ser_p2_upx_periodicx(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -108,7 +108,7 @@ void fem_poisson_local_to_global_1x_ser_p2_upx_periodicx(const int *numCells, co
 
 }
 
-void fem_poisson_local_to_global_1x_ser_p1_upx_nonperiodicx(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_1x_ser_p1_upx_nonperiodicx(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -121,7 +121,7 @@ void fem_poisson_local_to_global_1x_ser_p1_upx_nonperiodicx(const int *numCells,
 
 }
 
-void fem_poisson_local_to_global_1x_ser_p2_upx_nonperiodicx(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_1x_ser_p2_upx_nonperiodicx(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -136,7 +136,7 @@ void fem_poisson_local_to_global_1x_ser_p2_upx_nonperiodicx(const int *numCells,
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p1_inx_periodicx_iny_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p1_inx_periodicx_iny_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -177,7 +177,7 @@ void fem_poisson_local_to_global_2x_ser_p1_inx_periodicx_iny_periodicy(const int
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_iny_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_iny_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -238,7 +238,7 @@ void fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_iny_periodicy(const int
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p1_inx_periodicx_iny_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p1_inx_periodicx_iny_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -279,7 +279,7 @@ void fem_poisson_local_to_global_2x_ser_p1_inx_periodicx_iny_nonperiodicy(const 
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_iny_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_iny_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -340,7 +340,7 @@ void fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_iny_nonperiodicy(const 
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p1_inx_nonperiodicx_iny_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p1_inx_nonperiodicx_iny_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -381,7 +381,7 @@ void fem_poisson_local_to_global_2x_ser_p1_inx_nonperiodicx_iny_periodicy(const 
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p2_inx_nonperiodicx_iny_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p2_inx_nonperiodicx_iny_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -442,7 +442,7 @@ void fem_poisson_local_to_global_2x_ser_p2_inx_nonperiodicx_iny_periodicy(const 
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p1_inx_nonperiodicx_iny_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p1_inx_nonperiodicx_iny_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -483,7 +483,7 @@ void fem_poisson_local_to_global_2x_ser_p1_inx_nonperiodicx_iny_nonperiodicy(con
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p2_inx_nonperiodicx_iny_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p2_inx_nonperiodicx_iny_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -544,7 +544,7 @@ void fem_poisson_local_to_global_2x_ser_p2_inx_nonperiodicx_iny_nonperiodicy(con
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p1_upx_periodicx_iny_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p1_upx_periodicx_iny_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -573,7 +573,7 @@ void fem_poisson_local_to_global_2x_ser_p1_upx_periodicx_iny_periodicy(const int
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p2_upx_periodicx_iny_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p2_upx_periodicx_iny_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -616,7 +616,7 @@ void fem_poisson_local_to_global_2x_ser_p2_upx_periodicx_iny_periodicy(const int
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p1_upx_periodicx_iny_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p1_upx_periodicx_iny_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -645,7 +645,7 @@ void fem_poisson_local_to_global_2x_ser_p1_upx_periodicx_iny_nonperiodicy(const 
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p2_upx_periodicx_iny_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p2_upx_periodicx_iny_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -688,7 +688,7 @@ void fem_poisson_local_to_global_2x_ser_p2_upx_periodicx_iny_nonperiodicy(const 
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p1_upx_nonperiodicx_iny_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p1_upx_nonperiodicx_iny_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -717,7 +717,7 @@ void fem_poisson_local_to_global_2x_ser_p1_upx_nonperiodicx_iny_periodicy(const 
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p2_upx_nonperiodicx_iny_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p2_upx_nonperiodicx_iny_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -760,7 +760,7 @@ void fem_poisson_local_to_global_2x_ser_p2_upx_nonperiodicx_iny_periodicy(const 
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p1_upx_nonperiodicx_iny_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p1_upx_nonperiodicx_iny_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -789,7 +789,7 @@ void fem_poisson_local_to_global_2x_ser_p1_upx_nonperiodicx_iny_nonperiodicy(con
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p2_upx_nonperiodicx_iny_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p2_upx_nonperiodicx_iny_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -832,7 +832,7 @@ void fem_poisson_local_to_global_2x_ser_p2_upx_nonperiodicx_iny_nonperiodicy(con
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p1_inx_periodicx_upy_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p1_inx_periodicx_upy_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -861,7 +861,7 @@ void fem_poisson_local_to_global_2x_ser_p1_inx_periodicx_upy_periodicy(const int
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_upy_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_upy_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -904,7 +904,7 @@ void fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_upy_periodicy(const int
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p1_inx_periodicx_upy_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p1_inx_periodicx_upy_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -933,7 +933,7 @@ void fem_poisson_local_to_global_2x_ser_p1_inx_periodicx_upy_nonperiodicy(const 
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_upy_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_upy_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -976,7 +976,7 @@ void fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_upy_nonperiodicy(const 
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p1_inx_nonperiodicx_upy_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p1_inx_nonperiodicx_upy_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -1005,7 +1005,7 @@ void fem_poisson_local_to_global_2x_ser_p1_inx_nonperiodicx_upy_periodicy(const 
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p2_inx_nonperiodicx_upy_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p2_inx_nonperiodicx_upy_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -1048,7 +1048,7 @@ void fem_poisson_local_to_global_2x_ser_p2_inx_nonperiodicx_upy_periodicy(const 
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p1_inx_nonperiodicx_upy_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p1_inx_nonperiodicx_upy_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -1077,7 +1077,7 @@ void fem_poisson_local_to_global_2x_ser_p1_inx_nonperiodicx_upy_nonperiodicy(con
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p2_inx_nonperiodicx_upy_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p2_inx_nonperiodicx_upy_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -1120,7 +1120,7 @@ void fem_poisson_local_to_global_2x_ser_p2_inx_nonperiodicx_upy_nonperiodicy(con
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p1_upx_periodicx_upy_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p1_upx_periodicx_upy_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -1137,7 +1137,7 @@ void fem_poisson_local_to_global_2x_ser_p1_upx_periodicx_upy_periodicy(const int
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p2_upx_periodicx_upy_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p2_upx_periodicx_upy_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -1162,7 +1162,7 @@ void fem_poisson_local_to_global_2x_ser_p2_upx_periodicx_upy_periodicy(const int
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p1_upx_periodicx_upy_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p1_upx_periodicx_upy_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -1179,7 +1179,7 @@ void fem_poisson_local_to_global_2x_ser_p1_upx_periodicx_upy_nonperiodicy(const 
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p2_upx_periodicx_upy_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p2_upx_periodicx_upy_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -1204,7 +1204,7 @@ void fem_poisson_local_to_global_2x_ser_p2_upx_periodicx_upy_nonperiodicy(const 
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p1_upx_nonperiodicx_upy_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p1_upx_nonperiodicx_upy_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -1221,7 +1221,7 @@ void fem_poisson_local_to_global_2x_ser_p1_upx_nonperiodicx_upy_periodicy(const 
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p2_upx_nonperiodicx_upy_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p2_upx_nonperiodicx_upy_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -1246,7 +1246,7 @@ void fem_poisson_local_to_global_2x_ser_p2_upx_nonperiodicx_upy_periodicy(const 
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p1_upx_nonperiodicx_upy_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p1_upx_nonperiodicx_upy_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.
@@ -1263,7 +1263,7 @@ void fem_poisson_local_to_global_2x_ser_p1_upx_nonperiodicx_upy_nonperiodicy(con
 
 }
 
-void fem_poisson_local_to_global_2x_ser_p2_upx_nonperiodicx_upy_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
+GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p2_upx_nonperiodicx_upy_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.
   // idx:        multi-dimensional index of current cell.

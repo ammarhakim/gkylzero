@@ -1,6 +1,6 @@
 #include <gkyl_fem_poisson_kernels.h> 
  
-void fem_poisson_stiff_1x_ser_p1(const double *dx, struct gkyl_mat *matout) 
+GKYL_CU_DH void fem_poisson_stiff_1x_ser_p1(const double *dx, struct gkyl_mat *matout) 
 { 
   // dx: cell length in each direction.
   // matout: local stiffness matrix.
@@ -14,7 +14,7 @@ void fem_poisson_stiff_1x_ser_p1(const double *dx, struct gkyl_mat *matout)
   gkyl_mat_set(matout,1,1,0.5*rdx2Sq[0]); 
 }
 
-void fem_poisson_stiff_1x_ser_p2(const double *dx, struct gkyl_mat *matout) 
+GKYL_CU_DH void fem_poisson_stiff_1x_ser_p2(const double *dx, struct gkyl_mat *matout) 
 { 
   // dx: cell length in each direction.
   // matout: local stiffness matrix.
@@ -33,7 +33,7 @@ void fem_poisson_stiff_1x_ser_p2(const double *dx, struct gkyl_mat *matout)
   gkyl_mat_set(matout,2,2,1.166666666666667*rdx2Sq[0]); 
 }
 
-void fem_poisson_mass_times_modtonod_1x_ser_p1(struct gkyl_mat *matout) 
+GKYL_CU_DH void fem_poisson_mass_times_modtonod_1x_ser_p1(struct gkyl_mat *matout) 
 { 
   // matout: mass matrix times modal to nodal matrix.
 
@@ -43,7 +43,7 @@ void fem_poisson_mass_times_modtonod_1x_ser_p1(struct gkyl_mat *matout)
   gkyl_mat_set(matout,1,1,0.4082482904638631); 
 }
 
-void fem_poisson_mass_times_modtonod_1x_ser_p2(struct gkyl_mat *matout) 
+GKYL_CU_DH void fem_poisson_mass_times_modtonod_1x_ser_p2(struct gkyl_mat *matout) 
 { 
   // matout: mass matrix times modal to nodal matrix.
 
@@ -58,7 +58,7 @@ void fem_poisson_mass_times_modtonod_1x_ser_p2(struct gkyl_mat *matout)
   gkyl_mat_set(matout,2,2,0.2108185106778921); 
 }
 
-void fem_poisson_nodtomod_1x_ser_p1(struct gkyl_mat *matout) 
+GKYL_CU_DH void fem_poisson_nodtomod_1x_ser_p1(struct gkyl_mat *matout) 
 { 
   // matout: nodal to modal matrix.
 
@@ -68,7 +68,7 @@ void fem_poisson_nodtomod_1x_ser_p1(struct gkyl_mat *matout)
   gkyl_mat_set(matout,1,1,0.408248290463863); 
 }
 
-void fem_poisson_nodtomod_1x_ser_p2(struct gkyl_mat *matout) 
+GKYL_CU_DH void fem_poisson_nodtomod_1x_ser_p2(struct gkyl_mat *matout) 
 { 
   // matout: nodal to modal matrix.
 
@@ -83,7 +83,7 @@ void fem_poisson_nodtomod_1x_ser_p2(struct gkyl_mat *matout)
   gkyl_mat_set(matout,2,2,0.210818510677892); 
 }
 
-void fem_poisson_stiff_2x_ser_p1(const double *dx, struct gkyl_mat *matout) 
+GKYL_CU_DH void fem_poisson_stiff_2x_ser_p1(const double *dx, struct gkyl_mat *matout) 
 { 
   // dx: cell length in each direction.
   // matout: local stiffness matrix.
@@ -110,7 +110,7 @@ void fem_poisson_stiff_2x_ser_p1(const double *dx, struct gkyl_mat *matout)
   gkyl_mat_set(matout,3,3,0.3333333333333333*rdx2Sq[1]+0.3333333333333333*rdx2Sq[0]); 
 }
 
-void fem_poisson_stiff_2x_ser_p2(const double *dx, struct gkyl_mat *matout) 
+GKYL_CU_DH void fem_poisson_stiff_2x_ser_p2(const double *dx, struct gkyl_mat *matout) 
 { 
   // dx: cell length in each direction.
   // matout: local stiffness matrix.
@@ -185,7 +185,7 @@ void fem_poisson_stiff_2x_ser_p2(const double *dx, struct gkyl_mat *matout)
   gkyl_mat_set(matout,7,7,0.5777777777777777*rdx2Sq[1]+0.5777777777777777*rdx2Sq[0]); 
 }
 
-void fem_poisson_mass_times_modtonod_2x_ser_p1(struct gkyl_mat *matout) 
+GKYL_CU_DH void fem_poisson_mass_times_modtonod_2x_ser_p1(struct gkyl_mat *matout) 
 { 
   // matout: mass matrix times modal to nodal matrix.
 
@@ -207,7 +207,7 @@ void fem_poisson_mass_times_modtonod_2x_ser_p1(struct gkyl_mat *matout)
   gkyl_mat_set(matout,3,3,0.1666666666666667); 
 }
 
-void fem_poisson_mass_times_modtonod_2x_ser_p2(struct gkyl_mat *matout) 
+GKYL_CU_DH void fem_poisson_mass_times_modtonod_2x_ser_p2(struct gkyl_mat *matout) 
 { 
   // matout: mass matrix times modal to nodal matrix.
 
@@ -277,7 +277,7 @@ void fem_poisson_mass_times_modtonod_2x_ser_p2(struct gkyl_mat *matout)
   gkyl_mat_set(matout,7,7,0.08606629658238703); 
 }
 
-void fem_poisson_nodtomod_2x_ser_p1(struct gkyl_mat *matout) 
+GKYL_CU_DH void fem_poisson_nodtomod_2x_ser_p1(struct gkyl_mat *matout) 
 { 
   // matout: nodal to modal matrix.
 
@@ -299,7 +299,7 @@ void fem_poisson_nodtomod_2x_ser_p1(struct gkyl_mat *matout)
   gkyl_mat_set(matout,3,3,0.1666666666666667); 
 }
 
-void fem_poisson_nodtomod_2x_ser_p2(struct gkyl_mat *matout) 
+GKYL_CU_DH void fem_poisson_nodtomod_2x_ser_p2(struct gkyl_mat *matout) 
 { 
   // matout: nodal to modal matrix.
 
