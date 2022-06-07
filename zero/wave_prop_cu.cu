@@ -139,10 +139,11 @@ __global__ void do_gkyl_wave_prop_cu_dev_advance(
       int dir = wv->update_dirs[d];
 
       double dtdx = dt / wv->grid.dx[dir];
+      double dq[8]; // meqn
 
-      /****************************************/
-      /* SOLVE RIEMANN PROBLEMS ON FOUR EDGES */
-      /****************************************/
+      /******************************************************************/
+      /* SOLVE RIEMANN PROBLEMS ON 4 EDGES AND GET 1ST-ORDER CORRECTION */
+      /******************************************************************/
       for (int i = 0; i <= 3; ++i) {
         idxl[dir] = idxc[dir] + i - 2;
         idxr[dir] = idxc[dir] + i - 1; // left and right cells of the edge
@@ -175,14 +176,20 @@ __global__ void do_gkyl_wave_prop_cu_dev_advance(
           s[mw] *= lenr;
         }
 
-        wv->equation->qfluct_func(wv->equation, qinl, qinr, my_waves, s, amdq,
-                                  apdq);
+        if (i == 1 or i == 2) { // only compute amdq/apdq on left/right edges
+          wv->equation->qfluct_func(wv->equation, qinl, qinr, my_waves, s, amdq,
+                                    apdq);
 
-        double *qoutl = (double *)gkyl_array_fetch(qout, lidx);
-        double *qoutr = (double *)gkyl_array_fetch(qout, ridx);
+          for (int i = 0; i < meqn; ++i) {
+            if (i == 1) { // right-going waves from left edge
+              dq[i] -= dtdx / cg->kappa * apdq[i];
+            }
+            if (i == 2) { // left-going waves from right edge
+              dq[i] -= dtdx / cg->kappa * amdq[i];
+            }
+          }
+        }
 
-        calc_first_order_update(meqn, dtdx / cg->kappa, qoutl, qoutr, amdq,
-                                apdq);
         cfla = calc_cfla(mwave, cfla, dtdx / cg->kappa, s);
       }
 
@@ -192,9 +199,9 @@ __global__ void do_gkyl_wave_prop_cu_dev_advance(
         return;
       }
 
-      /****************************/
-      /* LIMIT WAVES ON TWO EDGES */
-      /****************************/
+      /*******************************************************/
+      /* RESCALE WAVES ON LEFT AND RIGHT EDGES OF TARGET CELL*/
+      /*******************************************************/
 
       limit_waves_cu(wv, 1, 2, waves, speeds);
 
@@ -229,13 +236,17 @@ __global__ void do_gkyl_wave_prop_cu_dev_advance(
         kappal = kappar;
       }
 
-      /*********************************************/
-      /* ADD 2ND-ORDER CORRECTION ONTO TARGET CELL */
-      /*********************************************/
+      /*******************************************************/
+      /* ADD 1ST- AND 2ND-ORDER CORRECTIONS ONTO TARGET CELL */
+      /*******************************************************/
       long linc = gkyl_range_idx(&update_range, idxc);
       double *qc = (double *)gkyl_array_fetch(qout, linc);
       cg = gkyl_wave_geom_get(wv->geom, idxc);
-      calc_second_order_update(meqn, dtdx / cg->kappa, qc, flux2, flux2 + meqn);
+      for (int i = 0; i < meqn; ++i) {
+        double *fl = flux2;
+        double *fr = flux2 + meqn;
+        qc[i] += dq[i] - dtdx / cg->kappa * (fr[i] - fl[i]);
+      }
     }
   }
 
