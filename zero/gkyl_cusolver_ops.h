@@ -17,7 +17,7 @@ typedef struct gkyl_cusolver_prob gkyl_cusolver_prob;
 /**
  * Create a new cuSolver Ax=B problem.
  */
-struct gkyl_cusolver_prob* gkyl_cusolver_prob_new(const int mrow, const int ncol, const int nprob, bool use_cusolverrf);
+struct gkyl_cusolver_prob* gkyl_cusolver_prob_new(const int mrow, const int ncol, const int nprob);
 
 /**
  * Initialize cuSolver matrix A in Ax=B problem from a list of triples.
@@ -25,7 +25,7 @@ struct gkyl_cusolver_prob* gkyl_cusolver_prob_new(const int mrow, const int ncol
  * @param prob cuSolver struct holding arrays used in problem.
  * @param tri coordinates & values of non-zero entries in A matrix (triplets).
  */
-void gkyl_cusolver_amat_from_triples(gkyl_cusolver_prob *prob, gkyl_mat_triples *tri, bool use_cusolverrf);
+void gkyl_cusolver_amat_from_triples(gkyl_cusolver_prob *prob, gkyl_mat_triples *tri);
 
 /**
  * Method to print the matrix A to screen.
