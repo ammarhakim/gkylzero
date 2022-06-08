@@ -219,6 +219,12 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
       for (int k=0; k<vnum; k++) up->bcvals[d*2*3+voff+3+k] = bcs.lo_value[d].v[k];
     }
   }
+#ifdef GKYL_HAVE_CUDA
+  if(up->use_gpu) {
+    up->bcvals_cu = (double *) gkyl_cu_malloc(sizeof(double[POISSON_MAX_DIM*3*2]));
+    gkyl_cu_memcpy(up->bcvals_cu, up->bcvals, sizeof(double[POISSON_MAX_DIM*3*2]), GKYL_CU_MEMCPY_H2D);
+  }
+#endif
 
   // Compute the number of local and global nodes.
   up->numnodes_local = up->num_basis;
@@ -235,10 +241,6 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   local_nodtomod(up->ndim, up->poly_order, basis.b_type, up->local_nodtomod);
 
   up->brhs = gkyl_array_new(GKYL_DOUBLE, 1, up->numnodes_global); // Global right side vector.
-#ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu) 
-    up->brhs_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, up->numnodes_global); // Global right side vector.
-#endif
 
   // Select local-to-global mapping kernels:
   choose_local2global_kernels(&basis, up->isdirperiodic, up->kernels->l2g);
@@ -261,8 +263,9 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) 
     up->prob_cu = gkyl_cusolver_prob_new(up->numnodes_global, up->numnodes_global, 1);
+  else
 #endif
-  up->prob = gkyl_superlu_prob_new(up->numnodes_global, up->numnodes_global, 1);
+    up->prob = gkyl_superlu_prob_new(up->numnodes_global, up->numnodes_global, 1);
 
   // Assign non-zero elements in A.
   gkyl_mat_triples *tri = gkyl_mat_triples_new(up->numnodes_global, up->numnodes_global);
@@ -286,10 +289,12 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     gkyl_cusolver_amat_from_triples(up->prob_cu, tri);
-    gkyl_mat_triples_set_colmaj_order(tri);
+  } else {
+    gkyl_superlu_amat_from_triples(up->prob, tri);
   }
-#endif
+#else
   gkyl_superlu_amat_from_triples(up->prob, tri);
+#endif
 
   gkyl_mat_triples_release(tri);
 
@@ -311,8 +316,6 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     assert(gkyl_array_is_cu_dev(rhsin));
-
-    gkyl_array_clear(up->brhs_cu, 0.0);
 
     gkyl_fem_poisson_set_rhs_cu(up, rhsin);
     return;
@@ -375,18 +378,23 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout) {
 
 void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
 {
+  if (up->isdomperiodic) gkyl_array_release(up->rhs_cellavg);
 #ifdef GKYL_HAVE_CUDA
   gkyl_cu_free(up->kernels_cu);
   if (up->use_gpu) {
     gkyl_cu_free(up->globalidx_cu);
-    gkyl_array_release(up->brhs_cu);
+    gkyl_cu_free(up->bcvals_cu);
+    gkyl_cusolver_prob_release(up->prob_cu);
+  } else {
+    gkyl_superlu_prob_release(up->prob);
   }
+#else
+  gkyl_superlu_prob_release(up->prob);
 #endif
-  if (up->isdomperiodic) gkyl_array_release(up->rhs_cellavg);
+
   gkyl_mat_release(up->local_stiff);
   gkyl_mat_release(up->local_mass_modtonod);
   gkyl_mat_release(up->local_nodtomod);
-  gkyl_superlu_prob_release(up->prob);
   gkyl_free(up->globalidx);
   gkyl_free(up->brhs);
   gkyl_free(up->kernels);

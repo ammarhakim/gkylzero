@@ -219,7 +219,7 @@ gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
 {
   double *rhs_cu = gkyl_cusolver_get_rhs_ptr(up->prob_cu, 0);
   gkyl_cu_memset(rhs_cu, 0, sizeof(double)*up->numnodes_global);
-  gkyl_fem_poisson_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(rhs_cu, rhsin->on_dev, up->solve_range, up->globalidx_cu, up->bcvals, up->kernels_cu); 
+  gkyl_fem_poisson_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(rhs_cu, rhsin->on_dev, up->solve_range, up->globalidx_cu, up->bcvals_cu, up->kernels_cu); 
 }	
 
 void

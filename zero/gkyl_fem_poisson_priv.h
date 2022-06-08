@@ -399,6 +399,7 @@ struct gkyl_fem_poisson {
   double rhs_avg[1], mavgfac;
 
   double bcvals[POISSON_MAX_DIM*2*3]; // BC values, bc[0]*phi+bc[1]*d(phi)/dx=phi[3] at each boundary.
+  double* bcvals_cu; // BC values, bc[0]*phi+bc[1]*d(phi)/dx=phi[3] at each boundary.
 
   struct gkyl_range local_range, local_range_ext;
   struct gkyl_range solve_range, solve_range_ext;
