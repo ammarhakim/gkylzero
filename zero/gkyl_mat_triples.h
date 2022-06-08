@@ -26,9 +26,10 @@ typedef struct gkyl_mat_triples_iter gkyl_mat_triples_iter;
 gkyl_mat_triples* gkyl_mat_triples_new(size_t nr, size_t nc);
 
 /*
- * Set row-major ordering for triples
+ * Set row-major/col-major ordering for triples.
  */
 void gkyl_mat_triples_set_rowmaj_order(gkyl_mat_triples *tri);
+void gkyl_mat_triples_set_colmaj_order(gkyl_mat_triples *tri);
 
 bool gkyl_mat_triples_is_rowmaj(gkyl_mat_triples *tri);
 bool gkyl_mat_triples_is_colmaj(gkyl_mat_triples *tri);

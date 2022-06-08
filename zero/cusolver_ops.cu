@@ -56,7 +56,8 @@ gkyl_cusolver_prob_new(const int mrow, const int ncol, const int nprob)
   // create solver
   cusolverSpCreate(&prob->cusolverH);
 
-  cudaStreamCreateWithFlags(&prob->stream, cudaStreamNonBlocking);
+  cudaStreamCreate(&prob->stream); // this stream will block w.r.t. default stream
+  //cudaStreamCreateWithFlags(&prob->stream, cudaStreamNonBlocking); // non-blocking w.r.t. default stream
   cusolverSpSetStream(prob->cusolverH, prob->stream);
 
   // create matrix A
@@ -154,22 +155,28 @@ gkyl_cusolver_solve(gkyl_cusolver_prob *prob)
 }
 
 void
-gkyl_cusolver_finish_host(gkyl_cusolver_prob *prob)
+gkyl_cusolver_sync(gkyl_cusolver_prob *prob)
 {
   cudaStreamSynchronize(prob->stream);
+}
+
+void
+gkyl_cusolver_finish_host(gkyl_cusolver_prob *prob)
+{
+  //cudaStreamSynchronize(prob->stream); // not needed when using blocking stream
   gkyl_cu_memcpy(prob->x, prob->x_cu, sizeof(double)*prob->mrow*prob->nrhs, GKYL_CU_MEMCPY_D2H);
 }
 
 double*
 gkyl_cusolver_get_rhs_ptr(gkyl_cusolver_prob *prob, const long loc)
 {
-  return &prob->rhs_cu[loc];
+  return prob->rhs_cu+loc;
 }
 
 double*
 gkyl_cusolver_get_sol_ptr(gkyl_cusolver_prob *prob, const long loc)
 {
-  return &prob->x_cu[loc];
+  return prob->x_cu+loc;
 }
 
 double

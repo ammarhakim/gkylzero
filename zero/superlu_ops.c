@@ -18,6 +18,7 @@ struct gkyl_superlu_prob {
   SuperLUStat_t stat;
   trans_t trans;
   GlobalLU_t Glu;
+  bool assigned_rhs;
 };
 
 gkyl_superlu_prob*
@@ -41,6 +42,8 @@ gkyl_superlu_prob_new(const int mrow, const int ncol, const int nprob)
   StatInit(&prob->stat);
 
   prob->trans = NOTRANS;
+
+  prob->assigned_rhs = false;
 
   return prob;
 }
@@ -141,6 +144,7 @@ gkyl_superlu_brhs_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *tri)
   // Create RHS matrix B. See SuperLU manual for definitions.
   dCreate_Dense_Matrix(&prob->B, prob->mrow, prob->nrhs, prob->rhs, prob->mrow,
     SLU_DN, SLU_D, SLU_GE);
+  prob->assigned_rhs = true;
 }
 
 void
@@ -153,6 +157,7 @@ gkyl_superlu_brhs_from_array(gkyl_superlu_prob *prob, const double *bin)
   // Create RHS matrix B. See SuperLU manual for definitions.
   dCreate_Dense_Matrix(&prob->B, prob->mrow, prob->nrhs, prob->rhs, prob->mrow,
     SLU_DN, SLU_D, SLU_GE);
+  prob->assigned_rhs = true;
 }
 
 void
@@ -193,9 +198,11 @@ gkyl_superlu_prob_release(gkyl_superlu_prob *prob)
   SUPERLU_FREE (prob->perm_r);
   SUPERLU_FREE (prob->perm_c);
   Destroy_CompCol_Matrix(&prob->A);
-  Destroy_SuperMatrix_Store(&prob->B);
-  Destroy_SuperNode_Matrix(&prob->L);
-  Destroy_CompCol_Matrix(&prob->U);
+  if (prob->assigned_rhs) Destroy_SuperMatrix_Store(&prob->B);
+  if (prob->options.Fact==FACTORED) {
+    Destroy_SuperNode_Matrix(&prob->L);
+    Destroy_CompCol_Matrix(&prob->U);
+  }
   StatFree(&prob->stat);
   gkyl_free(prob);
 }

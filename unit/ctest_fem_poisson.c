@@ -331,14 +331,17 @@ test_1x_gpu(int poly_order, const int *cells, struct gkyl_poisson_bc bcs)
   gkyl_array_copy(rho_cu, rho);
 
   // FEM poisson solver.
-  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, bcs, epsilon_0, NULL, true);
+  gkyl_fem_poisson *poisson_cu = gkyl_fem_poisson_new(&grid, basis, bcs, epsilon_0, NULL, true);
 
   // Set the RHS source.
-  gkyl_fem_poisson_set_rhs(poisson, rho_cu);
+  gkyl_fem_poisson_set_rhs(poisson_cu, rho_cu);
 
   // Solve the problem.
-  gkyl_fem_poisson_solve(poisson, phi_cu);
+  gkyl_fem_poisson_solve(poisson_cu, phi_cu);
   gkyl_array_copy(phi, phi_cu);
+
+  cudaDeviceSynchronize();
+
   for (int d=0; d<dim; d++)
     if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, phi, d, skin_ghost);
   gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_poisson_1x_phi_1.gkyl");
@@ -402,8 +405,11 @@ test_1x_gpu(int poly_order, const int *cells, struct gkyl_poisson_bc bcs)
         int idx0[] = {k+1};
         linidx = gkyl_range_idx(&localRange, idx0);
         phi_p  = gkyl_array_cfetch(phi, linidx);
-        for (int m=0; m<basis.num_basis; m++)
+        for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
+            TEST_MSG("Expected: %.13e in cell (%d)", sol[k*basis.num_basis+m], k);
+            TEST_MSG("Produced: %.13e", phi_p[m]);
+	}
       }
     } else {
     }
@@ -456,11 +462,13 @@ test_1x_gpu(int poly_order, const int *cells, struct gkyl_poisson_bc bcs)
     }
   }
 
-  gkyl_fem_poisson_release(poisson);
   gkyl_proj_on_basis_release(projob);
   gkyl_array_release(rho);
   gkyl_array_release(phi);
+  gkyl_array_release(rho_cu);
+  gkyl_array_release(phi_cu);
   gkyl_array_release(perbuff);
+  gkyl_fem_poisson_release(poisson_cu);
 }
 
 void
@@ -1373,7 +1381,7 @@ void test_1x_p1_dirichletx() {
   bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
   bc_tv.lo_value[0].v[0] = 0.;
   bc_tv.up_value[0].v[0] = 0.;
-  test_1x(1, &cells[0], bc_tv);
+  test_1x_gpu(1, &cells[0], bc_tv);
 }
 
 void test_1x_p2_periodicx() {
