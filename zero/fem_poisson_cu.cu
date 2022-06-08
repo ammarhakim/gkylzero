@@ -46,31 +46,6 @@ fem_poisson_set_cu_ker_ptrs(struct gkyl_fem_poisson_kernels* kers, enum gkyl_bas
   int dim, int poly_order, const int *bckey)
 {
 
-//  // Set LHS stencil kernels.
-//  const lhsstencil_kern_bcx_list_1x *lhsstencil_1x_kernels;
-//  const lhsstencil_kern_bcx_list_2x *lhsstencil_2x_kernels;
-//
-//  switch (b_type) {
-//    case GKYL_BASIS_MODAL_SERENDIPITY:
-//        lhsstencil_1x_kernels = ser_lhsstencil_list_1x;
-//        lhsstencil_2x_kernels = ser_lhsstencil_list_2x;
-//      break;
-////    case GKYL_BASIS_MODAL_TENSOR:
-////      break;
-//    default:
-//      assert(false);
-//  }
-//
-//  for (int k=0; k<(int)(pow(3,dim)+0.5); k++) {
-//    if (dim == 1) {
-//      kers->lhsker[k] = CK1(lhsstencil_1x_kernels, poly_order, k, bckey[0]);
-//    } else if (dim == 2) {
-//      kers->lhsker[k] = CK2(lhsstencil_2x_kernels, poly_order, k, bckey[0], bckey[1]);
-////  } else if (dim == 3) {
-////    kers->lhsker[k] = CK3(lhsstencil_3x_kernels, poly_order, k, bckey[0], bckey[1], bckey[2]);
-//    }
-//  }
-
   // Set RHS stencil kernels.
   const srcstencil_kern_bcx_list_1x *srcstencil_1x_kernels;
   const srcstencil_kern_bcx_list_2x *srcstencil_2x_kernels;
@@ -144,11 +119,12 @@ choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_poisson_bc b
 }
 
 __global__ void
-gkyl_fem_poisson_set_rhs_kernel(struct gkyl_array *rhs_global, struct gkyl_array *rhs_local, struct gkyl_range range, long *globalidx, double *bcvals, struct gkyl_fem_poisson_kernels *kers)
+gkyl_fem_poisson_set_rhs_kernel(double *rhs_global, struct gkyl_array *rhs_local, struct gkyl_range range, double *bcvals, struct gkyl_fem_poisson_kernels *kers)
 {
   int idx[GKYL_MAX_DIM];
   int idx0[GKYL_MAX_DIM];
   int num_cells[POISSON_MAX_DIM];
+  long globalidx[32];
   for (int d=0; d<POISSON_MAX_DIM; d++) num_cells[d] = range.upper[d]-range.lower[d]+1;
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
@@ -165,7 +141,6 @@ gkyl_fem_poisson_set_rhs_kernel(struct gkyl_array *rhs_global, struct gkyl_array
     long start = gkyl_range_idx(&range, idx);
     
     const double *local_d = (const double*) gkyl_array_cfetch(rhs_local, start);
-    double *global_d = (double*) gkyl_array_cfetch(rhs_global, 0);
 
     int keri = idx_to_inup_ker(range.ndim, num_cells, idx);
 
@@ -176,22 +151,62 @@ gkyl_fem_poisson_set_rhs_kernel(struct gkyl_array *rhs_global, struct gkyl_array
     // Apply the RHS source stencil. It's mostly the mass matrix times a
     // modal-to-nodal operator times the source, modified by BCs in skin cells.
     keri = idx_to_inloup_ker(range.ndim, num_cells, idx);
-    kers->srcker[keri](local_d, bcvals, globalidx, global_d);
+    kers->srcker[keri](local_d, bcvals, globalidx, rhs_global);
+  }
+}
+
+__global__ void
+gkyl_fem_poisson_get_sol_kernel(struct gkyl_array *x_local, const double *x_global, struct gkyl_range range, struct gkyl_fem_poisson_kernels *kers)
+{
+  int idx[GKYL_MAX_DIM];
+  int idx0[GKYL_MAX_DIM];
+  int num_cells[POISSON_MAX_DIM];
+  long globalidx[32];
+  for (int d=0; d<POISSON_MAX_DIM; d++) num_cells[d] = range.upper[d]-range.lower[d]+1;
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&range, linc1, idx);
+    
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long start = gkyl_range_idx(&range, idx);
+    
+    double *local_d = (double*) gkyl_array_cfetch(x_local, start);
+
+    int keri = idx_to_inup_ker(range.ndim, num_cells, idx);
+
+    for (size_t d=0; d<range.ndim; d++) idx0[d] = idx[d]-1;
+
+    kers->l2g[keri](num_cells, idx0, globalidx);
+
+    // Apply the RHS source stencil. It's mostly the mass matrix times a
+    // modal-to-nodal operator times the source, modified by BCs in skin cells.
+    kers->solker(x_global, globalidx, local_d);
   }
 }
 
 void 
 gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
 {
-  gkyl_fem_poisson_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(up->brhs_cu->on_dev, rhsin->on_dev, up->solve_range, up->globalidx_cu, up->bcvals, up->kernels_cu); 
+  double *rhs_cu = gkyl_cusolver_get_rhs_ptr(up->prob_cu, 0);
+  gkyl_cu_memset(rhs_cu, 0, sizeof(double)*up->numnodes_global);
+  gkyl_fem_poisson_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(rhs_cu, rhsin->on_dev, up->solve_range, up->bcvals_cu, up->kernels_cu); 
 }	
 
-//void
-//gkyl_fem_poisson_solve_cu(gkyl_fem_poisson *up, struct gkyl_array *phiin)
-//{
-//  // do linear solve with cusolver
-//  gkyl_cusolver_solve(up->prob_cu);
-//
-//  gkyl_fem_poisson_get_sol_kernel<<<dG, dB>>>(up->rhs, rhsin->on_dev, &up->solve_range, up->globalidx_cu, up->bcvals); 
-//}
+void
+gkyl_fem_poisson_solve_cu(gkyl_fem_poisson *up, struct gkyl_array *phiout)
+{
+  // do linear solve with cusolver
+  gkyl_cusolver_solve(up->prob_cu);
+
+  double *x_cu = gkyl_cusolver_get_sol_ptr(up->prob_cu, 0);
+
+  gkyl_fem_poisson_get_sol_kernel<<<phiout->nblocks, phiout->nthreads>>>(phiout->on_dev, x_cu, up->solve_range, up->kernels_cu); 
+}
 

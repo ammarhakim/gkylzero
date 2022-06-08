@@ -1,10 +1,56 @@
 #include <assert.h>
 
-#include <gkyl_util.h>
+#include <gkyl_alloc.h>
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_bin_ops_priv.h>
 #include <gkyl_mat.h>
+#include <gkyl_util.h>
+
+gkyl_dg_bin_op_mem*
+gkyl_dg_bin_op_mem_new(size_t nbatch, size_t neqn)
+{
+  struct gkyl_dg_bin_op_mem *mem = gkyl_malloc(sizeof(struct gkyl_dg_bin_op_mem));
+
+  mem->on_gpu = false;
+  mem->batch_sz = nbatch;
+  mem->ncols = mem->nrows = neqn;
+  
+  mem->As = gkyl_nmat_new(nbatch, neqn, neqn);
+  mem->xs = gkyl_nmat_new(nbatch, neqn, 1);
+  mem->lu_mem = gkyl_nmat_linsolve_lu_new(mem->As->num, mem->As->nr);
+
+  return mem;
+}
+
+gkyl_dg_bin_op_mem*
+gkyl_dg_bin_op_mem_cu_dev_new(size_t nbatch, size_t neqn)
+{
+  struct gkyl_dg_bin_op_mem *mem = gkyl_malloc(sizeof(struct gkyl_dg_bin_op_mem));
+
+  mem->on_gpu = false;
+  mem->batch_sz = nbatch;
+  mem->ncols = mem->nrows = neqn;
+  
+  mem->As = gkyl_nmat_cu_dev_new(nbatch, neqn, neqn);
+  mem->xs = gkyl_nmat_cu_dev_new(nbatch, neqn, 1);
+  mem->lu_mem = gkyl_nmat_linsolve_lu_cu_dev_new(mem->As->num, mem->As->nr);
+
+  return mem;
+}
+
+void
+gkyl_dg_bin_op_mem_release(gkyl_dg_bin_op_mem *mem)
+{
+  gkyl_nmat_release(mem->As);
+  gkyl_nmat_release(mem->xs);
+  gkyl_nmat_linsolve_lu_release(mem->lu_mem);
+  
+  if (mem->on_gpu)
+    gkyl_cu_free(mem);
+  else
+    gkyl_free(mem);
+}
 
 // multiplication
 void
@@ -66,14 +112,14 @@ void gkyl_dg_mul_op_range(struct gkyl_basis basis,
 
 // division
 void
-gkyl_dg_div_op(struct gkyl_basis basis,
+gkyl_dg_div_op(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
-    return gkyl_dg_div_op_cu(basis, c_oop, out, c_lop, lop, c_rop, rop);
+    return gkyl_dg_div_op_cu(mem, basis, c_oop, out, c_lop, lop, c_rop, rop);
   }
 #endif
 
@@ -82,9 +128,8 @@ gkyl_dg_div_op(struct gkyl_basis basis,
   int poly_order = basis.poly_order;
   div_set_op_t div_set_op = choose_ser_div_set_kern(ndim, poly_order);
 
-  // allocate memory for use in kernels
-  struct gkyl_nmat *As = gkyl_nmat_new(out->size, num_basis, num_basis);
-  struct gkyl_nmat *xs = gkyl_nmat_new(out->size, num_basis, 1);
+  struct gkyl_nmat *As = mem->As;
+  struct gkyl_nmat *xs = mem->xs;
 
   for (size_t i=0; i<out->size; ++i) {
     
@@ -97,26 +142,23 @@ gkyl_dg_div_op(struct gkyl_basis basis,
     div_set_op(&A, &x, lop_d+c_lop*num_basis, rop_d+c_rop*num_basis);
   }
 
-  bool status = gkyl_nmat_linsolve_lu(As, xs);
+  bool status = gkyl_nmat_linsolve_lu_pa(mem->lu_mem, As, xs);
 
   for (size_t i=0; i<out->size; ++i) {
     double *out_d = gkyl_array_fetch(out, i);
     struct gkyl_mat x = gkyl_nmat_get(xs, i);
     binop_div_copy_sol(&x, out_d+c_oop*num_basis);
   }
-
-  gkyl_nmat_release(As);
-  gkyl_nmat_release(xs);
 }
 
-void gkyl_dg_div_op_range(struct gkyl_basis basis,
+void gkyl_dg_div_op_range(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop, struct gkyl_range range)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
-    return gkyl_dg_div_op_range_cu(basis, c_oop, out, c_lop, lop, c_rop, rop, range);
+    return gkyl_dg_div_op_range_cu(mem, basis, c_oop, out, c_lop, lop, c_rop, rop, range);
   }
 #endif
 
@@ -126,8 +168,8 @@ void gkyl_dg_div_op_range(struct gkyl_basis basis,
   div_set_op_t div_set_op = choose_ser_div_set_kern(ndim, poly_order);
 
   // allocate memory for use in kernels
-  struct gkyl_nmat *As = gkyl_nmat_new(range.volume, num_basis, num_basis);
-  struct gkyl_nmat *xs = gkyl_nmat_new(range.volume, num_basis, 1);
+  struct gkyl_nmat *As = mem->As;
+  struct gkyl_nmat *xs = mem->xs;
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -147,7 +189,7 @@ void gkyl_dg_div_op_range(struct gkyl_basis basis,
     count += 1;
   }
 
-  bool status = gkyl_nmat_linsolve_lu(As, xs);
+  bool status = gkyl_nmat_linsolve_lu_pa(mem->lu_mem, As, xs);
 
   gkyl_range_iter_init(&iter, &range);
   count = 0;
@@ -160,9 +202,6 @@ void gkyl_dg_div_op_range(struct gkyl_basis basis,
 
     count += 1;
   }
-
-  gkyl_nmat_release(As);
-  gkyl_nmat_release(xs);
 }
 
 void

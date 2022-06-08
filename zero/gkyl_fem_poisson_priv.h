@@ -396,9 +396,13 @@ struct gkyl_fem_poisson {
 
   bool isdomperiodic; // =true if all directions are periodic.
   struct gkyl_array *rhs_cellavg;
-  double rhs_avg[1], mavgfac;
+  double *rhs_avg, mavgfac;
+#ifdef GKYL_HAVE_CUDA
+  double *rhs_avg_cu;
+#endif
 
   double bcvals[POISSON_MAX_DIM*2*3]; // BC values, bc[0]*phi+bc[1]*d(phi)/dx=phi[3] at each boundary.
+  double* bcvals_cu; // BC values, bc[0]*phi+bc[1]*d(phi)/dx=phi[3] at each boundary.
 
   struct gkyl_range local_range, local_range_ext;
   struct gkyl_range solve_range, solve_range_ext;

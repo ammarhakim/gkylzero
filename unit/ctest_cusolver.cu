@@ -254,8 +254,6 @@ void test_cusolver_rf()
   cusparseSetMatIndexBase(descrA, CUSPARSE_INDEX_BASE_ZERO);
   checkCuda(cudaGetLastError());
 
-  double *d_b = (double *) gkyl_cu_malloc(sizeof(double)*rowsA); // A copy of h_b.
-
   // Allocate rhs vector (host only for now).
   double h_b[] = {1.0, 1.0, 1.0, 1.0, 1.0};
 
@@ -476,7 +474,6 @@ void test_cusolver_rf()
   gkyl_cu_free(d_csrRowIndA);
   gkyl_cu_free(d_csrColIndA);
   gkyl_cu_free(d_x);
-  gkyl_cu_free(d_b);
   gkyl_cu_free(d_P);
   gkyl_cu_free(d_Q);
   gkyl_cu_free(d_T);
