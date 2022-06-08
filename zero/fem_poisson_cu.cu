@@ -149,7 +149,7 @@ gkyl_fem_poisson_set_rhs_kernel(double *rhs_global, struct gkyl_array *rhs_local
   int idx[GKYL_MAX_DIM];
   int idx0[GKYL_MAX_DIM];
   int num_cells[POISSON_MAX_DIM];
-  long globalidx[96];
+  long globalidx[32];
   for (int d=0; d<POISSON_MAX_DIM; d++) num_cells[d] = range.upper[d]-range.lower[d]+1;
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
@@ -186,7 +186,7 @@ gkyl_fem_poisson_get_sol_kernel(struct gkyl_array *x_local, const double *x_glob
   int idx[GKYL_MAX_DIM];
   int idx0[GKYL_MAX_DIM];
   int num_cells[POISSON_MAX_DIM];
-  long globalidx[96];
+  long globalidx[32];
   for (int d=0; d<POISSON_MAX_DIM; d++) num_cells[d] = range.upper[d]-range.lower[d]+1;
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
