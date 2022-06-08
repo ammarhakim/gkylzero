@@ -268,7 +268,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   // matrix times epsilon.
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) 
-    up->prob_cu = gkyl_cusolver_prob_new(up->numnodes_global, up->numnodes_global, 1, true);
+    up->prob_cu = gkyl_cusolver_prob_new(up->numnodes_global, up->numnodes_global, 1);
   else
     up->prob = gkyl_superlu_prob_new(up->numnodes_global, up->numnodes_global, 1);
 #else
@@ -295,15 +295,13 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   }
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    gkyl_cusolver_amat_from_triples(up->prob_cu, tri, true);
+    gkyl_cusolver_amat_from_triples(up->prob_cu, tri);
   } else {
     gkyl_superlu_amat_from_triples(up->prob, tri);
   }
 #else
   gkyl_superlu_amat_from_triples(up->prob, tri);
 #endif
-
-  // csr_from_amat
 
   gkyl_mat_triples_release(tri);
 

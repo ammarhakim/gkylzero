@@ -164,10 +164,10 @@ void test_cusolver_ops()
   gkyl_mat_triples_insert(tri, 4, 4, r);
 
   // Create the cuSolver linear problem setup.
-  gkyl_cusolver_prob *prob = gkyl_cusolver_prob_new(m, n, nrhs, false);
+  gkyl_cusolver_prob *prob = gkyl_cusolver_prob_new(m, n, nrhs);
 
   // Allocate the A matrix from triples.
-  gkyl_cusolver_amat_from_triples(prob, tri, false);
+  gkyl_cusolver_amat_from_triples(prob, tri);
   gkyl_mat_triples_release(tri);
 
   // Create right-hand side matrix B = transpose([1,1,1,1,1]).
