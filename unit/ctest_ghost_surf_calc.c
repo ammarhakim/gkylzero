@@ -63,7 +63,10 @@ test_vlasov_1x2v_p2_(bool use_gpu)
   int zero_flux_flags[GKYL_MAX_DIM] = {0, 1, 1};
 
   gkyl_ghost_surf_calc *slvr;
-  slvr = gkyl_ghost_surf_calc_new(&phaseGrid, eqn);
+  if (use_gpu)
+    slvr = gkyl_ghost_surf_calc_cu_dev_new(&phaseGrid, eqn);
+  else
+    slvr = gkyl_ghost_surf_calc_new(&phaseGrid, eqn);
 
   // initialize arrays
   struct gkyl_array *fin, *rhs, *cflrate, *qmem;
@@ -224,7 +227,10 @@ test_vlasov_2x3v_p1_(bool use_gpu)
   int zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 1, 1, 1};
 
   gkyl_ghost_surf_calc *slvr;
-  slvr = gkyl_ghost_surf_calc_new(&phaseGrid, eqn);
+  if (use_gpu)
+    slvr = gkyl_ghost_surf_calc_cu_dev_new(&phaseGrid, eqn);
+  else
+    slvr = gkyl_ghost_surf_calc_new(&phaseGrid, eqn);
 
   // initialize arrays
   struct gkyl_array *fin, *rhs, *cflrate, *qmem;
