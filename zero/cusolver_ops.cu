@@ -174,10 +174,18 @@ gkyl_cusolver_amat_from_triples(gkyl_cusolver_prob *prob, gkyl_mat_triples *tri,
     // reorder to reduce zero fill-in
     // Qreorder = symrcm(A) or Qreroder = symamd(A)
     int *h_Qreorder = (int*)gkyl_malloc(sizeof(int)*prob->ncol);
-    cusolverSpXcsrsymrcmHost(prob->cusolverSpH, prob->mrow, prob->nnz,
-      prob->A, csrrowptrA, csrcolindA, h_Qreorder);
-//    cusolverSpXcsrsymamdHost(prob->cusolverSpH, prob->mrow, prob->nnz,
+    // RCM reordering -- seems much slower than others!
+//    cusolverSpXcsrsymrcmHost(prob->cusolverSpH, prob->mrow, prob->nnz,
 //      prob->A, csrrowptrA, csrcolindA, h_Qreorder);
+    // AMD reordering
+    cusolverSpXcsrsymamdHost(prob->cusolverSpH, prob->mrow, prob->nnz,
+      prob->A, csrrowptrA, csrcolindA, h_Qreorder);
+    // MDQ reordering
+//    cusolverSpXcsrsymmdqHost(prob->cusolverSpH, prob->mrow, prob->nnz,
+//      prob->A, csrrowptrA, csrcolindA, h_Qreorder);
+    // METIS reordering
+//    cusolverSpXcsrmetisndHost(prob->cusolverSpH, prob->mrow, prob->nnz,
+//      prob->A, csrrowptrA, csrcolindA, NULL, h_Qreorder);
 
     // ............... Compute B = Q*A*Q^T ................... //
     int *h_csrRowIndB = (int*) gkyl_malloc(sizeof(int)*(prob->mrow+1));
