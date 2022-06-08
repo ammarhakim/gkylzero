@@ -54,20 +54,6 @@ skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
   }
 }
 
-// Euler perfectly reflecting wall
-static void
-bc_euler_wall(double t, int nc, const double *skin, double *restrict ghost, void *ctx)
-{
-  // copy density and pressure
-  ghost[0] = skin[0];
-  ghost[4] = skin[4];
-
-  // zero-normal for momentum
-  ghost[1] = -skin[1];
-  ghost[2] = skin[2];
-  ghost[3] = skin[3];
-}
-
 struct gkyl_block_topo*
 create_block_topo()
 {
@@ -177,13 +163,13 @@ block_bc_updaters_init(struct block_data *bdata, const struct gkyl_block_connect
 
     // create BC updater in dir 'd' on lower edge
     if (conn->connections[d][0].edge == GKYL_PHYSICAL)
-      bdata->lower_bc[d] = gkyl_wv_apply_bc_new(
-        &bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost, bc_euler_wall, 0);
+      bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom,
+        d, GKYL_LOWER_EDGE, nghost, bdata->euler->wall_bc_func, 0);
 
     // create BC updater in dir 'd' on upper edge
     if (conn->connections[d][1].edge == GKYL_PHYSICAL)
-      bdata->upper_bc[d] = gkyl_wv_apply_bc_new(
-        &bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost, bc_euler_wall, 0);
+      bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom,
+        d, GKYL_UPPER_EDGE, nghost, bdata->euler->wall_bc_func, 0);
   }
 
   // create skin/ghost region

@@ -94,7 +94,10 @@ struct gkyl_basis {
  * @param poly_order Polynomial order.
  * @return Pointer to new basis function.
  */
-void gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim, int poly_order);
+void gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim,
+  int poly_order);
+void gkyl_cart_modal_serendip_cu_dev(struct gkyl_basis *basis, int ndim,
+  int poly_order);
 
 /**
  * Create new modal tensor-product basis function object.
@@ -104,7 +107,10 @@ void gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim, int poly_order
  * @param poly_order Polynomial order.
  * @return Pointer to new basis function.
  */
-void gkyl_cart_modal_tensor(struct gkyl_basis *basis, int ndim, int poly_order);
+void gkyl_cart_modal_tensor(struct gkyl_basis *basis, int ndim,
+  int poly_order);
+void gkyl_cart_modal_tensor_cu_dev(struct gkyl_basis *basis, int ndim,
+  int poly_order);
 
 /**
  * Create new hybrid basis for use in gyrokinetics p=1
@@ -117,3 +123,4 @@ void gkyl_cart_modal_tensor(struct gkyl_basis *basis, int ndim, int poly_order);
  * @return Pointer to new basis function.
  */
 void gkyl_cart_modal_gk_hybrid(struct gkyl_basis *basis, int ndim);
+void gkyl_cart_modal_gk_hybrid_cu_dev(struct gkyl_basis *basis, int ndim);

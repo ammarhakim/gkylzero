@@ -88,7 +88,15 @@ ifdef USING_NVCC
 # device code in C files, we need to force compile the kernel code
 # using the -x cu flag
 
+$(BUILD_DIR)/kernels/advection/%.c.o : kernels/advection/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
 $(BUILD_DIR)/kernels/bin_op/%.c.o : kernels/bin_op/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/kernels/dg_diffusion/%.c.o : kernels/dg_diffusion/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
@@ -179,7 +187,7 @@ ${BUILD_DIR}/unit/%: unit/%.c ${BUILD_DIR}/${G0STLIB} ${UNIT_CU_OBJS}
 
 # Run all unit tests
 check: ${UNITS}
-	$(foreach unit,${UNITS},$(unit);)
+	$(foreach unit,${UNITS},echo $(unit); $(unit) ;)
 
 install: all
 	$(MKDIR_P) ${PREFIX}/gkylzero/include
@@ -193,6 +201,8 @@ install: all
 	cp -f regression/rt_arg_parse.h ${PREFIX}/gkylzero/share/rt_arg_parse.h
 	cp -f regression/rt_twostream.c ${PREFIX}/gkylzero/share/rt_twostream.c
 	cp -f ${BUILD_DIR}/regression/rt_vlasov_kerntm ${PREFIX}/gkylzero/bin/
+	cp -f inf/Vlasov.lua ${PREFIX}/gkylzero/lib/
+	cp -f inf/Moments.lua ${PREFIX}/gkylzero/lib/
 
 clean:
 	rm -rf ${BUILD_DIR}

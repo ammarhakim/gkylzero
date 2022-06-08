@@ -29,6 +29,24 @@ static int cblas_trans_flags[] = {
   [GKYL_CONJ_TRANS] = CblasConjTrans
 };
 
+struct gkyl_nmat_mem {
+  bool on_gpu; // flag to indicate if we are on GPU
+
+  size_t num, nrows; // numer of RHSs and rows in matrix
+
+  // data needed in batched LU solves on host
+  long *ipiv_ho; // host-side pivot vector
+
+  // data needed in batched LU solves on device
+  int *ipiv_cu; // device-side pivot vector
+  int *infos_cu; // device-side info flags
+  int *infos_ho; // host-side info flags
+
+#ifdef GKYL_HAVE_CUDA
+  cublasHandle_t cuh; // cublas handle
+#endif  
+};
+
 /** Helper functions to determine sizes needed in BLAS/LAPACKE routines */
 struct mat_sizes { size_t nr, nc; };
 
@@ -230,43 +248,103 @@ gkyl_nmat_acquire(const struct gkyl_nmat *mat)
   return (struct gkyl_nmat*) mat;
 }
 
+gkyl_nmat_mem*
+gkyl_nmat_linsolve_lu_new(size_t num, size_t nrow)
+{
+  gkyl_nmat_mem *mem = gkyl_malloc(sizeof(*mem));
+
+  mem->on_gpu = false;
+  mem->num = num;
+  mem->nrows = nrow;
+  
+  mem->ipiv_ho = gkyl_malloc(sizeof(long[nrow]));
+
+#ifdef GKYL_HAVE_CUDA
+  mem->cuh = 0;
+#endif  
+
+  return mem;
+}
+
+gkyl_nmat_mem *
+gkyl_nmat_linsolve_lu_cu_dev_new(size_t num, size_t nrow)
+{
+  gkyl_nmat_mem *mem = gkyl_malloc(sizeof(*mem));
+
+  mem->on_gpu = true;
+  mem->num = num;
+  mem->nrows = nrow;
+  
+  mem->ipiv_cu = gkyl_cu_malloc(num*nrow*sizeof(int));
+  mem->infos_cu = gkyl_cu_malloc(num*sizeof(int));
+  mem->infos_ho = gkyl_malloc(num*sizeof(int));
+
+#ifdef GKYL_HAVE_CUDA
+  mem->cuh = 0;
+  cublasCreate_v2(&mem->cuh);
+#endif
+
+  return mem;
+}
+
+void
+gkyl_nmat_linsolve_lu_release(gkyl_nmat_mem *mem)
+{
+  if (mem->on_gpu) {
+    gkyl_cu_free(mem->ipiv_cu);
+    gkyl_cu_free(mem->infos_cu);
+    gkyl_free(mem->infos_ho);
+#ifdef GKYL_HAVE_CUDA
+    cublasDestroy(mem->cuh);
+#endif
+  }
+  else {
+    gkyl_free(mem->ipiv_ho);
+  }
+  
+  gkyl_free(mem);
+}
+
 static bool
-ho_nmat_linsolve_lu(struct gkyl_nmat *A, struct gkyl_nmat *x)
+ho_nmat_linsolve_lu(gkyl_nmat_mem *mem, struct gkyl_nmat *A, struct gkyl_nmat *x)
 {
   size_t num = A->num;
   assert( num <= x->num );
+  assert(mem->on_gpu == false);
+  assert(mem->num == A->num);
+  assert(mem->nrows == A->nr);
 
   bool status = true;
 
-  long *ipiv = gkyl_malloc(sizeof(long[A->nr]));
   for (size_t i=0; i<num; ++i) {
     struct gkyl_mat Ai = gkyl_nmat_get(A,i);
     struct gkyl_mat xi = gkyl_nmat_get(x,i);
-    status = gkyl_mat_linsolve_lu( &Ai, &xi, ipiv );
+    status = gkyl_mat_linsolve_lu( &Ai, &xi, mem->ipiv_ho );
     if (!status) break;
   }
-  gkyl_free(ipiv);
 
   return status;
 }
 
 static bool
-cu_nmat_linsolve_lu(struct gkyl_nmat *A, struct gkyl_nmat *x)
+cu_nmat_linsolve_lu(gkyl_nmat_mem *mem, struct gkyl_nmat *A, struct gkyl_nmat *x)
 {
 #ifdef GKYL_HAVE_CUDA
-  cublasHandle_t cuh = 0; cublasCreate_v2(&cuh);
-
+  assert(mem->on_gpu);
+  assert(mem->num == A->num);
+  assert(mem->nrows == A->nr);
+  
   bool status = true;
   size_t num = A->num, nr = A->nr, nrhs = x->nc;
   size_t lda = nr, ldb = nr;
   cublasStatus_t cu_stat;  
   
-  int *ipiv = gkyl_cu_malloc(num*nr*sizeof(int));
-  int *infos = gkyl_cu_malloc(num*sizeof(int));
-  int *infos_h = gkyl_malloc(num*sizeof(int));
+  int *ipiv = mem->ipiv_cu;
+  int *infos = mem->infos_cu;
+  int *infos_h = mem->infos_ho;
 
   // compute LU decomp
-  cu_stat = cublasDgetrfBatched(cuh, nr, A->mptr, lda, ipiv, infos, num);
+  cu_stat = cublasDgetrfBatched(mem->cuh, nr, A->mptr, lda, ipiv, infos, num);
   if (cu_stat != CUBLAS_STATUS_SUCCESS) {
     status = false;
     goto cleanup;
@@ -286,19 +364,14 @@ cu_nmat_linsolve_lu(struct gkyl_nmat *A, struct gkyl_nmat *x)
   // ugly cast below is needed due to signature of CUBLAS method
   // (CUBLAS sig is correct, though it is inconsistent with the LU
   // decomp sig)
-  cublasDgetrsBatched(cuh, CUBLAS_OP_N, nr, nrhs, (const double*const*) A->mptr,
+  cublasDgetrsBatched(mem->cuh, CUBLAS_OP_N, nr, nrhs, (const double*const*) A->mptr,
     lda, ipiv, x->mptr, ldb, &info, num);
   if (info != 0) {
     status = false;
     goto cleanup;
   }
-  
+
   cleanup:
-  gkyl_cu_free(ipiv);
-  gkyl_cu_free(infos);
-  gkyl_free(infos_h);
-  cublasDestroy_v2(cuh);
-  
   return status;
 
 #else  
@@ -309,13 +382,35 @@ cu_nmat_linsolve_lu(struct gkyl_nmat *A, struct gkyl_nmat *x)
 bool
 gkyl_nmat_linsolve_lu(struct gkyl_nmat *A, struct gkyl_nmat *x)
 {
+  bool status = false;
+  
+  if (!gkyl_nmat_is_cu_dev(A) && !gkyl_nmat_is_cu_dev(x)) {
+    gkyl_nmat_mem *mem = gkyl_nmat_linsolve_lu_new(A->num, A->nr);
+    status = ho_nmat_linsolve_lu(mem, A, x);
+    gkyl_nmat_linsolve_lu_release(mem);
+  }
+  
+  if (gkyl_nmat_is_cu_dev(A) && gkyl_nmat_is_cu_dev(x)) {
+    gkyl_nmat_mem *mem = gkyl_nmat_linsolve_lu_cu_dev_new(A->num, A->nr);
+    status = cu_nmat_linsolve_lu(mem, A, x);
+    gkyl_nmat_linsolve_lu_release(mem);
+  }
+  
+  return status;
+}
+
+bool
+gkyl_nmat_linsolve_lu_pa(gkyl_nmat_mem *mem, struct gkyl_nmat *A, struct gkyl_nmat *x)
+{
+  bool status = false;
+  
   if (!gkyl_nmat_is_cu_dev(A) && !gkyl_nmat_is_cu_dev(x))
-    return ho_nmat_linsolve_lu(A, x);
+    status = ho_nmat_linsolve_lu(mem, A, x);
   
   if (gkyl_nmat_is_cu_dev(A) && gkyl_nmat_is_cu_dev(x))
-    return cu_nmat_linsolve_lu(A, x);
+    status = cu_nmat_linsolve_lu(mem, A, x);
   
-  return false;
+  return status;  
 }
 
 void

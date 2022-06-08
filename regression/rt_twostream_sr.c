@@ -1,72 +1,75 @@
+#include <assert.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
 
-struct langmuir_ctx {
-  double charge; // charge
-  double mass; // mass
-  double vt; // thermal velocity
-  double Lx; // size of the box
-  double k0; // wave number
-  double perturb; // perturbation amplitude
+struct twostream_inp {
+  double tend;
+  double charge, mass; // for electrons
+  int conf_cells, vel_cells;
+  double vel_extents[2];
+};
+
+struct twostream_ctx {
+  double knumber; // wave-number
+  double T; // electron thermal velocity
+  double vdrift; // drift velocity
+  double perturbation;
 };
 
 static inline double sq(double x) { return x*x; }
 
-inline double
-maxwellian(double n, double v, double u, double vth)
-{
-  double v2 = (v - u)*(v - u);
-  return n/sqrt(2*M_PI*vth*vth)*exp(-v2/(2*vth*vth));
-}
-
 void
-evalDistFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalDistFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct langmuir_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
-  double k = app->k0, alpha = app->perturb;
-  fout[0] = (1 + alpha*cos(k*x))*maxwellian(1.0, v, 0.0, 1.0);
+  struct twostream_ctx *app = ctx;
+  double x = xn[0], p = xn[1];
+  double alpha = app->perturbation, k = app->knumber, T = app->T, vdrift = app->vdrift;
+  // modified Bessel function of the second kind evaluated for T = mc^2 (K_2(1))
+  //double K_2 = 1.6248388986351774828107073822838437146593935281628733843345054697;
+  // modified Bessel function of the second kind evaluated for T = 0.1 mc^2 (K_2(10))
+  //double K_2 = 0.0000215098170069327687306645644239671272492068461808732468335569;
+  // modified Bessel function of the second kind evaluated for T = 0.04 mc^2 (K_2(25))
+  double K_2 = 3.7467838080691090570137658745889511812329380156362352887017e-12;
+  // Lorentz factor for drift velocity
+  double gamma = 1.0/sqrt(1 - vdrift*vdrift);
+
+  double n = 1+alpha*cos(k*x);
+  double mc2_T = 1.0/T;
+
+  double fv = 0.5*n/(4*M_PI*K_2)*(exp(-mc2_T*gamma*(sqrt(1 + p*p) - vdrift*p)) + exp(-mc2_T*gamma*(sqrt(1 + p*p) + vdrift*p)));
+  fout[0] = (1+alpha*cos(k*x))*fv;
 }
 
 void
 evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct langmuir_ctx *app = ctx;
-
-  double k = app->k0, alpha = app->perturb;
+  struct twostream_ctx *app = ctx;
   double x = xn[0];
+  double alpha = app->perturbation, k = app->knumber;
+
   double E_x = -alpha*sin(k*x)/k;
-  
+
   fout[0] = E_x; fout[1] = 0.0, fout[2] = 0.0;
   fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
   fout[6] = 0.0; fout[7] = 0.0;
 }
 
-void
-evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+struct twostream_ctx
+create_default_ctx(void)
 {
-  struct langmuir_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
-  fout[0] = 0.1;
-}
-
-struct langmuir_ctx
-create_ctx(void)
-{
-  struct langmuir_ctx ctx = {
-    .mass = 1.0,
-    .charge = -1.0,
-    .vt = 1.0,
-    .Lx = M_PI/0.5,
-    .k0 = 0.5,
-    .perturb = 1e-4
+  return (struct twostream_ctx) {
+    .knumber = 0.02,
+    .T = 0.04,
+    .vdrift = 0.99,
+    .perturbation = 1.0e-4,
   };
-  return ctx;
 }
 
 int
@@ -78,40 +81,49 @@ main(int argc, char **argv)
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  struct langmuir_ctx ctx = create_ctx(); // context for init functions
+
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 128);  
+
+  struct twostream_ctx ctx;
+  
+  ctx = create_default_ctx(); // context for init functions
 
   // electrons
   struct gkyl_vlasov_species elc = {
     .name = "elc",
-    .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -6.0*ctx.vt},
-    .upper = { 6.0*ctx.vt}, 
-    .cells = { 32 },
+    .charge = -1.0,
+    .mass = 1.0,
+    .lower = { -32.0 },
+    .upper = { 32.0 }, 
+    .cells = { VX },
 
     .ctx = &ctx,
     .init = evalDistFunc,
-    .nu = evalNu,
-    .collision_id = GKYL_LBO_COLLISIONS,
-    .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "M2" },
+
+    .num_diag_moments = 2,
+    .diag_moments = { "M0", "M1i" },
   };
 
   // field
   struct gkyl_vlasov_field field = {
+    .field_id = GKYL_FIELD_SR_E_B,
     .epsilon0 = 1.0, .mu0 = 1.0,
+    .elcErrorSpeedFactor = 0.0,
+    .mgnErrorSpeedFactor = 0.0,
 
     .ctx = &ctx,
-    .init = evalFieldFunc
+    .init = evalFieldFunc,
   };
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "landau_damping_1x1v",
-
+    .name = "twostream_sr",
+    
     .cdim = 1, .vdim = 1,
-    .lower = { -ctx.Lx },
-    .upper = { ctx.Lx },
-    .cells = { 32 },
+    .lower = { -M_PI/ctx.knumber },
+    .upper = { M_PI/ctx.knumber },
+    .cells = { NX },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
@@ -124,12 +136,12 @@ main(int argc, char **argv)
 
     .use_gpu = app_args.use_gpu,
   };
-
+  
   // create app object
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 20.;
+  double tcurr = 0.0, tend = 500.0;
   double dt = tend-tcurr;
 
   // initialize simulation
@@ -145,7 +157,7 @@ main(int argc, char **argv)
     printf(" dt = %g\n", status.dt_actual);
     
     if (!status.success) {
-      printf("** Update method failed! Aborting simulation ....\n");
+      fprintf(stderr, "** Update method failed! Aborting simulation ....\n");
       break;
     }
     tcurr += status.dt_actual;
@@ -160,7 +172,7 @@ main(int argc, char **argv)
   // fetch simulation statistics
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
 
-  // simulation complete, free app
+  // simulation complete, free objects
   gkyl_vlasov_app_release(app);
 
   printf("\n");
@@ -170,10 +182,11 @@ main(int argc, char **argv)
   if (stat.nstage_2_fail > 0) {
     printf("Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
     printf("Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
-  }  
+  }
   printf("Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   printf("Species RHS calc took %g secs\n", stat.species_rhs_tm);
   printf("Field RHS calc took %g secs\n", stat.field_rhs_tm);
+  printf("Current evaluation and accumulate took %g secs\n", stat.current_tm);
   printf("Updates took %g secs\n", stat.total_tm);
   
   return 0;

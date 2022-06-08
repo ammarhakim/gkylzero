@@ -337,7 +337,7 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
   // bigger time-step; (Only way dt can reduce is if the update
   // fails. If the code comes here the update suceeded and so we
   // should not allow dt to reduce).
-  double dt_suggested = dt*cfl/cfla;
+  double dt_suggested = dt*cfl/fmax(cfla, DBL_MIN);
 
   return (struct gkyl_wave_prop_status) {
     .success = 1,

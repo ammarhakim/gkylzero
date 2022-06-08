@@ -10,6 +10,12 @@
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_array_reduce.h>
 
+bool
+gkyl_array_copy_func_is_cu_dev(const struct gkyl_array_copy_func *bc)
+{
+  return GKYL_IS_CU_ALLOC(bc->flags);
+}
+
 struct gkyl_array*
 gkyl_array_clear(struct gkyl_array* out, double val)
 {
@@ -87,6 +93,20 @@ gkyl_array_scale_by_cell(struct gkyl_array* out, const struct gkyl_array* a)
   for (size_t i=0; i<out->size; ++i)
     for (size_t c=0; c<out->ncomp; ++c)
       out_d[i*out->ncomp+c] = a_d[i]*out_d[i*out->ncomp+c];
+  return out;
+}
+
+struct gkyl_array*
+gkyl_array_shiftc0(struct gkyl_array* out, double a)
+{
+  assert(out->type == GKYL_DOUBLE);
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_shiftc0_cu(out, a); return out; }
+#endif
+
+  double *out_d = out->data;
+  for (size_t i=0; i<out->size; ++i)
+    out_d[i*out->ncomp] = a+out_d[i*out->ncomp];
   return out;
 }
 
@@ -383,22 +403,12 @@ gkyl_array_copy_from_buffer(struct gkyl_array *arr,
 #undef _F
 }
 
-static inline void*
-flat_fetch(void *data, size_t loc)
-{
-  return ((char*) data) + loc;
-}
-
 void
 gkyl_array_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
-  struct gkyl_range range, array_copy_func_t func, void *ctx)
+  struct gkyl_range range, struct gkyl_array_copy_func *cf)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(arr)) {
-    printf("gkyl_array_copy_to_buffer_fn not on GPUs yet!");
-    assert(false);
-    return;
-  }
+  if (gkyl_array_is_cu_dev(arr)) { gkyl_array_copy_to_buffer_fn_cu(data, arr, range, cf); return; }
 #endif
 
   struct gkyl_range_iter iter;
@@ -410,20 +420,18 @@ gkyl_array_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
 
     const double *inp = gkyl_array_cfetch(arr, loc);
     double *out = flat_fetch(data, arr->esznc*count);
-    func(arr->ncomp, out, inp, ctx);
+    cf->func(arr->ncomp, out, inp, cf->ctx);
     count += 1;
   }
 }
 
 void
 gkyl_array_flip_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
-  int dir, struct gkyl_range range, array_copy_func_t func, void *ctx)
+  int dir, struct gkyl_range range, struct gkyl_array_copy_func *cf)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(arr)) {
-    printf("gkyl_array_flip_copy_to_buffer_fn not on GPUs yet!");
-    assert(false);
-    return;
+    if (gkyl_array_is_cu_dev(arr)) { gkyl_array_flip_copy_to_buffer_fn_cu(data, arr, dir, range, cf); return; }
   }
 #endif
 
@@ -446,7 +454,6 @@ gkyl_array_flip_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
 
     const double *inp = gkyl_array_cfetch(arr, loc);
     double *out = flat_fetch(data, arr->esznc*count);
-    func(arr->ncomp, out, inp, ctx);
-    count += 1;
+    cf->func(arr->ncomp, out, inp, cf->ctx);
   }  
 }

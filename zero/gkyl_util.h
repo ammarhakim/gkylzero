@@ -2,6 +2,8 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 
 // random number generator
@@ -67,12 +69,24 @@ enum gkyl_cu_memcpy_kind {
 
 #define GKYL_DEFAULT_NUM_THREADS 256
 
+// CUDA helper function to find CUDA errors
+#define checkCuda(val)           __checkCudaErrors__ ( (val), #val, __FILE__, __LINE__ )
+inline cudaError_t __checkCudaErrors__(cudaError_t code, const char *func, const char *file, int line)
+{
+  if (code) {
+    fprintf(stderr, "CUDA error: %s (code=%d)  \"%s\" at %s:%d \n", cudaGetErrorString(code), (unsigned int)code, func, file, line);
+    cudaDeviceReset();
+    exit(EXIT_FAILURE);
+  }
+  return code;
+}
+
 #else
 
 #undef GKYL_HAVE_CUDA
 #define GKYL_CU_DH
 #define GKYL_CU_D
-
+#define checkCuda(val) 
 // for directional copies
 enum gkyl_cu_memcpy_kind {
   GKYL_CU_MEMCPY_H2H,

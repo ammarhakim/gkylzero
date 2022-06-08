@@ -15,7 +15,7 @@ struct free_stream_ctx {
 
 static inline double sq(double x) { return x*x; }
 
-inline double
+static inline double
 maxwellian(double n, double v, double u, double vth)
 {
   double v2 = (v - u)*(v - u);
@@ -77,8 +77,14 @@ main(int argc, char **argv)
 
     .ctx = &ctx,
     .init = evalDistFunc,
-    .nu = evalNu,
-    .collision_id = GKYL_LBO_COLLISIONS,
+
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+
+      .ctx = &ctx,
+      .self_nu = evalNu,
+    },
+
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
   };
