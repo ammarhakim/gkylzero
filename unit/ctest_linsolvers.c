@@ -7,6 +7,8 @@
 
 #include <stdbool.h>
 
+void test_cusolver_qr();
+
 void test_slu_example()
 {
 /*  
@@ -162,9 +164,13 @@ void test_slu_separateLU() {
   test_slu_ops(true);
 }
 
+
 TEST_LIST = {
   { "slu_example", test_slu_example },
   { "slu_basic", test_slu_basic },
   { "slu_separateLU", test_slu_separateLU },
+#ifdef GKYL_HAVE_CUDA
+  { "cusolver_qr", test_cusolver_qr },
+#endif
   { NULL, NULL }
 };

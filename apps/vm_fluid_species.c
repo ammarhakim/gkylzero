@@ -41,13 +41,22 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   // allocate array to store advection velocity
   f->u = mkarr(app->use_gpu, cdim*app->confBasis.num_basis, app->local_ext.volume);
   
-  // equation object
-  f->eqn = gkyl_dg_advection_new(&app->confBasis, &app->local, app->use_gpu);
+  // allocate array to store diffusion tensor
+  f->D = mkarr(app->use_gpu, cdim*app->confBasis.num_basis, app->local_ext.volume);
+  f->D_host = f->D;
+  if (app->use_gpu)
+    f->D_host = mkarr(false, cdim*app->confBasis.num_basis, app->local_ext.volume);
+  
+  // equation objects
+  f->advect_eqn = gkyl_dg_advection_new(&app->confBasis, &app->local, app->use_gpu);
+  f->diff_eqn = gkyl_dg_diffusion_new(&app->confBasis, &app->local, app->use_gpu);
 
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
 
-  // fluid solver
-  f->slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, f->eqn,
+  // fluid solvers
+  f->advect_slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, f->advect_eqn,
+    app->cdim, up_dirs, zero_flux_flags, 1, app->use_gpu);
+  f->diff_slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, f->diff_eqn,
     app->cdim, up_dirs, zero_flux_flags, 1, app->use_gpu);
 
   f->has_advect = false;
@@ -65,7 +74,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     f->advect_ctx = (struct vm_eval_advect_ctx) {
       .advect_func = f->info.advection.velocity, .advect_ctx = f->info.advection.velocity_ctx
     };
-    
+
     f->advect_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
         .grid = &app->grid,
         .basis = &app->confBasis,
@@ -93,6 +102,24 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     }  
   }
 
+  f->has_diffusion = false;
+  if (f->info.diffusion.D) {
+    f->has_diffusion = true;
+    f->diff_ctx = (struct vm_eval_diffusion_ctx) {
+      .diff_func = f->info.diffusion.D, .diff_ctx = f->info.diffusion.D_ctx
+    };
+    f->diff_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+        .grid = &app->grid,
+        .basis = &app->confBasis,
+        .qtype = GKYL_GAUSS_LOBATTO_QUAD,
+        .num_quad = app->confBasis.poly_order+1,
+        .num_ret_vals = cdim,
+        .eval = f->info.diffusion.D,
+        .ctx = f->info.diffusion.D_ctx
+      }
+    );
+  }
+
   // determine which directions are not periodic
   int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
   for (int d=0; d<num_periodic_dir; ++d)
@@ -113,7 +140,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     }
   }
   for (int d=0; d<3; ++d)
-    f->absorb_bc_func[d] = gkyl_advection_absorb_bc_create(f->eqn, d,
+    f->absorb_bc_func[d] = gkyl_advection_absorb_bc_create(f->advect_eqn, d,
       app->basis_on_dev.confBasis);
 }
 
@@ -132,7 +159,9 @@ vm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_s
     gkyl_array_copy(fluid_species->fluid, fluid_species->fluid_host);
 
   // we are computing acceleration for now as it is time-independent
-  vm_fluid_species_calc_advect(app, fluid_species, t0);  
+  vm_fluid_species_calc_advect(app, fluid_species, t0);
+  // project diffusion tensor
+  vm_fluid_species_calc_diff(app, fluid_species, t0);
 }
 
 void
@@ -142,6 +171,16 @@ vm_fluid_species_calc_advect(gkyl_vlasov_app *app, struct vm_fluid_species *flui
     gkyl_proj_on_basis_advance(fluid_species->advect_proj, tm, &app->local_ext, fluid_species->advect_host);
     if (app->use_gpu) // note: advect_host is same as advect when not on GPUs
       gkyl_array_copy(fluid_species->advect, fluid_species->advect_host);
+  }
+}
+
+void
+vm_fluid_species_calc_diff(gkyl_vlasov_app* app, struct vm_fluid_species* fluid_species, double tm)
+{
+  if (fluid_species->has_diffusion) {
+    gkyl_proj_on_basis_advance(fluid_species->diff_proj, tm, &app->local_ext, fluid_species->D_host);
+    if (app->use_gpu) // note: D_host is same as D when not on GPUs
+      gkyl_array_copy(fluid_species->D, fluid_species->D_host);
   }
 }
 
@@ -166,15 +205,22 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
     gkyl_array_accumulate(fluid_species->u, 1.0, fluid_species->other_advect);
   }
   
-  gkyl_advection_set_auxfields(fluid_species->eqn,
+  gkyl_advection_set_auxfields(fluid_species->advect_eqn,
     (struct gkyl_dg_advection_auxfields) { .u = fluid_species->u  }); // set total advection
+  gkyl_diffusion_set_auxfields(fluid_species->diff_eqn,
+    (struct gkyl_dg_diffusion_auxfields) { .D = fluid_species->D  }); // set total advection
   
   gkyl_array_clear(rhs, 0.0);
 
-  if (app->use_gpu)
-    gkyl_hyper_dg_advance_cu(fluid_species->slvr, &app->local, fluid, fluid_species->cflrate, rhs);
-  else
-    gkyl_hyper_dg_advance(fluid_species->slvr, &app->local, fluid, fluid_species->cflrate, rhs);
+  if (app->use_gpu) {
+    gkyl_hyper_dg_advance_cu(fluid_species->advect_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
+    if (fluid_species->has_diffusion)
+      gkyl_hyper_dg_advance_cu(fluid_species->diff_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
+  } else {
+    gkyl_hyper_dg_advance(fluid_species->advect_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
+    if (fluid_species->has_diffusion)
+      gkyl_hyper_dg_advance(fluid_species->diff_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
+  }
 
   // accumulate nu*n*T - nu*fluid_species
   // where fluid_species = nT_perp or nT_z
@@ -296,11 +342,12 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
   gkyl_array_release(f->bc_buffer);
   gkyl_array_release(f->cflrate);
 
-  gkyl_dg_eqn_release(f->eqn);
-  gkyl_hyper_dg_release(f->slvr);
+  gkyl_dg_eqn_release(f->advect_eqn);
+  gkyl_hyper_dg_release(f->advect_slvr);
+  gkyl_dg_eqn_release(f->diff_eqn);
+  gkyl_hyper_dg_release(f->diff_slvr);
 
   gkyl_array_release(f->u);
-
   if (f->has_advect) {
     gkyl_array_release(f->advect);
     if (app->use_gpu)
@@ -308,6 +355,12 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
 
     gkyl_proj_on_basis_release(f->advect_proj);
   }
+
+  gkyl_array_release(f->D);
+  if (app->use_gpu)
+    gkyl_array_release(f->D_host);
+  if (f->has_diffusion)
+    gkyl_proj_on_basis_release(f->diff_proj);
 
   if (f->collision_id == GKYL_LBO_COLLISIONS) {
     gkyl_array_release(f->nu_fluid);

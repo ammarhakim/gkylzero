@@ -84,6 +84,23 @@ directory. Note that OpenBLAS **requires you to have gfortran**
 installed. **You** are responsible for installing this on your
 machine.
 
+# Building Using Machine Files
+
+We have provided a set of "machine files" to ease the build
+process. These are stored in the machines directory. For example, to
+build on Traverse please run
+```
+./machines/mkdeps.traverse.sh
+./machines/configure.traverse.sh
+```
+After this is completed then just type:
+```
+make -j
+```
+
+Note: On Traverse and Stellar-amd you need to load cudatoolkit/11.6. 
+
+
 # Developing for GkeyllZero
 
 Out goal is to keep GkeyllZero as simple and dependency free as
