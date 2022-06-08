@@ -164,10 +164,10 @@ void test_cusolver_ops()
   gkyl_mat_triples_insert(tri, 4, 4, r);
 
   // Create the cuSolver linear problem setup.
-  gkyl_cusolver_prob *prob = gkyl_cusolver_prob_new(m, n, nrhs);
+  gkyl_cusolver_prob *prob = gkyl_cusolver_prob_new(m, n, nrhs, false);
 
   // Allocate the A matrix from triples.
-  gkyl_cusolver_amat_from_triples(prob, tri);
+  gkyl_cusolver_amat_from_triples(prob, tri, false);
   gkyl_mat_triples_release(tri);
 
   // Create right-hand side matrix B = transpose([1,1,1,1,1]).
@@ -253,8 +253,6 @@ void test_cusolver_rf()
   cusparseSetMatType(descrA, CUSPARSE_MATRIX_TYPE_GENERAL);
   cusparseSetMatIndexBase(descrA, CUSPARSE_INDEX_BASE_ZERO);
   checkCuda(cudaGetLastError());
-
-  double *d_b = (double *) gkyl_cu_malloc(sizeof(double)*rowsA); // A copy of h_b.
 
   // Allocate rhs vector (host only for now).
   double h_b[] = {1.0, 1.0, 1.0, 1.0, 1.0};
@@ -476,7 +474,6 @@ void test_cusolver_rf()
   gkyl_cu_free(d_csrRowIndA);
   gkyl_cu_free(d_csrColIndA);
   gkyl_cu_free(d_x);
-  gkyl_cu_free(d_b);
   gkyl_cu_free(d_P);
   gkyl_cu_free(d_Q);
   gkyl_cu_free(d_T);

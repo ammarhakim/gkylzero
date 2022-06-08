@@ -268,7 +268,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   // matrix times epsilon.
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) 
-    up->prob_cu = gkyl_cusolver_prob_new(up->numnodes_global, up->numnodes_global, 1);
+    up->prob_cu = gkyl_cusolver_prob_new(up->numnodes_global, up->numnodes_global, 1, true);
   else
     up->prob = gkyl_superlu_prob_new(up->numnodes_global, up->numnodes_global, 1);
 #else
@@ -278,8 +278,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   // Assign non-zero elements in A.
   gkyl_mat_triples *tri = gkyl_mat_triples_new(up->numnodes_global, up->numnodes_global);
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu)
-    gkyl_mat_triples_set_rowmaj_order(tri);
+  if (up->use_gpu) gkyl_mat_triples_set_rowmaj_order(tri);
 #endif
   gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
   int idx0[POISSON_MAX_DIM];
@@ -296,13 +295,15 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   }
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    gkyl_cusolver_amat_from_triples(up->prob_cu, tri);
+    gkyl_cusolver_amat_from_triples(up->prob_cu, tri, true);
   } else {
     gkyl_superlu_amat_from_triples(up->prob, tri);
   }
 #else
   gkyl_superlu_amat_from_triples(up->prob, tri);
 #endif
+
+  // csr_from_amat
 
   gkyl_mat_triples_release(tri);
 
