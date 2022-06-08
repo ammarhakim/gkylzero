@@ -7,6 +7,10 @@
 
 #include <stdbool.h>
 
+void test_cusolver_qr();
+void test_cusolver_rf();
+void test_cusolver_ops();
+
 void test_slu_example()
 {
 /*  
@@ -144,11 +148,11 @@ void test_slu_ops(const bool separateLUdecomp)
   }
 
   // Solution is: [-1/32, 11/168, 3/224, 1/16, 11/336].
-  TEST_CHECK( gkyl_compare(-1.0/32.0,   gkyl_superlu_get_rhs(sluprob,0), 1e-14) );
-  TEST_CHECK( gkyl_compare( 11.0/168.0, gkyl_superlu_get_rhs(sluprob,1), 1e-14) );
-  TEST_CHECK( gkyl_compare( 3.0/224.0,  gkyl_superlu_get_rhs(sluprob,2), 1e-14) );
-  TEST_CHECK( gkyl_compare( 1.0/16.0,   gkyl_superlu_get_rhs(sluprob,3), 1e-14) );
-  TEST_CHECK( gkyl_compare( 11.0/336.0, gkyl_superlu_get_rhs(sluprob,4), 1e-14) );
+  TEST_CHECK( gkyl_compare(-1.0/32.0,   gkyl_superlu_get_rhs_lin(sluprob,0), 1e-14) );
+  TEST_CHECK( gkyl_compare( 11.0/168.0, gkyl_superlu_get_rhs_lin(sluprob,1), 1e-14) );
+  TEST_CHECK( gkyl_compare( 3.0/224.0,  gkyl_superlu_get_rhs_lin(sluprob,2), 1e-14) );
+  TEST_CHECK( gkyl_compare( 1.0/16.0,   gkyl_superlu_get_rhs_lin(sluprob,3), 1e-14) );
+  TEST_CHECK( gkyl_compare( 11.0/336.0, gkyl_superlu_get_rhs_lin(sluprob,4), 1e-14) );
 
   gkyl_superlu_prob_release(sluprob);
 
@@ -162,9 +166,15 @@ void test_slu_separateLU() {
   test_slu_ops(true);
 }
 
+
 TEST_LIST = {
   { "slu_example", test_slu_example },
   { "slu_basic", test_slu_basic },
   { "slu_separateLU", test_slu_separateLU },
+#ifdef GKYL_HAVE_CUDA
+  { "cusolver_qr", test_cusolver_qr },
+  { "cusolver_rf", test_cusolver_rf },
+  { "cusolver_ops", test_cusolver_ops },
+#endif
   { NULL, NULL }
 };

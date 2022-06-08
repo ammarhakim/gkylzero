@@ -49,8 +49,10 @@ void
 gkyl_superlu_amat_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *tri)
 {
   prob->nnz = gkyl_mat_triples_size(tri);
+  // triples must be in colmaj order for superlu
+  assert(gkyl_mat_triples_is_colmaj(tri));
 
-  // allocate some memory needed in superlu. NOTE: this memory is
+  // Allocate some memory needed in superlu. NOTE: this memory is
   // deleted when Destroy_CompCol_Matrix is called, and so we do not
   // need to do it ourselves.
   double *nzval = doubleMalloc(prob->nnz); // non-zero matrix elements.
@@ -61,10 +63,10 @@ gkyl_superlu_amat_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *tri)
   for (size_t i=0; i<prob->ncol; i++)
     colptr_assigned[i] = false;
 
-  // sorted (column-major order) keys (linear indices to flattened matrix).
+  // Sorted (column-major order) keys (linear indices to flattened matrix).
   gkyl_mat_triples_iter *iter = gkyl_mat_triples_iter_new(tri);
   for (size_t i=0; i<prob->nnz; ++i) {
-    gkyl_mat_triples_iter_next(iter); // bump iterator
+    gkyl_mat_triples_iter_next(iter); // bump iterator.
     struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
     size_t idx[2] = { mt.row, mt.col };
     
@@ -142,6 +144,18 @@ gkyl_superlu_brhs_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *tri)
 }
 
 void
+gkyl_superlu_brhs_from_array(gkyl_superlu_prob *prob, const double *bin)
+{
+  for (size_t i=0; i<prob->ncol; i++) {
+    prob->rhs[i] = bin[i];
+  }
+  
+  // Create RHS matrix B. See SuperLU manual for definitions.
+  dCreate_Dense_Matrix(&prob->B, prob->mrow, prob->nrhs, prob->rhs, prob->mrow,
+    SLU_DN, SLU_D, SLU_GE);
+}
+
+void
 gkyl_superlu_solve(gkyl_superlu_prob *prob)
 {
   if (prob->options.Fact==FACTORED) {
@@ -154,9 +168,22 @@ gkyl_superlu_solve(gkyl_superlu_prob *prob)
 }
 
 double
-gkyl_superlu_get_rhs(gkyl_superlu_prob *prob, const long loc)
+gkyl_superlu_get_rhs_ij(gkyl_superlu_prob *prob, const long ielement, const long jprob)
+{
+  return prob->rhs[jprob*prob->mrow+ielement];
+}
+
+
+double
+gkyl_superlu_get_rhs_lin(gkyl_superlu_prob *prob, const long loc)
 {
   return prob->rhs[loc];
+}
+
+double*
+gkyl_superlu_get_rhs_ptr(gkyl_superlu_prob *prob, const long loc)
+{
+  return &prob->rhs[loc];
 }
 
 void

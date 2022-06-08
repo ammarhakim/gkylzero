@@ -2,6 +2,8 @@
 
 #include <stddef.h>
 #include <stdbool.h>
+#define COLMAJOR 0
+#define ROWMAJOR 1
 
 // A triple stores 'val' at (row, col)
 struct gkyl_mtriple {
@@ -23,19 +25,27 @@ typedef struct gkyl_mat_triples_iter gkyl_mat_triples_iter;
  */
 gkyl_mat_triples* gkyl_mat_triples_new(size_t nr, size_t nc);
 
+/*
+ * Set row-major ordering for triples
+ */
+void gkyl_mat_triples_set_rowmaj_order(gkyl_mat_triples *tri);
+
+bool gkyl_mat_triples_is_rowmaj(gkyl_mat_triples *tri);
+bool gkyl_mat_triples_is_colmaj(gkyl_mat_triples *tri);
+
 /**
  * Insert value 'val' in triples list at location (i,j)
  *
  * @return value inserted (val)
  */
-double gkyl_mat_triples_insert(gkyl_mat_triples *tri, size_t i, size_t j, double val);
+GKYL_CU_DH double gkyl_mat_triples_insert(gkyl_mat_triples *tri, size_t i, size_t j, double val);
 
 /**
  * Accumulate value 'val' in triples list at location (i,j). If an
  * element at this location exists it is incremented by 'val'. New
  * value at the location is returned.
  */
-double gkyl_mat_triples_accum(gkyl_mat_triples *tri, size_t i, size_t j, double val);
+GKYL_CU_DH double gkyl_mat_triples_accum(gkyl_mat_triples *tri, size_t i, size_t j, double val);
 
 /**
  * Returns value in triples list at location (i,j)
