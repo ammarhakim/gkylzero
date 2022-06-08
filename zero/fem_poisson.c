@@ -170,7 +170,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 
   up->globalidx = gkyl_malloc(sizeof(long[up->num_basis])); // global index, one for each basis in a cell.
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu)
+  if (use_gpu)
     up->globalidx_cu = gkyl_cu_malloc(sizeof(long[up->num_basis])); // global index, one for each basis in a cell.
 #endif
 
@@ -236,7 +236,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 
   up->brhs = gkyl_array_new(GKYL_DOUBLE, 1, up->numnodes_global); // Global right side vector.
 #ifdef GKYL_HAVE_CUDA
-  if(up->use_gpu) 
+  if (up->use_gpu) 
     up->brhs_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, up->numnodes_global); // Global right side vector.
 #endif
 
@@ -259,16 +259,15 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   // Create a linear Ax=B problem. Here A is the discrete (global) stiffness
   // matrix times epsilon.
 #ifdef GKYL_HAVE_CUDA
-  if(up->use_gpu) 
+  if (up->use_gpu) 
     up->prob_cu = gkyl_cusolver_prob_new(up->numnodes_global, up->numnodes_global, 1);
-  else
 #endif
-    up->prob = gkyl_superlu_prob_new(up->numnodes_global, up->numnodes_global, 1);
+  up->prob = gkyl_superlu_prob_new(up->numnodes_global, up->numnodes_global, 1);
 
   // Assign non-zero elements in A.
   gkyl_mat_triples *tri = gkyl_mat_triples_new(up->numnodes_global, up->numnodes_global);
 #ifdef GKYL_HAVE_CUDA
-  if(up->use_gpu)
+  if (up->use_gpu)
     gkyl_mat_triples_set_rowmaj_order(tri);
 #endif
   gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
@@ -285,11 +284,12 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
     up->kernels->lhsker[keri](epsilon, dx, up->bcvals, up->globalidx, tri);
   }
 #ifdef GKYL_HAVE_CUDA
-  if(up->use_gpu)
+  if (up->use_gpu) {
     gkyl_cusolver_amat_from_triples(up->prob_cu, tri);
-  else
+    gkyl_mat_triples_set_colmaj_order(tri);
+  }
 #endif
-    gkyl_superlu_amat_from_triples(up->prob, tri);
+  gkyl_superlu_amat_from_triples(up->prob, tri);
 
   gkyl_mat_triples_release(tri);
 
@@ -375,6 +375,13 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout) {
 
 void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
 {
+#ifdef GKYL_HAVE_CUDA
+  gkyl_cu_free(up->kernels_cu);
+  if (up->use_gpu) {
+    gkyl_cu_free(up->globalidx_cu);
+    gkyl_array_release(up->brhs_cu);
+  }
+#endif
   if (up->isdomperiodic) gkyl_array_release(up->rhs_cellavg);
   gkyl_mat_release(up->local_stiff);
   gkyl_mat_release(up->local_mass_modtonod);

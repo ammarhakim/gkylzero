@@ -69,6 +69,11 @@ void gkyl_mat_triples_set_rowmaj_order(gkyl_mat_triples *tri)
   tri->ordering = ROWMAJOR;
 }
 
+void gkyl_mat_triples_set_colmaj_order(gkyl_mat_triples *tri)
+{
+  tri->ordering = COLMAJOR;
+}
+
 bool gkyl_mat_triples_is_rowmaj(gkyl_mat_triples *tri) {
   return tri->ordering == ROWMAJOR;
 }

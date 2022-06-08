@@ -1278,7 +1278,7 @@ void test_2x_p2_dirichletx_periodicy() {
 
 
 TEST_LIST = {
-//  { "test_1x_p1_periodicx", test_1x_p1_periodicx },
+  { "test_1x_p1_periodicx", test_1x_p1_periodicx },
   { "test_1x_p1_dirichletx", test_1x_p1_dirichletx },
 //  { "test_1x_p2_periodicx", test_1x_p2_periodicx },
   { "test_1x_p2_dirichletx", test_1x_p2_dirichletx },
