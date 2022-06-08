@@ -195,7 +195,17 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->isdomperiodic = true;
   for (int d=0; d<up->ndim; d++) up->isdomperiodic = up->isdomperiodic && up->isdirperiodic[d];
   if (up->isdomperiodic) {
+#ifdef GKYL_HAVE_CUDA
+    if(up->use_gpu) {
+      up->rhs_cellavg = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, up->local_range_ext.volume);
+      up->rhs_avg_cu = (double*) gkyl_cu_malloc(sizeof(double)); 
+    } else {
+      up->rhs_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, up->local_range_ext.volume);
+    }
+#else
     up->rhs_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, up->local_range_ext.volume);
+#endif
+    up->rhs_avg = (double*) gkyl_malloc(sizeof(double)); 
     gkyl_array_clear(up->rhs_cellavg, 0.0);
     // Factor accounting for normalization when subtracting a constant from a
     // DG field and the 1/N to properly compute the volume averaged RHS.
@@ -306,7 +316,16 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
   if (up->isdomperiodic) {
     // Subtract the volume averaged RHS from the RHS.
     gkyl_dg_calc_average_range(up->basis, 0, up->rhs_cellavg, 0, rhsin, up->solve_range);
+#ifdef GKYL_HAVE_CUDA
+    if (up->use_gpu) {
+      gkyl_array_reduce_range(up->rhs_avg_cu, up->rhs_cellavg, GKYL_SUM, up->solve_range);
+      gkyl_cu_memcpy(up->rhs_avg, up->rhs_avg_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
+    } else {
+      gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->solve_range);
+    }
+#else
     gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->solve_range);
+#endif
     gkyl_array_shiftc0(rhsin, up->mavgfac*up->rhs_avg[0]);
   }
 
