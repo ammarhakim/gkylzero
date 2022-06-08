@@ -169,10 +169,6 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->use_gpu = use_gpu;
 
   up->globalidx = gkyl_malloc(sizeof(long[up->num_basis])); // global index, one for each basis in a cell.
-#ifdef GKYL_HAVE_CUDA
-  if (use_gpu)
-    up->globalidx_cu = gkyl_cu_malloc(sizeof(long[up->num_basis])); // global index, one for each basis in a cell.
-#endif
 
   // Local and local-ext ranges for whole-grid arrays.
   int ghost[POISSON_MAX_DIM];
@@ -264,8 +260,10 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   if (up->use_gpu) 
     up->prob_cu = gkyl_cusolver_prob_new(up->numnodes_global, up->numnodes_global, 1);
   else
-#endif
     up->prob = gkyl_superlu_prob_new(up->numnodes_global, up->numnodes_global, 1);
+#else
+  up->prob = gkyl_superlu_prob_new(up->numnodes_global, up->numnodes_global, 1);
+#endif
 
   // Assign non-zero elements in A.
   gkyl_mat_triples *tri = gkyl_mat_triples_new(up->numnodes_global, up->numnodes_global);
@@ -382,7 +380,6 @@ void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
 #ifdef GKYL_HAVE_CUDA
   gkyl_cu_free(up->kernels_cu);
   if (up->use_gpu) {
-    gkyl_cu_free(up->globalidx_cu);
     gkyl_cu_free(up->bcvals_cu);
     gkyl_cusolver_prob_release(up->prob_cu);
   } else {

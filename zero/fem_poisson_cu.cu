@@ -144,11 +144,12 @@ choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_poisson_bc b
 }
 
 __global__ void
-gkyl_fem_poisson_set_rhs_kernel(double *rhs_global, struct gkyl_array *rhs_local, struct gkyl_range range, long *globalidx, double *bcvals, struct gkyl_fem_poisson_kernels *kers)
+gkyl_fem_poisson_set_rhs_kernel(double *rhs_global, struct gkyl_array *rhs_local, struct gkyl_range range, double *bcvals, struct gkyl_fem_poisson_kernels *kers)
 {
   int idx[GKYL_MAX_DIM];
   int idx0[GKYL_MAX_DIM];
   int num_cells[POISSON_MAX_DIM];
+  long globalidx[96];
   for (int d=0; d<POISSON_MAX_DIM; d++) num_cells[d] = range.upper[d]-range.lower[d]+1;
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
@@ -180,11 +181,12 @@ gkyl_fem_poisson_set_rhs_kernel(double *rhs_global, struct gkyl_array *rhs_local
 }
 
 __global__ void
-gkyl_fem_poisson_get_sol_kernel(struct gkyl_array *x_local, const double *x_global, struct gkyl_range range, long *globalidx, struct gkyl_fem_poisson_kernels *kers)
+gkyl_fem_poisson_get_sol_kernel(struct gkyl_array *x_local, const double *x_global, struct gkyl_range range, struct gkyl_fem_poisson_kernels *kers)
 {
   int idx[GKYL_MAX_DIM];
   int idx0[GKYL_MAX_DIM];
   int num_cells[POISSON_MAX_DIM];
+  long globalidx[96];
   for (int d=0; d<POISSON_MAX_DIM; d++) num_cells[d] = range.upper[d]-range.lower[d]+1;
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
@@ -219,7 +221,7 @@ gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
 {
   double *rhs_cu = gkyl_cusolver_get_rhs_ptr(up->prob_cu, 0);
   gkyl_cu_memset(rhs_cu, 0, sizeof(double)*up->numnodes_global);
-  gkyl_fem_poisson_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(rhs_cu, rhsin->on_dev, up->solve_range, up->globalidx_cu, up->bcvals_cu, up->kernels_cu); 
+  gkyl_fem_poisson_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(rhs_cu, rhsin->on_dev, up->solve_range, up->bcvals_cu, up->kernels_cu); 
 }	
 
 void
@@ -230,6 +232,6 @@ gkyl_fem_poisson_solve_cu(gkyl_fem_poisson *up, struct gkyl_array *phiout)
 
   double *x_cu = gkyl_cusolver_get_sol_ptr(up->prob_cu, 0);
 
-  gkyl_fem_poisson_get_sol_kernel<<<phiout->nblocks, phiout->nthreads>>>(phiout->on_dev, x_cu, up->solve_range, up->globalidx_cu, up->kernels_cu); 
+  gkyl_fem_poisson_get_sol_kernel<<<phiout->nblocks, phiout->nthreads>>>(phiout->on_dev, x_cu, up->solve_range, up->kernels_cu); 
 }
 
