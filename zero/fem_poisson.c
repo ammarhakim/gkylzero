@@ -156,7 +156,9 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->kernels = gkyl_malloc(sizeof(struct gkyl_fem_poisson_kernels));
   up->kernels_cu = up->kernels;
 #ifdef GKYL_HAVE_CUDA
-  up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_fem_poisson_kernels));
+  if(use_gpu) {
+    up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_fem_poisson_kernels));
+  }
 #endif
 
   up->ndim = grid->ndim;
@@ -254,7 +256,9 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->kernels->solker = choose_sol_kernels(&basis);
 
 #ifdef GKYL_HAVE_CUDA
-  choose_kernels_cu(&basis, bcs, up->isdirperiodic, up->kernels_cu);
+  if(up->use_gpu) {
+    choose_kernels_cu(&basis, bcs, up->isdirperiodic, up->kernels_cu);
+  }
 #endif
 
   // Create a linear Ax=B problem. Here A is the discrete (global) stiffness
