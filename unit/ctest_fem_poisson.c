@@ -146,7 +146,7 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs)
   gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_poisson_1x_rho_1.gkyl");
 
   // FEM poisson solver.
-  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, bcs, epsilon_0, NULL, false);
+  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, &bcs, epsilon_0, false);
 
   // Set the RHS source.
   gkyl_fem_poisson_set_rhs(poisson, rho);
@@ -331,7 +331,7 @@ gpu_test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs)
   gkyl_array_copy(rho_cu, rho);
 
   // FEM poisson solver.
-  gkyl_fem_poisson *poisson_cu = gkyl_fem_poisson_new(&grid, basis, bcs, epsilon_0, NULL, true);
+  gkyl_fem_poisson *poisson_cu = gkyl_fem_poisson_new(&grid, basis, &bcs, epsilon_0, true);
 
   // Set the RHS source.
   gkyl_fem_poisson_set_rhs(poisson_cu, rho_cu);
@@ -340,7 +340,9 @@ gpu_test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs)
   gkyl_fem_poisson_solve(poisson_cu, phi_cu);
   gkyl_array_copy(phi, phi_cu);
 
+#ifdef GKYL_HAVE_CUDA
   cudaDeviceSynchronize();
+#endif
 
   for (int d=0; d<dim; d++)
     if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, phi, d, skin_ghost);
@@ -524,7 +526,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs)
   gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_poisson_2x_rho_1.gkyl");
 
   // FEM poisson solver.
-  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, bcs, epsilon_0, NULL, false);
+  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, &bcs, epsilon_0, false);
 
   // Set the RHS source.
   gkyl_fem_poisson_set_rhs(poisson, rho);
@@ -1426,7 +1428,7 @@ gpu_test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs)
   gkyl_array_copy(rho_cu, rho);
 
   // FEM poisson solver.
-  gkyl_fem_poisson *poisson_cu = gkyl_fem_poisson_new(&grid, basis, bcs, epsilon_0, NULL, true);
+  gkyl_fem_poisson *poisson_cu = gkyl_fem_poisson_new(&grid, basis, &bcs, epsilon_0, true);
 
   // Set the RHS source.
   gkyl_fem_poisson_set_rhs(poisson_cu, rho_cu);
@@ -1435,7 +1437,9 @@ gpu_test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs)
   gkyl_fem_poisson_solve(poisson_cu, phi_cu);
   gkyl_array_copy(phi, phi_cu);
 
+#ifdef GKYL_HAVE_CUDA
   cudaDeviceSynchronize();
+#endif
 
   for (int d=0; d<dim; d++)
     if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, phi, d, skin_ghost);

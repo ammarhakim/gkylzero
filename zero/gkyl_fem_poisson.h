@@ -52,7 +52,7 @@ struct gkyl_poisson_bc {
  */
 gkyl_fem_poisson* gkyl_fem_poisson_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-  struct gkyl_poisson_bc bcs, const double epsilon, void *ctx, bool use_gpu);
+  struct gkyl_poisson_bc *bcs, const double epsilon, bool use_gpu);
 
 /**
  * Assign the right-side vector with the discontinuous (DG) source field.

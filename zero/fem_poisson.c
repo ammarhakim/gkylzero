@@ -148,7 +148,7 @@ local_nodtomod(const int dim, const int poly_order, const int basis_type, struct
 
 gkyl_fem_poisson*
 gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-  struct gkyl_poisson_bc bcs, const double epsilon, void *ctx, bool use_gpu)
+  struct gkyl_poisson_bc *bcs, const double epsilon, bool use_gpu)
 {
 
   gkyl_fem_poisson *up = gkyl_malloc(sizeof(gkyl_fem_poisson));
@@ -159,7 +159,6 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_fem_poisson_kernels));
 #endif
 
-  up->ctx = ctx;
   up->ndim = grid->ndim;
   up->grid = *grid;
   up->num_basis =  basis.num_basis;
@@ -187,11 +186,11 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   // Prepare for periodic domain case.
   for (int d=0; d<up->ndim; d++) {
     // Sanity check.
-    if ((bcs.lo_type[d] == GKYL_POISSON_PERIODIC && bcs.up_type[d] != GKYL_POISSON_PERIODIC) ||
-        (bcs.lo_type[d] != GKYL_POISSON_PERIODIC && bcs.up_type[d] == GKYL_POISSON_PERIODIC))
+    if ((bcs->lo_type[d] == GKYL_POISSON_PERIODIC && bcs->up_type[d] != GKYL_POISSON_PERIODIC) ||
+        (bcs->lo_type[d] != GKYL_POISSON_PERIODIC && bcs->up_type[d] == GKYL_POISSON_PERIODIC))
       assert(false);
   }
-  for (int d=0; d<up->ndim; d++) up->isdirperiodic[d] = bcs.lo_type[d] == GKYL_POISSON_PERIODIC;
+  for (int d=0; d<up->ndim; d++) up->isdirperiodic[d] = bcs->lo_type[d] == GKYL_POISSON_PERIODIC;
   up->isdomperiodic = true;
   for (int d=0; d<up->ndim; d++) up->isdomperiodic = up->isdomperiodic && up->isdirperiodic[d];
   if (up->isdomperiodic) {
@@ -215,14 +214,14 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   // Pack BC values into a single array for easier use in kernels.
   for (int d=0; d<up->ndim; d++) {
     for (int k=0; k<6; k++) up->bcvals[d*2*3+k] = 0.0; // default. Not used in some cases (e.g. periodic).
-    if (bcs.lo_type[d] != GKYL_POISSON_PERIODIC) {
-      int vnum = bcs.lo_type[d] == GKYL_POISSON_ROBIN ? 3 : 1;
-      int voff = bcs.lo_type[d] == GKYL_POISSON_ROBIN ? 0 : 2;
-      for (int k=0; k<vnum; k++) up->bcvals[d*2*3+voff+k] = bcs.lo_value[d].v[k];
+    if (bcs->lo_type[d] != GKYL_POISSON_PERIODIC) {
+      int vnum = bcs->lo_type[d] == GKYL_POISSON_ROBIN ? 3 : 1;
+      int voff = bcs->lo_type[d] == GKYL_POISSON_ROBIN ? 0 : 2;
+      for (int k=0; k<vnum; k++) up->bcvals[d*2*3+voff+k] = bcs->lo_value[d].v[k];
 
-      vnum = bcs.up_type[d] == GKYL_POISSON_ROBIN ? 3 : 1;
-      voff = bcs.up_type[d] == GKYL_POISSON_ROBIN ? 0 : 2;
-      for (int k=0; k<vnum; k++) up->bcvals[d*2*3+voff+3+k] = bcs.lo_value[d].v[k];
+      vnum = bcs->up_type[d] == GKYL_POISSON_ROBIN ? 3 : 1;
+      voff = bcs->up_type[d] == GKYL_POISSON_ROBIN ? 0 : 2;
+      for (int k=0; k<vnum; k++) up->bcvals[d*2*3+voff+3+k] = bcs->lo_value[d].v[k];
     }
   }
 #ifdef GKYL_HAVE_CUDA
@@ -239,12 +238,6 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   // Create local matrices used later.
   double dx[POISSON_MAX_DIM];
   for (int d=0; d<up->ndim; d++) dx[d] = up->grid.dx[d];
-  up->local_stiff = gkyl_mat_new(up->numnodes_local, up->numnodes_local, 0.);
-  up->local_mass_modtonod = gkyl_mat_new(up->numnodes_local, up->numnodes_local, 0.);
-  up->local_nodtomod = gkyl_mat_new(up->numnodes_local, up->numnodes_local, 0.);
-  local_stiff(up->ndim, up->poly_order, basis.b_type, dx, up->local_stiff);
-  local_mass_modtonod(up->ndim, up->poly_order, basis.b_type, up->local_mass_modtonod);
-  local_nodtomod(up->ndim, up->poly_order, basis.b_type, up->local_nodtomod);
 
   up->brhs = gkyl_array_new(GKYL_DOUBLE, 1, up->numnodes_global); // Global right side vector.
 
@@ -261,7 +254,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->kernels->solker = choose_sol_kernels(&basis);
 
 #ifdef GKYL_HAVE_CUDA
-  choose_kernels_cu(&basis, bcs,  up->isdirperiodic, up->kernels_cu);
+  choose_kernels_cu(&basis, bcs, up->isdirperiodic, up->kernels_cu);
 #endif
 
   // Create a linear Ax=B problem. Here A is the discrete (global) stiffness
@@ -407,9 +400,6 @@ void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
   gkyl_superlu_prob_release(up->prob);
 #endif
 
-  gkyl_mat_release(up->local_stiff);
-  gkyl_mat_release(up->local_mass_modtonod);
-  gkyl_mat_release(up->local_nodtomod);
   gkyl_free(up->globalidx);
   gkyl_free(up->brhs);
   gkyl_free(up->kernels);
