@@ -170,6 +170,8 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->basis = basis;
   up->use_gpu = use_gpu;
 
+  up->epsilon = epsilon;
+
   up->globalidx = gkyl_malloc(sizeof(long[up->num_basis])); // global index, one for each basis in a cell.
 
   // Local and local-ext ranges for whole-grid arrays.
@@ -239,12 +241,11 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->numnodes_global = global_num_nodes(up->ndim, up->poly_order, basis.b_type, up->num_cells, up->isdirperiodic);
 
   // Create local matrices used later.
-  double dx[POISSON_MAX_DIM];
-  for (int d=0; d<up->ndim; d++) dx[d] = up->grid.dx[d];
+  for (int d=0; d<up->ndim; d++) up->dx[d] = up->grid.dx[d];
   up->local_stiff = gkyl_mat_new(up->numnodes_local, up->numnodes_local, 0.);
   up->local_mass_modtonod = gkyl_mat_new(up->numnodes_local, up->numnodes_local, 0.);
   up->local_nodtomod = gkyl_mat_new(up->numnodes_local, up->numnodes_local, 0.);
-  local_stiff(up->ndim, up->poly_order, basis.b_type, dx, up->local_stiff);
+  local_stiff(up->ndim, up->poly_order, basis.b_type, up->dx, up->local_stiff);
   local_mass_modtonod(up->ndim, up->poly_order, basis.b_type, up->local_mass_modtonod);
   local_nodtomod(up->ndim, up->poly_order, basis.b_type, up->local_nodtomod);
 
@@ -295,7 +296,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 
     // Apply the -epsilon*nabla^2 stencil.
     keri = idx_to_inloup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
-    up->kernels->lhsker[keri](epsilon, dx, up->bcvals, up->globalidx, tri);
+    up->kernels->lhsker[keri](epsilon, up->dx, up->bcvals, up->globalidx, tri);
   }
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -359,7 +360,7 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
     // Apply the RHS source stencil. It's mostly the mass matrix times a
     // modal-to-nodal operator times the source, modified by BCs in skin cells.
     keri = idx_to_inloup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
-    up->kernels->srcker[keri](rhsin_p, up->bcvals, up->globalidx, brhs_p);
+    up->kernels->srcker[keri](up->epsilon, up->dx, rhsin_p, up->bcvals, up->globalidx, brhs_p);
   }
 
   gkyl_superlu_brhs_from_array(up->prob, brhs_p);

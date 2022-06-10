@@ -23,6 +23,14 @@ void evalFunc1x_dirichletx(double t, const double *xn, double* restrict fout, vo
   double c1 = 0.;
   fout[0] = -(1.-a*pow(x,2));
 }
+void evalFunc1x_neumannx_dirichletx(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  double a = 5.0;
+  double c0 = 0.;
+  double c1 = a/12. - 1./2.;
+  fout[0] = -(1.-a*pow(x,2));
+}
 
 void evalFunc2x_periodicx_periodicy(double t, const double *xn, double* restrict fout, void *ctx)
 {
@@ -131,6 +139,9 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs)
   } else if (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
     projob = gkyl_proj_on_basis_new(&grid, &basis,
       poly_order+1, 1, evalFunc1x_dirichletx, NULL);
+  } else if (bcs.lo_type[0]==GKYL_POISSON_NEUMANN && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
+    projob = gkyl_proj_on_basis_new(&grid, &basis,
+      poly_order+1, 1, evalFunc1x_neumannx_dirichletx, NULL);
   }
 
   // create DG field we wish to make continuous.
@@ -208,6 +219,36 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs)
         -0.0141002000714206,  0.0027917980271844,
         -0.0059001092251411,  0.0019425266302945,
         -0.0012677772032077,  0.0007319515095444,
+      };
+
+      for (int k=0; k<cells[0]; k++) {
+        long linidx;
+        const double *phi_p;
+        int idx0[] = {k+1};
+        linidx = gkyl_range_idx(&localRange, idx0);
+        phi_p  = gkyl_array_cfetch(phi, linidx);
+        for (int m=0; m<basis.num_basis; m++)
+          TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
+      }
+    } else if (bcs.lo_type[0]==GKYL_POISSON_NEUMANN && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
+      // Solution with N=16 (checked visually against g2):
+      const double sol[32] = {
+        -0.1164745579295943,  0.0007947643695833,
+        -0.1110222168230329,  0.0023531462360035,
+        -0.1003333264742861,  0.0038180874841839,
+        -0.0848394706121053,  0.0051272943686315,
+        -0.0651880248296178,  0.006218473143853 ,
+        -0.0422421565843268,  0.0070293300643554,
+        -0.0170808251981111,  0.0074975713846456,
+         0.0090012181427745,  0.0075609033592303,
+         0.0344934303876997,  0.0071570322426164,
+         0.0576694766216582,  0.0062236642893108,
+         0.0765872300652681,  0.0046985057538203,
+         0.0890887720747714,  0.0025192628906519,
+         0.0928003921420348, -0.0003763580456877,
+         0.0851325878945489, -0.0040506508006916,
+         0.0632800650954285, -0.008565909119853 ,
+         0.0242217376434128, -0.0139844267486649,
       };
 
       for (int k=0; k<cells[0]; k++) {
@@ -2295,6 +2336,15 @@ void test_1x_p1_dirichletx() {
   bc_tv.up_value[0].v[0] = 0.;
   test_1x(1, &cells[0], bc_tv);
 }
+void test_1x_p1_neumannx_dirichletx() {
+  int cells[] = {16};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_1x(1, &cells[0], bc_tv);
+}
 
 void test_1x_p2_periodicx() {
   int cells[] = {8};
@@ -2527,15 +2577,16 @@ void gpu_test_2x_p2_periodicx_dirichlety() {
 
 
 TEST_LIST = {
-//  { "test_1x_p1_periodicx", test_1x_p1_periodicx },
+  { "test_1x_p1_periodicx", test_1x_p1_periodicx },
   { "test_1x_p1_dirichletx", test_1x_p1_dirichletx },
+  { "test_1x_p1_neumannx_dirichletx", test_1x_p1_neumannx_dirichletx },
 //  { "test_1x_p2_periodicx", test_1x_p2_periodicx },
-  { "test_1x_p2_dirichletx", test_1x_p2_dirichletx },
-//  { "test_2x_p1_periodicx_periodicy", test_2x_p1_periodicx_periodicy },
+//  { "test_1x_p2_dirichletx", test_1x_p2_dirichletx },
+  { "test_2x_p1_periodicx_periodicy", test_2x_p1_periodicx_periodicy },
   { "test_2x_p1_dirichletx_dirichlety", test_2x_p1_dirichletx_dirichlety },
   { "test_2x_p1_dirichletx_periodicy", test_2x_p1_dirichletx_periodicy },
   { "test_2x_p1_periodicx_dirichlety", test_2x_p1_periodicx_dirichlety },
-//  { "test_2x_p2_periodicx_periodicy", test_2x_p2_periodicx_periodicy },
+  { "test_2x_p2_periodicx_periodicy", test_2x_p2_periodicx_periodicy },
   { "test_2x_p2_dirichletx_dirichlety", test_2x_p2_dirichletx_dirichlety },
   { "test_2x_p2_dirichletx_periodicy", test_2x_p2_dirichletx_periodicy },
 #ifdef GKYL_HAVE_CUDA
