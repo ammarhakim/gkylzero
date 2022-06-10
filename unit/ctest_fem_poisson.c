@@ -340,7 +340,9 @@ gpu_test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs)
   gkyl_fem_poisson_solve(poisson_cu, phi_cu);
   gkyl_array_copy(phi, phi_cu);
 
+#ifdef GKYL_HAVE_CUDA
   cudaDeviceSynchronize();
+#endif
 
   for (int d=0; d<dim; d++)
     if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, phi, d, skin_ghost);
@@ -1435,7 +1437,9 @@ gpu_test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs)
   gkyl_fem_poisson_solve(poisson_cu, phi_cu);
   gkyl_array_copy(phi, phi_cu);
 
+#ifdef GKYL_HAVE_CUDA
   cudaDeviceSynchronize();
+#endif
 
   for (int d=0; d<dim; d++)
     if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, phi, d, skin_ghost);
