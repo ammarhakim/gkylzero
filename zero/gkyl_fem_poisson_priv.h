@@ -393,6 +393,9 @@ struct gkyl_fem_poisson {
   struct gkyl_basis basis;
   int num_cells[POISSON_MAX_DIM];
   double dx[POISSON_MAX_DIM];
+#ifdef GKYL_HAVE_CUDA
+  double *dx_cu;
+#endif
   bool isdirperiodic[POISSON_MAX_DIM]; // =true if direction is periodic.
 
   double epsilon; // permittivity.

@@ -142,6 +142,12 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->numnodes_global = global_num_nodes(up->ndim, up->poly_order, basis.b_type, up->num_cells, up->isdirperiodic);
 
   for (int d=0; d<up->ndim; d++) up->dx[d] = up->grid.dx[d];  // Cell lengths.
+#ifdef GKYL_HAVE_CUDA
+  if(up->use_gpu) {
+    up->dx_cu = (double *) gkyl_cu_malloc(sizeof(double[POISSON_MAX_DIM]));
+    gkyl_cu_memcpy(up->dx_cu, up->dx, sizeof(double[POISSON_MAX_DIM]), GKYL_CU_MEMCPY_H2D);
+  }
+#endif
 
   up->brhs = gkyl_array_new(GKYL_DOUBLE, 1, up->numnodes_global); // Global right side vector.
 
@@ -297,6 +303,7 @@ void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
 #ifdef GKYL_HAVE_CUDA
   gkyl_cu_free(up->kernels_cu);
   if (up->use_gpu) {
+    gkyl_cu_free(up->dx_cu);
     gkyl_cu_free(up->bcvals_cu);
     gkyl_cusolver_prob_release(up->prob_cu);
   } else {
