@@ -279,6 +279,8 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         phi_p  = gkyl_array_cfetch(phi, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
+          TEST_MSG("Expected: %.13e in cell (%d)", sol[k*basis.num_basis+m], k);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
         }
       }
     } else if (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
@@ -308,8 +310,11 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         int idx0[] = {k+1};
         linidx = gkyl_range_idx(&localRange, idx0);
         phi_p  = gkyl_array_cfetch(phi, linidx);
-        for (int m=0; m<basis.num_basis; m++)
+        for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
+          TEST_MSG("Expected: %.13e in cell (%d)", sol[k*basis.num_basis+m], k);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+	}
       }
     } else if (bcs.lo_type[0]==GKYL_POISSON_NEUMANN && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
       // Solution with N=16 (checked visually against g2):
@@ -338,8 +343,11 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         int idx0[] = {k+1};
         linidx = gkyl_range_idx(&localRange, idx0);
         phi_p  = gkyl_array_cfetch(phi, linidx);
-        for (int m=0; m<basis.num_basis; m++)
+        for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
+          TEST_MSG("Expected: %.13e in cell (%d)", sol[k*basis.num_basis+m], k);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+	}
       }
     } else if (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_NEUMANN) {
       // Solution with N=16 (checked visually against g2):
@@ -368,8 +376,11 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         int idx0[] = {k+1};
         linidx = gkyl_range_idx(&localRange, idx0);
         phi_p  = gkyl_array_cfetch(phi, linidx);
-        for (int m=0; m<basis.num_basis; m++)
+        for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
+          TEST_MSG("Expected: %.13e in cell (%d)", sol[k*basis.num_basis+m], k);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+	}
       }
     }
   } if (poly_order == 2) {
@@ -392,8 +403,11 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         int idx0[] = {k+1};
         linidx = gkyl_range_idx(&localRange, idx0);
         phi_p  = gkyl_array_cfetch(phi, linidx);
-        for (int m=0; m<basis.num_basis; m++)
+        for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
+          TEST_MSG("Expected: %.13e in cell (%d)", sol[k*basis.num_basis+m], k);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+	}
       }
     } else if (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
       // Solution with N=8 (checked visually against g2):
@@ -414,8 +428,11 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         int idx0[] = {k+1};
         linidx = gkyl_range_idx(&localRange, idx0);
         phi_p  = gkyl_array_cfetch(phi, linidx);
-        for (int m=0; m<basis.num_basis; m++)
+        for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
+          TEST_MSG("Expected: %.13e in cell (%d)", sol[k*basis.num_basis+m], k);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+	}
       }
     } else if (bcs.lo_type[0]==GKYL_POISSON_NEUMANN && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
       // Solution with N=8 (checked visually against g2):
@@ -436,8 +453,11 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         int idx0[] = {k+1};
         linidx = gkyl_range_idx(&localRange, idx0);
         phi_p  = gkyl_array_cfetch(phi, linidx);
-        for (int m=0; m<basis.num_basis; m++)
+        for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
+          TEST_MSG("Expected: %.13e in cell (%d)", sol[k*basis.num_basis+m], k);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+	}
       }
     } else if (bcs.lo_type[0]==GKYL_POISSON_NEUMANN && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
       // Solution with N=8 (checked visually against g2):
@@ -458,8 +478,11 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         int idx0[] = {k+1};
         linidx = gkyl_range_idx(&localRange, idx0);
         phi_p  = gkyl_array_cfetch(phi, linidx);
-        for (int m=0; m<basis.num_basis; m++)
+        for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
+          TEST_MSG("Expected: %.13e in cell (%d)", sol[k*basis.num_basis+m], k);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+	}
       }
     }
   }
@@ -675,8 +698,11 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
           const double *phi_p  = gkyl_array_cfetch(phi, linidx);
-          for (int m=0; m<basis.num_basis; m++)
+          for (int m=0; m<basis.num_basis; m++) {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-12) );
+            TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
+            TEST_MSG("Produced: %.13e", phi_p[m]);
+	  }
         }
       }
     } else if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) &&
@@ -760,8 +786,11 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
           const double *phi_p  = gkyl_array_cfetch(phi, linidx);
-          for (int m=0; m<basis.num_basis; m++)
+          for (int m=0; m<basis.num_basis; m++) {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-12) );
+            TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
+            TEST_MSG("Produced: %.13e", phi_p[m]);
+	  }
         }
       }
     } else if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) &&
@@ -845,8 +874,11 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
           const double *phi_p  = gkyl_array_cfetch(phi, linidx);
-          for (int m=0; m<basis.num_basis; m++)
+          for (int m=0; m<basis.num_basis; m++) {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-12) );
+            TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
+            TEST_MSG("Produced: %.13e", phi_p[m]);
+	  }
         }
       }
     } else if ((bcs.lo_type[0] == GKYL_POISSON_PERIODIC && bcs.up_type[0] == GKYL_POISSON_PERIODIC) &&
@@ -932,8 +964,11 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
           const double *phi_p  = gkyl_array_cfetch(phi, linidx);
-          for (int m=0; m<basis.num_basis; m++)
+          for (int m=0; m<basis.num_basis; m++) {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-12) );
+            TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
+            TEST_MSG("Produced: %.13e", phi_p[m]);
+	  }
         }
       }
     } else if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) &&
@@ -1018,8 +1053,11 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
           const double *phi_p  = gkyl_array_cfetch(phi, linidx);
-          for (int m=0; m<basis.num_basis; m++)
+          for (int m=0; m<basis.num_basis; m++) {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-10) );
+            TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
+            TEST_MSG("Produced: %.13e", phi_p[m]);
+	  }
         }
       }
     } else if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) &&
@@ -1104,8 +1142,11 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
           const double *phi_p  = gkyl_array_cfetch(phi, linidx);
-          for (int m=0; m<basis.num_basis; m++)
+          for (int m=0; m<basis.num_basis; m++) {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-10) );
+            TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
+            TEST_MSG("Produced: %.13e", phi_p[m]);
+	  }
         }
       }
     } else if ((bcs.lo_type[0] == GKYL_POISSON_NEUMANN && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) &&
@@ -1190,8 +1231,11 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
           const double *phi_p  = gkyl_array_cfetch(phi, linidx);
-          for (int m=0; m<basis.num_basis; m++)
+          for (int m=0; m<basis.num_basis; m++) {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-10) );
+            TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
+            TEST_MSG("Produced: %.13e", phi_p[m]);
+	  }
         }
       }
     } else if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_NEUMANN) &&
@@ -1276,8 +1320,11 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
           const double *phi_p  = gkyl_array_cfetch(phi, linidx);
-          for (int m=0; m<basis.num_basis; m++)
+          for (int m=0; m<basis.num_basis; m++) {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-10) );
+            TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
+            TEST_MSG("Produced: %.13e", phi_p[m]);
+	  }
         }
       }
     }
@@ -1356,10 +1403,11 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
           const double *phi_p  = gkyl_array_cfetch(phi, linidx);
-          for (int m=0; m<basis.num_basis; m++) {
+          for (int m=0; m<basis.num_basis; m++) { {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-12) );
             TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
             TEST_MSG("Produced: %.13e", phi_p[m]);
+	  }
 	  }
         }
       }
@@ -1509,8 +1557,11 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
           const double *phi_p  = gkyl_array_cfetch(phi, linidx);
-          for (int m=0; m<basis.num_basis; m++)
+          for (int m=0; m<basis.num_basis; m++) {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-10) );
+            TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
+            TEST_MSG("Produced: %.13e", phi_p[m]);
+	  }
         }
       }
     } else if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) &&
@@ -2405,6 +2456,24 @@ void gpu_test_1x_p1_dirichletx() {
   bc_tv.up_value[0].v[0] = 0.;
   test_1x(1, &cells[0], bc_tv, true);
 }
+void gpu_test_1x_p1_neumannx_dirichletx() {
+  int cells[] = {16};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_1x(1, &cells[0], bc_tv, true);
+}
+void gpu_test_1x_p1_dirichletx_neumannx() {
+  int cells[] = {16};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_1x(1, &cells[0], bc_tv, true);
+}
 
 void gpu_test_1x_p2_periodicx() {
   int cells[] = {8};
@@ -2418,6 +2487,24 @@ void gpu_test_1x_p2_dirichletx() {
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
   bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_1x(2, &cells[0], bc_tv, true);
+}
+void gpu_test_1x_p2_neumannx_dirichletx() {
+  int cells[] = {8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_1x(2, &cells[0], bc_tv, true);
+}
+void gpu_test_1x_p2_dirichletx_neumannx() {
+  int cells[] = {8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_NEUMANN;
   bc_tv.lo_value[0].v[0] = 0.;
   bc_tv.up_value[0].v[0] = 0.;
   test_1x(2, &cells[0], bc_tv, true);
@@ -2467,6 +2554,58 @@ void gpu_test_2x_p1_periodicx_dirichlety() {
   bc_tv.up_value[1].v[0] = 0.;
   test_2x(1, &cells[0], bc_tv, true);
 }
+void gpu_test_2x_p1_dirichletx_neumanny_dirichlety() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_NEUMANN;
+  bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
+  bc_tv.up_value[1].v[0] = 0.;
+  test_2x(1, &cells[0], bc_tv, true);
+}
+void gpu_test_2x_p1_dirichletx_dirichlety_neumanny() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[1] = GKYL_POISSON_NEUMANN;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
+  bc_tv.up_value[1].v[0] = 0.;
+  test_2x(1, &cells[0], bc_tv, true);
+}
+void gpu_test_2x_p1_neumannx_dirichletx_dirichlety() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
+  bc_tv.up_value[1].v[0] = 0.;
+  test_2x(1, &cells[0], bc_tv, true);
+}
+void gpu_test_2x_p1_dirichletx_neumannx_dirichlety() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.lo_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
+  bc_tv.up_value[1].v[0] = 0.;
+  test_2x(1, &cells[0], bc_tv, true);
+}
 
 void gpu_test_2x_p2_periodicx_periodicy() {
   int cells[] = {8,8};
@@ -2512,6 +2651,58 @@ void gpu_test_2x_p2_periodicx_dirichlety() {
   bc_tv.up_value[1].v[0] = 0.;
   test_2x(2, &cells[0], bc_tv, true);
 }
+void gpu_test_2x_p2_dirichletx_neumanny_dirichlety() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_NEUMANN;
+  bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
+  bc_tv.up_value[1].v[0] = 0.;
+  test_2x(2, &cells[0], bc_tv, true);
+}
+void gpu_test_2x_p2_dirichletx_dirichlety_neumanny() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[1] = GKYL_POISSON_NEUMANN;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
+  bc_tv.up_value[1].v[0] = 0.;
+  test_2x(2, &cells[0], bc_tv, true);
+}
+void gpu_test_2x_p2_neumannx_dirichletx_dirichlety() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
+  bc_tv.up_value[1].v[0] = 0.;
+  test_2x(2, &cells[0], bc_tv, true);
+}
+void gpu_test_2x_p2_dirichletx_neumannx_dirichlety() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.lo_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
+  bc_tv.up_value[1].v[0] = 0.;
+  test_2x(2, &cells[0], bc_tv, true);
+}
 #endif
 
 
@@ -2546,16 +2737,28 @@ TEST_LIST = {
   // 1x tests
   { "gpu_test_1x_p1_periodicx", gpu_test_1x_p1_periodicx },
   { "gpu_test_1x_p1_dirichletx", gpu_test_1x_p1_dirichletx },
+  { "gpu_test_1x_p1_neumannx_dirichletx", gpu_test_1x_p1_neumannx_dirichletx },
+  { "gpu_test_1x_p1_dirichletx_neumannx", gpu_test_1x_p1_dirichletx_neumannx },
   { "gpu_test_1x_p2_periodicx", gpu_test_1x_p2_periodicx },
   { "gpu_test_1x_p2_dirichletx", gpu_test_1x_p2_dirichletx },
+  { "gpu_test_1x_p2_neumannx_dirichletx", gpu_test_1x_p2_neumannx_dirichletx },
+  { "gpu_test_1x_p2_dirichletx_neumannx", gpu_test_1x_p2_dirichletx_neumannx },
   // 2x tests
   { "gpu_test_2x_p1_periodicx_periodicy", gpu_test_2x_p1_periodicx_periodicy },
   { "gpu_test_2x_p1_dirichletx_dirichlety", gpu_test_2x_p1_dirichletx_dirichlety },
   { "gpu_test_2x_p1_dirichletx_periodicy", gpu_test_2x_p1_dirichletx_periodicy },
   { "gpu_test_2x_p1_periodicx_dirichlety", gpu_test_2x_p1_periodicx_dirichlety },
+  { "gpu_test_2x_p1_dirichletx_neumanny_dirichlety", gpu_test_2x_p1_dirichletx_neumanny_dirichlety },
+  { "gpu_test_2x_p1_dirichletx_dirichlety_neumanny", gpu_test_2x_p1_dirichletx_dirichlety_neumanny },
+  { "gpu_test_2x_p1_neumannx_dirichletx_dirichlety", gpu_test_2x_p1_neumannx_dirichletx_dirichlety },
+  { "gpu_test_2x_p1_dirichletx_neumannx_dirichlety", gpu_test_2x_p1_dirichletx_neumannx_dirichlety },
   { "gpu_test_2x_p2_periodicx_periodicy", gpu_test_2x_p2_periodicx_periodicy },
   { "gpu_test_2x_p2_dirichletx_dirichlety", gpu_test_2x_p2_dirichletx_dirichlety },
   { "gpu_test_2x_p2_dirichletx_periodicy", gpu_test_2x_p2_dirichletx_periodicy },
+  { "gpu_test_2x_p2_dirichletx_neumanny_dirichlety", gpu_test_2x_p2_dirichletx_neumanny_dirichlety },
+  { "gpu_test_2x_p2_dirichletx_dirichlety_neumanny", gpu_test_2x_p2_dirichletx_dirichlety_neumanny },
+  { "gpu_test_2x_p2_neumannx_dirichletx_dirichlety", gpu_test_2x_p2_neumannx_dirichletx_dirichlety },
+  { "gpu_test_2x_p2_dirichletx_neumannx_dirichlety", gpu_test_2x_p2_dirichletx_neumannx_dirichlety },
 #endif
   { NULL, NULL },
 };
