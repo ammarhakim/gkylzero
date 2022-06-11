@@ -21,7 +21,7 @@ typedef struct gkyl_fem_poisson gkyl_fem_poisson;
 
 // Boundary condition types.
 enum gkyl_poisson_bc_type {
-  GKYL_POISSON_PERIODIC,
+  GKYL_POISSON_PERIODIC=0,
   GKYL_POISSON_DIRICHLET,  // sets the value. 
   GKYL_POISSON_NEUMANN,  // sets the slope normal to the boundary.
   GKYL_POISSON_ROBIN,  // a combination of dirichlet and neumann.

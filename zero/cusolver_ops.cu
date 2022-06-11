@@ -90,7 +90,7 @@ gkyl_cusolver_prob_new(const int mrow, const int ncol, const int nprob)
   //   singularity is -1 if A is invertible under tol
   //   tol determines the condition of singularity
   //   pivot_threshold decides pivoting strategy
-  prob->tol = 1.e-14;
+  prob->tol = 1.e-16;
   prob->pivot_threshold = 1.0;
   // Constants used in cusolverRf:
   prob->fact_alg = CUSOLVERRF_FACTORIZATION_ALG0; // default

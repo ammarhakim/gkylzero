@@ -215,6 +215,15 @@ install: all
 	cp -f inf/Vlasov.lua ${PREFIX}/gkylzero/lib/
 	cp -f inf/Moments.lua ${PREFIX}/gkylzero/lib/
 
+libinstall: ${BUILD_DIR}/${G0STLIB} ${BUILD_DIR}/${G0SHLIB}
+	$(MKDIR_P) ${PREFIX}/gkylzero/include
+	${MKDIR_P} ${PREFIX}/gkylzero/lib
+	${MKDIR_P} ${PREFIX}/gkylzero/bin
+	${MKDIR_P} ${PREFIX}/gkylzero/share
+	cp ${HEADERS} ${PREFIX}/gkylzero/include
+	cp -f ${BUILD_DIR}/${G0STLIB} ${PREFIX}/gkylzero/lib
+	cp -f ${BUILD_DIR}/${G0SHLIB} ${PREFIX}/gkylzero/lib
+
 clean:
 	rm -rf ${BUILD_DIR}
 
