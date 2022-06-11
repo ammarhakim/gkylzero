@@ -47,105 +47,6 @@ global_num_nodes(const int dim, const int poly_order, const int basis_type, cons
   return -1;
 }
 
-static void
-local_stiff(const int dim, const int poly_order, const int basis_type, const double *dx, struct gkyl_mat *stiffout)
-{
-  if (dim==1) {
-    if (poly_order == 1) {
-      fem_poisson_stiff_1x_ser_p1(dx,stiffout);
-    } else if (poly_order == 2) {
-      fem_poisson_stiff_1x_ser_p2(dx,stiffout);
-    }
-  } else if (dim==2) {
-    if (poly_order == 1) {
-      fem_poisson_stiff_2x_ser_p1(dx,stiffout);
-    } else if (poly_order == 2) {
-      fem_poisson_stiff_2x_ser_p2(dx,stiffout);
-    }
-  } else if (dim==3) {
-    assert(false);  // Other dimensionalities not supported.
-  }
-}
-
-static void
-local_mass_modtonod(const int dim, const int poly_order, const int basis_type, struct gkyl_mat *mass_mod2nod)
-{
-  if (dim==1) {
-    if (poly_order == 1) {
-      return fem_poisson_mass_times_modtonod_1x_ser_p1(mass_mod2nod);
-    } else if (poly_order == 2) {
-      return fem_poisson_mass_times_modtonod_1x_ser_p2(mass_mod2nod);
-//    } else if (poly_order == 3) {
-//      return fem_poisson_mass_times_modtonod_1x_ser_p3(mass_mod2nod);
-    }
-  } else if (dim==2) {
-    if (poly_order == 1) {
-      return fem_poisson_mass_times_modtonod_2x_ser_p1(mass_mod2nod);
-    } else if (poly_order == 2) {
-      return fem_poisson_mass_times_modtonod_2x_ser_p2(mass_mod2nod);
-//    } else if (poly_order == 3) {
-//      return fem_poisson_mass_times_modtonod_2x_ser_p3(mass_mod2nod);
-    }
-//  } else if (dim==3) {
-//    if (basis_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-//      if (poly_order == 1) {
-//        return fem_poisson_mass_times_modtonod_3x_ser_p1(mass_mod2nod);
-//      } else if (poly_order == 2) {
-//        return fem_poisson_mass_times_modtonod_3x_ser_p2(mass_mod2nod);
-//      } else if (poly_order == 3) {
-//        return fem_poisson_mass_times_modtonod_3x_ser_p3(mass_mod2nod);
-//      }
-//    } if (basis_type == GKYL_BASIS_MODAL_TENSOR) {
-//      if (poly_order == 1) {
-//        return fem_poisson_mass_times_modtonod_3x_tensor_p1(mass_mod2nod);
-//      } else if (poly_order == 2) {
-//        return fem_poisson_mass_times_modtonod_3x_tensor_p2(mass_mod2nod);
-//      }
-//    }
-  }
-  assert(false);  // Other dimensionalities not supported.
-}
-
-static void
-local_nodtomod(const int dim, const int poly_order, const int basis_type, struct gkyl_mat *nod2mod)
-{
-  if (dim==1) {
-    if (poly_order == 1) {
-      return fem_poisson_nodtomod_1x_ser_p1(nod2mod);
-    } else if (poly_order == 2) {
-      return fem_poisson_nodtomod_1x_ser_p2(nod2mod);
-//    } else if (poly_order == 3) {
-//      return fem_poisson_nodtomod_1x_ser_p3(nod2mod);
-    }
-  } else if (dim==2) {
-    if (poly_order == 1) {
-      return fem_poisson_nodtomod_2x_ser_p1(nod2mod);
-    } else if (poly_order == 2) {
-      return fem_poisson_nodtomod_2x_ser_p2(nod2mod);
-//    } else if (poly_order == 3) {
-//      return fem_poisson_nodtomod_2x_ser_p3(nod2mod);
-    }
-//  } else if (dim==3) {
-//    if (basis_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-//      if (poly_order == 1) {
-//        return fem_poisson_nodtomod_3x_ser_p1(nod2mod);
-//      } else if (poly_order == 2) {
-//        return fem_poisson_nodtomod_3x_ser_p2(nod2mod);
-//      } else if (poly_order == 3) {
-//        return fem_poisson_nodtomod_3x_ser_p3(nod2mod);
-//      }
-//    } if (basis_type == GKYL_BASIS_MODAL_TENSOR) {
-//      if (poly_order == 1) {
-//        return fem_poisson_nodtomod_3x_tensor_p1(nod2mod);
-//      } else if (poly_order == 2) {
-//        return fem_poisson_nodtomod_3x_tensor_p2(nod2mod);
-//      }
-//    }
-  }
-  assert(false);  // Other dimensionalities not supported.
-}
-
-
 gkyl_fem_poisson*
 gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
   struct gkyl_poisson_bc bcs, const double epsilon, void *ctx, bool use_gpu)
@@ -240,14 +141,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->numnodes_local = up->num_basis;
   up->numnodes_global = global_num_nodes(up->ndim, up->poly_order, basis.b_type, up->num_cells, up->isdirperiodic);
 
-  // Create local matrices used later.
-  for (int d=0; d<up->ndim; d++) up->dx[d] = up->grid.dx[d];
-  up->local_stiff = gkyl_mat_new(up->numnodes_local, up->numnodes_local, 0.);
-  up->local_mass_modtonod = gkyl_mat_new(up->numnodes_local, up->numnodes_local, 0.);
-  up->local_nodtomod = gkyl_mat_new(up->numnodes_local, up->numnodes_local, 0.);
-  local_stiff(up->ndim, up->poly_order, basis.b_type, up->dx, up->local_stiff);
-  local_mass_modtonod(up->ndim, up->poly_order, basis.b_type, up->local_mass_modtonod);
-  local_nodtomod(up->ndim, up->poly_order, basis.b_type, up->local_nodtomod);
+  for (int d=0; d<up->ndim; d++) up->dx[d] = up->grid.dx[d];  // Cell lengths.
 
   up->brhs = gkyl_array_new(GKYL_DOUBLE, 1, up->numnodes_global); // Global right side vector.
 
@@ -412,9 +306,6 @@ void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
   gkyl_superlu_prob_release(up->prob);
 #endif
 
-  gkyl_mat_release(up->local_stiff);
-  gkyl_mat_release(up->local_mass_modtonod);
-  gkyl_mat_release(up->local_nodtomod);
   gkyl_free(up->globalidx);
   gkyl_free(up->brhs);
   gkyl_free(up->kernels);

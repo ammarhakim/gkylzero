@@ -422,9 +422,6 @@ struct gkyl_fem_poisson {
   long *globalidx_cu;
   struct gkyl_array *brhs_cu;
 #endif
-  struct gkyl_mat *local_stiff; // local stiffness matrix.
-  struct gkyl_mat *local_mass_modtonod; // local mass matrix times modal-to-nodal matrix.
-  struct gkyl_mat *local_nodtomod; // local nodal-to-modal matrix.
 
   long *globalidx;
 

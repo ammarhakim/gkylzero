@@ -17,10 +17,6 @@ EXTERN_C_BEG
 long fem_poisson_num_nodes_global_1x_ser_p1_periodicx(const int *numCells);
 long fem_poisson_num_nodes_global_1x_ser_p1_nonperiodicx(const int *numCells);
 
-GKYL_CU_DH void fem_poisson_stiff_1x_ser_p1(const double *dx, struct gkyl_mat *matout);
-GKYL_CU_DH void fem_poisson_mass_times_modtonod_1x_ser_p1(struct gkyl_mat *matout);
-GKYL_CU_DH void fem_poisson_nodtomod_1x_ser_p1(struct gkyl_mat *matout);
-
 GKYL_CU_DH void fem_poisson_local_to_global_1x_ser_p1_inx_periodicx(const int *numCells, const int *idx, long *globalIdxs);
 GKYL_CU_DH void fem_poisson_local_to_global_1x_ser_p1_inx_nonperiodicx(const int *numCells, const int *idx, long *globalIdxs);
 GKYL_CU_DH void fem_poisson_local_to_global_1x_ser_p1_upx_periodicx(const int *numCells, const int *idx, long *globalIdxs);
@@ -52,10 +48,6 @@ long fem_poisson_num_nodes_global_2x_ser_p1_periodicx_periodicy(const int *numCe
 long fem_poisson_num_nodes_global_2x_ser_p1_periodicx_nonperiodicy(const int *numCells);
 long fem_poisson_num_nodes_global_2x_ser_p1_nonperiodicx_periodicy(const int *numCells);
 long fem_poisson_num_nodes_global_2x_ser_p1_nonperiodicx_nonperiodicy(const int *numCells);
-
-GKYL_CU_DH void fem_poisson_stiff_2x_ser_p1(const double *dx, struct gkyl_mat *matout);
-GKYL_CU_DH void fem_poisson_mass_times_modtonod_2x_ser_p1(struct gkyl_mat *matout);
-GKYL_CU_DH void fem_poisson_nodtomod_2x_ser_p1(struct gkyl_mat *matout);
 
 GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p1_inx_periodicx_iny_periodicy(const int *numCells, const int *idx, long *globalIdxs);
 GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p1_inx_periodicx_iny_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs);
@@ -248,10 +240,6 @@ long fem_poisson_num_nodes_global_3x_ser_p1_nonperiodicx_periodicy_periodicz(con
 long fem_poisson_num_nodes_global_3x_ser_p1_nonperiodicx_periodicy_nonperiodicz(const int *numCells);
 long fem_poisson_num_nodes_global_3x_ser_p1_nonperiodicx_nonperiodicy_periodicz(const int *numCells);
 long fem_poisson_num_nodes_global_3x_ser_p1_nonperiodicx_nonperiodicy_nonperiodicz(const int *numCells);
-
-GKYL_CU_DH void fem_poisson_stiff_3x_ser_p1(const double *dx, struct gkyl_mat *matout);
-GKYL_CU_DH void fem_poisson_mass_times_modtonod_3x_ser_p1(struct gkyl_mat *matout);
-GKYL_CU_DH void fem_poisson_nodtomod_3x_ser_p1(struct gkyl_mat *matout);
 
 GKYL_CU_DH void fem_poisson_local_to_global_3x_ser_p1_inx_periodicx_iny_periodicy_inz_periodicz(const int *numCells, const int *idx, long *globalIdxs);
 GKYL_CU_DH void fem_poisson_local_to_global_3x_ser_p1_inx_periodicx_iny_periodicy_inz_nonperiodicz(const int *numCells, const int *idx, long *globalIdxs);
@@ -1784,10 +1772,6 @@ GKYL_CU_DH void fem_poisson_sol_stencil_3x_ser_p1(const double *sol_nodal_global
 long fem_poisson_num_nodes_global_1x_ser_p2_periodicx(const int *numCells);
 long fem_poisson_num_nodes_global_1x_ser_p2_nonperiodicx(const int *numCells);
 
-GKYL_CU_DH void fem_poisson_stiff_1x_ser_p2(const double *dx, struct gkyl_mat *matout);
-GKYL_CU_DH void fem_poisson_mass_times_modtonod_1x_ser_p2(struct gkyl_mat *matout);
-GKYL_CU_DH void fem_poisson_nodtomod_1x_ser_p2(struct gkyl_mat *matout);
-
 GKYL_CU_DH void fem_poisson_local_to_global_1x_ser_p2_inx_periodicx(const int *numCells, const int *idx, long *globalIdxs);
 GKYL_CU_DH void fem_poisson_local_to_global_1x_ser_p2_inx_nonperiodicx(const int *numCells, const int *idx, long *globalIdxs);
 GKYL_CU_DH void fem_poisson_local_to_global_1x_ser_p2_upx_periodicx(const int *numCells, const int *idx, long *globalIdxs);
@@ -1819,10 +1803,6 @@ long fem_poisson_num_nodes_global_2x_ser_p2_periodicx_periodicy(const int *numCe
 long fem_poisson_num_nodes_global_2x_ser_p2_periodicx_nonperiodicy(const int *numCells);
 long fem_poisson_num_nodes_global_2x_ser_p2_nonperiodicx_periodicy(const int *numCells);
 long fem_poisson_num_nodes_global_2x_ser_p2_nonperiodicx_nonperiodicy(const int *numCells);
-
-GKYL_CU_DH void fem_poisson_stiff_2x_ser_p2(const double *dx, struct gkyl_mat *matout);
-GKYL_CU_DH void fem_poisson_mass_times_modtonod_2x_ser_p2(struct gkyl_mat *matout);
-GKYL_CU_DH void fem_poisson_nodtomod_2x_ser_p2(struct gkyl_mat *matout);
 
 GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_iny_periodicy(const int *numCells, const int *idx, long *globalIdxs);
 GKYL_CU_DH void fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_iny_nonperiodicy(const int *numCells, const int *idx, long *globalIdxs);
@@ -2015,10 +1995,6 @@ long fem_poisson_num_nodes_global_3x_ser_p2_nonperiodicx_periodicy_periodicz(con
 long fem_poisson_num_nodes_global_3x_ser_p2_nonperiodicx_periodicy_nonperiodicz(const int *numCells);
 long fem_poisson_num_nodes_global_3x_ser_p2_nonperiodicx_nonperiodicy_periodicz(const int *numCells);
 long fem_poisson_num_nodes_global_3x_ser_p2_nonperiodicx_nonperiodicy_nonperiodicz(const int *numCells);
-
-GKYL_CU_DH void fem_poisson_stiff_3x_ser_p2(const double *dx, struct gkyl_mat *matout);
-GKYL_CU_DH void fem_poisson_mass_times_modtonod_3x_ser_p2(struct gkyl_mat *matout);
-GKYL_CU_DH void fem_poisson_nodtomod_3x_ser_p2(struct gkyl_mat *matout);
 
 GKYL_CU_DH void fem_poisson_local_to_global_3x_ser_p2_inx_periodicx_iny_periodicy_inz_periodicz(const int *numCells, const int *idx, long *globalIdxs);
 GKYL_CU_DH void fem_poisson_local_to_global_3x_ser_p2_inx_periodicx_iny_periodicy_inz_nonperiodicz(const int *numCells, const int *idx, long *globalIdxs);
