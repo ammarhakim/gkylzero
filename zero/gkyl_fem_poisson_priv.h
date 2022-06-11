@@ -208,7 +208,7 @@ static const lhsstencil_kern_bcx_list_2x ser_lhsstencil_list_2x[] = {
 };
 
 // Function pointer type for rhs source kernels.
-typedef void (*srcstencil_t)(const double *rho, const double *bcVals, const long *globalIdxs,
+typedef void (*srcstencil_t)(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs,
   double *bsrc);
 
 // For use in kernel tables.
@@ -390,7 +390,13 @@ struct gkyl_fem_poisson {
   int poly_order;
   struct gkyl_basis basis;
   int num_cells[POISSON_MAX_DIM];
+  double dx[POISSON_MAX_DIM];
+#ifdef GKYL_HAVE_CUDA
+  double *dx_cu;
+#endif
   bool isdirperiodic[POISSON_MAX_DIM]; // =true if direction is periodic.
+
+  double epsilon; // permittivity.
 
   bool isdomperiodic; // =true if all directions are periodic.
   struct gkyl_array *rhs_cellavg;

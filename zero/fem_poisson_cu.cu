@@ -119,7 +119,7 @@ choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_poisson_bc* 
 }
 
 __global__ void
-gkyl_fem_poisson_set_rhs_kernel(double *rhs_global, struct gkyl_array *rhs_local, struct gkyl_range range, double *bcvals, struct gkyl_fem_poisson_kernels *kers)
+gkyl_fem_poisson_set_rhs_kernel(double epsilon, const double *dx, double *rhs_global, struct gkyl_array *rhs_local, struct gkyl_range range, double *bcvals, struct gkyl_fem_poisson_kernels *kers)
 {
   int idx[GKYL_MAX_DIM];
   int idx0[GKYL_MAX_DIM];
@@ -151,7 +151,7 @@ gkyl_fem_poisson_set_rhs_kernel(double *rhs_global, struct gkyl_array *rhs_local
     // Apply the RHS source stencil. It's mostly the mass matrix times a
     // modal-to-nodal operator times the source, modified by BCs in skin cells.
     keri = idx_to_inloup_ker(range.ndim, num_cells, idx);
-    kers->srcker[keri](local_d, bcvals, globalidx, rhs_global);
+    kers->srcker[keri](epsilon, dx, local_d, bcvals, globalidx, rhs_global);
   }
 }
 
@@ -196,7 +196,7 @@ gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
 {
   double *rhs_cu = gkyl_cusolver_get_rhs_ptr(up->prob_cu, 0);
   gkyl_cu_memset(rhs_cu, 0, sizeof(double)*up->numnodes_global);
-  gkyl_fem_poisson_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(rhs_cu, rhsin->on_dev, up->solve_range, up->bcvals_cu, up->kernels_cu); 
+  gkyl_fem_poisson_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(up->epsilon, up->dx_cu, rhs_cu, rhsin->on_dev, up->solve_range, up->bcvals_cu, up->kernels_cu); 
 }	
 
 void

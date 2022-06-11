@@ -47,105 +47,6 @@ global_num_nodes(const int dim, const int poly_order, const int basis_type, cons
   return -1;
 }
 
-static void
-local_stiff(const int dim, const int poly_order, const int basis_type, const double *dx, struct gkyl_mat *stiffout)
-{
-  if (dim==1) {
-    if (poly_order == 1) {
-      fem_poisson_stiff_1x_ser_p1(dx,stiffout);
-    } else if (poly_order == 2) {
-      fem_poisson_stiff_1x_ser_p2(dx,stiffout);
-    }
-  } else if (dim==2) {
-    if (poly_order == 1) {
-      fem_poisson_stiff_2x_ser_p1(dx,stiffout);
-    } else if (poly_order == 2) {
-      fem_poisson_stiff_2x_ser_p2(dx,stiffout);
-    }
-  } else if (dim==3) {
-    assert(false);  // Other dimensionalities not supported.
-  }
-}
-
-static void
-local_mass_modtonod(const int dim, const int poly_order, const int basis_type, struct gkyl_mat *mass_mod2nod)
-{
-  if (dim==1) {
-    if (poly_order == 1) {
-      return fem_poisson_mass_times_modtonod_1x_ser_p1(mass_mod2nod);
-    } else if (poly_order == 2) {
-      return fem_poisson_mass_times_modtonod_1x_ser_p2(mass_mod2nod);
-//    } else if (poly_order == 3) {
-//      return fem_poisson_mass_times_modtonod_1x_ser_p3(mass_mod2nod);
-    }
-  } else if (dim==2) {
-    if (poly_order == 1) {
-      return fem_poisson_mass_times_modtonod_2x_ser_p1(mass_mod2nod);
-    } else if (poly_order == 2) {
-      return fem_poisson_mass_times_modtonod_2x_ser_p2(mass_mod2nod);
-//    } else if (poly_order == 3) {
-//      return fem_poisson_mass_times_modtonod_2x_ser_p3(mass_mod2nod);
-    }
-//  } else if (dim==3) {
-//    if (basis_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-//      if (poly_order == 1) {
-//        return fem_poisson_mass_times_modtonod_3x_ser_p1(mass_mod2nod);
-//      } else if (poly_order == 2) {
-//        return fem_poisson_mass_times_modtonod_3x_ser_p2(mass_mod2nod);
-//      } else if (poly_order == 3) {
-//        return fem_poisson_mass_times_modtonod_3x_ser_p3(mass_mod2nod);
-//      }
-//    } if (basis_type == GKYL_BASIS_MODAL_TENSOR) {
-//      if (poly_order == 1) {
-//        return fem_poisson_mass_times_modtonod_3x_tensor_p1(mass_mod2nod);
-//      } else if (poly_order == 2) {
-//        return fem_poisson_mass_times_modtonod_3x_tensor_p2(mass_mod2nod);
-//      }
-//    }
-  }
-  assert(false);  // Other dimensionalities not supported.
-}
-
-static void
-local_nodtomod(const int dim, const int poly_order, const int basis_type, struct gkyl_mat *nod2mod)
-{
-  if (dim==1) {
-    if (poly_order == 1) {
-      return fem_poisson_nodtomod_1x_ser_p1(nod2mod);
-    } else if (poly_order == 2) {
-      return fem_poisson_nodtomod_1x_ser_p2(nod2mod);
-//    } else if (poly_order == 3) {
-//      return fem_poisson_nodtomod_1x_ser_p3(nod2mod);
-    }
-  } else if (dim==2) {
-    if (poly_order == 1) {
-      return fem_poisson_nodtomod_2x_ser_p1(nod2mod);
-    } else if (poly_order == 2) {
-      return fem_poisson_nodtomod_2x_ser_p2(nod2mod);
-//    } else if (poly_order == 3) {
-//      return fem_poisson_nodtomod_2x_ser_p3(nod2mod);
-    }
-//  } else if (dim==3) {
-//    if (basis_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-//      if (poly_order == 1) {
-//        return fem_poisson_nodtomod_3x_ser_p1(nod2mod);
-//      } else if (poly_order == 2) {
-//        return fem_poisson_nodtomod_3x_ser_p2(nod2mod);
-//      } else if (poly_order == 3) {
-//        return fem_poisson_nodtomod_3x_ser_p3(nod2mod);
-//      }
-//    } if (basis_type == GKYL_BASIS_MODAL_TENSOR) {
-//      if (poly_order == 1) {
-//        return fem_poisson_nodtomod_3x_tensor_p1(nod2mod);
-//      } else if (poly_order == 2) {
-//        return fem_poisson_nodtomod_3x_tensor_p2(nod2mod);
-//      }
-//    }
-  }
-  assert(false);  // Other dimensionalities not supported.
-}
-
-
 gkyl_fem_poisson*
 gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
   struct gkyl_poisson_bc *bcs, const double epsilon, bool use_gpu)
@@ -169,11 +70,12 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->basis = basis;
   up->use_gpu = use_gpu;
 
+  up->epsilon = epsilon;
+
   up->globalidx = gkyl_malloc(sizeof(long[up->num_basis])); // global index, one for each basis in a cell.
 
   // Local and local-ext ranges for whole-grid arrays.
-  int ghost[POISSON_MAX_DIM];
-  for (int d=0; d<up->ndim; d++) ghost[d] = 1;
+  int ghost[] = { 1, 1 };
   gkyl_create_grid_ranges(grid, ghost, &up->local_range_ext, &up->local_range);
   // Range of cells we'll solve Poisson in, as
   // a sub-range of up->local_range_ext.
@@ -237,9 +139,13 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->numnodes_local = up->num_basis;
   up->numnodes_global = global_num_nodes(up->ndim, up->poly_order, basis.b_type, up->num_cells, up->isdirperiodic);
 
-  // Create local matrices used later.
-  double dx[POISSON_MAX_DIM];
-  for (int d=0; d<up->ndim; d++) dx[d] = up->grid.dx[d];
+  for (int d=0; d<up->ndim; d++) up->dx[d] = up->grid.dx[d];  // Cell lengths.
+#ifdef GKYL_HAVE_CUDA
+  if(up->use_gpu) {
+    up->dx_cu = (double *) gkyl_cu_malloc(sizeof(double[POISSON_MAX_DIM]));
+    gkyl_cu_memcpy(up->dx_cu, up->dx, sizeof(double[POISSON_MAX_DIM]), GKYL_CU_MEMCPY_H2D);
+  }
+#endif
 
   up->brhs = gkyl_array_new(GKYL_DOUBLE, 1, up->numnodes_global); // Global right side vector.
 
@@ -256,8 +162,8 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->kernels->solker = choose_sol_kernels(&basis);
 
 #ifdef GKYL_HAVE_CUDA
-  if(up->use_gpu) {
-    choose_kernels_cu(&basis, bcs, up->isdirperiodic, up->kernels_cu);
+  if (up->use_gpu) {
+    choose_kernels_cu(&basis, bcs,  up->isdirperiodic, up->kernels_cu);
   }
 #endif
 
@@ -288,7 +194,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 
     // Apply the -epsilon*nabla^2 stencil.
     keri = idx_to_inloup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
-    up->kernels->lhsker[keri](epsilon, dx, up->bcvals, up->globalidx, tri);
+    up->kernels->lhsker[keri](epsilon, up->dx, up->bcvals, up->globalidx, tri);
   }
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -311,6 +217,7 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
 
   if (up->isdomperiodic) {
     // Subtract the volume averaged RHS from the RHS.
+    gkyl_array_clear(up->rhs_cellavg, 0.0);
     gkyl_dg_calc_average_range(up->basis, 0, up->rhs_cellavg, 0, rhsin, up->solve_range);
 #ifdef GKYL_HAVE_CUDA
     if (up->use_gpu) {
@@ -352,7 +259,7 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
     // Apply the RHS source stencil. It's mostly the mass matrix times a
     // modal-to-nodal operator times the source, modified by BCs in skin cells.
     keri = idx_to_inloup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
-    up->kernels->srcker[keri](rhsin_p, up->bcvals, up->globalidx, brhs_p);
+    up->kernels->srcker[keri](up->epsilon, up->dx, rhsin_p, up->bcvals, up->globalidx, brhs_p);
   }
 
   gkyl_superlu_brhs_from_array(up->prob, brhs_p);
@@ -365,6 +272,15 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout) {
   if (up->use_gpu) {
     assert(gkyl_array_is_cu_dev(phiout));
     gkyl_fem_poisson_solve_cu(up, phiout);
+
+//    if (up->isdomperiodic) {
+//      // Subtract the volume averaged RHS from the RHS.
+//      gkyl_array_clear(up->rhs_cellavg, 0.0);
+//      gkyl_dg_calc_average_range(up->basis, 0, up->rhs_cellavg, 0, phiout, up->solve_range);
+//      gkyl_array_reduce_range(up->rhs_avg_cu, up->rhs_cellavg, GKYL_SUM, up->solve_range);
+//      gkyl_cu_memcpy(up->rhs_avg, up->rhs_avg_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
+//      gkyl_array_shiftc0(phiout, up->mavgfac*up->rhs_avg[0]);
+//    }
     return;
   }
 #endif
@@ -387,14 +303,26 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout) {
 
   }
 
+//  if (up->isdomperiodic) {
+//    // Subtract the volume averaged RHS from the RHS.
+//    gkyl_dg_calc_average_range(up->basis, 0, up->rhs_cellavg, 0, phiout, up->solve_range);
+//    gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->solve_range);
+//    gkyl_array_shiftc0(phiout, up->mavgfac*up->rhs_avg[0]);
+//  }
+
 }
 
 void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
 {
-  if (up->isdomperiodic) gkyl_array_release(up->rhs_cellavg);
+  if (up->isdomperiodic) {
+    gkyl_array_release(up->rhs_cellavg);
+    gkyl_free(up->rhs_avg);
+  }
 #ifdef GKYL_HAVE_CUDA
   gkyl_cu_free(up->kernels_cu);
   if (up->use_gpu) {
+    gkyl_cu_free(up->dx_cu);
+    if (up->isdomperiodic) gkyl_cu_free(up->rhs_avg_cu);
     gkyl_cu_free(up->bcvals_cu);
     gkyl_cusolver_prob_release(up->prob_cu);
   } else {
