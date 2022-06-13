@@ -31,8 +31,13 @@ LAPACK_LIB = ${HOME}/gkylsoft/OpenBLAS/lib/libopenblas.a
 
 # SuperLU includes and librararies
 SUPERLU_INC = ${HOME}/gkylsoft/superlu/include
-SUPERLU_LIB_DIR = ${HOME}/gkylsoft/superlu/lib
-SUPERLU_LIB = ${HOME}/gkylsoft/superlu/lib/libsuperlu.a
+ifeq ($(UNAME_S),Linux)
+	SUPERLU_LIB_DIR = ${HOME}/gkylsoft/superlu/lib64
+	SUPERLU_LIB = ${HOME}/gkylsoft/superlu/lib64/libsuperlu.a
+else
+	SUPERLU_LIB_DIR = ${HOME}/gkylsoft/superlu/lib
+	SUPERLU_LIB = ${HOME}/gkylsoft/superlu/lib/libsuperlu.a
+endif
 
 # list of includes from kernels
 KERN_INC_DIRS = $(shell find $(SRC_DIRS) -type d)
@@ -122,6 +127,10 @@ $(BUILD_DIR)/kernels/basis/%.c.o : kernels/basis/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
+$(BUILD_DIR)/kernels/fem_poisson/%.c.o : kernels/fem_poisson/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
 endif
 
 # List of source files
@@ -205,6 +214,15 @@ install: all
 	cp -f ${BUILD_DIR}/regression/rt_vlasov_kerntm ${PREFIX}/gkylzero/bin/
 	cp -f inf/Vlasov.lua ${PREFIX}/gkylzero/lib/
 	cp -f inf/Moments.lua ${PREFIX}/gkylzero/lib/
+
+libinstall: ${BUILD_DIR}/${G0STLIB} ${BUILD_DIR}/${G0SHLIB}
+	$(MKDIR_P) ${PREFIX}/gkylzero/include
+	${MKDIR_P} ${PREFIX}/gkylzero/lib
+	${MKDIR_P} ${PREFIX}/gkylzero/bin
+	${MKDIR_P} ${PREFIX}/gkylzero/share
+	cp ${HEADERS} ${PREFIX}/gkylzero/include
+	cp -f ${BUILD_DIR}/${G0STLIB} ${PREFIX}/gkylzero/lib
+	cp -f ${BUILD_DIR}/${G0SHLIB} ${PREFIX}/gkylzero/lib
 
 clean:
 	rm -rf ${BUILD_DIR}

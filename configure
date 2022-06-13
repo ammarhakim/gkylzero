@@ -14,7 +14,11 @@ LAPACK_LIB=${HOME}/gkylsoft/OpenBLAS/lib/libopenblas.a
 
 # SuperLU includes and librararies
 SUPERLU_INC=${HOME}/gkylsoft/superlu/include
-SUPERLU_LIB=${HOME}/gkylsoft/superlu/lib/libsuperlu.a
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    SUPERLU_LIB=${HOME}/gkylsoft/superlu/lib64/libsuperlu.a;
+else
+    SUPERLU_LIB=${HOME}/gkylsoft/superlu/lib/libsuperlu.a;
+fi
 
 # ----------------------------------------------------------------------------
 # Function definitions
