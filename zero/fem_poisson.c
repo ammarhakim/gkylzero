@@ -273,14 +273,14 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout) {
     assert(gkyl_array_is_cu_dev(phiout));
     gkyl_fem_poisson_solve_cu(up, phiout);
 
-//    if (up->isdomperiodic) {
-//      // Subtract the volume averaged RHS from the RHS.
-//      gkyl_array_clear(up->rhs_cellavg, 0.0);
-//      gkyl_dg_calc_average_range(up->basis, 0, up->rhs_cellavg, 0, phiout, up->solve_range);
-//      gkyl_array_reduce_range(up->rhs_avg_cu, up->rhs_cellavg, GKYL_SUM, up->solve_range);
-//      gkyl_cu_memcpy(up->rhs_avg, up->rhs_avg_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
-//      gkyl_array_shiftc0(phiout, up->mavgfac*up->rhs_avg[0]);
-//    }
+    if (up->isdomperiodic) {
+      // Subtract the volume averaged phi from phi.
+      gkyl_array_clear(up->rhs_cellavg, 0.0);
+      gkyl_dg_calc_average_range(up->basis, 0, up->rhs_cellavg, 0, phiout, up->solve_range);
+      gkyl_array_reduce_range(up->rhs_avg_cu, up->rhs_cellavg, GKYL_SUM, up->solve_range);
+      gkyl_cu_memcpy(up->rhs_avg, up->rhs_avg_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
+      gkyl_array_shiftc0(phiout, up->mavgfac*up->rhs_avg[0]);
+    }
     return;
   }
 #endif
@@ -303,12 +303,12 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout) {
 
   }
 
-//  if (up->isdomperiodic) {
-//    // Subtract the volume averaged RHS from the RHS.
-//    gkyl_dg_calc_average_range(up->basis, 0, up->rhs_cellavg, 0, phiout, up->solve_range);
-//    gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->solve_range);
-//    gkyl_array_shiftc0(phiout, up->mavgfac*up->rhs_avg[0]);
-//  }
+  if (up->isdomperiodic) {
+    // Subtract the volume averaged phi from phi.
+    gkyl_dg_calc_average_range(up->basis, 0, up->rhs_cellavg, 0, phiout, up->solve_range);
+    gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->solve_range);
+    gkyl_array_shiftc0(phiout, up->mavgfac*up->rhs_avg[0]);
+  }
 
 }
 
