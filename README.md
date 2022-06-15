@@ -81,8 +81,8 @@ cd install-deps
 
 This will install OpenBLAS and SuperLU in the $HOME/gkylsoft
 directory. Note that OpenBLAS **requires you to have gfortran**
-installed. **You** are responsible for installing this on your
-machine.
+installed. Likewise, SuperLU **requires you to have cmake** installed.
+**You** are responsible for installing this on your machine.
 
 # Building Using Machine Files
 
