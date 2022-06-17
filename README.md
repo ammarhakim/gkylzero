@@ -27,8 +27,51 @@ configure help.
    ./configure --help
 ```
 
+# Building dependencies
+
+Some parts of GkeyllZero rely on presence of LAPACK and BLAS. Note
+that on Macs you do not need to do anything special to use LAPACK/BLAS
+as it comes with the developer tools. GkeyllZero also relies on
+SuperLU for sparse, direct linear solvers.
+
+To install these yourself please use the mkdep.sh script to do so.
+From the top-level directory do:
+```
+cd install-deps
+./mkdeps.sh --build-openblas=yes --build-superlu=yes
+```
+
+This will install OpenBLAS and SuperLU in the $HOME/gkylsoft
+directory. Note that OpenBLAS **requires you to have gfortran**
+installed. Likewise, SuperLU **requires you to have cmake** installed.
+**You** are responsible for installing this on your machine.
+
+# Building Using Machine Files
+
+We have provided a set of "machine files" to ease the build
+process. These are stored in the machines directory. For example, to
+build on Traverse please run
+```
+./machines/mkdeps.traverse.sh
+./machines/configure.traverse.sh
+```
+After this is completed then just type:
+```
+make -j
+```
+
+Note: On Traverse and Stellar-amd you need to load cudatoolkit/11.6. 
+
+# Building on your own machine
+
 If you are on your own machine please use the mkdeps.sh shell-script
-to install dependencies and then follow these instructions.
+in the install-deps directory
+```
+   cd install-deps
+   ./mkdeps.sh --build-openblas=yes --build-superlu=yes
+```
+to install dependencies. We have also included a number of pre-packaged
+configure.[machine].sh and mkdeps.[machine].sh scripts in the machines directory.
 
 Clone this repo and then optionally run the configure script to set the
 compiler you wish to use and the various paths to the
@@ -64,41 +107,6 @@ Note that GkeyllZero is meant to be used as a *library*. You can use
 it to create your own "app" for your particular problem. See that
 various "app_*.c" files for examples. Full documentation is available
 on the RTFD website linked above.
-
-# Building dependencies
-
-Some parts of GkeyllZero rely on presence of LAPACK and BLAS. Note
-that on Macs you do not need to do anything special to use LAPACK/BLAS
-as it comes with the developer tools. GkeyllZero also relies on
-SuperLU for sparse, direct linear solvers.
-
-To install these yourself please use the mkdep.sh script to do so.
-From the top-level directory do:
-```
-cd install-deps
-./mkdeps.sh --build-openblas=yes --build-superlu=yes
-```
-
-This will install OpenBLAS and SuperLU in the $HOME/gkylsoft
-directory. Note that OpenBLAS **requires you to have gfortran**
-installed. Likewise, SuperLU **requires you to have cmake** installed.
-**You** are responsible for installing this on your machine.
-
-# Building Using Machine Files
-
-We have provided a set of "machine files" to ease the build
-process. These are stored in the machines directory. For example, to
-build on Traverse please run
-```
-./machines/mkdeps.traverse.sh
-./machines/configure.traverse.sh
-```
-After this is completed then just type:
-```
-make -j
-```
-
-Note: On Traverse and Stellar-amd you need to load cudatoolkit/11.6. 
 
 
 # Developing for GkeyllZero
