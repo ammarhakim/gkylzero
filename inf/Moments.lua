@@ -69,6 +69,7 @@ enum gkyl_collision_id {
 enum gkyl_species_bc_type {
   GKYL_SPECIES_COPY = 0, // copy BCs
   GKYL_SPECIES_WALL, // perfect reflector
+  GKYL_SPECIES_ABSORB, // absorbing BCs
   GKYL_SPECIES_WEDGE, // specialized "wedge" BCs for RZ-theta
 };
 
