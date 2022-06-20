@@ -65,24 +65,31 @@ main(int argc, char **argv)
   }
   struct free_stream_ctx ctx = create_ctx(); // context for init functions
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 32);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 16);
   
-  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 12);
-  int VY = APP_ARGS_CHOOSE(app_args.vcells[1], 12);
-  int VZ = APP_ARGS_CHOOSE(app_args.vcells[2], 12);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 8);
+  int VY = APP_ARGS_CHOOSE(app_args.vcells[1], 8);
+  int VZ = APP_ARGS_CHOOSE(app_args.vcells[2], 8);
 
   // electrons
   struct gkyl_vlasov_species neut = {
     .name = "neut",
-    .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -6.0*ctx.vt, -6.0*ctx.vt, -6.0*ctx.vt},
-    .upper = { 6.0*ctx.vt, 6.0*ctx.vt, 6.0*ctx.vt}, 
-    .cells = { VX, VY, VZ },
+    .charge = ctx.charge,
+    .mass = ctx.mass,
+    .lower = {-6.0 * ctx.vt, -6.0 * ctx.vt, -6.0 * ctx.vt},
+    .upper = {6.0 * ctx.vt, 6.0 * ctx.vt, 6.0 * ctx.vt},
+    .cells = {VX, VY, VZ},
 
     .ctx = &ctx,
     .init = evalDistFunc,
-    .nu = evalNu,
-    .collision_id = GKYL_LBO_COLLISIONS,
+
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+
+      .ctx = &ctx,
+      .self_nu = evalNu,
+    },    
+
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
   };
@@ -112,7 +119,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.05;
+  double tcurr = 0.0, tend = 0.1;
   double dt = tend-tcurr;
 
   // initialize simulation

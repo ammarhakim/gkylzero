@@ -57,8 +57,8 @@ gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const stru
   }
   mom_bcorr->momt.num_mom = vdim+1; // number of moments
 
-  mom_bcorr->momt.flag = 0;
-  GKYL_SET_CU_ALLOC(mom_bcorr->momt.flag);
+  mom_bcorr->momt.flags = 0;
+  GKYL_SET_CU_ALLOC(mom_bcorr->momt.flags);
   mom_bcorr->momt.ref_count = gkyl_ref_count_init(gkyl_mom_free);
 
   // copy struct to device

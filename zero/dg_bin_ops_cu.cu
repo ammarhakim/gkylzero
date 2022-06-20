@@ -15,20 +15,6 @@ extern "C" {
 // start ID for use in various loops
 #define START_ID (threadIdx.x + blockIdx.x*blockDim.x)
 
-static void
-gkyl_get_array_range_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gkyl_range range)
-{
-  int volume = range.volume;
-  int ndim = range.ndim;
-  // ac1 = size of last dimension of range (fastest moving dimension)
-  int ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
-  dimBlock->x = min(ac1, GKYL_DEFAULT_NUM_THREADS);
-  dimGrid->x = gkyl_int_div_up(ac1, dimBlock->x);
-
-  dimBlock->y = gkyl_int_div_up(GKYL_DEFAULT_NUM_THREADS, ac1);
-  dimGrid->y = gkyl_int_div_up(volume, ac1*dimBlock->y);
-}
-
 __global__ void
 gkyl_dg_mul_op_cu_kernel(struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
@@ -57,7 +43,8 @@ gkyl_dg_mul_op_cu(struct gkyl_basis basis,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop)
 {
-  gkyl_dg_mul_op_cu_kernel<<<out->nblocks, out->nthreads>>>(basis, c_oop, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev);
+  gkyl_dg_mul_op_cu_kernel<<<out->nblocks, out->nthreads>>>(basis, c_oop, out->on_dev,
+    c_lop, lop->on_dev, c_rop, rop->on_dev);
 }
 
 __global__ void
@@ -72,33 +59,25 @@ gkyl_dg_mul_op_range_cu_kernel(struct gkyl_basis basis,
   mul_op_t mul_op = choose_ser_mul_kern(ndim, poly_order);
 
   int idx[GKYL_MAX_DIM];
-  // ac1 = size of last dimension of range (fastest moving dimension)
-  long ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
 
-  // 2D thread grid
-  // linc1 = c + idx1 (contiguous data, with idx1 = 0,.., ac1-1)
-  long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
-  // linc2 = idx2 + ac2*idx3 + ...
-  for (unsigned long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
-      linc2 < range.volume/ac1;
-      linc2 += gridDim.y*blockDim.y)
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume;
+      linc1 += gridDim.x*blockDim.x)
   {
-    // full linear cell index (not including components) is 
-    // idx1 + ac1*idx2 + ac1*ac2*idx3 + ... = idx1 + ac1*linc2.
-    // we want to find the start linear index of each contiguous data block, 
-    // which corresponds to idx1 = 0. 
-    // so linear index of start of contiguous block is ac1*linc2.
-    // do operation on contiguous data block
-    if (linc1 < ac1) {
-      gkyl_sub_range_inv_idx(&range, linc1+ac1*linc2, idx);
-      long start = gkyl_range_idx(&range, idx);
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&range, linc1, idx);
 
-      const double *lop_d = (const double*) gkyl_array_cfetch(lop, start);
-      const double *rop_d = (const double*) gkyl_array_cfetch(rop, start);
-      double *out_d = (double*) gkyl_array_fetch(out, start);
- 
-      mul_op(lop_d+c_lop*num_basis, rop_d+c_rop*num_basis, out_d+c_oop*num_basis);
-    }
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long start = gkyl_range_idx(&range, idx);
+
+    const double *lop_d = (const double*) gkyl_array_cfetch(lop, start);
+    const double *rop_d = (const double*) gkyl_array_cfetch(rop, start);
+    double *out_d = (double*) gkyl_array_fetch(out, start);
+
+    mul_op(lop_d+c_lop*num_basis, rop_d+c_rop*num_basis, out_d+c_oop*num_basis);
   }
 }
 
@@ -109,10 +88,10 @@ gkyl_dg_mul_op_range_cu(struct gkyl_basis basis,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop, struct gkyl_range range)
 {
-  dim3 dimGrid, dimBlock;
-  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range);
-
-  gkyl_dg_mul_op_range_cu_kernel<<<dimGrid, dimBlock>>>(basis, c_oop, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev, range);
+  int nblocks = range.nblocks;
+  int nthreads = range.nthreads;
+  gkyl_dg_mul_op_range_cu_kernel<<<nblocks, nthreads>>>(basis, c_oop, out->on_dev,
+    c_lop, lop->on_dev, c_rop, rop->on_dev, range);
 }
 
 __global__ void
@@ -153,26 +132,24 @@ gkyl_dg_div_copy_sol_op_cu_kernel(struct gkyl_nmat *xs,
 
 // Host-side wrapper for dg division operation
 void
-gkyl_dg_div_op_cu(struct gkyl_basis basis,
+gkyl_dg_div_op_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop)
 {
   int num_basis = basis.num_basis;  
   // allocate memory for use in kernels
-  struct gkyl_nmat *A_d = gkyl_nmat_cu_dev_new(out->size, num_basis, num_basis);
-  struct gkyl_nmat *x_d = gkyl_nmat_cu_dev_new(out->size, num_basis, 1);
+  struct gkyl_nmat *A_d = mem->As;
+  struct gkyl_nmat *x_d = mem->xs;
 
   // construct matrices using CUDA kernel
   gkyl_dg_div_set_op_cu_kernel<<<out->nblocks, out->nthreads>>>(A_d->on_dev, x_d->on_dev,
     basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev);
   // invert all matrices in batch mode
-  bool status = gkyl_nmat_linsolve_lu(A_d, x_d);
+  bool status = gkyl_nmat_linsolve_lu_pa(mem->lu_mem, A_d, x_d);
   // copy solution into array (also lives on the device)
   gkyl_dg_div_copy_sol_op_cu_kernel<<<out->nblocks, out->nthreads>>>(x_d->on_dev, basis, c_oop, out->on_dev);
 
-  gkyl_nmat_release(A_d);
-  gkyl_nmat_release(x_d);  
 }
 
 __global__ void
@@ -187,37 +164,29 @@ gkyl_dg_div_set_op_range_cu_kernel(struct gkyl_nmat *As, struct gkyl_nmat *xs,
   div_set_op_t div_set_op = choose_ser_div_set_kern(ndim, poly_order);
 
   int idx[GKYL_MAX_DIM];
-  // ac1 = size of last dimension of range (fastest moving dimension)
-  long ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
 
-  // 2D thread grid
-  // linc1 = c + idx1 (contiguous data, with idx1 = 0,.., ac1-1)
-  long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
-  // linc2 = idx2 + ac2*idx3 + ...
-  for (unsigned long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
-      linc2 < range.volume/ac1;
-      linc2 += gridDim.y*blockDim.y)
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume;
+      linc1 += gridDim.x*blockDim.x)
   {
-    // full linear cell index (not including components) is 
-    // idx1 + ac1*idx2 + ac1*ac2*idx3 + ... = idx1 + ac1*linc2.
-    // we want to find the start linear index of each contiguous data block, 
-    // which corresponds to idx1 = 0. 
-    // so linear index of start of contiguous block is ac1*linc2.
-    // do operation on contiguous data block
-    if (linc1 < ac1) {
-      gkyl_sub_range_inv_idx(&range, linc1+ac1*linc2, idx);
-      long start = gkyl_range_idx(&range, idx);
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&range, linc1, idx);
 
-      const double *lop_d = (const double*) gkyl_array_cfetch(lop, start);
-      const double *rop_d = (const double*) gkyl_array_cfetch(rop, start);
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long start = gkyl_range_idx(&range, idx);
 
-      struct gkyl_mat A = gkyl_nmat_get(As, linc1+ac1*linc2);
-      struct gkyl_mat x = gkyl_nmat_get(xs, linc1+ac1*linc2);
-      gkyl_mat_clear(&A, 0.0); gkyl_mat_clear(&x, 0.0);  
- 
-      div_set_op(&A, &x, lop_d+c_lop*num_basis, rop_d+c_rop*num_basis);
-    }
-  }  
+    const double *lop_d = (const double*) gkyl_array_cfetch(lop, start);
+    const double *rop_d = (const double*) gkyl_array_cfetch(rop, start);
+
+    struct gkyl_mat A = gkyl_nmat_get(As, linc1);
+    struct gkyl_mat x = gkyl_nmat_get(xs, linc1);
+    gkyl_mat_clear(&A, 0.0); gkyl_mat_clear(&x, 0.0);  
+
+    div_set_op(&A, &x, lop_d+c_lop*num_basis, rop_d+c_rop*num_basis);
+  }
 }
 
 __global__ void
@@ -227,61 +196,95 @@ gkyl_dg_div_copy_sol_op_range_cu_kernel(struct gkyl_nmat *xs,
 {
   int num_basis = basis.num_basis;
   int ndim = basis.ndim;
+
   int idx[GKYL_MAX_DIM];
 
-  // ac1 = size of last dimension of range (fastest moving dimension)
-  long ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
-
-  // 2D thread grid
-  // linc1 = c + n*idx1 (contiguous data, with idx1 = 0,.., ac1-1)
-  long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
-  // linc2 = idx2 + ac2*idx3 + ...
-  for (unsigned long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
-      linc2 < range.volume/ac1;
-      linc2 += gridDim.y*blockDim.y)
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume;
+      linc1 += gridDim.x*blockDim.x)
   {
-    // full linear cell index (not including components) is 
-    // idx1 + ac1*idx2 + ac1*ac2*idx3 + ... = idx1 + ac1*linc2.
-    // we want to find the start linear index of each contiguous data block, 
-    // which corresponds to idx1 = 0. 
-    // so linear index of start of contiguous block is ac1*linc2.
-    // do operation on contiguous data block
-    if (linc1 < ac1) {
-      gkyl_sub_range_inv_idx(&range, linc1+ac1*linc2, idx);
-      long start = gkyl_range_idx(&range, idx);
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&range, linc1, idx);
 
-      double *out_d = (double*) gkyl_array_fetch(out, start);
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long start = gkyl_range_idx(&range, idx);
 
-      struct gkyl_mat x = gkyl_nmat_get(xs, linc1+ac1*linc2);
+    double *out_d = (double*) gkyl_array_fetch(out, start);
 
-      binop_div_copy_sol(&x, out_d+c_oop*num_basis);
-    }
+    struct gkyl_mat x = gkyl_nmat_get(xs, linc1);
+
+    binop_div_copy_sol(&x, out_d+c_oop*num_basis);
   }  
 }
 
 // Host-side wrapper for range-based dg division operation
 void
-gkyl_dg_div_op_range_cu(struct gkyl_basis basis,
+gkyl_dg_div_op_range_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop, struct gkyl_range range)
 {
-  dim3 dimGrid, dimBlock;
-  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range);
-
+  int nblocks = range.nblocks;
+  int nthreads = range.nthreads;
   int num_basis = basis.num_basis;    
   // allocate memory for use in kernels
-  struct gkyl_nmat *A_d = gkyl_nmat_cu_dev_new(range.volume, num_basis, num_basis);
-  struct gkyl_nmat *x_d = gkyl_nmat_cu_dev_new(range.volume, num_basis, 1);
+  struct gkyl_nmat *A_d = mem->As;
+  struct gkyl_nmat *x_d = mem->xs;
 
   // construct matrices using CUDA kernel  
-  gkyl_dg_div_set_op_range_cu_kernel<<<dimGrid, dimBlock>>>(A_d->on_dev, x_d->on_dev,
-    basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev, range);
+  gkyl_dg_div_set_op_range_cu_kernel<<<nblocks, nthreads>>>(A_d->on_dev,
+    x_d->on_dev, basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev, range);
   // invert all matrices in batch mode
-  bool status = gkyl_nmat_linsolve_lu(A_d, x_d);
+  bool status = gkyl_nmat_linsolve_lu_pa(mem->lu_mem, A_d, x_d);
   // copy solution into array (also lives on the device)
-  gkyl_dg_div_copy_sol_op_range_cu_kernel<<<dimGrid, dimBlock>>>(x_d->on_dev, basis, c_oop, out->on_dev, range);
+  gkyl_dg_div_copy_sol_op_range_cu_kernel<<<nblocks, nthreads>>>(x_d->on_dev,
+    basis, c_oop, out->on_dev, range);
+}
 
-  gkyl_nmat_release(A_d);
-  gkyl_nmat_release(x_d);  
+__global__ void
+gkyl_dg_calc_op_range_cu_kernel(struct gkyl_basis basis, int c_oop, struct gkyl_array *out,
+  int c_iop, const struct gkyl_array *iop,
+  struct gkyl_range range, enum gkyl_dg_op op)
+{
+  int num_basis = basis.num_basis;
+  int ndim = basis.ndim;
+  int poly_order = basis.poly_order;
+
+  dp_op_t op_func = dg_get_op_func(op);
+  double fact = // factor for rescaling return value of op_func
+    op == GKYL_DG_OP_MEAN ? sqrt(pow(2,ndim)) : pow(2,ndim);
+
+  int idx[GKYL_MAX_DIM];
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&range, linc1, idx);
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long start = gkyl_range_idx(&range, idx);
+
+    const double *iop_d = (const double*) gkyl_array_cfetch(iop, start);
+    double *out_d = (double*) gkyl_array_fetch(out, start);
+
+    out_d[c_oop] =
+      op_func(num_basis, iop_d+c_iop*num_basis)/fact;
+  }
+}
+
+void
+gkyl_dg_calc_op_range_cu(struct gkyl_basis basis, int c_oop, struct gkyl_array *out,
+  int c_iop, const struct gkyl_array *iop,
+  struct gkyl_range range, enum gkyl_dg_op op)
+{
+  gkyl_dg_calc_op_range_cu_kernel<<<out->nblocks, out->nthreads>>>(basis, c_oop, out->on_dev,
+    c_iop, iop->on_dev, range, op);
 }

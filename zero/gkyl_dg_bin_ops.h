@@ -4,6 +4,28 @@
 #include <gkyl_range.h>
 #include <gkyl_basis.h>
 
+// Type for storing preallocating memory needed in various batch
+// operations
+typedef struct gkyl_dg_bin_op_mem gkyl_dg_bin_op_mem;
+
+/**
+ * Allocate memory for use in bin op (division operator). Free using
+ * release method.
+ *
+ * @param nbatch Batch size
+ * @param neqn Number of equations in each batch 
+ */
+gkyl_dg_bin_op_mem* gkyl_dg_bin_op_mem_new(size_t nbatch, size_t neqn);
+// Same as above, except for GPUs
+gkyl_dg_bin_op_mem *gkyl_dg_bin_op_mem_cu_dev_new(size_t nbatch, size_t neqn);
+
+/**
+ * Release memory needed in the bin ops.
+ *
+ * @param mem Memory to release
+ */
+void gkyl_dg_bin_op_mem_release(gkyl_dg_bin_op_mem *mem);
+
 /**
  * Compute out = lop*rop. The c_oop, c_lop and c_rop are the
  * components into the DG fields to multiply (in case the field is a
@@ -47,6 +69,7 @@ void gkyl_dg_mul_op_range(struct gkyl_basis basis,
  * vector field). For scalar fields c_oop = c_rop = c_lop = 0, for
  * example.
  *
+ * @param mem Pre-allocated space for use in the division 
  * @param basis Basis functions used in expansions
  * @param c_oop Component of output field in which to store product
  * @param out Output DG field
@@ -55,7 +78,7 @@ void gkyl_dg_mul_op_range(struct gkyl_basis basis,
  * @param c_rop Component of right operand to use in product
  * @param rop Right operand DG field
  */
-void gkyl_dg_div_op(struct gkyl_basis basis,
+void gkyl_dg_div_op(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop);
@@ -64,6 +87,7 @@ void gkyl_dg_div_op(struct gkyl_basis basis,
  * Same as gkyl_dg_div_op, except operator is applied only on
  * specified range (sub-range of range containing the DG fields).
  *
+ * @param mem Pre-allocated space for use in the division 
  * @param basis Basis functions used in expansions
  * @param c_oop Component of output field in which to store product
  * @param out Output DG field
@@ -73,10 +97,40 @@ void gkyl_dg_div_op(struct gkyl_basis basis,
  * @param rop Right operand DG field
  * @param range Range to apply multiplication operator
  */
-void gkyl_dg_div_op_range(struct gkyl_basis basis,
+void gkyl_dg_div_op_range(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop, struct gkyl_range range);
+
+/**
+ * Compute the cell-average of input array iop and store it in out
+ * array.
+ *
+ * @param basis Basis functions used in expansions
+ * @param c_oop Component of output field 
+ * @param out Output DG field
+ * @param c_iop Component of input DG field
+ * @param iop Input DG field
+ * @param range Range to apply multiplication operator
+ */
+void gkyl_dg_calc_average_range(struct gkyl_basis basis,
+  int c_oop, struct gkyl_array* out,
+  int c_iop, const struct gkyl_array* iop, struct gkyl_range range);
+
+/**
+ * Compute the mean L2 norm of input array iop and store it in out
+ * array.
+ *
+ * @param basis Basis functions used in expansions
+ * @param c_oop Component of output field 
+ * @param out Output DG field
+ * @param c_iop Component of input DG field
+ * @param iop Input DG field
+ * @param range Range to apply multiplication operator
+ */
+void gkyl_dg_calc_l2_range(struct gkyl_basis basis,
+  int c_oop, struct gkyl_array* out,
+  int c_iop, const struct gkyl_array* iop, struct gkyl_range range);
 
 /**
  * Host-side wrappers for dg_bin_op operations
@@ -94,13 +148,13 @@ gkyl_dg_mul_op_range_cu(struct gkyl_basis basis,
   int c_rop, const struct gkyl_array* rop, struct gkyl_range range);
 
 void
-gkyl_dg_div_op_cu(struct gkyl_basis basis,
+gkyl_dg_div_op_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop);
 
 void
-gkyl_dg_div_op_range_cu(struct gkyl_basis basis,
+gkyl_dg_div_op_range_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop, struct gkyl_range range);

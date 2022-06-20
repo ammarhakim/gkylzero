@@ -1,10 +1,27 @@
 // Private header: not for direct use
 #pragma once
 
-#include <gkyl_mat.h>
-#include <gkyl_util.h>
+#include <math.h>
+
+#include <gkyl_array.h>
+#include <gkyl_array.h>
+#include <gkyl_basis.h>
 #include <gkyl_binop_div_ser.h>
 #include <gkyl_binop_mul_ser.h>
+#include <gkyl_mat.h>
+#include <gkyl_range.h>
+#include <gkyl_util.h>
+
+enum gkyl_dg_op { GKYL_DG_OP_MEAN, GKYL_DG_OP_MEAN_L2 };
+
+// Memory for use in the bin ops
+struct gkyl_dg_bin_op_mem {
+  bool on_gpu; // flag to indicate if we are on GPU  
+  size_t batch_sz; // number of elements in batch
+  size_t nrows, ncols; // number of rows and colsx
+  struct gkyl_nmat *As, *xs; // data for matrices needed in division
+  gkyl_nmat_mem *lu_mem; // data for use in LU solve
+};
 
 // Function pointer type for multiplication
 typedef void (*mul_op_t)(const double *f, const double *g, double *fg);
@@ -62,3 +79,41 @@ choose_ser_div_set_kern(int dim, int poly_order)
 {
   return ser_div_set_list[dim].kernels[poly_order];
 }
+
+GKYL_CU_D
+static inline double
+dg_cell_mean(int nc, const double *f)
+{
+  return f[0];
+}
+
+GKYL_CU_D
+static inline double
+dg_cell_mean_l2(int nb, const double *f)
+{
+  double sum = 0.0;
+  for (int i=0; i<nb; ++i)
+    sum += f[i]*f[i];
+  return sum;
+}
+
+typedef double (*dp_op_t)(int nb, const double *f);
+
+GKYL_CU_D
+static dp_op_t
+dg_get_op_func(enum gkyl_dg_op op)
+{
+  if (op == GKYL_DG_OP_MEAN)
+    return dg_cell_mean;
+  return dg_cell_mean_l2;
+}
+
+void gkyl_dg_calc_op_range(struct gkyl_basis basis, int c_oop,
+  struct gkyl_array *out, int c_iop,
+  const struct gkyl_array *iop,
+  struct gkyl_range range, enum gkyl_dg_op op);
+
+void gkyl_dg_calc_op_range_cu(struct gkyl_basis basis, int c_oop, struct gkyl_array *out,
+  int c_iop, const struct gkyl_array *iop,
+  struct gkyl_range range, enum gkyl_dg_op op);
+

@@ -1,0 +1,1 @@
+./configure CC=cc

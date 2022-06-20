@@ -30,11 +30,11 @@ evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   double fv = 0.0;
   if (x < 0) {
     double v2 = (vx-vdrift)*(vx-vdrift) + vy*vy + vz*vz;
-    fv = 1.0/(2.0*M_PI*vt*sqrt(2.0*M_PI*sq(vt)))*(exp(-v2/(2*sq(vt))));
+    fv = 1.0/pow(sqrt(2.0*M_PI*sq(vt)), 3)*(exp(-v2/(2*sq(vt))));
   }
   else {
     double v2 = (vx+vdrift)*(vx+vdrift) + vy*vy + vz*vz;
-    fv = 1.0/(2.0*M_PI*vt*sqrt(2.0*M_PI*sq(vt)))*(exp(-v2/(2*sq(vt))));
+    fv = 1.0/pow(sqrt(2.0*M_PI*sq(vt)), 3)*(exp(-v2/(2*sq(vt))));
   }
   fout[0] = fv;
 }
@@ -48,11 +48,11 @@ evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   double fv = 0.0;
   if (x < 0) {
     double v2 = (vx-vdrift)*(vx-vdrift) + vy*vy + vz*vz;
-    fv = 1.0/(2.0*M_PI*vt*sqrt(2.0*M_PI*sq(vt)))*(exp(-v2/(2*sq(vt))));
+    fv = 1.0/pow(sqrt(2.0*M_PI*sq(vt)), 3)*(exp(-v2/(2*sq(vt))));
   }
   else {
     double v2 = (vx+vdrift)*(vx+vdrift) + vy*vy + vz*vz;
-    fv = 1.0/(2.0*M_PI*vt*sqrt(2.0*M_PI*sq(vt)))*(exp(-v2/(2*sq(vt))));
+    fv = 1.0/pow(sqrt(2.0*M_PI*sq(vt)), 3)*(exp(-v2/(2*sq(vt))));
   }
   fout[0] = fv;
 }
@@ -112,7 +112,11 @@ main(int argc, char **argv)
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-     
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 32);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 12);
+  int VY = APP_ARGS_CHOOSE(app_args.vcells[1], 12);
+  int VZ = APP_ARGS_CHOOSE(app_args.vcells[2], 12);
+  
   struct esshock_ctx ctx = create_ctx(); // context for init functions
 
   // electrons
@@ -121,13 +125,17 @@ main(int argc, char **argv)
     .charge = ctx.chargeElc, .mass = ctx.massElc,
     .lower = { -6.0 * ctx.vte, -6.0 * ctx.vte, -6.0 * ctx.vte },
     .upper = { 6.0 * ctx.vte, 6.0 * ctx.vte, 6.0 * ctx.vte }, 
-    .cells = { 8, 8, 8 },
+    .cells = { VX, VY, VZ },
 
     .ctx = &ctx,
     .init = evalDistFuncElc,
 
-    .nu = evalNuElc,
-    .collision_id = GKYL_LBO_COLLISIONS,
+    .collisions = {
+      .collision_id = GKYL_LBO_COLLISIONS,
+
+      .ctx = &ctx,
+      .self_nu = evalNuElc,
+    },
     
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
@@ -139,13 +147,18 @@ main(int argc, char **argv)
     .charge = ctx.chargeIon, .mass = ctx.massIon,
     .lower = { -16.0 * ctx.vti, -16.0 * ctx.vti, -16.0 * ctx.vti },
     .upper = { 16.0 * ctx.vti, 16.0 * ctx.vti, 16.0 * ctx.vti}, 
-    .cells = { 8, 8, 8 },
+    .cells = { VX, VY, VZ },
 
     .ctx = &ctx,
     .init = evalDistFuncIon,
 
-    .nu = evalNuIon,
-    .collision_id = GKYL_LBO_COLLISIONS,
+    .collisions = {
+      .collision_id = GKYL_LBO_COLLISIONS,
+
+      .ctx = &ctx,
+      .self_nu = evalNuIon,
+
+    },
     
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
@@ -168,7 +181,7 @@ main(int argc, char **argv)
     .cdim = 1, .vdim = 3,
     .lower = { -ctx.Lx },
     .upper = { ctx.Lx },
-    .cells = { 64 },
+    .cells = { NX },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
@@ -186,7 +199,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 2.0;
+  double tcurr = 0.0, tend = 20.0;
   double dt = tend-tcurr;
 
   // initialize simulation
@@ -230,6 +243,7 @@ main(int argc, char **argv)
   }  
   printf("Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   printf("Species RHS calc took %g secs\n", stat.species_rhs_tm);
+  printf("Species collisions took %g secs\n", stat.species_coll_mom_tm);
   printf("Species collisions took %g secs\n", stat.species_coll_tm);
   printf("Field RHS calc took %g secs\n", stat.field_rhs_tm);
   printf("Current evaluation and accumulate took %g secs\n", stat.current_tm);

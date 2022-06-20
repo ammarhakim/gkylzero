@@ -34,7 +34,7 @@ gkyl_hyper_dg_advance_cu_kernel(gkyl_hyper_dg* hdg, struct gkyl_range update_ran
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
       linc1 < update_range.volume; linc1 += blockDim.x*gridDim.x) {
     // inverse index from linc1 to idxc
-    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idxc={0,0,...}
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idxc={1,1,...}
     // since update_range is a subrange
     gkyl_sub_range_inv_idx(&update_range, linc1, idxc);
     gkyl_rect_grid_cell_center(&hdg->grid, idxc, xcc);

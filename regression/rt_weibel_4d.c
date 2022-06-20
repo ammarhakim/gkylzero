@@ -95,6 +95,15 @@ create_ctx(void)
   return ctx;
 }
 
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double tcurr)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) {
+    gkyl_vlasov_app_write(app, tcurr, iot->curr-1);
+    gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, iot->curr-1);
+  }
+}
+
 int
 main(int argc, char **argv)
 {
@@ -162,20 +171,26 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 5.0;
+  double tcurr = 0.0, tend = 80.0;
   double dt = tend-tcurr;
+  int nframe = 1;
+  // create trigger for IO
+  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
   // initialize simulation
   gkyl_vlasov_app_apply_ic(app, tcurr);
-  
-  gkyl_vlasov_app_write(app, tcurr, 0);
-  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 0);
+  write_data(&io_trig, app, tcurr);
+  gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
+  gkyl_vlasov_app_calc_field_energy(app, tcurr);  
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
     printf("Taking time-step at t = %g ...", tcurr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
+
+    gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
+    gkyl_vlasov_app_calc_field_energy(app, tcurr);    
     
     if (!status.success) {
       printf("** Update method failed! Aborting simulation ....\n");
@@ -183,12 +198,14 @@ main(int argc, char **argv)
     }
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
+    write_data(&io_trig, app, tcurr);
+
     step += 1;
   }
 
-  gkyl_vlasov_app_write(app, tcurr, 1);
-  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1);
   gkyl_vlasov_app_stat_write(app);
+  gkyl_vlasov_app_write_integrated_mom(app);
+  gkyl_vlasov_app_write_field_energy(app);  
 
   // fetch simulation statistics
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
