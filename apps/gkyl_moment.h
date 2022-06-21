@@ -16,10 +16,11 @@ struct gkyl_moment_species {
 
   int evolve; // evolve species? 1-yes, 0-no
 
-  void *ctx; // context for initial condition init function
+  void *ctx; // context for initial condition init function (and potentially other functions)
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
-
+  // pointer to applied acceleration/forces function
+  void (*app_accel_func)(double t, const double *xn, double *fout, void *ctx);
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
 };
@@ -33,10 +34,13 @@ struct gkyl_moment_field {
 
   int evolve; // evolve field? 1-yes, 0-no
 
-  void *ctx; // context for initial condition init function
+  void *ctx; // context for initial condition init function (and potentially other functions)
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
-
+  // pointer to applied current function
+  void (*app_current_func)(double t, const double *xn, double *fout, void *ctx);
+  // pointer to external fields
+  void (*ext_em_func)(double t, const double *xn, double *fout, void *ctx);
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
 };
