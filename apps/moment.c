@@ -46,6 +46,8 @@ struct moment_species {
     
   struct gkyl_array *fdup, *f[4]; // arrays for updates
   struct gkyl_array *app_accel; // array for applied acceleration/forces
+  // pointer to projection operator for applied acceleration/forces function
+  gkyl_fv_proj *proj_app_accel;
   struct gkyl_array *bc_buffer; // buffer for periodic BCs
 
   enum gkyl_eqn_type eqn_type; // type ID of equation
@@ -71,6 +73,10 @@ struct moment_field {
     
   struct gkyl_array *fdup, *f[4]; // arrays for updates
   struct gkyl_array *app_current, *ext_em; // arrays for applied currents/external fields
+  // pointer to projection operator for applied current function
+  gkyl_fv_proj *proj_app_current;
+  // pointer to projection operator for external fields
+  gkyl_fv_proj *proj_ext_em;
   struct gkyl_array *bc_buffer; // buffer for periodic BCs
 
   gkyl_wave_prop *slvr[3]; // solver in each direction
@@ -286,6 +292,9 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   // allocate array for applied acceleration/forces for each species
   sp->app_accel = mkarr(3, app->local_ext.volume);
+  sp->proj_app_accel = 0;
+  if (mom_sp->app_accel_func)
+    sp->proj_app_accel = gkyl_fv_proj_new(&app->grid, 2, 3, mom_sp->app_accel_func, sp->ctx);
   // allocate buffer for applying BCs (used for periodic BCs)
   long buff_sz = 0;
   // compute buffer size needed
@@ -380,6 +389,8 @@ moment_species_release(const struct moment_species *sp)
     gkyl_array_release(sp->f[d]);
 
   gkyl_array_release(sp->app_accel);
+  if (sp->proj_app_accel)
+    gkyl_fv_proj_release(sp->proj_app_accel);
 
   gkyl_array_release(sp->bc_buffer);
 }
@@ -478,7 +489,13 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
 
   // allocate arrays for applied current/external fields
   fld->app_current = mkarr(3, app->local_ext.volume);
+  fld->proj_app_current = 0;
+  if (mom_fld->app_current_func)
+    fld->proj_app_current = gkyl_fv_proj_new(&app->grid, 2, 3, mom_fld->app_current_func, fld->ctx);
   fld->ext_em = mkarr(6, app->local_ext.volume);
+  fld->proj_ext_em = 0;
+  if (mom_fld->ext_em_func)
+    fld->proj_ext_em = gkyl_fv_proj_new(&app->grid, 2, 6, mom_fld->ext_em_func, fld->ctx);
 
   // allocate buffer for applying BCs (used for periodic BCs)
   long buff_sz = 0;
@@ -574,7 +591,11 @@ moment_field_release(const struct moment_field *fld)
     gkyl_array_release(fld->f[d]);
   
   gkyl_array_release(fld->app_current);
+  if (fld->proj_app_current)
+    gkyl_fv_proj_release(fld->proj_app_current);
   gkyl_array_release(fld->ext_em);
+  if (fld->proj_ext_em)
+    gkyl_fv_proj_release(fld->proj_ext_em);
 
   gkyl_array_release(fld->bc_buffer);
 }
@@ -609,20 +630,30 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
 // the second step
 static 
 void
-moment_coupling_update(const gkyl_moment_app *app, const struct moment_coupling *src,
+moment_coupling_update(const gkyl_moment_app *app, struct moment_coupling *src,
   int nstrang, double tcurr, double dt)
 {
   int sidx[] = { 0, app->ndim };
   struct gkyl_array *fluids[GKYL_MAX_SPECIES];
-  struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
-
+  const struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
+  
   for (int i=0; i<app->num_species; ++i) {
     fluids[i] = app->species[i].f[sidx[nstrang]];
+    
+    if (app->species[i].proj_app_accel)
+      gkyl_fv_proj_advance(app->species[i].proj_app_accel, tcurr, &app->local, app->species[i].app_accel);
     app_accels[i] = app->species[i].app_accel;
   }
+  
+  if (app->field.proj_app_current)
+    gkyl_fv_proj_advance(app->field.proj_app_current, tcurr, &app->local, app->field.app_current);
+  
+  if (app->field.proj_ext_em)
+    gkyl_fv_proj_advance(app->field.proj_ext_em, tcurr, &app->local, app->field.ext_em);
 
   gkyl_moment_em_coupling_advance(src->slvr, dt, &app->local,
-    fluids, app_accels, app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em);
+    fluids, app_accels,
+    app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em);
 
   for (int i=0; i<app->num_species; ++i)
     moment_species_apply_bc(app, tcurr, &app->species[i], fluids[i]);
