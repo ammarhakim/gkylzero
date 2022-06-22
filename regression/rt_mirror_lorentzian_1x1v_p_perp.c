@@ -354,7 +354,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 1.0e-8;
+  double tcurr = 0.0, tend = 1.0e-7;
   double dt = tend-tcurr;
   int nframe = 1;
   // create trigger for IO
