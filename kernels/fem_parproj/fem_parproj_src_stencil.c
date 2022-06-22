@@ -3,6 +3,7 @@
 GKYL_CU_DH void fem_parproj_src_stencil_1x_ser_p1(const double *rho, long nodeOff, const long *globalIdxs, double *bsrc) 
 { 
   // rho: right side source.
+  // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
 
@@ -21,6 +22,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_1x_ser_p1(const double *rho, long nodeOf
 GKYL_CU_DH void fem_parproj_src_stencil_1x_ser_p2(const double *rho, long nodeOff, const long *globalIdxs, double *bsrc) 
 { 
   // rho: right side source.
+  // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
 
@@ -44,6 +46,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_1x_ser_p2(const double *rho, long nodeOf
 GKYL_CU_DH void fem_parproj_src_stencil_1x_ser_p3(const double *rho, long nodeOff, const long *globalIdxs, double *bsrc) 
 { 
   // rho: right side source.
+  // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
 
@@ -72,6 +75,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_1x_ser_p3(const double *rho, long nodeOf
 GKYL_CU_DH void fem_parproj_src_stencil_3x_ser_p1(const double *rho, long nodeOff, const long *globalIdxs, double *bsrc) 
 { 
   // rho: right side source.
+  // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
 
@@ -120,6 +124,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_3x_ser_p1(const double *rho, long nodeOf
 GKYL_CU_DH void fem_parproj_src_stencil_3x_ser_p2(const double *rho, long nodeOff, const long *globalIdxs, double *bsrc) 
 { 
   // rho: right side source.
+  // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
 
@@ -228,6 +233,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_3x_ser_p2(const double *rho, long nodeOf
 GKYL_CU_DH void fem_parproj_src_stencil_3x_ser_p3(const double *rho, long nodeOff, const long *globalIdxs, double *bsrc) 
 { 
   // rho: right side source.
+  // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
 
@@ -396,6 +402,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_3x_ser_p3(const double *rho, long nodeOf
 GKYL_CU_DH void fem_parproj_src_stencil_1x_tensor_p1(const double *rho, long nodeOff, const long *globalIdxs, double *bsrc) 
 { 
   // rho: right side source.
+  // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
 
@@ -414,6 +421,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_1x_tensor_p1(const double *rho, long nod
 GKYL_CU_DH void fem_parproj_src_stencil_1x_tensor_p2(const double *rho, long nodeOff, const long *globalIdxs, double *bsrc) 
 { 
   // rho: right side source.
+  // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
 
@@ -437,6 +445,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_1x_tensor_p2(const double *rho, long nod
 GKYL_CU_DH void fem_parproj_src_stencil_3x_tensor_p1(const double *rho, long nodeOff, const long *globalIdxs, double *bsrc) 
 { 
   // rho: right side source.
+  // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
 
@@ -485,6 +494,7 @@ GKYL_CU_DH void fem_parproj_src_stencil_3x_tensor_p1(const double *rho, long nod
 GKYL_CU_DH void fem_parproj_src_stencil_3x_tensor_p2(const double *rho, long nodeOff, const long *globalIdxs, double *bsrc) 
 { 
   // rho: right side source.
+  // nodeOff: node offset (prob idx * global number of nodes).
   // globalIdxs: global linear index of each basis function/node in current cell.
   // bsrc: global right side source vector.
 

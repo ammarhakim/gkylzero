@@ -55,13 +55,39 @@ static const srcstencil_kern_list ten_srcstencil_list[] = {
   { NULL, fem_parproj_src_stencil_3x_tensor_p1, fem_parproj_src_stencil_3x_tensor_p2 }
 };
 
+// Function pointer type for kernels that convert the solution from nodal to
+// modal.
+typedef void (*solstencil_t)(const double *sol_nodal_global, long nodeOff,
+  const long *globalIdxs, double *sol_modal_local);
+
+// For use in kernel tables.
+typedef struct { solstencil_t kernels[3]; } solstencil_kern_list;
+
+// Serendipity sol kernels.
+GKYL_CU_D
+static const solstencil_kern_list ser_solstencil_list[] = {
+  { NULL, NULL, NULL }, // No 0D basis functions
+  { NULL, fem_parproj_sol_stencil_1x_ser_p1, fem_parproj_sol_stencil_1x_ser_p2 },
+  { NULL, NULL, NULL }, // No 2D basis functions
+  { NULL, fem_parproj_sol_stencil_3x_ser_p1, fem_parproj_sol_stencil_3x_ser_p2 }
+};
+
+// Tensor product sol kernels.
+GKYL_CU_D
+static const solstencil_kern_list ten_solstencil_list[] = {
+  { NULL, NULL, NULL }, // No 0D basis functions
+  { NULL, fem_parproj_sol_stencil_1x_tensor_p1, fem_parproj_sol_stencil_1x_tensor_p2 },
+  { NULL, NULL, NULL }, // No 2D basis functions
+  { NULL, fem_parproj_sol_stencil_3x_tensor_p1, fem_parproj_sol_stencil_3x_tensor_p2 }
+};
+
 // Struct containing pointers to the various kernels. Needed to create a similar struct on the GPU.
 struct gkyl_fem_parproj_kernels {
   local2global_t l2g;  // Pointer to local-to-global kernel.
 
   srcstencil_t srcker;  // RHS source kernels.
 
-//  solstencil_t solker;  // Kernel that takes the solution and converts it to modal.
+  solstencil_t solker;  // Kernel that takes the solution and converts it to modal.
 };
 
 struct gkyl_fem_parproj {
@@ -92,7 +118,6 @@ struct gkyl_fem_parproj {
 
   struct gkyl_superlu_prob* prob;
   struct gkyl_mat *local_mass; // local mass matrix.
-  struct gkyl_mat *local_nodtomod; // local nodal-to-modal matrix.
 
   long *globalidx;
 
@@ -128,6 +153,21 @@ choose_srcstencil_kernel(const int dim, const int basis_type, const int poly_ord
       return ser_srcstencil_list[dim].kernels[poly_order];
     case GKYL_BASIS_MODAL_TENSOR:
       return ten_srcstencil_list[dim].kernels[poly_order];
+    default:
+      assert(false);
+      break;
+  }
+}
+
+GKYL_CU_D
+static solstencil_t
+choose_solstencil_kernel(const int dim, const int basis_type, const int poly_order)
+{
+  switch (basis_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_solstencil_list[dim].kernels[poly_order];
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_solstencil_list[dim].kernels[poly_order];
     default:
       assert(false);
       break;
