@@ -48,6 +48,7 @@ struct gkyl_poisson_bc {
  * @param basis Basis functions of the DG field.
  * @param isdirperiodic boolean array indicating periodic directions.
  * @param ctx Context for function evaluation. Can be NULL.
+ * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
 gkyl_fem_poisson* gkyl_fem_poisson_new(

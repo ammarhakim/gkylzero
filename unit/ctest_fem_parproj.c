@@ -103,7 +103,7 @@ test_1x(int poly_order, const bool isperiodic)
 //  gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_parproj_1x_p2_rho_1.gkyl");
 
   // parallel FEM projection method.
-  gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&grid, &basis, isperiodic, NULL);
+  gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&grid, &basis, isperiodic, NULL, false);
 
   // Set the RHS source.
   gkyl_fem_parproj_set_rhs(parproj, rho);
@@ -265,7 +265,7 @@ test_3x(const int poly_order, const bool isperiodic)
 //  gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_parproj_3x_p2_rho_1.gkyl");
 
   // parallel FEM projection method.
-  gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&grid, &basis, isperiodic, NULL);
+  gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&grid, &basis, isperiodic, NULL, false);
 
   // Set the RHS source.
   gkyl_fem_parproj_set_rhs(parproj, rho);

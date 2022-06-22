@@ -369,6 +369,7 @@ static const solstencil_kern_list ser_solstencil_list[] = {
 #define CK2(lst,poly_order,loc,bcx,bcy) lst[bcx].list[bcy].list[poly_order].kernels[loc]
 #define CK3(lst,poly_order,loc,bcx,bcy,bcz) lst[bcx].list[bcy].list[bcz].list[poly_order].kernels[loc]
 
+// Struct containing pointers to the various kernels. Needed to create a similar struct on the GPU.
 struct gkyl_fem_poisson_kernels { 
   // Pointer to local-to-global kernels. 2^3, 2 (interior and upper) in each direction.
   local2global_t l2g[8];

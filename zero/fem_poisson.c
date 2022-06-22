@@ -76,7 +76,8 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->globalidx = gkyl_malloc(sizeof(long[up->num_basis])); // global index, one for each basis in a cell.
 
   // Local and local-ext ranges for whole-grid arrays.
-  int ghost[] = { 1, 1 };
+  int ghost[GKYL_MAX_DIM];
+  for (int d=0; d<up->ndim; d++) ghost[d] = 1;
   gkyl_create_grid_ranges(grid, ghost, &up->local_range_ext, &up->local_range);
   // Range of cells we'll solve Poisson in, as
   // a sub-range of up->local_range_ext.
