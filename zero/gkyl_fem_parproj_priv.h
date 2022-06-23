@@ -1,6 +1,8 @@
 // Private header for fem_parproj updater.
 #pragma once
 #include <gkyl_fem_parproj_kernels.h>
+#include <gkyl_basis.h>
+#include <gkyl_superlu_ops.h>
 #ifdef GKYL_HAVE_CUDA
 #include <gkyl_cusolver_ops.h>
 #endif
@@ -9,8 +11,7 @@
 typedef void (*local2global_t)(const int numCellsPar, const int parIdx,
   long *globalIdxs);
 
-// For use in kernel tables.
-typedef struct { local2global_t kernels[3]; } local2global_kern_list;
+typedef struct { local2global_t kernels[3]; } local2global_kern_list;  // For use in kernel tables.
 
 // Serendipity local-to-global kernels.
 GKYL_CU_D
@@ -34,8 +35,7 @@ static const local2global_kern_list ten_loc2glob_list[] = {
 typedef void (*srcstencil_t)(const double *rho, long nodeOff, const long *globalIdxs,
   double *bsrc);
 
-// For use in kernel tables.
-typedef struct { srcstencil_t kernels[3]; } srcstencil_kern_list;
+typedef struct { srcstencil_t kernels[3]; } srcstencil_kern_list;  // For use in kernel tables.
 
 // Serendipity src kernels.
 GKYL_CU_D
@@ -60,8 +60,7 @@ static const srcstencil_kern_list ten_srcstencil_list[] = {
 typedef void (*solstencil_t)(const double *sol_nodal_global, long nodeOff,
   const long *globalIdxs, double *sol_modal_local);
 
-// For use in kernel tables.
-typedef struct { solstencil_t kernels[3]; } solstencil_kern_list;
+typedef struct { solstencil_t kernels[3]; } solstencil_kern_list;  // For use in kernel tables.
 
 // Serendipity sol kernels.
 GKYL_CU_D
@@ -102,6 +101,8 @@ struct gkyl_fem_parproj {
   bool isperiodic; // =true if parallel direction is periodic.
 
   struct gkyl_range local_range, local_range_ext;
+  struct gkyl_range solve_range;
+  struct gkyl_range_iter solve_iter;
   struct gkyl_range perp_range; // range of perpendicular cells.
   struct gkyl_range_iter perp_iter;
   struct gkyl_range par_range; // range of parallel cells.
@@ -117,6 +118,11 @@ struct gkyl_fem_parproj {
   struct gkyl_array *brhs;
 
   struct gkyl_superlu_prob* prob;
+#ifdef GKYL_HAVE_CUDA
+  struct gkyl_cusolver_prob* prob_cu;
+  struct gkyl_array *brhs_cu;
+#endif
+
   struct gkyl_mat *local_mass; // local mass matrix.
 
   long *globalidx;
@@ -127,11 +133,11 @@ struct gkyl_fem_parproj {
 };
 
 void
-choose_kernels_cu(const struct gkyl_basis* basis, bool isperiodic, struct gkyl_fem_parproj_kernels *kers);
+fem_parproj_choose_kernels_cu(const struct gkyl_basis* basis, bool isperiodic, struct gkyl_fem_parproj_kernels *kers);
 
 GKYL_CU_D
 static local2global_t
-choose_local2global_kernel(const int dim, const int basis_type, const int poly_order)
+fem_parproj_choose_local2global_kernel(const int dim, const int basis_type, const int poly_order)
 {
   switch (basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -146,7 +152,7 @@ choose_local2global_kernel(const int dim, const int basis_type, const int poly_o
 
 GKYL_CU_D
 static srcstencil_t
-choose_srcstencil_kernel(const int dim, const int basis_type, const int poly_order)
+fem_parproj_choose_srcstencil_kernel(const int dim, const int basis_type, const int poly_order)
 {
   switch (basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -161,7 +167,7 @@ choose_srcstencil_kernel(const int dim, const int basis_type, const int poly_ord
 
 GKYL_CU_D
 static solstencil_t
-choose_solstencil_kernel(const int dim, const int basis_type, const int poly_order)
+fem_parproj_choose_solstencil_kernel(const int dim, const int basis_type, const int poly_order)
 {
   switch (basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:

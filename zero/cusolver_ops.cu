@@ -305,7 +305,7 @@ gkyl_cusolver_amat_from_triples(gkyl_cusolver_prob *prob, gkyl_mat_triples *tri)
   
   cudaDeviceSynchronize();
 
-  prob->d_T = (double*) gkyl_cu_malloc(sizeof(double)*prob->mrow*1); // Working space in cusolverRfSolve, |d_T| = n * nrhs.
+  prob->d_T = (double*) gkyl_cu_malloc(sizeof(double)*prob->mrow*prob->nrhs); // Working space in cusolverRfSolve, |d_T| = n * nrhs.
 
   gkyl_free(h_Qreorder);
 
@@ -359,7 +359,7 @@ gkyl_cusolver_brhs_from_triples(gkyl_cusolver_prob *prob, gkyl_mat_triples *tri)
 void
 gkyl_cusolver_solve(gkyl_cusolver_prob *prob)
 {
-  cusolverRfSolve(prob->cusolverRfH, prob->d_P, prob->d_Q, 1, prob->d_T, prob->mrow, prob->rhs_cu, prob->mrow);
+  cusolverRfSolve(prob->cusolverRfH, prob->d_P, prob->d_Q, prob->nrhs, prob->d_T, prob->mrow, prob->rhs_cu, prob->mrow);
 }
 
 void

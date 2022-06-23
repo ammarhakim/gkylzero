@@ -134,7 +134,7 @@ void test_cusolver_qr()
 void test_cusolver_ops()
 {
   double s, u, p, e, r, l;
-  int    nrhs, m, n, nnz;
+  int    nrhs, m, n;
 
   /* Initialize matrix A. */
   /*  A : matrix([s,0,u,u,0],[l,u,0,0,0],[0,l,p,0,0],[0,0,0,e,u],[l,l,0,0,r]); */

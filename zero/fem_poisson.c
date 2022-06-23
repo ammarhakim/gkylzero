@@ -152,20 +152,20 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->brhs = gkyl_array_new(GKYL_DOUBLE, 1, up->numnodes_global); // Global right side vector.
 
   // Select local-to-global mapping kernels:
-  choose_local2global_kernels(&basis, up->isdirperiodic, up->kernels->l2g);
+  fem_poisson_choose_local2global_kernels(&basis, up->isdirperiodic, up->kernels->l2g);
 
   // Select lhs kernels:
-  choose_lhs_kernels(&basis, bcs, up->kernels->lhsker);
+  fem_poisson_choose_lhs_kernels(&basis, bcs, up->kernels->lhsker);
 
   // Select rhs src kernels:
-  choose_src_kernels(&basis, bcs, up->kernels->srcker);
+  fem_poisson_choose_src_kernels(&basis, bcs, up->kernels->srcker);
 
   // Select sol kernel:
-  up->kernels->solker = choose_sol_kernels(&basis);
+  up->kernels->solker = fem_poisson_choose_sol_kernels(&basis);
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    choose_kernels_cu(&basis, bcs,  up->isdirperiodic, up->kernels_cu);
+    fem_poisson_choose_kernels_cu(&basis, bcs,  up->isdirperiodic, up->kernels_cu);
   }
 #endif
 
@@ -274,15 +274,6 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout) {
   if (up->use_gpu) {
     assert(gkyl_array_is_cu_dev(phiout));
     gkyl_fem_poisson_solve_cu(up, phiout);
-
-//    if (up->isdomperiodic) {
-//      // Subtract the volume averaged RHS from the RHS.
-//      gkyl_array_clear(up->rhs_cellavg, 0.0);
-//      gkyl_dg_calc_average_range(up->basis, 0, up->rhs_cellavg, 0, phiout, up->solve_range);
-//      gkyl_array_reduce_range(up->rhs_avg_cu, up->rhs_cellavg, GKYL_SUM, up->solve_range);
-//      gkyl_cu_memcpy(up->rhs_avg, up->rhs_avg_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
-//      gkyl_array_shiftc0(phiout, up->mavgfac*up->rhs_avg[0]);
-//    }
     return;
   }
 #endif
@@ -304,13 +295,6 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout) {
     up->kernels->solker(gkyl_superlu_get_rhs_ptr(up->prob, 0), up->globalidx, phiout_p);
 
   }
-
-//  if (up->isdomperiodic) {
-//    // Subtract the volume averaged RHS from the RHS.
-//    gkyl_dg_calc_average_range(up->basis, 0, up->rhs_cellavg, 0, phiout, up->solve_range);
-//    gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->solve_range);
-//    gkyl_array_shiftc0(phiout, up->mavgfac*up->rhs_avg[0]);
-//  }
 
 }
 
