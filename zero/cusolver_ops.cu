@@ -21,6 +21,13 @@ extern "C" {
 #include <cusolverSp_LOWLEVEL_PREVIEW.h>
 #endif
 
+// ..................................
+// MF 2022/06/24: unfortunately cusolverRf doesn't work for multiple RHS columns.
+//                so for now we loop over the columns.
+//                This will hopefully be fixed/optimized in the future so we get
+//                better parallelism.
+//
+
 struct gkyl_cusolver_prob {
   double *rhs, *rhs_cu; // right-hand side vector (reused to store the answer x). 
   double *x;
@@ -305,7 +312,7 @@ gkyl_cusolver_amat_from_triples(gkyl_cusolver_prob *prob, gkyl_mat_triples *tri)
   
   cudaDeviceSynchronize();
 
-  prob->d_T = (double*) gkyl_cu_malloc(sizeof(double)*prob->mrow*prob->nrhs); // Working space in cusolverRfSolve, |d_T| = n * nrhs.
+  prob->d_T = (double*) gkyl_cu_malloc(sizeof(double)*prob->mrow); // Working space in cusolverRfSolve, |d_T| = n * nrhs.
 
   gkyl_free(h_Qreorder);
 
@@ -359,7 +366,8 @@ gkyl_cusolver_brhs_from_triples(gkyl_cusolver_prob *prob, gkyl_mat_triples *tri)
 void
 gkyl_cusolver_solve(gkyl_cusolver_prob *prob)
 {
-  cusolverRfSolve(prob->cusolverRfH, prob->d_P, prob->d_Q, prob->nrhs, prob->d_T, prob->mrow, prob->rhs_cu, prob->mrow);
+  for (size_t k=0; k<prob->nrhs; k++)
+    cusolverRfSolve(prob->cusolverRfH, prob->d_P, prob->d_Q, 1, prob->d_T, prob->mrow, prob->rhs_cu+k*prob->mrow, prob->mrow);
 }
 
 void

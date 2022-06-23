@@ -126,9 +126,6 @@ gkyl_fem_parproj_get_sol_kernel(struct gkyl_array *x_local, const double *x_glob
     long perpidx2d = gkyl_range_idx(&perp_range2d, idx2d);
     long perpProbOff = perpidx2d*numnodes_global;
 
-    if (range.ndim==3)
-    printf("tId=%d | bId=%d | blockDim=%d | gridDim=%d | linc1=%d | idx=(%d,%d,%d) | paridx=%d | perpidx2d=%d | perpProbOff=%d\n",threadIdx.x, blockIdx.x, blockDim.x, gridDim.x, linc1, idx[0], idx[1], idx[2], paridx, perpidx2d, perpProbOff);
-
     // Apply the RHS source stencil. It's mostly the mass matrix times a
     // modal-to-nodal operator times the source, modified by BCs in skin cells.
     kers->solker(x_global, perpProbOff, globalidx, local_d);

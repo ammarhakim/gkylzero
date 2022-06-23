@@ -393,23 +393,23 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
         
-//        int idx1[] = {2,1,k+1};
-//        linidx= gkyl_range_idx(&localRange, idx1); 
-//        phi_p = gkyl_array_cfetch(phi, linidx);
-//        for (int m=0; m<basis.num_basis; m++) {
-//          TEST_CHECK( gkyl_compare(sol[32+k*basis.num_basis+m], phi_p[m], 1e-14) );
-//          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[32+k*basis.num_basis+m], idx1[0], idx1[1], idx1[2]);
-//          TEST_MSG("Produced: %.13e", phi_p[m]);
-//        }
-//        
-//        int idx2[] = {2,3,k+1};
-//        linidx= gkyl_range_idx(&localRange, idx2); 
-//        phi_p = gkyl_array_cfetch(phi, linidx);
-//        for (int m=0; m<basis.num_basis; m++) {
-//          TEST_CHECK( gkyl_compare(sol[64+k*basis.num_basis+m], phi_p[m], 1e-14) );
-//          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[64+k*basis.num_basis+m], idx2[0], idx0[2], idx2[2]);
-//          TEST_MSG("Produced: %.13e", phi_p[m]);
-//        }
+        int idx1[] = {2,1,k+1};
+        linidx= gkyl_range_idx(&localRange, idx1); 
+        phi_p = gkyl_array_cfetch(phi, linidx);
+        for (int m=0; m<basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(sol[32+k*basis.num_basis+m], phi_p[m], 1e-14) );
+          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[32+k*basis.num_basis+m], idx1[0], idx1[1], idx1[2]);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+        }
+        
+        int idx2[] = {2,3,k+1};
+        linidx= gkyl_range_idx(&localRange, idx2); 
+        phi_p = gkyl_array_cfetch(phi, linidx);
+        for (int m=0; m<basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(sol[64+k*basis.num_basis+m], phi_p[m], 1e-14) );
+          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[64+k*basis.num_basis+m], idx2[0], idx0[2], idx2[2]);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+        }
       }
     } else {
       // Solution (checked visually against g2):
@@ -712,10 +712,10 @@ TEST_LIST = {
   { "gpu_test_1x_p1_periodic", gpu_test_1x_p1_periodic },
   { "gpu_test_1x_p2_nonperiodic", gpu_test_1x_p2_nonperiodic },
   { "gpu_test_1x_p2_periodic", gpu_test_1x_p2_periodic },
-//  { "gpu_test_3x_p1_nonperiodic", gpu_test_3x_p1_nonperiodic },
-//  { "gpu_test_3x_p1_periodic", gpu_test_3x_p1_periodic },
-//  { "gpu_test_3x_p2_nonperiodic", gpu_test_3x_p2_nonperiodic },
-//  { "gpu_test_3x_p2_periodic", gpu_test_3x_p2_periodic },
+  { "gpu_test_3x_p1_nonperiodic", gpu_test_3x_p1_nonperiodic },
+  { "gpu_test_3x_p1_periodic", gpu_test_3x_p1_periodic },
+  { "gpu_test_3x_p2_nonperiodic", gpu_test_3x_p2_nonperiodic },
+  { "gpu_test_3x_p2_periodic", gpu_test_3x_p2_periodic },
 #endif
   { NULL, NULL },
 };
