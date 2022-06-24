@@ -55,6 +55,10 @@ struct gkyl_cusolver_prob {
   double *d_T; // Working space in cusolverRfSolve.
   int *d_P; // P*A*Q^T = L*U
   int *d_Q;
+
+  // for cusolverRfBatch:
+  double **rhspointers_cu; // array of pointers to rhs vectors.
+  double **csrvalApointers_cu; // array of pointers to LHS A matrices.
 };
 
 gkyl_cusolver_prob*
@@ -68,6 +72,15 @@ gkyl_cusolver_prob_new(const int mrow, const int ncol, const int nprob)
 
   prob->rhs = (double*) gkyl_malloc(sizeof(double)*mrow*nprob);
   prob->rhs_cu = (double*) gkyl_cu_malloc(sizeof(double)*mrow*nprob);
+
+  if (prob->nrhs > 1) {
+    double **rhspointers = (double**) gkyl_malloc(sizeof(double*)*nprob);
+    prob->rhspointers_cu = (double**) gkyl_cu_malloc(sizeof(double*)*nprob);
+    for (size_t k=0; k<nprob; k++)
+      rhspointers[k] = &prob->rhs_cu[k*mrow];
+    gkyl_cu_memcpy(prob->rhspointers_cu, rhspointers, sizeof(double*)*nprob, GKYL_CU_MEMCPY_H2D);
+    gkyl_free(rhspointers);
+  }
 
   // create solver
   cusolverSpCreate(&prob->cusolverSpH);
@@ -147,6 +160,17 @@ gkyl_cusolver_amat_from_triples(gkyl_cusolver_prob *prob, gkyl_mat_triples *tri)
   gkyl_cu_memcpy(prob->csrvalA_cu, csrvalA, sizeof(double)*prob->nnz, GKYL_CU_MEMCPY_H2D);
   gkyl_cu_memcpy(prob->csrcolindA_cu, csrcolindA, sizeof(int)*prob->nnz, GKYL_CU_MEMCPY_H2D);
   gkyl_cu_memcpy(prob->csrrowptrA_cu, csrrowptrA, sizeof(int)*(prob->mrow+1), GKYL_CU_MEMCPY_H2D);
+
+  double **csrvalApointers;
+  if (prob->nrhs > 1) {
+    // cusolverRfBatch also needs an array of pointers to
+    // the varios A matrices (all the same in our case).
+    csrvalApointers = (double**) gkyl_malloc(sizeof(double*)*prob->nrhs);
+    prob->csrvalApointers_cu = (double**) gkyl_cu_malloc(sizeof(double*)*prob->nrhs);
+    for (size_t k=0; k<prob->nrhs; k++)
+      csrvalApointers[k] = &prob->csrvalA_cu[0];
+    gkyl_cu_memcpy(prob->csrvalApointers_cu, csrvalApointers, sizeof(double*)*prob->nrhs, GKYL_CU_MEMCPY_H2D);
+  }
 
   // Use CusolverRf
 
@@ -286,14 +310,25 @@ gkyl_cusolver_amat_from_triples(gkyl_cusolver_prob *prob, gkyl_mat_triples *tri)
   cusolverRfSetResetValuesFastMode(prob->cusolverRfH, CUSOLVERRF_RESET_VALUES_FAST_MODE_ON);
 
   // ............... Assemble P*A*Q = L*U .................. //
-  cusolverRfSetupHost(prob->mrow, prob->nnz, csrrowptrA, csrcolindA, csrvalA,
-    nnzL, h_csrRowIndL, h_csrColIndL, h_csrValL,
-    nnzU, h_csrRowIndU, h_csrColIndU, h_csrValU, h_P, h_Q, prob->cusolverRfH);
+  if (prob->nrhs == 1) {
+    cusolverRfSetupHost(prob->mrow, prob->nnz, csrrowptrA, csrcolindA, csrvalA,
+      nnzL, h_csrRowIndL, h_csrColIndL, h_csrValL,
+      nnzU, h_csrRowIndU, h_csrColIndU, h_csrValU, h_P, h_Q, prob->cusolverRfH);
+  } else {
+    for (size_t k=0; k<prob->nrhs; k++)
+      csrvalApointers[k] = &csrvalA[0];
+    cusolverRfBatchSetupHost(prob->nrhs, prob->mrow, prob->nnz, csrrowptrA, csrcolindA, csrvalApointers,
+      nnzL, h_csrRowIndL, h_csrColIndL, h_csrValL,
+      nnzU, h_csrRowIndU, h_csrColIndU, h_csrValU, h_P, h_Q, prob->cusolverRfH);
+  }
 
   cudaDeviceSynchronize();
 
   // ................ Analyze to extract parallelism ............ //
-  cusolverRfAnalyze(prob->cusolverRfH);
+  if (prob->nrhs == 1)
+    cusolverRfAnalyze(prob->cusolverRfH);
+  else
+    cusolverRfBatchAnalyze(prob->cusolverRfH);
 
   // ................ Import A to cusolverRf ................... //
   prob->d_P = (int*) gkyl_cu_malloc(sizeof(int)*prob->mrow); // P*A*Q^T = L*U
@@ -301,18 +336,28 @@ gkyl_cusolver_amat_from_triples(gkyl_cusolver_prob *prob, gkyl_mat_triples *tri)
   gkyl_cu_memcpy(prob->d_P, h_P, sizeof(int)*prob->mrow, GKYL_CU_MEMCPY_H2D);
   gkyl_cu_memcpy(prob->d_Q, h_Q, sizeof(int)*prob->ncol, GKYL_CU_MEMCPY_H2D);
   
-  cusolverRfResetValues(prob->mrow, prob->nnz, prob->csrrowptrA_cu, prob->csrcolindA_cu, prob->csrvalA_cu,
-    prob->d_P, prob->d_Q, prob->cusolverRfH);
+  if (prob->nrhs == 1)
+    cusolverRfResetValues(prob->mrow, prob->nnz, prob->csrrowptrA_cu, prob->csrcolindA_cu,
+      prob->csrvalA_cu, prob->d_P, prob->d_Q, prob->cusolverRfH);
+  else
+    cusolverRfBatchResetValues(prob->nrhs, prob->mrow, prob->nnz, prob->csrrowptrA_cu, prob->csrcolindA_cu,
+      prob->csrvalApointers_cu, prob->d_P, prob->d_Q, prob->cusolverRfH);
   
   cudaDeviceSynchronize();
   
   //................... Refactorization .................... //
   
-  cusolverRfRefactor(prob->cusolverRfH);
+  if (prob->nrhs == 1)
+    cusolverRfRefactor(prob->cusolverRfH);
+  else
+    cusolverRfBatchRefactor(prob->cusolverRfH);
   
   cudaDeviceSynchronize();
 
-  prob->d_T = (double*) gkyl_cu_malloc(sizeof(double)*prob->mrow); // Working space in cusolverRfSolve, |d_T| = n * nrhs.
+  if (prob->nrhs == 1)
+    prob->d_T = (double*) gkyl_cu_malloc(sizeof(double)*prob->mrow); // Working space in cusolverRfSolve, |d_T| = n * nrhs.
+  else
+    prob->d_T = (double*) gkyl_cu_malloc(sizeof(double)*prob->mrow*prob->nrhs*2); // Working space in cusolverRfSolve, |d_T| = 2*n*nrhs*batchSize.
 
   gkyl_free(h_Qreorder);
 
@@ -343,6 +388,7 @@ gkyl_cusolver_amat_from_triples(gkyl_cusolver_prob *prob, gkyl_mat_triples *tri)
   gkyl_free(csrcolindA);
   gkyl_free(csrrowptrA);
   gkyl_free(csrvalA);
+  if (prob->nrhs > 1) gkyl_free(csrvalApointers);
 
 }
 
@@ -366,8 +412,10 @@ gkyl_cusolver_brhs_from_triples(gkyl_cusolver_prob *prob, gkyl_mat_triples *tri)
 void
 gkyl_cusolver_solve(gkyl_cusolver_prob *prob)
 {
-  for (size_t k=0; k<prob->nrhs; k++)
-    cusolverRfSolve(prob->cusolverRfH, prob->d_P, prob->d_Q, 1, prob->d_T, prob->mrow, prob->rhs_cu+k*prob->mrow, prob->mrow);
+  if (prob->nrhs==1)
+    cusolverRfSolve(prob->cusolverRfH, prob->d_P, prob->d_Q, 1, prob->d_T, prob->mrow, prob->rhs_cu, prob->mrow);
+  else
+    cusolverRfBatchSolve(prob->cusolverRfH, prob->d_P, prob->d_Q, 1, prob->d_T, prob->mrow, prob->rhspointers_cu, prob->mrow);
 }
 
 void
@@ -415,6 +463,10 @@ gkyl_cusolver_prob_release(gkyl_cusolver_prob *prob)
   gkyl_cu_free(prob->csrcolindA_cu);
   gkyl_cu_free(prob->csrrowptrA_cu);
   gkyl_cu_free(prob->csrvalA_cu);
+  if (prob->nrhs > 1) {
+    gkyl_cu_free(prob->rhspointers_cu);
+    gkyl_cu_free(prob->csrvalApointers_cu);
+  }
   gkyl_free(prob->rhs);
 
   gkyl_cu_free(prob->d_P);
