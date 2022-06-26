@@ -6,4 +6,5 @@ struct gkyl_mom_updater_lbo_vlasov {
 
   struct gkyl_prim_lbo_type *coll_prim; // LBO primitive moments type
   gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
+  gkyl_prim_lbo_cross_calc *cross_calc; // LBO cross-primitive moment calculator
 };

@@ -37,24 +37,9 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
     
   // allocate moments needed for LBO update
   vm_species_moment_init(app, s, &lbo->moms, "FiveMoments");
-  // create collision equation object and solver
-  if (app->use_gpu) {
-    // primitive moment type (for use in cross colls only)
-    if (collides_with_fluid)
-      lbo->coll_prim = gkyl_prim_lbo_vlasov_with_fluid_cu_dev_new(&app->confBasis, &app->basis, &app->local);
-    else
-      lbo->coll_prim = gkyl_prim_lbo_vlasov_cu_dev_new(&app->confBasis, &app->basis);
-   }
-  else {
-    // primitive moment type (for use in cross colls only)
-    if (collides_with_fluid)
-      lbo->coll_prim = gkyl_prim_lbo_vlasov_with_fluid_new(&app->confBasis, &app->basis, &app->local);
-    else
-      lbo->coll_prim = gkyl_prim_lbo_vlasov_new(&app->confBasis, &app->basis);
-  }
 
   // LBO moment updater (for computing primitive moments and boundary corrections)
-  lbo->coll_mom_updater = gkyl_mom_updater_lbo_vlasov_new(&s->grid, &app->confBasis, &app->basis, v_bounds, collides_with_fluid, app->use_gpu);
+  lbo->coll_mom_updater = gkyl_mom_updater_lbo_vlasov_new(&s->grid, &app->confBasis, &app->basis, &app->local, v_bounds, collides_with_fluid, app->use_gpu);
 
   // LBO updater
   lbo->coll_slvr = gkyl_dg_updater_lbo_vlasov_new(&s->grid, &app->confBasis, &app->basis, &app->local, app->use_gpu);
@@ -65,11 +50,6 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s, str
 {
   int vdim = app->vdim;
   
-  if (app->use_gpu)
-    lbo->cross_calc = gkyl_prim_lbo_cross_calc_cu_dev_new(&s->grid, lbo->coll_prim);
-  else
-    lbo->cross_calc = gkyl_prim_lbo_cross_calc_new(&s->grid, lbo->coll_prim);
-
   lbo->cross_nu_u = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
   lbo->cross_nu_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
@@ -192,16 +172,16 @@ vm_species_lbo_cross_moms(gkyl_vlasov_app *app, const struct vm_species *species
     gkyl_array_scale(lbo->greene_factor[i], 2*lbo->betaGreenep1);
 
     if (app->use_gpu)
-      gkyl_prim_lbo_cross_calc_advance_cu(lbo->cross_calc, 
-        app->confBasis, app->local, 
+      gkyl_mom_updater_lbo_cross_vlasov_advance_cu(lbo->coll_mom_updater, 
+        app->confBasis, &app->local, 
         lbo->greene_factor[i], 
         species->info.mass, lbo->u_drift, lbo->vth_sq, 
         lbo->other_m[i], lbo->other_u_drift[i], lbo->other_vth_sq[i],
         lbo->moms.marr, lbo->boundary_corrections, 
         lbo->cross_u_drift[i], lbo->cross_vth_sq[i]);
     else 
-      gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc, 
-        app->confBasis, app->local, 
+      gkyl_mom_updater_lbo_cross_vlasov_advance(lbo->coll_mom_updater, 
+        app->confBasis, &app->local, 
         lbo->greene_factor[i], 
         species->info.mass, lbo->u_drift, lbo->vth_sq, 
         lbo->other_m[i], lbo->other_u_drift[i], lbo->other_vth_sq[i],
@@ -259,8 +239,6 @@ vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_co
 
   vm_species_moment_release(app, &lbo->moms);
 
-  gkyl_prim_lbo_type_release(lbo->coll_prim);
-  
   if (lbo->num_cross_collisions) {
     gkyl_dg_bin_op_mem_release(lbo->greene_factor_mem);
     gkyl_array_release(lbo->cross_nu_u);
@@ -277,7 +255,6 @@ vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_co
       gkyl_array_release(lbo->greene_num[i]);
       gkyl_array_release(lbo->greene_den[i]);
       gkyl_array_release(lbo->greene_factor[i]);
-      gkyl_prim_lbo_cross_calc_release(lbo->cross_calc);
     }
   }
   gkyl_dg_updater_lbo_vlasov_release(lbo->coll_slvr);

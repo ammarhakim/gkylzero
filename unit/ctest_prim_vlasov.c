@@ -184,7 +184,7 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   gkyl_mom_calc_advance(moms_calc, &local, &confLocal, distf, moms);
 
   // updater for computing self prim moments with boundary corrections
-  struct gkyl_mom_updater_lbo_vlasov *mom_updater = gkyl_mom_updater_lbo_vlasov_new(&grid, &confBasis, &basis, v_bounds, false, false);
+  struct gkyl_mom_updater_lbo_vlasov *mom_updater = gkyl_mom_updater_lbo_vlasov_new(&grid, &confBasis, &basis, &confLocal, v_bounds, false, false);
   
   // create moment arrays
   struct gkyl_array *boundary_corrections;
@@ -234,16 +234,6 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   }}
 
   // Cross species collisions
-  struct gkyl_prim_lbo_type *prim = gkyl_prim_lbo_vlasov_new(&confBasis, &basis);
-
-  TEST_CHECK( prim->cdim == cdim );
-  TEST_CHECK( prim->pdim == pdim );
-  TEST_CHECK( prim->poly_order == poly_order );
-  TEST_CHECK( prim->num_config == confBasis.num_basis );
-  TEST_CHECK( prim->num_phase == basis.num_basis );
-
-  gkyl_prim_lbo_cross_calc *crossprimcalc = gkyl_prim_lbo_cross_calc_new(&grid, prim);
-
   struct gkyl_array *u_out = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *vtsq_out = mkarr(confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *greene = mkarr(confBasis.num_basis, confLocal_ext.volume);
@@ -253,7 +243,7 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   double self_m = 1.;
   double cross_m = self_m;
 
-  gkyl_prim_lbo_cross_calc_advance(crossprimcalc, confBasis, confLocal, greene, self_m, u, vth, cross_m, cross_u, cross_vtsq, moms, boundary_corrections, u_out, vtsq_out);
+  gkyl_mom_updater_lbo_cross_vlasov_advance(mom_updater, confBasis, &confLocal, greene, self_m, u, vth, cross_m, cross_u, cross_vtsq, moms, boundary_corrections, u_out, vtsq_out);
   
   // Check cross u
   // 1-indexed for interfacing with G2 Lua layer
@@ -285,7 +275,6 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   gkyl_array_release(distf);
 
   gkyl_array_release(u); gkyl_array_release(vth);
-  gkyl_prim_lbo_type_release(prim);
   gkyl_mom_updater_lbo_vlasov_release(mom_updater);
 }
 
@@ -370,7 +359,7 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   gkyl_mom_calc_advance_cu(moms_calc, &local, &confLocal, distf_cu, moms_cu);
 
   // updater for computing self prim moments with boundary corrections
-  struct gkyl_mom_updater_lbo_vlasov *mom_updater = gkyl_mom_updater_lbo_vlasov_new(&grid, &confBasis, &basis, v_bounds, false, true);
+  struct gkyl_mom_updater_lbo_vlasov *mom_updater = gkyl_mom_updater_lbo_vlasov_new(&grid, &confBasis, &basis, &confLocal, v_bounds, false, true);
   
   // create moment arrays
   struct gkyl_array *boundary_corrections_cu;
@@ -413,9 +402,6 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   }}
 
   // Cross species collisions
-  struct gkyl_prim_lbo_type *prim = gkyl_prim_lbo_vlasov_cu_dev_new(&confBasis, &basis);
-  gkyl_prim_lbo_cross_calc *crossprimcalc = gkyl_prim_lbo_cross_calc_cu_dev_new(&grid, prim); 
-
   struct gkyl_array *u_out = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *vtsq_out = mkarr(confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *u_out_cu = mkarr_cu(vdim*confBasis.num_basis, confLocal_ext.volume);
@@ -427,7 +413,7 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   double cross_m = self_m;
   gkyl_array_clear(greene, 1.0);
 
-  gkyl_prim_lbo_cross_calc_advance_cu(crossprimcalc, confBasis, confLocal, greene, self_m, u_cu, vth_cu, cross_m, cross_u, cross_vtsq, moms_cu, boundary_corrections_cu, u_out_cu, vtsq_out_cu);
+  gkyl_mom_updater_lbo_cross_vlasov_advance_cu(mom_updater, confBasis, &confLocal, greene, self_m, u_cu, vth_cu, cross_m, cross_u, cross_vtsq, moms_cu, boundary_corrections_cu, u_out_cu, vtsq_out_cu);
   gkyl_array_copy(u_out, u_out_cu);
   gkyl_array_copy(vtsq_out, vtsq_out_cu);
   
@@ -464,7 +450,6 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   gkyl_array_release(u); gkyl_array_release(vth);
   gkyl_array_release(u_cu); gkyl_array_release(vth_cu);
 
-  gkyl_prim_lbo_type_release(prim);
   gkyl_mom_updater_lbo_vlasov_release(mom_updater);
 }
 #endif

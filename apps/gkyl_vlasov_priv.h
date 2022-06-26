@@ -101,8 +101,6 @@ struct vm_lbo_collisions {
   int num_cross_collisions; // number of species we cross-collide with
   struct vm_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
 
-  gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
-  gkyl_prim_lbo_cross_calc *cross_calc; // LBO cross-primitive moment calculator
   gkyl_dg_updater_lbo_vlasov *coll_slvr; // collision solver
   gkyl_mom_updater_lbo_vlasov *coll_mom_updater; // collision moment updater
 };
