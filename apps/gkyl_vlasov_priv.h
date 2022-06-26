@@ -27,6 +27,7 @@
 #include <gkyl_mom_bcorr_lbo_vlasov.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_calc_bcorr.h>
+#include <gkyl_mom_updater_lbo_vlasov.h>
 #include <gkyl_mom_vlasov.h>
 #include <gkyl_mom_vlasov_sr.h>
 #include <gkyl_null_pool.h>
@@ -103,6 +104,7 @@ struct vm_lbo_collisions {
   gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
   gkyl_prim_lbo_cross_calc *cross_calc; // LBO cross-primitive moment calculator
   gkyl_dg_updater_lbo_vlasov *coll_slvr; // collision solver
+  gkyl_mom_updater_lbo_vlasov *coll_mom_updater; // collision moment updater
 };
 
 struct vm_bgk_collisions {

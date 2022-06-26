@@ -12,6 +12,7 @@
 #include <gkyl_mom_bcorr_lbo_vlasov_priv.h>
 #include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_calc.h>
+#include <gkyl_mom_updater_lbo_vlasov.h>
 #include <gkyl_mom_vlasov.h>
 #include <gkyl_prim_lbo_calc.h>
 #include <gkyl_prim_lbo_cross_calc.h>
@@ -182,16 +183,24 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   // compute the moments
   gkyl_mom_calc_advance(moms_calc, &local, &confLocal, distf, moms);
 
-  struct gkyl_mom_type *bcorr_type = gkyl_mom_bcorr_lbo_vlasov_new(&confBasis, &basis, v_bounds);
-  gkyl_mom_calc_bcorr *bcorr_calc = gkyl_mom_calc_bcorr_new(&grid, bcorr_type);
+  // updater for computing self prim moments with boundary corrections
+  struct gkyl_mom_updater_lbo_vlasov *mom_updater = gkyl_mom_updater_lbo_vlasov_new(&grid, &confBasis, &basis, v_bounds, false, false);
   
   // create moment arrays
   struct gkyl_array *boundary_corrections;
   boundary_corrections = mkarr((vdim+1)*confBasis.num_basis, confLocal_ext.volume);
 
-  // compute the moment corrections
-  gkyl_mom_calc_bcorr_advance(bcorr_calc, &local, &confLocal, distf, boundary_corrections);
-  
+  // create moment arrays
+  struct gkyl_array *u, *vth;
+  u = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
+  vth = mkarr(confBasis.num_basis, confLocal_ext.volume);
+
+  // compute the boundary corrections, u, and vth
+  gkyl_mom_updater_lbo_vlasov_advance(mom_updater, confBasis,
+    &local, &confLocal, 
+    distf, moms, boundary_corrections,
+    u, vth);
+
   // Check boundary corrections of momentum and energy.
   // 1-indexed for interfacing with G2 Lua layer
   for (unsigned int i=1; i<cells[0]+1; ++i) {
@@ -204,25 +213,6 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
     }
   }
   
-  struct gkyl_prim_lbo_type *prim = gkyl_prim_lbo_vlasov_new(&confBasis, &basis);
-
-  TEST_CHECK( prim->cdim == cdim );
-  TEST_CHECK( prim->pdim == pdim );
-  TEST_CHECK( prim->poly_order == poly_order );
-  TEST_CHECK( prim->num_config == confBasis.num_basis );
-  TEST_CHECK( prim->num_phase == basis.num_basis );
-
-  gkyl_prim_lbo_calc *primcalc = gkyl_prim_lbo_calc_new(&grid, prim);
-  gkyl_prim_lbo_cross_calc *crossprimcalc = gkyl_prim_lbo_cross_calc_new(&grid, prim);
-  
-  // create moment arrays
-  struct gkyl_array *u, *vth;
-  u = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
-  vth = mkarr(confBasis.num_basis, confLocal_ext.volume);
-
-  // compute the moment corrections
-  gkyl_prim_lbo_calc_advance(primcalc, confBasis, confLocal, moms, boundary_corrections, u, vth);
-
   // Check u
   // 1-indexed for interfacing with G2 Lua layer
   for (unsigned int i=1; i<cells[0]+1; ++i) {
@@ -242,6 +232,17 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
     for (unsigned int k=0; k<confBasis.num_basis; ++k) {
       TEST_CHECK( gkyl_compare( vth_check[k], vthptr[k], 1e-12) );
   }}
+
+  // Cross species collisions
+  struct gkyl_prim_lbo_type *prim = gkyl_prim_lbo_vlasov_new(&confBasis, &basis);
+
+  TEST_CHECK( prim->cdim == cdim );
+  TEST_CHECK( prim->pdim == pdim );
+  TEST_CHECK( prim->poly_order == poly_order );
+  TEST_CHECK( prim->num_config == confBasis.num_basis );
+  TEST_CHECK( prim->num_phase == basis.num_basis );
+
+  gkyl_prim_lbo_cross_calc *crossprimcalc = gkyl_prim_lbo_cross_calc_new(&grid, prim);
 
   struct gkyl_array *u_out = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *vtsq_out = mkarr(confBasis.num_basis, confLocal_ext.volume);
@@ -279,16 +280,13 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   gkyl_mom_type_release(vm_moms_t);
 
   gkyl_array_release(boundary_corrections); 
-  gkyl_mom_calc_bcorr_release(bcorr_calc); 
-  gkyl_mom_type_release(bcorr_type);
 
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf);
 
   gkyl_array_release(u); gkyl_array_release(vth);
   gkyl_prim_lbo_type_release(prim);
-  gkyl_prim_lbo_calc_release(primcalc);
-
+  gkyl_mom_updater_lbo_vlasov_release(mom_updater);
 }
 
 #ifdef GKYL_HAVE_CUDA
@@ -371,20 +369,13 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   // compute the moments
   gkyl_mom_calc_advance_cu(moms_calc, &local, &confLocal, distf_cu, moms_cu);
 
-  struct gkyl_mom_type *bcorr_type = gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(&confBasis, &basis, v_bounds);
-  gkyl_mom_calc_bcorr *bcorr_calc = gkyl_mom_calc_bcorr_cu_dev_new(&grid, bcorr_type);
+  // updater for computing self prim moments with boundary corrections
+  struct gkyl_mom_updater_lbo_vlasov *mom_updater = gkyl_mom_updater_lbo_vlasov_new(&grid, &confBasis, &basis, v_bounds, false, true);
   
   // create moment arrays
   struct gkyl_array *boundary_corrections_cu;
   boundary_corrections_cu = mkarr_cu((vdim+1)*confBasis.num_basis, confLocal_ext.volume);
 
-  // compute the moment corrections
-  gkyl_mom_calc_bcorr_advance_cu(bcorr_calc, &local, &confLocal, distf_cu, boundary_corrections_cu);
-
-  struct gkyl_prim_lbo_type *prim = gkyl_prim_lbo_vlasov_cu_dev_new(&confBasis, &basis);
-  gkyl_prim_lbo_calc *primcalc = gkyl_prim_lbo_calc_cu_dev_new(&grid, prim);
-  gkyl_prim_lbo_cross_calc *crossprimcalc = gkyl_prim_lbo_cross_calc_cu_dev_new(&grid, prim); 
-  
   // create moment arrays
   struct gkyl_array *u, *vth, *u_cu, *vth_cu;
   u = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
@@ -392,8 +383,12 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   u_cu = mkarr_cu(vdim*confBasis.num_basis, confLocal_ext.volume);
   vth_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
 
-  // compute the moment corrections
-  gkyl_prim_lbo_calc_advance_cu(primcalc, confBasis, confLocal, moms_cu, boundary_corrections_cu, u_cu, vth_cu);
+  // compute the boundary corrections, u, and vth
+  gkyl_mom_updater_lbo_vlasov_advance_cu(mom_updater, confBasis,
+    &local, &confLocal, 
+    distf_cu, moms_cu, boundary_corrections_cu,
+    u_cu, vth_cu);
+  
   gkyl_array_copy(u, u_cu);
   gkyl_array_copy(vth, vth_cu);
 
@@ -416,6 +411,10 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
     for (unsigned int k=0; k<confBasis.num_basis; ++k) {
       TEST_CHECK( gkyl_compare( vth_check[k], vthptr[k], 1e-12) );
   }}
+
+  // Cross species collisions
+  struct gkyl_prim_lbo_type *prim = gkyl_prim_lbo_vlasov_cu_dev_new(&confBasis, &basis);
+  gkyl_prim_lbo_cross_calc *crossprimcalc = gkyl_prim_lbo_cross_calc_cu_dev_new(&grid, prim); 
 
   struct gkyl_array *u_out = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *vtsq_out = mkarr(confBasis.num_basis, confLocal_ext.volume);
@@ -458,8 +457,6 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   gkyl_mom_type_release(vm_moms_t);
 
   gkyl_array_release(boundary_corrections_cu); 
-  gkyl_mom_calc_bcorr_release(bcorr_calc); 
-  gkyl_mom_type_release(bcorr_type);
 
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf); gkyl_array_release(distf_cu);
@@ -468,7 +465,7 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   gkyl_array_release(u_cu); gkyl_array_release(vth_cu);
 
   gkyl_prim_lbo_type_release(prim);
-  gkyl_prim_lbo_calc_release(primcalc);
+  gkyl_mom_updater_lbo_vlasov_release(mom_updater);
 }
 #endif
 

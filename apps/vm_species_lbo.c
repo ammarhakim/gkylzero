@@ -39,35 +39,25 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   vm_species_moment_init(app, s, &lbo->moms, "FiveMoments");
   // create collision equation object and solver
   if (app->use_gpu) {
-    // edge of velocity space corrections to momentum and energy 
-    lbo->bcorr_type = gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(&app->confBasis, &app->basis, v_bounds);
-    lbo->bcorr_calc = gkyl_mom_calc_bcorr_cu_dev_new(&s->grid, lbo->bcorr_type);
-    
-    // primitive moment calculators
+    // primitive moment type (for use in cross colls only)
     if (collides_with_fluid)
       lbo->coll_prim = gkyl_prim_lbo_vlasov_with_fluid_cu_dev_new(&app->confBasis, &app->basis, &app->local);
     else
       lbo->coll_prim = gkyl_prim_lbo_vlasov_cu_dev_new(&app->confBasis, &app->basis);
-    lbo->coll_pcalc = gkyl_prim_lbo_calc_cu_dev_new(&s->grid, lbo->coll_prim);
-    
-    // LBO updater
-    lbo->coll_slvr = gkyl_dg_updater_lbo_vlasov_cu_dev_new(&s->grid, &app->confBasis, &app->basis, &app->local);
    }
   else {
-    // edge of velocity space corrections to momentum and energy 
-    lbo->bcorr_type = gkyl_mom_bcorr_lbo_vlasov_new(&app->confBasis, &app->basis, v_bounds);
-    lbo->bcorr_calc = gkyl_mom_calc_bcorr_new(&s->grid, lbo->bcorr_type);
-    
-    // primitive moment calculators
+    // primitive moment type (for use in cross colls only)
     if (collides_with_fluid)
       lbo->coll_prim = gkyl_prim_lbo_vlasov_with_fluid_new(&app->confBasis, &app->basis, &app->local);
     else
       lbo->coll_prim = gkyl_prim_lbo_vlasov_new(&app->confBasis, &app->basis);
-    lbo->coll_pcalc = gkyl_prim_lbo_calc_new(&s->grid, lbo->coll_prim);
-    
-    // LBO updater
-    lbo->coll_slvr = gkyl_dg_updater_lbo_vlasov_new(&s->grid, &app->confBasis, &app->basis, &app->local);
   }
+
+  // LBO moment updater (for computing primitive moments and boundary corrections)
+  lbo->coll_mom_updater = gkyl_mom_updater_lbo_vlasov_new(&s->grid, &app->confBasis, &app->basis, v_bounds, collides_with_fluid, app->use_gpu);
+
+  // LBO updater
+  lbo->coll_slvr = gkyl_dg_updater_lbo_vlasov_new(&s->grid, &app->confBasis, &app->basis, &app->local, app->use_gpu);
 }
 
 void 
@@ -144,14 +134,11 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
   
   if (app->use_gpu) {
     wst = gkyl_wall_clock();
-    
-    // construct boundary corrections
-    gkyl_mom_calc_bcorr_advance_cu(lbo->bcorr_calc,
-      &species->local, &app->local, fin, lbo->boundary_corrections);
 
-    // construct primitive moments    
-    gkyl_prim_lbo_calc_advance_cu(lbo->coll_pcalc, app->confBasis, app->local, 
-      lbo->moms.marr, lbo->boundary_corrections,
+    // construct boundary corrections and primitive moments
+    gkyl_mom_updater_lbo_vlasov_advance_cu(lbo->coll_mom_updater, app->confBasis,
+      &species->local, &app->local, 
+      fin, lbo->moms.marr, lbo->boundary_corrections,
       lbo->u_drift, lbo->vth_sq);
   
     gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_u, 0, lbo->u_drift, 0, lbo->self_nu);
@@ -161,13 +148,10 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
   } else {
     wst = gkyl_wall_clock();
     
-    // construct boundary corrections
-    gkyl_mom_calc_bcorr_advance(lbo->bcorr_calc,
-      &species->local, &app->local, fin, lbo->boundary_corrections);
-
-    // construct primitive moments
-    gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, app->confBasis, app->local, 
-      lbo->moms.marr, lbo->boundary_corrections,
+    // construct boundary corrections and primitive moments
+    gkyl_mom_updater_lbo_vlasov_advance(lbo->coll_mom_updater, app->confBasis,
+      &species->local, &app->local, 
+      fin, lbo->moms.marr, lbo->boundary_corrections,
       lbo->u_drift, lbo->vth_sq);
     
     gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_u, 0, lbo->u_drift, 0, lbo->self_nu);
@@ -275,10 +259,7 @@ vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_co
 
   vm_species_moment_release(app, &lbo->moms);
 
-  gkyl_mom_type_release(lbo->bcorr_type);
-  gkyl_mom_calc_bcorr_release(lbo->bcorr_calc);
   gkyl_prim_lbo_type_release(lbo->coll_prim);
-  gkyl_prim_lbo_calc_release(lbo->coll_pcalc);
   
   if (lbo->num_cross_collisions) {
     gkyl_dg_bin_op_mem_release(lbo->greene_factor_mem);
@@ -300,4 +281,5 @@ vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_co
     }
   }
   gkyl_dg_updater_lbo_vlasov_release(lbo->coll_slvr);
+  gkyl_mom_updater_lbo_vlasov_release(lbo->coll_mom_updater);
  }
