@@ -54,7 +54,7 @@ static const gkyl_dg_gyrokinetic_vol_kern_list ser_vol_kernels[] = {
   { NULL, gyrokinetic_vol_1x1v_ser_p1, gyrokinetic_vol_1x1v_ser_p2 }, // 0
   { NULL, gyrokinetic_vol_1x2v_ser_p1, gyrokinetic_vol_1x2v_ser_p2 }, // 1
   // 2x kernels
-  { NULL, gyrokinetic_vol_2x2v_ser_p1, NULL }, // 2
+  { NULL, gyrokinetic_vol_2x2v_ser_p1, gyrokinetic_vol_2x2v_ser_p2 }, // 2
   // 3x kernels
   { NULL, gyrokinetic_vol_3x2v_ser_p1, NULL }, // 3
 };
@@ -78,7 +78,7 @@ static const gkyl_dg_gyrokinetic_surf_kern_list ser_surf_x_kernels[] = {
   { NULL, gyrokinetic_surfx_1x1v_ser_p1, gyrokinetic_surfx_1x1v_ser_p2 }, // 0
   { NULL, gyrokinetic_surfx_1x2v_ser_p1, gyrokinetic_surfx_1x2v_ser_p2 }, // 1
   // 2x kernels
-  { NULL, gyrokinetic_surfx_2x2v_ser_p1, NULL }, // 2
+  { NULL, gyrokinetic_surfx_2x2v_ser_p1, gyrokinetic_surfx_2x2v_ser_p2 }, // 2
   // 3x kernels
   { NULL, gyrokinetic_surfx_3x2v_ser_p1, NULL }, // 3
 };
@@ -90,7 +90,7 @@ static const gkyl_dg_gyrokinetic_surf_kern_list ser_surf_y_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
   // 2x kernels
-  { NULL, gyrokinetic_surfy_2x2v_ser_p1, NULL }, // 2
+  { NULL, gyrokinetic_surfy_2x2v_ser_p1, gyrokinetic_surfy_2x2v_ser_p2 }, // 2
   // 3x kernels
   { NULL, gyrokinetic_surfy_3x2v_ser_p1, NULL }, // 3
 };
@@ -114,7 +114,7 @@ static const gkyl_dg_gyrokinetic_surf_kern_list ser_surf_vpar_kernels[] = {
   { NULL, gyrokinetic_surfvpar_1x1v_ser_p1, gyrokinetic_surfvpar_1x1v_ser_p2 }, // 0
   { NULL, gyrokinetic_surfvpar_1x2v_ser_p1, gyrokinetic_surfvpar_1x2v_ser_p2 }, // 1
   // 2x kernels
-  { NULL, gyrokinetic_surfvpar_2x2v_ser_p1, NULL }, // 2
+  { NULL, gyrokinetic_surfvpar_2x2v_ser_p1, gyrokinetic_surfvpar_2x2v_ser_p2 }, // 2
   // 3x kernels
   { NULL, gyrokinetic_surfvpar_3x2v_ser_p1, NULL }, // 3
 };
@@ -126,7 +126,7 @@ static const gkyl_dg_gyrokinetic_boundary_surf_kern_list ser_boundary_surf_vpar_
   { NULL, gyrokinetic_boundary_surfvpar_1x1v_ser_p1, gyrokinetic_boundary_surfvpar_1x1v_ser_p2 }, // 0
   { NULL, gyrokinetic_boundary_surfvpar_1x2v_ser_p1, gyrokinetic_boundary_surfvpar_1x2v_ser_p2 }, // 1
   // 2x kernels
-  { NULL, gyrokinetic_boundary_surfvpar_2x2v_ser_p1, NULL }, // 2
+  { NULL, gyrokinetic_boundary_surfvpar_2x2v_ser_p1, gyrokinetic_boundary_surfvpar_2x2v_ser_p2 }, // 2
   // 3x kernels
   { NULL, gyrokinetic_boundary_surfvpar_3x2v_ser_p1, NULL }, // 3
 };
