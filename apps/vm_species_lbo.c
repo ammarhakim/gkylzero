@@ -143,7 +143,7 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
       &species->local, &app->local, fin, lbo->boundary_corrections);
 
     // construct primitive moments    
-    gkyl_prim_lbo_calc_advance_cu(lbo->coll_pcalc, app->confBasis, app->local, 
+    gkyl_prim_lbo_calc_advance_cu(lbo->coll_pcalc, app->confBasis, &app->local, 
       lbo->moms.marr, lbo->boundary_corrections,
       lbo->u_drift, lbo->vth_sq);
   
@@ -159,7 +159,7 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
       &species->local, &app->local, fin, lbo->boundary_corrections);
 
     // construct primitive moments    
-    gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, app->confBasis, app->local, 
+    gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, app->confBasis, &app->local, 
       lbo->moms.marr, lbo->boundary_corrections,
       lbo->u_drift, lbo->vth_sq);
     

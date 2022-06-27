@@ -31,7 +31,7 @@ gkyl_prim_lbo_calc_new(const struct gkyl_rect_grid *grid,
 
 void
 gkyl_prim_lbo_calc_advance(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis,
-  struct gkyl_range conf_rng,
+  struct gkyl_range *conf_rng,
   const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
   struct gkyl_array *uout, struct gkyl_array *vtSqout)
 {
@@ -43,20 +43,20 @@ gkyl_prim_lbo_calc_advance(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis,
   int N = nc*(udim + 1);
 
   if (calc->is_first) {
-    calc->As = gkyl_nmat_new(conf_rng.volume, N, N);
-    calc->xs = gkyl_nmat_new(conf_rng.volume, N, 1);
+    calc->As = gkyl_nmat_new(conf_rng->volume, N, N);
+    calc->xs = gkyl_nmat_new(conf_rng->volume, N, 1);
     calc->mem = gkyl_nmat_linsolve_lu_new(calc->As->num, calc->As->nr);
     calc->is_first = false;
   }
 
-  gkyl_array_clear_range(uout, 0.0, conf_rng);
-  gkyl_array_clear_range(vtSqout, 0.0, conf_rng);
+  gkyl_array_clear_range(uout, 0.0, *conf_rng);
+  gkyl_array_clear_range(vtSqout, 0.0, *conf_rng);
 
   // loop over configuration space cells.
-  gkyl_range_iter_init(&conf_iter, &conf_rng);
+  gkyl_range_iter_init(&conf_iter, conf_rng);
   long count = 0;
   while (gkyl_range_iter_next(&conf_iter)) {
-    long midx = gkyl_range_idx(&conf_rng, conf_iter.idx);
+    long midx = gkyl_range_idx(conf_rng, conf_iter.idx);
 
     struct gkyl_mat lhs = gkyl_nmat_get(calc->As, count);
     struct gkyl_mat rhs = gkyl_nmat_get(calc->xs, count);
@@ -70,10 +70,10 @@ gkyl_prim_lbo_calc_advance(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis,
   }
 
   bool status = gkyl_nmat_linsolve_lu_pa(calc->mem, calc->As, calc->xs);
-  gkyl_range_iter_init(&conf_iter, &conf_rng);
+  gkyl_range_iter_init(&conf_iter, conf_rng);
   count = 0;
   while (gkyl_range_iter_next(&conf_iter)) {
-    long midx = gkyl_range_idx(&conf_rng, conf_iter.idx);
+    long midx = gkyl_range_idx(conf_rng, conf_iter.idx);
     
     struct gkyl_mat out = gkyl_nmat_get(calc->xs, count);
     double *u = gkyl_array_fetch(uout, midx);
@@ -165,7 +165,7 @@ gkyl_prim_lbo_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
 
 void
 gkyl_prim_lbo_calc_advance_cu(gkyl_prim_lbo_calc* calc, const struct gkyl_basis cbasis,
-  struct gkyl_range conf_rng,
+  struct gkyl_range *conf_rng,
   const struct gkyl_array* moms, const struct gkyl_array* boundary_corrections,
   struct gkyl_array* uout, struct gkyl_array* vtSqout)
 {

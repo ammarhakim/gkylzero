@@ -38,12 +38,12 @@ gkyl_prim_lbo_calc* gkyl_prim_lbo_calc_cu_dev_new(const struct gkyl_rect_grid *g
  * @param vtSqout Output thermal velocity primitive moment array
  */
 void gkyl_prim_lbo_calc_advance(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis,
-  struct gkyl_range conf_rng,
+  struct gkyl_range *conf_rng,
   const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
   struct gkyl_array *uout, struct gkyl_array *vtSqout);
 
 void gkyl_prim_lbo_calc_advance_cu(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis,
-  struct gkyl_range conf_rng, 
+  struct gkyl_range *conf_rng, 
   const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
   struct gkyl_array* uout, struct gkyl_array* vtSqout);
 

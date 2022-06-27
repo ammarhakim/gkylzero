@@ -48,6 +48,7 @@ gkyl_prim_lbo_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis,
   prim_gyrokinetic->prim.flag = 0;
   GKYL_SET_CU_ALLOC(prim_gyrokinetic->prim.flag);
   prim_gyrokinetic->prim.ref_count = gkyl_ref_count_init(prim_lbo_gyrokinetic_free);
+  prim_gyrokinetic->prim.udim = 1;
   
   // copy the host struct to device struct
   struct prim_lbo_type_gyrokinetic *prim_gyrokinetic_cu = (struct prim_lbo_type_gyrokinetic*)
