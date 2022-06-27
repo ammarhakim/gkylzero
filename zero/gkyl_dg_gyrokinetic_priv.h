@@ -4,11 +4,11 @@
 
 #include <gkyl_array.h>
 #include <gkyl_dg_eqn.h>
-#include <gkyl_dg_gyrokinetic.h>
 #include <gkyl_eqn_type.h>
-#include <gkyl_gyrokinetic_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
+#include <gkyl_gyrokinetic_kernels.h>
+#include <gkyl_dg_gyrokinetic.h>
 
 // Types for various kernels.
 typedef double (*gyrokinetic_vol_t)(const double *w, const double *dxv, const double q_, const double m_,
@@ -27,6 +27,8 @@ typedef void (*gyrokinetic_boundary_surf_t)(const double *w, const double *dxv, 
   const double m_, const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i,
   const double *phi, const double *apar, const double *apardot, const int edge,
   const double *fedge, const double *fskin, double* GKYL_RESTRICT out);
+
+typedef void (*bc_funcf_t)(size_t nc, double *out, const double *inp, void *ctx);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below.
@@ -142,6 +144,8 @@ struct dg_gyrokinetic {
   gyrokinetic_step2_vol_t step2_vol; // Volume kernel.
   gyrokinetic_surf_t surf[4]; // Surface terms.
   gyrokinetic_boundary_surf_t boundary_surf; // Surface terms for velocity boundary.
+  bc_funcf_t reflect_bc; // reflect BCs function
+  bc_funcf_t absorb_bc; // Absorbing BCs function
   struct gkyl_range conf_range; // Configuration space range.
   double charge, mass;
   struct gkyl_dg_gyrokinetic_auxfields auxfields; // Auxiliary fields.
