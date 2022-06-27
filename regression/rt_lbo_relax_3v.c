@@ -76,9 +76,9 @@ main(int argc, char **argv)
   struct gkyl_vlasov_species square = {
     .name = "square",
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -8.0*ctx.vt, -8.0*ctx.vt -8.0*ctx.vt },
+    .lower = { -8.0*ctx.vt, -8.0*ctx.vt, -8.0*ctx.vt },
     .upper = { 8.0*ctx.vt, 8.0*ctx.vt, 8.0*ctx.vt }, 
-    .cells = { 48, 48, 48},
+    .cells = { 16, 16, 16},
 
     .ctx = &ctx,
     .init = evalDistFuncSquare,
@@ -95,9 +95,9 @@ main(int argc, char **argv)
   struct gkyl_vlasov_species bump = {
     .name = "bump",
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -8.0*ctx.vt, -8.0*ctx.vt -8.0*ctx.vt },
+    .lower = { -8.0*ctx.vt, -8.0*ctx.vt, -8.0*ctx.vt },
     .upper = { 8.0*ctx.vt, 8.0*ctx.vt, 8.0*ctx.vt }, 
-    .cells = { 48, 48, 48},
+    .cells = { 16, 16, 16},
 
     .ctx = &ctx,
     .init = evalDistFuncBump,
@@ -136,7 +136,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 100.0;
+  double tcurr = 0.0, tend = 1.0;
   double dt = tend-tcurr;
 
   // initialize simulation
