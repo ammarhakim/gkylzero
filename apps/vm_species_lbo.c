@@ -38,8 +38,26 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   // allocate moments needed for LBO update
   vm_species_moment_init(app, s, &lbo->moms, "FiveMoments");
 
-  // LBO moment updater (for computing primitive moments and boundary corrections)
-  lbo->coll_mom_updater = gkyl_mom_updater_lbo_vlasov_new(&s->grid, &app->confBasis, &app->basis, &app->local, v_bounds, collides_with_fluid, app->use_gpu);
+  // create collision equation object and solver
+  if (app->use_gpu) {
+    // edge of velocity space corrections to momentum and energy 
+    lbo->bcorr_calc = gkyl_mom_calc_bcorr_lbo_vlasov_cu_dev_new(&s->grid, &app->confBasis, &app->basis, v_bounds);
+    
+    // primitive moment calculators
+    if (collides_with_fluid)
+      lbo->coll_pcalc = gkyl_prim_lbo_vlasov_with_fluid_calc_cu_dev_new(&s->grid, &app->confBasis, &app->basis, &app->local);
+    else
+      lbo->coll_pcalc = gkyl_prim_lbo_vlasov_calc_cu_dev_new(&s->grid, &app->confBasis, &app->basis);
+  } else {
+    // edge of velocity space corrections to momentum and energy 
+    lbo->bcorr_calc = gkyl_mom_calc_bcorr_lbo_vlasov_new(&s->grid, &app->confBasis, &app->basis, v_bounds);
+    
+    // primitive moment calculators
+    if (collides_with_fluid)
+      lbo->coll_pcalc = gkyl_prim_lbo_vlasov_with_fluid_calc_new(&s->grid, &app->confBasis, &app->basis, &app->local);
+    else
+      lbo->coll_pcalc = gkyl_prim_lbo_vlasov_calc_new(&s->grid, &app->confBasis, &app->basis);
+  }
 
   // LBO updater
   lbo->coll_slvr = gkyl_dg_updater_lbo_vlasov_new(&s->grid, &app->confBasis, &app->basis, &app->local, app->use_gpu);
@@ -49,6 +67,11 @@ void
 vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_lbo_collisions *lbo)
 {
   int vdim = app->vdim;
+
+  if (app->use_gpu)
+    lbo->cross_calc = gkyl_prim_lbo_vlasov_cross_calc_cu_dev_new(&s->grid, &app->confBasis, &app->basis);
+  else
+    lbo->cross_calc = gkyl_prim_lbo_vlasov_cross_calc_new(&s->grid, &app->confBasis, &app->basis);
   
   lbo->cross_nu_u = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
   lbo->cross_nu_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -109,16 +132,19 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
 
   // get pointer to fluid species if kinetic species is colliding with fluid species
   if (collides_with_fluid)
-    gkyl_prim_lbo_vlasov_with_fluid_set_auxfields(lbo->coll_prim, 
+    gkyl_prim_lbo_vlasov_with_fluid_set_auxfields(gkyl_prim_lbo_calc_get_prim(lbo->coll_pcalc),
       (struct gkyl_prim_lbo_vlasov_with_fluid_auxfields) { .fluid = fluidin[species->fluid_index]  });
   
   if (app->use_gpu) {
     wst = gkyl_wall_clock();
 
-    // construct boundary corrections and primitive moments
-    gkyl_mom_updater_lbo_vlasov_advance_cu(lbo->coll_mom_updater, app->confBasis,
-      &species->local, &app->local, 
-      fin, lbo->moms.marr, lbo->boundary_corrections,
+    // construct boundary corrections
+    gkyl_mom_calc_bcorr_advance_cu(lbo->bcorr_calc,
+      &species->local, &app->local, fin, lbo->boundary_corrections);
+
+    // construct primitive moments    
+    gkyl_prim_lbo_calc_advance_cu(lbo->coll_pcalc, app->confBasis, app->local, 
+      lbo->moms.marr, lbo->boundary_corrections,
       lbo->u_drift, lbo->vth_sq);
   
     gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_u, 0, lbo->u_drift, 0, lbo->self_nu);
@@ -128,10 +154,13 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
   } else {
     wst = gkyl_wall_clock();
     
-    // construct boundary corrections and primitive moments
-    gkyl_mom_updater_lbo_vlasov_advance(lbo->coll_mom_updater, app->confBasis,
-      &species->local, &app->local, 
-      fin, lbo->moms.marr, lbo->boundary_corrections,
+    // construct boundary corrections
+    gkyl_mom_calc_bcorr_advance(lbo->bcorr_calc,
+      &species->local, &app->local, fin, lbo->boundary_corrections);
+
+    // construct primitive moments    
+    gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, app->confBasis, app->local, 
+      lbo->moms.marr, lbo->boundary_corrections,
       lbo->u_drift, lbo->vth_sq);
     
     gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_u, 0, lbo->u_drift, 0, lbo->self_nu);
@@ -151,7 +180,7 @@ vm_species_lbo_cross_moms(gkyl_vlasov_app *app, const struct vm_species *species
 
   // get pointer to fluid species if kinetic species is colliding with fluid species
   if (collides_with_fluid)
-    gkyl_prim_lbo_vlasov_with_fluid_set_auxfields(lbo->coll_prim, 
+    gkyl_prim_lbo_vlasov_with_fluid_set_auxfields(gkyl_prim_lbo_cross_calc_get_prim(lbo->cross_calc),
       (struct gkyl_prim_lbo_vlasov_with_fluid_auxfields) { .fluid = fluidin[species->fluid_index]  });
   
   wst = gkyl_wall_clock();  
@@ -172,7 +201,7 @@ vm_species_lbo_cross_moms(gkyl_vlasov_app *app, const struct vm_species *species
     gkyl_array_scale(lbo->greene_factor[i], 2*lbo->betaGreenep1);
 
     if (app->use_gpu)
-      gkyl_mom_updater_lbo_cross_vlasov_advance_cu(lbo->coll_mom_updater, 
+      gkyl_prim_lbo_cross_calc_advance_cu(lbo->cross_calc,
         app->confBasis, &app->local, 
         lbo->greene_factor[i], 
         species->info.mass, lbo->u_drift, lbo->vth_sq, 
@@ -180,7 +209,7 @@ vm_species_lbo_cross_moms(gkyl_vlasov_app *app, const struct vm_species *species
         lbo->moms.marr, lbo->boundary_corrections, 
         lbo->cross_u_drift[i], lbo->cross_vth_sq[i]);
     else 
-      gkyl_mom_updater_lbo_cross_vlasov_advance(lbo->coll_mom_updater, 
+      gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc,
         app->confBasis, &app->local, 
         lbo->greene_factor[i], 
         species->info.mass, lbo->u_drift, lbo->vth_sq, 
@@ -239,6 +268,9 @@ vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_co
 
   vm_species_moment_release(app, &lbo->moms);
 
+  gkyl_mom_calc_bcorr_release(lbo->bcorr_calc);
+  gkyl_prim_lbo_calc_release(lbo->coll_pcalc);
+
   if (lbo->num_cross_collisions) {
     gkyl_dg_bin_op_mem_release(lbo->greene_factor_mem);
     gkyl_array_release(lbo->cross_nu_u);
@@ -256,7 +288,7 @@ vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_co
       gkyl_array_release(lbo->greene_den[i]);
       gkyl_array_release(lbo->greene_factor[i]);
     }
+    gkyl_prim_lbo_cross_calc_release(lbo->cross_calc);
   }
   gkyl_dg_updater_lbo_vlasov_release(lbo->coll_slvr);
-  gkyl_mom_updater_lbo_vlasov_release(lbo->coll_mom_updater);
  }

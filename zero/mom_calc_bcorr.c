@@ -7,6 +7,8 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_calc_bcorr_priv.h>
+#include <gkyl_mom_bcorr_lbo_vlasov.h>
+#include <gkyl_mom_bcorr_lbo_gyrokinetic.h>
 #include <gkyl_util.h>
 
 static inline void
@@ -107,6 +109,39 @@ gkyl_mom_calc_bcorr_release(gkyl_mom_calc_bcorr* up)
   if (GKYL_IS_CU_ALLOC(up->flags))
     gkyl_cu_free(up->on_dev);
   gkyl_free(up);
+}
+
+// "derived" class constructors
+gkyl_mom_calc_bcorr*
+gkyl_mom_calc_bcorr_lbo_vlasov_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const double* vBoundary)
+{
+  struct gkyl_mom_type *bcorr_type; // LBO boundary corrections moment type
+  bcorr_type = gkyl_mom_bcorr_lbo_vlasov_new(cbasis, pbasis, vBoundary);
+  return gkyl_mom_calc_bcorr_new(grid, bcorr_type);
+}
+
+gkyl_mom_calc_bcorr*
+gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const double* vBoundary, double mass)
+{
+  struct gkyl_mom_type *bcorr_type; // LBO boundary corrections moment type
+  bcorr_type = gkyl_mom_bcorr_lbo_gyrokinetic_new(cbasis, pbasis, vBoundary, mass);
+  return gkyl_mom_calc_bcorr_new(grid, bcorr_type);
+}
+
+gkyl_mom_calc_bcorr*
+gkyl_mom_calc_bcorr_lbo_vlasov_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const double* vBoundary)
+{
+  struct gkyl_mom_type *bcorr_type; // LBO boundary corrections moment type
+  bcorr_type = gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(cbasis, pbasis, vBoundary);
+  return gkyl_mom_calc_bcorr_cu_dev_new(grid, bcorr_type);
+}
+
+gkyl_mom_calc_bcorr*
+gkyl_mom_calc_bcorr_lbo_gyrokinetic_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const double* vBoundary, double mass)
+{
+  struct gkyl_mom_type *bcorr_type; // LBO boundary corrections moment type
+  bcorr_type = gkyl_mom_bcorr_lbo_gyrokinetic_cu_dev_new(cbasis, pbasis, vBoundary, mass);
+  return gkyl_mom_calc_bcorr_cu_dev_new(grid, bcorr_type);
 }
 
 #ifndef GKYL_HAVE_CUDA

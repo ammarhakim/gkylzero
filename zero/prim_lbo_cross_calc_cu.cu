@@ -14,7 +14,7 @@ extern "C" {
 __global__ static void
 gkyl_prim_lbo_cross_calc_set_cu_ker(gkyl_prim_lbo_cross_calc* calc,
   struct gkyl_nmat *As, struct gkyl_nmat *xs,
-  struct gkyl_basis cbasis, const struct gkyl_range conf_rng,
+  struct gkyl_basis cbasis, const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
   double self_m, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
   double cross_m, const struct gkyl_array *cross_u, const struct gkyl_array *cross_vtsq, 
@@ -23,17 +23,17 @@ gkyl_prim_lbo_cross_calc_set_cu_ker(gkyl_prim_lbo_cross_calc* calc,
   int idx[GKYL_MAX_DIM];
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
-      linc1 < conf_rng.volume;
+      linc1 < conf_rng->volume;
       linc1 += gridDim.x*blockDim.x)
   {
     // inverse index from linc1 to idx
     // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
     // since update_range is a subrange
-    gkyl_sub_range_inv_idx(&conf_rng, linc1, idx);
+    gkyl_sub_range_inv_idx(conf_rng, linc1, idx);
 
     // convert back to a linear index on the super-range (with ghost cells)
     // linc will have jumps in it to jump over ghost cells
-    long start = gkyl_range_idx(&conf_rng, idx);
+    long start = gkyl_range_idx(conf_rng, idx);
 
     struct gkyl_mat lhs = gkyl_nmat_get(As, linc1);
     struct gkyl_mat rhs = gkyl_nmat_get(xs, linc1);
@@ -58,24 +58,24 @@ gkyl_prim_lbo_cross_calc_set_cu_ker(gkyl_prim_lbo_cross_calc* calc,
 
 __global__ static void
 gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs,
-  struct gkyl_basis cbasis, struct gkyl_range conf_rng,
+  struct gkyl_basis cbasis, struct gkyl_range *conf_rng,
   int nc, int vdim, 
   struct gkyl_array* u_out, struct gkyl_array* vtsq_out)
 {
   int idx[GKYL_MAX_DIM];
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
-      linc1 < conf_rng.volume;
+      linc1 < conf_rng->volume;
       linc1 += gridDim.x*blockDim.x)
   {
     // inverse index from linc1 to idx
     // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
     // since update_range is a subrange
-    gkyl_sub_range_inv_idx(&conf_rng, linc1, idx);
+    gkyl_sub_range_inv_idx(conf_rng, linc1, idx);
 
     // convert back to a linear index on the super-range (with ghost cells)
     // linc will have jumps in it to jump over ghost cells
-    long start = gkyl_range_idx(&conf_rng, idx);
+    long start = gkyl_range_idx(conf_rng, idx);
 
     struct gkyl_mat out_d = gkyl_nmat_get(xs, linc1);
     double *u_d = (double*) gkyl_array_fetch(u_out, start);
@@ -87,7 +87,7 @@ gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs,
 
 void
 gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc,
-  struct gkyl_basis cbasis, const struct gkyl_range conf_rng,
+  struct gkyl_basis cbasis, const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
   double self_m, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
   double cross_m, const struct gkyl_array *cross_u, const struct gkyl_array *cross_vtsq, 
@@ -99,13 +99,13 @@ gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc,
   int N = nc*(vdim + 1);
   
   if (calc->is_first) {
-    calc->As = gkyl_nmat_cu_dev_new(conf_rng.volume, N, N);
-    calc->xs = gkyl_nmat_cu_dev_new(conf_rng.volume, N, 1);
+    calc->As = gkyl_nmat_cu_dev_new(conf_rng->volume, N, N);
+    calc->xs = gkyl_nmat_cu_dev_new(conf_rng->volume, N, 1);
     calc->mem = gkyl_nmat_linsolve_lu_cu_dev_new(calc->As->num, calc->As->nr);
     calc->is_first = false;
   }
 
-  gkyl_prim_lbo_cross_calc_set_cu_ker<<<conf_rng.nblocks, conf_rng.nthreads>>>(calc->on_dev,
+  gkyl_prim_lbo_cross_calc_set_cu_ker<<<conf_rng->nblocks, conf_rng->nthreads>>>(calc->on_dev,
     calc->As->on_dev, calc->xs->on_dev, 
     cbasis, conf_rng, 
     greene->on_dev, 
@@ -115,7 +115,7 @@ gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc,
   
   bool status = gkyl_nmat_linsolve_lu_pa(calc->mem, calc->As, calc->xs);
   
-  gkyl_prim_lbo_copy_sol_cu_ker<<<conf_rng.nblocks, conf_rng.nthreads>>>(calc->xs->on_dev,
+  gkyl_prim_lbo_copy_sol_cu_ker<<<conf_rng->nblocks, conf_rng->nthreads>>>(calc->xs->on_dev,
     cbasis, conf_rng, nc, vdim, 
     u_out->on_dev, vtsq_out->on_dev);
 }
