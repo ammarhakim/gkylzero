@@ -69,6 +69,7 @@ enum gkyl_collision_id {
 enum gkyl_species_bc_type {
   GKYL_SPECIES_COPY = 0, // copy BCs
   GKYL_SPECIES_WALL, // perfect reflector
+  GKYL_SPECIES_ABSORB, // absorbing BCs
   GKYL_SPECIES_WEDGE, // specialized "wedge" BCs for RZ-theta
 };
 
@@ -211,7 +212,8 @@ struct gkyl_moment_species {
   void *ctx; // context for initial condition init function
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
-
+  // pointer to applied acceleration/forces function
+  void (*app_accel_func)(double t, const double *xn, double *fout, void *ctx);
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
 };
@@ -228,7 +230,10 @@ struct gkyl_moment_field {
   void *ctx; // context for initial condition init function
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
-
+  // pointer to applied current function
+  void (*app_current_func)(double t, const double *xn, double *fout, void *ctx);
+  // pointer to external fields
+  void (*ext_em_func)(double t, const double *xn, double *fout, void *ctx);
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
 };
@@ -441,8 +446,18 @@ local function gkyl_eval_moment(func)
       for i=1, 3 do xnl[i] = xn[i-1] end -- might not be safe?
       local ret = { func(t, xnl) } -- package return into table
       for i=1,#ret do
-	 fout[i-1] = ret[i]
+         fout[i-1] = ret[i]
       end
+   end
+end
+
+local function gkyl_eval_applied(func)
+   return function(t, xn, fout, ctx)
+      local xnl = ffi.new("double[10]")
+      for i=1, 3 do xnl[i] = xn[i-1] end -- might not be safe?
+      local ux,uy,uz = func(t, xnl)
+
+      fout[0] = ux; fout[1] = uy; fout[2] = uz
    end
 end
 
@@ -452,7 +467,7 @@ local function gkyl_eval_mapc2p(func)
       for i=1, 3 do xnl[i] = xn[i-1] end -- might not be safe?
       local ret = { func(t, xnl) } -- package return into table
       for i=1,#ret do
-	 fout[i-1] = ret[i]
+         fout[i-1] = ret[i]
       end
    end
 end
@@ -503,6 +518,9 @@ local species_mt = {
       -- initial conditions
       s.ctx = nil -- no need for a context
       s.init = gkyl_eval_moment(tbl.init)
+      if tbl.app_accel then
+         s.app_accel_func = gkyl_eval_applied(tbl.app_accel)
+      end
 
       -- boundary conditions
       if tbl.bcx then
@@ -541,6 +559,18 @@ local function gkyl_eval_field(func)
    end
 end
 
+local function gkyl_eval_ext_field(func)
+   return function(t, xn, fout, ctx)
+      local xnl = ffi.new("double[10]")
+      for i=1, 6 do xnl[i] = xn[i-1] end -- might not be safe?
+
+      local ex,ey,ez,bx,by,bz = func(t, xnl)
+
+      fout[0] = ex; fout[1] = ey; fout[2] = ez
+      fout[3] = bx; fout[4] = by; fout[5] = bz
+   end
+end
+
 -- Field object: table structure is as follows:
 --
 -- local field = {
@@ -571,6 +601,12 @@ local field_mt = {
 
       f.ctx = nil -- no need for context
       f.init = gkyl_eval_field(tbl.init)
+      if tbl.app_current then
+         f.app_current_func = gkyl_eval_applied(tbl.app_current)
+      end
+      if tbl.ext_em then
+         f.ext_em_func = gkyl_eval_ext_field(tbl.ext_em)
+      end
 
       -- boundary conditions
       if tbl.bcx then

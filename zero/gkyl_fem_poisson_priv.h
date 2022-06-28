@@ -367,6 +367,7 @@ static const solstencil_kern_list ser_solstencil_list[] = {
 #define CK2(lst,poly_order,loc,bcx,bcy) lst[bcx].list[bcy].list[poly_order].kernels[loc]
 #define CK3(lst,poly_order,loc,bcx,bcy,bcz) lst[bcx].list[bcy].list[bcz].list[poly_order].kernels[loc]
 
+// Struct containing pointers to the various kernels. Needed to create a similar struct on the GPU.
 struct gkyl_fem_poisson_kernels { 
   // Pointer to local-to-global kernels. 2^3, 2 (interior and upper) in each direction.
   local2global_t l2g[8];
@@ -407,20 +408,21 @@ struct gkyl_fem_poisson {
   double* bcvals_cu; // BC values, bc[0]*phi+bc[1]*d(phi)/dx=phi[3] at each boundary.
 
   struct gkyl_range local_range, local_range_ext;
-  struct gkyl_range solve_range, solve_range_ext;
+  struct gkyl_range solve_range;
   struct gkyl_range_iter solve_iter;
 
   int numnodes_local;
   long numnodes_global;
 
-  long *globalidx;
-  long *globalidx_cu;
-
-  struct gkyl_array *brhs;
-  struct gkyl_array *brhs_cu;
-
   struct gkyl_superlu_prob* prob;
+  struct gkyl_array *brhs;
+
+#ifdef GKYL_HAVE_CUDA
   struct gkyl_cusolver_prob* prob_cu;
+  struct gkyl_array *brhs_cu;
+#endif
+
+  long *globalidx;
 
   struct gkyl_fem_poisson_kernels *kernels;
   struct gkyl_fem_poisson_kernels *kernels_cu;
@@ -428,12 +430,11 @@ struct gkyl_fem_poisson {
 };
 
 void
-choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_poisson_bc* bcs, const bool *isdirperiodic, struct gkyl_fem_poisson_kernels *kers);
-
+fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_poisson_bc bcs, const bool *isdirperiodic, struct gkyl_fem_poisson_kernels *kers);
 
 GKYL_CU_D
 static void
-choose_local2global_kernels(const struct gkyl_basis* basis, const bool *isdirperiodic, local2global_t *l2gout)
+fem_poisson_choose_local2global_kernels(const struct gkyl_basis* basis, const bool *isdirperiodic, local2global_t *l2gout)
 {
   int dim = basis->ndim;
   int poly_order = basis->poly_order;
@@ -463,7 +464,7 @@ choose_local2global_kernels(const struct gkyl_basis* basis, const bool *isdirper
 
 GKYL_CU_D
 static void
-choose_lhs_kernels(const struct gkyl_basis* basis, const struct gkyl_poisson_bc* bcs, lhsstencil_t *lhsout)
+fem_poisson_choose_lhs_kernels(const struct gkyl_basis* basis, const struct gkyl_poisson_bc *bcs, lhsstencil_t *lhsout)
 {
   int dim = basis->ndim;
   int poly_order = basis->poly_order;
@@ -501,7 +502,7 @@ choose_lhs_kernels(const struct gkyl_basis* basis, const struct gkyl_poisson_bc*
 
 GKYL_CU_D
 static void
-choose_src_kernels(const struct gkyl_basis* basis, const struct gkyl_poisson_bc* bcs, srcstencil_t *srcout)
+fem_poisson_choose_src_kernels(const struct gkyl_basis* basis, const struct gkyl_poisson_bc *bcs, srcstencil_t *srcout)
 {
   int dim = basis->ndim;
   int poly_order = basis->poly_order;
@@ -539,7 +540,7 @@ choose_src_kernels(const struct gkyl_basis* basis, const struct gkyl_poisson_bc*
 
 GKYL_CU_D
 static solstencil_t
-choose_sol_kernels(const struct gkyl_basis* basis)
+fem_poisson_choose_sol_kernels(const struct gkyl_basis* basis)
 {
   int dim = basis->ndim;
   int poly_order = basis->poly_order;

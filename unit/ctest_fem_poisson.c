@@ -108,7 +108,6 @@ mkarr(long nc, long size)
   return a;
 }
 
-// allocate array (filled with zeros)
 static struct gkyl_array*
 mkarr_cu(long nc, long size)
 {

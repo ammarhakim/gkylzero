@@ -74,9 +74,8 @@ pressure_tensor_rotate(double qbym, double dt, const double *em, const double *e
 // et. al. 2020 for details.
 static void
 em_source_update(const gkyl_moment_em_coupling *mes, double dt,
-  double *fluids[], double *app_accels[],
-  double *em,
-  const double *app_current, const double *ext_em)
+  double *fluids[GKYL_MAX_SPECIES], const double *app_accels[GKYL_MAX_SPECIES],
+  double *em, const double *app_current, const double *ext_em)
 {
   // based on Smithe (2007) with corrections but using Hakim (2019) notations
   // full reference in Wang, Hakim, Ng, Dong, & Germaschewski JCP 2020
@@ -215,8 +214,8 @@ em_source_update(const gkyl_moment_em_coupling *mes, double dt,
 // See Wang et. al. 2020 JCP for details
 static void
 fluid_source_update(const gkyl_moment_em_coupling *mes, double dt,
-  double* fluids[], double *app_accels[GKYL_MAX_SPECIES], double* em,
-  const double* app_current, const double* ext_em)
+  double* fluids[GKYL_MAX_SPECIES], const double *app_accels[GKYL_MAX_SPECIES],
+  double* em, const double* app_current, const double* ext_em)
 {
   int nfluids = mes->nfluids;
   double keOld[GKYL_MAX_SPECIES];
@@ -296,12 +295,12 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
 void
 gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
   const struct gkyl_range *update_range,
-  struct gkyl_array *fluid[], struct gkyl_array *app_accel[],
-  struct gkyl_array *em, struct gkyl_array *app_current, struct gkyl_array *ext_em)
+  struct gkyl_array *fluid[GKYL_MAX_SPECIES], const struct gkyl_array *app_accel[GKYL_MAX_SPECIES],
+  struct gkyl_array *em, const struct gkyl_array *app_current, const struct gkyl_array *ext_em)
 {
   int nfluids = mes->nfluids;
   double *fluids[GKYL_MAX_SPECIES];
-  double *app_accels[GKYL_MAX_SPECIES];
+  const double *app_accels[GKYL_MAX_SPECIES];
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
@@ -311,13 +310,13 @@ gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
     
     for (int n=0; n<nfluids; ++n) {
       fluids[n] = gkyl_array_fetch(fluid[n], lidx);
-      app_accels[n] = gkyl_array_fetch(app_accel[n], lidx);
+      app_accels[n] = gkyl_array_cfetch(app_accel[n], lidx);
     }
 
     fluid_source_update(mes, dt, fluids, app_accels,
       gkyl_array_fetch(em, lidx),
-      gkyl_array_fetch(app_current, lidx),
-      gkyl_array_fetch(ext_em, lidx)
+      gkyl_array_cfetch(app_current, lidx),
+      gkyl_array_cfetch(ext_em, lidx)
     );
   }
 }
