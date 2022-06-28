@@ -90,7 +90,6 @@ struct gkyl_fem_parproj_kernels {
 };
 
 struct gkyl_fem_parproj {
-  void *ctx; // evaluation context.
   struct gkyl_rect_grid grid;
   int ndim; // grid's number of dimensions.
   int num_basis; // number of basis functions.
