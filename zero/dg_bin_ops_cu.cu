@@ -86,12 +86,12 @@ void
 gkyl_dg_mul_op_range_cu(struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
-  int c_rop, const struct gkyl_array* rop, struct gkyl_range range)
+  int c_rop, const struct gkyl_array* rop, struct gkyl_range *range)
 {
-  int nblocks = range.nblocks;
-  int nthreads = range.nthreads;
+  int nblocks = range->nblocks;
+  int nthreads = range->nthreads;
   gkyl_dg_mul_op_range_cu_kernel<<<nblocks, nthreads>>>(basis, c_oop, out->on_dev,
-    c_lop, lop->on_dev, c_rop, rop->on_dev, range);
+    c_lop, lop->on_dev, c_rop, rop->on_dev, *range);
 }
 
 __global__ void

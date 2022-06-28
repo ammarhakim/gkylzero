@@ -83,7 +83,7 @@ gkyl_dg_mul_op(struct gkyl_basis basis,
 void gkyl_dg_mul_op_range(struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
-  int c_rop, const struct gkyl_array* rop, struct gkyl_range range)
+  int c_rop, const struct gkyl_array* rop, struct gkyl_range *range)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
@@ -97,10 +97,10 @@ void gkyl_dg_mul_op_range(struct gkyl_basis basis,
   mul_op_t mul_op = choose_ser_mul_kern(ndim, poly_order);
 
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &range);
+  gkyl_range_iter_init(&iter, range);
 
   while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(&range, iter.idx);
+    long loc = gkyl_range_idx(range, iter.idx);
 
     const double *lop_d = gkyl_array_cfetch(lop, loc);
     const double *rop_d = gkyl_array_cfetch(rop, loc);

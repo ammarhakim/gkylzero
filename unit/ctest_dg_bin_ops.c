@@ -86,7 +86,7 @@ test_1d(int poly_order)
   gkyl_array_clear(f_bar, 0.0);
   gkyl_array_clear(g_bar, 0.0);
   // h = f*g
-  gkyl_dg_mul_op_range(basis, 0, h, 0, distf, 0, distg, arr_range);
+  gkyl_dg_mul_op_range(basis, 0, h, 0, distf, 0, distg, &arr_range);
   // f_bar = h/g = f
   gkyl_dg_div_op_range(mem, basis, 0, f_bar, 0, h, 0, distg, arr_range);
   // g_bar = h/f = g
@@ -218,7 +218,7 @@ test_2d(int poly_order)
   gkyl_array_clear(f_bar, 0.0);
   gkyl_array_clear(g_bar, 0.0);
   // h = f*g
-  gkyl_dg_mul_op_range(basis, 0, h, 0, distf, 0, distg, arr_range);
+  gkyl_dg_mul_op_range(basis, 0, h, 0, distf, 0, distg, &arr_range);
   // f_bar = h/g = f
   gkyl_dg_div_op_range(mem, basis, 0, f_bar, 0, h, 0, distg, arr_range);
   // g_bar = h/f = g
@@ -361,7 +361,7 @@ test_3d(int poly_order)
   gkyl_array_clear(f_bar, 0.0);
   gkyl_array_clear(g_bar, 0.0);
   // h = f*g
-  gkyl_dg_mul_op_range(basis, 0, h, 0, distf, 0, distg, arr_range);
+  gkyl_dg_mul_op_range(basis, 0, h, 0, distf, 0, distg, &arr_range);
   // f_bar = h/g = f
   gkyl_dg_div_op_range(mem, basis, 0, f_bar, 0, h, 0, distg, arr_range);
   // g_bar = h/f = g
@@ -539,7 +539,7 @@ test_3d_p3()
   gkyl_array_clear(f_bar, 0.0);
   gkyl_array_clear(g_bar, 0.0);
   // h = f*g
-  gkyl_dg_mul_op_range(basis, 0, h, 0, distf, 0, distg, arr_range);
+  gkyl_dg_mul_op_range(basis, 0, h, 0, distf, 0, distg, &arr_range);
   // f_bar = h/g = f
   gkyl_dg_div_op_range(mem, basis, 0, f_bar, 0, h, 0, distg, arr_range);
   // g_bar = h/f = g
@@ -654,7 +654,7 @@ test_1d_cu(int poly_order)
   gkyl_array_clear(f_bar_cu, 0.0);
   gkyl_array_clear(g_bar_cu, 0.0);
   // h = f*g
-  gkyl_dg_mul_op_range(basis, 0, h_cu, 0, distf_cu, 0, distg_cu, arr_range);
+  gkyl_dg_mul_op_range(basis, 0, h_cu, 0, distf_cu, 0, distg_cu, &arr_range);
   // f_bar = h/g = f
   gkyl_dg_div_op_range(mem, basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu, arr_range);
   // g_bar = h/f = g
@@ -792,7 +792,7 @@ test_2d_cu(int poly_order)
   gkyl_array_clear(f_bar_cu, 0.0);
   gkyl_array_clear(g_bar_cu, 0.0);
   // h = f*g
-  gkyl_dg_mul_op_range(basis, 0, h_cu, 0, distf_cu, 0, distg_cu, arr_range);
+  gkyl_dg_mul_op_range(basis, 0, h_cu, 0, distf_cu, 0, distg_cu, &arr_range);
   // f_bar = h/g = f
   gkyl_dg_div_op_range(mem, basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu, arr_range);
   // g_bar = h/f = g
@@ -930,7 +930,7 @@ test_3d_cu(int poly_order)
   gkyl_array_clear(f_bar_cu, 0.0);
   gkyl_array_clear(g_bar_cu, 0.0);
   // h = f*g
-  gkyl_dg_mul_op_range(basis, 0, h_cu, 0, distf_cu, 0, distg_cu, arr_range);
+  gkyl_dg_mul_op_range(basis, 0, h_cu, 0, distf_cu, 0, distg_cu, &arr_range);
   // f_bar = h/g = f
   gkyl_dg_div_op_range(mem, basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu, arr_range);
   // g_bar = h/f = g
@@ -1117,7 +1117,7 @@ test_3d_p3_cu()
   gkyl_array_clear(f_bar_cu, 0.0);
   gkyl_array_clear(g_bar_cu, 0.0);
   // h = f*g
-  gkyl_dg_mul_op_range(basis, 0, h_cu, 0, distf_cu, 0, distg_cu, arr_range);
+  gkyl_dg_mul_op_range(basis, 0, h_cu, 0, distf_cu, 0, distg_cu, &arr_range);
   // f_bar = h/g = f
   gkyl_dg_div_op_range(mem, basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu, arr_range);
   // g_bar = h/f = g
