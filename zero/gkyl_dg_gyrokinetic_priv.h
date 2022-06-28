@@ -56,7 +56,7 @@ static const gkyl_dg_gyrokinetic_vol_kern_list ser_vol_kernels[] = {
   // 2x kernels
   { NULL, gyrokinetic_vol_2x2v_ser_p1, gyrokinetic_vol_2x2v_ser_p2 }, // 2
   // 3x kernels
-  { NULL, gyrokinetic_vol_3x2v_ser_p1, NULL }, // 3
+  { NULL, gyrokinetic_vol_3x2v_ser_p1, gyrokinetic_vol_3x2v_ser_p2 }, // 3
 };
 
 // Step 2 (for electromagnetics) volume kernel list.
@@ -92,7 +92,7 @@ static const gkyl_dg_gyrokinetic_surf_kern_list ser_surf_y_kernels[] = {
   // 2x kernels
   { NULL, gyrokinetic_surfy_2x2v_ser_p1, gyrokinetic_surfy_2x2v_ser_p2 }, // 2
   // 3x kernels
-  { NULL, gyrokinetic_surfy_3x2v_ser_p1, NULL }, // 3
+  { NULL, gyrokinetic_surfy_3x2v_ser_p1, gyrokinetic_surfy_3x2v_ser_p2 }, // 3
 };
 
 // Surface kernel list: z-direction
@@ -104,7 +104,7 @@ static const gkyl_dg_gyrokinetic_surf_kern_list ser_surf_z_kernels[] = {
   // 2x kernels
   { NULL, NULL, NULL }, // 2
   // 3x kernels
-  { NULL, gyrokinetic_surfz_3x2v_ser_p1, NULL }, // 3
+  { NULL, gyrokinetic_surfz_3x2v_ser_p1, gyrokinetic_surfz_3x2v_ser_p2 }, // 3
 };
 
 // Acceleration surface kernel list: vpar-direction
@@ -116,7 +116,7 @@ static const gkyl_dg_gyrokinetic_surf_kern_list ser_surf_vpar_kernels[] = {
   // 2x kernels
   { NULL, gyrokinetic_surfvpar_2x2v_ser_p1, gyrokinetic_surfvpar_2x2v_ser_p2 }, // 2
   // 3x kernels
-  { NULL, gyrokinetic_surfvpar_3x2v_ser_p1, NULL }, // 3
+  { NULL, gyrokinetic_surfvpar_3x2v_ser_p1, gyrokinetic_surfvpar_3x2v_ser_p2 }, // 3
 };
 
 // Acceleration boundary surface kernel (zero-flux BCs) list: vpar-direction
@@ -128,7 +128,7 @@ static const gkyl_dg_gyrokinetic_boundary_surf_kern_list ser_boundary_surf_vpar_
   // 2x kernels
   { NULL, gyrokinetic_boundary_surfvpar_2x2v_ser_p1, gyrokinetic_boundary_surfvpar_2x2v_ser_p2 }, // 2
   // 3x kernels
-  { NULL, gyrokinetic_boundary_surfvpar_3x2v_ser_p1, NULL }, // 3
+  { NULL, gyrokinetic_boundary_surfvpar_3x2v_ser_p1, gyrokinetic_boundary_surfvpar_3x2v_ser_p2 }, // 3
 };
 
 // "Choose Kernel" based on cdim, vdim and polyorder
