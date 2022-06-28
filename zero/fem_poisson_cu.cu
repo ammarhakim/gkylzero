@@ -90,7 +90,7 @@ fem_poisson_set_cu_ker_ptrs(struct gkyl_fem_poisson_kernels* kers, enum gkyl_bas
 }
 
 void
-fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_poisson_bc bcs, const bool *isdirperiodic, struct gkyl_fem_poisson_kernels *kers)
+fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_poisson_bc *bcs, const bool *isdirperiodic, struct gkyl_fem_poisson_kernels *kers)
 {
 
   int dim = basis->ndim;
