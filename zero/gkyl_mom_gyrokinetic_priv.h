@@ -573,6 +573,30 @@ kernel_gyrokinetic_M3_perp_3x2v_ser_p1(const struct gkyl_mom_type *momt, const d
 
 GKYL_CU_DH
 static void
+kernel_gyrokinetic_three_moments_1x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
+
+  long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
+  return gyrokinetic_three_moments_1x1v_ser_p1(xc, dx, idx, mom_gk->mass,
+    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_gyrokinetic_three_moments_1x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
+
+  long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
+  return gyrokinetic_three_moments_1x1v_ser_p2(xc, dx, idx, mom_gk->mass,
+    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
 kernel_gyrokinetic_three_moments_1x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -713,6 +737,7 @@ static const gkyl_gyrokinetic_mom_kern_list ser_m3_perp_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, kernel_gyrokinetic_M3_perp_1x2v_ser_p1, kernel_gyrokinetic_M3_perp_1x2v_ser_p2 }, // 1
+  { NULL, kernel_gyrokinetic_M3_perp_1x2v_ser_p1, kernel_gyrokinetic_M3_perp_1x2v_ser_p2 }, // 1
   // 2x kernels
   { NULL, kernel_gyrokinetic_M3_perp_2x2v_ser_p1, kernel_gyrokinetic_M3_perp_2x2v_ser_p2 }, // 2
   // 3x kernels
@@ -724,7 +749,7 @@ static const gkyl_gyrokinetic_mom_kern_list ser_m3_perp_kernels[] = {
 GKYL_CU_D
 static const gkyl_gyrokinetic_mom_kern_list ser_three_moments_kernels[] = {
   // 1x kernels
-  { NULL, NULL, NULL }, // 0
+  { NULL, kernel_gyrokinetic_three_moments_1x1v_ser_p1, kernel_gyrokinetic_three_moments_1x1v_ser_p2 }, // 0
   { NULL, kernel_gyrokinetic_three_moments_1x2v_ser_p1, kernel_gyrokinetic_three_moments_1x2v_ser_p2 }, // 1
   // 2x kernels
   { NULL, kernel_gyrokinetic_three_moments_2x2v_ser_p1, kernel_gyrokinetic_three_moments_2x2v_ser_p2 }, // 2
