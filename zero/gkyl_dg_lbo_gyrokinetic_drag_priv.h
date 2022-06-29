@@ -20,7 +20,7 @@ typedef void (*lbo_gyrokinetic_drag_boundary_surf_t)(const double *w, const doub
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below.
-static struct { int vdim[4]; } cv_index[] = {
+static struct { int vdim[3]; } cv_index[] = {
   {-1, -1, -1}, // 0x makes no sense
   {-1,  0,  1}, // 1x kernel indices
   {-1, -1,  2}, // 2x kernel indices
@@ -166,7 +166,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
       (const double*) gkyl_array_cfetch(lbo_gyrokinetic_drag->auxfields.nuSum, cidx), 
       (const double*) gkyl_array_cfetch(lbo_gyrokinetic_drag->auxfields.nuUSum, cidx), 
       (const double*) gkyl_array_cfetch(lbo_gyrokinetic_drag->auxfields.nuVtSqSum, cidx),  
-      edge, qInEdge, qInSkin, qRhsOut);
+      edge, qInSkin, qInEdge, qRhsOut);
   }
 }
 
