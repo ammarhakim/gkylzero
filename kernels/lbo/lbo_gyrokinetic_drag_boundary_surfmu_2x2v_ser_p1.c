@@ -19,10 +19,10 @@ GKYL_CU_DH void lbo_gyrokinetic_drag_boundary_surfmu_2x2v_ser_p1(const double *w
 
   if (edge == -1) { 
 
-  alphaDrSurf[0] = 0.7071067811865475*(nuSum[0]*(2.0*w[2]+dxv[2])-2.0*nuUSum[0]); 
-  alphaDrSurf[1] = 0.7071067811865475*(nuSum[1]*(2.0*w[2]+dxv[2])-2.0*nuUSum[1]); 
-  alphaDrSurf[2] = 0.7071067811865475*(2.0*nuSum[2]*w[2]-2.0*nuUSum[2]+dxv[2]*nuSum[2]); 
-  alphaDrSurf[4] = -0.7071067811865475*(2.0*nuUSum[3]+((-2.0*w[2])-1.0*dxv[2])*nuSum[3]); 
+  alphaDrSurf[0] = 0.7071067811865475*nuSum[0]*(4.0*w[3]+2.0*dxv[3]); 
+  alphaDrSurf[1] = 0.7071067811865475*nuSum[1]*(4.0*w[3]+2.0*dxv[3]); 
+  alphaDrSurf[2] = 0.7071067811865475*nuSum[2]*(4.0*w[3]+2.0*dxv[3]); 
+  alphaDrSurf[4] = 0.7071067811865475*nuSum[3]*(4.0*w[3]+2.0*dxv[3]); 
 
   Ghat[0] = -0.25*(1.732050807568877*(alphaDrSurf[4]*fEdge[12]+alphaDrSurf[2]*fEdge[9]+alphaDrSurf[1]*fEdge[8])-1.0*alphaDrSurf[4]*fEdge[5]+1.732050807568877*alphaDrSurf[0]*fEdge[4]-1.0*(alphaDrSurf[2]*fEdge[2]+alphaDrSurf[1]*fEdge[1]+alphaDrSurf[0]*fEdge[0])); 
   Ghat[1] = -0.25*(1.732050807568877*(alphaDrSurf[2]*fEdge[12]+alphaDrSurf[4]*fEdge[9]+alphaDrSurf[0]*fEdge[8])-1.0*alphaDrSurf[2]*fEdge[5]+1.732050807568877*alphaDrSurf[1]*fEdge[4]-1.0*(fEdge[2]*alphaDrSurf[4]+alphaDrSurf[0]*fEdge[1]+fEdge[0]*alphaDrSurf[1])); 
@@ -52,10 +52,10 @@ GKYL_CU_DH void lbo_gyrokinetic_drag_boundary_surfmu_2x2v_ser_p1(const double *w
 
   } else { 
 
-  alphaDrSurf[0] = 0.7071067811865475*(nuSum[0]*(2.0*w[2]-1.0*dxv[2])-2.0*nuUSum[0]); 
-  alphaDrSurf[1] = 0.7071067811865475*(nuSum[1]*(2.0*w[2]-1.0*dxv[2])-2.0*nuUSum[1]); 
-  alphaDrSurf[2] = 0.7071067811865475*(2.0*nuSum[2]*w[2]-2.0*nuUSum[2]-1.0*dxv[2]*nuSum[2]); 
-  alphaDrSurf[4] = -0.7071067811865475*(2.0*nuUSum[3]+(dxv[2]-2.0*w[2])*nuSum[3]); 
+  alphaDrSurf[0] = 0.7071067811865475*nuSum[0]*(4.0*w[3]-2.0*dxv[3]); 
+  alphaDrSurf[1] = 0.7071067811865475*nuSum[1]*(4.0*w[3]-2.0*dxv[3]); 
+  alphaDrSurf[2] = 0.7071067811865475*nuSum[2]*(4.0*w[3]-2.0*dxv[3]); 
+  alphaDrSurf[4] = 0.7071067811865475*nuSum[3]*(4.0*w[3]-2.0*dxv[3]); 
 
   Ghat[0] = -0.25*(1.732050807568877*(alphaDrSurf[4]*fSkin[12]+alphaDrSurf[2]*fSkin[9]+alphaDrSurf[1]*fSkin[8])-1.0*alphaDrSurf[4]*fSkin[5]+1.732050807568877*alphaDrSurf[0]*fSkin[4]-1.0*(alphaDrSurf[2]*fSkin[2]+alphaDrSurf[1]*fSkin[1]+alphaDrSurf[0]*fSkin[0])); 
   Ghat[1] = -0.25*(1.732050807568877*(alphaDrSurf[2]*fSkin[12]+alphaDrSurf[4]*fSkin[9]+alphaDrSurf[0]*fSkin[8])-1.0*alphaDrSurf[2]*fSkin[5]+1.732050807568877*alphaDrSurf[1]*fSkin[4]-1.0*(fSkin[2]*alphaDrSurf[4]+alphaDrSurf[0]*fSkin[1]+fSkin[0]*alphaDrSurf[1])); 

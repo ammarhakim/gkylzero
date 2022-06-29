@@ -19,14 +19,14 @@ GKYL_CU_DH void lbo_gyrokinetic_drag_boundary_surfmu_3x2v_ser_p1(const double *w
 
   if (edge == -1) { 
 
-  alphaDrSurf[0] = 0.5*(nuSum[0]*(2.828427124746191*w[3]+1.414213562373095*dxv[3])-2.828427124746191*nuUSum[0]); 
-  alphaDrSurf[1] = 0.5*(nuSum[1]*(2.828427124746191*w[3]+1.414213562373095*dxv[3])-2.828427124746191*nuUSum[1]); 
-  alphaDrSurf[2] = 0.5*(nuSum[2]*(2.828427124746191*w[3]+1.414213562373095*dxv[3])-2.828427124746191*nuUSum[2]); 
-  alphaDrSurf[3] = 0.5*(2.828427124746191*nuSum[3]*w[3]-2.828427124746191*nuUSum[3]+1.414213562373095*dxv[3]*nuSum[3]); 
-  alphaDrSurf[5] = -0.5*(2.828427124746191*nuUSum[4]+((-2.828427124746191*w[3])-1.414213562373095*dxv[3])*nuSum[4]); 
-  alphaDrSurf[6] = -0.5*(2.828427124746191*nuUSum[5]+((-2.828427124746191*w[3])-1.414213562373095*dxv[3])*nuSum[5]); 
-  alphaDrSurf[7] = -0.5*(2.828427124746191*nuUSum[6]+((-2.828427124746191*w[3])-1.414213562373095*dxv[3])*nuSum[6]); 
-  alphaDrSurf[11] = -0.5*(2.828427124746191*nuUSum[7]+((-2.828427124746191*w[3])-1.414213562373095*dxv[3])*nuSum[7]); 
+  alphaDrSurf[0] = nuSum[0]*(2.828427124746191*w[4]+1.414213562373095*dxv[4]); 
+  alphaDrSurf[1] = nuSum[1]*(2.828427124746191*w[4]+1.414213562373095*dxv[4]); 
+  alphaDrSurf[2] = nuSum[2]*(2.828427124746191*w[4]+1.414213562373095*dxv[4]); 
+  alphaDrSurf[3] = nuSum[3]*(2.828427124746191*w[4]+1.414213562373095*dxv[4]); 
+  alphaDrSurf[5] = nuSum[4]*(2.828427124746191*w[4]+1.414213562373095*dxv[4]); 
+  alphaDrSurf[6] = (2.828427124746191*w[4]+1.414213562373095*dxv[4])*nuSum[5]; 
+  alphaDrSurf[7] = (2.828427124746191*w[4]+1.414213562373095*dxv[4])*nuSum[6]; 
+  alphaDrSurf[11] = (2.828427124746191*w[4]+1.414213562373095*dxv[4])*nuSum[7]; 
 
   Ghat[0] = -0.125*(2.449489742783178*(alphaDrSurf[11]*fEdge[27]+alphaDrSurf[7]*fEdge[22]+alphaDrSurf[6]*fEdge[21]+alphaDrSurf[5]*fEdge[20])-1.414213562373095*alphaDrSurf[11]*fEdge[16]+2.449489742783178*(alphaDrSurf[3]*fEdge[14]+alphaDrSurf[2]*fEdge[13]+alphaDrSurf[1]*fEdge[12])-1.414213562373095*(alphaDrSurf[7]*fEdge[8]+alphaDrSurf[6]*fEdge[7]+alphaDrSurf[5]*fEdge[6])+2.449489742783178*alphaDrSurf[0]*fEdge[5]-1.414213562373095*(alphaDrSurf[3]*fEdge[3]+alphaDrSurf[2]*fEdge[2]+alphaDrSurf[1]*fEdge[1]+alphaDrSurf[0]*fEdge[0])); 
   Ghat[1] = -0.125*(2.449489742783178*(alphaDrSurf[7]*fEdge[27]+alphaDrSurf[11]*fEdge[22]+alphaDrSurf[3]*fEdge[21]+alphaDrSurf[2]*fEdge[20])-1.414213562373095*alphaDrSurf[7]*fEdge[16]+2.449489742783178*(alphaDrSurf[6]*fEdge[14]+alphaDrSurf[5]*fEdge[13]+alphaDrSurf[0]*fEdge[12])-1.414213562373095*(fEdge[8]*alphaDrSurf[11]+alphaDrSurf[3]*fEdge[7]+alphaDrSurf[2]*fEdge[6]+fEdge[3]*alphaDrSurf[6])+2.449489742783178*alphaDrSurf[1]*fEdge[5]-1.414213562373095*(fEdge[2]*alphaDrSurf[5]+alphaDrSurf[0]*fEdge[1]+fEdge[0]*alphaDrSurf[1])); 
@@ -80,14 +80,14 @@ GKYL_CU_DH void lbo_gyrokinetic_drag_boundary_surfmu_3x2v_ser_p1(const double *w
 
   } else { 
 
-  alphaDrSurf[0] = 0.5*(nuSum[0]*(2.828427124746191*w[3]-1.414213562373095*dxv[3])-2.828427124746191*nuUSum[0]); 
-  alphaDrSurf[1] = 0.5*(nuSum[1]*(2.828427124746191*w[3]-1.414213562373095*dxv[3])-2.828427124746191*nuUSum[1]); 
-  alphaDrSurf[2] = 0.5*(nuSum[2]*(2.828427124746191*w[3]-1.414213562373095*dxv[3])-2.828427124746191*nuUSum[2]); 
-  alphaDrSurf[3] = 0.5*(2.828427124746191*nuSum[3]*w[3]-2.828427124746191*nuUSum[3]-1.414213562373095*dxv[3]*nuSum[3]); 
-  alphaDrSurf[5] = -0.5*(2.828427124746191*nuUSum[4]+(1.414213562373095*dxv[3]-2.828427124746191*w[3])*nuSum[4]); 
-  alphaDrSurf[6] = -0.5*(2.828427124746191*nuUSum[5]+(1.414213562373095*dxv[3]-2.828427124746191*w[3])*nuSum[5]); 
-  alphaDrSurf[7] = -0.5*(2.828427124746191*nuUSum[6]+(1.414213562373095*dxv[3]-2.828427124746191*w[3])*nuSum[6]); 
-  alphaDrSurf[11] = -0.5*(2.828427124746191*nuUSum[7]+(1.414213562373095*dxv[3]-2.828427124746191*w[3])*nuSum[7]); 
+  alphaDrSurf[0] = nuSum[0]*(2.828427124746191*w[4]-1.414213562373095*dxv[4]); 
+  alphaDrSurf[1] = nuSum[1]*(2.828427124746191*w[4]-1.414213562373095*dxv[4]); 
+  alphaDrSurf[2] = nuSum[2]*(2.828427124746191*w[4]-1.414213562373095*dxv[4]); 
+  alphaDrSurf[3] = nuSum[3]*(2.828427124746191*w[4]-1.414213562373095*dxv[4]); 
+  alphaDrSurf[5] = nuSum[4]*(2.828427124746191*w[4]-1.414213562373095*dxv[4]); 
+  alphaDrSurf[6] = (2.828427124746191*w[4]-1.414213562373095*dxv[4])*nuSum[5]; 
+  alphaDrSurf[7] = (2.828427124746191*w[4]-1.414213562373095*dxv[4])*nuSum[6]; 
+  alphaDrSurf[11] = (2.828427124746191*w[4]-1.414213562373095*dxv[4])*nuSum[7]; 
 
   Ghat[0] = -0.125*(2.449489742783178*(alphaDrSurf[11]*fSkin[27]+alphaDrSurf[7]*fSkin[22]+alphaDrSurf[6]*fSkin[21]+alphaDrSurf[5]*fSkin[20])-1.414213562373095*alphaDrSurf[11]*fSkin[16]+2.449489742783178*(alphaDrSurf[3]*fSkin[14]+alphaDrSurf[2]*fSkin[13]+alphaDrSurf[1]*fSkin[12])-1.414213562373095*(alphaDrSurf[7]*fSkin[8]+alphaDrSurf[6]*fSkin[7]+alphaDrSurf[5]*fSkin[6])+2.449489742783178*alphaDrSurf[0]*fSkin[5]-1.414213562373095*(alphaDrSurf[3]*fSkin[3]+alphaDrSurf[2]*fSkin[2]+alphaDrSurf[1]*fSkin[1]+alphaDrSurf[0]*fSkin[0])); 
   Ghat[1] = -0.125*(2.449489742783178*(alphaDrSurf[7]*fSkin[27]+alphaDrSurf[11]*fSkin[22]+alphaDrSurf[3]*fSkin[21]+alphaDrSurf[2]*fSkin[20])-1.414213562373095*alphaDrSurf[7]*fSkin[16]+2.449489742783178*(alphaDrSurf[6]*fSkin[14]+alphaDrSurf[5]*fSkin[13]+alphaDrSurf[0]*fSkin[12])-1.414213562373095*(fSkin[8]*alphaDrSurf[11]+alphaDrSurf[3]*fSkin[7]+alphaDrSurf[2]*fSkin[6]+fSkin[3]*alphaDrSurf[6])+2.449489742783178*alphaDrSurf[1]*fSkin[5]-1.414213562373095*(fSkin[2]*alphaDrSurf[5]+alphaDrSurf[0]*fSkin[1]+fSkin[0]*alphaDrSurf[1])); 

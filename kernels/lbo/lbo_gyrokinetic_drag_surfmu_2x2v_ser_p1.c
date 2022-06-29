@@ -44,20 +44,20 @@ GKYL_CU_DH void lbo_gyrokinetic_drag_surfmu_2x2v_ser_p1(const double *w, const d
   Ghat_r[6] = -0.25*(1.732050807568877*(alphaDrSurf_r[1]*fr[15]+alphaDrSurf_r[0]*fr[14]+alphaDrSurf_r[4]*fr[13])-1.0*alphaDrSurf_r[1]*fr[11]+1.732050807568877*alphaDrSurf_r[2]*fr[10]-1.0*(alphaDrSurf_r[0]*fr[7]+alphaDrSurf_r[4]*fr[6]+alphaDrSurf_r[2]*fr[3])); 
   Ghat_r[7] = -0.25*(1.732050807568877*(alphaDrSurf_r[0]*fr[15]+alphaDrSurf_r[1]*fr[14]+alphaDrSurf_r[2]*fr[13])-1.0*alphaDrSurf_r[0]*fr[11]+1.732050807568877*alphaDrSurf_r[4]*fr[10]-1.0*(alphaDrSurf_r[1]*fr[7]+alphaDrSurf_r[2]*fr[6]+fr[3]*alphaDrSurf_r[4])); 
 
-  out[0] += (0.7071067811865475*Ghat_l[0]-0.7071067811865475*Ghat_r[0])*rdv2; 
-  out[1] += (0.7071067811865475*Ghat_l[1]-0.7071067811865475*Ghat_r[1])*rdv2; 
-  out[2] += (0.7071067811865475*Ghat_l[2]-0.7071067811865475*Ghat_r[2])*rdv2; 
-  out[3] += (0.7071067811865475*Ghat_l[3]-0.7071067811865475*Ghat_r[3])*rdv2; 
-  out[4] += -1.224744871391589*(Ghat_r[0]+Ghat_l[0])*rdv2; 
-  out[5] += (0.7071067811865475*Ghat_l[4]-0.7071067811865475*Ghat_r[4])*rdv2; 
-  out[6] += (0.7071067811865475*Ghat_l[5]-0.7071067811865475*Ghat_r[5])*rdv2; 
-  out[7] += (0.7071067811865475*Ghat_l[6]-0.7071067811865475*Ghat_r[6])*rdv2; 
-  out[8] += -1.224744871391589*(Ghat_r[1]+Ghat_l[1])*rdv2; 
-  out[9] += -1.224744871391589*(Ghat_r[2]+Ghat_l[2])*rdv2; 
-  out[10] += -1.224744871391589*(Ghat_r[3]+Ghat_l[3])*rdv2; 
-  out[11] += (0.7071067811865475*Ghat_l[7]-0.7071067811865475*Ghat_r[7])*rdv2; 
-  out[12] += -1.224744871391589*(Ghat_r[4]+Ghat_l[4])*rdv2; 
-  out[13] += -1.224744871391589*(Ghat_r[5]+Ghat_l[5])*rdv2; 
-  out[14] += -1.224744871391589*(Ghat_r[6]+Ghat_l[6])*rdv2; 
-  out[15] += -1.224744871391589*(Ghat_r[7]+Ghat_l[7])*rdv2; 
+  out[0] += (0.7071067811865475*Ghat_r[0]-0.7071067811865475*Ghat_l[0])*rdv2; 
+  out[1] += (0.7071067811865475*Ghat_r[1]-0.7071067811865475*Ghat_l[1])*rdv2; 
+  out[2] += (0.7071067811865475*Ghat_r[2]-0.7071067811865475*Ghat_l[2])*rdv2; 
+  out[3] += (0.7071067811865475*Ghat_r[3]-0.7071067811865475*Ghat_l[3])*rdv2; 
+  out[4] += 1.224744871391589*(Ghat_r[0]+Ghat_l[0])*rdv2; 
+  out[5] += (0.7071067811865475*Ghat_r[4]-0.7071067811865475*Ghat_l[4])*rdv2; 
+  out[6] += (0.7071067811865475*Ghat_r[5]-0.7071067811865475*Ghat_l[5])*rdv2; 
+  out[7] += (0.7071067811865475*Ghat_r[6]-0.7071067811865475*Ghat_l[6])*rdv2; 
+  out[8] += 1.224744871391589*(Ghat_r[1]+Ghat_l[1])*rdv2; 
+  out[9] += 1.224744871391589*(Ghat_r[2]+Ghat_l[2])*rdv2; 
+  out[10] += 1.224744871391589*(Ghat_r[3]+Ghat_l[3])*rdv2; 
+  out[11] += (0.7071067811865475*Ghat_r[7]-0.7071067811865475*Ghat_l[7])*rdv2; 
+  out[12] += 1.224744871391589*(Ghat_r[4]+Ghat_l[4])*rdv2; 
+  out[13] += 1.224744871391589*(Ghat_r[5]+Ghat_l[5])*rdv2; 
+  out[14] += 1.224744871391589*(Ghat_r[6]+Ghat_l[6])*rdv2; 
+  out[15] += 1.224744871391589*(Ghat_r[7]+Ghat_l[7])*rdv2; 
 } 

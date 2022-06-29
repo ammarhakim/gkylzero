@@ -19,8 +19,8 @@ GKYL_CU_DH void lbo_gyrokinetic_drag_boundary_surfmu_1x2v_ser_p1(const double *w
 
   if (edge == -1) { 
 
-  alphaDrSurf[0] = 0.5*(nuSum[0]*(2.828427124746191*w[1]+1.414213562373095*dxv[1])-2.828427124746191*nuUSum[0]); 
-  alphaDrSurf[1] = 0.5*(2.828427124746191*nuSum[1]*w[1]-2.828427124746191*nuUSum[1]+1.414213562373095*dxv[1]*nuSum[1]); 
+  alphaDrSurf[0] = nuSum[0]*(2.828427124746191*w[2]+1.414213562373095*dxv[2]); 
+  alphaDrSurf[1] = nuSum[1]*(2.828427124746191*w[2]+1.414213562373095*dxv[2]); 
 
   Ghat[0] = -0.25*(2.449489742783178*(alphaDrSurf[1]*fEdge[5]+alphaDrSurf[0]*fEdge[3])-1.414213562373095*(alphaDrSurf[1]*fEdge[1]+alphaDrSurf[0]*fEdge[0])); 
   Ghat[1] = -0.25*(2.449489742783178*(alphaDrSurf[0]*fEdge[5]+alphaDrSurf[1]*fEdge[3])-1.414213562373095*(alphaDrSurf[0]*fEdge[1]+fEdge[0]*alphaDrSurf[1])); 
@@ -38,8 +38,8 @@ GKYL_CU_DH void lbo_gyrokinetic_drag_boundary_surfmu_1x2v_ser_p1(const double *w
 
   } else { 
 
-  alphaDrSurf[0] = 0.5*(nuSum[0]*(2.828427124746191*w[1]-1.414213562373095*dxv[1])-2.828427124746191*nuUSum[0]); 
-  alphaDrSurf[1] = 0.5*(2.828427124746191*nuSum[1]*w[1]-2.828427124746191*nuUSum[1]-1.414213562373095*dxv[1]*nuSum[1]); 
+  alphaDrSurf[0] = nuSum[0]*(2.828427124746191*w[2]-1.414213562373095*dxv[2]); 
+  alphaDrSurf[1] = nuSum[1]*(2.828427124746191*w[2]-1.414213562373095*dxv[2]); 
 
   Ghat[0] = -0.25*(2.449489742783178*(alphaDrSurf[1]*fSkin[5]+alphaDrSurf[0]*fSkin[3])-1.414213562373095*(alphaDrSurf[1]*fSkin[1]+alphaDrSurf[0]*fSkin[0])); 
   Ghat[1] = -0.25*(2.449489742783178*(alphaDrSurf[0]*fSkin[5]+alphaDrSurf[1]*fSkin[3])-1.414213562373095*(alphaDrSurf[0]*fSkin[1]+fSkin[0]*alphaDrSurf[1])); 
