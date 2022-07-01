@@ -44,7 +44,7 @@ static const gkyl_dg_lbo_gyrokinetic_diff_vol_kern_list ser_vol_kernels[] = {
   // 2x kernels
   { NULL, lbo_gyrokinetic_diff_vol_2x2v_ser_p1, lbo_gyrokinetic_diff_vol_2x2v_ser_p2 }, // 2
   // 3x kernels
-  { NULL, lbo_gyrokinetic_diff_vol_3x2v_ser_p1, NULL               }, // 3
+  { NULL, lbo_gyrokinetic_diff_vol_3x2v_ser_p1, lbo_gyrokinetic_diff_vol_3x2v_ser_p2 }, // 3
 };
 
 // Surface kernel list: vpar-direction
@@ -56,7 +56,7 @@ static const gkyl_dg_lbo_gyrokinetic_diff_surf_kern_list ser_surf_vpar_kernels[]
   // 2x kernels
   { NULL, lbo_gyrokinetic_diff_surfvpar_2x2v_ser_p1, lbo_gyrokinetic_diff_surfvpar_2x2v_ser_p2 }, // 2
   // 3x kernels
-  { NULL, lbo_gyrokinetic_diff_surfvpar_3x2v_ser_p1, NULL                   }, // 3
+  { NULL, lbo_gyrokinetic_diff_surfvpar_3x2v_ser_p1, lbo_gyrokinetic_diff_surfvpar_3x2v_ser_p2 }, // 3
 };
 
 // Surface kernel list: mu-direction
@@ -68,7 +68,7 @@ static const gkyl_dg_lbo_gyrokinetic_diff_surf_kern_list ser_surf_mu_kernels[] =
   // 2x kernels
   { NULL, lbo_gyrokinetic_diff_surfmu_2x2v_ser_p1, lbo_gyrokinetic_diff_surfmu_2x2v_ser_p2 }, // 2
   // 3x kernels
-  { NULL, lbo_gyrokinetic_diff_surfmu_3x2v_ser_p1, NULL                   }, // 3
+  { NULL, lbo_gyrokinetic_diff_surfmu_3x2v_ser_p1, lbo_gyrokinetic_diff_surfmu_3x2v_ser_p2 }, // 3
 };
 
 // Boundary surface kernel (zero-flux BCs) list: vpar-direction
@@ -80,7 +80,7 @@ static const gkyl_dg_lbo_gyrokinetic_diff_boundary_surf_kern_list ser_boundary_s
   // 2x kernels
   { NULL, lbo_gyrokinetic_diff_boundary_surfvpar_2x2v_ser_p1, lbo_gyrokinetic_diff_boundary_surfvpar_2x2v_ser_p2 }, // 2
   // 3x kernels
-  { NULL, lbo_gyrokinetic_diff_boundary_surfvpar_3x2v_ser_p1, NULL                   }, // 3
+  { NULL, lbo_gyrokinetic_diff_boundary_surfvpar_3x2v_ser_p1, lbo_gyrokinetic_diff_boundary_surfvpar_3x2v_ser_p2 }, // 3
 };
 
 // Constant nu boundary surface kernel (zero-flux BCs) list: mu-direction
@@ -92,7 +92,7 @@ static const gkyl_dg_lbo_gyrokinetic_diff_boundary_surf_kern_list ser_boundary_s
   // 2x kernels
   { NULL, lbo_gyrokinetic_diff_boundary_surfmu_2x2v_ser_p1, lbo_gyrokinetic_diff_boundary_surfmu_2x2v_ser_p2 }, // 2
   // 3x kernels
-  { NULL, lbo_gyrokinetic_diff_boundary_surfmu_3x2v_ser_p1, NULL                   }, // 3
+  { NULL, lbo_gyrokinetic_diff_boundary_surfmu_3x2v_ser_p1, lbo_gyrokinetic_diff_boundary_surfmu_3x2v_ser_p2 }, // 3
 };
 
 // "Choose Kernel" based on cdim, vdim and polyorder

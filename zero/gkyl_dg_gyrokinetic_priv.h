@@ -80,7 +80,7 @@ static const gkyl_dg_gyrokinetic_surf_kern_list ser_surf_x_kernels[] = {
   // 2x kernels
   { NULL, gyrokinetic_surfx_2x2v_ser_p1, gyrokinetic_surfx_2x2v_ser_p2 }, // 2
   // 3x kernels
-  { NULL, gyrokinetic_surfx_3x2v_ser_p1, NULL }, // 3
+  { NULL, gyrokinetic_surfx_3x2v_ser_p1, gyrokinetic_surfx_3x2v_ser_p2 }, // 3
 };
 
 // Surface kernel list: y-direction
