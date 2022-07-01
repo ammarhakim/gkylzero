@@ -36,7 +36,7 @@ static const gkyl_mom_bcorr_lbo_gyrokinetic_kern_list ser_mom_bcorr_lbo_gyrokine
   // 2x kernels
   { NULL, NULL, mom_bcorr_lbo_gyrokinetic_2x2v_ser_p2 }, // 2
   // 3x kernels
-  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, mom_bcorr_lbo_gyrokinetic_3x2v_ser_p2 }, // 3
 };
 
 //
