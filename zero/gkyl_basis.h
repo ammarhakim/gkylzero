@@ -114,7 +114,7 @@ void gkyl_cart_modal_tensor_cu_dev(struct gkyl_basis *basis, int ndim,
 
 /**
  * Create new hybrid basis for use in gyrokinetics p=1
- * simulations. These basis have the v_par^2 monomial and it's tensor
+ * simulations. These basis have the v_par^2 monomial and its tensor
  * product with other monomials included. 
  *
  * @param basis Basis object to initialize

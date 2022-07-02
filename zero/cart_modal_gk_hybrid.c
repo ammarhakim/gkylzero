@@ -41,6 +41,7 @@ static struct { double (*ev[4])(int dir, const double *z, const double *f); } ev
 // Flip-sign functions: ev_list[ndim].ev[poly_order]
 static struct { void (*fs[4])(int dir, const double *f, double *fout); } fos_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
+  { NULL, NULL, NULL, NULL }, // No 1D basis functions
   { NULL, flip_odd_sign_2d_gk_hyb_p1, NULL, NULL },
   { NULL, flip_odd_sign_3d_gk_hyb_p1, NULL, NULL },
   { NULL, flip_odd_sign_4d_gk_hyb_p1, NULL, NULL },     
@@ -51,6 +52,7 @@ static struct { void (*fs[4])(int dir, const double *f, double *fout); } fos_lis
 // Flip-sign functions: ev_list[ndim].ev[poly_order]
 static struct { void (*fs[4])(int dir, const double *f, double *fout); } fes_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
+  { NULL, NULL, NULL, NULL }, // No 1D basis functions
   { NULL, flip_even_sign_2d_gk_hyb_p1, NULL, NULL },
   { NULL, flip_even_sign_3d_gk_hyb_p1, NULL, NULL },
   { NULL, flip_even_sign_4d_gk_hyb_p1, NULL, NULL },     
@@ -72,6 +74,7 @@ static struct { int count[4]; } num_basis_list[] = {
 // Node list function: ev_list[ndim].ev[poly_order]
 static struct { void (*nl[4])(double * node_list); } nl_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
+  { NULL, NULL, NULL, NULL }, // No 1D basis functions
   { NULL, node_coords_2d_gk_hyb_p1, NULL, NULL },
   { NULL, node_coords_3d_gk_hyb_p1, NULL, NULL },
   { NULL, node_coords_4d_gk_hyb_p1, NULL, NULL },     
@@ -81,6 +84,7 @@ static struct { void (*nl[4])(double * node_list); } nl_list[] = {
 // Nodal -> modal conversion functions: ev_list[ndim].ev[poly_order]
 static struct { void (*n2m[4])(const double *fnodal, double *fmodal); } n2m_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
+  { NULL, NULL, NULL, NULL }, // No 1D basis functions
   { NULL, nodal_to_modal_2d_gk_hyb_p1, NULL, NULL },
   { NULL, nodal_to_modal_3d_gk_hyb_p1, NULL, NULL },
   { NULL, nodal_to_modal_4d_gk_hyb_p1, NULL, NULL },     

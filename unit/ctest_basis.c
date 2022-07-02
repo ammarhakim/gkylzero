@@ -197,6 +197,33 @@ test_gk_hyb()
   TEST_CHECK( basis.num_basis == 6 );
   TEST_CHECK( strcmp(basis.id, "gk_hybrid") == 0 );
   TEST_CHECK( basis.b_type == GKYL_BASIS_MODAL_GK_HYBRID );
+
+  double z[basis.ndim], b[basis.num_basis];
+
+  z[0] = 0.0; z[1] = 0.0;
+  basis.eval(z, b);
+
+  TEST_CHECK( gkyl_compare(0.5, b[0], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[1], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[2], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[3], 1e-15) );
+  TEST_CHECK( gkyl_compare(-sqrt(5.0)/4, b[4], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[6], 1e-15) );
+
+  double fin[basis.num_basis], fout[basis.num_basis];
+  for (int i=0; i<basis.num_basis; ++i) {
+    fin[i] = 1.0;
+    fout[i] = 0.0;
+  }
+
+  basis.flip_odd_sign(0, fin, fout);
+  TEST_CHECK( fin[0] == fout[0] );
+  TEST_CHECK( -fin[1] == fout[1] );
+  TEST_CHECK( fin[2] == fout[2] );  
+  TEST_CHECK( -fin[3] == fout[3] );
+  TEST_CHECK( fin[4] == fout[4] );
+  TEST_CHECK( -fin[5] == fout[5] );
+
 }
 
 #ifdef GKYL_HAVE_CUDA
