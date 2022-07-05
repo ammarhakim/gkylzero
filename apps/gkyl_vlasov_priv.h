@@ -118,6 +118,14 @@ struct vm_boundary_fluxes {
   struct gkyl_array *bf[2*GKYL_MAX_CDIM], *bf1[2*GKYL_MAX_CDIM], *bfnew[2*GKYL_MAX_CDIM]; // arrays for updates
 };
 
+struct vm_source {
+  struct vm_species_moment moms;
+
+  struct gkyl_array *source; // applied source
+  struct gkyl_array *source_host; // host copy for use in IO and projecting
+  gkyl_proj_on_basis *source_proj; // projector for source
+};
+
 
 // context for use in computing applied acceleration
 struct vm_eval_accel_ctx { evalf_t accel_func; void *accel_ctx; };
@@ -174,10 +182,8 @@ struct vm_species {
   struct vm_eval_accel_ctx accel_ctx; // context for applied acceleration
 
   bool has_source; // flag to indicate there is applied source
-  struct gkyl_array *source; // applied source
-  struct gkyl_array *source_host; // host copy for use in IO and projecting
-  gkyl_proj_on_basis *source_proj; // projector for source
-
+  struct vm_source src; // applied source
+  
   bool boundary_fluxes; // flag to indicate if boundary fluxes should be calculated
   struct vm_boundary_fluxes bflux;
 
@@ -536,6 +542,39 @@ void vm_species_bflux_init(struct gkyl_vlasov_app *app, struct vm_species *s,
 double vm_species_bflux_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   struct vm_boundary_fluxes *bflux, const struct gkyl_array *fin, struct gkyl_array *rhs,
   struct gkyl_array *bfluxin[], struct gkyl_array *bfluxout[], int species_idx);
+
+/** vm_species_source API */
+
+/**
+ * Initialize species boundary flux object.
+ *
+ * @param app Vlasov app object
+ * @param s Species object 
+ * @param lbo Species LBO object
+ * @param collides_with_fluid Boolean for if kinetic species collides with a fluid species
+ */
+void vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_source *src);
+
+/**
+ * Compute RHS from boundary fluxes
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param lbo Pointer to LBO
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from LBO
+ * @return Maximum stable time-step
+ */
+double vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
+  struct vm_source *src, const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Release species LBO object.
+ *
+ * @param app Vlasov app object
+ * @param sm Species LBO object to release
+ */
+void vm_species_source_release(const struct gkyl_vlasov_app *app, const struct vm_source *src);
 
 /** vm_species API */
 

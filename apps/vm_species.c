@@ -217,24 +217,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   s->has_source = false;
   // setup constant source
   if (s->info.source) {
-    s->has_source = true;
-    // we need to ensure source has same shape as distribution function
-    s->source = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
-
-    s->source_host = s->source;
-    if (app->use_gpu)
-      s->source_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
-
-    s->source_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-        .grid = &s->grid,
-        .basis = &app->basis,
-        .qtype = GKYL_GAUSS_QUAD,
-        .num_quad = app->basis.poly_order+1,
-        .num_ret_vals = 1,
-        .eval = s->info.source,
-        .ctx = s->info.source_ctx
-      }
-    );
+    vm_species_source_init(app, s, &s->src);
   }
 
   // determine collision type to use in vlasov update
@@ -396,9 +379,9 @@ void
 vm_species_calc_source(gkyl_vlasov_app *app, struct vm_species *species, double tm)
 {
   if (species->has_source) {
-    gkyl_proj_on_basis_advance(species->source_proj, tm, &species->local_ext, species->source_host);
+    gkyl_proj_on_basis_advance(species->src.source_proj, tm, &species->local_ext, species->src.source_host);
     if (app->use_gpu) // note: source_host is same as source when not on GPUs
-      gkyl_array_copy(species->source, species->source_host);
+      gkyl_array_copy(species->src.source, species->src.source_host);
   }
 }
 
@@ -447,7 +430,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
     vm_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
 
   if (species->has_source)
-    gkyl_array_accumulate(rhs, 1.0, species->source);
+    vm_species_source_rhs(app, species, &species->src, fin, rhs);
   
   app->stat.nspecies_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
@@ -663,11 +646,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   }
 
   if (s->has_source) {
-    gkyl_array_release(s->source);
-    if (app->use_gpu)
-      gkyl_array_release(s->source_host);
-
-    gkyl_proj_on_basis_release(s->source_proj);
+    vm_species_source_release(app, &s->src);
   }
 
   if (s->has_mirror_force) {
