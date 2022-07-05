@@ -456,8 +456,8 @@ gkyl_vlasov_app_write_field_energy(gkyl_vlasov_app* app)
 // the status object.
 static void
 forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
-  const struct gkyl_array *fin[], const struct gkyl_array *fluidin[], const struct gkyl_array *emin,
-  struct gkyl_array *fout[], struct gkyl_array *fluidout[], struct gkyl_array *emout, struct gkyl_update_status *st)
+  const struct gkyl_array *fin[], const struct gkyl_array *fluidin[], struct gkyl_array *bfluxin[], const struct gkyl_array *emin,
+  struct gkyl_array *fout[], struct gkyl_array *fluidout[], struct gkyl_array *bfluxout[], struct gkyl_array *emout, struct gkyl_update_status *st)
 {
   app->stat.nfeuler += 1;
   
@@ -491,6 +491,10 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   for (int i=0; i<app->num_fluid_species; ++i) {
     double dt1 = vm_fluid_species_rhs(app, &app->fluid_species[i], fluidin[i], fluidout[i]);
     dtmin = fmin(dtmin, dt1);
+  }
+  for (int i=0; i<app->num_bflux_species; ++i) {
+    vm_species_bflux_rhs(app, app->bflux_species[i], &app->bflux_species[i]->bflux,
+      fin[i], fout[i], bfluxin, bfluxout, i);
   }
   // compute RHS of Maxwell equations
   if (app->has_field) {
@@ -574,6 +578,8 @@ rk3(gkyl_vlasov_app* app, double dt0)
   struct gkyl_array *fout[app->num_species];
   const struct gkyl_array *fluidin[app->num_fluid_species];
   struct gkyl_array *fluidout[app->num_fluid_species];
+  struct gkyl_array *bfluxin[2*app->cdim*app->num_bflux_species];
+  struct gkyl_array *bfluxout[2*app->cdim*app->num_bflux_species];
   struct gkyl_update_status st = { .success = true };
 
   // time-stepper state
@@ -591,8 +597,14 @@ rk3(gkyl_vlasov_app* app, double dt0)
           fluidin[i] = app->fluid_species[i].fluid;
           fluidout[i] = app->fluid_species[i].fluid1;
         }
-        forward_euler(app, tcurr, dt, fin, fluidin, app->has_field ? app->field->em : 0,
-          fout, fluidout, app->has_field ? app->field->em1 : 0,
+	for (int i=0; i<app->num_bflux_species; ++i) {
+	  for (int j=0; j<2*app->cdim; ++j) {
+            bfluxin[i+app->num_bflux_species*j] = app->bflux_species[i]->bflux.bf[j];
+            bfluxout[i+app->num_bflux_species*j] = app->bflux_species[i]->bflux.bf1[j];
+	  }
+        }
+        forward_euler(app, tcurr, dt, fin, fluidin, bfluxin, app->has_field ? app->field->em : 0,
+	  fout, fluidout, bfluxout, app->has_field ? app->field->em1 : 0,
           &st
         );
         dt = st.dt_actual;
@@ -608,8 +620,14 @@ rk3(gkyl_vlasov_app* app, double dt0)
           fluidin[i] = app->fluid_species[i].fluid1;
           fluidout[i] = app->fluid_species[i].fluidnew;
         }
-        forward_euler(app, tcurr+dt, dt, fin, fluidin, app->has_field ? app->field->em1 : 0,
-          fout, fluidout, app->has_field ? app->field->emnew : 0,
+	for (int i=0; i<app->num_bflux_species; ++i) {
+	  for (int j=0; j<2*app->cdim; ++j) {
+            bfluxin[i+app->num_species*j] = app->bflux_species[i]->bflux.bf1[j];
+            bfluxout[i+app->num_species*j] = app->bflux_species[i]->bflux.bfnew[j];
+	  }
+        }
+        forward_euler(app, tcurr+dt, dt, fin, fluidin, bfluxin, app->has_field ? app->field->em1 : 0,
+	  fout, fluidout, bfluxout, app->has_field ? app->field->emnew : 0,
           &st
         );
         if (st.dt_actual < dt) {
@@ -633,6 +651,12 @@ rk3(gkyl_vlasov_app* app, double dt0)
           for (int i=0; i<app->num_fluid_species; ++i)
             array_combine(app->fluid_species[i].fluid1,
               3.0/4.0, app->fluid_species[i].fluid, 1.0/4.0, app->fluid_species[i].fluidnew, app->local_ext);
+	  for (int i=0; i<app->num_bflux_species; ++i) {
+	    for (int j=0; j<2*app->cdim; ++j) {
+              array_combine(app->bflux_species[i]->bflux.bf1[j],
+                3.0/4.0, app->bflux_species[i]->bflux.bf[j], 1.0/4.0, app->bflux_species[i]->bflux.bfnew[j], app->local_ext);
+	    }
+	  }
           if (app->has_field)
             array_combine(app->field->em1,
               3.0/4.0, app->field->em, 1.0/4.0, app->field->emnew, app->local_ext);
@@ -650,8 +674,8 @@ rk3(gkyl_vlasov_app* app, double dt0)
           fluidin[i] = app->fluid_species[i].fluid1;
           fluidout[i] = app->fluid_species[i].fluidnew;
         }
-        forward_euler(app, tcurr+dt/2, dt, fin, fluidin, app->has_field ? app->field->em1 : 0,
-          fout, fluidout, app->has_field ? app->field->emnew : 0,
+        forward_euler(app, tcurr+dt/2, dt, fin, fluidin, bfluxin, app->has_field ? app->field->em1 : 0,
+	  fout, fluidout, bfluxout, app->has_field ? app->field->emnew : 0,
           &st
         );
         if (st.dt_actual < dt) {
