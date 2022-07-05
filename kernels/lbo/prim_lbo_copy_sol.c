@@ -1,5 +1,5 @@
 #include <gkyl_mat.h> 
-#include <gkyl_prim_lbo_calc_kernels.h>
+#include <gkyl_prim_lbo_kernels.h>
  
 GKYL_CU_DH void prim_lbo_copy_sol(const struct gkyl_mat *rhs, const int nc, const int vdim, double* GKYL_RESTRICT u, double* GKYL_RESTRICT vtSq)
 {

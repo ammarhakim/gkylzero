@@ -1,3 +1,4 @@
+#include "gkyl_dg_bin_ops.h"
 #include "gkyl_util.h"
 #include <assert.h>
 
@@ -261,6 +262,12 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
     // Additional arrays for computing mirror force and current density for EM field coupling
     s->n = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    
+    if (app->use_gpu)
+      s->Tperp_mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local_ext.volume, app->confBasis.num_basis);
+    else
+      s->Tperp_mem = gkyl_dg_bin_op_mem_new(app->local_ext.volume, app->confBasis.num_basis);
+    
     s->Tperp = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     s->mirror_force = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     s->m1i_no_J = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -415,7 +422,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
       gkyl_dg_mul_op_range(app->confBasis, 0, species->n, 0,
         species->magB, 0, species->lbo.m0, app->local);
       // get J*T_perp = J*p_perp/n
-      gkyl_dg_div_op_range(app->confBasis, 0, species->Tperp, 0,
+      gkyl_dg_div_op_range(species->Tperp_mem, app->confBasis, 0, species->Tperp, 0,
         fluidin[species->fluid_index], 0, species->n, app->local);
       // get mirror force = J*T_perp*grad(B)
       gkyl_dg_mul_op_range(app->confBasis, 0, species->mirror_force, 0,
@@ -667,6 +674,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     gkyl_array_release(s->gradB);
     gkyl_array_release(s->magB);
     gkyl_array_release(s->n);
+    gkyl_dg_bin_op_mem_release(s->Tperp_mem);
     gkyl_array_release(s->Tperp);
     gkyl_array_release(s->mirror_force);
     gkyl_array_release(s->m1i_no_J);

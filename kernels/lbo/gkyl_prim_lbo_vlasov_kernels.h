@@ -3,8 +3,8 @@
 #include <gkyl_mat.h> 
 #include <gkyl_util.h> 
  
-EXTERN_C_BEG 
-  
+EXTERN_C_BEG
+
 GKYL_CU_DH void vlasov_self_prim_moments_1x1v_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs,
   const double *moms, const double *boundary_corrections); 
 GKYL_CU_DH void vlasov_cross_prim_moments_1x1v_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs,

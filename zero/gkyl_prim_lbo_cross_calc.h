@@ -45,7 +45,7 @@ gkyl_prim_lbo_cross_calc* gkyl_prim_lbo_cross_calc_cu_dev_new(const struct gkyl_
  * @param vtsq_out Output thermal velocity primitive moment array
  */
 void gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc,
-  struct gkyl_basis cbasis, const struct gkyl_range conf_rng,
+  struct gkyl_basis cbasis, const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
   double self_m, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
   double cross_m, const struct gkyl_array *cross_u, const struct gkyl_array *cross_vtsq, 
@@ -53,7 +53,7 @@ void gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc,
   struct gkyl_array *u_out, struct gkyl_array *vtsq_out);
 
 void gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc,
-  struct gkyl_basis cbasis, const struct gkyl_range conf_rng,
+  struct gkyl_basis cbasis, const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
   double self_m, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
   double cross_m, const struct gkyl_array *cross_u, const struct gkyl_array *cross_vtsq, 
@@ -66,3 +66,23 @@ void gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc,
  * @param calc Updater to delete.
  */
 void gkyl_prim_lbo_cross_calc_release(gkyl_prim_lbo_cross_calc* calc);
+
+/**
+ * Return pointer to primitive moment type structure.
+
+ * @param calc Updater pointer.
+ */
+struct gkyl_prim_lbo_type* gkyl_prim_lbo_cross_calc_get_prim(gkyl_prim_lbo_cross_calc* calc);
+
+// "derived" class constructors
+gkyl_prim_lbo_cross_calc* 
+gkyl_prim_lbo_vlasov_cross_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
+
+gkyl_prim_lbo_cross_calc* 
+gkyl_prim_lbo_gyrokinetic_cross_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
+
+gkyl_prim_lbo_cross_calc* 
+gkyl_prim_lbo_vlasov_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
+
+gkyl_prim_lbo_cross_calc* 
+gkyl_prim_lbo_gyrokinetic_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);

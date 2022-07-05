@@ -19,10 +19,10 @@ typedef struct gkyl_mom_calc_bcorr gkyl_mom_calc_bcorr;
  * @param momt Moment type object for boundary correction
  */
 gkyl_mom_calc_bcorr* gkyl_mom_calc_bcorr_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_mom_type *momt, const char *space);
+  const struct gkyl_mom_type *momt);
 
 gkyl_mom_calc_bcorr* gkyl_mom_calc_bcorr_cu_dev_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_mom_type *momt, const char *space);
+  const struct gkyl_mom_type *momt);
 
 /**
  * Compute boundary correction moments.
@@ -47,3 +47,16 @@ void gkyl_mom_calc_bcorr_advance_cu(gkyl_mom_calc_bcorr *bcorr,
  * @param bcorr Updater to delete.
  */
 void gkyl_mom_calc_bcorr_release(gkyl_mom_calc_bcorr* up);
+
+// "derived" class constructors
+gkyl_mom_calc_bcorr*
+gkyl_mom_calc_bcorr_lbo_vlasov_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const double* vBoundary);
+
+gkyl_mom_calc_bcorr*
+gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const double* vBoundary, double mass);
+
+gkyl_mom_calc_bcorr*
+gkyl_mom_calc_bcorr_lbo_vlasov_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const double* vBoundary);
+
+gkyl_mom_calc_bcorr*
+gkyl_mom_calc_bcorr_lbo_gyrokinetic_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const double* vBoundary, double mass);

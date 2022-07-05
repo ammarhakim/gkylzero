@@ -1,1 +1,1 @@
-./configure CC=nvcc CUDA_ARCH=80 
+./configure CC=nvcc

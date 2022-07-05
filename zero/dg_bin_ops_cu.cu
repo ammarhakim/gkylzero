@@ -132,26 +132,24 @@ gkyl_dg_div_copy_sol_op_cu_kernel(struct gkyl_nmat *xs,
 
 // Host-side wrapper for dg division operation
 void
-gkyl_dg_div_op_cu(struct gkyl_basis basis,
+gkyl_dg_div_op_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop)
 {
   int num_basis = basis.num_basis;  
   // allocate memory for use in kernels
-  struct gkyl_nmat *A_d = gkyl_nmat_cu_dev_new(out->size, num_basis, num_basis);
-  struct gkyl_nmat *x_d = gkyl_nmat_cu_dev_new(out->size, num_basis, 1);
+  struct gkyl_nmat *A_d = mem->As;
+  struct gkyl_nmat *x_d = mem->xs;
 
   // construct matrices using CUDA kernel
   gkyl_dg_div_set_op_cu_kernel<<<out->nblocks, out->nthreads>>>(A_d->on_dev, x_d->on_dev,
     basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev);
   // invert all matrices in batch mode
-  bool status = gkyl_nmat_linsolve_lu(A_d, x_d);
+  bool status = gkyl_nmat_linsolve_lu_pa(mem->lu_mem, A_d, x_d);
   // copy solution into array (also lives on the device)
   gkyl_dg_div_copy_sol_op_cu_kernel<<<out->nblocks, out->nthreads>>>(x_d->on_dev, basis, c_oop, out->on_dev);
 
-  gkyl_nmat_release(A_d);
-  gkyl_nmat_release(x_d);  
 }
 
 __global__ void
@@ -188,7 +186,7 @@ gkyl_dg_div_set_op_range_cu_kernel(struct gkyl_nmat *As, struct gkyl_nmat *xs,
     gkyl_mat_clear(&A, 0.0); gkyl_mat_clear(&x, 0.0);  
 
     div_set_op(&A, &x, lop_d+c_lop*num_basis, rop_d+c_rop*num_basis);
-  }  
+  }
 }
 
 __global__ void
@@ -224,7 +222,7 @@ gkyl_dg_div_copy_sol_op_range_cu_kernel(struct gkyl_nmat *xs,
 
 // Host-side wrapper for range-based dg division operation
 void
-gkyl_dg_div_op_range_cu(struct gkyl_basis basis,
+gkyl_dg_div_op_range_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop, struct gkyl_range range)
@@ -233,19 +231,17 @@ gkyl_dg_div_op_range_cu(struct gkyl_basis basis,
   int nthreads = range.nthreads;
   int num_basis = basis.num_basis;    
   // allocate memory for use in kernels
-  struct gkyl_nmat *A_d = gkyl_nmat_cu_dev_new(range.volume, num_basis, num_basis);
-  struct gkyl_nmat *x_d = gkyl_nmat_cu_dev_new(range.volume, num_basis, 1);
+  struct gkyl_nmat *A_d = mem->As;
+  struct gkyl_nmat *x_d = mem->xs;
 
   // construct matrices using CUDA kernel  
-  gkyl_dg_div_set_op_range_cu_kernel<<<nblocks, nthreads>>>(A_d->on_dev, x_d->on_dev,
-    basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev, range);
+  gkyl_dg_div_set_op_range_cu_kernel<<<nblocks, nthreads>>>(A_d->on_dev,
+    x_d->on_dev, basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev, range);
   // invert all matrices in batch mode
-  bool status = gkyl_nmat_linsolve_lu(A_d, x_d);
+  bool status = gkyl_nmat_linsolve_lu_pa(mem->lu_mem, A_d, x_d);
   // copy solution into array (also lives on the device)
-  gkyl_dg_div_copy_sol_op_range_cu_kernel<<<nblocks, nthreads>>>(x_d->on_dev, basis, c_oop, out->on_dev, range);
-
-  gkyl_nmat_release(A_d);
-  gkyl_nmat_release(x_d);  
+  gkyl_dg_div_copy_sol_op_range_cu_kernel<<<nblocks, nthreads>>>(x_d->on_dev,
+    basis, c_oop, out->on_dev, range);
 }
 
 __global__ void
@@ -261,10 +257,23 @@ gkyl_dg_calc_op_range_cu_kernel(struct gkyl_basis basis, int c_oop, struct gkyl_
   double fact = // factor for rescaling return value of op_func
     op == GKYL_DG_OP_MEAN ? sqrt(pow(2,ndim)) : pow(2,ndim);
 
-  for (unsigned long linc = START_ID; linc < NSIZE(out); linc += blockDim.x*gridDim.x) {
-    
-    const double *iop_d = (const double*) gkyl_array_cfetch(iop, linc);
-    double *out_d = (double*) gkyl_array_fetch(out, linc);
+  int idx[GKYL_MAX_DIM];
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&range, linc1, idx);
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long start = gkyl_range_idx(&range, idx);
+
+    const double *iop_d = (const double*) gkyl_array_cfetch(iop, start);
+    double *out_d = (double*) gkyl_array_fetch(out, start);
 
     out_d[c_oop] =
       op_func(num_basis, iop_d+c_iop*num_basis)/fact;

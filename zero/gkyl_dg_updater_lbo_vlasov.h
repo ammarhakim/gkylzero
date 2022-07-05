@@ -23,7 +23,7 @@ struct gkyl_dg_updater_lbo_vlasov_tm {
  * @return New LBO updater object
  */
 gkyl_dg_updater_lbo_vlasov* gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range);
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, bool use_gpu);
 
 gkyl_dg_updater_lbo_vlasov* gkyl_dg_updater_lbo_vlasov_cu_dev_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range);
