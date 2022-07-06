@@ -90,6 +90,12 @@ main(int argc, char **argv)
 
     .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
 
+    .source = {
+      .source_id = GKYL_BFLUX_SOURCE,
+      .profile = evalDistFuncElc,
+      .ctx = &ctx,
+    },
+    
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
   };
@@ -107,6 +113,12 @@ main(int argc, char **argv)
 
     .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
 
+    .source = {
+      .source_id = GKYL_BFLUX_SOURCE,
+      .profile = evalDistFuncIon,
+      .ctx = &ctx,
+    },
+    
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
   };
@@ -125,7 +137,7 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "sheath",
+    .name = "sheath_1v",
 
     .cdim = 1, .vdim = 1,
     .lower = { -ctx.Lx },

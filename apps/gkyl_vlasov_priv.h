@@ -112,11 +112,15 @@ struct vm_bgk_collisions {
 };
 
 struct vm_boundary_fluxes {
-  struct vm_species_moment moms[2*GKYL_MAX_CDIM]; // moments
+  struct vm_species_moment moms[2*GKYL_MAX_CDIM];
+  struct vm_species_moment m0[2*GKYL_MAX_CDIM];
+  struct vm_species_moment m1i[2*GKYL_MAX_CDIM];// moments
   struct vm_species_moment integ_moms[2*GKYL_MAX_CDIM]; // integrated moments
   
   gkyl_ghost_surf_calc *flux_slvr; // boundary flux solver
 
+  struct gkyl_array *ghost_buffer; // buffer for BCs (used for both copy and periodic)
+  
   struct gkyl_array *bf[2*GKYL_MAX_CDIM], *bf1[2*GKYL_MAX_CDIM], *bfnew[2*GKYL_MAX_CDIM]; // arrays for updates
 };
 

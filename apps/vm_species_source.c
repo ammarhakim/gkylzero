@@ -36,7 +36,15 @@ vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
 {
   // GKYL_BFLUX_SOURCE currently assumes 1X
   if (species->source_id == GKYL_BFLUX_SOURCE) {
-    src->scale_factor = 1.0;
+    src->scale_factor = 0;
+    double z[app->confBasis.num_basis];
+    
+    for (int i=0; i<app->cdim; ++i) {
+      z[0] = -1.0;
+      src->scale_factor += app->confBasis.eval_expand(z, species->bflux.m1i[2*i].marr);
+      z[0] = 1.0;
+      src->scale_factor += app->confBasis.eval_expand(z, species->bflux.m1i[2*i+1].marr);
+    }
   }
   gkyl_array_accumulate(rhs, src->scale_factor, src->source);
   return 0;

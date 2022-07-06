@@ -580,6 +580,7 @@ rk3(gkyl_vlasov_app* app, double dt0)
   struct gkyl_array *fluidout[app->num_fluid_species];
   struct gkyl_array *bfluxin[2*app->cdim*app->num_bflux_species];
   struct gkyl_array *bfluxout[2*app->cdim*app->num_bflux_species];
+  printf("size %d\n", 2*app->cdim*app->num_bflux_species);
   struct gkyl_update_status st = { .success = true };
 
   // time-stepper state
@@ -599,7 +600,7 @@ rk3(gkyl_vlasov_app* app, double dt0)
         }
 	for (int i=0; i<app->num_bflux_species; ++i) {
 	  for (int j=0; j<2*app->cdim; ++j) {
-            bfluxin[i+app->num_bflux_species*j] = app->bflux_species[i]->bflux.bf[j];
+	    bfluxin[i+app->num_bflux_species*j] = app->bflux_species[i]->bflux.bf[j];
             bfluxout[i+app->num_bflux_species*j] = app->bflux_species[i]->bflux.bf1[j];
 	  }
         }
