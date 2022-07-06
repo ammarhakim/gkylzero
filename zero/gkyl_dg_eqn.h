@@ -29,11 +29,20 @@ typedef void (*boundary_surf_termf_t)(const struct gkyl_dg_eqn *eqn,
   const int* idxEdge, const int* idxSkin, const int edge,
   const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut);
 
+// Function pointer type for generic stencil kernel
+// Similar to surface kernel, but size of input arrays unspecified
+// Could be 9 (for a generic 2D stencil) or 27 (for a generic 3D stencil)
+typedef void (*gen_termf_t)(const struct gkyl_dg_eqn *eqn, 
+  int dir,
+  const double xc[][GKYL_MAX_DIM], const double dx[][GKYL_MAX_DIM], const int idx[][GKYL_MAX_DIM],
+  const double* qIn[], double* GKYL_RESTRICT qRhsOut);
+
 struct gkyl_dg_eqn {
   int num_equations; // number of equations in system
   vol_termf_t vol_term; // volume term kernel
   surf_termf_t surf_term; // surface term kernel
   boundary_surf_termf_t boundary_surf_term; // boundary surface term kernel
+  gen_termf_t gen_term; // generic stencil kernel with input variable size unspecified
 
   uint32_t flags;
   struct gkyl_ref_count ref_count; // reference count
