@@ -107,8 +107,11 @@ main(int argc, char **argv)
     .init = evalDistFunc,
 
     // source is the same as initial condition
-    .source = evalDistFunc,
-    .source_ctx = &ctx,
+    .source = {
+      .source_id = GKYL_FUNC_SOURCE,
+      .profile = evalDistFunc,
+      .ctx = &ctx,
+    },
 
     .num_diag_moments = 2,
     .diag_moments = { "M0", "M1i" },
@@ -127,8 +130,11 @@ main(int argc, char **argv)
     .init = evalDistFunc,
 
     // source is the same as initial condition
-    .source = evalDistFunc,
-    .source_ctx = &ctx,
+    .source = {
+      .source_id = GKYL_FUNC_SOURCE,
+      .profile = evalDistFunc,
+      .ctx = &ctx,
+    },
 
     .num_diag_moments = 2,
     .diag_moments = { "M0", "M1i" },
@@ -172,7 +178,7 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = 100.0;
   double dt = tend-tcurr;
-  int nframe = 250;
+  int nframe = 1;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 

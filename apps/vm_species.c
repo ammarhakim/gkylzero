@@ -172,9 +172,6 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
   // acquire equation object
   s->eqn_vlasov = gkyl_dg_updater_vlasov_acquire_eqn(s->slvr);
-
-  if (s->boundary_fluxes)
-    vm_species_bflux_init(app, s, &s->bflux);
   
   // allocate data for momentum (for use in current accumulation)
   vm_species_moment_init(app, s, &s->m1i, "M1i");
@@ -214,9 +211,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       8, eval_accel, &s->accel_ctx);
   }
 
-  s->has_source = false;
+  s->source_id = s->info.source.source_id;
   // setup constant source
-  if (s->info.source) {
+  if (s->source_id) {
     vm_species_source_init(app, s, &s->src);
   }
 
@@ -231,6 +228,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     }
     vm_species_lbo_init(app, s, &s->lbo, s->collides_with_fluid);
   }
+
+  if (s->boundary_fluxes)
+    vm_species_bflux_init(app, s, &s->bflux);
 
   // setup mirror force from fluid species if present
   s->has_mirror_force = false;

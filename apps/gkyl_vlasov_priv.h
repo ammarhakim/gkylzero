@@ -124,6 +124,8 @@ struct vm_source {
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *source_proj; // projector for source
+
+  double scale_factor;
 };
 
 
@@ -182,6 +184,7 @@ struct vm_species {
   struct vm_eval_accel_ctx accel_ctx; // context for applied acceleration
 
   bool has_source; // flag to indicate there is applied source
+  enum gkyl_source_id source_id;
   struct vm_source src; // applied source
   
   bool boundary_fluxes; // flag to indicate if boundary fluxes should be calculated
