@@ -378,7 +378,7 @@ vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, double t
 void
 vm_species_calc_source(gkyl_vlasov_app *app, struct vm_species *species, double tm)
 {
-  if (species->has_source) {
+  if (species->source_id) {
     gkyl_proj_on_basis_advance(species->src.source_proj, tm, &species->local_ext, species->src.source_host);
     if (app->use_gpu) // note: source_host is same as source when not on GPUs
       gkyl_array_copy(species->src.source, species->src.source_host);
@@ -429,7 +429,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   if (species->collision_id == GKYL_LBO_COLLISIONS)
     vm_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
 
-  if (species->has_source)
+  if (species->source_id)
     vm_species_source_rhs(app, species, &species->src, fin, rhs);
   
   app->stat.nspecies_omega_cfl +=1;
@@ -645,7 +645,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     gkyl_proj_on_basis_release(s->accel_proj);
   }
 
-  if (s->has_source) {
+  if (s->source_id) {
     vm_species_source_release(app, &s->src);
   }
 

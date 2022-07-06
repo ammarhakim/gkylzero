@@ -35,7 +35,7 @@ vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   struct vm_source *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   // GKYL_BFLUX_SOURCE currently assumes 1X
-  if (s->source_id == GKYL_BFLUX_SOURCE) {
+  if (species->source_id == GKYL_BFLUX_SOURCE) {
     src->scale_factor = 1.0;
   }
   gkyl_array_accumulate(rhs, src->scale_factor, src->source);

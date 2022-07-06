@@ -178,7 +178,7 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = 100.0;
   double dt = tend-tcurr;
-  int nframe = 1;
+  int nframe = 250;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 

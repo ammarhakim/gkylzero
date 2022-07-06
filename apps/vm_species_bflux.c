@@ -7,6 +7,11 @@ vm_species_bflux_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct 
   app->bflux_species[app->num_bflux_species] = s;
   app->num_bflux_species = app->num_bflux_species + 1;
   bflux->flux_slvr = gkyl_ghost_surf_calc_new(&s->grid, s->eqn_vlasov);
+
+  for (int i=0; i<2*app->cdim; ++i) {
+    vm_species_moment_init(app, s, &bflux->moms[i], "FiveMoments");
+    vm_species_moment_init(app, s, &bflux->integ_moms[i], "Integrated");
+  }
 }
 
 // computes rhs of the boundary flux
@@ -24,6 +29,12 @@ vm_species_bflux_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
     gkyl_array_copy_range(bfluxin[edge_idx_upper], fin, species->skin_ghost.upper_ghost[j]);
     gkyl_array_copy_range(bfluxout[edge_idx_lower], rhs, species->skin_ghost.lower_ghost[j]);
     gkyl_array_copy_range(bfluxout[edge_idx_upper], rhs, species->skin_ghost.upper_ghost[j]);
+    
+    vm_species_moment_calc(&bflux->moms[edge_idx_lower], species->skin_ghost.lower_ghost[j], app->skin_ghost.lower_ghost[j], rhs);
+    vm_species_moment_calc(&bflux->moms[edge_idx_upper], species->skin_ghost.upper_ghost[j], app->skin_ghost.upper_ghost[j], rhs);
+
+    vm_species_moment_calc(&bflux->integ_moms[edge_idx_lower], species->skin_ghost.lower_ghost[j], app->skin_ghost.lower_ghost[j], rhs);
+    vm_species_moment_calc(&bflux->integ_moms[edge_idx_upper], species->skin_ghost.upper_ghost[j], app->skin_ghost.upper_ghost[j], rhs);
   }
   return 0;
 }
