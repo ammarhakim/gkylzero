@@ -269,6 +269,7 @@ struct vm_fluid_species {
   struct vm_eval_advect_ctx advect_ctx; // context for applied advection
   
   bool has_diffusion; // flag to indicate there is applied diffusion
+  bool D_anisotropic; // flag to indicate diffusion tensor is anisotropic
   gkyl_proj_on_basis* diff_proj; // projector for diffusion
   struct vm_eval_diffusion_ctx diff_ctx; // context for applied diffusion
 

@@ -52,10 +52,13 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   
   // equation objects
   f->advect_eqn = gkyl_dg_advection_new(&app->confBasis, &app->local, app->use_gpu);
-  if (f->info.diffusion.anisotropic)
+  if (f->info.diffusion.anisotropic) {
+    f->D_anisotropic = true;
     f->diff_eqn =  gkyl_dg_gen_diffusion_new(&app->confBasis, &app->local, app->use_gpu);
-  else
+  }
+  else {
     f->diff_eqn = gkyl_dg_diffusion_new(&app->confBasis, &app->local, app->use_gpu);
+  }
 
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
 
@@ -225,11 +228,17 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
   if (app->use_gpu) {
     gkyl_hyper_dg_advance_cu(fluid_species->advect_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
     if (fluid_species->has_diffusion)
-      gkyl_hyper_dg_advance_cu(fluid_species->diff_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
+      if (fluid_species->D_anisotropic)
+        gkyl_hyper_dg_gen_stencil_advance_cu(fluid_species->diff_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
+      else
+        gkyl_hyper_dg_advance_cu(fluid_species->diff_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
   } else {
     gkyl_hyper_dg_advance(fluid_species->advect_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
     if (fluid_species->has_diffusion)
-      gkyl_hyper_dg_advance(fluid_species->diff_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
+      if (fluid_species->D_anisotropic)
+        gkyl_hyper_dg_gen_stencil_advance(fluid_species->diff_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
+      else
+        gkyl_hyper_dg_advance(fluid_species->diff_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
   }
 
   // accumulate nu*n*T - nu*fluid_species
