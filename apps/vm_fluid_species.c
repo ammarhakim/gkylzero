@@ -42,7 +42,10 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   f->u = mkarr(app->use_gpu, cdim*app->confBasis.num_basis, app->local_ext.volume);
   
   // allocate array to store diffusion tensor
-  f->D = mkarr(app->use_gpu, cdim*app->confBasis.num_basis, app->local_ext.volume);
+  int szD = cdim * app->confBasis.num_basis;
+  if (f->info.diffusion.anisotropic) // allocate space for mix terms
+    szD = cdim*(cdim+1)/2 * app->confBasis.num_basis;
+  f->D = mkarr(app->use_gpu, szD, app->local_ext.volume);
   f->D_host = f->D;
   if (app->use_gpu)
     f->D_host = mkarr(false, cdim*app->confBasis.num_basis, app->local_ext.volume);
