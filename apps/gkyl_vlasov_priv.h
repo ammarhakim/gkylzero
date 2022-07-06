@@ -15,6 +15,7 @@
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_diffusion.h>
+#include <gkyl_dg_gen_diffusion.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_updater_lbo_vlasov.h>
 #include <gkyl_dg_updater_vlasov.h>

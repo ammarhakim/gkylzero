@@ -5,8 +5,8 @@
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array_ops.h>
-#include <gkyl_hyper_dg_gen_stencil.h>
-#include <gkyl_hyper_dg_gen_stencil_priv.h>
+#include <gkyl_hyper_dg.h>
+#include <gkyl_hyper_dg_priv.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
@@ -25,7 +25,7 @@ create_offsets(const struct gkyl_range *range, long offsets[])
 }
 
 void
-gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg_gen_stencil *hdg, const struct gkyl_range *update_range,
+gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
   const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs)
 {
   int ndim = hdg->ndim;
@@ -68,17 +68,18 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg_gen_stencil *hdg, const struct g
     }
 
     // Loop over surfaces and update using any/all neighbors needed
+    // NOTE: ASSUMES UNIFORM GRIDS FOR NOW
     for (int d=0; d<hdg->num_up_dirs; ++d) {
       int dir = hdg->update_dirs[d];
-      hdg->equation->gen_term(hdg->equation,
-        dir, xc, dx, idx, fIn_d,
+      hdg->equation->gen_surf_term(hdg->equation,
+        dir, xcc, hdg->grid.dx, idxc, fIn_d,
         gkyl_array_fetch(rhs, linc)
       );
     }
   }
 }
 
-gkyl_hyper_dg_gen_stencil*
+gkyl_hyper_dg*
 gkyl_hyper_dg_gen_stencil_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation,
   int num_up_dirs, int update_dirs[GKYL_MAX_DIM], bool use_gpu)
@@ -88,7 +89,7 @@ gkyl_hyper_dg_gen_stencil_new(const struct gkyl_rect_grid *grid,
     return gkyl_hyper_dg_gen_stencil_cu_dev_new(grid, basis, equation, num_up_dirs, update_dirs);
   } 
 #endif
-  gkyl_hyper_dg_gen_stencil *up = gkyl_malloc(sizeof(gkyl_hyper_dg_gen_stencil));
+  gkyl_hyper_dg *up = gkyl_malloc(sizeof(gkyl_hyper_dg));
 
   up->grid = *grid;
   up->ndim = basis->ndim;
@@ -108,7 +109,7 @@ gkyl_hyper_dg_gen_stencil_new(const struct gkyl_rect_grid *grid,
   return up;
 }
 
-void gkyl_hyper_dg_gen_stencil_release(gkyl_hyper_dg_gen_stencil* hdg)
+void gkyl_hyper_dg_gen_stencil_release(gkyl_hyper_dg* hdg)
 {
   gkyl_dg_eqn_release(hdg->equation);
   if (GKYL_IS_CU_ALLOC(hdg->flags))
@@ -119,7 +120,7 @@ void gkyl_hyper_dg_gen_stencil_release(gkyl_hyper_dg_gen_stencil* hdg)
 #ifndef GKYL_HAVE_CUDA
 
 // default functions
-gkyl_hyper_dg_gen_stencil*
+gkyl_hyper_dg*
 gkyl_hyper_dg_gen_stencil_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
   const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation_cu,
   int num_up_dirs, int update_dirs[])
@@ -128,7 +129,7 @@ gkyl_hyper_dg_gen_stencil_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
   return 0;
 }
 
-void gkyl_hyper_dg_gen_stencil_advance_cu(gkyl_hyper_dg_gen_stencil* hdg, const struct gkyl_range *update_range,
+void gkyl_hyper_dg_gen_stencil_advance_cu(gkyl_hyper_dg* hdg, const struct gkyl_range *update_range,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
   struct gkyl_array* GKYL_RESTRICT rhs)
 {

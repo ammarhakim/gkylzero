@@ -31,7 +31,7 @@ struct gkyl_dg_eqn* gkyl_dg_diffusion_new(const struct gkyl_basis* cbasis, const
 struct gkyl_dg_eqn* gkyl_dg_diffusion_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range);
 
 /**
- * Set the auxiliary fields (e.g. diffsuion tensor D) needed in updating diffusion equation.
+ * Set the auxiliary fields (e.g. diffusion tensor D) needed in updating diffusion equation.
  * 
  * @param eqn Equation pointer.
  * @param auxfields Pointer to struct of aux fields.
@@ -41,7 +41,7 @@ void gkyl_diffusion_set_auxfields(const struct gkyl_dg_eqn* eqn, struct gkyl_dg_
 #ifdef GKYL_HAVE_CUDA
 
 /**
- * CUDA device function to set auxiliary fields (e.g. diffsuion tensor D) needed in updating diffusion equation.
+ * CUDA device function to set auxiliary fields (e.g. diffusion tensor D) needed in updating diffusion equation.
  * 
  * @param eqn Equation pointer.
  * @param auxfields Pointer to struct of aux fields.

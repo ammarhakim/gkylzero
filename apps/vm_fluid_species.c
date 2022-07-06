@@ -49,15 +49,22 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   
   // equation objects
   f->advect_eqn = gkyl_dg_advection_new(&app->confBasis, &app->local, app->use_gpu);
-  f->diff_eqn = gkyl_dg_diffusion_new(&app->confBasis, &app->local, app->use_gpu);
+  if (f->info.diffusion.anisotropic)
+    f->diff_eqn =  gkyl_dg_gen_diffusion_new(&app->confBasis, &app->local, app->use_gpu);
+  else
+    f->diff_eqn = gkyl_dg_diffusion_new(&app->confBasis, &app->local, app->use_gpu);
 
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
 
   // fluid solvers
   f->advect_slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, f->advect_eqn,
     app->cdim, up_dirs, zero_flux_flags, 1, app->use_gpu);
-  f->diff_slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, f->diff_eqn,
-    app->cdim, up_dirs, zero_flux_flags, 1, app->use_gpu);
+  if (f->info.diffusion.anisotropic)
+    f->diff_slvr = gkyl_hyper_dg_gen_stencil_new(&app->grid, &app->confBasis, f->diff_eqn,
+      app->cdim, up_dirs, app->use_gpu);
+  else
+    f->diff_slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, f->diff_eqn,
+      app->cdim, up_dirs, zero_flux_flags, 1, app->use_gpu);
 
   f->has_advect = false;
   f->advects_with_species = false;
