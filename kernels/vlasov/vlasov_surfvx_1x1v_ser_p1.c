@@ -53,5 +53,7 @@ GKYL_CU_DH void vlasov_surfvx_1x1v_ser_p1(const double *w, const double *dxv, co
   out[1] += (0.7071067811865475*Ghat_l[1]-0.7071067811865475*Ghat_r[1])*dv10; 
   out[2] += -1.224744871391589*(Ghat_r[0]+Ghat_l[0])*dv10; 
   out[3] += -1.224744871391589*(Ghat_r[1]+Ghat_l[1])*dv10; 
+  out[4] += (1.58113883008419*Ghat_l[0]-1.58113883008419*Ghat_r[0])*dv10; 
+  out[5] += (1.58113883008419*Ghat_l[1]-1.58113883008419*Ghat_r[1])*dv10; 
 
 } 

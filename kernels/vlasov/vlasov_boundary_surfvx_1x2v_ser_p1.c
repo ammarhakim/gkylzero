@@ -15,7 +15,7 @@ GKYL_CU_DH void vlasov_boundary_surfvx_1x2v_ser_p1(const double *w, const double
   const double *E0 = &qmem[0]; 
   const double *B2 = &qmem[10]; 
 
-  double alpha[4] = {0.0}; 
+  double alpha[6] = {0.0}; 
 
   alpha[0] = 1.414213562373095*(B2[0]*wv2+E0[0]); 
   alpha[1] = 1.414213562373095*(B2[1]*wv2+E0[1]); 
@@ -23,8 +23,8 @@ GKYL_CU_DH void vlasov_boundary_surfvx_1x2v_ser_p1(const double *w, const double
   alpha[3] = 0.408248290463863*B2[1]*dv2; 
 
   double fUpwindQuad[4] = {0.0};
-  double fUpwind[4] = {0.0};
-  double Ghat[4] = {0.0}; 
+  double fUpwind[6] = {0.0};
+  double Ghat[6] = {0.0}; 
 
   if (edge == -1) { 
 
@@ -54,8 +54,10 @@ GKYL_CU_DH void vlasov_boundary_surfvx_1x2v_ser_p1(const double *w, const double
 
   Ghat[0] = 0.5*(alpha[3]*fUpwind[3]+alpha[2]*fUpwind[2]+alpha[1]*fUpwind[1]+alpha[0]*fUpwind[0]); 
   Ghat[1] = 0.5*(alpha[2]*fUpwind[3]+fUpwind[2]*alpha[3]+alpha[0]*fUpwind[1]+fUpwind[0]*alpha[1]); 
-  Ghat[2] = 0.5*(alpha[1]*fUpwind[3]+fUpwind[1]*alpha[3]+alpha[0]*fUpwind[2]+fUpwind[0]*alpha[2]); 
-  Ghat[3] = 0.5*(alpha[0]*fUpwind[3]+fUpwind[0]*alpha[3]+alpha[1]*fUpwind[2]+fUpwind[1]*alpha[2]); 
+  Ghat[2] = 0.03333333333333333*(13.41640786499874*alpha[3]*fUpwind[5]+13.41640786499874*alpha[2]*fUpwind[4]+15.0*(alpha[1]*fUpwind[3]+fUpwind[1]*alpha[3]+alpha[0]*fUpwind[2]+fUpwind[0]*alpha[2])); 
+  Ghat[3] = 0.03333333333333333*(13.41640786499874*alpha[2]*fUpwind[5]+13.41640786499874*alpha[3]*fUpwind[4]+15.0*(alpha[0]*fUpwind[3]+fUpwind[0]*alpha[3]+alpha[1]*fUpwind[2]+fUpwind[1]*alpha[2])); 
+  Ghat[4] = 0.03333333333333333*(15.0*alpha[1]*fUpwind[5]+15.0*alpha[0]*fUpwind[4]+13.41640786499874*(alpha[3]*fUpwind[3]+alpha[2]*fUpwind[2])); 
+  Ghat[5] = 0.03333333333333333*(15.0*alpha[0]*fUpwind[5]+15.0*alpha[1]*fUpwind[4]+13.41640786499874*(alpha[2]*fUpwind[3]+fUpwind[2]*alpha[3])); 
 
   out[0] += -0.7071067811865475*Ghat[0]*dv10; 
   out[1] += -0.7071067811865475*Ghat[1]*dv10; 
@@ -65,6 +67,14 @@ GKYL_CU_DH void vlasov_boundary_surfvx_1x2v_ser_p1(const double *w, const double
   out[5] += -0.7071067811865475*Ghat[3]*dv10; 
   out[6] += -1.224744871391589*Ghat[2]*dv10; 
   out[7] += -1.224744871391589*Ghat[3]*dv10; 
+  out[8] += -1.58113883008419*Ghat[0]*dv10; 
+  out[9] += -1.58113883008419*Ghat[1]*dv10; 
+  out[10] += -1.58113883008419*Ghat[2]*dv10; 
+  out[11] += -1.58113883008419*Ghat[3]*dv10; 
+  out[12] += -0.7071067811865475*Ghat[4]*dv10; 
+  out[13] += -0.7071067811865475*Ghat[5]*dv10; 
+  out[14] += -1.224744871391589*Ghat[4]*dv10; 
+  out[15] += -1.224744871391589*Ghat[5]*dv10; 
 
   } else { 
 
@@ -94,8 +104,10 @@ GKYL_CU_DH void vlasov_boundary_surfvx_1x2v_ser_p1(const double *w, const double
 
   Ghat[0] = 0.5*(alpha[3]*fUpwind[3]+alpha[2]*fUpwind[2]+alpha[1]*fUpwind[1]+alpha[0]*fUpwind[0]); 
   Ghat[1] = 0.5*(alpha[2]*fUpwind[3]+fUpwind[2]*alpha[3]+alpha[0]*fUpwind[1]+fUpwind[0]*alpha[1]); 
-  Ghat[2] = 0.5*(alpha[1]*fUpwind[3]+fUpwind[1]*alpha[3]+alpha[0]*fUpwind[2]+fUpwind[0]*alpha[2]); 
-  Ghat[3] = 0.5*(alpha[0]*fUpwind[3]+fUpwind[0]*alpha[3]+alpha[1]*fUpwind[2]+fUpwind[1]*alpha[2]); 
+  Ghat[2] = 0.03333333333333333*(13.41640786499874*alpha[3]*fUpwind[5]+13.41640786499874*alpha[2]*fUpwind[4]+15.0*(alpha[1]*fUpwind[3]+fUpwind[1]*alpha[3]+alpha[0]*fUpwind[2]+fUpwind[0]*alpha[2])); 
+  Ghat[3] = 0.03333333333333333*(13.41640786499874*alpha[2]*fUpwind[5]+13.41640786499874*alpha[3]*fUpwind[4]+15.0*(alpha[0]*fUpwind[3]+fUpwind[0]*alpha[3]+alpha[1]*fUpwind[2]+fUpwind[1]*alpha[2])); 
+  Ghat[4] = 0.03333333333333333*(15.0*alpha[1]*fUpwind[5]+15.0*alpha[0]*fUpwind[4]+13.41640786499874*(alpha[3]*fUpwind[3]+alpha[2]*fUpwind[2])); 
+  Ghat[5] = 0.03333333333333333*(15.0*alpha[0]*fUpwind[5]+15.0*alpha[1]*fUpwind[4]+13.41640786499874*(alpha[2]*fUpwind[3]+fUpwind[2]*alpha[3])); 
 
   out[0] += 0.7071067811865475*Ghat[0]*dv10; 
   out[1] += 0.7071067811865475*Ghat[1]*dv10; 
@@ -105,6 +117,14 @@ GKYL_CU_DH void vlasov_boundary_surfvx_1x2v_ser_p1(const double *w, const double
   out[5] += 0.7071067811865475*Ghat[3]*dv10; 
   out[6] += -1.224744871391589*Ghat[2]*dv10; 
   out[7] += -1.224744871391589*Ghat[3]*dv10; 
+  out[8] += 1.58113883008419*Ghat[0]*dv10; 
+  out[9] += 1.58113883008419*Ghat[1]*dv10; 
+  out[10] += 1.58113883008419*Ghat[2]*dv10; 
+  out[11] += 1.58113883008419*Ghat[3]*dv10; 
+  out[12] += 0.7071067811865475*Ghat[4]*dv10; 
+  out[13] += 0.7071067811865475*Ghat[5]*dv10; 
+  out[14] += -1.224744871391589*Ghat[4]*dv10; 
+  out[15] += -1.224744871391589*Ghat[5]*dv10; 
 
   } 
 } 

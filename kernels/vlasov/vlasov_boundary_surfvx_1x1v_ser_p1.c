@@ -45,6 +45,8 @@ GKYL_CU_DH void vlasov_boundary_surfvx_1x1v_ser_p1(const double *w, const double
   out[1] += -0.7071067811865475*Ghat[1]*dv10; 
   out[2] += -1.224744871391589*Ghat[0]*dv10; 
   out[3] += -1.224744871391589*Ghat[1]*dv10; 
+  out[4] += -1.58113883008419*Ghat[0]*dv10; 
+  out[5] += -1.58113883008419*Ghat[1]*dv10; 
 
   } else { 
 
@@ -69,6 +71,8 @@ GKYL_CU_DH void vlasov_boundary_surfvx_1x1v_ser_p1(const double *w, const double
   out[1] += 0.7071067811865475*Ghat[1]*dv10; 
   out[2] += -1.224744871391589*Ghat[0]*dv10; 
   out[3] += -1.224744871391589*Ghat[1]*dv10; 
+  out[4] += 1.58113883008419*Ghat[0]*dv10; 
+  out[5] += 1.58113883008419*Ghat[1]*dv10; 
 
   } 
 } 
