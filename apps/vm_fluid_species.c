@@ -220,25 +220,37 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
   
   gkyl_advection_set_auxfields(fluid_species->advect_eqn,
     (struct gkyl_dg_advection_auxfields) { .u = fluid_species->u  }); // set total advection
-  gkyl_diffusion_set_auxfields(fluid_species->diff_eqn,
-    (struct gkyl_dg_diffusion_auxfields) { .D = fluid_species->D  }); // set total advection
+  if (fluid_species->D_anisotropic) {
+    gkyl_gen_diffusion_set_auxfields(fluid_species->diff_eqn,
+      (struct gkyl_dg_gen_diffusion_auxfields) { .Dij = fluid_species->D  }); // set total diffusion
+  }
+  else {
+    gkyl_diffusion_set_auxfields(fluid_species->diff_eqn,
+      (struct gkyl_dg_diffusion_auxfields) { .D = fluid_species->D  }); // set total diffusion
+  }
   
   gkyl_array_clear(rhs, 0.0);
 
   if (app->use_gpu) {
     gkyl_hyper_dg_advance_cu(fluid_species->advect_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
-    if (fluid_species->has_diffusion)
-      if (fluid_species->D_anisotropic)
+    if (fluid_species->has_diffusion) {
+      if (fluid_species->D_anisotropic) {
         gkyl_hyper_dg_gen_stencil_advance_cu(fluid_species->diff_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
-      else
+      }
+      else {
         gkyl_hyper_dg_advance_cu(fluid_species->diff_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
+      }
+    }
   } else {
     gkyl_hyper_dg_advance(fluid_species->advect_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
-    if (fluid_species->has_diffusion)
-      if (fluid_species->D_anisotropic)
+    if (fluid_species->has_diffusion) {
+      if (fluid_species->D_anisotropic) {
         gkyl_hyper_dg_gen_stencil_advance(fluid_species->diff_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
-      else
+      }
+      else {
         gkyl_hyper_dg_advance(fluid_species->diff_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
+      }
+    }
   }
 
   // accumulate nu*n*T - nu*fluid_species
