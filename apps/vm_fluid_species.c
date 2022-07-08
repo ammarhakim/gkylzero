@@ -43,8 +43,10 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   
   // allocate array to store diffusion tensor
   int szD = cdim;
-  if (f->info.diffusion.anisotropic) // allocate space for mix terms
+  if (f->info.diffusion.anisotropic) { // allocate space for mix terms {
+    f->diffusion_id = GKYL_ANISO_DIFFUSION;
     szD = cdim*(cdim+1)/2;
+  }
   f->D = mkarr(app->use_gpu, szD*app->confBasis.num_basis, app->local_ext.volume);
   f->D_host = f->D;
   if (app->use_gpu)
@@ -52,25 +54,15 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   
   // equation objects
   f->advect_eqn = gkyl_dg_advection_new(&app->confBasis, &app->local, app->use_gpu);
-  if (f->info.diffusion.anisotropic) {
-    f->D_anisotropic = true;
-    f->diff_eqn =  gkyl_dg_gen_diffusion_new(&app->confBasis, &app->local, app->use_gpu);
-  }
-  else {
-    f->diff_eqn = gkyl_dg_diffusion_new(&app->confBasis, &app->local, app->use_gpu);
-  }
 
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
 
   // fluid solvers
   f->advect_slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, f->advect_eqn,
     app->cdim, up_dirs, zero_flux_flags, 1, app->use_gpu);
-  if (f->info.diffusion.anisotropic)
-    f->diff_slvr = gkyl_hyper_dg_gen_stencil_new(&app->grid, &app->confBasis, f->diff_eqn,
-      app->cdim, up_dirs, app->use_gpu);
-  else
-    f->diff_slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, f->diff_eqn,
-      app->cdim, up_dirs, zero_flux_flags, 1, app->use_gpu);
+
+  f->diff_slvr = gkyl_dg_updater_diffusion_new(&app->grid, &app->confBasis, 
+    &app->local, f->diffusion_id, app->use_gpu);
 
   f->has_advect = false;
   f->advects_with_species = false;
@@ -217,40 +209,23 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
     vm_fluid_species_apply_bc(app, fluid_species, fluid_species->other_advect);    
     gkyl_array_accumulate(fluid_species->u, 1.0, fluid_species->other_advect);
   }
+
+  gkyl_array_clear(rhs, 0.0);
   
   gkyl_advection_set_auxfields(fluid_species->advect_eqn,
     (struct gkyl_dg_advection_auxfields) { .u = fluid_species->u  }); // set total advection
-  if (fluid_species->D_anisotropic) {
-    gkyl_gen_diffusion_set_auxfields(fluid_species->diff_eqn,
-      (struct gkyl_dg_gen_diffusion_auxfields) { .Dij = fluid_species->D  }); // set total diffusion
-  }
-  else {
-    gkyl_diffusion_set_auxfields(fluid_species->diff_eqn,
-      (struct gkyl_dg_diffusion_auxfields) { .D = fluid_species->D  }); // set total diffusion
-  }
-  
-  gkyl_array_clear(rhs, 0.0);
 
   if (app->use_gpu) {
     gkyl_hyper_dg_advance_cu(fluid_species->advect_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
-    if (fluid_species->has_diffusion) {
-      if (fluid_species->D_anisotropic) {
-        gkyl_hyper_dg_gen_stencil_advance_cu(fluid_species->diff_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
-      }
-      else {
-        gkyl_hyper_dg_advance_cu(fluid_species->diff_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
-      }
-    }
-  } else {
+
+    gkyl_dg_updater_diffusion_advance_cu(fluid_species->diff_slvr, fluid_species->diffusion_id,
+      &app->local, fluid_species->D, fluid, fluid_species->cflrate, rhs);
+  }
+  else {
     gkyl_hyper_dg_advance(fluid_species->advect_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
-    if (fluid_species->has_diffusion) {
-      if (fluid_species->D_anisotropic) {
-        gkyl_hyper_dg_gen_stencil_advance(fluid_species->diff_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
-      }
-      else {
-        gkyl_hyper_dg_advance(fluid_species->diff_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
-      }
-    }
+
+    gkyl_dg_updater_diffusion_advance(fluid_species->diff_slvr, fluid_species->diffusion_id,
+      &app->local, fluid_species->D, fluid, fluid_species->cflrate, rhs);
   }
 
   // accumulate nu*n*T - nu*fluid_species
@@ -375,8 +350,8 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
 
   gkyl_dg_eqn_release(f->advect_eqn);
   gkyl_hyper_dg_release(f->advect_slvr);
-  gkyl_dg_eqn_release(f->diff_eqn);
-  gkyl_hyper_dg_release(f->diff_slvr);
+
+  gkyl_dg_updater_diffusion_release(f->diff_slvr);
 
   gkyl_array_release(f->u);
   if (f->has_advect) {

@@ -14,9 +14,8 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
-#include <gkyl_dg_diffusion.h>
-#include <gkyl_dg_gen_diffusion.h>
 #include <gkyl_dg_maxwell.h>
+#include <gkyl_dg_updater_diffusion.h>
 #include <gkyl_dg_updater_lbo_vlasov.h>
 #include <gkyl_dg_updater_vlasov.h>
 #include <gkyl_dg_vlasov.h>
@@ -249,10 +248,9 @@ struct vm_fluid_species {
   struct gkyl_array *D; // array for diffusion tensor
   struct gkyl_array *D_host; // host copy of diffusion tensor
 
-  struct gkyl_dg_eqn *advect_eqn; // Fluid advection equation
-  struct gkyl_dg_eqn *diff_eqn; // Fluid diffusion equation  
+  struct gkyl_dg_eqn *advect_eqn; // Fluid advection equation 
   gkyl_hyper_dg *advect_slvr; // Fluid equation solver
-  gkyl_hyper_dg *diff_slvr; // Fluid equation solver
+  gkyl_dg_updater_diffusion *diff_slvr; // Fluid equation solver
 
   // boundary conditions on lower/upper edges in each direction  
   enum gkyl_fluid_species_bc_type lower_bc[3], upper_bc[3];
@@ -269,7 +267,7 @@ struct vm_fluid_species {
   struct vm_eval_advect_ctx advect_ctx; // context for applied advection
   
   bool has_diffusion; // flag to indicate there is applied diffusion
-  bool D_anisotropic; // flag to indicate diffusion tensor is anisotropic
+  enum gkyl_diffusion_id diffusion_id; // type of diffusion (e.g., isotropic vs. anisotropic)
   gkyl_proj_on_basis* diff_proj; // projector for diffusion
   struct vm_eval_diffusion_ctx diff_ctx; // context for applied diffusion
 
