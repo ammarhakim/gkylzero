@@ -30,9 +30,9 @@ D(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *c
 {
   struct sim_ctx *app = ctx;
   double x = xn[0], y = xn[1];
-  fout[0] = x + 2.0;
-  fout[1] = 0.0;
-  fout[2] = y + 2.0;
+  fout[0] = 1.0;
+  fout[1] = 1.0;
+  fout[2] = 1.0;
 }
 
 void
@@ -85,7 +85,7 @@ main(int argc, char **argv)
     .lower = { -2, -2 },
     .upper = { 2, 2 },
     .cells = { 32, 32 },
-    .poly_order = 1,
+    .poly_order = 2,
     .basis_type = app_args.basis_type,
 
     .num_periodic_dir = 2,
