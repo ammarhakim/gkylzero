@@ -29,12 +29,12 @@ D(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *c
 {
   struct sim_ctx *app = ctx;
   double x = xn[0], y = xn[1], z = xn[2];
-  fout[0] = 2.0;//x + 2.0;
+  fout[0] = 1.0;//x + 2.0;
   fout[1] = 1.0;
-  fout[2] = 0.0;
-  fout[3] = 2.0;//y + 2.0;
-  fout[4] = 0.0;
-  fout[5] = 2.0;//z + 2.0;
+  fout[2] = 1.0;
+  fout[3] = 1.0;//y + 2.0;
+  fout[4] = 1.0;
+  fout[5] = 1.0;//z + 2.0;
 }
 
 void
@@ -87,7 +87,7 @@ main(int argc, char **argv)
     .cdim = 3, .vdim = 0,
     .lower = { -2, -2, -2 },
     .upper = { 2, 2, 2 },
-    .cells = { 32, 32, 32 },
+    .cells = { 16, 16, 16 },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
