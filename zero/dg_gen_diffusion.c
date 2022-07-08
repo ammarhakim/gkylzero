@@ -77,11 +77,19 @@ gkyl_dg_gen_diffusion_new(const struct gkyl_basis* cbasis, const struct gkyl_ran
 
   gen_diffusion->vol = CK(vol_kernels, cdim, poly_order);
 
-  gen_diffusion->surf[0] = CK(surf_x_kernels, cdim, poly_order);
-  if (cdim>1)
-    gen_diffusion->surf[1] = CK(surf_y_kernels, cdim, poly_order);
-  if (cdim>2)
-    gen_diffusion->surf[2] = CK(surf_z_kernels, cdim, poly_order);
+  gen_diffusion->surf[0][0] = CK(surf_xx_kernels, cdim, poly_order);
+  if (cdim>1) {
+    gen_diffusion->surf[0][1] = CK(surf_xy_kernels, cdim, poly_order);
+    gen_diffusion->surf[1][0] = CK(surf_yx_kernels, cdim, poly_order);
+    gen_diffusion->surf[1][1] = CK(surf_yy_kernels, cdim, poly_order);
+  }
+  if (cdim>2) {
+    gen_diffusion->surf[0][2] = CK(surf_xz_kernels, cdim, poly_order);
+    gen_diffusion->surf[1][2] = CK(surf_yz_kernels, cdim, poly_order);
+    gen_diffusion->surf[2][0] = CK(surf_zx_kernels, cdim, poly_order);
+    gen_diffusion->surf[2][1] = CK(surf_zy_kernels, cdim, poly_order);
+    gen_diffusion->surf[2][2] = CK(surf_zz_kernels, cdim, poly_order);
+  }
 
   // ensure non-NULL pointers
   assert(gen_diffusion->vol);
