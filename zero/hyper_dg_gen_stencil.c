@@ -79,12 +79,15 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
 
     // Loop over surfaces and update using any/all neighbors needed
     // NOTE: ASSUMES UNIFORM GRIDS FOR NOW
-    for (int d=0; d<hdg->num_up_dirs; ++d) {
-      int dir = hdg->update_dirs[d];
-      hdg->equation->gen_surf_term(hdg->equation,
-        dir, xcc, hdg->grid.dx, idxc, fIn_d,
-        gkyl_array_fetch(rhs, linc)
-      );
+    for (int d1=0; d1<hdg->num_up_dirs; ++d1) {
+      for (int d2=0; d2<hdg->num_up_dirs; ++d2) {
+        int dir1 = hdg->update_dirs[d1];
+        int dir2 = hdg->update_dirs[d2];
+        hdg->equation->gen_surf_term(hdg->equation,
+          dir1, dir2, xcc, hdg->grid.dx, idxc, fIn_d,
+          gkyl_array_fetch(rhs, linc)
+        );
+      }
     }
   }
 }

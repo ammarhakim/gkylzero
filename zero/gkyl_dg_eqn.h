@@ -34,7 +34,7 @@ typedef void (*boundary_surf_termf_t)(const struct gkyl_dg_eqn *eqn,
 // Could be 9 (for a generic 2D stencil) or 27 (for a generic 3D stencil)
 // NOTE: ASSUMES UNIFORM GRIDS FOR NOW
 typedef void (*gen_termf_t)(const struct gkyl_dg_eqn *eqn, 
-  int dir,
+  int dir1, int dir2,
   const double* xc, const double* dx, const int* idx,
   const double* qIn[], double* GKYL_RESTRICT qRhsOut);
 
