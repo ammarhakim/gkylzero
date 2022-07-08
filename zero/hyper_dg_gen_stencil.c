@@ -11,11 +11,21 @@
 #include <gkyl_util.h>
 
 static void
-create_offsets(const struct gkyl_range *range, long offsets[])
+create_offsets(gkyl_hyper_dg *hdg, const struct gkyl_range *range, long offsets[])
 {
+  // Construct the offsets *only* in the directions being updated.
+  // No need to load the neighbors that are not needed for the update.
+  int lower_offset[GKYL_MAX_DIM] = {0};
+  int upper_offset[GKYL_MAX_DIM] = {0};
+  for (int d=0; d<hdg->num_up_dirs; ++d) {
+    int dir = hdg->update_dirs[d];
+    lower_offset[dir] = -1;
+    upper_offset[dir] = 1;
+  }  
+
   // box spanning stencil
   struct gkyl_range box3;
-  gkyl_range_init(&box3, range->ndim, (int[]) { -1, -1, -1 }, (int[]) { 1, 1, 1 });
+  gkyl_range_init(&box3, range->ndim, lower_offset, upper_offset);
   struct gkyl_range_iter iter3;
   gkyl_range_iter_init(&iter3, &box3);
   // construct list of offsets
@@ -31,7 +41,7 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
   int ndim = hdg->ndim;
   long sz[] = { 3, 9, 27 };
   long offsets[sz[ndim-1]];
-  create_offsets(update_range, offsets);
+  create_offsets(hdg, update_range, offsets);
 
   // idx, xc, and dx for volume update
   int idxc[GKYL_MAX_DIM];
