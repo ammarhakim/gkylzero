@@ -2,7 +2,7 @@
 
 GKYL_CU_DH double
 dg_gen_diffusion_vol_2x_ser_p2(const double* w, const double* dx,
-  const double* Dij, const double* q, double* GKYL_RESTRICT out) 
+  const double* Dij, const double* qIn, double* GKYL_RESTRICT out) 
 {
   // w[NDIM]: Cell-center coordinates
   // dxv[NDIM]: Cell spacing
@@ -17,6 +17,6 @@ dg_gen_diffusion_vol_2x_ser_p2(const double* w, const double* dx,
   const double* Dxx = &Dij[0];
   const double* Dxy = &Dij[8];
   const double* Dyy = &Dij[16];
-  
+
   return Jxx*Dxx[0] + Jxy*Dxy[0] + Jyy*Dyy[0];
 }

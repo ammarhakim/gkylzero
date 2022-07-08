@@ -24,7 +24,7 @@ GKYL_CU_D
 static const gkyl_dg_gen_diffusion_vol_kern_list ser_vol_kernels[] = {
   { NULL, NULL, NULL },
   { NULL, dg_gen_diffusion_vol_2x_ser_p1, dg_gen_diffusion_vol_2x_ser_p2 },
-  { NULL, NULL, NULL},
+  { NULL, dg_gen_diffusion_vol_3x_ser_p1, dg_gen_diffusion_vol_3x_ser_p2 },
 };
 
 // Surface kernel list: x-direction
@@ -32,7 +32,7 @@ GKYL_CU_D
 static const gkyl_dg_gen_diffusion_surf_kern_list ser_surf_x_kernels[] = {
   { NULL, NULL, NULL },
   { NULL, dg_gen_diffusion_surfx_2x_ser_p1, dg_gen_diffusion_surfx_2x_ser_p2 },
-  { NULL, NULL, NULL},
+  { NULL, dg_gen_diffusion_surfx_3x_ser_p1, dg_gen_diffusion_surfx_3x_ser_p2 },
 };
 
 // Surface kernel list: y-direction
@@ -40,7 +40,7 @@ GKYL_CU_D
 static const gkyl_dg_gen_diffusion_surf_kern_list ser_surf_y_kernels[] = {
   { NULL, NULL, NULL }, // no y-direction in 1D
   { NULL, dg_gen_diffusion_surfy_2x_ser_p1, dg_gen_diffusion_surfy_2x_ser_p2 },
-  { NULL, NULL, NULL },
+  { NULL, dg_gen_diffusion_surfy_3x_ser_p1, dg_gen_diffusion_surfy_3x_ser_p2 },
 };
 
 // Surface kernel list: z-direction
@@ -48,7 +48,7 @@ GKYL_CU_D
 static const gkyl_dg_gen_diffusion_surf_kern_list ser_surf_z_kernels[] = {
   { NULL, NULL, NULL }, // no z-direction in 1D
   { NULL, NULL, NULL }, // no z-direction in 2D
-  { NULL, NULL, NULL },
+  { NULL, dg_gen_diffusion_surfz_3x_ser_p1, dg_gen_diffusion_surfz_3x_ser_p2 },
 };
 
 struct dg_gen_diffusion {
