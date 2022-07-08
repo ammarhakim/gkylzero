@@ -54,16 +54,28 @@ gkyl_dg_gen_diffusion_new(const struct gkyl_basis* cbasis, const struct gkyl_ran
   int poly_order = cbasis->poly_order;
 
   const gkyl_dg_gen_diffusion_vol_kern_list* vol_kernels;
-  const gkyl_dg_gen_diffusion_surf_kern_list* surf_x_kernels;
-  const gkyl_dg_gen_diffusion_surf_kern_list* surf_y_kernels;
-  const gkyl_dg_gen_diffusion_surf_kern_list* surf_z_kernels; 
+  const gkyl_dg_gen_diffusion_surf_kern_list* surf_xx_kernels;
+  const gkyl_dg_gen_diffusion_surf_kern_list* surf_xy_kernels;
+  const gkyl_dg_gen_diffusion_surf_kern_list* surf_xz_kernels;
+  const gkyl_dg_gen_diffusion_surf_kern_list* surf_yx_kernels;
+  const gkyl_dg_gen_diffusion_surf_kern_list* surf_yy_kernels;
+  const gkyl_dg_gen_diffusion_surf_kern_list* surf_yz_kernels;
+  const gkyl_dg_gen_diffusion_surf_kern_list* surf_zx_kernels;
+  const gkyl_dg_gen_diffusion_surf_kern_list* surf_zy_kernels;
+  const gkyl_dg_gen_diffusion_surf_kern_list* surf_zz_kernels; 
 
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       vol_kernels = ser_vol_kernels;
-      surf_x_kernels = ser_surf_x_kernels;
-      surf_y_kernels = ser_surf_y_kernels;
-      surf_z_kernels = ser_surf_z_kernels;
+      surf_xx_kernels = ser_surf_xx_kernels;
+      surf_xy_kernels = ser_surf_xy_kernels;
+      surf_xz_kernels = ser_surf_xz_kernels;
+      surf_yx_kernels = ser_surf_yx_kernels;
+      surf_yy_kernels = ser_surf_yy_kernels;
+      surf_yz_kernels = ser_surf_yz_kernels;
+      surf_zx_kernels = ser_surf_zx_kernels;
+      surf_zy_kernels = ser_surf_zy_kernels;
+      surf_zz_kernels = ser_surf_zz_kernels;
       break;
 
     default:
