@@ -29,9 +29,9 @@ static struct { double (*ev[4])(int dir, const double *z, const double *f); } ev
 // Flip-sign functions: ev_list[ndim].ev[poly_order]
 static struct { void (*fs[4])(int dir, const double *f, double *fout); } fos_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0x basis functions
-  { NULL, flip_odd_sign_1x1v_hyb_p1 , flip_odd_sign_1x3v_hyb_p1 , flip_odd_sign_1x3v_hyb_p1 },
-  { NULL, flip_odd_sign_2x1v_hyb_p1 , flip_odd_sign_2x3v_hyb_p1 , flip_odd_sign_2x3v_hyb_p1 },
-  { NULL, flip_odd_sign_3x1v_hyb_p1 , flip_odd_sign_3x3v_hyb_p1 , flip_odd_sign_3x3v_hyb_p1 },
+  { NULL, flip_odd_sign_1x1v_hyb_p1 , flip_odd_sign_1x2v_hyb_p1 , flip_odd_sign_1x3v_hyb_p1 },
+  { NULL, flip_odd_sign_2x1v_hyb_p1 , flip_odd_sign_2x2v_hyb_p1 , flip_odd_sign_2x3v_hyb_p1 },
+  { NULL, flip_odd_sign_3x1v_hyb_p1 , flip_odd_sign_3x2v_hyb_p1 , flip_odd_sign_3x3v_hyb_p1 },
 };
 
 // Flip-sign functions: ev_list[ndim].ev[poly_order]
