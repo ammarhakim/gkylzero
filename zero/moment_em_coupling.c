@@ -74,7 +74,7 @@ pressure_tensor_rotate(double qbym, double dt, const double *em, const double *e
 // et. al. 2020 for details.
 static void
 em_source_update(const gkyl_moment_em_coupling *mes, double dt,
-  double *fluids[], const double *app_accels[],
+  double *fluids[GKYL_MAX_SPECIES], const double *app_accels[GKYL_MAX_SPECIES],
   double *em, const double *app_current, const double *ext_em)
 {
   // based on Smithe (2007) with corrections but using Hakim (2019) notations
@@ -295,19 +295,19 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
 
 void
 gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
-  struct gkyl_range update_range,
+  const struct gkyl_range *update_range,
   struct gkyl_array *fluid[GKYL_MAX_SPECIES], const struct gkyl_array *app_accel[GKYL_MAX_SPECIES],
   struct gkyl_array *em, const struct gkyl_array *app_current, const struct gkyl_array *ext_em)
 {
   int nfluids = mes->nfluids;
   double *fluids[GKYL_MAX_SPECIES];
   const double *app_accels[GKYL_MAX_SPECIES];
-  
+
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &update_range);
+  gkyl_range_iter_init(&iter, update_range);
   while (gkyl_range_iter_next(&iter)) {
     
-    long lidx = gkyl_range_idx(&update_range, iter.idx);
+    long lidx = gkyl_range_idx(update_range, iter.idx);
     
     for (int n=0; n<nfluids; ++n) {
       fluids[n] = gkyl_array_fetch(fluid[n], lidx);

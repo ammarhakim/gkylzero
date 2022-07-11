@@ -13,8 +13,8 @@ struct gkyl_update_status {
 enum gkyl_species_bc_type {
   GKYL_SPECIES_COPY = 0, // copy BCs
   GKYL_SPECIES_WALL, // perfect reflector
-  GKYL_SPECIES_NO_SLIP, // no-slip boundary conditions
   GKYL_SPECIES_ABSORB, // Absorbing BCs
+  GKYL_SPECIES_NO_SLIP, // no-slip boundary conditions
   GKYL_SPECIES_WEDGE, // specialized "wedge" BCs for RZ-theta
 };
 

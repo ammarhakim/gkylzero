@@ -150,7 +150,7 @@ gkyl_superlu_brhs_from_triples(gkyl_superlu_prob *prob, gkyl_mat_triples *tri)
 void
 gkyl_superlu_brhs_from_array(gkyl_superlu_prob *prob, const double *bin)
 {
-  for (size_t i=0; i<prob->ncol; i++) {
+  for (size_t i=0; i<prob->mrow*prob->nrhs; i++) {
     prob->rhs[i] = bin[i];
   }
   

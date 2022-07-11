@@ -41,6 +41,7 @@ fem_poisson_set_cu_l2gker_ptrs(struct gkyl_fem_poisson_kernels* kers, enum gkyl_
 
 }
 
+// CUDA kernel to set device pointers to RHS src and solution kernels.
 __global__ static void
 fem_poisson_set_cu_ker_ptrs(struct gkyl_fem_poisson_kernels* kers, enum gkyl_basis_type b_type,
   int dim, int poly_order, const int *bckey)
@@ -89,7 +90,7 @@ fem_poisson_set_cu_ker_ptrs(struct gkyl_fem_poisson_kernels* kers, enum gkyl_bas
 }
 
 void
-choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_poisson_bc bcs, const bool *isdirperiodic, struct gkyl_fem_poisson_kernels *kers)
+fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_poisson_bc bcs, const bool *isdirperiodic, struct gkyl_fem_poisson_kernels *kers)
 {
 
   int dim = basis->ndim;
@@ -128,8 +129,8 @@ gkyl_fem_poisson_set_rhs_kernel(double epsilon, const double *dx, double *rhs_gl
   for (int d=0; d<POISSON_MAX_DIM; d++) num_cells[d] = range.upper[d]-range.lower[d]+1;
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
-      linc1 < range.volume;
-      linc1 += gridDim.x*blockDim.x)
+       linc1 < range.volume;
+       linc1 += gridDim.x*blockDim.x)
   {
     // inverse index from linc1 to idx
     // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
@@ -165,8 +166,8 @@ gkyl_fem_poisson_get_sol_kernel(struct gkyl_array *x_local, const double *x_glob
   for (int d=0; d<POISSON_MAX_DIM; d++) num_cells[d] = range.upper[d]-range.lower[d]+1;
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
-      linc1 < range.volume;
-      linc1 += gridDim.x*blockDim.x)
+       linc1 < range.volume;
+       linc1 += gridDim.x*blockDim.x)
   {
     // inverse index from linc1 to idx
     // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}

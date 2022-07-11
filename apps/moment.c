@@ -318,11 +318,13 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
             &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
             mom_sp->equation->wall_bc_func, 0);
           break;
+
         case GKYL_SPECIES_NO_SLIP:
           sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
             mom_sp->equation->no_slip_bc_func, 0);
           break;
+
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_WEDGE: // wedge also uses bc_copy
           sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
@@ -341,11 +343,13 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
             &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
             mom_sp->equation->wall_bc_func, 0);
           break;
+
         case GKYL_SPECIES_NO_SLIP:
           sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
             mom_sp->equation->no_slip_bc_func, 0);
           break;
+
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_WEDGE:
           sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
@@ -709,7 +713,7 @@ moment_coupling_update(const gkyl_moment_app *app, struct moment_coupling *src,
   struct gkyl_array *fluids[GKYL_MAX_SPECIES];
   const struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
   const struct gkyl_array *rhs_const[GKYL_MAX_SPECIES];
-  
+
   for (int i=0; i<app->num_species; ++i) {
     fluids[i] = app->species[i].f[sidx[nstrang]];
     
@@ -724,7 +728,7 @@ moment_coupling_update(const gkyl_moment_app *app, struct moment_coupling *src,
   if (app->field.proj_ext_em)
     gkyl_fv_proj_advance(app->field.proj_ext_em, tcurr, &app->local, app->field.ext_em);
 
-  gkyl_moment_em_coupling_advance(src->slvr, dt, app->local,
+  gkyl_moment_em_coupling_advance(src->slvr, dt, &app->local,
     fluids, app_accels,
     app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em);
 

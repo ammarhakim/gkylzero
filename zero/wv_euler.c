@@ -31,7 +31,7 @@ euler_wall(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, v
   ghost[3] = skin[3];
 }
 
-// Euler no-slip reflecting wall
+// Euler no-slip wall
 static void
 euler_no_slip(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
 {
