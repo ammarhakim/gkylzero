@@ -1,6 +1,6 @@
 #include <gkyl_vlasov_kernels.h> 
-#include <gkyl_basis_ser_3x_p1_surfx2_eval_quad.h> 
-#include <gkyl_basis_ser_3x_p1_upwind_quad_to_modal.h> 
+#include <gkyl_basis_hyb_1x2v_p1_surfx2_eval_quad.h> 
+#include <gkyl_basis_hyb_1x2v_p1_upwind_quad_to_modal.h> 
 GKYL_CU_DH void vlasov_surfvx_1x2v_ser_p1(const double *w, const double *dxv, const double *qmem, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w:         Cell-center coordinates.
@@ -21,45 +21,59 @@ GKYL_CU_DH void vlasov_surfvx_1x2v_ser_p1(const double *w, const double *dxv, co
   alpha[2] = 0.408248290463863*B2[0]*dv2; 
   alpha[3] = 0.408248290463863*B2[1]*dv2; 
 
-  double fUpwindQuad_l[4] = {0.0};
-  double fUpwindQuad_r[4] = {0.0};
+  double fUpwindQuad_l[6] = {0.0};
+  double fUpwindQuad_r[6] = {0.0};
   double fUpwind_l[6] = {0.0};;
   double fUpwind_r[6] = {0.0};
   double Ghat_l[6] = {0.0}; 
   double Ghat_r[6] = {0.0}; 
 
-  if (alpha[3]-alpha[2]-alpha[1]+alpha[0] > 0) { 
-    fUpwindQuad_l[0] = ser_3x_p1_surfx2_eval_quad_node_0_r(fl); 
-    fUpwindQuad_r[0] = ser_3x_p1_surfx2_eval_quad_node_0_r(fc); 
+  if (22395528*alpha[3]-22395528*alpha[2]-16692641*alpha[1]+16692641*alpha[0] > 0) { 
+    fUpwindQuad_l[0] = hyb_1x2v_p1_surfx2_eval_quad_node_0_r(fl); 
+    fUpwindQuad_r[0] = hyb_1x2v_p1_surfx2_eval_quad_node_0_r(fc); 
   } else { 
-    fUpwindQuad_l[0] = ser_3x_p1_surfx2_eval_quad_node_0_l(fc); 
-    fUpwindQuad_r[0] = ser_3x_p1_surfx2_eval_quad_node_0_l(fr); 
+    fUpwindQuad_l[0] = hyb_1x2v_p1_surfx2_eval_quad_node_0_l(fc); 
+    fUpwindQuad_r[0] = hyb_1x2v_p1_surfx2_eval_quad_node_0_l(fr); 
   } 
-  if ((-alpha[3])+alpha[2]-alpha[1]+alpha[0] > 0) { 
-    fUpwindQuad_l[1] = ser_3x_p1_surfx2_eval_quad_node_1_r(fl); 
-    fUpwindQuad_r[1] = ser_3x_p1_surfx2_eval_quad_node_1_r(fc); 
+  if (16692641*alpha[0]-16692641*alpha[1] > 0) { 
+    fUpwindQuad_l[1] = hyb_1x2v_p1_surfx2_eval_quad_node_1_r(fl); 
+    fUpwindQuad_r[1] = hyb_1x2v_p1_surfx2_eval_quad_node_1_r(fc); 
   } else { 
-    fUpwindQuad_l[1] = ser_3x_p1_surfx2_eval_quad_node_1_l(fc); 
-    fUpwindQuad_r[1] = ser_3x_p1_surfx2_eval_quad_node_1_l(fr); 
+    fUpwindQuad_l[1] = hyb_1x2v_p1_surfx2_eval_quad_node_1_l(fc); 
+    fUpwindQuad_r[1] = hyb_1x2v_p1_surfx2_eval_quad_node_1_l(fr); 
   } 
-  if ((-alpha[3])-alpha[2]+alpha[1]+alpha[0] > 0) { 
-    fUpwindQuad_l[2] = ser_3x_p1_surfx2_eval_quad_node_2_r(fl); 
-    fUpwindQuad_r[2] = ser_3x_p1_surfx2_eval_quad_node_2_r(fc); 
+  if ((-22395528*alpha[3])+22395528*alpha[2]-16692641*alpha[1]+16692641*alpha[0] > 0) { 
+    fUpwindQuad_l[2] = hyb_1x2v_p1_surfx2_eval_quad_node_2_r(fl); 
+    fUpwindQuad_r[2] = hyb_1x2v_p1_surfx2_eval_quad_node_2_r(fc); 
   } else { 
-    fUpwindQuad_l[2] = ser_3x_p1_surfx2_eval_quad_node_2_l(fc); 
-    fUpwindQuad_r[2] = ser_3x_p1_surfx2_eval_quad_node_2_l(fr); 
+    fUpwindQuad_l[2] = hyb_1x2v_p1_surfx2_eval_quad_node_2_l(fc); 
+    fUpwindQuad_r[2] = hyb_1x2v_p1_surfx2_eval_quad_node_2_l(fr); 
   } 
-  if (alpha[3]+alpha[2]+alpha[1]+alpha[0] > 0) { 
-    fUpwindQuad_l[3] = ser_3x_p1_surfx2_eval_quad_node_3_r(fl); 
-    fUpwindQuad_r[3] = ser_3x_p1_surfx2_eval_quad_node_3_r(fc); 
+  if ((-22395528*alpha[3])-22395528*alpha[2]+16692641*alpha[1]+16692641*alpha[0] > 0) { 
+    fUpwindQuad_l[3] = hyb_1x2v_p1_surfx2_eval_quad_node_3_r(fl); 
+    fUpwindQuad_r[3] = hyb_1x2v_p1_surfx2_eval_quad_node_3_r(fc); 
   } else { 
-    fUpwindQuad_l[3] = ser_3x_p1_surfx2_eval_quad_node_3_l(fc); 
-    fUpwindQuad_r[3] = ser_3x_p1_surfx2_eval_quad_node_3_l(fr); 
+    fUpwindQuad_l[3] = hyb_1x2v_p1_surfx2_eval_quad_node_3_l(fc); 
+    fUpwindQuad_r[3] = hyb_1x2v_p1_surfx2_eval_quad_node_3_l(fr); 
+  } 
+  if (16692641*alpha[1]+16692641*alpha[0] > 0) { 
+    fUpwindQuad_l[4] = hyb_1x2v_p1_surfx2_eval_quad_node_4_r(fl); 
+    fUpwindQuad_r[4] = hyb_1x2v_p1_surfx2_eval_quad_node_4_r(fc); 
+  } else { 
+    fUpwindQuad_l[4] = hyb_1x2v_p1_surfx2_eval_quad_node_4_l(fc); 
+    fUpwindQuad_r[4] = hyb_1x2v_p1_surfx2_eval_quad_node_4_l(fr); 
+  } 
+  if (22395528*alpha[3]+22395528*alpha[2]+16692641*alpha[1]+16692641*alpha[0] > 0) { 
+    fUpwindQuad_l[5] = hyb_1x2v_p1_surfx2_eval_quad_node_5_r(fl); 
+    fUpwindQuad_r[5] = hyb_1x2v_p1_surfx2_eval_quad_node_5_r(fc); 
+  } else { 
+    fUpwindQuad_l[5] = hyb_1x2v_p1_surfx2_eval_quad_node_5_l(fc); 
+    fUpwindQuad_r[5] = hyb_1x2v_p1_surfx2_eval_quad_node_5_l(fr); 
   } 
 
   // Project tensor nodal quadrature basis back onto modal basis. 
-  ser_3x_p1_upwind_quad_to_modal(fUpwindQuad_l, fUpwind_l); 
-  ser_3x_p1_upwind_quad_to_modal(fUpwindQuad_r, fUpwind_r); 
+  hyb_1x2v_p1_vdir_upwind_quad_to_modal(fUpwindQuad_l, fUpwind_l); 
+  hyb_1x2v_p1_vdir_upwind_quad_to_modal(fUpwindQuad_r, fUpwind_r); 
 
   Ghat_l[0] = 0.5*(alpha[3]*fUpwind_l[3]+alpha[2]*fUpwind_l[2]+alpha[1]*fUpwind_l[1]+alpha[0]*fUpwind_l[0]); 
   Ghat_l[1] = 0.5*(alpha[2]*fUpwind_l[3]+fUpwind_l[2]*alpha[3]+alpha[0]*fUpwind_l[1]+fUpwind_l[0]*alpha[1]); 

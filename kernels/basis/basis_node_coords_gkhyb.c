@@ -1,7 +1,7 @@
-#include <gkyl_basis_gk_hyb_kernels.h>
+#include <gkyl_basis_gkhyb_kernels.h>
 GKYL_CU_DH
 void
-node_coords_1x1v_gk_hyb_p1(double *node_coords)
+node_coords_1x1v_gkhyb_p1(double *node_coords)
 {
   node_coords[0] = -1;
   node_coords[1] = -1;
@@ -19,7 +19,7 @@ node_coords_1x1v_gk_hyb_p1(double *node_coords)
 
 GKYL_CU_DH
 void
-node_coords_1x2v_gk_hyb_p1(double *node_coords)
+node_coords_1x2v_gkhyb_p1(double *node_coords)
 {
   node_coords[0] = -1;
   node_coords[1] = -1;
@@ -61,7 +61,7 @@ node_coords_1x2v_gk_hyb_p1(double *node_coords)
 
 GKYL_CU_DH
 void
-node_coords_2x2v_gk_hyb_p1(double *node_coords)
+node_coords_2x2v_gkhyb_p1(double *node_coords)
 {
   node_coords[0] = -1;
   node_coords[1] = -1;
@@ -163,7 +163,7 @@ node_coords_2x2v_gk_hyb_p1(double *node_coords)
 
 GKYL_CU_DH
 void
-node_coords_3x2v_gk_hyb_p1(double *node_coords)
+node_coords_3x2v_gkhyb_p1(double *node_coords)
 {
   node_coords[0] = -1;
   node_coords[1] = -1;

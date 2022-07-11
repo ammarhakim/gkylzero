@@ -4,7 +4,8 @@
 enum gkyl_basis_type {
   GKYL_BASIS_MODAL_SERENDIPITY,
   GKYL_BASIS_MODAL_TENSOR,
-  GKYL_BASIS_MODAL_GK_HYBRID,
+  GKYL_BASIS_MODAL_HYBRID,
+  GKYL_BASIS_MODAL_GKHYBRID,
 };
 
 /**
@@ -113,6 +114,18 @@ void gkyl_cart_modal_tensor_cu_dev(struct gkyl_basis *basis, int ndim,
   int poly_order);
 
 /**
+ * Create new hybrid basis. These are p=1 in configuration space
+ * and p=2 in velocity space.
+ *
+ * @param basis Basis object to initialize
+ * @param ndim Dimension of reference element.
+ * @param poly_order Polynomial order.
+ * @return Pointer to new basis function.
+ */
+void gkyl_cart_modal_hybrid(struct gkyl_basis *basis, int cdim, int vdim);
+void gkyl_cart_modal_hybrid_cu_dev(struct gkyl_basis *basis, int cdim, int vdim);
+
+/**
  * Create new hybrid basis for use in gyrokinetics p=1
  * simulations. These basis have the v_par^2 monomial and its tensor
  * product with other monomials included. 
@@ -122,5 +135,5 @@ void gkyl_cart_modal_tensor_cu_dev(struct gkyl_basis *basis, int ndim,
  * @param poly_order Polynomial order.
  * @return Pointer to new basis function.
  */
-void gkyl_cart_modal_gk_hybrid(struct gkyl_basis *basis, int ndim);
-void gkyl_cart_modal_gk_hybrid_cu_dev(struct gkyl_basis *basis, int ndim);
+void gkyl_cart_modal_gkhybrid(struct gkyl_basis *basis, int cdim, int vdim);
+void gkyl_cart_modal_gkhybrid_cu_dev(struct gkyl_basis *basis, int cdim, int vdim);

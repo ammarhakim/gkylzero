@@ -1,8 +1,8 @@
-// Fri Mar  4 08:38:08 2022
-#include <gkyl_basis_gk_hyb_kernels.h>
+// Thu Jul  7 14:00:20 2022
+#include <gkyl_basis_gkhyb_kernels.h>
 GKYL_CU_DH
 void
-flip_odd_sign_2d_gk_hyb_p1(int dir, const double *f, double *fout )
+flip_odd_sign_1x1v_gkhyb_p1(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -24,7 +24,7 @@ flip_odd_sign_2d_gk_hyb_p1(int dir, const double *f, double *fout )
 
 GKYL_CU_DH
 void
-flip_even_sign_2d_gk_hyb_p1(int dir, const double *f, double *fout )
+flip_even_sign_1x1v_gkhyb_p1(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = -1*f[0];
@@ -46,7 +46,7 @@ flip_even_sign_2d_gk_hyb_p1(int dir, const double *f, double *fout )
 
 GKYL_CU_DH
 void
-flip_odd_sign_3d_gk_hyb_p1(int dir, const double *f, double *fout )
+flip_odd_sign_1x2v_gkhyb_p1(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -94,7 +94,7 @@ flip_odd_sign_3d_gk_hyb_p1(int dir, const double *f, double *fout )
 
 GKYL_CU_DH
 void
-flip_even_sign_3d_gk_hyb_p1(int dir, const double *f, double *fout )
+flip_even_sign_1x2v_gkhyb_p1(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = -1*f[0];
@@ -142,7 +142,7 @@ flip_even_sign_3d_gk_hyb_p1(int dir, const double *f, double *fout )
 
 GKYL_CU_DH
 void
-flip_odd_sign_4d_gk_hyb_p1(int dir, const double *f, double *fout )
+flip_odd_sign_2x2v_gkhyb_p1(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -252,7 +252,7 @@ flip_odd_sign_4d_gk_hyb_p1(int dir, const double *f, double *fout )
 
 GKYL_CU_DH
 void
-flip_even_sign_4d_gk_hyb_p1(int dir, const double *f, double *fout )
+flip_even_sign_2x2v_gkhyb_p1(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = -1*f[0];
@@ -362,7 +362,7 @@ flip_even_sign_4d_gk_hyb_p1(int dir, const double *f, double *fout )
 
 GKYL_CU_DH
 void
-flip_odd_sign_5d_gk_hyb_p1(int dir, const double *f, double *fout )
+flip_odd_sign_3x2v_gkhyb_p1(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = 1*f[0];
@@ -618,7 +618,7 @@ flip_odd_sign_5d_gk_hyb_p1(int dir, const double *f, double *fout )
 
 GKYL_CU_DH
 void
-flip_even_sign_5d_gk_hyb_p1(int dir, const double *f, double *fout )
+flip_even_sign_3x2v_gkhyb_p1(int dir, const double *f, double *fout )
 {
   if (dir == 0) {
     fout[0] = -1*f[0];
