@@ -118,8 +118,8 @@ void gkyl_cart_modal_tensor_cu_dev(struct gkyl_basis *basis, int ndim,
  * and p=2 in velocity space.
  *
  * @param basis Basis object to initialize
- * @param ndim Dimension of reference element.
- * @param poly_order Polynomial order.
+ * @param cdim dimension of configuration space.
+ * @param vdim dimension of velocity space.
  * @return Pointer to new basis function.
  */
 void gkyl_cart_modal_hybrid(struct gkyl_basis *basis, int cdim, int vdim);
@@ -131,8 +131,8 @@ void gkyl_cart_modal_hybrid_cu_dev(struct gkyl_basis *basis, int cdim, int vdim)
  * product with other monomials included. 
  *
  * @param basis Basis object to initialize
- * @param ndim Dimension of reference element.
- * @param poly_order Polynomial order.
+ * @param cdim dimension of configuration space.
+ * @param vdim dimension of velocity space.
  * @return Pointer to new basis function.
  */
 void gkyl_cart_modal_gkhybrid(struct gkyl_basis *basis, int cdim, int vdim);
