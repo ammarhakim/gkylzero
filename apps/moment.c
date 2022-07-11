@@ -406,6 +406,7 @@ kep_rk3(const gkyl_moment_app *app, const struct moment_species *sp, double tcur
 
         stat = gkyl_kep_scheme_advance(sp->kep_slvr, dt, &app->local, fin, sp->cflrate, fout);
         dt_suggested = fmin(dt_suggested, stat.dt_suggested);
+        gkyl_array_accumulate_range(gkyl_array_scale_range(fout, dt_suggested, app->local), 1.0, fin, app->local);
         moment_species_apply_bc(app, tcurr, sp, fout);
 
         state = RK_STAGE_2;
@@ -419,6 +420,7 @@ kep_rk3(const gkyl_moment_app *app, const struct moment_species *sp, double tcur
 
         stat = gkyl_kep_scheme_advance(sp->kep_slvr, dt, &app->local, fin, sp->cflrate, fout);
         dt_suggested = fmin(dt_suggested, stat.dt_suggested);
+        gkyl_array_accumulate_range(gkyl_array_scale_range(fout, dt_suggested, app->local), 1.0, fin, app->local);
         moment_species_apply_bc(app, tcurr+dt, sp, fout);
 
         array_combine(sp->f[1], 3.0/4.0, sp->f[0], 1.0/4.0, sp->f[2], app->local_ext);
@@ -435,6 +437,7 @@ kep_rk3(const gkyl_moment_app *app, const struct moment_species *sp, double tcur
 
         stat = gkyl_kep_scheme_advance(sp->kep_slvr, dt, &app->local, fin, sp->cflrate, fout);
         dt_suggested = fmin(dt_suggested, stat.dt_suggested);
+        gkyl_array_accumulate_range(gkyl_array_scale_range(fout, dt_suggested, app->local), 1.0, fin, app->local);
         moment_species_apply_bc(app, tcurr+dt/2, sp, fout);
 
         array_combine(sp->f[1], 1.0/3.0, sp->f[0], 2.0/3.0, sp->f[2], app->local_ext);
