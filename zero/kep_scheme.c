@@ -1,8 +1,12 @@
+#include <float.h>
+#include <math.h>
+
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_kep_scheme.h>
 #include <gkyl_moment_prim_euler.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_util.h>
 
 static const int dir_shuffle[][3] = {
   {1, 2, 3},
@@ -16,6 +20,7 @@ struct gkyl_kep_scheme {
   int num_up_dirs; // number of update directions
   int update_dirs[GKYL_MAX_DIM]; // directions to update
   const struct gkyl_wv_eqn *equation; // equation object
+  double cfl; // cfl number
 };
 
 gkyl_kep_scheme*
@@ -33,6 +38,7 @@ gkyl_kep_scheme_new(struct gkyl_kep_scheme_inp inp)
 
   up->equation = gkyl_wv_eqn_acquire(inp.equation);
 
+  up->cfl = inp.cfl;
   return up;
 }
 
@@ -75,12 +81,14 @@ mkep_flux(int dir, double gas_gamma, const double vm[5], const double vp[5], dou
 #undef PR  
 }
 
-void
-gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range *update_rng,
+struct gkyl_wave_prop_status
+gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, double dt, const struct gkyl_range *update_rng,
   const struct gkyl_array *qin, struct gkyl_array *cflrate, struct gkyl_array *rhs)
 {
   int ndim = update_rng->ndim;
   double gas_gamma = gkyl_wv_euler_gas_gamma(kep->equation);
+
+  double cfla = 0.0, cfl = kep->cfl, cflm = 1.1*cfl;
 
   int idxm[GKYL_MAX_DIM], idxp[GKYL_MAX_DIM];
 
@@ -133,6 +141,17 @@ gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range *upd
       }
     }
   }
+  // compute allowable time-step from this update, but suggest only
+  // bigger time-step; (Only way dt can reduce is if the update
+  // fails. If the code comes here the update suceeded and so we
+  // should not allow dt to reduce).
+  gkyl_array_reduce_range(&cfla, cflrate, GKYL_MAX, *update_rng);
+  double dt_suggested = dt*cfl/fmax(cfla, DBL_MIN);
+
+  return (struct gkyl_wave_prop_status) {
+    .success = 1,
+    .dt_suggested = dt_suggested > dt ? dt_suggested : dt
+  };
 }
 
 void

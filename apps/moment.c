@@ -9,6 +9,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_fv_proj.h>
+#include <gkyl_kep_scheme.h>
 #include <gkyl_moment.h>
 #include <gkyl_moment_em_coupling.h>
 #include <gkyl_range.h>
@@ -45,6 +46,7 @@ struct moment_species {
   void (*init)(double t, const double *xn, double *fout, void *ctx);
     
   struct gkyl_array *fdup, *f[4]; // arrays for updates
+  struct gkyl_array *cflrate; // cflrate in each cell used by KEP scheme
   struct gkyl_array *app_accel; // array for applied acceleration/forces
   // pointer to projection operator for applied acceleration/forces function
   gkyl_fv_proj *proj_app_accel;
@@ -52,6 +54,9 @@ struct moment_species {
 
   enum gkyl_eqn_type eqn_type; // type ID of equation
   int num_equations; // number of equations in species
+
+  enum gkyl_moment_fluid_scheme mom_fluid_scheme; // particular scheme to be employed (KEP vs. wave propagation)
+  gkyl_kep_scheme *kep_slvr; // kep slvr
   gkyl_wave_prop *slvr[3]; // solver in each direction
 
   // boundary condition type
@@ -139,6 +144,16 @@ mkarr(long nc, long size)
   return a;
 }
 
+// Compute out = c1*arr1 + c2*arr2
+static inline struct gkyl_array*
+array_combine(struct gkyl_array *out, double c1, const struct gkyl_array *arr1,
+  double c2, const struct gkyl_array *arr2, const struct gkyl_range rng)
+{
+  return gkyl_array_accumulate_range(gkyl_array_set_range(out, c1, arr1, rng),
+    c2, arr2, rng);
+}
+
+
 // function for copy BC
 static void
 bc_copy(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
@@ -211,7 +226,17 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     mom_sp->limiter == 0 ? GKYL_MONOTONIZED_CENTERED : mom_sp->limiter;
 
   int ndim = mom->ndim;
-  // create updaters for each directional update
+
+  // create kep updater
+  sp->kep_slvr = gkyl_kep_scheme_new ( (struct gkyl_kep_scheme_inp) {
+      .grid = &app->grid,
+      .equation = mom_sp->equation,
+      .num_up_dirs = ndim,
+      .update_dirs = {0, 1, 2},
+      .cfl = app->cfl,
+    }
+  );
+  // create wave propagation updaters for each directional update
   for (int d=0; d<ndim; ++d)
     sp->slvr[d] = gkyl_wave_prop_new( (struct gkyl_wave_prop_inp) {
         .grid = &app->grid,
@@ -223,6 +248,9 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         .geom = app->geom,
       }
     );
+
+  // which scheme are we using (KEP vs. wave propagation)
+  sp->mom_fluid_scheme = app->fluid_scheme;
 
   // determine which directions are not periodic
   int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
@@ -302,6 +330,8 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   for (int d=0; d<ndim+1; ++d)
     sp->f[d] = mkarr(meqn, app->local_ext.volume);
 
+  sp->cflrate = mkarr(1, app->local_ext.volume);
+
   // allocate array for applied acceleration/forces for each species
   sp->app_accel = mkarr(3, app->local_ext.volume);
   sp->proj_app_accel = 0;
@@ -353,6 +383,75 @@ moment_species_max_dt(const gkyl_moment_app *app, const struct moment_species *s
   return max_dt;
 }
 
+static struct gkyl_wave_prop_status
+kep_rk3(const gkyl_moment_app *app, const struct moment_species *sp, double tcurr, double dt)
+{
+  int ndim = sp->ndim;
+  double dt_suggested = DBL_MAX;
+  struct gkyl_wave_prop_status stat;
+
+  const struct gkyl_array *fin;
+  struct gkyl_array *fout;
+
+  // time-stepper state
+  enum { RK_STAGE_1, RK_STAGE_2, RK_STAGE_3, RK_COMPLETE } state = RK_STAGE_1;
+
+  while (state != RK_COMPLETE) {
+    switch (state) {
+      case RK_STAGE_1:
+        fin = sp->f[0];
+        fout = sp->f[1];
+
+        gkyl_array_clear(sp->cflrate, 0.0);
+
+        stat = gkyl_kep_scheme_advance(sp->kep_slvr, dt, &app->local, fin, sp->cflrate, fout);
+        dt_suggested = fmin(dt_suggested, stat.dt_suggested);
+        moment_species_apply_bc(app, tcurr, sp, fout);
+
+        state = RK_STAGE_2;
+        break;
+
+      case RK_STAGE_2:
+        fin = sp->f[1];
+        fout = sp->f[2];
+
+        gkyl_array_clear(sp->cflrate, 0.0);
+
+        stat = gkyl_kep_scheme_advance(sp->kep_slvr, dt, &app->local, fin, sp->cflrate, fout);
+        dt_suggested = fmin(dt_suggested, stat.dt_suggested);
+        moment_species_apply_bc(app, tcurr+dt, sp, fout);
+
+        array_combine(sp->f[1], 3.0/4.0, sp->f[0], 1.0/4.0, sp->f[2], app->local_ext);
+
+        state = RK_STAGE_3;
+
+        break;
+
+      case RK_STAGE_3:
+        fin = sp->f[1];
+        fout = sp->f[2];
+
+        gkyl_array_clear(sp->cflrate, 0.0);
+
+        stat = gkyl_kep_scheme_advance(sp->kep_slvr, dt, &app->local, fin, sp->cflrate, fout);
+        dt_suggested = fmin(dt_suggested, stat.dt_suggested);
+        moment_species_apply_bc(app, tcurr+dt/2, sp, fout);
+
+        array_combine(sp->f[1], 1.0/3.0, sp->f[0], 2.0/3.0, sp->f[2], app->local_ext);
+        gkyl_array_copy_range(sp->f[ndim], sp->f[1], app->local_ext);
+
+        state = RK_COMPLETE;
+
+        break;
+
+      case RK_COMPLETE: // can't happen: suppresses warning
+        break;
+    }
+  }
+  
+  return stat;
+}
+
 // update solution: initial solution is in sp->f[0] and updated
 // solution in sp->f[ndim]
 static struct gkyl_update_status
@@ -362,20 +461,24 @@ moment_species_update(const gkyl_moment_app *app,
   int ndim = sp->ndim;
   double dt_suggested = DBL_MAX;
   struct gkyl_wave_prop_status stat;
-
-  for (int d=0; d<ndim; ++d) {
-    stat = gkyl_wave_prop_advance(sp->slvr[d], tcurr, dt, &app->local, sp->f[d], sp->f[d+1]);
-
-    if (!stat.success)
-      return (struct gkyl_update_status) {
-        .success = false,
-        .dt_suggested = stat.dt_suggested
-      };
-    
-    dt_suggested = fmin(dt_suggested, stat.dt_suggested);
-    moment_species_apply_bc(app, tcurr, sp, sp->f[d+1]);
+  
+  if(sp->mom_fluid_scheme == GKYL_MOMENT_FLUID_KEP) {
+    stat = kep_rk3(app, sp, tcurr, dt);
   }
+  else {
+    for (int d=0; d<ndim; ++d) {
+      stat = gkyl_wave_prop_advance(sp->slvr[d], tcurr, dt, &app->local, sp->f[d], sp->f[d+1]);
 
+      if (!stat.success)
+        return (struct gkyl_update_status) {
+          .success = false,
+          .dt_suggested = stat.dt_suggested
+        };
+      
+      dt_suggested = fmin(dt_suggested, stat.dt_suggested);
+      moment_species_apply_bc(app, tcurr, sp, sp->f[d+1]);
+    }
+  }
   return (struct gkyl_update_status) {
     .success = true,
     .dt_suggested = dt_suggested
@@ -386,6 +489,8 @@ moment_species_update(const gkyl_moment_app *app,
 static void
 moment_species_release(const struct moment_species *sp)
 {
+  gkyl_kep_scheme_release(sp->kep_slvr);
+
   for (int d=0; d<sp->ndim; ++d)
     gkyl_wave_prop_release(sp->slvr[d]);
 
@@ -399,6 +504,8 @@ moment_species_release(const struct moment_species *sp)
   gkyl_array_release(sp->fdup);
   for (int d=0; d<sp->ndim+1; ++d)
     gkyl_array_release(sp->f[d]);
+
+  gkyl_array_release(sp->cflrate);
 
   gkyl_array_release(sp->app_accel);
   if (sp->proj_app_accel)
