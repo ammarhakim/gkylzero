@@ -42,8 +42,10 @@ struct gkyl_vlasov_collisions {
 
 // Parameters for species source
 struct gkyl_vlasov_source {
-  enum gkyl_source_id source_id; // type of source (see gkyl_eqn_type.h)
+  enum gkyl_source_id source_id; // type of source
 
+  double source_length; // required for boundary flux source
+  
   void *ctx; // context for source function
   // function for computing source profile
   void (*profile)(double t, const double *xn, double *aout, void *ctx);
@@ -85,7 +87,7 @@ struct gkyl_vlasov_species {
   // collisions to include
   struct gkyl_vlasov_collisions collisions;
 
-  // collisions to include
+  // source to include
   struct gkyl_vlasov_source source;
 
   // mirror force to include

@@ -30,6 +30,20 @@ evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
 }
 
 void
+evalDistFuncElcSource(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct sheath_ctx *app = ctx;
+  double x = xn[0], v = xn[1];
+  double vt = app->vte;
+  double fv = 1.0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
+  if(fabs(x) < 100) {
+    fout[0] = (100 - fabs(x))/100*fv;
+  } else {
+    fout[0] = 0.0;
+  }
+}
+
+void
 evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
@@ -37,6 +51,20 @@ evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   double vt = app->vti;
   double fv = 1.0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
   fout[0] = fv;
+}
+
+void
+evalDistFuncIonSource(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct sheath_ctx *app = ctx;
+  double x = xn[0], v = xn[1];
+  double vt = app->vti;
+  double fv = 1.0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
+  if(fabs(x) < 100.0) {
+    fout[0] = (100.0 - fabs(x))/100.0*fv;
+  } else {
+    fout[0] = 0.0;
+  }
 }
 
 void
@@ -92,7 +120,8 @@ main(int argc, char **argv)
 
     .source = {
       .source_id = GKYL_BFLUX_SOURCE,
-      .profile = evalDistFuncElc,
+      .source_length = 100.0,
+      .profile = evalDistFuncElcSource,
       .ctx = &ctx,
     },
     
@@ -115,7 +144,8 @@ main(int argc, char **argv)
 
     .source = {
       .source_id = GKYL_BFLUX_SOURCE,
-      .profile = evalDistFuncIon,
+      .source_length = 100.0,
+      .profile = evalDistFuncIonSource,
       .ctx = &ctx,
     },
     
@@ -168,12 +198,14 @@ main(int argc, char **argv)
   
   gkyl_vlasov_app_write(app, tcurr, 0);
   gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 0);
+  gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
     printf("Taking time-step at t = %g ...", tcurr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
+    gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
     
     if (!status.success) {
       printf("** Update method failed! Aborting simulation ....\n");
@@ -187,6 +219,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app_write(app, tcurr, 1);
   gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1);
   gkyl_vlasov_app_stat_write(app);
+  gkyl_vlasov_app_write_integrated_mom(app);
 
   // fetch simulation statistics
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);

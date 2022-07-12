@@ -112,26 +112,28 @@ struct vm_bgk_collisions {
 };
 
 struct vm_boundary_fluxes {
-  struct vm_species_moment moms[2*GKYL_MAX_CDIM];
+  struct vm_species_moment moms[2*GKYL_MAX_CDIM]; // moments
   struct vm_species_moment m0[2*GKYL_MAX_CDIM];
-  struct vm_species_moment m1i[2*GKYL_MAX_CDIM];// moments
+  struct vm_species_moment m1i[2*GKYL_MAX_CDIM];
   struct vm_species_moment integ_moms[2*GKYL_MAX_CDIM]; // integrated moments
-  
+
+  struct gkyl_range ghost_rng[GKYL_MAX_CDIM]; // ranges of the flux arrays
   gkyl_ghost_surf_calc *flux_slvr; // boundary flux solver
 
   struct gkyl_array *ghost_buffer; // buffer for BCs (used for both copy and periodic)
   
-  struct gkyl_array *bf[2*GKYL_MAX_CDIM], *bf1[2*GKYL_MAX_CDIM], *bfnew[2*GKYL_MAX_CDIM]; // arrays for updates
+  struct gkyl_array *bf[2*GKYL_MAX_CDIM]; // arrays for updates
 };
 
 struct vm_source {
-  struct vm_species_moment moms;
+  struct vm_species_moment moms; // source moments
 
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *source_proj; // projector for source
 
-  double scale_factor;
+  double scale_factor; // factor to scale source function
+  double source_length; // length used to scale the source function
 };
 
 
@@ -189,11 +191,11 @@ struct vm_species {
   gkyl_proj_on_basis *accel_proj; // projector for acceleration
   struct vm_eval_accel_ctx accel_ctx; // context for applied acceleration
 
-  enum gkyl_source_id source_id;
+  enum gkyl_source_id source_id; // type of source
   struct vm_source src; // applied source
   
-  bool boundary_fluxes; // flag to indicate if boundary fluxes should be calculated
-  struct vm_boundary_fluxes bflux;
+  bool calc_bflux; // flag to indicate if boundary fluxes should be calculated
+  struct vm_boundary_fluxes bflux; // boundary flux object
 
   bool has_mirror_force; // flag to indicate Vlasov includes mirror force from external magnetic field
   struct gkyl_array *gradB; // gradient of magnetic field
@@ -344,10 +346,6 @@ struct gkyl_vlasov_app {
   // species data
   int num_species;
   struct vm_species *species; // data for each species
-
-  // boundary flux data
-  int num_bflux_species;
-  struct vm_species *bflux_species[GKYL_MAX_SPECIES]; // data for each species
   
   // fluid data
   int num_fluid_species;
@@ -531,25 +529,30 @@ void vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_l
  *
  * @param app Vlasov app object
  * @param s Species object 
- * @param lbo Species LBO object
- * @param collides_with_fluid Boolean for if kinetic species collides with a fluid species
+ * @param bflux Species boundary flux object
  */
 void vm_species_bflux_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   struct vm_boundary_fluxes *bflux);
 
 /**
- * Compute RHS from boundary fluxes
+ * Compute boundary flux from rhs
  *
  * @param app Vlasov app object
  * @param species Pointer to species
- * @param lbo Pointer to LBO
+ * @param bflux Species boundary flux object
  * @param fin Input distribution function
  * @param rhs On output, the RHS from LBO
- * @return Maximum stable time-step
  */
-double vm_species_bflux_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
-  struct vm_boundary_fluxes *bflux, const struct gkyl_array *fin, struct gkyl_array *rhs,
-  struct gkyl_array *bfluxin[], struct gkyl_array *bfluxout[], int species_idx);
+void vm_species_bflux_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
+  struct vm_boundary_fluxes *bflux, const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Release species boundary flux object.
+ *
+ * @param app Vlasov app object
+ * @param bflux Species boundary flux object to release
+ */
+void vm_species_bflux_release(const struct gkyl_vlasov_app *app, const struct vm_boundary_fluxes *bflux);
 
 /** vm_species_source API */
 
@@ -558,29 +561,27 @@ double vm_species_bflux_rhs(gkyl_vlasov_app *app, const struct vm_species *speci
  *
  * @param app Vlasov app object
  * @param s Species object 
- * @param lbo Species LBO object
- * @param collides_with_fluid Boolean for if kinetic species collides with a fluid species
+ * @param src Species source object
  */
 void vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_source *src);
 
 /**
- * Compute RHS from boundary fluxes
+ * Compute RHS contribution from source
  *
  * @param app Vlasov app object
  * @param species Pointer to species
- * @param lbo Pointer to LBO
+ * @param src Pointer to source
  * @param fin Input distribution function
  * @param rhs On output, the RHS from LBO
- * @return Maximum stable time-step
  */
-double vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
+void vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   struct vm_source *src, const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
- * Release species LBO object.
+ * Release species source object.
  *
  * @param app Vlasov app object
- * @param sm Species LBO object to release
+ * @param src Species source object to release
  */
 void vm_species_source_release(const struct gkyl_vlasov_app *app, const struct vm_source *src);
 

@@ -229,7 +229,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     vm_species_lbo_init(app, s, &s->lbo, s->collides_with_fluid);
   }
 
-  if (s->boundary_fluxes)
+  // initialize boundary flux object
+  if (s->calc_bflux)
     vm_species_bflux_init(app, s, &s->bflux);
 
   // setup mirror force from fluid species if present
@@ -431,6 +432,9 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
 
   if (species->source_id)
     vm_species_source_rhs(app, species, &species->src, fin, rhs);
+
+  if (species->calc_bflux)
+    vm_species_bflux_rhs(app, species, &species->bflux, fin, rhs);
   
   app->stat.nspecies_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
@@ -669,6 +673,9 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
 
   if (s->collision_id == GKYL_LBO_COLLISIONS)
     vm_species_lbo_release(app, &s->lbo);
+
+  if (s->calc_bflux)
+    vm_species_bflux_release(app, &s->bflux);
 
   for (int d=0; d<3; ++d) {
     if (s->field_id == GKYL_FIELD_SR_E_B) {

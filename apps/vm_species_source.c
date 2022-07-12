@@ -6,7 +6,9 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct
 {
   // ensure that boundary fluxes will be calculated if needed for source
   if (s->source_id == GKYL_BFLUX_SOURCE) {
-    s->boundary_fluxes = true;
+    s->calc_bflux = true;
+    assert(s->info.source.source_length);
+    src->source_length = s->info.source.source_length;
   }
   
   // we need to ensure source has same shape as distribution function
@@ -30,21 +32,22 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct
 }
 
 // computes rhs of the boundary flux
-double
+void
 vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   struct vm_source *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
-  // GKYL_BFLUX_SOURCE currently assumes 1X
+  // use boundary fluxes to scale source profile
   if (species->source_id == GKYL_BFLUX_SOURCE) {
     src->scale_factor = 0;
     double z[app->confBasis.num_basis];
     
-    for (int i=0; i<app->cdim; ++i) {
-      z[0] = -1.0;
-      src->scale_factor += app->confBasis.eval_expand(z, species->bflux.m1i[2*i].marr);
+    for (int d=0; d<app->cdim; ++d) {
       z[0] = 1.0;
-      src->scale_factor += app->confBasis.eval_expand(z, species->bflux.m1i[2*i+1].marr);
+      src->scale_factor += -app->confBasis.eval_expand(z, gkyl_array_fetch(species->bflux.m1i[2*d].marr, species->local_ext.lower[d]));
+      z[0] = -1.0;
+      src->scale_factor += app->confBasis.eval_expand(z, gkyl_array_fetch(species->bflux.m1i[2*d+1].marr, species->local_ext.upper[d]));
     }
+    src->scale_factor = src->scale_factor/src->source_length;
   }
   gkyl_array_accumulate(rhs, src->scale_factor, src->source);
   return 0;
