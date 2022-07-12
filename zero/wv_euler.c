@@ -31,6 +31,20 @@ euler_wall(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, v
   ghost[3] = skin[3];
 }
 
+// Euler no-slip wall
+static void
+euler_no_slip(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+{
+  // copy density and pressure
+  ghost[0] = skin[0];
+  ghost[4] = skin[4];
+
+  // zero-normal for momentum
+  ghost[1] = -skin[1];
+  ghost[2] = -skin[2];
+  ghost[3] = -skin[3];
+}
+
 static inline void
 rot_to_local(const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
@@ -158,6 +172,7 @@ gkyl_wv_euler_new(double gas_gamma)
   euler->eqn.rotate_to_global_func = rot_to_global;
 
   euler->eqn.wall_bc_func = euler_wall;
+  euler->eqn.no_slip_bc_func = euler_no_slip;
 
   euler->eqn.ref_count = gkyl_ref_count_init(euler_free);
 
