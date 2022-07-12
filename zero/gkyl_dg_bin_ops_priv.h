@@ -61,14 +61,14 @@ static const cross_mul_op_kern_list ser_cross_mul_list[] = {
              { NULL, NULL, NULL, NULL },} },
   // pdim=4
   { .list = {{ NULL, NULL, NULL, NULL }, // No 0D basis functions
-             { binop_cross_mul_1d_4d_ser_p0, binop_cross_mul_1d_4d_ser_p1, binop_cross_mul_1d_4d_ser_p2, NULL },
+             { binop_cross_mul_1d_4d_ser_p0, binop_cross_mul_1d_4d_ser_p1, binop_cross_mul_1d_4d_ser_p2, binop_cross_mul_1d_4d_ser_p3 },
              { binop_cross_mul_2d_4d_ser_p0, binop_cross_mul_2d_4d_ser_p1, binop_cross_mul_2d_4d_ser_p2, NULL },
              { NULL, NULL, NULL, NULL },} },
   // pdim=5
   { .list = {{ NULL, NULL, NULL, NULL }, // No 0D basis functions
              { NULL, NULL, NULL, NULL },
              { binop_cross_mul_2d_5d_ser_p0, binop_cross_mul_2d_5d_ser_p1, binop_cross_mul_2d_5d_ser_p2, NULL },
-             { NULL, NULL, NULL, NULL },} },
+             { binop_cross_mul_3d_5d_ser_p0, binop_cross_mul_3d_5d_ser_p1, binop_cross_mul_3d_5d_ser_p2, NULL },} },
   // pdim=6
   { .list = {{ NULL, NULL, NULL, NULL }, // No 0D basis functions
              { NULL, NULL, NULL, NULL },
