@@ -2,6 +2,7 @@
 
 #include <gkyl_app.h>
 #include <gkyl_util.h>
+#include <gkyl_moment_braginskii.h>
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_eqn.h>
 
@@ -12,6 +13,7 @@ struct gkyl_moment_species {
   char name[128]; // species name
   double charge, mass; // charge and mass
   enum gkyl_wave_limiter limiter; // limiter to use
+  enum gkyl_braginskii_type type_brag; // which Braginskii equations
   const struct gkyl_wv_eqn *equation; // equation object
 
   int evolve; // evolve species? 1-yes, 0-no
@@ -78,6 +80,8 @@ struct gkyl_moment {
   int num_species; // number of species
   struct gkyl_moment_species species[GKYL_MAX_SPECIES]; // species objects
   struct gkyl_moment_field field; // field object
+
+  double coll_fac; // multiplicative collisionality factor for Braginskii
 };
 
 // Simulation statistics

@@ -32,14 +32,17 @@ gkyl_kep_scheme* gkyl_kep_scheme_new(struct gkyl_kep_scheme_inp inp);
  * gkyl_sub_range_init method.
  *
  * @param kep KEP scheme updater object.
- * @param update_rng Range on which to compute.
- * @param fIn Input to updater
+ * @param update_range Range on which to compute.
+ * @param non_ideal_range Range non-ideal variables are defined on
+ * @param qin Input to updater
+ * @param non_ideal_vars Input non-ideal variables (Pi, and q + Pi . v)
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
 struct gkyl_wave_prop_status gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, double dt,
-  const struct gkyl_range *update_rng,
-  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs);
+  const struct gkyl_range *update_range, const struct gkyl_range *non_ideal_range,
+  const struct gkyl_array *qin, const struct gkyl_array *non_ideal_vars, 
+  struct gkyl_array *cflrate, struct gkyl_array *rhs);
 
 /**
  * Delete updater.
