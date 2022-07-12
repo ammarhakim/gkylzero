@@ -8,36 +8,67 @@
 #include <gkyl_wv_euler.h>
 #include <rt_arg_parse.h>
 
+struct ot_5m_ctx {
+  double epsilon0;
+  double mu0;
+  double n; // initial number density
+
+  double chargeElc; // electron charge
+  double massElc; // electron mass
+  double chargeIon; // ion charge
+  double massIon; // ion mass
+
+  double vte; // electron thermal velocity
+  double vti; // ion thermal velocity
+  double beta; // plasma beta
+  double B0; // reference magnetic field
+  double vA; // Alfven speed
+  double omegaCe; // electron cyclotron frequency
+  double omegaCi; // ion cyclotron frequency
+  double larmor_e; // electron gyroradius
+  double larmor_i; // ion gyroradius
+  double L; // size of the box
+
+  double lambdaD;
+  double wpe;
+  double Lambda;
+
+  double taue; // electron-electron collision time
+  double taui; // ion-ion collision time
+};
+
 void
 evalElcInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
-  double pi = 3.141592653589793238462643383279502884;
-  double eps0 = 1.;
-  double mu0 = 1;
+  struct ot_5m_ctx *app = ctx;
+
+  double pi = M_PI;
+  double eps0 = app->epsilon0;
+  double mu0 = app->mu0;
   double gasGamma = 5.0/3.0;
-  double elcMass = 1.;
-  double ionMass = 25.;
-  double elcCharge = -1.0;
-  double ionCharge = 1.0;
-  double TiOverTe = 1.0;
-  double n0 = 1.0;
-  double vAe = 0.25;
-  double beta = 1.;
-  double B0 = vAe*sqrt(mu0*n0*elcMass);
-  double vtElc = vAe*sqrt(beta);
-  double vAi = vAe/sqrt(ionMass);
-  double vtIon = vtElc/sqrt(ionMass);
-  double omegaCi = ionCharge*B0/ionMass;
-  double larmor_i = vtIon/omegaCi;
+  double elcMass = app->massElc;
+  double ionMass = app->massIon;
+  double elcCharge = app->chargeElc;
+  double ionCharge = app->chargeIon;
+
+  double n0 = app->n;
+
+  double beta = app->beta;
+  double B0 = app->B0;
+  double vtElc = app->vte;
+  double vAi = app->vA;
+  double vtIon = app->vti;
+  double omegaCi = app->omegaCi;
+  double larmor_i = app->larmor_i;
 
   double u0x = 0.2*vAi;
   double u0y = 0.2*vAi;
   double B0x = 0.2*B0;
   double B0y = 0.2*B0;
 
-  double Lx = 8.0*pi*larmor_i;
-  double Ly = 8.0*pi*larmor_i;
+  double Lx = app->L;
+  double Ly = app->L;
 
   double _2pi = 2.0*pi;
   double _4pi = 2.0*_2pi;
@@ -46,7 +77,7 @@ evalElcInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   
   double vdrift_x = -u0x*sin(_2pi*y/Ly);
   double vdrift_y = u0y*sin(_2pi*x/Lx);
-  double vdrift_z = -Jz / ionCharge;
+  double vdrift_z = -Jz / (n0*ionCharge);
 
   double rhoe = n0*elcMass;
   double exmom = vdrift_x*rhoe;
@@ -63,33 +94,34 @@ void
 evalIonInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
-  double pi = 3.141592653589793238462643383279502884;
-  double eps0 = 1.;
-  double mu0 = 1;
+  struct ot_5m_ctx *app = ctx;
+
+  double pi = M_PI;
+  double eps0 = app->epsilon0;
+  double mu0 = app->mu0;
   double gasGamma = 5.0/3.0;
-  double elcMass = 1.;
-  double ionMass = 25.;
-  double elcCharge = -1.0;
-  double ionCharge = 1.0;
-  double TiOverTe = 1.0;
-  double n0 = 1.0;
-  double vAe = 0.25;
-  double beta = 1.;
-  double B0 = vAe*sqrt(mu0*n0*elcMass);
-  double vtElc = vAe*sqrt(beta);
-  double vAi = vAe/sqrt(ionMass);
-  double vtIon = vtElc/sqrt(ionMass);
-  double omegaCi = ionCharge*B0/ionMass;
-  double larmor_i = vtIon/omegaCi;
+  double elcMass = app->massElc;
+  double ionMass = app->massIon;
+  double elcCharge = app->chargeElc;
+  double ionCharge = app->chargeIon;
+
+  double n0 = app->n;
+
+  double beta = app->beta;
+  double B0 = app->B0;
+  double vtElc = app->vte;
+  double vAi = app->vA;
+  double vtIon = app->vti;
+  double omegaCi = app->omegaCi;
+  double larmor_i = app->larmor_i;
 
   double u0x = 0.2*vAi;
   double u0y = 0.2*vAi;
   double B0x = 0.2*B0;
   double B0y = 0.2*B0;
 
-  double Lx = 8.0*pi*larmor_i;
-  double Ly = 8.0*pi*larmor_i;
-
+  double Lx = app->L;
+  double Ly = app->L;
 
   double _2pi = 2.0*pi;
   double _4pi = 2.0*_2pi;
@@ -115,33 +147,34 @@ void
 evalFieldInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
-  double pi = 3.141592653589793238462643383279502884;
-  double eps0 = 1.;
-  double mu0 = 1;
+  struct ot_5m_ctx *app = ctx;
+
+  double pi = M_PI;
+  double eps0 = app->epsilon0;
+  double mu0 = app->mu0;
   double gasGamma = 5.0/3.0;
-  double elcMass = 1.;
-  double ionMass = 25.;
-  double elcCharge = -1.0;
-  double ionCharge = 1.0;
-  double TiOverTe = 1.0;
-  double n0 = 1.0;
-  double vAe = 0.25;
-  double beta = 1.;
-  double B0 = vAe*sqrt(mu0*n0*elcMass);
-  double vtElc = vAe*sqrt(beta);
-  double vAi = vAe/sqrt(ionMass);
-  double vtIon = vtElc/sqrt(ionMass);
-  double omegaCi = ionCharge*B0/ionMass;
-  double larmor_i = vtIon/omegaCi;
+  double elcMass = app->massElc;
+  double ionMass = app->massIon;
+  double elcCharge = app->chargeElc;
+  double ionCharge = app->chargeIon;
+
+  double n0 = app->n;
+
+  double beta = app->beta;
+  double B0 = app->B0;
+  double vtElc = app->vte;
+  double vAi = app->vA;
+  double vtIon = app->vti;
+  double omegaCi = app->omegaCi;
+  double larmor_i = app->larmor_i;
 
   double u0x = 0.2*vAi;
   double u0y = 0.2*vAi;
   double B0x = 0.2*B0;
   double B0y = 0.2*B0;
 
-  double Lx = 8.0*pi*larmor_i;
-  double Ly = 8.0*pi*larmor_i;
-
+  double Lx = app->L;
+  double Ly = app->L;
 
   double _2pi = 2.0*pi;
   double _4pi = 2.0*_2pi;
@@ -172,6 +205,61 @@ evalFieldInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   fout[6] = 0.0; fout[7] = 0.0;
 }
 
+struct ot_5m_ctx
+create_ctx(void)
+{
+  double epsilon0 = 1.0;
+  double mu0 = 1.0;
+  double massElc = 1.0;
+  double massIon = 25.0;
+  double charge = 1.0;
+  double n0 = 1.0;
+  double vte = 1.0/4.0;
+  double vti = vte/sqrt(massIon/massElc); // equal proton and electron temperatures
+
+  double beta = 1.0;
+  double B0 = sqrt(mu0*n0*vte*vte*massElc/beta);
+  double vA = B0/sqrt(mu0*n0*massIon);
+
+  double omegaCe = charge*B0/massElc;
+  double omegaCi = charge*B0/massIon;
+
+  double larmor_e = vte/omegaCe;
+  double larmor_i = vti/omegaCi;
+
+  double L = 16.0*M_PI*larmor_i;
+
+  double taue = 6.0*sqrt(2.0*M_PI*M_PI*M_PI)*massElc*massElc*vte*vte*vte*epsilon0*epsilon0/(charge*charge*charge*charge*n0);
+  double taui = 6.0*sqrt(2.0*M_PI*M_PI*M_PI)*massIon*massIon*vti*vti*vti*epsilon0*epsilon0/(charge*charge*charge*charge*n0);
+
+  struct ot_5m_ctx ctx = {
+    .epsilon0 = epsilon0,
+    .mu0 = mu0,
+    .n = n0,
+    .chargeElc = -charge,
+    .massElc = massElc,
+    .chargeIon = charge,
+    .massIon = massIon,
+
+    .vte = vte, 
+    .vti = vti, 
+
+    .beta = beta,
+    .B0 = B0,
+    .vA = vA,
+
+    .omegaCe = omegaCe,
+    .omegaCi = omegaCi,
+    .larmor_e = larmor_e,
+    .larmor_i = larmor_i,
+
+    .taue = taue,
+    .taui = taui,
+
+    .L = L,    
+  };
+  return ctx;
+}
 void
 write_data(struct gkyl_tm_trigger *iot, const gkyl_moment_app *app, double tcurr)
 {
@@ -187,27 +275,14 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 256);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 256);
 
-  double pi = 3.141592653589793238462643383279502884;
-  double eps0 = 1.;
-  double mu0 = 1;
-  double gasGamma = 5.0/3.0;
-  double elcMass = 1.;
-  double ionMass = 25.;
-  double elcCharge = -1.0;
-  double ionCharge = 1.0;
-  double TiOverTe = 1.0;
-  double n0 = 1.0;
-  double vAe = 0.25;
-  double beta = 1.;
-  double B0 = vAe*sqrt(mu0*n0*elcMass);
-  double vtElc = vAe*sqrt(beta);
-  double vAi = vAe/sqrt(ionMass);
-  double vtIon = vtElc/sqrt(ionMass);
-  double omegaCi = ionCharge*B0/ionMass;
-  double larmor_i = vtIon/omegaCi;
+  struct ot_5m_ctx ctx = create_ctx(); // context for init functions
+  printf("Ion cyclotron frequency = %lg\n", ctx.omegaCi);
 
-  double Lx = 8.0*pi*larmor_i;
-  double Ly = 8.0*pi*larmor_i;
+  printf("Electron-electron collision time = %lg\n", ctx.taue);
+  printf("Ion-ion collision time = %lg\n", ctx.taui);
+
+  printf("Braginskii expansion parameter tau*omegaC, electrons = %lg\n", ctx.taue*ctx.omegaCe);
+  printf("Braginskii expansion parameter tau*omegaC, ions = %lg\n", ctx.taui*ctx.omegaCi);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -219,23 +294,25 @@ main(int argc, char **argv)
 
   struct gkyl_moment_species elc = {
     .name = "elc",
-    .charge = -1.0, .mass = 1.0,
+    .charge = ctx.chargeElc, .mass = ctx.massElc,
 
     .equation = elc_euler,
     .evolve = 1,
     .init = evalElcInit,
+    .ctx = &ctx,
 
-    .type_brag = GKYL_BRAG_MAG_FULL,
+    .type_brag = GKYL_BRAG_UNMAG_FULL,
   };
   struct gkyl_moment_species ion = {
     .name = "ion",
-    .charge = 1.0, .mass = 25.0,
+    .charge = ctx.chargeIon, .mass = ctx.massIon,
 
     .equation = ion_euler,
     .evolve = 1,
     .init = evalIonInit,
+    .ctx = &ctx,
 
-    .type_brag = GKYL_BRAG_MAG_FULL,
+    .type_brag = GKYL_BRAG_UNMAG_FULL,
   };  
 
   // VM app
@@ -244,7 +321,7 @@ main(int argc, char **argv)
 
     .ndim = 2,
     .lower = { 0., 0. },
-    .upper = { Lx, Ly }, 
+    .upper = { ctx.L, ctx.L }, 
     .cells = { NX, NY },
 
     .num_periodic_dir = 2,
@@ -255,14 +332,14 @@ main(int argc, char **argv)
 
     .num_species = 2,
     .species = { elc, ion },
-    .coll_fac = 1.0e3,
+    .coll_fac = 1.0,
     .field = {
-      .epsilon0 = 1.0, .mu0 = 1.0,
+      .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
       .mag_error_speed_fact = 1.0,
       
       .evolve = 1,
       .init = evalFieldInit,
-
+      .ctx = &ctx,
     }
   };
 
@@ -270,8 +347,8 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 1.0/omegaCi;
-  int nframe = 1;
+  double tcurr = 0.0, tend = 100.0/ctx.omegaCi;
+  int nframe = 100;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
