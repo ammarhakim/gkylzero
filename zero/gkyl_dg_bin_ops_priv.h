@@ -12,6 +12,7 @@
 #include <gkyl_mat.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
+#include <assert.h>
 
 enum gkyl_dg_op { GKYL_DG_OP_MEAN, GKYL_DG_OP_MEAN_L2 };
 
