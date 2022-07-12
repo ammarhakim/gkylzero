@@ -225,6 +225,7 @@ main(int argc, char **argv)
     .evolve = 1,
     .init = evalElcInit,
 
+    .type_brag = GKYL_BRAG_MAG_FULL,
   };
   struct gkyl_moment_species ion = {
     .name = "ion",
@@ -234,6 +235,7 @@ main(int argc, char **argv)
     .evolve = 1,
     .init = evalIonInit,
 
+    .type_brag = GKYL_BRAG_MAG_FULL,
   };  
 
   // VM app
@@ -253,7 +255,7 @@ main(int argc, char **argv)
 
     .num_species = 2,
     .species = { elc, ion },
-
+    .coll_fac = 1.0e3,
     .field = {
       .epsilon0 = 1.0, .mu0 = 1.0,
       .mag_error_speed_fact = 1.0,
@@ -268,8 +270,8 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 100.0/omegaCi;
-  int nframe = 100;
+  double tcurr = 0.0, tend = 1.0/omegaCi;
+  int nframe = 1;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 

@@ -805,32 +805,30 @@ moment_non_ideal_init(const struct gkyl_moment_app *app, struct moment_non_ideal
     non_ideal->non_ideal_vars[n] = mkarr(9, non_ideal->non_ideal_local_ext.volume);
 
   // check if Braginskii terms present
-  if (app->has_brag) {
-    struct gkyl_moment_braginskii_inp brag_inp = {
-      .grid = &app->grid,
-      .nfluids = app->num_species,
-      .epsilon0 = app->field.epsilon0,
-      // Check for multiplicative collisionality factor, default is 1.0
-      .coll_fac = app->coll_fac == 0 ? 1.0 : app->coll_fac,
+  struct gkyl_moment_braginskii_inp brag_inp = {
+    .grid = &app->grid,
+    .nfluids = app->num_species,
+    .epsilon0 = app->field.epsilon0,
+    // Check for multiplicative collisionality factor, default is 1.0
+    .coll_fac = app->coll_fac == 0 ? 1.0 : app->coll_fac,
+  };
+  for (int i=0; i<app->num_species; ++i) {
+    // Braginskii coefficients depend on pressure and coefficient to obtain
+    // pressure is different for different equation systems (gasGamma, vt, Tr(P))
+    double p_fac = 1.0;
+    if (app->species[i].eqn_type == GKYL_EQN_EULER)
+      p_fac =  gkyl_wv_euler_gas_gamma(app->species[i].equation);
+    else if (app->species[i].eqn_type == GKYL_EQN_ISO_EULER)
+      p_fac =  gkyl_wv_iso_euler_vt(app->species[i].equation);
+    brag_inp.param[i] = (struct gkyl_moment_braginskii_data) {
+      .type_eqn = app->species[i].eqn_type,
+      .type_brag = app->species[i].type_brag,
+      .charge = app->species[i].charge,
+      .mass = app->species[i].mass,
+      .p_fac = p_fac,
     };
-    for (int i=0; i<app->num_species; ++i) {
-      // Braginskii coefficients depend on pressure and coefficient to obtain
-      // pressure is different for different equation systems (gasGamma, vt, Tr(P))
-      double p_fac = 1.0;
-      if (app->species[i].eqn_type == GKYL_EQN_EULER)
-        p_fac =  gkyl_wv_euler_gas_gamma(app->species[i].equation);
-      else if (app->species[i].eqn_type == GKYL_EQN_ISO_EULER)
-        p_fac =  gkyl_wv_iso_euler_vt(app->species[i].equation);
-      brag_inp.param[i] = (struct gkyl_moment_braginskii_data) {
-        .type_eqn = app->species[i].eqn_type,
-        .type_brag = app->species[i].type_brag,
-        .charge = app->species[i].charge,
-        .mass = app->species[i].mass,
-        .p_fac = p_fac,
-      };
-    }
-    non_ideal->brag_slvr = gkyl_moment_braginskii_new(brag_inp);
   }
+  non_ideal->brag_slvr = gkyl_moment_braginskii_new(brag_inp);
 }
 
 // compute braginskii variables
@@ -845,11 +843,10 @@ moment_non_ideal_update(const gkyl_moment_app *app, struct moment_non_ideal *non
     fluids[i] = app->species[i].f[rk_idx];
 
   // app->field.f[0] are the EM fields at the known time-step
-  if (app->has_brag)
-    gkyl_moment_braginskii_advance(non_ideal->brag_slvr,
-      non_ideal->non_ideal_local, app->local,
-      fluids, app->field.f[0],
-      non_ideal->non_ideal_cflrate, non_ideal->non_ideal_vars);
+  gkyl_moment_braginskii_advance(non_ideal->brag_slvr,
+    non_ideal->non_ideal_local, app->local,
+    fluids, app->field.f[0],
+    non_ideal->non_ideal_cflrate, non_ideal->non_ideal_vars);
 }
 
 // free non-ideal terms
@@ -861,8 +858,8 @@ moment_non_ideal_release(const gkyl_moment_app *app, const struct moment_non_ide
     gkyl_array_release(non_ideal->non_ideal_vars[i]);
     gkyl_array_release(non_ideal->non_ideal_cflrate[i]);
   }
-  if (app->has_brag)
-    gkyl_moment_braginskii_release(non_ideal->brag_slvr);
+
+  gkyl_moment_braginskii_release(non_ideal->brag_slvr);
 }
 
 // rk3 method for KEP + non-ideal terms scheme
@@ -1036,19 +1033,9 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     moment_coupling_init(app, &app->sources);
   }
 
-  // check if braginskii terms are present for any species
-  app->has_brag = false;
-  for (int n = 0; n < ns; ++n)
-    if (app->species[n].type_brag)
-      app->has_brag = true;
-
-  app->has_non_ideal = 0;
-  if (app->has_brag) {
-    app->has_non_ideal = 1; // only update if non-ideal terms present
-    app->coll_fac = mom->coll_fac;
-    moment_non_ideal_init(app, &app->non_ideal);
-  }
-
+  // Initialize Braginskii terms (only used if KEP scheme)
+  app->coll_fac = mom->coll_fac;
+  moment_non_ideal_init(app, &app->non_ideal);
   // initialize stat object to all zeros
   app->stat = (struct gkyl_moment_stat) {
   };
@@ -1212,13 +1199,13 @@ moment_update(gkyl_moment_app* app, double dt0)
         if (app->fluid_scheme == GKYL_MOMENT_FLUID_KEP) {
           struct gkyl_update_status s = kep_rk3(app, tcurr, dt);
 
-          // if (!s.success) {
-          //   app->stat.nfail += 1;
-          //   dt = s.dt_suggested;
-          //   state = UPDATE_REDO;
-          //   break;
-          // }
-          // dt_suggested = fmin(dt_suggested, s.dt_suggested);
+          if (!s.success) {
+            app->stat.nfail += 1;
+            dt = s.dt_suggested;
+            state = UPDATE_REDO;
+            break;
+          }
+          dt_suggested = fmin(dt_suggested, s.dt_suggested);
         }
         else {
           for (int i=0; i<ns; ++i) { 

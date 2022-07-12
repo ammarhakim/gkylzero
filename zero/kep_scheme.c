@@ -182,7 +182,6 @@ gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, double dt,
   const struct gkyl_array *qin, const struct gkyl_array *non_ideal_vars, 
   struct gkyl_array *cflrate, struct gkyl_array *rhs)
 {
-  printf("Here");
   int ndim = update_range->ndim;
   long sz[] = { 2, 4, 8 };
   long offsets_centers[sz[ndim-1]];
