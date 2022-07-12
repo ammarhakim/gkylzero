@@ -118,7 +118,7 @@ void gkyl_dg_mul_conf_phase_op_range(struct gkyl_basis cbasis,
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
-    return gkyl_dg_mul_op_cu(basis, c_oop, out, c_lop, lop, c_rop, rop);
+    return gkyl_dg_mul_conf_phase_op_range_cu(cbasis, basis, pout, cop, pop, crange, prange);
   }
 #endif
 
