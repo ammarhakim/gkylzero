@@ -36,21 +36,21 @@ void
 vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   struct vm_source *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
+  double red_mom[app->vdim+2];
   // use boundary fluxes to scale source profile
   if (species->source_id == GKYL_BFLUX_SOURCE) {
     src->scale_factor = 0;
     double z[app->confBasis.num_basis];
     
     for (int d=0; d<app->cdim; ++d) {
-      z[0] = 1.0;
-      src->scale_factor += -app->confBasis.eval_expand(z, gkyl_array_fetch(species->bflux.m1i[2*d].marr, species->local_ext.lower[d]));
-      z[0] = -1.0;
-      src->scale_factor += app->confBasis.eval_expand(z, gkyl_array_fetch(species->bflux.m1i[2*d+1].marr, species->local_ext.upper[d]));
+      gkyl_array_reduce(red_mom, species->bflux.integ_moms[2*d].marr, GKYL_SUM);
+      src->scale_factor += red_mom[0];
+      gkyl_array_reduce(red_mom, species->bflux.integ_moms[2*d+1].marr, GKYL_SUM);
+      src->scale_factor += red_mom[0];
     }
     src->scale_factor = src->scale_factor/src->source_length;
   }
   gkyl_array_accumulate(rhs, src->scale_factor, src->source);
-  return 0;
 }
 
 void
