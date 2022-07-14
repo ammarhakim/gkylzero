@@ -58,7 +58,7 @@ skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
   }
 }
 
-void test_makeDistFunc()
+void test_bc_wall_1x1v()
 {
   int poly_order = 1;
   double lower[] = {-2.0, -2.0}, upper[] = {2.0, 2.0};
@@ -103,60 +103,14 @@ void test_makeDistFunc()
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local_ext, distf);
 
-  // understanding check on how to use ranges
-    /*int i,j;
-    for (i=0;i<ndim;i++){
-       for (j=0;j<ndim;j++){
-         printf("\nlower_ghost[%i].lower[%i] = %i \nlower_ghost[%i].upper[%i] = %i",
-             i,j,skin_ghost.lower_ghost[i].lower[j],
-             i,j,skin_ghost.lower_ghost[i].upper[j]);
-       }
-    }
-
-    for (i=0;i<ndim;i++){
-       for (j=0;j<ndim;j++){
-         printf("\nlower_skin[%i].lower[%i] = %i \nlower_skin[%i].upper[%i] = %i",
-             i,j,skin_ghost.lower_skin[i].lower[j],
-             i,j,skin_ghost.lower_skin[i].upper[j]);
-       }
-     }*/
-   /* int i;
-  for (i = 0; i<12; i++){
-    double *dfl = gkyl_array_fetch(distf,i);
-    printf("\n Cell %i\n %6.5f\n%6.5f\n",i, dfl[0],dfl[1]);
-  }*/
-
-   // Go from 2D index to 1D ranges
-   int lgl_idx = gkyl_range_idx(skin_ghost.lower_ghost,skin_ghost.lower_ghost[0].lower);
-   int lgu_idx = gkyl_range_idx(skin_ghost.lower_ghost,skin_ghost.lower_ghost[0].upper);
-   int lsl_idx = gkyl_range_idx(skin_ghost.lower_skin,skin_ghost.lower_skin[0].lower);
-   int lsu_idx = gkyl_range_idx(skin_ghost.lower_skin,skin_ghost.lower_skin[0].upper);
-   int usl_idx = gkyl_range_idx(skin_ghost.upper_skin,skin_ghost.upper_skin[0].lower);
-   int usu_idx = gkyl_range_idx(skin_ghost.upper_skin,skin_ghost.upper_skin[0].upper);
-   int ugl_idx = gkyl_range_idx(skin_ghost.upper_ghost,skin_ghost.upper_ghost[0].lower);
-   int ugu_idx = gkyl_range_idx(skin_ghost.upper_ghost,skin_ghost.upper_ghost[0].upper);
-    
-   int i,j;
-   for (i=lgl_idx;i<=lgu_idx;i++){
-      double *val = gkyl_array_fetch(distf,i);
-      TEST_CHECK(gkyl_compare(16.88888889,val[0],1e-6));
-      for (j=0;j<9;j++){
-        printf("%10.8f\n",val[j]);
-      }
-   }
-   for (i=ugl_idx;i<=ugu_idx;i++){
-      double *val = gkyl_array_fetch(distf,i);
-      TEST_CHECK(gkyl_compare(16.88888889,val[0],1e-12));
-      for (j=0;j<9;j++){
-        printf("%10.8f\n",val[j]);
-      }
-   }
-  // Make a dg equation object
+  // Make a DG equation object
   struct gkyl_dg_eqn* eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &local, GKYL_FIELD_E_B, false);
   
-  //Apply boundary condition
+  //Create the boundary condition
   struct gkyl_array_copy_func* bc =  gkyl_vlasov_wall_bc_create(eqn, 0, &basis);
-  // struct gkyl_array_copy_func* gkyl_vlasov_absorb_bc_create(eqn, int dir,pbasis)
+  // struct gkyl_array_copy_func* gkyl_vlasov_absorb_bc_create(eqn, int dir,pbasis; // dir = 0
+
+  // Determine the size of the BC buffer
   long buff_sz = 0;
   for (int d=0; d<cdim; ++d) {
     long vol = skin_ghost.lower_skin[d].volume;
@@ -164,33 +118,58 @@ void test_makeDistFunc()
   }
   struct gkyl_array *bc_buffer;
   bc_buffer = mkarr(basis.num_basis, buff_sz);
+
+  //Apply BC to the lower ghost cells
   gkyl_array_flip_copy_to_buffer_fn(&bc_buffer, distf, 0, skin_ghost.lower_skin[0], bc);
   gkyl_array_copy_from_buffer(distf, &bc_buffer, skin_ghost.lower_ghost[0]);
 
+  //Apply BC to the upper ghost cells
+  gkyl_array_flip_copy_to_buffer_fn(&bc_buffer, distf, 0, skin_ghost.upper_skin[0], bc);
+  gkyl_array_copy_from_buffer(distf, &bc_buffer, skin_ghost.upper_ghost[0]);
 
 
+  // Check lower ghost cells after applying BC
+  struct gkyl_range_iter iter, iter_skin;
+  for (int d=0;d<cdim;d++) {
+    gkyl_range_iter_init(&iter, &skin_ghost.lower_ghost[d]);
+    while (gkyl_range_iter_next(&iter)) {
+      // Find the index and value of f at the ghost and adjacent skin cells
+      iter_skin = iter; iter_skin.idx[d] = iter.idx[d]+1;
+      int linidx_ghost = gkyl_range_idx(skin_ghost.lower_ghost, iter.idx);
+      int linidx_skin  = gkyl_range_idx(skin_ghost.lower_skin,  iter_skin.idx);
+      const double *val_ghost = gkyl_array_cfetch(distf, linidx_ghost);
+      const double *val_skin  = gkyl_array_cfetch(distf, linidx_skin);
 
-  // Check cells after applying boundary condition
-   for (i=lgl_idx;i<=lgu_idx;i++){
-      double *val = gkyl_array_fetch(distf,i);
-      TEST_CHECK(gkyl_compare(2.,val[0],1e-12));
-      for (j=0;j<9;j++){
-        printf("%10.8f\n",val[j]);
-      }
-   }
-   for (i=lsl_idx;i<=lsu_idx;i++){
-      double *val = gkyl_array_fetch(distf,i);
-      TEST_CHECK(gkyl_compare(2.,val[0],1e-12));
-   }
-   for (i=usl_idx;i<=usu_idx;i++){
-      double *val = gkyl_array_fetch(distf,i);
-      TEST_CHECK(gkyl_compare(2.,val[0],1e-12));
-   }
-   for (i=ugl_idx;i<=ugu_idx;i++){
-      double *val = gkyl_array_fetch(distf,i);
-      TEST_CHECK(gkyl_compare(2.,val[0],1e-12));
-   }
+      // Flip the skin value to manually apply wall BC to skin cell
+      double val_correct[basis.num_basis];
+      basis.flip_odd_sign(d,  val_skin,   val_correct);
+      basis.flip_odd_sign(d+1,val_correct,val_correct);
 
+      // Check values
+      for (int i=0;i<basis.num_basis;i++){
+        TEST_CHECK(gkyl_compare(val_ghost[i],val_correct[i],1e-12));
+  }}}
+
+  // Check upper ghost cells after applying BC
+  for (int d=0;d<cdim;d++) {
+    gkyl_range_iter_init(&iter, &skin_ghost.upper_ghost[d]);
+    while (gkyl_range_iter_next(&iter)) {
+      // Find the index and value of f at the ghost and adjacent skin cells
+      iter_skin = iter; iter_skin.idx[d] = iter.idx[d]-1;
+      int linidx_ghost = gkyl_range_idx(skin_ghost.upper_ghost, iter.idx);
+      int linidx_skin  = gkyl_range_idx(skin_ghost.upper_skin,  iter_skin.idx);
+      const double *val_ghost = gkyl_array_cfetch(distf, linidx_ghost);
+      const double *val_skin  = gkyl_array_cfetch(distf, linidx_skin);
+
+      // Flip the skin value to manually apply wall BC to skin cell
+      double val_correct[basis.num_basis];
+      basis.flip_odd_sign(d,  val_skin,   val_correct);
+      basis.flip_odd_sign(d+1,val_correct,val_correct);
+
+      // Check values
+      for (int i=0;i<basis.num_basis;i++){
+        TEST_CHECK(gkyl_compare(val_ghost[i],val_correct[i],1e-12));
+  }}}
 
   // release memory for moment data object
   gkyl_proj_on_basis_release(projDistf);
@@ -200,6 +179,6 @@ void test_makeDistFunc()
 }
 
 TEST_LIST = {
-  { "makeDistFunc", test_makeDistFunc },
+  { "test_bc_wall_1x1v", test_bc_wall_1x1v },
   { NULL, NULL },
 };
