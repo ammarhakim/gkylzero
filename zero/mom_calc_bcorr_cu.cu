@@ -7,6 +7,8 @@ extern "C" {
 #include <gkyl_array_ops.h>
 #include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_calc_bcorr_priv.h>
+#include <gkyl_mom_bcorr_lbo_vlasov.h>
+#include <gkyl_mom_bcorr_lbo_gyrokinetic.h>
 #include <gkyl_mom_type.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
@@ -123,4 +125,20 @@ gkyl_mom_calc_bcorr_cu_dev_new(const struct gkyl_rect_grid *grid,
   up->on_dev = up_cu;
   
   return up;
+}
+
+gkyl_mom_calc_bcorr*
+gkyl_mom_calc_bcorr_lbo_vlasov_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const double* vBoundary)
+{
+  struct gkyl_mom_type *bcorr_type; // LBO boundary corrections moment type
+  bcorr_type = gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(cbasis, pbasis, vBoundary);
+  return gkyl_mom_calc_bcorr_cu_dev_new(grid, bcorr_type, "phase");
+}
+
+gkyl_mom_calc_bcorr*
+gkyl_mom_calc_bcorr_lbo_gyrokinetic_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const double* vBoundary, double mass)
+{
+  struct gkyl_mom_type *bcorr_type; // LBO boundary corrections moment type
+  bcorr_type = gkyl_mom_bcorr_lbo_gyrokinetic_cu_dev_new(cbasis, pbasis, vBoundary, mass);
+  return gkyl_mom_calc_bcorr_cu_dev_new(grid, bcorr_type, "phase");
 }
