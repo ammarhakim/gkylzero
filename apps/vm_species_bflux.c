@@ -14,7 +14,11 @@ vm_species_bflux_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct 
   bflux->ghost_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
 
   // allocate solver
-  bflux->flux_slvr = gkyl_ghost_surf_calc_new(&s->grid, s->eqn_vlasov);
+  if (app->use_gpu) {
+    bflux->flux_slvr = gkyl_ghost_surf_calc_cu_dev_new(&s->grid, s->eqn_vlasov);
+  } else {
+    bflux->flux_slvr = gkyl_ghost_surf_calc_new(&s->grid, s->eqn_vlasov);
+  }
 
   for (int i=0; i<2*app->cdim; ++i) {
     vm_species_moment_init(app, s, &bflux->integ_moms[i], "Integrated");
@@ -29,10 +33,14 @@ vm_species_bflux_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
 {
   // zero ghost cells before calculation to ensure there's no residual data
   for (int j=0; j<app->cdim; ++j) {
-    gkyl_array_scale_range(rhs, 0.0, species->skin_ghost.lower_ghost[j]);
-    gkyl_array_scale_range(rhs, 0.0, species->skin_ghost.upper_ghost[j]);
+    gkyl_array_clear_range(rhs, 0.0, species->skin_ghost.lower_ghost[j]);
+    gkyl_array_clear_range(rhs, 0.0, species->skin_ghost.upper_ghost[j]);
   }
-  gkyl_ghost_surf_calc_advance(bflux->flux_slvr, &species->local_ext, &app->local_ext, fin, rhs);
+  if (app->use_gpu) {
+    gkyl_ghost_surf_calc_advance_cu(bflux->flux_slvr, &species->local_ext, &app->local_ext, fin, rhs);
+  } else {
+    gkyl_ghost_surf_calc_advance(bflux->flux_slvr, &species->local_ext, &app->local_ext, fin, rhs);
+  }
   
   for (int j=0; j<app->cdim; ++j) {
     vm_species_moment_calc(&bflux->integ_moms[2*j], species->skin_ghost.lower_ghost[j], app->skin_ghost.lower_ghost[j], rhs);

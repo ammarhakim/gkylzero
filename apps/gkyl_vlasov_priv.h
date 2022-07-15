@@ -124,6 +124,7 @@ struct vm_source {
   struct gkyl_array *source_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *source_proj; // projector for source
 
+  struct vm_species *source_species; // species to use for the source
   double scale_factor; // factor to scale source function
   double source_length; // length used to scale the source function
 };

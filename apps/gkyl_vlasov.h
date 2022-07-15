@@ -45,6 +45,7 @@ struct gkyl_vlasov_source {
   enum gkyl_source_id source_id; // type of source
 
   double source_length; // required for boundary flux source
+  char source_species[128];
   
   void *ctx; // context for source function
   // function for computing source profile

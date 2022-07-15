@@ -121,6 +121,7 @@ main(int argc, char **argv)
     .source = {
       .source_id = GKYL_BFLUX_SOURCE,
       .source_length = 100.0,
+      .source_species = "ion",
       .profile = evalDistFuncElcSource,
       .ctx = &ctx,
     },
@@ -145,6 +146,7 @@ main(int argc, char **argv)
     .source = {
       .source_id = GKYL_BFLUX_SOURCE,
       .source_length = 100.0,
+      .source_species = "ion",
       .profile = evalDistFuncIonSource,
       .ctx = &ctx,
     },
