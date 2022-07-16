@@ -11,6 +11,10 @@
 #include <gkyl_mat_triples.h>
 #include <gkyl_superlu_ops.h>
 
+#ifndef PARPROJ_MAX_DIM
+# define PARPROJ_MAX_DIM 3
+#endif
+
 // Object type
 typedef struct gkyl_fem_parproj gkyl_fem_parproj;
 
@@ -29,11 +33,12 @@ typedef struct gkyl_fem_parproj gkyl_fem_parproj;
  * @param basis Basis functions of the DG field.
  * @param isparperiodic boolean indicating if parallel direction is periodic.
  * @param ctx Context for function evaluation. Can be NULL.
+ * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
 gkyl_fem_parproj* gkyl_fem_parproj_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
-  const bool isparperiodic, void *ctx);
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
+  const bool isparperiodic, void *ctx, bool use_gpu);
 
 /**
  * Set the multiplicative weight.
@@ -66,12 +71,16 @@ void gkyl_fem_parproj_begin_assembly(const gkyl_fem_parproj *up,
  */
 void gkyl_fem_parproj_set_rhs(gkyl_fem_parproj* up, const struct gkyl_array *rhsin);
 
+void gkyl_fem_parproj_set_rhs_cu(gkyl_fem_parproj *up, const struct gkyl_array *rhsin);
+
 /**
  * Solve the linear problem.
  *
  * @param up FEM project updater to run.
  */
 void gkyl_fem_parproj_solve(gkyl_fem_parproj* up, struct gkyl_array *phiout);
+
+void gkyl_fem_parproj_solve_cu(gkyl_fem_parproj* up, struct gkyl_array *phiout);
 
 /**
  * Compute the projection onto the FEM basis. 
