@@ -153,7 +153,6 @@ main(int argc, char **argv)
       .ctx = &ctx,
       .self_nu = evalNuElc,
       .collide_with_fluid = "Tperp_elc",
-      .fluid_index = 0,
     },    
 
     .num_diag_moments = 3,
@@ -187,7 +186,6 @@ main(int argc, char **argv)
       .ctx = &ctx,
       .self_nu = evalNuIon,
       .collide_with_fluid = "Tperp_ion" ,
-      .fluid_index = 1,
     },    
 
     .num_diag_moments = 3,
