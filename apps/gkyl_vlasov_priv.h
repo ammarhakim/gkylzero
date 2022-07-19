@@ -372,9 +372,18 @@ skin_ghost_ranges_init(struct vm_skin_ghost_ranges *sgr,
  *
  * @param app Top-level app to look into
  * @param nm Name of species
- * @return Pointer to species with given name. NULL if not found.o
+ * @return Pointer to species with given name. NULL if not found.
  */
 struct vm_species* vm_find_species(const gkyl_vlasov_app *app, const char *nm);
+
+/**
+ * Return index of species in the order it appears in the input.
+ *
+ * @param app Top-level app to look into
+ * @param nm Name of species
+ * @return Index of species, -1 if not found
+ */
+int vm_find_species_idx(const gkyl_vlasov_app *app, const char *nm);
 
 /**
  * Find fluid species with given name.
@@ -383,7 +392,17 @@ struct vm_species* vm_find_species(const gkyl_vlasov_app *app, const char *nm);
  * @param nm Name of fluid species
  * @return Pointer to fluid species with given name. NULL if not found.o
  */
-struct vm_fluid_species* vm_find_fluid_species(const gkyl_vlasov_app *app, const char *nm);
+struct vm_fluid_species *vm_find_fluid_species(const gkyl_vlasov_app *app, const char *nm);
+
+/**
+ * Return index fluid species in the order it appears in the input.
+ *
+ * @param app Top-level app to look into
+ * @param nm Name of fluid species
+ * @return Index of species, -1 if not found
+ */
+int vm_find_fluid_species_idx(const gkyl_vlasov_app *app, const char *nm);
+
 
 /** vm_species_moment API */
 

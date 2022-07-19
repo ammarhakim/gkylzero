@@ -64,6 +64,24 @@ void gkyl_dg_mul_op_range(struct gkyl_basis basis,
   int c_rop, const struct gkyl_array* rop, struct gkyl_range range);
 
 /**
+ * Compute pout = cop*pop on specified range (sub-range of range
+ * containing the DG fields), where pout and pop are phase-space
+ * operands, and cop is a conf-space operand.
+ *
+ * @param cbasis Configuration space basis functions used in expansions.
+ * @param pbasis Phase space basis functions used in expansions.
+ * @param pout Output phase-space DG field.
+ * @param cop Conf-space operand DG field.
+ * @param pop Phase-space operand DG field.
+ * @param crange Conf-space range to apply multiplication operator.
+ * @param prange Phase-space range to apply multiplication operator.
+ */
+void gkyl_dg_mul_conf_phase_op_range(struct gkyl_basis cbasis,
+  struct gkyl_basis pbasis, struct gkyl_array* out,
+  const struct gkyl_array* lop, const struct gkyl_array* rop,
+  struct gkyl_range crange, struct gkyl_range prange);
+
+/**
  * Compute out = lop/rop. The c_oop, c_lop and c_rop are the
  * components into the DG fields to divide (in case the field is a
  * vector field). For scalar fields c_oop = c_rop = c_lop = 0, for
@@ -146,6 +164,11 @@ gkyl_dg_mul_op_range_cu(struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop, struct gkyl_range range);
+
+void gkyl_dg_mul_conf_phase_op_range_cu(struct gkyl_basis cbasis,
+  struct gkyl_basis pbasis, struct gkyl_array* pout,
+  const struct gkyl_array* cop, const struct gkyl_array* pop,
+  struct gkyl_range crange, struct gkyl_range prange);
 
 void
 gkyl_dg_div_op_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,

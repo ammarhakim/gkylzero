@@ -252,7 +252,6 @@ main(int argc, char **argv)
       .ctx = &ctx,
       .self_nu = evalNuElc,
       .collide_with_fluid = "Pperp_elc",
-      .fluid_index = 0,
     },    
 
     .mirror_force = {
@@ -263,7 +262,6 @@ main(int argc, char **argv)
       .gradB = evalGradB,
 
       .fluid_mirror_force = "Pperp_elc",
-      .fluid_mirror_force_index = 0,
     },
 
     .num_diag_moments = 3,
@@ -301,7 +299,6 @@ main(int argc, char **argv)
       .ctx = &ctx,
       .self_nu = evalNuIon,
       .collide_with_fluid = "Pperp_ion" ,
-      .fluid_index = 1,
     },    
 
     .mirror_force = {
@@ -312,7 +309,6 @@ main(int argc, char **argv)
       .gradB = evalGradB,
 
       .fluid_mirror_force = "Pperp_ion",
-      .fluid_mirror_force_index = 1,
     },
 
     .num_diag_moments = 3,
