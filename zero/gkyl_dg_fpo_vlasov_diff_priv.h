@@ -10,7 +10,7 @@ typedef double (*fpo_vlasov_diff_vol_t)(const double* w, const double* dx,
   const double* g, const double* f, double* GKYL_RESTRICT out);
 
 typedef void (*fpo_vlasov_diff_surf_t)(const double *w, const double *dx,
-  const double* g, const double *f[],
+  const double* g[], const double *f[],
   double* GKYL_RESTRICT out);
 
 // for use in kernel tables
@@ -215,12 +215,14 @@ surf(const struct gkyl_dg_eqn* eqn, int dir1, int dir2,
 {
   struct dg_fpo_vlasov_diff* fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
   int cdim = fpo_vlasov_diff->cdim;
-  long pidx = gkyl_range_idx(&fpo_vlasov_diff->phase_range, idxc);
+  const double* g_d[sz_dim];
+  for (int i=0; i<sz_dim; ++i) { 
+    g_d[i] = (const double*) gkyl_array_cfetch(fpo_vlasov_diff->auxfields.g, 
+               gkyl_range_idx(&fpo_vlasov_diff->phase_range, idx[i]));
+  }
 
   if (dir1 >= cdim && dir2 >= cdim) {
-    fpo_vlasov_diff->surf[dir1-cdim][dir2-cdim](xc, dxc,
-      (const double*) gkyl_array_cfetch(fpo_vlasov_diff->auxfields.g, pidx), 
-      qIn, qRhsOut);
+    fpo_vlasov_diff->surf[dir1-cdim][dir2-cdim](xc, dxc, g_d, qIn, qRhsOut);
   }
 }
 
@@ -233,11 +235,15 @@ boundary_surf(const struct gkyl_dg_eqn* eqn, int dir1, int dir2,
 {
   struct dg_fpo_vlasov_diff* fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
   int cdim = fpo_vlasov_diff->cdim;
-  long pidx = gkyl_range_idx(&fpo_vlasov_diff->phase_range, idxc);
+  const double* g_d[sz_dim];
+  for (int i=0; i<sz_dim; ++i) { 
+    if(idx[i]) {
+      g_d[i] = (const double*) gkyl_array_cfetch(fpo_vlasov_diff->auxfields.g, 
+                 gkyl_range_idx(&fpo_vlasov_diff->phase_range, idx[i]));
+    }
+  }
 
   if (dir1 >= cdim && dir2 >= cdim) {
-    fpo_vlasov_diff->surf[dir1-cdim][dir2-cdim](xc, dxc,
-      (const double*) gkyl_array_cfetch(fpo_vlasov_diff->auxfields.g, pidx), 
-      qIn, qRhsOut);
+    fpo_vlasov_diff->surf[dir1-cdim][dir2-cdim](xc, dxc, g_d, qIn, qRhsOut);
   }
 }
