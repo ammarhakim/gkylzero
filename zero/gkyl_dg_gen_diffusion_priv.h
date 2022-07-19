@@ -132,14 +132,14 @@ vol(const struct gkyl_dg_eqn* eqn, const double* xc, const double* dx,
 GKYL_CU_D
 static void
 surf(const struct gkyl_dg_eqn* eqn, int dir1, int dir2,
-  const double* xc, const double* dx, const int* idx,
-  const double* qIn[],
+  const double* xc, const double* dxc, const int* idxc,
+  const int idx[][GKYL_MAX_DIM], const double* qIn[],
   double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_gen_diffusion* gen_diffusion = container_of(eqn, struct dg_gen_diffusion, eqn);
-  long cidx = gkyl_range_idx(&gen_diffusion->conf_range, idx);
+  long cidx = gkyl_range_idx(&gen_diffusion->conf_range, idxc);
   
-  gen_diffusion->surf[dir1][dir2](xc, dx,
+  gen_diffusion->surf[dir1][dir2](xc, dxc,
     (const double*) gkyl_array_cfetch(gen_diffusion->auxfields.Dij, cidx), 
     qIn, qRhsOut);
 }

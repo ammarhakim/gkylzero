@@ -209,16 +209,16 @@ vol(const struct gkyl_dg_eqn* eqn, const double* xc, const double* dx,
 GKYL_CU_D
 static void
 surf(const struct gkyl_dg_eqn* eqn, int dir1, int dir2,
-  const double* xc, const double* dx, const int* idx,
-  const double* qIn[],
+  const double* xc, const double* dxc, const int* idxc,
+  const int idx[][GKYL_MAX_DIM], const double* qIn[],
   double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_fpo_vlasov_diff* fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
   int cdim = fpo_vlasov_diff->cdim;
-  long pidx = gkyl_range_idx(&fpo_vlasov_diff->phase_range, idx);
+  long pidx = gkyl_range_idx(&fpo_vlasov_diff->phase_range, idxc);
 
   if (dir1 >= cdim && dir2 >= cdim) {
-    fpo_vlasov_diff->surf[dir1-cdim][dir2-cdim](xc, dx,
+    fpo_vlasov_diff->surf[dir1-cdim][dir2-cdim](xc, dxc,
       (const double*) gkyl_array_cfetch(fpo_vlasov_diff->auxfields.g, pidx), 
       qIn, qRhsOut);
   }
@@ -227,16 +227,16 @@ surf(const struct gkyl_dg_eqn* eqn, int dir1, int dir2,
 GKYL_CU_D
 static void
 boundary_surf(const struct gkyl_dg_eqn* eqn, int dir1, int dir2,
-  const double* xc, const double* dx, const int* idx,
-  const double* qIn[],
+  const double* xc, const double* dxc, const int* idxc,
+  const int idx[][GKYL_MAX_DIM], const double* qIn[],
   double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_fpo_vlasov_diff* fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
   int cdim = fpo_vlasov_diff->cdim;
-  long pidx = gkyl_range_idx(&fpo_vlasov_diff->phase_range, idx);
+  long pidx = gkyl_range_idx(&fpo_vlasov_diff->phase_range, idxc);
 
   if (dir1 >= cdim && dir2 >= cdim) {
-    fpo_vlasov_diff->surf[dir1-cdim][dir2-cdim](xc, dx,
+    fpo_vlasov_diff->surf[dir1-cdim][dir2-cdim](xc, dxc,
       (const double*) gkyl_array_cfetch(fpo_vlasov_diff->auxfields.g, pidx), 
       qIn, qRhsOut);
   }

@@ -157,7 +157,8 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
         int dir1 = hdg->update_dirs[d1];
         int dir2 = hdg->update_dirs[d2];
         hdg->equation->gen_surf_term(hdg->equation,
-          dir1, dir2, xcc, hdg->grid.dx, idxc, fIn_d,
+          dir1, dir2, xcc, hdg->grid.dx, idxc,
+          idx, fIn_d,
           gkyl_array_fetch(rhs, linc)
         );
       }
