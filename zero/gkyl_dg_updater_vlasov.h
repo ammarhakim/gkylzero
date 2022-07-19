@@ -25,6 +25,7 @@ struct gkyl_dg_updater_vlasov_tm {
  * @param conf_range Config space range
  * @param vel_range Velocity space range
  * @param field_id Enum identifier for field type (see gkyl_eqn_type.h)
+ * @param use_gpu Boolean to determine whether struct objects are on host or device
  * 
  * @return New vlasov updater object
  */

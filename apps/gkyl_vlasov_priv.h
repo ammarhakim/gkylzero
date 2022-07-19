@@ -102,7 +102,7 @@ struct vm_lbo_collisions {
 
   gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
   gkyl_prim_lbo_cross_calc *cross_calc; // LBO cross-primitive moment calculator
-  gkyl_dg_updater_lbo_vlasov *coll_slvr; // collision solver
+  gkyl_dg_updater_collisions *coll_slvr; // collision solver
 };
 
 struct vm_bgk_collisions {

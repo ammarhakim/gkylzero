@@ -2,6 +2,7 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
+#include <gkyl_dg_updater_collisions_priv.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
@@ -9,26 +10,22 @@
 typedef struct gkyl_dg_updater_collisions gkyl_dg_updater_collisions;
 
 // return type for drag and diffusion timers
-struct gkyl_dg_updater_lbo_vlasov_tm {
+struct gkyl_dg_updater_fpo_vlasov_tm {
   double drag_tm, diff_tm; // time for drag and diffusion updates
 };
 
 /**
- * Create new updater to update lbo equations using hyper dg.
+ * Create new updater to update FPO equations using hyper dg and hyper dg gen stencil (for diffusion).
  *
  * @param grid Grid object
- * @param cbasis Configuration space basis functions
  * @param pbasis Phase-space basis function
- * @param conf_range Config space range
- * @return New LBO updater object
+ * @param phase_range Phase space range
+ * @param use_gpu Boolean to determine whether struct objects are on host or device
+ * @return New fpo updater object
  */
 struct gkyl_dg_updater_collisions* 
-gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range);
-
-struct gkyl_dg_updater_collisions* 
-gkyl_dg_updater_lbo_vlasov_cu_dev_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range);
+gkyl_dg_updater_fpo_vlasov_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range, bool use_gpu);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
@@ -36,24 +33,23 @@ gkyl_dg_updater_lbo_vlasov_cu_dev_new(const struct gkyl_rect_grid *grid,
  * same range as the array range, or one created using the
  * gkyl_sub_range_init method.
  *
- * @param lbo LBO updater object
+ * @param fpo fpo updater object
  * @param update_rng Range on which to compute.
- * @param nu_sum Sum of coll freq
- * @param nu_u Sum of coll freq*u
- * @param nu_vthsq Sum of coll freq*vth
+ * @param h First Rosenbluth potential (a_s = sum_b Lambda_sb m_s/m_b grad(H_b))
+ * @param g Second Rosenbluth potential (D_s = sum_b Lambda_sb grad(grad(G_b)))
  * @param fIn Input to updater
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
-void gkyl_dg_updater_lbo_vlasov_advance(struct gkyl_dg_updater_collisions *lbo,
+void gkyl_dg_updater_fpo_vlasov_advance(struct gkyl_dg_updater_collisions *fpo,
   const struct gkyl_range *update_rng,
-  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq,
+  const struct gkyl_array *h, const struct gkyl_array *g, 
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 
-void gkyl_dg_updater_lbo_vlasov_advance_cu(struct gkyl_dg_updater_collisions *lbo,
+void gkyl_dg_updater_fpo_vlasov_advance_cu(struct gkyl_dg_updater_collisions *fpo,
   const struct gkyl_range *update_rng,
-  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq,
+  const struct gkyl_array *h, const struct gkyl_array *g, 
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 
@@ -63,11 +59,11 @@ void gkyl_dg_updater_lbo_vlasov_advance_cu(struct gkyl_dg_updater_collisions *lb
  * @param lbo Updater object
  * @return timers
  */
-struct gkyl_dg_updater_lbo_vlasov_tm gkyl_dg_updater_lbo_vlasov_get_tm(const struct gkyl_dg_updater_collisions *coll);
+struct gkyl_dg_updater_fpo_vlasov_tm gkyl_dg_updater_fpo_vlasov_get_tm(const struct gkyl_dg_updater_collisions *coll);
 
 /**
  * Delete updater.
  *
  * @param lbo Updater to delete.
  */
-void gkyl_dg_updater_lbo_vlasov_release(struct gkyl_dg_updater_collisions* coll);
+void gkyl_dg_updater_fpo_vlasov_release(struct gkyl_dg_updater_collisions* coll);

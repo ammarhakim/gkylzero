@@ -2,11 +2,17 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
+#include <gkyl_dg_updater_collisions_priv.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
 // Object type
-typedef struct gkyl_dg_updater_lbo_gyrokinetic gkyl_dg_updater_lbo_gyrokinetic;
+typedef struct gkyl_dg_updater_collisions gkyl_dg_updater_collisions;
+
+// return type for drag and diffusion timers
+struct gkyl_dg_updater_lbo_gyrokinetic_tm {
+  double drag_tm, diff_tm; // time for drag and diffusion updates
+};
 
 /**
  * Create new updater to update lbo equations using hyper dg.
@@ -18,11 +24,13 @@ typedef struct gkyl_dg_updater_lbo_gyrokinetic gkyl_dg_updater_lbo_gyrokinetic;
  * @param mass Species mass
  * @return New LBO updater object
  */
-gkyl_dg_updater_lbo_gyrokinetic* gkyl_dg_updater_lbo_gyrokinetic_new(const struct gkyl_rect_grid *grid,
+struct gkyl_dg_updater_collisions* 
+gkyl_dg_updater_lbo_gyrokinetic_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, double mass);
 
-gkyl_dg_updater_lbo_gyrokinetic* gkyl_dg_updater_lbo_gyrokinetic_cu_dev_new(const struct gkyl_rect_grid *grid,
+struct gkyl_dg_updater_collisions* 
+gkyl_dg_updater_lbo_gyrokinetic_cu_dev_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, double mass);
 
@@ -42,14 +50,14 @@ gkyl_dg_updater_lbo_gyrokinetic* gkyl_dg_updater_lbo_gyrokinetic_cu_dev_new(cons
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
-void gkyl_dg_updater_lbo_gyrokinetic_advance(gkyl_dg_updater_lbo_gyrokinetic *lbo,
+void gkyl_dg_updater_lbo_gyrokinetic_advance(struct gkyl_dg_updater_collisions *lbo,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *bmag_inv,
   const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq,
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 
-void gkyl_dg_updater_lbo_gyrokinetic_advance_cu(gkyl_dg_updater_lbo_gyrokinetic *lbo,
+void gkyl_dg_updater_lbo_gyrokinetic_advance_cu(struct gkyl_dg_updater_collisions *lbo,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *bmag_inv,
   const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq,
@@ -57,8 +65,16 @@ void gkyl_dg_updater_lbo_gyrokinetic_advance_cu(gkyl_dg_updater_lbo_gyrokinetic 
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 
 /**
+ * Return total time spent in drag and diffusion terms
+ *
+ * @param lbo Updater object
+ * @return timers
+ */
+struct gkyl_dg_updater_lbo_gyrokinetic_tm gkyl_dg_updater_lbo_gyrokinetic_get_tm(const struct gkyl_dg_updater_collisions *coll);
+
+/**
  * Delete updater.
  *
  * @param lbo Updater to delete.
  */
-void gkyl_dg_updater_lbo_gyrokinetic_release(gkyl_dg_updater_lbo_gyrokinetic* lbo);
+void gkyl_dg_updater_lbo_gyrokinetic_release(struct gkyl_dg_updater_collisions* coll);
