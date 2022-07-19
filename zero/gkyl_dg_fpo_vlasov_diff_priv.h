@@ -210,7 +210,7 @@ GKYL_CU_D
 static void
 surf(const struct gkyl_dg_eqn* eqn, int dir1, int dir2,
   const double* xc, const double* dxc, const int* idxc,
-  const int idx[][GKYL_MAX_DIM], const double* qIn[],
+  long sz_dim, const int idx[sz_dim][GKYL_MAX_DIM], const double* qIn[sz_dim],
   double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_fpo_vlasov_diff* fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
@@ -228,7 +228,7 @@ GKYL_CU_D
 static void
 boundary_surf(const struct gkyl_dg_eqn* eqn, int dir1, int dir2,
   const double* xc, const double* dxc, const int* idxc,
-  const int idx[][GKYL_MAX_DIM], const double* qIn[],
+  long sz_dim, const int idx[sz_dim][GKYL_MAX_DIM], const double* qIn[sz_dim],
   double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_fpo_vlasov_diff* fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);

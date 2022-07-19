@@ -35,11 +35,11 @@ typedef void (*boundary_surf_termf_t)(const struct gkyl_dg_eqn *eqn,
 // NOTE: ASSUMES UNIFORM GRIDS FOR NOW
 // NOTE: Takes the index of the cell being updated (idxc) and array of indices
 //       (idx) so we can fetch auxiliary variables easily for neighbors or just
-//       the cell being updated.
+//       the cell being updated. Need size of integer array (sz_dim)
 typedef void (*gen_termf_t)(const struct gkyl_dg_eqn *eqn, 
   int dir1, int dir2,
   const double* xc, const double* dxc, const int* idxc,
-  const int idx[][GKYL_MAX_DIM], const double* qIn[], 
+  long sz_dim, const int idx[sz_dim][GKYL_MAX_DIM], const double* qIn[sz_dim], 
   double* GKYL_RESTRICT qRhsOut);
 
 struct gkyl_dg_eqn {

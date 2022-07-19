@@ -113,7 +113,8 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
 {
   int ndim = hdg->ndim;
   long sz[] = { 3, 9, 27 };
-  long offsets[sz[ndim-1]];
+  long sz_dim = sz[hdg->num_up_dirs-1];
+  long offsets[sz_dim];
   create_offsets(hdg, update_range, offsets);
 
   // idx, xc, and dx for volume update
@@ -121,10 +122,10 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
   double xcc[GKYL_MAX_DIM];
 
   // idx, xc, and dx for generic surface update
-  int idx[sz[ndim-1]][GKYL_MAX_DIM];
-  double xc[sz[ndim-1]][GKYL_MAX_DIM];
-  double dx[sz[ndim-1]][GKYL_MAX_DIM];
-  const double* fIn_d[sz[ndim-1]];
+  int idx[sz_dim][GKYL_MAX_DIM];
+  double xc[sz_dim][GKYL_MAX_DIM];
+  double dx[sz_dim][GKYL_MAX_DIM];
+  const double* fIn_d[sz_dim];
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
@@ -142,7 +143,7 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
     cflrate_d[0] += cflr; // frequencies are additive
 
     // Get pointers to all neighbor values (i.e., 9 cells in 2D, 27 cells in 3D)
-    for (int i=0; i<sz[ndim-1]; ++i) {
+    for (int i=0; i<sz_dim; ++i) {
       gkyl_sub_range_inv_idx(update_range, linc+offsets[i], idx[i]);
       gkyl_rect_grid_cell_center(&hdg->grid, idx[i], xc[i]);
       for (int j=0; j<ndim; ++j)
@@ -158,7 +159,7 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
         int dir2 = hdg->update_dirs[d2];
         hdg->equation->gen_surf_term(hdg->equation,
           dir1, dir2, xcc, hdg->grid.dx, idxc,
-          idx, fIn_d,
+          sz_dim, idx, fIn_d,
           gkyl_array_fetch(rhs, linc)
         );
       }
