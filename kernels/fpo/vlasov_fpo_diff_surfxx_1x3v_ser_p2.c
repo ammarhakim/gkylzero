@@ -1,4 +1,4 @@
-#include <gkyl_vlasov_fpo_kernels.h>
+#include <gkyl_fpo_vlasov_kernels.h>
 
 GKYL_CU_DH void
 vlasov_fpo_diff_surfxx_1x3v_ser_p2(const double* w, const double* dx,
