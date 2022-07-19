@@ -44,7 +44,8 @@ struct gkyl_dg_eqn {
   surf_termf_t surf_term; // surface term kernel
   boundary_surf_termf_t boundary_surf_term; // boundary surface term kernel
   gen_termf_t gen_surf_term; // generic stencil kernel with input variable size unspecified
-
+  gen_termf_t gen_boundary_surf_term; // generic stencil kernel with input variable size unspecified
+                                      // for boundary surface updates
   uint32_t flags;
   struct gkyl_ref_count ref_count; // reference count
   struct  gkyl_dg_eqn *on_dev; // pointer to itself or device data

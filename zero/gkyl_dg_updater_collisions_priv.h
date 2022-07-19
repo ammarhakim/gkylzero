@@ -1,9 +1,10 @@
 #pragma once
 
-#include <gkyl_hyper_dg.h>
+#include <gkyl_alloc.h>
 #include <gkyl_dg_eqn.h>
+#include <gkyl_hyper_dg.h>
 
-struct gkyl_dg_updater_lbo_vlasov {
+struct gkyl_dg_updater_collisions {
   struct gkyl_dg_eqn *coll_drag; // Collision drag equation
   struct gkyl_dg_eqn *coll_diff; // Collision diffusion equation
   struct gkyl_hyper_dg *drag; // solvers for drag terms
