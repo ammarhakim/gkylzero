@@ -68,7 +68,7 @@ gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
     
     for (int d=0; d<hdg->num_up_dirs; ++d) {
       int dir = hdg->update_dirs[d];
-      // TODO: fix for arbitrary subrange
+      // Assumes update_range owns lower and upper edges of the domain
       if (hdg->zero_flux_flags[dir] &&
         (idxc[dir] == update_range->lower[dir] || idxc[dir] == update_range->upper[dir]) ) {
         gkyl_copy_int_arr(ndim, iter.idx, idx_edge);
@@ -113,7 +113,8 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
 {
   int ndim = hdg->ndim;
   long sz[] = { 3, 9, 27 };
-  long offsets[sz[ndim-1]];
+  long sz_dim = sz[hdg->num_up_dirs-1];
+  long offsets[sz_dim];
   create_offsets(hdg, update_range, offsets);
 
   // idx, xc, and dx for volume update
@@ -121,10 +122,13 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
   double xcc[GKYL_MAX_DIM];
 
   // idx, xc, and dx for generic surface update
-  int idx[sz[ndim-1]][GKYL_MAX_DIM];
-  double xc[sz[ndim-1]][GKYL_MAX_DIM];
-  double dx[sz[ndim-1]][GKYL_MAX_DIM];
-  const double* fIn_d[sz[ndim-1]];
+  int idx[sz_dim][GKYL_MAX_DIM];
+  double xc[sz_dim][GKYL_MAX_DIM];
+  double dx[sz_dim][GKYL_MAX_DIM];
+  const double* fIn_d[sz_dim];
+
+  // bool for checking if index is in the domain
+  int in_grid = 1;
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
@@ -142,12 +146,28 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
     cflrate_d[0] += cflr; // frequencies are additive
 
     // Get pointers to all neighbor values (i.e., 9 cells in 2D, 27 cells in 3D)
-    for (int i=0; i<sz[ndim-1]; ++i) {
+    for (int i=0; i<sz_dim; ++i) {
+      // Get index based on offset (not necessarily a valid index) 
       gkyl_sub_range_inv_idx(update_range, linc+offsets[i], idx[i]);
-      gkyl_rect_grid_cell_center(&hdg->grid, idx[i], xc[i]);
-      for (int j=0; j<ndim; ++j)
-        dx[i][j] = hdg->grid.dx[j];
-      fIn_d[i] = gkyl_array_cfetch(fIn, linc + offsets[i]);
+      
+      // Check if the index is in the domain
+      // Assumes update_range owns lower and upper edges of the domain
+      for (int d=0; d<hdg->num_up_dirs; ++d) {
+        int dir = hdg->update_dirs[d];
+        if (idx[i][dir] < update_range->lower[dir] || idx[i][dir] > update_range->upper[dir]) {
+          in_grid = 0;
+        }
+      }
+          
+      // Only if the index is in the domain, fetch the pointer (otherwise pointer stays NULL)
+      if (in_grid) {
+        gkyl_rect_grid_cell_center(&hdg->grid, idx[i], xc[i]);
+        for (int j=0; j<ndim; ++j)
+          dx[i][j] = hdg->grid.dx[j];
+        fIn_d[i] = gkyl_array_cfetch(fIn, linc + offsets[i]);
+      }
+      // reset in_grid for next neighbor value check
+      in_grid = 1;
     }
 
     // Loop over surfaces and update using any/all neighbors needed
@@ -156,10 +176,22 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
       for (int d2=0; d2<hdg->num_up_dirs; ++d2) {
         int dir1 = hdg->update_dirs[d1];
         int dir2 = hdg->update_dirs[d2];
-        hdg->equation->gen_surf_term(hdg->equation,
-          dir1, dir2, xcc, hdg->grid.dx, idxc, fIn_d,
-          gkyl_array_fetch(rhs, linc)
-        );
+        // Assumes update_range owns lower and upper edges of the domain
+        if (idxc[dir1] == update_range->lower[dir1] || idxc[dir1] == update_range->upper[dir1]
+             || idxc[dir2] == update_range->lower[dir2] || idxc[dir2] == update_range->upper[dir2]) {
+          hdg->equation->gen_boundary_surf_term(hdg->equation,
+            dir1, dir2, xcc, hdg->grid.dx, idxc,
+            sz_dim, idx, fIn_d,
+            gkyl_array_fetch(rhs, linc)
+          );
+        }
+        else {
+          hdg->equation->gen_surf_term(hdg->equation,
+            dir1, dir2, xcc, hdg->grid.dx, idxc,
+            sz_dim, idx, fIn_d,
+            gkyl_array_fetch(rhs, linc)
+          );
+        }
       }
     }
   }

@@ -86,6 +86,7 @@ gkyl_dg_gen_diffusion_new(const struct gkyl_basis* cbasis, const struct gkyl_ran
   gen_diffusion->eqn.num_equations = 1;
   gen_diffusion->eqn.vol_term = vol;
   gen_diffusion->eqn.gen_surf_term = surf;
+  gen_diffusion->eqn.gen_boundary_surf_term = surf;
 
   gen_diffusion->vol = CK(vol_kernels, cdim, poly_order);
 
