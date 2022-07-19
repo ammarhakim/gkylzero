@@ -147,15 +147,20 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
 
     // Get pointers to all neighbor values (i.e., 9 cells in 2D, 27 cells in 3D)
     for (int i=0; i<sz_dim; ++i) {
+      // Get index based on offset (not necessarily a valid index) 
+      gkyl_sub_range_inv_idx(update_range, linc+offsets[i], idx[i]);
+      
       // Check if the index is in the domain
       // Assumes update_range owns lower and upper edges of the domain
-      for (int j=0; j<GKYL_MAX_DIM; ++j)
-        if (idx[i][j] < update_range->lower[j] || idx[i][j] > update_range->upper[j])
+      for (int d=0; d<hdg->num_up_dirs; ++d) {
+        int dir = hdg->update_dirs[d];
+        if (idx[i][dir] < update_range->lower[dir] || idx[i][dir] > update_range->upper[dir]) {
           in_grid = 0;
+        }
+      }
           
       // Only if the index is in the domain, fetch the pointer (otherwise pointer stays NULL)
       if (in_grid) {
-        gkyl_sub_range_inv_idx(update_range, linc+offsets[i], idx[i]);
         gkyl_rect_grid_cell_center(&hdg->grid, idx[i], xc[i]);
         for (int j=0; j<ndim; ++j)
           dx[i][j] = hdg->grid.dx[j];
