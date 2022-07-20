@@ -15,22 +15,39 @@ struct free_stream_ctx {
 
 static inline double sq(double x) { return x*x; }
 
+static inline double
+bump_maxwellian(double n, double vx, double vy, double ux, double uy, double vt, double bA, double bUx, double bUy, double bS, double bVt)
+{
+  double v2 = (vx - ux)*(vx - ux) + (vy - uy)*(vy - uy);
+  double bv2 = (vx - bUx)*(vx - bUx) + (vy - bUy)*(vy - bUy);
+  return n/pow(sqrt(2*M_PI*vt*vt), 2)*exp(-v2/(2*vt*vt))
+        +n/pow(sqrt(2*M_PI*bVt*bVt), 2)*exp(-bv2/(2*bVt*bVt))*(bA*bA)/(bv2 + bS*bS);
+}
+
 void
-evalDistFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalDistFuncSquare(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct free_stream_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
-  double vt = app->vt;
-  double fv = 1.0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
-  fout[0] = fv;
+  double x = xn[0], vx = xn[1], vy = xn[2];
+  if(vx>-1.0 && vx<1.0 && vy>-1.0 && vy<1.0) {
+    fout[0] = 0.5;
+  } else {
+    fout[0] = 0.0;
+  }
+}
+
+void
+evalDistFuncBump(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct free_stream_ctx *app = ctx;
+  double x = xn[0], vx = xn[1], vy = xn[2];
+  fout[0] = bump_maxwellian(1.0, vx, vy, 0.0, 0.0, 1.0/3.0, sqrt(0.1), 4*sqrt(0.25/3), 0.0, 0.12, 1.0);
 }
 
 void
 evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct free_stream_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
-  fout[0] = 1.0;
+  fout[0] = 0.01;
 }
 
 struct free_stream_ctx
@@ -38,8 +55,8 @@ create_ctx(void)
 {
   struct free_stream_ctx ctx = {
     .mass = 1.0,
-    .charge = 1.0,
-    .vt = 1.0,
+    .charge = 0.0,
+    .vt = 1.0/3.0,
     .Lx = 1.0
   };
   return ctx;
@@ -57,23 +74,39 @@ main(int argc, char **argv)
   struct free_stream_ctx ctx = create_ctx(); // context for init functions
 
   // electrons
-  struct gkyl_vlasov_species neut = {
-    .name = "neut",
+  struct gkyl_vlasov_species square = {
+    .name = "square",
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -4.0 * ctx.vt},
-    .upper = { 4.0 * ctx.vt}, 
-    .cells = { 4 },
+    .lower = { -8.0*ctx.vt, -8.0*ctx.vt },
+    .upper = { 8.0*ctx.vt, 8.0*ctx.vt }, 
+    .cells = { 16, 16},
 
     .ctx = &ctx,
-    .init = evalDistFunc,
+    .init = evalDistFuncSquare,
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-
-      .ctx = &ctx,
       .self_nu = evalNu,
     },
+    
+    .num_diag_moments = 3,
+    .diag_moments = { "M0", "M1i", "M2" },
+  };
 
+  struct gkyl_vlasov_species bump = {
+    .name = "bump",
+    .charge = ctx.charge, .mass = ctx.mass,
+    .lower = { -8.0*ctx.vt, -8.0*ctx.vt },
+    .upper = { 8.0*ctx.vt, 8.0*ctx.vt }, 
+    .cells = { 16, 16},
+
+    .ctx = &ctx,
+    .init = evalDistFuncBump,
+
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .self_nu = evalNu,
+    },
     
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
@@ -81,20 +114,20 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "maxwell_1x1v",
+    .name = "lbo_vlasov_relax_1x2v_p1",
 
-    .cdim = 1, .vdim = 1,
+    .cdim = 1, .vdim = 2,
     .lower = { 0.0 },
     .upper = { ctx.Lx },
     .cells = { 2 },
-    .poly_order = 2,
+    .poly_order = 1,
     .basis_type = app_args.basis_type,
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
 
-    .num_species = 1,
-    .species = { neut },
+    .num_species = 2,
+    .species = { square, bump },
     .skip_field = true,
 
     .use_gpu = app_args.use_gpu,
@@ -104,7 +137,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 100.0;
+  double tcurr = 0.0, tend = 50.0;
   double dt = tend-tcurr;
 
   // initialize simulation

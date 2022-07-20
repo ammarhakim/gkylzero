@@ -6,57 +6,85 @@
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
 
-struct free_stream_ctx {
-  double charge; // charge
-  double mass; // mass
-  double vt; // thermal velocity
-  double Lx; // size of the box
+struct lbo_cross_ctx {
+  double q1, q2; // charge
+  double m1, m2; // mass
+  double vt1, vt2; // thermal velocity
+  double n1, n2;
+  double u1, u2;
+  double p1, p2;
+  double K1, K2;
 };
 
 static inline double sq(double x) { return x*x; }
 
 static inline double
-bump_maxwellian(double n, double vx, double ux, double vt, double bA, double bU, double bS, double bVt)
+maxwellian(double n, double vx, double ux, double vt)
 {
   double v2 = (vx-ux)*(vx-ux);
-  double bv2 = (vx-bU)*(vx-bU);
-  return n/sqrt(2*M_PI*vt*vt)*exp(-v2/(2*vt*vt)) + n/sqrt(2*M_PI*bVt*bVt)*exp(-bv2/(2*bVt*bVt))*(bA*bA)/(bv2 + bS*bS);
+  return n/sqrt(2*M_PI*vt*vt)*exp(-v2/(2*vt*vt));
 }
 
 void
-evalDistFuncSquare(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalDistFunc1(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct free_stream_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
-  if(v>-1.0 && v<1.0) {
-    fout[0] = 0.5;
-  } else {
-    fout[0] = 0.0;
-  }
+  struct lbo_cross_ctx *app = ctx;
+  double x = xn[0], vx = xn[1];
+
+  fout[0] = maxwellian(app->n1, vx, app->u1, app->vt1);
 }
 
 void
-evalDistFuncBump(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalDistFunc2(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct free_stream_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
-  fout[0] = bump_maxwellian(1.0, v, 0.0, 1.0/3.0, sqrt(0.1), 4*sqrt(0.25/3), 0.12, 1.0);
+  struct lbo_cross_ctx *app = ctx;
+  double x = xn[0], vx = xn[1];
+
+  fout[0] = maxwellian(app->n2, vx, app->u2, app->vt2);;
 }
 
 void
-evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalNu1(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  fout[0] = 0.01;
+  struct lbo_cross_ctx *app = ctx;
+
+  fout[0] = 1.0/0.01;
 }
 
-struct free_stream_ctx
+void
+evalNu2(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct lbo_cross_ctx *app = ctx;
+
+  fout[0] = sqrt(0.5/0.05)/0.01;
+}
+
+struct lbo_cross_ctx
 create_ctx(void)
 {
-  struct free_stream_ctx ctx = {
-    .mass = 1.0,
-    .charge = 0.0,
-    .vt = 1.0/3.0,
-    .Lx = 1.0
+  double m1 = 1.0;
+  double m2 = 0.05;
+  double n1 = 1.0;
+  double n2 = 1.0;
+  double p1 = 1.0;
+  double p2 = 0.50;
+  double vt1 = sqrt(p1/(n1*m1));
+  double vt2 = sqrt(p2/(n2*m2));
+  struct lbo_cross_ctx ctx = {
+    .m1 = m1,
+    .m2 = m2,
+    .n1 = n1,
+    .n2 = n2,
+    .u1 = 0.10,
+    .u2 = 2.50,
+    .q1 = 0.0,
+    .q2 = 0.0,
+    .p1 = p1,
+    .p2 = p2,
+    .vt1 = vt1,
+    .vt2 = vt2,
+    .K1 = 0.01/n1,
+    .K2 = 0.01/n2,
   };
   return ctx;
 }
@@ -70,41 +98,44 @@ main(int argc, char **argv)
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  struct free_stream_ctx ctx = create_ctx(); // context for init functions
+  struct lbo_cross_ctx ctx = create_ctx(); // context for init functions
 
-  // electrons
-  struct gkyl_vlasov_species square = {
-    .name = "square",
-    .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -8.0 * ctx.vt},
-    .upper = { 8.0 * ctx.vt}, 
-    .cells = { 48 },
+  struct gkyl_vlasov_species neut1 = {
+    .name = "neut1",
+    .charge = ctx.q1, .mass = ctx.m1,
+    .lower = { -6.0*ctx.vt1 },
+    .upper = { 6.0*ctx.vt1 }, 
+    .cells = { 32 },
 
     .ctx = &ctx,
-    .init = evalDistFuncSquare,
+    .init = evalDistFunc1,
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalNu,
+      .self_nu = evalNu1,
+      .num_cross_collisions = 1,
+      .collide_with = { "neut2" },
     },
     
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
   };
 
-  struct gkyl_vlasov_species bump = {
-    .name = "bump",
-    .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -8.0 * ctx.vt},
-    .upper = { 8.0 * ctx.vt}, 
-    .cells = { 48 },
+  struct gkyl_vlasov_species neut2 = {
+    .name = "neut2",
+    .charge = ctx.q2, .mass = ctx.m2,
+    .lower = { -6.0*ctx.vt2 },
+    .upper = { 6.0*ctx.vt2 }, 
+    .cells = { 32 },
 
     .ctx = &ctx,
-    .init = evalDistFuncBump,
+    .init = evalDistFunc2,
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalNu,
+      .self_nu = evalNu2,
+      .num_cross_collisions = 1,
+      .collide_with = { "neut1" },
     },
     
     .num_diag_moments = 3,
@@ -113,12 +144,12 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "lbo_relax_1v",
+    .name = "lbo_vlasov_cross_1x1v_p2",
 
     .cdim = 1, .vdim = 1,
     .lower = { 0.0 },
-    .upper = { ctx.Lx },
-    .cells = { 2 },
+    .upper = { 1.0 },
+    .cells = { 16 },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
@@ -126,7 +157,7 @@ main(int argc, char **argv)
     .periodic_dirs = { 0 },
 
     .num_species = 2,
-    .species = { square, bump },
+    .species = { neut1, neut2 },
     .skip_field = true,
 
     .use_gpu = app_args.use_gpu,
@@ -134,9 +165,8 @@ main(int argc, char **argv)
 
   // create app object
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
-
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 100.0;
+  double tcurr = 0.0, tend = 0.0025;
   double dt = tend-tcurr;
 
   // initialize simulation

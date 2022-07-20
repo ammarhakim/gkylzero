@@ -31,10 +31,11 @@ gkyl_prim_lbo_cross_calc_new(const struct gkyl_rect_grid *grid,
 void
 gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc,
   struct gkyl_basis cbasis, const struct gkyl_range *conf_rng,
-  const struct gkyl_array *greene,
+  const struct gkyl_array *greeneFac,
   double self_m, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
   double cross_m, const struct gkyl_array *cross_u, const struct gkyl_array *cross_vtsq, 
-  const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections, 
+  const struct gkyl_array *cross_nu, const struct gkyl_array *moms,
+  const struct gkyl_array *boundary_corrections, 
   struct gkyl_array *u_out, struct gkyl_array *vtsq_out)
 {
   struct gkyl_range_iter conf_iter;
@@ -62,10 +63,11 @@ gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc,
 
     gkyl_mat_clear(&lhs, 0.0); gkyl_mat_clear(&rhs, 0.0);
 
-    calc->prim->cross_prim(calc->prim, &lhs, &rhs, conf_iter.idx, gkyl_array_cfetch(greene, midx),
+    calc->prim->cross_prim(calc->prim, &lhs, &rhs, conf_iter.idx, gkyl_array_cfetch(greeneFac, midx),
       self_m, gkyl_array_cfetch(self_u, midx), gkyl_array_cfetch(self_vtsq, midx),
       cross_m, gkyl_array_cfetch(cross_u, midx), gkyl_array_cfetch(cross_vtsq, midx),
-      gkyl_array_cfetch(moms, midx), gkyl_array_cfetch(boundary_corrections, midx)
+      gkyl_array_cfetch(cross_nu, midx), gkyl_array_cfetch(moms, midx),
+      gkyl_array_cfetch(boundary_corrections, midx)
     );
 
     count += 1;
@@ -86,7 +88,7 @@ gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc,
   }
 }
 
-struct gkyl_prim_lbo_type* gkyl_prim_lbo_cross_calc_get_prim(gkyl_prim_lbo_cross_calc* calc)
+const struct gkyl_prim_lbo_type* gkyl_prim_lbo_cross_calc_get_prim(gkyl_prim_lbo_cross_calc* calc)
 {
   return calc->prim;
 }
@@ -153,10 +155,11 @@ gkyl_prim_lbo_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
 void
 gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc,
   struct gkyl_basis cbasis, const struct gkyl_range *conf_rng,
-  const struct gkyl_array *greene,
+  const struct gkyl_array *greeneFac,
   double self_m, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
   double cross_m, const struct gkyl_array *cross_u, const struct gkyl_array *cross_vtsq, 
-  const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections, 
+  const struct gkyl_array *nu, const struct gkyl_array *moms,
+  const struct gkyl_array *boundary_corrections, 
   struct gkyl_array *u_out, struct gkyl_array *vtsq_out)
 {
   assert(false);

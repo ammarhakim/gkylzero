@@ -113,7 +113,7 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "lbo_relax_3v",
+    .name = "lbo_vlasov_relax_1x3v_p2",
 
     .cdim = 1, .vdim = 3,
     .lower = { 0.0 },
@@ -136,7 +136,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 1.0;
+  double tcurr = 0.0, tend = 4.0;
   double dt = tend-tcurr;
 
   // initialize simulation

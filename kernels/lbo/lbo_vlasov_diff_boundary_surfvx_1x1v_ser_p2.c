@@ -16,14 +16,14 @@ GKYL_CU_DH void lbo_vlasov_diff_boundary_surfvx_1x1v_ser_p2(const double *w, con
   facDiff[1] = nuVtSqSum[1]; 
   facDiff[2] = nuVtSqSum[2]; 
 
+  double vol_incr[8] = {0.0}; 
+  vol_incr[5] = 4.743416490252569*facDiff[2]*fSkin[4]*rdvSq4+4.743416490252569*fSkin[1]*facDiff[1]*rdvSq4+4.743416490252569*fSkin[0]*facDiff[0]*rdvSq4; 
+  vol_incr[7] = 4.242640687119286*facDiff[1]*fSkin[4]*rdvSq4+4.242640687119286*fSkin[1]*facDiff[2]*rdvSq4+4.743416490252569*fSkin[0]*facDiff[1]*rdvSq4+4.743416490252569*facDiff[0]*fSkin[1]*rdvSq4; 
+
   double temp_diff[8] = {0.0}; 
   double temp_edge[8] = {0.0}; 
   double diff_incr[8] = {0.0}; 
   double edge_incr[8] = {0.0}; 
-  double vol_incr[8] = {0.0}; 
-
-  vol_incr[5] = 4.743416490252569*facDiff[2]*fSkin[4]*rdvSq4+4.743416490252569*fSkin[1]*facDiff[1]*rdvSq4+4.743416490252569*fSkin[0]*facDiff[0]*rdvSq4; 
-  vol_incr[7] = 4.242640687119286*facDiff[1]*fSkin[4]*rdvSq4+4.242640687119286*fSkin[1]*facDiff[2]*rdvSq4+4.743416490252569*fSkin[0]*facDiff[1]*rdvSq4+4.743416490252569*facDiff[0]*fSkin[1]*rdvSq4; 
 
   if (edge == -1) { 
 

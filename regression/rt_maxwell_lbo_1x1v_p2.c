@@ -19,17 +19,17 @@ void
 evalDistFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct free_stream_ctx *app = ctx;
-  double x = xn[0], vx = xn[1], vy = xn[2];
-  if(vx>-1.0 && vx<1.0 && vy>-1.0 && vy<1.0) {
-    fout[0] = 0.5;
-  } else {
-    fout[0] = 0.0;
-  }
+  double x = xn[0], v = xn[1];
+  double vt = app->vt;
+  double fv = 1.0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
+  fout[0] = fv;
 }
 
 void
 evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
+  struct free_stream_ctx *app = ctx;
+  double x = xn[0], v = xn[1];
   fout[0] = 1.0;
 }
 
@@ -40,7 +40,7 @@ create_ctx(void)
     .mass = 1.0,
     .charge = 1.0,
     .vt = 1.0,
-    .Lx = 2.0*M_PI
+    .Lx = 1.0
   };
   return ctx;
 }
@@ -60,17 +60,20 @@ main(int argc, char **argv)
   struct gkyl_vlasov_species neut = {
     .name = "neut",
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -4.0*ctx.vt, -4.0*ctx.vt },
-    .upper = { 4.0*ctx.vt, 4.0*ctx.vt }, 
-    .cells = { 8, 8 },
+    .lower = { -4.0 * ctx.vt},
+    .upper = { 4.0 * ctx.vt}, 
+    .cells = { 4 },
 
     .ctx = &ctx,
     .init = evalDistFunc,
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
+
+      .ctx = &ctx,
       .self_nu = evalNu,
     },
+
     
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
@@ -78,12 +81,12 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "top_hat_1x2v",
+    .name = "maxwell_1x1v_p2",
 
-    .cdim = 1, .vdim = 2,
+    .cdim = 1, .vdim = 1,
     .lower = { 0.0 },
     .upper = { ctx.Lx },
-    .cells = { 1 },
+    .cells = { 2 },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
@@ -101,7 +104,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 10.0;
+  double tcurr = 0.0, tend = 100.0;
   double dt = tend-tcurr;
 
   // initialize simulation
