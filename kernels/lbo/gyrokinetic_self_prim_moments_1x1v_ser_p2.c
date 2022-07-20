@@ -56,7 +56,7 @@ GKYL_CU_DH void gyrokinetic_self_prim_moments_1x1v_ser_p2(struct gkyl_mat *A, st
     gkyl_mat_set(rhs,5,0,moms[8]); 
   } 
  
-  // ....... Block from weak multiply of uX and m0  .......... // 
+  // ....... Block from weak multiply of ux and m0  .......... // 
   gkyl_mat_set(A,0,0,0.7071067811865475*m0r[0]); 
   gkyl_mat_set(A,0,1,0.7071067811865475*m0r[1]); 
   gkyl_mat_set(A,0,2,0.7071067811865475*m0r[2]); 
@@ -67,7 +67,7 @@ GKYL_CU_DH void gyrokinetic_self_prim_moments_1x1v_ser_p2(struct gkyl_mat *A, st
   gkyl_mat_set(A,2,1,0.6324555320336759*m0r[1]); 
   gkyl_mat_set(A,2,2,0.4517539514526256*m0r[2]+0.7071067811865475*m0r[0]); 
  
-  // ....... Block from correction to uX .......... // 
+  // ....... Block from correction to ux .......... // 
   gkyl_mat_set(A,0,3,-0.7071067811865475*cMr[0]); 
   gkyl_mat_set(A,0,4,-0.7071067811865475*cMr[1]); 
   gkyl_mat_set(A,0,5,-0.7071067811865475*cMr[2]); 
@@ -78,7 +78,7 @@ GKYL_CU_DH void gyrokinetic_self_prim_moments_1x1v_ser_p2(struct gkyl_mat *A, st
   gkyl_mat_set(A,2,4,-0.6324555320336759*cMr[1]); 
   gkyl_mat_set(A,2,5,(-0.4517539514526256*cMr[2])-0.7071067811865475*cMr[0]); 
  
-  // ....... Block from weak multiply of uX and m1X  .......... // 
+  // ....... Block from weak multiply of ux and m1x  .......... // 
   gkyl_mat_set(A,3,0,0.7071067811865475*m1r[0]); 
   gkyl_mat_set(A,3,1,0.7071067811865475*m1r[1]); 
   gkyl_mat_set(A,3,2,0.7071067811865475*m1r[2]); 
