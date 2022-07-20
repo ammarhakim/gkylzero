@@ -810,7 +810,7 @@ moment_non_ideal_init(const struct gkyl_moment_app *app, struct moment_non_ideal
     .nfluids = app->num_species,
     .epsilon0 = app->field.epsilon0,
     // Check for multiplicative collisionality factor, default is 1.0
-    .coll_fac = app->coll_fac == 0 ? 1.0 : app->coll_fac,
+    .coll_fac = app->coll_fac ? 1.0 : app->coll_fac,
   };
   for (int i=0; i<app->num_species; ++i) {
     // Braginskii coefficients depend on pressure and coefficient to obtain
