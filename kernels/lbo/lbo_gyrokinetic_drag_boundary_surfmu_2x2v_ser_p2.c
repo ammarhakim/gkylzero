@@ -13,8 +13,6 @@ GKYL_CU_DH void lbo_gyrokinetic_drag_boundary_surfmu_2x2v_ser_p2(const double *w
   double rdv2 = 2.0/dxv[3]; 
 
   double alphaDrSurf[20] = {0.0}; 
-  double fUpwindQuad[27] = {0.0};
-  double fUpwind[20] = {0.0};;
   double Ghat[20] = {0.0}; 
 
   if (edge == -1) { 
