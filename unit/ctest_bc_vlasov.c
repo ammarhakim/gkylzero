@@ -72,7 +72,7 @@ static void skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
   }
 }
 
-void test_bc(int cdim, int vdim, int poly_order, char *boundary_type) {
+void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGPU) {
   int ndim = cdim + vdim;
   double lower[ndim], upper[ndim];
   int cells[ndim];
@@ -148,9 +148,12 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type) {
 
   // Make a DG equation object
   struct gkyl_dg_eqn *eqn =
-      gkyl_dg_vlasov_new(&confBasis, &basis, &local, GKYL_FIELD_E_B, false);
+      gkyl_dg_vlasov_new(&confBasis, &basis, &local, GKYL_FIELD_E_B, useGPU);
 
   // Create the boundary condition
+  // GPU notes:
+  // Change the false in dg_vlasov_new to true to trip the flag inside
+  // bc_create(). Put copy_buffer() fxns on GPU too. Need distf on gpu. 
   for (int bc_dir = 0; bc_dir < cdim; bc_dir++) {
 
     struct gkyl_array_copy_func *bc;
@@ -253,23 +256,24 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type) {
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_bc_wall_1x1v_p1() { test_bc(1, 1, 1, "wall"); }
-void test_bc_wall_1x2v_p1() { test_bc(1, 2, 1, "wall"); }
-void test_bc_wall_2x2v_p1() { test_bc(2, 2, 1, "wall"); }
-void test_bc_wall_3x2v_p1() { test_bc(2, 2, 1, "wall"); }
-void test_bc_wall_1x1v_p2() { test_bc(1, 1, 2, "wall"); }
-void test_bc_wall_1x2v_p2() { test_bc(1, 2, 2, "wall"); }
-void test_bc_wall_2x2v_p2() { test_bc(2, 2, 2, "wall"); }
-void test_bc_wall_3x2v_p2() { test_bc(2, 2, 2, "wall"); }
+void test_bc_wall_1x1v_p1()   { test_bc(1, 1, 1, "wall",  false); }
+void test_bc_wall_1x2v_p1()   { test_bc(1, 2, 1, "wall",  false); }
+void test_bc_wall_2x2v_p1()   { test_bc(2, 2, 1, "wall",  false); }
+void test_bc_wall_3x2v_p1()   { test_bc(2, 2, 1, "wall",  false); }
+void test_bc_wall_1x1v_p2()   { test_bc(1, 1, 2, "wall",  false); }
+void test_bc_wall_1x2v_p2()   { test_bc(1, 2, 2, "wall",  false); }
+void test_bc_wall_2x2v_p2()   { test_bc(2, 2, 2, "wall",  false); }
+void test_bc_wall_3x2v_p2()   { test_bc(2, 2, 2, "wall",  false); }
+void test_bc_absorb_1x1v_p1() { test_bc(1, 1, 1, "absorb",false); }
+void test_bc_absorb_1x2v_p1() { test_bc(1, 2, 1, "absorb",false); }
+void test_bc_absorb_2x2v_p1() { test_bc(2, 2, 1, "absorb",false); }
+void test_bc_absorb_3x2v_p1() { test_bc(2, 2, 1, "absorb",false); }
+void test_bc_absorb_1x1v_p2() { test_bc(1, 1, 2, "absorb",false); }
+void test_bc_absorb_1x2v_p2() { test_bc(1, 2, 2, "absorb",false); }
+void test_bc_absorb_2x2v_p2() { test_bc(2, 2, 2, "absorb",false); }
+void test_bc_absorb_3x2v_p2() { test_bc(2, 2, 2, "absorb",false); }
 
-void test_bc_absorb_1x1v_p1() { test_bc(1, 1, 1, "absorb"); }
-void test_bc_absorb_1x2v_p1() { test_bc(1, 2, 1, "absorb"); }
-void test_bc_absorb_2x2v_p1() { test_bc(2, 2, 1, "absorb"); }
-void test_bc_absorb_3x2v_p1() { test_bc(2, 2, 1, "absorb"); }
-void test_bc_absorb_1x1v_p2() { test_bc(1, 1, 2, "absorb"); }
-void test_bc_absorb_1x2v_p2() { test_bc(1, 2, 2, "absorb"); }
-void test_bc_absorb_2x2v_p2() { test_bc(2, 2, 2, "absorb"); }
-void test_bc_absorb_3x2v_p2() { test_bc(2, 2, 2, "absorb"); }
+void test_bc_wall_1x1v_p1_gpu(){ test_bc(1, 1, 1, "wall",  true); }
 
 TEST_LIST = {
     {"test_bc_wall_1x1v_p1", test_bc_wall_1x1v_p1},
@@ -288,5 +292,6 @@ TEST_LIST = {
     {"test_bc_absorb_1x2v_p2", test_bc_absorb_1x2v_p2},
     {"test_bc_absorb_2x2v_p2", test_bc_absorb_2x2v_p2},
     {"test_bc_absorb_3x2v_p2", test_bc_absorb_3x2v_p2},
+    {"test_bc_wall_1x1v_p1_gpu", test_bc_wall_1x1v_p1_gpu},
     {NULL, NULL},
 };
