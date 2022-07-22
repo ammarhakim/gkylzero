@@ -429,10 +429,13 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
 
   if (species->collision_id == GKYL_LBO_COLLISIONS)
     vm_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
-
+  
   if (species->source_id)
     vm_species_source_rhs(app, species, &species->src, fin, rhs);
 
+  // bflux calculation needs to be after source. The source uses bflux from the previous stage.
+  // There's also an order of operations issue since the source may use bflux from a different
+  // species, using the previous step insures all species bflux are updated before the source.
   if (species->calc_bflux)
     vm_species_bflux_rhs(app, species, &species->bflux, fin, rhs);
   

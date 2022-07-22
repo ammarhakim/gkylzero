@@ -4,13 +4,12 @@
 void 
 vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_source *src)
 {
-  // ensure that boundary fluxes will be calculated if needed for source
   if (s->source_id == GKYL_BFLUX_SOURCE) {
     assert(s->info.source.source_length);
     assert(s->info.source.source_species);
     src->source_length = s->info.source.source_length;
     src->source_species = vm_find_species(app, s->info.source.source_species);
-    src->source_species->calc_bflux = true;
+    src->source_species->calc_bflux = true; // ensure that boundary fluxes will be calculated
   }
   
   // we need to ensure source has same shape as distribution function
