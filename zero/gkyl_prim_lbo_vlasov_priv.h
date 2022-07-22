@@ -9,10 +9,10 @@
 typedef void (*vlasov_self_prim_t)(struct gkyl_mat *A, struct gkyl_mat *rhs, 
   const double *moms, const double *boundary_corrections);
 
-typedef void (*vlasov_cross_prim_t)(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *greeneFac,
+typedef void (*vlasov_cross_prim_t)(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *greene,
   const double m_self, const double *u_self, const double *vtsq_self,
   const double m_other, const double *u_other, const double *vtsq_other,
-  const double *nu, const double *moms, const double *boundary_corrections);
+  const double *moms, const double *boundary_corrections);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
@@ -86,13 +86,13 @@ self_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A, struct gkyl
 GKYL_CU_D
 static void
 cross_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A, struct gkyl_mat *rhs, 
-  const int *idx, const double *greeneFac, const double m_self,
+  const int *idx, const double *greene, const double m_self,
   const double *u_self, const double *vtsq_self, const double m_other,
   const double *u_other, const double *vtsq_other,
-  const double *nu, const double *moms, const double *boundary_corrections)
+  const double *moms, const double *boundary_corrections)
 {
   struct prim_lbo_type_vlasov *prim_vlasov = container_of(prim, struct prim_lbo_type_vlasov, prim);
 
-  return prim_vlasov->cross_prim(A, rhs, greeneFac, m_self, u_self, vtsq_self,
-    m_other, u_other, vtsq_other, nu, moms, boundary_corrections);
+  return prim_vlasov->cross_prim(A, rhs, greene, m_self, u_self, vtsq_self,
+    m_other, u_other, vtsq_other, moms, boundary_corrections);
 }

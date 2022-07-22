@@ -39,7 +39,6 @@ gkyl_prim_lbo_cross_calc* gkyl_prim_lbo_cross_calc_cu_dev_new(const struct gkyl_
  * @param cross_m Mass of the colliding species
  * @param cross_u Drift velocity of the colliding species
  * @param cross_vtsq Thermal velocity of the colliding species
- * @param nu Cross species collision frequency.
  * @param moms Moments of distribution function (Zeroth, First, and Second)
  * @param boundary_corrections Momentum and Energy boundary corrections
  * @param u_out Output drift velocity primitive moment array
@@ -50,7 +49,7 @@ void gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc,
   const struct gkyl_array *greene,
   double self_m, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
   double cross_m, const struct gkyl_array *cross_u, const struct gkyl_array *cross_vtsq, 
-  const struct gkyl_array *nu, const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections, 
+  const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections, 
   struct gkyl_array *u_out, struct gkyl_array *vtsq_out);
 
 void gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc,
@@ -58,7 +57,7 @@ void gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc,
   const struct gkyl_array *greene,
   double self_m, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
   double cross_m, const struct gkyl_array *cross_u, const struct gkyl_array *cross_vtsq, 
-  const struct gkyl_array *nu, const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections, 
+  const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections, 
   struct gkyl_array *u_out, struct gkyl_array *vtsq_out);
 
 /**

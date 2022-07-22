@@ -263,7 +263,7 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
 
   gkyl_prim_lbo_cross_calc_advance(crossprimcalc, confBasis, &confLocal, greene,
     self_m, u, vth, cross_m, cross_u, cross_vtsq,
-    nu, moms, boundary_corrections, u_out, vtsq_out);
+    moms, boundary_corrections, u_out, vtsq_out);
   
   // Check cross u
   // 1-indexed for interfacing with G2 Lua layer
@@ -456,7 +456,7 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
 
   gkyl_prim_lbo_cross_calc_advance_cu(crossprimcalc, confBasis, &confLocal, greene,
     self_m, u_cu, vth_cu, cross_m, cross_u, cross_vtsq,
-    nu_cu, moms_cu, boundary_corrections_cu, u_out_cu, vtsq_out_cu);
+    moms_cu, boundary_corrections_cu, u_out_cu, vtsq_out_cu);
   gkyl_array_copy(u_out, u_out_cu);
   gkyl_array_copy(vtsq_out, vtsq_out_cu);
   
