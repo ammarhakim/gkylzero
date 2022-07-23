@@ -47,7 +47,3 @@ void gkyl_bc_basic_advance(const struct gkyl_bc_basic *up, struct gkyl_array *bu
  * @param up BC updater.
  */
 void gkyl_bc_basic_release(struct gkyl_bc_basic *up);
-
-#ifdef GKYL_HAVE_CUDA
-
-#endif

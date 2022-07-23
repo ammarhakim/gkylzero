@@ -15,6 +15,22 @@ struct gkyl_bc_basic {
   struct gkyl_array_copy_func *array_copy_func;
 };
 
+#ifdef GKYL_HAVE_CUDA
+
+/**
+ * CUDA device function to set up function to apply boundary conditions.
+
+ * @param dir Direction in which to apply BC .
+ * @param cdim Number of configuration space dimensions.
+ * @param bctype Type of BC .
+ * @param basis Basis in which to expand coefficients in array we apply BC to.
+ * @return Pointer to array_copy_func which can be passed to array_copy_fn methods.
+ */
+struct gkyl_array_copy_func* gkyl_bc_basic_create_arr_copy_func_cu(int dir, int cdim,
+  enum gkyl_bc_basic_type bctype, const struct gkyl_basis *basis);
+
+#endif
+
 // context for use in BCs
 struct dg_bc_ctx {
   int dir; // direction for BCs
@@ -40,44 +56,5 @@ species_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
 
   mc->basis->flip_odd_sign(dir, inp, out);
   mc->basis->flip_odd_sign(dir+cdim, out, out);
-}
-
-struct gkyl_array_copy_func*
-gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bctype,
-  const struct gkyl_basis *basis)
-{
-#ifdef GKYL_HAVE_CUDA
-//  This needs to be updated. This is from old vlasov code.
-//  if (gkyl_dg_eqn_is_cu_dev(eqn)) {
-//    return gkyl_vlasov_absorb_bc_create_cu(dir, basis);
-//  }
-#endif
-
-  struct dg_bc_ctx *ctx = (struct dg_bc_ctx*) gkyl_malloc(sizeof(struct dg_bc_ctx));
-  ctx->basis = basis;
-  ctx->dir = dir;
-  ctx->cdim = cdim;
-
-  struct gkyl_array_copy_func *fout = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
-  switch (bctype) {
-    case BC_ABSORB:
-      fout->func = species_absorb_bc;
-      break;
-
-    case BC_REFLECT:
-      fout->func = species_reflect_bc;
-      break;
-
-    default:
-      assert(false);
-      break;
-  }
-  fout->ctx = ctx;
-  fout->ctx_on_dev = fout->ctx;
-
-  fout->flags = 0;
-  GKYL_CLEAR_CU_ALLOC(fout->flags);
-  fout->on_dev = fout; // CPU function obj points to itself.
-  return fout;
 }
 

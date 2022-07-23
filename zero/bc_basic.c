@@ -2,6 +2,45 @@
 #include <gkyl_bc_basic_priv.h>
 #include <gkyl_alloc.h>
 
+// Private function to create a pointer to the function that applies the BC,
+// i.e., the array_copy_func applied to expansion coefficients in ghost cell.
+struct gkyl_array_copy_func*
+gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bctype,
+  const struct gkyl_basis *basis, bool use_gpu)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu)
+    return gkyl_bc_basic_create_arr_copy_func_cu(dir, cdim, bctype, basis);
+#endif
+
+  struct dg_bc_ctx *ctx = (struct dg_bc_ctx*) gkyl_malloc(sizeof(struct dg_bc_ctx));
+  ctx->basis = basis;
+  ctx->dir = dir;
+  ctx->cdim = cdim;
+
+  struct gkyl_array_copy_func *fout = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
+  switch (bctype) {
+    case BC_ABSORB:
+      fout->func = species_absorb_bc;
+      break;
+
+    case BC_REFLECT:
+      fout->func = species_reflect_bc;
+      break;
+
+    default:
+      assert(false);
+      break;
+  }
+  fout->ctx = ctx;
+  fout->ctx_on_dev = fout->ctx;
+
+  fout->flags = 0;
+  GKYL_CLEAR_CU_ALLOC(fout->flags);
+  fout->on_dev = fout; // CPU function obj points to itself.
+  return fout;
+}
+
 struct gkyl_bc_basic*
 gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range* local_range_ext,
   const int *num_ghosts, enum gkyl_bc_basic_type bctype, const struct gkyl_basis *basis,
@@ -20,7 +59,7 @@ gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range* loc
 
   // Create function applied to array contents (DG coefficients) when copying
   // to/from buffer.
-  up->array_copy_func = gkyl_bc_basic_create_arr_copy_func(dir, cdim, bctype, basis);
+  up->array_copy_func = gkyl_bc_basic_create_arr_copy_func(dir, cdim, bctype, basis, use_gpu);
   return up;
 }
 

@@ -24,57 +24,57 @@ gkyl_gyrokinetic_free(const struct gkyl_ref_count *ref)
   gkyl_free(gyrokinetic);
 }
 
-struct gkyl_array_copy_func*
-gkyl_gyrokinetic_reflect_bc_create(const struct gkyl_dg_eqn *eqn, int dir, const struct gkyl_basis* pbasis)
-{
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_dg_eqn_is_cu_dev(eqn)) {
-    return gkyl_gyrokinetic_reflect_bc_create_cu(eqn->on_dev, dir, pbasis);
-  }
-#endif
-
-  struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
-
-  struct dg_bc_ctx *ctx = (struct dg_bc_ctx*) gkyl_malloc(sizeof(struct dg_bc_ctx));
-  ctx->dir = dir;
-  ctx->cdim = gyrokinetic->cdim;
-  ctx->basis = pbasis;
-
-  struct gkyl_array_copy_func *bc = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
-  bc->func = gyrokinetic->reflect_bc;
-  bc->ctx = ctx;
-  bc->ctx_on_dev = bc->ctx;
-
-  bc->flags = 0;
-  GKYL_CLEAR_CU_ALLOC(bc->flags);
-  bc->on_dev = bc; // CPU eqn obj points to itself
-  return bc;
-}
-
-struct gkyl_array_copy_func*
-gkyl_gyrokinetic_absorb_bc_create(const struct gkyl_dg_eqn *eqn, int dir, const struct gkyl_basis* pbasis)
-{
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_dg_eqn_is_cu_dev(eqn)) {
-    return gkyl_gyrokinetic_absorb_bc_create_cu(eqn->on_dev, dir, pbasis);
-  }
-#endif
-
-  struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
-
-  struct dg_bc_ctx *ctx = (struct dg_bc_ctx*) gkyl_malloc(sizeof(struct dg_bc_ctx));
-  ctx->basis = pbasis;
-
-  struct gkyl_array_copy_func *bc = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
-  bc->func = gyrokinetic->absorb_bc;
-  bc->ctx = ctx;
-  bc->ctx_on_dev = bc->ctx;
-
-  bc->flags = 0;
-  GKYL_CLEAR_CU_ALLOC(bc->flags);
-  bc->on_dev = bc; // CPU eqn obj points to itself
-  return bc;
-}
+//struct gkyl_array_copy_func*
+//gkyl_gyrokinetic_reflect_bc_create(const struct gkyl_dg_eqn *eqn, int dir, const struct gkyl_basis* pbasis)
+//{
+//#ifdef GKYL_HAVE_CUDA
+//  if (gkyl_dg_eqn_is_cu_dev(eqn)) {
+//    return gkyl_gyrokinetic_reflect_bc_create_cu(eqn->on_dev, dir, pbasis);
+//  }
+//#endif
+//
+//  struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
+//
+//  struct dg_bc_ctx *ctx = (struct dg_bc_ctx*) gkyl_malloc(sizeof(struct dg_bc_ctx));
+//  ctx->dir = dir;
+//  ctx->cdim = gyrokinetic->cdim;
+//  ctx->basis = pbasis;
+//
+//  struct gkyl_array_copy_func *bc = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
+//  bc->func = gyrokinetic->reflect_bc;
+//  bc->ctx = ctx;
+//  bc->ctx_on_dev = bc->ctx;
+//
+//  bc->flags = 0;
+//  GKYL_CLEAR_CU_ALLOC(bc->flags);
+//  bc->on_dev = bc; // CPU eqn obj points to itself
+//  return bc;
+//}
+//
+//struct gkyl_array_copy_func*
+//gkyl_gyrokinetic_absorb_bc_create(const struct gkyl_dg_eqn *eqn, int dir, const struct gkyl_basis* pbasis)
+//{
+//#ifdef GKYL_HAVE_CUDA
+//  if (gkyl_dg_eqn_is_cu_dev(eqn)) {
+//    return gkyl_gyrokinetic_absorb_bc_create_cu(eqn->on_dev, dir, pbasis);
+//  }
+//#endif
+//
+//  struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
+//
+//  struct dg_bc_ctx *ctx = (struct dg_bc_ctx*) gkyl_malloc(sizeof(struct dg_bc_ctx));
+//  ctx->basis = pbasis;
+//
+//  struct gkyl_array_copy_func *bc = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
+//  bc->func = gyrokinetic->absorb_bc;
+//  bc->ctx = ctx;
+//  bc->ctx_on_dev = bc->ctx;
+//
+//  bc->flags = 0;
+//  GKYL_CLEAR_CU_ALLOC(bc->flags);
+//  bc->on_dev = bc; // CPU eqn obj points to itself
+//  return bc;
+//}
 
 void
 gkyl_gyrokinetic_bc_release(struct gkyl_array_copy_func* bc)
