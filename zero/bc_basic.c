@@ -42,7 +42,7 @@ gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bc
 }
 
 struct gkyl_bc_basic*
-gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range* local_range_ext,
+gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range *local_range_ext,
   const int *num_ghosts, enum gkyl_bc_basic_type bctype, const struct gkyl_basis *basis,
   int cdim, bool use_gpu)
 {
@@ -51,7 +51,10 @@ gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range* loc
   struct gkyl_bc_basic *up = gkyl_malloc(sizeof(struct gkyl_bc_basic));
 
   up->dir = dir;
+  up->cdim = cdim;
   up->edge = edge;
+  up->bctype = bctype;
+  up->use_gpu = use_gpu;
 
   // Create the skin/ghost ranges.
   gkyl_skin_ghost_ranges(&up->skin_r, &up->ghost_r, dir, edge,
@@ -67,17 +70,26 @@ void
 gkyl_bc_basic_advance(const struct gkyl_bc_basic *up, struct gkyl_array *buff_arr, struct gkyl_array *f_arr)
 {
   // Apply BC in two steps:
-  // 1. Copy skin to buffer while applying array_copy_func.
-  gkyl_array_flip_copy_to_buffer_fn(buff_arr->data, f_arr, up->dir,
-                                    up->skin_r, up->array_copy_func);
-  // 2. Copy from buffer to ghost.
+  // 1) Copy skin to buffer while applying array_copy_func.
+  switch (up->bctype) {
+    case BC_ABSORB:
+      gkyl_array_copy_to_buffer_fn(buff_arr->data, f_arr,
+                                   up->skin_r, up->array_copy_func->on_dev);
+      break;
+
+    case BC_REFLECT:
+      gkyl_array_flip_copy_to_buffer_fn(buff_arr->data, f_arr, up->dir+up->cdim,
+                                        up->skin_r, up->array_copy_func->on_dev);
+      break;
+  }
+  // 2) Copy from buffer to ghost.
   gkyl_array_copy_from_buffer(f_arr, buff_arr->data, up->ghost_r);
 }
 
 void gkyl_bc_basic_release(struct gkyl_bc_basic *up)
 {
   // Release memory associated with array_copy_func.
-  if (gkyl_array_copy_func_is_cu_dev(up->array_copy_func)) {
+  if (up->use_gpu) {
     gkyl_cu_free(up->array_copy_func->ctx_on_dev);
     gkyl_cu_free(up->array_copy_func->on_dev);
   }

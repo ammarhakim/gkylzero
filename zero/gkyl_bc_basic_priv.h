@@ -9,10 +9,12 @@
 
 // Primary struct in this updater.
 struct gkyl_bc_basic {
-  int dir;
+  int dir, cdim;
   enum gkyl_edge_loc edge;
+  enum gkyl_bc_basic_type bctype;
   struct gkyl_range skin_r, ghost_r;
   struct gkyl_array_copy_func *array_copy_func;
+  bool use_gpu;
 };
 
 #ifdef GKYL_HAVE_CUDA
