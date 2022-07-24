@@ -242,7 +242,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     if (vm_find_fluid_species(app, s->info.collisions.collide_with_fluid)) {
       s->collides_with_fluid = true;
       // index in fluid_species struct of fluid species kinetic species is colliding with
-      s->fluid_index = s->info.collisions.fluid_index;
+      s->fluid_index = vm_find_fluid_species_idx(app, s->info.collisions.collide_with_fluid);
     }
     vm_species_lbo_init(app, s, &s->lbo, s->collides_with_fluid);
   }
@@ -252,7 +252,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   if (vm_find_fluid_species(app, s->info.mirror_force.fluid_mirror_force)) {
     s->has_mirror_force = true;
     // index in fluid_species struct of fluid species kinetic species 
-    s->fluid_index = s->info.mirror_force.fluid_mirror_force_index;
+    s->fluid_index = vm_find_fluid_species_idx(app, s->info.mirror_force.fluid_mirror_force);
 
     // gradB and Bmag are both scalar fields in configuration space
     s->magB = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);

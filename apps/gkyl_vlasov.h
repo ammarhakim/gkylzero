@@ -20,8 +20,6 @@ struct gkyl_vlasov_mirror_force {
   void (*gradB)(double t, const double *xn, double *gradBout, void *ctx);
 
   char fluid_mirror_force[128]; // name of fluid species for the mirror force
-  int fluid_mirror_force_index; // index of the fluid species being used for mirror force
-                                // index corresponds to location in fluid_species array (size num_fluid_species)
 };
 
 // Parameters for species collisions
@@ -36,8 +34,6 @@ struct gkyl_vlasov_collisions {
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
 
   char collide_with_fluid[128]; // name of fluid species to cross collide with
-  int fluid_index; // index of the fluid species being collided with
-                   // index corresponds to location in fluid_species array (size num_fluid_species)
 };
 
 // Parameters for fluid species advection

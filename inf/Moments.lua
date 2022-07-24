@@ -70,6 +70,7 @@ enum gkyl_species_bc_type {
   GKYL_SPECIES_COPY = 0, // copy BCs
   GKYL_SPECIES_WALL, // perfect reflector
   GKYL_SPECIES_ABSORB, // absorbing BCs
+  GKYL_SPECIES_NO_SLIP, // no-slip BCs
   GKYL_SPECIES_WEDGE, // specialized "wedge" BCs for RZ-theta
 };
 
@@ -539,6 +540,7 @@ local species_mt = {
       -- we need this here also to be consistent with G2 App
       bcWall = C.GKYL_SPECIES_WALL,
       bcCopy = C.GKYL_SPECIES_COPY,
+      bcNoSlip = C.GKYL_SPECIES_NO_SLIP,
       bcWedge = C.GKYL_SPECIES_WEDGE
    }
 }

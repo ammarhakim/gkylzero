@@ -1260,7 +1260,7 @@ TEST_LIST = {
   { "test_1x1v_p1", test_1x1v_p1 },
   { "test_1x2v_p1", test_1x2v_p1 },
   { "test_2x2v_p1", test_2x2v_p1 },
-  { "test_big_2x2v_p2", test_big_2x2v_p2 },  
+//  { "test_big_2x2v_p2", test_big_2x2v_p2 },  
   { "test_2x3v_p1", test_2x3v_p1 },
 #ifdef GKYL_HAVE_CUDA
   { "cu_mom_vlasov", test_cu_mom_vlasov },
@@ -1268,7 +1268,7 @@ TEST_LIST = {
   { "test_1x2v_p1_cu", test_1x2v_p1_cu },
   { "test_2x2v_p1_cu", test_2x2v_p1_cu },
   { "test_2x3v_p1_cu", test_2x3v_p1_cu },
-  { "test_big_2x2v_p2_cu", test_big_2x2v_p2_cu },
+//  { "test_big_2x2v_p2_cu", test_big_2x2v_p2_cu },
 #endif
   { NULL, NULL },
 };
