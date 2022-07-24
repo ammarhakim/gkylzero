@@ -263,7 +263,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
           break;
 
         default:
-          // can't happen
+          assert(false);
           break;
       }
       
@@ -279,6 +279,10 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         case GKYL_SPECIES_WEDGE:
           sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_copy, 0);
+          break;
+
+        default:
+          assert(false);
           break;
       }
     }

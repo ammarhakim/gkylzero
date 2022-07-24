@@ -28,8 +28,6 @@ typedef void (*gyrokinetic_boundary_surf_t)(const double *w, const double *dxv, 
   const double *phi, const double *apar, const double *apardot, const int edge,
   const double *fedge, const double *fskin, double* GKYL_RESTRICT out);
 
-typedef void (*bc_funcf_t)(size_t nc, double *out, const double *inp, void *ctx);
-
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below.
 static struct { int vdim[3]; } cv_index[] = {
@@ -144,8 +142,6 @@ struct dg_gyrokinetic {
   gyrokinetic_step2_vol_t step2_vol; // Volume kernel.
   gyrokinetic_surf_t surf[4]; // Surface terms.
   gyrokinetic_boundary_surf_t boundary_surf; // Surface terms for velocity boundary.
-  bc_funcf_t reflect_bc; // reflect BCs function
-  bc_funcf_t absorb_bc; // Absorbing BCs function
   struct gkyl_range conf_range; // Configuration space range.
   double charge, mass;
   struct gkyl_dg_gyrokinetic_auxfields auxfields; // Auxiliary fields.

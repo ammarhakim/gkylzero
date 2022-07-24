@@ -50,21 +50,6 @@ struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbas
  */
 void gkyl_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin);
 
-struct gkyl_array_copy_func* gkyl_gyrokinetic_reflect_bc_create(const struct gkyl_dg_eqn *eqn, 
-  int dir, const struct gkyl_basis* pbasis);
-
-/**
- * Set up function to apply absorbing boundary conditions.
- * 
- * @param eqn Equation pointer.
- * @param dir Direction to apply absorbing boundary conditions.
- * @param pbasis Phase space basis
- * @return Pointer to array_copy_func which can be passed to array_copy_fn methods
- */
-
-struct gkyl_array_copy_func* gkyl_gyrokinetic_absorb_bc_create(const struct gkyl_dg_eqn *eqn, 
-  int dir, const struct gkyl_basis* pbasis);
-
 /**
  * Release boundary conditions function.
  * 
@@ -83,29 +68,6 @@ void gkyl_gyrokinetic_bc_release(struct gkyl_array_copy_func* bc);
  */
 void gkyl_gyrokinetic_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin);
 
-/**
- * CUDA device function to set up function to apply reflect boundary conditions.
- * 
- * @param eqn Equation pointer.
- * @param dir Direction to apply reflect boundary conditions.
- * @param pbasis Phase space basis
- * @return Pointer to array_copy_func which can be passed to array_copy_fn methods
- */
-
-struct gkyl_array_copy_func* gkyl_gyrokinetic_reflect_bc_create_cu(const struct gkyl_dg_eqn *eqn, 
-  int dir, const struct gkyl_basis* pbasis);
-
-/**
- * CUDA device function to set up function to apply absorbing boundary conditions.
- * 
- * @param eqn Equation pointer.
- * @param dir Direction to apply absorbing boundary conditions.
- * @param pbasis Phase space basis
- * @return Pointer to array_copy_func which can be passed to array_copy_fn methods
- */
-
-struct gkyl_array_copy_func* gkyl_gyrokinetic_absorb_bc_create_cu(const struct gkyl_dg_eqn *eqn, 
-  int dir, const struct gkyl_basis* pbasis);
 #endif
 
 
