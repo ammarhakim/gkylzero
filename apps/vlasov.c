@@ -5,9 +5,26 @@
 
 #include <gkyl_vlasov_priv.h>
 
+#if defined(__GNUC__) || defined(__GNUG__)
+# include <xmmintrin.h>
+#endif
+
+static void
+disable_denom_float(void)
+{
+  // This prevents denormalized floats from occuring in
+  // code. Otherwise, the code become horribly slow in some rare (but
+  // not impossible to reproduce) situations.
+#if defined(__GNUC__) || defined(__GNUG__)
+  _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
+#endif
+}
+
 gkyl_vlasov_app*
 gkyl_vlasov_app_new(struct gkyl_vm *vm)
 {
+  disable_denom_float();
+  
   assert(vm->num_species <= GKYL_MAX_SPECIES);
   
   gkyl_vlasov_app *app = gkyl_malloc(sizeof(gkyl_vlasov_app));
