@@ -250,7 +250,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
       // lower BCs
       switch (bc[0]) {
-        case GKYL_SPECIES_WALL:
+        case GKYL_SPECIES_REFLECT:
           sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
             mom_sp->equation->wall_bc_func, 0);
@@ -269,7 +269,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
       
       // upper BCs
       switch (bc[1]) {
-        case GKYL_SPECIES_WALL:      
+        case GKYL_SPECIES_REFLECT:      
           sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
             mom_sp->equation->wall_bc_func, 0);
