@@ -3,6 +3,7 @@
 #include <gkyl_basis_gkhyb_kernels.h>
 
 // Basis function eval for each dimension: ev_list[ndim].ev[poly_order]
+GKYL_CU_D
 static struct { void (*ev[4])(const double *z, double *b); } ev_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
   { NULL, NULL, NULL, NULL }, // No 1D basis functions
@@ -14,6 +15,7 @@ static struct { void (*ev[4])(const double *z, double *b); } ev_list[] = {
 };
 
 // Expansion eval for each dimension: eve_list[ndim].ev[poly_order]
+GKYL_CU_D
 static struct { double (*ev[4])(const double *z, const double *f); } eve_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
   { NULL, NULL, NULL, NULL }, // No 1D basis functions
@@ -25,6 +27,7 @@ static struct { double (*ev[4])(const double *z, const double *f); } eve_list[] 
 };
 
 // Expansion eval_grad for each dimension: eveg_list[ndim].ev[poly_order]
+GKYL_CU_D
 static struct { double (*ev[4])(int dir, const double *z, const double *f); } eveg_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
   { NULL, NULL, NULL, NULL }, // No 1D basis functions
@@ -36,6 +39,7 @@ static struct { double (*ev[4])(int dir, const double *z, const double *f); } ev
 };
 
 // Flip-sign functions: ev_list[ndim].ev[poly_order]
+GKYL_CU_D
 static struct { void (*fs[4])(int dir, const double *f, double *fout); } fos_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
   { NULL, NULL, NULL, NULL }, // No 1D basis functions
@@ -47,6 +51,7 @@ static struct { void (*fs[4])(int dir, const double *f, double *fout); } fos_lis
 };
 
 // Flip-sign functions: ev_list[ndim].ev[poly_order]
+GKYL_CU_D
 static struct { void (*fs[4])(int dir, const double *f, double *fout); } fes_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
   { NULL, NULL, NULL, NULL }, // No 1D basis functions
@@ -58,6 +63,7 @@ static struct { void (*fs[4])(int dir, const double *f, double *fout); } fes_lis
 };
 
 // Number of basis functions: num_basis_list[ndim].count[poly_order]
+GKYL_CU_D
 static struct { int count[4]; } num_basis_list[] = {
   { 0, 0, 0, 0 },
   { 0, 0, 0, 0 },
@@ -68,6 +74,7 @@ static struct { int count[4]; } num_basis_list[] = {
 };
 
 // Node list function: ev_list[ndim].ev[poly_order]
+GKYL_CU_D
 static struct { void (*nl[4])(double * node_list); } nl_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
   { NULL, NULL, NULL, NULL }, // No 1D basis functions
@@ -78,6 +85,7 @@ static struct { void (*nl[4])(double * node_list); } nl_list[] = {
 };
 
 // Nodal -> modal conversion functions: ev_list[ndim].ev[poly_order]
+GKYL_CU_D
 static struct { void (*n2m[4])(const double *fnodal, double *fmodal); } n2m_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
   { NULL, NULL, NULL, NULL }, // No 1D basis functions
