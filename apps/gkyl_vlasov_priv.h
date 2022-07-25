@@ -155,11 +155,9 @@ struct vm_species {
 
   // boundary conditions on lower/upper edges in each direction  
   enum gkyl_species_bc_type lower_bc[3], upper_bc[3];
-  // Note: we need to store pointers to the struct as these may
-  // actually be on the GPUs. Seems ugly, but I am not sure how else
-  // to ensure the function and context lives on the GPU
-  struct gkyl_array_copy_func *wall_bc_func[3]; // for wall BCs
-  struct gkyl_array_copy_func *absorb_bc_func[3]; // for absorbing BCs
+  // Pointers to updaters that apply BC.
+  struct gkyl_bc_basic *bc_lo[3];
+  struct gkyl_bc_basic *bc_up[3];
 
   bool has_accel; // flag to indicate there is applied acceleration
   struct gkyl_array *accel; // applied acceleration
@@ -601,32 +599,6 @@ void vm_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_species 
  */
 void
 vm_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_species *species,
-  int dir, enum vm_domain_edge edge, struct gkyl_array *f);
-
-/**
- * Apply wall BCs to species distribution function
- *
- * @param app Vlasov app object
- * @param species Pointer to species
- * @param dir Direction to apply BCs
- * @param edge Edge to apply BCs
- * @param f Field to apply BCs
- */
-void
-vm_species_apply_wall_bc(gkyl_vlasov_app *app, const struct vm_species *species,
-  int dir, enum vm_domain_edge edge, struct gkyl_array *f);
-
-/**
- * Apply absorbing BCs to species distribution function
- *
- * @param app Vlasov app object
- * @param species Pointer to species
- * @param dir Direction to apply BCs
- * @param edge Edge to apply BCs
- * @param f Field to apply BCs
- */
-void
-vm_species_apply_absorb_bc(gkyl_vlasov_app *app, const struct vm_species *species,
   int dir, enum vm_domain_edge edge, struct gkyl_array *f);
 
 /**

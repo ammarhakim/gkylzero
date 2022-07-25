@@ -79,7 +79,7 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalDistFunc,
 
-    .bcx = { GKYL_SPECIES_WALL, GKYL_SPECIES_WALL },
+    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
