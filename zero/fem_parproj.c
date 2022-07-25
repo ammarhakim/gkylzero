@@ -66,7 +66,7 @@ local_mass(const int dim, const int poly_order, const int basis_type, struct gky
 
 gkyl_fem_parproj*
 gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-  const bool isparperiodic, void *ctx, bool use_gpu)
+  const bool isparperiodic, bool use_gpu)
 {
   gkyl_fem_parproj *up = gkyl_malloc(sizeof(gkyl_fem_parproj));
 
@@ -78,7 +78,6 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
    }
  #endif
 
-  up->ctx = ctx;
   up->ndim = grid->ndim;
   up->grid = *grid;
   up->num_basis = basis.num_basis;

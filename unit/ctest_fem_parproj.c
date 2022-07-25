@@ -117,7 +117,7 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu)
   if (use_gpu) gkyl_array_copy(rho_cu, rho);
 
   // parallel FEM projection method.
-  gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&grid, basis, isperiodic, NULL, use_gpu);
+  gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&grid, basis, isperiodic, use_gpu);
 
   // Set the RHS source.
   if (use_gpu)
@@ -302,7 +302,7 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
   if (use_gpu) gkyl_array_copy(rho_cu, rho);
 
   // parallel FEM projection method.
-  gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&grid, basis, isperiodic, NULL, use_gpu);
+  gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&grid, basis, isperiodic, use_gpu);
 
   // Set the RHS source.
   if (use_gpu)
