@@ -5,7 +5,7 @@
 #include <gkyl_array.h>
 
 // BC types in this updater.
-enum gkyl_bc_basic_type { BC_ABSORB, BC_REFLECT };
+enum gkyl_bc_basic_type { GKYL_BC_ABSORB, GKYL_BC_REFLECT };
 
 // Object type
 typedef struct gkyl_bc_basic gkyl_bc_basic;

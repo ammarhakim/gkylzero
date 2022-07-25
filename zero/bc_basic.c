@@ -20,11 +20,11 @@ gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bc
 
   struct gkyl_array_copy_func *fout = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
   switch (bctype) {
-    case BC_ABSORB:
+    case GKYL_BC_ABSORB:
       fout->func = species_absorb_bc;
       break;
 
-    case BC_REFLECT:
+    case GKYL_BC_REFLECT:
       fout->func = species_reflect_bc;
       break;
 
@@ -72,12 +72,12 @@ gkyl_bc_basic_advance(const struct gkyl_bc_basic *up, struct gkyl_array *buff_ar
   // Apply BC in two steps:
   // 1) Copy skin to buffer while applying array_copy_func.
   switch (up->bctype) {
-    case BC_ABSORB:
+    case GKYL_BC_ABSORB:
       gkyl_array_copy_to_buffer_fn(buff_arr->data, f_arr,
                                    up->skin_r, up->array_copy_func->on_dev);
       break;
 
-    case BC_REFLECT:
+    case GKYL_BC_REFLECT:
       gkyl_array_flip_copy_to_buffer_fn(buff_arr->data, f_arr, up->dir+up->cdim,
                                         up->skin_r, up->array_copy_func->on_dev);
       break;

@@ -16,11 +16,11 @@ gkyl_bc_basic_create_set_cu_dev_ptrs(int dir, int cdim, enum gkyl_bc_basic_type 
   ctx->basis = basis;
 
   switch (bctype) {
-    case BC_ABSORB:
+    case GKYL_BC_ABSORB:
       fout->func = species_absorb_bc;
       break;
 
-    case BC_REFLECT:
+    case GKYL_BC_REFLECT:
       fout->func = species_reflect_bc;
       break;
 

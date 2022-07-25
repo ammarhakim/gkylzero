@@ -340,18 +340,18 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   for (int d=0; d<app->cdim; ++d) {
     // Lower BC updater.
     if (s->lower_bc[d] == GKYL_SPECIES_REFLECT) { 
-      s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &s->local_ext, ghost, BC_REFLECT,
+      s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &s->local_ext, ghost, GKYL_BC_REFLECT,
                                       &app->basis, app->cdim, app->use_gpu);
     } else if (s->lower_bc[d] == GKYL_SPECIES_ABSORB) {
-      s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &s->local_ext, ghost, BC_ABSORB,
+      s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &s->local_ext, ghost, GKYL_BC_ABSORB,
                                       &app->basis, app->cdim, app->use_gpu);
     }
     // Upper BC updater.
     if (s->upper_bc[d] == GKYL_SPECIES_REFLECT) {
-      s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &s->local_ext, ghost, BC_REFLECT,
+      s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &s->local_ext, ghost, GKYL_BC_REFLECT,
                                       &app->basis, app->cdim, app->use_gpu);
     } else if (s->upper_bc[d] == GKYL_SPECIES_ABSORB) {
-      s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &s->local_ext, ghost, BC_ABSORB,
+      s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &s->local_ext, ghost, GKYL_BC_ABSORB,
                                       &app->basis, app->cdim, app->use_gpu);
     }
   }
