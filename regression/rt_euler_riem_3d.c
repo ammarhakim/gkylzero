@@ -80,7 +80,7 @@ main(int argc, char **argv)
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
     .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
-    .bcz = { GKYL_SPECIES_WALL, GKYL_SPECIES_WALL },
+    .bcz = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
   };
 
   // VM app

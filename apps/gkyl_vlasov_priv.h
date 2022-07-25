@@ -153,11 +153,9 @@ struct vm_species {
 
   // boundary conditions on lower/upper edges in each direction  
   enum gkyl_species_bc_type lower_bc[3], upper_bc[3];
-  // Note: we need to store pointers to the struct as these may
-  // actually be on the GPUs. Seems ugly, but I am not sure how else
-  // to ensure the function and context lives on the GPU
-  struct gkyl_array_copy_func *wall_bc_func[3]; // for wall BCs
-  struct gkyl_array_copy_func *absorb_bc_func[3]; // for absorbing BCs
+  // Pointers to updaters that apply BC.
+  struct gkyl_bc_basic *bc_lo[3];
+  struct gkyl_bc_basic *bc_up[3];
 
   bool has_accel; // flag to indicate there is applied acceleration
   struct gkyl_array *accel; // applied acceleration
@@ -370,9 +368,18 @@ skin_ghost_ranges_init(struct vm_skin_ghost_ranges *sgr,
  *
  * @param app Top-level app to look into
  * @param nm Name of species
- * @return Pointer to species with given name. NULL if not found.o
+ * @return Pointer to species with given name. NULL if not found.
  */
 struct vm_species* vm_find_species(const gkyl_vlasov_app *app, const char *nm);
+
+/**
+ * Return index of species in the order it appears in the input.
+ *
+ * @param app Top-level app to look into
+ * @param nm Name of species
+ * @return Index of species, -1 if not found
+ */
+int vm_find_species_idx(const gkyl_vlasov_app *app, const char *nm);
 
 /**
  * Find fluid species with given name.
@@ -381,7 +388,17 @@ struct vm_species* vm_find_species(const gkyl_vlasov_app *app, const char *nm);
  * @param nm Name of fluid species
  * @return Pointer to fluid species with given name. NULL if not found.o
  */
-struct vm_fluid_species* vm_find_fluid_species(const gkyl_vlasov_app *app, const char *nm);
+struct vm_fluid_species *vm_find_fluid_species(const gkyl_vlasov_app *app, const char *nm);
+
+/**
+ * Return index fluid species in the order it appears in the input.
+ *
+ * @param app Top-level app to look into
+ * @param nm Name of fluid species
+ * @return Index of species, -1 if not found
+ */
+int vm_find_fluid_species_idx(const gkyl_vlasov_app *app, const char *nm);
+
 
 /** vm_species_moment API */
 
@@ -580,32 +597,6 @@ void vm_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_species 
  */
 void
 vm_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_species *species,
-  int dir, enum vm_domain_edge edge, struct gkyl_array *f);
-
-/**
- * Apply wall BCs to species distribution function
- *
- * @param app Vlasov app object
- * @param species Pointer to species
- * @param dir Direction to apply BCs
- * @param edge Edge to apply BCs
- * @param f Field to apply BCs
- */
-void
-vm_species_apply_wall_bc(gkyl_vlasov_app *app, const struct vm_species *species,
-  int dir, enum vm_domain_edge edge, struct gkyl_array *f);
-
-/**
- * Apply absorbing BCs to species distribution function
- *
- * @param app Vlasov app object
- * @param species Pointer to species
- * @param dir Direction to apply BCs
- * @param edge Edge to apply BCs
- * @param f Field to apply BCs
- */
-void
-vm_species_apply_absorb_bc(gkyl_vlasov_app *app, const struct vm_species *species,
   int dir, enum vm_domain_edge edge, struct gkyl_array *f);
 
 /**

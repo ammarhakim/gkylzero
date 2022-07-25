@@ -177,7 +177,7 @@ main(int argc, char **argv)
     .init = evalElcInit,
     .app_accel_func = evalAppAccel,
 
-    .bcx = { GKYL_SPECIES_WALL, GKYL_SPECIES_WALL },
+    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
   };
   struct gkyl_moment_species ion = {
     .name = "ion",
@@ -188,7 +188,7 @@ main(int argc, char **argv)
     .init = evalIonInit,
     .app_accel_func = evalAppAccel,
 
-    .bcx = { GKYL_SPECIES_WALL, GKYL_SPECIES_WALL },    
+    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },    
   };  
 
   // VM app

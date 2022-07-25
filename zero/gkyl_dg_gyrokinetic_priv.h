@@ -4,11 +4,11 @@
 
 #include <gkyl_array.h>
 #include <gkyl_dg_eqn.h>
-#include <gkyl_dg_gyrokinetic.h>
 #include <gkyl_eqn_type.h>
-#include <gkyl_gyrokinetic_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
+#include <gkyl_gyrokinetic_kernels.h>
+#include <gkyl_dg_gyrokinetic.h>
 
 // Types for various kernels.
 typedef double (*gyrokinetic_vol_t)(const double *w, const double *dxv, const double q_, const double m_,

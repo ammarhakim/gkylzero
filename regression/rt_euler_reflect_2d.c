@@ -62,8 +62,8 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalEulerInit,
 
-    .bcx = { GKYL_SPECIES_WALL, GKYL_SPECIES_WALL },
-    .bcy = { GKYL_SPECIES_WALL, GKYL_SPECIES_WALL },
+    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
+    .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
   };
 
   // VM app
