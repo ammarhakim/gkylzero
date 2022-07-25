@@ -25,17 +25,6 @@ gkyl_gyrokinetic_free(const struct gkyl_ref_count *ref)
 }
 
 void
-gkyl_gyrokinetic_bc_release(struct gkyl_array_copy_func* bc)
-{
-  if (gkyl_array_copy_func_is_cu_dev(bc)) {
-    gkyl_cu_free(bc->ctx_on_dev);
-    gkyl_cu_free(bc->on_dev);
-  }
-  gkyl_free(bc->ctx);
-  gkyl_free(bc);
-}
-
-void
 gkyl_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
