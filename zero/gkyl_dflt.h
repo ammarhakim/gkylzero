@@ -4,6 +4,12 @@
 # include <xmmintrin.h>
 #endif
 
+#if defined(__clang__)
+# if defined(__APPLE__)
+#include <fenv.h>
+# endif
+#endif  
+
 /** Disable denormalized floats from occuring */
 static void
 disable_denorm_float(void)
