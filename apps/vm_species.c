@@ -173,7 +173,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
   // acquire equation object
   s->eqn_vlasov = gkyl_dg_updater_vlasov_acquire_eqn(s->slvr);
-
+  
   // allocate data for momentum (for use in current accumulation)
   vm_species_moment_init(app, s, &s->m1i, "M1i");
   
@@ -212,27 +212,10 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       8, eval_accel, &s->accel_ctx);
   }
 
-  s->has_source = false;
+  s->source_id = s->info.source.source_id;
   // setup constant source
-  if (s->info.source) {
-    s->has_source = true;
-    // we need to ensure source has same shape as distribution function
-    s->source = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
-
-    s->source_host = s->source;
-    if (app->use_gpu)
-      s->source_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
-
-    s->source_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-        .grid = &s->grid,
-        .basis = &app->basis,
-        .qtype = GKYL_GAUSS_QUAD,
-        .num_quad = app->basis.poly_order+1,
-        .num_ret_vals = 1,
-        .eval = s->info.source,
-        .ctx = s->info.source_ctx
-      }
-    );
+  if (s->source_id) {
+    vm_species_source_init(app, s, &s->src);
   }
 
   // determine collision type to use in vlasov update
@@ -246,6 +229,10 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     }
     vm_species_lbo_init(app, s, &s->lbo, s->collides_with_fluid);
   }
+
+  // initialize boundary flux object
+  if (s->calc_bflux)
+    vm_species_bflux_init(app, s, &s->bflux);
 
   // setup mirror force from fluid species if present
   s->has_mirror_force = false;
@@ -391,10 +378,10 @@ vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, double t
 void
 vm_species_calc_source(gkyl_vlasov_app *app, struct vm_species *species, double tm)
 {
-  if (species->has_source) {
-    gkyl_proj_on_basis_advance(species->source_proj, tm, &species->local_ext, species->source_host);
+  if (species->source_id) {
+    gkyl_proj_on_basis_advance(species->src.source_proj, tm, &species->local_ext, species->src.source_host);
     if (app->use_gpu) // note: source_host is same as source when not on GPUs
-      gkyl_array_copy(species->source, species->source_host);
+      gkyl_array_copy(species->src.source, species->src.source_host);
   }
 }
 
@@ -441,13 +428,18 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
 
   if (species->collision_id == GKYL_LBO_COLLISIONS)
     vm_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
+  
+  if (species->source_id)
+    vm_species_source_rhs(app, species, &species->src, fin, rhs);
 
-  if (species->has_source)
-    gkyl_array_accumulate(rhs, 1.0, species->source);
-
+  // bflux calculation needs to be after source. The source uses bflux from the previous stage.
+  // There's also an order of operations issue since the source may use bflux from a different
+  // species, using the previous step insures all species bflux are updated before the source.
+  if (species->calc_bflux)
+    vm_species_bflux_rhs(app, species, &species->bflux, fin, rhs);
+  
   app->stat.nspecies_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
-    
   gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, species->local);
 
   double omegaCfl_ho[1];
@@ -608,12 +600,8 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     gkyl_proj_on_basis_release(s->accel_proj);
   }
 
-  if (s->has_source) {
-    gkyl_array_release(s->source);
-    if (app->use_gpu)
-      gkyl_array_release(s->source_host);
-
-    gkyl_proj_on_basis_release(s->source_proj);
+  if (s->source_id) {
+    vm_species_source_release(app, &s->src);
   }
 
   if (s->has_mirror_force) {
@@ -636,6 +624,9 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
 
   if (s->collision_id == GKYL_LBO_COLLISIONS)
     vm_species_lbo_release(app, &s->lbo);
+
+  if (s->calc_bflux)
+    vm_species_bflux_release(app, &s->bflux);
 
   for (int d=0; d<app->cdim; ++d) {
     if (s->lower_bc[d]==GKYL_SPECIES_REFLECT || s->lower_bc[d]==GKYL_SPECIES_ABSORB)

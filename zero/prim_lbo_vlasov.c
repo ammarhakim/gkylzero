@@ -32,6 +32,7 @@ gkyl_prim_lbo_vlasov_new(const struct gkyl_basis* cbasis,
   prim_vlasov->prim.num_phase = pbasis->num_basis;
   prim_vlasov->prim.self_prim = self_prim;
   prim_vlasov->prim.cross_prim = cross_prim;
+  prim_vlasov->prim.udim = vdim;
 
   // choose kernel tables based on basis-function type
   const gkyl_prim_lbo_vlasov_self_kern_list *self_prim_kernels;
