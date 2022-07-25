@@ -26,7 +26,7 @@ GKYL_CU_DH void lbo_gyrokinetic_drag_boundary_surfvpar_1x1v_ser_p2(const double 
   alphaDrSurf[1] = 0.5*(2.0*nuSum[1]*w[1]-2.0*nuUSum[1]+dxv[1]*nuSum[1]); 
   alphaDrSurf[2] = -0.5*(2.0*nuUSum[2]+((-2.0*w[1])-1.0*dxv[1])*nuSum[2]); 
 
-  if (0.6324555320336758*alphaDrSurf[2]-0.9486832980505137*alphaDrSurf[1]+0.7071067811865475*alphaDrSurf[0] < 0) { 
+  if (0.6324555320336759*alphaDrSurf[2]-0.9486832980505137*alphaDrSurf[1]+0.7071067811865475*alphaDrSurf[0] < 0) { 
     fUpwindQuad[0] = ser_2x_p2_surfx2_eval_quad_node_0_r(fSkin); 
   } else { 
     fUpwindQuad[0] = ser_2x_p2_surfx2_eval_quad_node_0_l(fEdge); 
@@ -36,7 +36,7 @@ GKYL_CU_DH void lbo_gyrokinetic_drag_boundary_surfvpar_1x1v_ser_p2(const double 
   } else { 
     fUpwindQuad[1] = ser_2x_p2_surfx2_eval_quad_node_1_l(fEdge); 
   } 
-  if (0.6324555320336758*alphaDrSurf[2]+0.9486832980505137*alphaDrSurf[1]+0.7071067811865475*alphaDrSurf[0] < 0) { 
+  if (0.6324555320336759*alphaDrSurf[2]+0.9486832980505137*alphaDrSurf[1]+0.7071067811865475*alphaDrSurf[0] < 0) { 
     fUpwindQuad[2] = ser_2x_p2_surfx2_eval_quad_node_2_r(fSkin); 
   } else { 
     fUpwindQuad[2] = ser_2x_p2_surfx2_eval_quad_node_2_l(fEdge); 
@@ -64,7 +64,7 @@ GKYL_CU_DH void lbo_gyrokinetic_drag_boundary_surfvpar_1x1v_ser_p2(const double 
   alphaDrSurf[1] = 0.5*(2.0*nuSum[1]*w[1]-2.0*nuUSum[1]-1.0*dxv[1]*nuSum[1]); 
   alphaDrSurf[2] = -0.5*(2.0*nuUSum[2]+(dxv[1]-2.0*w[1])*nuSum[2]); 
 
-  if (0.6324555320336758*alphaDrSurf[2]-0.9486832980505137*alphaDrSurf[1]+0.7071067811865475*alphaDrSurf[0] < 0) { 
+  if (0.6324555320336759*alphaDrSurf[2]-0.9486832980505137*alphaDrSurf[1]+0.7071067811865475*alphaDrSurf[0] < 0) { 
     fUpwindQuad[0] = ser_2x_p2_surfx2_eval_quad_node_0_r(fEdge); 
   } else { 
     fUpwindQuad[0] = ser_2x_p2_surfx2_eval_quad_node_0_l(fSkin); 
@@ -74,7 +74,7 @@ GKYL_CU_DH void lbo_gyrokinetic_drag_boundary_surfvpar_1x1v_ser_p2(const double 
   } else { 
     fUpwindQuad[1] = ser_2x_p2_surfx2_eval_quad_node_1_l(fSkin); 
   } 
-  if (0.6324555320336758*alphaDrSurf[2]+0.9486832980505137*alphaDrSurf[1]+0.7071067811865475*alphaDrSurf[0] < 0) { 
+  if (0.6324555320336759*alphaDrSurf[2]+0.9486832980505137*alphaDrSurf[1]+0.7071067811865475*alphaDrSurf[0] < 0) { 
     fUpwindQuad[2] = ser_2x_p2_surfx2_eval_quad_node_2_r(fEdge); 
   } else { 
     fUpwindQuad[2] = ser_2x_p2_surfx2_eval_quad_node_2_l(fSkin); 

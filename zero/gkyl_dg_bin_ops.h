@@ -77,8 +77,8 @@ void gkyl_dg_mul_op_range(struct gkyl_basis basis,
  * @param prange Phase-space range to apply multiplication operator.
  */
 void gkyl_dg_mul_conf_phase_op_range(struct gkyl_basis cbasis,
-  struct gkyl_basis pbasis, struct gkyl_array* out,
-  const struct gkyl_array* lop, const struct gkyl_array* rop,
+  struct gkyl_basis pbasis, struct gkyl_array* pout,
+  const struct gkyl_array* cop, const struct gkyl_array* pop,
   struct gkyl_range crange, struct gkyl_range prange);
 
 /**

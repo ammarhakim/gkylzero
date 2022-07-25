@@ -29,12 +29,12 @@ typedef struct { gyrokinetic_self_prim_t kernels[3]; } gkyl_prim_lbo_gyrokinetic
 GKYL_CU_D
 static const gkyl_prim_lbo_gyrokinetic_kern_list ser_self_prim_kernels[] = {
   // 1x kernels
-  { NULL, NULL, gyrokinetic_self_prim_moments_1x1v_ser_p2 }, // 0
-  { NULL, NULL, gyrokinetic_self_prim_moments_1x2v_ser_p2 }, // 1
+  { NULL, gyrokinetic_self_prim_moments_1x1v_ser_p1, gyrokinetic_self_prim_moments_1x1v_ser_p2 }, // 0
+  { NULL, gyrokinetic_self_prim_moments_1x2v_ser_p1, gyrokinetic_self_prim_moments_1x2v_ser_p2 }, // 1
   // 2x kernels
-  { NULL, NULL, gyrokinetic_self_prim_moments_2x2v_ser_p2 }, // 2
+  { NULL, gyrokinetic_self_prim_moments_2x2v_ser_p1, gyrokinetic_self_prim_moments_2x2v_ser_p2 }, // 2
   // 3x kernels
-  { NULL, NULL, gyrokinetic_self_prim_moments_3x2v_ser_p2 }, // 3
+  { NULL, gyrokinetic_self_prim_moments_3x2v_ser_p1, gyrokinetic_self_prim_moments_3x2v_ser_p2 }, // 3
 };
 
 struct prim_lbo_type_gyrokinetic {
