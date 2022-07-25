@@ -21,6 +21,7 @@
 #include <gkyl_wv_maxwell.h>
 #include <gkyl_wv_apply_bc.h>
 #include <gkyl_wv_ten_moment.h>
+#include <gkyl_dflt.h>
 
 // ranges for use in BCs
 struct skin_ghost_ranges {
@@ -292,6 +293,10 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
           sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_copy, 0);
           break;
+
+        default:
+          // can't happen
+          break;          
       }
     }
   }
@@ -686,6 +691,8 @@ moment_coupling_release(const struct moment_coupling *src)
 gkyl_moment_app*
 gkyl_moment_app_new(struct gkyl_moment *mom)
 {
+  disable_denorm_float();
+  
   struct gkyl_moment_app *app = gkyl_malloc(sizeof(gkyl_moment_app));
 
   int ndim = app->ndim = mom->ndim;
