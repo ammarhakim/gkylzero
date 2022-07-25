@@ -11,6 +11,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_vlasov_priv.h>
+#include <gkyl_bc_basic.h>
 #include <time.h>
 
 // Projection functions for p/(m*gamma) = v in special relativistic systems
@@ -224,7 +225,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     if (vm_find_fluid_species(app, s->info.collisions.collide_with_fluid)) {
       s->collides_with_fluid = true;
       // index in fluid_species struct of fluid species kinetic species is colliding with
-      s->fluid_index = s->info.collisions.fluid_index;
+      s->fluid_index = vm_find_fluid_species_idx(app, s->info.collisions.collide_with_fluid);
     }
     vm_species_lbo_init(app, s, &s->lbo, s->collides_with_fluid);
   }
@@ -238,7 +239,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   if (vm_find_fluid_species(app, s->info.mirror_force.fluid_mirror_force)) {
     s->has_mirror_force = true;
     // index in fluid_species struct of fluid species kinetic species 
-    s->fluid_index = s->info.mirror_force.fluid_mirror_force_index;
+    s->fluid_index = vm_find_fluid_species_idx(app, s->info.mirror_force.fluid_mirror_force);
 
     // gradB and Bmag are both scalar fields in configuration space
     s->magB = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -323,24 +324,22 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       s->upper_bc[dir] = bc[1];
     }
   }
-  for (int d=0; d<3; ++d) {
-    if (s->field_id == GKYL_FIELD_SR_E_B) {
-      s->wall_bc_func[d] = gkyl_vlasov_sr_wall_bc_create(s->eqn_vlasov, d,
-        app->basis_on_dev.basis);
-      s->absorb_bc_func[d] = gkyl_vlasov_sr_absorb_bc_create(s->eqn_vlasov, d,
-        app->basis_on_dev.basis);
+  for (int d=0; d<app->cdim; ++d) {
+    // Lower BC updater.
+    if (s->lower_bc[d] == GKYL_SPECIES_REFLECT) { 
+      s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &s->local_ext, ghost, GKYL_BC_REFLECT,
+                                      &app->basis, app->cdim, app->use_gpu);
+    } else if (s->lower_bc[d] == GKYL_SPECIES_ABSORB) {
+      s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &s->local_ext, ghost, GKYL_BC_ABSORB,
+                                      &app->basis, app->cdim, app->use_gpu);
     }
-    else if (s->field_id == GKYL_FIELD_PHI || s->field_id == GKYL_FIELD_PHI_A) {
-      s->wall_bc_func[d] = gkyl_vlasov_poisson_wall_bc_create(s->eqn_vlasov, d,
-        app->basis_on_dev.basis);
-      s->absorb_bc_func[d] = gkyl_vlasov_poisson_absorb_bc_create(s->eqn_vlasov, d,
-        app->basis_on_dev.basis);
-    }
-    else {
-      s->wall_bc_func[d] = gkyl_vlasov_wall_bc_create(s->eqn_vlasov, d,
-        app->basis_on_dev.basis);
-      s->absorb_bc_func[d] = gkyl_vlasov_absorb_bc_create(s->eqn_vlasov, d,
-        app->basis_on_dev.basis);
+    // Upper BC updater.
+    if (s->upper_bc[d] == GKYL_SPECIES_REFLECT) {
+      s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &s->local_ext, ghost, GKYL_BC_REFLECT,
+                                      &app->basis, app->cdim, app->use_gpu);
+    } else if (s->upper_bc[d] == GKYL_SPECIES_ABSORB) {
+      s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &s->local_ext, ghost, GKYL_BC_ABSORB,
+                                      &app->basis, app->cdim, app->use_gpu);
     }
   }
 }
@@ -483,56 +482,6 @@ vm_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_species *species,
   }
 }
 
-// Apply wall BCs on distribution function
-void
-vm_species_apply_wall_bc(gkyl_vlasov_app *app, const struct vm_species *species,
-  int dir, enum vm_domain_edge edge, struct gkyl_array *f)
-{
-  int cdim = app->cdim;
-  
-  if (edge == VM_EDGE_LOWER) {
-    gkyl_array_flip_copy_to_buffer_fn(species->bc_buffer->data, f, dir+cdim,
-      species->skin_ghost.lower_skin[dir],
-      species->wall_bc_func[dir]->on_dev
-    );
-    
-    gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.lower_ghost[dir]);
-  }
-
-  if (edge == VM_EDGE_UPPER) {
-    gkyl_array_flip_copy_to_buffer_fn(species->bc_buffer->data, f, dir+cdim,
-      species->skin_ghost.upper_skin[dir],
-      species->wall_bc_func[dir]->on_dev
-    );
-    
-    gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.upper_ghost[dir]);
-  }
-}
-
-// Apply absorbing BCs on distribution function
-void
-vm_species_apply_absorb_bc(gkyl_vlasov_app *app, const struct vm_species *species,
-  int dir, enum vm_domain_edge edge, struct gkyl_array *f)
-{
-  if (edge == VM_EDGE_LOWER) {
-    gkyl_array_copy_to_buffer_fn(species->bc_buffer->data, f,
-      species->skin_ghost.lower_skin[dir],
-      species->absorb_bc_func[dir]->on_dev
-    );
-    
-    gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.lower_ghost[dir]);
-  }
-
-  if (edge == VM_EDGE_UPPER) {
-    gkyl_array_copy_to_buffer_fn(species->bc_buffer->data, f,
-      species->skin_ghost.upper_skin[dir],
-      species->absorb_bc_func[dir]->on_dev
-    );
-    
-    gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.upper_ghost[dir]);
-  }
-}
-
 // Determine which directions are periodic and which directions are copy,
 // and then apply boundary conditions for distribution function
 void
@@ -551,11 +500,11 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
         case GKYL_SPECIES_COPY:
           vm_species_apply_copy_bc(app, species, d, VM_EDGE_LOWER, f);
           break;
-        case GKYL_SPECIES_WALL:
-          vm_species_apply_wall_bc(app, species, d, VM_EDGE_LOWER, f);
+        case GKYL_SPECIES_REFLECT:
+          gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer, f);
           break;
         case GKYL_SPECIES_ABSORB:
-          vm_species_apply_absorb_bc(app, species, d, VM_EDGE_LOWER, f);
+          gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer, f);
           break;
         default:
           break;
@@ -565,11 +514,11 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
         case GKYL_SPECIES_COPY:
           vm_species_apply_copy_bc(app, species, d, VM_EDGE_UPPER, f);
           break;
-        case GKYL_SPECIES_WALL:
-          vm_species_apply_wall_bc(app, species, d, VM_EDGE_UPPER, f);
+        case GKYL_SPECIES_REFLECT:
+          gkyl_bc_basic_advance(species->bc_up[d], species->bc_buffer, f);
           break;
         case GKYL_SPECIES_ABSORB:
-          vm_species_apply_absorb_bc(app, species, d, VM_EDGE_UPPER, f);
+          gkyl_bc_basic_advance(species->bc_up[d], species->bc_buffer, f);
           break;
         default:
           break;
@@ -679,19 +628,11 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   if (s->calc_bflux)
     vm_species_bflux_release(app, &s->bflux);
 
-  for (int d=0; d<3; ++d) {
-    if (s->field_id == GKYL_FIELD_SR_E_B) {
-      gkyl_vlasov_sr_bc_release(s->wall_bc_func[d]);
-      gkyl_vlasov_sr_bc_release(s->absorb_bc_func[d]); 
-    }
-    else if (s->field_id == GKYL_FIELD_PHI || s->field_id == GKYL_FIELD_PHI_A) {
-      gkyl_vlasov_poisson_bc_release(s->wall_bc_func[d]);
-      gkyl_vlasov_poisson_bc_release(s->absorb_bc_func[d]); 
-    }
-    else {
-      gkyl_vlasov_bc_release(s->wall_bc_func[d]);
-      gkyl_vlasov_bc_release(s->absorb_bc_func[d]);      
-    }
+  for (int d=0; d<app->cdim; ++d) {
+    if (s->lower_bc[d]==GKYL_SPECIES_REFLECT || s->lower_bc[d]==GKYL_SPECIES_ABSORB)
+      gkyl_bc_basic_release(s->bc_lo[d]);
+    if (s->upper_bc[d]==GKYL_SPECIES_REFLECT || s->upper_bc[d]==GKYL_SPECIES_ABSORB)
+      gkyl_bc_basic_release(s->bc_up[d]);
   }
   
   if (app->use_gpu) {

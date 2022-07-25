@@ -1,6 +1,6 @@
 #include <gkyl_fem_parproj_kernels.h> 
  
-void fem_parproj_local_to_global_1x_ser_p1(const int numCellsPar, const int parIdx, long *globalIdxs) 
+GKYL_CU_DH void fem_parproj_local_to_global_1x_ser_p1(const int numCellsPar, const int parIdx, long *globalIdxs) 
 { 
   // numCellsPar: number of cells in parallel direction.
   // parIdx:     index of current cell in parallel direction.
@@ -11,7 +11,7 @@ void fem_parproj_local_to_global_1x_ser_p1(const int numCellsPar, const int parI
 
 }
 
-void fem_parproj_local_to_global_1x_ser_p2(const int numCellsPar, const int parIdx, long *globalIdxs) 
+GKYL_CU_DH void fem_parproj_local_to_global_1x_ser_p2(const int numCellsPar, const int parIdx, long *globalIdxs) 
 { 
   // numCellsPar: number of cells in parallel direction.
   // parIdx:     index of current cell in parallel direction.
@@ -23,7 +23,7 @@ void fem_parproj_local_to_global_1x_ser_p2(const int numCellsPar, const int parI
 
 }
 
-void fem_parproj_local_to_global_1x_ser_p3(const int numCellsPar, const int parIdx, long *globalIdxs) 
+GKYL_CU_DH void fem_parproj_local_to_global_1x_ser_p3(const int numCellsPar, const int parIdx, long *globalIdxs) 
 { 
   // numCellsPar: number of cells in parallel direction.
   // parIdx:     index of current cell in parallel direction.
@@ -36,7 +36,7 @@ void fem_parproj_local_to_global_1x_ser_p3(const int numCellsPar, const int parI
 
 }
 
-void fem_parproj_local_to_global_3x_ser_p1(const int numCellsPar, const int parIdx, long *globalIdxs) 
+GKYL_CU_DH void fem_parproj_local_to_global_3x_ser_p1(const int numCellsPar, const int parIdx, long *globalIdxs) 
 { 
   // numCellsPar: number of cells in parallel direction.
   // parIdx:     index of current cell in parallel direction.
@@ -53,7 +53,7 @@ void fem_parproj_local_to_global_3x_ser_p1(const int numCellsPar, const int parI
 
 }
 
-void fem_parproj_local_to_global_3x_ser_p2(const int numCellsPar, const int parIdx, long *globalIdxs) 
+GKYL_CU_DH void fem_parproj_local_to_global_3x_ser_p2(const int numCellsPar, const int parIdx, long *globalIdxs) 
 { 
   // numCellsPar: number of cells in parallel direction.
   // parIdx:     index of current cell in parallel direction.
@@ -82,7 +82,7 @@ void fem_parproj_local_to_global_3x_ser_p2(const int numCellsPar, const int parI
 
 }
 
-void fem_parproj_local_to_global_3x_ser_p3(const int numCellsPar, const int parIdx, long *globalIdxs) 
+GKYL_CU_DH void fem_parproj_local_to_global_3x_ser_p3(const int numCellsPar, const int parIdx, long *globalIdxs) 
 { 
   // numCellsPar: number of cells in parallel direction.
   // parIdx:     index of current cell in parallel direction.
@@ -123,7 +123,7 @@ void fem_parproj_local_to_global_3x_ser_p3(const int numCellsPar, const int parI
 
 }
 
-void fem_parproj_local_to_global_1x_tensor_p1(const int numCellsPar, const int parIdx, long *globalIdxs) 
+GKYL_CU_DH void fem_parproj_local_to_global_1x_tensor_p1(const int numCellsPar, const int parIdx, long *globalIdxs) 
 { 
   // numCellsPar: number of cells in parallel direction.
   // parIdx:     index of current cell in parallel direction.
@@ -134,7 +134,7 @@ void fem_parproj_local_to_global_1x_tensor_p1(const int numCellsPar, const int p
 
 }
 
-void fem_parproj_local_to_global_1x_tensor_p2(const int numCellsPar, const int parIdx, long *globalIdxs) 
+GKYL_CU_DH void fem_parproj_local_to_global_1x_tensor_p2(const int numCellsPar, const int parIdx, long *globalIdxs) 
 { 
   // numCellsPar: number of cells in parallel direction.
   // parIdx:     index of current cell in parallel direction.
@@ -146,7 +146,7 @@ void fem_parproj_local_to_global_1x_tensor_p2(const int numCellsPar, const int p
 
 }
 
-void fem_parproj_local_to_global_3x_tensor_p1(const int numCellsPar, const int parIdx, long *globalIdxs) 
+GKYL_CU_DH void fem_parproj_local_to_global_3x_tensor_p1(const int numCellsPar, const int parIdx, long *globalIdxs) 
 { 
   // numCellsPar: number of cells in parallel direction.
   // parIdx:     index of current cell in parallel direction.
@@ -163,7 +163,7 @@ void fem_parproj_local_to_global_3x_tensor_p1(const int numCellsPar, const int p
 
 }
 
-void fem_parproj_local_to_global_3x_tensor_p2(const int numCellsPar, const int parIdx, long *globalIdxs) 
+GKYL_CU_DH void fem_parproj_local_to_global_3x_tensor_p2(const int numCellsPar, const int parIdx, long *globalIdxs) 
 { 
   // numCellsPar: number of cells in parallel direction.
   // parIdx:     index of current cell in parallel direction.

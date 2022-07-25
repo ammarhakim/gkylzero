@@ -41,6 +41,7 @@ fem_poisson_set_cu_l2gker_ptrs(struct gkyl_fem_poisson_kernels* kers, enum gkyl_
 
 }
 
+// CUDA kernel to set device pointers to RHS src and solution kernels.
 __global__ static void
 fem_poisson_set_cu_ker_ptrs(struct gkyl_fem_poisson_kernels* kers, enum gkyl_basis_type b_type,
   int dim, int poly_order, const int *bckey)
@@ -89,7 +90,7 @@ fem_poisson_set_cu_ker_ptrs(struct gkyl_fem_poisson_kernels* kers, enum gkyl_bas
 }
 
 void
-choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_poisson_bc* bcs, const bool *isdirperiodic, struct gkyl_fem_poisson_kernels *kers)
+fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_poisson_bc bcs, const bool *isdirperiodic, struct gkyl_fem_poisson_kernels *kers)
 {
 
   int dim = basis->ndim;
@@ -103,12 +104,12 @@ choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_poisson_bc* 
   fem_poisson_set_cu_l2gker_ptrs<<<1,1>>>(kers, basis->b_type, dim, poly_order, bckey_d);
   
   for (int d=0; d<basis->ndim; d++) {
-    if (bcs->lo_type[d]==GKYL_POISSON_PERIODIC && bcs->up_type[d]==GKYL_POISSON_PERIODIC) { bckey[d] = 0; }
-    else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET && bcs->up_type[d]==GKYL_POISSON_DIRICHLET) { bckey[d] = 1; }
-    else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET && bcs->up_type[d]==GKYL_POISSON_NEUMANN) { bckey[d] = 2; }
-    else if (bcs->lo_type[d]==GKYL_POISSON_NEUMANN && bcs->up_type[d]==GKYL_POISSON_DIRICHLET) { bckey[d] = 3; }
-    else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET && bcs->up_type[d]==GKYL_POISSON_ROBIN) { bckey[d] = 4; }
-    else if (bcs->lo_type[d]==GKYL_POISSON_ROBIN && bcs->up_type[d]==GKYL_POISSON_DIRICHLET) { bckey[d] = 5; }
+    if (bcs.lo_type[d]==GKYL_POISSON_PERIODIC && bcs.up_type[d]==GKYL_POISSON_PERIODIC) { bckey[d] = 0; }
+    else if (bcs.lo_type[d]==GKYL_POISSON_DIRICHLET && bcs.up_type[d]==GKYL_POISSON_DIRICHLET) { bckey[d] = 1; }
+    else if (bcs.lo_type[d]==GKYL_POISSON_DIRICHLET && bcs.up_type[d]==GKYL_POISSON_NEUMANN) { bckey[d] = 2; }
+    else if (bcs.lo_type[d]==GKYL_POISSON_NEUMANN && bcs.up_type[d]==GKYL_POISSON_DIRICHLET) { bckey[d] = 3; }
+    else if (bcs.lo_type[d]==GKYL_POISSON_DIRICHLET && bcs.up_type[d]==GKYL_POISSON_ROBIN) { bckey[d] = 4; }
+    else if (bcs.lo_type[d]==GKYL_POISSON_ROBIN && bcs.up_type[d]==GKYL_POISSON_DIRICHLET) { bckey[d] = 5; }
     else { assert(false); }
   };
   gkyl_cu_memcpy(bckey_d, bckey, sizeof(int[POISSON_MAX_DIM]), GKYL_CU_MEMCPY_H2D);
@@ -128,8 +129,8 @@ gkyl_fem_poisson_set_rhs_kernel(double epsilon, const double *dx, double *rhs_gl
   for (int d=0; d<POISSON_MAX_DIM; d++) num_cells[d] = range.upper[d]-range.lower[d]+1;
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
-      linc1 < range.volume;
-      linc1 += gridDim.x*blockDim.x)
+       linc1 < range.volume;
+       linc1 += gridDim.x*blockDim.x)
   {
     // inverse index from linc1 to idx
     // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
@@ -165,8 +166,8 @@ gkyl_fem_poisson_get_sol_kernel(struct gkyl_array *x_local, const double *x_glob
   for (int d=0; d<POISSON_MAX_DIM; d++) num_cells[d] = range.upper[d]-range.lower[d]+1;
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
-      linc1 < range.volume;
-      linc1 += gridDim.x*blockDim.x)
+       linc1 < range.volume;
+       linc1 += gridDim.x*blockDim.x)
   {
     // inverse index from linc1 to idx
     // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}

@@ -24,69 +24,6 @@ gkyl_vlasov_sr_free(const struct gkyl_ref_count *ref)
   gkyl_free(vlasov_sr);
 }
 
-struct gkyl_array_copy_func*
-gkyl_vlasov_sr_wall_bc_create(const struct gkyl_dg_eqn *eqn, int dir, const struct gkyl_basis* pbasis)
-{
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_dg_eqn_is_cu_dev(eqn)) {
-    return gkyl_vlasov_sr_wall_bc_create_cu(eqn->on_dev, dir, pbasis);
-  }
-#endif
-
-  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
-
-  struct dg_bc_ctx *ctx = (struct dg_bc_ctx*) gkyl_malloc(sizeof(struct dg_bc_ctx));
-  ctx->dir = dir;
-  ctx->cdim = vlasov_sr->cdim;
-  ctx->basis = pbasis;
-
-  struct gkyl_array_copy_func *bc = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
-  bc->func = vlasov_sr->wall_bc;
-  bc->ctx = ctx;
-  bc->ctx_on_dev = bc->ctx;
-
-  bc->flags = 0;
-  GKYL_CLEAR_CU_ALLOC(bc->flags);
-  bc->on_dev = bc; // CPU eqn obj points to itself
-  return bc;
-}
-
-struct gkyl_array_copy_func*
-gkyl_vlasov_sr_absorb_bc_create(const struct gkyl_dg_eqn *eqn, int dir, const struct gkyl_basis* pbasis)
-{
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_dg_eqn_is_cu_dev(eqn)) {
-    return gkyl_vlasov_sr_absorb_bc_create_cu(eqn->on_dev, dir, pbasis);
-  }
-#endif
-
-  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
-
-  struct dg_bc_ctx *ctx = (struct dg_bc_ctx*) gkyl_malloc(sizeof(struct dg_bc_ctx));
-  ctx->basis = pbasis;
-
-  struct gkyl_array_copy_func *bc = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
-  bc->func = vlasov_sr->absorb_bc;
-  bc->ctx = ctx;
-  bc->ctx_on_dev = bc->ctx;
-
-  bc->flags = 0;
-  GKYL_CLEAR_CU_ALLOC(bc->flags);
-  bc->on_dev = bc; // CPU eqn obj points to itself
-  return bc;
-}
-
-void
-gkyl_vlasov_sr_bc_release(struct gkyl_array_copy_func* bc)
-{
-  if (gkyl_array_copy_func_is_cu_dev(bc)) {
-    gkyl_cu_free(bc->ctx_on_dev);
-    gkyl_cu_free(bc->on_dev);
-  }
-  gkyl_free(bc->ctx);
-  gkyl_free(bc);
-}
-
 void
 gkyl_vlasov_sr_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_sr_auxfields auxin)
 {
@@ -188,11 +125,6 @@ gkyl_dg_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* 
     vlasov_sr->accel_boundary_surf[1] = CK(accel_boundary_surf_vy_kernels,cdim,vdim,poly_order);
   if (vdim>2)
     vlasov_sr->accel_boundary_surf[2] = CK(accel_boundary_surf_vz_kernels,cdim,vdim,poly_order);
-
-  // setup pointer for wall BC function
-  vlasov_sr->wall_bc = species_wall_bc;
-  // setup pointer for absorbing BC function
-  vlasov_sr->absorb_bc = species_absorb_bc;
 
   // ensure non-NULL pointers
   for (int i=0; i<cdim; ++i) assert(vlasov_sr->stream_surf[i]);

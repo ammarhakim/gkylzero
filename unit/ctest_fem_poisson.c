@@ -108,7 +108,6 @@ mkarr(long nc, long size)
   return a;
 }
 
-// allocate array (filled with zeros)
 static struct gkyl_array*
 mkarr_cu(long nc, long size)
 {
@@ -211,7 +210,7 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   if (use_gpu) gkyl_array_copy(rho_cu, rho);
 
   // FEM poisson solver.
-  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, &bcs, epsilon_0, use_gpu);
+  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, bcs, epsilon_0, NULL, use_gpu);
 
   // Set the RHS source.
   if (use_gpu)
@@ -586,7 +585,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   if (use_gpu) gkyl_array_copy(rho_cu, rho);
 
   // FEM poisson solver.
-  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, &bcs, epsilon_0, use_gpu);
+  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, bcs, epsilon_0, NULL, use_gpu);
 
   // Set the RHS source.
   if (use_gpu)

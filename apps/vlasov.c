@@ -92,11 +92,11 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 
   // allocate space to store fluid species objects
   app->fluid_species = nsf>0 ? gkyl_malloc(sizeof(struct vm_fluid_species[nsf])) : 0;
-  
-  // set info for each species: this needs to be done here as we need
-  // to access species name from vm_fluid_species_init
+
+  // set info for each fluid species: this needs to be done here as we
+  // need to access species name from vm_fluid_species_init
   for (int i=0; i<nsf; ++i)
-    app->fluid_species[i].info = vm->fluid_species[i];
+    app->fluid_species[i].info = vm->fluid_species[i];  
   
   // initialize each species
   for (int i=0; i<ns; ++i)
@@ -134,6 +134,15 @@ vm_find_species(const gkyl_vlasov_app *app, const char *nm)
   return 0;
 }
 
+int
+vm_find_species_idx(const gkyl_vlasov_app *app, const char *nm)
+{
+  for (int i=0; i<app->num_species; ++i)
+    if (strcmp(nm, app->species[i].info.name) == 0)
+      return i;
+  return -1;
+}
+
 struct vm_fluid_species *
 vm_find_fluid_species(const gkyl_vlasov_app *app, const char *nm)
 {
@@ -141,6 +150,15 @@ vm_find_fluid_species(const gkyl_vlasov_app *app, const char *nm)
     if (strcmp(nm, app->fluid_species[i].info.name) == 0)
       return &app->fluid_species[i];
   return 0;
+}
+
+int
+vm_find_fluid_species_idx(const gkyl_vlasov_app *app, const char *nm)
+{
+  for (int i=0; i<app->num_fluid_species; ++i)
+    if (strcmp(nm, app->fluid_species[i].info.name) == 0)
+      return i;
+  return -1;  
 }
 
 void

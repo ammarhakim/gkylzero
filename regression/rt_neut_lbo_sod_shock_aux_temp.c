@@ -27,11 +27,21 @@ evalDistFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct free_stream_ctx *app = ctx;
   double x = xn[0], v = xn[1];
-  double u = 1.0;
   if (x<0.5)
-    fout[0] = maxwellian(1.0, v, u, 0.5);
+    fout[0] = maxwellian(1.0, v, 0.0, 1.0);
   else
-    fout[0] = maxwellian(1.0, v, u, 0.5);
+    fout[0] = maxwellian(0.125, v, 0.0, sqrt(0.1/0.125));
+}
+
+void
+evalTperp(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct free_stream_ctx *app = ctx;
+  double x = xn[0];
+  if (x<0.5)
+    fout[0] = 1.0;
+  else
+    fout[0] = sqrt(0.1/0.125);
 }
 
 void
@@ -39,7 +49,7 @@ evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, vo
 {
   struct free_stream_ctx *app = ctx;
   double x = xn[0], v = xn[1];
-  fout[0] = 10.0;
+  fout[0] = 100.0;
 }
 
 struct free_stream_ctx
@@ -54,6 +64,15 @@ create_ctx(void)
   return ctx;
 }
 
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double tcurr)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) {
+    gkyl_vlasov_app_write(app, tcurr, iot->curr-1);
+    gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, iot->curr-1);
+  }
+}
+
 int
 main(int argc, char **argv)
 {
@@ -61,12 +80,22 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
   int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
-  
+
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
   struct free_stream_ctx ctx = create_ctx(); // context for init functions
+
+  // electron Tperp                                                                                              
+  struct gkyl_vlasov_fluid_species Tperp = {
+    .name = "Tperp",
+
+    .ctx = &ctx,
+    .init = evalTperp,
+
+    .advection = {.advect_with = "neut", .collision_id = GKYL_LBO_COLLISIONS},
+  };  
 
   // electrons
   struct gkyl_vlasov_species neut = {
@@ -79,19 +108,20 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalDistFunc,
 
-    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
-
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
+
+      .ctx = &ctx,
       .self_nu = evalNu,
     },
+
     .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "M2" },
+    .diag_moments = { "M0", "M1i", "M2", "M3i" },
   };
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "neut_lbo_wall",
+    .name = "neut_lbo_sod_shock_aux_temp",
 
     .cdim = 1, .vdim = 1,
     .lower = { 0.0 },
@@ -105,6 +135,8 @@ main(int argc, char **argv)
 
     .num_species = 1,
     .species = { neut },
+    .num_fluid_species = 1,
+    .fluid_species = { Tperp },
     .skip_field = true,
 
     .use_gpu = app_args.use_gpu,
@@ -114,14 +146,15 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.3;
+  double tcurr = 0.0, tend = 0.2;
   double dt = tend-tcurr;
+  int nframe = 200;
+  // create trigger for IO
+  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
   // initialize simulation
   gkyl_vlasov_app_apply_ic(app, tcurr);
-  
-  gkyl_vlasov_app_write(app, tcurr, 0);
-  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 0);
+  write_data(&io_trig, app, tcurr);
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
@@ -135,11 +168,11 @@ main(int argc, char **argv)
     }
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
+    write_data(&io_trig, app, tcurr);
+
     step += 1;
   }
 
-  gkyl_vlasov_app_write(app, tcurr, 1);
-  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1);
   gkyl_vlasov_app_stat_write(app);
 
   // fetch simulation statistics
