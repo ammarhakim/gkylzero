@@ -141,12 +141,20 @@ fpo_vlasov_drag_surfvx_1x3v_ser_p1(const double* w, const double* dxv, const dou
   Ghat_u[6] = 0.3535533905932737*alphaDrSurf_u[1]*fUpwind_u[7]+0.3535533905932737*fUpwind_u[1]*alphaDrSurf_u[7]+0.3535533905932737*alphaDrSurf_u[0]*fUpwind_u[6]+0.3535533905932737*fUpwind_u[0]*alphaDrSurf_u[6]+0.3535533905932737*alphaDrSurf_u[4]*fUpwind_u[5]+0.3535533905932737*fUpwind_u[4]*alphaDrSurf_u[5]+0.3535533905932737*alphaDrSurf_u[2]*fUpwind_u[3]+0.3535533905932737*fUpwind_u[2]*alphaDrSurf_u[3]; 
   Ghat_u[7] = 0.3535533905932737*alphaDrSurf_u[0]*fUpwind_u[7]+0.3535533905932737*fUpwind_u[0]*alphaDrSurf_u[7]+0.3535533905932737*alphaDrSurf_u[1]*fUpwind_u[6]+0.3535533905932737*fUpwind_u[1]*alphaDrSurf_u[6]+0.3535533905932737*alphaDrSurf_u[2]*fUpwind_u[5]+0.3535533905932737*fUpwind_u[2]*alphaDrSurf_u[5]+0.3535533905932737*alphaDrSurf_u[3]*fUpwind_u[4]+0.3535533905932737*fUpwind_u[3]*alphaDrSurf_u[4]; 
 
-  out[2] += 2.449489742783178*Ghat_u[0]*rdv2; 
-  out[5] += 2.449489742783178*Ghat_u[1]*rdv2; 
-  out[7] += 2.449489742783178*Ghat_u[2]*rdv2; 
-  out[9] += 2.449489742783178*Ghat_u[3]*rdv2; 
-  out[11] += 2.449489742783178*Ghat_u[4]*rdv2; 
-  out[12] += 2.449489742783178*Ghat_u[5]*rdv2; 
-  out[14] += 2.449489742783178*Ghat_u[6]*rdv2; 
-  out[15] += 2.449489742783178*Ghat_u[7]*rdv2; 
+  out[0] += 0.7071067811865475*Ghat_u[0]*rdv2-0.7071067811865475*Ghat_l[0]*rdv2; 
+  out[1] += 0.7071067811865475*Ghat_u[1]*rdv2-0.7071067811865475*Ghat_l[1]*rdv2; 
+  out[2] += 1.224744871391589*Ghat_u[0]*rdv2+1.224744871391589*Ghat_l[0]*rdv2; 
+  out[3] += 0.7071067811865475*Ghat_u[2]*rdv2-0.7071067811865475*Ghat_l[2]*rdv2; 
+  out[4] += 0.7071067811865475*Ghat_u[3]*rdv2-0.7071067811865475*Ghat_l[3]*rdv2; 
+  out[5] += 1.224744871391589*Ghat_u[1]*rdv2+1.224744871391589*Ghat_l[1]*rdv2; 
+  out[6] += 0.7071067811865475*Ghat_u[4]*rdv2-0.7071067811865475*Ghat_l[4]*rdv2; 
+  out[7] += 1.224744871391589*Ghat_u[2]*rdv2+1.224744871391589*Ghat_l[2]*rdv2; 
+  out[8] += 0.7071067811865475*Ghat_u[5]*rdv2-0.7071067811865475*Ghat_l[5]*rdv2; 
+  out[9] += 1.224744871391589*Ghat_u[3]*rdv2+1.224744871391589*Ghat_l[3]*rdv2; 
+  out[10] += 0.7071067811865475*Ghat_u[6]*rdv2-0.7071067811865475*Ghat_l[6]*rdv2; 
+  out[11] += 1.224744871391589*Ghat_u[4]*rdv2+1.224744871391589*Ghat_l[4]*rdv2; 
+  out[12] += 1.224744871391589*Ghat_u[5]*rdv2+1.224744871391589*Ghat_l[5]*rdv2; 
+  out[13] += 0.7071067811865475*Ghat_u[7]*rdv2-0.7071067811865475*Ghat_l[7]*rdv2; 
+  out[14] += 1.224744871391589*Ghat_u[6]*rdv2+1.224744871391589*Ghat_l[6]*rdv2; 
+  out[15] += 1.224744871391589*Ghat_u[7]*rdv2+1.224744871391589*Ghat_l[7]*rdv2; 
 } 
