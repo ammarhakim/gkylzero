@@ -7,15 +7,15 @@
 #include <gkyl_dg_lbo_vlasov_diff.h>
 #include <gkyl_dg_lbo_vlasov_drag.h>
 #include <gkyl_dg_updater_lbo_vlasov.h>
-#include <gkyl_dg_updater_lbo_vlasov_priv.h>
+#include <gkyl_dg_updater_collisions_priv.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_util.h>
 
-gkyl_dg_updater_lbo_vlasov*
+struct gkyl_dg_updater_collisions*
 gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
   const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, bool use_gpu)
 {
-  gkyl_dg_updater_lbo_vlasov *up = gkyl_malloc(sizeof(gkyl_dg_updater_lbo_vlasov));
+  struct gkyl_dg_updater_collisions *up = gkyl_malloc(sizeof(gkyl_dg_updater_collisions));
 
   up->coll_drag = gkyl_dg_lbo_vlasov_drag_new(cbasis, pbasis, conf_range, use_gpu);
   up->coll_diff = gkyl_dg_lbo_vlasov_diff_new(cbasis, pbasis, conf_range, use_gpu);
@@ -40,7 +40,7 @@ gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid, const struct g
 }
 
 void
-gkyl_dg_updater_lbo_vlasov_advance(gkyl_dg_updater_lbo_vlasov *lbo,
+gkyl_dg_updater_lbo_vlasov_advance(struct gkyl_dg_updater_collisions *lbo,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq,
   const struct gkyl_array* GKYL_RESTRICT fIn,
@@ -62,31 +62,31 @@ gkyl_dg_updater_lbo_vlasov_advance(gkyl_dg_updater_lbo_vlasov *lbo,
 }
 
 struct gkyl_dg_updater_lbo_vlasov_tm
-gkyl_dg_updater_lbo_vlasov_get_tm(const gkyl_dg_updater_lbo_vlasov *lbo)
+gkyl_dg_updater_lbo_vlasov_get_tm(const struct gkyl_dg_updater_collisions *coll)
 {
   return (struct gkyl_dg_updater_lbo_vlasov_tm) {
-    .diff_tm = lbo->diff_tm,
-    .drag_tm = lbo->drag_tm
+    .diff_tm = coll->diff_tm,
+    .drag_tm = coll->drag_tm
   };
 }
 
 void
-gkyl_dg_updater_lbo_vlasov_release(gkyl_dg_updater_lbo_vlasov* lbo)
+gkyl_dg_updater_lbo_vlasov_release(struct gkyl_dg_updater_collisions* coll)
 {
-  gkyl_dg_eqn_release(lbo->coll_diff);
-  gkyl_dg_eqn_release(lbo->coll_drag);
-  gkyl_hyper_dg_release(lbo->drag);
-  gkyl_hyper_dg_release(lbo->diff);
-  gkyl_free(lbo);
+  gkyl_dg_eqn_release(coll->coll_diff);
+  gkyl_dg_eqn_release(coll->coll_drag);
+  gkyl_hyper_dg_release(coll->drag);
+  gkyl_hyper_dg_release(coll->diff);
+  gkyl_free(coll);
 }
 
 #ifdef GKYL_HAVE_CUDA
 
-gkyl_dg_updater_lbo_vlasov*
+struct gkyl_dg_updater_collisions*
 gkyl_dg_updater_lbo_vlasov_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
   const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range)
 {
-  gkyl_dg_updater_lbo_vlasov *up = (gkyl_dg_updater_lbo_vlasov*) gkyl_malloc(sizeof(gkyl_dg_updater_lbo_vlasov));
+  struct gkyl_dg_updater_collisions *up = (gkyl_dg_updater_collisions*) gkyl_malloc(sizeof(gkyl_dg_updater_collisions));
 
   up->coll_drag = gkyl_dg_lbo_vlasov_drag_cu_dev_new(cbasis, pbasis, conf_range);
   up->coll_diff = gkyl_dg_lbo_vlasov_diff_cu_dev_new(cbasis, pbasis, conf_range);
@@ -110,7 +110,7 @@ gkyl_dg_updater_lbo_vlasov_cu_dev_new(const struct gkyl_rect_grid *grid, const s
 }
 
 void
-gkyl_dg_updater_lbo_vlasov_advance_cu(gkyl_dg_updater_lbo_vlasov *lbo,
+gkyl_dg_updater_lbo_vlasov_advance_cu(struct gkyl_dg_updater_collisions *lbo,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
@@ -135,7 +135,7 @@ gkyl_dg_updater_lbo_vlasov_advance_cu(gkyl_dg_updater_lbo_vlasov *lbo,
 
 #ifndef GKYL_HAVE_CUDA
 
-gkyl_dg_updater_lbo_vlasov*
+struct gkyl_dg_updater_collisions*
 gkyl_dg_updater_lbo_vlasov_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
   const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range)
 {
@@ -143,7 +143,7 @@ gkyl_dg_updater_lbo_vlasov_cu_dev_new(const struct gkyl_rect_grid *grid, const s
 }
 
 void
-gkyl_dg_updater_lbo_vlasov_advance_cu(gkyl_dg_updater_lbo_vlasov *lbo,
+gkyl_dg_updater_lbo_vlasov_advance_cu(struct gkyl_dg_updater_collisions *lbo,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq, 
   const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs)

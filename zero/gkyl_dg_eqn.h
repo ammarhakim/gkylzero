@@ -29,12 +29,27 @@ typedef void (*boundary_surf_termf_t)(const struct gkyl_dg_eqn *eqn,
   const int* idxEdge, const int* idxSkin, const int edge,
   const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut);
 
+// Function pointer type for generic stencil kernel
+// Similar to surface kernel, but size of input arrays unspecified
+// Could be 9 (for a generic 2D stencil) or 27 (for a generic 3D stencil)
+// NOTE: ASSUMES UNIFORM GRIDS FOR NOW
+// NOTE: Takes the index of the cell being updated (idxc) and array of indices
+//       (idx) so we can fetch auxiliary variables easily for neighbors or just
+//       the cell being updated. Need size of integer array (sz_dim)
+typedef void (*gen_termf_t)(const struct gkyl_dg_eqn *eqn, 
+  int dir1, int dir2,
+  const double* xc, const double* dxc, const int* idxc,
+  long sz_dim, const int idx[sz_dim][GKYL_MAX_DIM], const double* qIn[sz_dim], 
+  double* GKYL_RESTRICT qRhsOut);
+
 struct gkyl_dg_eqn {
   int num_equations; // number of equations in system
   vol_termf_t vol_term; // volume term kernel
   surf_termf_t surf_term; // surface term kernel
   boundary_surf_termf_t boundary_surf_term; // boundary surface term kernel
-
+  gen_termf_t gen_surf_term; // generic stencil kernel with input variable size unspecified
+  gen_termf_t gen_boundary_surf_term; // generic stencil kernel with input variable size unspecified
+                                      // for boundary surface updates
   uint32_t flags;
   struct gkyl_ref_count ref_count; // reference count
   struct  gkyl_dg_eqn *on_dev; // pointer to itself or device data

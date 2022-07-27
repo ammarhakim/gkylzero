@@ -61,6 +61,7 @@ struct gkyl_vlasov_fluid_advection {
 
 // Parameters for fluid species diffusion
 struct gkyl_vlasov_fluid_diffusion {
+  bool anisotropic; // bool for whether the diffusion tensor is anisotropic
   void* D_ctx; // context for applied diffusion function
   // pointer to applied advection diffusion tensor function
   void (*D)(double t, const double* xn, double* Dout, void* ctx);
@@ -124,14 +125,21 @@ struct gkyl_vlasov_fluid_species {
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
 
-  // advection coupling to include
+  // Thermal velocity (if isothermal Euler)
+  // gkyl_eqn_type eqn_id = GKYL_EQN_ISO_EULER
+  double vt;
+  // Adiabatic index (if Euler)
+  // gkyl_eqn_type eqn_id = GKYL_EQN_EULER
+  double gas_gamma;
+  // advection coupling (if scalar advection)
+  // gkyl_eqn_type eqn_id = GKYL_EQN_ADVECTION
   struct gkyl_vlasov_fluid_advection advection;
   
   // diffusion coupling to include
   struct gkyl_vlasov_fluid_diffusion diffusion;
   
   // boundary conditions
-  enum gkyl_fluid_species_bc_type bcx[2], bcy[2], bcz[2];
+  enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
 };
 
 // Top-level app parameters

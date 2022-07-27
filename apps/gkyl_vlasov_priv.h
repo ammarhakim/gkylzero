@@ -12,10 +12,12 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_bc_basic.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
-#include <gkyl_dg_diffusion.h>
 #include <gkyl_dg_maxwell.h>
+#include <gkyl_dg_updater_fluid.h>
+#include <gkyl_dg_updater_diffusion.h>
 #include <gkyl_dg_updater_lbo_vlasov.h>
 #include <gkyl_dg_updater_vlasov.h>
 #include <gkyl_dg_vlasov.h>
@@ -101,7 +103,7 @@ struct vm_lbo_collisions {
 
   gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
   gkyl_prim_lbo_cross_calc *cross_calc; // LBO cross-primitive moment calculator
-  gkyl_dg_updater_lbo_vlasov *coll_slvr; // collision solver
+  gkyl_dg_updater_collisions *coll_slvr; // collision solver
 };
 
 struct vm_bgk_collisions {
@@ -263,33 +265,37 @@ struct vm_fluid_species {
   struct gkyl_array *D; // array for diffusion tensor
   struct gkyl_array *D_host; // host copy of diffusion tensor
 
-  struct gkyl_dg_eqn *advect_eqn; // Fluid advection equation
-  struct gkyl_dg_eqn *diff_eqn; // Fluid diffusion equation  
-  gkyl_hyper_dg *advect_slvr; // Fluid equation solver
-  gkyl_hyper_dg *diff_slvr; // Fluid equation solver
+  gkyl_dg_updater_fluid *advect_slvr; // Fluid equation solver
+  gkyl_dg_updater_diffusion *diff_slvr; // Fluid equation solver
 
   // boundary conditions on lower/upper edges in each direction  
-  enum gkyl_fluid_species_bc_type lower_bc[3], upper_bc[3];
-  // Note: we need to store pointers to the struct as these may
-  // actually be on the GPUs. Seems ugly, but I am not sure how else
-  // to ensure the function and context lives on the GPU
-  struct gkyl_array_copy_func *absorb_bc_func[3]; // for absorbing BCs
+  enum gkyl_species_bc_type lower_bc[3], upper_bc[3];
+  // Pointers to updaters that apply BC.
+  struct gkyl_bc_basic *bc_lo[3];
+  struct gkyl_bc_basic *bc_up[3];
 
-  // specified advection
-  bool has_advect; // flag to indicate there is applied advection
+  // fluid advection
+  bool has_advect; // flag to indicate there is advection of fluid equation
+  enum gkyl_eqn_type eqn_id; // type of advection (e.g., scalar advection vs. Euler vs. isothermal Euler)
+  double vt; // Thermal velocity (if isothermal Euler)
+  double gas_gamma; // Adiabatic index (if Euler)
+
+  // applied advection
   struct gkyl_array *advect; // applied advection
   struct gkyl_array *advect_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *advect_proj; // projector for advection
   struct vm_eval_advect_ctx advect_ctx; // context for applied advection
-  
-  bool has_diffusion; // flag to indicate there is applied diffusion
-  gkyl_proj_on_basis* diff_proj; // projector for diffusion
-  struct vm_eval_diffusion_ctx diff_ctx; // context for applied diffusion
 
-  // advection with another species present
+  // advection with another species
   bool advects_with_species; // flag to indicate we are advecting with another species
   struct vm_species *advection_species; // pointer to species we advect with
   struct gkyl_array *other_advect; // pointer to that species drift velocity
+
+  // fluid diffusion
+  bool has_diffusion; // flag to indicate there is applied diffusion
+  enum gkyl_diffusion_id diffusion_id; // type of diffusion (e.g., isotropic vs. anisotropic)
+  gkyl_proj_on_basis* diff_proj; // projector for diffusion
+  struct vm_eval_diffusion_ctx diff_ctx; // context for applied diffusion
 
   // collisions with another species present
   enum gkyl_collision_id collision_id; // type of collisions

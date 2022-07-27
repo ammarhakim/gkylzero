@@ -42,65 +42,79 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   f->u = mkarr(app->use_gpu, cdim*app->confBasis.num_basis, app->local_ext.volume);
   
   // allocate array to store diffusion tensor
-  f->D = mkarr(app->use_gpu, cdim*app->confBasis.num_basis, app->local_ext.volume);
+  int szD = cdim;
+  if (f->info.diffusion.anisotropic) { // allocate space for mix terms {
+    f->diffusion_id = GKYL_ANISO_DIFFUSION;
+    szD = cdim*(cdim+1)/2;
+  }
+  f->D = mkarr(app->use_gpu, szD*app->confBasis.num_basis, app->local_ext.volume);
   f->D_host = f->D;
   if (app->use_gpu)
     f->D_host = mkarr(false, cdim*app->confBasis.num_basis, app->local_ext.volume);
-  
-  // equation objects
-  f->advect_eqn = gkyl_dg_advection_new(&app->confBasis, &app->local, app->use_gpu);
-  f->diff_eqn = gkyl_dg_diffusion_new(&app->confBasis, &app->local, app->use_gpu);
 
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
 
   // fluid solvers
-  f->advect_slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, f->advect_eqn,
-    app->cdim, up_dirs, zero_flux_flags, 1, app->use_gpu);
-  f->diff_slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, f->diff_eqn,
-    app->cdim, up_dirs, zero_flux_flags, 1, app->use_gpu);
-
-  f->has_advect = false;
-  f->advects_with_species = false;
-  // setup applied advection or advection with other species
-  if (f->info.advection.velocity) {
-    f->has_advect = true;
-    // we need to ensure applied advection has same shape as current                                             
-    f->advect = mkarr(app->use_gpu, cdim*app->confBasis.num_basis, app->local_ext.volume);
-
-    f->advect_host = f->advect;
-    if (app->use_gpu)
-      f->advect_host = mkarr(false, cdim*app->confBasis.num_basis, app->local_ext.volume);
-
-    f->advect_ctx = (struct vm_eval_advect_ctx) {
-      .advect_func = f->info.advection.velocity, .advect_ctx = f->info.advection.velocity_ctx
-    };
-
-    f->advect_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-        .grid = &app->grid,
-        .basis = &app->confBasis,
-        .qtype = f->info.advection.qtype,
-        .num_quad = app->confBasis.poly_order+1,
-        .num_ret_vals = cdim,
-        .eval = f->info.advection.velocity,
-        .ctx = f->info.advection.velocity_ctx
-      }
-    );
+  if (f->info.vt) {
+    f->vt = f->info.vt;
+    f->eqn_id = GKYL_EQN_ISO_EULER;
+  }
+  else if (f->info.gas_gamma) {
+    f->gas_gamma = f->info.gas_gamma;
+    f->eqn_id = GKYL_EQN_EULER;    
   }
   else {
-    f->advects_with_species = true;
-    f->advection_species = vm_find_species(app, f->info.advection.advect_with);
-    f->other_advect = f->advection_species->lbo.u_drift;   
-    // determine collision type to use in vlasov update
-    f->collision_id = f->info.advection.collision_id;
-    if (f->collision_id == GKYL_LBO_COLLISIONS) {
-      f->other_nu = f->advection_species->lbo.nu_sum;
-      f->other_m0 = f->advection_species->lbo.m0;
-      f->other_nu_vthsq = f->advection_species->lbo.nu_vthsq;     
-      // allocate arrays to store collisional relaxation terms (nu*n*vthsq and nu*n*T_perp or nu*n*T_z)
-      f->nu_fluid = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-      f->nu_n_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    }  
+    f->eqn_id = GKYL_EQN_ADVECTION;   
+
+    f->has_advect = false;
+    f->advects_with_species = false;
+    // setup applied advection or advection with other species
+    if (f->info.advection.velocity) {
+      f->has_advect = true;
+      // we need to ensure applied advection has same shape as current                                             
+      f->advect = mkarr(app->use_gpu, cdim*app->confBasis.num_basis, app->local_ext.volume);
+
+      f->advect_host = f->advect;
+      if (app->use_gpu)
+        f->advect_host = mkarr(false, cdim*app->confBasis.num_basis, app->local_ext.volume);
+
+      f->advect_ctx = (struct vm_eval_advect_ctx) {
+        .advect_func = f->info.advection.velocity, .advect_ctx = f->info.advection.velocity_ctx
+      };
+
+      f->advect_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+          .grid = &app->grid,
+          .basis = &app->confBasis,
+          .qtype = f->info.advection.qtype,
+          .num_quad = app->confBasis.poly_order+1,
+          .num_ret_vals = cdim,
+          .eval = f->info.advection.velocity,
+          .ctx = f->info.advection.velocity_ctx
+        }
+      );
+    }
+    else {
+      f->advects_with_species = true;
+      f->advection_species = vm_find_species(app, f->info.advection.advect_with);
+      f->other_advect = f->advection_species->lbo.u_drift;   
+      // determine collision type to use in vlasov update
+      f->collision_id = f->info.advection.collision_id;
+      if (f->collision_id == GKYL_LBO_COLLISIONS) {
+        f->other_nu = f->advection_species->lbo.nu_sum;
+        f->other_m0 = f->advection_species->lbo.m0;
+        f->other_nu_vthsq = f->advection_species->lbo.nu_vthsq;     
+        // allocate arrays to store collisional relaxation terms (nu*n*vthsq and nu*n*T_perp or nu*n*T_z)
+        f->nu_fluid = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+        f->nu_n_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+      }  
+    } 
   }
+
+  f->advect_slvr = gkyl_dg_updater_fluid_new(&app->grid, &app->confBasis, 
+    &app->local, f->eqn_id, app->use_gpu);
+
+  f->diff_slvr = gkyl_dg_updater_diffusion_new(&app->grid, &app->confBasis, 
+    &app->local, f->diffusion_id, app->use_gpu);
 
   f->has_diffusion = false;
   if (f->info.diffusion.D) {
@@ -113,7 +127,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
         .basis = &app->confBasis,
         .qtype = GKYL_GAUSS_LOBATTO_QUAD,
         .num_quad = app->confBasis.poly_order+1,
-        .num_ret_vals = cdim,
+        .num_ret_vals = szD,
         .eval = f->info.diffusion.D,
         .ctx = f->info.diffusion.D_ctx
       }
@@ -127,7 +141,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
 
   for (int dir=0; dir<app->cdim; ++dir) {
     if (is_np[dir]) {
-      const enum gkyl_fluid_species_bc_type *bc;
+      const enum gkyl_species_bc_type *bc;
       if (dir == 0)
         bc = f->info.bcx;
       else if (dir == 1)
@@ -139,9 +153,22 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       f->upper_bc[dir] = bc[1];
     }
   }
-  for (int d=0; d<3; ++d)
-    f->absorb_bc_func[d] = gkyl_advection_absorb_bc_create(f->advect_eqn, d,
-      app->basis_on_dev.confBasis);
+  int ghost[GKYL_MAX_DIM];
+  for (int d=0; d<cdim; ++d)
+    ghost[d] = 1;
+  
+  for (int d=0; d<app->cdim; ++d) {
+    // Lower BC updater.
+    if (f->lower_bc[d] == GKYL_SPECIES_ABSORB) {
+      f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &app->local_ext, ghost, GKYL_BC_ABSORB,
+                                      &app->basis, app->cdim, app->use_gpu);
+    }
+    // Upper BC updater.
+    if (f->upper_bc[d] == GKYL_SPECIES_ABSORB) {
+      f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &app->local_ext, ghost, GKYL_BC_ABSORB,
+                                      &app->basis, app->cdim, app->use_gpu);
+    }
+  }
 }
 
 void
@@ -204,22 +231,22 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
     vm_fluid_species_apply_bc(app, fluid_species, fluid_species->other_advect);    
     gkyl_array_accumulate(fluid_species->u, 1.0, fluid_species->other_advect);
   }
-  
-  gkyl_advection_set_auxfields(fluid_species->advect_eqn,
-    (struct gkyl_dg_advection_auxfields) { .u = fluid_species->u  }); // set total advection
-  gkyl_diffusion_set_auxfields(fluid_species->diff_eqn,
-    (struct gkyl_dg_diffusion_auxfields) { .D = fluid_species->D  }); // set total advection
-  
+
   gkyl_array_clear(rhs, 0.0);
 
   if (app->use_gpu) {
-    gkyl_hyper_dg_advance_cu(fluid_species->advect_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
-    if (fluid_species->has_diffusion)
-      gkyl_hyper_dg_advance_cu(fluid_species->diff_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
-  } else {
-    gkyl_hyper_dg_advance(fluid_species->advect_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
-    if (fluid_species->has_diffusion)
-      gkyl_hyper_dg_advance(fluid_species->diff_slvr, &app->local, fluid, fluid_species->cflrate, rhs);
+    gkyl_dg_updater_fluid_advance_cu(fluid_species->advect_slvr, fluid_species->eqn_id,
+      &app->local, fluid_species->u, fluid, fluid_species->cflrate, rhs);
+
+    gkyl_dg_updater_diffusion_advance_cu(fluid_species->diff_slvr, fluid_species->diffusion_id,
+      &app->local, fluid_species->D, fluid, fluid_species->cflrate, rhs);
+  }
+  else {
+    gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, fluid_species->eqn_id,
+      &app->local, fluid_species->u, fluid, fluid_species->cflrate, rhs);
+
+    gkyl_dg_updater_diffusion_advance(fluid_species->diff_slvr, fluid_species->diffusion_id,
+      &app->local, fluid_species->D, fluid, fluid_species->cflrate, rhs);
   }
 
   // accumulate nu*n*T - nu*fluid_species
@@ -276,27 +303,6 @@ vm_fluid_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_fluid_speci
   }
 }
 
-// Apply absorbing BCs on fluid species
-void
-vm_fluid_species_apply_absorb_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species,
-  int dir, enum vm_domain_edge edge, struct gkyl_array *f)
-{
-  
-  if (edge == VM_EDGE_LOWER) {
-    gkyl_array_copy_to_buffer_fn(fluid_species->bc_buffer->data, f, app->skin_ghost.lower_skin[dir],
-      fluid_species->absorb_bc_func[dir]->on_dev
-    );
-    gkyl_array_copy_from_buffer(f, fluid_species->bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
-  }
-
-  if (edge == VM_EDGE_UPPER) {
-    gkyl_array_copy_to_buffer_fn(fluid_species->bc_buffer->data, f, app->skin_ghost.upper_skin[dir],
-      fluid_species->absorb_bc_func[dir]->on_dev
-    );
-    gkyl_array_copy_from_buffer(f, fluid_species->bc_buffer->data, app->skin_ghost.upper_ghost[dir]);
-  }  
-}
-
 // Determine which directions are periodic and which directions are copy,
 // and then apply boundary conditions for fluid species
 void
@@ -312,20 +318,42 @@ vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *f
     if (is_np_bc[d]) {
 
       switch (fluid_species->lower_bc[d]) {
-        case GKYL_FLUID_SPECIES_COPY:
+        case GKYL_SPECIES_COPY:
           vm_fluid_species_apply_copy_bc(app, fluid_species, d, VM_EDGE_LOWER, f);
           break;
-        case GKYL_FLUID_SPECIES_ABSORB:
-          vm_fluid_species_apply_absorb_bc(app, fluid_species, d, VM_EDGE_LOWER, f);
+        case GKYL_SPECIES_ABSORB:
+          gkyl_bc_basic_advance(fluid_species->bc_lo[d], fluid_species->bc_buffer, f);
+          break;
+        case GKYL_SPECIES_REFLECT:
+          assert(false);
+          break;
+        case GKYL_SPECIES_NO_SLIP:
+          assert(false);
+          break;
+        case GKYL_SPECIES_WEDGE:
+          assert(false);
+          break;
+        default:
           break;
       }
 
       switch (fluid_species->upper_bc[d]) {
-        case GKYL_FLUID_SPECIES_COPY:
+        case GKYL_SPECIES_COPY:
           vm_fluid_species_apply_copy_bc(app, fluid_species, d, VM_EDGE_UPPER, f);
           break;
-        case GKYL_FLUID_SPECIES_ABSORB:
-          vm_fluid_species_apply_absorb_bc(app, fluid_species, d, VM_EDGE_UPPER, f);
+        case GKYL_SPECIES_ABSORB:
+          gkyl_bc_basic_advance(fluid_species->bc_up[d], fluid_species->bc_buffer, f);
+          break;
+        case GKYL_SPECIES_REFLECT:
+          assert(false);
+          break;
+        case GKYL_SPECIES_NO_SLIP:
+          assert(false);
+          break;
+        case GKYL_SPECIES_WEDGE:
+          assert(false);
+          break;
+        default:
           break;
       }      
     }
@@ -342,10 +370,8 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
   gkyl_array_release(f->bc_buffer);
   gkyl_array_release(f->cflrate);
 
-  gkyl_dg_eqn_release(f->advect_eqn);
-  gkyl_hyper_dg_release(f->advect_slvr);
-  gkyl_dg_eqn_release(f->diff_eqn);
-  gkyl_hyper_dg_release(f->diff_slvr);
+  gkyl_dg_updater_fluid_release(f->advect_slvr);
+  gkyl_dg_updater_diffusion_release(f->diff_slvr);
 
   gkyl_array_release(f->u);
   if (f->has_advect) {
@@ -374,7 +400,11 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
   else {
     gkyl_free(f->omegaCfl_ptr);
   }
-  for (int d=0; d<3; ++d)
-    gkyl_advection_bc_release(f->absorb_bc_func[d]);
+  for (int d=0; d<app->cdim; ++d) {
+    if (f->lower_bc[d]==GKYL_SPECIES_ABSORB)
+      gkyl_bc_basic_release(f->bc_lo[d]);
+    if (f->upper_bc[d]==GKYL_SPECIES_ABSORB)
+      gkyl_bc_basic_release(f->bc_up[d]);
+  }
 }
 

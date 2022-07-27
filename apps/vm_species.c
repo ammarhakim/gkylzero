@@ -11,7 +11,6 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_vlasov_priv.h>
-#include <gkyl_bc_basic.h>
 #include <time.h>
 
 // Projection functions for p/(m*gamma) = v in special relativistic systems
@@ -506,6 +505,12 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
         case GKYL_SPECIES_ABSORB:
           gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer, f);
           break;
+        case GKYL_SPECIES_NO_SLIP:
+          assert(false);
+          break;
+        case GKYL_SPECIES_WEDGE:
+          assert(false);
+          break;
         default:
           break;
       }
@@ -519,6 +524,12 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
           break;
         case GKYL_SPECIES_ABSORB:
           gkyl_bc_basic_advance(species->bc_up[d], species->bc_buffer, f);
+          break;
+        case GKYL_SPECIES_NO_SLIP:
+          assert(false);
+          break;
+        case GKYL_SPECIES_WEDGE:
+          assert(false);
           break;
         default:
           break;

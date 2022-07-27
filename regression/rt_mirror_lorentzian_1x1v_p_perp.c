@@ -230,7 +230,7 @@ main(int argc, char **argv)
 
     .advection = {.advect_with = "elc", .collision_id = GKYL_LBO_COLLISIONS},
 
-    .bcx = { GKYL_FLUID_SPECIES_ABSORB, GKYL_FLUID_SPECIES_ABSORB },
+    .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
   };  
   
   // electrons
@@ -277,7 +277,7 @@ main(int argc, char **argv)
 
     .advection = {.advect_with = "ion", .collision_id = GKYL_LBO_COLLISIONS},
 
-    .bcx = { GKYL_FLUID_SPECIES_ABSORB, GKYL_FLUID_SPECIES_ABSORB },
+    .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
   };  
   
   // ions

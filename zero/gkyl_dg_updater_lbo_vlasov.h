@@ -6,7 +6,7 @@
 #include <gkyl_rect_grid.h>
 
 // Object type
-typedef struct gkyl_dg_updater_lbo_vlasov gkyl_dg_updater_lbo_vlasov;
+typedef struct gkyl_dg_updater_collisions gkyl_dg_updater_collisions;
 
 // return type for drag and diffusion timers
 struct gkyl_dg_updater_lbo_vlasov_tm {
@@ -22,10 +22,12 @@ struct gkyl_dg_updater_lbo_vlasov_tm {
  * @param conf_range Config space range
  * @return New LBO updater object
  */
-gkyl_dg_updater_lbo_vlasov* gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid,
+struct gkyl_dg_updater_collisions* 
+gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, bool use_gpu);
 
-gkyl_dg_updater_lbo_vlasov* gkyl_dg_updater_lbo_vlasov_cu_dev_new(const struct gkyl_rect_grid *grid,
+struct gkyl_dg_updater_collisions* 
+gkyl_dg_updater_lbo_vlasov_cu_dev_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range);
 
 /**
@@ -43,13 +45,13 @@ gkyl_dg_updater_lbo_vlasov* gkyl_dg_updater_lbo_vlasov_cu_dev_new(const struct g
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
-void gkyl_dg_updater_lbo_vlasov_advance(gkyl_dg_updater_lbo_vlasov *lbo,
+void gkyl_dg_updater_lbo_vlasov_advance(struct gkyl_dg_updater_collisions *lbo,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq,
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 
-void gkyl_dg_updater_lbo_vlasov_advance_cu(gkyl_dg_updater_lbo_vlasov *lbo,
+void gkyl_dg_updater_lbo_vlasov_advance_cu(struct gkyl_dg_updater_collisions *lbo,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq,
   const struct gkyl_array* GKYL_RESTRICT fIn,
@@ -61,11 +63,11 @@ void gkyl_dg_updater_lbo_vlasov_advance_cu(gkyl_dg_updater_lbo_vlasov *lbo,
  * @param lbo Updater object
  * @return timers
  */
-struct gkyl_dg_updater_lbo_vlasov_tm gkyl_dg_updater_lbo_vlasov_get_tm(const gkyl_dg_updater_lbo_vlasov *lbo);
+struct gkyl_dg_updater_lbo_vlasov_tm gkyl_dg_updater_lbo_vlasov_get_tm(const struct gkyl_dg_updater_collisions *coll);
 
 /**
  * Delete updater.
  *
  * @param lbo Updater to delete.
  */
-void gkyl_dg_updater_lbo_vlasov_release(gkyl_dg_updater_lbo_vlasov* lbo);
+void gkyl_dg_updater_lbo_vlasov_release(struct gkyl_dg_updater_collisions* coll);
