@@ -377,6 +377,12 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn, const double *ql,
   }
 }
 
+static bool
+check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
+{
+  return true; // TODO
+}
+
 static double
 max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
@@ -393,6 +399,7 @@ gkyl_wv_mhd_new(double gas_gamma, const char *divergence_constraint)
   mhd->gas_gamma = gas_gamma;
   mhd->eqn.waves_func = wave_roe;
   mhd->eqn.qfluct_func = qfluct_roe;
+  mhd->eqn.check_inv_func = check_inv;
   mhd->eqn.max_speed_func = max_speed;
   mhd->eqn.rotate_to_local_func = rot_to_local_rect;
   mhd->eqn.rotate_to_global_func = rot_to_global_rect;

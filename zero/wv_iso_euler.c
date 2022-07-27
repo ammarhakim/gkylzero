@@ -104,6 +104,12 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn,
   }
 }
 
+static bool
+check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
+{
+  return q[0] > 0.0; // denisty should be positive
+}
+
 static double
 max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
@@ -122,6 +128,7 @@ gkyl_wv_iso_euler_new(double vt)
   iso_euler->vt = vt;
   iso_euler->eqn.waves_func = wave_roe;
   iso_euler->eqn.qfluct_func = qfluct_roe;
+  iso_euler->eqn.check_inv_func = check_inv;
   iso_euler->eqn.max_speed_func = max_speed;
   iso_euler->eqn.rotate_to_local_func = rot_to_local;
   iso_euler->eqn.rotate_to_global_func = rot_to_global;

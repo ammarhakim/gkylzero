@@ -148,6 +148,21 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn,
   }
 }
 
+static bool
+check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
+{
+  const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
+  
+  if (q[0] < 0.0)
+    return false;
+
+  double pr = gkyl_euler_pressure(euler->gas_gamma, q);
+  if (pr < 0.0)
+    return false;
+
+  return true;
+}
+
 static double
 max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {

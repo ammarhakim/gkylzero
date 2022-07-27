@@ -2,6 +2,7 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_wv_maxwell.h>
+#include <stdbool.h>
 
 struct wv_maxwell {
   struct gkyl_wv_eqn eqn; // base object
@@ -157,6 +158,12 @@ qfluct(const struct gkyl_wv_eqn *eqn,
   }
 }
 
+static bool
+check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
+{
+  return true; // no negative states in Maxwell
+}
+
 static double
 max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
@@ -179,6 +186,7 @@ gkyl_wv_maxwell_new(double c, double e_fact, double b_fact)
   
   maxwell->eqn.waves_func = wave;
   maxwell->eqn.qfluct_func = qfluct;
+  maxwell->eqn.check_inv_func = check_inv;
   maxwell->eqn.max_speed_func = max_speed;
   maxwell->eqn.rotate_to_local_func = rot_to_local;
   maxwell->eqn.rotate_to_global_func = rot_to_global;

@@ -13,9 +13,12 @@ typedef double (*wv_waves_t)(const struct gkyl_wv_eqn *eqn,
   const double *delta, const double *ql, const double *qr, double *waves, double *speeds);
 
 // Function pointer for compute q-fluctuations from waves
-typedef void (*wv_qfluct_t)(const struct gkyl_wv_eqn *eqn, 
-  const double *ql, const double *qr, const double *waves, const double *speeds,
-  double *amdq, double *apdq);
+typedef void (*wv_qfluct_t)(const struct gkyl_wv_eqn *eqn, const double *ql,
+  const double *qr, const double *waves,
+  const double *speeds, double *amdq, double *apdq);
+
+// Function pointer to check if invariant domain is preserved
+typedef bool (*wv_check_inv)(const struct gkyl_wv_eqn *eqn, const double *q);
 
 // Function pointer to compute maximum speed given local state
 typedef double (*wv_max_speed_t)(const struct gkyl_wv_eqn *eqn, const double *q);
@@ -36,6 +39,7 @@ struct gkyl_wv_eqn {
   int num_waves; // number of waves in system
   wv_waves_t waves_func; // function to compute waves and speeds
   wv_qfluct_t qfluct_func; // function to compute q-fluctuations
+  wv_check_inv check_inv_func; // function to check invariant domains
   wv_max_speed_t max_speed_func; // function to compute max-speed
   wv_rotate_to_local rotate_to_local_func; // function to rotate to local frame
   wv_rotate_to_global rotate_to_global_func; // function to rotate to global frame

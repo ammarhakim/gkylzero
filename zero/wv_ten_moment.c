@@ -310,6 +310,12 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn,
   }
 }
 
+static bool
+check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
+{
+  return true; // TODO
+}
+
 static double
 max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
@@ -328,6 +334,7 @@ gkyl_wv_ten_moment_new(double k0)
   ten_moment->eqn.num_waves = 5;
   ten_moment->eqn.waves_func = wave_roe;
   ten_moment->eqn.qfluct_func = qfluct_roe;
+  ten_moment->eqn.check_inv_func = check_inv;
   ten_moment->eqn.max_speed_func = max_speed;
   ten_moment->eqn.rotate_to_local_func = rot_to_local;
   ten_moment->eqn.rotate_to_global_func = rot_to_global;

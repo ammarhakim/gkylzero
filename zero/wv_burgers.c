@@ -54,6 +54,12 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn,
     apdq[0] = s[0]*waves[0];
 }
 
+static bool
+check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
+{
+  return true; // no negative states in Burgers
+}
+
 static double
 max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
@@ -71,6 +77,7 @@ gkyl_wv_burgers_new(void)
   burgers->eqn.num_waves = 1;
   burgers->eqn.waves_func = wave_roe;
   burgers->eqn.qfluct_func = qfluct_roe;
+  burgers->eqn.check_inv_func = check_inv;
   burgers->eqn.max_speed_func = max_speed;
 
   burgers->eqn.rotate_to_local_func = rot_to_local;
