@@ -35,6 +35,13 @@ enum gkyl_collision_id {
   GKYL_FPO_COLLISIONS, // FPO Collision operator
 };
 
+// Identifiers for specific source object types
+enum gkyl_source_id {
+  GKYL_NO_SOURCE = 0, // No source. This is default
+  GKYL_FUNC_SOURCE, // Source given by function
+  GKYL_BFLUX_SOURCE // Source which scales to boundary fluxes
+};
+
 // type of quadrature to use
 enum gkyl_quad_type {
   GKYL_GAUSS_QUAD, // Gauss-Legendre quadrature

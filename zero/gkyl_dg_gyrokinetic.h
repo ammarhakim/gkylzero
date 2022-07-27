@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gkyl_array.h>
+#include <gkyl_array_ops.h> 
 #include <gkyl_basis.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_dg_eqn.h>
@@ -49,6 +50,14 @@ struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbas
  */
 void gkyl_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin);
 
+/**
+ * Release boundary conditions function.
+ * 
+ * @param bc Pointer to array_copy_func.
+ */
+
+void gkyl_gyrokinetic_bc_release(struct gkyl_array_copy_func* bc);
+
 #ifdef GKYL_HAVE_CUDA
 /**
  * CUDA device function to set the auxiliary fields (e.g. geometry & EM fields)
@@ -58,5 +67,7 @@ void gkyl_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_d
  * @param auxfields Pointer to struct of aux fields.
  */
 void gkyl_gyrokinetic_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin);
+
 #endif
+
 

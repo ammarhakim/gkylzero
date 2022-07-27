@@ -111,7 +111,7 @@ main(int argc, char **argv)
     .init = evalEulerInit,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
-    .bcy = { GKYL_SPECIES_WALL, GKYL_SPECIES_COPY },
+    .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_COPY },
   };
 
   // VM app

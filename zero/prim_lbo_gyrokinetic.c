@@ -31,6 +31,7 @@ gkyl_prim_lbo_gyrokinetic_new(const struct gkyl_basis* cbasis,
   prim_gyrokinetic->prim.num_config = cbasis->num_basis;
   prim_gyrokinetic->prim.num_phase = pbasis->num_basis;
   prim_gyrokinetic->prim.self_prim = self_prim;
+  prim_gyrokinetic->prim.udim = 1;
 
   // choose kernel tables based on basis-function type
   const gkyl_prim_lbo_gyrokinetic_kern_list *self_prim_kernels;

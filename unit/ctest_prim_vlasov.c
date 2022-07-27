@@ -8,15 +8,12 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_array_ops.h>
-#include <gkyl_mom_bcorr_lbo_vlasov.h>
-#include <gkyl_mom_bcorr_lbo_vlasov_priv.h>
 #include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_vlasov.h>
 #include <gkyl_prim_lbo_calc.h>
 #include <gkyl_prim_lbo_cross_calc.h>
 #include <gkyl_prim_lbo_type.h>
-#include <gkyl_prim_lbo_vlasov.h>
 
 static inline double
 maxwellian1D(double n, double vx, double ux, double vth)
@@ -182,8 +179,7 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   // compute the moments
   gkyl_mom_calc_advance(moms_calc, &local, &confLocal, distf, moms);
 
-  struct gkyl_mom_type *bcorr_type = gkyl_mom_bcorr_lbo_vlasov_new(&confBasis, &basis, v_bounds);
-  gkyl_mom_calc_bcorr *bcorr_calc = gkyl_mom_calc_bcorr_new(&grid, bcorr_type);
+  gkyl_mom_calc_bcorr *bcorr_calc = gkyl_mom_calc_bcorr_lbo_vlasov_new(&grid, &confBasis, &basis, v_bounds);
   
   // create moment arrays
   struct gkyl_array *boundary_corrections;
@@ -203,17 +199,17 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
       TEST_CHECK( gkyl_compare( vf_check[k], fptr[k+vdim*confBasis.num_basis], 1e-12) );
     }
   }
-  
-  struct gkyl_prim_lbo_type *prim = gkyl_prim_lbo_vlasov_new(&confBasis, &basis);
+
+  gkyl_prim_lbo_calc *primcalc = gkyl_prim_lbo_vlasov_calc_new(&grid, &confBasis, &basis);
+  gkyl_prim_lbo_cross_calc *crossprimcalc = gkyl_prim_lbo_vlasov_cross_calc_new(&grid, &confBasis, &basis);
+
+  const struct gkyl_prim_lbo_type *prim = gkyl_prim_lbo_calc_get_prim(primcalc);
 
   TEST_CHECK( prim->cdim == cdim );
   TEST_CHECK( prim->pdim == pdim );
   TEST_CHECK( prim->poly_order == poly_order );
   TEST_CHECK( prim->num_config == confBasis.num_basis );
   TEST_CHECK( prim->num_phase == basis.num_basis );
-
-  gkyl_prim_lbo_calc *primcalc = gkyl_prim_lbo_calc_new(&grid, prim);
-  gkyl_prim_lbo_cross_calc *crossprimcalc = gkyl_prim_lbo_cross_calc_new(&grid, prim);
   
   // create moment arrays
   struct gkyl_array *u, *vth;
@@ -221,7 +217,7 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   vth = mkarr(confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment corrections
-  gkyl_prim_lbo_calc_advance(primcalc, confBasis, confLocal, moms, boundary_corrections, u, vth);
+  gkyl_prim_lbo_calc_advance(primcalc, confBasis, &confLocal, moms, boundary_corrections, u, vth);
 
   // Check u
   // 1-indexed for interfacing with G2 Lua layer
@@ -252,7 +248,7 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   double self_m = 1.;
   double cross_m = self_m;
 
-  gkyl_prim_lbo_cross_calc_advance(crossprimcalc, confBasis, confLocal, greene, self_m, u, vth, cross_m, cross_u, cross_vtsq, moms, boundary_corrections, u_out, vtsq_out);
+  gkyl_prim_lbo_cross_calc_advance(crossprimcalc, confBasis, &confLocal, greene, self_m, u, vth, cross_m, cross_u, cross_vtsq, moms, boundary_corrections, u_out, vtsq_out);
   
   // Check cross u
   // 1-indexed for interfacing with G2 Lua layer
@@ -280,13 +276,11 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
 
   gkyl_array_release(boundary_corrections); 
   gkyl_mom_calc_bcorr_release(bcorr_calc); 
-  gkyl_mom_type_release(bcorr_type);
 
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf);
 
   gkyl_array_release(u); gkyl_array_release(vth);
-  gkyl_prim_lbo_type_release(prim);
   gkyl_prim_lbo_calc_release(primcalc);
 
 }
@@ -371,8 +365,7 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   // compute the moments
   gkyl_mom_calc_advance_cu(moms_calc, &local, &confLocal, distf_cu, moms_cu);
 
-  struct gkyl_mom_type *bcorr_type = gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(&confBasis, &basis, v_bounds);
-  gkyl_mom_calc_bcorr *bcorr_calc = gkyl_mom_calc_bcorr_cu_dev_new(&grid, bcorr_type);
+  gkyl_mom_calc_bcorr *bcorr_calc = gkyl_mom_calc_bcorr_lbo_vlasov_cu_dev_new(&grid, &confBasis, &basis, v_bounds);
   
   // create moment arrays
   struct gkyl_array *boundary_corrections_cu;
@@ -381,10 +374,9 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   // compute the moment corrections
   gkyl_mom_calc_bcorr_advance_cu(bcorr_calc, &local, &confLocal, distf_cu, boundary_corrections_cu);
 
-  struct gkyl_prim_lbo_type *prim = gkyl_prim_lbo_vlasov_cu_dev_new(&confBasis, &basis);
-  gkyl_prim_lbo_calc *primcalc = gkyl_prim_lbo_calc_cu_dev_new(&grid, prim);
-  gkyl_prim_lbo_cross_calc *crossprimcalc = gkyl_prim_lbo_cross_calc_cu_dev_new(&grid, prim); 
-  
+  gkyl_prim_lbo_calc *primcalc = gkyl_prim_lbo_vlasov_calc_cu_dev_new(&grid, &confBasis, &basis);
+  gkyl_prim_lbo_cross_calc *crossprimcalc = gkyl_prim_lbo_vlasov_cross_calc_cu_dev_new(&grid, &confBasis, &basis);
+
   // create moment arrays
   struct gkyl_array *u, *vth, *u_cu, *vth_cu;
   u = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
@@ -393,7 +385,7 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   vth_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment corrections
-  gkyl_prim_lbo_calc_advance_cu(primcalc, confBasis, confLocal, moms_cu, boundary_corrections_cu, u_cu, vth_cu);
+  gkyl_prim_lbo_calc_advance_cu(primcalc, confBasis, &confLocal, moms_cu, boundary_corrections_cu, u_cu, vth_cu);
   gkyl_array_copy(u, u_cu);
   gkyl_array_copy(vth, vth_cu);
 
@@ -428,7 +420,7 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   double cross_m = self_m;
   gkyl_array_clear(greene, 1.0);
 
-  gkyl_prim_lbo_cross_calc_advance_cu(crossprimcalc, confBasis, confLocal, greene, self_m, u_cu, vth_cu, cross_m, cross_u, cross_vtsq, moms_cu, boundary_corrections_cu, u_out_cu, vtsq_out_cu);
+  gkyl_prim_lbo_cross_calc_advance_cu(crossprimcalc, confBasis, &confLocal, greene, self_m, u_cu, vth_cu, cross_m, cross_u, cross_vtsq, moms_cu, boundary_corrections_cu, u_out_cu, vtsq_out_cu);
   gkyl_array_copy(u_out, u_out_cu);
   gkyl_array_copy(vtsq_out, vtsq_out_cu);
   
@@ -459,7 +451,6 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
 
   gkyl_array_release(boundary_corrections_cu); 
   gkyl_mom_calc_bcorr_release(bcorr_calc); 
-  gkyl_mom_type_release(bcorr_type);
 
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf); gkyl_array_release(distf_cu);
@@ -467,7 +458,6 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   gkyl_array_release(u); gkyl_array_release(vth);
   gkyl_array_release(u_cu); gkyl_array_release(vth_cu);
 
-  gkyl_prim_lbo_type_release(prim);
   gkyl_prim_lbo_calc_release(primcalc);
 }
 #endif

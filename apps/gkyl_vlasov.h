@@ -36,6 +36,18 @@ struct gkyl_vlasov_collisions {
   char collide_with_fluid[128]; // name of fluid species to cross collide with
 };
 
+// Parameters for species source
+struct gkyl_vlasov_source {
+  enum gkyl_source_id source_id; // type of source
+
+  double source_length; // required for boundary flux source
+  char source_species[128];
+  
+  void *ctx; // context for source function
+  // function for computing source profile
+  void (*profile)(double t, const double *xn, double *aout, void *ctx);
+};
+
 // Parameters for fluid species advection
 struct gkyl_vlasov_fluid_advection {
   void *velocity_ctx; // context for applied advection function
@@ -73,16 +85,15 @@ struct gkyl_vlasov_species {
   // collisions to include
   struct gkyl_vlasov_collisions collisions;
 
+  // source to include
+  struct gkyl_vlasov_source source;
+
   // mirror force to include
   struct gkyl_vlasov_mirror_force mirror_force;
 
   void *accel_ctx; // context for applied acceleration function
   // pointer to applied acceleration function
   void (*accel)(double t, const double *xn, double *aout, void *ctx);
-
-  void *source_ctx; // context for applied source function
-  // pointer to applied source function
-  void (*source)(double t, const double *xn, double *aout, void *ctx);
 
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];

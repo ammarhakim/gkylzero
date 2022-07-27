@@ -22,8 +22,6 @@ typedef void (*vlasov_sr_accel_boundary_surf_t)(const double *w, const double *d
   const double *p_over_gamma, const double *qmem, 
   const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out);
 
-typedef void (*bc_funcf_t)(size_t nc, double *out, const double *inp, void *ctx);
-
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
 static struct { int vdim[4]; } cv_index[] = {
@@ -47,8 +45,6 @@ struct dg_vlasov_sr {
   vlasov_sr_stream_surf_t stream_surf[3]; // Surface terms for streaming
   vlasov_sr_accel_surf_t accel_surf[3]; // Surface terms for acceleration
   vlasov_sr_accel_boundary_surf_t accel_boundary_surf[3]; // Surface terms for acceleration
-  bc_funcf_t wall_bc; // wall BCs function
-  bc_funcf_t absorb_bc; // absorbing BCs function
   struct gkyl_range conf_range; // configuration space range
   struct gkyl_range vel_range; // velocity space range
   struct gkyl_dg_vlasov_sr_auxfields auxfields; // Auxiliary fields.
@@ -1050,24 +1046,4 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
         vlasov_sr->auxfields.qmem ? (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.qmem, cidx) : 0,
         edge, qInEdge, qInSkin, qRhsOut);
   }
-}
-
-GKYL_CU_D
-static void
-species_wall_bc(size_t nc, double *out, const double *inp, void *ctx)
-{
-  struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
-  int dir = mc->dir, cdim = mc->cdim;
-
-  mc->basis->flip_odd_sign(dir, inp, out);
-  mc->basis->flip_odd_sign(dir+cdim, out, out);
-}
-
-GKYL_CU_D
-static void
-species_absorb_bc(size_t nc, double *out, const double *inp, void *ctx)
-{
-  struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
-  int nbasis = mc->basis->num_basis;
-  for (int c=0; c<nbasis; ++c) out[c] = 0.0;
 }

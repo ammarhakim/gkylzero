@@ -118,7 +118,7 @@ main(int argc, char **argv)
     .evolve = 1,
     .init = evalElcInit,
 
-    .bcy = { GKYL_SPECIES_WALL, GKYL_SPECIES_WALL },
+    .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
   };
   struct gkyl_moment_species ion = {
     .name = "ion",
@@ -127,7 +127,7 @@ main(int argc, char **argv)
     .evolve = 1,
     .init = evalIonInit,
 
-    .bcy = { GKYL_SPECIES_WALL, GKYL_SPECIES_WALL },    
+    .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },    
   };  
 
   // VM app

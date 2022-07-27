@@ -13,12 +13,12 @@
 
 struct gkyl_dg_updater_collisions*
 gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range)
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, bool use_gpu)
 {
   struct gkyl_dg_updater_collisions *up = gkyl_malloc(sizeof(gkyl_dg_updater_collisions));
 
-  up->coll_drag = gkyl_dg_lbo_vlasov_drag_new(cbasis, pbasis, conf_range);
-  up->coll_diff = gkyl_dg_lbo_vlasov_diff_new(cbasis, pbasis, conf_range);
+  up->coll_drag = gkyl_dg_lbo_vlasov_drag_new(cbasis, pbasis, conf_range, use_gpu);
+  up->coll_diff = gkyl_dg_lbo_vlasov_diff_new(cbasis, pbasis, conf_range, use_gpu);
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int vdim = pdim-cdim;
@@ -31,8 +31,8 @@ gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid, const struct g
   for (int d=cdim; d<pdim; ++d)
     zero_flux_flags[d] = 1;
   
-  up->diff = gkyl_hyper_dg_new(grid, pbasis, up->coll_diff, num_up_dirs, up_dirs, zero_flux_flags, 1, false);
-  up->drag = gkyl_hyper_dg_new(grid, pbasis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1, false);
+  up->diff = gkyl_hyper_dg_new(grid, pbasis, up->coll_diff, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
+  up->drag = gkyl_hyper_dg_new(grid, pbasis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
 
   up->diff_tm = 0.0; up->drag_tm = 0.0;
   

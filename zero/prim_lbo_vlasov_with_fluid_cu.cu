@@ -66,6 +66,7 @@ gkyl_prim_lbo_vlasov_with_fluid_cu_dev_new(const struct gkyl_basis* cbasis,
   int pdim = prim_vlasov_with_fluid->prim.pdim = pbasis->ndim;
   int vdim = pdim - cdim;
   int poly_order = prim_vlasov_with_fluid->prim.poly_order = cbasis->poly_order;
+  prim_vlasov_with_fluid->prim.udim = vdim;
 
   prim_vlasov_with_fluid->conf_range = *conf_range;
 

@@ -49,7 +49,7 @@ global_num_nodes(const int dim, const int poly_order, const int basis_type, cons
 
 gkyl_fem_poisson*
 gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-  struct gkyl_poisson_bc bcs, const double epsilon, void *ctx, bool use_gpu)
+  struct gkyl_poisson_bc *bcs, const double epsilon, bool use_gpu)
 {
 
   gkyl_fem_poisson *up = gkyl_malloc(sizeof(gkyl_fem_poisson));
@@ -62,7 +62,6 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   }
 #endif
 
-  up->ctx = ctx;
   up->ndim = grid->ndim;
   up->grid = *grid;
   up->num_basis =  basis.num_basis;
@@ -92,11 +91,11 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   // Prepare for periodic domain case.
   for (int d=0; d<up->ndim; d++) {
     // Sanity check.
-    if ((bcs.lo_type[d] == GKYL_POISSON_PERIODIC && bcs.up_type[d] != GKYL_POISSON_PERIODIC) ||
-        (bcs.lo_type[d] != GKYL_POISSON_PERIODIC && bcs.up_type[d] == GKYL_POISSON_PERIODIC))
+    if ((bcs->lo_type[d] == GKYL_POISSON_PERIODIC && bcs->up_type[d] != GKYL_POISSON_PERIODIC) ||
+        (bcs->lo_type[d] != GKYL_POISSON_PERIODIC && bcs->up_type[d] == GKYL_POISSON_PERIODIC))
       assert(false);
   }
-  for (int d=0; d<up->ndim; d++) up->isdirperiodic[d] = bcs.lo_type[d] == GKYL_POISSON_PERIODIC;
+  for (int d=0; d<up->ndim; d++) up->isdirperiodic[d] = bcs->lo_type[d] == GKYL_POISSON_PERIODIC;
   up->isdomperiodic = true;
   for (int d=0; d<up->ndim; d++) up->isdomperiodic = up->isdomperiodic && up->isdirperiodic[d];
   if (up->isdomperiodic) {
@@ -120,14 +119,14 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   // Pack BC values into a single array for easier use in kernels.
   for (int d=0; d<up->ndim; d++) {
     for (int k=0; k<6; k++) up->bcvals[d*2*3+k] = 0.0; // default. Not used in some cases (e.g. periodic).
-    if (bcs.lo_type[d] != GKYL_POISSON_PERIODIC) {
-      int vnum = bcs.lo_type[d] == GKYL_POISSON_ROBIN ? 3 : 1;
-      int voff = bcs.lo_type[d] == GKYL_POISSON_ROBIN ? 0 : 2;
-      for (int k=0; k<vnum; k++) up->bcvals[d*2*3+voff+k] = bcs.lo_value[d].v[k];
+    if (bcs->lo_type[d] != GKYL_POISSON_PERIODIC) {
+      int vnum = bcs->lo_type[d] == GKYL_POISSON_ROBIN ? 3 : 1;
+      int voff = bcs->lo_type[d] == GKYL_POISSON_ROBIN ? 0 : 2;
+      for (int k=0; k<vnum; k++) up->bcvals[d*2*3+voff+k] = bcs->lo_value[d].v[k];
 
-      vnum = bcs.up_type[d] == GKYL_POISSON_ROBIN ? 3 : 1;
-      voff = bcs.up_type[d] == GKYL_POISSON_ROBIN ? 0 : 2;
-      for (int k=0; k<vnum; k++) up->bcvals[d*2*3+voff+3+k] = bcs.lo_value[d].v[k];
+      vnum = bcs->up_type[d] == GKYL_POISSON_ROBIN ? 3 : 1;
+      voff = bcs->up_type[d] == GKYL_POISSON_ROBIN ? 0 : 2;
+      for (int k=0; k<vnum; k++) up->bcvals[d*2*3+voff+3+k] = bcs->lo_value[d].v[k];
     }
   }
 #ifdef GKYL_HAVE_CUDA
@@ -164,9 +163,8 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->kernels->solker = fem_poisson_choose_sol_kernels(&basis);
 
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu) {
+  if (up->use_gpu)
     fem_poisson_choose_kernels_cu(&basis, bcs,  up->isdirperiodic, up->kernels_cu);
-  }
 #endif
 
   // Create a linear Ax=B problem. Here A is the discrete (global) stiffness

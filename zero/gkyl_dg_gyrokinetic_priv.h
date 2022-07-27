@@ -4,11 +4,11 @@
 
 #include <gkyl_array.h>
 #include <gkyl_dg_eqn.h>
-#include <gkyl_dg_gyrokinetic.h>
 #include <gkyl_eqn_type.h>
-#include <gkyl_gyrokinetic_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
+#include <gkyl_gyrokinetic_kernels.h>
+#include <gkyl_dg_gyrokinetic.h>
 
 // Types for various kernels.
 typedef double (*gyrokinetic_vol_t)(const double *w, const double *dxv, const double q_, const double m_,
@@ -200,7 +200,7 @@ surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (gyrokinetic->pdim - gyrokinetic->cdim == 1 || dir < gyrokinetic->pdim-1) {
+  if (dir <= gyrokinetic->cdim) {
     long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idxC);
     gyrokinetic->surf[dir](xcC, dxC, 
       gyrokinetic->charge, gyrokinetic->mass,
