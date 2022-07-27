@@ -46,7 +46,7 @@ rot_to_global(const double *tau1, const double *tau2, const double *norm,
 
 // Waves and speeds using Roe averaging
 static double
-wave_roe(const struct gkyl_wv_eqn *eqn, 
+wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
   const struct wv_sr_euler *sr_euler = container_of(eqn, struct wv_sr_euler, eqn);
@@ -124,7 +124,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
 }
 
 static void
-qfluct_roe(const struct gkyl_wv_eqn *eqn, 
+qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *ql, const double *qr, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
