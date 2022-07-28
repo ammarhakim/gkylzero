@@ -134,15 +134,15 @@ gkyl_dg_mul_conf_phase_op_range_cu_kernel(struct gkyl_basis cbasis,
 
 // Host-side wrapper for range-based dg conf*phase multiplication.
 void
-gkyl_dg_mul_conf_phase_op_range_cu(struct gkyl_basis cbasis,
-  struct gkyl_basis pbasis, struct gkyl_array* pout,
+gkyl_dg_mul_conf_phase_op_range_cu(struct gkyl_basis *cbasis,
+  struct gkyl_basis *pbasis, struct gkyl_array* pout,
   const struct gkyl_array* cop, const struct gkyl_array* pop,
-  struct gkyl_range crange, struct gkyl_range prange)
+  struct gkyl_range *crange, struct gkyl_range *prange)
 {
-  int nblocks = prange.nblocks;
-  int nthreads = prange.nthreads;
-  gkyl_dg_mul_conf_phase_op_range_cu_kernel<<<nblocks, nthreads>>>(cbasis, pbasis,
-    pout->on_dev, cop->on_dev, pop->on_dev, crange, prange);
+  int nblocks = prange->nblocks;
+  int nthreads = prange->nthreads;
+  gkyl_dg_mul_conf_phase_op_range_cu_kernel<<<nblocks, nthreads>>>(*cbasis, *pbasis,
+    pout->on_dev, cop->on_dev, pop->on_dev, *crange, *prange);
 }
 
 __global__ void

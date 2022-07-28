@@ -88,9 +88,9 @@ static const mul_op_kern_list hyb_cross_mul_list[] = {
 
 GKYL_CU_D
 static const mul_op_kern_list gkhyb_cross_mul_list[] = {
-  { binop_cross_mul_1x1v_hyb_p1, binop_cross_mul_1x2v_hyb_p1 },
-  {                        NULL, binop_cross_mul_2x2v_hyb_p1 },
-  {                        NULL, binop_cross_mul_3x2v_hyb_p1 },
+  { binop_cross_mul_1x1v_gkhyb_p1, binop_cross_mul_1x2v_gkhyb_p1 },
+  {                          NULL, binop_cross_mul_2x2v_gkhyb_p1 },
+  {                          NULL, binop_cross_mul_3x2v_gkhyb_p1 },
 };
 
 static const mul_op_count_kern_list ser_mul_op_count_list[] = {

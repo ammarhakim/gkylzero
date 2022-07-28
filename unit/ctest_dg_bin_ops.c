@@ -372,7 +372,7 @@ test_2d(int poly_order, bool use_gpu)
     // g_bar = h/f = g
     gkyl_dg_div_op_range(mem, basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu, arr_range);
     // w = cfield*f
-    gkyl_dg_mul_conf_phase_op_range(cbasis, basis, w_bar_cu, cfield_cu, distf_cu, arr_crange, arr_range);
+    gkyl_dg_mul_conf_phase_op_range(&cbasis, &basis, w_bar_cu, cfield_cu, distf_cu, &arr_crange, &arr_range);
 
     // copy from device and check if things are ok
     gkyl_array_copy(f_bar, f_bar_cu);
@@ -390,7 +390,7 @@ test_2d(int poly_order, bool use_gpu)
     // g_bar = h/f = g
     gkyl_dg_div_op_range(mem, basis, 0, g_bar, 0, h, 0, distf, arr_range);
     // w = cfield*f
-    gkyl_dg_mul_conf_phase_op_range(cbasis, basis, w_bar, cfield, distf, arr_crange, arr_range);
+    gkyl_dg_mul_conf_phase_op_range(&cbasis, &basis, w_bar, cfield, distf, &arr_crange, &arr_range);
   }
 
   struct gkyl_range_iter iter;
@@ -680,7 +680,7 @@ test_3d(int poly_order, bool use_gpu)
     // g_bar = h/f = g
     gkyl_dg_div_op_range(mem, basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu, arr_range);
     // w = cfield*f
-    gkyl_dg_mul_conf_phase_op_range(cbasis, basis, w_bar_cu, cfield_cu, distf_cu, arr_crange, arr_range);
+    gkyl_dg_mul_conf_phase_op_range(&cbasis, &basis, w_bar_cu, cfield_cu, distf_cu, &arr_crange, &arr_range);
 
     // copy from device and check if things are ok
     gkyl_array_copy(f_bar, f_bar_cu);
@@ -698,7 +698,7 @@ test_3d(int poly_order, bool use_gpu)
     // g_bar = h/f = g
     gkyl_dg_div_op_range(mem, basis, 0, g_bar, 0, h, 0, distf, arr_range);
     // w = cfield*f
-    gkyl_dg_mul_conf_phase_op_range(cbasis, basis, w_bar, cfield, distf, arr_crange, arr_range);
+    gkyl_dg_mul_conf_phase_op_range(&cbasis, &basis, w_bar, cfield, distf, &arr_crange, &arr_range);
   }
 
   struct gkyl_range_iter iter;

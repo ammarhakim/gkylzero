@@ -76,10 +76,10 @@ void gkyl_dg_mul_op_range(struct gkyl_basis basis,
  * @param crange Conf-space range to apply multiplication operator.
  * @param prange Phase-space range to apply multiplication operator.
  */
-void gkyl_dg_mul_conf_phase_op_range(struct gkyl_basis cbasis,
-  struct gkyl_basis pbasis, struct gkyl_array* pout,
+void gkyl_dg_mul_conf_phase_op_range(struct gkyl_basis *cbasis,
+  struct gkyl_basis *pbasis, struct gkyl_array* pout,
   const struct gkyl_array* cop, const struct gkyl_array* pop,
-  struct gkyl_range crange, struct gkyl_range prange);
+  struct gkyl_range *crange, struct gkyl_range *prange);
 
 /**
  * Compute out = lop/rop. The c_oop, c_lop and c_rop are the
@@ -165,10 +165,10 @@ gkyl_dg_mul_op_range_cu(struct gkyl_basis basis,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop, struct gkyl_range *range);
 
-void gkyl_dg_mul_conf_phase_op_range_cu(struct gkyl_basis cbasis,
-  struct gkyl_basis pbasis, struct gkyl_array* pout,
+void gkyl_dg_mul_conf_phase_op_range_cu(struct gkyl_basis *cbasis,
+  struct gkyl_basis *pbasis, struct gkyl_array* pout,
   const struct gkyl_array* cop, const struct gkyl_array* pop,
-  struct gkyl_range crange, struct gkyl_range prange);
+  struct gkyl_range *crange, struct gkyl_range *prange);
 
 void
 gkyl_dg_div_op_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
