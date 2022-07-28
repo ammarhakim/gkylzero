@@ -248,10 +248,11 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     // Additional arrays for computing mirror force and current density for EM field coupling
     s->n = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     
+    s->Tperp_mem = 0;
     if (app->use_gpu)
-      s->Tperp_mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local_ext.volume, app->confBasis.num_basis);
+      s->Tperp_mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
     else
-      s->Tperp_mem = gkyl_dg_bin_op_mem_new(app->local_ext.volume, app->confBasis.num_basis);
+      s->Tperp_mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
     
     s->Tperp = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     s->mirror_force = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
