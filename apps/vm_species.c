@@ -330,7 +330,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     if (s->lower_bc[d] == GKYL_SPECIES_REFLECT) {
       bctype = GKYL_BC_REFLECT;
     } else if (s->lower_bc[d] == GKYL_SPECIES_ABSORB) {
-      bctype = GKYL_BC_REFLECT;
+      bctype = GKYL_BC_ABSORB;
     }
     s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &s->local_ext, ghost, bctype,
                                     app->basis_on_dev.basis, app->cdim, app->use_gpu);
@@ -338,7 +338,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     if (s->upper_bc[d] == GKYL_SPECIES_REFLECT) {
       bctype = GKYL_BC_REFLECT;
     } else if (s->upper_bc[d] == GKYL_SPECIES_ABSORB) {
-      bctype = GKYL_BC_REFLECT;
+      bctype = GKYL_BC_ABSORB;
     }
     s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &s->local_ext, ghost, bctype,
                                     app->basis_on_dev.basis, app->cdim, app->use_gpu);
