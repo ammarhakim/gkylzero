@@ -97,7 +97,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       bctype = GKYL_BC_MAXWELL_PEC;
   
     f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &app->local_ext, ghost, bctype,
-                                    app->basis_on_dev.basis, app->cdim, app->use_gpu);
+                                    app->basis_on_dev.confBasis, app->cdim, app->use_gpu);
     // Upper BC updater.
     if (f->upper_bc[d] == GKYL_FIELD_COPY)
       bctype = GKYL_BC_COPY;
@@ -105,7 +105,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       bctype = GKYL_BC_MAXWELL_PEC;
     
     f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &app->local_ext, ghost, bctype,
-                                    app->basis_on_dev.basis, app->cdim, app->use_gpu);
+                                    app->basis_on_dev.confBasis, app->cdim, app->use_gpu);
   }
 
   gkyl_dg_eqn_release(eqn);
