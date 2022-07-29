@@ -268,12 +268,10 @@ struct vm_fluid_species {
   gkyl_hyper_dg *advect_slvr; // Fluid equation solver
   gkyl_hyper_dg *diff_slvr; // Fluid equation solver
 
-  // boundary conditions on lower/upper edges in each direction  
-  enum gkyl_fluid_species_bc_type lower_bc[3], upper_bc[3];
-  // Note: we need to store pointers to the struct as these may
-  // actually be on the GPUs. Seems ugly, but I am not sure how else
-  // to ensure the function and context lives on the GPU
-  struct gkyl_array_copy_func *absorb_bc_func[3]; // for absorbing BCs
+  enum gkyl_species_bc_type lower_bc[3], upper_bc[3];
+  // Pointers to updaters that apply BC.
+  struct gkyl_bc_basic *bc_lo[3];
+  struct gkyl_bc_basic *bc_up[3];
 
   // specified advection
   bool has_advect; // flag to indicate there is applied advection
