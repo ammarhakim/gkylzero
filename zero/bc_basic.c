@@ -20,6 +20,10 @@ gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bc
 
   struct gkyl_array_copy_func *fout = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
   switch (bctype) {
+    case GKYL_BC_COPY:
+      fout->func = copy_bc;
+      break;
+      
     case GKYL_BC_ABSORB:
       fout->func = species_absorb_bc;
       break;
@@ -27,7 +31,11 @@ gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bc
     case GKYL_BC_REFLECT:
       fout->func = species_reflect_bc;
       break;
-
+    // Perfect electrical conductor
+    case GKYL_BC_MAXWELL_PEC:
+      fout->func = maxwell_pec_bc;
+      break;
+      
     default:
       assert(false);
       break;
@@ -72,7 +80,9 @@ gkyl_bc_basic_advance(const struct gkyl_bc_basic *up, struct gkyl_array *buff_ar
   // Apply BC in two steps:
   // 1) Copy skin to buffer while applying array_copy_func.
   switch (up->bctype) {
+    case GKYL_BC_COPY:
     case GKYL_BC_ABSORB:
+    case GKYL_BC_MAXWELL_PEC:
       gkyl_array_copy_to_buffer_fn(buff_arr->data, f_arr,
                                    up->skin_r, up->array_copy_func->on_dev);
       break;
