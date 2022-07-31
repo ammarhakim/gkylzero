@@ -131,7 +131,7 @@ struct gkyl_vlasov_fluid_species {
   struct gkyl_vlasov_fluid_diffusion diffusion;
   
   // boundary conditions
-  enum gkyl_fluid_species_bc_type bcx[2], bcy[2], bcz[2];
+  enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
 };
 
 // Top-level app parameters

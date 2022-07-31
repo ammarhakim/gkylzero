@@ -6,12 +6,12 @@
 #include <gkyl_app.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_bc_basic.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_vlasov_priv.h>
-#include <gkyl_bc_basic.h>
 #include <time.h>
 
 // Projection functions for p/(m*gamma) = v in special relativistic systems
@@ -326,21 +326,25 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     }
   }
   for (int d=0; d<app->cdim; ++d) {
-    // Lower BC updater.
-    enum gkyl_bc_basic_type bctype;
-    if (s->lower_bc[d] == GKYL_SPECIES_REFLECT) {
+    // Lower BC updater. Copy BCs by default.
+    enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
+    if (s->lower_bc[d] == GKYL_SPECIES_COPY)
+      bctype = GKYL_BC_COPY;
+    else if (s->lower_bc[d] == GKYL_SPECIES_REFLECT)
       bctype = GKYL_BC_REFLECT;
-    } else if (s->lower_bc[d] == GKYL_SPECIES_ABSORB) {
+    else if (s->lower_bc[d] == GKYL_SPECIES_ABSORB)
       bctype = GKYL_BC_ABSORB;
-    }
+  
     s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &s->local_ext, ghost, bctype,
                                     app->basis_on_dev.basis, app->cdim, app->use_gpu);
-    // Upper BC updater.
-    if (s->upper_bc[d] == GKYL_SPECIES_REFLECT) {
+    // Upper BC updater. Copy BCs by default.
+    if (s->upper_bc[d] == GKYL_SPECIES_COPY)
+      bctype = GKYL_BC_COPY;
+    else if (s->upper_bc[d] == GKYL_SPECIES_REFLECT)
       bctype = GKYL_BC_REFLECT;
-    } else if (s->upper_bc[d] == GKYL_SPECIES_ABSORB) {
+    else if (s->upper_bc[d] == GKYL_SPECIES_ABSORB)
       bctype = GKYL_BC_ABSORB;
-    }
+    
     s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &s->local_ext, ghost, bctype,
                                     app->basis_on_dev.basis, app->cdim, app->use_gpu);
   }
@@ -500,13 +504,13 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
 
       switch (species->lower_bc[d]) {
         case GKYL_SPECIES_COPY:
-          vm_species_apply_copy_bc(app, species, d, VM_EDGE_LOWER, f);
-          break;
         case GKYL_SPECIES_REFLECT:
-          gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer, f);
-          break;
         case GKYL_SPECIES_ABSORB:
           gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer, f);
+          break;
+        case GKYL_SPECIES_NO_SLIP:
+        case GKYL_SPECIES_WEDGE:
+          assert(false);
           break;
         default:
           break;
@@ -514,13 +518,13 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
 
       switch (species->upper_bc[d]) {
         case GKYL_SPECIES_COPY:
-          vm_species_apply_copy_bc(app, species, d, VM_EDGE_UPPER, f);
-          break;
         case GKYL_SPECIES_REFLECT:
-          gkyl_bc_basic_advance(species->bc_up[d], species->bc_buffer, f);
-          break;
         case GKYL_SPECIES_ABSORB:
           gkyl_bc_basic_advance(species->bc_up[d], species->bc_buffer, f);
+          break;
+        case GKYL_SPECIES_NO_SLIP:
+        case GKYL_SPECIES_WEDGE:
+          assert(false);
           break;
         default:
           break;
@@ -629,12 +633,10 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
 
   if (s->calc_bflux)
     vm_species_bflux_release(app, &s->bflux);
-
+  // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
-    if (s->lower_bc[d]==GKYL_SPECIES_REFLECT || s->lower_bc[d]==GKYL_SPECIES_ABSORB)
-      gkyl_bc_basic_release(s->bc_lo[d]);
-    if (s->upper_bc[d]==GKYL_SPECIES_REFLECT || s->upper_bc[d]==GKYL_SPECIES_ABSORB)
-      gkyl_bc_basic_release(s->bc_up[d]);
+    gkyl_bc_basic_release(s->bc_lo[d]);
+    gkyl_bc_basic_release(s->bc_up[d]);
   }
   
   if (app->use_gpu) {
