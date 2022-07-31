@@ -145,8 +145,8 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     ghost[d] = 1;
   
   for (int d=0; d<app->cdim; ++d) {
-    // Lower BC updater.
-    enum gkyl_bc_basic_type bctype;
+    // Lower BC updater. Copy BCs by default.
+    enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
     if (f->lower_bc[d] == GKYL_SPECIES_COPY)
       bctype = GKYL_BC_COPY;
     else if (f->lower_bc[d] == GKYL_SPECIES_ABSORB)
@@ -154,7 +154,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   
     f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &app->local_ext, ghost, bctype,
                                     app->basis_on_dev.confBasis, app->cdim, app->use_gpu);
-    // Upper BC updater.
+    // Upper BC updater. Copy BCs by default.
     if (f->upper_bc[d] == GKYL_SPECIES_COPY)
       bctype = GKYL_BC_COPY;
     else if (f->upper_bc[d] == GKYL_SPECIES_ABSORB)
@@ -367,10 +367,9 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
   else {
     gkyl_free(f->omegaCfl_ptr);
   }
+  // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
-    if (f->lower_bc[d]==GKYL_SPECIES_ABSORB || f->lower_bc[d]==GKYL_SPECIES_COPY)
       gkyl_bc_basic_release(f->bc_lo[d]);
-    if (f->upper_bc[d]==GKYL_SPECIES_ABSORB || f->upper_bc[d]==GKYL_SPECIES_COPY)
       gkyl_bc_basic_release(f->bc_up[d]);
   }
 }

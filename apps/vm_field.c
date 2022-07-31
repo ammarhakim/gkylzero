@@ -89,8 +89,8 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     ghost[d] = 1;
   
   for (int d=0; d<app->cdim; ++d) {
-    // Lower BC updater.
-    enum gkyl_bc_basic_type bctype;
+    // Lower BC updater. Copy BCs by default.
+    enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
     if (f->lower_bc[d] == GKYL_FIELD_COPY)
       bctype = GKYL_BC_COPY;
     else if (f->lower_bc[d] == GKYL_FIELD_PEC_WALL)
@@ -98,7 +98,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   
     f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &app->local_ext, ghost, bctype,
                                     app->basis_on_dev.confBasis, app->cdim, app->use_gpu);
-    // Upper BC updater.
+    // Upper BC updater. Copy BCs by default.
     if (f->upper_bc[d] == GKYL_FIELD_COPY)
       bctype = GKYL_BC_COPY;
     else if (f->upper_bc[d] == GKYL_FIELD_PEC_WALL)
@@ -255,12 +255,10 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   else {
     gkyl_free(f->omegaCfl_ptr);
   }
-
+  // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
-    if (f->lower_bc[d]==GKYL_FIELD_COPY || f->lower_bc[d]==GKYL_FIELD_PEC_WALL)
-      gkyl_bc_basic_release(f->bc_lo[d]);
-    if (f->upper_bc[d]==GKYL_FIELD_COPY || f->upper_bc[d]==GKYL_FIELD_PEC_WALL)
-      gkyl_bc_basic_release(f->bc_up[d]);
+    gkyl_bc_basic_release(f->bc_lo[d]);
+    gkyl_bc_basic_release(f->bc_up[d]);
   }
 
   gkyl_free(f);
