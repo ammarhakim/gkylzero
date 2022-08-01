@@ -193,16 +193,19 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
   }
 
   // Check lower ghost cells after applying BC
-   for (int d = 0; d < cdim; d++) {
+  for (int d = 0; d < cdim; d++) {
     struct gkyl_range_iter iter, iter_skin;
+    struct gkyl_array *distf_flip;
+    distf_flip = mkarr(basis.num_basis, local_ext.volume);
     gkyl_range_iter_init(&iter, &skin_ghost.lower_ghost[d]);
     if (strcmp(boundary_type, "reflect") == 0){
+      distf_flip = gkyl_array_copy(distf_flip, distf);
       // Flip the skin value in velocity space to apply reflect BC to skin cell
-      gkyl_array_flip_copy_to_buffer_fn(bc_buffer->data, distf, cdim+d, skin_ghost.lower_skin[d], &(struct gkyl_array_copy_func) { .func = buffer_fn, .ctx = 0 });
-      gkyl_array_copy_from_buffer(distf, bc_buffer->data, skin_ghost.lower_skin[d]);
+      gkyl_array_flip_copy_to_buffer_fn(bc_buffer->data, distf_flip, cdim+d, skin_ghost.lower_skin[d], &(struct gkyl_array_copy_func) { .func = buffer_fn, .ctx = 0 });
+      gkyl_array_copy_from_buffer(distf_flip, bc_buffer->data, skin_ghost.lower_skin[d]);
 
-      gkyl_array_flip_copy_to_buffer_fn(bc_buffer->data, distf, cdim+d, skin_ghost.upper_skin[d], &(struct gkyl_array_copy_func) { .func = buffer_fn, .ctx = 0 });
-      gkyl_array_copy_from_buffer(distf, bc_buffer->data, skin_ghost.upper_skin[d]);
+      gkyl_array_flip_copy_to_buffer_fn(bc_buffer->data, distf_flip, cdim+d, skin_ghost.upper_skin[d], &(struct gkyl_array_copy_func) { .func = buffer_fn, .ctx = 0 });
+      gkyl_array_copy_from_buffer(distf_flip, bc_buffer->data, skin_ghost.upper_skin[d]);
     }
     while (gkyl_range_iter_next(&iter)) {
       // Find the index and value of f at the ghost and adjacent skin cells
@@ -210,8 +213,8 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
       iter_skin.idx[d] = iter.idx[d] + 1;
       int linidx_ghost = gkyl_range_idx(skin_ghost.lower_ghost, iter.idx);
       int linidx_skin  = gkyl_range_idx(skin_ghost.lower_skin,  iter_skin.idx);
-      const double *val_ghost = gkyl_array_cfetch(distf, linidx_ghost);
-      const double *val_skin  = gkyl_array_cfetch(distf, linidx_skin);
+      const double *val_ghost = gkyl_array_cfetch(distf_flip, linidx_ghost);
+      const double *val_skin  = gkyl_array_cfetch(distf_flip, linidx_skin);
       if (strcmp(boundary_type, "reflect") == 0) {
         double val_correct[basis.num_basis];
 
@@ -221,10 +224,10 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
         
        
         // Check values
-        //printf("\n\nCell %i and %i where d=%i:", linidx_ghost, linidx_skin,d);
+        // printf("\n\nCell %i and %i where d=%i:", linidx_ghost, linidx_skin,d);
         for (int i = 0; i < basis.num_basis; i++) {
           TEST_CHECK(gkyl_compare(val_ghost[i], val_correct[i], 1e-12));
-         // printf("   %10.4f  %10.4f",val_ghost[i],val_correct[i]);
+          // printf("   %10.4f  %10.4f",val_ghost[i],val_correct[i]);
         }
       } else if (strcmp(boundary_type, "absorb") == 0) {
         for (int i = 0; i < basis.num_basis; i++) {
@@ -241,8 +244,8 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
       iter_skin.idx[d] = iter.idx[d] - 1;
       int linidx_ghost = gkyl_range_idx(skin_ghost.upper_ghost, iter.idx);
       int linidx_skin  = gkyl_range_idx(skin_ghost.upper_skin,  iter_skin.idx);
-      const double *val_ghost = gkyl_array_cfetch(distf, linidx_ghost);
-      const double *val_skin  = gkyl_array_cfetch(distf, linidx_skin);
+      const double *val_ghost = gkyl_array_cfetch(distf_flip, linidx_ghost);
+      const double *val_skin  = gkyl_array_cfetch(distf_flip, linidx_skin);
 
       if (strcmp(boundary_type, "reflect") == 0) {
         // Flip the skin value to manually apply reflect BC to skin cell
@@ -259,6 +262,7 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
           TEST_CHECK(gkyl_compare(val_ghost[i], 0, 1e-12));
         }
       }
+      gkyl_array_release(distf_flip);
     }
   }
 
@@ -276,34 +280,34 @@ void test_bc_reflect_1x1v_p2() { test_bc(1, 1, 2, "reflect",  false); }
 void test_bc_reflect_1x2v_p2() { test_bc(1, 2, 2, "reflect",  false); }
 void test_bc_reflect_2x2v_p2() { test_bc(2, 2, 2, "reflect",  false); }
 void test_bc_reflect_3x2v_p2() { test_bc(2, 2, 2, "reflect",  false); }
-void test_bc_absorb_1x1v_p1() { test_bc(1, 1, 1, "absorb",false); }
-void test_bc_absorb_1x2v_p1() { test_bc(1, 2, 1, "absorb",false); }
-void test_bc_absorb_2x2v_p1() { test_bc(2, 2, 1, "absorb",false); }
-void test_bc_absorb_3x2v_p1() { test_bc(2, 2, 1, "absorb",false); }
-void test_bc_absorb_1x1v_p2() { test_bc(1, 1, 2, "absorb",false); }
-void test_bc_absorb_1x2v_p2() { test_bc(1, 2, 2, "absorb",false); }
-void test_bc_absorb_2x2v_p2() { test_bc(2, 2, 2, "absorb",false); }
-void test_bc_absorb_3x2v_p2() { test_bc(2, 2, 2, "absorb",false); }
+void test_bc_absorb_1x1v_p1()  { test_bc(1, 1, 1, "absorb",   false); }
+void test_bc_absorb_1x2v_p1()  { test_bc(1, 2, 1, "absorb",   false); }
+void test_bc_absorb_2x2v_p1()  { test_bc(2, 2, 1, "absorb",   false); }
+void test_bc_absorb_3x2v_p1()  { test_bc(2, 2, 1, "absorb",   false); }
+void test_bc_absorb_1x1v_p2()  { test_bc(1, 1, 2, "absorb",   false); }
+void test_bc_absorb_1x2v_p2()  { test_bc(1, 2, 2, "absorb",   false); }
+void test_bc_absorb_2x2v_p2()  { test_bc(2, 2, 2, "absorb",   false); }
+void test_bc_absorb_3x2v_p2()  { test_bc(2, 2, 2, "absorb",   false); }
 
 void test_bc_reflect_1x1v_p1_gpu(){ test_bc(1, 1, 1, "reflect",  true); }
 
 TEST_LIST = {
     {"test_bc_reflect_1x1v_p1", test_bc_reflect_1x1v_p1},
     {"test_bc_reflect_1x2v_p1", test_bc_reflect_1x2v_p1},
-//    {"test_bc_reflect_2x2v_p1", test_bc_reflect_2x2v_p1},
-//    {"test_bc_reflect_3x2v_p1", test_bc_reflect_3x2v_p1},
-//    {"test_bc_reflect_1x1v_p2", test_bc_reflect_1x1v_p2},
-//    {"test_bc_reflect_1x2v_p2", test_bc_reflect_1x2v_p2},
-//    {"test_bc_reflect_2x2v_p2", test_bc_reflect_2x2v_p2},
-//    {"test_bc_reflect_3x2v_p2", test_bc_reflect_3x2v_p2},
-//    {"test_bc_absorb_1x1v_p1", test_bc_absorb_1x1v_p1},
-//    {"test_bc_absorb_1x2v_p1", test_bc_absorb_1x2v_p1},
-//    {"test_bc_absorb_2x2v_p1", test_bc_absorb_2x2v_p1},
-//    {"test_bc_absorb_3x2v_p1", test_bc_absorb_3x2v_p1},
-//    {"test_bc_absorb_1x1v_p2", test_bc_absorb_1x1v_p2},
-//    {"test_bc_absorb_1x2v_p2", test_bc_absorb_1x2v_p2},
-//    {"test_bc_absorb_2x2v_p2", test_bc_absorb_2x2v_p2},
-//    {"test_bc_absorb_3x2v_p2", test_bc_absorb_3x2v_p2},
+    {"test_bc_reflect_2x2v_p1", test_bc_reflect_2x2v_p1},
+    {"test_bc_reflect_3x2v_p1", test_bc_reflect_3x2v_p1},
+    {"test_bc_reflect_1x1v_p2", test_bc_reflect_1x1v_p2},
+    {"test_bc_reflect_1x2v_p2", test_bc_reflect_1x2v_p2},
+    {"test_bc_reflect_2x2v_p2", test_bc_reflect_2x2v_p2},
+    {"test_bc_reflect_3x2v_p2", test_bc_reflect_3x2v_p2},
+    {"test_bc_absorb_1x1v_p1", test_bc_absorb_1x1v_p1},
+    {"test_bc_absorb_1x2v_p1", test_bc_absorb_1x2v_p1},
+    {"test_bc_absorb_2x2v_p1", test_bc_absorb_2x2v_p1},
+    {"test_bc_absorb_3x2v_p1", test_bc_absorb_3x2v_p1},
+    {"test_bc_absorb_1x1v_p2", test_bc_absorb_1x1v_p2},
+    {"test_bc_absorb_1x2v_p2", test_bc_absorb_1x2v_p2},
+    {"test_bc_absorb_2x2v_p2", test_bc_absorb_2x2v_p2},
+    {"test_bc_absorb_3x2v_p2", test_bc_absorb_3x2v_p2},
 //    {"test_bc_reflect_1x1v_p1_gpu", test_bc_reflect_1x1v_p1_gpu},
     {NULL, NULL},
 };
