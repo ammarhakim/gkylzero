@@ -149,15 +149,48 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn,
   }
 }
 
+// Waves and speeds using Lax fluxes
+static double
+wave_lax(const struct gkyl_wv_eqn *eqn,
+  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+{
+  const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
+  double gas_gamma = euler->gas_gamma;
+
+  double rhol = ql[0], rhor = qr[0];
+  double ul = ql[1]/ql[0], ur = qr[1]/qr[0];
+  double pl = gkyl_euler_pressure(gas_gamma, ql), pr = gkyl_euler_pressure(gas_gamma, qr);
+  double sl = fabs(ul) + sqrt(gas_gamma*pl/rhol), sr = fabs(ur) + sqrt(gas_gamma*pr/rhor);
+
+  double *wv = &waves[0]; // single wave
+  for (int i=0; i<5; ++i)  wv[i] = delta[i];
+
+  return 0.5*(sl+sr);
+}
+
 static void
-qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+qfluct_lax(const struct gkyl_wv_eqn *eqn,
   const double *ql, const double *qr, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
-  if (type == GKYL_WV_HIGH_ORDER_FLUX)
-    return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
-  else
-    assert(false);
+
+  const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
+  double gas_gamma = euler->gas_gamma;
+
+  double rhol = ql[0], rhor = qr[0];
+  double ul = ql[1]/ql[0], ur = qr[1]/qr[0];
+  double pl = gkyl_euler_pressure(gas_gamma, ql), pr = gkyl_euler_pressure(gas_gamma, qr);
+  double sl = fabs(ul) + sqrt(gas_gamma*pl/rhol), sr = fabs(ur) + sqrt(gas_gamma*pr/rhor);
+  double amax = fmax(sl, sr);
+
+  double fl[5], fr[5];
+  gkyl_euler_flux(gas_gamma, ql, fl);
+  gkyl_euler_flux(gas_gamma, qr, fr);
+
+  for (int i=0; i<5; ++i) {
+    amdq[i] = 0.5*(fr[i]-fl[i] - amax*(qr[i]-ql[i]));
+    apdq[i] = 0.5*(fr[i]-fl[i] + amax*(qr[i]-ql[i]));
+  }
 }
 
 static double
@@ -167,9 +200,20 @@ wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   if (type == GKYL_WV_HIGH_ORDER_FLUX)
     return wave_roe(eqn, delta, ql, qr, waves, s);
   else
-    assert(false);
+    return wave_lax(eqn, delta, ql, qr, waves, s);
 
-  return 0.0;
+  return 0.0; // can't happen
+}
+
+static void
+qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *ql, const double *qr, const double *waves, const double *s,
+  double *amdq, double *apdq)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX)
+    return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
+  else
+    return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
 static bool
