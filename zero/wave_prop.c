@@ -21,7 +21,7 @@ struct gkyl_wave_prop {
   struct gkyl_wave_geom *geom; // geometry object
 
   // data for 1D slice update
-  struct gkyl_array *waves, *speeds, *flux2;
+  struct gkyl_array *waves, *apdq, *amdq, *speeds, *flux2;
 };
 
 static inline double
@@ -103,6 +103,8 @@ gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp)
   // second-order correction flux
   int meqn = winp.equation->num_equations, mwaves = winp.equation->num_waves;
   up->waves = gkyl_array_new(GKYL_DOUBLE, meqn*mwaves, max_1d);
+  up->apdq = gkyl_array_new(GKYL_DOUBLE, meqn, max_1d);
+  up->amdq = gkyl_array_new(GKYL_DOUBLE, meqn, max_1d);
   up->speeds = gkyl_array_new(GKYL_DOUBLE, mwaves, max_1d);
   up->flux2 = gkyl_array_new(GKYL_DOUBLE, meqn, max_1d);
 
@@ -213,7 +215,8 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
 
   double ql_local[meqn], qr_local[meqn];
   double waves_local[meqn*mwaves];
-  double delta[meqn], amdq[meqn], apdq[meqn];  
+  double amdq_local[meqn], apdq_local[meqn];
+  double delta[meqn];
 
   int idxl[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
 
@@ -260,22 +263,36 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
         wv->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qinr, qr_local);
 
         calc_jump(meqn, ql_local, qr_local, delta);
+        
         double *s = gkyl_array_fetch(wv->speeds, sidx);
         gkyl_wv_eqn_waves(wv->equation, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, waves_local, s);
 
         double lenr = cg->lenr[dir];
+        for (int mw=0; mw<mwaves; ++mw)
+          s[mw] *= lenr; // rescale speeds
+
+        // compute fluctuations in local coordinates: note this needs
+        // rescaled speeds
+        gkyl_wv_eqn_qfluct(wv->equation, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local,
+          waves_local, s, amdq_local, apdq_local);
+        
         double *waves = gkyl_array_fetch(wv->waves, sidx);
-        for (int mw=0; mw<mwaves; ++mw) {
+        for (int mw=0; mw<mwaves; ++mw)
           // rotate waves back
           wv->equation->rotate_to_global_func(
             cg->tau1[dir], cg->tau2[dir], cg->norm[dir], &waves_local[mw*meqn], &waves[mw*meqn]
           );
 
-          s[mw] *= lenr; // rescale speeds
-        }
-        
-        gkyl_wv_eqn_qfluct(wv->equation, GKYL_WV_HIGH_ORDER_FLUX, qinl, qinr, waves, s, amdq, apdq);
+        // rotate fluctuations
+        double *amdq = gkyl_array_fetch(wv->amdq, sidx);
+        wv->equation->rotate_to_global_func(
+          cg->tau1[dir], cg->tau2[dir], cg->norm[dir], amdq_local, amdq);
 
+        double *apdq = gkyl_array_fetch(wv->apdq, sidx);
+        wv->equation->rotate_to_global_func(
+          cg->tau1[dir], cg->tau2[dir], cg->norm[dir], apdq_local, apdq);
+
+        // apply first order correction
         double *qoutl = gkyl_array_fetch(qout, lidx);
         double *qoutr = gkyl_array_fetch(qout, ridx);
         
@@ -375,6 +392,8 @@ gkyl_wave_prop_release(gkyl_wave_prop* up)
 {
   gkyl_wv_eqn_release(up->equation);
   gkyl_array_release(up->waves);
+  gkyl_array_release(up->apdq);
+  gkyl_array_release(up->amdq);
   gkyl_array_release(up->speeds);
   gkyl_array_release(up->flux2);
   gkyl_wave_geom_release(up->geom);

@@ -1,4 +1,5 @@
 #include <math.h>
+#include <assert.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_moment_prim_euler.h>
@@ -69,7 +70,7 @@ rot_to_global(const double *tau1, const double *tau2, const double *norm,
 
 // Waves and speeds using Roe averaging
 static double
-wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+wave_roe(const struct gkyl_wv_eqn *eqn,
   const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
   const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
@@ -134,7 +135,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
 }
 
 static void
-qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+qfluct_roe(const struct gkyl_wv_eqn *eqn,
   const double *ql, const double *qr, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
@@ -146,6 +147,29 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
     amdq[i] = s0m*w0[i] + s1m*w1[i] + s2m*w2[i];
     apdq[i] = s0p*w0[i] + s1p*w1[i] + s2p*w2[i];
   }
+}
+
+static void
+qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *ql, const double *qr, const double *waves, const double *s,
+  double *amdq, double *apdq)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX)
+    return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
+  else
+    assert(false);
+}
+
+static double
+wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX)
+    return wave_roe(eqn, delta, ql, qr, waves, s);
+  else
+    assert(false);
+
+  return 0.0;
 }
 
 static bool
@@ -179,8 +203,8 @@ gkyl_wv_euler_new(double gas_gamma)
   euler->eqn.num_equations = 5;
   euler->eqn.num_waves = 3;
   euler->gas_gamma = gas_gamma;
-  euler->eqn.waves_func = wave_roe;
-  euler->eqn.qfluct_func = qfluct_roe;
+  euler->eqn.waves_func = wave;
+  euler->eqn.qfluct_func = qfluct;
   euler->eqn.max_speed_func = max_speed;
 
   euler->eqn.rotate_to_local_func = rot_to_local;
