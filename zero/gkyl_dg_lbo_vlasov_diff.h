@@ -21,7 +21,7 @@ struct gkyl_dg_lbo_vlasov_diff_auxfields {
  * @return Pointer to LBO equation object
  */
 struct gkyl_dg_eqn* gkyl_dg_lbo_vlasov_diff_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range);
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, bool use_gpu);
 
 /**
  * Create a new LBO equation object that lives on NV-GPU

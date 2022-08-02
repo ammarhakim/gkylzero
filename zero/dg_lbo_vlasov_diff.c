@@ -40,8 +40,13 @@ gkyl_lbo_vlasov_diff_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg
 
 
 struct gkyl_dg_eqn*
-gkyl_dg_lbo_vlasov_diff_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range)
+gkyl_dg_lbo_vlasov_diff_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, bool use_gpu)
 {
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_dg_lbo_vlasov_diff_cu_dev_new(cbasis, pbasis, conf_range);
+  } 
+#endif
   struct dg_lbo_vlasov_diff* lbo_vlasov_diff = gkyl_malloc(sizeof(struct dg_lbo_vlasov_diff));
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;

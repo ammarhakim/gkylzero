@@ -167,9 +167,9 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
     // Apply BC to the lower ghost cells
     struct gkyl_bc_basic *bclo;
     if (strcmp(boundary_type, "reflect") == 0) {
-      bclo = gkyl_bc_basic_new(bc_dir, GKYL_LOWER_EDGE, &local_ext, ghost, BC_REFLECT, &basis, cdim, useGPU);
+      bclo = gkyl_bc_basic_new(bc_dir, GKYL_LOWER_EDGE, &local_ext, ghost, GKYL_BC_REFLECT, &basis, cdim, useGPU);
     } else if (strcmp(boundary_type, "absorb") == 0) {
-      bclo = gkyl_bc_basic_new(bc_dir, GKYL_LOWER_EDGE, &local_ext, ghost, BC_ABSORB, &basis, cdim, useGPU);
+      bclo = gkyl_bc_basic_new(bc_dir, GKYL_LOWER_EDGE, &local_ext, ghost, GKYL_BC_ABSORB, &basis, cdim, useGPU);
     }
     
     struct gkyl_array *bc_buffer_cu, *distf_cu;
@@ -189,9 +189,9 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
     // Apply BC to the upper ghost cells
     struct gkyl_bc_basic *bcup;
     if (strcmp(boundary_type, "reflect") == 0) {
-      bcup = gkyl_bc_basic_new(bc_dir, GKYL_UPPER_EDGE, &local_ext, ghost, BC_REFLECT, &basis, cdim, useGPU);
+      bcup = gkyl_bc_basic_new(bc_dir, GKYL_UPPER_EDGE, &local_ext, ghost, GKYL_BC_REFLECT, &basis, cdim, useGPU);
     } else if (strcmp(boundary_type, "absorb") == 0) {
-      bcup = gkyl_bc_basic_new(bc_dir, GKYL_UPPER_EDGE, &local_ext, ghost, BC_ABSORB, &basis, cdim, useGPU);
+      bcup = gkyl_bc_basic_new(bc_dir, GKYL_UPPER_EDGE, &local_ext, ghost, GKYL_BC_ABSORB, &basis, cdim, useGPU);
     }
 
     if (useGPU){

@@ -4,7 +4,7 @@ extern "C" {
 #include <gkyl_bc_basic.h>
 #include <gkyl_bc_basic_priv.h>
 #include <gkyl_alloc.h>
-// #include <gkyl_alloc_flags_priv.h>
+#include <gkyl_alloc_flags_priv.h>
 }
 
 __global__ static void
@@ -16,12 +16,20 @@ gkyl_bc_basic_create_set_cu_dev_ptrs(int dir, int cdim, enum gkyl_bc_basic_type 
   ctx->basis = basis;
 
   switch (bctype) {
-    case BC_ABSORB:
+    case GKYL_BC_COPY:
+      fout->func = copy_bc;
+      break;
+
+    case GKYL_BC_ABSORB:
       fout->func = species_absorb_bc;
       break;
 
-    case BC_REFLECT:
+    case GKYL_BC_REFLECT:
       fout->func = species_reflect_bc;
+      break;
+    // Perfect electrical conductor
+    case GKYL_BC_MAXWELL_PEC:
+      fout->func = maxwell_pec_bc;
       break;
 
     default:

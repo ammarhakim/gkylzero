@@ -127,7 +127,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
 
   for (int dir=0; dir<app->cdim; ++dir) {
     if (is_np[dir]) {
-      const enum gkyl_fluid_species_bc_type *bc;
+      const enum gkyl_species_bc_type *bc;
       if (dir == 0)
         bc = f->info.bcx;
       else if (dir == 1)
@@ -139,9 +139,30 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       f->upper_bc[dir] = bc[1];
     }
   }
-  for (int d=0; d<3; ++d)
-    f->absorb_bc_func[d] = gkyl_advection_absorb_bc_create(f->advect_eqn, d,
-      app->basis_on_dev.confBasis);
+
+  int ghost[GKYL_MAX_DIM];
+  for (int d=0; d<app->cdim; ++d)
+    ghost[d] = 1;
+  
+  for (int d=0; d<app->cdim; ++d) {
+    // Lower BC updater. Copy BCs by default.
+    enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
+    if (f->lower_bc[d] == GKYL_SPECIES_COPY)
+      bctype = GKYL_BC_COPY;
+    else if (f->lower_bc[d] == GKYL_SPECIES_ABSORB)
+      bctype = GKYL_BC_ABSORB;
+  
+    f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &app->local_ext, ghost, bctype,
+                                    app->basis_on_dev.confBasis, app->cdim, app->use_gpu);
+    // Upper BC updater. Copy BCs by default.
+    if (f->upper_bc[d] == GKYL_SPECIES_COPY)
+      bctype = GKYL_BC_COPY;
+    else if (f->upper_bc[d] == GKYL_SPECIES_ABSORB)
+      bctype = GKYL_BC_ABSORB;
+    
+    f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &app->local_ext, ghost, bctype,
+                                    app->basis_on_dev.confBasis, app->cdim, app->use_gpu);
+  }  
 }
 
 void
@@ -259,44 +280,6 @@ vm_fluid_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_fluid_s
   gkyl_array_copy_from_buffer(f, fluid_species->bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
 }
 
-
-// Apply copy BCs on fluid species
-void
-vm_fluid_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species,
-  int dir, enum vm_domain_edge edge, struct gkyl_array *f)
-{
-  if (edge == VM_EDGE_LOWER) {
-    gkyl_array_copy_to_buffer(fluid_species->bc_buffer->data, f, app->skin_ghost.lower_skin[dir]);
-    gkyl_array_copy_from_buffer(f, fluid_species->bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
-  }
-
-  if (edge == VM_EDGE_UPPER) {
-    gkyl_array_copy_to_buffer(fluid_species->bc_buffer->data, f, app->skin_ghost.upper_skin[dir]);
-    gkyl_array_copy_from_buffer(f, fluid_species->bc_buffer->data, app->skin_ghost.upper_ghost[dir]);
-  }
-}
-
-// Apply absorbing BCs on fluid species
-void
-vm_fluid_species_apply_absorb_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species,
-  int dir, enum vm_domain_edge edge, struct gkyl_array *f)
-{
-  
-  if (edge == VM_EDGE_LOWER) {
-    gkyl_array_copy_to_buffer_fn(fluid_species->bc_buffer->data, f, app->skin_ghost.lower_skin[dir],
-      fluid_species->absorb_bc_func[dir]->on_dev
-    );
-    gkyl_array_copy_from_buffer(f, fluid_species->bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
-  }
-
-  if (edge == VM_EDGE_UPPER) {
-    gkyl_array_copy_to_buffer_fn(fluid_species->bc_buffer->data, f, app->skin_ghost.upper_skin[dir],
-      fluid_species->absorb_bc_func[dir]->on_dev
-    );
-    gkyl_array_copy_from_buffer(f, fluid_species->bc_buffer->data, app->skin_ghost.upper_ghost[dir]);
-  }  
-}
-
 // Determine which directions are periodic and which directions are copy,
 // and then apply boundary conditions for fluid species
 void
@@ -312,20 +295,30 @@ vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *f
     if (is_np_bc[d]) {
 
       switch (fluid_species->lower_bc[d]) {
-        case GKYL_FLUID_SPECIES_COPY:
-          vm_fluid_species_apply_copy_bc(app, fluid_species, d, VM_EDGE_LOWER, f);
+        case GKYL_SPECIES_COPY:
+        case GKYL_SPECIES_ABSORB:
+          gkyl_bc_basic_advance(fluid_species->bc_lo[d], fluid_species->bc_buffer, f);
           break;
-        case GKYL_FLUID_SPECIES_ABSORB:
-          vm_fluid_species_apply_absorb_bc(app, fluid_species, d, VM_EDGE_LOWER, f);
+        case GKYL_SPECIES_REFLECT:
+        case GKYL_SPECIES_NO_SLIP:
+        case GKYL_SPECIES_WEDGE:
+          assert(false);
+          break;
+        default:
           break;
       }
 
       switch (fluid_species->upper_bc[d]) {
-        case GKYL_FLUID_SPECIES_COPY:
-          vm_fluid_species_apply_copy_bc(app, fluid_species, d, VM_EDGE_UPPER, f);
+        case GKYL_SPECIES_COPY:
+        case GKYL_SPECIES_ABSORB:
+          gkyl_bc_basic_advance(fluid_species->bc_up[d], fluid_species->bc_buffer, f);
           break;
-        case GKYL_FLUID_SPECIES_ABSORB:
-          vm_fluid_species_apply_absorb_bc(app, fluid_species, d, VM_EDGE_UPPER, f);
+        case GKYL_SPECIES_REFLECT:
+        case GKYL_SPECIES_NO_SLIP:
+        case GKYL_SPECIES_WEDGE:
+          assert(false);
+          break;
+        default:
           break;
       }      
     }
@@ -374,7 +367,10 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
   else {
     gkyl_free(f->omegaCfl_ptr);
   }
-  for (int d=0; d<3; ++d)
-    gkyl_advection_bc_release(f->absorb_bc_func[d]);
+  // Copy BCs are allocated by default. Need to free.
+  for (int d=0; d<app->cdim; ++d) {
+      gkyl_bc_basic_release(f->bc_lo[d]);
+      gkyl_bc_basic_release(f->bc_up[d]);
+  }
 }
 
