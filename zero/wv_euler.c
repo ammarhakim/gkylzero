@@ -165,7 +165,9 @@ wave_lax(const struct gkyl_wv_eqn *eqn,
   double *wv = &waves[0]; // single wave
   for (int i=0; i<5; ++i)  wv[i] = delta[i];
 
-  return 0.5*(sl+sr);
+  s[0] = 0.5*(sl+sr);
+  
+  return s[0];
 }
 
 static void

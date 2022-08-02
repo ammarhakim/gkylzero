@@ -18,8 +18,9 @@ struct gkyl_wave_prop {
   double cfl; // CFL number
   const struct gkyl_wv_eqn *equation; // equation object
 
-  struct gkyl_wave_geom *geom; // geometry object
+  bool force_low_order_flux; // only use Lax flux
 
+  struct gkyl_wave_geom *geom; // geometry object
   // data for 1D slice update
   struct gkyl_array *waves, *apdq, *amdq, *speeds, *flux2;
 };
@@ -88,6 +89,8 @@ gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp)
   up->limiter = winp.limiter == 0 ? GKYL_MONOTONIZED_CENTERED : winp.limiter;
   up->cfl = winp.cfl;
   up->equation = gkyl_wv_eqn_acquire(winp.equation);
+
+  up->force_low_order_flux = winp.force_low_order_flux;
 
   int nghost[3] = { 2, 2, 2 };
   struct gkyl_range range, ext_range;
@@ -172,10 +175,11 @@ calc_second_order_update(int meqn, double dtdx, double * GKYL_RESTRICT qout,
 }
 
 static void
-limit_waves(const gkyl_wave_prop *wv, const struct gkyl_range *slice_range,
+limit_waves(const gkyl_wave_prop *wv, int mwaves,
+  const struct gkyl_range *slice_range,
   int lower, int upper, struct gkyl_array *waves, const struct gkyl_array *speed)
 {
-  int meqn = wv->equation->num_equations, mwaves = wv->equation->num_waves;
+  int meqn = wv->equation->num_equations;
 
   for (int mw=0; mw<mwaves; ++mw) {
     const double *wl = gkyl_array_cfetch(waves, gkyl_ridx(*slice_range, lower-1));
@@ -209,7 +213,14 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
   const struct gkyl_array *qin, struct gkyl_array *qout)
 {
   int ndim = update_range->ndim;
-  int meqn = wv->equation->num_equations, mwaves = wv->equation->num_waves;
+  int meqn = wv->equation->num_equations;
+  //  when forced to use Lax fluxes, we only have a single wave
+  int mwaves = wv->force_low_order_flux ? 1 :  wv->equation->num_waves;
+
+  // choose flux type to use when updating normal cells. Low-order
+  // fluxes are always used for cells that go negative
+  enum gkyl_wv_flux_type ftype = wv->force_low_order_flux ?
+    GKYL_WV_LOW_ORDER_FLUX : GKYL_WV_HIGH_ORDER_FLUX;
 
   double cfla = 0.0, cfl = wv->cfl, cflm = 1.1*cfl;
 
@@ -265,7 +276,7 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
         calc_jump(meqn, ql_local, qr_local, delta);
         
         double *s = gkyl_array_fetch(wv->speeds, sidx);
-        gkyl_wv_eqn_waves(wv->equation, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, waves_local, s);
+        gkyl_wv_eqn_waves(wv->equation, ftype, delta, ql_local, qr_local, waves_local, s);
 
         double lenr = cg->lenr[dir];
         for (int mw=0; mw<mwaves; ++mw)
@@ -273,7 +284,7 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
 
         // compute fluctuations in local coordinates: note this needs
         // rescaled speeds
-        gkyl_wv_eqn_qfluct(wv->equation, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local,
+        gkyl_wv_eqn_qfluct(wv->equation, ftype, ql_local, qr_local,
           waves_local, s, amdq_local, apdq_local);
         
         double *waves = gkyl_array_fetch(wv->waves, sidx);
@@ -305,7 +316,7 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
 
       // apply limiters to waves for all edges in update range,
       // including edges that are on the range boundary
-      limit_waves(wv, &slice_range,
+      limit_waves(wv, mwaves, &slice_range,
         update_range->lower[dir], update_range->upper[dir]+1, wv->waves, wv->speeds);
 
       // get the kappa in the first ghost cell on left (needed in the

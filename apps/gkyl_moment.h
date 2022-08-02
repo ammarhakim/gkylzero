@@ -15,6 +15,7 @@ struct gkyl_moment_species {
   const struct gkyl_wv_eqn *equation; // equation object
 
   int evolve; // evolve species? 1-yes, 0-no
+  bool force_low_order_flux; // should  we force low-order flux?
 
   void *ctx; // context for initial condition init function (and potentially other functions)
   // pointer to initialization function
