@@ -256,6 +256,8 @@ gkyl_wv_euler_new(double gas_gamma)
   euler->eqn.rotate_to_local_func = rot_to_local;
   euler->eqn.rotate_to_global_func = rot_to_global;
 
+  euler->eqn.check_inv_func = check_inv;
+
   euler->eqn.wall_bc_func = euler_wall;
   euler->eqn.no_slip_bc_func = euler_no_slip;
 
