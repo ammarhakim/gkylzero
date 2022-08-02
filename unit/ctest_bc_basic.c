@@ -192,11 +192,12 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
 
   }
 
+  struct gkyl_array *distf_flip;
+  distf_flip = mkarr(basis.num_basis, local_ext.volume);
+
   // Check lower ghost cells after applying BC
   for (int d = 0; d < cdim; d++) {
     struct gkyl_range_iter iter, iter_skin;
-    struct gkyl_array *distf_flip;
-    distf_flip = mkarr(basis.num_basis, local_ext.volume);
     gkyl_range_iter_init(&iter, &skin_ghost.lower_ghost[d]);
     if (strcmp(boundary_type, "reflect") == 0){
       distf_flip = gkyl_array_copy(distf_flip, distf);
@@ -262,9 +263,9 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
           TEST_CHECK(gkyl_compare(val_ghost[i], 0, 1e-12));
         }
       }
-      gkyl_array_release(distf_flip);
     }
   }
+  gkyl_array_release(distf_flip);
 
   // release memory for moment data object
   gkyl_proj_on_basis_release(projDistf);
