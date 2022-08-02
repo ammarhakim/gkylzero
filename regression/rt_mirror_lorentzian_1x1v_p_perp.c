@@ -55,10 +55,6 @@ evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   double x = xn[0], v = xn[1];
   double vt = app->vte, n0 = app->n0;
   double fv = n0*exp(-sq(x))/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
-  //double gamma = app->gamma;
-  //double loc = app->loc;
-  //double mag = app->mag;
-  //double magB = mag/(gamma*(1.0 + sq((x-loc)/gamma))) + mag/(gamma*(1.0 + sq((x+loc)/gamma)));
   double magB = calcMagB(xn,ctx);
   fout[0] = fv/magB;
 }
@@ -70,10 +66,6 @@ evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   double x = xn[0], v = xn[1];
   double vt = app->vti, n0 = app->n0;
   double fv = n0*exp(-sq(x))/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
-  //double gamma = app->gamma;
-  //double loc = app->loc;
-  //double mag = app->mag;
-  //double magB = mag/(gamma*(1.0 + sq((x-loc)/gamma))) + mag/(gamma*(1.0 + sq((x+loc)/gamma)));
   double magB = calcMagB(xn,ctx);
   fout[0] = fv/magB;
 }
@@ -84,10 +76,6 @@ evalPperpElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   struct mirror_ctx *app = ctx;
   double x = xn[0];
   double vt = app->vte, n = app->n0;
-  //double gamma = app->gamma;
-  //double loc = app->loc;
-  //double mag = app->mag;
-  //double magB = mag/(gamma*(1.0 + sq((x-loc)/gamma))) + mag/(gamma*(1.0 + sq((x+loc)/gamma)));
   double magB = calcMagB(xn,ctx);
   fout[0] = n*exp(-sq(x))*vt*vt/magB;
 }
@@ -98,10 +86,6 @@ evalPperpIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   struct mirror_ctx *app = ctx;
   double x = xn[0];
   double vt = app->vti, n = app->n0;
-  //double gamma = app->gamma;
-  //double loc = app->loc;
-  //double mag = app->mag;
-  //double magB = mag/(gamma*(1.0 + sq((x-loc)/gamma))) + mag/(gamma*(1.0 + sq((x+loc)/gamma)));
   double magB = calcMagB(xn,ctx);
   fout[0] = n*exp(-sq(x))*vt*vt/magB;
 }
@@ -138,10 +122,6 @@ evalMagB(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, 
 {
   struct mirror_ctx *app = ctx;
   double x = xn[0];
-  //double gamma = app->gamma;
-  //double loc = app->loc;
-  //double mag = app->mag;
-  //fout[0] = mag/(gamma*(1.0 + sq((x-loc)/gamma))) + mag/(gamma*(1.0 + sq((x+loc)/gamma)));
   double magB = calcMagB(xn,ctx);
   fout[0] = magB;
 }
