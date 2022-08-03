@@ -23,11 +23,13 @@ typedef struct gkyl_bc_basic gkyl_bc_basic;
  * @param bctype BC type (see gkyl_bc_basic_type).
  * @param basis Basis on which coefficients in array are expanded.
  * @param cdim Configuration space dimensions.
+ * @param num_comp Number of components (DOFs) within a cell.
  * @param use_gpu Boolean to indicate whether to use the GPU.
  * @return New updater pointer.
  */
 struct gkyl_bc_basic* gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range* local_range_ext,
-  const int *num_ghosts, enum gkyl_bc_basic_type bctype, const struct gkyl_basis *basis, int cdim, bool use_gpu);
+  const int *num_ghosts, enum gkyl_bc_basic_type bctype, const struct gkyl_basis *basis, int num_comp, int cdim,
+  bool use_gpu);
 
 /**
  * Create new updater to apply basic BCs to a field

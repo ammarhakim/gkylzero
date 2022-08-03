@@ -153,7 +153,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       bctype = GKYL_BC_ABSORB;
   
     f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &app->local_ext, ghost, bctype,
-                                    app->basis_on_dev.confBasis, app->cdim, app->use_gpu);
+                                    app->basis_on_dev.confBasis, f->fluid->ncomp, app->cdim, app->use_gpu);
     // Upper BC updater. Copy BCs by default.
     if (f->upper_bc[d] == GKYL_SPECIES_COPY)
       bctype = GKYL_BC_COPY;
@@ -161,7 +161,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       bctype = GKYL_BC_ABSORB;
     
     f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &app->local_ext, ghost, bctype,
-                                    app->basis_on_dev.confBasis, app->cdim, app->use_gpu);
+                                    app->basis_on_dev.confBasis, f->fluid->ncomp, app->cdim, app->use_gpu);
   }  
 }
 

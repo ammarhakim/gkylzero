@@ -26,18 +26,20 @@ struct gkyl_bc_basic {
  * @param cdim Number of configuration space dimensions.
  * @param bctype Type of BC .
  * @param basis Basis in which to expand coefficients in array we apply BC to.
+ * @param num_comp Number of components (DOFs) within a cell.
  * @return Pointer to array_copy_func which can be passed to array_copy_fn methods.
  */
 struct gkyl_array_copy_func* gkyl_bc_basic_create_arr_copy_func_cu(int dir, int cdim,
-  enum gkyl_bc_basic_type bctype, const struct gkyl_basis *basis);
+  enum gkyl_bc_basic_type bctype, const struct gkyl_basis *basis, int num_comp);
 
 #endif
 
 // context for use in BCs
 struct dg_bc_ctx {
-  int dir; // direction for BCs
-  int cdim; // config-space dimensions
-  const struct gkyl_basis *basis; // basis function
+  int dir; // direction for BCs.
+  int cdim; // config-space dimensions.
+  int ncomp; // number of components within a cell.
+  const struct gkyl_basis *basis; // basis function.
 };
 
 GKYL_CU_D
