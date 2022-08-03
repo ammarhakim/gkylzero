@@ -6,17 +6,18 @@
 // i.e., the array_copy_func applied to expansion coefficients in ghost cell.
 struct gkyl_array_copy_func*
 gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bctype,
-  const struct gkyl_basis *basis, bool use_gpu)
+  const struct gkyl_basis *basis, int ncomp, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_bc_basic_create_arr_copy_func_cu(dir, cdim, bctype, basis);
+    return gkyl_bc_basic_create_arr_copy_func_cu(dir, cdim, bctype, basis, ncomp);
 #endif
 
   struct dg_bc_ctx *ctx = (struct dg_bc_ctx*) gkyl_malloc(sizeof(struct dg_bc_ctx));
   ctx->basis = basis;
   ctx->dir = dir;
   ctx->cdim = cdim;
+  ctx->ncomp = ncomp;
 
   struct gkyl_array_copy_func *fout = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
   switch (bctype) {
@@ -52,7 +53,7 @@ gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bc
 struct gkyl_bc_basic*
 gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range *local_range_ext,
   const int *num_ghosts, enum gkyl_bc_basic_type bctype, const struct gkyl_basis *basis,
-  int cdim, bool use_gpu)
+  int num_comp, int cdim, bool use_gpu)
 {
 
   // Allocate space for new updater.
@@ -70,7 +71,7 @@ gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range *loc
 
   // Create function applied to array contents (DG coefficients) when copying
   // to/from buffer.
-  up->array_copy_func = gkyl_bc_basic_create_arr_copy_func(dir, cdim, bctype, basis, use_gpu);
+  up->array_copy_func = gkyl_bc_basic_create_arr_copy_func(dir, cdim, bctype, basis, num_comp, use_gpu);
   return up;
 }
 

@@ -336,7 +336,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       bctype = GKYL_BC_ABSORB;
   
     s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &s->local_ext, ghost, bctype,
-                                    app->basis_on_dev.basis, app->cdim, app->use_gpu);
+                                    app->basis_on_dev.basis, s->f->ncomp, app->cdim, app->use_gpu);
     // Upper BC updater. Copy BCs by default.
     if (s->upper_bc[d] == GKYL_SPECIES_COPY)
       bctype = GKYL_BC_COPY;
@@ -346,7 +346,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       bctype = GKYL_BC_ABSORB;
     
     s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &s->local_ext, ghost, bctype,
-                                    app->basis_on_dev.basis, app->cdim, app->use_gpu);
+                                    app->basis_on_dev.basis, s->f->ncomp, app->cdim, app->use_gpu);
   }
 }
 
