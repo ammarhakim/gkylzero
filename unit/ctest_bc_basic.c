@@ -159,21 +159,29 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
   struct gkyl_array *bc_buffer;
   bc_buffer = mkarr(basis.num_basis, buff_sz);
 
-  for (int bc_dir = 0; bc_dir < cdim; bc_dir++) {
+  // Allocate device basis if we are using GPUs
+  struct gkyl_basis *basis_cu;
+  struct gkyl_array *bc_buffer_cu, *distf_cu;
+  if (useGPU) {
+    basis_cu = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+    bc_buffer_cu = mkarr_cu(basis.num_basis, buff_sz);
+    distf_cu     = mkarr_cu(basis.num_basis, local_ext.volume);
+    distf_cu     = gkyl_array_copy(distf_cu, distf);
+  } else {
+    basis_cu = &basis;
+  }
+
+  for (int bc_dir = 0; bc_dir < cdim; bc_dir++) { 
     // Apply BC to the lower ghost cells
     struct gkyl_bc_basic *bclo;
     if (strcmp(boundary_type, "reflect") == 0) {
-      bclo = gkyl_bc_basic_new(bc_dir, GKYL_LOWER_EDGE, &local_ext, ghost, GKYL_BC_REFLECT, 
-        &basis, distf->ncomp, cdim, useGPU);
+      bclo = gkyl_bc_basic_new(bc_dir, GKYL_LOWER_EDGE, &local_ext,
+        ghost, GKYL_BC_REFLECT, basis_cu, distf->ncomp, cdim, useGPU);
     } else if (strcmp(boundary_type, "absorb") == 0) {
-      bclo = gkyl_bc_basic_new(bc_dir, GKYL_LOWER_EDGE, &local_ext, ghost, GKYL_BC_ABSORB,
-        &basis, distf->ncomp, cdim, useGPU);
+      bclo = gkyl_bc_basic_new(bc_dir, GKYL_LOWER_EDGE, &local_ext,
+        ghost, GKYL_BC_ABSORB,  basis_cu, distf->ncomp, cdim, useGPU);
     }
-    struct gkyl_array *bc_buffer_cu, *distf_cu;
     if (useGPU) {
-      bc_buffer_cu = mkarr_cu(basis.num_basis, buff_sz);
-      distf_cu     = mkarr_cu(basis.num_basis, local_ext.volume);
-      distf_cu     = gkyl_array_copy(distf_cu, distf);
 #ifdef GKYL_HAVE_CUDA
       cudaDeviceSynchronize();
 #endif
@@ -186,12 +194,12 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
     // Apply BC to the upper ghost cells
     struct gkyl_bc_basic *bcup;
     if (strcmp(boundary_type, "reflect") == 0) {
-      bcup = gkyl_bc_basic_new(bc_dir, GKYL_UPPER_EDGE, &local_ext, ghost, GKYL_BC_REFLECT, 
-        &basis, distf->ncomp, cdim, useGPU);
+      bcup = gkyl_bc_basic_new(bc_dir, GKYL_UPPER_EDGE, &local_ext,
+        ghost, GKYL_BC_REFLECT, basis_cu, distf->ncomp, cdim, useGPU);
     } else if (strcmp(boundary_type, "absorb") == 0) {
-      bcup = gkyl_bc_basic_new(bc_dir, GKYL_UPPER_EDGE, &local_ext, ghost, GKYL_BC_ABSORB,
-        &basis, distf->ncomp, cdim, useGPU);
-    }
+      bcup = gkyl_bc_basic_new(bc_dir, GKYL_UPPER_EDGE, &local_ext,
+        ghost, GKYL_BC_ABSORB,  basis_cu, distf->ncomp, cdim, useGPU);
+    } 
     if (useGPU) {
 #ifdef GKYL_HAVE_CUDA
       cudaDeviceSynchronize();
@@ -202,11 +210,11 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
       gkyl_bc_basic_advance(bcup, bc_buffer, distf);
     }
     gkyl_bc_basic_release(bcup);
-
-    if (useGPU) {
-      gkyl_array_release(bc_buffer_cu);
-      gkyl_array_release(distf_cu);
-    }
+  }
+  if (useGPU) {
+    gkyl_array_release(bc_buffer_cu);
+    gkyl_array_release(distf_cu);
+    gkyl_cu_free(basis_cu);
   }
 
   struct gkyl_array *distf_flip;
@@ -294,26 +302,44 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
   gkyl_array_release(distf_flip);
 }
 
-void test_bc_reflect_1x1v_p1() { test_bc(1, 1, 1, "reflect",  false); }
-void test_bc_reflect_1x2v_p1() { test_bc(1, 2, 1, "reflect",  false); }
-void test_bc_reflect_2x2v_p1() { test_bc(2, 2, 1, "reflect",  false); }
-void test_bc_reflect_3x2v_p1() { test_bc(2, 2, 1, "reflect",  false); }
-void test_bc_reflect_1x1v_p2() { test_bc(1, 1, 2, "reflect",  false); }
-void test_bc_reflect_1x2v_p2() { test_bc(1, 2, 2, "reflect",  false); }
-void test_bc_reflect_2x2v_p2() { test_bc(2, 2, 2, "reflect",  false); }
-void test_bc_reflect_3x2v_p2() { test_bc(2, 2, 2, "reflect",  false); }
+void test_bc_reflect_1x1v_p1() { test_bc(1, 1, 1, "reflect", false); }
+void test_bc_reflect_1x2v_p1() { test_bc(1, 2, 1, "reflect", false); }
+void test_bc_reflect_2x2v_p1() { test_bc(2, 2, 1, "reflect", false); }
+void test_bc_reflect_3x2v_p1() { test_bc(3, 2, 1, "reflect", false); }
+void test_bc_reflect_1x1v_p2() { test_bc(1, 1, 2, "reflect", false); }
+void test_bc_reflect_1x2v_p2() { test_bc(1, 2, 2, "reflect", false); }
+void test_bc_reflect_2x2v_p2() { test_bc(2, 2, 2, "reflect", false); }
+void test_bc_reflect_3x2v_p2() { test_bc(3, 2, 2, "reflect", false); }
 
-void test_bc_absorb_1x1v_p1()  { test_bc(1, 1, 1, "absorb",   false); }
-void test_bc_absorb_1x2v_p1()  { test_bc(1, 2, 1, "absorb",   false); }
-void test_bc_absorb_2x2v_p1()  { test_bc(2, 2, 1, "absorb",   false); }
-void test_bc_absorb_3x2v_p1()  { test_bc(2, 2, 1, "absorb",   false); }
-void test_bc_absorb_1x1v_p2()  { test_bc(1, 1, 2, "absorb",   false); }
-void test_bc_absorb_1x2v_p2()  { test_bc(1, 2, 2, "absorb",   false); }
-void test_bc_absorb_2x2v_p2()  { test_bc(2, 2, 2, "absorb",   false); }
-void test_bc_absorb_3x2v_p2()  { test_bc(2, 2, 2, "absorb",   false); }
+void test_bc_absorb_1x1v_p1()  { test_bc(1, 1, 1, "absorb",  false); }
+void test_bc_absorb_1x2v_p1()  { test_bc(1, 2, 1, "absorb",  false); }
+void test_bc_absorb_2x2v_p1()  { test_bc(2, 2, 1, "absorb",  false); }
+void test_bc_absorb_3x2v_p1()  { test_bc(3, 2, 1, "absorb",  false); }
+void test_bc_absorb_1x1v_p2()  { test_bc(1, 1, 2, "absorb",  false); }
+void test_bc_absorb_1x2v_p2()  { test_bc(1, 2, 2, "absorb",  false); }
+void test_bc_absorb_2x2v_p2()  { test_bc(2, 2, 2, "absorb",  false); }
+void test_bc_absorb_3x2v_p2()  { test_bc(3, 2, 2, "absorb",  false); }
 
 #ifdef GKYL_HAVE_CUDA
-void test_bc_absorb_1x1v_p1_gpu(){ test_bc(1, 1, 1, "absorb",  true); }
+void test_bc_reflect_1x1v_p1_gpu() { test_bc(1, 1, 1, "reflect", true); }
+void test_bc_reflect_1x2v_p1_gpu() { test_bc(1, 2, 1, "reflect", true); }
+void test_bc_reflect_2x2v_p1_gpu() { test_bc(2, 2, 1, "reflect", true); }
+void test_bc_reflect_3x2v_p1_gpu() { test_bc(3, 2, 1, "reflect", true); }
+void test_bc_reflect_1x1v_p2_gpu() { test_bc(1, 1, 2, "reflect", true); }
+void test_bc_reflect_1x2v_p2_gpu() { test_bc(1, 2, 2, "reflect", true); }
+void test_bc_reflect_2x2v_p2_gpu() { test_bc(2, 2, 2, "reflect", true); }
+void test_bc_reflect_3x2v_p2_gpu() { test_bc(3, 2, 2, "reflect", true); }
+
+
+void test_bc_absorb_1x1v_p1_gpu()  { test_bc(1, 1, 1, "absorb",  true); }
+void test_bc_absorb_1x2v_p1_gpu()  { test_bc(1, 2, 1, "absorb",  true); }
+void test_bc_absorb_2x2v_p1_gpu()  { test_bc(2, 2, 1, "absorb",  true); }
+void test_bc_absorb_3x2v_p1_gpu()  { test_bc(3, 2, 1, "absorb",  true); }
+void test_bc_absorb_1x1v_p2_gpu()  { test_bc(1, 1, 2, "absorb",  true); }
+void test_bc_absorb_1x2v_p2_gpu()  { test_bc(1, 2, 2, "absorb",  true); }
+void test_bc_absorb_2x2v_p2_gpu()  { test_bc(2, 2, 2, "absorb",  true); }
+void test_bc_absorb_3x2v_p2_gpu()  { test_bc(3, 2, 2, "absorb",  true); }
+
 #endif
 
 TEST_LIST = {
@@ -334,7 +360,23 @@ TEST_LIST = {
   {"test_bc_absorb_2x2v_p2", test_bc_absorb_2x2v_p2},
   {"test_bc_absorb_3x2v_p2", test_bc_absorb_3x2v_p2},
 #ifdef GKYL_HAVE_CUDA
+  {"test_bc_reflect_1x1v_p1_gpu", test_bc_reflect_1x1v_p1_gpu},
+//  {"test_bc_reflect_1x2v_p1_gpu", test_bc_reflect_1x2v_p1_gpu},
+//  {"test_bc_reflect_2x2v_p1_gpu", test_bc_reflect_2x2v_p1_gpu},
+//  {"test_bc_reflect_3x2v_p1_gpu", test_bc_reflect_3x2v_p1_gpu},
+//  {"test_bc_reflect_1x1v_p2_gpu", test_bc_reflect_1x1v_p2_gpu},
+//  {"test_bc_reflect_1x2v_p2_gpu", test_bc_reflect_1x2v_p2_gpu},
+//  {"test_bc_reflect_2x2v_p2_gpu", test_bc_reflect_2x2v_p2_gpu},
+//  {"test_bc_reflect_3x2v_p2_gpu", test_bc_reflect_3x2v_p2_gpu},
+//
   {"test_bc_absorb_1x1v_p1_gpu", test_bc_absorb_1x1v_p1_gpu},
+//  {"test_bc_absorb_1x2v_p1_gpu", test_bc_absorb_1x2v_p1_gpu},
+//  {"test_bc_absorb_2x2v_p1_gpu", test_bc_absorb_2x2v_p1_gpu},
+//  {"test_bc_absorb_3x2v_p1_gpu", test_bc_absorb_3x2v_p1_gpu},
+//  {"test_bc_absorb_1x1v_p2_gpu", test_bc_absorb_1x1v_p2_gpu},
+//  {"test_bc_absorb_1x2v_p2_gpu", test_bc_absorb_1x2v_p2_gpu},
+//  {"test_bc_absorb_2x2v_p2_gpu", test_bc_absorb_2x2v_p2_gpu},
+//  {"test_bc_absorb_3x2v_p2_gpu", test_bc_absorb_3x2v_p2_gpu},
 #endif
   {NULL, NULL},
 };
