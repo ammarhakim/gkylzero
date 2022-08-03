@@ -187,7 +187,7 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
 #endif
       gkyl_bc_basic_advance(bclo, bc_buffer_cu, distf_cu);
     } else {
-      gkyl_bc_basic_advance(bclo, bc_buffer, distf);
+      gkyl_bc_basic_advance(bclo, bc_buffer,    distf);
     }
     gkyl_bc_basic_release(bclo);
 
@@ -205,13 +205,13 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
       cudaDeviceSynchronize();
 #endif
       gkyl_bc_basic_advance(bcup, bc_buffer_cu, distf_cu);
-      gkyl_array_copy(distf, distf_cu);
     } else {
-      gkyl_bc_basic_advance(bcup, bc_buffer, distf);
+      gkyl_bc_basic_advance(bcup, bc_buffer,    distf);
     }
     gkyl_bc_basic_release(bcup);
   }
   if (useGPU) {
+    gkyl_array_copy(distf, distf_cu);
     gkyl_array_release(bc_buffer_cu);
     gkyl_array_release(distf_cu);
     gkyl_cu_free(basis_cu);
