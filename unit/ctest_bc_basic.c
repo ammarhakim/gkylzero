@@ -149,7 +149,6 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
   // Project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local_ext, distf);
 
-  // Create the boundary condition
   // Determine the size of the BC buffer
   long buff_sz = 0;
   for (int d = 0; d < cdim; ++d) {
@@ -159,20 +158,21 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
   struct gkyl_array *bc_buffer;
   bc_buffer = mkarr(basis.num_basis, buff_sz);
 
-  // Allocate device basis if we are using GPUs
+  // Allocate device variables and basis if we are using GPUs
   struct gkyl_basis *basis_cu;
   struct gkyl_array *bc_buffer_cu, *distf_cu;
   if (useGPU) {
     basis_cu = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+    gkyl_cart_modal_serendip_cu_dev(basis_cu, ndim, poly_order);
     bc_buffer_cu = mkarr_cu(basis.num_basis, buff_sz);
     distf_cu     = mkarr_cu(basis.num_basis, local_ext.volume);
-    distf_cu     = gkyl_array_copy(distf_cu, distf);
+    gkyl_array_copy(distf_cu, distf);
   } else {
     basis_cu = &basis;
   }
 
+  // Create and apply BC to the lower ghost cells
   for (int bc_dir = 0; bc_dir < cdim; bc_dir++) { 
-    // Apply BC to the lower ghost cells
     struct gkyl_bc_basic *bclo;
     if (strcmp(boundary_type, "reflect") == 0) {
       bclo = gkyl_bc_basic_new(bc_dir, GKYL_LOWER_EDGE, &local_ext,
@@ -191,7 +191,7 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
     }
     gkyl_bc_basic_release(bclo);
 
-    // Apply BC to the upper ghost cells
+    // Create and apply BC to the upper ghost cells
     struct gkyl_bc_basic *bcup;
     if (strcmp(boundary_type, "reflect") == 0) {
       bcup = gkyl_bc_basic_new(bc_dir, GKYL_UPPER_EDGE, &local_ext,
@@ -225,7 +225,7 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
     struct gkyl_range_iter iter, iter_skin;
     gkyl_range_iter_init(&iter, &skin_ghost.lower_ghost[d]);
     if (strcmp(boundary_type, "reflect") == 0) {
-      distf_flip = gkyl_array_copy(distf_flip, distf);
+      gkyl_array_copy(distf_flip, distf);
 
       // Flip the skin value in velocity space to apply reflect BC to skin cell
       gkyl_array_flip_copy_to_buffer_fn(bc_buffer->data, distf_flip, cdim+d,
@@ -249,15 +249,13 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
       if (strcmp(boundary_type, "reflect") == 0) {
         double val_correct[basis.num_basis];
 
-        // Flip the direction
+        // Flip the DG coefficients
         basis.flip_odd_sign(d,        val_skin,    val_correct);
         basis.flip_odd_sign(d + cdim, val_correct, val_correct);
 
         // Check values
-        //printf("\n\nCell %i and %i where d=%i:", linidx_ghost, linidx_skin,d);
         for (int i = 0; i < basis.num_basis; i++) {
           TEST_CHECK(gkyl_compare(val_ghost[i], val_correct[i], 1e-12));
-          //printf("   %10.4f  %10.4f",val_ghost[i],val_skin[i]);
         }
       } else if (strcmp(boundary_type, "absorb") == 0) {
         for (int i = 0; i < basis.num_basis; i++) {
@@ -278,7 +276,7 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
       const double *val_skin  = gkyl_array_cfetch(distf_flip, linidx_skin);
 
       if (strcmp(boundary_type, "reflect") == 0) {
-        // Flip the skin value to manually apply reflect BC to skin cell
+        // Flip the DG coefficients
         double val_correct[basis.num_basis];
         basis.flip_odd_sign(d,        val_skin,    val_correct);
         basis.flip_odd_sign(d + cdim, val_correct, val_correct);
@@ -361,22 +359,22 @@ TEST_LIST = {
   {"test_bc_absorb_3x2v_p2", test_bc_absorb_3x2v_p2},
 #ifdef GKYL_HAVE_CUDA
   {"test_bc_reflect_1x1v_p1_gpu", test_bc_reflect_1x1v_p1_gpu},
-//  {"test_bc_reflect_1x2v_p1_gpu", test_bc_reflect_1x2v_p1_gpu},
-//  {"test_bc_reflect_2x2v_p1_gpu", test_bc_reflect_2x2v_p1_gpu},
-//  {"test_bc_reflect_3x2v_p1_gpu", test_bc_reflect_3x2v_p1_gpu},
-//  {"test_bc_reflect_1x1v_p2_gpu", test_bc_reflect_1x1v_p2_gpu},
-//  {"test_bc_reflect_1x2v_p2_gpu", test_bc_reflect_1x2v_p2_gpu},
-//  {"test_bc_reflect_2x2v_p2_gpu", test_bc_reflect_2x2v_p2_gpu},
-//  {"test_bc_reflect_3x2v_p2_gpu", test_bc_reflect_3x2v_p2_gpu},
-//
+  {"test_bc_reflect_1x2v_p1_gpu", test_bc_reflect_1x2v_p1_gpu},
+  {"test_bc_reflect_2x2v_p1_gpu", test_bc_reflect_2x2v_p1_gpu},
+  {"test_bc_reflect_3x2v_p1_gpu", test_bc_reflect_3x2v_p1_gpu},
+  {"test_bc_reflect_1x1v_p2_gpu", test_bc_reflect_1x1v_p2_gpu},
+  {"test_bc_reflect_1x2v_p2_gpu", test_bc_reflect_1x2v_p2_gpu},
+  {"test_bc_reflect_2x2v_p2_gpu", test_bc_reflect_2x2v_p2_gpu},
+  {"test_bc_reflect_3x2v_p2_gpu", test_bc_reflect_3x2v_p2_gpu},
+
   {"test_bc_absorb_1x1v_p1_gpu", test_bc_absorb_1x1v_p1_gpu},
-//  {"test_bc_absorb_1x2v_p1_gpu", test_bc_absorb_1x2v_p1_gpu},
-//  {"test_bc_absorb_2x2v_p1_gpu", test_bc_absorb_2x2v_p1_gpu},
-//  {"test_bc_absorb_3x2v_p1_gpu", test_bc_absorb_3x2v_p1_gpu},
-//  {"test_bc_absorb_1x1v_p2_gpu", test_bc_absorb_1x1v_p2_gpu},
-//  {"test_bc_absorb_1x2v_p2_gpu", test_bc_absorb_1x2v_p2_gpu},
-//  {"test_bc_absorb_2x2v_p2_gpu", test_bc_absorb_2x2v_p2_gpu},
-//  {"test_bc_absorb_3x2v_p2_gpu", test_bc_absorb_3x2v_p2_gpu},
+  {"test_bc_absorb_1x2v_p1_gpu", test_bc_absorb_1x2v_p1_gpu},
+  {"test_bc_absorb_2x2v_p1_gpu", test_bc_absorb_2x2v_p1_gpu},
+  {"test_bc_absorb_3x2v_p1_gpu", test_bc_absorb_3x2v_p1_gpu},
+  {"test_bc_absorb_1x1v_p2_gpu", test_bc_absorb_1x1v_p2_gpu},
+  {"test_bc_absorb_1x2v_p2_gpu", test_bc_absorb_1x2v_p2_gpu},
+  {"test_bc_absorb_2x2v_p2_gpu", test_bc_absorb_2x2v_p2_gpu},
+  {"test_bc_absorb_3x2v_p2_gpu", test_bc_absorb_3x2v_p2_gpu},
 #endif
   {NULL, NULL},
 };
