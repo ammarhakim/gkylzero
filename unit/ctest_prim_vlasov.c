@@ -45,11 +45,18 @@ evalDistFunc1x2v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT
   fout[0] = maxwellian2D(1.0, vx, vy, 0.0, 0.0, 1.0);
 }
 
-void nu_prof(double t, const double *xn, double* restrict fout, void *ctx)
+void nu_prof_1x1v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
   double vx = xn[1];
-  double vy  = xn[2];
+  fout[0] = 1.0;
+}
+
+void nu_prof_1x2v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  double vx = xn[1];
+  double vy = xn[2];
   fout[0] = 1.0;
 }
 
@@ -159,8 +166,14 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
 
   // projection updater for collision frequency
-  gkyl_proj_on_basis *projNu = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, nu_prof, NULL);
+  gkyl_proj_on_basis *projNu;
+  if (cdim==1 && vdim==1) {
+    projNu = gkyl_proj_on_basis_new(&confGrid, &confBasis,
+      poly_order+1, 1, nu_prof_1x1v, NULL);
+  } else if (cdim==1 && vdim==2) {
+    projNu = gkyl_proj_on_basis_new(&confGrid, &confBasis,
+      poly_order+1, 1, nu_prof_1x2v, NULL);
+  }
 
   // create collision frequency array
   struct gkyl_array *nu;
@@ -248,7 +261,9 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   double self_m = 1.;
   double cross_m = self_m;
 
-  gkyl_prim_lbo_cross_calc_advance(crossprimcalc, confBasis, &confLocal, greene, self_m, u, vth, cross_m, cross_u, cross_vtsq, moms, boundary_corrections, u_out, vtsq_out);
+  gkyl_prim_lbo_cross_calc_advance(crossprimcalc, confBasis, &confLocal, greene,
+    self_m, u, vth, cross_m, cross_u, cross_vtsq,
+    moms, boundary_corrections, u_out, vtsq_out);
   
   // Check cross u
   // 1-indexed for interfacing with G2 Lua layer
@@ -355,6 +370,25 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
   gkyl_array_copy(distf_cu, distf);
 
+  // projection updater for collision frequency
+  gkyl_proj_on_basis *projNu;
+  if (cdim==1 && vdim==1) {
+    projNu = gkyl_proj_on_basis_new(&confGrid, &confBasis,
+      poly_order+1, 1, nu_prof_1x1v, NULL);
+  } else if (cdim==1 && vdim==2) {
+    projNu = gkyl_proj_on_basis_new(&confGrid, &confBasis,
+      poly_order+1, 1, nu_prof_1x2v, NULL);
+  }
+
+  // create collision frequency array
+  struct gkyl_array *nu, *nu_cu;
+  nu = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  nu_cu = mkarr(confBasis.num_basis, confLocal_ext.volume);
+
+  // project collision frequency on basis
+  gkyl_proj_on_basis_advance(projNu, 0.0, &confLocal_ext, nu);
+  gkyl_array_copy(nu_cu, nu);
+  
   struct gkyl_mom_type *vm_moms_t = gkyl_mom_vlasov_cu_dev_new(&confBasis, &basis, "FiveMoments");
   gkyl_mom_calc *moms_calc = gkyl_mom_calc_cu_dev_new(&grid, vm_moms_t);
 
@@ -420,7 +454,9 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   double cross_m = self_m;
   gkyl_array_clear(greene, 1.0);
 
-  gkyl_prim_lbo_cross_calc_advance_cu(crossprimcalc, confBasis, &confLocal, greene, self_m, u_cu, vth_cu, cross_m, cross_u, cross_vtsq, moms_cu, boundary_corrections_cu, u_out_cu, vtsq_out_cu);
+  gkyl_prim_lbo_cross_calc_advance_cu(crossprimcalc, confBasis, &confLocal, greene,
+    self_m, u_cu, vth_cu, cross_m, cross_u, cross_vtsq,
+    moms_cu, boundary_corrections_cu, u_out_cu, vtsq_out_cu);
   gkyl_array_copy(u_out, u_out_cu);
   gkyl_array_copy(vtsq_out, vtsq_out_cu);
   
@@ -451,6 +487,9 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
 
   gkyl_array_release(boundary_corrections_cu); 
   gkyl_mom_calc_bcorr_release(bcorr_calc); 
+
+  gkyl_proj_on_basis_release(projNu);
+  gkyl_array_release(nu); gkyl_array_release(nu_cu);
 
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf); gkyl_array_release(distf_cu);

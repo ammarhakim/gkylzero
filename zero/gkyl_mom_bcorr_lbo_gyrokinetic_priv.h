@@ -31,12 +31,12 @@ typedef struct { lbo_gyrokinetic_momf_t kernels[3]; } gkyl_mom_bcorr_lbo_gyrokin
 GKYL_CU_D
 static const gkyl_mom_bcorr_lbo_gyrokinetic_kern_list ser_mom_bcorr_lbo_gyrokinetic_kernels[] = {
   // 1x kernels
-  { NULL, NULL, mom_bcorr_lbo_gyrokinetic_1x1v_ser_p2 }, // 0
-  { NULL, NULL, mom_bcorr_lbo_gyrokinetic_1x2v_ser_p2 }, // 1
+  { NULL, mom_bcorr_lbo_gyrokinetic_1x1v_ser_p1, mom_bcorr_lbo_gyrokinetic_1x1v_ser_p2 }, // 0
+  { NULL, mom_bcorr_lbo_gyrokinetic_1x2v_ser_p1, mom_bcorr_lbo_gyrokinetic_1x2v_ser_p2 }, // 1
   // 2x kernels
-  { NULL, NULL, mom_bcorr_lbo_gyrokinetic_2x2v_ser_p2 }, // 2
+  { NULL, mom_bcorr_lbo_gyrokinetic_2x2v_ser_p1, mom_bcorr_lbo_gyrokinetic_2x2v_ser_p2 }, // 2
   // 3x kernels
-  { NULL, NULL, NULL }, // 3
+  { NULL, mom_bcorr_lbo_gyrokinetic_3x2v_ser_p1, mom_bcorr_lbo_gyrokinetic_3x2v_ser_p2 }, // 3
 };
 
 //

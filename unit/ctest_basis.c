@@ -187,16 +187,95 @@ test_ten_2d()
 }
 
 void
-test_gk_hyb()
+test_hyb()
 {
   struct gkyl_basis basis;
-  gkyl_cart_modal_gk_hybrid(&basis, 2);
+  gkyl_cart_modal_hybrid(&basis, 1, 1);
 
   TEST_CHECK( basis.ndim == 2 );
   TEST_CHECK( basis.poly_order == 1 );
   TEST_CHECK( basis.num_basis == 6 );
-  TEST_CHECK( strcmp(basis.id, "gk_hybrid") == 0 );
-  TEST_CHECK( basis.b_type == GKYL_BASIS_MODAL_GK_HYBRID );
+  TEST_CHECK( strcmp(basis.id, "hybrid") == 0 );
+  TEST_CHECK( basis.b_type == GKYL_BASIS_MODAL_HYBRID );
+
+  double z[basis.ndim], b[basis.num_basis];
+
+  z[0] = 0.0; z[1] = 0.0;
+  basis.eval(z, b);
+
+  TEST_CHECK( gkyl_compare(0.5, b[0], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[1], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[2], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[3], 1e-15) );
+  TEST_CHECK( gkyl_compare(-sqrt(5.0)/4, b[4], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[6], 1e-15) );
+
+  double fin[basis.num_basis], fout[basis.num_basis];
+  for (int i=0; i<basis.num_basis; ++i) {
+    fin[i] = 1.0;
+    fout[i] = 0.0;
+  }
+
+  basis.flip_odd_sign(0, fin, fout);
+  TEST_CHECK( fin[0] == fout[0] );
+  TEST_CHECK( -fin[1] == fout[1] );
+  TEST_CHECK( fin[2] == fout[2] );  
+  TEST_CHECK( -fin[3] == fout[3] );
+  TEST_CHECK( fin[4] == fout[4] );
+  TEST_CHECK( -fin[5] == fout[5] );
+
+}
+
+void
+test_gkhyb()
+{
+  struct gkyl_basis basis;
+  gkyl_cart_modal_gkhybrid(&basis, 1, 2);
+
+  TEST_CHECK( basis.ndim == 3 );
+  TEST_CHECK( basis.poly_order == 1 );
+  TEST_CHECK( basis.num_basis == 12 );
+  TEST_CHECK( strcmp(basis.id, "gkhybrid") == 0 );
+  TEST_CHECK( basis.b_type == GKYL_BASIS_MODAL_GKHYBRID );
+
+  double z[basis.ndim], b[basis.num_basis];
+
+  z[0] = 0.0; z[1] = 0.0; z[2] = 0.0;
+  basis.eval(z, b);
+
+  TEST_CHECK( gkyl_compare(1./sqrt(pow(2.,3)), b[0], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[1], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[2], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[3], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[4], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[5], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[6], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[7], 1e-15) );
+  TEST_CHECK( gkyl_compare(-sqrt(5.0)/sqrt(pow(2.,5)), b[8], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[9], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[10], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[11], 1e-15) );
+
+  double fin[basis.num_basis], fout[basis.num_basis];
+  for (int i=0; i<basis.num_basis; ++i) {
+    fin[i] = 1.0;
+    fout[i] = 0.0;
+  }
+
+  basis.flip_odd_sign(0, fin, fout);
+  TEST_CHECK( fin[0] == fout[0] );
+  TEST_CHECK( -fin[1] == fout[1] );
+  TEST_CHECK( fin[2] == fout[2] );  
+  TEST_CHECK( fin[3] == fout[3] );  
+  TEST_CHECK( -fin[4] == fout[4] );
+  TEST_CHECK( -fin[5] == fout[5] );
+  TEST_CHECK( fin[6] == fout[6] );
+  TEST_CHECK( -fin[7] == fout[7] );
+  TEST_CHECK( fin[8] == fout[8] );
+  TEST_CHECK( -fin[9] == fout[9] );
+  TEST_CHECK( fin[10] == fout[10] );
+  TEST_CHECK( -fin[11] == fout[11] );
+
 }
 
 #ifdef GKYL_HAVE_CUDA
@@ -222,7 +301,8 @@ TEST_LIST = {
   { "ser_1d", test_ser_1d },
   { "ser_2d", test_ser_2d },
   { "ten_2d", test_ten_2d },
-  { "gk_hyb", test_gk_hyb },
+  { "hyb", test_hyb },
+  { "gkhyb", test_gkhyb },
 #ifdef GKYL_HAVE_CUDA
   { "cu_ser_2d", test_cu_ser_2d },
 #endif    
