@@ -141,6 +141,14 @@ calc_first_order_update(int meqn, double dtdx,
   }
 }
 
+static inline void
+calc_first_order_update_cc(int meqn, double dtdx,
+  double * GKYL_RESTRICT q, const double * GKYL_RESTRICT amdq_r, const double * GKYL_RESTRICT apdq_l)
+{
+  for (int i=0; i<meqn; ++i)
+    q[i] = q[i] - dtdx*(apdq_l[i] + amdq_r[i]);
+}
+
 static inline double
 calc_cfla(int mwaves, double cfla, double dtdx, const double *s)
 {
@@ -310,22 +318,32 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
         wv->equation->rotate_to_global_func(
           cg->tau1[dir], cg->tau2[dir], cg->norm[dir], apdq_local, apdq);
 
-        // apply first order correction
-        double *qoutl = gkyl_array_fetch(qout, lidx);
-        double *qoutr = gkyl_array_fetch(qout, ridx);
-        
-        calc_first_order_update(meqn, dtdx/cg->kappa, qoutl, qoutr, amdq, apdq);
         cfla = calc_cfla(mwaves, cfla, dtdx/cg->kappa, s);
       }
 
       if (cfla > cflm)
         return (struct gkyl_wave_prop_status) { .success = 0, .dt_suggested = dt*cfl/cfla };
 
+      // compute first-order update in each cell
+      int loidx_c = update_range->lower[dir], upidx_c = update_range->upper[dir];
+      for (int i=loidx_c; i<=upidx_c; ++i) { // loop is over cells
+        
+        idxl[dir] = i; // cell index and left-edge index
+        long lidx = gkyl_range_idx(update_range, idxl);
+
+        const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wv->geom, idxl);
+
+        calc_first_order_update_cc(meqn, dtdx/cg->kappa,
+          gkyl_array_fetch(qout, lidx), 
+          gkyl_array_cfetch(wv->amdq, gkyl_ridx(slice_range, i+1)),
+          gkyl_array_cfetch(wv->apdq, gkyl_ridx(slice_range, i))
+        );
+      }
+
       // check for violation of invariant domains
       gkyl_array_clear(wv->is_postive, 1.0); // by default all cells are positive ...
       gkyl_array_clear(wv->redo_fluct, 0.0); // ... and no fluctuations need to be recomputed
       
-      int loidx_c = update_range->lower[dir], upidx_c = update_range->upper[dir];
       for (int i=loidx_c; i<=upidx_c; ++i) { // loop is over cells
         idxl[dir] = i; // cell index and left-edge index
         long lidx = gkyl_range_idx(update_range, idxl);
