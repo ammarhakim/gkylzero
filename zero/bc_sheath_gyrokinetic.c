@@ -34,7 +34,7 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
 
   // Choose the kernel that does the reflection/no reflection/partial
   // reflection.
-  up->ker_reflectedf = bc_gksheath_choose_reflectedf_kernel(basis->ndim, basis->b_type, basis->poly_order);
+  up->ker_reflectedf = bc_gksheath_choose_reflectedf_kernel(basis->ndim, basis->b_type, basis->poly_order, edge);
   assert(up->ker_reflectedf);
 
   return up;
