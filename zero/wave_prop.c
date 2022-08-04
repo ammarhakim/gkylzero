@@ -20,13 +20,13 @@ struct gkyl_wave_prop {
   const struct gkyl_wv_eqn *equation; // equation object
 
   bool force_low_order_flux; // only use Lax flux
+  bool check_inv_domain; // flag to indicate if invariant domains are checked
 
   struct gkyl_wave_geom *geom; // geometry object
   // data for 1D slice update
   struct gkyl_array *waves, *apdq, *amdq, *speeds, *flux2;
-  // flag to indicate positivity violation and if fluctuations should
-  // be recomputed
-  struct gkyl_array *is_postive, *redo_fluct;
+  // flags to indicate if fluctuations should be recomputed
+  struct gkyl_array *redo_fluct;
 };
 
 static inline double
@@ -95,6 +95,7 @@ gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp)
   up->equation = gkyl_wv_eqn_acquire(winp.equation);
 
   up->force_low_order_flux = winp.force_low_order_flux;
+  up->check_inv_domain = winp.check_inv_domain;
 
   int nghost[3] = { 2, 2, 2 };
   struct gkyl_range range, ext_range;
@@ -115,7 +116,6 @@ gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp)
   up->speeds = gkyl_array_new(GKYL_DOUBLE, mwaves, max_1d);
   up->flux2 = gkyl_array_new(GKYL_DOUBLE, meqn, max_1d);
 
-  up->is_postive = gkyl_array_new(GKYL_DOUBLE, meqn, max_1d);
   up->redo_fluct = gkyl_array_new(GKYL_DOUBLE, meqn, max_1d);
 
   // construct geometry
@@ -133,16 +133,6 @@ calc_jump(int n, const double *ql, const double *qr, double * GKYL_RESTRICT jump
 
 static inline void
 calc_first_order_update(int meqn, double dtdx,
-  double * GKYL_RESTRICT ql, double * GKYL_RESTRICT qr, const double *amdq, const double *apdq)
-{
-  for (int i=0; i<meqn; ++i) {
-    qr[i] = qr[i] - dtdx*apdq[i];
-    ql[i] = ql[i] - dtdx*amdq[i];
-  }
-}
-
-static inline void
-calc_first_order_update_cc(int meqn, double dtdx,
   double * GKYL_RESTRICT q, const double * GKYL_RESTRICT amdq_r, const double * GKYL_RESTRICT apdq_l)
 {
   for (int i=0; i<meqn; ++i)
@@ -321,11 +311,44 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
         cfla = calc_cfla(mwaves, cfla, dtdx/cg->kappa, s);
       }
 
-      if (cfla > cflm)
+      if (cfla > cflm) // check time-step before any updates are performed
         return (struct gkyl_wave_prop_status) { .success = 0, .dt_suggested = dt*cfl/cfla };
 
+      // cell indices in 1D slide for interior cells
+      int loidx_c = update_range->lower[dir], upidx_c = update_range->upper[dir];      
+
+      if (wv->check_inv_domain) {
+        // if we are enforcing invariant domains, then we need to
+        // check for positivity violations and recompute fluctuations
+        // before doing updates
+
+        gkyl_array_clear(wv->redo_fluct, 0.0);
+        
+        for (int i=loidx_c; i<=upidx_c; ++i) { // loop is over cells
+          idxl[dir] = i; // cell index and left-edge index
+
+          const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wv->geom, idxl);
+          long lidx = gkyl_range_idx(update_range, idxl);
+
+          const double *q0 = gkyl_array_cfetch(qout, lidx);
+          double q[meqn]; for (int i=0; i<meqn; ++i) q[i] = q0[i];
+          // compute first-order update but do not store it in qout
+          calc_first_order_update(meqn, dtdx/cg->kappa, q,
+            gkyl_array_cfetch(wv->amdq, gkyl_ridx(slice_range, i+1)),
+            gkyl_array_cfetch(wv->apdq, gkyl_ridx(slice_range, i))
+          );
+
+          if (!wv->equation->check_inv_func(wv->equation, q)) {
+            double *redo_flux_l = gkyl_array_fetch(wv->redo_fluct, gkyl_ridx(slice_range, i));
+            double *redo_flux_r = gkyl_array_fetch(wv->redo_fluct, gkyl_ridx(slice_range, i+1));
+            // mark left and right edges so fluctuations are redone
+            redo_flux_l[0] = 1.0;
+            redo_flux_r[0] = 1.0;
+          }
+        }
+      }
+
       // compute first-order update in each cell
-      int loidx_c = update_range->lower[dir], upidx_c = update_range->upper[dir];
       for (int i=loidx_c; i<=upidx_c; ++i) { // loop is over cells
         
         idxl[dir] = i; // cell index and left-edge index
@@ -333,36 +356,15 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
 
         const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wv->geom, idxl);
 
-        calc_first_order_update_cc(meqn, dtdx/cg->kappa,
+        calc_first_order_update(meqn, dtdx/cg->kappa,
           gkyl_array_fetch(qout, lidx), 
           gkyl_array_cfetch(wv->amdq, gkyl_ridx(slice_range, i+1)),
           gkyl_array_cfetch(wv->apdq, gkyl_ridx(slice_range, i))
         );
       }
-
-      // check for violation of invariant domains
-      gkyl_array_clear(wv->is_postive, 1.0); // by default all cells are positive ...
-      gkyl_array_clear(wv->redo_fluct, 0.0); // ... and no fluctuations need to be recomputed
       
-      for (int i=loidx_c; i<=upidx_c; ++i) { // loop is over cells
-        idxl[dir] = i; // cell index and left-edge index
-        long lidx = gkyl_range_idx(update_range, idxl);
-        const double *q = gkyl_array_cfetch(qout, lidx);        
-
-        double *redo_flux_l = gkyl_array_fetch(wv->redo_fluct, gkyl_ridx(slice_range, i));
-        double *redo_flux_r = gkyl_array_fetch(wv->redo_fluct, gkyl_ridx(slice_range, i+1));
-        double *is_postive = gkyl_array_fetch(wv->redo_fluct, gkyl_ridx(slice_range, i));
-
-        if (!wv->equation->check_inv_func(wv->equation, q)) {
-          // mark cell as having positivity violation
-          is_postive[0] = 0.0; // not positive
-          // also mark edges so fluctuations are redone
-          redo_flux_l[0] = 1.0; redo_flux_r[0] = 1.0;
-        }
-      }
-
       // apply limiters to waves for all edges in update range,
-      // including edges that are on the range boundary
+      // including edges that are on the range boundary (PASS THE  BAD EDGE FLAGS)
       limit_waves(wv, mwaves, &slice_range,
         update_range->lower[dir], update_range->upper[dir]+1, wv->waves, wv->speeds);
 
@@ -399,14 +401,11 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
         idxl[dir] = i;
         const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wv->geom, idxl);
 
-        const double *is_positive = gkyl_array_cfetch(wv->redo_fluct, gkyl_ridx(slice_range, i));
-
-        if (is_positive) // only update cells that are positive
-          calc_second_order_update(meqn, dtdx/cg->kappa,
-            gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl)),
-            gkyl_array_cfetch(wv->flux2, gkyl_ridx(slice_range, i)),
-            gkyl_array_cfetch(wv->flux2, gkyl_ridx(slice_range, i+1))
-          );
+        calc_second_order_update(meqn, dtdx/cg->kappa,
+          gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl)),
+          gkyl_array_cfetch(wv->flux2, gkyl_ridx(slice_range, i)),
+          gkyl_array_cfetch(wv->flux2, gkyl_ridx(slice_range, i+1))
+        );
       }
     }
   }
@@ -457,7 +456,6 @@ gkyl_wave_prop_release(gkyl_wave_prop* up)
   gkyl_array_release(up->amdq);
   gkyl_array_release(up->speeds);
   gkyl_array_release(up->flux2);
-  gkyl_array_release(up->is_postive);
   gkyl_array_release(up->redo_fluct);
   
   gkyl_wave_geom_release(up->geom);

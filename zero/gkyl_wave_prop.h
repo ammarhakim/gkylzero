@@ -37,6 +37,7 @@ struct gkyl_wave_prop_inp {
   double cfl; // CFL number to use
 
   bool force_low_order_flux; // if true, only low-order flux is used
+  bool check_inv_domain; // flag to indicate if invariant domains are checked
 
   const struct gkyl_wave_geom *geom; // geometry
 };

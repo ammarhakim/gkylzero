@@ -220,6 +220,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         .limiter = limiter,
         .num_up_dirs = app->is_dir_skipped[d] ? 0 : 1,
         .force_low_order_flux = mom_sp->force_low_order_flux,
+        .check_inv_domain = true,
         .update_dirs = { d },
         .cfl = app->cfl,
         .geom = app->geom,
@@ -444,6 +445,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         .limiter = limiter,
         .num_up_dirs = app->is_dir_skipped[d] ? 0 : 1,
         .update_dirs = { d },
+        .check_inv_domain = false,
         .cfl = app->cfl,
         .geom = app->geom,
       }
