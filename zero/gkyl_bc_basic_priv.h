@@ -42,6 +42,15 @@ struct dg_bc_ctx {
 
 GKYL_CU_D
 static void
+copy_bc(size_t nc, double *out, const double *inp, void *ctx)
+{
+  struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
+  int nbasis = mc->basis->num_basis;
+  for (int c=0; c<nbasis; ++c) out[c] = inp[c];
+}
+
+GKYL_CU_D
+static void
 species_absorb_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
@@ -60,3 +69,37 @@ species_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
   mc->basis->flip_odd_sign(dir+cdim, out, out);
 }
 
+enum { M_EX, M_EY, M_EZ, M_BX, M_BY, M_BZ }; // components of EM field
+GKYL_CU_D static const int m_flip_even[3][3] = { // zero tangent E and zero normal B
+  {M_BX, M_EY, M_EZ},
+  {M_BY, M_EX, M_EZ},
+  {M_BZ, M_EX, M_EY},
+};
+GKYL_CU_D static const int m_flip_odd[3][3] = { // zero gradient
+  { M_EX, M_BY, M_BZ },
+  { M_EY, M_BX, M_BZ },
+  { M_EZ, M_BX, M_BY },
+};
+
+// Perfect electrical conductor
+GKYL_CU_D
+static void
+maxwell_pec_bc(size_t nc, double *out, const double *inp, void *ctx)
+{
+  struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
+  int dir = mc->dir;
+  int nbasis = mc->basis->num_basis;
+
+  const int *feven = m_flip_even[dir];
+  const int *fodd = m_flip_odd[dir];
+
+  for (int i=0; i<3; ++i) {
+    int eloc = nbasis*feven[i], oloc = nbasis*fodd[i];
+    mc->basis->flip_even_sign(dir, &inp[eloc], &out[eloc]);
+    mc->basis->flip_odd_sign(dir, &inp[oloc], &out[oloc]);
+  }
+  // correction potentials
+  int eloc = nbasis*6, oloc = nbasis*7;
+  mc->basis->flip_even_sign(dir, &inp[eloc], &out[eloc]);
+  mc->basis->flip_odd_sign(dir, &inp[oloc], &out[oloc]);
+}
