@@ -1,9 +1,9 @@
-#include "gkyl_array.h"
 #include <float.h>
 #include <math.h>
 #include <time.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_util.h>
@@ -27,6 +27,12 @@ struct gkyl_wave_prop {
   struct gkyl_array *waves, *apdq, *amdq, *speeds, *flux2;
   // flags to indicate if fluctuations should be recomputed
   struct gkyl_array *redo_fluct;
+
+  // some stats
+  long n_calls; // number of calls to updater
+  long n_bad_calls; // number of calls in which positivity had to be fixed
+  long n_bad_cells; // number  of cells fixed
+  long n_max_bad_cells; // maximum number of cells fixed in a call
 };
 
 static inline double
@@ -121,6 +127,9 @@ gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp)
   // construct geometry
   up->geom = gkyl_wave_geom_acquire(winp.geom);
 
+  up->n_calls = up->n_bad_calls = 0;
+  up->n_bad_cells = up->n_max_bad_cells = 0;
+
   return up;
 }
 
@@ -213,10 +222,12 @@ limit_waves(const gkyl_wave_prop *wv, int mwaves,
 
 // advance method
 struct gkyl_wave_prop_status
-gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
+gkyl_wave_prop_advance(gkyl_wave_prop *wv,
   double tm, double dt, const struct gkyl_range *update_range,
   const struct gkyl_array *qin, struct gkyl_array *qout)
 {
+  wv->n_calls += 1;
+  
   int ndim = update_range->ndim;
   int meqn = wv->equation->num_equations;
   //  when forced to use Lax fluxes, we only have a single wave
@@ -322,6 +333,8 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
         // check for positivity violations and recompute fluctuations
         // before doing updates
 
+        long n_bad_cells = 0;
+
         gkyl_array_clear(wv->redo_fluct, 0.0);
         
         for (int i=loidx_c; i<=upidx_c; ++i) { // loop is over cells
@@ -344,8 +357,14 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
             // mark left and right edges so fluctuations are redone
             redo_flux_l[0] = 1.0;
             redo_flux_r[0] = 1.0;
+
+            n_bad_cells += 1;
           }
         }
+
+        if (n_bad_cells > 0) wv->n_bad_calls += 1;
+        wv->n_bad_cells += n_bad_cells;
+        wv->n_max_bad_cells = wv->n_max_bad_cells >  n_bad_cells ? wv->n_max_bad_cells : n_bad_cells;
 
         // now recompute fluctuations on marked edges
         for (int i=loidx; i<upidx; ++i) {
@@ -490,6 +509,17 @@ gkyl_wave_prop_max_dt(const gkyl_wave_prop *wv, const struct gkyl_range *update_
   }
 
   return max_dt;
+}
+
+struct gkyl_wave_prop_stats
+gkyl_wave_prop_stats(const gkyl_wave_prop *wv)
+{
+  return (struct gkyl_wave_prop_stats) {
+    .n_calls = wv->n_calls,
+    .n_bad_calls = wv->n_bad_calls,
+    .n_bad_cells = wv->n_bad_cells,
+    .n_max_bad_cells = wv->n_max_bad_cells
+  };
 }
 
 void

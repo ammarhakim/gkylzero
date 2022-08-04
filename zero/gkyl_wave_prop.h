@@ -42,6 +42,14 @@ struct gkyl_wave_prop_inp {
   const struct gkyl_wave_geom *geom; // geometry
 };
 
+// Some statics from update calls
+struct gkyl_wave_prop_stats {
+  long n_calls; // number of calls to updater
+  long n_bad_calls; // number of calls in which positivity had to be fixed
+  long n_bad_cells; // number  of cells fixed
+  long n_max_bad_cells; // maximum number of cells fixed in any call
+};
+
 /**
  * Create new updater to update equations using wave-propagation
  * algorithm.
@@ -63,7 +71,7 @@ gkyl_wave_prop* gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp);
  * @param qin Input to updater
  * @param qout Solution at tm+dt
  */
-struct gkyl_wave_prop_status gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
+struct gkyl_wave_prop_status gkyl_wave_prop_advance(gkyl_wave_prop *wv,
   double tm, double dt, const struct gkyl_range *update_range,
   const struct gkyl_array *qin, struct gkyl_array *qout);
 
@@ -77,6 +85,14 @@ struct gkyl_wave_prop_status gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
  */
 double gkyl_wave_prop_max_dt(const gkyl_wave_prop *wv, const struct gkyl_range *update_range,
   const struct gkyl_array *qin);
+
+/**
+ * Fetch statics
+ *
+ * @param wv Updater object
+ * @return statics from all calls to this updater
+ */
+struct gkyl_wave_prop_stats gkyl_wave_prop_stats(const gkyl_wave_prop *wv);
   
 /**
  * Delete updater.
