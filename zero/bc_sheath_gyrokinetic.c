@@ -30,7 +30,7 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
     rlo[d] = local_range_ext->lower[d];
     rup[d] = local_range_ext->upper[d];
   }
-  gkyl_sub_range_init(up->conf_r, local_range_ext, rlo, rup);
+  gkyl_sub_range_init(&up->conf_r, local_range_ext, rlo, rup);
 
   // Choose the kernel that does the reflection/no reflection/partial
   // reflection.
@@ -80,7 +80,7 @@ bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, const
     const double *inp = gkyl_array_cfetch(distf, skin_loc);
     double *out = gkyl_array_fetch(distf, ghost_loc);
 
-    long conf_loc = gkyl_range_idx(up->conf_r, iter.idx);
+    long conf_loc = gkyl_range_idx(&up->conf_r, iter.idx);
     const double *phi_p = gkyl_array_cfetch(phi, conf_loc);
     const double *phi_wall_p = gkyl_array_cfetch(phi_wall, conf_loc);
 

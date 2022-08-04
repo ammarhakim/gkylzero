@@ -45,7 +45,7 @@ struct gkyl_bc_sheath_gyrokinetic {
   double q2Dm; // charge-to-mass ratio times 2.
   sheath_reflectedf_t ker_reflectedf;  // reflectedf kernel.
   const struct gkyl_rect_grid *grid;
-  struct gkyl_range *conf_r;
+  struct gkyl_range conf_r;
 };
 
 GKYL_CU_D
@@ -53,6 +53,7 @@ static sheath_reflectedf_t
 bc_gksheath_choose_reflectedf_kernel(const int dim, const int basis_type, const int poly_order)
 {
   switch (basis_type) {
+    case GKYL_BASIS_MODAL_GKHYBRID:
     case GKYL_BASIS_MODAL_SERENDIPITY:
       return ser_sheath_reflect_list[dim-2].kernels[poly_order-1];
     case GKYL_BASIS_MODAL_TENSOR:
