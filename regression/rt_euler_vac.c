@@ -68,8 +68,8 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalEulerInit,
 
-    .force_low_order_flux = true, // use Lax fluxes
-    .limiter = GKYL_ZERO,
+    //.force_low_order_flux = true, // use Lax fluxes
+    //.limiter = GKYL_ZERO,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };

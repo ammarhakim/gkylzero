@@ -346,6 +346,51 @@ gkyl_wave_prop_advance(const gkyl_wave_prop *wv,
             redo_flux_r[0] = 1.0;
           }
         }
+
+        // now recompute fluctuations on marked edges
+        for (int i=loidx; i<upidx; ++i) {
+          long sidx = gkyl_ridx(slice_range, i);
+          double *redo_flux = gkyl_array_fetch(wv->redo_fluct, sidx);
+          if (redo_flux[0] != 0.0) {
+            // need to recompute the fluctuations
+          
+            idxl[dir] = i-1; idxr[dir] = i;
+            // geometry in cell
+            const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wv->geom, idxr);
+
+            long lidx = gkyl_range_idx(update_range, idxl);
+            long ridx = gkyl_range_idx(update_range, idxr);        
+          
+            const double *qinl = gkyl_array_cfetch(qin, lidx);
+            const double *qinr = gkyl_array_cfetch(qin, ridx);
+
+            wv->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qinl, ql_local);
+            wv->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qinr, qr_local);
+
+            calc_jump(meqn, ql_local, qr_local, delta);
+
+            double *waves = gkyl_array_fetch(wv->waves, sidx);
+            const double *s = gkyl_array_cfetch(wv->speeds, sidx);
+
+            // compute fluctuations in local coordinates: note this needs
+            // rescaled speeds
+            gkyl_wv_eqn_qfluct(wv->equation, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local,
+              waves_local, s, amdq_local, apdq_local);
+        
+            // rotate fluctuations
+            double *amdq = gkyl_array_fetch(wv->amdq, sidx);
+            wv->equation->rotate_to_global_func(
+              cg->tau1[dir], cg->tau2[dir], cg->norm[dir], amdq_local, amdq);
+            
+            double *apdq = gkyl_array_fetch(wv->apdq, sidx);
+            wv->equation->rotate_to_global_func(
+              cg->tau1[dir], cg->tau2[dir], cg->norm[dir], apdq_local, apdq);
+
+            // reset waves to zero so they do not participate in
+            // the second-order updates
+            for (int m=0; m<wv->waves->ncomp; ++m) waves[m] = 0.0;
+          }
+        }
       }
 
       // compute first-order update in each cell
