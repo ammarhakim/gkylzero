@@ -13,23 +13,24 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
 {
   int cdim = app->cdim;
   int vdim = app->vdim;
+  int num_eqn = f->info.num_eqn ? f->info.num_eqn : 1;
   // allocate fluid arrays
-  f->fluid = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  f->fluid1 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  f->fluidnew = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  f->fluid = mkarr(app->use_gpu, num_eqn*app->confBasis.num_basis, app->local_ext.volume);
+  f->fluid1 = mkarr(app->use_gpu, num_eqn*app->confBasis.num_basis, app->local_ext.volume);
+  f->fluidnew = mkarr(app->use_gpu, num_eqn*app->confBasis.num_basis, app->local_ext.volume);
 
   f->fluid_host = f->fluid;  
   if (app->use_gpu)
-    f->fluid_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+    f->fluid_host = mkarr(false, num_eqn*app->confBasis.num_basis, app->local_ext.volume);
 
-  // allocate buffer for applying BCs (used for both periodic and copy BCs)
+  // allocate buffer for applying BCs
   long buff_sz = 0;
   // compute buffer size needed
   for (int d=0; d<app->cdim; ++d) {
     long vol = app->skin_ghost.lower_skin[d].volume;
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
-  f->bc_buffer = mkarr(app->use_gpu, app->confBasis.num_basis, buff_sz);
+  f->bc_buffer = mkarr(app->use_gpu, num_eqn*app->confBasis.num_basis, buff_sz);
 
   // allocate cflrate (scalar array)
   f->cflrate = mkarr(app->use_gpu, 1, app->local_ext.volume);
@@ -37,9 +38,6 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     f->omegaCfl_ptr = gkyl_cu_malloc(sizeof(double));
   else
     f->omegaCfl_ptr = gkyl_malloc(sizeof(double));
-
-  // allocate array to store advection velocity
-  f->u = mkarr(app->use_gpu, cdim*app->confBasis.num_basis, app->local_ext.volume);
   
   // allocate array to store diffusion tensor
   int szD = cdim;
@@ -54,17 +52,36 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
 
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
 
+  // pre-allocated memory for weak division
+  // Needs to be over the extended range so flow velocity is known in ghost cells
+  f->u_mem = 0;
+  if (app->use_gpu)
+    f->u_mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, 3*app->confBasis.num_basis);
+  else
+    f->u_mem = gkyl_dg_bin_op_mem_new(app->local.volume, 3*app->confBasis.num_basis);
+
+  f->param = 0.0;
   // fluid solvers
   if (f->info.vt) {
-    f->vt = f->info.vt;
+    f->param = f->info.vt; // parameter for isothermal Euler is vt, thermal velocity
     f->eqn_id = GKYL_EQN_ISO_EULER;
+    // allocate array to store fluid velocity
+    f->u = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+    f->u_bc_buffer = mkarr(app->use_gpu, 3*app->confBasis.num_basis, buff_sz);
   }
   else if (f->info.gas_gamma) {
-    f->gas_gamma = f->info.gas_gamma;
-    f->eqn_id = GKYL_EQN_EULER;    
+    f->param = f->info.gas_gamma; // parameter for Euler is gas_gamma, adiabatic index
+    f->eqn_id = GKYL_EQN_EULER;
+    // allocate array to store fluid velocity
+    f->u = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+    f->u_bc_buffer = mkarr(app->use_gpu, 3*app->confBasis.num_basis, buff_sz);    
   }
   else {
     f->eqn_id = GKYL_EQN_ADVECTION;   
+
+    // allocate array to store advection velocity
+    f->u = mkarr(app->use_gpu, cdim*app->confBasis.num_basis, app->local_ext.volume);
+    f->u_bc_buffer = mkarr(app->use_gpu, cdim*app->confBasis.num_basis, buff_sz);
 
     f->has_advect = false;
     f->advects_with_species = false;
@@ -111,7 +128,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   }
 
   f->advect_slvr = gkyl_dg_updater_fluid_new(&app->grid, &app->confBasis, 
-    &app->local, f->eqn_id, app->use_gpu);
+    &app->local, f->eqn_id, f->param, app->use_gpu);
 
   f->diff_slvr = gkyl_dg_updater_diffusion_new(&app->grid, &app->confBasis, 
     &app->local, f->diffusion_id, app->use_gpu);
@@ -240,6 +257,15 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
     gkyl_array_accumulate(fluid_species->u, 1.0, fluid_species->other_advect);
   }
 
+  // Compute flow velocity from state variables (rho*u = rhou)
+  if (fluid_species->eqn_id == GKYL_EQN_ISO_EULER || fluid_species->eqn_id == GKYL_EQN_EULER) {
+    for (int i = 0; i<3; ++i)
+      gkyl_dg_div_op_range(fluid_species->u_mem, app->confBasis, 
+        i, fluid_species->u, i+1, fluid, 0, fluid, app->local);
+    // Need to synchronize ghost cells based on boundary conditions for u
+    vm_fluid_species_flow_apply_bc(app, fluid_species);
+  }
+
   gkyl_array_clear(rhs, 0.0);
 
   if (app->use_gpu) {
@@ -339,6 +365,55 @@ vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *f
   }
 }
 
+// Determine which directions are periodic and which directions are copy,
+// and then apply boundary conditions to the flow velocity u
+void
+vm_fluid_species_flow_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species)
+{
+  int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
+  int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
+  for (int d=0; d<num_periodic_dir; ++d) {
+    gkyl_array_copy_to_buffer(fluid_species->u_bc_buffer->data, fluid_species->u, app->skin_ghost.lower_skin[d]);
+    gkyl_array_copy_from_buffer(fluid_species->u, fluid_species->u_bc_buffer->data, app->skin_ghost.upper_ghost[d]);
+
+    gkyl_array_copy_to_buffer(fluid_species->u_bc_buffer->data, fluid_species->u, app->skin_ghost.upper_skin[d]);
+    gkyl_array_copy_from_buffer(fluid_species->u, fluid_species->u_bc_buffer->data, app->skin_ghost.lower_ghost[d]);
+    is_np_bc[app->periodic_dirs[d]] = 0;
+  }
+  for (int d=0; d<cdim; ++d) {
+    if (is_np_bc[d]) {
+
+      switch (fluid_species->lower_bc[d]) {
+        case GKYL_SPECIES_COPY:
+        case GKYL_SPECIES_ABSORB:
+          gkyl_bc_basic_advance(fluid_species->bc_lo[d], fluid_species->u_bc_buffer, fluid_species->u);
+          break;
+        case GKYL_SPECIES_REFLECT:
+        case GKYL_SPECIES_NO_SLIP:
+        case GKYL_SPECIES_WEDGE:
+          assert(false);
+          break;
+        default:
+          break;
+      }
+
+      switch (fluid_species->upper_bc[d]) {
+        case GKYL_SPECIES_COPY:
+        case GKYL_SPECIES_ABSORB:
+          gkyl_bc_basic_advance(fluid_species->bc_up[d], fluid_species->u_bc_buffer, fluid_species->u);
+          break;
+        case GKYL_SPECIES_REFLECT:
+        case GKYL_SPECIES_NO_SLIP:
+        case GKYL_SPECIES_WEDGE:
+          assert(false);
+          break;
+        default:
+          break;
+      }      
+    }
+  }
+}
+
 // release resources for fluid species
 void
 vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
@@ -347,7 +422,10 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
   gkyl_array_release(f->fluid1);
   gkyl_array_release(f->fluidnew);
   gkyl_array_release(f->bc_buffer);
+  gkyl_array_release(f->u_bc_buffer);
   gkyl_array_release(f->cflrate);
+
+  gkyl_dg_bin_op_mem_release(f->u_mem);
 
   gkyl_dg_updater_fluid_release(f->advect_slvr);
   gkyl_dg_updater_diffusion_release(f->diff_slvr);

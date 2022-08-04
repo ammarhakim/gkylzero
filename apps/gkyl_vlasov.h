@@ -125,6 +125,9 @@ struct gkyl_vlasov_fluid_species {
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
 
+  // Number of fluid equations
+  int num_eqn;
+
   // Thermal velocity (if isothermal Euler)
   // gkyl_eqn_type eqn_id = GKYL_EQN_ISO_EULER
   double vt;

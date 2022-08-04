@@ -3,8 +3,10 @@
 #include <time.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_dg_advection.h>
+#include <gkyl_dg_euler.h>
 #include <gkyl_dg_updater_fluid.h>
 #include <gkyl_dg_updater_fluid_priv.h>
 #include <gkyl_hyper_dg.h>
@@ -19,12 +21,14 @@ gkyl_dg_updater_fluid_acquire_eqn(const gkyl_dg_updater_fluid* fluid)
 gkyl_dg_updater_fluid*
 gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range, 
-  enum gkyl_eqn_type eqn_id, bool use_gpu)
+  enum gkyl_eqn_type eqn_id, double param, bool use_gpu)
 {
   gkyl_dg_updater_fluid *up = gkyl_malloc(sizeof(gkyl_dg_updater_fluid));
 
   if (eqn_id == GKYL_EQN_ADVECTION)
     up->eqn_fluid = gkyl_dg_advection_new(cbasis, conf_range, use_gpu);
+  else if (eqn_id == GKYL_EQN_EULER)
+    up->eqn_fluid = gkyl_dg_euler_new(cbasis, conf_range, param, use_gpu);
 
   int cdim = cbasis->ndim;
   int up_dirs[GKYL_MAX_DIM], zero_flux_flags[GKYL_MAX_DIM];
@@ -44,7 +48,7 @@ gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid,
 void
 gkyl_dg_updater_fluid_advance(gkyl_dg_updater_fluid *fluid,
   enum gkyl_eqn_type eqn_id, const struct gkyl_range *update_rng,
-  const struct gkyl_array *aux1, 
+  const struct gkyl_array *u, 
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
@@ -53,7 +57,10 @@ gkyl_dg_updater_fluid_advance(gkyl_dg_updater_fluid *fluid,
   // TO DO: More intelligent way to do these aux field sets? (JJ: 04/26/22)
   if (eqn_id == GKYL_EQN_ADVECTION)
     gkyl_advection_set_auxfields(fluid->eqn_fluid, 
-      (struct gkyl_dg_advection_auxfields) { .u = aux1 });
+      (struct gkyl_dg_advection_auxfields) { .u = u });
+  else if (eqn_id == GKYL_EQN_EULER)
+    gkyl_euler_set_auxfields(fluid->eqn_fluid, 
+      (struct gkyl_dg_euler_auxfields) { .u = u });
 
   struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance(fluid->up_fluid, update_rng, fIn, cflrate, rhs);
@@ -81,7 +88,7 @@ gkyl_dg_updater_fluid_release(gkyl_dg_updater_fluid* fluid)
 void
 gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
   enum gkyl_eqn_type eqn_id, const struct gkyl_range *update_rng,
-  const struct gkyl_array *aux1, 
+  const struct gkyl_array *u, 
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
@@ -90,7 +97,10 @@ gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
   // TO DO: More intelligent way to do these aux field sets? (JJ: 04/26/22)
   if (eqn_id == GKYL_EQN_ADVECTION)
     gkyl_advection_set_auxfields(fluid->eqn_fluid, 
-      (struct gkyl_dg_advection_auxfields) { .u = aux1 });
+      (struct gkyl_dg_advection_auxfields) { .u = u });
+  else if (eqn_id == GKYL_EQN_EULER)
+    gkyl_euler_set_auxfields(fluid->eqn_fluid, 
+      (struct gkyl_dg_euler_auxfields) { .u = u });
 
   struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance_cu(fluid->up_fluid, update_rng, fIn, cflrate, rhs);
@@ -104,7 +114,7 @@ gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
 void
 gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
   enum gkyl_eqn_type eqn_id, const struct gkyl_range *update_rng,
-  const struct gkyl_array *aux1, 
+  const struct gkyl_array *u, 
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {

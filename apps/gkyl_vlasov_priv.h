@@ -256,7 +256,8 @@ struct vm_fluid_species {
   struct gkyl_job_pool *job_pool; // Job pool  
   struct gkyl_array *fluid, *fluid1, *fluidnew; // arrays for updates
   struct gkyl_array *cflrate; // CFL rate in each cell
-  struct gkyl_array *bc_buffer; // buffer for BCs (used for both copy and periodic)
+  struct gkyl_array *bc_buffer; // buffer for BCs (used by bc_basic)
+  struct gkyl_array *u_bc_buffer; // buffer for applying BCs to flow
 
   struct gkyl_array *fluid_host;  // host copy for use IO and initialization
 
@@ -276,8 +277,10 @@ struct vm_fluid_species {
   // fluid advection
   bool has_advect; // flag to indicate there is advection of fluid equation
   enum gkyl_eqn_type eqn_id; // type of advection (e.g., scalar advection vs. Euler vs. isothermal Euler)
-  double vt; // Thermal velocity (if isothermal Euler)
-  double gas_gamma; // Adiabatic index (if Euler)
+  double param; // Input parameter for fluid species (vt for isothermal Euler, gas_gamma for Euler)
+
+  struct gkyl_dg_bin_op_mem *u_mem; // memory needed in computing flow velocity 
+                                    // needed for weak division rho*u = rhou
 
   // applied advection
   struct gkyl_array *advect; // applied advection
@@ -901,6 +904,14 @@ void vm_fluid_species_apply_absorb_bc(gkyl_vlasov_app *app, const struct vm_flui
  * @param f Fluid Species to apply BCs
  */
 void vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species, struct gkyl_array *f);
+
+/**
+ * Apply BCs to flow (u)
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Pointer to fluid species
+ */
+void vm_fluid_species_flow_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species);
 
 /**
  * Release resources allocated by fluid species
