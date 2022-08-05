@@ -32,7 +32,7 @@
 #define gkyl_ridxn(r, idx) gkyl_range_idx(&(r), idx)
 
 // Constants to represent lower/upper edges
-enum gkyl_edge_loc { GKYL_LOWER_EDGE = 0, GKYL_UPPER_EDGE = 1 };
+enum gkyl_edge_loc { GKYL_LOWER_EDGE = 0, GKYL_UPPER_EDGE  = 1 };
 
 /**
  * Range object, representing an N-dimensional integer index

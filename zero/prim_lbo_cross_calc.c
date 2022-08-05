@@ -86,7 +86,7 @@ gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc,
   }
 }
 
-const struct gkyl_prim_lbo_type* gkyl_prim_lbo_cross_calc_get_prim(gkyl_prim_lbo_cross_calc* calc)
+struct gkyl_prim_lbo_type* gkyl_prim_lbo_cross_calc_get_prim(gkyl_prim_lbo_cross_calc* calc)
 {
   return calc->prim;
 }

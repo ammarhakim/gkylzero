@@ -13,12 +13,12 @@
 
 gkyl_dg_updater_lbo_gyrokinetic*
 gkyl_dg_updater_lbo_gyrokinetic_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, double mass, bool use_gpu)
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, double mass)
 {
   gkyl_dg_updater_lbo_gyrokinetic *up = gkyl_malloc(sizeof(gkyl_dg_updater_lbo_gyrokinetic));
 
-  up->coll_drag = gkyl_dg_lbo_gyrokinetic_drag_new(cbasis, pbasis, conf_range, mass, use_gpu);
-  up->coll_diff = gkyl_dg_lbo_gyrokinetic_diff_new(cbasis, pbasis, conf_range, mass, use_gpu);
+  up->coll_drag = gkyl_dg_lbo_gyrokinetic_drag_new(cbasis, pbasis, conf_range, mass);
+  up->coll_diff = gkyl_dg_lbo_gyrokinetic_diff_new(cbasis, pbasis, conf_range, mass);
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int vdim = pdim-cdim;
@@ -31,8 +31,8 @@ gkyl_dg_updater_lbo_gyrokinetic_new(const struct gkyl_rect_grid *grid, const str
   for (int d=cdim; d<pdim; ++d)
     zero_flux_flags[d] = 1;
   
-  up->diff = gkyl_hyper_dg_new(grid, pbasis, up->coll_diff, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
-  up->drag = gkyl_hyper_dg_new(grid, pbasis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
+  up->diff = gkyl_hyper_dg_new(grid, pbasis, up->coll_diff, num_up_dirs, up_dirs, zero_flux_flags, 1, false);
+  up->drag = gkyl_hyper_dg_new(grid, pbasis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1, false);
   
   return up;
 }
@@ -67,6 +67,31 @@ gkyl_dg_updater_lbo_gyrokinetic_release(gkyl_dg_updater_lbo_gyrokinetic* lbo)
 
 #ifdef GKYL_HAVE_CUDA
 
+gkyl_dg_updater_lbo_gyrokinetic*
+gkyl_dg_updater_lbo_gyrokinetic_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, double mass)
+{
+  gkyl_dg_updater_lbo_gyrokinetic *up = (gkyl_dg_updater_lbo_gyrokinetic*) gkyl_malloc(sizeof(gkyl_dg_updater_lbo_gyrokinetic));
+
+  up->coll_drag = gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(cbasis, pbasis, conf_range, mass);
+  up->coll_diff = gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(cbasis, pbasis, conf_range, mass);
+
+  int cdim = cbasis->ndim, pdim = pbasis->ndim;
+  int vdim = pdim-cdim;
+  int num_up_dirs = vdim;
+  int up_dirs[GKYL_MAX_DIM] = { 0 };
+  for (int d=0; d<vdim; ++d)
+    up_dirs[d] = d + pbasis->ndim - vdim;
+
+  int zero_flux_flags[GKYL_MAX_DIM] = { 0 };
+  for (int d=cdim; d<pdim; ++d)
+    zero_flux_flags[d] = 1;
+  up->diff = gkyl_hyper_dg_cu_dev_new(grid, pbasis, up->coll_diff, num_up_dirs, up_dirs, zero_flux_flags, 1);
+  up->drag = gkyl_hyper_dg_cu_dev_new(grid, pbasis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1);
+
+  return up;
+}
+
 void
 gkyl_dg_updater_lbo_gyrokinetic_advance_cu(gkyl_dg_updater_lbo_gyrokinetic *lbo,
   const struct gkyl_range *update_rng,
@@ -88,6 +113,13 @@ gkyl_dg_updater_lbo_gyrokinetic_advance_cu(gkyl_dg_updater_lbo_gyrokinetic *lbo,
 #endif
 
 #ifndef GKYL_HAVE_CUDA
+
+gkyl_dg_updater_lbo_gyrokinetic*
+gkyl_dg_updater_lbo_gyrokinetic_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, double mass)
+{
+  assert(false);
+}
 
 void
 gkyl_dg_updater_lbo_gyrokinetic_advance_cu(gkyl_dg_updater_lbo_gyrokinetic *lbo,

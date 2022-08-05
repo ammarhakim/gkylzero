@@ -25,7 +25,7 @@ GKYL_CU_DH void vlasov_surfvx_1x1v_tensor_p2(const double *w, const double *dxv,
   double Ghat_l[3] = {0.0}; 
   double Ghat_r[3] = {0.0}; 
 
-  if (0.6324555320336759*alpha[2]-0.9486832980505137*alpha[1]+0.7071067811865475*alpha[0] > 0) { 
+  if (0.6324555320336758*alpha[2]-0.9486832980505137*alpha[1]+0.7071067811865475*alpha[0] > 0) { 
     fUpwindQuad_l[0] = tensor_2x_p2_surfx2_eval_quad_node_0_r(fl); 
     fUpwindQuad_r[0] = tensor_2x_p2_surfx2_eval_quad_node_0_r(fc); 
   } else { 
@@ -39,7 +39,7 @@ GKYL_CU_DH void vlasov_surfvx_1x1v_tensor_p2(const double *w, const double *dxv,
     fUpwindQuad_l[1] = tensor_2x_p2_surfx2_eval_quad_node_1_l(fc); 
     fUpwindQuad_r[1] = tensor_2x_p2_surfx2_eval_quad_node_1_l(fr); 
   } 
-  if (0.6324555320336759*alpha[2]+0.9486832980505137*alpha[1]+0.7071067811865475*alpha[0] > 0) { 
+  if (0.6324555320336758*alpha[2]+0.9486832980505137*alpha[1]+0.7071067811865475*alpha[0] > 0) { 
     fUpwindQuad_l[2] = tensor_2x_p2_surfx2_eval_quad_node_2_r(fl); 
     fUpwindQuad_r[2] = tensor_2x_p2_surfx2_eval_quad_node_2_r(fc); 
   } else { 

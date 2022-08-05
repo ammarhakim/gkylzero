@@ -21,7 +21,12 @@ GKYL_CU_DH void lbo_vlasov_diff_boundary_surfvy_2x2v_ser_p2(const double *w, con
   facDiff[6] = nuVtSqSum[6]; 
   facDiff[7] = nuVtSqSum[7]; 
 
+  double temp_diff[48] = {0.0}; 
+  double temp_edge[48] = {0.0}; 
+  double diff_incr[48] = {0.0}; 
+  double edge_incr[48] = {0.0}; 
   double vol_incr[48] = {0.0}; 
+
   vol_incr[14] = 3.354101966249685*facDiff[7]*fSkin[20]*rdvSq4+3.354101966249685*facDiff[6]*fSkin[19]*rdvSq4+3.354101966249685*facDiff[5]*fSkin[12]*rdvSq4+3.354101966249685*facDiff[4]*fSkin[11]*rdvSq4+3.354101966249685*facDiff[3]*fSkin[5]*rdvSq4+3.354101966249685*fSkin[2]*facDiff[2]*rdvSq4+3.354101966249685*fSkin[1]*facDiff[1]*rdvSq4+3.354101966249685*fSkin[0]*facDiff[0]*rdvSq4; 
   vol_incr[28] = 3.354101966249685*facDiff[5]*fSkin[20]*rdvSq4+3.0*facDiff[3]*fSkin[19]*rdvSq4+3.354101966249685*facDiff[7]*fSkin[12]*rdvSq4+3.0*facDiff[1]*fSkin[11]*rdvSq4+3.0*fSkin[5]*facDiff[6]*rdvSq4+3.354101966249684*facDiff[2]*fSkin[5]*rdvSq4+3.0*fSkin[1]*facDiff[4]*rdvSq4+3.354101966249684*fSkin[2]*facDiff[3]*rdvSq4+3.354101966249684*fSkin[0]*facDiff[1]*rdvSq4+3.354101966249684*facDiff[0]*fSkin[1]*rdvSq4; 
   vol_incr[29] = 3.0*facDiff[3]*fSkin[20]*rdvSq4+3.354101966249685*facDiff[4]*fSkin[19]*rdvSq4+3.0*facDiff[2]*fSkin[12]*rdvSq4+3.354101966249685*facDiff[6]*fSkin[11]*rdvSq4+3.0*fSkin[5]*facDiff[7]*rdvSq4+3.0*fSkin[2]*facDiff[5]*rdvSq4+3.354101966249684*facDiff[1]*fSkin[5]*rdvSq4+3.354101966249684*fSkin[1]*facDiff[3]*rdvSq4+3.354101966249684*fSkin[0]*facDiff[2]*rdvSq4+3.354101966249684*facDiff[0]*fSkin[2]*rdvSq4; 
@@ -30,11 +35,6 @@ GKYL_CU_DH void lbo_vlasov_diff_boundary_surfvy_2x2v_ser_p2(const double *w, con
   vol_incr[42] = 3.354101966249685*facDiff[5]*fSkin[33]*rdvSq4+3.0*facDiff[3]*fSkin[32]*rdvSq4+3.354101966249685*facDiff[7]*fSkin[22]*rdvSq4+3.0*facDiff[1]*fSkin[21]*rdvSq4+3.0*facDiff[6]*fSkin[15]*rdvSq4+3.354101966249685*facDiff[2]*fSkin[15]*rdvSq4+3.354101966249685*facDiff[3]*fSkin[7]*rdvSq4+3.0*facDiff[4]*fSkin[6]*rdvSq4+3.354101966249685*facDiff[0]*fSkin[6]*rdvSq4+3.354101966249685*facDiff[1]*fSkin[3]*rdvSq4; 
   vol_incr[43] = 3.0*facDiff[3]*fSkin[33]*rdvSq4+3.354101966249685*facDiff[4]*fSkin[32]*rdvSq4+3.0*facDiff[2]*fSkin[22]*rdvSq4+3.354101966249685*facDiff[6]*fSkin[21]*rdvSq4+3.0*facDiff[7]*fSkin[15]*rdvSq4+3.354101966249685*facDiff[1]*fSkin[15]*rdvSq4+3.0*facDiff[5]*fSkin[7]*rdvSq4+3.354101966249685*facDiff[0]*fSkin[7]*rdvSq4+3.354101966249685*facDiff[3]*fSkin[6]*rdvSq4+3.354101966249685*facDiff[2]*fSkin[3]*rdvSq4; 
   vol_incr[47] = 2.683281572999748*facDiff[6]*fSkin[33]*rdvSq4+3.0*facDiff[2]*fSkin[33]*rdvSq4+2.683281572999748*facDiff[7]*fSkin[32]*rdvSq4+3.0*facDiff[1]*fSkin[32]*rdvSq4+3.0*facDiff[3]*fSkin[22]*rdvSq4+3.0*facDiff[3]*fSkin[21]*rdvSq4+3.0*facDiff[5]*fSkin[15]*rdvSq4+3.0*facDiff[4]*fSkin[15]*rdvSq4+3.354101966249684*facDiff[0]*fSkin[15]*rdvSq4+3.0*fSkin[7]*facDiff[7]*rdvSq4+3.354101966249684*facDiff[1]*fSkin[7]*rdvSq4+3.0*fSkin[6]*facDiff[6]*rdvSq4+3.354101966249684*facDiff[2]*fSkin[6]*rdvSq4+3.354101966249684*fSkin[3]*facDiff[3]*rdvSq4; 
-
-  double temp_diff[48] = {0.0}; 
-  double temp_edge[48] = {0.0}; 
-  double diff_incr[48] = {0.0}; 
-  double edge_incr[48] = {0.0}; 
 
   if (edge == -1) { 
 

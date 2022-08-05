@@ -25,7 +25,7 @@ GKYL_CU_DH void vlasov_boundary_surfvx_1x1v_ser_p2(const double *w, const double
 
   if (edge == -1) { 
 
-  if (0.6324555320336759*alpha[2]-0.9486832980505137*alpha[1]+0.7071067811865475*alpha[0] > 0) { 
+  if (0.6324555320336758*alpha[2]-0.9486832980505137*alpha[1]+0.7071067811865475*alpha[0] > 0) { 
     fUpwindQuad[0] = ser_2x_p2_surfx2_eval_quad_node_0_r(fSkin); 
   } else { 
     fUpwindQuad[0] = ser_2x_p2_surfx2_eval_quad_node_0_l(fEdge); 
@@ -35,7 +35,7 @@ GKYL_CU_DH void vlasov_boundary_surfvx_1x1v_ser_p2(const double *w, const double
   } else { 
     fUpwindQuad[1] = ser_2x_p2_surfx2_eval_quad_node_1_l(fEdge); 
   } 
-  if (0.6324555320336759*alpha[2]+0.9486832980505137*alpha[1]+0.7071067811865475*alpha[0] > 0) { 
+  if (0.6324555320336758*alpha[2]+0.9486832980505137*alpha[1]+0.7071067811865475*alpha[0] > 0) { 
     fUpwindQuad[2] = ser_2x_p2_surfx2_eval_quad_node_2_r(fSkin); 
   } else { 
     fUpwindQuad[2] = ser_2x_p2_surfx2_eval_quad_node_2_l(fEdge); 
@@ -59,7 +59,7 @@ GKYL_CU_DH void vlasov_boundary_surfvx_1x1v_ser_p2(const double *w, const double
 
   } else { 
 
-  if (0.6324555320336759*alpha[2]-0.9486832980505137*alpha[1]+0.7071067811865475*alpha[0] > 0) { 
+  if (0.6324555320336758*alpha[2]-0.9486832980505137*alpha[1]+0.7071067811865475*alpha[0] > 0) { 
     fUpwindQuad[0] = ser_2x_p2_surfx2_eval_quad_node_0_r(fEdge); 
   } else { 
     fUpwindQuad[0] = ser_2x_p2_surfx2_eval_quad_node_0_l(fSkin); 
@@ -69,7 +69,7 @@ GKYL_CU_DH void vlasov_boundary_surfvx_1x1v_ser_p2(const double *w, const double
   } else { 
     fUpwindQuad[1] = ser_2x_p2_surfx2_eval_quad_node_1_l(fSkin); 
   } 
-  if (0.6324555320336759*alpha[2]+0.9486832980505137*alpha[1]+0.7071067811865475*alpha[0] > 0) { 
+  if (0.6324555320336758*alpha[2]+0.9486832980505137*alpha[1]+0.7071067811865475*alpha[0] > 0) { 
     fUpwindQuad[2] = ser_2x_p2_surfx2_eval_quad_node_2_r(fEdge); 
   } else { 
     fUpwindQuad[2] = ser_2x_p2_surfx2_eval_quad_node_2_l(fSkin); 

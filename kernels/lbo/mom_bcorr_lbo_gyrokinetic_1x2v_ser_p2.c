@@ -10,10 +10,9 @@ GKYL_CU_DH void mom_bcorr_lbo_gyrokinetic_1x2v_ser_p2(const int *idx, enum gkyl_
  
   double dS = 0.0; 
  
-  dS = 3.141592653589793*dxv[2]/_m; 
- 
   if (edge == GKYL_VX_LOWER) {
  
+    dS = 1.0*dxv[2]*M_PI/_m; 
     out[0] += ((-2.23606797749979*fIn[8])+1.732050807568877*fIn[2]-1.0*fIn[0])*dS; 
     out[1] += ((-2.23606797749979*fIn[12])+1.732050807568877*fIn[4]-1.0*fIn[1])*dS; 
     out[2] += (1.732050807568877*fIn[11]-1.0*fIn[7])*dS; 
@@ -23,6 +22,7 @@ GKYL_CU_DH void mom_bcorr_lbo_gyrokinetic_1x2v_ser_p2(const int *idx, enum gkyl_
  
   } else if (edge == GKYL_VX_UPPER) {
  
+    dS = 1.0*dxv[2]*M_PI/_m; 
     out[0] += (2.23606797749979*fIn[8]+1.732050807568877*fIn[2]+fIn[0])*dS; 
     out[1] += (2.23606797749979*fIn[12]+1.732050807568877*fIn[4]+fIn[1])*dS; 
     out[2] += (1.732050807568877*fIn[11]+fIn[7])*dS; 
@@ -31,16 +31,16 @@ GKYL_CU_DH void mom_bcorr_lbo_gyrokinetic_1x2v_ser_p2(const int *idx, enum gkyl_
     out[5] += vBoundary[2]*(1.732050807568877*fIn[11]+fIn[7])*dS; 
   }
  
-  dS = 6.283185307179586*dxv[1]/_m; 
- 
   if (edge == GKYL_VY_LOWER) {
  
+    dS = 2.0*dxv[1]*M_PI/_m; 
     out[3] += vBoundary[1]*((-2.23606797749979*fIn[9])+1.732050807568877*fIn[3]-1.0*fIn[0])*dS; 
     out[4] += vBoundary[1]*((-2.23606797749979*fIn[15])+1.732050807568877*fIn[5]-1.0*fIn[1])*dS; 
     out[5] += vBoundary[1]*(1.732050807568877*fIn[13]-1.0*fIn[7])*dS; 
  
   } else if (edge == GKYL_VY_UPPER) {
  
+    dS = 2.0*dxv[1]*M_PI/_m; 
     out[3] += vBoundary[3]*(2.23606797749979*fIn[9]+1.732050807568877*fIn[3]+fIn[0])*dS; 
     out[4] += vBoundary[3]*(2.23606797749979*fIn[15]+1.732050807568877*fIn[5]+fIn[1])*dS; 
     out[5] += vBoundary[3]*(1.732050807568877*fIn[13]+fIn[7])*dS; 

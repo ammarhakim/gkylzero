@@ -31,14 +31,14 @@ typedef struct { lbo_vlasov_momf_t kernels[3]; } gkyl_mom_bcorr_lbo_vlasov_kern_
 GKYL_CU_D
 static const gkyl_mom_bcorr_lbo_vlasov_kern_list ser_mom_bcorr_lbo_vlasov_kernels[] = {
   // 1x kernels
-  { NULL, mom_bcorr_lbo_vlasov_1x1v_ser_p1, mom_bcorr_lbo_vlasov_1x1v_ser_p2 }, // 0
-  { NULL, mom_bcorr_lbo_vlasov_1x2v_ser_p1, mom_bcorr_lbo_vlasov_1x2v_ser_p2 }, // 1
-  { NULL, mom_bcorr_lbo_vlasov_1x3v_ser_p1, mom_bcorr_lbo_vlasov_1x3v_ser_p2 }, // 2
+  { NULL, NULL, mom_bcorr_lbo_vlasov_1x1v_ser_p2 }, // 0
+  { NULL, NULL, mom_bcorr_lbo_vlasov_1x2v_ser_p2 }, // 1
+  { NULL, NULL, mom_bcorr_lbo_vlasov_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, mom_bcorr_lbo_vlasov_2x2v_ser_p1, mom_bcorr_lbo_vlasov_2x2v_ser_p2 }, // 3
-  { NULL, mom_bcorr_lbo_vlasov_2x3v_ser_p1, mom_bcorr_lbo_vlasov_2x3v_ser_p2 }, // 4
+  { NULL, NULL, mom_bcorr_lbo_vlasov_2x2v_ser_p2 }, // 3
+  { NULL, NULL, mom_bcorr_lbo_vlasov_2x3v_ser_p2 }, // 4
   // 3x kernels
-  { NULL, mom_bcorr_lbo_vlasov_3x3v_ser_p1, NULL }, // 5
+  { NULL, NULL, NULL }, // 5
 };
 
 //

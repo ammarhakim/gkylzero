@@ -25,6 +25,9 @@ struct gkyl_dg_updater_lbo_vlasov_tm {
 gkyl_dg_updater_lbo_vlasov* gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, bool use_gpu);
 
+gkyl_dg_updater_lbo_vlasov* gkyl_dg_updater_lbo_vlasov_cu_dev_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range);
+
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
  * range on which the array is defined. That is, it must be either the
