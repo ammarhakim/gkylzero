@@ -68,7 +68,7 @@ enum gkyl_collision_id {
 // Boundary conditions on particles
 enum gkyl_species_bc_type {
   GKYL_SPECIES_COPY = 0, // copy BCs
-  GKYL_SPECIES_WALL, // perfect reflector
+  GKYL_SPECIES_REFLECT, // perfect reflector
   GKYL_SPECIES_ABSORB, // absorbing BCs
   GKYL_SPECIES_NO_SLIP, // no-slip BCs
   GKYL_SPECIES_WEDGE, // specialized "wedge" BCs for RZ-theta
@@ -508,7 +508,7 @@ local species_mt = {
 
       s.limiter = limiter_tags["monotonized-centered"]
       if tbl.limiter then
-	 s.limiter = limiter_tags[tbl.limiter]
+         s.limiter = limiter_tags[tbl.limiter]
       end
 
       -- we need to insert equation into species_eqn_tbl to prevent it
@@ -525,13 +525,13 @@ local species_mt = {
 
       -- boundary conditions
       if tbl.bcx then
-	 s.bcx[0], s.bcx[1] = tbl.bcx[1], tbl.bcx[2]
+         s.bcx[0], s.bcx[1] = tbl.bcx[1], tbl.bcx[2]
       end
       if tbl.bcy then
-	 s.bcy[0], s.bcy[1] = tbl.bcy[1], tbl.bcy[2]
+         s.bcy[0], s.bcy[1] = tbl.bcy[1], tbl.bcy[2]
       end
       if tbl.bcz then
-	 s.bcz[0], s.bcz[1] = tbl.bcz[1], tbl.bcz[2]
+         s.bcz[0], s.bcz[1] = tbl.bcz[1], tbl.bcz[2]
       end
 
       return s
@@ -593,12 +593,12 @@ local field_mt = {
 
       f.elc_error_speed_fact = 0.0
       if (tbl.elcErrorSpeedFactor) then
-	 f.elc_error_speed_fact = tbl.elcErrorSpeedFactor
+         f.elc_error_speed_fact = tbl.elcErrorSpeedFactor
       end
 
       f.mag_error_speed_fact = 1.0
       if (tbl.mgnErrorSpeedFactor) then
-	 f.mag_error_speed_fact = tbl.mgnErrorSpeedFactor
+         f.mag_error_speed_fact = tbl.mgnErrorSpeedFactor
       end
 
       f.ctx = nil -- no need for context
@@ -612,13 +612,13 @@ local field_mt = {
 
       -- boundary conditions
       if tbl.bcx then
-	 f.bcx[0], f.bcx[1] = tbl.bcx[1], tbl.bcx[2]
+         f.bcx[0], f.bcx[1] = tbl.bcx[1], tbl.bcx[2]
       end
       if tbl.bcy then
-	 f.bcy[0], f.bcy[1] = tbl.bcy[1], tbl.bcy[2]
+         f.bcy[0], f.bcy[1] = tbl.bcy[1], tbl.bcy[2]
       end
       if tbl.bcz then
-	 f.bcz[0], f.bcz[1] = tbl.bcz[1], tbl.bcz[2]
+         f.bcz[0], f.bcz[1] = tbl.bcz[1], tbl.bcz[2]
       end
 
       return f
@@ -656,12 +656,12 @@ local app_mt = {
 
       local name = "moment"
       if GKYL_OUT_PREFIX then
-	 -- if G0 is being run from gkyl then GKYL_OUT_PREFIX is
-	 -- defined
-	 name = GKYL_OUT_PREFIX
+         -- if G0 is being run from gkyl then GKYL_OUT_PREFIX is
+         -- defined
+         name = GKYL_OUT_PREFIX
       else
-	 local s, e = string.find(arg[0], ".lua")
-	 name = string.sub(arg[0], 1, s-1)
+         local s, e = string.find(arg[0], ".lua")
+         name = string.sub(arg[0], 1, s-1)
       end
 	 
       -- set values in input struct
@@ -670,14 +670,14 @@ local app_mt = {
 
       -- set configuration space grid data
       for d=1, vm.ndim do
-	 vm.lower[d-1] = tbl.lower[d]
-	 vm.upper[d-1] = tbl.upper[d]
-	 vm.cells[d-1] = tbl.cells[d]
+         vm.lower[d-1] = tbl.lower[d]
+         vm.upper[d-1] = tbl.upper[d]
+         vm.cells[d-1] = tbl.cells[d]
       end
 
       vm.cfl_frac = 1.0
       if tbl.cflFrac then
-	 vm.cfl_frac = tbl.cflFrac
+         vm.cfl_frac = tbl.cflFrac
       end
 
       vm.fluid_scheme = C.GKYL_MOMENT_FLUID_WAVE_PROP
@@ -686,36 +686,36 @@ local app_mt = {
       vm.c2p_ctx = nil -- no need for context
       vm.mapc2p = nil
       if tbl.mapc2p then
-	 vm.mapc2p = gkyl_eval_mapc2p(tbl.mapc2p)
+         vm.mapc2p = gkyl_eval_mapc2p(tbl.mapc2p)
       end
 
       -- determine periodic BCs
       vm.num_periodic_dir = 0
       if tbl.periodicDirs then
-	 vm.num_periodic_dir = #tbl.periodicDirs
-	 for i=1, #tbl.periodicDirs do
-	    vm.periodic_dirs[i-1] = tbl.periodicDirs[i]-1 -- note indexing transforms
-	 end
+         vm.num_periodic_dir = #tbl.periodicDirs
+         for i=1, #tbl.periodicDirs do
+          vm.periodic_dirs[i-1] = tbl.periodicDirs[i]-1 -- note indexing transforms
+         end
       end
 
       -- determine directions to skip, if any
       vm.num_skip_dirs = 0
       if tbl.skip_dirs then
-	 vm.num_skip_dirs = #tbl.skip_dirs
-	 for i=1, #tbl.skip_dirs do
-	    vm.skip_dir[i-1] = tbl.skip_dir[i]
-	 end
+         vm.num_skip_dirs = #tbl.skip_dirs
+         for i=1, #tbl.skip_dirs do
+          vm.skip_dir[i-1] = tbl.skip_dir[i]
+         end
       end
 
       -- set species
       vm.num_species = #species
       for i=1, #species do
-	 vm.species[i-1] = species[i]
+         vm.species[i-1] = species[i]
       end
 
       -- set field
       if field then
-	 vm.field = field
+         vm.field = field
       end      
 
       -- create new Moments app object
@@ -724,7 +724,7 @@ local app_mt = {
       -- we need to store some stuff in container struct
       a.nspecies = num_species
       if tbl.tStart then
-	 a.t0 = tbl.tStart
+         a.t0 = tbl.tStart
       end
       a.tend = tbl.tEnd
       a.nframe = tbl.nFrame
@@ -738,24 +738,24 @@ local app_mt = {
    end,
    __index = {
       init = function(self)
-	 C.gkyl_moment_app_apply_ic(self.app, self.t0)
+         C.gkyl_moment_app_apply_ic(self.app, self.t0)
       end,
       writeField = function(self, tm, frame)
-	 C.gkyl_moment_app_write_field(self.app, tm, frame)
+         C.gkyl_moment_app_write_field(self.app, tm, frame)
       end,
       writeSpecies = function(self, tm, frame)
-	 for i=1, self.nspecies do
-	    C.gkyl_moment_app_write_species(self.app, i-1, tm, frame)
-	 end
+         for i=1, self.nspecies do
+          C.gkyl_moment_app_write_species(self.app, i-1, tm, frame)
+         end
       end,
       write = function(self, tm, frame)
-	 C.gkyl_moment_app_write(self.app, tm, frame)
+         C.gkyl_moment_app_write(self.app, tm, frame)
       end,
       writeStat = function(self)
-	 C.gkyl_moment_app_stat_write(self.app)
+         C.gkyl_moment_app_stat_write(self.app)
       end,
       update = function(self, dt)
-	 return C.gkyl_moment_update(self.app, dt)
+         return C.gkyl_moment_update(self.app, dt)
       end,
       run = function(self)
 	 
