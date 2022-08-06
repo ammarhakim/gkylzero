@@ -42,8 +42,13 @@ gkyl_lbo_gyrokinetic_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gk
 
 struct gkyl_dg_eqn*
 gkyl_dg_lbo_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, double mass)
+  const struct gkyl_range* conf_range, double mass, bool use_gpu)
 {
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(cbasis, pbasis, conf_range, mass);
+  } 
+#endif
   struct dg_lbo_gyrokinetic_drag* lbo_gyrokinetic_drag = gkyl_malloc(sizeof(struct dg_lbo_gyrokinetic_drag));
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;

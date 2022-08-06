@@ -74,7 +74,7 @@ GKYL_CU_DH void vlasov_self_prim_moments_1x2v_ser_p2(struct gkyl_mat *A, struct 
     gkyl_mat_set(rhs,8,0,moms[11]); 
   } 
  
-  // ....... Block from weak multiply of uX and m0  .......... // 
+  // ....... Block from weak multiply of ux and m0  .......... // 
   gkyl_mat_set(A,0,0,0.7071067811865475*m0r[0]); 
   gkyl_mat_set(A,0,1,0.7071067811865475*m0r[1]); 
   gkyl_mat_set(A,0,2,0.7071067811865475*m0r[2]); 
@@ -85,7 +85,7 @@ GKYL_CU_DH void vlasov_self_prim_moments_1x2v_ser_p2(struct gkyl_mat *A, struct 
   gkyl_mat_set(A,2,1,0.6324555320336759*m0r[1]); 
   gkyl_mat_set(A,2,2,0.4517539514526256*m0r[2]+0.7071067811865475*m0r[0]); 
  
-  // ....... Block from correction to uX .......... // 
+  // ....... Block from correction to ux .......... // 
   gkyl_mat_set(A,0,6,-0.7071067811865475*cMr[0]); 
   gkyl_mat_set(A,0,7,-0.7071067811865475*cMr[1]); 
   gkyl_mat_set(A,0,8,-0.7071067811865475*cMr[2]); 
@@ -96,7 +96,7 @@ GKYL_CU_DH void vlasov_self_prim_moments_1x2v_ser_p2(struct gkyl_mat *A, struct 
   gkyl_mat_set(A,2,7,-0.6324555320336759*cMr[1]); 
   gkyl_mat_set(A,2,8,(-0.4517539514526256*cMr[2])-0.7071067811865475*cMr[0]); 
  
-  // ....... Block from weak multiply of uX and m1X  .......... // 
+  // ....... Block from weak multiply of ux and m1x  .......... // 
   gkyl_mat_set(A,6,0,0.7071067811865475*m1r[0]); 
   gkyl_mat_set(A,6,1,0.7071067811865475*m1r[1]); 
   gkyl_mat_set(A,6,2,0.7071067811865475*m1r[2]); 
@@ -107,7 +107,7 @@ GKYL_CU_DH void vlasov_self_prim_moments_1x2v_ser_p2(struct gkyl_mat *A, struct 
   gkyl_mat_set(A,8,1,0.6324555320336759*m1r[1]); 
   gkyl_mat_set(A,8,2,0.4517539514526256*m1r[2]+0.7071067811865475*m1r[0]); 
  
-  // ....... Block from weak multiply of uY and m0  .......... // 
+  // ....... Block from weak multiply of uy and m0  .......... // 
   gkyl_mat_set(A,3,3,0.7071067811865475*m0r[0]); 
   gkyl_mat_set(A,3,4,0.7071067811865475*m0r[1]); 
   gkyl_mat_set(A,3,5,0.7071067811865475*m0r[2]); 
@@ -118,7 +118,7 @@ GKYL_CU_DH void vlasov_self_prim_moments_1x2v_ser_p2(struct gkyl_mat *A, struct 
   gkyl_mat_set(A,5,4,0.6324555320336759*m0r[1]); 
   gkyl_mat_set(A,5,5,0.4517539514526256*m0r[2]+0.7071067811865475*m0r[0]); 
  
-  // ....... Block from correction to uY .......... // 
+  // ....... Block from correction to uy .......... // 
   gkyl_mat_set(A,3,6,-0.7071067811865475*cMr[3]); 
   gkyl_mat_set(A,3,7,-0.7071067811865475*cMr[4]); 
   gkyl_mat_set(A,3,8,-0.7071067811865475*cMr[5]); 
@@ -129,7 +129,7 @@ GKYL_CU_DH void vlasov_self_prim_moments_1x2v_ser_p2(struct gkyl_mat *A, struct 
   gkyl_mat_set(A,5,7,-0.6324555320336759*cMr[4]); 
   gkyl_mat_set(A,5,8,(-0.4517539514526256*cMr[5])-0.7071067811865475*cMr[3]); 
  
-  // ....... Block from weak multiply of uY and m1Y  .......... // 
+  // ....... Block from weak multiply of uy and m1y  .......... // 
   gkyl_mat_set(A,6,3,0.7071067811865475*m1r[3]); 
   gkyl_mat_set(A,6,4,0.7071067811865475*m1r[4]); 
   gkyl_mat_set(A,6,5,0.7071067811865475*m1r[5]); 

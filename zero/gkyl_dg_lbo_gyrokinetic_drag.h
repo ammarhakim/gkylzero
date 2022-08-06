@@ -23,7 +23,7 @@ struct gkyl_dg_lbo_gyrokinetic_drag_auxfields {
  * @return Pointer to LBO equation object
  */
 struct gkyl_dg_eqn* gkyl_dg_lbo_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, double mass);
+  const struct gkyl_range* conf_range, double mass, bool use_gpu);
 
 /**
  * Create a new LBO equation object that lives on NV-GPU
