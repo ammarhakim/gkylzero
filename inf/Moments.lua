@@ -538,7 +538,8 @@ local species_mt = {
    end,
    __index = {
       -- we need this here also to be consistent with G2 App
-      bcWall = C.GKYL_SPECIES_WALL,
+      bcReflect = C.GKYL_SPECIES_REFLECT,
+      bcWall = C.GKYL_SPECIES_REFLECT,
       bcCopy = C.GKYL_SPECIES_COPY,
       bcNoSlip = C.GKYL_SPECIES_NO_SLIP,
       bcWedge = C.GKYL_SPECIES_WEDGE
