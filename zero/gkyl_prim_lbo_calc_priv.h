@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gkyl_prim_lbo_calc_kernels.h>
 #include <gkyl_prim_lbo_type.h>
 #include <gkyl_rect_grid.h>
 

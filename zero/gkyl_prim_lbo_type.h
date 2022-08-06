@@ -27,6 +27,7 @@ struct gkyl_prim_lbo_type {
   self_prim_t self_prim; // self-primitive moment calculation kernel
   cross_prim_t cross_prim; // cross-primitive moment calculation kernels
   struct gkyl_ref_count ref_count; // reference count
+  int udim; // number of dimensions for momentum (u) moment
 
   uint32_t flag;
   struct gkyl_prim_lbo_type *on_dev; // pointer to itself or device data

@@ -12,6 +12,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_bc_basic.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_diffusion.h>
@@ -23,6 +24,7 @@
 #include <gkyl_dg_vlasov_sr.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_ghost_surf_calc.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_mom_bcorr_lbo_vlasov.h>
 #include <gkyl_mom_calc.h>
@@ -74,7 +76,6 @@ struct vm_species;
 
 struct vm_lbo_collisions {
   struct gkyl_array *boundary_corrections; // LBO boundary corrections
-  struct gkyl_mom_type *bcorr_type; // LBO boundary corrections moment type
   struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator
   struct gkyl_array *nu_sum, *u_drift, *vth_sq, *nu_u, *nu_vthsq; // LBO primitive moments
 
@@ -87,7 +88,6 @@ struct vm_lbo_collisions {
   struct gkyl_array *cross_nu_u, *cross_nu_vthsq; // weak multiplication of collision frequency and primitive moments
   
   struct gkyl_array *self_nu, *self_nu_u, *self_nu_vthsq; // LBO self-primitive moments
-  struct gkyl_prim_lbo_type *coll_prim; // LBO primitive moments type
 
   struct vm_species_moment moms; // moments needed in LBO (single array includes Zeroth, First, and Second moment)
   struct gkyl_array *m0;
@@ -110,6 +110,23 @@ struct vm_bgk_collisions {
   // BGK Collisions should probably own a project on Maxwellian updater
   // so it can compute its contribution to the RHS
   // struct proj_maxwellian;
+};
+
+struct vm_boundary_fluxes {
+  struct vm_species_moment integ_moms[2*GKYL_MAX_CDIM]; // integrated moments
+  gkyl_ghost_surf_calc *flux_slvr; // boundary flux solver
+};
+
+struct vm_source {
+  struct vm_species_moment moms; // source moments
+
+  struct gkyl_array *source; // applied source
+  struct gkyl_array *source_host; // host copy for use in IO and projecting
+  gkyl_proj_on_basis *source_proj; // projector for source
+
+  struct vm_species *source_species; // species to use for the source
+  double scale_factor; // factor to scale source function
+  double source_length; // length used to scale the source function
 };
 
 
@@ -155,11 +172,9 @@ struct vm_species {
 
   // boundary conditions on lower/upper edges in each direction  
   enum gkyl_species_bc_type lower_bc[3], upper_bc[3];
-  // Note: we need to store pointers to the struct as these may
-  // actually be on the GPUs. Seems ugly, but I am not sure how else
-  // to ensure the function and context lives on the GPU
-  struct gkyl_array_copy_func *wall_bc_func[3]; // for wall BCs
-  struct gkyl_array_copy_func *absorb_bc_func[3]; // for absorbing BCs
+  // Pointers to updaters that apply BC.
+  struct gkyl_bc_basic *bc_lo[3];
+  struct gkyl_bc_basic *bc_up[3];
 
   bool has_accel; // flag to indicate there is applied acceleration
   struct gkyl_array *accel; // applied acceleration
@@ -167,10 +182,11 @@ struct vm_species {
   gkyl_proj_on_basis *accel_proj; // projector for acceleration
   struct vm_eval_accel_ctx accel_ctx; // context for applied acceleration
 
-  bool has_source; // flag to indicate there is applied source
-  struct gkyl_array *source; // applied source
-  struct gkyl_array *source_host; // host copy for use in IO and projecting
-  gkyl_proj_on_basis *source_proj; // projector for source
+  enum gkyl_source_id source_id; // type of source
+  struct vm_source src; // applied source
+  
+  bool calc_bflux; // flag to indicate if boundary fluxes should be calculated
+  struct vm_boundary_fluxes bflux; // boundary flux object
 
   bool has_mirror_force; // flag to indicate Vlasov includes mirror force from external magnetic field
   struct gkyl_array *gradB; // gradient of magnetic field
@@ -219,10 +235,9 @@ struct vm_field {
 
   // boundary conditions on lower/upper edges in each direction  
   enum gkyl_field_bc_type lower_bc[3], upper_bc[3];
-  // Note: we need to store pointers to the struct as these may
-  // actually be on the GPUs. Seems ugly, but I am not sure how else
-  // to ensure the function and context lives on the GPU
-  struct gkyl_array_copy_func *wall_bc_func[3]; // for wall BCs
+  // Pointers to updaters that apply BC.
+  struct gkyl_bc_basic *bc_lo[3];
+  struct gkyl_bc_basic *bc_up[3];
 
   double* omegaCfl_ptr;
 };
@@ -253,12 +268,10 @@ struct vm_fluid_species {
   gkyl_hyper_dg *advect_slvr; // Fluid equation solver
   gkyl_hyper_dg *diff_slvr; // Fluid equation solver
 
-  // boundary conditions on lower/upper edges in each direction  
-  enum gkyl_fluid_species_bc_type lower_bc[3], upper_bc[3];
-  // Note: we need to store pointers to the struct as these may
-  // actually be on the GPUs. Seems ugly, but I am not sure how else
-  // to ensure the function and context lives on the GPU
-  struct gkyl_array_copy_func *absorb_bc_func[3]; // for absorbing BCs
+  enum gkyl_species_bc_type lower_bc[3], upper_bc[3];
+  // Pointers to updaters that apply BC.
+  struct gkyl_bc_basic *bc_lo[3];
+  struct gkyl_bc_basic *bc_up[3];
 
   // specified advection
   bool has_advect; // flag to indicate there is applied advection
@@ -321,7 +334,7 @@ struct gkyl_vlasov_app {
   // species data
   int num_species;
   struct vm_species *species; // data for each species
-
+  
   // fluid data
   int num_fluid_species;
   struct vm_fluid_species *fluid_species; // data for each fluid species
@@ -516,6 +529,69 @@ double vm_species_lbo_rhs(gkyl_vlasov_app *app,
  */
 void vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_collisions *lbo);
 
+/** vm_species_boundary_fluxes API */
+
+/**
+ * Initialize species boundary flux object.
+ *
+ * @param app Vlasov app object
+ * @param s Species object 
+ * @param bflux Species boundary flux object
+ */
+void vm_species_bflux_init(struct gkyl_vlasov_app *app, struct vm_species *s,
+  struct vm_boundary_fluxes *bflux);
+
+/**
+ * Compute boundary flux from rhs
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param bflux Species boundary flux object
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from LBO
+ */
+void vm_species_bflux_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
+  struct vm_boundary_fluxes *bflux, const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Release species boundary flux object.
+ *
+ * @param app Vlasov app object
+ * @param bflux Species boundary flux object to release
+ */
+void vm_species_bflux_release(const struct gkyl_vlasov_app *app, const struct vm_boundary_fluxes *bflux);
+
+/** vm_species_source API */
+
+/**
+ * Initialize species boundary flux object.
+ *
+ * @param app Vlasov app object
+ * @param s Species object 
+ * @param src Species source object
+ */
+void vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_source *src);
+
+/**
+ * Compute RHS contribution from source
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param src Pointer to source
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from LBO
+ */
+void vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
+  struct vm_source *src, const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Release species source object.
+ *
+ * @param app Vlasov app object
+ * @param src Species source object to release
+ */
+void vm_species_source_release(const struct gkyl_vlasov_app *app, const struct vm_source *src);
+
 /** vm_species API */
 
 /**
@@ -601,32 +677,6 @@ void vm_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_species 
  */
 void
 vm_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_species *species,
-  int dir, enum vm_domain_edge edge, struct gkyl_array *f);
-
-/**
- * Apply wall BCs to species distribution function
- *
- * @param app Vlasov app object
- * @param species Pointer to species
- * @param dir Direction to apply BCs
- * @param edge Edge to apply BCs
- * @param f Field to apply BCs
- */
-void
-vm_species_apply_wall_bc(gkyl_vlasov_app *app, const struct vm_species *species,
-  int dir, enum vm_domain_edge edge, struct gkyl_array *f);
-
-/**
- * Apply absorbing BCs to species distribution function
- *
- * @param app Vlasov app object
- * @param species Pointer to species
- * @param dir Direction to apply BCs
- * @param edge Edge to apply BCs
- * @param f Field to apply BCs
- */
-void
-vm_species_apply_absorb_bc(gkyl_vlasov_app *app, const struct vm_species *species,
   int dir, enum vm_domain_edge edge, struct gkyl_array *f);
 
 /**
