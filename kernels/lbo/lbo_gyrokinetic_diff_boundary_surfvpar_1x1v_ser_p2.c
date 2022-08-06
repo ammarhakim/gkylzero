@@ -12,15 +12,9 @@ GKYL_CU_DH void lbo_gyrokinetic_diff_boundary_surfvpar_1x1v_ser_p2(const double 
   // out:          Incremented distribution function in cell 
   double rdvSq4 = 4.0/(dxv[1]*dxv[1]); 
 
-  double facDiff[3]; 
-  // Expand diffusion coefficient in conf basis.
-  facDiff[0] = nuVtSqSum[0]; 
-  facDiff[1] = nuVtSqSum[1]; 
-  facDiff[2] = nuVtSqSum[2]; 
-
   double vol_incr[8] = {0.0};
-  vol_incr[5] = 4.743416490252569*facDiff[2]*fskin[4]*rdvSq4+4.743416490252569*facDiff[1]*fskin[1]*rdvSq4+4.743416490252569*facDiff[0]*fskin[0]*rdvSq4; 
-  vol_incr[7] = 4.242640687119286*facDiff[1]*fskin[4]*rdvSq4+4.242640687119286*fskin[1]*facDiff[2]*rdvSq4+4.743416490252569*facDiff[0]*fskin[1]*rdvSq4+4.743416490252569*fskin[0]*facDiff[1]*rdvSq4; 
+  vol_incr[5] = 4.743416490252569*nuVtSqSum[2]*fskin[4]*rdvSq4+4.743416490252569*fskin[1]*nuVtSqSum[1]*rdvSq4+4.743416490252569*fskin[0]*nuVtSqSum[0]*rdvSq4; 
+  vol_incr[7] = 4.242640687119286*nuVtSqSum[1]*fskin[4]*rdvSq4+4.242640687119286*fskin[1]*nuVtSqSum[2]*rdvSq4+4.743416490252569*fskin[0]*nuVtSqSum[1]*rdvSq4+4.743416490252569*nuVtSqSum[0]*fskin[1]*rdvSq4; 
 
   double temp_diff[8] = {0.0}; 
   double temp_edge[8] = {0.0}; 

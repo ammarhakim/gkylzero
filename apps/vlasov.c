@@ -48,14 +48,26 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   // basis functions
   switch (vm->basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
       gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
-      if (vdim > 0)
-        gkyl_cart_modal_serendip(&app->velBasis, vdim, poly_order);
+      if (poly_order > 1) {
+        gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
+        if (vdim > 0)
+          gkyl_cart_modal_serendip(&app->velBasis, vdim, poly_order);
+      } else if (poly_order == 1) {
+        /* Force hybrid basis (p=2 in velocity space). */
+        gkyl_cart_modal_hybrid(&app->basis, cdim, vdim);
+        if (vdim > 0)
+          gkyl_cart_modal_serendip(&app->velBasis, vdim, 2);
+      }
 
       if (app->use_gpu) {
-        gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
         gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.confBasis, cdim, poly_order);
+        if (poly_order > 1) {
+          gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
+        } else if (poly_order == 1) {
+          /* Force hybrid basis (p=2 in velocity space). */
+          gkyl_cart_modal_hybrid_cu_dev(app->basis_on_dev.basis, cdim, vdim);
+        }
       }
       break;
 
@@ -556,7 +568,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 	  // if has_mirror_force, m1i = m1i/B = J*m1i
 	  // need to multiply by magB to get the right current density
           gkyl_dg_mul_op_range(app->confBasis, 0, s->m1i_no_J, 0,
-            s->m1i.marr, 0, s->magB, app->local);
+            s->m1i.marr, 0, s->magB, &app->local);
 	  gkyl_array_accumulate_range(emout, -qbyeps, s->m1i_no_J, app->local);
         } else {
           gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, app->local);

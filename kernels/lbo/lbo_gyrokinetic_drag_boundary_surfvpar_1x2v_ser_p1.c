@@ -1,6 +1,6 @@
 #include <gkyl_lbo_gyrokinetic_kernels.h> 
-#include <gkyl_basis_ser_3x_p1_surfx2_eval_quad.h> 
-#include <gkyl_basis_ser_3x_p1_upwind_quad_to_modal.h> 
+#include <gkyl_basis_gkhyb_1x2v_p1_surfx2_eval_quad.h> 
+#include <gkyl_basis_gkhyb_1x2v_p1_upwind_quad_to_modal.h> 
 GKYL_CU_DH void lbo_gyrokinetic_drag_boundary_surfvpar_1x2v_ser_p1(const double *w, const double *dxv, const double m_, const double *bmag_inv, const double *nuSum, const double *nuUSum, const double *nuVtSqSum, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
 { 
   // w[3]:     cell-center coordinates. 
@@ -26,22 +26,22 @@ GKYL_CU_DH void lbo_gyrokinetic_drag_boundary_surfvpar_1x2v_ser_p1(const double 
   alphaDrSurf[1] = 0.5*(2.828427124746191*nuSum[1]*w[1]-2.828427124746191*nuUSum[1]+1.414213562373095*dxv[1]*nuSum[1]); 
 
   if (alphaDrSurf[0]-alphaDrSurf[1] < 0) { 
-    fUpwindQuad[0] = ser_3x_p1_surfx2_eval_quad_node_0_r(fSkin); 
-    fUpwindQuad[1] = ser_3x_p1_surfx2_eval_quad_node_1_r(fSkin); 
+    fUpwindQuad[0] = gkhyb_1x2v_p1_surfx2_eval_quad_node_0_r(fSkin); 
+    fUpwindQuad[1] = gkhyb_1x2v_p1_surfx2_eval_quad_node_1_r(fSkin); 
   } else { 
-    fUpwindQuad[0] = ser_3x_p1_surfx2_eval_quad_node_0_l(fEdge); 
-    fUpwindQuad[1] = ser_3x_p1_surfx2_eval_quad_node_1_l(fEdge); 
+    fUpwindQuad[0] = gkhyb_1x2v_p1_surfx2_eval_quad_node_0_l(fEdge); 
+    fUpwindQuad[1] = gkhyb_1x2v_p1_surfx2_eval_quad_node_1_l(fEdge); 
   } 
   if (alphaDrSurf[0]-alphaDrSurf[1] < 0) { 
-    fUpwindQuad[2] = ser_3x_p1_surfx2_eval_quad_node_2_r(fSkin); 
-    fUpwindQuad[3] = ser_3x_p1_surfx2_eval_quad_node_3_r(fSkin); 
+    fUpwindQuad[2] = gkhyb_1x2v_p1_surfx2_eval_quad_node_2_r(fSkin); 
+    fUpwindQuad[3] = gkhyb_1x2v_p1_surfx2_eval_quad_node_3_r(fSkin); 
   } else { 
-    fUpwindQuad[2] = ser_3x_p1_surfx2_eval_quad_node_2_l(fEdge); 
-    fUpwindQuad[3] = ser_3x_p1_surfx2_eval_quad_node_3_l(fEdge); 
+    fUpwindQuad[2] = gkhyb_1x2v_p1_surfx2_eval_quad_node_2_l(fEdge); 
+    fUpwindQuad[3] = gkhyb_1x2v_p1_surfx2_eval_quad_node_3_l(fEdge); 
   } 
 
   // Project tensor nodal quadrature basis back onto modal basis. 
-  ser_3x_p1_upwind_quad_to_modal(fUpwindQuad, fUpwind); 
+  gkhyb_1x2v_p1_vpardir_upwind_quad_to_modal(fUpwindQuad, fUpwind); 
 
   Ghat[0] = 0.5*(alphaDrSurf[1]*fUpwind[1]+alphaDrSurf[0]*fUpwind[0]); 
   Ghat[1] = 0.5*(alphaDrSurf[0]*fUpwind[1]+fUpwind[0]*alphaDrSurf[1]); 
@@ -56,6 +56,10 @@ GKYL_CU_DH void lbo_gyrokinetic_drag_boundary_surfvpar_1x2v_ser_p1(const double 
   out[5] += 0.7071067811865475*Ghat[3]*rdv2; 
   out[6] += 1.224744871391589*Ghat[2]*rdv2; 
   out[7] += 1.224744871391589*Ghat[3]*rdv2; 
+  out[8] += 1.58113883008419*Ghat[0]*rdv2; 
+  out[9] += 1.58113883008419*Ghat[1]*rdv2; 
+  out[10] += 1.58113883008419*Ghat[2]*rdv2; 
+  out[11] += 1.58113883008419*Ghat[3]*rdv2; 
 
   } else { 
 
@@ -63,22 +67,22 @@ GKYL_CU_DH void lbo_gyrokinetic_drag_boundary_surfvpar_1x2v_ser_p1(const double 
   alphaDrSurf[1] = 0.5*(2.828427124746191*nuSum[1]*w[1]-2.828427124746191*nuUSum[1]-1.414213562373095*dxv[1]*nuSum[1]); 
 
   if (alphaDrSurf[0]-alphaDrSurf[1] < 0) { 
-    fUpwindQuad[0] = ser_3x_p1_surfx2_eval_quad_node_0_r(fEdge); 
-    fUpwindQuad[1] = ser_3x_p1_surfx2_eval_quad_node_1_r(fEdge); 
+    fUpwindQuad[0] = gkhyb_1x2v_p1_surfx2_eval_quad_node_0_r(fEdge); 
+    fUpwindQuad[1] = gkhyb_1x2v_p1_surfx2_eval_quad_node_1_r(fEdge); 
   } else { 
-    fUpwindQuad[0] = ser_3x_p1_surfx2_eval_quad_node_0_l(fSkin); 
-    fUpwindQuad[1] = ser_3x_p1_surfx2_eval_quad_node_1_l(fSkin); 
+    fUpwindQuad[0] = gkhyb_1x2v_p1_surfx2_eval_quad_node_0_l(fSkin); 
+    fUpwindQuad[1] = gkhyb_1x2v_p1_surfx2_eval_quad_node_1_l(fSkin); 
   } 
   if (alphaDrSurf[0]-alphaDrSurf[1] < 0) { 
-    fUpwindQuad[2] = ser_3x_p1_surfx2_eval_quad_node_2_r(fEdge); 
-    fUpwindQuad[3] = ser_3x_p1_surfx2_eval_quad_node_3_r(fEdge); 
+    fUpwindQuad[2] = gkhyb_1x2v_p1_surfx2_eval_quad_node_2_r(fEdge); 
+    fUpwindQuad[3] = gkhyb_1x2v_p1_surfx2_eval_quad_node_3_r(fEdge); 
   } else { 
-    fUpwindQuad[2] = ser_3x_p1_surfx2_eval_quad_node_2_l(fSkin); 
-    fUpwindQuad[3] = ser_3x_p1_surfx2_eval_quad_node_3_l(fSkin); 
+    fUpwindQuad[2] = gkhyb_1x2v_p1_surfx2_eval_quad_node_2_l(fSkin); 
+    fUpwindQuad[3] = gkhyb_1x2v_p1_surfx2_eval_quad_node_3_l(fSkin); 
   } 
 
   // Project tensor nodal quadrature basis back onto modal basis. 
-  ser_3x_p1_upwind_quad_to_modal(fUpwindQuad, fUpwind); 
+  gkhyb_1x2v_p1_vpardir_upwind_quad_to_modal(fUpwindQuad, fUpwind); 
 
   Ghat[0] = 0.5*(alphaDrSurf[1]*fUpwind[1]+alphaDrSurf[0]*fUpwind[0]); 
   Ghat[1] = 0.5*(alphaDrSurf[0]*fUpwind[1]+fUpwind[0]*alphaDrSurf[1]); 
@@ -93,6 +97,10 @@ GKYL_CU_DH void lbo_gyrokinetic_drag_boundary_surfvpar_1x2v_ser_p1(const double 
   out[5] += -0.7071067811865475*Ghat[3]*rdv2; 
   out[6] += 1.224744871391589*Ghat[2]*rdv2; 
   out[7] += 1.224744871391589*Ghat[3]*rdv2; 
+  out[8] += -1.58113883008419*Ghat[0]*rdv2; 
+  out[9] += -1.58113883008419*Ghat[1]*rdv2; 
+  out[10] += -1.58113883008419*Ghat[2]*rdv2; 
+  out[11] += -1.58113883008419*Ghat[3]*rdv2; 
 
   } 
 } 
