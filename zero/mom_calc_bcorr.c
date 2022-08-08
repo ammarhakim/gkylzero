@@ -32,6 +32,8 @@ gkyl_mom_calc_bcorr_advance(gkyl_mom_calc_bcorr *bcorr,
     eupper_idx[dim] = phase_rng->upper[dim];
   }
 
+  gkyl_array_clear_range(out, 0.0, *conf_rng);
+  
   // iterate over either velocity space or configuration space
   dim_rng = phase_rng->ndim - conf_rng->ndim;
   if (bcorr->space == 0) {
