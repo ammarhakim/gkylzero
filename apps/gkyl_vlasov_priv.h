@@ -75,8 +75,10 @@ struct vm_species;
 
 struct vm_lbo_collisions {
   struct gkyl_array *boundary_corrections; // LBO boundary corrections
+  struct gkyl_array *boundary_corrections_host; // LBO boundary corrections
   struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator
   struct gkyl_array *nu_sum, *u_drift, *vth_sq, *nu_u, *nu_vthsq; // LBO primitive moments
+  struct gkyl_array *u_drift_host, *vth_sq_host;
 
   double betaGreenep1; // value of Greene's factor beta + 1
   double other_m[GKYL_MAX_SPECIES]; // masses of species being collided with
@@ -453,6 +455,8 @@ void vm_species_moment_release(const struct gkyl_vlasov_app *app,
   const struct vm_species_moment *sm);
 
 /** vm_species_lbo API */
+
+void gkyl_lbo_write_mom(struct gkyl_vlasov_app* app, struct vm_lbo_collisions *lbo);
 
 /**
  * Initialize species LBO collisions object.

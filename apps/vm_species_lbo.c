@@ -2,6 +2,23 @@
 #include <assert.h>
 #include <gkyl_vlasov_priv.h>
 
+void
+gkyl_lbo_write_mom(struct gkyl_vlasov_app* app, struct vm_lbo_collisions *lbo)
+{      
+  const char *fmt = "%s.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name);
+  char fileNm[sz+1]; // ensures no buffer overflow  
+  snprintf(fileNm, sizeof fileNm, fmt, app->name);
+
+  if (app->use_gpu) {
+    gkyl_array_copy(lbo->boundary_corrections_host, lbo->boundary_corrections);
+    gkyl_grid_sub_array_write(&app->grid, &app->local, lbo->boundary_corrections_host, fileNm);
+  }
+  else {
+    gkyl_grid_sub_array_write(&app->grid, &app->local, lbo->boundary_corrections, fileNm);
+  }
+}
+
 void 
 vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_lbo_collisions *lbo, bool collides_with_fluid)
 {
@@ -28,9 +45,12 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   gkyl_array_release(self_nu);
 
   lbo->boundary_corrections = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
+  lbo->boundary_corrections_host = mkarr(false, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
 
   lbo->u_drift = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
   lbo->vth_sq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  lbo->u_drift_host = mkarr(false, vdim*app->confBasis.num_basis, app->local_ext.volume);
+  lbo->vth_sq_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
   lbo->nu_u = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
   lbo->nu_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   lbo->m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -142,6 +162,8 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
     gkyl_mom_calc_bcorr_advance_cu(lbo->bcorr_calc,
       &species->local, &app->local, fin, lbo->boundary_corrections);
 
+    gkyl_lbo_write_mom(app, lbo);
+
     // construct primitive moments    
     gkyl_prim_lbo_calc_advance_cu(lbo->coll_pcalc, app->confBasis, &app->local, 
       lbo->moms.marr, lbo->boundary_corrections,
@@ -157,6 +179,8 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
     // construct boundary corrections
     gkyl_mom_calc_bcorr_advance(lbo->bcorr_calc,
       &species->local, &app->local, fin, lbo->boundary_corrections);
+
+    gkyl_lbo_write_mom(app, lbo);
 
     // construct primitive moments    
     gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, app->confBasis, &app->local, 
@@ -260,6 +284,9 @@ vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_co
   gkyl_array_release(lbo->boundary_corrections);
   gkyl_array_release(lbo->u_drift);
   gkyl_array_release(lbo->vth_sq);
+  gkyl_array_release(lbo->boundary_corrections_host);
+  gkyl_array_release(lbo->u_drift_host);
+  gkyl_array_release(lbo->vth_sq_host);
   gkyl_array_release(lbo->self_nu);
   gkyl_array_release(lbo->nu_sum);
   gkyl_array_release(lbo->nu_u);
