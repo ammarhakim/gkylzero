@@ -16,12 +16,13 @@ typedef struct gkyl_proj_maxwellian_on_basis gkyl_proj_maxwellian_on_basis;
  * @param conf_basis Conf-space basis functions
  * @param phase_basis Phase-space basis functions
  * @param num_quad Number of quadrature nodes
+ * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
 gkyl_proj_maxwellian_on_basis* gkyl_proj_maxwellian_on_basis_new(
   const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
-  int num_quad);
+  int num_quad, bool use_gpu);
 
 /**
  * Compute projection of Maxwellian on basis. This method takes
@@ -37,7 +38,7 @@ gkyl_proj_maxwellian_on_basis* gkyl_proj_maxwellian_on_basis_new(
  * @param fmax Output Maxwellian
  */
 void gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *pob,
-  const struct gkyl_range phase_range, const struct gkyl_range conf_range,
+  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
   const struct gkyl_array *M0, const struct gkyl_array *M1i, const struct gkyl_array *M2,  
   struct gkyl_array *fmax);
 

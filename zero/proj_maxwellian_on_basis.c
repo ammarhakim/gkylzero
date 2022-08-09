@@ -6,35 +6,14 @@
 #include <gkyl_const.h>
 #include <gkyl_gauss_quad_data.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
+#include <gkyl_proj_maxwellian_on_basis_priv.h>
 #include <gkyl_range.h>
-
-struct gkyl_proj_maxwellian_on_basis {
-  struct gkyl_rect_grid grid;
-  int num_quad; // number of quadrature points to use in each direction
-  int cdim; // Configuration-space dimension
-  int pdim; // Phase-space dimension
-
-  int num_conf_basis; // number of conf-space basis functions
-  int num_phase_basis; // number of phase-space basis functions
-
-  // for quadrature in phase-space
-  int tot_quad; // total number of quadrature points
-  struct gkyl_array *ordinates; // ordinates for quadrature
-  struct gkyl_array *weights; // weights for quadrature
-  struct gkyl_array *basis_at_ords; // basis functions at ordinates
-
-  // for quadrature in conf space
-  int tot_conf_quad; // total number of quadrature points
-  struct gkyl_array *conf_ordinates; // conf-space ordinates for quadrature
-  struct gkyl_array *conf_weights; // weights for conf-space quadrature  
-  struct gkyl_array *conf_basis_at_ords; // conf-space basis functions at ordinates
-};
 
 // Sets ordinates, weights and basis functions at ords. Returns total
 // number of quadrature nodes
 static int
-init_quad_values(const struct gkyl_basis *basis, int num_quad,
-  struct gkyl_array **ordinates, struct gkyl_array **weights, struct gkyl_array **basis_at_ords)
+init_quad_values(const struct gkyl_basis *basis, int num_quad, struct gkyl_array **ordinates,
+  struct gkyl_array **weights, struct gkyl_array **basis_at_ords, bool use_gpu)
 {
   int ndim = basis->ndim;
   double ordinates1[num_quad], weights1[num_quad];
@@ -58,8 +37,15 @@ init_quad_values(const struct gkyl_basis *basis, int num_quad,
   int tot_quad = qrange.volume;
 
   // create ordinates and weights for multi-D quadrature
-  *ordinates = gkyl_array_new(GKYL_DOUBLE, ndim, tot_quad);
-  *weights = gkyl_array_new(GKYL_DOUBLE, 1, tot_quad);
+  struct gkyl_array *ordinates_ho = gkyl_array_new(GKYL_DOUBLE, ndim, tot_quad);
+  struct gkyl_array *weights_ho = gkyl_array_new(GKYL_DOUBLE, 1, tot_quad);
+  if (use_gpu) {
+    *ordinates = gkyl_array_cu_dev_new(GKYL_DOUBLE, ndim, tot_quad);
+    *weights = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, tot_quad);
+  } else {
+    *ordinates = gkyl_array_new(GKYL_DOUBLE, ndim, tot_quad);
+    *weights = gkyl_array_new(GKYL_DOUBLE, 1, tot_quad);
+  }
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &qrange);
@@ -68,21 +54,34 @@ init_quad_values(const struct gkyl_basis *basis, int num_quad,
     long node = gkyl_range_idx(&qrange, iter.idx);
     
     // set ordinates
-    double *ord = gkyl_array_fetch(*ordinates, node);
+    double *ord = gkyl_array_fetch(ordinates_ho, node);
     for (int i=0; i<ndim; ++i)
       ord[i] = ordinates1[iter.idx[i]-qrange.lower[i]];
     
     // set weights
-    double *wgt = gkyl_array_fetch(*weights, node);
+    double *wgt = gkyl_array_fetch(weights_ho, node);
     wgt[0] = 1.0;
     for (int i=0; i<qrange.ndim; ++i)
       wgt[0] *= weights1[iter.idx[i]-qrange.lower[i]];
   }
 
   // pre-compute basis functions at ordinates
-  *basis_at_ords = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, tot_quad);
+  struct gkyl_array *basis_at_ords_ho = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, tot_quad);
+  if (use_gpu) 
+    *basis_at_ords = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis->num_basis, tot_quad);
+  else
+    *basis_at_ords = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, tot_quad);
   for (int n=0; n<tot_quad; ++n)
-    basis->eval(gkyl_array_fetch(*ordinates, n), gkyl_array_fetch(*basis_at_ords, n));
+    basis->eval(gkyl_array_fetch(ordinates_ho, n), gkyl_array_fetch(basis_at_ords_ho, n));
+
+  // copy host array to device array
+  gkyl_array_copy(*ordinates, ordinates_ho);
+  gkyl_array_copy(*weights, weights_ho);
+  gkyl_array_copy(*basis_at_ords, basis_at_ords_ho);
+
+  gkyl_array_release(ordinates_ho);
+  gkyl_array_release(weights_ho);
+  gkyl_array_release(basis_at_ords_ho);
 
   return tot_quad;
 }
@@ -91,7 +90,7 @@ gkyl_proj_maxwellian_on_basis*
 gkyl_proj_maxwellian_on_basis_new(
   const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
-  int num_quad)
+  int num_quad, bool use_gpu)
 {
   gkyl_proj_maxwellian_on_basis *up = gkyl_malloc(sizeof(gkyl_proj_maxwellian_on_basis));
 
@@ -101,24 +100,19 @@ gkyl_proj_maxwellian_on_basis_new(
   up->pdim = phase_basis->ndim;
   up->num_conf_basis = conf_basis->num_basis;
   up->num_phase_basis = phase_basis->num_basis;
+  up->use_gpu = use_gpu;
 
   // initialize data needed for phase-space quadrature 
   up->tot_quad = init_quad_values(phase_basis, num_quad,
-    &up->ordinates, &up->weights, &up->basis_at_ords);
+    &up->ordinates, &up->weights, &up->basis_at_ords, use_gpu);
 
   // initialize data needed for conf-space quadrature 
   up->tot_conf_quad = init_quad_values(conf_basis, num_quad,
-    &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords);
+    &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, use_gpu);
+
+  up->fun_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad);
 
   return up;
-}
-
-static inline void
-comp_to_phys(int ndim, const double *eta,
-  const double * GKYL_RESTRICT dx, const double * GKYL_RESTRICT xc,
-  double* GKYL_RESTRICT xout)
-{
-  for (int d=0; d<ndim; ++d) xout[d] = 0.5*dx[d]*eta[d]+xc[d];
 }
 
 static void
@@ -140,21 +134,18 @@ proj_on_basis(const gkyl_proj_maxwellian_on_basis *up, const struct gkyl_array *
   }
 }
 
-static inline void
-copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
-{
-  for (int i=0; i<cdim; ++i)
-    out[i] = cidx[i];
-  for (int i=cdim; i<pdim; ++i)
-    out[i] = vidx[i-cdim];
-}
-
 void
 gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
-  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
+  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
   const struct gkyl_array *M0, const struct gkyl_array *M1i, const struct gkyl_array *M2,
   struct gkyl_array *fmax)
 {
+
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu)
+    return gkyl_proj_maxwellian_on_basis_lab_mom_cu(up, phase_rng, conf_rng, M0, M1i, M2, fmax);
+#endif
+
   int cdim = up->cdim, pdim = up->pdim;
   int vdim = pdim-cdim;
   int num_quad = up->num_quad;
@@ -175,22 +166,20 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
   struct gkyl_range phase_qrange;
   gkyl_range_init_from_shape(&phase_qrange, pdim, qshape);
 
-  struct gkyl_array *fun_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, tot_quad);
-
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
   
   int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
-  for (int d=0; d<conf_rng.ndim; ++d) rem_dir[d] = 1;
+  for (int d=0; d<conf_rng->ndim; ++d) rem_dir[d] = 1;
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
   double num[tot_conf_quad], vel[tot_conf_quad][vdim], vth2[tot_conf_quad];
   
   // outer loop over configuration space cells; for each
   // config-space cell inner loop walks over velocity space
-  gkyl_range_iter_init(&conf_iter, &conf_rng);
+  gkyl_range_iter_init(&conf_iter, conf_rng);
   while (gkyl_range_iter_next(&conf_iter)) {
-    long midx = gkyl_range_idx(&conf_rng, conf_iter.idx);
+    long midx = gkyl_range_idx(conf_rng, conf_iter.idx);
 
     const double *M0_d = gkyl_array_cfetch(M0, midx);
     const double *M1i_d = gkyl_array_cfetch(M1i, midx);
@@ -224,11 +213,11 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
     }
 
     // inner loop over velocity space
-    gkyl_range_deflate(&vel_rng, &phase_rng, rem_dir, conf_iter.idx);
+    gkyl_range_deflate(&vel_rng, phase_rng, rem_dir, conf_iter.idx);
     gkyl_range_iter_no_split_init(&vel_iter, &vel_rng);
     while (gkyl_range_iter_next(&vel_iter)) {
       
-      copy_idx_arrays(conf_rng.ndim, phase_rng.ndim, conf_iter.idx, vel_iter.idx, pidx);
+      copy_idx_arrays(conf_rng->ndim, phase_rng->ndim, conf_iter.idx, vel_iter.idx, pidx);
       gkyl_rect_grid_cell_center(&up->grid, pidx, xc);
 
       struct gkyl_range_iter qiter;
@@ -248,17 +237,16 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
         for (int d=0; d<vdim; ++d)
           efact += (vel[cqidx][d]-xmu[cdim+d])*(vel[cqidx][d]-xmu[cdim+d]);
 
-        double *fq = gkyl_array_fetch(fun_at_ords, pqidx);
+        double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
         fq[0] = nvth2_q*exp(-efact/(2*vth2[cqidx]));
       }
 
       // compute expansion coefficients of Maxwellian on basis
       long lidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
-      proj_on_basis(up, fun_at_ords, gkyl_array_fetch(fmax, lidx));
+      proj_on_basis(up, up->fun_at_ords, gkyl_array_fetch(fmax, lidx));
     }
   }
   
-  gkyl_array_release(fun_at_ords);
 }
 
 void
@@ -270,5 +258,6 @@ gkyl_proj_maxwellian_on_basis_release(gkyl_proj_maxwellian_on_basis* up)
   gkyl_array_release(up->conf_ordinates);
   gkyl_array_release(up->conf_weights);
   gkyl_array_release(up->conf_basis_at_ords);
+  gkyl_array_release(up->fun_at_ords);
   gkyl_free(up);
 }

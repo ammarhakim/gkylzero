@@ -73,7 +73,7 @@ void eval_M2_2v(double t, const double *xn, double* restrict fout, void *ctx)
 }
 
 void
-test_1x1v(int poly_order)
+test_1x1v(int poly_order, bool use_gpu)
 {
   double lower[] = {0.1, -6.0}, upper[] = {1.0, 6.0};
   int cells[] = {2, 32};
@@ -129,9 +129,9 @@ test_1x1v(int poly_order)
 
   // projection updater to compute Maxwellian
   gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&grid,
-    &confBasis, &basis, poly_order+1);
+    &confBasis, &basis, poly_order+1, use_gpu);
 
-  gkyl_proj_maxwellian_on_basis_lab_mom(proj_max, local, confLocal, m0, m1i, m2, distf);
+  gkyl_proj_maxwellian_on_basis_lab_mom(proj_max, &local, &confLocal, m0, m1i, m2, distf);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p1_vals[] = {  7.5585421616306459e-01, -2.1688605007995894e-17,  2.5560131294504802e-02,
@@ -176,13 +176,8 @@ test_1x1v(int poly_order)
   gkyl_proj_on_basis_release(proj_m2);
 }
 
-void test_1x1v_p0() { test_1x1v(0); }
-void test_1x1v_p1() { test_1x1v(1); }
-void test_1x1v_p2() { test_1x1v(2); }
-void test_1x1v_p3() { test_1x1v(3); }
-
 void
-test_1x2v(int poly_order)
+test_1x2v(int poly_order, bool use_gpu)
 {
   double lower[] = {0.1, -6.0, -6.0}, upper[] = {1.0, 6.0, 6.0};
   int cells[] = {2, 16, 16};
@@ -238,9 +233,9 @@ test_1x2v(int poly_order)
 
   // projection updater to compute Maxwellian
   gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&grid,
-    &confBasis, &basis, poly_order+1);
+    &confBasis, &basis, poly_order+1, use_gpu);
 
-  gkyl_proj_maxwellian_on_basis_lab_mom(proj_max, local, confLocal, m0, m1i, m2, distf);
+  gkyl_proj_maxwellian_on_basis_lab_mom(proj_max, &local, &confLocal, m0, m1i, m2, distf);
 
   // values to compare  at index (1, 9, 9) [remember, lower-left index is (1,1,1)]
   double p1_vals[] = {  4.2319425948079414e-01,  1.2894963939286889e-17,  1.1450235276582092e-02,
@@ -295,10 +290,15 @@ test_1x2v(int poly_order)
   gkyl_proj_on_basis_release(proj_m2);
 }
 
-void test_1x2v_p0() { test_1x2v(0); }
-void test_1x2v_p1() { test_1x2v(1); }
-void test_1x2v_p2() { test_1x2v(2); }
-void test_1x2v_p3() { test_1x2v(3); }
+void test_1x1v_p0() { test_1x1v(0, false); }
+void test_1x1v_p1() { test_1x1v(1, false); }
+void test_1x1v_p2() { test_1x1v(2, false); }
+void test_1x1v_p3() { test_1x1v(3, false); }
+
+void test_1x2v_p0() { test_1x2v(0, false); }
+void test_1x2v_p1() { test_1x2v(1, false); }
+void test_1x2v_p2() { test_1x2v(2, false); }
+void test_1x2v_p3() { test_1x2v(3, false); }
 
 TEST_LIST = {
   { "test_1x1v_p0", test_1x1v_p0 },
