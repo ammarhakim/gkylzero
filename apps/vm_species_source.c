@@ -71,8 +71,11 @@ void
 vm_species_source_release(const struct gkyl_vlasov_app *app, const struct vm_source *src)
 {
   gkyl_array_release(src->source);
-  if (app->use_gpu)
+  if (app->use_gpu) {
     gkyl_array_release(src->source_host);
-
+    gkyl_cu_free(src->scale_ptr);
+  } else {
+    gkyl_free(src->scale_ptr);
+  }
   gkyl_proj_on_basis_release(src->source_proj);
 }
