@@ -32,7 +32,7 @@ gkyl_isoeuler_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_isoeul
 }
 
 struct gkyl_dg_eqn*
-gkyl_dg_isoeuler_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, //TODO: remove pbasis
+gkyl_dg_isoeuler_new(const struct gkyl_basis* cbasis,
   const struct gkyl_range* conf_range, const double vth, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
@@ -43,11 +43,10 @@ gkyl_dg_isoeuler_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* p
 #endif
   struct dg_isoeuler *isoeuler = gkyl_malloc(sizeof(struct dg_isoeuler));
 
-  int cdim = cbasis->ndim-1, pdim = pbasis->ndim-1, vdim = pdim-cdim; //have cdim+1 number of dimensions in statevec
+  int cdim = cbasis->ndim-1; //have cdim+1 number of dimensions in statevec
   int poly_order = cbasis->poly_order;
 
   isoeuler->cdim = cdim;
-  isoeuler->pdim = pdim;
 
   isoeuler->vth = vth;
 
@@ -71,9 +70,6 @@ gkyl_dg_isoeuler_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* p
       assert(false);
       break;
   }
-
-  printf("Choosing kernel, TODO: double check that correct one is chosen...\n"); //debug
-  printf("Choosing kernel with cdim %i and polyorder %i \n",cdim, poly_order);
 
   isoeuler->vol = CK(vol_kernels,cdim,poly_order); //TODO: clean up passing cdim+1 and then -2 in
 

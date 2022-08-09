@@ -74,7 +74,6 @@ static const gkyl_dg_isoeuler_surf_kern_list ser_surf_z_kernels[] = {
 struct dg_isoeuler {
   struct gkyl_dg_eqn eqn; // Base object.
   int cdim; // Config-space dimensions.
-  int pdim; // Phase-space dimensions.
   isoeuler_vol_t vol; // Volume kernel.
   isoeuler_surf_t surf[3]; // Surface terms.
   struct gkyl_range conf_range; // Configuration space range.

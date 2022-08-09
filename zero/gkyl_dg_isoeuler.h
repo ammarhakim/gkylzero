@@ -13,6 +13,6 @@ struct gkyl_dg_isoeuler_auxfields {
 };
 
 struct gkyl_dg_eqn* gkyl_dg_isoeuler_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, const double vth, bool use_gpu);
+  const struct gkyl_range* conf_range, const double vth, bool use_gpu);
 
 void gkyl_isoeuler_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_isoeuler_auxfields auxin);
