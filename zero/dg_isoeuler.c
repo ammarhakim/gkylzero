@@ -43,14 +43,14 @@ gkyl_dg_isoeuler_new(const struct gkyl_basis* cbasis,
 #endif
   struct dg_isoeuler *isoeuler = gkyl_malloc(sizeof(struct dg_isoeuler));
 
-  int cdim = cbasis->ndim-1; //have cdim+1 number of dimensions in statevec
+  int cdim = cbasis->ndim;
   int poly_order = cbasis->poly_order;
 
   isoeuler->cdim = cdim;
 
   isoeuler->vth = vth;
 
-  isoeuler->eqn.num_equations = cdim+1;
+  isoeuler->eqn.num_equations = cdim;
   isoeuler->eqn.vol_term = vol;
   isoeuler->eqn.surf_term = surf;
 
@@ -71,17 +71,20 @@ gkyl_dg_isoeuler_new(const struct gkyl_basis* cbasis,
       break;
   }
 
+  printf("Choosing kernel, TODO: double check that correct one is chosen...\n"); //debug
+  printf("Choosing kernel with cdim %i and polyorder %i \n",cdim, poly_order);
+
   isoeuler->vol = CK(vol_kernels,cdim,poly_order); //TODO: clean up passing cdim+1 and then -2 in
 
   isoeuler->surf[0] = CK(surf_x_kernels,cdim,poly_order);
-  if (cdim>=1)
+  if (cdim>1)
     isoeuler->surf[1] = CK(surf_y_kernels,cdim,poly_order);
-  if (cdim>=2)
+  if (cdim>2)
     isoeuler->surf[2] = CK(surf_z_kernels,cdim,poly_order);
 
   // Ensure non-NULL pointers.
   assert(isoeuler->vol);
-  for (int i=0; i<=cdim; ++i) assert(isoeuler->surf[i]);
+  for (int i=0; i<cdim; ++i) assert(isoeuler->surf[i]);
 
   isoeuler->conf_range = *conf_range;
 

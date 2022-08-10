@@ -69,7 +69,7 @@ static const gkyl_dg_isoeuler_surf_kern_list ser_surf_z_kernels[] = {
 };
 
 // "Choose Kernel" based on cdim, vdim and polyorder
-#define CK(lst,cdim,poly_order) lst[cdim].kernels[poly_order]
+#define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order]
 
 struct dg_isoeuler {
   struct gkyl_dg_eqn eqn; // Base object.
