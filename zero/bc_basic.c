@@ -6,20 +6,25 @@
 // i.e., the array_copy_func applied to expansion coefficients in ghost cell.
 struct gkyl_array_copy_func*
 gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bctype,
-  const struct gkyl_basis *basis, bool use_gpu)
+  const struct gkyl_basis *basis, int ncomp, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_bc_basic_create_arr_copy_func_cu(dir, cdim, bctype, basis);
+    return gkyl_bc_basic_create_arr_copy_func_cu(dir, cdim, bctype, basis, ncomp);
 #endif
 
   struct dg_bc_ctx *ctx = (struct dg_bc_ctx*) gkyl_malloc(sizeof(struct dg_bc_ctx));
   ctx->basis = basis;
   ctx->dir = dir;
   ctx->cdim = cdim;
+  ctx->ncomp = ncomp;
 
   struct gkyl_array_copy_func *fout = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
   switch (bctype) {
+    case GKYL_BC_COPY:
+      fout->func = copy_bc;
+      break;
+      
     case GKYL_BC_ABSORB:
       fout->func = species_absorb_bc;
       break;
@@ -27,7 +32,11 @@ gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bc
     case GKYL_BC_REFLECT:
       fout->func = species_reflect_bc;
       break;
-
+    // Perfect electrical conductor
+    case GKYL_BC_MAXWELL_PEC:
+      fout->func = maxwell_pec_bc;
+      break;
+      
     default:
       assert(false);
       break;
@@ -44,7 +53,7 @@ gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bc
 struct gkyl_bc_basic*
 gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range *local_range_ext,
   const int *num_ghosts, enum gkyl_bc_basic_type bctype, const struct gkyl_basis *basis,
-  int cdim, bool use_gpu)
+  int num_comp, int cdim, bool use_gpu)
 {
 
   // Allocate space for new updater.
@@ -62,7 +71,7 @@ gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range *loc
 
   // Create function applied to array contents (DG coefficients) when copying
   // to/from buffer.
-  up->array_copy_func = gkyl_bc_basic_create_arr_copy_func(dir, cdim, bctype, basis, use_gpu);
+  up->array_copy_func = gkyl_bc_basic_create_arr_copy_func(dir, cdim, bctype, basis, num_comp, use_gpu);
   return up;
 }
 
@@ -72,7 +81,9 @@ gkyl_bc_basic_advance(const struct gkyl_bc_basic *up, struct gkyl_array *buff_ar
   // Apply BC in two steps:
   // 1) Copy skin to buffer while applying array_copy_func.
   switch (up->bctype) {
+    case GKYL_BC_COPY:
     case GKYL_BC_ABSORB:
+    case GKYL_BC_MAXWELL_PEC:
       gkyl_array_copy_to_buffer_fn(buff_arr->data, f_arr,
                                    up->skin_r, up->array_copy_func->on_dev);
       break;

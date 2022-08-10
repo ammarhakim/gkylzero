@@ -107,8 +107,11 @@ main(int argc, char **argv)
     .init = evalDistFunc,
 
     // source is the same as initial condition
-    .source = evalDistFunc,
-    .source_ctx = &ctx,
+    .source = {
+      .source_id = GKYL_FUNC_SOURCE,
+      .profile = evalDistFunc,
+      .ctx = &ctx,
+    },
 
     .num_diag_moments = 2,
     .diag_moments = { "M0", "M1i" },
@@ -127,8 +130,11 @@ main(int argc, char **argv)
     .init = evalDistFunc,
 
     // source is the same as initial condition
-    .source = evalDistFunc,
-    .source_ctx = &ctx,
+    .source = {
+      .source_id = GKYL_FUNC_SOURCE,
+      .profile = evalDistFunc,
+      .ctx = &ctx,
+    },
 
     .num_diag_moments = 2,
     .diag_moments = { "M0", "M1i" },

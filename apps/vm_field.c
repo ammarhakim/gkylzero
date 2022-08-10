@@ -6,6 +6,7 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_bc_basic.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_util.h>
 #include <gkyl_vlasov_priv.h>
@@ -82,9 +83,30 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       f->upper_bc[dir] = bc[1];
     }
   }
-  for (int d=0; d<3; ++d)
-    f->wall_bc_func[d] = gkyl_maxwell_wall_bc_create(eqn, d,
-      app->basis_on_dev.confBasis);
+
+  int ghost[GKYL_MAX_DIM];
+  for (int d=0; d<app->cdim; ++d)
+    ghost[d] = 1;
+  
+  for (int d=0; d<app->cdim; ++d) {
+    // Lower BC updater. Copy BCs by default.
+    enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
+    if (f->lower_bc[d] == GKYL_FIELD_COPY)
+      bctype = GKYL_BC_COPY;
+    else if (f->lower_bc[d] == GKYL_FIELD_PEC_WALL)
+      bctype = GKYL_BC_MAXWELL_PEC;
+  
+    f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &app->local_ext, ghost, bctype,
+                                    app->basis_on_dev.confBasis, f->em->ncomp, app->cdim, app->use_gpu);
+    // Upper BC updater. Copy BCs by default.
+    if (f->upper_bc[d] == GKYL_FIELD_COPY)
+      bctype = GKYL_BC_COPY;
+    else if (f->upper_bc[d] == GKYL_FIELD_PEC_WALL)
+      bctype = GKYL_BC_MAXWELL_PEC;
+    
+    f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &app->local_ext, ghost, bctype,
+                                    app->basis_on_dev.confBasis, f->em->ncomp, app->cdim, app->use_gpu);
+  }
 
   gkyl_dg_eqn_release(eqn);
 
@@ -156,44 +178,6 @@ vm_field_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_field *field,
   gkyl_array_copy_from_buffer(f, field->bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
 }
 
-
-// Apply copy BCs on EM fields
-void
-vm_field_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_field *field,
-  int dir, enum vm_domain_edge edge, struct gkyl_array *f)
-{
-  if (edge == VM_EDGE_LOWER) {
-    gkyl_array_copy_to_buffer(field->bc_buffer->data, f, app->skin_ghost.lower_skin[dir]);
-    gkyl_array_copy_from_buffer(f, field->bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
-  }
-
-  if (edge == VM_EDGE_UPPER) {
-    gkyl_array_copy_to_buffer(field->bc_buffer->data, f, app->skin_ghost.upper_skin[dir]);
-    gkyl_array_copy_from_buffer(f, field->bc_buffer->data, app->skin_ghost.upper_ghost[dir]);
-  }
-}
-
-// Perfect electrical conductor
-void
-vm_field_apply_pec_bc(gkyl_vlasov_app *app, const struct vm_field *field,
-  int dir, enum vm_domain_edge edge, struct gkyl_array *f)
-{
-  
-  if (edge == VM_EDGE_LOWER) {
-    gkyl_array_copy_to_buffer_fn(field->bc_buffer->data, f, app->skin_ghost.lower_skin[dir],
-      field->wall_bc_func[dir]->on_dev
-    );
-    gkyl_array_copy_from_buffer(f, field->bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
-  }
-
-  if (edge == VM_EDGE_UPPER) {
-    gkyl_array_copy_to_buffer_fn(field->bc_buffer->data, f, app->skin_ghost.upper_skin[dir],
-      field->wall_bc_func[dir]->on_dev
-    );
-    gkyl_array_copy_from_buffer(f, field->bc_buffer->data, app->skin_ghost.upper_ghost[dir]);
-  }  
-}
-
 // Determine which directions are periodic and which directions are copy,
 // and then apply boundary conditions for EM fields
 void
@@ -205,15 +189,13 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
     vm_field_apply_periodic_bc(app, field, app->periodic_dirs[d], f);
     is_np_bc[app->periodic_dirs[d]] = 0;
   }
-  for (int d=0; d<cdim; ++d)
+  for (int d=0; d<cdim; ++d) {
     if (is_np_bc[d]) {
 
       switch (field->lower_bc[d]) {
         case GKYL_FIELD_COPY:
-          vm_field_apply_copy_bc(app, field, d, VM_EDGE_LOWER, f);
-          break;
         case GKYL_FIELD_PEC_WALL:
-          vm_field_apply_pec_bc(app, field, d, VM_EDGE_LOWER, f);
+          gkyl_bc_basic_advance(field->bc_lo[d], field->bc_buffer, f);
           break;
         default:
           break;
@@ -221,15 +203,14 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
 
       switch (field->upper_bc[d]) {
         case GKYL_FIELD_COPY:
-          vm_field_apply_copy_bc(app, field, d, VM_EDGE_UPPER, f);
-          break;
         case GKYL_FIELD_PEC_WALL:
-          vm_field_apply_pec_bc(app, field, d, VM_EDGE_UPPER, f);
+          gkyl_bc_basic_advance(field->bc_up[d], field->bc_buffer, f);
           break;
         default:
-          break;          
-      }      
+          break;
+      }   
     }
+  }
 }
 
 void
@@ -274,9 +255,11 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   else {
     gkyl_free(f->omegaCfl_ptr);
   }
-
-  for (int d=0; d<3; ++d)
-    gkyl_maxwell_bc_release(f->wall_bc_func[d]);
+  // Copy BCs are allocated by default. Need to free.
+  for (int d=0; d<app->cdim; ++d) {
+    gkyl_bc_basic_release(f->bc_lo[d]);
+    gkyl_bc_basic_release(f->bc_up[d]);
+  }
 
   gkyl_free(f);
 }
