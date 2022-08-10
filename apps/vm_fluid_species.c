@@ -200,8 +200,9 @@ void
 vm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double t0)
 {
   int poly_order = app->poly_order;
+  int num_eqn = fluid_species->info.num_eqn ? fluid_species->info.num_eqn : 1;
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-    poly_order+1, 1, fluid_species->info.init, fluid_species->info.ctx);
+    poly_order+1, num_eqn, fluid_species->info.init, fluid_species->info.ctx);
 
   // run updater
   gkyl_proj_on_basis_advance(proj, t0, &app->local, fluid_species->fluid_host);
