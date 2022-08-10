@@ -50,7 +50,7 @@ gkyl_dg_isoeuler_new(const struct gkyl_basis* cbasis,
 
   isoeuler->vth = vth;
 
-  isoeuler->eqn.num_equations = cdim;
+  isoeuler->eqn.num_equations = 4;
   isoeuler->eqn.vol_term = vol;
   isoeuler->eqn.surf_term = surf;
 

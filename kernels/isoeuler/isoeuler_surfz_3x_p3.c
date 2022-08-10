@@ -1,5 +1,5 @@
 #include <gkyl_isoeuler_kernels.h> 
-GKYL_CU_DH void isoeuler_surfx_3x3v_ser_p3(const double *w, const double *dxv, double vth, const double *uvarl, const double *uvarc, const double *uvarr, const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out)  
+GKYL_CU_DH void isoeuler_surfx_3x_ser_p3(const double *w, const double *dxv, double vth, const double *uvarl, const double *uvarc, const double *uvarr, const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out)  
 { 
   // w: Cell-center coordinates. dxv[NDIM]: Cell spacing. statevec(l/c/r): [rho, rho ux, rho uy, rho uz] in (left/center/right) cell, uvar(l/c/r): [ux, uv, uz]  in (left/center/right) cell
   // out: output in left/right cells 
@@ -251,7 +251,7 @@ GKYL_CU_DH void isoeuler_surfx_3x3v_ser_p3(const double *w, const double *dxv, d
 
  
 } 
-GKYL_CU_DH void isoeuler_surfy_3x3v_ser_p3(const double *w, const double *dxv, double vth, const double *uvarl, const double *uvarc, const double *uvarr, const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out)  
+GKYL_CU_DH void isoeuler_surfy_3x_ser_p3(const double *w, const double *dxv, double vth, const double *uvarl, const double *uvarc, const double *uvarr, const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out)  
 { 
   // w: Cell-center coordinates. dxv[NDIM]: Cell spacing. statevec(l/c/r): [rho, rho ux, rho uy, rho uz] in (left/center/right) cell, uvar(l/c/r): [ux, uv, uz]  in (left/center/right) cell
   // out: output in left/right cells 
@@ -503,7 +503,7 @@ GKYL_CU_DH void isoeuler_surfy_3x3v_ser_p3(const double *w, const double *dxv, d
 
  
 } 
-GKYL_CU_DH void isoeuler_surfz_3x3v_ser_p3(const double *w, const double *dxv, double vth, const double *uvarl, const double *uvarc, const double *uvarr, const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out)  
+GKYL_CU_DH void isoeuler_surfz_3x_ser_p3(const double *w, const double *dxv, double vth, const double *uvarl, const double *uvarc, const double *uvarr, const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out)  
 { 
   // w: Cell-center coordinates. dxv[NDIM]: Cell spacing. statevec(l/c/r): [rho, rho ux, rho uy, rho uz] in (left/center/right) cell, uvar(l/c/r): [ux, uv, uz]  in (left/center/right) cell
   // out: output in left/right cells 

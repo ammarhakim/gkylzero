@@ -1,5 +1,5 @@
 #include <gkyl_isoeuler_kernels.h> 
-GKYL_CU_DH void isoeuler_surfx_1x1v_ser_p3(const double *w, const double *dxv, double vth, const double *uvarl, const double *uvarc, const double *uvarr, const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out)  
+GKYL_CU_DH void isoeuler_surfx_1x_ser_p3(const double *w, const double *dxv, double vth, const double *uvarl, const double *uvarc, const double *uvarr, const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out)  
 { 
   // w: Cell-center coordinates. dxv[NDIM]: Cell spacing. statevec(l/c/r): [rho, rho ux, rho uy, rho uz] in (left/center/right) cell, uvar(l/c/r): [ux, uv, uz]  in (left/center/right) cell
   // out: output in left/right cells 
@@ -7,14 +7,26 @@ GKYL_CU_DH void isoeuler_surfx_1x1v_ser_p3(const double *w, const double *dxv, d
   const double dxr1 = 2.0/dxv[0]; 
   const double *rhol = &statevecl[0]; 
   const double *rhou0l = &statevecl[4]; 
+  const double *rhou1l = &statevecl[8]; 
+  const double *rhou2l = &statevecl[12]; 
   const double *rhor = &statevecr[0]; 
   const double *rhou0r = &statevecr[4]; 
+  const double *rhou1r = &statevecr[8]; 
+  const double *rhou2r = &statevecr[12]; 
   const double *uvar0l = &uvarl[0]; 
+  const double *uvar1l = &uvarl[4]; 
+  const double *uvar2l = &uvarl[8]; 
   const double *uvar0r = &uvarr[0]; 
+  const double *uvar1r = &uvarr[4]; 
+  const double *uvar2r = &uvarr[8]; 
   double *outlrho = &out[0]; 
   double *outlrhoux = &out[4]; 
-  double *outrrho = &out[8]; 
-  double *outrrhoux = &out[12]; 
+  double *outlrhouy = &out[8]; 
+  double *outlrhouz = &out[12]; 
+  double *outrrho = &out[16]; 
+  double *outrrhoux = &out[20]; 
+  double *outrrhouy = &out[24]; 
+  double *outrrhouz = &out[28]; 
   double incr[4]; 
 
   double vthsq = vth*vth; 

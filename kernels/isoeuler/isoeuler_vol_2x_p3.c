@@ -1,5 +1,5 @@
 #include <gkyl_isoeuler_kernels.h> 
-GKYL_CU_DH double isoeuler_vol_2x2v_ser_p3(const double *w, const double *dxv, const double vth, const double *uvar, const double *statevec, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double isoeuler_vol_2x_ser_p3(const double *w, const double *dxv, const double vth, const double *uvar, const double *statevec, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]: Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
@@ -10,11 +10,14 @@ GKYL_CU_DH double isoeuler_vol_2x2v_ser_p3(const double *w, const double *dxv, c
   const double *rho = &statevec[0]; 
   const double *rhou0 = &statevec[12]; 
   const double *rhou1 = &statevec[24]; 
+  const double *rhou2 = &statevec[36]; 
   const double *uvar0 = &uvar[0]; 
   const double *uvar1 = &uvar[12]; 
+  const double *uvar2 = &uvar[24]; 
   double *outrho = &out[0]; 
   double *outrhou0 = &out[12]; 
   double *outrhou1 = &out[24]; 
+  double *outrhou2 = &out[36]; 
   double dx10 = 2./dxv[0]; 
   double dx11 = 2./dxv[1]; 
 
