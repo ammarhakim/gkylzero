@@ -1,5 +1,6 @@
 #include <gkyl_proj_maxwellian_on_basis.h>
 
+GKYL_CU_DH
 static inline void
 comp_to_phys(int ndim, const double *eta,
   const double * GKYL_RESTRICT dx, const double * GKYL_RESTRICT xc,
@@ -44,3 +45,8 @@ struct gkyl_proj_maxwellian_on_basis {
                                   // ordinates in a cell.
 };
 
+void
+gkyl_proj_maxwellian_on_basis_lab_mom_cu(const gkyl_proj_maxwellian_on_basis *up,
+  const struct gkyl_range *phase_r, const struct gkyl_range *conf_r,
+  const struct gkyl_array *M0, const struct gkyl_array *M1i, const struct gkyl_array *M2,
+  struct gkyl_array *fmax);

@@ -8,6 +8,7 @@
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_proj_maxwellian_on_basis_priv.h>
 #include <gkyl_range.h>
+#include <assert.h>
 
 // Sets ordinates, weights and basis functions at ords. Returns total
 // number of quadrature nodes
@@ -101,6 +102,9 @@ gkyl_proj_maxwellian_on_basis_new(
   up->num_conf_basis = conf_basis->num_basis;
   up->num_phase_basis = phase_basis->num_basis;
   up->use_gpu = use_gpu;
+
+  // MF 2022/08/09: device kernel has arrays hard-coded to 3x, vdim=3, p=2 for now.
+  if (use_gpu) assert((up->cdim<3 && conf_basis->poly_order<4) || (up->cdim==3 && conf_basis->poly_order<3));
 
   // initialize data needed for phase-space quadrature 
   up->tot_quad = init_quad_values(phase_basis, num_quad,
