@@ -33,8 +33,16 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
 
   // Choose the kernel that does the reflection/no reflection/partial
   // reflection.
-  up->ker_reflectedf = bc_gksheath_choose_reflectedf_kernel(basis->ndim, basis->b_type, basis->poly_order, edge);
-  assert(up->ker_reflectedf);
+  up->kernels = gkyl_malloc(sizeof(struct gkyl_bc_sheath_gyrokinetic_kernels));
+  up->kernels->reflectedf = bc_gksheath_choose_reflectedf_kernel(basis->ndim, basis->b_type, basis->poly_order, edge);
+  assert(up->kernels->reflectedf);
+  up->kernels_cu = up->kernels;
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu) {
+    up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_sheath_gyrokinetic_kernels));
+    gkyl_bc_gksheath_choose_reflectedf_kernel_cu(basis->ndim, basis->b_type, basis->poly_order, edge, up->kernels_cu);
+  }
+#endif
 
   return up;
 }
@@ -45,8 +53,8 @@ gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, 
   const struct gkyl_array *phi_wall, struct gkyl_array *distf)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(arr)) {
-    bc_sheath_gyrokinetic_advance_cu(up, phi, phi_wall, distf);
+  if (up->use_gpu) {
+    gkyl_bc_sheath_gyrokinetic_advance_cu(up, phi, phi_wall, distf);
     return;
   }
 #endif
@@ -90,7 +98,7 @@ gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, 
     // 2) fhat=f (full reflection)
     // 3) fhat=c*f (partial reflection)
     double fhat[up->basis->num_basis];
-    up->ker_reflectedf(vpar_c, dvpar, vparAbsSq_lo, vparAbsSq_up, up->q2Dm, phi_p, phi_wall_p, inp, fhat);
+    up->kernels->reflectedf(vpar_c, dvpar, vparAbsSq_lo, vparAbsSq_up, up->q2Dm, phi_p, phi_wall_p, inp, fhat);
 
     // Reflect fhat into skin cells.
     bc_gksheath_reflect(up->dir, up->basis, up->cdim, out, fhat);
@@ -100,8 +108,11 @@ gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, 
 void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up)
 {
   // Release memory associated with array_copy_func.
-//  if (up->use_gpu) {
-//  }
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    gkyl_cu_free(up->kernels_cu);
+  }
+#endif
   // Release updater memory.
   gkyl_free(up);
 }

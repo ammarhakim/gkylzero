@@ -52,6 +52,10 @@ static const edged_sheath_reflectedf_kern_list tensor_sheath_reflect_list[] = {
   },
 };
 
+struct gkyl_bc_sheath_gyrokinetic_kernels {
+  sheath_reflectedf_t reflectedf;  // reflectedf kernel.
+};
+
 // Primary struct in this updater.
 struct gkyl_bc_sheath_gyrokinetic {
   int dir, cdim;
@@ -60,10 +64,14 @@ struct gkyl_bc_sheath_gyrokinetic {
   const struct gkyl_basis *basis;
   bool use_gpu;
   double q2Dm; // charge-to-mass ratio times 2.
-  sheath_reflectedf_t ker_reflectedf;  // reflectedf kernel.
+  struct gkyl_bc_sheath_gyrokinetic_kernels *kernels;  // reflectedf kernel.
+  struct gkyl_bc_sheath_gyrokinetic_kernels *kernels_cu;  // device copy.
   const struct gkyl_rect_grid *grid;
   struct gkyl_range conf_r;
 };
+
+void
+gkyl_bc_gksheath_choose_reflectedf_kernel_cu(const int dim, const int basis_type, const int poly_order, enum gkyl_edge_loc edge, struct gkyl_bc_sheath_gyrokinetic_kernels *kers);
 
 GKYL_CU_D
 static sheath_reflectedf_t
@@ -89,3 +97,17 @@ bc_gksheath_reflect(int dir, const struct gkyl_basis *basis, int cdim, double *o
   basis->flip_odd_sign(cdim, out, out); // cdim is the vpar direction.
 }
 
+#ifdef GKYL_HAVE_CUDA
+
+/**
+ * CUDA device function to apply the sheath BC.
+
+ * @param up BC updater.
+ * @param phi Electrostatic potential.
+ * @param phi_wall Wall potential.
+ * @param distf Distribution function array to apply BC to.
+ */
+void gkyl_bc_sheath_gyrokinetic_advance_cu(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
+  const struct gkyl_array *phi_wall, struct gkyl_array *distf);
+
+#endif

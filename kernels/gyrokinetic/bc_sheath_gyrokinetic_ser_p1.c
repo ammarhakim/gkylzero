@@ -1,9 +1,9 @@
 #include <gkyl_bc_sheath_gyrokinetic_kernels.h> 
 
 
-void bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
 { 
-  double vcutSq; long double xc, b, xbarVal, fac; 
+  double vcutSq; double xc, b, xbarVal, fac; 
   double fReflZQuad[2][6]; 
   
 
@@ -25,7 +25,7 @@ void bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1(const double wv, const d
   } else { // partial reflection 
   xbarVal = (0.5773502691896258*(f[3]-1.0*f[2]))/(f[1]-1.0*f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(-0.7071067811865475*(f[1]-1.0*f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(-0.7071067811865475*(f[1]-1.0*f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflZQuad[0][0] = 0.0; 
   fReflZQuad[0][1] = 0.0; 
   fReflZQuad[0][2] = 0.0; 
@@ -33,31 +33,31 @@ void bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if (wv > 0) {
     xc = 2.*(sqrt(vcutSq)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZQuad[0][0] = (-0.7071067811865475*(f[1]-1.0*f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZQuad[0][1] = (-0.7071067811865475*(f[3]-1.0*f[2]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZQuad[0][2] = (-0.04714045207910316*(15.0*f[5]-15.0*f[4]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZQuad[0][0] = (-0.7071067811865475*(f[1]-1.0*f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZQuad[0][1] = (-0.7071067811865475*(f[3]-1.0*f[2]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZQuad[0][2] = (-0.04714045207910316*(15.0*f[5]-15.0*f[4]))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[3]+f[2]))/(f[1]+f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(0.7071067811865475*(f[1]+f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(0.7071067811865475*(f[1]+f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflZQuad[1][0] = 0.0; 
   fReflZQuad[1][1] = 0.0; 
   fReflZQuad[1][2] = 0.0; 
@@ -65,25 +65,25 @@ void bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if (wv > 0) {
     xc = 2.*(sqrt(vcutSq)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZQuad[1][0] = (0.7071067811865475*(f[1]+f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZQuad[1][1] = (0.7071067811865475*(f[3]+f[2]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZQuad[1][2] = (0.04714045207910316*(15.0*f[5]+15.0*f[4]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZQuad[1][0] = (0.7071067811865475*(f[1]+f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZQuad[1][1] = (0.7071067811865475*(f[3]+f[2]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZQuad[1][2] = (0.04714045207910316*(15.0*f[5]+15.0*f[4]))*fac; 
    } 
   } 
@@ -98,9 +98,9 @@ void bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1(const double wv, const d
  
 }
 
-void bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
 { 
-  double vcutSq; long double xc, b, xbarVal, fac; 
+  double vcutSq; double xc, b, xbarVal, fac; 
   double fReflZQuad[2][6]; 
   
 
@@ -122,7 +122,7 @@ void bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1(const double wv, const d
   } else { // partial reflection 
   xbarVal = (0.5773502691896258*(f[3]-1.0*f[2]))/(f[1]-1.0*f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(-0.7071067811865475*(f[1]-1.0*f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(-0.7071067811865475*(f[1]-1.0*f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflZQuad[0][0] = 0.0; 
   fReflZQuad[0][1] = 0.0; 
   fReflZQuad[0][2] = 0.0; 
@@ -130,31 +130,31 @@ void bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if (wv > 0) {
     xc = 2.*(sqrt(vcutSq)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZQuad[0][0] = (-0.7071067811865475*(f[1]-1.0*f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZQuad[0][1] = (-0.7071067811865475*(f[3]-1.0*f[2]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZQuad[0][2] = (-0.04714045207910316*(15.0*f[5]-15.0*f[4]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZQuad[0][0] = (-0.7071067811865475*(f[1]-1.0*f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZQuad[0][1] = (-0.7071067811865475*(f[3]-1.0*f[2]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZQuad[0][2] = (-0.04714045207910316*(15.0*f[5]-15.0*f[4]))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[3]+f[2]))/(f[1]+f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(0.7071067811865475*(f[1]+f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(0.7071067811865475*(f[1]+f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflZQuad[1][0] = 0.0; 
   fReflZQuad[1][1] = 0.0; 
   fReflZQuad[1][2] = 0.0; 
@@ -162,25 +162,25 @@ void bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if (wv > 0) {
     xc = 2.*(sqrt(vcutSq)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZQuad[1][0] = (0.7071067811865475*(f[1]+f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZQuad[1][1] = (0.7071067811865475*(f[3]+f[2]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZQuad[1][2] = (0.04714045207910316*(15.0*f[5]+15.0*f[4]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZQuad[1][0] = (0.7071067811865475*(f[1]+f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZQuad[1][1] = (0.7071067811865475*(f[3]+f[2]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZQuad[1][2] = (0.04714045207910316*(15.0*f[5]+15.0*f[4]))*fac; 
    } 
   } 
@@ -195,9 +195,9 @@ void bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1(const double wv, const d
  
 }
 
-void bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
 { 
-  double vcutSq; long double xc, b, xbarVal, fac; 
+  double vcutSq; double xc, b, xbarVal, fac; 
   double fReflZMuQuad[4][6]; 
   
 
@@ -231,7 +231,7 @@ void bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1(const double wv, const d
   } else { // partial reflection 
   xbarVal = (0.5773502691896258*(f[7]-1.0*(f[6]+f[4])+f[2]))/(f[5]-1.0*(f[3]+f[1])+f[0]); 
   // if f is not realizable, no reflection from this node 
-  if (0.5*(f[5]-1.0*(f[3]+f[1])+f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if (0.5*(f[5]-1.0*(f[3]+f[1])+f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflZMuQuad[0][0] = 0.0; 
   fReflZMuQuad[0][1] = 0.0; 
   fReflZMuQuad[0][2] = 0.0; 
@@ -239,31 +239,31 @@ void bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[0][0] = (0.5*(f[5]-1.0*(f[3]+f[1])+f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[0][1] = (0.5*(f[7]-1.0*(f[6]+f[4])+f[2]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[0][2] = (0.03333333333333333*(15.0*f[11]-15.0*(f[10]+f[9])+15.0*f[8]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[0][0] = (0.5*(f[5]-1.0*(f[3]+f[1])+f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[0][1] = (0.5*(f[7]-1.0*(f[6]+f[4])+f[2]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[0][2] = (0.03333333333333333*(15.0*f[11]-15.0*(f[10]+f[9])+15.0*f[8]))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[7]-1.0*f[6]+f[4]-1.0*f[2]))/(f[5]-1.0*f[3]+f[1]-1.0*f[0]); 
   // if f is not realizable, no reflection from this node 
-  if (-0.5*(f[5]-1.0*f[3]+f[1]-1.0*f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if (-0.5*(f[5]-1.0*f[3]+f[1]-1.0*f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflZMuQuad[1][0] = 0.0; 
   fReflZMuQuad[1][1] = 0.0; 
   fReflZMuQuad[1][2] = 0.0; 
@@ -271,31 +271,31 @@ void bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[1][0] = (-0.5*(f[5]-1.0*f[3]+f[1]-1.0*f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[1][1] = (-0.5*(f[7]-1.0*f[6]+f[4]-1.0*f[2]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[1][2] = (-0.03333333333333333*(15.0*f[11]+15.0*(f[9]-1.0*f[10])-15.0*f[8]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[1][0] = (-0.5*(f[5]-1.0*f[3]+f[1]-1.0*f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[1][1] = (-0.5*(f[7]-1.0*f[6]+f[4]-1.0*f[2]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[1][2] = (-0.03333333333333333*(15.0*f[11]+15.0*(f[9]-1.0*f[10])-15.0*f[8]))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[7]+f[6]-1.0*(f[4]+f[2])))/(f[5]+f[3]-1.0*(f[1]+f[0])); 
   // if f is not realizable, no reflection from this node 
-  if (-0.5*(f[5]+f[3]-1.0*(f[1]+f[0])) <= 0. || fabsl(xbarVal)>=.95) { 
+  if (-0.5*(f[5]+f[3]-1.0*(f[1]+f[0])) <= 0. || fabs(xbarVal)>=.95) { 
   fReflZMuQuad[2][0] = 0.0; 
   fReflZMuQuad[2][1] = 0.0; 
   fReflZMuQuad[2][2] = 0.0; 
@@ -303,31 +303,31 @@ void bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[2][0] = (-0.5*(f[5]+f[3]-1.0*(f[1]+f[0])))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[2][1] = (-0.5*(f[7]+f[6]-1.0*(f[4]+f[2])))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[2][2] = (-0.03333333333333333*(15.0*f[11]+15.0*f[10]-1.0*(15.0*f[9]+15.0*f[8])))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[2][0] = (-0.5*(f[5]+f[3]-1.0*(f[1]+f[0])))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[2][1] = (-0.5*(f[7]+f[6]-1.0*(f[4]+f[2])))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[2][2] = (-0.03333333333333333*(15.0*f[11]+15.0*f[10]-1.0*(15.0*f[9]+15.0*f[8])))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[7]+f[6]+f[4]+f[2]))/(f[5]+f[3]+f[1]+f[0]); 
   // if f is not realizable, no reflection from this node 
-  if (0.5*(f[5]+f[3]+f[1]+f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if (0.5*(f[5]+f[3]+f[1]+f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflZMuQuad[3][0] = 0.0; 
   fReflZMuQuad[3][1] = 0.0; 
   fReflZMuQuad[3][2] = 0.0; 
@@ -335,25 +335,25 @@ void bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[3][0] = (0.5*(f[5]+f[3]+f[1]+f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[3][1] = (0.5*(f[7]+f[6]+f[4]+f[2]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[3][2] = (0.03333333333333333*(15.0*f[11]+15.0*(f[10]+f[9])+15.0*f[8]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[3][0] = (0.5*(f[5]+f[3]+f[1]+f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[3][1] = (0.5*(f[7]+f[6]+f[4]+f[2]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[3][2] = (0.03333333333333333*(15.0*f[11]+15.0*(f[10]+f[9])+15.0*f[8]))*fac; 
    } 
   } 
@@ -374,9 +374,9 @@ void bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1(const double wv, const d
  
 }
 
-void bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
 { 
-  double vcutSq; long double xc, b, xbarVal, fac; 
+  double vcutSq; double xc, b, xbarVal, fac; 
   double fReflZMuQuad[4][6]; 
   
 
@@ -410,7 +410,7 @@ void bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1(const double wv, const d
   } else { // partial reflection 
   xbarVal = (0.5773502691896258*(f[7]-1.0*(f[6]+f[4])+f[2]))/(f[5]-1.0*(f[3]+f[1])+f[0]); 
   // if f is not realizable, no reflection from this node 
-  if (0.5*(f[5]-1.0*(f[3]+f[1])+f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if (0.5*(f[5]-1.0*(f[3]+f[1])+f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflZMuQuad[0][0] = 0.0; 
   fReflZMuQuad[0][1] = 0.0; 
   fReflZMuQuad[0][2] = 0.0; 
@@ -418,31 +418,31 @@ void bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[0][0] = (0.5*(f[5]-1.0*(f[3]+f[1])+f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[0][1] = (0.5*(f[7]-1.0*(f[6]+f[4])+f[2]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[0][2] = (0.03333333333333333*(15.0*f[11]-15.0*(f[10]+f[9])+15.0*f[8]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[0][0] = (0.5*(f[5]-1.0*(f[3]+f[1])+f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[0][1] = (0.5*(f[7]-1.0*(f[6]+f[4])+f[2]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[0][2] = (0.03333333333333333*(15.0*f[11]-15.0*(f[10]+f[9])+15.0*f[8]))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[7]-1.0*f[6]+f[4]-1.0*f[2]))/(f[5]-1.0*f[3]+f[1]-1.0*f[0]); 
   // if f is not realizable, no reflection from this node 
-  if (-0.5*(f[5]-1.0*f[3]+f[1]-1.0*f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if (-0.5*(f[5]-1.0*f[3]+f[1]-1.0*f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflZMuQuad[1][0] = 0.0; 
   fReflZMuQuad[1][1] = 0.0; 
   fReflZMuQuad[1][2] = 0.0; 
@@ -450,31 +450,31 @@ void bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[1][0] = (-0.5*(f[5]-1.0*f[3]+f[1]-1.0*f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[1][1] = (-0.5*(f[7]-1.0*f[6]+f[4]-1.0*f[2]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[1][2] = (-0.03333333333333333*(15.0*f[11]+15.0*(f[9]-1.0*f[10])-15.0*f[8]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[1][0] = (-0.5*(f[5]-1.0*f[3]+f[1]-1.0*f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[1][1] = (-0.5*(f[7]-1.0*f[6]+f[4]-1.0*f[2]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[1][2] = (-0.03333333333333333*(15.0*f[11]+15.0*(f[9]-1.0*f[10])-15.0*f[8]))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[7]+f[6]-1.0*(f[4]+f[2])))/(f[5]+f[3]-1.0*(f[1]+f[0])); 
   // if f is not realizable, no reflection from this node 
-  if (-0.5*(f[5]+f[3]-1.0*(f[1]+f[0])) <= 0. || fabsl(xbarVal)>=.95) { 
+  if (-0.5*(f[5]+f[3]-1.0*(f[1]+f[0])) <= 0. || fabs(xbarVal)>=.95) { 
   fReflZMuQuad[2][0] = 0.0; 
   fReflZMuQuad[2][1] = 0.0; 
   fReflZMuQuad[2][2] = 0.0; 
@@ -482,31 +482,31 @@ void bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[2][0] = (-0.5*(f[5]+f[3]-1.0*(f[1]+f[0])))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[2][1] = (-0.5*(f[7]+f[6]-1.0*(f[4]+f[2])))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[2][2] = (-0.03333333333333333*(15.0*f[11]+15.0*f[10]-1.0*(15.0*f[9]+15.0*f[8])))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[2][0] = (-0.5*(f[5]+f[3]-1.0*(f[1]+f[0])))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[2][1] = (-0.5*(f[7]+f[6]-1.0*(f[4]+f[2])))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[2][2] = (-0.03333333333333333*(15.0*f[11]+15.0*f[10]-1.0*(15.0*f[9]+15.0*f[8])))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[7]+f[6]+f[4]+f[2]))/(f[5]+f[3]+f[1]+f[0]); 
   // if f is not realizable, no reflection from this node 
-  if (0.5*(f[5]+f[3]+f[1]+f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if (0.5*(f[5]+f[3]+f[1]+f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflZMuQuad[3][0] = 0.0; 
   fReflZMuQuad[3][1] = 0.0; 
   fReflZMuQuad[3][2] = 0.0; 
@@ -514,25 +514,25 @@ void bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[3][0] = (0.5*(f[5]+f[3]+f[1]+f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[3][1] = (0.5*(f[7]+f[6]+f[4]+f[2]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[3][2] = (0.03333333333333333*(15.0*f[11]+15.0*(f[10]+f[9])+15.0*f[8]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[3][0] = (0.5*(f[5]+f[3]+f[1]+f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[3][1] = (0.5*(f[7]+f[6]+f[4]+f[2]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflZMuQuad[3][2] = (0.03333333333333333*(15.0*f[11]+15.0*(f[10]+f[9])+15.0*f[8]))*fac; 
    } 
   } 
@@ -553,9 +553,9 @@ void bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1(const double wv, const d
  
 }
 
-void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
 { 
-  double vcutSq_i; long double xc, b, xbarVal, fac; 
+  double vcutSq_i; double xc, b, xbarVal, fac; 
   double fReflXYQuad[4][12]; 
   double fReflXYZMuQuad[4][6]; 
   
@@ -591,7 +591,7 @@ void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double wv, const d
   } else { // partial reflection 
   xbarVal = (0.5773502691896258*(f[31]-1.0*(f[30]+f[29]+f[28]+f[26])+f[25]+f[24]+f[23]+f[19]+f[18]+f[17]-1.0*(f[15]+f[11]+f[10]+f[9])+f[4]))/(f[27]-1.0*(f[22]+f[21]+f[20]+f[16])+f[14]+f[13]+f[12]+f[8]+f[7]+f[6]-1.0*(f[5]+f[3]+f[2]+f[1])+f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(0.25*(f[27]-1.0*(f[22]+f[21]+f[20]+f[16])+f[14]+f[13]+f[12]+f[8]+f[7]+f[6]-1.0*(f[5]+f[3]+f[2]+f[1])+f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(0.25*(f[27]-1.0*(f[22]+f[21]+f[20]+f[16])+f[14]+f[13]+f[12]+f[8]+f[7]+f[6]-1.0*(f[5]+f[3]+f[2]+f[1])+f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[0][0] = 0.0; 
   fReflXYZMuQuad[0][1] = 0.0; 
   fReflXYZMuQuad[0][2] = 0.0; 
@@ -599,31 +599,31 @@ void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][0] = (0.25*(f[27]-1.0*(f[22]+f[21]+f[20]+f[16])+f[14]+f[13]+f[12]+f[8]+f[7]+f[6]-1.0*(f[5]+f[3]+f[2]+f[1])+f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][1] = (0.25*(f[31]-1.0*(f[30]+f[29]+f[28]+f[26])+f[25]+f[24]+f[23]+f[19]+f[18]+f[17]-1.0*(f[15]+f[11]+f[10]+f[9])+f[4]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][2] = (0.01666666666666667*(15.0*f[47]-15.0*(f[46]+f[45]+f[44]+f[43])+15.0*(f[42]+f[41]+f[40]+f[39]+f[38]+f[37])-15.0*(f[36]+f[35]+f[34]+f[33])+15.0*f[32]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][0] = (0.25*(f[27]-1.0*(f[22]+f[21]+f[20]+f[16])+f[14]+f[13]+f[12]+f[8]+f[7]+f[6]-1.0*(f[5]+f[3]+f[2]+f[1])+f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][1] = (0.25*(f[31]-1.0*(f[30]+f[29]+f[28]+f[26])+f[25]+f[24]+f[23]+f[19]+f[18]+f[17]-1.0*(f[15]+f[11]+f[10]+f[9])+f[4]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][2] = (0.01666666666666667*(15.0*f[47]-15.0*(f[46]+f[45]+f[44]+f[43])+15.0*(f[42]+f[41]+f[40]+f[39]+f[38]+f[37])-15.0*(f[36]+f[35]+f[34]+f[33])+15.0*f[32]))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[31]-1.0*(f[30]+f[29]+f[28])+f[26]+f[25]+f[24]+f[23]-1.0*(f[19]+f[18]+f[17]+f[15])+f[11]+f[10]+f[9]-1.0*f[4]))/(f[27]-1.0*(f[22]+f[21]+f[20])+f[16]+f[14]+f[13]+f[12]-1.0*(f[8]+f[7]+f[6]+f[5])+f[3]+f[2]+f[1]-1.0*f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(-0.25*(f[27]-1.0*(f[22]+f[21]+f[20])+f[16]+f[14]+f[13]+f[12]-1.0*(f[8]+f[7]+f[6]+f[5])+f[3]+f[2]+f[1]-1.0*f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(-0.25*(f[27]-1.0*(f[22]+f[21]+f[20])+f[16]+f[14]+f[13]+f[12]-1.0*(f[8]+f[7]+f[6]+f[5])+f[3]+f[2]+f[1]-1.0*f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[1][0] = 0.0; 
   fReflXYZMuQuad[1][1] = 0.0; 
   fReflXYZMuQuad[1][2] = 0.0; 
@@ -631,31 +631,31 @@ void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][0] = (-0.25*(f[27]-1.0*(f[22]+f[21]+f[20])+f[16]+f[14]+f[13]+f[12]-1.0*(f[8]+f[7]+f[6]+f[5])+f[3]+f[2]+f[1]-1.0*f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][1] = (-0.25*(f[31]-1.0*(f[30]+f[29]+f[28])+f[26]+f[25]+f[24]+f[23]-1.0*(f[19]+f[18]+f[17]+f[15])+f[11]+f[10]+f[9]-1.0*f[4]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][2] = (-0.01666666666666667*(15.0*f[47]-15.0*(f[46]+f[45]+f[44]-1.0*f[43])+15.0*(f[42]+f[41]+f[40]-1.0*(f[39]+f[38]+f[37]))+15.0*((-1.0*f[36])+f[35]+f[34]+f[33])-15.0*f[32]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][0] = (-0.25*(f[27]-1.0*(f[22]+f[21]+f[20])+f[16]+f[14]+f[13]+f[12]-1.0*(f[8]+f[7]+f[6]+f[5])+f[3]+f[2]+f[1]-1.0*f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][1] = (-0.25*(f[31]-1.0*(f[30]+f[29]+f[28])+f[26]+f[25]+f[24]+f[23]-1.0*(f[19]+f[18]+f[17]+f[15])+f[11]+f[10]+f[9]-1.0*f[4]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][2] = (-0.01666666666666667*(15.0*f[47]-15.0*(f[46]+f[45]+f[44]-1.0*f[43])+15.0*(f[42]+f[41]+f[40]-1.0*(f[39]+f[38]+f[37]))+15.0*((-1.0*f[36])+f[35]+f[34]+f[33])-15.0*f[32]))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[31]-1.0*(f[30]+f[29])+f[28]-1.0*f[26]+f[25]-1.0*(f[24]+f[23])+f[19]+f[18]-1.0*f[17]+f[15]-1.0*f[11]+f[10]+f[9]-1.0*f[4]))/(f[27]-1.0*(f[22]+f[21])+f[20]-1.0*f[16]+f[14]-1.0*(f[13]+f[12])+f[8]+f[7]-1.0*f[6]+f[5]-1.0*f[3]+f[2]+f[1]-1.0*f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(-0.25*(f[27]-1.0*(f[22]+f[21])+f[20]-1.0*f[16]+f[14]-1.0*(f[13]+f[12])+f[8]+f[7]-1.0*f[6]+f[5]-1.0*f[3]+f[2]+f[1]-1.0*f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(-0.25*(f[27]-1.0*(f[22]+f[21])+f[20]-1.0*f[16]+f[14]-1.0*(f[13]+f[12])+f[8]+f[7]-1.0*f[6]+f[5]-1.0*f[3]+f[2]+f[1]-1.0*f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[2][0] = 0.0; 
   fReflXYZMuQuad[2][1] = 0.0; 
   fReflXYZMuQuad[2][2] = 0.0; 
@@ -663,31 +663,31 @@ void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][0] = (-0.25*(f[27]-1.0*(f[22]+f[21])+f[20]-1.0*f[16]+f[14]-1.0*(f[13]+f[12])+f[8]+f[7]-1.0*f[6]+f[5]-1.0*f[3]+f[2]+f[1]-1.0*f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][1] = (-0.25*(f[31]-1.0*(f[30]+f[29])+f[28]-1.0*f[26]+f[25]-1.0*(f[24]+f[23])+f[19]+f[18]-1.0*f[17]+f[15]-1.0*f[11]+f[10]+f[9]-1.0*f[4]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][2] = (-0.01666666666666667*(15.0*f[47]+15.0*((-1.0*(f[46]+f[45]))+f[44]-1.0*f[43])+15.0*(f[42]-1.0*(f[41]+f[40]-1.0*f[39])+f[38]-1.0*f[37])+15.0*(f[36]-1.0*f[35]+f[34]+f[33])-15.0*f[32]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][0] = (-0.25*(f[27]-1.0*(f[22]+f[21])+f[20]-1.0*f[16]+f[14]-1.0*(f[13]+f[12])+f[8]+f[7]-1.0*f[6]+f[5]-1.0*f[3]+f[2]+f[1]-1.0*f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][1] = (-0.25*(f[31]-1.0*(f[30]+f[29])+f[28]-1.0*f[26]+f[25]-1.0*(f[24]+f[23])+f[19]+f[18]-1.0*f[17]+f[15]-1.0*f[11]+f[10]+f[9]-1.0*f[4]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][2] = (-0.01666666666666667*(15.0*f[47]+15.0*((-1.0*(f[46]+f[45]))+f[44]-1.0*f[43])+15.0*(f[42]-1.0*(f[41]+f[40]-1.0*f[39])+f[38]-1.0*f[37])+15.0*(f[36]-1.0*f[35]+f[34]+f[33])-15.0*f[32]))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[31]-1.0*(f[30]+f[29])+f[28]+f[26]+f[25]-1.0*(f[24]+f[23]+f[19]+f[18])+f[17]+f[15]+f[11]-1.0*(f[10]+f[9])+f[4]))/(f[27]-1.0*(f[22]+f[21])+f[20]+f[16]+f[14]-1.0*(f[13]+f[12]+f[8]+f[7])+f[6]+f[5]+f[3]-1.0*(f[2]+f[1])+f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(0.25*(f[27]-1.0*(f[22]+f[21])+f[20]+f[16]+f[14]-1.0*(f[13]+f[12]+f[8]+f[7])+f[6]+f[5]+f[3]-1.0*(f[2]+f[1])+f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(0.25*(f[27]-1.0*(f[22]+f[21])+f[20]+f[16]+f[14]-1.0*(f[13]+f[12]+f[8]+f[7])+f[6]+f[5]+f[3]-1.0*(f[2]+f[1])+f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[3][0] = 0.0; 
   fReflXYZMuQuad[3][1] = 0.0; 
   fReflXYZMuQuad[3][2] = 0.0; 
@@ -695,25 +695,25 @@ void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][0] = (0.25*(f[27]-1.0*(f[22]+f[21])+f[20]+f[16]+f[14]-1.0*(f[13]+f[12]+f[8]+f[7])+f[6]+f[5]+f[3]-1.0*(f[2]+f[1])+f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][1] = (0.25*(f[31]-1.0*(f[30]+f[29])+f[28]+f[26]+f[25]-1.0*(f[24]+f[23]+f[19]+f[18])+f[17]+f[15]+f[11]-1.0*(f[10]+f[9])+f[4]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][2] = (0.01666666666666667*(15.0*f[47]+15.0*((-1.0*(f[46]+f[45]))+f[44]+f[43])+15.0*(f[42]-1.0*(f[41]+f[40]+f[39]+f[38]-1.0*f[37]))+15.0*(f[36]+f[35]-1.0*(f[34]+f[33]))+15.0*f[32]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][0] = (0.25*(f[27]-1.0*(f[22]+f[21])+f[20]+f[16]+f[14]-1.0*(f[13]+f[12]+f[8]+f[7])+f[6]+f[5]+f[3]-1.0*(f[2]+f[1])+f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][1] = (0.25*(f[31]-1.0*(f[30]+f[29])+f[28]+f[26]+f[25]-1.0*(f[24]+f[23]+f[19]+f[18])+f[17]+f[15]+f[11]-1.0*(f[10]+f[9])+f[4]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][2] = (0.01666666666666667*(15.0*f[47]+15.0*((-1.0*(f[46]+f[45]))+f[44]+f[43])+15.0*(f[42]-1.0*(f[41]+f[40]+f[39]+f[38]-1.0*f[37]))+15.0*(f[36]+f[35]-1.0*(f[34]+f[33]))+15.0*f[32]))*fac; 
    } 
   } 
@@ -763,7 +763,7 @@ void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double wv, const d
   } else { // partial reflection 
   xbarVal = (0.5773502691896258*(f[31]-1.0*f[30]+f[29]-1.0*(f[28]+f[26]+f[25])+f[24]-1.0*f[23]+f[19]-1.0*f[18]+f[17]+f[15]+f[11]-1.0*f[10]+f[9]-1.0*f[4]))/(f[27]-1.0*f[22]+f[21]-1.0*(f[20]+f[16]+f[14])+f[13]-1.0*f[12]+f[8]-1.0*f[7]+f[6]+f[5]+f[3]-1.0*f[2]+f[1]-1.0*f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(-0.25*(f[27]-1.0*f[22]+f[21]-1.0*(f[20]+f[16]+f[14])+f[13]-1.0*f[12]+f[8]-1.0*f[7]+f[6]+f[5]+f[3]-1.0*f[2]+f[1]-1.0*f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(-0.25*(f[27]-1.0*f[22]+f[21]-1.0*(f[20]+f[16]+f[14])+f[13]-1.0*f[12]+f[8]-1.0*f[7]+f[6]+f[5]+f[3]-1.0*f[2]+f[1]-1.0*f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[0][0] = 0.0; 
   fReflXYZMuQuad[0][1] = 0.0; 
   fReflXYZMuQuad[0][2] = 0.0; 
@@ -771,31 +771,31 @@ void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][0] = (-0.25*(f[27]-1.0*f[22]+f[21]-1.0*(f[20]+f[16]+f[14])+f[13]-1.0*f[12]+f[8]-1.0*f[7]+f[6]+f[5]+f[3]-1.0*f[2]+f[1]-1.0*f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][1] = (-0.25*(f[31]-1.0*f[30]+f[29]-1.0*(f[28]+f[26]+f[25])+f[24]-1.0*f[23]+f[19]-1.0*f[18]+f[17]+f[15]+f[11]-1.0*f[10]+f[9]-1.0*f[4]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][2] = (-0.01666666666666667*(15.0*f[47]+15.0*((-1.0*f[46])+f[45]-1.0*(f[44]+f[43]))+15.0*((-1.0*f[42])+f[41]-1.0*f[40]+f[39]-1.0*f[38]+f[37])+15.0*(f[36]+f[35]-1.0*f[34]+f[33])-15.0*f[32]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][0] = (-0.25*(f[27]-1.0*f[22]+f[21]-1.0*(f[20]+f[16]+f[14])+f[13]-1.0*f[12]+f[8]-1.0*f[7]+f[6]+f[5]+f[3]-1.0*f[2]+f[1]-1.0*f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][1] = (-0.25*(f[31]-1.0*f[30]+f[29]-1.0*(f[28]+f[26]+f[25])+f[24]-1.0*f[23]+f[19]-1.0*f[18]+f[17]+f[15]+f[11]-1.0*f[10]+f[9]-1.0*f[4]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][2] = (-0.01666666666666667*(15.0*f[47]+15.0*((-1.0*f[46])+f[45]-1.0*(f[44]+f[43]))+15.0*((-1.0*f[42])+f[41]-1.0*f[40]+f[39]-1.0*f[38]+f[37])+15.0*(f[36]+f[35]-1.0*f[34]+f[33])-15.0*f[32]))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[31]-1.0*f[30]+f[29]-1.0*f[28]+f[26]-1.0*f[25]+f[24]-1.0*(f[23]+f[19])+f[18]-1.0*f[17]+f[15]-1.0*f[11]+f[10]-1.0*f[9]+f[4]))/(f[27]-1.0*f[22]+f[21]-1.0*f[20]+f[16]-1.0*f[14]+f[13]-1.0*(f[12]+f[8])+f[7]-1.0*f[6]+f[5]-1.0*f[3]+f[2]-1.0*f[1]+f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(0.25*(f[27]-1.0*f[22]+f[21]-1.0*f[20]+f[16]-1.0*f[14]+f[13]-1.0*(f[12]+f[8])+f[7]-1.0*f[6]+f[5]-1.0*f[3]+f[2]-1.0*f[1]+f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(0.25*(f[27]-1.0*f[22]+f[21]-1.0*f[20]+f[16]-1.0*f[14]+f[13]-1.0*(f[12]+f[8])+f[7]-1.0*f[6]+f[5]-1.0*f[3]+f[2]-1.0*f[1]+f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[1][0] = 0.0; 
   fReflXYZMuQuad[1][1] = 0.0; 
   fReflXYZMuQuad[1][2] = 0.0; 
@@ -803,31 +803,31 @@ void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][0] = (0.25*(f[27]-1.0*f[22]+f[21]-1.0*f[20]+f[16]-1.0*f[14]+f[13]-1.0*(f[12]+f[8])+f[7]-1.0*f[6]+f[5]-1.0*f[3]+f[2]-1.0*f[1]+f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][1] = (0.25*(f[31]-1.0*f[30]+f[29]-1.0*f[28]+f[26]-1.0*f[25]+f[24]-1.0*(f[23]+f[19])+f[18]-1.0*f[17]+f[15]-1.0*f[11]+f[10]-1.0*f[9]+f[4]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][2] = (0.01666666666666667*(15.0*f[47]+15.0*((-1.0*f[46])+f[45]-1.0*f[44]+f[43])+15.0*((-1.0*f[42])+f[41]-1.0*(f[40]+f[39]-1.0*f[38]+f[37]))+15.0*(f[36]-1.0*f[35]+f[34]-1.0*f[33])+15.0*f[32]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][0] = (0.25*(f[27]-1.0*f[22]+f[21]-1.0*f[20]+f[16]-1.0*f[14]+f[13]-1.0*(f[12]+f[8])+f[7]-1.0*f[6]+f[5]-1.0*f[3]+f[2]-1.0*f[1]+f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][1] = (0.25*(f[31]-1.0*f[30]+f[29]-1.0*f[28]+f[26]-1.0*f[25]+f[24]-1.0*(f[23]+f[19])+f[18]-1.0*f[17]+f[15]-1.0*f[11]+f[10]-1.0*f[9]+f[4]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][2] = (0.01666666666666667*(15.0*f[47]+15.0*((-1.0*f[46])+f[45]-1.0*f[44]+f[43])+15.0*((-1.0*f[42])+f[41]-1.0*(f[40]+f[39]-1.0*f[38]+f[37]))+15.0*(f[36]-1.0*f[35]+f[34]-1.0*f[33])+15.0*f[32]))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[31]-1.0*f[30]+f[29]+f[28]-1.0*(f[26]+f[25]+f[24])+f[23]+f[19]-1.0*(f[18]+f[17]+f[15])+f[11]+f[10]-1.0*f[9]+f[4]))/(f[27]-1.0*f[22]+f[21]+f[20]-1.0*(f[16]+f[14]+f[13])+f[12]+f[8]-1.0*(f[7]+f[6]+f[5])+f[3]+f[2]-1.0*f[1]+f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(0.25*(f[27]-1.0*f[22]+f[21]+f[20]-1.0*(f[16]+f[14]+f[13])+f[12]+f[8]-1.0*(f[7]+f[6]+f[5])+f[3]+f[2]-1.0*f[1]+f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(0.25*(f[27]-1.0*f[22]+f[21]+f[20]-1.0*(f[16]+f[14]+f[13])+f[12]+f[8]-1.0*(f[7]+f[6]+f[5])+f[3]+f[2]-1.0*f[1]+f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[2][0] = 0.0; 
   fReflXYZMuQuad[2][1] = 0.0; 
   fReflXYZMuQuad[2][2] = 0.0; 
@@ -835,31 +835,31 @@ void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][0] = (0.25*(f[27]-1.0*f[22]+f[21]+f[20]-1.0*(f[16]+f[14]+f[13])+f[12]+f[8]-1.0*(f[7]+f[6]+f[5])+f[3]+f[2]-1.0*f[1]+f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][1] = (0.25*(f[31]-1.0*f[30]+f[29]+f[28]-1.0*(f[26]+f[25]+f[24])+f[23]+f[19]-1.0*(f[18]+f[17]+f[15])+f[11]+f[10]-1.0*f[9]+f[4]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][2] = (0.01666666666666667*(15.0*f[47]+15.0*((-1.0*f[46])+f[45]+f[44]-1.0*f[43])+15.0*((-1.0*(f[42]+f[41]))+f[40]+f[39]-1.0*(f[38]+f[37]))+15.0*((-1.0*f[36])+f[35]+f[34]-1.0*f[33])+15.0*f[32]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][0] = (0.25*(f[27]-1.0*f[22]+f[21]+f[20]-1.0*(f[16]+f[14]+f[13])+f[12]+f[8]-1.0*(f[7]+f[6]+f[5])+f[3]+f[2]-1.0*f[1]+f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][1] = (0.25*(f[31]-1.0*f[30]+f[29]+f[28]-1.0*(f[26]+f[25]+f[24])+f[23]+f[19]-1.0*(f[18]+f[17]+f[15])+f[11]+f[10]-1.0*f[9]+f[4]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][2] = (0.01666666666666667*(15.0*f[47]+15.0*((-1.0*f[46])+f[45]+f[44]-1.0*f[43])+15.0*((-1.0*(f[42]+f[41]))+f[40]+f[39]-1.0*(f[38]+f[37]))+15.0*((-1.0*f[36])+f[35]+f[34]-1.0*f[33])+15.0*f[32]))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[31]-1.0*f[30]+f[29]+f[28]+f[26]-1.0*(f[25]+f[24])+f[23]-1.0*f[19]+f[18]+f[17]-1.0*(f[15]+f[11]+f[10])+f[9]-1.0*f[4]))/(f[27]-1.0*f[22]+f[21]+f[20]+f[16]-1.0*(f[14]+f[13])+f[12]-1.0*f[8]+f[7]+f[6]-1.0*(f[5]+f[3]+f[2])+f[1]-1.0*f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(-0.25*(f[27]-1.0*f[22]+f[21]+f[20]+f[16]-1.0*(f[14]+f[13])+f[12]-1.0*f[8]+f[7]+f[6]-1.0*(f[5]+f[3]+f[2])+f[1]-1.0*f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(-0.25*(f[27]-1.0*f[22]+f[21]+f[20]+f[16]-1.0*(f[14]+f[13])+f[12]-1.0*f[8]+f[7]+f[6]-1.0*(f[5]+f[3]+f[2])+f[1]-1.0*f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[3][0] = 0.0; 
   fReflXYZMuQuad[3][1] = 0.0; 
   fReflXYZMuQuad[3][2] = 0.0; 
@@ -867,25 +867,25 @@ void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][0] = (-0.25*(f[27]-1.0*f[22]+f[21]+f[20]+f[16]-1.0*(f[14]+f[13])+f[12]-1.0*f[8]+f[7]+f[6]-1.0*(f[5]+f[3]+f[2])+f[1]-1.0*f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][1] = (-0.25*(f[31]-1.0*f[30]+f[29]+f[28]+f[26]-1.0*(f[25]+f[24])+f[23]-1.0*f[19]+f[18]+f[17]-1.0*(f[15]+f[11]+f[10])+f[9]-1.0*f[4]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][2] = (-0.01666666666666667*(15.0*f[47]+15.0*((-1.0*f[46])+f[45]+f[44]+f[43])+15.0*((-1.0*(f[42]+f[41]))+f[40]-1.0*f[39]+f[38]+f[37])-15.0*(f[36]+f[35]+f[34]-1.0*f[33])-15.0*f[32]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][0] = (-0.25*(f[27]-1.0*f[22]+f[21]+f[20]+f[16]-1.0*(f[14]+f[13])+f[12]-1.0*f[8]+f[7]+f[6]-1.0*(f[5]+f[3]+f[2])+f[1]-1.0*f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][1] = (-0.25*(f[31]-1.0*f[30]+f[29]+f[28]+f[26]-1.0*(f[25]+f[24])+f[23]-1.0*f[19]+f[18]+f[17]-1.0*(f[15]+f[11]+f[10])+f[9]-1.0*f[4]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][2] = (-0.01666666666666667*(15.0*f[47]+15.0*((-1.0*f[46])+f[45]+f[44]+f[43])+15.0*((-1.0*(f[42]+f[41]))+f[40]-1.0*f[39]+f[38]+f[37])-15.0*(f[36]+f[35]+f[34]-1.0*f[33])-15.0*f[32]))*fac; 
    } 
   } 
@@ -935,7 +935,7 @@ void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double wv, const d
   } else { // partial reflection 
   xbarVal = (0.5773502691896258*(f[31]+f[30]-1.0*(f[29]+f[28]+f[26]+f[25]+f[24])+f[23]-1.0*f[19]+f[18]+f[17]+f[15]+f[11]+f[10]-1.0*(f[9]+f[4])))/(f[27]+f[22]-1.0*(f[21]+f[20]+f[16]+f[14]+f[13])+f[12]-1.0*f[8]+f[7]+f[6]+f[5]+f[3]+f[2]-1.0*(f[1]+f[0])); 
   // if f is not realizable, no reflection from this node 
-  if(-0.25*(f[27]+f[22]-1.0*(f[21]+f[20]+f[16]+f[14]+f[13])+f[12]-1.0*f[8]+f[7]+f[6]+f[5]+f[3]+f[2]-1.0*(f[1]+f[0])) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(-0.25*(f[27]+f[22]-1.0*(f[21]+f[20]+f[16]+f[14]+f[13])+f[12]-1.0*f[8]+f[7]+f[6]+f[5]+f[3]+f[2]-1.0*(f[1]+f[0])) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[0][0] = 0.0; 
   fReflXYZMuQuad[0][1] = 0.0; 
   fReflXYZMuQuad[0][2] = 0.0; 
@@ -943,31 +943,31 @@ void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][0] = (-0.25*(f[27]+f[22]-1.0*(f[21]+f[20]+f[16]+f[14]+f[13])+f[12]-1.0*f[8]+f[7]+f[6]+f[5]+f[3]+f[2]-1.0*(f[1]+f[0])))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][1] = (-0.25*(f[31]+f[30]-1.0*(f[29]+f[28]+f[26]+f[25]+f[24])+f[23]-1.0*f[19]+f[18]+f[17]+f[15]+f[11]+f[10]-1.0*(f[9]+f[4])))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][2] = (-0.01666666666666667*(15.0*f[47]+15.0*(f[46]-1.0*(f[45]+f[44]+f[43]))+15.0*((-1.0*(f[42]+f[41]))+f[40]-1.0*f[39]+f[38]+f[37])+15.0*(f[36]+f[35]+f[34])-1.0*(15.0*f[33]+15.0*f[32])))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][0] = (-0.25*(f[27]+f[22]-1.0*(f[21]+f[20]+f[16]+f[14]+f[13])+f[12]-1.0*f[8]+f[7]+f[6]+f[5]+f[3]+f[2]-1.0*(f[1]+f[0])))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][1] = (-0.25*(f[31]+f[30]-1.0*(f[29]+f[28]+f[26]+f[25]+f[24])+f[23]-1.0*f[19]+f[18]+f[17]+f[15]+f[11]+f[10]-1.0*(f[9]+f[4])))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][2] = (-0.01666666666666667*(15.0*f[47]+15.0*(f[46]-1.0*(f[45]+f[44]+f[43]))+15.0*((-1.0*(f[42]+f[41]))+f[40]-1.0*f[39]+f[38]+f[37])+15.0*(f[36]+f[35]+f[34])-1.0*(15.0*f[33]+15.0*f[32])))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[31]+f[30]-1.0*(f[29]+f[28])+f[26]-1.0*(f[25]+f[24])+f[23]+f[19]-1.0*(f[18]+f[17])+f[15]-1.0*(f[11]+f[10])+f[9]+f[4]))/(f[27]+f[22]-1.0*(f[21]+f[20])+f[16]-1.0*(f[14]+f[13])+f[12]+f[8]-1.0*(f[7]+f[6])+f[5]-1.0*(f[3]+f[2])+f[1]+f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(0.25*(f[27]+f[22]-1.0*(f[21]+f[20])+f[16]-1.0*(f[14]+f[13])+f[12]+f[8]-1.0*(f[7]+f[6])+f[5]-1.0*(f[3]+f[2])+f[1]+f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(0.25*(f[27]+f[22]-1.0*(f[21]+f[20])+f[16]-1.0*(f[14]+f[13])+f[12]+f[8]-1.0*(f[7]+f[6])+f[5]-1.0*(f[3]+f[2])+f[1]+f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[1][0] = 0.0; 
   fReflXYZMuQuad[1][1] = 0.0; 
   fReflXYZMuQuad[1][2] = 0.0; 
@@ -975,31 +975,31 @@ void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][0] = (0.25*(f[27]+f[22]-1.0*(f[21]+f[20])+f[16]-1.0*(f[14]+f[13])+f[12]+f[8]-1.0*(f[7]+f[6])+f[5]-1.0*(f[3]+f[2])+f[1]+f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][1] = (0.25*(f[31]+f[30]-1.0*(f[29]+f[28])+f[26]-1.0*(f[25]+f[24])+f[23]+f[19]-1.0*(f[18]+f[17])+f[15]-1.0*(f[11]+f[10])+f[9]+f[4]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][2] = (0.01666666666666667*(15.0*f[47]+15.0*(f[46]-1.0*(f[45]+f[44]-1.0*f[43]))+15.0*((-1.0*(f[42]+f[41]))+f[40]+f[39]-1.0*(f[38]+f[37]))+15.0*(f[36]-1.0*(f[35]+f[34]-1.0*f[33]))+15.0*f[32]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][0] = (0.25*(f[27]+f[22]-1.0*(f[21]+f[20])+f[16]-1.0*(f[14]+f[13])+f[12]+f[8]-1.0*(f[7]+f[6])+f[5]-1.0*(f[3]+f[2])+f[1]+f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][1] = (0.25*(f[31]+f[30]-1.0*(f[29]+f[28])+f[26]-1.0*(f[25]+f[24])+f[23]+f[19]-1.0*(f[18]+f[17])+f[15]-1.0*(f[11]+f[10])+f[9]+f[4]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][2] = (0.01666666666666667*(15.0*f[47]+15.0*(f[46]-1.0*(f[45]+f[44]-1.0*f[43]))+15.0*((-1.0*(f[42]+f[41]))+f[40]+f[39]-1.0*(f[38]+f[37]))+15.0*(f[36]-1.0*(f[35]+f[34]-1.0*f[33]))+15.0*f[32]))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[31]+f[30]-1.0*f[29]+f[28]-1.0*(f[26]+f[25])+f[24]-1.0*(f[23]+f[19])+f[18]-1.0*(f[17]+f[15])+f[11]-1.0*f[10]+f[9]+f[4]))/(f[27]+f[22]-1.0*f[21]+f[20]-1.0*(f[16]+f[14])+f[13]-1.0*(f[12]+f[8])+f[7]-1.0*(f[6]+f[5])+f[3]-1.0*f[2]+f[1]+f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(0.25*(f[27]+f[22]-1.0*f[21]+f[20]-1.0*(f[16]+f[14])+f[13]-1.0*(f[12]+f[8])+f[7]-1.0*(f[6]+f[5])+f[3]-1.0*f[2]+f[1]+f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(0.25*(f[27]+f[22]-1.0*f[21]+f[20]-1.0*(f[16]+f[14])+f[13]-1.0*(f[12]+f[8])+f[7]-1.0*(f[6]+f[5])+f[3]-1.0*f[2]+f[1]+f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[2][0] = 0.0; 
   fReflXYZMuQuad[2][1] = 0.0; 
   fReflXYZMuQuad[2][2] = 0.0; 
@@ -1007,31 +1007,31 @@ void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][0] = (0.25*(f[27]+f[22]-1.0*f[21]+f[20]-1.0*(f[16]+f[14])+f[13]-1.0*(f[12]+f[8])+f[7]-1.0*(f[6]+f[5])+f[3]-1.0*f[2]+f[1]+f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][1] = (0.25*(f[31]+f[30]-1.0*f[29]+f[28]-1.0*(f[26]+f[25])+f[24]-1.0*(f[23]+f[19])+f[18]-1.0*(f[17]+f[15])+f[11]-1.0*f[10]+f[9]+f[4]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][2] = (0.01666666666666667*(15.0*f[47]+15.0*(f[46]-1.0*f[45]+f[44]-1.0*f[43])+15.0*((-1.0*f[42])+f[41]-1.0*(f[40]+f[39]-1.0*f[38]+f[37]))+15.0*((-1.0*f[36])+f[35]-1.0*f[34]+f[33])+15.0*f[32]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][0] = (0.25*(f[27]+f[22]-1.0*f[21]+f[20]-1.0*(f[16]+f[14])+f[13]-1.0*(f[12]+f[8])+f[7]-1.0*(f[6]+f[5])+f[3]-1.0*f[2]+f[1]+f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][1] = (0.25*(f[31]+f[30]-1.0*f[29]+f[28]-1.0*(f[26]+f[25])+f[24]-1.0*(f[23]+f[19])+f[18]-1.0*(f[17]+f[15])+f[11]-1.0*f[10]+f[9]+f[4]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][2] = (0.01666666666666667*(15.0*f[47]+15.0*(f[46]-1.0*f[45]+f[44]-1.0*f[43])+15.0*((-1.0*f[42])+f[41]-1.0*(f[40]+f[39]-1.0*f[38]+f[37]))+15.0*((-1.0*f[36])+f[35]-1.0*f[34]+f[33])+15.0*f[32]))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[31]+f[30]-1.0*f[29]+f[28]+f[26]-1.0*f[25]+f[24]-1.0*f[23]+f[19]-1.0*f[18]+f[17]-1.0*(f[15]+f[11])+f[10]-1.0*(f[9]+f[4])))/(f[27]+f[22]-1.0*f[21]+f[20]+f[16]-1.0*f[14]+f[13]-1.0*f[12]+f[8]-1.0*f[7]+f[6]-1.0*(f[5]+f[3])+f[2]-1.0*(f[1]+f[0])); 
   // if f is not realizable, no reflection from this node 
-  if(-0.25*(f[27]+f[22]-1.0*f[21]+f[20]+f[16]-1.0*f[14]+f[13]-1.0*f[12]+f[8]-1.0*f[7]+f[6]-1.0*(f[5]+f[3])+f[2]-1.0*(f[1]+f[0])) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(-0.25*(f[27]+f[22]-1.0*f[21]+f[20]+f[16]-1.0*f[14]+f[13]-1.0*f[12]+f[8]-1.0*f[7]+f[6]-1.0*(f[5]+f[3])+f[2]-1.0*(f[1]+f[0])) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[3][0] = 0.0; 
   fReflXYZMuQuad[3][1] = 0.0; 
   fReflXYZMuQuad[3][2] = 0.0; 
@@ -1039,25 +1039,25 @@ void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][0] = (-0.25*(f[27]+f[22]-1.0*f[21]+f[20]+f[16]-1.0*f[14]+f[13]-1.0*f[12]+f[8]-1.0*f[7]+f[6]-1.0*(f[5]+f[3])+f[2]-1.0*(f[1]+f[0])))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][1] = (-0.25*(f[31]+f[30]-1.0*f[29]+f[28]+f[26]-1.0*f[25]+f[24]-1.0*f[23]+f[19]-1.0*f[18]+f[17]-1.0*(f[15]+f[11])+f[10]-1.0*(f[9]+f[4])))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][2] = (-0.01666666666666667*(15.0*f[47]+15.0*(f[46]-1.0*f[45]+f[44]+f[43])+15.0*((-1.0*f[42])+f[41]-1.0*f[40]+f[39]-1.0*f[38]+f[37])+15.0*(f[34]-1.0*(f[36]+f[35]))-1.0*(15.0*f[33]+15.0*f[32])))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][0] = (-0.25*(f[27]+f[22]-1.0*f[21]+f[20]+f[16]-1.0*f[14]+f[13]-1.0*f[12]+f[8]-1.0*f[7]+f[6]-1.0*(f[5]+f[3])+f[2]-1.0*(f[1]+f[0])))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][1] = (-0.25*(f[31]+f[30]-1.0*f[29]+f[28]+f[26]-1.0*f[25]+f[24]-1.0*f[23]+f[19]-1.0*f[18]+f[17]-1.0*(f[15]+f[11])+f[10]-1.0*(f[9]+f[4])))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][2] = (-0.01666666666666667*(15.0*f[47]+15.0*(f[46]-1.0*f[45]+f[44]+f[43])+15.0*((-1.0*f[42])+f[41]-1.0*f[40]+f[39]-1.0*f[38]+f[37])+15.0*(f[34]-1.0*(f[36]+f[35]))-1.0*(15.0*f[33]+15.0*f[32])))*fac; 
    } 
   } 
@@ -1107,7 +1107,7 @@ void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double wv, const d
   } else { // partial reflection 
   xbarVal = (0.5773502691896258*(f[31]+f[30]+f[29]-1.0*(f[28]+f[26])+f[25]-1.0*(f[24]+f[23]+f[19]+f[18])+f[17]-1.0*(f[15]+f[11])+f[10]+f[9]+f[4]))/(f[27]+f[22]+f[21]-1.0*(f[20]+f[16])+f[14]-1.0*(f[13]+f[12]+f[8]+f[7])+f[6]-1.0*(f[5]+f[3])+f[2]+f[1]+f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(0.25*(f[27]+f[22]+f[21]-1.0*(f[20]+f[16])+f[14]-1.0*(f[13]+f[12]+f[8]+f[7])+f[6]-1.0*(f[5]+f[3])+f[2]+f[1]+f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(0.25*(f[27]+f[22]+f[21]-1.0*(f[20]+f[16])+f[14]-1.0*(f[13]+f[12]+f[8]+f[7])+f[6]-1.0*(f[5]+f[3])+f[2]+f[1]+f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[0][0] = 0.0; 
   fReflXYZMuQuad[0][1] = 0.0; 
   fReflXYZMuQuad[0][2] = 0.0; 
@@ -1115,31 +1115,31 @@ void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][0] = (0.25*(f[27]+f[22]+f[21]-1.0*(f[20]+f[16])+f[14]-1.0*(f[13]+f[12]+f[8]+f[7])+f[6]-1.0*(f[5]+f[3])+f[2]+f[1]+f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][1] = (0.25*(f[31]+f[30]+f[29]-1.0*(f[28]+f[26])+f[25]-1.0*(f[24]+f[23]+f[19]+f[18])+f[17]-1.0*(f[15]+f[11])+f[10]+f[9]+f[4]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][2] = (0.01666666666666667*(15.0*f[47]+15.0*(f[46]+f[45]-1.0*(f[44]+f[43]))+15.0*(f[42]-1.0*(f[41]+f[40]+f[39]+f[38]-1.0*f[37]))+15.0*((-1.0*(f[36]+f[35]))+f[34]+f[33])+15.0*f[32]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][0] = (0.25*(f[27]+f[22]+f[21]-1.0*(f[20]+f[16])+f[14]-1.0*(f[13]+f[12]+f[8]+f[7])+f[6]-1.0*(f[5]+f[3])+f[2]+f[1]+f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][1] = (0.25*(f[31]+f[30]+f[29]-1.0*(f[28]+f[26])+f[25]-1.0*(f[24]+f[23]+f[19]+f[18])+f[17]-1.0*(f[15]+f[11])+f[10]+f[9]+f[4]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][2] = (0.01666666666666667*(15.0*f[47]+15.0*(f[46]+f[45]-1.0*(f[44]+f[43]))+15.0*(f[42]-1.0*(f[41]+f[40]+f[39]+f[38]-1.0*f[37]))+15.0*((-1.0*(f[36]+f[35]))+f[34]+f[33])+15.0*f[32]))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[31]+f[30]+f[29]-1.0*f[28]+f[26]+f[25]-1.0*(f[24]+f[23])+f[19]+f[18]-1.0*(f[17]+f[15])+f[11]-1.0*(f[10]+f[9]+f[4])))/(f[27]+f[22]+f[21]-1.0*f[20]+f[16]+f[14]-1.0*(f[13]+f[12])+f[8]+f[7]-1.0*(f[6]+f[5])+f[3]-1.0*(f[2]+f[1]+f[0])); 
   // if f is not realizable, no reflection from this node 
-  if(-0.25*(f[27]+f[22]+f[21]-1.0*f[20]+f[16]+f[14]-1.0*(f[13]+f[12])+f[8]+f[7]-1.0*(f[6]+f[5])+f[3]-1.0*(f[2]+f[1]+f[0])) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(-0.25*(f[27]+f[22]+f[21]-1.0*f[20]+f[16]+f[14]-1.0*(f[13]+f[12])+f[8]+f[7]-1.0*(f[6]+f[5])+f[3]-1.0*(f[2]+f[1]+f[0])) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[1][0] = 0.0; 
   fReflXYZMuQuad[1][1] = 0.0; 
   fReflXYZMuQuad[1][2] = 0.0; 
@@ -1147,31 +1147,31 @@ void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][0] = (-0.25*(f[27]+f[22]+f[21]-1.0*f[20]+f[16]+f[14]-1.0*(f[13]+f[12])+f[8]+f[7]-1.0*(f[6]+f[5])+f[3]-1.0*(f[2]+f[1]+f[0])))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][1] = (-0.25*(f[31]+f[30]+f[29]-1.0*f[28]+f[26]+f[25]-1.0*(f[24]+f[23])+f[19]+f[18]-1.0*(f[17]+f[15])+f[11]-1.0*(f[10]+f[9]+f[4])))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][2] = (-0.01666666666666667*(15.0*f[47]+15.0*(f[46]+f[45]-1.0*f[44]+f[43])+15.0*(f[42]-1.0*(f[41]+f[40]-1.0*f[39])+f[38]-1.0*f[37])+15.0*(f[35]-1.0*f[36])-1.0*(15.0*(f[34]+f[33])+15.0*f[32])))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][0] = (-0.25*(f[27]+f[22]+f[21]-1.0*f[20]+f[16]+f[14]-1.0*(f[13]+f[12])+f[8]+f[7]-1.0*(f[6]+f[5])+f[3]-1.0*(f[2]+f[1]+f[0])))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][1] = (-0.25*(f[31]+f[30]+f[29]-1.0*f[28]+f[26]+f[25]-1.0*(f[24]+f[23])+f[19]+f[18]-1.0*(f[17]+f[15])+f[11]-1.0*(f[10]+f[9]+f[4])))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][2] = (-0.01666666666666667*(15.0*f[47]+15.0*(f[46]+f[45]-1.0*f[44]+f[43])+15.0*(f[42]-1.0*(f[41]+f[40]-1.0*f[39])+f[38]-1.0*f[37])+15.0*(f[35]-1.0*f[36])-1.0*(15.0*(f[34]+f[33])+15.0*f[32])))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[31]+f[30]+f[29]+f[28]-1.0*f[26]+f[25]+f[24]+f[23]-1.0*(f[19]+f[18]+f[17])+f[15]-1.0*(f[11]+f[10]+f[9]+f[4])))/(f[27]+f[22]+f[21]+f[20]-1.0*f[16]+f[14]+f[13]+f[12]-1.0*(f[8]+f[7]+f[6])+f[5]-1.0*(f[3]+f[2]+f[1]+f[0])); 
   // if f is not realizable, no reflection from this node 
-  if(-0.25*(f[27]+f[22]+f[21]+f[20]-1.0*f[16]+f[14]+f[13]+f[12]-1.0*(f[8]+f[7]+f[6])+f[5]-1.0*(f[3]+f[2]+f[1]+f[0])) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(-0.25*(f[27]+f[22]+f[21]+f[20]-1.0*f[16]+f[14]+f[13]+f[12]-1.0*(f[8]+f[7]+f[6])+f[5]-1.0*(f[3]+f[2]+f[1]+f[0])) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[2][0] = 0.0; 
   fReflXYZMuQuad[2][1] = 0.0; 
   fReflXYZMuQuad[2][2] = 0.0; 
@@ -1179,31 +1179,31 @@ void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][0] = (-0.25*(f[27]+f[22]+f[21]+f[20]-1.0*f[16]+f[14]+f[13]+f[12]-1.0*(f[8]+f[7]+f[6])+f[5]-1.0*(f[3]+f[2]+f[1]+f[0])))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][1] = (-0.25*(f[31]+f[30]+f[29]+f[28]-1.0*f[26]+f[25]+f[24]+f[23]-1.0*(f[19]+f[18]+f[17])+f[15]-1.0*(f[11]+f[10]+f[9]+f[4])))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][2] = (-0.01666666666666667*(15.0*f[47]+15.0*(f[46]+f[45]+f[44]-1.0*f[43])+15.0*(f[42]+f[41]+f[40]-1.0*(f[39]+f[38]+f[37]))+15.0*f[36]-1.0*(15.0*(f[35]+f[34]+f[33])+15.0*f[32])))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][0] = (-0.25*(f[27]+f[22]+f[21]+f[20]-1.0*f[16]+f[14]+f[13]+f[12]-1.0*(f[8]+f[7]+f[6])+f[5]-1.0*(f[3]+f[2]+f[1]+f[0])))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][1] = (-0.25*(f[31]+f[30]+f[29]+f[28]-1.0*f[26]+f[25]+f[24]+f[23]-1.0*(f[19]+f[18]+f[17])+f[15]-1.0*(f[11]+f[10]+f[9]+f[4])))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][2] = (-0.01666666666666667*(15.0*f[47]+15.0*(f[46]+f[45]+f[44]-1.0*f[43])+15.0*(f[42]+f[41]+f[40]-1.0*(f[39]+f[38]+f[37]))+15.0*f[36]-1.0*(15.0*(f[35]+f[34]+f[33])+15.0*f[32])))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[31]+f[30]+f[29]+f[28]+f[26]+f[25]+f[24]+f[23]+f[19]+f[18]+f[17]+f[15]+f[11]+f[10]+f[9]+f[4]))/(f[27]+f[22]+f[21]+f[20]+f[16]+f[14]+f[13]+f[12]+f[8]+f[7]+f[6]+f[5]+f[3]+f[2]+f[1]+f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(0.25*(f[27]+f[22]+f[21]+f[20]+f[16]+f[14]+f[13]+f[12]+f[8]+f[7]+f[6]+f[5]+f[3]+f[2]+f[1]+f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(0.25*(f[27]+f[22]+f[21]+f[20]+f[16]+f[14]+f[13]+f[12]+f[8]+f[7]+f[6]+f[5]+f[3]+f[2]+f[1]+f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[3][0] = 0.0; 
   fReflXYZMuQuad[3][1] = 0.0; 
   fReflXYZMuQuad[3][2] = 0.0; 
@@ -1211,25 +1211,25 @@ void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][0] = (0.25*(f[27]+f[22]+f[21]+f[20]+f[16]+f[14]+f[13]+f[12]+f[8]+f[7]+f[6]+f[5]+f[3]+f[2]+f[1]+f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][1] = (0.25*(f[31]+f[30]+f[29]+f[28]+f[26]+f[25]+f[24]+f[23]+f[19]+f[18]+f[17]+f[15]+f[11]+f[10]+f[9]+f[4]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][2] = (0.01666666666666667*(15.0*f[47]+15.0*(f[46]+f[45]+f[44]+f[43])+15.0*(f[42]+f[41]+f[40]+f[39]+f[38]+f[37])+15.0*(f[36]+f[35]+f[34]+f[33])+15.0*f[32]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][0] = (0.25*(f[27]+f[22]+f[21]+f[20]+f[16]+f[14]+f[13]+f[12]+f[8]+f[7]+f[6]+f[5]+f[3]+f[2]+f[1]+f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][1] = (0.25*(f[31]+f[30]+f[29]+f[28]+f[26]+f[25]+f[24]+f[23]+f[19]+f[18]+f[17]+f[15]+f[11]+f[10]+f[9]+f[4]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][2] = (0.01666666666666667*(15.0*f[47]+15.0*(f[46]+f[45]+f[44]+f[43])+15.0*(f[42]+f[41]+f[40]+f[39]+f[38]+f[37])+15.0*(f[36]+f[35]+f[34]+f[33])+15.0*f[32]))*fac; 
    } 
   } 
@@ -1298,9 +1298,9 @@ void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double wv, const d
   fRefl[47] = 0.5*(fReflXYQuad[3][11]-1.0*(fReflXYQuad[2][11]+fReflXYQuad[1][11])+fReflXYQuad[0][11]); 
 }
 
-void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
 { 
-  double vcutSq_i; long double xc, b, xbarVal, fac; 
+  double vcutSq_i; double xc, b, xbarVal, fac; 
   double fReflXYQuad[4][12]; 
   double fReflXYZMuQuad[4][6]; 
   
@@ -1336,7 +1336,7 @@ void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double wv, const d
   } else { // partial reflection 
   xbarVal = (0.5773502691896258*(f[31]-1.0*(f[30]+f[29]+f[28]+f[26])+f[25]+f[24]+f[23]+f[19]+f[18]+f[17]-1.0*(f[15]+f[11]+f[10]+f[9])+f[4]))/(f[27]-1.0*(f[22]+f[21]+f[20]+f[16])+f[14]+f[13]+f[12]+f[8]+f[7]+f[6]-1.0*(f[5]+f[3]+f[2]+f[1])+f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(0.25*(f[27]-1.0*(f[22]+f[21]+f[20]+f[16])+f[14]+f[13]+f[12]+f[8]+f[7]+f[6]-1.0*(f[5]+f[3]+f[2]+f[1])+f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(0.25*(f[27]-1.0*(f[22]+f[21]+f[20]+f[16])+f[14]+f[13]+f[12]+f[8]+f[7]+f[6]-1.0*(f[5]+f[3]+f[2]+f[1])+f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[0][0] = 0.0; 
   fReflXYZMuQuad[0][1] = 0.0; 
   fReflXYZMuQuad[0][2] = 0.0; 
@@ -1344,31 +1344,31 @@ void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][0] = (0.25*(f[27]-1.0*(f[22]+f[21]+f[20]+f[16])+f[14]+f[13]+f[12]+f[8]+f[7]+f[6]-1.0*(f[5]+f[3]+f[2]+f[1])+f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][1] = (0.25*(f[31]-1.0*(f[30]+f[29]+f[28]+f[26])+f[25]+f[24]+f[23]+f[19]+f[18]+f[17]-1.0*(f[15]+f[11]+f[10]+f[9])+f[4]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][2] = (0.01666666666666667*(15.0*f[47]-15.0*(f[46]+f[45]+f[44]+f[43])+15.0*(f[42]+f[41]+f[40]+f[39]+f[38]+f[37])-15.0*(f[36]+f[35]+f[34]+f[33])+15.0*f[32]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][0] = (0.25*(f[27]-1.0*(f[22]+f[21]+f[20]+f[16])+f[14]+f[13]+f[12]+f[8]+f[7]+f[6]-1.0*(f[5]+f[3]+f[2]+f[1])+f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][1] = (0.25*(f[31]-1.0*(f[30]+f[29]+f[28]+f[26])+f[25]+f[24]+f[23]+f[19]+f[18]+f[17]-1.0*(f[15]+f[11]+f[10]+f[9])+f[4]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][2] = (0.01666666666666667*(15.0*f[47]-15.0*(f[46]+f[45]+f[44]+f[43])+15.0*(f[42]+f[41]+f[40]+f[39]+f[38]+f[37])-15.0*(f[36]+f[35]+f[34]+f[33])+15.0*f[32]))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[31]-1.0*(f[30]+f[29]+f[28])+f[26]+f[25]+f[24]+f[23]-1.0*(f[19]+f[18]+f[17]+f[15])+f[11]+f[10]+f[9]-1.0*f[4]))/(f[27]-1.0*(f[22]+f[21]+f[20])+f[16]+f[14]+f[13]+f[12]-1.0*(f[8]+f[7]+f[6]+f[5])+f[3]+f[2]+f[1]-1.0*f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(-0.25*(f[27]-1.0*(f[22]+f[21]+f[20])+f[16]+f[14]+f[13]+f[12]-1.0*(f[8]+f[7]+f[6]+f[5])+f[3]+f[2]+f[1]-1.0*f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(-0.25*(f[27]-1.0*(f[22]+f[21]+f[20])+f[16]+f[14]+f[13]+f[12]-1.0*(f[8]+f[7]+f[6]+f[5])+f[3]+f[2]+f[1]-1.0*f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[1][0] = 0.0; 
   fReflXYZMuQuad[1][1] = 0.0; 
   fReflXYZMuQuad[1][2] = 0.0; 
@@ -1376,31 +1376,31 @@ void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][0] = (-0.25*(f[27]-1.0*(f[22]+f[21]+f[20])+f[16]+f[14]+f[13]+f[12]-1.0*(f[8]+f[7]+f[6]+f[5])+f[3]+f[2]+f[1]-1.0*f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][1] = (-0.25*(f[31]-1.0*(f[30]+f[29]+f[28])+f[26]+f[25]+f[24]+f[23]-1.0*(f[19]+f[18]+f[17]+f[15])+f[11]+f[10]+f[9]-1.0*f[4]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][2] = (-0.01666666666666667*(15.0*f[47]-15.0*(f[46]+f[45]+f[44]-1.0*f[43])+15.0*(f[42]+f[41]+f[40]-1.0*(f[39]+f[38]+f[37]))+15.0*((-1.0*f[36])+f[35]+f[34]+f[33])-15.0*f[32]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][0] = (-0.25*(f[27]-1.0*(f[22]+f[21]+f[20])+f[16]+f[14]+f[13]+f[12]-1.0*(f[8]+f[7]+f[6]+f[5])+f[3]+f[2]+f[1]-1.0*f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][1] = (-0.25*(f[31]-1.0*(f[30]+f[29]+f[28])+f[26]+f[25]+f[24]+f[23]-1.0*(f[19]+f[18]+f[17]+f[15])+f[11]+f[10]+f[9]-1.0*f[4]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][2] = (-0.01666666666666667*(15.0*f[47]-15.0*(f[46]+f[45]+f[44]-1.0*f[43])+15.0*(f[42]+f[41]+f[40]-1.0*(f[39]+f[38]+f[37]))+15.0*((-1.0*f[36])+f[35]+f[34]+f[33])-15.0*f[32]))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[31]-1.0*(f[30]+f[29])+f[28]-1.0*f[26]+f[25]-1.0*(f[24]+f[23])+f[19]+f[18]-1.0*f[17]+f[15]-1.0*f[11]+f[10]+f[9]-1.0*f[4]))/(f[27]-1.0*(f[22]+f[21])+f[20]-1.0*f[16]+f[14]-1.0*(f[13]+f[12])+f[8]+f[7]-1.0*f[6]+f[5]-1.0*f[3]+f[2]+f[1]-1.0*f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(-0.25*(f[27]-1.0*(f[22]+f[21])+f[20]-1.0*f[16]+f[14]-1.0*(f[13]+f[12])+f[8]+f[7]-1.0*f[6]+f[5]-1.0*f[3]+f[2]+f[1]-1.0*f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(-0.25*(f[27]-1.0*(f[22]+f[21])+f[20]-1.0*f[16]+f[14]-1.0*(f[13]+f[12])+f[8]+f[7]-1.0*f[6]+f[5]-1.0*f[3]+f[2]+f[1]-1.0*f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[2][0] = 0.0; 
   fReflXYZMuQuad[2][1] = 0.0; 
   fReflXYZMuQuad[2][2] = 0.0; 
@@ -1408,31 +1408,31 @@ void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][0] = (-0.25*(f[27]-1.0*(f[22]+f[21])+f[20]-1.0*f[16]+f[14]-1.0*(f[13]+f[12])+f[8]+f[7]-1.0*f[6]+f[5]-1.0*f[3]+f[2]+f[1]-1.0*f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][1] = (-0.25*(f[31]-1.0*(f[30]+f[29])+f[28]-1.0*f[26]+f[25]-1.0*(f[24]+f[23])+f[19]+f[18]-1.0*f[17]+f[15]-1.0*f[11]+f[10]+f[9]-1.0*f[4]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][2] = (-0.01666666666666667*(15.0*f[47]+15.0*((-1.0*(f[46]+f[45]))+f[44]-1.0*f[43])+15.0*(f[42]-1.0*(f[41]+f[40]-1.0*f[39])+f[38]-1.0*f[37])+15.0*(f[36]-1.0*f[35]+f[34]+f[33])-15.0*f[32]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][0] = (-0.25*(f[27]-1.0*(f[22]+f[21])+f[20]-1.0*f[16]+f[14]-1.0*(f[13]+f[12])+f[8]+f[7]-1.0*f[6]+f[5]-1.0*f[3]+f[2]+f[1]-1.0*f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][1] = (-0.25*(f[31]-1.0*(f[30]+f[29])+f[28]-1.0*f[26]+f[25]-1.0*(f[24]+f[23])+f[19]+f[18]-1.0*f[17]+f[15]-1.0*f[11]+f[10]+f[9]-1.0*f[4]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][2] = (-0.01666666666666667*(15.0*f[47]+15.0*((-1.0*(f[46]+f[45]))+f[44]-1.0*f[43])+15.0*(f[42]-1.0*(f[41]+f[40]-1.0*f[39])+f[38]-1.0*f[37])+15.0*(f[36]-1.0*f[35]+f[34]+f[33])-15.0*f[32]))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[31]-1.0*(f[30]+f[29])+f[28]+f[26]+f[25]-1.0*(f[24]+f[23]+f[19]+f[18])+f[17]+f[15]+f[11]-1.0*(f[10]+f[9])+f[4]))/(f[27]-1.0*(f[22]+f[21])+f[20]+f[16]+f[14]-1.0*(f[13]+f[12]+f[8]+f[7])+f[6]+f[5]+f[3]-1.0*(f[2]+f[1])+f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(0.25*(f[27]-1.0*(f[22]+f[21])+f[20]+f[16]+f[14]-1.0*(f[13]+f[12]+f[8]+f[7])+f[6]+f[5]+f[3]-1.0*(f[2]+f[1])+f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(0.25*(f[27]-1.0*(f[22]+f[21])+f[20]+f[16]+f[14]-1.0*(f[13]+f[12]+f[8]+f[7])+f[6]+f[5]+f[3]-1.0*(f[2]+f[1])+f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[3][0] = 0.0; 
   fReflXYZMuQuad[3][1] = 0.0; 
   fReflXYZMuQuad[3][2] = 0.0; 
@@ -1440,25 +1440,25 @@ void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][0] = (0.25*(f[27]-1.0*(f[22]+f[21])+f[20]+f[16]+f[14]-1.0*(f[13]+f[12]+f[8]+f[7])+f[6]+f[5]+f[3]-1.0*(f[2]+f[1])+f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][1] = (0.25*(f[31]-1.0*(f[30]+f[29])+f[28]+f[26]+f[25]-1.0*(f[24]+f[23]+f[19]+f[18])+f[17]+f[15]+f[11]-1.0*(f[10]+f[9])+f[4]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][2] = (0.01666666666666667*(15.0*f[47]+15.0*((-1.0*(f[46]+f[45]))+f[44]+f[43])+15.0*(f[42]-1.0*(f[41]+f[40]+f[39]+f[38]-1.0*f[37]))+15.0*(f[36]+f[35]-1.0*(f[34]+f[33]))+15.0*f[32]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][0] = (0.25*(f[27]-1.0*(f[22]+f[21])+f[20]+f[16]+f[14]-1.0*(f[13]+f[12]+f[8]+f[7])+f[6]+f[5]+f[3]-1.0*(f[2]+f[1])+f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][1] = (0.25*(f[31]-1.0*(f[30]+f[29])+f[28]+f[26]+f[25]-1.0*(f[24]+f[23]+f[19]+f[18])+f[17]+f[15]+f[11]-1.0*(f[10]+f[9])+f[4]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][2] = (0.01666666666666667*(15.0*f[47]+15.0*((-1.0*(f[46]+f[45]))+f[44]+f[43])+15.0*(f[42]-1.0*(f[41]+f[40]+f[39]+f[38]-1.0*f[37]))+15.0*(f[36]+f[35]-1.0*(f[34]+f[33]))+15.0*f[32]))*fac; 
    } 
   } 
@@ -1508,7 +1508,7 @@ void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double wv, const d
   } else { // partial reflection 
   xbarVal = (0.5773502691896258*(f[31]-1.0*f[30]+f[29]-1.0*(f[28]+f[26]+f[25])+f[24]-1.0*f[23]+f[19]-1.0*f[18]+f[17]+f[15]+f[11]-1.0*f[10]+f[9]-1.0*f[4]))/(f[27]-1.0*f[22]+f[21]-1.0*(f[20]+f[16]+f[14])+f[13]-1.0*f[12]+f[8]-1.0*f[7]+f[6]+f[5]+f[3]-1.0*f[2]+f[1]-1.0*f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(-0.25*(f[27]-1.0*f[22]+f[21]-1.0*(f[20]+f[16]+f[14])+f[13]-1.0*f[12]+f[8]-1.0*f[7]+f[6]+f[5]+f[3]-1.0*f[2]+f[1]-1.0*f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(-0.25*(f[27]-1.0*f[22]+f[21]-1.0*(f[20]+f[16]+f[14])+f[13]-1.0*f[12]+f[8]-1.0*f[7]+f[6]+f[5]+f[3]-1.0*f[2]+f[1]-1.0*f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[0][0] = 0.0; 
   fReflXYZMuQuad[0][1] = 0.0; 
   fReflXYZMuQuad[0][2] = 0.0; 
@@ -1516,31 +1516,31 @@ void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][0] = (-0.25*(f[27]-1.0*f[22]+f[21]-1.0*(f[20]+f[16]+f[14])+f[13]-1.0*f[12]+f[8]-1.0*f[7]+f[6]+f[5]+f[3]-1.0*f[2]+f[1]-1.0*f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][1] = (-0.25*(f[31]-1.0*f[30]+f[29]-1.0*(f[28]+f[26]+f[25])+f[24]-1.0*f[23]+f[19]-1.0*f[18]+f[17]+f[15]+f[11]-1.0*f[10]+f[9]-1.0*f[4]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][2] = (-0.01666666666666667*(15.0*f[47]+15.0*((-1.0*f[46])+f[45]-1.0*(f[44]+f[43]))+15.0*((-1.0*f[42])+f[41]-1.0*f[40]+f[39]-1.0*f[38]+f[37])+15.0*(f[36]+f[35]-1.0*f[34]+f[33])-15.0*f[32]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][0] = (-0.25*(f[27]-1.0*f[22]+f[21]-1.0*(f[20]+f[16]+f[14])+f[13]-1.0*f[12]+f[8]-1.0*f[7]+f[6]+f[5]+f[3]-1.0*f[2]+f[1]-1.0*f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][1] = (-0.25*(f[31]-1.0*f[30]+f[29]-1.0*(f[28]+f[26]+f[25])+f[24]-1.0*f[23]+f[19]-1.0*f[18]+f[17]+f[15]+f[11]-1.0*f[10]+f[9]-1.0*f[4]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][2] = (-0.01666666666666667*(15.0*f[47]+15.0*((-1.0*f[46])+f[45]-1.0*(f[44]+f[43]))+15.0*((-1.0*f[42])+f[41]-1.0*f[40]+f[39]-1.0*f[38]+f[37])+15.0*(f[36]+f[35]-1.0*f[34]+f[33])-15.0*f[32]))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[31]-1.0*f[30]+f[29]-1.0*f[28]+f[26]-1.0*f[25]+f[24]-1.0*(f[23]+f[19])+f[18]-1.0*f[17]+f[15]-1.0*f[11]+f[10]-1.0*f[9]+f[4]))/(f[27]-1.0*f[22]+f[21]-1.0*f[20]+f[16]-1.0*f[14]+f[13]-1.0*(f[12]+f[8])+f[7]-1.0*f[6]+f[5]-1.0*f[3]+f[2]-1.0*f[1]+f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(0.25*(f[27]-1.0*f[22]+f[21]-1.0*f[20]+f[16]-1.0*f[14]+f[13]-1.0*(f[12]+f[8])+f[7]-1.0*f[6]+f[5]-1.0*f[3]+f[2]-1.0*f[1]+f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(0.25*(f[27]-1.0*f[22]+f[21]-1.0*f[20]+f[16]-1.0*f[14]+f[13]-1.0*(f[12]+f[8])+f[7]-1.0*f[6]+f[5]-1.0*f[3]+f[2]-1.0*f[1]+f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[1][0] = 0.0; 
   fReflXYZMuQuad[1][1] = 0.0; 
   fReflXYZMuQuad[1][2] = 0.0; 
@@ -1548,31 +1548,31 @@ void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][0] = (0.25*(f[27]-1.0*f[22]+f[21]-1.0*f[20]+f[16]-1.0*f[14]+f[13]-1.0*(f[12]+f[8])+f[7]-1.0*f[6]+f[5]-1.0*f[3]+f[2]-1.0*f[1]+f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][1] = (0.25*(f[31]-1.0*f[30]+f[29]-1.0*f[28]+f[26]-1.0*f[25]+f[24]-1.0*(f[23]+f[19])+f[18]-1.0*f[17]+f[15]-1.0*f[11]+f[10]-1.0*f[9]+f[4]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][2] = (0.01666666666666667*(15.0*f[47]+15.0*((-1.0*f[46])+f[45]-1.0*f[44]+f[43])+15.0*((-1.0*f[42])+f[41]-1.0*(f[40]+f[39]-1.0*f[38]+f[37]))+15.0*(f[36]-1.0*f[35]+f[34]-1.0*f[33])+15.0*f[32]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][0] = (0.25*(f[27]-1.0*f[22]+f[21]-1.0*f[20]+f[16]-1.0*f[14]+f[13]-1.0*(f[12]+f[8])+f[7]-1.0*f[6]+f[5]-1.0*f[3]+f[2]-1.0*f[1]+f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][1] = (0.25*(f[31]-1.0*f[30]+f[29]-1.0*f[28]+f[26]-1.0*f[25]+f[24]-1.0*(f[23]+f[19])+f[18]-1.0*f[17]+f[15]-1.0*f[11]+f[10]-1.0*f[9]+f[4]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][2] = (0.01666666666666667*(15.0*f[47]+15.0*((-1.0*f[46])+f[45]-1.0*f[44]+f[43])+15.0*((-1.0*f[42])+f[41]-1.0*(f[40]+f[39]-1.0*f[38]+f[37]))+15.0*(f[36]-1.0*f[35]+f[34]-1.0*f[33])+15.0*f[32]))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[31]-1.0*f[30]+f[29]+f[28]-1.0*(f[26]+f[25]+f[24])+f[23]+f[19]-1.0*(f[18]+f[17]+f[15])+f[11]+f[10]-1.0*f[9]+f[4]))/(f[27]-1.0*f[22]+f[21]+f[20]-1.0*(f[16]+f[14]+f[13])+f[12]+f[8]-1.0*(f[7]+f[6]+f[5])+f[3]+f[2]-1.0*f[1]+f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(0.25*(f[27]-1.0*f[22]+f[21]+f[20]-1.0*(f[16]+f[14]+f[13])+f[12]+f[8]-1.0*(f[7]+f[6]+f[5])+f[3]+f[2]-1.0*f[1]+f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(0.25*(f[27]-1.0*f[22]+f[21]+f[20]-1.0*(f[16]+f[14]+f[13])+f[12]+f[8]-1.0*(f[7]+f[6]+f[5])+f[3]+f[2]-1.0*f[1]+f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[2][0] = 0.0; 
   fReflXYZMuQuad[2][1] = 0.0; 
   fReflXYZMuQuad[2][2] = 0.0; 
@@ -1580,31 +1580,31 @@ void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][0] = (0.25*(f[27]-1.0*f[22]+f[21]+f[20]-1.0*(f[16]+f[14]+f[13])+f[12]+f[8]-1.0*(f[7]+f[6]+f[5])+f[3]+f[2]-1.0*f[1]+f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][1] = (0.25*(f[31]-1.0*f[30]+f[29]+f[28]-1.0*(f[26]+f[25]+f[24])+f[23]+f[19]-1.0*(f[18]+f[17]+f[15])+f[11]+f[10]-1.0*f[9]+f[4]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][2] = (0.01666666666666667*(15.0*f[47]+15.0*((-1.0*f[46])+f[45]+f[44]-1.0*f[43])+15.0*((-1.0*(f[42]+f[41]))+f[40]+f[39]-1.0*(f[38]+f[37]))+15.0*((-1.0*f[36])+f[35]+f[34]-1.0*f[33])+15.0*f[32]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][0] = (0.25*(f[27]-1.0*f[22]+f[21]+f[20]-1.0*(f[16]+f[14]+f[13])+f[12]+f[8]-1.0*(f[7]+f[6]+f[5])+f[3]+f[2]-1.0*f[1]+f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][1] = (0.25*(f[31]-1.0*f[30]+f[29]+f[28]-1.0*(f[26]+f[25]+f[24])+f[23]+f[19]-1.0*(f[18]+f[17]+f[15])+f[11]+f[10]-1.0*f[9]+f[4]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][2] = (0.01666666666666667*(15.0*f[47]+15.0*((-1.0*f[46])+f[45]+f[44]-1.0*f[43])+15.0*((-1.0*(f[42]+f[41]))+f[40]+f[39]-1.0*(f[38]+f[37]))+15.0*((-1.0*f[36])+f[35]+f[34]-1.0*f[33])+15.0*f[32]))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[31]-1.0*f[30]+f[29]+f[28]+f[26]-1.0*(f[25]+f[24])+f[23]-1.0*f[19]+f[18]+f[17]-1.0*(f[15]+f[11]+f[10])+f[9]-1.0*f[4]))/(f[27]-1.0*f[22]+f[21]+f[20]+f[16]-1.0*(f[14]+f[13])+f[12]-1.0*f[8]+f[7]+f[6]-1.0*(f[5]+f[3]+f[2])+f[1]-1.0*f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(-0.25*(f[27]-1.0*f[22]+f[21]+f[20]+f[16]-1.0*(f[14]+f[13])+f[12]-1.0*f[8]+f[7]+f[6]-1.0*(f[5]+f[3]+f[2])+f[1]-1.0*f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(-0.25*(f[27]-1.0*f[22]+f[21]+f[20]+f[16]-1.0*(f[14]+f[13])+f[12]-1.0*f[8]+f[7]+f[6]-1.0*(f[5]+f[3]+f[2])+f[1]-1.0*f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[3][0] = 0.0; 
   fReflXYZMuQuad[3][1] = 0.0; 
   fReflXYZMuQuad[3][2] = 0.0; 
@@ -1612,25 +1612,25 @@ void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][0] = (-0.25*(f[27]-1.0*f[22]+f[21]+f[20]+f[16]-1.0*(f[14]+f[13])+f[12]-1.0*f[8]+f[7]+f[6]-1.0*(f[5]+f[3]+f[2])+f[1]-1.0*f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][1] = (-0.25*(f[31]-1.0*f[30]+f[29]+f[28]+f[26]-1.0*(f[25]+f[24])+f[23]-1.0*f[19]+f[18]+f[17]-1.0*(f[15]+f[11]+f[10])+f[9]-1.0*f[4]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][2] = (-0.01666666666666667*(15.0*f[47]+15.0*((-1.0*f[46])+f[45]+f[44]+f[43])+15.0*((-1.0*(f[42]+f[41]))+f[40]-1.0*f[39]+f[38]+f[37])-15.0*(f[36]+f[35]+f[34]-1.0*f[33])-15.0*f[32]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][0] = (-0.25*(f[27]-1.0*f[22]+f[21]+f[20]+f[16]-1.0*(f[14]+f[13])+f[12]-1.0*f[8]+f[7]+f[6]-1.0*(f[5]+f[3]+f[2])+f[1]-1.0*f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][1] = (-0.25*(f[31]-1.0*f[30]+f[29]+f[28]+f[26]-1.0*(f[25]+f[24])+f[23]-1.0*f[19]+f[18]+f[17]-1.0*(f[15]+f[11]+f[10])+f[9]-1.0*f[4]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][2] = (-0.01666666666666667*(15.0*f[47]+15.0*((-1.0*f[46])+f[45]+f[44]+f[43])+15.0*((-1.0*(f[42]+f[41]))+f[40]-1.0*f[39]+f[38]+f[37])-15.0*(f[36]+f[35]+f[34]-1.0*f[33])-15.0*f[32]))*fac; 
    } 
   } 
@@ -1680,7 +1680,7 @@ void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double wv, const d
   } else { // partial reflection 
   xbarVal = (0.5773502691896258*(f[31]+f[30]-1.0*(f[29]+f[28]+f[26]+f[25]+f[24])+f[23]-1.0*f[19]+f[18]+f[17]+f[15]+f[11]+f[10]-1.0*(f[9]+f[4])))/(f[27]+f[22]-1.0*(f[21]+f[20]+f[16]+f[14]+f[13])+f[12]-1.0*f[8]+f[7]+f[6]+f[5]+f[3]+f[2]-1.0*(f[1]+f[0])); 
   // if f is not realizable, no reflection from this node 
-  if(-0.25*(f[27]+f[22]-1.0*(f[21]+f[20]+f[16]+f[14]+f[13])+f[12]-1.0*f[8]+f[7]+f[6]+f[5]+f[3]+f[2]-1.0*(f[1]+f[0])) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(-0.25*(f[27]+f[22]-1.0*(f[21]+f[20]+f[16]+f[14]+f[13])+f[12]-1.0*f[8]+f[7]+f[6]+f[5]+f[3]+f[2]-1.0*(f[1]+f[0])) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[0][0] = 0.0; 
   fReflXYZMuQuad[0][1] = 0.0; 
   fReflXYZMuQuad[0][2] = 0.0; 
@@ -1688,31 +1688,31 @@ void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][0] = (-0.25*(f[27]+f[22]-1.0*(f[21]+f[20]+f[16]+f[14]+f[13])+f[12]-1.0*f[8]+f[7]+f[6]+f[5]+f[3]+f[2]-1.0*(f[1]+f[0])))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][1] = (-0.25*(f[31]+f[30]-1.0*(f[29]+f[28]+f[26]+f[25]+f[24])+f[23]-1.0*f[19]+f[18]+f[17]+f[15]+f[11]+f[10]-1.0*(f[9]+f[4])))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][2] = (-0.01666666666666667*(15.0*f[47]+15.0*(f[46]-1.0*(f[45]+f[44]+f[43]))+15.0*((-1.0*(f[42]+f[41]))+f[40]-1.0*f[39]+f[38]+f[37])+15.0*(f[36]+f[35]+f[34])-1.0*(15.0*f[33]+15.0*f[32])))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][0] = (-0.25*(f[27]+f[22]-1.0*(f[21]+f[20]+f[16]+f[14]+f[13])+f[12]-1.0*f[8]+f[7]+f[6]+f[5]+f[3]+f[2]-1.0*(f[1]+f[0])))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][1] = (-0.25*(f[31]+f[30]-1.0*(f[29]+f[28]+f[26]+f[25]+f[24])+f[23]-1.0*f[19]+f[18]+f[17]+f[15]+f[11]+f[10]-1.0*(f[9]+f[4])))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][2] = (-0.01666666666666667*(15.0*f[47]+15.0*(f[46]-1.0*(f[45]+f[44]+f[43]))+15.0*((-1.0*(f[42]+f[41]))+f[40]-1.0*f[39]+f[38]+f[37])+15.0*(f[36]+f[35]+f[34])-1.0*(15.0*f[33]+15.0*f[32])))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[31]+f[30]-1.0*(f[29]+f[28])+f[26]-1.0*(f[25]+f[24])+f[23]+f[19]-1.0*(f[18]+f[17])+f[15]-1.0*(f[11]+f[10])+f[9]+f[4]))/(f[27]+f[22]-1.0*(f[21]+f[20])+f[16]-1.0*(f[14]+f[13])+f[12]+f[8]-1.0*(f[7]+f[6])+f[5]-1.0*(f[3]+f[2])+f[1]+f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(0.25*(f[27]+f[22]-1.0*(f[21]+f[20])+f[16]-1.0*(f[14]+f[13])+f[12]+f[8]-1.0*(f[7]+f[6])+f[5]-1.0*(f[3]+f[2])+f[1]+f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(0.25*(f[27]+f[22]-1.0*(f[21]+f[20])+f[16]-1.0*(f[14]+f[13])+f[12]+f[8]-1.0*(f[7]+f[6])+f[5]-1.0*(f[3]+f[2])+f[1]+f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[1][0] = 0.0; 
   fReflXYZMuQuad[1][1] = 0.0; 
   fReflXYZMuQuad[1][2] = 0.0; 
@@ -1720,31 +1720,31 @@ void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][0] = (0.25*(f[27]+f[22]-1.0*(f[21]+f[20])+f[16]-1.0*(f[14]+f[13])+f[12]+f[8]-1.0*(f[7]+f[6])+f[5]-1.0*(f[3]+f[2])+f[1]+f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][1] = (0.25*(f[31]+f[30]-1.0*(f[29]+f[28])+f[26]-1.0*(f[25]+f[24])+f[23]+f[19]-1.0*(f[18]+f[17])+f[15]-1.0*(f[11]+f[10])+f[9]+f[4]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][2] = (0.01666666666666667*(15.0*f[47]+15.0*(f[46]-1.0*(f[45]+f[44]-1.0*f[43]))+15.0*((-1.0*(f[42]+f[41]))+f[40]+f[39]-1.0*(f[38]+f[37]))+15.0*(f[36]-1.0*(f[35]+f[34]-1.0*f[33]))+15.0*f[32]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][0] = (0.25*(f[27]+f[22]-1.0*(f[21]+f[20])+f[16]-1.0*(f[14]+f[13])+f[12]+f[8]-1.0*(f[7]+f[6])+f[5]-1.0*(f[3]+f[2])+f[1]+f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][1] = (0.25*(f[31]+f[30]-1.0*(f[29]+f[28])+f[26]-1.0*(f[25]+f[24])+f[23]+f[19]-1.0*(f[18]+f[17])+f[15]-1.0*(f[11]+f[10])+f[9]+f[4]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][2] = (0.01666666666666667*(15.0*f[47]+15.0*(f[46]-1.0*(f[45]+f[44]-1.0*f[43]))+15.0*((-1.0*(f[42]+f[41]))+f[40]+f[39]-1.0*(f[38]+f[37]))+15.0*(f[36]-1.0*(f[35]+f[34]-1.0*f[33]))+15.0*f[32]))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[31]+f[30]-1.0*f[29]+f[28]-1.0*(f[26]+f[25])+f[24]-1.0*(f[23]+f[19])+f[18]-1.0*(f[17]+f[15])+f[11]-1.0*f[10]+f[9]+f[4]))/(f[27]+f[22]-1.0*f[21]+f[20]-1.0*(f[16]+f[14])+f[13]-1.0*(f[12]+f[8])+f[7]-1.0*(f[6]+f[5])+f[3]-1.0*f[2]+f[1]+f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(0.25*(f[27]+f[22]-1.0*f[21]+f[20]-1.0*(f[16]+f[14])+f[13]-1.0*(f[12]+f[8])+f[7]-1.0*(f[6]+f[5])+f[3]-1.0*f[2]+f[1]+f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(0.25*(f[27]+f[22]-1.0*f[21]+f[20]-1.0*(f[16]+f[14])+f[13]-1.0*(f[12]+f[8])+f[7]-1.0*(f[6]+f[5])+f[3]-1.0*f[2]+f[1]+f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[2][0] = 0.0; 
   fReflXYZMuQuad[2][1] = 0.0; 
   fReflXYZMuQuad[2][2] = 0.0; 
@@ -1752,31 +1752,31 @@ void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][0] = (0.25*(f[27]+f[22]-1.0*f[21]+f[20]-1.0*(f[16]+f[14])+f[13]-1.0*(f[12]+f[8])+f[7]-1.0*(f[6]+f[5])+f[3]-1.0*f[2]+f[1]+f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][1] = (0.25*(f[31]+f[30]-1.0*f[29]+f[28]-1.0*(f[26]+f[25])+f[24]-1.0*(f[23]+f[19])+f[18]-1.0*(f[17]+f[15])+f[11]-1.0*f[10]+f[9]+f[4]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][2] = (0.01666666666666667*(15.0*f[47]+15.0*(f[46]-1.0*f[45]+f[44]-1.0*f[43])+15.0*((-1.0*f[42])+f[41]-1.0*(f[40]+f[39]-1.0*f[38]+f[37]))+15.0*((-1.0*f[36])+f[35]-1.0*f[34]+f[33])+15.0*f[32]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][0] = (0.25*(f[27]+f[22]-1.0*f[21]+f[20]-1.0*(f[16]+f[14])+f[13]-1.0*(f[12]+f[8])+f[7]-1.0*(f[6]+f[5])+f[3]-1.0*f[2]+f[1]+f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][1] = (0.25*(f[31]+f[30]-1.0*f[29]+f[28]-1.0*(f[26]+f[25])+f[24]-1.0*(f[23]+f[19])+f[18]-1.0*(f[17]+f[15])+f[11]-1.0*f[10]+f[9]+f[4]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][2] = (0.01666666666666667*(15.0*f[47]+15.0*(f[46]-1.0*f[45]+f[44]-1.0*f[43])+15.0*((-1.0*f[42])+f[41]-1.0*(f[40]+f[39]-1.0*f[38]+f[37]))+15.0*((-1.0*f[36])+f[35]-1.0*f[34]+f[33])+15.0*f[32]))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[31]+f[30]-1.0*f[29]+f[28]+f[26]-1.0*f[25]+f[24]-1.0*f[23]+f[19]-1.0*f[18]+f[17]-1.0*(f[15]+f[11])+f[10]-1.0*(f[9]+f[4])))/(f[27]+f[22]-1.0*f[21]+f[20]+f[16]-1.0*f[14]+f[13]-1.0*f[12]+f[8]-1.0*f[7]+f[6]-1.0*(f[5]+f[3])+f[2]-1.0*(f[1]+f[0])); 
   // if f is not realizable, no reflection from this node 
-  if(-0.25*(f[27]+f[22]-1.0*f[21]+f[20]+f[16]-1.0*f[14]+f[13]-1.0*f[12]+f[8]-1.0*f[7]+f[6]-1.0*(f[5]+f[3])+f[2]-1.0*(f[1]+f[0])) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(-0.25*(f[27]+f[22]-1.0*f[21]+f[20]+f[16]-1.0*f[14]+f[13]-1.0*f[12]+f[8]-1.0*f[7]+f[6]-1.0*(f[5]+f[3])+f[2]-1.0*(f[1]+f[0])) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[3][0] = 0.0; 
   fReflXYZMuQuad[3][1] = 0.0; 
   fReflXYZMuQuad[3][2] = 0.0; 
@@ -1784,25 +1784,25 @@ void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][0] = (-0.25*(f[27]+f[22]-1.0*f[21]+f[20]+f[16]-1.0*f[14]+f[13]-1.0*f[12]+f[8]-1.0*f[7]+f[6]-1.0*(f[5]+f[3])+f[2]-1.0*(f[1]+f[0])))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][1] = (-0.25*(f[31]+f[30]-1.0*f[29]+f[28]+f[26]-1.0*f[25]+f[24]-1.0*f[23]+f[19]-1.0*f[18]+f[17]-1.0*(f[15]+f[11])+f[10]-1.0*(f[9]+f[4])))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][2] = (-0.01666666666666667*(15.0*f[47]+15.0*(f[46]-1.0*f[45]+f[44]+f[43])+15.0*((-1.0*f[42])+f[41]-1.0*f[40]+f[39]-1.0*f[38]+f[37])+15.0*(f[34]-1.0*(f[36]+f[35]))-1.0*(15.0*f[33]+15.0*f[32])))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][0] = (-0.25*(f[27]+f[22]-1.0*f[21]+f[20]+f[16]-1.0*f[14]+f[13]-1.0*f[12]+f[8]-1.0*f[7]+f[6]-1.0*(f[5]+f[3])+f[2]-1.0*(f[1]+f[0])))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][1] = (-0.25*(f[31]+f[30]-1.0*f[29]+f[28]+f[26]-1.0*f[25]+f[24]-1.0*f[23]+f[19]-1.0*f[18]+f[17]-1.0*(f[15]+f[11])+f[10]-1.0*(f[9]+f[4])))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][2] = (-0.01666666666666667*(15.0*f[47]+15.0*(f[46]-1.0*f[45]+f[44]+f[43])+15.0*((-1.0*f[42])+f[41]-1.0*f[40]+f[39]-1.0*f[38]+f[37])+15.0*(f[34]-1.0*(f[36]+f[35]))-1.0*(15.0*f[33]+15.0*f[32])))*fac; 
    } 
   } 
@@ -1852,7 +1852,7 @@ void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double wv, const d
   } else { // partial reflection 
   xbarVal = (0.5773502691896258*(f[31]+f[30]+f[29]-1.0*(f[28]+f[26])+f[25]-1.0*(f[24]+f[23]+f[19]+f[18])+f[17]-1.0*(f[15]+f[11])+f[10]+f[9]+f[4]))/(f[27]+f[22]+f[21]-1.0*(f[20]+f[16])+f[14]-1.0*(f[13]+f[12]+f[8]+f[7])+f[6]-1.0*(f[5]+f[3])+f[2]+f[1]+f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(0.25*(f[27]+f[22]+f[21]-1.0*(f[20]+f[16])+f[14]-1.0*(f[13]+f[12]+f[8]+f[7])+f[6]-1.0*(f[5]+f[3])+f[2]+f[1]+f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(0.25*(f[27]+f[22]+f[21]-1.0*(f[20]+f[16])+f[14]-1.0*(f[13]+f[12]+f[8]+f[7])+f[6]-1.0*(f[5]+f[3])+f[2]+f[1]+f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[0][0] = 0.0; 
   fReflXYZMuQuad[0][1] = 0.0; 
   fReflXYZMuQuad[0][2] = 0.0; 
@@ -1860,31 +1860,31 @@ void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][0] = (0.25*(f[27]+f[22]+f[21]-1.0*(f[20]+f[16])+f[14]-1.0*(f[13]+f[12]+f[8]+f[7])+f[6]-1.0*(f[5]+f[3])+f[2]+f[1]+f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][1] = (0.25*(f[31]+f[30]+f[29]-1.0*(f[28]+f[26])+f[25]-1.0*(f[24]+f[23]+f[19]+f[18])+f[17]-1.0*(f[15]+f[11])+f[10]+f[9]+f[4]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][2] = (0.01666666666666667*(15.0*f[47]+15.0*(f[46]+f[45]-1.0*(f[44]+f[43]))+15.0*(f[42]-1.0*(f[41]+f[40]+f[39]+f[38]-1.0*f[37]))+15.0*((-1.0*(f[36]+f[35]))+f[34]+f[33])+15.0*f[32]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][0] = (0.25*(f[27]+f[22]+f[21]-1.0*(f[20]+f[16])+f[14]-1.0*(f[13]+f[12]+f[8]+f[7])+f[6]-1.0*(f[5]+f[3])+f[2]+f[1]+f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][1] = (0.25*(f[31]+f[30]+f[29]-1.0*(f[28]+f[26])+f[25]-1.0*(f[24]+f[23]+f[19]+f[18])+f[17]-1.0*(f[15]+f[11])+f[10]+f[9]+f[4]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][2] = (0.01666666666666667*(15.0*f[47]+15.0*(f[46]+f[45]-1.0*(f[44]+f[43]))+15.0*(f[42]-1.0*(f[41]+f[40]+f[39]+f[38]-1.0*f[37]))+15.0*((-1.0*(f[36]+f[35]))+f[34]+f[33])+15.0*f[32]))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[31]+f[30]+f[29]-1.0*f[28]+f[26]+f[25]-1.0*(f[24]+f[23])+f[19]+f[18]-1.0*(f[17]+f[15])+f[11]-1.0*(f[10]+f[9]+f[4])))/(f[27]+f[22]+f[21]-1.0*f[20]+f[16]+f[14]-1.0*(f[13]+f[12])+f[8]+f[7]-1.0*(f[6]+f[5])+f[3]-1.0*(f[2]+f[1]+f[0])); 
   // if f is not realizable, no reflection from this node 
-  if(-0.25*(f[27]+f[22]+f[21]-1.0*f[20]+f[16]+f[14]-1.0*(f[13]+f[12])+f[8]+f[7]-1.0*(f[6]+f[5])+f[3]-1.0*(f[2]+f[1]+f[0])) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(-0.25*(f[27]+f[22]+f[21]-1.0*f[20]+f[16]+f[14]-1.0*(f[13]+f[12])+f[8]+f[7]-1.0*(f[6]+f[5])+f[3]-1.0*(f[2]+f[1]+f[0])) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[1][0] = 0.0; 
   fReflXYZMuQuad[1][1] = 0.0; 
   fReflXYZMuQuad[1][2] = 0.0; 
@@ -1892,31 +1892,31 @@ void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][0] = (-0.25*(f[27]+f[22]+f[21]-1.0*f[20]+f[16]+f[14]-1.0*(f[13]+f[12])+f[8]+f[7]-1.0*(f[6]+f[5])+f[3]-1.0*(f[2]+f[1]+f[0])))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][1] = (-0.25*(f[31]+f[30]+f[29]-1.0*f[28]+f[26]+f[25]-1.0*(f[24]+f[23])+f[19]+f[18]-1.0*(f[17]+f[15])+f[11]-1.0*(f[10]+f[9]+f[4])))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][2] = (-0.01666666666666667*(15.0*f[47]+15.0*(f[46]+f[45]-1.0*f[44]+f[43])+15.0*(f[42]-1.0*(f[41]+f[40]-1.0*f[39])+f[38]-1.0*f[37])+15.0*(f[35]-1.0*f[36])-1.0*(15.0*(f[34]+f[33])+15.0*f[32])))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][0] = (-0.25*(f[27]+f[22]+f[21]-1.0*f[20]+f[16]+f[14]-1.0*(f[13]+f[12])+f[8]+f[7]-1.0*(f[6]+f[5])+f[3]-1.0*(f[2]+f[1]+f[0])))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][1] = (-0.25*(f[31]+f[30]+f[29]-1.0*f[28]+f[26]+f[25]-1.0*(f[24]+f[23])+f[19]+f[18]-1.0*(f[17]+f[15])+f[11]-1.0*(f[10]+f[9]+f[4])))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][2] = (-0.01666666666666667*(15.0*f[47]+15.0*(f[46]+f[45]-1.0*f[44]+f[43])+15.0*(f[42]-1.0*(f[41]+f[40]-1.0*f[39])+f[38]-1.0*f[37])+15.0*(f[35]-1.0*f[36])-1.0*(15.0*(f[34]+f[33])+15.0*f[32])))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[31]+f[30]+f[29]+f[28]-1.0*f[26]+f[25]+f[24]+f[23]-1.0*(f[19]+f[18]+f[17])+f[15]-1.0*(f[11]+f[10]+f[9]+f[4])))/(f[27]+f[22]+f[21]+f[20]-1.0*f[16]+f[14]+f[13]+f[12]-1.0*(f[8]+f[7]+f[6])+f[5]-1.0*(f[3]+f[2]+f[1]+f[0])); 
   // if f is not realizable, no reflection from this node 
-  if(-0.25*(f[27]+f[22]+f[21]+f[20]-1.0*f[16]+f[14]+f[13]+f[12]-1.0*(f[8]+f[7]+f[6])+f[5]-1.0*(f[3]+f[2]+f[1]+f[0])) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(-0.25*(f[27]+f[22]+f[21]+f[20]-1.0*f[16]+f[14]+f[13]+f[12]-1.0*(f[8]+f[7]+f[6])+f[5]-1.0*(f[3]+f[2]+f[1]+f[0])) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[2][0] = 0.0; 
   fReflXYZMuQuad[2][1] = 0.0; 
   fReflXYZMuQuad[2][2] = 0.0; 
@@ -1924,31 +1924,31 @@ void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][0] = (-0.25*(f[27]+f[22]+f[21]+f[20]-1.0*f[16]+f[14]+f[13]+f[12]-1.0*(f[8]+f[7]+f[6])+f[5]-1.0*(f[3]+f[2]+f[1]+f[0])))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][1] = (-0.25*(f[31]+f[30]+f[29]+f[28]-1.0*f[26]+f[25]+f[24]+f[23]-1.0*(f[19]+f[18]+f[17])+f[15]-1.0*(f[11]+f[10]+f[9]+f[4])))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][2] = (-0.01666666666666667*(15.0*f[47]+15.0*(f[46]+f[45]+f[44]-1.0*f[43])+15.0*(f[42]+f[41]+f[40]-1.0*(f[39]+f[38]+f[37]))+15.0*f[36]-1.0*(15.0*(f[35]+f[34]+f[33])+15.0*f[32])))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][0] = (-0.25*(f[27]+f[22]+f[21]+f[20]-1.0*f[16]+f[14]+f[13]+f[12]-1.0*(f[8]+f[7]+f[6])+f[5]-1.0*(f[3]+f[2]+f[1]+f[0])))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][1] = (-0.25*(f[31]+f[30]+f[29]+f[28]-1.0*f[26]+f[25]+f[24]+f[23]-1.0*(f[19]+f[18]+f[17])+f[15]-1.0*(f[11]+f[10]+f[9]+f[4])))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][2] = (-0.01666666666666667*(15.0*f[47]+15.0*(f[46]+f[45]+f[44]-1.0*f[43])+15.0*(f[42]+f[41]+f[40]-1.0*(f[39]+f[38]+f[37]))+15.0*f[36]-1.0*(15.0*(f[35]+f[34]+f[33])+15.0*f[32])))*fac; 
    } 
   } 
   xbarVal = (0.5773502691896258*(f[31]+f[30]+f[29]+f[28]+f[26]+f[25]+f[24]+f[23]+f[19]+f[18]+f[17]+f[15]+f[11]+f[10]+f[9]+f[4]))/(f[27]+f[22]+f[21]+f[20]+f[16]+f[14]+f[13]+f[12]+f[8]+f[7]+f[6]+f[5]+f[3]+f[2]+f[1]+f[0]); 
   // if f is not realizable, no reflection from this node 
-  if(0.25*(f[27]+f[22]+f[21]+f[20]+f[16]+f[14]+f[13]+f[12]+f[8]+f[7]+f[6]+f[5]+f[3]+f[2]+f[1]+f[0]) <= 0. || fabsl(xbarVal)>=.95) { 
+  if(0.25*(f[27]+f[22]+f[21]+f[20]+f[16]+f[14]+f[13]+f[12]+f[8]+f[7]+f[6]+f[5]+f[3]+f[2]+f[1]+f[0]) <= 0. || fabs(xbarVal)>=.95) { 
   fReflXYZMuQuad[3][0] = 0.0; 
   fReflXYZMuQuad[3][1] = 0.0; 
   fReflXYZMuQuad[3][2] = 0.0; 
@@ -1956,25 +1956,25 @@ void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double wv, const d
    b = invL(xbarVal); 
    if(wv > 0) {
     xc = 2.*(sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 0. : b<-500? 1. : fabsl(b)<1e-10? (1.+xc)/2. : (expl(b*xc)-expl(-b))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 0. : b<-500? 1. : fabs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][0] = (0.25*(f[27]+f[22]+f[21]+f[20]+f[16]+f[14]+f[13]+f[12]+f[8]+f[7]+f[6]+f[5]+f[3]+f[2]+f[1]+f[0]))*fac; 
-    fac = (b>500 || fabsl(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*expl(b*xc)+(b+1)*expl(-b))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (b>500 || fabs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][1] = (0.25*(f[31]+f[30]+f[29]+f[28]+f[26]+f[25]+f[24]+f[23]+f[19]+f[18]+f[17]+f[15]+f[11]+f[10]+f[9]+f[4]))*fac; 
-    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3-(2*(b*b+3*(b+1))*expl(-b))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = (((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][2] = (0.01666666666666667*(15.0*f[47]+15.0*(f[46]+f[45]+f[44]+f[43])+15.0*(f[42]+f[41]+f[40]+f[39]+f[38]+f[37])+15.0*(f[36]+f[35]+f[34]+f[33])+15.0*f[32]))*fac; 
    } else { 
     xc = 2.*(-sqrt(vcutSq_i)-wv)/dv; 
-    fac = b>500? 1. : b<-500? 0. : fabsl(b)<1e-10? (1.-xc)/2. : (expl(b)-expl(b*xc))/(2.*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : b<-500? 0. : fabs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][0] = (0.25*(f[27]+f[22]+f[21]+f[20]+f[16]+f[14]+f[13]+f[12]+f[8]+f[7]+f[6]+f[5]+f[3]+f[2]+f[1]+f[0]))*fac; 
-    fac = b>500? 1. : (b<-500 || fabsl(b)<1e-8)? 0. : ((b-1)*expl(b)-(b*xc-1)*expl(b*xc))/2./(b*coshl(b)-sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = b>500? 1. : (b<-500 || fabs(b)<1e-8)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][1] = (0.25*(f[31]+f[30]+f[29]+f[28]+f[26]+f[25]+f[24]+f[23]+f[19]+f[18]+f[17]+f[15]+f[11]+f[10]+f[9]+f[4]))*fac; 
-    fac = ((2*(b*b+3*(1-b))*expl(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*expl(b*xc))/3)/(-4*b*coshl(b) + 4/3*(3 + b*b)*sinhl(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    fac = ((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b)); 
+    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %G, b=%G, xbarVal=%G \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][2] = (0.01666666666666667*(15.0*f[47]+15.0*(f[46]+f[45]+f[44]+f[43])+15.0*(f[42]+f[41]+f[40]+f[39]+f[38]+f[37])+15.0*(f[36]+f[35]+f[34]+f[33])+15.0*f[32]))*fac; 
    } 
   } 
