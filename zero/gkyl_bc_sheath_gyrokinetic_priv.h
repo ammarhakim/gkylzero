@@ -18,21 +18,17 @@ typedef struct { sheath_reflectedf_kern_list list[4]; } edged_sheath_reflectedf_
 GKYL_CU_D
 static const edged_sheath_reflectedf_kern_list ser_sheath_reflect_list[] = {
   { .list={
-//           { bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1, bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p2 },
-           { NULL, NULL},
+           { bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1, bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p2 },
            { bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1, bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p2 },
            { NULL, NULL},
-         //  { bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1, bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p2 },
-           { NULL, NULL}
+           { bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1, bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p2 },
           },
   },
   { .list={
-//           { bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1, bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p2 },
-           { NULL, NULL},
+           { bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1, bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p2 },
            { bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1, bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p2 },
            { NULL, NULL},
-         //  { bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1, bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p2 },
-           { NULL, NULL}
+           { bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1, bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p2 },
           },
   },
 };
@@ -41,20 +37,16 @@ static const edged_sheath_reflectedf_kern_list ser_sheath_reflect_list[] = {
 GKYL_CU_D
 static const edged_sheath_reflectedf_kern_list tensor_sheath_reflect_list[] = {
   { .list={
-//           { NULL, bc_sheath_gyrokinetic_reflectedf_lower_1x1v_tensor_p2 },
-           { NULL, NULL},
+           { NULL, bc_sheath_gyrokinetic_reflectedf_lower_1x1v_tensor_p2 },
            { NULL, bc_sheath_gyrokinetic_reflectedf_lower_1x2v_tensor_p2 },
            { NULL, NULL},
-//           { NULL, bc_sheath_gyrokinetic_reflectedf_lower_3x2v_tensor_p2 },
            { NULL, NULL},
           },
   },
   { .list={
-//           { NULL, bc_sheath_gyrokinetic_reflectedf_upper_1x1v_tensor_p2 },
-           { NULL, NULL},
+           { NULL, bc_sheath_gyrokinetic_reflectedf_upper_1x1v_tensor_p2 },
            { NULL, bc_sheath_gyrokinetic_reflectedf_upper_1x2v_tensor_p2 },
            { NULL, NULL},
-//           { NULL, bc_sheath_gyrokinetic_reflectedf_upper_3x2v_tensor_p2 },
            { NULL, NULL},
           },
   },
@@ -94,6 +86,6 @@ static void
 bc_gksheath_reflect(int dir, const struct gkyl_basis *basis, int cdim, double *out, const double *inp)
 {
   basis->flip_odd_sign(dir, inp, out);
-  basis->flip_odd_sign(cdim+1, out, out); // cdim+1 is the vpar direction.
+  basis->flip_odd_sign(cdim, out, out); // cdim is the vpar direction.
 }
 

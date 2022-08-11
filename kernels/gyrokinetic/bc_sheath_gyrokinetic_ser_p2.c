@@ -1,4 +1,4 @@
-#include <gkyl_bc_sheath_gyrokinetic.h> 
+#include <gkyl_bc_sheath_gyrokinetic_kernels.h> 
 
 
 void bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p2(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 

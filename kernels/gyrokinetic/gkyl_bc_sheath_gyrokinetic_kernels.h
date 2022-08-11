@@ -1,9 +1,10 @@
 #pragma once
 
+#include <gkyl_util.h>
 #include <math.h>
 
 // approximation for inverse Langevin function 
-long double invL(long double x) {
+static inline long double invL(long double x) {
   // from Kroger 
   return (3.*x-x*x*x*(6. + x*x - 2.*x*x*x*x)/5.)/(1.-x*x); 
 }

@@ -21,16 +21,15 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->grid = grid;
 
   // Create the skin/ghost ranges.
-  gkyl_skin_ghost_ranges(&up->skin_r, &up->ghost_r, dir, edge,
-                         local_range_ext, num_ghosts);
+  gkyl_skin_ghost_ranges(&up->skin_r, &up->ghost_r, dir, edge, local_range_ext, num_ghosts);
 
   // Need the configuration space range to index into phi.
-  int rlo[3] = {0}, rup[3] = {0};
+  int rlo[cdim], rup[cdim];
   for (int d=0; d<cdim; d++) {
     rlo[d] = local_range_ext->lower[d];
     rup[d] = local_range_ext->upper[d];
   }
-  gkyl_sub_range_init(&up->conf_r, local_range_ext, rlo, rup);
+  gkyl_range_init(&up->conf_r, cdim, rlo, rup);
 
   // Choose the kernel that does the reflection/no reflection/partial
   // reflection.
@@ -42,7 +41,7 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
 
 /* Modeled after gkyl_array_flip_copy_to_buffer_fn */
 void
-bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
+gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
   const struct gkyl_array *phi_wall, struct gkyl_array *distf)
 {
 #ifdef GKYL_HAVE_CUDA
@@ -52,16 +51,16 @@ bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, const
   }
 #endif
 
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &up->skin_r);
-
   int fidx[GKYL_MAX_DIM]; // Flipped index.
+  int cidx[3];
   double xc[GKYL_MAX_DIM];
 
   int vpar_dir = up->cdim;
   double dvpar = up->grid->dx[vpar_dir];
   int uplo = up->skin_r.upper[vpar_dir]+up->skin_r.lower[vpar_dir];
 
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &up->skin_r);
   while (gkyl_range_iter_next(&iter)) {
 
     gkyl_copy_int_arr(up->skin_r.ndim, iter.idx, fidx);
@@ -80,7 +79,8 @@ bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, const
     const double *inp = gkyl_array_cfetch(distf, skin_loc);
     double *out = gkyl_array_fetch(distf, ghost_loc);
 
-    long conf_loc = gkyl_range_idx(&up->conf_r, iter.idx);
+    for (int d=0; d<up->cdim; d++) cidx[d] = iter.idx[d]; 
+    long conf_loc = gkyl_range_idx(&up->conf_r, cidx);
     const double *phi_p = gkyl_array_cfetch(phi, conf_loc);
     const double *phi_wall_p = gkyl_array_cfetch(phi_wall, conf_loc);
 
