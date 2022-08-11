@@ -9,7 +9,7 @@
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_isoeuler_auxfields {
-  const struct gkyl_array *uvar; // Pointer to covariant components of B-field unit vector.
+  const struct gkyl_array *u;
 };
 
 struct gkyl_dg_eqn* gkyl_dg_isoeuler_new(const struct gkyl_basis* cbasis,

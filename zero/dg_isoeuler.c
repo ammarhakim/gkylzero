@@ -28,7 +28,7 @@ void
 gkyl_isoeuler_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_isoeuler_auxfields auxin)
 {
   struct dg_isoeuler *isoeuler = container_of(eqn, struct dg_isoeuler, eqn);
-  isoeuler->auxfields.uvar = auxin.uvar;
+  isoeuler->auxfields.u = auxin.u;
 }
 
 struct gkyl_dg_eqn*

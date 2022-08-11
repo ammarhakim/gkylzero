@@ -66,7 +66,7 @@ gkyl_dg_updater_fluid_advance(gkyl_dg_updater_fluid *fluid,
       (struct gkyl_dg_euler_auxfields) { .u = u });
   else if (eqn_id == GKYL_EQN_ISO_EULER)
     gkyl_isoeuler_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_isoeuler_auxfields) { .uvar = u });
+      (struct gkyl_dg_isoeuler_auxfields) { .u = u });
 
   struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance(fluid->up_fluid, update_rng, fIn, cflrate, rhs);
