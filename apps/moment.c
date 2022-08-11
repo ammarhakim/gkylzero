@@ -268,7 +268,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         case GKYL_SPECIES_FUNC:
           sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
-            mom_sp->bc_lower_func, 0);
+            mom_sp->bc_lower_func, mom_sp->ctx);
           break;
         
         case GKYL_SPECIES_COPY:
@@ -299,7 +299,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         case GKYL_SPECIES_FUNC:
           sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
-            mom_sp->bc_upper_func, 0);
+            mom_sp->bc_upper_func, mom_sp->ctx);
           break;
           
         case GKYL_SPECIES_COPY:
@@ -643,7 +643,8 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   struct gkyl_moment_em_coupling_inp src_inp = {
     .grid = &app->grid,
     .nfluids = app->num_species,
-    .epsilon0 = app->field.epsilon0,
+    // if there is a field, need to update electric field too, otherwise just updating fluid
+    .epsilon0 = app->field.epsilon0 ? app->field.epsilon0 : 0.0, 
   };
 
   for (int i=0; i<app->num_species; ++i)
