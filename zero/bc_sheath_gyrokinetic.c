@@ -76,13 +76,13 @@ gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, 
     long skin_loc = gkyl_range_idx(&up->skin_r, iter.idx);
     long ghost_loc = gkyl_range_idx(&up->ghost_r, fidx);
 
-    const double *inp = gkyl_array_cfetch(distf, skin_loc);
-    double *out = gkyl_array_fetch(distf, ghost_loc);
+    const double *inp = (const double*) gkyl_array_cfetch(distf, skin_loc);
+    double *out = (double*) gkyl_array_fetch(distf, ghost_loc);
 
     for (int d=0; d<up->cdim; d++) cidx[d] = iter.idx[d]; 
     long conf_loc = gkyl_range_idx(&up->conf_r, cidx);
-    const double *phi_p = gkyl_array_cfetch(phi, conf_loc);
-    const double *phi_wall_p = gkyl_array_cfetch(phi_wall, conf_loc);
+    const double *phi_p = (const double*) gkyl_array_cfetch(phi, conf_loc);
+    const double *phi_wall_p = (const double*) gkyl_array_cfetch(phi_wall, conf_loc);
 
     // Calculate reflected distribution function fhat.
     // note: reflected distribution can be
