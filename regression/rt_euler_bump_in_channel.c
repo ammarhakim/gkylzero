@@ -5,6 +5,7 @@
 #include <gkyl_const.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
+#include <gkyl_wv_eqn.h>
 #include <gkyl_wv_euler.h>
 #include <rt_arg_parse.h>
 
@@ -167,6 +168,9 @@ main(int argc, char **argv)
 
     step += 1;
   }
+
+  gkyl_moment_app_write(app, tcurr, 1000);
+  
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
 
   // simulation complete, free resources

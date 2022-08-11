@@ -428,7 +428,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
       }
       
       // apply limiters to waves for all edges in update range,
-      // including edges that are on the range boundary (PASS THE  BAD EDGE FLAGS)
+      // including edges that are on the range boundary
       limit_waves(wv, mwaves, &slice_range,
         update_range->lower[dir], update_range->upper[dir]+1, wv->waves, wv->speeds);
 
