@@ -26,7 +26,5 @@ GKYL_CU_DH double isoeuler_vol_1x_ser_p1(const double *w, const double *dxv, con
   outrhou0[0] += 1.732050807568877*rho[1]*vthsq+rhou0[1]*uvar0[1]*dx10+rhou0[0]*uvar0[0]*dx10;
   outrhou0[1] += rhou0[1]*uvar0[1]*dx10+rhou0[0]*uvar0[0]*dx10;
 
-  printf("vol uvar0[0]:%f\n",uvar0[0]);
-
   return 0.;
 }

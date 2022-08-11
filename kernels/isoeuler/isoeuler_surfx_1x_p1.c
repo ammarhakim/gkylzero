@@ -37,16 +37,8 @@ GKYL_CU_DH void isoeuler_surfx_1x_ser_p1(const double *w, const double *dxv, dou
   outrho[0] += 0.4330127018922193*rhou0r[1]*dxr1-0.4330127018922193*rhou0c[1]*dxr1-0.25*rhou0r[0]*dxr1-0.25*rhou0c[0]*dxr1+0.4330127018922193*rhou0l[1]*dxl1-0.4330127018922193*rhou0c[1]*dxl1+0.25*rhou0l[0]*dxl1+0.25*rhou0c[0]*dxl1;
   outrho[1] += 0.75*rhou0r[1]*dxr1-0.75*rhou0c[1]*dxr1-0.4330127018922193*rhou0r[0]*dxr1-0.4330127018922193*rhou0c[0]*dxr1-0.75*rhou0l[1]*dxl1+0.75*rhou0c[1]*dxl1-0.4330127018922193*rhou0l[0]*dxl1-0.4330127018922193*rhou0c[0]*dxl1;
 
-
-  printf("in outrhoux[0]: %f\n",outrhoux[0]);
-
-  printf("rhou0l: %f, rhou0c: %f, rhou0r:%f\n",rhou0l[0],rhou0c[0],rhou0r[0]);
-  printf("uvar0c: %f, uvar0c: %f, uvar0c:%f\n",uvar0c[0],uvar0c[0],uvar0c[0]);
-
   //FluxRhoUx;
   outrhoux[0] += (-0.3061862178478972*rhor[1]*dxr1*vthsq)-0.3061862178478972*rhoc[1]*dxr1*vthsq+0.3061862178478972*rhol[1]*dxl1*vthsq+0.3061862178478972*rhoc[1]*dxl1*vthsq-0.5303300858899106*rhor[1]*uvar0r[1]*dxr1+0.3061862178478972*rhor[0]*uvar0r[1]*dxr1-0.5303300858899106*rhoc[1]*uvar0c[1]*dxr1-0.3061862178478972*rhoc[0]*uvar0c[1]*dxr1+0.3061862178478972*uvar0r[0]*rhor[1]*dxr1-0.3061862178478972*uvar0c[0]*rhoc[1]*dxr1-0.1767766952966369*rhor[0]*uvar0r[0]*dxr1-0.1767766952966369*rhoc[0]*uvar0c[0]*dxr1+0.5303300858899106*rhol[1]*uvar0l[1]*dxl1+0.3061862178478972*rhol[0]*uvar0l[1]*dxl1+0.5303300858899106*rhoc[1]*uvar0c[1]*dxl1-0.3061862178478972*rhoc[0]*uvar0c[1]*dxl1+0.3061862178478972*uvar0l[0]*rhol[1]*dxl1-0.3061862178478972*uvar0c[0]*rhoc[1]*dxl1+0.1767766952966369*rhol[0]*uvar0l[0]*dxl1+0.1767766952966369*rhoc[0]*uvar0c[0]*dxl1;
   outrhoux[1] += 0.9185586535436916*rhor[1]*dxr1*vthsq-0.9185586535436916*rhoc[1]*dxr1*vthsq-0.9185586535436916*rhol[1]*dxl1*vthsq+0.9185586535436916*rhoc[1]*dxl1*vthsq-0.9185586535436916*rhor[1]*uvar0r[1]*dxr1+0.5303300858899106*rhor[0]*uvar0r[1]*dxr1-0.9185586535436916*rhoc[1]*uvar0c[1]*dxr1-0.5303300858899106*rhoc[0]*uvar0c[1]*dxr1+0.5303300858899106*uvar0r[0]*rhor[1]*dxr1-0.5303300858899106*uvar0c[0]*rhoc[1]*dxr1-0.3061862178478972*rhor[0]*uvar0r[0]*dxr1-0.3061862178478972*rhoc[0]*uvar0c[0]*dxr1-0.9185586535436916*rhol[1]*uvar0l[1]*dxl1-0.5303300858899106*rhol[0]*uvar0l[1]*dxl1-0.9185586535436916*rhoc[1]*uvar0c[1]*dxl1+0.5303300858899106*rhoc[0]*uvar0c[1]*dxl1-0.5303300858899106*uvar0l[0]*rhol[1]*dxl1+0.5303300858899106*uvar0c[0]*rhoc[1]*dxl1-0.3061862178478972*rhol[0]*uvar0l[0]*dxl1-0.3061862178478972*rhoc[0]*uvar0c[0]*dxl1;
-
-  printf("out outrhoux[0]: %f\n",outrhoux[0]);
 
 }
