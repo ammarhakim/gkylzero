@@ -254,7 +254,8 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
 
     double dtdx = dt/wv->grid.dx[dir];
 
-    // upper/lower bounds in direction 'd'. Note these are edge indices
+    // upper/lower bounds in direction 'd'. Note these are edge
+    // indices
     int loidx = update_range->lower[dir]-1;
     int upidx = update_range->upper[dir]+2;
 
@@ -273,7 +274,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
       gkyl_copy_int_arr(ndim, iter.idx, idxl);
       gkyl_copy_int_arr(ndim, iter.idx, idxr);
 
-      for (int i=loidx; i<upidx; ++i) {
+      for (int i=loidx; i<upidx; ++i) { // CAUTION: should this be i<= as our indexing is inclusive?!
         idxl[dir] = i-1; idxr[dir] = i;
 
         // geometry in cell
@@ -344,19 +345,20 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
           long lidx = gkyl_range_idx(update_range, idxl);
 
           const double *q0 = gkyl_array_cfetch(qout, lidx);
-          double q[meqn]; for (int i=0; i<meqn; ++i) q[i] = q0[i];
+          double q0t[meqn]; for (int m=0; m<meqn; ++m) q0t[m] = q0[m];
+          
           // compute first-order update but do not store it in qout
-          calc_first_order_update(meqn, dtdx/cg->kappa, q,
+          calc_first_order_update(meqn, dtdx/cg->kappa, q0t,
             gkyl_array_cfetch(wv->amdq, gkyl_ridx(slice_range, i+1)),
             gkyl_array_cfetch(wv->apdq, gkyl_ridx(slice_range, i))
           );
 
-          if (!wv->equation->check_inv_func(wv->equation, q)) {
-            double *redo_flux_l = gkyl_array_fetch(wv->redo_fluct, gkyl_ridx(slice_range, i));
-            double *redo_flux_r = gkyl_array_fetch(wv->redo_fluct, gkyl_ridx(slice_range, i+1));
+          if (!wv->equation->check_inv_func(wv->equation, q0t)) {
+            double *redo_fluct_l = gkyl_array_fetch(wv->redo_fluct, gkyl_ridx(slice_range, i));
+            double *redo_fluct_r = gkyl_array_fetch(wv->redo_fluct, gkyl_ridx(slice_range, i+1));
             // mark left and right edges so fluctuations are redone
-            redo_flux_l[0] = 1.0;
-            redo_flux_r[0] = 1.0;
+            redo_fluct_l[0] = 1.0;
+            redo_fluct_r[0] = 1.0;
 
             n_bad_cells += 1;
           }
@@ -367,10 +369,10 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
         wv->n_max_bad_cells = wv->n_max_bad_cells >  n_bad_cells ? wv->n_max_bad_cells : n_bad_cells;
 
         // now recompute fluctuations on marked edges
-        for (int i=loidx; i<upidx; ++i) {
+        for (int i=loidx; i<upidx; ++i) {  // CAUTION: should this be i<= as our indexing is inclusive?!
           long sidx = gkyl_ridx(slice_range, i);
-          double *redo_flux = gkyl_array_fetch(wv->redo_fluct, sidx);
-          if (redo_flux[0] != 0.0) {
+          const double *redo_fluct = gkyl_array_cfetch(wv->redo_fluct, sidx);
+          if (redo_fluct[0] != 0.0) {
             // need to recompute the fluctuations
           
             idxl[dir] = i-1; idxr[dir] = i;
@@ -378,7 +380,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
             const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wv->geom, idxr);
 
             long lidx = gkyl_range_idx(update_range, idxl);
-            long ridx = gkyl_range_idx(update_range, idxr);        
+            long ridx = gkyl_range_idx(update_range, idxr);
           
             const double *qinl = gkyl_array_cfetch(qin, lidx);
             const double *qinr = gkyl_array_cfetch(qin, ridx);
@@ -501,7 +503,6 @@ gkyl_wave_prop_max_dt(const gkyl_wave_prop *wv, const struct gkyl_range *update_
       double dx = wv->grid.dx[dir];
 
       const double *q = gkyl_array_cfetch(qin, gkyl_range_idx(update_range, iter.idx));
-      // TODO NEED TO ROTATE!!
       double maxs = gkyl_wv_eqn_max_speed(wv->equation, q);
       max_dt = fmin(max_dt, wv->cfl*dx/maxs);
     }
