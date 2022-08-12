@@ -274,6 +274,106 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
 }
 
 void
+gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
+  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
+  const struct gkyl_array *m0, const struct gkyl_array *udrift, const struct gkyl_array *vtsq,  
+  struct gkyl_array *fmax)
+{
+
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu)
+    return gkyl_proj_maxwellian_on_basis_prim_mom_cu(up, phase_rng, conf_rng, M0, udrift, vtsq, fmax);
+#endif
+
+  int cdim = up->cdim, pdim = up->pdim;
+  int vdim = pdim-cdim;
+  int num_quad = up->num_quad;
+  int tot_quad = up->tot_quad;
+  int num_phase_basis = up->num_phase_basis;  
+
+  int tot_conf_quad = up->tot_conf_quad;
+  int num_conf_basis = up->num_conf_basis;
+
+  // create range to loop over config-space and phase-space quadrature points
+  struct gkyl_range conf_qrange = get_qrange(cdim, num_quad);
+  struct gkyl_range phase_qrange = get_qrange(pdim, num_quad);
+
+  struct gkyl_range vel_rng;
+  struct gkyl_range_iter conf_iter, vel_iter;
+  
+  int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
+  for (int d=0; d<conf_rng->ndim; ++d) rem_dir[d] = 1;
+
+  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
+  double m0_o[tot_conf_quad], udrift_o[tot_conf_quad][vdim], vtsq_o[tot_conf_quad];
+  
+  // outer loop over configuration space cells; for each
+  // config-space cell inner loop walks over velocity space
+  gkyl_range_iter_init(&conf_iter, conf_rng);
+  while (gkyl_range_iter_next(&conf_iter)) {
+    long midx = gkyl_range_idx(conf_rng, conf_iter.idx);
+
+    const double *m0_d = gkyl_array_cfetch(m0, midx);
+    const double *udrift_d = gkyl_array_cfetch(udrift, midx);
+    const double *vtsq_d = gkyl_array_cfetch(vtsq, midx);
+    
+    // compute primitive moments at quadrature nodes
+    for (int n=0; n<tot_conf_quad; ++n) {
+      const double *b_ord = gkyl_array_cfetch(up->conf_basis_at_ords, n);
+
+      m0_o[n] = 0.0;
+      for (int d=0; d<vdim; ++d) udrift_o[n][d] = 0.0;
+      vtsq_o[n] = 0.0;
+      for (int k=0; k<num_conf_basis; ++k) {
+        m0_o[n] += m0_d[k]*b_ord[k];
+
+        for (int d=0; d<vdim; ++d) {
+          udrift_o[n][d] += udrift_d[num_conf_basis*d+k]*b_ord[k];
+        }
+
+        vtsq_o[n] += vtsq_d[k]*b_ord[k];
+      }
+
+    }
+
+    // inner loop over velocity space
+    gkyl_range_deflate(&vel_rng, phase_rng, rem_dir, conf_iter.idx);
+    gkyl_range_iter_no_split_init(&vel_iter, &vel_rng);
+    while (gkyl_range_iter_next(&vel_iter)) {
+      
+      copy_idx_arrays(conf_rng->ndim, phase_rng->ndim, conf_iter.idx, vel_iter.idx, pidx);
+      gkyl_rect_grid_cell_center(&up->grid, pidx, xc);
+
+      struct gkyl_range_iter qiter;
+      // compute Maxwellian at phase-space quadrature nodes
+      gkyl_range_iter_init(&qiter, &phase_qrange);
+      while (gkyl_range_iter_next(&qiter)) {
+
+        int cqidx = gkyl_range_idx(&conf_qrange, qiter.idx);
+        double nvtsq_q = m0_o[cqidx]/pow(2.0*GKYL_PI*vtsq_o[cqidx], vdim/2.0);
+
+        int pqidx = gkyl_range_idx(&phase_qrange, qiter.idx);
+
+        comp_to_phys(pdim, gkyl_array_cfetch(up->ordinates, pqidx),
+          up->grid.dx, xc, xmu);
+
+        double efact = 0.0;        
+        for (int d=0; d<vdim; ++d)
+          efact += (xmu[cdim+d]-udrift_o[cqidx][d])*(xmu[cdim+d]-udrift_o[cqidx][d]);
+
+        double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
+        fq[0] = nvtsq_q*exp(-efact/(2.0*vtsq_o[cqidx]));
+      }
+
+      // compute expansion coefficients of Maxwellian on basis
+      long lidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
+      proj_on_basis(up, up->fun_at_ords, gkyl_array_fetch(fmax, lidx));
+    }
+  }
+  
+}
+
+void
 gkyl_proj_maxwellian_on_basis_release(gkyl_proj_maxwellian_on_basis* up)
 {
 #ifdef GKYL_HAVE_CUDA

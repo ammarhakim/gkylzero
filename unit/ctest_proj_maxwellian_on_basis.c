@@ -59,6 +59,19 @@ void eval_M2_1v(double t, const double *xn, double* restrict fout, void *ctx)
   fout[0] = n*vth2 + n*ux*ux;
 }
 
+void eval_udrift_1v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  fout[0] = 0.5;
+}
+
+void eval_vtsq_1v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  double vtsq = 1.0;
+  fout[0] = vtsq;
+}
+
 void eval_M1i_2v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
@@ -70,6 +83,19 @@ void eval_M2_2v(double t, const double *xn, double* restrict fout, void *ctx)
   double n = 1.0, vth2 = 1.0, ux = 0.5, uy = 0.25;
   double x = xn[0];
   fout[0] = 2*n*vth2 + n*(ux*ux+uy*uy);
+}
+
+void eval_udrift_2v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  fout[0] = 0.5; fout[1] = 0.25;
+}
+
+void eval_vtsq_2v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  double vtsq = 1.0;
+  fout[0] = vtsq;
 }
 
 void
@@ -189,16 +215,78 @@ test_1x1v(int poly_order, bool use_gpu)
 //  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // release memory for moment data object
-  gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
-  gkyl_array_release(distf);
+  gkyl_array_release(m1i); gkyl_array_release(m2);
   if (use_gpu) {
-    gkyl_array_release(m0_cu); gkyl_array_release(m1i_cu); gkyl_array_release(m2_cu);
-    gkyl_array_release(distf_cu);
+    gkyl_array_release(m1i_cu); gkyl_array_release(m2_cu);
   }
-  gkyl_proj_maxwellian_on_basis_release(proj_max);
-  gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
+
+  // now perform the maxwellian projection using primitive moments.
+  struct gkyl_array *udrift, *vtsq;
+  udrift = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
+  vtsq = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *udrift_cu, *vtsq_cu;
+  if (use_gpu) { // create device copies
+    udrift_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
+    vtsq_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
+  }
+
+  gkyl_proj_on_basis *proj_udrift = gkyl_proj_on_basis_new(&confGrid, &confBasis,
+    poly_order+1, vdim, eval_udrift_1v, NULL);
+  gkyl_proj_on_basis *proj_vtsq = gkyl_proj_on_basis_new(&confGrid, &confBasis,
+    poly_order+1, 1, eval_vtsq_1v, NULL);
+
+  gkyl_proj_on_basis_advance(proj_udrift, 0.0, &confLocal, udrift);
+  gkyl_proj_on_basis_advance(proj_vtsq, 0.0, &confLocal, vtsq);
+
+  if (use_gpu) {
+    // copy host array to device
+    gkyl_array_copy(udrift_cu, udrift);
+    gkyl_array_copy(vtsq_cu , vtsq);
+  }
+
+  if (use_gpu) {
+    gkyl_proj_maxwellian_on_basis_prim_mom(proj_max, &local, &confLocal, m0_cu, udrift_cu, vtsq_cu, distf_cu);
+    gkyl_array_copy(distf, distf_cu);
+  } else {
+    gkyl_proj_maxwellian_on_basis_prim_mom(proj_max, &local, &confLocal, m0, udrift, vtsq, distf);
+  }
+
+  fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[2]) { 1, 17 }));
+  
+  if (poly_order == 1) {
+    for (int i=0; i<basis.num_basis; ++i)
+      TEST_CHECK( gkyl_compare_double(p1_vals[i], fv[i], 1e-12) );    
+  }
+
+  if (poly_order == 2) {
+    for (int i=0; i<basis.num_basis; ++i)
+      TEST_CHECK( gkyl_compare_double(p2_vals[i], fv[i], 1e-12) );
+  }
+
+  if (poly_order == 3) {
+    for (int i=0; i<basis.num_basis; ++i)
+      TEST_CHECK( gkyl_compare_double(p3_vals[i], fv[i], 1e-12) );
+  }
+
+//  // write distribution function to file
+//  char fname[1024];
+//  sprintf(fname, "ctest_proj_maxwellian_on_basis_test_1x1v_p%d.gkyl", poly_order);
+//  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
+
+  gkyl_array_release(m0); gkyl_array_release(udrift); gkyl_array_release(vtsq);
+  if (use_gpu) {
+    gkyl_array_release(m0_cu); gkyl_array_release(udrift_cu); gkyl_array_release(vtsq_cu);
+  }
+  gkyl_proj_on_basis_release(proj_m0);
+  gkyl_proj_on_basis_release(proj_udrift);
+  gkyl_proj_on_basis_release(proj_vtsq);
+
+  gkyl_array_release(distf);
+  if (use_gpu)
+    gkyl_array_release(distf_cu);
+  gkyl_proj_maxwellian_on_basis_release(proj_max);
 }
 
 void
@@ -329,16 +417,78 @@ test_1x2v(int poly_order, bool use_gpu)
 //  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // release memory for moment data object
-  gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
-  gkyl_array_release(distf);
+  gkyl_array_release(m1i); gkyl_array_release(m2);
   if (use_gpu) {
-    gkyl_array_release(m0_cu); gkyl_array_release(m1i_cu); gkyl_array_release(m2_cu);
-    gkyl_array_release(distf_cu);
+    gkyl_array_release(m1i_cu); gkyl_array_release(m2_cu);
   }
-  gkyl_proj_maxwellian_on_basis_release(proj_max);
-  gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
+
+  // now perform the maxwellian projection using primitive moments.
+  struct gkyl_array *udrift, *vtsq;
+  udrift = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
+  vtsq = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *udrift_cu, *vtsq_cu;
+  if (use_gpu) { // create device copies
+    udrift_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
+    vtsq_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
+  }
+
+  gkyl_proj_on_basis *proj_udrift = gkyl_proj_on_basis_new(&confGrid, &confBasis,
+    poly_order+1, vdim, eval_udrift_2v, NULL);
+  gkyl_proj_on_basis *proj_vtsq = gkyl_proj_on_basis_new(&confGrid, &confBasis,
+    poly_order+1, 1, eval_vtsq_2v, NULL);
+
+  gkyl_proj_on_basis_advance(proj_udrift, 0.0, &confLocal, udrift);
+  gkyl_proj_on_basis_advance(proj_vtsq, 0.0, &confLocal, vtsq);
+
+  if (use_gpu) {
+    // copy host array to device
+    gkyl_array_copy(udrift_cu, udrift);
+    gkyl_array_copy(vtsq_cu , vtsq);
+  }
+
+  if (use_gpu) {
+    gkyl_proj_maxwellian_on_basis_prim_mom(proj_max, &local, &confLocal, m0_cu, udrift_cu, vtsq_cu, distf_cu);
+    gkyl_array_copy(distf, distf_cu);
+  } else {
+    gkyl_proj_maxwellian_on_basis_prim_mom(proj_max, &local, &confLocal, m0, udrift, vtsq, distf);
+  }
+
+  fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[3]) { 1, 9, 9 }));
+  
+  if (poly_order == 1) {
+    for (int i=0; i<basis.num_basis; ++i)
+      TEST_CHECK( gkyl_compare_double(p1_vals[i], fv[i], 1e-12) );
+  }
+
+  if (poly_order == 2) {
+    for (int i=0; i<basis.num_basis; ++i)
+      TEST_CHECK( gkyl_compare_double(p2_vals[i], fv[i], 1e-12) );
+  }
+
+  if (poly_order == 3) {
+    for (int i=0; i<basis.num_basis; ++i)
+      TEST_CHECK( gkyl_compare_double(p3_vals[i], fv[i], 1e-10) );
+  }
+
+//  // write distribution function to file
+//  char fname[1024];
+//  sprintf(fname, "ctest_proj_maxwellian_on_basis_test_1x1v_p%d.gkyl", poly_order);
+//  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
+
+  gkyl_array_release(m0); gkyl_array_release(udrift); gkyl_array_release(vtsq);
+  if (use_gpu) {
+    gkyl_array_release(m0_cu); gkyl_array_release(udrift_cu); gkyl_array_release(vtsq_cu);
+  }
+  gkyl_proj_on_basis_release(proj_m0);
+  gkyl_proj_on_basis_release(proj_udrift);
+  gkyl_proj_on_basis_release(proj_vtsq);
+
+  gkyl_array_release(distf);
+  if (use_gpu)
+    gkyl_array_release(distf_cu);
+  gkyl_proj_maxwellian_on_basis_release(proj_max);
 }
 
 void test_1x1v_p0() { test_1x1v(0, false); }
