@@ -127,6 +127,7 @@ struct vm_source {
   struct vm_species *source_species; // species to use for the source
   double scale_factor; // factor to scale source function
   double source_length; // length used to scale the source function
+  double *scale_ptr;
 };
 
 

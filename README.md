@@ -57,8 +57,12 @@ build on Traverse please run
 ```
 After this is completed then just type:
 ```
-make -j
+make -j #
 ```
+where # is the number of cores you wish to use (if working on the login
+node of a cluster it is preferable that you use fewer than the total number
+of cores available, otherwise you will slow down the login node and irk
+other users).
 
 Note: On Traverse and Stellar-amd you need to load cudatoolkit/11.6. 
 
@@ -78,9 +82,10 @@ compiler you wish to use and the various paths to the
 dependencies. Once you are done with installing/specifying the compiler 
 and dependencies simply type:
 ```
-    make -j
+    make -j #
 ```
-in the top-level directory. To run all unit tests do:
+in the top-level directory (# is the number of cores, see previous comment
+on this). To run all unit tests do:
 ```
     make check
 ```
@@ -88,14 +93,16 @@ in the top-level directory. To run all unit tests do:
 If you do not run configure you can also specify the compiler when
 running make. For example:
 ```
-    make CC=icc -j
+    make CC=icc -j #
 ```
-to build with the Intel C compiler. If you use the NVIDIA nvcc
-compiler then the CUDA specific parts of the code will be built:
+to build with the Intel C compiler (# is the number of cores, see previous
+comment on this). If you use the NVIDIA nvcc compiler then the CUDA
+specific parts of the code will be built:
 ```
-    make CC=nvcc -j
+    make CC=nvcc -j #
 ```
-The unit and regression test executables are written in the
+(# is the number of cores, see previous comment on this). The
+unit and regression test executables are written in the
 `build/unit` and `build/regression` directories.
 
 If you want to use the code as a library you should install it:
