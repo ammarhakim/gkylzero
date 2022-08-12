@@ -45,7 +45,7 @@ struct gkyl_wave_prop_inp {
 // Some statics from update calls
 struct gkyl_wave_prop_stats {
   long n_calls; // number of calls to updater
-  long n_bad_calls; // number of calls in which positivity had to be fixed
+  long n_bad_advance_calls; // number of calls in which positivity had to be fixed
   long n_bad_cells; // number  of cells fixed
   long n_max_bad_cells; // maximum number of cells fixed in any call
 };

@@ -170,6 +170,7 @@ main(int argc, char **argv)
   }
 
   gkyl_moment_app_write(app, tcurr, 1000);
+  gkyl_moment_app_stat_write(app);  
   
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
 

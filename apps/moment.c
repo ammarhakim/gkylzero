@@ -1061,7 +1061,7 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
     for (int i=0; i<app->num_species; ++i) {
       for (int d=0; d<app->ndim; ++d) {
         struct gkyl_wave_prop_stats wvs = gkyl_wave_prop_stats(app->species[i].slvr[d]);
-        fprintf(fp, " %s_n_bad_calls[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_calls);
+        fprintf(fp, " %s_n_bad_advance_calls[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_advance_calls);
         fprintf(fp, " %s_n_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_cells);
         fprintf(fp, " %s_n_max_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_max_bad_cells);
       }
