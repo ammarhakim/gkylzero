@@ -57,7 +57,7 @@ init_quad_values(const struct gkyl_basis *basis, int num_quad, struct gkyl_array
   gkyl_range_iter_init(&iter, &qrange);
 
   while (gkyl_range_iter_next(&iter)) {
-    long node = gkyl_range_idx(&qrange, iter.idx);
+    int node = gkyl_range_idx(&qrange, iter.idx);
     
     // set ordinates
     double *ord = gkyl_array_fetch(ordinates_ho, node);
@@ -119,10 +119,7 @@ gkyl_proj_maxwellian_on_basis_new(
   up->tot_conf_quad = init_quad_values(conf_basis, num_quad,
     &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, use_gpu);
 
-  if (up->use_gpu)
-    up->fun_at_ords = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, up->tot_quad);
-  else
-    up->fun_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad);
+  up->fun_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad); // Only used in CPU implementation.
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -135,14 +132,12 @@ gkyl_proj_maxwellian_on_basis_new(
 
     int p2c_qidx_ho[phase_qrange.volume];
     up->p2c_qidx = (int*) gkyl_cu_malloc(sizeof(int)*phase_qrange.volume);
-    int cI = 0;
 
-    struct gkyl_range_iter qiter;
-    gkyl_range_iter_init(&qiter, &phase_qrange);
-    while (gkyl_range_iter_next(&qiter)) {
-      long cqidx = gkyl_range_idx(&conf_qrange, qiter.idx);
-      p2c_qidx_ho[cI] = cqidx;
-      cI++;
+    int pidx[GKYL_MAX_DIM];
+    for (int n=0; n<up->tot_quad; ++n) {
+      gkyl_range_inv_idx(&phase_qrange, n, pidx);
+      int cqidx = gkyl_range_idx(&conf_qrange, pidx);
+      p2c_qidx_ho[n] = cqidx;
     }
     gkyl_cu_memcpy(up->p2c_qidx, p2c_qidx_ho, sizeof(int)*phase_qrange.volume, GKYL_CU_MEMCPY_H2D);
   }
@@ -254,10 +249,10 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
       gkyl_range_iter_init(&qiter, &phase_qrange);
       while (gkyl_range_iter_next(&qiter)) {
 
-        long cqidx = gkyl_range_idx(&conf_qrange, qiter.idx);
+        int cqidx = gkyl_range_idx(&conf_qrange, qiter.idx);
         double nvth2_q = num[cqidx]/pow(2.0*GKYL_PI*vth2[cqidx], vdim/2.0);
 
-        long pqidx = gkyl_range_idx(&phase_qrange, qiter.idx);
+        int pqidx = gkyl_range_idx(&phase_qrange, qiter.idx);
 
         comp_to_phys(pdim, gkyl_array_cfetch(up->ordinates, pqidx),
           up->grid.dx, xc, xmu);

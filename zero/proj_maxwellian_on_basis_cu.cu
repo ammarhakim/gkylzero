@@ -13,8 +13,7 @@ gkyl_proj_maxwellian_on_basis_lab_mom_cu_ker(int num_quad, const struct gkyl_rec
   const struct gkyl_array* GKYL_RESTRICT conf_basis_at_ords, 
   const struct gkyl_array* GKYL_RESTRICT phase_basis_at_ords, 
   const struct gkyl_array* GKYL_RESTRICT phase_ordinates, 
-  const struct gkyl_array* GKYL_RESTRICT phase_weights, 
-  struct gkyl_array* GKYL_RESTRICT fun_at_ords, int *p2c_qidx,
+  const struct gkyl_array* GKYL_RESTRICT phase_weights, const int *p2c_qidx,
   const struct gkyl_array* GKYL_RESTRICT M0, const struct gkyl_array* GKYL_RESTRICT M1i,
   const struct gkyl_array* GKYL_RESTRICT M2, struct gkyl_array* GKYL_RESTRICT fmax)
 {
@@ -56,8 +55,7 @@ gkyl_proj_maxwellian_on_basis_lab_mom_cu_ker(int num_quad, const struct gkyl_rec
       // drift velocity vector
       for (int d=0; d<vdim; ++d) {
         double M1i_n = 0.0;
-        for (int k=0; k<num_conf_basis; ++k)
-          M1i_n += M1i_d[num_conf_basis*d+k]*b_ord[k];
+        for (int k=0; k<num_conf_basis; ++k) M1i_n += M1i_d[num_conf_basis*d+k]*b_ord[k];
         vel[n][d] = M1i_n/den[n];
       }
 
@@ -71,10 +69,20 @@ gkyl_proj_maxwellian_on_basis_lab_mom_cu_ker(int num_quad, const struct gkyl_rec
 
     gkyl_rect_grid_cell_center(&grid, pidx, xc);
 
+    long lidx = gkyl_range_idx(&phase_r, pidx);
+    double *fm = (double *) gkyl_array_fetch(fmax, lidx);
+
+    for (int k=0; k<num_phase_basis; ++k) fm[k] = 0.0;
+
+    // compute expansion coefficients of Maxwellian on basis
+    // The following is modeled after proj_on_basis in the private header.
+    const double *phase_w = (const double *) phase_weights->data;
+    const double *phaseb_o = (const double *) phase_basis_at_ords->data;
+  
     // compute Maxwellian at phase-space quadrature nodes
     for (int n=0; n<tot_phase_quad; ++n) {
 
-      long cqidx = p2c_qidx[n];
+      int cqidx = p2c_qidx[n];
       double nvtsq_q = den[cqidx]/pow(2.0*GKYL_PI*vtsq[cqidx], vdim/2.0);
 
       comp_to_phys(pdim, (const double *) gkyl_array_cfetch(phase_ordinates, n),
@@ -82,26 +90,13 @@ gkyl_proj_maxwellian_on_basis_lab_mom_cu_ker(int num_quad, const struct gkyl_rec
 
       double efact = 0.0;
       for (int d=0; d<vdim; ++d)
-        efact += (vel[cqidx][d]-xmu[cdim+d])*(vel[cqidx][d]-xmu[cdim+d]);
+        efact += pow(xmu[cdim+d]-vel[cqidx][d],2);
 
-      double *fq = (double *) gkyl_array_fetch(fun_at_ords, n);
-      fq[0] = nvtsq_q*exp(-efact/(2.0*vtsq[cqidx]));
-    }
+      double fmax_o = nvtsq_q*exp(-efact/(2.0*vtsq[cqidx]));
 
-    // compute expansion coefficients of Maxwellian on basis
-    // The following is modeled after proj_on_basis in the private header.
-    long lidx = gkyl_range_idx(&phase_r, pidx);
-    double *fm = (double *) gkyl_array_fetch(fmax, lidx);
-  
-    for (int k=0; k<num_phase_basis; ++k) fm[k] = 0.0;
-    const double *phase_w = (const double *) phase_weights->data;
-    const double *fun_o = (const double *) fun_at_ords->data;
-    const double *phaseb_o = (const double *) phase_basis_at_ords->data;
-  
-    for (int imu=0; imu<tot_phase_quad; ++imu) {
-      double tmp = phase_w[imu]*fun_o[imu];
+      double tmp = phase_w[n]*fmax_o;
       for (int k=0; k<num_phase_basis; ++k)
-        fm[k] += tmp*phaseb_o[k+num_phase_basis*imu];
+        fm[k] += tmp*phaseb_o[k+num_phase_basis*n];
     }
 
   }
@@ -116,6 +111,6 @@ gkyl_proj_maxwellian_on_basis_lab_mom_cu(const gkyl_proj_maxwellian_on_basis *up
   int nblocks = phase_r->nblocks, nthreads = phase_r->nthreads;
   gkyl_proj_maxwellian_on_basis_lab_mom_cu_ker<<<nblocks, nthreads>>>
     (up->num_quad, up->grid, *phase_r, *conf_r, up->conf_basis_at_ords->on_dev, up->basis_at_ords->on_dev,
-     up->ordinates->on_dev, up->weights->on_dev, up->fun_at_ords->on_dev, up->p2c_qidx,
+     up->ordinates->on_dev, up->weights->on_dev, up->p2c_qidx,
      M0->on_dev, M1i->on_dev, M2->on_dev, fmax->on_dev);
 }

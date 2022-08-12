@@ -310,7 +310,7 @@ test_1x2v(int poly_order, bool use_gpu)
   
   if (poly_order == 1) {
     for (int i=0; i<basis.num_basis; ++i)
-      TEST_CHECK( gkyl_compare_double(p1_vals[i], fv[i], 1e-12) );    
+      TEST_CHECK( gkyl_compare_double(p1_vals[i], fv[i], 1e-12) );
   }
 
   if (poly_order == 2) {
@@ -322,10 +322,11 @@ test_1x2v(int poly_order, bool use_gpu)
     for (int i=0; i<basis.num_basis; ++i)
       TEST_CHECK( gkyl_compare_double(p3_vals[i], fv[i], 1e-10) );
   }
-  // write distribution function to file
-  char fname[1024];
-  sprintf(fname, "ctest_proj_maxwellian_on_basis_test_1x2v_p%d.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
+
+//  // write distribution function to file
+//  char fname[1024];
+//  sprintf(fname, "ctest_proj_maxwellian_on_basis_test_1x2v_p%d.gkyl", poly_order);
+//  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // release memory for moment data object
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
@@ -380,8 +381,8 @@ TEST_LIST = {
   
   { "test_1x2v_p0_gpu", test_1x2v_p0_gpu },  
   { "test_1x2v_p1_gpu", test_1x2v_p1_gpu },
-//  { "test_1x2v_p2_gpu", test_1x2v_p2_gpu },
-//  { "test_1x2v_p3_gpu", test_1x2v_p3_gpu },
+  { "test_1x2v_p2_gpu", test_1x2v_p2_gpu },
+  { "test_1x2v_p3_gpu", test_1x2v_p3_gpu },
 #endif
   { NULL, NULL },
 };
