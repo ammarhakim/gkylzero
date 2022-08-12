@@ -10,6 +10,15 @@
 #include <gkyl_range.h>
 #include <assert.h>
 
+// create range to loop over quadrature points.
+static inline struct gkyl_range get_qrange(int dim, int num_quad) {
+  int qshape[GKYL_MAX_DIM];
+  for (int i=0; i<dim; ++i) qshape[i] = num_quad;
+  struct gkyl_range qrange;
+  gkyl_range_init_from_shape(&qrange, dim, qshape);
+  return qrange;
+}
+
 // Sets ordinates, weights and basis functions at ords. Returns total
 // number of quadrature nodes
 static int
@@ -29,11 +38,7 @@ init_quad_values(const struct gkyl_basis *basis, int num_quad, struct gkyl_array
     gkyl_gauleg(-1, 1, ordinates1, weights1, num_quad);
   }
 
-  // create range to loop over quadrature points
-  int qshape[GKYL_MAX_DIM];
-  for (int i=0; i<ndim; ++i) qshape[i] = num_quad;
-  struct gkyl_range qrange;
-  gkyl_range_init_from_shape(&qrange, ndim, qshape);
+  struct gkyl_range qrange = get_qrange(ndim, num_quad);
 
   int tot_quad = qrange.volume;
 
@@ -114,7 +119,34 @@ gkyl_proj_maxwellian_on_basis_new(
   up->tot_conf_quad = init_quad_values(conf_basis, num_quad,
     &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, use_gpu);
 
-  up->fun_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad);
+  if (up->use_gpu)
+    up->fun_at_ords = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, up->tot_quad);
+  else
+    up->fun_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad);
+
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    // Allocate device copies of arrays needed for quadrature.
+
+    // To avoid creating iterators over ranges in device kernel, we'll
+    // create a map between phase-space and conf-space ordinates.
+    struct gkyl_range conf_qrange = get_qrange(up->cdim, num_quad);
+    struct gkyl_range phase_qrange = get_qrange(up->pdim, num_quad);
+
+    int p2c_qidx_ho[phase_qrange.volume];
+    up->p2c_qidx = (int*) gkyl_cu_malloc(sizeof(int)*phase_qrange.volume);
+    int cI = 0;
+
+    struct gkyl_range_iter qiter;
+    gkyl_range_iter_init(&qiter, &phase_qrange);
+    while (gkyl_range_iter_next(&qiter)) {
+      long cqidx = gkyl_range_idx(&conf_qrange, qiter.idx);
+      p2c_qidx_ho[cI] = cqidx;
+      cI++;
+    }
+    gkyl_cu_memcpy(up->p2c_qidx, p2c_qidx_ho, sizeof(int)*phase_qrange.volume, GKYL_CU_MEMCPY_H2D);
+  }
+#endif
 
   return up;
 }
@@ -159,16 +191,9 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
   int tot_conf_quad = up->tot_conf_quad;
   int num_conf_basis = up->num_conf_basis;
 
-  int qshape[GKYL_MAX_DIM];
-
   // create range to loop over config-space and phase-space quadrature points
-  for (int i=0; i<cdim; ++i) qshape[i] = num_quad;
-  struct gkyl_range conf_qrange;
-  gkyl_range_init_from_shape(&conf_qrange, cdim, qshape);
-
-  for (int i=0; i<pdim; ++i) qshape[i] = num_quad;
-  struct gkyl_range phase_qrange;
-  gkyl_range_init_from_shape(&phase_qrange, pdim, qshape);
+  struct gkyl_range conf_qrange = get_qrange(cdim, num_quad);
+  struct gkyl_range phase_qrange = get_qrange(pdim, num_quad);
 
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
@@ -230,7 +255,7 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
       while (gkyl_range_iter_next(&qiter)) {
 
         long cqidx = gkyl_range_idx(&conf_qrange, qiter.idx);
-        double nvth2_q = num[cqidx]/pow(2*GKYL_PI*vth2[cqidx], vdim/2.0);
+        double nvth2_q = num[cqidx]/pow(2.0*GKYL_PI*vth2[cqidx], vdim/2.0);
 
         long pqidx = gkyl_range_idx(&phase_qrange, qiter.idx);
 
@@ -242,7 +267,7 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
           efact += (vel[cqidx][d]-xmu[cdim+d])*(vel[cqidx][d]-xmu[cdim+d]);
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
-        fq[0] = nvth2_q*exp(-efact/(2*vth2[cqidx]));
+        fq[0] = nvth2_q*exp(-efact/(2.0*vth2[cqidx]));
       }
 
       // compute expansion coefficients of Maxwellian on basis
@@ -256,6 +281,10 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
 void
 gkyl_proj_maxwellian_on_basis_release(gkyl_proj_maxwellian_on_basis* up)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu)
+    gkyl_cu_free(up->p2c_qidx);
+#endif
   gkyl_array_release(up->ordinates);
   gkyl_array_release(up->weights);
   gkyl_array_release(up->basis_at_ords);

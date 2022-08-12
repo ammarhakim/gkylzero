@@ -8,15 +8,15 @@ extern "C" {
 }
 
 __global__ static void
-gkyl_proj_maxwellian_on_basis_lab_mom_cu_ker(int num_quad, const struct gkyl_rect_grid *grid,
+gkyl_proj_maxwellian_on_basis_lab_mom_cu_ker(int num_quad, const struct gkyl_rect_grid grid,
   const struct gkyl_range phase_r, const struct gkyl_range conf_r,
   const struct gkyl_array* GKYL_RESTRICT conf_basis_at_ords, 
   const struct gkyl_array* GKYL_RESTRICT phase_basis_at_ords, 
   const struct gkyl_array* GKYL_RESTRICT phase_ordinates, 
   const struct gkyl_array* GKYL_RESTRICT phase_weights, 
-  struct gkyl_array* GKYL_RESTRICT fun_at_ords, 
+  struct gkyl_array* GKYL_RESTRICT fun_at_ords, int *p2c_qidx,
   const struct gkyl_array* GKYL_RESTRICT M0, const struct gkyl_array* GKYL_RESTRICT M1i,
-  const struct gkyl_array* GKYL_RESTRICT M2, struct gkyl_array* fmax)
+  const struct gkyl_array* GKYL_RESTRICT M2, struct gkyl_array* GKYL_RESTRICT fmax)
 {
   int pdim = phase_r.ndim, cdim = conf_r.ndim;
   int vdim = pdim-cdim;
@@ -29,16 +29,6 @@ gkyl_proj_maxwellian_on_basis_lab_mom_cu_ker(int num_quad, const struct gkyl_rec
   // double den[tot_conf_quad], vel[tot_conf_quad][vdim], vtsq[tot_conf_quad];
   // MF 2022/08/09: hard-coded to 3x, vdim=3, p=2 for now.
   double den[27], vel[27][3], vtsq[27];
-
-  // create range to loop over config-space and phase-space quadrature points
-  int qshape[GKYL_MAX_DIM];
-  for (int i=0; i<cdim; ++i) qshape[i] = num_quad;
-  struct gkyl_range conf_qrange;
-  gkyl_range_init_from_shape(&conf_qrange, cdim, qshape);
-
-  for (int i=0; i<pdim; ++i) qshape[i] = num_quad;
-  struct gkyl_range phase_qrange;
-  gkyl_range_init_from_shape(&phase_qrange, pdim, qshape);
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
   int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM];
@@ -73,34 +63,29 @@ gkyl_proj_maxwellian_on_basis_lab_mom_cu_ker(int num_quad, const struct gkyl_rec
 
       // thermal speed squared
       double M2_n = 0.0;
-      for (int k=0; k<num_conf_basis; ++k)
-        M2_n += M2_d[k]*b_ord[k];
+      for (int k=0; k<num_conf_basis; ++k) M2_n += M2_d[k]*b_ord[k];
       double vsq = 0.0; // velocity^2
       for (int d=0; d<vdim; ++d) vsq += vel[n][d]*vel[n][d];
       vtsq[n] = (M2_n - den[n]*vsq)/(den[n]*vdim);
     }
 
-    gkyl_rect_grid_cell_center(grid, pidx, xc);
+    gkyl_rect_grid_cell_center(&grid, pidx, xc);
 
     // compute Maxwellian at phase-space quadrature nodes
-    struct gkyl_range_iter qiter;
-    gkyl_range_iter_init(&qiter, &phase_qrange);
-    while (gkyl_range_iter_next(&qiter)) {
+    for (int n=0; n<tot_phase_quad; ++n) {
 
-      long cqidx = gkyl_range_idx(&conf_qrange, qiter.idx);
-      double nvtsq_q = den[cqidx]/pow(2*GKYL_PI*vtsq[cqidx], vdim/2.0);
+      long cqidx = p2c_qidx[n];
+      double nvtsq_q = den[cqidx]/pow(2.0*GKYL_PI*vtsq[cqidx], vdim/2.0);
 
-      long pqidx = gkyl_range_idx(&phase_qrange, qiter.idx);
-
-      comp_to_phys(pdim, (const double *) gkyl_array_cfetch(phase_ordinates, pqidx),
-        grid->dx, xc, xmu);
+      comp_to_phys(pdim, (const double *) gkyl_array_cfetch(phase_ordinates, n),
+        grid.dx, xc, &xmu[0]);
 
       double efact = 0.0;
       for (int d=0; d<vdim; ++d)
         efact += (vel[cqidx][d]-xmu[cdim+d])*(vel[cqidx][d]-xmu[cdim+d]);
 
-      double *fq = (double *) gkyl_array_fetch(fun_at_ords, pqidx);
-      fq[0] = nvtsq_q*exp(-efact/(2*vtsq[cqidx]));
+      double *fq = (double *) gkyl_array_fetch(fun_at_ords, n);
+      fq[0] = nvtsq_q*exp(-efact/(2.0*vtsq[cqidx]));
     }
 
     // compute expansion coefficients of Maxwellian on basis
@@ -128,9 +113,9 @@ gkyl_proj_maxwellian_on_basis_lab_mom_cu(const gkyl_proj_maxwellian_on_basis *up
   const struct gkyl_array *M0, const struct gkyl_array *M1i, const struct gkyl_array *M2,
   struct gkyl_array *fmax)
 {
-
   int nblocks = phase_r->nblocks, nthreads = phase_r->nthreads;
   gkyl_proj_maxwellian_on_basis_lab_mom_cu_ker<<<nblocks, nthreads>>>
-    (up->num_quad, &up->grid, *phase_r, *conf_r, up->conf_basis_at_ords, up->basis_at_ords, up->ordinates, 
-     up->weights, up->fun_at_ords, M0->on_dev, M1i->on_dev, M2->on_dev, fmax->on_dev);
+    (up->num_quad, up->grid, *phase_r, *conf_r, up->conf_basis_at_ords->on_dev, up->basis_at_ords->on_dev,
+     up->ordinates->on_dev, up->weights->on_dev, up->fun_at_ords->on_dev, up->p2c_qidx,
+     M0->on_dev, M1i->on_dev, M2->on_dev, fmax->on_dev);
 }

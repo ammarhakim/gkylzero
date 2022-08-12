@@ -43,6 +43,7 @@ struct gkyl_proj_maxwellian_on_basis {
 
   struct gkyl_array *fun_at_ords; // function (Maxwellian) evaluated at
                                   // ordinates in a cell.
+  int *p2c_qidx;  // Mapping between conf-space and phase-space ordinates.
 };
 
 void
