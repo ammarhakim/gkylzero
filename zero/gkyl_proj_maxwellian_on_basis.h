@@ -16,19 +16,20 @@ typedef struct gkyl_proj_maxwellian_on_basis gkyl_proj_maxwellian_on_basis;
  * @param conf_basis Conf-space basis functions
  * @param phase_basis Phase-space basis functions
  * @param num_quad Number of quadrature nodes
+ * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
 gkyl_proj_maxwellian_on_basis* gkyl_proj_maxwellian_on_basis_new(
   const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
-  int num_quad);
+  int num_quad, bool use_gpu);
 
 /**
  * Compute projection of Maxwellian on basis. This method takes
  * lab-frame moments to compute the projection of Maxwellian on basis
  * functions.
  *
- * @param pob Project on basis updater to run
+ * @param mob Project on basis updater to run
  * @param phase_rng Phase-space range
  * @param conf_rng Config-space range
  * @param M0 Number density moment
@@ -36,8 +37,8 @@ gkyl_proj_maxwellian_on_basis* gkyl_proj_maxwellian_on_basis_new(
  * @param M2 Energy in lab-frame
  * @param fmax Output Maxwellian
  */
-void gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *pob,
-  const struct gkyl_range phase_range, const struct gkyl_range conf_range,
+void gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *mob,
+  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
   const struct gkyl_array *M0, const struct gkyl_array *M1i, const struct gkyl_array *M2,  
   struct gkyl_array *fmax);
 
@@ -49,14 +50,14 @@ void gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *
  * @param pob Project on basis updater to run
  * @param phase_rng Phase-space range
  * @param conf_rng Config-space range
- * @param n Number density moment
- * @param vel Velocity vector
- * @param vth2 Square of thermal velocity (vth2 = T/m)
+ * @param m0 Number density moment
+ * @param udrift Velocity vector
+ * @param vtsq Square of thermal velocity (vtsq = T/m)
  * @param fmax Output Maxwellian
  */
-void gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *pob,
-  const struct gkyl_range phase_range, const struct gkyl_range conf_range,
-  const struct gkyl_array *n, const struct gkyl_array *vel, const struct gkyl_array *vth2,  
+void gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *mob,
+  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
+  const struct gkyl_array *m0, const struct gkyl_array *udrift, const struct gkyl_array *vtsq,  
   struct gkyl_array *fmax);
 
 /**
@@ -64,4 +65,4 @@ void gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis 
  *
  * @param pob Updater to delete.
  */
-void gkyl_proj_maxwellian_on_basis_release(gkyl_proj_maxwellian_on_basis* pob);
+void gkyl_proj_maxwellian_on_basis_release(gkyl_proj_maxwellian_on_basis* mob);
