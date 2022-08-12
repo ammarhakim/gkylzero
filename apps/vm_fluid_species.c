@@ -56,9 +56,9 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   // Needs to be over the extended range so flow velocity is known in ghost cells
   f->u_mem = 0;
   if (app->use_gpu)
-    f->u_mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, 3*app->confBasis.num_basis);
+    f->u_mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
   else
-    f->u_mem = gkyl_dg_bin_op_mem_new(app->local.volume, 3*app->confBasis.num_basis);
+    f->u_mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
 
   f->param = 0.0;
   // fluid solvers
