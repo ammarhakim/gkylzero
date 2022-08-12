@@ -282,7 +282,7 @@ gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_proj_maxwellian_on_basis_prim_mom_cu(up, phase_rng, conf_rng, M0, udrift, vtsq, fmax);
+    return gkyl_proj_maxwellian_on_basis_prim_mom_cu(up, phase_rng, conf_rng, m0, udrift, vtsq, fmax);
 #endif
 
   int cdim = up->cdim, pdim = up->pdim;

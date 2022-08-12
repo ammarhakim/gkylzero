@@ -51,3 +51,9 @@ gkyl_proj_maxwellian_on_basis_lab_mom_cu(const gkyl_proj_maxwellian_on_basis *up
   const struct gkyl_range *phase_r, const struct gkyl_range *conf_r,
   const struct gkyl_array *M0, const struct gkyl_array *M1i, const struct gkyl_array *M2,
   struct gkyl_array *fmax);
+
+void
+gkyl_proj_maxwellian_on_basis_prim_mom_cu(const gkyl_proj_maxwellian_on_basis *up,
+  const struct gkyl_range *phase_r, const struct gkyl_range *conf_r,
+  const struct gkyl_array *m0, const struct gkyl_array *udrift, const struct gkyl_array *vtsq,
+  struct gkyl_array *fmax);
