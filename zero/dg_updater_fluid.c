@@ -51,22 +51,25 @@ gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid,
 void
 gkyl_dg_updater_fluid_advance(gkyl_dg_updater_fluid *fluid,
   enum gkyl_eqn_type eqn_id, const struct gkyl_range *update_rng,
-  const struct gkyl_array *u,
+  const struct gkyl_array *uvar, struct gkyl_array *pvar,
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
   // Set arrays needed
   // Assumes a particular order of the arrays
   // TO DO: More intelligent way to do these aux field sets? (JJ: 04/26/22)
-  if (eqn_id == GKYL_EQN_ADVECTION)
+  if (eqn_id == GKYL_EQN_ADVECTION) {
     gkyl_advection_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_advection_auxfields) { .u = u });
-  else if (eqn_id == GKYL_EQN_EULER)
+      (struct gkyl_dg_advection_auxfields) { .u = uvar });
+  }
+  else if (eqn_id == GKYL_EQN_EULER) {
     gkyl_euler_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_euler_auxfields) { .u = u });
-  else if (eqn_id == GKYL_EQN_ISO_EULER)
+      (struct gkyl_dg_euler_auxfields) { .u = uvar, .p = pvar });
+  }
+  else if (eqn_id == GKYL_EQN_ISO_EULER) {
     gkyl_isoeuler_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_isoeuler_auxfields) { .u = u });
+      (struct gkyl_dg_isoeuler_auxfields) { .u = uvar });
+  }
 
   struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance(fluid->up_fluid, update_rng, fIn, cflrate, rhs);
@@ -94,19 +97,21 @@ gkyl_dg_updater_fluid_release(gkyl_dg_updater_fluid* fluid)
 void
 gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
   enum gkyl_eqn_type eqn_id, const struct gkyl_range *update_rng,
-  const struct gkyl_array *u,
+  const struct gkyl_array *uvar, struct gkyl_array *pvar,
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
   // Set arrays needed
   // Assumes a particular order of the arrays
   // TO DO: More intelligent way to do these aux field sets? (JJ: 04/26/22)
-  if (eqn_id == GKYL_EQN_ADVECTION)
+  if (eqn_id == GKYL_EQN_ADVECTION) {
     gkyl_advection_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_advection_auxfields) { .u = u });
-  else if (eqn_id == GKYL_EQN_EULER)
+      (struct gkyl_dg_advection_auxfields) { .u = uvar });
+  }
+  else if (eqn_id == GKYL_EQN_EULER) {
     gkyl_euler_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_euler_auxfields) { .u = u });
+      (struct gkyl_dg_euler_auxfields) { .u = uvar });
+  }
 
   struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance_cu(fluid->up_fluid, update_rng, fIn, cflrate, rhs);
@@ -120,7 +125,7 @@ gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
 void
 gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
   enum gkyl_eqn_type eqn_id, const struct gkyl_range *update_rng,
-  const struct gkyl_array *u,
+  const struct gkyl_array *uvar, struct gkyl_array *pvar,
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {

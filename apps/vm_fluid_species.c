@@ -60,6 +60,10 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   else
     f->u_mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
 
+  // initialize pointers to flow velocity and pressure
+  f->u = 0;
+  f->p = 0;
+
   f->param = 0.0;
   // fluid solvers
   if (f->info.vt) {
@@ -72,8 +76,10 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   else if (f->info.gas_gamma) {
     f->param = f->info.gas_gamma; // parameter for Euler is gas_gamma, adiabatic index
     f->eqn_id = GKYL_EQN_EULER;
-    // allocate array to store fluid velocity
+    // allocate array to store fluid velocity and pressure
     f->u = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+    f->p = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    // allocate buffer for applying boundary conditions to fluid velocity
     f->u_bc_buffer = mkarr(app->use_gpu, 3*app->confBasis.num_basis, buff_sz);    
   }
   else {
@@ -271,14 +277,14 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
 
   if (app->use_gpu) {
     gkyl_dg_updater_fluid_advance_cu(fluid_species->advect_slvr, fluid_species->eqn_id,
-      &app->local, fluid_species->u, fluid, fluid_species->cflrate, rhs);
+      &app->local, fluid_species->u, fluid_species->p, fluid, fluid_species->cflrate, rhs);
 
     gkyl_dg_updater_diffusion_advance_cu(fluid_species->diff_slvr, fluid_species->diffusion_id,
       &app->local, fluid_species->D, fluid, fluid_species->cflrate, rhs);
   }
   else {
     gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, fluid_species->eqn_id,
-      &app->local, fluid_species->u, fluid, fluid_species->cflrate, rhs);
+      &app->local, fluid_species->u, fluid_species->p, fluid, fluid_species->cflrate, rhs);
 
     gkyl_dg_updater_diffusion_advance(fluid_species->diff_slvr, fluid_species->diffusion_id,
       &app->local, fluid_species->D, fluid, fluid_species->cflrate, rhs);
@@ -423,7 +429,6 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
   gkyl_array_release(f->fluid1);
   gkyl_array_release(f->fluidnew);
   gkyl_array_release(f->bc_buffer);
-  gkyl_array_release(f->u_bc_buffer);
   gkyl_array_release(f->cflrate);
 
   gkyl_dg_bin_op_mem_release(f->u_mem);
@@ -432,6 +437,9 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
   gkyl_dg_updater_diffusion_release(f->diff_slvr);
 
   gkyl_array_release(f->u);
+  gkyl_array_release(f->u_bc_buffer);
+  if (f->eqn_id == GKYL_EQN_EULER)
+    gkyl_array_release(f->p);
   if (f->has_advect) {
     gkyl_array_release(f->advect);
     if (app->use_gpu)
