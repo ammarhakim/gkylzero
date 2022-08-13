@@ -306,50 +306,55 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
           idxl[dir] = i-1; idxr[dir] = i;
           long sidx = gkyl_ridx(slice_range, i);
 
+          const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wv->geom, idxr);
+          double *s = gkyl_array_fetch(wv->speeds, sidx);
           const double *redo_fluct = gkyl_array_cfetch(wv->redo_fluct, sidx);
 
-          const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wv->geom, idxr);
+          if (redo_fluct[0] > 0.0) {
 
-          long lidx = gkyl_range_idx(update_range, idxl);
-          long ridx = gkyl_range_idx(update_range, idxr);        
+            // compute fluctuations and waves only if needed (this
+            // prevents doing the full 1D sweep with low-order fluxes
+            // on positivity violations)
+            long lidx = gkyl_range_idx(update_range, idxl);
+            long ridx = gkyl_range_idx(update_range, idxr);
 
-          const double *qinl = gkyl_array_cfetch(qin, lidx);
-          const double *qinr = gkyl_array_cfetch(qin, ridx);
+            const double *qinl = gkyl_array_cfetch(qin, lidx);
+            const double *qinr = gkyl_array_cfetch(qin, ridx);
 
-          wv->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qinl, ql_local);
-          wv->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qinr, qr_local);
+            wv->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qinl, ql_local);
+            wv->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qinr, qr_local);
 
-          calc_jump(meqn, ql_local, qr_local, delta);
+            calc_jump(meqn, ql_local, qr_local, delta);
           
-          double *s = gkyl_array_fetch(wv->speeds, sidx);
-          gkyl_wv_eqn_waves(wv->equation, ftype, delta, ql_local, qr_local, waves_local, s);
 
-          double lenr = cg->lenr[dir];
-          for (int mw=0; mw<mwaves; ++mw)
-            s[mw] *= lenr; // rescale speeds
+            gkyl_wv_eqn_waves(wv->equation, ftype, delta, ql_local, qr_local, waves_local, s);
 
-          // compute fluctuations in local coordinates
-          gkyl_wv_eqn_qfluct(wv->equation, ftype, ql_local, qr_local,
-            waves_local, s, amdq_local, apdq_local);
+            double lenr = cg->lenr[dir];
+            for (int mw=0; mw<mwaves; ++mw)
+              s[mw] *= lenr; // rescale speeds
+
+            // compute fluctuations in local coordinates
+            gkyl_wv_eqn_qfluct(wv->equation, ftype, ql_local, qr_local,
+              waves_local, s, amdq_local, apdq_local);
         
-          double *waves = gkyl_array_fetch(wv->waves, sidx);
-          for (int mw=0; mw<mwaves; ++mw)
-            // rotate waves back
-            wv->equation->rotate_to_global_func(
-              cg->tau1[dir], cg->tau2[dir], cg->norm[dir], &waves_local[mw*meqn], &waves[mw*meqn]
-            );
+            double *waves = gkyl_array_fetch(wv->waves, sidx);
+            for (int mw=0; mw<mwaves; ++mw)
+              // rotate waves back
+              wv->equation->rotate_to_global_func(
+                cg->tau1[dir], cg->tau2[dir], cg->norm[dir], &waves_local[mw*meqn], &waves[mw*meqn]
+              );
 
-          // rotate fluctuations
-          double *amdq = gkyl_array_fetch(wv->amdq, sidx);
-          wv->equation->rotate_to_global_func(
-            cg->tau1[dir], cg->tau2[dir], cg->norm[dir], amdq_local, amdq);
-          
-          double *apdq = gkyl_array_fetch(wv->apdq, sidx);
-          wv->equation->rotate_to_global_func(
-            cg->tau1[dir], cg->tau2[dir], cg->norm[dir], apdq_local, apdq);
+            // rotate fluctuations
+            double *amdq = gkyl_array_fetch(wv->amdq, sidx);
+            wv->equation->rotate_to_global_func(
+              cg->tau1[dir], cg->tau2[dir], cg->norm[dir], amdq_local, amdq);
+            
+            double *apdq = gkyl_array_fetch(wv->apdq, sidx);
+            wv->equation->rotate_to_global_func(
+              cg->tau1[dir], cg->tau2[dir], cg->norm[dir], apdq_local, apdq);
+          }
           
           cfla = calc_cfla(mwaves, cfla, dtdx/cg->kappa, s);
-
         }
 
         if (cfla > cflm) // check time-step before any updates are performed
