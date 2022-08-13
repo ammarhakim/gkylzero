@@ -38,6 +38,7 @@ gkyl_euler_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_aux
 
   struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
   euler->auxfields.u = auxin.u;
+  euler->auxfields.p = auxin.p;
 }
 
 struct gkyl_dg_eqn*
@@ -54,11 +55,13 @@ gkyl_dg_euler_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf
   int cdim = cbasis->ndim;
   int poly_order = cbasis->poly_order;
 
+  const gkyl_dg_euler_pressure_kern_list *pressure_kernels;
   const gkyl_dg_euler_vol_kern_list *vol_kernels;
   const gkyl_dg_euler_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;
 
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+      pressure_kernels = ser_pressure_kernels;
       vol_kernels = ser_vol_kernels;
       surf_x_kernels = ser_surf_x_kernels;
       surf_y_kernels = ser_surf_y_kernels;
@@ -77,7 +80,10 @@ gkyl_dg_euler_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf
 
   euler->gas_gamma = gas_gamma;
 
-  euler->vol =  CK(vol_kernels, cdim, poly_order);
+  euler->pressure = CK(pressure_kernels, cdim, poly_order);
+  assert(euler->pressure);
+
+  euler->vol = CK(vol_kernels, cdim, poly_order);
   assert(euler->vol);
 
   euler->surf[0] = CK(surf_x_kernels, cdim, poly_order);
@@ -90,6 +96,7 @@ gkyl_dg_euler_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf
   for (int i=0; i<cdim; ++i) assert(euler->surf[i]);
 
   euler->auxfields.u = 0;  
+  euler->auxfields.p = 0;  
   euler->conf_range = *conf_range;
   
   euler->eqn.flags = 0;

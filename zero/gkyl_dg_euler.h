@@ -10,6 +10,7 @@
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_euler_auxfields { 
   const struct gkyl_array *u;
+  struct gkyl_array *p;
 };
 
 /**

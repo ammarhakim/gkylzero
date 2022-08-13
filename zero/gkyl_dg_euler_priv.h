@@ -8,30 +8,41 @@
 // functions
 
 // Types for various kernels
-typedef double (*euler_vol_t)(const double *w, const double *dx, double gas_gamma, 
-  const double *u, const double *q, double* GKYL_RESTRICT out);
+typedef void (*euler_pressure_t)(const double gas_gamma, const double *uvar, const double *statevec, double* GKYL_RESTRICT out);
 
-typedef void (*euler_surf_t)(const double *w, const double *dx, double gas_gamma, 
+typedef double (*euler_vol_t)(const double *w, const double *dx, const double gas_gamma, 
+  const double *uvar, const double *pvar, const double *statevec, double* GKYL_RESTRICT out);
+
+typedef void (*euler_surf_t)(const double *w, const double *dx, const double gas_gamma, 
   const double *ul, const double *uc, const double *ur,
-  const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out);
+  const double *pl, const double *pc, const double *pr,
+  const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out);
 
 // for use in kernel tables
+typedef struct { euler_pressure_t kernels[3]; } gkyl_dg_euler_pressure_kern_list;
 typedef struct { euler_vol_t kernels[3]; } gkyl_dg_euler_vol_kern_list;
 typedef struct { euler_surf_t kernels[3]; } gkyl_dg_euler_surf_kern_list;
-
-typedef void (*bc_funcf_t)(size_t nc, double *out, const double *inp, void *ctx);
 
 //
 // Serendipity basis kernels
 // 
 
+// Pressure from state variables kernel list
+GKYL_CU_D
+static const gkyl_dg_euler_pressure_kern_list ser_pressure_kernels[] = {
+  { NULL, euler_pressure_1x_ser_p1, euler_pressure_1x_ser_p2 }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2  
+  // { NULL, euler_pressure_2x_ser_p1, euler_pressure_2x_ser_p2 }, // 1
+  // { NULL, euler_pressure_3x_ser_p1, euler_pressure_3x_ser_p2 }, // 2
+};
+
 // Volume kernel list
 GKYL_CU_D
 static const gkyl_dg_euler_vol_kern_list ser_vol_kernels[] = {
-  { NULL, NULL, NULL }, // 0
+  { NULL, euler_vol_1x_ser_p1, euler_vol_1x_ser_p2 }, // 0
   { NULL, NULL, NULL }, // 1
   { NULL, NULL, NULL }, // 2  
-  // { NULL, euler_vol_1x_ser_p1, euler_vol_1x_ser_p2 }, // 0
   // { NULL, euler_vol_2x_ser_p1, euler_vol_2x_ser_p2 }, // 1
   // { NULL, euler_vol_3x_ser_p1, euler_vol_3x_ser_p2 }, // 2
 };
@@ -39,10 +50,9 @@ static const gkyl_dg_euler_vol_kern_list ser_vol_kernels[] = {
 // Surface kernel list: x-direction
 GKYL_CU_D
 static const gkyl_dg_euler_surf_kern_list ser_surf_x_kernels[] = {
-  { NULL, NULL, NULL }, // 0
+  { NULL, euler_surfx_1x_ser_p1, euler_surfx_1x_ser_p2 }, // 0
   { NULL, NULL, NULL }, // 1
   { NULL, NULL, NULL }, // 2  
-  // { NULL, euler_surfx_1x_ser_p1, euler_surfx_1x_ser_p2 }, // 0
   // { NULL, euler_surfx_2x_ser_p1, euler_surfx_2x_ser_p2 }, // 1
   // { NULL, euler_surfx_3x_ser_p1, euler_surfx_3x_ser_p2 }, // 2
 };
@@ -53,7 +63,6 @@ static const gkyl_dg_euler_surf_kern_list ser_surf_y_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
   { NULL, NULL, NULL }, // 2  
-  // { NULL, NULL, NULL }, // 0
   // { NULL, euler_surfy_2x_ser_p1, euler_surfy_2x_ser_p2 }, // 1
   // { NULL, euler_surfy_3x_ser_p1, euler_surfy_3x_ser_p2 }, // 2
 };
@@ -64,16 +73,14 @@ static const gkyl_dg_euler_surf_kern_list ser_surf_z_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
   { NULL, NULL, NULL }, // 2  
-  // { NULL, NULL, NULL },                 // 0
-  // { NULL, NULL, NULL },                 // 1
   // { NULL, euler_surfz_3x_ser_p1, euler_surfz_3x_ser_p2 }, // 2
 };
 
 struct dg_euler {
-  struct gkyl_dg_eqn eqn; // Base object    
+  struct gkyl_dg_eqn eqn; // Base object  
+  euler_pressure_t pressure; // pointer to pressure computation kernel
   euler_vol_t vol; // pointer to volume kernel
   euler_surf_t surf[3]; // pointers to surface kernels
-  bc_funcf_t absorb_bc; // Absorbing BCs function
   double gas_gamma; // adiabatic index
   struct gkyl_range conf_range; // configuration space range
   struct gkyl_dg_euler_auxfields auxfields; // Auxiliary fields.
@@ -94,8 +101,16 @@ vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double*  dx,
 {
   struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
   long cidx = gkyl_range_idx(&euler->conf_range, idx);
+
+  // Compute pressure from state variables in cell
+  euler->pressure(euler->gas_gamma, 
+    (const double*) gkyl_array_cfetch(euler->auxfields.u, cidx),
+    qIn, (double*) gkyl_array_fetch(euler->auxfields.p, cidx));
+
   return euler->vol(xc, dx, euler->gas_gamma, 
-    (const double*) gkyl_array_cfetch(euler->auxfields.u, cidx), qIn, qRhsOut);
+    (const double*) gkyl_array_cfetch(euler->auxfields.u, cidx),
+    (const double*) gkyl_array_cfetch(euler->auxfields.p, cidx),
+    qIn, qRhsOut);
 }
 
 GKYL_CU_D
@@ -113,10 +128,25 @@ surf(const struct gkyl_dg_eqn *eqn,
   long cidx_c = gkyl_range_idx(&euler->conf_range, idxC);
   long cidx_r = gkyl_range_idx(&euler->conf_range, idxR);
 
+  // Compute pressure from state variables in left, center, and right cells
+  // TO DO: Inefficient, computes the pressure in each cell 3 times
+  euler->pressure(euler->gas_gamma, 
+    (const double*) gkyl_array_cfetch(euler->auxfields.u, cidx_l),
+    qInL, (double*) gkyl_array_fetch(euler->auxfields.p, cidx_l));
+  euler->pressure(euler->gas_gamma, 
+    (const double*) gkyl_array_cfetch(euler->auxfields.u, cidx_c),
+    qInC, (double*) gkyl_array_fetch(euler->auxfields.p, cidx_c));
+  euler->pressure(euler->gas_gamma, 
+    (const double*) gkyl_array_cfetch(euler->auxfields.u, cidx_r),
+    qInR, (double*) gkyl_array_fetch(euler->auxfields.p, cidx_r));
+
   euler->surf[dir](xcC, dxC, euler->gas_gamma, 
     (const double*) gkyl_array_cfetch(euler->auxfields.u, cidx_l),
     (const double*) gkyl_array_cfetch(euler->auxfields.u, cidx_c),
     (const double*) gkyl_array_cfetch(euler->auxfields.u, cidx_r), 
+    (const double*) gkyl_array_cfetch(euler->auxfields.p, cidx_l),
+    (const double*) gkyl_array_cfetch(euler->auxfields.p, cidx_c),
+    (const double*) gkyl_array_cfetch(euler->auxfields.p, cidx_r), 
     qInL, qInC, qInR, qRhsOut);
 }
 

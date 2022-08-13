@@ -15,23 +15,25 @@ extern "C" {
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
-gkyl_euler_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *u)
+gkyl_euler_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *uvar, const struct gkyl_array *pvar)
 {
   struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
-  euler->auxfields.u = u;
+  euler->auxfields.u = uvar;
+  euler->auxfields.p = pvar;
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
 void
 gkyl_euler_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_auxfields auxin)
 {
-  gkyl_euler_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.u->on_dev);
+  gkyl_euler_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.u->on_dev, auxin.p->on_dev);
 }
 
 __global__ void static
 dg_euler_set_cu_dev_ptrs(struct dg_euler* euler, enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   euler->auxfields.u = 0; 
+  euler->auxfields.p = 0; 
 
   const gkyl_dg_euler_vol_kern_list *vol_kernels;
   const gkyl_dg_euler_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;  
