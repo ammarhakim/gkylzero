@@ -10,6 +10,7 @@ enum gkyl_eqn_type {
   GKYL_EQN_MHD,  // Ideal MHD equations
   GKYL_EQN_BURGERS, // Burgers equations
   GKYL_EQN_ADVECTION, // Scalar advection equation
+  GKYL_EQN_EULER_PKPM, // Euler equations with parallel-kinetic-perpendicular-moment (pkpm) model
 };
 
 // Identifiers for specific field object types

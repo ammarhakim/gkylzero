@@ -31,40 +31,32 @@ typedef struct { euler_surf_t kernels[3]; } gkyl_dg_euler_surf_kern_list;
 GKYL_CU_D
 static const gkyl_dg_euler_pressure_kern_list ser_pressure_kernels[] = {
   { NULL, euler_pressure_1x_ser_p1, euler_pressure_1x_ser_p2 }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2  
-  // { NULL, euler_pressure_2x_ser_p1, euler_pressure_2x_ser_p2 }, // 1
-  // { NULL, euler_pressure_3x_ser_p1, euler_pressure_3x_ser_p2 }, // 2
+  { NULL, euler_pressure_2x_ser_p1, euler_pressure_2x_ser_p2 }, // 1
+  { NULL, euler_pressure_3x_ser_p1, euler_pressure_3x_ser_p2 }, // 2
 };
 
 // Volume kernel list
 GKYL_CU_D
 static const gkyl_dg_euler_vol_kern_list ser_vol_kernels[] = {
   { NULL, euler_vol_1x_ser_p1, euler_vol_1x_ser_p2 }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2  
-  // { NULL, euler_vol_2x_ser_p1, euler_vol_2x_ser_p2 }, // 1
-  // { NULL, euler_vol_3x_ser_p1, euler_vol_3x_ser_p2 }, // 2
+  { NULL, euler_vol_2x_ser_p1, euler_vol_2x_ser_p2 }, // 1
+  { NULL, euler_vol_3x_ser_p1, euler_vol_3x_ser_p2 }, // 2
 };
 
 // Surface kernel list: x-direction
 GKYL_CU_D
 static const gkyl_dg_euler_surf_kern_list ser_surf_x_kernels[] = {
   { NULL, euler_surfx_1x_ser_p1, euler_surfx_1x_ser_p2 }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2  
-  // { NULL, euler_surfx_2x_ser_p1, euler_surfx_2x_ser_p2 }, // 1
-  // { NULL, euler_surfx_3x_ser_p1, euler_surfx_3x_ser_p2 }, // 2
+  { NULL, euler_surfx_2x_ser_p1, euler_surfx_2x_ser_p2 }, // 1
+  { NULL, euler_surfx_3x_ser_p1, euler_surfx_3x_ser_p2 }, // 2
 };
 
 // Surface kernel list: y-direction
 GKYL_CU_D
 static const gkyl_dg_euler_surf_kern_list ser_surf_y_kernels[] = {
   { NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2  
-  // { NULL, euler_surfy_2x_ser_p1, euler_surfy_2x_ser_p2 }, // 1
-  // { NULL, euler_surfy_3x_ser_p1, euler_surfy_3x_ser_p2 }, // 2
+  { NULL, euler_surfy_2x_ser_p1, euler_surfy_2x_ser_p2 }, // 1
+  { NULL, euler_surfy_3x_ser_p1, euler_surfy_3x_ser_p2 }, // 2
 };
 
 // Surface kernel list: z-direction
@@ -72,8 +64,7 @@ GKYL_CU_D
 static const gkyl_dg_euler_surf_kern_list ser_surf_z_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2  
-  // { NULL, euler_surfz_3x_ser_p1, euler_surfz_3x_ser_p2 }, // 2
+  { NULL, euler_surfz_3x_ser_p1, euler_surfz_3x_ser_p2 }, // 2
 };
 
 struct dg_euler {

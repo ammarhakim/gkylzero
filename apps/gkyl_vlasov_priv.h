@@ -263,6 +263,8 @@ struct vm_fluid_species {
 
   struct gkyl_array *u; // array for fluid/advection velocity
   struct gkyl_array *p; // array for pressure (used by Euler)
+  struct gkyl_array *ppar; // array for parallel pressure (used by Euler with parallel-kinetic-perpendicular-moment model)
+  struct gkyl_array *qpar; // array for parallel heat flux (used by Euler with parallel-kinetic-perpendicular-moment model)
   struct gkyl_array *D; // array for diffusion tensor
   struct gkyl_array *D_host; // host copy of diffusion tensor
 

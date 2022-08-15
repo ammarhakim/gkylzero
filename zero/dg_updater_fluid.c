@@ -7,6 +7,7 @@
 #include <gkyl_dg_eqn.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_euler.h>
+#include <gkyl_dg_euler_pkpm.h>
 #include <gkyl_dg_isoeuler.h>
 #include <gkyl_dg_updater_fluid.h>
 #include <gkyl_dg_updater_fluid_priv.h>
@@ -28,6 +29,8 @@ gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid,
 
   if (eqn_id == GKYL_EQN_ADVECTION)
     up->eqn_fluid = gkyl_dg_advection_new(cbasis, conf_range, use_gpu);
+  else if (eqn_id == GKYL_EQN_EULER_PKPM)
+    up->eqn_fluid = gkyl_dg_euler_pkpm_new(cbasis, conf_range, use_gpu);
   else if (eqn_id == GKYL_EQN_EULER)
     up->eqn_fluid = gkyl_dg_euler_new(cbasis, conf_range, param, use_gpu);
   else if (eqn_id == GKYL_EQN_ISO_EULER)
@@ -51,7 +54,8 @@ gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid,
 void
 gkyl_dg_updater_fluid_advance(gkyl_dg_updater_fluid *fluid,
   enum gkyl_eqn_type eqn_id, const struct gkyl_range *update_rng,
-  const struct gkyl_array *uvar, struct gkyl_array *pvar,
+  const struct gkyl_array *uvar, struct gkyl_array *pvar, 
+  const struct gkyl_array *ppar, const struct gkyl_array *qpar,
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
@@ -61,6 +65,10 @@ gkyl_dg_updater_fluid_advance(gkyl_dg_updater_fluid *fluid,
   if (eqn_id == GKYL_EQN_ADVECTION) {
     gkyl_advection_set_auxfields(fluid->eqn_fluid,
       (struct gkyl_dg_advection_auxfields) { .u = uvar });
+  }
+  else if (eqn_id == GKYL_EQN_EULER_PKPM) {
+    gkyl_euler_pkpm_set_auxfields(fluid->eqn_fluid,
+      (struct gkyl_dg_euler_pkpm_auxfields) { .u = uvar, .pperp = pvar, .ppar = ppar, .qpar = qpar });
   }
   else if (eqn_id == GKYL_EQN_EULER) {
     gkyl_euler_set_auxfields(fluid->eqn_fluid,
@@ -97,7 +105,8 @@ gkyl_dg_updater_fluid_release(gkyl_dg_updater_fluid* fluid)
 void
 gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
   enum gkyl_eqn_type eqn_id, const struct gkyl_range *update_rng,
-  const struct gkyl_array *uvar, struct gkyl_array *pvar,
+  const struct gkyl_array *uvar, struct gkyl_array *pvar, 
+  const struct gkyl_array *ppar, const struct gkyl_array *qpar,
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
@@ -108,9 +117,13 @@ gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
     gkyl_advection_set_auxfields(fluid->eqn_fluid,
       (struct gkyl_dg_advection_auxfields) { .u = uvar });
   }
+  else if (eqn_id == GKYL_EQN_EULER_PKPM) {
+    gkyl_euler_pkpm_set_auxfields(fluid->eqn_fluid,
+      (struct gkyl_dg_euler_pkpm_auxfields) { .u = uvar, .pperp = pvar, .ppar = ppar, .qpar = qpar });
+  }
   else if (eqn_id == GKYL_EQN_EULER) {
     gkyl_euler_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_euler_auxfields) { .u = uvar });
+      (struct gkyl_dg_euler_auxfields) { .u = uvar, .p = pvar });
   }
 
   struct timespec wst = gkyl_wall_clock();
@@ -125,7 +138,8 @@ gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
 void
 gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
   enum gkyl_eqn_type eqn_id, const struct gkyl_range *update_rng,
-  const struct gkyl_array *uvar, struct gkyl_array *pvar,
+  const struct gkyl_array *uvar, struct gkyl_array *pvar, 
+  const struct gkyl_array *ppar, const struct gkyl_array *qpar,
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {

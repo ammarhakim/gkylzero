@@ -63,6 +63,8 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   // initialize pointers to flow velocity and pressure
   f->u = 0;
   f->p = 0;
+  f->ppar = 0;
+  f->qpar = 0;
 
   f->param = 0.0;
   // fluid solvers
@@ -277,14 +279,16 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
 
   if (app->use_gpu) {
     gkyl_dg_updater_fluid_advance_cu(fluid_species->advect_slvr, fluid_species->eqn_id,
-      &app->local, fluid_species->u, fluid_species->p, fluid, fluid_species->cflrate, rhs);
+      &app->local, fluid_species->u, fluid_species->p, fluid_species->ppar, fluid_species->qpar,
+      fluid, fluid_species->cflrate, rhs);
 
     gkyl_dg_updater_diffusion_advance_cu(fluid_species->diff_slvr, fluid_species->diffusion_id,
       &app->local, fluid_species->D, fluid, fluid_species->cflrate, rhs);
   }
   else {
     gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, fluid_species->eqn_id,
-      &app->local, fluid_species->u, fluid_species->p, fluid, fluid_species->cflrate, rhs);
+      &app->local, fluid_species->u, fluid_species->p, fluid_species->ppar, fluid_species->qpar,
+      fluid, fluid_species->cflrate, rhs);
 
     gkyl_dg_updater_diffusion_advance(fluid_species->diff_slvr, fluid_species->diffusion_id,
       &app->local, fluid_species->D, fluid, fluid_species->cflrate, rhs);
