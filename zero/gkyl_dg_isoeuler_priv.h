@@ -44,20 +44,23 @@ static const gkyl_dg_isoeuler_surf_kern_list ser_surf_x_kernels[] = {
   // { NULL, NULL, NULL }, // 0
   // { NULL, NULL, NULL }, // 1
   // { NULL, NULL, NULL }, //
+  // { NULL, isoeuler_surfx_1x_ser_p1, isoeuler_surfx_1x_ser_p2 }, // 0
+  // { NULL, isoeuler_surfx_2x_ser_p1, isoeuler_surfx_2x_ser_p2 }, // 1
+  // { NULL, isoeuler_surfx_3x_ser_p1, isoeuler_surfx_3x_ser_p1 }, // 2
   { NULL, isoeuler_surfx_1x_ser_p1, isoeuler_surfx_1x_ser_p2 }, // 0
-  { NULL, isoeuler_surfx_2x_ser_p1, isoeuler_surfx_2x_ser_p2 }, // 1
-  { NULL, isoeuler_surfx_3x_ser_p1, isoeuler_surfx_3x_ser_p1 }, // 2
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
 };
 
 // Surface kernel list: y-direction
 GKYL_CU_D
 static const gkyl_dg_isoeuler_surf_kern_list ser_surf_y_kernels[] = {
-  // { NULL, NULL, NULL }, // 0
-  // { NULL, NULL, NULL }, // 1
-  // { NULL, NULL, NULL }, // 2
   { NULL, NULL, NULL }, // 0
-  { NULL, isoeuler_surfy_2x_ser_p1, isoeuler_surfy_2x_ser_p2 }, // 1
-  { NULL, isoeuler_surfy_3x_ser_p1, isoeuler_surfy_3x_ser_p2 }, // 2
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
+  // { NULL, NULL, NULL }, // 0
+  // { NULL, isoeuler_surfy_2x_ser_p1, isoeuler_surfy_2x_ser_p2 }, // 1
+  // { NULL, isoeuler_surfy_3x_ser_p1, isoeuler_surfy_3x_ser_p2 }, // 2
 };
 
 // Surface kernel list: z-direction
@@ -65,7 +68,10 @@ GKYL_CU_D
 static const gkyl_dg_isoeuler_surf_kern_list ser_surf_z_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
-  { NULL, isoeuler_surfz_3x_ser_p1, isoeuler_surfz_3x_ser_p2 }, // 2
+  { NULL, NULL, NULL }, // 2
+  // { NULL, NULL, NULL }, // 0
+  // { NULL, NULL, NULL }, // 1
+  // { NULL, isoeuler_surfz_3x_ser_p1, isoeuler_surfz_3x_ser_p2 }, // 2
 };
 
 // "Choose Kernel" based on cdim, vdim and polyorder
