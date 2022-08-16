@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <string.h>
 #include <gkyl_util.h>
+#include <gkyl_alloc.h>
 
 #include "cart_modal_serendip_priv.h"
 
@@ -26,9 +27,23 @@ gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim, int poly_order)
   basis->nodal_to_modal = n2m_list[ndim].n2m[poly_order];
 }
 
+struct gkyl_basis *
+gkyl_cart_modal_serendip_new(int ndim, int poly_order)
+{
+  struct gkyl_basis *basis = gkyl_malloc(sizeof(struct gkyl_basis));
+  gkyl_cart_modal_serendip(basis, ndim, poly_order);
+  return basis;
+}
+
 #ifndef GKYL_HAVE_CUDA
 void
 gkyl_cart_modal_serendip_cu_dev(struct gkyl_basis *basis, int ndim, int poly_order)
+{
+  assert(false);
+}
+
+struct gkyl_basis *
+gkyl_cart_modal_serendip_cu_dev_new(int ndim, int poly_order)
 {
   assert(false);
 }

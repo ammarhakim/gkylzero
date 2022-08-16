@@ -430,7 +430,7 @@ test_1x2v(int poly_order, bool use_gpu)
   vtsq = mkarr(confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *udrift_cu, *vtsq_cu;
   if (use_gpu) { // create device copies
-    udrift_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
+    udrift_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, vdim*confBasis.num_basis, confLocal_ext.volume);
     vtsq_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
   }
 

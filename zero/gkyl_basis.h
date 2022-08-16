@@ -88,12 +88,11 @@ struct gkyl_basis {
 };
 
 /**
- * Create new modal serendipity basis function object.
+ * Assign object members in modal serendipity basis object.
  *
  * @param basis Basis object to initialize
  * @param ndim Dimension of reference element.
  * @param poly_order Polynomial order.
- * @return Pointer to new basis function.
  */
 void gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim,
   int poly_order);
@@ -101,12 +100,21 @@ void gkyl_cart_modal_serendip_cu_dev(struct gkyl_basis *basis, int ndim,
   int poly_order);
 
 /**
- * Create new modal tensor-product basis function object.
+ * Create new modal serendipity basis function object.
+ *
+ * @param ndim Dimension of reference element.
+ * @param poly_order Polynomial order.
+ * @return new basis struct.
+ */
+struct gkyl_basis * gkyl_cart_modal_serendip_new(int ndim, int poly_order);
+struct gkyl_basis * gkyl_cart_modal_serendip_cu_dev_new(int ndim, int poly_order);
+
+/**
+ * Assign object members in modal tensor-product basis object.
  *
  * @param basis Basis object to initialize
  * @param ndim Dimension of reference element.
  * @param poly_order Polynomial order.
- * @return Pointer to new basis function.
  */
 void gkyl_cart_modal_tensor(struct gkyl_basis *basis, int ndim,
   int poly_order);
@@ -114,26 +122,57 @@ void gkyl_cart_modal_tensor_cu_dev(struct gkyl_basis *basis, int ndim,
   int poly_order);
 
 /**
- * Create new hybrid basis. These are p=1 in configuration space
+ * Create new modal tensor-product basis function object.
+ *
+ * @param ndim Dimension of reference element.
+ * @param poly_order Polynomial order.
+ * @return new basis struct.
+ */
+struct gkyl_basis * gkyl_cart_modal_tensor_new(int ndim, int poly_order);
+struct gkyl_basis * gkyl_cart_modal_tensor_cu_dev_new(int ndim, int poly_order);
+
+/**
+ * Assign object members in hybrid basis. These are p=1 in configuration space
  * and p=2 in velocity space.
  *
  * @param basis Basis object to initialize
  * @param cdim dimension of configuration space.
  * @param vdim dimension of velocity space.
- * @return Pointer to new basis function.
  */
 void gkyl_cart_modal_hybrid(struct gkyl_basis *basis, int cdim, int vdim);
 void gkyl_cart_modal_hybrid_cu_dev(struct gkyl_basis *basis, int cdim, int vdim);
 
 /**
- * Create new hybrid basis for use in gyrokinetics p=1
+ * Create new hybrid basis. These are p=1 in configuration space
+ * and p=2 in velocity space.
+ *
+ * @param cdim dimension of configuration space.
+ * @param vdim dimension of velocity space.
+ * @return new basis struct.
+ */
+struct gkyl_basis * gkyl_cart_modal_hybrid_new(int cdim, int vdim);
+struct gkyl_basis * gkyl_cart_modal_hybrid_cu_dev_new(int cdim, int vdim);
+
+/**
+ * Assign object members in hybrid basis for use in gyrokinetics p=1
  * simulations. These basis have the v_par^2 monomial and its tensor
  * product with other monomials included. 
  *
  * @param basis Basis object to initialize
  * @param cdim dimension of configuration space.
  * @param vdim dimension of velocity space.
- * @return Pointer to new basis function.
  */
 void gkyl_cart_modal_gkhybrid(struct gkyl_basis *basis, int cdim, int vdim);
 void gkyl_cart_modal_gkhybrid_cu_dev(struct gkyl_basis *basis, int cdim, int vdim);
+
+/**
+ * Create new hybrid basis for use in gyrokinetics p=1
+ * simulations. These basis have the v_par^2 monomial and its tensor
+ * product with other monomials included. 
+ *
+ * @param cdim dimension of configuration space.
+ * @param vdim dimension of velocity space.
+ * @return new basis struct.
+ */
+struct gkyl_basis * gkyl_cart_modal_gkhybrid_new(int cdim, int vdim);
+struct gkyl_basis * gkyl_cart_modal_gkhybrid_cu_dev_new(int cdim, int vdim);
