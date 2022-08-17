@@ -180,6 +180,19 @@ void gravity_func(double t, const double *xn, double *fout, void *_ctx)
   fout[0] = ctx->gravity;
 }
 
+void
+write_data(
+    struct gkyl_tm_trigger *iot,
+    const gkyl_moment_app *app,
+    double tcurr)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, tcurr))
+  {
+    printf("Writing frame %d at t=%g\n", iot->curr-1, tcurr);
+    gkyl_moment_app_write(app, tcurr, iot->curr-1);
+  }
+}
+
 int
 main(int argc, char **argv)
 {
@@ -262,28 +275,33 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tA0 = ctx.l0 / ctx.vA0;
   double tcurr = 0.0, tend = 10 * tA0;
+  int nframe = 10;
+  
+  // create trigger for IO
+  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
-  gkyl_moment_app_write(app, tcurr, 0);
+  write_data(&io_trig, app, tcurr);
 
   // compute estimate of maximum stable time-step
   double dt = gkyl_moment_app_max_dt(app);
 
   printf("%45s = %g\n", "tA0", tA0);
   printf("%45s = %g\n", "tend", tend);
+  printf("%45s = %g\n", "ouput interval dt", tend/nframe);
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
     bool do_print = step % 1000 == 0;
 
     if (do_print)
-      printf("Taking time-step %ld at t = %g ...", step, tcurr);
+      printf("Taking time-step %6ld at t = %8g ...", step, tcurr);
 
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
 
     if (do_print)
-      printf(" dt = %g\n", status.dt_actual);
+      printf(" dt = %8g, next frame = %d\n", status.dt_actual, io_trig.curr);
 
     if (!status.success) {
       printf("** Update method failed! Aborting simulation ....\n");
@@ -292,10 +310,11 @@ main(int argc, char **argv)
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
 
+    write_data(&io_trig, app, tcurr);
+
     step += 1;
   }
 
-  gkyl_moment_app_write(app, tcurr, 1);
   gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
