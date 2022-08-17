@@ -304,9 +304,45 @@ int main(int argc, char **argv) {
   // compute estimate of maximum stable time-step
   double dt = gkyl_moment_app_max_dt(app);
 
-  printf("%45s = %g\n", "tend", tend);
-  printf("%45s = %g\n", "ouput time interval", tend / nframe);
+  // print parameters for record
+  if (true) {
+    double de0 = di0 / sqrt(ctx.mi__me);
+    double wpe0 = wpi0 * sqrt(ctx.mi__me);
+    double B0 = ctx.vA0 * sqrt(ctx.mu0 * ctx.rho0);
+    double Bz0 = B0 * ctx.Bz0__B0;
+    double wce0 = -qe * Bz0 / me;
+    double wci0 = qi * Bz0 / ctx.mi;
+    double Te0 = ctx.T0 / (1 + ctx.Ti0__Te0);
+    double Ti0 = ctx.T0 / (1 + 1 / ctx.Ti0__Te0);
+    double vte0 = sqrt(Te0 / me);
+    double vti0 = sqrt(Ti0 / ctx.mi);
+    double rLamor_e0 = vte0 / wce0;
+    double rLamor_i0 = vti0 / wci0;
+    double dr = (ctx.r_out - ctx.r_inn) / NR;
 
+    printf("%45s = %g\n", "gas_gamma", ctx.gas_gamma);
+    printf("%45s = %g\n", "T0", ctx.T0);
+    printf("%45s = %g\n", "vTheta0", ctx.vt0__vA0);
+    printf("%45s = %g\n", "gravity", ctx.gravity);
+    printf("%45s = %g, %g, %g\n", "lightSpeed, epsilon0, mu0", lightSpeed,
+           epsilon0, ctx.mu0);
+    printf("%45s = %g, %g\n", "mi, qi", ctx.mi, qi);
+    printf("%45s = %g, %g\n", "me, qe", me, qe);
+    printf("%45s = %g\n", "Ti0/Te0", ctx.Ti0__Te0);
+    printf("%45s = %g, %g\n", "di0, de0", di0, de0);
+    printf("%45s = %g, %g\n", "rLamor_i0, rLamor_e0", rLamor_i0, rLamor_e0);
+    printf("%45s = %g, %g = 1/%g, 1/%g\n", "wpi0, wpe0", wpi0, wpe0, 1 / wpi0,
+           1 / wpe0);
+    printf("%45s = %g, %g = 1/%g, 1/%g\n", "wci0, wce0 (based on Bz0)", wci0,
+           wce0, 1 / wci0, 1 / wce0);
+    printf("%45s = %g, %g\n", "r_inn, r_out", ctx.r_inn, ctx.r_out);
+    printf("%45s = %d, %g\n", "radial cell # and grid size NR, dr", NR, dr);
+    printf("%45s = %g\n", "cfl", ctx.cfl);
+    printf("%45s = %g\n", "tend", tend);
+    printf("%45s = %g\n", "ouput time interval", tend / nframe);
+  }
+
+  // iterate
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
     bool do_print = step % 1000 == 0;
