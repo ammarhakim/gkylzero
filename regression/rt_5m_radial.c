@@ -167,9 +167,9 @@ evalFieldInit(
   double Bz = 0;
 
   // electric field
-  fout[0] = Er, fout[1] = Et; fout[2] = Ez;
+  fout[0] = Er; fout[1] = Et; fout[2] = Ez;
   // magnetic field
-  fout[3] = Br, fout[4] = Bt; fout[5] = Bz;
+  fout[3] = Br; fout[4] = Bt; fout[5] = Bz;
   // correction potentials
   fout[6] = 0.0; fout[7] = 0.0;
 }
