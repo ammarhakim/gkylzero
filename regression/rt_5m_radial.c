@@ -8,7 +8,7 @@
 #include <gkyl_wv_euler.h>
 #include <rt_arg_parse.h>
 
-#define sq(x) ((x)*(x))
+#define sq(x) ((x) * (x))
 
 /*********************************************/
 /* CONTEXT PARAMETERS                                */
@@ -16,55 +16,53 @@
 
 struct moment_ctx {
   // following will be set to 1 to define unit normalizations
-  double mu0; // vaccum permeability
-  double vA0; // reference Alfven speed
+  double mu0;  // vaccum permeability
+  double vA0;  // reference Alfven speed
   double rho0; // reference density
-  double l0; // reference length
-  double n0; // reference number density
-  double mi; // ion mass
+  double l0;   // reference length
+  double n0;   // reference number density
+  double mi;   // ion mass
 
   // problem-specific mhd parameters
   double gas_gamma; // gas gamma
-  double Bz0__B0; // background Bz / reference B0
-  double T0; // background temperature Te0 + Ti0
+  double Bz0__B0;   // background Bz / reference B0
+  double T0;        // background temperature Te0 + Ti0
   double vt0__vA0;  // vTheta0/vA0 to set radial electric field
-  double gravity; // radial gravity FIXME unit
+  double gravity;   // radial gravity FIXME unit
 
   // non-mhd parameters
   double lightSpeed__vA0; // lightSpeed / vA0
-  double mi__me; // mass ratio mi / me
-  double Ti0__Te0; // temperature ratio Ti0 / Te0
-  double di0__l0;  // ion inertial length / l0
+  double mi__me;          // mass ratio mi / me
+  double Ti0__Te0;        // temperature ratio Ti0 / Te0
+  double di0__l0;         // ion inertial length / l0
 
   // domain limints needed to compute initial velocity ramping when vt0=/=0
   double r_inn; // inner radial
   double r_out; // outer radial
 };
 
-struct moment_ctx
-moment_ctx(void)
-{
-  return (struct moment_ctx) {
-    .mu0 = 1,
-    .vA0 = 1,
-    .rho0 = 1,
-    .l0 = 1,
-    .n0 = 1,
-    .mi = 1,
+struct moment_ctx moment_ctx(void) {
+  return (struct moment_ctx){
+      .mu0 = 1,
+      .vA0 = 1,
+      .rho0 = 1,
+      .l0 = 1,
+      .n0 = 1,
+      .mi = 1,
 
-    .gas_gamma = 1.4,
-    .Bz0__B0 = 1,
-    .T0 = 0.002,
-    .vt0__vA0 = 0,
-    .gravity = 0.0125,
+      .gas_gamma = 1.4,
+      .Bz0__B0 = 1,
+      .T0 = 0.002,
+      .vt0__vA0 = 0,
+      .gravity = 0.0125,
 
-    .lightSpeed__vA0 = 10,
-    .mi__me = 25,
-    .Ti0__Te0 = 1,
-    .di0__l0 = 1,
+      .lightSpeed__vA0 = 10,
+      .mi__me = 25,
+      .Ti0__Te0 = 1,
+      .di0__l0 = 1,
 
-    .r_inn = 0.45,
-    .r_out = 1.45,
+      .r_inn = 0.45,
+      .r_out = 1.45,
   };
 }
 
@@ -72,19 +70,14 @@ moment_ctx(void)
 /* INITIAL CONDITIONS                        */
 /*********************************************/
 
-double calc_vt(const double r, const struct moment_ctx *ctx)
-{
+double calc_vt(const double r, const struct moment_ctx *ctx) {
   double vt0 = ctx->vA0 * ctx->vt0__vA0;
   double vt = vt0 * sin((r - ctx->r_inn) * M_PI / (ctx->r_out - ctx->r_inn));
   return vt;
 }
 
-void init_elc(
-    double t,
-    const double* GKYL_RESTRICT xn,
-    double* GKYL_RESTRICT fout,
-    void *_ctx)
-{
+void init_elc(double t, const double *GKYL_RESTRICT xn,
+              double *GKYL_RESTRICT fout, void *_ctx) {
   struct moment_ctx *ctx = _ctx;
   double gamma = ctx->gas_gamma;
   double rho0 = ctx->rho0;
@@ -95,7 +88,8 @@ void init_elc(
 
   double r = xn[0]; // radial coordinate
 
-  double rhoe = rho0 / (1 + mi__me);;
+  double rhoe = rho0 / (1 + mi__me);
+  ;
   double vre = 0;
   double vte = calc_vt(r, ctx);
   double vze = 0;
@@ -111,12 +105,8 @@ void init_elc(
   fout[4] = ere;
 }
 
-void init_ion(
-    double t,
-    const double* GKYL_RESTRICT xn,
-    double* GKYL_RESTRICT fout,
-    void *_ctx)
-{
+void init_ion(double t, const double *GKYL_RESTRICT xn,
+              double *GKYL_RESTRICT fout, void *_ctx) {
   struct moment_ctx *ctx = _ctx;
   double gamma = ctx->gas_gamma;
   double rho0 = ctx->rho0;
@@ -127,7 +117,8 @@ void init_ion(
 
   double r = xn[0]; // radial coordinate
 
-  double rhoi = rho0 * mi__me / (1 + mi__me);;
+  double rhoi = rho0 * mi__me / (1 + mi__me);
+
   double vri = 0;
   double vti = calc_vt(r, ctx);
   double vzi = 0;
@@ -143,13 +134,8 @@ void init_ion(
   fout[4] = eri;
 }
 
-void
-init_field(
-    double t,
-    const double* GKYL_RESTRICT xn,
-    double* GKYL_RESTRICT fout,
-    void *_ctx)
-{
+void init_field(double t, const double *GKYL_RESTRICT xn,
+                double *GKYL_RESTRICT fout, void *_ctx) {
   struct moment_ctx *ctx = _ctx;
   double B0 = ctx->vA0 * sqrt(ctx->mu0 * ctx->rho0);
   double Bz0 = B0 * ctx->Bz0__B0;
@@ -157,7 +143,7 @@ init_field(
   double r = xn[0]; // radial coordinate
 
   double vt = calc_vt(r, ctx);
-  double Er =  -vt * Bz0;
+  double Er = -vt * Bz0;
   double Et = 0;
   double Ez = 0;
   double Br = 0;
@@ -165,21 +151,27 @@ init_field(
   double Bz = 0;
 
   // electric field
-  fout[0] = Er; fout[1] = Et; fout[2] = Ez;
+  fout[0] = Er;
+  fout[1] = Et;
+  fout[2] = Ez;
   // magnetic field
-  fout[3] = Br; fout[4] = Bt; fout[5] = Bz;
+  fout[3] = Br;
+  fout[4] = Bt;
+  fout[5] = Bz;
   // correction potentials
-  fout[6] = 0.0; fout[7] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = 0.0;
 }
 
 /*********************************************/
 /* MISC.                                     */
 /*********************************************/
 
-void gravity_func(double t, const double *xn, double *fout, void *_ctx)
-{
+void gravity_func(double t, const double *xn, double *fout, void *_ctx) {
   struct moment_ctx *ctx = _ctx;
   fout[0] = ctx->gravity;
+  fout[1] = 0;
+  fout[2] = 0;
 }
 
 /*********************************************/
@@ -187,27 +179,21 @@ void gravity_func(double t, const double *xn, double *fout, void *_ctx)
 /*********************************************/
 
 // map (r,theta) -> (x,y)
-void
-mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
-{
+void mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx) {
   double r = xc[0], theta = xc[1];
-  xp[0] = r*cos(theta); xp[1] = r*sin(theta);
+  xp[0] = r * cos(theta);
+  xp[1] = r * sin(theta);
 }
 
 /*********************************************/
 /* IO                                        */
 /*********************************************/
 
-void
-write_data(
-    struct gkyl_tm_trigger *iot,
-    const gkyl_moment_app *app,
-    double tcurr)
-{
-  if (gkyl_tm_trigger_check_and_bump(iot, tcurr))
-  {
-    printf("Writing frame %d at t=%g\n", iot->curr-1, tcurr);
-    gkyl_moment_app_write(app, tcurr, iot->curr-1);
+void write_data(struct gkyl_tm_trigger *iot, const gkyl_moment_app *app,
+                double tcurr) {
+  if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) {
+    printf("Writing frame %d at t=%g\n", iot->curr - 1, tcurr);
+    gkyl_moment_app_write(app, tcurr, iot->curr - 1);
   }
 }
 
@@ -215,9 +201,7 @@ write_data(
 /* MAIN PROGRAM                              */
 /*********************************************/
 
-int
-main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
   int NR = APP_ARGS_CHOOSE(app_args.xcells[0], 64);
@@ -240,56 +224,55 @@ main(int argc, char **argv)
   double qe = -qi;
 
   struct gkyl_moment_species elc = {
-    .name = "elc",
-    .charge = qe,
-    .mass = me,
-    .equation = euler,
-    .evolve = true,
-    .ctx = &ctx,
-    .init = init_elc,
-    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
-    .bcy = { GKYL_SPECIES_WEDGE, GKYL_SPECIES_WEDGE },
-    .app_accel_func = gravity_func,
+      .name = "elc",
+      .charge = qe,
+      .mass = me,
+      .equation = euler,
+      .evolve = true,
+      .ctx = &ctx,
+      .init = init_elc,
+      .bcx = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
+      .bcy = {GKYL_SPECIES_WEDGE, GKYL_SPECIES_WEDGE},
+      .app_accel_func = gravity_func,
   };
 
   struct gkyl_moment_species ion = {
-    .name = "ion",
-    .charge = qi,
-    .mass = ctx.mi,
-    .equation = euler,
-    .evolve = true,
-    .ctx = &ctx,
-    .init = init_ion,
-    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
-    .bcy = { GKYL_SPECIES_WEDGE, GKYL_SPECIES_WEDGE },
-    .app_accel_func = gravity_func,
+      .name = "ion",
+      .charge = qi,
+      .mass = ctx.mi,
+      .equation = euler,
+      .evolve = true,
+      .ctx = &ctx,
+      .init = init_ion,
+      .bcx = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
+      .bcy = {GKYL_SPECIES_WEDGE, GKYL_SPECIES_WEDGE},
+      .app_accel_func = gravity_func,
   };
 
   double theta = 0.01; // some finite value not too small
   struct gkyl_moment app_inp = {
-    .name = "5m_radial",
+      .name = "5m_radial",
 
-    .ndim = 2,
-    .lower = { ctx.r_inn, -theta / 2 },
-    .upper = { ctx.r_out, theta / 2 },
-    .cells = { NR, NT },
-    .mapc2p = mapc2p,
+      .ndim = 2,
+      .lower = {ctx.r_inn, -theta / 2},
+      .upper = {ctx.r_out, theta / 2},
+      .cells = {NR, NT},
+      .mapc2p = mapc2p,
 
-    .cfl_frac = 0.9,
+      .cfl_frac = 0.9,
 
-    .num_species = 2,
-    .species = { elc, ion },
-    .field = {
-      .epsilon0 = epsilon0,
-      .mu0 = ctx.mu0,
-      .mag_error_speed_fact = 1.0,
-      .evolve = true,
-      .ctx = &ctx,
-      .init = init_field,
-      .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
-      .bcy = { GKYL_FIELD_WEDGE, GKYL_FIELD_WEDGE },
-    }
-  };
+      .num_species = 2,
+      .species = {elc, ion},
+      .field = {
+          .epsilon0 = epsilon0,
+          .mu0 = ctx.mu0,
+          .mag_error_speed_fact = 1.0,
+          .evolve = true,
+          .ctx = &ctx,
+          .init = init_field,
+          .bcx = {GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL},
+          .bcy = {GKYL_FIELD_WEDGE, GKYL_FIELD_WEDGE},
+      }};
 
   // create app object
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
@@ -298,9 +281,9 @@ main(int argc, char **argv)
   double tA0 = ctx.l0 / ctx.vA0;
   double tcurr = 0.0, tend = 10 * tA0;
   int nframe = 10;
-  
+
   // create trigger for IO
-  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
+  struct gkyl_tm_trigger io_trig = {.dt = tend / nframe};
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
@@ -309,9 +292,8 @@ main(int argc, char **argv)
   // compute estimate of maximum stable time-step
   double dt = gkyl_moment_app_max_dt(app);
 
-  printf("%45s = %g\n", "tA0", tA0);
   printf("%45s = %g\n", "tend", tend);
-  printf("%45s = %g\n", "ouput interval dt", tend/nframe);
+  printf("%45s = %g\n", "ouput time interval", tend / nframe);
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
