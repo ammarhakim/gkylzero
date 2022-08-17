@@ -10,32 +10,35 @@
 
 #define sq(x) ((x)*(x))
 
+/*********************************************/
+/* CONTEXT PARAMETERS                                */
+/*********************************************/
+
 struct moment_ctx {
   // following will be set to 1 to define unit normalizations
-  double mu0;
-  double vA0;
-  double rho0;
-  double l0;
-  double n0;
-  double mi;
+  double mu0; // vaccum permeability
+  double vA0; // reference Alfven speed
+  double rho0; // reference density
+  double l0; // reference length
+  double n0; // reference number density
+  double mi; // ion mass
 
   // problem-specific mhd parameters
-  double gas_gamma;
-  double Bz0__B0;
-  double T0_mhd;
-  // set one and only one of MA0 and gravity to nonzero
-  double MA0;  // vTheta0/vA0; set to nonzero to set a Er x Bz drift
-  double gravity; // allows an equilibrium to develop
+  double gas_gamma; // gas gamma
+  double Bz0__B0; // background Bz / reference B0
+  double T0; // background temperature Te0 + Ti0
+  double vt0__vA0;  // vTheta0/vA0 to set radial electric field
+  double gravity; // radial gravity FIXME unit
 
   // non-mhd parameters
-  double lightSpeed__vA0;
-  double mi__me;
-  double Ti0__Te0;
-  double di0__l0;
+  double lightSpeed__vA0; // lightSpeed / vA0
+  double mi__me; // mass ratio mi / me
+  double Ti0__Te0; // temperature ratio Ti0 / Te0
+  double di0__l0;  // ion inertial length / l0
 
-  // domain
-  double r_inn;
-  double r_out;
+  // domain limints needed to compute initial velocity ramping when vt0=/=0
+  double r_inn; // inner radial
+  double r_out; // outer radial
 };
 
 struct moment_ctx
@@ -51,8 +54,8 @@ moment_ctx(void)
 
     .gas_gamma = 1.4,
     .Bz0__B0 = 1,
-    .T0_mhd = 0.002,
-    .MA0 = 0,
+    .T0 = 0.002,
+    .vt0__vA0 = 0,
     .gravity = 0.0125,
 
     .lightSpeed__vA0 = 10,
@@ -65,23 +68,18 @@ moment_ctx(void)
   };
 }
 
-// map (r,theta) -> (x,y)
-void
-mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
-{
-  double r = xc[0], th = xc[1];
-  xp[0] = r*cos(th); xp[1] = r*sin(th);
-}
+/*********************************************/
+/* INITIAL CONDITIONS                        */
+/*********************************************/
 
-// initial conditions
 double calc_vt(const double r, const struct moment_ctx *ctx)
 {
-  double vt0 = ctx->vA0 * ctx->MA0;
+  double vt0 = ctx->vA0 * ctx->vt0__vA0;
   double vt = vt0 * sin((r - ctx->r_inn) * M_PI / (ctx->r_out - ctx->r_inn));
   return vt;
 }
 
-void evalElcInit(
+void init_elc(
     double t,
     const double* GKYL_RESTRICT xn,
     double* GKYL_RESTRICT fout,
@@ -93,7 +91,7 @@ void evalElcInit(
   double mi__me = ctx->mi__me;
   double me = ctx->mi / mi__me;
   double Ti0__Te0 = ctx->Ti0__Te0;
-  double T0_mhd = ctx->T0_mhd;
+  double T0 = ctx->T0;
 
   double r = xn[0]; // radial coordinate
 
@@ -102,7 +100,7 @@ void evalElcInit(
   double vte = calc_vt(r, ctx);
   double vze = 0;
   double ne = rhoe / me;
-  double Te = T0_mhd / (1 + Ti0__Te0);
+  double Te = T0 / (1 + Ti0__Te0);
   double pe = ne * Te;
   double ere = pe / (gamma - 1) + 0.5 * rhoe * (sq(vre) + sq(vte) + sq(vze));
 
@@ -113,7 +111,7 @@ void evalElcInit(
   fout[4] = ere;
 }
 
-void evalIonInit(
+void init_ion(
     double t,
     const double* GKYL_RESTRICT xn,
     double* GKYL_RESTRICT fout,
@@ -125,7 +123,7 @@ void evalIonInit(
   double mi__me = ctx->mi__me;
   double mi = ctx->mi;
   double Ti0__Te0 = ctx->Ti0__Te0;
-  double T0_mhd = ctx->T0_mhd;
+  double T0 = ctx->T0;
 
   double r = xn[0]; // radial coordinate
 
@@ -134,7 +132,7 @@ void evalIonInit(
   double vti = calc_vt(r, ctx);
   double vzi = 0;
   double ni = rhoi / mi;
-  double Ti = T0_mhd * Ti0__Te0 / (1 + Ti0__Te0);
+  double Ti = T0 * Ti0__Te0 / (1 + Ti0__Te0);
   double pi = ni * Ti;
   double eri = pi / (gamma - 1) + 0.5 * rhoi * (sq(vri) + sq(vti) + sq(vzi));
 
@@ -146,7 +144,7 @@ void evalIonInit(
 }
 
 void
-evalFieldInit(
+init_field(
     double t,
     const double* GKYL_RESTRICT xn,
     double* GKYL_RESTRICT fout,
@@ -174,11 +172,31 @@ evalFieldInit(
   fout[6] = 0.0; fout[7] = 0.0;
 }
 
+/*********************************************/
+/* MISC.                                     */
+/*********************************************/
+
 void gravity_func(double t, const double *xn, double *fout, void *_ctx)
 {
   struct moment_ctx *ctx = _ctx;
   fout[0] = ctx->gravity;
 }
+
+/*********************************************/
+/* GRID MAPPING                              */
+/*********************************************/
+
+// map (r,theta) -> (x,y)
+void
+mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
+{
+  double r = xc[0], theta = xc[1];
+  xp[0] = r*cos(theta); xp[1] = r*sin(theta);
+}
+
+/*********************************************/
+/* IO                                        */
+/*********************************************/
 
 void
 write_data(
@@ -192,6 +210,10 @@ write_data(
     gkyl_moment_app_write(app, tcurr, iot->curr-1);
   }
 }
+
+/*********************************************/
+/* MAIN PROGRAM                              */
+/*********************************************/
 
 int
 main(int argc, char **argv)
@@ -224,7 +246,7 @@ main(int argc, char **argv)
     .equation = euler,
     .evolve = true,
     .ctx = &ctx,
-    .init = evalElcInit,
+    .init = init_elc,
     .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
     .bcy = { GKYL_SPECIES_WEDGE, GKYL_SPECIES_WEDGE },
     .app_accel_func = gravity_func,
@@ -237,13 +259,13 @@ main(int argc, char **argv)
     .equation = euler,
     .evolve = true,
     .ctx = &ctx,
-    .init = evalIonInit,
+    .init = init_ion,
     .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
     .bcy = { GKYL_SPECIES_WEDGE, GKYL_SPECIES_WEDGE },
     .app_accel_func = gravity_func,
   };
 
-  double theta = 0.01;
+  double theta = 0.01; // some finite value not too small
   struct gkyl_moment app_inp = {
     .name = "5m_radial",
 
@@ -263,7 +285,7 @@ main(int argc, char **argv)
       .mag_error_speed_fact = 1.0,
       .evolve = true,
       .ctx = &ctx,
-      .init = evalFieldInit,
+      .init = init_field,
       .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
       .bcy = { GKYL_FIELD_WEDGE, GKYL_FIELD_WEDGE },
     }
@@ -301,7 +323,7 @@ main(int argc, char **argv)
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
 
     if (do_print)
-      printf(" dt = %8g, next frame = %d\n", status.dt_actual, io_trig.curr);
+      printf(" dt = %8g (toward frame %d)\n", status.dt_actual, io_trig.curr);
 
     if (!status.success) {
       printf("** Update method failed! Aborting simulation ....\n");
