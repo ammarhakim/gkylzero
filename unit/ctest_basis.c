@@ -53,7 +53,7 @@ test_ser_1d()
 
   struct gkyl_basis *basis2 = gkyl_cart_modal_serendip_new(1, 1);
   test_ser_1d_members(*basis2);
-  gkyl_free(basis2);
+  gkyl_cart_modal_basis_release(basis2);
 }
 
 void
@@ -160,7 +160,7 @@ test_ser_2d()
 
   struct gkyl_basis *basis2 = gkyl_cart_modal_serendip_new(2, 2);
   test_ser_2d_members(*basis2);
-  gkyl_free(basis2);
+  gkyl_cart_modal_basis_release(basis2);
 }
 
 void
@@ -210,7 +210,7 @@ test_ten_2d()
 
   struct gkyl_basis *basis2 = gkyl_cart_modal_tensor_new(2, 2);
   test_ten_2d_members(*basis2);
-  gkyl_free(basis2);
+  gkyl_cart_modal_basis_release(basis2);
 }
 
 void
@@ -259,7 +259,7 @@ test_hyb()
 
   struct gkyl_basis *basis2 = gkyl_cart_modal_hybrid_new(1, 1);
   test_hyb_members(*basis2);
-  gkyl_free(basis2);
+  gkyl_cart_modal_basis_release(basis2);
 }
 
 void
@@ -320,7 +320,7 @@ test_gkhyb()
 
   struct gkyl_basis *basis2 = gkyl_cart_modal_gkhybrid_new(1, 2);
   test_gkhyb_members(*basis2);
-  gkyl_free(basis2);
+  gkyl_cart_modal_basis_release(basis2);
 }
 
 #ifdef GKYL_HAVE_CUDA
@@ -341,11 +341,11 @@ test_cu_ser_2d()
   struct gkyl_basis *basis1 = gkyl_cu_malloc(sizeof(struct gkyl_basis));
   gkyl_cart_modal_serendip_cu_dev(basis1, 2, 2);
   test_cu_ser_2d_members(basis1);
-  gkyl_cu_free(basis1);
+  gkyl_cart_modal_basis_release_cu(basis1);
 
   struct gkyl_basis *basis2 = gkyl_cart_modal_serendip_cu_dev_new(2, 2);
   test_cu_ser_2d_members(basis2);
-  gkyl_cu_free(basis2);
+  gkyl_cart_modal_basis_release_cu(basis2);
 }
 #endif
 

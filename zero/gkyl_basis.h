@@ -99,8 +99,10 @@ void gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim,
 void gkyl_cart_modal_serendip_cu_dev(struct gkyl_basis *basis, int ndim,
   int poly_order);
 
+
 /**
  * Create new modal serendipity basis function object.
+ * This basis needs to be deallocated with free/release methods.
  *
  * @param ndim Dimension of reference element.
  * @param poly_order Polynomial order.
@@ -123,6 +125,7 @@ void gkyl_cart_modal_tensor_cu_dev(struct gkyl_basis *basis, int ndim,
 
 /**
  * Create new modal tensor-product basis function object.
+ * This basis needs to be deallocated with free/release methods.
  *
  * @param ndim Dimension of reference element.
  * @param poly_order Polynomial order.
@@ -145,6 +148,7 @@ void gkyl_cart_modal_hybrid_cu_dev(struct gkyl_basis *basis, int cdim, int vdim)
 /**
  * Create new hybrid basis. These are p=1 in configuration space
  * and p=2 in velocity space.
+ * This basis needs to be deallocated with free/release methods.
  *
  * @param cdim dimension of configuration space.
  * @param vdim dimension of velocity space.
@@ -169,6 +173,7 @@ void gkyl_cart_modal_gkhybrid_cu_dev(struct gkyl_basis *basis, int cdim, int vdi
  * Create new hybrid basis for use in gyrokinetics p=1
  * simulations. These basis have the v_par^2 monomial and its tensor
  * product with other monomials included. 
+ * This basis needs to be deallocated with free/release methods.
  *
  * @param cdim dimension of configuration space.
  * @param vdim dimension of velocity space.
@@ -176,3 +181,12 @@ void gkyl_cart_modal_gkhybrid_cu_dev(struct gkyl_basis *basis, int cdim, int vdi
  */
 struct gkyl_basis * gkyl_cart_modal_gkhybrid_new(int cdim, int vdim);
 struct gkyl_basis * gkyl_cart_modal_gkhybrid_cu_dev_new(int cdim, int vdim);
+
+/**
+ * Free the memory associated with basis objects
+ * created with _new methods above.
+ *
+ * @param basis Basis object to free.
+ */
+void gkyl_cart_modal_basis_release(struct gkyl_basis *basis);
+void gkyl_cart_modal_basis_release_cu(struct gkyl_basis *basis);
