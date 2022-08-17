@@ -156,7 +156,14 @@ void gkyl_moment_app_write(const gkyl_moment_app* app, double tm, int frame);
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_moment_app_write_field(const gkyl_moment_app* app, double tm, int frame);
+void gkyl_moment_app_write_field(const gkyl_moment_app *app, double tm, int frame);
+
+/**
+ * Write field energy to file.
+ *
+ * @param app App object.
+ */
+void gkyl_moment_app_write_field_energy(gkyl_moment_app *app);
 
 /**
  * Write species data to file.
@@ -191,14 +198,22 @@ void gkyl_moment_app_stat_write(const gkyl_moment_app* app);
  * @param dt Suggested time-step to advance simulation
  * @return Status of update.
  */
-struct gkyl_update_status gkyl_moment_update(gkyl_moment_app* app, double dt);
+struct gkyl_update_status gkyl_moment_update(gkyl_moment_app *app, double dt);
+
+/**
+ * Calculate integrated field energy
+ *
+ * @param tm Time at which integrated diagnostic are to be computed
+ * @param app App object.
+ */
+void gkyl_moment_app_calc_field_energy(gkyl_moment_app *app, double tm);
 
 /**
  * Return simulation statistics.
  * 
  * @return Return statistics.
  */
-struct gkyl_moment_stat gkyl_moment_app_stat(gkyl_moment_app* app);
+struct gkyl_moment_stat gkyl_moment_app_stat(gkyl_moment_app *app);
 
 /**
  * Free moment app.

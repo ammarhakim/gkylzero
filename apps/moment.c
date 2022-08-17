@@ -1,3 +1,4 @@
+#include "gkyl_elem_type.h"
 #include <assert.h>
 #include <float.h>
 #include <math.h>
@@ -7,6 +8,8 @@
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_dflt.h>
+#include <gkyl_dynvec.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_fv_proj.h>
 #include <gkyl_moment.h>
@@ -17,11 +20,10 @@
 #include <gkyl_util.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
+#include <gkyl_wv_apply_bc.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_maxwell.h>
-#include <gkyl_wv_apply_bc.h>
 #include <gkyl_wv_ten_moment.h>
-#include <gkyl_dflt.h>
 
 // ranges for use in BCs
 struct skin_ghost_ranges {
@@ -85,7 +87,10 @@ struct moment_field {
   // boundary condition type
   enum gkyl_field_bc_type lower_bct[3], upper_bct[3];
   // boundary conditions on lower/upper edges in each direction
-  gkyl_wv_apply_bc *lower_bc[3], *upper_bc[3];    
+  gkyl_wv_apply_bc *lower_bc[3], *upper_bc[3];
+
+  gkyl_dynvec integ_energy; // integrated energy components
+  bool is_first_energy_write_call; // flag for energy dynvec written first time
 };
 
 // Source data
@@ -131,6 +136,40 @@ struct gkyl_moment_app {
     
   struct gkyl_moment_stat stat; // statistics
 };
+
+// Function pointer to compute integrated quantities from input
+typedef void (*integ_func)(int nc, const double *qin, double *integ_out);
+
+static inline void
+integ_unit(int nc, const double *qin, double *integ_out)
+{
+  for (int i=0; i<nc; ++i) integ_out[i] = qin[i];
+}
+static inline void
+integ_sq(int nc, const double *qin, double *integ_out)
+{
+  for (int i=0; i<nc; ++i) integ_out[i] = qin[i]*qin[i];
+}
+
+// Compute the nc intergated values over the update_rgn, storing the
+// result in the integ_q
+static void
+calc_integ_quant(int nc, double vol, const struct gkyl_array *q, const struct gkyl_wave_geom *geom,
+  struct gkyl_range update_rng, integ_func i_func, double *integ_q)
+{
+  double integ_out[nc];
+  for (int i=0; i<nc; ++i) integ_q[i] = 0.0;
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &update_rng);
+  while (gkyl_range_iter_next(&iter)) {
+    const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(geom, iter.idx);
+    const double *qcell = gkyl_array_cfetch(q, gkyl_range_idx(&update_rng, iter.idx));
+
+    i_func(nc, qcell, integ_out);
+    for (int i=0; i<nc; ++i) integ_q[i] += vol*cg->kappa*integ_out[i];
+  }
+}
 
 // allocate array (filled with zeros)
 static struct gkyl_array*
@@ -539,6 +578,9 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   fld->bc_buffer = mkarr(8, buff_sz);
 
   gkyl_wv_eqn_release(maxwell);
+
+  fld->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 6);
+  fld->is_first_energy_write_call = true;
 }
 
 // apply BCs to EM field
@@ -625,10 +667,12 @@ moment_field_release(const struct moment_field *fld)
   gkyl_array_release(fld->app_current);
   if (fld->proj_app_current)
     gkyl_fv_proj_release(fld->proj_app_current);
+  
   gkyl_array_release(fld->ext_em);
   if (fld->proj_ext_em)
     gkyl_fv_proj_release(fld->proj_ext_em);
 
+  gkyl_dynvec_release(fld->integ_energy);
   gkyl_array_release(fld->bc_buffer);
 }
 
@@ -870,6 +914,27 @@ gkyl_moment_app_write_field(const gkyl_moment_app* app, double tm, int frame)
 }
 
 void
+gkyl_moment_app_write_field_energy(gkyl_moment_app *app)
+{
+  // write out diagnostic moments
+  const char *fmt = "%s-field-energy.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name);
+  char fileNm[sz+1]; // ensures no buffer overflow  
+  snprintf(fileNm, sizeof fileNm, fmt, app->name);
+
+  if (app->field.is_first_energy_write_call) {
+    // write to a new file (this ensure previous output is removed)
+    gkyl_dynvec_write(app->field.integ_energy, fileNm);
+    app->field.is_first_energy_write_call = false;
+  }
+  else {
+    // append to existing file
+    gkyl_dynvec_awrite(app->field.integ_energy, fileNm);
+  }
+  gkyl_dynvec_clear(app->field.integ_energy);
+}
+
+void
 gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, int frame)
 {
   const char *fmt = "%s-%s_%d.gkyl";
@@ -1023,6 +1088,15 @@ gkyl_moment_update(gkyl_moment_app* app, double dt)
   app->stat.total_tm += gkyl_time_diff_now_sec(wst);
   
   return status;
+}
+
+void
+gkyl_moment_app_calc_field_energy(gkyl_moment_app* app, double tm)
+{
+  double energy[6] = { 0.0 };
+  calc_integ_quant(6, app->grid.cellVolume, app->field.f[0], app->geom,
+    app->local, integ_sq, energy);
+  gkyl_dynvec_append(app->field.integ_energy, tm, energy);
 }
 
 struct gkyl_moment_stat

@@ -646,8 +646,7 @@ rk3(gkyl_vlasov_app* app, double dt0)
           dt = st.dt_actual;
           state = RK_STAGE_1; // restart from stage 1
 
-        }
-        else {
+        } else {
           for (int i=0; i<app->num_species; ++i)
             array_combine(app->species[i].f1,
               3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew, app->species[i].local_ext);
