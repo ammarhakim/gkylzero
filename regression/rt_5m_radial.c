@@ -36,9 +36,15 @@ struct moment_ctx {
   double Ti0__Te0;        // temperature ratio Ti0 / Te0
   double di0__l0;         // ion inertial length / l0
 
-  // domain limints needed to compute initial velocity ramping when vt0=/=0
+  // domain limits needed to compute initial velocity ramping when vt0=/=0
   double r_inn; // inner radial
   double r_out; // outer radial
+
+  // other parameters
+  double tend; // time at end of simulation
+  int nframe;  // number of output frames
+  int NR;      // radial cell number
+  double cfl;
 };
 
 struct moment_ctx moment_ctx(void) {
@@ -63,6 +69,11 @@ struct moment_ctx moment_ctx(void) {
 
       .r_inn = 0.45,
       .r_out = 1.45,
+
+      .tend = 10,
+      .nframe = 10,
+      .NR = 64,
+      .cfl = 0.9,
   };
 }
 
@@ -204,15 +215,13 @@ void write_data(struct gkyl_tm_trigger *iot, const gkyl_moment_app *app,
 int main(int argc, char **argv) {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NR = APP_ARGS_CHOOSE(app_args.xcells[0], 64);
-  int NT = APP_ARGS_CHOOSE(app_args.xcells[1], 3);
-
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
 
   struct moment_ctx ctx = moment_ctx();
+
   struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma);
 
   double lightSpeed = ctx.vA0 * ctx.lightSpeed__vA0;
@@ -249,7 +258,10 @@ int main(int argc, char **argv) {
       .app_accel_func = gravity_func,
   };
 
+  int NR = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.NR);
+  int NT = APP_ARGS_CHOOSE(app_args.xcells[1], 3);
   double theta = 0.01; // some finite value not too small
+
   struct gkyl_moment app_inp = {
       .name = "5m_radial",
 
@@ -279,8 +291,8 @@ int main(int argc, char **argv) {
 
   // start, end and initial time-step
   double tA0 = ctx.l0 / ctx.vA0;
-  double tcurr = 0.0, tend = 10 * tA0;
-  int nframe = 10;
+  double tcurr = 0.0, tend = ctx.tend;
+  int nframe = ctx.nframe;
 
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = {.dt = tend / nframe};
