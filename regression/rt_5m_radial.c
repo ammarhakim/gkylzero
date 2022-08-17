@@ -227,9 +227,9 @@ int main(int argc, char **argv) {
   double epsilon0 = 1 / sq(lightSpeed) / ctx.mu0;
   double me = ctx.mi / ctx.mi__me;
   double di0 = ctx.l0 * ctx.di0__l0;
-  double wpi0 = ctx.lightSpeed__vA0 / di0;
-  double n0 = ctx.rho0 / ctx.mi;
-  double qi = wpi0 * sqrt(epsilon0 * ctx.mi / n0);
+  double wpi0 = lightSpeed / di0;
+  double rhoi0 = ctx.rho0 / (1 + 1 / ctx.mi__me);
+  double qi = ctx.mi * sqrt(epsilon0 / rhoi0) * wpi0;
   double qe = -qi;
 
   struct gkyl_moment_species elc = {
