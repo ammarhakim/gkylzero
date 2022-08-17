@@ -5,11 +5,8 @@
 #include <gkyl_util.h>
 
 void
-test_ser_1d()
+test_ser_1d_members(struct gkyl_basis basis1)
 {
-  struct gkyl_basis basis1;
-  gkyl_cart_modal_serendip(&basis1, 1, 1);
-
   TEST_CHECK( basis1.ndim == 1 );
   TEST_CHECK( basis1.poly_order == 1 );
   TEST_CHECK( basis1.num_basis == 2 );
@@ -48,11 +45,20 @@ test_ser_1d()
 }
 
 void
-test_ser_2d()
+test_ser_1d()
 {
-  struct gkyl_basis basis;
-  gkyl_cart_modal_serendip(&basis, 2, 2);
+  struct gkyl_basis basis1;
+  gkyl_cart_modal_serendip(&basis1, 1, 1);
+  test_ser_1d_members(basis1);
 
+  struct gkyl_basis *basis2 = gkyl_cart_modal_serendip_new(1, 1);
+  test_ser_1d_members(*basis2);
+  gkyl_cart_modal_basis_release(basis2);
+}
+
+void
+test_ser_2d_members(struct gkyl_basis basis)
+{
   TEST_CHECK( basis.ndim == 2 );
   TEST_CHECK( basis.poly_order == 2 );
   TEST_CHECK( basis.num_basis == 8 );
@@ -146,11 +152,20 @@ test_ser_2d()
 }
 
 void
-test_ten_2d()
+test_ser_2d()
 {
-  struct gkyl_basis basis;
-  gkyl_cart_modal_tensor(&basis, 2, 2);
+  struct gkyl_basis basis1;
+  gkyl_cart_modal_serendip(&basis1, 2, 2);
+  test_ser_2d_members(basis1);
 
+  struct gkyl_basis *basis2 = gkyl_cart_modal_serendip_new(2, 2);
+  test_ser_2d_members(*basis2);
+  gkyl_cart_modal_basis_release(basis2);
+}
+
+void
+test_ten_2d_members(struct gkyl_basis basis)
+{
   TEST_CHECK( basis.ndim == 2 );
   TEST_CHECK( basis.poly_order == 2 );
   TEST_CHECK( basis.num_basis == 9 );
@@ -187,11 +202,20 @@ test_ten_2d()
 }
 
 void
-test_hyb()
+test_ten_2d()
 {
-  struct gkyl_basis basis;
-  gkyl_cart_modal_hybrid(&basis, 1, 1);
+  struct gkyl_basis basis1;
+  gkyl_cart_modal_tensor(&basis1, 2, 2);
+  test_ten_2d_members(basis1);
 
+  struct gkyl_basis *basis2 = gkyl_cart_modal_tensor_new(2, 2);
+  test_ten_2d_members(*basis2);
+  gkyl_cart_modal_basis_release(basis2);
+}
+
+void
+test_hyb_members(struct gkyl_basis basis)
+{
   TEST_CHECK( basis.ndim == 2 );
   TEST_CHECK( basis.poly_order == 1 );
   TEST_CHECK( basis.num_basis == 6 );
@@ -227,11 +251,20 @@ test_hyb()
 }
 
 void
-test_gkhyb()
+test_hyb()
 {
-  struct gkyl_basis basis;
-  gkyl_cart_modal_gkhybrid(&basis, 1, 2);
+  struct gkyl_basis basis1;
+  gkyl_cart_modal_hybrid(&basis1, 1, 1);
+  test_hyb_members(basis1);
 
+  struct gkyl_basis *basis2 = gkyl_cart_modal_hybrid_new(1, 1);
+  test_hyb_members(*basis2);
+  gkyl_cart_modal_basis_release(basis2);
+}
+
+void
+test_gkhyb_members(struct gkyl_basis basis)
+{
   TEST_CHECK( basis.ndim == 3 );
   TEST_CHECK( basis.poly_order == 1 );
   TEST_CHECK( basis.num_basis == 12 );
@@ -278,23 +311,42 @@ test_gkhyb()
 
 }
 
+void
+test_gkhyb()
+{
+  struct gkyl_basis basis1;
+  gkyl_cart_modal_gkhybrid(&basis1, 1, 2);
+  test_gkhyb_members(basis1);
+
+  struct gkyl_basis *basis2 = gkyl_cart_modal_gkhybrid_new(1, 2);
+  test_gkhyb_members(*basis2);
+  gkyl_cart_modal_basis_release(basis2);
+}
+
 #ifdef GKYL_HAVE_CUDA
 
 int dev_cu_ser_2d(struct gkyl_basis *basis);
 
 void
-test_cu_ser_2d()
+test_cu_ser_2d_members(struct gkyl_basis *basis)
 {
-  struct gkyl_basis *basis = gkyl_cu_malloc(sizeof(struct gkyl_basis));
-  gkyl_cart_modal_serendip_cu_dev(basis, 2, 2);
-
   int nfail = dev_cu_ser_2d(basis);
 
   TEST_CHECK(nfail == 0);
-
-  gkyl_cu_free(basis);
 }
 
+void
+test_cu_ser_2d()
+{
+  struct gkyl_basis *basis1 = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+  gkyl_cart_modal_serendip_cu_dev(basis1, 2, 2);
+  test_cu_ser_2d_members(basis1);
+  gkyl_cart_modal_basis_release_cu(basis1);
+
+  struct gkyl_basis *basis2 = gkyl_cart_modal_serendip_cu_dev_new(2, 2);
+  test_cu_ser_2d_members(basis2);
+  gkyl_cart_modal_basis_release_cu(basis2);
+}
 #endif
 
 TEST_LIST = {
