@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <string.h>
 #include <gkyl_util.h>
+#include <gkyl_alloc.h>
 
 #include "cart_modal_gkhybrid_priv.h"
 
@@ -27,9 +28,23 @@ gkyl_cart_modal_gkhybrid(struct gkyl_basis *basis, int cdim, int vdim)
   basis->nodal_to_modal = n2m_list[ndim].n2m[1];
 }
 
+struct gkyl_basis *
+gkyl_cart_modal_gkhybrid_new(int cdim, int vdim)
+{
+  struct gkyl_basis *basis = gkyl_malloc(sizeof(struct gkyl_basis));
+  gkyl_cart_modal_gkhybrid(basis, cdim, vdim);
+  return basis;
+}
+
 #ifndef GKYL_HAVE_CUDA
 void
 gkyl_cart_modal_gkhybrid_cu_dev(struct gkyl_basis *basis, int cdim, int vdim)
+{
+  assert(false);
+}
+
+struct gkyl_basis *
+gkyl_cart_modal_gkhybrid_cu_dev_new(int cdim, int vdim)
 {
   assert(false);
 }

@@ -51,3 +51,10 @@ gkyl_cart_modal_hybrid_cu_dev(struct gkyl_basis *basis, int cdim, int vdim)
   gkyl_cart_modal_hybrid_cu_dev_kern<<<1,1>>>(basis, cdim, vdim);
 }
 
+struct gkyl_basis *
+gkyl_cart_modal_hybrid_cu_dev_new(int cdim, int vdim)
+{
+  struct gkyl_basis *basis = (struct gkyl_basis *) gkyl_cu_malloc(sizeof(struct gkyl_basis));
+  gkyl_cart_modal_hybrid_cu_dev(basis, cdim, vdim);
+  return basis;
+}

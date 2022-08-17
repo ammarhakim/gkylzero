@@ -120,9 +120,9 @@ gkyl_proj_maxwellian_on_basis_prim_mom_cu_ker(int num_quad, const struct gkyl_re
   int tot_conf_quad = conf_basis_at_ords->size;
   int tot_phase_quad = phase_basis_at_ords->size;
 
-  // double den[tot_conf_quad], vel[tot_conf_quad][vdim], vtsq[tot_conf_quad];
+  // double m0_o[tot_conf_quad], udrift_o[tot_conf_quad][vdim], vtsq_o[tot_conf_quad];
   // MF 2022/08/09: hard-coded to 3x, vdim=3, p=2 for now.
-  double m0[27], udrift_o[27][3], vtsq_o[27];
+  double m0_o[27], udrift_o[27][3], vtsq_o[27];
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
   int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM];
@@ -212,7 +212,7 @@ gkyl_proj_maxwellian_on_basis_prim_mom_cu(const gkyl_proj_maxwellian_on_basis *u
   struct gkyl_array *fmax)
 {
   int nblocks = phase_r->nblocks, nthreads = phase_r->nthreads;
-  gkyl_proj_maxwellian_on_basis_lab_mom_cu_ker<<<nblocks, nthreads>>>
+  gkyl_proj_maxwellian_on_basis_prim_mom_cu_ker<<<nblocks, nthreads>>>
     (up->num_quad, up->grid, *phase_r, *conf_r, up->conf_basis_at_ords->on_dev, up->basis_at_ords->on_dev,
      up->ordinates->on_dev, up->weights->on_dev, up->p2c_qidx,
      m0->on_dev, udrift->on_dev, vtsq->on_dev, fmax->on_dev);

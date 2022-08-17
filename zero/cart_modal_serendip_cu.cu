@@ -49,3 +49,10 @@ gkyl_cart_modal_serendip_cu_dev(struct gkyl_basis *basis, int ndim, int poly_ord
   gkyl_cart_modal_serendip_cu_dev_kern<<<1,1>>>(basis, ndim, poly_order);
 }
 
+struct gkyl_basis *
+gkyl_cart_modal_serendip_cu_dev_new(int ndim, int poly_order)
+{
+  struct gkyl_basis *basis = (struct gkyl_basis *) gkyl_cu_malloc(sizeof(struct gkyl_basis));
+  gkyl_cart_modal_serendip_cu_dev(basis, ndim, poly_order);
+  return basis;
+}
