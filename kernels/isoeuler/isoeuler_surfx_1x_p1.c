@@ -39,7 +39,6 @@ GKYL_CU_DH void isoeuler_surfx_1x_ser_p1(const double *w, const double *dxv, dou
   double u_r_l = ser_1x_p1_surfx1_eval_quad_node_0_l(uvar0r); 
   double u_max_l = fmax(fabs(u_l_r), fabs(u_c_l)); 
   double u_max_r = fmax(fabs(u_c_r), fabs(u_r_l)); 
-  //FluxRho; 
   double ghat_rho_l = 0.6123724356957945*rhol[1]*u_max_l+0.6123724356957945*rhoc[1]*u_max_l+0.3535533905932737*rhol[0]*u_max_l-0.3535533905932737*rhoc[0]*u_max_l+0.6123724356957945*rhou0l[1]-0.6123724356957945*rhou0c[1]+0.3535533905932737*rhou0l[0]+0.3535533905932737*rhou0c[0]; 
   double ghat_rho_r = 0.6123724356957945*rhor[1]*u_max_r+0.6123724356957945*rhoc[1]*u_max_r-0.3535533905932737*rhor[0]*u_max_r+0.3535533905932737*rhoc[0]*u_max_r-0.6123724356957945*rhou0r[1]+0.6123724356957945*rhou0c[1]+0.3535533905932737*rhou0r[0]+0.3535533905932737*rhou0c[0]; 
   outrho[0] += 0.7071067811865475*dx1*ghat_rho_l-0.7071067811865475*dx1*ghat_rho_r; 

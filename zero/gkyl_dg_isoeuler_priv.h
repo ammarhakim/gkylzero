@@ -30,9 +30,6 @@ typedef struct { isoeuler_surf_t kernels[3]; } gkyl_dg_isoeuler_surf_kern_list;
 // Volume kernel list.
 GKYL_CU_D
 static const gkyl_dg_isoeuler_vol_kern_list ser_vol_kernels[] = { //TODO: rename all kernels using snake case and remove pOrder=3 cases
-  // { NULL, NULL, NULL }, // 0
-  // { NULL, NULL, NULL }, // 1
-  // { NULL, NULL, NULL }, // 2
   { NULL, isoeuler_vol_1x_ser_p1, isoeuler_vol_1x_ser_p2 }, // 0
   { NULL, isoeuler_vol_2x_ser_p1, isoeuler_vol_2x_ser_p2 }, // 1
   { NULL, isoeuler_vol_3x_ser_p1, isoeuler_vol_3x_ser_p2 }, // 2
@@ -41,26 +38,17 @@ static const gkyl_dg_isoeuler_vol_kern_list ser_vol_kernels[] = { //TODO: rename
 // Surface kernel list: x-direction
 GKYL_CU_D
 static const gkyl_dg_isoeuler_surf_kern_list ser_surf_x_kernels[] = {
-  // { NULL, NULL, NULL }, // 0
-  // { NULL, NULL, NULL }, // 1
-  // { NULL, NULL, NULL }, //
-  // { NULL, isoeuler_surfx_1x_ser_p1, isoeuler_surfx_1x_ser_p2 }, // 0
-  // { NULL, isoeuler_surfx_2x_ser_p1, isoeuler_surfx_2x_ser_p2 }, // 1
-  // { NULL, isoeuler_surfx_3x_ser_p1, isoeuler_surfx_3x_ser_p1 }, // 2
   { NULL, isoeuler_surfx_1x_ser_p1, isoeuler_surfx_1x_ser_p2 }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2
+  { NULL, isoeuler_surfx_2x_ser_p1, isoeuler_surfx_2x_ser_p2 }, // 1
+  { NULL, isoeuler_surfx_3x_ser_p1, isoeuler_surfx_3x_ser_p1 }, // 2
 };
 
 // Surface kernel list: y-direction
 GKYL_CU_D
 static const gkyl_dg_isoeuler_surf_kern_list ser_surf_y_kernels[] = {
   { NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2
-  // { NULL, NULL, NULL }, // 0
-  // { NULL, isoeuler_surfy_2x_ser_p1, isoeuler_surfy_2x_ser_p2 }, // 1
-  // { NULL, isoeuler_surfy_3x_ser_p1, isoeuler_surfy_3x_ser_p2 }, // 2
+  { NULL, isoeuler_surfy_2x_ser_p1, isoeuler_surfy_2x_ser_p2 }, // 1
+  { NULL, isoeuler_surfy_3x_ser_p1, isoeuler_surfy_3x_ser_p2 }, // 2
 };
 
 // Surface kernel list: z-direction
@@ -68,10 +56,7 @@ GKYL_CU_D
 static const gkyl_dg_isoeuler_surf_kern_list ser_surf_z_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2
-  // { NULL, NULL, NULL }, // 0
-  // { NULL, NULL, NULL }, // 1
-  // { NULL, isoeuler_surfz_3x_ser_p1, isoeuler_surfz_3x_ser_p2 }, // 2
+  { NULL, isoeuler_surfz_3x_ser_p1, isoeuler_surfz_3x_ser_p2 }, // 2
 };
 
 // "Choose Kernel" based on cdim, vdim and polyorder
