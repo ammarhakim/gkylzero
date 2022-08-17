@@ -11,16 +11,16 @@
 #define sq(x) ((x) * (x))
 
 /*********************************************/
-/* CONTEXT PARAMETERS                                */
+/* CONTEXT PARAMETERS                        */
+/* Extended from MHD normalization           */
 /*********************************************/
 
 struct moment_ctx {
   // following will be set to 1 to define unit normalizations
   double mu0;  // vaccum permeability
-  double vA0;  // reference Alfven speed
-  double rho0; // reference density
   double l0;   // reference length
-  double n0;   // reference number density
+  double vA0;  // reference Alfven speed
+  double rho0; // reference mass density
   double mi;   // ion mass
 
   // problem-specific mhd parameters
@@ -36,12 +36,12 @@ struct moment_ctx {
   double Ti0__Te0;        // temperature ratio Ti0 / Te0
   double di0__l0;         // ion inertial length / l0
 
-  // domain limits needed to compute initial velocity ramping when vt0=/=0
-  double r_inn; // inner radial
-  double r_out; // outer radial
+  // domain limits needed for ramping initial velocity when vt0=/=0
+  double r_inn; // inner radial; in units of l0, which is 1
+  double r_out; // outer radial; in units of l0, which is 1
 
   // other parameters
-  double tend; // time at end of simulation
+  double tend; // time at end of simulation; in units of tA0=l0/vA0=1
   int nframe;  // number of output frames
   int NR;      // radial cell number
   double cfl;
@@ -53,7 +53,6 @@ struct moment_ctx moment_ctx(void) {
       .vA0 = 1,
       .rho0 = 1,
       .l0 = 1,
-      .n0 = 1,
       .mi = 1,
 
       .gas_gamma = 1.4,
@@ -65,14 +64,14 @@ struct moment_ctx moment_ctx(void) {
       .lightSpeed__vA0 = 10,
       .mi__me = 25,
       .Ti0__Te0 = 1,
-      .di0__l0 = 1,
+      .di0__l0 = 1e-2,
 
       .r_inn = 0.45,
       .r_out = 1.45,
 
-      .tend = 10,
-      .nframe = 10,
-      .NR = 64,
+      .tend = 100,
+      .nframe = 100,
+      .NR = 128,
       .cfl = 0.9,
   };
 }
@@ -229,7 +228,8 @@ int main(int argc, char **argv) {
   double me = ctx.mi / ctx.mi__me;
   double di0 = ctx.l0 * ctx.di0__l0;
   double wpi0 = ctx.lightSpeed__vA0 / di0;
-  double qi = wpi0 * sqrt(epsilon0 * ctx.mi / ctx.n0);
+  double n0 = ctx.rho0 / ctx.mi;
+  double qi = wpi0 * sqrt(epsilon0 * ctx.mi / n0);
   double qe = -qi;
 
   struct gkyl_moment_species elc = {
