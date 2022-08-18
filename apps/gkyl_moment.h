@@ -159,6 +159,16 @@ void gkyl_moment_app_write(const gkyl_moment_app* app, double tm, int frame);
 void gkyl_moment_app_write_field(const gkyl_moment_app *app, double tm, int frame);
 
 /**
+ * Write species data to file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to write
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, int frame);
+
+/**
  * Write field energy to file.
  *
  * @param app App object.
@@ -166,14 +176,11 @@ void gkyl_moment_app_write_field(const gkyl_moment_app *app, double tm, int fram
 void gkyl_moment_app_write_field_energy(gkyl_moment_app *app);
 
 /**
- * Write species data to file.
- * 
+ * Write integrated moments to file.
+ *
  * @param app App object.
- * @param sidx Index of species to initialize.
- * @param tm Time-stamp
- * @param frame Frame number
  */
-void gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, int frame);
+void gkyl_moment_app_write_integrated_mom(gkyl_moment_app *app);
 
 /**
  * Write stats to file. Data is written in json format.
@@ -207,6 +214,14 @@ struct gkyl_update_status gkyl_moment_update(gkyl_moment_app *app, double dt);
  * @param app App object.
  */
 void gkyl_moment_app_calc_field_energy(gkyl_moment_app *app, double tm);
+
+/**
+ * Calculate integrated moments
+ *
+ * @param app App object.
+ * @param tm Time at which integrated diagnostic are to be computed
+ */
+void gkyl_moment_app_calc_integrated_mom(gkyl_moment_app *app, double tm);
 
 /**
  * Return simulation statistics.

@@ -4,6 +4,8 @@
 #include <math.h>
 #include <string.h>
 
+#include <stc/cstr.h>
+
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
@@ -61,6 +63,9 @@ struct moment_species {
   enum gkyl_species_bc_type lower_bct[3], upper_bct[3];
   // boundary condition solvers on lower/upper edges in each direction
   gkyl_wv_apply_bc *lower_bc[3], *upper_bc[3];
+
+  gkyl_dynvec integ_q; // integrated conserved quantities
+  bool is_first_q_write_call; // flag for dynvec written first time  
 };
 
 // Field data
@@ -90,7 +95,7 @@ struct moment_field {
   gkyl_wv_apply_bc *lower_bc[3], *upper_bc[3];
 
   gkyl_dynvec integ_energy; // integrated energy components
-  bool is_first_energy_write_call; // flag for energy dynvec written first time
+  bool is_first_energy_write_call; // flag for dynvec written first time
 };
 
 // Source data
@@ -373,6 +378,9 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
   sp->bc_buffer = mkarr(meqn, buff_sz);
+
+  sp->integ_q = gkyl_dynvec_new(GKYL_DOUBLE, meqn);
+  sp->is_first_q_write_call = true;
 }
 
 // apply BCs to species
@@ -463,6 +471,8 @@ moment_species_release(const struct moment_species *sp)
     gkyl_fv_proj_release(sp->proj_app_accel);
 
   gkyl_array_release(sp->bc_buffer);
+
+  gkyl_dynvec_release(sp->integ_q);
 }
 
 /** moment_field functions */
@@ -916,22 +926,27 @@ gkyl_moment_app_write_field(const gkyl_moment_app* app, double tm, int frame)
 void
 gkyl_moment_app_write_field_energy(gkyl_moment_app *app)
 {
-  // write out diagnostic moments
-  const char *fmt = "%s-field-energy.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name);
-  char fileNm[sz+1]; // ensures no buffer overflow  
-  snprintf(fileNm, sizeof fileNm, fmt, app->name);
+  // write out field energy
+  cstr fileNm = cstr_from_fmt("%s-field-energy.gkyl", app->name);
 
   if (app->field.is_first_energy_write_call) {
     // write to a new file (this ensure previous output is removed)
-    gkyl_dynvec_write(app->field.integ_energy, fileNm);
+    gkyl_dynvec_write(app->field.integ_energy, fileNm.str);
     app->field.is_first_energy_write_call = false;
   }
   else {
     // append to existing file
-    gkyl_dynvec_awrite(app->field.integ_energy, fileNm);
+    gkyl_dynvec_awrite(app->field.integ_energy, fileNm.str);
   }
   gkyl_dynvec_clear(app->field.integ_energy);
+
+  cstr_drop(&fileNm);
+}
+
+void
+gkyl_moment_app_write_integrated_mom(gkyl_moment_app *app)
+{
+
 }
 
 void
@@ -1097,6 +1112,18 @@ gkyl_moment_app_calc_field_energy(gkyl_moment_app* app, double tm)
   calc_integ_quant(6, app->grid.cellVolume, app->field.f[0], app->geom,
     app->local, integ_sq, energy);
   gkyl_dynvec_append(app->field.integ_energy, tm, energy);
+}
+
+void
+gkyl_moment_app_calc_integrated_mom(gkyl_moment_app *app, double tm)
+{
+  for (int sidx=0; sidx<app->num_species; ++sidx) {
+    int meqn = app->species[sidx].num_equations;
+    double q_integ[meqn];
+    calc_integ_quant(meqn, app->grid.cellVolume, app->species[sidx].f[0], app->geom,
+      app->local, integ_unit, q_integ);
+    gkyl_dynvec_append(app->species[sidx].integ_q, tm, q_integ);
+  }
 }
 
 struct gkyl_moment_stat

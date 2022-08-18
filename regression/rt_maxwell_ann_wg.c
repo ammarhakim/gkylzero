@@ -65,7 +65,7 @@ main(int argc, char **argv)
     .num_periodic_dir = 1,
     .periodic_dirs = { 1 },
 
-    .cfl_frac = 0.9,
+    .cfl_frac = 1.0,
 
     .field = {
       .epsilon0 = 1.0, .mu0 = 1.0,
