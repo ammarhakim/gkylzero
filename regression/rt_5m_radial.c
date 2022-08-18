@@ -23,7 +23,7 @@ struct moment_ctx {
   double rho0; // reference mass density
   double mi;   // ion mass
 
-  // problem-specific mhd parameters
+  // mhd parameters
   double gas_gamma; // gas gamma
   double Bz0__B0;   // background Bz / reference B0
   double T0;        // background temperature Te0 + Ti0
@@ -40,7 +40,7 @@ struct moment_ctx {
   double r_inn; // inner radial; in units of l0, which is 1
   double r_out; // outer radial; in units of l0, which is 1
 
-  // other parameters
+  // other parameters collected here for convenience
   double tend; // time at end of simulation; in units of tA0=l0/vA0=1
   int nframe;  // number of output frames
   int NR;      // radial cell number
@@ -59,7 +59,7 @@ struct moment_ctx moment_ctx(void) {
       .Bz0__B0 = 1,
       .T0 = 0.002,
       .vt0__vA0 = 0,
-      .gravity = 0.0125,
+      .gravity = 0.0025,
 
       .lightSpeed__vA0 = 10,
       .mi__me = 25,
@@ -69,9 +69,9 @@ struct moment_ctx moment_ctx(void) {
       .r_inn = 0.45,
       .r_out = 1.45,
 
-      .tend = 100,
-      .nframe = 100,
-      .NR = 128,
+      .tend = 10,
+      .nframe = 10,
+      .NR = 64,
       .cfl = 0.9,
   };
 }
@@ -96,10 +96,9 @@ void init_elc(double t, const double *GKYL_RESTRICT xn,
   double Ti0__Te0 = ctx->Ti0__Te0;
   double T0 = ctx->T0;
 
-  double r = xn[0]; // radial coordinate
+  double r = xn[0];
 
   double rhoe = rho0 / (1 + mi__me);
-  ;
   double vre = 0;
   double vte = calc_vt(r, ctx);
   double vze = 0;
@@ -125,15 +124,14 @@ void init_ion(double t, const double *GKYL_RESTRICT xn,
   double Ti0__Te0 = ctx->Ti0__Te0;
   double T0 = ctx->T0;
 
-  double r = xn[0]; // radial coordinate
+  double r = xn[0];
 
-  double rhoi = rho0 * mi__me / (1 + mi__me);
-
+  double rhoi = rho0 / (1 + 1 / mi__me);
   double vri = 0;
   double vti = calc_vt(r, ctx);
   double vzi = 0;
   double ni = rhoi / mi;
-  double Ti = T0 * Ti0__Te0 / (1 + Ti0__Te0);
+  double Ti = T0 / (1 + 1 / Ti0__Te0);
   double pi = ni * Ti;
   double eri = pi / (gamma - 1) + 0.5 * rhoi * (sq(vri) + sq(vti) + sq(vzi));
 
@@ -150,7 +148,7 @@ void init_field(double t, const double *GKYL_RESTRICT xn,
   double B0 = ctx->vA0 * sqrt(ctx->mu0 * ctx->rho0);
   double Bz0 = B0 * ctx->Bz0__B0;
 
-  double r = xn[0]; // radial coordinate
+  double r = xn[0];
 
   double vt = calc_vt(r, ctx);
   double Er = -vt * Bz0;
@@ -160,15 +158,12 @@ void init_field(double t, const double *GKYL_RESTRICT xn,
   double Bt = 0;
   double Bz = 0;
 
-  // electric field
   fout[0] = Er;
   fout[1] = Et;
   fout[2] = Ez;
-  // magnetic field
   fout[3] = Br;
   fout[4] = Bt;
   fout[5] = Bz;
-  // correction potentials
   fout[6] = 0.0;
   fout[7] = 0.0;
 }
@@ -177,11 +172,11 @@ void init_field(double t, const double *GKYL_RESTRICT xn,
 /* MISC.                                     */
 /*********************************************/
 
-void gravity_func(double t, const double *xn, double *fout, void *_ctx) {
+void accel_func(double t, const double *xn, double *accel, void *_ctx) {
   struct moment_ctx *ctx = _ctx;
-  fout[0] = ctx->gravity;
-  fout[1] = 0;
-  fout[2] = 0;
+  accel[0] = ctx->gravity;
+  accel[1] = 0;
+  accel[2] = 0;
 }
 
 /*********************************************/
@@ -242,7 +237,7 @@ int main(int argc, char **argv) {
       .init = init_elc,
       .bcx = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
       .bcy = {GKYL_SPECIES_WEDGE, GKYL_SPECIES_WEDGE},
-      .app_accel_func = gravity_func,
+      .app_accel_func = accel_func,
   };
 
   struct gkyl_moment_species ion = {
@@ -255,7 +250,7 @@ int main(int argc, char **argv) {
       .init = init_ion,
       .bcx = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
       .bcy = {GKYL_SPECIES_WEDGE, GKYL_SPECIES_WEDGE},
-      .app_accel_func = gravity_func,
+      .app_accel_func = accel_func,
   };
 
   int NR = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.NR);
@@ -345,15 +340,11 @@ int main(int argc, char **argv) {
   // iterate over the simulation loop
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
-    bool do_print = step % 1000 == 0;
-
-    if (do_print)
-      printf("Taking time-step %6ld at t = %8g ...", step, tcurr);
+    if (step % 1000 == 0)
+      printf("Step %6ld, t = %8g, dt = %8g (frame %d)\n", step, tcurr, dt,
+             io_trig.curr);
 
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
-
-    if (do_print)
-      printf(" dt = %8g (toward frame %d)\n", status.dt_actual, io_trig.curr);
 
     if (!status.success) {
       printf("** Update method failed! Aborting simulation ....\n");
