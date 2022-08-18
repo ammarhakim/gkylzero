@@ -118,7 +118,7 @@ void gkyl_dg_div_op(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
 void gkyl_dg_div_op_range(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
-  int c_rop, const struct gkyl_array* rop, struct gkyl_range range);
+  int c_rop, const struct gkyl_array* rop, struct gkyl_range *range);
 
 /**
  * Compute the cell-average of input array iop and store it in out
@@ -180,4 +180,4 @@ void
 gkyl_dg_div_op_range_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
-  int c_rop, const struct gkyl_array* rop, struct gkyl_range range);
+  int c_rop, const struct gkyl_array* rop, struct gkyl_range *range);
