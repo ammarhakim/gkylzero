@@ -153,7 +153,7 @@ rot_to_global(const double *tau1, const double *tau2, const double *norm,
 
 // Waves and speeds using Roe averaging
 static double
-wave_roe(const struct gkyl_wv_eqn *eqn, 
+wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
   double vl[10], vr[10];
@@ -296,7 +296,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
 }
 
 static void
-qfluct_roe(const struct gkyl_wv_eqn *eqn, 
+qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *ql, const double *qr, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
@@ -308,6 +308,12 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn,
     amdq[i] = s0m*w0[i] + s1m*w1[i] + s2m*w2[i] + s3m*w3[i] + s4m*w4[i];
     apdq[i] = s0p*w0[i] + s1p*w1[i] + s2p*w2[i] + s3p*w3[i] + s4p*w4[i];
   }
+}
+
+static bool
+check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
+{
+  return true; // TODO
 }
 
 static double
@@ -328,6 +334,7 @@ gkyl_wv_ten_moment_new(double k0)
   ten_moment->eqn.num_waves = 5;
   ten_moment->eqn.waves_func = wave_roe;
   ten_moment->eqn.qfluct_func = qfluct_roe;
+  ten_moment->eqn.check_inv_func = check_inv;
   ten_moment->eqn.max_speed_func = max_speed;
   ten_moment->eqn.rotate_to_local_func = rot_to_local;
   ten_moment->eqn.rotate_to_global_func = rot_to_global;

@@ -21,6 +21,7 @@
 #include <gkyl_wv_maxwell.h>
 #include <gkyl_wv_apply_bc.h>
 #include <gkyl_wv_ten_moment.h>
+#include <gkyl_dflt.h>
 
 // ranges for use in BCs
 struct skin_ghost_ranges {
@@ -218,6 +219,8 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         .equation = mom_sp->equation,
         .limiter = limiter,
         .num_up_dirs = app->is_dir_skipped[d] ? 0 : 1,
+        .force_low_order_flux = mom_sp->force_low_order_flux,
+        .check_inv_domain = true,
         .update_dirs = { d },
         .cfl = app->cfl,
         .geom = app->geom,
@@ -262,6 +265,12 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
             mom_sp->equation->no_slip_bc_func, 0);
           break;
 
+        case GKYL_SPECIES_FUNC:
+          sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            mom_sp->bc_lower_func, mom_sp->ctx);
+          break;
+        
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_WEDGE: // wedge also uses bc_copy
           sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
@@ -286,7 +295,13 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
             &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
             mom_sp->equation->no_slip_bc_func, 0);
           break;
-            
+
+        case GKYL_SPECIES_FUNC:
+          sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
+            mom_sp->bc_upper_func, mom_sp->ctx);
+          break;
+          
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_WEDGE:
           sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
@@ -442,6 +457,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         .limiter = limiter,
         .num_up_dirs = app->is_dir_skipped[d] ? 0 : 1,
         .update_dirs = { d },
+        .check_inv_domain = false,
         .cfl = app->cfl,
         .geom = app->geom,
       }
@@ -627,7 +643,8 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   struct gkyl_moment_em_coupling_inp src_inp = {
     .grid = &app->grid,
     .nfluids = app->num_species,
-    .epsilon0 = app->field.epsilon0,
+    // if there is a field, need to update electric field too, otherwise just updating fluid
+    .epsilon0 = app->field.epsilon0 ? app->field.epsilon0 : 0.0, 
   };
 
   for (int i=0; i<app->num_species; ++i)
@@ -690,6 +707,8 @@ moment_coupling_release(const struct moment_coupling *src)
 gkyl_moment_app*
 gkyl_moment_app_new(struct gkyl_moment *mom)
 {
+  disable_denorm_float();
+  
   struct gkyl_moment_app *app = gkyl_malloc(sizeof(gkyl_moment_app));
 
   int ndim = app->ndim = mom->ndim;
@@ -1030,14 +1049,23 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
     fprintf(fp, "{\n");
 
     if (strftime(buff, sizeof buff, "%c", &curr_tm))
-      fprintf(fp, " \"date\" : \"%s\",\n", buff);
+      fprintf(fp, " date : %s\n", buff);
 
-    fprintf(fp, " \"nup\" : \"%ld\",\n", app->stat.nup);
-    fprintf(fp, " \"nfail\" : \"%ld\",\n", app->stat.nfail);
-    fprintf(fp, " \"total_tm\" : \"%lg\",\n", app->stat.total_tm);
-    fprintf(fp, " \"species_tm\" : \"%lg\",\n", app->stat.species_tm);
-    fprintf(fp, " \"field_tm\" : \"%lg\",\n", app->stat.field_tm);
-    fprintf(fp, " \"sources_tm\" : \"%lg\"\n", app->stat.sources_tm);
+    fprintf(fp, " nup : %ld,\n", app->stat.nup);
+    fprintf(fp, " nfail : %ld,\n", app->stat.nfail);
+    fprintf(fp, " total_tm : %lg,\n", app->stat.total_tm);
+    fprintf(fp, " species_tm : %lg,\n", app->stat.species_tm);
+    fprintf(fp, " field_tm : %lg,\n", app->stat.field_tm);
+    fprintf(fp, " sources_tm : %lg\n", app->stat.sources_tm);
+
+    for (int i=0; i<app->num_species; ++i) {
+      for (int d=0; d<app->ndim; ++d) {
+        struct gkyl_wave_prop_stats wvs = gkyl_wave_prop_stats(app->species[i].slvr[d]);
+        fprintf(fp, " %s_n_bad_advance_calls[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_advance_calls);
+        fprintf(fp, " %s_n_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_cells);
+        fprintf(fp, " %s_n_max_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_max_bad_cells);
+      }
+    }
   
     fprintf(fp, "}\n");
   }

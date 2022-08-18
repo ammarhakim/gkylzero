@@ -15,10 +15,14 @@ struct gkyl_moment_species {
   const struct gkyl_wv_eqn *equation; // equation object
 
   int evolve; // evolve species? 1-yes, 0-no
+  bool force_low_order_flux; // should  we force low-order flux?
 
   void *ctx; // context for initial condition init function (and potentially other functions)
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
+  // pointer to boundary condition functions
+  void (*bc_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  void (*bc_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
   // pointer to applied acceleration/forces function
   void (*app_accel_func)(double t, const double *xn, double *fout, void *ctx);
   // boundary conditions

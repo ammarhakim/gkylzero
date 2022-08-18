@@ -1,6 +1,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
+#include <gkyl_dflt.h>
 #include <gkyl_dynvec.h>
 
 #include <gkyl_vlasov_priv.h>
@@ -8,6 +9,8 @@
 gkyl_vlasov_app*
 gkyl_vlasov_app_new(struct gkyl_vm *vm)
 {
+  disable_denorm_float();
+  
   assert(vm->num_species <= GKYL_MAX_SPECIES);
   
   gkyl_vlasov_app *app = gkyl_malloc(sizeof(gkyl_vlasov_app));
