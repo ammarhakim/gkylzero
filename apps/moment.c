@@ -946,7 +946,22 @@ gkyl_moment_app_write_field_energy(gkyl_moment_app *app)
 void
 gkyl_moment_app_write_integrated_mom(gkyl_moment_app *app)
 {
+  for (int i=0; i<app->num_species; ++i) {
+    // write out diagnostic moments
+    cstr fileNm = cstr_from_fmt("%s-%s-%s.gkyl", app->name, app->species[i].name,
+      "imom");
+    
+    if (app->species[i].is_first_q_write_call) {
+      gkyl_dynvec_write(app->species[i].integ_q, fileNm.str);
+      app->species[i].is_first_q_write_call = false;
+    }
+    else {
+      gkyl_dynvec_awrite(app->species[i].integ_q, fileNm.str);
+    }
+    gkyl_dynvec_clear(app->species[i].integ_q);
 
+    cstr_drop(&fileNm);
+  }
 }
 
 void
