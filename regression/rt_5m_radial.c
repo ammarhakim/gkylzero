@@ -289,21 +289,6 @@ int main(int argc, char **argv) {
   // create app object
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
-  // start, end and initial time-step
-  double tA0 = ctx.l0 / ctx.vA0;
-  double tcurr = 0.0, tend = ctx.tend;
-  int nframe = ctx.nframe;
-
-  // create trigger for IO
-  struct gkyl_tm_trigger io_trig = {.dt = tend / nframe};
-
-  // initialize simulation
-  gkyl_moment_app_apply_ic(app, tcurr);
-  write_data(&io_trig, app, tcurr);
-
-  // compute estimate of maximum stable time-step
-  double dt = gkyl_moment_app_max_dt(app);
-
   // print parameters for record
   if (true) {
     double de0 = di0 / sqrt(ctx.mi__me);
@@ -338,11 +323,26 @@ int main(int argc, char **argv) {
     printf("%45s = %g, %g\n", "r_inn, r_out", ctx.r_inn, ctx.r_out);
     printf("%45s = %d, %g\n", "radial cell # and grid size NR, dr", NR, dr);
     printf("%45s = %g\n", "cfl", ctx.cfl);
-    printf("%45s = %g\n", "tend", tend);
-    printf("%45s = %g\n", "ouput time interval", tend / nframe);
+    printf("%45s = %g\n", "tend", ctx.tend);
+    printf("%45s = %g\n", "ouput time interval", ctx.tend / ctx.nframe);
   }
 
-  // iterate
+  // start and end simulation time
+  double tcurr = 0.0, tend = ctx.tend;
+
+  // create trigger for IO
+  struct gkyl_tm_trigger io_trig = {.dt = tend / ctx.nframe};
+
+  // initialize simulation
+  printf("Setting initial conditions ... ");
+  gkyl_moment_app_apply_ic(app, tcurr);
+  printf("Done\n");
+  write_data(&io_trig, app, tcurr);
+
+  // estimate maximum stable time-step
+  double dt = gkyl_moment_app_max_dt(app);
+
+  // iterate over the simulation loop
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
     bool do_print = step % 1000 == 0;
