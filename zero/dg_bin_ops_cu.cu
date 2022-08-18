@@ -280,7 +280,7 @@ gkyl_dg_div_op_range_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
-  int num_basis = basis->num_basis;    
+  int num_basis = basis.num_basis;    
   // allocate memory for use in kernels
   struct gkyl_nmat *A_d = mem->As;
   struct gkyl_nmat *x_d = mem->xs;
