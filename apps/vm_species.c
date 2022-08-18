@@ -412,7 +412,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
         species->magB, 0, species->lbo.m0, &app->local);
       // get J*T_perp = J*p_perp/n
       gkyl_dg_div_op_range(species->Tperp_mem, app->confBasis, 0, species->Tperp, 0,
-        fluidin[species->fluid_index], 0, species->n, app->local);
+        fluidin[species->fluid_index], 0, species->n, &app->local);
       // get mirror force = J*T_perp*grad(B)
       gkyl_dg_mul_op_range(app->confBasis, 0, species->mirror_force, 0,
         species->gradB, 0, species->Tperp, &app->local);

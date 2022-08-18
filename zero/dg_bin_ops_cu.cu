@@ -276,10 +276,10 @@ void
 gkyl_dg_div_op_range_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
-  int c_rop, const struct gkyl_array* rop, struct gkyl_range range)
+  int c_rop, const struct gkyl_array* rop, struct gkyl_range *range)
 {
-  int nblocks = range.nblocks;
-  int nthreads = range.nthreads;
+  int nblocks = range->nblocks;
+  int nthreads = range->nthreads;
   int num_basis = basis.num_basis;    
   // allocate memory for use in kernels
   struct gkyl_nmat *A_d = mem->As;
@@ -287,12 +287,12 @@ gkyl_dg_div_op_range_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
 
   // construct matrices using CUDA kernel  
   gkyl_dg_div_set_op_range_cu_kernel<<<nblocks, nthreads>>>(A_d->on_dev,
-    x_d->on_dev, basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev, range);
+    x_d->on_dev, basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev, *range);
   // invert all matrices in batch mode
   bool status = gkyl_nmat_linsolve_lu_pa(mem->lu_mem, A_d, x_d);
   // copy solution into array (also lives on the device)
   gkyl_dg_div_copy_sol_op_range_cu_kernel<<<nblocks, nthreads>>>(x_d->on_dev,
-    basis, c_oop, out->on_dev, range);
+    basis, c_oop, out->on_dev, *range);
 }
 
 __global__ void
