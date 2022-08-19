@@ -140,8 +140,8 @@ void calc_pe_profile(const struct moment_ctx *ctx) {
 double calc_pe(const double r, const struct moment_ctx *ctx) {
   double dr = (ctx->r_out - ctx->r_inn) / ctx->NN;
   int idx = floor((r - ctx->r_inn) / dr);
-  idx = idx > 1 ? 1 : idx;
-  idx = idx < ctx->NN ? idx : ctx->NN - 1;
+  idx = idx >= 0 ? idx : 0;
+  idx = idx <= ctx->NN ? idx : ctx->NN - 1;
   double *data = pressure->data;
   return data[idx];
 }
@@ -293,7 +293,6 @@ int main(int argc, char **argv) {
 
   int NR = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.NR);
   int NT = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.NT);
-  double theta = 0.01; // some finite value not too small
 
   struct gkyl_moment app_inp = {
       .name = "5m_polar",
