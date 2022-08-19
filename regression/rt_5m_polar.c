@@ -153,20 +153,23 @@ void init_elc(double t, const double *GKYL_RESTRICT xn,
   double me = ctx->me;
   double n0 = ctx->n0;
 
-  double r = xn[0];
+  double r = xn[0], theta = xn[1];
+  double cost = cos(theta), sint = sin(theta);
 
-  double rhoe = n0 * me;
   double ure = 0.0;
   double ute = calc_ut(r, ctx);
   double uze = 0.0;
+
+  double rhoe = n0 * me;
+  double uxe = ure * cost - ute * sint;
+  double uye = ure * sint + ute * cost;
   double pe = calc_pe(r, ctx);
-  double ere = pe / (gamma - 1.0) + 0.5 * rhoe * (sq(ure) + sq(ute) + sq(uze));
 
   fout[0] = rhoe;
-  fout[1] = rhoe * ure;
-  fout[2] = rhoe * ute;
+  fout[1] = rhoe * uxe;
+  fout[2] = rhoe * uye;
   fout[3] = rhoe * uze;
-  fout[4] = ere;
+  fout[4] = pe / (gamma - 1.0) + 0.5 * rhoe * (sq(uxe) + sq(uye) + sq(uze));
 }
 
 void init_ion(double t, const double *GKYL_RESTRICT xn,
@@ -177,40 +180,38 @@ void init_ion(double t, const double *GKYL_RESTRICT xn,
   double n0 = ctx->n0;
   double pi0 = ctx->pi0;
 
-  double r = xn[0];
+  double r = xn[0], theta = xn[1];
 
   double rhoi = n0 * mi;
-  double uri = 0.0;
-  double uti = 0.0;
+  double uxi = 0.0;
+  double uyi = 0.0;
   double uzi = 0.0;
-  double pi = ctx->pi0;
-  double eri = pi / (gamma - 1.0) + 0.5 * rhoi * (sq(uri) + sq(uti) + sq(uzi));
+  double pi = pi0;
 
   fout[0] = rhoi;
-  fout[1] = rhoi * uri;
-  fout[2] = rhoi * uti;
+  fout[1] = rhoi * uxi;
+  fout[2] = rhoi * uyi;
   fout[3] = rhoi * uzi;
-  fout[4] = eri;
+  fout[4] = pi / (gamma - 1.0) + 0.5 * rhoi * (sq(uxi) + sq(uyi) + sq(uzi));
 }
 
 void init_field(double t, const double *GKYL_RESTRICT xn,
                 double *GKYL_RESTRICT fout, void *_ctx) {
   struct moment_ctx *ctx = _ctx;
-  double r = xn[0];
+  double r = xn[0], theta = xn[1];
 
-  double ut = 0.0;
-  double Er = 0.0;
-  double Et = 0.0;
+  double Ex = 0.0;
+  double Ey = 0.0;
   double Ez = 0.0;
-  double Br = 0.0;
-  double Bt = 0.0;
+  double Bx = 0.0;
+  double By = 0.0;
   double Bz = calc_Bz(r, ctx);
 
-  fout[0] = Er;
-  fout[1] = Et;
+  fout[0] = Ex;
+  fout[1] = Ey;
   fout[2] = Ez;
-  fout[3] = Br;
-  fout[4] = Bt;
+  fout[3] = Bx;
+  fout[4] = By;
   fout[5] = Bz;
   fout[6] = 0.0;
   fout[7] = 0.0;
