@@ -1,3 +1,8 @@
+/* two-fluid five-moment simulation in the r-theta domain       */
+/*                                                              */
+/* Hakim and Shumlak (2007). Physics of Plasmas, 14(5), 055911. */
+/* Section V.B, equations (45) and (46)                         */
+
 #include <math.h>
 #include <stdio.h>
 
@@ -12,7 +17,6 @@
 
 /*********************************************/
 /* CONTEXT PARAMETERS                        */
-/* Extended from MHD normalization           */
 /*********************************************/
 
 struct moment_ctx {
@@ -89,11 +93,12 @@ struct moment_ctx moment_ctx(void) {
   return ctx;
 }
 
-/*********************************************/
-/* INITIAL CONDITIONS                        */
-/*********************************************/
+/****************************************************************/
+/* INITIAL CONDITIONS                                           */
+/****************************************************************/
 
 double calc_Bz(const double r, const struct moment_ctx *ctx) {
+  // custom magnetic shear profile
   double B_inn = -ctx->B0;
   double B_out = ctx->B0;
   double r_0 = ctx->r_0;
@@ -103,6 +108,7 @@ double calc_Bz(const double r, const struct moment_ctx *ctx) {
 }
 
 double calc_ut(const double r, const struct moment_ctx *ctx) {
+  // Eq. (46): u_theta = (dBz/dr) * (e * mu0 * m * n)
   double B_inn = -ctx->B0;
   double B_out = ctx->B0;
   double r_0 = ctx->r_0;
@@ -119,6 +125,9 @@ double calc_ut(const double r, const struct moment_ctx *ctx) {
 struct gkyl_array *pressure;
 
 void calc_pe_profile(const struct moment_ctx *ctx) {
+  // numerically integrate pressure gradient to get the full radial electron
+  // pressure profile
+  // Eq. (45): dpdr = m * n * u_theta**2 / r - e * n * ut * Bz
   double *data = pressure->data;
   double dr = (ctx->r_out - ctx->r_inn) / ctx->NN;
   data[0] = ctx->pe_inn;
@@ -259,11 +268,18 @@ int main(int argc, char **argv) {
   struct moment_ctx ctx = moment_ctx();
 
   if (true) {
-    printf("%45s = %g\n", "B0", ctx.B0);
+    printf("%45s = %g\n", "light_speed", ctx.light_speed);
+    printf("%45s = %g\n", "mu0", ctx.mu0);
+    printf("%45s = %g\n", "epsilon0", ctx.epsilon0);
     printf("%45s = %g\n", "q", ctx.q);
     printf("%45s = %g\n", "me", ctx.me);
     printf("%45s = %g\n", "n0", ctx.n0);
+    printf("%45s = %g\n", "B0", ctx.B0);
     printf("%45s = %g\n", "pe_inn", ctx.pe_inn);
+    printf("%45s = %g\n", "magnetic shear location r_0", ctx.r_0);
+    printf("%45s = %g\n", "magnetic shear width delta", ctx.delta);
+    printf("%45s = %g\n", "tend", ctx.tend);
+    printf("%45s = %d\n", "nframe", ctx.nframe);
   }
 
   struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma);
@@ -277,7 +293,6 @@ int main(int argc, char **argv) {
       .ctx = &ctx,
       .init = init_elc,
       .bcx = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
-      .force_low_order_flux = false,
   };
 
   struct gkyl_moment_species ion = {
@@ -289,7 +304,6 @@ int main(int argc, char **argv) {
       .ctx = &ctx,
       .init = init_ion,
       .bcx = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
-      .force_low_order_flux = false,
   };
 
   int NR = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.NR);
@@ -299,8 +313,8 @@ int main(int argc, char **argv) {
       .name = "5m_polar",
 
       .ndim = 2,
-      .lower = {ctx.r_inn, 0},
-      .upper = {ctx.r_out, 2 * M_PI},
+      .lower = {ctx.r_inn, 0.0},
+      .upper = {ctx.r_out, 2.0 * M_PI},
       .cells = {NR, NT},
       .mapc2p = mapc2p,
       .num_periodic_dir = 1,
