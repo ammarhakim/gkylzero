@@ -31,13 +31,15 @@ struct moment_ctx {
   double mi__me;      // mi / me
   double Ti0__Te_inn; // ion temperature / electron temperature at inner wall
 
+  double r_0;   // center of the B field shear
+  double delta; // width of the B field shear
+  double NN;    // number of points for integration to compute electron pressure
+  double pert;  // relative perturbation level
+
   double r_inn; // radius at inner wall
   double r_out; // radius at outer wall
   int NR;       // radial cell number
   int NT;       // azimuthal cell number
-  double r_0;   // center of the B field shear
-  double delta; // width of the B field shear
-  double NN;    // number of points for integration to compute electron pressure
 
   double tend; // time at end of simulation
   int nframe;  // number of output frames
@@ -64,13 +66,15 @@ struct moment_ctx moment_ctx(void) {
       .mi__me = 25.0,
       .Ti0__Te_inn = 1.0,
 
+      .r_0 = 20.0,
+      .delta = 2.5,
+      .NN = 2560,
+      .pert = 1e-2,
+
       .r_inn = 5.0,
       .r_out = 50.0,
       .NR = 64,
       .NT = 360,
-      .r_0 = 20.0,
-      .delta = 2.5,
-      .NN = 2560,
 
       .tend = 10.0,
       .nframe = 10,
@@ -173,6 +177,10 @@ void init_elc(double t, const double *GKYL_RESTRICT xn,
   double uxe = ure * cost - ute * sint;
   double uye = ure * sint + ute * cost;
   double pe = calc_pe(r, ctx);
+
+  double r_0 = ctx->r_0;
+  double delta = ctx->delta;
+  pe *= 1.0 + ctx->pert * (1.0 - sq(tanh((r - r_0) / delta))) * cos(theta);
 
   fout[0] = rhoe;
   fout[1] = rhoe * uxe;
