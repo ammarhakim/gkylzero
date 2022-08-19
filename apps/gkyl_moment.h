@@ -43,8 +43,11 @@ struct gkyl_moment_field {
   void (*init)(double t, const double *xn, double *fout, void *ctx);
   // pointer to applied current function
   void (*app_current_func)(double t, const double *xn, double *fout, void *ctx);
+
+  bool is_ext_em_static; // flag to indicate if external field is time-independent
   // pointer to external fields
   void (*ext_em_func)(double t, const double *xn, double *fout, void *ctx);
+  
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
 };

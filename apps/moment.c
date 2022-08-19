@@ -1,4 +1,3 @@
-#include "gkyl_elem_type.h"
 #include <assert.h>
 #include <float.h>
 #include <math.h>
@@ -12,6 +11,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_dflt.h>
 #include <gkyl_dynvec.h>
+#include <gkyl_elem_type.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_fv_proj.h>
 #include <gkyl_moment.h>
@@ -80,11 +80,16 @@ struct moment_field {
   void (*init)(double t, const double *xn, double *fout, void *ctx);    
     
   struct gkyl_array *fdup, *f[4]; // arrays for updates
-  struct gkyl_array *app_current, *ext_em; // arrays for applied currents/external fields
+  struct gkyl_array *app_current; // arrays for applied currents
   // pointer to projection operator for applied current function
   gkyl_fv_proj *proj_app_current;
-  // pointer to projection operator for external fields
-  gkyl_fv_proj *proj_ext_em;
+
+
+  bool is_ext_em_static; // flag to indicate if external field is time-independent
+  struct gkyl_array *ext_em; // array external fields  
+  gkyl_fv_proj *proj_ext_em;   // pointer to projection operator for external fields
+  bool was_ext_em_computed; // flag to indicate if we already computed external EM field
+  
   struct gkyl_array *bc_buffer; // buffer for periodic BCs
 
   gkyl_wave_prop *slvr[3]; // solver in each direction
@@ -573,7 +578,12 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   fld->proj_app_current = 0;
   if (mom_fld->app_current_func)
     fld->proj_app_current = gkyl_fv_proj_new(&app->grid, 2, 3, mom_fld->app_current_func, fld->ctx);
+
+  
   fld->ext_em = mkarr(6, app->local_ext.volume);
+  fld->is_ext_em_static = mom_fld->is_ext_em_static;
+
+  fld->was_ext_em_computed = false;
   fld->proj_ext_em = 0;
   if (mom_fld->ext_em_func)
     fld->proj_ext_em = gkyl_fv_proj_new(&app->grid, 2, 6, mom_fld->ext_em_func, fld->ctx);
@@ -717,7 +727,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
 // the second step
 static 
 void
-moment_coupling_update(const gkyl_moment_app *app, struct moment_coupling *src,
+moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   int nstrang, double tcurr, double dt)
 {
   int sidx[] = { 0, app->ndim };
@@ -735,8 +745,16 @@ moment_coupling_update(const gkyl_moment_app *app, struct moment_coupling *src,
   if (app->field.proj_app_current)
     gkyl_fv_proj_advance(app->field.proj_app_current, tcurr, &app->local, app->field.app_current);
   
-  if (app->field.proj_ext_em)
-    gkyl_fv_proj_advance(app->field.proj_ext_em, tcurr, &app->local, app->field.ext_em);
+  if (app->field.proj_ext_em) {
+
+    if (!app->field.was_ext_em_computed)
+      gkyl_fv_proj_advance(app->field.proj_ext_em, tcurr, &app->local, app->field.ext_em);
+
+    if (app->field.is_ext_em_static)
+      app->field.was_ext_em_computed = true;
+    else
+      app->field.was_ext_em_computed = false;
+  }
 
   gkyl_moment_em_coupling_advance(src->slvr, dt, &app->local,
     fluids, app_accels,
