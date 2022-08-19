@@ -28,11 +28,11 @@ struct moment_ctx {
   double n0;          // the uniform number density
   double wpe0_wce0;   // used to determine B0 (B field changes from -B0 to B0)
   double betae_inn;   // electron plasma beta at inner wall
-  double mi__me;      // mi / me
+  double mi__me;      // ion-to-electron mass ratio mi / me
   double Ti0__Te_inn; // ion temperature / electron temperature at inner wall
 
-  double r_0;   // center of the B field shear
-  double delta; // width of the B field shear
+  double r_0;   // radial center of the B field shear
+  double delta; // radial width of the B field shear
   double NN;    // number of points for integration to compute electron pressure
   double pert;  // relative perturbation level
 
@@ -66,17 +66,17 @@ struct moment_ctx moment_ctx(void) {
       .mi__me = 25.0,
       .Ti0__Te_inn = 1.0,
 
-      .r_0 = 20.0,
-      .delta = 2.5,
+      .r_0 = 5.0,
+      .delta = 0.25,
       .NN = 2560,
       .pert = 1e-2,
 
-      .r_inn = 5.0,
-      .r_out = 50.0,
-      .NR = 64,
+      .r_inn = 1.0,
+      .r_out = 10.0,
+      .NR = 180,
       .NT = 360,
 
-      .tend = 10.0,
+      .tend = 100.0,
       .nframe = 10,
       .cfl = 0.9,
   };
@@ -328,9 +328,9 @@ int main(int argc, char **argv) {
       .num_periodic_dir = 1,
       .periodic_dirs = {1},
 
-      .cfl_frac = 0.9,
+      .cfl_frac = ctx.cfl,
 
-      .num_species = 2,
+      .num_species = 1,
       .species = {elc, ion},
       .field = {
           .epsilon0 = ctx.epsilon0,
@@ -367,7 +367,7 @@ int main(int argc, char **argv) {
   // iterate over the simulation loop
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
-    if (step % 1000 == 0)
+    if (step % 10 == 0)
       printf("Step %6ld, t = %8g, dt = %8g (frame %d)\n", step, tcurr, dt,
              io_trig.curr);
 
