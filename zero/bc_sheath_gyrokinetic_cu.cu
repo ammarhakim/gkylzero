@@ -7,10 +7,15 @@ extern "C" {
 
 // CUDA kernel to set device pointers to kernel that computes the reflected f.
 __global__ static void
-gkyl_bc_gksheath_set_cu_ker_ptrs(const int dim, const int b_type, const int poly_order, enum gkyl_edge_loc edge, struct gkyl_bc_sheath_gyrokinetic_kernels *kers)
+gkyl_bc_gksheath_set_cu_ker_ptrs(const struct gkyl_basis *basis,
+  enum gkyl_edge_loc edge, struct gkyl_bc_sheath_gyrokinetic_kernels *kers)
 {
+  int dim = basis->ndim;
+  enum gkyl_basis_type b_type = basis->b_type;
+  int poly_order = basis->poly_order;
 
   switch (b_type) {
+    case GKYL_BASIS_MODAL_GKHYBRID:
     case GKYL_BASIS_MODAL_SERENDIPITY:
       kers->reflectedf = ser_sheath_reflect_list[edge].list[dim-2].kernels[poly_order-1];
       break;
@@ -20,18 +25,18 @@ gkyl_bc_gksheath_set_cu_ker_ptrs(const int dim, const int b_type, const int poly
     default:
       assert(false);
   }
-
 };
 
 void
-gkyl_bc_gksheath_choose_reflectedf_kernel_cu(const int dim, const int basis_type, const int poly_order, enum gkyl_edge_loc edge, struct gkyl_bc_sheath_gyrokinetic_kernels *kers)
+gkyl_bc_gksheath_choose_reflectedf_kernel_cu(const struct gkyl_basis *basis,
+  enum gkyl_edge_loc edge, struct gkyl_bc_sheath_gyrokinetic_kernels *kers)
 {
-  gkyl_bc_gksheath_set_cu_ker_ptrs<<<1,1>>>(dim, basis_type, poly_order, edge, kers);
+  gkyl_bc_gksheath_set_cu_ker_ptrs<<<1,1>>>(basis, edge, kers);
 }
 
 __global__ static void
 gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int dir, struct gkyl_range skin_r, struct gkyl_range ghost_r,
-  struct gkyl_range conf_r, const struct gkyl_basis *basis, const struct gkyl_rect_grid *grid,
+  struct gkyl_range conf_r, const struct gkyl_basis *basis, const struct gkyl_rect_grid grid,
   double q2Dm, const struct gkyl_array *phi,
   const struct gkyl_array *phi_wall, struct gkyl_bc_sheath_gyrokinetic_kernels *kers, struct gkyl_array *distf)
 {
@@ -40,7 +45,8 @@ gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int dir, struct gkyl_range s
   double xc[GKYL_MAX_DIM];
 
   int vpar_dir = cdim;
-  double dvpar = grid->dx[vpar_dir];
+  double dvpar = grid.dx[vpar_dir];
+  double dvparD2 = dvpar*0.5;
   int uplo = skin_r.upper[vpar_dir]+skin_r.lower[vpar_dir];
 
   for(unsigned long linc = threadIdx.x + blockIdx.x*blockDim.x;
@@ -49,6 +55,7 @@ gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int dir, struct gkyl_range s
     // inverse index from linc1 to idx
     // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
     // since update_range is a subrange
+
     gkyl_sub_range_inv_idx(&skin_r, linc, pidx);
 
     gkyl_copy_int_arr(skin_r.ndim, pidx, fidx);
@@ -56,10 +63,10 @@ gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int dir, struct gkyl_range s
     // Turn this skin fidx into a ghost fidx.
     fidx[dir] = ghost_r.lower[dir];
 
-    gkyl_rect_grid_cell_center(grid, pidx, xc);
+    gkyl_rect_grid_cell_center(&grid, pidx, xc);
     double vpar_c = xc[vpar_dir];
-    double vparAbsSq_lo = vpar_c > 0.? pow(vpar_c-0.5*dvpar,2) : pow(vpar_c+0.5*dvpar,2);
-    double vparAbsSq_up = vpar_c > 0.? pow(vpar_c+0.5*dvpar,2) : pow(vpar_c-0.5*dvpar,2);
+    double vparAbsSq_lo = vpar_c > 0.? pow(vpar_c-dvparD2,2) : pow(vpar_c+dvparD2,2);
+    double vparAbsSq_up = vpar_c > 0.? pow(vpar_c+dvparD2,2) : pow(vpar_c-dvparD2,2);
 
     long skin_loc = gkyl_range_idx(&skin_r, pidx);
     long ghost_loc = gkyl_range_idx(&ghost_r, fidx);
@@ -77,10 +84,11 @@ gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int dir, struct gkyl_range s
     // 1) fhat=0 (no reflection, i.e. absorb),
     // 2) fhat=f (full reflection)
     // 3) fhat=c*f (partial reflection)
-    kers->reflectedf(vpar_c, dvpar, vparAbsSq_lo, vparAbsSq_up, q2Dm, phi_p, phi_wall_p, inp, out);
+    double fhat[112];
+    kers->reflectedf(vpar_c, dvpar, vparAbsSq_lo, vparAbsSq_up, q2Dm, phi_p, phi_wall_p, inp, fhat);
 
     // Reflect fhat into skin cells.
-    bc_gksheath_reflect(dir, basis, cdim, out, out);
+    bc_gksheath_reflect(dir, basis, cdim, out, fhat);
   }
 }
 
@@ -88,9 +96,8 @@ void
 gkyl_bc_sheath_gyrokinetic_advance_cu(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
   const struct gkyl_array *phi_wall, struct gkyl_array *distf)
 {
-
   int nblocks = up->skin_r.nblocks, nthreads = up->skin_r.nthreads;
 
   gkyl_bc_sheath_gyrokinetic_advance_cu_ker<<<nblocks, nthreads>>>(up->cdim, up->dir, up->skin_r, up->ghost_r,
-    up->conf_r, up->basis, up->grid, up->q2Dm, phi, phi_wall, up->kernels_cu, distf);
+    up->conf_r, up->basis, *up->grid, up->q2Dm, phi->on_dev, phi_wall->on_dev, up->kernels_cu, distf->on_dev);
 }

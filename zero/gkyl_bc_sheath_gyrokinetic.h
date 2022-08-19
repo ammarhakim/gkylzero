@@ -15,7 +15,7 @@ typedef struct gkyl_bc_sheath_gyrokinetic gkyl_bc_sheath_gyrokinetic;
  * @param edge Lower or upper edge at which to apply BC (see gkyl_edge_loc).
  * @param local_range_ext Local extended range.
  * @param num_ghosts Number of ghosts in each dimension.
- * @param basis Basis on which coefficients in array are expanded.
+ * @param basis Basis on which coefficients in array are expanded (a device pointer if use_gpu=true).
  * @param grid cartesian grid dynamic field is defined on.
  * @param cdim Configuration space dimensions.
  * @param q2Dm charge-to-mass ratio times 2.

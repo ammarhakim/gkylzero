@@ -34,14 +34,19 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   // Choose the kernel that does the reflection/no reflection/partial
   // reflection.
   up->kernels = gkyl_malloc(sizeof(struct gkyl_bc_sheath_gyrokinetic_kernels));
-  up->kernels->reflectedf = bc_gksheath_choose_reflectedf_kernel(basis->ndim, basis->b_type, basis->poly_order, edge);
-  assert(up->kernels->reflectedf);
-  up->kernels_cu = up->kernels;
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
     up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_sheath_gyrokinetic_kernels));
-    gkyl_bc_gksheath_choose_reflectedf_kernel_cu(basis->ndim, basis->b_type, basis->poly_order, edge, up->kernels_cu);
+    gkyl_bc_gksheath_choose_reflectedf_kernel_cu(basis, edge, up->kernels_cu);
+  } else {
+    up->kernels->reflectedf = bc_gksheath_choose_reflectedf_kernel(basis, edge);
+    assert(up->kernels->reflectedf);
+    up->kernels_cu = up->kernels;
   }
+#else
+  up->kernels->reflectedf = bc_gksheath_choose_reflectedf_kernel(basis, edge);
+  assert(up->kernels->reflectedf);
+  up->kernels_cu = up->kernels;
 #endif
 
   return up;
@@ -65,6 +70,7 @@ gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, 
 
   int vpar_dir = up->cdim;
   double dvpar = up->grid->dx[vpar_dir];
+  double dvparD2 = dvpar*0.5;
   int uplo = up->skin_r.upper[vpar_dir]+up->skin_r.lower[vpar_dir];
 
   struct gkyl_range_iter iter;
@@ -78,8 +84,8 @@ gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, 
 
     gkyl_rect_grid_cell_center(up->grid, iter.idx, xc);
     double vpar_c = xc[vpar_dir];
-    double vparAbsSq_lo = vpar_c > 0.? pow(vpar_c-0.5*dvpar,2) : pow(vpar_c+0.5*dvpar,2);
-    double vparAbsSq_up = vpar_c > 0.? pow(vpar_c+0.5*dvpar,2) : pow(vpar_c-0.5*dvpar,2);
+    double vparAbsSq_lo = vpar_c > 0.? pow(vpar_c-dvparD2,2) : pow(vpar_c+dvparD2,2);
+    double vparAbsSq_up = vpar_c > 0.? pow(vpar_c+dvparD2,2) : pow(vpar_c-dvparD2,2);
 
     long skin_loc = gkyl_range_idx(&up->skin_r, iter.idx);
     long ghost_loc = gkyl_range_idx(&up->ghost_r, fidx);
@@ -113,6 +119,7 @@ void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up)
     gkyl_cu_free(up->kernels_cu);
   }
 #endif
+  gkyl_free(up->kernels);
   // Release updater memory.
   gkyl_free(up);
 }

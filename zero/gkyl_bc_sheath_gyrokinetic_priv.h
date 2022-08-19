@@ -71,12 +71,15 @@ struct gkyl_bc_sheath_gyrokinetic {
 };
 
 void
-gkyl_bc_gksheath_choose_reflectedf_kernel_cu(const int dim, const int basis_type, const int poly_order, enum gkyl_edge_loc edge, struct gkyl_bc_sheath_gyrokinetic_kernels *kers);
+gkyl_bc_gksheath_choose_reflectedf_kernel_cu(const struct gkyl_basis *basis, enum gkyl_edge_loc edge, struct gkyl_bc_sheath_gyrokinetic_kernels *kers);
 
 GKYL_CU_D
 static sheath_reflectedf_t
-bc_gksheath_choose_reflectedf_kernel(const int dim, const int basis_type, const int poly_order, enum gkyl_edge_loc edge)
+bc_gksheath_choose_reflectedf_kernel(const struct gkyl_basis *basis, enum gkyl_edge_loc edge)
 {
+  int dim = basis->ndim;
+  enum gkyl_basis_type basis_type = basis->b_type;
+  int poly_order = basis->poly_order;
   switch (basis_type) {
     case GKYL_BASIS_MODAL_GKHYBRID:
     case GKYL_BASIS_MODAL_SERENDIPITY:
