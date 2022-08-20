@@ -933,12 +933,16 @@ gkyl_moment_app_write_field(const gkyl_moment_app* app, double tm, int frame)
 {
   if (app->has_field != 1) return;
 
-  const char *fmt = "%s-%s_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, "field", frame);
-  char fileNm[sz+1]; // ensures no buffer overflow  
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, "field", frame);
-  
-  gkyl_grid_sub_array_write(&app->grid, &app->local, app->field.f[0], fileNm);
+  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
+  gkyl_grid_sub_array_write(&app->grid, &app->local, app->field.f[0], fileNm.str);
+  cstr_drop(&fileNm);
+
+  // write external EM field if it is present
+  if (app->field.ext_em) {
+    cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "ext_em_field", frame);
+    gkyl_grid_sub_array_write(&app->grid, &app->local, app->field.ext_em, fileNm.str);
+    cstr_drop(&fileNm);
+  }
 }
 
 void
