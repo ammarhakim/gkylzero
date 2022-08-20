@@ -15,10 +15,14 @@ struct gkyl_moment_species {
   const struct gkyl_wv_eqn *equation; // equation object
 
   int evolve; // evolve species? 1-yes, 0-no
+  bool force_low_order_flux; // should  we force low-order flux?
 
   void *ctx; // context for initial condition init function (and potentially other functions)
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
+  // pointer to boundary condition functions
+  void (*bc_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  void (*bc_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
   // pointer to applied acceleration/forces function
   void (*app_accel_func)(double t, const double *xn, double *fout, void *ctx);
   // boundary conditions
@@ -39,8 +43,11 @@ struct gkyl_moment_field {
   void (*init)(double t, const double *xn, double *fout, void *ctx);
   // pointer to applied current function
   void (*app_current_func)(double t, const double *xn, double *fout, void *ctx);
+
+  bool is_ext_em_static; // flag to indicate if external field is time-independent
   // pointer to external fields
   void (*ext_em_func)(double t, const double *xn, double *fout, void *ctx);
+  
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
 };
@@ -152,17 +159,31 @@ void gkyl_moment_app_write(const gkyl_moment_app* app, double tm, int frame);
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_moment_app_write_field(const gkyl_moment_app* app, double tm, int frame);
+void gkyl_moment_app_write_field(const gkyl_moment_app *app, double tm, int frame);
 
 /**
  * Write species data to file.
  * 
  * @param app App object.
- * @param sidx Index of species to initialize.
+ * @param sidx Index of species to write
  * @param tm Time-stamp
  * @param frame Frame number
  */
 void gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, int frame);
+
+/**
+ * Write field energy to file.
+ *
+ * @param app App object.
+ */
+void gkyl_moment_app_write_field_energy(gkyl_moment_app *app);
+
+/**
+ * Write integrated moments to file.
+ *
+ * @param app App object.
+ */
+void gkyl_moment_app_write_integrated_mom(gkyl_moment_app *app);
 
 /**
  * Write stats to file. Data is written in json format.
@@ -187,14 +208,30 @@ void gkyl_moment_app_stat_write(const gkyl_moment_app* app);
  * @param dt Suggested time-step to advance simulation
  * @return Status of update.
  */
-struct gkyl_update_status gkyl_moment_update(gkyl_moment_app* app, double dt);
+struct gkyl_update_status gkyl_moment_update(gkyl_moment_app *app, double dt);
+
+/**
+ * Calculate integrated field energy
+ *
+ * @param tm Time at which integrated diagnostic are to be computed
+ * @param app App object.
+ */
+void gkyl_moment_app_calc_field_energy(gkyl_moment_app *app, double tm);
+
+/**
+ * Calculate integrated moments
+ *
+ * @param app App object.
+ * @param tm Time at which integrated diagnostic are to be computed
+ */
+void gkyl_moment_app_calc_integrated_mom(gkyl_moment_app *app, double tm);
 
 /**
  * Return simulation statistics.
  * 
  * @return Return statistics.
  */
-struct gkyl_moment_stat gkyl_moment_app_stat(gkyl_moment_app* app);
+struct gkyl_moment_stat gkyl_moment_app_stat(gkyl_moment_app *app);
 
 /**
  * Free moment app.

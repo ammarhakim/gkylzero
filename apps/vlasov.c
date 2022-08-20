@@ -1,6 +1,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
+#include <gkyl_dflt.h>
 #include <gkyl_dynvec.h>
 
 #include <gkyl_vlasov_priv.h>
@@ -8,6 +9,8 @@
 gkyl_vlasov_app*
 gkyl_vlasov_app_new(struct gkyl_vm *vm)
 {
+  disable_denorm_float();
+  
   assert(vm->num_species <= GKYL_MAX_SPECIES);
   
   gkyl_vlasov_app *app = gkyl_malloc(sizeof(gkyl_vlasov_app));
@@ -655,8 +658,7 @@ rk3(gkyl_vlasov_app* app, double dt0)
           dt = st.dt_actual;
           state = RK_STAGE_1; // restart from stage 1
 
-        }
-        else {
+        } else {
           for (int i=0; i<app->num_species; ++i)
             array_combine(app->species[i].f1,
               3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew, app->species[i].local_ext);

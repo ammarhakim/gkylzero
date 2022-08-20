@@ -91,8 +91,8 @@ mhd_free(const struct gkyl_ref_count *ref)
 // Computing waves and waves speeds from Roe linearization.
 // Following Cargo & Gallice 1997 section 4.2.
 static double
-wave_roe(const struct gkyl_wv_eqn *eqn, const double *dQ,
-  const double *ql, const double *qr, double *waves, double *ev)
+wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *dQ, const double *ql, const double *qr, double *waves, double *ev)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   double gamma = mhd->gas_gamma;
@@ -362,8 +362,8 @@ wave_roe(const struct gkyl_wv_eqn *eqn, const double *dQ,
 }
 
 static void
-qfluct_roe(const struct gkyl_wv_eqn *eqn, const double *ql,
-  const double *qr, const double *waves, const double *s, double *amdq,
+qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *ql, const double *qr, const double *waves, const double *s, double *amdq,
   double *apdq)
 {
   int meqn = eqn->num_equations;
@@ -375,6 +375,12 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn, const double *ql,
       apdq[i] += fmax(0.0, s[mw]) * waves[meqn*mw+i];
     }
   }
+}
+
+static bool
+check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
+{
+  return true; // TODO
 }
 
 static double
@@ -393,6 +399,7 @@ gkyl_wv_mhd_new(double gas_gamma, const char *divergence_constraint)
   mhd->gas_gamma = gas_gamma;
   mhd->eqn.waves_func = wave_roe;
   mhd->eqn.qfluct_func = qfluct_roe;
+  mhd->eqn.check_inv_func = check_inv;
   mhd->eqn.max_speed_func = max_speed;
   mhd->eqn.rotate_to_local_func = rot_to_local_rect;
   mhd->eqn.rotate_to_global_func = rot_to_global_rect;

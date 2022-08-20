@@ -208,6 +208,9 @@ test_io()
   gkyl_dynvec_write(dv, "ctest_dynvec_test_io_1.gkyl");
   gkyl_dynvec_clear(dv);
 
+  int nc = gkyl_dynvec_read_ncomp("ctest_dynvec_test_io_1.gkyl");
+  TEST_CHECK( nc == 3 );
+
   bool res = gkyl_dynvec_read(dv, "ctest_dynvec_test_io_1.gkyl");
   TEST_CHECK( res );
 

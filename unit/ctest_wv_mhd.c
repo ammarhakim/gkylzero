@@ -122,14 +122,14 @@ test_mhd_waves()
     double delta[8];
     for (int i=0; i<8; ++i) delta[i] = qr_local[i]-ql_local[i];
     
-    gkyl_wv_eqn_waves(mhd, delta, ql_local, qr_local, waves_local, speeds);
+    gkyl_wv_eqn_waves(mhd, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
 
     // rotate waves back to global frame
     for (int mw=0; mw<7; ++mw)
       gkyl_wv_eqn_rotate_to_global(mhd, tau1[d], tau2[d], norm[d], &waves_local[mw*8], &waves[mw*8]);
     
     double apdq[8], amdq[8];
-    gkyl_wv_eqn_qfluct(mhd, ql, qr, waves, speeds, amdq, apdq);
+    gkyl_wv_eqn_qfluct(mhd, GKYL_WV_HIGH_ORDER_FLUX, ql, qr, waves, speeds, amdq, apdq);
     
     // check if sum of left/right going fluctuations sum to jump in flux
     double fl_local[8], fr_local[8];
@@ -189,14 +189,14 @@ test_mhd_waves_2()
     double delta[8];
     for (int i=0; i<8; ++i) delta[i] = qr_local[i]-ql_local[i];
     
-    gkyl_wv_eqn_waves(mhd, delta, ql_local, qr_local, waves_local, speeds);
+    gkyl_wv_eqn_waves(mhd, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
 
     // rotate waves back to global frame
     for (int mw=0; mw<7; ++mw)
       gkyl_wv_eqn_rotate_to_global(mhd, tau1[d], tau2[d], norm[d], &waves_local[mw*8], &waves[mw*8]);
     
     double apdq[8], amdq[8];
-    gkyl_wv_eqn_qfluct(mhd, ql, qr, waves, speeds, amdq, apdq);
+    gkyl_wv_eqn_qfluct(mhd, GKYL_WV_HIGH_ORDER_FLUX, ql, qr, waves, speeds, amdq, apdq);
     
     // check if sum of left/right going fluctuations sum to jump in flux
     double fl_local[8], fr_local[8];
@@ -256,14 +256,14 @@ test_mhd_waves_3()
     double delta[9];
     for (int i=0; i<9; ++i) delta[i] = qr_local[i]-ql_local[i];
     
-    gkyl_wv_eqn_waves(mhd, delta, ql_local, qr_local, waves_local, speeds);
+    gkyl_wv_eqn_waves(mhd, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
 
     // rotate waves back to global frame
     for (int mw=0; mw<9; ++mw)
       gkyl_wv_eqn_rotate_to_global(mhd, tau1[d], tau2[d], norm[d], &waves_local[mw*9], &waves[mw*9]);
     
     double apdq[9], amdq[9];
-    gkyl_wv_eqn_qfluct(mhd, ql, qr, waves, speeds, amdq, apdq);
+    gkyl_wv_eqn_qfluct(mhd, GKYL_WV_HIGH_ORDER_FLUX, ql, qr, waves, speeds, amdq, apdq);
     
     // check if sum of left/right going fluctuations sum to jump in flux
     double fl_local[9], fr_local[9];

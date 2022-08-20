@@ -16,6 +16,7 @@ enum gkyl_species_bc_type {
   GKYL_SPECIES_ABSORB, // Absorbing BCs
   GKYL_SPECIES_NO_SLIP, // no-slip boundary conditions
   GKYL_SPECIES_WEDGE, // specialized "wedge" BCs for RZ-theta
+  GKYL_SPECIES_FUNC, // Function boundary conditions
 };
 
 // Boundary conditions on fluids

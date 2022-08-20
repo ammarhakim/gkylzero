@@ -6,11 +6,14 @@
 #define RHOV 2
 #define RHOW 3
 
+#define SQ(x) ((x)*(x))
+
 double
 gkyl_euler_max_abs_speed(double gas_gamma, const double q[5])
 {
-  double pr = gkyl_euler_pressure(gas_gamma, q), u = q[RHOU]/q[0];
-  return fabs(u) + sqrt(gas_gamma*pr/q[0]);
+  double pr = gkyl_euler_pressure(gas_gamma, q);
+  double u2 = sqrt( SQ(q[1]/q[0]) + SQ(q[2]/q[0]) + SQ(q[3]/q[0]) );
+  return fabs(u2) + sqrt(gas_gamma*pr/q[0]);
 }
 
 void
