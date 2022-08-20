@@ -707,8 +707,8 @@ local field_mt = {
       if tbl.is_ext_em_static then
 	 f.is_ext_em_static = tbl.is_ext_em_static
       end
-      if tbl.ext_em then
-         f.ext_em_func = gkyl_eval_ext_field(tbl.ext_em)
+      if tbl.ext_em_func then
+         f.ext_em_func = gkyl_eval_ext_field(tbl.ext_em_func)
       end
 
       -- boundary conditions
