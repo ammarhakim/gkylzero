@@ -38,7 +38,7 @@ deltaPhi = 0.1 -- potential difference phi(R1)-phi(R0)
 -- create app
 momentApp = Moments.App {
    
-   tEnd = 50.0/OmegaPi0, -- end time
+   tEnd = 100.0/OmegaPi0, -- end time
    nFrame = 20, -- number of output frame
    lower = {R0, 0.0}, -- lower left corner
    upper = {R1, 2*math.pi/4}, -- upper right corner
@@ -69,6 +69,7 @@ momentApp = Moments.App {
 	 
 	 return rhoe, 0.0, 0.0, 0.0, ere
       end,
+
       bcx = { Moments.Species.bcWall, Moments.Species.bcWall },
       bcy = { Moments.Species.bcWedge, Moments.Species.bcWedge },
    },
@@ -90,6 +91,7 @@ momentApp = Moments.App {
 	 
 	 return rhoi, 0.0, 0.0, 0.0, eri
       end,
+      
       bcx = { Moments.Species.bcWall, Moments.Species.bcWall },
       bcy = { Moments.Species.bcWedge, Moments.Species.bcWedge },      
    },
