@@ -914,7 +914,7 @@ local app_mt = {
       end,
       calcFieldEnergy = function(self, tcurr)
 	 return C.gkyl_vlasov_app_calc_field_energy(self.app, tcurr)
-      end,      
+      end,
       run = function(self)
 	 
 	 local frame_trig = _M.TimeTrigger(self.tend/self.nframe)

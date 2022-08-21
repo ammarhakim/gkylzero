@@ -858,6 +858,12 @@ local app_mt = {
       update = function(self, dt)
          return C.gkyl_moment_update(self.app, dt)
       end,
+      calcIntegratedMom = function(self, tcurr)
+	 return C.gkyl_moment_app_calc_integrated_mom(self.app, tcurr)
+      end,
+      calcFieldEnergy = function(self, tcurr)
+	 return C.gkyl_moment_app_calc_field_energy(self.app, tcurr)
+      end,      
       run = function(self)
 	 
 	 local frame_trig = _M.TimeTrigger(self.tend/self.nframe)
@@ -880,14 +886,19 @@ local app_mt = {
 	 io.write(string.format("Starting GkeyllZero simulation\n"))
 	 io.write(string.format("  tstart: %.6e. tend: %.6e\n", 0.0, self.tend))
 	 self:init()
+	 self:calcIntegratedMom(0.0)
+	 self:calcFieldEnergy(0.0)	 
 	 writeData(0.0)
 
 	 local tcurr, tend = 0.0, self.tend
 	 local dt = tend-tcurr
 	 local step = 1
 	 while tcurr < tend do
-	    local status = self:update(dt);
+	    local status = self:update(dt)
 	    tcurr = tcurr + status.dt_actual
+
+	    self:calcIntegratedMom(tcurr)
+	    self:calcFieldEnergy(tcurr)	    
 
 	    writeLogMessage(tcurr, step, status.dt_actual)
 	    writeData(tcurr)
@@ -895,6 +906,10 @@ local app_mt = {
 	    dt = math.min(status.dt_suggested, (tend-tcurr)*(1+1e-6))
 	    step = step + 1
 	 end
+
+	 C.gkyl_moment_app_write_integrated_mom(self.app)
+	 C.gkyl_moment_app_write_field_energy(self.app)
+	 
 	 io.write(string.format("Completed in %d steps (tend: %.6e). \n", step-1, tcurr))
 	 self:writeStat()
 	 

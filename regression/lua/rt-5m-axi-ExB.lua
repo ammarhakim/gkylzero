@@ -38,14 +38,14 @@ deltaPhi = 0.1 -- potential difference phi(R1)-phi(R0)
 -- create app
 momentApp = Moments.App {
    
-   tEnd = 2.5/OmegaPi0, -- end time
-   nFrame = 10, -- number of output frame
+   tEnd = 50.0/OmegaPi0, -- end time
+   nFrame = 20, -- number of output frame
    lower = {R0, 0.0}, -- lower left corner
-   upper = {R1, 2*math.pi}, -- upper right corner
-   cells = {64, 64*6}, -- number of cells
+   upper = {R1, 2*math.pi/4}, -- upper right corner
+   cells = {64, 64}, -- number of cells
    cflFrac = 0.9,
 
-   periodicDirs = { 2 },
+   --periodicDirs = { 2 },
 
    mapc2p = function(t, xn)
       local r, th = xn[1], xn[2]
@@ -69,7 +69,8 @@ momentApp = Moments.App {
 	 
 	 return rhoe, 0.0, 0.0, 0.0, ere
       end,
-      bcy = { Moments.Species.bcWall, Moments.Species.bcWall },
+      bcx = { Moments.Species.bcWall, Moments.Species.bcWall },
+      bcy = { Moments.Species.bcWedge, Moments.Species.bcWedge },
    },
 
    -- ions
@@ -89,7 +90,8 @@ momentApp = Moments.App {
 	 
 	 return rhoi, 0.0, 0.0, 0.0, eri
       end,
-      bcy = { Moments.Species.bcWall, Moments.Species.bcWall },
+      bcx = { Moments.Species.bcWall, Moments.Species.bcWall },
+      bcy = { Moments.Species.bcWedge, Moments.Species.bcWedge },      
    },
 
    field = Moments.Field {
@@ -108,7 +110,8 @@ momentApp = Moments.App {
 	 return Ex, Ey, 0.0, 0.0, 0.0, B0
       end,
       
-      bcy = { Moments.Field.bcReflect, Moments.Field.bcReflect },
+      bcx = { Moments.Field.bcReflect, Moments.Field.bcReflect },
+      bcy = { Moments.Field.bcWedge, Moments.Field.bcWedge },
    },
 }
 -- run application
