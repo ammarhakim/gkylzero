@@ -125,6 +125,12 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
       && app->species[i].lbo.num_cross_collisions) {
       vm_species_lbo_cross_init(app, &app->species[i], &app->species[i].lbo);
     }
+
+  // initialize each species source terms: this has to be done here
+  // as they may initialize a bflux updater for their source species
+  for (int i=0; i<ns; ++i)
+    if (app->species[i].source_id)
+      vm_species_source_init(app, &app->species[i], &app->species[i].src);
   
   // initialize each fluid species
   for (int i=0; i<nsf; ++i)
@@ -524,6 +530,14 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   for (int i=0; i<app->num_fluid_species; ++i) {
     double dt1 = vm_fluid_species_rhs(app, &app->fluid_species[i], fluidin[i], fluidout[i]);
     dtmin = fmin(dtmin, dt1);
+  }
+  // compute source term
+  // done here as the RHS update for all species should be complete before
+  // bflux calculation of the source species
+  for (int i=0; i<app->num_species; ++i) {
+    if (app->species[i].source_id) {
+      vm_species_source_rhs(app, &app->species[i], &app->species[i].src, fin, fout);
+    }
   }
   // compute RHS of Maxwell equations
   if (app->has_field) {

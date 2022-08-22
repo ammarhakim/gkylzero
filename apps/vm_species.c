@@ -212,11 +212,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       8, eval_accel, &s->accel_ctx);
   }
 
+  // set species source id
   s->source_id = s->info.source.source_id;
-  // setup constant source
-  if (s->source_id) {
-    vm_species_source_init(app, s, &s->src);
-  }
 
   // determine collision type to use in vlasov update
   s->collision_id = s->info.collisions.collision_id;
@@ -229,10 +226,6 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     }
     vm_species_lbo_init(app, s, &s->lbo, s->collides_with_fluid);
   }
-
-  // initialize boundary flux object
-  if (s->calc_bflux)
-    vm_species_bflux_init(app, s, &s->bflux);
 
   // setup mirror force from fluid species if present
   s->has_mirror_force = false;
@@ -435,15 +428,6 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   if (species->collision_id == GKYL_LBO_COLLISIONS)
     vm_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
   
-  if (species->source_id)
-    vm_species_source_rhs(app, species, &species->src, fin, rhs);
-
-  // bflux calculation needs to be after source. The source uses bflux from the previous stage.
-  // There's also an order of operations issue since the source may use bflux from a different
-  // species, using the previous step insures all species bflux are updated before the source.
-  if (species->calc_bflux)
-    vm_species_bflux_rhs(app, species, &species->bflux, fin, rhs);
-  
   app->stat.nspecies_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
   gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, species->local);
@@ -631,8 +615,6 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   if (s->collision_id == GKYL_LBO_COLLISIONS)
     vm_species_lbo_release(app, &s->lbo);
 
-  if (s->calc_bflux)
-    vm_species_bflux_release(app, &s->bflux);
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
     gkyl_bc_basic_release(s->bc_lo[d]);
