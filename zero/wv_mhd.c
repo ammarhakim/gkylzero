@@ -6,8 +6,6 @@
 #include <gkyl_moment_prim_mhd.h>
 #include <gkyl_wv_mhd.h>
 
-enum { DIVB_NONE, DIVB_EIGHT_WAVES, DIVB_GLM };
-
 // Make indexing cleaner and clearer
 #define DN (0)
 #define MX (1)
@@ -76,8 +74,8 @@ rot_to_global_rect_glm(const double *tau1, const double *tau2, const double *nor
 struct wv_mhd {
   struct gkyl_wv_eqn eqn; // base object
   double gas_gamma; // gas adiabatic constant
-  int divergence_constraint;
-  int glm_ch;
+  enum gkyl_wv_mhd_div_constraint divergence_constraint; // divB correction
+  int glm_ch; // factor to use in GLM scheme
 };
 
 static void
@@ -332,13 +330,13 @@ wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   // This wave exists in the eight-wave scheme. In this implementation, it is
   // incorporated into the last wave, the entropy wave, since both have eigen
   // value ev=u. This wave only advects jump in Bx at the speed u.
-  if (mhd->divergence_constraint == DIVB_EIGHT_WAVES)
+  if (mhd->divergence_constraint == GKYL_MHD_DIVB_EIGHT_WAVES)
     wv[BX] = dQ[BX];
 
   double max_speed =  fabs(u) + cf;
 
   // GLM divB and psi waves; XXX set ch properly.
-  if (mhd->divergence_constraint == DIVB_GLM)
+  if (mhd->divergence_constraint == GKYL_MHD_DIVB_GLM)
   {
     // ch = eqn->glm_ch;
     double ch = max_speed;  // cfl * min(dx, dy, dz) / dt
@@ -391,7 +389,7 @@ max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_mhd_new(double gas_gamma, const char *divergence_constraint)
+gkyl_wv_mhd_new(double gas_gamma, enum gkyl_wv_mhd_div_constraint divb)
 {
   struct wv_mhd *mhd = gkyl_malloc(sizeof(struct wv_mhd));
 
@@ -404,31 +402,24 @@ gkyl_wv_mhd_new(double gas_gamma, const char *divergence_constraint)
   mhd->eqn.rotate_to_local_func = rot_to_local_rect;
   mhd->eqn.rotate_to_global_func = rot_to_global_rect;
 
-  if (strcmp(divergence_constraint, "none") == 0)
-  {
-    mhd->divergence_constraint = DIVB_NONE;
-    mhd->eqn.num_equations = 8;
-    mhd->eqn.num_waves = 7;
-  }
-  else if (strcmp(divergence_constraint, "eight_waves") == 0)
-  {
-    mhd->divergence_constraint = DIVB_EIGHT_WAVES;
-    mhd->eqn.num_equations = 8;
-    mhd->eqn.num_waves = 7;  // will merge the entropy wave and divB wave
-  }
-  else if (strcmp(divergence_constraint, "glm") == 0)
-  {
-    mhd->divergence_constraint = DIVB_GLM;
-    mhd->eqn.num_equations = 9;
-    mhd->eqn.num_waves = 9;
-    mhd->eqn.rotate_to_local_func = rot_to_local_rect_glm;
-    mhd->eqn.rotate_to_global_func = rot_to_global_rect_glm;
-  }
-  else {
-    // Do not constrain divergence by default. TODO: Warn or throw an error
-    mhd->divergence_constraint = DIVB_NONE;
-    mhd->eqn.num_equations = 8;
-    mhd->eqn.num_waves = 7;
+  mhd->divergence_constraint = divb;
+  switch (divb) {
+    case GKYL_MHD_DIVB_NONE:
+      mhd->eqn.num_equations = 8;
+      mhd->eqn.num_waves = 7;
+      break;
+
+    case GKYL_MHD_DIVB_EIGHT_WAVES:
+      mhd->eqn.num_equations = 8;
+      mhd->eqn.num_waves = 7;  // will merge the entropy wave and divB wave
+      break;
+
+    case GKYL_MHD_DIVB_GLM:
+      mhd->eqn.num_equations = 9;
+      mhd->eqn.num_waves = 9;
+      mhd->eqn.rotate_to_local_func = rot_to_local_rect_glm;
+      mhd->eqn.rotate_to_global_func = rot_to_global_rect_glm;
+      break;
   }
 
   mhd->eqn.ref_count = gkyl_ref_count_init(mhd_free);

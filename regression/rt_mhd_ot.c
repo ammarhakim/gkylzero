@@ -73,7 +73,7 @@ main(int argc, char **argv)
   struct mhd_ctx ctx = mhd_ctx(); // context for init functions
 
   // equation object
-  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(ctx.gas_gamma, "glm");
+  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(ctx.gas_gamma, GKYL_MHD_DIVB_GLM);
 
   struct gkyl_moment_species fluid = {
     .name = "mhd",
