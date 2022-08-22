@@ -36,7 +36,7 @@ R1 = 25*di0 -- outer-radius
 deltaPhi = 0.1 -- potential difference phi(R1)-phi(R0)
 
 function radialE(r)
-   return -deltaPhi/math.log(R1/R0)/r
+   return -deltaPhi/(R1-R0)
 end
 
 -- create app
@@ -49,11 +49,10 @@ momentApp = Moments.App {
    cells = {64, 64}, -- number of cells
    cflFrac = 0.9,
 
-   --periodicDirs = { 2 },
+   periodicDirs = { 2 },
 
    mapc2p = function(t, xn)
-      local r, th = xn[1], xn[2]
-      return r*math.cos(th), r*math.sin(th)
+      return xn[1], xn[2]
    end,
 
    -- electrons
@@ -68,8 +67,8 @@ momentApp = Moments.App {
 	 local Er = radialE(r)	 
 	 local TeFrac = 1.0/(1.0 + TiOverTe)
 	 local n = n0
-	 local ux = Er/B0*math.sin(theta)
-	 local uy = -Er/B0*math.cos(theta)	 
+	 local ux = 0.0
+	 local uy = -Er/B0
 	 local Ttotal = plasmaBeta*(B0*B0)/2.0/n0
 
 	 local rhoe = n*elcMass
@@ -79,7 +78,6 @@ momentApp = Moments.App {
       end,
 
       bcx = { Moments.Species.bcWall, Moments.Species.bcWall },
-      bcy = { Moments.Species.bcWedge, Moments.Species.bcWedge },
    },
 
    -- ions
@@ -94,8 +92,8 @@ momentApp = Moments.App {
 	 local Er = radialE(r)
 	 local TiFrac = TiOverTe/(1.0 + TiOverTe)
 	 local n = n0
-	 local ux = Er/B0*math.sin(theta)
-	 local uy = -Er/B0*math.cos(theta)
+	 local ux = 0.0
+	 local uy = -Er/B0
 	 local Ttotal = plasmaBeta*(B0*B0)/2.0/n0
 
 	 local rhoi = n*ionMass
@@ -105,7 +103,6 @@ momentApp = Moments.App {
       end,
       
       bcx = { Moments.Species.bcWall, Moments.Species.bcWall },
-      bcy = { Moments.Species.bcWedge, Moments.Species.bcWedge },      
    },
 
    field = Moments.Field {
@@ -119,13 +116,12 @@ momentApp = Moments.App {
       ext_em_func = function (t, xn)
 	 local r, theta = xn[1], xn[2]
 	 local Er = radialE(r)
-	 local Ex = Er*math.cos(theta)
-	 local Ey = Er*math.sin(theta)
+	 local Ex = Er
+	 local Ey = 0.0
 	 return Ex, Ey, 0.0, 0.0, 0.0, B0
       end,
       
       bcx = { Moments.Field.bcReflect, Moments.Field.bcReflect },
-      bcy = { Moments.Field.bcWedge, Moments.Field.bcWedge },
    },
 }
 -- run application
