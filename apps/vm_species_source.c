@@ -14,9 +14,9 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct
     src->source_species_idx = vm_find_species_idx(app, s->info.source.source_species);
     vm_species_bflux_init(app, src->source_species, &src->bflux); // boundary flux updater
     if (app->use_gpu)
-      src->scale_ptr = gkyl_cu_malloc(sizeof(double));
+      src->scale_ptr = gkyl_cu_malloc((2 + app->vdim)*sizeof(double));
     else
-      src->scale_ptr = gkyl_malloc(sizeof(double));
+      src->scale_ptr = gkyl_malloc((2 + app->vdim)*sizeof(double));
   }
 
   // we need to ensure source has same shape as distribution function
