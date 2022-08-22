@@ -169,6 +169,33 @@ enum gkyl_wave_limiter {
 };
 ]]
 
+-- gkyl_wv_mhd.h
+ffi.cdef [[
+// flags to indicate which divergence constraint scheme to use
+enum gkyl_wv_mhd_div_constraint {
+  GKYL_MHD_DIVB_NONE,
+  GKYL_MHD_DIVB_EIGHT_WAVES,
+  GKYL_MHD_DIVB_GLM
+};
+
+/**
+ * Create a new ideal MHD equation object.
+ *
+ * @param gas_gamma Gas adiabatic constant
+ * @param divb Divergence constraint method
+ * @return Pointer to mhd equation object.
+ */
+struct gkyl_wv_eqn* gkyl_wv_mhd_new(double gas_gamma, enum gkyl_wv_mhd_div_constraint divb);
+
+/**
+ * Get gas adiabatic constant.
+ *
+ * @param wv mhd equation object
+ * @return Get gas adiabatic constant
+ */
+double gkyl_wv_mhd_gas_gamma(const struct gkyl_wv_eqn* wv);
+]]
+
 -- gkyl_wv_eqn.h
 ffi.cdef [[
 // Flux type for use in wave/qfluct methods
@@ -220,15 +247,6 @@ struct gkyl_wv_eqn* gkyl_wv_iso_euler_new(double vt);
  * @return Pointer to Maxwell equation object.
  */
 struct gkyl_wv_eqn* gkyl_wv_maxwell_new(double c, double e_fact, double b_fact);
-
-/**
- * Create a new ideal MHD equation object.
- *
- * @param gas_gamma Gas adiabatic constant
- * @return Pointer to mhd equation object.
- */
-struct gkyl_wv_eqn* gkyl_wv_mhd_new(
-    double gas_gamma, const char *divergence_constraint);
 
 /**
  * Create a new SR Euler equation object.

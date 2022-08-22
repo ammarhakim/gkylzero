@@ -44,8 +44,8 @@ momentApp = Moments.App {
    
    tEnd = 100.0/OmegaPi0, -- end time
    nFrame = 20, -- number of output frame
-   lower = {R0, 0.0}, -- lower left corner
-   upper = {R1, 2*math.pi/4}, -- upper right corner
+   lower = {R0, -2*math.pi/8}, -- lower left corner
+   upper = {R1, 2*math.pi/8}, -- upper right corner
    cells = {64, 64}, -- number of cells
    cflFrac = 0.9,
 
