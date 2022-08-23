@@ -82,10 +82,6 @@ main(int argc, char **argv)
     .evolve = 1,
     .ctx = &ctx,
     .init = evalMhdInit,
-
-    // SHOULD THIS REALLY BE PERIODIC BCS INSTEAD??
-    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
-    .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
 
   // VM app
@@ -97,6 +93,9 @@ main(int argc, char **argv)
     .upper = { 1.0, 1.0 }, 
     .cells = { NX, NY },
 
+    .num_periodic_dir = 2,
+    .periodic_dirs = { 0, 1 },
+
     .num_species = 1,
     .species = { fluid },
   };
@@ -105,8 +104,8 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.5;
-  int nframe = 4;
+  double tcurr = 0.0, tend = 0.3;
+  int nframe = 3;
 
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
