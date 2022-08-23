@@ -37,7 +37,6 @@ typedef void (*lhsstencil_t)(const double *weight, const long *globalIdxs, gkyl_
 typedef struct { lhsstencil_t kernels[3]; } lhsstencil_kern_list;  // For use in kernel tables.
 
 // Serendipity unweighted lhs kernels.
-GKYL_CU_D
 static const lhsstencil_kern_list ser_lhsstencil_list[] = {
   { NULL, NULL, NULL }, // No 0D basis functions
   { NULL, fem_parproj_lhs_stencil_1x_ser_p1, fem_parproj_lhs_stencil_1x_ser_p2 },
@@ -46,7 +45,6 @@ static const lhsstencil_kern_list ser_lhsstencil_list[] = {
 };
 
 // Tensor product unweighted lhs kernels.
-GKYL_CU_D
 static const lhsstencil_kern_list ten_lhsstencil_list[] = {
   { NULL, NULL, NULL }, // No 0D basis functions
   { NULL, fem_parproj_lhs_stencil_1x_tensor_p1, fem_parproj_lhs_stencil_1x_tensor_p2 },
@@ -55,7 +53,6 @@ static const lhsstencil_kern_list ten_lhsstencil_list[] = {
 };
 
 // Serendipity weighted lhs kernels.
-GKYL_CU_D
 static const lhsstencil_kern_list ser_wlhsstencil_list[] = {
   { NULL, NULL, NULL }, // No 0D basis functions
   { NULL, fem_parproj_weighted_lhs_stencil_1x_ser_p1, fem_parproj_weighted_lhs_stencil_1x_ser_p2 },
@@ -64,7 +61,6 @@ static const lhsstencil_kern_list ser_wlhsstencil_list[] = {
 };
 
 // Tensor product weighted lhs kernels.
-GKYL_CU_D
 static const lhsstencil_kern_list ten_wlhsstencil_list[] = {
   { NULL, NULL, NULL }, // No 0D basis functions
   { NULL, fem_parproj_weighted_lhs_stencil_1x_tensor_p1, fem_parproj_weighted_lhs_stencil_1x_tensor_p2 },

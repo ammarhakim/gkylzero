@@ -1,8 +1,18 @@
+// Gkyl ------------------------------------------------------------------------
+//
+// Header file for parallel FEM projection operator.
+//
+//    _______     ___
+// + 6 @ |||| # P ||| +
+//------------------------------------------------------------------------------
+
 #pragma once 
 #include <gkyl_util.h> 
 #include <gkyl_mat.h> 
-#include <gkyl_mat_triples.h>
 EXTERN_C_BEG 
+
+// This needs to be inside EXTERN_C 
+#include <gkyl_mat_triples.h>
 
 long fem_parproj_num_nodes_global_1x_ser_p1(const int numCellsPar);
 void fem_parproj_mass_1x_ser_p1(struct gkyl_mat *matout);

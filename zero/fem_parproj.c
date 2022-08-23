@@ -40,12 +40,14 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   gkyl_fem_parproj *up = gkyl_malloc(sizeof(gkyl_fem_parproj));
 
   up->kernels = gkyl_malloc(sizeof(struct gkyl_fem_parproj_kernels));
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu)
+    up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_fem_parproj_kernels));
+  else
+    up->kernels_cu = up->kernels;
+#else
   up->kernels_cu = up->kernels;
- #ifdef GKYL_HAVE_CUDA
-   if (use_gpu) {
-     up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_fem_parproj_kernels));
-   }
- #endif
+#endif
 
   up->ndim = grid->ndim;
   up->grid = *grid;
@@ -243,8 +245,8 @@ gkyl_fem_parproj_solve(gkyl_fem_parproj* up, struct gkyl_array *phiout) {
 void gkyl_fem_parproj_release(gkyl_fem_parproj *up)
 {
 #ifdef GKYL_HAVE_CUDA
-  gkyl_cu_free(up->kernels_cu);
   if (up->use_gpu) {
+    gkyl_cu_free(up->kernels_cu);
     gkyl_cusolver_prob_release(up->prob_cu);
   } else {
     gkyl_superlu_prob_release(up->prob);

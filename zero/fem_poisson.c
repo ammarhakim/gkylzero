@@ -55,11 +55,13 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   gkyl_fem_poisson *up = gkyl_malloc(sizeof(gkyl_fem_poisson));
 
   up->kernels = gkyl_malloc(sizeof(struct gkyl_fem_poisson_kernels));
-  up->kernels_cu = up->kernels;
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
+  if (use_gpu)
     up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_fem_poisson_kernels));
-  }
+  else
+    up->kernels_cu = up->kernels;
+#else
+  up->kernels_cu = up->kernels;
 #endif
 
   up->ndim = grid->ndim;
@@ -303,8 +305,8 @@ void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
     gkyl_free(up->rhs_avg);
   }
 #ifdef GKYL_HAVE_CUDA
-  gkyl_cu_free(up->kernels_cu);
   if (up->use_gpu) {
+    gkyl_cu_free(up->kernels_cu);
     gkyl_cu_free(up->dx_cu);
     if (up->isdomperiodic) gkyl_cu_free(up->rhs_avg_cu);
     gkyl_cu_free(up->bcvals_cu);
