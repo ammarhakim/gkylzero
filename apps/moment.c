@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <float.h>
 #include <math.h>
+#include <stdbool.h>
 #include <string.h>
 
 #include <stc/cstr.h>
@@ -179,6 +180,21 @@ calc_integ_quant(int nc, double vol, const struct gkyl_array *q, const struct gk
     i_func(nc, qcell, integ_out);
     for (int i=0; i<nc; ++i) integ_q[i] += vol*cg->kappa*integ_out[i];
   }
+}
+
+// Check if nan occurs in the array, returning true if they do and
+// false otherwise
+static bool
+check_for_nans(const struct gkyl_array *q, struct gkyl_range update_rng)
+{
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &update_rng);
+  while (gkyl_range_iter_next(&iter)) {
+    const double *qcell = gkyl_array_cfetch(q, gkyl_range_idx(&update_rng, iter.idx));
+    for (int i=0; i<q->ncomp; ++i)
+      if (isnan(qcell[i])) return true;
+  }
+  return false;
 }
 
 // allocate array (filled with zeros)
@@ -1003,7 +1019,8 @@ struct gkyl_update_status
 moment_update(gkyl_moment_app* app, double dt0)
 {
   int ns = app->num_species, ndim = app->ndim;
-
+  bool have_nans_occured = false;
+  
   double dt_suggested = DBL_MAX;
   
   // time-stepper states
@@ -1098,8 +1115,14 @@ moment_update(gkyl_moment_app* app, double dt0)
         state = UPDATE_DONE;
 
         // copy solution in prep for next time-step
-        for (int i=0; i<ns; ++i)
-          gkyl_array_copy(app->species[i].f[0], app->species[i].f[ndim]);
+        for (int i=0; i<ns; ++i) {
+          // check for nans before copying
+          if (check_for_nans(app->species[i].f[ndim], app->local))
+            have_nans_occured = true;
+          else // only copy in case no nans, so old solution can be written out
+            gkyl_array_copy(app->species[i].f[0], app->species[i].f[ndim]);
+        }
+        
         if (app->has_field)
           gkyl_array_copy(app->field.f[0], app->field.f[ndim]);
           
@@ -1122,7 +1145,7 @@ moment_update(gkyl_moment_app* app, double dt0)
   }
 
   return (struct gkyl_update_status) {
-    .success = true,
+    .success = have_nans_occured ? false : true,
     .dt_actual = dt,
     .dt_suggested = dt_suggested,
   };
