@@ -104,7 +104,7 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.2;
+  double tcurr = 0.0, tend = 0.5;
   int nframe = 4;
 
   // create trigger for IO

@@ -75,7 +75,7 @@ struct wv_mhd {
   struct gkyl_wv_eqn eqn; // base object
   double gas_gamma; // gas adiabatic constant
   enum gkyl_wv_mhd_div_constraint divergence_constraint; // divB correction
-  int glm_ch; // factor to use in GLM scheme
+  double glm_ch; // factor to use in GLM scheme
 };
 
 static void
@@ -89,7 +89,7 @@ mhd_free(const struct gkyl_ref_count *ref)
 // Computing waves and waves speeds from Roe linearization.
 // Following Cargo & Gallice 1997 section 4.2.
 static double
-wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+wave_roe(const struct gkyl_wv_eqn *eqn,
   const double *dQ, const double *ql, const double *qr, double *waves, double *ev)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
@@ -360,7 +360,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
 }
 
 static void
-qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+qfluct_roe(const struct gkyl_wv_eqn *eqn,
   const double *ql, const double *qr, const double *waves, const double *s, double *amdq,
   double *apdq)
 {
@@ -375,10 +375,90 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   }
 }
 
+// Computing waves and waves speeds from Lax fluxes
+static double
+wave_lax(const struct gkyl_wv_eqn *eqn,
+  const double *dQ, const double *ql, const double *qr, double *waves, double *ev)
+{
+  const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
+  double gas_gamma = mhd->gas_gamma;  
+
+  double sl = gkyl_mhd_max_abs_speed(gas_gamma, ql);
+  double sr = gkyl_mhd_max_abs_speed(gas_gamma, qr);
+
+  double *wv = &waves[0]; // single wave
+  for (int i=0; i<mhd->eqn.num_equations; ++i)  wv[i] = dQ[i];
+  
+  ev[0] = 0.5*(sl+sr);
+
+  return ev[0];
+}
+
+static void
+qfluct_lax(const struct gkyl_wv_eqn *eqn,
+  const double *ql, const double *qr, const double *waves, const double *s,
+  double *amdq, double *apdq)
+{
+  const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
+  double gas_gamma = mhd->gas_gamma;  
+
+  double sl = gkyl_mhd_max_abs_speed(gas_gamma, ql);
+  double sr = gkyl_mhd_max_abs_speed(gas_gamma, qr);
+  double amax = fmax(sl, sr);
+
+  double fl[10], fr[10];
+  
+  if (mhd->divergence_constraint == GKYL_MHD_DIVB_GLM) {
+    double ch = amax; // Is this right?
+    gkyl_glm_mhd_flux(gas_gamma, ch, ql, fl);
+    gkyl_glm_mhd_flux(gas_gamma, ch, qr, fr);
+  } else {
+    gkyl_mhd_flux(gas_gamma, ql, fl);
+    gkyl_mhd_flux(gas_gamma, qr, fr);
+  }
+
+  for (int i=0; i<mhd->eqn.num_equations; ++i) {
+    amdq[i] = 0.5*(fr[i]-fl[i] - amax*(qr[i]-ql[i]));
+    apdq[i] = 0.5*(fr[i]-fl[i] + amax*(qr[i]-ql[i]));
+  }
+}
+
+static double
+wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX)
+    return wave_roe(eqn, delta, ql, qr, waves, s);
+  else
+    return wave_lax(eqn, delta, ql, qr, waves, s);
+
+  return 0.0; // can't happen
+}
+
+static void
+qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *ql, const double *qr, const double *waves, const double *s,
+  double *amdq, double *apdq)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX)
+    return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
+  else
+    return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
+}
+
 static bool
 check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 {
-  return true; // TODO
+  const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
+  
+  if (q[0] < 0.0)
+    return false;
+
+  double pr = gkyl_mhd_pressure(mhd->gas_gamma, q);
+  if (pr < 0.0)
+    return false;
+
+  return true;
 }
 
 static double
@@ -395,10 +475,12 @@ gkyl_wv_mhd_new(double gas_gamma, enum gkyl_wv_mhd_div_constraint divb)
 
   mhd->eqn.type = GKYL_EQN_MHD;
   mhd->gas_gamma = gas_gamma;
-  mhd->eqn.waves_func = wave_roe;
-  mhd->eqn.qfluct_func = qfluct_roe;
+  mhd->eqn.waves_func = wave;
+  mhd->eqn.qfluct_func = qfluct;
+  
   mhd->eqn.check_inv_func = check_inv;
   mhd->eqn.max_speed_func = max_speed;
+  
   mhd->eqn.rotate_to_local_func = rot_to_local_rect;
   mhd->eqn.rotate_to_global_func = rot_to_global_rect;
 
