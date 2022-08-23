@@ -102,6 +102,9 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu)
   struct gkyl_array *rho = mkarr(basis.num_basis, localRange_ext.volume);
   // create array holding continuous field we'll compute.
   struct gkyl_array *phi = mkarr(basis.num_basis, localRange_ext.volume);
+  // create an array to use as the multiplicative weight.
+  struct gkyl_array *wgt = mkarr(basis.num_basis, localRange_ext.volume);
+  gkyl_array_shiftc0(wgt, sqrt(2.)); // Sets wgt=1.
   // device copies:
   struct gkyl_array *rho_cu, *phi_cu;
   if (use_gpu) {
@@ -117,7 +120,8 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu)
   if (use_gpu) gkyl_array_copy(rho_cu, rho);
 
   // parallel FEM projection method.
-  gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&grid, basis, isperiodic, use_gpu);
+  gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&grid, basis, isperiodic,
+    false, wgt, use_gpu);
 
   // Set the RHS source.
   if (use_gpu)
@@ -136,9 +140,8 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu)
     gkyl_fem_parproj_solve(parproj, phi);
   }
 
-  if (isperiodic) {
+  if (isperiodic)
     apply_periodic_bc(parbuff, phi, dim-1, skin_ghost);
-  }
 //  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_parproj_1x_p2_phi_1.gkyl");
 
   if (poly_order == 1) {
@@ -250,6 +253,7 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu)
   gkyl_proj_on_basis_release(projob);
   gkyl_array_release(rho);
   gkyl_array_release(phi);
+  gkyl_array_release(wgt);
   if (use_gpu) {
     gkyl_array_release(rho_cu);
     gkyl_array_release(phi_cu);
@@ -287,6 +291,9 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
   struct gkyl_array *rho = mkarr(basis.num_basis, localRange_ext.volume);
   // create array holding continuous field we'll compute.
   struct gkyl_array *phi = mkarr(basis.num_basis, localRange_ext.volume);
+  // create an array to use as the multiplicative weight.
+  struct gkyl_array *wgt = mkarr(basis.num_basis, localRange_ext.volume);
+  gkyl_array_shiftc0(wgt, 2.*sqrt(2.)); // Sets wgt=1.
   // device copies:
   struct gkyl_array *rho_cu, *phi_cu;
   if (use_gpu) {
@@ -302,7 +309,8 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
   if (use_gpu) gkyl_array_copy(rho_cu, rho);
 
   // parallel FEM projection method.
-  gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&grid, basis, isperiodic, use_gpu);
+  gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&grid, basis, isperiodic,
+    false, wgt, use_gpu);
 
   // Set the RHS source.
   if (use_gpu)

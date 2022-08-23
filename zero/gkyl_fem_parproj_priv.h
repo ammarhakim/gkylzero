@@ -31,6 +31,47 @@ static const local2global_kern_list ten_loc2glob_list[] = {
   { NULL, fem_parproj_local_to_global_3x_tensor_p1, fem_parproj_local_to_global_3x_tensor_p2 }
 };
 
+// Function pointer type for lhs kernels.
+typedef void (*lhsstencil_t)(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri);
+
+typedef struct { lhsstencil_t kernels[3]; } lhsstencil_kern_list;  // For use in kernel tables.
+
+// Serendipity unweighted lhs kernels.
+GKYL_CU_D
+static const lhsstencil_kern_list ser_lhsstencil_list[] = {
+  { NULL, NULL, NULL }, // No 0D basis functions
+  { NULL, fem_parproj_lhs_stencil_1x_ser_p1, fem_parproj_lhs_stencil_1x_ser_p2 },
+  { NULL, NULL, NULL }, // No 2D basis functions
+  { NULL, fem_parproj_lhs_stencil_3x_ser_p1, fem_parproj_lhs_stencil_3x_ser_p2 }
+};
+
+// Tensor product unweighted lhs kernels.
+GKYL_CU_D
+static const lhsstencil_kern_list ten_lhsstencil_list[] = {
+  { NULL, NULL, NULL }, // No 0D basis functions
+  { NULL, fem_parproj_lhs_stencil_1x_tensor_p1, fem_parproj_lhs_stencil_1x_tensor_p2 },
+  { NULL, NULL, NULL }, // No 2D basis functions
+  { NULL, fem_parproj_lhs_stencil_3x_tensor_p1, fem_parproj_lhs_stencil_3x_tensor_p2 }
+};
+
+// Serendipity weighted lhs kernels.
+GKYL_CU_D
+static const lhsstencil_kern_list ser_wlhsstencil_list[] = {
+  { NULL, NULL, NULL }, // No 0D basis functions
+  { NULL, fem_parproj_weighted_lhs_stencil_1x_ser_p1, fem_parproj_weighted_lhs_stencil_1x_ser_p2 },
+  { NULL, NULL, NULL }, // No 2D basis functions
+  { NULL, fem_parproj_weighted_lhs_stencil_3x_ser_p1, fem_parproj_weighted_lhs_stencil_3x_ser_p2 }
+};
+
+// Tensor product weighted lhs kernels.
+GKYL_CU_D
+static const lhsstencil_kern_list ten_wlhsstencil_list[] = {
+  { NULL, NULL, NULL }, // No 0D basis functions
+  { NULL, fem_parproj_weighted_lhs_stencil_1x_tensor_p1, fem_parproj_weighted_lhs_stencil_1x_tensor_p2 },
+  { NULL, NULL, NULL }, // No 2D basis functions
+  { NULL, fem_parproj_weighted_lhs_stencil_3x_tensor_p1, fem_parproj_weighted_lhs_stencil_3x_tensor_p2 }
+};
+
 // Function pointer type for rhs source kernels.
 typedef void (*srcstencil_t)(const double *rho, long nodeOff, const long *globalIdxs,
   double *bsrc);
@@ -84,7 +125,9 @@ static const solstencil_kern_list ten_solstencil_list[] = {
 struct gkyl_fem_parproj_kernels {
   local2global_t l2g;  // Pointer to local-to-global kernel.
 
-  srcstencil_t srcker;  // RHS source kernels.
+  lhsstencil_t lhsker;  // Weighted LHS kernel.
+
+  srcstencil_t srcker;  // RHS source kernel.
 
   solstencil_t solker;  // Kernel that takes the solution and converts it to modal.
 };
@@ -122,8 +165,6 @@ struct gkyl_fem_parproj {
   struct gkyl_array *brhs_cu;
 #endif
 
-  struct gkyl_mat *local_mass; // local mass matrix.
-
   long *globalidx;
 
   struct gkyl_fem_parproj_kernels *kernels;
@@ -136,7 +177,7 @@ fem_parproj_choose_kernels_cu(const struct gkyl_basis* basis, bool isperiodic, s
 
 GKYL_CU_D
 static local2global_t
-fem_parproj_choose_local2global_kernel(const int dim, const int basis_type, const int poly_order)
+fem_parproj_choose_local2global_kernel(int dim, int basis_type, int poly_order)
 {
   switch (basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -150,8 +191,23 @@ fem_parproj_choose_local2global_kernel(const int dim, const int basis_type, cons
 }
 
 GKYL_CU_D
+static lhsstencil_t
+fem_parproj_choose_lhs_kernel(int dim, int basis_type, int poly_order, bool isweighted)
+{
+  switch (basis_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return isweighted? ser_wlhsstencil_list[dim].kernels[poly_order] : ser_lhsstencil_list[dim].kernels[poly_order]; 
+    case GKYL_BASIS_MODAL_TENSOR:
+      return isweighted? ten_wlhsstencil_list[dim].kernels[poly_order] : ten_lhsstencil_list[dim].kernels[poly_order];
+    default:
+      assert(false);
+      break;
+  }
+}
+
+GKYL_CU_D
 static srcstencil_t
-fem_parproj_choose_srcstencil_kernel(const int dim, const int basis_type, const int poly_order)
+fem_parproj_choose_srcstencil_kernel(int dim, int basis_type, int poly_order)
 {
   switch (basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -166,7 +222,7 @@ fem_parproj_choose_srcstencil_kernel(const int dim, const int basis_type, const 
 
 GKYL_CU_D
 static solstencil_t
-fem_parproj_choose_solstencil_kernel(const int dim, const int basis_type, const int poly_order)
+fem_parproj_choose_solstencil_kernel(int dim, int basis_type, int poly_order)
 {
   switch (basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
