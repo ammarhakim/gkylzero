@@ -188,7 +188,6 @@ gkyl_dg_div_op_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop)
 {
-  int num_basis = basis.num_basis;  
   // allocate memory for use in kernels
   struct gkyl_nmat *A_d = mem->As;
   struct gkyl_nmat *x_d = mem->xs;
@@ -246,7 +245,6 @@ gkyl_dg_div_copy_sol_op_range_cu_kernel(struct gkyl_nmat *xs,
   int c_oop, struct gkyl_array* out, struct gkyl_range range)
 {
   int num_basis = basis.num_basis;
-  int ndim = basis.ndim;
 
   int idx[GKYL_MAX_DIM];
 
@@ -280,7 +278,6 @@ gkyl_dg_div_op_range_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
-  int num_basis = basis.num_basis;    
   // allocate memory for use in kernels
   struct gkyl_nmat *A_d = mem->As;
   struct gkyl_nmat *x_d = mem->xs;
@@ -302,7 +299,6 @@ gkyl_dg_calc_op_range_cu_kernel(struct gkyl_basis basis, int c_oop, struct gkyl_
 {
   int num_basis = basis.num_basis;
   int ndim = basis.ndim;
-  int poly_order = basis.poly_order;
 
   dp_op_t op_func = dg_get_op_func(op);
   double fact = // factor for rescaling return value of op_func

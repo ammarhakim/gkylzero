@@ -670,6 +670,7 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
   gkyl_proj_on_basis_release(projob);
   gkyl_array_release(rho);
   gkyl_array_release(phi);
+  gkyl_array_release(wgt);
   if (use_gpu) {
     gkyl_array_release(rho_cu);
     gkyl_array_release(phi_cu);

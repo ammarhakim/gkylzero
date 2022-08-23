@@ -2,7 +2,7 @@
 #include <gkyl_fem_parproj_priv.h>
 
 static long
-global_num_nodes(const int dim, const int poly_order, const int basis_type, const int parnum_cells)
+global_num_nodes(const int dim, const int poly_order, const enum gkyl_basis_type basis_type, const int parnum_cells)
 {
   if (dim==1) {
     if (poly_order == 1) {
@@ -51,7 +51,7 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 
   up->ndim = grid->ndim;
   up->grid = *grid;
-  up->num_basis = basis.num_basis;
+  up->num_basis  = basis.num_basis;
   up->basis_type = basis.b_type;
   up->poly_order = basis.poly_order;
   up->pardir = grid->ndim-1; // Assume parallel direction is always the last.
@@ -115,9 +115,8 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->kernels->solker = fem_parproj_choose_solstencil_kernel(up->ndim, basis.b_type, up->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu) {
+  if (up->use_gpu)
     fem_parproj_choose_kernels_cu(&basis, up->isperiodic, up->kernels_cu);
-  }
 #endif
 
   // MF 2022/08/23: at the moment we only support weight=/1 for cdim=1. For
@@ -150,17 +149,16 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 
     up->kernels->l2g(up->parnum_cells, paridx, up->globalidx);
 
-    const double *wgt_p = isweighted? gkyl_array_cfetch(weight, isparperiodic? paridx : paridx+1) : NULL;
+    const double *wgt_p = isweighted? (const double *) gkyl_array_cfetch(weight, isparperiodic? paridx : paridx+1) : NULL;
 
     // Apply the wgt*phi*basis stencil.
     up->kernels->lhsker(wgt_p, up->globalidx, tri);
   }
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu) {
+  if (up->use_gpu)
     gkyl_cusolver_amat_from_triples(up->prob_cu, tri);
-  } else {
+  else
     gkyl_superlu_amat_from_triples(up->prob, tri);
-  }
 #else
   gkyl_superlu_amat_from_triples(up->prob, tri);
 #endif
