@@ -83,6 +83,7 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalMhdInit,
 
+    // SHOULD THIS REALLY BE PERIODIC BCS INSTEAD??
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
     .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
