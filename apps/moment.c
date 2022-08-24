@@ -1026,21 +1026,23 @@ gkyl_moment_app_write_field(const gkyl_moment_app* app, double tm, int frame)
 void
 gkyl_moment_app_write_field_energy(gkyl_moment_app *app)
 {
-  // write out field energy
-  cstr fileNm = cstr_from_fmt("%s-field-energy.gkyl", app->name);
+  if (app->has_field) {
+    // write out field energy
+    cstr fileNm = cstr_from_fmt("%s-field-energy.gkyl", app->name);
 
-  if (app->field.is_first_energy_write_call) {
-    // write to a new file (this ensure previous output is removed)
-    gkyl_dynvec_write(app->field.integ_energy, fileNm.str);
-    app->field.is_first_energy_write_call = false;
+    if (app->field.is_first_energy_write_call) {
+      // write to a new file (this ensure previous output is removed)
+      gkyl_dynvec_write(app->field.integ_energy, fileNm.str);
+      app->field.is_first_energy_write_call = false;
+    }
+    else {
+      // append to existing file
+      gkyl_dynvec_awrite(app->field.integ_energy, fileNm.str);
+    }
+    gkyl_dynvec_clear(app->field.integ_energy);
+    
+    cstr_drop(&fileNm);
   }
-  else {
-    // append to existing file
-    gkyl_dynvec_awrite(app->field.integ_energy, fileNm.str);
-  }
-  gkyl_dynvec_clear(app->field.integ_energy);
-
-  cstr_drop(&fileNm);
 }
 
 void
@@ -1240,10 +1242,12 @@ gkyl_moment_update(gkyl_moment_app* app, double dt)
 void
 gkyl_moment_app_calc_field_energy(gkyl_moment_app* app, double tm)
 {
-  double energy[6] = { 0.0 };
-  calc_integ_quant(6, app->grid.cellVolume, app->field.f[0], app->geom,
-    app->local, integ_sq, energy);
-  gkyl_dynvec_append(app->field.integ_energy, tm, energy);
+  if (app->has_field) {
+    double energy[6] = { 0.0 };
+    calc_integ_quant(6, app->grid.cellVolume, app->field.f[0], app->geom,
+      app->local, integ_sq, energy);
+    gkyl_dynvec_append(app->field.integ_energy, tm, energy);
+  }
 }
 
 void
@@ -1294,7 +1298,7 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
     for (int i=0; i<app->num_species; ++i) {
       for (int d=0; d<app->ndim; ++d) {
         struct gkyl_wave_prop_stats wvs = gkyl_wave_prop_stats(app->species[i].slvr[d]);
-        fprintf(fp, " %s_n_bad_advance_calls[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_advance_calls);
+        fprintf(fp, " %s_n_bad_1D_sweeps[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_advance_calls);
         fprintf(fp, " %s_n_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_cells);
         fprintf(fp, " %s_n_max_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_max_bad_cells);
       }

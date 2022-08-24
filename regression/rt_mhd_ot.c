@@ -73,7 +73,7 @@ main(int argc, char **argv)
   struct mhd_ctx ctx = mhd_ctx(); // context for init functions
 
   // equation object
-  const struct wv_mhd_inp inp = {
+  const struct gkyl_wv_mhd_inp inp = {
     .gas_gamma = ctx.gas_gamma,
     .divergence_constraint = GKYL_MHD_DIVB_GLM,
     .glm_ch = 0,
