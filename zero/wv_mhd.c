@@ -338,8 +338,15 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   // GLM divB and psi waves; XXX set ch properly.
   if (mhd->divergence_constraint == GKYL_MHD_DIVB_GLM)
   {
-    // ch = eqn->glm_ch;
-    double ch = max_speed;  // cfl * min(dx, dy, dz) / dt
+    double ch;
+    if (mhd->glm_ch > 0)
+      ch = mhd->glm_ch;
+    else
+      // candidates:
+      // 1. Dedner (2002) sec 4: cfl * min(dx, dy, dz) / dt
+      // 2. Derigs (2018) eq 3.30: max_speed_global - max_global(|u|, |v|, |w|)
+      // 3. local version of 2; needs to store ch for the source step
+      ch = max_speed;
 
     ev[7] = -ch;
     eta[7] = 0.5 * (-dQ[BX]*ch+dQ[PSI_GLM]);
@@ -469,12 +476,12 @@ max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_mhd_new(double gas_gamma, enum gkyl_wv_mhd_div_constraint divb)
+gkyl_wv_mhd_new(const struct wv_mhd_inp *inp)
 {
   struct wv_mhd *mhd = gkyl_malloc(sizeof(struct wv_mhd));
 
   mhd->eqn.type = GKYL_EQN_MHD;
-  mhd->gas_gamma = gas_gamma;
+  mhd->gas_gamma = inp->gas_gamma;
   mhd->eqn.waves_func = wave;
   mhd->eqn.qfluct_func = qfluct;
   
@@ -484,8 +491,8 @@ gkyl_wv_mhd_new(double gas_gamma, enum gkyl_wv_mhd_div_constraint divb)
   mhd->eqn.rotate_to_local_func = rot_to_local_rect;
   mhd->eqn.rotate_to_global_func = rot_to_global_rect;
 
-  mhd->divergence_constraint = divb;
-  switch (divb) {
+  mhd->divergence_constraint = inp->divergence_constraint;
+  switch (inp->divergence_constraint) {
     case GKYL_MHD_DIVB_NONE:
       mhd->eqn.num_equations = 8;
       mhd->eqn.num_waves = 7;
@@ -501,6 +508,7 @@ gkyl_wv_mhd_new(double gas_gamma, enum gkyl_wv_mhd_div_constraint divb)
       mhd->eqn.num_waves = 9;
       mhd->eqn.rotate_to_local_func = rot_to_local_rect_glm;
       mhd->eqn.rotate_to_global_func = rot_to_global_rect_glm;
+      mhd->glm_ch = inp->glm_ch;
       break;
   }
 
