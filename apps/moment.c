@@ -17,6 +17,7 @@
 #include <gkyl_fv_proj.h>
 #include <gkyl_moment.h>
 #include <gkyl_moment_em_coupling.h>
+#include <gkyl_mhd_src.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
@@ -27,6 +28,7 @@
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_maxwell.h>
 #include <gkyl_wv_ten_moment.h>
+#include <gkyl_wv_mhd.h>
 
 // ranges for use in BCs
 struct skin_ghost_ranges {
@@ -109,6 +111,10 @@ struct moment_coupling {
   gkyl_moment_em_coupling *slvr; // source solver function
 };
 
+struct mhd_src {
+  gkyl_mhd_src *slvr; // source solver function
+};
+
 // Moment app object: used as opaque pointer in user code
 struct gkyl_moment_app {
   char name[128]; // name of app
@@ -144,7 +150,10 @@ struct gkyl_moment_app {
 
   int update_sources; // flag to indicate if sources are to be updated
   struct moment_coupling sources; // sources
-    
+
+  int update_mhd_source;
+  struct mhd_src mhd_source;
+
   struct gkyl_moment_stat stat; // statistics
 };
 
@@ -790,6 +799,53 @@ moment_coupling_release(const struct moment_coupling *src)
   gkyl_moment_em_coupling_release(src->slvr);
 }
 
+/** mhd_src functions */
+
+static 
+void
+mhd_src_init(const struct gkyl_moment_app *app, struct mhd_src *src)
+{
+  const struct gkyl_wv_eqn *mhd_eqn = app->species[0].slvr[0]->equation;
+  const struct wv_mhd *mhd = container_of(mhd_eqn, struct wv_mhd, eqn);
+  struct gkyl_mhd_src_inp src_inp = {
+    .grid = &app->grid,
+    .divergence_constraint = mhd->divergence_constraint,
+    .glm_ch = mhd->glm_ch,
+    .glm_cp = 0,
+  };
+
+  src->slvr = gkyl_mhd_src_new(src_inp);
+}
+
+// update sources: 'nstrang' is 0 for the first Strang step and 1 for
+// the second step
+static 
+void
+mhd_src_update(gkyl_moment_app *app, struct mhd_src *src, int nstrang,
+               double tcurr, double dt)
+{
+  int sidx[] = { 0, app->ndim };
+  int i = 0; // mhd has only one 'species'
+  struct gkyl_array *fluid = app->species[i].f[sidx[nstrang]];
+
+  if (app->species[i].proj_app_accel)
+    gkyl_fv_proj_advance(app->species[i].proj_app_accel, tcurr, &app->local,
+                         app->species[i].app_accel);
+
+  gkyl_mhd_src_advance(src->slvr, dt, &app->local, fluid,
+                       app->species[i].app_accel);
+
+  moment_species_apply_bc(app, tcurr, &app->species[i], fluid);
+
+}
+
+static 
+void
+mhd_src_release(const struct mhd_src *src)
+{
+  gkyl_mhd_src_release(src->slvr);
+}
+
 /** app methods */
 
 gkyl_moment_app*
@@ -876,6 +932,12 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   if (app->has_field && ns>0) {
     app->update_sources = 1; // only update if field and species are present
     moment_coupling_init(app, &app->sources);
+  }
+
+  app->update_mhd_source = false;
+  if (ns==1 && app->species[0].eqn_type==GKYL_EQN_MHD) {
+    app->update_mhd_source = true;
+    mhd_src_init(app, &app->mhd_source);
   }
 
   // initialize stat object to all zeros
@@ -1058,6 +1120,11 @@ moment_update(gkyl_moment_app* app, double dt0)
           moment_coupling_update(app, &app->sources, 0, tcurr, dt/2);
           app->stat.sources_tm += gkyl_time_diff_now_sec(src1_tm);
         }
+        if (app->update_mhd_source) {
+          struct timespec src1_tm = gkyl_wall_clock();
+          mhd_src_update(app, &app->mhd_source, 0, tcurr, dt/2);
+          app->stat.sources_tm += gkyl_time_diff_now_sec(src1_tm);
+        }
             
         break;
 
@@ -1106,6 +1173,11 @@ moment_update(gkyl_moment_app* app, double dt0)
         if (app->update_sources) {
           struct timespec src2_tm = gkyl_wall_clock();
           moment_coupling_update(app, &app->sources, 1, tcurr, dt/2);
+          app->stat.sources_tm += gkyl_time_diff_now_sec(src2_tm);
+        }
+        if (app->update_mhd_source) {
+          struct timespec src2_tm = gkyl_wall_clock();
+          mhd_src_update(app, &app->mhd_source, 0, tcurr, dt/2);
           app->stat.sources_tm += gkyl_time_diff_now_sec(src2_tm);
         }
 
@@ -1244,6 +1316,9 @@ gkyl_moment_app_release(gkyl_moment_app* app)
 
   if (app->update_sources)
     moment_coupling_release(&app->sources);
+
+  if (app->update_mhd_source)
+    mhd_src_release(&app->mhd_source);
 
   gkyl_wave_geom_release(app->geom);
 
