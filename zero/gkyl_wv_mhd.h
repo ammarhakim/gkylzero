@@ -9,6 +9,13 @@ enum gkyl_wv_mhd_div_constraint {
   GKYL_MHD_DIVB_GLM
 };
 
+struct wv_mhd {
+  struct gkyl_wv_eqn eqn; // base object
+  double gas_gamma; // gas adiabatic constant
+  enum gkyl_wv_mhd_div_constraint divergence_constraint; // divB correction
+  double glm_ch; // factor to use in GLM scheme
+};
+
 struct wv_mhd_inp {
   double gas_gamma; // gas adiabatic constant
   enum gkyl_wv_mhd_div_constraint divergence_constraint; // divB correction
