@@ -811,7 +811,7 @@ mhd_src_init(const struct gkyl_moment_app *app, struct mhd_src *src)
     .grid = &app->grid,
     .divergence_constraint = mhd->divergence_constraint,
     .glm_ch = mhd->glm_ch,
-    .glm_cp = 0,
+    .glm_cp = mhd->glm_cp,
   };
 
   src->slvr = gkyl_mhd_src_new(src_inp);

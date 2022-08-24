@@ -14,12 +14,14 @@ struct wv_mhd {
   double gas_gamma; // gas adiabatic constant
   enum gkyl_wv_mhd_div_constraint divergence_constraint; // divB correction
   double glm_ch; // factor to use in GLM scheme
+  double glm_cp; // factor to use in GLM scheme
 };
 
 struct wv_mhd_inp {
   double gas_gamma; // gas adiabatic constant
   enum gkyl_wv_mhd_div_constraint divergence_constraint; // divB correction
   double glm_ch; // factor to use in GLM scheme
+  double glm_cp; // factor to use in GLM scheme
 };
 
 /**
