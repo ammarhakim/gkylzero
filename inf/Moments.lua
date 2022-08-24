@@ -552,6 +552,11 @@ _M.Euler = function(tbl)
    return ffi.gc(C.gkyl_wv_euler_new(tbl.gasGamma), C.gkyl_wv_eqn_release)
 end
 
+-- Isothermal Eiler equation
+_M.IsoEuler = function(tbl)
+   return ffi.gc(C.gkyl_wv_iso_euler_new(tbl.vthermal), C.gkyl_wv_eqn_release)
+end
+
 -- Wraps user given init function in a function that can be passed to
 -- the C callback APIs
 local function gkyl_eval_moment(func)
@@ -905,7 +910,7 @@ local app_mt = {
 	 io.write(string.format("  tstart: %.6e. tend: %.6e\n", 0.0, self.tend))
 	 self:init()
 	 self:calcIntegratedMom(0.0)
-	 self:calcFieldEnergy(0.0)	 
+	 self:calcFieldEnergy(0.0)
 	 writeData(0.0)
 
 	 local tcurr, tend = 0.0, self.tend

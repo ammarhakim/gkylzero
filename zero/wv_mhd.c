@@ -476,7 +476,7 @@ max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_mhd_new(const struct wv_mhd_inp *inp)
+gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
 {
   struct wv_mhd *mhd = gkyl_malloc(sizeof(struct wv_mhd));
 

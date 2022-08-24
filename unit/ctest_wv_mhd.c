@@ -18,7 +18,10 @@ void
 test_mhd_basic()
 {
   double gas_gamma = 1.4;
-  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(gas_gamma, GKYL_MHD_DIVB_NONE);
+  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new( &(struct gkyl_wv_mhd_inp) {
+      .gas_gamma = gas_gamma,
+      .divergence_constraint = GKYL_MHD_DIVB_NONE
+    });
 
   TEST_CHECK( mhd->num_equations == 8 );
   TEST_CHECK( mhd->num_waves == 7 );
@@ -84,7 +87,10 @@ void
 test_mhd_waves()
 {
   double gas_gamma = 5.0/3.0;
-  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(gas_gamma, GKYL_MHD_DIVB_NONE);
+  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new( &(struct gkyl_wv_mhd_inp) {
+      .gas_gamma = gas_gamma,
+      .divergence_constraint = GKYL_MHD_DIVB_NONE
+    });
 
   double ql[8], qr[8];
   double ql_local[8], qr_local[8];
@@ -151,7 +157,10 @@ void
 test_mhd_waves_2()
 {
   double gas_gamma = 5.0/3.0;
-  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(gas_gamma, GKYL_MHD_DIVB_NONE);
+  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new( &(struct gkyl_wv_mhd_inp) {
+      .gas_gamma = gas_gamma,
+      .divergence_constraint = GKYL_MHD_DIVB_NONE
+    });
 
   double ql[8], qr[8];
   double ql_local[8], qr_local[8];
@@ -218,7 +227,11 @@ void
 test_mhd_waves_3()
 {
   double gas_gamma = 5.0/3.0;
-  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(gas_gamma, GKYL_MHD_DIVB_GLM);
+  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new( &(struct gkyl_wv_mhd_inp) {
+      .gas_gamma = gas_gamma,
+      .divergence_constraint = GKYL_MHD_DIVB_GLM,
+      .glm_ch = 1.0
+    });
 
   double ql[9], qr[9];
   double ql_local[9], qr_local[9];
