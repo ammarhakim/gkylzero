@@ -36,7 +36,7 @@ evalMhdInit(double t, const double* GKYL_RESTRICT xn,
   double vy = sin(2*M_PI*x);
   double vz = 0;
   double B0 = 1/sqrt(4*M_PI);
-  double Bx = -B0*sin(4*M_PI*x);
+  double Bx = -B0*sin(2*M_PI*x);
   double By = B0*sin(4*M_PI*y);
   double Bz = 0;
   double v[8] = {rho, vx, vy, vz, p, Bx, By, Bz};
@@ -73,7 +73,12 @@ main(int argc, char **argv)
   struct mhd_ctx ctx = mhd_ctx(); // context for init functions
 
   // equation object
-  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(ctx.gas_gamma, GKYL_MHD_DIVB_GLM);
+  const struct wv_mhd_inp inp = {
+    .gas_gamma = ctx.gas_gamma,
+    .divergence_constraint = GKYL_MHD_DIVB_GLM,
+    .glm_ch = 0,
+  };
+  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(&inp);
 
   struct gkyl_moment_species fluid = {
     .name = "mhd",
