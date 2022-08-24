@@ -116,7 +116,7 @@ wave_lax(const struct gkyl_wv_eqn *eqn,
   double sr = gkyl_iso_euler_max_abs_speed(vt, qr);
 
   double *wv = &waves[0]; // single wave
-  for (int i=0; i<5; ++i)  wv[i] = delta[i];
+  for (int i=0; i<4; ++i)  wv[i] = delta[i];
 
   s[0] = 0.5*(sl+sr);
   
