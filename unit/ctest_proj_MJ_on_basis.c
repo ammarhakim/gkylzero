@@ -132,8 +132,7 @@ test_1x1v(int poly_order)
   gkyl_proj_MJ_on_basis *proj_MJ = gkyl_proj_MJ_on_basis_new(&grid,
     &confBasis, &basis, poly_order+1, mass);
 
-  gkyl_proj_MJ_on_basis_lab_mom(proj_MJ, local, confLocal, m0, m1i, m2, &grid,
-    &confBasis, &basis, distf);
+  gkyl_proj_MJ_on_basis_lab_mom(proj_MJ, &local, &confLocal, m0, m1i, m2, distf);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p1_vals[] = {  7.5585421616306459e-01, -2.1688605007995894e-17,  2.5560131294504802e-02,
@@ -243,8 +242,7 @@ test_1x2v(int poly_order)
   gkyl_proj_MJ_on_basis *proj_MJ = gkyl_proj_MJ_on_basis_new(&grid,
     &confBasis, &basis, poly_order+1, mass);
 
-  gkyl_proj_MJ_on_basis_lab_mom(proj_MJ, local, confLocal, m0, m1i, m2, &grid,
-    &confBasis, &basis, distf);
+  gkyl_proj_MJ_on_basis_lab_mom(proj_MJ, &local, &confLocal, m0, m1i, m2, distf);
 
   // values to compare  at index (1, 9, 9) [remember, lower-left index is (1,1,1)]
   double p1_vals[] = {  4.2319425948079414e-01,  1.2894963939286889e-17,  1.1450235276582092e-02,

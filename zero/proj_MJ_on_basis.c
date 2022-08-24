@@ -32,7 +32,7 @@ struct gkyl_proj_MJ_on_basis {
   struct gkyl_array *conf_weights; // weights for conf-space quadrature
   struct gkyl_array *conf_basis_at_ords; // conf-space basis functions at ordinates
 
-  struct gkyl_dg_bin_op_mem *K2_scaling; //Memory for weak division
+  struct gkyl_dg_bin_op_mem *mem_for_div_op; //Memory for weak division
   double mass; //Needs to be passed to the init routine
 };
 
@@ -157,10 +157,8 @@ copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 
 void
 gkyl_proj_MJ_on_basis_lab_mom(const gkyl_proj_MJ_on_basis *up,
-  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
+  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
   const struct gkyl_array *M0, const struct gkyl_array *M1i, const struct gkyl_array *M2,
-  const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
   struct gkyl_array *f_MJ)
 {
   int cdim = up->cdim, pdim = up->pdim;
@@ -189,16 +187,16 @@ gkyl_proj_MJ_on_basis_lab_mom(const gkyl_proj_MJ_on_basis *up,
   struct gkyl_range_iter conf_iter, vel_iter;
 
   int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
-  for (int d=0; d<conf_rng.ndim; ++d) rem_dir[d] = 1;
+  for (int d=0; d<conf_rng->ndim; ++d) rem_dir[d] = 1;
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
   double num[tot_conf_quad], vel[tot_conf_quad][vdim], T[tot_conf_quad];
 
   // outer loop over configuration space cells; for each
   // config-space cell inner loop walks over velocity space
-  gkyl_range_iter_init(&conf_iter, &conf_rng);
+  gkyl_range_iter_init(&conf_iter, conf_rng);
   while (gkyl_range_iter_next(&conf_iter)) {
-    long midx = gkyl_range_idx(&conf_rng, conf_iter.idx);
+    long midx = gkyl_range_idx(conf_rng, conf_iter.idx);
 
     const double *M0_d = gkyl_array_cfetch(M0, midx);
     const double *M1i_d = gkyl_array_cfetch(M1i, midx);
@@ -238,11 +236,11 @@ gkyl_proj_MJ_on_basis_lab_mom(const gkyl_proj_MJ_on_basis *up,
     }
 
     // inner loop over velocity space
-    gkyl_range_deflate(&vel_rng, &phase_rng, rem_dir, conf_iter.idx);
+    gkyl_range_deflate(&vel_rng, phase_rng, rem_dir, conf_iter.idx);
     gkyl_range_iter_no_split_init(&vel_iter, &vel_rng);
     while (gkyl_range_iter_next(&vel_iter)) {
 
-      copy_idx_arrays(conf_rng.ndim, phase_rng.ndim, conf_iter.idx, vel_iter.idx, pidx);
+      copy_idx_arrays(conf_rng->ndim, phase_rng->ndim, conf_iter.idx, vel_iter.idx, pidx);
       gkyl_rect_grid_cell_center(&up->grid, pidx, xc);
 
       struct gkyl_range_iter qiter;
@@ -289,7 +287,7 @@ gkyl_proj_MJ_on_basis_lab_mom(const gkyl_proj_MJ_on_basis *up,
       long lidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
       proj_on_basis(up, fun_at_ords, gkyl_array_fetch(f_MJ, lidx));
     }
-
+  }
 
       // To do list:
       // *** Need to compute: the integral N_Unnorm = int(f*dv)
@@ -307,38 +305,32 @@ gkyl_proj_MJ_on_basis_lab_mom(const gkyl_proj_MJ_on_basis *up,
       //struct gkyl_basis phasebasis = *phase_basis;
       //struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_sr_new(&confbasis, &phasebasis, &vel_rng, "M0");
 
-      if(0){
-      //Make a temporary basis for phase_basis
-      struct gkyl_basis phasebasis;
-      gkyl_cart_modal_serendip(&phasebasis, up->pdim, up->num_phase_basis);
+      // --> Uncomment this block for my attempt at normalization
+      // //Make a temporary basis for phase_basis
+      // struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_sr_new(up->conf_basis_at_ords, up->basis_at_ords, &vel_rng, "M0");
+      //
+      // gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&up->grid, vmM0_t);
+      //   // b. Then call the advance method: gkyl_mom_calc_advance
+      // struct gkyl_array* m0 = gkyl_array_new(GKYL_DOUBLE, &up->num_conf_basis, conf_rng.volume);
+      // struct gkyl_array* norm_factor = gkyl_array_new(GKYL_DOUBLE, &up->num_conf_basis, conf_rng.volume);
+      // gkyl_mom_calc_advance(m0calc, &phase_rng, &conf_rng, f_MJ, m0);
+      //   // c. Release the memory with: gkyl_mom_calc_new_release ( see the end)
+      //
+      // //2. Call gkyl_dg_div_op, we want to find the factor to multiply by: norm_factor = M0/m0 (actual over calculated)
+      // struct gkyl_dg_bin_op_mem *mem_for_div_op = gkyl_dg_bin_op_mem_new(f_MJ->size, up->num_phase_basis);
+      // gkyl_dg_div_op(mem_for_div_op, &up->basis_at_ords, 0, M0, 0, m0, 0, norm_factor); //
+      //
+      // //3. Call dg_bin_op_comp_phase_multi (takes factor from step 2. and f_MJ)
+      // gkyl_dg_mul_op(&up->basis_at_ords, 0, f_MJ, 0, norm_factor, 0, f_MJ); // &num[midx] changed to --> local_num
+      //
+      // // Extra: don't forget to free memory
+      // gkyl_array_release(m0);
+      // gkyl_array_release(norm_factor);
+      // gkyl_mom_type_release(vmM0_t);
+      // gkyl_mom_calc_release(m0calc);
+      // gkyl_dg_bin_op_mem_release(mem_for_div_op);
 
-      struct gkyl_basis confbasis;
-      gkyl_cart_modal_serendip(&confbasis, up->cdim, up->num_conf_basis);
 
-      struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_sr_new(&confbasis, &phasebasis, &vel_rng, "M0");
-
-      gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&up->grid, vmM0_t);
-        // b. Then call the advance method: gkyl_mom_calc_advance
-      //m0 = mkarr(confbasis.num_basis, confLocal_ext.volume); // --> replace with gkyl_array
-      struct gkyl_array* m0 = gkyl_array_new(GKYL_DOUBLE, confbasis.num_basis, 1); // Size 1 since it's done cell by cell
-      gkyl_mom_calc_advance(m0calc, &phase_rng, &conf_rng, f_MJ, m0);
-        // c. Release the memory with: gkyl_mom_calc_new_release ( see the end)
-
-      //2. Call gkyl_dg_div_op, first input density factor, second input is the numerator f_MJ, thrid arguements is the proper density
-      struct gkyl_dg_bin_op_mem *K2_scaling = gkyl_dg_bin_op_mem_new(f_MJ->size, phasebasis.num_basis);
-      gkyl_dg_div_op(K2_scaling, phasebasis, 0, f_MJ, 0, m0, 0, f_MJ); // Can I use F_MJ as both input and output?
-
-      //3. Call dg_bin_op_comp_phase_multi (takes factor from step 2. and f_MJ)
-      struct gkyl_array *local_num = &num[midx]; // Not accepting the type
-      gkyl_dg_mul_op(phasebasis, 0, f_MJ, 0, local_num, 0, f_MJ); // &num[midx] changed to --> local_num
-
-      // Extra: don't forget to free memory
-      gkyl_array_release(m0);
-      gkyl_array_release(local_num);
-      gkyl_mom_type_release(vmM0_t);
-      gkyl_mom_calc_release(m0calc);
-      gkyl_dg_bin_op_mem_release(K2_scaling);
-    }
 
       //Outstanding questions
       //Does gkyl_dg_mult_op need to be moved up or down a loop (is it all calc. simult)?
@@ -346,7 +338,6 @@ gkyl_proj_MJ_on_basis_lab_mom(const gkyl_proj_MJ_on_basis *up,
       //Does assert() call abort()?
         // Why would there be an assert for:
         // Assertion failed: (cbasis->poly_order == pbasis->poly_order), function gkyl_mom_vlasov_sr_new, file zero/mom_vlasov_sr.c, line 39.
-  }
 
   gkyl_array_release(fun_at_ords);
 }
