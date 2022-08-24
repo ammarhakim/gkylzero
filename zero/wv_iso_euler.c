@@ -39,7 +39,7 @@ rot_to_global(const double *tau1, const double *tau2, const double *norm,
 
 // Waves and speeds using Roe averaging
 static double
-wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+wave_roe(const struct gkyl_wv_eqn *eqn,
   const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
   const struct wv_iso_euler *iso_euler = container_of(eqn, struct wv_iso_euler, eqn);
@@ -90,7 +90,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
 }
 
 static void
-qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+qfluct_roe(const struct gkyl_wv_eqn *eqn,
   const double *ql, const double *qr, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
@@ -104,10 +104,74 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   }
 }
 
+// Waves and speeds using Lax fluxes
+static double
+wave_lax(const struct gkyl_wv_eqn *eqn,
+  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+{
+  const struct wv_iso_euler *iso_euler = container_of(eqn, struct wv_iso_euler, eqn);
+  double vt = iso_euler->vt;
+  
+  double sl = gkyl_iso_euler_max_abs_speed(vt, ql);
+  double sr = gkyl_iso_euler_max_abs_speed(vt, qr);
+
+  double *wv = &waves[0]; // single wave
+  for (int i=0; i<5; ++i)  wv[i] = delta[i];
+
+  s[0] = 0.5*(sl+sr);
+  
+  return s[0];
+}
+
+static void
+qfluct_lax(const struct gkyl_wv_eqn *eqn,
+  const double *ql, const double *qr, const double *waves, const double *s,
+  double *amdq, double *apdq)
+{
+  const struct wv_iso_euler *iso_euler = container_of(eqn, struct wv_iso_euler, eqn);
+  double vt = iso_euler->vt;
+  
+  double sl = gkyl_iso_euler_max_abs_speed(vt, ql);
+  double sr = gkyl_iso_euler_max_abs_speed(vt, qr);
+  double amax = fmax(sl, sr);
+
+  double fl[4], fr[4];
+  gkyl_iso_euler_flux(vt, ql, fl);
+  gkyl_iso_euler_flux(vt, qr, fr);
+
+  for (int i=0; i<4; ++i) {
+    amdq[i] = 0.5*(fr[i]-fl[i] - amax*(qr[i]-ql[i]));
+    apdq[i] = 0.5*(fr[i]-fl[i] + amax*(qr[i]-ql[i]));
+  }
+}
+
+static double
+wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX)
+    return wave_roe(eqn, delta, ql, qr, waves, s);
+  else
+    return wave_lax(eqn, delta, ql, qr, waves, s);
+
+  return 0.0; // can't happen
+}
+
+static void
+qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *ql, const double *qr, const double *waves, const double *s,
+  double *amdq, double *apdq)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX)
+    return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
+  else
+    return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
+}
+
 static bool
 check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 {
-  return q[0] > 0.0; // denisty should be positive
+  return q[0] > 0.0; // density should be positive
 }
 
 static double
@@ -126,10 +190,12 @@ gkyl_wv_iso_euler_new(double vt)
   iso_euler->eqn.num_equations = 4;
   iso_euler->eqn.num_waves = 3;
   iso_euler->vt = vt;
-  iso_euler->eqn.waves_func = wave_roe;
-  iso_euler->eqn.qfluct_func = qfluct_roe;
+  iso_euler->eqn.waves_func = wave;
+  iso_euler->eqn.qfluct_func = qfluct;
+  
   iso_euler->eqn.check_inv_func = check_inv;
   iso_euler->eqn.max_speed_func = max_speed;
+  
   iso_euler->eqn.rotate_to_local_func = rot_to_local;
   iso_euler->eqn.rotate_to_global_func = rot_to_global;
 
