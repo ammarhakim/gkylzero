@@ -25,6 +25,31 @@ struct gkyl_wave_prop_status {
 };
 
 // Object type for updater
+struct gkyl_wave_prop {
+  struct gkyl_rect_grid grid; // grid object
+  int ndim; // number of dimensions
+  int num_up_dirs; // number of update directions
+  int update_dirs[GKYL_MAX_DIM]; // directions to update
+  enum gkyl_wave_limiter limiter; // limiter to use
+  double cfl; // CFL number
+  const struct gkyl_wv_eqn *equation; // equation object
+
+  bool force_low_order_flux; // only use Lax flux
+  bool check_inv_domain; // flag to indicate if invariant domains are checked
+
+  struct gkyl_wave_geom *geom; // geometry object
+  // data for 1D slice update
+  struct gkyl_array *waves, *apdq, *amdq, *speeds, *flux2;
+  // flags to indicate if fluctuations should be recomputed
+  struct gkyl_array *redo_fluct;
+
+  // some stats
+  long n_calls; // number of calls to updater
+  long n_bad_advance_calls; // number of calls in which positivity had to be fixed
+  long n_bad_cells; // number  of cells fixed
+  long n_max_bad_cells; // maximum number of cells fixed in a call
+};
+
 typedef struct gkyl_wave_prop gkyl_wave_prop;
 
 // Parameters for constructor
