@@ -79,7 +79,7 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[6] = 0.0; fout[7] = 0.0;
 }
 
-struct bc_ext_ctx bc_ctx = { .gain = 1.0 };
+struct bc_ext_ctx bc_ctx = { .gain = 0.90 };
 
 struct sheath_ctx
 create_ctx(void)

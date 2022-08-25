@@ -1,6 +1,6 @@
 #include <gkyl_bc_basic.h>
 #include <gkyl_bc_basic_priv.h>
-#include <gkyl_bc_emission.h>
+#include <gkyl_bc_external.h>
 #include <gkyl_alloc.h>
 
 // Private function to create a pointer to the function that applies the BC,
@@ -19,6 +19,7 @@ gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bc
   ctx->dir = dir;
   ctx->cdim = cdim;
   ctx->ncomp = ncomp;
+  ctx->external_field = gkyl_bc_external_new(bc_params, bctype, use_gpu);
 
   struct gkyl_array_copy_func *fout = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
   switch (bctype) {
@@ -35,7 +36,6 @@ gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bc
       break;
 
     case GKYL_BC_GAIN:
-      ctx->external_field = gkyl_bc_emission_new(bc_params, bctype, use_gpu);
       fout->func = species_gain_bc;
       break;
       
@@ -112,7 +112,7 @@ void gkyl_bc_basic_release(struct gkyl_bc_basic *up)
     gkyl_cu_free(up->array_copy_func->ctx_on_dev);
     gkyl_cu_free(up->array_copy_func->on_dev);
   }
-  gkyl_bc_emission_release(((struct dg_bc_ctx*) up->array_copy_func->ctx)->external_field);
+  gkyl_bc_external_release(((struct dg_bc_ctx*) up->array_copy_func->ctx)->external_field);
   gkyl_free(up->array_copy_func->ctx);
   gkyl_free(up->array_copy_func);
   // Release updater memory.
