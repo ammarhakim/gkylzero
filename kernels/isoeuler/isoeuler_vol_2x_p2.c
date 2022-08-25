@@ -23,8 +23,8 @@ GKYL_CU_DH double isoeuler_vol_2x_ser_p2(const double *w, const double *dxv, con
 
   double vthsq = vth*vth; 
   double alpha_mid = 0.0; 
-  alpha_mid += 0.5*dx10*(fabs(0.5*uvar0[0]-0.5590169943749475*(uvar0[5]+uvar0[4]))+sqrt((5*vthsq)/(3*(0.5*rho[0]-0.5590169943749475*(rho[5]+rho[4]))))); 
-  alpha_mid += 0.5*dx11*(fabs(0.5*uvar1[0]-0.5590169943749475*(uvar1[5]+uvar1[4]))+sqrt((5*vthsq)/(3*(0.5*rho[0]-0.5590169943749475*(rho[5]+rho[4]))))); 
+  alpha_mid += 0.5*dx10*(fabs(0.5*uvar0[0]-0.5590169943749475*(uvar0[5]+uvar0[4]))+sqrt(vthsq)); 
+  alpha_mid += 0.5*dx11*(fabs(0.5*uvar1[0]-0.5590169943749475*(uvar1[5]+uvar1[4]))+sqrt(vthsq)); 
 
   outrho[1] += 0.8660254037844386*rho[7]*rhou0[7]*dx10+0.8660254037844386*rho[6]*rhou0[6]*dx10+0.8660254037844386*rho[5]*rhou0[5]*dx10+0.8660254037844386*rho[4]*rhou0[4]*dx10+0.8660254037844386*rho[3]*rhou0[3]*dx10+0.8660254037844386*rho[2]*rhou0[2]*dx10+0.8660254037844386*rho[1]*rhou0[1]*dx10+0.8660254037844386*rho[0]*rhou0[0]*dx10; 
   outrho[2] += 0.8660254037844386*rho[7]*rhou1[7]*dx11+0.8660254037844386*rho[6]*rhou1[6]*dx11+0.8660254037844386*rho[5]*rhou1[5]*dx11+0.8660254037844386*rho[4]*rhou1[4]*dx11+0.8660254037844386*rho[3]*rhou1[3]*dx11+0.8660254037844386*rho[2]*rhou1[2]*dx11+0.8660254037844386*rho[1]*rhou1[1]*dx11+0.8660254037844386*rho[0]*rhou1[0]*dx11; 
