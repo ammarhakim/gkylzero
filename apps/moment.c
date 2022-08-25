@@ -483,8 +483,10 @@ moment_species_update(const gkyl_moment_app *app,
       if (mhd->divergence_constraint==GKYL_MHD_DIVB_GLM) {
         mhd->glm_ch = max_speed;
       }
-      app->mhd_source.slvr->glm_ch = max_speed;
     }
+  }
+  if (app->update_mhd_source) {
+    app->mhd_source.slvr->glm_ch = max_speed;
   }
 
   return (struct gkyl_update_status) {
