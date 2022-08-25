@@ -807,11 +807,21 @@ mhd_src_init(const struct gkyl_moment_app *app, struct mhd_src *src)
 {
   const struct gkyl_wv_eqn *mhd_eqn = app->species[0].slvr[0]->equation;
   const struct wv_mhd *mhd = container_of(mhd_eqn, struct wv_mhd, eqn);
+
+  int ndim = app->grid.ndim;
+  double dxyz_min = DBL_MAX;
+  for (int d=0; d<0; ++d) {
+    double dx = app->grid.dx[d];
+    dxyz_min = dx < dxyz_min ? dx : dxyz_min;
+  }
+
   struct gkyl_mhd_src_inp src_inp = {
     .grid = &app->grid,
     .divergence_constraint = mhd->divergence_constraint,
     .glm_ch = mhd->glm_ch,
     .glm_cp = mhd->glm_cp,
+    .dxyz_min = dxyz_min,
+    .cfl = app->cfl,
   };
 
   src->slvr = gkyl_mhd_src_new(src_inp);
