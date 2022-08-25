@@ -32,8 +32,8 @@ struct gkyl_proj_MJ_on_basis {
   struct gkyl_array *conf_weights; // weights for conf-space quadrature
   struct gkyl_array *conf_basis_at_ords; // conf-space basis functions at ordinates
 
-  struct gkyl_dg_bin_op_mem *mem_for_div_op; //Memory for weak division
-  double mass; //Needs to be passed to the init routine
+  struct gkyl_dg_bin_op_mem *mem_for_div_op; // memory for weak division
+  double mass; // used for init routine
 };
 
 // Sets ordinates, weights and basis functions at ords. Returns total
@@ -156,9 +156,9 @@ copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 }
 
 void
-gkyl_proj_MJ_on_basis_lab_mom(const gkyl_proj_MJ_on_basis *up,
+gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(const gkyl_proj_MJ_on_basis *up,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
-  const struct gkyl_array *M0, const struct gkyl_array *M1i, const struct gkyl_array *M2,
+  const struct gkyl_array *num_fluid_frame, const struct gkyl_array *M1i, const struct gkyl_array *M2,
   struct gkyl_array *f_MJ)
 {
   int cdim = up->cdim, pdim = up->pdim;
@@ -198,7 +198,7 @@ gkyl_proj_MJ_on_basis_lab_mom(const gkyl_proj_MJ_on_basis *up,
   while (gkyl_range_iter_next(&conf_iter)) {
     long midx = gkyl_range_idx(conf_rng, conf_iter.idx);
 
-    const double *M0_d = gkyl_array_cfetch(M0, midx);
+    const double *num_fluid_frame_d = gkyl_array_cfetch(num_fluid_frame, midx);
     const double *M1i_d = gkyl_array_cfetch(M1i, midx);
     const double *M2_d = gkyl_array_cfetch(M2, midx);
 
@@ -209,7 +209,7 @@ gkyl_proj_MJ_on_basis_lab_mom(const gkyl_proj_MJ_on_basis *up,
       // number density
       num[n] = 0.0;
       for (int k=0; k<num_conf_basis; ++k)
-        num[n] += M0_d[k]*b_ord[k];
+        num[n] += num_fluid_frame_d[k]*b_ord[k];
 
       // velocity vector
       for (int d=0; d<vdim; ++d) {
@@ -251,10 +251,10 @@ gkyl_proj_MJ_on_basis_lab_mom(const gkyl_proj_MJ_on_basis *up,
         long cqidx = gkyl_range_idx(&conf_qrange, qiter.idx);
         //double nvth2_q = num[cqidx]/pow(2*GKYL_PI*vth2[cqidx], vdim/2.0);
 	double kb = 1.0; // Update these later using the input data
-	double m0 = 1.0;
+	double mass_rest_frame = 1.0;
 	double c = 1.0;
-	double Theta = kb*T[cqidx]/(m0*c*c); // T = vth2[cqidx]; (?) - Need to re-write the moments
-	double norm = num[cqidx] * (1.0/(4.0*GKYL_PI*m0*m0*m0*c*c*c*Theta)) * (sqrt(2*Theta/GKYL_PI));
+	double Theta = kb*T[cqidx]/(mass_rest_frame*c*c); // T = vth2[cqidx]; (?) - Need to re-write the moments
+	double norm = num[cqidx] * (1.0/(4.0*GKYL_PI*mass_rest_frame*mass_rest_frame*mass_rest_frame*c*c*c*Theta)) * (sqrt(2*Theta/GKYL_PI));
   //Normalizaton needs to be handled here *
 
         long pqidx = gkyl_range_idx(&phase_qrange, qiter.idx);
@@ -293,7 +293,7 @@ gkyl_proj_MJ_on_basis_lab_mom(const gkyl_proj_MJ_on_basis *up,
       // *** Need to compute: the integral N_Unnorm = int(f*dv)
         // Can we call the sr_mom_M0 with f from here to get N_Unnorm?
         //^^ Yes, see steps below
-      // *** Need to compute: normaliztion*f where normalization = M0/N_Unnorm
+      // *** Need to compute: normaliztion*f where normalization = num_fluid_frame/N_Unnorm
       // *** Need to pull constants from species/field structure
 
       //Outside loop, but same function, calculate the normalization:
@@ -316,9 +316,9 @@ gkyl_proj_MJ_on_basis_lab_mom(const gkyl_proj_MJ_on_basis *up,
       // gkyl_mom_calc_advance(m0calc, &phase_rng, &conf_rng, f_MJ, m0);
       //   // c. Release the memory with: gkyl_mom_calc_new_release ( see the end)
       //
-      // //2. Call gkyl_dg_div_op, we want to find the factor to multiply by: norm_factor = M0/m0 (actual over calculated)
+      // //2. Call gkyl_dg_div_op, we want to find the factor to multiply by: norm_factor = num_fluid_frame/m0 (actual over calculated)
       // struct gkyl_dg_bin_op_mem *mem_for_div_op = gkyl_dg_bin_op_mem_new(f_MJ->size, up->num_phase_basis);
-      // gkyl_dg_div_op(mem_for_div_op, &up->basis_at_ords, 0, M0, 0, m0, 0, norm_factor); //
+      // gkyl_dg_div_op(mem_for_div_op, &up->basis_at_ords, 0, num_fluid_frame, 0, m0, 0, norm_factor); //
       //
       // //3. Call dg_bin_op_comp_phase_multi (takes factor from step 2. and f_MJ)
       // gkyl_dg_mul_op(&up->basis_at_ords, 0, f_MJ, 0, norm_factor, 0, f_MJ); // &num[midx] changed to --> local_num

@@ -38,9 +38,9 @@ gkyl_proj_MJ_on_basis* gkyl_proj_MJ_on_basis_new(
 
  * @param f_MJ Output MJ
  */
-void gkyl_proj_MJ_on_basis_lab_mom(const gkyl_proj_MJ_on_basis *pob,
+void gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(const gkyl_proj_MJ_on_basis *pob,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *n, const struct gkyl_array *vel, const struct gkyl_array *MT,
+  const struct gkyl_array *n_stationary_frame, const struct gkyl_array *vel_stationary_frame, const struct gkyl_array *T_stationary_frame,
   struct gkyl_array *f_MJ);
 
 /**
