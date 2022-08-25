@@ -84,7 +84,7 @@ gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int dir, struct gkyl_range s
     // 1) fhat=0 (no reflection, i.e. absorb),
     // 2) fhat=f (full reflection)
     // 3) fhat=c*f (partial reflection)
-    double fhat[112];
+    double fhat[112];  // MF 2022/08/24: hardcoded to number of DG coeffs in 3x2v p2 for now.
     kers->reflectedf(vpar_c, dvpar, vparAbsSq_lo, vparAbsSq_up, q2Dm, phi_p, phi_wall_p, inp, fhat);
 
     // Reflect fhat into skin cells.
