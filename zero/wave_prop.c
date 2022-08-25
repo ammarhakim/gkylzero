@@ -338,7 +338,11 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
         }
 
         if (cfla > cflm) // check time-step before any updates are performed
-          return (struct gkyl_wave_prop_status) { .success = 0, .dt_suggested = dt*cfl/cfla };
+          return (struct gkyl_wave_prop_status) {
+            .success = 0,
+            .dt_suggested = dt*cfl/cfla,
+            .max_speed = max_speed,
+          };
 
         // compute first-order update in each cell
         for (int i=loidx_c; i<=upidx_c; ++i) { // loop is over cells
@@ -452,7 +456,8 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
 
   return (struct gkyl_wave_prop_status) {
     .success = 1,
-    .dt_suggested = dt_suggested > dt ? dt_suggested : dt
+    .dt_suggested = dt_suggested > dt ? dt_suggested : dt,
+    .max_speed = max_speed,
   };
 }
 
