@@ -24,7 +24,6 @@
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_apply_bc.h>
-#include <gkyl_wv_euler.h>
 #include <gkyl_wv_maxwell.h>
 #include <gkyl_wv_ten_moment.h>
 
