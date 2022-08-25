@@ -21,7 +21,6 @@ gkyl_mhd_src *gkyl_mhd_src_new(struct gkyl_mhd_src_inp inp) {
   up->ndim = up->grid.ndim;
   up->divergence_constraint = inp.divergence_constraint;
   up->glm_ch = inp.glm_ch;
-  up->glm_cp = inp.glm_cp;
   up->glm_alpha = inp.glm_alpha;
   up->dxyz_min = inp.dxyz_min;
   up->cfl = inp.cfl;
@@ -47,18 +46,10 @@ void gkyl_mhd_src_advance(const gkyl_mhd_src *up, double dt,
       // TODO
     } else if (div_type == GKYL_MHD_DIVB_GLM) {
       double ch = up->glm_ch;
-      double cp = up->glm_cp;
       double alpha = up->glm_alpha;
 
-      double rate = 0;
-      if (cp > 0) {
-        // Dedner et al. JCP (2002) 175, 645, Equation (19).
-        rate = (ch * ch ) / (cp * cp);
-      } else if (alpha > 0) {
-        // Mignone & Tzeferacos, JCP (2010) 229, 2117, Equation (27).
-        rate = alpha * ch / up->dxyz_min;
-      }
-
+      // Mignone & Tzeferacos, JCP (2010) 229, 2117, Equation (27).
+      double rate = alpha * ch / up->dxyz_min;
       q[PSI_GLM] *= exp(- rate * dt);
     }
   }

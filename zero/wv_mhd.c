@@ -502,7 +502,6 @@ gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
       mhd->eqn.rotate_to_local_func = rot_to_local_rect_glm;
       mhd->eqn.rotate_to_global_func = rot_to_global_rect_glm;
       mhd->glm_ch = inp->glm_ch;
-      mhd->glm_cp = inp->glm_cp;
       mhd->glm_alpha = inp->glm_alpha;
       break;
   }
