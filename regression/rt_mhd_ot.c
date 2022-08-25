@@ -32,11 +32,11 @@ evalMhdInit(double t, const double* GKYL_RESTRICT xn,
 
   double rho = 25/(36*M_PI);
   double p = 5/(12*M_PI);
-  double vx = -sin(2*M_PI*y);
-  double vy = sin(2*M_PI*x);
+  double vx = sin(2*M_PI*y);
+  double vy = -sin(2*M_PI*x);
   double vz = 0;
   double B0 = 1/sqrt(4*M_PI);
-  double Bx = -B0*sin(2*M_PI*y);
+  double Bx = B0*sin(2*M_PI*y);
   double By = B0*sin(4*M_PI*x);
   double Bz = 0;
   double v[8] = {rho, vx, vy, vz, p, Bx, By, Bz};
@@ -95,8 +95,8 @@ main(int argc, char **argv)
     .name = "mhd_ot_glm",
 
     .ndim = 2,
-    .lower = { 0.0, 0.0 },
-    .upper = { 1.0, 1.0 }, 
+    .lower = { -0.5, -0.5 },
+    .upper = { 0.5, 0.5 }, 
     .cells = { NX, NY },
 
     .num_periodic_dir = 2,
