@@ -331,15 +331,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   // GLM divB and psi waves; XXX set ch properly.
   if (mhd->divergence_constraint == GKYL_MHD_DIVB_GLM)
   {
-    double ch;
-    if (mhd->glm_ch > 0)
-      ch = mhd->glm_ch;
-    else
-      // candidates:
-      // 1. Dedner (2002) sec 4: cfl * min(dx, dy, dz) / dt
-      // 2. Derigs (2018) eq 3.30: max_speed_global - max_global(|u|, |v|, |w|)
-      // 3. local version of 2; needs to store ch for the source step
-      ch = max_speed;
+    double ch = mhd->glm_ch;
 
     ev[7] = -ch;
     eta[7] = 0.5 * (-dQ[BX]*ch+dQ[PSI_GLM]);
