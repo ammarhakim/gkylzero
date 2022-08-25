@@ -20,6 +20,7 @@ struct gkyl_mhd_src {
   enum gkyl_wv_mhd_div_constraint divergence_constraint;
   double glm_ch;
   double glm_cp;
+  double glm_alpha; // Mignone & Tzeferacos, JCP (2010) 229, 2117, Eq (27).
   double dxyz_min;
   double cfl; // cfl used in the hyperbolic part
 };
@@ -32,6 +33,9 @@ gkyl_mhd_src *gkyl_mhd_src_new(struct gkyl_mhd_src_inp inp) {
   up->divergence_constraint = inp.divergence_constraint;
   up->glm_ch = inp.glm_ch;
   up->glm_cp = inp.glm_cp;
+  up->glm_alpha = inp.glm_alpha;
+  up->dxyz_min = inp.dxyz_min;
+  up->cfl = inp.cfl;
 
   return up;
 }

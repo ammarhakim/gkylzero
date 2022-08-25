@@ -14,6 +14,7 @@ struct gkyl_mhd_src_inp {
   enum gkyl_wv_mhd_div_constraint divergence_constraint;
   double glm_ch;
   double glm_cp;
+  double glm_alpha; // Mignone & Tzeferacos, JCP (2010) 229, 2117, Eq (27).
   double dxyz_min;
   double cfl; // cfl used in the hyperbolic part
 };

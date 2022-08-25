@@ -820,6 +820,7 @@ mhd_src_init(const struct gkyl_moment_app *app, struct mhd_src *src)
     .divergence_constraint = mhd->divergence_constraint,
     .glm_ch = mhd->glm_ch,
     .glm_cp = mhd->glm_cp,
+    .glm_alpha = mhd->glm_alpha,
     .dxyz_min = dxyz_min,
     .cfl = app->cfl,
   };
