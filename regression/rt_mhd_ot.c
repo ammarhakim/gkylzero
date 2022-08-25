@@ -76,7 +76,8 @@ main(int argc, char **argv)
   const struct gkyl_wv_mhd_inp inp = {
     .gas_gamma = ctx.gas_gamma,
     .divergence_constraint = GKYL_MHD_DIVB_GLM,
-    .glm_ch = 0,
+    .glm_ch = 1.0, // initial value; will be updated with max speed in each step
+    .glm_alpha = 0.4, // passed to source
   };
   struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(&inp);
 
