@@ -224,6 +224,8 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
 
   int idxl[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
 
+  double max_speed = 0.0;
+
   // state of the update
   enum update_state {
     WV_FIRST_SWEEP, WV_POSITIVITY_SWEEP, WV_FIN_SWEEP
@@ -302,7 +304,10 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
             calc_jump(meqn, ql_local, qr_local, delta);
           
 
-            gkyl_wv_eqn_waves(wv->equation, ftype, delta, ql_local, qr_local, waves_local, s);
+            double my_max_speed = gkyl_wv_eqn_waves(wv->equation, ftype, delta,
+                                                    ql_local, qr_local,
+                                                    waves_local, s);
+            max_speed = max_speed > my_max_speed ? max_speed : my_max_speed;
 
             double lenr = cg->lenr[dir];
             for (int mw=0; mw<mwaves; ++mw)
