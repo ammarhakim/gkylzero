@@ -37,7 +37,7 @@ gkyl_dg_isoeuler_new(const struct gkyl_basis* cbasis,
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    print("TODO: GKYL_HAVE_CUDA in dg_isoeuler.c....\n");
+    print("TODO: implement gpu multithreading in dg_isoeuler.c....\n");
     return 0;
   }
 #endif
@@ -70,9 +70,6 @@ gkyl_dg_isoeuler_new(const struct gkyl_basis* cbasis,
       assert(false);
       break;
   }
-
-  printf("Choosing kernel, TODO: double check that correct one is chosen...\n"); //debug
-  printf("Choosing kernel with cdim %i and polyorder %i \n",cdim, poly_order);
 
   isoeuler->vol = CK(vol_kernels,cdim,poly_order); //TODO: clean up passing cdim+1 and then -2 in
 
