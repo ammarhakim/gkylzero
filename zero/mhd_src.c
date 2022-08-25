@@ -23,7 +23,6 @@ gkyl_mhd_src *gkyl_mhd_src_new(struct gkyl_mhd_src_inp inp) {
   up->glm_ch = inp.glm_ch;
   up->glm_alpha = inp.glm_alpha;
   up->dxyz_min = inp.dxyz_min;
-  up->cfl = inp.cfl;
 
   return up;
 }

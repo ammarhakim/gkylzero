@@ -15,7 +15,6 @@ struct gkyl_mhd_src_inp {
   double glm_ch;
   double glm_alpha; // Mignone & Tzeferacos, JCP (2010) 229, 2117, Eq (27).
   double dxyz_min;
-  double cfl; // cfl used in the hyperbolic part
 };
 
 // Object type
@@ -26,7 +25,6 @@ struct gkyl_mhd_src {
   double glm_ch;
   double glm_alpha; // Mignone & Tzeferacos, JCP (2010) 229, 2117, Eq (27).
   double dxyz_min;
-  double cfl; // cfl used in the hyperbolic part
 };
 typedef struct gkyl_mhd_src gkyl_mhd_src;
 

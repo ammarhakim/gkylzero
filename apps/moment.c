@@ -837,7 +837,6 @@ mhd_src_init(const struct gkyl_moment_app *app, struct mhd_src *src)
     .glm_ch = mhd->glm_ch,
     .glm_alpha = mhd->glm_alpha,
     .dxyz_min = dxyz_min,
-    .cfl = app->cfl,
   };
 
   src->slvr = gkyl_mhd_src_new(src_inp);
