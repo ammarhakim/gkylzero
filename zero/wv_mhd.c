@@ -317,28 +317,33 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   wv[MZ] = eta[3]*w;
   wv[ER] = eta[3]*(v2/2 + X*(gamma-2)/(gamma-1));
 
-  /////////////////
-  // div(B) wave //
-  /////////////////
-  // This wave exists in the eight-wave scheme. In this implementation, it is
-  // incorporated into the last wave, the entropy wave, since both have eigen
-  // value ev=u. This wave only advects jump in Bx at the speed u.
-  if (mhd->divergence_constraint == GKYL_MHD_DIVB_EIGHT_WAVES)
-    wv[BX] = dQ[BX];
-
   double max_speed =  fabs(u) + cf;
 
-  // GLM divB and psi waves; XXX set ch properly.
+  ////////////////////
+  // div(B) wave(s) //
+  ////////////////////
+
+  // For the eight-wave scheme, incorporate the divB wave into the entropy wave,
+  // since both have eigenvalue u. This wave just advects the jump in Bx at the
+  // speed u.
+  if (mhd->divergence_constraint == GKYL_MHD_DIVB_EIGHT_WAVES) {
+    // wv = &waves[3*meqns];
+    wv[BX] = dQ[BX];
+  }
+
+  // For the GLM Bx and psi waves, solve the linear Riemann problem.
   if (mhd->divergence_constraint == GKYL_MHD_DIVB_GLM)
   {
     double ch = mhd->glm_ch;
 
+    // L = 0.5*(-ch, 1), R = (-1/ch, 1) 
     ev[7] = -ch;
     eta[7] = 0.5 * (-dQ[BX]*ch+dQ[PSI_GLM]);
     wv = &waves[7*meqns];
     wv[BX] = -eta[7]/ch;
     wv[PSI_GLM] = eta[7];
 
+    // L = 0.5*(+ch, 1), R = (+1/ch, 1) 
     ev[8] = ch;
     eta[8] = 0.5 * (dQ[BX]*ch+dQ[PSI_GLM]);
     wv = &waves[8*meqns];
