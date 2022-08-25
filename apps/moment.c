@@ -457,10 +457,14 @@ moment_species_update(const gkyl_moment_app *app,
 {
   int ndim = sp->ndim;
   double dt_suggested = DBL_MAX;
+  double max_speed = 0.0;
   struct gkyl_wave_prop_status stat;
 
   for (int d=0; d<ndim; ++d) {
     stat = gkyl_wave_prop_advance(sp->slvr[d], tcurr, dt, &app->local, sp->f[d], sp->f[d+1]);
+
+    double my_max_speed = stat.max_speed;
+    max_speed = max_speed > my_max_speed ? max_speed : my_max_speed;
 
     if (!stat.success)
       return (struct gkyl_update_status) {
