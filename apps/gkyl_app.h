@@ -17,6 +17,7 @@ enum gkyl_species_bc_type {
   GKYL_SPECIES_NO_SLIP, // no-slip boundary conditions
   GKYL_SPECIES_WEDGE, // specialized "wedge" BCs for RZ-theta
   GKYL_SPECIES_FUNC, // Function boundary conditions
+  GKYL_SPECIES_GAIN, // constant gain
 };
 
 // Boundary conditions on fluids

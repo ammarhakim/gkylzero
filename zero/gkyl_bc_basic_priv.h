@@ -3,6 +3,7 @@
 // Private header for bc_basic updater, not for direct use in user code.
 
 #include <gkyl_bc_basic.h>
+#include <gkyl_bc_emission.h>
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <assert.h>
@@ -40,6 +41,7 @@ struct dg_bc_ctx {
   int cdim; // config-space dimensions.
   int ncomp; // number of components within a cell.
   const struct gkyl_basis *basis; // basis function.
+  struct gkyl_bc_emission *external_field; // pointer to external fields for some BCs.
 };
 
 GKYL_CU_D
@@ -68,6 +70,19 @@ species_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
   int dir = mc->dir, cdim = mc->cdim;
 
   mc->basis->flip_odd_sign(dir, inp, out);
+  mc->basis->flip_odd_sign(dir+cdim, out, out);
+}
+
+GKYL_CU_D
+static void
+species_gain_bc(size_t nc, double *out, const double *inp, void *ctx)
+{
+  struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
+  int dir = mc->dir, cdim = mc->cdim;
+  double gain = ((struct gkyl_bc_emission*) mc->external_field)->gain;
+
+  mc->basis->flip_odd_sign(dir, inp, out);
+  out[0] = gain*out[0];
   mc->basis->flip_odd_sign(dir+cdim, out, out);
 }
 

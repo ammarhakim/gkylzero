@@ -176,10 +176,10 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
     struct gkyl_bc_basic *bclo;
     if (strcmp(boundary_type, "reflect") == 0) {
       bclo = gkyl_bc_basic_new(bc_dir, GKYL_LOWER_EDGE, &local_ext,
-        ghost, GKYL_BC_REFLECT, basis_cu, distf->ncomp, cdim, useGPU);
+	ghost, GKYL_BC_REFLECT, basis_cu, distf->ncomp, cdim, useGPU, 0);
     } else if (strcmp(boundary_type, "absorb") == 0) {
       bclo = gkyl_bc_basic_new(bc_dir, GKYL_LOWER_EDGE, &local_ext,
-        ghost, GKYL_BC_ABSORB,  basis_cu, distf->ncomp, cdim, useGPU);
+	ghost, GKYL_BC_ABSORB,  basis_cu, distf->ncomp, cdim, useGPU, 0);
     }
     if (useGPU) {
 #ifdef GKYL_HAVE_CUDA
@@ -195,10 +195,10 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
     struct gkyl_bc_basic *bcup;
     if (strcmp(boundary_type, "reflect") == 0) {
       bcup = gkyl_bc_basic_new(bc_dir, GKYL_UPPER_EDGE, &local_ext,
-        ghost, GKYL_BC_REFLECT, basis_cu, distf->ncomp, cdim, useGPU);
+	ghost, GKYL_BC_REFLECT, basis_cu, distf->ncomp, cdim, useGPU, 0);
     } else if (strcmp(boundary_type, "absorb") == 0) {
       bcup = gkyl_bc_basic_new(bc_dir, GKYL_UPPER_EDGE, &local_ext,
-        ghost, GKYL_BC_ABSORB,  basis_cu, distf->ncomp, cdim, useGPU);
+	ghost, GKYL_BC_ABSORB,  basis_cu, distf->ncomp, cdim, useGPU, 0);
     } 
     if (useGPU) {
 #ifdef GKYL_HAVE_CUDA

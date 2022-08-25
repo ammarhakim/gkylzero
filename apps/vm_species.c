@@ -318,7 +318,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       s->upper_bc[dir] = bc[1];
     }
   }
+  void *params;
   for (int d=0; d<app->cdim; ++d) {
+    params = 0;
     // Lower BC updater. Copy BCs by default.
     enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
     if (s->lower_bc[d] == GKYL_SPECIES_COPY)
@@ -327,9 +329,15 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       bctype = GKYL_BC_ABSORB;
     else if (s->lower_bc[d] == GKYL_SPECIES_REFLECT)
       bctype = GKYL_BC_REFLECT;
+    else if (s->lower_bc[d] == GKYL_SPECIES_GAIN) {
+      bctype = GKYL_BC_GAIN;
+      params = (struct bc_ext_ctx*) params;
+      params = &s->info.bc_ctx;
+    }
   
     s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &s->local_ext, ghost, bctype,
-                                    app->basis_on_dev.basis, s->f->ncomp, app->cdim, app->use_gpu);
+      app->basis_on_dev.basis, s->f->ncomp, app->cdim, app->use_gpu, params);
+    params = 0;
     // Upper BC updater. Copy BCs by default.
     if (s->upper_bc[d] == GKYL_SPECIES_COPY)
       bctype = GKYL_BC_COPY;
@@ -337,9 +345,14 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       bctype = GKYL_BC_ABSORB;
     else if (s->upper_bc[d] == GKYL_SPECIES_REFLECT)
       bctype = GKYL_BC_REFLECT;
+    else if (s->upper_bc[d] == GKYL_SPECIES_GAIN) {
+      bctype = GKYL_BC_GAIN;
+      params = (struct bc_ext_ctx*) params;
+      params = &s->info.bc_ctx;
+    }
     
     s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &s->local_ext, ghost, bctype,
-                                    app->basis_on_dev.basis, s->f->ncomp, app->cdim, app->use_gpu);
+      app->basis_on_dev.basis, s->f->ncomp, app->cdim, app->use_gpu, params);
   }
 }
 
@@ -490,6 +503,7 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
         case GKYL_SPECIES_ABSORB:
+        case GKYL_SPECIES_GAIN:
           gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer, f);
           break;
         case GKYL_SPECIES_NO_SLIP:
@@ -504,6 +518,7 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
         case GKYL_SPECIES_ABSORB:
+        case GKYL_SPECIES_GAIN:
           gkyl_bc_basic_advance(species->bc_up[d], species->bc_buffer, f);
           break;
         case GKYL_SPECIES_NO_SLIP:

@@ -5,7 +5,7 @@
 #include <gkyl_array.h>
 
 // BC types in this updater.
-enum gkyl_bc_basic_type { GKYL_BC_COPY = 0, GKYL_BC_ABSORB = 1, GKYL_BC_REFLECT = 2, GKYL_BC_MAXWELL_PEC = 3};
+enum gkyl_bc_basic_type { GKYL_BC_COPY = 0, GKYL_BC_ABSORB = 1, GKYL_BC_REFLECT = 2, GKYL_BC_MAXWELL_PEC = 3, GKYL_BC_GAIN = 4 };
 
 // Object type
 typedef struct gkyl_bc_basic gkyl_bc_basic;
@@ -25,11 +25,12 @@ typedef struct gkyl_bc_basic gkyl_bc_basic;
  * @param cdim Configuration space dimensions.
  * @param num_comp Number of components (DOFs) within a cell.
  * @param use_gpu Boolean to indicate whether to use the GPU.
+ * @param bc_params Pointer to parameters required by some BCs.
  * @return New updater pointer.
  */
 struct gkyl_bc_basic* gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range* local_range_ext,
   const int *num_ghosts, enum gkyl_bc_basic_type bctype, const struct gkyl_basis *basis, int num_comp, int cdim,
-  bool use_gpu);
+  bool use_gpu, void *bc_params);
 
 /**
  * Create new updater to apply basic BCs to a field

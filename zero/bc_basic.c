@@ -1,12 +1,13 @@
 #include <gkyl_bc_basic.h>
 #include <gkyl_bc_basic_priv.h>
+#include <gkyl_bc_emission.h>
 #include <gkyl_alloc.h>
 
 // Private function to create a pointer to the function that applies the BC,
 // i.e., the array_copy_func applied to expansion coefficients in ghost cell.
 struct gkyl_array_copy_func*
 gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bctype,
-  const struct gkyl_basis *basis, int ncomp, bool use_gpu)
+  const struct gkyl_basis *basis, int ncomp, bool use_gpu, void *bc_params)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
@@ -32,6 +33,12 @@ gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bc
     case GKYL_BC_REFLECT:
       fout->func = species_reflect_bc;
       break;
+
+    case GKYL_BC_GAIN:
+      ctx->external_field = gkyl_bc_emission_new(bc_params, bctype, use_gpu);
+      fout->func = species_gain_bc;
+      break;
+      
     // Perfect electrical conductor
     case GKYL_BC_MAXWELL_PEC:
       fout->func = maxwell_pec_bc;
@@ -53,7 +60,7 @@ gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bc
 struct gkyl_bc_basic*
 gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range *local_range_ext,
   const int *num_ghosts, enum gkyl_bc_basic_type bctype, const struct gkyl_basis *basis,
-  int num_comp, int cdim, bool use_gpu)
+  int num_comp, int cdim, bool use_gpu, void *bc_params)
 {
 
   // Allocate space for new updater.
@@ -71,7 +78,7 @@ gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range *loc
 
   // Create function applied to array contents (DG coefficients) when copying
   // to/from buffer.
-  up->array_copy_func = gkyl_bc_basic_create_arr_copy_func(dir, cdim, bctype, basis, num_comp, use_gpu);
+  up->array_copy_func = gkyl_bc_basic_create_arr_copy_func(dir, cdim, bctype, basis, num_comp, use_gpu, bc_params);
   return up;
 }
 
@@ -89,6 +96,7 @@ gkyl_bc_basic_advance(const struct gkyl_bc_basic *up, struct gkyl_array *buff_ar
       break;
 
     case GKYL_BC_REFLECT:
+    case GKYL_BC_GAIN:
       gkyl_array_flip_copy_to_buffer_fn(buff_arr->data, f_arr, up->dir+up->cdim,
                                         up->skin_r, up->array_copy_func->on_dev);
       break;
@@ -104,6 +112,7 @@ void gkyl_bc_basic_release(struct gkyl_bc_basic *up)
     gkyl_cu_free(up->array_copy_func->ctx_on_dev);
     gkyl_cu_free(up->array_copy_func->on_dev);
   }
+  gkyl_bc_emission_release(((struct dg_bc_ctx*) up->array_copy_func->ctx)->external_field);
   gkyl_free(up->array_copy_func->ctx);
   gkyl_free(up->array_copy_func);
   // Release updater memory.
