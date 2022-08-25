@@ -57,11 +57,20 @@ void gkyl_mhd_src_advance(const gkyl_mhd_src *up, double dt,
     if (div_type == GKYL_MHD_DIVB_EIGHT_WAVES) {
       // TODO
     } else if (div_type == GKYL_MHD_DIVB_GLM) {
-      // Dedner et al. JCP (2002) 175, 645, Equation (19).
-      // Mignone & Tzeferacos, JCP (2010) 229, 2117, Equation (27).
       double ch = up->glm_ch;
       double cp = up->glm_cp;
-      q[PSI_GLM] *= exp(- ch * ch / cp / cp * dt);
+      double alpha = up->glm_alpha;
+
+      double rate = 0;
+      if (cp > 0) {
+        // Dedner et al. JCP (2002) 175, 645, Equation (19).
+        rate = (ch * ch ) / (cp * cp);
+      } else if (alpha > 0) {
+        // Mignone & Tzeferacos, JCP (2010) 229, 2117, Equation (27).
+        rate = alpha * ch / up->dxyz_min;
+      }
+
+      q[PSI_GLM] *= exp(- rate * dt);
     }
   }
 }
