@@ -36,8 +36,8 @@ evalMhdInit(double t, const double* GKYL_RESTRICT xn,
   double vy = sin(2*M_PI*x);
   double vz = 0;
   double B0 = 1/sqrt(4*M_PI);
-  double Bx = -B0*sin(2*M_PI*x);
-  double By = B0*sin(4*M_PI*y);
+  double Bx = -B0*sin(2*M_PI*y);
+  double By = B0*sin(4*M_PI*x);
   double Bz = 0;
   double v[8] = {rho, vx, vy, vz, p, Bx, By, Bz};
 
