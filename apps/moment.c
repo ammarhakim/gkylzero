@@ -476,6 +476,16 @@ moment_species_update(const gkyl_moment_app *app,
     moment_species_apply_bc(app, tcurr, sp, sp->f[d+1]);
   }
 
+  for (int d=0; d<ndim; ++d) {
+    if (sp->slvr[d]->equation->type==GKYL_EQN_MHD) {
+      struct wv_mhd *mhd = container_of(sp->slvr[d]->equation, struct wv_mhd,
+                                        eqn);
+      if (mhd->divergence_constraint==GKYL_MHD_DIVB_GLM) {
+        mhd->glm_ch = max_speed;
+      }
+    }
+  }
+
   return (struct gkyl_update_status) {
     .success = true,
     .dt_suggested = dt_suggested
