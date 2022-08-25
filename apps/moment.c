@@ -822,9 +822,8 @@ mhd_src_init(const struct gkyl_moment_app *app, struct mhd_src *src)
   const struct gkyl_wv_eqn *mhd_eqn = app->species[0].slvr[0]->equation;
   const struct wv_mhd *mhd = container_of(mhd_eqn, struct wv_mhd, eqn);
 
-  int ndim = app->grid.ndim;
   double dxyz_min = DBL_MAX;
-  for (int d=0; d<0; ++d) {
+  for (int d=0; d<app->grid.ndim; ++d) {
     double dx = app->grid.dx[d];
     dxyz_min = dx < dxyz_min ? dx : dxyz_min;
   }
