@@ -17,6 +17,6 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_vol_3x2v_ser_p1(const double *w, const do
   rdv2[1]   = 2.0/dxv[4]; 
   rdvSq4[1] = rdv2[1]*rdv2[1]; 
 
-  return fabs(0.3333333333333333*rdvSq4[1]*w[4]*(bmag_inv[7]*nuVtSqSum[7]+bmag_inv[6]*nuVtSqSum[6]+bmag_inv[5]*nuVtSqSum[5]+bmag_inv[4]*nuVtSqSum[4]+bmag_inv[3]*nuVtSqSum[3]+bmag_inv[2]*nuVtSqSum[2]+bmag_inv[1]*nuVtSqSum[1])*m_+nuVtSqSum[0]*(0.3333333333333333*bmag_inv[0]*rdvSq4[1]*w[4]*m_+0.4714045207910317*rdvSq4[0])); 
+  return fabs(rdvSq4[1]*w[4]*(bmag_inv[7]*nuVtSqSum[7]+bmag_inv[6]*nuVtSqSum[6]+bmag_inv[5]*nuVtSqSum[5]+bmag_inv[4]*nuVtSqSum[4]+bmag_inv[3]*nuVtSqSum[3]+bmag_inv[2]*nuVtSqSum[2]+bmag_inv[1]*nuVtSqSum[1])*m_+nuVtSqSum[0]*(bmag_inv[0]*rdvSq4[1]*w[4]*m_+3.181980515339463*rdvSq4[0])); 
 
 } 

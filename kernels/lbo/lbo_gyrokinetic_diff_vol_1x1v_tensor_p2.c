@@ -20,6 +20,6 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_vol_1x1v_tensor_p2(const double *w, const
   facDiffVpar[0] = nuVtSqSum[0]; 
   facDiffVpar[2] = nuVtSqSum[2]; 
 
-  return fabs(rdvSq4[0]*(1.272792206135785*facDiffVpar[0]-1.42302494707577*facDiffVpar[2])); 
+  return fabs(rdvSq4[0]*(6.363961030678928*facDiffVpar[0]-7.115124735378852*facDiffVpar[2])); 
 
 } 

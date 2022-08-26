@@ -53,18 +53,18 @@ GKYL_CU_DH double gyrokinetic_vol_1x1v_ser_p1(const double *w, const double *dxv
   alphax[5] = (1.732050807568877*BstarZdBmag[3]*hamil[4]*rdvpar2*rdx2)/m_; 
   // Evaluate alpha at left surface quadrature points.
   alphaL = 0.25*((-0.7745966692414833*alphax[5])+0.4472135954999579*alphax[4]+1.161895003862225*alphax[3]-0.6708203932499369*alphax[2]-0.8660254037844386*alphax[1]+0.5*alphax[0]); 
-  cflFreq += -0.5*(alphaL-fabs(alphaL)); 
+  cflFreq += -1.5*(alphaL-fabs(alphaL)); 
   alphaL = 0.25*(0.9682458365518543*alphax[5]-0.5590169943749475*alphax[4]-0.8660254037844386*alphax[1]+0.5*alphax[0]); 
-  cflFreq += -0.5*(alphaL-fabs(alphaL)); 
+  cflFreq += -1.5*(alphaL-fabs(alphaL)); 
   alphaL = 0.25*((-0.7745966692414833*alphax[5])+0.4472135954999579*alphax[4]-1.161895003862225*alphax[3]+0.6708203932499369*alphax[2]-0.8660254037844386*alphax[1]+0.5*alphax[0]); 
-  cflFreq += -0.5*(alphaL-fabs(alphaL)); 
+  cflFreq += -1.5*(alphaL-fabs(alphaL)); 
   // Evaluate alpha at right surface quadrature points.
   alphaR = 0.25*(0.7745966692414833*alphax[5]+0.4472135954999579*alphax[4]-1.161895003862225*alphax[3]-0.6708203932499369*alphax[2]+0.8660254037844386*alphax[1]+0.5*alphax[0]); 
-  cflFreq += 0.5*(alphaR+fabs(alphaR)); 
+  cflFreq += 1.5*(alphaR+fabs(alphaR)); 
   alphaR = 0.25*((-0.9682458365518543*alphax[5])-0.5590169943749475*alphax[4]+0.8660254037844386*alphax[1]+0.5*alphax[0]); 
-  cflFreq += 0.5*(alphaR+fabs(alphaR)); 
+  cflFreq += 1.5*(alphaR+fabs(alphaR)); 
   alphaR = 0.25*(0.7745966692414833*alphax[5]+0.4472135954999579*alphax[4]+1.161895003862225*alphax[3]+0.6708203932499369*alphax[2]+0.8660254037844386*alphax[1]+0.5*alphax[0]); 
-  cflFreq += 0.5*(alphaR+fabs(alphaR)); 
+  cflFreq += 1.5*(alphaR+fabs(alphaR)); 
 
   double alphavpar[6] = {0.}; 
   alphavpar[0] = -(0.8660254037844386*BstarZdBmag[0]*hamil[1]*rdvpar2*rdx2)/m_; 
@@ -73,14 +73,14 @@ GKYL_CU_DH double gyrokinetic_vol_1x1v_ser_p1(const double *w, const double *dxv
   alphavpar[3] = -(0.8660254037844386*hamil[1]*BstarZdBmag[3]*rdvpar2*rdx2)/m_; 
   // Evaluate alpha at left surface quadrature points.
   alphaL = 0.25*(0.8660254037844386*alphavpar[3]-0.8660254037844386*alphavpar[2]-0.5*alphavpar[1]+0.5*alphavpar[0]); 
-  cflFreq += -0.5*(alphaL-fabs(alphaL)); 
+  cflFreq += -2.5*(alphaL-fabs(alphaL)); 
   alphaL = 0.25*(0.5*(alphavpar[1]+alphavpar[0])-0.8660254037844386*(alphavpar[3]+alphavpar[2])); 
-  cflFreq += -0.5*(alphaL-fabs(alphaL)); 
+  cflFreq += -2.5*(alphaL-fabs(alphaL)); 
   // Evaluate alpha at right surface quadrature points.
   alphaR = 0.25*((-0.8660254037844386*alphavpar[3])+0.8660254037844386*alphavpar[2]-0.5*alphavpar[1]+0.5*alphavpar[0]); 
-  cflFreq += 0.5*(alphaR+fabs(alphaR)); 
+  cflFreq += 2.5*(alphaR+fabs(alphaR)); 
   alphaR = 0.25*(0.8660254037844386*(alphavpar[3]+alphavpar[2])+0.5*(alphavpar[1]+alphavpar[0])); 
-  cflFreq += 0.5*(alphaR+fabs(alphaR)); 
+  cflFreq += 2.5*(alphaR+fabs(alphaR)); 
 
   out[1] += 0.8660254037844386*(alphax[5]*fin[5]+alphax[4]*fin[4]+alphax[3]*fin[3]+alphax[2]*fin[2]+alphax[1]*fin[1]+alphax[0]*fin[0]); 
   out[2] += 0.8660254037844386*(alphavpar[3]*fin[3]+alphavpar[2]*fin[2]+alphavpar[1]*fin[1]+alphavpar[0]*fin[0]); 
@@ -109,14 +109,14 @@ GKYL_CU_DH double gyrokinetic_step2_vol_1x1v_ser_p1(const double *w, const doubl
   double alphaR = 0.0; 
   // Evaluate alpha at left surface quadrature points.
   alphaL = -(0.25*(0.7071067811865475*apardot[0]-0.7071067811865475*apardot[1])*q_*rdvpar2)/m_; 
-  cflFreq += -0.5*(alphaL-fabs(alphaL)); 
+  cflFreq += -2.5*(alphaL-fabs(alphaL)); 
   alphaL = -(0.1767766952966369*(apardot[1]+apardot[0])*q_*rdvpar2)/m_; 
-  cflFreq += -0.5*(alphaL-fabs(alphaL)); 
+  cflFreq += -2.5*(alphaL-fabs(alphaL)); 
   // Evaluate alpha at right surface quadrature points.
   alphaR = -(0.25*(0.7071067811865475*apardot[0]-0.7071067811865475*apardot[1])*q_*rdvpar2)/m_; 
-  cflFreq += 0.5*(alphaR+fabs(alphaR)); 
+  cflFreq += 2.5*(alphaR+fabs(alphaR)); 
   alphaR = -(0.1767766952966369*(apardot[1]+apardot[0])*q_*rdvpar2)/m_; 
-  cflFreq += 0.5*(alphaR+fabs(alphaR)); 
+  cflFreq += 2.5*(alphaR+fabs(alphaR)); 
 
   return cflFreq; 
 } 

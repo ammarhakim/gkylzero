@@ -26,6 +26,6 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_vol_1x2v_tensor_p2(const double *w, const
   // Expand mu diffusion coefficient in phase basis.
   facDiffMu[0] = 1.414213562373095*rdv2[1]*(bmag_inv[2]*nuVtSqSum[2]+bmag_inv[1]*nuVtSqSum[1]+bmag_inv[0]*nuVtSqSum[0])*w[2]; 
 
-  return fabs(2.545584412271571*facDiffMu[0]*rdv2[1]*m_+rdvSq4[0]*(1.272792206135785*facDiffVpar[0]-1.42302494707577*facDiffVpar[2])); 
+  return fabs(12.72792206135786*facDiffMu[0]*rdv2[1]*m_+rdvSq4[0]*(6.363961030678928*facDiffVpar[0]-7.115124735378852*facDiffVpar[2])); 
 
 } 
