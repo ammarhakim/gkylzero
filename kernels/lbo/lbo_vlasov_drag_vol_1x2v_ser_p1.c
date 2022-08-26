@@ -39,6 +39,6 @@ GKYL_CU_DH double lbo_vlasov_drag_vol_1x2v_ser_p1(const double *w, const double 
   out[14] += (1.224744871391589*f[15]+1.369306393762915*f[4])*alphaDrag[21]+1.224744871391589*f[14]*alphaDrag[19]+1.369306393762915*(f[2]*alphaDrag[19]+f[7]*alphaDrag[17]+f[6]*alphaDrag[16])+0.6123724356957944*(alphaDrag[4]*f[15]+alphaDrag[2]*f[14]+alphaDrag[1]*f[13]+alphaDrag[0]*f[12]); 
   out[15] += (1.224744871391589*f[14]+1.369306393762915*f[2])*alphaDrag[21]+1.224744871391589*f[15]*alphaDrag[19]+1.369306393762915*(f[4]*alphaDrag[19]+f[6]*alphaDrag[17]+f[7]*alphaDrag[16])+0.6123724356957944*(alphaDrag[2]*f[15]+alphaDrag[4]*f[14]+alphaDrag[0]*f[13]+alphaDrag[1]*f[12]); 
 
-  return fabs(0.1767766952966368*alphaDrag[0])+fabs(0.1767766952966368*alphaDrag[16]); 
+  return fabs(0.8838834764831842*alphaDrag[0])+fabs(0.8838834764831842*alphaDrag[16]); 
 
 } 

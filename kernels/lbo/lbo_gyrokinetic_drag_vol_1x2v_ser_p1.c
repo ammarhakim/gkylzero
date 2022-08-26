@@ -38,6 +38,6 @@ GKYL_CU_DH double lbo_gyrokinetic_drag_vol_1x2v_ser_p1(const double *w, const do
   out[10] += 0.6123724356957944*(f[11]*alphaDrag[17]+f[10]*alphaDrag[15]+f[9]*alphaDrag[13]+f[8]*alphaDrag[12])+1.224744871391589*(alphaDrag[4]*f[11]+alphaDrag[2]*f[10])+1.369306393762915*(alphaDrag[1]*f[7]+alphaDrag[0]*f[6]+alphaDrag[4]*f[5]+alphaDrag[2]*f[3]); 
   out[11] += 0.6123724356957944*(f[10]*alphaDrag[17]+f[11]*alphaDrag[15]+f[8]*alphaDrag[13]+f[9]*alphaDrag[12])+1.224744871391589*(alphaDrag[2]*f[11]+alphaDrag[4]*f[10])+1.369306393762915*(alphaDrag[0]*f[7]+alphaDrag[1]*f[6]+alphaDrag[2]*f[5]+f[3]*alphaDrag[4]); 
 
-  return fabs(0.1767766952966368*alphaDrag[0])+fabs(0.1767766952966368*alphaDrag[12]); 
+  return fabs(0.8838834764831842*alphaDrag[0])+fabs(0.5303300858899105*alphaDrag[12]); 
 
 } 

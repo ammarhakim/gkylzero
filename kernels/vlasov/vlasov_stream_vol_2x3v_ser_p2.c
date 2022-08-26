@@ -104,5 +104,5 @@ GKYL_CU_DH double vlasov_stream_vol_2x3v_ser_p2(const double *w, const double *d
   out[110] += 3.464101615137755*f[101]*w3Ddx1+3.464101615137755*f[102]*w2Ddx0+0.8944271909999159*f[54]*dv3Ddx1+f[78]*dv2Ddx0; 
   out[111] += 3.464101615137755*f[105]*w3Ddx1+3.464101615137755*f[106]*w2Ddx0+f[81]*dv3Ddx1+f[84]*dv2Ddx0; 
 
-  return fabs(w2Ddx0)+0.5*dv2Ddx0+fabs(w3Ddx1)+0.5*dv3Ddx1;
+  return 5.0*(fabs(w2Ddx0)+0.5*dv2Ddx0+fabs(w3Ddx1)+0.5*dv3Ddx1);
 } 

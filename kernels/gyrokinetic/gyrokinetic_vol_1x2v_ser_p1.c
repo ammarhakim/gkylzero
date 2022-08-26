@@ -59,30 +59,30 @@ GKYL_CU_DH double gyrokinetic_vol_1x2v_ser_p1(const double *w, const double *dxv
   alphax[9] = (1.224744871391589*BstarZdBmag[4]*hamil[8]*rdvpar2*rdx2)/m_; 
   // Evaluate alpha at left surface quadrature points.
   alphaL = 0.125*((-0.5477225575051661*alphax[9])+0.3162277660168379*alphax[8]+0.8215838362577489*alphax[4]-0.4743416490252568*alphax[2]-0.6123724356957944*alphax[1]+0.3535533905932737*alphax[0]); 
-  cflFreq += -0.5*(alphaL-fabs(alphaL)); 
+  cflFreq += -1.5*(alphaL-fabs(alphaL)); 
   alphaL = 0.125*(0.6846531968814574*alphax[9]-0.3952847075210473*alphax[8]-0.6123724356957944*alphax[1]+0.3535533905932737*alphax[0]); 
-  cflFreq += -0.5*(alphaL-fabs(alphaL)); 
+  cflFreq += -1.5*(alphaL-fabs(alphaL)); 
   alphaL = 0.125*((-0.5477225575051661*alphax[9])+0.3162277660168379*alphax[8]-0.8215838362577489*alphax[4]+0.4743416490252568*alphax[2]-0.6123724356957944*alphax[1]+0.3535533905932737*alphax[0]); 
-  cflFreq += -0.5*(alphaL-fabs(alphaL)); 
+  cflFreq += -1.5*(alphaL-fabs(alphaL)); 
   alphaL = 0.125*((-0.5477225575051661*alphax[9])+0.3162277660168379*alphax[8]+0.8215838362577489*alphax[4]-0.4743416490252568*alphax[2]-0.6123724356957944*alphax[1]+0.3535533905932737*alphax[0]); 
-  cflFreq += -0.5*(alphaL-fabs(alphaL)); 
+  cflFreq += -1.5*(alphaL-fabs(alphaL)); 
   alphaL = 0.125*(0.6846531968814574*alphax[9]-0.3952847075210473*alphax[8]-0.6123724356957944*alphax[1]+0.3535533905932737*alphax[0]); 
-  cflFreq += -0.5*(alphaL-fabs(alphaL)); 
+  cflFreq += -1.5*(alphaL-fabs(alphaL)); 
   alphaL = 0.125*((-0.5477225575051661*alphax[9])+0.3162277660168379*alphax[8]-0.8215838362577489*alphax[4]+0.4743416490252568*alphax[2]-0.6123724356957944*alphax[1]+0.3535533905932737*alphax[0]); 
-  cflFreq += -0.5*(alphaL-fabs(alphaL)); 
+  cflFreq += -1.5*(alphaL-fabs(alphaL)); 
   // Evaluate alpha at right surface quadrature points.
   alphaR = 0.125*(0.5477225575051661*alphax[9]+0.3162277660168379*alphax[8]-0.8215838362577489*alphax[4]-0.4743416490252568*alphax[2]+0.6123724356957944*alphax[1]+0.3535533905932737*alphax[0]); 
-  cflFreq += 0.5*(alphaR+fabs(alphaR)); 
+  cflFreq += 1.5*(alphaR+fabs(alphaR)); 
   alphaR = 0.125*((-0.6846531968814574*alphax[9])-0.3952847075210473*alphax[8]+0.6123724356957944*alphax[1]+0.3535533905932737*alphax[0]); 
-  cflFreq += 0.5*(alphaR+fabs(alphaR)); 
+  cflFreq += 1.5*(alphaR+fabs(alphaR)); 
   alphaR = 0.125*(0.5477225575051661*alphax[9]+0.3162277660168379*alphax[8]+0.8215838362577489*alphax[4]+0.4743416490252568*alphax[2]+0.6123724356957944*alphax[1]+0.3535533905932737*alphax[0]); 
-  cflFreq += 0.5*(alphaR+fabs(alphaR)); 
+  cflFreq += 1.5*(alphaR+fabs(alphaR)); 
   alphaR = 0.125*(0.5477225575051661*alphax[9]+0.3162277660168379*alphax[8]-0.8215838362577489*alphax[4]-0.4743416490252568*alphax[2]+0.6123724356957944*alphax[1]+0.3535533905932737*alphax[0]); 
-  cflFreq += 0.5*(alphaR+fabs(alphaR)); 
+  cflFreq += 1.5*(alphaR+fabs(alphaR)); 
   alphaR = 0.125*((-0.6846531968814574*alphax[9])-0.3952847075210473*alphax[8]+0.6123724356957944*alphax[1]+0.3535533905932737*alphax[0]); 
-  cflFreq += 0.5*(alphaR+fabs(alphaR)); 
+  cflFreq += 1.5*(alphaR+fabs(alphaR)); 
   alphaR = 0.125*(0.5477225575051661*alphax[9]+0.3162277660168379*alphax[8]+0.8215838362577489*alphax[4]+0.4743416490252568*alphax[2]+0.6123724356957944*alphax[1]+0.3535533905932737*alphax[0]); 
-  cflFreq += 0.5*(alphaR+fabs(alphaR)); 
+  cflFreq += 1.5*(alphaR+fabs(alphaR)); 
 
   double alphavpar[12] = {0.}; 
   alphavpar[0] = -(0.6123724356957944*BstarZdBmag[0]*hamil[1]*rdvpar2*rdx2)/m_; 
@@ -95,22 +95,22 @@ GKYL_CU_DH double gyrokinetic_vol_1x2v_ser_p1(const double *w, const double *dxv
   alphavpar[7] = -(0.6123724356957944*BstarZdBmag[4]*hamil[5]*rdvpar2*rdx2)/m_; 
   // Evaluate alpha at left surface quadrature points.
   alphaL = 0.125*((-0.6123724356957944*alphavpar[7])+0.6123724356957944*alphavpar[6]+0.3535533905932737*alphavpar[5]+0.6123724356957944*alphavpar[4]-0.3535533905932737*alphavpar[3]-0.6123724356957944*alphavpar[2]-0.3535533905932737*alphavpar[1]+0.3535533905932737*alphavpar[0]); 
-  cflFreq += -0.5*(alphaL-fabs(alphaL)); 
+  cflFreq += -2.5*(alphaL-fabs(alphaL)); 
   alphaL = 0.125*(0.6123724356957944*alphavpar[7]-0.6123724356957944*alphavpar[6]-0.3535533905932737*alphavpar[5]+0.6123724356957944*alphavpar[4]+0.3535533905932737*alphavpar[3]-0.6123724356957944*alphavpar[2]-0.3535533905932737*alphavpar[1]+0.3535533905932737*alphavpar[0]); 
-  cflFreq += -0.5*(alphaL-fabs(alphaL)); 
+  cflFreq += -2.5*(alphaL-fabs(alphaL)); 
   alphaL = 0.125*(0.6123724356957944*(alphavpar[7]+alphavpar[6])-0.3535533905932737*alphavpar[5]-0.6123724356957944*alphavpar[4]-0.3535533905932737*alphavpar[3]-0.6123724356957944*alphavpar[2]+0.3535533905932737*(alphavpar[1]+alphavpar[0])); 
-  cflFreq += -0.5*(alphaL-fabs(alphaL)); 
+  cflFreq += -2.5*(alphaL-fabs(alphaL)); 
   alphaL = 0.125*((-0.6123724356957944*(alphavpar[7]+alphavpar[6]))+0.3535533905932737*alphavpar[5]-0.6123724356957944*alphavpar[4]+0.3535533905932737*alphavpar[3]-0.6123724356957944*alphavpar[2]+0.3535533905932737*(alphavpar[1]+alphavpar[0])); 
-  cflFreq += -0.5*(alphaL-fabs(alphaL)); 
+  cflFreq += -2.5*(alphaL-fabs(alphaL)); 
   // Evaluate alpha at right surface quadrature points.
   alphaR = 0.125*(0.6123724356957944*alphavpar[7]-0.6123724356957944*alphavpar[6]+0.3535533905932737*alphavpar[5]-0.6123724356957944*alphavpar[4]-0.3535533905932737*alphavpar[3]+0.6123724356957944*alphavpar[2]-0.3535533905932737*alphavpar[1]+0.3535533905932737*alphavpar[0]); 
-  cflFreq += 0.5*(alphaR+fabs(alphaR)); 
+  cflFreq += 2.5*(alphaR+fabs(alphaR)); 
   alphaR = 0.125*((-0.6123724356957944*alphavpar[7])+0.6123724356957944*alphavpar[6]-0.3535533905932737*alphavpar[5]-0.6123724356957944*alphavpar[4]+0.3535533905932737*alphavpar[3]+0.6123724356957944*alphavpar[2]-0.3535533905932737*alphavpar[1]+0.3535533905932737*alphavpar[0]); 
-  cflFreq += 0.5*(alphaR+fabs(alphaR)); 
+  cflFreq += 2.5*(alphaR+fabs(alphaR)); 
   alphaR = 0.125*((-0.6123724356957944*(alphavpar[7]+alphavpar[6]))-0.3535533905932737*alphavpar[5]+0.6123724356957944*alphavpar[4]-0.3535533905932737*alphavpar[3]+0.6123724356957944*alphavpar[2]+0.3535533905932737*(alphavpar[1]+alphavpar[0])); 
-  cflFreq += 0.5*(alphaR+fabs(alphaR)); 
+  cflFreq += 2.5*(alphaR+fabs(alphaR)); 
   alphaR = 0.125*(0.6123724356957944*(alphavpar[7]+alphavpar[6])+0.3535533905932737*alphavpar[5]+0.6123724356957944*alphavpar[4]+0.3535533905932737*alphavpar[3]+0.6123724356957944*alphavpar[2]+0.3535533905932737*(alphavpar[1]+alphavpar[0])); 
-  cflFreq += 0.5*(alphaR+fabs(alphaR)); 
+  cflFreq += 2.5*(alphaR+fabs(alphaR)); 
 
   out[1] += 0.6123724356957944*(alphax[9]*fin[9]+alphax[8]*fin[8]+alphax[4]*fin[4]+alphax[2]*fin[2]+alphax[1]*fin[1]+alphax[0]*fin[0]); 
   out[2] += 0.6123724356957944*(alphavpar[7]*fin[7]+alphavpar[6]*fin[6]+alphavpar[5]*fin[5]+alphavpar[4]*fin[4]+alphavpar[3]*fin[3]+alphavpar[2]*fin[2]+alphavpar[1]*fin[1]+alphavpar[0]*fin[0]); 
@@ -148,22 +148,22 @@ GKYL_CU_DH double gyrokinetic_step2_vol_1x2v_ser_p1(const double *w, const doubl
   double alphaR = 0.0; 
   // Evaluate alpha at left surface quadrature points.
   alphaL = -(0.125*(0.7071067811865475*apardot[0]-0.7071067811865475*apardot[1])*q_*rdvpar2)/m_; 
-  cflFreq += -0.5*(alphaL-fabs(alphaL)); 
+  cflFreq += -2.5*(alphaL-fabs(alphaL)); 
   alphaL = -(0.125*(0.7071067811865475*apardot[0]-0.7071067811865475*apardot[1])*q_*rdvpar2)/m_; 
-  cflFreq += -0.5*(alphaL-fabs(alphaL)); 
+  cflFreq += -2.5*(alphaL-fabs(alphaL)); 
   alphaL = -(0.08838834764831843*(apardot[1]+apardot[0])*q_*rdvpar2)/m_; 
-  cflFreq += -0.5*(alphaL-fabs(alphaL)); 
+  cflFreq += -2.5*(alphaL-fabs(alphaL)); 
   alphaL = -(0.08838834764831843*(apardot[1]+apardot[0])*q_*rdvpar2)/m_; 
-  cflFreq += -0.5*(alphaL-fabs(alphaL)); 
+  cflFreq += -2.5*(alphaL-fabs(alphaL)); 
   // Evaluate alpha at right surface quadrature points.
   alphaR = -(0.125*(0.7071067811865475*apardot[0]-0.7071067811865475*apardot[1])*q_*rdvpar2)/m_; 
-  cflFreq += 0.5*(alphaR+fabs(alphaR)); 
+  cflFreq += 2.5*(alphaR+fabs(alphaR)); 
   alphaR = -(0.125*(0.7071067811865475*apardot[0]-0.7071067811865475*apardot[1])*q_*rdvpar2)/m_; 
-  cflFreq += 0.5*(alphaR+fabs(alphaR)); 
+  cflFreq += 2.5*(alphaR+fabs(alphaR)); 
   alphaR = -(0.08838834764831843*(apardot[1]+apardot[0])*q_*rdvpar2)/m_; 
-  cflFreq += 0.5*(alphaR+fabs(alphaR)); 
+  cflFreq += 2.5*(alphaR+fabs(alphaR)); 
   alphaR = -(0.08838834764831843*(apardot[1]+apardot[0])*q_*rdvpar2)/m_; 
-  cflFreq += 0.5*(alphaR+fabs(alphaR)); 
+  cflFreq += 2.5*(alphaR+fabs(alphaR)); 
 
   return cflFreq; 
 } 

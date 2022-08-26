@@ -23,7 +23,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   int nsf = app->num_fluid_species = vm->num_fluid_species;
 
   double cfl_frac = vm->cfl_frac == 0 ? 1.0 : vm->cfl_frac;
-  app->cfl = cfl_frac/(2*poly_order+1);
+  app->cfl = cfl_frac;
 
 #ifdef GKYL_HAVE_CUDA
   app->use_gpu = vm->use_gpu;

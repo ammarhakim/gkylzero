@@ -14,7 +14,7 @@ GKYL_CU_DH double vlasov_sr_stream_vol_3x3v_ser_p1(const double *w, const double
   const double *p1_over_gamma = &p_over_gamma[8]; 
   const double *p2_over_gamma = &p_over_gamma[16]; 
 
-  double alpha_mid = 0.0; 
+  double cflFreq_mid = 0.0; 
   double alpha_cdim[192] = {0.0}; 
   alpha_cdim[0] = 2.828427124746191*p0_over_gamma[0]*dx10; 
   alpha_cdim[4] = 2.828427124746191*p0_over_gamma[1]*dx10; 
@@ -24,7 +24,7 @@ GKYL_CU_DH double vlasov_sr_stream_vol_3x3v_ser_p1(const double *w, const double
   alpha_cdim[20] = 2.828427124746191*p0_over_gamma[5]*dx10; 
   alpha_cdim[21] = 2.828427124746191*p0_over_gamma[6]*dx10; 
   alpha_cdim[41] = 2.828427124746191*p0_over_gamma[7]*dx10; 
-  alpha_mid += fabs(0.0625*alpha_cdim[0]); 
+  cflFreq_mid += fabs(0.0625*alpha_cdim[0]); 
 
   alpha_cdim[64] = 2.828427124746191*p1_over_gamma[0]*dx11; 
   alpha_cdim[68] = 2.828427124746191*p1_over_gamma[1]*dx11; 
@@ -34,7 +34,7 @@ GKYL_CU_DH double vlasov_sr_stream_vol_3x3v_ser_p1(const double *w, const double
   alpha_cdim[84] = 2.828427124746191*p1_over_gamma[5]*dx11; 
   alpha_cdim[85] = 2.828427124746191*p1_over_gamma[6]*dx11; 
   alpha_cdim[105] = 2.828427124746191*p1_over_gamma[7]*dx11; 
-  alpha_mid += fabs(0.0625*alpha_cdim[64]); 
+  cflFreq_mid += fabs(0.0625*alpha_cdim[64]); 
 
   alpha_cdim[128] = 2.828427124746191*p2_over_gamma[0]*dx12; 
   alpha_cdim[132] = 2.828427124746191*p2_over_gamma[1]*dx12; 
@@ -44,7 +44,7 @@ GKYL_CU_DH double vlasov_sr_stream_vol_3x3v_ser_p1(const double *w, const double
   alpha_cdim[148] = 2.828427124746191*p2_over_gamma[5]*dx12; 
   alpha_cdim[149] = 2.828427124746191*p2_over_gamma[6]*dx12; 
   alpha_cdim[169] = 2.828427124746191*p2_over_gamma[7]*dx12; 
-  alpha_mid += fabs(0.0625*alpha_cdim[128]); 
+  cflFreq_mid += fabs(0.0625*alpha_cdim[128]); 
 
   out[1] += 0.2165063509461096*(alpha_cdim[41]*f[41]+alpha_cdim[21]*f[21]+alpha_cdim[20]*f[20]+alpha_cdim[16]*f[16]+alpha_cdim[6]*f[6]+alpha_cdim[5]*f[5]+alpha_cdim[4]*f[4]+alpha_cdim[0]*f[0]); 
   out[2] += 0.2165063509461096*(f[41]*alpha_cdim[105]+f[21]*alpha_cdim[85]+f[20]*alpha_cdim[84]+f[16]*alpha_cdim[80]+f[6]*alpha_cdim[70]+f[5]*alpha_cdim[69]+f[4]*alpha_cdim[68]+f[0]*alpha_cdim[64]); 
@@ -103,5 +103,5 @@ GKYL_CU_DH double vlasov_sr_stream_vol_3x3v_ser_p1(const double *w, const double
   out[62] += 0.2165063509461096*(f[2]*alpha_cdim[169]+f[11]*alpha_cdim[149]+f[14]*alpha_cdim[148]+f[18]*alpha_cdim[144]+f[30]*alpha_cdim[134]+f[36]*alpha_cdim[133]+f[39]*alpha_cdim[132]+f[55]*alpha_cdim[128]+f[3]*alpha_cdim[105]+f[12]*alpha_cdim[85]+f[15]*alpha_cdim[84]+f[19]*alpha_cdim[80]+f[31]*alpha_cdim[70]+f[37]*alpha_cdim[69]+f[40]*alpha_cdim[68]+f[56]*alpha_cdim[64]); 
   out[63] += 0.2165063509461096*(f[7]*alpha_cdim[169]+f[23]*alpha_cdim[149]+f[26]*alpha_cdim[148]+f[32]*alpha_cdim[144]+f[44]*alpha_cdim[134]+f[48]*alpha_cdim[133]+f[51]*alpha_cdim[132]+f[60]*alpha_cdim[128]+f[8]*alpha_cdim[105]+f[24]*alpha_cdim[85]+f[27]*alpha_cdim[84]+f[33]*alpha_cdim[80]+f[45]*alpha_cdim[70]+f[49]*alpha_cdim[69]+f[52]*alpha_cdim[68]+f[61]*alpha_cdim[64]+alpha_cdim[0]*f[62]+alpha_cdim[4]*f[53]+alpha_cdim[5]*f[50]+alpha_cdim[6]*f[46]+f[9]*alpha_cdim[41]+alpha_cdim[16]*f[34]+alpha_cdim[20]*f[28]+alpha_cdim[21]*f[25]); 
 
-  return alpha_mid; 
+  return 3.0*cflFreq_mid; 
 } 

@@ -6,12 +6,12 @@ GKYL_CU_DH double advection_vol_1x_ser_p2(const double *w, const double *dxv, co
   // u[NDIM]:   Advection velocity.
   // f:         Input function.
   // out:       Incremented output.
-  const double dx2 = 2.0/dxv[0]; 
-  double alpha_mid = 0.0; 
-  alpha_mid += fabs(0.3535533905932737*u[0]-0.3952847075210473*u[2])/dxv[0]; 
+  const double rdx2 = 2.0/dxv[0]; 
+  double cflFreq_mid = 0.0; 
+  cflFreq_mid += fabs((1.767766952966369*u[0]-1.976423537605237*u[2])*rdx2); 
 
-  out[1] += 1.224744871391589*(f[2]*u[2]+f[1]*u[1]+f[0]*u[0])*dx2; 
-  out[2] += (2.449489742783178*(f[1]*u[2]+u[1]*f[2])+2.738612787525831*(f[0]*u[1]+u[0]*f[1]))*dx2; 
+  out[1] += 1.224744871391589*(f[2]*u[2]+f[1]*u[1]+f[0]*u[0])*rdx2; 
+  out[2] += (2.449489742783178*(f[1]*u[2]+u[1]*f[2])+2.738612787525831*(f[0]*u[1]+u[0]*f[1]))*rdx2; 
 
-  return alpha_mid; 
+  return cflFreq_mid; 
 } 
