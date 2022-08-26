@@ -406,7 +406,7 @@ qfluct_lax(const struct gkyl_wv_eqn *eqn,
   double fl[10], fr[10];
   
   if (mhd->divergence_constraint == GKYL_MHD_DIVB_GLM) {
-    double ch = amax; // Is this right?
+    double ch = mhd->glm_ch;
     gkyl_glm_mhd_flux(gas_gamma, ch, ql, fl);
     gkyl_glm_mhd_flux(gas_gamma, ch, qr, fr);
   } else {
