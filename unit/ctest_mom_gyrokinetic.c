@@ -147,7 +147,12 @@ test_1x1v(int polyOrder)
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  if (poly_order > 1) {
+    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  } else if (poly_order == 1) {
+    /* Force hybrid basis (p=2 in vpar). */
+    gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
+  }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 1 };
@@ -168,6 +173,7 @@ test_1x1v(int polyOrder)
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, distf_1x1v, NULL);
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
+//  gkyl_grid_sub_array_write(&grid, &local, distf, "ctest_mom_gyrokinetic_1x1v_p1_distf.gkyl");
 
   // create bmag array and project magnetic field amplitude function on basis
   struct gkyl_array *bmag;
@@ -175,6 +181,7 @@ test_1x1v(int polyOrder)
   gkyl_proj_on_basis *projbmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
     poly_order+1, 1, bmag_1x, NULL);
   gkyl_proj_on_basis_advance(projbmag, 0.0, &confLocal, bmag);
+//  gkyl_grid_sub_array_write(&confGrid, &confLocal, bmag, "ctest_mom_gyrokinetic_1x1v_p1_bmag.gkyl");
 
   struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M0");
   struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M1");
@@ -325,7 +332,12 @@ test_1x2v(int poly_order)
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  if (poly_order > 1) {
+    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  } else if (poly_order == 1) {
+    /* Force hybrid basis (p=2 in vpar). */
+    gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
+  }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 1 };
@@ -485,7 +497,12 @@ test_2x2v(int poly_order)
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  if (poly_order > 1) {
+    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  } else if (poly_order == 1) {
+    /* Force hybrid basis (p=2 in vpar). */
+    gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
+  }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 1, 1 };

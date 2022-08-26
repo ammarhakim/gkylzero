@@ -207,6 +207,27 @@ em_source_update(const gkyl_moment_em_coupling *mes, double dt,
   } 
 }
 
+// Update momentum of neutral fluid using time-centered scheme.
+// Assumes no EM fields in the simulation. See Wang
+// et. al. 2020 for details.
+static void
+neut_source_update(const gkyl_moment_em_coupling *mes, double dt,
+  double *fluids[GKYL_MAX_SPECIES], const double *app_accels[GKYL_MAX_SPECIES])
+{
+  int nfluids = mes->nfluids;
+  for (int n=0; n < nfluids; ++n)
+  {
+    double *f = fluids[n];
+    const double *app_accel = app_accels[n];
+
+    // Add contributions from applied acceleration to momentum
+    // Note: Conversion from applied acceleration to force density occurs here
+    f[MX] += dt*f[RHO]*app_accel[0];
+    f[MY] += dt*f[RHO]*app_accel[1];
+    f[MZ] += dt*f[RHO]*app_accel[2];
+  }
+}
+
 // Update momentum and E field along with appropriate pressure update.
 // If isothermal Euler equations, only update momentum and E,
 // if Euler equations, update energy based on new kinetic energy,
@@ -242,7 +263,10 @@ fluid_source_update(const gkyl_moment_em_coupling *mes, double dt,
       double nu = vth*mes->param[n].k0;
       double edt = exp(nu*dt);
 
-      pressure_tensor_rotate(qbym, dt, em, ext_em, prInp, prTen[n]);
+      // If permittivity of free-space is non-zero, EM fields exist
+      // and we rotate pressure tensor around magnetic field 
+      if (mes->epsilon0)
+        pressure_tensor_rotate(qbym, dt, em, ext_em, prInp, prTen[n]);
 
       // Divide out integrating factor from collisional relaxation
       // (P - pI) = exp(-nu*dt)*(P - pI); where p is the isotropic pressure 
@@ -256,7 +280,12 @@ fluid_source_update(const gkyl_moment_em_coupling *mes, double dt,
   }
 
   // Update momentum and electric field using time-centered implicit solve.
-  em_source_update(mes, dt, fluids, app_accels, em, app_current, ext_em);
+  // If permittivity of free-space is non-zero, EM fields exist and electric
+  // field is updated, otherwise just update momentum
+  if (mes->epsilon0)
+    em_source_update(mes, dt, fluids, app_accels, em, app_current, ext_em);
+  else
+    neut_source_update(mes, dt, fluids, app_accels);
 
   for (int n=0; n < nfluids; ++n) {
     double *f = fluids[n];

@@ -39,7 +39,7 @@ rot_to_global(const double *tau1, const double *tau2, const double *norm,
 
 // Waves and speeds using Roe averaging
 static double
-wave_roe(const struct gkyl_wv_eqn *eqn, 
+wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
   const struct wv_iso_euler *iso_euler = container_of(eqn, struct wv_iso_euler, eqn);
@@ -90,7 +90,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
 }
 
 static void
-qfluct_roe(const struct gkyl_wv_eqn *eqn, 
+qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *ql, const double *qr, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
@@ -102,6 +102,12 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn,
     amdq[i] = s0m*w0[i] + s1m*w1[i] + s2m*w2[i];
     apdq[i] = s0p*w0[i] + s1p*w1[i] + s2p*w2[i];
   }
+}
+
+static bool
+check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
+{
+  return q[0] > 0.0; // denisty should be positive
 }
 
 static double
@@ -122,6 +128,7 @@ gkyl_wv_iso_euler_new(double vt)
   iso_euler->vt = vt;
   iso_euler->eqn.waves_func = wave_roe;
   iso_euler->eqn.qfluct_func = qfluct_roe;
+  iso_euler->eqn.check_inv_func = check_inv;
   iso_euler->eqn.max_speed_func = max_speed;
   iso_euler->eqn.rotate_to_local_func = rot_to_local;
   iso_euler->eqn.rotate_to_global_func = rot_to_global;

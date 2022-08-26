@@ -147,6 +147,14 @@ int gkyl_dynvec_write(const gkyl_dynvec vec, const char *fname);
 int gkyl_dynvec_awrite(const gkyl_dynvec vec, const char *fname);
 
 /**
+ * Read number of components from the dynvec file.
+ *
+ * @param Name of input file
+ * @return Number of components
+ */
+int gkyl_dynvec_read_ncomp(const char *fname);
+
+/**
  * Read dynvector from file, appending data to end of the
  * vector. Existing data in vector is retained, and read data is
  * appended.

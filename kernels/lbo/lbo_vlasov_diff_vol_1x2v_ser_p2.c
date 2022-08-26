@@ -17,6 +17,6 @@ GKYL_CU_DH double lbo_vlasov_diff_vol_1x2v_ser_p2(const double *w, const double 
   facDiff[1] = nuVtSqSum[1]; 
   facDiff[2] = nuVtSqSum[2]; 
 
-  return fabs((1.272792206135785*facDiff[0]-1.42302494707577*facDiff[2])*rdvxSq4)+fabs((1.272792206135785*facDiff[0]-1.42302494707577*facDiff[2])*rdvySq4); 
+  return fabs((6.363961030678928*facDiff[0]-7.115124735378852*facDiff[2])*rdvxSq4)+fabs((6.363961030678928*facDiff[0]-7.115124735378852*facDiff[2])*rdvySq4); 
 
 } 

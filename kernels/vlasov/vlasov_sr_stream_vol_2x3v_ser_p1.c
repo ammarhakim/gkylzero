@@ -13,7 +13,7 @@ GKYL_CU_DH double vlasov_sr_stream_vol_2x3v_ser_p1(const double *w, const double
   const double *p1_over_gamma = &p_over_gamma[8]; 
   const double *p2_over_gamma = &p_over_gamma[16]; 
 
-  double alpha_mid = 0.0; 
+  double cflFreq_mid = 0.0; 
   double alpha_cdim[64] = {0.0}; 
   alpha_cdim[0] = 2.0*p0_over_gamma[0]*dx10; 
   alpha_cdim[3] = 2.0*p0_over_gamma[1]*dx10; 
@@ -23,7 +23,7 @@ GKYL_CU_DH double vlasov_sr_stream_vol_2x3v_ser_p1(const double *w, const double
   alpha_cdim[14] = 2.0*p0_over_gamma[5]*dx10; 
   alpha_cdim[15] = 2.0*p0_over_gamma[6]*dx10; 
   alpha_cdim[25] = 2.0*p0_over_gamma[7]*dx10; 
-  alpha_mid += fabs(0.0883883476483184*alpha_cdim[0]); 
+  cflFreq_mid += fabs(0.0883883476483184*alpha_cdim[0]); 
 
   alpha_cdim[32] = 2.0*p1_over_gamma[0]*dx11; 
   alpha_cdim[35] = 2.0*p1_over_gamma[1]*dx11; 
@@ -33,7 +33,7 @@ GKYL_CU_DH double vlasov_sr_stream_vol_2x3v_ser_p1(const double *w, const double
   alpha_cdim[46] = 2.0*p1_over_gamma[5]*dx11; 
   alpha_cdim[47] = 2.0*p1_over_gamma[6]*dx11; 
   alpha_cdim[57] = 2.0*p1_over_gamma[7]*dx11; 
-  alpha_mid += fabs(0.0883883476483184*alpha_cdim[32]); 
+  cflFreq_mid += fabs(0.0883883476483184*alpha_cdim[32]); 
 
   out[1] += 0.3061862178478971*(alpha_cdim[25]*f[25]+alpha_cdim[15]*f[15]+alpha_cdim[14]*f[14]+alpha_cdim[11]*f[11]+alpha_cdim[5]*f[5]+alpha_cdim[4]*f[4]+alpha_cdim[3]*f[3]+alpha_cdim[0]*f[0]); 
   out[2] += 0.3061862178478971*(f[25]*alpha_cdim[57]+f[15]*alpha_cdim[47]+f[14]*alpha_cdim[46]+f[11]*alpha_cdim[43]+f[5]*alpha_cdim[37]+f[4]*alpha_cdim[36]+f[3]*alpha_cdim[35]+f[0]*alpha_cdim[32]); 
@@ -60,5 +60,5 @@ GKYL_CU_DH double vlasov_sr_stream_vol_2x3v_ser_p1(const double *w, const double
   out[30] += 0.3061862178478971*(f[0]*alpha_cdim[57]+f[3]*alpha_cdim[47]+f[4]*alpha_cdim[46]+f[5]*alpha_cdim[43]+f[11]*alpha_cdim[37]+f[14]*alpha_cdim[36]+f[15]*alpha_cdim[35]+f[25]*alpha_cdim[32]); 
   out[31] += 0.3061862178478971*(f[1]*alpha_cdim[57]+f[7]*alpha_cdim[47]+f[9]*alpha_cdim[46]+f[12]*alpha_cdim[43]+f[18]*alpha_cdim[37]+f[21]*alpha_cdim[36]+f[23]*alpha_cdim[35]+f[29]*alpha_cdim[32]+alpha_cdim[0]*f[30]+f[2]*alpha_cdim[25]+alpha_cdim[3]*f[24]+alpha_cdim[4]*f[22]+alpha_cdim[5]*f[19]+f[8]*alpha_cdim[15]+f[10]*alpha_cdim[14]+alpha_cdim[11]*f[13]); 
 
-  return alpha_mid; 
+  return 3.0*cflFreq_mid; 
 } 

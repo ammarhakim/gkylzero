@@ -27,6 +27,9 @@ package.path = package.path .. ";" .. install_prefix .. "/lib/?.lua"
 -- declare some top-level things we want to expose
 ffi.cdef [[
 
+// This needs to be enum to allow usage below
+enum { GKYL_MAX_SPECIES = 8 };
+
 /**
  * Set the global flag to turn on memory allocation/deallocation
  * tracing.
@@ -43,35 +46,77 @@ void gkyl_mem_debug_set(bool flag);
  */
 void gkyl_cu_dev_mem_debug_set(bool flag);
 
+]]
+
+-- gkyl_eqn_type.h
+ffi.cdef [[
+
+// Identifiers for various equation systems
+enum gkyl_eqn_type {
+  GKYL_EQN_EULER, // Euler equations
+  GKYL_EQN_SR_EULER, // SR Euler equations
+  GKYL_EQN_ISO_EULER, // Isothermal Euler equations
+  GKYL_EQN_TEN_MOMENT, // Ten-moment (with pressure tensor)
+  GKYL_EQN_MAXWELL, // Maxwell equations
+  GKYL_EQN_MHD,  // Ideal MHD equations
+  GKYL_EQN_BURGERS, // Burgers equations
+};
+
 // Identifiers for specific field object types
 enum gkyl_field_id {
   GKYL_FIELD_E_B = 0, // Maxwell (E, B). This is default
+  GKYL_FIELD_SR_E_B, // Maxwell (E, B) with special relativity
   GKYL_FIELD_PHI, // Poisson (only phi)  
   GKYL_FIELD_PHI_A, // Poisson with static B = curl(A) (phi, A)
-  GKYL_FIELD_NULL // no field is present
+  GKYL_FIELD_NULL, // no field is present
+  GKYL_FIELD_SR_NULL // no field is present, special relativistic Vlasov
 };
 
-/* Basis function identifiers */
-enum gkyl_basis_type {
-  GKYL_BASIS_MODAL_SERENDIPITY,
-  GKYL_BASIS_MODAL_TENSOR,
-  GKYL_BASIS_MODAL_GK_HYBRID,
-};
-
-/* Collision types */
+// Identifiers for specific collision object types
 enum gkyl_collision_id {
   GKYL_NO_COLLISIONS = 0, // No collisions. This is default
   GKYL_BGK_COLLISIONS, // BGK Collision operator
   GKYL_LBO_COLLISIONS // LBO Collision operator
 };
 
+// Identifiers for specific source object types
+enum gkyl_source_id {
+  GKYL_NO_SOURCE = 0, // No source. This is default
+  GKYL_FUNC_SOURCE, // Source given by function
+  GKYL_BFLUX_SOURCE // Source which scales to boundary fluxes
+};
+
+// type of quadrature to use
+enum gkyl_quad_type {
+  GKYL_GAUSS_QUAD, // Gauss-Legendre quadrature
+  GKYL_GAUSS_LOBATTO_QUAD // Gauss-Lobatto quadrature
+};
+]]
+
+-- gkyl_app.h
+ffi.cdef [[
+
+// Update status
+struct gkyl_update_status {
+  bool success; // status of update
+  double dt_actual; // actual time-step taken
+  double dt_suggested; // suggested stable time-step
+};
+
 // Boundary conditions on particles
 enum gkyl_species_bc_type {
   GKYL_SPECIES_COPY = 0, // copy BCs
-  GKYL_SPECIES_WALL, // perfect reflector
-  GKYL_SPECIES_ABSORB, // absorbing BCs
-  GKYL_SPECIES_NO_SLIP, // no-slip BCs
+  GKYL_SPECIES_REFLECT, // perfect reflector
+  GKYL_SPECIES_ABSORB, // Absorbing BCs
+  GKYL_SPECIES_NO_SLIP, // no-slip boundary conditions
   GKYL_SPECIES_WEDGE, // specialized "wedge" BCs for RZ-theta
+  GKYL_SPECIES_FUNC, // Function boundary conditions
+};
+
+// Boundary conditions on fluids
+enum gkyl_fluid_species_bc_type {
+  GKYL_FLUID_SPECIES_COPY = 0, // copy BCs
+  GKYL_FLUID_SPECIES_ABSORB, // Absorbing BCs
 };
 
 // Boundary conditions on fields
@@ -81,16 +126,11 @@ enum gkyl_field_bc_type {
   GKYL_FIELD_WEDGE, // specialized "wedge" BCs for RZ-theta
 };
 
-// This needs to be enum to allow usage below
-enum { GKYL_MAX_SPECIES = 8 };
-
-struct gkyl_update_status {
-  bool success; // status of update
-  double dt_actual; // actual time-step taken
-  double dt_suggested; // suggested stable time-step
-};
+]]
 
 
+-- gkyl_util.h
+ffi.cdef [[
 /**
  * Time-trigger. Typical initialization is:
  * 
@@ -114,9 +154,10 @@ int gkyl_tm_trigger_check_and_bump(struct gkyl_tm_trigger *tmt, double tcurr);
 
 ]]
 
--- declare functions from Moments C app
+-- gkyl_wave_prop.h
 ffi.cdef [[
 
+// Limiters
 enum gkyl_wave_limiter {
   GKYL_NO_LIMITER = 1, // to allow default to be 0
   GKYL_MIN_MOD,
@@ -126,17 +167,23 @@ enum gkyl_wave_limiter {
   GKYL_BEAM_WARMING,
   GKYL_ZERO
 };
+]]
 
-// Wave equation object
+-- gkyl_wv_eqn.h
+ffi.cdef [[
+// Flux type for use in wave/qfluct methods
+enum gkyl_wv_flux_type { GKYL_WV_HIGH_ORDER_FLUX, GKYL_WV_LOW_ORDER_FLUX };
+
+// Forward declare for use in function pointers
 typedef struct gkyl_wv_eqn gkyl_wv_eqn;
 
 /**
- * Create a new Euler equation object.
- * 
- * @param gas_gamma Gas adiabatic constant
- * @return Pointer to Euler equation object.
+ * Acquire pointer to equation object. Delete using the release()
+ * method
+ *
+ * @param eqn Equation object.
  */
-struct gkyl_wv_eqn* gkyl_wv_euler_new(double gas_gamma);
+struct gkyl_wv_eqn* gkyl_wv_eqn_acquire(const struct gkyl_wv_eqn* eqn);
 
 /**
  * Delete equation object
@@ -144,6 +191,17 @@ struct gkyl_wv_eqn* gkyl_wv_euler_new(double gas_gamma);
  * @param eqn Equation object to delete.
  */
 void gkyl_wv_eqn_release(const struct gkyl_wv_eqn* eqn);
+]]
+
+-- Various equation objects
+ffi.cdef [[
+/**
+ * Create a new Euler equation object.
+ * 
+ * @param gas_gamma Gas adiabatic constant
+ * @return Pointer to Euler equation object.
+ */
+struct gkyl_wv_eqn* gkyl_wv_euler_new(double gas_gamma);
 
 /**
  * Create a new isothermal Euler equation object.
@@ -192,14 +250,10 @@ struct gkyl_wv_ten_moment { struct gkyl_wv_eqn *eqn; };
  * @return Pointer to Ten moment equation object.
  */
 struct gkyl_wv_eqn* gkyl_wv_ten_moment_new(double k0);
+]]
 
-/**
- * Acquire pointer to equation object. Delete using the release()
- * method
- *
- * @param eqn Equation object.
- */
-struct gkyl_wv_eqn* gkyl_wv_eqn_acquire(const struct gkyl_wv_eqn* eqn);
+-- gkyl_moment.h
+ffi.cdef [[
 
 // Parameters for moment species
 struct gkyl_moment_species {
@@ -209,10 +263,14 @@ struct gkyl_moment_species {
   const struct gkyl_wv_eqn *equation; // equation object
 
   int evolve; // evolve species? 1-yes, 0-no
+  bool force_low_order_flux; // should  we force low-order flux?
 
-  void *ctx; // context for initial condition init function
+  void *ctx; // context for initial condition init function (and potentially other functions)
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
+  // pointer to boundary condition functions
+  void (*bc_lower_func)(double t, int nc, const double *skin, double *  ghost, void *ctx);
+  void (*bc_upper_func)(double t, int nc, const double *skin, double *  ghost, void *ctx);
   // pointer to applied acceleration/forces function
   void (*app_accel_func)(double t, const double *xn, double *fout, void *ctx);
   // boundary conditions
@@ -228,13 +286,16 @@ struct gkyl_moment_field {
 
   int evolve; // evolve field? 1-yes, 0-no
 
-  void *ctx; // context for initial condition init function
+  void *ctx; // context for initial condition init function (and potentially other functions)
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
   // pointer to applied current function
   void (*app_current_func)(double t, const double *xn, double *fout, void *ctx);
+
+  bool is_ext_em_static; // flag to indicate if external field is time-independent
   // pointer to external fields
   void (*ext_em_func)(double t, const double *xn, double *fout, void *ctx);
+
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
 };
@@ -287,15 +348,6 @@ struct gkyl_moment_stat {
 
 // Object representing moments app
 typedef struct gkyl_moment_app gkyl_moment_app;
-
-// Container to store pointer to app and other data
-struct gkyl_moment_app_cont {
-  double t0, tend; // start and end times
-  int nframe; // number of frames to write
-  int nspecies; // number of species
-
-  gkyl_moment_app *app; // pointer to app
-};
 
 /**
  * Construct a new moments app.
@@ -355,17 +407,31 @@ void gkyl_moment_app_write(const gkyl_moment_app* app, double tm, int frame);
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_moment_app_write_field(const gkyl_moment_app* app, double tm, int frame);
+void gkyl_moment_app_write_field(const gkyl_moment_app *app, double tm, int frame);
 
 /**
  * Write species data to file.
  * 
  * @param app App object.
- * @param sidx Index of species to initialize.
+ * @param sidx Index of species to write
  * @param tm Time-stamp
  * @param frame Frame number
  */
 void gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, int frame);
+
+/**
+ * Write field energy to file.
+ *
+ * @param app App object.
+ */
+void gkyl_moment_app_write_field_energy(gkyl_moment_app *app);
+
+/**
+ * Write integrated moments to file.
+ *
+ * @param app App object.
+ */
+void gkyl_moment_app_write_integrated_mom(gkyl_moment_app *app);
 
 /**
  * Write stats to file. Data is written in json format.
@@ -390,14 +456,30 @@ void gkyl_moment_app_stat_write(const gkyl_moment_app* app);
  * @param dt Suggested time-step to advance simulation
  * @return Status of update.
  */
-struct gkyl_update_status gkyl_moment_update(gkyl_moment_app* app, double dt);
+struct gkyl_update_status gkyl_moment_update(gkyl_moment_app *app, double dt);
+
+/**
+ * Calculate integrated field energy
+ *
+ * @param tm Time at which integrated diagnostic are to be computed
+ * @param app App object.
+ */
+void gkyl_moment_app_calc_field_energy(gkyl_moment_app *app, double tm);
+
+/**
+ * Calculate integrated moments
+ *
+ * @param app App object.
+ * @param tm Time at which integrated diagnostic are to be computed
+ */
+void gkyl_moment_app_calc_integrated_mom(gkyl_moment_app *app, double tm);
 
 /**
  * Return simulation statistics.
  * 
  * @return Return statistics.
  */
-struct gkyl_moment_stat gkyl_moment_app_stat(gkyl_moment_app* app);
+struct gkyl_moment_stat gkyl_moment_app_stat(gkyl_moment_app *app);
 
 /**
  * Free moment app.
@@ -406,6 +488,19 @@ struct gkyl_moment_stat gkyl_moment_app_stat(gkyl_moment_app* app);
  */
 void gkyl_moment_app_release(gkyl_moment_app* app);
 
+]]
+
+-- App container
+ffi.cdef [[
+// Container to store pointer to app and other data
+
+struct gkyl_moment_app_cont {
+  double t0, tend; // start and end times
+  int nframe; // number of frames to write
+  int nspecies; // number of species
+
+  gkyl_moment_app *app; // pointer to app
+};
 ]]
 
 -- module table
@@ -508,7 +603,7 @@ local species_mt = {
 
       s.limiter = limiter_tags["monotonized-centered"]
       if tbl.limiter then
-	 s.limiter = limiter_tags[tbl.limiter]
+         s.limiter = limiter_tags[tbl.limiter]
       end
 
       -- we need to insert equation into species_eqn_tbl to prevent it
@@ -525,20 +620,21 @@ local species_mt = {
 
       -- boundary conditions
       if tbl.bcx then
-	 s.bcx[0], s.bcx[1] = tbl.bcx[1], tbl.bcx[2]
+         s.bcx[0], s.bcx[1] = tbl.bcx[1], tbl.bcx[2]
       end
       if tbl.bcy then
-	 s.bcy[0], s.bcy[1] = tbl.bcy[1], tbl.bcy[2]
+         s.bcy[0], s.bcy[1] = tbl.bcy[1], tbl.bcy[2]
       end
       if tbl.bcz then
-	 s.bcz[0], s.bcz[1] = tbl.bcz[1], tbl.bcz[2]
+         s.bcz[0], s.bcz[1] = tbl.bcz[1], tbl.bcz[2]
       end
 
       return s
    end,
    __index = {
       -- we need this here also to be consistent with G2 App
-      bcWall = C.GKYL_SPECIES_WALL,
+      bcReflect = C.GKYL_SPECIES_REFLECT,
+      bcWall = C.GKYL_SPECIES_REFLECT,
       bcCopy = C.GKYL_SPECIES_COPY,
       bcNoSlip = C.GKYL_SPECIES_NO_SLIP,
       bcWedge = C.GKYL_SPECIES_WEDGE
@@ -593,12 +689,12 @@ local field_mt = {
 
       f.elc_error_speed_fact = 0.0
       if (tbl.elcErrorSpeedFactor) then
-	 f.elc_error_speed_fact = tbl.elcErrorSpeedFactor
+         f.elc_error_speed_fact = tbl.elcErrorSpeedFactor
       end
 
       f.mag_error_speed_fact = 1.0
       if (tbl.mgnErrorSpeedFactor) then
-	 f.mag_error_speed_fact = tbl.mgnErrorSpeedFactor
+         f.mag_error_speed_fact = tbl.mgnErrorSpeedFactor
       end
 
       f.ctx = nil -- no need for context
@@ -606,19 +702,24 @@ local field_mt = {
       if tbl.app_current then
          f.app_current_func = gkyl_eval_applied(tbl.app_current)
       end
-      if tbl.ext_em then
-         f.ext_em_func = gkyl_eval_ext_field(tbl.ext_em)
+
+      f.is_ext_em_static = false
+      if tbl.is_ext_em_static then
+	 f.is_ext_em_static = tbl.is_ext_em_static
+      end
+      if tbl.ext_em_func then
+         f.ext_em_func = gkyl_eval_ext_field(tbl.ext_em_func)
       end
 
       -- boundary conditions
       if tbl.bcx then
-	 f.bcx[0], f.bcx[1] = tbl.bcx[1], tbl.bcx[2]
+         f.bcx[0], f.bcx[1] = tbl.bcx[1], tbl.bcx[2]
       end
       if tbl.bcy then
-	 f.bcy[0], f.bcy[1] = tbl.bcy[1], tbl.bcy[2]
+         f.bcy[0], f.bcy[1] = tbl.bcy[1], tbl.bcy[2]
       end
       if tbl.bcz then
-	 f.bcz[0], f.bcz[1] = tbl.bcz[1], tbl.bcz[2]
+         f.bcz[0], f.bcz[1] = tbl.bcz[1], tbl.bcz[2]
       end
 
       return f
@@ -656,12 +757,12 @@ local app_mt = {
 
       local name = "moment"
       if GKYL_OUT_PREFIX then
-	 -- if G0 is being run from gkyl then GKYL_OUT_PREFIX is
-	 -- defined
-	 name = GKYL_OUT_PREFIX
+         -- if G0 is being run from gkyl then GKYL_OUT_PREFIX is
+         -- defined
+         name = GKYL_OUT_PREFIX
       else
-	 local s, e = string.find(arg[0], ".lua")
-	 name = string.sub(arg[0], 1, s-1)
+         local s, e = string.find(arg[0], ".lua")
+         name = string.sub(arg[0], 1, s-1)
       end
 	 
       -- set values in input struct
@@ -670,14 +771,14 @@ local app_mt = {
 
       -- set configuration space grid data
       for d=1, vm.ndim do
-	 vm.lower[d-1] = tbl.lower[d]
-	 vm.upper[d-1] = tbl.upper[d]
-	 vm.cells[d-1] = tbl.cells[d]
+         vm.lower[d-1] = tbl.lower[d]
+         vm.upper[d-1] = tbl.upper[d]
+         vm.cells[d-1] = tbl.cells[d]
       end
 
       vm.cfl_frac = 1.0
       if tbl.cflFrac then
-	 vm.cfl_frac = tbl.cflFrac
+         vm.cfl_frac = tbl.cflFrac
       end
 
       vm.fluid_scheme = C.GKYL_MOMENT_FLUID_WAVE_PROP
@@ -686,36 +787,36 @@ local app_mt = {
       vm.c2p_ctx = nil -- no need for context
       vm.mapc2p = nil
       if tbl.mapc2p then
-	 vm.mapc2p = gkyl_eval_mapc2p(tbl.mapc2p)
+         vm.mapc2p = gkyl_eval_mapc2p(tbl.mapc2p)
       end
 
       -- determine periodic BCs
       vm.num_periodic_dir = 0
       if tbl.periodicDirs then
-	 vm.num_periodic_dir = #tbl.periodicDirs
-	 for i=1, #tbl.periodicDirs do
-	    vm.periodic_dirs[i-1] = tbl.periodicDirs[i]-1 -- note indexing transforms
-	 end
+         vm.num_periodic_dir = #tbl.periodicDirs
+         for i=1, #tbl.periodicDirs do
+          vm.periodic_dirs[i-1] = tbl.periodicDirs[i]-1 -- note indexing transforms
+         end
       end
 
       -- determine directions to skip, if any
       vm.num_skip_dirs = 0
       if tbl.skip_dirs then
-	 vm.num_skip_dirs = #tbl.skip_dirs
-	 for i=1, #tbl.skip_dirs do
-	    vm.skip_dir[i-1] = tbl.skip_dir[i]
-	 end
+         vm.num_skip_dirs = #tbl.skip_dirs
+         for i=1, #tbl.skip_dirs do
+          vm.skip_dir[i-1] = tbl.skip_dir[i]
+         end
       end
 
       -- set species
       vm.num_species = #species
       for i=1, #species do
-	 vm.species[i-1] = species[i]
+         vm.species[i-1] = species[i]
       end
 
       -- set field
       if field then
-	 vm.field = field
+         vm.field = field
       end      
 
       -- create new Moments app object
@@ -724,7 +825,7 @@ local app_mt = {
       -- we need to store some stuff in container struct
       a.nspecies = num_species
       if tbl.tStart then
-	 a.t0 = tbl.tStart
+         a.t0 = tbl.tStart
       end
       a.tend = tbl.tEnd
       a.nframe = tbl.nFrame
@@ -738,24 +839,24 @@ local app_mt = {
    end,
    __index = {
       init = function(self)
-	 C.gkyl_moment_app_apply_ic(self.app, self.t0)
+         C.gkyl_moment_app_apply_ic(self.app, self.t0)
       end,
       writeField = function(self, tm, frame)
-	 C.gkyl_moment_app_write_field(self.app, tm, frame)
+         C.gkyl_moment_app_write_field(self.app, tm, frame)
       end,
       writeSpecies = function(self, tm, frame)
-	 for i=1, self.nspecies do
-	    C.gkyl_moment_app_write_species(self.app, i-1, tm, frame)
-	 end
+         for i=1, self.nspecies do
+          C.gkyl_moment_app_write_species(self.app, i-1, tm, frame)
+         end
       end,
       write = function(self, tm, frame)
-	 C.gkyl_moment_app_write(self.app, tm, frame)
+         C.gkyl_moment_app_write(self.app, tm, frame)
       end,
       writeStat = function(self)
-	 C.gkyl_moment_app_stat_write(self.app)
+         C.gkyl_moment_app_stat_write(self.app)
       end,
       update = function(self, dt)
-	 return C.gkyl_moment_update(self.app, dt)
+         return C.gkyl_moment_update(self.app, dt)
       end,
       run = function(self)
 	 

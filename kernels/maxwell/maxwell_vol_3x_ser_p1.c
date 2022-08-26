@@ -94,5 +94,5 @@ GKYL_CU_DH double maxwell_vol_3x_ser_p1(const gkyl_maxwell_inp *meq, const doubl
   cflFreq += meq->c/dx[0]; 
   cflFreq += meq->c/dx[1]; 
   cflFreq += meq->c/dx[2]; 
-  return cflFreq; 
+  return 3.0*cflFreq; 
 } 

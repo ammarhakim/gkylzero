@@ -2,10 +2,10 @@
 
 // these ensure inline functions are defined only once
 
-extern inline double gkyl_wv_eqn_waves(const struct gkyl_wv_eqn *eqn,
+extern inline double gkyl_wv_eqn_waves(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *delta, const double *ql, const double *qr, double *waves, double *speeds);
 
-extern inline void gkyl_wv_eqn_qfluct(const struct gkyl_wv_eqn *eqn,
+extern inline void gkyl_wv_eqn_qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *ql, const double *qr, const double *waves, const double *speeds,
   double *amdq, double *apdq);
 
