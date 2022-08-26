@@ -1,6 +1,6 @@
 #include <gkyl_vlasov_kernels.h> 
 
-GKYL_CU_DH double vlasov_poisson_vol_1x2v_ser_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const double *f, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_poisson_vol_1x2v_tensor_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const double *f, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
@@ -18,8 +18,8 @@ GKYL_CU_DH double vlasov_poisson_vol_1x2v_ser_p2(const double *w, const double *
   const double dv2 = dxv[2], wv2 = w[2]; 
 
   double cflFreq_mid = 0.0; 
-  double alpha_cdim[20]; 
-  double alpha_vdim[40]; 
+  double alpha_cdim[27]; 
+  double alpha_vdim[54]; 
 
   alpha_cdim[0] = 5.656854249492382*w0dx0; 
   alpha_cdim[2] = 1.632993161855453*dv0dx0; 
@@ -47,7 +47,14 @@ GKYL_CU_DH double vlasov_poisson_vol_1x2v_ser_p2(const double *w, const double *
   out[16] += 0.6123724356957944*(alpha_vdim[1]*f[15]+alpha_vdim[0]*f[9]); 
   out[17] += 1.224744871391589*alpha_cdim[2]*f[18]+0.6123724356957944*alpha_vdim[0]*f[13]+1.369306393762915*alpha_cdim[0]*f[10]+(1.369306393762915*alpha_cdim[2]+0.5477225575051661*alpha_vdim[1])*f[5]; 
   out[18] += 1.224744871391589*alpha_vdim[1]*f[17]+0.6123724356957944*alpha_cdim[0]*f[14]+1.369306393762915*alpha_vdim[0]*f[10]+(0.5477225575051661*alpha_cdim[2]+1.369306393762915*alpha_vdim[1])*f[6]; 
-  out[19] += 0.6123724356957944*(alpha_cdim[0]*f[16]+alpha_vdim[0]*f[15]+(alpha_cdim[2]+alpha_vdim[1])*f[9]); 
+  out[19] += 0.5477225575051661*(alpha_cdim[2]*f[22]+alpha_vdim[1]*f[21])+0.6123724356957944*(alpha_cdim[0]*f[16]+alpha_vdim[0]*f[15]+(alpha_cdim[2]+alpha_vdim[1])*f[9]); 
+  out[20] += 1.369306393762915*(alpha_cdim[0]*f[12]+alpha_vdim[0]*f[11])+1.224744871391589*(alpha_cdim[2]+alpha_vdim[1])*f[4]; 
+  out[21] += 1.369306393762915*(alpha_cdim[2]*f[19]+alpha_cdim[0]*f[15]); 
+  out[22] += 1.369306393762915*(alpha_vdim[1]*f[19]+alpha_vdim[0]*f[16]); 
+  out[23] += 1.369306393762915*(alpha_cdim[0]*f[18]+alpha_vdim[0]*f[17])+1.224744871391589*(alpha_cdim[2]+alpha_vdim[1])*f[10]; 
+  out[24] += 1.224744871391589*alpha_cdim[2]*f[25]+0.6123724356957944*alpha_vdim[0]*f[21]+1.369306393762915*alpha_cdim[0]*f[19]+(1.369306393762915*alpha_cdim[2]+0.5477225575051661*alpha_vdim[1])*f[15]; 
+  out[25] += 1.224744871391589*alpha_vdim[1]*f[24]+0.6123724356957944*alpha_cdim[0]*f[22]+1.369306393762915*alpha_vdim[0]*f[19]+(0.5477225575051661*alpha_cdim[2]+1.369306393762915*alpha_vdim[1])*f[16]; 
+  out[26] += 1.369306393762915*(alpha_cdim[0]*f[25]+alpha_vdim[0]*f[24])+1.224744871391589*(alpha_cdim[2]+alpha_vdim[1])*f[19]; 
 
   return cflFreq_mid; 
 } 

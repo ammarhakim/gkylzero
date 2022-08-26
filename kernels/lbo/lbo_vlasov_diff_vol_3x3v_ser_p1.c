@@ -12,6 +12,6 @@ GKYL_CU_DH double lbo_vlasov_diff_vol_3x3v_ser_p1(const double *w, const double 
   const double rdvySq4 = 4.0/(dxv[4]*dxv[4]); 
   const double rdvzSq4 = 4.0/(dxv[5]*dxv[5]); 
 
-  return fabs(0.4714045207910317*nuVtSqSum[0]*rdvxSq4)+fabs(0.4714045207910317*nuVtSqSum[0]*rdvySq4)+fabs(0.4714045207910317*nuVtSqSum[0]*rdvzSq4); 
+  return fabs(3.181980515339463*nuVtSqSum[0]*rdvxSq4)+fabs(3.181980515339463*nuVtSqSum[0]*rdvySq4)+fabs(3.181980515339463*nuVtSqSum[0]*rdvzSq4); 
 
 } 

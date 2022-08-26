@@ -22,6 +22,6 @@ GKYL_CU_DH double lbo_vlasov_drag_vol_1x1v_ser_p1(const double *w, const double 
   out[4] += 1.732050807568877*(alphaDrag[3]*f[5]+alphaDrag[2]*f[4])+1.936491673103709*(alphaDrag[1]*f[3]+f[1]*alphaDrag[3]+alphaDrag[0]*f[2]+f[0]*alphaDrag[2]); 
   out[5] += 1.732050807568877*(alphaDrag[2]*f[5]+alphaDrag[3]*f[4])+1.936491673103709*(alphaDrag[0]*f[3]+f[0]*alphaDrag[3]+alphaDrag[1]*f[2]+f[1]*alphaDrag[2]); 
 
-  return fabs(0.25*alphaDrag[0]); 
+  return fabs(1.25*alphaDrag[0]); 
 
 } 
