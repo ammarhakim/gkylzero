@@ -25,8 +25,13 @@ gkyl_mhd_src *gkyl_mhd_src_new(struct gkyl_mhd_src_inp inp,
   up->glm_alpha = inp.glm_alpha;
   up->dxyz_min = inp.dxyz_min;
 
-  if (up->divergence_constraint == GKYL_MHD_DIVB_EIGHT_WAVES) {
+  if (up->divergence_constraint >= GKYL_MHD_DIVB_EIGHT_WAVES
+      && up->divergence_constraint <= GKYL_MHD_DIVB_GLM) {
     up->divB_array = gkyl_array_new(GKYL_DOUBLE, 1, local_ext->volume);
+  }
+
+  if (up->divergence_constraint == GKYL_MHD_DIVB_GLM) {
+    up->B_dot_gradPsi_array = gkyl_array_new(GKYL_DOUBLE, 1, local_ext->volume);
   }
 
   return up;
@@ -38,10 +43,11 @@ void gkyl_mhd_src_advance(const gkyl_mhd_src *up, double dt,
                           const struct gkyl_array *acc_array) {
   int div_type = up->divergence_constraint;
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, update_range);
 
-  // compute divB, B_dot_gradPsi if needed
-  if (div_type == GKYL_MHD_DIVB_EIGHT_WAVES) {
+  // compute divB in every cell if needed
+  if (up->divergence_constraint >= GKYL_MHD_DIVB_EIGHT_WAVES
+      && up->divergence_constraint <= GKYL_MHD_DIVB_GLM) {
+    gkyl_range_iter_init(&iter, update_range);
     while (gkyl_range_iter_next(&iter)) {
       long lidx = gkyl_range_idx(update_range, iter.idx);
 
@@ -53,6 +59,7 @@ void gkyl_mhd_src_advance(const gkyl_mhd_src *up, double dt,
       gkyl_copy_int_arr(up->grid.ndim, iter.idx, idxr);
       
       double my_divB = 0.0;
+      double my_B_dot_gradPsi = 0.0;
       for(int d=0; d<up->grid.ndim; ++d) {
         idxl[d]--;
         idxr[d]++;
@@ -73,6 +80,43 @@ void gkyl_mhd_src_advance(const gkyl_mhd_src *up, double dt,
     }
   }
 
+  // compute B_dot_gradPsi in every cell if needed
+  if (up->divergence_constraint == GKYL_MHD_DIVB_GLM) {
+    gkyl_range_iter_init(&iter, update_range);
+    while (gkyl_range_iter_next(&iter)) {
+      long lidx = gkyl_range_idx(update_range, iter.idx);
+
+      double *q = gkyl_array_fetch(q_array, lidx);
+      double *B_dot_gradPsi = gkyl_array_fetch(up->B_dot_gradPsi_array, lidx);
+
+      int idxl[3], idxr[3];
+      gkyl_copy_int_arr(up->grid.ndim, iter.idx, idxl);
+      gkyl_copy_int_arr(up->grid.ndim, iter.idx, idxr);
+      
+      double my_divB = 0.0;
+      double my_B_dot_gradPsi = 0.0;
+      for(int d=0; d<up->grid.ndim; ++d) {
+        idxl[d]--;
+        idxr[d]++;
+
+        lidx = gkyl_range_idx(update_range, idxl);
+        double *ql = gkyl_array_fetch(q_array, lidx);
+        lidx = gkyl_range_idx(update_range, idxr);
+        double *qr = gkyl_array_fetch(q_array, lidx);
+
+        double delta = 2.0 * up->grid.dx[d];
+        int Bn = BX + d;
+
+        my_B_dot_gradPsi += q[Bn] * (qr[PSI_GLM] - ql[PSI_GLM]) / delta;
+
+        idxl[d]++;
+        idxr[d]--;
+      }
+      B_dot_gradPsi[0] = my_B_dot_gradPsi;
+    }
+  }
+
+  gkyl_range_iter_init(&iter, update_range);
   while (gkyl_range_iter_next(&iter)) {
     long lidx = gkyl_range_idx(update_range, iter.idx);
 
@@ -93,18 +137,36 @@ void gkyl_mhd_src_advance(const gkyl_mhd_src *up, double dt,
       q[BZ] -= dt * divB * uz;
       q[ER] -= dt * divB * (ux*Bx + uy*By + uz*Bz);
     } else if (div_type == GKYL_MHD_DIVB_GLM) {
+      double divB = ((double *)gkyl_array_fetch(up->divB_array, lidx))[0];
+      double B_dot_gradPsi = ((double *)gkyl_array_fetch(
+            up->B_dot_gradPsi_array, lidx))[0];
+
       double ch = up->glm_ch;
       double alpha = up->glm_alpha;
 
-      // Mignone & Tzeferacos, JCP (2010) 229, 2117, Equation (27).
+      // GLM by Dedner et al JCP (2002), 10.1006/jcph.2001.6961
+      // Mignone & Tzeferacos, JCP (2010) 229, 2117, Equation (24e) or (27)
       double rate = alpha * ch / up->dxyz_min;
       q[PSI_GLM] *= exp(- rate * dt);
+
+      // Extended GLM (EGLM) by Dedner et al JCP (2002), 10.1006/jcph.2001.6961
+      // Mignone & Tzeferacos, JCP (2010) 229, 2117, Equation (24)
+      double Bx = q[BX], By = q[BY], Bz = q[BZ];
+      q[MX] -= dt * divB * Bx;
+      q[MY] -= dt * divB * By;
+      q[MZ] -= dt * divB * Bz;
+      q[ER] -= dt * B_dot_gradPsi;
     }
   }
 }
 
 void gkyl_mhd_src_release(gkyl_mhd_src *up) {
-  if (up->divergence_constraint == GKYL_MHD_DIVB_EIGHT_WAVES) {
+  if (up->divB_array) {
     gkyl_array_release(up->divB_array);
   }
+
+  if (up->B_dot_gradPsi_array) {
+    gkyl_array_release(up->B_dot_gradPsi_array);
+  }
+
   gkyl_free(up); }
