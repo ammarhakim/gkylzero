@@ -37,126 +37,173 @@ gkyl_mhd_src *gkyl_mhd_src_new(struct gkyl_mhd_src_inp inp,
   return up;
 }
 
-void gkyl_mhd_src_advance(const gkyl_mhd_src *up, double dt,
-                          const struct gkyl_range *update_range,
-                          struct gkyl_array *q_array,
-                          const struct gkyl_array *acc_array) {
-  int div_type = up->divergence_constraint;
+///////////////////////////
+// SOURCE UPDATE HELPERS //
+///////////////////////////
+
+static void calc_divB(const gkyl_mhd_src *up,
+                      const struct gkyl_range *update_range,
+                      struct gkyl_array *q_array) {
   struct gkyl_range_iter iter;
-
-  // compute divB in every cell if needed
-  if (up->divergence_constraint >= GKYL_MHD_DIVB_EIGHT_WAVES
-      && up->divergence_constraint <= GKYL_MHD_DIVB_GLM) {
-    gkyl_range_iter_init(&iter, update_range);
-    while (gkyl_range_iter_next(&iter)) {
-      long lidx = gkyl_range_idx(update_range, iter.idx);
-
-      double *q = gkyl_array_fetch(q_array, lidx);
-      double *divB = gkyl_array_fetch(up->divB_array, lidx);
-
-      int idxl[3], idxr[3];
-      gkyl_copy_int_arr(up->grid.ndim, iter.idx, idxl);
-      gkyl_copy_int_arr(up->grid.ndim, iter.idx, idxr);
-      
-      double my_divB = 0.0;
-      double my_B_dot_gradPsi = 0.0;
-      for(int d=0; d<up->grid.ndim; ++d) {
-        idxl[d]--;
-        idxr[d]++;
-
-        lidx = gkyl_range_idx(update_range, idxl);
-        double *ql = gkyl_array_fetch(q_array, lidx);
-        lidx = gkyl_range_idx(update_range, idxr);
-        double *qr = gkyl_array_fetch(q_array, lidx);
-
-        double delta = 2.0 * up->grid.dx[d];
-        int Bn = BX + d;
-        my_divB += (qr[Bn] - ql[Bn]) / delta;
-
-        idxl[d]++;
-        idxr[d]--;
-      }
-      divB[0] = my_divB;
-    }
-  }
-
-  // compute B_dot_gradPsi in every cell if needed
-  if (up->divergence_constraint == GKYL_MHD_DIVB_GLM) {
-    gkyl_range_iter_init(&iter, update_range);
-    while (gkyl_range_iter_next(&iter)) {
-      long lidx = gkyl_range_idx(update_range, iter.idx);
-
-      double *q = gkyl_array_fetch(q_array, lidx);
-      double *B_dot_gradPsi = gkyl_array_fetch(up->B_dot_gradPsi_array, lidx);
-
-      int idxl[3], idxr[3];
-      gkyl_copy_int_arr(up->grid.ndim, iter.idx, idxl);
-      gkyl_copy_int_arr(up->grid.ndim, iter.idx, idxr);
-      
-      double my_divB = 0.0;
-      double my_B_dot_gradPsi = 0.0;
-      for(int d=0; d<up->grid.ndim; ++d) {
-        idxl[d]--;
-        idxr[d]++;
-
-        lidx = gkyl_range_idx(update_range, idxl);
-        double *ql = gkyl_array_fetch(q_array, lidx);
-        lidx = gkyl_range_idx(update_range, idxr);
-        double *qr = gkyl_array_fetch(q_array, lidx);
-
-        double delta = 2.0 * up->grid.dx[d];
-        int Bn = BX + d;
-
-        my_B_dot_gradPsi += q[Bn] * (qr[PSI_GLM] - ql[PSI_GLM]) / delta;
-
-        idxl[d]++;
-        idxr[d]--;
-      }
-      B_dot_gradPsi[0] = my_B_dot_gradPsi;
-    }
-  }
-
   gkyl_range_iter_init(&iter, update_range);
+
   while (gkyl_range_iter_next(&iter)) {
     long lidx = gkyl_range_idx(update_range, iter.idx);
 
     double *q = gkyl_array_fetch(q_array, lidx);
-    const double *acc = gkyl_array_cfetch(acc_array, lidx);
+    double *divB = gkyl_array_fetch(up->divB_array, lidx);
 
-    if (div_type == GKYL_MHD_DIVB_EIGHT_WAVES) {
-      // Powell et al JCP 1999, doi:10.1006/jcph.1999.6299 Equation (25)
-      double divB = ((double *)gkyl_array_fetch(up->divB_array, lidx))[0];
+    int idxl[3], idxr[3];
+    gkyl_copy_int_arr(up->grid.ndim, iter.idx, idxl);
+    gkyl_copy_int_arr(up->grid.ndim, iter.idx, idxr);
+    
+    double my_divB = 0.0;
+    double my_B_dot_gradPsi = 0.0;
+    for(int d=0; d<up->grid.ndim; ++d) {
+      idxl[d]--;
+      idxr[d]++;
 
-      double ux = q[MX] / q[DN], uy = q[MY] / q[DN], uz = q[MZ] / q[DN];
-      double Bx = q[BX], By = q[BY], Bz = q[BZ];
-      q[MX] -= dt * divB * Bx;
-      q[MY] -= dt * divB * By;
-      q[MZ] -= dt * divB * Bz;
-      q[BX] -= dt * divB * ux;
-      q[BY] -= dt * divB * uy;
-      q[BZ] -= dt * divB * uz;
-      q[ER] -= dt * divB * (ux*Bx + uy*By + uz*Bz);
-    } else if (div_type == GKYL_MHD_DIVB_GLM) {
-      double divB = ((double *)gkyl_array_fetch(up->divB_array, lidx))[0];
-      double B_dot_gradPsi = ((double *)gkyl_array_fetch(
-            up->B_dot_gradPsi_array, lidx))[0];
+      lidx = gkyl_range_idx(update_range, idxl);
+      double *ql = gkyl_array_fetch(q_array, lidx);
+      lidx = gkyl_range_idx(update_range, idxr);
+      double *qr = gkyl_array_fetch(q_array, lidx);
 
-      double ch = up->glm_ch;
-      double alpha = up->glm_alpha;
+      double delta = 2.0 * up->grid.dx[d];
+      int Bn = BX + d;
+      my_divB += (qr[Bn] - ql[Bn]) / delta;
 
-      // GLM by Dedner et al JCP (2002), 10.1006/jcph.2001.6961
-      // Mignone & Tzeferacos, JCP (2010) 229, 2117, Equation (24e) or (27)
-      double rate = alpha * ch / up->dxyz_min;
-      q[PSI_GLM] *= exp(- rate * dt);
-
-      // Extended GLM (EGLM) by Dedner et al JCP (2002), 10.1006/jcph.2001.6961
-      // Mignone & Tzeferacos, JCP (2010) 229, 2117, Equation (24)
-      double Bx = q[BX], By = q[BY], Bz = q[BZ];
-      q[MX] -= dt * divB * Bx;
-      q[MY] -= dt * divB * By;
-      q[MZ] -= dt * divB * Bz;
-      q[ER] -= dt * B_dot_gradPsi;
+      idxl[d]++;
+      idxr[d]--;
     }
+    divB[0] = my_divB;
+  }
+}
+
+static void calc_B_dot_gradPsi(const gkyl_mhd_src *up,
+                               const struct gkyl_range *update_range,
+                               struct gkyl_array *q_array) {
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, update_range);
+
+  while (gkyl_range_iter_next(&iter)) {
+    long lidx = gkyl_range_idx(update_range, iter.idx);
+
+    double *q = gkyl_array_fetch(q_array, lidx);
+    double *divB = gkyl_array_fetch(up->divB_array, lidx);
+
+    int idxl[3], idxr[3];
+    gkyl_copy_int_arr(up->grid.ndim, iter.idx, idxl);
+    gkyl_copy_int_arr(up->grid.ndim, iter.idx, idxr);
+    
+    double my_divB = 0.0;
+    double my_B_dot_gradPsi = 0.0;
+    for(int d=0; d<up->grid.ndim; ++d) {
+      idxl[d]--;
+      idxr[d]++;
+
+      lidx = gkyl_range_idx(update_range, idxl);
+      double *ql = gkyl_array_fetch(q_array, lidx);
+      lidx = gkyl_range_idx(update_range, idxr);
+      double *qr = gkyl_array_fetch(q_array, lidx);
+
+      double delta = 2.0 * up->grid.dx[d];
+      int Bn = BX + d;
+      my_divB += (qr[Bn] - ql[Bn]) / delta;
+
+      idxl[d]++;
+      idxr[d]--;
+    }
+    divB[0] = my_divB;
+  }
+}
+
+////////////////////////////
+// VARIOUS SOURCE UPDATES //
+////////////////////////////
+
+static void gkyl_mhd_src_eight_wave(const gkyl_mhd_src *up, double dt,
+                                    const struct gkyl_range *update_range,
+                                    struct gkyl_array *q_array,
+                                    const struct gkyl_array *acc_array) {
+  // Powell et al JCP 1999, doi:10.1006/jcph.1999.6299 Equation (25)
+  calc_divB(up, update_range, q_array);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, update_range);
+
+  while (gkyl_range_iter_next(&iter)) {
+    long lidx = gkyl_range_idx(update_range, iter.idx);
+
+    double *q = gkyl_array_fetch(q_array, lidx);
+    double divB = ((double *)gkyl_array_fetch(up->divB_array, lidx))[0];
+
+    double ux = q[MX] / q[DN], uy = q[MY] / q[DN], uz = q[MZ] / q[DN];
+    double Bx = q[BX], By = q[BY], Bz = q[BZ];
+    q[MX] -= dt * divB * Bx;
+    q[MY] -= dt * divB * By;
+    q[MZ] -= dt * divB * Bz;
+    q[BX] -= dt * divB * ux;
+    q[BY] -= dt * divB * uy;
+    q[BZ] -= dt * divB * uz;
+    q[ER] -= dt * divB * (ux*Bx + uy*By + uz*Bz);
+  }
+}
+
+static void gkyl_mhd_src_glm(const gkyl_mhd_src *up, double dt,
+                             const struct gkyl_range *update_range,
+                             struct gkyl_array *q_array,
+                             const struct gkyl_array *acc_array) {
+  // GLM by Dedner et al JCP (2002), 10.1006/jcph.2001.6961
+  calc_divB(up, update_range, q_array);
+  calc_B_dot_gradPsi(up, update_range, q_array);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, update_range);
+
+  while (gkyl_range_iter_next(&iter)) {
+    long lidx = gkyl_range_idx(update_range, iter.idx);
+
+    double *q = gkyl_array_fetch(q_array, lidx);
+
+    double divB = ((double *)gkyl_array_fetch(up->divB_array, lidx))[0];
+    double B_dot_gradPsi = ((double *)gkyl_array_fetch(
+          up->B_dot_gradPsi_array, lidx))[0];
+
+    double ch = up->glm_ch;
+    double alpha = up->glm_alpha;
+
+    // Mignone & Tzeferacos, JCP (2010) 229, 2117, Equation (24e) or (27)
+    double rate = alpha * ch / up->dxyz_min;
+    q[PSI_GLM] *= exp(- rate * dt);
+
+    // Mignone & Tzeferacos, JCP (2010) 229, 2117, Equation (24)
+    double Bx = q[BX], By = q[BY], Bz = q[BZ];
+    q[MX] -= dt * divB * Bx;
+    q[MY] -= dt * divB * By;
+    q[MZ] -= dt * divB * Bz;
+    q[ER] -= dt * B_dot_gradPsi;
+  }
+}
+
+/////////////////////////////
+// SOURCE UPDATES MAIN API //
+/////////////////////////////
+
+void gkyl_mhd_src_advance(const gkyl_mhd_src *up, double dt,
+                          const struct gkyl_range *update_range,
+                          struct gkyl_array *q_array,
+                          const struct gkyl_array *acc_array) {
+  switch (up->divergence_constraint) {
+    case GKYL_MHD_DIVB_NONE:
+      break;
+
+    case GKYL_MHD_DIVB_EIGHT_WAVES:
+      gkyl_mhd_src_eight_wave(up, dt, update_range, q_array, acc_array);
+      break;
+
+    case GKYL_MHD_DIVB_GLM:
+      gkyl_mhd_src_glm(up, dt, update_range, q_array, acc_array);
+      break;
   }
 }
 
