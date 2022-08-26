@@ -839,7 +839,7 @@ mhd_src_init(const struct gkyl_moment_app *app, struct mhd_src *src)
     .dxyz_min = dxyz_min,
   };
 
-  src->slvr = gkyl_mhd_src_new(src_inp);
+  src->slvr = gkyl_mhd_src_new(src_inp, &app->local_ext);
 }
 
 // update sources: 'nstrang' is 0 for the first Strang step and 1 for

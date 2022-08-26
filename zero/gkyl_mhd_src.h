@@ -25,6 +25,8 @@ struct gkyl_mhd_src {
   double glm_ch;
   double glm_alpha; // Mignone & Tzeferacos, JCP (2010) 229, 2117, Eq (27).
   double dxyz_min;
+
+  struct gkyl_array *divB_array;
 };
 typedef struct gkyl_mhd_src gkyl_mhd_src;
 
@@ -33,7 +35,8 @@ typedef struct gkyl_mhd_src gkyl_mhd_src;
  *
  * @param inp Input parameters to updater
  */
-gkyl_mhd_src *gkyl_mhd_src_new(struct gkyl_mhd_src_inp inp);
+gkyl_mhd_src *gkyl_mhd_src_new(struct gkyl_mhd_src_inp inp,
+                               const struct gkyl_range *local_ext);
 
 /**
  * @param mes
