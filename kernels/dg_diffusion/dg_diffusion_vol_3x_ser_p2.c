@@ -10,7 +10,7 @@ dg_diffusion_vol_3x_ser_p2(const double* w, const double* dx,
   // q: Input field
   // out: Incremented output
 
-  const double J[3] = {4/dx[0]/dx[0], 4/dx[1]/dx[1], 4/dx[2]/dx[2]};
+  const double J[3] = {36.0/dx[0]/dx[0], 36.0/dx[1]/dx[1], 36.0/dx[2]/dx[2]};
 
 
   return D[0]*J[0] + D[20]*J[1] + D[40]*J[2];
