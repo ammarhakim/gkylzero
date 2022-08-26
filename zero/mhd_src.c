@@ -135,6 +135,7 @@ static void gkyl_mhd_src_eight_wave(const gkyl_mhd_src *up, double dt,
     double ux = q[MX] / q[DN], uy = q[MY] / q[DN], uz = q[MZ] / q[DN];
     double Bx = q[BX], By = q[BY], Bz = q[BZ];
 
+#if true
     // Equation (25)
     q[MX] -= dt * divB[0] * Bx;
     q[MY] -= dt * divB[0] * By;
@@ -143,6 +144,22 @@ static void gkyl_mhd_src_eight_wave(const gkyl_mhd_src *up, double dt,
     q[BY] -= dt * divB[0] * uy;
     q[BZ] -= dt * divB[0] * uz;
     q[ER] -= dt * divB[0] * (ux*Bx + uy*By + uz*Bz);
+#else
+    double KE = 0.5*(q[MX]*q[MX] + q[MY]*q[MY] + q[MZ]*q[MZ])/q[DN];
+    double ME = 0.5*(q[BX]*q[BX] + q[BY]*q[BY] + q[BZ]*q[BZ]);
+    double U = q[ER]- KE - ME;
+    // Equation (25)
+    q[MX] -= dt * divB[0] * Bx;
+    q[MY] -= dt * divB[0] * By;
+    q[MZ] -= dt * divB[0] * Bz;
+    q[BX] -= dt * divB[0] * ux;
+    q[BY] -= dt * divB[0] * uy;
+    q[BZ] -= dt * divB[0] * uz;
+    KE = 0.5*(q[MX]*q[MX] + q[MY]*q[MY] + q[MZ]*q[MZ])/q[DN];
+    ME = 0.5*(q[BX]*q[BX] + q[BY]*q[BY] + q[BZ]*q[BZ]);
+    q[ER] = U + KE + ME;
+#endif
+
   }
 }
 
