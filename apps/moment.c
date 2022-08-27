@@ -1225,8 +1225,8 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
     fprintf(fp, " field_tm : %lg,\n", app->stat.field_tm);
     fprintf(fp, " sources_tm : %lg\n", app->stat.sources_tm);
 
-    long tot_bad_cells = 0L;
     for (int i=0; i<app->num_species; ++i) {
+      long tot_bad_cells = 0L;      
       for (int d=0; d<app->ndim; ++d) {
         struct gkyl_wave_prop_stats wvs = gkyl_wave_prop_stats(app->species[i].slvr[d]);
         fprintf(fp, " %s_n_bad_1D_sweeps[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_advance_calls);
@@ -1235,8 +1235,9 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
 
         tot_bad_cells += wvs.n_bad_cells;
       }
+      fprintf(fp, " %s_bad_cell_frac = %lg\n", app->species[i].name, (double) tot_bad_cells/tot_cells_up );
     }
-    fprintf(fp, " bad_cell_frac = %lg\n", (double) tot_bad_cells/tot_cells_up );
+
   
     fprintf(fp, "}\n");
   }

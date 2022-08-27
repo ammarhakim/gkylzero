@@ -152,6 +152,12 @@ struct gkyl_tm_trigger {
  */
 int gkyl_tm_trigger_check_and_bump(struct gkyl_tm_trigger *tmt, double tcurr);
 
+/**
+ * Compute time in seconds since epoch.
+ *
+ * @return Time in seconds
+ */
+double gkyl_time_now(void);
 ]]
 
 -- gkyl_wave_prop.h
@@ -532,6 +538,11 @@ _M.cu_dev_mem_debug_set = function(flag)
    C.gkyl_cu_dev_mem_debug_set(flag)
 end
 
+-- Time in seconds from epoch
+_M.time_now = function()
+   return C.gkyl_time_now()
+end
+
 -- time-trigger object
 local tm_trigger_type = ffi.typeof("struct gkyl_tm_trigger")
 local tm_trigger_mt = {
@@ -635,10 +646,22 @@ local species_mt = {
       s.equation = tbl.equation
 
       -- initial conditions
-      s.ctx = nil -- no need for a context
-      s.init = gkyl_eval_moment(tbl.init)
+      s.ctx = tbl.ctx 
+      if tbl.cinit then
+	 -- use C function directly, if specified ...
+	 s.init = tbl.cinit
+      else
+	 -- ... or use Lua function
+	 s.init = gkyl_eval_moment(tbl.init)
+      end
+      
       if tbl.app_accel then
          s.app_accel_func = gkyl_eval_applied(tbl.app_accel)
+      end
+
+      s.force_low_order_flux = false
+      if tbl.force_low_order_flux then
+	 s.force_low_order_flux = tbl.force_low_order_flux
       end
 
       -- boundary conditions
@@ -720,8 +743,15 @@ local field_mt = {
          f.mag_error_speed_fact = tbl.mgnErrorSpeedFactor
       end
 
-      f.ctx = nil -- no need for context
-      f.init = gkyl_eval_field(tbl.init)
+      f.ctx = tbl.ctx -- no need for context
+      if tbl.cinit then
+	 -- use C function directly, if specified ...
+	 f.init = tbl.cinit
+      else
+	 -- ... or use Lua function
+	 f.init = gkyl_eval_field(tbl.init)
+      end
+      
       if tbl.app_current then
          f.app_current_func = gkyl_eval_applied(tbl.app_current)
       end
@@ -908,17 +938,27 @@ local app_mt = {
 
 	 io.write(string.format("Starting GkeyllZero simulation\n"))
 	 io.write(string.format("  tstart: %.6e. tend: %.6e\n", 0.0, self.tend))
+
+	 local tinit0 = _M.time_now()
 	 self:init()
+	 io.write(string.format("  Initialization completed in %g sec\n", _M.time_now() - tinit0))
+	 
 	 self:calcIntegratedMom(0.0)
 	 self:calcFieldEnergy(0.0)
 	 writeData(0.0)
 
+	 local tloop0 = _M.time_now()
 	 local tcurr, tend = 0.0, self.tend
 	 local dt = tend-tcurr
 	 local step = 1
 	 while tcurr < tend do
 	    local status = self:update(dt)
 	    tcurr = tcurr + status.dt_actual
+
+	    if status.success == false then
+	       io.write(string.format("***** Simulation failed at step %5d at time %.6e\n", step, tcurr))
+	       break
+	    end
 
 	    self:calcIntegratedMom(tcurr)
 	    self:calcFieldEnergy(tcurr)	    
@@ -932,8 +972,11 @@ local app_mt = {
 
 	 C.gkyl_moment_app_write_integrated_mom(self.app)
 	 C.gkyl_moment_app_write_field_energy(self.app)
+
+	 local tloop1 = _M.time_now()
 	 
 	 io.write(string.format("Completed in %d steps (tend: %.6e). \n", step-1, tcurr))
+	 io.write(string.format("Main loop took %g secs to complete\n", tloop1-tloop0))
 	 self:writeStat()
 	 
       end,
