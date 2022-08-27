@@ -60,6 +60,7 @@ struct moment_species {
 
   enum gkyl_eqn_type eqn_type; // type ID of equation
   int num_equations; // number of equations in species
+  struct gkyl_wv_eqn *equation; // equation object
   gkyl_wave_prop *slvr[3]; // solver in each direction
 
   // boundary condition type
@@ -276,6 +277,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   sp->ctx = mom_sp->ctx;
   sp->init = mom_sp->init;
 
+  sp->equation = mom_sp->equation;
   sp->eqn_type = mom_sp->equation->type;
   sp->num_equations = mom_sp->equation->num_equations;
   // closure parameter, used by 10 moment
