@@ -27,6 +27,7 @@ struct gkyl_mhd_src {
   double dxyz_min;
 
   struct gkyl_array *divB_array;
+  struct gkyl_array *B_dot_gradPsi_array;
 };
 typedef struct gkyl_mhd_src gkyl_mhd_src;
 
