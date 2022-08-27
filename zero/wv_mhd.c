@@ -71,6 +71,14 @@ rot_to_global_rect_glm(const double *tau1, const double *tau2, const double *nor
   qglobal[8] = qlocal[8];
 }
 
+struct wv_mhd {
+  struct gkyl_wv_eqn eqn; // base object
+  double gas_gamma; // gas adiabatic constant
+  enum gkyl_wv_mhd_div_constraint divergence_constraint; // divB correction
+  double glm_ch; // factor to use in GLM scheme
+  double glm_alpha; // Mignone & Tzeferacos, JCP (2010) 229, 2117, Eq (27).
+};
+
 static void
 mhd_free(const struct gkyl_ref_count *ref)
 {
