@@ -40,3 +40,36 @@ struct gkyl_wv_eqn* gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp);
  * @return Get gas adiabatic constant
  */
 double gkyl_wv_mhd_gas_gamma(const struct gkyl_wv_eqn* wv);
+
+/**
+ * Get ch parameter used by the GLM divergence constraint.
+ *
+ * @param wv mhd equation object
+ * @return divergence constraint type
+ */
+double gkyl_wv_mhd_divergence_constraint(const struct gkyl_wv_eqn* wv);
+
+/**
+ * Get ch parameter used by the GLM divergence constraint.
+ *
+ * @param wv mhd equation object
+ * @return ch number
+ */
+double gkyl_wv_mhd_glm_ch(const struct gkyl_wv_eqn* wv);
+
+/**
+ * Get alpha parameter used by the GLM divergence constraint.
+ *
+ * @param wv mhd equation object
+ * @return alpha number
+ */
+double gkyl_wv_mhd_glm_alpha(const struct gkyl_wv_eqn* wv);
+
+/**
+ * Set ch parameter used by the GLM divergence constraint.
+ *
+ * @param wv mhd equation object
+ * @param ch number
+ */
+void gkyl_wv_mhd_set_glm_ch(struct gkyl_wv_eqn* wv, double glm_ch);
+

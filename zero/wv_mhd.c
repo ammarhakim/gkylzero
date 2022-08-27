@@ -508,9 +508,42 @@ gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
   return &mhd->eqn;
 }
 
+////////////////////////////////
+// member getters and setters //
+////////////////////////////////
+
 double
 gkyl_wv_mhd_gas_gamma(const struct gkyl_wv_eqn* eqn)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   return mhd->gas_gamma;
 }
+
+double
+gkyl_wv_mhd_divergence_constraint(const struct gkyl_wv_eqn* eqn)
+{
+  const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
+  return mhd->divergence_constraint;
+}
+
+double
+gkyl_wv_mhd_glm_ch(const struct gkyl_wv_eqn* eqn)
+{
+  const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
+  return mhd->glm_ch;
+}
+
+double
+gkyl_wv_mhd_glm_alpha(const struct gkyl_wv_eqn* eqn)
+{
+  const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
+  return mhd->glm_alpha;
+}
+
+void
+gkyl_wv_mhd_set_glm_ch(struct gkyl_wv_eqn* eqn, const double glm_ch)
+{
+  struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
+  mhd->glm_ch = glm_ch;
+}
+

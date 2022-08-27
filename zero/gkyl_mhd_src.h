@@ -55,3 +55,12 @@ void gkyl_mhd_src_advance(const gkyl_mhd_src *mes,
  * @param mes Updater to delete.
  */
 void gkyl_mhd_src_release(gkyl_mhd_src *mes);
+
+/**
+ * Set ch parameter used by the GLM divergence constraint.
+ *
+ * @param up MHD source updater
+ * @param ch number
+ */
+
+void gkyl_mhd_src_set_glm_ch(struct gkyl_mhd_src* up, double glm_ch);

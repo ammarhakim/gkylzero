@@ -228,3 +228,14 @@ void gkyl_mhd_src_release(gkyl_mhd_src *up) {
 
   gkyl_free(up);
 }
+
+////////////////////////////////
+// MEMBER GETTERS AND SETTERS //
+////////////////////////////////
+
+void
+gkyl_mhd_src_set_glm_ch(struct gkyl_mhd_src* up, const double glm_ch)
+{
+  up->glm_ch = glm_ch;
+}
+
