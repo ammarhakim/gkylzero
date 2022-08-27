@@ -455,7 +455,7 @@ moment_species_max_dt(const gkyl_moment_app *app, const struct moment_species *s
 // solution in sp->f[ndim]
 static struct gkyl_update_status
 moment_species_update(const gkyl_moment_app *app,
-  const struct moment_species *sp, double tcurr, double dt)
+  struct moment_species *sp, double tcurr, double dt)
 {
   int ndim = sp->ndim;
   double dt_suggested = DBL_MAX;
@@ -479,16 +479,16 @@ moment_species_update(const gkyl_moment_app *app,
   }
 
   for (int d=0; d<ndim; ++d) {
-    if (sp->slvr[d]->equation->type==GKYL_EQN_MHD) {
-      struct wv_mhd *mhd = container_of(sp->slvr[d]->equation, struct wv_mhd,
-                                        eqn);
-      if (mhd->divergence_constraint==GKYL_MHD_DIVB_GLM) {
-        mhd->glm_ch = max_speed;
+    struct gkyl_wv_eqn *eqn = sp->equation;
+    if (eqn->type==GKYL_EQN_MHD) {
+      if (sp->eqn_type==GKYL_MHD_DIVB_GLM) {
+        gkyl_wv_mhd_set_glm_ch(eqn, max_speed);
       }
     }
   }
   if (app->update_mhd_source) {
-    app->mhd_source.slvr->glm_ch = max_speed;
+    // app->mhd_source.slvr->glm_ch = max_speed;
+    // gkyl_mhd_src_set_glm_ch(app->mhd_source.slvr, max_speed);
   }
 
   return (struct gkyl_update_status) {
@@ -822,11 +822,10 @@ moment_coupling_release(const struct moment_coupling *src)
 
 static 
 void
-mhd_src_init(const struct gkyl_moment_app *app, struct mhd_src *src)
+mhd_src_init(const struct gkyl_moment_app *app,
+             const struct gkyl_moment_species *sp,
+             struct mhd_src *src)
 {
-  const struct gkyl_wv_eqn *mhd_eqn = app->species[0].slvr[0]->equation;
-  const struct wv_mhd *mhd = container_of(mhd_eqn, struct wv_mhd, eqn);
-
   double dxyz_min = DBL_MAX;
   for (int d=0; d<app->grid.ndim; ++d) {
     double dx = app->grid.dx[d];
@@ -835,9 +834,9 @@ mhd_src_init(const struct gkyl_moment_app *app, struct mhd_src *src)
 
   struct gkyl_mhd_src_inp src_inp = {
     .grid = &app->grid,
-    .divergence_constraint = mhd->divergence_constraint,
-    .glm_ch = mhd->glm_ch,
-    .glm_alpha = mhd->glm_alpha,
+    .divergence_constraint = gkyl_wv_mhd_divergence_constraint(sp->equation),
+    .glm_ch = gkyl_wv_mhd_glm_ch(sp->equation),
+    .glm_alpha = gkyl_wv_mhd_glm_ch(sp->equation),
     .dxyz_min = dxyz_min,
   };
 
@@ -962,9 +961,9 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   }
 
   app->update_mhd_source = false;
-  if (ns==1 && app->species[0].eqn_type==GKYL_EQN_MHD) {
+  if (ns==1 && mom->species[0].equation->type==GKYL_EQN_MHD) {
     app->update_mhd_source = true;
-    mhd_src_init(app, &app->mhd_source);
+    mhd_src_init(app, &mom->species[0], &app->mhd_source);
   }
 
   // initialize stat object to all zeros
