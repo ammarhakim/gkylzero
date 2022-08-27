@@ -53,11 +53,11 @@ static void calc_divB(const gkyl_mhd_src *up,
     double *divB = gkyl_array_fetch(up->divB_array, lidx);
 
     int idxl[3], idxr[3];
-    gkyl_copy_int_arr(up->grid.ndim, iter.idx, idxl);
-    gkyl_copy_int_arr(up->grid.ndim, iter.idx, idxr);
     
     double my_divB = 0.0;
     for(int d=0; d<up->grid.ndim; ++d) {
+      gkyl_copy_int_arr(up->grid.ndim, iter.idx, idxl);
+      gkyl_copy_int_arr(up->grid.ndim, iter.idx, idxr);
       idxl[d]--;
       idxr[d]++;
 
@@ -69,9 +69,6 @@ static void calc_divB(const gkyl_mhd_src *up,
       double dx = 2.0 * up->grid.dx[d];
       int Bn = BX + d;
       my_divB += (qr[Bn] - ql[Bn]) / dx;
-
-      idxl[d]++;
-      idxr[d]--;
     }
     divB[0] = my_divB;
   }
@@ -89,11 +86,11 @@ static void calc_B_dot_gradPsi(const gkyl_mhd_src *up,
     double *B_dot_gradPsi = gkyl_array_fetch(up->B_dot_gradPsi_array, lidx);
 
     int idxl[3], idxr[3];
-    gkyl_copy_int_arr(up->grid.ndim, iter.idx, idxl);
-    gkyl_copy_int_arr(up->grid.ndim, iter.idx, idxr);
     
     double my_B_dot_gradPsi = 0.0;
     for(int d=0; d<up->grid.ndim; ++d) {
+      gkyl_copy_int_arr(up->grid.ndim, iter.idx, idxl);
+      gkyl_copy_int_arr(up->grid.ndim, iter.idx, idxr);
       idxl[d]--;
       idxr[d]++;
 
@@ -105,9 +102,6 @@ static void calc_B_dot_gradPsi(const gkyl_mhd_src *up,
       double dx = 2.0 * up->grid.dx[d];
       int Bn = BX + d;
       my_B_dot_gradPsi += q[Bn] * (qr[PSI_GLM] - ql[PSI_GLM]) / dx;
-
-      idxl[d]++;
-      idxr[d]--;
     }
     B_dot_gradPsi[0] = my_B_dot_gradPsi;
   }
