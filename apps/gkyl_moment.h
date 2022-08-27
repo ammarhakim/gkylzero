@@ -12,7 +12,7 @@ struct gkyl_moment_species {
   char name[128]; // species name
   double charge, mass; // charge and mass
   enum gkyl_wave_limiter limiter; // limiter to use
-  const struct gkyl_wv_eqn *equation; // equation object
+  struct gkyl_wv_eqn *equation; // equation object
 
   int evolve; // evolve species? 1-yes, 0-no
   bool force_low_order_flux; // should  we force low-order flux?
