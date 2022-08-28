@@ -50,8 +50,8 @@ GKYL_CU_DH void euler_surfx_1x_ser_p2(const double *w, const double *dxv, const 
   double u_c_l = ser_1x_p2_surfx1_eval_quad_node_0_l(uc_0); 
   double u_c_r = ser_1x_p2_surfx1_eval_quad_node_0_r(uc_0); 
   double u_r_l = ser_1x_p2_surfx1_eval_quad_node_0_l(ur_0); 
-  double u_max_l = fabs(fmax(u_l_r, u_c_l)); 
-  double u_max_r = fabs(fmax(u_c_r, u_r_l)); 
+  double u_max_l = fmax(fabs(u_l_r), fabs(u_c_l)); 
+  double u_max_r = fmax(fabs(u_c_r), fabs(u_r_l)); 
 
   double Ghat_rho_l = 0.7905694150420948*rho_l[2]*u_max_l-0.7905694150420948*rho_c[2]*u_max_l+0.6123724356957945*rho_l[1]*u_max_l+0.6123724356957945*rho_c[1]*u_max_l+0.3535533905932737*rho_l[0]*u_max_l-0.3535533905932737*rho_c[0]*u_max_l+1.25*rho_l[2]*ul_0[2]+0.9682458365518543*rho_l[1]*ul_0[2]+0.5590169943749475*rho_l[0]*ul_0[2]+1.25*rho_c[2]*uc_0[2]-0.9682458365518543*rho_c[1]*uc_0[2]+0.5590169943749475*rho_c[0]*uc_0[2]+0.9682458365518543*ul_0[1]*rho_l[2]+0.5590169943749475*ul_0[0]*rho_l[2]-0.9682458365518543*uc_0[1]*rho_c[2]+0.5590169943749475*uc_0[0]*rho_c[2]+0.75*rho_l[1]*ul_0[1]+0.4330127018922193*rho_l[0]*ul_0[1]+0.75*rho_c[1]*uc_0[1]-0.4330127018922193*rho_c[0]*uc_0[1]+0.4330127018922193*ul_0[0]*rho_l[1]-0.4330127018922193*uc_0[0]*rho_c[1]+0.25*rho_l[0]*ul_0[0]+0.25*rho_c[0]*uc_0[0]; 
   double Ghat_rho_r = (-0.7905694150420948*rho_r[2]*u_max_r)+0.7905694150420948*rho_c[2]*u_max_r+0.6123724356957945*rho_r[1]*u_max_r+0.6123724356957945*rho_c[1]*u_max_r-0.3535533905932737*rho_r[0]*u_max_r+0.3535533905932737*rho_c[0]*u_max_r+1.25*rho_r[2]*ur_0[2]-0.9682458365518543*rho_r[1]*ur_0[2]+0.5590169943749475*rho_r[0]*ur_0[2]+1.25*rho_c[2]*uc_0[2]+0.9682458365518543*rho_c[1]*uc_0[2]+0.5590169943749475*rho_c[0]*uc_0[2]-0.9682458365518543*ur_0[1]*rho_r[2]+0.5590169943749475*ur_0[0]*rho_r[2]+0.9682458365518543*uc_0[1]*rho_c[2]+0.5590169943749475*uc_0[0]*rho_c[2]+0.75*rho_r[1]*ur_0[1]-0.4330127018922193*rho_r[0]*ur_0[1]+0.75*rho_c[1]*uc_0[1]+0.4330127018922193*rho_c[0]*uc_0[1]-0.4330127018922193*ur_0[0]*rho_r[1]+0.4330127018922193*uc_0[0]*rho_c[1]+0.25*rho_r[0]*ur_0[0]+0.25*rho_c[0]*uc_0[0]; 

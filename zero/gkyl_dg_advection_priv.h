@@ -118,7 +118,7 @@ vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double*  dx,
   struct dg_advection *advection = container_of(eqn, struct dg_advection, eqn);
   long cidx = gkyl_range_idx(&advection->conf_range, idx);
   return advection->vol(xc, dx, 
-    (const double*) gkyl_array_cfetch(advection->auxfields.u, cidx), qIn, qRhsOut);
+    (const double*) gkyl_array_cfetch(advection->auxfields.u_i, cidx), qIn, qRhsOut);
 }
 
 GKYL_CU_D
@@ -137,9 +137,9 @@ surf(const struct gkyl_dg_eqn *eqn,
   long cidx_r = gkyl_range_idx(&advection->conf_range, idxR);
 
   advection->surf[dir](xcC, dxC, 
-    (const double*) gkyl_array_cfetch(advection->auxfields.u, cidx_l),
-    (const double*) gkyl_array_cfetch(advection->auxfields.u, cidx_c),
-    (const double*) gkyl_array_cfetch(advection->auxfields.u, cidx_r), 
+    (const double*) gkyl_array_cfetch(advection->auxfields.u_i, cidx_l),
+    (const double*) gkyl_array_cfetch(advection->auxfields.u_i, cidx_c),
+    (const double*) gkyl_array_cfetch(advection->auxfields.u_i, cidx_r), 
     qInL, qInC, qInR, qRhsOut);
 }
 

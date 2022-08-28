@@ -15,6 +15,7 @@
 #include <gkyl_bc_basic.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
+#include <gkyl_dg_calc_prim_vars.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_updater_fluid.h>
 #include <gkyl_dg_updater_diffusion.h>
@@ -258,6 +259,7 @@ struct vm_fluid_species {
   struct gkyl_array *cflrate; // CFL rate in each cell
   struct gkyl_array *bc_buffer; // buffer for BCs (used by bc_basic)
   struct gkyl_array *u_bc_buffer; // buffer for applying BCs to flow
+  struct gkyl_array *p_bc_buffer; // buffer for applying BCs to pressure
 
   struct gkyl_array *fluid_host;  // host copy for use IO and initialization
 
@@ -265,6 +267,7 @@ struct vm_fluid_species {
   struct gkyl_array *p; // array for pressure (used by Euler)
   struct gkyl_array *ppar; // array for parallel pressure (used by Euler with parallel-kinetic-perpendicular-moment model)
   struct gkyl_array *qpar; // array for parallel heat flux (used by Euler with parallel-kinetic-perpendicular-moment model)
+  struct gkyl_array *p_ij; // array for advection flow
   struct gkyl_array *D; // array for diffusion tensor
   struct gkyl_array *D_host; // host copy of diffusion tensor
 
@@ -856,6 +859,17 @@ void vm_fluid_species_calc_advect(gkyl_vlasov_app *app, struct vm_fluid_species 
 void vm_fluid_species_calc_diff(gkyl_vlasov_app* app, struct vm_fluid_species* fluid_species, double tm);
 
 /**
+ * Compute primitive variables (bulk velocity, u, and pressure, p, if pressure present)
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Pointer to fluid species (where primitive variables are stored)
+ * @param fluid Input array fluid species
+ * @param fin Input array of distribution function (size: num_species) for fluid-kinetic coupling
+ */
+void vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species,
+  const struct gkyl_array *fluid, const struct gkyl_array *fin[]);
+
+/**
  * Compute RHS from fluid species equations
  *
  * @param app Vlasov app object
@@ -878,28 +892,6 @@ void vm_fluid_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_fl
   int dir, struct gkyl_array *f);
 
 /**
- * Apply copy BCs to fluid species
- *
- * @param app Vlasov app object
- * @param fluid_species Pointer to fluid species
- * @param dir Direction to apply BCs
- * @param f Fluid Species to apply BCs
- */
-void vm_fluid_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species,
-  int dir, enum vm_domain_edge edge, struct gkyl_array *f);
-
-/**
- * Apply absorbing BCs to fluid species
- *
- * @param app Vlasov app object
- * @param fluid_species Pointer to fluid species
- * @param dir Direction to apply BCs
- * @param f Fluid Species to apply BCs
- */
-void vm_fluid_species_apply_absorb_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species,
-  int dir, enum vm_domain_edge edge, struct gkyl_array *f);
-
-/**
  * Apply BCs to fluid species
  *
  * @param app Vlasov app object
@@ -909,12 +901,12 @@ void vm_fluid_species_apply_absorb_bc(gkyl_vlasov_app *app, const struct vm_flui
 void vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species, struct gkyl_array *f);
 
 /**
- * Apply BCs to flow (u)
+ * Apply BCs to primitive variables (bulk velocity, u, and pressure, p, if pressure present)
  *
  * @param app Vlasov app object
  * @param fluid_species Pointer to fluid species
  */
-void vm_fluid_species_flow_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species);
+void vm_fluid_species_prim_vars_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species);
 
 /**
  * Release resources allocated by fluid species

@@ -73,20 +73,20 @@ GKYL_CU_DH void euler_surfy_2x_ser_p2(const double *w, const double *dxv, const 
   u_c_l = ser_2x_p2_surfx2_eval_quad_node_0_l(uc_1); 
   u_c_r = ser_2x_p2_surfx2_eval_quad_node_0_r(uc_1); 
   u_r_l = ser_2x_p2_surfx2_eval_quad_node_0_l(ur_1); 
-  uQuad_l[0] = fabs(fmax(u_l_r, u_c_l)); 
-  uQuad_r[0] = fabs(fmax(u_c_r, u_r_l)); 
+  uQuad_l[0] = fmax(fabs(u_l_r), fabs(u_c_l)); 
+  uQuad_r[0] = fmax(fabs(u_c_r), fabs(u_r_l)); 
   u_l_r = ser_2x_p2_surfx2_eval_quad_node_1_r(ul_1); 
   u_c_l = ser_2x_p2_surfx2_eval_quad_node_1_l(uc_1); 
   u_c_r = ser_2x_p2_surfx2_eval_quad_node_1_r(uc_1); 
   u_r_l = ser_2x_p2_surfx2_eval_quad_node_1_l(ur_1); 
-  uQuad_l[1] = fabs(fmax(u_l_r, u_c_l)); 
-  uQuad_r[1] = fabs(fmax(u_c_r, u_r_l)); 
+  uQuad_l[1] = fmax(fabs(u_l_r), fabs(u_c_l)); 
+  uQuad_r[1] = fmax(fabs(u_c_r), fabs(u_r_l)); 
   u_l_r = ser_2x_p2_surfx2_eval_quad_node_2_r(ul_1); 
   u_c_l = ser_2x_p2_surfx2_eval_quad_node_2_l(uc_1); 
   u_c_r = ser_2x_p2_surfx2_eval_quad_node_2_r(uc_1); 
   u_r_l = ser_2x_p2_surfx2_eval_quad_node_2_l(ur_1); 
-  uQuad_l[2] = fabs(fmax(u_l_r, u_c_l)); 
-  uQuad_r[2] = fabs(fmax(u_c_r, u_r_l)); 
+  uQuad_l[2] = fmax(fabs(u_l_r), fabs(u_c_l)); 
+  uQuad_r[2] = fmax(fabs(u_c_r), fabs(u_r_l)); 
 
   // Project tensor nodal quadrature basis back onto modal basis. 
   ser_2x_p2_upwind_quad_to_modal(uQuad_l, uMax_l); 

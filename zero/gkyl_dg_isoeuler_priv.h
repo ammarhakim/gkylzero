@@ -87,7 +87,7 @@ vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double*  dx,
   struct dg_isoeuler *isoeuler = container_of(eqn, struct dg_isoeuler, eqn);
   long cidx = gkyl_range_idx(&isoeuler->conf_range, idx);
   return isoeuler->vol(xc, dx, isoeuler->vth,
-    (const double*) gkyl_array_cfetch(isoeuler->auxfields.u, cidx), qIn, qRhsOut);
+    (const double*) gkyl_array_cfetch(isoeuler->auxfields.u_i, cidx), qIn, qRhsOut);
 }
 
 
@@ -107,8 +107,8 @@ surf(const struct gkyl_dg_eqn *eqn,
   long cidx_r = gkyl_range_idx(&isoeuler->conf_range, idxR);
 
   isoeuler->surf[dir](xcC, dxC, isoeuler->vth,
-    (const double*) gkyl_array_cfetch(isoeuler->auxfields.u, cidx_l),
-    (const double*) gkyl_array_cfetch(isoeuler->auxfields.u, cidx_c),
-    (const double*) gkyl_array_cfetch(isoeuler->auxfields.u, cidx_r),
+    (const double*) gkyl_array_cfetch(isoeuler->auxfields.u_i, cidx_l),
+    (const double*) gkyl_array_cfetch(isoeuler->auxfields.u_i, cidx_c),
+    (const double*) gkyl_array_cfetch(isoeuler->auxfields.u_i, cidx_r),
     qInL, qInC, qInR, qRhsOut);
 }

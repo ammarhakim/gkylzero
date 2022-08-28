@@ -500,6 +500,10 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
       vm_species_lbo_cross_moms(app, &app->species[i], &app->species[i].lbo, fin[i], app->species[i].collides_with_fluid, fluidin);
     }
   }
+
+  // compute primitive moments for fluid species evolution and coupling
+  for (int i=0; i<app->num_fluid_species; ++i)
+    vm_fluid_species_prim_vars(app, &app->fluid_species[i], fluidin[i], fin);
   
   // compute RHS of Vlasov equations
   for (int i=0; i<app->num_species; ++i) {

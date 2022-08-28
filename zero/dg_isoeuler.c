@@ -28,7 +28,7 @@ void
 gkyl_isoeuler_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_isoeuler_auxfields auxin)
 {
   struct dg_isoeuler *isoeuler = container_of(eqn, struct dg_isoeuler, eqn);
-  isoeuler->auxfields.u = auxin.u;
+  isoeuler->auxfields.u_i = auxin.u_i;
 }
 
 struct gkyl_dg_eqn*
@@ -83,6 +83,7 @@ gkyl_dg_isoeuler_new(const struct gkyl_basis* cbasis,
   assert(isoeuler->vol);
   for (int i=0; i<cdim; ++i) assert(isoeuler->surf[i]);
 
+  isoeuler->auxfields.u_i = 0;
   isoeuler->conf_range = *conf_range;
 
   isoeuler->eqn.flags = 0;

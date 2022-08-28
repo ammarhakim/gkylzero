@@ -9,8 +9,8 @@
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_euler_auxfields { 
-  const struct gkyl_array *u;
-  struct gkyl_array *p;
+  const struct gkyl_array *u_i;
+  const struct gkyl_array *p_ij;
 };
 
 /**
@@ -18,18 +18,13 @@ struct gkyl_dg_euler_auxfields {
  *
  * @param cbasis Configuration space basis functions
  * @param conf_range Configuration space range for use in indexing velocity
+ * @param gas_gamma Adiabatic index for fluid (assumed constant)
+ * @param use_gpu Boolean to determine whether equation object is on host or device
  * @return Pointer to euler equation object
  */
 struct gkyl_dg_eqn* gkyl_dg_euler_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range,
   double gas_gamma, bool use_gpu);
 
-/**
- * Create a new euler equation object that lives on NV-GPU
- *
- * @param cbasis Configuration space basis functions
- * @param conf_range Configuration space range for use in indexing velocity
- * @return Pointer to euler equation object
- */
 struct gkyl_dg_eqn* gkyl_dg_euler_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range,
   double gas_gamma);
 

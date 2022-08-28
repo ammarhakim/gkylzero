@@ -66,14 +66,14 @@ void
 gkyl_advection_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_advection_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(auxin.u)) {
+  if (gkyl_array_is_cu_dev(auxin.u_i)) {
     gkyl_advection_set_auxfields_cu(eqn->on_dev, auxin);
     return;
   }
 #endif
 
   struct dg_advection *advection = container_of(eqn, struct dg_advection, eqn);
-  advection->auxfields.u = auxin.u;
+  advection->auxfields.u_i = auxin.u_i;
 }
 
 struct gkyl_dg_eqn*
@@ -132,7 +132,7 @@ gkyl_dg_advection_new(const struct gkyl_basis* cbasis, const struct gkyl_range* 
   // ensure non-NULL pointers 
   for (int i=0; i<cdim; ++i) assert(advection->surf[i]);
 
-  advection->auxfields.u = 0;  
+  advection->auxfields.u_i = 0;  
   advection->conf_range = *conf_range;
 
   advection->eqn.flags = 0;

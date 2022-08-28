@@ -424,13 +424,23 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   gkyl_array_clear(rhs, 0.0);
  
   if (app->use_gpu)
-    gkyl_dg_updater_vlasov_advance_cu(species->slvr, species->field_id, &species->local, 
-      species->qmem, species->p_over_gamma, 
-      fin, species->cflrate, rhs);
+    if (species->field_id == GKYL_FIELD_PKPM)
+      gkyl_dg_updater_vlasov_advance_cu(species->slvr, species->field_id, &species->local, 
+        app->fluid_species[species->fluid_index].u, app->fluid_species[species->fluid_index].p_ij, 
+        fin, species->cflrate, rhs);
+    else
+      gkyl_dg_updater_vlasov_advance_cu(species->slvr, species->field_id, &species->local, 
+        species->qmem, species->p_over_gamma, 
+        fin, species->cflrate, rhs);
   else
-    gkyl_dg_updater_vlasov_advance(species->slvr, species->field_id, &species->local, 
-      species->qmem, species->p_over_gamma, 
-      fin, species->cflrate, rhs);
+    if (species->field_id == GKYL_FIELD_PKPM)
+      gkyl_dg_updater_vlasov_advance(species->slvr, species->field_id, &species->local, 
+        app->fluid_species[species->fluid_index].u, app->fluid_species[species->fluid_index].p_ij, 
+        fin, species->cflrate, rhs);
+    else
+      gkyl_dg_updater_vlasov_advance(species->slvr, species->field_id, &species->local, 
+        species->qmem, species->p_over_gamma, 
+        fin, species->cflrate, rhs);
 
   if (species->collision_id == GKYL_LBO_COLLISIONS)
     vm_species_lbo_rhs(app, species, &species->lbo, fin, rhs);

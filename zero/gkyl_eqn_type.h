@@ -21,6 +21,16 @@ enum gkyl_field_id {
   GKYL_FIELD_PHI_A, // Poisson with static B = curl(A) (phi, A)
   GKYL_FIELD_NULL, // no field is present
   GKYL_FIELD_SR_NULL, // no field is present, special relativistic Vlasov
+  GKYL_FIELD_PKPM, // parallel-kinetic-perpendicular-moment model
+};
+
+// Identifiers for subsidary models
+// These are used to distinguish things like special relativistic from non-relativistic
+// or the parallel-kinetic-perpendicular-moment model
+enum gkyl_model_id {
+  GKYL_MODEL_DEFAULT = 0, // No subsidiary model specified
+  GKYL_MODEL_PKPM,
+  GKYL_MODEL_SR,
 };
 
 // Identifiers for specific diffusion object types

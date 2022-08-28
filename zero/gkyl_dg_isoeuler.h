@@ -9,7 +9,7 @@
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_isoeuler_auxfields {
-  const struct gkyl_array *u;
+  const struct gkyl_array *u_i;
 };
 
 struct gkyl_dg_eqn* gkyl_dg_isoeuler_new(const struct gkyl_basis* cbasis,

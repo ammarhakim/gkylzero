@@ -30,17 +30,17 @@ void
 gkyl_euler_pkpm_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_pkpm_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(auxin.u)) {
+  if (gkyl_array_is_cu_dev(auxin.u_i)) {
     gkyl_euler_pkpm_set_auxfields_cu(eqn->on_dev, auxin);
     return;
   }
 #endif
 
   struct dg_euler_pkpm *euler_pkpm = container_of(eqn, struct dg_euler_pkpm, eqn);
-  euler_pkpm->auxfields.u = auxin.u;
-  euler_pkpm->auxfields.pperp = auxin.pperp;
-  euler_pkpm->auxfields.ppar = auxin.ppar;
-  euler_pkpm->auxfields.qpar = auxin.qpar;
+  euler_pkpm->auxfields.u_i = auxin.u_i;
+  euler_pkpm->auxfields.p_ij = auxin.p_ij;
+  euler_pkpm->auxfields.vlasov_pkpm_moms = auxin.vlasov_pkpm_moms;
+  euler_pkpm->auxfields.vlasov_pkpm_surf_moms = auxin.vlasov_pkpm_surf_moms;
 }
 
 struct gkyl_dg_eqn*
@@ -48,7 +48,7 @@ gkyl_dg_euler_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_range*
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_euler_pkpm_cu_dev_new(cbasis, conf_range, gas_gamma);
+    return gkyl_dg_euler_pkpm_cu_dev_new(cbasis, conf_range);
   } 
 #endif
   struct dg_euler_pkpm *euler_pkpm = gkyl_malloc(sizeof(struct dg_euler_pkpm));
@@ -56,13 +56,11 @@ gkyl_dg_euler_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_range*
   int cdim = cbasis->ndim;
   int poly_order = cbasis->poly_order;
 
-  const gkyl_dg_euler_pkpm_perp_pressure_kern_list *perp_pressure_kernels;
   const gkyl_dg_euler_pkpm_vol_kern_list *vol_kernels;
   const gkyl_dg_euler_pkpm_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;
 
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      perp_pressure_kernels = ser_perp_pressure_kernels;
       vol_kernels = ser_vol_kernels;
       surf_x_kernels = ser_surf_x_kernels;
       surf_y_kernels = ser_surf_y_kernels;
@@ -79,9 +77,6 @@ gkyl_dg_euler_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_range*
   euler_pkpm->eqn.surf_term = surf;
   euler_pkpm->eqn.boundary_surf_term = boundary_surf;
 
-  euler_pkpm->perp_pressure = CK(perp_pressure_kernels, cdim, poly_order);
-  assert(euler_pkpm->perp_pressure);
-
   euler_pkpm->vol = CK(vol_kernels, cdim, poly_order);
   assert(euler_pkpm->vol);
 
@@ -94,10 +89,10 @@ gkyl_dg_euler_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_range*
   // ensure non-NULL pointers 
   for (int i=0; i<cdim; ++i) assert(euler_pkpm->surf[i]);
 
-  euler_pkpm->auxfields.u = 0;  
-  euler_pkpm->auxfields.pperp = 0;  
-  euler_pkpm->auxfields.ppar = 0;  
-  euler_pkpm->auxfields.qpar = 0;  
+  euler_pkpm->auxfields.u_i = 0;  
+  euler_pkpm->auxfields.p_ij = 0;
+  euler_pkpm->auxfields.vlasov_pkpm_moms = 0;
+  euler_pkpm->auxfields.vlasov_pkpm_surf_moms = 0;
   euler_pkpm->conf_range = *conf_range;
   
   euler_pkpm->eqn.flags = 0;

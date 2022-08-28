@@ -5,6 +5,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_dg_vlasov.h>
+#include <gkyl_dg_vlasov_pkpm.h>
 #include <gkyl_dg_vlasov_poisson.h>
 #include <gkyl_dg_vlasov_sr.h>
 #include <gkyl_dg_updater_vlasov.h>
@@ -32,6 +33,8 @@ gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid,
     up->eqn_vlasov = gkyl_dg_vlasov_poisson_new(cbasis, pbasis, conf_range, field_id, use_gpu);
   else if (field_id == GKYL_FIELD_SR_E_B || field_id == GKYL_FIELD_SR_NULL)
     up->eqn_vlasov = gkyl_dg_vlasov_sr_new(cbasis, pbasis, conf_range, vel_range, field_id, use_gpu);
+  else if (field_id == GKYL_FIELD_PKPM)
+    up->eqn_vlasov = gkyl_dg_vlasov_pkpm_new(cbasis, pbasis, conf_range, use_gpu);
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int vdim = pdim-cdim;
@@ -75,7 +78,10 @@ gkyl_dg_updater_vlasov_advance(gkyl_dg_updater_vlasov *vlasov,
   else if (field_id == GKYL_FIELD_SR_E_B || field_id == GKYL_FIELD_SR_NULL)
     gkyl_vlasov_sr_set_auxfields(vlasov->eqn_vlasov, 
       (struct gkyl_dg_vlasov_sr_auxfields) { .qmem = aux1, .p_over_gamma = aux2 });
-
+  else if (field_id == GKYL_FIELD_PKPM)
+    gkyl_vlasov_pkpm_set_auxfields(vlasov->eqn_vlasov, 
+      (struct gkyl_dg_vlasov_pkpm_auxfields) { .u_i = aux1, .p_ij = aux2 });
+  
   struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance(vlasov->up_vlasov, update_rng, fIn, cflrate, rhs);
   vlasov->vlasov_tm += gkyl_time_diff_now_sec(wst);
@@ -118,7 +124,10 @@ gkyl_dg_updater_vlasov_advance_cu(gkyl_dg_updater_vlasov *vlasov,
   else if (field_id == GKYL_FIELD_SR_E_B || field_id == GKYL_FIELD_SR_NULL)
     gkyl_vlasov_sr_set_auxfields(vlasov->eqn_vlasov, 
       (struct gkyl_dg_vlasov_sr_auxfields) { .qmem = aux1, .p_over_gamma = aux2 });
-
+  else if (field_id == GKYL_FIELD_PKPM)
+    gkyl_vlasov_pkpm_set_auxfields(vlasov->eqn_vlasov, 
+      (struct gkyl_dg_vlasov_pkpm_auxfields) { .u_i = aux1, .p_ij = aux2 });
+  
   struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance_cu(vlasov->up_vlasov, update_rng, fIn, cflrate, rhs);
   vlasov->vlasov_tm += gkyl_time_diff_now_sec(wst);

@@ -8,8 +8,6 @@
 // functions
 
 // Types for various kernels
-typedef void (*euler_pressure_t)(const double gas_gamma, const double *uvar, const double *statevec, double* GKYL_RESTRICT out);
-
 typedef double (*euler_vol_t)(const double *w, const double *dx, const double gas_gamma, 
   const double *uvar, const double *pvar, const double *statevec, double* GKYL_RESTRICT out);
 
@@ -19,21 +17,12 @@ typedef void (*euler_surf_t)(const double *w, const double *dx, const double gas
   const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out);
 
 // for use in kernel tables
-typedef struct { euler_pressure_t kernels[3]; } gkyl_dg_euler_pressure_kern_list;
 typedef struct { euler_vol_t kernels[3]; } gkyl_dg_euler_vol_kern_list;
 typedef struct { euler_surf_t kernels[3]; } gkyl_dg_euler_surf_kern_list;
 
 //
 // Serendipity basis kernels
 // 
-
-// Pressure from state variables kernel list
-GKYL_CU_D
-static const gkyl_dg_euler_pressure_kern_list ser_pressure_kernels[] = {
-  { NULL, euler_pressure_1x_ser_p1, euler_pressure_1x_ser_p2 }, // 0
-  { NULL, euler_pressure_2x_ser_p1, euler_pressure_2x_ser_p2 }, // 1
-  { NULL, euler_pressure_3x_ser_p1, euler_pressure_3x_ser_p2 }, // 2
-};
 
 // Volume kernel list
 GKYL_CU_D
@@ -69,7 +58,6 @@ static const gkyl_dg_euler_surf_kern_list ser_surf_z_kernels[] = {
 
 struct dg_euler {
   struct gkyl_dg_eqn eqn; // Base object  
-  euler_pressure_t pressure; // pointer to pressure computation kernel
   euler_vol_t vol; // pointer to volume kernel
   euler_surf_t surf[3]; // pointers to surface kernels
   double gas_gamma; // adiabatic index
@@ -93,14 +81,9 @@ vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double*  dx,
   struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
   long cidx = gkyl_range_idx(&euler->conf_range, idx);
 
-  // Compute pressure from state variables in cell
-  euler->pressure(euler->gas_gamma, 
-    (const double*) gkyl_array_cfetch(euler->auxfields.u, cidx),
-    qIn, (double*) gkyl_array_fetch(euler->auxfields.p, cidx));
-
   return euler->vol(xc, dx, euler->gas_gamma, 
-    (const double*) gkyl_array_cfetch(euler->auxfields.u, cidx),
-    (const double*) gkyl_array_cfetch(euler->auxfields.p, cidx),
+    (const double*) gkyl_array_cfetch(euler->auxfields.u_i, cidx),
+    (const double*) gkyl_array_cfetch(euler->auxfields.p_ij, cidx),
     qIn, qRhsOut);
 }
 
@@ -119,25 +102,13 @@ surf(const struct gkyl_dg_eqn *eqn,
   long cidx_c = gkyl_range_idx(&euler->conf_range, idxC);
   long cidx_r = gkyl_range_idx(&euler->conf_range, idxR);
 
-  // Compute pressure from state variables in left, center, and right cells
-  // TO DO: Inefficient, computes the pressure in each cell 3 times
-  euler->pressure(euler->gas_gamma, 
-    (const double*) gkyl_array_cfetch(euler->auxfields.u, cidx_l),
-    qInL, (double*) gkyl_array_fetch(euler->auxfields.p, cidx_l));
-  euler->pressure(euler->gas_gamma, 
-    (const double*) gkyl_array_cfetch(euler->auxfields.u, cidx_c),
-    qInC, (double*) gkyl_array_fetch(euler->auxfields.p, cidx_c));
-  euler->pressure(euler->gas_gamma, 
-    (const double*) gkyl_array_cfetch(euler->auxfields.u, cidx_r),
-    qInR, (double*) gkyl_array_fetch(euler->auxfields.p, cidx_r));
-
   euler->surf[dir](xcC, dxC, euler->gas_gamma, 
-    (const double*) gkyl_array_cfetch(euler->auxfields.u, cidx_l),
-    (const double*) gkyl_array_cfetch(euler->auxfields.u, cidx_c),
-    (const double*) gkyl_array_cfetch(euler->auxfields.u, cidx_r), 
-    (const double*) gkyl_array_cfetch(euler->auxfields.p, cidx_l),
-    (const double*) gkyl_array_cfetch(euler->auxfields.p, cidx_c),
-    (const double*) gkyl_array_cfetch(euler->auxfields.p, cidx_r), 
+    (const double*) gkyl_array_cfetch(euler->auxfields.u_i, cidx_l),
+    (const double*) gkyl_array_cfetch(euler->auxfields.u_i, cidx_c),
+    (const double*) gkyl_array_cfetch(euler->auxfields.u_i, cidx_r), 
+    (const double*) gkyl_array_cfetch(euler->auxfields.p_ij, cidx_l),
+    (const double*) gkyl_array_cfetch(euler->auxfields.p_ij, cidx_c),
+    (const double*) gkyl_array_cfetch(euler->auxfields.p_ij, cidx_r), 
     qInL, qInC, qInR, qRhsOut);
 }
 

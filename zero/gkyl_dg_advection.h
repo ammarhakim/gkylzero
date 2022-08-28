@@ -9,7 +9,7 @@
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_advection_auxfields { 
-  const struct gkyl_array *u;
+  const struct gkyl_array *u_i;
 };
 
 /**
