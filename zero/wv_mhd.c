@@ -331,11 +331,10 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   // div(B) wave(s) //
   ////////////////////
 
-  // For the eight-wave scheme, incorporate the divB wave into the entropy wave,
-  // since both have eigenvalue u. This wave just advects the jump in Bx at the
-  // speed u.
+  // For the eight-wave scheme, advect the jump in Bx at the speed u.
   if (mhd->divergence_constraint == GKYL_MHD_DIVB_EIGHT_WAVES) {
-    // wv = &waves[3*meqns];
+    ev[7] = u;
+    wv = &waves[7*meqns];
     wv[BX] = dQ[BX];
   }
 
@@ -498,7 +497,7 @@ gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
 
     case GKYL_MHD_DIVB_EIGHT_WAVES:
       mhd->eqn.num_equations = 8;
-      mhd->eqn.num_waves = 7;  // will merge the entropy wave and divB wave
+      mhd->eqn.num_waves = 8;
       break;
 
     case GKYL_MHD_DIVB_GLM:
