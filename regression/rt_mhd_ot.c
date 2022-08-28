@@ -8,6 +8,7 @@
 #include <rt_arg_parse.h>
 
 struct mhd_ctx {
+  enum gkyl_wv_mhd_div_constraint divergence_constraint;
   double gas_gamma; // gas constant
 };
 
@@ -42,7 +43,9 @@ evalMhdInit(double t, const double* GKYL_RESTRICT xn,
   double v[8] = {rho, vx, vy, vz, p, Bx, By, Bz};
 
   calcq(gas_gamma, v, fout);
-  fout[8] = 0; // for glm scheme
+
+  if (app->divergence_constraint==GKYL_MHD_DIVB_GLM)
+    fout[8] = 0; // divB correction potential
 }
 
 struct mhd_ctx
@@ -70,12 +73,15 @@ main(int argc, char **argv)
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  struct mhd_ctx ctx = mhd_ctx(); // context for init functions
+  struct mhd_ctx ctx = {
+    .gas_gamma = 5./3.,
+    .divergence_constraint = GKYL_MHD_DIVB_EIGHT_WAVES,
+  };
 
   // equation object
   const struct gkyl_wv_mhd_inp inp = {
     .gas_gamma = ctx.gas_gamma,
-    .divergence_constraint = GKYL_MHD_DIVB_GLM,
+    .divergence_constraint = ctx.divergence_constraint,
     .glm_ch = 1.0, // initial value; will be updated with max speed in each step
     .glm_alpha = 0.4, // passed to source
   };
@@ -110,8 +116,8 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.4;
-  int nframe = 4;
+  double tcurr = 0.0, tend = 0.5;
+  int nframe = 5;
 
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
