@@ -859,6 +859,9 @@ mhd_src_update(gkyl_moment_app *app, struct mhd_src *src, int nstrang,
     gkyl_fv_proj_advance(app->species[i].proj_app_accel, tcurr, &app->local,
                          app->species[i].app_accel);
 
+  // FIXME presently needed for computing divB etc
+  moment_species_apply_bc(app, tcurr, &app->species[i], fluid);
+
   gkyl_mhd_src_advance(src->slvr, dt, &app->local, fluid,
                        app->species[i].app_accel);
 
