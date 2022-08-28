@@ -25,7 +25,6 @@
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_apply_bc.h>
-#include <gkyl_wv_euler.h>
 #include <gkyl_wv_maxwell.h>
 #include <gkyl_wv_ten_moment.h>
 #include <gkyl_wv_mhd.h>
@@ -1306,6 +1305,9 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
   time_t t = time(NULL);
   struct tm curr_tm = *localtime(&t);
 
+  // compute total number of cells updated in simulation
+  long tot_cells_up = app->local.volume*app->num_species*app->ndim*app->stat.nup;
+
   // append to existing file so we have a history of different runs
   FILE *fp = 0;
   with_file (fp, fileNm, "a") {
@@ -1322,13 +1324,18 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
     fprintf(fp, " sources_tm : %lg\n", app->stat.sources_tm);
 
     for (int i=0; i<app->num_species; ++i) {
+      long tot_bad_cells = 0L;      
       for (int d=0; d<app->ndim; ++d) {
         struct gkyl_wave_prop_stats wvs = gkyl_wave_prop_stats(app->species[i].slvr[d]);
         fprintf(fp, " %s_n_bad_1D_sweeps[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_advance_calls);
         fprintf(fp, " %s_n_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_cells);
         fprintf(fp, " %s_n_max_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_max_bad_cells);
+
+        tot_bad_cells += wvs.n_bad_cells;
       }
+      fprintf(fp, " %s_bad_cell_frac = %lg\n", app->species[i].name, (double) tot_bad_cells/tot_cells_up );
     }
+
   
     fprintf(fp, "}\n");
   }

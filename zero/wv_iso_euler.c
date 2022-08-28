@@ -17,6 +17,32 @@ iso_euler_free(const struct gkyl_ref_count *ref)
   gkyl_free(iso_euler);
 }
 
+// Isothermal Euler perfectly reflecting wall
+static void
+iso_euler_wall(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+{
+  // copy density
+  ghost[0] = skin[0];
+
+  // zero-normal for momentum
+  ghost[1] = -skin[1];
+  ghost[2] = skin[2];
+  ghost[3] = skin[3];
+}
+
+// Isothermal Euler no-slip wall
+static void
+iso_euler_no_slip(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+{
+  // copy density and pressure
+  ghost[0] = skin[0];
+
+  // zero-normal for momentum
+  ghost[1] = -skin[1];
+  ghost[2] = -skin[2];
+  ghost[3] = -skin[3];
+}
+
 static inline void
 rot_to_local(const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
@@ -198,6 +224,9 @@ gkyl_wv_iso_euler_new(double vt)
   
   iso_euler->eqn.rotate_to_local_func = rot_to_local;
   iso_euler->eqn.rotate_to_global_func = rot_to_global;
+
+  iso_euler->eqn.wall_bc_func = iso_euler_wall;
+  iso_euler->eqn.no_slip_bc_func = iso_euler_no_slip;
 
   iso_euler->eqn.ref_count = gkyl_ref_count_init(iso_euler_free);
 

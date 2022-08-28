@@ -110,8 +110,8 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.3;
-  int nframe = 3;
+  double tcurr = 0.0, tend = 0.4;
+  int nframe = 4;
 
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };

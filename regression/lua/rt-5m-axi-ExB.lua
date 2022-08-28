@@ -42,8 +42,8 @@ end
 -- create app
 momentApp = Moments.App {
    
-   tEnd = 100.0/OmegaPi0, -- end time
-   nFrame = 20, -- number of output frame
+   tEnd = 400.0/OmegaPi0, -- end time
+   nFrame = 40, -- number of output frame
    lower = {R0, -2*math.pi/8}, -- lower left corner
    upper = {R1, 2*math.pi/8}, -- upper right corner
    cells = {64, 64}, -- number of cells
@@ -69,7 +69,7 @@ momentApp = Moments.App {
 	 local TeFrac = 1.0/(1.0 + TiOverTe)
 	 local n = n0
 	 local ux = Er/B0*math.sin(theta)
-	 local uy = -Er/B0*math.cos(theta)	 
+	 local uy = -Er/B0*math.cos(theta)
 	 local Ttotal = plasmaBeta*(B0*B0)/2.0/n0
 
 	 local rhoe = n*elcMass
