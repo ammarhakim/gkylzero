@@ -16,7 +16,7 @@
 
 gkyl_mhd_src *gkyl_mhd_src_new(struct gkyl_mhd_src_inp inp,
                                const struct gkyl_range *local_ext) {
-  gkyl_mhd_src *up = gkyl_malloc(sizeof(gkyl_mhd_src));
+  gkyl_mhd_src *up = gkyl_calloc(1, sizeof(gkyl_mhd_src));
 
   up->grid = *(inp.grid);
   up->ndim = up->grid.ndim;
