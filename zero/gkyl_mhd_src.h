@@ -62,5 +62,15 @@ void gkyl_mhd_src_release(gkyl_mhd_src *mes);
  * @param up MHD source updater
  * @param ch number
  */
-
 void gkyl_mhd_src_set_glm_ch(struct gkyl_mhd_src* up, double glm_ch);
+
+/**
+ * Get average |div(B)| for diagnostic usage.
+ *
+ * @param up MHD source updater
+ * @param update_range
+ * @param q_array input field
+ */
+double gkyl_mhd_src_calc_divB(const gkyl_mhd_src *up,
+                              const struct gkyl_range *update_range,
+                              struct gkyl_array *q_array);

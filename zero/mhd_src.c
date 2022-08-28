@@ -196,6 +196,25 @@ void gkyl_mhd_src_advance(const gkyl_mhd_src *up, double dt,
   }
 }
 
+double gkyl_mhd_src_calc_divB(const gkyl_mhd_src *up,
+                              const struct gkyl_range *update_range,
+                              struct gkyl_array *q_array) {
+  calc_divB(up, update_range, q_array);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, update_range);
+
+  double total = 0.0;
+  int count = 0;
+  while (gkyl_range_iter_next(&iter)) {
+    long lidx = gkyl_range_idx(update_range, iter.idx);
+    double *divB = gkyl_array_fetch(up->divB_array, lidx);
+    total += fabs(divB[0]);
+    count++;
+  }
+  return total / count;
+}
+
 void gkyl_mhd_src_release(gkyl_mhd_src *up) {
   if (up->divB_array)
     gkyl_array_release(up->divB_array);
