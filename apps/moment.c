@@ -276,7 +276,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   sp->ctx = mom_sp->ctx;
   sp->init = mom_sp->init;
 
-  sp->equation = mom_sp->equation;
+  sp->equation = gkyl_wv_eqn_acquire(mom_sp->equation);
   sp->eqn_type = mom_sp->equation->type;
   sp->num_equations = mom_sp->equation->num_equations;
   // closure parameter, used by 10 moment
@@ -500,6 +500,8 @@ moment_species_update(const gkyl_moment_app *app,
 static void
 moment_species_release(const struct moment_species *sp)
 {
+  gkyl_wv_eqn_release(sp->equation);
+
   for (int d=0; d<sp->ndim; ++d)
     gkyl_wave_prop_release(sp->slvr[d]);
 
