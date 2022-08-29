@@ -5,17 +5,23 @@
 #include <gkyl_util.h>
 #include <gkyl_evalf_def.h>
 
+// Flux type for use in wave/qfluct methods
+enum gkyl_wv_flux_type { GKYL_WV_HIGH_ORDER_FLUX, GKYL_WV_LOW_ORDER_FLUX };
+
 // Forward declare for use in function pointers
 struct gkyl_wv_eqn;
 
 // Function pointer for compute waves from RP solver
-typedef double (*wv_waves_t)(const struct gkyl_wv_eqn *eqn, 
+typedef double (*wv_waves_t)(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *delta, const double *ql, const double *qr, double *waves, double *speeds);
 
 // Function pointer for compute q-fluctuations from waves
-typedef void (*wv_qfluct_t)(const struct gkyl_wv_eqn *eqn, 
+typedef void (*wv_qfluct_t)(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *ql, const double *qr, const double *waves, const double *speeds,
   double *amdq, double *apdq);
+
+// Function pointer to check if invariant domain is preserved
+typedef bool (*wv_check_inv)(const struct gkyl_wv_eqn *eqn, const double *q);
 
 // Function pointer to compute maximum speed given local state
 typedef double (*wv_max_speed_t)(const struct gkyl_wv_eqn *eqn, const double *q);
@@ -36,6 +42,7 @@ struct gkyl_wv_eqn {
   int num_waves; // number of waves in system
   wv_waves_t waves_func; // function to compute waves and speeds
   wv_qfluct_t qfluct_func; // function to compute q-fluctuations
+  wv_check_inv check_inv_func; // function to check invariant domains
   wv_max_speed_t max_speed_func; // function to compute max-speed
   wv_rotate_to_local rotate_to_local_func; // function to rotate to local frame
   wv_rotate_to_global rotate_to_global_func; // function to rotate to global frame
@@ -69,10 +76,10 @@ struct gkyl_wv_eqn* gkyl_wv_eqn_acquire(const struct gkyl_wv_eqn* eqn);
  * @return Maximum wave speed.
  */
 inline double
-gkyl_wv_eqn_waves(const struct gkyl_wv_eqn *eqn, 
+gkyl_wv_eqn_waves(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *delta, const double *ql, const double *qr, double *waves, double *speeds)
 {
-  return eqn->waves_func(eqn, delta, ql, qr, waves, speeds);
+  return eqn->waves_func(eqn, type, delta, ql, qr, waves, speeds);
 }
 
 /**
@@ -90,11 +97,11 @@ gkyl_wv_eqn_waves(const struct gkyl_wv_eqn *eqn,
  * @param apdq On output, the right-going fluctuations.
  */
 inline void
-gkyl_wv_eqn_qfluct(const struct gkyl_wv_eqn *eqn,
+gkyl_wv_eqn_qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *ql, const double *qr, const double *waves, const double *speeds,
   double *amdq, double *apdq)
 {
-  eqn->qfluct_func(eqn, ql, qr, waves, speeds, amdq, apdq);  
+  eqn->qfluct_func(eqn, type, ql, qr, waves, speeds, amdq, apdq);  
 }
 
 /**

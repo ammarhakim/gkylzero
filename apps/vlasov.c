@@ -1,6 +1,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
+#include <gkyl_dflt.h>
 #include <gkyl_dynvec.h>
 
 #include <gkyl_vlasov_priv.h>
@@ -8,6 +9,8 @@
 gkyl_vlasov_app*
 gkyl_vlasov_app_new(struct gkyl_vm *vm)
 {
+  disable_denorm_float();
+  
   assert(vm->num_species <= GKYL_MAX_SPECIES);
   
   gkyl_vlasov_app *app = gkyl_malloc(sizeof(gkyl_vlasov_app));
@@ -20,7 +23,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   int nsf = app->num_fluid_species = vm->num_fluid_species;
 
   double cfl_frac = vm->cfl_frac == 0 ? 1.0 : vm->cfl_frac;
-  app->cfl = cfl_frac/(2*poly_order+1);
+  app->cfl = cfl_frac;
 
 #ifdef GKYL_HAVE_CUDA
   app->use_gpu = vm->use_gpu;
@@ -48,14 +51,26 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   // basis functions
   switch (vm->basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
       gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
-      if (vdim > 0)
-        gkyl_cart_modal_serendip(&app->velBasis, vdim, poly_order);
+      if (poly_order > 1) {
+        gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
+        if (vdim > 0)
+          gkyl_cart_modal_serendip(&app->velBasis, vdim, poly_order);
+      } else if (poly_order == 1) {
+        /* Force hybrid basis (p=2 in velocity space). */
+        gkyl_cart_modal_hybrid(&app->basis, cdim, vdim);
+        if (vdim > 0)
+          gkyl_cart_modal_serendip(&app->velBasis, vdim, 2);
+      }
 
       if (app->use_gpu) {
-        gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
         gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.confBasis, cdim, poly_order);
+        if (poly_order > 1) {
+          gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
+        } else if (poly_order == 1) {
+          /* Force hybrid basis (p=2 in velocity space). */
+          gkyl_cart_modal_hybrid_cu_dev(app->basis_on_dev.basis, cdim, vdim);
+        }
       }
       break;
 
@@ -110,6 +125,12 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
       && app->species[i].lbo.num_cross_collisions) {
       vm_species_lbo_cross_init(app, &app->species[i], &app->species[i].lbo);
     }
+
+  // initialize each species source terms: this has to be done here
+  // as they may initialize a bflux updater for their source species
+  for (int i=0; i<ns; ++i)
+    if (app->species[i].source_id)
+      vm_species_source_init(app, &app->species[i], &app->species[i].src);
   
   // initialize each fluid species
   for (int i=0; i<nsf; ++i)
@@ -514,6 +535,14 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     double dt1 = vm_fluid_species_rhs(app, &app->fluid_species[i], fluidin[i], fluidout[i]);
     dtmin = fmin(dtmin, dt1);
   }
+  // compute source term
+  // done here as the RHS update for all species should be complete before
+  // bflux calculation of the source species
+  for (int i=0; i<app->num_species; ++i) {
+    if (app->species[i].source_id) {
+      vm_species_source_rhs(app, &app->species[i], &app->species[i].src, fin, fout);
+    }
+  }
   // compute RHS of Maxwell equations
   if (app->has_field) {
     double dt1 = vm_field_rhs(app, app->field, emin, emout);
@@ -560,7 +589,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 	  // if has_mirror_force, m1i = m1i/B = J*m1i
 	  // need to multiply by magB to get the right current density
           gkyl_dg_mul_op_range(app->confBasis, 0, s->m1i_no_J, 0,
-            s->m1i.marr, 0, s->magB, app->local);
+            s->m1i.marr, 0, s->magB, &app->local);
 	  gkyl_array_accumulate_range(emout, -qbyeps, s->m1i_no_J, app->local);
         } else {
           gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, app->local);
@@ -647,8 +676,7 @@ rk3(gkyl_vlasov_app* app, double dt0)
           dt = st.dt_actual;
           state = RK_STAGE_1; // restart from stage 1
 
-        }
-        else {
+        } else {
           for (int i=0; i<app->num_species; ++i)
             array_combine(app->species[i].f1,
               3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew, app->species[i].local_ext);

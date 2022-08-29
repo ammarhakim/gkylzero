@@ -256,6 +256,59 @@ gkyl_dynvec_awrite(const gkyl_dynvec vec, const char *fname)
   return gkyl_dynvec_write_mode(vec, fname, "a");
 }
 
+// ncomp returned in 'ncomp'
+static bool
+gkyl_dynvec_read_ncomp_1(FILE *fp, int *ncomp)
+{
+  size_t frr;
+  // Version 1 header
+  char g0[6];
+  if (1 != fread(g0, sizeof(char[5]), 1, fp))
+    return false;
+  g0[5] = '\0'; // add the NULL
+  if (strcmp(g0, "gkyl0") != 0)
+    return false;
+
+  uint64_t version;
+  frr = fread(&version, sizeof(uint64_t), 1, fp);
+  if (version != 1)
+    return false;
+
+  uint64_t file_type;
+  frr = fread(&file_type, sizeof(uint64_t), 1, fp);
+  if (file_type != dynvec_file_type)
+    return false;
+
+  uint64_t meta_size;
+  frr = fread(&meta_size, sizeof(uint64_t), 1, fp);
+
+  // read ahead by specified bytes: meta-data is not read in this
+  // method
+  fseek(fp, meta_size, SEEK_CUR);
+
+  uint64_t real_type = 0;
+  if (1 != fread(&real_type, sizeof(uint64_t), 1, fp))
+    return false;
+
+  uint64_t esznc;
+  if (1 != fread(&esznc, sizeof(uint64_t), 1, fp))
+    return false;
+
+  *ncomp = esznc/array_elem_size[real_type];
+
+  return true;
+}
+
+int
+gkyl_dynvec_read_ncomp(const char *fname)
+{
+  int ncomp = 0;
+  FILE *fp = 0;
+  with_file(fp, fname, "r")
+    gkyl_dynvec_read_ncomp_1(fp, &ncomp);
+  return ncomp;
+}
+
 static bool
 gkyl_dynvec_read_1(gkyl_dynvec vec, FILE *fp) {
   size_t frr;

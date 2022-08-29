@@ -3,10 +3,15 @@
 #include <math.h>
 #include <string.h>
 
+#include <stc/cstr.h>
+
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_dflt.h>
+#include <gkyl_dynvec.h>
+#include <gkyl_elem_type.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_fv_proj.h>
 #include <gkyl_moment.h>
@@ -17,9 +22,9 @@
 #include <gkyl_util.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
+#include <gkyl_wv_apply_bc.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_maxwell.h>
-#include <gkyl_wv_apply_bc.h>
 #include <gkyl_wv_ten_moment.h>
 
 // ranges for use in BCs
@@ -58,6 +63,9 @@ struct moment_species {
   enum gkyl_species_bc_type lower_bct[3], upper_bct[3];
   // boundary condition solvers on lower/upper edges in each direction
   gkyl_wv_apply_bc *lower_bc[3], *upper_bc[3];
+
+  gkyl_dynvec integ_q; // integrated conserved quantities
+  bool is_first_q_write_call; // flag for dynvec written first time  
 };
 
 // Field data
@@ -72,11 +80,16 @@ struct moment_field {
   void (*init)(double t, const double *xn, double *fout, void *ctx);    
     
   struct gkyl_array *fdup, *f[4]; // arrays for updates
-  struct gkyl_array *app_current, *ext_em; // arrays for applied currents/external fields
+  struct gkyl_array *app_current; // arrays for applied currents
   // pointer to projection operator for applied current function
   gkyl_fv_proj *proj_app_current;
-  // pointer to projection operator for external fields
-  gkyl_fv_proj *proj_ext_em;
+
+
+  bool is_ext_em_static; // flag to indicate if external field is time-independent
+  struct gkyl_array *ext_em; // array external fields  
+  gkyl_fv_proj *proj_ext_em;   // pointer to projection operator for external fields
+  bool was_ext_em_computed; // flag to indicate if we already computed external EM field
+  
   struct gkyl_array *bc_buffer; // buffer for periodic BCs
 
   gkyl_wave_prop *slvr[3]; // solver in each direction
@@ -84,7 +97,10 @@ struct moment_field {
   // boundary condition type
   enum gkyl_field_bc_type lower_bct[3], upper_bct[3];
   // boundary conditions on lower/upper edges in each direction
-  gkyl_wv_apply_bc *lower_bc[3], *upper_bc[3];    
+  gkyl_wv_apply_bc *lower_bc[3], *upper_bc[3];
+
+  gkyl_dynvec integ_energy; // integrated energy components
+  bool is_first_energy_write_call; // flag for dynvec written first time
 };
 
 // Source data
@@ -130,6 +146,40 @@ struct gkyl_moment_app {
     
   struct gkyl_moment_stat stat; // statistics
 };
+
+// Function pointer to compute integrated quantities from input
+typedef void (*integ_func)(int nc, const double *qin, double *integ_out);
+
+static inline void
+integ_unit(int nc, const double *qin, double *integ_out)
+{
+  for (int i=0; i<nc; ++i) integ_out[i] = qin[i];
+}
+static inline void
+integ_sq(int nc, const double *qin, double *integ_out)
+{
+  for (int i=0; i<nc; ++i) integ_out[i] = qin[i]*qin[i];
+}
+
+// Compute the nc intergated values over the update_rgn, storing the
+// result in the integ_q
+static void
+calc_integ_quant(int nc, double vol, const struct gkyl_array *q, const struct gkyl_wave_geom *geom,
+  struct gkyl_range update_rng, integ_func i_func, double *integ_q)
+{
+  double integ_out[nc];
+  for (int i=0; i<nc; ++i) integ_q[i] = 0.0;
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &update_rng);
+  while (gkyl_range_iter_next(&iter)) {
+    const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(geom, iter.idx);
+    const double *qcell = gkyl_array_cfetch(q, gkyl_range_idx(&update_rng, iter.idx));
+
+    i_func(nc, qcell, integ_out);
+    for (int i=0; i<nc; ++i) integ_q[i] += vol*cg->kappa*integ_out[i];
+  }
+}
 
 // allocate array (filled with zeros)
 static struct gkyl_array*
@@ -218,6 +268,8 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         .equation = mom_sp->equation,
         .limiter = limiter,
         .num_up_dirs = app->is_dir_skipped[d] ? 0 : 1,
+        .force_low_order_flux = mom_sp->force_low_order_flux,
+        .check_inv_domain = true,
         .update_dirs = { d },
         .cfl = app->cfl,
         .geom = app->geom,
@@ -262,6 +314,12 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
             mom_sp->equation->no_slip_bc_func, 0);
           break;
 
+        case GKYL_SPECIES_FUNC:
+          sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            mom_sp->bc_lower_func, mom_sp->ctx);
+          break;
+        
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_WEDGE: // wedge also uses bc_copy
           sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
@@ -286,7 +344,13 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
             &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
             mom_sp->equation->no_slip_bc_func, 0);
           break;
-            
+
+        case GKYL_SPECIES_FUNC:
+          sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
+            mom_sp->bc_upper_func, mom_sp->ctx);
+          break;
+          
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_WEDGE:
           sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
@@ -319,6 +383,9 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
   sp->bc_buffer = mkarr(meqn, buff_sz);
+
+  sp->integ_q = gkyl_dynvec_new(GKYL_DOUBLE, meqn);
+  sp->is_first_q_write_call = true;
 }
 
 // apply BCs to species
@@ -409,6 +476,8 @@ moment_species_release(const struct moment_species *sp)
     gkyl_fv_proj_release(sp->proj_app_accel);
 
   gkyl_array_release(sp->bc_buffer);
+
+  gkyl_dynvec_release(sp->integ_q);
 }
 
 /** moment_field functions */
@@ -442,6 +511,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         .limiter = limiter,
         .num_up_dirs = app->is_dir_skipped[d] ? 0 : 1,
         .update_dirs = { d },
+        .check_inv_domain = false,
         .cfl = app->cfl,
         .geom = app->geom,
       }
@@ -508,7 +578,12 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   fld->proj_app_current = 0;
   if (mom_fld->app_current_func)
     fld->proj_app_current = gkyl_fv_proj_new(&app->grid, 2, 3, mom_fld->app_current_func, fld->ctx);
+
+  
   fld->ext_em = mkarr(6, app->local_ext.volume);
+  fld->is_ext_em_static = mom_fld->is_ext_em_static;
+
+  fld->was_ext_em_computed = false;
   fld->proj_ext_em = 0;
   if (mom_fld->ext_em_func)
     fld->proj_ext_em = gkyl_fv_proj_new(&app->grid, 2, 6, mom_fld->ext_em_func, fld->ctx);
@@ -523,6 +598,9 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   fld->bc_buffer = mkarr(8, buff_sz);
 
   gkyl_wv_eqn_release(maxwell);
+
+  fld->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 6);
+  fld->is_first_energy_write_call = true;
 }
 
 // apply BCs to EM field
@@ -609,10 +687,12 @@ moment_field_release(const struct moment_field *fld)
   gkyl_array_release(fld->app_current);
   if (fld->proj_app_current)
     gkyl_fv_proj_release(fld->proj_app_current);
+  
   gkyl_array_release(fld->ext_em);
   if (fld->proj_ext_em)
     gkyl_fv_proj_release(fld->proj_ext_em);
 
+  gkyl_dynvec_release(fld->integ_energy);
   gkyl_array_release(fld->bc_buffer);
 }
 
@@ -627,7 +707,8 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   struct gkyl_moment_em_coupling_inp src_inp = {
     .grid = &app->grid,
     .nfluids = app->num_species,
-    .epsilon0 = app->field.epsilon0,
+    // if there is a field, need to update electric field too, otherwise just updating fluid
+    .epsilon0 = app->field.epsilon0 ? app->field.epsilon0 : 0.0, 
   };
 
   for (int i=0; i<app->num_species; ++i)
@@ -646,7 +727,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
 // the second step
 static 
 void
-moment_coupling_update(const gkyl_moment_app *app, struct moment_coupling *src,
+moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   int nstrang, double tcurr, double dt)
 {
   int sidx[] = { 0, app->ndim };
@@ -664,8 +745,16 @@ moment_coupling_update(const gkyl_moment_app *app, struct moment_coupling *src,
   if (app->field.proj_app_current)
     gkyl_fv_proj_advance(app->field.proj_app_current, tcurr, &app->local, app->field.app_current);
   
-  if (app->field.proj_ext_em)
-    gkyl_fv_proj_advance(app->field.proj_ext_em, tcurr, &app->local, app->field.ext_em);
+  if (app->field.proj_ext_em) {
+
+    if (!app->field.was_ext_em_computed)
+      gkyl_fv_proj_advance(app->field.proj_ext_em, tcurr, &app->local, app->field.ext_em);
+
+    if (app->field.is_ext_em_static)
+      app->field.was_ext_em_computed = true;
+    else
+      app->field.was_ext_em_computed = false;
+  }
 
   gkyl_moment_em_coupling_advance(src->slvr, dt, &app->local,
     fluids, app_accels,
@@ -690,6 +779,8 @@ moment_coupling_release(const struct moment_coupling *src)
 gkyl_moment_app*
 gkyl_moment_app_new(struct gkyl_moment *mom)
 {
+  disable_denorm_float();
+  
   struct gkyl_moment_app *app = gkyl_malloc(sizeof(gkyl_moment_app));
 
   int ndim = app->ndim = mom->ndim;
@@ -842,12 +933,57 @@ gkyl_moment_app_write_field(const gkyl_moment_app* app, double tm, int frame)
 {
   if (app->has_field != 1) return;
 
-  const char *fmt = "%s-%s_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, "field", frame);
-  char fileNm[sz+1]; // ensures no buffer overflow  
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, "field", frame);
-  
-  gkyl_grid_sub_array_write(&app->grid, &app->local, app->field.f[0], fileNm);
+  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
+  gkyl_grid_sub_array_write(&app->grid, &app->local, app->field.f[0], fileNm.str);
+  cstr_drop(&fileNm);
+
+  // write external EM field if it is present
+  if (app->field.ext_em) {
+    cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "ext_em_field", frame);
+    gkyl_grid_sub_array_write(&app->grid, &app->local, app->field.ext_em, fileNm.str);
+    cstr_drop(&fileNm);
+  }
+}
+
+void
+gkyl_moment_app_write_field_energy(gkyl_moment_app *app)
+{
+  // write out field energy
+  cstr fileNm = cstr_from_fmt("%s-field-energy.gkyl", app->name);
+
+  if (app->field.is_first_energy_write_call) {
+    // write to a new file (this ensure previous output is removed)
+    gkyl_dynvec_write(app->field.integ_energy, fileNm.str);
+    app->field.is_first_energy_write_call = false;
+  }
+  else {
+    // append to existing file
+    gkyl_dynvec_awrite(app->field.integ_energy, fileNm.str);
+  }
+  gkyl_dynvec_clear(app->field.integ_energy);
+
+  cstr_drop(&fileNm);
+}
+
+void
+gkyl_moment_app_write_integrated_mom(gkyl_moment_app *app)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    // write out diagnostic moments
+    cstr fileNm = cstr_from_fmt("%s-%s-%s.gkyl", app->name, app->species[i].name,
+      "imom");
+    
+    if (app->species[i].is_first_q_write_call) {
+      gkyl_dynvec_write(app->species[i].integ_q, fileNm.str);
+      app->species[i].is_first_q_write_call = false;
+    }
+    else {
+      gkyl_dynvec_awrite(app->species[i].integ_q, fileNm.str);
+    }
+    gkyl_dynvec_clear(app->species[i].integ_q);
+
+    cstr_drop(&fileNm);
+  }
 }
 
 void
@@ -1006,6 +1142,27 @@ gkyl_moment_update(gkyl_moment_app* app, double dt)
   return status;
 }
 
+void
+gkyl_moment_app_calc_field_energy(gkyl_moment_app* app, double tm)
+{
+  double energy[6] = { 0.0 };
+  calc_integ_quant(6, app->grid.cellVolume, app->field.f[0], app->geom,
+    app->local, integ_sq, energy);
+  gkyl_dynvec_append(app->field.integ_energy, tm, energy);
+}
+
+void
+gkyl_moment_app_calc_integrated_mom(gkyl_moment_app *app, double tm)
+{
+  for (int sidx=0; sidx<app->num_species; ++sidx) {
+    int meqn = app->species[sidx].num_equations;
+    double q_integ[meqn];
+    calc_integ_quant(meqn, app->grid.cellVolume, app->species[sidx].f[0], app->geom,
+      app->local, integ_unit, q_integ);
+    gkyl_dynvec_append(app->species[sidx].integ_q, tm, q_integ);
+  }
+}
+
 struct gkyl_moment_stat
 gkyl_moment_app_stat(gkyl_moment_app* app)
 {
@@ -1030,14 +1187,23 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
     fprintf(fp, "{\n");
 
     if (strftime(buff, sizeof buff, "%c", &curr_tm))
-      fprintf(fp, " \"date\" : \"%s\",\n", buff);
+      fprintf(fp, " date : %s\n", buff);
 
-    fprintf(fp, " \"nup\" : \"%ld\",\n", app->stat.nup);
-    fprintf(fp, " \"nfail\" : \"%ld\",\n", app->stat.nfail);
-    fprintf(fp, " \"total_tm\" : \"%lg\",\n", app->stat.total_tm);
-    fprintf(fp, " \"species_tm\" : \"%lg\",\n", app->stat.species_tm);
-    fprintf(fp, " \"field_tm\" : \"%lg\",\n", app->stat.field_tm);
-    fprintf(fp, " \"sources_tm\" : \"%lg\"\n", app->stat.sources_tm);
+    fprintf(fp, " nup : %ld,\n", app->stat.nup);
+    fprintf(fp, " nfail : %ld,\n", app->stat.nfail);
+    fprintf(fp, " total_tm : %lg,\n", app->stat.total_tm);
+    fprintf(fp, " species_tm : %lg,\n", app->stat.species_tm);
+    fprintf(fp, " field_tm : %lg,\n", app->stat.field_tm);
+    fprintf(fp, " sources_tm : %lg\n", app->stat.sources_tm);
+
+    for (int i=0; i<app->num_species; ++i) {
+      for (int d=0; d<app->ndim; ++d) {
+        struct gkyl_wave_prop_stats wvs = gkyl_wave_prop_stats(app->species[i].slvr[d]);
+        fprintf(fp, " %s_n_bad_advance_calls[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_advance_calls);
+        fprintf(fp, " %s_n_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_cells);
+        fprintf(fp, " %s_n_max_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_max_bad_cells);
+      }
+    }
   
     fprintf(fp, "}\n");
   }

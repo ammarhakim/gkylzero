@@ -2,6 +2,7 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_wv_maxwell.h>
+#include <stdbool.h>
 
 struct wv_maxwell {
   struct gkyl_wv_eqn eqn; // base object
@@ -71,7 +72,7 @@ rot_to_global(const double *tau1, const double *tau2, const double *norm,
 
 // Waves and speeds using Roe averaging
 static double
-wave(const struct gkyl_wv_eqn *eqn, 
+wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
   const struct wv_maxwell *maxwell = container_of(eqn, struct wv_maxwell, eqn);
@@ -138,7 +139,7 @@ wave(const struct gkyl_wv_eqn *eqn,
 }
 
 static void
-qfluct(const struct gkyl_wv_eqn *eqn, 
+qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *ql, const double *qr, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
@@ -155,6 +156,12 @@ qfluct(const struct gkyl_wv_eqn *eqn,
     amdq[i] = s0m*w0[i] + s1m*w1[i] + s2m*w2[i] + s3m*w3[i] + s4m*w4[i] + s5m*w5[i];
     apdq[i] = s0p*w0[i] + s1p*w1[i] + s2p*w2[i] + s3p*w3[i] + s4p*w4[i] + s5p*w5[i];
   }
+}
+
+static bool
+check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
+{
+  return true; // no negative states in Maxwell
 }
 
 static double
@@ -179,6 +186,7 @@ gkyl_wv_maxwell_new(double c, double e_fact, double b_fact)
   
   maxwell->eqn.waves_func = wave;
   maxwell->eqn.qfluct_func = qfluct;
+  maxwell->eqn.check_inv_func = check_inv;
   maxwell->eqn.max_speed_func = max_speed;
   maxwell->eqn.rotate_to_local_func = rot_to_local;
   maxwell->eqn.rotate_to_global_func = rot_to_global;

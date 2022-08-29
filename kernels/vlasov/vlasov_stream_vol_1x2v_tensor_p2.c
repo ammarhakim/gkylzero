@@ -28,5 +28,5 @@ GKYL_CU_DH double vlasov_stream_vol_1x2v_tensor_p2(const double *w, const double
   out[25] += 3.464101615137754*f[22]*w1Ddx0+0.8944271909999161*f[16]*dv1Ddx0; 
   out[26] += 7.745966692414834*f[25]*w1Ddx0+2.0*f[19]*dv1Ddx0; 
 
-  return fabs(w1Ddx0)+0.5*dv1Ddx0;
+  return 5.0*(fabs(w1Ddx0)+0.5*dv1Ddx0);
 } 

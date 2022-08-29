@@ -72,7 +72,7 @@ void gkyl_prim_lbo_cross_calc_release(gkyl_prim_lbo_cross_calc* calc);
 
  * @param calc Updater pointer.
  */
-struct gkyl_prim_lbo_type* gkyl_prim_lbo_cross_calc_get_prim(gkyl_prim_lbo_cross_calc* calc);
+const struct gkyl_prim_lbo_type* gkyl_prim_lbo_cross_calc_get_prim(gkyl_prim_lbo_cross_calc* calc);
 
 // "derived" class constructors
 gkyl_prim_lbo_cross_calc* 

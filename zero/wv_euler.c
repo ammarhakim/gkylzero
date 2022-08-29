@@ -1,4 +1,5 @@
 #include <math.h>
+#include <assert.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_moment_prim_euler.h>
@@ -69,7 +70,7 @@ rot_to_global(const double *tau1, const double *tau2, const double *norm,
 
 // Waves and speeds using Roe averaging
 static double
-wave_roe(const struct gkyl_wv_eqn *eqn, 
+wave_roe(const struct gkyl_wv_eqn *eqn,
   const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
   const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
@@ -134,7 +135,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
 }
 
 static void
-qfluct_roe(const struct gkyl_wv_eqn *eqn, 
+qfluct_roe(const struct gkyl_wv_eqn *eqn,
   const double *ql, const double *qr, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
@@ -146,6 +147,90 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn,
     amdq[i] = s0m*w0[i] + s1m*w1[i] + s2m*w2[i];
     apdq[i] = s0p*w0[i] + s1p*w1[i] + s2p*w2[i];
   }
+}
+
+// Waves and speeds using Lax fluxes
+static double
+wave_lax(const struct gkyl_wv_eqn *eqn,
+  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+{
+  const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
+  double gas_gamma = euler->gas_gamma;
+
+  double rhol = ql[0], rhor = qr[0];
+  double ul = ql[1]/ql[0], ur = qr[1]/qr[0];
+  double pl = gkyl_euler_pressure(gas_gamma, ql), pr = gkyl_euler_pressure(gas_gamma, qr);
+  double sl = fabs(ul) + sqrt(gas_gamma*pl/rhol), sr = fabs(ur) + sqrt(gas_gamma*pr/rhor);
+
+  double *wv = &waves[0]; // single wave
+  for (int i=0; i<5; ++i)  wv[i] = delta[i];
+
+  s[0] = 0.5*(sl+sr);
+  
+  return s[0];
+}
+
+static void
+qfluct_lax(const struct gkyl_wv_eqn *eqn,
+  const double *ql, const double *qr, const double *waves, const double *s,
+  double *amdq, double *apdq)
+{
+
+  const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
+  double gas_gamma = euler->gas_gamma;
+
+  double rhol = ql[0], rhor = qr[0];
+  double ul = ql[1]/ql[0], ur = qr[1]/qr[0];
+  double pl = gkyl_euler_pressure(gas_gamma, ql), pr = gkyl_euler_pressure(gas_gamma, qr);
+  double sl = fabs(ul) + sqrt(gas_gamma*pl/rhol), sr = fabs(ur) + sqrt(gas_gamma*pr/rhor);
+  double amax = fmax(sl, sr);
+
+  double fl[5], fr[5];
+  gkyl_euler_flux(gas_gamma, ql, fl);
+  gkyl_euler_flux(gas_gamma, qr, fr);
+
+  for (int i=0; i<5; ++i) {
+    amdq[i] = 0.5*(fr[i]-fl[i] - amax*(qr[i]-ql[i]));
+    apdq[i] = 0.5*(fr[i]-fl[i] + amax*(qr[i]-ql[i]));
+  }
+}
+
+static double
+wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX)
+    return wave_roe(eqn, delta, ql, qr, waves, s);
+  else
+    return wave_lax(eqn, delta, ql, qr, waves, s);
+
+  return 0.0; // can't happen
+}
+
+static void
+qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *ql, const double *qr, const double *waves, const double *s,
+  double *amdq, double *apdq)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX)
+    return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
+  else
+    return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
+}
+
+static bool
+check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
+{
+  const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
+  
+  if (q[0] < 0.0)
+    return false;
+
+  double pr = gkyl_euler_pressure(euler->gas_gamma, q);
+  if (pr < 0.0)
+    return false;
+
+  return true;
 }
 
 static double
@@ -164,12 +249,14 @@ gkyl_wv_euler_new(double gas_gamma)
   euler->eqn.num_equations = 5;
   euler->eqn.num_waves = 3;
   euler->gas_gamma = gas_gamma;
-  euler->eqn.waves_func = wave_roe;
-  euler->eqn.qfluct_func = qfluct_roe;
+  euler->eqn.waves_func = wave;
+  euler->eqn.qfluct_func = qfluct;
   euler->eqn.max_speed_func = max_speed;
 
   euler->eqn.rotate_to_local_func = rot_to_local;
   euler->eqn.rotate_to_global_func = rot_to_global;
+
+  euler->eqn.check_inv_func = check_inv;
 
   euler->eqn.wall_bc_func = euler_wall;
   euler->eqn.no_slip_bc_func = euler_no_slip;

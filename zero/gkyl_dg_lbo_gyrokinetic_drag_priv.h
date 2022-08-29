@@ -20,7 +20,7 @@ typedef void (*lbo_gyrokinetic_drag_boundary_surf_t)(const double *w, const doub
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below.
-static struct { int vdim[4]; } cv_index[] = {
+static struct { int vdim[3]; } cv_index[] = {
   {-1, -1, -1}, // 0x makes no sense
   {-1,  0,  1}, // 1x kernel indices
   {-1, -1,  2}, // 2x kernel indices
@@ -44,7 +44,7 @@ static const gkyl_dg_lbo_gyrokinetic_drag_vol_kern_list ser_vol_kernels[] = {
   // 2x kernels
   { NULL, lbo_gyrokinetic_drag_vol_2x2v_ser_p1, lbo_gyrokinetic_drag_vol_2x2v_ser_p2 }, // 2
   // 3x kernels
-  { NULL, NULL, NULL               }, // 3
+  { NULL, lbo_gyrokinetic_drag_vol_3x2v_ser_p1, lbo_gyrokinetic_drag_vol_3x2v_ser_p2 }, // 3
 };
 
 // Surface kernel list: vpar-direction
@@ -56,7 +56,7 @@ static const gkyl_dg_lbo_gyrokinetic_drag_surf_kern_list ser_surf_vpar_kernels[]
   // 2x kernels
   { NULL, lbo_gyrokinetic_drag_surfvpar_2x2v_ser_p1, lbo_gyrokinetic_drag_surfvpar_2x2v_ser_p2 }, // 2
   // 3x kernels
-  { NULL, NULL, NULL                   }, // 3
+  { NULL, lbo_gyrokinetic_drag_surfvpar_3x2v_ser_p1, lbo_gyrokinetic_drag_surfvpar_3x2v_ser_p2 }, // 3
 };
 
 // Surface kernel list: mu-direction
@@ -68,7 +68,7 @@ static const gkyl_dg_lbo_gyrokinetic_drag_surf_kern_list ser_surf_mu_kernels[] =
   // 2x kernels
   { NULL, lbo_gyrokinetic_drag_surfmu_2x2v_ser_p1, lbo_gyrokinetic_drag_surfmu_2x2v_ser_p2 }, // 2
   // 3x kernels
-  { NULL, NULL, NULL                   }, // 3
+  { NULL, lbo_gyrokinetic_drag_surfmu_3x2v_ser_p1, lbo_gyrokinetic_drag_surfmu_3x2v_ser_p2 }, // 3
 };
 
 // Boundary surface kernel (zero-flux BCs) list: vpar-direction
@@ -80,7 +80,7 @@ static const gkyl_dg_lbo_gyrokinetic_drag_boundary_surf_kern_list ser_boundary_s
   // 2x kernels
   { NULL, lbo_gyrokinetic_drag_boundary_surfvpar_2x2v_ser_p1, lbo_gyrokinetic_drag_boundary_surfvpar_2x2v_ser_p2 }, // 2
   // 3x kernels
-  { NULL, NULL, NULL                   }, // 3
+  { NULL, lbo_gyrokinetic_drag_boundary_surfvpar_3x2v_ser_p1, lbo_gyrokinetic_drag_boundary_surfvpar_3x2v_ser_p2 }, // 3
 };
 
 // Constant nu boundary surface kernel (zero-flux BCs) list: mu-direction
@@ -92,7 +92,7 @@ static const gkyl_dg_lbo_gyrokinetic_drag_boundary_surf_kern_list ser_boundary_s
   // 2x kernels
   { NULL, lbo_gyrokinetic_drag_boundary_surfmu_2x2v_ser_p1, lbo_gyrokinetic_drag_boundary_surfmu_2x2v_ser_p2 }, // 2
   // 3x kernels
-  { NULL, NULL, NULL                   }, // 3
+  { NULL, lbo_gyrokinetic_drag_boundary_surfmu_3x2v_ser_p1, lbo_gyrokinetic_drag_boundary_surfmu_3x2v_ser_p2 }, // 3
 };
 
 // "Choose Kernel" based on cdim, vdim and polyorder
@@ -166,7 +166,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
       (const double*) gkyl_array_cfetch(lbo_gyrokinetic_drag->auxfields.nuSum, cidx), 
       (const double*) gkyl_array_cfetch(lbo_gyrokinetic_drag->auxfields.nuUSum, cidx), 
       (const double*) gkyl_array_cfetch(lbo_gyrokinetic_drag->auxfields.nuVtSqSum, cidx),  
-      edge, qInEdge, qInSkin, qRhsOut);
+      edge, qInSkin, qInEdge, qRhsOut);
   }
 }
 

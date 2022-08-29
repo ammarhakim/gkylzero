@@ -19,10 +19,10 @@ typedef struct gkyl_mom_calc_bcorr gkyl_mom_calc_bcorr;
  * @param momt Moment type object for boundary correction
  */
 gkyl_mom_calc_bcorr* gkyl_mom_calc_bcorr_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_mom_type *momt, const char *space);
+  const struct gkyl_mom_type *momt);
 
 gkyl_mom_calc_bcorr* gkyl_mom_calc_bcorr_cu_dev_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_mom_type *momt, const char *space);
+  const struct gkyl_mom_type *momt);
 
 /**
  * Compute boundary correction moments.

@@ -212,11 +212,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       8, eval_accel, &s->accel_ctx);
   }
 
+  // set species source id
   s->source_id = s->info.source.source_id;
-  // setup constant source
-  if (s->source_id) {
-    vm_species_source_init(app, s, &s->src);
-  }
 
   // determine collision type to use in vlasov update
   s->collision_id = s->info.collisions.collision_id;
@@ -229,10 +226,6 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     }
     vm_species_lbo_init(app, s, &s->lbo, s->collides_with_fluid);
   }
-
-  // initialize boundary flux object
-  if (s->calc_bflux)
-    vm_species_bflux_init(app, s, &s->bflux);
 
   // setup mirror force from fluid species if present
   s->has_mirror_force = false;
@@ -330,23 +323,23 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
     if (s->lower_bc[d] == GKYL_SPECIES_COPY)
       bctype = GKYL_BC_COPY;
-    else if (s->lower_bc[d] == GKYL_SPECIES_REFLECT)
-      bctype = GKYL_BC_REFLECT;
     else if (s->lower_bc[d] == GKYL_SPECIES_ABSORB)
       bctype = GKYL_BC_ABSORB;
+    else if (s->lower_bc[d] == GKYL_SPECIES_REFLECT)
+      bctype = GKYL_BC_REFLECT;
   
     s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &s->local_ext, ghost, bctype,
-                                    app->basis_on_dev.basis, app->cdim, app->use_gpu);
+                                    app->basis_on_dev.basis, s->f->ncomp, app->cdim, app->use_gpu);
     // Upper BC updater. Copy BCs by default.
     if (s->upper_bc[d] == GKYL_SPECIES_COPY)
       bctype = GKYL_BC_COPY;
-    else if (s->upper_bc[d] == GKYL_SPECIES_REFLECT)
-      bctype = GKYL_BC_REFLECT;
     else if (s->upper_bc[d] == GKYL_SPECIES_ABSORB)
       bctype = GKYL_BC_ABSORB;
+    else if (s->upper_bc[d] == GKYL_SPECIES_REFLECT)
+      bctype = GKYL_BC_REFLECT;
     
     s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &s->local_ext, ghost, bctype,
-                                    app->basis_on_dev.basis, app->cdim, app->use_gpu);
+                                    app->basis_on_dev.basis, s->f->ncomp, app->cdim, app->use_gpu);
   }
 }
 
@@ -409,13 +402,13 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
     if (species->has_mirror_force) {
       // get n = J*M0*magB (since J = 1/B)
       gkyl_dg_mul_op_range(app->confBasis, 0, species->n, 0,
-        species->magB, 0, species->lbo.m0, app->local);
+        species->magB, 0, species->lbo.m0, &app->local);
       // get J*T_perp = J*p_perp/n
       gkyl_dg_div_op_range(species->Tperp_mem, app->confBasis, 0, species->Tperp, 0,
         fluidin[species->fluid_index], 0, species->n, app->local);
       // get mirror force = J*T_perp*grad(B)
       gkyl_dg_mul_op_range(app->confBasis, 0, species->mirror_force, 0,
-        species->gradB, 0, species->Tperp, app->local);
+        species->gradB, 0, species->Tperp, &app->local);
 
       gkyl_array_accumulate_range(species->qmem, -1.0, species->mirror_force, app->local);
     }
@@ -444,15 +437,6 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
 
   if (species->collision_id == GKYL_LBO_COLLISIONS)
     vm_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
-  
-  if (species->source_id)
-    vm_species_source_rhs(app, species, &species->src, fin, rhs);
-
-  // bflux calculation needs to be after source. The source uses bflux from the previous stage.
-  // There's also an order of operations issue since the source may use bflux from a different
-  // species, using the previous step insures all species bflux are updated before the source.
-  if (species->calc_bflux)
-    vm_species_bflux_rhs(app, species, &species->bflux, fin, rhs);
   
   app->stat.nspecies_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
@@ -641,8 +625,6 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   if (s->collision_id == GKYL_LBO_COLLISIONS)
     vm_species_lbo_release(app, &s->lbo);
 
-  if (s->calc_bflux)
-    vm_species_bflux_release(app, &s->bflux);
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
     gkyl_bc_basic_release(s->bc_lo[d]);

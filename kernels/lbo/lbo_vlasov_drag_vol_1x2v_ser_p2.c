@@ -46,6 +46,6 @@ GKYL_CU_DH double lbo_vlasov_drag_vol_1x2v_ser_p2(const double *w, const double 
   out[18] += 0.5477225575051661*(f[18]*alphaDrag[33]+f[12]*alphaDrag[27])+0.6123724356957944*(f[14]*alphaDrag[25]+f[18]*alphaDrag[23]+f[8]*alphaDrag[21]+f[12]*alphaDrag[20])+1.095445115010332*alphaDrag[11]*f[18]+1.224744871391589*(alphaDrag[2]*f[18]+alphaDrag[1]*f[17]+alphaDrag[4]*(f[14]+f[13])+f[5]*alphaDrag[11]+alphaDrag[7]*f[10])+1.369306393762915*(alphaDrag[0]*f[10]+alphaDrag[1]*f[6]+alphaDrag[2]*f[5]+f[3]*alphaDrag[4]); 
   out[19] += 1.095445115010332*f[19]*alphaDrag[33]+1.224744871391589*(f[4]*alphaDrag[33]+f[10]*alphaDrag[27])+(1.224744871391589*(f[16]+f[11])+1.369306393762915*f[2])*alphaDrag[25]+(1.224744871391589*f[19]+1.369306393762915*f[4])*alphaDrag[23]+1.224744871391589*f[17]*alphaDrag[21]+1.369306393762915*(f[6]*alphaDrag[21]+f[10]*alphaDrag[20])+0.5477225575051661*alphaDrag[11]*f[19]+0.6123724356957944*(alphaDrag[2]*f[19]+alphaDrag[4]*f[16])+0.5477225575051661*alphaDrag[7]*f[15]+0.6123724356957944*(alphaDrag[0]*f[15]+alphaDrag[1]*f[9]); 
 
-  return fabs(0.1767766952966368*alphaDrag[0]-0.1976423537605236*alphaDrag[7])+fabs(0.1767766952966368*alphaDrag[20]-0.1976423537605236*alphaDrag[27]); 
+  return fabs(0.8838834764831842*alphaDrag[0]-0.9882117688026182*alphaDrag[7])+fabs(0.8838834764831842*alphaDrag[20]-0.9882117688026182*alphaDrag[27]); 
 
 } 

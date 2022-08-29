@@ -65,7 +65,7 @@ main(int argc, char **argv)
     .num_periodic_dir = 1,
     .periodic_dirs = { 1 },
 
-    .cfl_frac = 0.9,
+    .cfl_frac = 1.0,
 
     .field = {
       .epsilon0 = 1.0, .mu0 = 1.0,
@@ -89,6 +89,7 @@ main(int argc, char **argv)
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
   gkyl_moment_app_write(app, tcurr, 0);
+  gkyl_moment_app_calc_field_energy(app, 0.0);
 
   // compute estimate of maximum stable time-step
   double dt = gkyl_moment_app_max_dt(app);
@@ -98,6 +99,8 @@ main(int argc, char **argv)
     printf("Taking time-step %ld at t = %g ...", step, tcurr);
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
+
+    gkyl_moment_app_calc_field_energy(app, tcurr);
     
     if (!status.success) {
       printf("** Update method failed! Aborting simulation ....\n");
@@ -110,6 +113,7 @@ main(int argc, char **argv)
   }
 
   gkyl_moment_app_write(app, tcurr, 1);
+  gkyl_moment_app_write_field_energy(app);
   gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
