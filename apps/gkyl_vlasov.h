@@ -48,10 +48,6 @@ struct gkyl_vlasov_source {
   void (*profile)(double t, const double *xn, double *aout, void *ctx);
 };
 
-struct bc_ext_ctx {
-  double gain;
-};
-
 // Parameters for fluid species advection
 struct gkyl_vlasov_fluid_advection {
   void *velocity_ctx; // context for applied advection function
@@ -92,7 +88,7 @@ struct gkyl_vlasov_species {
   struct gkyl_vlasov_source source;
 
   // parameters to include for BCs
-  struct bc_ext_ctx bc_ctx;
+  double *bc_external;
 
   // mirror force to include
   struct gkyl_vlasov_mirror_force mirror_force;

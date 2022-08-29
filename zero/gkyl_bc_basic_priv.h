@@ -41,7 +41,9 @@ struct dg_bc_ctx {
   int cdim; // config-space dimensions.
   int ncomp; // number of components within a cell.
   const struct gkyl_basis *basis; // basis function.
-  struct gkyl_bc_external *external_field; // pointer to external fields for some BCs.
+  double *external_field; // pointer to external field for some BCs.
+  long out_idx;
+  long in_idx;
 };
 
 GKYL_CU_D
@@ -79,11 +81,34 @@ species_gain_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
   int dir = mc->dir, cdim = mc->cdim;
-  double gain = ((struct gkyl_bc_external*) mc->external_field)->gain;
+  double *gain = mc->external_field;
 
   mc->basis->flip_odd_sign(dir, inp, out);
-  out[0] = gain*out[0];
+  out[0] = gain[0]*out[0];
   mc->basis->flip_odd_sign(dir+cdim, out, out);
+}
+
+GKYL_CU_D
+static void
+species_furman_pivi_bc(size_t nc, double *out, const double *inp, void *ctx)
+{
+  struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
+  int dir = mc->dir, cdim = mc->cdim;
+  double *reflect = mc->external_field;
+  long out_idx = mc->out_idx;
+  long in_idx = mc->in_idx;
+  double coeffs[8];
+  for(int a=0; a<8; a++){
+    coeffs[a] = 0.;
+    for(int b=0; b<8; b++){
+      coeffs[a] += inp[b]*reflect[b + 8*(a + 8*((out_idx - 1) + 32*(in_idx - 1)))];
+    }
+  }
+  mc->basis->flip_odd_sign(dir, coeffs, coeffs);
+  mc->basis->flip_odd_sign(dir+cdim, coeffs, coeffs);
+  for(int a=0; a<8; a++){
+    out[a] += coeffs[a];
+  }
 }
 
 enum { M_EX, M_EY, M_EZ, M_BX, M_BY, M_BZ }; // components of EM field

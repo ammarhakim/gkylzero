@@ -7,7 +7,7 @@
 // i.e., the array_copy_func applied to expansion coefficients in ghost cell.
 struct gkyl_array_copy_func*
 gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bctype,
-  const struct gkyl_basis *basis, int ncomp, bool use_gpu, void *bc_params)
+  const struct gkyl_basis *basis, int ncomp, bool use_gpu, double *bc_params)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
@@ -19,7 +19,7 @@ gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bc
   ctx->dir = dir;
   ctx->cdim = cdim;
   ctx->ncomp = ncomp;
-  ctx->external_field = gkyl_bc_external_new(bc_params, bctype, use_gpu);
+  ctx->external_field = bc_params;
 
   struct gkyl_array_copy_func *fout = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
   switch (bctype) {
@@ -37,6 +37,10 @@ gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bc
 
     case GKYL_BC_GAIN:
       fout->func = species_gain_bc;
+      break;
+
+    case GKYL_BC_FURMAN_PIVI:
+      fout->func = species_furman_pivi_bc;
       break;
       
     // Perfect electrical conductor
@@ -60,7 +64,7 @@ gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bc
 struct gkyl_bc_basic*
 gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range *local_range_ext,
   const int *num_ghosts, enum gkyl_bc_basic_type bctype, const struct gkyl_basis *basis,
-  int num_comp, int cdim, bool use_gpu, void *bc_params)
+  int num_comp, int cdim, bool use_gpu, double *bc_params)
 {
 
   // Allocate space for new updater.
@@ -74,7 +78,7 @@ gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range *loc
 
   // Create the skin/ghost ranges.
   gkyl_skin_ghost_ranges(&up->skin_r, &up->ghost_r, dir, edge,
-                         local_range_ext, num_ghosts);
+    local_range_ext, num_ghosts);
 
   // Create function applied to array contents (DG coefficients) when copying
   // to/from buffer.
@@ -92,13 +96,18 @@ gkyl_bc_basic_advance(const struct gkyl_bc_basic *up, struct gkyl_array *buff_ar
     case GKYL_BC_ABSORB:
     case GKYL_BC_MAXWELL_PEC:
       gkyl_array_copy_to_buffer_fn(buff_arr->data, f_arr,
-                                   up->skin_r, up->array_copy_func->on_dev);
+        up->skin_r, up->array_copy_func->on_dev);
       break;
 
     case GKYL_BC_REFLECT:
     case GKYL_BC_GAIN:
       gkyl_array_flip_copy_to_buffer_fn(buff_arr->data, f_arr, up->dir+up->cdim,
-                                        up->skin_r, up->array_copy_func->on_dev);
+        up->skin_r, up->array_copy_func->on_dev);
+      break;
+
+    case GKYL_BC_FURMAN_PIVI:
+      gkyl_bc_external_furman_pivi_advance(buff_arr->data, f_arr, up->dir+up->cdim,
+        up->skin_r, up->array_copy_func->on_dev);
       break;
   }
   // 2) Copy from buffer to ghost.
@@ -112,7 +121,6 @@ void gkyl_bc_basic_release(struct gkyl_bc_basic *up)
     gkyl_cu_free(up->array_copy_func->ctx_on_dev);
     gkyl_cu_free(up->array_copy_func->on_dev);
   }
-  gkyl_bc_external_release(((struct dg_bc_ctx*) up->array_copy_func->ctx)->external_field);
   gkyl_free(up->array_copy_func->ctx);
   gkyl_free(up->array_copy_func);
   // Release updater memory.

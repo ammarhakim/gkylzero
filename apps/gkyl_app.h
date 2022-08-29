@@ -18,6 +18,7 @@ enum gkyl_species_bc_type {
   GKYL_SPECIES_WEDGE, // specialized "wedge" BCs for RZ-theta
   GKYL_SPECIES_FUNC, // Function boundary conditions
   GKYL_SPECIES_GAIN, // constant gain
+  GKYL_SPECIES_FURMAN_PIVI, // Furman & Pivi BC
 };
 
 // Boundary conditions on fluids

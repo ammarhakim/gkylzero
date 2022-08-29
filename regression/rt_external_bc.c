@@ -79,8 +79,6 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[6] = 0.0; fout[7] = 0.0;
 }
 
-struct bc_ext_ctx bc_ctx = { .gain = 0.90 };
-
 struct sheath_ctx
 create_ctx(void)
 {
@@ -108,6 +106,9 @@ main(int argc, char **argv)
   }
   struct sheath_ctx ctx = create_ctx(); // context for init functions
 
+  double *gain = malloc(sizeof(double));
+  gain[0] = 1.0;
+  
   // electrons
   struct gkyl_vlasov_species elc = {
     .name = "elc",
@@ -115,7 +116,7 @@ main(int argc, char **argv)
     .lower = { -6.0 * ctx.vte},
     .upper = { 6.0 * ctx.vte}, 
     .cells = { 64 },
-    .bc_ctx = bc_ctx,
+    .bc_external = gain,
 
     .ctx = &ctx,
     .init = evalDistFuncElc,
@@ -157,7 +158,7 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "emission_1v",
+    .name = "external_bc",
 
     .cdim = 1, .vdim = 1,
     .lower = { -ctx.Lx },
@@ -230,6 +231,7 @@ main(int argc, char **argv)
   printf("Field RHS calc took %g secs\n", stat.field_rhs_tm);
   printf("Current evaluation and accumulate took %g secs\n", stat.current_tm);
   printf("Updates took %g secs\n", stat.total_tm);
+  free(gain);
   
   return 0;
 }
