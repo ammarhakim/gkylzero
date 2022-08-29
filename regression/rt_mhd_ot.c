@@ -107,6 +107,7 @@ main(int argc, char **argv)
 
     .num_periodic_dir = 2,
     .periodic_dirs = { 0, 1 },
+    .cfl_frac = 0.6,
 
     .num_species = 1,
     .species = { fluid },
