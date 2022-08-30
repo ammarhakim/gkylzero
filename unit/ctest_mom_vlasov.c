@@ -112,7 +112,12 @@ test_1x1v_p1()
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  if (poly_order > 1) {
+    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  } else if (poly_order == 1) {
+    /* Force hybrid basis (p=2 in velocity space). */
+    gkyl_cart_modal_hybrid(&basis, cdim, vdim);
+  }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 1 };
@@ -214,7 +219,7 @@ test_1x1v_p1()
   //int sz = snprintf(0, 0, fmt, name, speciesName, momName, frame);
   //char fileNm[sz+1]; // ensures no buffer overflow
   //snprintf(fileNm, sizeof fileNm, fmt, name, speciesName, momName, frame);
-  //gkyl_grid_sub_array_write(&confGrid, &confLocal, m0, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, distf, "ctest_mom_vlasov_distf_0.gkyl");
 
   // release memory for moment data object
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
@@ -250,7 +255,12 @@ test_1x2v_p1()
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  if (poly_order > 1) {
+    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  } else if (poly_order == 1) {
+    /* Force hybrid basis (p=2 in velocity space). */
+    gkyl_cart_modal_hybrid(&basis, cdim, vdim);
+  }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 0 };
@@ -352,7 +362,12 @@ test_2x2v_p1()
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  if (poly_order > 1) {
+    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  } else if (poly_order == 1) {
+    /* Force hybrid basis (p=2 in velocity space). */
+    gkyl_cart_modal_hybrid(&basis, cdim, vdim);
+  }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 1, 1 };
@@ -457,7 +472,12 @@ test_big_2x2v_p2()
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  if (poly_order > 1) {
+    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  } else if (poly_order == 1) {
+    /* Force hybrid basis (p=2 in velocity space). */
+    gkyl_cart_modal_hybrid(&basis, cdim, vdim);
+  }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 1, 1 };
@@ -563,7 +583,12 @@ test_2x3v_p1()
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  if (poly_order > 1) {
+    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  } else if (poly_order == 1) {
+    /* Force hybrid basis (p=2 in velocity space). */
+    gkyl_cart_modal_hybrid(&basis, cdim, vdim);
+  }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 1, 1 };
@@ -687,7 +712,12 @@ test_1x1v_p1_cu()
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  if (poly_order > 1) {
+    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  } else if (poly_order == 1) {
+    /* Force hybrid basis (p=2 in velocity space). */
+    gkyl_cart_modal_hybrid(&basis, cdim, vdim);
+  }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 0 };
@@ -807,7 +837,12 @@ test_1x2v_p1_cu()
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  if (poly_order > 1) {
+    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  } else if (poly_order == 1) {
+    /* Force hybrid basis (p=2 in velocity space). */
+    gkyl_cart_modal_hybrid(&basis, cdim, vdim);
+  }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 0 };
@@ -921,7 +956,12 @@ test_2x2v_p1_cu()
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  if (poly_order > 1) {
+    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  } else if (poly_order == 1) {
+    /* Force hybrid basis (p=2 in velocity space). */
+    gkyl_cart_modal_hybrid(&basis, cdim, vdim);
+  }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 1, 1 };
@@ -1038,7 +1078,12 @@ test_2x3v_p1_cu()
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  if (poly_order > 1) {
+    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  } else if (poly_order == 1) {
+    /* Force hybrid basis (p=2 in velocity space). */
+    gkyl_cart_modal_hybrid(&basis, cdim, vdim);
+  }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 1, 1 };
@@ -1155,7 +1200,12 @@ test_big_2x2v_p2_cu()
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  if (poly_order > 1) {
+    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  } else if (poly_order == 1) {
+    /* Force hybrid basis (p=2 in velocity space). */
+    gkyl_cart_modal_hybrid(&basis, cdim, vdim);
+  }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 1, 1 };
