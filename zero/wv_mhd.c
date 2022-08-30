@@ -130,8 +130,18 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   //////////////////////////////////////////////////////////////////////////////
   // STEP 3: COMPUTE CHARACTERASTIC WAVE SPEEDS AND OTHER USEFUL QUANTITIES   //
   //////////////////////////////////////////////////////////////////////////////
-  // CG97 eq. 4.12
-  double X = (sq(dQ[BY]) + sq(dQ[BZ])) / (2*sq(srrhol+srrhor));
+#if true
+  // CG97 eq. 4.12, including jump in BX seems to give correct jump in pressure
+  // according to the equation bewteen 4.15 and 4.16
+  double X = (sq(dQ[BX]) + sq(dQ[BY]) + sq(dQ[BZ])) / (2*sq(srrhol+srrhor));
+#else
+  // CG97 eq. 4.15 or 4.11
+  double BdB = Bx*dQ[BX] + By*dQ[BY] + Bz*dQ[BZ];
+  double dB2l = sq(ql[BX]) + sq(ql[BY]) + sq(ql[BZ]);
+  double dB2r = sq(qr[BX]) + sq(qr[BY]) + sq(qr[BZ]);
+  double dB2 = dB2r - dB2l;
+  double X = (0.5*dB2 - BdB) / dQ[DN];
+#endif
 
   // CG97 eq 4.17, wave speeds
   double ca2 = Bx*Bx/rho; // for alfven speed due to normal B field
@@ -185,9 +195,15 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   double du = ur - ul;
   double dv = vr - vl;
   double dw = wr - wl;
-  double dp = pr - pl;
   double dBy = dQ[BY];
   double dBz = dQ[BZ];
+#if true
+  double dp = pr - pl;
+#else // CG97 sec 4.3 (bewteen 4.15 and 4.16); equal to true dp if X is correct
+  double vdRhoV = u*dQ[MX] + v*dQ[MY] + w*dQ[MZ];
+  double BdB = Bx*dQ[BX] + By*dBy + Bz*dBz;
+  double dp = (gamma-1)*((0.5*v2 - X)*drho - vdRhoV + dQ[ER] - BdB);
+#endif
 
   const int meqns = eqn->num_equations;
   const int mwaves = eqn->num_waves;
