@@ -24,12 +24,10 @@ GKYL_CU_D
 static const gkyl_prim_lbo_vlasov_pkpm_self_kern_list ser_self_prim_kernels[] = {
   // 1x kernels
   { NULL, NULL, vlasov_pkpm_self_prim_moments_1x1v_ser_p2 }, // 0
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL },
-  // // 2x kernels
-  // { NULL, NULL, vlasov_pkpm_self_prim_moments_2x1v_ser_p2 }, // 1
-  // // 3x kernels
-  // { NULL, NULL, vlasov_pkpm_self_prim_moments_3x1v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, NULL, vlasov_pkpm_self_prim_moments_2x1v_ser_p2 }, // 1
+  // 3x kernels
+  { NULL, NULL, vlasov_pkpm_self_prim_moments_3x1v_ser_p2 }, // 2
 };
 
 struct prim_lbo_type_vlasov_pkpm {

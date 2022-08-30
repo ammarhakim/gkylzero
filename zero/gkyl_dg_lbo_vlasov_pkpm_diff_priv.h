@@ -28,12 +28,10 @@ GKYL_CU_D
 static const gkyl_dg_lbo_vlasov_pkpm_diff_vol_kern_list ser_vol_kernels[] = {
   // 1x kernels
   { NULL, NULL, lbo_vlasov_pkpm_diff_vol_1x1v_ser_p2 }, // 0
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL },
-  // // 2x kernels
-  // { NULL, lbo_vlasov_pkpm_diff_vol_2x1v_ser_p1, lbo_vlasov_pkpm_diff_vol_2x1v_ser_p2 }, // 1
-  // // 3x kernels
-  // { NULL, lbo_vlasov_pkpm_diff_vol_3x1v_ser_p1, lbo_vlasov_pkpm_diff_vol_3x1v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, NULL, lbo_vlasov_pkpm_diff_vol_2x1v_ser_p2 }, // 1
+  // 3x kernels
+  { NULL, NULL, lbo_vlasov_pkpm_diff_vol_3x1v_ser_p2 }, // 2
 };
 
 // Constant nu surface kernel list: vpar-direction
@@ -41,12 +39,10 @@ GKYL_CU_D
 static const gkyl_dg_lbo_vlasov_pkpm_diff_surf_kern_list ser_surf_vpar_kernels[] = {
   // 1x kernels
   { NULL, NULL, lbo_vlasov_pkpm_diff_surfvpar_1x1v_ser_p2 }, // 0
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL },
-  // // 2x kernels
-  // { NULL, lbo_vlasov_pkpm_diff_surfvpar_2x1v_ser_p1, lbo_vlasov_pkpm_diff_surfvpar_2x1v_ser_p2 }, // 1
-  // // 3x kernels
-  // { NULL, lbo_vlasov_pkpm_diff_surfvpar_3x1v_ser_p1, lbo_vlasov_pkpm_diff_surfvpar_3x1v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, NULL, lbo_vlasov_pkpm_diff_surfvpar_2x1v_ser_p2 }, // 1
+  // 3x kernels
+  { NULL, NULL, lbo_vlasov_pkpm_diff_surfvpar_3x1v_ser_p2 }, // 2
 };
 
 // Constant nu boundary surface kernel (zero-flux BCs) list: vpar-direction
@@ -54,12 +50,10 @@ GKYL_CU_D
 static const gkyl_dg_lbo_vlasov_pkpm_diff_boundary_surf_kern_list ser_boundary_surf_vpar_kernels[] = {
   // 1x kernels
   { NULL, NULL, lbo_vlasov_pkpm_diff_boundary_surfvpar_1x1v_ser_p2 }, // 0
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL },
-  // // 2x kernels
-  // { NULL, lbo_vlasov_pkpm_diff_boundary_surfvpar_2x1v_ser_p1, lbo_vlasov_pkpm_diff_boundary_surfvpar_2x1v_ser_p2 }, // 1
-  // // 3x kernels
-  // { NULL, lbo_vlasov_pkpm_diff_boundary_surfvpar_3x1v_ser_p1, lbo_vlasov_pkpm_diff_boundary_surfvpar_3x1v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, NULL, lbo_vlasov_pkpm_diff_boundary_surfvpar_2x1v_ser_p2 }, // 1
+  // 3x kernels
+  { NULL, NULL, lbo_vlasov_pkpm_diff_boundary_surfvpar_3x1v_ser_p2 }, // 2
 };
 
 struct dg_lbo_vlasov_pkpm_diff {

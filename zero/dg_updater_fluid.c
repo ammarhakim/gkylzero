@@ -7,8 +7,8 @@
 #include <gkyl_dg_eqn.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_euler.h>
+#include <gkyl_dg_euler_iso.h>
 #include <gkyl_dg_euler_pkpm.h>
-#include <gkyl_dg_isoeuler.h>
 #include <gkyl_dg_updater_fluid.h>
 #include <gkyl_dg_updater_fluid_priv.h>
 #include <gkyl_hyper_dg.h>
@@ -34,7 +34,7 @@ gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid,
   else if (eqn_id == GKYL_EQN_EULER)
     up->eqn_fluid = gkyl_dg_euler_new(cbasis, conf_range, param, use_gpu);
   else if (eqn_id == GKYL_EQN_ISO_EULER)
-    up->eqn_fluid = gkyl_dg_isoeuler_new(cbasis, conf_range, param, use_gpu);
+    up->eqn_fluid = gkyl_dg_euler_iso_new(cbasis, conf_range, param, use_gpu);
 
   int cdim = cbasis->ndim;
   int up_dirs[GKYL_MAX_DIM], zero_flux_flags[GKYL_MAX_DIM];
@@ -75,8 +75,8 @@ gkyl_dg_updater_fluid_advance(gkyl_dg_updater_fluid *fluid,
       (struct gkyl_dg_euler_auxfields) { .u_i = u_i, .p_ij = p_ij });
   }
   else if (eqn_id == GKYL_EQN_ISO_EULER) {
-    gkyl_isoeuler_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_isoeuler_auxfields) { .u_i = u_i });
+    gkyl_euler_iso_set_auxfields(fluid->eqn_fluid,
+      (struct gkyl_dg_euler_iso_auxfields) { .u_i = u_i });
   }
 
   struct timespec wst = gkyl_wall_clock();

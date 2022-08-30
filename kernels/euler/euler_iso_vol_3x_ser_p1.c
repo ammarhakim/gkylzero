@@ -1,10 +1,11 @@
-#include <gkyl_isoeuler_kernels.h> 
-GKYL_CU_DH double isoeuler_vol_3x_ser_p1(const double *w, const double *dxv, const double vth, const double *uvar, const double *statevec, double* GKYL_RESTRICT out) 
+#include <gkyl_euler_kernels.h> 
+GKYL_CU_DH double euler_iso_vol_3x_ser_p1(const double *w, const double *dxv, const double vth, const double *uvar, const double *statevec, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]: Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
+  // vth: Thermal velocity.
+  // uvar: [ux, uy, uz], Fluid flow.
   // statevec: [rho, rho ux, rho uy, rho uz].
-  // uvar: [ux, uy, uz].
   // out: Incremented output.
 
   const double *rho = &statevec[0]; 
@@ -22,11 +23,11 @@ GKYL_CU_DH double isoeuler_vol_3x_ser_p1(const double *w, const double *dxv, con
   double dx11 = 2./dxv[1]; 
   double dx12 = 2./dxv[2]; 
 
+  double cflFreq_mid = 0.0; 
   double vthsq = vth*vth; 
-  double alpha_mid = 0.0; 
-  alpha_mid += 0.5*dx10*(fabs(0.3535533905932737*uvar0[0])+sqrt(vthsq)); 
-  alpha_mid += 0.5*dx11*(fabs(0.3535533905932737*uvar1[0])+sqrt(vthsq)); 
-  alpha_mid += 0.5*dx12*(fabs(0.3535533905932737*uvar2[0])+sqrt(vthsq)); 
+  cflFreq_mid += 0.5*3.0*dx10*(fabs(0.3535533905932737*uvar0[0])+vth); 
+  cflFreq_mid += 0.5*3.0*dx11*(fabs(0.3535533905932737*uvar1[0])+vth); 
+  cflFreq_mid += 0.5*3.0*dx12*(fabs(0.3535533905932737*uvar2[0])+vth); 
 
   outrho[1] += 0.6123724356957944*rho[7]*rhou0[7]*dx10+0.6123724356957944*rho[6]*rhou0[6]*dx10+0.6123724356957944*rho[5]*rhou0[5]*dx10+0.6123724356957944*rho[4]*rhou0[4]*dx10+0.6123724356957944*rho[3]*rhou0[3]*dx10+0.6123724356957944*rho[2]*rhou0[2]*dx10+0.6123724356957944*rho[1]*rhou0[1]*dx10+0.6123724356957944*rho[0]*rhou0[0]*dx10; 
   outrho[2] += 0.6123724356957944*rho[7]*rhou1[7]*dx11+0.6123724356957944*rho[6]*rhou1[6]*dx11+0.6123724356957944*rho[5]*rhou1[5]*dx11+0.6123724356957944*rho[4]*rhou1[4]*dx11+0.6123724356957944*rho[3]*rhou1[3]*dx11+0.6123724356957944*rho[2]*rhou1[2]*dx11+0.6123724356957944*rho[1]*rhou1[1]*dx11+0.6123724356957944*rho[0]*rhou1[0]*dx11; 
@@ -60,5 +61,5 @@ GKYL_CU_DH double isoeuler_vol_3x_ser_p1(const double *w, const double *dxv, con
   outrhou2[6] += 3.0*rho[6]*dx12*vthsq+0.6123724356957944*rhou2[5]*uvar2[7]*dx12+0.6123724356957944*uvar2[5]*rhou2[7]*dx12+0.6123724356957944*rhou2[3]*uvar2[6]*dx12+0.6123724356957944*uvar2[3]*rhou2[6]*dx12+0.6123724356957944*rhou2[1]*uvar2[4]*dx12+0.6123724356957944*uvar2[1]*rhou2[4]*dx12+0.6123724356957944*rhou2[0]*uvar2[2]*dx12+0.6123724356957944*uvar2[0]*rhou2[2]*dx12+0.6123724356957944*rhou2[4]*uvar1[7]*dx11+0.6123724356957944*uvar1[4]*rhou2[7]*dx11+0.6123724356957944*rhou2[2]*uvar1[6]*dx11+0.6123724356957944*uvar1[2]*rhou2[6]*dx11+0.6123724356957944*rhou2[1]*uvar1[5]*dx11+0.6123724356957944*uvar1[1]*rhou2[5]*dx11+0.6123724356957944*rhou2[0]*uvar1[3]*dx11+0.6123724356957944*uvar1[0]*rhou2[3]*dx11; 
   outrhou2[7] += 3.0*rho[7]*dx12*vthsq+0.6123724356957944*rhou2[3]*uvar2[7]*dx12+0.6123724356957944*uvar2[3]*rhou2[7]*dx12+0.6123724356957944*rhou2[5]*uvar2[6]*dx12+0.6123724356957944*uvar2[5]*rhou2[6]*dx12+0.6123724356957944*rhou2[0]*uvar2[4]*dx12+0.6123724356957944*uvar2[0]*rhou2[4]*dx12+0.6123724356957944*rhou2[1]*uvar2[2]*dx12+0.6123724356957944*uvar2[1]*rhou2[2]*dx12+0.6123724356957944*rhou2[2]*uvar1[7]*dx11+0.6123724356957944*uvar1[2]*rhou2[7]*dx11+0.6123724356957944*rhou2[4]*uvar1[6]*dx11+0.6123724356957944*uvar1[4]*rhou2[6]*dx11+0.6123724356957944*rhou2[0]*uvar1[5]*dx11+0.6123724356957944*uvar1[0]*rhou2[5]*dx11+0.6123724356957944*rhou2[1]*uvar1[3]*dx11+0.6123724356957944*uvar1[1]*rhou2[3]*dx11+0.6123724356957944*rhou2[1]*uvar0[7]*dx10+0.6123724356957944*uvar0[1]*rhou2[7]*dx10+0.6123724356957944*rhou2[0]*uvar0[6]*dx10+0.6123724356957944*uvar0[0]*rhou2[6]*dx10+0.6123724356957944*rhou2[4]*uvar0[5]*dx10+0.6123724356957944*uvar0[4]*rhou2[5]*dx10+0.6123724356957944*rhou2[2]*uvar0[3]*dx10+0.6123724356957944*uvar0[2]*rhou2[3]*dx10; 
 
-  return alpha_mid; 
+  return cflFreq_mid; 
 } 

@@ -35,8 +35,8 @@ GKYL_CU_DH double euler_pkpm_vol_1x_ser_p1(const double *w, const double *dxv, c
   double *outrhou2 = &out[4]; 
   double *outenergy = &out[6]; 
 
-  double alpha_mid = 0.0; 
-  alpha_mid += 0.5*dx10*(fabs(0.7071067811865475*ux[0])); 
+  double cflFreq_mid = 0.0; 
+  cflFreq_mid += 0.5*3.0*dx10*(fabs(0.7071067811865475*ux[0])); 
 
   outrhou0[1] += 1.224744871391589*rhou0[1]*ux[1]*dx10+1.224744871391589*rhou0[0]*ux[0]*dx10+1.732050807568877*Pxx[0]*dx10; 
 
@@ -46,5 +46,5 @@ GKYL_CU_DH double euler_pkpm_vol_1x_ser_p1(const double *w, const double *dxv, c
 
   outenergy[1] += 1.224744871391589*Pxz[1]*uz[1]*dx10+1.224744871391589*Pxy[1]*uy[1]*dx10+1.224744871391589*energy[1]*ux[1]*dx10+1.224744871391589*Pxx[1]*ux[1]*dx10+1.224744871391589*Pxz[0]*uz[0]*dx10+1.224744871391589*Pxy[0]*uy[0]*dx10+1.224744871391589*energy[0]*ux[0]*dx10+1.224744871391589*Pxx[0]*ux[0]*dx10+1.732050807568877*qx[0]*dx10; 
 
-  return alpha_mid; 
+  return cflFreq_mid; 
 } 

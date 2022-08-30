@@ -93,12 +93,10 @@ GKYL_CU_D
 static const gkyl_mom_bcorr_lbo_vlasov_pkpm_kern_list ser_mom_bcorr_lbo_vlasov_pkpm_kernels[] = {
   // 1x kernels
   { NULL, NULL, kernel_mom_bcorr_lbo_vlasov_pkpm_1x1v_ser_p2 }, // 0
-  { NULL, NULL, NULL },
-  { NULL, NULL, NULL },
-  // // 2x kernels
-  // { NULL, NULL, kernel_mom_bcorr_lbo_vlasov_pkpm_2x1v_ser_p2 }, // 1
-  // // 3x kernels
-  // { NULL, NULL, kernel_mom_bcorr_lbo_vlasov_pkpm_3x1v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, NULL, kernel_mom_bcorr_lbo_vlasov_pkpm_2x1v_ser_p2 }, // 1
+  // 3x kernels
+  { NULL, NULL, kernel_mom_bcorr_lbo_vlasov_pkpm_3x1v_ser_p2 }, // 2
 };
 
 /**

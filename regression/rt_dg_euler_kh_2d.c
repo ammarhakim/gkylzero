@@ -74,7 +74,7 @@ main(int argc, char **argv)
     .lower = { -0.5, -0.5 },
     .upper = { 0.5, 0.5 }, 
     .cells = { NX, NY },
-    .poly_order = 1,
+    .poly_order = 2,
     .basis_type = app_args.basis_type,
     .cfl_frac = 1.0,
 

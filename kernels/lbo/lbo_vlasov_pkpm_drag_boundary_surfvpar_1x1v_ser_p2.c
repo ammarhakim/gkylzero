@@ -14,9 +14,9 @@ GKYL_CU_DH void lbo_vlasov_pkpm_drag_boundary_surfvpar_1x1v_ser_p2(const double 
 
   if (edge == -1) { 
 
-  alphaDrSurf[0] = 0.5*nu[0]*(2.0*wvpar+dvpar); 
-  alphaDrSurf[1] = 0.5*nu[1]*(2.0*wvpar+dvpar); 
-  alphaDrSurf[2] = 0.5*nu[2]*(2.0*wvpar+dvpar); 
+  alphaDrSurf[0] = nu[0]*wvpar+0.5*nu[0]*dvpar; 
+  alphaDrSurf[1] = nu[1]*wvpar+0.5*nu[1]*dvpar; 
+  alphaDrSurf[2] = nu[2]*wvpar+0.5*nu[2]*dvpar; 
 
   Ghat[0] = 1.118033988749895*alphaDrSurf[1]*fSkin[7]+0.8660254037844387*alphaDrSurf[2]*fSkin[6]+1.118033988749895*alphaDrSurf[0]*fSkin[5]+0.5*alphaDrSurf[2]*fSkin[4]+0.8660254037844386*alphaDrSurf[1]*fSkin[3]+0.8660254037844386*alphaDrSurf[0]*fSkin[2]+0.5*alphaDrSurf[1]*fSkin[1]+0.5*alphaDrSurf[0]*fSkin[0]; 
   Ghat[1] = 1.0*alphaDrSurf[2]*fSkin[7]+1.118033988749895*alphaDrSurf[0]*fSkin[7]+0.7745966692414834*alphaDrSurf[1]*fSkin[6]+1.118033988749895*alphaDrSurf[1]*fSkin[5]+0.4472135954999579*alphaDrSurf[1]*fSkin[4]+0.7745966692414833*alphaDrSurf[2]*fSkin[3]+0.8660254037844386*alphaDrSurf[0]*fSkin[3]+0.8660254037844386*alphaDrSurf[1]*fSkin[2]+0.4472135954999579*fSkin[1]*alphaDrSurf[2]+0.5*alphaDrSurf[0]*fSkin[1]+0.5*fSkin[0]*alphaDrSurf[1]; 
@@ -33,9 +33,9 @@ GKYL_CU_DH void lbo_vlasov_pkpm_drag_boundary_surfvpar_1x1v_ser_p2(const double 
 
   } else { 
 
-  alphaDrSurf[0] = 0.5*nu[0]*(2.0*wvpar-1.0*dvpar); 
-  alphaDrSurf[1] = 0.5*nu[1]*(2.0*wvpar-1.0*dvpar); 
-  alphaDrSurf[2] = 0.5*nu[2]*(2.0*wvpar-1.0*dvpar); 
+  alphaDrSurf[0] = nu[0]*wvpar-0.5*nu[0]*dvpar; 
+  alphaDrSurf[1] = nu[1]*wvpar-0.5*nu[1]*dvpar; 
+  alphaDrSurf[2] = nu[2]*wvpar-0.5*nu[2]*dvpar; 
 
   Ghat[0] = 1.118033988749895*alphaDrSurf[1]*fSkin[7]-0.8660254037844387*alphaDrSurf[2]*fSkin[6]+1.118033988749895*alphaDrSurf[0]*fSkin[5]+0.5*alphaDrSurf[2]*fSkin[4]-0.8660254037844386*alphaDrSurf[1]*fSkin[3]-0.8660254037844386*alphaDrSurf[0]*fSkin[2]+0.5*alphaDrSurf[1]*fSkin[1]+0.5*alphaDrSurf[0]*fSkin[0]; 
   Ghat[1] = 1.0*alphaDrSurf[2]*fSkin[7]+1.118033988749895*alphaDrSurf[0]*fSkin[7]-0.7745966692414834*alphaDrSurf[1]*fSkin[6]+1.118033988749895*alphaDrSurf[1]*fSkin[5]+0.4472135954999579*alphaDrSurf[1]*fSkin[4]-0.7745966692414833*alphaDrSurf[2]*fSkin[3]-0.8660254037844386*alphaDrSurf[0]*fSkin[3]-0.8660254037844386*alphaDrSurf[1]*fSkin[2]+0.4472135954999579*fSkin[1]*alphaDrSurf[2]+0.5*alphaDrSurf[0]*fSkin[1]+0.5*fSkin[0]*alphaDrSurf[1]; 
