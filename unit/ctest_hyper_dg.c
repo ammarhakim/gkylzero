@@ -127,7 +127,7 @@ test_vlasov_1x2v_p2_(bool use_gpu)
     gkyl_cu_memcpy(cfl_ptr_h, cfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
   else
     cfl_ptr_h[0] = cfl_ptr[0];
-  TEST_CHECK( gkyl_compare_double(cfl_ptr_h[0], 2.5178875733842702e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(cfl_ptr_h[0], 1.2589437866921e+02, 1e-12) );
 
   // get linear index of first non-ghost cell
   // 1-indexed for interfacing with G2 Lua layer
