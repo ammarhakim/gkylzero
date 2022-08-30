@@ -89,6 +89,8 @@ mhd_free(const struct gkyl_ref_count *ref)
 
 // Computing waves and waves speeds from Roe linearization.
 // Following Cargo & Gallice 1997 section 4.2.
+// FIXME: is CG97 linearization consistent with the flux difference when the jump
+// in Bx is nonzero?
 static double
 wave_roe(const struct gkyl_wv_eqn *eqn,
   const double *dQ, const double *ql, const double *qr, double *waves, double *ev)
@@ -130,8 +132,9 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   //////////////////////////////////////////////////////////////////////////////
   // STEP 3: COMPUTE CHARACTERASTIC WAVE SPEEDS AND OTHER USEFUL QUANTITIES   //
   //////////////////////////////////////////////////////////////////////////////
-  // CG97 eq. 4.12, including jump in BX seems to give correct jump in pressure
-  // according to the equation bewteen 4.15 and 4.16
+  // CG97 eq. 4.12, including jump in Bx seems to give correct jump in pressure
+  // according to the equation bewteen CG97 eq. 4.15 and 4.16; X may also be
+  // computed from CG97 eq. 4.15
   double X = (sq(dQ[BX]) + sq(dQ[BY]) + sq(dQ[BZ])) / (2*sq(srrhol+srrhor));
 
   // CG97 eq 4.17, wave speeds
@@ -188,7 +191,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   double dw = wr - wl;
   double dBy = dQ[BY];
   double dBz = dQ[BZ];
-  double dp = pr - pl;
+  double dp = pr - pl; // consistent the CG97 eq. between 4.15 and 4.16
 
   const int meqns = eqn->num_equations;
   const int mwaves = eqn->num_waves;
