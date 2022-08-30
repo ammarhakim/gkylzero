@@ -227,18 +227,20 @@ void
 test_mhd_waves_3()
 {
   double gas_gamma = 5.0/3.0;
+  double ch = 1.0;
   struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new( &(struct gkyl_wv_mhd_inp) {
       .gas_gamma = gas_gamma,
       .divergence_constraint = GKYL_MHD_DIVB_GLM,
-      .glm_ch = 1.0
+      .glm_ch = ch
     });
 
   double ql[9], qr[9];
   double ql_local[9], qr_local[9];
 
   // Bx must be the same since presently the wv_mhd does not have the divB wave
-  double vl[9] = { 1.0,  0.1,  0.2,  0.3,  1.5, 0.4, 0.4, 0.3, 0.1};
+  double vl[9] = { 1.0,  0.1,  0.2,  0.3,  1.5, 0.4, 0.5, 0.2, 0.0};
   double vr[9] = { 1.1, 0.13, 0.25, 0.34, 15.0, 0.4, 0.4, -0.3, 0.1};
+  ql[8] = vl[8]; qr[8] = vr[8];
 
   calcq(gas_gamma, vl, ql); calcq(gas_gamma, vr, qr);
 
@@ -260,7 +262,7 @@ test_mhd_waves_3()
     { 0.0, 1.0, 0.0 }
   };  
 
-  for (int d=0; d<2; ++d) {
+  for (int d=0; d<1; ++d) {
     double speeds[9], waves[9*9], waves_local[9*9];
     // rotate to local tangent-normal frame
     gkyl_wv_eqn_rotate_to_local(mhd, tau1[d], tau2[d], norm[d], ql, ql_local);
@@ -280,15 +282,17 @@ test_mhd_waves_3()
     
     // check if sum of left/right going fluctuations sum to jump in flux
     double fl_local[9], fr_local[9];
-    gkyl_mhd_flux(gas_gamma, ql_local, fl_local);
-    gkyl_mhd_flux(gas_gamma, qr_local, fr_local);
+    gkyl_glm_mhd_flux(gas_gamma, ch, ql_local, fl_local);
+    gkyl_glm_mhd_flux(gas_gamma, ch, qr_local, fr_local);
 
     double fl[9], fr[9];
     gkyl_wv_eqn_rotate_to_global(mhd, tau1[d], tau2[d], norm[d], fl_local, fl);
     gkyl_wv_eqn_rotate_to_global(mhd, tau1[d], tau2[d], norm[d], fr_local, fr);
     
-    for (int i=0; i<9; ++i)
+    for (int i=0; i<9; ++i) {
+      // printf("%d: %g, %g\n", i, fr[i]-fl[i], amdq[i]+apdq[i]);
       TEST_CHECK( gkyl_compare(fr[i]-fl[i], amdq[i]+apdq[i], 1e-13) );
+    }
   }
     
   gkyl_wv_eqn_release(mhd);
