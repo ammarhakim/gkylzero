@@ -15,11 +15,6 @@ local ffi = require "ffi"
 -- load shared library
 local install_prefix = os.getenv("HOME") .. "/gkylsoft/gkylzero"
 local C = ffi.load(install_prefix .. "/lib/libgkylzero.so")
--- set JIT options
-if jit.opt then
-   jit.opt.start('callunroll=40', 'loopunroll=80', 'maxmcode=40960', 'maxtrace=100000',
-		 'maxrecord=40000', 'maxside=1000', 'minstitch=3')
-end
 
 -- set global package paths
 package.path = package.path .. ";" .. install_prefix .. "/lib/?.lua"
