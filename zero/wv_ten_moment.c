@@ -153,7 +153,7 @@ rot_to_global(const double *tau1, const double *tau2, const double *norm,
 
 // Waves and speeds using Roe averaging
 static double
-wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+wave_roe(const struct gkyl_wv_eqn *eqn,
   const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
   double vl[10], vr[10];
@@ -296,7 +296,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
 }
 
 static void
-qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+qfluct_roe(const struct gkyl_wv_eqn *eqn,
   const double *ql, const double *qr, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
@@ -310,10 +310,76 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   }
 }
 
+// Waves and speeds using Lax fluxes
+static double
+wave_lax(const struct gkyl_wv_eqn *eqn,
+  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+{
+  double sl = gkyl_ten_moment_max_abs_speed(ql);
+  double sr = gkyl_ten_moment_max_abs_speed(qr);
+
+  double *wv = &waves[0]; // single wave
+  for (int i=0; i<10; ++i)  wv[i] = delta[i];
+
+  s[0] = 0.5*(sl+sr);
+  
+  return s[0];
+}
+
+static void
+qfluct_lax(const struct gkyl_wv_eqn *eqn,
+  const double *ql, const double *qr, const double *waves, const double *s,
+  double *amdq, double *apdq)
+{
+  double sl = gkyl_ten_moment_max_abs_speed(ql);
+  double sr = gkyl_ten_moment_max_abs_speed(qr);  
+  double amax = fmax(sl, sr);
+
+  double fl[10], fr[10];
+  gkyl_ten_moment_flux(ql, fl);
+  gkyl_ten_moment_flux(qr, fr);
+
+  for (int i=0; i<10; ++i) {
+    amdq[i] = 0.5*(fr[i]-fl[i] - amax*(qr[i]-ql[i]));
+    apdq[i] = 0.5*(fr[i]-fl[i] + amax*(qr[i]-ql[i]));
+  }
+}
+
+static double
+wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX)
+    return wave_roe(eqn, delta, ql, qr, waves, s);
+  else
+    return wave_lax(eqn, delta, ql, qr, waves, s);
+
+  return 0.0; // can't happen
+}
+
+static void
+qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *ql, const double *qr, const double *waves, const double *s,
+  double *amdq, double *apdq)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX)
+    return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
+  else
+    return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
+}
+
 static bool
 check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 {
-  return true; // TODO
+  if (q[0] < 0.0)
+    return false;
+
+  double P[3];
+  gkyl_ten_moment_diag_pressure(q, P);
+  if (P[0] < 0.0 || P[1] < 0.0 || P[2] < 0.0)
+    return false;
+  
+  return true;
 }
 
 static double
@@ -332,8 +398,8 @@ gkyl_wv_ten_moment_new(double k0)
   ten_moment->eqn.type = GKYL_EQN_TEN_MOMENT;
   ten_moment->eqn.num_equations = 10;
   ten_moment->eqn.num_waves = 5;
-  ten_moment->eqn.waves_func = wave_roe;
-  ten_moment->eqn.qfluct_func = qfluct_roe;
+  ten_moment->eqn.waves_func = wave;
+  ten_moment->eqn.qfluct_func = qfluct;
   ten_moment->eqn.check_inv_func = check_inv;
   ten_moment->eqn.max_speed_func = max_speed;
   ten_moment->eqn.rotate_to_local_func = rot_to_local;
