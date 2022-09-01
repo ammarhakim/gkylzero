@@ -31,6 +31,6 @@ dg_euleriso_diffusion_surfx_1x_ser_p1(const double* w, const double* dx,
   const double *uvarxr = &uvarr[0]; 
   const double *uvaryr = &uvarr[2]; 
   const double *uvarzr = &uvarr[4]; 
-  out[0] += J*((-(1.237436867076458*D[1]*uvarxr[2])/dxsqrd)-(1.530931089239486*D[0]*uvarxr[2])/dxsqrd-(1.237436867076458*D[1]*uvarxl[2])/dxsqrd+(1.530931089239486*D[0]*uvarxl[2])/dxsqrd-(8.131727983645295*D[1]*uvarxc[2])/dxsqrd+(1.530931089239486*D[1]*uvarxr[1])/dxsqrd+(1.590990257669731*D[0]*uvarxr[1])/dxsqrd-(1.530931089239486*D[1]*uvarxl[1])/dxsqrd+(1.590990257669731*D[0]*uvarxl[1])/dxsqrd-(3.181980515339463*D[0]*uvarxc[1])/dxsqrd);
-  out[1] += J*((0.3061862178478971*D[1]*uvarxr[2])/dxsqrd-(1.237436867076458*D[0]*uvarxr[2])/dxsqrd-(0.3061862178478971*D[1]*uvarxl[2])/dxsqrd-(1.237436867076458*D[0]*uvarxl[2])/dxsqrd-(8.131727983645295*D[0]*uvarxc[2])/dxsqrd+(0.5303300858899105*D[1]*uvarxr[1])/dxsqrd+(1.530931089239486*D[0]*uvarxr[1])/dxsqrd+(0.5303300858899105*D[1]*uvarxl[1])/dxsqrd-(1.530931089239486*D[0]*uvarxl[1])/dxsqrd-(1.060660171779821*D[1]*uvarxc[1])/dxsqrd);
+  out[2] += J*((-(0.5412658773652741*uvarxr[1]*mu)/dxsqrd)+(0.5412658773652741*uvarxl[1]*mu)/dxsqrd+(0.5625*uvarxr[0]*mu)/dxsqrd+(0.5625*uvarxl[0]*mu)/dxsqrd-(1.125*uvarxc[0]*mu)/dxsqrd);
+  out[3] += J*((-(0.4375*uvarxr[1]*mu)/dxsqrd)-(0.4375*uvarxl[1]*mu)/dxsqrd-(2.875*uvarxc[1]*mu)/dxsqrd+(0.5412658773652741*uvarxr[0]*mu)/dxsqrd-(0.5412658773652741*uvarxl[0]*mu)/dxsqrd);
 }
