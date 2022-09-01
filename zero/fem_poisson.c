@@ -128,7 +128,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 
       vnum = bcs->up_type[d] == GKYL_POISSON_ROBIN ? 3 : 1;
       voff = bcs->up_type[d] == GKYL_POISSON_ROBIN ? 0 : 2;
-      for (int k=0; k<vnum; k++) up->bcvals[d*2*3+voff+3+k] = bcs->lo_value[d].v[k];
+      for (int k=0; k<vnum; k++) up->bcvals[d*2*3+voff+3+k] = bcs->up_value[d].v[k];
     }
   }
 #ifdef GKYL_HAVE_CUDA
