@@ -122,8 +122,9 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   for (int d=0; d<up->ndim; d++) {
     for (int k=0; k<6; k++) up->bcvals[d*2*3+k] = 0.0; // default. Not used in some cases (e.g. periodic).
     if (bcs->lo_type[d] != GKYL_POISSON_PERIODIC) {
-      int vnum = bcs->lo_type[d] == GKYL_POISSON_ROBIN ? 3 : 1;
-      int voff = bcs->lo_type[d] == GKYL_POISSON_ROBIN ? 0 : 2;
+      int vnum, voff;
+      vnum = bcs->lo_type[d] == GKYL_POISSON_ROBIN ? 3 : 1;
+      voff = bcs->lo_type[d] == GKYL_POISSON_ROBIN ? 0 : 2;
       for (int k=0; k<vnum; k++) up->bcvals[d*2*3+voff+k] = bcs->lo_value[d].v[k];
 
       vnum = bcs->up_type[d] == GKYL_POISSON_ROBIN ? 3 : 1;
