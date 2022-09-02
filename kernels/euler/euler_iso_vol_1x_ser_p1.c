@@ -27,7 +27,7 @@ GKYL_CU_DH double euler_iso_vol_1x_ser_p1(const double *w, const double *dxv, co
 
   outrho[1] += 1.224744871391589*rho[1]*rhou0[1]*dx10+1.224744871391589*rho[0]*rhou0[0]*dx10; 
 
-  outrhou0[1] += 3.0*rho[1]*dx10*vthsq+1.224744871391589*rhou0[1]*uvar0[1]*dx10+1.224744871391589*rhou0[0]*uvar0[0]*dx10; 
+  outrhou0[1] += 1.732050807568877*rho[0]*dx10*vthsq+1.224744871391589*rhou0[1]*uvar0[1]*dx10+1.224744871391589*rhou0[0]*uvar0[0]*dx10; 
 
   outrhou1[1] += 1.224744871391589*rhou1[1]*uvar0[1]*dx10+1.224744871391589*rhou1[0]*uvar0[0]*dx10; 
 
