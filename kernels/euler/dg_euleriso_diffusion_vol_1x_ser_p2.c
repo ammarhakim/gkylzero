@@ -2,7 +2,7 @@
 
 GKYL_CU_DH double
 dg_euleriso_diffusion_vol_1x_ser_p2(const double* w, const double* dx,
-  const double* D, const double* uvar, const double* statevec, double* GKYL_RESTRICT out)
+  const double* D, const double* uvar, const double* statevec, double* GKYL_RESTRICT out) 
 {
   // w[NDIM]: Cell-center coordinates
   // dxv[NDIM]: Cell spacing
@@ -12,13 +12,12 @@ dg_euleriso_diffusion_vol_1x_ser_p2(const double* w, const double* dx,
   // out: Incremented output
 
   const double retval;
-  const double *D1 = &D[0];
-  const double *D2 = &D[3];
-  const double *D3 = &D[6];
-  const double *D4 = &D[9];
-  double mu = D2[0];
-  double dx10 = 2./dx[0];
-  double cfl = mu/(dx10*dx10);
-
+  const double *D1 = &D[0]; 
+  const double *D2 = &D[3]; 
+  const double *D3 = &D[6]; 
+  const double *D4 = &D[9]; 
+  double mu = D2[0]; 
+  double dx10 = 2./dx[0]; 
+  double cfl = mu*9/(dx10*dx10);
   return cfl;
 }
