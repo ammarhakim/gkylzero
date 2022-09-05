@@ -55,7 +55,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
- int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 512);
+ int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 64);
 
  struct gkyl_vlasov_fluid_species f = {
    .name = "euler_iso",
@@ -115,7 +115,7 @@ main(int argc, char **argv)
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
-    printf("Taking time-step at t = %g ...\n", tcurr);
+    printf("Taking time-step at t = %g ...", tcurr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
 
