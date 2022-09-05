@@ -19,6 +19,6 @@ dg_euleriso_diffusion_vol_2x_ser_p2(const double* w, const double* dx,
   double mu = D2[0]; 
   double dx10 = 2./dx[0]; 
   double dx11 = 2./dx[1]; 
-  double cfl = mu*9/(dx10*dx10);
+  double cfl = mu*9*(dx10*dx10);
   return cfl;
 }
