@@ -197,6 +197,7 @@ gkyl_dg_div_op_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
     basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev);
   // invert all matrices in batch mode
   bool status = gkyl_nmat_linsolve_lu_pa(mem->lu_mem, A_d, x_d);
+  assert(status);
   // copy solution into array (also lives on the device)
   gkyl_dg_div_copy_sol_op_cu_kernel<<<out->nblocks, out->nthreads>>>(x_d->on_dev, basis, c_oop, out->on_dev);
 
@@ -287,6 +288,7 @@ gkyl_dg_div_op_range_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
     x_d->on_dev, basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev, *range);
   // invert all matrices in batch mode
   bool status = gkyl_nmat_linsolve_lu_pa(mem->lu_mem, A_d, x_d);
+  assert(status);
   // copy solution into array (also lives on the device)
   gkyl_dg_div_copy_sol_op_range_cu_kernel<<<nblocks, nthreads>>>(x_d->on_dev,
     basis, c_oop, out->on_dev, *range);

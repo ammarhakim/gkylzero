@@ -181,6 +181,7 @@ gkyl_dg_div_op(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   }
 
   bool status = gkyl_nmat_linsolve_lu_pa(mem->lu_mem, As, xs);
+  assert(status);
 
   for (size_t i=0; i<out->size; ++i) {
     double *out_d = gkyl_array_fetch(out, i);
@@ -228,6 +229,7 @@ void gkyl_dg_div_op_range(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   }
 
   bool status = gkyl_nmat_linsolve_lu_pa(mem->lu_mem, As, xs);
+  assert(status);
 
   gkyl_range_iter_init(&iter, range);
   count = 0;
