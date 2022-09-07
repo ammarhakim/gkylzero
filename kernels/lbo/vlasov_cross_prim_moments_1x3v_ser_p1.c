@@ -10,35 +10,18 @@ GKYL_CU_DH void vlasov_cross_prim_moments_1x3v_ser_p1(struct gkyl_mat *A, struct
   // uCross,vtSqCross:     cross primitive moments: mean flow velocity and thermal speed squared. 
  
   // If a corner value is below zero, use cell average m0.
-  bool cellAvg = false;
-  if (-0.5*(2.449489742783178*moms[1]-1.414213562373095*moms[0]) < 0) cellAvg = true; 
-  if (0.5*(2.449489742783178*moms[1]+1.414213562373095*moms[0]) < 0) cellAvg = true; 
+  bool notCellAvg = true;
+  if (notCellAvg && (-0.5*(2.449489742783178*moms[1]-1.414213562373095*moms[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.5*(2.449489742783178*moms[1]+1.414213562373095*moms[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (-0.5*(2.449489742783178*moms[9]-1.414213562373095*moms[8]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.5*(2.449489742783178*moms[9]+1.414213562373095*moms[8]) < 0)) notCellAvg = false; 
  
   double m0r[2] = {0.0}; 
   double m1r[6] = {0.0}; 
   double m2r[2] = {0.0}; 
   double cMr[6] = {0.0}; 
   double cEr[2] = {0.0}; 
-  if (cellAvg) { 
-    m0r[0] = moms[0]; 
-    m0r[1] = 0.0; 
-    m1r[0] = moms[2]; 
-    m1r[1] = 0.0; 
-    cMr[0] = boundary_corrections[0]; 
-    cMr[1] = 0.0; 
-    m1r[2] = moms[4]; 
-    m1r[3] = 0.0; 
-    cMr[2] = boundary_corrections[2]; 
-    cMr[3] = 0.0; 
-    m1r[4] = moms[6]; 
-    m1r[5] = 0.0; 
-    cMr[4] = boundary_corrections[4]; 
-    cMr[5] = 0.0; 
-    m2r[0] = moms[8]; 
-    m2r[1] = 0.0; 
-    cEr[0] = boundary_corrections[6]; 
-    cEr[1] = 0.0; 
-  } else { 
+  if (notCellAvg) { 
     m0r[0] = moms[0]; 
     m0r[1] = moms[1]; 
     m1r[0] = moms[2]; 
@@ -57,6 +40,25 @@ GKYL_CU_DH void vlasov_cross_prim_moments_1x3v_ser_p1(struct gkyl_mat *A, struct
     cMr[5] = boundary_corrections[5]; 
     cEr[0] = boundary_corrections[6]; 
     cEr[1] = boundary_corrections[7]; 
+  } else { 
+    m0r[0] = moms[0]; 
+    m0r[1] = 0.0; 
+    m1r[0] = moms[2]; 
+    m1r[1] = 0.0; 
+    cMr[0] = boundary_corrections[0]; 
+    cMr[1] = 0.0; 
+    m1r[2] = moms[4]; 
+    m1r[3] = 0.0; 
+    cMr[2] = boundary_corrections[2]; 
+    cMr[3] = 0.0; 
+    m1r[4] = moms[6]; 
+    m1r[5] = 0.0; 
+    cMr[4] = boundary_corrections[4]; 
+    cMr[5] = 0.0; 
+    m2r[0] = moms[8]; 
+    m2r[1] = 0.0; 
+    cEr[0] = boundary_corrections[6]; 
+    cEr[1] = 0.0; 
   } 
  
   double momRHS[6] = {0.0}; 
