@@ -502,6 +502,12 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   
   double dtmin = DBL_MAX;
 
+  // compute primitive moments for fluid species evolution and coupling
+  // Need to do this *before* collisions since collisional boundary corrections
+  // use fluid primitive moments in fluid-kinetic systems (e.g., pkpm model)
+  for (int i=0; i<app->num_fluid_species; ++i)
+    vm_fluid_species_prim_vars(app, &app->fluid_species[i], fluidin[i], fin);
+
   // compute necessary moments and boundary corrections for collisions
   for (int i=0; i<app->num_species; ++i) {
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
@@ -521,10 +527,6 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
       vm_species_lbo_cross_moms(app, &app->species[i], &app->species[i].lbo, fin[i], app->species[i].collides_with_fluid, fluidin);
     }
   }
-
-  // compute primitive moments for fluid species evolution and coupling
-  for (int i=0; i<app->num_fluid_species; ++i)
-    vm_fluid_species_prim_vars(app, &app->fluid_species[i], fluidin[i], fin);
   
   // compute RHS of Vlasov equations
   for (int i=0; i<app->num_species; ++i) {
@@ -586,14 +588,15 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     
         double qbyeps = s->info.charge/app->field->info.epsilon0;
         if (s->has_mirror_force) {
-	  // if has_mirror_force, m1i = m1i/B = J*m1i
-	  // need to multiply by magB to get the right current density
+          // if has_mirror_force, m1i = m1i/B = J*m1i
+          // need to multiply by magB to get the right current density
           gkyl_dg_mul_op_range(app->confBasis, 0, s->m1i_no_J, 0,
             s->m1i.marr, 0, s->magB, &app->local);
-	  gkyl_array_accumulate_range(emout, -qbyeps, s->m1i_no_J, app->local);
-        } else {
+          gkyl_array_accumulate_range(emout, -qbyeps, s->m1i_no_J, app->local);
+        } 
+        else {
           gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, app->local);
-	}
+        }
       }
       // accumulate current contribution from fluid species to electric field terms
       for (int i=0; i<app->num_fluid_species; ++i) {

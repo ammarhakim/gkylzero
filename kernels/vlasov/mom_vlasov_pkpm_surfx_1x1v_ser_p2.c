@@ -3,8 +3,8 @@
 #include <gkyl_basis_ser_2x_p2_upwind_quad_to_modal.h> 
 GKYL_CU_DH void mom_vlasov_pkpm_surfx_1x1v_ser_p2(const double *w, const double *dxv, const int *idx, double mass, const double *u_il, const double *u_ir, const double *bvarl, const double *bvarr, const double *fl, const double *fr, double* GKYL_RESTRICT out) 
 { 
-  const double volFact = dxv[1]/2; 
-  const double wvpar = w[1], dvpar = dxv[1]; 
+  const double volFact = dxv[0]/2.0; 
+  const double wvpar = w[0], dvpar = dxv[0]; 
   const double wvpar_sq = wvpar*wvpar, dvpar_sq = dvpar*dvpar; 
   const double wvpar_cu = wvpar*wvpar*wvpar, dvpar_cu = dvpar*dvpar*dvpar; 
 
@@ -13,7 +13,7 @@ GKYL_CU_DH void mom_vlasov_pkpm_surfx_1x1v_ser_p2(const double *w, const double 
   const double *bl_0 = &bvarl[0]; 
   const double *br_0 = &bvarr[0]; 
   double *rho_flux = &out[0]; 
-  double *heat_flux = &out[3]; 
+  double *heat_flux = &out[1]; 
   double u_l[3] = {0.0}; 
   double u_r[3] = {0.0}; 
   double q_l[3] = {0.0}; 
@@ -33,7 +33,7 @@ GKYL_CU_DH void mom_vlasov_pkpm_surfx_1x1v_ser_p2(const double *w, const double 
 
   double uQuad[3] = {0.0};
   double qQuad[3] = {0.0};
-  double uMax[3] = {0.0};;
+  double uMax[3] = {0.0};
   double qMax[3] = {0.0};
   double ev_u_l = 0.0; 
   double ev_u_r = 0.0; 

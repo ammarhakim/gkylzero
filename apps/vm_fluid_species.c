@@ -63,8 +63,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   // initialize pointers to flow velocity and pressure
   f->u = 0;
   f->p = 0;
-  f->ppar = 0;
-  f->qpar = 0;
+  f->vlasov_pkpm_surf_moms = 0;
 
   f->param = 0.0;
   // fluid solvers
@@ -86,7 +85,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     f->u_bc_buffer = mkarr(app->use_gpu, 3*app->confBasis.num_basis, buff_sz);
     f->p_bc_buffer = mkarr(app->use_gpu, app->confBasis.num_basis, buff_sz);
   }
-  else {
+  else if (f->info.advection.velocity) {
     f->eqn_id = GKYL_EQN_ADVECTION;   
 
     // allocate array to store advection velocity
@@ -135,6 +134,48 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
         f->nu_n_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
       }  
     } 
+  }
+  else {
+    f->eqn_id = GKYL_EQN_EULER_PKPM;   
+    // allocate array to store fluid velocity, pressure tensor, and pkpm moments
+    f->u = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+    f->p = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_ext.volume);
+    // allocate buffer for applying boundary conditions to primitive variables (u and p)
+    f->u_bc_buffer = mkarr(app->use_gpu, 3*app->confBasis.num_basis, buff_sz);
+    f->p_bc_buffer = mkarr(app->use_gpu, 6*app->confBasis.num_basis, buff_sz);
+
+    f->pkpm_species = vm_find_species(app, f->info.pkpm_species);
+    // index in fluid_species struct of fluid species kinetic species is colliding with
+    f->species_index = vm_find_species_idx(app, f->info.pkpm_species);
+
+    // create grid for surface moments (grid is in computational space)
+    // this grid is the grid of edges
+    int ghost_surf[3] = { 1, 1, 1 };
+    double surf_moms_lower[3] = {0.0};
+    double surf_moms_upper[3] = {0.0};
+    int surf_moms_cells[3] = {0};
+    // surface moment grid has one "extra" cell and is half a grid cell larger past the lower and upper domain
+    for (int d=0; d<cdim; ++d) {
+      surf_moms_lower[d] = app->grid.lower[d] - (app->grid.upper[d]-app->grid.lower[d])/(2.0* (double) app->grid.cells[d]);
+      surf_moms_upper[d] = app->grid.upper[d] + (app->grid.upper[d]-app->grid.lower[d])/(2.0* (double) app->grid.cells[d]);
+      surf_moms_cells[d] = app->grid.cells[d] + 1;
+    }
+    gkyl_rect_grid_init(&f->surf_moms_grid, cdim, surf_moms_lower, surf_moms_upper, surf_moms_cells);
+    gkyl_create_grid_ranges(&f->surf_moms_grid, ghost_surf, &f->surf_moms_local_ext, &f->surf_moms_local);
+    
+    // pkpm surface moments for computing fluxes (*flux* of mass (cdim components), *flux* of parallel heat (cdim components))
+    // NOTE: NUMBER OF COMPONENTS IS WRONG RIGHT NOW. NEED BETTER WAY TO GET SURFACE BASIS SIZE
+    f->vlasov_pkpm_surf_moms = mkarr(app->use_gpu, (2*cdim), f->surf_moms_local_ext.volume);
+
+    // pkpm moments (mass, parallel pressure, parallel heat flux)
+    vm_species_pkpm_moment_init(app, f->pkpm_species, f->pkpm_moms);
+
+    f->pkpm_surf_moms_calc = gkyl_mom_pkpm_surf_calc_new(&f->pkpm_species->grid_vel, f->pkpm_species->info.mass);
+
+    if (f->collision_id == GKYL_LBO_COLLISIONS) {
+      f->other_const_nu = f->pkpm_species->lbo.const_nu;
+      f->other_vth_sq = f->pkpm_species->lbo.vth_sq;     
+    }  
   }
 
   f->advect_slvr = gkyl_dg_updater_fluid_new(&app->grid, &app->confBasis, 
@@ -267,9 +308,20 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
       fluid_species->u, fluid, fluid_species->p);
   }
   else if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
+    vm_species_pkpm_moment_calc(fluid_species->pkpm_moms, fluid_species->pkpm_species->local, 
+      app->local, fluid_species->pkpm_species->local_vel,
+      app->field->bvar, fin[fluid_species->species_index]);
+
     gkyl_calc_prim_vars_u_from_rhou(fluid_species->u_mem, app->confBasis, app->local, 
-      0, fluid, fluid_species->u);
-    gkyl_calc_prim_vars_p_pkpm(app->confBasis, app->local, fluid_species->u, 0, 0, fluid, fluid_species->p);
+      fluid_species->pkpm_moms->marr, fluid, fluid_species->u);
+    gkyl_calc_prim_vars_p_pkpm(app->confBasis, app->local, fluid_species->u, app->field->bvar, 
+      fluid_species->pkpm_moms->marr, fluid, fluid_species->p);
+
+    gkyl_mom_pkpm_surf_calc_advance(fluid_species->pkpm_surf_moms_calc,
+      &fluid_species->surf_moms_local, &fluid_species->pkpm_species->local_vel, 
+      &app->local, &fluid_species->pkpm_species->local,
+      fluid_species->u, app->field->bvar, 
+      fin[fluid_species->species_index], fluid_species->vlasov_pkpm_surf_moms);
   }
   else {
     if (fluid_species->has_advect)
@@ -296,7 +348,8 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
 
   if (app->use_gpu) {
     gkyl_dg_updater_fluid_advance_cu(fluid_species->advect_slvr, fluid_species->eqn_id,
-      &app->local, fluid_species->u, fluid_species->p, fluid_species->ppar, fluid_species->qpar,
+      &app->local, fluid_species->u, fluid_species->p, 
+      fluid_species->pkpm_moms->marr, fluid_species->vlasov_pkpm_surf_moms,
       fluid, fluid_species->cflrate, rhs);
 
     gkyl_dg_updater_diffusion_advance_cu(fluid_species->diff_slvr, fluid_species->diffusion_id,
@@ -304,16 +357,16 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
   }
   else {
     gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, fluid_species->eqn_id,
-      &app->local, fluid_species->u, fluid_species->p, fluid_species->ppar, fluid_species->qpar,
+      &app->local, fluid_species->u, fluid_species->p, 
+      fluid_species->pkpm_moms->marr, fluid_species->vlasov_pkpm_surf_moms,
       fluid, fluid_species->cflrate, rhs);
 
     gkyl_dg_updater_diffusion_advance(fluid_species->diff_slvr, fluid_species->diffusion_id,
       &app->local, fluid_species->D, fluid, fluid_species->cflrate, rhs);
   }
 
-  // accumulate nu*n*T - nu*fluid_species
-  // where fluid_species = nT_perp or nT_z
-  if (fluid_species->collision_id == GKYL_LBO_COLLISIONS) {
+  // Relax T_perp, d T_perp/dt = nu*n*(T - T_perp)
+  if (fluid_species->collision_id == GKYL_LBO_COLLISIONS && fluid_species->eqn_id == GKYL_EQN_ADVECTION) {
     gkyl_dg_mul_op_range(app->confBasis, 0, fluid_species->nu_fluid, 0,
       fluid_species->other_nu, 0, fluid, &app->local);
     gkyl_dg_mul_op_range(app->confBasis, 0, fluid_species->nu_n_vthsq, 0,
@@ -470,9 +523,14 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
 
   gkyl_array_release(f->u);
   gkyl_array_release(f->u_bc_buffer);
-  if (f->eqn_id == GKYL_EQN_EULER) {
+  if (f->eqn_id == GKYL_EQN_EULER || f->eqn_id == GKYL_EQN_EULER_PKPM) {
     gkyl_array_release(f->p);
     gkyl_array_release(f->p_bc_buffer);
+  }
+  if (f->eqn_id == GKYL_EQN_EULER_PKPM) {
+    // release moment data
+    vm_species_moment_release(app, f->pkpm_moms);
+    gkyl_array_release(f->vlasov_pkpm_surf_moms);
   }
   if (f->has_advect) {
     gkyl_array_release(f->advect);

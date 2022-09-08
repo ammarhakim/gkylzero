@@ -6,6 +6,7 @@
 #include <gkyl_prim_lbo_kernels.h> 
 #include <gkyl_prim_lbo_gyrokinetic.h>
 #include <gkyl_prim_lbo_vlasov.h>
+#include <gkyl_prim_lbo_vlasov_pkpm.h>
 #include <gkyl_prim_lbo_vlasov_with_fluid.h>
 #include <gkyl_mat.h>
 #include <assert.h>
@@ -118,7 +119,21 @@ gkyl_prim_lbo_vlasov_calc_new(const struct gkyl_rect_grid *grid, const struct gk
 }
 
 gkyl_prim_lbo_calc*
-gkyl_prim_lbo_vlasov_with_fluid_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_rng)
+gkyl_prim_lbo_vlasov_pkpm_calc_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_rng)
+{
+  struct gkyl_prim_lbo_type *prim; // LBO primitive moments type
+  prim = gkyl_prim_lbo_vlasov_pkpm_new(cbasis, pbasis, conf_rng);
+  struct gkyl_prim_lbo_calc *calc = gkyl_prim_lbo_calc_new(grid, prim);
+  // Since calc now has pointer to specific type, decrease reference counter of type
+  // so that eventual gkyl_prim_lbo_calc_release method on calculator deallocates specific type data
+  gkyl_prim_lbo_type_release(prim);
+  return calc;
+}
+
+gkyl_prim_lbo_calc*
+gkyl_prim_lbo_vlasov_with_fluid_calc_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_rng)
 {
   struct gkyl_prim_lbo_type *prim; // LBO primitive moments type
   prim = gkyl_prim_lbo_vlasov_with_fluid_new(cbasis, pbasis, conf_rng);
@@ -154,7 +169,21 @@ gkyl_prim_lbo_vlasov_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const st
 }
 
 gkyl_prim_lbo_calc*
-gkyl_prim_lbo_vlasov_with_fluid_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_rng)
+gkyl_prim_lbo_vlasov_pkpm_calc_cu_dev_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_rng)
+{
+  struct gkyl_prim_lbo_type *prim; // LBO primitive moments type
+  prim = gkyl_prim_lbo_vlasov_pkpm_cu_dev_new(cbasis, pbasis, conf_rng);
+  struct gkyl_prim_lbo_calc *calc = gkyl_prim_lbo_calc_cu_dev_new(grid, prim);
+  // Since calc now has pointer to specific type, decrease reference counter of type
+  // so that eventual gkyl_prim_lbo_calc_release method on calculator deallocates specific type data
+  gkyl_prim_lbo_type_release(prim);
+  return calc;
+}
+
+gkyl_prim_lbo_calc*
+gkyl_prim_lbo_vlasov_with_fluid_calc_cu_dev_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_rng)
 {
   struct gkyl_prim_lbo_type *prim; // LBO primitive moments type
   prim = gkyl_prim_lbo_vlasov_with_fluid_cu_dev_new(cbasis, pbasis, conf_rng);

@@ -19,10 +19,10 @@ struct gkyl_prim_lbo_vlasov_pkpm_auxfields {
  * @param conf_range Configuration-space range
  * @return Pointer to Vlasov (with fluid coupling) primitive moment object
  */
-struct gkyl_prim_lbo_type* gkyl_prim_lbo_vlasov_with_fluid_new(const struct gkyl_basis* cbasis,
+struct gkyl_prim_lbo_type* gkyl_prim_lbo_vlasov_pkpm_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range);
 
-struct gkyl_prim_lbo_type* gkyl_prim_lbo_vlasov_with_fluid_cu_dev_new(const struct gkyl_basis* cbasis,
+struct gkyl_prim_lbo_type* gkyl_prim_lbo_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range);
 
 /**
@@ -31,7 +31,7 @@ struct gkyl_prim_lbo_type* gkyl_prim_lbo_vlasov_with_fluid_cu_dev_new(const stru
  * @param prim prim_lbo_type pointer.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_prim_lbo_vlasov_with_fluid_set_auxfields(const struct gkyl_prim_lbo_type *prim,
+void gkyl_prim_lbo_vlasov_pkpm_set_auxfields(const struct gkyl_prim_lbo_type *prim,
   struct gkyl_prim_lbo_vlasov_pkpm_auxfields auxin);
 
 #ifdef GKYL_HAVE_CUDA
@@ -41,7 +41,7 @@ void gkyl_prim_lbo_vlasov_with_fluid_set_auxfields(const struct gkyl_prim_lbo_ty
  * @param prim prim_lbo_type pointer.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_prim_lbo_vlasov_with_fluid_set_auxfields_cu(const struct gkyl_prim_lbo_type *prim,
+void gkyl_prim_lbo_vlasov_pkpm_set_auxfields_cu(const struct gkyl_prim_lbo_type *prim,
   struct gkyl_prim_lbo_vlasov_pkpm_auxfields auxin);
 
 #endif

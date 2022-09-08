@@ -16,15 +16,15 @@ struct gkyl_mom_vlasov_pkpm_auxfields {
  * @param cbasis Configuration-space basis-functions
  * @param pbasis Phase-space basis-functions
  */
-struct gkyl_mom_type* gkyl_mom_vlasov_new(const struct gkyl_basis* cbasis, 
-  const struct gkyl_basis* pbasis, double mass);
+struct gkyl_mom_type* gkyl_mom_vlasov_pkpm_new(const struct gkyl_basis* cbasis, 
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, double mass);
 
 /**
  * Create new Vlasov moment type object on NV-GPU: see new() method
  * above for documentation.
  */
-struct gkyl_mom_type* gkyl_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, 
-  const struct gkyl_basis* pbasis, double mass);
+struct gkyl_mom_type* gkyl_mom_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, 
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, double mass);
 
 /**
  * Set the auxiliary fields bvar needed in computing moments. bvar contains magnetic field 

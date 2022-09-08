@@ -4,6 +4,8 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_dg_eqn.h>
+#include <gkyl_dg_lbo_vlasov_pkpm_diff.h>
+#include <gkyl_dg_lbo_vlasov_pkpm_drag.h>
 #include <gkyl_dg_lbo_vlasov_diff.h>
 #include <gkyl_dg_lbo_vlasov_drag.h>
 #include <gkyl_dg_updater_lbo_vlasov.h>
@@ -13,12 +15,20 @@
 
 struct gkyl_dg_updater_collisions*
 gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, bool use_gpu)
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, enum gkyl_model_id model_id, bool use_gpu)
 {
   struct gkyl_dg_updater_collisions *up = gkyl_malloc(sizeof(gkyl_dg_updater_collisions));
 
-  up->coll_drag = gkyl_dg_lbo_vlasov_drag_new(cbasis, pbasis, conf_range, use_gpu);
-  up->coll_diff = gkyl_dg_lbo_vlasov_diff_new(cbasis, pbasis, conf_range, use_gpu);
+  if (model_id == GKYL_MODEL_PKPM) {
+    up->model_id = model_id;
+    up->coll_drag = gkyl_dg_lbo_vlasov_pkpm_drag_new(cbasis, pbasis, conf_range, use_gpu);
+    up->coll_diff = gkyl_dg_lbo_vlasov_pkpm_diff_new(cbasis, pbasis, conf_range, use_gpu);    
+  }
+  else {
+    up->model_id = model_id;
+    up->coll_drag = gkyl_dg_lbo_vlasov_drag_new(cbasis, pbasis, conf_range, use_gpu);
+    up->coll_diff = gkyl_dg_lbo_vlasov_diff_new(cbasis, pbasis, conf_range, use_gpu);
+  }
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int vdim = pdim-cdim;

@@ -104,6 +104,44 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   }
 }
 
+// initialize species moment object for parallel-kinetic-perpendicular-moment model
+void
+vm_species_pkpm_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
+  struct vm_species_moment *sm)
+{
+  sm->use_gpu = app->use_gpu;
+  
+  if (app->use_gpu) {
+    struct gkyl_mom_type *mtype = gkyl_mom_vlasov_pkpm_cu_dev_new(&app->confBasis, &app->basis, &app->local, s->info.mass);
+    gkyl_mom_vlasov_pkpm_set_auxfields(mtype, 
+      (struct gkyl_mom_vlasov_pkpm_auxfields) { .bvar = app->field->bvar });
+
+    sm->mcalc = gkyl_mom_calc_cu_dev_new(&s->grid, mtype);
+
+    sm->marr = mkarr(app->use_gpu, mtype->num_mom*app->confBasis.num_basis,
+      app->local_ext.volume);
+    sm->marr_host = mkarr(false, mtype->num_mom*app->confBasis.num_basis,
+      app->local_ext.volume);
+
+    gkyl_mom_type_release(mtype);
+  }
+  else {
+    struct gkyl_mom_type *mtype = gkyl_mom_vlasov_pkpm_new(&app->confBasis, &app->basis, &app->local, s->info.mass);
+    gkyl_mom_vlasov_pkpm_set_auxfields(mtype, 
+      (struct gkyl_mom_vlasov_pkpm_auxfields) { .bvar = app->field->bvar });
+
+    sm->mcalc = gkyl_mom_calc_new(&s->grid, mtype);
+
+    sm->marr = mkarr(app->use_gpu, mtype->num_mom*app->confBasis.num_basis,
+      app->local_ext.volume);
+
+    // host and dev are same
+    sm->marr_host = sm->marr;
+
+    gkyl_mom_type_release(mtype);
+  }
+}
+
 void
 vm_species_moment_calc(const struct vm_species_moment *sm,
   const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
@@ -113,6 +151,19 @@ vm_species_moment_calc(const struct vm_species_moment *sm,
     gkyl_mom_calc_advance_cu(sm->mcalc, &phase_rng, &conf_rng, fin, sm->marr);
   else
     gkyl_mom_calc_advance(sm->mcalc, &phase_rng, &conf_rng, fin, sm->marr);
+}
+
+void
+vm_species_pkpm_moment_calc(const struct vm_species_moment *sm,
+  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng, const struct gkyl_range vel_rng,
+  const struct gkyl_array *bvar, const struct gkyl_array *fin)
+{
+  if (sm->use_gpu) {
+    gkyl_mom_calc_advance_cu(sm->mcalc, &phase_rng, &conf_rng, fin, sm->marr);
+  }
+  else {
+    gkyl_mom_calc_advance(sm->mcalc, &phase_rng, &conf_rng, fin, sm->marr);
+  }
 }
 
 // release memory for moment data object

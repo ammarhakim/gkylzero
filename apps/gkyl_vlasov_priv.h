@@ -29,15 +29,19 @@
 #include <gkyl_ghost_surf_calc.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_mom_bcorr_lbo_vlasov.h>
+#include <gkyl_mom_bcorr_lbo_vlasov_pkpm.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_calc_bcorr.h>
+#include <gkyl_mom_pkpm_surf_calc.h>
 #include <gkyl_mom_vlasov.h>
+#include <gkyl_mom_vlasov_pkpm.h>
 #include <gkyl_mom_vlasov_sr.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_prim_lbo_calc.h>
 #include <gkyl_prim_lbo_cross_calc.h>
 #include <gkyl_prim_lbo_type.h>
 #include <gkyl_prim_lbo_vlasov.h>
+#include <gkyl_prim_lbo_vlasov_pkpm.h>
 #include <gkyl_prim_lbo_vlasov_with_fluid.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
@@ -81,6 +85,7 @@ struct vm_lbo_collisions {
   struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator
   struct gkyl_array *nu_sum, *u_drift, *vth_sq, *nu_u, *nu_vthsq; // LBO primitive moments
 
+  double const_nu; // constant collisionality (if specified)
   double betaGreenep1; // value of Greene's factor beta + 1
   double other_m[GKYL_MAX_SPECIES]; // masses of species being collided with
   struct gkyl_array *other_u_drift[GKYL_MAX_SPECIES], *other_vth_sq[GKYL_MAX_SPECIES]; // self-primitive moments of species being collided with
@@ -101,6 +106,8 @@ struct vm_lbo_collisions {
 
   int num_cross_collisions; // number of species we cross-collide with
   struct vm_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
+
+  struct vm_fluid_species *pkpm_fluid_species; // pointers to cross-species we collide with
 
   gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
   gkyl_prim_lbo_cross_calc *cross_calc; // LBO cross-primitive moment calculator
@@ -168,7 +175,8 @@ struct vm_species {
 
   bool is_first_integ_write_call; // flag for int-moments dynvec written first time
 
-  enum gkyl_field_id field_id; // type of Vlasov equation (based on type of field solve)
+  enum gkyl_field_id field_id; // type of field equation 
+  enum gkyl_model_id model_id; // type of Vlasov equation (e.g., Vlasov vs. SR vs. PKPM model)
   struct gkyl_array *qmem; // array for q/m*(E,B)
   struct gkyl_array *fac_phi; // array for potential (electrostatic or gravitational)
   struct gkyl_array *vecA; // array for vector potential
@@ -230,6 +238,8 @@ struct vm_field {
 
   struct gkyl_array *em_host;  // host copy for use IO and initialization
 
+  struct gkyl_array *bvar; // magnetic field unit vector and tensor (for use in pkpm model)
+
   gkyl_hyper_dg *slvr; // Maxwell solver
 
   struct gkyl_array *em_energy; // EM energy components in each cell
@@ -261,15 +271,14 @@ struct vm_fluid_species {
   struct gkyl_array *fluid, *fluid1, *fluidnew; // arrays for updates
   struct gkyl_array *cflrate; // CFL rate in each cell
   struct gkyl_array *bc_buffer; // buffer for BCs (used by bc_basic)
-  struct gkyl_array *u_bc_buffer; // buffer for applying BCs to flow
-  struct gkyl_array *p_bc_buffer; // buffer for applying BCs to pressure
 
   struct gkyl_array *fluid_host;  // host copy for use IO and initialization
 
   struct gkyl_array *u; // array for fluid/advection velocity
-  struct gkyl_array *p; // array for pressure (used by Euler)
-  struct gkyl_array *ppar; // array for parallel pressure (used by Euler with parallel-kinetic-perpendicular-moment model)
-  struct gkyl_array *qpar; // array for parallel heat flux (used by Euler with parallel-kinetic-perpendicular-moment model)
+  struct gkyl_array *p; // array for pressure (used by Euler (1 component) and pkpm Euler (6 components))
+  struct gkyl_array *u_bc_buffer; // buffer for applying BCs to flow
+  struct gkyl_array *p_bc_buffer; // buffer for applying BCs to pressure
+
   struct gkyl_array *p_ij; // array for advection flow
   struct gkyl_array *D; // array for diffusion tensor
   struct gkyl_array *D_host; // host copy of diffusion tensor
@@ -290,6 +299,18 @@ struct vm_fluid_species {
 
   struct gkyl_dg_bin_op_mem *u_mem; // memory needed in computing flow velocity 
                                     // needed for weak division rho*u = rhou
+
+  // pkpm model
+  struct gkyl_rect_grid surf_moms_grid; // grid for surface moments (surface moments located at edges)
+  struct gkyl_range surf_moms_local, surf_moms_local_ext; // local, local-ext ranges for surface moments (loop over edges)
+  struct gkyl_array *vlasov_pkpm_surf_moms; // array for *surface* pkpm moments (*flux* of mass (cdim components), *flux* of parallel heat (cdim components))
+
+  struct vm_species *pkpm_species; // pointer to coupling species in pkpm model
+  struct vm_species_moment *pkpm_moms; // pointer to moment object for computing pkpm moments
+
+  int species_index; // index of the kinetic species being coupled to in pkpm model
+                     // index corresponds to location in vm_species array (size num_species)
+  struct gkyl_mom_pkpm_surf_calc* pkpm_surf_moms_calc; // calculator for surface moments
 
   // applied advection
   struct gkyl_array *advect; // applied advection
@@ -317,6 +338,10 @@ struct vm_fluid_species {
   struct gkyl_array *nu_fluid; // collision frequency multiplying fluid_species (nu*nT_perp or nu*nT_z)
   struct gkyl_array *nu_n_vthsq; // nu*n*vthsq (what collisions relax auxiliary temperature to)
   
+  // inputs for pkpm model 
+  double other_const_nu;
+  struct gkyl_array *other_vth_sq;
+
   double* omegaCfl_ptr;
 };
 
@@ -459,6 +484,27 @@ void vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
 void vm_species_moment_calc(const struct vm_species_moment *sm,
   const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
   const struct gkyl_array *fin);
+
+/**
+ * Initialize species pkpm moment object.
+ *
+ * @param app Vlasov app object
+ * @param s Species object 
+ * @param sm Species moment object
+ */
+void vm_species_pkpm_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
+  struct vm_species_moment *sm);
+
+/**
+ * Calculate pkpm moment, given distribution function @a fin.
+ *
+ * @param phase_rng Phase-space range
+ * @param conf_rng Config-space range
+ * @param fin Input distribution function array
+ */
+void vm_species_pkpm_moment_calc(const struct vm_species_moment *sm,
+  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng, const struct gkyl_range vel_rng,
+  const struct gkyl_array *bvar, const struct gkyl_array *fin);
 
 /**
  * Release species moment object.

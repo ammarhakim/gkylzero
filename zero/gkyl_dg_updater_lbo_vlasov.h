@@ -2,6 +2,7 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
+#include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
@@ -20,11 +21,14 @@ struct gkyl_dg_updater_lbo_vlasov_tm {
  * @param cbasis Configuration space basis functions
  * @param pbasis Phase-space basis function
  * @param conf_range Config space range
+ * @param model_id Enum for type of LBO (e.g., Vlasov vs. PKPM model)
+ * @param use_gpu Bool for whether updater is on host or device
  * @return New LBO updater object
  */
 struct gkyl_dg_updater_collisions* 
 gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, bool use_gpu);
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
+  const struct gkyl_range *conf_range, enum gkyl_model_id model_id, bool use_gpu);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the

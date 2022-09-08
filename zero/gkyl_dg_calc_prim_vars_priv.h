@@ -12,9 +12,13 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
-typedef void (*euler_pressure_t)(const double gas_gamma, const double *uvar, const double *statevec, double* GKYL_RESTRICT out);
+typedef void (*euler_pressure_t)(const double gas_gamma, 
+  const double *uvar, const double *statevec, 
+  double* GKYL_RESTRICT out);
 
-typedef void (*euler_pkpm_pressure_t)(const double *u_i, const double *bvar, const double *vlasov_pkpm_moms, const double *statevec, double* GKYL_RESTRICT p_ij);
+typedef void (*euler_pkpm_pressure_t)(const double *u_i, const double *bvar, 
+  const double *vlasov_pkpm_moms, const double *statevec, 
+  double* GKYL_RESTRICT p_ij);
 
 // for use in kernel tables
 typedef struct { euler_pressure_t kernels[3]; } gkyl_dg_euler_pressure_kern_list;

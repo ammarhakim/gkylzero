@@ -8,6 +8,7 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_rect_decomp.h>
+#include <gkyl_eqn_type.h>
 #include <gkyl_dg_lbo_vlasov_drag.h>
 #include <gkyl_dg_lbo_vlasov_diff.h>
 #include <gkyl_dg_updater_lbo_vlasov.h>
@@ -87,7 +88,8 @@ test_1x1v_p2()
   int zero_flux_flags[] = {1};
 
   gkyl_dg_updater_collisions *slvr;
-  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, false);
+  enum gkyl_model_id model_id = GKYL_MODEL_DEFAULT;
+  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, model_id, false);
   
   gkyl_proj_on_basis *projF = gkyl_proj_on_basis_new(&phaseGrid, &basis, poly_order+1, 1, maxwellian1x1v, NULL);
   gkyl_proj_on_basis *projNu = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, nu_prof, NULL);
@@ -200,7 +202,8 @@ test_1x2v_p2()
   int zero_flux_flags[] = {1, 1};
 
   gkyl_dg_updater_collisions *slvr;
-  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, false);
+  enum gkyl_model_id model_id = GKYL_MODEL_DEFAULT;
+  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, model_id, false);
   
   gkyl_proj_on_basis *projF = gkyl_proj_on_basis_new(&phaseGrid, &basis, poly_order+1, 1, maxwellian1x2v, NULL);
   gkyl_proj_on_basis *projNu = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, nu_prof, NULL);
@@ -341,7 +344,8 @@ test_1x1v_p2_cu()
   int zero_flux_flags[] = {1};
 
   gkyl_dg_updater_lbo_vlasov *slvr;
-  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, true);
+  enum gkyl_model_id model_id = GKYL_MODEL_DEFAULT;
+  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, model_id, true);
   
   gkyl_proj_on_basis *projF = gkyl_proj_on_basis_new(&phaseGrid, &basis, poly_order+1, 1, maxwellian1x1v, NULL);
   gkyl_proj_on_basis *projNu = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, nu_prof, NULL);
@@ -465,7 +469,8 @@ test_1x2v_p2_cu()
   int zero_flux_flags[] = {1, 1};
 
   gkyl_dg_updater_lbo_vlasov *slvr;
-  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, true);
+  enum gkyl_model_id model_id = GKYL_MODEL_DEFAULT;
+  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, model_id, true);
    
   gkyl_proj_on_basis *projF = gkyl_proj_on_basis_new(&phaseGrid, &basis, poly_order+1, 1, maxwellian1x2v, NULL);
   gkyl_proj_on_basis *projNu = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, nu_prof, NULL);

@@ -29,6 +29,8 @@ struct gkyl_vlasov_collisions {
   void *ctx; // context for collision function
   // function for computing self-collision frequency
   void (*self_nu)(double t, const double *xn, double *fout, void *ctx);
+  // input constant collisionality
+  double const_nu;
 
   int num_cross_collisions; // number of species to cross-collide with
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
@@ -81,6 +83,8 @@ struct gkyl_vlasov_species {
 
   int num_diag_moments; // number of diagnostic moments
   char diag_moments[16][16]; // list of diagnostic moments
+
+  char pkpm_fluid_species[128]; // names of fluid species for PKPM model
 
   // collisions to include
   struct gkyl_vlasov_collisions collisions;
@@ -137,6 +141,8 @@ struct gkyl_vlasov_fluid_species {
   // advection coupling (if scalar advection)
   // gkyl_eqn_type eqn_id = GKYL_EQN_ADVECTION
   struct gkyl_vlasov_fluid_advection advection;
+  // gkyl_eqn_type eqn_id = GKYL_EQN_EULER_PKPM
+  char pkpm_species[128]; // names of species to for pkpm coupling
   
   // diffusion coupling to include
   struct gkyl_vlasov_fluid_diffusion diffusion;

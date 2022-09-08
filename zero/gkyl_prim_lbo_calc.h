@@ -66,6 +66,9 @@ gkyl_prim_lbo_calc*
 gkyl_prim_lbo_vlasov_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
 
 gkyl_prim_lbo_calc* 
+gkyl_prim_lbo_vlasov_pkpm_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_rng);
+
+gkyl_prim_lbo_calc* 
 gkyl_prim_lbo_gyrokinetic_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
 
 gkyl_prim_lbo_calc*
@@ -73,6 +76,9 @@ gkyl_prim_lbo_vlasov_with_fluid_calc_new(const struct gkyl_rect_grid *grid, cons
 
 gkyl_prim_lbo_calc* 
 gkyl_prim_lbo_vlasov_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
+
+gkyl_prim_lbo_calc* 
+gkyl_prim_lbo_vlasov_pkpm_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_rng);
 
 gkyl_prim_lbo_calc* 
 gkyl_prim_lbo_gyrokinetic_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
