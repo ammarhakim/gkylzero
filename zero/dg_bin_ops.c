@@ -110,6 +110,77 @@ void gkyl_dg_mul_op_range(struct gkyl_basis basis,
   }
 }
 
+// Dot product.
+void
+gkyl_dg_dot_product_op(struct gkyl_basis basis,
+  struct gkyl_array* out,
+  const struct gkyl_array* lop,
+  const struct gkyl_array* rop)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(out)) {
+    return gkyl_dg_dot_product_op_cu(basis, out, lop, rop);
+  }
+#endif
+
+  int ndim = basis.ndim;
+  int poly_order = basis.poly_order;
+  mul_op_t mul_op = choose_ser_mul_kern(ndim, poly_order);
+
+  int num_basis = basis.num_basis;
+  int vcomp = lop->ncomp/out->ncomp;
+
+  for (size_t i=0; i<out->size; ++i) {
+    
+    const double *lop_d = gkyl_array_cfetch(lop, i);
+    const double *rop_d = gkyl_array_cfetch(rop, i);
+    double *out_d = gkyl_array_fetch(out, i);
+    for (int k=0; k<num_basis; k++) out_d[k] = 0.;
+
+    for (int d=0; d<vcomp; d++) {
+      double comp_out[num_basis];
+      mul_op(lop_d+d*num_basis, rop_d+d*num_basis, comp_out);
+      for (int k=0; k<num_basis; k++) out_d[k] += comp_out[k]; 
+    }
+  }
+}
+
+void gkyl_dg_dot_product_op_range(struct gkyl_basis basis,
+  struct gkyl_array* out,
+  const struct gkyl_array* lop,
+  const struct gkyl_array* rop, struct gkyl_range *range)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(out)) {
+    return gkyl_dg_dot_product_op_range_cu(basis, out, lop, rop, range);
+  }
+#endif
+
+  int ndim = basis.ndim;
+  int poly_order = basis.poly_order;
+  mul_op_t mul_op = choose_ser_mul_kern(ndim, poly_order);
+
+  int num_basis = basis.num_basis;
+  int vcomp = lop->ncomp/out->ncomp;
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(range, iter.idx);
+
+    const double *lop_d = gkyl_array_cfetch(lop, loc);
+    const double *rop_d = gkyl_array_cfetch(rop, loc);
+    double *out_d = gkyl_array_fetch(out, loc);
+    for (int k=0; k<num_basis; k++) out_d[k] = 0.;
+
+    for (int d=0; d<vcomp; d++) {
+      double comp_out[num_basis];
+      mul_op(lop_d+d*num_basis, rop_d+d*num_basis, comp_out);
+      for (int k=0; k<num_basis; k++) out_d[k] += comp_out[k]; 
+    }
+  }
+}
+
 // conf*phase multiplication.
 void gkyl_dg_mul_conf_phase_op_range(struct gkyl_basis *cbasis,
   struct gkyl_basis *pbasis, struct gkyl_array* pout,

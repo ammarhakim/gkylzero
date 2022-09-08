@@ -14,11 +14,63 @@ void f_1d(double t, const double *xn, double* restrict fout, void *ctx)
   double x = xn[0];
   fout[0] = 2 + x;
 }
-
 void g_1d(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 2*x*x + 8;
+}
+
+void fv2_1d(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  fout[0] = 2. + x;
+  fout[1] = 1. - x;
+}
+void gv2_1d(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  fout[0] = 2*x*x + 8;
+  fout[1] = x*x - 8;
+}
+
+void fv3_1d(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  fout[0] = 2. + x;
+  fout[1] = 1. - x;
+  fout[2] = 0.5 + x;
+}
+void gv3_1d(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  fout[0] = 2*x*x + 8;
+  fout[1] = x*x - 8;
+  fout[2] = 0.5*x*x + 4;
+}
+
+void check_dot_product_1d(const double *fv1_d, const double *gv1_d, const double *fvdgv1_d,
+                          const double *fv2_d, const double *gv2_d, const double *fvdgv2_d,
+                          const double *fv3_d, const double *gv3_d, const double *fvdgv3_d,
+                          int poly_order) {
+  if (poly_order == 1) {
+    TEST_CHECK( gkyl_compare(fvdgv1_d[0], 0.7071067811865475*(fv1_d[1]*gv1_d[1]+fv1_d[0]*gv1_d[0]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv1_d[1], 0.7071067811865475*(fv1_d[0]*gv1_d[1]+gv1_d[0]*fv1_d[1]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv2_d[0], 0.7071067811865475*(fv2_d[3]*gv2_d[3]+fv2_d[2]*gv2_d[2]+fv2_d[1]*gv2_d[1]+fv2_d[0]*gv2_d[0]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv2_d[1], 0.7071067811865475*(fv2_d[2]*gv2_d[3]+gv2_d[2]*fv2_d[3]+fv2_d[0]*gv2_d[1]+gv2_d[0]*fv2_d[1]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv3_d[0], 0.7071067811865475*(fv3_d[5]*gv3_d[5]+fv3_d[4]*gv3_d[4]+fv3_d[3]*gv3_d[3]+fv3_d[2]*gv3_d[2]+fv3_d[1]*gv3_d[1]+fv3_d[0]*gv3_d[0]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv3_d[1], 0.7071067811865475*(fv3_d[4]*gv3_d[5]+gv3_d[4]*fv3_d[5]+fv3_d[2]*gv3_d[3]+gv3_d[2]*fv3_d[3]+fv3_d[0]*gv3_d[1]+gv3_d[0]*fv3_d[1]), 1e-12) );
+  } else if (poly_order == 2) {
+    TEST_CHECK( gkyl_compare(fvdgv1_d[0], 0.7071067811865475*(fv1_d[2]*gv1_d[2]+fv1_d[1]*gv1_d[1]+fv1_d[0]*gv1_d[0]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv1_d[1], 0.1414213562373095*(4.47213595499958*fv1_d[1]*gv1_d[2]+4.47213595499958*gv1_d[1]*fv1_d[2]+5.0*fv1_d[0]*gv1_d[1]+5.0*gv1_d[0]*fv1_d[1]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv1_d[2], 0.02020305089104421*((22.3606797749979*fv1_d[2]+35.0*fv1_d[0])*gv1_d[2]+35.0*gv1_d[0]*fv1_d[2]+31.30495168499706*fv1_d[1]*gv1_d[1]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv2_d[0], 0.7071067811865475*(fv2_d[5]*gv2_d[5]+fv2_d[4]*gv2_d[4]+fv2_d[3]*gv2_d[3]+fv2_d[2]*gv2_d[2]+fv2_d[1]*gv2_d[1]+fv2_d[0]*gv2_d[0]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv2_d[1], 0.1414213562373095*(4.47213595499958*fv2_d[4]*gv2_d[5]+4.47213595499958*gv2_d[4]*fv2_d[5]+5.0*fv2_d[3]*gv2_d[4]+5.0*gv2_d[3]*fv2_d[4]+4.47213595499958*fv2_d[1]*gv2_d[2]+4.47213595499958*gv2_d[1]*fv2_d[2]+5.0*fv2_d[0]*gv2_d[1]+5.0*gv2_d[0]*fv2_d[1]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv2_d[2], 0.02020305089104421*((22.3606797749979*fv2_d[5]+35.0*fv2_d[3])*gv2_d[5]+35.0*gv2_d[3]*fv2_d[5]+31.30495168499706*fv2_d[4]*gv2_d[4]+(22.3606797749979*fv2_d[2]+35.0*fv2_d[0])*gv2_d[2]+35.0*gv2_d[0]*fv2_d[2]+31.30495168499706*fv2_d[1]*gv2_d[1]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv3_d[0], 0.7071067811865475*(fv3_d[8]*gv3_d[8]+fv3_d[7]*gv3_d[7]+fv3_d[6]*gv3_d[6]+fv3_d[5]*gv3_d[5]+fv3_d[4]*gv3_d[4]+fv3_d[3]*gv3_d[3]+fv3_d[2]*gv3_d[2]+fv3_d[1]*gv3_d[1]+fv3_d[0]*gv3_d[0]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv3_d[1], 0.1414213562373095*(4.47213595499958*fv3_d[7]*gv3_d[8]+4.47213595499958*gv3_d[7]*fv3_d[8]+5.0*fv3_d[6]*gv3_d[7]+5.0*gv3_d[6]*fv3_d[7]+4.47213595499958*fv3_d[4]*gv3_d[5]+4.47213595499958*gv3_d[4]*fv3_d[5]+5.0*fv3_d[3]*gv3_d[4]+5.0*gv3_d[3]*fv3_d[4]+4.47213595499958*fv3_d[1]*gv3_d[2]+4.47213595499958*gv3_d[1]*fv3_d[2]+5.0*fv3_d[0]*gv3_d[1]+5.0*gv3_d[0]*fv3_d[1]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv3_d[2], 0.02020305089104421*((22.3606797749979*fv3_d[8]+35.0*fv3_d[6])*gv3_d[8]+35.0*gv3_d[6]*fv3_d[8]+31.30495168499706*fv3_d[7]*gv3_d[7]+(22.3606797749979*fv3_d[5]+35.0*fv3_d[3])*gv3_d[5]+35.0*gv3_d[3]*fv3_d[5]+31.30495168499706*fv3_d[4]*gv3_d[4]+(22.3606797749979*fv3_d[2]+35.0*fv3_d[0])*gv3_d[2]+35.0*gv3_d[0]*fv3_d[2]+31.30495168499706*fv3_d[1]*gv3_d[1]), 1e-12) );
+  }
+  return;
 }
 
 void
@@ -37,6 +89,11 @@ test_1d(int poly_order, bool use_gpu)
   // projection updater for dist-function
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_1d, NULL);
   gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_1d, NULL);
+  // projection updaters for vector fields.
+  gkyl_proj_on_basis *projfv2 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, fv2_1d, NULL);
+  gkyl_proj_on_basis *projgv2 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, gv2_1d, NULL);
+  gkyl_proj_on_basis *projfv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, fv3_1d, NULL);
+  gkyl_proj_on_basis *projgv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, gv3_1d, NULL);
 
   // create array range: no ghost-cells in velocity space
   int nghost[GKYL_MAX_DIM] = { 0 };
@@ -67,20 +124,71 @@ test_1d(int poly_order, bool use_gpu)
   gkyl_array_clear(f_bar, 0.0);
   gkyl_array_clear(g_bar, 0.0);
 
+  // Vector fields for dot product.
+  struct gkyl_array *fv1 = gkyl_array_new(GKYL_DOUBLE, 1*basis.num_basis, arr_range.volume);
+  struct gkyl_array *gv1 = gkyl_array_new(GKYL_DOUBLE, 1*basis.num_basis, arr_range.volume);
+  struct gkyl_array *fv2 = gkyl_array_new(GKYL_DOUBLE, 2*basis.num_basis, arr_range.volume);
+  struct gkyl_array *gv2 = gkyl_array_new(GKYL_DOUBLE, 2*basis.num_basis, arr_range.volume);
+  struct gkyl_array *fv3 = gkyl_array_new(GKYL_DOUBLE, 3*basis.num_basis, arr_range.volume);
+  struct gkyl_array *gv3 = gkyl_array_new(GKYL_DOUBLE, 3*basis.num_basis, arr_range.volume);
+  struct gkyl_array *fv1_cu, *gv1_cu, *fv2_cu, *gv2_cu, *fv3_cu, *gv3_cu;
+  if (use_gpu) {
+    fv1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1*basis.num_basis, arr_range.volume);
+    gv1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1*basis.num_basis, arr_range.volume);
+    fv2_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*basis.num_basis, arr_range.volume);
+    gv2_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*basis.num_basis, arr_range.volume);
+    fv3_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, arr_range.volume);
+    gv3_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, arr_range.volume);
+  }
+
+  // project vector fields on basis.
+  gkyl_proj_on_basis_advance(projDistf, 0.0, &arr_range, fv1);
+  gkyl_proj_on_basis_advance(projDistg, 0.0, &arr_range, gv1);
+  gkyl_proj_on_basis_advance(projfv2, 0.0, &arr_range, fv2);
+  gkyl_proj_on_basis_advance(projgv2, 0.0, &arr_range, gv2);
+  gkyl_proj_on_basis_advance(projfv3, 0.0, &arr_range, fv3);
+  gkyl_proj_on_basis_advance(projgv3, 0.0, &arr_range, gv3);
+  if (use_gpu) {
+    // copy host array to device
+    gkyl_array_copy(fv1_cu, fv1);
+    gkyl_array_copy(gv1_cu, gv1);
+    gkyl_array_copy(fv2_cu, fv2);
+    gkyl_array_copy(gv2_cu, gv2);
+    gkyl_array_copy(fv3_cu, fv3);
+    gkyl_array_copy(gv3_cu, gv3);
+  }
+
   struct gkyl_array *h, *f_bar_cu, *g_bar_cu, *h_cu;
+  struct gkyl_array *fvdgv1, *fvdgv2, *fvdgv3, *fvdgv1_cu, *fvdgv2_cu, *fvdgv3_cu;
   if (use_gpu) {
     f_bar_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
     g_bar_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
     gkyl_array_clear(f_bar_cu, 0.0);
     gkyl_array_clear(g_bar_cu, 0.0);
 
-    // Product array only needs to be initialized on GPU
+    // Product array only needs to be initialized on GPU.
     h_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
     gkyl_array_clear(h_cu, 0.0);
+
+    // Dot product of fv and gv on the GPU.
+    fvdgv1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+    fvdgv2_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+    fvdgv3_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+    gkyl_array_clear(fvdgv1_cu, 0.0);
+    gkyl_array_clear(fvdgv2_cu, 0.0);
+    gkyl_array_clear(fvdgv3_cu, 0.0);
   } else {
     h = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
     gkyl_array_clear(h, 0.0);
   }
+
+  // Dot product of fv and gv.
+  fvdgv1 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  fvdgv2 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  fvdgv3 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(fvdgv1, 0.0);
+  gkyl_array_clear(fvdgv2, 0.0);
+  gkyl_array_clear(fvdgv3, 0.0);
 
   gkyl_dg_bin_op_mem *mem;
   if (use_gpu) {
@@ -93,10 +201,19 @@ test_1d(int poly_order, bool use_gpu)
     gkyl_dg_div_op(mem, basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu);
     // g_bar = h/f = g
     gkyl_dg_div_op(mem, basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu);
+
+    // fvdgv = fv . gv
+    gkyl_dg_dot_product_op(basis, fvdgv1_cu, fv1_cu, gv1_cu);
+    gkyl_dg_dot_product_op(basis, fvdgv2_cu, fv2_cu, gv2_cu);
+    gkyl_dg_dot_product_op(basis, fvdgv3_cu, fv3_cu, gv3_cu);
   
     // copy from device and check if things are ok
     gkyl_array_copy(f_bar, f_bar_cu);
     gkyl_array_copy(g_bar, g_bar_cu);
+    gkyl_array_copy(g_bar, g_bar_cu);
+    gkyl_array_copy(fvdgv1, fvdgv1_cu);
+    gkyl_array_copy(fvdgv2, fvdgv2_cu);
+    gkyl_array_copy(fvdgv3, fvdgv3_cu);
   } else {
     // allocate memory
     mem = gkyl_dg_bin_op_mem_new(f_bar->size, basis.num_basis);
@@ -107,6 +224,11 @@ test_1d(int poly_order, bool use_gpu)
     gkyl_dg_div_op(mem, basis, 0, f_bar, 0, h, 0, distg);
     // g_bar = h/f = g
     gkyl_dg_div_op(mem, basis, 0, g_bar, 0, h, 0, distf);
+
+    // fvdgv = fv . gv
+    gkyl_dg_dot_product_op(basis, fvdgv1, fv1, gv1);
+    gkyl_dg_dot_product_op(basis, fvdgv2, fv2, gv2);
+    gkyl_dg_dot_product_op(basis, fvdgv3, fv3, gv3);
   }
 
   for (size_t i=0; i<arr_range.volume; ++i) {
@@ -118,6 +240,18 @@ test_1d(int poly_order, bool use_gpu)
       TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-12) );
       TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-12) );
     }
+    const double *fv1_d = gkyl_array_cfetch(fv1, i);
+    const double *gv1_d = gkyl_array_cfetch(gv1, i);
+    const double *fvdgv1_d = gkyl_array_cfetch(fvdgv1, i);
+    const double *fv2_d = gkyl_array_cfetch(fv2, i);
+    const double *gv2_d = gkyl_array_cfetch(gv2, i);
+    const double *fvdgv2_d = gkyl_array_cfetch(fvdgv2, i);
+    const double *fv3_d = gkyl_array_cfetch(fv3, i);
+    const double *gv3_d = gkyl_array_cfetch(gv3, i);
+    const double *fvdgv3_d = gkyl_array_cfetch(fvdgv3, i);
+    check_dot_product_1d(fv1_d, gv1_d, fvdgv1_d,
+                         fv2_d, gv2_d, fvdgv2_d,
+                         fv3_d, gv3_d, fvdgv3_d, poly_order);
   }
 
   // Test range methods
@@ -132,9 +266,20 @@ test_1d(int poly_order, bool use_gpu)
     // g_bar = h/f = g
     gkyl_dg_div_op_range(mem, basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu, &arr_range);
 
+    // fvdgv = fv . gv
+    gkyl_array_clear(fvdgv1_cu, 0.0);
+    gkyl_array_clear(fvdgv2_cu, 0.0);
+    gkyl_array_clear(fvdgv3_cu, 0.0);
+    gkyl_dg_dot_product_op_range(basis, fvdgv1_cu, fv1_cu, gv1_cu, &arr_range);
+    gkyl_dg_dot_product_op_range(basis, fvdgv2_cu, fv2_cu, gv2_cu, &arr_range);
+    gkyl_dg_dot_product_op_range(basis, fvdgv3_cu, fv3_cu, gv3_cu, &arr_range);
+  
     // copy from device and check if things are ok
     gkyl_array_copy(f_bar, f_bar_cu);
     gkyl_array_copy(g_bar, g_bar_cu);
+    gkyl_array_copy(fvdgv1, fvdgv1_cu);
+    gkyl_array_copy(fvdgv2, fvdgv2_cu);
+    gkyl_array_copy(fvdgv3, fvdgv3_cu);
   } else {
     gkyl_array_clear(f_bar, 0.0);
     gkyl_array_clear(g_bar, 0.0);
@@ -145,6 +290,14 @@ test_1d(int poly_order, bool use_gpu)
     gkyl_dg_div_op_range(mem, basis, 0, f_bar, 0, h, 0, distg, &arr_range);
     // g_bar = h/f = g
     gkyl_dg_div_op_range(mem, basis, 0, g_bar, 0, h, 0, distf, &arr_range);
+
+    // fvdgv = fv . gv
+    gkyl_array_clear(fvdgv1, 0.0);
+    gkyl_array_clear(fvdgv2, 0.0);
+    gkyl_array_clear(fvdgv3, 0.0);
+    gkyl_dg_dot_product_op_range(basis, fvdgv1, fv1, gv1, &arr_range);
+    gkyl_dg_dot_product_op_range(basis, fvdgv2, fv2, gv2, &arr_range);
+    gkyl_dg_dot_product_op_range(basis, fvdgv3, fv3, gv3, &arr_range);
   }
 
   struct gkyl_range_iter iter;
@@ -159,6 +312,18 @@ test_1d(int poly_order, bool use_gpu)
       TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-12) );
       TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-12) );
     }
+    const double *fv1_d = gkyl_array_cfetch(fv1, loc);
+    const double *gv1_d = gkyl_array_cfetch(gv1, loc);
+    const double *fvdgv1_d = gkyl_array_cfetch(fvdgv1, loc);
+    const double *fv2_d = gkyl_array_cfetch(fv2, loc);
+    const double *gv2_d = gkyl_array_cfetch(gv2, loc);
+    const double *fvdgv2_d = gkyl_array_cfetch(fvdgv2, loc);
+    const double *fv3_d = gkyl_array_cfetch(fv3, loc);
+    const double *gv3_d = gkyl_array_cfetch(gv3, loc);
+    const double *fvdgv3_d = gkyl_array_cfetch(fvdgv3, loc);
+    check_dot_product_1d(fv1_d, gv1_d, fvdgv1_d,
+                         fv2_d, gv2_d, fvdgv2_d,
+                         fv3_d, gv3_d, fvdgv3_d, poly_order);
   }
 
   // mean ops
@@ -198,10 +363,23 @@ test_1d(int poly_order, bool use_gpu)
   
   gkyl_proj_on_basis_release(projDistf);
   gkyl_proj_on_basis_release(projDistg);
+  gkyl_proj_on_basis_release(projfv2);
+  gkyl_proj_on_basis_release(projgv2);
+  gkyl_proj_on_basis_release(projfv3);
+  gkyl_proj_on_basis_release(projgv3);
   gkyl_array_release(distf);
   gkyl_array_release(distg);
   gkyl_array_release(f_bar);
   gkyl_array_release(g_bar);
+  gkyl_array_release(fv1);
+  gkyl_array_release(gv1);
+  gkyl_array_release(fv2);
+  gkyl_array_release(gv2);
+  gkyl_array_release(fv3);
+  gkyl_array_release(gv3);
+  gkyl_array_release(fvdgv1);
+  gkyl_array_release(fvdgv2);
+  gkyl_array_release(fvdgv3);
   gkyl_dg_bin_op_mem_release(mem);
   if (use_gpu) {
     gkyl_array_release(distf_cu);
@@ -209,6 +387,9 @@ test_1d(int poly_order, bool use_gpu)
     gkyl_array_release(f_bar_cu);
     gkyl_array_release(g_bar_cu);
     gkyl_array_release(h_cu);
+    gkyl_array_release(fvdgv1_cu);
+    gkyl_array_release(fvdgv2_cu);
+    gkyl_array_release(fvdgv3_cu);
   } else {
     gkyl_array_release(h);
   }
@@ -226,12 +407,76 @@ void f_2d(double t, const double *xn, double* restrict fout, void *ctx)
   double y = xn[1];
   fout[0] = 2 + x + y;
 }
-
 void g_2d(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
   fout[0] = 2*x*y + 8;
+}
+
+void fv2_2d(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  double y = xn[1];
+  fout[0] = 2 + x + y;
+  fout[1] = 1 - x + y;
+}
+void gv2_2d(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  double y = xn[1];
+  fout[0] = 2*x*y + 8;
+  fout[1] = x*y - 4;
+}
+
+void fv3_2d(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  double y = xn[1];
+  fout[0] = 2 + x + y;
+  fout[1] = 1 - x + y;
+  fout[2] = 0.5 + x - y;
+}
+void gv3_2d(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  double y = xn[1];
+  fout[0] = 2*x*y + 8;
+  fout[1] = x*y - 4;
+  fout[2] = 0.5*x*y + 2;
+}
+
+void check_dot_product_2d(const double *fv2_d, const double *gv2_d, const double *fvdgv2_d,
+                          const double *fv3_d, const double *gv3_d, const double *fvdgv3_d,
+                          int poly_order) {
+  if (poly_order == 1) {
+    TEST_CHECK( gkyl_compare(fvdgv2_d[0], 0.5*(fv2_d[7]*gv2_d[7]+fv2_d[6]*gv2_d[6]+fv2_d[5]*gv2_d[5]+fv2_d[4]*gv2_d[4]+fv2_d[3]*gv2_d[3]+fv2_d[2]*gv2_d[2]+fv2_d[1]*gv2_d[1]+fv2_d[0]*gv2_d[0]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv2_d[1], 0.5*(fv2_d[6]*gv2_d[7]+gv2_d[6]*fv2_d[7]+fv2_d[4]*gv2_d[5]+gv2_d[4]*fv2_d[5]+fv2_d[2]*gv2_d[3]+gv2_d[2]*fv2_d[3]+fv2_d[0]*gv2_d[1]+gv2_d[0]*fv2_d[1]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv2_d[2], 0.5*(fv2_d[5]*gv2_d[7]+gv2_d[5]*fv2_d[7]+fv2_d[4]*gv2_d[6]+gv2_d[4]*fv2_d[6]+fv2_d[1]*gv2_d[3]+gv2_d[1]*fv2_d[3]+fv2_d[0]*gv2_d[2]+gv2_d[0]*fv2_d[2]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv2_d[3], 0.5*(fv2_d[4]*gv2_d[7]+gv2_d[4]*fv2_d[7]+fv2_d[5]*gv2_d[6]+gv2_d[5]*fv2_d[6]+fv2_d[0]*gv2_d[3]+gv2_d[0]*fv2_d[3]+fv2_d[1]*gv2_d[2]+gv2_d[1]*fv2_d[2]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv3_d[0], 0.5*(fv3_d[11]*gv3_d[11]+fv3_d[10]*gv3_d[10]+fv3_d[9]*gv3_d[9]+fv3_d[8]*gv3_d[8]+fv3_d[7]*gv3_d[7]+fv3_d[6]*gv3_d[6]+fv3_d[5]*gv3_d[5]+fv3_d[4]*gv3_d[4]+fv3_d[3]*gv3_d[3]+fv3_d[2]*gv3_d[2]+fv3_d[1]*gv3_d[1]+fv3_d[0]*gv3_d[0]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv3_d[1], 0.5*(fv3_d[10]*gv3_d[11]+gv3_d[10]*fv3_d[11]+fv3_d[8]*gv3_d[9]+gv3_d[8]*fv3_d[9]+fv3_d[6]*gv3_d[7]+gv3_d[6]*fv3_d[7]+fv3_d[4]*gv3_d[5]+gv3_d[4]*fv3_d[5]+fv3_d[2]*gv3_d[3]+gv3_d[2]*fv3_d[3]+fv3_d[0]*gv3_d[1]+gv3_d[0]*fv3_d[1]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv3_d[2], 0.5*(fv3_d[9]*gv3_d[11]+gv3_d[9]*fv3_d[11]+fv3_d[8]*gv3_d[10]+gv3_d[8]*fv3_d[10]+fv3_d[5]*gv3_d[7]+gv3_d[5]*fv3_d[7]+fv3_d[4]*gv3_d[6]+gv3_d[4]*fv3_d[6]+fv3_d[1]*gv3_d[3]+gv3_d[1]*fv3_d[3]+fv3_d[0]*gv3_d[2]+gv3_d[0]*fv3_d[2]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv3_d[3], 0.5*(fv3_d[8]*gv3_d[11]+gv3_d[8]*fv3_d[11]+fv3_d[9]*gv3_d[10]+gv3_d[9]*fv3_d[10]+fv3_d[4]*gv3_d[7]+gv3_d[4]*fv3_d[7]+fv3_d[5]*gv3_d[6]+gv3_d[5]*fv3_d[6]+fv3_d[0]*gv3_d[3]+gv3_d[0]*fv3_d[3]+fv3_d[1]*gv3_d[2]+gv3_d[1]*fv3_d[2]), 1e-12) );
+  } else if (poly_order == 2) {
+    TEST_CHECK( gkyl_compare(fvdgv2_d[0], 0.5*(fv2_d[15]*gv2_d[15]+fv2_d[14]*gv2_d[14]+fv2_d[13]*gv2_d[13]+fv2_d[12]*gv2_d[12]+fv2_d[11]*gv2_d[11]+fv2_d[10]*gv2_d[10]+fv2_d[9]*gv2_d[9]+fv2_d[8]*gv2_d[8]+fv2_d[7]*gv2_d[7]+fv2_d[6]*gv2_d[6]+fv2_d[5]*gv2_d[5]+fv2_d[4]*gv2_d[4]+fv2_d[3]*gv2_d[3]+fv2_d[2]*gv2_d[2]+fv2_d[1]*gv2_d[1]+fv2_d[0]*gv2_d[0]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv2_d[1], 0.03333333333333333*(15.0*fv2_d[13]*gv2_d[15]+15.0*gv2_d[13]*fv2_d[15]+13.41640786499874*fv2_d[11]*gv2_d[14]+13.41640786499874*gv2_d[11]*fv2_d[14]+13.41640786499874*fv2_d[9]*gv2_d[12]+13.41640786499874*gv2_d[9]*fv2_d[12]+15.0*fv2_d[10]*gv2_d[11]+15.0*gv2_d[10]*fv2_d[11]+15.0*fv2_d[8]*gv2_d[9]+15.0*gv2_d[8]*fv2_d[9]+15.0*fv2_d[5]*gv2_d[7]+15.0*gv2_d[5]*fv2_d[7]+13.41640786499874*fv2_d[3]*gv2_d[6]+13.41640786499874*gv2_d[3]*fv2_d[6]+13.41640786499874*fv2_d[1]*gv2_d[4]+13.41640786499874*gv2_d[1]*fv2_d[4]+15.0*fv2_d[2]*gv2_d[3]+15.0*gv2_d[2]*fv2_d[3]+15.0*fv2_d[0]*gv2_d[1]+15.0*gv2_d[0]*fv2_d[1]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv2_d[2], 0.03333333333333333*(13.41640786499874*fv2_d[11]*gv2_d[15]+13.41640786499874*gv2_d[11]*fv2_d[15]+15.0*fv2_d[12]*gv2_d[14]+15.0*gv2_d[12]*fv2_d[14]+13.41640786499874*fv2_d[10]*gv2_d[13]+13.41640786499874*gv2_d[10]*fv2_d[13]+15.0*fv2_d[9]*gv2_d[11]+15.0*gv2_d[9]*fv2_d[11]+15.0*fv2_d[8]*gv2_d[10]+15.0*gv2_d[8]*fv2_d[10]+13.41640786499874*fv2_d[3]*gv2_d[7]+13.41640786499874*gv2_d[3]*fv2_d[7]+15.0*fv2_d[4]*gv2_d[6]+15.0*gv2_d[4]*fv2_d[6]+13.41640786499874*fv2_d[2]*gv2_d[5]+13.41640786499874*gv2_d[2]*fv2_d[5]+15.0*fv2_d[1]*gv2_d[3]+15.0*gv2_d[1]*fv2_d[3]+15.0*fv2_d[0]*gv2_d[2]+15.0*gv2_d[0]*fv2_d[2]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv2_d[3], 0.03333333333333333*((12.0*fv2_d[14]+13.41640786499874*fv2_d[10])*gv2_d[15]+(12.0*gv2_d[14]+13.41640786499874*gv2_d[10])*fv2_d[15]+13.41640786499874*fv2_d[9]*gv2_d[14]+13.41640786499874*gv2_d[9]*fv2_d[14]+13.41640786499874*fv2_d[11]*gv2_d[13]+13.41640786499874*gv2_d[11]*fv2_d[13]+13.41640786499874*fv2_d[11]*gv2_d[12]+13.41640786499874*gv2_d[11]*fv2_d[12]+15.0*fv2_d[8]*gv2_d[11]+15.0*gv2_d[8]*fv2_d[11]+15.0*fv2_d[9]*gv2_d[10]+15.0*gv2_d[9]*fv2_d[10]+(12.0*fv2_d[6]+13.41640786499874*fv2_d[2])*gv2_d[7]+(12.0*gv2_d[6]+13.41640786499874*gv2_d[2])*fv2_d[7]+13.41640786499874*fv2_d[1]*gv2_d[6]+13.41640786499874*gv2_d[1]*fv2_d[6]+13.41640786499874*fv2_d[3]*gv2_d[5]+13.41640786499874*gv2_d[3]*fv2_d[5]+13.41640786499874*fv2_d[3]*gv2_d[4]+13.41640786499874*gv2_d[3]*fv2_d[4]+15.0*fv2_d[0]*gv2_d[3]+15.0*gv2_d[0]*fv2_d[3]+15.0*fv2_d[1]*gv2_d[2]+15.0*gv2_d[1]*fv2_d[2]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv2_d[4], 0.004761904761904762*(93.91485505499116*fv2_d[15]*gv2_d[15]+(67.0820393249937*fv2_d[14]+105.0*fv2_d[10])*gv2_d[14]+105.0*gv2_d[10]*fv2_d[14]+(67.0820393249937*fv2_d[12]+105.0*fv2_d[8])*gv2_d[12]+105.0*gv2_d[8]*fv2_d[12]+93.91485505499116*fv2_d[11]*gv2_d[11]+93.91485505499116*fv2_d[9]*gv2_d[9]+93.91485505499116*fv2_d[7]*gv2_d[7]+(67.0820393249937*fv2_d[6]+105.0*fv2_d[2])*gv2_d[6]+105.0*gv2_d[2]*fv2_d[6]+(67.0820393249937*fv2_d[4]+105.0*fv2_d[0])*gv2_d[4]+105.0*gv2_d[0]*fv2_d[4]+93.91485505499116*fv2_d[3]*gv2_d[3]+93.91485505499116*fv2_d[1]*gv2_d[1]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv2_d[5], 0.004761904761904762*((67.0820393249937*fv2_d[15]+105.0*fv2_d[9])*gv2_d[15]+105.0*gv2_d[9]*fv2_d[15]+93.91485505499116*fv2_d[14]*gv2_d[14]+(67.0820393249937*fv2_d[13]+105.0*fv2_d[8])*gv2_d[13]+105.0*gv2_d[8]*fv2_d[13]+93.91485505499116*fv2_d[11]*gv2_d[11]+93.91485505499116*fv2_d[10]*gv2_d[10]+(67.0820393249937*fv2_d[7]+105.0*fv2_d[1])*gv2_d[7]+105.0*gv2_d[1]*fv2_d[7]+93.91485505499116*fv2_d[6]*gv2_d[6]+(67.0820393249937*fv2_d[5]+105.0*fv2_d[0])*gv2_d[5]+105.0*gv2_d[0]*fv2_d[5]+93.91485505499116*fv2_d[3]*gv2_d[3]+93.91485505499116*fv2_d[2]*gv2_d[2]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv2_d[6], 0.004761904761904762*(84.0*fv2_d[11]*gv2_d[15]+84.0*gv2_d[11]*fv2_d[15]+(93.91485505499116*fv2_d[13]+67.0820393249937*fv2_d[12]+105.0*fv2_d[8])*gv2_d[14]+(93.91485505499116*gv2_d[13]+67.0820393249937*gv2_d[12]+105.0*gv2_d[8])*fv2_d[14]+105.0*fv2_d[10]*gv2_d[12]+105.0*gv2_d[10]*fv2_d[12]+93.91485505499116*fv2_d[9]*gv2_d[11]+93.91485505499116*gv2_d[9]*fv2_d[11]+84.0*fv2_d[3]*gv2_d[7]+84.0*gv2_d[3]*fv2_d[7]+(93.91485505499116*fv2_d[5]+67.0820393249937*fv2_d[4]+105.0*fv2_d[0])*gv2_d[6]+(93.91485505499116*gv2_d[5]+67.0820393249937*gv2_d[4]+105.0*gv2_d[0])*fv2_d[6]+105.0*fv2_d[2]*gv2_d[4]+105.0*gv2_d[2]*fv2_d[4]+93.91485505499116*fv2_d[1]*gv2_d[3]+93.91485505499116*gv2_d[1]*fv2_d[3]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv2_d[7], 0.004761904761904762*((67.0820393249937*fv2_d[13]+93.91485505499116*fv2_d[12]+105.0*fv2_d[8])*gv2_d[15]+(67.0820393249937*gv2_d[13]+93.91485505499116*gv2_d[12]+105.0*gv2_d[8])*fv2_d[15]+84.0*fv2_d[11]*gv2_d[14]+84.0*gv2_d[11]*fv2_d[14]+105.0*fv2_d[9]*gv2_d[13]+105.0*gv2_d[9]*fv2_d[13]+93.91485505499116*fv2_d[10]*gv2_d[11]+93.91485505499116*gv2_d[10]*fv2_d[11]+(67.0820393249937*fv2_d[5]+93.91485505499116*fv2_d[4]+105.0*fv2_d[0])*gv2_d[7]+(67.0820393249937*gv2_d[5]+93.91485505499116*gv2_d[4]+105.0*gv2_d[0])*fv2_d[7]+84.0*fv2_d[3]*gv2_d[6]+84.0*gv2_d[3]*fv2_d[6]+105.0*fv2_d[1]*gv2_d[5]+105.0*gv2_d[1]*fv2_d[5]+93.91485505499116*fv2_d[2]*gv2_d[3]+93.91485505499116*gv2_d[2]*fv2_d[3]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv3_d[0], 0.5*(fv3_d[23]*gv3_d[23]+fv3_d[22]*gv3_d[22]+fv3_d[21]*gv3_d[21]+fv3_d[20]*gv3_d[20]+fv3_d[19]*gv3_d[19]+fv3_d[18]*gv3_d[18]+fv3_d[17]*gv3_d[17]+fv3_d[16]*gv3_d[16]+fv3_d[15]*gv3_d[15]+fv3_d[14]*gv3_d[14]+fv3_d[13]*gv3_d[13]+fv3_d[12]*gv3_d[12]+fv3_d[11]*gv3_d[11]+fv3_d[10]*gv3_d[10]+fv3_d[9]*gv3_d[9]+fv3_d[8]*gv3_d[8]+fv3_d[7]*gv3_d[7]+fv3_d[6]*gv3_d[6]+fv3_d[5]*gv3_d[5]+fv3_d[4]*gv3_d[4]+fv3_d[3]*gv3_d[3]+fv3_d[2]*gv3_d[2]+fv3_d[1]*gv3_d[1]+fv3_d[0]*gv3_d[0]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv3_d[1], 0.03333333333333333*(15.0*fv3_d[21]*gv3_d[23]+15.0*gv3_d[21]*fv3_d[23]+13.41640786499874*fv3_d[19]*gv3_d[22]+13.41640786499874*gv3_d[19]*fv3_d[22]+13.41640786499874*fv3_d[17]*gv3_d[20]+13.41640786499874*gv3_d[17]*fv3_d[20]+15.0*fv3_d[18]*gv3_d[19]+15.0*gv3_d[18]*fv3_d[19]+15.0*fv3_d[16]*gv3_d[17]+15.0*gv3_d[16]*fv3_d[17]+15.0*fv3_d[13]*gv3_d[15]+15.0*gv3_d[13]*fv3_d[15]+13.41640786499874*fv3_d[11]*gv3_d[14]+13.41640786499874*gv3_d[11]*fv3_d[14]+13.41640786499874*fv3_d[9]*gv3_d[12]+13.41640786499874*gv3_d[9]*fv3_d[12]+15.0*fv3_d[10]*gv3_d[11]+15.0*gv3_d[10]*fv3_d[11]+15.0*fv3_d[8]*gv3_d[9]+15.0*gv3_d[8]*fv3_d[9]+15.0*fv3_d[5]*gv3_d[7]+15.0*gv3_d[5]*fv3_d[7]+13.41640786499874*fv3_d[3]*gv3_d[6]+13.41640786499874*gv3_d[3]*fv3_d[6]+13.41640786499874*fv3_d[1]*gv3_d[4]+13.41640786499874*gv3_d[1]*fv3_d[4]+15.0*fv3_d[2]*gv3_d[3]+15.0*gv3_d[2]*fv3_d[3]+15.0*fv3_d[0]*gv3_d[1]+15.0*gv3_d[0]*fv3_d[1]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv3_d[2], 0.03333333333333333*(13.41640786499874*fv3_d[19]*gv3_d[23]+13.41640786499874*gv3_d[19]*fv3_d[23]+15.0*fv3_d[20]*gv3_d[22]+15.0*gv3_d[20]*fv3_d[22]+13.41640786499874*fv3_d[18]*gv3_d[21]+13.41640786499874*gv3_d[18]*fv3_d[21]+15.0*fv3_d[17]*gv3_d[19]+15.0*gv3_d[17]*fv3_d[19]+15.0*fv3_d[16]*gv3_d[18]+15.0*gv3_d[16]*fv3_d[18]+13.41640786499874*fv3_d[11]*gv3_d[15]+13.41640786499874*gv3_d[11]*fv3_d[15]+15.0*fv3_d[12]*gv3_d[14]+15.0*gv3_d[12]*fv3_d[14]+13.41640786499874*fv3_d[10]*gv3_d[13]+13.41640786499874*gv3_d[10]*fv3_d[13]+15.0*fv3_d[9]*gv3_d[11]+15.0*gv3_d[9]*fv3_d[11]+15.0*fv3_d[8]*gv3_d[10]+15.0*gv3_d[8]*fv3_d[10]+13.41640786499874*fv3_d[3]*gv3_d[7]+13.41640786499874*gv3_d[3]*fv3_d[7]+15.0*fv3_d[4]*gv3_d[6]+15.0*gv3_d[4]*fv3_d[6]+13.41640786499874*fv3_d[2]*gv3_d[5]+13.41640786499874*gv3_d[2]*fv3_d[5]+15.0*fv3_d[1]*gv3_d[3]+15.0*gv3_d[1]*fv3_d[3]+15.0*fv3_d[0]*gv3_d[2]+15.0*gv3_d[0]*fv3_d[2]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv3_d[3], 0.03333333333333333*((12.0*fv3_d[22]+13.41640786499874*fv3_d[18])*gv3_d[23]+(12.0*gv3_d[22]+13.41640786499874*gv3_d[18])*fv3_d[23]+13.41640786499874*fv3_d[17]*gv3_d[22]+13.41640786499874*gv3_d[17]*fv3_d[22]+13.41640786499874*fv3_d[19]*gv3_d[21]+13.41640786499874*gv3_d[19]*fv3_d[21]+13.41640786499874*fv3_d[19]*gv3_d[20]+13.41640786499874*gv3_d[19]*fv3_d[20]+15.0*fv3_d[16]*gv3_d[19]+15.0*gv3_d[16]*fv3_d[19]+15.0*fv3_d[17]*gv3_d[18]+15.0*gv3_d[17]*fv3_d[18]+(12.0*fv3_d[14]+13.41640786499874*fv3_d[10])*gv3_d[15]+(12.0*gv3_d[14]+13.41640786499874*gv3_d[10])*fv3_d[15]+13.41640786499874*fv3_d[9]*gv3_d[14]+13.41640786499874*gv3_d[9]*fv3_d[14]+13.41640786499874*fv3_d[11]*gv3_d[13]+13.41640786499874*gv3_d[11]*fv3_d[13]+13.41640786499874*fv3_d[11]*gv3_d[12]+13.41640786499874*gv3_d[11]*fv3_d[12]+15.0*fv3_d[8]*gv3_d[11]+15.0*gv3_d[8]*fv3_d[11]+15.0*fv3_d[9]*gv3_d[10]+15.0*gv3_d[9]*fv3_d[10]+(12.0*fv3_d[6]+13.41640786499874*fv3_d[2])*gv3_d[7]+(12.0*gv3_d[6]+13.41640786499874*gv3_d[2])*fv3_d[7]+13.41640786499874*fv3_d[1]*gv3_d[6]+13.41640786499874*gv3_d[1]*fv3_d[6]+13.41640786499874*fv3_d[3]*gv3_d[5]+13.41640786499874*gv3_d[3]*fv3_d[5]+13.41640786499874*fv3_d[3]*gv3_d[4]+13.41640786499874*gv3_d[3]*fv3_d[4]+15.0*fv3_d[0]*gv3_d[3]+15.0*gv3_d[0]*fv3_d[3]+15.0*fv3_d[1]*gv3_d[2]+15.0*gv3_d[1]*fv3_d[2]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv3_d[4], 0.004761904761904762*(93.91485505499116*fv3_d[23]*gv3_d[23]+(67.0820393249937*fv3_d[22]+105.0*fv3_d[18])*gv3_d[22]+105.0*gv3_d[18]*fv3_d[22]+(67.0820393249937*fv3_d[20]+105.0*fv3_d[16])*gv3_d[20]+105.0*gv3_d[16]*fv3_d[20]+93.91485505499116*fv3_d[19]*gv3_d[19]+93.91485505499116*fv3_d[17]*gv3_d[17]+93.91485505499116*fv3_d[15]*gv3_d[15]+(67.0820393249937*fv3_d[14]+105.0*fv3_d[10])*gv3_d[14]+105.0*gv3_d[10]*fv3_d[14]+(67.0820393249937*fv3_d[12]+105.0*fv3_d[8])*gv3_d[12]+105.0*gv3_d[8]*fv3_d[12]+93.91485505499116*fv3_d[11]*gv3_d[11]+93.91485505499116*fv3_d[9]*gv3_d[9]+93.91485505499116*fv3_d[7]*gv3_d[7]+(67.0820393249937*fv3_d[6]+105.0*fv3_d[2])*gv3_d[6]+105.0*gv3_d[2]*fv3_d[6]+(67.0820393249937*fv3_d[4]+105.0*fv3_d[0])*gv3_d[4]+105.0*gv3_d[0]*fv3_d[4]+93.91485505499116*fv3_d[3]*gv3_d[3]+93.91485505499116*fv3_d[1]*gv3_d[1]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv3_d[5], 0.004761904761904762*((67.0820393249937*fv3_d[23]+105.0*fv3_d[17])*gv3_d[23]+105.0*gv3_d[17]*fv3_d[23]+93.91485505499116*fv3_d[22]*gv3_d[22]+(67.0820393249937*fv3_d[21]+105.0*fv3_d[16])*gv3_d[21]+105.0*gv3_d[16]*fv3_d[21]+93.91485505499116*fv3_d[19]*gv3_d[19]+93.91485505499116*fv3_d[18]*gv3_d[18]+(67.0820393249937*fv3_d[15]+105.0*fv3_d[9])*gv3_d[15]+105.0*gv3_d[9]*fv3_d[15]+93.91485505499116*fv3_d[14]*gv3_d[14]+(67.0820393249937*fv3_d[13]+105.0*fv3_d[8])*gv3_d[13]+105.0*gv3_d[8]*fv3_d[13]+93.91485505499116*fv3_d[11]*gv3_d[11]+93.91485505499116*fv3_d[10]*gv3_d[10]+(67.0820393249937*fv3_d[7]+105.0*fv3_d[1])*gv3_d[7]+105.0*gv3_d[1]*fv3_d[7]+93.91485505499116*fv3_d[6]*gv3_d[6]+(67.0820393249937*fv3_d[5]+105.0*fv3_d[0])*gv3_d[5]+105.0*gv3_d[0]*fv3_d[5]+93.91485505499116*fv3_d[3]*gv3_d[3]+93.91485505499116*fv3_d[2]*gv3_d[2]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv3_d[6], 0.004761904761904762*(84.0*fv3_d[19]*gv3_d[23]+84.0*gv3_d[19]*fv3_d[23]+(93.91485505499116*fv3_d[21]+67.0820393249937*fv3_d[20]+105.0*fv3_d[16])*gv3_d[22]+(93.91485505499116*gv3_d[21]+67.0820393249937*gv3_d[20]+105.0*gv3_d[16])*fv3_d[22]+105.0*fv3_d[18]*gv3_d[20]+105.0*gv3_d[18]*fv3_d[20]+93.91485505499116*fv3_d[17]*gv3_d[19]+93.91485505499116*gv3_d[17]*fv3_d[19]+84.0*fv3_d[11]*gv3_d[15]+84.0*gv3_d[11]*fv3_d[15]+(93.91485505499116*fv3_d[13]+67.0820393249937*fv3_d[12]+105.0*fv3_d[8])*gv3_d[14]+(93.91485505499116*gv3_d[13]+67.0820393249937*gv3_d[12]+105.0*gv3_d[8])*fv3_d[14]+105.0*fv3_d[10]*gv3_d[12]+105.0*gv3_d[10]*fv3_d[12]+93.91485505499116*fv3_d[9]*gv3_d[11]+93.91485505499116*gv3_d[9]*fv3_d[11]+84.0*fv3_d[3]*gv3_d[7]+84.0*gv3_d[3]*fv3_d[7]+(93.91485505499116*fv3_d[5]+67.0820393249937*fv3_d[4]+105.0*fv3_d[0])*gv3_d[6]+(93.91485505499116*gv3_d[5]+67.0820393249937*gv3_d[4]+105.0*gv3_d[0])*fv3_d[6]+105.0*fv3_d[2]*gv3_d[4]+105.0*gv3_d[2]*fv3_d[4]+93.91485505499116*fv3_d[1]*gv3_d[3]+93.91485505499116*gv3_d[1]*fv3_d[3]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv3_d[7], 0.004761904761904762*((67.0820393249937*fv3_d[21]+93.91485505499116*fv3_d[20]+105.0*fv3_d[16])*gv3_d[23]+(67.0820393249937*gv3_d[21]+93.91485505499116*gv3_d[20]+105.0*gv3_d[16])*fv3_d[23]+84.0*fv3_d[19]*gv3_d[22]+84.0*gv3_d[19]*fv3_d[22]+105.0*fv3_d[17]*gv3_d[21]+105.0*gv3_d[17]*fv3_d[21]+93.91485505499116*fv3_d[18]*gv3_d[19]+93.91485505499116*gv3_d[18]*fv3_d[19]+(67.0820393249937*fv3_d[13]+93.91485505499116*fv3_d[12]+105.0*fv3_d[8])*gv3_d[15]+(67.0820393249937*gv3_d[13]+93.91485505499116*gv3_d[12]+105.0*gv3_d[8])*fv3_d[15]+84.0*fv3_d[11]*gv3_d[14]+84.0*gv3_d[11]*fv3_d[14]+105.0*fv3_d[9]*gv3_d[13]+105.0*gv3_d[9]*fv3_d[13]+93.91485505499116*fv3_d[10]*gv3_d[11]+93.91485505499116*gv3_d[10]*fv3_d[11]+(67.0820393249937*fv3_d[5]+93.91485505499116*fv3_d[4]+105.0*fv3_d[0])*gv3_d[7]+(67.0820393249937*gv3_d[5]+93.91485505499116*gv3_d[4]+105.0*gv3_d[0])*fv3_d[7]+84.0*fv3_d[3]*gv3_d[6]+84.0*gv3_d[3]*fv3_d[6]+105.0*fv3_d[1]*gv3_d[5]+105.0*gv3_d[1]*fv3_d[5]+93.91485505499116*fv3_d[2]*gv3_d[3]+93.91485505499116*gv3_d[2]*fv3_d[3]), 1e-12) );
+  }
+  return;
 }
 
 void
@@ -250,6 +495,11 @@ test_2d(int poly_order, bool use_gpu)
   // projection updater for dist-function
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_2d, NULL);
   gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_2d, NULL);
+  // projection updaters for vector fields.
+  gkyl_proj_on_basis *projfv2 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, fv2_2d, NULL);
+  gkyl_proj_on_basis *projgv2 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, gv2_2d, NULL);
+  gkyl_proj_on_basis *projfv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, fv3_2d, NULL);
+  gkyl_proj_on_basis *projgv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, gv3_2d, NULL);
 
   // create array range: no ghost-cells in velocity space
   int nghost[GKYL_MAX_DIM] = { 0 };
@@ -304,7 +554,34 @@ test_2d(int poly_order, bool use_gpu)
   gkyl_array_clear(f_bar, 0.0);
   gkyl_array_clear(g_bar, 0.0);
 
+  // Vector fields for dot product.
+  struct gkyl_array *fv2 = gkyl_array_new(GKYL_DOUBLE, 2*basis.num_basis, arr_range.volume);
+  struct gkyl_array *gv2 = gkyl_array_new(GKYL_DOUBLE, 2*basis.num_basis, arr_range.volume);
+  struct gkyl_array *fv3 = gkyl_array_new(GKYL_DOUBLE, 3*basis.num_basis, arr_range.volume);
+  struct gkyl_array *gv3 = gkyl_array_new(GKYL_DOUBLE, 3*basis.num_basis, arr_range.volume);
+  struct gkyl_array *fv2_cu, *gv2_cu, *fv3_cu, *gv3_cu;
+  if (use_gpu) {
+    fv2_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*basis.num_basis, arr_range.volume);
+    gv2_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*basis.num_basis, arr_range.volume);
+    fv3_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, arr_range.volume);
+    gv3_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, arr_range.volume);
+  }
+
+  // project vector fields on basis.
+  gkyl_proj_on_basis_advance(projfv2, 0.0, &arr_range, fv2);
+  gkyl_proj_on_basis_advance(projgv2, 0.0, &arr_range, gv2);
+  gkyl_proj_on_basis_advance(projfv3, 0.0, &arr_range, fv3);
+  gkyl_proj_on_basis_advance(projgv3, 0.0, &arr_range, gv3);
+  if (use_gpu) {
+    // copy host array to device
+    gkyl_array_copy(fv2_cu, fv2);
+    gkyl_array_copy(gv2_cu, gv2);
+    gkyl_array_copy(fv3_cu, fv3);
+    gkyl_array_copy(gv3_cu, gv3);
+  }
+
   struct gkyl_array *h, *f_bar_cu, *g_bar_cu, *w_bar_cu, *h_cu;
+  struct gkyl_array *fvdgv2, *fvdgv3, *fvdgv2_cu, *fvdgv3_cu;
   if (use_gpu) {
     f_bar_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
     g_bar_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
@@ -313,14 +590,26 @@ test_2d(int poly_order, bool use_gpu)
     gkyl_array_clear(g_bar_cu, 0.0);
     gkyl_array_clear(w_bar_cu, 0.0);
 
-    // Product array only needs to be initialized on GPU
+    // Product array only needs to be initialized on GPU.
     h_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
     gkyl_array_clear(h_cu, 0.0);
+
+    // Dot product of fv and gv on the GPU.
+    fvdgv2_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+    fvdgv3_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+    gkyl_array_clear(fvdgv2_cu, 0.0);
+    gkyl_array_clear(fvdgv3_cu, 0.0);
   } else {
     h = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
     gkyl_array_clear(h, 0.0);
   }
   
+  // Dot product of fv and gv.
+  fvdgv2 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  fvdgv3 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(fvdgv2, 0.0);
+  gkyl_array_clear(fvdgv3, 0.0);
+
   gkyl_dg_bin_op_mem *mem;
   if (use_gpu) {
     // allocate memory
@@ -333,9 +622,15 @@ test_2d(int poly_order, bool use_gpu)
     // g_bar = h/f = g
     gkyl_dg_div_op(mem, basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu);
 
+    // fvdgv = fv . gv
+    gkyl_dg_dot_product_op(basis, fvdgv2_cu, fv2_cu, gv2_cu);
+    gkyl_dg_dot_product_op(basis, fvdgv3_cu, fv3_cu, gv3_cu);
+  
     // copy from device and check if things are ok
     gkyl_array_copy(f_bar, f_bar_cu);
     gkyl_array_copy(g_bar, g_bar_cu);
+    gkyl_array_copy(fvdgv2, fvdgv2_cu);
+    gkyl_array_copy(fvdgv3, fvdgv3_cu);
   } else {
     // allocate memory
     mem = gkyl_dg_bin_op_mem_new(f_bar->size, basis.num_basis);
@@ -346,6 +641,10 @@ test_2d(int poly_order, bool use_gpu)
     gkyl_dg_div_op(mem, basis, 0, f_bar, 0, h, 0, distg);
     // g_bar = h/f = g
     gkyl_dg_div_op(mem, basis, 0, g_bar, 0, h, 0, distf);
+
+    // fvdgv = fv . gv
+    gkyl_dg_dot_product_op(basis, fvdgv2, fv2, gv2);
+    gkyl_dg_dot_product_op(basis, fvdgv3, fv3, gv3);
   }
 
   for (size_t i=0; i<arr_range.volume; ++i) {
@@ -357,6 +656,14 @@ test_2d(int poly_order, bool use_gpu)
       TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-12) );
       TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-12) );
     }
+    const double *fv2_d = gkyl_array_cfetch(fv2, i);
+    const double *gv2_d = gkyl_array_cfetch(gv2, i);
+    const double *fvdgv2_d = gkyl_array_cfetch(fvdgv2, i);
+    const double *fv3_d = gkyl_array_cfetch(fv3, i);
+    const double *gv3_d = gkyl_array_cfetch(gv3, i);
+    const double *fvdgv3_d = gkyl_array_cfetch(fvdgv3, i);
+    check_dot_product_2d(fv2_d, gv2_d, fvdgv2_d,
+                         fv3_d, gv3_d, fvdgv3_d, poly_order);
   }
 
   // Test range methods
@@ -374,10 +681,18 @@ test_2d(int poly_order, bool use_gpu)
     // w = cfield*f
     gkyl_dg_mul_conf_phase_op_range(&cbasis, &basis, w_bar_cu, cfield_cu, distf_cu, &arr_crange, &arr_range);
 
+    // fvdgv = fv . gv
+    gkyl_array_clear(fvdgv2_cu, 0.0);
+    gkyl_array_clear(fvdgv3_cu, 0.0);
+    gkyl_dg_dot_product_op_range(basis, fvdgv2_cu, fv2_cu, gv2_cu, &arr_range);
+    gkyl_dg_dot_product_op_range(basis, fvdgv3_cu, fv3_cu, gv3_cu, &arr_range);
+  
     // copy from device and check if things are ok
     gkyl_array_copy(f_bar, f_bar_cu);
     gkyl_array_copy(g_bar, g_bar_cu);
     gkyl_array_copy(w_bar, w_bar_cu);
+    gkyl_array_copy(fvdgv2, fvdgv2_cu);
+    gkyl_array_copy(fvdgv3, fvdgv3_cu);
   } else {
     gkyl_array_clear(f_bar, 0.0);
     gkyl_array_clear(g_bar, 0.0);
@@ -391,6 +706,12 @@ test_2d(int poly_order, bool use_gpu)
     gkyl_dg_div_op_range(mem, basis, 0, g_bar, 0, h, 0, distf, &arr_range);
     // w = cfield*f
     gkyl_dg_mul_conf_phase_op_range(&cbasis, &basis, w_bar, cfield, distf, &arr_crange, &arr_range);
+
+    // fvdgv = fv . gv
+    gkyl_array_clear(fvdgv2, 0.0);
+    gkyl_array_clear(fvdgv3, 0.0);
+    gkyl_dg_dot_product_op_range(basis, fvdgv2, fv2, gv2, &arr_range);
+    gkyl_dg_dot_product_op_range(basis, fvdgv3, fv3, gv3, &arr_range);
   }
 
   struct gkyl_range_iter iter;
@@ -447,6 +768,15 @@ test_2d(int poly_order, bool use_gpu)
       TEST_CHECK( gkyl_compare(0.421637021355784*cf_d[2]*f_d[10]+0.7071067811865475*cf_d[0]*f_d[10]+0.4216370213557839*cf_d[3]*f_d[6]+0.6210590034081187*cf_d[1]*f_d[6]+0.6210590034081187*cf_d[2]*f_d[3]+0.7071067811865474*f_d[2]*cf_d[3], wbar_d[10], 1e-12) );
       TEST_CHECK( gkyl_compare(0.6324555320336759*cf_d[2]*f_d[11]+0.7071067811865475*cf_d[0]*f_d[11]+0.7071067811865474*cf_d[1]*f_d[9], wbar_d[11], 1e-12) );
     }
+
+    const double *fv2_d = gkyl_array_cfetch(fv2, loc);
+    const double *gv2_d = gkyl_array_cfetch(gv2, loc);
+    const double *fvdgv2_d = gkyl_array_cfetch(fvdgv2, loc);
+    const double *fv3_d = gkyl_array_cfetch(fv3, loc);
+    const double *gv3_d = gkyl_array_cfetch(gv3, loc);
+    const double *fvdgv3_d = gkyl_array_cfetch(fvdgv3, loc);
+    check_dot_product_2d(fv2_d, gv2_d, fvdgv2_d,
+                         fv3_d, gv3_d, fvdgv3_d, poly_order);
   }
 
   // mean ops
@@ -486,12 +816,22 @@ test_2d(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_cfield);
   gkyl_proj_on_basis_release(projDistf);
   gkyl_proj_on_basis_release(projDistg);
+  gkyl_proj_on_basis_release(projfv2);
+  gkyl_proj_on_basis_release(projgv2);
+  gkyl_proj_on_basis_release(projfv3);
+  gkyl_proj_on_basis_release(projgv3);
   gkyl_array_release(distf);
   gkyl_array_release(distg);
   gkyl_array_release(f_bar);
   gkyl_array_release(g_bar);
   gkyl_array_release(cfield);
   gkyl_array_release(w_bar);
+  gkyl_array_release(fv2);
+  gkyl_array_release(gv2);
+  gkyl_array_release(fv3);
+  gkyl_array_release(gv3);
+  gkyl_array_release(fvdgv2);
+  gkyl_array_release(fvdgv3);
   gkyl_dg_bin_op_mem_release(mem);  
   if (use_gpu) {
     gkyl_array_release(distf_cu);
@@ -501,6 +841,8 @@ test_2d(int poly_order, bool use_gpu)
     gkyl_array_release(g_bar_cu);
     gkyl_array_release(w_bar_cu);
     gkyl_array_release(h_cu);
+    gkyl_array_release(fvdgv2_cu);
+    gkyl_array_release(fvdgv3_cu);
   } else {
     gkyl_array_release(h);
   }
@@ -519,7 +861,6 @@ void f_3d(double t, const double *xn, double* restrict fout, void *ctx)
   double z = xn[2];
   fout[0] = 5 + x + y + z;
 }
-
 void g_3d(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
@@ -541,6 +882,41 @@ void fg_3d(double t, const double *xn, double* restrict fout, void *ctx)
   fout[0] = f[0]*g[0];
 }
 
+void fv3_3d(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  double y = xn[1];
+  double z = xn[2];
+  fout[0] = 5 + x + y + z;
+  fout[1] = 2.5 - x + y - z;
+  fout[2] = 12.5 + x - y + z;
+}
+void gv3_3d(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  double y = xn[1];
+  double z = xn[2];
+  fout[0] = ((x*y*z + 8)*(x*y*z + 8) + 100);
+  fout[1] = ((x*y*z - 4)*(x*y*z + 4) - 50);
+  fout[2] = ((x*y*z + 2)*(x*y*z - 2) + 25);
+}
+
+void check_dot_product_3d(const double *fv3_d, const double *gv3_d, const double *fvdgv3_d,
+                          int poly_order) {
+  if (poly_order == 1) {
+    TEST_CHECK( gkyl_compare(fvdgv3_d[0], 0.3535533905932737*(fv3_d[23]*gv3_d[23]+fv3_d[22]*gv3_d[22]+fv3_d[21]*gv3_d[21]+fv3_d[20]*gv3_d[20]+fv3_d[19]*gv3_d[19]+fv3_d[18]*gv3_d[18]+fv3_d[17]*gv3_d[17]+fv3_d[16]*gv3_d[16]+fv3_d[15]*gv3_d[15]+fv3_d[14]*gv3_d[14]+fv3_d[13]*gv3_d[13]+fv3_d[12]*gv3_d[12]+fv3_d[11]*gv3_d[11]+fv3_d[10]*gv3_d[10]+fv3_d[9]*gv3_d[9]+fv3_d[8]*gv3_d[8]+fv3_d[7]*gv3_d[7]+fv3_d[6]*gv3_d[6]+fv3_d[5]*gv3_d[5]+fv3_d[4]*gv3_d[4]+fv3_d[3]*gv3_d[3]+fv3_d[2]*gv3_d[2]+fv3_d[1]*gv3_d[1]+fv3_d[0]*gv3_d[0]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv3_d[1], 0.3535533905932737*(fv3_d[22]*gv3_d[23]+gv3_d[22]*fv3_d[23]+fv3_d[19]*gv3_d[21]+gv3_d[19]*fv3_d[21]+fv3_d[18]*gv3_d[20]+gv3_d[18]*fv3_d[20]+fv3_d[16]*gv3_d[17]+gv3_d[16]*fv3_d[17]+fv3_d[14]*gv3_d[15]+gv3_d[14]*fv3_d[15]+fv3_d[11]*gv3_d[13]+gv3_d[11]*fv3_d[13]+fv3_d[10]*gv3_d[12]+gv3_d[10]*fv3_d[12]+fv3_d[8]*gv3_d[9]+gv3_d[8]*fv3_d[9]+fv3_d[6]*gv3_d[7]+gv3_d[6]*fv3_d[7]+fv3_d[3]*gv3_d[5]+gv3_d[3]*fv3_d[5]+fv3_d[2]*gv3_d[4]+gv3_d[2]*fv3_d[4]+fv3_d[0]*gv3_d[1]+gv3_d[0]*fv3_d[1]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv3_d[2], 0.3535533905932737*(fv3_d[21]*gv3_d[23]+gv3_d[21]*fv3_d[23]+fv3_d[19]*gv3_d[22]+gv3_d[19]*fv3_d[22]+fv3_d[17]*gv3_d[20]+gv3_d[17]*fv3_d[20]+fv3_d[16]*gv3_d[18]+gv3_d[16]*fv3_d[18]+fv3_d[13]*gv3_d[15]+gv3_d[13]*fv3_d[15]+fv3_d[11]*gv3_d[14]+gv3_d[11]*fv3_d[14]+fv3_d[9]*gv3_d[12]+gv3_d[9]*fv3_d[12]+fv3_d[8]*gv3_d[10]+gv3_d[8]*fv3_d[10]+fv3_d[5]*gv3_d[7]+gv3_d[5]*fv3_d[7]+fv3_d[3]*gv3_d[6]+gv3_d[3]*fv3_d[6]+fv3_d[1]*gv3_d[4]+gv3_d[1]*fv3_d[4]+fv3_d[0]*gv3_d[2]+gv3_d[0]*fv3_d[2]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv3_d[3], 0.3535533905932737*(fv3_d[20]*gv3_d[23]+gv3_d[20]*fv3_d[23]+fv3_d[18]*gv3_d[22]+gv3_d[18]*fv3_d[22]+fv3_d[17]*gv3_d[21]+gv3_d[17]*fv3_d[21]+fv3_d[16]*gv3_d[19]+gv3_d[16]*fv3_d[19]+fv3_d[12]*gv3_d[15]+gv3_d[12]*fv3_d[15]+fv3_d[10]*gv3_d[14]+gv3_d[10]*fv3_d[14]+fv3_d[9]*gv3_d[13]+gv3_d[9]*fv3_d[13]+fv3_d[8]*gv3_d[11]+gv3_d[8]*fv3_d[11]+fv3_d[4]*gv3_d[7]+gv3_d[4]*fv3_d[7]+fv3_d[2]*gv3_d[6]+gv3_d[2]*fv3_d[6]+fv3_d[1]*gv3_d[5]+gv3_d[1]*fv3_d[5]+fv3_d[0]*gv3_d[3]+gv3_d[0]*fv3_d[3]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv3_d[4], 0.3535533905932737*(fv3_d[19]*gv3_d[23]+gv3_d[19]*fv3_d[23]+fv3_d[21]*gv3_d[22]+gv3_d[21]*fv3_d[22]+fv3_d[16]*gv3_d[20]+gv3_d[16]*fv3_d[20]+fv3_d[17]*gv3_d[18]+gv3_d[17]*fv3_d[18]+fv3_d[11]*gv3_d[15]+gv3_d[11]*fv3_d[15]+fv3_d[13]*gv3_d[14]+gv3_d[13]*fv3_d[14]+fv3_d[8]*gv3_d[12]+gv3_d[8]*fv3_d[12]+fv3_d[9]*gv3_d[10]+gv3_d[9]*fv3_d[10]+fv3_d[3]*gv3_d[7]+gv3_d[3]*fv3_d[7]+fv3_d[5]*gv3_d[6]+gv3_d[5]*fv3_d[6]+fv3_d[0]*gv3_d[4]+gv3_d[0]*fv3_d[4]+fv3_d[1]*gv3_d[2]+gv3_d[1]*fv3_d[2]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv3_d[5], 0.3535533905932737*(fv3_d[18]*gv3_d[23]+gv3_d[18]*fv3_d[23]+fv3_d[20]*gv3_d[22]+gv3_d[20]*fv3_d[22]+fv3_d[16]*gv3_d[21]+gv3_d[16]*fv3_d[21]+fv3_d[17]*gv3_d[19]+gv3_d[17]*fv3_d[19]+fv3_d[10]*gv3_d[15]+gv3_d[10]*fv3_d[15]+fv3_d[12]*gv3_d[14]+gv3_d[12]*fv3_d[14]+fv3_d[8]*gv3_d[13]+gv3_d[8]*fv3_d[13]+fv3_d[9]*gv3_d[11]+gv3_d[9]*fv3_d[11]+fv3_d[2]*gv3_d[7]+gv3_d[2]*fv3_d[7]+fv3_d[4]*gv3_d[6]+gv3_d[4]*fv3_d[6]+fv3_d[0]*gv3_d[5]+gv3_d[0]*fv3_d[5]+fv3_d[1]*gv3_d[3]+gv3_d[1]*fv3_d[3]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv3_d[6], 0.3535533905932737*(fv3_d[17]*gv3_d[23]+gv3_d[17]*fv3_d[23]+fv3_d[16]*gv3_d[22]+gv3_d[16]*fv3_d[22]+fv3_d[20]*gv3_d[21]+gv3_d[20]*fv3_d[21]+fv3_d[18]*gv3_d[19]+gv3_d[18]*fv3_d[19]+fv3_d[9]*gv3_d[15]+gv3_d[9]*fv3_d[15]+fv3_d[8]*gv3_d[14]+gv3_d[8]*fv3_d[14]+fv3_d[12]*gv3_d[13]+gv3_d[12]*fv3_d[13]+fv3_d[10]*gv3_d[11]+gv3_d[10]*fv3_d[11]+fv3_d[1]*gv3_d[7]+gv3_d[1]*fv3_d[7]+fv3_d[0]*gv3_d[6]+gv3_d[0]*fv3_d[6]+fv3_d[4]*gv3_d[5]+gv3_d[4]*fv3_d[5]+fv3_d[2]*gv3_d[3]+gv3_d[2]*fv3_d[3]), 1e-12) );
+    TEST_CHECK( gkyl_compare(fvdgv3_d[7], 0.3535533905932737*(fv3_d[16]*gv3_d[23]+gv3_d[16]*fv3_d[23]+fv3_d[17]*gv3_d[22]+gv3_d[17]*fv3_d[22]+fv3_d[18]*gv3_d[21]+gv3_d[18]*fv3_d[21]+fv3_d[19]*gv3_d[20]+gv3_d[19]*fv3_d[20]+fv3_d[8]*gv3_d[15]+gv3_d[8]*fv3_d[15]+fv3_d[9]*gv3_d[14]+gv3_d[9]*fv3_d[14]+fv3_d[10]*gv3_d[13]+gv3_d[10]*fv3_d[13]+fv3_d[11]*gv3_d[12]+gv3_d[11]*fv3_d[12]+fv3_d[0]*gv3_d[7]+gv3_d[0]*fv3_d[7]+fv3_d[1]*gv3_d[6]+gv3_d[1]*fv3_d[6]+fv3_d[2]*gv3_d[5]+gv3_d[2]*fv3_d[5]+fv3_d[3]*gv3_d[4]+gv3_d[3]*fv3_d[4]), 1e-12) );
+  } else if (poly_order == 2) {
+    // Not checked/implemented because the kernels are too big.
+  }
+  return;
+}
 
 void
 test_3d(int poly_order, bool use_gpu)
@@ -558,6 +934,9 @@ test_3d(int poly_order, bool use_gpu)
   // projection updater for dist-function
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_3d, NULL);
   gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_3d, NULL);
+  // projection updaters for vector fields.
+  gkyl_proj_on_basis *projfv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, fv3_2d, NULL);
+  gkyl_proj_on_basis *projgv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, gv3_2d, NULL);
 
   // create array range: no ghost-cells in velocity space
   int nghost[GKYL_MAX_DIM] = { 0 };
@@ -612,7 +991,26 @@ test_3d(int poly_order, bool use_gpu)
   gkyl_array_clear(g_bar, 0.0);
   gkyl_array_clear(w_bar, 0.0);
 
+  // Vector fields for dot product.
+  struct gkyl_array *fv3 = gkyl_array_new(GKYL_DOUBLE, 3*basis.num_basis, arr_range.volume);
+  struct gkyl_array *gv3 = gkyl_array_new(GKYL_DOUBLE, 3*basis.num_basis, arr_range.volume);
+  struct gkyl_array *fv3_cu, *gv3_cu;
+  if (use_gpu) {
+    fv3_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, arr_range.volume);
+    gv3_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, arr_range.volume);
+  }
+
+  // project vector fields on basis.
+  gkyl_proj_on_basis_advance(projfv3, 0.0, &arr_range, fv3);
+  gkyl_proj_on_basis_advance(projgv3, 0.0, &arr_range, gv3);
+  if (use_gpu) {
+    // copy host array to device
+    gkyl_array_copy(fv3_cu, fv3);
+    gkyl_array_copy(gv3_cu, gv3);
+  }
+
   struct gkyl_array *h, *f_bar_cu, *g_bar_cu, *w_bar_cu, *h_cu;
+  struct gkyl_array *fvdgv3, *fvdgv3_cu;
   if (use_gpu) {
     f_bar_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
     g_bar_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
@@ -624,10 +1022,18 @@ test_3d(int poly_order, bool use_gpu)
     // Product array only needs to be initialized on GPU
     h_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
     gkyl_array_clear(h_cu, 0.0);
+
+    // Dot product of fv and gv on the GPU.
+    fvdgv3_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+    gkyl_array_clear(fvdgv3_cu, 0.0);
   } else {
     h = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
     gkyl_array_clear(h, 0.0);
   }
+  
+  // Dot product of fv and gv.
+  fvdgv3 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, arr_range.volume);
+  gkyl_array_clear(fvdgv3, 0.0);
 
   gkyl_dg_bin_op_mem *mem;
   if (use_gpu) {
@@ -641,9 +1047,13 @@ test_3d(int poly_order, bool use_gpu)
     // g_bar = h/f = g
     gkyl_dg_div_op(mem, basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu);
 
+    // fvdgv = fv . gv
+    gkyl_dg_dot_product_op(basis, fvdgv3_cu, fv3_cu, gv3_cu);
+  
     // copy from device and check if things are ok
     gkyl_array_copy(f_bar, f_bar_cu);
     gkyl_array_copy(g_bar, g_bar_cu);
+    gkyl_array_copy(fvdgv3, fvdgv3_cu);
   } else {
     // allocate memory
     mem = gkyl_dg_bin_op_mem_new(f_bar->size, basis.num_basis);
@@ -654,6 +1064,9 @@ test_3d(int poly_order, bool use_gpu)
     gkyl_dg_div_op(mem, basis, 0, f_bar, 0, h, 0, distg);
     // g_bar = h/f = g
     gkyl_dg_div_op(mem, basis, 0, g_bar, 0, h, 0, distf);
+
+    // fvdgv = fv . gv
+    gkyl_dg_dot_product_op(basis, fvdgv3, fv3, gv3);
   }
 
   for (size_t i=0; i<arr_range.volume; ++i) {
@@ -665,6 +1078,10 @@ test_3d(int poly_order, bool use_gpu)
       TEST_CHECK( gkyl_compare(f_d[k], fbar_d[k], 1e-10) );
       TEST_CHECK( gkyl_compare(g_d[k], gbar_d[k], 1e-10) );
     }
+    const double *fv3_d = gkyl_array_cfetch(fv3, i);
+    const double *gv3_d = gkyl_array_cfetch(gv3, i);
+    const double *fvdgv3_d = gkyl_array_cfetch(fvdgv3, i);
+    check_dot_product_3d(fv3_d, gv3_d, fvdgv3_d, poly_order);
   }
 
   // Test range methods
@@ -682,10 +1099,15 @@ test_3d(int poly_order, bool use_gpu)
     // w = cfield*f
     gkyl_dg_mul_conf_phase_op_range(&cbasis, &basis, w_bar_cu, cfield_cu, distf_cu, &arr_crange, &arr_range);
 
+    // fvdgv = fv . gv
+    gkyl_array_clear(fvdgv3_cu, 0.0);
+    gkyl_dg_dot_product_op_range(basis, fvdgv3_cu, fv3_cu, gv3_cu, &arr_range);
+  
     // copy from device and check if things are ok
     gkyl_array_copy(f_bar, f_bar_cu);
     gkyl_array_copy(g_bar, g_bar_cu);
     gkyl_array_copy(w_bar, w_bar_cu);
+    gkyl_array_copy(fvdgv3, fvdgv3_cu);
   } else {
     gkyl_array_clear(f_bar, 0.0);
     gkyl_array_clear(g_bar, 0.0);
@@ -699,6 +1121,10 @@ test_3d(int poly_order, bool use_gpu)
     gkyl_dg_div_op_range(mem, basis, 0, g_bar, 0, h, 0, distf, &arr_range);
     // w = cfield*f
     gkyl_dg_mul_conf_phase_op_range(&cbasis, &basis, w_bar, cfield, distf, &arr_crange, &arr_range);
+
+    // fvdgv = fv . gv
+    gkyl_array_clear(fvdgv3, 0.0);
+    gkyl_dg_dot_product_op_range(basis, fvdgv3, fv3, gv3, &arr_range);
   }
 
   struct gkyl_range_iter iter;
@@ -783,6 +1209,11 @@ test_3d(int poly_order, bool use_gpu)
       TEST_CHECK( gkyl_compare(0.6324555320336759*cf_d[2]*f_d[30]+0.7071067811865475*cf_d[0]*f_d[30]+0.7071067811865474*cf_d[1]*f_d[26], wbar_d[30], 1e-12) );
       TEST_CHECK( gkyl_compare(0.6324555320336759*cf_d[2]*f_d[31]+0.7071067811865475*cf_d[0]*f_d[31]+0.7071067811865474*cf_d[1]*f_d[28], wbar_d[31], 1e-12) );
     }
+
+    const double *fv3_d = gkyl_array_cfetch(fv3, loc);
+    const double *gv3_d = gkyl_array_cfetch(gv3, loc);
+    const double *fvdgv3_d = gkyl_array_cfetch(fvdgv3, loc);
+    check_dot_product_3d(fv3_d, gv3_d, fvdgv3_d, poly_order);
   }
 
   // mean ops
@@ -822,12 +1253,17 @@ test_3d(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_cfield);
   gkyl_proj_on_basis_release(projDistf);
   gkyl_proj_on_basis_release(projDistg);
+  gkyl_proj_on_basis_release(projfv3);
+  gkyl_proj_on_basis_release(projgv3);
   gkyl_array_release(distf);
   gkyl_array_release(distg);
   gkyl_array_release(f_bar);
   gkyl_array_release(g_bar);
   gkyl_array_release(cfield);
   gkyl_array_release(w_bar);
+  gkyl_array_release(fv3);
+  gkyl_array_release(gv3);
+  gkyl_array_release(fvdgv3);
   gkyl_dg_bin_op_mem_release(mem);
   if (use_gpu) {
     gkyl_array_release(distf_cu);
@@ -837,6 +1273,7 @@ test_3d(int poly_order, bool use_gpu)
     gkyl_array_release(g_bar_cu);
     gkyl_array_release(w_bar_cu);
     gkyl_array_release(h_cu);
+    gkyl_array_release(fvdgv3_cu);
   } else {
     gkyl_array_release(h);
   }

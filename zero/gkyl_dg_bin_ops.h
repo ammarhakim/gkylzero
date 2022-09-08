@@ -82,6 +82,34 @@ void gkyl_dg_mul_conf_phase_op_range(struct gkyl_basis *cbasis,
   struct gkyl_range *crange, struct gkyl_range *prange);
 
 /**
+ * Compute out = lop . rop, where lop and rop are vector fields.
+ * If these vector fields only have one component the result is the
+ * same as using dg_mul_op with c_oop=c_lop=c_rop=0.
+ *
+ * @param basis Basis functions used in expansions
+ * @param out Output DG scalar field.
+ * @param lop Left operand DG vector field.
+ * @param rop Right operand DG vector field.
+ */
+void gkyl_dg_dot_product_op(struct gkyl_basis basis,
+  struct gkyl_array* out, const struct gkyl_array* lop,
+  const struct gkyl_array* rop);
+
+/**
+ * Same as gkyl_dg_dot_product_op, except operator is applied only on
+ * specified range (sub-range of range containing the DG fields).
+ *
+ * @param basis Basis functions used in expansions.
+ * @param out Output DG scalar field.
+ * @param lop Left operand DG vector field.
+ * @param rop Right operand DG vector field.
+ * @param range Range to apply dot product operator.
+ */
+void gkyl_dg_dot_product_op_range(struct gkyl_basis basis,
+  struct gkyl_array* out, const struct gkyl_array* lop,
+  const struct gkyl_array* rop, struct gkyl_range *range);
+
+/**
  * Compute out = lop/rop. The c_oop, c_lop and c_rop are the
  * components into the DG fields to divide (in case the field is a
  * vector field). For scalar fields c_oop = c_rop = c_lop = 0, for
