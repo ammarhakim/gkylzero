@@ -10,11 +10,11 @@ gkyl_vlasov_app*
 gkyl_vlasov_app_new(struct gkyl_vm *vm)
 {
   disable_denorm_float();
-  
+
   assert(vm->num_species <= GKYL_MAX_SPECIES);
-  
+
   gkyl_vlasov_app *app = gkyl_malloc(sizeof(gkyl_vlasov_app));
-  
+
   int cdim = app->cdim = vm->cdim;
   int vdim = app->vdim = vm->vdim;
   int pdim = cdim+vdim;
@@ -30,7 +30,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 #else
   app->use_gpu = false; // can't use GPUs if we don't have them!
 #endif
-  
+
   app->num_periodic_dir = vm->num_periodic_dir;
   for (int d=0; d<cdim; ++d)
     app->periodic_dirs[d] = vm->periodic_dirs[d];
@@ -39,14 +39,14 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   app->tcurr = 0.0; // reset on init
 
   if (app->use_gpu) {
-    // allocate device basis if we are using GPUs    
+    // allocate device basis if we are using GPUs
     app->basis_on_dev.basis = gkyl_cu_malloc(sizeof(struct gkyl_basis));
     app->basis_on_dev.confBasis = gkyl_cu_malloc(sizeof(struct gkyl_basis));
   }
   else {
     app->basis_on_dev.basis = &app->basis;
     app->basis_on_dev.confBasis = &app->confBasis;
-  }  
+  }
 
   // basis functions
   switch (vm->basis_type) {
@@ -88,7 +88,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 
   gkyl_rect_grid_init(&app->grid, cdim, vm->lower, vm->upper, vm->cells);
 
-  int ghost[] = { 1, 1, 1 };  
+  int ghost[] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&app->grid, ghost, &app->local_ext, &app->local);
   skin_ghost_ranges_init(&app->skin_ghost, &app->local_ext, ghost);
 
@@ -99,7 +99,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 
   // allocate space to store species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct vm_species[ns])) : 0;
-  
+
   // set info for each species: this needs to be done here as we need
   // to access species name from vm_species_init
   for (int i=0; i<ns; ++i)
@@ -111,8 +111,8 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   // set info for each fluid species: this needs to be done here as we
   // need to access species name from vm_fluid_species_init
   for (int i=0; i<nsf; ++i)
-    app->fluid_species[i].info = vm->fluid_species[i];  
-  
+    app->fluid_species[i].info = vm->fluid_species[i];
+
   // initialize each species
   for (int i=0; i<ns; ++i)
     vm_species_init(vm, app, &app->species[i]);
@@ -131,18 +131,18 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   for (int i=0; i<ns; ++i)
     if (app->species[i].source_id)
       vm_species_source_init(app, &app->species[i], &app->species[i].src);
-  
+
   // initialize each fluid species
   for (int i=0; i<nsf; ++i)
     vm_fluid_species_init(vm, app, &app->fluid_species[i]);
-  
+
   // initialize stat object
   app->stat = (struct gkyl_vlasov_stat) {
     .use_gpu = app->use_gpu,
     .stage_2_dt_diff = { DBL_MAX, 0.0 },
     .stage_3_dt_diff = { DBL_MAX, 0.0 },
   };
-  
+
   return app;
 }
 
@@ -179,7 +179,7 @@ vm_find_fluid_species_idx(const gkyl_vlasov_app *app, const char *nm)
   for (int i=0; i<app->num_fluid_species; ++i)
     if (strcmp(nm, app->fluid_species[i].info.name) == 0)
       return i;
-  return -1;  
+  return -1;
 }
 
 void
@@ -202,8 +202,8 @@ gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
   struct timespec wtm = gkyl_wall_clock();
   vm_field_apply_ic(app, app->field, t0);
   app->stat.init_field_tm += gkyl_time_diff_now_sec(wtm);
-    
-  vm_field_apply_bc(app, app->field, app->field->em);  
+
+  vm_field_apply_bc(app, app->field, app->field->em);
 }
 
 void
@@ -237,7 +237,7 @@ gkyl_vlasov_app_calc_mom(gkyl_vlasov_app* app)
 {
   for (int i=0; i<app->num_species; ++i) {
     struct vm_species *s = &app->species[i];
-    
+
     for (int m=0; m<app->species[i].info.num_diag_moments; ++m) {
       struct timespec wst = gkyl_wall_clock();
       vm_species_moment_calc(&s->moms[m], s->local, app->local, s->f);
@@ -253,10 +253,10 @@ gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
   double avals[2+GKYL_MAX_DIM];
 
   struct timespec wst = gkyl_wall_clock();
-  
+
   for (int i=0; i<app->num_species; ++i) {
     struct vm_species *s = &app->species[i];
-    
+
     struct timespec wst = gkyl_wall_clock();
     vm_species_moment_calc(&s->integ_moms, s->local, app->local, s->f);
 
@@ -269,13 +269,13 @@ gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
       gkyl_array_reduce_range(avals, s->integ_moms.marr_host, GKYL_SUM, app->local);
     }
     gkyl_dynvec_append(s->integ_diag, tm, avals);
-    
+
     app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
     app->stat.nmom += 1;
   }
 
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-  app->stat.ndiag += 1;  
+  app->stat.ndiag += 1;
 }
 
 void
@@ -304,7 +304,7 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
   for (int i=0; i<app->num_fluid_species; ++i)
     gkyl_vlasov_app_write_fluid_species(app, i, tm, frame);
 }
- 
+
 void
 gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
 {
@@ -314,7 +314,7 @@ gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
   snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
 
   if (app->use_gpu) {
-    // copy data from device to host before writing it out    
+    // copy data from device to host before writing it out
     gkyl_array_copy(app->field->em_host, app->field->em);
     gkyl_grid_sub_array_write(&app->grid, &app->local, app->field->em_host, fileNm);
   }
@@ -328,7 +328,7 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int fra
 {
   const char *fmt = "%s-%s_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].info.name, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow  
+  char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame);
 
   if (app->use_gpu) {
@@ -348,7 +348,7 @@ gkyl_vlasov_app_write_species_gamma(gkyl_vlasov_app* app, int sidx, double tm, i
 {
   const char *fmt = "%s-%s_p_over_gamma_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].info.name, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow  
+  char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame);
 
   if (app->use_gpu) {
@@ -360,7 +360,7 @@ gkyl_vlasov_app_write_species_gamma(gkyl_vlasov_app* app, int sidx, double tm, i
   else {
     gkyl_grid_sub_array_write(&app->species[sidx].grid_vel, &app->species[sidx].local_vel,
       app->species[sidx].p_over_gamma, fileNm);
-  }  
+  }
 }
 
 void
@@ -368,7 +368,7 @@ gkyl_vlasov_app_write_magB(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
   const char *fmt = "%s-%s_magB_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].info.name, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow  
+  char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame);
 
   if (app->use_gpu) {
@@ -380,7 +380,7 @@ gkyl_vlasov_app_write_magB(gkyl_vlasov_app* app, int sidx, double tm, int frame)
   else {
     gkyl_grid_sub_array_write(&app->grid, &app->local,
       app->species[sidx].magB, fileNm);
-  }  
+  }
 }
 
 void
@@ -388,7 +388,7 @@ gkyl_vlasov_app_write_gradB(gkyl_vlasov_app* app, int sidx, double tm, int frame
 {
   const char *fmt = "%s-%s_gradB_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].info.name, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow  
+  char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame);
 
   if (app->use_gpu) {
@@ -400,7 +400,7 @@ gkyl_vlasov_app_write_gradB(gkyl_vlasov_app* app, int sidx, double tm, int frame
   else {
     gkyl_grid_sub_array_write(&app->grid, &app->local,
       app->species[sidx].gradB, fileNm);
-  }  
+  }
 }
 
 void
@@ -408,7 +408,7 @@ gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, i
 {
   const char *fmt = "%s-%s_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, app->fluid_species[sidx].info.name, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow  
+  char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, app->fluid_species[sidx].info.name, frame);
 
   if (app->use_gpu) {
@@ -428,17 +428,17 @@ gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
 {
   for (int i=0; i<app->num_species; ++i) {
     for (int m=0; m<app->species[i].info.num_diag_moments; ++m) {
-      
+
       const char *fmt = "%s-%s-%s_%d.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
         app->species[i].info.diag_moments[m], frame);
-      char fileNm[sz+1]; // ensures no buffer overflow  
+      char fileNm[sz+1]; // ensures no buffer overflow
       snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
         app->species[i].info.diag_moments[m], frame);
 
       if (app->use_gpu)
         gkyl_array_copy(app->species[i].moms[m].marr_host, app->species[i].moms[m].marr);
-      
+
       gkyl_grid_sub_array_write(&app->grid, &app->local, app->species[i].moms[m].marr_host, fileNm);
     }
   }
@@ -452,7 +452,7 @@ gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app)
     const char *fmt = "%s-%s-%s.gkyl";
     int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
       "imom");
-    char fileNm[sz+1]; // ensures no buffer overflow  
+    char fileNm[sz+1]; // ensures no buffer overflow
     snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
       "imom");
 
@@ -473,7 +473,7 @@ gkyl_vlasov_app_write_field_energy(gkyl_vlasov_app* app)
   // write out diagnostic moments
   const char *fmt = "%s-field-energy.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name);
-  char fileNm[sz+1]; // ensures no buffer overflow  
+  char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name);
 
   if (app->field->is_first_energy_write_call) {
@@ -499,7 +499,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   struct gkyl_array *fout[], struct gkyl_array *fluidout[], struct gkyl_array *emout, struct gkyl_update_status *st)
 {
   app->stat.nfeuler += 1;
-  
+
   double dtmin = DBL_MAX;
 
   // compute primitive moments for fluid species evolution and coupling
@@ -527,7 +527,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
       vm_species_lbo_cross_moms(app, &app->species[i], &app->species[i].lbo, fin[i], app->species[i].collides_with_fluid, fluidin);
     }
   }
-  
+
   // compute RHS of Vlasov equations
   for (int i=0; i<app->num_species; ++i) {
     double dt1 = vm_species_rhs(app, &app->species[i], fin[i], emin, fout[i], fluidin);
@@ -585,7 +585,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
       for (int i=0; i<app->num_species; ++i) {
         struct vm_species *s = &app->species[i];
         vm_species_moment_calc(&s->m1i, s->local, app->local, fin[i]);
-    
+
         double qbyeps = s->info.charge/app->field->info.epsilon0;
         if (s->has_mirror_force) {
           // if has_mirror_force, m1i = m1i/B = J*m1i
@@ -608,12 +608,12 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
       }
       app->stat.current_tm += gkyl_time_diff_now_sec(wst);
     }
-  
+
     // complete update of field (even when field is static, it is
     // safest to do this accumulate as it ensure emout = emin)
     gkyl_array_accumulate_range(gkyl_array_scale_range(emout, dta, app->local),
       1.0, emin, app->local);
-    
+
     vm_field_apply_bc(app, app->field, emout);
   }
 }
@@ -675,7 +675,7 @@ rk3(gkyl_vlasov_app* app, double dt0)
           app->stat.stage_2_dt_diff[1] = fmax(app->stat.stage_2_dt_diff[1],
             dt_rel_diff);
           app->stat.nstage_2_fail += 1;
-            
+
           dt = st.dt_actual;
           state = RK_STAGE_1; // restart from stage 1
 
@@ -715,10 +715,10 @@ rk3(gkyl_vlasov_app* app, double dt0)
           app->stat.stage_3_dt_diff[1] = fmax(app->stat.stage_3_dt_diff[1],
             dt_rel_diff);
           app->stat.nstage_3_fail += 1;
-            
+
           dt = st.dt_actual;
           state = RK_STAGE_1; // restart from stage 1
-            
+
           app->stat.nstage_2_fail += 1;
         }
         else {
@@ -746,7 +746,7 @@ rk3(gkyl_vlasov_app* app, double dt0)
         break;
     }
   }
-  
+
   return st;
 }
 
@@ -758,11 +758,11 @@ gkyl_vlasov_update(gkyl_vlasov_app* app, double dt)
 
   struct gkyl_update_status status = rk3(app, dt);
   app->tcurr += status.dt_actual;
-  
+
   app->stat.total_tm += gkyl_time_diff_now_sec(wst);
   // Check for any CUDA errors during time step
   if (app->use_gpu)
-    checkCuda(cudaGetLastError());  
+    checkCuda(cudaGetLastError());
   return status;
 }
 
@@ -778,9 +778,9 @@ void
 gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
 {
   for (int i=0; i<app->num_species; ++i) {
-    
+
     struct vm_species *species = &app->species[i];
-    
+
     const struct gkyl_array *qmem = species->qmem;
     const struct gkyl_array *p_over_gamma = species->p_over_gamma;
 
@@ -793,12 +793,12 @@ gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
     //   gkyl_hyper_dg_set_update_vol(species->slvr, update_vol_term);
     gkyl_array_clear_range(rhs, 0.0, species->local);
     if (app->use_gpu)
-      gkyl_dg_updater_vlasov_advance_cu(species->slvr, species->field_id, &species->local, 
-        species->qmem, species->p_over_gamma, 
+      gkyl_dg_updater_vlasov_advance_cu(species->slvr, species->field_id, &species->local,
+        species->qmem, species->p_over_gamma,
         fin, species->cflrate, rhs);
     else
-      gkyl_dg_updater_vlasov_advance(species->slvr, species->field_id, &species->local, 
-        species->qmem, species->p_over_gamma, 
+      gkyl_dg_updater_vlasov_advance(species->slvr, species->field_id, &species->local,
+        species->qmem, species->p_over_gamma,
         fin, species->cflrate, rhs);
   }
 }
@@ -817,9 +817,9 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
 {
   const char *fmt = "%s-%s";
   int sz = gkyl_calc_strlen(fmt, app->name, "stat.json");
-  char fileNm[sz+1]; // ensures no buffer overflow  
+  char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, "stat.json");
-  
+
   char buff[70];
   time_t t = time(NULL);
   struct tm curr_tm = *localtime(&t);
@@ -839,7 +839,7 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
 
     for (int s=0; s<app->num_species; ++s)
       range_stat_write(app->species[s].info.name, &app->species[s].local, fp);
-    
+
     fprintf(fp, " nup : %ld,\n", app->stat.nup);
     fprintf(fp, " nfeuler : %ld,\n", app->stat.nfeuler);
     fprintf(fp, " nstage_2_fail : %ld,\n", app->stat.nstage_2_fail);
@@ -849,12 +849,12 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
       app->stat.stage_2_dt_diff[0], app->stat.stage_2_dt_diff[1]);
     fprintf(fp, " stage_3_dt_diff : [ %lg, %lg ],\n",
       app->stat.stage_3_dt_diff[0], app->stat.stage_3_dt_diff[1]);
-    
+
     fprintf(fp, " total_tm : %lg,\n", app->stat.total_tm);
     fprintf(fp, " init_species_tm : %lg,\n", app->stat.init_species_tm);
     if (app->has_field)
       fprintf(fp, " init_field_tm : %lg,\n", app->stat.init_field_tm);
-    
+
     fprintf(fp, " species_rhs_tm : %lg,\n", app->stat.species_rhs_tm);
 
     for (int s=0; s<app->num_species; ++s) {
@@ -868,7 +868,7 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
     fprintf(fp, " species_coll_tm : %lg,\n", app->stat.species_coll_tm);
 
     fprintf(fp, " fluid_species_rhs_tm : %lg,\n", app->stat.fluid_species_rhs_tm);
-    
+
     if (app->has_field) {
       fprintf(fp, " field_rhs_tm : %lg,\n", app->stat.field_rhs_tm);
       fprintf(fp, " current_tm : %lg,\n", app->stat.current_tm);
@@ -885,7 +885,7 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
 
     fprintf(fp, " nfield_omega_cfl : %ld,\n", app->stat.nfield_omega_cfl);
     fprintf(fp, " field_omega_cfl_tm : %lg\n", app->stat.field_omega_cfl_tm);
-  
+
     fprintf(fp, "}\n");
   }
 }

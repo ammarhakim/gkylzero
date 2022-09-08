@@ -17,7 +17,7 @@ enum gkyl_eqn_type {
 enum gkyl_field_id {
   GKYL_FIELD_E_B = 0, // Maxwell (E, B). This is default
   GKYL_FIELD_SR_E_B, // Maxwell (E, B) with special relativity
-  GKYL_FIELD_PHI, // Poisson (only phi)  
+  GKYL_FIELD_PHI, // Poisson (only phi)
   GKYL_FIELD_PHI_A, // Poisson with static B = curl(A) (phi, A)
   GKYL_FIELD_NULL, // no field is present
   GKYL_FIELD_SR_NULL, // no field is present, special relativistic Vlasov
@@ -36,8 +36,8 @@ enum gkyl_model_id {
 // Identifiers for specific diffusion object types
 enum gkyl_diffusion_id {
   GKYL_ISO_DIFFUSION = 0, // Isotropic diffusion. This is default
-  GKYL_ANISO_DIFFUSION, // Anisotropic diffusion. 
-  GKYL_ISO_EULER_DIFFUSION, // Diffusion in isothermal Euler equations (momentum equation)
+  GKYL_ANISO_DIFFUSION, // Anisotropic diffusion.
+  GKYL_EULER_ISO_DIFFUSION, // Diffusion in isothermal Euler equations (momentum equation)
   GKYL_EULER_DIFFUSION, // Diffusion in Euler equations (momentum and energy equations)
 };
 
@@ -61,4 +61,3 @@ enum gkyl_quad_type {
   GKYL_GAUSS_QUAD, // Gauss-Legendre quadrature
   GKYL_GAUSS_LOBATTO_QUAD, // Gauss-Lobatto quadrature
 };
-
