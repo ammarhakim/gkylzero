@@ -196,7 +196,7 @@ gkyl_dg_mul_op_range_cu(struct gkyl_basis basis,
 void gkyl_dg_mul_conf_phase_op_range_cu(struct gkyl_basis *cbasis,
   struct gkyl_basis *pbasis, struct gkyl_array* pout,
   const struct gkyl_array* cop, const struct gkyl_array* pop,
-  struct gkyl_range *crange, struct gkyl_range *prange);
+  const struct gkyl_range *crange, const struct gkyl_range *prange);
 
 void
 gkyl_dg_dot_product_op_cu(struct gkyl_basis basis,
