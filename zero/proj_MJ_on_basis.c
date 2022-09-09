@@ -6,6 +6,7 @@
 #include <gkyl_const.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_mom_calc.h>
+#include <gkyl_mom_vlasov.h>
 #include <gkyl_mom_vlasov_sr.h>
 #include <gkyl_gauss_quad_data.h>
 #include <gkyl_proj_MJ_on_basis.h>
@@ -158,7 +159,7 @@ copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 void
 gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(const gkyl_proj_MJ_on_basis *up,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
-  const struct gkyl_array *num_fluid_frame, const struct gkyl_array *M1i, const struct gkyl_array *M2,
+  const struct gkyl_array *num_fluid_frame, const struct gkyl_array *vel_fluid_frame, const struct gkyl_array *T_fluid_frame,
   struct gkyl_array *f_MJ)
 {
   int cdim = up->cdim, pdim = up->pdim;
@@ -199,8 +200,8 @@ gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(const gkyl_proj_MJ_on_basis *up
     long midx = gkyl_range_idx(conf_rng, conf_iter.idx);
 
     const double *num_fluid_frame_d = gkyl_array_cfetch(num_fluid_frame, midx);
-    const double *M1i_d = gkyl_array_cfetch(M1i, midx);
-    const double *M2_d = gkyl_array_cfetch(M2, midx);
+    const double *vel_fluid_frame_d = gkyl_array_cfetch(vel_fluid_frame, midx);
+    const double *T_fluid_frame_d = gkyl_array_cfetch(T_fluid_frame, midx);
 
     // Sum over basis for given primative moments n,vector(v),T in the flow frame
     for (int n=0; n<tot_conf_quad; ++n) {
@@ -213,26 +214,26 @@ gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(const gkyl_proj_MJ_on_basis *up
 
       // velocity vector
       for (int d=0; d<vdim; ++d) {
-        double M1i_n = 0.0;
+        double vel_fluid_frame_n = 0.0;
         for (int k=0; k<num_conf_basis; ++k)
-          M1i_n += M1i_d[num_conf_basis*d+k]*b_ord[k];
-        vel[n][d] = M1i_n;
-        //vel[n][d] = M1i_n/num[n];
+          vel_fluid_frame_n += vel_fluid_frame_d[num_conf_basis*d+k]*b_ord[k];
+        vel[n][d] = vel_fluid_frame_n;
+        //vel[n][d] = vel_fluid_frame_n/num[n];
       }
 
       // vth2
-      double M2_n = 0.0;
+      double T_fluid_frame_n = 0.0;
       for (int k=0; k<num_conf_basis; ++k)
-        M2_n += M2_d[k]*b_ord[k];
+        T_fluid_frame_n += T_fluid_frame_d[k]*b_ord[k];
 
 
-      //Originally: Not needed for vth2 calc, we assume (for MJ) that M2_n def is kT/mc^2
+      //Originally: Not needed for vth2 calc, we assume (for MJ) that T_fluid_frame_n def is kT/mc^2
       //double v2 = 0.0; // vel^2
       //for (int d=0; d<vdim; ++d) v2 += vel[n][d]*vel[n][d];
-      //vth2[n] = (M2_n - num[n]*v2)/(num[n]*vdim);
+      //vth2[n] = (T_fluid_frame_n - num[n]*v2)/(num[n]*vdim);
 
       // Using new def*** vth -> T (MJ change)
-      T[n] = M2_n; // Change to P = <nT> moment
+      T[n] = T_fluid_frame_n; // Change to P = <nT> moment
     }
 
     // inner loop over velocity space
@@ -305,31 +306,52 @@ gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(const gkyl_proj_MJ_on_basis *up
       //struct gkyl_basis phasebasis = *phase_basis;
       //struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_sr_new(&confbasis, &phasebasis, &vel_rng, "M0");
 
-      // --> Uncomment this block for my attempt at normalization
-      // //Make a temporary basis for phase_basis
-      // struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_sr_new(up->conf_basis_at_ords, up->basis_at_ords, &vel_rng, "M0");
-      //
-      // gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&up->grid, vmM0_t);
-      //   // b. Then call the advance method: gkyl_mom_calc_advance
-      // struct gkyl_array* m0 = gkyl_array_new(GKYL_DOUBLE, &up->num_conf_basis, conf_rng.volume);
-      // struct gkyl_array* norm_factor = gkyl_array_new(GKYL_DOUBLE, &up->num_conf_basis, conf_rng.volume);
-      // gkyl_mom_calc_advance(m0calc, &phase_rng, &conf_rng, f_MJ, m0);
-      //   // c. Release the memory with: gkyl_mom_calc_new_release ( see the end)
-      //
-      // //2. Call gkyl_dg_div_op, we want to find the factor to multiply by: norm_factor = num_fluid_frame/m0 (actual over calculated)
-      // struct gkyl_dg_bin_op_mem *mem_for_div_op = gkyl_dg_bin_op_mem_new(f_MJ->size, up->num_phase_basis);
-      // gkyl_dg_div_op(mem_for_div_op, &up->basis_at_ords, 0, num_fluid_frame, 0, m0, 0, norm_factor); //
-      //
-      // //3. Call dg_bin_op_comp_phase_multi (takes factor from step 2. and f_MJ)
-      // gkyl_dg_mul_op(&up->basis_at_ords, 0, f_MJ, 0, norm_factor, 0, f_MJ); // &num[midx] changed to --> local_num
-      //
-      // // Extra: don't forget to free memory
-      // gkyl_array_release(m0);
-      // gkyl_array_release(norm_factor);
-      // gkyl_mom_type_release(vmM0_t);
-      // gkyl_mom_calc_release(m0calc);
-      // gkyl_dg_bin_op_mem_release(mem_for_div_op);
+      struct gkyl_basis basis, confBasis;
+      int poly_order = up->num_quad - 1;
+      printf("(From line 311, Proj_MJ): poly_order %d, pdim %d, cdim %d\n",poly_order,up->pdim,up->cdim);
+      gkyl_cart_modal_serendip(&basis, up->pdim, poly_order);
+      gkyl_cart_modal_serendip(&confBasis, up->cdim, poly_order);
 
+      // --> Uncomment this block for my attempt at normalization
+      //Make a temporary basis for phase_basis
+      //struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_sr_new(up->conf_basis_at_ords, up->basis_at_ords, &vel_rng, "M0");
+      //struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_sr_new(&confBasis, &basis, &vel_rng, "M0");
+      struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0");
+
+      gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&up->grid, vmM0_t);
+        // b. Then call the advance method: gkyl_mom_calc_advance
+      //struct gkyl_array* m0 = gkyl_array_new(GKYL_DOUBLE, confBasis.num_basis, conf_rng->volume);
+      //struct gkyl_array* norm_factor = gkyl_array_new(GKYL_DOUBLE, confBasis.num_basis, conf_rng->volume);
+      struct gkyl_array* m0 = gkyl_array_new(GKYL_DOUBLE, confBasis.num_basis, num_fluid_frame->size);
+      struct gkyl_array* norm_factor = gkyl_array_new(GKYL_DOUBLE, confBasis.num_basis, num_fluid_frame->size);
+      gkyl_mom_calc_advance(m0calc, phase_rng, conf_rng, f_MJ, m0);
+        // c. Release the memory with: gkyl_mom_calc_new_release ( see the end)
+
+      //2. Call gkyl_dg_div_op, we want to find the factor to multiply by: norm_factor = num_fluid_frame/m0 (actual over calculated)
+      struct gkyl_dg_bin_op_mem *mem_for_div_op = gkyl_dg_bin_op_mem_new(f_MJ->size, up->num_phase_basis);
+      //gkyl_dg_div_op(mem_for_div_op, confBasis, 0, num_fluid_frame, 0, m0, 0, norm_factor); //
+      // g_bar = h/f = g
+      // gkyl_dg_div_op(mem, basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu);
+      gkyl_dg_div_op_range(mem_for_div_op, confBasis, 0, norm_factor, 0, num_fluid_frame, 0, m0, *conf_rng);
+
+
+
+      //3. Call dg_bin_op_comp_phase_multi (takes factor from step 2. and f_MJ)
+      //How do I select part of the velocity space at once to do this multiplication??
+      // gkyl_dg_mul_op(confBasis, 0, f_MJ, 0, norm_factor, 0, f_MJ); // &num[midx] changed to --> local_num
+      // w = cfield*f
+      //gkyl_dg_mul_conf_phase_op_range(&cbasis, &basis, w_bar, cfield, distf, &arr_crange, &arr_range);
+      gkyl_dg_mul_conf_phase_op_range(&confBasis, &basis, f_MJ, norm_factor, f_MJ, conf_rng, phase_rng);
+      //printf("(From line 341, Proj_MJ): norm_factor element 0 %e\n",&norm_factor->data[0]);
+      //Print some contents of norm_factor
+
+
+      // Extra: don't forget to free memory
+      gkyl_array_release(m0);
+      gkyl_array_release(norm_factor);
+      gkyl_mom_type_release(vmM0_t);
+      gkyl_mom_calc_release(m0calc);
+      gkyl_dg_bin_op_mem_release(mem_for_div_op);
 
 
       //Outstanding questions
