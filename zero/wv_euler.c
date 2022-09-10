@@ -195,6 +195,89 @@ qfluct_lax(const struct gkyl_wv_eqn *eqn,
   }
 }
 
+
+// HLLC
+static double
+wave_hllc(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
+         const double *qr, double *waves, double *speeds)
+{
+  const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
+  double g = euler->gas_gamma;
+  int meqn = eqn->num_equations;
+
+  // r->rho, u->u_x, p->pressure, c->sound speed; l->left, r->right, m->middle
+  double rl = ql[0];
+  double ul = ql[1] / rl;
+  double pl = gkyl_euler_pressure(g, ql);
+  double cl = sqrt(g*pl/rl);
+
+  double rr = qr[0];
+  double ur = qr[1] / rr;
+  double pr = gkyl_euler_pressure(g, qr);
+  double cr = sqrt(g*pr/rr);
+
+  // STEP 1. compute min and max wave speeds; here, Toro (10.59) is chosen
+  //   first, estimate middle pressure, Toro (10.61)
+  double ra = 0.5 * (rl + rr);
+  double ca = 0.5 * (cl + cr);
+  double pm = 0.5 * (pl + pr) - 0.5 * (ur - ul) * ra * ca;
+  //   second, compue the q coefficients in Toro (10.60)
+  double coeffl = pm <= pl ? 1 : sqrt(1 + 0.5 * (1 + 1/g) * (pm/pl - 1));
+  double coeffr = pm <= pr ? 1 : sqrt(1 + 0.5 * (1 + 1/g) * (pm/pr - 1));
+  //   finally, compute Toro (10.59)
+  double sl = ul - cl * coeffl;
+  double sr = ur + cr * coeffr;
+
+  // STEP 2. compute middle wave speed, Toro (10.37)
+  double sm = (pr-pl+rl*ul*(sl-ul)-rr*ur*(sr-ur)) / (rl*(sl-ul)-rr*(sr-ur));
+
+  // STEP 3. compute left and right intermediate states, Toro (10.39)
+  double qml[meqn], qmr[meqn];
+
+  qml[0] = rl * (sl-ul) / (sl-sm);
+  qml[1] = qml[0] * sm;
+  qml[2] = qml[0] * ql[2] / ql[0];
+  qml[3] = qml[0] * ql[3] / ql[0];
+  qml[4] = qml[0] * (ql[4]/rl + (sm-ul) * (sm + pl / rl / (sl-ul)));
+
+  qmr[0] = rr * (sr-ur) / (sr-sm);
+  qmr[1] = qmr[0] * sm;
+  qmr[2] = qmr[0] * qr[2] / qr[0];
+  qmr[3] = qmr[0] * qr[3] / qr[0];
+  qmr[4] = qmr[0] * (qr[4]/rr + (sm-ur) * (sm + pr / rr / (sr-ur)));
+
+  // STEP 4. collect all waves and speeds
+  double *wv;
+
+  wv = waves;
+  speeds[0] = sl;
+  for (int i=0; i<meqn; ++i)  wv[i] = qml[i] - ql[i];
+
+  wv += meqn;
+  speeds[1] = sm;
+  for (int i=0; i<meqn; ++i)  wv[i] = qmr[i] - qml[i];
+
+  wv += meqn;
+  speeds[2] = sr;
+  for (int i=0; i<meqn; ++i)  wv[i] = qr[i] - qmr[i];
+
+  return sr;
+}
+
+static void
+qfluct_hllc(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
+           const double *waves, const double *s, double *amdq, double *apdq)
+{
+  const double *w0 = &waves[0], *w1 = &waves[5], *w2 = &waves[10];
+  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]), s2m = fmin(0.0, s[2]);
+  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]), s2p = fmax(0.0, s[2]);
+
+  for (int i=0; i<5; ++i) {
+    amdq[i] = s0m*w0[i] + s1m*w1[i] + s2m*w2[i];
+    apdq[i] = s0p*w0[i] + s1p*w1[i] + s2p*w2[i];
+  }
+}
+
 static double
 wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *delta, const double *ql, const double *qr, double *waves, double *s)
