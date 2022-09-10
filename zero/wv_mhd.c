@@ -431,6 +431,171 @@ qfluct_lax(const struct gkyl_wv_eqn *eqn,
   }
 }
 
+// HLLD, Miyoshi & Kusano (2005), JCP, 208(1), 315-344
+static double
+wave_hlld(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
+          const double *qr, double *waves, double *speeds)
+{
+  const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
+  double g = mhd->gas_gamma;
+  int meqn = eqn->num_equations;
+
+  // notations based on Miyoshi & Kusano: r:rho, u:ux, p:pressure, l:left,
+  // r:right, s:star, m:middle/intermidiate
+  double rl = ql[DN];
+  double ul = ql[MX] / rl;
+  double vl = ql[MY] / rl;
+  double wl = ql[MZ] / rl;
+  double pl = gkyl_mhd_pressure(g, ql);
+  double ptl = pl + 0.5 * (sq(ql[BX]) + sq(ql[BY]) + sq(ql[BZ]));
+
+  double rr = qr[DN];
+  double ur = qr[MX] / rr;
+  double vr = qr[MY] / rr;
+  double wr = qr[MZ] / rr;
+  double pr = gkyl_mhd_pressure(g, qr);
+  double ptr = pr + 0.5 * (sq(qr[BX]) + sq(qr[BY]) + sq(qr[BZ]));
+
+  // STEP 1. compute min and max wave speeds
+  // using simple estimation eq. 12 by Davis (1998); TODO: Einfeldt estimation
+  double cf_l = gkyl_mhd_fast_speed(g, ql);
+  double smin_l = ul - cf_l;
+  double smax_l = ul + cf_l;
+  double cf_r = gkyl_mhd_fast_speed(g, qr);
+  double smin_r = ur - cf_r;
+  double smax_r = ur + cf_r;
+  double sl = smin_l < smin_r ? smin_l : smin_r;
+  double sr = smax_l > smax_r ? smax_l : smax_r;
+
+  // FIXME Miyoshi & Kusano did not specify Bx
+  double Bx = (sr*qr[BX] - sl*ql[BX]) / (sr - sl);
+  double sign = Bx > 0? 1 : -1;
+
+  // STEP 2. compute intermediate wave speeds
+  // middle wave speed,eq. 39
+  double tmp = 1 / (rr*(sr-ur) - rl*(sl-ul));
+  double sm = (rr*ur*(sr-ur) - rl*ul*(sl-ul) - ptr+ptl) * tmp;
+  // eq. 41, p^*_T
+  double pt = ((sr-ur)*rr*ptl-(sl-ul)*rl*ptr+rl*rr*(sr-ur)*(sl-ul)*(ur-ul))*tmp;
+
+  double rsl =rl * (sl-ul) / (sl-sm); // eq. 43
+  double rsr =rr * (sr-ur) / (sr-sm); // eq. 43
+  double sqrtl = sqrt(rsl);
+  double sqrtr = sqrt(rsr);
+  double ssl = sm - Bx*sign / sqrtl;
+  double ssr = sm + Bx*sign / sqrtr;
+
+  // STEP 3. compute intermediate states
+  double qsl[meqn], qssl[meqn], qssr[meqn], qsr[meqn];
+  double tmp1, tmp2, tmp3;
+
+  // left and right outer intermediate states
+  tmp = 1 / (rl*(sl-ul)*(sl-sm)-Bx*Bx);
+  tmp1 = Bx * (sm-ul) * tmp;
+  tmp2 = (rl*sq(sl-ul)-sq(Bx)) * tmp;
+  double usl = sm; // eq. 39
+  double vsl = vl - ql[BY] * tmp1; // eq. 44
+  double wsl = wl - ql[BZ] * tmp1; // eq. 46
+  qsl[DN] = rsl;
+  qsl[MX] = qsl[DN] * usl;
+  qsl[MY] = qsl[DN] * vsl;
+  qsl[MZ] = qsl[DN] * wsl;
+  qsl[BX] = Bx; // FIXME
+  qsl[BY] = ql[BY] * tmp2; // eq. 45
+  qsl[BZ] = ql[BZ] * tmp2; // eq. 47
+  tmp3 = ul*ql[BX]+vl*ql[BY]+wl*ql[BZ] - (usl*qsl[BX]+vsl*qsl[BY]+wsl*qsl[BZ]);
+  qsl[ER] = ((sl-ul)*ql[ER] -ptl*ul + pt*sm + Bx*tmp3) / (sl-sm);
+
+  tmp = 1 / (rr*(sr-ur)*(sr-sm)-Bx*Bx);
+  tmp1 = Bx * (sm-ur) * tmp;
+  tmp2 = (rr*sq(sr-ur)-sq(Bx)) * tmp;
+  double usr = sm; // eq. 39
+  double vsr = vr - qr[BY] * tmp1; // eq. 44
+  double wsr = wr - qr[BZ] * tmp1; // eq. 46
+  qsr[DN] = rsr ;
+  qsr[MX] = qsr[DN] * usr;
+  qsr[MY] = qsr[DN] * vsr;
+  qsr[MZ] = qsr[DN] * wsr;
+  qsr[BX] = Bx; // FIXME
+  qsr[BY] = qr[BY] * tmp2; // eq. 45
+  qsr[BZ] = qr[BZ] * tmp2; // eq. 47
+  tmp3 = ur*qr[BX]+vr*qr[BY]+wr*qr[BZ] - (usr*qsr[BX]+vsr*qsr[BY]+wsr*qsr[BZ]);
+  qsr[ER] = ((sr-ur)*qr[ER] - ptr*ur + pt*sm + Bx*tmp3) / (sr-sm);
+
+  // left and right inner intermediate states
+  tmp = 1 / (sqrtl + sqrtr);
+  double uss = sm; // eq. 39
+  // eq. 59, 60
+  double vss = (sqrtl*vsl + sqrtr*vsr + (qsr[BY] - qsl[BY]) * sign) * tmp;
+  double wss = (sqrtl*wsl + sqrtr*wsr + (qsr[BZ] - qsl[BZ]) * sign) * tmp;
+  // eq. 61, 62
+  tmp1 = sqrtl*sqrtr*sign;
+  double Byss = (sqrtl*qsr[BY] + sqrtr*qsl[BY] + (vsr-vsl)*tmp1) * tmp;
+  double Bzss = (sqrtl*qsr[BZ] + sqrtr*qsl[BZ] + (wsr-wsl)*tmp1) * tmp;
+  tmp2 = uss*Bx + vss*Byss + wss*Bzss;
+
+  qssl[DN] = qsl[DN]; // eq. 49
+  qssl[MX] = qssl[DN] * uss; // eq. 39
+  qssl[MY] = qssl[DN] * vss; // eq. 55
+  qssl[MZ] = qssl[DN] * wss; // eq. 56
+  qssl[BX] = Bx; // FIXME
+  qssl[BY] = Byss; // eq. 56
+  qssl[BZ] = Bzss; // eq. 56
+  tmp3 = usl*qsl[BX]+vsl*qsl[BY]+wsl*qsl[BZ] - tmp2;
+  qssl[ER] = qsl[ER] - sqrtl*tmp3*sign; // eq. 63
+
+  qssr[DN] = qsr[DN]; // eq. 49
+  qssr[MX] = qssr[DN] * uss; // eq. 39
+  qssr[MY] = qssr[DN] * vss; // eq. 55
+  qssr[MZ] = qssr[DN] * wss; // eq. 56
+  qssr[BX] = Bx; // FIXME
+  qssr[BY] = Byss; // eq. 56
+  qssr[BZ] = Bzss; // eq. 56
+  tmp3 = usr*qsr[BX]+vsr*qsr[BY]+wsr*qsr[BZ] - tmp2;
+  qssr[ER] = qsr[ER] + sqrtr*tmp3*sign; // eq. 63
+
+  // STEP 4. collect all waves and wave speeds
+  speeds[0] = sl;
+  speeds[1] = ssl;
+  speeds[2] = sm;
+  speeds[3] = ssr;
+  speeds[4] = sr;
+
+  double *wv;
+
+  wv = waves;
+  for (int i=0; i<meqn; ++i)  wv[i] = qsl[i] - ql[i];
+
+  wv += meqn;
+  for (int i=0; i<meqn; ++i)  wv[i] = qssl[i] - qsl[i];
+
+  wv += meqn;
+  for (int i=0; i<meqn; ++i)  wv[i] = qssr[i] - qssl[i];
+
+  wv += meqn;
+  for (int i=0; i<meqn; ++i)  wv[i] = qsr[i] - qssr[i];
+
+  wv += meqn;
+  for (int i=0; i<meqn; ++i)  wv[i] = qr[i] - qsr[i];
+
+  return sr;
+}
+
+static void
+qfluct_hlld(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
+            const double *waves, const double *s, double *amdq, double *apdq)
+{
+  int meqn = eqn->num_equations;
+  for (int i=0; i<meqn; ++i) {
+    amdq[i] = fmin(0.0, s[0]) * waves[i];
+    apdq[i] = fmax(0.0, s[0]) * waves[i];
+    for (int mw=1; mw<5; ++mw) {
+      amdq[i] += fmin(0.0, s[mw]) * waves[meqn*mw+i];
+      apdq[i] += fmax(0.0, s[mw]) * waves[meqn*mw+i];
+    }
+  }
+}
+
 static double
 wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *delta, const double *ql, const double *qr, double *waves, double *s)
