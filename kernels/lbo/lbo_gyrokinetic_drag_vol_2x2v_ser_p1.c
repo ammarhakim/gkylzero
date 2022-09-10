@@ -56,6 +56,6 @@ GKYL_CU_DH double lbo_gyrokinetic_drag_vol_2x2v_ser_p1(const double *w, const do
   out[22] += 0.4330127018922193*(f[21]*alphaDrag[36]+f[19]*alphaDrag[33]+f[23]*alphaDrag[32]+f[17]*alphaDrag[29]+f[22]*alphaDrag[28]+f[16]*alphaDrag[26]+f[20]*alphaDrag[25]+f[18]*alphaDrag[24])+0.8660254037844386*(alphaDrag[6]*f[23]+alphaDrag[3]*f[22]+alphaDrag[11]*f[21]+alphaDrag[7]*f[19])+0.9682458365518543*(alphaDrag[1]*f[15]+alphaDrag[0]*f[14]+alphaDrag[5]*f[13]+alphaDrag[6]*f[12]+f[8]*alphaDrag[11]+alphaDrag[2]*f[10]+alphaDrag[3]*f[9]+f[4]*alphaDrag[7]); 
   out[23] += 0.4330127018922193*(f[19]*alphaDrag[36]+f[21]*alphaDrag[33]+f[22]*alphaDrag[32]+f[16]*alphaDrag[29]+f[23]*alphaDrag[28]+f[17]*alphaDrag[26]+f[18]*alphaDrag[25]+f[20]*alphaDrag[24])+0.8660254037844386*(alphaDrag[3]*f[23]+alphaDrag[6]*f[22]+alphaDrag[7]*f[21]+alphaDrag[11]*f[19])+0.9682458365518543*(alphaDrag[0]*f[15]+alphaDrag[1]*f[14]+alphaDrag[2]*f[13]+alphaDrag[3]*f[12]+f[4]*alphaDrag[11]+alphaDrag[5]*f[10]+alphaDrag[6]*f[9]+alphaDrag[7]*f[8]); 
 
-  return fabs(0.125*alphaDrag[0])+fabs(0.125*alphaDrag[24]); 
+  return fabs(0.625*alphaDrag[0])+fabs(0.375*alphaDrag[24]); 
 
 } 

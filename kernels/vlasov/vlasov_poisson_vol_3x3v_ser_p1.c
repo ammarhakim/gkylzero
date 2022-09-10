@@ -25,39 +25,39 @@ GKYL_CU_DH double vlasov_poisson_vol_3x3v_ser_p1(const double *w, const double *
   const double dv12 = 2/dxv[5]; 
   const double dv3 = dxv[5], wv3 = w[5]; 
 
-  double alpha_mid = 0.0; 
+  double cflFreq_mid = 0.0; 
   double alpha_cdim[480]; 
   double alpha_vdim[480]; 
 
   alpha_cdim[0] = 16.0*w0dx0; 
   alpha_cdim[4] = 4.618802153517007*dv0dx0; 
-  alpha_mid += fabs(w0dx0)+0.5*dv0dx0; 
+  cflFreq_mid += 3.0*(fabs(w0dx0)+0.5*dv0dx0); 
 
   alpha_cdim[160] = 16.0*w1dx1; 
   alpha_cdim[165] = 4.618802153517007*dv1dx1; 
-  alpha_mid += fabs(w1dx1)+0.5*dv1dx1; 
+  cflFreq_mid += 3.0*(fabs(w1dx1)+0.5*dv1dx1); 
 
   alpha_cdim[320] = 16.0*w2dx2; 
   alpha_cdim[326] = 4.618802153517007*dv2dx2; 
-  alpha_mid += fabs(w2dx2)+0.5*dv2dx2; 
+  cflFreq_mid += 3.0*(fabs(w2dx2)+0.5*dv2dx2); 
 
   alpha_vdim[0] = -4.898979485566357*phi[1]*dv10*dx10; 
   alpha_vdim[2] = -4.898979485566357*phi[4]*dv10*dx10; 
   alpha_vdim[3] = -4.898979485566357*phi[5]*dv10*dx10; 
   alpha_vdim[9] = -4.898979485566357*phi[7]*dv10*dx10; 
-  alpha_mid += fabs(0.0625*alpha_vdim[0]); 
+  cflFreq_mid += 5.0*fabs(0.0625*alpha_vdim[0]); 
 
   alpha_vdim[160] = -4.898979485566357*phi[2]*dv11*dx11; 
   alpha_vdim[161] = -4.898979485566357*phi[4]*dv11*dx11; 
   alpha_vdim[163] = -4.898979485566357*phi[6]*dv11*dx11; 
   alpha_vdim[168] = -4.898979485566357*phi[7]*dv11*dx11; 
-  alpha_mid += fabs(0.0625*alpha_vdim[160]); 
+  cflFreq_mid += 5.0*fabs(0.0625*alpha_vdim[160]); 
 
   alpha_vdim[320] = -4.898979485566357*phi[3]*dv12*dx12; 
   alpha_vdim[321] = -4.898979485566357*phi[5]*dv12*dx12; 
   alpha_vdim[322] = -4.898979485566357*phi[6]*dv12*dx12; 
   alpha_vdim[327] = -4.898979485566357*phi[7]*dv12*dx12; 
-  alpha_mid += fabs(0.0625*alpha_vdim[320]); 
+  cflFreq_mid += 5.0*fabs(0.0625*alpha_vdim[320]); 
 
   out[1] += 0.2165063509461096*(alpha_cdim[4]*f[4]+alpha_cdim[0]*f[0]); 
   out[2] += 0.2165063509461096*(f[5]*alpha_cdim[165]+f[0]*alpha_cdim[160]); 
@@ -219,6 +219,6 @@ GKYL_CU_DH double vlasov_poisson_vol_3x3v_ser_p1(const double *w, const double *
   out[158] += 0.4841229182759271*f[61]*alpha_vdim[327]+0.1936491673103708*f[55]*alpha_cdim[326]+0.4841229182759271*(f[56]*alpha_vdim[322]+f[63]*alpha_vdim[321]+f[62]*alpha_vdim[320])+0.2165063509461096*(f[152]*alpha_cdim[320]+f[145]*alpha_vdim[168]+f[139]*alpha_cdim[165]+f[138]*alpha_vdim[163]+f[154]*alpha_vdim[161]+f[147]*alpha_vdim[160]+f[153]*alpha_cdim[160]+alpha_vdim[0]*f[150]+alpha_vdim[2]*f[142]+alpha_vdim[3]*f[141]+alpha_vdim[9]*f[133]); 
   out[159] += 0.4841229182759271*f[56]*alpha_vdim[327]+0.1936491673103708*f[60]*alpha_cdim[326]+0.4841229182759271*(f[61]*alpha_vdim[322]+f[62]*alpha_vdim[321]+f[63]*alpha_vdim[320])+0.2165063509461096*(f[156]*alpha_cdim[320]+f[138]*alpha_vdim[168]+f[146]*alpha_cdim[165]+f[145]*alpha_vdim[163]+f[147]*alpha_vdim[161]+f[154]*alpha_vdim[160]+f[157]*alpha_cdim[160]+alpha_cdim[0]*f[158]+alpha_vdim[0]*f[155]+alpha_cdim[4]*f[150]+alpha_vdim[2]*f[149]+alpha_vdim[3]*f[148]+alpha_vdim[9]*f[140]); 
 
-  return alpha_mid; 
+  return cflFreq_mid; 
 } 
 

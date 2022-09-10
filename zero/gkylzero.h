@@ -59,7 +59,6 @@ extern "C" {
 #include <gkyl_ref_count.h>
 #include <gkyl_superlu.h>
 #include <gkyl_thread_pool.h>
-#include <gkyl_update_fsm.h>
 #include <gkyl_util.h>
 #include <gkyl_vargm.h>
 #include <gkyl_vlasov.h>    

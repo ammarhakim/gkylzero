@@ -12,19 +12,19 @@ GKYL_CU_DH double vlasov_sr_stream_vol_2x2v_ser_p1(const double *w, const double
   const double *p0_over_gamma = &p_over_gamma[0]; 
   const double *p1_over_gamma = &p_over_gamma[4]; 
 
-  double alpha_mid = 0.0; 
+  double cflFreq_mid = 0.0; 
   double alpha_cdim[32] = {0.0}; 
   alpha_cdim[0] = 2.0*p0_over_gamma[0]*dx10; 
   alpha_cdim[3] = 2.0*p0_over_gamma[1]*dx10; 
   alpha_cdim[4] = 2.0*p0_over_gamma[2]*dx10; 
   alpha_cdim[10] = 2.0*p0_over_gamma[3]*dx10; 
-  alpha_mid += fabs(0.125*alpha_cdim[0]); 
+  cflFreq_mid += fabs(0.125*alpha_cdim[0]); 
 
   alpha_cdim[16] = 2.0*p1_over_gamma[0]*dx11; 
   alpha_cdim[19] = 2.0*p1_over_gamma[1]*dx11; 
   alpha_cdim[20] = 2.0*p1_over_gamma[2]*dx11; 
   alpha_cdim[26] = 2.0*p1_over_gamma[3]*dx11; 
-  alpha_mid += fabs(0.125*alpha_cdim[16]); 
+  cflFreq_mid += fabs(0.125*alpha_cdim[16]); 
 
   out[1] += 0.4330127018922193*(alpha_cdim[10]*f[10]+alpha_cdim[4]*f[4]+alpha_cdim[3]*f[3]+alpha_cdim[0]*f[0]); 
   out[2] += 0.4330127018922193*(f[10]*alpha_cdim[26]+f[4]*alpha_cdim[20]+f[3]*alpha_cdim[19]+f[0]*alpha_cdim[16]); 
@@ -39,5 +39,5 @@ GKYL_CU_DH double vlasov_sr_stream_vol_2x2v_ser_p1(const double *w, const double
   out[14] += 0.4330127018922193*(f[0]*alpha_cdim[26]+f[3]*alpha_cdim[20]+f[4]*alpha_cdim[19]+f[10]*alpha_cdim[16]); 
   out[15] += 0.4330127018922193*(f[1]*alpha_cdim[26]+f[6]*alpha_cdim[20]+f[8]*alpha_cdim[19]+f[13]*alpha_cdim[16]+alpha_cdim[0]*f[14]+f[2]*alpha_cdim[10]+alpha_cdim[3]*f[9]+alpha_cdim[4]*f[7]); 
 
-  return alpha_mid; 
+  return 3.0*cflFreq_mid; 
 } 
