@@ -1,5 +1,13 @@
+#pragma once
+
+#include <gkyl_wv_euler.h>
+
+// Everything is supposed to be private
+
 #include <math.h>
 #include <stdio.h>
+
+#include <rt_euler_riem_2d.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_moment.h>
@@ -11,7 +19,7 @@ struct euler_ctx {
   double gas_gamma; // gas constant
 };
 
-void
+static void
 evalEulerInit(double t, const double * restrict xn, double* restrict fout, void *ctx)
 {
   struct euler_ctx *app = ctx;
@@ -66,8 +74,25 @@ euler_ctx(void)
   return (struct euler_ctx) { .gas_gamma = 1.4 };
 }
 
-int
-main(int argc, char **argv)
+static const char*
+get_sim_name(enum gkyl_wv_euler_rp rp_type)
+{
+  switch (rp_type) {
+    case WV_EULER_RP_ROE:
+      return "euler_riem_2d_roe";
+      break;
+    case WV_EULER_RP_HLLC:
+      return "euler_riem_2d_hllc";
+      break;
+    case WV_EULER_RP_LAX:
+      return "euler_riem_2d_lax";
+      break;
+  }
+}
+
+// Run regression test using specified RP type  
+static int
+rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -81,7 +106,12 @@ main(int argc, char **argv)
   struct euler_ctx ctx = euler_ctx(); // context for init functions
 
   // equation object
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma);
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_inew(
+    &(struct gkyl_wv_euler_inp) {
+      .gas_gamma = ctx.gas_gamma,
+      .rp_type = rp_type
+    }
+  );
 
   struct gkyl_moment_species fluid = {
     .name = "euler",
@@ -94,8 +124,6 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "euler_riem_2d",
-
     .ndim = 2,
     .lower = { 0.0, 0.0 },
     .upper = { 1.0, 1.0 }, 
@@ -104,6 +132,7 @@ main(int argc, char **argv)
     .num_species = 1,
     .species = { fluid },
   };
+  strcpy(app_inp.name, get_sim_name(rp_type));
 
   // create app object
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);

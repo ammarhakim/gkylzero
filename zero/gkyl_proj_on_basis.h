@@ -10,6 +10,7 @@
 // Object type
 typedef struct gkyl_proj_on_basis gkyl_proj_on_basis;
 
+// input packaged as a struct
 struct gkyl_proj_on_basis_inp {
   const struct gkyl_rect_grid *grid; // grid on which to project
   const struct gkyl_basis *basis; // basis functions
