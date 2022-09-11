@@ -29,7 +29,7 @@ rot_to_local_rect(const double *tau1, const double *tau2, const double *norm,
   qlocal[1] = qglobal[1]*norm[0] + qglobal[2]*norm[1] + qglobal[3]*norm[2];
   qlocal[2] = qglobal[1]*tau1[0] + qglobal[2]*tau1[1] + qglobal[3]*tau1[2];
   qlocal[3] = qglobal[1]*tau2[0] + qglobal[2]*tau2[1] + qglobal[3]*tau2[2];
-  // Total energy is a scalar  
+  // Total energy is a scalar
   qlocal[4] = qglobal[4];
   // Rotate B to local coordinates
   qlocal[5] = qglobal[5]*norm[0] + qglobal[6]*norm[1] + qglobal[7]*norm[2];
@@ -47,7 +47,7 @@ rot_to_global_rect(const double *tau1, const double *tau2, const double *norm,
   qglobal[1] = qlocal[1]*norm[0] + qlocal[2]*tau1[0] + qlocal[3]*tau2[0];
   qglobal[2] = qlocal[1]*norm[1] + qlocal[2]*tau1[1] + qlocal[3]*tau2[1];
   qglobal[3] = qlocal[1]*norm[2] + qlocal[2]*tau1[2] + qlocal[3]*tau2[2];
-  // Total energy is a scalar  
+  // Total energy is a scalar
   qglobal[4] = qlocal[4];
   // Rotate B back to global coordinates
   qglobal[5] = qlocal[5]*norm[0] + qlocal[6]*tau1[0] + qlocal[7]*tau2[0];
@@ -347,14 +347,14 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   {
     double ch = mhd->glm_ch;
 
-    // L = 0.5*(-ch, 1), R = (-1/ch, 1) 
+    // L = 0.5*(-ch, 1), R = (-1/ch, 1)
     ev[7] = -ch;
     eta[7] = 0.5 * (-dQ[BX]*ch+dQ[PSI_GLM]);
     wv = &waves[7*meqns];
     wv[BX] = -eta[7]/ch;
     wv[PSI_GLM] = eta[7];
 
-    // L = 0.5*(+ch, 1), R = (+1/ch, 1) 
+    // L = 0.5*(+ch, 1), R = (+1/ch, 1)
     ev[8] = ch;
     eta[8] = 0.5 * (dQ[BX]*ch+dQ[PSI_GLM]);
     wv = &waves[8*meqns];
@@ -389,14 +389,14 @@ wave_lax(const struct gkyl_wv_eqn *eqn,
   const double *dQ, const double *ql, const double *qr, double *waves, double *ev)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
-  double gas_gamma = mhd->gas_gamma;  
+  double gas_gamma = mhd->gas_gamma;
 
   double sl = gkyl_mhd_max_abs_speed(gas_gamma, ql);
   double sr = gkyl_mhd_max_abs_speed(gas_gamma, qr);
 
   double *wv = &waves[0]; // single wave
   for (int i=0; i<mhd->eqn.num_equations; ++i)  wv[i] = dQ[i];
-  
+
   ev[0] = 0.5*(sl+sr);
 
   return ev[0];
@@ -408,14 +408,14 @@ qfluct_lax(const struct gkyl_wv_eqn *eqn,
   double *amdq, double *apdq)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
-  double gas_gamma = mhd->gas_gamma;  
+  double gas_gamma = mhd->gas_gamma;
 
   double sl = gkyl_mhd_max_abs_speed(gas_gamma, ql);
   double sr = gkyl_mhd_max_abs_speed(gas_gamma, qr);
   double amax = fmax(sl, sr);
 
   double fl[10], fr[10];
-  
+
   if (mhd->divergence_constraint == GKYL_MHD_DIVB_GLM) {
     double ch = mhd->glm_ch;
     gkyl_glm_mhd_flux(gas_gamma, ch, ql, fl);
@@ -478,16 +478,18 @@ wave_hlld(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
   // eq. 41, p^*_T
   double pt = ((sr-ur)*rr*ptl-(sl-ul)*rl*ptr+rl*rr*(sr-ur)*(sl-ul)*(ur-ul))*tmp;
 
-  double rsl =rl * (sl-ul) / (sl-sm); // eq. 43
-  double rsr =rr * (sr-ur) / (sr-sm); // eq. 43
+  // sl: outer left, ssl: inner left, ssr: inner right, sr: outer right
+  double rsl = rl * (sl-ul) / (sl-sm); // eq. 43
+  double rsr = rr * (sr-ur) / (sr-sm); // eq. 43
   double sqrtl = sqrt(rsl);
   double sqrtr = sqrt(rsr);
-  double ssl = sm - Bx*sign / sqrtl;
-  double ssr = sm + Bx*sign / sqrtr;
+  double ssl = sm - Bx*sign / sqrtl; // eq. 51
+  double ssr = sm + Bx*sign / sqrtr; // eq. 51
 
   // STEP 3. compute intermediate states
+  // outer left, inner left, inner right, outer right; s: star, ss: two star
   double qsl[meqn], qssl[meqn], qssr[meqn], qsr[meqn];
-  double tmp1, tmp2, tmp3;
+  double tmp1, tmp2, tmp3; // convenience temporary variables
 
   // left and right outer intermediate states
   tmp = 1 / (rl*(sl-ul)*(sl-sm)-Bx*Bx);
@@ -504,7 +506,7 @@ wave_hlld(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
   qsl[BY] = ql[BY] * tmp2; // eq. 45
   qsl[BZ] = ql[BZ] * tmp2; // eq. 47
   tmp3 = ul*ql[BX]+vl*ql[BY]+wl*ql[BZ] - (usl*qsl[BX]+vsl*qsl[BY]+wsl*qsl[BZ]);
-  qsl[ER] = ((sl-ul)*ql[ER] -ptl*ul + pt*sm + Bx*tmp3) / (sl-sm);
+  qsl[ER] = ((sl-ul)*ql[ER] -ptl*ul + pt*sm + Bx*tmp3) / (sl-sm); // eq. 48
 
   tmp = 1 / (rr*(sr-ur)*(sr-sm)-Bx*Bx);
   tmp1 = Bx * (sm-ur) * tmp;
@@ -520,7 +522,7 @@ wave_hlld(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
   qsr[BY] = qr[BY] * tmp2; // eq. 45
   qsr[BZ] = qr[BZ] * tmp2; // eq. 47
   tmp3 = ur*qr[BX]+vr*qr[BY]+wr*qr[BZ] - (usr*qsr[BX]+vsr*qsr[BY]+wsr*qsr[BZ]);
-  qsr[ER] = ((sr-ur)*qr[ER] - ptr*ur + pt*sm + Bx*tmp3) / (sr-sm);
+  qsr[ER] = ((sr-ur)*qr[ER] - ptr*ur + pt*sm + Bx*tmp3) / (sr-sm); // eq. 48
 
   // left and right inner intermediate states
   tmp = 1 / (sqrtl + sqrtr);
@@ -623,7 +625,7 @@ static bool
 check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
-  
+
   if (q[0] < 0.0)
     return false;
 
@@ -650,10 +652,9 @@ gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
   mhd->gas_gamma = inp->gas_gamma;
   mhd->eqn.waves_func = wave;
   mhd->eqn.qfluct_func = qfluct;
-  
   mhd->eqn.check_inv_func = check_inv;
   mhd->eqn.max_speed_func = max_speed;
-  
+
   mhd->eqn.rotate_to_local_func = rot_to_local_rect;
   mhd->eqn.rotate_to_global_func = rot_to_global_rect;
 
