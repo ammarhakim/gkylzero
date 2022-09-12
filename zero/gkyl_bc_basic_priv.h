@@ -104,8 +104,8 @@ species_furman_pivi_bc(size_t nc, double *out, const double *inp, void *ctx)
       coeffs[a] += inp[b]*reflect[b + 8*(a + 8*((out_idx - 1) + 32*(in_idx - 1)))];
     }
   }
-  mc->basis->flip_odd_sign(dir, coeffs, coeffs);
-  mc->basis->flip_odd_sign(dir+cdim, coeffs, coeffs);
+  // mc->basis->flip_odd_sign(dir, coeffs, coeffs);
+  // mc->basis->flip_odd_sign(dir+cdim, coeffs, coeffs);
   for(int a=0; a<8; a++){
     out[a] += coeffs[a];
   }
