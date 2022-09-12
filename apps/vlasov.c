@@ -545,7 +545,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   }
   for (int i=0; i<app->num_fluid_species; ++i) {
     if (app->fluid_species[i].source_id) {
-      vm_fluid_species_source_rhs(app, &app->fluid_species[i], &app->fluid_species[i].src, fin[i], fout[i]);
+      vm_fluid_species_source_rhs(app, &app->fluid_species[i], &app->fluid_species[i].src, fluidin[i], fluidout[i]);
     }
   }
   // compute RHS of Maxwell equations
