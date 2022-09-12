@@ -3,5 +3,5 @@
 int
 main(int argc, char **argv)
 {
-  return rt_euler_riem_2d_run(argc, argv, WV_EULER_RP_LAX);
+  return rt_euler_riem_2d_run(argc, argv, WV_EULER_RP_HLLC);
 }

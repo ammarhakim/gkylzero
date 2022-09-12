@@ -489,6 +489,7 @@ test_1x2v(int poly_order, bool use_gpu)
   if (use_gpu)
     gkyl_array_release(distf_cu);
   gkyl_proj_maxwellian_on_basis_release(proj_max);
+
 }
 
 void test_1x1v_p0() { test_1x1v(0, false); }

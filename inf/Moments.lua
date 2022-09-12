@@ -15,11 +15,6 @@ local ffi = require "ffi"
 -- load shared library
 local install_prefix = os.getenv("HOME") .. "/gkylsoft/gkylzero"
 local C = ffi.load(install_prefix .. "/lib/libgkylzero.so")
--- set JIT options
-if jit.opt then
-   jit.opt.start('callunroll=40', 'loopunroll=80', 'maxmcode=40960', 'maxtrace=100000',
-		 'maxrecord=40000', 'maxside=1000', 'minstitch=3')
-end
 
 -- set global package paths
 package.path = package.path .. ";" .. install_prefix .. "/lib/?.lua"
@@ -152,6 +147,12 @@ struct gkyl_tm_trigger {
  */
 int gkyl_tm_trigger_check_and_bump(struct gkyl_tm_trigger *tmt, double tcurr);
 
+/**
+ * Compute time in seconds since epoch.
+ *
+ * @return Time in seconds
+ */
+double gkyl_time_now(void);
 ]]
 
 -- gkyl_wave_prop.h
@@ -167,6 +168,33 @@ enum gkyl_wave_limiter {
   GKYL_BEAM_WARMING,
   GKYL_ZERO
 };
+]]
+
+-- gkyl_wv_mhd.h
+ffi.cdef [[
+// flags to indicate which divergence constraint scheme to use
+enum gkyl_wv_mhd_div_constraint {
+  GKYL_MHD_DIVB_NONE,
+  GKYL_MHD_DIVB_EIGHT_WAVES,
+  GKYL_MHD_DIVB_GLM
+};
+
+/**
+ * Create a new ideal MHD equation object.
+ *
+ * @param gas_gamma Gas adiabatic constant
+ * @param divb Divergence constraint method
+ * @return Pointer to mhd equation object.
+ */
+struct gkyl_wv_eqn* gkyl_wv_mhd_new(double gas_gamma, enum gkyl_wv_mhd_div_constraint divb);
+
+/**
+ * Get gas adiabatic constant.
+ *
+ * @param wv mhd equation object
+ * @return Get gas adiabatic constant
+ */
+double gkyl_wv_mhd_gas_gamma(const struct gkyl_wv_eqn* wv);
 ]]
 
 -- gkyl_wv_eqn.h
@@ -220,15 +248,6 @@ struct gkyl_wv_eqn* gkyl_wv_iso_euler_new(double vt);
  * @return Pointer to Maxwell equation object.
  */
 struct gkyl_wv_eqn* gkyl_wv_maxwell_new(double c, double e_fact, double b_fact);
-
-/**
- * Create a new ideal MHD equation object.
- *
- * @param gas_gamma Gas adiabatic constant
- * @return Pointer to mhd equation object.
- */
-struct gkyl_wv_eqn* gkyl_wv_mhd_new(
-    double gas_gamma, const char *divergence_constraint);
 
 /**
  * Create a new SR Euler equation object.
@@ -514,6 +533,11 @@ _M.cu_dev_mem_debug_set = function(flag)
    C.gkyl_cu_dev_mem_debug_set(flag)
 end
 
+-- Time in seconds from epoch
+_M.time_now = function()
+   return C.gkyl_time_now()
+end
+
 -- time-trigger object
 local tm_trigger_type = ffi.typeof("struct gkyl_tm_trigger")
 local tm_trigger_mt = {
@@ -532,6 +556,11 @@ _M.TimeTrigger = ffi.metatype(tm_trigger_type, tm_trigger_mt)
 -- Euler equation
 _M.Euler = function(tbl)
    return ffi.gc(C.gkyl_wv_euler_new(tbl.gasGamma), C.gkyl_wv_eqn_release)
+end
+
+-- Isothermal Eiler equation
+_M.IsoEuler = function(tbl)
+   return ffi.gc(C.gkyl_wv_iso_euler_new(tbl.vthermal), C.gkyl_wv_eqn_release)
 end
 
 -- Wraps user given init function in a function that can be passed to
@@ -612,10 +641,22 @@ local species_mt = {
       s.equation = tbl.equation
 
       -- initial conditions
-      s.ctx = nil -- no need for a context
-      s.init = gkyl_eval_moment(tbl.init)
+      s.ctx = tbl.ctx 
+      if tbl.cinit then
+	 -- use C function directly, if specified ...
+	 s.init = tbl.cinit
+      else
+	 -- ... or use Lua function
+	 s.init = gkyl_eval_moment(tbl.init)
+      end
+      
       if tbl.app_accel then
          s.app_accel_func = gkyl_eval_applied(tbl.app_accel)
+      end
+
+      s.force_low_order_flux = false
+      if tbl.force_low_order_flux then
+	 s.force_low_order_flux = tbl.force_low_order_flux
       end
 
       -- boundary conditions
@@ -697,8 +738,15 @@ local field_mt = {
          f.mag_error_speed_fact = tbl.mgnErrorSpeedFactor
       end
 
-      f.ctx = nil -- no need for context
-      f.init = gkyl_eval_field(tbl.init)
+      f.ctx = tbl.ctx -- no need for context
+      if tbl.cinit then
+	 -- use C function directly, if specified ...
+	 f.init = tbl.cinit
+      else
+	 -- ... or use Lua function
+	 f.init = gkyl_eval_field(tbl.init)
+      end
+      
       if tbl.app_current then
          f.app_current_func = gkyl_eval_applied(tbl.app_current)
       end
@@ -858,6 +906,12 @@ local app_mt = {
       update = function(self, dt)
          return C.gkyl_moment_update(self.app, dt)
       end,
+      calcIntegratedMom = function(self, tcurr)
+	 return C.gkyl_moment_app_calc_integrated_mom(self.app, tcurr)
+      end,
+      calcFieldEnergy = function(self, tcurr)
+	 return C.gkyl_moment_app_calc_field_energy(self.app, tcurr)
+      end,      
       run = function(self)
 	 
 	 local frame_trig = _M.TimeTrigger(self.tend/self.nframe)
@@ -879,15 +933,30 @@ local app_mt = {
 
 	 io.write(string.format("Starting GkeyllZero simulation\n"))
 	 io.write(string.format("  tstart: %.6e. tend: %.6e\n", 0.0, self.tend))
+
+	 local tinit0 = _M.time_now()
 	 self:init()
+	 io.write(string.format("  Initialization completed in %g sec\n", _M.time_now() - tinit0))
+	 
+	 self:calcIntegratedMom(0.0)
+	 self:calcFieldEnergy(0.0)
 	 writeData(0.0)
 
+	 local tloop0 = _M.time_now()
 	 local tcurr, tend = 0.0, self.tend
 	 local dt = tend-tcurr
 	 local step = 1
 	 while tcurr < tend do
-	    local status = self:update(dt);
+	    local status = self:update(dt)
 	    tcurr = tcurr + status.dt_actual
+
+	    if status.success == false then
+	       io.write(string.format("***** Simulation failed at step %5d at time %.6e\n", step, tcurr))
+	       break
+	    end
+
+	    self:calcIntegratedMom(tcurr)
+	    self:calcFieldEnergy(tcurr)	    
 
 	    writeLogMessage(tcurr, step, status.dt_actual)
 	    writeData(tcurr)
@@ -895,7 +964,14 @@ local app_mt = {
 	    dt = math.min(status.dt_suggested, (tend-tcurr)*(1+1e-6))
 	    step = step + 1
 	 end
+
+	 C.gkyl_moment_app_write_integrated_mom(self.app)
+	 C.gkyl_moment_app_write_field_energy(self.app)
+
+	 local tloop1 = _M.time_now()
+	 
 	 io.write(string.format("Completed in %d steps (tend: %.6e). \n", step-1, tcurr))
+	 io.write(string.format("Main loop took %g secs to complete\n", tloop1-tloop0))
 	 self:writeStat()
 	 
       end,

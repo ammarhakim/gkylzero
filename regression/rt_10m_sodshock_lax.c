@@ -4,85 +4,75 @@
 #include <gkyl_alloc.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_mhd.h>
+#include <gkyl_wv_ten_moment.h>
 #include <rt_arg_parse.h>
 
-struct mhd_ctx {
+struct euler_ctx {
   double gas_gamma; // gas constant
 };
 
 void
-evalMhdInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+eval10mInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct mhd_ctx *app = ctx;
   double x = xn[0];
-  double gas_gamma = app->gas_gamma;
 
-  double bx = 0.75;
-  double rhol = 1.0, rhor = 0.125;
-  double byl = 1.0, byr = -1.0;
-  double pl = 1.0, pr = 0.1;
+  double rhol = 3.0, ul = 0.0, pl = 3.0;
+  double rhor = 1.0, ur = 0.0, pr = 1.0;
 
-  double rho = rhor, by = byr, p = pr;
-  if (x<0.5) {
+  double rho = rhor, u = ur, p = pr;
+  if (x<0.75) {
     rho = rhol;
-    by = byl;
+    u = ul;
     p = pl;
   }
 
   fout[0] = rho;
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
-  fout[4] = p/(gas_gamma-1) + 0.5*(bx*bx + by*by);
-  fout[5] = bx; fout[6] = by; fout[7] = 0.0;
+  fout[1] = rho*u; fout[2] = 0.0; fout[3] = 0.0;
+  fout[4] = p + 0.5*rho*u*u; // pxx
+  fout[5] = fout[6] = 0.0; // pxy, pxz
+  fout[7] = p; // pyy
+  fout[8] = 0.0; // pyz
+  fout[9] = p; // pzz
 }
 
-struct mhd_ctx
-mhd_ctx(void)
-{
-  return (struct mhd_ctx) { .gas_gamma = 2.0 };
-}
 
 int
 main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 400);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 512);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  struct mhd_ctx ctx = mhd_ctx(); // context for init functions
 
   // equation object
-  const struct gkyl_wv_mhd_inp inp = {
-    .gas_gamma = ctx.gas_gamma,
-    .divergence_constraint = GKYL_MHD_DIVB_NONE,
-  };
-  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(&inp);
+  struct gkyl_wv_eqn *tenm = gkyl_wv_ten_moment_new(0.0);
 
   struct gkyl_moment_species fluid = {
-    .name = "mhd",
+    .name = "10m",
 
-    .equation = mhd,
+    .equation = tenm,
     .evolve = 1,
-    .ctx = &ctx,
-    .init = evalMhdInit,
+    .init = eval10mInit,
+
+    .force_low_order_flux = true, // use Lax fluxes    
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
 
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "mhd_brio_wu",
+    .name = "10m_sodshock_lax",
 
     .ndim = 1,
-    .lower = { 0.0 },
-    .upper = { 1.0 }, 
+    .lower = { 0.25 },
+    .upper = { 1.25 }, 
     .cells = { NX },
 
-    .cfl_frac = 0.8,
+    .cfl_frac = 0.9,
 
     .num_species = 1,
     .species = { fluid },
@@ -123,7 +113,7 @@ main(int argc, char **argv)
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
 
   // simulation complete, free resources
-  gkyl_wv_eqn_release(mhd);
+  gkyl_wv_eqn_release(tenm);
   gkyl_moment_app_release(app);
 
   printf("\n");

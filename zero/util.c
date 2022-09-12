@@ -86,6 +86,12 @@ gkyl_time_sec(struct timespec tm)
   return tm.tv_sec + 1e-9*tm.tv_nsec;
 }
 
+double
+gkyl_time_now(void)
+{
+  return gkyl_time_sec( gkyl_wall_clock() );
+}
+
 pcg32_random_t
 gkyl_pcg32_init(bool nd_seed)
 {
