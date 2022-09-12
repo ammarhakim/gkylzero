@@ -10,6 +10,6 @@ GKYL_CU_DH double lbo_vlasov_diff_vol_1x1v_ser_p1(const double *w, const double 
   // out:       Incremented output 
   const double rdvxSq4 = 4.0/(dxv[1]*dxv[1]); 
 
-  return fabs(0.9428090415820636*nuVtSqSum[0]*rdvxSq4); 
+  return fabs(6.363961030678928*nuVtSqSum[0]*rdvxSq4); 
 
 } 

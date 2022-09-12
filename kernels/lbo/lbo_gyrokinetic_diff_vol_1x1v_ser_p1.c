@@ -15,6 +15,6 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_vol_1x1v_ser_p1(const double *w, const do
   rdv2[0]   = 2.0/dxv[1]; 
   rdvSq4[0] = rdv2[0]*rdv2[0]; 
 
-  return fabs(0.9428090415820636*nuVtSqSum[0]*rdvSq4[0]); 
+  return fabs(6.363961030678928*nuVtSqSum[0]*rdvSq4[0]); 
 
 } 

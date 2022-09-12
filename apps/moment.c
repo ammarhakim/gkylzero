@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <float.h>
 #include <math.h>
+#include <stdbool.h>
 #include <string.h>
 
 #include <stc/cstr.h>
@@ -23,7 +24,6 @@
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_apply_bc.h>
-#include <gkyl_wv_euler.h>
 #include <gkyl_wv_maxwell.h>
 #include <gkyl_wv_ten_moment.h>
 
@@ -179,6 +179,21 @@ calc_integ_quant(int nc, double vol, const struct gkyl_array *q, const struct gk
     i_func(nc, qcell, integ_out);
     for (int i=0; i<nc; ++i) integ_q[i] += vol*cg->kappa*integ_out[i];
   }
+}
+
+// Check if nan occurs in the array, returning true if they do and
+// false otherwise
+static bool
+check_for_nans(const struct gkyl_array *q, struct gkyl_range update_rng)
+{
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &update_rng);
+  while (gkyl_range_iter_next(&iter)) {
+    const double *qcell = gkyl_array_cfetch(q, gkyl_range_idx(&update_rng, iter.idx));
+    for (int i=0; i<q->ncomp; ++i)
+      if (isnan(qcell[i])) return true;
+  }
+  return false;
 }
 
 // allocate array (filled with zeros)
@@ -645,7 +660,7 @@ moment_field_update(const gkyl_moment_app *app,
   const struct moment_field *fld, double tcurr, double dt)
 {
   int ndim = fld->ndim;
-  struct gkyl_wave_prop_status stat = { 1, DBL_MAX };
+  struct gkyl_wave_prop_status stat = { true, DBL_MAX };
 
   for (int d=0; d<ndim; ++d) {
     // update solution
@@ -948,21 +963,23 @@ gkyl_moment_app_write_field(const gkyl_moment_app* app, double tm, int frame)
 void
 gkyl_moment_app_write_field_energy(gkyl_moment_app *app)
 {
-  // write out field energy
-  cstr fileNm = cstr_from_fmt("%s-field-energy.gkyl", app->name);
+  if (app->has_field) {
+    // write out field energy
+    cstr fileNm = cstr_from_fmt("%s-field-energy.gkyl", app->name);
 
-  if (app->field.is_first_energy_write_call) {
-    // write to a new file (this ensure previous output is removed)
-    gkyl_dynvec_write(app->field.integ_energy, fileNm.str);
-    app->field.is_first_energy_write_call = false;
+    if (app->field.is_first_energy_write_call) {
+      // write to a new file (this ensure previous output is removed)
+      gkyl_dynvec_write(app->field.integ_energy, fileNm.str);
+      app->field.is_first_energy_write_call = false;
+    }
+    else {
+      // append to existing file
+      gkyl_dynvec_awrite(app->field.integ_energy, fileNm.str);
+    }
+    gkyl_dynvec_clear(app->field.integ_energy);
+    
+    cstr_drop(&fileNm);
   }
-  else {
-    // append to existing file
-    gkyl_dynvec_awrite(app->field.integ_energy, fileNm.str);
-  }
-  gkyl_dynvec_clear(app->field.integ_energy);
-
-  cstr_drop(&fileNm);
 }
 
 void
@@ -1003,7 +1020,8 @@ struct gkyl_update_status
 moment_update(gkyl_moment_app* app, double dt0)
 {
   int ns = app->num_species, ndim = app->ndim;
-
+  bool have_nans_occured = false;
+  
   double dt_suggested = DBL_MAX;
   
   // time-stepper states
@@ -1098,8 +1116,14 @@ moment_update(gkyl_moment_app* app, double dt0)
         state = UPDATE_DONE;
 
         // copy solution in prep for next time-step
-        for (int i=0; i<ns; ++i)
-          gkyl_array_copy(app->species[i].f[0], app->species[i].f[ndim]);
+        for (int i=0; i<ns; ++i) {
+          // check for nans before copying
+          if (check_for_nans(app->species[i].f[ndim], app->local))
+            have_nans_occured = true;
+          else // only copy in case no nans, so old solution can be written out
+            gkyl_array_copy(app->species[i].f[0], app->species[i].f[ndim]);
+        }
+        
         if (app->has_field)
           gkyl_array_copy(app->field.f[0], app->field.f[ndim]);
           
@@ -1122,7 +1146,7 @@ moment_update(gkyl_moment_app* app, double dt0)
   }
 
   return (struct gkyl_update_status) {
-    .success = true,
+    .success = have_nans_occured ? false : true,
     .dt_actual = dt,
     .dt_suggested = dt_suggested,
   };
@@ -1145,10 +1169,12 @@ gkyl_moment_update(gkyl_moment_app* app, double dt)
 void
 gkyl_moment_app_calc_field_energy(gkyl_moment_app* app, double tm)
 {
-  double energy[6] = { 0.0 };
-  calc_integ_quant(6, app->grid.cellVolume, app->field.f[0], app->geom,
-    app->local, integ_sq, energy);
-  gkyl_dynvec_append(app->field.integ_energy, tm, energy);
+  if (app->has_field) {
+    double energy[6] = { 0.0 };
+    calc_integ_quant(6, app->grid.cellVolume, app->field.f[0], app->geom,
+      app->local, integ_sq, energy);
+    gkyl_dynvec_append(app->field.integ_energy, tm, energy);
+  }
 }
 
 void
@@ -1181,6 +1207,9 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
   time_t t = time(NULL);
   struct tm curr_tm = *localtime(&t);
 
+  // compute total number of cells updated in simulation
+  long tot_cells_up = app->local.volume*app->num_species*app->ndim*app->stat.nup;
+
   // append to existing file so we have a history of different runs
   FILE *fp = 0;
   with_file (fp, fileNm, "a") {
@@ -1197,13 +1226,18 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
     fprintf(fp, " sources_tm : %lg\n", app->stat.sources_tm);
 
     for (int i=0; i<app->num_species; ++i) {
+      long tot_bad_cells = 0L;      
       for (int d=0; d<app->ndim; ++d) {
         struct gkyl_wave_prop_stats wvs = gkyl_wave_prop_stats(app->species[i].slvr[d]);
-        fprintf(fp, " %s_n_bad_advance_calls[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_advance_calls);
+        fprintf(fp, " %s_n_bad_1D_sweeps[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_advance_calls);
         fprintf(fp, " %s_n_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_cells);
         fprintf(fp, " %s_n_max_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_max_bad_cells);
+
+        tot_bad_cells += wvs.n_bad_cells;
       }
+      fprintf(fp, " %s_bad_cell_frac = %lg\n", app->species[i].name, (double) tot_bad_cells/tot_cells_up );
     }
+
   
     fprintf(fp, "}\n");
   }

@@ -16,25 +16,25 @@ GKYL_CU_DH double vlasov_vol_1x2v_ser_p1(const double *w, const double *dxv, con
   const double dv2 = dxv[2], wv2 = w[2]; 
 
   const double *B2 = &qmem[10]; 
-  double alpha_mid = 0.0; 
+  double cflFreq_mid = 0.0; 
   double alpha_cdim[16] = {0.0}; 
   double alpha_vdim[32] = {0.0}; 
 
   alpha_cdim[0] = 5.656854249492382*w0dx0; 
   alpha_cdim[2] = 1.632993161855453*dv0dx0; 
-  alpha_mid += fabs(w0dx0)+0.5*dv0dx0; 
+  cflFreq_mid += 3.0*(fabs(w0dx0)+0.5*dv0dx0); 
 
   alpha_vdim[0] = 2.0*dv10*(B2[0]*wv2+E0[0]); 
   alpha_vdim[1] = 2.0*dv10*(B2[1]*wv2+E0[1]); 
   alpha_vdim[3] = 0.5773502691896258*B2[0]*dv10*dv2; 
   alpha_vdim[5] = 0.5773502691896258*B2[1]*dv10*dv2; 
-  alpha_mid += fabs(0.1767766952966368*alpha_vdim[0]); 
+  cflFreq_mid += 5.0*fabs(0.1767766952966368*alpha_vdim[0]); 
 
   alpha_vdim[16] = dv11*(2.0*E1[0]-2.0*B2[0]*wv1); 
   alpha_vdim[17] = dv11*(2.0*E1[1]-2.0*B2[1]*wv1); 
   alpha_vdim[18] = -0.5773502691896258*B2[0]*dv1*dv11; 
   alpha_vdim[20] = -0.5773502691896258*B2[1]*dv1*dv11; 
-  alpha_mid += fabs(0.1767766952966368*alpha_vdim[16]); 
+  cflFreq_mid += 5.0*fabs(0.1767766952966368*alpha_vdim[16]); 
 
   out[1] += 0.6123724356957944*(alpha_cdim[2]*f[2]+alpha_cdim[0]*f[0]); 
   out[2] += 0.6123724356957944*(alpha_vdim[5]*f[5]+alpha_vdim[3]*f[3]+alpha_vdim[1]*f[1]+alpha_vdim[0]*f[0]); 
@@ -52,5 +52,5 @@ GKYL_CU_DH double vlasov_vol_1x2v_ser_p1(const double *w, const double *dxv, con
   out[14] += (1.224744871391589*f[11]+1.369306393762915*f[5])*alpha_vdim[20]+1.224744871391589*f[10]*alpha_vdim[18]+1.369306393762915*(f[3]*alpha_vdim[18]+f[7]*alpha_vdim[17]+f[6]*alpha_vdim[16])+0.6123724356957944*(alpha_vdim[1]*f[13]+alpha_vdim[0]*f[12])+0.5477225575051661*(alpha_vdim[5]*f[5]+alpha_vdim[3]*f[3]); 
   out[15] += (1.224744871391589*f[10]+1.369306393762915*f[3])*alpha_vdim[20]+1.224744871391589*f[11]*alpha_vdim[18]+1.369306393762915*(f[5]*alpha_vdim[18]+f[6]*alpha_vdim[17]+f[7]*alpha_vdim[16])+0.6123724356957944*(alpha_cdim[0]*f[14]+alpha_vdim[0]*f[13]+(alpha_cdim[2]+alpha_vdim[1])*f[12])+0.5477225575051661*(alpha_vdim[3]*f[5]+f[3]*alpha_vdim[5]); 
 
-  return alpha_mid; 
+  return cflFreq_mid; 
 } 

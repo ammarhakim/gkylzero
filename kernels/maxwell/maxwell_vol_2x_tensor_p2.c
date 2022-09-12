@@ -100,5 +100,5 @@ GKYL_CU_DH double maxwell_vol_2x_tensor_p2(const gkyl_maxwell_inp *meq, const do
   double cflFreq = 0.0; 
   cflFreq += meq->c/dx[0]; 
   cflFreq += meq->c/dx[1]; 
-  return cflFreq; 
+  return 5.0*cflFreq; 
 } 
