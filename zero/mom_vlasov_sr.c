@@ -34,10 +34,15 @@ gkyl_mom_vlasov_sr_set_auxfields(const struct gkyl_mom_type *momt, struct gkyl_m
 struct gkyl_mom_type*
 gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, const struct gkyl_range* vel_range,
-  const char *mom)
+  const char *mom, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
-  
+
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_mom_vlasov_sr_cu_dev_new(cbasis, pbasis, vel_range, mom);
+  } 
+#endif  
   struct mom_type_vlasov_sr *mom_vm_sr = gkyl_malloc(sizeof(struct mom_type_vlasov_sr));
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
   int poly_order = cbasis->poly_order;
@@ -103,10 +108,15 @@ gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis,
 struct gkyl_mom_type *
 gkyl_int_mom_vlasov_sr_new(const struct gkyl_basis *cbasis,
   const struct gkyl_basis *pbasis,
-  const struct gkyl_range *vel_range)
+  const struct gkyl_range *vel_range, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
-  
+
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_int_mom_vlasov_sr_cu_dev_new(cbasis, pbasis);
+  } 
+#endif  
   struct mom_type_vlasov_sr *mom_vm_sr = gkyl_malloc(sizeof(struct mom_type_vlasov_sr));
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
   int poly_order = cbasis->poly_order;

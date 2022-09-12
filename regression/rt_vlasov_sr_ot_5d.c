@@ -229,6 +229,7 @@ main(int argc, char **argv)
   // electrons
   struct gkyl_vlasov_species elc = {
     .name = "elc",
+    .model_id = GKYL_MODEL_SR,
     .charge = ctx.chargeElc, .mass = ctx.massElc,
     .lower = { -8.0 * ctx.Telc, -8.0 * ctx.Telc, -8.0 * ctx.Telc },
     .upper = { 8.0 * ctx.Telc, 8.0 * ctx.Telc, 8.0 * ctx.Telc }, 
@@ -244,6 +245,7 @@ main(int argc, char **argv)
   // ions
   struct gkyl_vlasov_species ion = {
     .name = "ion",
+    .model_id = GKYL_MODEL_SR,
     .charge = ctx.chargeIon, .mass = ctx.massIon,
     .lower = { -ctx.Tion, -ctx.Tion, -ctx.Tion },
     .upper = { ctx.Tion, ctx.Tion, ctx.Tion}, 
@@ -258,7 +260,6 @@ main(int argc, char **argv)
 
   // field
   struct gkyl_vlasov_field field = {
-    .field_id = GKYL_FIELD_SR_E_B,
     .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,

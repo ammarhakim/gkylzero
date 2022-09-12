@@ -35,10 +35,15 @@ gkyl_prim_lbo_vlasov_with_fluid_set_auxfields(const struct gkyl_prim_lbo_type *p
 
 struct gkyl_prim_lbo_type*
 gkyl_prim_lbo_vlasov_with_fluid_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range)
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
-  
+
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_prim_lbo_vlasov_with_fluid_cu_dev_new(cbasis, pbasis, conf_range);
+  } 
+#endif    
   struct prim_lbo_type_vlasov_with_fluid *prim_vlasov_with_fluid = gkyl_malloc(sizeof(struct prim_lbo_type_vlasov_with_fluid));
   int cdim = prim_vlasov_with_fluid->prim.cdim = cbasis->ndim;
   int pdim = prim_vlasov_with_fluid->prim.pdim = pbasis->ndim;

@@ -28,7 +28,7 @@ gkyl_lbo_vlasov_pkpm_diff_set_auxfields(const struct gkyl_dg_eqn *eqn, const str
 {
 
 #ifdef GKYL_HAVE_CUDA
- if (gkyl_array_is_cu_dev(auxin.nu)) {
+ if (gkyl_array_is_cu_dev(auxin.nuVtSq)) {
    gkyl_lbo_vlasov_pkpm_diff_set_auxfields_cu(eqn->on_dev, auxin);
    return;
  }

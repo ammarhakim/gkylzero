@@ -85,7 +85,6 @@ struct vm_lbo_collisions {
   struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator
   struct gkyl_array *nu_sum, *u_drift, *vth_sq, *nu_u, *nu_vthsq; // LBO primitive moments
 
-  double const_nu; // constant collisionality (if specified)
   double betaGreenep1; // value of Greene's factor beta + 1
   double other_m[GKYL_MAX_SPECIES]; // masses of species being collided with
   struct gkyl_array *other_u_drift[GKYL_MAX_SPECIES], *other_vth_sq[GKYL_MAX_SPECIES]; // self-primitive moments of species being collided with
@@ -337,10 +336,6 @@ struct vm_fluid_species {
 
   struct gkyl_array *nu_fluid; // collision frequency multiplying fluid_species (nu*nT_perp or nu*nT_z)
   struct gkyl_array *nu_n_vthsq; // nu*n*vthsq (what collisions relax auxiliary temperature to)
-  
-  // inputs for pkpm model 
-  double other_const_nu;
-  struct gkyl_array *other_vth_sq;
 
   double* omegaCfl_ptr;
 };
@@ -484,27 +479,6 @@ void vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
 void vm_species_moment_calc(const struct vm_species_moment *sm,
   const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
   const struct gkyl_array *fin);
-
-/**
- * Initialize species pkpm moment object.
- *
- * @param app Vlasov app object
- * @param s Species object 
- * @param sm Species moment object
- */
-void vm_species_pkpm_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
-  struct vm_species_moment *sm);
-
-/**
- * Calculate pkpm moment, given distribution function @a fin.
- *
- * @param phase_rng Phase-space range
- * @param conf_rng Config-space range
- * @param fin Input distribution function array
- */
-void vm_species_pkpm_moment_calc(const struct vm_species_moment *sm,
-  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng, const struct gkyl_range vel_rng,
-  const struct gkyl_array *bvar, const struct gkyl_array *fin);
 
 /**
  * Release species moment object.

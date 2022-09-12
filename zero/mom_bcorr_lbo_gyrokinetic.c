@@ -20,10 +20,15 @@ gk_mom_free(const struct gkyl_ref_count *ref)
 
 struct gkyl_mom_type*
 gkyl_mom_bcorr_lbo_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const double* vBoundary, double mass)
+  const double* vBoundary, double mass, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
-  
+
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl__mom_bcorr_lbo_gyrokinetic_cu_dev_new(cbasis, pbasis, vBoundary, mass);
+  } 
+#endif    
   struct mom_type_bcorr_lbo_gyrokinetic *mom_bcorr = gkyl_malloc(sizeof(struct mom_type_bcorr_lbo_gyrokinetic));
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
   int poly_order = cbasis->poly_order;

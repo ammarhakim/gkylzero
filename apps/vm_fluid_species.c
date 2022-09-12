@@ -170,14 +170,9 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     f->vlasov_pkpm_surf_moms = mkarr(app->use_gpu, (2*cdim), f->surf_moms_local_ext.volume);
 
     // pkpm moments (mass, parallel pressure, parallel heat flux)
-    vm_species_pkpm_moment_init(app, f->pkpm_species, f->pkpm_moms);
+    vm_species_moment_init(app, f->pkpm_species, f->pkpm_moms, "PKPM");
 
     f->pkpm_surf_moms_calc = gkyl_mom_pkpm_surf_calc_new(&f->pkpm_species->grid_vel, f->pkpm_species->info.mass);
-
-    if (f->collision_id == GKYL_LBO_COLLISIONS) {
-      f->other_const_nu = f->pkpm_species->lbo.const_nu;
-      f->other_vth_sq = f->pkpm_species->lbo.vth_sq;     
-    }  
   }
 
   f->advect_slvr = gkyl_dg_updater_fluid_new(&app->grid, &app->confBasis,
@@ -310,9 +305,8 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
       fluid_species->u, fluid, fluid_species->p);
   }
   else if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
-    vm_species_pkpm_moment_calc(fluid_species->pkpm_moms, fluid_species->pkpm_species->local, 
-      app->local, fluid_species->pkpm_species->local_vel,
-      app->field->bvar, fin[fluid_species->species_index]);
+    vm_species_moment_calc(fluid_species->pkpm_moms, fluid_species->pkpm_species->local, 
+      app->local, fin[fluid_species->species_index]);
 
     gkyl_calc_prim_vars_u_from_rhou(fluid_species->u_mem, app->confBasis, app->local, 
       fluid_species->pkpm_moms->marr, fluid, fluid_species->u);

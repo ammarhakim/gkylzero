@@ -20,6 +20,7 @@ typedef struct gkyl_hyper_dg gkyl_hyper_dg;
  * @param update_dirs List of directions to update (size 'num_up_dirs')
  * @param zero_flux_flags Flags to indicate if direction has zero-flux BCs
  * @param update_vol_term Set to 0 to skip volume update
+ * @param use_gpu bool to determine if on GPU
  */
 gkyl_hyper_dg* gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation,

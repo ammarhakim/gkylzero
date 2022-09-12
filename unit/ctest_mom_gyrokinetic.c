@@ -39,7 +39,7 @@ test_mom_gyrokinetic()
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  struct gkyl_mom_type *m2 = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M2");
+  struct gkyl_mom_type *m2 = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M2", false);
 
   TEST_CHECK( m2->cdim == 1 );
   TEST_CHECK( m2->pdim == 3 );
@@ -48,7 +48,7 @@ test_mom_gyrokinetic()
   TEST_CHECK( m2->num_phase == basis.num_basis );
   TEST_CHECK( m2->num_mom == 1 );
 
-  struct gkyl_mom_type *m3par = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M3par");
+  struct gkyl_mom_type *m3par = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M3par", false);
   TEST_CHECK( m3par->num_mom == 1 );
 
   gkyl_mom_type_release(m2);
@@ -183,15 +183,15 @@ test_1x1v(int polyOrder)
   gkyl_proj_on_basis_advance(projbmag, 0.0, &confLocal, bmag);
 //  gkyl_grid_sub_array_write(&confGrid, &confLocal, bmag, "ctest_mom_gyrokinetic_1x1v_p1_bmag.gkyl");
 
-  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M0");
-  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M1");
-  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M2");
+  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M0", false);
+  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M1", false);
+  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M2", false);
   gkyl_gyrokinetic_set_bmag(M0_t, bmag);
   gkyl_gyrokinetic_set_bmag(M1_t, bmag);
   gkyl_gyrokinetic_set_bmag(M2_t, bmag);
-  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t);
-  gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t);
-  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t);
+  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t, false);
+  gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t, false);
+  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t, false);
 
   // create moment arrays
   struct gkyl_array *m0, *m1, *m2;
@@ -366,15 +366,15 @@ test_1x2v(int poly_order)
     poly_order+1, 1, bmag_1x, NULL);
   gkyl_proj_on_basis_advance(projbmag, 0.0, &confLocal, bmag);
 
-  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M0");
-  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M1");
-  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M2");
+  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M0", false);
+  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M1", false);
+  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M2", false);
   gkyl_gyrokinetic_set_bmag(M0_t, bmag);
   gkyl_gyrokinetic_set_bmag(M1_t, bmag);
   gkyl_gyrokinetic_set_bmag(M2_t, bmag);
-  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t);
-  gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t);
-  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t);
+  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t, false);
+  gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t, false);
+  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t, false);
 
   // create moment arrays
   struct gkyl_array *m0, *m1, *m2;
@@ -531,15 +531,15 @@ test_2x2v(int poly_order)
     poly_order+1, 1, bmag_2x, NULL);
   gkyl_proj_on_basis_advance(projbmag, 0.0, &confLocal, bmag);
 
-  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M0");
-  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M1");
-  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M2");
+  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M0", false);
+  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M1", false);
+  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M2", false);
   gkyl_gyrokinetic_set_bmag(M0_t, bmag);
   gkyl_gyrokinetic_set_bmag(M1_t, bmag);
   gkyl_gyrokinetic_set_bmag(M2_t, bmag);
-  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t);
-  gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t);
-  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t);
+  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t, false);
+  gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t, false);
+  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t, false);
 
   // create moment arrays
   struct gkyl_array *m0, *m1, *m2;

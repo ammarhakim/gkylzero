@@ -27,85 +27,52 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   gkyl_array_copy(lbo->nu_sum, self_nu);
   gkyl_array_release(self_nu);
 
-  lbo->boundary_corrections = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
+  if (s->model_id == GKYL_MODEL_PKPM) {
+    // Only energy corrections for pkpm model
+    lbo->boundary_corrections = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    lbo->u_drift = 0;
+    lbo->nu_u = 0;   
+    lbo->vth_sq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume); 
+    lbo->nu_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
-  lbo->u_drift = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
-  lbo->vth_sq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  lbo->nu_u = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
-  lbo->nu_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  lbo->m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    
-  // allocate moments needed for LBO update
-  vm_species_moment_init(app, s, &lbo->moms, "FiveMoments");
+    // Get pointer to fluid species object and index (needed for computing primitive moments)
+    lbo->pkpm_fluid_species = vm_find_fluid_species(app, s->info.pkpm_fluid_species);
 
-  // create collision equation object and solver
-  if (app->use_gpu) {
+    // edge of velocity space corrections to *only* energy (in PKPM model)
+    lbo->bcorr_calc = gkyl_mom_calc_bcorr_lbo_vlasov_pkpm_new(&s->grid, 
+      &app->confBasis, &app->basis, v_bounds, app->use_gpu);
+    // primitive moment calculators
+    lbo->coll_pcalc = gkyl_prim_lbo_vlasov_pkpm_calc_new(&s->grid, 
+      &app->confBasis, &app->basis, &app->local, app->use_gpu);
+  }
+  else {
+    lbo->boundary_corrections = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
+
+    lbo->u_drift = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
+    lbo->vth_sq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    lbo->nu_u = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
+    lbo->nu_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    lbo->m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+      
+    // allocate moments needed for LBO update
+    vm_species_moment_init(app, s, &lbo->moms, "FiveMoments");
+
     // edge of velocity space corrections to momentum and energy 
-    lbo->bcorr_calc = gkyl_mom_calc_bcorr_lbo_vlasov_cu_dev_new(&s->grid, &app->confBasis, &app->basis, v_bounds);
+    lbo->bcorr_calc = gkyl_mom_calc_bcorr_lbo_vlasov_new(&s->grid, 
+      &app->confBasis, &app->basis, v_bounds, app->use_gpu);
     
     // primitive moment calculators
     if (collides_with_fluid)
-      lbo->coll_pcalc = gkyl_prim_lbo_vlasov_with_fluid_calc_cu_dev_new(&s->grid, &app->confBasis, &app->basis, &app->local);
+      lbo->coll_pcalc = gkyl_prim_lbo_vlasov_with_fluid_calc_new(&s->grid, 
+        &app->confBasis, &app->basis, &app->local, app->use_gpu);
     else
-      lbo->coll_pcalc = gkyl_prim_lbo_vlasov_calc_cu_dev_new(&s->grid, &app->confBasis, &app->basis);
-  } else {
-    // edge of velocity space corrections to momentum and energy 
-    lbo->bcorr_calc = gkyl_mom_calc_bcorr_lbo_vlasov_new(&s->grid, &app->confBasis, &app->basis, v_bounds);
-    
-    // primitive moment calculators
-    if (collides_with_fluid)
-      lbo->coll_pcalc = gkyl_prim_lbo_vlasov_with_fluid_calc_new(&s->grid, &app->confBasis, &app->basis, &app->local);
-    else
-      lbo->coll_pcalc = gkyl_prim_lbo_vlasov_calc_new(&s->grid, &app->confBasis, &app->basis);
+      lbo->coll_pcalc = gkyl_prim_lbo_vlasov_calc_new(&s->grid, 
+        &app->confBasis, &app->basis, &app->local, app->use_gpu);
   }
 
   // LBO updater
-  lbo->coll_slvr = gkyl_dg_updater_lbo_vlasov_new(&s->grid, &app->confBasis, &app->basis, &app->local, s->model_id, app->use_gpu);
-}
-
-void 
-vm_species_pkpm_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_lbo_collisions *lbo)
-{
-  int cdim = app->cdim, vdim = app->vdim;
-  double v_bounds[2*GKYL_MAX_DIM];
-  for (int d=0; d<vdim; ++d) {
-    v_bounds[d] = s->info.lower[d];
-    v_bounds[d + vdim] = s->info.upper[d];
-  }
-
-  lbo->nu_sum = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  // Check for constant collisionality (currently used by pkpm model)
-  // Whole array is set to value of constant collisionality and only 0th coefficient
-  // is fetched in each cell. Done this way for consistent signature of LBO updater.
-  if(s->info.collisions.const_nu)
-    gkyl_array_clear(lbo->nu_sum, s->info.collisions.const_nu);
-
-  // Only energy corrections for pkpm model
-  lbo->boundary_corrections = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  lbo->u_drift = 0;
-  lbo->nu_u = 0;
-  lbo->vth_sq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  // Since PKPM model only uses vth_sq array, just have lbo->nu_vthsq point to the same location
-  lbo->nu_vthsq = lbo->vth_sq;
-
-  // Get pointer to fluid species object and index (needed for computing primitive moments)
-  lbo->pkpm_fluid_species = vm_find_fluid_species(app, s->info.pkpm_fluid_species);
-
-  // create collision equation object and solver
-  if (app->use_gpu) {
-    // edge of velocity space corrections to energy 
-    lbo->bcorr_calc = gkyl_mom_calc_bcorr_lbo_vlasov_pkpm_cu_dev_new(&s->grid, &app->confBasis, &app->basis, v_bounds);
-    // primitive moment calculators
-    lbo->coll_pcalc = gkyl_prim_lbo_vlasov_pkpm_calc_cu_dev_new(&s->grid, &app->confBasis, &app->basis, &app->local);
-  } else {
-    // edge of velocity space corrections to momentum and energy 
-    lbo->bcorr_calc = gkyl_mom_calc_bcorr_lbo_vlasov_pkpm_new(&s->grid, &app->confBasis, &app->basis, v_bounds);
-    // primitive moment calculators
-    lbo->coll_pcalc = gkyl_prim_lbo_vlasov_pkpm_calc_new(&s->grid, &app->confBasis, &app->basis, &app->local);
-  }
-
-  // LBO updater
-  lbo->coll_slvr = gkyl_dg_updater_lbo_vlasov_new(&s->grid, &app->confBasis, &app->basis, &app->local, s->model_id, app->use_gpu);
+  lbo->coll_slvr = gkyl_dg_updater_lbo_vlasov_new(&s->grid, 
+    &app->confBasis, &app->basis, &app->local, s->model_id, app->use_gpu);
 }
 
 void 
@@ -113,10 +80,8 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s, str
 {
   int vdim = app->vdim;
 
-  if (app->use_gpu)
-    lbo->cross_calc = gkyl_prim_lbo_vlasov_cross_calc_cu_dev_new(&s->grid, &app->confBasis, &app->basis);
-  else
-    lbo->cross_calc = gkyl_prim_lbo_vlasov_cross_calc_new(&s->grid, &app->confBasis, &app->basis);
+  lbo->cross_calc = gkyl_prim_lbo_vlasov_cross_calc_new(&s->grid, 
+    &app->confBasis, &app->basis, &app->local, app->use_gpu);
   
   lbo->cross_nu_u = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
   lbo->cross_nu_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -171,60 +136,22 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
   bool collides_with_fluid, const struct gkyl_array *fluidin[])
 {
   struct timespec wst = gkyl_wall_clock();
-  // compute needed moments
-  vm_species_moment_calc(&lbo->moms, species->local, app->local, fin);
-  gkyl_array_set_range(lbo->m0, 1.0, lbo->moms.marr, app->local);
-
-  // get pointer to fluid species if kinetic species is colliding with fluid species
-  if (collides_with_fluid)
-    gkyl_prim_lbo_vlasov_with_fluid_set_auxfields(gkyl_prim_lbo_calc_get_prim(lbo->coll_pcalc),
-      (struct gkyl_prim_lbo_vlasov_with_fluid_auxfields) { .fluid = fluidin[species->fluid_index]  });
   
-  if (app->use_gpu) {
-    wst = gkyl_wall_clock();
-
-    // construct boundary corrections
-    gkyl_mom_calc_bcorr_advance_cu(lbo->bcorr_calc,
-      &species->local, &app->local, fin, lbo->boundary_corrections);
-
-    // construct primitive moments    
-    gkyl_prim_lbo_calc_advance_cu(lbo->coll_pcalc, app->confBasis, &app->local, 
-      lbo->moms.marr, lbo->boundary_corrections,
-      lbo->u_drift, lbo->vth_sq);
-  
-    gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_u, 0, lbo->u_drift, 0, lbo->self_nu);
-    gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_vthsq, 0, lbo->vth_sq, 0, lbo->self_nu);
-
-    app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);
-  } else {
-    wst = gkyl_wall_clock();
-    
-    // construct boundary corrections
-    gkyl_mom_calc_bcorr_advance(lbo->bcorr_calc,
-      &species->local, &app->local, fin, lbo->boundary_corrections);
-
-    // construct primitive moments    
-    gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, app->confBasis, &app->local, 
-      lbo->moms.marr, lbo->boundary_corrections,
-      lbo->u_drift, lbo->vth_sq);
-    
-    gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_u, 0, lbo->u_drift, 0, lbo->self_nu);
-    gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_vthsq, 0, lbo->vth_sq, 0, lbo->self_nu);
-
-    app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
+  if (species->model_id == GKYL_MODEL_PKPM) {
+    // Set pointer to pressure tensor for use in boundary corrections  
+    gkyl_prim_lbo_vlasov_pkpm_set_auxfields(gkyl_prim_lbo_calc_get_prim(lbo->coll_pcalc),
+      (struct gkyl_prim_lbo_vlasov_pkpm_auxfields) { .pvar = lbo->pkpm_fluid_species->p });
   }
-}
+  else {
+    // compute needed moments
+    vm_species_moment_calc(&lbo->moms, species->local, app->local, fin);
+    gkyl_array_set_range(lbo->m0, 1.0, lbo->moms.marr, app->local);
 
-// computes moments, boundary corrections, and primitive moments
-void
-vm_species_pkpm_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
-  struct vm_lbo_collisions *lbo, const struct gkyl_array *fin)
-{
-  struct timespec wst = gkyl_wall_clock();
-
-  // Set pointer to pressure tensor for use in boundary corrections
-  gkyl_prim_lbo_vlasov_pkpm_set_auxfields(gkyl_prim_lbo_calc_get_prim(lbo->coll_pcalc),
-    (struct gkyl_prim_lbo_vlasov_pkpm_auxfields) { .pvar = lbo->pkpm_fluid_species->p });
+    // get pointer to fluid species if kinetic species is colliding with fluid species
+    if (collides_with_fluid)
+      gkyl_prim_lbo_vlasov_with_fluid_set_auxfields(gkyl_prim_lbo_calc_get_prim(lbo->coll_pcalc),
+        (struct gkyl_prim_lbo_vlasov_with_fluid_auxfields) { .fluid = fluidin[species->fluid_index]  });
+  }
   
   if (app->use_gpu) {
     wst = gkyl_wall_clock();
@@ -233,24 +160,50 @@ vm_species_pkpm_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
     gkyl_mom_calc_bcorr_advance_cu(lbo->bcorr_calc,
       &species->local, &app->local, fin, lbo->boundary_corrections);
 
-    // construct primitive moments    
-    // PKPM moments already computed before this, so just fetch results
-    gkyl_prim_lbo_calc_advance_cu(lbo->coll_pcalc, app->confBasis, &app->local, 
-      lbo->pkpm_fluid_species->pkpm_moms->marr, lbo->boundary_corrections,
-      lbo->u_drift, lbo->vth_sq);
+    // construct primitive moments  
+    if (species->model_id == GKYL_MODEL_PKPM) {
+      // PKPM moments already computed before this, so just fetch results
+      gkyl_prim_lbo_calc_advance_cu(lbo->coll_pcalc, &app->local, 
+        lbo->pkpm_fluid_species->pkpm_moms->marr, lbo->boundary_corrections,
+        lbo->u_drift, lbo->vth_sq);
+      // NOTE: PKPM Model does not have nu_u, so no need to do weak multiplication 
+    }
+    else {
+      gkyl_prim_lbo_calc_advance_cu(lbo->coll_pcalc, &app->local, 
+        lbo->moms.marr, lbo->boundary_corrections,
+        lbo->u_drift, lbo->vth_sq);
+
+      gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_u, 0, lbo->u_drift, 0, lbo->self_nu);
+    }  
+  
+    gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_vthsq, 0, lbo->vth_sq, 0, lbo->self_nu);
 
     app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);
-  } else {
+  } 
+  else {
     wst = gkyl_wall_clock();
     
     // construct boundary corrections
     gkyl_mom_calc_bcorr_advance(lbo->bcorr_calc,
       &species->local, &app->local, fin, lbo->boundary_corrections);
 
-    // construct primitive moments    
-    gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, app->confBasis, &app->local, 
-      lbo->moms.marr, lbo->boundary_corrections,
-      lbo->u_drift, lbo->vth_sq);
+    // construct primitive moments 
+    if (species->model_id == GKYL_MODEL_PKPM) {
+      // PKPM moments already computed before this, so just fetch results
+      gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, &app->local, 
+        lbo->pkpm_fluid_species->pkpm_moms->marr, lbo->boundary_corrections,
+        lbo->u_drift, lbo->vth_sq);
+      // NOTE: PKPM Model does not have nu_u, so no need to do weak multiplication 
+    }
+    else {
+      gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, &app->local, 
+        lbo->moms.marr, lbo->boundary_corrections,
+        lbo->u_drift, lbo->vth_sq);
+
+      gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_u, 0, lbo->u_drift, 0, lbo->self_nu);
+    }
+    
+    gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_vthsq, 0, lbo->vth_sq, 0, lbo->self_nu);
 
     app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
   }
@@ -288,7 +241,7 @@ vm_species_lbo_cross_moms(gkyl_vlasov_app *app, const struct vm_species *species
 
     if (app->use_gpu)
       gkyl_prim_lbo_cross_calc_advance_cu(lbo->cross_calc,
-        app->confBasis, &app->local, 
+        &app->local, 
         lbo->greene_factor[i], 
         species->info.mass, lbo->u_drift, lbo->vth_sq, 
         lbo->other_m[i], lbo->other_u_drift[i], lbo->other_vth_sq[i],
@@ -296,7 +249,7 @@ vm_species_lbo_cross_moms(gkyl_vlasov_app *app, const struct vm_species *species
         lbo->cross_u_drift[i], lbo->cross_vth_sq[i]);
     else 
       gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc,
-        app->confBasis, &app->local, 
+        &app->local, 
         lbo->greene_factor[i], 
         species->info.mass, lbo->u_drift, lbo->vth_sq, 
         lbo->other_m[i], lbo->other_u_drift[i], lbo->other_vth_sq[i],

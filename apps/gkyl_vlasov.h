@@ -73,6 +73,9 @@ struct gkyl_vlasov_fluid_diffusion {
 struct gkyl_vlasov_species {
   char name[128]; // species name
 
+  enum gkyl_model_id model_id; // type of model 
+                               // (e.g., SR, PKPM, see gkyl_eqn_type.h)
+
   double charge, mass; // charge and mass
   double lower[3], upper[3]; // lower, upper bounds of velocity-space
   int cells[3]; // velocity-space cells
@@ -105,7 +108,8 @@ struct gkyl_vlasov_species {
 
 // Parameter for EM field
 struct gkyl_vlasov_field {
-  enum gkyl_field_id field_id; // type of field (see gkyl_eqn_type.h)
+  enum gkyl_field_id field_id; // type of field 
+                               // (e.g., Maxwell's, Poisson, see gkyl_eqn_type.h)
   bool is_static; // set to true if field does not change in time
 
   double epsilon0, mu0;

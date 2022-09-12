@@ -18,10 +18,11 @@ struct gkyl_mom_vlasov_sr_auxfields {
  * @param pbasis Phase-space basis-functions
  * @param vel_range Velocity space range
  * @param mom Name of moment to compute.
+ * @param use_gpu bool to determine if on GPU
  */
 struct gkyl_mom_type* gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, const struct gkyl_range* vel_range,
-  const char *mom);
+  const char *mom, bool use_gpu);
 
 /**
  * Create new special relativistic Vlasov moment type object on NV-GPU: 
@@ -38,9 +39,11 @@ struct gkyl_mom_type* gkyl_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis* cba
  * @param cbasis Configuration-space basis-functions
  * @param pbasis Phase-space basis-functions
  * @param vel_range Velocity space range
+ * @param use_gpu bool to determine if on GPU
  */
 struct gkyl_mom_type* gkyl_int_mom_vlasov_sr_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* vel_range);
+  const struct gkyl_basis* pbasis, const struct gkyl_range* vel_range,
+  bool use_gpu);
 
 /**
  * Create new special relativistic Vlasov integrated moment type

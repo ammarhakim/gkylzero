@@ -103,7 +103,7 @@ gkyl_dg_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* 
       assert(false);
       break;    
   }  
-  if (field_id == GKYL_FIELD_SR_NULL)
+  if (field_id == GKYL_FIELD_NULL)
     vlasov_sr->eqn.vol_term = CK(stream_vol_kernels,cdim,vdim,poly_order);
   else
     vlasov_sr->eqn.vol_term = CK(vol_kernels,cdim,vdim,poly_order);

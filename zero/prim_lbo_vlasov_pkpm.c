@@ -38,10 +38,15 @@ gkyl_prim_lbo_vlasov_pkpm_set_auxfields(const struct gkyl_prim_lbo_type *prim,
 
 struct gkyl_prim_lbo_type*
 gkyl_prim_lbo_vlasov_pkpm_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range)
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
-  
+
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_prim_lbo_vlasov_pkpm_cu_dev_new(cbasis, pbasis, conf_range);
+  } 
+#endif     
   struct prim_lbo_type_vlasov_pkpm *prim_vlasov_pkpm = gkyl_malloc(sizeof(struct prim_lbo_type_vlasov_pkpm));
   int cdim = prim_vlasov_pkpm->prim.cdim = cbasis->ndim;
   int pdim = prim_vlasov_pkpm->prim.pdim = pbasis->ndim;

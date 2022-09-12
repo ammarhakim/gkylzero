@@ -36,10 +36,15 @@ gkyl_mom_vlasov_pkpm_set_auxfields(const struct gkyl_mom_type *momt, struct gkyl
 
 struct gkyl_mom_type*
 gkyl_mom_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, double mass)
+  const struct gkyl_range* conf_range, double mass, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
-  
+
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_mom_vlasov_pkpm_cu_dev_new(cbasis, pbasis, conf_range, mass);
+  } 
+#endif    
   struct mom_type_vlasov_pkpm *mom_vlasov_pkpm = gkyl_malloc(sizeof(struct mom_type_vlasov_pkpm));
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
   int poly_order = cbasis->poly_order;

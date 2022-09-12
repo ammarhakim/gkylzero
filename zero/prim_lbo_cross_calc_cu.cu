@@ -16,7 +16,7 @@ extern "C" {
 __global__ static void
 gkyl_prim_lbo_cross_calc_set_cu_ker(gkyl_prim_lbo_cross_calc* calc,
   struct gkyl_nmat *As, struct gkyl_nmat *xs,
-  struct gkyl_basis cbasis, const struct gkyl_range conf_rng,
+  const struct gkyl_range conf_rng,
   const struct gkyl_array *greene,
   double self_m, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
   double cross_m, const struct gkyl_array *cross_u, const struct gkyl_array *cross_vtsq, 
@@ -60,7 +60,7 @@ gkyl_prim_lbo_cross_calc_set_cu_ker(gkyl_prim_lbo_cross_calc* calc,
 
 __global__ static void
 gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs,
-  struct gkyl_basis cbasis, const struct gkyl_range conf_rng,
+  const struct gkyl_range conf_rng,
   int nc, int udim, 
   struct gkyl_array* u_out, struct gkyl_array* vtsq_out)
 {
@@ -88,28 +88,20 @@ gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs,
 }
 
 void
-gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc,
-  struct gkyl_basis cbasis, const struct gkyl_range *conf_rng,
+gkyl_prim_lbo_cross_calc_advance_cu(const struct gkyl_prim_lbo_cross_calc* calc,
+  const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
   double self_m, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
   double cross_m, const struct gkyl_array *cross_u, const struct gkyl_array *cross_vtsq, 
   const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections, 
   struct gkyl_array *u_out, struct gkyl_array *vtsq_out)
 {
-  int nc = cbasis.num_basis;
+  int nc = calc->prim->num_config;
   int udim = calc->prim->udim;
-  int N = nc*(udim + 1);
-  
-  if (calc->is_first) {
-    calc->As = gkyl_nmat_cu_dev_new(conf_rng->volume, N, N);
-    calc->xs = gkyl_nmat_cu_dev_new(conf_rng->volume, N, 1);
-    calc->mem = gkyl_nmat_linsolve_lu_cu_dev_new(calc->As->num, calc->As->nr);
-    calc->is_first = false;
-  }
 
   gkyl_prim_lbo_cross_calc_set_cu_ker<<<conf_rng->nblocks, conf_rng->nthreads>>>(calc->on_dev,
     calc->As->on_dev, calc->xs->on_dev, 
-    cbasis, *conf_rng, 
+    *conf_rng, 
     greene->on_dev, 
     self_m, self_u->on_dev, self_vtsq->on_dev,
     cross_m, cross_u->on_dev, cross_vtsq->on_dev,
@@ -118,21 +110,27 @@ gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc,
   bool status = gkyl_nmat_linsolve_lu_pa(calc->mem, calc->As, calc->xs);
   
   gkyl_prim_lbo_copy_sol_cu_ker<<<conf_rng->nblocks, conf_rng->nthreads>>>(calc->xs->on_dev,
-    cbasis, *conf_rng, nc, udim, 
+    *conf_rng, nc, udim, 
     u_out->on_dev, vtsq_out->on_dev);
 }
 
 gkyl_prim_lbo_cross_calc*
 gkyl_prim_lbo_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis* cbasis, const struct gkyl_range *conf_rng, 
   struct gkyl_prim_lbo_type *prim)
 {
   gkyl_prim_lbo_cross_calc *up = (gkyl_prim_lbo_cross_calc*) gkyl_malloc(sizeof(gkyl_prim_lbo_cross_calc));
   up->grid = *grid;
   up->prim = prim;
 
-  up->is_first = true;
-  up->As = up->xs = 0;
-  up->mem = 0;
+  // allocate device memory for use in kernels
+  int nc = up->prim->num_config;
+  int udim = up->prim->udim;
+  int N = nc*(udim + 1);
+  
+  up->As = gkyl_nmat_cu_dev_new(conf_rng->volume, N, N);
+  up->xs = gkyl_nmat_cu_dev_new(conf_rng->volume, N, 1);
+  up->mem = gkyl_nmat_linsolve_lu_cu_dev_new(up->As->num, up->As->nr);
 
   struct gkyl_prim_lbo_type *pt = gkyl_prim_lbo_type_acquire(prim);
   up->prim = pt->on_dev; // so memcpy below gets dev copy
