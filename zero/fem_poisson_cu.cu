@@ -120,7 +120,7 @@ fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_
 }
 
 __global__ void
-gkyl_fem_poisson_set_rhs_kernel(double epsilon, const double *dx, double *rhs_global, struct gkyl_array *rhs_local, struct gkyl_range range, double *bcvals, struct gkyl_fem_poisson_kernels *kers)
+gkyl_fem_poisson_set_rhs_kernel(double epsilon, const double *dx, double *rhs_global, struct gkyl_array *rhs_local, struct gkyl_range range, const double *bcvals, struct gkyl_fem_poisson_kernels *kers)
 {
   int idx[GKYL_MAX_DIM];
   int idx0[GKYL_MAX_DIM];

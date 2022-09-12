@@ -10,47 +10,22 @@ GKYL_CU_DH void vlasov_cross_prim_moments_2x2v_ser_p1(struct gkyl_mat *A, struct
   // uCross,vtSqCross:     cross primitive moments: mean flow velocity and thermal speed squared. 
  
   // If a corner value is below zero, use cell average m0.
-  bool cellAvg = false;
-  if (0.5*(3.0*moms[3]-1.732050807568877*(moms[2]+moms[1])+moms[0]) < 0) cellAvg = true; 
-  if (-0.5*(3.0*moms[3]+1.732050807568877*moms[2]-1.732050807568877*moms[1]-1.0*moms[0]) < 0) cellAvg = true; 
-  if (-0.5*(3.0*moms[3]-1.732050807568877*moms[2]+1.732050807568877*moms[1]-1.0*moms[0]) < 0) cellAvg = true; 
-  if (0.5*(3.0*moms[3]+1.732050807568877*(moms[2]+moms[1])+moms[0]) < 0) cellAvg = true; 
+  bool notCellAvg = true;
+  if (notCellAvg && (0.5*(3.0*moms[3]-1.732050807568877*(moms[2]+moms[1])+moms[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (-0.5*(3.0*moms[3]+1.732050807568877*moms[2]-1.732050807568877*moms[1]-1.0*moms[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (-0.5*(3.0*moms[3]-1.732050807568877*moms[2]+1.732050807568877*moms[1]-1.0*moms[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.5*(3.0*moms[3]+1.732050807568877*(moms[2]+moms[1])+moms[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.5*(3.0*moms[15]-1.732050807568877*(moms[14]+moms[13])+moms[12]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (-0.5*(3.0*moms[15]+1.732050807568877*moms[14]-1.732050807568877*moms[13]-1.0*moms[12]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (-0.5*(3.0*moms[15]-1.732050807568877*moms[14]+1.732050807568877*moms[13]-1.0*moms[12]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.5*(3.0*moms[15]+1.732050807568877*(moms[14]+moms[13])+moms[12]) < 0)) notCellAvg = false; 
  
   double m0r[4] = {0.0}; 
   double m1r[8] = {0.0}; 
   double m2r[4] = {0.0}; 
   double cMr[8] = {0.0}; 
   double cEr[4] = {0.0}; 
-  if (cellAvg) { 
-    m0r[0] = moms[0]; 
-    m0r[1] = 0.0; 
-    m0r[2] = 0.0; 
-    m0r[3] = 0.0; 
-    m1r[0] = moms[4]; 
-    m1r[1] = 0.0; 
-    m1r[2] = 0.0; 
-    m1r[3] = 0.0; 
-    cMr[0] = boundary_corrections[0]; 
-    cMr[1] = 0.0; 
-    cMr[2] = 0.0; 
-    cMr[3] = 0.0; 
-    m1r[4] = moms[8]; 
-    m1r[5] = 0.0; 
-    m1r[6] = 0.0; 
-    m1r[7] = 0.0; 
-    cMr[4] = boundary_corrections[4]; 
-    cMr[5] = 0.0; 
-    cMr[6] = 0.0; 
-    cMr[7] = 0.0; 
-    m2r[0] = moms[12]; 
-    m2r[1] = 0.0; 
-    m2r[2] = 0.0; 
-    m2r[3] = 0.0; 
-    cEr[0] = boundary_corrections[8]; 
-    cEr[1] = 0.0; 
-    cEr[2] = 0.0; 
-    cEr[3] = 0.0; 
-  } else { 
+  if (notCellAvg) { 
     m0r[0] = moms[0]; 
     m0r[1] = moms[1]; 
     m0r[2] = moms[2]; 
@@ -79,6 +54,35 @@ GKYL_CU_DH void vlasov_cross_prim_moments_2x2v_ser_p1(struct gkyl_mat *A, struct
     cEr[1] = boundary_corrections[9]; 
     cEr[2] = boundary_corrections[10]; 
     cEr[3] = boundary_corrections[11]; 
+  } else { 
+    m0r[0] = moms[0]; 
+    m0r[1] = 0.0; 
+    m0r[2] = 0.0; 
+    m0r[3] = 0.0; 
+    m1r[0] = moms[4]; 
+    m1r[1] = 0.0; 
+    m1r[2] = 0.0; 
+    m1r[3] = 0.0; 
+    cMr[0] = boundary_corrections[0]; 
+    cMr[1] = 0.0; 
+    cMr[2] = 0.0; 
+    cMr[3] = 0.0; 
+    m1r[4] = moms[8]; 
+    m1r[5] = 0.0; 
+    m1r[6] = 0.0; 
+    m1r[7] = 0.0; 
+    cMr[4] = boundary_corrections[4]; 
+    cMr[5] = 0.0; 
+    cMr[6] = 0.0; 
+    cMr[7] = 0.0; 
+    m2r[0] = moms[12]; 
+    m2r[1] = 0.0; 
+    m2r[2] = 0.0; 
+    m2r[3] = 0.0; 
+    cEr[0] = boundary_corrections[8]; 
+    cEr[1] = 0.0; 
+    cEr[2] = 0.0; 
+    cEr[3] = 0.0; 
   } 
  
   double momRHS[8] = {0.0}; 
