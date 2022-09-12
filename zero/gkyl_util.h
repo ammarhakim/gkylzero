@@ -260,6 +260,13 @@ double gkyl_time_diff_now_sec(struct timespec tm);
 double gkyl_time_sec(struct timespec tm);
 
 /**
+ * Compute time in seconds since epoch.
+ *
+ * @return Time in seconds
+ */
+double gkyl_time_now(void);
+
+/**
  * Initialize 32-bit RNG 
  *
  * @param nd_seed true if to use non-deterministic seed, or false for

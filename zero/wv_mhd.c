@@ -6,8 +6,6 @@
 #include <gkyl_moment_prim_mhd.h>
 #include <gkyl_wv_mhd.h>
 
-enum { DIVB_NONE, DIVB_EIGHT_WAVES, DIVB_GLM };
-
 // Make indexing cleaner and clearer
 #define DN (0)
 #define MX (1)
@@ -76,8 +74,8 @@ rot_to_global_rect_glm(const double *tau1, const double *tau2, const double *nor
 struct wv_mhd {
   struct gkyl_wv_eqn eqn; // base object
   double gas_gamma; // gas adiabatic constant
-  int divergence_constraint;
-  int glm_ch;
+  enum gkyl_wv_mhd_div_constraint divergence_constraint; // divB correction
+  double glm_ch; // factor to use in GLM scheme
 };
 
 static void
@@ -91,7 +89,7 @@ mhd_free(const struct gkyl_ref_count *ref)
 // Computing waves and waves speeds from Roe linearization.
 // Following Cargo & Gallice 1997 section 4.2.
 static double
-wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+wave_roe(const struct gkyl_wv_eqn *eqn,
   const double *dQ, const double *ql, const double *qr, double *waves, double *ev)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
@@ -332,16 +330,23 @@ wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   // This wave exists in the eight-wave scheme. In this implementation, it is
   // incorporated into the last wave, the entropy wave, since both have eigen
   // value ev=u. This wave only advects jump in Bx at the speed u.
-  if (mhd->divergence_constraint == DIVB_EIGHT_WAVES)
+  if (mhd->divergence_constraint == GKYL_MHD_DIVB_EIGHT_WAVES)
     wv[BX] = dQ[BX];
 
   double max_speed =  fabs(u) + cf;
 
   // GLM divB and psi waves; XXX set ch properly.
-  if (mhd->divergence_constraint == DIVB_GLM)
+  if (mhd->divergence_constraint == GKYL_MHD_DIVB_GLM)
   {
-    // ch = eqn->glm_ch;
-    double ch = max_speed;  // cfl * min(dx, dy, dz) / dt
+    double ch;
+    if (mhd->glm_ch > 0)
+      ch = mhd->glm_ch;
+    else
+      // candidates:
+      // 1. Dedner (2002) sec 4: cfl * min(dx, dy, dz) / dt
+      // 2. Derigs (2018) eq 3.30: max_speed_global - max_global(|u|, |v|, |w|)
+      // 3. local version of 2; needs to store ch for the source step
+      ch = max_speed;
 
     ev[7] = -ch;
     eta[7] = 0.5 * (-dQ[BX]*ch+dQ[PSI_GLM]);
@@ -362,7 +367,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
 }
 
 static void
-qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+qfluct_roe(const struct gkyl_wv_eqn *eqn,
   const double *ql, const double *qr, const double *waves, const double *s, double *amdq,
   double *apdq)
 {
@@ -377,10 +382,90 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   }
 }
 
+// Computing waves and waves speeds from Lax fluxes
+static double
+wave_lax(const struct gkyl_wv_eqn *eqn,
+  const double *dQ, const double *ql, const double *qr, double *waves, double *ev)
+{
+  const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
+  double gas_gamma = mhd->gas_gamma;  
+
+  double sl = gkyl_mhd_max_abs_speed(gas_gamma, ql);
+  double sr = gkyl_mhd_max_abs_speed(gas_gamma, qr);
+
+  double *wv = &waves[0]; // single wave
+  for (int i=0; i<mhd->eqn.num_equations; ++i)  wv[i] = dQ[i];
+  
+  ev[0] = 0.5*(sl+sr);
+
+  return ev[0];
+}
+
+static void
+qfluct_lax(const struct gkyl_wv_eqn *eqn,
+  const double *ql, const double *qr, const double *waves, const double *s,
+  double *amdq, double *apdq)
+{
+  const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
+  double gas_gamma = mhd->gas_gamma;  
+
+  double sl = gkyl_mhd_max_abs_speed(gas_gamma, ql);
+  double sr = gkyl_mhd_max_abs_speed(gas_gamma, qr);
+  double amax = fmax(sl, sr);
+
+  double fl[10], fr[10];
+  
+  if (mhd->divergence_constraint == GKYL_MHD_DIVB_GLM) {
+    double ch = amax; // Is this right?
+    gkyl_glm_mhd_flux(gas_gamma, ch, ql, fl);
+    gkyl_glm_mhd_flux(gas_gamma, ch, qr, fr);
+  } else {
+    gkyl_mhd_flux(gas_gamma, ql, fl);
+    gkyl_mhd_flux(gas_gamma, qr, fr);
+  }
+
+  for (int i=0; i<mhd->eqn.num_equations; ++i) {
+    amdq[i] = 0.5*(fr[i]-fl[i] - amax*(qr[i]-ql[i]));
+    apdq[i] = 0.5*(fr[i]-fl[i] + amax*(qr[i]-ql[i]));
+  }
+}
+
+static double
+wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX)
+    return wave_roe(eqn, delta, ql, qr, waves, s);
+  else
+    return wave_lax(eqn, delta, ql, qr, waves, s);
+
+  return 0.0; // can't happen
+}
+
+static void
+qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *ql, const double *qr, const double *waves, const double *s,
+  double *amdq, double *apdq)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX)
+    return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
+  else
+    return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
+}
+
 static bool
 check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 {
-  return true; // TODO
+  const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
+  
+  if (q[0] < 0.0)
+    return false;
+
+  double pr = gkyl_mhd_pressure(mhd->gas_gamma, q);
+  if (pr < 0.0)
+    return false;
+
+  return true;
 }
 
 static double
@@ -391,44 +476,40 @@ max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_mhd_new(double gas_gamma, const char *divergence_constraint)
+gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
 {
   struct wv_mhd *mhd = gkyl_malloc(sizeof(struct wv_mhd));
 
   mhd->eqn.type = GKYL_EQN_MHD;
-  mhd->gas_gamma = gas_gamma;
-  mhd->eqn.waves_func = wave_roe;
-  mhd->eqn.qfluct_func = qfluct_roe;
+  mhd->gas_gamma = inp->gas_gamma;
+  mhd->eqn.waves_func = wave;
+  mhd->eqn.qfluct_func = qfluct;
+  
   mhd->eqn.check_inv_func = check_inv;
   mhd->eqn.max_speed_func = max_speed;
+  
   mhd->eqn.rotate_to_local_func = rot_to_local_rect;
   mhd->eqn.rotate_to_global_func = rot_to_global_rect;
 
-  if (strcmp(divergence_constraint, "none") == 0)
-  {
-    mhd->divergence_constraint = DIVB_NONE;
-    mhd->eqn.num_equations = 8;
-    mhd->eqn.num_waves = 7;
-  }
-  else if (strcmp(divergence_constraint, "eight_waves") == 0)
-  {
-    mhd->divergence_constraint = DIVB_EIGHT_WAVES;
-    mhd->eqn.num_equations = 8;
-    mhd->eqn.num_waves = 7;  // will merge the entropy wave and divB wave
-  }
-  else if (strcmp(divergence_constraint, "glm") == 0)
-  {
-    mhd->divergence_constraint = DIVB_GLM;
-    mhd->eqn.num_equations = 9;
-    mhd->eqn.num_waves = 9;
-    mhd->eqn.rotate_to_local_func = rot_to_local_rect_glm;
-    mhd->eqn.rotate_to_global_func = rot_to_global_rect_glm;
-  }
-  else {
-    // Do not constrain divergence by default. TODO: Warn or throw an error
-    mhd->divergence_constraint = DIVB_NONE;
-    mhd->eqn.num_equations = 8;
-    mhd->eqn.num_waves = 7;
+  mhd->divergence_constraint = inp->divergence_constraint;
+  switch (inp->divergence_constraint) {
+    case GKYL_MHD_DIVB_NONE:
+      mhd->eqn.num_equations = 8;
+      mhd->eqn.num_waves = 7;
+      break;
+
+    case GKYL_MHD_DIVB_EIGHT_WAVES:
+      mhd->eqn.num_equations = 8;
+      mhd->eqn.num_waves = 7;  // will merge the entropy wave and divB wave
+      break;
+
+    case GKYL_MHD_DIVB_GLM:
+      mhd->eqn.num_equations = 9;
+      mhd->eqn.num_waves = 9;
+      mhd->eqn.rotate_to_local_func = rot_to_local_rect_glm;
+      mhd->eqn.rotate_to_global_func = rot_to_global_rect_glm;
+      mhd->glm_ch = inp->glm_ch;
+      break;
   }
 
   mhd->eqn.ref_count = gkyl_ref_count_init(mhd_free);
