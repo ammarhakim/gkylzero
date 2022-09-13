@@ -87,7 +87,7 @@ limiter_function(double r, enum gkyl_wave_limiter limiter)
 gkyl_wave_prop*
 gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp)
 {
-  gkyl_wave_prop *up = gkyl_malloc(sizeof(gkyl_wave_prop));
+  gkyl_wave_prop *up = gkyl_malloc(sizeof(*up));
 
   up->grid = *(winp.grid);
   up->ndim = up->grid.ndim;
@@ -124,7 +124,6 @@ gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp)
 
   up->redo_fluct = gkyl_array_new(GKYL_DOUBLE, meqn, max_1d);
 
-  // construct geometry
   up->geom = gkyl_wave_geom_acquire(winp.geom);
 
   up->n_calls = up->n_bad_advance_calls = 0;
