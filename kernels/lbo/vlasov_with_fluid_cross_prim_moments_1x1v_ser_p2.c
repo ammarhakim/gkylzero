@@ -1,6 +1,6 @@
 #include <gkyl_prim_lbo_vlasov_kernels.h> 
  
-GKYL_CU_DH void vlasov_with_fluid_cross_prim_moments_1x1v_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *greene, const double m_self, const double *u_self, const double *vtsq_self, const double m_other, const double *u_other, const double *vtsq_other, const double *moms, const double *fluid, const double *boundary_corrections) 
+GKYL_CU_DH void vlasov_with_fluid_cross_prim_moments_1x1v_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *greene, const double m_self, const double *moms_self, const double *u_self, const double *vtsq_self, const double m_other, const double *moms_other, const double *u_other, const double *vtsq_other, const double *fluid, const double *boundary_corrections) 
 { 
   // greene:               Greene's factor. 
   // m:                    mass. 
@@ -11,8 +11,8 @@ GKYL_CU_DH void vlasov_with_fluid_cross_prim_moments_1x1v_ser_p2(struct gkyl_mat
  
   // If a corner value is below zero, use cell average m0.
   bool cellAvg = false;
-  if (0.7071067811865475*(2.23606797749979*moms[2]-1.732050807568877*moms[1]+moms[0]) < 0) cellAvg = true; 
-  if (0.7071067811865475*(2.23606797749979*moms[2]+1.732050807568877*moms[1]+moms[0]) < 0) cellAvg = true; 
+  if (0.7071067811865475*(2.23606797749979*moms_self[2]-1.732050807568877*moms_self[1]+moms_self[0]) < 0) cellAvg = true; 
+  if (0.7071067811865475*(2.23606797749979*moms_self[2]+1.732050807568877*moms_self[1]+moms_self[0]) < 0) cellAvg = true; 
  
   double m0r[3] = {0.0}; 
   double m1r[3] = {0.0}; 
@@ -20,31 +20,31 @@ GKYL_CU_DH void vlasov_with_fluid_cross_prim_moments_1x1v_ser_p2(struct gkyl_mat
   double cMr[3] = {0.0}; 
   double cEr[3] = {0.0}; 
   if (cellAvg) { 
-    m0r[0] = moms[0]; 
+    m0r[0] = moms_self[0]; 
     m0r[1] = 0.0; 
     m0r[2] = 0.0; 
-    m1r[0] = moms[3]; 
+    m1r[0] = moms_self[3]; 
     m1r[1] = 0.0; 
     m1r[2] = 0.0; 
     cMr[0] = boundary_corrections[0]; 
     cMr[1] = 0.0; 
     cMr[2] = 0.0; 
-    m2r[0] = moms[6]+2.0*fluid[0]; 
+    m2r[0] = moms_self[6]+2.0*fluid[0]; 
     m2r[1] = 0.0; 
     m2r[2] = 0.0; 
     cEr[0] = boundary_corrections[3]; 
     cEr[1] = 0.0; 
     cEr[2] = 0.0; 
   } else { 
-    m0r[0] = moms[0]; 
-    m0r[1] = moms[1]; 
-    m0r[2] = moms[2]; 
-    m1r[0] = moms[3]; 
-    m1r[1] = moms[4]; 
-    m1r[2] = moms[5]; 
-    m2r[0] = moms[6]+2.0*fluid[0]; 
-    m2r[1] = moms[7]+2.0*fluid[1]; 
-    m2r[2] = moms[8]+2.0*fluid[2]; 
+    m0r[0] = moms_self[0]; 
+    m0r[1] = moms_self[1]; 
+    m0r[2] = moms_self[2]; 
+    m1r[0] = moms_self[3]; 
+    m1r[1] = moms_self[4]; 
+    m1r[2] = moms_self[5]; 
+    m2r[0] = moms_self[6]+2.0*fluid[0]; 
+    m2r[1] = moms_self[7]+2.0*fluid[1]; 
+    m2r[2] = moms_self[8]+2.0*fluid[2]; 
     cMr[0] = boundary_corrections[0]; 
     cMr[1] = boundary_corrections[1]; 
     cMr[2] = boundary_corrections[2]; 

@@ -1,6 +1,6 @@
-#include <gkyl_prim_lbo_vlasov_kernels.h> 
+#include <gkyl_prim_lbo_gyrokinetic_kernels.h> 
  
-GKYL_CU_DH void vlasov_cross_prim_moments_1x1v_ser_p1(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *greene, const double m_self, const double *moms_self, const double *u_self, const double *vtsq_self, const double m_other, const double *moms_other, const double *u_other, const double *vtsq_other, const double *boundary_corrections) 
+GKYL_CU_DH void gyrokinetic_cross_prim_moments_1x2v_ser_p1(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *greene, const double m_self, const double *moms_self, const double *u_self, const double *vtsq_self, const double m_other, const double *moms_other, const double *u_other, const double *vtsq_other, const double *boundary_corrections) 
 { 
   // greene:               Greene's factor. 
   // m_:                   mass. 
@@ -90,10 +90,10 @@ GKYL_CU_DH void vlasov_cross_prim_moments_1x1v_ser_p1(struct gkyl_mat *A, struct
   } 
  
   // ... Block from correction to (self) 2nd moment of collision operator ... // 
-  gkyl_mat_set(A,2,2,0.7071067811865475*ucMSelf[0]+0.7071067811865475*ucMOther[0]+1.414213562373095*m0r[0]-1.414213562373095*cEr[0]); 
-  gkyl_mat_set(A,2,3,0.7071067811865475*ucMSelf[1]+0.7071067811865475*ucMOther[1]+1.414213562373095*m0r[1]-1.414213562373095*cEr[1]); 
-  gkyl_mat_set(A,3,2,0.7071067811865475*ucMSelf[1]+0.7071067811865475*ucMOther[1]+1.414213562373095*m0r[1]-1.414213562373095*cEr[1]); 
-  gkyl_mat_set(A,3,3,0.7071067811865475*ucMSelf[0]+0.7071067811865475*ucMOther[0]+1.414213562373095*m0r[0]-1.414213562373095*cEr[0]); 
+  gkyl_mat_set(A,2,2,0.7071067811865475*ucMSelf[0]+0.7071067811865475*ucMOther[0]+4.242640687119286*m0r[0]-1.414213562373095*cEr[0]); 
+  gkyl_mat_set(A,2,3,0.7071067811865475*ucMSelf[1]+0.7071067811865475*ucMOther[1]+4.242640687119286*m0r[1]-1.414213562373095*cEr[1]); 
+  gkyl_mat_set(A,3,2,0.7071067811865475*ucMSelf[1]+0.7071067811865475*ucMOther[1]+4.242640687119286*m0r[1]-1.414213562373095*cEr[1]); 
+  gkyl_mat_set(A,3,3,0.7071067811865475*ucMSelf[0]+0.7071067811865475*ucMOther[0]+4.242640687119286*m0r[0]-1.414213562373095*cEr[0]); 
  
   double uM1Self[2] = {0.0}; 
   double uM1Other[2] = {0.0}; 
@@ -116,8 +116,8 @@ GKYL_CU_DH void vlasov_cross_prim_moments_1x1v_ser_p1(struct gkyl_mat *A, struct
   } 
  
   double enRHS[2] = {0.0}; 
-  enRHS[0] = (-(2.0*greene[1]*vtsq_self[1]*m_self)/(2.828427124746191*m_self+2.828427124746191*m_other))-(1.0*greene[1]*uSumSq[1]*m_self)/(2.828427124746191*m_self+2.828427124746191*m_other)-(2.0*greene[0]*vtsq_self[0]*m_self)/(2.828427124746191*m_self+2.828427124746191*m_other)-(1.0*greene[0]*uSumSq[0]*m_self)/(2.828427124746191*m_self+2.828427124746191*m_other)+(2.0*greene[1]*vtsq_other[1]*m_other)/(2.828427124746191*m_self+2.828427124746191*m_other)+(greene[1]*uSumSq[1]*m_other)/(2.828427124746191*m_self+2.828427124746191*m_other)+(2.0*greene[0]*vtsq_other[0]*m_other)/(2.828427124746191*m_self+2.828427124746191*m_other)+(greene[0]*uSumSq[0]*m_other)/(2.828427124746191*m_self+2.828427124746191*m_other)-1.0*uM1Self[0]-1.0*uM1Other[0]+2.0*m2r[0]; 
-  enRHS[1] = (-(2.0*greene[0]*vtsq_self[1]*m_self)/(2.828427124746191*m_self+2.828427124746191*m_other))-(1.0*greene[0]*uSumSq[1]*m_self)/(2.828427124746191*m_self+2.828427124746191*m_other)-(2.0*vtsq_self[0]*greene[1]*m_self)/(2.828427124746191*m_self+2.828427124746191*m_other)-(1.0*uSumSq[0]*greene[1]*m_self)/(2.828427124746191*m_self+2.828427124746191*m_other)+(2.0*greene[0]*vtsq_other[1]*m_other)/(2.828427124746191*m_self+2.828427124746191*m_other)+(greene[0]*uSumSq[1]*m_other)/(2.828427124746191*m_self+2.828427124746191*m_other)+(2.0*vtsq_other[0]*greene[1]*m_other)/(2.828427124746191*m_self+2.828427124746191*m_other)+(uSumSq[0]*greene[1]*m_other)/(2.828427124746191*m_self+2.828427124746191*m_other)-1.0*uM1Self[1]-1.0*uM1Other[1]+2.0*m2r[1]; 
+  enRHS[0] = (-(6.0*greene[1]*vtsq_self[1]*m_self)/(2.828427124746191*m_self+2.828427124746191*m_other))-(1.0*greene[1]*uSumSq[1]*m_self)/(2.828427124746191*m_self+2.828427124746191*m_other)-(6.0*greene[0]*vtsq_self[0]*m_self)/(2.828427124746191*m_self+2.828427124746191*m_other)-(1.0*greene[0]*uSumSq[0]*m_self)/(2.828427124746191*m_self+2.828427124746191*m_other)+(6.0*greene[1]*vtsq_other[1]*m_other)/(2.828427124746191*m_self+2.828427124746191*m_other)+(greene[1]*uSumSq[1]*m_other)/(2.828427124746191*m_self+2.828427124746191*m_other)+(6.0*greene[0]*vtsq_other[0]*m_other)/(2.828427124746191*m_self+2.828427124746191*m_other)+(greene[0]*uSumSq[0]*m_other)/(2.828427124746191*m_self+2.828427124746191*m_other)-1.0*uM1Self[0]-1.0*uM1Other[0]+2.0*m2r[0]; 
+  enRHS[1] = (-(6.0*greene[0]*vtsq_self[1]*m_self)/(2.828427124746191*m_self+2.828427124746191*m_other))-(1.0*greene[0]*uSumSq[1]*m_self)/(2.828427124746191*m_self+2.828427124746191*m_other)-(6.0*vtsq_self[0]*greene[1]*m_self)/(2.828427124746191*m_self+2.828427124746191*m_other)-(1.0*uSumSq[0]*greene[1]*m_self)/(2.828427124746191*m_self+2.828427124746191*m_other)+(6.0*greene[0]*vtsq_other[1]*m_other)/(2.828427124746191*m_self+2.828427124746191*m_other)+(greene[0]*uSumSq[1]*m_other)/(2.828427124746191*m_self+2.828427124746191*m_other)+(6.0*vtsq_other[0]*greene[1]*m_other)/(2.828427124746191*m_self+2.828427124746191*m_other)+(uSumSq[0]*greene[1]*m_other)/(2.828427124746191*m_self+2.828427124746191*m_other)-1.0*uM1Self[1]-1.0*uM1Other[1]+2.0*m2r[1]; 
  
   gkyl_mat_set(rhs,0,0,momRHS[0]); 
   gkyl_mat_set(rhs,1,0,momRHS[1]); 

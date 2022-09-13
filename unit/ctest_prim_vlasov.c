@@ -261,9 +261,11 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   double self_m = 1.;
   double cross_m = self_m;
 
+  // MF 2022/09/13: the second moms here should be cross_moms, but we pass moms
+  // for simplicity in this (infrastructure) test.
   gkyl_prim_lbo_cross_calc_advance(crossprimcalc, confBasis, &confLocal, greene,
-    self_m, u, vth, cross_m, cross_u, cross_vtsq,
-    moms, boundary_corrections, u_out, vtsq_out);
+    self_m, moms, u, vth, cross_m, moms, cross_u, cross_vtsq,
+    boundary_corrections, u_out, vtsq_out);
   
   // Check cross u
   // 1-indexed for interfacing with G2 Lua layer
@@ -454,9 +456,11 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   double cross_m = self_m;
   gkyl_array_clear(greene, 1.0);
 
+  // MF 2022/09/13: the second moms here should be cross_moms, but we pass moms
+  // for simplicity in this (infrastructure) test.
   gkyl_prim_lbo_cross_calc_advance_cu(crossprimcalc, confBasis, &confLocal, greene,
-    self_m, u_cu, vth_cu, cross_m, cross_u, cross_vtsq,
-    moms_cu, boundary_corrections_cu, u_out_cu, vtsq_out_cu);
+    self_m, moms_cu, u_cu, vth_cu, cross_m, moms_cu, cross_u, cross_vtsq,
+    boundary_corrections_cu, u_out_cu, vtsq_out_cu);
   gkyl_array_copy(u_out, u_out_cu);
   gkyl_array_copy(vtsq_out, vtsq_out_cu);
   
