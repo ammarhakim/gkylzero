@@ -51,6 +51,8 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   f->advect_eqn = gkyl_dg_advection_new(&app->confBasis, &app->local, app->use_gpu);
   f->diff_eqn = gkyl_dg_diffusion_new(&app->confBasis, &app->local, app->use_gpu);
 
+  f->source_id = f->info.source.source_id;
+  
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
 
   // fluid solvers
@@ -183,6 +185,9 @@ vm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_s
   vm_fluid_species_calc_advect(app, fluid_species, t0);
   // project diffusion tensor
   vm_fluid_species_calc_diff(app, fluid_species, t0);
+
+  // we are pre-computing source for now as it is time-independent
+  vm_fluid_species_source_calc(app, fluid_species, t0);
 }
 
 void
@@ -358,6 +363,10 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
   if (f->collision_id == GKYL_LBO_COLLISIONS) {
     gkyl_array_release(f->nu_fluid);
     gkyl_array_release(f->nu_n_vthsq);
+  }
+
+  if (f->source_id) {
+    vm_fluid_species_source_release(app, &f->src);
   }
 
   if (app->use_gpu) {

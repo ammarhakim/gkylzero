@@ -251,6 +251,14 @@ struct vm_eval_advect_ctx { evalf_t advect_func; void *advect_ctx; };
 // context for use in computing applied diffusion
 struct vm_eval_diffusion_ctx { evalf_t diff_func; void* diff_ctx; };
 
+struct vm_fluid_source {
+  struct vm_species_moment moms; // source moments
+
+  struct gkyl_array *source; // applied source
+  struct gkyl_array *source_host; // host copy for use in IO and projecting
+  gkyl_proj_on_basis *source_proj; // projector for source
+};
+
 // fluid species data
 struct vm_fluid_species {
   struct gkyl_vlasov_fluid_species info; // data for fluid
@@ -292,6 +300,9 @@ struct vm_fluid_species {
   struct vm_species *advection_species; // pointer to species we advect with
   struct gkyl_array *other_advect; // pointer to that species drift velocity
 
+  enum gkyl_source_id source_id; // type of source
+  struct vm_fluid_source src; // applied source
+  
   // collisions with another species present
   enum gkyl_collision_id collision_id; // type of collisions
   struct gkyl_array *other_nu; // pointer to that species collision frequency
@@ -567,7 +578,7 @@ void vm_species_bflux_release(const struct gkyl_vlasov_app *app, const struct vm
 /** vm_species_source API */
 
 /**
- * Initialize species boundary flux object.
+ * Initialize species source object.
  *
  * @param app Vlasov app object
  * @param s Species object 
@@ -576,13 +587,22 @@ void vm_species_bflux_release(const struct gkyl_vlasov_app *app, const struct vm
 void vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_source *src);
 
 /**
+ * Compute species applied source term
+ *
+ * @param app Vlasov app object
+ * @param species Species object
+ * @param tm Time for use in source
+ */
+void vm_species_source_calc(gkyl_vlasov_app *app, struct vm_species *species, double tm);
+
+/**
  * Compute RHS contribution from source
  *
  * @param app Vlasov app object
  * @param species Pointer to species
  * @param src Pointer to source
  * @param fin Input distribution function
- * @param rhs On output, the RHS from LBO
+ * @param rhs On output, the distribution function
  */
 void vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   struct vm_source *src, const struct gkyl_array *fin[], struct gkyl_array *rhs[]);
@@ -623,15 +643,6 @@ void vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, doubl
  * @param tm Time for use in acceleration
  */
 void vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, double tm);
-
-/**
- * Compute species applied source term
- *
- * @param app Vlasov app object
- * @param species Species object
- * @param tm Time for use in source
- */
-void vm_species_calc_source(gkyl_vlasov_app *app, struct vm_species *species, double tm);
 
 /**
  * Compute gradient and magnitude of magnetic field
@@ -806,6 +817,46 @@ void vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field
  * @param f Field object to release
  */
 void vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f);
+
+/** vm_fluid_species_source API */
+
+/**
+ * Initialize fluid species source object.
+ *
+ * @param app Vlasov app object
+ * @param s Species object 
+ * @param src Species source object
+ */
+void vm_fluid_species_source_init(struct gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, struct vm_fluid_source *src);
+
+/**
+ * Compute fluid species applied source term
+ *
+ * @param app Vlasov app object
+ * @param species Species object
+ * @param tm Time for use in source
+ */
+void vm_fluid_species_source_calc(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm);
+
+/**
+ * Compute RHS contribution from source
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param src Pointer to source
+ * @param fin Input distribution function
+ * @param rhs On output, the distribution function RHS
+ */
+void vm_fluid_species_source_rhs(gkyl_vlasov_app *app, const struct vm_fluid_species *species,
+  struct vm_fluid_source *src, const struct gkyl_array *fin[], struct gkyl_array *rhs[]);
+
+/**
+ * Release fluid species source object.
+ *
+ * @param app Vlasov app object
+ * @param src Species source object to release
+ */
+void vm_fluid_species_source_release(const struct gkyl_vlasov_app *app, const struct vm_fluid_source *src);
 
 /** vm_fluid_species API */
 
