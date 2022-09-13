@@ -168,28 +168,28 @@ test_1x1v(int poly_order, bool use_gpu)
   // project the Maxwellian
   gkyl_proj_maxwellian_on_basis_lab_mom(proj_max, &local, &confLocal, m0, m1i, m2, distf);
 
- /* // write distribution function to file */
- /*  char fname[1024]; */
- /*  sprintf(fname, "ctest_correct_maxwellian_test_1x1v_p%d_uc.gkyl", poly_order); */
- /*  gkyl_grid_sub_array_write(&grid, &local, distf, fname); */
+ // write distribution function to file
+  char fname[1024];
+  sprintf(fname, "ctest_correct_maxwellian_test_1x1v_p%d_uc.gkyl", poly_order);
+  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   struct gkyl_array *m0_r;
   m0_r = mkarr(confBasis.num_basis, confLocal_ext.volume);  
   gkyl_array_scale(gkyl_array_copy(m0_r, m0), 2.5);
   
   // correct the Maxwellian
-  gkyl_correct_maxwellian_fix(corr_max, distf, m0, &local, &confLocal);
+  gkyl_correct_maxwellian_fix(corr_max, distf, m0_r, &local, &confLocal);
 
- /* // write distribution function to file */
- /*  sprintf(fname, "ctest_correct_maxwellian_test_1x1v_p%d.gkyl", poly_order); */
- /*  gkyl_grid_sub_array_write(&grid, &local, distf, fname); */
+ // write distribution function to file
+  sprintf(fname, "ctest_correct_maxwellian_test_1x1v_p%d.gkyl", poly_order);
+  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // compute the number density
   struct gkyl_mom_type *m0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0");
   struct gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, m0_t);
   gkyl_mom_type_release(m0_t);
 
-  gkyl_mom_calc_advance(m0calc, &local, &confLocal, distf, m0);
+  gkyl_mom_calc_advance(m0calc, &local, &confLocal, distf, m0); // m0 = 2.5*orginal m0
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &confLocal);
@@ -197,7 +197,8 @@ test_1x1v(int poly_order, bool use_gpu)
     const double *n0 = gkyl_array_cfetch(m0, gkyl_range_idx(&confLocal, iter.idx));
     const double *nr = gkyl_array_cfetch(m0_r, gkyl_range_idx(&confLocal, iter.idx));
     
-    TEST_CHECK( gkyl_compare_double(nr[0]/n0[0], 2.5, 1.e-14) );
+    for (int k=0; k<confBasis.num_basis; ++k)
+      TEST_CHECK( gkyl_compare_double(n0[k], nr[k], 1e-14) );
   }
   
   gkyl_array_release(m0); gkyl_array_release(m0_r);
