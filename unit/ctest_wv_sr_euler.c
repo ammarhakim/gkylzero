@@ -83,6 +83,14 @@ test_sr_euler_prim1()
 
     for (int m=0; m<5; ++m)
       TEST_CHECK( gkyl_compare(q[m], q_g[m], 1e-12) );
+
+    // check Riemann transform
+    double w1[5], q1[5];
+    sr_euler->cons_to_riem(sr_euler, q_local, q_local, w1);
+    sr_euler->riem_to_cons(sr_euler, q_local, w1, q1);
+    
+    for (int m=0; m<5; ++m)
+      TEST_CHECK( gkyl_compare_double(q_local[m], q1[m], 1e-14) );    
   }
   
   gkyl_wv_eqn_release(sr_euler);

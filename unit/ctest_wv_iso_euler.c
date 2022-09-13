@@ -55,6 +55,14 @@ test_iso_euler_basic()
     
     for (int m=0; m<4; ++m)
       TEST_CHECK( gkyl_compare(flux[m], fluxes[d][m], 1e-15) );
+
+    // check Riemann transform
+    double w1[4], q1[4];
+    iso_euler->cons_to_riem(iso_euler, q_local, q_local, w1);
+    iso_euler->riem_to_cons(iso_euler, q_local, w1, q1);
+    
+    for (int m=0; m<4; ++m)
+      TEST_CHECK( gkyl_compare_double(q_local[m], q1[m], 1e-14) );
   }  
 
   iso_euler->rotate_to_local_func(tau1[0], tau2[0], norm[0], q, q_local);

@@ -25,6 +25,14 @@ cons_to_riem(const struct gkyl_wv_eqn *eqn,
   for (int i=0; i<4; ++i)
     wout[i] = qin[i];
 }
+static inline void
+riem_to_cons(const struct gkyl_wv_eqn *eqn,
+  const double *qstate, const double *win, double *qout)
+{
+  // TODO: this should use proper L matrix
+  for (int i=0; i<4; ++i)
+    qout[i] = win[i];
+}
 
 // Isothermal Euler perfectly reflecting wall
 static void
@@ -235,6 +243,7 @@ gkyl_wv_iso_euler_new(double vt)
   iso_euler->eqn.rotate_to_global_func = rot_to_global;
 
   iso_euler->eqn.cons_to_riem = cons_to_riem;
+  iso_euler->eqn.riem_to_cons = riem_to_cons;
 
   iso_euler->eqn.wall_bc_func = iso_euler_wall;
   iso_euler->eqn.no_slip_bc_func = iso_euler_no_slip;

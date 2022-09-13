@@ -21,6 +21,12 @@ cons_to_riem(const struct gkyl_wv_eqn *eqn,
 {
   wout[0] = qin[0];
 }
+static inline void
+riem_to_cons(const struct gkyl_wv_eqn *eqn,
+  const double *qstate, const double *win, double *qout)
+{
+  qout[0] = win[0];
+}
 
 static inline void
 rot_to_local(const double *tau1, const double *tau2, const double *norm,
@@ -91,6 +97,7 @@ gkyl_wv_burgers_new(void)
   burgers->eqn.rotate_to_global_func = rot_to_global;
 
   burgers->eqn.cons_to_riem = cons_to_riem;
+  burgers->eqn.riem_to_cons = riem_to_cons;
 
   burgers->eqn.ref_count = gkyl_ref_count_init(burgers_free);
 

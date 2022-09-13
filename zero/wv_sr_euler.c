@@ -25,6 +25,14 @@ cons_to_riem(const struct gkyl_wv_eqn *eqn,
   for (int i=0; i<5; ++i)
     wout[i] = qin[i];
 }
+static inline void
+riem_to_cons(const struct gkyl_wv_eqn *eqn,
+  const double *qstate, const double *win, double *qout)
+{
+  // TODO: this should use proper L matrix
+  for (int i=0; i<5; ++i)
+    qout[i] = win[i];
+}
 
 static inline void
 rot_to_local(const double *tau1, const double *tau2, const double *norm,
@@ -176,6 +184,7 @@ gkyl_wv_sr_euler_new(double gas_gamma)
 
 
   sr_euler->eqn.cons_to_riem = cons_to_riem;
+  sr_euler->eqn.riem_to_cons = riem_to_cons;
   
   sr_euler->eqn.rotate_to_local_func = rot_to_local;
   sr_euler->eqn.rotate_to_global_func = rot_to_global;
