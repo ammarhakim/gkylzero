@@ -848,7 +848,7 @@ void vm_fluid_species_source_calc(gkyl_vlasov_app *app, struct vm_fluid_species 
  * @param rhs On output, the distribution function RHS
  */
 void vm_fluid_species_source_rhs(gkyl_vlasov_app *app, const struct vm_fluid_species *species,
-  struct vm_fluid_source *src, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  struct vm_fluid_source *src, const struct gkyl_array *fin[], struct gkyl_array *rhs[]);
 
 /**
  * Release fluid species source object.
