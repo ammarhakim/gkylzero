@@ -16,6 +16,13 @@ burgers_free(const struct gkyl_ref_count *ref)
 }
 
 static inline void
+cons_to_riem(const struct gkyl_wv_eqn *eqn,
+  const double *qstate, const double *qin, double *wout)
+{
+  wout[0] = qin[0];
+}
+
+static inline void
 rot_to_local(const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
 {
@@ -81,7 +88,9 @@ gkyl_wv_burgers_new(void)
   burgers->eqn.max_speed_func = max_speed;
 
   burgers->eqn.rotate_to_local_func = rot_to_local;
-  burgers->eqn.rotate_to_global_func = rot_to_global;  
+  burgers->eqn.rotate_to_global_func = rot_to_global;
+
+  burgers->eqn.cons_to_riem = cons_to_riem;
 
   burgers->eqn.ref_count = gkyl_ref_count_init(burgers_free);
 

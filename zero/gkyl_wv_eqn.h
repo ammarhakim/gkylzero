@@ -36,6 +36,11 @@ typedef void (*wv_rotate_to_local)(const double *tau1, const double *tau2, const
 typedef void (*wv_rotate_to_global)(const double *tau1, const double *tau2, const double *norm,
   const double *qlocal, double *qglobal);
 
+// Function pointer to convert conserved variables to Riemann
+// variables given an input state 'qstate'
+typedef void (*wv_cons_to_riem)(const struct gkyl_wv_eqn *eqn,
+  const double *qstate, const double *qin, double *wout);
+
 struct gkyl_wv_eqn {
   enum gkyl_eqn_type type; // Equation type
   int num_equations; // number of equations in system
@@ -46,6 +51,8 @@ struct gkyl_wv_eqn {
   wv_max_speed_t max_speed_func; // function to compute max-speed
   wv_rotate_to_local rotate_to_local_func; // function to rotate to local frame
   wv_rotate_to_global rotate_to_global_func; // function to rotate to global frame
+
+  wv_cons_to_riem cons_to_riem; // function to convert cons to Riemann vars
 
   wv_bc_func_t wall_bc_func; // function to apply wall BC
   wv_bc_func_t no_slip_bc_func; // function to apply no-slip BC

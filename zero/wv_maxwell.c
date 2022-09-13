@@ -18,6 +18,15 @@ maxwell_free(const struct gkyl_ref_count *ref)
   gkyl_free(maxwell);
 }
 
+static inline void
+cons_to_riem(const struct gkyl_wv_eqn *eqn,
+  const double *qstate, const double *qin, double *wout)
+{
+  // TODO: this should use proper L matrix
+  for (int i=0; i<8; ++i)
+    wout[i] = qin[i];
+}
+
 static void
 maxwell_wall(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
 {
@@ -190,6 +199,8 @@ gkyl_wv_maxwell_new(double c, double e_fact, double b_fact)
   maxwell->eqn.max_speed_func = max_speed;
   maxwell->eqn.rotate_to_local_func = rot_to_local;
   maxwell->eqn.rotate_to_global_func = rot_to_global;
+
+  maxwell->eqn.cons_to_riem = cons_to_riem;
 
   maxwell->eqn.wall_bc_func = maxwell_wall;
 
