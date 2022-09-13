@@ -1,6 +1,6 @@
 #include <gkyl_prim_lbo_vlasov_kernels.h> 
  
-GKYL_CU_DH void vlasov_cross_prim_moments_2x3v_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *greene, const double m_self, const double *u_self, const double *vtsq_self, const double m_other, const double *u_other, const double *vtsq_other, const double *moms, const double *boundary_corrections) 
+GKYL_CU_DH void vlasov_cross_prim_moments_2x3v_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *greene, const double m_self, const double *moms_self, const double *u_self, const double *vtsq_self, const double m_other, const double *moms_other, const double *u_other, const double *vtsq_other, const double *boundary_corrections) 
 { 
   // greene:               Greene's factor. 
   // m_:                   mass. 
@@ -11,14 +11,31 @@ GKYL_CU_DH void vlasov_cross_prim_moments_2x3v_ser_p2(struct gkyl_mat *A, struct
  
   // If a corner value is below zero, use cell average m0.
   bool notCellAvg = true;
-  if (notCellAvg && (-0.5*(3.872983346207417*(moms[7]+moms[6])-2.23606797749979*(moms[5]+moms[4])-3.0*moms[3]+1.732050807568877*(moms[2]+moms[1])-1.0*moms[0]) < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.5*(3.872983346207417*moms[7]-3.872983346207417*moms[6]+2.23606797749979*(moms[5]+moms[4])-3.0*moms[3]-1.732050807568877*moms[2]+1.732050807568877*moms[1]+moms[0]) < 0)) notCellAvg = false; 
-  if (notCellAvg && (-0.5*(3.872983346207417*moms[7]-3.872983346207417*moms[6]-2.23606797749979*(moms[5]+moms[4])+3.0*moms[3]-1.732050807568877*moms[2]+1.732050807568877*moms[1]-1.0*moms[0]) < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.5*(3.872983346207417*(moms[7]+moms[6])+2.23606797749979*(moms[5]+moms[4])+3.0*moms[3]+1.732050807568877*(moms[2]+moms[1])+moms[0]) < 0)) notCellAvg = false; 
-  if (notCellAvg && (-0.5*(3.872983346207417*(moms[39]+moms[38])-2.23606797749979*(moms[37]+moms[36])-3.0*moms[35]+1.732050807568877*(moms[34]+moms[33])-1.0*moms[32]) < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.5*(3.872983346207417*moms[39]-3.872983346207417*moms[38]+2.23606797749979*(moms[37]+moms[36])-3.0*moms[35]-1.732050807568877*moms[34]+1.732050807568877*moms[33]+moms[32]) < 0)) notCellAvg = false; 
-  if (notCellAvg && (-0.5*(3.872983346207417*moms[39]-3.872983346207417*moms[38]-2.23606797749979*(moms[37]+moms[36])+3.0*moms[35]-1.732050807568877*moms[34]+1.732050807568877*moms[33]-1.0*moms[32]) < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.5*(3.872983346207417*(moms[39]+moms[38])+2.23606797749979*(moms[37]+moms[36])+3.0*moms[35]+1.732050807568877*(moms[34]+moms[33])+moms[32]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (-0.5*(3.872983346207417*(moms_self[7]+moms_self[6])-2.23606797749979*(moms_self[5]+moms_self[4])-3.0*moms_self[3]+1.732050807568877*(moms_self[2]+moms_self[1])-1.0*moms_self[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.5*(3.872983346207417*moms_self[7]-3.872983346207417*moms_self[6]+2.23606797749979*(moms_self[5]+moms_self[4])-3.0*moms_self[3]-1.732050807568877*moms_self[2]+1.732050807568877*moms_self[1]+moms_self[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (-0.5*(3.872983346207417*moms_self[7]-3.872983346207417*moms_self[6]-2.23606797749979*(moms_self[5]+moms_self[4])+3.0*moms_self[3]-1.732050807568877*moms_self[2]+1.732050807568877*moms_self[1]-1.0*moms_self[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.5*(3.872983346207417*(moms_self[7]+moms_self[6])+2.23606797749979*(moms_self[5]+moms_self[4])+3.0*moms_self[3]+1.732050807568877*(moms_self[2]+moms_self[1])+moms_self[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (-0.5*(3.872983346207417*(moms_self[39]+moms_self[38])-2.23606797749979*(moms_self[37]+moms_self[36])-3.0*moms_self[35]+1.732050807568877*(moms_self[34]+moms_self[33])-1.0*moms_self[32]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.5*(3.872983346207417*moms_self[39]-3.872983346207417*moms_self[38]+2.23606797749979*(moms_self[37]+moms_self[36])-3.0*moms_self[35]-1.732050807568877*moms_self[34]+1.732050807568877*moms_self[33]+moms_self[32]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (-0.5*(3.872983346207417*moms_self[39]-3.872983346207417*moms_self[38]-2.23606797749979*(moms_self[37]+moms_self[36])+3.0*moms_self[35]-1.732050807568877*moms_self[34]+1.732050807568877*moms_self[33]-1.0*moms_self[32]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.5*(3.872983346207417*(moms_self[39]+moms_self[38])+2.23606797749979*(moms_self[37]+moms_self[36])+3.0*moms_self[35]+1.732050807568877*(moms_self[34]+moms_self[33])+moms_self[32]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (-0.5*(3.872983346207417*(vtsq_self[7]+vtsq_self[6])-2.23606797749979*(vtsq_self[5]+vtsq_self[4])-3.0*vtsq_self[3]+1.732050807568877*(vtsq_self[2]+vtsq_self[1])-1.0*vtsq_self[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.5*(3.872983346207417*vtsq_self[7]-3.872983346207417*vtsq_self[6]+2.23606797749979*(vtsq_self[5]+vtsq_self[4])-3.0*vtsq_self[3]-1.732050807568877*vtsq_self[2]+1.732050807568877*vtsq_self[1]+vtsq_self[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (-0.5*(3.872983346207417*vtsq_self[7]-3.872983346207417*vtsq_self[6]-2.23606797749979*(vtsq_self[5]+vtsq_self[4])+3.0*vtsq_self[3]-1.732050807568877*vtsq_self[2]+1.732050807568877*vtsq_self[1]-1.0*vtsq_self[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.5*(3.872983346207417*(vtsq_self[7]+vtsq_self[6])+2.23606797749979*(vtsq_self[5]+vtsq_self[4])+3.0*vtsq_self[3]+1.732050807568877*(vtsq_self[2]+vtsq_self[1])+vtsq_self[0]) < 0)) notCellAvg = false; 
+ 
+  if (notCellAvg && (-0.5*(3.872983346207417*(moms_other[7]+moms_other[6])-2.23606797749979*(moms_other[5]+moms_other[4])-3.0*moms_other[3]+1.732050807568877*(moms_other[2]+moms_other[1])-1.0*moms_other[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.5*(3.872983346207417*moms_other[7]-3.872983346207417*moms_other[6]+2.23606797749979*(moms_other[5]+moms_other[4])-3.0*moms_other[3]-1.732050807568877*moms_other[2]+1.732050807568877*moms_other[1]+moms_other[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (-0.5*(3.872983346207417*moms_other[7]-3.872983346207417*moms_other[6]-2.23606797749979*(moms_other[5]+moms_other[4])+3.0*moms_other[3]-1.732050807568877*moms_other[2]+1.732050807568877*moms_other[1]-1.0*moms_other[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.5*(3.872983346207417*(moms_other[7]+moms_other[6])+2.23606797749979*(moms_other[5]+moms_other[4])+3.0*moms_other[3]+1.732050807568877*(moms_other[2]+moms_other[1])+moms_other[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (-0.5*(3.872983346207417*(moms_other[39]+moms_other[38])-2.23606797749979*(moms_other[37]+moms_other[36])-3.0*moms_other[35]+1.732050807568877*(moms_other[34]+moms_other[33])-1.0*moms_other[32]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.5*(3.872983346207417*moms_other[39]-3.872983346207417*moms_other[38]+2.23606797749979*(moms_other[37]+moms_other[36])-3.0*moms_other[35]-1.732050807568877*moms_other[34]+1.732050807568877*moms_other[33]+moms_other[32]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (-0.5*(3.872983346207417*moms_other[39]-3.872983346207417*moms_other[38]-2.23606797749979*(moms_other[37]+moms_other[36])+3.0*moms_other[35]-1.732050807568877*moms_other[34]+1.732050807568877*moms_other[33]-1.0*moms_other[32]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.5*(3.872983346207417*(moms_other[39]+moms_other[38])+2.23606797749979*(moms_other[37]+moms_other[36])+3.0*moms_other[35]+1.732050807568877*(moms_other[34]+moms_other[33])+moms_other[32]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (-0.5*(3.872983346207417*(vtsq_other[7]+vtsq_other[6])-2.23606797749979*(vtsq_other[5]+vtsq_other[4])-3.0*vtsq_other[3]+1.732050807568877*(vtsq_other[2]+vtsq_other[1])-1.0*vtsq_other[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.5*(3.872983346207417*vtsq_other[7]-3.872983346207417*vtsq_other[6]+2.23606797749979*(vtsq_other[5]+vtsq_other[4])-3.0*vtsq_other[3]-1.732050807568877*vtsq_other[2]+1.732050807568877*vtsq_other[1]+vtsq_other[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (-0.5*(3.872983346207417*vtsq_other[7]-3.872983346207417*vtsq_other[6]-2.23606797749979*(vtsq_other[5]+vtsq_other[4])+3.0*vtsq_other[3]-1.732050807568877*vtsq_other[2]+1.732050807568877*vtsq_other[1]-1.0*vtsq_other[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.5*(3.872983346207417*(vtsq_other[7]+vtsq_other[6])+2.23606797749979*(vtsq_other[5]+vtsq_other[4])+3.0*vtsq_other[3]+1.732050807568877*(vtsq_other[2]+vtsq_other[1])+vtsq_other[0]) < 0)) notCellAvg = false; 
  
   double m0r[8] = {0.0}; 
   double m1r[24] = {0.0}; 
@@ -26,46 +43,46 @@ GKYL_CU_DH void vlasov_cross_prim_moments_2x3v_ser_p2(struct gkyl_mat *A, struct
   double cMr[24] = {0.0}; 
   double cEr[8] = {0.0}; 
   if (notCellAvg) { 
-    m0r[0] = moms[0]; 
-    m0r[1] = moms[1]; 
-    m0r[2] = moms[2]; 
-    m0r[3] = moms[3]; 
-    m0r[4] = moms[4]; 
-    m0r[5] = moms[5]; 
-    m0r[6] = moms[6]; 
-    m0r[7] = moms[7]; 
-    m1r[0] = moms[8]; 
-    m1r[1] = moms[9]; 
-    m1r[2] = moms[10]; 
-    m1r[3] = moms[11]; 
-    m1r[4] = moms[12]; 
-    m1r[5] = moms[13]; 
-    m1r[6] = moms[14]; 
-    m1r[7] = moms[15]; 
-    m1r[8] = moms[16]; 
-    m1r[9] = moms[17]; 
-    m1r[10] = moms[18]; 
-    m1r[11] = moms[19]; 
-    m1r[12] = moms[20]; 
-    m1r[13] = moms[21]; 
-    m1r[14] = moms[22]; 
-    m1r[15] = moms[23]; 
-    m1r[16] = moms[24]; 
-    m1r[17] = moms[25]; 
-    m1r[18] = moms[26]; 
-    m1r[19] = moms[27]; 
-    m1r[20] = moms[28]; 
-    m1r[21] = moms[29]; 
-    m1r[22] = moms[30]; 
-    m1r[23] = moms[31]; 
-    m2r[0] = moms[32]; 
-    m2r[1] = moms[33]; 
-    m2r[2] = moms[34]; 
-    m2r[3] = moms[35]; 
-    m2r[4] = moms[36]; 
-    m2r[5] = moms[37]; 
-    m2r[6] = moms[38]; 
-    m2r[7] = moms[39]; 
+    m0r[0] = moms_self[0]; 
+    m0r[1] = moms_self[1]; 
+    m0r[2] = moms_self[2]; 
+    m0r[3] = moms_self[3]; 
+    m0r[4] = moms_self[4]; 
+    m0r[5] = moms_self[5]; 
+    m0r[6] = moms_self[6]; 
+    m0r[7] = moms_self[7]; 
+    m1r[0] = moms_self[8]; 
+    m1r[1] = moms_self[9]; 
+    m1r[2] = moms_self[10]; 
+    m1r[3] = moms_self[11]; 
+    m1r[4] = moms_self[12]; 
+    m1r[5] = moms_self[13]; 
+    m1r[6] = moms_self[14]; 
+    m1r[7] = moms_self[15]; 
+    m1r[8] = moms_self[16]; 
+    m1r[9] = moms_self[17]; 
+    m1r[10] = moms_self[18]; 
+    m1r[11] = moms_self[19]; 
+    m1r[12] = moms_self[20]; 
+    m1r[13] = moms_self[21]; 
+    m1r[14] = moms_self[22]; 
+    m1r[15] = moms_self[23]; 
+    m1r[16] = moms_self[24]; 
+    m1r[17] = moms_self[25]; 
+    m1r[18] = moms_self[26]; 
+    m1r[19] = moms_self[27]; 
+    m1r[20] = moms_self[28]; 
+    m1r[21] = moms_self[29]; 
+    m1r[22] = moms_self[30]; 
+    m1r[23] = moms_self[31]; 
+    m2r[0] = moms_self[32]; 
+    m2r[1] = moms_self[33]; 
+    m2r[2] = moms_self[34]; 
+    m2r[3] = moms_self[35]; 
+    m2r[4] = moms_self[36]; 
+    m2r[5] = moms_self[37]; 
+    m2r[6] = moms_self[38]; 
+    m2r[7] = moms_self[39]; 
     cMr[0] = boundary_corrections[0]; 
     cMr[1] = boundary_corrections[1]; 
     cMr[2] = boundary_corrections[2]; 
@@ -99,7 +116,7 @@ GKYL_CU_DH void vlasov_cross_prim_moments_2x3v_ser_p2(struct gkyl_mat *A, struct
     cEr[6] = boundary_corrections[30]; 
     cEr[7] = boundary_corrections[31]; 
   } else { 
-    m0r[0] = moms[0]; 
+    m0r[0] = moms_self[0]; 
     m0r[1] = 0.0; 
     m0r[2] = 0.0; 
     m0r[3] = 0.0; 
@@ -107,7 +124,7 @@ GKYL_CU_DH void vlasov_cross_prim_moments_2x3v_ser_p2(struct gkyl_mat *A, struct
     m0r[5] = 0.0; 
     m0r[6] = 0.0; 
     m0r[7] = 0.0; 
-    m1r[0] = moms[8]; 
+    m1r[0] = moms_self[8]; 
     m1r[1] = 0.0; 
     m1r[2] = 0.0; 
     m1r[3] = 0.0; 
@@ -123,7 +140,7 @@ GKYL_CU_DH void vlasov_cross_prim_moments_2x3v_ser_p2(struct gkyl_mat *A, struct
     cMr[5] = 0.0; 
     cMr[6] = 0.0; 
     cMr[7] = 0.0; 
-    m1r[8] = moms[16]; 
+    m1r[8] = moms_self[16]; 
     m1r[9] = 0.0; 
     m1r[10] = 0.0; 
     m1r[11] = 0.0; 
@@ -139,7 +156,7 @@ GKYL_CU_DH void vlasov_cross_prim_moments_2x3v_ser_p2(struct gkyl_mat *A, struct
     cMr[13] = 0.0; 
     cMr[14] = 0.0; 
     cMr[15] = 0.0; 
-    m1r[16] = moms[24]; 
+    m1r[16] = moms_self[24]; 
     m1r[17] = 0.0; 
     m1r[18] = 0.0; 
     m1r[19] = 0.0; 
@@ -155,7 +172,7 @@ GKYL_CU_DH void vlasov_cross_prim_moments_2x3v_ser_p2(struct gkyl_mat *A, struct
     cMr[21] = 0.0; 
     cMr[22] = 0.0; 
     cMr[23] = 0.0; 
-    m2r[0] = moms[32]; 
+    m2r[0] = moms_self[32]; 
     m2r[1] = 0.0; 
     m2r[2] = 0.0; 
     m2r[3] = 0.0; 

@@ -12,9 +12,9 @@ typedef void (*vlasov_with_fluid_self_prim_t)(struct gkyl_mat *A, struct gkyl_ma
   const double *moms, const double *fluid, const double *boundary_corrections);
 
 typedef void (*vlasov_with_fluid_cross_prim_t)(struct gkyl_mat *A, struct gkyl_mat *rhs,
-  const double *greene, const double m_self, const double *u_self,
-  const double *vtsq_self, const double m_other, const double *u_other,
-  const double *vtsq_other, const double *moms, const double *fluid, const double *boundary_corrections);
+  const double *greene, const double m_self, const double *moms_self, const double *u_self,
+  const double *vtsq_self, const double m_other, const double *moms_other, const double *u_other,
+  const double *vtsq_other, const double *fluid, const double *boundary_corrections);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
@@ -92,15 +92,15 @@ self_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A, struct gkyl
 GKYL_CU_D
 static void
 cross_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A, struct gkyl_mat *rhs, 
-  const int* idx, const double *greene, const double m_self,
-  const double *u_self, const double *vtsq_self, const double m_other,
-  const double*u_other, const double *vtsq_other,
-  const double *moms, const double *boundary_corrections)
+  const int* idx, const double *greene,
+  const double m_self, const double *moms_self, const double *u_self, const double *vtsq_self,
+  const double m_other, const double *moms_other, const double *u_other, const double *vtsq_other,
+  const double *boundary_corrections)
 {
   struct prim_lbo_type_vlasov_with_fluid *prim_vlasov_with_fluid = container_of(prim, struct prim_lbo_type_vlasov_with_fluid, prim);
 
   long cidx = gkyl_range_idx(&prim_vlasov_with_fluid->conf_range, idx);
   return prim_vlasov_with_fluid->cross_prim(A, rhs, 
-    greene, m_self, u_self, vtsq_self, m_other, u_other, vtsq_other, 
-    moms, (const double*) gkyl_array_cfetch(prim_vlasov_with_fluid->auxfields.fluid, cidx), boundary_corrections);
+    greene, m_self, moms_self, u_self, vtsq_self, m_other, moms_other, u_other, vtsq_other, 
+    (const double*) gkyl_array_cfetch(prim_vlasov_with_fluid->auxfields.fluid, cidx), boundary_corrections);
 }

@@ -204,17 +204,17 @@ vm_species_lbo_cross_moms(gkyl_vlasov_app *app, const struct vm_species *species
       gkyl_prim_lbo_cross_calc_advance_cu(lbo->cross_calc,
         app->confBasis, &app->local, 
         lbo->greene_factor[i], 
-        species->info.mass, lbo->u_drift, lbo->vth_sq, 
-        lbo->other_m[i], lbo->other_u_drift[i], lbo->other_vth_sq[i],
-        lbo->moms.marr, lbo->boundary_corrections, 
+        species->info.mass, lbo->moms.marr, lbo->u_drift, lbo->vth_sq, 
+        lbo->other_m[i], lbo->collide_with[i]->lbo.moms.marr, lbo->other_u_drift[i], lbo->other_vth_sq[i],
+        lbo->boundary_corrections, 
         lbo->cross_u_drift[i], lbo->cross_vth_sq[i]);
     else 
       gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc,
         app->confBasis, &app->local, 
         lbo->greene_factor[i], 
-        species->info.mass, lbo->u_drift, lbo->vth_sq, 
-        lbo->other_m[i], lbo->other_u_drift[i], lbo->other_vth_sq[i],
-        lbo->moms.marr, lbo->boundary_corrections, 
+        species->info.mass, lbo->moms.marr, lbo->u_drift, lbo->vth_sq, 
+        lbo->other_m[i], lbo->collide_with[i]->lbo.moms.marr, lbo->other_u_drift[i], lbo->other_vth_sq[i],
+        lbo->boundary_corrections, 
         lbo->cross_u_drift[i], lbo->cross_vth_sq[i]);
 
     gkyl_dg_mul_op(app->confBasis, 0, lbo->cross_nu_u, 0, lbo->cross_u_drift[i], 0, lbo->cross_nu[i]);
