@@ -15,11 +15,6 @@ enum gkyl_mp_recon {
   GKYL_MP_U5, // upwind-biased 5th order
 };
 
-struct gkyl_mp_scheme_status {
-  int success; // 1 if step worked, 0 otherwise
-  double dt_suggested; // suggested time-step
-};
-
 // Object type for updater
 typedef struct gkyl_mp_scheme gkyl_mp_scheme;
 
@@ -43,7 +38,7 @@ struct gkyl_mp_scheme_inp {
  *
  * @param winp Input for creating updater. See gkyl_mp_scheme_inp above.
  */
-gkyl_mp_scheme* gkyl_mp_scheme_new(struct gkyl_mp_scheme_inp winp);
+gkyl_mp_scheme* gkyl_mp_scheme_new(const struct gkyl_mp_scheme_inp *winp);
 
 /**
  * Compute wave-propagation update. The update_rng MUST be a sub-range
@@ -52,15 +47,14 @@ gkyl_mp_scheme* gkyl_mp_scheme_new(struct gkyl_mp_scheme_inp winp);
  * gkyl_sub_range_init method.
  *
  * @param mp Updater object
- * @param tm Current time
- * @param dt time-step
  * @param update_rng Range on which to compute.
  * @param qin Input to updater
- * @param qout Solution at tm+dt
+ * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
+ * @param rhs RHS of PDE 
  */
-struct gkyl_mp_scheme_status gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
-  double tm, double dt, const struct gkyl_range *update_range,
-  const struct gkyl_array *qin, struct gkyl_array *qout);
+void gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
+  const struct gkyl_range *update_range, const struct gkyl_array *qin,
+  struct gkyl_array *cflrate, struct gkyl_array *rhs);
 
 /**
  * Compute an estimate of maximum stable time-step for given input

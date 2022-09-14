@@ -1,154 +1,4 @@
-#include <assert.h>
-#include <float.h>
-#include <math.h>
-#include <stdbool.h>
-#include <string.h>
-
-#include <stc/cstr.h>
-
-#include <gkyl_alloc.h>
-#include <gkyl_array.h>
-#include <gkyl_array_ops.h>
-#include <gkyl_array_rio.h>
-#include <gkyl_dflt.h>
-#include <gkyl_dynvec.h>
-#include <gkyl_elem_type.h>
-#include <gkyl_eval_on_nodes.h>
-#include <gkyl_fv_proj.h>
-#include <gkyl_moment.h>
-#include <gkyl_moment_em_coupling.h>
-#include <gkyl_range.h>
-#include <gkyl_rect_decomp.h>
-#include <gkyl_rect_grid.h>
-#include <gkyl_util.h>
-#include <gkyl_wave_geom.h>
-#include <gkyl_wave_prop.h>
-#include <gkyl_wv_apply_bc.h>
-#include <gkyl_wv_maxwell.h>
-#include <gkyl_wv_ten_moment.h>
-
-// ranges for use in BCs
-struct skin_ghost_ranges {
-  struct gkyl_range lower_skin[GKYL_MAX_DIM];
-  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
-
-  struct gkyl_range upper_skin[GKYL_MAX_DIM];
-  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
-};
-
-// Species data
-struct moment_species {
-  int ndim;
-  char name[128]; // species name
-  double charge, mass;
-  double k0; // closure parameter (default is 0.0, used by 10 moment)
-
-  int evolve; // evolve species? 1-yes, 0-no
-
-  void *ctx; // context for initial condition init function
-  // pointer to initialization function
-  void (*init)(double t, const double *xn, double *fout, void *ctx);
-    
-  struct gkyl_array *fdup, *f[4]; // arrays for updates
-  struct gkyl_array *app_accel; // array for applied acceleration/forces
-  // pointer to projection operator for applied acceleration/forces function
-  gkyl_fv_proj *proj_app_accel;
-  struct gkyl_array *bc_buffer; // buffer for periodic BCs
-
-  enum gkyl_eqn_type eqn_type; // type ID of equation
-  int num_equations; // number of equations in species
-  gkyl_wave_prop *slvr[3]; // solver in each direction
-
-  // boundary condition type
-  enum gkyl_species_bc_type lower_bct[3], upper_bct[3];
-  // boundary condition solvers on lower/upper edges in each direction
-  gkyl_wv_apply_bc *lower_bc[3], *upper_bc[3];
-
-  gkyl_dynvec integ_q; // integrated conserved quantities
-  bool is_first_q_write_call; // flag for dynvec written first time  
-};
-
-// Field data
-struct moment_field {
-  int ndim;
-  double epsilon0, mu0;
-
-  int evolve; // evolve species? 1-yes, 0-no
-    
-  void *ctx; // context for initial condition init function
-  // pointer to initialization function
-  void (*init)(double t, const double *xn, double *fout, void *ctx);    
-    
-  struct gkyl_array *fdup, *f[4]; // arrays for updates
-  struct gkyl_array *app_current; // arrays for applied currents
-  // pointer to projection operator for applied current function
-  gkyl_fv_proj *proj_app_current;
-
-
-  bool is_ext_em_static; // flag to indicate if external field is time-independent
-  struct gkyl_array *ext_em; // array external fields  
-  gkyl_fv_proj *proj_ext_em;   // pointer to projection operator for external fields
-  bool was_ext_em_computed; // flag to indicate if we already computed external EM field
-  
-  struct gkyl_array *bc_buffer; // buffer for periodic BCs
-
-  gkyl_wave_prop *slvr[3]; // solver in each direction
-
-  // boundary condition type
-  enum gkyl_field_bc_type lower_bct[3], upper_bct[3];
-  // boundary conditions on lower/upper edges in each direction
-  gkyl_wv_apply_bc *lower_bc[3], *upper_bc[3];
-
-  gkyl_dynvec integ_energy; // integrated energy components
-  bool is_first_energy_write_call; // flag for dynvec written first time
-};
-
-// Source data
-struct moment_coupling {
-  gkyl_moment_em_coupling *slvr; // source solver function
-};
-
-// Moment app object: used as opaque pointer in user code
-struct gkyl_moment_app {
-  char name[128]; // name of app
-  int ndim; // space dimensions
-  double tcurr; // current time
-  double cfl; // CFL number
-
-  int num_periodic_dir; // number of periodic directions
-  int periodic_dirs[3]; // list of periodic directions
-
-  int is_dir_skipped[3]; // flags to tell if update in direction are skipped
-
-  enum gkyl_moment_fluid_scheme fluid_scheme; // scheme to update fluid equations
-    
-  struct gkyl_rect_grid grid; // grid
-  struct gkyl_range local, local_ext; // local, local-ext ranges
-
-  bool has_mapc2p; // flag to indicate if we have mapc2p
-  void *c2p_ctx; // context for mapc2p function
-  // pointer to mapc2p function
-  void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
-
-  struct gkyl_wave_geom *geom; // geometry needed for species and field solvers
-
-  struct skin_ghost_ranges skin_ghost; // conf-space skin/ghost
-
-  int has_field; // flag to indicate if we have a field
-  struct moment_field field; // field data
-    
-  // species data
-  int num_species;
-  struct moment_species *species; // species data
-
-  int update_sources; // flag to indicate if sources are to be updated
-  struct moment_coupling sources; // sources
-    
-  struct gkyl_moment_stat stat; // statistics
-};
-
-// Function pointer to compute integrated quantities from input
-typedef void (*integ_func)(int nc, const double *qin, double *integ_out);
+#include <gkyl_moment_priv.h>
 
 static inline void
 integ_unit(int nc, const double *qin, double *integ_out)
@@ -196,34 +46,11 @@ check_for_nans(const struct gkyl_array *q, struct gkyl_range update_rng)
   return false;
 }
 
-// allocate array (filled with zeros)
-static struct gkyl_array*
-mkarr(long nc, long size)
-{
-  struct gkyl_array* a = gkyl_array_new(GKYL_DOUBLE, nc, size);
-  return a;
-}
-
 // function for copy BC
 static void
 bc_copy(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
 {
   for (int c=0; c<nc; ++c) ghost[c] = skin[c];
-}
-
-// Create ghost and skin sub-ranges given a parent range
-static void
-skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
-  const struct gkyl_range *parent, const int *ghost)
-{
-  int ndim = parent->ndim;
-  
-  for (int d=0; d<ndim; ++d) {
-    gkyl_skin_ghost_ranges(&sgr->lower_skin[d], &sgr->lower_ghost[d],
-      d, GKYL_LOWER_EDGE, parent, ghost);
-    gkyl_skin_ghost_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d],
-      d, GKYL_UPPER_EDGE, parent, ghost);
-  }
 }
 
 // apply periodic BCs
@@ -380,13 +207,13 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   }
 
   int meqn = sp->num_equations;
-  sp->fdup = mkarr(meqn, app->local_ext.volume);
+  sp->fdup = mkarr(meqn, app->local_ext.volume, false);
   // allocate arrays
   for (int d=0; d<ndim+1; ++d)
-    sp->f[d] = mkarr(meqn, app->local_ext.volume);
+    sp->f[d] = mkarr(meqn, app->local_ext.volume, false);
 
   // allocate array for applied acceleration/forces for each species
-  sp->app_accel = mkarr(3, app->local_ext.volume);
+  sp->app_accel = mkarr(3, app->local_ext.volume, false);
   sp->proj_app_accel = 0;
   if (mom_sp->app_accel_func)
     sp->proj_app_accel = gkyl_fv_proj_new(&app->grid, 2, 3, mom_sp->app_accel_func, sp->ctx);
@@ -397,7 +224,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     long vol = app->skin_ghost.lower_skin[d].volume;
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
-  sp->bc_buffer = mkarr(meqn, buff_sz);
+  sp->bc_buffer = mkarr(meqn, buff_sz, false);
 
   sp->integ_q = gkyl_dynvec_new(GKYL_DOUBLE, meqn);
   sp->is_first_q_write_call = true;
@@ -584,18 +411,18 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   }
 
   // allocate arrays
-  fld->fdup = mkarr(8, app->local_ext.volume);
+  fld->fdup = mkarr(8, app->local_ext.volume, false);
   for (int d=0; d<ndim+1; ++d)
-    fld->f[d] = mkarr(8, app->local_ext.volume);
+    fld->f[d] = mkarr(8, app->local_ext.volume, false);
 
   // allocate arrays for applied current/external fields
-  fld->app_current = mkarr(3, app->local_ext.volume);
+  fld->app_current = mkarr(3, app->local_ext.volume, false);
   fld->proj_app_current = 0;
   if (mom_fld->app_current_func)
     fld->proj_app_current = gkyl_fv_proj_new(&app->grid, 2, 3, mom_fld->app_current_func, fld->ctx);
 
   
-  fld->ext_em = mkarr(6, app->local_ext.volume);
+  fld->ext_em = mkarr(6, app->local_ext.volume, false);
   fld->is_ext_em_static = mom_fld->is_ext_em_static;
 
   fld->was_ext_em_computed = false;
@@ -610,7 +437,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
     long vol = app->skin_ghost.lower_skin[d].volume;
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
-  fld->bc_buffer = mkarr(8, buff_sz);
+  fld->bc_buffer = mkarr(8, buff_sz, false);
 
   gkyl_wv_eqn_release(maxwell);
 
@@ -822,7 +649,7 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     gkyl_cart_modal_tensor(&basis, ndim, 1);
 
     // initialize DG field representing mapping
-    struct gkyl_array *c2p = mkarr(ndim*basis.num_basis, app->local_ext.volume);
+    struct gkyl_array *c2p = mkarr(ndim*basis.num_basis, app->local_ext.volume, false);
     gkyl_eval_on_nodes *ev_c2p = gkyl_eval_on_nodes_new(&app->grid, &basis, ndim, mom->mapc2p, mom->c2p_ctx);
     gkyl_eval_on_nodes_advance(ev_c2p, 0.0, &app->local_ext, c2p);
 
@@ -1015,8 +842,7 @@ gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, i
 }
 
 // internal function that takes a single time-step
-static
-struct gkyl_update_status
+static struct gkyl_update_status
 moment_update(gkyl_moment_app* app, double dt0)
 {
   int ns = app->num_species, ndim = app->ndim;

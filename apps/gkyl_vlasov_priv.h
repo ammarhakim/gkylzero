@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_app_priv.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_reduce.h>
@@ -53,15 +54,6 @@ struct gamma_ctx {
 
 // Labels for lower, upper edge of domain
 enum vm_domain_edge { VM_EDGE_LOWER, VM_EDGE_UPPER };
-
-// ranges for use in BCs
-struct vm_skin_ghost_ranges {
-  struct gkyl_range lower_skin[GKYL_MAX_DIM];
-  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
-
-  struct gkyl_range upper_skin[GKYL_MAX_DIM];
-  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
-};
 
 // data for moments
 struct vm_species_moment {
@@ -146,7 +138,7 @@ struct vm_species {
   struct gkyl_job_pool *job_pool; // Job pool
   struct gkyl_rect_grid grid;
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
-  struct vm_skin_ghost_ranges skin_ghost; // conf-space skin/ghost
+  struct app_skin_ghost_ranges skin_ghost; // conf-space skin/ghost
 
   struct gkyl_rect_grid grid_vel; // velocity space grid
   struct gkyl_range local_vel, local_ext_vel; // local, local-ext velocity-space ranges
@@ -329,7 +321,7 @@ struct gkyl_vlasov_app {
     struct gkyl_basis *basis, *confBasis;
   } basis_on_dev;
 
-  struct vm_skin_ghost_ranges skin_ghost; // conf-space skin/ghost
+  struct app_skin_ghost_ranges skin_ghost; // conf-space skin/ghost
 
   bool has_field; // has field
   struct vm_field *field; // pointer to field object
@@ -344,42 +336,6 @@ struct gkyl_vlasov_app {
   
   struct gkyl_vlasov_stat stat; // statistics
 };
-
-// allocate array (filled with zeros)
-static struct gkyl_array*
-mkarr(bool on_gpu, long nc, long size)
-{
-  struct gkyl_array* a;
-  if (on_gpu)
-    a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
-  else
-    a = gkyl_array_new(GKYL_DOUBLE, nc, size);
-  return a;
-}
-
-// Compute out = c1*arr1 + c2*arr2
-static inline struct gkyl_array*
-array_combine(struct gkyl_array *out, double c1, const struct gkyl_array *arr1,
-  double c2, const struct gkyl_array *arr2, const struct gkyl_range rng)
-{
-  return gkyl_array_accumulate_range(gkyl_array_set_range(out, c1, arr1, rng),
-    c2, arr2, rng);
-}
-
-// Create ghost and skin sub-ranges given a parent range
-static void
-skin_ghost_ranges_init(struct vm_skin_ghost_ranges *sgr,
-  const struct gkyl_range *parent, const int *ghost)
-{
-  int ndim = parent->ndim;
-  
-  for (int d=0; d<ndim; ++d) {
-    gkyl_skin_ghost_ranges(&sgr->lower_skin[d], &sgr->lower_ghost[d],
-      d, GKYL_LOWER_EDGE, parent, ghost);
-    gkyl_skin_ghost_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d],
-      d, GKYL_UPPER_EDGE, parent, ghost);
-  }
-}
 
 /** gkyl_vlasov_app private API */
 
