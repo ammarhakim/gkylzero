@@ -563,7 +563,7 @@ main(int argc, char **argv)
     bdata[i].euler = gkyl_wv_euler_new(1.4);
 
     for (int d=0; d<2; ++d)
-      bdata[i].slvr[d] = gkyl_wave_prop_new( (struct gkyl_wave_prop_inp) {
+      bdata[i].slvr[d] = gkyl_wave_prop_new( &(struct gkyl_wave_prop_inp) {
           .grid = &bdata[i].grid,
           .equation = bdata[i].euler,
           .limiter = GKYL_MONOTONIZED_CENTERED,

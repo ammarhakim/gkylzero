@@ -145,3 +145,98 @@ struct gkyl_moment_app {
 
 // Function pointer to compute integrated quantities from input
 typedef void (*integ_func)(int nc, const double *qin, double *integ_out);
+
+/** Some common functions to species and fields */
+
+// functions for use in integrated quantities calculation
+static inline void
+integ_unit(int nc, const double *qin, double *integ_out)
+{
+  for (int i=0; i<nc; ++i) integ_out[i] = qin[i];
+}
+static inline void
+integ_sq(int nc, const double *qin, double *integ_out)
+{
+  for (int i=0; i<nc; ++i) integ_out[i] = qin[i]*qin[i];
+}
+
+// function for copy BC
+static inline void
+bc_copy(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+{
+  for (int c=0; c<nc; ++c) ghost[c] = skin[c];
+}
+
+// Compute integrated quantities specified by i_func 
+void calc_integ_quant(int nc, double vol,
+  const struct gkyl_array *q, const struct gkyl_wave_geom *geom,
+  struct gkyl_range update_rng, integ_func i_func, double *integ_q);
+
+// Check array "q" for nans
+bool check_for_nans(const struct gkyl_array *q, struct gkyl_range update_rng);
+
+// Apply periodic BCs to array "f" in direction "dir"
+void moment_apply_periodic_bc(const gkyl_moment_app *app, struct gkyl_array *bc_buffer,
+  int dir, struct gkyl_array *f);
+
+// Apply wedge-periodic BCs to array "f"
+void moment_apply_wedge_bc(const gkyl_moment_app *app, double tcurr,
+  const struct gkyl_range *update_rng, struct gkyl_array *bc_buffer,
+  int dir, const struct gkyl_wv_apply_bc *lo, const struct gkyl_wv_apply_bc *up,
+  struct gkyl_array *f);
+
+/** moment_species API */
+
+// Initialize the moment species object
+void moment_species_init(const struct gkyl_moment *mom,
+  const struct gkyl_moment_species *mom_sp, struct gkyl_moment_app *app, struct moment_species *sp);
+
+// Apply BCs to species data "f"
+void moment_species_apply_bc(const gkyl_moment_app *app, double tcurr,
+  const struct moment_species *sp, struct gkyl_array *f);
+
+// Maximum stable time-step from species
+double moment_species_max_dt(const gkyl_moment_app *app, const struct moment_species *sp);
+
+// Advance solution of species by time-step dt to tcurr+dt
+struct gkyl_update_status moment_species_update(const gkyl_moment_app *app,
+  const struct moment_species *sp, double tcurr, double dt);
+
+// Free memory allocated by species
+void moment_species_release(const struct moment_species *sp);
+
+/** moment_field API */
+
+// Initialize EM field
+void moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field *mom_fld,
+  struct gkyl_moment_app *app, struct moment_field *fld);
+
+// Apply BCs to EM field
+void moment_field_apply_bc(const gkyl_moment_app *app, double tcurr,
+  const struct moment_field *field, struct gkyl_array *f);
+
+
+// Maximum stable time-step due to EM fields
+double moment_field_max_dt(const gkyl_moment_app *app, const struct moment_field *fld);
+
+// Update EM field from tcurr to tcurr+dt
+struct gkyl_update_status moment_field_update(const gkyl_moment_app *app,
+  const struct moment_field *fld, double tcurr, double dt);
+
+// Release the EM field object
+void moment_field_release(const struct moment_field *fld);
+
+/** moment_coupling API */
+
+// initialize source solver: this should be called after all species
+// and fields are initialized
+void moment_coupling_init(const struct gkyl_moment_app *app,
+  struct moment_coupling *src);
+
+// update sources: 'nstrang' is 0 for the first Strang step and 1 for
+// the second step
+void moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
+  int nstrang, double tcurr, double dt);
+
+// Release coupling sources
+void moment_coupling_release(const struct moment_coupling *src);

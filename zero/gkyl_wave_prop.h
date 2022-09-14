@@ -56,7 +56,7 @@ struct gkyl_wave_prop_stats {
  *
  * @param winp Input for creating updater. See gkyl_wave_prop_inp above.
  */
-gkyl_wave_prop* gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp);
+gkyl_wave_prop* gkyl_wave_prop_new(const struct gkyl_wave_prop_inp *winp);
 
 /**
  * Compute wave-propagation update. The update_rng MUST be a sub-range

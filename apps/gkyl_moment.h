@@ -54,8 +54,9 @@ struct gkyl_moment_field {
 
 // Choices of schemes to use in the fluid solver 
 enum gkyl_moment_fluid_scheme {
-  GKYL_MOMENT_FLUID_WAVE_PROP = 0, // default
-  GKYL_MOMENT_FLUID_KEP
+  GKYL_MOMENT_FLUID_WAVE_PROP = 0, // default, 2nd-order FV
+  GKYL_MOMENT_FLUID_MP, // monotonicity-preserving Suresh-Huynh scheme
+  GKYL_MOMENT_FLUID_KEP // Kinetic-energy preserving scheme
 };
 
 // Top-level app parameters
