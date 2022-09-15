@@ -56,6 +56,20 @@ struct gkyl_array* gkyl_array_accumulate(struct gkyl_array *out,
   double a, const struct gkyl_array *inp);
 
 /**
+ * Compute out = out + a*inp[coff] where coff is a component-offset if
+ * out->ncomp < inp->ncomp, or out[coff] = out[coff]+ a*inp if
+ * out->ncomp > inp->ncomp. Returns out.
+ *
+ * @param out Output array
+ * @param a Factor to multiply input array
+ * @param inp Input array
+ * @param coff Component offset
+ * @return out array
+ */
+struct gkyl_array* gkyl_array_accumulate_offset(struct gkyl_array *out,
+  double a, const struct gkyl_array *inp, int coff);
+
+/**
  * Set out = a*inp. Returns out.
  *
  * @param out Output array
@@ -68,7 +82,7 @@ struct gkyl_array* gkyl_array_set(struct gkyl_array *out,
 
 /**
  * Set out = a*inp[coff] where coff is a component-offset if
- * out->ncomp > inp->ncomp, or out[coff] = a*inp if
+ * out->ncomp < inp->ncomp, or out[coff] = a*inp if
  * out->ncomp > inp->ncomp. Returns out.
  *
  * @param out Output array
@@ -130,6 +144,20 @@ struct gkyl_array* gkyl_array_accumulate_range(struct gkyl_array *out,
   double a, const struct gkyl_array *inp, struct gkyl_range range);
 
 /**
+ * Compute out = out + a*inp[coff] where coff is a component-offset if
+ * out->ncomp < inp->ncomp, or out[coff] = out[coff]+ a*inp if
+ * out->ncomp > inp->ncomp, over a range of indices. Returns out.
+ *
+ * @param out Output array
+ * @param a Factor to multiply input array
+ * @param inp Input array
+ * @param coff Component offset
+ * @return out array
+ */
+struct gkyl_array* gkyl_array_accumulate_offset_range(struct gkyl_array *out,
+  double a, const struct gkyl_array *inp, int coff, struct gkyl_range range);
+
+/**
  * Set out = a*inp. Returns out.
  *
  * @param out Output array
@@ -143,8 +171,8 @@ struct gkyl_array* gkyl_array_set_range(struct gkyl_array *out,
 
 /**
  * Set out = a*inp[coff] where coff is a component-offset if
- * out->ncomp > inp->ncomp, or out[coff] = a*inp if
- * out->ncomp > inp->ncomp. Returns out.
+ * out->ncomp < inp->ncomp, or out[coff] = a*inp if
+ * out->ncomp > inp->ncomp, over a range of indices. Returns out.
  *
  * @param out Output array
  * @param a Factor to multiply input array
@@ -268,6 +296,8 @@ void gkyl_array_clear_cu(struct gkyl_array* out, double val);
 
 void gkyl_array_accumulate_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp);
 
+void gkyl_array_accumulate_offset_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp, int coff);
+
 void gkyl_array_set_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp);
 
 void gkyl_array_set_offset_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp, int coff);
@@ -285,6 +315,9 @@ void gkyl_array_clear_range_cu(struct gkyl_array *out, double val, struct gkyl_r
 
 void gkyl_array_accumulate_range_cu(struct gkyl_array *out,
   double a, const struct gkyl_array* inp, struct gkyl_range range);
+
+void gkyl_array_accumulate_offset_range_cu(struct gkyl_array *out,
+  double a, const struct gkyl_array* inp, int coff, struct gkyl_range range);
 
 void gkyl_array_set_range_cu(struct gkyl_array *out,
   double a, const struct gkyl_array* inp, struct gkyl_range range);
