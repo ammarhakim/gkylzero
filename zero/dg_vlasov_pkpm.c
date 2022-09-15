@@ -41,6 +41,7 @@ gkyl_vlasov_pkpm_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vla
   vlasov_pkpm->auxfields.u_i = auxin.u_i;
   vlasov_pkpm->auxfields.p_ij = auxin.p_ij;
   vlasov_pkpm->auxfields.bvar = auxin.bvar;
+  vlasov_pkpm->auxfields.rho_inv_b = auxin.rho_inv_b;
 }
 
 struct gkyl_dg_eqn*
@@ -108,6 +109,7 @@ gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
   vlasov_pkpm->auxfields.u_i = 0;
   vlasov_pkpm->auxfields.p_ij = 0;
   vlasov_pkpm->auxfields.bvar = 0;  
+  vlasov_pkpm->auxfields.rho_inv_b = 0;  
   vlasov_pkpm->conf_range = *conf_range;
 
   vlasov_pkpm->eqn.flags = 0;

@@ -49,7 +49,7 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
     mtype = gkyl_mom_vlasov_pkpm_new(&app->confBasis, &app->basis, &app->local, s->info.mass, sm->use_gpu);
 
     gkyl_mom_vlasov_pkpm_set_auxfields(mtype, 
-      (struct gkyl_mom_vlasov_pkpm_auxfields) { .bvar = app->field->bvar });    
+      (struct gkyl_mom_vlasov_pkpm_auxfields) { .bvar = s->bvar });    
   }
   else {
     if (is_integrated)

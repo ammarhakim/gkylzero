@@ -44,9 +44,9 @@ evalFluidFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   fout[2] = 0.0;
   // p = 1.0 on the left side, p = sqrt(0.1/0.125) on the right side
   if (x<0.5)
-    fout[4] = 1.5;
+    fout[3] = 1.5;
   else
-    fout[4] = 1.5*sqrt(0.1/0.125);
+    fout[3] = 1.5*sqrt(0.1/0.125);
 }
 
 void
@@ -86,7 +86,8 @@ main(int argc, char **argv)
   // PKPM fluid                                                                                      
   struct gkyl_vlasov_fluid_species fluid = {
     .name = "fluid",
-
+    .num_eqn = 4,
+    .pkpm_species = "neut",
     .ctx = &ctx,
     .init = evalFluidFunc,
   };  
@@ -95,6 +96,7 @@ main(int argc, char **argv)
   struct gkyl_vlasov_species neut = {
     .name = "neut",
     .model_id = GKYL_MODEL_PKPM,
+    .pkpm_fluid_species = "fluid",
     .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -6.0*ctx.vt},
     .upper = { 6.0*ctx.vt}, 

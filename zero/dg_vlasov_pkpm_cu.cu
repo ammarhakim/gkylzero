@@ -16,18 +16,22 @@ extern "C" {
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
-gkyl_vlasov_pkpm_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *uvar, const struct gkyl_array *pvar)
+gkyl_vlasov_pkpm_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
+  const struct gkyl_array *u_i, const struct gkyl_array *p_ij, 
+  const struct gkyl_array *bvar, const struct gkyl_array *rho_inv_b)
 {
   struct dg_vlasov_pkpm *vlasov_pkpm = container_of(eqn, struct dg_vlasov_pkpm, eqn);
-  vlasov_pkpm->auxfields.uvar = uvar;
-  vlasov_pkpm->auxfields.pvar = pvar;
+  vlasov_pkpm->auxfields.u_i = u_i;
+  vlasov_pkpm->auxfields.p_ij = p_ij;
+  vlasov_pkpm->auxfields.bvar = bvar;
+  vlasov_pkpm->auxfields.rho_inv_b = rho_inv_b;
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
 void
 gkyl_vlasov_pkpm_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_pkpm_auxfields auxin)
 {
-  gkyl_vlasov_pkpm_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.uvar->on_dev, auxin.pvar->on_dev);
+  gkyl_vlasov_pkpm_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.u_i->on_dev, auxin.p_ij->on_dev, auxin.bvar->on_dev, auxin.rho_inv_b->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and vlasov_pkpm kernel function
@@ -36,8 +40,10 @@ __global__ static void
 dg_vlasov_pkpm_set_cu_dev_ptrs(struct dg_vlasov_pkpm *vlasov_pkpm, enum gkyl_basis_type b_type,
   int cdim, int poly_order)
 {
-  vlasov_pkpm->auxfields.uvar = 0; 
-  vlasov_pkpm->auxfields.pvar = 0; 
+  vlasov_pkpm->auxfields.u_i = 0;
+  vlasov_pkpm->auxfields.p_ij = 0;
+  vlasov_pkpm->auxfields.bvar = 0;  
+  vlasov_pkpm->auxfields.rho_inv_b = 0;  
 
   vlasov_pkpm->eqn.vol_term = vol;
   vlasov_pkpm->eqn.surf_term = surf;

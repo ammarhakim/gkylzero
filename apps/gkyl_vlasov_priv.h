@@ -81,6 +81,8 @@ struct vm_species_moment {
 struct vm_species;
 
 struct vm_lbo_collisions {
+  enum gkyl_model_id model_id; // type of Vlasov equation (e.g., Vlasov vs. SR vs. PKPM model)
+  
   struct gkyl_array *boundary_corrections; // LBO boundary corrections
   struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator
   struct gkyl_array *nu_sum, *u_drift, *vth_sq, *nu_u, *nu_vthsq; // LBO primitive moments
@@ -105,8 +107,6 @@ struct vm_lbo_collisions {
 
   int num_cross_collisions; // number of species we cross-collide with
   struct vm_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
-
-  struct vm_fluid_species *pkpm_fluid_species; // pointers to cross-species we collide with
 
   gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
   gkyl_prim_lbo_cross_calc *cross_calc; // LBO cross-primitive moment calculator
@@ -166,6 +166,7 @@ struct vm_species {
   struct gkyl_array *f_host; // host copy for use IO and initialization
 
   struct vm_species_moment m1i; // for computing currents
+  struct vm_species_moment pkpm_moms; // for computing pkpm moments
   struct vm_species_moment *moms; // diagnostic moments
   struct vm_species_moment integ_moms; // integrated moments
 
@@ -181,6 +182,12 @@ struct vm_species {
   struct gkyl_array *vecA; // array for vector potential
   struct gkyl_array *p_over_gamma; // array for p/gamma (velocity) in special relativistic equation
   struct gkyl_array *p_over_gamma_host; // host copy for use in projecting before copying over to GPU
+
+  // Data for PKPM model
+  struct vm_fluid_species *pkpm_fluid_species; // pointers to cross-species we collide with
+  struct gkyl_array *rho_inv_b; // b_i/rho (for use in pressure force 1/rho * b. div(P))
+  struct gkyl_dg_bin_op_mem *rho_inv_mem; // memory used in the div-op for rho_inv_b
+  struct gkyl_array *bvar; // NOTE: just for testing, should actually be in field object
 
   gkyl_dg_updater_vlasov *slvr; // Vlasov solver 
   struct gkyl_dg_eqn *eqn_vlasov; // Vlasov equation object
@@ -278,7 +285,6 @@ struct vm_fluid_species {
   struct gkyl_array *u_bc_buffer; // buffer for applying BCs to flow
   struct gkyl_array *p_bc_buffer; // buffer for applying BCs to pressure
 
-  struct gkyl_array *p_ij; // array for advection flow
   struct gkyl_array *D; // array for diffusion tensor
   struct gkyl_array *D_host; // host copy of diffusion tensor
 
@@ -305,8 +311,6 @@ struct vm_fluid_species {
   struct gkyl_array *vlasov_pkpm_surf_moms; // array for *surface* pkpm moments (*flux* of mass (cdim components), *flux* of parallel heat (cdim components))
 
   struct vm_species *pkpm_species; // pointer to coupling species in pkpm model
-  struct vm_species_moment *pkpm_moms; // pointer to moment object for computing pkpm moments
-
   int species_index; // index of the kinetic species being coupled to in pkpm model
                      // index corresponds to location in vm_species array (size num_species)
   struct gkyl_mom_pkpm_surf_calc* pkpm_surf_moms_calc; // calculator for surface moments

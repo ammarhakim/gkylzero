@@ -28,15 +28,13 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   gkyl_array_release(self_nu);
 
   if (s->model_id == GKYL_MODEL_PKPM) {
+    lbo->model_id = GKYL_MODEL_PKPM;
     // Only energy corrections for pkpm model
     lbo->boundary_corrections = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     lbo->u_drift = 0;
     lbo->nu_u = 0;   
     lbo->vth_sq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume); 
     lbo->nu_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-
-    // Get pointer to fluid species object and index (needed for computing primitive moments)
-    lbo->pkpm_fluid_species = vm_find_fluid_species(app, s->info.pkpm_fluid_species);
 
     // edge of velocity space corrections to *only* energy (in PKPM model)
     lbo->bcorr_calc = gkyl_mom_calc_bcorr_lbo_vlasov_pkpm_new(&s->grid, 
@@ -140,7 +138,7 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
   if (species->model_id == GKYL_MODEL_PKPM) {
     // Set pointer to pressure tensor for use in boundary corrections  
     gkyl_prim_lbo_vlasov_pkpm_set_auxfields(gkyl_prim_lbo_calc_get_prim(lbo->coll_pcalc),
-      (struct gkyl_prim_lbo_vlasov_pkpm_auxfields) { .pvar = lbo->pkpm_fluid_species->p });
+      (struct gkyl_prim_lbo_vlasov_pkpm_auxfields) { .pvar = species->pkpm_fluid_species->p });
   }
   else {
     // compute needed moments
@@ -164,7 +162,7 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
     if (species->model_id == GKYL_MODEL_PKPM) {
       // PKPM moments already computed before this, so just fetch results
       gkyl_prim_lbo_calc_advance_cu(lbo->coll_pcalc, &app->local, 
-        lbo->pkpm_fluid_species->pkpm_moms->marr, lbo->boundary_corrections,
+        species->pkpm_moms.marr, lbo->boundary_corrections,
         lbo->u_drift, lbo->vth_sq);
       // NOTE: PKPM Model does not have nu_u, so no need to do weak multiplication 
     }
@@ -191,7 +189,7 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
     if (species->model_id == GKYL_MODEL_PKPM) {
       // PKPM moments already computed before this, so just fetch results
       gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, &app->local, 
-        lbo->pkpm_fluid_species->pkpm_moms->marr, lbo->boundary_corrections,
+        species->pkpm_moms.marr, lbo->boundary_corrections,
         lbo->u_drift, lbo->vth_sq);
       // NOTE: PKPM Model does not have nu_u, so no need to do weak multiplication 
     }
@@ -297,15 +295,17 @@ void
 vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_collisions *lbo)
 {
   gkyl_array_release(lbo->boundary_corrections);
-  gkyl_array_release(lbo->u_drift);
   gkyl_array_release(lbo->vth_sq);
   gkyl_array_release(lbo->self_nu);
   gkyl_array_release(lbo->nu_sum);
-  gkyl_array_release(lbo->nu_u);
   gkyl_array_release(lbo->nu_vthsq);
-  gkyl_array_release(lbo->m0);
 
-  vm_species_moment_release(app, &lbo->moms);
+  if (lbo->model_id != GKYL_MODEL_PKPM) {
+    gkyl_array_release(lbo->u_drift);
+    gkyl_array_release(lbo->nu_u);
+    gkyl_array_release(lbo->m0);
+    vm_species_moment_release(app, &lbo->moms);
+  }
 
   gkyl_mom_calc_bcorr_release(lbo->bcorr_calc);
   gkyl_prim_lbo_calc_release(lbo->coll_pcalc);

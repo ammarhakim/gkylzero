@@ -66,6 +66,8 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   f->vlasov_pkpm_surf_moms = 0;
 
   f->param = 0.0;
+  f->has_advect = false;
+  f->advects_with_species = false;
   // fluid solvers
   if (f->info.vt) {
     f->param = f->info.vt; // parameter for isothermal Euler is vt, thermal velocity
@@ -93,9 +95,6 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     // allocate array to store advection velocity
     f->u = mkarr(app->use_gpu, cdim*app->confBasis.num_basis, app->local_ext.volume);
     f->u_bc_buffer = mkarr(app->use_gpu, cdim*app->confBasis.num_basis, buff_sz);
-
-    f->has_advect = false;
-    f->advects_with_species = false;
     // setup applied advection or advection with other species
     if (f->info.advection.velocity) {
       f->has_advect = true;
@@ -168,10 +167,6 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     // pkpm surface moments for computing fluxes (*flux* of mass (cdim components), *flux* of parallel heat (cdim components))
     // NOTE: NUMBER OF COMPONENTS IS WRONG RIGHT NOW. NEED BETTER WAY TO GET SURFACE BASIS SIZE
     f->vlasov_pkpm_surf_moms = mkarr(app->use_gpu, (2*cdim), f->surf_moms_local_ext.volume);
-
-    // pkpm moments (mass, parallel pressure, parallel heat flux)
-    vm_species_moment_init(app, f->pkpm_species, f->pkpm_moms, "PKPM");
-
     f->pkpm_surf_moms_calc = gkyl_mom_pkpm_surf_calc_new(&f->pkpm_species->grid_vel, f->pkpm_species->info.mass);
   }
 
@@ -305,18 +300,18 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
       fluid_species->u, fluid, fluid_species->p);
   }
   else if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
-    vm_species_moment_calc(fluid_species->pkpm_moms, fluid_species->pkpm_species->local, 
+    vm_species_moment_calc(&fluid_species->pkpm_species->pkpm_moms, fluid_species->pkpm_species->local, 
       app->local, fin[fluid_species->species_index]);
 
     gkyl_calc_prim_vars_u_from_rhou(fluid_species->u_mem, app->confBasis, app->local, 
-      fluid_species->pkpm_moms->marr, fluid, fluid_species->u);
-    gkyl_calc_prim_vars_p_pkpm(app->confBasis, app->local, fluid_species->u, app->field->bvar, 
-      fluid_species->pkpm_moms->marr, fluid, fluid_species->p);
+      fluid_species->pkpm_species->pkpm_moms.marr, fluid, fluid_species->u);
+    gkyl_calc_prim_vars_p_pkpm(app->confBasis, app->local, fluid_species->u, app->species[fluid_species->species_index].bvar, 
+      fluid_species->pkpm_species->pkpm_moms.marr, fluid, fluid_species->p);
 
     gkyl_mom_pkpm_surf_calc_advance(fluid_species->pkpm_surf_moms_calc,
       &fluid_species->surf_moms_local, &fluid_species->pkpm_species->local_vel, 
       &app->local, &fluid_species->pkpm_species->local,
-      fluid_species->u, app->field->bvar, 
+      fluid_species->u, app->species[fluid_species->species_index].bvar, 
       fin[fluid_species->species_index], fluid_species->vlasov_pkpm_surf_moms);
   }
   else {
@@ -345,7 +340,7 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
   if (app->use_gpu) {
     gkyl_dg_updater_fluid_advance_cu(fluid_species->advect_slvr, fluid_species->eqn_id,
       &app->local, fluid_species->u, fluid_species->p, 
-      fluid_species->pkpm_moms->marr, fluid_species->vlasov_pkpm_surf_moms,
+      fluid_species->pkpm_species->pkpm_moms.marr, fluid_species->vlasov_pkpm_surf_moms,
       fluid, fluid_species->cflrate, rhs);
 
     gkyl_dg_updater_diffusion_advance_cu(fluid_species->diff_slvr, fluid_species->diffusion_id,
@@ -354,7 +349,7 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
   else {
     gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, fluid_species->eqn_id,
       &app->local, fluid_species->u, fluid_species->p, 
-      fluid_species->pkpm_moms->marr, fluid_species->vlasov_pkpm_surf_moms,
+      fluid_species->pkpm_species->pkpm_moms.marr, fluid_species->vlasov_pkpm_surf_moms,
       fluid, fluid_species->cflrate, rhs);
 
     gkyl_dg_updater_diffusion_advance(fluid_species->diff_slvr, fluid_species->diffusion_id,
@@ -525,8 +520,8 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
   }
   if (f->eqn_id == GKYL_EQN_EULER_PKPM) {
     // release moment data
-    vm_species_moment_release(app, f->pkpm_moms);
     gkyl_array_release(f->vlasov_pkpm_surf_moms);
+    gkyl_mom_pkpm_surf_calc_release(f->pkpm_surf_moms_calc);
   }
   if (f->has_advect) {
     gkyl_array_release(f->advect);

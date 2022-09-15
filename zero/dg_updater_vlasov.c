@@ -64,6 +64,7 @@ void
 gkyl_dg_updater_vlasov_advance(gkyl_dg_updater_vlasov *vlasov,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *aux1, const struct gkyl_array *aux2, 
+  const struct gkyl_array *aux3, const struct gkyl_array *aux4, 
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
@@ -76,7 +77,7 @@ gkyl_dg_updater_vlasov_advance(gkyl_dg_updater_vlasov *vlasov,
   }
   else if (vlasov->model_id == GKYL_MODEL_PKPM) {
     gkyl_vlasov_pkpm_set_auxfields(vlasov->eqn_vlasov, 
-      (struct gkyl_dg_vlasov_pkpm_auxfields) { .u_i = aux1, .p_ij = aux2 });    
+      (struct gkyl_dg_vlasov_pkpm_auxfields) { .u_i = aux1, .p_ij = aux2, .bvar = aux3, .rho_inv_b = aux4 });    
   }
   else if (vlasov->field_id == GKYL_FIELD_PHI || vlasov->field_id == GKYL_FIELD_PHI_A)
     gkyl_vlasov_poisson_set_auxfields(vlasov->eqn_vlasov, 
@@ -113,6 +114,7 @@ void
 gkyl_dg_updater_vlasov_advance_cu(gkyl_dg_updater_vlasov *vlasov,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *aux1, const struct gkyl_array *aux2, 
+  const struct gkyl_array *aux3, const struct gkyl_array *aux4, 
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
@@ -125,7 +127,7 @@ gkyl_dg_updater_vlasov_advance_cu(gkyl_dg_updater_vlasov *vlasov,
   }
   else if (vlasov->model_id == GKYL_MODEL_PKPM) {
     gkyl_vlasov_pkpm_set_auxfields(vlasov->eqn_vlasov, 
-      (struct gkyl_dg_vlasov_pkpm_auxfields) { .u_i = aux1, .p_ij = aux2 });    
+      (struct gkyl_dg_vlasov_pkpm_auxfields) { .u_i = aux1, .p_ij = aux2, .bvar = aux3, .rho_inv_b = aux4 });
   }
   else if (vlasov->field_id == GKYL_FIELD_PHI || vlasov->field_id == GKYL_FIELD_PHI_A)
     gkyl_vlasov_poisson_set_auxfields(vlasov->eqn_vlasov, 
@@ -148,6 +150,7 @@ void
 gkyl_dg_updater_vlasov_advance_cu(gkyl_dg_updater_vlasov *vlasov,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *aux1, const struct gkyl_array *aux2, 
+  const struct gkyl_array *aux3, const struct gkyl_array *aux4, 
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {

@@ -14,6 +14,23 @@
 #include <gkyl_vlasov_priv.h>
 #include <time.h>
 
+// Simple magnetic field direction for initial testing of PKPM model
+static void
+ev_bvar(double t, const double *xn, double *out, void *ctx)
+{
+  // B = (b_x, 0.0, 0.0)
+  out[0] = 1.0;
+  out[1] = 0.0;
+  out[2] = 0.0;
+  // BB = (b_x b_x, 0.0, 0.0, 0.0, 0.0, 0.0)
+  out[3] = 1.0;
+  out[4] = 0.0;
+  out[5] = 0.0;
+  out[6] = 0.0;
+  out[7] = 0.0;
+  out[8] = 0.0;
+}
+
 // Projection functions for p/(m*gamma) = v in special relativistic systems
 // Simplifies to p/sqrt(m^2 + p^2) where c = 1
 static void 
@@ -166,6 +183,40 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     gkyl_proj_on_basis_release(p_over_gamma_proj);    
     if (app->use_gpu) // note: p_over_gamma_host is same as p_over_gamma when not on GPUs
       gkyl_array_copy(s->p_over_gamma, s->p_over_gamma_host);
+  }
+
+  // allocate array to store b_i/rho for PKPM model
+  s->rho_inv_b = 0;
+  s->rho_inv_mem = 0;
+  // NOTE: For testing, bvar should be set by field object
+  s->bvar = 0;
+  if (s->model_id  == GKYL_MODEL_PKPM) {
+    s->rho_inv_b = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+    if (app->use_gpu)
+      s->rho_inv_mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
+    else
+      s->rho_inv_mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
+
+    s->bvar = mkarr(app->use_gpu, 9*app->confBasis.num_basis, app->local_ext.volume);
+    gkyl_proj_on_basis *bvar_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+        .grid = &app->grid,
+        .basis = &app->confBasis,
+        .qtype = GKYL_GAUSS_LOBATTO_QUAD,
+        .num_quad = 8,
+        .num_ret_vals = 9,
+        .eval = ev_bvar,
+        .ctx = 0
+      }
+    );  
+    // run updater
+    gkyl_proj_on_basis_advance(bvar_proj, 0.0, &app->local, s->bvar);
+    gkyl_proj_on_basis_release(bvar_proj);  
+
+    // Get pointer to fluid species object (needed for computing primitive moments)
+    s->pkpm_fluid_species = vm_find_fluid_species(app, s->info.pkpm_fluid_species);
+
+    // pkpm moments (mass, parallel pressure, parallel heat flux)
+    vm_species_moment_init(app, s, &s->pkpm_moms, "PKPM");
   }
 
   // create solver
@@ -414,26 +465,38 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
       gkyl_array_accumulate_range(species->qmem, -1.0, species->mirror_force, app->local);
     }
   }
+
+  if (species->model_id == GKYL_MODEL_PKPM) {
+    for (int i = 0; i<3; ++i)
+      gkyl_dg_div_op_range(species->rho_inv_mem, app->confBasis, 
+        i, species->rho_inv_b, 
+        i, species->bvar, 
+        0, species->pkpm_moms.marr, app->local);      
+  }
   
   gkyl_array_clear(rhs, 0.0);
  
   if (app->use_gpu)
     if (species->model_id == GKYL_MODEL_PKPM)
       gkyl_dg_updater_vlasov_advance_cu(species->slvr, &species->local, 
-        app->fluid_species[species->fluid_index].u, app->fluid_species[species->fluid_index].p_ij, 
+        species->pkpm_fluid_species->u, species->pkpm_fluid_species->p,
+        species->bvar, species->rho_inv_b, 
         fin, species->cflrate, rhs);
     else
       gkyl_dg_updater_vlasov_advance_cu(species->slvr, &species->local, 
         species->qmem, species->p_over_gamma, 
+        0, 0,
         fin, species->cflrate, rhs);
   else
     if (species->model_id == GKYL_MODEL_PKPM)
       gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
-        app->fluid_species[species->fluid_index].u, app->fluid_species[species->fluid_index].p_ij, 
+        species->pkpm_fluid_species->u, species->pkpm_fluid_species->p, 
+        species->bvar, species->rho_inv_b, 
         fin, species->cflrate, rhs);
     else
       gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
         species->qmem, species->p_over_gamma, 
+        0, 0, 
         fin, species->cflrate, rhs);
 
   if (species->collision_id == GKYL_LBO_COLLISIONS)
@@ -591,6 +654,12 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     gkyl_array_release(s->p_over_gamma);
     if (app->use_gpu)
       gkyl_array_release(s->p_over_gamma_host);
+  }
+  if (s->model_id == GKYL_MODEL_PKPM) {
+    gkyl_array_release(s->rho_inv_b);
+    gkyl_dg_bin_op_mem_release(s->rho_inv_mem);
+    gkyl_array_release(s->bvar);
+    vm_species_moment_release(app, &s->pkpm_moms);
   }
   
   if (s->has_accel) {

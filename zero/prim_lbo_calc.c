@@ -51,8 +51,9 @@ gkyl_prim_lbo_calc_advance(const struct gkyl_prim_lbo_calc* calc,
   int udim = calc->prim->udim;
 
   struct gkyl_range_iter conf_iter;
-
-  gkyl_array_clear_range(uout, 0.0, *conf_rng);
+  // Primitive moment calculation only needs to clear u if u exists
+  if (udim > 0)
+    gkyl_array_clear_range(uout, 0.0, *conf_rng);
   gkyl_array_clear_range(vtSqout, 0.0, *conf_rng);
 
   // loop over configuration space cells.
@@ -79,9 +80,11 @@ gkyl_prim_lbo_calc_advance(const struct gkyl_prim_lbo_calc* calc,
     long midx = gkyl_range_idx(conf_rng, conf_iter.idx);
     
     struct gkyl_mat out = gkyl_nmat_get(calc->xs, count);
-    double *u = gkyl_array_fetch(uout, midx);
+
     double *vtSq = gkyl_array_fetch(vtSqout, midx);
-    prim_lbo_copy_sol(&out, nc, udim, u, vtSq);
+    // Only fetch u if u exists
+    prim_lbo_copy_sol(&out, nc, udim, 
+      uout ? (double*) gkyl_array_fetch(uout, midx) : 0, vtSq);
     count += 1;
   }
 }

@@ -56,6 +56,8 @@ gkyl_dg_updater_vlasov_acquire_eqn(const gkyl_dg_updater_vlasov* vlasov);
  * @param update_rng Range on which to compute.
  * @param aux1 Auxiliary field 1 (usually qmem or fac_phi)
  * @param aux2 Auxiliary field 2
+ * @param aux1 Auxiliary field 3
+ * @param aux2 Auxiliary field 4
  * @param fIn Input to updater
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
@@ -63,12 +65,14 @@ gkyl_dg_updater_vlasov_acquire_eqn(const gkyl_dg_updater_vlasov* vlasov);
 void gkyl_dg_updater_vlasov_advance(gkyl_dg_updater_vlasov *vlasov,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *aux1, const struct gkyl_array *aux2, 
+  const struct gkyl_array *aux3, const struct gkyl_array *aux4, 
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 
 void gkyl_dg_updater_vlasov_advance_cu(gkyl_dg_updater_vlasov *vlasov,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *aux1, const struct gkyl_array *aux2, 
+  const struct gkyl_array *aux3, const struct gkyl_array *aux4, 
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 

@@ -12,7 +12,7 @@
 
 // Types for various kernels
 typedef double (*vlasov_pkpm_vol_t)(const double *w, const double *dxv,
-  const double *u_i, const double *p_ij, const double *bvar, 
+  const double *u_i, const double *p_ij, const double *bvar, const double *rho_inv_b, 
   const double *f, double* GKYL_RESTRICT out);
 
 typedef void (*vlasov_pkpm_stream_surf_t)(const double *w, const double *dxv,
@@ -21,12 +21,12 @@ typedef void (*vlasov_pkpm_stream_surf_t)(const double *w, const double *dxv,
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
 typedef void (*vlasov_pkpm_accel_surf_t)(const double *w, const double *dxv,
-  const double *u_i, const double *p_ij, const double *bvar, 
+  const double *u_i, const double *p_ij, const double *bvar, const double *rho_inv_b, 
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
 typedef void (*vlasov_pkpm_accel_boundary_surf_t)(const double *w, const double *dxv,
-  const double *u_i, const double *p_ij, const double *bvar, const int edge, 
-  const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out);
+  const double *u_i, const double *p_ij, const double *bvar, const double *rho_inv_b, 
+  const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out);
 
 // for use in kernel tables
 typedef struct { vlasov_pkpm_vol_t kernels[3]; } gkyl_dg_vlasov_pkpm_vol_kern_list;
@@ -136,6 +136,7 @@ vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
     (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.u_i, cidx),
     (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.p_ij, cidx),
     (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar, cidx),
+    (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.rho_inv_b, cidx),
     qIn, qRhsOut);
 }
 
@@ -170,6 +171,7 @@ surf(const struct gkyl_dg_eqn *eqn,
       (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.u_i, cidx),
       (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.p_ij, cidx),
       (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar, cidx),
+      (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.rho_inv_b, cidx),
       qInL, qInC, qInR, qRhsOut);
   }
 }
@@ -191,6 +193,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
       (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.u_i, cidx),
       (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.p_ij, cidx),
       (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar, cidx),
+      (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.rho_inv_b, cidx),
       edge, qInEdge, qInSkin, qRhsOut);
   }
 }
