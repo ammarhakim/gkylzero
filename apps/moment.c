@@ -53,8 +53,6 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   double cfl_frac = mom->cfl_frac == 0 ? 0.95 : mom->cfl_frac;
   app->cfl = 1.0*cfl_frac;
 
-  app->fluid_scheme = mom->fluid_scheme;
-
   app->num_periodic_dir = mom->num_periodic_dir;
   for (int d=0; d<ndim; ++d)
     app->periodic_dirs[d] = mom->periodic_dirs[d];

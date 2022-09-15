@@ -12,6 +12,8 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   fld->ctx = mom_fld->ctx;
   fld->init = mom_fld->init;
 
+  fld->scheme_type = mom->scheme_type;
+  
   // choose default limiter
   enum gkyl_wave_limiter limiter =
     mom_fld->limiter == 0 ? GKYL_MONOTONIZED_CENTERED : mom_fld->limiter;
@@ -21,19 +23,47 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
     mom_fld->elc_error_speed_fact, mom_fld->mag_error_speed_fact);
 
   int ndim = mom->ndim;
-  // create updaters for each directional update
-  for (int d=0; d<ndim; ++d)
-    fld->slvr[d] = gkyl_wave_prop_new( &(struct gkyl_wave_prop_inp) {
+
+  if (fld->scheme_type == GKYL_MOMENT_WAVE_PROP) {
+    // create updaters for each directional update
+    for (int d=0; d<ndim; ++d)
+      fld->slvr[d] = gkyl_wave_prop_new( &(struct gkyl_wave_prop_inp) {
+          .grid = &app->grid,
+          .equation = maxwell,
+          .limiter = limiter,
+          .num_up_dirs = app->is_dir_skipped[d] ? 0 : 1,
+          .update_dirs = { d },
+          .check_inv_domain = false,
+          .cfl = app->cfl,
+          .geom = app->geom,
+        }
+      );
+
+    // allocate arrays
+    fld->fdup = mkarr(false, 8, app->local_ext.volume);
+    for (int d=0; d<ndim+1; ++d)
+      fld->f[d] = mkarr(false, 8, app->local_ext.volume);
+  }
+  else if (fld->scheme_type == GKYL_MOMENT_MP) {
+    // determine directions to update
+    int num_up_dirs = 0, update_dirs[GKYL_MAX_CDIM] = { 0 };
+    for (int d=0; d<ndim; ++d)
+      if (!app->is_dir_skipped[d]) {
+        update_dirs[num_up_dirs] = d;
+        num_up_dirs += 1;
+      }
+    
+    // single MP updater updates all directions
+    fld->mp_slvr = gkyl_mp_scheme_new( &(struct gkyl_mp_scheme_inp) {
         .grid = &app->grid,
         .equation = maxwell,
-        .limiter = limiter,
-        .num_up_dirs = app->is_dir_skipped[d] ? 0 : 1,
-        .update_dirs = { d },
-        .check_inv_domain = false,
-        .cfl = app->cfl,
+        .mp_recon = GKYL_MP_C4,
+        .num_up_dirs = num_up_dirs,
+        .update_dirs = { update_dirs[0], update_dirs[1], update_dirs[2] } ,
         .geom = app->geom,
       }
     );
+  }
 
   // determine which directions are not periodic
   int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
@@ -85,11 +115,6 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
       }
     }
   }
-
-  // allocate arrays
-  fld->fdup = mkarr(false, 8, app->local_ext.volume);
-  for (int d=0; d<ndim+1; ++d)
-    fld->f[d] = mkarr(false, 8, app->local_ext.volume);
 
   // allocate arrays for applied current/external fields
   fld->app_current = mkarr(false, 3, app->local_ext.volume);
@@ -188,9 +213,6 @@ moment_field_update(const gkyl_moment_app *app,
 void
 moment_field_release(const struct moment_field *fld)
 {
-  for (int d=0; d<fld->ndim; ++d)
-    gkyl_wave_prop_release(fld->slvr[d]);
-
   for (int d=0; d<fld->ndim; ++d) {
     if (fld->lower_bc[d])
       gkyl_wv_apply_bc_release(fld->lower_bc[d]);
@@ -198,10 +220,18 @@ moment_field_release(const struct moment_field *fld)
       gkyl_wv_apply_bc_release(fld->upper_bc[d]);
   }
 
-  gkyl_array_release(fld->fdup);
-  for (int d=0; d<fld->ndim+1; ++d)
-    gkyl_array_release(fld->f[d]);
-  
+  if (fld->scheme_type == GKYL_MOMENT_WAVE_PROP) {
+    for (int d=0; d<fld->ndim; ++d)
+      gkyl_wave_prop_release(fld->slvr[d]);
+    
+    gkyl_array_release(fld->fdup);
+    for (int d=0; d<fld->ndim+1; ++d)
+      gkyl_array_release(fld->f[d]);
+  }
+  else if (fld->scheme_type == GKYL_MOMENT_MP) {
+    gkyl_mp_scheme_release(fld->mp_slvr);
+  }
+    
   gkyl_array_release(fld->app_current);
   if (fld->proj_app_current)
     gkyl_fv_proj_release(fld->proj_app_current);

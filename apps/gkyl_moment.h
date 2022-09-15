@@ -53,10 +53,10 @@ struct gkyl_moment_field {
 };
 
 // Choices of schemes to use in the fluid solver 
-enum gkyl_moment_fluid_scheme {
-  GKYL_MOMENT_FLUID_WAVE_PROP = 0, // default, 2nd-order FV
-  GKYL_MOMENT_FLUID_MP, // monotonicity-preserving Suresh-Huynh scheme
-  GKYL_MOMENT_FLUID_KEP // Kinetic-energy preserving scheme
+enum gkyl_moment_scheme {
+  GKYL_MOMENT_WAVE_PROP = 0, // default, 2nd-order FV
+  GKYL_MOMENT_MP, // monotonicity-preserving Suresh-Huynh scheme
+  GKYL_MOMENT_KEP // Kinetic-energy preserving scheme
 };
 
 // Top-level app parameters
@@ -75,7 +75,7 @@ struct gkyl_moment {
 
   double cfl_frac; // CFL fraction to use
 
-  enum gkyl_moment_fluid_scheme fluid_scheme; // scheme to update fluid equations
+  enum gkyl_moment_scheme scheme_type; // scheme to update fluid and moment eqns
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions

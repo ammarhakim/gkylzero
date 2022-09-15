@@ -22,6 +22,7 @@
 #include <gkyl_fv_proj.h>
 #include <gkyl_moment.h>
 #include <gkyl_moment_em_coupling.h>
+#include <gkyl_mp_scheme.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
@@ -45,7 +46,6 @@ struct moment_species {
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
     
-  struct gkyl_array *fdup, *f[4]; // arrays for updates
   struct gkyl_array *app_accel; // array for applied acceleration/forces
   // pointer to projection operator for applied acceleration/forces function
   gkyl_fv_proj *proj_app_accel;
@@ -53,7 +53,19 @@ struct moment_species {
 
   enum gkyl_eqn_type eqn_type; // type ID of equation
   int num_equations; // number of equations in species
-  gkyl_wave_prop *slvr[3]; // solver in each direction
+
+  enum gkyl_moment_scheme scheme_type; // scheme to update equations
+  // solvers and data to update fluid equations
+  union {
+    struct {
+      gkyl_wave_prop *slvr[3]; // wave-prop solver in each direction
+      struct gkyl_array *fdup, *f[4]; // arrays for updates
+    };
+    struct {
+      gkyl_mp_scheme *mp_slvr; // monotonicity-preserving scheme
+      struct gkyl_array *f0, *f1, *fnew; // arrays for updates
+    };
+  };
 
   // boundary condition type
   enum gkyl_species_bc_type lower_bct[3], upper_bct[3];
@@ -75,11 +87,9 @@ struct moment_field {
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);    
     
-  struct gkyl_array *fdup, *f[4]; // arrays for updates
   struct gkyl_array *app_current; // arrays for applied currents
   // pointer to projection operator for applied current function
   gkyl_fv_proj *proj_app_current;
-
 
   bool is_ext_em_static; // flag to indicate if external field is time-independent
   struct gkyl_array *ext_em; // array external fields  
@@ -88,7 +98,18 @@ struct moment_field {
   
   struct gkyl_array *bc_buffer; // buffer for periodic BCs
 
-  gkyl_wave_prop *slvr[3]; // solver in each direction
+  enum gkyl_moment_scheme scheme_type; // scheme to update equations  
+  // solvers and data to update fluid equations
+  union {
+    struct {
+      gkyl_wave_prop *slvr[3]; // wave-prop solver in each direction
+      struct gkyl_array *fdup, *f[4]; // arrays for updates
+    };
+    struct {
+      gkyl_mp_scheme *mp_slvr; // monotonicity-preserving scheme
+      struct gkyl_array *f0, *f1, *fnew; // arrays for updates
+    };
+  };
 
   // boundary condition type
   enum gkyl_field_bc_type lower_bct[3], upper_bct[3];
@@ -116,8 +137,6 @@ struct gkyl_moment_app {
 
   int is_dir_skipped[3]; // flags to tell if update in direction are skipped
 
-  enum gkyl_moment_fluid_scheme fluid_scheme; // scheme to update fluid equations
-    
   struct gkyl_rect_grid grid; // grid
   struct gkyl_range local, local_ext; // local, local-ext ranges
 

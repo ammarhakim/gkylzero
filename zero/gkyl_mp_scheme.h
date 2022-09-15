@@ -27,7 +27,6 @@ struct gkyl_mp_scheme_inp {
 
   int num_up_dirs; // number of update directions
   int update_dirs[GKYL_MAX_DIM]; // directions to update
-  double cfl; // CFL number to use
 
   const struct gkyl_wave_geom *geom; // geometry
 };
