@@ -1,4 +1,5 @@
 #include "gkyl_dg_bin_ops.h"
+#include "gkyl_eqn_type.h"
 #include <assert.h>
 #include <gkyl_vlasov_priv.h>
 
@@ -27,6 +28,7 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   gkyl_array_copy(lbo->nu_sum, self_nu);
   gkyl_array_release(self_nu);
 
+  lbo->model_id = GKYL_MODEL_DEFAULT;
   if (s->model_id == GKYL_MODEL_PKPM) {
     lbo->model_id = GKYL_MODEL_PKPM;
     // Only energy corrections for pkpm model
