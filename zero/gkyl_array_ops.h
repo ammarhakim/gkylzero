@@ -67,6 +67,20 @@ struct gkyl_array* gkyl_array_set(struct gkyl_array *out,
   double a, const struct gkyl_array *inp);
 
 /**
+ * Set out = a*inp[coff] where coff is a component-offset if
+ * out->ncomp > inp->ncomp, or out[coff] = a*inp if
+ * out->ncomp > inp->ncomp. Returns out.
+ *
+ * @param out Output array
+ * @param a Factor to multiply input array
+ * @param inp Input array
+ * @param coff Component offset
+ * @return out array
+ */
+struct gkyl_array* gkyl_array_set_offset(struct gkyl_array *out,
+  double a, const struct gkyl_array *inp, int coff);
+
+/**
  * Scale out = a*out. Returns out.
  *
  * @param out Output array
@@ -126,6 +140,20 @@ struct gkyl_array* gkyl_array_accumulate_range(struct gkyl_array *out,
  */
 struct gkyl_array* gkyl_array_set_range(struct gkyl_array *out,
   double a, const struct gkyl_array *inp, struct gkyl_range range);
+
+/**
+ * Set out = a*inp[coff] where coff is a component-offset if
+ * out->ncomp > inp->ncomp, or out[coff] = a*inp if
+ * out->ncomp > inp->ncomp. Returns out.
+ *
+ * @param out Output array
+ * @param a Factor to multiply input array
+ * @param inp Input array
+ * @return out array
+ * @param range Range specifying region to set
+ */
+struct gkyl_array* gkyl_array_set_offset_range(struct gkyl_array *out,
+  double a, const struct gkyl_array *inp, int coff, struct gkyl_range range);
 
 /**
  * Scale out = a*ut. Returns out.
@@ -242,6 +270,8 @@ void gkyl_array_accumulate_cu(struct gkyl_array* out, double a, const struct gky
 
 void gkyl_array_set_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp);
 
+void gkyl_array_set_offset_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp, int coff);
+
 void gkyl_array_scale_cu(struct gkyl_array* out, double a);
 
 void gkyl_array_scale_by_cell_cu(struct gkyl_array* out, const struct gkyl_array* a);
@@ -258,6 +288,9 @@ void gkyl_array_accumulate_range_cu(struct gkyl_array *out,
 
 void gkyl_array_set_range_cu(struct gkyl_array *out,
   double a, const struct gkyl_array* inp, struct gkyl_range range);
+
+void gkyl_array_set_offset_range_cu(struct gkyl_array *out,
+  double a, const struct gkyl_array* inp, int coff, struct gkyl_range range);
 
 void gkyl_array_scale_range_cu(struct gkyl_array *out,
   double a, struct gkyl_range range);

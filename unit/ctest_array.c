@@ -276,6 +276,93 @@ void test_array_set_range()
   gkyl_array_release(a2);
 }
 
+void test_array_set_offset()
+{
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 2, 10);
+  struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 3*a1->ncomp, a1->size);
+
+  double *a1_d = a1->data, *a2_d = a2->data;
+
+  // Assign a component of the vector to the scalar.
+  for (unsigned i=0; i<a1->size; ++i)
+    for (unsigned j=0; j<a1->ncomp; ++j)
+      a1_d[i*a1->ncomp+j] = i*0.2+2*j;
+
+  for (unsigned i=0; i<a2->size; ++i)
+    for (unsigned j=0; j<a2->ncomp/a1->ncomp; ++j)
+      for (unsigned k=0; k<a1->ncomp; ++k)
+        a2_d[i*a2->ncomp+j*a1->ncomp+k] = i*0.1+k;
+
+  gkyl_array_set_offset(a1, 0.5, a2, 1*a1->ncomp);
+
+  for (unsigned i=0; i<a1->size; ++i)
+    for (unsigned j=0; j<a1->ncomp; ++j)
+      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+j], 0.5*(i*0.1+j), 1e-14) );
+
+  // Assign the scalar to a component of the vector.
+  for (unsigned i=0; i<a1->size; ++i)
+    for (unsigned j=0; j<a1->ncomp; ++j)
+      a1_d[i*a1->ncomp+j] = i*0.2+2*j;
+
+  gkyl_array_set_offset(a2, 2., a1, 1*a1->ncomp);
+
+  for (unsigned i=0; i<a1->size; ++i)
+    for (unsigned j=0; j<a1->ncomp; ++j) {
+      TEST_CHECK( gkyl_compare(a2_d[i*a2->ncomp+0*a1->ncomp+j], i*0.1+j, 1e-14) );
+      TEST_CHECK( gkyl_compare(a2_d[i*a2->ncomp+1*a1->ncomp+j], 2.*(i*0.2+2*j), 1e-14) );
+      TEST_CHECK( gkyl_compare(a2_d[i*a2->ncomp+2*a1->ncomp+j], i*0.1+j, 1e-14) );
+    }
+
+  gkyl_array_release(a1);
+  gkyl_array_release(a2);
+}
+
+void test_array_set_offset_range()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+  
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 2, range.volume);
+  struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 3*a1->ncomp, range.volume);
+
+  // test a1 = 0.1*a2[a1->ncomp]
+  gkyl_array_clear_range(a1, 0.5, range);
+  gkyl_array_clear_range(a2, 1.5, range);
+
+  gkyl_array_set_offset_range(a1, 0.1, a2, 1*a1->ncomp, range);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+    double *a1d = gkyl_array_fetch(a1, loc);
+    for (int i=0; i<a1->ncomp; ++i)
+//      printf("%g | %g\n", a1d[i] ,0.1*1.5 );
+      TEST_CHECK( a1d[i] == 0.1*1.5 );
+  }
+
+//  // test a2[a1->ncomp] = 0.1*a1
+//  gkyl_array_clear(a1, 0.5);
+//  gkyl_array_clear(a2, 1.5);
+//
+//  gkyl_array_set_offset_range(a2, 0.1, a1, 1*a1->ncomp, range);
+//
+//  gkyl_range_iter_init(&iter, &range);
+//  while (gkyl_range_iter_next(&iter)) {
+//    long loc = gkyl_range_idx(&range, iter.idx);
+//    double *a2d = gkyl_array_fetch(a2, loc);
+//    for (int i=0; i<a1->ncomp; ++i) {
+//      TEST_CHECK( a2d[i+0*a1->ncomp] == 0.5 );
+//      TEST_CHECK( a2d[i+1*a1->ncomp] == 0.1*0.5 );
+//      TEST_CHECK( a2d[i+2*a1->ncomp] == 0.5 );
+//    }
+//  }  
+
+  gkyl_array_release(a1);
+  gkyl_array_release(a2);
+}
+
 void test_array_scale()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
@@ -1755,6 +1842,8 @@ TEST_LIST = {
   { "array_combine", test_array_combine },
   { "array_set", test_array_set },
   { "array_set_range", test_array_set_range },
+  { "array_set_offset", test_array_set_offset },
+  { "array_set_offset_range", test_array_set_offset_range },
   { "array_scale", test_array_scale },
   { "array_scale_by_cell", test_array_scale_by_cell },
   { "array_shiftc0", test_array_shiftc0 },
