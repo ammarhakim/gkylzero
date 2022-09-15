@@ -209,7 +209,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       }
     );  
     // run updater
-    gkyl_proj_on_basis_advance(bvar_proj, 0.0, &app->local, s->bvar);
+    gkyl_proj_on_basis_advance(bvar_proj, 0.0, &app->local_ext, s->bvar);
     gkyl_proj_on_basis_release(bvar_proj);  
 
     // Get pointer to fluid species object (needed for computing primitive moments)

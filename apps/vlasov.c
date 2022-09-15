@@ -502,11 +502,18 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 
   double dtmin = DBL_MAX;
 
+  // Need to apply boundary conditions at the beginning of forward Euler step too
+  for (int i=0; i<app->num_species; ++i)
+    vm_species_apply_bc(app, &app->species[i], fin[i]);
+
   // compute primitive moments for fluid species evolution and coupling
   // Need to do this *before* collisions since collisional boundary corrections
   // use fluid primitive moments in fluid-kinetic systems (e.g., pkpm model)
-  for (int i=0; i<app->num_fluid_species; ++i)
+  for (int i=0; i<app->num_fluid_species; ++i) {
+    // Apply boundary conditions before update
+    vm_fluid_species_apply_bc(app, &app->fluid_species[i], fluidin[i]);
     vm_fluid_species_prim_vars(app, &app->fluid_species[i], fluidin[i], fin);
+  }
 
   // compute necessary moments and boundary corrections for collisions
   for (int i=0; i<app->num_species; ++i) {
