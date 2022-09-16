@@ -32,7 +32,8 @@ enum gkyl_model_id {
 
 // Identifiers for specific diffusion object types
 enum gkyl_diffusion_id {
-  GKYL_ISO_DIFFUSION = 0, // Isotropic diffusion. This is default
+  GKYL_NO_DIFFUSION = 0, // No diffusion. This is default.
+  GKYL_ISO_DIFFUSION, // Isotropic diffusion. 
   GKYL_ANISO_DIFFUSION, // Anisotropic diffusion.
   GKYL_EULER_ISO_DIFFUSION, // Diffusion in isothermal Euler equations (momentum equation)
   GKYL_EULER_DIFFUSION, // Diffusion in Euler equations (momentum and energy equations)

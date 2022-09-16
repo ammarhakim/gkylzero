@@ -297,6 +297,12 @@ struct vm_fluid_species {
   struct gkyl_bc_basic *bc_lo[3];
   struct gkyl_bc_basic *bc_up[3];
 
+  // Pointers to updaters that apply BCs to velocity and pressure
+  struct gkyl_bc_basic *bc_u_lo[3];
+  struct gkyl_bc_basic *bc_u_up[3];
+  struct gkyl_bc_basic *bc_p_lo[3];
+  struct gkyl_bc_basic *bc_p_up[3];
+
   // fluid advection
   bool has_advect; // flag to indicate there is advection of fluid equation
   enum gkyl_eqn_type eqn_id; // type of advection (e.g., scalar advection vs. Euler vs. isothermal Euler)
