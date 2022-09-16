@@ -15,15 +15,21 @@ struct gkyl_mp_scheme {
   struct gkyl_wave_geom *geom; // geometry object
 };
 
+// Each of the recovery methods below take 6 cells, three to the left
+// and three to the right, and return value at the interface. Note
+// that depending on the scheme, some of these values may be ignored.
+
 static inline void
 c4_recovery(int meqn,
-  const double *f2m, const double *fm, const double *fp, const double *f2p, double *out)
+  const double *f3m, const double *f2m, const double *fm,
+  const double *fp, const double *f2p, const double *f3p,
+  double *out)
 {
   for (int m=0; m<meqn; ++m)
     out[m] = -f2m[m]/12.0 + 7.0*fm[m]/12.0 + 7.0*fp[m]/12.0 - f2p[m]/12.0;
 }
 
-gkyl_mp_scheme *
+gkyl_mp_scheme*
 gkyl_mp_scheme_new(const struct gkyl_mp_scheme_inp *mpinp)
 {
   struct gkyl_mp_scheme *mp = gkyl_malloc(sizeof(*mp));

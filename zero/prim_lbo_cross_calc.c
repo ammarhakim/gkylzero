@@ -1,3 +1,4 @@
+#include "gkyl_prim_lbo_type.h"
 #include <gkyl_alloc.h>
 //#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array_ops.h>
@@ -113,7 +114,9 @@ gkyl_prim_lbo_vlasov_cross_calc_new(const struct gkyl_rect_grid *grid, const str
 {
   struct gkyl_prim_lbo_type *prim; // LBO primitive moments type
   prim = gkyl_prim_lbo_vlasov_new(cbasis, pbasis);
-  return gkyl_prim_lbo_cross_calc_new(grid, prim);
+  gkyl_prim_lbo_cross_calc *calc = gkyl_prim_lbo_cross_calc_new(grid, prim);
+  gkyl_prim_lbo_type_release(prim);
+  return calc;
 }
 
 gkyl_prim_lbo_cross_calc* 

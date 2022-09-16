@@ -62,7 +62,7 @@ static const gkyl_prim_lbo_vlasov_cross_kern_list ser_cross_prim_kernels[] = {
 
 struct prim_lbo_type_vlasov {
   struct gkyl_prim_lbo_type prim; // Base object
-  vlasov_self_prim_t self_prim; // Self-primitive moments kernel
+  vlasov_self_prim_t self_prim; // Self-primitive moments kernel  
   vlasov_cross_prim_t cross_prim; // Cross-primitive moments kernels
 };
 
