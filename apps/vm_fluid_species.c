@@ -44,7 +44,6 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
 
   // pre-allocated memory for weak division
-  // Needs to be over the extended range so flow velocity is known in ghost cells
   f->u_mem = 0;
   if (app->use_gpu)
     f->u_mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
@@ -53,12 +52,15 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
 
   // initialize pointers to flow velocity and pressure
   f->u = 0;
+  f->u_bc_buffer = 0;
   f->p = 0;
+  f->p_bc_buffer = 0;
   f->vlasov_pkpm_surf_moms = 0;
 
   f->param = 0.0;
   f->has_advect = false;
   f->advects_with_species = false;
+  f->collision_id = GKYL_NO_COLLISIONS;
   // fluid solvers
   if (f->info.vt) {
     f->param = f->info.vt; // parameter for isothermal Euler is vt, thermal velocity
