@@ -216,6 +216,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     is_np[app->periodic_dirs[d]] = 0;
 
   for (int dir=0; dir<app->cdim; ++dir) {
+    f->lower_bc[dir] = f->upper_bc[dir] = GKYL_SPECIES_COPY;
     if (is_np[dir]) {
       const enum gkyl_species_bc_type *bc;
       if (dir == 0)
@@ -230,7 +231,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     }
   }
 
-  int ghost[GKYL_MAX_DIM];
+  int ghost[GKYL_MAX_DIM] = {0.0};
   for (int d=0; d<app->cdim; ++d)
     ghost[d] = 1;
 

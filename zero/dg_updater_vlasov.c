@@ -45,8 +45,8 @@ gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid,
     zero_flux_flags[d] = 0;
   }
   int num_up_dirs = cdim;
-  // update velocity space only when field is present
-  if (field_id != GKYL_FIELD_NULL) {
+  // update velocity space only when field is present (or pkpm model, which always has force update)
+  if (field_id != GKYL_FIELD_NULL || up->model_id == GKYL_MODEL_PKPM) {
     for (int d=cdim; d<pdim; ++d) {
       up_dirs[d] = d;
       zero_flux_flags[d] = 1; // zero-flux BCs in vel-space
