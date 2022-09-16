@@ -40,22 +40,22 @@ GKYL_CU_DH void mom_vlasov_pkpm_surfx_1x1v_ser_p2(const double *w, const double 
   double ev_q_l = 0.0; 
   double ev_q_r = 0.0; 
 
-  ev_u_l = ser_2x_p2_surfx1_eval_quad_node_0_r(u_l); 
-  ev_u_r = ser_2x_p2_surfx1_eval_quad_node_0_l(u_r); 
-  ev_q_l = ser_2x_p2_surfx1_eval_quad_node_0_r(q_l); 
-  ev_q_r = ser_2x_p2_surfx1_eval_quad_node_0_l(q_r); 
+  ev_u_l = 0.7071067811865475*u_l[0]; 
+  ev_u_r = 0.7071067811865475*u_r[0]; 
+  ev_q_l = 0.6324555320336759*q_l[2]-0.9486832980505137*q_l[1]+0.7071067811865475*q_l[0]; 
+  ev_q_r = 0.6324555320336759*q_l[2]-0.9486832980505137*q_l[1]+0.7071067811865475*q_l[0]; 
   uQuad[0] = fmax(fabs(ev_u_l), fabs(ev_u_r)); 
   qQuad[0] = fmax(fabs(ev_q_l), fabs(ev_q_r)); 
-  ev_u_l = ser_2x_p2_surfx1_eval_quad_node_1_r(u_l); 
-  ev_u_r = ser_2x_p2_surfx1_eval_quad_node_1_l(u_r); 
-  ev_q_l = ser_2x_p2_surfx1_eval_quad_node_1_r(q_l); 
-  ev_q_r = ser_2x_p2_surfx1_eval_quad_node_1_l(q_r); 
+  ev_u_l = 0.7071067811865475*u_l[0]; 
+  ev_u_r = 0.7071067811865475*u_r[0]; 
+  ev_q_l = 0.7071067811865475*q_l[0]-0.7905694150420947*q_l[2]; 
+  ev_q_r = 0.7071067811865475*q_l[0]-0.7905694150420947*q_l[2]; 
   uQuad[1] = fmax(fabs(ev_u_l), fabs(ev_u_r)); 
   qQuad[1] = fmax(fabs(ev_q_l), fabs(ev_q_r)); 
-  ev_u_l = ser_2x_p2_surfx1_eval_quad_node_2_r(u_l); 
-  ev_u_r = ser_2x_p2_surfx1_eval_quad_node_2_l(u_r); 
-  ev_q_l = ser_2x_p2_surfx1_eval_quad_node_2_r(q_l); 
-  ev_q_r = ser_2x_p2_surfx1_eval_quad_node_2_l(q_r); 
+  ev_u_l = 0.7071067811865475*u_l[0]; 
+  ev_u_r = 0.7071067811865475*u_r[0]; 
+  ev_q_l = 0.6324555320336759*q_l[2]+0.9486832980505137*q_l[1]+0.7071067811865475*q_l[0]; 
+  ev_q_r = 0.6324555320336759*q_l[2]+0.9486832980505137*q_l[1]+0.7071067811865475*q_l[0]; 
   uQuad[2] = fmax(fabs(ev_u_l), fabs(ev_u_r)); 
   qQuad[2] = fmax(fabs(ev_q_l), fabs(ev_q_r)); 
 
