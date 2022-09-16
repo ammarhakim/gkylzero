@@ -47,22 +47,22 @@ GKYL_CU_DH void vlasov_pkpm_surfx_1x1v_ser_p2(const double *w, const double *dxv
   double alpha_c_r = 0.0; 
   double alpha_r_l = 0.0; 
 
-  alpha_l_r = ser_2x_p2_surfx1_eval_quad_node_0_r(alpha_lr); 
-  alpha_c_l = ser_2x_p2_surfx1_eval_quad_node_0_l(alpha_cl); 
-  alpha_c_r = ser_2x_p2_surfx1_eval_quad_node_0_r(alpha_cr); 
-  alpha_r_l = ser_2x_p2_surfx1_eval_quad_node_0_l(alpha_rl); 
+  alpha_l_r = 0.7071067811865475*alpha_lr[0]-0.9486832980505137*alpha_lr[1]; 
+  alpha_c_l = 0.7071067811865475*alpha_cl[0]-0.9486832980505137*alpha_cl[1]; 
+  alpha_c_r = 0.7071067811865475*alpha_cr[0]-0.9486832980505137*alpha_cr[1]; 
+  alpha_r_l = 0.7071067811865475*alpha_rl[0]-0.9486832980505137*alpha_rl[1]; 
   alphaQuad_l[0] = fmax(fabs(alpha_l_r), fabs(alpha_c_l)); 
   alphaQuad_r[0] = fmax(fabs(alpha_c_r), fabs(alpha_r_l)); 
-  alpha_l_r = ser_2x_p2_surfx1_eval_quad_node_1_r(alpha_lr); 
-  alpha_c_l = ser_2x_p2_surfx1_eval_quad_node_1_l(alpha_cl); 
-  alpha_c_r = ser_2x_p2_surfx1_eval_quad_node_1_r(alpha_cr); 
-  alpha_r_l = ser_2x_p2_surfx1_eval_quad_node_1_l(alpha_rl); 
+  alpha_l_r = 0.7071067811865475*alpha_lr[0]; 
+  alpha_c_l = 0.7071067811865475*alpha_cl[0]; 
+  alpha_c_r = 0.7071067811865475*alpha_cr[0]; 
+  alpha_r_l = 0.7071067811865475*alpha_rl[0]; 
   alphaQuad_l[1] = fmax(fabs(alpha_l_r), fabs(alpha_c_l)); 
   alphaQuad_r[1] = fmax(fabs(alpha_c_r), fabs(alpha_r_l)); 
-  alpha_l_r = ser_2x_p2_surfx1_eval_quad_node_2_r(alpha_lr); 
-  alpha_c_l = ser_2x_p2_surfx1_eval_quad_node_2_l(alpha_cl); 
-  alpha_c_r = ser_2x_p2_surfx1_eval_quad_node_2_r(alpha_cr); 
-  alpha_r_l = ser_2x_p2_surfx1_eval_quad_node_2_l(alpha_rl); 
+  alpha_l_r = 0.9486832980505137*alpha_lr[1]+0.7071067811865475*alpha_lr[0]; 
+  alpha_c_l = 0.9486832980505137*alpha_cl[1]+0.7071067811865475*alpha_cl[0]; 
+  alpha_c_r = 0.9486832980505137*alpha_cr[1]+0.7071067811865475*alpha_cr[0]; 
+  alpha_r_l = 0.9486832980505137*alpha_rl[1]+0.7071067811865475*alpha_rl[0]; 
   alphaQuad_l[2] = fmax(fabs(alpha_l_r), fabs(alpha_c_l)); 
   alphaQuad_r[2] = fmax(fabs(alpha_c_r), fabs(alpha_r_l)); 
 
