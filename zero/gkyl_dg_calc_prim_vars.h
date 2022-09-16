@@ -21,7 +21,7 @@
  * @param statevec Input state vector which contains *both* density and momentum
  * @param u_i Output array of bulk flow velocity
  */
-void gkyl_calc_prim_vars_u_from_statevec(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis, struct gkyl_range range,
+void gkyl_calc_prim_vars_u_from_statevec(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* statevec, struct gkyl_array* u_i);
 
 /**
@@ -38,7 +38,7 @@ void gkyl_calc_prim_vars_u_from_statevec(gkyl_dg_bin_op_mem *mem, struct gkyl_ba
  * @param rhou Input momentum
  * @param u_i Output array of bulk flow velocity
  */
-void gkyl_calc_prim_vars_u_from_rhou(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis, struct gkyl_range range,
+void gkyl_calc_prim_vars_u_from_rhou(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* rho, const struct gkyl_array* rhou, struct gkyl_array* u_i);
 
 /**
@@ -57,7 +57,7 @@ void gkyl_calc_prim_vars_u_from_rhou(gkyl_dg_bin_op_mem *mem, struct gkyl_basis 
  * @param statevec Input state vector which contains density, momentum, and energy
  * @param p_ij Output array of pressure (scalar pressure)
  */
-void gkyl_calc_prim_vars_p_from_statevec(struct gkyl_basis basis, struct gkyl_range range,
+void gkyl_calc_prim_vars_p_from_statevec(struct gkyl_basis basis, const struct gkyl_range *range,
   const double p_fac, const struct gkyl_array* u_i, const struct gkyl_array* statevec, 
   struct gkyl_array* p_ij);
 
@@ -72,7 +72,7 @@ void gkyl_calc_prim_vars_p_from_statevec(struct gkyl_basis basis, struct gkyl_ra
  * @param euler_pkpm Input array parallel-kinetic-perpendicular-moment fluid variables
  * @param p_ij Output array of pressure tensor
  */
-void gkyl_calc_prim_vars_p_pkpm(struct gkyl_basis basis, struct gkyl_range range,
+void gkyl_calc_prim_vars_p_pkpm(struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* u_i, const struct gkyl_array* bvar, 
   const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
   struct gkyl_array* p_ij);

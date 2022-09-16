@@ -2,7 +2,7 @@
 #include <gkyl_fem_parproj_priv.h>
 
 static long
-global_num_nodes(const int dim, const int poly_order, const int basis_type, const int parnum_cells)
+global_num_nodes(const int dim, const int poly_order, const enum gkyl_basis_type basis_type, const int parnum_cells)
 {
   if (dim==1) {
     if (poly_order == 1) {
@@ -33,54 +33,25 @@ global_num_nodes(const int dim, const int poly_order, const int basis_type, cons
   return -1;
 }
 
-static void
-local_mass(const int dim, const int poly_order, const int basis_type, struct gkyl_mat *massout)
-{
-  if (dim==1) {
-    if (poly_order == 1) {
-      return fem_parproj_mass_1x_ser_p1(massout);
-    } else if (poly_order == 2) {
-      return fem_parproj_mass_1x_ser_p2(massout);
-    } else if (poly_order == 3) {
-      return fem_parproj_mass_1x_ser_p3(massout);
-    }
-  } else if (dim==3) {
-    if (basis_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-      if (poly_order == 1) {
-        return fem_parproj_mass_3x_ser_p1(massout);
-      } else if (poly_order == 2) {
-        return fem_parproj_mass_3x_ser_p2(massout);
-      } else if (poly_order == 3) {
-        return fem_parproj_mass_3x_ser_p3(massout);
-      }
-    } if (basis_type == GKYL_BASIS_MODAL_TENSOR) {
-      if (poly_order == 1) {
-        return fem_parproj_mass_3x_tensor_p1(massout);
-      } else if (poly_order == 2) {
-        return fem_parproj_mass_3x_tensor_p2(massout);
-      }
-    }
-  }
-  assert(false);  // Other dimensionalities not supported.
-}
-
 gkyl_fem_parproj*
 gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-  const bool isparperiodic, bool use_gpu)
+  bool isparperiodic, bool isweighted, const struct gkyl_array *weight, bool use_gpu)
 {
   gkyl_fem_parproj *up = gkyl_malloc(sizeof(gkyl_fem_parproj));
 
   up->kernels = gkyl_malloc(sizeof(struct gkyl_fem_parproj_kernels));
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu)
+    up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_fem_parproj_kernels));
+  else
+    up->kernels_cu = up->kernels;
+#else
   up->kernels_cu = up->kernels;
- #ifdef GKYL_HAVE_CUDA
-   if (use_gpu) {
-     up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_fem_parproj_kernels));
-   }
- #endif
+#endif
 
   up->ndim = grid->ndim;
   up->grid = *grid;
-  up->num_basis = basis.num_basis;
+  up->num_basis  = basis.num_basis;
   up->basis_type = basis.b_type;
   up->poly_order = basis.poly_order;
   up->pardir = grid->ndim-1; // Assume parallel direction is always the last.
@@ -131,9 +102,8 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 
   up->brhs = gkyl_array_new(GKYL_DOUBLE, 1, up->numnodes_global*up->perp_range.volume); // Global right side vector.
 
-  // Create local matrices used later.
-  up->local_mass = gkyl_mat_new(up->numnodes_local, up->numnodes_local, 0.);
-  local_mass(up->ndim, up->poly_order, basis.b_type, up->local_mass);
+  // Select weighted LHS kernel (not always used):
+  up->kernels->lhsker = fem_parproj_choose_lhs_kernel(up->ndim, basis.b_type, up->poly_order, isweighted);
 
   // Select local-to-global mapping kernel:
   up->kernels->l2g = fem_parproj_choose_local2global_kernel(up->ndim, basis.b_type, up->poly_order);
@@ -145,10 +115,13 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->kernels->solker = fem_parproj_choose_solstencil_kernel(up->ndim, basis.b_type, up->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu) {
+  if (up->use_gpu)
     fem_parproj_choose_kernels_cu(&basis, up->isperiodic, up->kernels_cu);
-  }
 #endif
+
+  // MF 2022/08/23: at the moment we only support weight=/1 for cdim=1. For
+  // cdim=3 we need to create a separate lhs A matrix for row of z cells.
+  if (isweighted) assert(up->ndim==1);
 
   // Create a linear Ax=B problem. We envision two cases:
   //  a) No weight, or weight is a scalar so we can divide the RHS by it. Then
@@ -156,7 +129,6 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   //     column for each problem.
   //  b) Weight depends on space. Then we have to create an A matrix and a
   //     separate Ax=B problem for each perpendicular cell.
-  // For now we restrict ourselves to a).
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
     up->prob_cu = gkyl_cusolver_prob_new(up->numnodes_global, up->numnodes_global, up->perp_range.volume);
@@ -176,21 +148,17 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
     long paridx = gkyl_range_idx(&up->par_range1d, up->par_iter1d.idx);
 
     up->kernels->l2g(up->parnum_cells, paridx, up->globalidx);
-    for (size_t k=0; k<up->numnodes_local; ++k) {
-      for (size_t m=0; m<up->numnodes_local; ++m) {
-        double val = gkyl_mat_get(up->local_mass,k,m);
-        long globalidx_k = up->globalidx[k];
-        long globalidx_m = up->globalidx[m];
-        gkyl_mat_triples_accum(tri, globalidx_k, globalidx_m, val);
-      }
-    }
+
+    const double *wgt_p = isweighted? (const double *) gkyl_array_cfetch(weight, isparperiodic? paridx : paridx+1) : NULL;
+
+    // Apply the wgt*phi*basis stencil.
+    up->kernels->lhsker(wgt_p, up->globalidx, tri);
   }
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu) {
+  if (up->use_gpu)
     gkyl_cusolver_amat_from_triples(up->prob_cu, tri);
-  } else {
+  else
     gkyl_superlu_amat_from_triples(up->prob, tri);
-  }
 #else
   gkyl_superlu_amat_from_triples(up->prob, tri);
 #endif
@@ -274,10 +242,9 @@ gkyl_fem_parproj_solve(gkyl_fem_parproj* up, struct gkyl_array *phiout) {
 
 void gkyl_fem_parproj_release(gkyl_fem_parproj *up)
 {
-  gkyl_mat_release(up->local_mass);
 #ifdef GKYL_HAVE_CUDA
-  gkyl_cu_free(up->kernels_cu);
   if (up->use_gpu) {
+    gkyl_cu_free(up->kernels_cu);
     gkyl_cusolver_prob_release(up->prob_cu);
   } else {
     gkyl_superlu_prob_release(up->prob);

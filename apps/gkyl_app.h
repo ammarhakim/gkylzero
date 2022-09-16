@@ -11,6 +11,7 @@ struct gkyl_update_status {
 
 // Boundary conditions on particles
 enum gkyl_species_bc_type {
+  GKYL_SPECIES_PERIODIC = -1, // periodic
   GKYL_SPECIES_COPY = 0, // copy BCs
   GKYL_SPECIES_REFLECT, // perfect reflector
   GKYL_SPECIES_ABSORB, // Absorbing BCs
@@ -21,6 +22,7 @@ enum gkyl_species_bc_type {
 
 // Boundary conditions on fields
 enum gkyl_field_bc_type {
+  GKYL_FIELD_PERIODIC = -1, // periodic  
   GKYL_FIELD_COPY = 0, // copy BCs
   GKYL_FIELD_PEC_WALL, // perfect electrical conductor (PEC) BCs
   GKYL_FIELD_WEDGE, // specialized "wedge" BCs for RZ-theta

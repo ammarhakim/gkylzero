@@ -266,7 +266,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
   // set species source id
   s->source_id = s->info.source.source_id;
-
+  
   // determine collision type to use in vlasov update
   s->collision_id = s->info.collisions.collision_id;
   s->collides_with_fluid = false;
@@ -357,6 +357,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     is_np[app->periodic_dirs[d]] = 0;
 
   for (int dir=0; dir<app->cdim; ++dir) {
+    s->lower_bc[dir] = s->upper_bc[dir] = GKYL_SPECIES_COPY;
     if (is_np[dir]) {
       const enum gkyl_species_bc_type *bc;
       if (dir == 0)
@@ -381,7 +382,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       bctype = GKYL_BC_REFLECT;
   
     s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &s->local_ext, ghost, bctype,
-                                    app->basis_on_dev.basis, s->f->ncomp, app->cdim, app->use_gpu);
+      app->basis_on_dev.basis, s->f->ncomp, app->cdim, app->use_gpu);
     // Upper BC updater. Copy BCs by default.
     if (s->upper_bc[d] == GKYL_SPECIES_COPY)
       bctype = GKYL_BC_COPY;
@@ -391,7 +392,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       bctype = GKYL_BC_REFLECT;
     
     s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &s->local_ext, ghost, bctype,
-                                    app->basis_on_dev.basis, s->f->ncomp, app->cdim, app->use_gpu);
+      app->basis_on_dev.basis, s->f->ncomp, app->cdim, app->use_gpu);
   }
 }
 
@@ -413,7 +414,7 @@ vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
   vm_species_calc_accel(app, species, t0);
 
   // we are pre-computing source for now as it is time-independent
-  vm_species_calc_source(app, species, t0);
+  vm_species_source_calc(app, species, t0);
 }
 
 void
@@ -423,16 +424,6 @@ vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, double t
     gkyl_proj_on_basis_advance(species->accel_proj, tm, &app->local_ext, species->accel_host);
     if (app->use_gpu) // note: accel_host is same as accel when not on GPUs
       gkyl_array_copy(species->accel, species->accel_host);
-  }
-}
-
-void
-vm_species_calc_source(gkyl_vlasov_app *app, struct vm_species *species, double tm)
-{
-  if (species->source_id) {
-    gkyl_proj_on_basis_advance(species->src.source_proj, tm, &species->local_ext, species->src.source_host);
-    if (app->use_gpu) // note: source_host is same as source when not on GPUs
-      gkyl_array_copy(species->src.source, species->src.source_host);
   }
 }
 
@@ -457,7 +448,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
         species->magB, 0, species->lbo.m0, &app->local);
       // get J*T_perp = J*p_perp/n
       gkyl_dg_div_op_range(species->Tperp_mem, app->confBasis, 0, species->Tperp, 0,
-        fluidin[species->fluid_index], 0, species->n, app->local);
+        fluidin[species->fluid_index], 0, species->n, &app->local);
       // get mirror force = J*T_perp*grad(B)
       gkyl_dg_mul_op_range(app->confBasis, 0, species->mirror_force, 0,
         species->gradB, 0, species->Tperp, &app->local);
@@ -471,7 +462,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
       gkyl_dg_div_op_range(species->rho_inv_mem, app->confBasis, 
         i, species->rho_inv_b, 
         i, species->bvar, 
-        0, species->pkpm_moms.marr, app->local);      
+        0, species->pkpm_moms.marr, &app->local);      
   }
   
   gkyl_array_clear(rhs, 0.0);

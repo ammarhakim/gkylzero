@@ -86,7 +86,7 @@ void
 gkyl_dg_mul_op_range_cu(struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
-  int c_rop, const struct gkyl_array* rop, struct gkyl_range *range)
+  int c_rop, const struct gkyl_array* rop, const struct gkyl_range *range)
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
@@ -137,12 +137,103 @@ void
 gkyl_dg_mul_conf_phase_op_range_cu(struct gkyl_basis *cbasis,
   struct gkyl_basis *pbasis, struct gkyl_array* pout,
   const struct gkyl_array* cop, const struct gkyl_array* pop,
-  struct gkyl_range *crange, struct gkyl_range *prange)
+  const struct gkyl_range *crange, const struct gkyl_range *prange)
 {
   int nblocks = prange->nblocks;
   int nthreads = prange->nthreads;
   gkyl_dg_mul_conf_phase_op_range_cu_kernel<<<nblocks, nthreads>>>(*cbasis, *pbasis,
     pout->on_dev, cop->on_dev, pop->on_dev, *crange, *prange);
+}
+
+__global__ void
+gkyl_dg_dot_product_op_cu_kernel(struct gkyl_basis basis,
+  struct gkyl_array* out, const struct gkyl_array* lop,
+  const struct gkyl_array* rop)
+{
+  int ndim = basis.ndim;
+  int poly_order = basis.poly_order;
+  mul_op_t mul_op = choose_ser_mul_kern(ndim, poly_order);
+
+  int num_basis = basis.num_basis;
+  int vcomp = lop->ncomp/out->ncomp;
+
+  for (unsigned long linc = START_ID; linc < NSIZE(out); linc += blockDim.x*gridDim.x) {
+    
+    const double *lop_d = (const double*) gkyl_array_cfetch(lop, linc);
+    const double *rop_d = (const double*) gkyl_array_cfetch(rop, linc);
+    double *out_d = (double*) gkyl_array_fetch(out, linc);
+    for (int k=0; k<num_basis; k++) out_d[k] = 0.;
+
+    for (int d=0; d<vcomp; d++) {
+      double comp_out[20];  // MF 2022/09/08: Hardcoded to number of basis in 3x p=2.
+      mul_op(lop_d+d*num_basis, rop_d+d*num_basis, comp_out);
+      for (int k=0; k<num_basis; k++) out_d[k] += comp_out[k];
+    }
+  }  
+}
+
+// Host-side wrapper for dg dot product operation.
+void
+gkyl_dg_dot_product_op_cu(struct gkyl_basis basis,
+  struct gkyl_array* out, const struct gkyl_array* lop,
+  const struct gkyl_array* rop)
+{
+  assert(basis.num_basis <= 20); // MF 2022/09/08: see hardcode in kernel above.
+  gkyl_dg_dot_product_op_cu_kernel<<<out->nblocks, out->nthreads>>>(basis, out->on_dev,
+    lop->on_dev, rop->on_dev);
+}
+
+__global__ void
+gkyl_dg_dot_product_op_range_cu_kernel(struct gkyl_basis basis,
+  struct gkyl_array* out, const struct gkyl_array* lop,
+  const struct gkyl_array* rop, struct gkyl_range range)
+{
+  int ndim = basis.ndim;
+  int poly_order = basis.poly_order;
+  mul_op_t mul_op = choose_ser_mul_kern(ndim, poly_order);
+
+  int num_basis = basis.num_basis;
+  int vcomp = lop->ncomp/out->ncomp;
+
+  int idx[GKYL_MAX_DIM];
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&range, linc1, idx);
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long start = gkyl_range_idx(&range, idx);
+
+    const double *lop_d = (const double*) gkyl_array_cfetch(lop, start);
+    const double *rop_d = (const double*) gkyl_array_cfetch(rop, start);
+    double *out_d = (double*) gkyl_array_fetch(out, start);
+    for (int k=0; k<num_basis; k++) out_d[k] = 0.;
+
+    for (int d=0; d<vcomp; d++) {
+      double comp_out[20];  // MF 2022/09/08: Hardcoded to number of basis in 3x p=2.
+      mul_op(lop_d+d*num_basis, rop_d+d*num_basis, comp_out);
+      for (int k=0; k<num_basis; k++) out_d[k] += comp_out[k];
+    }
+  }
+}
+
+// Host-side wrapper for range-based dg dot product operation.
+void
+gkyl_dg_dot_product_op_range_cu(struct gkyl_basis basis,
+  struct gkyl_array* out, const struct gkyl_array* lop,
+  const struct gkyl_array* rop, const struct gkyl_range *range)
+{
+  int nblocks = range->nblocks;
+  int nthreads = range->nthreads;
+  assert(basis.num_basis <= 20); // MF 2022/09/08: see hardcode in kernel above.
+  gkyl_dg_dot_product_op_range_cu_kernel<<<nblocks, nthreads>>>(basis, out->on_dev,
+    lop->on_dev, rop->on_dev, *range);
 }
 
 __global__ void
@@ -188,7 +279,6 @@ gkyl_dg_div_op_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop)
 {
-  int num_basis = basis.num_basis;  
   // allocate memory for use in kernels
   struct gkyl_nmat *A_d = mem->As;
   struct gkyl_nmat *x_d = mem->xs;
@@ -198,6 +288,7 @@ gkyl_dg_div_op_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
     basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev);
   // invert all matrices in batch mode
   bool status = gkyl_nmat_linsolve_lu_pa(mem->lu_mem, A_d, x_d);
+  assert(status);
   // copy solution into array (also lives on the device)
   gkyl_dg_div_copy_sol_op_cu_kernel<<<out->nblocks, out->nthreads>>>(x_d->on_dev, basis, c_oop, out->on_dev);
 
@@ -246,7 +337,6 @@ gkyl_dg_div_copy_sol_op_range_cu_kernel(struct gkyl_nmat *xs,
   int c_oop, struct gkyl_array* out, struct gkyl_range range)
 {
   int num_basis = basis.num_basis;
-  int ndim = basis.ndim;
 
   int idx[GKYL_MAX_DIM];
 
@@ -276,23 +366,23 @@ void
 gkyl_dg_div_op_range_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
-  int c_rop, const struct gkyl_array* rop, struct gkyl_range range)
+  int c_rop, const struct gkyl_array* rop, const struct gkyl_range *range)
 {
-  int nblocks = range.nblocks;
-  int nthreads = range.nthreads;
-  int num_basis = basis.num_basis;    
+  int nblocks = range->nblocks;
+  int nthreads = range->nthreads;
   // allocate memory for use in kernels
   struct gkyl_nmat *A_d = mem->As;
   struct gkyl_nmat *x_d = mem->xs;
 
   // construct matrices using CUDA kernel  
   gkyl_dg_div_set_op_range_cu_kernel<<<nblocks, nthreads>>>(A_d->on_dev,
-    x_d->on_dev, basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev, range);
+    x_d->on_dev, basis, out->on_dev, c_lop, lop->on_dev, c_rop, rop->on_dev, *range);
   // invert all matrices in batch mode
   bool status = gkyl_nmat_linsolve_lu_pa(mem->lu_mem, A_d, x_d);
+  assert(status);
   // copy solution into array (also lives on the device)
   gkyl_dg_div_copy_sol_op_range_cu_kernel<<<nblocks, nthreads>>>(x_d->on_dev,
-    basis, c_oop, out->on_dev, range);
+    basis, c_oop, out->on_dev, *range);
 }
 
 __global__ void
@@ -302,7 +392,6 @@ gkyl_dg_calc_op_range_cu_kernel(struct gkyl_basis basis, int c_oop, struct gkyl_
 {
   int num_basis = basis.num_basis;
   int ndim = basis.ndim;
-  int poly_order = basis.poly_order;
 
   dp_op_t op_func = dg_get_op_func(op);
   double fact = // factor for rescaling return value of op_func

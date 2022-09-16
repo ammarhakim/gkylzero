@@ -136,6 +136,10 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   for (int i=0; i<nsf; ++i)
     vm_fluid_species_init(vm, app, &app->fluid_species[i]);
 
+  for (int i=0; i<nsf; ++i)
+    if (app->fluid_species[i].source_id)
+      vm_fluid_species_source_init(app, &app->fluid_species[i], &app->fluid_species[i].src);
+  
   // initialize stat object
   app->stat = (struct gkyl_vlasov_stat) {
     .use_gpu = app->use_gpu,
@@ -601,6 +605,11 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   for (int i=0; i<app->num_species; ++i) {
     if (app->species[i].source_id) {
       vm_species_source_rhs(app, &app->species[i], &app->species[i].src, fin, fout);
+    }
+  }
+  for (int i=0; i<app->num_fluid_species; ++i) {
+    if (app->fluid_species[i].source_id) {
+      vm_fluid_species_source_rhs(app, &app->fluid_species[i], &app->fluid_species[i].src, fluidin, fluidout);
     }
   }
   // compute RHS of Maxwell equations

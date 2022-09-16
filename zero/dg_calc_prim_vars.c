@@ -6,7 +6,7 @@
 #include <gkyl_dg_calc_prim_vars_priv.h>
 #include <gkyl_util.h>
 
-void gkyl_calc_prim_vars_u_from_statevec(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis, struct gkyl_range range,
+void gkyl_calc_prim_vars_u_from_statevec(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* statevec, struct gkyl_array* u_i)
 {
   // Find number of components of flow vector
@@ -16,7 +16,7 @@ void gkyl_calc_prim_vars_u_from_statevec(gkyl_dg_bin_op_mem *mem, struct gkyl_ba
       i, u_i, i+1, statevec, 0, statevec, range);  
 }
 
-void gkyl_calc_prim_vars_u_from_rhou(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis, struct gkyl_range range,
+void gkyl_calc_prim_vars_u_from_rhou(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* rho, const struct gkyl_array* rhou, struct gkyl_array* u_i)
 {
   // Find number of components of flow vector
@@ -26,7 +26,7 @@ void gkyl_calc_prim_vars_u_from_rhou(gkyl_dg_bin_op_mem *mem, struct gkyl_basis 
       i, u_i, i, rhou, 0, rho, range);  
 }
 
-void gkyl_calc_prim_vars_p_from_statevec(struct gkyl_basis basis, struct gkyl_range range,
+void gkyl_calc_prim_vars_p_from_statevec(struct gkyl_basis basis, const struct gkyl_range *range,
   const double p_fac,  const struct gkyl_array* u_i, const struct gkyl_array* statevec,
   struct gkyl_array* p_ij)
 {
@@ -45,7 +45,7 @@ void gkyl_calc_prim_vars_p_from_statevec(struct gkyl_basis basis, struct gkyl_ra
   }
 }
 
-void gkyl_calc_prim_vars_p_pkpm(struct gkyl_basis basis, struct gkyl_range range,
+void gkyl_calc_prim_vars_p_pkpm(struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* u_i, const struct gkyl_array* bvar,
   const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm,
   struct gkyl_array* p_ij)

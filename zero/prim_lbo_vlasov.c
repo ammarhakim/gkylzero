@@ -4,17 +4,20 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
-#include <gkyl_util.h>
+#include <gkyl_prim_lbo_type.h>
 #include <gkyl_prim_lbo_vlasov.h>
 #include <gkyl_prim_lbo_vlasov_priv.h>
+#include <gkyl_util.h>
 
 void
 prim_lbo_vlasov_free(const struct gkyl_ref_count *ref)
 {
-  struct gkyl_prim_lbo_type *prim = container_of(ref, struct gkyl_prim_lbo_type, ref_count);
-  if (GKYL_IS_CU_ALLOC(prim->flag))
-    gkyl_cu_free(prim->on_dev);
-  gkyl_free(prim);
+  struct gkyl_prim_lbo_type *prim_ty = container_of(ref, struct gkyl_prim_lbo_type, ref_count);
+  if (GKYL_IS_CU_ALLOC(prim_ty->flag))
+    gkyl_cu_free(prim_ty->on_dev);
+
+  struct prim_lbo_type_vlasov *vlasov = container_of(prim_ty, struct prim_lbo_type_vlasov, prim);
+  gkyl_free(vlasov);
 }
 
 struct gkyl_prim_lbo_type*
@@ -29,6 +32,7 @@ gkyl_prim_lbo_vlasov_new(const struct gkyl_basis* cbasis,
   } 
 #endif  
   struct prim_lbo_type_vlasov *prim_vlasov = gkyl_malloc(sizeof(struct prim_lbo_type_vlasov));
+
   int cdim = prim_vlasov->prim.cdim = cbasis->ndim;
   int pdim = prim_vlasov->prim.pdim = pbasis->ndim;
   int vdim = pdim-cdim;

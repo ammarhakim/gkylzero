@@ -7,7 +7,7 @@ gasGamma = 1.4 -- gas adiabatic constant
 eulerApp = Moments.App {
    logToFile = true,
 
-   tEnd = 0.3, -- end time
+   tEnd = 0.8, -- end time
    nFrame = 1, -- number of output frame
    lower = {0.0, 0.0}, -- lower left corner
    upper = {1.0, 1.0}, -- upper right corner
@@ -17,7 +17,10 @@ eulerApp = Moments.App {
    fluid = Moments.Species {
       charge = 0.0, mass = 1.0,
 
-      equation = Moments.Euler { gasGamma = gasGamma },
+      equation = Moments.Euler {
+	 gasGamma = gasGamma,
+	 rp_type = "roe", -- one of "roe", "hllc", "lax"
+      },
       
       -- initial conditions
       init = function (t, xn)
@@ -29,14 +32,15 @@ eulerApp = Moments.App {
 	 local loRight = {0.3, 0.5323, 0.0, 1.206}
 	 local rho, u, v, pr      
 	 local x, y = xn[1], xn[2]
-	 if y>0.5 then
-	    if x<0.5 then
+	 local sloc = 0.8
+	 if y>sloc then
+	    if x<sloc then
 	       pr, rho, u, v = upLeft[1], upLeft[2], upLeft[3], upLeft[4]
 	    else
 	       pr, rho, u, v = upRight[1], upRight[2], upRight[3], upRight[4]
 	    end
 	 else
-	    if x<0.5 then
+	    if x<sloc then
 	       pr, rho, u, v = loLeft[1], loLeft[2], loLeft[3], loLeft[4]
 	    else
 	       pr, rho, u, v = loRight[1], loRight[2], loRight[3], loRight[4]

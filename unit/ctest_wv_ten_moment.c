@@ -112,6 +112,14 @@ test_ten_moment_basic()
     gkyl_wv_eqn_rotate_to_global(ten_moment, tau1[d], tau2[d], norm[d], q_l, q_g);
 
     for (int m=0; m<10; ++m) TEST_CHECK( q[m] == q_g[m] );
+
+    // check Riemann transform
+    double w1[10], q1[10];
+    ten_moment->cons_to_riem(ten_moment, q_local, q_local, w1);
+    ten_moment->riem_to_cons(ten_moment, q_local, w1, q1);
+    
+    for (int m=0; m<10; ++m)
+      TEST_CHECK( gkyl_compare_double(q_local[m], q1[m], 1e-14) );
   }
   
   gkyl_wv_eqn_release(ten_moment);

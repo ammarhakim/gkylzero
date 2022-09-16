@@ -39,6 +39,8 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   else
     f->omegaCfl_ptr = gkyl_malloc(sizeof(double));
 
+  f->source_id = f->info.source.source_id;
+
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
 
   // pre-allocated memory for weak division
@@ -286,6 +288,10 @@ vm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_s
   for (int i=0; i<app->num_species; ++i)
     fin[i] = fluid_species->pkpm_species->f;
   vm_fluid_species_prim_vars(app, fluid_species, fluid_species->fluid, fin);
+
+  // we are pre-computing source for now as it is time-independent
+  vm_fluid_species_source_calc(app, fluid_species, t0);
+
 }
 
 void
@@ -317,23 +323,23 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
   // Compute bulk flow velocity, either from external advection or from state variables (rho*u = rhou)
   // Also compute pressure if present in equation system (Euler or Euler PKPM)
   if (fluid_species->eqn_id == GKYL_EQN_ISO_EULER) {
-    gkyl_calc_prim_vars_u_from_statevec(fluid_species->u_mem, app->confBasis, app->local,
+    gkyl_calc_prim_vars_u_from_statevec(fluid_species->u_mem, app->confBasis, &app->local,
       fluid, fluid_species->u);
   }
   else if (fluid_species->eqn_id == GKYL_EQN_EULER) {
-    gkyl_calc_prim_vars_u_from_statevec(fluid_species->u_mem, app->confBasis, app->local,
+    gkyl_calc_prim_vars_u_from_statevec(fluid_species->u_mem, app->confBasis, &app->local,
       fluid, fluid_species->u);
     // param is gas_gamma needed to compute pressure from energy
-    gkyl_calc_prim_vars_p_from_statevec(app->confBasis, app->local, fluid_species->param,
+    gkyl_calc_prim_vars_p_from_statevec(app->confBasis, &app->local, fluid_species->param,
       fluid_species->u, fluid, fluid_species->p);
   }
   else if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
     vm_species_moment_calc(&fluid_species->pkpm_species->pkpm_moms, fluid_species->pkpm_species->local, 
       app->local, fin[fluid_species->species_index]);
 
-    gkyl_calc_prim_vars_u_from_rhou(fluid_species->u_mem, app->confBasis, app->local, 
+    gkyl_calc_prim_vars_u_from_rhou(fluid_species->u_mem, app->confBasis, &app->local, 
       fluid_species->pkpm_species->pkpm_moms.marr, fluid, fluid_species->u);
-    gkyl_calc_prim_vars_p_pkpm(app->confBasis, app->local, fluid_species->u, app->species[fluid_species->species_index].bvar, 
+    gkyl_calc_prim_vars_p_pkpm(app->confBasis, &app->local, fluid_species->u, app->species[fluid_species->species_index].bvar, 
       fluid_species->pkpm_species->pkpm_moms.marr, fluid, fluid_species->p);
 
     gkyl_mom_pkpm_surf_calc_advance(fluid_species->pkpm_surf_moms_calc,
@@ -569,6 +575,10 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
   if (f->collision_id == GKYL_LBO_COLLISIONS) {
     gkyl_array_release(f->nu_fluid);
     gkyl_array_release(f->nu_n_vthsq);
+  }
+
+  if (f->source_id) {
+    vm_fluid_species_source_release(app, &f->src);
   }
 
   if (app->use_gpu) {

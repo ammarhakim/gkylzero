@@ -223,6 +223,20 @@ void gkyl_wv_eqn_release(const struct gkyl_wv_eqn* eqn);
 
 -- Various equation objects
 ffi.cdef [[
+
+// Type of Rieman problem solver to use
+enum gkyl_wv_euler_rp {
+  WV_EULER_RP_ROE = 0, // default
+  WV_EULER_RP_HLLC,
+  WV_EULER_RP_LAX
+};
+
+// input packaged as a struct
+struct gkyl_wv_euler_inp {
+  double gas_gamma; // gas adiabatic constant
+  enum gkyl_wv_euler_rp rp_type; // type of RP to use
+};
+
 /**
  * Create a new Euler equation object.
  * 
@@ -230,6 +244,14 @@ ffi.cdef [[
  * @return Pointer to Euler equation object.
  */
 struct gkyl_wv_eqn* gkyl_wv_euler_new(double gas_gamma);
+
+/**
+ * Create a new Euler equation object.
+ * 
+ * @param inp Input parameters
+ * @return Pointer to Euler equation object.
+ */
+struct gkyl_wv_eqn* gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp);
 
 /**
  * Create a new isothermal Euler equation object.
@@ -553,9 +575,22 @@ local tm_trigger_mt = {
 }
 _M.TimeTrigger = ffi.metatype(tm_trigger_type, tm_trigger_mt)
 
+-- name to RP-type mappings
+local euler_rp_tags = {
+   ["roe"] = C.WV_EULER_RP_ROE,
+   ["hllc"] = C.WV_EULER_RP_HLLC,
+   ["lax"] = C.WV_EULER_RP_LAX
+}
+
 -- Euler equation
 _M.Euler = function(tbl)
-   return ffi.gc(C.gkyl_wv_euler_new(tbl.gasGamma), C.gkyl_wv_eqn_release)
+   local einp = ffi.new("struct gkyl_wv_euler_inp")
+   einp.gas_gamma = tbl.gasGamma
+   einp.rp_type = C.WV_EULER_RP_ROE
+   if tbl.rp_type then
+      einp.rp_type = euler_rp_tags[tbl.rp_type]
+   end
+   return ffi.gc(C.gkyl_wv_euler_inew(einp), C.gkyl_wv_eqn_release)
 end
 
 -- Isothermal Eiler equation
@@ -824,7 +859,7 @@ local app_mt = {
          vm.cells[d-1] = tbl.cells[d]
       end
 
-      vm.cfl_frac = 1.0
+      vm.cfl_frac = 0.95 -- for consistency with C app
       if tbl.cflFrac then
          vm.cfl_frac = tbl.cflFrac
       end

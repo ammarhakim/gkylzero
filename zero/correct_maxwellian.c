@@ -46,7 +46,7 @@ void gkyl_correct_maxwellian_fix(gkyl_correct_maxwellian *cmax,
   
   // compute number density ratio
   gkyl_dg_div_op_range(cmax->mem, cmax->conf_basis, 0, cmax->num_ratio,
-    0, m0, 0, cmax->num_ratio, *conf_local);
+    0, m0, 0, cmax->num_ratio, conf_local);
   
   // rescale distribution function
   gkyl_dg_mul_conf_phase_op_range(&cmax->conf_basis, &cmax->phase_basis,

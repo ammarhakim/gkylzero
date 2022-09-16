@@ -18,6 +18,23 @@ euler_free(const struct gkyl_ref_count *ref)
   gkyl_free(euler);
 }
 
+static inline void
+cons_to_riem(const struct gkyl_wv_eqn *eqn,
+  const double *qstate, const double *qin, double *wout)
+{
+  // TODO: this should use proper L matrix
+  for (int i=0; i<5; ++i)
+    wout[i] = qin[i];
+}
+static inline void
+riem_to_cons(const struct gkyl_wv_eqn *eqn,
+  const double *qstate, const double *win, double *qout)
+{
+  // TODO: this should use proper L matrix
+  for (int i=0; i<5; ++i)
+    qout[i] = win[i];
+}
+
 // Euler perfectly reflecting wall
 static void
 euler_wall(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
@@ -399,6 +416,9 @@ gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp)
 
   euler->eqn.wall_bc_func = euler_wall;
   euler->eqn.no_slip_bc_func = euler_no_slip;
+
+  euler->eqn.cons_to_riem = cons_to_riem;
+  euler->eqn.riem_to_cons = riem_to_cons;
 
   euler->eqn.ref_count = gkyl_ref_count_init(euler_free);
 

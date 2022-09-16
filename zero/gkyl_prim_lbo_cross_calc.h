@@ -44,12 +44,13 @@ gkyl_prim_lbo_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
  * @param conf_rng Config-space range
  * @param greene Greene's factor
  * @param self_m Mass of the species
+ * @param self_moms Moments of distribution function (Zeroth, First, and Second)
  * @param self_u Drift velocity of the species
  * @param self_vtsq Thermal velocity of the species
- * @param cross_m Mass of the colliding species
- * @param cross_u Drift velocity of the colliding species
- * @param cross_vtsq Thermal velocity of the colliding species
- * @param moms Moments of distribution function (Zeroth, First, and Second)
+ * @param other_m Mass of the colliding species
+ * @param other_moms Moments of distribution function (Zeroth, First, and Second)
+ * @param other_u Drift velocity of the colliding species
+ * @param other_vtsq Thermal velocity of the colliding species
  * @param boundary_corrections Momentum and Energy boundary corrections
  * @param u_out Output drift velocity primitive moment array
  * @param vtsq_out Output thermal velocity primitive moment array
@@ -57,17 +58,17 @@ gkyl_prim_lbo_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
 void gkyl_prim_lbo_cross_calc_advance(const struct gkyl_prim_lbo_cross_calc* calc,
   const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
-  double self_m, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
-  double cross_m, const struct gkyl_array *cross_u, const struct gkyl_array *cross_vtsq, 
-  const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections, 
+  double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
+  double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_u, const struct gkyl_array *other_vtsq, 
+  const struct gkyl_array *boundary_corrections, 
   struct gkyl_array *u_out, struct gkyl_array *vtsq_out);
 
 void gkyl_prim_lbo_cross_calc_advance_cu(const struct gkyl_prim_lbo_cross_calc* calc,
   const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
-  double self_m, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
-  double cross_m, const struct gkyl_array *cross_u, const struct gkyl_array *cross_vtsq, 
-  const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections, 
+  double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
+  double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_u, const struct gkyl_array *other_vtsq, 
+  const struct gkyl_array *boundary_corrections, 
   struct gkyl_array *u_out, struct gkyl_array *vtsq_out);
 
 /**
