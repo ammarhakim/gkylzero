@@ -34,9 +34,9 @@ void gkyl_calc_prim_vars_p_from_statevec(struct gkyl_basis basis, const struct g
   int poly_order = basis.poly_order;
   euler_pressure_t pressure = choose_ser_euler_pressure_kern(cdim, poly_order);
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &range);
+  gkyl_range_iter_init(&iter, range);
   while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(&range, iter.idx);
+    long loc = gkyl_range_idx(range, iter.idx);
 
     const double *statevec_d = gkyl_array_cfetch(statevec, loc);
     const double *u_i_d = gkyl_array_cfetch(u_i, loc);
@@ -54,9 +54,9 @@ void gkyl_calc_prim_vars_p_pkpm(struct gkyl_basis basis, const struct gkyl_range
   int poly_order = basis.poly_order;
   euler_pkpm_pressure_t pkpm_pressure = choose_ser_euler_pkpm_pressure_kern(cdim, poly_order);
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &range);
+  gkyl_range_iter_init(&iter, range);
   while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(&range, iter.idx);
+    long loc = gkyl_range_idx(range, iter.idx);
 
     const double *u_i_d = gkyl_array_cfetch(u_i, loc);
     const double *bvar_d = gkyl_array_cfetch(bvar, loc);
