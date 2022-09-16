@@ -301,8 +301,18 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
       gkyl_vlasov_app_write_gradB(app, i, tm, frame);
     }
   }
-  for (int i=0; i<app->num_fluid_species; ++i)
+  for (int i=0; i<app->num_fluid_species; ++i) {
     gkyl_vlasov_app_write_fluid_species(app, i, tm, frame);
+    gkyl_vlasov_app_write_fluid_u_species(app, i, tm, frame);
+    if (app->fluid_species[i].eqn_id == GKYL_EQN_EULER) {
+      gkyl_vlasov_app_write_fluid_p_species(app, i, tm, frame);
+    }
+    else if (app->fluid_species[i].eqn_id == GKYL_EQN_EULER_PKPM) {
+      gkyl_vlasov_app_write_fluid_p_species(app, i, tm, frame);
+      gkyl_vlasov_app_write_fluid_pkpm_moms(app, i, tm, frame);
+      gkyl_vlasov_app_write_fluid_pkpm_surf_moms(app, i, tm, frame);
+    }
+  }
 }
 
 void
@@ -421,6 +431,54 @@ gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, i
     gkyl_grid_sub_array_write(&app->grid, &app->local,
       app->fluid_species[sidx].fluid, fileNm);
   }
+}
+
+void
+gkyl_vlasov_app_write_fluid_u_species(gkyl_vlasov_app* app, int sidx, double tm, int frame)
+{
+  const char *fmt = "%s-%s_u_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, app->fluid_species[sidx].info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, app->fluid_species[sidx].info.name, frame);
+
+  gkyl_grid_sub_array_write(&app->grid, &app->local,
+    app->fluid_species[sidx].u, fileNm);
+}
+
+void
+gkyl_vlasov_app_write_fluid_p_species(gkyl_vlasov_app* app, int sidx, double tm, int frame)
+{
+  const char *fmt = "%s-%s_p_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, app->fluid_species[sidx].info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, app->fluid_species[sidx].info.name, frame);
+
+  gkyl_grid_sub_array_write(&app->grid, &app->local,
+    app->fluid_species[sidx].p, fileNm);
+}
+
+void
+gkyl_vlasov_app_write_fluid_pkpm_moms(gkyl_vlasov_app* app, int sidx, double tm, int frame)
+{
+  const char *fmt = "%s-%s_pkpm_moms_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, app->fluid_species[sidx].info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, app->fluid_species[sidx].info.name, frame);
+
+  gkyl_grid_sub_array_write(&app->grid, &app->local,
+    app->fluid_species[sidx].pkpm_species->pkpm_moms.marr, fileNm);
+}
+
+void
+gkyl_vlasov_app_write_fluid_pkpm_surf_moms(gkyl_vlasov_app* app, int sidx, double tm, int frame)
+{
+  const char *fmt = "%s-%s_pkpm_surf_moms_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, app->fluid_species[sidx].info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, app->fluid_species[sidx].info.name, frame);
+
+  gkyl_grid_sub_array_write(&app->fluid_species->surf_moms_grid, &app->fluid_species->surf_moms_local,
+    app->fluid_species[sidx].vlasov_pkpm_surf_moms, fileNm);
 }
 
 void

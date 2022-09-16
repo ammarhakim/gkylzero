@@ -280,6 +280,12 @@ vm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_s
   vm_fluid_species_calc_advect(app, fluid_species, t0);
   // project diffusion tensor
   vm_fluid_species_calc_diff(app, fluid_species, t0);
+
+  // compute primitive variables at t = 0
+  const struct gkyl_array *fin[app->num_species];
+  for (int i=0; i<app->num_species; ++i)
+    fin[i] = fluid_species->pkpm_species->f;
+  vm_fluid_species_prim_vars(app, fluid_species, fluid_species->fluid, fin);
 }
 
 void

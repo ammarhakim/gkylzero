@@ -46,7 +46,7 @@ evalFluidFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   if (x<0.5)
     fout[3] = 1.5;
   else
-    fout[3] = 1.5*sqrt(0.1/0.125);
+    fout[3] = 0.15;
 }
 
 void
