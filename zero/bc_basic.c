@@ -13,13 +13,13 @@ gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bc
     return gkyl_bc_basic_create_arr_copy_func_cu(dir, cdim, bctype, basis, ncomp);
 #endif
 
-  struct dg_bc_ctx *ctx = (struct dg_bc_ctx*) gkyl_malloc(sizeof(struct dg_bc_ctx));
+  struct dg_bc_ctx *ctx = gkyl_malloc(sizeof(*ctx));
   ctx->basis = basis;
   ctx->dir = dir;
   ctx->cdim = cdim;
   ctx->ncomp = ncomp;
 
-  struct gkyl_array_copy_func *fout = (struct gkyl_array_copy_func*) gkyl_malloc(sizeof(struct gkyl_array_copy_func));
+  struct gkyl_array_copy_func *fout = gkyl_malloc(sizeof(*fout));
   switch (bctype) {
     case GKYL_BC_COPY:
       fout->func = copy_bc;
@@ -67,11 +67,11 @@ gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range *loc
 
   // Create the skin/ghost ranges.
   gkyl_skin_ghost_ranges(&up->skin_r, &up->ghost_r, dir, edge,
-                         local_range_ext, num_ghosts);
+    local_range_ext, num_ghosts);
 
-  // Create function applied to array contents (DG coefficients) when copying
-  // to/from buffer.
-  up->array_copy_func = gkyl_bc_basic_create_arr_copy_func(dir, cdim, bctype, basis, num_comp, use_gpu);
+  // Create function applied to array contents (DG coefficients) when
+  // copying to/from buffer.
+  up->array_copy_func = gkyl_bc_basic_create_arr_copy_func(dir, cdim, up->bctype, basis, num_comp, use_gpu);
   return up;
 }
 

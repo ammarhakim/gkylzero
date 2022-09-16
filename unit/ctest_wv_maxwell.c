@@ -96,6 +96,14 @@ test_maxwell_basic()
 
     for (int m=0; m<8; ++m)
       TEST_CHECK( gkyl_compare(flux[m], fluxes[d][m], 1e-15) );
+
+    // check Riemann transform
+    double w1[8], q1[8];
+    maxwell->cons_to_riem(maxwell, q_local, q_local, w1);
+    maxwell->riem_to_cons(maxwell, q_local, w1, q1);
+    
+    for (int m=0; m<8; ++m)
+      TEST_CHECK( gkyl_compare_double(q_local[m], q1[m], 1e-14) );    
   }
 
   gkyl_wv_eqn_release(maxwell);

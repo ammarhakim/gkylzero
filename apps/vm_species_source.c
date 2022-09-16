@@ -27,7 +27,7 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct
   if (app->use_gpu)
     src->source_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
 
-    src->source_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp)    {
+  src->source_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp)    {
       .grid = &s->grid,
       .basis = &app->basis,
       .qtype = GKYL_GAUSS_QUAD,
