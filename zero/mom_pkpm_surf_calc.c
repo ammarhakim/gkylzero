@@ -50,10 +50,10 @@ gkyl_mom_pkpm_surf_calc_advance(const struct gkyl_mom_pkpm_surf_calc* calc,
   // For each config-space edge the inner loop walks over the velocity space
   // computing the contribution to the moment
   gkyl_range_iter_init(&conf_edge_iter, conf_edge_rng);
-  gkyl_range_iter_init(&vel_iter, vel_rng);
   while (gkyl_range_iter_next(&conf_edge_iter)) {
     long midx = gkyl_range_idx(conf_edge_rng, conf_edge_iter.idx);
 
+    gkyl_range_iter_init(&vel_iter, vel_rng);
     while (gkyl_range_iter_next(&vel_iter)) {
       // only need the cell center in velocity space
       gkyl_rect_grid_cell_center(&calc->vel_grid, vel_iter.idx, xc);
