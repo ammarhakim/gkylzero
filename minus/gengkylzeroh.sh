@@ -17,5 +17,14 @@ EOF
 
 for head in $header_list
 do
-
+echo "#include <${head}>"
 done
+
+cat <<EOF1
+
+#ifdef __cplusplus
+}
+#endif
+EOF1
+
+
