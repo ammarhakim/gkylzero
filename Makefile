@@ -162,6 +162,9 @@ endif
 
 # Header files
 HEADERS := $(wildcard minus/*.h) $(wildcard zero/*.h) $(wildcard apps/*.h) $(wildcard kernels/*/*.h)
+# Headers to install
+INSTALL_HEADERS := $(shell ls apps/gkyl_*.h zero/gkyl_*.h | grep -v "priv" | sort)
+INSTALL_HEADERS += $(shell ls minus/*.h)
 
 # Library name
 ifeq ($(CC), nvcc)
@@ -209,7 +212,8 @@ install: all
 	${MKDIR_P} ${PREFIX}/gkylzero/lib
 	${MKDIR_P} ${PREFIX}/gkylzero/bin
 	${MKDIR_P} ${PREFIX}/gkylzero/share
-	cp ${HEADERS} ${PREFIX}/gkylzero/include
+	cp ${INSTALL_HEADERS} ${PREFIX}/gkylzero/include
+	./minus/gengkylzeroh.sh > ${PREFIX}/gkylzero/include/gkylzero.h
 	cp -f ${BUILD_DIR}/${G0STLIB} ${PREFIX}/gkylzero/lib
 	cp -f ${BUILD_DIR}/${G0SHLIB} ${PREFIX}/gkylzero/lib
 	cp -f Makefile.sample ${PREFIX}/gkylzero/share/Makefile
