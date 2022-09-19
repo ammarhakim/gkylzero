@@ -61,6 +61,7 @@ species_absorb_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
   int nbasis = mc->basis->num_basis;
+  // printf("f = [%f, %f, %f, %f, %f, %f, %f, %f]\n", inp[0], inp[1], inp[2], inp[3], inp[4], inp[5], inp[6], inp[7]);
   for (int c=0; c<nbasis; ++c) out[c] = 0.0;
 }
 
@@ -104,10 +105,15 @@ species_furman_pivi_bc(size_t nc, double *out, const double *inp, void *ctx)
       coeffs[a] += inp[b]*reflect[b + 8*(a + 8*((out_idx - 1) + 32*(in_idx - 1)))];
     }
   }
-  // mc->basis->flip_odd_sign(dir, coeffs, coeffs);
-  // mc->basis->flip_odd_sign(dir+cdim, coeffs, coeffs);
-  for(int a=0; a<8; a++){
-    out[a] += coeffs[a];
+  if(coeffs[0] < 0.) {
+    pass = true;
+  }
+  for(int a=0; a<8; a++) {
+    if(pass == true) {
+      out[a] += 0;
+    } else {
+      out[a] += coeffs[a];
+    }
   }
 }
 
