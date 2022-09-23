@@ -344,12 +344,6 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
       fluid_species->pkpm_species->pkpm_moms.marr, fluid, fluid_species->u);
     gkyl_calc_prim_vars_p_pkpm(app->confBasis, &app->local, fluid_species->u, app->species[fluid_species->species_index].bvar, 
       fluid_species->pkpm_species->pkpm_moms.marr, fluid, fluid_species->p);
-
-    gkyl_mom_pkpm_surf_calc_advance(fluid_species->pkpm_surf_moms_calc,
-      &fluid_species->surf_moms_local, &fluid_species->pkpm_species->local_vel, 
-      &app->local, &fluid_species->pkpm_species->local,
-      fluid_species->u, app->species[fluid_species->species_index].bvar, 
-      fin[fluid_species->species_index], fluid_species->vlasov_pkpm_surf_moms);
   }
   else {
     if (fluid_species->has_advect)
@@ -359,6 +353,13 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
   }
 
   vm_fluid_species_prim_vars_apply_bc(app, fluid_species);
+
+  if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM)
+    gkyl_mom_pkpm_surf_calc_advance(fluid_species->pkpm_surf_moms_calc,
+      &fluid_species->surf_moms_local, &fluid_species->pkpm_species->local_vel, 
+      &app->local, &fluid_species->pkpm_species->local,
+      fluid_species->u, app->species[fluid_species->species_index].bvar, 
+      fin[fluid_species->species_index], fluid_species->vlasov_pkpm_surf_moms);
 }
 
 // Compute the RHS for fluid species update, returning maximum stable
