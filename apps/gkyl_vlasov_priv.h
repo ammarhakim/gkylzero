@@ -27,6 +27,7 @@
 #include <gkyl_dg_vlasov_sr.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_fem_parproj.h>
 #include <gkyl_ghost_surf_calc.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_mom_bcorr_lbo_vlasov.h>
@@ -284,6 +285,11 @@ struct vm_fluid_species {
   struct gkyl_array *p; // array for pressure (used by Euler (1 component) and pkpm Euler (6 components))
   struct gkyl_array *u_bc_buffer; // buffer for applying BCs to flow
   struct gkyl_array *p_bc_buffer; // buffer for applying BCs to pressure
+
+  struct gkyl_array *ux_dg; // array for *just* x velocity (DG)
+  struct gkyl_array *ux_wgt; // weight for used in continuous projection
+  struct gkyl_array *ux_fem; // array for continuous x velocity 
+  struct gkyl_fem_parproj *fem_proj; // 1D continuous projection operator
 
   struct gkyl_array *D; // array for diffusion tensor
   struct gkyl_array *D_host; // host copy of diffusion tensor

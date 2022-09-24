@@ -161,6 +161,15 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     f->pkpm_surf_moms_calc = gkyl_mom_pkpm_surf_calc_new(&f->pkpm_species->grid_vel, f->pkpm_species->info.mass);
   }
 
+  // Set up solver to project ux onto continuous basis functions
+  f->ux_dg = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  f->ux_wgt = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  f->ux_fem = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  gkyl_array_shiftc0(f->ux_wgt, sqrt(2.)); // Sets wgt=1.
+
+  f->fem_proj = gkyl_fem_parproj_new(&app->grid, app->confBasis, true,
+    false, f->ux_wgt, app->use_gpu);
+
   f->advect_slvr = gkyl_dg_updater_fluid_new(&app->grid, &app->confBasis,
     &app->local, f->eqn_id, f->param, app->use_gpu);
 
@@ -352,6 +361,15 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
       gkyl_array_accumulate(fluid_species->u, 1.0, fluid_species->other_advect);
   }
 
+  vm_fluid_species_prim_vars_apply_bc(app, fluid_species);
+
+  // Make ux continuous
+  gkyl_array_set_range(fluid_species->ux_dg, 1.0, fluid_species->u, app->local_ext);
+  gkyl_fem_parproj_set_rhs(fluid_species->fem_proj, fluid_species->ux_dg);
+  gkyl_fem_parproj_solve(fluid_species->fem_proj, fluid_species->ux_fem);
+  // Copy continuous ux back into u array
+  gkyl_array_set_range(fluid_species->u, 1.0, fluid_species->ux_fem, app->local);
+  // Need to apply boundary conditions again
   vm_fluid_species_prim_vars_apply_bc(app, fluid_species);
 
   if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM)
@@ -559,6 +577,9 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
 
   gkyl_array_release(f->u);
   gkyl_array_release(f->u_bc_buffer);
+  gkyl_array_release(f->ux_dg);
+  gkyl_array_release(f->ux_wgt);
+  gkyl_array_release(f->ux_fem);
   if (f->eqn_id == GKYL_EQN_EULER || f->eqn_id == GKYL_EQN_EULER_PKPM) {
     gkyl_array_release(f->p);
     gkyl_array_release(f->p_bc_buffer);
@@ -575,6 +596,8 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
 
     gkyl_proj_on_basis_release(f->advect_proj);
   }
+
+  gkyl_fem_parproj_release(f->fem_proj);
 
   if (f->collision_id == GKYL_LBO_COLLISIONS) {
     gkyl_array_release(f->nu_fluid);
