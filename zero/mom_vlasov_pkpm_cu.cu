@@ -19,8 +19,6 @@ static void
 set_cu_ptrs(struct mom_type_vlasov_pkpm *mom_vlasov_pkpm,
   enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
-  mom_vlasov_pkpm->auxfields.bvar = 0;
-
   // choose kernel tables based on basis-function type
   const gkyl_mom_vlasov_pkpm_kern_list *mom_vlasov_pkpm_kernels;
 
@@ -39,7 +37,7 @@ set_cu_ptrs(struct mom_type_vlasov_pkpm *mom_vlasov_pkpm,
 
 struct gkyl_mom_type*
 gkyl_mom_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, double mass)
+  double mass)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -55,10 +53,9 @@ gkyl_mom_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gk
   mom_vlasov_pkpm->momt.num_config = cbasis->num_basis;
   mom_vlasov_pkpm->momt.num_phase = pbasis->num_basis;
 
-  mom_vlasov_pkpm->momt.num_mom = 2+cdim; // rho, p_parallel, q_parallel b_hat (3 components)
+  mom_vlasov_pkpm->momt.num_mom = 3; // rho, p_parallel, q_parallel 
 
   mom_vlasov_pkpm->mass = mass;
-  mom_vlasov_pkpm->conf_range = *conf_range;
 
   mom_vlasov_pkpm->momt.flags = 0;
   GKYL_SET_CU_ALLOC(mom_vlasov_pkpm->momt.flags);

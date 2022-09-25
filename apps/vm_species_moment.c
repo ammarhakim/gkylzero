@@ -46,10 +46,7 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
       (struct gkyl_mom_vlasov_sr_auxfields) { .p_over_gamma = s->p_over_gamma });    
   }
   else if (s->model_id == GKYL_MODEL_PKPM) {
-    mtype = gkyl_mom_vlasov_pkpm_new(&app->confBasis, &app->basis, &app->local, s->info.mass, sm->use_gpu);
-
-    gkyl_mom_vlasov_pkpm_set_auxfields(mtype, 
-      (struct gkyl_mom_vlasov_pkpm_auxfields) { .bvar = s->bvar });    
+    mtype = gkyl_mom_vlasov_pkpm_new(&app->confBasis, &app->basis, s->info.mass, sm->use_gpu);
   }
   else {
     if (is_integrated)

@@ -103,11 +103,11 @@ kernel_mom_bcorr_lbo_vlasov_pkpm_3x1v_ser_p2(const struct gkyl_mom_type *momt, c
 GKYL_CU_D
 static const gkyl_mom_bcorr_lbo_vlasov_pkpm_kern_list ser_mom_bcorr_lbo_vlasov_pkpm_kernels[] = {
   // 1x kernels
-  { NULL, NULL, kernel_mom_bcorr_lbo_vlasov_pkpm_1x1v_ser_p2, kernel_mom_bcorr_lbo_vlasov_pkpm_1x1v_ser_p3 }, // 0
+  { NULL, kernel_mom_bcorr_lbo_vlasov_pkpm_1x1v_ser_p1, kernel_mom_bcorr_lbo_vlasov_pkpm_1x1v_ser_p2, kernel_mom_bcorr_lbo_vlasov_pkpm_1x1v_ser_p3 }, // 0
   // 2x kernels
-  { NULL, NULL, kernel_mom_bcorr_lbo_vlasov_pkpm_2x1v_ser_p2, NULL }, // 1
+  { NULL, kernel_mom_bcorr_lbo_vlasov_pkpm_2x1v_ser_p1, kernel_mom_bcorr_lbo_vlasov_pkpm_2x1v_ser_p2, NULL }, // 1
   // 3x kernels
-  { NULL, NULL, kernel_mom_bcorr_lbo_vlasov_pkpm_3x1v_ser_p2, NULL }, // 2
+  { NULL, kernel_mom_bcorr_lbo_vlasov_pkpm_3x1v_ser_p1, kernel_mom_bcorr_lbo_vlasov_pkpm_3x1v_ser_p2, NULL }, // 2
 };
 
 /**

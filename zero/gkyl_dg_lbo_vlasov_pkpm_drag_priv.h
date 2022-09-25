@@ -26,33 +26,33 @@ typedef struct { lbo_vlasov_pkpm_drag_boundary_surf_t kernels[4]; } gkyl_dg_lbo_
 GKYL_CU_D
 static const gkyl_dg_lbo_vlasov_pkpm_drag_vol_kern_list ser_vol_kernels[] = {
   // 1x kernels
-  { NULL, NULL, lbo_vlasov_pkpm_drag_vol_1x1v_ser_p2, lbo_vlasov_pkpm_drag_vol_1x1v_ser_p3 }, // 0
+  { NULL, lbo_vlasov_pkpm_drag_vol_1x1v_ser_p1, lbo_vlasov_pkpm_drag_vol_1x1v_ser_p2, lbo_vlasov_pkpm_drag_vol_1x1v_ser_p3 }, // 0
   // 2x kernels
-  { NULL, NULL, lbo_vlasov_pkpm_drag_vol_2x1v_ser_p2, NULL }, // 1
+  { NULL, lbo_vlasov_pkpm_drag_vol_2x1v_ser_p1, lbo_vlasov_pkpm_drag_vol_2x1v_ser_p2, NULL }, // 1
   // 3x kernels
-  { NULL, NULL, lbo_vlasov_pkpm_drag_vol_3x1v_ser_p2, NULL }, // 2
+  { NULL, lbo_vlasov_pkpm_drag_vol_3x1v_ser_p1, lbo_vlasov_pkpm_drag_vol_3x1v_ser_p2, NULL }, // 2
 };
 
 // Constant nu surface kernel list: vpar-direction
 GKYL_CU_D
 static const gkyl_dg_lbo_vlasov_pkpm_drag_surf_kern_list ser_surf_vpar_kernels[] = {
   // 1x kernels
-  { NULL, NULL, lbo_vlasov_pkpm_drag_surfvpar_1x1v_ser_p2, lbo_vlasov_pkpm_drag_surfvpar_1x1v_ser_p3 }, // 0
+  { NULL, lbo_vlasov_pkpm_drag_surfvpar_1x1v_ser_p1, lbo_vlasov_pkpm_drag_surfvpar_1x1v_ser_p2, lbo_vlasov_pkpm_drag_surfvpar_1x1v_ser_p3 }, // 0
   // 2x kernels
-  { NULL, NULL, lbo_vlasov_pkpm_drag_surfvpar_2x1v_ser_p2, NULL }, // 1
+  { NULL, lbo_vlasov_pkpm_drag_surfvpar_2x1v_ser_p1, lbo_vlasov_pkpm_drag_surfvpar_2x1v_ser_p2, NULL }, // 1
   // 3x kernels
-  { NULL, NULL, lbo_vlasov_pkpm_drag_surfvpar_3x1v_ser_p2, NULL }, // 2
+  { NULL, lbo_vlasov_pkpm_drag_surfvpar_3x1v_ser_p1, lbo_vlasov_pkpm_drag_surfvpar_3x1v_ser_p2, NULL }, // 2
 };
 
 // Constant nu boundary surface kernel (zero-flux BCs) list: vpar-direction
 GKYL_CU_D
 static const gkyl_dg_lbo_vlasov_pkpm_drag_boundary_surf_kern_list ser_boundary_surf_vpar_kernels[] = {
   // 1x kernels
-  { NULL, NULL, lbo_vlasov_pkpm_drag_boundary_surfvpar_1x1v_ser_p2, lbo_vlasov_pkpm_drag_boundary_surfvpar_1x1v_ser_p3 }, // 0
+  { NULL, lbo_vlasov_pkpm_drag_boundary_surfvpar_1x1v_ser_p1, lbo_vlasov_pkpm_drag_boundary_surfvpar_1x1v_ser_p2, lbo_vlasov_pkpm_drag_boundary_surfvpar_1x1v_ser_p3 }, // 0
   // 2x kernels
-  { NULL, NULL, lbo_vlasov_pkpm_drag_boundary_surfvpar_2x1v_ser_p2, NULL }, // 1
+  { NULL, lbo_vlasov_pkpm_drag_boundary_surfvpar_2x1v_ser_p1, lbo_vlasov_pkpm_drag_boundary_surfvpar_2x1v_ser_p2, NULL }, // 1
   // 3x kernels
-  { NULL, NULL, lbo_vlasov_pkpm_drag_boundary_surfvpar_3x1v_ser_p2, NULL }, // 2
+  { NULL, lbo_vlasov_pkpm_drag_boundary_surfvpar_3x1v_ser_p1, lbo_vlasov_pkpm_drag_boundary_surfvpar_3x1v_ser_p2, NULL }, // 2
 };
 
 struct dg_lbo_vlasov_pkpm_drag {

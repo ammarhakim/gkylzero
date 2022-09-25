@@ -20,23 +20,9 @@ gkyl_vlasov_pkpm_mom_free(const struct gkyl_ref_count *ref)
   gkyl_free(momt);
 }
 
-void
-gkyl_mom_vlasov_pkpm_set_auxfields(const struct gkyl_mom_type *momt, struct gkyl_mom_vlasov_pkpm_auxfields auxin)
-{
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_mom_type_is_cu_dev(momt)) {
-    gkyl_mom_vlasov_pkpm_set_auxfields_cu(momt->on_dev, auxin);
-    return;
-  }
-#endif
-
-  struct mom_type_vlasov_pkpm *mom_vlasov_pkpm = container_of(momt, struct mom_type_vlasov_pkpm, momt);
-  mom_vlasov_pkpm->auxfields.bvar = auxin.bvar;
-}
-
 struct gkyl_mom_type*
 gkyl_mom_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, double mass, bool use_gpu)
+  double mass, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -69,11 +55,9 @@ gkyl_mom_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
   }
 
   mom_vlasov_pkpm->momt.kernel = CK(mom_vlasov_pkpm_kernels, cdim, poly_order);
-  mom_vlasov_pkpm->momt.num_mom = 2+cdim; // rho, p_parallel, q_parallel b_hat (cdim components)
+  mom_vlasov_pkpm->momt.num_mom = 3; // rho, p_parallel, q_parallel
 
   mom_vlasov_pkpm->mass = mass;
-  mom_vlasov_pkpm->auxfields.bvar = 0;
-  mom_vlasov_pkpm->conf_range = *conf_range;
     
   mom_vlasov_pkpm->momt.flags = 0;
   GKYL_CLEAR_CU_ALLOC(mom_vlasov_pkpm->momt.flags);
@@ -88,7 +72,7 @@ gkyl_mom_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
 
 struct gkyl_mom_type*
 gkyl_mom_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, double mass)
+  double mass)
 {
   assert(false);
   return 0;

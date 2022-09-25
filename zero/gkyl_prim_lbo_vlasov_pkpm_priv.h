@@ -23,11 +23,11 @@ typedef struct { vlasov_pkpm_self_prim_t kernels[4]; } gkyl_prim_lbo_vlasov_pkpm
 GKYL_CU_D
 static const gkyl_prim_lbo_vlasov_pkpm_self_kern_list ser_self_prim_kernels[] = {
   // 1x kernels
-  { NULL, NULL, vlasov_pkpm_self_prim_moments_1x1v_ser_p2, vlasov_pkpm_self_prim_moments_1x1v_ser_p3 }, // 0
+  { NULL, vlasov_pkpm_self_prim_moments_1x1v_ser_p1, vlasov_pkpm_self_prim_moments_1x1v_ser_p2, vlasov_pkpm_self_prim_moments_1x1v_ser_p3 }, // 0
   // 2x kernels
-  { NULL, NULL, vlasov_pkpm_self_prim_moments_2x1v_ser_p2, NULL }, // 1
+  { NULL, vlasov_pkpm_self_prim_moments_2x1v_ser_p1, vlasov_pkpm_self_prim_moments_2x1v_ser_p2, NULL }, // 1
   // 3x kernels
-  { NULL, NULL, vlasov_pkpm_self_prim_moments_3x1v_ser_p2, NULL }, // 2
+  { NULL, vlasov_pkpm_self_prim_moments_3x1v_ser_p1, vlasov_pkpm_self_prim_moments_3x1v_ser_p2, NULL }, // 2
 };
 
 struct prim_lbo_type_vlasov_pkpm {
