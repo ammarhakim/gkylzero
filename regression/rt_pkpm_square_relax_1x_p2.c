@@ -6,7 +6,7 @@
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
 
-struct pkpm_sod_shock_ctx {
+struct pkpm_square_relax_ctx {
   double charge; // charge
   double mass; // mass
   double vt; // thermal velocity
@@ -23,46 +23,47 @@ maxwellian(double n, double v, double u, double vth)
 }
 
 void
-evalDistFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalDistFuncSquare(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct pkpm_sod_shock_ctx *app = ctx;
+  struct free_stream_ctx *app = ctx;
   double x = xn[0], v = xn[1];
-  double n = 1.0 + 0.2*sin(M_PI*x);
-  double p = 1.0;
-  fout[0] = maxwellian(n, v, 0.0, sqrt(p/n));
+  if(v>-1.0 && v<1.0) {
+    fout[0] = 0.5;
+  } else {
+    fout[0] = 0.0;
+  }
 }
 
 void 
 evalFluidFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct pkpm_sod_shock_ctx *app = ctx;
+  struct pkpm_square_relax_ctx *app = ctx;
   double x = xn[0];
-  double n = 1.0 + 0.2*sin(M_PI*x);
-  double p = 1.0, u = 1.0;
-  double gas_gamma = 5.0/3.0;
   
-  fout[0] = n*u;
+  // Finite ux (but rho*ux = 1.0)
+  // p_perp = 1.0 (slightly different than p_parallel)
+  fout[0] = 1.0;
   fout[1] = 0.0;
   fout[2] = 0.0;
-  fout[3] = p;
+  fout[3] = 1.0;
 }
 
 void
 evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct pkpm_sod_shock_ctx *app = ctx;
+  struct pkpm_square_relax_ctx *app = ctx;
   double x = xn[0], v = xn[1];
-  fout[0] = 100.0;
+  fout[0] = 0.01;
 }
 
-struct pkpm_sod_shock_ctx
+struct pkpm_square_relax_ctx
 create_ctx(void)
 {
-  struct pkpm_sod_shock_ctx ctx = {
+  struct pkpm_square_relax_ctx ctx = {
     .mass = 1.0,
     .charge = 0.0,
     .vt = 1.0,
-    .Lx = 2.0,
+    .Lx = 1.0,
   };
   return ctx;
 }
@@ -72,14 +73,14 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 16);
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 2);
+  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  struct pkpm_sod_shock_ctx ctx = create_ctx(); // context for init functions
+  struct pkpm_square_relax_ctx ctx = create_ctx(); // context for init functions
 
   // PKPM fluid                                                                                      
   struct gkyl_vlasov_fluid_species fluid = {
@@ -101,7 +102,7 @@ main(int argc, char **argv)
     .cells = { NV },
 
     .ctx = &ctx,
-    .init = evalDistFunc,
+    .init = evalDistFuncSquare,
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -115,7 +116,7 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "pkpm_travel_pulse",
+    .name = "pkpm_square_relax_p2",
 
     .cdim = 1, .vdim = 1,
     .lower = { 0.0 },
@@ -140,7 +141,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.1;
+  double tcurr = 0.0, tend = 100.0;
   double dt = tend-tcurr;
 
   // initialize simulation
