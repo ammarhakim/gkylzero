@@ -1,20 +1,12 @@
 #include <gkyl_euler_kernels.h> 
-GKYL_CU_DH void euler_pkpm_pressure_1x_ser_p2(const double *u_i, const double *bvar, const double *vlasov_pkpm_moms, const double *statevec, double* GKYL_RESTRICT p_ij) 
+GKYL_CU_DH void euler_pkpm_pressure_1x_ser_p2(const double *bvar, const double *vlasov_pkpm_moms, const double *statevec, double* GKYL_RESTRICT p_ij) 
 { 
-  // u_i: [ux, uy, uz], Fluid flow.
   // bvar: Magnetic field unit vector and tensor.
   // vlasov_pkpm_moms: [rho, p_parallel, q_parallel], Moments computed from kinetic equation in pkpm model.
-  // statevec: [rho ux, rho uy, rho uz, energy], Fluid input state vector.
+  // statevec: [rho ux, rho uy, rho uz, p_perp], Fluid input state vector.
   // p_ij: Output pressure tensor, p_ij = (p_parallel - p_perp)bb + p_perp I.
 
-  const double *rhoux = &statevec[0]; 
-  const double *rhouy = &statevec[3]; 
-  const double *rhouz = &statevec[6]; 
-  const double *energy = &statevec[9]; 
-  const double *ux = &u_i[0]; 
-  const double *uy = &u_i[3]; 
-  const double *uz = &u_i[6]; 
-
+  const double *p_perp = &statevec[9]; 
   // Parallel pressure is first component of pkpm moment array and unit tensor are last six components of bvar array.
   const double *p_parallel = &vlasov_pkpm_moms[3]; 
   const double *bxbx = &bvar[9]; 
@@ -30,11 +22,6 @@ GKYL_CU_DH void euler_pkpm_pressure_1x_ser_p2(const double *u_i, const double *b
   double *Pyy = &p_ij[9]; 
   double *Pyz = &p_ij[12]; 
   double *Pzz = &p_ij[15]; 
-
-  double p_perp[3] = {0.0}; 
-  p_perp[0] = (-0.3535533905932737*rhouz[2]*uz[2])-0.3535533905932737*rhouy[2]*uy[2]-0.3535533905932737*rhoux[2]*ux[2]-0.3535533905932737*rhouz[1]*uz[1]-0.3535533905932737*rhouy[1]*uy[1]-0.3535533905932737*rhoux[1]*ux[1]-0.3535533905932737*rhouz[0]*uz[0]-0.3535533905932737*rhouy[0]*uy[0]-0.3535533905932737*rhoux[0]*ux[0]-0.5*p_parallel[0]+energy[0]; 
-  p_perp[1] = (-0.3162277660168379*rhouz[1]*uz[2])-0.3162277660168379*rhouy[1]*uy[2]-0.3162277660168379*rhoux[1]*ux[2]-0.3162277660168379*uz[1]*rhouz[2]-0.3162277660168379*uy[1]*rhouy[2]-0.3162277660168379*ux[1]*rhoux[2]-0.3535533905932737*rhouz[0]*uz[1]-0.3535533905932737*rhouy[0]*uy[1]-0.3535533905932737*rhoux[0]*ux[1]-0.3535533905932737*uz[0]*rhouz[1]-0.3535533905932737*uy[0]*rhouy[1]-0.3535533905932737*ux[0]*rhoux[1]-0.5*p_parallel[1]+energy[1]; 
-  p_perp[2] = (-0.2258769757263128*rhouz[2]*uz[2])-0.3535533905932737*rhouz[0]*uz[2]-0.2258769757263128*rhouy[2]*uy[2]-0.3535533905932737*rhouy[0]*uy[2]-0.2258769757263128*rhoux[2]*ux[2]-0.3535533905932737*rhoux[0]*ux[2]-0.3535533905932737*uz[0]*rhouz[2]-0.3535533905932737*uy[0]*rhouy[2]-0.3535533905932737*ux[0]*rhoux[2]-0.5*p_parallel[2]+energy[2]-0.3162277660168379*rhouz[1]*uz[1]-0.3162277660168379*rhouy[1]*uy[1]-0.3162277660168379*rhoux[1]*ux[1]; 
 
   Pxx[0] = (-0.7071067811865475*bxbx[2]*p_perp[2])+0.7071067811865475*bxbx[2]*p_parallel[2]-0.7071067811865475*bxbx[1]*p_perp[1]+0.7071067811865475*bxbx[1]*p_parallel[1]-0.7071067811865475*bxbx[0]*p_perp[0]+p_perp[0]+0.7071067811865475*bxbx[0]*p_parallel[0]; 
   Pxx[1] = (-0.6324555320336759*bxbx[1]*p_perp[2])+0.6324555320336759*bxbx[1]*p_parallel[2]-0.6324555320336759*p_perp[1]*bxbx[2]+0.6324555320336759*p_parallel[1]*bxbx[2]-0.7071067811865475*bxbx[0]*p_perp[1]+p_perp[1]+0.7071067811865475*bxbx[0]*p_parallel[1]-0.7071067811865475*p_perp[0]*bxbx[1]+0.7071067811865475*p_parallel[0]*bxbx[1]; 

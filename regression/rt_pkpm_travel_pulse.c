@@ -41,10 +41,10 @@ evalFluidFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   double p = 1.0, u = 1.0;
   double gas_gamma = 5.0/3.0;
   
-  fout[0] = n*1.0;
+  fout[0] = n*u;
   fout[1] = 0.0;
   fout[2] = 0.0;
-  fout[3] = 0.5*n*u*u + p/(gas_gamma-1);
+  fout[3] = p;
 }
 
 void

@@ -18,7 +18,7 @@ struct mom_type_vlasov_pkpm {
 
 // for use in kernel tables
 typedef struct {
-  momf_t kernels[3];
+  momf_t kernels[4];
 } gkyl_mom_vlasov_pkpm_kern_list;
 
 GKYL_CU_DH
@@ -42,6 +42,18 @@ kernel_mom_vlasov_pkpm_1x1v_ser_p2(const struct gkyl_mom_type *momt, const doubl
   long cidx = gkyl_range_idx(&mom_vlasov_pkpm->conf_range, idx);
 
   return mom_vlasov_pkpm_1x1v_ser_p2(xc, dx, idx, mom_vlasov_pkpm->mass, 
+    (const double*) gkyl_array_cfetch(mom_vlasov_pkpm->auxfields.bvar, cidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_pkpm_1x1v_ser_p3(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_pkpm *mom_vlasov_pkpm = container_of(momt, struct mom_type_vlasov_pkpm, momt);
+  long cidx = gkyl_range_idx(&mom_vlasov_pkpm->conf_range, idx);
+
+  return mom_vlasov_pkpm_1x1v_ser_p3(xc, dx, idx, mom_vlasov_pkpm->mass, 
     (const double*) gkyl_array_cfetch(mom_vlasov_pkpm->auxfields.bvar, cidx), f, out);  
 }
 
@@ -101,11 +113,11 @@ kernel_mom_vlasov_pkpm_3x1v_ser_p2(const struct gkyl_mom_type *momt, const doubl
 GKYL_CU_D
 static const gkyl_mom_vlasov_pkpm_kern_list ser_mom_vlasov_pkpm_kernels[] = {
   // 1x kernels
-  { NULL, NULL, kernel_mom_vlasov_pkpm_1x1v_ser_p2 }, // 0
+  { NULL, NULL, kernel_mom_vlasov_pkpm_1x1v_ser_p2, kernel_mom_vlasov_pkpm_1x1v_ser_p3 }, // 0
   // 2x kernels
-  { NULL, NULL, kernel_mom_vlasov_pkpm_2x1v_ser_p2 }, // 1
+  { NULL, NULL, kernel_mom_vlasov_pkpm_2x1v_ser_p2, NULL }, // 1
   // 3x kernels
-  { NULL, NULL, kernel_mom_vlasov_pkpm_3x1v_ser_p2 }, // 2
+  { NULL, NULL, kernel_mom_vlasov_pkpm_3x1v_ser_p2, NULL }, // 2
 };
 
 /**

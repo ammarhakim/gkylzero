@@ -66,13 +66,22 @@ void gkyl_calc_prim_vars_p_from_statevec(struct gkyl_basis basis, const struct g
  *
  * @param basis Basis functions used in expansions
  * @param range Range to apply division operator
- * @param u_i Input array of bulk flow velocity
  * @param bvar Input array of magnetic field unit vector and unit tensor
  * @param vlasov_pkpm_moms Input array parallel-kinetic-perpendicular-moment kinetic moments
  * @param euler_pkpm Input array parallel-kinetic-perpendicular-moment fluid variables
  * @param p_ij Output array of pressure tensor
  */
 void gkyl_calc_prim_vars_p_pkpm(struct gkyl_basis basis, const struct gkyl_range *range,
-  const struct gkyl_array* u_i, const struct gkyl_array* bvar, 
-  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
+  const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
   struct gkyl_array* p_ij);
+
+/**
+ * Compute pressure relaxation from parallel-kinetic-perpendicular-moment inputs.
+ *
+ * @param basis Basis functions used in expansions
+ * @param range Range to apply division operator
+ */
+void gkyl_calc_prim_vars_p_pkpm_source(struct gkyl_basis basis, const struct gkyl_range *range,
+  const struct gkyl_array* nu, const struct gkyl_array* nu_vthsq, 
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* u_i, const struct gkyl_array* euler_pkpm, 
+  struct gkyl_array* rhs);

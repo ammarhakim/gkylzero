@@ -55,7 +55,6 @@ void
 gkyl_dg_updater_fluid_advance(gkyl_dg_updater_fluid *fluid,
   enum gkyl_eqn_type eqn_id, const struct gkyl_range *update_rng,
   const struct gkyl_array *u_i, struct gkyl_array *p_ij, 
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *vlasov_pkpm_surf_moms,
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
@@ -68,7 +67,7 @@ gkyl_dg_updater_fluid_advance(gkyl_dg_updater_fluid *fluid,
   }
   else if (eqn_id == GKYL_EQN_EULER_PKPM) {
     gkyl_euler_pkpm_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_euler_pkpm_auxfields) { .u_i = u_i, .p_ij = p_ij, .vlasov_pkpm_moms = vlasov_pkpm_moms, .vlasov_pkpm_surf_moms = vlasov_pkpm_surf_moms });
+      (struct gkyl_dg_euler_pkpm_auxfields) { .u_i = u_i, .p_ij = p_ij });
   }
   else if (eqn_id == GKYL_EQN_EULER) {
     gkyl_euler_set_auxfields(fluid->eqn_fluid,
@@ -106,7 +105,6 @@ void
 gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
   enum gkyl_eqn_type eqn_id, const struct gkyl_range *update_rng,
   const struct gkyl_array *u_i, struct gkyl_array *p_ij, 
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *vlasov_pkpm_surf_moms,
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
@@ -119,7 +117,7 @@ gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
   }
   else if (eqn_id == GKYL_EQN_EULER_PKPM) {
     gkyl_euler_pkpm_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_euler_pkpm_auxfields) { .u_i = u_i, .p_ij = p_ij, .vlasov_pkpm_moms = vlasov_pkpm_moms, .vlasov_pkpm_surf_moms = vlasov_pkpm_surf_moms });
+      (struct gkyl_dg_euler_pkpm_auxfields) { .u_i = u_i, .p_ij = p_ij });
   }
   else if (eqn_id == GKYL_EQN_EULER) {
     gkyl_euler_set_auxfields(fluid->eqn_fluid,
@@ -139,7 +137,6 @@ void
 gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
   enum gkyl_eqn_type eqn_id, const struct gkyl_range *update_rng,
   const struct gkyl_array *u_i, struct gkyl_array *p_ij, 
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *vlasov_pkpm_surf_moms,
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {

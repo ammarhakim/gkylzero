@@ -34,7 +34,6 @@
 #include <gkyl_mom_bcorr_lbo_vlasov_pkpm.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_calc_bcorr.h>
-#include <gkyl_mom_pkpm_surf_calc.h>
 #include <gkyl_mom_vlasov.h>
 #include <gkyl_mom_vlasov_pkpm.h>
 #include <gkyl_mom_vlasov_sr.h>
@@ -318,14 +317,9 @@ struct vm_fluid_species {
                                     // needed for weak division rho*u = rhou
 
   // pkpm model
-  struct gkyl_rect_grid surf_moms_grid; // grid for surface moments (surface moments located at edges)
-  struct gkyl_range surf_moms_local, surf_moms_local_ext; // local, local-ext ranges for surface moments (loop over edges)
-  struct gkyl_array *vlasov_pkpm_surf_moms; // array for *surface* pkpm moments (*flux* of mass (cdim components), *flux* of parallel heat (cdim components))
-
   struct vm_species *pkpm_species; // pointer to coupling species in pkpm model
   int species_index; // index of the kinetic species being coupled to in pkpm model
                      // index corresponds to location in vm_species array (size num_species)
-  struct gkyl_mom_pkpm_surf_calc* pkpm_surf_moms_calc; // calculator for surface moments
 
   // applied advection
   struct gkyl_array *advect; // applied advection

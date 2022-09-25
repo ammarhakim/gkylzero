@@ -46,8 +46,7 @@ void gkyl_calc_prim_vars_p_from_statevec(struct gkyl_basis basis, const struct g
 }
 
 void gkyl_calc_prim_vars_p_pkpm(struct gkyl_basis basis, const struct gkyl_range *range,
-  const struct gkyl_array* u_i, const struct gkyl_array* bvar,
-  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm,
+  const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm,
   struct gkyl_array* p_ij)
 {
   int cdim = basis.ndim;
@@ -58,12 +57,35 @@ void gkyl_calc_prim_vars_p_pkpm(struct gkyl_basis basis, const struct gkyl_range
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(range, iter.idx);
 
-    const double *u_i_d = gkyl_array_cfetch(u_i, loc);
     const double *bvar_d = gkyl_array_cfetch(bvar, loc);
     const double *vlasov_pkpm_moms_d = gkyl_array_cfetch(vlasov_pkpm_moms, loc);
     const double *euler_pkpm_d = gkyl_array_cfetch(euler_pkpm, loc);
     
     double *p_ij_d = gkyl_array_fetch(p_ij, loc);
-    pkpm_pressure(u_i_d, bvar_d, vlasov_pkpm_moms_d, euler_pkpm_d, p_ij_d);
+    pkpm_pressure(bvar_d, vlasov_pkpm_moms_d, euler_pkpm_d, p_ij_d);
+  }
+}
+
+void gkyl_calc_prim_vars_p_pkpm_source(struct gkyl_basis basis, const struct gkyl_range *range,
+  const struct gkyl_array* nu, const struct gkyl_array* nu_vthsq,
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* u_i, const struct gkyl_array* euler_pkpm,
+  struct gkyl_array* rhs)
+{
+  int cdim = basis.ndim;
+  int poly_order = basis.poly_order;
+  euler_pkpm_pressure_source_t pkpm_pressure_source = choose_ser_euler_pkpm_pressure_source_kern(cdim, poly_order);
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(range, iter.idx);
+
+    const double *nu_d = gkyl_array_cfetch(nu, loc);
+    const double *nu_vthsq_d = gkyl_array_cfetch(nu_vthsq, loc);
+    const double *vlasov_pkpm_moms_d = gkyl_array_cfetch(vlasov_pkpm_moms, loc);
+    const double *u_i_d = gkyl_array_cfetch(u_i, loc);
+    const double *euler_pkpm_d = gkyl_array_cfetch(euler_pkpm, loc);
+
+    double *rhs_d = gkyl_array_fetch(rhs, loc);
+    pkpm_pressure_source(nu_d, nu_vthsq_d, vlasov_pkpm_moms_d, u_i_d, euler_pkpm_d, rhs_d);
   }
 }
