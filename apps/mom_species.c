@@ -1,5 +1,5 @@
-#include "gkyl_util.h"
 #include <gkyl_moment_priv.h>
+#include <gkyl_util.h>
 
 // initialize species
 void
@@ -67,6 +67,11 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         .geom = app->geom,
       }
     );
+
+    // allocate arrays
+    sp->f0 = mkarr(false, meqn, app->local_ext.volume);
+    sp->f1 = mkarr(false, meqn, app->local_ext.volume);
+    sp->fnew = mkarr(false, meqn, app->local_ext.volume);
   }
 
   // determine which directions are not periodic
@@ -262,6 +267,9 @@ moment_species_release(const struct moment_species *sp)
   }
   else if (sp->scheme_type == GKYL_MOMENT_MP) {
     gkyl_mp_scheme_release(sp->mp_slvr);
+    gkyl_array_release(sp->f0);
+    gkyl_array_release(sp->f1);
+    gkyl_array_release(sp->fnew);
   }
 
   gkyl_array_release(sp->app_accel);

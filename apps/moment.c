@@ -11,11 +11,13 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   strcpy(app->name, mom->name);
   app->tcurr = 0.0; // reset on init
 
-  // create grid and ranges (grid is in computational space)
-  int ghost[3] = { 2, 2, 2 };
+  int ghost[3] = { 2, 2, 2 }; // 2 ghost-cells for wave
+  if (mom->scheme_type == GKYL_MOMENT_MP)
+    for (int d=0; d<3; ++d) ghost[d] = 3; // 3 for MP scheme
+  
   gkyl_rect_grid_init(&app->grid, ndim, mom->lower, mom->upper, mom->cells);
   gkyl_create_grid_ranges(&app->grid, ghost, &app->local_ext, &app->local);
-
+  
   skin_ghost_ranges_init(&app->skin_ghost, &app->local_ext, ghost);
 
   app->c2p_ctx = app->mapc2p = 0;  

@@ -45,14 +45,19 @@ gkyl_mp_scheme* gkyl_mp_scheme_new(const struct gkyl_mp_scheme_inp *winp);
  * either the same range as the array range, or one created using the
  * gkyl_sub_range_init method.
  *
+ * The qrec_l/qrec_r are work arrays used internally in the updater.
+ *
  * @param mp Updater object
  * @param update_rng Range on which to compute.
  * @param qin Input to updater
+ * @param qrec_l Array to store recovered left values
+ * @param qrec_r Array to store recovered right values
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS of PDE 
  */
 void gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
   const struct gkyl_range *update_range, const struct gkyl_array *qin,
+  struct gkyl_array *qrec_l, struct gkyl_array *qrec_r,
   struct gkyl_array *cflrate, struct gkyl_array *rhs);
 
 /**

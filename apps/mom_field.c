@@ -63,6 +63,11 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         .geom = app->geom,
       }
     );
+
+    // allocate arrays
+    fld->f0 = mkarr(false, 8, app->local_ext.volume);
+    fld->f1 = mkarr(false, 8, app->local_ext.volume);
+    fld->fnew = mkarr(false, 8, app->local_ext.volume);
   }
 
   // determine which directions are not periodic
@@ -230,6 +235,9 @@ moment_field_release(const struct moment_field *fld)
   }
   else if (fld->scheme_type == GKYL_MOMENT_MP) {
     gkyl_mp_scheme_release(fld->mp_slvr);
+    gkyl_array_release(fld->f0);
+    gkyl_array_release(fld->f1);
+    gkyl_array_release(fld->fnew);
   }
     
   gkyl_array_release(fld->app_current);
