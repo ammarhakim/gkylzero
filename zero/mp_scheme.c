@@ -1,5 +1,5 @@
-#include "gkyl_array.h"
 #include <gkyl_alloc.h>
+#include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_mp_scheme.h>
 #include <gkyl_range.h>
@@ -95,8 +95,7 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
 
     // create range that includes one extra layer on the upper size
     int upper[GKYL_MAX_CDIM] = { 0 };
-    for (int d=0; d<update_range->ndim; ++d)
-      upper[d] = update_range->upper[d];
+    for (int d=0; d<update_range->ndim; ++d) upper[d] = update_range->upper[d];
     upper[dir] += 1;
     struct gkyl_range update_range_ext;
     gkyl_range_init(&update_range_ext, update_range->ndim, update_range->lower, upper);
