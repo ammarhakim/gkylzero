@@ -82,6 +82,8 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
   for (int d=0; d<mp->num_up_dirs; ++d) {
     int dir = mp->update_dirs[d];
 
+    double dx = mp->grid.dx[dir];
+
     // compute index offsets of cells on left/right of edge
     long offsets[6];
     offsets[IP]  = get_offset(dir, 0, update_range);
@@ -102,7 +104,8 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
 
     struct gkyl_range_iter iter;
     // loop over all cells and recover left/right edge values in
-    // direction 'dir'
+    // direction 'dir'. Note this is effectively a loop over the
+    // edges, and includes upper most edge also
     gkyl_range_iter_init(&iter, &update_range_ext);
     while (gkyl_range_iter_next(&iter)) {
       long loc = gkyl_range_idx(update_range, iter.idx);
@@ -122,7 +125,26 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
         qr_l, qr_r);
     }
 
-    // compute 
+    double deltaf[meqn];
+    // Update RHS with contribution from flux jumps. Note this loop is
+    // over interior cells
+    gkyl_range_iter_init(&iter, update_range);
+    while (gkyl_range_iter_next(&iter)) {
+      long loc = gkyl_range_idx(update_range, iter.idx);
+
+      double amax = gkyl_wv_eqn_flux_jump(mp->equation,
+        gkyl_array_cfetch(qrec_l, loc), gkyl_array_cfetch(qrec_r, loc),
+        deltaf);
+
+      double *rhs_p = gkyl_array_fetch(rhs, loc);
+      for (int m=0; m<meqn; ++m)
+        rhs_p[m] += -deltaf[m]/dx;
+
+      double *cflrate_p = gkyl_array_fetch(cflrate, loc);
+      cflrate_p[0] += amax/dx;
+    }
+
+    // TODO: Apply MP limiter and add fluctuations
   }
 }
 
