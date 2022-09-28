@@ -121,9 +121,10 @@ void
 gkyl_moment_app_apply_ic_field(gkyl_moment_app* app, double t0)
 {
   if (app->has_field != 1) return;
-
+  
   app->tcurr = t0;
-  gkyl_fv_proj *proj = gkyl_fv_proj_new(&app->grid, 2, 8, app->field.init, app->field.ctx);
+  int num_quad = app->scheme_type == GKYL_MOMENT_MP ? 4 : 2;
+  gkyl_fv_proj *proj = gkyl_fv_proj_new(&app->grid, num_quad, 8, app->field.init, app->field.ctx);
   
   gkyl_fv_proj_advance(proj, t0, &app->local, app->field.fcurr);
   gkyl_fv_proj_release(proj);
@@ -137,7 +138,8 @@ gkyl_moment_app_apply_ic_species(gkyl_moment_app* app, int sidx, double t0)
   assert(sidx < app->num_species);
 
   app->tcurr = t0;
-  gkyl_fv_proj *proj = gkyl_fv_proj_new(&app->grid, 2, app->species[sidx].num_equations,
+  int num_quad = app->scheme_type == GKYL_MOMENT_MP ? 4 : 2;  
+  gkyl_fv_proj *proj = gkyl_fv_proj_new(&app->grid, num_quad, app->species[sidx].num_equations,
     app->species[sidx].init, app->species[sidx].ctx);
   
   gkyl_fv_proj_advance(proj, t0, &app->local, app->species[sidx].fcurr);
