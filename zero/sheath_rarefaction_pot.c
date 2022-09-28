@@ -20,7 +20,7 @@ gkyl_sheath_rarefaction_pot_new(enum gkyl_edge_loc edge, const struct gkyl_range
   up->mass_i = mass_i;
 
   int ndim = local_range_ext->ndim;
-  assert((ndim==1) && (ndim==3)); // Only meant for 1x and 3x quasineutral sims.
+  assert((ndim==1) || (ndim==3)); // Only meant for 1x and 3x quasineutral sims.
 
   int dir = ndim-1;
 
@@ -61,6 +61,7 @@ gkyl_sheath_rarefaction_pot_advance(const struct gkyl_sheath_rarefaction_pot *up
   }
 #endif
 
+    printf("\n");
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &up->skin_r);
   while (gkyl_range_iter_next(&iter)) {

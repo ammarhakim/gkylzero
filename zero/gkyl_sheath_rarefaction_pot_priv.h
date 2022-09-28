@@ -76,11 +76,10 @@ sheath_rarepot_choose_phimod_kernel(const struct gkyl_basis *basis, enum gkyl_ed
   enum gkyl_basis_type basis_type = basis->b_type;
   int poly_order = basis->poly_order;
   switch (basis_type) {
-    case GKYL_BASIS_MODAL_GKHYBRID:
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_sheath_rarepot_list[edge].list[dim-2].kernels[poly_order-1];
+      return ser_sheath_rarepot_list[edge].list[dim-1].kernels[poly_order-1];
     case GKYL_BASIS_MODAL_TENSOR:
-      return tensor_sheath_rarepot_list[edge].list[dim-2].kernels[poly_order-1];
+      return tensor_sheath_rarepot_list[edge].list[dim-1].kernels[poly_order-1];
     default:
       assert(false);
       break;
