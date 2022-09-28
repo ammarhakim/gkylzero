@@ -164,6 +164,9 @@ struct gkyl_moment_app {
   struct moment_coupling sources; // sources
     
   struct gkyl_moment_stat stat; // statistics
+
+  // pointer to function that takes a single-step of simulation
+  struct gkyl_update_status (*update_func)(gkyl_moment_app* app, double dt0);
 };
 
 // Function pointer to compute integrated quantities from input
@@ -263,3 +266,11 @@ void moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
 
 // Release coupling sources
 void moment_coupling_release(const struct moment_coupling *src);
+
+/** Top-level app API */
+
+// Take a single time-step using a single-step time-stepper
+struct gkyl_update_status moment_update_one_step(gkyl_moment_app *app, double dt0);
+
+// Take a single time-step using a SSP-RK3 stepper
+struct gkyl_update_status moment_update_ssp_rk3(gkyl_moment_app* app, double dt0);

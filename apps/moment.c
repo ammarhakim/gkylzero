@@ -12,6 +12,10 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   app->tcurr = 0.0; // reset on init
 
   app->scheme_type = mom->scheme_type;
+  if (app->scheme_type == GKYL_MOMENT_WAVE_PROP)
+    app->update_func = moment_update_one_step;
+  else if (app->scheme_type == GKYL_MOMENT_MP) 
+    app->update_func = moment_update_ssp_rk3;
 
   int ghost[3] = { 2, 2, 2 }; // 2 ghost-cells for wave
   if (mom->scheme_type == GKYL_MOMENT_MP)
@@ -227,155 +231,13 @@ gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, i
   gkyl_grid_sub_array_write(&app->grid, &app->local, app->species[sidx].fcurr, fileNm);
 }
 
-// internal function that takes a single time-step
-static struct gkyl_update_status
-moment_update(gkyl_moment_app* app, double dt0)
-{
-  int ns = app->num_species, ndim = app->ndim;
-  bool have_nans_occured = false;
-  
-  double dt_suggested = DBL_MAX;
-  
-  // time-stepper states
-  enum {
-    UPDATE_DONE = 0,
-    PRE_UPDATE,
-    POST_UPDATE,
-    FIRST_COUPLING_UPDATE,
-    FIELD_UPDATE,
-    SPECIES_UPDATE,
-    SECOND_COUPLING_UPDATE,
-    UPDATE_REDO,
-  } state = PRE_UPDATE;
-
-  double tcurr = app->tcurr, dt = dt0;
-  while (state != UPDATE_DONE) {
-    switch (state) {
-      case PRE_UPDATE:
-        state = FIRST_COUPLING_UPDATE; // next state
-          
-        // copy old solution in case we need to redo this step
-        for (int i=0; i<ns; ++i)
-          gkyl_array_copy(app->species[i].fdup, app->species[i].f[0]);
-        if (app->has_field)
-          gkyl_array_copy(app->field.fdup, app->field.f[0]);
-
-        break;
-          
-      
-      case FIRST_COUPLING_UPDATE:
-        state = FIELD_UPDATE; // next state
-
-        if (app->update_sources) {
-          struct timespec src1_tm = gkyl_wall_clock();
-          moment_coupling_update(app, &app->sources, 0, tcurr, dt/2);
-          app->stat.sources_tm += gkyl_time_diff_now_sec(src1_tm);
-        }
-            
-        break;
-
-      case FIELD_UPDATE:
-        state = SPECIES_UPDATE; // next state
-
-        if (app->has_field) {
-          struct timespec fl_tm = gkyl_wall_clock();
-          struct gkyl_update_status s = moment_field_update(app, &app->field, tcurr, dt);
-          if (!s.success) {
-            app->stat.nfail += 1;
-            dt = s.dt_suggested;
-            state = UPDATE_REDO;
-            break;
-          }
-            
-          dt_suggested = fmin(dt_suggested, s.dt_suggested);
-          app->stat.field_tm += gkyl_time_diff_now_sec(fl_tm);
-        }
-          
-        break;
-
-      case SPECIES_UPDATE:
-        state = SECOND_COUPLING_UPDATE; // next state
-
-        struct timespec sp_tm = gkyl_wall_clock();
-        for (int i=0; i<ns; ++i) {         
-          struct gkyl_update_status s =
-            moment_species_update(app, &app->species[i], tcurr, dt);
-
-          if (!s.success) {
-            app->stat.nfail += 1;
-            dt = s.dt_suggested;
-            state = UPDATE_REDO;
-            break;
-          }
-          dt_suggested = fmin(dt_suggested, s.dt_suggested);
-        }
-        app->stat.species_tm += gkyl_time_diff_now_sec(sp_tm);
-         
-        break;
-
-      case SECOND_COUPLING_UPDATE:
-        state = POST_UPDATE; // next state
-
-        if (app->update_sources) {
-          struct timespec src2_tm = gkyl_wall_clock();
-          moment_coupling_update(app, &app->sources, 1, tcurr, dt/2);
-          app->stat.sources_tm += gkyl_time_diff_now_sec(src2_tm);
-        }
-
-        break;
-
-      case POST_UPDATE:
-        state = UPDATE_DONE;
-
-        // copy solution in prep for next time-step
-        for (int i=0; i<ns; ++i) {
-          // check for nans before copying
-          if (check_for_nans(app->species[i].f[ndim], app->local))
-            have_nans_occured = true;
-          else // only copy in case no nans, so old solution can be written out
-            gkyl_array_copy(app->species[i].f[0], app->species[i].f[ndim]);
-        }
-        
-        if (app->has_field)
-          gkyl_array_copy(app->field.f[0], app->field.f[ndim]);
-          
-        break;
-
-      case UPDATE_REDO:
-        state = PRE_UPDATE; // start all-over again
-          
-        // restore solution and retake step
-        for (int i=0; i<ns; ++i)
-          gkyl_array_copy(app->species[i].f[0], app->species[i].fdup);
-        if (app->has_field)
-          gkyl_array_copy(app->field.f[0], app->field.fdup);
-          
-        break;
-
-      case UPDATE_DONE: // unreachable code! (suppresses warning)
-        break;
-    }
-  }
-
-  return (struct gkyl_update_status) {
-    .success = have_nans_occured ? false : true,
-    .dt_actual = dt,
-    .dt_suggested = dt_suggested,
-  };
-}
-
 struct gkyl_update_status
 gkyl_moment_update(gkyl_moment_app* app, double dt)
 {
   app->stat.nup += 1;
-  struct timespec wst = gkyl_wall_clock();
-
-  struct gkyl_update_status status;
-  if (app->scheme_type == GKYL_MOMENT_WAVE_PROP)
-    status = moment_update(app, dt);
-  else if (app->scheme_type == GKYL_MOMENT_WAVE_PROP)
-    assert(false);
   
+  struct timespec wst = gkyl_wall_clock();
+  struct gkyl_update_status status = app->update_func(app, dt);
   app->tcurr += status.dt_actual;
   
   app->stat.total_tm += gkyl_time_diff_now_sec(wst);
