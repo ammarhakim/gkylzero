@@ -44,11 +44,9 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     gkyl_eval_on_nodes_advance(ev_c2p, 0.0, &app->local_ext, c2p);
 
     // write DG projection of mapc2p to file
-    const char *fmt = "%s-mapc2p.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name);
-    char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name);
-    gkyl_grid_sub_array_write(&app->grid, &app->local, c2p, fileNm);
+    cstr fileNm = cstr_from_fmt("%s-mapc2p.gkyl", app->name);
+    gkyl_grid_sub_array_write(&app->grid, &app->local, c2p, fileNm.str);
+    cstr_drop(&fileNm);
 
     gkyl_array_release(c2p);
     gkyl_eval_on_nodes_release(ev_c2p);
@@ -223,12 +221,9 @@ gkyl_moment_app_write_integrated_mom(gkyl_moment_app *app)
 void
 gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, int frame)
 {
-  const char *fmt = "%s-%s_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].name, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow  
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].name, frame);
-  
-  gkyl_grid_sub_array_write(&app->grid, &app->local, app->species[sidx].fcurr, fileNm);
+  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->species[sidx].name, frame);
+  gkyl_grid_sub_array_write(&app->grid, &app->local, app->species[sidx].fcurr, fileNm.str);
+  cstr_drop(&fileNm);
 }
 
 struct gkyl_update_status
@@ -277,10 +272,7 @@ gkyl_moment_app_stat(gkyl_moment_app* app)
 void
 gkyl_moment_app_stat_write(const gkyl_moment_app* app)
 {
-  const char *fmt = "%s-%s";
-  int sz = gkyl_calc_strlen(fmt, app->name, "stat.json");
-  char fileNm[sz+1]; // ensures no buffer overflow  
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, "stat.json");
+  cstr fileNm = cstr_from_fmt("%s-%s", app->name, "stat.json");
 
   char buff[70];
   time_t t = time(NULL);
@@ -291,7 +283,7 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
 
   // append to existing file so we have a history of different runs
   FILE *fp = 0;
-  with_file (fp, fileNm, "a") {
+  with_file (fp, fileNm.str, "a") {
     fprintf(fp, "{\n");
 
     if (strftime(buff, sizeof buff, "%c", &curr_tm))
@@ -325,6 +317,8 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
   
     fprintf(fp, "}\n");
   }
+
+  cstr_drop(&fileNm);
 }
 
 void
