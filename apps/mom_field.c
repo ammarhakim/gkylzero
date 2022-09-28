@@ -43,6 +43,9 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
     fld->fdup = mkarr(false, 8, app->local_ext.volume);
     for (int d=0; d<ndim+1; ++d)
       fld->f[d] = mkarr(false, 8, app->local_ext.volume);
+
+    // set current solution so ICs and IO work properly
+    fld->fcurr = fld->f[0];
   }
   else if (fld->scheme_type == GKYL_MOMENT_MP) {
     // determine directions to update
@@ -60,6 +63,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         .mp_recon = GKYL_MP_C4,
         .num_up_dirs = num_up_dirs,
         .update_dirs = { update_dirs[0], update_dirs[1], update_dirs[2] } ,
+        .cfl = app->cfl,        
         .geom = app->geom,
       }
     );
@@ -68,6 +72,9 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
     fld->f0 = mkarr(false, 8, app->local_ext.volume);
     fld->f1 = mkarr(false, 8, app->local_ext.volume);
     fld->fnew = mkarr(false, 8, app->local_ext.volume);
+
+    // set current solution so ICs and IO work properly
+    fld->fcurr = fld->f0;
   }
 
   // determine which directions are not periodic
@@ -181,8 +188,13 @@ double
 moment_field_max_dt(const gkyl_moment_app *app, const struct moment_field *fld)
 {
   double max_dt = DBL_MAX;
-  for (int d=0; d<app->ndim; ++d)
-    max_dt = fmin(max_dt, gkyl_wave_prop_max_dt(fld->slvr[d], &app->local, fld->f[0]));
+  if (fld->scheme_type == GKYL_MOMENT_WAVE_PROP) {  
+    for (int d=0; d<app->ndim; ++d)
+      max_dt = fmin(max_dt, gkyl_wave_prop_max_dt(fld->slvr[d], &app->local, fld->f[0]));
+  }
+  else if (fld->scheme_type == GKYL_MOMENT_MP) {
+    max_dt = fmin(max_dt, gkyl_mp_scheme_max_dt(fld->mp_slvr, &app->local, fld->f0));
+  }
   return max_dt;
 }
 

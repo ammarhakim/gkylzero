@@ -66,6 +66,7 @@ struct moment_species {
       struct gkyl_array *f0, *f1, *fnew; // arrays for updates
     };
   };
+  struct gkyl_array *fcurr; // points to current solution (depends on scheme)
 
   // boundary condition type
   enum gkyl_species_bc_type lower_bct[3], upper_bct[3];
@@ -110,6 +111,7 @@ struct moment_field {
       struct gkyl_array *f0, *f1, *fnew; // arrays for updates
     };
   };
+  struct gkyl_array *fcurr; // points to current solution (depends on scheme)
 
   // boundary condition type
   enum gkyl_field_bc_type lower_bct[3], upper_bct[3];
@@ -131,6 +133,8 @@ struct gkyl_moment_app {
   int ndim; // space dimensions
   double tcurr; // current time
   double cfl; // CFL number
+
+  enum gkyl_moment_scheme scheme_type; // scheme to use
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions

@@ -11,6 +11,8 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   strcpy(app->name, mom->name);
   app->tcurr = 0.0; // reset on init
 
+  app->scheme_type = mom->scheme_type;
+
   int ghost[3] = { 2, 2, 2 }; // 2 ghost-cells for wave
   if (mom->scheme_type == GKYL_MOMENT_MP)
     for (int d=0; d<3; ++d) ghost[d] = 3; // 3 for MP scheme
@@ -123,10 +125,10 @@ gkyl_moment_app_apply_ic_field(gkyl_moment_app* app, double t0)
   app->tcurr = t0;
   gkyl_fv_proj *proj = gkyl_fv_proj_new(&app->grid, 2, 8, app->field.init, app->field.ctx);
   
-  gkyl_fv_proj_advance(proj, t0, &app->local, app->field.f[0]);
+  gkyl_fv_proj_advance(proj, t0, &app->local, app->field.fcurr);
   gkyl_fv_proj_release(proj);
 
-  moment_field_apply_bc(app, t0, &app->field, app->field.f[0]);
+  moment_field_apply_bc(app, t0, &app->field, app->field.fcurr);
 }
 
 void
@@ -138,10 +140,10 @@ gkyl_moment_app_apply_ic_species(gkyl_moment_app* app, int sidx, double t0)
   gkyl_fv_proj *proj = gkyl_fv_proj_new(&app->grid, 2, app->species[sidx].num_equations,
     app->species[sidx].init, app->species[sidx].ctx);
   
-  gkyl_fv_proj_advance(proj, t0, &app->local, app->species[sidx].f[0]);
+  gkyl_fv_proj_advance(proj, t0, &app->local, app->species[sidx].fcurr);
   gkyl_fv_proj_release(proj);
 
-  moment_species_apply_bc(app, t0, &app->species[sidx], app->species[sidx].f[0]);
+  moment_species_apply_bc(app, t0, &app->species[sidx], app->species[sidx].fcurr);
 }
 
 void
@@ -158,7 +160,7 @@ gkyl_moment_app_write_field(const gkyl_moment_app* app, double tm, int frame)
   if (app->has_field != 1) return;
 
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
-  gkyl_grid_sub_array_write(&app->grid, &app->local, app->field.f[0], fileNm.str);
+  gkyl_grid_sub_array_write(&app->grid, &app->local, app->field.fcurr, fileNm.str);
   cstr_drop(&fileNm);
 
   // write external EM field if it is present
@@ -220,7 +222,7 @@ gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, i
   char fileNm[sz+1]; // ensures no buffer overflow  
   snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].name, frame);
   
-  gkyl_grid_sub_array_write(&app->grid, &app->local, app->species[sidx].f[0], fileNm);
+  gkyl_grid_sub_array_write(&app->grid, &app->local, app->species[sidx].fcurr, fileNm);
 }
 
 // internal function that takes a single time-step
@@ -366,7 +368,12 @@ gkyl_moment_update(gkyl_moment_app* app, double dt)
   app->stat.nup += 1;
   struct timespec wst = gkyl_wall_clock();
 
-  struct gkyl_update_status status = moment_update(app, dt);
+  struct gkyl_update_status status;
+  if (app->scheme_type == GKYL_MOMENT_WAVE_PROP)
+    status = moment_update(app, dt);
+  else if (app->scheme_type == GKYL_MOMENT_WAVE_PROP)
+    assert(false);
+  
   app->tcurr += status.dt_actual;
   
   app->stat.total_tm += gkyl_time_diff_now_sec(wst);
@@ -434,18 +441,23 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
     fprintf(fp, " sources_tm : %lg\n", app->stat.sources_tm);
 
     for (int i=0; i<app->num_species; ++i) {
-      long tot_bad_cells = 0L;      
-      for (int d=0; d<app->ndim; ++d) {
-        struct gkyl_wave_prop_stats wvs = gkyl_wave_prop_stats(app->species[i].slvr[d]);
-        fprintf(fp, " %s_n_bad_1D_sweeps[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_advance_calls);
-        fprintf(fp, " %s_n_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_cells);
-        fprintf(fp, " %s_n_max_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_max_bad_cells);
+      long tot_bad_cells = 0L;
+      if (app->scheme_type == GKYL_MOMENT_WAVE_PROP) {
+        for (int d=0; d<app->ndim; ++d) {
+          struct gkyl_wave_prop_stats wvs = gkyl_wave_prop_stats(app->species[i].slvr[d]);
+          fprintf(fp, " %s_n_bad_1D_sweeps[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_advance_calls);
+          fprintf(fp, " %s_n_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_cells);
+          fprintf(fp, " %s_n_max_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_max_bad_cells);
 
-        tot_bad_cells += wvs.n_bad_cells;
+          tot_bad_cells += wvs.n_bad_cells;
+        }
       }
+      else if (app->scheme_type == GKYL_MOMENT_MP) {
+        // TODO
+      }
+      
       fprintf(fp, " %s_bad_cell_frac = %lg\n", app->species[i].name, (double) tot_bad_cells/tot_cells_up );
     }
-
   
     fprintf(fp, "}\n");
   }

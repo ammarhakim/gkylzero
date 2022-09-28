@@ -6,6 +6,8 @@
 #include <gkyl_util.h>
 #include <gkyl_wave_geom.h>
 
+#include <float.h>
+#include <math.h>
 
 struct gkyl_mp_scheme {
   struct gkyl_rect_grid grid; // grid object
@@ -13,6 +15,8 @@ struct gkyl_mp_scheme {
   int num_up_dirs; // number of update directions
   int update_dirs[GKYL_MAX_DIM]; // directions to update
   enum gkyl_mp_recon mp_recon; // base reconstruction to use
+
+  double cfl; // CFL number  
   
   const struct gkyl_wv_eqn *equation; // equation object
   struct gkyl_wave_geom *geom; // geometry object
@@ -48,8 +52,9 @@ gkyl_mp_scheme_new(const struct gkyl_mp_scheme_inp *mpinp)
     mp->update_dirs[i] = mpinp->update_dirs[i];
 
   mp->mp_recon = mpinp->mp_recon;
+  mp->cfl = mpinp->cfl;
+  
   mp->equation = gkyl_wv_eqn_acquire(mpinp->equation);
-
   mp->geom = gkyl_wave_geom_acquire(mpinp->geom);
 
   return mp;
@@ -146,6 +151,30 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
 
     // TODO: Apply MP limiter and add fluctuations
   }
+}
+
+double
+gkyl_mp_scheme_max_dt(const gkyl_mp_scheme *mp, const struct gkyl_range *update_range,
+  const struct gkyl_array *qin)
+{
+  double max_dt = DBL_MAX;
+  
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, update_range);
+  while (gkyl_range_iter_next(&iter)) {
+
+    for (int d=0; d<mp->num_up_dirs; ++d) {
+      int dir = mp->update_dirs[d];
+      double dx = mp->grid.dx[dir];
+
+      const double *q = gkyl_array_cfetch(qin, gkyl_range_idx(update_range, iter.idx));
+      double maxs = gkyl_wv_eqn_max_speed(mp->equation, q);
+      max_dt = fmin(max_dt, mp->cfl*dx/maxs);
+    }
+    
+  }
+
+  return max_dt;  
 }
 
 void

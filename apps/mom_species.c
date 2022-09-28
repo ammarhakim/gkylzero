@@ -47,6 +47,9 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     // allocate arrays
     for (int d=0; d<ndim+1; ++d)
       sp->f[d] = mkarr(false, meqn, app->local_ext.volume);
+
+    // set current solution so ICs and IO work properly
+    sp->fcurr = sp->f[0];
   }
   else if (sp->scheme_type == GKYL_MOMENT_MP) {
     // determine directions to update
@@ -64,6 +67,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         .mp_recon = GKYL_MP_C4,
         .num_up_dirs = num_up_dirs,
         .update_dirs = { update_dirs[0], update_dirs[1], update_dirs[2] } ,
+        .cfl = app->cfl,
         .geom = app->geom,
       }
     );
@@ -72,6 +76,9 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->f0 = mkarr(false, meqn, app->local_ext.volume);
     sp->f1 = mkarr(false, meqn, app->local_ext.volume);
     sp->fnew = mkarr(false, meqn, app->local_ext.volume);
+
+    // set current solution so ICs and IO work properly
+    sp->fcurr = sp->f0;
   }
 
   // determine which directions are not periodic
@@ -212,8 +219,13 @@ double
 moment_species_max_dt(const gkyl_moment_app *app, const struct moment_species *sp)
 {
   double max_dt = DBL_MAX;
-  for (int d=0; d<app->ndim; ++d)
-    max_dt = fmin(max_dt, gkyl_wave_prop_max_dt(sp->slvr[d], &app->local, sp->f[0]));
+  if (sp->scheme_type == GKYL_MOMENT_WAVE_PROP) {
+    for (int d=0; d<app->ndim; ++d)
+      max_dt = fmin(max_dt, gkyl_wave_prop_max_dt(sp->slvr[d], &app->local, sp->f[0]));
+  }
+  else if (sp->scheme_type == GKYL_MOMENT_MP) {
+    max_dt = fmin(max_dt, gkyl_mp_scheme_max_dt(sp->mp_slvr, &app->local, sp->f0));
+  }
   return max_dt;
 }
 
