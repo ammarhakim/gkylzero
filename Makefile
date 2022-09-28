@@ -135,6 +135,10 @@ $(BUILD_DIR)/kernels/fem_parproj/%.c.o : kernels/fem_parproj/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
+$(BUILD_DIR)/kernels/sheath_rarefaction_pot/%.c.o : kernels/sheath_rarefaction_pot/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
 endif
 
 # List of source files
