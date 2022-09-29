@@ -61,7 +61,6 @@ gkyl_sheath_rarefaction_pot_advance(const struct gkyl_sheath_rarefaction_pot *up
   }
 #endif
 
-    printf("\n");
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &up->skin_r);
   while (gkyl_range_iter_next(&iter)) {
