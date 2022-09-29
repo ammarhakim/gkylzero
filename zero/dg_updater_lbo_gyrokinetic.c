@@ -17,8 +17,8 @@ gkyl_dg_updater_lbo_gyrokinetic_new(const struct gkyl_rect_grid *grid, const str
 {
   gkyl_dg_updater_lbo_gyrokinetic *up = gkyl_malloc(sizeof(gkyl_dg_updater_lbo_gyrokinetic));
 
-  up->coll_drag = gkyl_dg_lbo_gyrokinetic_drag_new(cbasis, pbasis, conf_range, mass, use_gpu);
-  up->coll_diff = gkyl_dg_lbo_gyrokinetic_diff_new(cbasis, pbasis, conf_range, mass, use_gpu);
+  up->coll_drag = gkyl_dg_lbo_gyrokinetic_drag_new(cbasis, pbasis, conf_range, grid, mass, use_gpu);
+  up->coll_diff = gkyl_dg_lbo_gyrokinetic_diff_new(cbasis, pbasis, conf_range, grid, mass, use_gpu);
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int vdim = pdim-cdim;

@@ -4,6 +4,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_lbo_gyrokinetic_diff_auxfields { 
@@ -19,17 +20,18 @@ struct gkyl_dg_lbo_gyrokinetic_diff_auxfields {
  * @param cbasis Configuration space basis functions
  * @param pbasis Phase-space basis functions
  * @param conf_range Configuration space range for use in indexing primitive moments
+ * @param pgrid Phase-space grid object.
  * @param mass Species mass
  * @return Pointer to LBO equation object
  */
 struct gkyl_dg_eqn* gkyl_dg_lbo_gyrokinetic_diff_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, double mass, bool use_gpu);
+  const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid, double mass, bool use_gpu);
 
 /**
  * Create a new LBO equation object that lives on NV-GPU
  */
 struct gkyl_dg_eqn* gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, double mass);
+  const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid, double mass);
 
 /**
  * Set auxiliary fields needed in updating the diffusion flux term.
