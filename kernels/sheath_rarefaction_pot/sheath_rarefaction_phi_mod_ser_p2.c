@@ -34,7 +34,7 @@ GKYL_CU_DH void sheath_rarefaction_phi_mod_lower_1x_ser_p2(double elem_q, double
 
   double c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
 
-  double Delta_phi_r = (Tpar_e*fabs(upar_i)-1.0*Tpar_e*c_s)/(c_s*elem_q);
+  double Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
 
   double phiNod[3] = {0.};
   phiNod[0] = fmax(Delta_phi_r+1.58113883008419*phi[2]-1.224744871391589*phi[1]+0.7071067811865475*phi[0],1.58113883008419*phiWall[2]-1.224744871391589*phiWall[1]+0.7071067811865475*phiWall[0]); 
@@ -82,7 +82,7 @@ GKYL_CU_DH void sheath_rarefaction_phi_mod_upper_1x_ser_p2(double elem_q, double
 
   double c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
 
-  double Delta_phi_r = (Tpar_e*fabs(upar_i)-1.0*Tpar_e*c_s)/(c_s*elem_q);
+  double Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
 
   double phiNod[3] = {0.};
   phiNod[0] = 1.58113883008419*phi[2]-1.224744871391589*phi[1]+0.7071067811865475*phi[0]; 
