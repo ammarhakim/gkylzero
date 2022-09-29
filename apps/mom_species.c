@@ -76,6 +76,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->f0 = mkarr(false, meqn, app->local_ext.volume);
     sp->f1 = mkarr(false, meqn, app->local_ext.volume);
     sp->fnew = mkarr(false, meqn, app->local_ext.volume);
+    sp->cflrate = mkarr(false, 1, app->local_ext.volume);
 
     // set current solution so ICs and IO work properly
     sp->fcurr = sp->f0;
@@ -258,6 +259,22 @@ moment_species_update(const gkyl_moment_app *app,
   };
 }
 
+// Compute RHS of moment equations
+double
+moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  gkyl_array_clear(species->cflrate, 0.0);
+  gkyl_array_clear(rhs, 0.0);
+
+  gkyl_mp_scheme_advance(species->mp_slvr, &app->local, fin,
+    app->ql, app->qr, species->cflrate, rhs);
+
+  double omegaCfl[1];
+  gkyl_array_reduce_range(omegaCfl, species->cflrate, GKYL_MAX, app->local);
+  return app->cfl/omegaCfl[0];
+}
+
 // free species
 void
 moment_species_release(const struct moment_species *sp)
@@ -282,6 +299,7 @@ moment_species_release(const struct moment_species *sp)
     gkyl_array_release(sp->f0);
     gkyl_array_release(sp->f1);
     gkyl_array_release(sp->fnew);
+    gkyl_array_release(sp->cflrate);
   }
 
   gkyl_array_release(sp->app_accel);

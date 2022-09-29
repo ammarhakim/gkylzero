@@ -1,5 +1,11 @@
 #include <gkyl_moment_priv.h>
 
+static inline int
+int_max(int a, int b)
+{
+  return a>b ? a : b;
+}
+
 gkyl_moment_app*
 gkyl_moment_app_new(struct gkyl_moment *mom)
 {
@@ -58,6 +64,8 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
 
   double cfl_frac = mom->cfl_frac == 0 ? 0.95 : mom->cfl_frac;
   app->cfl = 1.0*cfl_frac;
+  if (app->scheme_type == GKYL_MOMENT_MP)
+    ;
 
   app->num_periodic_dir = mom->num_periodic_dir;
   for (int d=0; d<ndim; ++d)
@@ -88,6 +96,17 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   if (app->has_field && ns>0) {
     app->update_sources = 1; // only update if field and species are present
     moment_coupling_init(app, &app->sources);
+  }
+
+  // allocate work array for use in MP scheme
+  if (app->scheme_type == GKYL_MOMENT_MP) {
+    int max_eqn = 0;
+    for (int i=0; i<ns; ++i)
+      max_eqn = int_max(max_eqn, app->species[i].num_equations);
+    if (app->has_field)
+      max_eqn = int_max(max_eqn, 8); // maxwell equations have 8 components
+    app->ql = mkarr(false, max_eqn, app->local_ext.volume);
+    app->qr = mkarr(false, max_eqn, app->local_ext.volume);
   }
 
   // initialize stat object to all zeros
@@ -335,6 +354,11 @@ gkyl_moment_app_release(gkyl_moment_app* app)
     moment_coupling_release(&app->sources);
 
   gkyl_wave_geom_release(app->geom);
+
+  if (app->scheme_type == GKYL_MOMENT_MP) {
+    gkyl_array_release(app->ql);
+    gkyl_array_release(app->qr);
+  }
 
   gkyl_free(app);
 }

@@ -64,6 +64,7 @@ struct moment_species {
     struct {
       gkyl_mp_scheme *mp_slvr; // monotonicity-preserving scheme
       struct gkyl_array *f0, *f1, *fnew; // arrays for updates
+      struct gkyl_array *cflrate; // CFL rate in each cell
     };
   };
   struct gkyl_array *fcurr; // points to current solution (depends on scheme)
@@ -160,6 +161,12 @@ struct gkyl_moment_app {
   int num_species;
   struct moment_species *species; // species data
 
+  // work arrays for use in the MP scheme: these are stored here so
+  // they can be
+  struct {
+    struct gkyl_array *ql, *qr;
+  };
+
   int update_sources; // flag to indicate if sources are to be updated
   struct moment_coupling sources; // sources
     
@@ -227,6 +234,10 @@ double moment_species_max_dt(const gkyl_moment_app *app, const struct moment_spe
 // Advance solution of species by time-step dt to tcurr+dt
 struct gkyl_update_status moment_species_update(const gkyl_moment_app *app,
   const struct moment_species *sp, double tcurr, double dt);
+
+// Compute RHS of moment equations
+double moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 // Free memory allocated by species
 void moment_species_release(const struct moment_species *sp);
