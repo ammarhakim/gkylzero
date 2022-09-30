@@ -18,6 +18,12 @@ static struct gkyl_array *mkarr(long nc, long size) {
   return a;
 }
 
+// allocate cu_dev array
+static struct gkyl_array *mkarr_cu(long nc, long size) {
+  struct gkyl_array *a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
+  return a;
+}
+
 void
 test_sheath_rarefaction_pot(bool use_gpu)
 {
@@ -53,36 +59,70 @@ test_sheath_rarefaction_pot(bool use_gpu)
 
   // Create arrays for moments.
   struct gkyl_array *m0e, *m1e, *m2pare, *m0i, *m1i, *m2pari;
-  m0e = mkarr(basis.num_basis, local_ext.volume);
-  m1e = mkarr(basis.num_basis, local_ext.volume);
-  m2pare = mkarr(basis.num_basis, local_ext.volume);
-  m0i = mkarr(basis.num_basis, local_ext.volume);
-  m1i = mkarr(basis.num_basis, local_ext.volume);
-  m2pari = mkarr(basis.num_basis, local_ext.volume);
+  if (use_gpu) {
+    m0e = mkarr_cu(basis.num_basis, local_ext.volume);
+    m1e = mkarr_cu(basis.num_basis, local_ext.volume);
+    m2pare = mkarr_cu(basis.num_basis, local_ext.volume);
+    m0i = mkarr_cu(basis.num_basis, local_ext.volume);
+    m1i = mkarr_cu(basis.num_basis, local_ext.volume);
+    m2pari = mkarr_cu(basis.num_basis, local_ext.volume);
 
-  // Assign moment arrays by setting the zeroth coefficient only.
-  // The factor multiplying the value depends on basis dimensionality.
-  gkyl_array_shiftc0(m0e, sqrt(2.)*n0);
-  gkyl_array_shiftc0(m1e, sqrt(2.)*(n0*upare));
-  gkyl_array_shiftc0(m2pare, sqrt(2.)*(n0*pow(upare,2)+n0*Tpare/me));
-  gkyl_array_shiftc0(m0i, sqrt(2.)*n0);
-  gkyl_array_shiftc0(m1i, sqrt(2.)*(n0*upari));
-  gkyl_array_shiftc0(m2pari, sqrt(2.)*(n0*pow(upari,2)+n0*Tpari/mi));
+    // Assign moment arrays by setting the zeroth coefficient only.
+    // The factor multiplying the value depends on basis dimensionality.
+    gkyl_array_shiftc0_cu(m0e, sqrt(2.)*n0);
+    gkyl_array_shiftc0_cu(m1e, sqrt(2.)*(n0*upare));
+    gkyl_array_shiftc0_cu(m2pare, sqrt(2.)*(n0*pow(upare,2)+n0*Tpare/me));
+    gkyl_array_shiftc0_cu(m0i, sqrt(2.)*n0);
+    gkyl_array_shiftc0_cu(m1i, sqrt(2.)*(n0*upari));
+    gkyl_array_shiftc0_cu(m2pari, sqrt(2.)*(n0*pow(upari,2)+n0*Tpari/mi));
+  } else {
+    m0e = mkarr(basis.num_basis, local_ext.volume);
+    m1e = mkarr(basis.num_basis, local_ext.volume);
+    m2pare = mkarr(basis.num_basis, local_ext.volume);
+    m0i = mkarr(basis.num_basis, local_ext.volume);
+    m1i = mkarr(basis.num_basis, local_ext.volume);
+    m2pari = mkarr(basis.num_basis, local_ext.volume);
+
+    // Assign moment arrays by setting the zeroth coefficient only.
+    // The factor multiplying the value depends on basis dimensionality.
+    gkyl_array_shiftc0(m0e, sqrt(2.)*n0);
+    gkyl_array_shiftc0(m1e, sqrt(2.)*(n0*upare));
+    gkyl_array_shiftc0(m2pare, sqrt(2.)*(n0*pow(upare,2)+n0*Tpare/me));
+    gkyl_array_shiftc0(m0i, sqrt(2.)*n0);
+    gkyl_array_shiftc0(m1i, sqrt(2.)*(n0*upari));
+    gkyl_array_shiftc0(m2pari, sqrt(2.)*(n0*pow(upari,2)+n0*Tpari/mi));
+  };
 
   // Arrays holding m0 and m1 together.
   struct gkyl_array *momse, *momsi;
-  momse = mkarr(2*basis.num_basis, local_ext.volume);
-  momsi = mkarr(2*basis.num_basis, local_ext.volume);
-  gkyl_array_set_offset(momse, 1., m0e, 0*basis.num_basis);
-  gkyl_array_set_offset(momse, 1., m1e, 1*basis.num_basis);
-  gkyl_array_set_offset(momsi, 1., m0i, 0*basis.num_basis);
-  gkyl_array_set_offset(momsi, 1., m1i, 1*basis.num_basis);
+  if (use_gpu) {
+    momse = mkarr_cu(2*basis.num_basis, local_ext.volume);
+    momsi = mkarr_cu(2*basis.num_basis, local_ext.volume);
+    gkyl_array_set_offset_cu(momse, 1., m0e, 0*basis.num_basis);
+    gkyl_array_set_offset_cu(momse, 1., m1e, 1*basis.num_basis);
+    gkyl_array_set_offset_cu(momsi, 1., m0i, 0*basis.num_basis);
+    gkyl_array_set_offset_cu(momsi, 1., m1i, 1*basis.num_basis);
+  } else {
+    momse = mkarr(2*basis.num_basis, local_ext.volume);
+    momsi = mkarr(2*basis.num_basis, local_ext.volume);
+    gkyl_array_set_offset(momse, 1., m0e, 0*basis.num_basis);
+    gkyl_array_set_offset(momse, 1., m1e, 1*basis.num_basis);
+    gkyl_array_set_offset(momsi, 1., m0i, 0*basis.num_basis);
+    gkyl_array_set_offset(momsi, 1., m1i, 1*basis.num_basis);
+  };
 
   // Define and assign the potential array.
-  struct gkyl_array *phi, *phi_wall;
-  phi = mkarr(basis.num_basis, local_ext.volume);
-  phi_wall = mkarr(basis.num_basis, local_ext.volume);
-  gkyl_array_shiftc0(phi, sqrtf(2.)*phi_p);
+  struct gkyl_array *phi, *phi_wall, *phi_host;
+  if (use_gpu) {
+    phi = mkarr_cu(basis.num_basis, local_ext.volume);
+    phi_wall = mkarr_cu(basis.num_basis, local_ext.volume);
+    gkyl_array_shiftc0_cu(phi, sqrtf(2.)*phi_p);
+  } else {
+    phi = mkarr(basis.num_basis, local_ext.volume);
+    phi_wall = mkarr(basis.num_basis, local_ext.volume);
+    gkyl_array_shiftc0(phi, sqrtf(2.)*phi_p);
+  };
+  phi_host = mkarr(basis.num_basis, local_ext.volume);
 
   // Create and use updaters for each boundary.
   struct gkyl_sheath_rarefaction_pot *sheath_pot_lo = gkyl_sheath_rarefaction_pot_new(edge_lo,
@@ -93,18 +133,20 @@ test_sheath_rarefaction_pot(bool use_gpu)
   gkyl_sheath_rarefaction_pot_advance(sheath_pot_lo, momse, m2pare, momsi, m2pari, phi_wall, phi);
   gkyl_sheath_rarefaction_pot_advance(sheath_pot_up, momse, m2pare, momsi, m2pari, phi_wall, phi);
 
+  gkyl_array_copy(phi_host, phi);
+
   /* Check that the value of the potential at the boundary is phi_p-(Tpare/e)*(1-|upari|/c_s). */
   int idx[] = {1};
   double zlog_lo[] = {-1.};
   long linidx = gkyl_range_idx(&local_ext, idx);
-  const double *phi_skin = (const double *)gkyl_array_cfetch(phi, linidx);
+  const double *phi_skin = (const double *)gkyl_array_cfetch(phi_host, linidx);
   double phi_b = basis.eval_expand(zlog_lo, phi_skin);
   TEST_CHECK(gkyl_compare(phi_b, phi_p-(Tpare/eV)*(1.-fabs(upari)/cs), 1e-6));
 
   idx[0] = cells[0];
   zlog_lo[0] = 1.;
   linidx = gkyl_range_idx(&local_ext, idx);
-  phi_skin = (const double *)gkyl_array_cfetch(phi, linidx);
+  phi_skin = (const double *)gkyl_array_cfetch(phi_host, linidx);
   phi_b = basis.eval_expand(zlog_lo, phi_skin);
   TEST_CHECK(gkyl_compare(phi_b, phi_p-(Tpare/eV)*(1.-fabs(upari)/cs), 1e-6));
 

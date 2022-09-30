@@ -7,19 +7,16 @@ extern "C" {
 
 // CUDA kernel to set device pointers to kernel that computes the reflected f.
 __global__ static void
-gkyl_sheath_rare_pot_set_cu_ker_ptrs(const struct gkyl_basis *basis,
+gkyl_sheath_rare_pot_set_cu_ker_ptrs(int dim, enum gkyl_basis_type b_type, int poly_order,
   enum gkyl_edge_loc edge, struct gkyl_sheath_rarefaction_pot_kernels *kers)
 {
-  int dim = basis->ndim;
-  enum gkyl_basis_type b_type = basis->b_type;
-  int poly_order = basis->poly_order;
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kers->phimod = ser_sheath_rarepot_list[edge].list[dim-2].kernels[poly_order-1];
+      kers->phimod = ser_sheath_rarepot_list[edge].list[dim-1].kernels[poly_order-1];
       break;
     case GKYL_BASIS_MODAL_TENSOR:
-      kers->phimod = tensor_sheath_rarepot_list[edge].list[dim-2].kernels[poly_order-1];
+      kers->phimod = tensor_sheath_rarepot_list[edge].list[dim-1].kernels[poly_order-1];
       break;
     default:
       assert(false);
@@ -27,10 +24,10 @@ gkyl_sheath_rare_pot_set_cu_ker_ptrs(const struct gkyl_basis *basis,
 };
 
 void
-gkyl_bc_gksheath_choose_reflectedf_kernel_cu(const struct gkyl_basis *basis,
+gkyl_sheath_rarepot_choose_phimod_kernel_cu(const struct gkyl_basis *basis,
   enum gkyl_edge_loc edge, struct gkyl_sheath_rarefaction_pot_kernels *kers)
 {
-  gkyl_sheath_rare_pot_set_cu_ker_ptrs<<<1,1>>>(basis, edge, kers);
+  gkyl_sheath_rare_pot_set_cu_ker_ptrs<<<1,1>>>(basis->ndim, basis->b_type, basis->poly_order, edge, kers);
 }
 
 __global__ static void
