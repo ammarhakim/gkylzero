@@ -60,7 +60,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
     fld->mp_slvr = gkyl_mp_scheme_new( &(struct gkyl_mp_scheme_inp) {
         .grid = &app->grid,
         .equation = maxwell,
-        .mp_recon = GKYL_MP_C4,
+        .mp_recon = app->mp_recon,
         .num_up_dirs = num_up_dirs,
         .update_dirs = { update_dirs[0], update_dirs[1], update_dirs[2] } ,
         .cfl = app->cfl,        

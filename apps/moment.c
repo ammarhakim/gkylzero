@@ -18,6 +18,8 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   app->tcurr = 0.0; // reset on init
 
   app->scheme_type = mom->scheme_type;
+  app->mp_recon = mom->mp_recon;
+  
   if (app->scheme_type == GKYL_MOMENT_WAVE_PROP)
     app->update_func = moment_update_one_step;
   else if (app->scheme_type == GKYL_MOMENT_MP) 
@@ -107,6 +109,9 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
       max_eqn = int_max(max_eqn, 8); // maxwell equations have 8 components
     app->ql = mkarr(false, max_eqn, app->local_ext.volume);
     app->qr = mkarr(false, max_eqn, app->local_ext.volume);
+
+    app->amdq = mkarr(false, max_eqn, app->local_ext.volume);
+    app->apdq = mkarr(false, max_eqn, app->local_ext.volume);
   }
 
   // initialize stat object to all zeros
@@ -358,6 +363,8 @@ gkyl_moment_app_release(gkyl_moment_app* app)
   if (app->scheme_type == GKYL_MOMENT_MP) {
     gkyl_array_release(app->ql);
     gkyl_array_release(app->qr);
+    gkyl_array_release(app->amdq);
+    gkyl_array_release(app->apdq);
   }
 
   gkyl_free(app);

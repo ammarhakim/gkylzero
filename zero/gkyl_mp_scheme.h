@@ -10,7 +10,7 @@
 
 // Base reconstruction scheme to use
 enum gkyl_mp_recon {
-  GKYL_MP_C4, // centered fourth-order
+  GKYL_MP_C4 = 0, // centered fourth-order
   GKYL_MP_C6, // centered sixth-order
   GKYL_MP_U5, // upwind-biased 5th order
 };
@@ -53,12 +53,15 @@ gkyl_mp_scheme* gkyl_mp_scheme_new(const struct gkyl_mp_scheme_inp *winp);
  * @param qin Input to updater
  * @param qrec_l Array to store recovered left values
  * @param qrec_r Array to store recovered right values
+ * @param amdq Array to store left going fluctuations
+ * @param apdq Array to store right going fluctuations
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS of PDE 
  */
 void gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
   const struct gkyl_range *update_range, const struct gkyl_array *qin,
   struct gkyl_array *qrec_l, struct gkyl_array *qrec_r,
+  struct gkyl_array *amdq, struct gkyl_array *apdq,
   struct gkyl_array *cflrate, struct gkyl_array *rhs);
 
 /**

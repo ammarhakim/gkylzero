@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gkyl_app.h>
+#include <gkyl_mp_scheme.h>
 #include <gkyl_util.h>
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_eqn.h>
@@ -76,6 +77,7 @@ struct gkyl_moment {
   double cfl_frac; // CFL fraction to use
 
   enum gkyl_moment_scheme scheme_type; // scheme to update fluid and moment eqns
+  enum gkyl_mp_recon mp_recon; // reconstruction scheme to use
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions

@@ -9,6 +9,12 @@
 #include <float.h>
 #include <math.h>
 
+// type signature for function to do recovery
+typedef void (*recovery_fn_t)(int meqn,
+  const double *f3m, const double *f2m, const double *fm,
+  const double *fp, const double *f2p, const double *f3p,
+  double *outl, double *outr);
+
 struct gkyl_mp_scheme {
   struct gkyl_rect_grid grid; // grid object
   int ndim; // number of dimensions
@@ -21,6 +27,7 @@ struct gkyl_mp_scheme {
   const struct gkyl_wv_eqn *equation; // equation object
   struct gkyl_wave_geom *geom; // geometry object
 
+  recovery_fn_t recovery_fn; // function to do recovery
 };
 
 // Each of the recovery methods below take 6 cells, three to the left
@@ -37,6 +44,19 @@ c4_recovery(int meqn,
   // c4 is symmetric 4th order scheme, so outl and outr are same
   for (int m=0; m<meqn; ++m)
     outr[m] = outl[m] = -f2m[m]/12.0 + 7.0*fm[m]/12.0 + 7.0*fp[m]/12.0 - f2p[m]/12.0;
+}
+
+static inline void
+u5_recovery(int meqn,
+  const double *f3m, const double *f2m, const double *fm,
+  const double *fp, const double *f2p, const double *f3p,
+  double *outl, double *outr)
+{
+  // u5 is upwind-biased 5th order scheme
+  for (int m=0; m<meqn; ++m) {
+    outl[m] = 1.0/30.0*f3m[m] - 13.0/60.0*f2m[m] + 47.0/60.0*fm[m] + 9.0/20.0*fp[m] - 1.0/20.0*f2p[m];
+    outr[m] = -1.0/20.0*f2m[m] + 9.0/20.0*fm[m] + 47.0/60.0*fp[m] - 13.0/60.0*f2p[m] + 1.0/30.0*f3p[m];
+  }
 }
 
 gkyl_mp_scheme*
@@ -57,6 +77,17 @@ gkyl_mp_scheme_new(const struct gkyl_mp_scheme_inp *mpinp)
   mp->equation = gkyl_wv_eqn_acquire(mpinp->equation);
   mp->geom = gkyl_wave_geom_acquire(mpinp->geom);
 
+  switch (mpinp->mp_recon) {
+    case GKYL_MP_C4:
+      mp->recovery_fn = c4_recovery;
+      break;
+    case GKYL_MP_C6:
+      break;
+    case GKYL_MP_U5:
+      mp->recovery_fn = u5_recovery;
+      break;
+  }
+
   return mp;
 }
 
@@ -71,7 +102,8 @@ get_offset(int dir, int loc, const struct gkyl_range *range)
 void
 gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
   const struct gkyl_range *update_range, const struct gkyl_array *qin,
-  struct gkyl_array *qrec_l, struct gkyl_array *qrec_r,  
+  struct gkyl_array *qrec_l, struct gkyl_array *qrec_r,
+  struct gkyl_array *amdq, struct gkyl_array *apdq,
   struct gkyl_array *cflrate, struct gkyl_array *rhs)
 {
   int ndim = update_range->ndim;
@@ -113,6 +145,8 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
     // edges, and includes upper most edge also
     gkyl_range_iter_init(&iter, &update_range_ext);
     while (gkyl_range_iter_next(&iter)) {
+      // Note: Edge is between cells IM and IP
+      
       long loc = gkyl_range_idx(update_range, iter.idx);
 
       // attach pointers to cells for recovery
@@ -125,9 +159,18 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
       double *qr_r = gkyl_array_fetch(qrec_l, loc+offsets[IP]);
 
       // recover variables
-      c4_recovery(meqn, qrec_in[I3M], qrec_in[I2M], qrec_in[IM],
+      mp->recovery_fn(meqn, qrec_in[I3M], qrec_in[I2M], qrec_in[IM],
         qrec_in[IP], qrec_in[I2P], qrec_in[I3P],
         qr_l, qr_r);
+
+      // TODO: Apply MP limiter
+
+      double *amdq_p = gkyl_array_fetch(amdq, loc+offsets[IM]);
+      double *apdq_p = gkyl_array_fetch(apdq, loc+offsets[IP]);
+      // compute fluctuations: note the equation system must not use
+      // either the waves or speeds
+      gkyl_wv_eqn_qfluct(mp->equation, GKYL_WV_HIGH_ORDER_FLUX,
+        qr_l, qr_r, 0, 0, amdq_p, apdq_p);
     }
 
     double deltaf[meqn];
@@ -149,7 +192,6 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
       cflrate_p[0] += amax/dx;
     }
 
-    // TODO: Apply MP limiter and add fluctuations
   }
 }
 
