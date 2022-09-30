@@ -56,7 +56,7 @@ gkyl_sheath_rarefaction_pot_advance(const struct gkyl_sheath_rarefaction_pot *up
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    gkyl_sheath_rarefaction_pot_advance_cu(up, phi, phi_wall, distf);
+    gkyl_sheath_rarefaction_pot_advance_cu(up, moms_e, m2par_e, moms_i, m2par_i, phi_wall, phi);
     return;
   }
 #endif
