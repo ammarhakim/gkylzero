@@ -153,6 +153,10 @@ test_1x1v_no_drift(int poly_order)
   gkyl_correct_maxwellian *corr_MJ = gkyl_correct_maxwellian_new(&grid,&confBasis,&basis,confLocal.volume,confLocal_ext.volume);
   gkyl_correct_maxwellian_fix(corr_MJ,distf,m0,&local,&confLocal);
 
+  // correct the MJ distribution m0 Moment
+  //gkyl_correct_MJ *corr_MJ = gkyl_correct_MJ_new(&grid,&confBasis,&basis,confLocal.volume,confLocal_ext.volume);
+  //gkyl_correct_MJ_fix(corr_MJ,distf,m0,m1i,&local,&confLocal);
+
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p1_vals[] = {  7.5585421616306459e-01, -2.1688605007995894e-17,  2.5560131294504802e-02,
     0.0000000000000000e+00 };
@@ -194,7 +198,8 @@ test_1x1v_no_drift(int poly_order)
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
-  gkyl_correct_maxwellian_release(corr_MJ);
+  //gkyl_correct_maxwellian_release(corr_MJ);
+  gkyl_correct_MJ_release(corr_MJ);
 }
 
 void test_1x1v_no_drift_p1() { test_1x1v_no_drift(1); }
@@ -308,7 +313,8 @@ test_1x1v(int poly_order)
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
-  gkyl_correct_MJ_release(corr_MJ);
+  gkyl_correct_maxwellian_release(corr_MJ);
+  //gkyl_correct_MJ_release(corr_MJ);
 }
 
 void test_1x1v_p1() { test_1x1v(1); }
