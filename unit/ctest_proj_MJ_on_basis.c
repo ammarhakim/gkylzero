@@ -4,6 +4,7 @@
 
 #include <gkyl_array_rio.h>
 #include <gkyl_correct_maxwellian.h>
+#include <gkyl_correct_MJ.h>
 #include <gkyl_proj_MJ_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
@@ -137,11 +138,6 @@ test_1x1v_no_drift(int poly_order)
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
 
-  // compute the number density
-  struct gkyl_mom_type *m0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0");
-  struct gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, m0_t);  
-  gkyl_mom_type_release(m0_t);  
-
   // create distribution function array
   struct gkyl_array *distf;
   distf = mkarr(basis.num_basis, local_ext.volume);
@@ -153,16 +149,10 @@ test_1x1v_no_drift(int poly_order)
 
   gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(proj_MJ, &local, &confLocal, m0, m1i, m2, distf);
 
-  // write distribution function to file
-  char fname[1024];
-  sprintf(fname, "ctest_proj_MJ_on_basis_test_1x1v_p%d_no_drift_desired.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&confGrid, &confLocal, m0, fname);  
-
+  // correct the MJ distribution m0 Moment
   gkyl_correct_maxwellian *corr_MJ = gkyl_correct_maxwellian_new(&grid,&confBasis,&basis,confLocal.volume,confLocal_ext.volume);
   gkyl_correct_maxwellian_fix(corr_MJ,distf,m0,&local,&confLocal);
-  
-  gkyl_mom_calc_advance(m0calc, &local, &confLocal, distf, m0);
-  
+
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p1_vals[] = {  7.5585421616306459e-01, -2.1688605007995894e-17,  2.5560131294504802e-02,
     0.0000000000000000e+00 };
@@ -193,8 +183,9 @@ test_1x1v_no_drift(int poly_order)
   }
 
   // write distribution function to file
+  char fname[1024];
   sprintf(fname, "ctest_proj_MJ_on_basis_test_1x1v_p%d_no_drift.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&confGrid, &confLocal, m0, fname);
+  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // release memory for moment data object
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
@@ -206,10 +197,8 @@ test_1x1v_no_drift(int poly_order)
   gkyl_correct_maxwellian_release(corr_MJ);
 }
 
-void test_1x1v_no_drift_p0() { test_1x1v_no_drift(0); }
 void test_1x1v_no_drift_p1() { test_1x1v_no_drift(1); }
 void test_1x1v_no_drift_p2() { test_1x1v_no_drift(2); }
-void test_1x1v_no_drift_p3() { test_1x1v_no_drift(3); }
 
 
 void
@@ -274,6 +263,10 @@ test_1x1v(int poly_order)
 
   gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(proj_MJ, &local, &confLocal, m0, m1i, m2, distf);
 
+  // correct the MJ distribution m0 Moment
+  gkyl_correct_MJ *corr_MJ = gkyl_correct_MJ_new(&grid,&confBasis,&basis,confLocal.volume,confLocal_ext.volume);
+  gkyl_correct_MJ_fix(corr_MJ,distf,m0,m1i,&local,&confLocal);
+
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p1_vals[] = {  7.5585421616306459e-01, -2.1688605007995894e-17,  2.5560131294504802e-02,
     0.0000000000000000e+00 };
@@ -315,12 +308,11 @@ test_1x1v(int poly_order)
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
+  gkyl_correct_MJ_release(corr_MJ);
 }
 
-void test_1x1v_p0() { test_1x1v(0); }
 void test_1x1v_p1() { test_1x1v(1); }
 void test_1x1v_p2() { test_1x1v(2); }
-void test_1x1v_p3() { test_1x1v(3); }
 
 void
 test_1x2v(int poly_order)

@@ -226,12 +226,6 @@ gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(const gkyl_proj_MJ_on_basis *up
       for (int k=0; k<num_conf_basis; ++k)
         T_fluid_frame_n += T_fluid_frame_d[k]*b_ord[k];
 
-
-      //Originally: Not needed for vth2 calc, we assume (for MJ) that T_fluid_frame_n def is kT/mc^2
-      //double v2 = 0.0; // vel^2
-      //for (int d=0; d<vdim; ++d) v2 += vel[n][d]*vel[n][d];
-      //vth2[n] = (T_fluid_frame_n - num[n]*v2)/(num[n]*vdim);
-
       // Using new def*** vth -> T (MJ change)
       T[n] = T_fluid_frame_n; // Change to P = <nT> moment
     }
@@ -250,38 +244,30 @@ gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(const gkyl_proj_MJ_on_basis *up
       while (gkyl_range_iter_next(&qiter)) {
 
         long cqidx = gkyl_range_idx(&conf_qrange, qiter.idx);
-        //double nvth2_q = num[cqidx]/pow(2*GKYL_PI*vth2[cqidx], vdim/2.0);
-	double kb = 1.0; // Update these later using the input data
-	double mass_rest_frame = 1.0;
-	double c = 1.0;
-	double Theta = kb*T[cqidx]/(mass_rest_frame*c*c); // T = vth2[cqidx]; (?) - Need to re-write the moments
-	double norm = num[cqidx] * (1.0/(4.0*GKYL_PI*mass_rest_frame*mass_rest_frame*mass_rest_frame*c*c*c*Theta)) * (sqrt(2*Theta/GKYL_PI));
-  //Normalizaton needs to be handled here *
+        double mass_rest_frame = 1.0;
+        double c = 1.0;
+        double Theta = T[cqidx]/(mass_rest_frame*c*c); // T = vth2[cqidx]; (?) - Need to re-write the moments
+        double norm = num[cqidx] * (1.0/(4.0*GKYL_PI*mass_rest_frame*mass_rest_frame*mass_rest_frame*c*c*c*Theta)) * (sqrt(2*Theta/GKYL_PI));
 
         long pqidx = gkyl_range_idx(&phase_qrange, qiter.idx);
 
         comp_to_phys(pdim, gkyl_array_cfetch(up->ordinates, pqidx),
           up->grid.dx, xc, xmu);
 
-        //double efact = 0.0;
-        //for (int d=0; d<vdim; ++d)
-          //efact += (vel[cqidx][d]-xmu[cdim+d])*(vel[cqidx][d]-xmu[cdim+d]);
+        double uu = 0.0;
+        double vu = 0.0;
+        double vv = 0.0;
+        for (int d=0; d<vdim; ++d){
+           vv += (vel[cqidx][d]*vel[cqidx][d])/(c*c);
+           vu += (vel[cqidx][d]*xmu[cdim+d])/(c*c);
+           uu += (xmu[cdim+d]*xmu[cdim+d])/(c*c);
+        }
+        double gamma_shifted = 0.0;
+        gamma_shifted = 1/sqrt(1-vv);
 
-	double uu = 0.0;
-	double vu = 0.0;
-	double vv = 0.0;
-	for (int d=0; d<vdim; ++d){
-	   vv += (vel[cqidx][d]*vel[cqidx][d])/(c*c);
-	   vu += (vel[cqidx][d]*xmu[cdim+d])/(c*c);
-	   uu += (xmu[cdim+d]*xmu[cdim+d])/(c*c);
-	}
-	double gamma_shifted = 0.0;
-	gamma_shifted = 1/sqrt(1-vv); // vv cannot be greater than 1, do we want to check for this?
-
+        // f_MJ uses a leading order expansion of the modified bessel function
         double *fq = gkyl_array_fetch(fun_at_ords, pqidx);
         fq[0] = norm*exp( (1.0/Theta) - (gamma_shifted/Theta)*(sqrt(1+uu) - vu) );
-	//Takes the expanded K2 Bessel function to avoid calculating it for the normalization
-	//fq[0] = nvth2_q*exp(-efact/(2*vth2[cqidx]));
       }
 
       // compute expansion coefficients of MJ on basis
