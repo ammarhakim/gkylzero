@@ -36,6 +36,17 @@ struct gkyl_mp_scheme {
 // may be ignored.
 
 static inline void
+c2_recovery(int meqn,
+  const double *f3m, const double *f2m, const double *fm,
+  const double *fp, const double *f2p, const double *f3p,
+  double *outl, double *outr)
+{
+  // c2 is symmetric 2nd order scheme, so outl and outr are same
+  for (int m=0; m<meqn; ++m)
+    outr[m] = outl[m] = fm[m]/2.0 + fp[m]/2.0;
+}
+
+static inline void
 c4_recovery(int meqn,
   const double *f3m, const double *f2m, const double *fm,
   const double *fp, const double *f2p, const double *f3p,
@@ -44,6 +55,44 @@ c4_recovery(int meqn,
   // c4 is symmetric 4th order scheme, so outl and outr are same
   for (int m=0; m<meqn; ++m)
     outr[m] = outl[m] = -f2m[m]/12.0 + 7.0*fm[m]/12.0 + 7.0*fp[m]/12.0 - f2p[m]/12.0;
+}
+
+static inline void
+c6_recovery(int meqn,
+  const double *f3m, const double *f2m, const double *fm,
+  const double *fp, const double *f2p, const double *f3p,
+  double *outl, double *outr)
+{
+  // c6 is symmetric 6th order scheme, so outl and outr are same
+  for (int m=0; m<meqn; ++m)  
+    outr[m] = outl[m] =
+      37.0*fp[m]/60.0+37.0*fm[m]/60.0+f3p[m]/60.0+f3m[m]/60.0-2.0*f2p[m]/15.0-2.0*f2m[m]/15.0;
+}
+
+static inline void
+u1_recovery(int meqn,
+  const double *f3m, const double *f2m, const double *fm,
+  const double *fp, const double *f2p, const double *f3p,
+  double *outl, double *outr)
+{
+  // u1 is upwind-biased 1st order scheme
+  for (int m=0; m<meqn; ++m) {
+    outl[m] = fm[m];
+    outr[m] = fp[m];
+  }
+}
+
+static inline void
+u3_recovery(int meqn,
+  const double *f3m, const double *f2m, const double *fm,
+  const double *fp, const double *f2p, const double *f3p,
+  double *outl, double *outr)
+{
+  // u3 is upwind-biased 3rd order scheme
+  for (int m=0; m<meqn; ++m) {
+    outl[m] = -1.0/6.0*f2m[m] + 5.0/6.0*fm[m] + 1.0/3.0*fp[m];
+    outr[m] = 1.0/3.0*fm[m] + 5.0/6.0*fp[m] - 1.0/6.0*f2p[m];
+  }
 }
 
 static inline void
@@ -78,10 +127,20 @@ gkyl_mp_scheme_new(const struct gkyl_mp_scheme_inp *mpinp)
   mp->geom = gkyl_wave_geom_acquire(mpinp->geom);
 
   switch (mpinp->mp_recon) {
+    case GKYL_MP_C2:
+      mp->recovery_fn = c2_recovery;
+      break;
     case GKYL_MP_C4:
       mp->recovery_fn = c4_recovery;
       break;
     case GKYL_MP_C6:
+      mp->recovery_fn = c6_recovery;
+      break;
+    case GKYL_MP_U1:
+      mp->recovery_fn = u1_recovery;
+      break;
+    case GKYL_MP_U3:
+      mp->recovery_fn = u3_recovery;
       break;
     case GKYL_MP_U5:
       mp->recovery_fn = u5_recovery;
@@ -184,14 +243,16 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
         gkyl_array_cfetch(qrec_l, loc), gkyl_array_cfetch(qrec_r, loc),
         deltaf);
 
+      const double *amdq_p = gkyl_array_cfetch(amdq, loc);
+      const double *apdq_p = gkyl_array_cfetch(apdq, loc);
+
       double *rhs_p = gkyl_array_fetch(rhs, loc);
       for (int m=0; m<meqn; ++m)
-        rhs_p[m] += -deltaf[m]/dx;
+        rhs_p[m] += -deltaf[m]/dx - (apdq_p[m]+amdq_p[m])/dx;
 
       double *cflrate_p = gkyl_array_fetch(cflrate, loc);
       cflrate_p[0] += amax/dx;
     }
-
   }
 }
 

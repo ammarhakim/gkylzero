@@ -11,8 +11,11 @@
 // Base reconstruction scheme to use
 enum gkyl_mp_recon {
   GKYL_MP_C4 = 0, // centered fourth-order
+  GKYL_MP_C2, // centered second-order  
   GKYL_MP_C6, // centered sixth-order
-  GKYL_MP_U5, // upwind-biased 5th order
+  GKYL_MP_U1, // upwind-biased 1st order
+  GKYL_MP_U3, // upwind-biased 3rd order
+  GKYL_MP_U5, // upwind-biased 5th order  
 };
 
 // Object type for updater
