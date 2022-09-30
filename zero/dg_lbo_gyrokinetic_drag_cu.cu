@@ -80,7 +80,7 @@ dg_lbo_gyrokinetic_drag_set_cu_dev_ptrs(struct dg_lbo_gyrokinetic_drag *lbo_gyro
 
 struct gkyl_dg_eqn*
 gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, double mass)
+  const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid, double mass)
 {
   struct dg_lbo_gyrokinetic_drag *lbo_gyrokinetic_drag =
     (struct dg_lbo_gyrokinetic_drag*) gkyl_malloc(sizeof(struct dg_lbo_gyrokinetic_drag));
@@ -94,6 +94,9 @@ gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* cbasis, const s
   lbo_gyrokinetic_drag->eqn.num_equations = 1;
   lbo_gyrokinetic_drag->mass = mass;
   lbo_gyrokinetic_drag->conf_range = *conf_range;
+
+  lbo_gyrokinetic_drag->vparMax = pgrid->upper[cdim];
+  lbo_gyrokinetic_drag->vparMaxSq = pow(pgrid->upper[cdim],2);
 
   lbo_gyrokinetic_drag->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(lbo_gyrokinetic_drag->eqn.flags);

@@ -17,8 +17,8 @@ gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid, const struct g
 {
   gkyl_dg_updater_lbo_vlasov *up = gkyl_malloc(sizeof(gkyl_dg_updater_lbo_vlasov));
 
-  up->coll_drag = gkyl_dg_lbo_vlasov_drag_new(cbasis, pbasis, conf_range, use_gpu);
-  up->coll_diff = gkyl_dg_lbo_vlasov_diff_new(cbasis, pbasis, conf_range, use_gpu);
+  up->coll_drag = gkyl_dg_lbo_vlasov_drag_new(cbasis, pbasis, conf_range, grid, use_gpu);
+  up->coll_diff = gkyl_dg_lbo_vlasov_diff_new(cbasis, pbasis, conf_range, grid, use_gpu);
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int vdim = pdim-cdim;

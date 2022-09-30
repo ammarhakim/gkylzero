@@ -93,7 +93,7 @@ dg_lbo_vlasov_diff_set_cu_dev_ptrs(struct dg_lbo_vlasov_diff *lbo_vlasov_diff, e
 
 struct gkyl_dg_eqn*
 gkyl_dg_lbo_vlasov_diff_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range)
+  const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid)
 {
   struct dg_lbo_vlasov_diff *lbo_vlasov_diff =
     (struct dg_lbo_vlasov_diff*) gkyl_malloc(sizeof(struct dg_lbo_vlasov_diff));
@@ -102,10 +102,18 @@ gkyl_dg_lbo_vlasov_diff_cu_dev_new(const struct gkyl_basis* cbasis, const struct
   int poly_order = cbasis->poly_order;
 
   lbo_vlasov_diff->cdim = cdim;
+  lbo_vlasov_diff->vdim = vdim;
   lbo_vlasov_diff->pdim = pdim;
 
   lbo_vlasov_diff->eqn.num_equations = 1;
   lbo_vlasov_diff->conf_range = *conf_range;
+
+  lbo_vlasov_diff->vMaxSq = -1.;
+  for (int d=0; d<vdim; d++) {
+    lbo_vlasov_diff->viMax[d] = pgrid->upper[cdim+d];
+    lbo_vlasov_diff->vMaxSq = fmax(lbo_vlasov_diff->vMaxSq, pow(pgrid->upper[cdim+d],2));
+  }
+  lbo_vlasov_diff->num_cbasis = cbasis->num_basis;
 
   lbo_vlasov_diff->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(lbo_vlasov_diff->eqn.flags);

@@ -42,11 +42,11 @@ gkyl_lbo_gyrokinetic_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gk
 
 struct gkyl_dg_eqn*
 gkyl_dg_lbo_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, double mass, bool use_gpu)
+  const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid, double mass, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(cbasis, pbasis, conf_range, mass);
+    return gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(cbasis, pbasis, conf_range, pgrid, mass);
 #endif
   struct dg_lbo_gyrokinetic_drag* lbo_gyrokinetic_drag = gkyl_malloc(sizeof(struct dg_lbo_gyrokinetic_drag));
 
@@ -60,6 +60,9 @@ gkyl_dg_lbo_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct g
   lbo_gyrokinetic_drag->eqn.vol_term = vol;
   lbo_gyrokinetic_drag->eqn.surf_term = surf;
   lbo_gyrokinetic_drag->eqn.boundary_surf_term = boundary_surf;
+
+  lbo_gyrokinetic_drag->vparMax = pgrid->upper[cdim];
+  lbo_gyrokinetic_drag->vparMaxSq = pow(pgrid->upper[cdim],2);
 
   const gkyl_dg_lbo_gyrokinetic_drag_vol_kern_list *vol_kernels;
   const gkyl_dg_lbo_gyrokinetic_drag_surf_kern_list *surf_vpar_kernels, *surf_mu_kernels;
@@ -113,7 +116,7 @@ gkyl_dg_lbo_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct g
 
 struct gkyl_dg_eqn*
 gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, double mass)
+  const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid, double mass)
 {
   assert(false);
   return 0;
