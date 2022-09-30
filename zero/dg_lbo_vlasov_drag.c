@@ -39,12 +39,12 @@ gkyl_lbo_vlasov_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, const struct g
 }
 
 struct gkyl_dg_eqn*
-gkyl_dg_lbo_vlasov_drag_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, bool use_gpu)
+gkyl_dg_lbo_vlasov_drag_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
+  const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_lbo_vlasov_drag_cu_dev_new(cbasis, pbasis, conf_range);
+    return gkyl_dg_lbo_vlasov_drag_cu_dev_new(cbasis, pbasis, conf_range, pgrid);
   } 
 #endif
   struct dg_lbo_vlasov_drag* lbo_vlasov_drag = gkyl_malloc(sizeof(struct dg_lbo_vlasov_drag));
@@ -53,12 +53,20 @@ gkyl_dg_lbo_vlasov_drag_new(const struct gkyl_basis* cbasis,
   int poly_order = cbasis->poly_order;
 
   lbo_vlasov_drag->cdim = cdim;
+  lbo_vlasov_drag->vdim = vdim;
   lbo_vlasov_drag->pdim = pdim;
 
   lbo_vlasov_drag->eqn.num_equations = 1;
   lbo_vlasov_drag->eqn.vol_term = vol;
   lbo_vlasov_drag->eqn.surf_term = surf;
   lbo_vlasov_drag->eqn.boundary_surf_term = boundary_surf;
+
+  lbo_vlasov_drag->vMaxSq = -1.;
+  for (int d=0; d<vdim; d++) {
+    lbo_vlasov_drag->viMax[d] = pgrid->upper[cdim+d];
+    lbo_vlasov_drag->vMaxSq = fmax(lbo_vlasov_drag->vMaxSq, pow(pgrid->upper[cdim+d],2));
+  }
+  lbo_vlasov_drag->num_cbasis = cbasis->num_basis;
 
   const gkyl_dg_lbo_vlasov_drag_vol_kern_list *vol_kernels;
   const gkyl_dg_lbo_vlasov_drag_surf_kern_list *surf_vx_kernels, *surf_vy_kernels, *surf_vz_kernels;
@@ -127,7 +135,7 @@ gkyl_dg_lbo_vlasov_drag_new(const struct gkyl_basis* cbasis,
 
 struct gkyl_dg_eqn*
 gkyl_dg_lbo_vlasov_drag_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range)
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid)
 {
   assert(false);
   return 0;
