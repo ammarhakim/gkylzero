@@ -52,7 +52,7 @@ main(int argc, char **argv)
     .cfl_frac = 0.9,
 
     .scheme_type = GKYL_MOMENT_MP,
-    .mp_recon = GKYL_MP_U1,
+    .mp_recon = app_args.mp_recon,
 
     .num_species = 1,
     .species = { fluid },
