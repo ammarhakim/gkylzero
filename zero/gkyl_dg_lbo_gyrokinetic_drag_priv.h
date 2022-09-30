@@ -130,7 +130,7 @@ vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
       nuSum_p, nuUSum_p, nuVtSqSum_p, qIn, qRhsOut);
   } else {
     return 0.;
-  };
+  }
 }
 
 GKYL_CU_D
