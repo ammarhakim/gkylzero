@@ -65,6 +65,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         .grid = &app->grid,
         .equation = mom_sp->equation,
         .mp_recon = app->mp_recon,
+        .skip_mp_limiter = mom->skip_mp_limiter,
         .num_up_dirs = num_up_dirs,
         .update_dirs = { update_dirs[0], update_dirs[1], update_dirs[2] } ,
         .cfl = app->cfl,

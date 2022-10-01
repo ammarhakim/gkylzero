@@ -27,6 +27,7 @@ struct gkyl_mp_scheme_inp {
   const struct gkyl_wv_eqn *equation; // equation solver
 
   enum gkyl_mp_recon mp_recon; // base reconstruction to use
+  bool skip_mp_limiter; // should we skip MP limiter?
 
   int num_up_dirs; // number of update directions
   int update_dirs[GKYL_MAX_DIM]; // directions to update

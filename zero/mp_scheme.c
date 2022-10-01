@@ -21,6 +21,7 @@ struct gkyl_mp_scheme {
   int num_up_dirs; // number of update directions
   int update_dirs[GKYL_MAX_DIM]; // directions to update
   enum gkyl_mp_recon mp_recon; // base reconstruction to use
+  bool skip_mp_limiter; // should we skip MP limiter?  
 
   double cfl; // CFL number  
   
@@ -31,9 +32,9 @@ struct gkyl_mp_scheme {
 };
 
 // Each of the recovery methods below take 6 cells, three to the left
-// and three to the right, and return value at the left/right of the
-// interface. Note that depending on the scheme, some of these values
-// may be ignored.
+// and three to the right, and returns the values at the left/right of
+// the interface. Note that depending on the scheme, some of the input
+// values may be ignored.
 
 static inline void
 c2_recovery(int meqn,
@@ -151,9 +152,16 @@ max_3(double x, double y, double z)
 static inline double
 mp_limiter(double qe, double q2m, double q1m, double q0, double q1p, double q2p)
 {
-  double alpha = 4.0, eps = 1e-10;
+  double alpha = 4.0;
+ // Suresh and Huynh recommend 1e-10, but that seems turns off the
+ // limiter when the jumps are very tiny, leading to small-scale noise
+ // in certain situations. Not sure what this should be. Greg Hammett
+ // recommends eps = 0.0
+  double eps = 1.0e-10;
   // Eq 3.44
   double qmp = q0 + minmod_2(q1p-q0, alpha*(q0-q1m));
+
+  //return median(qe, q0, qmp);
 
   // Eq 3.45
   if ((qe-q0)*(qe-qmp)<eps) return qe; // no need to apply limiter
@@ -161,19 +169,22 @@ mp_limiter(double qe, double q2m, double q1m, double q0, double q1p, double q2p)
   // Eq 3.46-3.48
   double d1m = q2m + q0 - 2*q1m;
   double d0 = q1m + q1p - 2*q0;
-  double d1 = q0 + q2p - 2*q1p;
+  double d1p = q0 + q2p - 2*q1p;
+  // Eq 3.49 and 3.50
+  double dp_m4 = minmod_4(4*d0-d1p, 4*d1p-d0, d0, d1p);
+  double dm_m4 = minmod_4(4*d1m-d0, 4*d0-d1m, d1m, d0);
 
-  double dp_m4 = minmod_4(4*d0-d1, 4*d1-d0, d0, d1);
-  double dm_m4 = minmod_4(4*d1m-d0, 4*d0-d1m, d0, d1m);
-
+  // Eq 3.51-3.54
   double qul = q0 + alpha*(q0-q1m);
   double qavg = 0.5*(q0+q1p);
   double qmd = qavg - 0.5*dp_m4;
   double qlc = q0 + 0.5*(q0-q1m) + 4.0/3.0*dm_m4;
 
+  // Eq 3.55 and 3.56
   double qmin = fmax(min_3(q0,q1p,qmd), min_3(q0,qul,qlc));
   double qmax = fmin(max_3(q0,q1p,qmd), max_3(q0,qul,qlc));
-  
+
+  // 3.57
   return median(qe, qmin, qmax);
 }
 
@@ -199,6 +210,8 @@ gkyl_mp_scheme_new(const struct gkyl_mp_scheme_inp *mpinp)
     mp->update_dirs[i] = mpinp->update_dirs[i];
 
   mp->mp_recon = mpinp->mp_recon;
+  mp->skip_mp_limiter = mpinp->skip_mp_limiter;
+  
   mp->cfl = mpinp->cfl;
   
   mp->equation = gkyl_wv_eqn_acquire(mpinp->equation);
@@ -292,15 +305,17 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
         qavg[IP], qavg[I2P], qavg[I3P],
         qr_l, qr_r);
 
-      // apply MP limiter to left and right edge recovered values
-      for (int m=0; m<meqn; ++m) {
-        qr_r[m] = mp_limiter(qr_r[m],
-          qavg[I3P][m], qavg[I2P][m], qavg[IP][m],
-          qavg[IM][m], qavg[I2M][m]);
-        
-        qr_l[m] = mp_limiter(qr_l[m],
-          qavg[I3M][m], qavg[I2M][m], qavg[IM][m],
-          qavg[IP][m], qavg[I2P][m]);
+      if (!mp->skip_mp_limiter) {
+        // apply MP limiter to left and right edge recovered values
+        for (int m=0; m<meqn; ++m) {
+          qr_r[m] = mp_limiter(qr_r[m],
+            qavg[I3P][m], qavg[I2P][m], qavg[IP][m],
+            qavg[IM][m], qavg[I2M][m]);
+          
+          qr_l[m] = mp_limiter(qr_l[m],
+            qavg[I3M][m], qavg[I2M][m], qavg[IM][m],
+            qavg[IP][m], qavg[I2P][m]);
+        }
       }
 
       double *amdq_p = gkyl_array_fetch(amdq, loc+offsets[IM]);
