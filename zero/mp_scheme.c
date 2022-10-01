@@ -108,10 +108,88 @@ u5_recovery(int meqn,
   }
 }
 
+static inline double
+minmod_2(double x, double y)
+{
+  if (x>0 && y>0)
+    return fmin(x,y);
+  if (x<0 && y<0)
+    return fmax(x,y);
+  return 0.0;
+}
+
+static inline double
+minmod_4(double x, double y, double z, double w)
+{
+  if (x>0 && y>0 && z>0 && w>0)
+    return fmin(fmin(x,y),fmin(z,w));
+  if (x<0 && y<0 && z<0 && w<0)
+    return fmax(fmax(x,y),fmax(z,w));
+  return 0.0;
+}
+
+static inline double
+median(double x, double y, double z)
+{
+  return x + minmod_2(y-x,z-x);
+}
+
+static inline double
+min_3(double x, double y, double z)
+{
+  return fmin(x,fmin(y,z));
+}
+
+static inline double
+max_3(double x, double y, double z)
+{
+  return fmax(x,fmax(y,z));
+}
+
+// MP limiter: See Eqns 3.44 - 3.57 of Peterson and Hammett SIAM
+// J. Sci. Comput, vol 35, No 3 pp B576, 2013
+static inline double
+mp_limiter(double qe, double q2m, double q1m, double q0, double q1p, double q2p)
+{
+  double alpha = 4.0, eps = 1e-10;
+  // Eq 3.44
+  double qmp = q0 + minmod_2(q1p-q0, alpha*(q0-q1m));
+
+  // Eq 3.45
+  if ((qe-q0)*(qe-qmp)<eps) return qe; // no need to apply limiter
+
+  // Eq 3.46-3.48
+  double d1m = q2m + q0 - 2*q1m;
+  double d0 = q1m + q1p - 2*q0;
+  double d1 = q0 + q2p - 2*q1p;
+
+  double dp_m4 = minmod_4(4*d0-d1, 4*d1-d0, d0, d1);
+  double dm_m4 = minmod_4(4*d1m-d0, 4*d0-d1m, d0, d1m);
+
+  double qul = q0 + alpha*(q0-q1m);
+  double qavg = 0.5*(q0+q1p);
+  double qmd = qavg - 0.5*dp_m4;
+  double qlc = q0 + 0.5*(q0-q1m) + 4.0/3.0*dm_m4;
+
+  double qmin = fmax(min_3(q0,q1p,qmd), min_3(q0,qul,qlc));
+  double qmax = fmin(max_3(q0,q1p,qmd), max_3(q0,qul,qlc));
+  
+  return median(qe, qmin, qmax);
+}
+
+static inline long
+get_offset(int dir, int loc, const struct gkyl_range *range)
+{
+  int idx[GKYL_MAX_CDIM] = { 0, 0, 0 };
+  idx[dir] = loc;
+  return gkyl_range_offset(range, idx);
+}
+
+
 gkyl_mp_scheme*
 gkyl_mp_scheme_new(const struct gkyl_mp_scheme_inp *mpinp)
 {
-  struct gkyl_mp_scheme *mp = gkyl_malloc(sizeof(*mp));
+  struct gkyl_mp_scheme *mp = gkyl_malloc(sizeof *mp);
 
   mp->grid = *(mpinp->grid);
   mp->ndim = mp->grid.ndim;
@@ -150,14 +228,6 @@ gkyl_mp_scheme_new(const struct gkyl_mp_scheme_inp *mpinp)
   return mp;
 }
 
-static inline long
-get_offset(int dir, int loc, const struct gkyl_range *range)
-{
-  int idx[GKYL_MAX_CDIM] = { 0, 0, 0 };
-  idx[dir] = loc;
-  return gkyl_range_offset(range, idx);
-}
-
 void
 gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
   const struct gkyl_range *update_range, const struct gkyl_array *qin,
@@ -189,7 +259,7 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
     offsets[I2M] = get_offset(dir, -2, update_range);
     offsets[I3M] = get_offset(dir, -3, update_range);
 
-    const double *qrec_in[6]; // pointers to cells attached to edge
+    const double *qavg[6]; // pointers to cells attached to edge
 
     // create range that includes one extra layer on the upper size
     int upper[GKYL_MAX_CDIM] = { 0 };
@@ -204,25 +274,34 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
     // edges, and includes upper most edge also
     gkyl_range_iter_init(&iter, &update_range_ext);
     while (gkyl_range_iter_next(&iter)) {
-      // Note: Edge is between cells IM and IP
+      // Note: edge is between cells IM and IP
       
       long loc = gkyl_range_idx(update_range, iter.idx);
 
       // attach pointers to cells for recovery
       for (int i=0; i<6; ++i)
-        qrec_in[i] = gkyl_array_cfetch(qin, loc+offsets[i]);
+        qavg[i] = gkyl_array_cfetch(qin, loc+offsets[i]);
 
       // qr_l is left of edge (right edge of left cell), qr_r right of
       // edge (left edge of right cell)
       double *qr_l = gkyl_array_fetch(qrec_r, loc+offsets[IM]);
       double *qr_r = gkyl_array_fetch(qrec_l, loc+offsets[IP]);
 
-      // recover variables
-      mp->recovery_fn(meqn, qrec_in[I3M], qrec_in[I2M], qrec_in[IM],
-        qrec_in[IP], qrec_in[I2P], qrec_in[I3P],
+      // recover variables at cell edge
+      mp->recovery_fn(meqn, qavg[I3M], qavg[I2M], qavg[IM],
+        qavg[IP], qavg[I2P], qavg[I3P],
         qr_l, qr_r);
 
-      // TODO: Apply MP limiter
+      // apply MP limiter to left and right edge recovered values
+      for (int m=0; m<meqn; ++m) {
+        qr_r[m] = mp_limiter(qr_r[m],
+          qavg[I3P][m], qavg[I2P][m], qavg[IP][m],
+          qavg[IM][m], qavg[I2M][m]);
+        
+        qr_l[m] = mp_limiter(qr_l[m],
+          qavg[I3M][m], qavg[I2M][m], qavg[IM][m],
+          qavg[IP][m], qavg[I2P][m]);
+      }
 
       double *amdq_p = gkyl_array_fetch(amdq, loc+offsets[IM]);
       double *apdq_p = gkyl_array_fetch(apdq, loc+offsets[IP]);
