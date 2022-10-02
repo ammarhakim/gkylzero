@@ -43,7 +43,7 @@ main(int argc, char **argv)
   }
   
   struct gkyl_moment app_inp = {
-    .name = "maxwell_plane_wave_1d",
+    .name = "maxwell_plane_wave_1d_mp",
 
     .ndim = 1,
     .lower = { 0.0 },
@@ -52,7 +52,10 @@ main(int argc, char **argv)
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
-    .cfl_frac = 0.8,
+    .cfl_frac = 1.0,
+
+    .scheme_type = GKYL_MOMENT_MP,
+    .mp_recon = app_args.mp_recon,    
 
     .field = {
       .epsilon0 = 1.0, .mu0 = 1.0,

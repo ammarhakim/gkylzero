@@ -19,6 +19,11 @@ forward_euler(gkyl_moment_app* app, double tcurr, double dt,
     double dt1 = moment_species_rhs(app, &app->species[i], fin[i], fout[i]);
     dtmin = fmin(dtmin, dt1);
   }
+  // compute RHS of Maxwell equations
+  if (app->has_field) {
+    double dt1 = moment_field_rhs(app, &app->field, emin, emout);
+    dtmin = fmin(dtmin, dt1);
+  }  
 
   double dt_max_rel_diff = 0.01;
   // check if dtmin is slightly smaller than dt. Use dt if it is
@@ -36,6 +41,14 @@ forward_euler(gkyl_moment_app* app, double tcurr, double dt,
     gkyl_array_accumulate_range(gkyl_array_scale_range(fout[i], dta, app->local),
       1.0, fin[i], app->local);
     moment_species_apply_bc(app, tcurr, &app->species[i], fout[i]);
+  }
+  if (app->has_field) {
+    // complete update of field (even when field is static, it is
+    // safest to do this accumulate as it ensure emout = emin)
+    gkyl_array_accumulate_range(gkyl_array_scale_range(emout, dta, app->local),
+      1.0, emin, app->local);
+    
+    moment_field_apply_bc(app, tcurr, &app->field, emout);
   }
 }
 
