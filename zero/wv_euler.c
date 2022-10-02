@@ -353,6 +353,22 @@ qfluct_hllc_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
     return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
+static double
+flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
+{
+  const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
+
+  double fr[5], fl[5];
+  gkyl_euler_flux(euler->gas_gamma, ql, fl);
+  gkyl_euler_flux(euler->gas_gamma, qr, fr);
+
+  for (int m=0; m<5; ++m) flux_jump[m] = fr[m]-fl[m];
+
+  double amaxl = gkyl_euler_max_abs_speed(euler->gas_gamma, ql);
+  double amaxr = gkyl_euler_max_abs_speed(euler->gas_gamma, qr);  
+
+  return fmax(amaxl, amaxr);
+}
 
 static bool
 check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
@@ -405,7 +421,8 @@ gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp)
       break;      
   }
       
-  
+
+  euler->eqn.flux_jump = flux_jump;
   euler->eqn.max_speed_func = max_speed;
 
   euler->eqn.rotate_to_local_func = rot_to_local;
