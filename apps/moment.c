@@ -67,7 +67,7 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   double cfl_frac = mom->cfl_frac == 0 ? 0.95 : mom->cfl_frac;
   app->cfl = 1.0*cfl_frac;
   if (app->scheme_type == GKYL_MOMENT_MP)
-    app->cfl = 0.4; // this should be 1/(1+alpha) = 0.2 but is set to a larger value
+    app->cfl = 0.4*cfl_frac; // this should be 1/(1+alpha) = 0.2 but is set to a larger value
 
   app->num_periodic_dir = mom->num_periodic_dir;
   for (int d=0; d<ndim; ++d)

@@ -80,8 +80,6 @@ main(int argc, char **argv)
     .upper = { 1.25 }, 
     .cells = { NX },
 
-    .cfl_frac = 0.9,
-
     .scheme_type = GKYL_MOMENT_MP,
     .mp_recon = app_args.mp_recon,
 
