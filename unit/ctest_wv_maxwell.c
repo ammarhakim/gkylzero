@@ -153,12 +153,17 @@ test_maxwell_waves()
     
     gkyl_wv_eqn_waves(maxwell, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
 
+    double apdq_local[8], amdq_local[8];
+    gkyl_wv_eqn_qfluct(maxwell, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, waves_local, speeds,
+      amdq_local, apdq_local);
+
     // rotate waves back to global frame
     for (int mw=0; mw<6; ++mw)
       gkyl_wv_eqn_rotate_to_global(maxwell, tau1[d], tau2[d], norm[d], &waves_local[mw*8], &waves[mw*8]);
 
     double apdq[8], amdq[8];
-    gkyl_wv_eqn_qfluct(maxwell, GKYL_WV_HIGH_ORDER_FLUX, ql, qr, waves, speeds, amdq, apdq);
+    gkyl_wv_eqn_rotate_to_global(maxwell, tau1[d], tau2[d], norm[d], apdq_local, apdq);
+    gkyl_wv_eqn_rotate_to_global(maxwell, tau1[d], tau2[d], norm[d], amdq_local, amdq);
     
     // check if sum of left/right going fluctuations sum to jump in flux
     double fl_local[8], fr_local[8];
@@ -169,8 +174,10 @@ test_maxwell_waves()
     gkyl_wv_eqn_rotate_to_global(maxwell, tau1[d], tau2[d], norm[d], fl_local, fl);
     gkyl_wv_eqn_rotate_to_global(maxwell, tau1[d], tau2[d], norm[d], fr_local, fr);
     
-    for (int i=0; i<8; ++i)
+    for (int i=0; i<8; ++i) {
+      //printf("%d: %g %g (%g)\n", i, fr[i]-fl[i], amdq[i]+apdq[i], (fr[i]-fl[i])-(amdq[i]+apdq[i]));
       TEST_CHECK( gkyl_compare(fr[i]-fl[i], amdq[i]+apdq[i], 1e-14) );
+    }
   }
     
   gkyl_wv_eqn_release(maxwell);

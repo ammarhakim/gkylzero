@@ -110,6 +110,7 @@ struct moment_field {
     struct {
       gkyl_mp_scheme *mp_slvr; // monotonicity-preserving scheme
       struct gkyl_array *f0, *f1, *fnew; // arrays for updates
+      struct gkyl_array *cflrate; // CFL rate in each cell      
     };
   };
   struct gkyl_array *fcurr; // points to current solution (depends on scheme)
@@ -254,13 +255,16 @@ void moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_f
 void moment_field_apply_bc(const gkyl_moment_app *app, double tcurr,
   const struct moment_field *field, struct gkyl_array *f);
 
-
 // Maximum stable time-step due to EM fields
 double moment_field_max_dt(const gkyl_moment_app *app, const struct moment_field *fld);
 
 // Update EM field from tcurr to tcurr+dt
 struct gkyl_update_status moment_field_update(const gkyl_moment_app *app,
   const struct moment_field *fld, double tcurr, double dt);
+
+// Compute RHS of EM equations
+double moment_field_rhs(gkyl_moment_app *app, struct moment_field *fld,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 // Release the EM field object
 void moment_field_release(const struct moment_field *fld);

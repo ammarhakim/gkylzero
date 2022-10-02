@@ -31,7 +31,7 @@ forward_euler(gkyl_moment_app* app, double tcurr, double dt,
   double dta = st->dt_actual = dt < dtmin ? dt : dtmin;
   st->dt_suggested = dtmin;
 
-  // complete update of distribution function
+  // complete update of species
   for (int i=0; i<app->num_species; ++i) {
     gkyl_array_accumulate_range(gkyl_array_scale_range(fout[i], dta, app->local),
       1.0, fin[i], app->local);

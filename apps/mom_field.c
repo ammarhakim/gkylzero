@@ -61,10 +61,10 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         .grid = &app->grid,
         .equation = maxwell,
         .mp_recon = app->mp_recon,
-        .skip_mp_limiter = mom->skip_mp_limiter,        
+        .skip_mp_limiter = mom->skip_mp_limiter,
         .num_up_dirs = num_up_dirs,
         .update_dirs = { update_dirs[0], update_dirs[1], update_dirs[2] } ,
-        .cfl = app->cfl,        
+        .cfl = app->cfl,
         .geom = app->geom,
       }
     );
@@ -73,6 +73,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
     fld->f0 = mkarr(false, 8, app->local_ext.volume);
     fld->f1 = mkarr(false, 8, app->local_ext.volume);
     fld->fnew = mkarr(false, 8, app->local_ext.volume);
+    fld->cflrate = mkarr(false, 1, app->local_ext.volume);
 
     // set current solution so ICs and IO work properly
     fld->fcurr = fld->f0;
@@ -227,6 +228,23 @@ moment_field_update(const gkyl_moment_app *app,
   };
 }
 
+// Compute RHS of EM equations
+double
+moment_field_rhs(gkyl_moment_app *app, struct moment_field *fld,
+  const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  gkyl_array_clear(fld->cflrate, 0.0);
+  gkyl_array_clear(rhs, 0.0);
+
+  gkyl_mp_scheme_advance(fld->mp_slvr, &app->local, fin,
+    app->ql, app->qr, app->amdq, app->apdq,
+    fld->cflrate, rhs);
+
+  double omegaCfl[1];
+  gkyl_array_reduce_range(omegaCfl, fld->cflrate, GKYL_MAX, app->local);
+  return app->cfl/omegaCfl[0];
+}
+
 // free field
 void
 moment_field_release(const struct moment_field *fld)
@@ -251,6 +269,7 @@ moment_field_release(const struct moment_field *fld)
     gkyl_array_release(fld->f0);
     gkyl_array_release(fld->f1);
     gkyl_array_release(fld->fnew);
+    gkyl_array_release(fld->cflrate);
   }
     
   gkyl_array_release(fld->app_current);
