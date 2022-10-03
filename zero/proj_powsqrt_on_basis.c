@@ -5,8 +5,8 @@
 #include <gkyl_array.h>
 #include <gkyl_const.h>
 #include <gkyl_gauss_quad_data.h>
-#include <gkyl_spitzer_coll_freq.h>
-#include <gkyl_spitzer_coll_freq_priv.h>
+#include <gkyl_proj_powsqrt_on_basis.h>
+#include <gkyl_proj_powsqrt_on_basis_priv.h>
 #include <gkyl_range.h>
 
 // create range to loop over quadrature points.
@@ -88,10 +88,10 @@ init_quad_values(const struct gkyl_basis *basis, int num_quad,
   return tot_quad;
 }
 
-gkyl_spitzer_coll_freq*
-gkyl_spitzer_coll_freq_new(const struct gkyl_basis *basis, int num_quad, bool use_gpu)
+gkyl_proj_powsqrt_on_basis*
+gkyl_proj_powsqrt_on_basis_new(const struct gkyl_basis *basis, int num_quad, bool use_gpu)
 {
-  gkyl_spitzer_coll_freq *up = gkyl_malloc(sizeof(gkyl_spitzer_coll_freq));
+  gkyl_proj_powsqrt_on_basis *up = gkyl_malloc(sizeof(gkyl_proj_powsqrt_on_basis));
 
   up->ndim = basis->ndim;
   up->num_quad = num_quad;
@@ -111,7 +111,7 @@ gkyl_spitzer_coll_freq_new(const struct gkyl_basis *basis, int num_quad, bool us
 }
 
 static void
-proj_on_basis(const gkyl_spitzer_coll_freq *up, const struct gkyl_array *fun_at_ords, double* f)
+proj_on_basis(const gkyl_proj_powsqrt_on_basis *up, const struct gkyl_array *fun_at_ords, double* f)
 {
   int num_basis = up->num_basis;
   int tot_quad = up->tot_quad;
@@ -130,18 +130,15 @@ proj_on_basis(const gkyl_spitzer_coll_freq *up, const struct gkyl_array *fun_at_
 }
 
 void
-gkyl_spitzer_coll_freq_advance_normnu(const gkyl_spitzer_coll_freq *up,
-  const struct gkyl_range *range, const struct gkyl_array *vtSqSelf,
-  const struct gkyl_array *m0Other, const struct gkyl_array *vtSqOther,
-  double normNu, struct gkyl_array *nuOut)
+gkyl_proj_powsqrt_on_basis_advance(const gkyl_proj_powsqrt_on_basis *up,
+  const struct gkyl_range *range, double expIn, const struct gkyl_array *fIn,
+  struct gkyl_array *fOut)
 {
-  // Scale project normNu*n_r/(v_ts^2+v_tr^2)^(3/2) onto the basis using
-  // quadrature.
+  // Compute pow( sqrt(fIn), expIn ) via Gaussian quadrature.
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_spitzer_coll_freq_advance_normnu_cu(up, range, vtSqSelf, 
-      m0Other, vtSqOther, normNu, nuOut);
+    return gkyl_proj_powsqrt_on_basis_advance_cu(up, range, expIn, fIn, fOut);
 #endif
 
   // Create range to loop over quadrature points.
@@ -152,9 +149,7 @@ gkyl_spitzer_coll_freq_advance_normnu(const gkyl_spitzer_coll_freq *up,
   while (gkyl_range_iter_next(&iter)) {
     long linidx = gkyl_range_idx(range, iter.idx);
 
-    const double *vtSqSelf_d = gkyl_array_cfetch(vtSqSelf, linidx);
-    const double *m0Other_d = gkyl_array_cfetch(m0Other, linidx);
-    const double *vtSqOther_d = gkyl_array_cfetch(vtSqOther, linidx);
+    const double *fIn_d = gkyl_array_cfetch(fIn, linidx);
 
     struct gkyl_range_iter qiter;
     gkyl_range_iter_init(&qiter, &qrange);
@@ -164,27 +159,23 @@ gkyl_spitzer_coll_freq_advance_normnu(const gkyl_spitzer_coll_freq *up,
 
       // Evaluate densities and thermal speeds (squared) at quad point.
       const double *b_ord = gkyl_array_cfetch(up->basis_at_ords, qidx);
-      double vtSqSelf_q=0., m0Other_q=0., vtSqOther_q=0.;
-      for (int k=0; k<up->num_basis; ++k) {
-        vtSqSelf_q += vtSqSelf_d[k]*b_ord[k];
-        m0Other_q += m0Other_d[k]*b_ord[k];
-        vtSqOther_q += vtSqOther_d[k]*b_ord[k];
-      }
+      double fIn_q=0.;
+      for (int k=0; k<up->num_basis; ++k)
+        fIn_q += fIn_d[k]*b_ord[k];
 
-      double *fq = gkyl_array_fetch(up->fun_at_ords, qidx);
+      double *fOut_q = gkyl_array_fetch(up->fun_at_ords, qidx);
 
-      fq[0] = ((m0Other_q<0.) || (vtSqSelf_q<0.) || (vtSqOther_q<0.)) ?
-        1.e-40 : normNu*m0Other_q/pow(sqrt(vtSqSelf_q+vtSqOther_q),3);
+      fOut_q[0] = (fIn_q < 0.) ? 1.e-40 : pow(sqrt(fIn_q), expIn);
     }
 
     // compute expansion coefficients of Maxwellian on basis
-    proj_on_basis(up, up->fun_at_ords, gkyl_array_fetch(nuOut, linidx));
+    proj_on_basis(up, up->fun_at_ords, gkyl_array_fetch(fOut, linidx));
   }
 
 }
 
 void
-gkyl_spitzer_coll_freq_release(gkyl_spitzer_coll_freq* up)
+gkyl_proj_powsqrt_on_basis_release(gkyl_proj_powsqrt_on_basis* up)
 {
   gkyl_array_release(up->weights);
   gkyl_array_release(up->basis_at_ords);

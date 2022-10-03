@@ -48,7 +48,8 @@ gkyl_spitzer_coll_freq_advance_normnu_cu_ker(int num_quad,
         vtSqOther_q += vtSqOther_d[k]*b_ord[k];
       }
 
-      double nu_o = normNu*m0Other_q/pow(sqrt(vtSqSelf_q+vtSqOther_q),3);
+      double nu_o = ((m0Other_q<0.) || (vtSqSelf_q<0.) || (vtSqOther_q<0.)) ?
+        1.e-40 : normNu*m0Other_q/pow(sqrt(vtSqSelf_q+vtSqOther_q),3);
 
       double tmp = w_d[n]*nu_o;
       for (int k=0; k<num_basis; ++k)
