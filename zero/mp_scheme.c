@@ -157,7 +157,7 @@ mp_limiter(double qe, double q2m, double q1m, double q0, double q1p, double q2p)
  // limiter when the jumps are very tiny, leading to small-scale noise
  // in certain situations. Not sure what this should be. Greg Hammett
  // recommends eps = 0.0
-  double eps = 1.0e-10;
+  double eps = 0.0;
   // Eq 3.44
   double qmp = q0 + minmod_2(q1p-q0, alpha*(q0-q1m));
 
@@ -195,7 +195,6 @@ get_offset(int dir, int loc, const struct gkyl_range *range)
   idx[dir] = loc;
   return gkyl_range_offset(range, idx);
 }
-
 
 gkyl_mp_scheme*
 gkyl_mp_scheme_new(const struct gkyl_mp_scheme_inp *mpinp)
@@ -318,24 +317,50 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
         }
       }
 
-      double *amdq_p = gkyl_array_fetch(amdq, loc+offsets[IM]);
-      double *apdq_p = gkyl_array_fetch(apdq, loc+offsets[IP]);
+      const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(mp->geom, iter.idx);
+
+      // rotate ql and qr to local frame
+      double qlocal_r[meqn], qlocal_l[meqn];
+      mp->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qr_l, qlocal_l);
+      mp->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qr_r, qlocal_r);
+
+      double apdq_local[meqn], amdq_local[meqn];
+      
       // compute fluctuations: note the equation system must not use
       // either the waves or speeds
       gkyl_wv_eqn_qfluct(mp->equation, GKYL_WV_HIGH_ORDER_FLUX,
-        qr_l, qr_r, 0, 0, amdq_p, apdq_p);
+        qlocal_l, qlocal_r, 0, 0, amdq_local, apdq_local);
+
+      double *amdq_p = gkyl_array_fetch(amdq, loc+offsets[IM]);
+      double *apdq_p = gkyl_array_fetch(apdq, loc+offsets[IP]);
+
+      // rotate fluctuations back to global frame
+      mp->equation->rotate_to_global_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], amdq_local, amdq_p);
+      mp->equation->rotate_to_global_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], apdq_local, apdq_p);
     }
 
-    double deltaf[meqn];
+    double deltaf_local[meqn], deltaf[meqn];
     // Update RHS with contribution from flux jumps. Note this loop is
     // over interior cells
     gkyl_range_iter_init(&iter, update_range);
     while (gkyl_range_iter_next(&iter)) {
       long loc = gkyl_range_idx(update_range, iter.idx);
 
-      double amax = gkyl_wv_eqn_flux_jump(mp->equation,
-        gkyl_array_cfetch(qrec_l, loc), gkyl_array_cfetch(qrec_r, loc),
-        deltaf);
+      // THIS NEEDS TO CHANGE WHEN DOING GENERAL GEOMETRY!!!
+      const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(mp->geom, iter.idx);
+
+      const double *qr_l = gkyl_array_cfetch(qrec_l, loc);
+      const double *qr_r = gkyl_array_cfetch(qrec_r, loc);
+      
+      // rotate ql and qr to local frame
+      double qlocal_r[meqn], qlocal_l[meqn];
+      mp->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qr_l, qlocal_l);
+      mp->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qr_r, qlocal_r);
+
+      double amax = gkyl_wv_eqn_flux_jump(mp->equation, qlocal_l, qlocal_r, deltaf_local);
+
+      // rotate deltaf back to global frame
+      mp->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], deltaf_local, deltaf);
 
       const double *amdq_p = gkyl_array_cfetch(amdq, loc);
       const double *apdq_p = gkyl_array_cfetch(apdq, loc);

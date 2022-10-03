@@ -77,7 +77,6 @@ parse_app_args(int argc, char **argv)
   struct gkyl_app_args args = {
     .xcells = { 0 },
     .vcells = { 0 },
-    .mp_recon = GKYL_MP_C4,
   };
 
   strcpy(args.file_name, APP_ARGS_DEFAULT_FILE_NAME); // default

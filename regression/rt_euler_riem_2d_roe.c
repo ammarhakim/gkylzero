@@ -3,5 +3,5 @@
 int
 main(int argc, char **argv)
 {
-  return rt_euler_riem_2d_run(argc, argv, WV_EULER_RP_ROE);
+  return rt_euler_riem_2d_run(argc, argv, WV_EULER_RP_ROE, GKYL_MOMENT_WAVE_PROP);
 }
