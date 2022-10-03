@@ -63,11 +63,11 @@ static void qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   double c = advect->c;
 
   if (c > 0) {
-    apdq[0] = c * waves[0];
+    apdq[0] = c * (qr[0]-ql[0]);
     amdq[0] = 0.0;
   } else {
     apdq[0] = 0.0;
-    amdq[0] = c * waves[0];
+    amdq[0] = c * (qr[0]-ql[0]);
   }
 }
 
