@@ -18,10 +18,10 @@ static inline struct gkyl_range get_qrange(int dim, int num_quad) {
   return qrange;
 }
 
-// Sets ordinates, weights and basis functions at ords. Returns total
-// number of quadrature nodes
+// Sets weights and basis functions at ords. Returns total
+// number of quadrature nodes.
 static int
-init_quad_values(const struct gkyl_basis *basis, int num_quad, struct gkyl_array **ordinates,
+init_quad_values(const struct gkyl_basis *basis, int num_quad,
   struct gkyl_array **weights, struct gkyl_array **basis_at_ords, bool use_gpu)
 {
   int ndim = basis->ndim;
@@ -45,10 +45,8 @@ init_quad_values(const struct gkyl_basis *basis, int num_quad, struct gkyl_array
   struct gkyl_array *ordinates_ho = gkyl_array_new(GKYL_DOUBLE, ndim, tot_quad);
   struct gkyl_array *weights_ho = gkyl_array_new(GKYL_DOUBLE, 1, tot_quad);
   if (use_gpu) {
-    *ordinates = gkyl_array_cu_dev_new(GKYL_DOUBLE, ndim, tot_quad);
     *weights = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, tot_quad);
   } else {
-    *ordinates = gkyl_array_new(GKYL_DOUBLE, ndim, tot_quad);
     *weights = gkyl_array_new(GKYL_DOUBLE, 1, tot_quad);
   }
 
@@ -80,7 +78,6 @@ init_quad_values(const struct gkyl_basis *basis, int num_quad, struct gkyl_array
     basis->eval(gkyl_array_fetch(ordinates_ho, n), gkyl_array_fetch(basis_at_ords_ho, n));
 
   // copy host array to device array
-  gkyl_array_copy(*ordinates, ordinates_ho);
   gkyl_array_copy(*weights, weights_ho);
   gkyl_array_copy(*basis_at_ords, basis_at_ords_ho);
 
@@ -102,7 +99,7 @@ gkyl_spitzer_coll_freq_new(const struct gkyl_basis *basis, int num_quad, bool us
   up->use_gpu = use_gpu;
 
   // initialize data needed for quadrature
-  up->tot_quad = init_quad_values(basis, num_quad, &up->ordinates, &up->weights,
+  up->tot_quad = init_quad_values(basis, num_quad, &up->weights,
     &up->basis_at_ords, use_gpu);
 
   if (up->use_gpu)
@@ -191,9 +188,9 @@ gkyl_spitzer_coll_freq_advance_normnu(const gkyl_spitzer_coll_freq *up,
 void
 gkyl_spitzer_coll_freq_release(gkyl_spitzer_coll_freq* up)
 {
-  gkyl_array_release(up->ordinates);
   gkyl_array_release(up->weights);
   gkyl_array_release(up->basis_at_ords);
-  gkyl_array_release(up->fun_at_ords);
+  if (!up->use_gpu)
+    gkyl_array_release(up->fun_at_ords);
   gkyl_free(up);
 }

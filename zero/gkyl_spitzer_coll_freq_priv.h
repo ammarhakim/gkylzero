@@ -10,7 +10,6 @@ struct gkyl_spitzer_coll_freq {
 
   // for quadrature in conf space
   int tot_quad; // total number of quadrature points
-  struct gkyl_array *ordinates; // conf-space ordinates for quadrature
   struct gkyl_array *weights; // weights for conf-space quadrature
   struct gkyl_array *basis_at_ords; // conf-space basis functions at ordinates
 
