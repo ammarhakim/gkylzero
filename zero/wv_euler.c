@@ -361,8 +361,9 @@ qfluct_hllc_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
 }
 
 static void
-qfluct_hllc_direct(const struct gkyl_wv_eqn *eqn, const double *ql,
-    const double *qr, double *amdq, double *apdq)
+qfluct_hllc_direct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *ql, const double *qr, const double *waves, const double *speeds,
+  double *amdq, double *apdq)
 {
   double s[3], qml[5], qmr[5];
   states_hllc(eqn, ql, qr, s, qml, qmr);
