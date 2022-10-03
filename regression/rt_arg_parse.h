@@ -25,7 +25,8 @@ struct gkyl_app_args {
   int vcells[3]; // velocity space cells
   char file_name[1024]; // name of input file
   enum gkyl_basis_type basis_type; // type of basis functions to use
-  enum gkyl_mp_recon mp_recon; // the XX in MP-XX 
+  enum gkyl_mp_recon mp_recon; // the XX in MP-XX
+  bool skip_limiters; // should we skip limiters?
 };
 
 static int
@@ -71,6 +72,7 @@ parse_app_args(int argc, char **argv)
   bool use_gpu = false;
   bool step_mode = false;
   bool trace_mem = false;
+  bool skip_limiters = false;
   int num_steps = INT_MAX;
   int num_threads = 1; // by default use only 1 thread
 
@@ -96,6 +98,7 @@ parse_app_args(int argc, char **argv)
         printf("        (Ignored for finite-volume solvers)\n");
         printf(" -r     Recovery scheme. One of u1, u3, u5, c2, c4, c6\n");
         printf("        (Only used for MP-XX solvers)\n");
+        printf(" -l     Turn off limiters\n");
         printf(" -m     Turn on memory allocation/deallocation tracing\n");
         printf("\n");
         printf(" Grid resolution in configuration space:\n");
@@ -112,6 +115,10 @@ parse_app_args(int argc, char **argv)
       case 'm':
         trace_mem = true;
         break;
+
+      case 'l':
+        skip_limiters = true;
+        break;        
       
       case 's':
         step_mode = true;
@@ -170,6 +177,7 @@ parse_app_args(int argc, char **argv)
   args.step_mode = step_mode;
   args.num_steps = num_steps;
   args.num_threads = num_threads;
+  args.skip_limiters = skip_limiters;
 
   return args;
 }

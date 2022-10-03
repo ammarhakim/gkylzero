@@ -250,6 +250,9 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
   int ndim = update_range->ndim;
   int meqn = mp->equation->num_equations;
 
+  double apdq_local[meqn], amdq_local[meqn];
+  double qlocal_r[meqn], qlocal_l[meqn];
+
   // labels for three cells to left, three cells to right of edge:
   enum { I3M, I2M, IM, IP, I2P, I3P };
 
@@ -320,12 +323,9 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
       const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(mp->geom, iter.idx);
 
       // rotate ql and qr to local frame
-      double qlocal_r[meqn], qlocal_l[meqn];
       mp->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qr_l, qlocal_l);
       mp->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qr_r, qlocal_r);
 
-      double apdq_local[meqn], amdq_local[meqn];
-      
       // compute fluctuations: note the equation system must not use
       // either the waves or speeds
       gkyl_wv_eqn_qfluct(mp->equation, GKYL_WV_HIGH_ORDER_FLUX,
@@ -353,7 +353,6 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
       const double *qr_r = gkyl_array_cfetch(qrec_r, loc);
       
       // rotate ql and qr to local frame
-      double qlocal_r[meqn], qlocal_l[meqn];
       mp->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qr_l, qlocal_l);
       mp->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qr_r, qlocal_r);
 
