@@ -8,7 +8,6 @@
 #include <gkyl_spitzer_coll_freq.h>
 #include <gkyl_spitzer_coll_freq_priv.h>
 #include <gkyl_range.h>
-#include <assert.h>
 
 // create range to loop over quadrature points.
 static inline struct gkyl_range get_qrange(int dim, int num_quad) {
@@ -101,9 +100,6 @@ gkyl_spitzer_coll_freq_new(const struct gkyl_basis *basis, int num_quad, bool us
   up->num_quad = num_quad;
   up->num_basis = basis->num_basis;
   up->use_gpu = use_gpu;
-
-  // MF 2022/10/01: device kernel has arrays hard-coded to 3x p=2 for now.
-  if (use_gpu) assert(basis->poly_order<3);
 
   // initialize data needed for quadrature
   up->tot_quad = init_quad_values(basis, num_quad, &up->ordinates, &up->weights,
