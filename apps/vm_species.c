@@ -14,25 +14,8 @@
 #include <gkyl_vlasov_priv.h>
 #include <time.h>
 
-// Simple magnetic field direction for initial testing of PKPM model
-static void
-ev_bvar(double t, const double *xn, double *out, void *ctx)
-{
-  // B = (b_x, 0.0, 0.0)
-  out[0] = 1.0;
-  out[1] = 0.0;
-  out[2] = 0.0;
-  // BB = (b_x b_x, 0.0, 0.0, 0.0, 0.0, 0.0)
-  out[3] = 1.0;
-  out[4] = 0.0;
-  out[5] = 0.0;
-  out[6] = 0.0;
-  out[7] = 0.0;
-  out[8] = 0.0;
-}
-
-// Projection functions for p/(m*gamma) = v in special relativistic systems
-// Simplifies to p/sqrt(m^2 + p^2) where c = 1
+// Projection functions for p/(gamma) = v in special relativistic systems
+// Simplifies to p/sqrt(1 + p^2) where c = 1
 static void 
 ev_p_over_gamma_1p(double t, const double *xn, double *out, void *ctx)
 {
@@ -59,6 +42,56 @@ ev_p_over_gamma_3p(double t, const double *xn, double *out, void *ctx)
 }
 
 static const evalf_t p_over_gamma_func[3] = {ev_p_over_gamma_1p, ev_p_over_gamma_2p, ev_p_over_gamma_3p};
+
+// Projection functions for gamma = sqrt(1 + p^2) in special relativistic systems
+static void 
+ev_gamma_1p(double t, const double *xn, double *out, void *ctx)
+{
+  struct gamma_ctx *gtx = (struct gamma_ctx*) ctx;
+  double mass = gtx->mass;
+  out[0] = sqrt(1.0 + xn[0]*xn[0]);
+}
+static void 
+ev_gamma_2p(double t, const double *xn, double *out, void *ctx)
+{
+  struct gamma_ctx *gtx = (struct gamma_ctx*) ctx;
+  double mass = gtx->mass;
+  out[0] = sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1]);
+}
+static void 
+ev_gamma_3p(double t, const double *xn, double *out, void *ctx)
+{
+  struct gamma_ctx *gtx = (struct gamma_ctx*) ctx;
+  double mass = gtx->mass;
+  out[0] = sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+}
+
+static const evalf_t gamma_func[3] = {ev_gamma_1p, ev_gamma_2p, ev_gamma_3p};
+
+// Projection functions for gamma_inv = 1/sqrt(1 + p^2) in special relativistic systems
+static void 
+ev_gamma_inv_1p(double t, const double *xn, double *out, void *ctx)
+{
+  struct gamma_ctx *gtx = (struct gamma_ctx*) ctx;
+  double mass = gtx->mass;
+  out[0] = 1.0/sqrt(1.0 + xn[0]*xn[0]);
+}
+static void 
+ev_gamma_inv_2p(double t, const double *xn, double *out, void *ctx)
+{
+  struct gamma_ctx *gtx = (struct gamma_ctx*) ctx;
+  double mass = gtx->mass;
+  out[0] = 1.0/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1]);
+}
+static void 
+ev_gamma_inv_3p(double t, const double *xn, double *out, void *ctx)
+{
+  struct gamma_ctx *gtx = (struct gamma_ctx*) ctx;
+  double mass = gtx->mass;
+  out[0] = 1.0/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+}
+
+static const evalf_t gamma_inv_func[3] = {ev_gamma_inv_1p, ev_gamma_inv_2p, ev_gamma_inv_3p};
 
 // function to evaluate acceleration (this is needed as accel function
 // provided by the user returns 3 components, while the Vlasov solver
@@ -162,7 +195,10 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   // allocate array to store p/gamma (velocity) if present
   // Since p/gamma is a geometric quantity, can pre-compute it here
   s->p_over_gamma = 0;
+  s->gamma = 0;
+  s->gamma_inv = 0;
   if (s->model_id  == GKYL_MODEL_SR) {
+    // Projection of p/gamma
     s->p_over_gamma = mkarr(app->use_gpu, vdim*app->velBasis.num_basis, s->local_vel.volume);
     s->p_over_gamma_host = s->p_over_gamma;
     if (app->use_gpu)
@@ -183,34 +219,61 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     gkyl_proj_on_basis_release(p_over_gamma_proj);    
     if (app->use_gpu) // note: p_over_gamma_host is same as p_over_gamma when not on GPUs
       gkyl_array_copy(s->p_over_gamma, s->p_over_gamma_host);
+
+    // Project of gamma
+    s->gamma = mkarr(app->use_gpu, app->velBasis.num_basis, s->local_vel.volume);
+    s->gamma_host = s->gamma;
+    if (app->use_gpu)
+      s->gamma_host = mkarr(false, app->velBasis.num_basis, s->local_vel.volume);
+
+    gkyl_proj_on_basis *gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+        .grid = &s->grid_vel,
+        .basis = &app->velBasis,
+        .qtype = GKYL_GAUSS_LOBATTO_QUAD,
+        .num_quad = 8,
+        .num_ret_vals = 1,
+        .eval = gamma_func[vdim-1],
+        .ctx = &ctx
+      }
+    );  
+    // run updater
+    gkyl_proj_on_basis_advance(gamma_proj, 0.0, &s->local_vel, s->gamma_host);
+    gkyl_proj_on_basis_release(gamma_proj);    
+    if (app->use_gpu) // note: gamma_host is same as gamma when not on GPUs
+      gkyl_array_copy(s->gamma, s->gamma_host);
+
+    // Projection of gamma_inv = 1/gamma
+    s->gamma_inv = mkarr(app->use_gpu, app->velBasis.num_basis, s->local_vel.volume);
+    s->gamma_inv_host = s->gamma_inv;
+    if (app->use_gpu)
+      s->gamma_inv_host = mkarr(false, app->velBasis.num_basis, s->local_vel.volume);
+
+    gkyl_proj_on_basis *gamma_inv_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+        .grid = &s->grid_vel,
+        .basis = &app->velBasis,
+        .qtype = GKYL_GAUSS_LOBATTO_QUAD,
+        .num_quad = 8,
+        .num_ret_vals = 1,
+        .eval = gamma_inv_func[vdim-1],
+        .ctx = &ctx
+      }
+    );  
+    // run updater
+    gkyl_proj_on_basis_advance(gamma_inv_proj, 0.0, &s->local_vel, s->gamma_inv_host);
+    gkyl_proj_on_basis_release(gamma_inv_proj);    
+    if (app->use_gpu) // note: gamma_inv_host is same as gamma_inv when not on GPUs
+      gkyl_array_copy(s->gamma_inv, s->gamma_inv_host);
   }
 
   // allocate array to store b_i/rho for PKPM model
   s->rho_inv_b = 0;
   s->rho_inv_mem = 0;
-  // NOTE: For testing, bvar should be set by field object
-  s->bvar = 0;
   if (s->model_id  == GKYL_MODEL_PKPM) {
     s->rho_inv_b = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
     if (app->use_gpu)
       s->rho_inv_mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
     else
       s->rho_inv_mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
-
-    s->bvar = mkarr(app->use_gpu, 9*app->confBasis.num_basis, app->local_ext.volume);
-    gkyl_proj_on_basis *bvar_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-        .grid = &app->grid,
-        .basis = &app->confBasis,
-        .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-        .num_quad = 8,
-        .num_ret_vals = 9,
-        .eval = ev_bvar,
-        .ctx = 0
-      }
-    );  
-    // run updater
-    gkyl_proj_on_basis_advance(bvar_proj, 0.0, &app->local_ext, s->bvar);
-    gkyl_proj_on_basis_release(bvar_proj);  
 
     // Get pointer to fluid species object (needed for computing primitive moments)
     s->pkpm_fluid_species = vm_find_fluid_species(app, s->info.pkpm_fluid_species);
@@ -332,7 +395,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     // run updater
     gkyl_proj_on_basis_advance(gradB_proj, 0.0, &app->local, s->gradB_host);
     gkyl_proj_on_basis_release(gradB_proj);    
-    if (app->use_gpu) // note: p_over_gamma_host is same as p_over_gamma when not on GPUs
+    if (app->use_gpu) // note: gradB__host is same as gradB when not on GPUs
       gkyl_array_copy(s->gradB, s->gradB_host);
 
     gkyl_proj_on_basis *magB_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
@@ -347,7 +410,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     );
     gkyl_proj_on_basis_advance(magB_proj, 0.0, &app->local, s->magB_host);
     gkyl_proj_on_basis_release(magB_proj);    
-    if (app->use_gpu) // note: p_over_gamma_host is same as p_over_gamma when not on GPUs
+    if (app->use_gpu) // note: magB_host is same as magB when not on GPUs
       gkyl_array_copy(s->magB, s->magB_host);
   }
 
@@ -415,6 +478,9 @@ vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
 
   // we are pre-computing source for now as it is time-independent
   vm_species_source_calc(app, species, t0);
+
+  // compute pkpm variables if pkpm model
+  vm_species_calc_pkpm_vars(app, species, species->f, app->field->em);
 }
 
 void
@@ -424,6 +490,30 @@ vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, double t
     gkyl_proj_on_basis_advance(species->accel_proj, tm, &app->local_ext, species->accel_host);
     if (app->use_gpu) // note: accel_host is same as accel when not on GPUs
       gkyl_array_copy(species->accel, species->accel_host);
+  }
+}
+
+void
+vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species, 
+  const struct gkyl_array *fin, const struct gkyl_array *em)
+{
+  if (species->model_id == GKYL_MODEL_PKPM) {
+    vm_species_moment_calc(&species->pkpm_moms, species->local,
+      app->local, fin);
+    vm_field_calc_bvar(app, app->field, em);
+
+    for (int i = 0; i<3; ++i)
+      gkyl_dg_div_op_range(species->rho_inv_mem, app->confBasis, 
+        i, species->rho_inv_b, 
+        i, app->field->bvar, 
+        0, species->pkpm_moms.marr, &app->local);  
+  }
+  else if (species->model_id == GKYL_MODEL_SR_PKPM) {
+    vm_field_calc_sr_pkpm_vars(app, app->field, em);  
+    // EM variables are inputs to special relativistic PKPM moments
+    // kappa_inv_b and ExB velocity are needed for total current
+    vm_species_moment_calc(&species->pkpm_moms, species->local,
+      app->local, fin);  
   }
 }
 
@@ -439,8 +529,12 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
     double qbym = species->info.charge/species->info.mass;
     gkyl_array_set(species->qmem, qbym, em);
 
+    // Accumulate applied acceleration and/or q/m*(external electromagnetic)
+    // fields onto qmem to get the total acceleration
     if (species->has_accel)
       gkyl_array_accumulate(species->qmem, 1.0, species->accel);
+    if (app->field->has_ext_em)
+      gkyl_array_accumulate(species->qmem, qbym, app->field->ext_em);
 
     if (species->has_mirror_force) {
       // get n = J*M0*magB (since J = 1/B)
@@ -457,38 +551,32 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
     }
   }
 
-  if (species->model_id == GKYL_MODEL_PKPM) {
-    for (int i = 0; i<3; ++i)
-      gkyl_dg_div_op_range(species->rho_inv_mem, app->confBasis, 
-        i, species->rho_inv_b, 
-        i, species->bvar, 
-        0, species->pkpm_moms.marr, &app->local);      
-  }
-  
   gkyl_array_clear(rhs, 0.0);
  
-  if (app->use_gpu)
+  if (app->use_gpu) {
     if (species->model_id == GKYL_MODEL_PKPM)
       gkyl_dg_updater_vlasov_advance_cu(species->slvr, &species->local, 
         species->pkpm_fluid_species->u, species->pkpm_fluid_species->p,
-        species->bvar, species->rho_inv_b, 
+        app->field->bvar, species->rho_inv_b, 
         fin, species->cflrate, rhs);
     else
       gkyl_dg_updater_vlasov_advance_cu(species->slvr, &species->local, 
         species->qmem, species->p_over_gamma, 
         0, 0,
-        fin, species->cflrate, rhs);
-  else
+        fin, species->cflrate, rhs);    
+  }
+  else {
     if (species->model_id == GKYL_MODEL_PKPM)
       gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
         species->pkpm_fluid_species->u, species->pkpm_fluid_species->p, 
-        species->bvar, species->rho_inv_b, 
+        app->field->bvar, species->rho_inv_b, 
         fin, species->cflrate, rhs);
     else
       gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
         species->qmem, species->p_over_gamma, 
         0, 0, 
         fin, species->cflrate, rhs);
+  }
 
   if (species->collision_id == GKYL_LBO_COLLISIONS)
     vm_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
@@ -649,7 +737,6 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   if (s->model_id == GKYL_MODEL_PKPM) {
     gkyl_array_release(s->rho_inv_b);
     gkyl_dg_bin_op_mem_release(s->rho_inv_mem);
-    gkyl_array_release(s->bvar);
     vm_species_moment_release(app, &s->pkpm_moms);
   }
   

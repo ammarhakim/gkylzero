@@ -57,6 +57,17 @@ evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, vo
   fout[0] = 100.0;
 }
 
+void
+evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xn[0];
+  double B_x = 1.0;
+  
+  fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
+  fout[3] = B_x; fout[4] = 0.0; fout[5] = 0.0;
+  fout[6] = 0.0; fout[7] = 0.0;
+}
+
 struct pkpm_sod_shock_ctx
 create_ctx(void)
 {
@@ -115,6 +126,17 @@ main(int argc, char **argv)
     .num_diag_moments = 0,
   };
 
+  // field
+  struct gkyl_vlasov_field field = {
+    .epsilon0 = 1.0, .mu0 = 1.0,
+    .elcErrorSpeedFactor = 0.0,
+    .mgnErrorSpeedFactor = 0.0,
+
+    .is_static = true,
+
+    .init = evalFieldFunc,
+  };
+
   // VM app
   struct gkyl_vm vm = {
     .name = "pkpm_neut_sod_shock_p1",
@@ -133,7 +155,7 @@ main(int argc, char **argv)
     .species = { neut },
     .num_fluid_species = 1,
     .fluid_species = { fluid },
-    .skip_field = true,
+    .field = field,
 
     .use_gpu = app_args.use_gpu,
   };

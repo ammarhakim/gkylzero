@@ -16,7 +16,9 @@
 #include <gkyl_bc_basic.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
+#include <gkyl_dg_calc_em_vars.h>
 #include <gkyl_dg_calc_prim_vars.h>
+#include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_updater_fluid.h>
 #include <gkyl_dg_updater_diffusion.h>
@@ -172,14 +174,19 @@ struct vm_species {
   struct gkyl_array *qmem; // array for q/m*(E,B)
   struct gkyl_array *fac_phi; // array for potential (electrostatic or gravitational)
   struct gkyl_array *vecA; // array for vector potential
-  struct gkyl_array *p_over_gamma; // array for p/gamma (velocity) in special relativistic equation
+
+  // Special relativistic Vlasov arrays
+  struct gkyl_array *p_over_gamma; // array for p/gamma (velocity) 
   struct gkyl_array *p_over_gamma_host; // host copy for use in projecting before copying over to GPU
+  struct gkyl_array *gamma; // array for gamma = sqrt(1 + p^2) 
+  struct gkyl_array *gamma_host; // host copy for use in projecting before copying over to GPU
+  struct gkyl_array *gamma_inv; // array for gamma = 1.0/sqrt(1 + p^2) 
+  struct gkyl_array *gamma_inv_host; // host copy for use in projecting before copying over to GPU
 
   // Data for PKPM model
   struct vm_fluid_species *pkpm_fluid_species; // pointers to cross-species we collide with
   struct gkyl_array *rho_inv_b; // b_i/rho (for use in pressure force 1/rho * b. div(P))
   struct gkyl_dg_bin_op_mem *rho_inv_mem; // memory used in the div-op for rho_inv_b
-  struct gkyl_array *bvar; // NOTE: just for testing, should actually be in field object
 
   gkyl_dg_updater_vlasov *slvr; // Vlasov solver 
   struct gkyl_dg_eqn *eqn_vlasov; // Vlasov equation object
@@ -225,6 +232,12 @@ struct vm_species {
   double *omegaCfl_ptr;
 };
 
+// context for use in computing external electromagnetic fields
+struct vm_eval_ext_em_ctx { evalf_t ext_em_func; void *ext_em_ctx; };
+
+// context for use in computing applied current
+struct vm_eval_app_current_ctx { evalf_t app_current_func; void *app_current_ctx; };
+
 // field data
 struct vm_field {
   struct gkyl_vlasov_field info; // data for field
@@ -236,7 +249,24 @@ struct vm_field {
 
   struct gkyl_array *em_host;  // host copy for use IO and initialization
 
-  struct gkyl_array *bvar; // magnetic field unit vector and tensor (for use in pkpm model)
+  bool has_ext_em; // flag to indicate there is external electromagnetic field
+  bool ext_em_evolve; // flag to indicate external electromagnetic field is time dependent
+  struct gkyl_array *ext_em; // external electromagnetic field
+  struct gkyl_array *ext_em_host; // host copy for use in IO and projecting
+  gkyl_proj_on_basis *ext_em_proj; // projector for external electromagnetic field 
+  struct vm_eval_ext_em_ctx ext_em_ctx; // context for external electromagnetic field 
+
+  bool has_app_current; // flag to indicate there is an applied current 
+  bool app_current_evolve; // flag to indicate applied current is time dependent
+  struct gkyl_array *app_current; // applied current
+  struct gkyl_array *app_current_host; // host copy for use in IO and projecting
+  gkyl_proj_on_basis *app_current_proj; // projector for applied current 
+  struct vm_eval_app_current_ctx app_current_ctx; // context for applied current
+
+  struct gkyl_array *bvar; // magnetic field unit vector and tensor (diagnostic and for use in pkpm model)
+  struct gkyl_array *ExB; // E x B velocity = E x B/|B|^2 (diagnostic and for use in relativistic pkpm model)
+  struct gkyl_array *kappa_inv_b; // b_i/kappa; magnetic field unit vector divided by Lorentz boost factor
+                                  // for E x B velocity, b_i/kappa = sqrt((B_i)^2/|B|^2*(1 - |E x B|^2/(c^2 |B|^4)))
 
   gkyl_hyper_dg *slvr; // Maxwell solver
 
@@ -657,6 +687,17 @@ void vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, dou
 void vm_species_calc_magB_gradB(gkyl_vlasov_app *app, struct vm_species *species, double tm);
 
 /**
+ * Compute parallel-kinetic-perpendicular-moment (pkpm) model variables
+ *
+ * @param app Vlasov app object
+ * @param species Species object
+ * @param fin Input distribution function
+ * @param em Input EM field (needed for bvar, and ExB and kappa_inv_b in relativistic pkpm)
+ */
+void vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species, 
+  const struct gkyl_array *fin, const struct gkyl_array *em);
+
+/**
  * Compute RHS from species distribution function
  *
  * @param app Vlasov app object
@@ -682,19 +723,6 @@ double vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
  */
 void vm_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_species *species,
   int dir, struct gkyl_array *f);
-
-/**
- * Apply copy BCs to species distribution function
- *
- * @param app Vlasov app object
- * @param species Pointer to species
- * @param dir Direction to apply BCs
- * @param edge Edge to apply BCs
- * @param f Field to apply BCs
- */
-void
-vm_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_species *species,
-  int dir, enum vm_domain_edge edge, struct gkyl_array *f);
 
 /**
  * Apply BCs to species distribution function
@@ -749,6 +777,55 @@ struct vm_field* vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app);
 void vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, double t0);
 
 /**
+ * Compute external electromagnetic fields
+ *
+ * @param app Vlasov app object
+ * @param field Field object
+ * @param tm Time for use in external electromagnetic fields computation
+ */
+void vm_field_calc_ext_em(gkyl_vlasov_app *app, struct vm_field *field, double tm);
+
+/**
+ * Compute applied currents
+ *
+ * @param app Vlasov app object
+ * @param field Field object
+ * @param tm Time for use in applied current computation
+ */
+void vm_field_calc_app_current(gkyl_vlasov_app *app, struct vm_field *field, double tm);
+
+/**
+ * Compute magnetic field unit vector and unit tensor
+ *
+ * @param app Vlasov app object
+ * @param field Field object (output bvar is stored in field object)
+ * @param em Input electromagnetic fields
+ */
+void vm_field_calc_bvar(gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *em);
+
+/**
+ * Compute E x B velocity
+ *
+ * @param app Vlasov app object
+ * @param field Field object (output ExB is stored in field object)
+ * @param em Input electromagnetic fields
+ */
+void vm_field_calc_ExB(gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *em);
+
+/**
+ * Compute special relativistic electromagnetic variables
+ * bvar = magnetic field unit vector (first 3 components) and unit tensor (last 6 components)
+ * ExB = E x B velocity, E x B/|B|^2
+ * kappa_inv_b = b_i/kappa; magnetic field unit vector divided by Lorentz boost factor
+ *               for E x B velocity, b_i/kappa = sqrt((B_i)^2/|B|^2*(1 - |E x B|^2/(c^2 |B|^4)))
+ *
+ * @param app Vlasov app object
+ * @param field Field object (output bvar is stored in field object)
+ * @param em Input electromagnetic fields
+ */
+void vm_field_calc_sr_pkpm_vars(gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *em);
+
+/**
  * Compute RHS from field equations
  *
  * @param app Vlasov app object
@@ -769,28 +846,6 @@ double vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field, const struct g
  */
 void vm_field_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_field *field,
   int dir, struct gkyl_array *f);
-
-/**
- * Apply copy BCs to field
- *
- * @param app Vlasov app object
- * @param field Pointer to field
- * @param dir Direction to apply BCs
- * @param f Field to apply BCs
- */
-void vm_field_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_field *field,
-  int dir, enum vm_domain_edge edge, struct gkyl_array *f);
-
-/**
- * Apply PEC wall BCs to field
- *
- * @param app Vlasov app object
- * @param field Pointer to field
- * @param dir Direction to apply BCs
- * @param f Field to apply BCs
- */
-void vm_field_apply_pec_bc(gkyl_vlasov_app *app, const struct vm_field *field,
-  int dir, enum vm_domain_edge edge, struct gkyl_array *f);
 
 /**
  * Apply BCs to field
@@ -905,10 +960,9 @@ void vm_fluid_species_calc_diff(gkyl_vlasov_app* app, struct vm_fluid_species* f
  * @param app Vlasov app object
  * @param fluid_species Pointer to fluid species (where primitive variables are stored)
  * @param fluid Input array fluid species
- * @param fin Input array of distribution function (size: num_species) for fluid-kinetic coupling
  */
 void vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species,
-  const struct gkyl_array *fluid, const struct gkyl_array *fin[]);
+  const struct gkyl_array *fluid);
 
 /**
  * Compute RHS from fluid species equations

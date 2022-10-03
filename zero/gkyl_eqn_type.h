@@ -28,6 +28,7 @@ enum gkyl_model_id {
   GKYL_MODEL_DEFAULT = 0, // No subsidiary model specified
   GKYL_MODEL_PKPM,
   GKYL_MODEL_SR,
+  GKYL_MODEL_SR_PKPM,
 };
 
 // Identifiers for specific diffusion object types

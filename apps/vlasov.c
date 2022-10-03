@@ -551,11 +551,29 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 
   double dtmin = DBL_MAX;
 
+  // Compute external EM field or applied currents if present.
+  // Note: uses proj_on_basis so does copy to GPU every call if app->use_gpu = true.
+  if (app->field->ext_em_evolve)
+    vm_field_calc_ext_em(app, app->field, tcurr);
+  if (app->field->app_current_evolve)
+    vm_field_calc_app_current(app, app->field, tcurr);
+
+  // Compute parallel-kinetic-perpendicular moment (pkpm) kinetic species variables if present.
+  // Need to do this first since fluid species primitive variables 
+  // depend upon kinetic species variables (such as moments)
+  // Note: computes the relevant field quantities such as the magnetic
+  // field unit vector and unit tensor which are explicitly needed for
+  // the pkpm models (both non-relativistic and relativistic)
+  for (int i=0; i<app->num_species; ++i) {
+    vm_species_calc_pkpm_vars(app, &app->species[i], fin[i], emin);
+  }
+
   // compute primitive moments for fluid species evolution and coupling
   // Need to do this *before* collisions since collisional boundary corrections
   // use fluid primitive moments in fluid-kinetic systems (e.g., pkpm model)
-  for (int i=0; i<app->num_fluid_species; ++i)
-    vm_fluid_species_prim_vars(app, &app->fluid_species[i], fluidin[i], fin);
+  for (int i=0; i<app->num_fluid_species; ++i) {
+    vm_fluid_species_prim_vars(app, &app->fluid_species[i], fluidin[i]);
+  }
 
   // compute necessary moments and boundary corrections for collisions
   for (int i=0; i<app->num_species; ++i) {
@@ -650,6 +668,9 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
         } 
         else {
           gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, app->local);
+          // Accumulate applied current to electric field terms
+          if (app->field->has_app_current)
+            gkyl_array_accumulate_range(emout, -1.0/app->field->info.epsilon0, app->field->app_current, app->local);
         }
       }
       // accumulate current contribution from fluid species to electric field terms

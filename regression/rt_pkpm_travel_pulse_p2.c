@@ -6,7 +6,7 @@
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
 
-struct pkpm_sod_shock_ctx {
+struct pkpm_travel_pulse_ctx {
   double charge; // charge
   double mass; // mass
   double vt; // thermal velocity
@@ -25,7 +25,7 @@ maxwellian(double n, double v, double u, double vth)
 void
 evalDistFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct pkpm_sod_shock_ctx *app = ctx;
+  struct pkpm_travel_pulse_ctx *app = ctx;
   double x = xn[0], v = xn[1];
   double n = 1.0 + 0.2*sin(M_PI*x);
   double p = 1.0;
@@ -35,7 +35,7 @@ evalDistFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 void 
 evalFluidFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct pkpm_sod_shock_ctx *app = ctx;
+  struct pkpm_travel_pulse_ctx *app = ctx;
   double x = xn[0];
   double n = 1.0 + 0.2*sin(M_PI*x);
   double p = 1.0, u = 1.0;
@@ -50,15 +50,26 @@ evalFluidFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 void
 evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct pkpm_sod_shock_ctx *app = ctx;
+  struct pkpm_travel_pulse_ctx *app = ctx;
   double x = xn[0], v = xn[1];
   fout[0] = 100.0;
 }
 
-struct pkpm_sod_shock_ctx
+void
+evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xn[0];
+  double B_x = 1.0;
+  
+  fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
+  fout[3] = B_x; fout[4] = 0.0; fout[5] = 0.0;
+  fout[6] = 0.0; fout[7] = 0.0;
+}
+
+struct pkpm_travel_pulse_ctx
 create_ctx(void)
 {
-  struct pkpm_sod_shock_ctx ctx = {
+  struct pkpm_travel_pulse_ctx ctx = {
     .mass = 1.0,
     .charge = 0.0,
     .vt = 1.0,
@@ -79,7 +90,7 @@ main(int argc, char **argv)
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  struct pkpm_sod_shock_ctx ctx = create_ctx(); // context for init functions
+  struct pkpm_travel_pulse_ctx ctx = create_ctx(); // context for init functions
 
   // PKPM fluid                                                                                      
   struct gkyl_vlasov_fluid_species fluid = {
@@ -113,6 +124,17 @@ main(int argc, char **argv)
     .num_diag_moments = 0,
   };
 
+  // field
+  struct gkyl_vlasov_field field = {
+    .epsilon0 = 1.0, .mu0 = 1.0,
+    .elcErrorSpeedFactor = 0.0,
+    .mgnErrorSpeedFactor = 0.0,
+
+    .is_static = true,
+
+    .init = evalFieldFunc,
+  };
+
   // VM app
   struct gkyl_vm vm = {
     .name = "pkpm_travel_pulse_p2",
@@ -131,7 +153,7 @@ main(int argc, char **argv)
     .species = { neut },
     .num_fluid_species = 1,
     .fluid_species = { fluid },
-    .skip_field = true,
+    .field = field,
 
     .use_gpu = app_args.use_gpu,
   };

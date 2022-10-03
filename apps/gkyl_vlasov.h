@@ -127,6 +127,16 @@ struct gkyl_vlasov_field {
   void *ctx; // context for initial condition init function
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
+
+  void *ext_em_ctx; // context for external electromagnetic fields function
+  // pointer to external electromagnetic fields function
+  void (*ext_em)(double t, const double *xn, double *ext_em_out, void *ctx);
+  bool ext_em_evolve; // set to true if external electromagnetic field function is time dependent
+
+  void *app_current_ctx; // context for external electromagnetic fields function
+  // pointer to external electromagnetic fields function
+  void (*app_current)(double t, const double *xn, double *app_current_out, void *ctx);
+  bool app_current_evolve; // set to true if applied current function is time dependent
   
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];

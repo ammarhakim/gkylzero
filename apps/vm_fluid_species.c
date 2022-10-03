@@ -280,10 +280,7 @@ vm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_s
   vm_fluid_species_calc_diff(app, fluid_species, t0);
 
   // compute primitive variables at t = 0
-  const struct gkyl_array *fin[app->num_species];
-  for (int i=0; i<app->num_species; ++i)
-    fin[i] = fluid_species->pkpm_species->f;
-  vm_fluid_species_prim_vars(app, fluid_species, fluid_species->fluid, fin);
+  vm_fluid_species_prim_vars(app, fluid_species, fluid_species->fluid);
 
   // we are pre-computing source for now as it is time-independent
   vm_fluid_species_source_calc(app, fluid_species, t0);
@@ -312,7 +309,7 @@ vm_fluid_species_calc_diff(gkyl_vlasov_app* app, struct vm_fluid_species* fluid_
 
 void
 vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species,
-  const struct gkyl_array *fluid, const struct gkyl_array *fin[])
+  const struct gkyl_array *fluid)
 {
   gkyl_array_clear(fluid_species->u, 0.0);
 
@@ -330,12 +327,9 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
       fluid_species->u, fluid, fluid_species->p);
   }
   else if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
-    vm_species_moment_calc(&fluid_species->pkpm_species->pkpm_moms, fluid_species->pkpm_species->local, 
-      app->local, fin[fluid_species->species_index]);
-
     gkyl_calc_prim_vars_u_from_rhou(fluid_species->u_mem, app->confBasis, &app->local, 
       fluid_species->pkpm_species->pkpm_moms.marr, fluid, fluid_species->u);
-    gkyl_calc_prim_vars_p_pkpm(app->confBasis, &app->local, app->species[fluid_species->species_index].bvar, 
+    gkyl_calc_prim_vars_p_pkpm(app->confBasis, &app->local, app->field->bvar, 
       fluid_species->pkpm_species->pkpm_moms.marr, fluid, fluid_species->p);
   }
   else {
