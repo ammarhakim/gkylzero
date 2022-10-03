@@ -65,6 +65,9 @@ main(int argc, char **argv)
     .periodic_dirs = { 0 },
     .cfl_frac = 0.4,
 
+    .scheme_type = GKYL_MOMENT_MP,
+    .mp_recon = app_args.mp_recon,
+
     .num_species = 1,
     .species = { fluid },
   };
