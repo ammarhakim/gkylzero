@@ -360,6 +360,25 @@ qfluct_hllc_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
     return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
+static void
+qfluct_hllc_direct(const struct gkyl_wv_eqn *eqn, const double *ql,
+    const double *qr, double *amdq, double *apdq)
+{
+  double s[3], qml[5], qmr[5];
+  states_hllc(eqn, ql, qr, s, qml, qmr);
+
+  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]), s2m = fmin(0.0, s[2]);
+  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]), s2p = fmax(0.0, s[2]);
+
+  for (int i=0; i<5; ++i) {
+    double w0 = qml[i] - ql[i];
+    double w1 = qmr[i] - qml[i];
+    double w2 = qr[i] - qmr[i];
+    amdq[i] = s0m*w0 + s1m*w1 + s2m*w2;
+    apdq[i] = s0p*w0 + s1p*w1 + s2p*w2;
+  }
+}
+
 static double
 flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
 {
