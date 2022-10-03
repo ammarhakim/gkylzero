@@ -26,7 +26,8 @@ gkyl_lbo_gyrokinetic_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gk
 
 #ifdef GKYL_HAVE_CUDA
  if (gkyl_array_is_cu_dev(auxin.bmag_inv) && gkyl_array_is_cu_dev(auxin.nuSum) &&
-     gkyl_array_is_cu_dev(auxin.nuUSum) && gkyl_array_is_cu_dev(auxin.nuVtSqSum)) {
+     gkyl_array_is_cu_dev(auxin.nuUSum) && gkyl_array_is_cu_dev(auxin.nuVtSqSum) &&
+     gkyl_array_is_cu_dev(auxin.m2self)) {
    gkyl_lbo_gyrokinetic_drag_set_auxfields_cu(eqn->on_dev, auxin);
    return;
  }
@@ -37,6 +38,7 @@ gkyl_lbo_gyrokinetic_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gk
   lbo_gyrokinetic_drag->auxfields.nuSum = auxin.nuSum;
   lbo_gyrokinetic_drag->auxfields.nuUSum = auxin.nuUSum;
   lbo_gyrokinetic_drag->auxfields.nuVtSqSum = auxin.nuVtSqSum;
+  lbo_gyrokinetic_drag->auxfields.m2self = auxin.m2self;
 }
 
 
@@ -102,6 +104,7 @@ gkyl_dg_lbo_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct g
   lbo_gyrokinetic_drag->auxfields.nuSum = 0;
   lbo_gyrokinetic_drag->auxfields.nuUSum = 0;
   lbo_gyrokinetic_drag->auxfields.nuVtSqSum = 0;
+  lbo_gyrokinetic_drag->auxfields.m2self = 0;
   lbo_gyrokinetic_drag->conf_range = *conf_range;
 
   lbo_gyrokinetic_drag->eqn.flags = 0;
