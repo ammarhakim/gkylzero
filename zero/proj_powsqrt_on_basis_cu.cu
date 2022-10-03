@@ -16,7 +16,7 @@ gkyl_proj_powsqrt_on_basis_advance_cu_ker(int num_quad,
   int num_basis = basis_at_ords->ncomp;
   int tot_quad = basis_at_ords->size;
 
-  int idx[3];
+  int idx[GKYL_MAX_DIM];
 
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
       tid < range.volume; tid += blockDim.x*gridDim.x) {
