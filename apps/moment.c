@@ -316,10 +316,33 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
     fprintf(fp, " nup : %ld,\n", app->stat.nup);
     fprintf(fp, " nfail : %ld,\n", app->stat.nfail);
     fprintf(fp, " total_tm : %lg,\n", app->stat.total_tm);
-    fprintf(fp, " species_tm : %lg,\n", app->stat.species_tm);
-    fprintf(fp, " field_tm : %lg,\n", app->stat.field_tm);
-    fprintf(fp, " sources_tm : %lg\n", app->stat.sources_tm);
 
+    if (app->scheme_type == GKYL_MOMENT_WAVE_PROP) {    
+      fprintf(fp, " species_tm : %lg,\n", app->stat.species_tm);
+      fprintf(fp, " field_tm : %lg,\n", app->stat.field_tm);
+      fprintf(fp, " sources_tm : %lg\n", app->stat.sources_tm);
+    }
+    else if (app->scheme_type == GKYL_MOMENT_MP) {
+      fprintf(fp, " nfeuler : %ld,\n", app->stat.nfeuler);
+      fprintf(fp, " nstage_2_fail : %ld,\n", app->stat.nstage_2_fail);
+      fprintf(fp, " nstage_3_fail : %ld,\n", app->stat.nstage_3_fail);
+
+      fprintf(fp, " stage_2_dt_diff : [ %lg, %lg ],\n",
+        app->stat.stage_2_dt_diff[0], app->stat.stage_2_dt_diff[1]);
+      fprintf(fp, " stage_3_dt_diff : [ %lg, %lg ],\n",
+        app->stat.stage_3_dt_diff[0], app->stat.stage_3_dt_diff[1]);
+      
+      fprintf(fp, " total_tm : %lg,\n", app->stat.total_tm);
+      fprintf(fp, " init_species_tm : %lg,\n", app->stat.init_species_tm);
+      if (app->has_field)
+        fprintf(fp, " init_field_tm : %lg,\n", app->stat.init_field_tm);
+      
+      fprintf(fp, " species_rhs_tm : %lg,\n", app->stat.species_rhs_tm);
+
+      if (app->has_field)
+        fprintf(fp, " field_rhs_tm : %lg,\n", app->stat.field_rhs_tm);
+    }
+    
     for (int i=0; i<app->num_species; ++i) {
       long tot_bad_cells = 0L;
       if (app->scheme_type == GKYL_MOMENT_WAVE_PROP) {
@@ -332,10 +355,6 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
           tot_bad_cells += wvs.n_bad_cells;
         }
       }
-      else if (app->scheme_type == GKYL_MOMENT_MP) {
-        // TODO
-      }
-      
       fprintf(fp, " %s_bad_cell_frac = %lg\n", app->species[i].name, (double) tot_bad_cells/tot_cells_up );
     }
   

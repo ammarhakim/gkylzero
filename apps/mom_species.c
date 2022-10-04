@@ -171,7 +171,6 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     }
   }
 
-
   // allocate array for applied acceleration/forces for each species
   sp->app_accel = mkarr(false, 3, app->local_ext.volume);
   sp->proj_app_accel = 0;
@@ -265,6 +264,8 @@ double
 moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
+  struct timespec tm = gkyl_wall_clock();
+  
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
@@ -274,6 +275,9 @@ moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
 
   double omegaCfl[1];
   gkyl_array_reduce_range(omegaCfl, species->cflrate, GKYL_MAX, app->local);
+
+  app->stat.species_rhs_tm += gkyl_time_diff_now_sec(tm);
+  
   return app->cfl/omegaCfl[0];
 }
 

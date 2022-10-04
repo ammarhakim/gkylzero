@@ -233,6 +233,8 @@ double
 moment_field_rhs(gkyl_moment_app *app, struct moment_field *fld,
   const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
+  struct timespec tm = gkyl_wall_clock();
+  
   gkyl_array_clear(fld->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
@@ -242,6 +244,9 @@ moment_field_rhs(gkyl_moment_app *app, struct moment_field *fld,
 
   double omegaCfl[1];
   gkyl_array_reduce_range(omegaCfl, fld->cflrate, GKYL_MAX, app->local);
+
+  app->stat.field_rhs_tm += gkyl_time_diff_now_sec(tm);
+  
   return app->cfl/omegaCfl[0];
 }
 
