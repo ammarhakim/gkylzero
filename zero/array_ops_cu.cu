@@ -52,6 +52,23 @@ gkyl_array_accumulate_cu_kernel(struct gkyl_array* out, double a,
 }
 
 __global__ void
+gkyl_array_accumulate_offset_cu_kernel(struct gkyl_array* out, double a,
+  const struct gkyl_array* inp, int coff)
+{
+  double *out_d = (double*) out->data;
+  const double *inp_d = (const double*) inp->data;
+  if (NCOM(out) < NCOM(inp)) {
+    for (unsigned long linc = START_ID; linc < NSIZE(out); linc += blockDim.x*gridDim.x)
+      for (unsigned k=0; k<NCOM(out); ++k)
+        out_d[linc*NCOM(out)+k] += a*inp_d[linc*NCOM(inp)+coff+k];
+  } else {
+    for (unsigned long linc = START_ID; linc < NSIZE(out); linc += blockDim.x*gridDim.x)
+      for (unsigned k=0; k<NCOM(inp); ++k)
+        out_d[linc*NCOM(out)+coff+k] += a*inp_d[linc*NCOM(inp)+k];
+  }
+}
+
+__global__ void
 gkyl_array_set_cu_kernel(struct gkyl_array* out, double a,
   const struct gkyl_array* inp)
 {
@@ -59,6 +76,23 @@ gkyl_array_set_cu_kernel(struct gkyl_array* out, double a,
   const double *inp_d = (const double*) inp->data;
   for (unsigned long linc = START_ID; linc < NELM(out); linc += blockDim.x*gridDim.x)
     out_d[linc] = a*inp_d[linc];
+}
+
+__global__ void
+gkyl_array_set_offset_cu_kernel(struct gkyl_array* out, double a,
+  const struct gkyl_array* inp, int coff)
+{
+  double *out_d = (double*) out->data;
+  const double *inp_d = (const double*) inp->data;
+  if (NCOM(out) < NCOM(inp)) {
+    for (unsigned long linc = START_ID; linc < NSIZE(out); linc += blockDim.x*gridDim.x)
+      for (unsigned k=0; k<NCOM(out); ++k)
+        out_d[linc*NCOM(out)+k] = a*inp_d[linc*NCOM(inp)+coff+k];
+  } else {
+    for (unsigned long linc = START_ID; linc < NSIZE(out); linc += blockDim.x*gridDim.x)
+      for (unsigned k=0; k<NCOM(inp); ++k)
+        out_d[linc*NCOM(out)+coff+k] = a*inp_d[linc*NCOM(inp)+k];
+  }
 }
 
 __global__ void
@@ -92,9 +126,23 @@ gkyl_array_accumulate_cu(struct gkyl_array* out, double a, const struct gkyl_arr
 }
 
 void
+gkyl_array_accumulate_offset_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp, int coff)
+{
+  int nblocks = gkyl_int_div_up(out->size, out->nthreads);
+  gkyl_array_accumulate_offset_cu_kernel<<<nblocks, out->nthreads>>>(out->on_dev, a, inp->on_dev, coff);
+}
+
+void
 gkyl_array_set_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp)
 {
   gkyl_array_set_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a, inp->on_dev);
+}
+
+void
+gkyl_array_set_offset_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp, int coff)
+{
+  int nblocks = gkyl_int_div_up(out->size, out->nthreads);
+  gkyl_array_set_offset_cu_kernel<<<nblocks, out->nthreads>>>(out->on_dev, a, inp->on_dev, coff);
 }
 
 void
@@ -198,6 +246,58 @@ gkyl_array_accumulate_range_cu_kernel(struct gkyl_array *out,
 }
 
 __global__ void
+gkyl_array_accumulate_offset_range_cu_kernel(struct gkyl_array *out,
+  double a, const struct gkyl_array* inp, int coff, struct gkyl_range range)
+{
+  long outnc = NCOM(out), inpnc = NCOM(inp);
+  long n;
+  int outoff, inpoff;
+  if (outnc < inpnc) {
+     n = outnc;
+     outoff = 0;
+     inpoff = coff;
+  } else {
+     n = inpnc;
+     outoff = coff;
+     inpoff = 0;
+  }
+  int idx[GKYL_MAX_DIM];
+
+  int ndim = range.ndim;
+  // ac1 = size of last dimension of range (fastest moving dimension)
+  long ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
+
+  // 2D thread grid
+  // linc2 = c + n*idx1 (contiguous data, including component index c, with idx1 = 0,.., ac1-1)
+  long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
+  long c = linc2 % n;
+  long idx1 = linc2 / n;
+  // get corresponding linc1 index for inp and out 
+  // (one of these will not be contiguous if outnc!=inpnc)
+  long linc2_in = c + inpnc*idx1; 
+  long linc2_out = c + outnc*idx1; 
+  // linc1 = idx2 + ac2*idx3 + ...
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume/ac1;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // full linear cell index (not including components) is 
+    // idx1 + ac1*idx2 + ac1*ac2*idx3 + ... = idx1 + ac1*linc1.
+    // we want to find the start linear index of each contiguous data block, 
+    // which corresponds to idx1 = 0. 
+    // so linear index of start of contiguous block is ac1*linc2.
+    gkyl_sub_range_inv_idx(&range, ac1*linc1, idx);
+    long start = gkyl_range_idx(&range, idx);
+    
+    double* out_d = (double*) gkyl_array_fetch(out, start);
+    const double* inp_d = (const double*) gkyl_array_cfetch(inp, start);
+    // do operation on contiguous data block
+    if (linc2 < n*ac1)
+      out_d[linc2_out+outoff] += a*inp_d[linc2_in+inpoff];
+  }
+}
+
+__global__ void
 gkyl_array_set_range_cu_kernel(struct gkyl_array *out,
   double a, const struct gkyl_array* inp, struct gkyl_range range)
 {
@@ -236,6 +336,58 @@ gkyl_array_set_range_cu_kernel(struct gkyl_array *out,
     // do operation on contiguous data block
     if (linc2 < n*ac1)
       out_d[linc2_out] = a*inp_d[linc2_in];
+  }
+}
+
+__global__ void
+gkyl_array_set_offset_range_cu_kernel(struct gkyl_array *out,
+  double a, const struct gkyl_array* inp, int coff, struct gkyl_range range)
+{
+  long outnc = NCOM(out), inpnc = NCOM(inp);
+  long n;
+  int outoff, inpoff;
+  if (outnc < inpnc) {
+     n = outnc;
+     outoff = 0;
+     inpoff = coff;
+  } else {
+     n = inpnc;
+     outoff = coff;
+     inpoff = 0;
+  }
+  int idx[GKYL_MAX_DIM];
+
+  int ndim = range.ndim;
+  // ac1 = size of last dimension of range (fastest moving dimension)
+  long ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
+
+  // 2D thread grid
+  // linc2 = c + n*idx1 (contiguous data, including component index c, with idx1 = 0,.., ac1-1)
+  long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
+  long c = linc2 % n;
+  long idx1 = linc2 / n;
+  // get corresponding linc1 index for inp and out 
+  // (one of these will not be contiguous if outnc!=inpnc)
+  long linc2_in = c + inpnc*idx1; 
+  long linc2_out = c + outnc*idx1; 
+  // linc1 = idx2 + ac2*idx3 + ...
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume/ac1;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // full linear cell index (not including components) is 
+    // idx1 + ac1*idx2 + ac1*ac2*idx3 + ... = idx1 + ac1*linc1.
+    // we want to find the start linear index of each contiguous data block, 
+    // which corresponds to idx1 = 0. 
+    // so linear index of start of contiguous block is ac1*linc2.
+    gkyl_sub_range_inv_idx(&range, ac1*linc1, idx);
+    long start = gkyl_range_idx(&range, idx);
+    
+    double* out_d = (double*) gkyl_array_fetch(out, start);
+    const double* inp_d = (const double*) gkyl_array_cfetch(inp, start);
+    // do operation on contiguous data block
+    if (linc2 < n*ac1)
+      out_d[linc2_out+outoff] = a*inp_d[linc2_in+inpoff];
   }
 }
 
@@ -405,6 +557,16 @@ gkyl_array_accumulate_range_cu(struct gkyl_array *out,
 }
 
 void
+gkyl_array_accumulate_offset_range_cu(struct gkyl_array *out,
+  double a, const struct gkyl_array* inp, int coff, struct gkyl_range range)
+{
+  dim3 dimGrid, dimBlock;
+  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range, min(out->ncomp, inp->ncomp));
+
+  gkyl_array_accumulate_offset_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, a, inp->on_dev, coff, range);
+}
+
+void
 gkyl_array_set_range_cu(struct gkyl_array *out,
   double a, const struct gkyl_array* inp, struct gkyl_range range)
 {
@@ -413,6 +575,17 @@ gkyl_array_set_range_cu(struct gkyl_array *out,
 
   gkyl_array_set_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev,
     a, inp->on_dev, range);
+}
+
+void
+gkyl_array_set_offset_range_cu(struct gkyl_array *out,
+  double a, const struct gkyl_array* inp, int coff, struct gkyl_range range)
+{
+  dim3 dimGrid, dimBlock;
+  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range, min(out->ncomp, inp->ncomp));
+
+  gkyl_array_set_offset_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev,
+    a, inp->on_dev, coff, range);
 }
 
 void

@@ -22,13 +22,13 @@ gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid, const struct g
 
   if (model_id == GKYL_MODEL_PKPM) {
     up->model_id = model_id;
-    up->coll_drag = gkyl_dg_lbo_vlasov_pkpm_drag_new(cbasis, pbasis, conf_range, use_gpu);
-    up->coll_diff = gkyl_dg_lbo_vlasov_pkpm_diff_new(cbasis, pbasis, conf_range, use_gpu);    
+    up->coll_drag = gkyl_dg_lbo_vlasov_pkpm_drag_new(cbasis, pbasis, conf_range, grid, use_gpu);
+    up->coll_diff = gkyl_dg_lbo_vlasov_pkpm_diff_new(cbasis, pbasis, conf_range, grid, use_gpu);    
   }
   else {
     up->model_id = model_id;
-    up->coll_drag = gkyl_dg_lbo_vlasov_drag_new(cbasis, pbasis, conf_range, use_gpu);
-    up->coll_diff = gkyl_dg_lbo_vlasov_diff_new(cbasis, pbasis, conf_range, use_gpu);
+    up->coll_drag = gkyl_dg_lbo_vlasov_drag_new(cbasis, pbasis, conf_range, grid, use_gpu);
+    up->coll_diff = gkyl_dg_lbo_vlasov_diff_new(cbasis, pbasis, conf_range, grid, use_gpu);
   }
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
@@ -60,9 +60,9 @@ gkyl_dg_updater_lbo_vlasov_advance(struct gkyl_dg_updater_collisions *lbo,
   // Set arrays needed
   if (lbo->model_id == GKYL_MODEL_PKPM) {
     gkyl_lbo_vlasov_pkpm_drag_set_auxfields(lbo->coll_drag,
-      (struct gkyl_dg_lbo_vlasov_pkpm_drag_auxfields) { .nu = nu_sum });
+      (struct gkyl_dg_lbo_vlasov_pkpm_drag_auxfields) { .nu = nu_sum, .nuVtSq = nu_vthsq });
     gkyl_lbo_vlasov_pkpm_diff_set_auxfields(lbo->coll_diff,
-      (struct gkyl_dg_lbo_vlasov_pkpm_diff_auxfields) { .nuVtSq = nu_vthsq });
+      (struct gkyl_dg_lbo_vlasov_pkpm_diff_auxfields) { .nu = nu_sum, .nuVtSq = nu_vthsq });
   }
   else {
     gkyl_lbo_vlasov_drag_set_auxfields(lbo->coll_drag,

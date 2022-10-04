@@ -16,9 +16,10 @@ extern "C" {
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
-gkyl_lbo_vlasov_pkpm_diff_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuVtSq)
+gkyl_lbo_vlasov_pkpm_diff_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nu, const struct gkyl_array *nuVtSq)
 {
   struct dg_lbo_vlasov_pkpm_diff *lbo_vlasov_pkpm_diff = container_of(eqn, struct dg_lbo_vlasov_pkpm_diff, eqn);
+  lbo_vlasov_pkpm_diff->auxfields.nu = nu;
   lbo_vlasov_pkpm_diff->auxfields.nuVtSq = nuVtSq;
 }
 
@@ -26,7 +27,7 @@ gkyl_lbo_vlasov_pkpm_diff_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
 void
 gkyl_lbo_vlasov_pkpm_diff_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_vlasov_pkpm_diff_auxfields auxin)
 {
-  gkyl_lbo_vlasov_pkpm_diff_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.nuVtSq->on_dev);
+  gkyl_lbo_vlasov_pkpm_diff_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.nu->on_dev, auxin.nuVtSq->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and Vlasov PKPM LBO diffusion kernel function
@@ -35,6 +36,7 @@ __global__ static void
 dg_lbo_vlasov_pkpm_diff_set_cu_dev_ptrs(struct dg_lbo_vlasov_pkpm_diff *lbo_vlasov_pkpm_diff, enum gkyl_basis_type b_type,
   int cdim, int poly_order)
 {
+  lbo_vlasov_pkpm_diff->auxfields.nu = 0; 
   lbo_vlasov_pkpm_diff->auxfields.nuVtSq = 0; 
 
   lbo_vlasov_pkpm_diff->eqn.vol_term = vol;
@@ -67,7 +69,7 @@ dg_lbo_vlasov_pkpm_diff_set_cu_dev_ptrs(struct dg_lbo_vlasov_pkpm_diff *lbo_vlas
 
 struct gkyl_dg_eqn*
 gkyl_dg_lbo_vlasov_pkpm_diff_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range)
+  const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid)
 {
   struct dg_lbo_vlasov_pkpm_diff *lbo_vlasov_pkpm_diff =
     (struct dg_lbo_vlasov_pkpm_diff*) gkyl_malloc(sizeof(struct dg_lbo_vlasov_pkpm_diff));
@@ -80,6 +82,7 @@ gkyl_dg_lbo_vlasov_pkpm_diff_cu_dev_new(const struct gkyl_basis* cbasis, const s
 
   lbo_vlasov_pkpm_diff->eqn.num_equations = 1;
   lbo_vlasov_pkpm_diff->conf_range = *conf_range;
+  lbo_vlasov_pkpm_diff->vMaxSq = pow(pgrid->upper[cdim],2);
 
   lbo_vlasov_pkpm_diff->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(lbo_vlasov_pkpm_diff->eqn.flags);

@@ -64,9 +64,20 @@ struct dg_lbo_vlasov_pkpm_drag {
   lbo_vlasov_pkpm_drag_boundary_surf_t boundary_surf; // Surface terms for acceleration
   struct gkyl_range conf_range; // Configuration space range.
   struct gkyl_dg_lbo_vlasov_pkpm_drag_auxfields auxfields; // Auxiliary fields.
+  double vMaxSq;
 };
 
 void gkyl_lbo_vlasov_pkpm_drag_free(const struct gkyl_ref_count* ref);
+
+GKYL_CU_D
+static inline bool
+checkPrimMomCross(struct dg_lbo_vlasov_pkpm_drag *lbo_vlasov_pkpm_drag,
+  const double* nu_p, const double* nuVtSq_p) {
+  bool noPrimMomCross = true;
+  noPrimMomCross = noPrimMomCross && ((nuVtSq_p[0]>0.)
+    && (nuVtSq_p[0]/nu_p[0] < lbo_vlasov_pkpm_drag->vMaxSq));
+  return noPrimMomCross;
+}
 
 GKYL_CU_D
 static double
@@ -75,9 +86,16 @@ vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
 {
   struct dg_lbo_vlasov_pkpm_drag *lbo_vlasov_pkpm_drag = container_of(eqn, struct dg_lbo_vlasov_pkpm_drag, eqn);
   long cidx = gkyl_range_idx(&lbo_vlasov_pkpm_drag->conf_range, idx);
-  return lbo_vlasov_pkpm_drag->vol(xc, dx, 
-    (const double*) gkyl_array_cfetch(lbo_vlasov_pkpm_drag->auxfields.nu, cidx), 
-    qIn, qRhsOut);
+
+  const double* nu_p = (const double*) gkyl_array_cfetch(lbo_vlasov_pkpm_drag->auxfields.nu, cidx);
+  const double* nuVtSq_p = (const double*) gkyl_array_cfetch(lbo_vlasov_pkpm_drag->auxfields.nuVtSq, cidx);
+  bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_pkpm_drag, nu_p, nuVtSq_p);
+  if (noPrimMomCross) {
+    return lbo_vlasov_pkpm_drag->vol(xc, dx,
+      nu_p, qIn, qRhsOut);
+  } else {
+    return 0.;
+  }
 }
 
 GKYL_CU_D
@@ -91,10 +109,13 @@ surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_lbo_vlasov_pkpm_drag *lbo_vlasov_pkpm_drag = container_of(eqn, struct dg_lbo_vlasov_pkpm_drag, eqn);
   long cidx = gkyl_range_idx(&lbo_vlasov_pkpm_drag->conf_range, idxC);
-  if (dir >= lbo_vlasov_pkpm_drag->cdim) {
+
+  const double* nu_p = (const double*) gkyl_array_cfetch(lbo_vlasov_pkpm_drag->auxfields.nu, cidx);
+  const double* nuVtSq_p = (const double*) gkyl_array_cfetch(lbo_vlasov_pkpm_drag->auxfields.nuVtSq, cidx);
+  bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_pkpm_drag, nu_p, nuVtSq_p);
+  if ((dir >= lbo_vlasov_pkpm_drag->cdim) && (noPrimMomCross)) {
     lbo_vlasov_pkpm_drag->surf(xcC, dxC, 
-      (const double*) gkyl_array_cfetch(lbo_vlasov_pkpm_drag->auxfields.nu, cidx), 
-      qInL, qInC, qInR, qRhsOut);
+      nu_p, qInL, qInC, qInR, qRhsOut);
   }
 }
 
@@ -109,10 +130,13 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_lbo_vlasov_pkpm_drag *lbo_vlasov_pkpm_drag = container_of(eqn, struct dg_lbo_vlasov_pkpm_drag, eqn);
   long cidx = gkyl_range_idx(&lbo_vlasov_pkpm_drag->conf_range, idxSkin);
-  if (dir >= lbo_vlasov_pkpm_drag->cdim) {
+
+  const double* nu_p = (const double*) gkyl_array_cfetch(lbo_vlasov_pkpm_drag->auxfields.nu, cidx);
+  const double* nuVtSq_p = (const double*) gkyl_array_cfetch(lbo_vlasov_pkpm_drag->auxfields.nuVtSq, cidx);
+  bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_pkpm_drag, nu_p, nuVtSq_p);
+  if ((dir >= lbo_vlasov_pkpm_drag->cdim) && (noPrimMomCross)) {
     lbo_vlasov_pkpm_drag->boundary_surf(xcSkin, dxSkin, 
-      (const double*) gkyl_array_cfetch(lbo_vlasov_pkpm_drag->auxfields.nu, cidx), 
-      edge, qInSkin, qInEdge, qRhsOut);
+      nu_p, edge, qInSkin, qInEdge, qRhsOut);
   }
 }
 

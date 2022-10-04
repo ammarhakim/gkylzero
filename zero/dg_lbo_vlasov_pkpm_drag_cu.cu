@@ -16,17 +16,19 @@ extern "C" {
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
-gkyl_lbo_vlasov_pkpm_drag_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nu)
+gkyl_lbo_vlasov_pkpm_drag_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
+  const struct gkyl_array *nu, const struct gkyl_array *nuVtSq)
 {
   struct dg_lbo_vlasov_pkpm_drag *lbo_vlasov_pkpm_drag = container_of(eqn, struct dg_lbo_vlasov_pkpm_drag, eqn);
   lbo_vlasov_pkpm_drag->auxfields.nu = nu;
+  lbo_vlasov_pkpm_drag->auxfields.nuVtSq = nuVtSq;
 }
 
 //// Host-side wrapper for device kernels setting nu.
 void
 gkyl_lbo_vlasov_pkpm_drag_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_vlasov_pkpm_drag_auxfields auxin)
 {
-  gkyl_lbo_vlasov_pkpm_drag_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.nu->on_dev);
+  gkyl_lbo_vlasov_pkpm_drag_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.nu->on_dev, auxin.nuVtSq->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and Vlasov PKPM LBO drag kernel function
@@ -36,6 +38,7 @@ dg_lbo_vlasov_pkpm_drag_set_cu_dev_ptrs(struct dg_lbo_vlasov_pkpm_drag *lbo_vlas
   int cdim, int poly_order)
 {
   lbo_vlasov_pkpm_drag->auxfields.nu = 0; 
+  lbo_vlasov_pkpm_drag->auxfields.nuVtSq = 0; 
 
   lbo_vlasov_pkpm_drag->eqn.vol_term = vol;
   lbo_vlasov_pkpm_drag->eqn.surf_term = surf;
@@ -67,7 +70,7 @@ dg_lbo_vlasov_pkpm_drag_set_cu_dev_ptrs(struct dg_lbo_vlasov_pkpm_drag *lbo_vlas
 
 struct gkyl_dg_eqn*
 gkyl_dg_lbo_vlasov_pkpm_drag_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range)
+  const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid)
 {
   struct dg_lbo_vlasov_pkpm_drag *lbo_vlasov_pkpm_drag =
     (struct dg_lbo_vlasov_pkpm_drag*) gkyl_malloc(sizeof(struct dg_lbo_vlasov_pkpm_drag));
@@ -80,6 +83,7 @@ gkyl_dg_lbo_vlasov_pkpm_drag_cu_dev_new(const struct gkyl_basis* cbasis, const s
 
   lbo_vlasov_pkpm_drag->eqn.num_equations = 1;
   lbo_vlasov_pkpm_drag->conf_range = *conf_range;
+  lbo_vlasov_pkpm_drag->vMaxSq = pow(pgrid->upper[cdim],2);
 
   lbo_vlasov_pkpm_drag->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(lbo_vlasov_pkpm_drag->eqn.flags);
