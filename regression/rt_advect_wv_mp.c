@@ -63,10 +63,11 @@ main(int argc, char **argv)
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
-    .cfl_frac = 0.4,
-
+    .cfl_frac = 1.0,
+    
     .scheme_type = GKYL_MOMENT_MP,
     .mp_recon = app_args.mp_recon,
+    //.skip_mp_limiter = true,
 
     .num_species = 1,
     .species = { fluid },
