@@ -165,5 +165,5 @@ SUPERLU_LIB=$SUPERLU_LIB
 
 EOF1
 
-echo "Wrote config.mak with contents"
+echo "# Wrote config.mak with contents"
 cat config.mak
