@@ -1,5 +1,5 @@
-#include "gkyl_util.h"
 #include <gkyl_moment_priv.h>
+#include <gkyl_util.h>
 
 // initialize species
 void
@@ -47,6 +47,9 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     // allocate arrays
     for (int d=0; d<ndim+1; ++d)
       sp->f[d] = mkarr(false, meqn, app->local_ext.volume);
+
+    // set current solution so ICs and IO work properly
+    sp->fcurr = sp->f[0];
   }
   else if (sp->scheme_type == GKYL_MOMENT_MP) {
     // determine directions to update
@@ -61,12 +64,23 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->mp_slvr = gkyl_mp_scheme_new( &(struct gkyl_mp_scheme_inp) {
         .grid = &app->grid,
         .equation = mom_sp->equation,
-        .mp_recon = GKYL_MP_C4,
+        .mp_recon = app->mp_recon,
+        .skip_mp_limiter = mom->skip_mp_limiter,
         .num_up_dirs = num_up_dirs,
         .update_dirs = { update_dirs[0], update_dirs[1], update_dirs[2] } ,
+        .cfl = app->cfl,
         .geom = app->geom,
       }
     );
+
+    // allocate arrays
+    sp->f0 = mkarr(false, meqn, app->local_ext.volume);
+    sp->f1 = mkarr(false, meqn, app->local_ext.volume);
+    sp->fnew = mkarr(false, meqn, app->local_ext.volume);
+    sp->cflrate = mkarr(false, 1, app->local_ext.volume);
+
+    // set current solution so ICs and IO work properly
+    sp->fcurr = sp->f0;
   }
 
   // determine which directions are not periodic
@@ -157,7 +171,6 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     }
   }
 
-
   // allocate array for applied acceleration/forces for each species
   sp->app_accel = mkarr(false, 3, app->local_ext.volume);
   sp->proj_app_accel = 0;
@@ -207,8 +220,13 @@ double
 moment_species_max_dt(const gkyl_moment_app *app, const struct moment_species *sp)
 {
   double max_dt = DBL_MAX;
-  for (int d=0; d<app->ndim; ++d)
-    max_dt = fmin(max_dt, gkyl_wave_prop_max_dt(sp->slvr[d], &app->local, sp->f[0]));
+  if (sp->scheme_type == GKYL_MOMENT_WAVE_PROP) {
+    for (int d=0; d<app->ndim; ++d)
+      max_dt = fmin(max_dt, gkyl_wave_prop_max_dt(sp->slvr[d], &app->local, sp->f[0]));
+  }
+  else if (sp->scheme_type == GKYL_MOMENT_MP) {
+    max_dt = fmin(max_dt, gkyl_mp_scheme_max_dt(sp->mp_slvr, &app->local, sp->f0));
+  }
   return max_dt;
 }
 
@@ -241,6 +259,28 @@ moment_species_update(const gkyl_moment_app *app,
   };
 }
 
+// Compute RHS of moment equations
+double
+moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  struct timespec tm = gkyl_wall_clock();
+  
+  gkyl_array_clear(species->cflrate, 0.0);
+  gkyl_array_clear(rhs, 0.0);
+
+  gkyl_mp_scheme_advance(species->mp_slvr, &app->local, fin,
+    app->ql, app->qr, app->amdq, app->apdq,
+    species->cflrate, rhs);
+
+  double omegaCfl[1];
+  gkyl_array_reduce_range(omegaCfl, species->cflrate, GKYL_MAX, app->local);
+
+  app->stat.species_rhs_tm += gkyl_time_diff_now_sec(tm);
+  
+  return app->cfl/omegaCfl[0];
+}
+
 // free species
 void
 moment_species_release(const struct moment_species *sp)
@@ -262,6 +302,10 @@ moment_species_release(const struct moment_species *sp)
   }
   else if (sp->scheme_type == GKYL_MOMENT_MP) {
     gkyl_mp_scheme_release(sp->mp_slvr);
+    gkyl_array_release(sp->f0);
+    gkyl_array_release(sp->f1);
+    gkyl_array_release(sp->fnew);
+    gkyl_array_release(sp->cflrate);
   }
 
   gkyl_array_release(sp->app_accel);

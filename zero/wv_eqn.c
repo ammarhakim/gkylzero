@@ -11,6 +11,9 @@ extern inline void gkyl_wv_eqn_qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_w
 
 extern inline double gkyl_wv_eqn_max_speed(const struct gkyl_wv_eqn *eqn, const double *q);
 
+extern inline double gkyl_wv_eqn_flux_jump(const struct gkyl_wv_eqn *eqn,
+  const double *ql, const double *qr, double *flux_jump);
+
 extern inline void gkyl_wv_eqn_rotate_to_local(const struct gkyl_wv_eqn *eqn,
   const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal);

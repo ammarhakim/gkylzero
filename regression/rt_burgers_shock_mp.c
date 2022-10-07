@@ -2,32 +2,15 @@
 #include <stdio.h>
 
 #include <gkyl_alloc.h>
-#include <gkyl_const.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_euler.h>
+#include <gkyl_wv_burgers.h>
 #include <rt_arg_parse.h>
 
 void
-evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalBurgersInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  // assumes epsilon0 = mu0 = c = 1.0
-  double L = 1.0;
-  double kwave = 2.0;
-  double pi = 3.141592653589793238462643383279502884;
-  double phi = 2*pi/L*(kwave*xn[0]);
-  double knorm = sqrt(kwave*kwave);
-  double kxn = kwave/knorm;
-  //n = (0, 1, 1), n_hat = 1/math.sqrt(2)
-  double E0 = 1.0/sqrt(2.0);
-  fout[0] = 0.0;
-  fout[1] = E0*cos(phi);
-  fout[2] = E0*cos(phi);
-  fout[3] = 0.0;
-  fout[4] = -E0*cos(phi)*kxn;
-  fout[5] = E0*cos(phi)*kxn;
-  fout[6] = 0.0;
-  fout[7] = 0.0;
+  fout[0] = sin(2*M_PI*xn[0]);
 }
 
 int
@@ -41,9 +24,23 @@ main(int argc, char **argv)
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  
+
+  // equation object
+  struct gkyl_wv_eqn *burgers = gkyl_wv_burgers_new();
+
+  struct gkyl_moment_species fluid = {
+    .name = "burgers",
+
+    .equation = burgers,
+    .evolve = 1,
+    .init = evalBurgersInit,
+
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+  };
+
+  // VM app
   struct gkyl_moment app_inp = {
-    .name = "maxwell_plane_wave_1d",
+    .name = "burgers_shock_mp",
 
     .ndim = 1,
     .lower = { 0.0 },
@@ -52,20 +49,20 @@ main(int argc, char **argv)
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
-    .cfl_frac = 0.8,
+    .cfl_frac = 0.9,
 
-    .field = {
-      .epsilon0 = 1.0, .mu0 = 1.0,
-      .evolve = 1,
-      .init = evalFieldInit,
-    }
+    .scheme_type = GKYL_MOMENT_MP,
+    .mp_recon = app_args.mp_recon,
+
+    .num_species = 1,
+    .species = { fluid },
   };
 
   // create app object
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 2.0;
+  double tcurr = 0.0, tend = 0.4;
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
@@ -73,7 +70,7 @@ main(int argc, char **argv)
 
   // compute estimate of maximum stable time-step
   double dt = gkyl_moment_app_max_dt(app);
-  
+
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
     printf("Taking time-step %ld at t = %g ...", step, tcurr);
@@ -96,6 +93,7 @@ main(int argc, char **argv)
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
 
   // simulation complete, free resources
+  gkyl_wv_eqn_release(burgers);
   gkyl_moment_app_release(app);
 
   printf("\n");

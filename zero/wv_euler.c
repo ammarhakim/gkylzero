@@ -111,7 +111,6 @@ qfluct_lax(const struct gkyl_wv_eqn *eqn,
   const double *ql, const double *qr, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
-
   const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
   double gas_gamma = euler->gas_gamma;
 
@@ -251,9 +250,9 @@ qfluct_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
 }
 
 // HLLC
-static double
-wave_hllc(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
-  const double *qr, double *waves, double *speeds)
+static void
+states_hllc(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
+  double *speeds, double *qml, double *qmr)
 {
   const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
   double g = euler->gas_gamma;
@@ -285,8 +284,6 @@ wave_hllc(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
   double sm = (pr-pl+rl*ul*(sl-ul)-rr*ur*(sr-ur)) / (rl*(sl-ul)-rr*(sr-ur));
 
   // STEP 3. compute left and right intermediate states, Toro (10.39)
-  double qml[5], qmr[5];
-
   qml[0] = rl * (sl-ul) / (sl-sm);
   qml[1] = qml[0] * sm;
   qml[2] = qml[0] * ql[2] / ql[0];
@@ -299,22 +296,31 @@ wave_hllc(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
   qmr[3] = qmr[0] * qr[3] / qr[0];
   qmr[4] = qmr[0] * (qr[4]/rr + (sm-ur) * (sm + pr / rr / (sr-ur)));
 
-  // STEP 4. collect all waves and speeds
+  // STEP 4. collect all speeds
+  speeds[0] = sl;
+  speeds[1] = sm;
+  speeds[2] = sr;
+}
+  
+static double
+wave_hllc(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
+  const double *qr, double *waves, double *speeds)
+{
+  double qml[5], qmr[5];
+  states_hllc(eqn, ql, qr, speeds, qml, qmr);
+
   double *wv;
 
   wv = waves;
-  speeds[0] = sl;
   for (int i=0; i<5; ++i)  wv[i] = qml[i] - ql[i];
 
   wv += 5;
-  speeds[1] = sm;
   for (int i=0; i<5; ++i)  wv[i] = qmr[i] - qml[i];
 
   wv += 5;
-  speeds[2] = sr;
   for (int i=0; i<5; ++i)  wv[i] = qr[i] - qmr[i];
 
-  return sr;
+  return fmax(fabs(speeds[0]), fabs(speeds[2]));
 }
 
 static void
@@ -354,6 +360,42 @@ qfluct_hllc_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
     return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
+static void
+qfluct_hllc_direct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *ql, const double *qr, const double *waves, const double *speeds,
+  double *amdq, double *apdq)
+{
+  double s[3], qml[5], qmr[5];
+  states_hllc(eqn, ql, qr, s, qml, qmr);
+
+  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]), s2m = fmin(0.0, s[2]);
+  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]), s2p = fmax(0.0, s[2]);
+
+  for (int i=0; i<5; ++i) {
+    double w0 = qml[i] - ql[i];
+    double w1 = qmr[i] - qml[i];
+    double w2 = qr[i] - qmr[i];
+    amdq[i] = s0m*w0 + s1m*w1 + s2m*w2;
+    apdq[i] = s0p*w0 + s1p*w1 + s2p*w2;
+  }
+}
+
+static double
+flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
+{
+  const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
+
+  double fr[5], fl[5];
+  gkyl_euler_flux(euler->gas_gamma, ql, fl);
+  gkyl_euler_flux(euler->gas_gamma, qr, fr);
+
+  for (int m=0; m<5; ++m) flux_jump[m] = fr[m]-fl[m];
+
+  double amaxl = gkyl_euler_max_abs_speed(euler->gas_gamma, ql);
+  double amaxr = gkyl_euler_max_abs_speed(euler->gas_gamma, qr);  
+
+  return fmax(amaxl, amaxr);
+}
 
 static bool
 check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
@@ -406,7 +448,8 @@ gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp)
       break;      
   }
       
-  
+
+  euler->eqn.flux_jump = flux_jump;
   euler->eqn.max_speed_func = max_speed;
 
   euler->eqn.rotate_to_local_func = rot_to_local;

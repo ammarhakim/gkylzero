@@ -11,14 +11,19 @@ enum gkyl_wv_flux_type { GKYL_WV_HIGH_ORDER_FLUX, GKYL_WV_LOW_ORDER_FLUX };
 // Forward declare for use in function pointers
 struct gkyl_wv_eqn;
 
-// Function pointer for compute waves from RP solver
+// Function pointer to compute waves from RP solver
 typedef double (*wv_waves_t)(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *delta, const double *ql, const double *qr, double *waves, double *speeds);
 
-// Function pointer for compute q-fluctuations from waves
+// Function pointer to compute q-fluctuations from waves
 typedef void (*wv_qfluct_t)(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *ql, const double *qr, const double *waves, const double *speeds,
   double *amdq, double *apdq);
+
+// Function pointer to compute jump in flux. Returns absolute maximum
+// wave-speed
+typedef double (*wv_flux_jump_t)(const struct gkyl_wv_eqn *eqn,
+  const double *ql, const double *qr, double *flux_jump);
 
 // Function pointer to check if invariant domain is preserved
 typedef bool (*wv_check_inv)(const struct gkyl_wv_eqn *eqn, const double *q);
@@ -52,6 +57,8 @@ struct gkyl_wv_eqn {
   int num_waves; // number of waves in system
   wv_waves_t waves_func; // function to compute waves and speeds
   wv_qfluct_t qfluct_func; // function to compute q-fluctuations
+  wv_flux_jump_t flux_jump; // function to compute jump in flux
+  
   wv_check_inv check_inv_func; // function to check invariant domains
   wv_max_speed_t max_speed_func; // function to compute max-speed
   wv_rotate_to_local rotate_to_local_func; // function to rotate to local frame
@@ -114,7 +121,23 @@ gkyl_wv_eqn_qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *ql, const double *qr, const double *waves, const double *speeds,
   double *amdq, double *apdq)
 {
-  eqn->qfluct_func(eqn, type, ql, qr, waves, speeds, amdq, apdq);  
+  eqn->qfluct_func(eqn, type, ql, qr, waves, speeds, amdq, apdq);
+}
+
+/**
+ * Compute jump in flux given two conserved variable states.
+ *
+ * @param eqn Equation object
+ * @param ql Conserved variables on left
+ * @param qr Conserved variables on right
+ * @param flux_jump Jump in flux (F(qr)-F(ql))
+ * @return Maximum wave speed for states qr and ql.
+ */
+inline double
+gkyl_wv_eqn_flux_jump(const struct gkyl_wv_eqn *eqn,
+  const double *ql, const double *qr, double *flux_jump)
+{
+  return eqn->flux_jump(eqn, ql, qr, flux_jump);
 }
 
 /**

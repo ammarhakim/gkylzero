@@ -64,8 +64,10 @@ struct moment_species {
     struct {
       gkyl_mp_scheme *mp_slvr; // monotonicity-preserving scheme
       struct gkyl_array *f0, *f1, *fnew; // arrays for updates
+      struct gkyl_array *cflrate; // CFL rate in each cell
     };
   };
+  struct gkyl_array *fcurr; // points to current solution (depends on scheme)
 
   // boundary condition type
   enum gkyl_species_bc_type lower_bct[3], upper_bct[3];
@@ -108,8 +110,10 @@ struct moment_field {
     struct {
       gkyl_mp_scheme *mp_slvr; // monotonicity-preserving scheme
       struct gkyl_array *f0, *f1, *fnew; // arrays for updates
+      struct gkyl_array *cflrate; // CFL rate in each cell      
     };
   };
+  struct gkyl_array *fcurr; // points to current solution (depends on scheme)
 
   // boundary condition type
   enum gkyl_field_bc_type lower_bct[3], upper_bct[3];
@@ -131,6 +135,9 @@ struct gkyl_moment_app {
   int ndim; // space dimensions
   double tcurr; // current time
   double cfl; // CFL number
+
+  enum gkyl_moment_scheme scheme_type; // scheme to use
+  enum gkyl_mp_recon mp_recon; // reconstruction scheme to use  
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
@@ -156,10 +163,20 @@ struct gkyl_moment_app {
   int num_species;
   struct moment_species *species; // species data
 
+  // work arrays for use in the MP scheme: these are stored here so
+  // they can be
+  struct {
+    struct gkyl_array *ql, *qr;
+    struct gkyl_array *amdq, *apdq;
+  };
+
   int update_sources; // flag to indicate if sources are to be updated
   struct moment_coupling sources; // sources
     
   struct gkyl_moment_stat stat; // statistics
+
+  // pointer to function that takes a single-step of simulation
+  struct gkyl_update_status (*update_func)(gkyl_moment_app* app, double dt0);
 };
 
 // Function pointer to compute integrated quantities from input
@@ -221,6 +238,10 @@ double moment_species_max_dt(const gkyl_moment_app *app, const struct moment_spe
 struct gkyl_update_status moment_species_update(const gkyl_moment_app *app,
   const struct moment_species *sp, double tcurr, double dt);
 
+// Compute RHS of moment equations
+double moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
+
 // Free memory allocated by species
 void moment_species_release(const struct moment_species *sp);
 
@@ -234,13 +255,16 @@ void moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_f
 void moment_field_apply_bc(const gkyl_moment_app *app, double tcurr,
   const struct moment_field *field, struct gkyl_array *f);
 
-
 // Maximum stable time-step due to EM fields
 double moment_field_max_dt(const gkyl_moment_app *app, const struct moment_field *fld);
 
 // Update EM field from tcurr to tcurr+dt
 struct gkyl_update_status moment_field_update(const gkyl_moment_app *app,
   const struct moment_field *fld, double tcurr, double dt);
+
+// Compute RHS of EM equations
+double moment_field_rhs(gkyl_moment_app *app, struct moment_field *fld,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 // Release the EM field object
 void moment_field_release(const struct moment_field *fld);
@@ -259,3 +283,11 @@ void moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
 
 // Release coupling sources
 void moment_coupling_release(const struct moment_coupling *src);
+
+/** Top-level app API */
+
+// Take a single time-step using a single-step time-stepper
+struct gkyl_update_status moment_update_one_step(gkyl_moment_app *app, double dt0);
+
+// Take a single time-step using a SSP-RK3 stepper
+struct gkyl_update_status moment_update_ssp_rk3(gkyl_moment_app* app, double dt0);

@@ -9,6 +9,7 @@ enum gkyl_eqn_type {
   GKYL_EQN_MAXWELL, // Maxwell equations
   GKYL_EQN_MHD,  // Ideal MHD equations
   GKYL_EQN_BURGERS, // Burgers equations
+  GKYL_EQN_ADVECTION, // Advection equation
 };
 
 // Identifiers for specific field object types

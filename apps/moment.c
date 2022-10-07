@@ -1,5 +1,11 @@
 #include <gkyl_moment_priv.h>
 
+static inline int
+int_max(int a, int b)
+{
+  return a>b ? a : b;
+}
+
 gkyl_moment_app*
 gkyl_moment_app_new(struct gkyl_moment *mom)
 {
@@ -11,11 +17,21 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   strcpy(app->name, mom->name);
   app->tcurr = 0.0; // reset on init
 
-  // create grid and ranges (grid is in computational space)
-  int ghost[3] = { 2, 2, 2 };
+  app->scheme_type = mom->scheme_type;
+  app->mp_recon = mom->mp_recon;
+  
+  if (app->scheme_type == GKYL_MOMENT_WAVE_PROP)
+    app->update_func = moment_update_one_step;
+  else if (app->scheme_type == GKYL_MOMENT_MP) 
+    app->update_func = moment_update_ssp_rk3;
+
+  int ghost[3] = { 2, 2, 2 }; // 2 ghost-cells for wave
+  if (mom->scheme_type == GKYL_MOMENT_MP)
+    for (int d=0; d<3; ++d) ghost[d] = 3; // 3 for MP scheme
+  
   gkyl_rect_grid_init(&app->grid, ndim, mom->lower, mom->upper, mom->cells);
   gkyl_create_grid_ranges(&app->grid, ghost, &app->local_ext, &app->local);
-
+  
   skin_ghost_ranges_init(&app->skin_ghost, &app->local_ext, ghost);
 
   app->c2p_ctx = app->mapc2p = 0;  
@@ -36,11 +52,9 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     gkyl_eval_on_nodes_advance(ev_c2p, 0.0, &app->local_ext, c2p);
 
     // write DG projection of mapc2p to file
-    const char *fmt = "%s-mapc2p.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name);
-    char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name);
-    gkyl_grid_sub_array_write(&app->grid, &app->local, c2p, fileNm);
+    cstr fileNm = cstr_from_fmt("%s-mapc2p.gkyl", app->name);
+    gkyl_grid_sub_array_write(&app->grid, &app->local, c2p, fileNm.str);
+    cstr_drop(&fileNm);
 
     gkyl_array_release(c2p);
     gkyl_eval_on_nodes_release(ev_c2p);
@@ -52,6 +66,8 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
 
   double cfl_frac = mom->cfl_frac == 0 ? 0.95 : mom->cfl_frac;
   app->cfl = 1.0*cfl_frac;
+  if (app->scheme_type == GKYL_MOMENT_MP)
+    app->cfl = 0.4*cfl_frac; // this should be 1/(1+alpha) = 0.2 but is set to a larger value
 
   app->num_periodic_dir = mom->num_periodic_dir;
   for (int d=0; d<ndim; ++d)
@@ -82,6 +98,20 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   if (app->has_field && ns>0) {
     app->update_sources = 1; // only update if field and species are present
     moment_coupling_init(app, &app->sources);
+  }
+
+  // allocate work array for use in MP scheme
+  if (app->scheme_type == GKYL_MOMENT_MP) {
+    int max_eqn = 0;
+    for (int i=0; i<ns; ++i)
+      max_eqn = int_max(max_eqn, app->species[i].num_equations);
+    if (app->has_field)
+      max_eqn = int_max(max_eqn, 8); // maxwell equations have 8 components
+    app->ql = mkarr(false, max_eqn, app->local_ext.volume);
+    app->qr = mkarr(false, max_eqn, app->local_ext.volume);
+
+    app->amdq = mkarr(false, max_eqn, app->local_ext.volume);
+    app->apdq = mkarr(false, max_eqn, app->local_ext.volume);
   }
 
   // initialize stat object to all zeros
@@ -117,14 +147,15 @@ void
 gkyl_moment_app_apply_ic_field(gkyl_moment_app* app, double t0)
 {
   if (app->has_field != 1) return;
-
-  app->tcurr = t0;
-  gkyl_fv_proj *proj = gkyl_fv_proj_new(&app->grid, 2, 8, app->field.init, app->field.ctx);
   
-  gkyl_fv_proj_advance(proj, t0, &app->local, app->field.f[0]);
+  app->tcurr = t0;
+  int num_quad = app->scheme_type == GKYL_MOMENT_MP ? 4 : 2;
+  gkyl_fv_proj *proj = gkyl_fv_proj_new(&app->grid, num_quad, 8, app->field.init, app->field.ctx);
+  
+  gkyl_fv_proj_advance(proj, t0, &app->local, app->field.fcurr);
   gkyl_fv_proj_release(proj);
 
-  moment_field_apply_bc(app, t0, &app->field, app->field.f[0]);
+  moment_field_apply_bc(app, t0, &app->field, app->field.fcurr);
 }
 
 void
@@ -133,13 +164,14 @@ gkyl_moment_app_apply_ic_species(gkyl_moment_app* app, int sidx, double t0)
   assert(sidx < app->num_species);
 
   app->tcurr = t0;
-  gkyl_fv_proj *proj = gkyl_fv_proj_new(&app->grid, 2, app->species[sidx].num_equations,
+  int num_quad = app->scheme_type == GKYL_MOMENT_MP ? 4 : 2;  
+  gkyl_fv_proj *proj = gkyl_fv_proj_new(&app->grid, num_quad, app->species[sidx].num_equations,
     app->species[sidx].init, app->species[sidx].ctx);
   
-  gkyl_fv_proj_advance(proj, t0, &app->local, app->species[sidx].f[0]);
+  gkyl_fv_proj_advance(proj, t0, &app->local, app->species[sidx].fcurr);
   gkyl_fv_proj_release(proj);
 
-  moment_species_apply_bc(app, t0, &app->species[sidx], app->species[sidx].f[0]);
+  moment_species_apply_bc(app, t0, &app->species[sidx], app->species[sidx].fcurr);
 }
 
 void
@@ -156,7 +188,7 @@ gkyl_moment_app_write_field(const gkyl_moment_app* app, double tm, int frame)
   if (app->has_field != 1) return;
 
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
-  gkyl_grid_sub_array_write(&app->grid, &app->local, app->field.f[0], fileNm.str);
+  gkyl_grid_sub_array_write(&app->grid, &app->local, app->field.fcurr, fileNm.str);
   cstr_drop(&fileNm);
 
   // write external EM field if it is present
@@ -213,158 +245,18 @@ gkyl_moment_app_write_integrated_mom(gkyl_moment_app *app)
 void
 gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, int frame)
 {
-  const char *fmt = "%s-%s_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].name, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow  
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].name, frame);
-  
-  gkyl_grid_sub_array_write(&app->grid, &app->local, app->species[sidx].f[0], fileNm);
-}
-
-// internal function that takes a single time-step
-static struct gkyl_update_status
-moment_update(gkyl_moment_app* app, double dt0)
-{
-  int ns = app->num_species, ndim = app->ndim;
-  bool have_nans_occured = false;
-  
-  double dt_suggested = DBL_MAX;
-  
-  // time-stepper states
-  enum {
-    UPDATE_DONE = 0,
-    PRE_UPDATE,
-    POST_UPDATE,
-    FIRST_COUPLING_UPDATE,
-    FIELD_UPDATE,
-    SPECIES_UPDATE,
-    SECOND_COUPLING_UPDATE,
-    UPDATE_REDO,
-  } state = PRE_UPDATE;
-
-  double tcurr = app->tcurr, dt = dt0;
-  while (state != UPDATE_DONE) {
-    switch (state) {
-      case PRE_UPDATE:
-        state = FIRST_COUPLING_UPDATE; // next state
-          
-        // copy old solution in case we need to redo this step
-        for (int i=0; i<ns; ++i)
-          gkyl_array_copy(app->species[i].fdup, app->species[i].f[0]);
-        if (app->has_field)
-          gkyl_array_copy(app->field.fdup, app->field.f[0]);
-
-        break;
-          
-      
-      case FIRST_COUPLING_UPDATE:
-        state = FIELD_UPDATE; // next state
-
-        if (app->update_sources) {
-          struct timespec src1_tm = gkyl_wall_clock();
-          moment_coupling_update(app, &app->sources, 0, tcurr, dt/2);
-          app->stat.sources_tm += gkyl_time_diff_now_sec(src1_tm);
-        }
-            
-        break;
-
-      case FIELD_UPDATE:
-        state = SPECIES_UPDATE; // next state
-
-        if (app->has_field) {
-          struct timespec fl_tm = gkyl_wall_clock();
-          struct gkyl_update_status s = moment_field_update(app, &app->field, tcurr, dt);
-          if (!s.success) {
-            app->stat.nfail += 1;
-            dt = s.dt_suggested;
-            state = UPDATE_REDO;
-            break;
-          }
-            
-          dt_suggested = fmin(dt_suggested, s.dt_suggested);
-          app->stat.field_tm += gkyl_time_diff_now_sec(fl_tm);
-        }
-          
-        break;
-
-      case SPECIES_UPDATE:
-        state = SECOND_COUPLING_UPDATE; // next state
-
-        struct timespec sp_tm = gkyl_wall_clock();
-        for (int i=0; i<ns; ++i) {         
-          struct gkyl_update_status s =
-            moment_species_update(app, &app->species[i], tcurr, dt);
-
-          if (!s.success) {
-            app->stat.nfail += 1;
-            dt = s.dt_suggested;
-            state = UPDATE_REDO;
-            break;
-          }
-          dt_suggested = fmin(dt_suggested, s.dt_suggested);
-        }
-        app->stat.species_tm += gkyl_time_diff_now_sec(sp_tm);
-         
-        break;
-
-      case SECOND_COUPLING_UPDATE:
-        state = POST_UPDATE; // next state
-
-        if (app->update_sources) {
-          struct timespec src2_tm = gkyl_wall_clock();
-          moment_coupling_update(app, &app->sources, 1, tcurr, dt/2);
-          app->stat.sources_tm += gkyl_time_diff_now_sec(src2_tm);
-        }
-
-        break;
-
-      case POST_UPDATE:
-        state = UPDATE_DONE;
-
-        // copy solution in prep for next time-step
-        for (int i=0; i<ns; ++i) {
-          // check for nans before copying
-          if (check_for_nans(app->species[i].f[ndim], app->local))
-            have_nans_occured = true;
-          else // only copy in case no nans, so old solution can be written out
-            gkyl_array_copy(app->species[i].f[0], app->species[i].f[ndim]);
-        }
-        
-        if (app->has_field)
-          gkyl_array_copy(app->field.f[0], app->field.f[ndim]);
-          
-        break;
-
-      case UPDATE_REDO:
-        state = PRE_UPDATE; // start all-over again
-          
-        // restore solution and retake step
-        for (int i=0; i<ns; ++i)
-          gkyl_array_copy(app->species[i].f[0], app->species[i].fdup);
-        if (app->has_field)
-          gkyl_array_copy(app->field.f[0], app->field.fdup);
-          
-        break;
-
-      case UPDATE_DONE: // unreachable code! (suppresses warning)
-        break;
-    }
-  }
-
-  return (struct gkyl_update_status) {
-    .success = have_nans_occured ? false : true,
-    .dt_actual = dt,
-    .dt_suggested = dt_suggested,
-  };
+  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->species[sidx].name, frame);
+  gkyl_grid_sub_array_write(&app->grid, &app->local, app->species[sidx].fcurr, fileNm.str);
+  cstr_drop(&fileNm);
 }
 
 struct gkyl_update_status
 gkyl_moment_update(gkyl_moment_app* app, double dt)
 {
   app->stat.nup += 1;
+  
   struct timespec wst = gkyl_wall_clock();
-
-  struct gkyl_update_status status = moment_update(app, dt);
+  struct gkyl_update_status status = app->update_func(app, dt);
   app->tcurr += status.dt_actual;
   
   app->stat.total_tm += gkyl_time_diff_now_sec(wst);
@@ -377,7 +269,7 @@ gkyl_moment_app_calc_field_energy(gkyl_moment_app* app, double tm)
 {
   if (app->has_field) {
     double energy[6] = { 0.0 };
-    calc_integ_quant(6, app->grid.cellVolume, app->field.f[0], app->geom,
+    calc_integ_quant(6, app->grid.cellVolume, app->field.fcurr, app->geom,
       app->local, integ_sq, energy);
     gkyl_dynvec_append(app->field.integ_energy, tm, energy);
   }
@@ -389,7 +281,7 @@ gkyl_moment_app_calc_integrated_mom(gkyl_moment_app *app, double tm)
   for (int sidx=0; sidx<app->num_species; ++sidx) {
     int meqn = app->species[sidx].num_equations;
     double q_integ[meqn];
-    calc_integ_quant(meqn, app->grid.cellVolume, app->species[sidx].f[0], app->geom,
+    calc_integ_quant(meqn, app->grid.cellVolume, app->species[sidx].fcurr, app->geom,
       app->local, integ_unit, q_integ);
     gkyl_dynvec_append(app->species[sidx].integ_q, tm, q_integ);
   }
@@ -404,10 +296,7 @@ gkyl_moment_app_stat(gkyl_moment_app* app)
 void
 gkyl_moment_app_stat_write(const gkyl_moment_app* app)
 {
-  const char *fmt = "%s-%s";
-  int sz = gkyl_calc_strlen(fmt, app->name, "stat.json");
-  char fileNm[sz+1]; // ensures no buffer overflow  
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, "stat.json");
+  cstr fileNm = cstr_from_fmt("%s-%s", app->name, "stat.json");
 
   char buff[70];
   time_t t = time(NULL);
@@ -418,7 +307,7 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
 
   // append to existing file so we have a history of different runs
   FILE *fp = 0;
-  with_file (fp, fileNm, "a") {
+  with_file (fp, fileNm.str, "a") {
     fprintf(fp, "{\n");
 
     if (strftime(buff, sizeof buff, "%c", &curr_tm))
@@ -427,26 +316,52 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
     fprintf(fp, " nup : %ld,\n", app->stat.nup);
     fprintf(fp, " nfail : %ld,\n", app->stat.nfail);
     fprintf(fp, " total_tm : %lg,\n", app->stat.total_tm);
-    fprintf(fp, " species_tm : %lg,\n", app->stat.species_tm);
-    fprintf(fp, " field_tm : %lg,\n", app->stat.field_tm);
-    fprintf(fp, " sources_tm : %lg\n", app->stat.sources_tm);
 
+    if (app->scheme_type == GKYL_MOMENT_WAVE_PROP) {    
+      fprintf(fp, " species_tm : %lg,\n", app->stat.species_tm);
+      fprintf(fp, " field_tm : %lg,\n", app->stat.field_tm);
+      fprintf(fp, " sources_tm : %lg\n", app->stat.sources_tm);
+    }
+    else if (app->scheme_type == GKYL_MOMENT_MP) {
+      fprintf(fp, " nfeuler : %ld,\n", app->stat.nfeuler);
+      fprintf(fp, " nstage_2_fail : %ld,\n", app->stat.nstage_2_fail);
+      fprintf(fp, " nstage_3_fail : %ld,\n", app->stat.nstage_3_fail);
+
+      fprintf(fp, " stage_2_dt_diff : [ %lg, %lg ],\n",
+        app->stat.stage_2_dt_diff[0], app->stat.stage_2_dt_diff[1]);
+      fprintf(fp, " stage_3_dt_diff : [ %lg, %lg ],\n",
+        app->stat.stage_3_dt_diff[0], app->stat.stage_3_dt_diff[1]);
+      
+      fprintf(fp, " total_tm : %lg,\n", app->stat.total_tm);
+      fprintf(fp, " init_species_tm : %lg,\n", app->stat.init_species_tm);
+      if (app->has_field)
+        fprintf(fp, " init_field_tm : %lg,\n", app->stat.init_field_tm);
+      
+      fprintf(fp, " species_rhs_tm : %lg,\n", app->stat.species_rhs_tm);
+
+      if (app->has_field)
+        fprintf(fp, " field_rhs_tm : %lg,\n", app->stat.field_rhs_tm);
+    }
+    
     for (int i=0; i<app->num_species; ++i) {
-      long tot_bad_cells = 0L;      
-      for (int d=0; d<app->ndim; ++d) {
-        struct gkyl_wave_prop_stats wvs = gkyl_wave_prop_stats(app->species[i].slvr[d]);
-        fprintf(fp, " %s_n_bad_1D_sweeps[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_advance_calls);
-        fprintf(fp, " %s_n_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_cells);
-        fprintf(fp, " %s_n_max_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_max_bad_cells);
+      long tot_bad_cells = 0L;
+      if (app->scheme_type == GKYL_MOMENT_WAVE_PROP) {
+        for (int d=0; d<app->ndim; ++d) {
+          struct gkyl_wave_prop_stats wvs = gkyl_wave_prop_stats(app->species[i].slvr[d]);
+          fprintf(fp, " %s_n_bad_1D_sweeps[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_advance_calls);
+          fprintf(fp, " %s_n_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_cells);
+          fprintf(fp, " %s_n_max_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_max_bad_cells);
 
-        tot_bad_cells += wvs.n_bad_cells;
+          tot_bad_cells += wvs.n_bad_cells;
+        }
       }
       fprintf(fp, " %s_bad_cell_frac = %lg\n", app->species[i].name, (double) tot_bad_cells/tot_cells_up );
     }
-
   
     fprintf(fp, "}\n");
   }
+
+  cstr_drop(&fileNm);
 }
 
 void
@@ -463,6 +378,13 @@ gkyl_moment_app_release(gkyl_moment_app* app)
     moment_coupling_release(&app->sources);
 
   gkyl_wave_geom_release(app->geom);
+
+  if (app->scheme_type == GKYL_MOMENT_MP) {
+    gkyl_array_release(app->ql);
+    gkyl_array_release(app->qr);
+    gkyl_array_release(app->amdq);
+    gkyl_array_release(app->apdq);
+  }
 
   gkyl_free(app);
 }
