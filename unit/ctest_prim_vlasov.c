@@ -469,10 +469,9 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   struct gkyl_array *vtsq_out = mkarr(confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *u_out_cu = mkarr_cu(vdim*confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *vtsq_out_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
-  struct gkyl_array *prim_moms_out_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *prim_moms_out_cu = mkarr_cu((vdim+1)*confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *greene_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
-  struct gkyl_array *cross_u = u_cu;
-  struct gkyl_array *cross_vtsq = vth_cu;
+  struct gkyl_array *cross_prim_moms = prim_moms_cu;
   double self_m = 1.;
   double cross_m = self_m;
   gkyl_array_clear(greene_cu, 1.0);
