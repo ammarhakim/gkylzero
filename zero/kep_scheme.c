@@ -2,7 +2,18 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_kep_scheme.h>
 #include <gkyl_moment_prim_euler.h>
+#include <gkyl_wave_geom.h>
 #include <gkyl_wv_euler.h>
+
+#include <float.h>
+#include <math.h>
+
+#define RHO 0     
+#define RHOU d[0]
+#define RHOV d[1]
+#define RHOW d[2]
+#define ER 4
+#define PR 4
 
 static const int dir_shuffle[][3] = {
   {1, 2, 3},
@@ -15,7 +26,11 @@ struct gkyl_kep_scheme {
   int ndim; // number of dimensions
   int num_up_dirs; // number of update directions
   int update_dirs[GKYL_MAX_DIM]; // directions to update
+
+  double cfl; // CFL number
+  
   const struct gkyl_wv_eqn *equation; // equation object
+  struct gkyl_wave_geom *geom; // geometry object  
 };
 
 gkyl_kep_scheme*
@@ -31,28 +46,25 @@ gkyl_kep_scheme_new(struct gkyl_kep_scheme_inp inp)
   for (int i=0; i<inp.num_up_dirs; ++i)
     up->update_dirs[i] = inp.update_dirs[i];
 
+  up->cfl = inp.cfl;
+
   up->equation = gkyl_wv_eqn_acquire(inp.equation);
+  up->geom = gkyl_wave_geom_acquire(inp.geom);
 
   return up;
 }
 
 // compute kinetic energy (no density factor)
-static inline double euler_ke(const double v[5])
+static inline
+double euler_ke(const double v[5])
 {
   return 0.5*(v[1]*v[1] + v[2]*v[2] + v[3]*v[3]);
 }
 
 // Numerical flux using modified KEP scheme
-static void
+static inline void
 mkep_flux(int dir, double gas_gamma, const double vm[5], const double vp[5], double flux[5])
 {
-#define RHO 0     
-#define RHOU d[0]
-#define RHOV d[1]
-#define RHOW d[2]
-#define ER 4
-#define PR 4
-
   double vbar[5];
   
   for (int i=0; i<5; ++i) vbar[i] = 0.5*(vm[i]+vp[i]);
@@ -66,13 +78,6 @@ mkep_flux(int dir, double gas_gamma, const double vm[5], const double vp[5], dou
   flux[RHOW] =  flux[0]*vbar[RHOW]; // rho*u*v
   // following ensure stability of linear perturbations around uniform flow
   flux[ER] = gas_gamma/(gas_gamma-1)*vbar[PR]*vbar[RHOU] + flux[0]*kebar; // (E+p)*u
-
-#undef RHO  
-#undef RHOU
-#undef RHOV
-#undef RHOW
-#undef ER
-#undef PR  
 }
 
 void
@@ -128,11 +133,42 @@ gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range *upd
         }
 
         double *cflrate_d = gkyl_array_fetch(cflrate, linp);
-        // TODO: Rotation Is Required!
-        cflrate_d[0] += gkyl_euler_max_abs_speed(gas_gamma, qp)/dx;
+
+        // rotate q to local coordinates before computing max speed
+        const int *d = dir_shuffle[dir];
+        double qp_dir[5];
+        qp_dir[0] = qp[0];
+        qp_dir[RHOU] = qp[1]; qp_dir[RHOV] = qp[2]; qp_dir[RHOW] = qp[3];
+        qp_dir[4] = qp[4];
+        
+        cflrate_d[0] += gkyl_euler_max_abs_speed(gas_gamma, qp_dir)/dx;
       }
     }
   }
+}
+
+double
+gkyl_kep_scheme_max_dt(const gkyl_kep_scheme *kep, const struct gkyl_range *update_range,
+  const struct gkyl_array *qin)
+{
+  double max_dt = DBL_MAX;
+  
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, update_range);
+  while (gkyl_range_iter_next(&iter)) {
+
+    for (int d=0; d<kep->num_up_dirs; ++d) {
+      int dir = kep->update_dirs[d];
+      double dx = kep->grid.dx[dir];
+
+      const double *q = gkyl_array_cfetch(qin, gkyl_range_idx(update_range, iter.idx));
+      double maxs = gkyl_wv_eqn_max_speed(kep->equation, q);
+      max_dt = fmin(max_dt, kep->cfl*dx/maxs);
+    }
+    
+  }
+
+  return max_dt;  
 }
 
 void

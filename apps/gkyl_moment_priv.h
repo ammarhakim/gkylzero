@@ -20,6 +20,7 @@
 #include <gkyl_elem_type.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_fv_proj.h>
+#include <gkyl_kep_scheme.h>
 #include <gkyl_moment.h>
 #include <gkyl_moment_em_coupling.h>
 #include <gkyl_mp_scheme.h>
@@ -62,7 +63,10 @@ struct moment_species {
       struct gkyl_array *fdup, *f[4]; // arrays for updates
     };
     struct {
-      gkyl_mp_scheme *mp_slvr; // monotonicity-preserving scheme
+      union {
+        gkyl_mp_scheme *mp_slvr; // monotonicity-preserving scheme
+        gkyl_kep_scheme *kep_slvr; // KEP scheme
+      };
       struct gkyl_array *f0, *f1, *fnew; // arrays for updates
       struct gkyl_array *cflrate; // CFL rate in each cell
     };
