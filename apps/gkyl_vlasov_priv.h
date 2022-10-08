@@ -69,17 +69,17 @@ struct vm_species;
 struct vm_lbo_collisions {
   struct gkyl_array *boundary_corrections; // LBO boundary corrections
   struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator
-  struct gkyl_array *nu_sum, *u_drift, *vth_sq, *nu_u, *nu_vthsq; // LBO primitive moments
+  struct gkyl_array *nu_sum, *prim_moms, *nu_prim_moms; // LBO primitive moments
 
   double betaGreenep1; // value of Greene's factor beta + 1
   double other_m[GKYL_MAX_SPECIES]; // masses of species being collided with
-  struct gkyl_array *other_u_drift[GKYL_MAX_SPECIES], *other_vth_sq[GKYL_MAX_SPECIES]; // self-primitive moments of species being collided with
-  struct gkyl_array *cross_u_drift[GKYL_MAX_SPECIES], *cross_vth_sq[GKYL_MAX_SPECIES]; // LBO cross-primitive moments
+  struct gkyl_array *other_prim_moms[GKYL_MAX_SPECIES]; // self-primitive moments of species being collided with
+  struct gkyl_array *cross_prim_moms[GKYL_MAX_SPECIES]; // LBO cross-primitive moments
   struct gkyl_array *cross_nu[GKYL_MAX_SPECIES]; // LBO cross-species collision frequencies
   struct gkyl_array *other_nu[GKYL_MAX_SPECIES];
-  struct gkyl_array *cross_nu_u, *cross_nu_vthsq; // weak multiplication of collision frequency and primitive moments
+  struct gkyl_array *cross_nu_prim_moms; // weak multiplication of collision frequency and primitive moments
   
-  struct gkyl_array *self_nu, *self_nu_u, *self_nu_vthsq; // LBO self-primitive moments
+  struct gkyl_array *self_nu, *self_nu_prim_moms; // LBO self-primitive moments
 
   struct vm_species_moment moms; // moments needed in LBO (single array includes Zeroth, First, and Second moment)
   struct gkyl_array *m0;
@@ -95,13 +95,6 @@ struct vm_lbo_collisions {
   gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
   gkyl_prim_lbo_cross_calc *cross_calc; // LBO cross-primitive moment calculator
   gkyl_dg_updater_lbo_vlasov *coll_slvr; // collision solver
-};
-
-struct vm_bgk_collisions {
-  struct gkyl_array *u, *vthsq; // BGK primitive moments
-  // BGK Collisions should probably own a project on Maxwellian updater
-  // so it can compute its contribution to the RHS
-  // struct proj_maxwellian;
 };
 
 struct vm_boundary_fluxes {

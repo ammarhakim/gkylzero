@@ -32,8 +32,7 @@ gkyl_dg_updater_lbo_gyrokinetic* gkyl_dg_updater_lbo_gyrokinetic_new(const struc
  * @param update_rng Range on which to compute.
  * @param bmag Magnitude of magnetic field
  * @param nu_sum Sum of coll freq
- * @param nu_u Sum of coll freq*u
- * @param nu_vthsq Sum of coll freq*vth
+ * @param nu_prim_moms Sum of coll freq*u and freq*vtsq
  * @param m2self 2nd velocity moment of this species.
  * @param fIn Input to updater
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
@@ -42,7 +41,7 @@ gkyl_dg_updater_lbo_gyrokinetic* gkyl_dg_updater_lbo_gyrokinetic_new(const struc
 void gkyl_dg_updater_lbo_gyrokinetic_advance(gkyl_dg_updater_lbo_gyrokinetic *lbo,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *bmag_inv,
-  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq,
+  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms,
   const struct gkyl_array *m2self, 
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
@@ -50,7 +49,7 @@ void gkyl_dg_updater_lbo_gyrokinetic_advance(gkyl_dg_updater_lbo_gyrokinetic *lb
 void gkyl_dg_updater_lbo_gyrokinetic_advance_cu(gkyl_dg_updater_lbo_gyrokinetic *lbo,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *bmag_inv,
-  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq,
+  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms,
   const struct gkyl_array *m2self, 
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);

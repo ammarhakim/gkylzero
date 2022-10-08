@@ -16,21 +16,22 @@ struct free_stream_ctx {
 static inline double sq(double x) { return x*x; }
 
 static inline double
-maxwellian(double n, double v, double u, double vth)
+maxwellian(double n, double vx, double vy, double u, double vth)
 {
-  double v2 = (v - u)*(v - u);
-  return n/sqrt(2*M_PI*vth*vth)*exp(-v2/(2*vth*vth));
+  double v2 = (vx - u)*(vx - u) + vy*vy;
+  return n/pow(sqrt(2*M_PI*vth*vth),2)*exp(-v2/(2*vth*vth));
 }
 
 void
 evalDistFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct free_stream_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
+  double x = xn[0];
+  double vx = xn[1], vy = xn[2];
   if (x<0.5)
-    fout[0] = maxwellian(1.0, v, 0.0, 1.0);
+    fout[0] = maxwellian(1.0, vx, vy, 0.0, 1.0);
   else
-    fout[0] = maxwellian(0.125, v, 0.0, sqrt(0.1/0.125));
+    fout[0] = maxwellian(0.125, vx, vy, 0.0, sqrt(0.1/0.125));
 }
 
 void
@@ -58,9 +59,6 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
-
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
@@ -71,9 +69,9 @@ main(int argc, char **argv)
   struct gkyl_vlasov_species neut = {
     .name = "neut",
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -6.0*ctx.vt},
-    .upper = { 6.0*ctx.vt}, 
-    .cells = { NV },
+    .lower = { -6.0*ctx.vt, -6.0*ctx.vt },
+    .upper = { 6.0*ctx.vt, 6.0*ctx.vt }, 
+    .cells = { 16, 16 },
 
     .ctx = &ctx,
     .init = evalDistFunc,
@@ -83,20 +81,20 @@ main(int argc, char **argv)
 
       .ctx = &ctx,
       .self_nu = evalNu,
-    },
-
+    },    
+    
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
   };
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "neut_lbo_sod_shock_1x1v",
+    .name = "neut_lbo_sod_shock_1x2v_p2",
 
-    .cdim = 1, .vdim = 1,
+    .cdim = 1, .vdim = 2,
     .lower = { 0.0 },
     .upper = { ctx.Lx },
-    .cells = { NX },
+    .cells = { 32 },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 

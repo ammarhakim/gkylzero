@@ -26,8 +26,7 @@ gkyl_lbo_gyrokinetic_diff_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gk
 
 #ifdef GKYL_HAVE_CUDA
  if (gkyl_array_is_cu_dev(auxin.bmag_inv) && gkyl_array_is_cu_dev(auxin.nuSum) &&
-     gkyl_array_is_cu_dev(auxin.nuUSum) && gkyl_array_is_cu_dev(auxin.nuVtSqSum) &&
-     gkyl_array_is_cu_dev(auxin.m2self)) {
+     gkyl_array_is_cu_dev(auxin.nuPrimMomsSum) && gkyl_array_is_cu_dev(auxin.m2self)) {
    gkyl_lbo_gyrokinetic_diff_set_auxfields_cu(eqn->on_dev, auxin);
    return;
  }
@@ -36,8 +35,7 @@ gkyl_lbo_gyrokinetic_diff_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gk
   struct dg_lbo_gyrokinetic_diff *lbo_gyrokinetic_diff = container_of(eqn, struct dg_lbo_gyrokinetic_diff, eqn);
   lbo_gyrokinetic_diff->auxfields.bmag_inv = auxin.bmag_inv;
   lbo_gyrokinetic_diff->auxfields.nuSum = auxin.nuSum;
-  lbo_gyrokinetic_diff->auxfields.nuUSum = auxin.nuUSum;
-  lbo_gyrokinetic_diff->auxfields.nuVtSqSum = auxin.nuVtSqSum;
+  lbo_gyrokinetic_diff->auxfields.nuPrimMomsSum = auxin.nuPrimMomsSum;
   lbo_gyrokinetic_diff->auxfields.m2self = auxin.m2self;
 }
 
@@ -64,6 +62,7 @@ gkyl_dg_lbo_gyrokinetic_diff_new(const struct gkyl_basis* cbasis, const struct g
 
   lbo_gyrokinetic_diff->vparMax = pgrid->upper[cdim];
   lbo_gyrokinetic_diff->vparMaxSq = pow(pgrid->upper[cdim],2);
+  lbo_gyrokinetic_diff->num_cbasis = cbasis->num_basis;
 
   const gkyl_dg_lbo_gyrokinetic_diff_vol_kern_list *vol_kernels;
   const gkyl_dg_lbo_gyrokinetic_diff_surf_kern_list *surf_vpar_kernels, *surf_mu_kernels;
@@ -101,8 +100,7 @@ gkyl_dg_lbo_gyrokinetic_diff_new(const struct gkyl_basis* cbasis, const struct g
   lbo_gyrokinetic_diff->mass = mass;
   lbo_gyrokinetic_diff->auxfields.bmag_inv = 0;
   lbo_gyrokinetic_diff->auxfields.nuSum = 0;
-  lbo_gyrokinetic_diff->auxfields.nuUSum = 0;
-  lbo_gyrokinetic_diff->auxfields.nuVtSqSum = 0;
+  lbo_gyrokinetic_diff->auxfields.nuPrimMomsSum = 0;
   lbo_gyrokinetic_diff->auxfields.m2self = 0;
   lbo_gyrokinetic_diff->conf_range = *conf_range;
 

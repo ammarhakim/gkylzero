@@ -1,17 +1,19 @@
 #include <gkyl_lbo_gyrokinetic_kernels.h> 
 #include <gkyl_basis_tensor_3x_p2_surfx2_eval_quad.h> 
 #include <gkyl_basis_tensor_3x_p2_upwind_quad_to_modal.h> 
-GKYL_CU_DH void lbo_gyrokinetic_drag_surfvpar_1x2v_tensor_p2(const double *w, const double *dxv, const double m_, const double *bmag_inv, const double *nuSum, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void lbo_gyrokinetic_drag_surfvpar_1x2v_tensor_p2(const double *w, const double *dxv, const double m_, const double *bmag_inv, const double *nuSum, const double *nuPrimMomsSum, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[3]:     cell-center coordinates. 
   // dxv[3]:   cell spacing. 
   // m_:        species mass.
   // bmag_inv:  1/(magnetic field magnitude). 
   // nuSum:     collisionalities added (self and cross species collisionalities). 
-  // nuUSum[6]:sum of bulk velocities times their respective collisionalities. 
-  // nuVtSqSum: sum of thermal speeds squared time their respective collisionalities. 
+  // nuPrimMomsSum[6]: sum of bulk velocities and thermal speeds squared times their respective collisionalities. 
   // fl/fc/fr:  distribution function in cells 
   // out:       incremented distribution function in cell 
+
+  const double *nuUSum = nuPrimMomsSum;
+
   double rdv2 = 2.0/dxv[1]; 
 
   double alphaDrSurf_l[9] = {0.0}; 

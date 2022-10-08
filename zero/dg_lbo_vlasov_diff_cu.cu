@@ -14,12 +14,11 @@ extern "C" {
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
 gkyl_lbo_vlasov_diff_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuSum,
-  const struct gkyl_array *nuUSum, const struct gkyl_array *nuVtSqSum)
+  const struct gkyl_array *nuPrimMomsSum)
 {
   struct dg_lbo_vlasov_diff *lbo_vlasov_diff = container_of(eqn, struct dg_lbo_vlasov_diff, eqn);
   lbo_vlasov_diff->auxfields.nuSum = nuSum;
-  lbo_vlasov_diff->auxfields.nuUSum = nuUSum;
-  lbo_vlasov_diff->auxfields.nuVtSqSum = nuVtSqSum;
+  lbo_vlasov_diff->auxfields.nuPrimMomsSum = nuPrimMomsSum;
 }
 
 //// Host-side wrapper for device kernels setting nuSum, nuUSum and nuVtSqSum.
@@ -27,7 +26,7 @@ void
 gkyl_lbo_vlasov_diff_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_vlasov_diff_auxfields auxin)
 {
   gkyl_lbo_vlasov_diff_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.nuSum->on_dev,
-    auxin.nuUSum->on_dev, auxin.nuVtSqSum->on_dev);
+    auxin.nuPrimMomsSum->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and vlasov LBO kernel function
@@ -37,8 +36,7 @@ dg_lbo_vlasov_diff_set_cu_dev_ptrs(struct dg_lbo_vlasov_diff *lbo_vlasov_diff, e
   int cv_index, int cdim, int vdim, int poly_order)
 {
   lbo_vlasov_diff->auxfields.nuSum = 0; 
-  lbo_vlasov_diff->auxfields.nuUSum = 0; 
-  lbo_vlasov_diff->auxfields.nuVtSqSum = 0; 
+  lbo_vlasov_diff->auxfields.nuPrimMomsSum = 0; 
 
   lbo_vlasov_diff->eqn.vol_term = vol;
   lbo_vlasov_diff->eqn.surf_term = surf;

@@ -6,15 +6,15 @@
 
 // Types for various kernels
 typedef double (*lbo_vlasov_drag_vol_t)(const double *w, const double *dxv,
-  const double *nuSum, const double *nuUSum, const double *nuVtSqSum,
+  const double *nuSum, const double *nuPrimMomsSum,
   const double *f, double* GKYL_RESTRICT out);
 
 typedef void (*lbo_vlasov_drag_surf_t)(const double *w, const double *dxv,
-  const double *nuSum, const double *nuUSum, const double *nuVtSqSum, 
+  const double *nuSum, const double *nuPrimMomsSum,
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
 typedef void (*lbo_vlasov_drag_boundary_surf_t)(const double *w, const double *dxv,
-  const double *nuSum, const double *nuUSum, const double *nuVtSqSum, 
+  const double *nuSum, const double *nuPrimMomsSum,
   const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
@@ -277,12 +277,13 @@ vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
   struct dg_lbo_vlasov_drag *lbo_vlasov_drag = container_of(eqn, struct dg_lbo_vlasov_drag, eqn);
   long cidx = gkyl_range_idx(&lbo_vlasov_drag->conf_range, idx);
   const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuSum, cidx);
-  const double* nuUSum_p    = (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuUSum, cidx);
-  const double* nuVtSqSum_p = (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuVtSqSum, cidx);
+  const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuPrimMomsSum, cidx);
+  const double* nuUSum_p    = nuPrimMomsSum_p;
+  const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo_vlasov_drag->vdim*lbo_vlasov_drag->num_cbasis];
   bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_drag, nuSum_p, nuUSum_p, nuVtSqSum_p);
   if (noPrimMomCross) {
     return lbo_vlasov_drag->vol(xc, dx,
-      nuSum_p, nuUSum_p, nuVtSqSum_p, qIn, qRhsOut);
+      nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
   } else {
     return 0.;
   }
@@ -301,12 +302,13 @@ surf(const struct gkyl_dg_eqn *eqn,
   struct dg_lbo_vlasov_drag *lbo_vlasov_drag = container_of(eqn, struct dg_lbo_vlasov_drag, eqn);
   long cidx = gkyl_range_idx(&lbo_vlasov_drag->conf_range, idxC);
   const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuSum, cidx);
-  const double* nuUSum_p    = (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuUSum, cidx);
-  const double* nuVtSqSum_p = (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuVtSqSum, cidx);
+  const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuPrimMomsSum, cidx);
+  const double* nuUSum_p    = nuPrimMomsSum_p;
+  const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo_vlasov_drag->vdim*lbo_vlasov_drag->num_cbasis];
   bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_drag, nuSum_p, nuUSum_p, nuVtSqSum_p);
   if ((dir >= lbo_vlasov_drag->cdim) && (noPrimMomCross)) {
     lbo_vlasov_drag->surf[dir-lbo_vlasov_drag->cdim](xcC, dxC, 
-      nuSum_p, nuUSum_p, nuVtSqSum_p, qInL, qInC, qInR, qRhsOut);
+      nuSum_p, nuPrimMomsSum_p, qInL, qInC, qInR, qRhsOut);
   }
 }
 
@@ -322,12 +324,13 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   struct dg_lbo_vlasov_drag *lbo_vlasov_drag = container_of(eqn, struct dg_lbo_vlasov_drag, eqn);
   long cidx = gkyl_range_idx(&lbo_vlasov_drag->conf_range, idxSkin);
   const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuSum, cidx);
-  const double* nuUSum_p    = (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuUSum, cidx);
-  const double* nuVtSqSum_p = (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuVtSqSum, cidx);
+  const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuPrimMomsSum, cidx);
+  const double* nuUSum_p    = nuPrimMomsSum_p;
+  const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo_vlasov_drag->vdim*lbo_vlasov_drag->num_cbasis];
   bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_drag, nuSum_p, nuUSum_p, nuVtSqSum_p);
   if ((dir >= lbo_vlasov_drag->cdim) && (noPrimMomCross)) {
     lbo_vlasov_drag->boundary_surf[dir-lbo_vlasov_drag->cdim](xcSkin, dxSkin, 
-      nuSum_p, nuUSum_p, nuVtSqSum_p, edge, qInSkin, qInEdge, qRhsOut);
+      nuSum_p, nuPrimMomsSum_p, edge, qInSkin, qInEdge, qRhsOut);
   }
 }
 

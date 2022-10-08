@@ -25,8 +25,7 @@ gkyl_lbo_vlasov_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, const struct g
 {
 
 #ifdef GKYL_HAVE_CUDA
- if (gkyl_array_is_cu_dev(auxin.nuSum) && gkyl_array_is_cu_dev(auxin.nuUSum)
-     && gkyl_array_is_cu_dev(auxin.nuVtSqSum)) {
+ if (gkyl_array_is_cu_dev(auxin.nuSum) && gkyl_array_is_cu_dev(auxin.nuPrimMomsSum)) {
    gkyl_lbo_vlasov_drag_set_auxfields_cu(eqn->on_dev, auxin);
    return;
  }
@@ -34,8 +33,7 @@ gkyl_lbo_vlasov_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, const struct g
 
   struct dg_lbo_vlasov_drag *lbo_vlasov_drag = container_of(eqn, struct dg_lbo_vlasov_drag, eqn);
   lbo_vlasov_drag->auxfields.nuSum = auxin.nuSum;
-  lbo_vlasov_drag->auxfields.nuUSum = auxin.nuUSum;
-  lbo_vlasov_drag->auxfields.nuVtSqSum = auxin.nuVtSqSum;
+  lbo_vlasov_drag->auxfields.nuPrimMomsSum = auxin.nuPrimMomsSum;
 }
 
 struct gkyl_dg_eqn*
@@ -119,8 +117,7 @@ gkyl_dg_lbo_vlasov_drag_new(const struct gkyl_basis* cbasis, const struct gkyl_b
   for (int i=0; i<vdim; ++i) assert(lbo_vlasov_drag->boundary_surf[i]);
 
   lbo_vlasov_drag->auxfields.nuSum = 0;
-  lbo_vlasov_drag->auxfields.nuUSum = 0;
-  lbo_vlasov_drag->auxfields.nuVtSqSum = 0;
+  lbo_vlasov_drag->auxfields.nuPrimMomsSum = 0;
   lbo_vlasov_drag->conf_range = *conf_range;
 
   lbo_vlasov_drag->eqn.flags = 0;
