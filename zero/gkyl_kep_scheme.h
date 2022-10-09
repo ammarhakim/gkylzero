@@ -26,7 +26,7 @@ struct gkyl_kep_scheme_inp {
  *
  * @param inp Input parameters to construct KEP scheme
  */
-gkyl_kep_scheme* gkyl_kep_scheme_new(struct gkyl_kep_scheme_inp inp);
+gkyl_kep_scheme* gkyl_kep_scheme_new(const struct gkyl_kep_scheme_inp *inp);
 
 /**
  * Compute RHS of update. The update_rng MUST be a sub-range of the

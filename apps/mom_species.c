@@ -42,16 +42,16 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
           .geom = app->geom,
         }
       );
-
+      
     sp->fdup = mkarr(false, meqn, app->local_ext.volume);
     // allocate arrays
     for (int d=0; d<ndim+1; ++d)
       sp->f[d] = mkarr(false, meqn, app->local_ext.volume);
-
+  
     // set current solution so ICs and IO work properly
     sp->fcurr = sp->f[0];
   }
-  else if (sp->scheme_type == GKYL_MOMENT_MP) {
+  else if ( sp->scheme_type == GKYL_MOMENT_MP || sp->scheme_type == GKYL_MOMENT_KEP ) {
     // determine directions to update
     int num_up_dirs = 0, update_dirs[GKYL_MAX_CDIM] = { 0 };
     for (int d=0; d<ndim; ++d)
@@ -59,26 +59,38 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         update_dirs[num_up_dirs] = d;
         num_up_dirs += 1;
       }
-    
-    // single MP updater updates all directions
-    sp->mp_slvr = gkyl_mp_scheme_new( &(struct gkyl_mp_scheme_inp) {
-        .grid = &app->grid,
-        .equation = mom_sp->equation,
-        .mp_recon = app->mp_recon,
-        .skip_mp_limiter = mom->skip_mp_limiter,
-        .num_up_dirs = num_up_dirs,
-        .update_dirs = { update_dirs[0], update_dirs[1], update_dirs[2] } ,
-        .cfl = app->cfl,
-        .geom = app->geom,
-      }
-    );
 
+    if (sp->scheme_type == GKYL_MOMENT_MP)
+      // single MP updater updates all directions
+      sp->mp_slvr = gkyl_mp_scheme_new( &(struct gkyl_mp_scheme_inp) {
+          .grid = &app->grid,
+          .equation = mom_sp->equation,
+          .mp_recon = app->mp_recon,
+          .skip_mp_limiter = mom->skip_mp_limiter,
+          .num_up_dirs = num_up_dirs,
+          .update_dirs = { update_dirs[0], update_dirs[1], update_dirs[2] } ,
+          .cfl = app->cfl,
+          .geom = app->geom,
+        }
+      );
+    else
+      // single KEP updater updates all directions
+      sp->kep_slvr = gkyl_kep_scheme_new( &(struct gkyl_kep_scheme_inp) {
+          .grid = &app->grid,
+          .equation = mom_sp->equation,
+          .num_up_dirs = num_up_dirs,
+          .update_dirs = { update_dirs[0], update_dirs[1], update_dirs[2] } ,
+          .cfl = app->cfl,
+          .geom = app->geom,
+        }
+      );
+    
     // allocate arrays
     sp->f0 = mkarr(false, meqn, app->local_ext.volume);
     sp->f1 = mkarr(false, meqn, app->local_ext.volume);
     sp->fnew = mkarr(false, meqn, app->local_ext.volume);
     sp->cflrate = mkarr(false, 1, app->local_ext.volume);
-
+    
     // set current solution so ICs and IO work properly
     sp->fcurr = sp->f0;
   }
@@ -227,6 +239,9 @@ moment_species_max_dt(const gkyl_moment_app *app, const struct moment_species *s
   else if (sp->scheme_type == GKYL_MOMENT_MP) {
     max_dt = fmin(max_dt, gkyl_mp_scheme_max_dt(sp->mp_slvr, &app->local, sp->f0));
   }
+  else if (sp->scheme_type == GKYL_MOMENT_KEP) {
+    max_dt = fmin(max_dt, gkyl_kep_scheme_max_dt(sp->kep_slvr, &app->local, sp->f0));
+  }  
   return max_dt;
 }
 
@@ -269,9 +284,13 @@ moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
-  gkyl_mp_scheme_advance(species->mp_slvr, &app->local, fin,
-    app->ql, app->qr, app->amdq, app->apdq,
-    species->cflrate, rhs);
+  if (app->scheme_type == GKYL_MOMENT_MP)
+    gkyl_mp_scheme_advance(species->mp_slvr, &app->local, fin,
+      app->ql, app->qr, app->amdq, app->apdq,
+      species->cflrate, rhs);
+  else
+    gkyl_kep_scheme_advance(species->kep_slvr, &app->local, fin,
+      species->cflrate, rhs);
 
   double omegaCfl[1];
   gkyl_array_reduce_range(omegaCfl, species->cflrate, GKYL_MAX, app->local);

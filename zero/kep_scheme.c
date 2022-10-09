@@ -34,22 +34,22 @@ struct gkyl_kep_scheme {
 };
 
 gkyl_kep_scheme*
-gkyl_kep_scheme_new(struct gkyl_kep_scheme_inp inp)
+gkyl_kep_scheme_new(const struct gkyl_kep_scheme_inp *inp)
 {
   struct gkyl_kep_scheme *up;
   up = gkyl_malloc(sizeof(*up));
 
-  up->grid = *(inp.grid);
+  up->grid = *(inp->grid);
   up->ndim = up->grid.ndim;
   
-  up->num_up_dirs = inp.num_up_dirs;
-  for (int i=0; i<inp.num_up_dirs; ++i)
-    up->update_dirs[i] = inp.update_dirs[i];
+  up->num_up_dirs = inp->num_up_dirs;
+  for (int i=0; i<inp->num_up_dirs; ++i)
+    up->update_dirs[i] = inp->update_dirs[i];
 
-  up->cfl = inp.cfl;
+  up->cfl = inp->cfl;
 
-  up->equation = gkyl_wv_eqn_acquire(inp.equation);
-  up->geom = gkyl_wave_geom_acquire(inp.geom);
+  up->equation = gkyl_wv_eqn_acquire(inp->equation);
+  up->geom = gkyl_wave_geom_acquire(inp->geom);
 
   return up;
 }

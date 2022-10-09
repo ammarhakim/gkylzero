@@ -28,8 +28,8 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     app->update_func = moment_update_ssp_rk3;
 
   int ghost[3] = { 2, 2, 2 }; // 2 ghost-cells for wave
-  if (mom->scheme_type == GKYL_MOMENT_MP)
-    for (int d=0; d<3; ++d) ghost[d] = 3; // 3 for MP scheme
+  if (mom->scheme_type != GKYL_MOMENT_WAVE_PROP)
+    for (int d=0; d<3; ++d) ghost[d] = 3; // 3 for MP scheme and KEP
   
   gkyl_rect_grid_init(&app->grid, ndim, mom->lower, mom->upper, mom->cells);
   gkyl_create_grid_ranges(&app->grid, ghost, &app->local_ext, &app->local);

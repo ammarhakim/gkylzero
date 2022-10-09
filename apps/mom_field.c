@@ -47,7 +47,9 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
     // set current solution so ICs and IO work properly
     fld->fcurr = fld->f[0];
   }
-  else if (fld->scheme_type == GKYL_MOMENT_MP) {
+  else if (fld->scheme_type == GKYL_MOMENT_MP || fld->scheme_type == GKYL_MOMENT_KEP) {
+    // NOTE: there is no KEP scheme for Maxwell, and we simply use MP scheme instead
+    
     // determine directions to update
     int num_up_dirs = 0, update_dirs[GKYL_MAX_CDIM] = { 0 };
     for (int d=0; d<ndim; ++d)
@@ -55,12 +57,16 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         update_dirs[num_up_dirs] = d;
         num_up_dirs += 1;
       }
+
+    // choose U3 as field reconstruction if using KEP
+    enum gkyl_mp_recon mp_recon =
+      fld->scheme_type == GKYL_MOMENT_KEP ? GKYL_MP_U3 : app->mp_recon;
     
     // single MP updater updates all directions
     fld->mp_slvr = gkyl_mp_scheme_new( &(struct gkyl_mp_scheme_inp) {
         .grid = &app->grid,
         .equation = maxwell,
-        .mp_recon = app->mp_recon,
+        .mp_recon = mp_recon,
         .skip_mp_limiter = mom->skip_mp_limiter,
         .num_up_dirs = num_up_dirs,
         .update_dirs = { update_dirs[0], update_dirs[1], update_dirs[2] } ,
@@ -194,7 +200,7 @@ moment_field_max_dt(const gkyl_moment_app *app, const struct moment_field *fld)
     for (int d=0; d<app->ndim; ++d)
       max_dt = fmin(max_dt, gkyl_wave_prop_max_dt(fld->slvr[d], &app->local, fld->f[0]));
   }
-  else if (fld->scheme_type == GKYL_MOMENT_MP) {
+  else if (fld->scheme_type == GKYL_MOMENT_MP || fld->scheme_type == GKYL_MOMENT_KEP) {
     max_dt = fmin(max_dt, gkyl_mp_scheme_max_dt(fld->mp_slvr, &app->local, fld->f0));
   }
   return max_dt;
