@@ -44,7 +44,6 @@ dg_lbo_gyrokinetic_diff_set_cu_dev_ptrs(struct dg_lbo_gyrokinetic_diff *lbo_gyro
   lbo_gyrokinetic_diff->auxfields.nuPrimMomsSum = 0; 
   lbo_gyrokinetic_diff->auxfields.m2self = 0; 
 
-  lbo_gyrokinetic_diff->eqn.vol_term = vol;
   lbo_gyrokinetic_diff->eqn.surf_term = surf;
   lbo_gyrokinetic_diff->eqn.boundary_surf_term = boundary_surf;
 
@@ -66,7 +65,7 @@ dg_lbo_gyrokinetic_diff_set_cu_dev_ptrs(struct dg_lbo_gyrokinetic_diff *lbo_gyro
       break;    
   }  
 
-  lbo_gyrokinetic_diff->vol = vol_kernels[cv_index].kernels[poly_order];
+  lbo_gyrokinetic_diff->eqn.vol_term = vol_kernels[cv_index].kernels[poly_order];
 
   lbo_gyrokinetic_diff->surf[0] = surf_vpar_kernels[cv_index].kernels[poly_order];
   if (vdim>1)

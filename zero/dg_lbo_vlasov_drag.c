@@ -55,7 +55,6 @@ gkyl_dg_lbo_vlasov_drag_new(const struct gkyl_basis* cbasis, const struct gkyl_b
   lbo_vlasov_drag->pdim = pdim;
 
   lbo_vlasov_drag->eqn.num_equations = 1;
-  lbo_vlasov_drag->eqn.vol_term = vol;
   lbo_vlasov_drag->eqn.surf_term = surf;
   lbo_vlasov_drag->eqn.boundary_surf_term = boundary_surf;
 
@@ -82,22 +81,12 @@ gkyl_dg_lbo_vlasov_drag_new(const struct gkyl_basis* cbasis, const struct gkyl_b
       boundary_surf_vz_kernels = ser_boundary_surf_vz_kernels;
       break;
 
-    /* case GKYL_BASIS_MODAL_TENSOR: */
-    /*   vol_kernels = ten_vol_kernels; */
-    /*   surf_vx_kernels = ten_surf_vx_kernels; */
-    /*   surf_vy_kernels = ten_surf_vy_kernels; */
-    /*   surf_vz_kernels = ten_surf_vz_kernels; */
-    /*   boundary_surf_vx_kernels = ten_boundary_surf_vx_kernels; */
-    /*   boundary_surf_vy_kernels = ten_boundary_surf_vy_kernels; */
-    /*   boundary_surf_vz_kernels = ten_boundary_surf_vz_kernels; */
-    /*   break; */
-
     default:
       assert(false);
       break;    
   }  
 
-  lbo_vlasov_drag->vol = CK(vol_kernels, cdim, vdim, poly_order);
+  lbo_vlasov_drag->eqn.vol_term = CK(vol_kernels, cdim, vdim, poly_order);
 
   lbo_vlasov_drag->surf[0] = CK(surf_vx_kernels, cdim, vdim, poly_order);
   if (vdim>1)
@@ -112,7 +101,6 @@ gkyl_dg_lbo_vlasov_drag_new(const struct gkyl_basis* cbasis, const struct gkyl_b
     lbo_vlasov_drag->boundary_surf[2] = CK(boundary_surf_vz_kernels, cdim, vdim, poly_order);
 
   // ensure non-NULL pointers
-  assert(lbo_vlasov_drag->vol);
   for (int i=0; i<vdim; ++i) assert(lbo_vlasov_drag->surf[i]);
   for (int i=0; i<vdim; ++i) assert(lbo_vlasov_drag->boundary_surf[i]);
 

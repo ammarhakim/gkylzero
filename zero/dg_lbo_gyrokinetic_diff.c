@@ -56,7 +56,6 @@ gkyl_dg_lbo_gyrokinetic_diff_new(const struct gkyl_basis* cbasis, const struct g
   lbo_gyrokinetic_diff->pdim = pdim;
 
   lbo_gyrokinetic_diff->eqn.num_equations = 1;
-  lbo_gyrokinetic_diff->eqn.vol_term = vol;
   lbo_gyrokinetic_diff->eqn.surf_term = surf;
   lbo_gyrokinetic_diff->eqn.boundary_surf_term = boundary_surf;
 
@@ -82,7 +81,7 @@ gkyl_dg_lbo_gyrokinetic_diff_new(const struct gkyl_basis* cbasis, const struct g
       break;    
   }  
 
-  lbo_gyrokinetic_diff->vol = CK(vol_kernels, cdim, vdim, poly_order);
+  lbo_gyrokinetic_diff->eqn.vol_term = CK(vol_kernels, cdim, vdim, poly_order);
 
   lbo_gyrokinetic_diff->surf[0] = CK(surf_vpar_kernels, cdim, vdim, poly_order);
   if (vdim>1)
@@ -93,7 +92,6 @@ gkyl_dg_lbo_gyrokinetic_diff_new(const struct gkyl_basis* cbasis, const struct g
     lbo_gyrokinetic_diff->boundary_surf[1] = CK(boundary_surf_mu_kernels, cdim, vdim, poly_order);
 
   // ensure non-NULL pointers
-  assert(lbo_gyrokinetic_diff->vol);
   for (int i=0; i<vdim; ++i) assert(lbo_gyrokinetic_diff->surf[i]);
   for (int i=0; i<vdim; ++i) assert(lbo_gyrokinetic_diff->boundary_surf[i]);
 
