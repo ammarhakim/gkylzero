@@ -1,13 +1,17 @@
 #include <gkyl_prim_lbo_vlasov_kernels.h> 
  
-GKYL_CU_DH void vlasov_cross_prim_moments_2x3v_ser_p1(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *greene, const double m_self, const double *moms_self, const double *u_self, const double *vtsq_self, const double m_other, const double *moms_other, const double *u_other, const double *vtsq_other, const double *boundary_corrections) 
+GKYL_CU_DH void vlasov_cross_prim_moments_2x3v_ser_p1(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *greene, const double m_self, const double *moms_self, const double *prim_mom_self, const double m_other, const double *moms_other, const double *prim_mom_other, const double *boundary_corrections) 
 { 
   // greene:               Greene's factor. 
   // m_:                   mass. 
   // moms:                 moments of the distribution function. 
-  // u,vtSq:               self primitive moments: mean flow velocity and thermal speed squared. 
+  // prim_mom              self primitive moments: mean flow velocity and thermal speed squared. 
   // boundary_corrections: corrections to momentum and energy conservation due to finite velocity space. 
-  // uCross,vtSqCross:     cross primitive moments: mean flow velocity and thermal speed squared. 
+ 
+  const double *u_self = &prim_mom_self[0];
+  const double *vtsq_self = &prim_mom_self[12];
+  const double *u_other = &prim_mom_other[0];
+  const double *vtsq_other = &prim_mom_other[12];
  
   // If a corner value is below zero, use cell average m0.
   bool notCellAvg = true;

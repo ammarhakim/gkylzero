@@ -10,8 +10,7 @@
 struct gkyl_dg_lbo_gyrokinetic_drag_auxfields { 
   const struct gkyl_array *bmag_inv;
   const struct gkyl_array *nuSum;
-  const struct gkyl_array *nuUSum;
-  const struct gkyl_array *nuVtSqSum;
+  const struct gkyl_array *nuPrimMomsSum;
   const struct gkyl_array *m2self;
 };
 

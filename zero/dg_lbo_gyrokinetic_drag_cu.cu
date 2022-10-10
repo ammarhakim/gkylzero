@@ -15,14 +15,12 @@ extern "C" {
 __global__ static void
 gkyl_lbo_gyrokinetic_drag_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
   const struct gkyl_array *bmag_inv, const struct gkyl_array *nuSum,
-  const struct gkyl_array *nuUSum, const struct gkyl_array *nuVtSqSum,
-  const struct gkyl_array *m2self)
+  const struct gkyl_array *nuPrimMomsSum, const struct gkyl_array *m2self)
 {
   struct dg_lbo_gyrokinetic_drag *lbo_gyrokinetic_drag = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
   lbo_gyrokinetic_drag->auxfields.bmag_inv = bmag_inv;
   lbo_gyrokinetic_drag->auxfields.nuSum = nuSum;
-  lbo_gyrokinetic_drag->auxfields.nuUSum = nuUSum;
-  lbo_gyrokinetic_drag->auxfields.nuVtSqSum = nuVtSqSum;
+  lbo_gyrokinetic_drag->auxfields.nuPrimMomsSum = nuPrimMomsSum;
   lbo_gyrokinetic_drag->auxfields.m2self = m2self;
 }
 
@@ -32,8 +30,7 @@ gkyl_lbo_gyrokinetic_drag_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct
 {
   gkyl_lbo_gyrokinetic_drag_set_auxfields_cu_kernel<<<1,1>>>(eqn, 
     auxin.bmag_inv->on_dev, auxin.nuSum->on_dev,
-    auxin.nuUSum->on_dev, auxin.nuVtSqSum->on_dev,
-    auxin.m2self->on_dev);
+    auxin.nuPrimMomsSum->on_dev, auxin.m2self->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and gyrokinetic LBO kernel function
@@ -44,11 +41,9 @@ dg_lbo_gyrokinetic_drag_set_cu_dev_ptrs(struct dg_lbo_gyrokinetic_drag *lbo_gyro
 {
   lbo_gyrokinetic_drag->auxfields.bmag_inv = 0; 
   lbo_gyrokinetic_drag->auxfields.nuSum = 0; 
-  lbo_gyrokinetic_drag->auxfields.nuUSum = 0; 
-  lbo_gyrokinetic_drag->auxfields.nuVtSqSum = 0; 
+  lbo_gyrokinetic_drag->auxfields.nuPrimMomsSum = 0; 
   lbo_gyrokinetic_drag->auxfields.m2self = 0; 
 
-  lbo_gyrokinetic_drag->eqn.vol_term = vol;
   lbo_gyrokinetic_drag->eqn.surf_term = surf;
   lbo_gyrokinetic_drag->eqn.boundary_surf_term = boundary_surf;
 
@@ -70,7 +65,7 @@ dg_lbo_gyrokinetic_drag_set_cu_dev_ptrs(struct dg_lbo_gyrokinetic_drag *lbo_gyro
       break;    
   }  
 
-  lbo_gyrokinetic_drag->vol = vol_kernels[cv_index].kernels[poly_order];
+  lbo_gyrokinetic_drag->eqn.vol_term = vol_kernels[cv_index].kernels[poly_order];
 
   lbo_gyrokinetic_drag->surf[0] = surf_vpar_kernels[cv_index].kernels[poly_order];
   if (vdim>1)
