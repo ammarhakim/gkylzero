@@ -919,6 +919,9 @@ local app_mt = {
       if tbl.scheme_type then
 	 vm.scheme_type = moment_scheme_tags[tbl.scheme_type]
       end
+      if tbl.schemeType then
+	 vm.scheme_type = moment_scheme_tags[tbl.schemeType]
+      end
 
       vm.mp_recon = C.GKYL_MP_U5
       if tbl.mp_recon then

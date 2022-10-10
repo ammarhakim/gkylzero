@@ -301,7 +301,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
           copy_wv_vec(meqn, gkyl_array_fetch(qout, lidx), gkyl_array_cfetch(qin, lidx));
         }
 
-        for (int i=loidx; i<upidx; ++i) { // CAUTION: should this be i<= as our indexing is inclusive?!
+        for (int i=loidx; i<=upidx; ++i) {
           idxl[dir] = i-1; idxr[dir] = i;
           long sidx = gkyl_ridx(slice_range, i);
 
