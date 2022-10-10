@@ -185,6 +185,7 @@ all: ${BUILD_DIR}/gkylzero.h ${BUILD_DIR}/${G0STLIB} ${BUILD_DIR}/${G0SHLIB} ${R
 
 # Amalgamated header file
 ${BUILD_DIR}/gkylzero.h:
+	$(MKDIR_P) ${BUILD_DIR}
 	./minus/gengkylzeroh.sh > ${BUILD_DIR}/gkylzero.h
 
 # Library archive
