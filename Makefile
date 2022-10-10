@@ -76,7 +76,7 @@ else
 endif
 
 # all includes
-INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iregression ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC}
+INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iregression -I${BUILD_DIR} ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC}
 
 # Build commands for CUDA source
 $(BUILD_DIR)/%.cu.o: %.cu
@@ -181,7 +181,12 @@ G0STLIB = lib${G0LIB}.a
 G0SHLIB = lib${G0LIB}.so
 
 # Make targets: libraries, regression tests and unit tests
-all: ${BUILD_DIR}/${G0STLIB} ${BUILD_DIR}/${G0SHLIB} ${REGS} ${UNITS}
+all: ${BUILD_DIR}/gkylzero.h ${BUILD_DIR}/${G0STLIB} ${BUILD_DIR}/${G0SHLIB} ${REGS} ${UNITS}
+
+# Amalgamated header file
+${BUILD_DIR}/gkylzero.h:
+	$(MKDIR_P) ${BUILD_DIR}
+	./minus/gengkylzeroh.sh > ${BUILD_DIR}/gkylzero.h
 
 # Library archive
 ${BUILD_DIR}/${G0STLIB}: ${LIBOBJS}
