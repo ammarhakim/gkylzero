@@ -43,7 +43,7 @@ struct dg_lbo_vlasov_drag {
   int num_cbasis;
 };
 
-GKYL_CU_D
+GKYL_CU_DH
 static inline bool
 checkPrimMomCross(struct dg_lbo_vlasov_drag *lbo_vlasov_drag,
   const double* nuSum_p, const double* nuUSum_p, const double* nuVtSqSum_p) {
