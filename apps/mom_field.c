@@ -22,6 +22,8 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c,
     mom_fld->elc_error_speed_fact, mom_fld->mag_error_speed_fact);
 
+  fld->maxwell = gkyl_wv_eqn_acquire(maxwell);
+  
   int ndim = mom->ndim;
 
   if (fld->scheme_type == GKYL_MOMENT_WAVE_PROP) {
@@ -260,6 +262,8 @@ moment_field_rhs(gkyl_moment_app *app, struct moment_field *fld,
 void
 moment_field_release(const struct moment_field *fld)
 {
+  gkyl_wv_eqn_release(fld->maxwell);
+  
   for (int d=0; d<fld->ndim; ++d) {
     if (fld->lower_bc[d])
       gkyl_wv_apply_bc_release(fld->lower_bc[d]);

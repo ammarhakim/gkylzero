@@ -51,10 +51,17 @@ typedef void (*wv_cons_to_riem)(const struct gkyl_wv_eqn *eqn,
 typedef void (*wv_riem_to_cons)(const struct gkyl_wv_eqn *eqn,
   const double *qstate, const double *win, double *qout);
 
+// Function pointer to compute diagnostic variables from conserved
+// variables
+typedef void (*wv_cons_to_diag)(const struct gkyl_wv_eqn *eqn,
+    const double *qin, double *diag);
+
 struct gkyl_wv_eqn {
   enum gkyl_eqn_type type; // Equation type
   int num_equations; // number of equations in system
   int num_waves; // number of waves in system
+  int num_diag; // number of diagnostic variables
+  
   wv_waves_t waves_func; // function to compute waves and speeds
   wv_qfluct_t qfluct_func; // function to compute q-fluctuations
   wv_flux_jump_t flux_jump; // function to compute jump in flux
@@ -69,6 +76,8 @@ struct gkyl_wv_eqn {
 
   wv_bc_func_t wall_bc_func; // function to apply wall BC
   wv_bc_func_t no_slip_bc_func; // function to apply no-slip BC
+
+  wv_cons_to_diag cons_to_diag; // function for diagnostic variables
   
   struct gkyl_ref_count ref_count; // reference count
 };
@@ -78,8 +87,21 @@ struct gkyl_wv_eqn {
  * method
  *
  * @param eqn Equation object.
+ * @return Acquired eqn obj pointer
  */
-struct gkyl_wv_eqn* gkyl_wv_eqn_acquire(const struct gkyl_wv_eqn* eqn);
+struct gkyl_wv_eqn *gkyl_wv_eqn_acquire(const struct gkyl_wv_eqn *eqn);
+
+/**
+ * Default function to convert conserved vars to diagostics: for many
+ * eqn systems the conserved vara are the diagnostics one wishes to
+ * compute.
+ */
+static inline void
+gkyl_default_cons_to_diag(const struct gkyl_wv_eqn *eqn,
+  const double *qin, double *diag)
+{
+  for (int i=0; i<eqn->num_equations; ++i) diag[i] = qin[i];
+}
 
 /**
  * Compute waves and speeds from left/right conserved variables. The

@@ -39,6 +39,7 @@ struct moment_species {
   int ndim;
   char name[128]; // species name
   double charge, mass;
+  
   double k0; // closure parameter (default is 0.0, used by 10 moment)
 
   int evolve; // evolve species? 1-yes, 0-no
@@ -54,6 +55,7 @@ struct moment_species {
 
   enum gkyl_eqn_type eqn_type; // type ID of equation
   int num_equations; // number of equations in species
+  struct gkyl_wv_eqn *equation; // equation object
 
   enum gkyl_moment_scheme scheme_type; // scheme to update equations
   // solvers and data to update fluid equations
@@ -91,7 +93,9 @@ struct moment_field {
     
   void *ctx; // context for initial condition init function
   // pointer to initialization function
-  void (*init)(double t, const double *xn, double *fout, void *ctx);    
+  void (*init)(double t, const double *xn, double *fout, void *ctx);
+
+  struct gkyl_wv_eqn *maxwell; // pointer to Maxwell eqn obj
     
   struct gkyl_array *app_current; // arrays for applied currents
   // pointer to projection operator for applied current function
@@ -183,9 +187,6 @@ struct gkyl_moment_app {
   struct gkyl_update_status (*update_func)(gkyl_moment_app* app, double dt0);
 };
 
-// Function pointer to compute integrated quantities from input
-typedef void (*integ_func)(int nc, const double *qin, double *integ_out);
-
 /** Some common functions to species and fields */
 
 // functions for use in integrated quantities calculation
@@ -208,9 +209,9 @@ bc_copy(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void
 }
 
 // Compute integrated quantities specified by i_func 
-void calc_integ_quant(int nc, double vol,
+void calc_integ_quant(const struct gkyl_wv_eqn *eqn, double vol,
   const struct gkyl_array *q, const struct gkyl_wave_geom *geom,
-  struct gkyl_range update_rng, integ_func i_func, double *integ_q);
+  struct gkyl_range update_rng, double *integ_q);
 
 // Check array "q" for nans
 bool check_for_nans(const struct gkyl_array *q, struct gkyl_range update_rng);

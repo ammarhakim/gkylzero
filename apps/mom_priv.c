@@ -3,9 +3,10 @@
 // Compute the nc intergated values over the update_rgn, storing the
 // result in the integ_q
 void
-calc_integ_quant(int nc, double vol, const struct gkyl_array *q, const struct gkyl_wave_geom *geom,
-  struct gkyl_range update_rng, integ_func i_func, double *integ_q)
+calc_integ_quant(const struct gkyl_wv_eqn *eqn, double vol, const struct gkyl_array *q, const struct gkyl_wave_geom *geom,
+  struct gkyl_range update_rng, double *integ_q)
 {
+  int nc = eqn->num_diag;
   double integ_out[nc];
   for (int i=0; i<nc; ++i) integ_q[i] = 0.0;
 
@@ -15,7 +16,7 @@ calc_integ_quant(int nc, double vol, const struct gkyl_array *q, const struct gk
     const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(geom, iter.idx);
     const double *qcell = gkyl_array_cfetch(q, gkyl_range_idx(&update_rng, iter.idx));
 
-    i_func(nc, qcell, integ_out);
+    eqn->cons_to_diag(eqn, qcell, integ_out);
     for (int i=0; i<nc; ++i) integ_q[i] += vol*cg->kappa*integ_out[i];
   }
 }

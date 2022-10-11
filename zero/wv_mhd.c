@@ -551,6 +551,10 @@ gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
       break;
   }
 
+  mhd->eqn.num_diag = mhd->eqn.num_equations;
+  // probably want to change this to store magnetic, internal and KE 
+  mhd->eqn.cons_to_diag = gkyl_default_cons_to_diag;
+
   mhd->eqn.ref_count = gkyl_ref_count_init(mhd_free);
 
   return &mhd->eqn;

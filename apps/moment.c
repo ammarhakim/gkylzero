@@ -271,8 +271,8 @@ gkyl_moment_app_calc_field_energy(gkyl_moment_app* app, double tm)
 {
   if (app->has_field) {
     double energy[6] = { 0.0 };
-    calc_integ_quant(6, app->grid.cellVolume, app->field.fcurr, app->geom,
-      app->local, integ_sq, energy);
+    calc_integ_quant(app->field.maxwell, app->grid.cellVolume, app->field.fcurr, app->geom,
+      app->local, energy);
     gkyl_dynvec_append(app->field.integ_energy, tm, energy);
   }
 }
@@ -281,10 +281,13 @@ void
 gkyl_moment_app_calc_integrated_mom(gkyl_moment_app *app, double tm)
 {
   for (int sidx=0; sidx<app->num_species; ++sidx) {
-    int meqn = app->species[sidx].num_equations;
-    double q_integ[meqn];
-    calc_integ_quant(meqn, app->grid.cellVolume, app->species[sidx].fcurr, app->geom,
-      app->local, integ_unit, q_integ);
+
+    int num_diag = app->species[sidx].equation->num_diag;
+    double q_integ[num_diag];
+
+    calc_integ_quant(app->species[sidx].equation, app->grid.cellVolume, app->species[sidx].fcurr, app->geom,
+      app->local, q_integ);
+    
     gkyl_dynvec_append(app->species[sidx].integ_q, tm, q_integ);
   }
 }

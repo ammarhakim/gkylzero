@@ -1,5 +1,6 @@
 #include <gkyl_moment_priv.h>
 #include <gkyl_util.h>
+#include <gkyl_wv_euler.h>
 
 // initialize species
 void
@@ -15,6 +16,8 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   sp->eqn_type = mom_sp->equation->type;
   sp->num_equations = mom_sp->equation->num_equations;
+  sp->equation = gkyl_wv_eqn_acquire(mom_sp->equation);
+  
   // closure parameter, used by 10 moment
   sp->k0 = mom_sp->equation->type == GKYL_EQN_TEN_MOMENT ? gkyl_wv_ten_moment_k0(mom_sp->equation) : 0.0;
 
@@ -197,7 +200,11 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   }
   sp->bc_buffer = mkarr(false, meqn, buff_sz);
 
-  sp->integ_q = gkyl_dynvec_new(GKYL_DOUBLE, meqn);
+  if (mom_sp->equation->type == GKYL_EQN_EULER)
+    sp->integ_q = gkyl_dynvec_new(GKYL_DOUBLE, 6); // KE and PE are stored independently
+  else
+    sp->integ_q = gkyl_dynvec_new(GKYL_DOUBLE, meqn);
+  
   sp->is_first_q_write_call = true;
 }
 
@@ -304,6 +311,8 @@ moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
 void
 moment_species_release(const struct moment_species *sp)
 {
+  gkyl_wv_eqn_release(sp->equation);
+  
   for (int d=0; d<sp->ndim; ++d) {
     if (sp->lower_bc[d])
       gkyl_wv_apply_bc_release(sp->lower_bc[d]);
