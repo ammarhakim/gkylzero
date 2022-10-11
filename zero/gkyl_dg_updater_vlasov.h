@@ -52,7 +52,6 @@ gkyl_dg_updater_vlasov_acquire_eqn(const gkyl_dg_updater_vlasov* vlasov);
  * gkyl_sub_range_init method.
  *
  * @param vlasov vlasov updater object
- * @param field_id Enum identifier for field type (see gkyl_eqn_type.h)
  * @param update_rng Range on which to compute.
  * @param aux1 Auxiliary field 1 (usually qmem or fac_phi)
  * @param aux2 Auxiliary field 2
@@ -77,7 +76,7 @@ void gkyl_dg_updater_vlasov_advance_cu(gkyl_dg_updater_vlasov *vlasov,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 
 /**
- * Return total time spent in drag and diffusion terms
+ * Return total time spent in vlasov equation
  *
  * @param vlasov Updater object
  * @return timers

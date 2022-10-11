@@ -1,7 +1,7 @@
 #include <gkyl_maxwell_kernels.h> 
 #include <gkyl_basis_ser_2x_p2_exp_sq.h> 
 #include <gkyl_basis_ser_2x_p2_inv.h> 
-#include <gkyl_basis_ser_2x_p2_sqrt.h> 
+#include <gkyl_basis_ser_2x_p2_sqrt_with_sign.h> 
 GKYL_CU_DH void em_pkpm_kappa_inv_b_2x_ser_p2(const double *bvar, const double *ExB, double* GKYL_RESTRICT kappa_inv_b) 
 { 
   // bvar:        Input magnetic field unit vector and unit tensor. 
@@ -61,8 +61,8 @@ GKYL_CU_DH void em_pkpm_kappa_inv_b_2x_ser_p2(const double *bvar, const double *
   kappa_inv_bz_sq[6] = (-0.4*ExB_z_sq[3]*bzbz[7])-0.4*ExB_y_sq[3]*bzbz[7]-0.4*ExB_x_sq[3]*bzbz[7]-0.4*bzbz[3]*ExB_z_sq[7]-0.4*bzbz[3]*ExB_y_sq[7]-0.4*bzbz[3]*ExB_x_sq[7]-0.4472135954999579*ExB_z_sq[5]*bzbz[6]-0.4472135954999579*ExB_y_sq[5]*bzbz[6]-0.4472135954999579*ExB_x_sq[5]*bzbz[6]-0.31943828249997*ExB_z_sq[4]*bzbz[6]-0.31943828249997*ExB_y_sq[4]*bzbz[6]-0.31943828249997*ExB_x_sq[4]*bzbz[6]-0.5*ExB_z_sq[0]*bzbz[6]-0.5*ExB_y_sq[0]*bzbz[6]-0.5*ExB_x_sq[0]*bzbz[6]+bzbz[6]-0.4472135954999579*bzbz[5]*ExB_z_sq[6]-0.31943828249997*bzbz[4]*ExB_z_sq[6]-0.5*bzbz[0]*ExB_z_sq[6]-0.4472135954999579*bzbz[5]*ExB_y_sq[6]-0.31943828249997*bzbz[4]*ExB_y_sq[6]-0.5*bzbz[0]*ExB_y_sq[6]-0.4472135954999579*bzbz[5]*ExB_x_sq[6]-0.31943828249997*bzbz[4]*ExB_x_sq[6]-0.5*bzbz[0]*ExB_x_sq[6]-0.5000000000000001*ExB_z_sq[2]*bzbz[4]-0.5000000000000001*ExB_y_sq[2]*bzbz[4]-0.5000000000000001*ExB_x_sq[2]*bzbz[4]-0.5000000000000001*bzbz[2]*ExB_z_sq[4]-0.5000000000000001*bzbz[2]*ExB_y_sq[4]-0.5000000000000001*bzbz[2]*ExB_x_sq[4]-0.447213595499958*ExB_z_sq[1]*bzbz[3]-0.447213595499958*ExB_y_sq[1]*bzbz[3]-0.447213595499958*ExB_x_sq[1]*bzbz[3]-0.447213595499958*bzbz[1]*ExB_z_sq[3]-0.447213595499958*bzbz[1]*ExB_y_sq[3]-0.447213595499958*bzbz[1]*ExB_x_sq[3]; 
   kappa_inv_bz_sq[7] = (-0.31943828249997*ExB_z_sq[5]*bzbz[7])-0.31943828249997*ExB_y_sq[5]*bzbz[7]-0.31943828249997*ExB_x_sq[5]*bzbz[7]-0.4472135954999579*ExB_z_sq[4]*bzbz[7]-0.4472135954999579*ExB_y_sq[4]*bzbz[7]-0.4472135954999579*ExB_x_sq[4]*bzbz[7]-0.5*ExB_z_sq[0]*bzbz[7]-0.5*ExB_y_sq[0]*bzbz[7]-0.5*ExB_x_sq[0]*bzbz[7]+bzbz[7]-0.31943828249997*bzbz[5]*ExB_z_sq[7]-0.4472135954999579*bzbz[4]*ExB_z_sq[7]-0.5*bzbz[0]*ExB_z_sq[7]-0.31943828249997*bzbz[5]*ExB_y_sq[7]-0.4472135954999579*bzbz[4]*ExB_y_sq[7]-0.5*bzbz[0]*ExB_y_sq[7]-0.31943828249997*bzbz[5]*ExB_x_sq[7]-0.4472135954999579*bzbz[4]*ExB_x_sq[7]-0.5*bzbz[0]*ExB_x_sq[7]-0.4*ExB_z_sq[3]*bzbz[6]-0.4*ExB_y_sq[3]*bzbz[6]-0.4*ExB_x_sq[3]*bzbz[6]-0.4*bzbz[3]*ExB_z_sq[6]-0.4*bzbz[3]*ExB_y_sq[6]-0.4*bzbz[3]*ExB_x_sq[6]-0.5000000000000001*ExB_z_sq[1]*bzbz[5]-0.5000000000000001*ExB_y_sq[1]*bzbz[5]-0.5000000000000001*ExB_x_sq[1]*bzbz[5]-0.5000000000000001*bzbz[1]*ExB_z_sq[5]-0.5000000000000001*bzbz[1]*ExB_y_sq[5]-0.5000000000000001*bzbz[1]*ExB_x_sq[5]-0.447213595499958*ExB_z_sq[2]*bzbz[3]-0.447213595499958*ExB_y_sq[2]*bzbz[3]-0.447213595499958*ExB_x_sq[2]*bzbz[3]-0.447213595499958*bzbz[2]*ExB_z_sq[3]-0.447213595499958*bzbz[2]*ExB_y_sq[3]-0.447213595499958*bzbz[2]*ExB_x_sq[3]; 
 
-  ser_2x_p2_sqrt(kappa_inv_bx_sq, kappa_inv_bx); 
-  ser_2x_p2_sqrt(kappa_inv_by_sq, kappa_inv_by); 
-  ser_2x_p2_sqrt(kappa_inv_bz_sq, kappa_inv_bz); 
+  ser_2x_p2_sqrt_with_sign(kappa_inv_bx_sq, kappa_inv_bx); 
+  ser_2x_p2_sqrt_with_sign(kappa_inv_by_sq, kappa_inv_by); 
+  ser_2x_p2_sqrt_with_sign(kappa_inv_bz_sq, kappa_inv_bz); 
 } 
  

@@ -23,6 +23,7 @@
 #include <gkyl_dg_updater_fluid.h>
 #include <gkyl_dg_updater_diffusion.h>
 #include <gkyl_dg_updater_lbo_vlasov.h>
+#include <gkyl_dg_updater_moment.h>
 #include <gkyl_dg_updater_vlasov.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_dg_vlasov_poisson.h>
@@ -66,7 +67,16 @@ enum vm_domain_edge { VM_EDGE_LOWER, VM_EDGE_UPPER };
 // data for moments
 struct vm_species_moment {
   bool use_gpu; // should we use GPU (if present)
-  gkyl_mom_calc *mcalc; // moment update
+  struct gkyl_dg_updater_moment *mcalc; // moment update
+
+  // Special relativistic Vlasov arrays
+  struct gkyl_array *p_over_gamma; // array for p/gamma (velocity) 
+  struct gkyl_array *gamma; // array for gamma = sqrt(1 + p^2) 
+  struct gkyl_array *gamma_inv; // array for gamma = 1.0/sqrt(1 + p^2) 
+  struct gkyl_array *V_drift; // bulk fluid velocity (computed from M0*V_drift = M1i with weak division)
+  struct gkyl_array *GammaV2; // Gamma^2 = 1/(1 - V_drift^2/c^2), Lorentz boost factor squared from bulk fluid velocity
+  struct gkyl_array *GammaV_inv; // Gamma_inv = sqrt(1 - V_drift^2/c^2), inverse Lorentz boost factor from bulk fluid velocity
+
   struct gkyl_array *marr; // array to moment data
   struct gkyl_array *marr_host; // host copy (same as marr if not on GPUs)
 };
@@ -160,6 +170,7 @@ struct vm_species {
   struct gkyl_array *f_host; // host copy for use IO and initialization
 
   struct vm_species_moment m1i; // for computing currents
+  struct vm_species_moment m0; // for computing charge density
   struct vm_species_moment pkpm_moms; // for computing pkpm moments
   struct vm_species_moment *moms; // diagnostic moments
   struct vm_species_moment integ_moms; // integrated moments
@@ -182,6 +193,12 @@ struct vm_species {
   struct gkyl_array *gamma_host; // host copy for use in projecting before copying over to GPU
   struct gkyl_array *gamma_inv; // array for gamma = 1.0/sqrt(1 + p^2) 
   struct gkyl_array *gamma_inv_host; // host copy for use in projecting before copying over to GPU
+  // Special relativistic derived quantities
+  struct gkyl_array *V_drift; // bulk fluid velocity (computed from M0*V_drift = M1i with weak division)
+  struct gkyl_array *GammaV2; // Gamma^2 = 1/(1 - V_drift^2/c^2), Lorentz boost factor squared from bulk fluid velocity
+  struct gkyl_array *GammaV_inv; // Gamma_inv = sqrt(1 - V_drift^2/c^2), inverse Lorentz boost factor from bulk fluid velocity
+
+  struct gkyl_dg_bin_op_mem *V_drift_mem; // memory used in the div-op for V_drift from M1i and M0
 
   // Data for PKPM model
   struct vm_fluid_species *pkpm_fluid_species; // pointers to cross-species we collide with

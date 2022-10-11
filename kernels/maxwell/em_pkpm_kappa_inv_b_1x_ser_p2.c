@@ -1,7 +1,7 @@
 #include <gkyl_maxwell_kernels.h> 
 #include <gkyl_basis_ser_1x_p2_exp_sq.h> 
 #include <gkyl_basis_ser_1x_p2_inv.h> 
-#include <gkyl_basis_ser_1x_p2_sqrt.h> 
+#include <gkyl_basis_ser_1x_p2_sqrt_with_sign.h> 
 GKYL_CU_DH void em_pkpm_kappa_inv_b_1x_ser_p2(const double *bvar, const double *ExB, double* GKYL_RESTRICT kappa_inv_b) 
 { 
   // bvar:        Input magnetic field unit vector and unit tensor. 
@@ -46,8 +46,8 @@ GKYL_CU_DH void em_pkpm_kappa_inv_b_1x_ser_p2(const double *bvar, const double *
   kappa_inv_bz_sq[1] = (-0.6324555320336759*ExB_z_sq[1]*bzbz[2])-0.6324555320336759*ExB_y_sq[1]*bzbz[2]-0.6324555320336759*ExB_x_sq[1]*bzbz[2]-0.6324555320336759*bzbz[1]*ExB_z_sq[2]-0.6324555320336759*bzbz[1]*ExB_y_sq[2]-0.6324555320336759*bzbz[1]*ExB_x_sq[2]-0.7071067811865475*ExB_z_sq[0]*bzbz[1]-0.7071067811865475*ExB_y_sq[0]*bzbz[1]-0.7071067811865475*ExB_x_sq[0]*bzbz[1]+bzbz[1]-0.7071067811865475*bzbz[0]*ExB_z_sq[1]-0.7071067811865475*bzbz[0]*ExB_y_sq[1]-0.7071067811865475*bzbz[0]*ExB_x_sq[1]; 
   kappa_inv_bz_sq[2] = (-0.4517539514526256*ExB_z_sq[2]*bzbz[2])-0.4517539514526256*ExB_y_sq[2]*bzbz[2]-0.4517539514526256*ExB_x_sq[2]*bzbz[2]-0.7071067811865475*ExB_z_sq[0]*bzbz[2]-0.7071067811865475*ExB_y_sq[0]*bzbz[2]-0.7071067811865475*ExB_x_sq[0]*bzbz[2]+bzbz[2]-0.7071067811865475*bzbz[0]*ExB_z_sq[2]-0.7071067811865475*bzbz[0]*ExB_y_sq[2]-0.7071067811865475*bzbz[0]*ExB_x_sq[2]-0.6324555320336759*ExB_z_sq[1]*bzbz[1]-0.6324555320336759*ExB_y_sq[1]*bzbz[1]-0.6324555320336759*ExB_x_sq[1]*bzbz[1]; 
 
-  ser_1x_p2_sqrt(kappa_inv_bx_sq, kappa_inv_bx); 
-  ser_1x_p2_sqrt(kappa_inv_by_sq, kappa_inv_by); 
-  ser_1x_p2_sqrt(kappa_inv_bz_sq, kappa_inv_bz); 
+  ser_1x_p2_sqrt_with_sign(kappa_inv_bx_sq, kappa_inv_bx); 
+  ser_1x_p2_sqrt_with_sign(kappa_inv_by_sq, kappa_inv_by); 
+  ser_1x_p2_sqrt_with_sign(kappa_inv_bz_sq, kappa_inv_bz); 
 } 
  

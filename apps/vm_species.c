@@ -192,11 +192,15 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   if (s->field_id == GKYL_FIELD_PHI_A)
     s->vecA = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
 
-  // allocate array to store p/gamma (velocity) if present
-  // Since p/gamma is a geometric quantity, can pre-compute it here
+  // allocate array to store relativistic variables if present
+  // Since p/gamma, gamma, gamma_inv are a geometric quantities, can pre-compute it here
   s->p_over_gamma = 0;
   s->gamma = 0;
   s->gamma_inv = 0;
+  // V_drift, GammaV2, GammaV_inv are derived quantities from the bulk fluid velocity
+  s->V_drift = 0;
+  s->GammaV2 = 0;
+  s->GammaV_inv = 0;
   if (s->model_id  == GKYL_MODEL_SR) {
     // Projection of p/gamma
     s->p_over_gamma = mkarr(app->use_gpu, vdim*app->velBasis.num_basis, s->local_vel.volume);
@@ -263,6 +267,16 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     gkyl_proj_on_basis_release(gamma_inv_proj);    
     if (app->use_gpu) // note: gamma_inv_host is same as gamma_inv when not on GPUs
       gkyl_array_copy(s->gamma_inv, s->gamma_inv_host);
+
+    // Derived quantities array
+    s->V_drift = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
+    s->GammaV2 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    s->GammaV_inv = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+
+    if (app->use_gpu)
+      s->V_drift_mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
+    else
+      s->V_drift_mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
   }
 
   // allocate array to store b_i/rho for PKPM model
@@ -291,7 +305,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   
   // allocate data for momentum (for use in current accumulation)
   vm_species_moment_init(app, s, &s->m1i, "M1i");
-  
+  // allocate date for density (for use in charge density accumulation)
+  vm_species_moment_init(app, s, &s->m0, "M0");
+
   int ndm = s->info.num_diag_moments;
   // allocate data for diagnostic moments
   s->moms = gkyl_malloc(sizeof(struct vm_species_moment[ndm]));
@@ -731,8 +747,17 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
 
   if (s->model_id  == GKYL_MODEL_SR) {
     gkyl_array_release(s->p_over_gamma);
-    if (app->use_gpu)
+    gkyl_array_release(s->gamma);
+    gkyl_array_release(s->gamma_inv);
+    gkyl_array_release(s->V_drift);
+    gkyl_array_release(s->GammaV2);
+    gkyl_array_release(s->GammaV_inv);
+    if (app->use_gpu) {
       gkyl_array_release(s->p_over_gamma_host);
+      gkyl_array_release(s->gamma_host);
+      gkyl_array_release(s->gamma_inv_host);
+    }
+    gkyl_dg_bin_op_mem_release(s->V_drift_mem);
   }
   if (s->model_id == GKYL_MODEL_PKPM) {
     gkyl_array_release(s->rho_inv_b);

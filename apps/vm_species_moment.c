@@ -34,44 +34,31 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
 
   bool is_integrated = strcmp(nm, "Integrated") == 0;
   sm->use_gpu = app->use_gpu;
-  
-  struct gkyl_mom_type *mtype;
-  if (s->model_id == GKYL_MODEL_SR) {
-    if (is_integrated)
-      mtype = gkyl_int_mom_vlasov_sr_new(&app->confBasis, &app->basis, &s->local_vel, sm->use_gpu);
-    else
-      mtype = gkyl_mom_vlasov_sr_new(&app->confBasis, &app->basis, &s->local_vel, nm, sm->use_gpu);
-    
-    gkyl_mom_vlasov_sr_set_auxfields(mtype, 
-      (struct gkyl_mom_vlasov_sr_auxfields) { .p_over_gamma = s->p_over_gamma });    
-  }
-  else if (s->model_id == GKYL_MODEL_PKPM) {
-    mtype = gkyl_mom_vlasov_pkpm_new(&app->confBasis, &app->basis, s->info.mass, sm->use_gpu);
-  }
-  else {
-    if (is_integrated)
-      mtype = gkyl_int_mom_vlasov_new(&app->confBasis, &app->basis, sm->use_gpu);
-    else 
-      mtype = gkyl_mom_vlasov_new(&app->confBasis, &app->basis, nm, sm->use_gpu);
-  }
-  sm->mcalc = gkyl_mom_calc_new(&s->grid, mtype, sm->use_gpu);
+  sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
+    &app->basis, &app->local, &s->local_vel, s->model_id, nm, is_integrated, s->info.mass, sm->use_gpu);
+  int num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc);
+
+  sm->p_over_gamma = s->p_over_gamma;
+  sm->gamma = s->gamma;
+  sm->gamma_inv = s->gamma_inv;
+  sm->V_drift = s->V_drift;
+  sm->GammaV2 = s->GammaV2;
+  sm->GammaV_inv = s->GammaV_inv;
 
   if (is_integrated) {
-    sm->marr = mkarr(sm->use_gpu, mtype->num_mom, app->local_ext.volume);
+    sm->marr = mkarr(sm->use_gpu, num_mom, app->local_ext.volume);
     sm->marr_host = sm->marr;
     if (sm->use_gpu)
-      sm->marr_host = mkarr(false, mtype->num_mom, app->local_ext.volume);      
+      sm->marr_host = mkarr(false, num_mom, app->local_ext.volume);      
   }
   else {
-    sm->marr = mkarr(sm->use_gpu, mtype->num_mom*app->confBasis.num_basis,
+    sm->marr = mkarr(sm->use_gpu, num_mom*app->confBasis.num_basis,
       app->local_ext.volume);
     sm->marr_host = sm->marr;
     if (sm->use_gpu)
-      sm->marr_host = mkarr(false, mtype->num_mom*app->confBasis.num_basis,
+      sm->marr_host = mkarr(false, num_mom*app->confBasis.num_basis,
         app->local_ext.volume);
   }
-
-  gkyl_mom_type_release(mtype);
 }
 
 void
@@ -80,9 +67,15 @@ vm_species_moment_calc(const struct vm_species_moment *sm,
   const struct gkyl_array *fin)
 {
   if (sm->use_gpu)
-    gkyl_mom_calc_advance_cu(sm->mcalc, &phase_rng, &conf_rng, fin, sm->marr);
+    gkyl_dg_updater_moment_advance_cu(sm->mcalc, &phase_rng, &conf_rng, 
+      sm->p_over_gamma, sm->gamma, sm->gamma_inv, 
+      sm->V_drift, sm->GammaV2, sm->GammaV_inv, 
+      fin, sm->marr);
   else
-    gkyl_mom_calc_advance(sm->mcalc, &phase_rng, &conf_rng, fin, sm->marr);
+    gkyl_dg_updater_moment_advance(sm->mcalc, &phase_rng, &conf_rng, 
+      sm->p_over_gamma, sm->gamma, sm->gamma_inv, 
+      sm->V_drift, sm->GammaV2, sm->GammaV_inv, 
+      fin, sm->marr);
 }
 
 // release memory for moment data object
@@ -92,6 +85,6 @@ vm_species_moment_release(const struct gkyl_vlasov_app *app, const struct vm_spe
   if (app->use_gpu)
     gkyl_array_release(sm->marr_host);
 
-  gkyl_mom_calc_release(sm->mcalc);
+  gkyl_dg_updater_moment_release(sm->mcalc);
   gkyl_array_release(sm->marr);
 }

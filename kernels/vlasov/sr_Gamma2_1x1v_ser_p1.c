@@ -15,6 +15,15 @@ GKYL_CU_DH void sr_Gamma2_1x1v_ser_p1(const double *V, double* GKYL_RESTRICT Gam
   Gamma2_inv[0] = 1.414213562373095-1.0*V_0_sq[0]; 
   Gamma2_inv[1] = -1.0*V_0_sq[1]; 
 
+  bool notCellAvg = true;
+  if (notCellAvg && (0.7071067811865475*Gamma2_inv[0]-1.224744871391589*Gamma2_inv[1] < 0)) notCellAvg = false; 
+  if (notCellAvg && (1.224744871391589*Gamma2_inv[1]+0.7071067811865475*Gamma2_inv[0] < 0)) notCellAvg = false; 
+ 
+  if (notCellAvg) { 
   ser_1x_p1_inv(Gamma2_inv, Gamma2); 
+  } else { 
+  Gamma2[0] = 2.0/Gamma2_inv[0]; 
+  Gamma2[1] = 0.0; 
+  } 
 } 
  

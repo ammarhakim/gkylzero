@@ -29,20 +29,43 @@ GKYL_CU_DH void em_ExB_1x_ser_p1(const double *em, double* GKYL_RESTRICT ExB)
  
   double magB_sq[2] = {0.0}; 
 
-  magB_sq[0] = B_x_sq[0] + B_y_sq[0] + B_z_sq[0]; 
-  magB_sq[1] = B_x_sq[1] + B_y_sq[1] + B_z_sq[1]; 
- 
+  double num_ExB_x[2] = {0.0}; 
+  num_ExB_x[0] = (-0.7071067811865475*B_y[1]*E_z[1])+0.7071067811865475*B_z[1]*E_y[1]-0.7071067811865475*B_y[0]*E_z[0]+0.7071067811865475*B_z[0]*E_y[0]; 
+  num_ExB_x[1] = (-0.7071067811865475*B_y[0]*E_z[1])+0.7071067811865475*B_z[0]*E_y[1]+0.7071067811865475*E_y[0]*B_z[1]-0.7071067811865475*E_z[0]*B_y[1]; 
+
+  double num_ExB_y[2] = {0.0}; 
+  num_ExB_y[0] = 0.7071067811865475*B_x[1]*E_z[1]-0.7071067811865475*B_z[1]*E_x[1]+0.7071067811865475*B_x[0]*E_z[0]-0.7071067811865475*B_z[0]*E_x[0]; 
+  num_ExB_y[1] = 0.7071067811865475*B_x[0]*E_z[1]-0.7071067811865475*B_z[0]*E_x[1]-0.7071067811865475*E_x[0]*B_z[1]+0.7071067811865475*E_z[0]*B_x[1]; 
+
+  double num_ExB_z[2] = {0.0}; 
+  num_ExB_z[0] = (-0.7071067811865475*B_x[1]*E_y[1])+0.7071067811865475*B_y[1]*E_x[1]-0.7071067811865475*B_x[0]*E_y[0]+0.7071067811865475*B_y[0]*E_x[0]; 
+  num_ExB_z[1] = (-0.7071067811865475*B_x[0]*E_y[1])+0.7071067811865475*B_y[0]*E_x[1]+0.7071067811865475*E_x[0]*B_y[1]-0.7071067811865475*E_y[0]*B_x[1]; 
+
+  magB_sq[0] = B_z_sq[0]+B_y_sq[0]+B_x_sq[0]; 
+  magB_sq[1] = B_z_sq[1]+B_y_sq[1]+B_x_sq[1]; 
+
+  bool notCellAvg = true;
+  if (notCellAvg && (0.7071067811865475*magB_sq[0]-1.224744871391589*magB_sq[1] < 0)) notCellAvg = false; 
+  if (notCellAvg && (1.224744871391589*magB_sq[1]+0.7071067811865475*magB_sq[0] < 0)) notCellAvg = false; 
   double magB_sq_inv[2] = {0.0}; 
 
+  if (notCellAvg) { 
   ser_1x_p1_inv(magB_sq, magB_sq_inv); 
-  ExB_x[0] = (-0.5*B_y[0]*E_z[1]*magB_sq_inv[1])+0.5*B_z[0]*E_y[1]*magB_sq_inv[1]+0.5*E_y[0]*B_z[1]*magB_sq_inv[1]-0.5*E_z[0]*B_y[1]*magB_sq_inv[1]-0.5*magB_sq_inv[0]*B_y[1]*E_z[1]+0.5*magB_sq_inv[0]*B_z[1]*E_y[1]-0.5*B_y[0]*E_z[0]*magB_sq_inv[0]+0.5*B_z[0]*E_y[0]*magB_sq_inv[0]; 
-  ExB_x[1] = (-0.9*B_y[1]*E_z[1]*magB_sq_inv[1])+0.9*B_z[1]*E_y[1]*magB_sq_inv[1]-0.5*B_y[0]*E_z[0]*magB_sq_inv[1]+0.5*B_z[0]*E_y[0]*magB_sq_inv[1]-0.5*B_y[0]*magB_sq_inv[0]*E_z[1]+0.5*B_z[0]*magB_sq_inv[0]*E_y[1]+0.5*E_y[0]*magB_sq_inv[0]*B_z[1]-0.5*E_z[0]*magB_sq_inv[0]*B_y[1]; 
+  ExB_x[0] = 0.7071067811865475*magB_sq_inv[1]*num_ExB_x[1]+0.7071067811865475*magB_sq_inv[0]*num_ExB_x[0]; 
+  ExB_x[1] = 0.7071067811865475*magB_sq_inv[0]*num_ExB_x[1]+0.7071067811865475*num_ExB_x[0]*magB_sq_inv[1]; 
 
-  ExB_y[0] = 0.5*B_x[0]*E_z[1]*magB_sq_inv[1]-0.5*B_z[0]*E_x[1]*magB_sq_inv[1]-0.5*E_x[0]*B_z[1]*magB_sq_inv[1]+0.5*E_z[0]*B_x[1]*magB_sq_inv[1]+0.5*magB_sq_inv[0]*B_x[1]*E_z[1]-0.5*magB_sq_inv[0]*B_z[1]*E_x[1]+0.5*B_x[0]*E_z[0]*magB_sq_inv[0]-0.5*B_z[0]*E_x[0]*magB_sq_inv[0]; 
-  ExB_y[1] = 0.9*B_x[1]*E_z[1]*magB_sq_inv[1]-0.9*B_z[1]*E_x[1]*magB_sq_inv[1]+0.5*B_x[0]*E_z[0]*magB_sq_inv[1]-0.5*B_z[0]*E_x[0]*magB_sq_inv[1]+0.5*B_x[0]*magB_sq_inv[0]*E_z[1]-0.5*B_z[0]*magB_sq_inv[0]*E_x[1]-0.5*E_x[0]*magB_sq_inv[0]*B_z[1]+0.5*E_z[0]*magB_sq_inv[0]*B_x[1]; 
+  ExB_y[0] = 0.7071067811865475*magB_sq_inv[1]*num_ExB_y[1]+0.7071067811865475*magB_sq_inv[0]*num_ExB_y[0]; 
+  ExB_y[1] = 0.7071067811865475*magB_sq_inv[0]*num_ExB_y[1]+0.7071067811865475*num_ExB_y[0]*magB_sq_inv[1]; 
 
-  ExB_z[0] = (-0.5*B_x[0]*E_y[1]*magB_sq_inv[1])+0.5*B_y[0]*E_x[1]*magB_sq_inv[1]+0.5*E_x[0]*B_y[1]*magB_sq_inv[1]-0.5*E_y[0]*B_x[1]*magB_sq_inv[1]-0.5*magB_sq_inv[0]*B_x[1]*E_y[1]+0.5*magB_sq_inv[0]*B_y[1]*E_x[1]-0.5*B_x[0]*E_y[0]*magB_sq_inv[0]+0.5*B_y[0]*E_x[0]*magB_sq_inv[0]; 
-  ExB_z[1] = (-0.9*B_x[1]*E_y[1]*magB_sq_inv[1])+0.9*B_y[1]*E_x[1]*magB_sq_inv[1]-0.5*B_x[0]*E_y[0]*magB_sq_inv[1]+0.5*B_y[0]*E_x[0]*magB_sq_inv[1]-0.5*B_x[0]*magB_sq_inv[0]*E_y[1]+0.5*B_y[0]*magB_sq_inv[0]*E_x[1]+0.5*E_x[0]*magB_sq_inv[0]*B_y[1]-0.5*E_y[0]*magB_sq_inv[0]*B_x[1]; 
+  ExB_z[0] = 0.7071067811865475*magB_sq_inv[1]*num_ExB_z[1]+0.7071067811865475*magB_sq_inv[0]*num_ExB_z[0]; 
+  ExB_z[1] = 0.7071067811865475*magB_sq_inv[0]*num_ExB_z[1]+0.7071067811865475*num_ExB_z[0]*magB_sq_inv[1]; 
 
+  } else { 
+  magB_sq_inv[0] = 2.0/magB_sq[0]; 
+  ExB_x[0] = 0.7071067811865475*magB_sq_inv[1]*num_ExB_x[1]+0.7071067811865475*magB_sq_inv[0]*num_ExB_x[0]; 
+  ExB_y[0] = 0.7071067811865475*magB_sq_inv[1]*num_ExB_y[1]+0.7071067811865475*magB_sq_inv[0]*num_ExB_y[0]; 
+  ExB_z[0] = 0.7071067811865475*magB_sq_inv[1]*num_ExB_z[1]+0.7071067811865475*magB_sq_inv[0]*num_ExB_z[0]; 
+
+  } 
 } 
  

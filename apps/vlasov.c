@@ -262,6 +262,12 @@ gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
     struct vm_species *s = &app->species[i];
 
     struct timespec wst = gkyl_wall_clock();
+    if (s->model_id == GKYL_MODEL_SR) {
+      vm_species_moment_calc(&s->m0, s->local, app->local, s->f);
+      gkyl_calc_prim_vars_u_from_rhou(s->V_drift_mem, app->confBasis, &app->local, 
+        s->m0.marr, s->m1i.marr, s->V_drift); 
+      gkyl_calc_sr_vars_Gamma_inv(&app->confBasis, &app->basis, &app->local, s->V_drift, s->GammaV_inv);
+    }
     vm_species_moment_calc(&s->integ_moms, s->local, app->local, s->f);
 
     // reduce to compute sum over whole domain, append to diagnostics
