@@ -53,7 +53,7 @@ evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
     fout[0] = -n0*mass*vdrift;
   fout[1] = 0.0;
   fout[2] = 0.0;
-  fout[3] = n0*vt*vt;
+  fout[3] = n0*mass*vt*vt;
 }
 
 void
@@ -69,7 +69,7 @@ evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
     fout[0] = -n0*mass*vdrift;
   fout[1] = 0.0;
   fout[2] = 0.0;
-  fout[3] = n0*vt*vt;
+  fout[3] = n0*mass*vt*vt;
 }
 
 void
