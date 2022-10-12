@@ -46,7 +46,6 @@
 #include <gkyl_prim_lbo_type.h>
 #include <gkyl_prim_lbo_vlasov.h>
 #include <gkyl_prim_lbo_vlasov_pkpm.h>
-#include <gkyl_prim_lbo_vlasov_with_fluid.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
