@@ -342,7 +342,7 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
 // time-step.
 double
 vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species,
-  const struct gkyl_array *fluid, struct gkyl_array *rhs)
+  const struct gkyl_array *fluid, const struct gkyl_array *em, struct gkyl_array *rhs)
 {
   struct timespec wst = gkyl_wall_clock();
 
@@ -370,7 +370,17 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
 
   // Relax T_perp, d T_perp/dt = nu*n*(T - T_perp)
   if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
-    gkyl_calc_prim_vars_p_pkpm_source(app->confBasis, &app->local, 
+    double qbym = fluid_species->pkpm_species->info.charge/fluid_species->pkpm_species->info.mass;
+    gkyl_array_set(fluid_species->pkpm_species->qmem, qbym, em);
+
+    // Accumulate applied acceleration and/or q/m*(external electromagnetic)
+    // fields onto qmem to get the total acceleration
+    if (fluid_species->pkpm_species->has_accel)
+      gkyl_array_accumulate(fluid_species->pkpm_species->qmem, 1.0, fluid_species->pkpm_species->accel);
+    if (app->field->has_ext_em)
+      gkyl_array_accumulate(fluid_species->pkpm_species->qmem, qbym, app->field->ext_em);
+
+    gkyl_calc_prim_vars_p_pkpm_source(app->confBasis, &app->local, fluid_species->pkpm_species->qmem, 
       fluid_species->pkpm_species->lbo.nu_sum, fluid_species->pkpm_species->lbo.nu_prim_moms, 
       fluid_species->pkpm_species->pkpm_moms.marr, fluid_species->u, fluid, rhs);
   }

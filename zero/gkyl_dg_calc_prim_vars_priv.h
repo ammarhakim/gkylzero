@@ -20,7 +20,8 @@ typedef void (*euler_pkpm_pressure_t)(const double *bvar,
   const double *vlasov_pkpm_moms, const double *statevec, 
   double* GKYL_RESTRICT p_ij);
 
-typedef void (*euler_pkpm_pressure_source_t)(const double *nu, const double *nu_vth_sq, 
+typedef void (*euler_pkpm_pressure_source_t)(const double* qmem, 
+  const double *nu, const double *nu_vth_sq, 
   const double *vlasov_pkpm_moms, const double *u_i, const double *euler_pkpm, 
   double* GKYL_RESTRICT out);
 

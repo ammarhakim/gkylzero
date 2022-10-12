@@ -82,6 +82,6 @@ void gkyl_calc_prim_vars_p_pkpm(struct gkyl_basis basis, const struct gkyl_range
  * @param range Range to apply division operator
  */
 void gkyl_calc_prim_vars_p_pkpm_source(struct gkyl_basis basis, const struct gkyl_range *range,
-  const struct gkyl_array* nu, const struct gkyl_array* nu_vthsq, 
+  const struct gkyl_array* qmem, const struct gkyl_array* nu, const struct gkyl_array* nu_vthsq, 
   const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* u_i, const struct gkyl_array* euler_pkpm, 
   struct gkyl_array* rhs);

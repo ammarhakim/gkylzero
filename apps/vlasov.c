@@ -582,7 +582,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     dtmin = fmin(dtmin, dt1);
   }
   for (int i=0; i<app->num_fluid_species; ++i) {
-    double dt1 = vm_fluid_species_rhs(app, &app->fluid_species[i], fluidin[i], fluidout[i]);
+    double dt1 = vm_fluid_species_rhs(app, &app->fluid_species[i], fluidin[i], emin, fluidout[i]);
     dtmin = fmin(dtmin, dt1);
   }
   // compute source term

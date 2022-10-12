@@ -965,10 +965,13 @@ void vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *f
  * @param app Vlasov app object
  * @param fluid_species Pointer to fluid species
  * @param fluid Input fluid species
+ * @param em EM field
  * @param rhs On output, the RHS from the fluid species solver
  * @return Maximum stable time-step
  */
-double vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, const struct gkyl_array *fluid, struct gkyl_array *rhs);
+double vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, 
+  const struct gkyl_array *fluid, const struct gkyl_array *em, 
+  struct gkyl_array *rhs);
 
 /**
  * Apply periodic BCs to fluid species

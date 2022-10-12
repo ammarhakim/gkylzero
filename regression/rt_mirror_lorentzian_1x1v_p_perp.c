@@ -231,6 +231,8 @@ main(int argc, char **argv)
   // electrons
   struct gkyl_vlasov_species elc = {
     .name = "elc",
+    .model_id = GKYL_MODEL_PKPM,
+    .pkpm_fluid_species = "fluid_elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
     .lower = { -6.0 * ctx.vte},
     .upper = { 6.0 * ctx.vte}, 
@@ -268,6 +270,8 @@ main(int argc, char **argv)
   // ions
   struct gkyl_vlasov_species ion = {
     .name = "ion",
+    .model_id = GKYL_MODEL_PKPM,
+    .pkpm_fluid_species = "fluid_ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
     .lower = { -6.0 * ctx.vti},
     .upper = { 6.0 * ctx.vti}, 
