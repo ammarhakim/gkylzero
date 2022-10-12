@@ -16,10 +16,10 @@ struct free_stream_ctx {
 static inline double sq(double x) { return x*x; }
 
 static inline double
-maxwellian(double n, double vx, double vy, double u, double vth)
+maxwellian(double n, double vx, double vy, double vz, double u, double vth)
 {
-  double v2 = (vx - u)*(vx - u) + vy*vy;
-  return n/pow(sqrt(2*M_PI*vth*vth),2)*exp(-v2/(2*vth*vth));
+  double v2 = (vx - u)*(vx - u) + vy*vy + vz*vz;
+  return n/pow(sqrt(2*M_PI*vth*vth),3)*exp(-v2/(2*vth*vth));
 }
 
 void
@@ -27,11 +27,11 @@ evalDistFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct free_stream_ctx *app = ctx;
   double x = xn[0];
-  double vx = xn[1], vy = xn[2];
+  double vx = xn[1], vy = xn[2], vz = xn[3];
   if (x<0.5)
-    fout[0] = maxwellian(1.0, vx, vy, 0.0, 1.0);
+    fout[0] = maxwellian(1.0, vx, vy, vz, 0.0, 1.0);
   else
-    fout[0] = maxwellian(0.125, vx, vy, 0.0, sqrt(0.1/0.125));
+    fout[0] = maxwellian(0.125, vx, vy, vz, 0.0, sqrt(0.1/0.125));
 }
 
 void
@@ -65,13 +65,20 @@ main(int argc, char **argv)
   }
   struct free_stream_ctx ctx = create_ctx(); // context for init functions
 
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 16);
+  
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 8);
+  int VY = APP_ARGS_CHOOSE(app_args.vcells[1], 8);
+  int VZ = APP_ARGS_CHOOSE(app_args.vcells[2], 8);
+
   // electrons
   struct gkyl_vlasov_species neut = {
     .name = "neut",
-    .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -6.0*ctx.vt, -6.0*ctx.vt },
-    .upper = { 6.0*ctx.vt, 6.0*ctx.vt }, 
-    .cells = { 16, 16 },
+    .charge = ctx.charge,
+    .mass = ctx.mass,
+    .lower = {-6.0 * ctx.vt, -6.0 * ctx.vt, -6.0 * ctx.vt},
+    .upper = {6.0 * ctx.vt, 6.0 * ctx.vt, 6.0 * ctx.vt},
+    .cells = {VX, VY, VZ},
 
     .ctx = &ctx,
     .init = evalDistFunc,
@@ -82,19 +89,19 @@ main(int argc, char **argv)
       .ctx = &ctx,
       .self_nu = evalNu,
     },    
-    
+
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
   };
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "neut_lbo_sod_shock_1x2v",
+    .name = "neut_lbo_sod_shock_1x3v_p2",
 
-    .cdim = 1, .vdim = 2,
+    .cdim = 1, .vdim = 3,
     .lower = { 0.0 },
     .upper = { ctx.Lx },
-    .cells = { 32 },
+    .cells = { NX },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 

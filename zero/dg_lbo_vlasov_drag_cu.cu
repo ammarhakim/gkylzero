@@ -14,12 +14,11 @@ extern "C" {
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
 gkyl_lbo_vlasov_drag_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuSum,
-  const struct gkyl_array *nuUSum, const struct gkyl_array *nuVtSqSum)
+  const struct gkyl_array *nuPrimMomsSum)
 {
   struct dg_lbo_vlasov_drag *lbo_vlasov_drag = container_of(eqn, struct dg_lbo_vlasov_drag, eqn);
   lbo_vlasov_drag->auxfields.nuSum = nuSum;
-  lbo_vlasov_drag->auxfields.nuUSum = nuUSum;
-  lbo_vlasov_drag->auxfields.nuVtSqSum = nuVtSqSum;
+  lbo_vlasov_drag->auxfields.nuPrimMomsSum = nuPrimMomsSum;
 }
 
 //// Host-side wrapper for device kernels setting nuSum, nuUSum and nuVtSqSum.
@@ -27,7 +26,7 @@ void
 gkyl_lbo_vlasov_drag_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_vlasov_drag_auxfields auxin)
 {
   gkyl_lbo_vlasov_drag_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.nuSum->on_dev,
-    auxin.nuUSum->on_dev, auxin.nuVtSqSum->on_dev);
+    auxin.nuPrimMomsSum->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and vlasov LBO kernel function
@@ -37,10 +36,8 @@ dg_lbo_vlasov_drag_set_cu_dev_ptrs(struct dg_lbo_vlasov_drag *lbo_vlasov_drag, e
   int cv_index, int cdim, int vdim, int poly_order)
 {
   lbo_vlasov_drag->auxfields.nuSum = 0; 
-  lbo_vlasov_drag->auxfields.nuUSum = 0; 
-  lbo_vlasov_drag->auxfields.nuVtSqSum = 0; 
+  lbo_vlasov_drag->auxfields.nuPrimMomsSum = 0; 
 
-  lbo_vlasov_drag->eqn.vol_term = vol;
   lbo_vlasov_drag->eqn.surf_term = surf;
   lbo_vlasov_drag->eqn.boundary_surf_term = boundary_surf;
 
@@ -61,22 +58,12 @@ dg_lbo_vlasov_drag_set_cu_dev_ptrs(struct dg_lbo_vlasov_drag *lbo_vlasov_drag, e
       
       break;
 
-    // case GKYL_BASIS_MODAL_TENSOR:
-    //   vol_kernels = ten_vol_kernels;
-    //   surf_vx_kernels = ten_surf_vx_kernels;
-    //   surf_vy_kernels = ten_surf_vy_kernels;
-    //   surf_vz_kernels = ten_surf_vz_kernels;
-    //   boundary_surf_vx_kernels = ten_boundary_surf_vx_kernels;
-    //   boundary_surf_vy_kernels = ten_boundary_surf_vy_kernels;
-    //   boundary_surf_vz_kernels = ten_boundary_surf_vz_kernels;
-    //   break;
-
     default:
       assert(false);
       break;    
   }  
  
-  lbo_vlasov_drag->vol = vol_kernels[cv_index].kernels[poly_order];
+  lbo_vlasov_drag->eqn.vol_term = vol_kernels[cv_index].kernels[poly_order];
 
   lbo_vlasov_drag->surf[0] = surf_vx_kernels[cv_index].kernels[poly_order];
   if (vdim>1)

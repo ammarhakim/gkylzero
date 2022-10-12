@@ -44,18 +44,17 @@ gkyl_prim_lbo_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
  * @param conf_rng Config-space range
  * @param moms Moments of distribution function (Zeroth, First, and Second)
  * @param boundary_corrections Momentum and Energy boundary corrections
- * @param uout Output drift velocity primitive moment array
- * @param vtSqout Output thermal velocity primitive moment array
+ * @param prim_moms_out Output drift velocity and thermal speed squared.
  */
 void gkyl_prim_lbo_calc_advance(const struct gkyl_prim_lbo_calc* calc, 
   const struct gkyl_range *conf_rng,
   const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
-  struct gkyl_array *uout, struct gkyl_array *vtSqout);
+  struct gkyl_array *prim_moms_out);
 
 void gkyl_prim_lbo_calc_advance_cu(const struct gkyl_prim_lbo_calc* calc, 
   const struct gkyl_range *conf_rng, 
   const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
-  struct gkyl_array* uout, struct gkyl_array* vtSqout);
+  struct gkyl_array* prim_moms_out);
 
 /**
  * Delete pointer to primitive moment calculator updater.

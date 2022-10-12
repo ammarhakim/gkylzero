@@ -45,16 +45,13 @@ void
 gkyl_prim_lbo_calc_advance(const struct gkyl_prim_lbo_calc* calc, 
   const struct gkyl_range *conf_rng,
   const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
-  struct gkyl_array *uout, struct gkyl_array *vtSqout)
+  struct gkyl_array *prim_moms_out)
 {
+  struct gkyl_range_iter conf_iter;
   int nc = calc->prim->num_config;
   int udim = calc->prim->udim;
 
-  struct gkyl_range_iter conf_iter;
-  // Primitive moment calculation only needs to clear u if u exists
-  if (udim > 0)
-    gkyl_array_clear_range(uout, 0.0, *conf_rng);
-  gkyl_array_clear_range(vtSqout, 0.0, *conf_rng);
+  gkyl_array_clear_range(prim_moms_out, 0.0, *conf_rng);
 
   // loop over configuration space cells.
   gkyl_range_iter_init(&conf_iter, conf_rng);
@@ -80,11 +77,8 @@ gkyl_prim_lbo_calc_advance(const struct gkyl_prim_lbo_calc* calc,
     long midx = gkyl_range_idx(conf_rng, conf_iter.idx);
     
     struct gkyl_mat out = gkyl_nmat_get(calc->xs, count);
-
-    double *vtSq = gkyl_array_fetch(vtSqout, midx);
-    // Only fetch u if u exists
-    prim_lbo_copy_sol(&out, nc, udim, 
-      uout ? (double*) gkyl_array_fetch(uout, midx) : 0, vtSq);
+    double *prim_moms = gkyl_array_fetch(prim_moms_out, midx);
+    prim_lbo_copy_sol(&out, nc, udim, prim_moms);
     count += 1;
   }
 }
@@ -182,7 +176,7 @@ void
 gkyl_prim_lbo_calc_advance_cu(const struct gkyl_prim_lbo_calc* calc, 
   const struct gkyl_range *conf_rng,
   const struct gkyl_array* moms, const struct gkyl_array* boundary_corrections,
-  struct gkyl_array* uout, struct gkyl_array* vtSqout)
+  struct gkyl_array* prim_moms_out)
 {
   assert(false);
 }

@@ -53,22 +53,22 @@ gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid, const struct g
 void
 gkyl_dg_updater_lbo_vlasov_advance(struct gkyl_dg_updater_collisions *lbo,
   const struct gkyl_range *update_rng,
-  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq,
+  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms,
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
   // Set arrays needed
   if (lbo->model_id == GKYL_MODEL_PKPM) {
     gkyl_lbo_vlasov_pkpm_drag_set_auxfields(lbo->coll_drag,
-      (struct gkyl_dg_lbo_vlasov_pkpm_drag_auxfields) { .nu = nu_sum, .nuVtSq = nu_vthsq });
+      (struct gkyl_dg_lbo_vlasov_pkpm_drag_auxfields) { .nu = nu_sum, .nuVtSq = nu_prim_moms });
     gkyl_lbo_vlasov_pkpm_diff_set_auxfields(lbo->coll_diff,
-      (struct gkyl_dg_lbo_vlasov_pkpm_diff_auxfields) { .nu = nu_sum, .nuVtSq = nu_vthsq });
+      (struct gkyl_dg_lbo_vlasov_pkpm_diff_auxfields) { .nu = nu_sum, .nuVtSq = nu_prim_moms });
   }
   else {
     gkyl_lbo_vlasov_drag_set_auxfields(lbo->coll_drag,
-      (struct gkyl_dg_lbo_vlasov_drag_auxfields) { .nuSum = nu_sum, .nuUSum = nu_u, .nuVtSqSum = nu_vthsq });
+      (struct gkyl_dg_lbo_vlasov_drag_auxfields) { .nuSum = nu_sum, .nuPrimMomsSum = nu_prim_moms });
     gkyl_lbo_vlasov_diff_set_auxfields(lbo->coll_diff,
-      (struct gkyl_dg_lbo_vlasov_diff_auxfields) { .nuSum = nu_sum, .nuUSum = nu_u, .nuVtSqSum = nu_vthsq });
+      (struct gkyl_dg_lbo_vlasov_diff_auxfields) { .nuSum = nu_sum, .nuPrimMomsSum = nu_prim_moms });
   }
 
   struct timespec wst = gkyl_wall_clock();
@@ -104,22 +104,22 @@ gkyl_dg_updater_lbo_vlasov_release(struct gkyl_dg_updater_collisions* coll)
 void
 gkyl_dg_updater_lbo_vlasov_advance_cu(struct gkyl_dg_updater_collisions *lbo,
   const struct gkyl_range *update_rng,
-  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq,
+  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
   struct gkyl_array* GKYL_RESTRICT rhs)
 {
   // Set arrays needed
   if (lbo->model_id == GKYL_MODEL_PKPM) {
     gkyl_lbo_vlasov_pkpm_drag_set_auxfields(lbo->coll_drag,
-      (struct gkyl_dg_lbo_vlasov_pkpm_drag_auxfields) { .nu = nu_sum });
+      (struct gkyl_dg_lbo_vlasov_pkpm_drag_auxfields) { .nu = nu_sum, .nuVtSq = nu_prim_moms });
     gkyl_lbo_vlasov_pkpm_diff_set_auxfields(lbo->coll_diff,
-      (struct gkyl_dg_lbo_vlasov_pkpm_diff_auxfields) { .nuVtSq = nu_vthsq });
+      (struct gkyl_dg_lbo_vlasov_pkpm_diff_auxfields) { .nu = nu_sum, .nuVtSq = nu_prim_moms });
   }
   else {
     gkyl_lbo_vlasov_drag_set_auxfields(lbo->coll_drag,
-      (struct gkyl_dg_lbo_vlasov_drag_auxfields) { .nuSum = nu_sum, .nuUSum = nu_u, .nuVtSqSum = nu_vthsq });
+      (struct gkyl_dg_lbo_vlasov_drag_auxfields) { .nuSum = nu_sum, .nuPrimMomsSum = nu_prim_moms });
     gkyl_lbo_vlasov_diff_set_auxfields(lbo->coll_diff,
-      (struct gkyl_dg_lbo_vlasov_diff_auxfields) { .nuSum = nu_sum, .nuUSum = nu_u, .nuVtSqSum = nu_vthsq });
+      (struct gkyl_dg_lbo_vlasov_diff_auxfields) { .nuSum = nu_sum, .nuPrimMomsSum = nu_prim_moms });
   }
 
   struct timespec wst = gkyl_wall_clock();
@@ -138,7 +138,7 @@ gkyl_dg_updater_lbo_vlasov_advance_cu(struct gkyl_dg_updater_collisions *lbo,
 void
 gkyl_dg_updater_lbo_vlasov_advance_cu(struct gkyl_dg_updater_collisions *lbo,
   const struct gkyl_range *update_rng,
-  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq, 
+  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms, 
   const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs)
 {
   assert(false);

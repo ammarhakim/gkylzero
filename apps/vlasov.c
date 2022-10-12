@@ -306,9 +306,8 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
     gkyl_vlasov_app_write_species(app, i, tm, frame);
     if (app->species[i].model_id == GKYL_MODEL_SR && frame == 0)
       gkyl_vlasov_app_write_species_gamma(app, i, tm, frame);
-    if (app->species[i].has_mirror_force && frame == 0) {
+    if (app->species[i].has_magB && frame == 0) {
       gkyl_vlasov_app_write_magB(app, i, tm, frame);
-      gkyl_vlasov_app_write_gradB(app, i, tm, frame);
     }
   }
   for (int i=0; i<app->num_fluid_species; ++i) {
@@ -399,26 +398,6 @@ gkyl_vlasov_app_write_magB(gkyl_vlasov_app* app, int sidx, double tm, int frame)
   else {
     gkyl_grid_sub_array_write(&app->grid, &app->local,
       app->species[sidx].magB, fileNm);
-  }
-}
-
-void
-gkyl_vlasov_app_write_gradB(gkyl_vlasov_app* app, int sidx, double tm, int frame)
-{
-  const char *fmt = "%s-%s_gradB_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].info.name, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame);
-
-  if (app->use_gpu) {
-    // copy data from device to host before writing it out
-    gkyl_array_copy(app->species[sidx].gradB_host, app->species[sidx].gradB);
-    gkyl_grid_sub_array_write(&app->grid, &app->local,
-      app->species[sidx].gradB_host, fileNm);
-  }
-  else {
-    gkyl_grid_sub_array_write(&app->grid, &app->local,
-      app->species[sidx].gradB, fileNm);
   }
 }
 
@@ -584,9 +563,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   // compute necessary moments and boundary corrections for collisions
   for (int i=0; i<app->num_species; ++i) {
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
-      // Pass full fluidin array to be agnostic to species ordering
-      // vm_species_lbo_moms will find the particular fluid species being collided with if it exists
-      vm_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i], app->species[i].collides_with_fluid, fluidin);
+      vm_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
     }
   }
 
@@ -595,15 +572,13 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   for (int i=0; i<app->num_species; ++i) {
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS
       && app->species[i].lbo.num_cross_collisions) {
-      // Pass full fluidin array to be agnostic to species ordering
-      // vm_species_lbo_moms will find the particular fluid species being collided with if it exists
-      vm_species_lbo_cross_moms(app, &app->species[i], &app->species[i].lbo, fin[i], app->species[i].collides_with_fluid, fluidin);
+      vm_species_lbo_cross_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
     }
   }
 
   // compute RHS of Vlasov equations
   for (int i=0; i<app->num_species; ++i) {
-    double dt1 = vm_species_rhs(app, &app->species[i], fin[i], emin, fout[i], fluidin);
+    double dt1 = vm_species_rhs(app, &app->species[i], fin[i], emin, fout[i]);
     dtmin = fmin(dtmin, dt1);
   }
   for (int i=0; i<app->num_fluid_species; ++i) {
@@ -660,33 +635,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     // (can't accumulate current when field is static)
     if (!app->field->info.is_static) {
       // accumulate current contribution from kinetic species to electric field terms
-      for (int i=0; i<app->num_species; ++i) {
-        struct vm_species *s = &app->species[i];
-        vm_species_moment_calc(&s->m1i, s->local, app->local, fin[i]);
-
-        double qbyeps = s->info.charge/app->field->info.epsilon0;
-        if (s->has_mirror_force) {
-          // if has_mirror_force, m1i = m1i/B = J*m1i
-          // need to multiply by magB to get the right current density
-          gkyl_dg_mul_op_range(app->confBasis, 0, s->m1i_no_J, 0,
-            s->m1i.marr, 0, s->magB, &app->local);
-          gkyl_array_accumulate_range(emout, -qbyeps, s->m1i_no_J, app->local);
-        } 
-        else {
-          gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, app->local);
-          // Accumulate applied current to electric field terms
-          if (app->field->has_app_current)
-            gkyl_array_accumulate_range(emout, -1.0/app->field->info.epsilon0, app->field->app_current, app->local);
-        }
-      }
-      // accumulate current contribution from fluid species to electric field terms
-      for (int i=0; i<app->num_fluid_species; ++i) {
-        struct vm_fluid_species *f = &app->fluid_species[i];
-
-        // when charge is specified in fluid species, compute qbyeps, otherwise assume zero
-        double qbyeps = f->info.charge ? f->info.charge/app->field->info.epsilon0 : 0.0;
-        gkyl_array_accumulate_range(emout, -qbyeps, f->u, app->local);
-      }
+      vm_field_accumulate_current(app, fin, fluidin, emout);
       app->stat.current_tm += gkyl_time_diff_now_sec(wst);
     }
 

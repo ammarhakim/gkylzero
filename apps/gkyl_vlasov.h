@@ -7,21 +7,6 @@
 
 #include <stdbool.h>
 
-// Parameters for applying the mirror force in Vlasov simulations
-// Used in simulations where advecting fluid species can couple 
-// to Vlasov simulation 
-struct gkyl_vlasov_mirror_force {
-  void *magB_ctx; // context for magnitude of B
-  // pointer to magnitude of B function
-  void (*magB)(double t, const double *xn, double *Bout, void *ctx);
-
-  void *gradB_ctx; // context for gradient of B
-  // pointer to gradient of B function
-  void (*gradB)(double t, const double *xn, double *gradBout, void *ctx);
-
-  char fluid_mirror_force[128]; // name of fluid species for the mirror force
-};
-
 // Parameters for species collisions
 struct gkyl_vlasov_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
@@ -65,9 +50,6 @@ struct gkyl_vlasov_fluid_advection {
   // pointer to applied advection velocity function
   void (*velocity)(double t, const double *xn, double *aout, void *ctx);
   enum gkyl_quad_type qtype; // quadrature to use
-  
-  char advect_with[128]; // names of species to advect with
-  enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
 };
 
 // Parameters for fluid species diffusion
@@ -104,8 +86,10 @@ struct gkyl_vlasov_species {
   // source to include
   struct gkyl_vlasov_source source;
 
-  // mirror force to include
-  struct gkyl_vlasov_mirror_force mirror_force;
+  // magnitude of B for Jacobian in field-line following coordinates
+  void *magB_ctx; // context for magnitude of B
+  // pointer to magnitude of B function
+  void (*magB)(double t, const double *xn, double *Bout, void *ctx);
 
   void *accel_ctx; // context for applied acceleration function
   // pointer to applied acceleration function

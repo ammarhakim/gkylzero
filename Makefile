@@ -76,7 +76,7 @@ else
 endif
 
 # all includes
-INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iregression ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC}
+INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iregression -I${BUILD_DIR} ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC}
 
 # Build commands for CUDA source
 $(BUILD_DIR)/%.cu.o: %.cu
@@ -162,6 +162,9 @@ endif
 
 # Header files
 HEADERS := $(wildcard minus/*.h) $(wildcard zero/*.h) $(wildcard apps/*.h) $(wildcard kernels/*/*.h)
+# Headers to install
+INSTALL_HEADERS := $(shell ls apps/gkyl_*.h zero/gkyl_*.h | grep -v "priv" | sort)
+INSTALL_HEADERS += $(shell ls minus/*.h)
 
 # Library name
 ifeq ($(CC), nvcc)
@@ -178,7 +181,12 @@ G0STLIB = lib${G0LIB}.a
 G0SHLIB = lib${G0LIB}.so
 
 # Make targets: libraries, regression tests and unit tests
-all: ${BUILD_DIR}/${G0STLIB} ${BUILD_DIR}/${G0SHLIB} ${REGS} ${UNITS}
+all: ${BUILD_DIR}/gkylzero.h ${BUILD_DIR}/${G0STLIB} ${BUILD_DIR}/${G0SHLIB} ${REGS} ${UNITS}
+
+# Amalgamated header file
+${BUILD_DIR}/gkylzero.h:
+	$(MKDIR_P) ${BUILD_DIR}
+	./minus/gengkylzeroh.sh > ${BUILD_DIR}/gkylzero.h
 
 # Library archive
 ${BUILD_DIR}/${G0STLIB}: ${LIBOBJS}
@@ -209,7 +217,8 @@ install: all
 	${MKDIR_P} ${PREFIX}/gkylzero/lib
 	${MKDIR_P} ${PREFIX}/gkylzero/bin
 	${MKDIR_P} ${PREFIX}/gkylzero/share
-	cp ${HEADERS} ${PREFIX}/gkylzero/include
+	cp ${INSTALL_HEADERS} ${PREFIX}/gkylzero/include
+	./minus/gengkylzeroh.sh > ${PREFIX}/gkylzero/include/gkylzero.h
 	cp -f ${BUILD_DIR}/${G0STLIB} ${PREFIX}/gkylzero/lib
 	cp -f ${BUILD_DIR}/${G0SHLIB} ${PREFIX}/gkylzero/lib
 	cp -f Makefile.sample ${PREFIX}/gkylzero/share/Makefile

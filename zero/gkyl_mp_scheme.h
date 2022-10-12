@@ -10,9 +10,12 @@
 
 // Base reconstruction scheme to use
 enum gkyl_mp_recon {
-  GKYL_MP_C4, // centered fourth-order
+  GKYL_MP_U5 = 0, // upwind-biased 5th order (default)
+  GKYL_MP_C2, // centered second-order
+  GKYL_MP_C4, // centered fourth-order  
   GKYL_MP_C6, // centered sixth-order
-  GKYL_MP_U5, // upwind-biased 5th order
+  GKYL_MP_U1, // upwind-biased 1st order
+  GKYL_MP_U3, // upwind-biased 3rd order
 };
 
 // Object type for updater
@@ -24,9 +27,11 @@ struct gkyl_mp_scheme_inp {
   const struct gkyl_wv_eqn *equation; // equation solver
 
   enum gkyl_mp_recon mp_recon; // base reconstruction to use
+  bool skip_mp_limiter; // should we skip MP limiter?
 
   int num_up_dirs; // number of update directions
   int update_dirs[GKYL_MAX_DIM]; // directions to update
+  double cfl; // CFL number to use  
 
   const struct gkyl_wave_geom *geom; // geometry
 };
@@ -45,14 +50,22 @@ gkyl_mp_scheme* gkyl_mp_scheme_new(const struct gkyl_mp_scheme_inp *winp);
  * either the same range as the array range, or one created using the
  * gkyl_sub_range_init method.
  *
+ * The qrec_l/qrec_r are work arrays used internally in the updater.
+ *
  * @param mp Updater object
  * @param update_rng Range on which to compute.
  * @param qin Input to updater
+ * @param qrec_l Array to store recovered left values
+ * @param qrec_r Array to store recovered right values
+ * @param amdq Array to store left going fluctuations
+ * @param apdq Array to store right going fluctuations
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS of PDE 
  */
 void gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
   const struct gkyl_range *update_range, const struct gkyl_array *qin,
+  struct gkyl_array *qrec_l, struct gkyl_array *qrec_r,
+  struct gkyl_array *amdq, struct gkyl_array *apdq,
   struct gkyl_array *cflrate, struct gkyl_array *rhs);
 
 /**

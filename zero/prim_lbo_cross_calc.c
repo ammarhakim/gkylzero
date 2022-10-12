@@ -44,10 +44,10 @@ void
 gkyl_prim_lbo_cross_calc_advance(const struct gkyl_prim_lbo_cross_calc* calc,
   const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
-  double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
-  double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_u, const struct gkyl_array *other_vtsq, 
+  double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms,
+  double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms, 
   const struct gkyl_array *boundary_corrections, 
-  struct gkyl_array *u_out, struct gkyl_array *vtsq_out)
+  struct gkyl_array *prim_moms_out)
 {
   int nc = calc->prim->num_config;
   int udim = calc->prim->udim;
@@ -66,8 +66,8 @@ gkyl_prim_lbo_cross_calc_advance(const struct gkyl_prim_lbo_cross_calc* calc,
     gkyl_mat_clear(&lhs, 0.0); gkyl_mat_clear(&rhs, 0.0);
 
     calc->prim->cross_prim(calc->prim, &lhs, &rhs, conf_iter.idx, gkyl_array_cfetch(greene, midx),
-      self_m, gkyl_array_cfetch(self_moms, midx), gkyl_array_cfetch(self_u, midx), gkyl_array_cfetch(self_vtsq, midx),
-      other_m, gkyl_array_cfetch(other_moms, midx), gkyl_array_cfetch(other_u, midx), gkyl_array_cfetch(other_vtsq, midx),
+      self_m, gkyl_array_cfetch(self_moms, midx), gkyl_array_cfetch(self_prim_moms, midx),
+      other_m, gkyl_array_cfetch(other_moms, midx), gkyl_array_cfetch(other_prim_moms, midx),
       gkyl_array_cfetch(boundary_corrections, midx)
     );
 
@@ -81,9 +81,7 @@ gkyl_prim_lbo_cross_calc_advance(const struct gkyl_prim_lbo_cross_calc* calc,
     long midx = gkyl_range_idx(conf_rng, conf_iter.idx);
 
     struct gkyl_mat out = gkyl_nmat_get(calc->xs, count);
-    prim_lbo_copy_sol(&out, nc, udim, 
-      gkyl_array_fetch(u_out, midx), gkyl_array_fetch(vtsq_out, midx)
-    );
+    prim_lbo_copy_sol(&out, nc, udim, gkyl_array_fetch(prim_moms_out, midx));
     count += 1;
 
   }
@@ -152,10 +150,10 @@ void
 gkyl_prim_lbo_cross_calc_advance_cu(const struct gkyl_prim_lbo_cross_calc* calc,
   const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
-  double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
-  double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_u, const struct gkyl_array *other_vtsq, 
+  double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms,
+  double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms,
   const struct gkyl_array *boundary_corrections, 
-  struct gkyl_array *u_out, struct gkyl_array *vtsq_out)
+  struct gkyl_array *prim_moms_out)
 {
   assert(false);
 }

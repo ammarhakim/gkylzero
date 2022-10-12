@@ -43,6 +43,9 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
     fld->fdup = mkarr(false, 8, app->local_ext.volume);
     for (int d=0; d<ndim+1; ++d)
       fld->f[d] = mkarr(false, 8, app->local_ext.volume);
+
+    // set current solution so ICs and IO work properly
+    fld->fcurr = fld->f[0];
   }
   else if (fld->scheme_type == GKYL_MOMENT_MP) {
     // determine directions to update
@@ -57,12 +60,23 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
     fld->mp_slvr = gkyl_mp_scheme_new( &(struct gkyl_mp_scheme_inp) {
         .grid = &app->grid,
         .equation = maxwell,
-        .mp_recon = GKYL_MP_C4,
+        .mp_recon = app->mp_recon,
+        .skip_mp_limiter = mom->skip_mp_limiter,
         .num_up_dirs = num_up_dirs,
         .update_dirs = { update_dirs[0], update_dirs[1], update_dirs[2] } ,
+        .cfl = app->cfl,
         .geom = app->geom,
       }
     );
+
+    // allocate arrays
+    fld->f0 = mkarr(false, 8, app->local_ext.volume);
+    fld->f1 = mkarr(false, 8, app->local_ext.volume);
+    fld->fnew = mkarr(false, 8, app->local_ext.volume);
+    fld->cflrate = mkarr(false, 1, app->local_ext.volume);
+
+    // set current solution so ICs and IO work properly
+    fld->fcurr = fld->f0;
   }
 
   // determine which directions are not periodic
@@ -176,8 +190,13 @@ double
 moment_field_max_dt(const gkyl_moment_app *app, const struct moment_field *fld)
 {
   double max_dt = DBL_MAX;
-  for (int d=0; d<app->ndim; ++d)
-    max_dt = fmin(max_dt, gkyl_wave_prop_max_dt(fld->slvr[d], &app->local, fld->f[0]));
+  if (fld->scheme_type == GKYL_MOMENT_WAVE_PROP) {  
+    for (int d=0; d<app->ndim; ++d)
+      max_dt = fmin(max_dt, gkyl_wave_prop_max_dt(fld->slvr[d], &app->local, fld->f[0]));
+  }
+  else if (fld->scheme_type == GKYL_MOMENT_MP) {
+    max_dt = fmin(max_dt, gkyl_mp_scheme_max_dt(fld->mp_slvr, &app->local, fld->f0));
+  }
   return max_dt;
 }
 
@@ -209,6 +228,28 @@ moment_field_update(const gkyl_moment_app *app,
   };
 }
 
+// Compute RHS of EM equations
+double
+moment_field_rhs(gkyl_moment_app *app, struct moment_field *fld,
+  const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  struct timespec tm = gkyl_wall_clock();
+  
+  gkyl_array_clear(fld->cflrate, 0.0);
+  gkyl_array_clear(rhs, 0.0);
+
+  gkyl_mp_scheme_advance(fld->mp_slvr, &app->local, fin,
+    app->ql, app->qr, app->amdq, app->apdq,
+    fld->cflrate, rhs);
+
+  double omegaCfl[1];
+  gkyl_array_reduce_range(omegaCfl, fld->cflrate, GKYL_MAX, app->local);
+
+  app->stat.field_rhs_tm += gkyl_time_diff_now_sec(tm);
+  
+  return app->cfl/omegaCfl[0];
+}
+
 // free field
 void
 moment_field_release(const struct moment_field *fld)
@@ -230,6 +271,10 @@ moment_field_release(const struct moment_field *fld)
   }
   else if (fld->scheme_type == GKYL_MOMENT_MP) {
     gkyl_mp_scheme_release(fld->mp_slvr);
+    gkyl_array_release(fld->f0);
+    gkyl_array_release(fld->f1);
+    gkyl_array_release(fld->fnew);
+    gkyl_array_release(fld->cflrate);
   }
     
   gkyl_array_release(fld->app_current);

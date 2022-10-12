@@ -39,21 +39,20 @@ gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid,
  * @param lbo LBO updater object
  * @param update_rng Range on which to compute.
  * @param nu_sum Sum of coll freq
- * @param nu_u Sum of coll freq*u
- * @param nu_vthsq Sum of coll freq*vth
+ * @param nu_prim_moms Sum of coll freq*u and freq*vtsq
  * @param fIn Input to updater
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
 void gkyl_dg_updater_lbo_vlasov_advance(struct gkyl_dg_updater_collisions *lbo,
   const struct gkyl_range *update_rng,
-  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq,
+  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms,
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 
 void gkyl_dg_updater_lbo_vlasov_advance_cu(struct gkyl_dg_updater_collisions *lbo,
   const struct gkyl_range *update_rng,
-  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_u, const struct gkyl_array *nu_vthsq,
+  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms,
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 

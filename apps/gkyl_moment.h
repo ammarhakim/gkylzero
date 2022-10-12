@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gkyl_app.h>
+#include <gkyl_mp_scheme.h>
 #include <gkyl_util.h>
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_eqn.h>
@@ -76,6 +77,8 @@ struct gkyl_moment {
   double cfl_frac; // CFL fraction to use
 
   enum gkyl_moment_scheme scheme_type; // scheme to update fluid and moment eqns
+  enum gkyl_mp_recon mp_recon; // reconstruction scheme to use
+  bool skip_mp_limiter; // should MP limiter be skipped?
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
@@ -91,12 +94,30 @@ struct gkyl_moment {
 // Simulation statistics
 struct gkyl_moment_stat {
   long nup; // calls to update
+  double total_tm; // time for simulation (not including ICs)
+  
   long nfail; // number of failed time-steps
 
-  double total_tm; // time for simulation (not including ICs)
+  //// wave_prop stuff
   double species_tm; // time to compute species updates
   double field_tm; // time to compute field updates
   double sources_tm; // time to compute source terms
+
+  //// stuff for MP-XX/SSP-RK schemes
+  long nfeuler; // calls to forward-Euler method
+    
+  long nstage_2_fail; // number of failed RK stage-2s
+  long nstage_3_fail; // number of failed RK stage-3s
+
+  double stage_2_dt_diff[2]; // [min,max] rel-diff for stage-2 failure
+  double stage_3_dt_diff[2]; // [min,max] rel-diff for stage-3 failure
+    
+  double init_species_tm; // time to initialize all species
+  double init_field_tm; // time to initialize fields
+
+  double species_rhs_tm; // time to compute species collisionless RHS
+  
+  double field_rhs_tm; // time to compute field RHS
 };
 
 // Object representing moments app

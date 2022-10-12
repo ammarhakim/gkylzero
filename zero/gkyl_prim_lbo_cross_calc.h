@@ -45,31 +45,28 @@ gkyl_prim_lbo_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
  * @param greene Greene's factor
  * @param self_m Mass of the species
  * @param self_moms Moments of distribution function (Zeroth, First, and Second)
- * @param self_u Drift velocity of the species
- * @param self_vtsq Thermal velocity of the species
+ * @param self_prim_moms Drift velocity & thermal speed squared of this species
  * @param other_m Mass of the colliding species
  * @param other_moms Moments of distribution function (Zeroth, First, and Second)
- * @param other_u Drift velocity of the colliding species
- * @param other_vtsq Thermal velocity of the colliding species
+ * @param other_prim_moms Drift velocity & thermal speed squared of the colliding species
  * @param boundary_corrections Momentum and Energy boundary corrections
- * @param u_out Output drift velocity primitive moment array
- * @param vtsq_out Output thermal velocity primitive moment array
+ * @param prim_moms_out Output drift velocity and thermal speed squared
  */
 void gkyl_prim_lbo_cross_calc_advance(const struct gkyl_prim_lbo_cross_calc* calc,
   const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
-  double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
-  double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_u, const struct gkyl_array *other_vtsq, 
+  double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms,
+  double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms,
   const struct gkyl_array *boundary_corrections, 
-  struct gkyl_array *u_out, struct gkyl_array *vtsq_out);
+  struct gkyl_array *prim_moms_out);
 
 void gkyl_prim_lbo_cross_calc_advance_cu(const struct gkyl_prim_lbo_cross_calc* calc,
   const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
-  double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
-  double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_u, const struct gkyl_array *other_vtsq, 
+  double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms,
+  double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms,
   const struct gkyl_array *boundary_corrections, 
-  struct gkyl_array *u_out, struct gkyl_array *vtsq_out);
+  struct gkyl_array *prim_moms_out);
 
 /**
  * Delete pointer to primitive moment calculator updater.

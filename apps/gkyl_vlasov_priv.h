@@ -89,17 +89,17 @@ struct vm_lbo_collisions {
   
   struct gkyl_array *boundary_corrections; // LBO boundary corrections
   struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator
-  struct gkyl_array *nu_sum, *u_drift, *vth_sq, *nu_u, *nu_vthsq; // LBO primitive moments
+  struct gkyl_array *nu_sum, *prim_moms, *nu_prim_moms; // LBO primitive moments
 
   double betaGreenep1; // value of Greene's factor beta + 1
   double other_m[GKYL_MAX_SPECIES]; // masses of species being collided with
-  struct gkyl_array *other_u_drift[GKYL_MAX_SPECIES], *other_vth_sq[GKYL_MAX_SPECIES]; // self-primitive moments of species being collided with
-  struct gkyl_array *cross_u_drift[GKYL_MAX_SPECIES], *cross_vth_sq[GKYL_MAX_SPECIES]; // LBO cross-primitive moments
+  struct gkyl_array *other_prim_moms[GKYL_MAX_SPECIES]; // self-primitive moments of species being collided with
+  struct gkyl_array *cross_prim_moms[GKYL_MAX_SPECIES]; // LBO cross-primitive moments
   struct gkyl_array *cross_nu[GKYL_MAX_SPECIES]; // LBO cross-species collision frequencies
   struct gkyl_array *other_nu[GKYL_MAX_SPECIES];
-  struct gkyl_array *cross_nu_u, *cross_nu_vthsq; // weak multiplication of collision frequency and primitive moments
+  struct gkyl_array *cross_nu_prim_moms; // weak multiplication of collision frequency and primitive moments
   
-  struct gkyl_array *self_nu, *self_nu_u, *self_nu_vthsq; // LBO self-primitive moments
+  struct gkyl_array *self_nu, *self_nu_prim_moms; // LBO self-primitive moments
 
   struct vm_species_moment moms; // moments needed in LBO (single array includes Zeroth, First, and Second moment)
   struct gkyl_array *m0;
@@ -115,13 +115,6 @@ struct vm_lbo_collisions {
   gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
   gkyl_prim_lbo_cross_calc *cross_calc; // LBO cross-primitive moment calculator
   gkyl_dg_updater_collisions *coll_slvr; // collision solver
-};
-
-struct vm_bgk_collisions {
-  struct gkyl_array *u, *vthsq; // BGK primitive moments
-  // BGK Collisions should probably own a project on Maxwellian updater
-  // so it can compute its contribution to the RHS
-  // struct proj_maxwellian;
 };
 
 struct vm_boundary_fluxes {
@@ -202,6 +195,10 @@ struct vm_species {
 
   // Data for PKPM model
   struct vm_fluid_species *pkpm_fluid_species; // pointers to cross-species we collide with
+  int pkpm_fluid_index; // index of the fluid species being collided with as part of pkpm model
+                        // index corresponds to location in fluid_species array (size num_fluid_species)
+  struct gkyl_array *m1i_pkpm; // "M1i" in the pkpm model for use in current coupling
+                               // Used to copy over fluid variable from pkpm_fluid_species (first three components are momentum)
   struct gkyl_array *rho_inv_b; // b_i/rho (for use in pressure force 1/rho * b. div(P))
   struct gkyl_dg_bin_op_mem *rho_inv_mem; // memory used in the div-op for rho_inv_b
 
@@ -223,27 +220,12 @@ struct vm_species {
   enum gkyl_source_id source_id; // type of source
   struct vm_source src; // applied source
   
-  bool has_mirror_force; // flag to indicate Vlasov includes mirror force from external magnetic field
-  struct gkyl_array *gradB; // gradient of magnetic field
+  bool has_magB; // flag to indicate Vlasov equation solved along field line
   struct gkyl_array *magB; // magnitude of magnetic field (J = 1/B)
-  struct gkyl_array *n; // array storing density (no Jacobian)
-  struct gkyl_dg_bin_op_mem *Tperp_mem; // memory used in the div-op for Tperpq
-  struct gkyl_array *Tperp; // array storing J*Tperp (J*p_perp/n)
-  struct gkyl_array *mirror_force; // array storing full mirror force (J*T_perp*gradB)
-  struct gkyl_array *m1i_no_J; // current density without Jacobian (for coupling to EM fields)
-
   // host copy for use in IO and projecting
-  struct gkyl_array *gradB_host;
   struct gkyl_array *magB_host;
-  struct gkyl_array *n_host;
-  struct gkyl_array *Tperp_host;
-  struct gkyl_array *mirror_force_host;
-  struct gkyl_array *m1i_no_J_host;
 
   enum gkyl_collision_id collision_id; // type of collisions
-  bool collides_with_fluid; // boolean for if kinetic species collides with a fluid speceis
-  int fluid_index; // index of the fluid species being collided with
-                   // index corresponds to location in fluid_species array (size num_fluid_species)
   struct vm_lbo_collisions lbo; // collisions object
 
   double *omegaCfl_ptr;
@@ -525,7 +507,7 @@ void vm_species_moment_release(const struct gkyl_vlasov_app *app,
  * @param collides_with_fluid Boolean for if kinetic species collides with a fluid species
  */
 void vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s,
-  struct vm_lbo_collisions *lbo, bool collides_with_fluid);
+  struct vm_lbo_collisions *lbo);
 
 /**
  * Initialize species LBO cross-collisions object.
@@ -545,14 +527,11 @@ void vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
  * @param species Pointer to species
  * @param lbo Pointer to LBO
  * @param fin Input distribution function
- * @param collides_with_fluid Boolean for if kinetic species collides with a fluid species
- * @param fluidin Input fluid array (size: num_fluid_species)
  */
 void vm_species_lbo_moms(gkyl_vlasov_app *app,
   const struct vm_species *species,
   struct vm_lbo_collisions *lbo,
-  const struct gkyl_array *fin,
-  bool collides_with_fluid, const struct gkyl_array *fluidin[]);
+  const struct gkyl_array *fin);
 
 /**
  * Compute necessary moments for cross-species LBO collisions
@@ -567,8 +546,7 @@ void vm_species_lbo_moms(gkyl_vlasov_app *app,
 void vm_species_lbo_cross_moms(gkyl_vlasov_app *app,
   const struct vm_species *species,
   struct vm_lbo_collisions *lbo,
-  const struct gkyl_array *fin,
-  bool collides_with_fluid, const struct gkyl_array *fluidin[]);
+  const struct gkyl_array *fin);
 
 /**
  * Compute RHS from LBO collisions
@@ -695,15 +673,6 @@ void vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, doubl
 void vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, double tm);
 
 /**
- * Compute gradient and magnitude of magnetic field
- *
- * @param app Vlasov app object
- * @param species Species object
- * @param tm Time for use in source
- */
-void vm_species_calc_magB_gradB(gkyl_vlasov_app *app, struct vm_species *species, double tm);
-
-/**
  * Compute parallel-kinetic-perpendicular-moment (pkpm) model variables
  *
  * @param app Vlasov app object
@@ -727,8 +696,7 @@ void vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species,
  */
 double vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   const struct gkyl_array *fin, const struct gkyl_array *em, 
-  struct gkyl_array *rhs,
-  const struct gkyl_array *fluidin[]);
+  struct gkyl_array *rhs);
 
 /**
  * Apply periodic BCs to species distribution function
@@ -841,6 +809,17 @@ void vm_field_calc_ExB(gkyl_vlasov_app *app, struct vm_field *field, const struc
  * @param em Input electromagnetic fields
  */
 void vm_field_calc_sr_pkpm_vars(gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *em);
+
+/**
+ * Accumulate current density onto RHS from field equations
+ *
+ * @param app Vlasov app object
+ * @param fin[] Input distribution function (num_species size)
+ * @param fluidin[] Input fluid array (num_fluid_species size)
+ * @param emout On output, the RHS from the field solver *with* accumulated current density
+ */
+void vm_field_accumulate_current(gkyl_vlasov_app *app, 
+  const struct gkyl_array *fin[], const struct gkyl_array *fluidin[], struct gkyl_array *emout);
 
 /**
  * Compute RHS from field equations

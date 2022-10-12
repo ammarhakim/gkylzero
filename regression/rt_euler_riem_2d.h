@@ -75,8 +75,11 @@ euler_ctx(void)
 }
 
 static const char*
-get_sim_name(enum gkyl_wv_euler_rp rp_type)
+get_sim_name(enum gkyl_wv_euler_rp rp_type, enum gkyl_moment_scheme scheme)
 {
+  if (scheme == GKYL_MOMENT_MP)
+    return "euler_riem_2d_mp";
+  
   switch (rp_type) {
     case WV_EULER_RP_ROE:
       return "euler_riem_2d_roe";
@@ -92,7 +95,7 @@ get_sim_name(enum gkyl_wv_euler_rp rp_type)
 
 // Run regression test using specified RP type  
 static int
-rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type)
+rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum gkyl_moment_scheme scheme)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -109,7 +112,7 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type)
   struct gkyl_wv_eqn *euler = gkyl_wv_euler_inew(
     &(struct gkyl_wv_euler_inp) {
       .gas_gamma = ctx.gas_gamma,
-      .rp_type = rp_type
+      .rp_type = (scheme == GKYL_MOMENT_MP) ? WV_EULER_RP_LAX :  rp_type
     }
   );
 
@@ -128,11 +131,14 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type)
     .lower = { 0.0, 0.0 },
     .upper = { 1.0, 1.0 }, 
     .cells = { NX, NY },
+    
+    .scheme_type = scheme,
+    .mp_recon = app_args.mp_recon,
 
     .num_species = 1,
     .species = { fluid },
   };
-  strcpy(app_inp.name, get_sim_name(rp_type));
+  strcpy(app_inp.name, get_sim_name(rp_type, scheme));
 
   // create app object
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);

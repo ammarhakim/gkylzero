@@ -1,13 +1,15 @@
 #include <gkyl_lbo_vlasov_kernels.h> 
-GKYL_CU_DH void lbo_vlasov_diff_surfvx_1x2v_ser_p2(const double *w, const double *dxv, const double *nuSum, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void lbo_vlasov_diff_surfvx_1x2v_ser_p2(const double *w, const double *dxv, const double *nuSum, const double *nuPrimMomsSum, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
-  // w[3]:         cell-center coordinates. 
-  // dxv[3]:       cell spacing. 
-  // nuSum:         collisionalities added (self and cross species collisionalities). 
-  // nuUSum[6]:    sum of bulk velocities times their respective collisionalities. 
-  // nuVtSqSum[3]: sum of thermal speeds squared time their respective collisionalities. 
-  // fl/fc/fr:      distribution function in cells 
-  // out:           incremented distribution function in cell 
+  // w[3]: cell-center coordinates. 
+  // dxv[3]: cell spacing. 
+  // nuSum: collisionalities added (self and cross species collisionalities). 
+  // nuPrimMomsSum[9]: sum of bulk velocities and thermal speeds squared times their respective collisionalities. 
+  // fl/fc/fr: distribution function in cells 
+  // out: incremented distribution function in cell 
+
+  const double *nuVtSqSum = &nuPrimMomsSum[6];
+
   double rdvSq4 = 4.0/(dxv[1]*dxv[1]); 
   double temp_diff[20] = {0.0}; 
   double diff_incr[20] = {0.0}; 

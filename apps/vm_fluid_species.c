@@ -115,21 +115,6 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
         }
       );
     }
-    else {
-      f->advects_with_species = true;
-      f->advection_species = vm_find_species(app, f->info.advection.advect_with);
-      f->other_advect = f->advection_species->lbo.u_drift;
-      // determine collision type to use in vlasov update
-      f->collision_id = f->info.advection.collision_id;
-      if (f->collision_id == GKYL_LBO_COLLISIONS) {
-        f->other_nu = f->advection_species->lbo.nu_sum;
-        f->other_m0 = f->advection_species->lbo.m0;
-        f->other_nu_vthsq = f->advection_species->lbo.nu_vthsq;
-        // allocate arrays to store collisional relaxation terms (nu*n*vthsq and nu*n*T_perp or nu*n*T_z)
-        f->nu_fluid = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-        f->nu_n_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-      }
-    }
   }
   else {
     f->eqn_id = GKYL_EQN_EULER_PKPM;   
@@ -384,17 +369,9 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
   }
 
   // Relax T_perp, d T_perp/dt = nu*n*(T - T_perp)
-  if (fluid_species->collision_id == GKYL_LBO_COLLISIONS && fluid_species->eqn_id == GKYL_EQN_ADVECTION) {
-    gkyl_dg_mul_op_range(app->confBasis, 0, fluid_species->nu_fluid, 0,
-      fluid_species->other_nu, 0, fluid, &app->local);
-    gkyl_dg_mul_op_range(app->confBasis, 0, fluid_species->nu_n_vthsq, 0,
-      fluid_species->other_m0, 0, fluid_species->other_nu_vthsq, &app->local);
-    gkyl_array_accumulate(rhs, 1.0, fluid_species->nu_n_vthsq);
-    gkyl_array_accumulate(rhs, -1.0, fluid_species->nu_fluid);
-  }
-  else if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
+  if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
     gkyl_calc_prim_vars_p_pkpm_source(app->confBasis, &app->local, 
-      fluid_species->pkpm_species->lbo.nu_sum, fluid_species->pkpm_species->lbo.nu_vthsq, 
+      fluid_species->pkpm_species->lbo.nu_sum, fluid_species->pkpm_species->lbo.nu_prim_moms, 
       fluid_species->pkpm_species->pkpm_moms.marr, fluid_species->u, fluid, rhs);
   }
   
@@ -571,10 +548,11 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
     gkyl_proj_on_basis_release(f->advect_proj);
   }
 
-  if (f->collision_id == GKYL_LBO_COLLISIONS) {
-    gkyl_array_release(f->nu_fluid);
-    gkyl_array_release(f->nu_n_vthsq);
-  }
+  gkyl_array_release(f->D);
+  if (app->use_gpu)
+    gkyl_array_release(f->D_host);
+  if (f->has_diffusion)
+    gkyl_proj_on_basis_release(f->diff_proj);
 
   if (f->source_id) {
     vm_fluid_species_source_release(app, &f->src);

@@ -268,6 +268,38 @@ vm_field_calc_sr_pkpm_vars(gkyl_vlasov_app *app, struct vm_field *field,
   // TO DO: THESE VARIABLES NEED TO BE CONTINUOUS
 }
 
+void
+vm_field_accumulate_current(gkyl_vlasov_app *app, 
+  const struct gkyl_array *fin[], const struct gkyl_array *fluidin[], 
+  struct gkyl_array *emout)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    struct vm_species *s = &app->species[i];
+    double qbyeps = s->info.charge/app->field->info.epsilon0; 
+
+    if (s->model_id == GKYL_MODEL_PKPM) {
+      if (s->has_magB) {
+        gkyl_dg_mul_op_range(app->confBasis, 0, s->m1i_pkpm, 0,
+          fluidin[s->pkpm_fluid_index], 0, s->magB, &app->local);  
+        // Need to divide out the mass in pkpm model since we evolve momentum 
+        gkyl_array_scale_range(s->m1i_pkpm, 1.0/s->info.mass, app->local);
+      }
+      else {
+        // Need to divide out the mass in pkpm model since we evolve momentum
+        gkyl_array_set_range(s->m1i_pkpm, 1.0/s->info.mass, fluidin[s->pkpm_fluid_index], app->local);
+      }
+      gkyl_array_accumulate_range(emout, -qbyeps, s->m1i_pkpm, app->local);   
+    }
+    else {
+      vm_species_moment_calc(&s->m1i, s->local, app->local, fin[i]);
+      gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, app->local);
+    }
+    // Accumulate applied current to electric field terms
+    if (app->field->has_app_current)
+      gkyl_array_accumulate_range(emout, -1.0/app->field->info.epsilon0, app->field->app_current, app->local);
+  } 
+}
+
 // Compute the RHS for field update, returning maximum stable
 // time-step.
 double
