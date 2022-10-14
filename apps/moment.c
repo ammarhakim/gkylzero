@@ -327,7 +327,7 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
       fprintf(fp, " field_tm : %lg,\n", app->stat.field_tm);
       fprintf(fp, " sources_tm : %lg\n", app->stat.sources_tm);
     }
-    else if (app->scheme_type == GKYL_MOMENT_MP) {
+    else if (app->scheme_type == GKYL_MOMENT_MP || app->scheme_type == GKYL_MOMENT_KEP) {
       fprintf(fp, " nfeuler : %ld,\n", app->stat.nfeuler);
       fprintf(fp, " nstage_2_fail : %ld,\n", app->stat.nstage_2_fail);
       fprintf(fp, " nstage_3_fail : %ld,\n", app->stat.nstage_3_fail);

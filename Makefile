@@ -212,6 +212,7 @@ install: all
 	${MKDIR_P} ${PREFIX}/gkylzero/lib
 	${MKDIR_P} ${PREFIX}/gkylzero/bin
 	${MKDIR_P} ${PREFIX}/gkylzero/share
+	${MKDIR_P} ${PREFIX}/gkylzero/scripts
 	cp ${INSTALL_HEADERS} ${PREFIX}/gkylzero/include
 	./minus/gengkylzeroh.sh > ${PREFIX}/gkylzero/include/gkylzero.h
 	cp -f ${BUILD_DIR}/${G0STLIB} ${PREFIX}/gkylzero/lib
@@ -222,6 +223,7 @@ install: all
 	cp -f ${BUILD_DIR}/regression/rt_vlasov_kerntm ${PREFIX}/gkylzero/bin/
 	cp -f inf/Vlasov.lua ${PREFIX}/gkylzero/lib/
 	cp -f inf/Moments.lua ${PREFIX}/gkylzero/lib/
+	cp -f scripts/*.sh ${PREFIX}/gkylzero/scripts
 
 libinstall: ${BUILD_DIR}/${G0STLIB} ${BUILD_DIR}/${G0SHLIB}
 	$(MKDIR_P) ${PREFIX}/gkylzero/include
