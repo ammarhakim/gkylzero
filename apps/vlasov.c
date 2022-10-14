@@ -538,10 +538,12 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 
   // Compute external EM field or applied currents if present.
   // Note: uses proj_on_basis so does copy to GPU every call if app->use_gpu = true.
-  if (app->field->ext_em_evolve)
-    vm_field_calc_ext_em(app, app->field, tcurr);
-  if (app->field->app_current_evolve)
-    vm_field_calc_app_current(app, app->field, tcurr);
+  if (app->has_field) {
+    if (app->field->ext_em_evolve)
+      vm_field_calc_ext_em(app, app->field, tcurr);
+    if (app->field->app_current_evolve)
+      vm_field_calc_app_current(app, app->field, tcurr); 
+  }
 
   // Compute parallel-kinetic-perpendicular moment (pkpm) kinetic species variables if present.
   // Need to do this first since fluid species primitive variables 

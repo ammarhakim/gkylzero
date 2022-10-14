@@ -449,7 +449,8 @@ vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
   vm_species_source_calc(app, species, t0);
 
   // compute pkpm variables if pkpm model
-  vm_species_calc_pkpm_vars(app, species, species->f, app->field->em);
+  if (species->model_id == GKYL_MODEL_PKPM || species->model_id == GKYL_MODEL_SR_PKPM)
+    vm_species_calc_pkpm_vars(app, species, species->f, app->field->em);
 }
 
 void
