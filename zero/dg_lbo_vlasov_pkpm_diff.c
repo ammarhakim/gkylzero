@@ -57,7 +57,6 @@ gkyl_dg_lbo_vlasov_pkpm_diff_new(const struct gkyl_basis* cbasis, const struct g
   lbo_vlasov_pkpm_diff->pdim = pdim;
 
   lbo_vlasov_pkpm_diff->eqn.num_equations = 1;
-  lbo_vlasov_pkpm_diff->eqn.vol_term = vol;
   lbo_vlasov_pkpm_diff->eqn.surf_term = surf;
   lbo_vlasov_pkpm_diff->eqn.boundary_surf_term = boundary_surf;
 
@@ -78,14 +77,13 @@ gkyl_dg_lbo_vlasov_pkpm_diff_new(const struct gkyl_basis* cbasis, const struct g
       break;    
   }  
 
-  lbo_vlasov_pkpm_diff->vol = CK(vol_kernels, cdim, poly_order);
+  lbo_vlasov_pkpm_diff->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 
   lbo_vlasov_pkpm_diff->surf = CK(surf_vpar_kernels, cdim, poly_order);
 
   lbo_vlasov_pkpm_diff->boundary_surf = CK(boundary_surf_vpar_kernels, cdim, poly_order);
 
   // ensure non-NULL pointers
-  assert(lbo_vlasov_pkpm_diff->vol);
   assert(lbo_vlasov_pkpm_diff->surf);
   assert(lbo_vlasov_pkpm_diff->boundary_surf);
 

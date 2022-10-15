@@ -39,7 +39,6 @@ dg_lbo_vlasov_pkpm_diff_set_cu_dev_ptrs(struct dg_lbo_vlasov_pkpm_diff *lbo_vlas
   lbo_vlasov_pkpm_diff->auxfields.nu = 0; 
   lbo_vlasov_pkpm_diff->auxfields.nuVtSq = 0; 
 
-  lbo_vlasov_pkpm_diff->eqn.vol_term = vol;
   lbo_vlasov_pkpm_diff->eqn.surf_term = surf;
   lbo_vlasov_pkpm_diff->eqn.boundary_surf_term = boundary_surf;
 
@@ -60,7 +59,7 @@ dg_lbo_vlasov_pkpm_diff_set_cu_dev_ptrs(struct dg_lbo_vlasov_pkpm_diff *lbo_vlas
       break;    
   }  
  
-  lbo_vlasov_pkpm_diff->vol = CK(vol_kernels, cdim, poly_order);
+  lbo_vlasov_pkpm_diff->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 
   lbo_vlasov_pkpm_diff->surf = CK(surf_vpar_kernels, cdim, poly_order);
 
