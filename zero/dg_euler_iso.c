@@ -8,7 +8,7 @@
 #include <gkyl_dg_euler_iso_priv.h>
 #include <gkyl_util.h>
 
-void
+void 
 gkyl_euler_iso_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
@@ -17,8 +17,8 @@ gkyl_euler_iso_free(const struct gkyl_ref_count *ref)
     // free inner on_dev object
     struct dg_euler_iso *euler_iso = container_of(base->on_dev, struct dg_euler_iso, eqn);
     gkyl_cu_free(euler_iso);
-  }
-
+  }  
+  
   struct dg_euler_iso *euler_iso = container_of(base, struct dg_euler_iso, eqn);
   gkyl_free(euler_iso);
 }
@@ -26,19 +26,25 @@ gkyl_euler_iso_free(const struct gkyl_ref_count *ref)
 void
 gkyl_euler_iso_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_iso_auxfields auxin)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(auxin.u_i)) {
+    gkyl_euler_iso_set_auxfields_cu(eqn->on_dev, auxin);
+    return;
+  }
+#endif
+
   struct dg_euler_iso *euler_iso = container_of(eqn, struct dg_euler_iso, eqn);
   euler_iso->auxfields.u_i = auxin.u_i;
 }
 
 struct gkyl_dg_eqn*
 gkyl_dg_euler_iso_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_range* conf_range, const double vth, bool use_gpu)
+  const struct gkyl_range* conf_range, double vth, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    print("TODO: implement gpu multithreading in dg_euler_iso.c....\n");
-    return 0;
-  }
+    return gkyl_dg_euler_iso_cu_dev_new(cbasis, conf_range, vth);
+  } 
 #endif
   struct dg_euler_iso *euler_iso = gkyl_malloc(sizeof(struct dg_euler_iso));
 
@@ -93,3 +99,15 @@ gkyl_dg_euler_iso_new(const struct gkyl_basis* cbasis,
 
   return &euler_iso->eqn;
 }
+
+#ifndef GKYL_HAVE_CUDA
+
+struct gkyl_dg_eqn*
+gkyl_dg_euler_iso_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range,
+  double vth)
+{
+  assert(false);
+  return 0;
+}
+
+#endif

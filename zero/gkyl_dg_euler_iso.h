@@ -22,10 +22,10 @@ struct gkyl_dg_euler_iso_auxfields {
  * @return Pointer to euler equation object
  */
 struct gkyl_dg_eqn* gkyl_dg_euler_iso_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_range* conf_range, const double vth, bool use_gpu);
+  const struct gkyl_range* conf_range, double vth, bool use_gpu);
 
 struct gkyl_dg_eqn* gkyl_dg_euler_iso_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_range* conf_range, const double vth);
+  const struct gkyl_range* conf_range, double vth);
 
 /**
  * Set the auxiliary fields (e.g. velocity u = rho*u/rho) needed in updating isothermal euler equation.
