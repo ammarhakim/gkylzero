@@ -11,7 +11,6 @@ dg_euleriso_diffusion_vol_3x_ser_p2(const double* w, const double* dx,
   // q: Input state [rho rhoux rhouy rhouz]
   // out: Incremented output
 
-  const double retval;
   const double *D1 = &D[0]; 
   const double *D2 = &D[20]; 
   const double *D3 = &D[40]; 
