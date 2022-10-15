@@ -96,6 +96,7 @@ gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* cbasis, const s
 
   lbo_gyrokinetic_drag->vparMax = pgrid->upper[cdim];
   lbo_gyrokinetic_drag->vparMaxSq = pow(pgrid->upper[cdim],2);
+  lbo_gyrokinetic_drag->num_cbasis = cbasis->num_basis;
 
   lbo_gyrokinetic_drag->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(lbo_gyrokinetic_drag->eqn.flags);
