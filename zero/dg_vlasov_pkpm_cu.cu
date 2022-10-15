@@ -45,7 +45,6 @@ dg_vlasov_pkpm_set_cu_dev_ptrs(struct dg_vlasov_pkpm *vlasov_pkpm, enum gkyl_bas
   vlasov_pkpm->auxfields.bvar = 0;  
   vlasov_pkpm->auxfields.rho_inv_b = 0;  
 
-  vlasov_pkpm->eqn.vol_term = vol;
   vlasov_pkpm->eqn.surf_term = surf;
   vlasov_pkpm->eqn.boundary_surf_term = boundary_surf;
 
@@ -70,7 +69,7 @@ dg_vlasov_pkpm_set_cu_dev_ptrs(struct dg_vlasov_pkpm *vlasov_pkpm, enum gkyl_bas
       break;    
   }  
 
-  vlasov_pkpm->vol = CK(vol_kernels,cdim,poly_order);
+  vlasov_pkpm->eqn.vol_term = CK(vol_kernels,cdim,poly_order);
 
   vlasov_pkpm->stream_surf[0] = CK(stream_surf_x_kernels,cdim,poly_order);
   if (cdim>1)

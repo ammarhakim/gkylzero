@@ -63,7 +63,6 @@ gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
   vlasov_pkpm->pdim = pdim;
 
   vlasov_pkpm->eqn.num_equations = 1;
-  vlasov_pkpm->eqn.vol_term = vol;
   vlasov_pkpm->eqn.surf_term = surf;
   vlasov_pkpm->eqn.boundary_surf_term = boundary_surf;
 
@@ -88,7 +87,7 @@ gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
       break;    
   }  
 
-  vlasov_pkpm->vol = CK(vol_kernels,cdim,poly_order);
+  vlasov_pkpm->eqn.vol_term = CK(vol_kernels,cdim,poly_order);
 
   vlasov_pkpm->stream_surf[0] = CK(stream_surf_x_kernels,cdim,poly_order);
   if (cdim>1)
@@ -101,7 +100,6 @@ gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
   vlasov_pkpm->accel_boundary_surf = CK(accel_boundary_surf_vpar_kernels,cdim,poly_order);
 
   // ensure non-NULL pointers
-  assert(vlasov_pkpm->vol);
   for (int i=0; i<cdim; ++i) assert(vlasov_pkpm->stream_surf[i]);
   assert(vlasov_pkpm->accel_surf);
   assert(vlasov_pkpm->accel_boundary_surf);
