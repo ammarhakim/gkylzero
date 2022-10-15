@@ -107,3 +107,15 @@ surf(const struct gkyl_dg_eqn *eqn,
     (const double*) gkyl_array_cfetch(euler_iso->auxfields.u_i, cidx_r),
     qInL, qInC, qInR, qRhsOut);
 }
+
+GKYL_CU_D
+static void
+boundary_surf(const struct gkyl_dg_eqn *eqn,
+  int dir,
+  const double*  xcEdge, const double*  xcSkin,
+  const double*  dxEdge, const double* dxSkin,
+  const int* idxEdge, const int* idxSkin, const int edge,
+  const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
+{
+  
+}

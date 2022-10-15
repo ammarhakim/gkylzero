@@ -26,7 +26,7 @@ gkyl_mom_bcorr_lbo_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl
 
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl__mom_bcorr_lbo_vlasov_cu_dev_new(cbasis, pbasis, vBoundary);
+    return gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(cbasis, pbasis, vBoundary);
   } 
 #endif  
   struct mom_type_bcorr_lbo_vlasov *mom_bcorr = gkyl_malloc(sizeof(struct mom_type_bcorr_lbo_vlasov));

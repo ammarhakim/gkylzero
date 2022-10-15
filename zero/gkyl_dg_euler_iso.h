@@ -42,6 +42,6 @@ void gkyl_euler_iso_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_
  * @param eqn Equation pointer.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_euler_iso_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_auxfields auxin);
+void gkyl_euler_iso_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_iso_auxfields auxin);
 
 #endif

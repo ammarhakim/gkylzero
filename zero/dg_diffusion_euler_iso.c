@@ -18,12 +18,12 @@ gkyl_diffusion_euler_iso_free(const struct gkyl_ref_count* ref)
 
   if (gkyl_dg_eqn_is_cu_dev(base)) {
     // free inner on_dev object
-    struct dg_diffusion_euler_iso* diffusion = container_of(base->on_dev, struct dg_diffusion_euler_iso, eqn);
-    gkyl_cu_free(diffusion);
+    struct dg_diffusion_euler_iso* diffusion_euler_iso = container_of(base->on_dev, struct dg_diffusion_euler_iso, eqn);
+    gkyl_cu_free(diffusion_euler_iso);
   }
 
-  struct dg_diffusion_euler_iso* diffusion = container_of(base, struct dg_diffusion_euler_iso, eqn);
-  gkyl_free(diffusion);
+  struct dg_diffusion_euler_iso* diffusion_euler_iso = container_of(base, struct dg_diffusion_euler_iso, eqn);
+  gkyl_free(diffusion_euler_iso);
 }
 
 void

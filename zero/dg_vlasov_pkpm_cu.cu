@@ -54,7 +54,7 @@ dg_vlasov_pkpm_set_cu_dev_ptrs(struct dg_vlasov_pkpm *vlasov_pkpm, enum gkyl_bas
   const gkyl_dg_vlasov_pkpm_accel_surf_kern_list *accel_surf_vpar_kernels;
   const gkyl_dg_vlasov_pkpm_accel_boundary_surf_kern_list *accel_boundary_surf_vpar_kernels;
   
-  switch (cbasis->b_type) {
+  switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       vol_kernels = ser_vol_kernels;
       stream_surf_x_kernels = ser_stream_surf_x_kernels;

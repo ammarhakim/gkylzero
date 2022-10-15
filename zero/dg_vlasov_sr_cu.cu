@@ -81,7 +81,7 @@ dg_vlasov_sr_set_cu_dev_ptrs(struct dg_vlasov_sr *vlasov_sr, enum gkyl_basis_typ
       assert(false);
       break;    
   }  
-  if (field_id == GKYL_FIELD_SR_NULL)
+  if (field_id == GKYL_FIELD_NULL)
     vlasov_sr->eqn.vol_term = stream_vol_kernels[cv_index].kernels[poly_order];
   else
     vlasov_sr->eqn.vol_term = vol_kernels[cv_index].kernels[poly_order];

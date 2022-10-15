@@ -420,7 +420,7 @@ test_func_cu(int cdim, int vdim, int poly_order,
   // compute the moments
   gkyl_mom_calc_advance_cu(moms_calc, &local, &confLocal, distf_cu, moms_cu);
 
-  gkyl_mom_calc_bcorr *bcorr_calc = gkyl_mom_calc_bcorr_lbo_vlasov_cu_dev_new(&grid, &confBasis, &basis, v_bounds, true);
+  gkyl_mom_calc_bcorr *bcorr_calc = gkyl_mom_calc_bcorr_lbo_vlasov_new(&grid, &confBasis, &basis, v_bounds, true);
   
   // create moment arrays
   struct gkyl_array *boundary_corrections_cu;
@@ -429,8 +429,8 @@ test_func_cu(int cdim, int vdim, int poly_order,
   // compute the moment corrections
   gkyl_mom_calc_bcorr_advance_cu(bcorr_calc, &local, &confLocal, distf_cu, boundary_corrections_cu);
 
-  gkyl_prim_lbo_calc *primcalc = gkyl_prim_lbo_vlasov_calc_cu_dev_new(&grid, &confBasis, &basis, &confLocal, true);
-  gkyl_prim_lbo_cross_calc *crossprimcalc = gkyl_prim_lbo_vlasov_cross_calc_cu_dev_new(&grid, &confBasis, &basis, &confLocal, true);
+  gkyl_prim_lbo_calc *primcalc = gkyl_prim_lbo_vlasov_calc_new(&grid, &confBasis, &basis, &confLocal, true);
+  gkyl_prim_lbo_cross_calc *crossprimcalc = gkyl_prim_lbo_vlasov_cross_calc_new(&grid, &confBasis, &basis, &confLocal, true);
 
   // create moment arrays
   struct gkyl_array *u, *vth, *u_cu, *vth_cu, *prim_moms_cu;

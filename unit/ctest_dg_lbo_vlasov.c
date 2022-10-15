@@ -351,7 +351,7 @@ test_1x1v_p2_cu()
   int up_dirs[] = {1};
   int zero_flux_flags[] = {1};
 
-  gkyl_dg_updater_lbo_vlasov *slvr;
+  gkyl_dg_updater_collisions *slvr;
   enum gkyl_model_id model_id = GKYL_MODEL_DEFAULT;
   slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, model_id, true);
   
@@ -481,7 +481,7 @@ test_1x2v_p2_cu()
   int up_dirs[] = {1, 2};
   int zero_flux_flags[] = {1, 1};
 
-  gkyl_dg_updater_lbo_vlasov *slvr;
+  gkyl_dg_updater_collisions *slvr;
   enum gkyl_model_id model_id = GKYL_MODEL_DEFAULT;
   slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, model_id, true);
    

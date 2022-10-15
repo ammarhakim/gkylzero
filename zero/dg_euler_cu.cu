@@ -18,8 +18,8 @@ __global__ static void
 gkyl_euler_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *u_i, const struct gkyl_array *p_ij)
 {
   struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
-  euler->auxfields.u_i = uvar;
-  euler->auxfields.p_ij = pvar;
+  euler->auxfields.u_i = u_i;
+  euler->auxfields.p_ij = p_ij;
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel

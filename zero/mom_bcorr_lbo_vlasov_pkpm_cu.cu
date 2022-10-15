@@ -17,8 +17,6 @@ static void
 gkyl_mom_bcorr_lbo_vlasov_pkpm_set_cu_dev_ptrs(struct mom_type_bcorr_lbo_vlasov_pkpm* mom_bcorr, 
   enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
-  mom_bcorr->momt.kernel = kernel;
-
   // choose kernel tables based on basis-function type
   const gkyl_mom_bcorr_lbo_vlasov_pkpm_kern_list *mom_bcorr_lbo_vlasov_pkpm_kernels;
 
@@ -31,7 +29,7 @@ gkyl_mom_bcorr_lbo_vlasov_pkpm_set_cu_dev_ptrs(struct mom_type_bcorr_lbo_vlasov_
     assert(false);
     break;
   }
-  mom_bcorr->kernel = CK(mom_bcorr_lbo_vlasov_pkpm_kernels, cdim, poly_order);
+  mom_bcorr->momt.kernel = CK(mom_bcorr_lbo_vlasov_pkpm_kernels, cdim, poly_order);
 }
 
 struct gkyl_mom_type*
@@ -58,7 +56,7 @@ gkyl_mom_bcorr_lbo_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const
 
   mom_bcorr->momt.flags = 0;
   GKYL_SET_CU_ALLOC(mom_bcorr->momt.flags);
-  mom_bcorr->momt.ref_count = gkyl_ref_count_init(gkyl_mom_bcorr_vlasov_pkpm_free);
+  mom_bcorr->momt.ref_count = gkyl_ref_count_init(gkyl_mom_bcorr_lbo_vlasov_pkpm_free);
 
   // copy struct to device
   struct mom_type_bcorr_lbo_vlasov_pkpm *mom_bcorr_cu = (struct mom_type_bcorr_lbo_vlasov_pkpm*)

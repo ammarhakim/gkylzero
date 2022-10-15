@@ -32,6 +32,7 @@ typedef void (*boundary_surf_termf_t)(const struct gkyl_dg_eqn *eqn,
 // Function pointer type for generic stencil kernel
 // Similar to surface kernel, but size of input arrays unspecified
 // Could be 9 (for a generic 2D stencil) or 27 (for a generic 3D stencil)
+// Hard code to 27 for 3D for GPU compatibility
 // NOTE: ASSUMES UNIFORM GRIDS FOR NOW
 // NOTE: Takes the index of the cell being updated (idxc) and array of indices
 //       (idx) so we can fetch auxiliary variables easily for neighbors or just
@@ -39,7 +40,7 @@ typedef void (*boundary_surf_termf_t)(const struct gkyl_dg_eqn *eqn,
 typedef void (*gen_termf_t)(const struct gkyl_dg_eqn *eqn, 
   int dir1, int dir2,
   const double* xc, const double* dxc, const int* idxc,
-  long sz_dim, const int idx[sz_dim][GKYL_MAX_DIM], const double* qIn[sz_dim], 
+  long sz_dim, const int idx[27][GKYL_MAX_DIM], const double* qIn[27], 
   double* GKYL_RESTRICT qRhsOut);
 
 struct gkyl_dg_eqn {

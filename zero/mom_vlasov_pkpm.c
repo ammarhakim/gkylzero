@@ -12,7 +12,7 @@
 #define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order]
 
 void
-gkyl_vlasov_pkpm_mom_free(const struct gkyl_ref_count *ref)
+gkyl_mom_vlasov_pkpm_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_mom_type *momt = container_of(ref, struct gkyl_mom_type, ref_count);
   if (GKYL_IS_CU_ALLOC(momt->flags))
@@ -28,7 +28,7 @@ gkyl_mom_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
 
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_mom_vlasov_pkpm_cu_dev_new(cbasis, pbasis, conf_range, mass);
+    return gkyl_mom_vlasov_pkpm_cu_dev_new(cbasis, pbasis, mass);
   } 
 #endif    
   struct mom_type_vlasov_pkpm *mom_vlasov_pkpm = gkyl_malloc(sizeof(struct mom_type_vlasov_pkpm));
@@ -61,7 +61,7 @@ gkyl_mom_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
     
   mom_vlasov_pkpm->momt.flags = 0;
   GKYL_CLEAR_CU_ALLOC(mom_vlasov_pkpm->momt.flags);
-  mom_vlasov_pkpm->momt.ref_count = gkyl_ref_count_init(gkyl_vlasov_pkpm_mom_free);
+  mom_vlasov_pkpm->momt.ref_count = gkyl_ref_count_init(gkyl_mom_vlasov_pkpm_free);
   
   mom_vlasov_pkpm->momt.on_dev = &mom_vlasov_pkpm->momt; // on host, self-reference
     

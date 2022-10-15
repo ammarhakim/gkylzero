@@ -22,7 +22,7 @@ set_cu_ptrs(struct mom_type_vlasov_pkpm *mom_vlasov_pkpm,
   // choose kernel tables based on basis-function type
   const gkyl_mom_vlasov_pkpm_kern_list *mom_vlasov_pkpm_kernels;
 
-  switch (cbasis->b_type) {
+  switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       mom_vlasov_pkpm_kernels = ser_mom_vlasov_pkpm_kernels;
       break;
@@ -59,7 +59,7 @@ gkyl_mom_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gk
 
   mom_vlasov_pkpm->momt.flags = 0;
   GKYL_SET_CU_ALLOC(mom_vlasov_pkpm->momt.flags);
-  mom_vlasov_pkpm->momt.ref_count = gkyl_ref_count_init(gkyl_gk_mom_free);
+  mom_vlasov_pkpm->momt.ref_count = gkyl_ref_count_init(gkyl_mom_vlasov_pkpm_free);
   
   // copy struct to device
   struct mom_type_vlasov_pkpm *mom_vlasov_pkpm_cu = (struct mom_type_vlasov_pkpm*)

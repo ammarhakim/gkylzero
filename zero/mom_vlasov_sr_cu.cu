@@ -125,7 +125,7 @@ set_cu_ptrs(struct mom_type_vlasov_sr* mom_vm_sr, int mom_id, enum gkyl_basis_ty
   const gkyl_vlasov_sr_mom_kern_list *m0_kernels, *m1i_kernels, 
     *Ni_kernels, *Energy_kernels, *Pressure_kernels, *Tij_kernels;
 
-  switch (cbasis->b_type) {
+  switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       m0_kernels = ser_m0_kernels;
       m1i_kernels = ser_m1i_kernels;
@@ -150,7 +150,27 @@ set_cu_ptrs(struct mom_type_vlasov_sr* mom_vm_sr, int mom_id, enum gkyl_basis_ty
       mom_vm_sr->momt.kernel = m1i_kernels[tblidx].kernels[poly_order];
       mom_vm_sr->momt.num_mom = vdim;
       break;
-      
+
+    case Ni:
+      mom_vm_sr->momt.kernel = Ni_kernels[tblidx].kernels[poly_order];
+      mom_vm_sr->momt.num_mom = 1+vdim;
+      break;
+
+    case Energy:
+      mom_vm_sr->momt.kernel = Energy_kernels[tblidx].kernels[poly_order];
+      mom_vm_sr->momt.num_mom = 1;
+      break;
+
+    case Pressure:
+      mom_vm_sr->momt.kernel = Pressure_kernels[tblidx].kernels[poly_order];
+      mom_vm_sr->momt.num_mom = 1;
+      break;
+
+    case Tij:
+      mom_vm_sr->momt.kernel = Tij_kernels[tblidx].kernels[poly_order];
+      mom_vm_sr->momt.num_mom = 1+vdim+(vdim*(vdim+1))/2;
+      break;
+
     default: // can't happen
       break;
   }
@@ -217,7 +237,7 @@ set_int_cu_ptrs(struct mom_type_vlasov_sr* mom_vm_sr, enum gkyl_basis_type b_typ
   const gkyl_vlasov_sr_mom_kern_list *int_mom_kernels;  
   
   // set kernel pointer
-  switch (cbasis->b_type) {
+  switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       int_mom_kernels = ser_int_mom_kernels;
       break;

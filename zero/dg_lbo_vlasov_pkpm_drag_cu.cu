@@ -75,7 +75,7 @@ gkyl_dg_lbo_vlasov_pkpm_drag_cu_dev_new(const struct gkyl_basis* cbasis, const s
   struct dg_lbo_vlasov_pkpm_drag *lbo_vlasov_pkpm_drag =
     (struct dg_lbo_vlasov_pkpm_drag*) gkyl_malloc(sizeof(struct dg_lbo_vlasov_pkpm_drag));
 
-  int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
+  int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int poly_order = cbasis->poly_order;
 
   lbo_vlasov_pkpm_drag->cdim = cdim;

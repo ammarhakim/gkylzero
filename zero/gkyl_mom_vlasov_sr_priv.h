@@ -36,8 +36,6 @@ static void
 kernel_vlasov_sr_M0_1x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
   return vlasov_sr_M0_1x1v_ser_p1(xc, dx, idx, f, out);  
 }
 
@@ -46,8 +44,6 @@ static void
 kernel_vlasov_sr_M0_1x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
   return vlasov_sr_M0_1x1v_ser_p2(xc, dx, idx, f, out);  
 }
 
@@ -56,8 +52,6 @@ static void
 kernel_vlasov_sr_M0_1x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
   return vlasov_sr_M0_1x2v_ser_p1(xc, dx, idx, f, out);  
 }
 
@@ -66,8 +60,6 @@ static void
 kernel_vlasov_sr_M0_1x2v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
   return vlasov_sr_M0_1x2v_ser_p2(xc, dx, idx, f, out);  
 }
 
@@ -76,8 +68,6 @@ static void
 kernel_vlasov_sr_M0_1x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
   return vlasov_sr_M0_1x3v_ser_p1(xc, dx, idx, f, out);  
 }
 
@@ -86,8 +76,6 @@ static void
 kernel_vlasov_sr_M0_1x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
   return vlasov_sr_M0_1x3v_ser_p2(xc, dx, idx, f, out);  
 }
 
@@ -96,8 +84,6 @@ static void
 kernel_vlasov_sr_M0_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
   return vlasov_sr_M0_2x2v_ser_p1(xc, dx, idx, f, out);  
 }
 
@@ -106,8 +92,6 @@ static void
 kernel_vlasov_sr_M0_2x2v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
   return vlasov_sr_M0_2x2v_ser_p2(xc, dx, idx, f, out);  
 }
 
@@ -116,8 +100,6 @@ static void
 kernel_vlasov_sr_M0_2x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
   return vlasov_sr_M0_2x3v_ser_p1(xc, dx, idx, f, out);  
 }
 
@@ -126,8 +108,6 @@ static void
 kernel_vlasov_sr_M0_2x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
   return vlasov_sr_M0_2x3v_ser_p2(xc, dx, idx, f, out);  
 }
 
@@ -136,8 +116,6 @@ static void
 kernel_vlasov_sr_M0_3x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
   return vlasov_sr_M0_3x3v_ser_p1(xc, dx, idx, f, out);  
 }
 

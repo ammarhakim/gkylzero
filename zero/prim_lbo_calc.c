@@ -17,7 +17,7 @@ gkyl_prim_lbo_calc_new(const struct gkyl_rect_grid *grid,
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_prim_lbo_calc_cu_dev_new(grid, prim);
+    return gkyl_prim_lbo_calc_cu_dev_new(grid, cbasis, conf_rng, prim);
   } 
 #endif     
   gkyl_prim_lbo_calc *up = gkyl_malloc(sizeof(gkyl_prim_lbo_calc));

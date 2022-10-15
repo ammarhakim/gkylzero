@@ -416,9 +416,9 @@ void test_1x_p2() { test(1, 512, 2, 1.0e-4, false); }
 void test_2x_p2() { test(2, 512, 2, 1.0e-2, false); }
 
 #ifdef GKYL_HAVE_CUDA
-void test_1x_p1_gpu() { test_1x(1, 8, 1, 1.0e-9, true); }
-void test_2x_p1_gpu() { test_1x(2, 8, 1, 1.0e-9, true); }
-void test_3x_p1_gpu() { test_1x(3, 8, 1, 1.0e-9, true); }
+void test_1x_p1_gpu() { test(1, 8, 1, 1.0e-9, true); }
+void test_2x_p1_gpu() { test(2, 8, 1, 1.0e-9, true); }
+void test_3x_p1_gpu() { test(3, 8, 1, 1.0e-9, true); }
 
 void test_2x_p1_big_gpu() { test(2, 512, 1, 1.0e-9, true); }
 void test_3x_p1_big_gpu() { test(3, 128, 1, 1.0e-9, true); }

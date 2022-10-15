@@ -12,7 +12,7 @@
 #define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order]
 
 void
-gkyl_mom_bcorr_vlasov_pkpm_free(const struct gkyl_ref_count *ref)
+gkyl_mom_bcorr_lbo_vlasov_pkpm_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_mom_type *momt = container_of(ref, struct gkyl_mom_type, ref_count);
   if (GKYL_IS_CU_ALLOC(momt->flags))
@@ -29,7 +29,7 @@ gkyl_mom_bcorr_lbo_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct
 
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl__mom_bcorr_lbo_vlasov_pkpm_cu_dev_new(cbasis, pbasis, vBoundary);
+    return gkyl_mom_bcorr_lbo_vlasov_pkpm_cu_dev_new(cbasis, pbasis, vBoundary, mass);
   } 
 #endif    
   struct mom_type_bcorr_lbo_vlasov_pkpm *mom_bcorr = gkyl_malloc(sizeof(struct mom_type_bcorr_lbo_vlasov_pkpm));
@@ -64,7 +64,7 @@ gkyl_mom_bcorr_lbo_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct
 
   mom_bcorr->momt.flags = 0;
   GKYL_CLEAR_CU_ALLOC(mom_bcorr->momt.flags);
-  mom_bcorr->momt.ref_count = gkyl_ref_count_init(gkyl_mom_bcorr_vlasov_pkpm_free);
+  mom_bcorr->momt.ref_count = gkyl_ref_count_init(gkyl_mom_bcorr_lbo_vlasov_pkpm_free);
 
   mom_bcorr->momt.on_dev = &mom_bcorr->momt;
     

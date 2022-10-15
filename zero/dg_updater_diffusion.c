@@ -30,7 +30,7 @@ gkyl_dg_updater_diffusion_new(const struct gkyl_rect_grid *grid,
   else if (diffusion_id == GKYL_ANISO_DIFFUSION)
     up->eqn_diffusion = gkyl_dg_gen_diffusion_new(cbasis, conf_range, use_gpu);
   else if (diffusion_id == GKYL_EULER_ISO_DIFFUSION)
-    up->eqn_diffusion = gkyl_dg_diffusion_e_i_new(cbasis, conf_range, use_gpu);
+    up->eqn_diffusion = gkyl_dg_diffusion_euler_iso_new(cbasis, conf_range, use_gpu);
 
   int cdim = cbasis->ndim;
   int up_dirs[GKYL_MAX_DIM], zero_flux_flags[GKYL_MAX_DIM];
@@ -68,8 +68,8 @@ gkyl_dg_updater_diffusion_advance(gkyl_dg_updater_diffusion *diffusion,
     gkyl_hyper_dg_gen_stencil_advance(diffusion->up_diffusion, update_rng, fIn, cflrate, rhs);
   }
   else if (diffusion_id == GKYL_EULER_ISO_DIFFUSION) {
-    gkyl_diffusion_e_i_set_auxfields(diffusion->eqn_diffusion,
-      (struct gkyl_dg_diffusion_e_i_auxfields) { .D = D, .u_i = u });
+    gkyl_diffusion_euler_iso_set_auxfields(diffusion->eqn_diffusion,
+      (struct gkyl_dg_diffusion_euler_iso_auxfields) { .D = D, .u_i = u });
     gkyl_hyper_dg_advance(diffusion->up_diffusion, update_rng, fIn, cflrate, rhs);
   }
   diffusion->diffusion_tm += gkyl_time_diff_now_sec(wst);
@@ -114,8 +114,8 @@ gkyl_dg_updater_diffusion_advance_cu(gkyl_dg_updater_diffusion *diffusion,
     gkyl_hyper_dg_gen_stencil_advance_cu(diffusion->up_diffusion, update_rng, fIn, cflrate, rhs);
   }
   else if (diffusion_id == GKYL_EULER_ISO_DIFFUSION) {
-    gkyl_diffusion_e_i_set_auxfields(diffusion->eqn_diffusion,
-      (struct gkyl_dg_diffusion_e_i_auxfields) { .D = D, .u_i = u });//TODO: use consistent name for 'u'/'u_i'
+    gkyl_diffusion_euler_iso_set_auxfields(diffusion->eqn_diffusion,
+      (struct gkyl_dg_diffusion_euler_iso_auxfields) { .D = D, .u_i = u });//TODO: use consistent name for 'u'/'u_i'
     gkyl_hyper_dg_advance(diffusion->up_diffusion, update_rng, fIn, cflrate, rhs);
   }
   diffusion->diffusion_tm += gkyl_time_diff_now_sec(wst);

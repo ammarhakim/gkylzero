@@ -26,7 +26,7 @@ gkyl_mom_bcorr_lbo_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct
 
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl__mom_bcorr_lbo_gyrokinetic_cu_dev_new(cbasis, pbasis, vBoundary, mass);
+    return gkyl_mom_bcorr_lbo_gyrokinetic_cu_dev_new(cbasis, pbasis, vBoundary, mass);
   } 
 #endif    
   struct mom_type_bcorr_lbo_gyrokinetic *mom_bcorr = gkyl_malloc(sizeof(struct mom_type_bcorr_lbo_gyrokinetic));
