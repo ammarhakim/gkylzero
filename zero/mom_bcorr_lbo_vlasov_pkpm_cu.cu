@@ -35,7 +35,8 @@ gkyl_mom_bcorr_lbo_vlasov_pkpm_set_cu_dev_ptrs(struct mom_type_bcorr_lbo_vlasov_
 }
 
 struct gkyl_mom_type*
-gkyl_mom_bcorr_lbo_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const double *vBoundary)
+gkyl_mom_bcorr_lbo_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+  const double *vBoundary, double mass)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -52,6 +53,7 @@ gkyl_mom_bcorr_lbo_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const
 
   mom_bcorr->vBoundary[0] = vBoundary[0];
   mom_bcorr->vBoundary[1] = vBoundary[1];
+  mom_bcorr->mass = mass;
   mom_bcorr->momt.num_mom = 1; // number of moments
 
   mom_bcorr->momt.flags = 0;

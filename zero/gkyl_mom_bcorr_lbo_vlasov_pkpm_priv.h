@@ -11,6 +11,7 @@
 struct mom_type_bcorr_lbo_vlasov_pkpm {
   struct gkyl_mom_type momt;
   double vBoundary[2];
+  double mass;
 };
 
 // for use in kernel tables
@@ -26,7 +27,7 @@ kernel_mom_bcorr_lbo_vlasov_pkpm_1x1v_ser_p1(const struct gkyl_mom_type *momt, c
   struct mom_type_bcorr_lbo_vlasov_pkpm *mom_vlasov_pkpm = container_of(momt, struct mom_type_bcorr_lbo_vlasov_pkpm, momt);
   enum gkyl_vel_edge edge = *(enum gkyl_vel_edge *)param;
 
-  return mom_bcorr_lbo_vlasov_pkpm_1x1v_ser_p1(idx, edge, mom_vlasov_pkpm->vBoundary, dx, f, out);  
+  return mom_bcorr_lbo_vlasov_pkpm_1x1v_ser_p1(idx, edge, mom_vlasov_pkpm->vBoundary, dx, mom_vlasov_pkpm->mass, f, out);  
 }
 
 GKYL_CU_DH
@@ -37,7 +38,7 @@ kernel_mom_bcorr_lbo_vlasov_pkpm_1x1v_ser_p2(const struct gkyl_mom_type *momt, c
   struct mom_type_bcorr_lbo_vlasov_pkpm *mom_vlasov_pkpm = container_of(momt, struct mom_type_bcorr_lbo_vlasov_pkpm, momt);
   enum gkyl_vel_edge edge = *(enum gkyl_vel_edge *)param;
 
-  return mom_bcorr_lbo_vlasov_pkpm_1x1v_ser_p2(idx, edge, mom_vlasov_pkpm->vBoundary, dx, f, out);  
+  return mom_bcorr_lbo_vlasov_pkpm_1x1v_ser_p2(idx, edge, mom_vlasov_pkpm->vBoundary, dx, mom_vlasov_pkpm->mass, f, out);  
 }
 
 GKYL_CU_DH
@@ -48,7 +49,7 @@ kernel_mom_bcorr_lbo_vlasov_pkpm_1x1v_ser_p3(const struct gkyl_mom_type *momt, c
   struct mom_type_bcorr_lbo_vlasov_pkpm *mom_vlasov_pkpm = container_of(momt, struct mom_type_bcorr_lbo_vlasov_pkpm, momt);
   enum gkyl_vel_edge edge = *(enum gkyl_vel_edge *)param;
 
-  return mom_bcorr_lbo_vlasov_pkpm_1x1v_ser_p3(idx, edge, mom_vlasov_pkpm->vBoundary, dx, f, out);  
+  return mom_bcorr_lbo_vlasov_pkpm_1x1v_ser_p3(idx, edge, mom_vlasov_pkpm->vBoundary, dx, mom_vlasov_pkpm->mass, f, out);  
 }
 
 GKYL_CU_DH
@@ -59,7 +60,7 @@ kernel_mom_bcorr_lbo_vlasov_pkpm_2x1v_ser_p1(const struct gkyl_mom_type *momt, c
   struct mom_type_bcorr_lbo_vlasov_pkpm *mom_vlasov_pkpm = container_of(momt, struct mom_type_bcorr_lbo_vlasov_pkpm, momt);
   enum gkyl_vel_edge edge = *(enum gkyl_vel_edge *)param;
 
-  return mom_bcorr_lbo_vlasov_pkpm_2x1v_ser_p1(idx, edge, mom_vlasov_pkpm->vBoundary, dx, f, out);  
+  return mom_bcorr_lbo_vlasov_pkpm_2x1v_ser_p1(idx, edge, mom_vlasov_pkpm->vBoundary, dx, mom_vlasov_pkpm->mass, f, out);  
 }
 
 GKYL_CU_DH
@@ -70,7 +71,7 @@ kernel_mom_bcorr_lbo_vlasov_pkpm_2x1v_ser_p2(const struct gkyl_mom_type *momt, c
   struct mom_type_bcorr_lbo_vlasov_pkpm *mom_vlasov_pkpm = container_of(momt, struct mom_type_bcorr_lbo_vlasov_pkpm, momt);
   enum gkyl_vel_edge edge = *(enum gkyl_vel_edge *)param;
 
-  return mom_bcorr_lbo_vlasov_pkpm_2x1v_ser_p2(idx, edge, mom_vlasov_pkpm->vBoundary, dx, f, out);  
+  return mom_bcorr_lbo_vlasov_pkpm_2x1v_ser_p2(idx, edge, mom_vlasov_pkpm->vBoundary, dx, mom_vlasov_pkpm->mass, f, out);  
 }
 
 GKYL_CU_DH
@@ -81,7 +82,7 @@ kernel_mom_bcorr_lbo_vlasov_pkpm_3x1v_ser_p1(const struct gkyl_mom_type *momt, c
   struct mom_type_bcorr_lbo_vlasov_pkpm *mom_vlasov_pkpm = container_of(momt, struct mom_type_bcorr_lbo_vlasov_pkpm, momt);
   enum gkyl_vel_edge edge = *(enum gkyl_vel_edge *)param;
 
-  return mom_bcorr_lbo_vlasov_pkpm_3x1v_ser_p1(idx, edge, mom_vlasov_pkpm->vBoundary, dx, f, out);  
+  return mom_bcorr_lbo_vlasov_pkpm_3x1v_ser_p1(idx, edge, mom_vlasov_pkpm->vBoundary, dx, mom_vlasov_pkpm->mass, f, out);  
 }
 
 GKYL_CU_DH
@@ -92,7 +93,7 @@ kernel_mom_bcorr_lbo_vlasov_pkpm_3x1v_ser_p2(const struct gkyl_mom_type *momt, c
   struct mom_type_bcorr_lbo_vlasov_pkpm *mom_vlasov_pkpm = container_of(momt, struct mom_type_bcorr_lbo_vlasov_pkpm, momt);
   enum gkyl_vel_edge edge = *(enum gkyl_vel_edge *)param;
 
-  return mom_bcorr_lbo_vlasov_pkpm_3x1v_ser_p2(idx, edge, mom_vlasov_pkpm->vBoundary, dx, f, out);  
+  return mom_bcorr_lbo_vlasov_pkpm_3x1v_ser_p2(idx, edge, mom_vlasov_pkpm->vBoundary, dx, mom_vlasov_pkpm->mass, f, out);  
 }
 
 //

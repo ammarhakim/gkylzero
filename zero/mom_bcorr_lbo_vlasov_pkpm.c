@@ -23,7 +23,7 @@ gkyl_mom_bcorr_vlasov_pkpm_free(const struct gkyl_ref_count *ref)
 
 struct gkyl_mom_type*
 gkyl_mom_bcorr_lbo_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const double* vBoundary, bool use_gpu)
+  const double* vBoundary, double mass, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -44,6 +44,7 @@ gkyl_mom_bcorr_lbo_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct
 
   mom_bcorr->vBoundary[0] = vBoundary[0];
   mom_bcorr->vBoundary[1] = vBoundary[1];
+  mom_bcorr->mass = mass;
 
   // choose kernel tables based on basis-function type
   const gkyl_mom_bcorr_lbo_vlasov_pkpm_kern_list *mom_bcorr_lbo_vlasov_pkpm_kernels;
@@ -73,7 +74,8 @@ gkyl_mom_bcorr_lbo_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_mom_type*
-gkyl_mom_bcorr_lbo_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const double* vBoundary)
+gkyl_mom_bcorr_lbo_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+  const double* vBoundary, double mass)
 {
   assert(false);
 }

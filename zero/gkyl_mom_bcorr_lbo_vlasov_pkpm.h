@@ -11,12 +11,13 @@
  * @param cbasis Configuration-space basis-functions
  * @param pbasis Phase-space basis-functions
  * @param vBoundary Values at the edges of velocity space.
+ * @param mass Mass of species
  * @param use_gpu bool to determine if on GPU
  */
 struct gkyl_mom_type* 
 gkyl_mom_bcorr_lbo_vlasov_pkpm_new(const struct gkyl_basis* cbasis, 
   const struct gkyl_basis* pbasis, const double* vBoundary, 
-  bool use_gpu);
+  double mass, bool use_gpu);
 
 /**
  * Create new LBO Vlasov boundary correction moment type object
@@ -25,4 +26,5 @@ gkyl_mom_bcorr_lbo_vlasov_pkpm_new(const struct gkyl_basis* cbasis,
  */
 struct gkyl_mom_type* 
 gkyl_mom_bcorr_lbo_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, 
-  const struct gkyl_basis* pbasis, const double* vBoundary);
+  const struct gkyl_basis* pbasis, const double* vBoundary, 
+  double mass);
