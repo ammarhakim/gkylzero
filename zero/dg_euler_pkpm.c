@@ -70,7 +70,7 @@ gkyl_dg_euler_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_range*
       break;    
   }  
     
-  euler_pkpm->eqn.num_equations = 5;
+  euler_pkpm->eqn.num_equations = 4;
   euler_pkpm->eqn.vol_term = vol;
   euler_pkpm->eqn.surf_term = surf;
   euler_pkpm->eqn.boundary_surf_term = boundary_surf;
