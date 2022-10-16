@@ -79,6 +79,7 @@ struct gkyl_moment {
   enum gkyl_moment_scheme scheme_type; // scheme to update fluid and moment eqns
   enum gkyl_mp_recon mp_recon; // reconstruction scheme to use
   bool skip_mp_limiter; // should MP limiter be skipped?
+  bool use_hybrid_flux_kep; // should shock-hybrid scheme be used when using KEP?
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions

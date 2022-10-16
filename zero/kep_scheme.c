@@ -15,6 +15,8 @@
 #define ER 4
 #define PR 4
 
+#define SQ(x) ((x)*(x))
+
 static const int dir_shuffle[][3] = {
   {1, 2, 3},
   {2, 3, 1},
@@ -27,6 +29,8 @@ struct gkyl_kep_scheme {
   int num_up_dirs; // number of update directions
   int update_dirs[GKYL_MAX_DIM]; // directions to update
 
+  bool use_hybrid_flux; // should we use shock detector for hybrid flux
+  
   double cfl; // CFL number
   
   const struct gkyl_wv_eqn *equation; // equation object
@@ -47,6 +51,7 @@ gkyl_kep_scheme_new(const struct gkyl_kep_scheme_inp *inp)
     up->update_dirs[i] = inp->update_dirs[i];
 
   up->cfl = inp->cfl;
+  up->use_hybrid_flux = inp->use_hybrid_flux;
 
   up->equation = gkyl_wv_eqn_acquire(inp->equation);
   up->geom = gkyl_wave_geom_acquire(inp->geom);
@@ -59,6 +64,22 @@ static inline
 double euler_ke(const double v[5])
 {
   return 0.5*(v[1]*v[1] + v[2]*v[2] + v[3]*v[3]);
+}
+
+// Lax fluxes
+static inline void
+mlax_flux(int dir, double gas_gamma, const double qm[5], const double qp[5], double flux[5])
+{
+  double fm[5], fp[5];
+
+  gkyl_euler_flux(gas_gamma, qm, fm);
+  gkyl_euler_flux(gas_gamma, qp, fp);
+
+  double amaxp = gkyl_euler_max_abs_speed(gas_gamma, qm);
+  double amaxm = gkyl_euler_max_abs_speed(gas_gamma, qp);
+
+  for (int i=0; i<5; ++i)
+    flux[i] = 0.5*(fp[i]+fm[i]) - 0.5*fmax(amaxm, amaxp)*(qp[i]-qm[i]);
 }
 
 // Numerical flux using modified KEP scheme
@@ -87,8 +108,6 @@ get_offset(int dir, int loc, const struct gkyl_range *range)
   idx[dir] = loc;
   return gkyl_range_offset(range, idx);
 }
-
-#define SQ(x) ((x)*(x))
 
 static void
 calc_alpha(const gkyl_kep_scheme *kep, const struct gkyl_range *update_rng,
@@ -136,6 +155,7 @@ calc_alpha(const gkyl_kep_scheme *kep, const struct gkyl_range *update_rng,
 
       u2 += SQ(qc[d+1]/qc[0]);
       divu += (qr[d+1]/qr[0] - ql[d+1]/ql[0])/(2.0*dx[d]);
+      //divu += (qr[d+1] - ql[d+1])/(2.0*dx[d]*qc[0]);
 
       if (d == 0) {
         curly += -(qr[IRHOW]/qr[0] - ql[IRHOW]/ql[0])/(2*dx[0]);
@@ -156,7 +176,10 @@ calc_alpha(const gkyl_kep_scheme *kep, const struct gkyl_range *update_rng,
     double Omega2 = nu*nu*u2/(L*L);
     
     double *al = gkyl_array_fetch(alpha, loc);
-    al[0] = div2/(div2+curl2+eps) - div2/(div2+Omega2+eps);
+
+    double ducros = fmin(4.0/3.0*div2/(div2+curl2+eps), 1.0);
+    double theta = div2/(div2+Omega2+eps);
+    al[0] = ducros*theta;
   }
 }
 
@@ -170,12 +193,12 @@ gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range *upd
 
   int idxm[GKYL_MAX_DIM], idxp[GKYL_MAX_DIM];
 
-  double vm[5], vp[5], flux[5];
+  double vm[5], vp[5], flux[5], lflux[5];
 
   gkyl_array_clear_range(rhs, 0.0, *update_rng);
 
-  // compute shock detector
-  calc_alpha(kep, update_rng, qin, alpha);
+  if (kep->use_hybrid_flux)
+    calc_alpha(kep, update_rng, qin, alpha);
 
   for (int d=0; d<kep->num_up_dirs; ++d) {
     int dir = kep->update_dirs[d];
@@ -208,12 +231,28 @@ gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range *upd
 
         mkep_flux(dir, gas_gamma, vm, vp, flux);
 
+        if (kep->use_hybrid_flux)
+          mlax_flux(dir, gas_gamma, qm, qp, lflux);
+
         // accumulate contribution of flux to left/right cell
         double *rhsm = gkyl_array_fetch(rhs, linm);
         double *rhsp = gkyl_array_fetch(rhs, linp);
-        for (int m=0; m<5; ++m) {
-          rhsp[m] += flux[m]/dx;
-          rhsm[m] += -flux[m]/dx;
+
+        if (kep->use_hybrid_flux) {
+          const double *alpham = gkyl_array_fetch(alpha, linm);
+          const double *alphap = gkyl_array_fetch(alpha, linp);
+          double am = fmax(alpham[0], alphap[0]);
+
+          for (int m=0; m<5; ++m) {
+            rhsp[m] += ((1.0-am)*flux[m] + am*lflux[m])/dx;
+            rhsm[m] += -((1.0-am)*flux[m] + am*lflux[m])/dx;
+          }
+        }
+        else {
+          for (int m=0; m<5; ++m) {
+            rhsp[m] += flux[m]/dx;
+            rhsm[m] += -flux[m]/dx;
+          }
         }
 
         double *cflrate_d = gkyl_array_fetch(cflrate, linp);

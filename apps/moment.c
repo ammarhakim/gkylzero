@@ -19,6 +19,7 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
 
   app->scheme_type = mom->scheme_type;
   app->mp_recon = mom->mp_recon;
+  app->use_hybrid_flux_kep = mom->use_hybrid_flux_kep;
   
   if (app->scheme_type == GKYL_MOMENT_WAVE_PROP)
     app->update_func = moment_update_one_step;

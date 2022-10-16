@@ -146,7 +146,8 @@ struct gkyl_moment_app {
   double cfl; // CFL number
 
   enum gkyl_moment_scheme scheme_type; // scheme to use
-  enum gkyl_mp_recon mp_recon; // reconstruction scheme to use  
+  enum gkyl_mp_recon mp_recon; // reconstruction scheme to use
+  bool use_hybrid_flux_kep; // should shock-hybrid scheme be used when using KEP?
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions

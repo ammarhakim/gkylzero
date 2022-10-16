@@ -18,6 +18,8 @@ struct gkyl_kep_scheme_inp {
   int update_dirs[GKYL_MAX_DIM]; // directions to update
   double cfl; // CFL number to use
 
+  bool use_hybrid_flux; // should we use shock detector for hybrid flux
+
   const struct gkyl_wave_geom *geom; // geometry  
 };
 

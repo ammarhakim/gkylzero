@@ -81,6 +81,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
       sp->kep_slvr = gkyl_kep_scheme_new( &(struct gkyl_kep_scheme_inp) {
           .grid = &app->grid,
           .equation = mom_sp->equation,
+          .use_hybrid_flux = app->use_hybrid_flux_kep,
           .num_up_dirs = num_up_dirs,
           .update_dirs = { update_dirs[0], update_dirs[1], update_dirs[2] } ,
           .cfl = app->cfl,
