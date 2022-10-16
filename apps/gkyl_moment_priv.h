@@ -71,6 +71,7 @@ struct moment_species {
       };
       struct gkyl_array *f0, *f1, *fnew; // arrays for updates
       struct gkyl_array *cflrate; // CFL rate in each cell
+      struct gkyl_array *alpha; // for shock detector      
     };
   };
   struct gkyl_array *fcurr; // points to current solution (depends on scheme)
@@ -171,11 +172,11 @@ struct gkyl_moment_app {
   int num_species;
   struct moment_species *species; // species data
 
-  // work arrays for use in the MP scheme: these are stored here so
-  // they can be
+  // work arrays for use in the KEP and MP scheme: these are stored
+  // here so they can be reused
   struct {
-    struct gkyl_array *ql, *qr;
-    struct gkyl_array *amdq, *apdq;
+    struct gkyl_array *ql, *qr; // expansions on left/right edge of cell
+    struct gkyl_array *amdq, *apdq; // minus/plus fluctuations
   };
 
   int update_sources; // flag to indicate if sources are to be updated

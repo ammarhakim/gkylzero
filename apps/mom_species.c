@@ -93,6 +93,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->f1 = mkarr(false, meqn, app->local_ext.volume);
     sp->fnew = mkarr(false, meqn, app->local_ext.volume);
     sp->cflrate = mkarr(false, 1, app->local_ext.volume);
+    sp->alpha = mkarr(false, 1, app->local_ext.volume);
     
     // set current solution so ICs and IO work properly
     sp->fcurr = sp->f0;
@@ -296,7 +297,7 @@ moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
       app->ql, app->qr, app->amdq, app->apdq,
       species->cflrate, rhs);
   else
-    gkyl_kep_scheme_advance(species->kep_slvr, &app->local, fin,
+    gkyl_kep_scheme_advance(species->kep_slvr, &app->local, fin, species->alpha,
       species->cflrate, rhs);
 
   double omegaCfl[1];
@@ -328,12 +329,18 @@ moment_species_release(const struct moment_species *sp)
     for (int d=0; d<sp->ndim+1; ++d)
       gkyl_array_release(sp->f[d]);
   }
-  else if (sp->scheme_type == GKYL_MOMENT_MP) {
-    gkyl_mp_scheme_release(sp->mp_slvr);
+  else if (sp->scheme_type == GKYL_MOMENT_MP || sp->scheme_type == GKYL_MOMENT_KEP) {
+
+    if (sp->scheme_type == GKYL_MOMENT_MP)
+      gkyl_mp_scheme_release(sp->mp_slvr);
+    else
+      gkyl_kep_scheme_release(sp->kep_slvr);
+    
     gkyl_array_release(sp->f0);
     gkyl_array_release(sp->f1);
     gkyl_array_release(sp->fnew);
     gkyl_array_release(sp->cflrate);
+    gkyl_array_release(sp->alpha);
   }
 
   gkyl_array_release(sp->app_accel);

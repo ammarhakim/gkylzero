@@ -103,7 +103,7 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   }
 
   // allocate work array for use in MP scheme
-  if (app->scheme_type == GKYL_MOMENT_MP) {
+  if (app->scheme_type == GKYL_MOMENT_MP || app->scheme_type == GKYL_MOMENT_KEP) {
     int max_eqn = 0;
     for (int i=0; i<ns; ++i)
       max_eqn = int_max(max_eqn, app->species[i].num_equations);
@@ -250,6 +250,12 @@ gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, i
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->species[sidx].name, frame);
   gkyl_grid_sub_array_write(&app->grid, &app->local, app->species[sidx].fcurr, fileNm.str);
   cstr_drop(&fileNm);
+
+  if (app->scheme_type == GKYL_MOMENT_KEP) {
+    cstr fileNm = cstr_from_fmt("%s-%s-alpha_%d.gkyl", app->name, app->species[sidx].name, frame);
+    gkyl_grid_sub_array_write(&app->grid, &app->local, app->species[sidx].alpha, fileNm.str);
+    cstr_drop(&fileNm);
+  }
 }
 
 struct gkyl_update_status
@@ -384,7 +390,7 @@ gkyl_moment_app_release(gkyl_moment_app* app)
 
   gkyl_wave_geom_release(app->geom);
 
-  if (app->scheme_type == GKYL_MOMENT_MP) {
+  if (app->scheme_type == GKYL_MOMENT_MP || app->scheme_type == GKYL_MOMENT_KEP) {
     gkyl_array_release(app->ql);
     gkyl_array_release(app->qr);
     gkyl_array_release(app->amdq);

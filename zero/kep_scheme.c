@@ -80,9 +80,90 @@ mkep_flux(int dir, double gas_gamma, const double vm[5], const double vp[5], dou
   flux[ER] = gas_gamma/(gas_gamma-1)*vbar[PR]*vbar[RHOU] + flux[0]*kebar; // (E+p)*u
 }
 
+static inline long
+get_offset(int dir, int loc, const struct gkyl_range *range)
+{
+  int idx[GKYL_MAX_CDIM] = { 0, 0, 0 };
+  idx[dir] = loc;
+  return gkyl_range_offset(range, idx);
+}
+
+#define SQ(x) ((x)*(x))
+
+static void
+calc_alpha(const gkyl_kep_scheme *kep, const struct gkyl_range *update_rng,
+  const struct gkyl_array *qin,   struct gkyl_array *alpha)
+{
+  int ndim = update_rng->ndim;
+  gkyl_array_clear_range(alpha, 0.0, *update_rng);
+
+  double eps = 1e-14; // to prevent div by 0.0
+  double nu = 0.1;
+
+  enum { IRHO, IRHOU, IRHOV, IRHOW}; // indexing Euler conserved vars
+
+  enum { IC, IL, IR }; // indexing into offsets
+  long offsets[GKYL_MAX_CDIM][3];
+  
+  for (int d=0; d<ndim; ++d) {
+    offsets[d][IC] = get_offset(d, 0, update_rng);
+    offsets[d][IL] = get_offset(d, -1, update_rng);
+    offsets[d][IR] = get_offset(d, 1, update_rng);
+  }
+
+  double L = DBL_MAX, dx[GKYL_MAX_CDIM];
+  
+  for (int d=0; d<ndim; ++d) {
+    dx[d] = kep->grid.dx[d];
+    L = fmin(L, dx[d]);
+  }
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, update_rng);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(update_rng, iter.idx);
+    
+    double divu = 0.0, curlx = 0.0, curly = 0.0, curlz = 0.0;
+    double u2 = 0.0; // u*u
+
+    const double *qc = gkyl_array_cfetch(qin, loc);
+
+    // compute div(u), curl(u) and u*u
+    for (int d=0; d<ndim; ++d) {
+      
+      const double *ql = gkyl_array_cfetch(qin, loc+offsets[d][IL]);
+      const double *qr = gkyl_array_cfetch(qin, loc+offsets[d][IR]);
+
+      u2 += SQ(qc[d+1]/qc[0]);
+      divu += (qr[d+1]/qr[0] - ql[d+1]/ql[0])/(2.0*dx[d]);
+
+      if (d == 0) {
+        curly += -(qr[IRHOW]/qr[0] - ql[IRHOW]/ql[0])/(2*dx[0]);
+        curlz += (qr[IRHOV]/qr[0] - ql[IRHOV]/ql[0])/(2*dx[0]);
+      }
+      else if (d == 1) {
+        curlx += (qr[IRHOW]/qr[0] - ql[IRHOW]/ql[0])/(2*dx[1]);
+        curlz += -(qr[IRHOU]/qr[0] - ql[IRHOU]/ql[0])/(2*dx[1]);
+      }
+      else {
+        curlx += -(qr[IRHOV]/qr[0] - ql[IRHOV]/ql[0])/(2*dx[2]);
+        curly += (qr[IRHOU]/qr[0] - ql[IRHOU]/ql[0])/(2*dx[2]);
+      }
+    }
+
+    double div2 = divu*divu;
+    double curl2 = curlx*curlx + curly*curly + curlz*curlz;
+    double Omega2 = nu*nu*u2/(L*L);
+    
+    double *al = gkyl_array_fetch(alpha, loc);
+    al[0] = div2/(div2+curl2+eps) - div2/(div2+Omega2+eps);
+  }
+}
+
 void
 gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range *update_rng,
-  const struct gkyl_array *qin, struct gkyl_array *cflrate, struct gkyl_array *rhs)
+  const struct gkyl_array *qin,   struct gkyl_array *alpha,
+  struct gkyl_array *cflrate, struct gkyl_array *rhs)
 {
   int ndim = update_rng->ndim;
   double gas_gamma = gkyl_wv_euler_gas_gamma(kep->equation);
@@ -92,6 +173,9 @@ gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range *upd
   double vm[5], vp[5], flux[5];
 
   gkyl_array_clear_range(rhs, 0.0, *update_rng);
+
+  // compute shock detector
+  calc_alpha(kep, update_rng, qin, alpha);
 
   for (int d=0; d<kep->num_up_dirs; ++d) {
     int dir = kep->update_dirs[d];
@@ -175,5 +259,6 @@ void
 gkyl_kep_scheme_release(gkyl_kep_scheme* up)
 {
   gkyl_wv_eqn_release(up->equation);
+  gkyl_wave_geom_release(up->geom);
   gkyl_free(up);
 }
