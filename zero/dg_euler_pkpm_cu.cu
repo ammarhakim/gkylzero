@@ -51,11 +51,10 @@ dg_euler_pkpm_set_cu_dev_ptrs(struct dg_euler_pkpm* euler_pkpm, enum gkyl_basis_
       break;    
   }  
   
-  euler_pkpm->eqn.vol_term = vol;
   euler_pkpm->eqn.surf_term = surf;
   euler_pkpm->eqn.boundary_surf_term = boundary_surf;
 
-  euler_pkpm->vol =  CK(vol_kernels, cdim, poly_order);
+  euler_pkpm->eqn.vol_term =  CK(vol_kernels, cdim, poly_order);
 
   euler_pkpm->surf[0] = CK(surf_x_kernels, cdim, poly_order);
   if (cdim>1)

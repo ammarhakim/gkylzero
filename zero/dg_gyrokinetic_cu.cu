@@ -50,7 +50,6 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
   gyrokinetic->auxfields.apar = 0; 
   gyrokinetic->auxfields.apardot= 0; 
 
-  gyrokinetic->eqn.vol_term = vol;
   gyrokinetic->eqn.surf_term = surf;
   gyrokinetic->eqn.boundary_surf_term = boundary_surf;
 
@@ -75,7 +74,7 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
       break;    
   }  
 
-  gyrokinetic->vol = vol_kernels[cv_index].kernels[poly_order];
+  gyrokinetic->eqn.vol_term = vol_kernels[cv_index].kernels[poly_order];
 
   gyrokinetic->surf[0] = surf_x_kernels[cv_index].kernels[poly_order];
   if (cdim>1)

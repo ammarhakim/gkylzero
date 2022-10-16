@@ -6,24 +6,106 @@
 // functions
 
 // Types for various kernels
-typedef double (*fpo_vlasov_diff_vol_t)(const double* w, const double* dx,
-  const double* g, const double* f, double* GKYL_RESTRICT out);
-
 typedef void (*fpo_vlasov_diff_surf_t)(const double *w, const double *dx,
   const double* g[], const double *f[],
   double* GKYL_RESTRICT out);
 
 // for use in kernel tables
-typedef struct { fpo_vlasov_diff_vol_t kernels[3]; } gkyl_dg_fpo_vlasov_diff_vol_kern_list;
+typedef struct { vol_termf_t kernels[3]; } gkyl_dg_fpo_vlasov_diff_vol_kern_list;
 typedef struct { fpo_vlasov_diff_surf_t kernels[3]; } gkyl_dg_fpo_vlasov_diff_surf_kern_list;
 typedef struct { fpo_vlasov_diff_surf_t kernels[3]; } gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list;
+
+struct dg_fpo_vlasov_diff {
+  struct gkyl_dg_eqn eqn; // Base object
+  int cdim; // Config-space dimensions
+  int pdim; // Phase-space dimensions
+  fpo_vlasov_diff_surf_t surf[3][3]; // Surface terms for acceleration
+  fpo_vlasov_diff_surf_t boundary_surf[3][3]; // Surface terms for acceleration
+  struct gkyl_range phase_range; // Configuration space range.
+  struct gkyl_dg_fpo_vlasov_diff_auxfields auxfields; // Auxiliary fields.
+};
+
+//
+// Serendipity volume kernels
+// Need to be separated like this for GPU build
+//
+
+GKYL_CU_DH
+static double
+kernel_fpo_vlasov_diff_vol_1x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_fpo_vlasov_diff* fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
+  
+  long pidx = gkyl_range_idx(&fpo_vlasov_diff->phase_range, idx);
+  
+  return fpo_vlasov_diff_vol_1x3v_ser_p1(xc, dx,
+    (const double*) gkyl_array_cfetch(fpo_vlasov_diff->auxfields.g, pidx),
+    qIn, qRhsOut);
+}
+
+GKYL_CU_DH
+static double
+kernel_fpo_vlasov_diff_vol_1x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_fpo_vlasov_diff* fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
+  
+  long pidx = gkyl_range_idx(&fpo_vlasov_diff->phase_range, idx);
+  
+  return fpo_vlasov_diff_vol_1x3v_ser_p2(xc, dx,
+    (const double*) gkyl_array_cfetch(fpo_vlasov_diff->auxfields.g, pidx),
+    qIn, qRhsOut);
+}
+
+// GKYL_CU_DH
+// static double
+// kernel_fpo_vlasov_diff_vol_2x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+//   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+// {
+//   struct dg_fpo_vlasov_diff* fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
+  
+//   long pidx = gkyl_range_idx(&fpo_vlasov_diff->phase_range, idx);
+  
+//   return fpo_vlasov_diff_vol_2x3v_ser_p1(xc, dx,
+//     (const double*) gkyl_array_cfetch(fpo_vlasov_diff->auxfields.g, pidx),
+//     qIn, qRhsOut);
+// }
+
+// GKYL_CU_DH
+// static double
+// kernel_fpo_vlasov_diff_vol_2x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+//   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+// {
+//   struct dg_fpo_vlasov_diff* fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
+  
+//   long pidx = gkyl_range_idx(&fpo_vlasov_diff->phase_range, idx);
+  
+//   return fpo_vlasov_diff_vol_2x3v_ser_p2(xc, dx,
+//     (const double*) gkyl_array_cfetch(fpo_vlasov_diff->auxfields.g, pidx),
+//     qIn, qRhsOut);
+// }
+
+// GKYL_CU_DH
+// static double
+// kernel_fpo_vlasov_diff_vol_3x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+//   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+// {
+//   struct dg_fpo_vlasov_diff* fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
+  
+//   long pidx = gkyl_range_idx(&fpo_vlasov_diff->phase_range, idx);
+  
+//   return fpo_vlasov_diff_vol_3x3v_ser_p1(xc, dx,
+//     (const double*) gkyl_array_cfetch(fpo_vlasov_diff->auxfields.g, pidx),
+//     qIn, qRhsOut);
+// }
 
 // Volume kernel list
 GKYL_CU_D
 static const gkyl_dg_fpo_vlasov_diff_vol_kern_list ser_vol_kernels[] = {
-  // { NULL, fpo_vlasov_diff_vol_1x3v_ser_p1, fpo_vlasov_diff_vol_1x3v_ser_p2 }, // 0
-  // { NULL, fpo_vlasov_diff_vol_2x3v_ser_p1, fpo_vlasov_diff_vol_2x3v_ser_p2 }, // 1
-  // { NULL, fpo_vlasov_diff_vol_3x3v_ser_p1, NULL }, // 2
+  // { NULL, kernel_fpo_vlasov_diff_vol_1x3v_ser_p1, kernel_fpo_vlasov_diff_vol_1x3v_ser_p2 }, // 0
+  // { NULL, kernel_fpo_vlasov_diff_vol_2x3v_ser_p1, kernel_fpo_vlasov_diff_vol_2x3v_ser_p2 }, // 1
+  // { NULL, kernel_fpo_vlasov_diff_vol_3x3v_ser_p1, NULL }, // 2
   { NULL, NULL, NULL },
   { NULL, NULL, NULL },
   { NULL, NULL, NULL },
@@ -173,38 +255,12 @@ static const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list ser_boundary_surf_z
   { NULL, NULL, NULL },
 };
 
-struct dg_fpo_vlasov_diff {
-  struct gkyl_dg_eqn eqn; // Base object
-  int cdim; // Config-space dimensions
-  int pdim; // Phase-space dimensions
-  fpo_vlasov_diff_vol_t vol; // Volume kernel
-  fpo_vlasov_diff_surf_t surf[3][3]; // Surface terms for acceleration
-  fpo_vlasov_diff_surf_t boundary_surf[3][3]; // Surface terms for acceleration
-  struct gkyl_range phase_range; // Configuration space range.
-  struct gkyl_dg_fpo_vlasov_diff_auxfields auxfields; // Auxiliary fields.
-};
-
 /**
  * Free fpo_vlasov_diff equation object
  *
  * @param ref Reference counter for constant fpo_vlasov_diff equation
  */
 void gkyl_fpo_vlasov_diff_free(const struct gkyl_ref_count* ref);
-
-
-GKYL_CU_D
-static double
-vol(const struct gkyl_dg_eqn* eqn, const double* xc, const double* dx, 
-  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_fpo_vlasov_diff* fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
-  
-  long pidx = gkyl_range_idx(&fpo_vlasov_diff->phase_range, idx);
-  
-  return fpo_vlasov_diff->vol(xc, dx,
-    (const double*) gkyl_array_cfetch(fpo_vlasov_diff->auxfields.g, pidx),
-    qIn, qRhsOut);
-}
 
 GKYL_CU_D
 static void

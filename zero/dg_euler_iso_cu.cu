@@ -49,11 +49,10 @@ dg_euler_iso_set_cu_dev_ptrs(struct dg_euler_iso* euler_iso, enum gkyl_basis_typ
       break;    
   }  
   
-  euler_iso->eqn.vol_term = vol;
   euler_iso->eqn.surf_term = surf;
   euler_iso->eqn.boundary_surf_term = boundary_surf;
 
-  euler_iso->vol =  CK(vol_kernels, cdim, poly_order);
+  euler_iso->eqn.vol_term =  CK(vol_kernels, cdim, poly_order);
 
   euler_iso->surf[0] = CK(surf_x_kernels, cdim, poly_order);
   if (cdim>1)

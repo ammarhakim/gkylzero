@@ -5,24 +5,123 @@
 #include <gkyl_dg_eqn.h>
 
 // Types for various kernels
-typedef double (*diffusion_euler_iso_vol_t)(const double* w, const double* dx,
-  const double* D, const double* uvar, const double* statevec, double* GKYL_RESTRICT out);
-
 typedef void (*diffusion_euler_iso_surf_t)(const double *w, const double *dx,
   const double* D, const double *uvarl, const double *uvarc, const double *uvarr,
   const double *statevecl, const double *statevecc, const double *statevecr,
   double* GKYL_RESTRICT out);
 
 // for use in kernel tables
-typedef struct { diffusion_euler_iso_vol_t kernels[3]; } gkyl_dg_diffusion_euler_iso_vol_kern_list;
+typedef struct { vol_termf_t kernels[3]; } gkyl_dg_diffusion_euler_iso_vol_kern_list;
 typedef struct { diffusion_euler_iso_surf_t kernels[3]; } gkyl_dg_diffusion_euler_iso_surf_kern_list;
+
+struct dg_diffusion_euler_iso {
+  struct gkyl_dg_eqn eqn;
+  diffusion_euler_iso_surf_t surf[3];
+  struct gkyl_range conf_range;
+  struct gkyl_dg_diffusion_euler_iso_auxfields auxfields;
+};
+
+//
+// Serendipity volume kernels
+// Need to be separated like this for GPU build
+//
+
+GKYL_CU_DH
+static double
+kernel_dg_diffusion_euler_iso_vol_1x_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_diffusion_euler_iso* diffusion = container_of(eqn, struct dg_diffusion_euler_iso, eqn);
+
+  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
+
+  return dg_euleriso_diffusion_vol_1x_ser_p1(xc, dx,
+    (const double*) gkyl_array_cfetch(diffusion->auxfields.D, cidx),
+    (const double*) gkyl_array_cfetch(diffusion->auxfields.u_i, cidx),
+    qIn, qRhsOut);
+}
+
+GKYL_CU_DH
+static double
+kernel_dg_diffusion_euler_iso_vol_1x_ser_p2(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_diffusion_euler_iso* diffusion = container_of(eqn, struct dg_diffusion_euler_iso, eqn);
+
+  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
+
+  return dg_euleriso_diffusion_vol_1x_ser_p2(xc, dx,
+    (const double*) gkyl_array_cfetch(diffusion->auxfields.D, cidx),
+    (const double*) gkyl_array_cfetch(diffusion->auxfields.u_i, cidx),
+    qIn, qRhsOut);
+}
+
+GKYL_CU_DH
+static double
+kernel_dg_diffusion_euler_iso_vol_2x_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_diffusion_euler_iso* diffusion = container_of(eqn, struct dg_diffusion_euler_iso, eqn);
+
+  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
+
+  return dg_euleriso_diffusion_vol_2x_ser_p1(xc, dx,
+    (const double*) gkyl_array_cfetch(diffusion->auxfields.D, cidx),
+    (const double*) gkyl_array_cfetch(diffusion->auxfields.u_i, cidx),
+    qIn, qRhsOut);
+}
+
+GKYL_CU_DH
+static double
+kernel_dg_diffusion_euler_iso_vol_2x_ser_p2(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_diffusion_euler_iso* diffusion = container_of(eqn, struct dg_diffusion_euler_iso, eqn);
+
+  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
+
+  return dg_euleriso_diffusion_vol_2x_ser_p2(xc, dx,
+    (const double*) gkyl_array_cfetch(diffusion->auxfields.D, cidx),
+    (const double*) gkyl_array_cfetch(diffusion->auxfields.u_i, cidx),
+    qIn, qRhsOut);
+}
+
+GKYL_CU_DH
+static double
+kernel_dg_diffusion_euler_iso_vol_3x_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_diffusion_euler_iso* diffusion = container_of(eqn, struct dg_diffusion_euler_iso, eqn);
+
+  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
+
+  return dg_euleriso_diffusion_vol_3x_ser_p1(xc, dx,
+    (const double*) gkyl_array_cfetch(diffusion->auxfields.D, cidx),
+    (const double*) gkyl_array_cfetch(diffusion->auxfields.u_i, cidx),
+    qIn, qRhsOut);
+}
+
+GKYL_CU_DH
+static double
+kernel_dg_diffusion_euler_iso_vol_3x_ser_p2(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_diffusion_euler_iso* diffusion = container_of(eqn, struct dg_diffusion_euler_iso, eqn);
+
+  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
+
+  return dg_euleriso_diffusion_vol_3x_ser_p2(xc, dx,
+    (const double*) gkyl_array_cfetch(diffusion->auxfields.D, cidx),
+    (const double*) gkyl_array_cfetch(diffusion->auxfields.u_i, cidx),
+    qIn, qRhsOut);
+}
 
 // Volume kernel list
 GKYL_CU_D
 static const gkyl_dg_diffusion_euler_iso_vol_kern_list ser_vol_kernels[] = {
-  { NULL, dg_euleriso_diffusion_vol_1x_ser_p1, dg_euleriso_diffusion_vol_1x_ser_p2 },
-  { NULL, dg_euleriso_diffusion_vol_2x_ser_p1, dg_euleriso_diffusion_vol_2x_ser_p2 },
-  { NULL, dg_euleriso_diffusion_vol_3x_ser_p1, dg_euleriso_diffusion_vol_3x_ser_p2 },
+  { NULL, kernel_dg_diffusion_euler_iso_vol_1x_ser_p1, kernel_dg_diffusion_euler_iso_vol_1x_ser_p2 },
+  { NULL, kernel_dg_diffusion_euler_iso_vol_2x_ser_p1, kernel_dg_diffusion_euler_iso_vol_2x_ser_p2 },
+  { NULL, kernel_dg_diffusion_euler_iso_vol_3x_ser_p1, kernel_dg_diffusion_euler_iso_vol_3x_ser_p2 },
 };
 
 // Surface kernel list: x-direction
@@ -49,36 +148,12 @@ static const gkyl_dg_diffusion_euler_iso_surf_kern_list ser_surf_z_kernels[] = {
   { NULL, dg_euleriso_diffusion_surfz_3x_ser_p1, dg_euleriso_diffusion_surfz_3x_ser_p2 },
 };
 
-struct dg_diffusion_euler_iso {
-  struct gkyl_dg_eqn eqn;
-  diffusion_euler_iso_vol_t vol;
-  diffusion_euler_iso_surf_t surf[3];
-  struct gkyl_range conf_range;
-  struct gkyl_dg_diffusion_euler_iso_auxfields auxfields;
-};
-
 /**
  * Free diffusion equation object
  *
  * @param ref Reference counter for constant diffusion equation
  */
 void gkyl_diffusion_euler_iso_free(const struct gkyl_ref_count* ref);
-
-GKYL_CU_D
-static double
-vol(const struct gkyl_dg_eqn* eqn, const double* xc, const double* dx,
-  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_euler_iso* diffusion = container_of(eqn, struct dg_diffusion_euler_iso, eqn);
-
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-
-  return diffusion->vol(xc, dx,
-    (const double*) gkyl_array_cfetch(diffusion->auxfields.D, cidx),
-    (const double*) gkyl_array_cfetch(diffusion->auxfields.u_i, cidx),
-    qIn, qRhsOut);
-}
-
 
 GKYL_CU_D
 static void

@@ -64,34 +64,22 @@ gkyl_dg_advection_new(const struct gkyl_basis* cbasis, const struct gkyl_range* 
       surf_z_kernels = ser_surf_z_kernels;
       break;
 
-    case GKYL_BASIS_MODAL_TENSOR:
-      vol_kernels = ten_vol_kernels;
-      surf_x_kernels = ten_surf_x_kernels;
-      surf_y_kernels = ten_surf_y_kernels;
-      surf_z_kernels = ten_surf_z_kernels;
-      break;
-
     default:
       assert(false);
       break;    
   }  
     
   advection->eqn.num_equations = 1;
-  advection->eqn.vol_term = vol;
   advection->eqn.surf_term = surf;
   advection->eqn.boundary_surf_term = boundary_surf;
 
-  advection->vol =  CK(vol_kernels, cdim, poly_order);
-  assert(advection->vol);
+  advection->eqn.vol_term =  CK(vol_kernels, cdim, poly_order);
 
   advection->surf[0] = CK(surf_x_kernels, cdim, poly_order);
   if (cdim>1)
     advection->surf[1] = CK(surf_y_kernels, cdim, poly_order);
   if (cdim>2)
     advection->surf[2] = CK(surf_z_kernels, cdim, poly_order);
-
-  // setup pointer for absorbing BC function
-  advection->absorb_bc = advection_absorb_bc;
 
   // ensure non-NULL pointers 
   for (int i=0; i<cdim; ++i) assert(advection->surf[i]);

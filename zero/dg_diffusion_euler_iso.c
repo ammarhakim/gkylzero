@@ -73,11 +73,10 @@ gkyl_dg_diffusion_euler_iso_new(const struct gkyl_basis* cbasis, const struct gk
   }
 
   diffusion_euler_iso->eqn.num_equations = 4;
-  diffusion_euler_iso->eqn.vol_term = vol;
   diffusion_euler_iso->eqn.surf_term = surf;
   //diffusion_euler_iso->eqn.boundary_surf_term = boundary_surf;
 
-  diffusion_euler_iso->vol = CK(vol_kernels, cdim, poly_order);
+  diffusion_euler_iso->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 
   diffusion_euler_iso->surf[0] = CK(surf_x_kernels, cdim, poly_order);
   if (cdim>1)
@@ -86,7 +85,6 @@ gkyl_dg_diffusion_euler_iso_new(const struct gkyl_basis* cbasis, const struct gk
     diffusion_euler_iso->surf[2] = CK(surf_z_kernels, cdim, poly_order);
 
   // ensure non-NULL pointers
-  assert(diffusion_euler_iso->vol);
   for (int i=0; i<cdim; ++i) assert(diffusion_euler_iso->surf[i]);
 
   diffusion_euler_iso->auxfields.D = 0;

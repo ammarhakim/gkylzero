@@ -8,6 +8,9 @@
 #include <gkyl_dg_euler_iso_priv.h>
 #include <gkyl_util.h>
 
+// "Choose Kernel" based on cdim, vdim and polyorder
+#define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order]
+
 void 
 gkyl_euler_iso_free(const struct gkyl_ref_count *ref)
 {
@@ -56,7 +59,6 @@ gkyl_dg_euler_iso_new(const struct gkyl_basis* cbasis,
   euler_iso->vth = vth;
 
   euler_iso->eqn.num_equations = 4;
-  euler_iso->eqn.vol_term = vol;
   euler_iso->eqn.surf_term = surf;
 
   const gkyl_dg_euler_iso_vol_kern_list *vol_kernels;
@@ -76,7 +78,7 @@ gkyl_dg_euler_iso_new(const struct gkyl_basis* cbasis,
       break;
   }
 
-  euler_iso->vol = CK(vol_kernels,cdim,poly_order); //TODO: clean up passing cdim+1 and then -2 in
+  euler_iso->eqn.vol_term = CK(vol_kernels,cdim,poly_order); //TODO: clean up passing cdim+1 and then -2 in
 
   euler_iso->surf[0] = CK(surf_x_kernels,cdim,poly_order);
   if (cdim>1)
@@ -85,7 +87,6 @@ gkyl_dg_euler_iso_new(const struct gkyl_basis* cbasis,
     euler_iso->surf[2] = CK(surf_z_kernels,cdim,poly_order);
 
   // Ensure non-NULL pointers.
-  assert(euler_iso->vol);
   for (int i=0; i<cdim; ++i) assert(euler_iso->surf[i]);
 
   euler_iso->auxfields.u_i = 0;

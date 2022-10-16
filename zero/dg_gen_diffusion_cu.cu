@@ -1,57 +1,37 @@
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
+/* -*- c++ -*- */
 
+extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
-#include <gkyl_dg_gen_diffusion.h>
+#include <gkyl_dg_gen_diffusion.h>    
 #include <gkyl_dg_gen_diffusion_priv.h>
-#include <gkyl_util.h>
-
-// "Choose Kernel" based on cdim and polynomial order
-#define CK(lst, cdim, poly_order) lst[cdim-1].kernels[poly_order]
-
-void
-gkyl_gen_diffusion_free(const struct gkyl_ref_count* ref)
-{
-  struct gkyl_dg_eqn* base = container_of(ref, struct gkyl_dg_eqn, ref_count);
-
-  if (gkyl_dg_eqn_is_cu_dev(base)) {
-    // free inner on_dev object
-    struct dg_gen_diffusion* gen_diffusion = container_of(base->on_dev, struct dg_gen_diffusion, eqn);
-    gkyl_cu_free(gen_diffusion);
-  }
-  
-  struct dg_gen_diffusion* gen_diffusion = container_of(base, struct dg_gen_diffusion, eqn);
-  gkyl_free(gen_diffusion);
 }
 
-void
-gkyl_gen_diffusion_set_auxfields(const struct gkyl_dg_eqn* eqn, struct gkyl_dg_gen_diffusion_auxfields auxin)
+#include <cassert>
+
+#define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order]
+
+// CUDA kernel to set pointer to auxiliary fields.
+// This is required because eqn object lives on device,
+// and so its members cannot be modified without a full __global__ kernel on device.
+__global__ static void
+gkyl_gen_diffusion_set_auxfields_cu_kernel(const struct gkyl_dg_eqn* eqn, const struct gkyl_array* Dij)
 {
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(auxin.Dij)) {
-    gkyl_gen_diffusion_set_auxfields_cu(eqn->on_dev, auxin);
-    return;
-  }
-#endif
-  
   struct dg_gen_diffusion* gen_diffusion = container_of(eqn, struct dg_gen_diffusion, eqn);
-  gen_diffusion->auxfields.Dij = auxin.Dij;
+  gen_diffusion->auxfields.Dij = Dij;
 }
 
-struct gkyl_dg_eqn*
-gkyl_dg_gen_diffusion_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range, bool use_gpu)
+// Host-side wrapper for set_auxfields_cu_kernel
+void
+gkyl_gen_diffusion_set_auxfields_cu(const struct gkyl_dg_eqn* eqn, struct gkyl_dg_gen_diffusion_auxfields auxin)
 {
-#ifdef GKYL_HAVE_CUDA
-  if(use_gpu)
-    return gkyl_dg_gen_diffusion_cu_dev_new(cbasis, conf_range);
-#endif
-  
-  struct dg_gen_diffusion* gen_diffusion = gkyl_malloc(sizeof(struct dg_gen_diffusion));
+  gkyl_gen_diffusion_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.Dij->on_dev);
+}
 
-  int cdim = cbasis->ndim;
-  int poly_order = cbasis->poly_order;
+__global__ void static
+dg_gen_diffusion_set_cu_dev_ptrs(struct dg_gen_diffusion* gen_diffusion, enum gkyl_basis_type b_type, int cdim, int poly_order)
+{
+  gen_diffusion->auxfields.Dij = 0; 
 
   const gkyl_dg_gen_diffusion_vol_kern_list* vol_kernels;
   const gkyl_dg_gen_diffusion_surf_kern_list* surf_xx_kernels;
@@ -64,7 +44,7 @@ gkyl_dg_gen_diffusion_new(const struct gkyl_basis* cbasis, const struct gkyl_ran
   const gkyl_dg_gen_diffusion_surf_kern_list* surf_zy_kernels;
   const gkyl_dg_gen_diffusion_surf_kern_list* surf_zz_kernels; 
 
-  switch (cbasis->b_type) {
+  switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       vol_kernels = ser_vol_kernels;
       surf_xx_kernels = ser_surf_xx_kernels;
@@ -82,11 +62,9 @@ gkyl_dg_gen_diffusion_new(const struct gkyl_basis* cbasis, const struct gkyl_ran
       assert(false);
       break;    
   } 
-
-  gen_diffusion->eqn.num_equations = 1;
-  gen_diffusion->eqn.gen_surf_term = surf;
-  gen_diffusion->eqn.gen_boundary_surf_term = surf;
-
+  
+  gen_diffusion->eqn.surf_term = surf;
+  
   gen_diffusion->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 
   gen_diffusion->surf[0][0] = CK(surf_xx_kernels, cdim, poly_order);
@@ -102,27 +80,28 @@ gkyl_dg_gen_diffusion_new(const struct gkyl_basis* cbasis, const struct gkyl_ran
     gen_diffusion->surf[2][1] = CK(surf_zy_kernels, cdim, poly_order);
     gen_diffusion->surf[2][2] = CK(surf_zz_kernels, cdim, poly_order);
   }
-
-  // ensure non-NULL pointers
-  for (int i=0; i<cdim; ++i) assert(gen_diffusion->surf[i]);
-
-  gen_diffusion->auxfields.Dij = 0;
-  gen_diffusion->conf_range = *conf_range;
-
-  gen_diffusion->eqn.flags = 0;
-  gen_diffusion->eqn.ref_count = gkyl_ref_count_init(gkyl_gen_diffusion_free);
-  gen_diffusion->eqn.on_dev = &gen_diffusion->eqn;
-  
-  return &gen_diffusion->eqn;
 }
-
-#ifndef GKYL_HAVE_CUDA
 
 struct gkyl_dg_eqn*
 gkyl_dg_gen_diffusion_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range)
 {
-  assert(false);
-  return 0;
-}
+  struct dg_gen_diffusion* gen_diffusion = (struct dg_gen_diffusion*) gkyl_malloc(sizeof(struct dg_gen_diffusion));
 
-#endif
+  // set basic parameters
+  gen_diffusion->eqn.num_equations = 1;
+  gen_diffusion->conf_range = *conf_range;
+
+  gen_diffusion->eqn.flags = 0;
+  GKYL_SET_CU_ALLOC(gen_diffusion->eqn.flags);
+  gen_diffusion->eqn.ref_count = gkyl_ref_count_init(gkyl_gen_diffusion_free);
+
+  // copy the host struct to device struct
+  struct dg_gen_diffusion* gen_diffusion_cu = (struct dg_gen_diffusion*) gkyl_cu_malloc(sizeof(struct dg_gen_diffusion));
+  gkyl_cu_memcpy(gen_diffusion_cu, gen_diffusion, sizeof(struct dg_gen_diffusion), GKYL_CU_MEMCPY_H2D);
+  dg_gen_diffusion_set_cu_dev_ptrs<<<1,1>>>(gen_diffusion_cu, cbasis->b_type, cbasis->ndim, cbasis->poly_order);
+
+  // set parent on_dev pointer
+  gen_diffusion->eqn.on_dev = &gen_diffusion_cu->eqn;
+
+  return &gen_diffusion->eqn;
+}

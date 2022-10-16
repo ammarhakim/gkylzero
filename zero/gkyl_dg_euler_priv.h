@@ -8,28 +8,113 @@
 // functions
 
 // Types for various kernels
-typedef double (*euler_vol_t)(const double *w, const double *dx, const double gas_gamma, 
-  const double *uvar, const double *pvar, const double *statevec, double* GKYL_RESTRICT out);
-
 typedef void (*euler_surf_t)(const double *w, const double *dx, const double gas_gamma, 
   const double *ul, const double *uc, const double *ur,
   const double *pl, const double *pc, const double *pr,
   const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out);
 
 // for use in kernel tables
-typedef struct { euler_vol_t kernels[3]; } gkyl_dg_euler_vol_kern_list;
+typedef struct { vol_termf_t kernels[3]; } gkyl_dg_euler_vol_kern_list;
 typedef struct { euler_surf_t kernels[3]; } gkyl_dg_euler_surf_kern_list;
 
-//
-// Serendipity basis kernels
-// 
+struct dg_euler {
+  struct gkyl_dg_eqn eqn; // Base object  
+  euler_surf_t surf[3]; // pointers to surface kernels
+  double gas_gamma; // adiabatic index
+  struct gkyl_range conf_range; // configuration space range
+  struct gkyl_dg_euler_auxfields auxfields; // Auxiliary fields.
+};
+
+GKYL_CU_DH
+static double
+kernel_euler_vol_1x_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
+  long cidx = gkyl_range_idx(&euler->conf_range, idx);
+
+  return euler_vol_1x_ser_p1(xc, dx, euler->gas_gamma, 
+    (const double*) gkyl_array_cfetch(euler->auxfields.u_i, cidx),
+    (const double*) gkyl_array_cfetch(euler->auxfields.p_ij, cidx),
+    qIn, qRhsOut);
+}
+
+GKYL_CU_DH
+static double
+kernel_euler_vol_1x_ser_p2(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
+  long cidx = gkyl_range_idx(&euler->conf_range, idx);
+
+  return euler_vol_1x_ser_p2(xc, dx, euler->gas_gamma, 
+    (const double*) gkyl_array_cfetch(euler->auxfields.u_i, cidx),
+    (const double*) gkyl_array_cfetch(euler->auxfields.p_ij, cidx),
+    qIn, qRhsOut);
+}
+
+GKYL_CU_DH
+static double
+kernel_euler_vol_2x_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
+  long cidx = gkyl_range_idx(&euler->conf_range, idx);
+
+  return euler_vol_2x_ser_p1(xc, dx, euler->gas_gamma, 
+    (const double*) gkyl_array_cfetch(euler->auxfields.u_i, cidx),
+    (const double*) gkyl_array_cfetch(euler->auxfields.p_ij, cidx),
+    qIn, qRhsOut);
+}
+
+GKYL_CU_DH
+static double
+kernel_euler_vol_2x_ser_p2(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
+  long cidx = gkyl_range_idx(&euler->conf_range, idx);
+
+  return euler_vol_2x_ser_p2(xc, dx, euler->gas_gamma, 
+    (const double*) gkyl_array_cfetch(euler->auxfields.u_i, cidx),
+    (const double*) gkyl_array_cfetch(euler->auxfields.p_ij, cidx),
+    qIn, qRhsOut);
+}
+
+GKYL_CU_DH
+static double
+kernel_euler_vol_3x_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
+  long cidx = gkyl_range_idx(&euler->conf_range, idx);
+
+  return euler_vol_3x_ser_p1(xc, dx, euler->gas_gamma, 
+    (const double*) gkyl_array_cfetch(euler->auxfields.u_i, cidx),
+    (const double*) gkyl_array_cfetch(euler->auxfields.p_ij, cidx),
+    qIn, qRhsOut);
+}
+
+GKYL_CU_DH
+static double
+kernel_euler_vol_3x_ser_p2(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
+  long cidx = gkyl_range_idx(&euler->conf_range, idx);
+
+  return euler_vol_3x_ser_p2(xc, dx, euler->gas_gamma, 
+    (const double*) gkyl_array_cfetch(euler->auxfields.u_i, cidx),
+    (const double*) gkyl_array_cfetch(euler->auxfields.p_ij, cidx),
+    qIn, qRhsOut);
+}
 
 // Volume kernel list
 GKYL_CU_D
 static const gkyl_dg_euler_vol_kern_list ser_vol_kernels[] = {
-  { NULL, euler_vol_1x_ser_p1, euler_vol_1x_ser_p2 }, // 0
-  { NULL, euler_vol_2x_ser_p1, euler_vol_2x_ser_p2 }, // 1
-  { NULL, euler_vol_3x_ser_p1, euler_vol_3x_ser_p2 }, // 2
+  { NULL, kernel_euler_vol_1x_ser_p1, kernel_euler_vol_1x_ser_p2 }, // 0
+  { NULL, kernel_euler_vol_2x_ser_p1, kernel_euler_vol_2x_ser_p2 }, // 1
+  { NULL, kernel_euler_vol_3x_ser_p1, kernel_euler_vol_3x_ser_p2 }, // 2
 };
 
 // Surface kernel list: x-direction
@@ -56,36 +141,12 @@ static const gkyl_dg_euler_surf_kern_list ser_surf_z_kernels[] = {
   { NULL, euler_surfz_3x_ser_p1, euler_surfz_3x_ser_p2 }, // 2
 };
 
-struct dg_euler {
-  struct gkyl_dg_eqn eqn; // Base object  
-  euler_vol_t vol; // pointer to volume kernel
-  euler_surf_t surf[3]; // pointers to surface kernels
-  double gas_gamma; // adiabatic index
-  struct gkyl_range conf_range; // configuration space range
-  struct gkyl_dg_euler_auxfields auxfields; // Auxiliary fields.
-};
-
-
 /**
  * Free euler equation object
  *
  * @param ref Reference counter for euler equation
  */
 void gkyl_euler_free(const struct gkyl_ref_count *ref);
-
-GKYL_CU_D
-static double
-vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double*  dx, 
-  const int*  idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
-  long cidx = gkyl_range_idx(&euler->conf_range, idx);
-
-  return euler->vol(xc, dx, euler->gas_gamma, 
-    (const double*) gkyl_array_cfetch(euler->auxfields.u_i, cidx),
-    (const double*) gkyl_array_cfetch(euler->auxfields.p_ij, cidx),
-    qIn, qRhsOut);
-}
 
 GKYL_CU_D
 static void

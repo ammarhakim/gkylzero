@@ -56,7 +56,6 @@ gkyl_dg_fpo_vlasov_drag_new(const struct gkyl_basis* pbasis, const struct gkyl_r
   fpo_vlasov_drag->pdim = pdim;
 
   fpo_vlasov_drag->eqn.num_equations = 1;
-  fpo_vlasov_drag->eqn.vol_term = vol;
   fpo_vlasov_drag->eqn.surf_term = surf;
   fpo_vlasov_drag->eqn.boundary_surf_term = boundary_surf;
 
@@ -81,7 +80,7 @@ gkyl_dg_fpo_vlasov_drag_new(const struct gkyl_basis* pbasis, const struct gkyl_r
       break;    
   }  
 
-  fpo_vlasov_drag->vol = CK(vol_kernels, cdim, poly_order);
+  fpo_vlasov_drag->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 
   fpo_vlasov_drag->surf[0] = CK(surf_vx_kernels, cdim, poly_order);
   fpo_vlasov_drag->surf[1] = CK(surf_vy_kernels, cdim, poly_order);
@@ -92,7 +91,6 @@ gkyl_dg_fpo_vlasov_drag_new(const struct gkyl_basis* pbasis, const struct gkyl_r
   fpo_vlasov_drag->boundary_surf[2] = CK(boundary_surf_vz_kernels, cdim, poly_order);
 
   // ensure non-NULL pointers
-  assert(fpo_vlasov_drag->vol);
   for (int i=0; i<vdim; ++i) assert(fpo_vlasov_drag->surf[i]);
   for (int i=0; i<vdim; ++i) assert(fpo_vlasov_drag->boundary_surf[i]);
 

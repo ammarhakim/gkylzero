@@ -72,14 +72,12 @@ gkyl_dg_euler_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf
   }  
     
   euler->eqn.num_equations = 5;
-  euler->eqn.vol_term = vol;
   euler->eqn.surf_term = surf;
   euler->eqn.boundary_surf_term = boundary_surf;
 
   euler->gas_gamma = gas_gamma;
 
-  euler->vol = CK(vol_kernels, cdim, poly_order);
-  assert(euler->vol);
+  euler->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 
   euler->surf[0] = CK(surf_x_kernels, cdim, poly_order);
   if (cdim>1)

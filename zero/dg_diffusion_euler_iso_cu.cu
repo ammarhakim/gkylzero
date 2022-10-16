@@ -53,11 +53,10 @@ dg_diffusion_euler_iso_set_cu_dev_ptrs(struct dg_diffusion_euler_iso* diffusion_
       break;    
   } 
   
-  diffusion_euler_iso->eqn.vol_term = vol;
   diffusion_euler_iso->eqn.surf_term = surf;
   //advection->eqn.boundary_surf_term = boundary_surf;
 
-  diffusion_euler_iso->vol = CK(vol_kernels, cdim, poly_order);
+  diffusion_euler_iso->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 
   diffusion_euler_iso->surf[0] = CK(surf_x_kernels, cdim, poly_order);
   if (cdim>1)
