@@ -66,17 +66,30 @@ double euler_ke(const double v[5])
   return 0.5*(v[1]*v[1] + v[2]*v[2] + v[3]*v[3]);
 }
 
+static inline double
+euler_flux(int dir, double gas_gamma, const double q[5], double flux[5])
+{
+  const int *d = dir_shuffle[dir];
+
+  double pr = gkyl_euler_pressure(gas_gamma, q), u = q[RHOU]/q[0];
+  flux[0] = q[RHOU]; // rho*u
+  flux[RHOU] = q[RHOU]*u + pr; // rho*u*u + pr
+  flux[RHOV] = q[RHOV]*u; // rho*v*u
+  flux[RHOW] = q[RHOW]*u; // rho*w*u
+  flux[4] = (q[4]+pr)*u; // (E+p)*u  
+
+  double u2 = sqrt( SQ(q[1]/q[0]) + SQ(q[2]/q[0]) + SQ(q[3]/q[0]) );
+  return fabs(u2) + sqrt(gas_gamma*pr/q[0]);  
+}
+
 // Lax fluxes
 static inline void
 mlax_flux(int dir, double gas_gamma, const double qm[5], const double qp[5], double flux[5])
 {
   double fm[5], fp[5];
 
-  gkyl_euler_flux(gas_gamma, qm, fm);
-  gkyl_euler_flux(gas_gamma, qp, fp);
-
-  double amaxp = gkyl_euler_max_abs_speed(gas_gamma, qm);
-  double amaxm = gkyl_euler_max_abs_speed(gas_gamma, qp);
+  double amaxp = euler_flux(dir, gas_gamma, qp, fp);
+  double amaxm = euler_flux(dir, gas_gamma, qm, fm);
 
   for (int i=0; i<5; ++i)
     flux[i] = 0.5*(fp[i]+fm[i]) - 0.5*fmax(amaxm, amaxp)*(qp[i]-qm[i]);
@@ -118,6 +131,7 @@ calc_alpha(const gkyl_kep_scheme *kep, const struct gkyl_range *update_rng,
 
   double eps = 1e-14; // to prevent div by 0.0
   double nu = 0.1;
+  double phi = 0.01; // base diffusion
 
   enum { IRHO, IRHOU, IRHOV, IRHOW}; // indexing Euler conserved vars
 
@@ -179,7 +193,7 @@ calc_alpha(const gkyl_kep_scheme *kep, const struct gkyl_range *update_rng,
 
     double ducros = fmin(4.0/3.0*div2/(div2+curl2+eps), 1.0);
     double theta = div2/(div2+Omega2+eps);
-    al[0] = ducros*theta;
+    al[0] = fmax(ducros-phi, 0)*theta + phi;
   }
 }
 
