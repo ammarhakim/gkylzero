@@ -63,7 +63,7 @@ dg_gen_diffusion_set_cu_dev_ptrs(struct dg_gen_diffusion* gen_diffusion, enum gk
       break;    
   } 
   
-  gen_diffusion->eqn.surf_term = surf;
+  gen_diffusion->eqn.gen_surf_term = surf;
   
   gen_diffusion->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 

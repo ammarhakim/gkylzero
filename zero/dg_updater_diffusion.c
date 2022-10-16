@@ -111,12 +111,13 @@ gkyl_dg_updater_diffusion_advance_cu(gkyl_dg_updater_diffusion *diffusion,
   else if (diffusion_id == GKYL_ANISO_DIFFUSION) {
     gkyl_gen_diffusion_set_auxfields(diffusion->eqn_diffusion,
       (struct gkyl_dg_gen_diffusion_auxfields) { .Dij = D });
-    gkyl_hyper_dg_gen_stencil_advance_cu(diffusion->up_diffusion, update_rng, fIn, cflrate, rhs);
+    // hyper_dg_gen_stencil NOT YET IMPLEMENTED ON DEVICE
+    // gkyl_hyper_dg_gen_stencil_advance_cu(diffusion->up_diffusion, update_rng, fIn, cflrate, rhs);
   }
   else if (diffusion_id == GKYL_EULER_ISO_DIFFUSION) {
     gkyl_diffusion_euler_iso_set_auxfields(diffusion->eqn_diffusion,
       (struct gkyl_dg_diffusion_euler_iso_auxfields) { .D = D, .u_i = u });//TODO: use consistent name for 'u'/'u_i'
-    gkyl_hyper_dg_advance(diffusion->up_diffusion, update_rng, fIn, cflrate, rhs);
+    gkyl_hyper_dg_advance_cu(diffusion->up_diffusion, update_rng, fIn, cflrate, rhs);
   }
   diffusion->diffusion_tm += gkyl_time_diff_now_sec(wst);
 }

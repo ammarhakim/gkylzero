@@ -7,7 +7,7 @@
 
 // Types for various kernels
 typedef void (*fpo_vlasov_diff_surf_t)(const double *w, const double *dx,
-  const double* g[], const double *f[],
+  const double* g[27], const double *f[27],
   double* GKYL_RESTRICT out);
 
 // for use in kernel tables
@@ -266,12 +266,12 @@ GKYL_CU_D
 static void
 surf(const struct gkyl_dg_eqn* eqn, int dir1, int dir2,
   const double* xc, const double* dxc, const int* idxc,
-  long sz_dim, const int idx[sz_dim][GKYL_MAX_DIM], const double* qIn[sz_dim],
+  long sz_dim, const int idx[27][GKYL_MAX_DIM], const double* qIn[27],
   double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_fpo_vlasov_diff* fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
   int cdim = fpo_vlasov_diff->cdim;
-  const double* g_d[sz_dim];
+  const double* g_d[27];
   for (int i=0; i<sz_dim; ++i) { 
     g_d[i] = (const double*) gkyl_array_cfetch(fpo_vlasov_diff->auxfields.g, 
                gkyl_range_idx(&fpo_vlasov_diff->phase_range, idx[i]));
@@ -286,12 +286,12 @@ GKYL_CU_D
 static void
 boundary_surf(const struct gkyl_dg_eqn* eqn, int dir1, int dir2,
   const double* xc, const double* dxc, const int* idxc,
-  long sz_dim, const int idx[sz_dim][GKYL_MAX_DIM], const double* qIn[sz_dim],
+  long sz_dim, const int idx[27][GKYL_MAX_DIM], const double* qIn[27],
   double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_fpo_vlasov_diff* fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
   int cdim = fpo_vlasov_diff->cdim;
-  const double* g_d[sz_dim];
+  const double* g_d[27];
   for (int i=0; i<sz_dim; ++i) { 
     if(idx[i]) {
       g_d[i] = (const double*) gkyl_array_cfetch(fpo_vlasov_diff->auxfields.g, 

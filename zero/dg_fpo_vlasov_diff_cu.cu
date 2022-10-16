@@ -36,8 +36,8 @@ dg_fpo_vlasov_diff_set_cu_dev_ptrs(struct dg_fpo_vlasov_diff *fpo_vlasov_diff, e
 {
   fpo_vlasov_diff->auxfields.g = 0; 
 
-  fpo_vlasov_diff->eqn.surf_term = surf;
-  fpo_vlasov_diff->eqn.boundary_surf_term = boundary_surf;
+  fpo_vlasov_diff->eqn.gen_surf_term = surf;
+  fpo_vlasov_diff->eqn.gen_boundary_surf_term = boundary_surf;
 
   const gkyl_dg_fpo_vlasov_diff_vol_kern_list* vol_kernels;
   const gkyl_dg_fpo_vlasov_diff_surf_kern_list* surf_xx_kernels;

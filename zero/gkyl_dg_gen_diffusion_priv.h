@@ -9,7 +9,7 @@
 
 // Types for various kernels
 typedef void (*gen_diffusion_surf_t)(const double *w, const double *dx,
-  const double* D, const double *q[],
+  const double* D, const double *q[27],
   double* GKYL_RESTRICT out);
 
 // for use in kernel tables
@@ -175,7 +175,7 @@ GKYL_CU_D
 static void
 surf(const struct gkyl_dg_eqn* eqn, int dir1, int dir2,
   const double* xc, const double* dxc, const int* idxc,
-  long sz_dim, const int idx[sz_dim][GKYL_MAX_DIM], const double* qIn[sz_dim],
+  long sz_dim, const int idx[27][GKYL_MAX_DIM], const double* qIn[27],
   double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_gen_diffusion* gen_diffusion = container_of(eqn, struct dg_gen_diffusion, eqn);

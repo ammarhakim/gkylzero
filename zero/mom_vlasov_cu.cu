@@ -213,10 +213,6 @@ set_int_cu_ptrs(struct mom_type_vlasov* momt, enum gkyl_basis_type b_type, int v
       momt->kernel = ser_int_mom_kernels[tblidx].kernels[poly_order];
       break;
 
-    case GKYL_BASIS_MODAL_TENSOR:
-      momt->kernel = ten_int_mom_kernels[tblidx].kernels[poly_order];
-      break;
-
     default:
       assert(false);
       break;    

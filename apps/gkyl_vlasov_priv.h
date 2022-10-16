@@ -27,6 +27,7 @@
 #include <gkyl_dg_updater_vlasov.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_dg_vlasov_poisson.h>
+#include <gkyl_dg_vlasov_pkpm.h>
 #include <gkyl_dg_vlasov_sr.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_eqn_type.h>
