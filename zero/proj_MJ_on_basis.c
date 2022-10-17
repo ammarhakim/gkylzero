@@ -244,10 +244,8 @@ gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(const gkyl_proj_MJ_on_basis *up
       while (gkyl_range_iter_next(&qiter)) {
 
         long cqidx = gkyl_range_idx(&conf_qrange, qiter.idx);
-        double mass_rest_frame = 1.0;
-        double c = 1.0;
-        double Theta = T[cqidx]/(mass_rest_frame*c*c); // T = vth2[cqidx]; (?) - Need to re-write the moments
-        double norm = num[cqidx] * (1.0/(4.0*GKYL_PI*mass_rest_frame*mass_rest_frame*mass_rest_frame*c*c*c*Theta)) * (sqrt(2*Theta/GKYL_PI));
+        double Theta = T[cqidx]; // T = vth2[cqidx]; (?) - Need to re-write the moments
+        double norm = num[cqidx] * (1.0/(4.0*GKYL_PI*Theta)) * (sqrt(2*Theta/GKYL_PI));
 
         long pqidx = gkyl_range_idx(&phase_qrange, qiter.idx);
 
@@ -258,14 +256,15 @@ gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(const gkyl_proj_MJ_on_basis *up
         double vu = 0.0;
         double vv = 0.0;
         for (int d=0; d<vdim; ++d){
-           vv += (vel[cqidx][d]*vel[cqidx][d])/(c*c);
-           vu += (vel[cqidx][d]*xmu[cdim+d])/(c*c);
-           uu += (xmu[cdim+d]*xmu[cdim+d])/(c*c);
+           vv += (vel[cqidx][d]*vel[cqidx][d]);
+           vu += (vel[cqidx][d]*xmu[cdim+d]);
+           uu += (xmu[cdim+d]*xmu[cdim+d]);
         }
         double gamma_shifted = 0.0;
         gamma_shifted = 1/sqrt(1-vv);
 
         // f_MJ uses a leading order expansion of the modified bessel function
+        // c = 1 assumed
         double *fq = gkyl_array_fetch(fun_at_ords, pqidx);
         fq[0] = norm*exp( (1.0/Theta) - (gamma_shifted/Theta)*(sqrt(1+uu) - vu) );
       }

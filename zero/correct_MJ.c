@@ -19,8 +19,6 @@ struct gkyl_correct_MJ {
   struct gkyl_array *gamma; // dg represented gamma of the shifted frame
 
   gkyl_dg_bin_op_mem *mem; // memory for division operator
-  gkyl_dg_bin_op_mem *mem2; // memory for division operator
-  gkyl_dg_bin_op_mem *mem3; // memory for division operator
 };
 
 // // (Added) projects vb in DG represenation into the function gamma
@@ -78,8 +76,6 @@ gkyl_correct_MJ_new(const struct gkyl_rect_grid *grid,
   up->num_vb = gkyl_array_new(GKYL_DOUBLE, vdim*conf_basis->num_basis, conf_local_ext_ncells);
   up->gamma = gkyl_array_new(GKYL_DOUBLE, conf_basis->num_basis, conf_local_ext_ncells);
   up->mem = gkyl_dg_bin_op_mem_new(conf_local_ncells, conf_basis->num_basis);
-  up->mem2 = gkyl_dg_bin_op_mem_new(conf_local_ncells, conf_basis->num_basis);
-  up->mem3 = gkyl_dg_bin_op_mem_new(conf_local_ncells, conf_basis->num_basis);
   return up;
 }
 
@@ -101,7 +97,7 @@ void gkyl_correct_MJ_fix(gkyl_correct_MJ *cMJ,
     0, cMJ->num_vb, 0, cMJ->num_ratio, *conf_local);
 
   // compute number density ratio
-  gkyl_dg_div_op_range(cMJ->mem2, cMJ->conf_basis, 0, cMJ->num_ratio,
+  gkyl_dg_div_op_range(cMJ->mem, cMJ->conf_basis, 0, cMJ->num_ratio,
     0, m0, 0, cMJ->num_ratio, *conf_local);
 
 
@@ -146,7 +142,7 @@ void gkyl_correct_MJ_fix(gkyl_correct_MJ *cMJ,
   gkyl_proj_on_basis_release(gamma);
 
   // multiply the number density ratio by gamma, to account for the frame trans.
-  gkyl_dg_div_op_range(cMJ->mem3, cMJ->conf_basis, 0, cMJ->num_ratio,
+  gkyl_dg_div_op_range(cMJ->mem, cMJ->conf_basis, 0, cMJ->num_ratio,
       0, cMJ->num_ratio, 0, cMJ->gamma, *conf_local);
 
   // rescale distribution function
@@ -163,8 +159,6 @@ gkyl_correct_MJ_release(gkyl_correct_MJ* cMJ)
   gkyl_array_release(cMJ->num_vb);
   gkyl_array_release(cMJ->gamma);
   gkyl_dg_bin_op_mem_release(cMJ->mem);
-  gkyl_dg_bin_op_mem_release(cMJ->mem2);
-  gkyl_dg_bin_op_mem_release(cMJ->mem3);
 
   gkyl_free(cMJ);
 }

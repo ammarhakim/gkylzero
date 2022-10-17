@@ -198,8 +198,8 @@ test_1x1v_no_drift(int poly_order)
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
-  //gkyl_correct_maxwellian_release(corr_MJ);
-  gkyl_correct_MJ_release(corr_MJ);
+  gkyl_correct_maxwellian_release(corr_MJ);
+  //gkyl_correct_MJ_release(corr_MJ);
 }
 
 void test_1x1v_no_drift_p1() { test_1x1v_no_drift(1); }
@@ -313,8 +313,8 @@ test_1x1v(int poly_order)
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
-  gkyl_correct_maxwellian_release(corr_MJ);
-  //gkyl_correct_MJ_release(corr_MJ);
+  //gkyl_correct_maxwellian_release(corr_MJ);
+  gkyl_correct_MJ_release(corr_MJ);
 }
 
 void test_1x1v_p1() { test_1x1v(1); }
