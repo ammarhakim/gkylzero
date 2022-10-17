@@ -85,23 +85,23 @@ limiter_function(double r, enum gkyl_wave_limiter limiter)
 }
 
 gkyl_wave_prop*
-gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp)
+gkyl_wave_prop_new(const struct gkyl_wave_prop_inp *winp)
 {
-  gkyl_wave_prop *up = gkyl_malloc(sizeof(gkyl_wave_prop));
+  gkyl_wave_prop *up = gkyl_malloc(sizeof(*up));
 
-  up->grid = *(winp.grid);
+  up->grid = *(winp->grid);
   up->ndim = up->grid.ndim;
   
-  up->num_up_dirs = winp.num_up_dirs;
-  for (int i=0; i<winp.num_up_dirs; ++i)
-    up->update_dirs[i] = winp.update_dirs[i];
+  up->num_up_dirs = winp->num_up_dirs;
+  for (int i=0; i<winp->num_up_dirs; ++i)
+    up->update_dirs[i] = winp->update_dirs[i];
 
-  up->limiter = winp.limiter == 0 ? GKYL_MONOTONIZED_CENTERED : winp.limiter;
-  up->cfl = winp.cfl;
-  up->equation = gkyl_wv_eqn_acquire(winp.equation);
+  up->limiter = winp->limiter == 0 ? GKYL_MONOTONIZED_CENTERED : winp->limiter;
+  up->cfl = winp->cfl;
+  up->equation = gkyl_wv_eqn_acquire(winp->equation);
 
-  up->force_low_order_flux = winp.force_low_order_flux;
-  up->check_inv_domain = winp.check_inv_domain;
+  up->force_low_order_flux = winp->force_low_order_flux;
+  up->check_inv_domain = winp->check_inv_domain;
 
   int nghost[3] = { 2, 2, 2 };
   struct gkyl_range range, ext_range;
@@ -115,7 +115,7 @@ gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp)
 
   // allocate memory to store 1D slices of waves, speeds and
   // second-order correction flux
-  int meqn = winp.equation->num_equations, mwaves = winp.equation->num_waves;
+  int meqn = winp->equation->num_equations, mwaves = winp->equation->num_waves;
   up->waves = gkyl_array_new(GKYL_DOUBLE, meqn*mwaves, max_1d);
   up->apdq = gkyl_array_new(GKYL_DOUBLE, meqn, max_1d);
   up->amdq = gkyl_array_new(GKYL_DOUBLE, meqn, max_1d);
@@ -124,8 +124,7 @@ gkyl_wave_prop_new(struct gkyl_wave_prop_inp winp)
 
   up->redo_fluct = gkyl_array_new(GKYL_DOUBLE, meqn, max_1d);
 
-  // construct geometry
-  up->geom = gkyl_wave_geom_acquire(winp.geom);
+  up->geom = gkyl_wave_geom_acquire(winp->geom);
 
   up->n_calls = up->n_bad_advance_calls = 0;
   up->n_bad_cells = up->n_max_bad_cells = 0;

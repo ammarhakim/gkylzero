@@ -7,53 +7,18 @@ GKYL_CU_DH void vlasov_self_prim_moments_1x3v_ser_p2(struct gkyl_mat *A, struct 
   // moms:                 moments of the distribution function (Zeroth, First, and Second in single array). 
   // boundary_corrections: boundary corrections to u and vtSq. 
  
-  // If a corner value is below zero, use cell average m0.
-  bool cellAvg = false;
-  if (0.7071067811865475*(2.23606797749979*moms[2]-1.732050807568877*moms[1]+moms[0]) < 0) cellAvg = true; 
-  if (0.7071067811865475*(2.23606797749979*moms[2]+1.732050807568877*moms[1]+moms[0]) < 0) cellAvg = true; 
+  // If m0 or m2 is below zero at a corner, use cell averages.
+  bool notCellAvg = true;
+  if (notCellAvg && (0.7071067811865475*(2.23606797749979*moms[2]-1.732050807568877*moms[1]+moms[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.7071067811865475*(2.23606797749979*moms[2]+1.732050807568877*moms[1]+moms[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.7071067811865475*(2.23606797749979*moms[14]-1.732050807568877*moms[13]+moms[12]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.7071067811865475*(2.23606797749979*moms[14]+1.732050807568877*moms[13]+moms[12]) < 0)) notCellAvg = false; 
  
   double m0r[3] = {0.0}; 
   double m1r[9] = {0.0}; 
   double cMr[9] = {0.0}; 
   double cEr[3] = {0.0}; 
-  if (cellAvg) { 
-    m0r[0] = moms[0]; 
-    m0r[1] = 0.0; 
-    m0r[2] = 0.0; 
-    m1r[0] = moms[3]; 
-    m1r[1] = 0.0; 
-    m1r[2] = 0.0; 
-    gkyl_mat_set(rhs,0,0,moms[3]); 
-    gkyl_mat_set(rhs,1,0,0.0); 
-    gkyl_mat_set(rhs,2,0,0.0); 
-    cMr[0] = boundary_corrections[0]; 
-    cMr[1] = 0.0; 
-    cMr[2] = 0.0; 
-    m1r[3] = moms[6]; 
-    m1r[4] = 0.0; 
-    m1r[5] = 0.0; 
-    gkyl_mat_set(rhs,0,0,moms[6]); 
-    gkyl_mat_set(rhs,1,0,0.0); 
-    gkyl_mat_set(rhs,2,0,0.0); 
-    cMr[3] = boundary_corrections[3]; 
-    cMr[4] = 0.0; 
-    cMr[5] = 0.0; 
-    m1r[6] = moms[9]; 
-    m1r[7] = 0.0; 
-    m1r[8] = 0.0; 
-    gkyl_mat_set(rhs,0,0,moms[9]); 
-    gkyl_mat_set(rhs,1,0,0.0); 
-    gkyl_mat_set(rhs,2,0,0.0); 
-    cMr[6] = boundary_corrections[6]; 
-    cMr[7] = 0.0; 
-    cMr[8] = 0.0; 
-    cEr[0] = boundary_corrections[9]; 
-    cEr[1] = 0.0; 
-    cEr[2] = 0.0; 
-    gkyl_mat_set(rhs,9,0,moms[12]); 
-    gkyl_mat_set(rhs,10,0,0.0); 
-    gkyl_mat_set(rhs,11,0,0.0); 
-  } else { 
+  if (notCellAvg) { 
     m0r[0] = moms[0]; 
     m0r[1] = moms[1]; 
     m0r[2] = moms[2]; 
@@ -90,6 +55,43 @@ GKYL_CU_DH void vlasov_self_prim_moments_1x3v_ser_p2(struct gkyl_mat *A, struct 
     gkyl_mat_set(rhs,9,0,moms[12]); 
     gkyl_mat_set(rhs,10,0,moms[13]); 
     gkyl_mat_set(rhs,11,0,moms[14]); 
+  } else { 
+    m0r[0] = moms[0]; 
+    m0r[1] = 0.0; 
+    m0r[2] = 0.0; 
+    m1r[0] = moms[3]; 
+    m1r[1] = 0.0; 
+    m1r[2] = 0.0; 
+    gkyl_mat_set(rhs,0,0,moms[3]); 
+    gkyl_mat_set(rhs,1,0,0.0); 
+    gkyl_mat_set(rhs,2,0,0.0); 
+    cMr[0] = boundary_corrections[0]; 
+    cMr[1] = 0.0; 
+    cMr[2] = 0.0; 
+    m1r[3] = moms[6]; 
+    m1r[4] = 0.0; 
+    m1r[5] = 0.0; 
+    gkyl_mat_set(rhs,0,0,moms[6]); 
+    gkyl_mat_set(rhs,1,0,0.0); 
+    gkyl_mat_set(rhs,2,0,0.0); 
+    cMr[3] = boundary_corrections[3]; 
+    cMr[4] = 0.0; 
+    cMr[5] = 0.0; 
+    m1r[6] = moms[9]; 
+    m1r[7] = 0.0; 
+    m1r[8] = 0.0; 
+    gkyl_mat_set(rhs,0,0,moms[9]); 
+    gkyl_mat_set(rhs,1,0,0.0); 
+    gkyl_mat_set(rhs,2,0,0.0); 
+    cMr[6] = boundary_corrections[6]; 
+    cMr[7] = 0.0; 
+    cMr[8] = 0.0; 
+    cEr[0] = boundary_corrections[9]; 
+    cEr[1] = 0.0; 
+    cEr[2] = 0.0; 
+    gkyl_mat_set(rhs,9,0,moms[12]); 
+    gkyl_mat_set(rhs,10,0,0.0); 
+    gkyl_mat_set(rhs,11,0,0.0); 
   } 
  
   // ....... Block from weak multiply of ux and m0  .......... // 

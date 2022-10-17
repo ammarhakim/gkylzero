@@ -50,7 +50,7 @@ __global__ static void
 gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs,
   struct gkyl_basis cbasis, struct gkyl_range conf_rng,
   int nc, int udim, 
-  struct gkyl_array* u_out, struct gkyl_array* vtsq_out)
+  struct gkyl_array* prim_moms_out)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -68,10 +68,9 @@ gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs,
     long start = gkyl_range_idx(&conf_rng, idx);
 
     struct gkyl_mat out_d = gkyl_nmat_get(xs, linc1);
-    double *u_d = (double*) gkyl_array_fetch(u_out, start);
-    double *vtsq_d = (double*) gkyl_array_fetch(vtsq_out, start);
+    double *prim_moms_out_d = (double*) gkyl_array_fetch(prim_moms_out, start);
     
-    prim_lbo_copy_sol(&out_d, nc, udim, u_d, vtsq_d);
+    prim_lbo_copy_sol(&out_d, nc, udim, prim_moms_out_d);
   }
 }
 
@@ -79,7 +78,7 @@ void
 gkyl_prim_lbo_calc_advance_cu(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis,
   struct gkyl_range *conf_rng, 
   const struct gkyl_array* moms, const struct gkyl_array* boundary_corrections,
-  struct gkyl_array* uout, struct gkyl_array* vtSqout)
+  struct gkyl_array* prim_moms_out)
 {
   int nc = cbasis.num_basis;
   int udim = calc->prim->udim;
@@ -100,7 +99,7 @@ gkyl_prim_lbo_calc_advance_cu(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis
 
   gkyl_prim_lbo_copy_sol_cu_ker<<<conf_rng->nblocks, conf_rng->nthreads>>>(calc->xs->on_dev,
     cbasis, *conf_rng, nc, udim,
-    uout->on_dev, vtSqout->on_dev);
+    prim_moms_out->on_dev);
 }
 
 gkyl_prim_lbo_calc*

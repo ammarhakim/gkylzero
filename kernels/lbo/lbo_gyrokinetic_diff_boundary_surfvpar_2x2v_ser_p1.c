@@ -1,15 +1,17 @@
 #include <gkyl_lbo_gyrokinetic_kernels.h> 
-GKYL_CU_DH void lbo_gyrokinetic_diff_boundary_surfvpar_2x2v_ser_p1(const double *w, const double *dxv, const double m_, const double *bmag_inv, const double *nuSum, const double *nuUSum, const double *nuVtSqSum, const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void lbo_gyrokinetic_diff_boundary_surfvpar_2x2v_ser_p1(const double *w, const double *dxv, const double m_, const double *bmag_inv, const double *nuSum, const double *nuPrimMomsSum, const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out) 
 { 
-  // w[4]:         Cell-center coordinates. 
-  // dxv[4]:       Cell spacing. 
-  // m_:           species mass.
-  // bmag_inv:     1/(magnetic field magnitude). 
-  // nuSum:        collisionalities added (self and cross species collisionalities). 
-  // nuUSum[8]:    sum of bulk velocities times their respective collisionalities. 
-  // nuVtSqSum[4]: sum of thermal speeds squared time their respective collisionalities. 
-  // fskin/edge:   Distribution function in cells 
-  // out:          Incremented distribution function in cell 
+  // w[4]: Cell-center coordinates. 
+  // dxv[4]: Cell spacing. 
+  // m_: species mass.
+  // bmag_inv: 1/(magnetic field magnitude). 
+  // nuSum: collisionalities added (self and cross species collisionalities). 
+  // nuPrimMomsSum[8]: sum of bulk velocities and thermal speeds squared times their respective collisionalities. 
+  // fskin/edge: Distribution function in cells 
+  // out: Incremented distribution function in cell 
+
+  const double *nuVtSqSum = &nuPrimMomsSum[4];
+
   double rdvSq4 = 4.0/(dxv[2]*dxv[2]); 
 
   double vol_incr[24] = {0.0};

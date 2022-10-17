@@ -9,6 +9,11 @@
 typedef void (*gyrokinetic_self_prim_t)(struct gkyl_mat *A, struct gkyl_mat *rhs, 
   const double *moms, const double *boundary_corrections);
 
+typedef void (*gyrokinetic_cross_prim_t)(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *greene,
+  const double m_self, const double *moms_self, const double *prim_moms_self,
+  const double m_other, const double *moms_other, const double *prim_moms_other,
+  const double *boundary_corrections);
+
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
 static struct { int vdim[3]; } cv_index[] = {
@@ -20,6 +25,7 @@ static struct { int vdim[3]; } cv_index[] = {
 
 // for use in kernel tables
 typedef struct { gyrokinetic_self_prim_t kernels[3]; } gkyl_prim_lbo_gyrokinetic_kern_list;
+typedef struct { gyrokinetic_cross_prim_t kernels[3]; } gkyl_prim_lbo_gyrokinetic_cross_kern_list;
 
 //
 // Serendipity basis kernels
@@ -37,9 +43,22 @@ static const gkyl_prim_lbo_gyrokinetic_kern_list ser_self_prim_kernels[] = {
   { NULL, gyrokinetic_self_prim_moments_3x2v_ser_p1, gyrokinetic_self_prim_moments_3x2v_ser_p2 }, // 3
 };
 
+// cross primitive moment kernel list
+GKYL_CU_D
+static const gkyl_prim_lbo_gyrokinetic_cross_kern_list ser_cross_prim_kernels[] = {
+  // 1x kernels
+  { NULL, gyrokinetic_cross_prim_moments_1x1v_ser_p1, gyrokinetic_cross_prim_moments_1x1v_ser_p2 }, // 0
+  { NULL, gyrokinetic_cross_prim_moments_1x2v_ser_p1, gyrokinetic_cross_prim_moments_1x2v_ser_p2 }, // 1
+  // 2x kernels
+  { NULL, gyrokinetic_cross_prim_moments_2x2v_ser_p1, gyrokinetic_cross_prim_moments_2x2v_ser_p2 }, // 2
+  // 3x kernels
+  { NULL, gyrokinetic_cross_prim_moments_3x2v_ser_p1, gyrokinetic_cross_prim_moments_3x2v_ser_p2 }, // 3
+};
+
 struct prim_lbo_type_gyrokinetic {
   struct gkyl_prim_lbo_type prim; // Base object
   gyrokinetic_self_prim_t self_prim; // Self-primitive moments kernel
+  gyrokinetic_cross_prim_t cross_prim; // Cross-primitive moments kernels
 };
 
 /**
@@ -57,4 +76,18 @@ self_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A, struct gkyl
   struct prim_lbo_type_gyrokinetic *prim_gyrokinetic = container_of(prim, struct prim_lbo_type_gyrokinetic, prim);
 
   return prim_gyrokinetic->self_prim(A, rhs, moms, boundary_corrections);
+}
+
+GKYL_CU_D
+static void
+cross_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A, struct gkyl_mat *rhs,
+  const int *idx, const double *greene,
+  const double m_self, const double *moms_self, const double *prim_moms_self,
+  const double m_other, const double *moms_other, const double *prim_moms_other,
+  const double *boundary_corrections)
+{
+  struct prim_lbo_type_gyrokinetic *prim_gyrokinetic = container_of(prim, struct prim_lbo_type_gyrokinetic, prim);
+
+  return prim_gyrokinetic->cross_prim(A, rhs, greene, m_self, moms_self, prim_moms_self,
+    m_other, moms_other, prim_moms_other, boundary_corrections);
 }

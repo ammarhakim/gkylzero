@@ -55,11 +55,13 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   gkyl_fem_poisson *up = gkyl_malloc(sizeof(gkyl_fem_poisson));
 
   up->kernels = gkyl_malloc(sizeof(struct gkyl_fem_poisson_kernels));
-  up->kernels_cu = up->kernels;
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
+  if (use_gpu)
     up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_fem_poisson_kernels));
-  }
+  else
+    up->kernels_cu = up->kernels;
+#else
+  up->kernels_cu = up->kernels;
 #endif
 
   up->ndim = grid->ndim;
@@ -120,13 +122,14 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   for (int d=0; d<up->ndim; d++) {
     for (int k=0; k<6; k++) up->bcvals[d*2*3+k] = 0.0; // default. Not used in some cases (e.g. periodic).
     if (bcs->lo_type[d] != GKYL_POISSON_PERIODIC) {
-      int vnum = bcs->lo_type[d] == GKYL_POISSON_ROBIN ? 3 : 1;
-      int voff = bcs->lo_type[d] == GKYL_POISSON_ROBIN ? 0 : 2;
+      int vnum, voff;
+      vnum = bcs->lo_type[d] == GKYL_POISSON_ROBIN ? 3 : 1;
+      voff = bcs->lo_type[d] == GKYL_POISSON_ROBIN ? 0 : 2;
       for (int k=0; k<vnum; k++) up->bcvals[d*2*3+voff+k] = bcs->lo_value[d].v[k];
 
       vnum = bcs->up_type[d] == GKYL_POISSON_ROBIN ? 3 : 1;
       voff = bcs->up_type[d] == GKYL_POISSON_ROBIN ? 0 : 2;
-      for (int k=0; k<vnum; k++) up->bcvals[d*2*3+voff+3+k] = bcs->lo_value[d].v[k];
+      for (int k=0; k<vnum; k++) up->bcvals[d*2*3+voff+3+k] = bcs->up_value[d].v[k];
     }
   }
 #ifdef GKYL_HAVE_CUDA
@@ -303,8 +306,8 @@ void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
     gkyl_free(up->rhs_avg);
   }
 #ifdef GKYL_HAVE_CUDA
-  gkyl_cu_free(up->kernels_cu);
   if (up->use_gpu) {
+    gkyl_cu_free(up->kernels_cu);
     gkyl_cu_free(up->dx_cu);
     if (up->isdomperiodic) gkyl_cu_free(up->rhs_avg_cu);
     gkyl_cu_free(up->bcvals_cu);

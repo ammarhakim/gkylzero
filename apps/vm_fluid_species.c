@@ -51,6 +51,8 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   f->advect_eqn = gkyl_dg_advection_new(&app->confBasis, &app->local, app->use_gpu);
   f->diff_eqn = gkyl_dg_diffusion_new(&app->confBasis, &app->local, app->use_gpu);
 
+  f->source_id = f->info.source.source_id;
+  
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
 
   // fluid solvers
@@ -89,13 +91,15 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   else {
     f->advects_with_species = true;
     f->advection_species = vm_find_species(app, f->info.advection.advect_with);
-    f->other_advect = f->advection_species->lbo.u_drift;   
+    f->other_advect = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
+    gkyl_array_set_offset(f->other_advect, 1., f->advection_species->lbo.prim_moms, 0);   
     // determine collision type to use in vlasov update
     f->collision_id = f->info.advection.collision_id;
     if (f->collision_id == GKYL_LBO_COLLISIONS) {
       f->other_nu = f->advection_species->lbo.nu_sum;
       f->other_m0 = f->advection_species->lbo.m0;
-      f->other_nu_vthsq = f->advection_species->lbo.nu_vthsq;     
+      f->other_nu_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+      gkyl_array_set_offset(f->other_nu_vthsq, 1., f->advection_species->lbo.nu_prim_moms, app->confBasis.num_basis);
       // allocate arrays to store collisional relaxation terms (nu*n*vthsq and nu*n*T_perp or nu*n*T_z)
       f->nu_fluid = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
       f->nu_n_vthsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -183,6 +187,9 @@ vm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_s
   vm_fluid_species_calc_advect(app, fluid_species, t0);
   // project diffusion tensor
   vm_fluid_species_calc_diff(app, fluid_species, t0);
+
+  // we are pre-computing source for now as it is time-independent
+  vm_fluid_species_source_calc(app, fluid_species, t0);
 }
 
 void
@@ -355,9 +362,15 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
   if (f->has_diffusion)
     gkyl_proj_on_basis_release(f->diff_proj);
 
+  gkyl_array_release(f->other_advect);
   if (f->collision_id == GKYL_LBO_COLLISIONS) {
+    gkyl_array_release(f->other_nu_vthsq);
     gkyl_array_release(f->nu_fluid);
     gkyl_array_release(f->nu_n_vthsq);
+  }
+
+  if (f->source_id) {
+    vm_fluid_species_source_release(app, &f->src);
   }
 
   if (app->use_gpu) {

@@ -96,7 +96,7 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "neut_lbo_sod_shock_1x3v",
+    .name = "neut_lbo_sod_shock_1x3v_p2",
 
     .cdim = 1, .vdim = 3,
     .lower = { 0.0 },

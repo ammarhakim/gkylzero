@@ -170,6 +170,19 @@ enum gkyl_wave_limiter {
 };
 ]]
 
+-- gkyl_mp_scheme.h
+ffi.cdef [[
+// Base reconstruction scheme to use
+enum gkyl_mp_recon {
+  GKYL_MP_U5 = 0, // upwind-biased 5th order (default)
+  GKYL_MP_C2, // centered second-order
+  GKYL_MP_C4, // centered fourth-order  
+  GKYL_MP_C6, // centered sixth-order
+  GKYL_MP_U1, // upwind-biased 1st order
+  GKYL_MP_U3, // upwind-biased 3rd order
+};
+]]
+
 -- gkyl_wv_mhd.h
 ffi.cdef [[
 // flags to indicate which divergence constraint scheme to use
@@ -223,6 +236,20 @@ void gkyl_wv_eqn_release(const struct gkyl_wv_eqn* eqn);
 
 -- Various equation objects
 ffi.cdef [[
+
+// Type of Rieman problem solver to use
+enum gkyl_wv_euler_rp {
+  WV_EULER_RP_ROE = 0, // default
+  WV_EULER_RP_HLLC,
+  WV_EULER_RP_LAX
+};
+
+// input packaged as a struct
+struct gkyl_wv_euler_inp {
+  double gas_gamma; // gas adiabatic constant
+  enum gkyl_wv_euler_rp rp_type; // type of RP to use
+};
+
 /**
  * Create a new Euler equation object.
  * 
@@ -230,6 +257,14 @@ ffi.cdef [[
  * @return Pointer to Euler equation object.
  */
 struct gkyl_wv_eqn* gkyl_wv_euler_new(double gas_gamma);
+
+/**
+ * Create a new Euler equation object.
+ * 
+ * @param inp Input parameters
+ * @return Pointer to Euler equation object.
+ */
+struct gkyl_wv_eqn* gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp);
 
 /**
  * Create a new isothermal Euler equation object.
@@ -314,15 +349,16 @@ struct gkyl_moment_field {
   bool is_ext_em_static; // flag to indicate if external field is time-independent
   // pointer to external fields
   void (*ext_em_func)(double t, const double *xn, double *fout, void *ctx);
-
+  
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
 };
 
 // Choices of schemes to use in the fluid solver 
-enum gkyl_moment_fluid_scheme {
-  GKYL_MOMENT_FLUID_WAVE_PROP = 0, // default
-  GKYL_MOMENT_FLUID_KEP
+enum gkyl_moment_scheme {
+  GKYL_MOMENT_WAVE_PROP = 0, // default, 2nd-order FV
+  GKYL_MOMENT_MP, // monotonicity-preserving Suresh-Huynh scheme
+  GKYL_MOMENT_KEP // Kinetic-energy preserving scheme
 };
 
 // Top-level app parameters
@@ -341,7 +377,9 @@ struct gkyl_moment {
 
   double cfl_frac; // CFL fraction to use
 
-  enum gkyl_moment_fluid_scheme fluid_scheme; // scheme to update fluid equations
+  enum gkyl_moment_scheme scheme_type; // scheme to update fluid and moment eqns
+  enum gkyl_mp_recon mp_recon; // reconstruction scheme to use
+  bool skip_mp_limiter; // should MP limiter be skipped?
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
@@ -357,12 +395,30 @@ struct gkyl_moment {
 // Simulation statistics
 struct gkyl_moment_stat {
   long nup; // calls to update
+  double total_tm; // time for simulation (not including ICs)
+  
   long nfail; // number of failed time-steps
 
-  double total_tm; // time for simulation (not including ICs)
+  //// wave_prop stuff
   double species_tm; // time to compute species updates
   double field_tm; // time to compute field updates
   double sources_tm; // time to compute source terms
+
+  //// stuff for MP-XX/SSP-RK schemes
+  long nfeuler; // calls to forward-Euler method
+    
+  long nstage_2_fail; // number of failed RK stage-2s
+  long nstage_3_fail; // number of failed RK stage-3s
+
+  double stage_2_dt_diff[2]; // [min,max] rel-diff for stage-2 failure
+  double stage_3_dt_diff[2]; // [min,max] rel-diff for stage-3 failure
+    
+  double init_species_tm; // time to initialize all species
+  double init_field_tm; // time to initialize fields
+
+  double species_rhs_tm; // time to compute species collisionless RHS
+  
+  double field_rhs_tm; // time to compute field RHS
 };
 
 // Object representing moments app
@@ -509,6 +565,23 @@ void gkyl_moment_app_release(gkyl_moment_app* app);
 
 ]]
 
+-- name to moment_scheme type
+local moment_scheme_tags = {
+   ["wave_prop"] = C.GKYL_MOMENT_WAVE_PROP,
+   ["mp"] = C.GKYL_MOMENT_MP,
+   ["kep"] = C.GKYL_MOMENT_KEP
+}
+
+-- name to recovery used in MP scheme
+local mp_recon_tags = {
+   ["u1"] = C.GKYL_MP_U1,
+   ["u3"] = C.GKYL_MP_U3,
+   ["u5"] = C.GKYL_MP_U5,
+   ["c2"] = C.GKYL_MP_C2,
+   ["c4"] = C.GKYL_MP_C4,
+   ["c6"] = C.GKYL_MP_C6,
+}
+
 -- App container
 ffi.cdef [[
 // Container to store pointer to app and other data
@@ -553,9 +626,22 @@ local tm_trigger_mt = {
 }
 _M.TimeTrigger = ffi.metatype(tm_trigger_type, tm_trigger_mt)
 
+-- name to RP-type mappings
+local euler_rp_tags = {
+   ["roe"] = C.WV_EULER_RP_ROE,
+   ["hllc"] = C.WV_EULER_RP_HLLC,
+   ["lax"] = C.WV_EULER_RP_LAX
+}
+
 -- Euler equation
 _M.Euler = function(tbl)
-   return ffi.gc(C.gkyl_wv_euler_new(tbl.gasGamma), C.gkyl_wv_eqn_release)
+   local einp = ffi.new("struct gkyl_wv_euler_inp")
+   einp.gas_gamma = tbl.gasGamma
+   einp.rp_type = C.WV_EULER_RP_ROE
+   if tbl.rp_type then
+      einp.rp_type = euler_rp_tags[tbl.rp_type]
+   end
+   return ffi.gc(C.gkyl_wv_euler_inew(einp), C.gkyl_wv_eqn_release)
 end
 
 -- Isothermal Eiler equation
@@ -824,12 +910,20 @@ local app_mt = {
          vm.cells[d-1] = tbl.cells[d]
       end
 
-      vm.cfl_frac = 1.0
+      vm.cfl_frac = 0.95 -- for consistency with C app
       if tbl.cflFrac then
          vm.cfl_frac = tbl.cflFrac
       end
 
-      vm.fluid_scheme = C.GKYL_MOMENT_FLUID_WAVE_PROP
+      vm.scheme_type = C.GKYL_MOMENT_WAVE_PROP
+      if tbl.scheme_type then
+	 vm.scheme_type = moment_scheme_tags[tbl.scheme_type]
+      end
+
+      vm.mp_recon = C.GKYL_MP_U5
+      if tbl.mp_recon then
+	 vm.mp_recon = mp_recon_tags[tbl.mp_recon]
+      end
 
       -- mapc2p
       vm.c2p_ctx = nil -- no need for context

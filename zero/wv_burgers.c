@@ -16,6 +16,19 @@ burgers_free(const struct gkyl_ref_count *ref)
 }
 
 static inline void
+cons_to_riem(const struct gkyl_wv_eqn *eqn,
+  const double *qstate, const double *qin, double *wout)
+{
+  wout[0] = qin[0];
+}
+static inline void
+riem_to_cons(const struct gkyl_wv_eqn *eqn,
+  const double *qstate, const double *win, double *qout)
+{
+  qout[0] = win[0];
+}
+
+static inline void
 rot_to_local(const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
 {
@@ -48,10 +61,18 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   double *amdq, double *apdq)
 {
   amdq[0] = apdq[0] = 0.0;
-  if (s[0] < 0)
-    amdq[0] = s[0]*waves[0];
+  double s0 = 0.5*(ql[0]+qr[0]);  
+  if (s0 < 0)
+    amdq[0] = s0*(qr[0]-ql[0]);
   else
-    apdq[0] = s[0]*waves[0];
+    apdq[0] = s0*(qr[0]-ql[0]);
+}
+
+static double
+flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
+{
+  flux_jump[0] = 0.5*(qr[0]*qr[0]-ql[0]*ql[0]);
+  return fmax(fabs(ql[0]), fabs(qr[0]));
 }
 
 static bool
@@ -77,11 +98,16 @@ gkyl_wv_burgers_new(void)
   burgers->eqn.num_waves = 1;
   burgers->eqn.waves_func = wave_roe;
   burgers->eqn.qfluct_func = qfluct_roe;
+  burgers->eqn.flux_jump = flux_jump;
+  
   burgers->eqn.check_inv_func = check_inv;
   burgers->eqn.max_speed_func = max_speed;
 
   burgers->eqn.rotate_to_local_func = rot_to_local;
-  burgers->eqn.rotate_to_global_func = rot_to_global;  
+  burgers->eqn.rotate_to_global_func = rot_to_global;
+
+  burgers->eqn.cons_to_riem = cons_to_riem;
+  burgers->eqn.riem_to_cons = riem_to_cons;
 
   burgers->eqn.ref_count = gkyl_ref_count_init(burgers_free);
 

@@ -15,13 +15,13 @@ extern "C" {
 __global__ static void
 gkyl_lbo_gyrokinetic_drag_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
   const struct gkyl_array *bmag_inv, const struct gkyl_array *nuSum,
-  const struct gkyl_array *nuUSum, const struct gkyl_array *nuVtSqSum)
+  const struct gkyl_array *nuPrimMomsSum, const struct gkyl_array *m2self)
 {
   struct dg_lbo_gyrokinetic_drag *lbo_gyrokinetic_drag = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
   lbo_gyrokinetic_drag->auxfields.bmag_inv = bmag_inv;
   lbo_gyrokinetic_drag->auxfields.nuSum = nuSum;
-  lbo_gyrokinetic_drag->auxfields.nuUSum = nuUSum;
-  lbo_gyrokinetic_drag->auxfields.nuVtSqSum = nuVtSqSum;
+  lbo_gyrokinetic_drag->auxfields.nuPrimMomsSum = nuPrimMomsSum;
+  lbo_gyrokinetic_drag->auxfields.m2self = m2self;
 }
 
 //// Host-side wrapper for device kernels setting nuSum, nuUSum and nuVtSqSum.
@@ -30,7 +30,7 @@ gkyl_lbo_gyrokinetic_drag_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct
 {
   gkyl_lbo_gyrokinetic_drag_set_auxfields_cu_kernel<<<1,1>>>(eqn, 
     auxin.bmag_inv->on_dev, auxin.nuSum->on_dev,
-    auxin.nuUSum->on_dev, auxin.nuVtSqSum->on_dev);
+    auxin.nuPrimMomsSum->on_dev, auxin.m2self->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and gyrokinetic LBO kernel function
@@ -41,10 +41,9 @@ dg_lbo_gyrokinetic_drag_set_cu_dev_ptrs(struct dg_lbo_gyrokinetic_drag *lbo_gyro
 {
   lbo_gyrokinetic_drag->auxfields.bmag_inv = 0; 
   lbo_gyrokinetic_drag->auxfields.nuSum = 0; 
-  lbo_gyrokinetic_drag->auxfields.nuUSum = 0; 
-  lbo_gyrokinetic_drag->auxfields.nuVtSqSum = 0; 
+  lbo_gyrokinetic_drag->auxfields.nuPrimMomsSum = 0; 
+  lbo_gyrokinetic_drag->auxfields.m2self = 0; 
 
-  lbo_gyrokinetic_drag->eqn.vol_term = vol;
   lbo_gyrokinetic_drag->eqn.surf_term = surf;
   lbo_gyrokinetic_drag->eqn.boundary_surf_term = boundary_surf;
 
@@ -66,7 +65,7 @@ dg_lbo_gyrokinetic_drag_set_cu_dev_ptrs(struct dg_lbo_gyrokinetic_drag *lbo_gyro
       break;    
   }  
 
-  lbo_gyrokinetic_drag->vol = vol_kernels[cv_index].kernels[poly_order];
+  lbo_gyrokinetic_drag->eqn.vol_term = vol_kernels[cv_index].kernels[poly_order];
 
   lbo_gyrokinetic_drag->surf[0] = surf_vpar_kernels[cv_index].kernels[poly_order];
   if (vdim>1)
@@ -80,7 +79,7 @@ dg_lbo_gyrokinetic_drag_set_cu_dev_ptrs(struct dg_lbo_gyrokinetic_drag *lbo_gyro
 
 struct gkyl_dg_eqn*
 gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, double mass)
+  const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid, double mass)
 {
   struct dg_lbo_gyrokinetic_drag *lbo_gyrokinetic_drag =
     (struct dg_lbo_gyrokinetic_drag*) gkyl_malloc(sizeof(struct dg_lbo_gyrokinetic_drag));
@@ -94,6 +93,10 @@ gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* cbasis, const s
   lbo_gyrokinetic_drag->eqn.num_equations = 1;
   lbo_gyrokinetic_drag->mass = mass;
   lbo_gyrokinetic_drag->conf_range = *conf_range;
+
+  lbo_gyrokinetic_drag->vparMax = pgrid->upper[cdim];
+  lbo_gyrokinetic_drag->vparMaxSq = pow(pgrid->upper[cdim],2);
+  lbo_gyrokinetic_drag->num_cbasis = cbasis->num_basis;
 
   lbo_gyrokinetic_drag->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(lbo_gyrokinetic_drag->eqn.flags);

@@ -27,7 +27,7 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct
   if (app->use_gpu)
     src->source_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
 
-    src->source_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp)    {
+  src->source_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp)    {
       .grid = &s->grid,
       .basis = &app->basis,
       .qtype = GKYL_GAUSS_QUAD,
@@ -37,6 +37,16 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct
       .ctx = s->info.source.ctx
     }
   );
+}
+
+void
+vm_species_source_calc(gkyl_vlasov_app *app, struct vm_species *species, double tm)
+{
+  if (species->source_id) {
+    gkyl_proj_on_basis_advance(species->src.source_proj, tm, &species->local_ext, species->src.source_host);
+    if (app->use_gpu) // note: source_host is same as source when not on GPUs
+      gkyl_array_copy(species->src.source, species->src.source_host);
+  }
 }
 
 // computes rhs of the boundary flux

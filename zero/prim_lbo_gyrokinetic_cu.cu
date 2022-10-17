@@ -14,13 +14,16 @@ __global__ static void
 gkyl_prim_lbo_gyrokinetic_set_cu_dev_ptrs(struct prim_lbo_type_gyrokinetic *prim_gyrokinetic, int cdim, int vdim, int poly_order, enum gkyl_basis_type b_type, int tblidx)
 {
   prim_gyrokinetic->prim.self_prim = self_prim;
+  prim_gyrokinetic->prim.cross_prim = cross_prim;
   
   // choose kernel tables based on basis-function type
   const gkyl_prim_lbo_gyrokinetic_kern_list *self_prim_kernels;
+  const gkyl_prim_lbo_gyrokinetic_cross_kern_list *cross_prim_kernels;
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       self_prim_kernels = ser_self_prim_kernels;
+      cross_prim_kernels = ser_cross_prim_kernels;
       break;
 
     default:
@@ -29,6 +32,7 @@ gkyl_prim_lbo_gyrokinetic_set_cu_dev_ptrs(struct prim_lbo_type_gyrokinetic *prim
   }
 
   prim_gyrokinetic->self_prim = self_prim_kernels[tblidx].kernels[poly_order];
+  prim_gyrokinetic->cross_prim = cross_prim_kernels[tblidx].kernels[poly_order];
 }
 
 struct gkyl_prim_lbo_type*
@@ -44,11 +48,11 @@ gkyl_prim_lbo_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis,
   int pdim = prim_gyrokinetic->prim.pdim = pbasis->ndim;
   int vdim = pdim - cdim;
   int poly_order = prim_gyrokinetic->prim.poly_order = cbasis->poly_order;
+  prim_gyrokinetic->prim.udim = 1;
 
   prim_gyrokinetic->prim.flag = 0;
   GKYL_SET_CU_ALLOC(prim_gyrokinetic->prim.flag);
   prim_gyrokinetic->prim.ref_count = gkyl_ref_count_init(prim_lbo_gyrokinetic_free);
-  prim_gyrokinetic->prim.udim = 1;
   
   // copy the host struct to device struct
   struct prim_lbo_type_gyrokinetic *prim_gyrokinetic_cu = (struct prim_lbo_type_gyrokinetic*)

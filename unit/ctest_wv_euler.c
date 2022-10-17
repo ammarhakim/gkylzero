@@ -1,3 +1,4 @@
+#include <gkyl_util.h>
 #include <acutest.h>
 #include <gkyl_moment_prim_euler.h>
 #include <gkyl_wv_euler.h>
@@ -69,7 +70,16 @@ test_euler_basic()
     gkyl_wv_eqn_rotate_to_global(euler, tau1[d], tau2[d], norm[d], q_l, q_g);
 
     for (int m=0; m<5; ++m) TEST_CHECK( q[m] == q_g[m] );
+
+    // check Riemann transform
+    double w1[5], q1[5];
+    euler->cons_to_riem(euler, q_local, q_local, w1);
+    euler->riem_to_cons(euler, q_local, w1, q1);
+    
+    for (int m=0; m<5; ++m)
+      TEST_CHECK( gkyl_compare_double(q_local[m], q1[m], 1e-14) );
   }
+
   
   gkyl_wv_eqn_release(euler);
 }

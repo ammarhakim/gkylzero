@@ -48,6 +48,15 @@ struct gkyl_vlasov_source {
   void (*profile)(double t, const double *xn, double *aout, void *ctx);
 };
 
+// Parameters for fluid species source
+struct gkyl_vlasov_fluid_source {
+  enum gkyl_source_id source_id; // type of source
+
+  void *ctx; // context for source function
+  // function for computing source profile
+  void (*profile)(double t, const double *xn, double *aout, void *ctx);
+};
+
 // Parameters for fluid species advection
 struct gkyl_vlasov_fluid_advection {
   void *velocity_ctx; // context for applied advection function
@@ -124,6 +133,9 @@ struct gkyl_vlasov_fluid_species {
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
 
+  // source term
+  struct gkyl_vlasov_fluid_source source;
+  
   // advection coupling to include
   struct gkyl_vlasov_fluid_advection advection;
   

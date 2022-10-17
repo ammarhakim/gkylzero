@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gkyl_basis.h>
+#include <gkyl_mp_scheme.h>
 
 #include <assert.h>
 #include <limits.h>
@@ -24,6 +25,8 @@ struct gkyl_app_args {
   int vcells[3]; // velocity space cells
   char file_name[1024]; // name of input file
   enum gkyl_basis_type basis_type; // type of basis functions to use
+  enum gkyl_mp_recon mp_recon; // the XX in MP-XX
+  bool skip_limiters; // should we skip limiters?
 };
 
 static int
@@ -38,25 +41,51 @@ get_basis_type(const char *nm)
   return -1;
 }
 
+static int
+get_mp_recon_type(const char *nm)
+{
+  if (strcmp(nm, "u1") == 0) {
+    return GKYL_MP_U1;
+  }
+  else if (strcmp(nm, "u3") == 0) {
+    return GKYL_MP_U3;
+  }
+  else if (strcmp(nm, "u5") == 0) {
+    return GKYL_MP_U5;
+  }
+  else if (strcmp(nm, "c2") == 0) {
+    return GKYL_MP_C2;
+  }
+  else if (strcmp(nm, "c4") == 0) {
+    return GKYL_MP_C4;
+  }
+  else if (strcmp(nm, "c6") == 0) {
+    return GKYL_MP_C6;
+  }  
+  
+  return -1;
+}
+
 static struct gkyl_app_args
 parse_app_args(int argc, char **argv)
 {
   bool use_gpu = false;
   bool step_mode = false;
   bool trace_mem = false;
+  bool skip_limiters = false;
   int num_steps = INT_MAX;
   int num_threads = 1; // by default use only 1 thread
 
   struct gkyl_app_args args = {
     .xcells = { 0 },
-    .vcells = { 0 }
+    .vcells = { 0 },
   };
 
   strcpy(args.file_name, APP_ARGS_DEFAULT_FILE_NAME); // default
   args.basis_type = GKYL_BASIS_MODAL_SERENDIPITY;
 
   int c;
-  while ((c = getopt(argc, argv, "+hgmt:s:i:b:x:y:z:u:v:w:")) != -1) {
+  while ((c = getopt(argc, argv, "+hgmt:s:i:b:x:y:z:u:v:w:r:")) != -1) {
     switch (c)
     {
       case 'h':
@@ -67,6 +96,9 @@ parse_app_args(int argc, char **argv)
         printf(" -tN    Use N threads (when available)\n");
         printf(" -b     Basis function to use (ms: Modal serendipity; mt: Modal tensor-product)\n");
         printf("        (Ignored for finite-volume solvers)\n");
+        printf(" -r     Recovery scheme. One of u1, u3, u5, c2, c4, c6\n");
+        printf("        (Only used for MP-XX solvers)\n");
+        printf(" -l     Turn off limiters\n");
         printf(" -m     Turn on memory allocation/deallocation tracing\n");
         printf("\n");
         printf(" Grid resolution in configuration space:\n");
@@ -83,6 +115,10 @@ parse_app_args(int argc, char **argv)
       case 'm':
         trace_mem = true;
         break;
+
+      case 'l':
+        skip_limiters = true;
+        break;        
       
       case 's':
         step_mode = true;
@@ -126,6 +162,11 @@ parse_app_args(int argc, char **argv)
         assert(args.basis_type != -1);
         break;
 
+     case 'r':
+        args.mp_recon = get_mp_recon_type(optarg);
+        assert(args.mp_recon != -1);
+        break;        
+
       case '?':
         break;
     }
@@ -136,6 +177,7 @@ parse_app_args(int argc, char **argv)
   args.step_mode = step_mode;
   args.num_steps = num_steps;
   args.num_threads = num_threads;
+  args.skip_limiters = skip_limiters;
 
   return args;
 }

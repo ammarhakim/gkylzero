@@ -32,22 +32,27 @@ typedef struct gkyl_fem_parproj gkyl_fem_parproj;
  * @param grid Grid object
  * @param basis Basis functions of the DG field.
  * @param isparperiodic boolean indicating if parallel direction is periodic.
+ * @param isweighted boolean indicating if wgt\=1.
+ * @param weight multiplicative weight on left-side of the operator.
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
 gkyl_fem_parproj* gkyl_fem_parproj_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-  const bool isparperiodic, bool use_gpu);
+  bool isparperiodic, bool isweighted, const struct gkyl_array *weight,
+  bool use_gpu);
 
 /**
  * Set the multiplicative weight.
+ * Note that this triggers a re-building and decomposition
+ * of the LHS matrix.
  *
  * @param up FEM project updater to run.
  * @param tm Time at which projection must be computed
  * @param inw Input array weight.
  */
 void gkyl_fem_parproj_set_weight(const gkyl_fem_parproj *up,
-  double tm, const struct gkyl_array *inw);
+  const struct gkyl_array *inw);
 
 /**
  * Begin assembling the right-side source vector and, if necessary,

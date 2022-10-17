@@ -1,8 +1,9 @@
+#include <stdbool.h>
 #include <math.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_moment_prim_maxwell.h>
 #include <gkyl_wv_maxwell.h>
-#include <stdbool.h>
 
 struct wv_maxwell {
   struct gkyl_wv_eqn eqn; // base object
@@ -16,6 +17,23 @@ maxwell_free(const struct gkyl_ref_count *ref)
   struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
   struct wv_maxwell *maxwell = container_of(base, struct wv_maxwell, eqn);
   gkyl_free(maxwell);
+}
+
+static inline void
+cons_to_riem(const struct gkyl_wv_eqn *eqn,
+  const double *qstate, const double *qin, double *wout)
+{
+  // TODO: this should use proper L matrix
+  for (int i=0; i<8; ++i)
+    wout[i] = qin[i];
+}
+static inline void
+riem_to_cons(const struct gkyl_wv_eqn *eqn,
+  const double *qstate, const double *win, double *qout)
+{
+  // TODO: this should use proper L matrix
+  for (int i=0; i<8; ++i)
+    qout[i] = win[i];
 }
 
 static void
@@ -143,19 +161,46 @@ qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *ql, const double *qr, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
-  const double *w0 = &waves[0*8], *w1 = &waves[1*8], *w2 = &waves[2*8];
-  const double *w3 = &waves[3*8], *w4 = &waves[4*8], *w5 = &waves[5*8];
-  
-  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]), s2m = fmin(0.0, s[2]);
-  double s3m = fmin(0.0, s[3]), s4m = fmin(0.0, s[4]), s5m = fmin(0.0, s[5]);
-  
-  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]), s2p = fmax(0.0, s[2]);
-  double s3p = fmax(0.0, s[3]), s4p = fmax(0.0, s[4]), s5p = fmax(0.0, s[5]);
+  const struct wv_maxwell *maxwell = container_of(eqn, struct wv_maxwell, eqn);
 
-  for (int i=0; i<8; ++i) {
-    amdq[i] = s0m*w0[i] + s1m*w1[i] + s2m*w2[i] + s3m*w3[i] + s4m*w4[i] + s5m*w5[i];
-    apdq[i] = s0p*w0[i] + s1p*w1[i] + s2p*w2[i] + s3p*w3[i] + s4p*w4[i] + s5p*w5[i];
-  }
+  double c = maxwell->c, c2 = c*c;
+  double e_fact = maxwell->e_fact, b_fact = maxwell->b_fact;
+
+  // auto-generated from Maxima
+  apdq[0] = c*(((qr[6]-ql[6])*c)/2+(qr[0]-ql[0])/2)*e_fact;
+  apdq[1] = c*(((qr[5]-ql[5])*c)/2+(qr[1]-ql[1])/2);
+  apdq[2] = c*((qr[2]-ql[2])/2-((qr[4]-ql[4])*c)/2);
+  apdq[3] = ((qr[7]-ql[7])/(2*c)+(qr[3]-ql[3])/2)*c*b_fact;
+  apdq[4] = ((qr[4]-ql[4])*c)/2-(qr[2]-ql[2])/2;
+  apdq[5] = ((qr[5]-ql[5])*c)/2+(qr[1]-ql[1])/2;
+  apdq[6] = (((qr[6]-ql[6])*c)/2+(qr[0]-ql[0])/2)*e_fact;
+  apdq[7] = ((qr[7]-ql[7])/(2*c)+(qr[3]-ql[3])/2)*c2*b_fact;
+  
+  amdq[0] = -c*((qr[0]-ql[0])/2-((qr[6]-ql[6])*c)/2)*e_fact;
+  amdq[1] = -c*((qr[1]-ql[1])/2-((qr[5]-ql[5])*c)/2);
+  amdq[2] = -c*(((qr[4]-ql[4])*c)/2+(qr[2]-ql[2])/2);
+  amdq[3] = -((qr[3]-ql[3])/2-(qr[7]-ql[7])/(2*c))*c*b_fact;
+  amdq[4] = (-((qr[4]-ql[4])*c)/2)-(qr[2]-ql[2])/2;
+  amdq[5] = (qr[1]-ql[1])/2-((qr[5]-ql[5])*c)/2;
+  amdq[6] = ((qr[0]-ql[0])/2-((qr[6]-ql[6])*c)/2)*e_fact;
+  amdq[7] = ((qr[3]-ql[3])/2-(qr[7]-ql[7])/(2*c))*c2*b_fact;
+}
+
+static double
+flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
+{
+  const struct wv_maxwell *maxwell = container_of(eqn, struct wv_maxwell, eqn);
+
+  double c = maxwell->c;
+  double e_fact = maxwell->e_fact, b_fact = maxwell->b_fact;
+
+  double fr[8], fl[8];
+  gkyl_maxwell_flux(c, e_fact, b_fact, ql, fl);
+  gkyl_maxwell_flux(c, e_fact, b_fact, qr, fr);
+
+  for (int m=0; m<8; ++m) flux_jump[m] = fr[m]-fl[m];
+
+  return c;
 }
 
 static bool
@@ -186,10 +231,15 @@ gkyl_wv_maxwell_new(double c, double e_fact, double b_fact)
   
   maxwell->eqn.waves_func = wave;
   maxwell->eqn.qfluct_func = qfluct;
+  maxwell->eqn.flux_jump = flux_jump;
+  
   maxwell->eqn.check_inv_func = check_inv;
   maxwell->eqn.max_speed_func = max_speed;
   maxwell->eqn.rotate_to_local_func = rot_to_local;
   maxwell->eqn.rotate_to_global_func = rot_to_global;
+
+  maxwell->eqn.cons_to_riem = cons_to_riem;
+  maxwell->eqn.riem_to_cons = riem_to_cons;
 
   maxwell->eqn.wall_bc_func = maxwell_wall;
 

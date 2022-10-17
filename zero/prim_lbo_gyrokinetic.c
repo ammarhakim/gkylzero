@@ -11,10 +11,12 @@
 void
 prim_lbo_gyrokinetic_free(const struct gkyl_ref_count *ref)
 {
-  struct gkyl_prim_lbo_type *prim = container_of(ref, struct gkyl_prim_lbo_type, ref_count);
-  if (GKYL_IS_CU_ALLOC(prim->flag))
-    gkyl_cu_free(prim->on_dev);
-  gkyl_free(prim);
+  struct gkyl_prim_lbo_type *prim_ty = container_of(ref, struct gkyl_prim_lbo_type, ref_count);
+  if (GKYL_IS_CU_ALLOC(prim_ty->flag))
+    gkyl_cu_free(prim_ty->on_dev);
+
+  struct prim_lbo_type_gyrokinetic *gk = container_of(prim_ty, struct prim_lbo_type_gyrokinetic, prim);
+  gkyl_free(gk);
 }
 
 struct gkyl_prim_lbo_type*
@@ -31,14 +33,17 @@ gkyl_prim_lbo_gyrokinetic_new(const struct gkyl_basis* cbasis,
   prim_gyrokinetic->prim.num_config = cbasis->num_basis;
   prim_gyrokinetic->prim.num_phase = pbasis->num_basis;
   prim_gyrokinetic->prim.self_prim = self_prim;
+  prim_gyrokinetic->prim.cross_prim = cross_prim;
   prim_gyrokinetic->prim.udim = 1;
 
   // choose kernel tables based on basis-function type
   const gkyl_prim_lbo_gyrokinetic_kern_list *self_prim_kernels;
+  const gkyl_prim_lbo_gyrokinetic_cross_kern_list *cross_prim_kernels;
 
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       self_prim_kernels = ser_self_prim_kernels;
+      cross_prim_kernels = ser_cross_prim_kernels;
       break;
 
     default:
@@ -47,8 +52,10 @@ gkyl_prim_lbo_gyrokinetic_new(const struct gkyl_basis* cbasis,
   }
   assert(cv_index[cdim].vdim[vdim] != -1);
   assert(NULL != self_prim_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+  assert(NULL != cross_prim_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
   prim_gyrokinetic->self_prim = self_prim_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+  prim_gyrokinetic->cross_prim = cross_prim_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 
   prim_gyrokinetic->prim.flag = 0;
   GKYL_CLEAR_CU_ALLOC(prim_gyrokinetic->prim.flag);

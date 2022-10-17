@@ -70,6 +70,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     is_np[app->periodic_dirs[d]] = 0;
 
   for (int dir=0; dir<app->cdim; ++dir) {
+    f->lower_bc[dir] = f->upper_bc[dir] = GKYL_FIELD_COPY;
     if (is_np[dir]) {
       const enum gkyl_field_bc_type *bc;
       if (dir == 0)
@@ -84,7 +85,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     }
   }
 
-  int ghost[GKYL_MAX_DIM];
+  int ghost[GKYL_MAX_DIM] = { 0 };
   for (int d=0; d<app->cdim; ++d)
     ghost[d] = 1;
   
@@ -97,7 +98,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       bctype = GKYL_BC_MAXWELL_PEC;
   
     f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &app->local_ext, ghost, bctype,
-                                    app->basis_on_dev.confBasis, f->em->ncomp, app->cdim, app->use_gpu);
+      app->basis_on_dev.confBasis, f->em->ncomp, app->cdim, app->use_gpu);
     // Upper BC updater. Copy BCs by default.
     if (f->upper_bc[d] == GKYL_FIELD_COPY)
       bctype = GKYL_BC_COPY;
@@ -105,7 +106,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       bctype = GKYL_BC_MAXWELL_PEC;
     
     f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &app->local_ext, ghost, bctype,
-                                    app->basis_on_dev.confBasis, f->em->ncomp, app->cdim, app->use_gpu);
+      app->basis_on_dev.confBasis, f->em->ncomp, app->cdim, app->use_gpu);
   }
 
   gkyl_dg_eqn_release(eqn);
