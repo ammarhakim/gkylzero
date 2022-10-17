@@ -27,13 +27,8 @@ evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
 {
   struct esshock_ctx *app = ctx;
   double x = xn[0], v = xn[1];
-  double vt = app->vte, vdrift = app->uShock, n0 = app->n0;
-  double fv = 0.0;
-  if (x < 0)
-    fv = n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v-vdrift)/(2*sq(vt))));
-  else
-    fv = n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v+vdrift)/(2*sq(vt))));
-  fout[0] = fv;
+  double vt = app->vte, n0 = app->n0;
+  fout[0] = n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
 }
 
 void
@@ -41,31 +36,40 @@ evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
 {
   struct esshock_ctx *app = ctx;
   double x = xn[0], v = xn[1];
-  double vt = app->vti, vdrift = app->uShock, n0 = app->n0;
-  double fv = 0.0;
+  double vt = app->vti, n0 = app->n0;
+  fout[0] = n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
+}
+
+void
+evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct esshock_ctx *app = ctx;
+  double x = xn[0];
+  double vt = app->vte, vdrift = app->uShock, n0 = app->n0;
+  double mass = app->massElc;
   if (x < 0)
-    fv = n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v-vdrift)/(2*sq(vt))));
+    fout[0] = n0*mass*vdrift;
   else
-    fv = n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v+vdrift)/(2*sq(vt))));
-  fout[0] = fv;
+    fout[0] = -n0*mass*vdrift;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+  fout[3] = n0*mass*vt*vt;
 }
 
 void
-evalTperpElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct esshock_ctx *app = ctx;
   double x = xn[0];
-  double vt = app->vte, n = app->n0;
-  fout[0] = n*vt*vt;
-}
-
-void
-evalTperpIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct esshock_ctx *app = ctx;
-  double x = xn[0];
-  double vt = app->vti, n = app->n0;
-  fout[0] = n*vt*vt;
+  double vt = app->vti, vdrift = app->uShock, n0 = app->n0;
+  double mass = app->massIon;
+  if (x < 0)
+    fout[0] = n0*mass*vdrift;
+  else
+    fout[0] = -n0*mass*vdrift;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+  fout[3] = n0*mass*vt*vt;
 }
 
 void
@@ -73,9 +77,10 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct esshock_ctx *app = ctx;
   double x = xn[0];
+  double B_x = 1.0;
   
   fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
-  fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
+  fout[3] = B_x; fout[4] = 0.0; fout[5] = 0.0;
   fout[6] = 0.0; fout[7] = 0.0;
 }
 
@@ -127,18 +132,19 @@ main(int argc, char **argv)
   struct esshock_ctx ctx = create_ctx(); // context for init functions
 
   // electron Tperp                                                                                              
-  struct gkyl_vlasov_fluid_species Tperp_elc = {
-    .name = "Tperp_elc",
-
+  struct gkyl_vlasov_fluid_species fluid_elc = {
+    .name = "fluid_elc",
+    .num_eqn = 4,
+    .pkpm_species = "elc",
     .ctx = &ctx,
-    .init = evalTperpElc,
-
-    .advection = {.advect_with = "elc", .collision_id = GKYL_LBO_COLLISIONS},
+    .init = evalFluidElc,
   };  
   
   // electrons
   struct gkyl_vlasov_species elc = {
     .name = "elc",
+    .model_id = GKYL_MODEL_PKPM,
+    .pkpm_fluid_species = "fluid_elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
     .lower = { -6.0 * ctx.vte},
     .upper = { 6.0 * ctx.vte}, 
@@ -152,26 +158,25 @@ main(int argc, char **argv)
 
       .ctx = &ctx,
       .self_nu = evalNuElc,
-      .collide_with_fluid = "Tperp_elc",
     },    
 
-    .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "M2" },
+    .num_diag_moments = 0,
   };
 
   // ion Tperp                                                                                              
-  struct gkyl_vlasov_fluid_species Tperp_ion = {
-    .name = "Tperp_ion",
-
+  struct gkyl_vlasov_fluid_species fluid_ion = {
+    .name = "fluid_ion",
+    .num_eqn = 4,
+    .pkpm_species = "ion",
     .ctx = &ctx,
-    .init = evalTperpIon,
-
-    .advection = {.advect_with = "ion", .collision_id = GKYL_LBO_COLLISIONS},
+    .init = evalFluidIon,
   };  
   
   // ions
   struct gkyl_vlasov_species ion = {
     .name = "ion",
+    .model_id = GKYL_MODEL_PKPM,
+    .pkpm_fluid_species = "fluid_ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
     .lower = { -16.0 * ctx.vti},
     .upper = { 16.0 * ctx.vti}, 
@@ -185,11 +190,9 @@ main(int argc, char **argv)
 
       .ctx = &ctx,
       .self_nu = evalNuIon,
-      .collide_with_fluid = "Tperp_ion" ,
     },    
 
-    .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "M2" },
+    .num_diag_moments = 0,
   };
 
   // field
@@ -219,7 +222,7 @@ main(int argc, char **argv)
     .num_species = 2,
     .species = { elc, ion },
     .num_fluid_species = 2,
-    .fluid_species = { Tperp_elc, Tperp_ion },
+    .fluid_species = { fluid_elc, fluid_ion },
     .field = field,
 
     .use_gpu = app_args.use_gpu,

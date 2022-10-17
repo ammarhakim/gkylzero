@@ -19,10 +19,16 @@ mom_free(const struct gkyl_ref_count *ref)
 
 
 struct gkyl_mom_type*
-gkyl_mom_bcorr_lbo_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const double* vBoundary)
+gkyl_mom_bcorr_lbo_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+  const double* vBoundary, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
-  
+
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(cbasis, pbasis, vBoundary);
+  } 
+#endif  
   struct mom_type_bcorr_lbo_vlasov *mom_bcorr = gkyl_malloc(sizeof(struct mom_type_bcorr_lbo_vlasov));
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
   int poly_order = cbasis->poly_order;

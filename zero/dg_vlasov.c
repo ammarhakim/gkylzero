@@ -57,7 +57,6 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   vlasov->pdim = pdim;
 
   vlasov->eqn.num_equations = 1;
-  vlasov->eqn.vol_term = vol;
   vlasov->eqn.surf_term = surf;
   vlasov->eqn.boundary_surf_term = boundary_surf;
 
@@ -84,28 +83,14 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
       
       break;
 
-    case GKYL_BASIS_MODAL_TENSOR:
-      stream_vol_kernels = ten_stream_vol_kernels;
-      vol_kernels = ten_vol_kernels;
-      stream_surf_x_kernels = ten_stream_surf_x_kernels;
-      stream_surf_y_kernels = ten_stream_surf_y_kernels;
-      stream_surf_z_kernels = ten_stream_surf_z_kernels;
-      accel_surf_vx_kernels = ten_accel_surf_vx_kernels;
-      accel_surf_vy_kernels = ten_accel_surf_vy_kernels;
-      accel_surf_vz_kernels = ten_accel_surf_vz_kernels;
-      accel_boundary_surf_vx_kernels = ten_accel_boundary_surf_vx_kernels;
-      accel_boundary_surf_vy_kernels = ten_accel_boundary_surf_vy_kernels;
-      accel_boundary_surf_vz_kernels = ten_accel_boundary_surf_vz_kernels;
-      break;
-
     default:
       assert(false);
       break;    
   }  
   if (field_id == GKYL_FIELD_NULL)
-    vlasov->vol = CK(stream_vol_kernels,cdim,vdim,poly_order);
+    vlasov->eqn.vol_term = CK(stream_vol_kernels,cdim,vdim,poly_order);
   else
-    vlasov->vol = CK(vol_kernels,cdim,vdim,poly_order);
+    vlasov->eqn.vol_term = CK(vol_kernels,cdim,vdim,poly_order);
 
   vlasov->stream_surf[0] = CK(stream_surf_x_kernels,cdim,vdim,poly_order);
   if (cdim>1)
@@ -126,7 +111,6 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
     vlasov->accel_boundary_surf[2] = CK(accel_boundary_surf_vz_kernels,cdim,vdim,poly_order);
 
   // ensure non-NULL pointers
-  assert(vlasov->vol);
   for (int i=0; i<cdim; ++i) assert(vlasov->stream_surf[i]);
   for (int i=0; i<vdim; ++i) assert(vlasov->accel_surf[i]);
   for (int i=0; i<vdim; ++i) assert(vlasov->accel_boundary_surf[i]);

@@ -97,6 +97,7 @@ main(int argc, char **argv)
   // electrons
   struct gkyl_vlasov_species elc = {
     .name = "elc",
+    .model_id = GKYL_MODEL_SR,
     .charge = -1.0,
     .mass = 1.0,
     .lower = { -768.0 },
@@ -120,6 +121,7 @@ main(int argc, char **argv)
   // positrons
   struct gkyl_vlasov_species pos = {
     .name = "pos",
+    .model_id = GKYL_MODEL_SR,
     .charge = 1.0,
     .mass = 1.0,
     .lower = { -768.0 },
@@ -142,7 +144,6 @@ main(int argc, char **argv)
 
   // field
   struct gkyl_vlasov_field field = {
-    .field_id = GKYL_FIELD_SR_E_B,
     .epsilon0 = 1.0, .mu0 = 1.0,
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
@@ -176,7 +177,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 100.0;
+  double tcurr = 0.0, tend = 25.0;
   double dt = tend-tcurr;
   int nframe = 250;
   // create trigger for IO

@@ -34,7 +34,6 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
 {
   vlasov->auxfields.qmem = 0; 
 
-  vlasov->eqn.vol_term = vol;
   vlasov->eqn.surf_term = surf;
   vlasov->eqn.boundary_surf_term = boundary_surf;
 
@@ -61,28 +60,14 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
       
       break;
 
-    case GKYL_BASIS_MODAL_TENSOR:
-      stream_vol_kernels = ten_stream_vol_kernels;
-      vol_kernels = ten_vol_kernels;
-      stream_surf_x_kernels = ten_stream_surf_x_kernels;
-      stream_surf_y_kernels = ten_stream_surf_y_kernels;
-      stream_surf_z_kernels = ten_stream_surf_z_kernels;
-      accel_surf_vx_kernels = ten_accel_surf_vx_kernels;
-      accel_surf_vy_kernels = ten_accel_surf_vy_kernels;
-      accel_surf_vz_kernels = ten_accel_surf_vz_kernels;
-      accel_boundary_surf_vx_kernels = ten_accel_boundary_surf_vx_kernels;
-      accel_boundary_surf_vy_kernels = ten_accel_boundary_surf_vy_kernels;
-      accel_boundary_surf_vz_kernels = ten_accel_boundary_surf_vz_kernels;
-      break;
-
     default:
       assert(false);
       break;    
   }  
   if (field_id == GKYL_FIELD_NULL)
-    vlasov->vol = stream_vol_kernels[cv_index].kernels[poly_order];
+    vlasov->eqn.vol_term = stream_vol_kernels[cv_index].kernels[poly_order];
   else
-    vlasov->vol = vol_kernels[cv_index].kernels[poly_order];
+    vlasov->eqn.vol_term = vol_kernels[cv_index].kernels[poly_order];
 
   vlasov->stream_surf[0] = stream_surf_x_kernels[cv_index].kernels[poly_order];
   if (cdim>1)

@@ -47,8 +47,8 @@ static void
 copy_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
-  int nbasis = mc->basis->num_basis;
-  for (int c=0; c<nbasis; ++c) out[c] = inp[c];
+  int num_comp = mc->ncomp;
+  for (int c=0; c<num_comp; ++c) out[c] = inp[c];
 }
 
 GKYL_CU_D
@@ -56,8 +56,8 @@ static void
 species_absorb_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
-  int nbasis = mc->basis->num_basis;
-  for (int c=0; c<nbasis; ++c) out[c] = 0.0;
+  int num_comp = mc->ncomp;
+  for (int c=0; c<num_comp; ++c) out[c] = 0.0;
 }
 
 GKYL_CU_D

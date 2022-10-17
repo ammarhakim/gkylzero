@@ -9,8 +9,28 @@
 #include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_calc_bcorr_priv.h>
 #include <gkyl_mom_bcorr_lbo_vlasov.h>
+#include <gkyl_mom_bcorr_lbo_vlasov_pkpm.h>
 #include <gkyl_mom_bcorr_lbo_gyrokinetic.h>
 #include <gkyl_util.h>
+
+struct gkyl_mom_calc_bcorr*
+gkyl_mom_calc_bcorr_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_mom_type *momt, bool use_gpu)
+{
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_mom_calc_bcorr_cu_dev_new(grid, momt);
+  } 
+#endif
+  gkyl_mom_calc_bcorr *up = gkyl_malloc(sizeof(gkyl_mom_calc_bcorr));
+  up->grid = *grid;
+  up->momt = gkyl_mom_type_acquire(momt);
+  up->flags = 0;
+  GKYL_CLEAR_CU_ALLOC(up->flags);
+  up->on_dev = up;
+  
+  return up;
+}
 
 static inline void
 copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
@@ -22,7 +42,7 @@ copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 }
 
 void
-gkyl_mom_calc_bcorr_advance(gkyl_mom_calc_bcorr *bcorr,
+gkyl_mom_calc_bcorr_advance(const struct gkyl_mom_calc_bcorr *bcorr,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
   const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT out)
 {
@@ -87,19 +107,6 @@ gkyl_mom_calc_bcorr_advance(gkyl_mom_calc_bcorr *bcorr,
   }
 }
 
-gkyl_mom_calc_bcorr*
-gkyl_mom_calc_bcorr_new(const struct gkyl_rect_grid *grid, const struct gkyl_mom_type *momt)
-{
-  gkyl_mom_calc_bcorr *up = gkyl_malloc(sizeof(gkyl_mom_calc_bcorr));
-  up->grid = *grid;
-  up->momt = gkyl_mom_type_acquire(momt);
-  up->flags = 0;
-  GKYL_CLEAR_CU_ALLOC(up->flags);
-  up->on_dev = up;
-  
-  return up;
-}
-
 void
 gkyl_mom_calc_bcorr_release(gkyl_mom_calc_bcorr* up)
 {
@@ -110,52 +117,42 @@ gkyl_mom_calc_bcorr_release(gkyl_mom_calc_bcorr* up)
 }
 
 // "derived" class constructors
-gkyl_mom_calc_bcorr*
-gkyl_mom_calc_bcorr_lbo_vlasov_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const double* vBoundary)
+struct gkyl_mom_calc_bcorr*
+gkyl_mom_calc_bcorr_lbo_vlasov_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+  const double* vBoundary, bool use_gpu)
 {
   struct gkyl_mom_type *bcorr_type; // LBO boundary corrections moment type
-  bcorr_type = gkyl_mom_bcorr_lbo_vlasov_new(cbasis, pbasis, vBoundary);  
-  struct gkyl_mom_calc_bcorr* calc = gkyl_mom_calc_bcorr_new(grid, bcorr_type);
+  bcorr_type = gkyl_mom_bcorr_lbo_vlasov_new(cbasis, pbasis, vBoundary, use_gpu);  
+  struct gkyl_mom_calc_bcorr* calc = gkyl_mom_calc_bcorr_new(grid, bcorr_type, use_gpu);
   // Since calc now has pointer to specific type, decrease reference counter of type
   // so that eventual gkyl_mom_calc_bcorr_release method on calculator deallocates specific type data
   gkyl_mom_type_release(bcorr_type);
   return calc;
 }
 
-gkyl_mom_calc_bcorr*
-gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const double* vBoundary, double mass)
+struct gkyl_mom_calc_bcorr*
+gkyl_mom_calc_bcorr_lbo_vlasov_pkpm_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+  const double* vBoundary, double mass, bool use_gpu)
 {
   struct gkyl_mom_type *bcorr_type; // LBO boundary corrections moment type
-  bcorr_type = gkyl_mom_bcorr_lbo_gyrokinetic_new(cbasis, pbasis, vBoundary, mass);
-  struct gkyl_mom_calc_bcorr* calc = gkyl_mom_calc_bcorr_new(grid, bcorr_type);
+  bcorr_type = gkyl_mom_bcorr_lbo_vlasov_pkpm_new(cbasis, pbasis, vBoundary, mass, use_gpu);  
+  struct gkyl_mom_calc_bcorr* calc = gkyl_mom_calc_bcorr_new(grid, bcorr_type, use_gpu);
   // Since calc now has pointer to specific type, decrease reference counter of type
   // so that eventual gkyl_mom_calc_bcorr_release method on calculator deallocates specific type data
   gkyl_mom_type_release(bcorr_type);
   return calc;
 }
 
-gkyl_mom_calc_bcorr*
-gkyl_mom_calc_bcorr_lbo_vlasov_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const double* vBoundary)
+struct gkyl_mom_calc_bcorr*
+gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+  const double* vBoundary, double mass, bool use_gpu)
 {
   struct gkyl_mom_type *bcorr_type; // LBO boundary corrections moment type
-  bcorr_type = gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(cbasis, pbasis, vBoundary);
-  struct gkyl_mom_calc_bcorr* calc = gkyl_mom_calc_bcorr_cu_dev_new(grid, bcorr_type);
-  // Since calc now has pointer to specific type, decrease reference counter of type
-  // so that eventual gkyl_mom_calc_bcorr_release method on calculator deallocates specific type data
-  gkyl_mom_type_release(bcorr_type);
-  return calc;
-}
-
-gkyl_mom_calc_bcorr*
-gkyl_mom_calc_bcorr_lbo_gyrokinetic_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const double* vBoundary, double mass)
-{
-  struct gkyl_mom_type *bcorr_type; // LBO boundary corrections moment type
-  bcorr_type = gkyl_mom_bcorr_lbo_gyrokinetic_cu_dev_new(cbasis, pbasis, vBoundary, mass);
-  struct gkyl_mom_calc_bcorr* calc = gkyl_mom_calc_bcorr_cu_dev_new(grid, bcorr_type);
+  bcorr_type = gkyl_mom_bcorr_lbo_gyrokinetic_new(cbasis, pbasis, vBoundary, mass, use_gpu);
+  struct gkyl_mom_calc_bcorr* calc = gkyl_mom_calc_bcorr_new(grid, bcorr_type, use_gpu);
   // Since calc now has pointer to specific type, decrease reference counter of type
   // so that eventual gkyl_mom_calc_bcorr_release method on calculator deallocates specific type data
   gkyl_mom_type_release(bcorr_type);
@@ -164,14 +161,14 @@ gkyl_mom_calc_bcorr_lbo_gyrokinetic_cu_dev_new(const struct gkyl_rect_grid *grid
 
 #ifndef GKYL_HAVE_CUDA
 
-gkyl_mom_calc_bcorr*
+struct gkyl_mom_calc_bcorr*
 gkyl_mom_calc_bcorr_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_mom_type *momt)
 {
   assert(false);
 }
 
 void
-gkyl_mom_calc_bcorr_advance_cu(gkyl_mom_calc_bcorr *bcorr,
+gkyl_mom_calc_bcorr_advance_cu(const struct gkyl_mom_calc_bcorr *bcorr,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
   const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT out)
 {

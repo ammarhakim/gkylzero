@@ -15,16 +15,19 @@ typedef struct gkyl_mom_calc gkyl_mom_calc;
  *
  * @param grid Grid object
  * @param momt Pointer to moment type object
+ * @param use_gpu bool to determine if on GPU
  * @return New updater pointer.
  */
-gkyl_mom_calc* gkyl_mom_calc_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_mom_type *momt);
+struct gkyl_mom_calc* 
+gkyl_mom_calc_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_mom_type *momt, bool use_gpu);
 
 /**
  * Create new updater to compute moments of distribution function on
  * NV-GPU. See new() method for documentation.
  */
-gkyl_mom_calc* gkyl_mom_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
+struct gkyl_mom_calc* 
+gkyl_mom_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_mom_type *momt);
 
 /**
@@ -39,11 +42,11 @@ gkyl_mom_calc* gkyl_mom_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
  * @param fin Input distribution function array
  * @param mout Output moment array
  */
-void gkyl_mom_calc_advance(const gkyl_mom_calc* calc,
+void gkyl_mom_calc_advance(const struct gkyl_mom_calc* calc,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
   const struct gkyl_array *GKYL_RESTRICT fin, struct gkyl_array *GKYL_RESTRICT mout);
 
-void gkyl_mom_calc_advance_cu(const gkyl_mom_calc* mcalc,
+void gkyl_mom_calc_advance_cu(const struct gkyl_mom_calc* mcalc,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
   const struct gkyl_array *GKYL_RESTRICT fin, struct gkyl_array *GKYL_RESTRICT mout);
 

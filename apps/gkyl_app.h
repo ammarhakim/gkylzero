@@ -19,12 +19,6 @@ enum gkyl_species_bc_type {
   GKYL_SPECIES_FUNC, // Function boundary conditions
 };
 
-// Boundary conditions on fluids
-enum gkyl_fluid_species_bc_type {
-  GKYL_FLUID_SPECIES_COPY = 0, // copy BCs
-  GKYL_FLUID_SPECIES_ABSORB, // Absorbing BCs
-};
-
 // Boundary conditions on fields
 enum gkyl_field_bc_type {
   GKYL_FIELD_COPY = 0, // copy BCs

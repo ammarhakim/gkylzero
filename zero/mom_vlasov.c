@@ -19,10 +19,15 @@ gkyl_mom_free(const struct gkyl_ref_count *ref)
 
 struct gkyl_mom_type*
 gkyl_mom_vlasov_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const char *mom)
+  const struct gkyl_basis* pbasis, const char *mom, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
-  
+
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_mom_vlasov_cu_dev_new(cbasis, pbasis, mom);
+  } 
+#endif
   struct mom_type_vlasov *mom_vm = gkyl_malloc(sizeof(struct mom_type_vlasov));
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
   int poly_order = cbasis->poly_order;
@@ -47,16 +52,6 @@ gkyl_mom_vlasov_new(const struct gkyl_basis* cbasis,
       m3i_kernels = ser_m3i_kernels;
       m3ijk_kernels = ser_m3ijk_kernels;
       five_moments_kernels = ser_five_moments_kernels;
-      break;
-
-    case GKYL_BASIS_MODAL_TENSOR:
-      m0_kernels = ten_m0_kernels;
-      m1i_kernels = ten_m1i_kernels;
-      m2_kernels = ten_m2_kernels;
-      m2ij_kernels = ten_m2ij_kernels;
-      m3i_kernels = ten_m3i_kernels;
-      m3ijk_kernels = ten_m3ijk_kernels;
-      five_moments_kernels = ten_five_moments_kernels;
       break;
 
     default:
@@ -130,10 +125,15 @@ gkyl_mom_vlasov_new(const struct gkyl_basis* cbasis,
 }
 
 struct gkyl_mom_type *
-gkyl_int_mom_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis)
+gkyl_int_mom_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
-  
+
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_int_mom_vlasov_cu_dev_new(cbasis, pbasis);
+  } 
+#endif
   struct mom_type_vlasov *mom_vm = gkyl_malloc(sizeof(struct mom_type_vlasov));
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
   int poly_order = cbasis->poly_order;
@@ -154,14 +154,6 @@ gkyl_int_mom_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
       
       mom_vm->kernel = ser_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 
-      break;
-
-    case GKYL_BASIS_MODAL_TENSOR:
-      assert(cv_index[cdim].vdim[vdim] != -1);
-      assert(NULL != ten_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-      
-      mom_vm->kernel = ten_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-      
       break;
 
     default:

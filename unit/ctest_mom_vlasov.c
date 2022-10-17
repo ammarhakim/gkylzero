@@ -19,7 +19,7 @@ test_mom_vlasov()
   gkyl_cart_modal_serendip(&cbasis, 1, poly_order); // 1X
   gkyl_cart_modal_serendip(&pbasis, 4, poly_order); // 1X3V
 
-  struct gkyl_mom_type *m2ij = gkyl_mom_vlasov_new(&cbasis, &pbasis, "M2ij");
+  struct gkyl_mom_type *m2ij = gkyl_mom_vlasov_new(&cbasis, &pbasis, "M2ij", false);
 
   TEST_CHECK( m2ij->cdim == 1 );
   TEST_CHECK( m2ij->pdim == 4 );
@@ -28,7 +28,7 @@ test_mom_vlasov()
   TEST_CHECK( m2ij->num_phase == pbasis.num_basis );
   TEST_CHECK( m2ij->num_mom == 6 );
 
-  struct gkyl_mom_type *m3ijk = gkyl_mom_vlasov_new(&cbasis, &pbasis, "M3ijk");
+  struct gkyl_mom_type *m3ijk = gkyl_mom_vlasov_new(&cbasis, &pbasis, "M3ijk", false);
   TEST_CHECK( m3ijk->num_mom == 10 );
 
   gkyl_mom_type_release(m2ij);
@@ -143,15 +143,15 @@ test_1x1v_p1()
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
 
-  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0");
-  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M1i");
-  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M2");
-  struct gkyl_mom_type *int_t = gkyl_int_mom_vlasov_new(&confBasis, &basis);
+  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0", false);
+  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M1i", false);
+  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M2", false);
+  struct gkyl_mom_type *int_t = gkyl_int_mom_vlasov_new(&confBasis, &basis, false);
   
-  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, vmM0_t);
-  gkyl_mom_calc *m1icalc = gkyl_mom_calc_new(&grid, vmM1i_t);
-  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, vmM2_t);
-  gkyl_mom_calc *intcalc = gkyl_mom_calc_new(&grid, int_t);
+  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, vmM0_t, false);
+  gkyl_mom_calc *m1icalc = gkyl_mom_calc_new(&grid, vmM1i_t, false);
+  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, vmM2_t, false);
+  gkyl_mom_calc *intcalc = gkyl_mom_calc_new(&grid, int_t, false);
 
   // create moment arrays
   struct gkyl_array *m0, *m1i, *m2, *int_mom;
@@ -286,12 +286,12 @@ test_1x2v_p1()
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
 
-  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0");
-  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M1i");
-  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M2");
-  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, vmM0_t);
-  gkyl_mom_calc *m1icalc = gkyl_mom_calc_new(&grid, vmM1i_t);
-  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, vmM2_t);
+  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0", false);
+  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M1i", false);
+  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M2", false);
+  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, vmM0_t, false);
+  gkyl_mom_calc *m1icalc = gkyl_mom_calc_new(&grid, vmM1i_t, false);
+  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, vmM2_t, false);
   
   // create moment arrays
   struct gkyl_array *m0, *m1i, *m2;
@@ -393,12 +393,12 @@ test_2x2v_p1()
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
 
-  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0");
-  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M1i");
-  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M2");
-  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, vmM0_t);
-  gkyl_mom_calc *m1icalc = gkyl_mom_calc_new(&grid, vmM1i_t);
-  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, vmM2_t);
+  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0", false);
+  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M1i", false);
+  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M2", false);
+  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, vmM0_t, false);
+  gkyl_mom_calc *m1icalc = gkyl_mom_calc_new(&grid, vmM1i_t, false);
+  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, vmM2_t, false);
   
   // create moment arrays
   struct gkyl_array *m0, *m1i, *m2;
@@ -503,12 +503,12 @@ test_big_2x2v_p2()
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
 
-  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0");
-  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M1i");
-  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M2");
-  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, vmM0_t);
-  gkyl_mom_calc *m1icalc = gkyl_mom_calc_new(&grid, vmM1i_t);
-  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, vmM2_t);
+  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0", false);
+  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M1i", false);
+  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M2", false);
+  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, vmM0_t, false);
+  gkyl_mom_calc *m1icalc = gkyl_mom_calc_new(&grid, vmM1i_t, false);
+  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, vmM2_t, false);
   
   // create moment arrays
   struct gkyl_array *m0, *m1i, *m2;
@@ -614,12 +614,12 @@ test_2x3v_p1()
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
 
-  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0");
-  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M1i");
-  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M2");
-  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, vmM0_t);
-  gkyl_mom_calc *m1icalc = gkyl_mom_calc_new(&grid, vmM1i_t);
-  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, vmM2_t);
+  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0", false);
+  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M1i", false);
+  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M2", false);
+  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, vmM0_t, false);
+  gkyl_mom_calc *m1icalc = gkyl_mom_calc_new(&grid, vmM1i_t, false);
+  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, vmM2_t, false);
   
   // create moment arrays
   struct gkyl_array *m0, *m1i, *m2;
@@ -684,7 +684,7 @@ test_cu_mom_vlasov()
   gkyl_cart_modal_serendip(&cbasis, 1, poly_order); // 1X
   gkyl_cart_modal_serendip(&pbasis, 4, poly_order); // 1X3V
 
-  struct gkyl_mom_type *m2ij = gkyl_mom_vlasov_cu_dev_new(&cbasis, &pbasis, "M2ij");
+  struct gkyl_mom_type *m2ij = gkyl_mom_vlasov_new(&cbasis, &pbasis, "M2ij", true);
 
   int nfail = cu_mom_vlasov_test(m2ij->on_dev);
   TEST_CHECK( nfail == 0 );
@@ -755,12 +755,12 @@ test_1x1v_p1_cu()
   gkyl_array_copy(distf_cu, distf);
 
   // Create vlasov moment and mom_calc objects on device.
-  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_cu_dev_new(&confBasis, &basis, "M0");
-  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_cu_dev_new(&confBasis, &basis, "M1i");
-  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_cu_dev_new(&confBasis, &basis, "M2");
-  gkyl_mom_calc *m0Calc = gkyl_mom_calc_cu_dev_new(&grid, vmM0_t);
-  gkyl_mom_calc *m1iCalc = gkyl_mom_calc_cu_dev_new(&grid, vmM1i_t);
-  gkyl_mom_calc *m2Calc = gkyl_mom_calc_cu_dev_new(&grid, vmM2_t);
+  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0", true);
+  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M1i", true);
+  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M2", true);
+  gkyl_mom_calc *m0Calc = gkyl_mom_calc_new(&grid, vmM0_t, true);
+  gkyl_mom_calc *m1iCalc = gkyl_mom_calc_new(&grid, vmM1i_t, true);
+  gkyl_mom_calc *m2Calc = gkyl_mom_calc_new(&grid, vmM2_t, true);
 
   // compute the moment and copy back to host
   gkyl_mom_calc_advance_cu(m0Calc, &local, &confLocal, distf_cu, m0_cu);
@@ -871,12 +871,12 @@ test_1x2v_p1_cu()
   gkyl_array_copy(distf_cu, distf);
 
   // Create vlasov moment and mom_calc objects on device.
-  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_cu_dev_new(&confBasis, &basis, "M0");
-  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_cu_dev_new(&confBasis, &basis, "M1i");
-  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_cu_dev_new(&confBasis, &basis, "M2");
-  gkyl_mom_calc *m0Calc = gkyl_mom_calc_cu_dev_new(&grid, vmM0_t);
-  gkyl_mom_calc *m1iCalc = gkyl_mom_calc_cu_dev_new(&grid, vmM1i_t);
-  gkyl_mom_calc *m2Calc = gkyl_mom_calc_cu_dev_new(&grid, vmM2_t);
+  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0", true);
+  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M1i", true);
+  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M2", true);
+  gkyl_mom_calc *m0Calc = gkyl_mom_calc_new(&grid, vmM0_t, true);
+  gkyl_mom_calc *m1iCalc = gkyl_mom_calc_new(&grid, vmM1i_t, true);
+  gkyl_mom_calc *m2Calc = gkyl_mom_calc_new(&grid, vmM2_t, true);
 
   // create moment arrays
   struct gkyl_array *m0, *m1i, *m2, *m0_cu, *m1i_cu, *m2_cu;;
@@ -990,12 +990,12 @@ test_2x2v_p1_cu()
   gkyl_array_copy(distf_cu, distf);
 
   // Create vlasov moment and mom_calc objects on device.
-  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_cu_dev_new(&confBasis, &basis, "M0");
-  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_cu_dev_new(&confBasis, &basis, "M1i");
-  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_cu_dev_new(&confBasis, &basis, "M2");
-  gkyl_mom_calc *m0Calc = gkyl_mom_calc_cu_dev_new(&grid, vmM0_t);
-  gkyl_mom_calc *m1iCalc = gkyl_mom_calc_cu_dev_new(&grid, vmM1i_t);
-  gkyl_mom_calc *m2Calc = gkyl_mom_calc_cu_dev_new(&grid, vmM2_t);
+  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0", true);
+  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M1i", true);
+  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M2", true);
+  gkyl_mom_calc *m0Calc = gkyl_mom_calc_new(&grid, vmM0_t, true);
+  gkyl_mom_calc *m1iCalc = gkyl_mom_calc_new(&grid, vmM1i_t, true);
+  gkyl_mom_calc *m2Calc = gkyl_mom_calc_new(&grid, vmM2_t, true);
 
   // create moment arrays
   struct gkyl_array *m0, *m1i, *m2, *m0_cu, *m1i_cu, *m2_cu;;
@@ -1112,12 +1112,12 @@ test_2x3v_p1_cu()
   gkyl_array_copy(distf_cu, distf);
 
   // Create vlasov moment and mom_calc objects on device.
-  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_cu_dev_new(&confBasis, &basis, "M0");
-  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_cu_dev_new(&confBasis, &basis, "M1i");
-  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_cu_dev_new(&confBasis, &basis, "M2");
-  gkyl_mom_calc *m0Calc = gkyl_mom_calc_cu_dev_new(&grid, vmM0_t);
-  gkyl_mom_calc *m1iCalc = gkyl_mom_calc_cu_dev_new(&grid, vmM1i_t);
-  gkyl_mom_calc *m2Calc = gkyl_mom_calc_cu_dev_new(&grid, vmM2_t);
+  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0", true);
+  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M1i", true);
+  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M2", true);
+  gkyl_mom_calc *m0Calc = gkyl_mom_calc_new(&grid, vmM0_t, true);
+  gkyl_mom_calc *m1iCalc = gkyl_mom_calc_new(&grid, vmM1i_t, true);
+  gkyl_mom_calc *m2Calc = gkyl_mom_calc_new(&grid, vmM2_t, true);
 
   // create moment arrays
   struct gkyl_array *m0, *m1i, *m2, *m0_cu, *m1i_cu, *m2_cu;;
@@ -1234,12 +1234,12 @@ test_big_2x2v_p2_cu()
   gkyl_array_copy(distf_cu, distf);
 
   // Create vlasov moment and mom_calc objects on device.
-  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_cu_dev_new(&confBasis, &basis, "M0");
-  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_cu_dev_new(&confBasis, &basis, "M1i");
-  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_cu_dev_new(&confBasis, &basis, "M2");
-  gkyl_mom_calc *m0Calc = gkyl_mom_calc_cu_dev_new(&grid, vmM0_t);
-  gkyl_mom_calc *m1iCalc = gkyl_mom_calc_cu_dev_new(&grid, vmM1i_t);
-  gkyl_mom_calc *m2Calc = gkyl_mom_calc_cu_dev_new(&grid, vmM2_t);
+  struct gkyl_mom_type *vmM0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0", true);
+  struct gkyl_mom_type *vmM1i_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M1i", true);
+  struct gkyl_mom_type *vmM2_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M2", true);
+  gkyl_mom_calc *m0Calc = gkyl_mom_calc_new(&grid, vmM0_t, true);
+  gkyl_mom_calc *m1iCalc = gkyl_mom_calc_new(&grid, vmM1i_t, true);
+  gkyl_mom_calc *m2Calc = gkyl_mom_calc_new(&grid, vmM2_t, true);
 
   // create moment arrays
   struct gkyl_array *m0, *m1i, *m2, *m0_cu, *m1i_cu, *m2_cu;;

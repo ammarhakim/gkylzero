@@ -6,21 +6,32 @@
 #include <gkyl_prim_lbo_kernels.h> 
 #include <gkyl_prim_lbo_gyrokinetic.h>
 #include <gkyl_prim_lbo_vlasov.h>
-#include <gkyl_prim_lbo_vlasov_with_fluid.h>
+#include <gkyl_prim_lbo_vlasov_pkpm.h>
 #include <gkyl_mat.h>
 #include <assert.h>
 
 gkyl_prim_lbo_calc*
 gkyl_prim_lbo_calc_new(const struct gkyl_rect_grid *grid,
-  struct gkyl_prim_lbo_type *prim)
+  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_rng, 
+  struct gkyl_prim_lbo_type *prim, bool use_gpu)
 {
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_prim_lbo_calc_cu_dev_new(grid, cbasis, conf_rng, prim);
+  } 
+#endif     
   gkyl_prim_lbo_calc *up = gkyl_malloc(sizeof(gkyl_prim_lbo_calc));
   up->grid = *grid;
   up->prim = gkyl_prim_lbo_type_acquire(prim);
 
-  up->is_first = true;
-  up->As = up->xs = 0;
-  up->mem = 0;
+  // allocate memory for use in kernels
+  int nc = up->prim->num_config;
+  int udim = up->prim->udim;
+  int N = nc*(udim + 1);
+
+  up->As = gkyl_nmat_new(conf_rng->volume, N, N);
+  up->xs = gkyl_nmat_new(conf_rng->volume, N, 1);
+  up->mem = gkyl_nmat_linsolve_lu_new(up->As->num, up->As->nr);
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
@@ -30,24 +41,14 @@ gkyl_prim_lbo_calc_new(const struct gkyl_rect_grid *grid,
 }
 
 void
-gkyl_prim_lbo_calc_advance(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis,
-  struct gkyl_range *conf_rng,
+gkyl_prim_lbo_calc_advance(const struct gkyl_prim_lbo_calc* calc, 
+  const struct gkyl_range *conf_rng,
   const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
   struct gkyl_array *prim_moms_out)
 {
   struct gkyl_range_iter conf_iter;
-
-  // allocate memory for use in kernels
-  int nc = cbasis.num_basis;
+  int nc = calc->prim->num_config;
   int udim = calc->prim->udim;
-  int N = nc*(udim + 1);
-
-  if (calc->is_first) {
-    calc->As = gkyl_nmat_new(conf_rng->volume, N, N);
-    calc->xs = gkyl_nmat_new(conf_rng->volume, N, 1);
-    calc->mem = gkyl_nmat_linsolve_lu_new(calc->As->num, calc->As->nr);
-    calc->is_first = false;
-  }
 
   gkyl_array_clear_range(prim_moms_out, 0.0, *conf_rng);
 
@@ -103,73 +104,42 @@ void gkyl_prim_lbo_calc_release(gkyl_prim_lbo_calc* up)
 }
 
 // "derived" class constructors
-gkyl_prim_lbo_calc*
-gkyl_prim_lbo_vlasov_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis)
+struct gkyl_prim_lbo_calc*
+gkyl_prim_lbo_vlasov_calc_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
+  const struct gkyl_range *conf_rng, bool use_gpu)
 {
   struct gkyl_prim_lbo_type *prim; // LBO primitive moments type
-  prim = gkyl_prim_lbo_vlasov_new(cbasis, pbasis);
-  struct gkyl_prim_lbo_calc *calc = gkyl_prim_lbo_calc_new(grid, prim);
+  prim = gkyl_prim_lbo_vlasov_new(cbasis, pbasis, use_gpu);
+  struct gkyl_prim_lbo_calc *calc = gkyl_prim_lbo_calc_new(grid, cbasis, conf_rng, prim, use_gpu);
   // Since calc now has pointer to specific type, decrease reference counter of type
   // so that eventual gkyl_prim_lbo_calc_release method on calculator deallocates specific type data
   gkyl_prim_lbo_type_release(prim);
   return calc;
 }
 
-gkyl_prim_lbo_calc*
-gkyl_prim_lbo_vlasov_with_fluid_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_rng)
+struct gkyl_prim_lbo_calc*
+gkyl_prim_lbo_vlasov_pkpm_calc_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
+  const struct gkyl_range *conf_rng, bool use_gpu)
 {
   struct gkyl_prim_lbo_type *prim; // LBO primitive moments type
-  prim = gkyl_prim_lbo_vlasov_with_fluid_new(cbasis, pbasis, conf_rng);
-  struct gkyl_prim_lbo_calc *calc = gkyl_prim_lbo_calc_new(grid, prim);
+  prim = gkyl_prim_lbo_vlasov_pkpm_new(cbasis, pbasis, conf_rng, use_gpu);
+  struct gkyl_prim_lbo_calc *calc = gkyl_prim_lbo_calc_new(grid, cbasis, conf_rng, prim, use_gpu);
   // Since calc now has pointer to specific type, decrease reference counter of type
   // so that eventual gkyl_prim_lbo_calc_release method on calculator deallocates specific type data
   gkyl_prim_lbo_type_release(prim);
   return calc;
 }
 
-gkyl_prim_lbo_calc*
-gkyl_prim_lbo_gyrokinetic_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis)
+struct gkyl_prim_lbo_calc*
+gkyl_prim_lbo_gyrokinetic_calc_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_rng, bool use_gpu)
 {
   struct gkyl_prim_lbo_type *prim; // LBO primitive moments type
-  prim = gkyl_prim_lbo_gyrokinetic_new(cbasis, pbasis);
-  struct gkyl_prim_lbo_calc *calc = gkyl_prim_lbo_calc_new(grid, prim);
-  // Since calc now has pointer to specific type, decrease reference counter of type
-  // so that eventual gkyl_prim_lbo_calc_release method on calculator deallocates specific type data
-  gkyl_prim_lbo_type_release(prim);
-  return calc;
-}
-
-gkyl_prim_lbo_calc*
-gkyl_prim_lbo_vlasov_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis)
-{
-  struct gkyl_prim_lbo_type *prim; // LBO primitive moments type
-  prim = gkyl_prim_lbo_vlasov_cu_dev_new(cbasis, pbasis);
-  struct gkyl_prim_lbo_calc *calc = gkyl_prim_lbo_calc_cu_dev_new(grid, prim);
-  // Since calc now has pointer to specific type, decrease reference counter of type
-  // so that eventual gkyl_prim_lbo_calc_release method on calculator deallocates specific type data
-  gkyl_prim_lbo_type_release(prim);
-  return calc;
-}
-
-gkyl_prim_lbo_calc*
-gkyl_prim_lbo_vlasov_with_fluid_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_rng)
-{
-  struct gkyl_prim_lbo_type *prim; // LBO primitive moments type
-  prim = gkyl_prim_lbo_vlasov_with_fluid_cu_dev_new(cbasis, pbasis, conf_rng);
-  struct gkyl_prim_lbo_calc *calc = gkyl_prim_lbo_calc_cu_dev_new(grid, prim);
-  // Since calc now has pointer to specific type, decrease reference counter of type
-  // so that eventual gkyl_prim_lbo_calc_release method on calculator deallocates specific type data
-  gkyl_prim_lbo_type_release(prim);
-  return calc;
-}
-
-gkyl_prim_lbo_calc*
-gkyl_prim_lbo_gyrokinetic_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis)
-{
-  struct gkyl_prim_lbo_type *prim; // LBO primitive moments type
-  prim = gkyl_prim_lbo_gyrokinetic_cu_dev_new(cbasis, pbasis);
-  struct gkyl_prim_lbo_calc *calc = gkyl_prim_lbo_calc_cu_dev_new(grid, prim);
+  prim = gkyl_prim_lbo_gyrokinetic_new(cbasis, pbasis, use_gpu);
+  struct gkyl_prim_lbo_calc *calc = gkyl_prim_lbo_calc_new(grid, cbasis, conf_rng, prim, use_gpu);
   // Since calc now has pointer to specific type, decrease reference counter of type
   // so that eventual gkyl_prim_lbo_calc_release method on calculator deallocates specific type data
   gkyl_prim_lbo_type_release(prim);
@@ -180,6 +150,7 @@ gkyl_prim_lbo_gyrokinetic_calc_cu_dev_new(const struct gkyl_rect_grid *grid, con
 
 gkyl_prim_lbo_calc*
 gkyl_prim_lbo_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_rng, 
   struct gkyl_prim_lbo_type *prim)
 {
   assert(false);
@@ -187,8 +158,8 @@ gkyl_prim_lbo_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
 }
 
 void
-gkyl_prim_lbo_calc_advance_cu(gkyl_prim_lbo_calc* calc, const struct gkyl_basis cbasis,
-  struct gkyl_range *conf_rng,
+gkyl_prim_lbo_calc_advance_cu(const struct gkyl_prim_lbo_calc* calc, 
+  const struct gkyl_range *conf_rng,
   const struct gkyl_array* moms, const struct gkyl_array* boundary_corrections,
   struct gkyl_array* prim_moms_out)
 {

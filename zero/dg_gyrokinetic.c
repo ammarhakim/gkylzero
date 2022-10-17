@@ -68,7 +68,6 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
   gyrokinetic->mass = mass;
 
   gyrokinetic->eqn.num_equations = 1;
-  gyrokinetic->eqn.vol_term = vol;
   gyrokinetic->eqn.surf_term = surf;
   gyrokinetic->eqn.boundary_surf_term = boundary_surf;
 
@@ -93,7 +92,7 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
       break;
   }
 
-  gyrokinetic->vol = CK(vol_kernels,cdim,vdim,poly_order);
+  gyrokinetic->eqn.vol_term = CK(vol_kernels,cdim,vdim,poly_order);
 
   gyrokinetic->surf[0] = CK(surf_x_kernels,cdim,vdim,poly_order);
   if (cdim>1)
@@ -106,7 +105,6 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
   gyrokinetic->boundary_surf = CK(boundary_surf_vpar_kernels,cdim,vdim,poly_order);
 
   // Ensure non-NULL pointers.
-  assert(gyrokinetic->vol);
   for (int i=0; i<cdim; ++i) assert(gyrokinetic->surf[i]);
   assert(gyrokinetic->surf[cdim]);
   assert(gyrokinetic->boundary_surf);

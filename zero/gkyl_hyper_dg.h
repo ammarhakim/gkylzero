@@ -20,6 +20,7 @@ typedef struct gkyl_hyper_dg gkyl_hyper_dg;
  * @param update_dirs List of directions to update (size 'num_up_dirs')
  * @param zero_flux_flags Flags to indicate if direction has zero-flux BCs
  * @param update_vol_term Set to 0 to skip volume update
+ * @param use_gpu bool to determine if on GPU
  */
 gkyl_hyper_dg* gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation,
@@ -59,6 +60,30 @@ void gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_r
 
 // CUDA call
 void gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* hdg, const struct gkyl_range *update_range,
+  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
+  struct gkyl_array* GKYL_RESTRICT rhs);
+
+/**
+ * Compute RHS of DG generic stencil update.
+ * In this case, generic stencil means all neighbor values are accessed and stored
+ * in memory (i.e., in 2D, 9 cells are stored to update the center cell and in 3D
+ * 27 cells are stored to update the center cell)
+ * The update_rng MUST be a sub-range of the range on which the array is defined. 
+ * That is, it must be either the same range as the array range, or one created using the
+ * gkyl_sub_range_init method.
+ *
+ * @param hdg Hyper DG generic stencil updater object
+ * @param update_rng Range on which to compute.
+ * @param fIn Input to updater
+ * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
+ * @param rhs RHS output
+ */
+void gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg* hdg, const struct gkyl_range *update_rng,
+  const struct gkyl_array *fIn, struct gkyl_array *cflrate, 
+  struct gkyl_array *rhs);
+
+// CUDA call
+void gkyl_hyper_dg_gen_stencil_advance_cu(gkyl_hyper_dg* hdg, const struct gkyl_range *update_range,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
   struct gkyl_array* GKYL_RESTRICT rhs);
 
