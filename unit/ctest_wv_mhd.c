@@ -69,6 +69,14 @@ test_mhd_basic()
     
     for (int m=0; m<8; ++m)
       TEST_CHECK( gkyl_compare(flux[m], fluxes[d][m], 1e-14) );
+
+    // check Riemann transform
+    double w1[8], q1[8];
+    mhd->cons_to_riem(mhd, q_local, q_local, w1);
+    mhd->riem_to_cons(mhd, q_local, w1, q1);
+    
+    for (int m=0; m<8; ++m)
+      TEST_CHECK( gkyl_compare_double(q_local[m], q1[m], 1e-14) );
   }
 
   double q_l[8], q_g[8];

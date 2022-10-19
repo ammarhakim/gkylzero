@@ -108,6 +108,7 @@ struct dg_lbo_gyrokinetic_diff {
   struct gkyl_range conf_range; // Configuration space range.
   double mass; // Species mass.
   struct gkyl_dg_lbo_gyrokinetic_diff_auxfields auxfields; // Auxiliary fields.
+  double vparMax, vparMaxSq;
 };
 
 void gkyl_lbo_gyrokinetic_diff_free(const struct gkyl_ref_count* ref);
@@ -119,12 +120,19 @@ vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
 {
   struct dg_lbo_gyrokinetic_diff *lbo_gyrokinetic_diff = container_of(eqn, struct dg_lbo_gyrokinetic_diff, eqn);
   long cidx = gkyl_range_idx(&lbo_gyrokinetic_diff->conf_range, idx);
-  return lbo_gyrokinetic_diff->vol(xc, dx, lbo_gyrokinetic_diff->mass, 
-    (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.bmag_inv, cidx), 
-    (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuSum, cidx), 
-    (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuUSum, cidx), 
-    (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuVtSqSum, cidx), 
-    qIn, qRhsOut);
+  const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuSum, cidx);
+  const double* nuUSum_p    = (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuUSum, cidx);
+  const double* nuVtSqSum_p = (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuVtSqSum, cidx);
+  const double* m2self_p    = (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.m2self, cidx);
+  if ((fabs(nuUSum_p[0]/nuSum_p[0]) < lbo_gyrokinetic_diff->vparMax) &&
+      (nuVtSqSum_p[0]>0.) && (nuVtSqSum_p[0]/nuSum_p[0] < lbo_gyrokinetic_diff->vparMaxSq) &&
+      (m2self_p[0]>0.)) {
+    return lbo_gyrokinetic_diff->vol(xc, dx, lbo_gyrokinetic_diff->mass, 
+      (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.bmag_inv, cidx), 
+      nuSum_p, nuUSum_p, nuVtSqSum_p, qIn, qRhsOut);
+  } else {
+    return 0.;
+  };
 }
 
 GKYL_CU_D
@@ -138,13 +146,18 @@ surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_lbo_gyrokinetic_diff *lbo_gyrokinetic_diff = container_of(eqn, struct dg_lbo_gyrokinetic_diff, eqn);
   long cidx = gkyl_range_idx(&lbo_gyrokinetic_diff->conf_range, idxC);
-  if (dir >= lbo_gyrokinetic_diff->cdim) {
+  const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuSum, cidx);
+  const double* nuUSum_p    = (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuUSum, cidx);
+  const double* nuVtSqSum_p = (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuVtSqSum, cidx);
+  const double* m2self_p    = (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.m2self, cidx);
+  if ((dir >= lbo_gyrokinetic_diff->cdim) &&
+      (fabs(nuUSum_p[0]/nuSum_p[0]) < lbo_gyrokinetic_diff->vparMax) &&
+      (nuVtSqSum_p[0]>0.) && (nuVtSqSum_p[0]/nuSum_p[0] < lbo_gyrokinetic_diff->vparMaxSq) &&
+      (m2self_p[0]>0.))
+  {
     lbo_gyrokinetic_diff->surf[dir-lbo_gyrokinetic_diff->cdim](xcC, dxC, lbo_gyrokinetic_diff->mass,
       (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.bmag_inv, cidx), 
-      (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuSum, cidx), 
-      (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuUSum, cidx), 
-      (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuVtSqSum, cidx), 
-      qInL, qInC, qInR, qRhsOut);
+      nuSum_p, nuUSum_p, nuVtSqSum_p, qInL, qInC, qInR, qRhsOut);
   }
 }
 
@@ -159,14 +172,19 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_lbo_gyrokinetic_diff *lbo_gyrokinetic_diff = container_of(eqn, struct dg_lbo_gyrokinetic_diff, eqn);
   long cidx = gkyl_range_idx(&lbo_gyrokinetic_diff->conf_range, idxSkin);
-  if (dir >= lbo_gyrokinetic_diff->cdim) {
+  const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuSum, cidx);
+  const double* nuUSum_p    = (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuUSum, cidx);
+  const double* nuVtSqSum_p = (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuVtSqSum, cidx);
+  const double* m2self_p    = (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.m2self, cidx);
+  if ((dir >= lbo_gyrokinetic_diff->cdim) &&
+      (fabs(nuUSum_p[0]/nuSum_p[0]) < lbo_gyrokinetic_diff->vparMax) &&
+      (nuVtSqSum_p[0]>0.) && (nuVtSqSum_p[0]/nuSum_p[0] < lbo_gyrokinetic_diff->vparMaxSq) &&
+      (m2self_p[0]>0.))
+  {
     lbo_gyrokinetic_diff->boundary_surf[dir-lbo_gyrokinetic_diff->cdim](xcSkin, dxSkin, 
       lbo_gyrokinetic_diff->mass,
       (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.bmag_inv, cidx), 
-      (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuSum, cidx), 
-      (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuUSum, cidx), 
-      (const double*) gkyl_array_cfetch(lbo_gyrokinetic_diff->auxfields.nuVtSqSum, cidx),   
-      edge, qInEdge, qInSkin, qRhsOut);
+      nuSum_p, nuUSum_p, nuVtSqSum_p, edge, qInEdge, qInSkin, qRhsOut);
   }
 }
 

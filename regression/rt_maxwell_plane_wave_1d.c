@@ -52,12 +52,11 @@ main(int argc, char **argv)
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
-    .cfl_frac = 1.0,
+    .cfl_frac = 0.8,
 
     .field = {
       .epsilon0 = 1.0, .mu0 = 1.0,
       .evolve = 1,
-      .limiter = GKYL_NO_LIMITER,
       .init = evalFieldInit,
     }
   };

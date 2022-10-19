@@ -18,6 +18,23 @@ sr_euler_free(const struct gkyl_ref_count *ref)
 }
 
 static inline void
+cons_to_riem(const struct gkyl_wv_eqn *eqn,
+  const double *qstate, const double *qin, double *wout)
+{
+  // TODO: this should use proper L matrix
+  for (int i=0; i<5; ++i)
+    wout[i] = qin[i];
+}
+static inline void
+riem_to_cons(const struct gkyl_wv_eqn *eqn,
+  const double *qstate, const double *win, double *qout)
+{
+  // TODO: this should use proper L matrix
+  for (int i=0; i<5; ++i)
+    qout[i] = win[i];
+}
+
+static inline void
 rot_to_local(const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
 {
@@ -159,13 +176,22 @@ gkyl_wv_sr_euler_new(double gas_gamma)
   sr_euler->eqn.type = GKYL_EQN_SR_EULER;
   sr_euler->eqn.num_equations = 5;
   sr_euler->eqn.num_waves = 3;
+  sr_euler->eqn.num_diag = 5;
+  
   sr_euler->gas_gamma = gas_gamma;
   sr_euler->eqn.waves_func = wave_roe;
   sr_euler->eqn.qfluct_func = qfluct_roe;
   sr_euler->eqn.check_inv_func = check_inv;
   sr_euler->eqn.max_speed_func = max_speed;
+
+
+  sr_euler->eqn.cons_to_riem = cons_to_riem;
+  sr_euler->eqn.riem_to_cons = riem_to_cons;
+  
   sr_euler->eqn.rotate_to_local_func = rot_to_local;
   sr_euler->eqn.rotate_to_global_func = rot_to_global;
+
+  sr_euler->eqn.cons_to_diag = gkyl_default_cons_to_diag;
 
   sr_euler->eqn.ref_count = gkyl_ref_count_init(sr_euler_free);
 

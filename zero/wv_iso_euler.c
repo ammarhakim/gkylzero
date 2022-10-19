@@ -17,6 +17,23 @@ iso_euler_free(const struct gkyl_ref_count *ref)
   gkyl_free(iso_euler);
 }
 
+static inline void
+cons_to_riem(const struct gkyl_wv_eqn *eqn,
+  const double *qstate, const double *qin, double *wout)
+{
+  // TODO: this should use proper L matrix
+  for (int i=0; i<4; ++i)
+    wout[i] = qin[i];
+}
+static inline void
+riem_to_cons(const struct gkyl_wv_eqn *eqn,
+  const double *qstate, const double *win, double *qout)
+{
+  // TODO: this should use proper L matrix
+  for (int i=0; i<4; ++i)
+    qout[i] = win[i];
+}
+
 // Isothermal Euler perfectly reflecting wall
 static void
 iso_euler_wall(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
@@ -215,6 +232,8 @@ gkyl_wv_iso_euler_new(double vt)
   iso_euler->eqn.type = GKYL_EQN_ISO_EULER;
   iso_euler->eqn.num_equations = 4;
   iso_euler->eqn.num_waves = 3;
+  iso_euler->eqn.num_diag = 4;
+  
   iso_euler->vt = vt;
   iso_euler->eqn.waves_func = wave;
   iso_euler->eqn.qfluct_func = qfluct;
@@ -225,8 +244,13 @@ gkyl_wv_iso_euler_new(double vt)
   iso_euler->eqn.rotate_to_local_func = rot_to_local;
   iso_euler->eqn.rotate_to_global_func = rot_to_global;
 
+  iso_euler->eqn.cons_to_riem = cons_to_riem;
+  iso_euler->eqn.riem_to_cons = riem_to_cons;
+
   iso_euler->eqn.wall_bc_func = iso_euler_wall;
   iso_euler->eqn.no_slip_bc_func = iso_euler_no_slip;
+
+  iso_euler->eqn.cons_to_diag = gkyl_default_cons_to_diag;
 
   iso_euler->eqn.ref_count = gkyl_ref_count_init(iso_euler_free);
 

@@ -80,9 +80,6 @@ ker_dev_cu_ser_2d(struct gkyl_basis *basis, int *nfail)
 
   GKYL_CU_CHECK( nodes[4] == 1, nfail);
   GKYL_CU_CHECK( nodes[5] == -1, nfail);
-
-  double f[128];
-  for (int i=0; i<basis->num_basis; ++i) f[i] = 1.0;  
 }
 
 int

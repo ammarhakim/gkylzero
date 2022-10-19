@@ -10,9 +10,9 @@ typedef void (*vlasov_self_prim_t)(struct gkyl_mat *A, struct gkyl_mat *rhs,
   const double *moms, const double *boundary_corrections);
 
 typedef void (*vlasov_cross_prim_t)(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *greene,
-  const double m_self, const double *u_self, const double *vtsq_self,
-  const double m_other, const double *u_other, const double *vtsq_other,
-  const double *moms, const double *boundary_corrections);
+  const double m_self, const double *moms_self, const double *u_self, const double *vtsq_self,
+  const double m_other, const double *moms_other, const double *u_other, const double *vtsq_other,
+  const double *boundary_corrections);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
@@ -62,7 +62,7 @@ static const gkyl_prim_lbo_vlasov_cross_kern_list ser_cross_prim_kernels[] = {
 
 struct prim_lbo_type_vlasov {
   struct gkyl_prim_lbo_type prim; // Base object
-  vlasov_self_prim_t self_prim; // Self-primitive moments kernel
+  vlasov_self_prim_t self_prim; // Self-primitive moments kernel  
   vlasov_cross_prim_t cross_prim; // Cross-primitive moments kernels
 };
 
@@ -86,13 +86,13 @@ self_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A, struct gkyl
 GKYL_CU_D
 static void
 cross_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A, struct gkyl_mat *rhs, 
-  const int *idx, const double *greene, const double m_self,
-  const double *u_self, const double *vtsq_self, const double m_other,
-  const double *u_other, const double *vtsq_other,
-  const double *moms, const double *boundary_corrections)
+  const int *idx, const double *greene,
+  const double m_self, const double *moms_self, const double *u_self, const double *vtsq_self,
+  const double m_other, const double *moms_other, const double *u_other, const double *vtsq_other,
+  const double *boundary_corrections)
 {
   struct prim_lbo_type_vlasov *prim_vlasov = container_of(prim, struct prim_lbo_type_vlasov, prim);
 
-  return prim_vlasov->cross_prim(A, rhs, greene, m_self, u_self, vtsq_self,
-    m_other, u_other, vtsq_other, moms, boundary_corrections);
+  return prim_vlasov->cross_prim(A, rhs, greene, m_self, moms_self, u_self, vtsq_self,
+    m_other, moms_other, u_other, vtsq_other, boundary_corrections);
 }

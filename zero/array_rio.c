@@ -213,7 +213,7 @@ gkyl_grid_sub_array_read(struct gkyl_rect_grid *grid, const struct gkyl_range *r
       return 1;
 
     uint64_t file_type;
-    frr = fread(&file_type, sizeof(uint64_t), field_file_type, fp);
+    frr = fread(&file_type, sizeof(uint64_t), 1, fp);
     if (file_type != 1)
       return 1;
 

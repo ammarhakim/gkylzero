@@ -17,7 +17,41 @@
 #define BZ (7)
 #define PSI_GLM (8)
 
-#define sq(x) ((x)*(x))
+#define sq(x) ((x) * (x))
+
+static inline void
+cons_to_riem_8(const struct gkyl_wv_eqn *eqn,
+  const double *qstate, const double *qin, double *wout)
+{
+  // TODO: this should use proper L matrix
+  for (int i=0; i<8; ++i)
+    wout[i] = qin[i];
+}
+static inline void
+riem_to_cons_8(const struct gkyl_wv_eqn *eqn,
+  const double *qstate, const double *win, double *qout)
+{
+  // TODO: this should use proper L matrix
+  for (int i=0; i<8; ++i)
+    qout[i] = win[i];
+}
+
+static inline void
+cons_to_riem_9(const struct gkyl_wv_eqn *eqn,
+  const double *qstate, const double *qin, double *wout)
+{
+  // TODO: this should use proper L matrix
+  for (int i=0; i<9; ++i)
+    wout[i] = qin[i];
+}
+static inline void
+riem_to_cons_9(const struct gkyl_wv_eqn *eqn,
+  const double *qstate, const double *win, double *qout)
+{
+  // TODO: this should use proper L matrix
+  for (int i=0; i<9; ++i)
+    qout[i] = win[i];
+}
 
 static inline void
 rot_to_local_rect(const double *tau1, const double *tau2, const double *norm,
@@ -655,6 +689,9 @@ gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
   mhd->eqn.check_inv_func = check_inv;
   mhd->eqn.max_speed_func = max_speed;
 
+  mhd->eqn.cons_to_riem = cons_to_riem_8;
+  mhd->eqn.riem_to_cons = riem_to_cons_8;
+  
   mhd->eqn.rotate_to_local_func = rot_to_local_rect;
   mhd->eqn.rotate_to_global_func = rot_to_global_rect;
 
@@ -673,12 +710,18 @@ gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
     case GKYL_MHD_DIVB_GLM:
       mhd->eqn.num_equations = 9;
       mhd->eqn.num_waves = 9;
+      mhd->eqn.cons_to_riem = cons_to_riem_9;
+      mhd->eqn.riem_to_cons = riem_to_cons_9;
       mhd->eqn.rotate_to_local_func = rot_to_local_rect_glm;
       mhd->eqn.rotate_to_global_func = rot_to_global_rect_glm;
       mhd->glm_ch = inp->glm_ch;
       mhd->glm_alpha = inp->glm_alpha;
       break;
   }
+
+  mhd->eqn.num_diag = mhd->eqn.num_equations;
+  // probably want to change this to store magnetic, internal and KE 
+  mhd->eqn.cons_to_diag = gkyl_default_cons_to_diag;
 
   mhd->eqn.ref_count = gkyl_ref_count_init(mhd_free);
 

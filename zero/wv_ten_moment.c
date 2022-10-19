@@ -4,7 +4,24 @@
 #include <gkyl_moment_prim_ten_moment.h>
 #include <gkyl_wv_ten_moment.h>
 
-static inline double sq(double x) { return x*x; }
+static inline double sq(double x) { return x * x; }
+
+static inline void
+cons_to_riem(const struct gkyl_wv_eqn *eqn,
+  const double *qstate, const double *qin, double *wout)
+{
+  // TODO: this should use proper L matrix
+  for (int i=0; i<10; ++i)
+    wout[i] = qin[i];
+}
+static inline void
+riem_to_cons(const struct gkyl_wv_eqn *eqn,
+  const double *qstate, const double *win, double *qout)
+{
+  // TODO: this should use proper L matrix
+  for (int i=0; i<10; ++i)
+    qout[i] = win[i];
+}
 
 /* Multiply by phi prime */
 static void mulByPhiPrime(double p0, double u1, double u2, double u3, const double w[10], double out[10]) 
@@ -398,6 +415,8 @@ gkyl_wv_ten_moment_new(double k0)
   ten_moment->eqn.type = GKYL_EQN_TEN_MOMENT;
   ten_moment->eqn.num_equations = 10;
   ten_moment->eqn.num_waves = 5;
+  ten_moment->eqn.num_diag = 10;
+  
   ten_moment->eqn.waves_func = wave;
   ten_moment->eqn.qfluct_func = qfluct;
   ten_moment->eqn.check_inv_func = check_inv;
@@ -405,7 +424,12 @@ gkyl_wv_ten_moment_new(double k0)
   ten_moment->eqn.rotate_to_local_func = rot_to_local;
   ten_moment->eqn.rotate_to_global_func = rot_to_global;
 
+  ten_moment->eqn.cons_to_riem = cons_to_riem;
+  ten_moment->eqn.riem_to_cons = riem_to_cons;
+
   ten_moment->eqn.wall_bc_func = ten_moment_wall;
+
+  ten_moment->eqn.cons_to_diag = gkyl_default_cons_to_diag;
 
   ten_moment->eqn.ref_count = gkyl_ref_count_init(ten_moment_free);
 

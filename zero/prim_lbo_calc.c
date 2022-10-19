@@ -118,7 +118,8 @@ gkyl_prim_lbo_vlasov_calc_new(const struct gkyl_rect_grid *grid, const struct gk
 }
 
 gkyl_prim_lbo_calc*
-gkyl_prim_lbo_vlasov_with_fluid_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_range *conf_rng)
+gkyl_prim_lbo_vlasov_with_fluid_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_rng)
 {
   struct gkyl_prim_lbo_type *prim; // LBO primitive moments type
   prim = gkyl_prim_lbo_vlasov_with_fluid_new(cbasis, pbasis, conf_rng);
