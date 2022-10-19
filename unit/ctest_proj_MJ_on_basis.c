@@ -10,6 +10,7 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
+#include <math.h>
 
 // allocate array (filled with zeros)
 static struct gkyl_array*
@@ -17,6 +18,12 @@ mkarr(long nc, long size)
 {
   struct gkyl_array* a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
+}
+
+static void
+ev_p_over_gamma_1p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = xn[0]/sqrt(1.0 + xn[0]*xn[0]);
 }
 
 struct skin_ghost_ranges {
@@ -215,18 +222,28 @@ test_1x1v(int poly_order)
   int ndim = cdim+vdim;
 
   double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
+  double velLower[] = {lower[1]}, velUpper[] = {upper[1]};
   int confCells[] = {cells[0]};
+  int velCells[] = {cells[1]};
 
   // grids
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  struct gkyl_rect_grid vel_grid;
+  gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
+
+  // velocity range
+  int velGhost[] = { 0 };
+  struct gkyl_range velLocal, velLocal_ext; // local, local-ext conf-space ranges
+  gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
   // basis functions
-  struct gkyl_basis basis, confBasis;
+  struct gkyl_basis basis, confBasis, velBasis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
+  gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
 
   int confGhost[] = { 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
@@ -268,9 +285,23 @@ test_1x1v(int poly_order)
 
   gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(proj_MJ, &local, &confLocal, m0, m1i, m2, distf);
 
+// build the p_over_gamma
+struct gkyl_array *p_over_gamma;
+//p_over_gamma = mkarr(false, vdim*app->velBasis.num_basis, s->local_vel.volume);
+p_over_gamma = mkarr(vdim*velBasis.num_basis, velLocal.volume);
+gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+    .grid = &vel_grid,
+    .basis = &velBasis,
+    .qtype = GKYL_GAUSS_LOBATTO_QUAD,
+    .num_quad = 8,
+    .num_ret_vals = vdim,
+    .eval = ev_p_over_gamma_1p,
+    .ctx = 0
+  });
+
   // correct the MJ distribution m0 Moment
-  gkyl_correct_MJ *corr_MJ = gkyl_correct_MJ_new(&grid,&confBasis,&basis,confLocal.volume,confLocal_ext.volume);
-  gkyl_correct_MJ_fix(corr_MJ,distf,m0,m1i,&local,&confLocal);
+  gkyl_correct_MJ *corr_MJ = gkyl_correct_MJ_new(&grid,&confBasis,&basis,&confLocal,&velLocal,confLocal.volume,confLocal_ext.volume, false);
+  gkyl_correct_MJ_fix(corr_MJ,p_over_gamma,distf,m0,m1i,&local,&confLocal);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p1_vals[] = {  7.5585421616306459e-01, -2.1688605007995894e-17,  2.5560131294504802e-02,
