@@ -633,7 +633,7 @@ qfluct_hlld(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
 }
 
 static double
-wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+wave_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX)
@@ -645,7 +645,7 @@ wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
 }
 
 static void
-qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+qfluct_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *ql, const double *qr, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
@@ -653,6 +653,44 @@ qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
     return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
   else
     return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
+}
+
+static double
+wave_hlld_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX)
+    return wave_hlld(eqn, delta, ql, qr, waves, s);
+  else
+    return wave_lax(eqn, delta, ql, qr, waves, s);
+
+  return 0.0; // can't happen
+}
+
+static void
+qfluct_hlld_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *ql, const double *qr, const double *waves, const double *s,
+  double *amdq, double *apdq)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX)
+    return qfluct_hlld(eqn, ql, qr, waves, s, amdq, apdq);
+  else
+    return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
+}
+
+static double
+wave_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+{
+  return wave_lax(eqn, delta, ql, qr, waves, s);
+}
+
+static void
+qfluct_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *ql, const double *qr, const double *waves, const double *s,
+  double *amdq, double *apdq)
+{
+  return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
 static bool
@@ -684,8 +722,30 @@ gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
 
   mhd->eqn.type = GKYL_EQN_MHD;
   mhd->gas_gamma = inp->gas_gamma;
-  mhd->eqn.waves_func = wave;
-  mhd->eqn.qfluct_func = qfluct;
+
+  switch (inp->rp_type) {
+    case WV_MHD_RP_ROE:
+      mhd->eqn.num_equations = 8;
+      mhd->eqn.num_waves = 7;  
+      mhd->eqn.waves_func = wave_roe_l;
+      mhd->eqn.qfluct_func = qfluct_roe_l;
+      break;
+
+    case WV_MHD_RP_HLLD:
+      mhd->eqn.num_equations = 8;
+      mhd->eqn.num_waves = 5;  
+      mhd->eqn.waves_func = wave_hlld_l;
+      mhd->eqn.qfluct_func = qfluct_hlld_l;
+      break;
+      
+    case WV_MHD_RP_LAX:
+      mhd->eqn.num_equations = 8;
+      mhd->eqn.num_waves = 1;
+      mhd->eqn.waves_func = wave_lax_l;
+      mhd->eqn.qfluct_func = qfluct_lax_l;
+      break;      
+  }
+
   mhd->eqn.check_inv_func = check_inv;
   mhd->eqn.max_speed_func = max_speed;
 
@@ -698,18 +758,15 @@ gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
   mhd->divergence_constraint = inp->divergence_constraint;
   switch (inp->divergence_constraint) {
     case GKYL_MHD_DIVB_NONE:
-      mhd->eqn.num_equations = 8;
-      mhd->eqn.num_waves = 7;
       break;
 
     case GKYL_MHD_DIVB_EIGHT_WAVES:
-      mhd->eqn.num_equations = 8;
-      mhd->eqn.num_waves = 8;
+      mhd->eqn.num_waves += 1;
       break;
 
     case GKYL_MHD_DIVB_GLM:
-      mhd->eqn.num_equations = 9;
-      mhd->eqn.num_waves = 9;
+      mhd->eqn.num_equations += 1;
+      mhd->eqn.num_waves += 2;
       mhd->eqn.cons_to_riem = cons_to_riem_9;
       mhd->eqn.riem_to_cons = riem_to_cons_9;
       mhd->eqn.rotate_to_local_func = rot_to_local_rect_glm;

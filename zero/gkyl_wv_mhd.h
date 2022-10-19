@@ -2,6 +2,13 @@
 
 #include <gkyl_wv_eqn.h>
 
+// Type of Rieman problem solver to use
+enum gkyl_wv_mhd_rp {
+  WV_MHD_RP_ROE = 0, // default
+  WV_MHD_RP_HLLD,
+  WV_MHD_RP_LAX
+};
+
 // flags to indicate which divergence constraint scheme to use
 enum gkyl_wv_mhd_div_constraint {
   GKYL_MHD_DIVB_NONE,
@@ -11,6 +18,7 @@ enum gkyl_wv_mhd_div_constraint {
 
 struct gkyl_wv_mhd_inp {
   double gas_gamma; // gas adiabatic constant
+  enum gkyl_wv_mhd_rp rp_type; // Riemann problem solver
   enum gkyl_wv_mhd_div_constraint divergence_constraint; // divB correction
   double glm_ch; // factor to use in GLM scheme
   double glm_alpha; // Mignone & Tzeferacos, JCP (2010) 229, 2117, Eq (27).
