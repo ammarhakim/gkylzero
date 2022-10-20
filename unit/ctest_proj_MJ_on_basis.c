@@ -298,6 +298,7 @@ gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_p
     .eval = ev_p_over_gamma_1p,
     .ctx = 0
   });
+  gkyl_proj_on_basis_advance(p_over_gamma_proj, 0.0, &velLocal, p_over_gamma);
 
   // correct the MJ distribution m0 Moment
   gkyl_correct_MJ *corr_MJ = gkyl_correct_MJ_new(&grid,&confBasis,&basis,&confLocal,&velLocal,confLocal.volume,confLocal_ext.volume, false);

@@ -111,6 +111,18 @@ void gkyl_correct_MJ_fix(gkyl_correct_MJ *cMJ, const struct gkyl_array *p_over_g
     0, 0, 0,
     fout, cMJ->num_vb);
 
+    struct gkyl_range_iter witer;
+    gkyl_range_iter_init(&witer, conf_local);
+    while (gkyl_range_iter_next(&witer)) {
+        long midx = gkyl_range_idx(conf_local, witer.idx);
+        const double *gamma_val = gkyl_array_cfetch(cMJ->gamma, midx);
+        const double *num = gkyl_array_cfetch(cMJ->num_ratio, midx);
+        const double *vb = gkyl_array_cfetch(cMJ->num_vb, midx);
+        printf("Gamma: %g\n",gamma_val[0]);
+        printf("num: %g\n",num[0]);
+        printf("vb: %g\n",vb[0]);
+    }
+
   // (Added) isolate vb by dividing N*vb by N
   gkyl_dg_div_op_range(cMJ->mem, cMJ->conf_basis, 0, cMJ->num_vb,
     0, cMJ->num_vb, 0, cMJ->num_ratio, conf_local);
@@ -128,6 +140,7 @@ void gkyl_correct_MJ_fix(gkyl_correct_MJ *cMJ, const struct gkyl_array *p_over_g
   // calculate cMJ->gamma from cMJ->num_vb
   gkyl_calc_sr_vars_Gamma(&cMJ->conf_basis, &cMJ->phase_basis,
       conf_local, cMJ->num_vb, cMJ->gamma);
+
 
   // multiply the number density ratio by gamma, to account for the frame trans.
   gkyl_dg_mul_op_range(cMJ->conf_basis, 0, cMJ->num_ratio,
