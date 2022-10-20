@@ -20,11 +20,29 @@ mkarr(long nc, long size)
   return a;
 }
 
+// Projection functions for p/(gamma) = v in special relativistic systems
+// Simplifies to p/sqrt(1 + p^2) where c = 1
 static void
 ev_p_over_gamma_1p(double t, const double *xn, double *out, void *ctx)
 {
   out[0] = xn[0]/sqrt(1.0 + xn[0]*xn[0]);
 }
+static void
+ev_p_over_gamma_2p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = xn[0]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1]);
+  out[1] = xn[1]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1]);
+}
+static void
+ev_p_over_gamma_3p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = xn[0]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+  out[1] = xn[1]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+  out[2] = xn[2]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+}
+
+static const evalf_t p_over_gamma_func[3] = {ev_p_over_gamma_1p, ev_p_over_gamma_2p, ev_p_over_gamma_3p};
+
 
 struct skin_ghost_ranges {
   struct gkyl_range lower_skin[GKYL_MAX_DIM];
@@ -58,7 +76,7 @@ void eval_M0(double t, const double *xn, double* restrict fout, void *ctx)
 void eval_M1i_1v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
-  fout[0] = 0.5;
+  fout[0] = 0.5; //0.5;
 }
 
 void eval_M1i_1v_no_drift(double t, const double *xn, double* restrict fout, void *ctx)
@@ -78,7 +96,7 @@ void eval_M2_1v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double n = 1.0, vth2 = 1.0, ux = 0.5;
   double x = xn[0];
-  fout[0] = n*vth2 + n*ux*ux;
+  fout[0] = n*vth2; // + n*ux*ux;
 }
 
 void eval_M1i_2v(double t, const double *xn, double* restrict fout, void *ctx)
@@ -216,7 +234,7 @@ void test_1x1v_no_drift_p2() { test_1x1v_no_drift(2); }
 void
 test_1x1v(int poly_order)
 {
-  double lower[] = {0.1, -6.0}, upper[] = {1.0, 6.0};
+  double lower[] = {0.1, -15.0}, upper[] = {1.0, 15.0};
   int cells[] = {2, 32};
   int vdim = 1, cdim = 1;
   int ndim = cdim+vdim;
@@ -295,7 +313,7 @@ gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_p
     .qtype = GKYL_GAUSS_LOBATTO_QUAD,
     .num_quad = 8,
     .num_ret_vals = vdim,
-    .eval = ev_p_over_gamma_1p,
+    .eval = p_over_gamma_func[vdim-1], //ev_p_over_gamma_1p,
     .ctx = 0
   });
   gkyl_proj_on_basis_advance(p_over_gamma_proj, 0.0, &velLocal, p_over_gamma);

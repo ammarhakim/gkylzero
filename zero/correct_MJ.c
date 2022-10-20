@@ -8,11 +8,16 @@
 #include <gkyl_dg_updater_moment.h>
 #include <gkyl_proj_on_basis.h>
 
+#include <gkyl_mom_calc.h>
+#include <gkyl_mom_vlasov_sr.h>
+
 
 struct gkyl_correct_MJ {
   struct gkyl_rect_grid grid;
   struct gkyl_basis conf_basis, phase_basis;
 
+
+  //struct gkyl_mom_calc *m0calc;
   gkyl_dg_updater_moment *m0calc; // moment calculator
   gkyl_dg_updater_moment *m1icalc; // moment calculator
   struct gkyl_array *num_ratio; // number density ratio
@@ -67,7 +72,7 @@ gkyl_correct_MJ_new(const struct gkyl_rect_grid *grid,
   int vdim = up->phase_basis.ndim - up->conf_basis.ndim;
 
   // old moment calculator routine
-  //struct gkyl_mom_type *m0 = gkyl_mom_vlasov_sr_new(conf_basis, phase_basis,conf_range, vel_range, "M0",use_gpu);
+  struct gkyl_mom_type *m0 = gkyl_mom_vlasov_sr_new(conf_basis, phase_basis,conf_range, vel_range, "M0",use_gpu);
   //up->m0calc = gkyl_mom_calc_new(grid, m0, use_gpu);
   //gkyl_mom_type_release(m0);
 
@@ -77,7 +82,7 @@ gkyl_correct_MJ_new(const struct gkyl_rect_grid *grid,
 
   // updated moment calculator for sr
   up->m0calc = gkyl_dg_updater_moment_new(grid, conf_basis,
-    phase_basis, conf_range, vel_range, GKYL_MODEL_SR, "M0", 0, 1, use_gpu);
+      phase_basis, conf_range, vel_range, GKYL_MODEL_SR, "M0", 0, 1, use_gpu);
   up->m1icalc = gkyl_dg_updater_moment_new(grid, conf_basis,
       phase_basis, conf_range, vel_range, GKYL_MODEL_SR, "M1i", 0, 1, use_gpu);
 
@@ -111,17 +116,18 @@ void gkyl_correct_MJ_fix(gkyl_correct_MJ *cMJ, const struct gkyl_array *p_over_g
     0, 0, 0,
     fout, cMJ->num_vb);
 
-    struct gkyl_range_iter witer;
-    gkyl_range_iter_init(&witer, conf_local);
-    while (gkyl_range_iter_next(&witer)) {
-        long midx = gkyl_range_idx(conf_local, witer.idx);
-        const double *gamma_val = gkyl_array_cfetch(cMJ->gamma, midx);
-        const double *num = gkyl_array_cfetch(cMJ->num_ratio, midx);
-        const double *vb = gkyl_array_cfetch(cMJ->num_vb, midx);
-        printf("Gamma: %g\n",gamma_val[0]);
-        printf("num: %g\n",num[0]);
-        printf("vb: %g\n",vb[0]);
-    }
+    printf("\n-------N and N*vb------\n");
+      struct gkyl_range_iter biter;
+      gkyl_range_iter_init(&biter, conf_local);
+      while (gkyl_range_iter_next(&biter)) {
+          long midx = gkyl_range_idx(conf_local, biter.idx);
+          const double *gamma_val = gkyl_array_cfetch(cMJ->gamma, midx);
+          const double *num = gkyl_array_cfetch(cMJ->num_ratio, midx);
+          const double *vb = gkyl_array_cfetch(cMJ->num_vb, midx);
+          printf("num: %g\n",num[0]);
+          printf("vb : %g\n",vb[0]);
+      }
+
 
   // (Added) isolate vb by dividing N*vb by N
   gkyl_dg_div_op_range(cMJ->mem, cMJ->conf_basis, 0, cMJ->num_vb,
@@ -136,6 +142,19 @@ void gkyl_correct_MJ_fix(gkyl_correct_MJ *cMJ, const struct gkyl_array *p_over_g
   //  cMJ->conf_basis.poly_order+1, 1, gamma_simple_test, NULL);
   //gkyl_proj_on_basis_advance(gamma, 0.0, conf_local, cMJ->gamma);
   //gkyl_proj_on_basis_release(gamma);
+
+printf("\n-------vb and m0/N------\n");
+  struct gkyl_range_iter witer;
+  gkyl_range_iter_init(&witer, conf_local);
+  while (gkyl_range_iter_next(&witer)) {
+      long midx = gkyl_range_idx(conf_local, witer.idx);
+      const double *gamma_val = gkyl_array_cfetch(cMJ->gamma, midx);
+      const double *num = gkyl_array_cfetch(cMJ->num_ratio, midx);
+      const double *vb = gkyl_array_cfetch(cMJ->num_vb, midx);
+      printf("num: %g\n",num[0]);
+      printf("vb : %g\n",vb[0]);
+  }
+
 
   // calculate cMJ->gamma from cMJ->num_vb
   gkyl_calc_sr_vars_Gamma(&cMJ->conf_basis, &cMJ->phase_basis,
@@ -152,6 +171,17 @@ void gkyl_correct_MJ_fix(gkyl_correct_MJ *cMJ, const struct gkyl_array *p_over_g
   //gkyl_dg_div_op_range(cMJ->mem, cMJ->conf_basis, 0, cMJ->num_ratio,
   //  0, cMJ->num_ratio, 0, cMJ->gamma, conf_local);
 
+printf("\n-------gamma------\n");
+  struct gkyl_range_iter viter;
+  gkyl_range_iter_init(&viter, conf_local);
+  while (gkyl_range_iter_next(&viter)) {
+      long midx = gkyl_range_idx(conf_local, viter.idx);
+      const double *gamma_val = gkyl_array_cfetch(cMJ->gamma, midx);
+      const double *num = gkyl_array_cfetch(cMJ->num_ratio, midx);
+      const double *vb = gkyl_array_cfetch(cMJ->num_vb, midx);
+      printf("Gamma: %g\n",gamma_val[0]);
+  }
+
 
   // rescale distribution function
   gkyl_dg_mul_conf_phase_op_range(&cMJ->conf_basis, &cMJ->phase_basis,
@@ -161,6 +191,8 @@ void gkyl_correct_MJ_fix(gkyl_correct_MJ *cMJ, const struct gkyl_array *p_over_g
 void
 gkyl_correct_MJ_release(gkyl_correct_MJ* cMJ)
 {
+
+  //gkyl_mom_calc_release(cMJ->m0calc);
   gkyl_dg_updater_moment_release(cMJ->m0calc);
   gkyl_dg_updater_moment_release(cMJ->m1icalc);
   gkyl_array_release(cMJ->num_ratio);
