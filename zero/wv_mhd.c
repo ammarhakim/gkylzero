@@ -614,7 +614,40 @@ wave_hlld(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
   wv += meqn;
   for (int i=0; i<meqn; ++i)  wv[i] = qr[i] - qsr[i];
 
-  return sr;
+  double max_speed = sr;
+
+  // For the eight-wave scheme, advect the jump in Bx at the speed u.
+  // XXX is this correct?
+  if (mhd->divergence_constraint == GKYL_MHD_DIVB_EIGHT_WAVES) {
+    speeds[5] = sm;
+    wv += meqn;
+    wv[BX] = dQ[BX];
+  }
+
+  // For the GLM Bx and psi waves, solve the linear Riemann problem.
+  // XXX is this correct?
+  if (mhd->divergence_constraint == GKYL_MHD_DIVB_GLM)
+  {
+    double ch = mhd->glm_ch;
+
+    // L = 0.5*(-ch, 1), R = (-1/ch, 1)
+    speeds[5] = -ch;
+    wv += meqn;
+    double eta = 0.5 * (-dQ[BX]*ch+dQ[PSI_GLM]);
+    wv[BX] = -eta/ch;
+    wv[PSI_GLM] = eta;
+
+    // L = 0.5*(+ch, 1), R = (+1/ch, 1)
+    speeds[6] = ch;
+    wv += meqn;
+    eta = 0.5 * (dQ[BX]*ch+dQ[PSI_GLM]);
+    wv[BX] = eta/ch;
+    wv[PSI_GLM] = eta;
+
+    max_speed = max_speed > ch ? max_speed : ch;
+  }
+
+  return max_speed;
 }
 
 static void
