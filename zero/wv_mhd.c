@@ -377,6 +377,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   }
 
   // For the GLM Bx and psi waves, solve the linear Riemann problem.
+  // TODO create and use a separate glm RP solver
   if (mhd->divergence_constraint == GKYL_MHD_DIVB_GLM)
   {
     double ch = mhd->glm_ch;
@@ -522,7 +523,7 @@ wave_hlld(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
 
   // STEP 3. compute intermediate states
   // outer left, inner left, inner right, outer right; s: star, ss: two star
-  double qsl[meqn], qssl[meqn], qssr[meqn], qsr[meqn];
+  double qsl[8], qssl[8], qssr[8], qsr[8];
   double tmp1, tmp2, tmp3; // convenience temporary variables
 
   // left and right outer intermediate states
@@ -600,19 +601,19 @@ wave_hlld(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
   double *wv;
 
   wv = waves;
-  for (int i=0; i<meqn; ++i)  wv[i] = qsl[i] - ql[i];
+  for (int i=0; i<8; ++i)  wv[i] = qsl[i] - ql[i];
 
   wv += meqn;
-  for (int i=0; i<meqn; ++i)  wv[i] = qssl[i] - qsl[i];
+  for (int i=0; i<8; ++i)  wv[i] = qssl[i] - qsl[i];
 
   wv += meqn;
-  for (int i=0; i<meqn; ++i)  wv[i] = qssr[i] - qssl[i];
+  for (int i=0; i<8; ++i)  wv[i] = qssr[i] - qssl[i];
 
   wv += meqn;
-  for (int i=0; i<meqn; ++i)  wv[i] = qsr[i] - qssr[i];
+  for (int i=0; i<8; ++i)  wv[i] = qsr[i] - qssr[i];
 
   wv += meqn;
-  for (int i=0; i<meqn; ++i)  wv[i] = qr[i] - qsr[i];
+  for (int i=0; i<8; ++i)  wv[i] = qr[i] - qsr[i];
 
   double max_speed = sr;
 
@@ -625,9 +626,14 @@ wave_hlld(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
   }
 
   // For the GLM Bx and psi waves, solve the linear Riemann problem.
-  // XXX is this correct?
+  // XXX is this correct? TODO create and use a separate glm RP solver
   if (mhd->divergence_constraint == GKYL_MHD_DIVB_GLM)
   {
+    for (int w=0; w<5; ++w)
+    {
+      waves[w*meqn + PSI_GLM] = 0.0;
+    }
+
     double ch = mhd->glm_ch;
 
     // L = 0.5*(-ch, 1), R = (-1/ch, 1)
