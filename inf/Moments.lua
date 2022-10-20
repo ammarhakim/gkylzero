@@ -19,6 +19,11 @@ local C = ffi.load(install_prefix .. "/lib/libgkylzero.so")
 -- set global package paths
 package.path = package.path .. ";" .. install_prefix .. "/lib/?.lua"
 
+-- pick default if val is nil, else pick val
+local function pickBool(val, default)
+   if val == nil then return default else return val end
+end
+
 -- declare some top-level things we want to expose
 ffi.cdef [[
 
@@ -292,9 +297,18 @@ struct gkyl_wv_eqn* gkyl_wv_maxwell_new(double c, double e_fact, double b_fact);
  */
 struct gkyl_wv_eqn* gkyl_wv_sr_euler_new(double gas_gamma);
 
+/**
+ * Create a new advection equation object.
+ * 
+ * @param c advection speed
+ * @return Pointer to Burgers equation object.
+ */
+struct gkyl_wv_eqn* gkyl_wv_advect_new(double c);
+
 // Wrappers around various eqn object
 struct gkyl_wv_euler { struct gkyl_wv_eqn *eqn; };
 struct gkyl_wv_iso_euler { struct gkyl_wv_eqn *eqn; };
+struct gkyl_wv_advection { struct gkyl_wv_eqn *eqn; };
 struct gkyl_wv_ten_moment { struct gkyl_wv_eqn *eqn; };
 
 /**
@@ -645,9 +659,14 @@ _M.Euler = function(tbl)
    return ffi.gc(C.gkyl_wv_euler_inew(einp), C.gkyl_wv_eqn_release)
 end
 
--- Isothermal Eiler equation
+-- Isothermal Euler equation
 _M.IsoEuler = function(tbl)
    return ffi.gc(C.gkyl_wv_iso_euler_new(tbl.vthermal), C.gkyl_wv_eqn_release)
+end
+
+-- Advection
+_M.Advection = function(tbl)
+   return ffi.gc(C.gkyl_wv_advect_new(tbl.speed), C.gkyl_wv_eqn_release)
 end
 
 -- Wraps user given init function in a function that can be passed to
@@ -928,6 +947,11 @@ local app_mt = {
       if tbl.mp_recon then
 	 vm.mp_recon = mp_recon_tags[tbl.mp_recon]
       end
+      if tbl.mpRecon then
+	 vm.mp_recon = mp_recon_tags[tbl.mpRecon]
+      end
+
+      vm.skip_mp_limiter = pickBool(tbl.skipMpLimiter, false)
 
       vm.use_hybrid_flux_kep = false
       if tbl.useHybridFluxKep then
