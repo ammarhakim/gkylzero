@@ -13,6 +13,14 @@ double gkyl_mhd_pressure(double gas_gamma, const double q[8])
     (q[4] - 0.5*(q[1]*q[1]+q[2]*q[2]+q[3]*q[3])/q[0]
       - 0.5*(q[5]*q[5]+q[6]*q[6]+q[7]*q[7]));
 }
+/**
+ * Compute MHD fast Alfven speed.
+ *
+ * @param gas_gamma Gas adiabatic constant
+ * @param q Conserved variables
+ * @return Fast Alfven speed for given q
+ */
+double gkyl_mhd_fast_speed(double gas_gamma, const double q[8]);
 
 /**
  * Compute maximum absolute speed.

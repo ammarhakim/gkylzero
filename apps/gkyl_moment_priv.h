@@ -23,6 +23,7 @@
 #include <gkyl_kep_scheme.h>
 #include <gkyl_moment.h>
 #include <gkyl_moment_em_coupling.h>
+#include <gkyl_mhd_src.h>
 #include <gkyl_mp_scheme.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -33,6 +34,7 @@
 #include <gkyl_wv_apply_bc.h>
 #include <gkyl_wv_maxwell.h>
 #include <gkyl_wv_ten_moment.h>
+#include <gkyl_wv_mhd.h>
 
 // Species data
 struct moment_species {
@@ -138,6 +140,10 @@ struct moment_coupling {
   gkyl_moment_em_coupling *slvr; // source solver function
 };
 
+struct mhd_src {
+  gkyl_mhd_src *slvr; // source solver function
+};
+
 // Moment app object: used as opaque pointer in user code
 struct gkyl_moment_app {
   char name[128]; // name of app
@@ -183,6 +189,9 @@ struct gkyl_moment_app {
   int update_sources; // flag to indicate if sources are to be updated
   struct moment_coupling sources; // sources
     
+  int update_mhd_source;
+  struct mhd_src mhd_source;
+
   struct gkyl_moment_stat stat; // statistics
 
   // pointer to function that takes a single-step of simulation
@@ -243,7 +252,7 @@ double moment_species_max_dt(const gkyl_moment_app *app, const struct moment_spe
 
 // Advance solution of species by time-step dt to tcurr+dt
 struct gkyl_update_status moment_species_update(const gkyl_moment_app *app,
-  const struct moment_species *sp, double tcurr, double dt);
+  struct moment_species *sp, double tcurr, double dt);
 
 // Compute RHS of moment equations
 double moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
@@ -282,6 +291,18 @@ void moment_field_release(const struct moment_field *fld);
 // and fields are initialized
 void moment_coupling_init(const struct gkyl_moment_app *app,
   struct moment_coupling *src);
+
+/** mhd_src functions */
+
+void mhd_src_init(const struct gkyl_moment_app *app,
+                  const struct gkyl_moment_species *sp, struct mhd_src *src);
+
+// update sources: 'nstrang' is 0 for the first Strang step and 1 for
+// the second step
+void mhd_src_update(gkyl_moment_app *app, struct mhd_src *src, int nstrang,
+                    double tcurr, double dt);
+
+void mhd_src_release(const struct mhd_src *src);
 
 // update sources: 'nstrang' is 0 for the first Strang step and 1 for
 // the second step

@@ -8,6 +8,7 @@
 #include <rt_arg_parse.h>
 
 struct mhd_ctx {
+  enum gkyl_wv_mhd_div_constraint divergence_constraint;
   double gas_gamma; // gas constant
 };
 
@@ -32,17 +33,19 @@ evalMhdInit(double t, const double* GKYL_RESTRICT xn,
 
   double rho = 25/(36*M_PI);
   double p = 5/(12*M_PI);
-  double vx = -sin(2*M_PI*y);
-  double vy = sin(2*M_PI*x);
+  double vx = sin(2*M_PI*y);
+  double vy = -sin(2*M_PI*x);
   double vz = 0;
   double B0 = 1/sqrt(4*M_PI);
-  double Bx = -B0*sin(2*M_PI*x);
-  double By = B0*sin(4*M_PI*y);
+  double Bx = B0*sin(2*M_PI*y);
+  double By = B0*sin(4*M_PI*x);
   double Bz = 0;
   double v[8] = {rho, vx, vy, vz, p, Bx, By, Bz};
 
   calcq(gas_gamma, v, fout);
-  fout[8] = 0; // for glm scheme
+
+  if (app->divergence_constraint==GKYL_MHD_DIVB_GLM)
+    fout[8] = 0; // divB correction potential
 }
 
 struct mhd_ctx
@@ -70,13 +73,17 @@ main(int argc, char **argv)
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  struct mhd_ctx ctx = mhd_ctx(); // context for init functions
+  struct mhd_ctx ctx = {
+    .gas_gamma = 5./3.,
+    .divergence_constraint = GKYL_MHD_DIVB_EIGHT_WAVES,
+  };
 
   // equation object
   const struct gkyl_wv_mhd_inp inp = {
     .gas_gamma = ctx.gas_gamma,
-    .divergence_constraint = GKYL_MHD_DIVB_GLM,
-    .glm_ch = 0,
+    .divergence_constraint = ctx.divergence_constraint,
+    .glm_ch = 1.0, // initial value; will be updated with max speed in each step
+    .glm_alpha = 0.4, // passed to source
   };
   struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(&inp);
 
@@ -94,12 +101,13 @@ main(int argc, char **argv)
     .name = "mhd_ot_glm",
 
     .ndim = 2,
-    .lower = { 0.0, 0.0 },
-    .upper = { 1.0, 1.0 }, 
+    .lower = { -0.5, -0.5 },
+    .upper = { 0.5, 0.5 }, 
     .cells = { NX, NY },
 
     .num_periodic_dir = 2,
     .periodic_dirs = { 0, 1 },
+    .cfl_frac = 0.6,
 
     .num_species = 1,
     .species = { fluid },
@@ -109,8 +117,8 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.4;
-  int nframe = 4;
+  double tcurr = 0.0, tend = 0.5;
+  int nframe = 5;
 
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };

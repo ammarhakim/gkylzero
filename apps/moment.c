@@ -103,6 +103,12 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     moment_coupling_init(app, &app->sources);
   }
 
+  app->update_mhd_source = false;
+  if (ns==1 && mom->species[0].equation->type==GKYL_EQN_MHD) {
+    app->update_mhd_source = true;
+    mhd_src_init(app, &mom->species[0], &app->mhd_source);
+  }
+
   // allocate work array for use in MP scheme
   if (app->scheme_type == GKYL_MOMENT_MP || app->scheme_type == GKYL_MOMENT_KEP) {
     int max_eqn = 0;
@@ -389,6 +395,9 @@ gkyl_moment_app_release(gkyl_moment_app* app)
   if (app->update_sources)
     moment_coupling_release(&app->sources);
 
+  if (app->update_mhd_source)
+    mhd_src_release(&app->mhd_source);
+
   gkyl_wave_geom_release(app->geom);
 
   if (app->scheme_type == GKYL_MOMENT_MP || app->scheme_type == GKYL_MOMENT_KEP) {
@@ -400,3 +409,4 @@ gkyl_moment_app_release(gkyl_moment_app* app)
 
   gkyl_free(app);
 }
+

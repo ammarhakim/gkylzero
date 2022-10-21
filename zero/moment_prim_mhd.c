@@ -17,7 +17,7 @@
 #define sq(x) ((x)*(x))
 
 double
-gkyl_mhd_max_abs_speed(double gas_gamma, const double q[8])
+gkyl_mhd_fast_speed(double gas_gamma, const double q[8])
 {
   double u1 = q[MX] / q[DN];
   double u2 = q[MY] / q[DN];
@@ -33,6 +33,15 @@ gkyl_mhd_max_abs_speed(double gas_gamma, const double q[8])
   double ca1_sq = BX_sq / q[DN];  // Alfven speed due to normal B field
   // fast speed
   double cf = sqrt(a_sq+ca_sq + sqrt(sq(a_sq + ca_sq) - 4*a_sq*ca1_sq)) / 2;
+
+  return cf;
+}
+
+double
+gkyl_mhd_max_abs_speed(double gas_gamma, const double q[8])
+{
+  double u1 = q[MX] / q[DN];
+  double cf = gkyl_mhd_fast_speed(gas_gamma, q);
 
   return fabs(u1) + cf;
 }
