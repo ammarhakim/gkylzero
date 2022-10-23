@@ -419,6 +419,18 @@ max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
   return gkyl_euler_max_abs_speed(euler->gas_gamma, q);
 }
 
+static inline void
+euler_cons_to_diag(const struct gkyl_wv_eqn *eqn,
+  const double *qin, double *diag)
+{
+  const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
+  // density and moment as copied as-is
+  for (int i=0; i<4; ++i) diag[i] = qin[i];
+  double ke = 0.5*(qin[1]*qin[1] + qin[2]*qin[2] + qin[3]*qin[3])/qin[0];
+  diag[4] = ke; 
+  diag[5] = qin[4]-ke;
+}
+
 struct gkyl_wv_eqn*
 gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp)
 {
@@ -426,6 +438,8 @@ gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp)
 
   euler->eqn.type = GKYL_EQN_EULER;
   euler->eqn.num_equations = 5;
+  euler->eqn.num_diag = 6; // KE and PE stored separate
+  
   euler->gas_gamma = inp->gas_gamma;
 
   switch (inp->rp_type) {
@@ -462,6 +476,8 @@ gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp)
 
   euler->eqn.cons_to_riem = cons_to_riem;
   euler->eqn.riem_to_cons = riem_to_cons;
+
+  euler->eqn.cons_to_diag = euler_cons_to_diag;
 
   euler->eqn.ref_count = gkyl_ref_count_init(euler_free);
 

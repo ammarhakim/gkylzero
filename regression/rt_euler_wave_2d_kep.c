@@ -4,42 +4,36 @@
 #include <gkyl_alloc.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_mhd.h>
+#include <gkyl_wv_euler.h>
 #include <rt_arg_parse.h>
 
-struct mhd_ctx {
+static inline double sq(double x) { return x * x; }
+
+struct euler_ctx {
   double gas_gamma; // gas constant
 };
 
 void
-evalMhdInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalEulerInit(double t, const double * restrict xn, double* restrict fout, void *ctx)
 {
-  struct mhd_ctx *app = ctx;
-  double x = xn[0];
+  // See https://ammar-hakim.org/sj/je/je22/je22-euler-2d.html#smooth-periodic-problem
+  struct euler_ctx *app = ctx;
   double gas_gamma = app->gas_gamma;
 
-  double bx = 0.75;
-  double rhol = 1.0, rhor = 0.125;
-  double byl = 1.0, byr = -1.0;
-  double pl = 1.0, pr = 0.1;
-
-  double rho = rhor, by = byr, p = pr;
-  if (x<0.5) {
-    rho = rhol;
-    by = byl;
-    p = pl;
-  }
-
+  double x = xn[0], y = xn[1];
+  double rho = 1 + 0.2*sin(M_PI*(x+y));
+  double u = 1.0, v = -0.5;
+  double pr = 1.0;
+  
   fout[0] = rho;
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
-  fout[4] = p/(gas_gamma-1) + 0.5*(bx*bx + by*by);
-  fout[5] = bx; fout[6] = by; fout[7] = 0.0;
+  fout[1] = rho*u; fout[2] = rho*v; fout[3] = 0.0;
+  fout[4] = pr/(gas_gamma-1) + 0.5*rho*(u*u+v*v);
 }
 
-struct mhd_ctx
-mhd_ctx(void)
+struct euler_ctx
+euler_ctx(void)
 {
-  return (struct mhd_ctx) { .gas_gamma = 2.0 };
+  return (struct euler_ctx) { .gas_gamma = 1.4 };
 }
 
 int
@@ -47,40 +41,40 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 400);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 50);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 50);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
-  }
-  struct mhd_ctx ctx = mhd_ctx(); // context for init functions
+  } 
+  struct euler_ctx ctx = euler_ctx(); // context for init functions
 
   // equation object
-  const struct gkyl_wv_mhd_inp inp = {
-    .gas_gamma = ctx.gas_gamma,
-    .divergence_constraint = GKYL_MHD_DIVB_NONE,
-  };
-  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(&inp);
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma);
 
   struct gkyl_moment_species fluid = {
-    .name = "mhd",
+    .name = "euler",
 
-    .equation = mhd,
+    .equation = euler,
     .evolve = 1,
     .ctx = &ctx,
-    .init = evalMhdInit,
-
-    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+    .init = evalEulerInit,
   };
 
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "mhd_brio_wu",
+    .name = "euler_wave_2d_kep",
 
-    .ndim = 1,
-    .lower = { 0.0 },
-    .upper = { 1.0 }, 
-    .cells = { NX },
+    .ndim = 2,
+    .lower = { 0.0, 0.0 },
+    .upper = { 2.0, 2.0 },
+    .cells = { NX, NY },
+    .cfl_frac = 0.9,
+    .scheme_type = GKYL_MOMENT_KEP,
+
+    .num_periodic_dir = 2,
+    .periodic_dirs = { 0, 1 },
 
     .num_species = 1,
     .species = { fluid },
@@ -90,7 +84,7 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.1;
+  double tcurr = 0.0, tend = 4.0;
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
@@ -102,6 +96,7 @@ main(int argc, char **argv)
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
     printf("Taking time-step %ld at t = %g ...", step, tcurr);
+    if (tcurr+dt > tend) dt = tend-tcurr;
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
     
@@ -121,7 +116,7 @@ main(int argc, char **argv)
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
 
   // simulation complete, free resources
-  gkyl_wv_eqn_release(mhd);
+  gkyl_wv_eqn_release(euler);
   gkyl_moment_app_release(app);
 
   printf("\n");
@@ -130,6 +125,6 @@ main(int argc, char **argv)
   printf("Species updates took %g secs\n", stat.species_tm);
   printf("Field updates took %g secs\n", stat.field_tm);
   printf("Total updates took %g secs\n", stat.total_tm);
-  
+
   return 0;
 }

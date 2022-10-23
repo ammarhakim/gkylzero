@@ -176,6 +176,8 @@ gkyl_wv_sr_euler_new(double gas_gamma)
   sr_euler->eqn.type = GKYL_EQN_SR_EULER;
   sr_euler->eqn.num_equations = 5;
   sr_euler->eqn.num_waves = 3;
+  sr_euler->eqn.num_diag = 5;
+  
   sr_euler->gas_gamma = gas_gamma;
   sr_euler->eqn.waves_func = wave_roe;
   sr_euler->eqn.qfluct_func = qfluct_roe;
@@ -188,6 +190,8 @@ gkyl_wv_sr_euler_new(double gas_gamma)
   
   sr_euler->eqn.rotate_to_local_func = rot_to_local;
   sr_euler->eqn.rotate_to_global_func = rot_to_global;
+
+  sr_euler->eqn.cons_to_diag = gkyl_default_cons_to_diag;
 
   sr_euler->eqn.ref_count = gkyl_ref_count_init(sr_euler_free);
 

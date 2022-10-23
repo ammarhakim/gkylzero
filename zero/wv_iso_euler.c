@@ -232,6 +232,8 @@ gkyl_wv_iso_euler_new(double vt)
   iso_euler->eqn.type = GKYL_EQN_ISO_EULER;
   iso_euler->eqn.num_equations = 4;
   iso_euler->eqn.num_waves = 3;
+  iso_euler->eqn.num_diag = 4;
+  
   iso_euler->vt = vt;
   iso_euler->eqn.waves_func = wave;
   iso_euler->eqn.qfluct_func = qfluct;
@@ -247,6 +249,8 @@ gkyl_wv_iso_euler_new(double vt)
 
   iso_euler->eqn.wall_bc_func = iso_euler_wall;
   iso_euler->eqn.no_slip_bc_func = iso_euler_no_slip;
+
+  iso_euler->eqn.cons_to_diag = gkyl_default_cons_to_diag;
 
   iso_euler->eqn.ref_count = gkyl_ref_count_init(iso_euler_free);
 

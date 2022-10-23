@@ -415,6 +415,8 @@ gkyl_wv_ten_moment_new(double k0)
   ten_moment->eqn.type = GKYL_EQN_TEN_MOMENT;
   ten_moment->eqn.num_equations = 10;
   ten_moment->eqn.num_waves = 5;
+  ten_moment->eqn.num_diag = 10;
+  
   ten_moment->eqn.waves_func = wave;
   ten_moment->eqn.qfluct_func = qfluct;
   ten_moment->eqn.check_inv_func = check_inv;
@@ -426,6 +428,8 @@ gkyl_wv_ten_moment_new(double k0)
   ten_moment->eqn.riem_to_cons = riem_to_cons;
 
   ten_moment->eqn.wall_bc_func = ten_moment_wall;
+
+  ten_moment->eqn.cons_to_diag = gkyl_default_cons_to_diag;
 
   ten_moment->eqn.ref_count = gkyl_ref_count_init(ten_moment_free);
 

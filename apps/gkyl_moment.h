@@ -13,7 +13,7 @@ struct gkyl_moment_species {
   char name[128]; // species name
   double charge, mass; // charge and mass
   enum gkyl_wave_limiter limiter; // limiter to use
-  const struct gkyl_wv_eqn *equation; // equation object
+  struct gkyl_wv_eqn *equation; // equation object
 
   int evolve; // evolve species? 1-yes, 0-no
   bool force_low_order_flux; // should  we force low-order flux?
@@ -79,6 +79,7 @@ struct gkyl_moment {
   enum gkyl_moment_scheme scheme_type; // scheme to update fluid and moment eqns
   enum gkyl_mp_recon mp_recon; // reconstruction scheme to use
   bool skip_mp_limiter; // should MP limiter be skipped?
+  bool use_hybrid_flux_kep; // should shock-hybrid scheme be used when using KEP?
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
