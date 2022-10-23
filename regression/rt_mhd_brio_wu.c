@@ -82,8 +82,6 @@ main(int argc, char **argv)
     .upper = { 1.0 }, 
     .cells = { NX },
 
-    .cfl_frac = 0.8,
-
     .num_species = 1,
     .species = { fluid },
   };

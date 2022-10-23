@@ -468,7 +468,7 @@ qfluct_lax(const struct gkyl_wv_eqn *eqn,
 // HLLD, Miyoshi & Kusano (2005), JCP, 208(1), 315-344
 static double
 wave_hlld(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
-          const double *qr, double *waves, double *speeds)
+  const double *qr, double *waves, double *speeds)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   double g = mhd->gas_gamma;
