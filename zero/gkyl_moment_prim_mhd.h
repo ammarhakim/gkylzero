@@ -13,6 +13,7 @@ gkyl_mhd_pressure(double gas_gamma, const double q[8])
     (q[4] - 0.5*(q[1]*q[1]+q[2]*q[2]+q[3]*q[3])/q[0]
       - 0.5*(q[5]*q[5]+q[6]*q[6]+q[7]*q[7]));
 }
+
 /**
  * Compute MHD fast Alfven speed.
  *
@@ -32,7 +33,8 @@ double gkyl_mhd_fast_speed(double gas_gamma, const double q[8]);
 double gkyl_mhd_max_abs_speed(double gas_gamma, const double q[8]);
 
 /**
- * Compute conserved variables from primitive variables.
+ * Compute conserved variables from primitive variables. Prim vars in
+ * the order [rho, vx, vy, vz, pr, Bx, By, Bz]
  *
  * @param gas_gamma Gas adiabatic constant
  * @param pv Primitive variables
