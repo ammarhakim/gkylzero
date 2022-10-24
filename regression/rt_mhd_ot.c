@@ -3,6 +3,7 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_moment.h>
+#include <gkyl_moment_prim_mhd.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_mhd.h>
 #include <rt_arg_parse.h>
@@ -42,7 +43,7 @@ evalMhdInit(double t, const double* GKYL_RESTRICT xn,
   double Bz = 0;
   double v[8] = {rho, vx, vy, vz, p, Bx, By, Bz};
 
-  calcq(gas_gamma, v, fout);
+  gkyl_mhd_cons_vars(gas_gamma, v, fout);
 
   if (app->divergence_constraint==GKYL_MHD_DIVB_GLM)
     fout[8] = 0; // divB correction potential

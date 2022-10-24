@@ -6,8 +6,8 @@
  * @param gas_gamma Gas adiabatic constant
  * @param q Conserved variables
  */
-static inline
-double gkyl_mhd_pressure(double gas_gamma, const double q[8])
+static inline double
+gkyl_mhd_pressure(double gas_gamma, const double q[8])
 {
   return (gas_gamma-1) *
     (q[4] - 0.5*(q[1]*q[1]+q[2]*q[2]+q[3]*q[3])/q[0]
@@ -30,6 +30,16 @@ double gkyl_mhd_fast_speed(double gas_gamma, const double q[8]);
  * @return Maximum absolute speed for given q
  */
 double gkyl_mhd_max_abs_speed(double gas_gamma, const double q[8]);
+
+/**
+ * Compute conserved variables from primitive variables.
+ *
+ * @param gas_gamma Gas adiabatic constant
+ * @param pv Primitive variables
+ * @param q Conserved variables
+
+ */
+void gkyl_mhd_cons_vars(double gas_gamma, const double pv[8], double q[8]);
 
 /**
  * Compute flux. Assumes rotation to local coordinate system.
