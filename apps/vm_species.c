@@ -174,6 +174,10 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
   s->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
+  // buffer arrays for fixed boundary conditions
+  // JJ 10/25/22 somewhat hacky, there is probably a better way to do this
+  s->bc_buffer_lo_fixed = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
+  s->bc_buffer_up_fixed = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
   
   // determine field-type 
   s->model_id = s->info.model_id; 
@@ -412,7 +416,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       bctype = GKYL_BC_ABSORB;
     else if (s->lower_bc[d] == GKYL_SPECIES_REFLECT)
       bctype = GKYL_BC_REFLECT;
-  
+    else if (s->lower_bc[d] == GKYL_SPECIES_FIXED_FUNC)
+      bctype = GKYL_BC_FIXED_FUNC;
+
     s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &s->local_ext, ghost, bctype,
       app->basis_on_dev.basis, s->f->ncomp, app->cdim, app->use_gpu);
     // Upper BC updater. Copy BCs by default.
@@ -422,7 +428,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       bctype = GKYL_BC_ABSORB;
     else if (s->upper_bc[d] == GKYL_SPECIES_REFLECT)
       bctype = GKYL_BC_REFLECT;
-    
+    else if (s->upper_bc[d] == GKYL_SPECIES_FIXED_FUNC)
+      bctype = GKYL_BC_FIXED_FUNC;
+
     s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &s->local_ext, ghost, bctype,
       app->basis_on_dev.basis, s->f->ncomp, app->cdim, app->use_gpu);
   }
@@ -451,6 +459,11 @@ vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
   // compute pkpm variables if pkpm model
   if (species->model_id == GKYL_MODEL_PKPM || species->model_id == GKYL_MODEL_SR_PKPM)
     vm_species_calc_pkpm_vars(app, species, species->f, app->field->em);
+
+  // copy contents of initial conditions into buffer if specific BCs require them
+  // *only works in x dimension for now*
+  gkyl_bc_basic_buffer_fixed_func(species->bc_lo[0], species->bc_buffer_lo_fixed, species->f);
+  gkyl_bc_basic_buffer_fixed_func(species->bc_up[0], species->bc_buffer_up_fixed, species->f);
 }
 
 void
@@ -600,6 +613,9 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
         case GKYL_SPECIES_ABSORB:
           gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer, f);
           break;
+        case GKYL_SPECIES_FIXED_FUNC:
+          gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer_lo_fixed, f);
+          break;
         case GKYL_SPECIES_NO_SLIP:
         case GKYL_SPECIES_WEDGE:
           assert(false);
@@ -613,6 +629,9 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
         case GKYL_SPECIES_REFLECT:
         case GKYL_SPECIES_ABSORB:
           gkyl_bc_basic_advance(species->bc_up[d], species->bc_buffer, f);
+          break;
+        case GKYL_SPECIES_FIXED_FUNC:
+          gkyl_bc_basic_advance(species->bc_up[d], species->bc_buffer_up_fixed, f);
           break;
         case GKYL_SPECIES_NO_SLIP:
         case GKYL_SPECIES_WEDGE:
@@ -659,6 +678,8 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   gkyl_array_release(s->fnew);
   gkyl_array_release(s->cflrate);
   gkyl_array_release(s->bc_buffer);
+  gkyl_array_release(s->bc_buffer_lo_fixed);
+  gkyl_array_release(s->bc_buffer_up_fixed);
 
   if (app->use_gpu)
     gkyl_array_release(s->f_host);

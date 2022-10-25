@@ -433,6 +433,7 @@ vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *f
         case GKYL_SPECIES_REFLECT:
         case GKYL_SPECIES_NO_SLIP:
         case GKYL_SPECIES_WEDGE:
+        case GKYL_SPECIES_FIXED_FUNC:
           assert(false);
           break;
         default:
@@ -447,6 +448,7 @@ vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *f
         case GKYL_SPECIES_REFLECT:
         case GKYL_SPECIES_NO_SLIP:
         case GKYL_SPECIES_WEDGE:
+        case GKYL_SPECIES_FIXED_FUNC:
           assert(false);
           break;
         default:

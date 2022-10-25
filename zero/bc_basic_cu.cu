@@ -18,6 +18,7 @@ gkyl_bc_basic_create_set_cu_dev_ptrs(int dir, int cdim, enum gkyl_bc_basic_type 
 
   switch (bctype) {
     case GKYL_BC_COPY:
+    case GKYL_BC_FIXED_FUNC:
       fout->func = copy_bc;
       break;
 

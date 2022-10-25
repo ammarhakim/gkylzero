@@ -22,6 +22,7 @@ gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bc
   struct gkyl_array_copy_func *fout = gkyl_malloc(sizeof(*fout));
   switch (bctype) {
     case GKYL_BC_COPY:
+    case GKYL_BC_FIXED_FUNC:
       fout->func = copy_bc;
       break;
       
@@ -76,6 +77,14 @@ gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range *loc
 }
 
 void
+gkyl_bc_basic_buffer_fixed_func(const struct gkyl_bc_basic *up, struct gkyl_array *buff_arr, struct gkyl_array *f_arr)
+{
+  if (up->bctype == GKYL_BC_FIXED_FUNC)
+    gkyl_array_copy_to_buffer_fn(buff_arr->data, f_arr,
+                                 up->skin_r, up->array_copy_func->on_dev);    
+}
+
+void
 gkyl_bc_basic_advance(const struct gkyl_bc_basic *up, struct gkyl_array *buff_arr, struct gkyl_array *f_arr)
 {
   // Apply BC in two steps:
@@ -91,6 +100,9 @@ gkyl_bc_basic_advance(const struct gkyl_bc_basic *up, struct gkyl_array *buff_ar
     case GKYL_BC_REFLECT:
       gkyl_array_flip_copy_to_buffer_fn(buff_arr->data, f_arr, up->dir+up->cdim,
                                         up->skin_r, up->array_copy_func->on_dev);
+      break;
+
+    case GKYL_BC_FIXED_FUNC: // if BC is fixed func, do nothing, buffer already full
       break;
   }
   // 2) Copy from buffer to ghost.
