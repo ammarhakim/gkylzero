@@ -294,10 +294,10 @@ vm_field_accumulate_current(gkyl_vlasov_app *app,
       vm_species_moment_calc(&s->m1i, s->local, app->local, fin[i]);
       gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, app->local);
     }
-    // Accumulate applied current to electric field terms
-    if (app->field->has_app_current)
-      gkyl_array_accumulate_range(emout, -1.0/app->field->info.epsilon0, app->field->app_current, app->local);
   } 
+  // Accumulate applied current to electric field terms
+  if (app->field->has_app_current)
+    gkyl_array_accumulate_range(emout, -1.0/app->field->info.epsilon0, app->field->app_current, app->local);
 }
 
 // Compute the RHS for field update, returning maximum stable
