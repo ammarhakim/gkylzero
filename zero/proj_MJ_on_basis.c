@@ -34,7 +34,6 @@ struct gkyl_proj_MJ_on_basis {
   struct gkyl_array *conf_basis_at_ords; // conf-space basis functions at ordinates
 
   struct gkyl_dg_bin_op_mem *mem_for_div_op; // memory for weak division
-  double mass; // used for init routine
 };
 
 // Sets ordinates, weights and basis functions at ords. Returns total
@@ -98,7 +97,7 @@ gkyl_proj_MJ_on_basis*
 gkyl_proj_MJ_on_basis_new(
   const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
-  int num_quad, double mass)
+  int num_quad)
 {
   gkyl_proj_MJ_on_basis *up = gkyl_malloc(sizeof(gkyl_proj_MJ_on_basis));
 

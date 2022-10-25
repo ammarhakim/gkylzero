@@ -16,13 +16,12 @@ typedef struct gkyl_proj_MJ_on_basis gkyl_proj_MJ_on_basis;
  * @param conf_basis Conf-space basis functions
  * @param phase_basis Phase-space basis functions
  * @param num_quad Number of quadrature nodes
- * @param mass, mass of the species
  * @return New updater pointer.
  */
 gkyl_proj_MJ_on_basis* gkyl_proj_MJ_on_basis_new(
   const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
-  int num_quad, double mass);
+  int num_quad);
 
 /**
  * Compute projection of MJ on basis. This method takes

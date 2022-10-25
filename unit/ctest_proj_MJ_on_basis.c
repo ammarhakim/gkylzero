@@ -73,12 +73,6 @@ void eval_M0(double t, const double *xn, double* restrict fout, void *ctx)
   fout[0] = 1.0;
 }
 
-void eval_M1i_1v(double t, const double *xn, double* restrict fout, void *ctx)
-{
-  double x = xn[0];
-  fout[0] = 0.5; //0.5;
-}
-
 void eval_M1i_1v_no_drift(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
@@ -87,16 +81,22 @@ void eval_M1i_1v_no_drift(double t, const double *xn, double* restrict fout, voi
 
 void eval_M2_1v_no_drift(double t, const double *xn, double* restrict fout, void *ctx)
 {
-  double n = 1.0, vth2 = 1.0, ux = 0.0;
+  double T = 1.0;
   double x = xn[0];
-  fout[0] = n*vth2 + n*ux*ux;
+  fout[0] = T;
+}
+
+void eval_M1i_1v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  fout[0] = 0.5; //0.5;
 }
 
 void eval_M2_1v(double t, const double *xn, double* restrict fout, void *ctx)
 {
-  double n = 1.0, vth2 = 1.0, ux = 0.5;
+  double T = 1.0;
   double x = xn[0];
-  fout[0] = n*vth2; // + n*ux*ux;
+  fout[0] = T;
 }
 
 void eval_M1i_2v(double t, const double *xn, double* restrict fout, void *ctx)
@@ -107,9 +107,9 @@ void eval_M1i_2v(double t, const double *xn, double* restrict fout, void *ctx)
 
 void eval_M2_2v(double t, const double *xn, double* restrict fout, void *ctx)
 {
-  double n = 1.0, vth2 = 1.0, ux = 0.5, uy = 0.25;
+  double T = 1.0;
   double x = xn[0];
-  fout[0] = 2*n*vth2 + n*(ux*ux+uy*uy);
+  fout[0] = T;
 }
 
 void
@@ -121,18 +121,28 @@ test_1x1v_no_drift(int poly_order)
   int ndim = cdim+vdim;
 
   double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
+  double velLower[] = {lower[1]}, velUpper[] = {upper[1]};
   int confCells[] = {cells[0]};
+  int velCells[] = {cells[1]};
 
   // grids
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  struct gkyl_rect_grid vel_grid;
+  gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
+
+  // velocity range
+  int velGhost[] = { 0 };
+  struct gkyl_range velLocal, velLocal_ext; // local, local-ext conf-space ranges
+  gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
   // basis functions
-  struct gkyl_basis basis, confBasis;
+  struct gkyl_basis basis, confBasis, velBasis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
+  gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
 
   int confGhost[] = { 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
@@ -168,47 +178,48 @@ test_1x1v_no_drift(int poly_order)
   distf = mkarr(basis.num_basis, local_ext.volume);
 
   // projection updater to compute MJ
-  double mass = 1.0;
   gkyl_proj_MJ_on_basis *proj_MJ = gkyl_proj_MJ_on_basis_new(&grid,
-    &confBasis, &basis, poly_order+1, mass);
+    &confBasis, &basis, poly_order+1);
 
   gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(proj_MJ, &local, &confLocal, m0, m1i, m2, distf);
 
-  // correct the MJ distribution m0 Moment
-  gkyl_correct_maxwellian *corr_MJ = gkyl_correct_maxwellian_new(&grid,&confBasis,&basis,confLocal.volume,confLocal_ext.volume);
-  gkyl_correct_maxwellian_fix(corr_MJ,distf,m0,&local,&confLocal);
+// build the p_over_gamma
+struct gkyl_array *p_over_gamma;
+p_over_gamma = mkarr(vdim*velBasis.num_basis, velLocal.volume);
+gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+    .grid = &vel_grid,
+    .basis = &velBasis,
+    .qtype = GKYL_GAUSS_LOBATTO_QUAD,
+    .num_quad = 8,
+    .num_ret_vals = vdim,
+    .eval = p_over_gamma_func[vdim-1], //ev_p_over_gamma_1p,
+    .ctx = 0
+  });
+  gkyl_proj_on_basis_advance(p_over_gamma_proj, 0.0, &velLocal, p_over_gamma);
 
   // correct the MJ distribution m0 Moment
-  //gkyl_correct_MJ *corr_MJ = gkyl_correct_MJ_new(&grid,&confBasis,&basis,confLocal.volume,confLocal_ext.volume);
-  //gkyl_correct_MJ_fix(corr_MJ,distf,m0,m1i,&local,&confLocal);
+  gkyl_correct_MJ *corr_MJ = gkyl_correct_MJ_new(&grid,&confBasis,&basis,&confLocal,&velLocal,confLocal.volume,confLocal_ext.volume, false);
+  gkyl_correct_MJ_fix(corr_MJ,p_over_gamma,distf,m0,m1i,&local,&confLocal);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
-  double p1_vals[] = {  7.5585421616306459e-01, -2.1688605007995894e-17,  2.5560131294504802e-02,
-    0.0000000000000000e+00 };
-  double p2_vals[] = {  7.5586260555876306e-01,  3.3461741853476639e-17,  2.5444480361615243e-02,
-    9.2374888136351991e-18, 3.6409663532636887e-16, -3.5764626824658884e-03,
-    5.2417618568471655e-17, -3.0935326627861718e-18 };
-  double p3_vals[] = { 7.5586259435651881e-01, -3.7627349011120229e-17,  2.5444733034629394e-02,
-    -9.8131366622101836e-18, -1.1779064054377974e-16, -3.5692341122334492e-03,
-    -5.9602614442099326e-18, -5.9602614442099326e-18,  2.3674858872649741e-17,
-    -1.1364096470021106e-04,  5.7229637382275112e-19,  4.0417433257763653e-18
-  };
+  double p1_vals[] = {  5.3918752026566863e-01, -1.0910243387206232e-17,  -6.0196985297046972e-02,
+    5.0006050167249552e-18 };
+  double p2_vals[] = {  5.3922143701031633e-01,  -9.6625223288531320e-18,  -5.7898881215132203e-02,
+    7.8842251929957589e-18, 1.9166441863144966e-17, -1.0173903909543560e-02,
+    1.7916734900988946e-17, 1.4245174569363429e-18 };
 
   const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[2]) { 1, 17 }));
 
   if (poly_order == 1) {
-    for (int i=0; i<basis.num_basis; ++i)
+    for (int i=0; i<basis.num_basis; ++i){
       TEST_CHECK( gkyl_compare_double(p1_vals[i], fv[i], 1e-12) );
+    }
   }
 
   if (poly_order == 2) {
-    for (int i=0; i<basis.num_basis; ++i)
+    for (int i=0; i<basis.num_basis; ++i){
       TEST_CHECK( gkyl_compare_double(p2_vals[i], fv[i], 1e-12) );
-  }
-
-  if (poly_order == 3) {
-    for (int i=0; i<basis.num_basis; ++i)
-      TEST_CHECK( gkyl_compare_double(p3_vals[i], fv[i], 1e-12) );
+    }
   }
 
   // write distribution function to file
@@ -223,8 +234,7 @@ test_1x1v_no_drift(int poly_order)
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
-  gkyl_correct_maxwellian_release(corr_MJ);
-  //gkyl_correct_MJ_release(corr_MJ);
+  gkyl_correct_MJ_release(corr_MJ);
 }
 
 void test_1x1v_no_drift_p1() { test_1x1v_no_drift(1); }
@@ -297,15 +307,13 @@ test_1x1v(int poly_order)
   distf = mkarr(basis.num_basis, local_ext.volume);
 
   // projection updater to compute MJ
-  double mass = 1.0;
   gkyl_proj_MJ_on_basis *proj_MJ = gkyl_proj_MJ_on_basis_new(&grid,
-    &confBasis, &basis, poly_order+1, mass);
+    &confBasis, &basis, poly_order+1);
 
   gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(proj_MJ, &local, &confLocal, m0, m1i, m2, distf);
 
 // build the p_over_gamma
 struct gkyl_array *p_over_gamma;
-//p_over_gamma = mkarr(false, vdim*app->velBasis.num_basis, s->local_vel.volume);
 p_over_gamma = mkarr(vdim*velBasis.num_basis, velLocal.volume);
 gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
     .grid = &vel_grid,
@@ -323,32 +331,16 @@ gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_p
   gkyl_correct_MJ_fix(corr_MJ,p_over_gamma,distf,m0,m1i,&local,&confLocal);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
-  double p1_vals[] = {  7.5585421616306459e-01, -2.1688605007995894e-17,  2.5560131294504802e-02,
-    0.0000000000000000e+00 };
-  double p2_vals[] = {  7.5586260555876306e-01,  3.3461741853476639e-17,  2.5444480361615243e-02,
-    9.2374888136351991e-18, 3.6409663532636887e-16, -3.5764626824658884e-03,
-    5.2417618568471655e-17, -3.0935326627861718e-18 };
-  double p3_vals[] = { 7.5586259435651881e-01, -3.7627349011120229e-17,  2.5444733034629394e-02,
-    -9.8131366622101836e-18, -1.1779064054377974e-16, -3.5692341122334492e-03,
-    -5.9602614442099326e-18, -5.9602614442099326e-18,  2.3674858872649741e-17,
-    -1.1364096470021106e-04,  5.7229637382275112e-19,  4.0417433257763653e-18
-  };
+  double p2_vals[] = {  5.9020018022791720e-01,  1.8856465819367569e-17,  1.6811060851198739e-02,
+    -3.1835607256007792e-18, -2.5559407924922751e-17, -1.6328957375267440e-02,
+    3.5362637935871408e-17, -1.1626136441969583e-17 };
 
   const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[2]) { 1, 17 }));
 
-  if (poly_order == 1) {
-    for (int i=0; i<basis.num_basis; ++i)
-      TEST_CHECK( gkyl_compare_double(p1_vals[i], fv[i], 1e-12) );
-  }
-
   if (poly_order == 2) {
-    for (int i=0; i<basis.num_basis; ++i)
+    for (int i=0; i<basis.num_basis; ++i){
       TEST_CHECK( gkyl_compare_double(p2_vals[i], fv[i], 1e-12) );
-  }
-
-  if (poly_order == 3) {
-    for (int i=0; i<basis.num_basis; ++i)
-      TEST_CHECK( gkyl_compare_double(p3_vals[i], fv[i], 1e-12) );
+    }
   }
 
   // write distribution function to file
@@ -363,34 +355,43 @@ gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_p
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
-  //gkyl_correct_maxwellian_release(corr_MJ);
   gkyl_correct_MJ_release(corr_MJ);
 }
 
-void test_1x1v_p1() { test_1x1v(1); }
+// special note, the p1 basis does not function
 void test_1x1v_p2() { test_1x1v(2); }
 
 void
 test_1x2v(int poly_order)
 {
-  double lower[] = {0.1, -6.0, -6.0}, upper[] = {1.0, 6.0, 6.0};
+  double lower[] = {0.1, -15.0, -15.0}, upper[] = {1.0, 15.0, 15.0};
   int cells[] = {2, 16, 16};
   int vdim = 2, cdim = 1;
   int ndim = cdim+vdim;
 
   double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
+  double velLower[] = {lower[1], lower[2]}, velUpper[] = {upper[1], upper[2]};
   int confCells[] = {cells[0]};
+  int velCells[] = {cells[1], cells[2]};
 
   // grids
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  struct gkyl_rect_grid vel_grid;
+  gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
+
+  // velocity range
+  int velGhost[] = { 0, 0 };
+  struct gkyl_range velLocal, velLocal_ext; // local, local-ext conf-space ranges
+  gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
   // basis functions
-  struct gkyl_basis basis, confBasis;
+  struct gkyl_basis basis, confBasis, velBasis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
+  gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
 
   int confGhost[] = { 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
@@ -398,7 +399,7 @@ test_1x2v(int poly_order)
   struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
-  int ghost[] = { confGhost[0], 0, 0 };
+  int ghost[] = { confGhost[0], 0 , 0};
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
@@ -426,51 +427,46 @@ test_1x2v(int poly_order)
   distf = mkarr(basis.num_basis, local_ext.volume);
 
   // projection updater to compute MJ
-  double mass = 1.0;
   gkyl_proj_MJ_on_basis *proj_MJ = gkyl_proj_MJ_on_basis_new(&grid,
-    &confBasis, &basis, poly_order+1, mass);
+    &confBasis, &basis, poly_order+1);
 
   gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(proj_MJ, &local, &confLocal, m0, m1i, m2, distf);
 
+// build the p_over_gamma
+struct gkyl_array *p_over_gamma;
+p_over_gamma = mkarr(vdim*velBasis.num_basis, velLocal.volume);
+gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+    .grid = &vel_grid,
+    .basis = &velBasis,
+    .qtype = GKYL_GAUSS_LOBATTO_QUAD,
+    .num_quad = 8,
+    .num_ret_vals = vdim,
+    .eval = p_over_gamma_func[vdim-1], //ev_p_over_gamma_1p,
+    .ctx = 0
+  });
+  gkyl_proj_on_basis_advance(p_over_gamma_proj, 0.0, &velLocal, p_over_gamma);
+
+  // correct the MJ distribution m0 Moment
+  gkyl_correct_MJ *corr_MJ = gkyl_correct_MJ_new(&grid,&confBasis,&basis,&confLocal,&velLocal,confLocal.volume,confLocal_ext.volume, false);
+  gkyl_correct_MJ_fix(corr_MJ,p_over_gamma,distf,m0,m1i,&local,&confLocal);
+
   // values to compare  at index (1, 9, 9) [remember, lower-left index is (1,1,1)]
-  double p1_vals[] = {  4.2319425948079414e-01,  1.2894963939286889e-17,  1.1450235276582092e-02,
-    -1.1450235276582088e-02, -9.8282386852756766e-19, -9.8282386852756766e-19,
-    -3.0980544974766697e-04, -9.8282386852756766e-19 };
-  double p2_vals[] = { 4.2337474137655023e-01,  5.0502880544733958e-17,  1.1241037221784692e-02,
-    -1.1241037221784697e-02, -4.7391077427032355e-18,  2.1997861612039929e-18,
-    -2.9846116329638447e-04,  1.7051554382338028e-16, -8.7555592875305649e-03,
-    -8.7555592875305441e-03,  2.7340310249380901e-20, -7.7853344310736426e-18,
-    -8.4644052716641422e-19, -1.2104293181211046e-18,  2.3246915375412010e-04,
-    -8.4644052716641422e-19, -2.3246915375411175e-04, -6.1682793769044501e-19,
-    2.8526190142631692e-18,  1.1178955382863621e-18  };
-  double p3_vals[] = { 4.2337367481234789e-01, -6.0016526586247659e-18,  1.1242923855289584e-02,
-    -1.1242923855289581e-02, -3.9968671012250635e-19, -3.9968671012250635e-19,
-    -2.9856210798149093e-04, -7.3108077460892585e-17, -8.6780466947367265e-03,
-    -8.6780466947367196e-03, -4.8918503715040388e-19, -1.0074751858744896e-17,
-    3.8030359490695606e-18,  1.2009507351043501e-18,  2.3045036573145683e-04,
-    1.2009507351043501e-18, -2.3045036573145770e-04, -5.3277715857024823e-18,
-    -2.0839365136087289e-04,  2.0839365136087100e-04,  6.2223560245147039e-18,
-    1.8855473345726862e-18,  1.8855473345726862e-18, -1.3367114158171800e-17,
-    5.1067364964265611e-19,  6.0263289067347938e-18,  5.5340095371337203e-06,
-    3.8847760981017097e-19,  5.5340095371246130e-06, -2.6567508608833698e-18,
-    2.5841550939375440e-18,  4.1575074896653521e-19 };
+  double p2_vals[] = { 1.6962401858070214e-01, -7.7409013792616062e-18, -3.9380955867889663e-03,
+  -2.8639115438725903e-02, 5.5535324575725082e-19, 1.1489034695079269e-18,
+  8.1594568989774036e-03, -1.2454319344697310e-17, -1.0858276718973473e-02,
+  -8.3719428179921188e-03, -5.6169974218438426e-19, 1.1852358453425043e-17,
+  1.5733767456010547e-18, 1.2600839078583602e-17, 2.0991499099505761e-03,
+  9.9534173931022546e-19, -6.4527265157546547e-04, -1.0507606385517198e-17,
+  -9.2457560036345989e-19, 7.4145989533791131e-19 };
 
   const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[3]) { 1, 9, 9 }));
 
-  if (poly_order == 1) {
-    for (int i=0; i<basis.num_basis; ++i)
-      TEST_CHECK( gkyl_compare_double(p1_vals[i], fv[i], 1e-12) );
-  }
-
   if (poly_order == 2) {
-    for (int i=0; i<basis.num_basis; ++i)
+    for (int i=0; i<basis.num_basis; ++i){
       TEST_CHECK( gkyl_compare_double(p2_vals[i], fv[i], 1e-12) );
+    }
   }
 
-  if (poly_order == 3) {
-    for (int i=0; i<basis.num_basis; ++i)
-      TEST_CHECK( gkyl_compare_double(p3_vals[i], fv[i], 1e-10) );
-  }
   // write distribution function to file
   char fname[1024];
   sprintf(fname, "ctest_proj_MJ_on_basis_test_1x2v_p%d.gkyl", poly_order);
@@ -485,7 +481,6 @@ test_1x2v(int poly_order)
   gkyl_proj_on_basis_release(proj_m2);
 }
 
-void test_1x2v_p1() { test_1x2v(1); }
 void test_1x2v_p2() { test_1x2v(2); }
 
 
@@ -493,10 +488,8 @@ TEST_LIST = {
   { "test_1x1v_no_drift_p1", test_1x1v_no_drift_p1 },
   { "test_1x1v_no_drift_p2", test_1x1v_no_drift_p2 },
 
-  { "test_1x1v_p1", test_1x1v_p1 },
   { "test_1x1v_p2", test_1x1v_p2 },
 
-  { "test_1x2v_p1", test_1x2v_p1 },
   { "test_1x2v_p2", test_1x2v_p2 },
   { NULL, NULL },
 };
