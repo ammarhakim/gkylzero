@@ -84,7 +84,7 @@ dg_vlasov_pkpm_set_cu_dev_ptrs(struct dg_vlasov_pkpm *vlasov_pkpm, enum gkyl_bas
 
 struct gkyl_dg_eqn*
 gkyl_dg_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, enum gkyl_field_id field_id)
+  const struct gkyl_range* conf_range)
 {
   struct dg_vlasov_pkpm *vlasov_pkpm = (struct dg_vlasov_pkpm*) gkyl_malloc(sizeof(struct dg_vlasov_pkpm));
 
