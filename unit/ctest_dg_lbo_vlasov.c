@@ -92,13 +92,14 @@ test_1x1v_p2()
   gkyl_proj_on_basis *projF = gkyl_proj_on_basis_new(&phaseGrid, &basis, poly_order+1, 1, maxwellian1x1v, NULL);
   gkyl_proj_on_basis *projNu = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, nu_prof, NULL);
 
-  struct gkyl_array *cflrate, *rhs, *fin, *nuSum, *nuUSum, *nuVtSqSum;
+  struct gkyl_array *cflrate, *rhs, *fin, *nuSum, *nuUSum, *nuVtSqSum, *nuPrimMomsSum;
   cflrate = mkarr(1, phaseRange_ext.volume);
   rhs = mkarr(basis.num_basis, phaseRange_ext.volume);
   fin = mkarr(basis.num_basis, phaseRange_ext.volume);
   nuSum = mkarr(confBasis.num_basis, confRange_ext.volume);
   nuUSum = mkarr(vdim*confBasis.num_basis, confRange_ext.volume);
   nuVtSqSum = mkarr(confBasis.num_basis, confRange_ext.volume);
+  nuPrimMomsSum = mkarr((vdim+1)*confBasis.num_basis, confRange_ext.volume);
 
   gkyl_proj_on_basis_advance(projF, 0.0, &phaseRange_ext, fin);
   gkyl_proj_on_basis_advance(projNu, 0.0, &confRange_ext, nuSum);
@@ -107,13 +108,15 @@ test_1x1v_p2()
   
   gkyl_array_clear(nuUSum, 0.0);
   gkyl_array_clear(nuVtSqSum, 1.0);
+  gkyl_array_set_offset(nuPrimMomsSum, 1.0, nuUSum, 0);
+  gkyl_array_set_offset(nuPrimMomsSum, 1.0, nuVtSqSum, vdim*confBasis.num_basis);
 
   // run hyper_dg_advance
   int nrep = 10;
   for(int n=0; n<nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
-    gkyl_dg_updater_lbo_vlasov_advance(slvr, &phaseRange, nuSum, nuUSum, nuVtSqSum, fin, cflrate, rhs);
+    gkyl_dg_updater_lbo_vlasov_advance(slvr, &phaseRange, nuSum, nuPrimMomsSum, fin, cflrate, rhs);
   }
 
   // get linear index of first non-ghost cell
@@ -163,6 +166,7 @@ test_1x1v_p2()
   gkyl_array_release(nuSum);
   gkyl_array_release(nuUSum);
   gkyl_array_release(nuVtSqSum);
+  gkyl_array_release(nuPrimMomsSum);
   gkyl_dg_updater_lbo_vlasov_release(slvr);
 }
 
@@ -205,13 +209,14 @@ test_1x2v_p2()
   gkyl_proj_on_basis *projF = gkyl_proj_on_basis_new(&phaseGrid, &basis, poly_order+1, 1, maxwellian1x2v, NULL);
   gkyl_proj_on_basis *projNu = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, nu_prof, NULL);
 
-  struct gkyl_array *cflrate, *rhs, *fin, *nuSum, *nuUSum, *nuVtSqSum;
+  struct gkyl_array *cflrate, *rhs, *fin, *nuSum, *nuUSum, *nuVtSqSum, *nuPrimMomsSum;
   cflrate = mkarr(1, phaseRange_ext.volume);
   rhs = mkarr(basis.num_basis, phaseRange_ext.volume);
   fin = mkarr(basis.num_basis, phaseRange_ext.volume);
   nuSum = mkarr(confBasis.num_basis, confRange_ext.volume);
   nuUSum = mkarr(vdim*confBasis.num_basis, confRange_ext.volume);
   nuVtSqSum = mkarr(confBasis.num_basis, confRange_ext.volume);
+  nuPrimMomsSum = mkarr((vdim+1)*confBasis.num_basis, confRange_ext.volume);
 
   gkyl_proj_on_basis_advance(projF, 0.0, &phaseRange_ext, fin);
   gkyl_proj_on_basis_advance(projNu, 0.0, &confRange_ext, nuSum);
@@ -220,6 +225,8 @@ test_1x2v_p2()
   
   gkyl_array_clear(nuUSum, 0.0);
   gkyl_array_clear(nuVtSqSum, 1.0);
+  gkyl_array_set_offset(nuPrimMomsSum, 1.0, nuUSum, 0);
+  gkyl_array_set_offset(nuPrimMomsSum, 1.0, nuVtSqSum, vdim*confBasis.num_basis);
 
   // run hyper_dg_advance
   int nrep = 10;
@@ -227,7 +234,7 @@ test_1x2v_p2()
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
     
-    gkyl_dg_updater_lbo_vlasov_advance(slvr, &phaseRange, nuSum, nuUSum, nuVtSqSum, fin, cflrate, rhs);
+    gkyl_dg_updater_lbo_vlasov_advance(slvr, &phaseRange, nuSum, nuPrimMomsSum, fin, cflrate, rhs);
   }
 
   // get linear index of first non-ghost cell
@@ -301,6 +308,7 @@ test_1x2v_p2()
   gkyl_array_release(nuSum);
   gkyl_array_release(nuUSum);
   gkyl_array_release(nuVtSqSum);
+  gkyl_array_release(nuPrimMomsSum);
   gkyl_dg_updater_lbo_vlasov_release(slvr);
 }
 
@@ -346,7 +354,8 @@ test_1x1v_p2_cu()
   gkyl_proj_on_basis *projF = gkyl_proj_on_basis_new(&phaseGrid, &basis, poly_order+1, 1, maxwellian1x1v, NULL);
   gkyl_proj_on_basis *projNu = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, nu_prof, NULL);
 
-  struct gkyl_array *cflrate_cu, *rhs, *rhs_cu, *fin, *fin_cu, *nuSum, *nuSum_cu, *nuUSum_cu, *nuVtSqSum_cu;
+  struct gkyl_array *cflrate_cu, *rhs, *rhs_cu, *fin, *fin_cu, *nuSum, *nuSum_cu,
+                    *nuUSum_cu, *nuVtSqSum_cu, *nuPrimMomsSum_cu;
   cflrate_cu = mkarr_cu(1, phaseRange_ext.volume);
   rhs = mkarr(basis.num_basis, phaseRange_ext.volume);
   rhs_cu = mkarr_cu(basis.num_basis, phaseRange_ext.volume);
@@ -356,6 +365,7 @@ test_1x1v_p2_cu()
   nuSum_cu = mkarr_cu(confBasis.num_basis, confRange_ext.volume);
   nuUSum_cu = mkarr_cu(vdim*confBasis.num_basis, confRange_ext.volume);
   nuVtSqSum_cu = mkarr_cu(confBasis.num_basis, confRange_ext.volume);
+  nuPrimMomsSum_cu = mkarr_cu((vdim+1)*confBasis.num_basis, confRange_ext.volume);
 
   gkyl_proj_on_basis_advance(projF, 0.0, &phaseRange_ext, fin);
   gkyl_proj_on_basis_advance(projNu, 0.0, &confRange_ext, nuSum);
@@ -364,6 +374,8 @@ test_1x1v_p2_cu()
   
   gkyl_array_clear(nuUSum_cu, 0.0);
   gkyl_array_clear(nuVtSqSum_cu, 1.0);
+  gkyl_array_set_offset(nuPrimMomsSum_cu, 1.0, nuUSum_cu, 0);
+  gkyl_array_set_offset(nuPrimMomsSum_cu, 1.0, nuVtSqSum_cu, vdim*confBasis.num_basis);
 
   gkyl_array_copy(fin_cu, fin);
   gkyl_array_copy(nuSum_cu, nuSum);
@@ -374,7 +386,7 @@ test_1x1v_p2_cu()
     gkyl_array_clear(rhs_cu, 0.0);
     gkyl_array_clear(cflrate_cu, 0.0);
     gkyl_dg_updater_lbo_vlasov_advance_cu(slvr, &phaseRange,
-      nuSum_cu, nuUSum_cu, nuVtSqSum_cu, fin_cu, cflrate_cu, rhs_cu);
+      nuSum_cu, nuPrimMomsSum_cu, fin_cu, cflrate_cu, rhs_cu);
   }
   gkyl_array_copy(rhs, rhs_cu);
 
@@ -428,6 +440,7 @@ test_1x1v_p2_cu()
   gkyl_array_release(nuSum_cu);
   gkyl_array_release(nuUSum_cu);
   gkyl_array_release(nuVtSqSum_cu);
+  gkyl_array_release(nuPrimMomsSum_cu);
   gkyl_dg_updater_lbo_vlasov_release(slvr);
 }
 
@@ -470,7 +483,8 @@ test_1x2v_p2_cu()
   gkyl_proj_on_basis *projF = gkyl_proj_on_basis_new(&phaseGrid, &basis, poly_order+1, 1, maxwellian1x2v, NULL);
   gkyl_proj_on_basis *projNu = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, nu_prof, NULL);
 
-  struct gkyl_array *cflrate_cu, *rhs, *rhs_cu, *fin, *nuSum, *fin_cu, *nuSum_cu, *nuUSum_cu, *nuVtSqSum_cu;
+  struct gkyl_array *cflrate_cu, *rhs, *rhs_cu, *fin, *nuSum, *fin_cu,
+                    *nuSum_cu, *nuUSum_cu, *nuVtSqSum_cu, *nuPrimMomsSum_cu;
   cflrate_cu = mkarr_cu(1, phaseRange_ext.volume);
   rhs = mkarr(basis.num_basis, phaseRange_ext.volume);
   rhs_cu = mkarr_cu(basis.num_basis, phaseRange_ext.volume);
@@ -480,6 +494,7 @@ test_1x2v_p2_cu()
   nuSum_cu = mkarr_cu(confBasis.num_basis, confRange_ext.volume);
   nuUSum_cu = mkarr_cu(vdim*confBasis.num_basis, confRange_ext.volume);
   nuVtSqSum_cu = mkarr_cu(confBasis.num_basis, confRange_ext.volume);
+  nuPrimMomsSum_cu = mkarr_cu((vdim+1)*confBasis.num_basis, confRange_ext.volume);
 
   gkyl_proj_on_basis_advance(projF, 0.0, &phaseRange_ext, fin);
   gkyl_proj_on_basis_advance(projNu, 0.0, &confRange_ext, nuSum);
@@ -491,6 +506,8 @@ test_1x2v_p2_cu()
   
   gkyl_array_clear(nuUSum_cu, 0.0);
   gkyl_array_clear(nuVtSqSum_cu, 1.0);
+  gkyl_array_set_offset(nuPrimMomsSum_cu, 1.0, nuUSum_cu, 0);
+  gkyl_array_set_offset(nuPrimMomsSum_cu, 1.0, nuVtSqSum_cu, vdim*confBasis.num_basis);
 
   // run hyper_dg_advance
   int nrep = 10;
@@ -499,7 +516,7 @@ test_1x2v_p2_cu()
     gkyl_array_clear(cflrate_cu, 0.0);
     
     gkyl_dg_updater_lbo_vlasov_advance_cu(slvr, &phaseRange,
-      nuSum_cu, nuUSum_cu, nuVtSqSum_cu, fin_cu, cflrate_cu, rhs_cu);
+      nuSum_cu, nuPrimMomsSum_cu, fin_cu, cflrate_cu, rhs_cu);
   }
   gkyl_array_copy(rhs, rhs_cu);
     
@@ -577,6 +594,7 @@ test_1x2v_p2_cu()
   gkyl_array_release(nuSum_cu);
   gkyl_array_release(nuUSum_cu);
   gkyl_array_release(nuVtSqSum_cu);
+  gkyl_array_release(nuPrimMomsSum_cu);
   gkyl_dg_updater_lbo_vlasov_release(slvr);
 }
 #endif

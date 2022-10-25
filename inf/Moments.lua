@@ -19,6 +19,11 @@ local C = ffi.load(install_prefix .. "/lib/libgkylzero.so")
 -- set global package paths
 package.path = package.path .. ";" .. install_prefix .. "/lib/?.lua"
 
+-- pick default if val is nil, else pick val
+local function pickBool(val, default)
+   if val == nil then return default else return val end
+end
+
 -- declare some top-level things we want to expose
 ffi.cdef [[
 
@@ -183,33 +188,6 @@ enum gkyl_mp_recon {
 };
 ]]
 
--- gkyl_wv_mhd.h
-ffi.cdef [[
-// flags to indicate which divergence constraint scheme to use
-enum gkyl_wv_mhd_div_constraint {
-  GKYL_MHD_DIVB_NONE,
-  GKYL_MHD_DIVB_EIGHT_WAVES,
-  GKYL_MHD_DIVB_GLM
-};
-
-/**
- * Create a new ideal MHD equation object.
- *
- * @param gas_gamma Gas adiabatic constant
- * @param divb Divergence constraint method
- * @return Pointer to mhd equation object.
- */
-struct gkyl_wv_eqn* gkyl_wv_mhd_new(double gas_gamma, enum gkyl_wv_mhd_div_constraint divb);
-
-/**
- * Get gas adiabatic constant.
- *
- * @param wv mhd equation object
- * @return Get gas adiabatic constant
- */
-double gkyl_wv_mhd_gas_gamma(const struct gkyl_wv_eqn* wv);
-]]
-
 -- gkyl_wv_eqn.h
 ffi.cdef [[
 // Flux type for use in wave/qfluct methods
@@ -292,9 +270,18 @@ struct gkyl_wv_eqn* gkyl_wv_maxwell_new(double c, double e_fact, double b_fact);
  */
 struct gkyl_wv_eqn* gkyl_wv_sr_euler_new(double gas_gamma);
 
+/**
+ * Create a new advection equation object.
+ * 
+ * @param c advection speed
+ * @return Pointer to Burgers equation object.
+ */
+struct gkyl_wv_eqn* gkyl_wv_advect_new(double c);
+
 // Wrappers around various eqn object
 struct gkyl_wv_euler { struct gkyl_wv_eqn *eqn; };
 struct gkyl_wv_iso_euler { struct gkyl_wv_eqn *eqn; };
+struct gkyl_wv_advection { struct gkyl_wv_eqn *eqn; };
 struct gkyl_wv_ten_moment { struct gkyl_wv_eqn *eqn; };
 
 /**
@@ -304,6 +291,42 @@ struct gkyl_wv_ten_moment { struct gkyl_wv_eqn *eqn; };
  * @return Pointer to Ten moment equation object.
  */
 struct gkyl_wv_eqn* gkyl_wv_ten_moment_new(double k0);
+]]
+
+-- gkyl_wc_mhd.h
+ffi.cdef [[
+
+// Type of Rieman problem solver to use
+enum gkyl_wv_mhd_rp {
+  WV_MHD_RP_ROE = 0, // default
+  WV_MHD_RP_HLLD,
+  WV_MHD_RP_LAX
+};
+
+// flags to indicate which divergence constraint scheme to use
+enum gkyl_wv_mhd_div_constraint {
+  GKYL_MHD_DIVB_NONE,
+  GKYL_MHD_DIVB_EIGHT_WAVES,
+  GKYL_MHD_DIVB_GLM
+};
+
+struct gkyl_wv_mhd_inp {
+  double gas_gamma; // gas adiabatic constant
+  enum gkyl_wv_mhd_rp rp_type; // Riemann problem solver
+  enum gkyl_wv_mhd_div_constraint divergence_constraint; // divB correction
+  double glm_ch; // factor to use in GLM scheme
+  double glm_alpha; // Mignone & Tzeferacos, JCP (2010) 229, 2117, Eq (27).
+};
+
+/**
+ * Create a new ideal MHD equation object.
+ *
+ * @param gas_gamma Gas adiabatic constant
+ * @param divb Divergence constraint method
+ * @return Pointer to mhd equation object.
+ */
+struct gkyl_wv_eqn* gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp);
+
 ]]
 
 -- gkyl_moment.h
@@ -645,9 +668,45 @@ _M.Euler = function(tbl)
    return ffi.gc(C.gkyl_wv_euler_inew(einp), C.gkyl_wv_eqn_release)
 end
 
--- Isothermal Eiler equation
+-- Isothermal Euler equation
 _M.IsoEuler = function(tbl)
    return ffi.gc(C.gkyl_wv_iso_euler_new(tbl.vthermal), C.gkyl_wv_eqn_release)
+end
+
+-- Advection
+_M.Advection = function(tbl)
+   return ffi.gc(C.gkyl_wv_advect_new(tbl.speed), C.gkyl_wv_eqn_release)
+end
+
+-- name to RP-type mappings
+local mhd_rp_tags = {
+   ["roe"] = C.WV_MHD_RP_ROE,
+   ["hlld"] = C.WV_MHD_RP_HLLD,
+   ["lax"] = C.WV_MHD_RP_LAX
+}
+
+-- name to divB fix mapping
+local mhd_div_tags = {
+   ["none"] = C.GKYL_MHD_DIVB_NONE,
+   ["eight_waves"] = C.GKYL_MHD_DIVB_EIGHT_WAVES,
+   ["glm"] = C.GKYL_MHD_DIVB_GLM
+}
+
+-- Ideal MHD
+_M.MHD = function(tbl)
+   local minp = ffi.new("struct gkyl_wv_mhd_inp")
+   minp.gas_gamma = tbl.gasGamma
+   minp.rp_type = C.WV_MHD_RP_ROE
+   if tbl.rp_type then
+      minp.rp_type = mhd_rp_tags[tbl.rp_type]
+   end
+   minp.divergence_constraint = C.GKYL_MHD_DIVB_EIGHT_WAVES
+   if tbl.divergenceConstraint then
+      minp.divergence_constraint = mhd_div_tags[tbl.divergenceConstraint]
+   end
+   minp.glm_ch = 1.0
+   minp.glm_alpha = 0.4
+   return ffi.gc(C.gkyl_wv_mhd_new(minp), C.gkyl_wv_eqn_release)
 end
 
 -- Wraps user given init function in a function that can be passed to
@@ -928,6 +987,11 @@ local app_mt = {
       if tbl.mp_recon then
 	 vm.mp_recon = mp_recon_tags[tbl.mp_recon]
       end
+      if tbl.mpRecon then
+	 vm.mp_recon = mp_recon_tags[tbl.mpRecon]
+      end
+
+      vm.skip_mp_limiter = pickBool(tbl.skipMpLimiter, false)
 
       vm.use_hybrid_flux_kep = false
       if tbl.useHybridFluxKep then

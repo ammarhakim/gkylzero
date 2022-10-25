@@ -1,15 +1,15 @@
 #include <gkyl_lbo_gyrokinetic_kernels.h> 
-GKYL_CU_DH void lbo_gyrokinetic_drag_surfmu_1x2v_ser_p1(const double *w, const double *dxv, const double m_, const double *bmag_inv, const double *nuSum, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void lbo_gyrokinetic_drag_surfmu_1x2v_ser_p1(const double *w, const double *dxv, const double m_, const double *bmag_inv, const double *nuSum, const double *nuPrimMomsSum, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
-  // w[3]:     cell-center coordinates. 
-  // dxv[3]:   cell spacing. 
-  // m_:        species mass.
-  // bmag_inv:  1/(magnetic field magnitude). 
-  // nuSum:     collisionalities added (self and cross species collisionalities). 
-  // nuUSum[4]:sum of bulk velocities times their respective collisionalities. 
-  // nuVtSqSum: sum of thermal speeds squared time their respective collisionalities. 
-  // fl/fc/fr:  distribution function in cells 
-  // out:       incremented distribution function in cell 
+  // w[3]: cell-center coordinates. 
+  // dxv[3]: cell spacing. 
+  // m_: species mass.
+  // bmag_inv: 1/(magnetic field magnitude). 
+  // nuSum: collisionalities added (self and cross species collisionalities). 
+  // nuPrimMomsSum[6]: sum of bulk velocities and thermal speeds squared times their respective collisionalities. 
+  // fl/fc/fr: distribution function in cells 
+  // out: incremented distribution function in cell 
+
   double rdv2 = 2.0/dxv[2]; 
 
   double Ghat_r[6] = {0.0}; 

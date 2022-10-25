@@ -25,7 +25,7 @@ calcq(double gas_gamma, const double pv[8], double q[8])
 
 void
 evalMhdInit(double t, const double* GKYL_RESTRICT xn,
-            double* GKYL_RESTRICT fout, void *ctx)
+  double* GKYL_RESTRICT fout, void *ctx)
 {
   struct mhd_ctx *app = ctx;
   double x = xn[0], y =xn[1];
