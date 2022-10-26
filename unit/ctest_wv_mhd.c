@@ -1,6 +1,6 @@
-#include <math.h>
-#include <float.h>
 #include <acutest.h>
+#include <float.h>
+#include <math.h>
 #include <gkyl_moment_prim_mhd.h>
 #include <gkyl_wv_mhd.h>
 
@@ -15,7 +15,9 @@ calcq(double gas_gamma, const double *pv, double *q)
   q[4] = pr/(gas_gamma-1) + 0.5*rho*(u*u+v*v+w*w) + pb;
 }
 
-/* Check flux function implementation */
+/**************************************/
+/* CHECK FLUX FUNCTION IMPLEMENTATION */
+/**************************************/
 void
 test_mhd_basic()
 {
@@ -92,149 +94,134 @@ test_mhd_basic()
   gkyl_wv_eqn_release(mhd);
 }
 
-/* check if sum of left/right going fluctuations sum to jump in flux */
+/*********************************************************************/
+/* CHECK IF SUM OF LEFT/RIGHT GOING FLUCTUATIONS SUM TO JUMP IN FLUX */
+/*********************************************************************/
 void
-test_mhd_waves()
+do_test_mhd_qfluct(const int rp_type, const int ftype,
+                  const double vl[], const double vr[], const int d,
+                  const double eps)
 {
   double gas_gamma = 5.0/3.0;
   struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new( &(struct gkyl_wv_mhd_inp) {
+      .rp_type = rp_type,
       .gas_gamma = gas_gamma,
       .divergence_constraint = GKYL_MHD_DIVB_NONE
     });
 
+  int mwaves = 0;
+  switch (rp_type) {
+    case WV_MHD_RP_ROE:
+      mwaves = 7;  
+      break;
+
+    case WV_MHD_RP_HLLD:
+      mwaves = 5;  
+      break;
+      
+    case WV_MHD_RP_LAX:
+      mwaves = 1;
+      break;      
+  }
+
   double ql[8], qr[8];
   double ql_local[8], qr_local[8];
 
-  // Bx must be the same since presently the wv_mhd does not have the divB wave
-  double vl[8] = { 1.0,  0.1,  0.2,  0.3,  1.5, 0.4, 0.4,  0.3};
+  calcq(gas_gamma, vl, ql); calcq(gas_gamma, vr, qr);
+
+  double norm[3][3] = {
+    { 1.0, 0.0, 0.0 },
+    { 0.0, -1.0, 0.0 },
+    { 0.0, 0.0, 1.0 }
+  };
+
+  double tau1[3][3] = {
+    { 0.0, 1.0, 0.0 },
+    { 1.0, 0.0, 0.0 },
+    { 1.0, 0.0, 0.0 }
+  };
+
+  double tau2[3][3] = {
+    { 0.0, 0.0, 1.0 },
+    { 0.0, 0.0, 1.0 },
+    { 0.0, 1.0, 0.0 }
+  };  
+
+  {
+    double speeds[mwaves], waves[mwaves*8], waves_local[mwaves*8];
+    // rotate to local tangent-normal frame
+    gkyl_wv_eqn_rotate_to_local(mhd, tau1[d], tau2[d], norm[d], ql, ql_local);
+    gkyl_wv_eqn_rotate_to_local(mhd, tau1[d], tau2[d], norm[d], qr, qr_local);
+
+    double delta[8];
+    for (int i=0; i<8; ++i) delta[i] = qr_local[i]-ql_local[i];
+    
+    gkyl_wv_eqn_waves(mhd, ftype, delta, ql_local, qr_local, waves_local, speeds);
+
+    // rotate waves back to global frame
+    for (int mw=0; mw<mwaves; ++mw)
+      gkyl_wv_eqn_rotate_to_global(mhd, tau1[d], tau2[d], norm[d], &waves_local[mw*8], &waves[mw*8]);
+    
+    double apdq_local[8], amdq_local[8];
+    gkyl_wv_eqn_qfluct(mhd, ftype, ql_local, qr_local, waves_local, speeds, amdq_local, apdq_local);
+
+    double apdq[8], amdq[8];
+    gkyl_wv_eqn_rotate_to_global(mhd, tau1[d], tau2[d], norm[d], amdq_local, amdq);
+    gkyl_wv_eqn_rotate_to_global(mhd, tau1[d], tau2[d], norm[d], apdq_local, apdq);
+    
+    // check if sum of left/right going fluctuations sum to jump in flux
+    double fl_local[8], fr_local[8];
+    gkyl_mhd_flux(gas_gamma, ql_local, fl_local);
+    gkyl_mhd_flux(gas_gamma, qr_local, fr_local);
+
+    double fl[8], fr[8];
+    gkyl_wv_eqn_rotate_to_global(mhd, tau1[d], tau2[d], norm[d], fl_local, fl);
+    gkyl_wv_eqn_rotate_to_global(mhd, tau1[d], tau2[d], norm[d], fr_local, fr);
+
+    for (int i=0; i<8; ++i)
+      TEST_CHECK( gkyl_compare(fr[i]-fl[i], amdq[i]+apdq[i], eps) );
+  }
+    
+  gkyl_wv_eqn_release(mhd);
+}
+
+void
+test_mhd_qfluct_lax()
+{
+  // jumps in bx, by, and bz; only works with lax
+  double vl[8] = { 1.0,  0.1,  0.2,  0.3,  1.5, 0.4, 0.43,  0.3};
+  double vr[8] = { 1.1, 0.13, 0.25, 0.34, 15.0, 0.42, 0.4, -0.3};
+  double eps = 1e-13;
+  for (int d=0; d<3; ++d)
+    do_test_mhd_qfluct(WV_MHD_RP_LAX, GKYL_WV_LOW_ORDER_FLUX, vl, vr, d, eps);
+}
+
+void
+test_mhd_qfluct_roe()
+{
+  // no jump in bx
+  double vl[8] = { 1.0,  0.1,  0.2,  0.3,  1.5, 0.4,  0.4,  0.3};
   double vr[8] = { 1.1, 0.13, 0.25, 0.34, 1.54, 0.4, 0.44, 0.34};
-
-  calcq(gas_gamma, vl, ql); calcq(gas_gamma, vr, qr);
-
-  double norm[3][3] = {
-    { 1.0, 0.0, 0.0 },
-    { 0.0, -1.0, 0.0 },
-    { 0.0, 0.0, 1.0 }
-  };
-
-  double tau1[3][3] = {
-    { 0.0, 1.0, 0.0 },
-    { 1.0, 0.0, 0.0 },
-    { 1.0, 0.0, 0.0 }
-  };
-
-  double tau2[3][3] = {
-    { 0.0, 0.0, 1.0 },
-    { 0.0, 0.0, 1.0 },
-    { 0.0, 1.0, 0.0 }
-  };  
-
-  for (int d=0; d<1; ++d) {
-    double speeds[7], waves[7*8], waves_local[7*8];
-    // rotate to local tangent-normal frame
-    gkyl_wv_eqn_rotate_to_local(mhd, tau1[d], tau2[d], norm[d], ql, ql_local);
-    gkyl_wv_eqn_rotate_to_local(mhd, tau1[d], tau2[d], norm[d], qr, qr_local);
-
-    double delta[8];
-    for (int i=0; i<8; ++i) delta[i] = qr_local[i]-ql_local[i];
-    
-    gkyl_wv_eqn_waves(mhd, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
-
-    // rotate waves back to global frame
-    for (int mw=0; mw<7; ++mw)
-      gkyl_wv_eqn_rotate_to_global(mhd, tau1[d], tau2[d], norm[d], &waves_local[mw*8], &waves[mw*8]);
-    
-    double apdq[8], amdq[8];
-    gkyl_wv_eqn_qfluct(mhd, GKYL_WV_HIGH_ORDER_FLUX, ql, qr, waves, speeds, amdq, apdq);
-    
-    // check if sum of left/right going fluctuations sum to jump in flux
-    double fl_local[8], fr_local[8];
-    gkyl_mhd_flux(gas_gamma, ql_local, fl_local);
-    gkyl_mhd_flux(gas_gamma, qr_local, fr_local);
-
-    double fl[8], fr[8];
-    gkyl_wv_eqn_rotate_to_global(mhd, tau1[d], tau2[d], norm[d], fl_local, fl);
-    gkyl_wv_eqn_rotate_to_global(mhd, tau1[d], tau2[d], norm[d], fr_local, fr);
-    
-    for (int i=0; i<8; ++i)
-      TEST_CHECK( gkyl_compare(fr[i]-fl[i], amdq[i]+apdq[i], 1e-13) );
-  }
-    
-  gkyl_wv_eqn_release(mhd);
+  int d = 0;
+  double eps = 1e-13;
+  int ftype = GKYL_WV_HIGH_ORDER_FLUX;
+  do_test_mhd_qfluct(WV_MHD_RP_ROE, ftype, vl, vr, d, eps);
 }
 
 void
-test_mhd_waves_2()
+test_mhd_qfluct_hlld()
 {
-  double gas_gamma = 5.0/3.0;
-  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new( &(struct gkyl_wv_mhd_inp) {
-      .gas_gamma = gas_gamma,
-      .divergence_constraint = GKYL_MHD_DIVB_NONE
-    });
-
-  double ql[8], qr[8];
-  double ql_local[8], qr_local[8];
-
-  // Bx must be the same since presently the wv_mhd does not have the divB wave
-  double vl[8] = { 1.0,  0.1,  0.2,  0.3,  1.5, 0.4, 0.4, 0.3};
-  double vr[8] = { 1.1, 0.13, 0.25, 0.34, 15.0, 0.4, 0.4, -0.3};
-
-  calcq(gas_gamma, vl, ql); calcq(gas_gamma, vr, qr);
-
-  double norm[3][3] = {
-    { 1.0, 0.0, 0.0 },
-    { 0.0, -1.0, 0.0 },
-    { 0.0, 0.0, 1.0 }
-  };
-
-  double tau1[3][3] = {
-    { 0.0, 1.0, 0.0 },
-    { 1.0, 0.0, 0.0 },
-    { 1.0, 0.0, 0.0 }
-  };
-
-  double tau2[3][3] = {
-    { 0.0, 0.0, 1.0 },
-    { 0.0, 0.0, 1.0 },
-    { 0.0, 1.0, 0.0 }
-  };  
-
-  for (int d=0; d<2; ++d) {
-    double speeds[7], waves[7*8], waves_local[7*8];
-    // rotate to local tangent-normal frame
-    gkyl_wv_eqn_rotate_to_local(mhd, tau1[d], tau2[d], norm[d], ql, ql_local);
-    gkyl_wv_eqn_rotate_to_local(mhd, tau1[d], tau2[d], norm[d], qr, qr_local);
-
-    double delta[8];
-    for (int i=0; i<8; ++i) delta[i] = qr_local[i]-ql_local[i];
-    
-    gkyl_wv_eqn_waves(mhd, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
-
-    // rotate waves back to global frame
-    for (int mw=0; mw<7; ++mw)
-      gkyl_wv_eqn_rotate_to_global(mhd, tau1[d], tau2[d], norm[d], &waves_local[mw*8], &waves[mw*8]);
-    
-    double apdq[8], amdq[8];
-    gkyl_wv_eqn_qfluct(mhd, GKYL_WV_HIGH_ORDER_FLUX, ql, qr, waves, speeds, amdq, apdq);
-    
-    // check if sum of left/right going fluctuations sum to jump in flux
-    double fl_local[8], fr_local[8];
-    gkyl_mhd_flux(gas_gamma, ql_local, fl_local);
-    gkyl_mhd_flux(gas_gamma, qr_local, fr_local);
-
-    double fl[8], fr[8];
-    gkyl_wv_eqn_rotate_to_global(mhd, tau1[d], tau2[d], norm[d], fl_local, fl);
-    gkyl_wv_eqn_rotate_to_global(mhd, tau1[d], tau2[d], norm[d], fr_local, fr);
-    
-    for (int i=0; i<8; ++i)
-      TEST_CHECK( gkyl_compare(fr[i]-fl[i], amdq[i]+apdq[i], 1e-13) );
-  }
-    
-  gkyl_wv_eqn_release(mhd);
+  // no jump in bx
+  double vl[8] = { 1.0,  0.1,  0.2,  0.3,  1.5, 0.4,  0.4,  0.3};
+  double vr[8] = { 1.1, 0.13, 0.25, 0.34, 1.54, 0.4, 0.44, 0.34};
+  int d = 0;
+  double eps = 1e-12;
+  int ftype = GKYL_WV_HIGH_ORDER_FLUX;
+  do_test_mhd_qfluct(WV_MHD_RP_HLLD, ftype, vl, vr, d, 1e-12);
 }
 
 void
-test_mhd_waves_3()
+test_mhd_qfluct_glm()
 {
   double gas_gamma = 5.0/3.0;
   double ch = 1.0;
@@ -308,126 +295,11 @@ test_mhd_waves_3()
   gkyl_wv_eqn_release(mhd);
 }
 
-void
-do_test_mhd_waves(const int rp_type, const int ftype,
-                  const double vl[], const double vr[], const int d,
-                  const double eps)
-{
-  double gas_gamma = 5.0/3.0;
-  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new( &(struct gkyl_wv_mhd_inp) {
-      .rp_type = rp_type,
-      .gas_gamma = gas_gamma,
-      .divergence_constraint = GKYL_MHD_DIVB_NONE
-    });
-
-  int mwaves = 0;
-  switch (rp_type) {
-    case WV_MHD_RP_ROE:
-      mwaves = 7;  
-      break;
-
-    case WV_MHD_RP_HLLD:
-      mwaves = 5;  
-      break;
-      
-    case WV_MHD_RP_LAX:
-      mwaves = 1;
-      break;      
-  }
-
-  double ql[8], qr[8];
-  double ql_local[8], qr_local[8];
-
-  // Bx must be the same since presently the wv_mhd does not have the divB wave
-
-  calcq(gas_gamma, vl, ql); calcq(gas_gamma, vr, qr);
-
-  double norm[3][3] = {
-    { 1.0, 0.0, 0.0 },
-    { 0.0, -1.0, 0.0 },
-    { 0.0, 0.0, 1.0 }
-  };
-
-  double tau1[3][3] = {
-    { 0.0, 1.0, 0.0 },
-    { 1.0, 0.0, 0.0 },
-    { 1.0, 0.0, 0.0 }
-  };
-
-  double tau2[3][3] = {
-    { 0.0, 0.0, 1.0 },
-    { 0.0, 0.0, 1.0 },
-    { 0.0, 1.0, 0.0 }
-  };  
-
-  {
-    double speeds[mwaves], waves[mwaves*8], waves_local[mwaves*8];
-    // rotate to local tangent-normal frame
-    gkyl_wv_eqn_rotate_to_local(mhd, tau1[d], tau2[d], norm[d], ql, ql_local);
-    gkyl_wv_eqn_rotate_to_local(mhd, tau1[d], tau2[d], norm[d], qr, qr_local);
-
-    double delta[8];
-    for (int i=0; i<8; ++i) delta[i] = qr_local[i]-ql_local[i];
-    
-    gkyl_wv_eqn_waves(mhd, ftype, delta, ql_local, qr_local, waves_local, speeds);
-
-    // rotate waves back to global frame
-    for (int mw=0; mw<mwaves; ++mw)
-      gkyl_wv_eqn_rotate_to_global(mhd, tau1[d], tau2[d], norm[d], &waves_local[mw*8], &waves[mw*8]);
-    
-    double apdq_local[8], amdq_local[8];
-    gkyl_wv_eqn_qfluct(mhd, ftype, ql_local, qr_local, waves_local, speeds, amdq_local, apdq_local);
-
-    double apdq[8], amdq[8];
-    gkyl_wv_eqn_rotate_to_global(mhd, tau1[d], tau2[d], norm[d], amdq_local, amdq);
-    gkyl_wv_eqn_rotate_to_global(mhd, tau1[d], tau2[d], norm[d], apdq_local, apdq);
-    
-    // check if sum of left/right going fluctuations sum to jump in flux
-    double fl_local[8], fr_local[8];
-    gkyl_mhd_flux(gas_gamma, ql_local, fl_local);
-    gkyl_mhd_flux(gas_gamma, qr_local, fr_local);
-
-    double fl[8], fr[8];
-    gkyl_wv_eqn_rotate_to_global(mhd, tau1[d], tau2[d], norm[d], fl_local, fl);
-    gkyl_wv_eqn_rotate_to_global(mhd, tau1[d], tau2[d], norm[d], fr_local, fr);
-
-    for (int i=0; i<8; ++i)
-      TEST_CHECK( gkyl_compare(fr[i]-fl[i], amdq[i]+apdq[i], eps) );
-  }
-    
-  gkyl_wv_eqn_release(mhd);
-}
-
-void
-test_mhd_waves_4()
-{
-  {
-    // jumps in bx, by, and bz; only works with lax
-    double vl[8] = { 1.0,  0.1,  0.2,  0.3,  1.5, 0.4, 0.43,  0.3};
-    double vr[8] = { 1.1, 0.13, 0.25, 0.34, 15.0, 0.42, 0.4, -0.3};
-    double eps = 1e-13;
-    for (int d=0; d<3; ++d)
-      do_test_mhd_waves(WV_MHD_RP_LAX, GKYL_WV_LOW_ORDER_FLUX, vl, vr, d, eps);
-  }
-
-  {
-    // no jump in bx
-    double vl[8] = { 1.0,  0.1,  0.2,  0.3,  1.5, 0.4,  0.4,  0.3};
-    double vr[8] = { 1.1, 0.13, 0.25, 0.34, 1.54, 0.4, 0.44, 0.34};
-    int d = 0;
-    double eps = 1e-13;
-    int ftype = GKYL_WV_HIGH_ORDER_FLUX;
-    do_test_mhd_waves(WV_MHD_RP_LAX, ftype, vl, vr, d, eps);
-    do_test_mhd_waves(WV_MHD_RP_HLLD, ftype, vl, vr, d, 1e-12); // FIXME
-    do_test_mhd_waves(WV_MHD_RP_ROE, ftype, vl, vr, d, eps);
-  }
-}
-
 TEST_LIST = {
   { "mhd_basic", test_mhd_basic },
-  { "mhd_waves", test_mhd_waves },
-  { "mhd_waves_2", test_mhd_waves_2 },
-  { "mhd_waves_3", test_mhd_waves_3 },  
-  { "mhd_waves_4", test_mhd_waves_4 },  
+  { "mhd_qfluct_lax", test_mhd_qfluct_lax },  
+  { "mhd_qfluct_roe", test_mhd_qfluct_roe },  
+  { "mhd_qfluct_hlld", test_mhd_qfluct_hlld },  
+  { "mhd_qfluct_glm", test_mhd_qfluct_glm },  
   { NULL, NULL },
 };
