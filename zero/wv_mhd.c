@@ -800,12 +800,14 @@ gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
       break;
 
     case GKYL_MHD_DIVB_EIGHT_WAVES:
-      mhd->eqn.num_waves += 1;
+      if (inp->rp_type != WV_MHD_RP_LAX)
+        mhd->eqn.num_waves += 1;
       break;
 
     case GKYL_MHD_DIVB_GLM:
       mhd->eqn.num_equations += 1;
-      mhd->eqn.num_waves += 2;
+      if (inp->rp_type != WV_MHD_RP_LAX)
+        mhd->eqn.num_waves += 2;
       mhd->eqn.cons_to_riem = cons_to_riem_9;
       mhd->eqn.riem_to_cons = riem_to_cons_9;
       mhd->eqn.rotate_to_local_func = rot_to_local_rect_glm;
