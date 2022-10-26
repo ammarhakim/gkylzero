@@ -665,6 +665,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   
   // release moment data
   vm_species_moment_release(app, &s->m1i);
+  vm_species_moment_release(app, &s->m0);
   for (int i=0; i<s->info.num_diag_moments; ++i)
     vm_species_moment_release(app, &s->moms[i]);
   gkyl_free(s->moms);
