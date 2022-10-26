@@ -20,8 +20,10 @@
 #include <gkyl_elem_type.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_fv_proj.h>
+#include <gkyl_kep_scheme.h>
 #include <gkyl_moment.h>
 #include <gkyl_moment_em_coupling.h>
+#include <gkyl_mhd_src.h>
 #include <gkyl_mp_scheme.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -32,12 +34,14 @@
 #include <gkyl_wv_apply_bc.h>
 #include <gkyl_wv_maxwell.h>
 #include <gkyl_wv_ten_moment.h>
+#include <gkyl_wv_mhd.h>
 
 // Species data
 struct moment_species {
   int ndim;
   char name[128]; // species name
   double charge, mass;
+  
   double k0; // closure parameter (default is 0.0, used by 10 moment)
 
   int evolve; // evolve species? 1-yes, 0-no
@@ -53,6 +57,7 @@ struct moment_species {
 
   enum gkyl_eqn_type eqn_type; // type ID of equation
   int num_equations; // number of equations in species
+  struct gkyl_wv_eqn *equation; // equation object
 
   enum gkyl_moment_scheme scheme_type; // scheme to update equations
   // solvers and data to update fluid equations
@@ -62,9 +67,13 @@ struct moment_species {
       struct gkyl_array *fdup, *f[4]; // arrays for updates
     };
     struct {
-      gkyl_mp_scheme *mp_slvr; // monotonicity-preserving scheme
+      union {
+        gkyl_mp_scheme *mp_slvr; // monotonicity-preserving scheme
+        gkyl_kep_scheme *kep_slvr; // KEP scheme
+      };
       struct gkyl_array *f0, *f1, *fnew; // arrays for updates
       struct gkyl_array *cflrate; // CFL rate in each cell
+      struct gkyl_array *alpha; // for shock detector      
     };
   };
   struct gkyl_array *fcurr; // points to current solution (depends on scheme)
@@ -87,7 +96,9 @@ struct moment_field {
     
   void *ctx; // context for initial condition init function
   // pointer to initialization function
-  void (*init)(double t, const double *xn, double *fout, void *ctx);    
+  void (*init)(double t, const double *xn, double *fout, void *ctx);
+
+  struct gkyl_wv_eqn *maxwell; // pointer to Maxwell eqn obj
     
   struct gkyl_array *app_current; // arrays for applied currents
   // pointer to projection operator for applied current function
@@ -129,6 +140,10 @@ struct moment_coupling {
   gkyl_moment_em_coupling *slvr; // source solver function
 };
 
+struct mhd_src {
+  gkyl_mhd_src *slvr; // source solver function
+};
+
 // Moment app object: used as opaque pointer in user code
 struct gkyl_moment_app {
   char name[128]; // name of app
@@ -137,7 +152,8 @@ struct gkyl_moment_app {
   double cfl; // CFL number
 
   enum gkyl_moment_scheme scheme_type; // scheme to use
-  enum gkyl_mp_recon mp_recon; // reconstruction scheme to use  
+  enum gkyl_mp_recon mp_recon; // reconstruction scheme to use
+  bool use_hybrid_flux_kep; // should shock-hybrid scheme be used when using KEP?
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
@@ -163,24 +179,24 @@ struct gkyl_moment_app {
   int num_species;
   struct moment_species *species; // species data
 
-  // work arrays for use in the MP scheme: these are stored here so
-  // they can be
+  // work arrays for use in the KEP and MP scheme: these are stored
+  // here so they can be reused
   struct {
-    struct gkyl_array *ql, *qr;
-    struct gkyl_array *amdq, *apdq;
+    struct gkyl_array *ql, *qr; // expansions on left/right edge of cell
+    struct gkyl_array *amdq, *apdq; // minus/plus fluctuations
   };
 
   int update_sources; // flag to indicate if sources are to be updated
   struct moment_coupling sources; // sources
     
+  int update_mhd_source;
+  struct mhd_src mhd_source;
+
   struct gkyl_moment_stat stat; // statistics
 
   // pointer to function that takes a single-step of simulation
   struct gkyl_update_status (*update_func)(gkyl_moment_app* app, double dt0);
 };
-
-// Function pointer to compute integrated quantities from input
-typedef void (*integ_func)(int nc, const double *qin, double *integ_out);
 
 /** Some common functions to species and fields */
 
@@ -204,9 +220,9 @@ bc_copy(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void
 }
 
 // Compute integrated quantities specified by i_func 
-void calc_integ_quant(int nc, double vol,
+void calc_integ_quant(const struct gkyl_wv_eqn *eqn, double vol,
   const struct gkyl_array *q, const struct gkyl_wave_geom *geom,
-  struct gkyl_range update_rng, integ_func i_func, double *integ_q);
+  struct gkyl_range update_rng, double *integ_q);
 
 // Check array "q" for nans
 bool check_for_nans(const struct gkyl_array *q, struct gkyl_range update_rng);
@@ -236,7 +252,7 @@ double moment_species_max_dt(const gkyl_moment_app *app, const struct moment_spe
 
 // Advance solution of species by time-step dt to tcurr+dt
 struct gkyl_update_status moment_species_update(const gkyl_moment_app *app,
-  const struct moment_species *sp, double tcurr, double dt);
+  struct moment_species *sp, double tcurr, double dt);
 
 // Compute RHS of moment equations
 double moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
@@ -275,6 +291,18 @@ void moment_field_release(const struct moment_field *fld);
 // and fields are initialized
 void moment_coupling_init(const struct gkyl_moment_app *app,
   struct moment_coupling *src);
+
+/** mhd_src functions */
+
+void mhd_src_init(const struct gkyl_moment_app *app,
+                  const struct gkyl_moment_species *sp, struct mhd_src *src);
+
+// update sources: 'nstrang' is 0 for the first Strang step and 1 for
+// the second step
+void mhd_src_update(gkyl_moment_app *app, struct mhd_src *src, int nstrang,
+                    double tcurr, double dt);
+
+void mhd_src_release(const struct mhd_src *src);
 
 // update sources: 'nstrang' is 0 for the first Strang step and 1 for
 // the second step

@@ -248,6 +248,8 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
 
   int idxl[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
 
+  double max_speed = 0.0;
+
   // state of the update
   enum update_state {
     WV_FIRST_SWEEP, WV_POSITIVITY_SWEEP, WV_FIN_SWEEP
@@ -301,7 +303,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
           copy_wv_vec(meqn, gkyl_array_fetch(qout, lidx), gkyl_array_cfetch(qin, lidx));
         }
 
-        for (int i=loidx; i<upidx; ++i) { // CAUTION: should this be i<= as our indexing is inclusive?!
+        for (int i=loidx; i<=upidx; ++i) {
           idxl[dir] = i-1; idxr[dir] = i;
           long sidx = gkyl_ridx(slice_range, i);
 
@@ -326,7 +328,10 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
             calc_jump(meqn, ql_local, qr_local, delta);
           
 
-            gkyl_wv_eqn_waves(wv->equation, ftype, delta, ql_local, qr_local, waves_local, s);
+            double my_max_speed = gkyl_wv_eqn_waves(wv->equation, ftype, delta,
+                                                    ql_local, qr_local,
+                                                    waves_local, s);
+            max_speed = max_speed > my_max_speed ? max_speed : my_max_speed;
 
             double lenr = cg->lenr[dir];
             for (int mw=0; mw<mwaves; ++mw)
@@ -357,7 +362,11 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
         }
 
         if (cfla > cflm) // check time-step before any updates are performed
-          return (struct gkyl_wave_prop_status) { .success = 0, .dt_suggested = dt*cfl/cfla };
+          return (struct gkyl_wave_prop_status) {
+            .success = 0,
+            .dt_suggested = dt*cfl/cfla,
+            .max_speed = max_speed,
+          };
 
         // compute first-order update in each cell
         for (int i=loidx_c; i<=upidx_c; ++i) { // loop is over cells
@@ -471,7 +480,8 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
 
   return (struct gkyl_wave_prop_status) {
     .success = 1,
-    .dt_suggested = dt_suggested > dt ? dt_suggested : dt
+    .dt_suggested = dt_suggested > dt ? dt_suggested : dt,
+    .max_speed = max_speed,
   };
 }
 

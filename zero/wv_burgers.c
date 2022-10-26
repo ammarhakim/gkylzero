@@ -96,6 +96,8 @@ gkyl_wv_burgers_new(void)
   burgers->eqn.type = GKYL_EQN_BURGERS;
   burgers->eqn.num_equations = 1;
   burgers->eqn.num_waves = 1;
+  burgers->eqn.num_diag = 1;
+  
   burgers->eqn.waves_func = wave_roe;
   burgers->eqn.qfluct_func = qfluct_roe;
   burgers->eqn.flux_jump = flux_jump;
@@ -108,6 +110,8 @@ gkyl_wv_burgers_new(void)
 
   burgers->eqn.cons_to_riem = cons_to_riem;
   burgers->eqn.riem_to_cons = riem_to_cons;
+
+  burgers->eqn.cons_to_diag = gkyl_default_cons_to_diag;
 
   burgers->eqn.ref_count = gkyl_ref_count_init(burgers_free);
 

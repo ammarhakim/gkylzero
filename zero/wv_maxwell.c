@@ -216,14 +216,23 @@ max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
   return maxwell->c;
 }
 
+static inline void
+maxwell_cons_to_diag(const struct gkyl_wv_eqn *eqn,
+  const double *qin, double *diag)
+{
+  // components of EM energy
+  for (int i=0; i<6; ++i) diag[i] = qin[i]*qin[i];
+}
+
 struct gkyl_wv_eqn*
 gkyl_wv_maxwell_new(double c, double e_fact, double b_fact)
 {
   struct wv_maxwell *maxwell = gkyl_malloc(sizeof(struct wv_maxwell));
 
   maxwell->eqn.type = GKYL_EQN_MAXWELL;
-  maxwell->eqn.num_equations = 8;
+  maxwell->eqn.num_equations = 8;  
   maxwell->eqn.num_waves = 6;
+  maxwell->eqn.num_diag = 6; // Ex^2, Ey^2, Ez^2, Bx^2, By^2, Bz^2
   
   maxwell->c = c;
   maxwell->e_fact = e_fact;
@@ -242,6 +251,8 @@ gkyl_wv_maxwell_new(double c, double e_fact, double b_fact)
   maxwell->eqn.riem_to_cons = riem_to_cons;
 
   maxwell->eqn.wall_bc_func = maxwell_wall;
+
+  maxwell->eqn.cons_to_diag = maxwell_cons_to_diag;
 
   maxwell->eqn.ref_count = gkyl_ref_count_init(maxwell_free);
 
