@@ -661,10 +661,11 @@ qfluct_hlld(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
             const double *waves, const double *s, double *amdq, double *apdq)
 {
   int meqn = eqn->num_equations;
+  int mwave = eqn->num_waves;
   for (int i=0; i<meqn; ++i) {
     amdq[i] = fmin(0.0, s[0]) * waves[i];
     apdq[i] = fmax(0.0, s[0]) * waves[i];
-    for (int mw=1; mw<5; ++mw) {
+    for (int mw=1; mw<mwave; ++mw) {
       amdq[i] += fmin(0.0, s[mw]) * waves[meqn*mw+i];
       apdq[i] += fmax(0.0, s[mw]) * waves[meqn*mw+i];
     }
