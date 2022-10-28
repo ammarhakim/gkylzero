@@ -46,8 +46,9 @@ gkyl_mhd_max_abs_speed(double gas_gamma, const double q[8])
   return u + cf;
 }
 
-double
-gkyl_mhd_max_abs_speed_roe(const double gamma, const double *ql, const double *qr)
+void
+gkyl_mhd_eigen_speeds_roe(const double gamma, const double *ql, const double *qr,
+    double buf[])
 {
   //////////////////////////////////////////////////////////////////////////////
   // STEP 1: COMPUTE PRIMITIVE VARIABLES                                      //
@@ -94,7 +95,22 @@ gkyl_mhd_max_abs_speed_roe(const double gamma, const double *ql, const double *q
   double astar2 = a2 + b2;
   double cf2 = (astar2 + sqrt(sq(astar2)-4*a2*ca2)) / 2;  // fast wave speed
 
-  return sqrt(cf2) + sqrt(v2);
+  buf[0] = u;
+  buf[1] = v;
+  buf[2] = w;
+  buf[3] = sqrt(cf2);
+}
+
+double
+gkyl_mhd_max_abs_speed_roe(const double gamma, const double *ql, const double *qr)
+{
+  double buf[4];
+  gkyl_mhd_eigen_speeds_roe(gamma, ql, qr, buf);
+
+  double u = buf[0], v = buf[1], w = buf[2], cf = buf[3];
+  double v_tot = sqrt(u * u + v * v + w * w);
+
+  return v_tot + cf;
 }
 
 void

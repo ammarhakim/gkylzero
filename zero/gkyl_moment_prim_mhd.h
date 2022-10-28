@@ -32,6 +32,17 @@ double gkyl_mhd_fast_speed(double gas_gamma, const double q[8]);
 double gkyl_mhd_max_abs_speed(double gas_gamma, const double q[8]);
 
 /**
+ * Compute eigen speeds due to roe.
+ *
+ * @param gas_gamma Gas adiabatic constant
+ * @param q Conserved variables
+ * @param buf Array with four elements to hold computed u, v, w, cfast.
+ * @return buf
+ */
+void gkyl_mhd_eigen_speeds_roe(const double gamma, const double *ql,
+    const double *qr, double buf[]);
+
+/**
  * Compute maximum absolute speed using MHD flow and fast Alfven speed due to a
  * Roe scheme.
  *
