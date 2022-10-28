@@ -377,6 +377,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   }
 
   // For the GLM Bx and psi waves, solve the linear Riemann problem.
+  // TODO create and use a separate glm RP solver
   if (mhd->divergence_constraint == GKYL_MHD_DIVB_GLM)
   {
     double ch = mhd->glm_ch;
@@ -425,13 +426,16 @@ wave_lax(const struct gkyl_wv_eqn *eqn,
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   double gas_gamma = mhd->gas_gamma;
 
+#if 0
   double sl = gkyl_mhd_max_abs_speed(gas_gamma, ql);
   double sr = gkyl_mhd_max_abs_speed(gas_gamma, qr);
+  ev[0] = 0.5*(sl+sr);
+#else
+  ev[0] = gkyl_mhd_max_abs_speed_roe(gas_gamma, ql, qr);
+#endif
 
   double *wv = &waves[0]; // single wave
   for (int i=0; i<mhd->eqn.num_equations; ++i)  wv[i] = dQ[i];
-
-  ev[0] = 0.5*(sl+sr);
 
   return ev[0];
 }
@@ -444,9 +448,13 @@ qfluct_lax(const struct gkyl_wv_eqn *eqn,
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   double gas_gamma = mhd->gas_gamma;
 
+#if 0
   double sl = gkyl_mhd_max_abs_speed(gas_gamma, ql);
   double sr = gkyl_mhd_max_abs_speed(gas_gamma, qr);
   double amax = fmax(sl, sr);
+#else
+  double amax = gkyl_mhd_max_abs_speed_roe(gas_gamma, ql, qr);
+#endif
 
   double fl[10], fr[10];
 
@@ -491,15 +499,26 @@ wave_hlld(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
   double ptr = pr + 0.5 * (sq(qr[BX]) + sq(qr[BY]) + sq(qr[BZ]));
 
   // STEP 1. compute min and max wave speeds
-  // using simple estimation eq. 12 by Davis (1998); TODO: Einfeldt estimation
   double cf_l = gkyl_mhd_fast_speed(g, ql);
   double smin_l = ul - cf_l;
   double smax_l = ul + cf_l;
   double cf_r = gkyl_mhd_fast_speed(g, qr);
   double smin_r = ur - cf_r;
   double smax_r = ur + cf_r;
+#if 0
+  // Estimation eq. 12 by Davis SIAM J. Sci. Statist. Comput., 9 (1988), p. 445
   double sl = smin_l < smin_r ? smin_l : smin_r;
   double sr = smax_l > smax_r ? smax_l : smax_r;
+#else
+  // Estimation eq. 13 by Einfeldt et al. J. Comput. Phys., 92 (1991), p. 273
+  double buf[4];
+  gkyl_mhd_eigen_speeds_roe(g, ql, qr, buf);
+  double u_roe = buf[0], cf_roe = buf[3];
+  double smin_roe = u_roe - cf_roe;
+  double smax_roe = u_roe + cf_roe;
+  double sl = smin_l < smin_roe ? smin_l : smin_roe;
+  double sr = smax_r > smax_roe ? smax_r : smax_roe;
+#endif
 
   // FIXME Miyoshi & Kusano did not specify Bx
   double Bx = (sr*qr[BX] - sl*ql[BX]) / (sr - sl);
@@ -522,7 +541,7 @@ wave_hlld(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
 
   // STEP 3. compute intermediate states
   // outer left, inner left, inner right, outer right; s: star, ss: two star
-  double qsl[meqn], qssl[meqn], qssr[meqn], qsr[meqn];
+  double qsl[8], qssl[8], qssr[8], qsr[8];
   double tmp1, tmp2, tmp3; // convenience temporary variables
 
   // left and right outer intermediate states
@@ -600,21 +619,59 @@ wave_hlld(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
   double *wv;
 
   wv = waves;
-  for (int i=0; i<meqn; ++i)  wv[i] = qsl[i] - ql[i];
+  for (int i=0; i<8; ++i)  wv[i] = qsl[i] - ql[i];
 
   wv += meqn;
-  for (int i=0; i<meqn; ++i)  wv[i] = qssl[i] - qsl[i];
+  for (int i=0; i<8; ++i)  wv[i] = qssl[i] - qsl[i];
 
   wv += meqn;
-  for (int i=0; i<meqn; ++i)  wv[i] = qssr[i] - qssl[i];
+  for (int i=0; i<8; ++i)  wv[i] = qssr[i] - qssl[i];
 
   wv += meqn;
-  for (int i=0; i<meqn; ++i)  wv[i] = qsr[i] - qssr[i];
+  for (int i=0; i<8; ++i)  wv[i] = qsr[i] - qssr[i];
 
   wv += meqn;
-  for (int i=0; i<meqn; ++i)  wv[i] = qr[i] - qsr[i];
+  for (int i=0; i<8; ++i)  wv[i] = qr[i] - qsr[i];
 
-  return sr;
+  double max_speed = sr;
+
+  // For the eight-wave scheme, advect the jump in Bx at the speed u.
+  // XXX is this correct?
+  if (mhd->divergence_constraint == GKYL_MHD_DIVB_EIGHT_WAVES) {
+    speeds[5] = sm;
+    wv += meqn;
+    wv[BX] = dQ[BX];
+  }
+
+  // For the GLM Bx and psi waves, solve the linear Riemann problem.
+  // XXX is this correct? TODO create and use a separate glm RP solver
+  if (mhd->divergence_constraint == GKYL_MHD_DIVB_GLM)
+  {
+    for (int w=0; w<5; ++w)
+    {
+      waves[w*meqn + PSI_GLM] = 0.0;
+    }
+
+    double ch = mhd->glm_ch;
+
+    // L = 0.5*(-ch, 1), R = (-1/ch, 1)
+    speeds[5] = -ch;
+    wv += meqn;
+    double eta = 0.5 * (-dQ[BX]*ch+dQ[PSI_GLM]);
+    wv[BX] = -eta/ch;
+    wv[PSI_GLM] = eta;
+
+    // L = 0.5*(+ch, 1), R = (+1/ch, 1)
+    speeds[6] = ch;
+    wv += meqn;
+    eta = 0.5 * (dQ[BX]*ch+dQ[PSI_GLM]);
+    wv[BX] = eta/ch;
+    wv[PSI_GLM] = eta;
+
+    max_speed = max_speed > ch ? max_speed : ch;
+  }
+
+  return max_speed;
 }
 
 static void
@@ -622,10 +679,11 @@ qfluct_hlld(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
             const double *waves, const double *s, double *amdq, double *apdq)
 {
   int meqn = eqn->num_equations;
+  int mwave = eqn->num_waves;
   for (int i=0; i<meqn; ++i) {
     amdq[i] = fmin(0.0, s[0]) * waves[i];
     apdq[i] = fmax(0.0, s[0]) * waves[i];
-    for (int mw=1; mw<5; ++mw) {
+    for (int mw=1; mw<mwave; ++mw) {
       amdq[i] += fmin(0.0, s[mw]) * waves[meqn*mw+i];
       apdq[i] += fmax(0.0, s[mw]) * waves[meqn*mw+i];
     }
@@ -761,12 +819,14 @@ gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
       break;
 
     case GKYL_MHD_DIVB_EIGHT_WAVES:
-      mhd->eqn.num_waves += 1;
+      if (inp->rp_type != WV_MHD_RP_LAX)
+        mhd->eqn.num_waves += 1;
       break;
 
     case GKYL_MHD_DIVB_GLM:
       mhd->eqn.num_equations += 1;
-      mhd->eqn.num_waves += 2;
+      if (inp->rp_type != WV_MHD_RP_LAX)
+        mhd->eqn.num_waves += 2;
       mhd->eqn.cons_to_riem = cons_to_riem_9;
       mhd->eqn.riem_to_cons = riem_to_cons_9;
       mhd->eqn.rotate_to_local_func = rot_to_local_rect_glm;
