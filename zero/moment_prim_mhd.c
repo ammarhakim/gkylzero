@@ -79,11 +79,12 @@ gkyl_mhd_max_abs_speed_roe(const double gamma, const double *ql, const double *q
   double Bx = sr * ql[BX] + sl * qr[BX];
   double By = sr * ql[BY] + sl * qr[BY];
   double Bz = sr * ql[BZ] + sl * qr[BZ];
-  double X = (sq(qr[BX]-ql[BX]) + sq(qr[BY]-ql[BY]) + sq(qr[BZ]-qr[BZ])) / (2*sq(srrhol+srrhor));
 
   //////////////////////////////////////////////////////////////////////////////
   // STEP 3: COMPUTE CHARACTERASTIC WAVE SPEEDS AND OTHER USEFUL QUANTITIES   //
   //////////////////////////////////////////////////////////////////////////////
+  double X = (sq(qr[BX] - ql[BX]) + sq(qr[BY] - ql[BY]) + sq(qr[BZ] - qr[BZ])) /
+             (2 * sq(srrhol + srrhor));
   double ca2 = Bx*Bx/rho; // for alfven speed due to normal B field
   double b2 = (Bx*Bx+By*By+Bz*Bz) / rho; // for alfven speed due to full B field
   double v2 = u*u+v*v+w*w;
