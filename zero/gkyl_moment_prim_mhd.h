@@ -32,6 +32,17 @@ double gkyl_mhd_fast_speed(double gas_gamma, const double q[8]);
 double gkyl_mhd_max_abs_speed(double gas_gamma, const double q[8]);
 
 /**
+ * Compute maximum absolute speed using MHD flow and fast Alfven speed due to a
+ * Roe scheme.
+ *
+ * @param gas_gamma Gas adiabatic constant
+ * @param ql Conserved variables of the left stage
+ * @param qr Conserved variables of the right stage
+ * @return Maximum absolute speed for given ql and qr
+ */
+double gkyl_mhd_max_abs_speed_roe(const double gamma, const double *ql, const double *qr);
+
+/**
  * Compute flux. Assumes rotation to local coordinate system.
  *
  * @param gas_gamma Gas adiabatic constant

@@ -40,10 +40,60 @@ gkyl_mhd_fast_speed(double gas_gamma, const double q[8])
 double
 gkyl_mhd_max_abs_speed(double gas_gamma, const double q[8])
 {
-  double u1 = q[MX] / q[DN];
   double cf = gkyl_mhd_fast_speed(gas_gamma, q);
+  double u = sqrt( sq(q[1]) + sq(q[2]) + sq(q[3]) ) / q[0];
 
-  return fabs(u1) + cf;
+  return u + cf;
+}
+
+double
+gkyl_mhd_max_abs_speed_roe(const double gamma, const double *ql, const double *qr)
+{
+  //////////////////////////////////////////////////////////////////////////////
+  // STEP 1: COMPUTE PRIMITIVE VARIABLES                                      //
+  //////////////////////////////////////////////////////////////////////////////
+  double ul = ql[MX] / ql[DN], ur = qr[MX] / qr[DN];
+  double vl = ql[MY] / ql[DN], vr = qr[MY] / qr[DN];
+  double wl = ql[MZ] / ql[DN], wr = qr[MZ] / qr[DN];
+  double pl = gkyl_mhd_pressure(gamma, ql);
+  double pr = gkyl_mhd_pressure(gamma, qr);
+  double pbl = 0.5 * (sq(ql[BX]) + sq(ql[BY]) + sq(ql[BZ]));
+  double pbr = 0.5 * (sq(qr[BX]) + sq(qr[BY]) + sq(qr[BZ]));
+  // total enthalpy (density) in CG97 eq. 2.2
+  double Hl = (ql[ER] + pl + pbl) / ql[DN];
+  double Hr = (qr[ER] + pr + pbr) / qr[DN];
+
+  //////////////////////////////////////////////////////////////////////////////
+  // STEP 2: COMPUTE ROE AVERAGES OF PRIMITIVE VARIABLES                      //
+  //////////////////////////////////////////////////////////////////////////////
+  double srrhol = sqrt(ql[DN]);
+  double srrhor = sqrt(qr[DN]);
+  double sl = srrhol / (srrhol + srrhor);
+  double sr = srrhor / (srrhol + srrhor);
+
+  double rho = srrhol * srrhor;
+  double u = sl * ul + sr * ur;
+  double v = sl * vl + sr * vr;
+  double w = sl * wl + sr * wr;
+  double H = sl * Hl + sr * Hr;  // total enthalpy
+  double Bx = sr * ql[BX] + sl * qr[BX];
+  double By = sr * ql[BY] + sl * qr[BY];
+  double Bz = sr * ql[BZ] + sl * qr[BZ];
+  double X = (sq(qr[BX]-ql[BX]) + sq(qr[BY]-ql[BY]) + sq(qr[BZ]-qr[BZ])) / (2*sq(srrhol+srrhor));
+
+  //////////////////////////////////////////////////////////////////////////////
+  // STEP 3: COMPUTE CHARACTERASTIC WAVE SPEEDS AND OTHER USEFUL QUANTITIES   //
+  //////////////////////////////////////////////////////////////////////////////
+  double ca2 = Bx*Bx/rho; // for alfven speed due to normal B field
+  double b2 = (Bx*Bx+By*By+Bz*Bz) / rho; // for alfven speed due to full B field
+  double v2 = u*u+v*v+w*w;
+  double Hgas = H - b2;  // enthalpy of the gas
+  double a2 = (2-gamma)*X + (gamma-1)*(Hgas-0.5*v2);  // for sound speed
+
+  double astar2 = a2 + b2;
+  double cf2 = (astar2 + sqrt(sq(astar2)-4*a2*ca2)) / 2;  // fast wave speed
+
+  return sqrt(cf2) + sqrt(v2);
 }
 
 void
