@@ -293,7 +293,20 @@ struct gkyl_wv_ten_moment { struct gkyl_wv_eqn *eqn; };
 struct gkyl_wv_eqn* gkyl_wv_ten_moment_new(double k0);
 ]]
 
--- gkyl_wc_mhd.h
+-- gkyl_moment_prim_mhd.h
+ffi.cdef [[
+/**
+ * Compute conserved variables from primitive variables.
+ *
+ * @param gas_gamma Gas adiabatic constant
+ * @param pv Primitive variables
+ * @param q Conserved variables
+
+ */
+void gkyl_mhd_cons_vars(double gas_gamma, const double pv[8], double q[8]);
+]]
+
+-- gkyl_wv_mhd.h
 ffi.cdef [[
 
 // Type of Rieman problem solver to use
@@ -707,6 +720,11 @@ _M.MHD = function(tbl)
    minp.glm_ch = 1.0
    minp.glm_alpha = 0.4
    return ffi.gc(C.gkyl_wv_mhd_new(minp), C.gkyl_wv_eqn_release)
+end
+
+-- Raw wrapper around MHD function
+_M.gkyl_mhd_cons_vars = function(gas_gamma, pv, q)
+   return C.gkyl_mhd_cons_vars(gas_gamma, pv, q)
 end
 
 -- Wraps user given init function in a function that can be passed to

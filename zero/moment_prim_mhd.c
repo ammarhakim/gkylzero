@@ -114,6 +114,17 @@ gkyl_mhd_max_abs_speed_roe(const double gamma, const double *ql, const double *q
 }
 
 void
+gkyl_mhd_cons_vars(double gas_gamma, const double pv[8], double q[8])
+{
+  double rho = pv[0], u = pv[1], v = pv[2], w = pv[3], pr = pv[4];
+  q[0] = rho;
+  q[1] = rho*u; q[2] = rho*v; q[3] = rho*w;
+  q[5] = pv[5]; q[6] = pv[6]; q[7] = pv[7];  // B field
+  double pb = 0.5*(pv[5]*pv[5]+pv[6]*pv[6]+pv[7]*pv[7]); // magnetic pressure
+  q[4] = pr/(gas_gamma-1) + 0.5*rho*(u*u+v*v+w*w) + pb;  
+}
+
+void
 gkyl_mhd_flux(double gas_gamma, const double q[8], double flux[8])
 {
   double u1 = q[MX] / q[DN];
