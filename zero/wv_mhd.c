@@ -499,15 +499,26 @@ wave_hlld(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
   double ptr = pr + 0.5 * (sq(qr[BX]) + sq(qr[BY]) + sq(qr[BZ]));
 
   // STEP 1. compute min and max wave speeds
-  // using simple estimation eq. 12 by Davis (1998); TODO: Einfeldt estimation
   double cf_l = gkyl_mhd_fast_speed(g, ql);
   double smin_l = ul - cf_l;
   double smax_l = ul + cf_l;
   double cf_r = gkyl_mhd_fast_speed(g, qr);
   double smin_r = ur - cf_r;
   double smax_r = ur + cf_r;
+#if 0
+  // Estimation eq. 12 by Davis SIAM J. Sci. Statist. Comput., 9 (1988), p. 445
   double sl = smin_l < smin_r ? smin_l : smin_r;
   double sr = smax_l > smax_r ? smax_l : smax_r;
+#else
+  // Estimation eq. 13 by Einfeldt et al. J. Comput. Phys., 92 (1991), p. 273
+  double buf[4];
+  gkyl_mhd_eigen_speeds_roe(g, ql, qr, buf);
+  double u_roe = buf[0], cf_roe = buf[3];
+  double smin_roe = u_roe - cf_roe;
+  double smax_roe = u_roe + cf_roe;
+  double sl = smin_l < smin_roe ? smin_l : smin_roe;
+  double sr = smax_r > smax_roe ? smax_r : smax_roe;
+#endif
 
   // FIXME Miyoshi & Kusano did not specify Bx
   double Bx = (sr*qr[BX] - sl*ql[BX]) / (sr - sl);
