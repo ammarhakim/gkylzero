@@ -228,13 +228,15 @@ gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_p
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // release memory for moment data object
+  gkyl_proj_on_basis_release(p_over_gamma_proj);
+  gkyl_correct_MJ_release(corr_MJ);
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
   gkyl_array_release(distf);
   gkyl_proj_MJ_on_basis_release(proj_MJ);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
-  gkyl_correct_MJ_release(corr_MJ);
+  gkyl_array_release(p_over_gamma);
 }
 
 void test_1x1v_no_drift_p1() { test_1x1v_no_drift(1); }
@@ -349,13 +351,15 @@ gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_p
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // release memory for moment data object
+  gkyl_proj_on_basis_release(p_over_gamma_proj);
+  gkyl_correct_MJ_release(corr_MJ);
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
   gkyl_array_release(distf);
   gkyl_proj_MJ_on_basis_release(proj_MJ);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
-  gkyl_correct_MJ_release(corr_MJ);
+  gkyl_array_release(p_over_gamma);
 }
 
 // special note, the p1 basis does not function
@@ -473,12 +477,15 @@ gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_p
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // release memory for moment data object
+  gkyl_proj_on_basis_release(p_over_gamma_proj);
+  gkyl_correct_MJ_release(corr_MJ);
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
   gkyl_array_release(distf);
   gkyl_proj_MJ_on_basis_release(proj_MJ);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
+  gkyl_array_release(p_over_gamma);
 }
 
 void test_1x2v_p2() { test_1x2v(2); }
