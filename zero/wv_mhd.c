@@ -426,13 +426,16 @@ wave_lax(const struct gkyl_wv_eqn *eqn,
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   double gas_gamma = mhd->gas_gamma;
 
+#if 0
   double sl = gkyl_mhd_max_abs_speed(gas_gamma, ql);
   double sr = gkyl_mhd_max_abs_speed(gas_gamma, qr);
+  ev[0] = 0.5*(sl+sr);
+#else
+  ev[0] = gkyl_mhd_max_abs_speed_roe(gas_gamma, ql, qr);
+#endif
 
   double *wv = &waves[0]; // single wave
   for (int i=0; i<mhd->eqn.num_equations; ++i)  wv[i] = dQ[i];
-
-  ev[0] = 0.5*(sl+sr);
 
   return ev[0];
 }
@@ -445,9 +448,13 @@ qfluct_lax(const struct gkyl_wv_eqn *eqn,
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   double gas_gamma = mhd->gas_gamma;
 
+#if 0
   double sl = gkyl_mhd_max_abs_speed(gas_gamma, ql);
   double sr = gkyl_mhd_max_abs_speed(gas_gamma, qr);
   double amax = fmax(sl, sr);
+#else
+  double amax = gkyl_mhd_max_abs_speed_roe(gas_gamma, ql, qr);
+#endif
 
   double fl[10], fr[10];
 
