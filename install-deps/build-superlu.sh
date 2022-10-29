@@ -32,7 +32,7 @@ then
     cmake .. -DCMAKE_C_FLAGS="-g -O3 -fPIC" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_INSTALL_LIBDIR=lib -Denable_tests=NO -Denable_internal_blaslib=NO -DXSDK_ENABLE_Fortran=NO
 
     # build and install
-    make -j VERBOSE=1
+    make -j 32 VERBOSE=1
     make install
 
     # soft-link 

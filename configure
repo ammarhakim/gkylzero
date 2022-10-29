@@ -25,6 +25,9 @@ else
     SUPERLU_LIB=${HOME}/gkylsoft/superlu/lib/libsuperlu.a;
 fi
 
+# Location of CUDA math libraries
+CUDAMATH_LIBS=
+
 # ----------------------------------------------------------------------------
 # Function definitions
 # ----------------------------------------------------------------------------
@@ -58,6 +61,8 @@ Library Includes and Locations
 
 --superlu-inc              Location of SuperLU headers
 --superlu-lib              Full path to SuperLU static library
+
+--cudamath-libdir          Full path to CUDA math libraries
 
 EOF
 }
@@ -138,6 +143,10 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       SUPERLU_LIB="$value"
       ;;   
+   --cudamath-libdir)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      CUDAMATH_LIBDIR="$value"
+      ;;   
    *)
       die "Error: Unknown flag: $1"
       ;;
@@ -162,6 +171,8 @@ LAPACK_LIB=$LAPACK_LIB
 
 SUPERLU_INC=$SUPERLU_INC
 SUPERLU_LIB=$SUPERLU_LIB
+
+CUDAMATH_LIBDIR=$CUDAMATH_LIBDIR
 
 EOF1
 
