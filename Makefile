@@ -43,22 +43,24 @@ endif
 KERN_INC_DIRS = $(shell find $(SRC_DIRS) -type d)
 KERN_INCLUDES = $(addprefix -I,$(KERN_INC_DIRS))
 
-# Location of CUDA math libraries
-CUDAMATH_LIBDIR = 
-
 # Include config.mak file (if it exists) to overide defaults above
 -include config.mak
 
 # CUDA flags
 USING_NVCC =
 NVCC_FLAGS = 
-CUDA_LIBS = -L${CUDAMATH_LIBDIR}
+CUDA_LIBS =
 ifeq ($(CC), nvcc)
        USING_NVCC = yes
        CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC
        NVCC_FLAGS = -x cu -dc -arch=sm_${CUDA_ARCH} --compiler-options="-fPIC"
        LDFLAGS += -arch=sm_${CUDA_ARCH}
-       CUDA_LIBS = -L${CUDAMATH_LIBDIR} -lcublas -lcusparse -lcusolver
+       ifdef CUDAMATH_LIBDIR
+              CUDA_LIBS = -L${CUDAMATH_LIBDIR}
+       else
+              CUDA_LIBS =
+       endif
+       CUDA_LIBS += -lcublas -lcusparse -lcusolver
 endif
 
 # Build directory
@@ -215,15 +217,9 @@ ${BUILD_DIR}/unit/%: unit/%.c ${BUILD_DIR}/${G0STLIB} ${UNIT_CU_OBJS} ${UNIT_CU_
 check: ${UNITS}
 	$(foreach unit,${UNITS},echo $(unit); $(unit) -E;)
 
-unit: unit/%.c ${BUILD_DIR}/${G0STLIB} ${UNIT_CU_OBJS} ${UNIT_CU_SRCS}
-	# Unit tests
-	$(MKDIR_P) ${BUILD_DIR}/unit
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${UNIT_CU_OBJS} ${BUILD_DIR}/${G0STLIB} ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
+unit: ${UNITS}
 
-regression: regression/%.c ${BUILD_DIR}/${G0STLIB} regression/rt_arg_parse.h
-	# Regression tests
-	$(MKDIR_P) ${BUILD_DIR}/regression
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${BUILD_DIR}/${G0STLIB} ${SUPERLU_LIB} ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
+regression: ${REGS}
 
 install: all
 	$(MKDIR_P) ${PREFIX}/gkylzero/include
