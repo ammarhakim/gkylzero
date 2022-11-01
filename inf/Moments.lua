@@ -727,12 +727,12 @@ _M.gkyl_mhd_cons_vars = function(gas_gamma, pv, q)
    return C.gkyl_mhd_cons_vars(gas_gamma, pv, q)
 end
 
--- Wraps user given init function in a function that can be passed to
--- the C callback APIs
+-- Wraps user given function in a function that can be passed to the C
+-- callback APIs
 local function gkyl_eval_moment(func)
    return function(t, xn, fout, ctx)
       local xnl = ffi.new("double[10]")
-      for i=1, 3 do xnl[i] = xn[i-1] end -- might not be safe?
+      for i=1, 3 do xnl[i] = xn[i-1] end
       local ret = { func(t, xnl) } -- package return into table
       for i=1,#ret do
          fout[i-1] = ret[i]
@@ -743,7 +743,7 @@ end
 local function gkyl_eval_applied(func)
    return function(t, xn, fout, ctx)
       local xnl = ffi.new("double[10]")
-      for i=1, 3 do xnl[i] = xn[i-1] end -- might not be safe?
+      for i=1, 3 do xnl[i] = xn[i-1] end
       local ux,uy,uz = func(t, xnl)
 
       fout[0] = ux; fout[1] = uy; fout[2] = uz
@@ -753,7 +753,7 @@ end
 local function gkyl_eval_mapc2p(func)
    return function(t, xn, fout, ctx)
       local xnl = ffi.new("double[10]")
-      for i=1, 3 do xnl[i] = xn[i-1] end -- might not be safe?
+      for i=1, 3 do xnl[i] = xn[i-1] end
       local ret = { func(t, xnl) } -- package return into table
       for i=1,#ret do
          fout[i-1] = ret[i]
@@ -852,7 +852,7 @@ _M.Species = ffi.metatype(species_type, species_mt)
 local function gkyl_eval_field(func)
    return function(t, xn, fout, ctx)
       local xnl = ffi.new("double[10]")
-      for i=1, 6 do xnl[i] = xn[i-1] end -- might not be safe?
+      for i=1, 3 do xnl[i] = xn[i-1] end
 
       local ex,ey,ez,bx,by,bz = func(t, xnl)
 
@@ -865,7 +865,7 @@ end
 local function gkyl_eval_ext_field(func)
    return function(t, xn, fout, ctx)
       local xnl = ffi.new("double[10]")
-      for i=1, 6 do xnl[i] = xn[i-1] end -- might not be safe?
+      for i=1, 3 do xnl[i] = xn[i-1] end
 
       local ex,ey,ez,bx,by,bz = func(t, xnl)
 
