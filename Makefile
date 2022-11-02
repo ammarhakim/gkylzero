@@ -55,7 +55,12 @@ ifeq ($(CC), nvcc)
        CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC
        NVCC_FLAGS = -x cu -dc -arch=sm_${CUDA_ARCH} --compiler-options="-fPIC"
        LDFLAGS += -arch=sm_${CUDA_ARCH}
-       CUDA_LIBS = -lcublas -lcusparse -lcusolver
+       ifdef CUDAMATH_LIBDIR
+              CUDA_LIBS = -L${CUDAMATH_LIBDIR}
+       else
+              CUDA_LIBS =
+       endif
+       CUDA_LIBS += -lcublas -lcusparse -lcusolver
 endif
 
 # Build directory
@@ -181,7 +186,7 @@ G0STLIB = lib${G0LIB}.a
 G0SHLIB = lib${G0LIB}.so
 
 # Make targets: libraries, regression tests and unit tests
-all: ${BUILD_DIR}/gkylzero.h ${BUILD_DIR}/${G0STLIB} ${BUILD_DIR}/${G0SHLIB} ${REGS} ${UNITS}
+all: ${BUILD_DIR}/gkylzero.h ${BUILD_DIR}/${G0STLIB} ${BUILD_DIR}/${G0SHLIB}
 
 # Amalgamated header file
 ${BUILD_DIR}/gkylzero.h:
@@ -212,6 +217,10 @@ ${BUILD_DIR}/unit/%: unit/%.c ${BUILD_DIR}/${G0STLIB} ${UNIT_CU_OBJS} ${UNIT_CU_
 check: ${UNITS}
 	$(foreach unit,${UNITS},echo $(unit); $(unit) -E;)
 
+unit: ${UNITS}
+
+regression: ${REGS}
+
 install: all
 	$(MKDIR_P) ${PREFIX}/gkylzero/include
 	${MKDIR_P} ${PREFIX}/gkylzero/lib
@@ -225,7 +234,7 @@ install: all
 	cp -f Makefile.sample ${PREFIX}/gkylzero/share/Makefile
 	cp -f regression/rt_arg_parse.h ${PREFIX}/gkylzero/share/rt_arg_parse.h
 	cp -f regression/rt_twostream.c ${PREFIX}/gkylzero/share/rt_twostream.c
-	cp -f ${BUILD_DIR}/regression/rt_vlasov_kerntm ${PREFIX}/gkylzero/bin/
+#	cp -f ${BUILD_DIR}/regression/rt_vlasov_kerntm ${PREFIX}/gkylzero/bin/
 	cp -f inf/Vlasov.lua ${PREFIX}/gkylzero/lib/
 	cp -f inf/Moments.lua ${PREFIX}/gkylzero/lib/
 	cp -f scripts/*.sh ${PREFIX}/gkylzero/scripts

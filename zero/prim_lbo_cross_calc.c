@@ -1,6 +1,6 @@
 #include "gkyl_prim_lbo_type.h"
 #include <gkyl_alloc.h>
-//#include <gkyl_alloc_flags_priv.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_prim_lbo_cross_calc.h>
 #include <gkyl_prim_lbo_cross_calc_priv.h>
