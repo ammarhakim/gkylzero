@@ -103,9 +103,18 @@ em_source_update(const gkyl_moment_em_coupling *mes, double dt,
 
   for (int n=0; n < nfluids; ++n)
   {
-    qbym[n] = mes->param[n].charge / mes->param[n].mass;
-    const double *f = fluids[n];
+    double *f = fluids[n];
     const double *app_accel = app_accels[n];
+
+    if (mes->param[n].charge == 0.0) {
+      double mass = mes->param[n].mass;
+      f[MX] += dt * f[RHO] * app_accel[0];
+      f[MY] += dt * f[RHO] * app_accel[1];
+      f[MZ] += dt * f[RHO] * app_accel[2];
+      continue;
+    }
+
+    qbym[n] = mes->param[n].charge / mes->param[n].mass;
 
     JOld[n][0] = f[MX] * qbym[n];
     JOld[n][1] = f[MY] * qbym[n];
@@ -181,6 +190,10 @@ em_source_update(const gkyl_moment_em_coupling *mes, double dt,
   for (int n=0; n < nfluids; ++n)
   {
     double *f = fluids[n];
+
+    if (mes->param[n].charge == 0.0) {
+      continue;
+    }
 
     // Jstar = Eq. D.7
     Jstar[0] = J[n][0] + Fbar[0] * (wp_dt2[n] / dt / 2.0);
