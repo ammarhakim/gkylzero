@@ -64,10 +64,12 @@ ifeq ($(CC), nvcc)
 endif
 
 # Build directory
+ifndef BUILD_DIR
 ifdef USING_NVCC
 	BUILD_DIR ?= cuda-build
 else
 	BUILD_DIR ?= build
+endif
 endif
 
 # On OSX we should use Accelerate framework
