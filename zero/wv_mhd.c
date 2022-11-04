@@ -424,6 +424,7 @@ wave_lax(const struct gkyl_wv_eqn *eqn,
   const double *dQ, const double *ql, const double *qr, double *waves, double *ev)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
+  int meqn = eqn->num_equations;
   double gas_gamma = mhd->gas_gamma;
 
 #if 0
@@ -431,33 +432,12 @@ wave_lax(const struct gkyl_wv_eqn *eqn,
   double sr = gkyl_mhd_max_abs_speed(gas_gamma, qr);
   ev[0] = 0.5*(sl+sr);
 #else
-  ev[0] = gkyl_mhd_max_abs_speed_roe(gas_gamma, ql, qr);
-#endif
-
-  double *wv = &waves[0]; // single wave
-  for (int i=0; i<mhd->eqn.num_equations; ++i)  wv[i] = dQ[i];
-
-  return ev[0];
-}
-
-static void
-qfluct_lax(const struct gkyl_wv_eqn *eqn,
-  const double *ql, const double *qr, const double *waves, const double *s,
-  double *amdq, double *apdq)
-{
-  const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
-  double gas_gamma = mhd->gas_gamma;
-
-#if 0
-  double sl = gkyl_mhd_max_abs_speed(gas_gamma, ql);
-  double sr = gkyl_mhd_max_abs_speed(gas_gamma, qr);
-  double amax = fmax(sl, sr);
-#else
   double amax = gkyl_mhd_max_abs_speed_roe(gas_gamma, ql, qr);
+  ev[0] = -amax;
+  ev[1] = amax;
 #endif
 
   double fl[10], fr[10];
-
   if (mhd->divergence_constraint == GKYL_MHD_DIVB_GLM) {
     double ch = mhd->glm_ch;
     gkyl_glm_mhd_flux(gas_gamma, ch, ql, fl);
@@ -467,9 +447,28 @@ qfluct_lax(const struct gkyl_wv_eqn *eqn,
     gkyl_mhd_flux(gas_gamma, qr, fr);
   }
 
-  for (int i=0; i<mhd->eqn.num_equations; ++i) {
-    amdq[i] = 0.5*(fr[i]-fl[i] - amax*(qr[i]-ql[i]));
-    apdq[i] = 0.5*(fr[i]-fl[i] + amax*(qr[i]-ql[i]));
+  double *w0 = &waves[0], *w1 = &waves[meqn];
+  for (int i=0; i<meqn; ++i) {
+    w0[i] = 0.5*((qr[i]-ql[i]) - (fr[i]-fl[i])/amax);
+    w1[i] = 0.5*((qr[i]-ql[i]) + (fr[i]-fl[i])/amax);
+  }
+
+  return ev[1];
+}
+
+static void
+qfluct_lax(const struct gkyl_wv_eqn *eqn,
+  const double *ql, const double *qr, const double *waves, const double *s,
+  double *amdq, double *apdq)
+{
+  int meqn = eqn->num_equations;
+  const double *w0 = &waves[0], *w1 = &waves[meqn];
+  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
+  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]);
+
+  for (int i=0; i<meqn; ++i) {
+    amdq[i] = s0m*w0[i] + s1m*w1[i];
+    apdq[i] = s0p*w0[i] + s1p*w1[i];
   }
 }
 
@@ -798,7 +797,7 @@ gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
       
     case WV_MHD_RP_LAX:
       mhd->eqn.num_equations = 8;
-      mhd->eqn.num_waves = 1;
+      mhd->eqn.num_waves = 2;
       mhd->eqn.waves_func = wave_lax_l;
       mhd->eqn.qfluct_func = qfluct_lax_l;
       break;      
