@@ -15,7 +15,7 @@ UNAME = $(shell uname)
 # Default lapack include and libraries: we prefer linking to static library
 LAPACK_INC = ${HOME}/gkylsoft/OpenBLAS/include
 LAPACK_LIB_DIR = ${HOME}/gkylsoft/OpenBLAS/lib
-LAPACK_LIB = ${HOME}/gkylsoft/OpenBLAS/lib/libopenblas.a
+LAPACK_LIB = -lopenblas
 
 # SuperLU includes and librararies
 SUPERLU_INC = ${HOME}/gkylsoft/superlu/include
@@ -91,7 +91,7 @@ KERN_INCLUDES = $(addprefix -I,$(KERN_INC_DIRS))
 
 # List of link directories and libraries for unit and regression tests
 EXEC_LIB_DIRS = -L${SUPERLU_LIB_DIR} -L${LAPACK_LIB_DIR} -L${BUILD_DIR}
-EXEC_EXT_LIBS = -lsuperlu -lopenblas ${CUDA_LIBS} -lm -lpthread
+EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 EXEC_LIBS = -lgkylzero ${EXEC_EXT_LIBS}
 EXEC_RPATH = -Wl,-rpath,${BUILD_DIR}
 
