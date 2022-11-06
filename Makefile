@@ -30,6 +30,11 @@ endif
 # Include config.mak file (if it exists) to overide defaults above
 -include config.mak
 
+# By default, build the "all" target. This builds the G0 shared
+# library only. Unit and regression tests are built with explicit
+# targets. See "make help"
+.DEFAULT_GOAL := all
+
 # CUDA flags
 USING_NVCC =
 NVCC_FLAGS = 
@@ -180,6 +185,7 @@ $(ZERO_SH_LIB): $(OBJS)
 
 ## All libraries build targets completed at this point
 
+.PHONY: all
 all: ${BUILD_DIR}/gkylzero.h ${ZERO_SH_LIB} ## Build libraries and amalgamated header
 
 # Explicit targets to build unit and regression tests
