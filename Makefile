@@ -61,11 +61,11 @@ endif
 
 # On OSX we should use Accelerate framework
 ifeq ($(UNAME), Darwin)
-	LAPACK_LIB_DIR = 
+	LAPACK_LIB_DIR = .
 	LAPACK_INC = zero # dummy
 	LAPACK_LIB = -framework Accelerate
 	CFLAGS += -DGKYL_USING_FRAMEWORK_ACCELERATE
-	SHFLAGS += -dynamiclib -install_name ${PREFIX}/gkylzero/lib/libgkylzero.so
+	SHFLAGS += -dynamiclib
 else
 	SHFLAGS += -shared
 endif
