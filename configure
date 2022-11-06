@@ -15,7 +15,7 @@ LAPACK_LIB=${HOME}/gkylsoft/OpenBLAS/lib/libopenblas.a
 OSTYPE=`uname -o`
 MACHINE=`uname -n`
 USER=`whoami`
-echo "OS type is $OSTYPE on $MACHINE user $USER"
+echo "# OS type is $OSTYPE on $MACHINE user $USER"
 # SuperLU includes and librararies
 SUPERLU_INC=${HOME}/gkylsoft/superlu/include
 if [ "$OSTYPE" = "linux-gnu"* ]
@@ -176,5 +176,5 @@ CUDAMATH_LIBDIR=$CUDAMATH_LIBDIR
 
 EOF1
 
-echo "# Wrote config.mak with contents"
+echo "# Wrote config.mak with contents:"
 cat config.mak
