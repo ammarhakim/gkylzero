@@ -56,6 +56,9 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   f->p = 0;
   f->p_bc_buffer = 0;
 
+  // initialize pointer to divergence of pressure
+  f->div_p = 0;
+
   // initialize pointers to arrays for making u continuous
   f->ux_dg = 0;
   f->ux_wgt = 0;
@@ -118,12 +121,15 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   }
   else {
     f->eqn_id = GKYL_EQN_EULER_PKPM;   
-    // allocate array to store fluid velocity, pressure tensor, and pkpm moments
+    // allocate array to store fluid velocity and pressure tensor
     f->u = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
     f->p = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_ext.volume);
     // allocate buffer for applying boundary conditions to primitive variables (u and p)
     f->u_bc_buffer = mkarr(app->use_gpu, 3*app->confBasis.num_basis, buff_sz);
     f->p_bc_buffer = mkarr(app->use_gpu, 6*app->confBasis.num_basis, buff_sz);
+
+    // allocate array to store divergence of pressure tensor
+    f->div_p = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
 
     f->pkpm_species = vm_find_species(app, f->info.pkpm_species);
     // index in fluid_species struct of fluid species kinetic species is colliding with
@@ -335,6 +341,10 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
     gkyl_array_set_range(fluid_species->u, 1.0, fluid_species->ux_fem, app->local);
     // Need to apply boundary conditions again
     vm_fluid_species_prim_vars_apply_bc(app, fluid_species);
+
+    // calculate divergence of pressure tensor
+    gkyl_array_clear(fluid_species->div_p, 0.0);
+    gkyl_calc_prim_vars_p_pkpm_div(app->grid.dx, app->confBasis, &app->local, fluid_species->p, fluid_species->div_p);
   }
 }
 
@@ -353,7 +363,7 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
 
   if (app->use_gpu) {
     gkyl_dg_updater_fluid_advance_cu(fluid_species->advect_slvr, fluid_species->eqn_id,
-      &app->local, fluid_species->u, fluid_species->p, 
+      &app->local, fluid_species->u, fluid_species->div_p, 
       fluid, fluid_species->cflrate, rhs);
     if (fluid_species->has_diffusion)
       gkyl_dg_updater_diffusion_advance_cu(fluid_species->diff_slvr, fluid_species->diffusion_id,
@@ -361,7 +371,7 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
   }
   else {
     gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, fluid_species->eqn_id,
-      &app->local, fluid_species->u, fluid_species->p, 
+      &app->local, fluid_species->u, fluid_species->div_p, 
       fluid, fluid_species->cflrate, rhs);
     if (fluid_species->has_diffusion)
       gkyl_dg_updater_diffusion_advance(fluid_species->diff_slvr, fluid_species->diffusion_id,
@@ -551,6 +561,8 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
     gkyl_array_release(f->ux_wgt);
     gkyl_array_release(f->ux_fem);
     gkyl_fem_parproj_release(f->fem_proj);
+
+    gkyl_array_release(f->div_p);
   }
   if (f->has_advect) {
     gkyl_array_release(f->advect);

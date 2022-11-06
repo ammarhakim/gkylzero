@@ -9,8 +9,7 @@
 
 // Types for various kernels
 typedef void (*euler_pkpm_surf_t)(const double *w, const double *dx, 
-  const double *u_i, const double *p_ijl, const double *p_ijc, const double *p_ijr,
-  const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out);
+  const double *u_i, const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out);
 
 // for use in kernel tables
 typedef struct { vol_termf_t kernels[3]; } gkyl_dg_euler_pkpm_vol_kern_list;
@@ -113,9 +112,6 @@ surf(const struct gkyl_dg_eqn *eqn,
   // Note for surface moments from Vlasov equation, center index owns *left* edge
   euler_pkpm->surf[dir](xcC, dxC, 
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.u_i, cidx_c),
-    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.p_ij, cidx_l),
-    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.p_ij, cidx_c),
-    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.p_ij, cidx_r),  
     qInL, qInC, qInR, qRhsOut);
 }
 

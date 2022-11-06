@@ -1,10 +1,10 @@
 #include <gkyl_euler_kernels.h> 
-GKYL_CU_DH double euler_pkpm_vol_1x_ser_p1(const double *w, const double *dxv, const double *u_i, const double *p_ij, const double *statevec, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double euler_pkpm_vol_1x_ser_p1(const double *w, const double *dxv, const double *u_i, const double *div_p, const double *statevec, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]: Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
   // u_i:       bulk flow velocity (ux, uy, uz).
-  // p_ij:      pressure tensor (P_xx, P_xy, P_xz, P_yy, P_yz, P_zz).
+  // div_p:     divergence of the pressure tensor.
   // statevec: [rho ux, rho uy, rho uz, p_perp], Fluid input state vector.
   // out: Incremented output.
 
@@ -19,12 +19,9 @@ GKYL_CU_DH double euler_pkpm_vol_1x_ser_p1(const double *w, const double *dxv, c
   const double *uy = &u_i[2]; 
   const double *uz = &u_i[4]; 
 
-  const double *Pxx = &p_ij[0]; 
-  const double *Pxy = &p_ij[2]; 
-  const double *Pxz = &p_ij[4]; 
-  const double *Pyy = &p_ij[6]; 
-  const double *Pyz = &p_ij[8]; 
-  const double *Pzz = &p_ij[10]; 
+  const double *div_p_x = &div_p[0]; 
+  const double *div_p_y = &div_p[2]; 
+  const double *div_p_z = &div_p[4]; 
 
   double *outrhoux = &out[0]; 
   double *outrhouy = &out[2]; 
@@ -34,11 +31,14 @@ GKYL_CU_DH double euler_pkpm_vol_1x_ser_p1(const double *w, const double *dxv, c
   double cflFreq_mid = 0.0; 
   cflFreq_mid += 0.5*3.0*dx10*(fabs(0.7071067811865475*ux[0])); 
 
-  outrhoux[1] += 1.224744871391589*rhoux[1]*ux[1]*dx10+1.224744871391589*rhoux[0]*ux[0]*dx10+1.732050807568877*Pxx[0]*dx10; 
+  outrhoux[0] += -1.0*div_p_x[0]; 
+  outrhoux[1] += 1.224744871391589*rhoux[1]*ux[1]*dx10+1.224744871391589*rhoux[0]*ux[0]*dx10-1.0*div_p_x[1]; 
 
-  outrhouy[1] += 1.224744871391589*rhouy[1]*ux[1]*dx10+1.224744871391589*rhouy[0]*ux[0]*dx10+1.732050807568877*Pxy[0]*dx10; 
+  outrhouy[0] += -1.0*div_p_y[0]; 
+  outrhouy[1] += 1.224744871391589*rhouy[1]*ux[1]*dx10+1.224744871391589*rhouy[0]*ux[0]*dx10-1.0*div_p_y[1]; 
 
-  outrhouz[1] += 1.224744871391589*rhouz[1]*ux[1]*dx10+1.224744871391589*rhouz[0]*ux[0]*dx10+1.732050807568877*Pxz[0]*dx10; 
+  outrhouz[0] += -1.0*div_p_z[0]; 
+  outrhouz[1] += 1.224744871391589*rhouz[1]*ux[1]*dx10+1.224744871391589*rhouz[0]*ux[0]*dx10-1.0*div_p_z[1]; 
 
   outp_perp[1] += 1.224744871391589*p_perp[1]*ux[1]*dx10+1.224744871391589*p_perp[0]*ux[0]*dx10; 
 

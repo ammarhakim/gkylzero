@@ -1,10 +1,10 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH double vlasov_pkpm_vol_1x1v_ser_p1(const double *w, const double *dxv, const double *u_i, const double *p_ij, const double *bvar, const double *rho_inv_b, const double *f, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_pkpm_vol_1x1v_ser_p1(const double *w, const double *dxv, const double *u_i, const double *div_p, const double *bvar, const double *rho_inv_b, const double *f, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
   // u_i:       bulk flow velocity (ux, uy, uz).
-  // p_ij:      pressure tensor (P_xx, P_xy, P_xz, P_yy, P_yz, P_zz).
+  // div_p:     divergence of the pressure tensor.
   // bvar:      magnetic field unit vector (nine components; first three components, b_i, other six components, b_i b_j.) 
   // rho_inv_b: b_i/rho (for pressure force 1/rho * b . div(P)).
   // f:         Input distribution function.
@@ -16,12 +16,9 @@ GKYL_CU_DH double vlasov_pkpm_vol_1x1v_ser_p1(const double *w, const double *dxv
   const double *uy = &u_i[2]; 
   const double *uz = &u_i[4]; 
 
-  const double *Pxx = &p_ij[0]; 
-  const double *Pxy = &p_ij[2]; 
-  const double *Pxz = &p_ij[4]; 
-  const double *Pyy = &p_ij[6]; 
-  const double *Pyz = &p_ij[8]; 
-  const double *Pzz = &p_ij[10]; 
+  const double *div_p_x = &div_p[0]; 
+  const double *div_p_y = &div_p[2]; 
+  const double *div_p_z = &div_p[4]; 
 
   const double *bx = &bvar[0]; 
   const double *by = &bvar[2]; 
@@ -47,8 +44,8 @@ GKYL_CU_DH double vlasov_pkpm_vol_1x1v_ser_p1(const double *w, const double *dxv
   alpha_cdim[3] = 0.408248290463863*bx[1]*dvpar*dx0; 
   cflFreq_mid += 3.0*fabs(0.25*alpha_cdim[0]); 
 
-  alpha_vdim[0] = ((-1.732050807568877*bxbz[0]*uz[1])-1.732050807568877*bxby[0]*uy[1]-1.732050807568877*bxbx[0]*ux[1])*dv1par*dx0*wvpar+(1.732050807568877*rho_inv_bz[0]*Pxz[1]+1.732050807568877*rho_inv_by[0]*Pxy[1]+1.732050807568877*rho_inv_bx[0]*Pxx[1])*dv1par*dx0; 
-  alpha_vdim[1] = ((-1.732050807568877*bxbz[1]*uz[1])-1.732050807568877*bxby[1]*uy[1]-1.732050807568877*bxbx[1]*ux[1])*dv1par*dx0*wvpar+(1.732050807568877*Pxz[1]*rho_inv_bz[1]+1.732050807568877*Pxy[1]*rho_inv_by[1]+1.732050807568877*Pxx[1]*rho_inv_bx[1])*dv1par*dx0; 
+  alpha_vdim[0] = ((-1.732050807568877*bxbz[0]*uz[1])-1.732050807568877*bxby[0]*uy[1]-1.732050807568877*bxbx[0]*ux[1])*dv1par*dx0*wvpar+(div_p_z[1]*rho_inv_bz[1]+div_p_y[1]*rho_inv_by[1]+div_p_x[1]*rho_inv_bx[1]+div_p_z[0]*rho_inv_bz[0]+div_p_y[0]*rho_inv_by[0]+div_p_x[0]*rho_inv_bx[0])*dv1par; 
+  alpha_vdim[1] = ((-1.732050807568877*bxbz[1]*uz[1])-1.732050807568877*bxby[1]*uy[1]-1.732050807568877*bxbx[1]*ux[1])*dv1par*dx0*wvpar+(div_p_z[0]*rho_inv_bz[1]+div_p_y[0]*rho_inv_by[1]+div_p_x[0]*rho_inv_bx[1]+rho_inv_bz[0]*div_p_z[1]+rho_inv_by[0]*div_p_y[1]+rho_inv_bx[0]*div_p_x[1])*dv1par; 
   alpha_vdim[2] = ((-0.5*bxbz[0]*uz[1])-0.5*bxby[0]*uy[1]-0.5*bxbx[0]*ux[1])*dv1par*dvpar*dx0; 
   alpha_vdim[3] = ((-0.5*bxbz[1]*uz[1])-0.5*bxby[1]*uy[1]-0.5*bxbx[1]*ux[1])*dv1par*dvpar*dx0; 
   cflFreq_mid += 5.0*fabs(0.25*alpha_vdim[0]); 

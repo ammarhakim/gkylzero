@@ -85,3 +85,13 @@ void gkyl_calc_prim_vars_p_pkpm_source(struct gkyl_basis basis, const struct gky
   const struct gkyl_array* qmem, const struct gkyl_array* nu, const struct gkyl_array* nu_vthsq, 
   const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* u_i, const struct gkyl_array* euler_pkpm, 
   struct gkyl_array* rhs);
+
+/**
+ * Compute divergence of pressure tensor from parallel-kinetic-perpendicular-moment inputs.
+ *
+ * @param basis Basis functions used in expansions
+ * @param range Range to apply division operator
+ */
+void gkyl_calc_prim_vars_p_pkpm_div(const double *dx, 
+  struct gkyl_basis basis, const struct gkyl_range *range,
+  const struct gkyl_array* p_ij, struct gkyl_array* div_p);
