@@ -3,52 +3,37 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_moment.h>
-#include <gkyl_moment_prim_mhd.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_mhd.h>
+#include <gkyl_wv_euler.h>
 #include <rt_arg_parse.h>
 
-struct mhd_ctx {
-  enum gkyl_wv_mhd_div_constraint divergence_constraint;
+static inline double sq(double x) { return x * x; }
+
+struct euler_ctx {
   double gas_gamma; // gas constant
 };
 
 void
-evalMhdInit(double t, const double* GKYL_RESTRICT xn,
-  double* GKYL_RESTRICT fout, void *ctx)
+evalEulerInit(double t, const double * restrict xn, double* restrict fout, void *ctx)
 {
-  struct mhd_ctx *app = ctx;
-  double x = xn[0], y =xn[1];
+  // See https://ammar-hakim.org/sj/je/je22/je22-euler-2d.html#smooth-periodic-problem
+  struct euler_ctx *app = ctx;
   double gas_gamma = app->gas_gamma;
 
-  double rho = 25/(36*M_PI);
-  double p = 5/(12*M_PI);
-  double vx = sin(2*M_PI*y);
-  double vy = -sin(2*M_PI*x);
-  double vz = 0;
-  double B0 = 1/sqrt(4*M_PI);
-  double Bx = B0*sin(2*M_PI*y);
-  double By = B0*sin(4*M_PI*x);
-  double Bz = 0;
-  double v[8] = {rho, vx, vy, vz, p, Bx, By, Bz};
-
-  gkyl_mhd_cons_vars(gas_gamma, v, fout);
-
-  if (app->divergence_constraint==GKYL_MHD_DIVB_GLM)
-    fout[8] = 0; // divB correction potential
+  double x = xn[0], y = xn[1];
+  double rho = 1 + 0.2*sin(M_PI*(x+y));
+  double u = 1.0, v = -0.5;
+  double pr = 1.0;
+  
+  fout[0] = rho;
+  fout[1] = rho*u; fout[2] = rho*v; fout[3] = 0.0;
+  fout[4] = pr/(gas_gamma-1) + 0.5*rho*(u*u+v*v);
 }
 
-struct mhd_ctx
-mhd_ctx(void)
+struct euler_ctx
+euler_ctx(void)
 {
-  return (struct mhd_ctx) { .gas_gamma = 5./3. };
-}
-
-void
-write_data(struct gkyl_tm_trigger *iot, const gkyl_moment_app *app, double tcurr)
-{
-  if (gkyl_tm_trigger_check_and_bump(iot, tcurr))
-    gkyl_moment_app_write(app, tcurr, iot->curr-1);
+  return (struct euler_ctx) { .gas_gamma = 1.4 };
 }
 
 int
@@ -56,44 +41,42 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
-  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 128);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 50);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 50);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
-  }
-  struct mhd_ctx ctx = {
-    .gas_gamma = 5./3.,
-    .divergence_constraint = GKYL_MHD_DIVB_EIGHT_WAVES,
-  };
+  } 
+  struct euler_ctx ctx = euler_ctx(); // context for init functions
 
   // equation object
-  const struct gkyl_wv_mhd_inp inp = {
-    .gas_gamma = ctx.gas_gamma,
-    .divergence_constraint = ctx.divergence_constraint,
-    .glm_ch = 1.0, // initial value; will be updated with max speed in each step
-    .glm_alpha = 0.4, // passed to source
-  };
-  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(&inp);
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_inew( &(struct gkyl_wv_euler_inp) {
+      .gas_gamma = ctx.gas_gamma,
+      .rp_type = WV_EULER_RP_LAX 
+    }
+  );
 
   struct gkyl_moment_species fluid = {
-    .name = "mhd",
+    .name = "euler",
 
-    .equation = mhd,
+    .equation = euler,
     .evolve = 1,
     .ctx = &ctx,
-    .init = evalMhdInit,
+    .init = evalEulerInit,
   };
 
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "mhd_ot_glm",
+    .name = "euler_wave_2d_mp",
 
     .ndim = 2,
-    .lower = { -0.5, -0.5 },
-    .upper = { 0.5, 0.5 }, 
+    .lower = { 0.0, 0.0 },
+    .upper = { 2.0, 2.0 },
     .cells = { NX, NY },
+    .cfl_frac = 0.9,
+    .scheme_type = GKYL_MOMENT_MP,
+    .mp_recon = app_args.mp_recon,    
 
     .num_periodic_dir = 2,
     .periodic_dirs = { 0, 1 },
@@ -106,15 +89,11 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.5;
-  int nframe = 5;
-
-  // create trigger for IO
-  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
+  double tcurr = 0.0, tend = 4.0;
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
-  write_data(&io_trig, app, tcurr);
+  gkyl_moment_app_write(app, tcurr, 0);
 
   // compute estimate of maximum stable time-step
   double dt = gkyl_moment_app_max_dt(app);
@@ -122,6 +101,7 @@ main(int argc, char **argv)
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
     printf("Taking time-step %ld at t = %g ...", step, tcurr);
+    if (tcurr+dt > tend) dt = tend-tcurr;
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
     
@@ -132,16 +112,16 @@ main(int argc, char **argv)
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
 
-    write_data(&io_trig, app, tcurr);
-    
     step += 1;
   }
+
+  gkyl_moment_app_write(app, tcurr, 1);
   gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
 
   // simulation complete, free resources
-  gkyl_wv_eqn_release(mhd);
+  gkyl_wv_eqn_release(euler);
   gkyl_moment_app_release(app);
 
   printf("\n");
@@ -150,6 +130,6 @@ main(int argc, char **argv)
   printf("Species updates took %g secs\n", stat.species_tm);
   printf("Field updates took %g secs\n", stat.field_tm);
   printf("Total updates took %g secs\n", stat.total_tm);
-  
+
   return 0;
 }

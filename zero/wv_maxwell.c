@@ -161,29 +161,47 @@ qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *ql, const double *qr, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
-  const struct wv_maxwell *maxwell = container_of(eqn, struct wv_maxwell, eqn);
-
-  double c = maxwell->c, c2 = c*c;
-  double e_fact = maxwell->e_fact, b_fact = maxwell->b_fact;
-
-  // auto-generated from Maxima
-  apdq[0] = c*(((qr[6]-ql[6])*c)/2+(qr[0]-ql[0])/2)*e_fact;
-  apdq[1] = c*(((qr[5]-ql[5])*c)/2+(qr[1]-ql[1])/2);
-  apdq[2] = c*((qr[2]-ql[2])/2-((qr[4]-ql[4])*c)/2);
-  apdq[3] = ((qr[7]-ql[7])/(2*c)+(qr[3]-ql[3])/2)*c*b_fact;
-  apdq[4] = ((qr[4]-ql[4])*c)/2-(qr[2]-ql[2])/2;
-  apdq[5] = ((qr[5]-ql[5])*c)/2+(qr[1]-ql[1])/2;
-  apdq[6] = (((qr[6]-ql[6])*c)/2+(qr[0]-ql[0])/2)*e_fact;
-  apdq[7] = ((qr[7]-ql[7])/(2*c)+(qr[3]-ql[3])/2)*c2*b_fact;
+  const double *w0 = &waves[0*8], *w1 = &waves[1*8], *w2 = &waves[2*8];
+  const double *w3 = &waves[3*8], *w4 = &waves[4*8], *w5 = &waves[5*8];
   
-  amdq[0] = -c*((qr[0]-ql[0])/2-((qr[6]-ql[6])*c)/2)*e_fact;
-  amdq[1] = -c*((qr[1]-ql[1])/2-((qr[5]-ql[5])*c)/2);
-  amdq[2] = -c*(((qr[4]-ql[4])*c)/2+(qr[2]-ql[2])/2);
-  amdq[3] = -((qr[3]-ql[3])/2-(qr[7]-ql[7])/(2*c))*c*b_fact;
-  amdq[4] = (-((qr[4]-ql[4])*c)/2)-(qr[2]-ql[2])/2;
-  amdq[5] = (qr[1]-ql[1])/2-((qr[5]-ql[5])*c)/2;
-  amdq[6] = ((qr[0]-ql[0])/2-((qr[6]-ql[6])*c)/2)*e_fact;
-  amdq[7] = ((qr[3]-ql[3])/2-(qr[7]-ql[7])/(2*c))*c2*b_fact;
+  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]), s2m = fmin(0.0, s[2]);
+  double s3m = fmin(0.0, s[3]), s4m = fmin(0.0, s[4]), s5m = fmin(0.0, s[5]);
+  
+  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]), s2p = fmax(0.0, s[2]);
+  double s3p = fmax(0.0, s[3]), s4p = fmax(0.0, s[4]), s5p = fmax(0.0, s[5]);
+
+  for (int i=0; i<8; ++i) {
+    amdq[i] = s0m*w0[i] + s1m*w1[i] + s2m*w2[i] + s3m*w3[i] + s4m*w4[i] + s5m*w5[i];
+    apdq[i] = s0p*w0[i] + s1p*w1[i] + s2p*w2[i] + s3p*w3[i] + s4p*w4[i] + s5p*w5[i];
+  }
+
+  // AH: For some reason, the code commented out below does not
+  // work. Need to figure out why! For now, MP-XX Maxwell WILL NOT
+  // WORK!
+  
+  /* const struct wv_maxwell *maxwell = container_of(eqn, struct wv_maxwell, eqn); */
+
+  /* double c = maxwell->c, c2 = c*c; */
+  /* double e_fact = maxwell->e_fact, b_fact = maxwell->b_fact; */
+
+  /* // auto-generated from Maxima */
+  /* apdq[0] = c*(((qr[6]-ql[6])*c)/2+(qr[0]-ql[0])/2)*e_fact; */
+  /* apdq[1] = c*(((qr[5]-ql[5])*c)/2+(qr[1]-ql[1])/2); */
+  /* apdq[2] = c*((qr[2]-ql[2])/2-((qr[4]-ql[4])*c)/2); */
+  /* apdq[3] = ((qr[7]-ql[7])/(2*c)+(qr[3]-ql[3])/2)*c*b_fact; */
+  /* apdq[4] = ((qr[4]-ql[4])*c)/2-(qr[2]-ql[2])/2; */
+  /* apdq[5] = ((qr[5]-ql[5])*c)/2+(qr[1]-ql[1])/2; */
+  /* apdq[6] = (((qr[6]-ql[6])*c)/2+(qr[0]-ql[0])/2)*e_fact; */
+  /* apdq[7] = ((qr[7]-ql[7])/(2*c)+(qr[3]-ql[3])/2)*c2*b_fact; */
+  
+  /* amdq[0] = -c*((qr[0]-ql[0])/2-((qr[6]-ql[6])*c)/2)*e_fact; */
+  /* amdq[1] = -c*((qr[1]-ql[1])/2-((qr[5]-ql[5])*c)/2); */
+  /* amdq[2] = -c*(((qr[4]-ql[4])*c)/2+(qr[2]-ql[2])/2); */
+  /* amdq[3] = -((qr[3]-ql[3])/2-(qr[7]-ql[7])/(2*c))*c*b_fact; */
+  /* amdq[4] = (-((qr[4]-ql[4])*c)/2)-(qr[2]-ql[2])/2; */
+  /* amdq[5] = (qr[1]-ql[1])/2-((qr[5]-ql[5])*c)/2; */
+  /* amdq[6] = ((qr[0]-ql[0])/2-((qr[6]-ql[6])*c)/2)*e_fact; */
+  /* amdq[7] = ((qr[3]-ql[3])/2-(qr[7]-ql[7])/(2*c))*c2*b_fact; */
 }
 
 static double
@@ -216,14 +234,23 @@ max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
   return maxwell->c;
 }
 
+static inline void
+maxwell_cons_to_diag(const struct gkyl_wv_eqn *eqn,
+  const double *qin, double *diag)
+{
+  // components of EM energy
+  for (int i=0; i<6; ++i) diag[i] = qin[i]*qin[i];
+}
+
 struct gkyl_wv_eqn*
 gkyl_wv_maxwell_new(double c, double e_fact, double b_fact)
 {
   struct wv_maxwell *maxwell = gkyl_malloc(sizeof(struct wv_maxwell));
 
   maxwell->eqn.type = GKYL_EQN_MAXWELL;
-  maxwell->eqn.num_equations = 8;
+  maxwell->eqn.num_equations = 8;  
   maxwell->eqn.num_waves = 6;
+  maxwell->eqn.num_diag = 6; // Ex^2, Ey^2, Ez^2, Bx^2, By^2, Bz^2
   
   maxwell->c = c;
   maxwell->e_fact = e_fact;
@@ -242,6 +269,8 @@ gkyl_wv_maxwell_new(double c, double e_fact, double b_fact)
   maxwell->eqn.riem_to_cons = riem_to_cons;
 
   maxwell->eqn.wall_bc_func = maxwell_wall;
+
+  maxwell->eqn.cons_to_diag = maxwell_cons_to_diag;
 
   maxwell->eqn.ref_count = gkyl_ref_count_init(maxwell_free);
 

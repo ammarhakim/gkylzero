@@ -22,6 +22,7 @@ enum gkyl_wave_limiter {
 struct gkyl_wave_prop_status {
   int success; // 1 if step worked, 0 otherwise
   double dt_suggested; // suggested time-step
+  double max_speed; // max wave speed due to sweep in one direction
 };
 
 // Object type for updater

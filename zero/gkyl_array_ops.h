@@ -1,6 +1,5 @@
 #pragma once
 
-#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
 #include <gkyl_evalf_def.h>
 #include <gkyl_range.h>
