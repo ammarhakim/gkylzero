@@ -26,6 +26,13 @@ then
 
     cd parmetis-4.0.3
 
+    # Build Metis firs
+    cd metis
+    make config shared=1 prefix=$GKYLSOFT/parmetis-4.0.3
+    make -j 32 
+    make install
+
+    cd ..
     # configure build
     make config shared=1 prefix=$GKYLSOFT/parmetis-4.0.3 cc=$MPICC cxx=$MPICXX
 

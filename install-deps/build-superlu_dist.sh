@@ -3,7 +3,7 @@
 source ./build-opts.sh
 
 # Edit to suite your system
-PREFIX=$GKYLSOFT/superlu-5.2.2
+PREFIX=$GKYLSOFT/superlu_dist-5.2.2
 # Location where dependency sources will be downloaded
 DEP_SOURCES=$HOME/gkylsoft/dep_src/
 
@@ -29,12 +29,12 @@ then
     cd build
 
     # configure build
-    CC=$MPICC CXX=$MPICXX PARMETIS_ROOT=$GKYLSOFT/parmetis PARMETIS_BUILD_DIR=$GKYLSOFT/parmetis-4.0.3/build/Linux-x86_64 cmake .. -DCMAKE_C_FLAGS="-g -O3 -fPIC" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_INSTALL_LIBDIR=lib -Denable_tests=NO -Denable_internal_blaslib=NO -DXSDK_ENABLE_Fortran=NO -DTPL_ENABLE_PARMETISLIB=YES -DTPL_PARMETIS_LIBRARIES=$GKYLSOFT/parmetis/lib -DTPL_PARMETIS_INCLUDE_DIRS=$GKYLSOFT/parmetis/include
+    CC=$MPICC CXX=$MPICXX cmake .. -DCMAKE_C_FLAGS="-g -O3 -fPIC" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_INSTALL_LIBDIR=lib -Denable_tests=NO -Denable_internal_blaslib=NO -DXSDK_ENABLE_Fortran=NO -DTPL_ENABLE_PARMETISLIB=YES -DTPL_PARMETIS_LIBRARIES=$GKYLSOFT/parmetis/lib/libparmetis.so -DTPL_PARMETIS_INCLUDE_DIRS=$GKYLSOFT/parmetis/include;$GKYLSOFT/metis/include
 
     # build and install
     make -j 32 VERBOSE=1
     make install
 
     # soft-link 
-#    ln -sfn $PREFIX $GKYLSOFT/superlu
+    ln -sfn $PREFIX $GKYLSOFT/superlu_dist
 fi
