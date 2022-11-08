@@ -65,7 +65,7 @@ ifeq ($(UNAME), Darwin)
 	LAPACK_INC = zero # dummy
 	LAPACK_LIB = -framework Accelerate
 	CFLAGS += -DGKYL_USING_FRAMEWORK_ACCELERATE
-	SHFLAGS += -dynamiclib
+	SHFLAGS += -dynamiclib -install_name ${PREFIX}/gkylzero/lib/libgkylzero.so
 else
 	SHFLAGS += -shared
 endif
@@ -108,11 +108,13 @@ $(BUILD_DIR)/%.cu.o: %.cu
 
 # Unit tests
 ${BUILD_DIR}/unit/%: unit/%.c ${ZERO_SH_LIB} ${UNIT_CU_OBJS} ${UNIT_CU_SRCS}
+	cp -f ${ZERO_SH_LIB} ${PREFIX}/gkylzero/lib
 	$(MKDIR_P) ${BUILD_DIR}/unit
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
 
 # Regression tests
 ${BUILD_DIR}/regression/%: regression/%.c ${ZERO_SH_LIB}
+	cp -f ${ZERO_SH_LIB} ${PREFIX}/gkylzero/lib
 	$(MKDIR_P) ${BUILD_DIR}/regression
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
 
