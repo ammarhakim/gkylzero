@@ -14,6 +14,7 @@ MPICXX=$PREFIX/openmpi/bin/mpicxx
 BUILD_OPENBLAS=no
 BUILD_SUPERLU=no
 BUILD_SUPERLU_DIST=no
+BUILD_SUPERLU_DIST_GPU=no
 
 # by default, download as well as build packages
 DOWNLOAD_PKGS=yes
@@ -50,6 +51,7 @@ The following flags specify the libraries to build.
 --build-openblas            [no] Should we build OpenBLAS?
 --build-superlu             [no] Should we build SuperLU (serial)
 --build-superlu_dist        [no] Should we build SuperLU (parallel)
+--enable-superlu_gpu        [no] Build GPUs lib for SuperLU (needs --build-superlu_dist=yes)
 
 EOF
 }
@@ -134,12 +136,23 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_SUPERLU_DIST="$value"
       ;;
+   --enable-superlu_gpu)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_SUPERLU_DIST_GPU="$value"
+      ;;   
    *)
       die "Error: Unknown flag: $1"
       ;;
    esac
    shift
 done
+
+CMAKE_SUPERLU_DIST_GPU=OFF
+# Set package options
+if [ "$BUILD_SUPERLU_DIST_GPU" = "yes" ]
+then
+    CMAKE_SUPERLU_DIST_GPU=ON
+fi
 
 # Write out build options for scripts to use
 cat <<EOF1 > build-opts.sh
@@ -159,6 +172,9 @@ CXX=$CXX
 MPICC=$MPICC
 MPICXX=$MPICXX
 FC=gfortran
+
+# Package options
+CMAKE_SUPERLU_DIST_GPU=$CMAKE_SUPERLU_DIST_GPU
 
 EOF1
 
@@ -192,4 +208,3 @@ echo "Installations will be in  $PREFIX"
 build_openblas
 build_superlu
 build_superlu_dist
-
