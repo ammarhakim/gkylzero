@@ -90,3 +90,36 @@ void gkyl_calc_prim_vars_p_pkpm_source(struct gkyl_basis basis, const struct gky
     pkpm_pressure_source(qmem_d, nu_d, nu_vthsq_d, vlasov_pkpm_moms_d, u_i_d, euler_pkpm_d, rhs_d);
   }
 }
+
+void gkyl_calc_prim_vars_p_pkpm_div(const double *dx, 
+  struct gkyl_basis basis, const struct gkyl_range *range,
+  const struct gkyl_array* p_ij, struct gkyl_array* div_p)
+{
+  int cdim = basis.ndim;
+  int poly_order = basis.poly_order;
+  euler_pkpm_pressure_div_t pkpm_pressure_div = choose_ser_euler_pkpm_pressure_div_kern(cdim, poly_order);
+
+  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM], idx_edge[GKYL_MAX_DIM];
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, range);
+  while (gkyl_range_iter_next(&iter)) {
+    gkyl_copy_int_arr(cdim, iter.idx, idxc);
+    long linc = gkyl_range_idx(range, idxc);
+
+    gkyl_copy_int_arr(cdim, iter.idx, idxl);
+    gkyl_copy_int_arr(cdim, iter.idx, idxr);
+    // ONLY TESTING 1D FOR NOW
+    idxl[0] = idxl[0]-1; idxr[0] = idxr[0]+1;
+
+    long linl = gkyl_range_idx(range, idxl); 
+    long linr = gkyl_range_idx(range, idxr);
+
+    const double *p_ij_l = gkyl_array_cfetch(p_ij, linl);
+    const double *p_ij_c = gkyl_array_cfetch(p_ij, linc);
+    const double *p_ij_r = gkyl_array_cfetch(p_ij, linr);
+    
+    double *div_p_d = gkyl_array_fetch(div_p, linc);
+    pkpm_pressure_div(dx, p_ij_l, p_ij_c, p_ij_r, div_p_d);
+  }
+}

@@ -524,7 +524,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   if (app->use_gpu) {
     if (species->model_id == GKYL_MODEL_PKPM)
       gkyl_dg_updater_vlasov_advance_cu(species->slvr, &species->local, 
-        species->pkpm_fluid_species->u, species->pkpm_fluid_species->p,
+        species->pkpm_fluid_species->u, species->pkpm_fluid_species->div_p,
         app->field->bvar, species->rho_inv_b, 
         fin, species->cflrate, rhs);
     else
@@ -536,7 +536,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   else {
     if (species->model_id == GKYL_MODEL_PKPM)
       gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
-        species->pkpm_fluid_species->u, species->pkpm_fluid_species->p, 
+        species->pkpm_fluid_species->u, species->pkpm_fluid_species->div_p, 
         app->field->bvar, species->rho_inv_b, 
         fin, species->cflrate, rhs);
     else

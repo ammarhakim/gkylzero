@@ -19,15 +19,18 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
 
   app->scheme_type = mom->scheme_type;
   app->mp_recon = mom->mp_recon;
+  app->use_hybrid_flux_kep = mom->use_hybrid_flux_kep;
   
   if (app->scheme_type == GKYL_MOMENT_WAVE_PROP)
     app->update_func = moment_update_one_step;
   else if (app->scheme_type == GKYL_MOMENT_MP) 
     app->update_func = moment_update_ssp_rk3;
+  else if (app->scheme_type == GKYL_MOMENT_KEP)
+    app->update_func = moment_update_ssp_rk3;
 
   int ghost[3] = { 2, 2, 2 }; // 2 ghost-cells for wave
-  if (mom->scheme_type == GKYL_MOMENT_MP)
-    for (int d=0; d<3; ++d) ghost[d] = 3; // 3 for MP scheme
+  if (mom->scheme_type != GKYL_MOMENT_WAVE_PROP)
+    for (int d=0; d<3; ++d) ghost[d] = 3; // 3 for MP scheme and KEP
   
   gkyl_rect_grid_init(&app->grid, ndim, mom->lower, mom->upper, mom->cells);
   gkyl_create_grid_ranges(&app->grid, ghost, &app->local_ext, &app->local);
@@ -100,8 +103,14 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     moment_coupling_init(app, &app->sources);
   }
 
+  app->update_mhd_source = false;
+  if (ns==1 && mom->species[0].equation->type==GKYL_EQN_MHD) {
+    app->update_mhd_source = true;
+    mhd_src_init(app, &mom->species[0], &app->mhd_source);
+  }
+
   // allocate work array for use in MP scheme
-  if (app->scheme_type == GKYL_MOMENT_MP) {
+  if (app->scheme_type == GKYL_MOMENT_MP || app->scheme_type == GKYL_MOMENT_KEP) {
     int max_eqn = 0;
     for (int i=0; i<ns; ++i)
       max_eqn = int_max(max_eqn, app->species[i].num_equations);
@@ -248,6 +257,12 @@ gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, i
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->species[sidx].name, frame);
   gkyl_grid_sub_array_write(&app->grid, &app->local, app->species[sidx].fcurr, fileNm.str);
   cstr_drop(&fileNm);
+
+  if (app->scheme_type == GKYL_MOMENT_KEP) {
+    cstr fileNm = cstr_from_fmt("%s-%s-alpha_%d.gkyl", app->name, app->species[sidx].name, frame);
+    gkyl_grid_sub_array_write(&app->grid, &app->local, app->species[sidx].alpha, fileNm.str);
+    cstr_drop(&fileNm);
+  }
 }
 
 struct gkyl_update_status
@@ -269,8 +284,8 @@ gkyl_moment_app_calc_field_energy(gkyl_moment_app* app, double tm)
 {
   if (app->has_field) {
     double energy[6] = { 0.0 };
-    calc_integ_quant(6, app->grid.cellVolume, app->field.fcurr, app->geom,
-      app->local, integ_sq, energy);
+    calc_integ_quant(app->field.maxwell, app->grid.cellVolume, app->field.fcurr, app->geom,
+      app->local, energy);
     gkyl_dynvec_append(app->field.integ_energy, tm, energy);
   }
 }
@@ -279,10 +294,13 @@ void
 gkyl_moment_app_calc_integrated_mom(gkyl_moment_app *app, double tm)
 {
   for (int sidx=0; sidx<app->num_species; ++sidx) {
-    int meqn = app->species[sidx].num_equations;
-    double q_integ[meqn];
-    calc_integ_quant(meqn, app->grid.cellVolume, app->species[sidx].fcurr, app->geom,
-      app->local, integ_unit, q_integ);
+
+    int num_diag = app->species[sidx].equation->num_diag;
+    double q_integ[num_diag];
+
+    calc_integ_quant(app->species[sidx].equation, app->grid.cellVolume, app->species[sidx].fcurr, app->geom,
+      app->local, q_integ);
+    
     gkyl_dynvec_append(app->species[sidx].integ_q, tm, q_integ);
   }
 }
@@ -322,7 +340,7 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
       fprintf(fp, " field_tm : %lg,\n", app->stat.field_tm);
       fprintf(fp, " sources_tm : %lg\n", app->stat.sources_tm);
     }
-    else if (app->scheme_type == GKYL_MOMENT_MP) {
+    else if (app->scheme_type == GKYL_MOMENT_MP || app->scheme_type == GKYL_MOMENT_KEP) {
       fprintf(fp, " nfeuler : %ld,\n", app->stat.nfeuler);
       fprintf(fp, " nstage_2_fail : %ld,\n", app->stat.nstage_2_fail);
       fprintf(fp, " nstage_3_fail : %ld,\n", app->stat.nstage_3_fail);
@@ -377,9 +395,12 @@ gkyl_moment_app_release(gkyl_moment_app* app)
   if (app->update_sources)
     moment_coupling_release(&app->sources);
 
+  if (app->update_mhd_source)
+    mhd_src_release(&app->mhd_source);
+
   gkyl_wave_geom_release(app->geom);
 
-  if (app->scheme_type == GKYL_MOMENT_MP) {
+  if (app->scheme_type == GKYL_MOMENT_MP || app->scheme_type == GKYL_MOMENT_KEP) {
     gkyl_array_release(app->ql);
     gkyl_array_release(app->qr);
     gkyl_array_release(app->amdq);
@@ -388,3 +409,4 @@ gkyl_moment_app_release(gkyl_moment_app* app)
 
   gkyl_free(app);
 }
+

@@ -97,6 +97,7 @@ struct gkyl_wv_eqn *gkyl_wv_advect_new(double c) {
   advect->eqn.type = GKYL_EQN_MAXWELL;
   advect->eqn.num_equations = 1;
   advect->eqn.num_waves = 1;
+  advect->eqn.num_diag = 1;
 
   advect->c = c;
 
@@ -111,6 +112,8 @@ struct gkyl_wv_eqn *gkyl_wv_advect_new(double c) {
 
   advect->eqn.cons_to_riem = cons_to_riem;
   advect->eqn.riem_to_cons = riem_to_cons;
+
+  advect->eqn.cons_to_diag = gkyl_default_cons_to_diag;
 
   advect->eqn.ref_count = gkyl_ref_count_init(advect_free);
 

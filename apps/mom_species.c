@@ -1,5 +1,6 @@
 #include <gkyl_moment_priv.h>
 #include <gkyl_util.h>
+#include <gkyl_wv_euler.h>
 
 // initialize species
 void
@@ -15,6 +16,8 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   sp->eqn_type = mom_sp->equation->type;
   sp->num_equations = mom_sp->equation->num_equations;
+  sp->equation = gkyl_wv_eqn_acquire(mom_sp->equation);
+  
   // closure parameter, used by 10 moment
   sp->k0 = mom_sp->equation->type == GKYL_EQN_TEN_MOMENT ? gkyl_wv_ten_moment_k0(mom_sp->equation) : 0.0;
 
@@ -42,16 +45,16 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
           .geom = app->geom,
         }
       );
-
+      
     sp->fdup = mkarr(false, meqn, app->local_ext.volume);
     // allocate arrays
     for (int d=0; d<ndim+1; ++d)
       sp->f[d] = mkarr(false, meqn, app->local_ext.volume);
-
+  
     // set current solution so ICs and IO work properly
     sp->fcurr = sp->f[0];
   }
-  else if (sp->scheme_type == GKYL_MOMENT_MP) {
+  else if ( sp->scheme_type == GKYL_MOMENT_MP || sp->scheme_type == GKYL_MOMENT_KEP ) {
     // determine directions to update
     int num_up_dirs = 0, update_dirs[GKYL_MAX_CDIM] = { 0 };
     for (int d=0; d<ndim; ++d)
@@ -59,26 +62,40 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         update_dirs[num_up_dirs] = d;
         num_up_dirs += 1;
       }
-    
-    // single MP updater updates all directions
-    sp->mp_slvr = gkyl_mp_scheme_new( &(struct gkyl_mp_scheme_inp) {
-        .grid = &app->grid,
-        .equation = mom_sp->equation,
-        .mp_recon = app->mp_recon,
-        .skip_mp_limiter = mom->skip_mp_limiter,
-        .num_up_dirs = num_up_dirs,
-        .update_dirs = { update_dirs[0], update_dirs[1], update_dirs[2] } ,
-        .cfl = app->cfl,
-        .geom = app->geom,
-      }
-    );
 
+    if (sp->scheme_type == GKYL_MOMENT_MP)
+      // single MP updater updates all directions
+      sp->mp_slvr = gkyl_mp_scheme_new( &(struct gkyl_mp_scheme_inp) {
+          .grid = &app->grid,
+          .equation = mom_sp->equation,
+          .mp_recon = app->mp_recon,
+          .skip_mp_limiter = mom->skip_mp_limiter,
+          .num_up_dirs = num_up_dirs,
+          .update_dirs = { update_dirs[0], update_dirs[1], update_dirs[2] } ,
+          .cfl = app->cfl,
+          .geom = app->geom,
+        }
+      );
+    else
+      // single KEP updater updates all directions
+      sp->kep_slvr = gkyl_kep_scheme_new( &(struct gkyl_kep_scheme_inp) {
+          .grid = &app->grid,
+          .equation = mom_sp->equation,
+          .use_hybrid_flux = app->use_hybrid_flux_kep,
+          .num_up_dirs = num_up_dirs,
+          .update_dirs = { update_dirs[0], update_dirs[1], update_dirs[2] } ,
+          .cfl = app->cfl,
+          .geom = app->geom,
+        }
+      );
+    
     // allocate arrays
     sp->f0 = mkarr(false, meqn, app->local_ext.volume);
     sp->f1 = mkarr(false, meqn, app->local_ext.volume);
     sp->fnew = mkarr(false, meqn, app->local_ext.volume);
     sp->cflrate = mkarr(false, 1, app->local_ext.volume);
-
+    sp->alpha = mkarr(false, 1, app->local_ext.volume);
+    
     // set current solution so ICs and IO work properly
     sp->fcurr = sp->f0;
   }
@@ -185,7 +202,11 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   }
   sp->bc_buffer = mkarr(false, meqn, buff_sz);
 
-  sp->integ_q = gkyl_dynvec_new(GKYL_DOUBLE, meqn);
+  if (mom_sp->equation->type == GKYL_EQN_EULER)
+    sp->integ_q = gkyl_dynvec_new(GKYL_DOUBLE, 6); // KE and PE are stored independently
+  else
+    sp->integ_q = gkyl_dynvec_new(GKYL_DOUBLE, meqn);
+  
   sp->is_first_q_write_call = true;
 }
 
@@ -227,6 +248,9 @@ moment_species_max_dt(const gkyl_moment_app *app, const struct moment_species *s
   else if (sp->scheme_type == GKYL_MOMENT_MP) {
     max_dt = fmin(max_dt, gkyl_mp_scheme_max_dt(sp->mp_slvr, &app->local, sp->f0));
   }
+  else if (sp->scheme_type == GKYL_MOMENT_KEP) {
+    max_dt = fmin(max_dt, gkyl_kep_scheme_max_dt(sp->kep_slvr, &app->local, sp->f0));
+  }  
   return max_dt;
 }
 
@@ -234,14 +258,18 @@ moment_species_max_dt(const gkyl_moment_app *app, const struct moment_species *s
 // solution in sp->f[ndim]
 struct gkyl_update_status
 moment_species_update(const gkyl_moment_app *app,
-  const struct moment_species *sp, double tcurr, double dt)
+  struct moment_species *sp, double tcurr, double dt)
 {
   int ndim = sp->ndim;
   double dt_suggested = DBL_MAX;
+  double max_speed = 0.0;
   struct gkyl_wave_prop_status stat;
 
   for (int d=0; d<ndim; ++d) {
     stat = gkyl_wave_prop_advance(sp->slvr[d], tcurr, dt, &app->local, sp->f[d], sp->f[d+1]);
+
+    double my_max_speed = stat.max_speed;
+    max_speed = max_speed > my_max_speed ? max_speed : my_max_speed;
 
     if (!stat.success)
       return (struct gkyl_update_status) {
@@ -251,6 +279,19 @@ moment_species_update(const gkyl_moment_app *app,
     
     dt_suggested = fmin(dt_suggested, stat.dt_suggested);
     moment_species_apply_bc(app, tcurr, sp, sp->f[d+1]);
+  }
+
+  for (int d=0; d<ndim; ++d) {
+    struct gkyl_wv_eqn *eqn = sp->equation;
+    if (eqn->type==GKYL_EQN_MHD) {
+      if (sp->eqn_type==GKYL_MHD_DIVB_GLM) {
+        gkyl_wv_mhd_set_glm_ch(eqn, max_speed);
+      }
+    }
+  }
+  if (app->update_mhd_source) {
+    // app->mhd_source.slvr->glm_ch = max_speed;
+    // gkyl_mhd_src_set_glm_ch(app->mhd_source.slvr, max_speed);
   }
 
   return (struct gkyl_update_status) {
@@ -269,9 +310,13 @@ moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
-  gkyl_mp_scheme_advance(species->mp_slvr, &app->local, fin,
-    app->ql, app->qr, app->amdq, app->apdq,
-    species->cflrate, rhs);
+  if (app->scheme_type == GKYL_MOMENT_MP)
+    gkyl_mp_scheme_advance(species->mp_slvr, &app->local, fin,
+      app->ql, app->qr, app->amdq, app->apdq,
+      species->cflrate, rhs);
+  else
+    gkyl_kep_scheme_advance(species->kep_slvr, &app->local, fin, species->alpha,
+      species->cflrate, rhs);
 
   double omegaCfl[1];
   gkyl_array_reduce_range(omegaCfl, species->cflrate, GKYL_MAX, app->local);
@@ -285,6 +330,8 @@ moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
 void
 moment_species_release(const struct moment_species *sp)
 {
+  gkyl_wv_eqn_release(sp->equation);
+  
   for (int d=0; d<sp->ndim; ++d) {
     if (sp->lower_bc[d])
       gkyl_wv_apply_bc_release(sp->lower_bc[d]);
@@ -300,12 +347,18 @@ moment_species_release(const struct moment_species *sp)
     for (int d=0; d<sp->ndim+1; ++d)
       gkyl_array_release(sp->f[d]);
   }
-  else if (sp->scheme_type == GKYL_MOMENT_MP) {
-    gkyl_mp_scheme_release(sp->mp_slvr);
+  else if (sp->scheme_type == GKYL_MOMENT_MP || sp->scheme_type == GKYL_MOMENT_KEP) {
+
+    if (sp->scheme_type == GKYL_MOMENT_MP)
+      gkyl_mp_scheme_release(sp->mp_slvr);
+    else
+      gkyl_kep_scheme_release(sp->kep_slvr);
+    
     gkyl_array_release(sp->f0);
     gkyl_array_release(sp->f1);
     gkyl_array_release(sp->fnew);
     gkyl_array_release(sp->cflrate);
+    gkyl_array_release(sp->alpha);
   }
 
   gkyl_array_release(sp->app_accel);
@@ -315,4 +368,58 @@ moment_species_release(const struct moment_species *sp)
   gkyl_array_release(sp->bc_buffer);
 
   gkyl_dynvec_release(sp->integ_q);
+}
+
+/** mhd_src functions */
+
+void
+mhd_src_init(const struct gkyl_moment_app *app,
+             const struct gkyl_moment_species *sp,
+             struct mhd_src *src)
+{
+  double dxyz_min = DBL_MAX;
+  for (int d=0; d<app->grid.ndim; ++d) {
+    double dx = app->grid.dx[d];
+    dxyz_min = dx < dxyz_min ? dx : dxyz_min;
+  }
+
+  struct gkyl_mhd_src_inp src_inp = {
+    .grid = &app->grid,
+    .divergence_constraint = gkyl_wv_mhd_divergence_constraint(sp->equation),
+    .glm_ch = gkyl_wv_mhd_glm_ch(sp->equation),
+    .glm_alpha = gkyl_wv_mhd_glm_ch(sp->equation),
+    .dxyz_min = dxyz_min,
+  };
+
+  src->slvr = gkyl_mhd_src_new(src_inp, &app->local_ext);
+}
+
+// update sources: 'nstrang' is 0 for the first Strang step and 1 for
+// the second step
+void
+mhd_src_update(gkyl_moment_app *app, struct mhd_src *src, int nstrang,
+               double tcurr, double dt)
+{
+  int sidx[] = { 0, app->ndim };
+  int i = 0; // mhd has only one 'species'
+  struct gkyl_array *fluid = app->species[i].f[sidx[nstrang]];
+
+  if (app->species[i].proj_app_accel)
+    gkyl_fv_proj_advance(app->species[i].proj_app_accel, tcurr, &app->local,
+                         app->species[i].app_accel);
+
+  // FIXME presently needed for computing divB etc
+  moment_species_apply_bc(app, tcurr, &app->species[i], fluid);
+
+  gkyl_mhd_src_advance(src->slvr, dt, &app->local, fluid,
+                       app->species[i].app_accel);
+
+  moment_species_apply_bc(app, tcurr, &app->species[i], fluid);
+
+}
+
+void
+mhd_src_release(const struct mhd_src *src)
+{
+  gkyl_mhd_src_release(src->slvr);
 }

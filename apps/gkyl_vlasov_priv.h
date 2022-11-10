@@ -315,6 +315,8 @@ struct vm_fluid_species {
   struct gkyl_array *u_bc_buffer; // buffer for applying BCs to flow
   struct gkyl_array *p_bc_buffer; // buffer for applying BCs to pressure
 
+  struct gkyl_array *div_p; // array for divergence of the pressure tensor
+
   struct gkyl_array *ux_dg; // array for *just* x velocity (DG)
   struct gkyl_array *ux_wgt; // weight for used in continuous projection
   struct gkyl_array *ux_fem; // array for continuous x velocity 
