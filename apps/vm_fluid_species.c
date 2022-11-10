@@ -85,7 +85,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     f->p_bc_buffer = mkarr(app->use_gpu, app->confBasis.num_basis, buff_sz);
   }
   else if (f->info.advection.velocity) {
-    f->eqn_id = GKYL_EQN_ADVECTION;   
+    f->eqn_id = GKYL_EQN_ADVECTION;
 
     // allocate array to store advection velocity
     f->u = mkarr(app->use_gpu, cdim*app->confBasis.num_basis, app->local_ext.volume);
@@ -117,7 +117,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     }
   }
   else {
-    f->eqn_id = GKYL_EQN_EULER_PKPM;   
+    f->eqn_id = GKYL_EQN_EULER_PKPM;
     // allocate array to store fluid velocity, pressure tensor, and pkpm moments
     f->u = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
     f->p = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_ext.volume);
@@ -168,8 +168,8 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     f->D = mkarr(app->use_gpu, szD*app->confBasis.num_basis, app->local_ext.volume);
     f->D_host = f->D;
     if (app->use_gpu)
-      f->D_host = mkarr(false, cdim*app->confBasis.num_basis, app->local_ext.volume);  
-        
+      f->D_host = mkarr(false, cdim*app->confBasis.num_basis, app->local_ext.volume);
+
     f->diff_ctx = (struct vm_eval_diffusion_ctx) {
       .diff_func = f->info.diffusion.D, .diff_ctx = f->info.diffusion.D_ctx
     };
@@ -225,9 +225,9 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
                                     app->basis_on_dev.confBasis, f->fluid->ncomp, app->cdim, app->use_gpu);
     f->bc_u_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &app->local_ext, ghost, bctype,
                                     app->basis_on_dev.confBasis, f->u->ncomp, app->cdim, app->use_gpu);
-    if (f->eqn_id == GKYL_EQN_EULER || f->eqn_id == GKYL_EQN_EULER_PKPM) 
+    if (f->eqn_id == GKYL_EQN_EULER || f->eqn_id == GKYL_EQN_EULER_PKPM)
       f->bc_p_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &app->local_ext, ghost, bctype,
-                                      app->basis_on_dev.confBasis, f->p->ncomp, app->cdim, app->use_gpu);      
+                                      app->basis_on_dev.confBasis, f->p->ncomp, app->cdim, app->use_gpu);
     // Upper BC updater. Copy BCs by default.
     if (f->upper_bc[d] == GKYL_SPECIES_COPY)
       bctype = GKYL_BC_COPY;
@@ -238,9 +238,9 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
                                     app->basis_on_dev.confBasis, f->fluid->ncomp, app->cdim, app->use_gpu);
     f->bc_u_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &app->local_ext, ghost, bctype,
                                     app->basis_on_dev.confBasis, f->u->ncomp, app->cdim, app->use_gpu);
-    if (f->eqn_id == GKYL_EQN_EULER || f->eqn_id == GKYL_EQN_EULER_PKPM) 
+    if (f->eqn_id == GKYL_EQN_EULER || f->eqn_id == GKYL_EQN_EULER_PKPM)
       f->bc_p_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &app->local_ext, ghost, bctype,
-                                      app->basis_on_dev.confBasis, f->p->ncomp, app->cdim, app->use_gpu); 
+                                      app->basis_on_dev.confBasis, f->p->ncomp, app->cdim, app->use_gpu);
   }
 }
 
@@ -312,9 +312,9 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
       fluid_species->u, fluid, fluid_species->p);
   }
   else if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
-    gkyl_calc_prim_vars_u_from_rhou(fluid_species->u_mem, app->confBasis, &app->local, 
+    gkyl_calc_prim_vars_u_from_rhou(fluid_species->u_mem, app->confBasis, &app->local,
       fluid_species->pkpm_species->pkpm_moms.marr, fluid, fluid_species->u);
-    gkyl_calc_prim_vars_p_pkpm(app->confBasis, &app->local, app->field->bvar, 
+    gkyl_calc_prim_vars_p_pkpm(app->confBasis, &app->local, app->field->bvar,
       fluid_species->pkpm_species->pkpm_moms.marr, fluid, fluid_species->p);
   }
   else {
@@ -353,7 +353,7 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
 
   if (app->use_gpu) {
     gkyl_dg_updater_fluid_advance_cu(fluid_species->advect_slvr, fluid_species->eqn_id,
-      &app->local, fluid_species->u, fluid_species->p, 
+      &app->local, fluid_species->u, fluid_species->p,
       fluid, fluid_species->cflrate, rhs);
     if (fluid_species->has_diffusion)
       gkyl_dg_updater_diffusion_advance_cu(fluid_species->diff_slvr, fluid_species->diffusion_id,
@@ -361,7 +361,7 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
   }
   else {
     gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, fluid_species->eqn_id,
-      &app->local, fluid_species->u, fluid_species->p, 
+      &app->local, fluid_species->u, fluid_species->p,
       fluid, fluid_species->cflrate, rhs);
     if (fluid_species->has_diffusion)
       gkyl_dg_updater_diffusion_advance(fluid_species->diff_slvr, fluid_species->diffusion_id,
@@ -380,11 +380,11 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
     if (app->field->has_ext_em)
       gkyl_array_accumulate(fluid_species->pkpm_species->qmem, qbym, app->field->ext_em);
 
-    gkyl_calc_prim_vars_p_pkpm_source(app->confBasis, &app->local, fluid_species->pkpm_species->qmem, 
-      fluid_species->pkpm_species->lbo.nu_sum, fluid_species->pkpm_species->lbo.nu_prim_moms, 
+    gkyl_calc_prim_vars_p_pkpm_source(app->confBasis, &app->local, fluid_species->pkpm_species->qmem,
+      fluid_species->pkpm_species->lbo.nu_sum, fluid_species->pkpm_species->lbo.nu_prim_moms,
       fluid_species->pkpm_species->pkpm_moms.marr, fluid_species->u, fluid, rhs);
   }
-  
+
   gkyl_array_reduce_range(fluid_species->omegaCfl_ptr, fluid_species->cflrate, GKYL_MAX, app->local);
 
   double omegaCfl_ho[1];
@@ -559,12 +559,6 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
 
     gkyl_proj_on_basis_release(f->advect_proj);
   }
-
-  gkyl_array_release(f->D);
-  if (app->use_gpu)
-    gkyl_array_release(f->D_host);
-  if (f->has_diffusion)
-    gkyl_proj_on_basis_release(f->diff_proj);
 
   if (f->source_id) {
     vm_fluid_species_source_release(app, &f->src);
