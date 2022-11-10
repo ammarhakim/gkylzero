@@ -22,6 +22,18 @@ nomapc2p(double t, const double *xc, double *xp, void *ctx)
 
 // Computes 1D geometry
 static void
+calc_geom_1d_from_nodes(const double *dx, const double *xlp, const double *xrp,
+    evalf_t mapc2p, void *ctx, struct gkyl_wave_cell_geom *geo)
+{
+  geo->kappa = fabs(xrp[0]-xlp[0])/dx[0];
+  geo->lenr[0] = 1.0;
+
+  geo->norm[0][0] = 1.0; geo->norm[0][1] = 0.0; geo->norm[0][2] = 0.0;
+  geo->tau1[0][0] = 0.0; geo->tau1[0][1] = 1.0; geo->tau1[0][2] = 0.0;
+  geo->tau2[0][0] = 0.0; geo->tau2[0][1] = 0.0; geo->tau2[0][2] = 1.0;
+}
+
+static void
 calc_geom_1d(const double *dx, const double *xc, evalf_t mapc2p, void *ctx, struct gkyl_wave_cell_geom *geo)
 {
   double xlc[GKYL_MAX_CDIM], xrc[GKYL_MAX_CDIM];
@@ -34,12 +46,7 @@ calc_geom_1d(const double *dx, const double *xc, evalf_t mapc2p, void *ctx, stru
   mapc2p(0.0, xlc, xlp, ctx);
   mapc2p(0.0, xrc, xrp, ctx);
 
-  geo->kappa = fabs(xrp[0]-xlp[0])/dx[0];
-  geo->lenr[0] = 1.0;
-
-  geo->norm[0][0] = 1.0; geo->norm[0][1] = 0.0; geo->norm[0][2] = 0.0;
-  geo->tau1[0][0] = 0.0; geo->tau1[0][1] = 1.0; geo->tau1[0][2] = 0.0;
-  geo->tau2[0][0] = 0.0; geo->tau2[0][1] = 0.0; geo->tau2[0][2] = 1.0;
+  calc_geom_1d_from_nodes(dx, xlp, xrp, mapc2p, ctx, geo);
 }
 
 static void
