@@ -572,12 +572,6 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
     gkyl_proj_on_basis_release(f->advect_proj);
   }
 
-  gkyl_array_release(f->D);
-  if (app->use_gpu)
-    gkyl_array_release(f->D_host);
-  if (f->has_diffusion)
-    gkyl_proj_on_basis_release(f->diff_proj);
-
   if (f->source_id) {
     vm_fluid_species_source_release(app, &f->src);
   }
