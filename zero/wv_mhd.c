@@ -639,6 +639,7 @@ wave_hlld(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
   if (mhd->divergence_constraint == GKYL_MHD_DIVB_EIGHT_WAVES) {
     speeds[5] = sm;
     wv += meqn;
+    for (int i=0; i<8; ++i) wv[i] = 0.0;
     wv[BX] = dQ[BX];
   }
 
@@ -656,6 +657,7 @@ wave_hlld(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
     // L = 0.5*(-ch, 1), R = (-1/ch, 1)
     speeds[5] = -ch;
     wv += meqn;
+    for (int i=0; i<8; ++i) wv[i] = 0.0;
     double eta = 0.5 * (-dQ[BX]*ch+dQ[PSI_GLM]);
     wv[BX] = -eta/ch;
     wv[PSI_GLM] = eta;
@@ -663,6 +665,7 @@ wave_hlld(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
     // L = 0.5*(+ch, 1), R = (+1/ch, 1)
     speeds[6] = ch;
     wv += meqn;
+    for (int i=0; i<8; ++i) wv[i] = 0.0;
     eta = 0.5 * (dQ[BX]*ch+dQ[PSI_GLM]);
     wv[BX] = eta/ch;
     wv[PSI_GLM] = eta;
