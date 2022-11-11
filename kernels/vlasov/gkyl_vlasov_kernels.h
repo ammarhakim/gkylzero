@@ -264,7 +264,8 @@ GKYL_CU_DH void vlasov_boundary_surfvz_2x3v_ser_p2(const double *w, const double
 GKYL_CU_DH double vlasov_poisson_vol_3x3v_ser_p1(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_vol_3x3v_ser_p1(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_sr_stream_vol_3x3v_ser_p1(const double *w, const double *dxv, const double *p_over_gamma, const double *qmem, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_stream_vol_3x3v_ser_p1(const double *w, const double *dxv, const double *qmem, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_stream_vol_3x3v_ser_p1(const double *w, const double *dxv, const double *qmem, const double *f, double* GKYL_RESTRICT out);
+GKYL_CU_DH double vlasov_stream_gen_geo_vol_3x3v_ser_p1(const double *w, const double *dxv, const double *basisVecComp, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_sr_vol_3x3v_ser_p1(const double *w, const double *dxv, const double *p_over_gamma, const double *qmem, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_vol_3x3v_ser_p1(const double *w, const double *dxv, const double *qmem, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void vlasov_surfx_3x3v_ser_p1(const double *w, const double *dxv, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 

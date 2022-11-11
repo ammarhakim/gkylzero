@@ -63,6 +63,7 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
 
   const gkyl_dg_vlasov_stream_vol_kern_list *stream_vol_kernels;
   const gkyl_dg_vlasov_vol_kern_list *vol_kernels;
+  const gkyl_dg_vlasov_stream_gen_geo_vol_kern_list *stream_gen_geo_vol_kernels; 
   const gkyl_dg_vlasov_stream_surf_kern_list *stream_surf_x_kernels, *stream_surf_y_kernels, *stream_surf_z_kernels;
   const gkyl_dg_vlasov_accel_surf_kern_list *accel_surf_vx_kernels, *accel_surf_vy_kernels, *accel_surf_vz_kernels;
   const gkyl_dg_vlasov_accel_boundary_surf_kern_list *accel_boundary_surf_vx_kernels, *accel_boundary_surf_vy_kernels,
@@ -71,6 +72,7 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       stream_vol_kernels = ser_stream_vol_kernels;
+      stream_gen_geo_vol_kernels = ser_stream_gen_geo_vol_kernels;
       vol_kernels = ser_vol_kernels;
       stream_surf_x_kernels = ser_stream_surf_x_kernels;
       stream_surf_y_kernels = ser_stream_surf_y_kernels;
@@ -104,6 +106,8 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   }  
   if (field_id == GKYL_FIELD_NULL)
     vlasov->vol = CK(stream_vol_kernels,cdim,vdim,poly_order);
+  else if (field_id == GKYL_FIELD_NULL_GEN_GEO)
+    vlasov->vol = CK(stream_gen_geo_vol_kernels,cdim,vdim,poly_order);
   else
     vlasov->vol = CK(vol_kernels,cdim,vdim,poly_order);
 
