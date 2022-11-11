@@ -90,6 +90,14 @@ UNITS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard unit/ctest_*.c))
 KERN_INC_DIRS = $(shell find $(SRC_DIRS) -type d)
 KERN_INCLUDES = $(addprefix -I,$(KERN_INC_DIRS))
 
+# We need to build CUDA unit-test objects
+UNIT_CU_SRCS =
+UNIT_CU_OBJS =
+ifdef USING_NVCC
+	UNIT_CU_SRCS = $(shell find unit -name *.cu)
+	UNIT_CU_OBJS = $(UNIT_CU_SRCS:%=$(BUILD_DIR)/%.o)
+endif
+
 # List of link directories and libraries for unit and regression tests
 EXEC_LIB_DIRS = -L${SUPERLU_LIB_DIR} -L${LAPACK_LIB_DIR} -L${BUILD_DIR}
 EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
@@ -111,7 +119,7 @@ ${BUILD_DIR}/unit/%: unit/%.c ${ZERO_SH_LIB} ${UNIT_CU_OBJS} ${UNIT_CU_SRCS}
 	${MKDIR_P} ${PREFIX}/gkylzero/lib
 	cp -f ${ZERO_SH_LIB} ${PREFIX}/gkylzero/lib
 	$(MKDIR_P) ${BUILD_DIR}/unit
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${UNIT_CU_OBJS} ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
 
 # Regression tests
 ${BUILD_DIR}/regression/%: regression/%.c ${ZERO_SH_LIB}
