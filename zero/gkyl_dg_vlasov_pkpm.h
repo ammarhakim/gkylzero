@@ -9,10 +9,10 @@
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_vlasov_pkpm_auxfields { 
-  const struct gkyl_array *u_i;
-  const struct gkyl_array *p_ij;
   const struct gkyl_array *bvar;
-  const struct gkyl_array *rho_inv_b;
+  const struct gkyl_array *u_i;
+  const struct gkyl_array *bb_grad_u;
+  const struct gkyl_array *p_force;
 };
 
 /**

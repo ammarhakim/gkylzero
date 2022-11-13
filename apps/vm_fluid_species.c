@@ -333,15 +333,6 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
   vm_fluid_species_prim_vars_apply_bc(app, fluid_species);
 
   if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
-    // Make ux continuous
-    gkyl_array_set_range(fluid_species->ux_dg, 1.0, fluid_species->u, app->local_ext);
-    gkyl_fem_parproj_set_rhs(fluid_species->fem_proj, fluid_species->ux_dg);
-    gkyl_fem_parproj_solve(fluid_species->fem_proj, fluid_species->ux_fem);
-    // Copy continuous ux back into u array
-    gkyl_array_set_range(fluid_species->u, 1.0, fluid_species->ux_fem, app->local);
-    // Need to apply boundary conditions again
-    vm_fluid_species_prim_vars_apply_bc(app, fluid_species);
-
     // calculate divergence of pressure tensor
     gkyl_array_clear(fluid_species->div_p, 0.0);
     gkyl_calc_prim_vars_p_pkpm_div(app->grid.dx, app->confBasis, &app->local, fluid_species->p, fluid_species->div_p);

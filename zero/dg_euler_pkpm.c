@@ -38,7 +38,7 @@ gkyl_euler_pkpm_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_eule
 
   struct dg_euler_pkpm *euler_pkpm = container_of(eqn, struct dg_euler_pkpm, eqn);
   euler_pkpm->auxfields.u_i = auxin.u_i;
-  euler_pkpm->auxfields.p_ij = auxin.p_ij;
+  euler_pkpm->auxfields.div_p = auxin.div_p;
 }
 
 struct gkyl_dg_eqn*
@@ -86,7 +86,7 @@ gkyl_dg_euler_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_range*
   for (int i=0; i<cdim; ++i) assert(euler_pkpm->surf[i]);
 
   euler_pkpm->auxfields.u_i = 0;  
-  euler_pkpm->auxfields.p_ij = 0;
+  euler_pkpm->auxfields.div_p = 0;
   euler_pkpm->conf_range = *conf_range;
   
   euler_pkpm->eqn.flags = 0;

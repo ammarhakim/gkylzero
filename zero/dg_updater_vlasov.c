@@ -77,7 +77,7 @@ gkyl_dg_updater_vlasov_advance(gkyl_dg_updater_vlasov *vlasov,
   }
   else if (vlasov->model_id == GKYL_MODEL_PKPM) {
     gkyl_vlasov_pkpm_set_auxfields(vlasov->eqn_vlasov, 
-      (struct gkyl_dg_vlasov_pkpm_auxfields) { .u_i = aux1, .p_ij = aux2, .bvar = aux3, .rho_inv_b = aux4 });    
+      (struct gkyl_dg_vlasov_pkpm_auxfields) { .bvar = aux1, .u_i = aux2, .bb_grad_u = aux3, .p_force = aux4 });
   }
   else if (vlasov->field_id == GKYL_FIELD_PHI || vlasov->field_id == GKYL_FIELD_PHI_A)
     gkyl_vlasov_poisson_set_auxfields(vlasov->eqn_vlasov, 
@@ -127,7 +127,7 @@ gkyl_dg_updater_vlasov_advance_cu(gkyl_dg_updater_vlasov *vlasov,
   }
   else if (vlasov->model_id == GKYL_MODEL_PKPM) {
     gkyl_vlasov_pkpm_set_auxfields(vlasov->eqn_vlasov, 
-      (struct gkyl_dg_vlasov_pkpm_auxfields) { .u_i = aux1, .p_ij = aux2, .bvar = aux3, .rho_inv_b = aux4 });
+      (struct gkyl_dg_vlasov_pkpm_auxfields) { .bvar = aux1, .u_i = aux2, .bb_grad_u = aux3, .p_force = aux4 });
   }
   else if (vlasov->field_id == GKYL_FIELD_PHI || vlasov->field_id == GKYL_FIELD_PHI_A)
     gkyl_vlasov_poisson_set_auxfields(vlasov->eqn_vlasov, 

@@ -66,8 +66,9 @@ gkyl_dg_updater_fluid_advance(gkyl_dg_updater_fluid *fluid,
       (struct gkyl_dg_advection_auxfields) { .u_i = u_i });
   }
   else if (eqn_id == GKYL_EQN_EULER_PKPM) {
+    // Pressure in PKPM is pre-computed div(P) for consistency with kinetic equation
     gkyl_euler_pkpm_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_euler_pkpm_auxfields) { .u_i = u_i, .p_ij = p_ij });
+      (struct gkyl_dg_euler_pkpm_auxfields) { .u_i = u_i, .div_p = p_ij });
   }
   else if (eqn_id == GKYL_EQN_EULER) {
     gkyl_euler_set_auxfields(fluid->eqn_fluid,
@@ -116,8 +117,9 @@ gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
       (struct gkyl_dg_advection_auxfields) { .u_i = u_i });
   }
   else if (eqn_id == GKYL_EQN_EULER_PKPM) {
+    // Pressure in PKPM is pre-computed div(P) for consistency with kinetic equation
     gkyl_euler_pkpm_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_euler_pkpm_auxfields) { .u_i = u_i, .p_ij = p_ij });
+      (struct gkyl_dg_euler_pkpm_auxfields) { .u_i = u_i, .div_p = p_ij });
   }
   else if (eqn_id == GKYL_EQN_EULER) {
     gkyl_euler_set_auxfields(fluid->eqn_fluid,

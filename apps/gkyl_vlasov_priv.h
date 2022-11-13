@@ -200,7 +200,8 @@ struct vm_species {
                         // index corresponds to location in fluid_species array (size num_fluid_species)
   struct gkyl_array *m1i_pkpm; // "M1i" in the pkpm model for use in current coupling
                                // Used to copy over fluid variable from pkpm_fluid_species (first three components are momentum)
-  struct gkyl_array *rho_inv_b; // b_i/rho (for use in pressure force 1/rho * b. div(P))
+  struct gkyl_array *bb_grad_u; // bb : grad(u) for use in force term 
+  struct gkyl_array *p_force; // Total pressure force in PKPM model 1/rho (b . div(P) + p_perp div(b))
   struct gkyl_dg_bin_op_mem *rho_inv_mem; // memory used in the div-op for rho_inv_b
 
   gkyl_dg_updater_vlasov *slvr; // Vlasov solver 
@@ -685,6 +686,14 @@ void vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, dou
  */
 void vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species, 
   const struct gkyl_array *fin, const struct gkyl_array *em);
+
+/**
+ * Pre-compute parallel-kinetic-perpendicular-moment (pkpm) forces, bb : grad(u) and pressure forces
+ *
+ * @param app Vlasov app object
+ * @param species Species object
+ */
+void vm_species_calc_pkpm_forces(gkyl_vlasov_app *app, struct vm_species *species);
 
 /**
  * Compute RHS from species distribution function

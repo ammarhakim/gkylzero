@@ -95,3 +95,25 @@ void gkyl_calc_prim_vars_p_pkpm_source(struct gkyl_basis basis, const struct gky
 void gkyl_calc_prim_vars_p_pkpm_div(const double *dx, 
   struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* p_ij, struct gkyl_array* div_p);
+
+/**
+ * Compute bb : grad(u) for parallel-kinetic-perpendicular-moment forces.
+ *
+ * @param basis Basis functions used in expansions
+ * @param range Range to apply division operator
+ */
+void gkyl_calc_prim_vars_pkpm_bb_grad_u(const double *dx, 
+  struct gkyl_basis basis, const struct gkyl_range *range,
+  const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
+  struct gkyl_array* bb_grad_u);
+
+/**
+ * Compute total pressure forces for parallel-kinetic-perpendicular-moment forces.
+ * Total pressure force p_force = 1/rho (b . div(P) + p_perp div(b))
+ *
+ * @param basis Basis functions used in expansions
+ * @param range Range to apply division operator
+ */
+void gkyl_calc_prim_vars_pkpm_p_force(struct gkyl_basis basis, const struct gkyl_range *range,
+  const struct gkyl_array* bvar, const struct gkyl_array* div_p, const struct gkyl_array* vlasov_pkpm_moms, 
+  struct gkyl_array* p_force);

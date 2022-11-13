@@ -64,7 +64,7 @@ evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, vo
 {
   struct langmuir_ctx *app = ctx;
   double x = xn[0], v = xn[1];
-  fout[0] = 1.0e-2;
+  fout[0] = 1.0e-4;
 }
 
 struct langmuir_ctx

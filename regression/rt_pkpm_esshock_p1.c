@@ -47,10 +47,8 @@ evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double x = xn[0];
   double vt = app->vte, vdrift = app->uShock, n0 = app->n0;
   double mass = app->massElc;
-  if (x < 0)
-    fout[0] = n0*mass*vdrift;
-  else
-    fout[0] = -n0*mass*vdrift;
+  // flow velocity initialized as a tanh function to avoid issues with recovery of a step function
+  fout[0] = -n0*mass*vdrift*tanh(x);
   fout[1] = 0.0;
   fout[2] = 0.0;
   fout[3] = n0*mass*vt*vt;
@@ -63,10 +61,8 @@ evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double x = xn[0];
   double vt = app->vti, vdrift = app->uShock, n0 = app->n0;
   double mass = app->massIon;
-  if (x < 0)
-    fout[0] = n0*mass*vdrift;
-  else
-    fout[0] = -n0*mass*vdrift;
+  // flow velocity initialized as a tanh function to avoid issues with recovery of a step function
+  fout[0] = -n0*mass*vdrift*tanh(x);
   fout[1] = 0.0;
   fout[2] = 0.0;
   fout[3] = n0*mass*vt*vt;
@@ -126,8 +122,8 @@ main(int argc, char **argv)
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
-  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 16);  
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 256);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 32);  
 
   struct esshock_ctx ctx = create_ctx(); // context for init functions
 
@@ -207,13 +203,13 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "esshock_lbo_aux_temp",
+    .name = "pkpm_esshock_p1",
 
     .cdim = 1, .vdim = 1,
     .lower = { -ctx.Lx },
     .upper = { ctx.Lx },
     .cells = { NX },
-    .poly_order = 2,
+    .poly_order = 1,
     .basis_type = app_args.basis_type,
 
     .num_periodic_dir = 0,

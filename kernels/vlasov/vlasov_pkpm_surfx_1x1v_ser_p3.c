@@ -2,26 +2,61 @@
 #include <gkyl_basis_ser_2x_p3_surfx1_eval_quad.h> 
 #include <gkyl_basis_ser_2x_p3_upwind_quad_to_modal.h> 
 GKYL_CU_DH void vlasov_pkpm_surfx_1x1v_ser_p3(const double *w, const double *dxv, 
-     const double *u_i, const double *bvar, 
+     const double *bvarl, const double *bvarc, const double *bvarr, 
+     const double *u_il, const double *u_ic, const double *u_ir, 
      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
-  // u_i: Input bulk velocity (ux,uy,uz) in cell being updated (ASSUMED TO BE CONTINUOUS).
-  // bvar: Input magnetic field unit vector in cell being updated (ASSUMED TO BE CONTINUOUS).
+  // bvarl/bvarc/bvarr:  Input magnetic field unit vector in left/center/right cells.
+  // u_il/u_ic/u_ir:  Input bulk velocity (ux,uy,uz) in left/center/right cells.
   // fl/fc/fr:  Input Distribution function in left/center/right cells.
   // out:       Incremented distribution function in center cell.
   const double dx1 = 2.0/dxv[0]; 
   const double dvpar = dxv[1], wvpar = w[1]; 
-  const double *uc = &u_i[0]; 
-  const double *bc = &bvar[0]; 
+  const double *ul = &u_il[0]; 
+  const double *uc = &u_ic[0]; 
+  const double *ur = &u_ir[0]; 
+  const double *bl = &bvarl[0]; 
+  const double *bc = &bvarc[0]; 
+  const double *br = &bvarr[0]; 
+  double alpha_l[12] = {0.0}; 
+  double alpha_c[12] = {0.0}; 
+  double alpha_r[12] = {0.0}; 
+  alpha_l[0] = 1.414213562373095*bl[0]*wvpar+1.414213562373095*ul[0]; 
+  alpha_l[1] = 1.414213562373095*bl[1]*wvpar+1.414213562373095*ul[1]; 
+  alpha_l[2] = 0.408248290463863*bl[0]*dvpar; 
+  alpha_l[3] = 0.408248290463863*bl[1]*dvpar; 
+  alpha_l[4] = 1.414213562373095*bl[2]*wvpar+1.414213562373095*ul[2]; 
+  alpha_l[6] = 0.408248290463863*bl[2]*dvpar; 
+  alpha_l[8] = 1.414213562373095*bl[3]*wvpar+1.414213562373095*ul[3]; 
+  alpha_l[10] = 0.4082482904638629*bl[3]*dvpar; 
+
+  alpha_c[0] = 1.414213562373095*bc[0]*wvpar+1.414213562373095*uc[0]; 
+  alpha_c[1] = 1.414213562373095*bc[1]*wvpar+1.414213562373095*uc[1]; 
+  alpha_c[2] = 0.408248290463863*bc[0]*dvpar; 
+  alpha_c[3] = 0.408248290463863*bc[1]*dvpar; 
+  alpha_c[4] = 1.414213562373095*bc[2]*wvpar+1.414213562373095*uc[2]; 
+  alpha_c[6] = 0.408248290463863*bc[2]*dvpar; 
+  alpha_c[8] = 1.414213562373095*bc[3]*wvpar+1.414213562373095*uc[3]; 
+  alpha_c[10] = 0.4082482904638629*bc[3]*dvpar; 
+
+  alpha_r[0] = 1.414213562373095*br[0]*wvpar+1.414213562373095*ur[0]; 
+  alpha_r[1] = 1.414213562373095*br[1]*wvpar+1.414213562373095*ur[1]; 
+  alpha_r[2] = 0.408248290463863*br[0]*dvpar; 
+  alpha_r[3] = 0.408248290463863*br[1]*dvpar; 
+  alpha_r[4] = 1.414213562373095*br[2]*wvpar+1.414213562373095*ur[2]; 
+  alpha_r[6] = 0.408248290463863*br[2]*dvpar; 
+  alpha_r[8] = 1.414213562373095*br[3]*wvpar+1.414213562373095*ur[3]; 
+  alpha_r[10] = 0.4082482904638629*br[3]*dvpar; 
+
   double alphaSurf_l[4] = {0.0}; 
-  alphaSurf_l[0] = (-2.645751311064591*bc[3]*wvpar)+2.23606797749979*bc[2]*wvpar-1.732050807568877*bc[1]*wvpar+bc[0]*wvpar-2.645751311064591*uc[3]+2.23606797749979*uc[2]-1.732050807568877*uc[1]+uc[0]; 
-  alphaSurf_l[1] = (-0.7637626158259735*bc[3]*dvpar)+0.6454972243679029*bc[2]*dvpar-0.5*bc[1]*dvpar+0.2886751345948129*bc[0]*dvpar; 
+  alphaSurf_l[0] = 0.2672612419124243*alpha_l[8]-0.2672612419124243*alpha_c[8]+0.4941058844013091*alpha_l[4]+0.4941058844013091*alpha_c[4]+0.5358258812338199*alpha_l[1]-0.5358258812338199*alpha_c[1]+0.3535533905932737*alpha_l[0]+0.3535533905932737*alpha_c[0]; 
+  alphaSurf_l[1] = 0.2672612419124243*alpha_l[10]-0.2672612419124243*alpha_c[10]+0.4941058844013091*alpha_l[6]+0.4941058844013091*alpha_c[6]+0.5358258812338199*alpha_l[3]-0.5358258812338199*alpha_c[3]+0.3535533905932737*alpha_l[2]+0.3535533905932737*alpha_c[2]; 
 
   double alphaSurf_r[4] = {0.0}; 
-  alphaSurf_r[0] = 2.645751311064591*bc[3]*wvpar+2.23606797749979*bc[2]*wvpar+1.732050807568877*bc[1]*wvpar+bc[0]*wvpar+2.645751311064591*uc[3]+2.23606797749979*uc[2]+1.732050807568877*uc[1]+uc[0]; 
-  alphaSurf_r[1] = 0.7637626158259735*bc[3]*dvpar+0.6454972243679029*bc[2]*dvpar+0.5*bc[1]*dvpar+0.2886751345948129*bc[0]*dvpar; 
+  alphaSurf_r[0] = (-0.2672612419124243*alpha_r[8])+0.2672612419124243*alpha_c[8]+0.4941058844013091*alpha_r[4]+0.4941058844013091*alpha_c[4]-0.5358258812338199*alpha_r[1]+0.5358258812338199*alpha_c[1]+0.3535533905932737*alpha_r[0]+0.3535533905932737*alpha_c[0]; 
+  alphaSurf_r[1] = (-0.2672612419124243*alpha_r[10])+0.2672612419124243*alpha_c[10]+0.4941058844013091*alpha_r[6]+0.4941058844013091*alpha_c[6]-0.5358258812338199*alpha_r[3]+0.5358258812338199*alpha_c[3]+0.3535533905932737*alpha_r[2]+0.3535533905932737*alpha_c[2]; 
 
   double fUpwindQuad_l[4] = {0.0};
   double fUpwindQuad_r[4] = {0.0};
