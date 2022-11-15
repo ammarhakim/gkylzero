@@ -200,9 +200,9 @@ struct vm_species {
                         // index corresponds to location in fluid_species array (size num_fluid_species)
   struct gkyl_array *m1i_pkpm; // "M1i" in the pkpm model for use in current coupling
                                // Used to copy over fluid variable from pkpm_fluid_species (first three components are momentum)
+  struct gkyl_array *div_b; // div(b) used by total pressure force
   struct gkyl_array *bb_grad_u; // bb : grad(u) for use in force term 
   struct gkyl_array *p_force; // Total pressure force in PKPM model 1/rho (b . div(P) + p_perp div(b))
-  struct gkyl_dg_bin_op_mem *rho_inv_mem; // memory used in the div-op for rho_inv_b
 
   gkyl_dg_updater_vlasov *slvr; // Vlasov solver 
   struct gkyl_dg_eqn *eqn_vlasov; // Vlasov equation object
@@ -315,13 +315,12 @@ struct vm_fluid_species {
   struct gkyl_array *p; // array for pressure (used by Euler (1 component) and pkpm Euler (6 components))
   struct gkyl_array *u_bc_buffer; // buffer for applying BCs to flow
   struct gkyl_array *p_bc_buffer; // buffer for applying BCs to pressure
-
+  // pkpm variables
   struct gkyl_array *div_p; // array for divergence of the pressure tensor
-
-  struct gkyl_array *ux_dg; // array for *just* x velocity (DG)
-  struct gkyl_array *ux_wgt; // weight for used in continuous projection
-  struct gkyl_array *ux_fem; // array for continuous x velocity 
-  struct gkyl_fem_parproj *fem_proj; // 1D continuous projection operator
+  struct gkyl_array *u_perp_i; // array for perpendicular flow velocity (u - u : bb)
+  struct gkyl_array *rhou_perp_i; // array for perpendicular momentum density (rhou - rhou : bb)
+  struct gkyl_array *p_perp; // array for perpendicular pressure
+  struct gkyl_array *p_perp_bc_buffer; // buffer for applying BCs to perpendicular pressure
 
   struct gkyl_array *D; // array for diffusion tensor
   struct gkyl_array *D_host; // host copy of diffusion tensor
@@ -340,6 +339,8 @@ struct vm_fluid_species {
   struct gkyl_bc_basic *bc_u_up[3];
   struct gkyl_bc_basic *bc_p_lo[3];
   struct gkyl_bc_basic *bc_p_up[3];
+  struct gkyl_bc_basic *bc_p_perp_lo[3];
+  struct gkyl_bc_basic *bc_p_perp_up[3];
 
   // fluid advection
   bool has_advect; // flag to indicate there is advection of fluid equation

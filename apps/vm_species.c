@@ -283,11 +283,14 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       s->V_drift_mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
   }
 
-  // allocate array to store b_i/rho for PKPM model
+  // allocate array to divergence of magnetic field unit vector, bb : grad(u), 
+  // and total pressure force 
+  s->div_b = 0;
   s->p_force = 0;
   s->bb_grad_u = 0;
   s->has_magB = false;
   if (s->model_id  == GKYL_MODEL_PKPM) {
+    s->div_b = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     s->p_force = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     s->bb_grad_u = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
@@ -481,6 +484,10 @@ vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species,
     vm_species_moment_calc(&species->pkpm_moms, species->local,
       app->local, fin);
     vm_field_calc_bvar(app, app->field, em);
+
+    // calculate divergence of b (for pressure force)
+    gkyl_array_clear(species->div_b, 0.0);
+    gkyl_calc_prim_vars_pkpm_div(app->grid.dx, app->confBasis, &app->local, app->field->bvar, species->div_b);    
   }
   else if (species->model_id == GKYL_MODEL_SR_PKPM) {
     vm_field_calc_sr_pkpm_vars(app, app->field, em);  
@@ -502,6 +509,7 @@ vm_species_calc_pkpm_forces(gkyl_vlasov_app *app, struct vm_species *species)
   gkyl_array_clear(species->p_force, 0.0);
   gkyl_calc_prim_vars_pkpm_p_force(app->confBasis, &app->local, 
     app->field->bvar, species->pkpm_fluid_species->div_p, species->pkpm_moms.marr, 
+    species->pkpm_fluid_species->p_perp, species->div_b, 
     species->p_force);
 }
 
@@ -725,6 +733,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     gkyl_dg_bin_op_mem_release(s->V_drift_mem);
   }
   if (s->model_id == GKYL_MODEL_PKPM) {
+    gkyl_array_release(s->div_b);
     gkyl_array_release(s->bb_grad_u);
     gkyl_array_release(s->p_force);
     vm_species_moment_release(app, &s->pkpm_moms);

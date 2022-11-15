@@ -62,28 +62,41 @@ void gkyl_calc_prim_vars_p_from_statevec(struct gkyl_basis basis, const struct g
   struct gkyl_array* p_ij);
 
 /**
- * Compute pressure from parallel-kinetic-perpendicular-moment inputs.
+ * Compute primitive variables for parallel-kinetic-perpendicular-moment model.
  *
  * @param basis Basis functions used in expansions
  * @param range Range to apply division operator
  * @param bvar Input array of magnetic field unit vector and unit tensor
  * @param vlasov_pkpm_moms Input array parallel-kinetic-perpendicular-moment kinetic moments
  * @param euler_pkpm Input array parallel-kinetic-perpendicular-moment fluid variables
+ * @param u_i Output array of flow velocity 
+ * @param u_perp_i Output array of perpendicular flow velocity (u - u : bb)
+ * @param rhou_perp_i Output array of perpendicular momentum density (rhou - rhou : bb)
+ * @param p_perp Output array of perpendicular pressure
  * @param p_ij Output array of pressure tensor
  */
-void gkyl_calc_prim_vars_p_pkpm(struct gkyl_basis basis, const struct gkyl_range *range,
+void gkyl_calc_prim_vars_pkpm(struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
-  struct gkyl_array* p_ij);
+  struct gkyl_array* u_i, struct gkyl_array* u_perp_i, struct gkyl_array* rhou_perp_i,
+  struct gkyl_array* p_perp, struct gkyl_array* p_ij);
 
 /**
- * Compute pressure relaxation from parallel-kinetic-perpendicular-moment inputs.
+ * Compute parallel-kinetic-perpendicular-moment model source terms.
  *
  * @param basis Basis functions used in expansions
  * @param range Range to apply division operator
+ * @param qmem Input array of q/m*EM fields
+ * @param nu Input array of collisionality
+ * @param nu_vthsq Input array of nu*vth^2, vth^2 = T/m
+ * @param vlasov_pkpm_moms Input array parallel-kinetic-perpendicular-moment kinetic moments
+ * @param euler_pkpm Input array parallel-kinetic-perpendicular-moment fluid variables
+ * @param rhou_perp_i Input array of perpendicular momentum density (rhou - rhou : bb)
+ * @param p_perp Input array of perpendicular pressure
  */
-void gkyl_calc_prim_vars_p_pkpm_source(struct gkyl_basis basis, const struct gkyl_range *range,
+void gkyl_calc_prim_vars_pkpm_source(struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* qmem, const struct gkyl_array* nu, const struct gkyl_array* nu_vthsq, 
-  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* u_i, const struct gkyl_array* euler_pkpm, 
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm,
+  const struct gkyl_array* rhou_perp_i, const struct gkyl_array* p_perp, 
   struct gkyl_array* rhs);
 
 /**
@@ -95,6 +108,16 @@ void gkyl_calc_prim_vars_p_pkpm_source(struct gkyl_basis basis, const struct gky
 void gkyl_calc_prim_vars_p_pkpm_div(const double *dx, 
   struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* p_ij, struct gkyl_array* div_p);
+
+/**
+ * Compute divergence of vector (used for both div(u) and div(b) in pkpm).
+ *
+ * @param basis Basis functions used in expansions
+ * @param range Range to apply division operator
+ */
+void gkyl_calc_prim_vars_pkpm_div(const double *dx, 
+  struct gkyl_basis basis, const struct gkyl_range *range,
+  const struct gkyl_array* A, struct gkyl_array* div_A);
 
 /**
  * Compute bb : grad(u) for parallel-kinetic-perpendicular-moment forces.
@@ -116,4 +139,4 @@ void gkyl_calc_prim_vars_pkpm_bb_grad_u(const double *dx,
  */
 void gkyl_calc_prim_vars_pkpm_p_force(struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* bvar, const struct gkyl_array* div_p, const struct gkyl_array* vlasov_pkpm_moms, 
-  struct gkyl_array* p_force);
+  const struct gkyl_array* euler_pkpm, const struct gkyl_array* div_b, struct gkyl_array* p_force);

@@ -51,23 +51,25 @@ gkyl_dg_updater_fluid_acquire_eqn(const gkyl_dg_updater_fluid* fluid);
  * @param fluid fluid updater object
  * @param eqn_id Enum identifier for equation type (see gkyl_eqn_type.h)
  * @param update_rng Range on which to compute.
- * @param u_i Flow velocity (either externally specified advection, or computed before update)
- * @param p_ij Fluid pressure (used by Euler and PKPM Euler, *must not* be const because equation object computes this quantity)
- * @param vlasov_pkpm_moms PKPM moments computed from Vlasov equation (rho, p_parallel, q_parallel b_hat)
- * @param vlasov_pkpm_surf_moms PKPM moments *flux* computed from Vlasov equation (mass density flux rho*u, heat flux q_parallel b_hat) 
+ * @param aux1 Auxiliary field 1 (always u_i)
+ * @param aux2 Auxiliary field 2 (p_ij or div_p)
+ * @param aux3 Auxiliary field 3 (u_perp_i, used by pkpm)
+ * @param aux4 Auxiliary field 4 (p_perp, used by pkpm)
  * @param fIn Input to updater
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
 void gkyl_dg_updater_fluid_advance(gkyl_dg_updater_fluid *fluid,
   enum gkyl_eqn_type eqn_id, const struct gkyl_range *update_rng,
-  const struct gkyl_array *u_i, struct gkyl_array *p_ij, 
+  const struct gkyl_array *aux1, const struct gkyl_array *aux2, 
+  const struct gkyl_array *aux3, const struct gkyl_array *aux4, 
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 
 void gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
   enum gkyl_eqn_type eqn_id, const struct gkyl_range *update_rng,
-  const struct gkyl_array *u_i, struct gkyl_array *p_ij, 
+  const struct gkyl_array *aux1, const struct gkyl_array *aux2, 
+  const struct gkyl_array *aux3, const struct gkyl_array *aux4, 
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 

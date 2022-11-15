@@ -15,18 +15,21 @@ extern "C" {
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
-gkyl_euler_pkpm_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *u_i, const struct gkyl_array *div_p)
+gkyl_euler_pkpm_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
+  const struct gkyl_array *u_i, const struct gkyl_array *div_p, const struct gkyl_array *u_perp_i, const struct gkyl_array *p_perp)
 {
   struct dg_euler_pkpm *euler_pkpm = container_of(eqn, struct dg_euler_pkpm, eqn);
   euler_pkpm->auxfields.u_i = u_i;
   euler_pkpm->auxfields.div_p = div_p;
+  euler_pkpm->auxfields.u_perp_i = u_perp_i;
+  euler_pkpm->auxfields.p_perp = p_perp;
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
 void
 gkyl_euler_pkpm_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_pkpm_auxfields auxin)
 {
-  gkyl_euler_pkpm_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.u_i->on_dev, auxin.div_p->on_dev);
+  gkyl_euler_pkpm_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.u_i->on_dev, auxin.div_p->on_dev, auxin.u_perp_i->on_dev, auxin.p_perp->on_dev);
 }
 
 __global__ void static
@@ -34,7 +37,9 @@ dg_euler_pkpm_set_cu_dev_ptrs(struct dg_euler_pkpm* euler_pkpm, enum gkyl_basis_
 {
   euler_pkpm->auxfields.u_i = 0; 
   euler_pkpm->auxfields.div_p = 0; 
-
+  euler_pkpm->auxfields.u_perp_i = 0;  
+  euler_pkpm->auxfields.p_perp = 0; 
+  
   const gkyl_dg_euler_pkpm_vol_kern_list *vol_kernels;
   const gkyl_dg_euler_pkpm_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;  
   

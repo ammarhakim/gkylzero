@@ -10,6 +10,8 @@
 // Types for various kernels
 typedef void (*euler_pkpm_surf_t)(const double *w, const double *dx, 
   const double *u_il, const double *u_ic, const double *u_ir,
+  const double *u_perp_il, const double *u_perp_ic, const double *u_perp_ir,
+  const double *p_perpl, const double *p_perpc, const double *p_perpr,
   const double *statevecl, const double *statevecc, const double *statevecr, 
   double* GKYL_RESTRICT out);
 
@@ -40,6 +42,8 @@ kernel_euler_pkpm_vol_1x_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc,
   return euler_pkpm_vol_1x_ser_p1(xc, dx, 
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.u_i, cidx),
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.div_p, cidx),
+    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.u_perp_i, cidx),
+    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.p_perp, cidx),
     qIn, qRhsOut);
 }
 
@@ -54,6 +58,8 @@ kernel_euler_pkpm_vol_1x_ser_p2(const struct gkyl_dg_eqn *eqn, const double* xc,
   return euler_pkpm_vol_1x_ser_p2(xc, dx, 
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.u_i, cidx),
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.div_p, cidx),
+    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.u_perp_i, cidx),
+    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.p_perp, cidx),
     qIn, qRhsOut);
 }
 
@@ -116,6 +122,12 @@ surf(const struct gkyl_dg_eqn *eqn,
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.u_i, cidx_l),
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.u_i, cidx_c),
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.u_i, cidx_r),
+    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.u_perp_i, cidx_l),
+    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.u_perp_i, cidx_c),
+    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.u_perp_i, cidx_r),
+    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.p_perp, cidx_l),
+    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.p_perp, cidx_c),
+    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.p_perp, cidx_r),
     qInL, qInC, qInR, qRhsOut);
 }
 
