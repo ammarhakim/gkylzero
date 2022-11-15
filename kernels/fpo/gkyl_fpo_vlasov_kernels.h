@@ -6,6 +6,7 @@ EXTERN_C_BEG
 
 GKYL_CU_DH double fpo_vlasov_drag_vol_1x3v_ser_p1(const double* w, const double* dx, const double* a, const double* f, double* GKYL_RESTRICT out);
 GKYL_CU_DH double fpo_vlasov_diff_vol_1x3v_ser_p1(const double* w, const double* dx, const double* D, const double* f, double* GKYL_RESTRICT out);
+GKYL_CU_DH void fpo_vlasov_D_vol_1x3v_ser_p1(const double* w, const double* dx, const double* g, double* GKYL_RESTRICT out);
 GKYL_CU_DH void fpo_vlasov_drag_surfvx_1x3v_ser_p1(const double* w, const double* dx, const double* al, const double* ac, const double* au, const double* fl, const double* fc, const double* fu, double* GKYL_RESTRICT out);
 GKYL_CU_DH void fpo_vlasov_diff_surfvxvx_1x3v_ser_p1(const double* w, const double* dx, const double* D[], const double* f[], double* GKYL_RESTRICT out);
 GKYL_CU_DH void fpo_vlasov_diff_surfvxvy_1x3v_ser_p1(const double* w, const double* dx, const double* D[], const double* f[], double* GKYL_RESTRICT out);
@@ -26,6 +27,7 @@ GKYL_CU_DH void fpo_vlasov_diff_surfvzvz_1x3v_ser_p1(const double* w, const doub
 GKYL_CU_DH void fpo_vlasov_Dvzvz_surf_1x3v_ser_p1(const double* w, const double* dx, const double* g[], double* GKYL_RESTRICT out);
 GKYL_CU_DH double fpo_vlasov_drag_vol_1x3v_ser_p2(const double* w, const double* dx, const double* a, const double* f, double* GKYL_RESTRICT out);
 GKYL_CU_DH double fpo_vlasov_diff_vol_1x3v_ser_p2(const double* w, const double* dx, const double* D, const double* f, double* GKYL_RESTRICT out);
+GKYL_CU_DH void fpo_vlasov_D_vol_1x3v_ser_p2(const double* w, const double* dx, const double* g, double* GKYL_RESTRICT out);
 GKYL_CU_DH void fpo_vlasov_drag_surfvx_1x3v_ser_p2(const double* w, const double* dx, const double* al, const double* ac, const double* au, const double* fl, const double* fc, const double* fu, double* GKYL_RESTRICT out);
 GKYL_CU_DH void fpo_vlasov_diff_surfvxvx_1x3v_ser_p2(const double* w, const double* dx, const double* D[], const double* f[], double* GKYL_RESTRICT out);
 GKYL_CU_DH void fpo_vlasov_diff_surfvxvy_1x3v_ser_p2(const double* w, const double* dx, const double* D[], const double* f[], double* GKYL_RESTRICT out);
