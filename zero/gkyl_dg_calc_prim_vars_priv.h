@@ -26,17 +26,11 @@ typedef void (*euler_pkpm_source_t)(const double* qmem,
   const double *rhou_perp_i, const double *p_perp,  
   double* GKYL_RESTRICT out);
 
-typedef void (*euler_pkpm_pressure_div_t)(const double *dxv, 
-  const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-  double* GKYL_RESTRICT div_p);
-
-typedef void (*euler_pkpm_div_t)(const double *dxv, 
+typedef void (*euler_pkpm_recovery_t)(const double *dxv, 
+  const double *bvarl, const double *bvarc, const double *bvarr, 
   const double *u_il, const double *u_ic, const double *u_ir, 
-  double* GKYL_RESTRICT div_u);
-
-typedef void (*euler_pkpm_bb_grad_u_t)(const double *dxv, 
-  const double *bvar, const double *u_il, const double *u_ic, const double *u_ir, 
-  double* GKYL_RESTRICT bb_grad_u);
+  const double *p_ijl, const double *p_ijc, const double *p_ijr, 
+  double* GKYL_RESTRICT div_b, double* GKYL_RESTRICT bb_grad_u, double* GKYL_RESTRICT div_p);
 
 typedef void (*euler_pkpm_p_force_t)(const double *bvar, const double *div_p, 
   const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *div_b, 
@@ -46,9 +40,7 @@ typedef void (*euler_pkpm_p_force_t)(const double *bvar, const double *div_p,
 typedef struct { euler_pressure_t kernels[3]; } gkyl_dg_euler_pressure_kern_list;
 typedef struct { euler_pkpm_prim_vars_t kernels[3]; } gkyl_dg_euler_pkpm_prim_vars_kern_list;
 typedef struct { euler_pkpm_source_t kernels[3]; } gkyl_dg_euler_pkpm_source_kern_list;
-typedef struct { euler_pkpm_pressure_div_t kernels[3]; } gkyl_dg_euler_pkpm_pressure_div_kern_list;
-typedef struct { euler_pkpm_div_t kernels[3]; } gkyl_dg_euler_pkpm_div_kern_list;
-typedef struct { euler_pkpm_bb_grad_u_t kernels[3]; } gkyl_dg_euler_pkpm_bb_grad_u_kern_list;
+typedef struct { euler_pkpm_recovery_t kernels[3]; } gkyl_dg_euler_pkpm_recovery_kern_list;
 typedef struct { euler_pkpm_p_force_t kernels[3]; } gkyl_dg_euler_pkpm_p_force_kern_list;
 
 
@@ -64,48 +56,48 @@ static const gkyl_dg_euler_pressure_kern_list ser_pressure_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_euler_pkpm_prim_vars_kern_list ser_pkpm_prim_vars_kernels[] = {
   { NULL, euler_pkpm_prim_vars_1x_ser_p1, euler_pkpm_prim_vars_1x_ser_p2 }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2
+  { NULL, euler_pkpm_prim_vars_2x_ser_p1, euler_pkpm_prim_vars_2x_ser_p2 }, // 1
+  { NULL, euler_pkpm_prim_vars_3x_ser_p1, NULL }, // 2
 };
 
 // PKPM pressure sourceation from state variables kernel list
 GKYL_CU_D
 static const gkyl_dg_euler_pkpm_source_kern_list ser_pkpm_source_kernels[] = {
   { NULL, euler_pkpm_source_1x_ser_p1, euler_pkpm_source_1x_ser_p2 }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2
+  { NULL, euler_pkpm_source_2x_ser_p1, euler_pkpm_source_2x_ser_p2 }, // 1
+  { NULL, euler_pkpm_source_3x_ser_p1, NULL }, // 2
 };
 
-// PKPM divergence of pressure
+// PKPM recovery (in x) kernels
 GKYL_CU_D
-static const gkyl_dg_euler_pkpm_pressure_div_kern_list ser_pkpm_pressure_div_kernels[] = {
-  { NULL, euler_pkpm_pressure_div_x_1x_ser_p1, euler_pkpm_pressure_div_x_1x_ser_p2 }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2
+static const gkyl_dg_euler_pkpm_recovery_kern_list ser_pkpm_recovery_x_kernels[] = {
+  { NULL, euler_pkpm_recovery_x_1x_ser_p1, euler_pkpm_recovery_x_1x_ser_p2 }, // 0
+  { NULL, euler_pkpm_recovery_x_2x_ser_p1, euler_pkpm_recovery_x_2x_ser_p2 }, // 1
+  { NULL, euler_pkpm_recovery_x_3x_ser_p1, NULL }, // 2
 };
 
-// Divergence of vector (used to compute div(u) and div(b))
+// PKPM recovery (in y) kernels
 GKYL_CU_D
-static const gkyl_dg_euler_pkpm_div_kern_list ser_pkpm_div_kernels[] = {
-  { NULL, euler_pkpm_div_x_1x_ser_p1, euler_pkpm_div_x_1x_ser_p2 }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2
+static const gkyl_dg_euler_pkpm_recovery_kern_list ser_pkpm_recovery_y_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, euler_pkpm_recovery_y_2x_ser_p1, euler_pkpm_recovery_y_2x_ser_p2 }, // 1
+  { NULL, euler_pkpm_recovery_y_3x_ser_p1, NULL }, // 2
 };
 
-// PKPM bb : grad(u)
+// PKPM recovery (in z) kernels
 GKYL_CU_D
-static const gkyl_dg_euler_pkpm_bb_grad_u_kern_list ser_pkpm_bb_grad_u_kernels[] = {
-  { NULL, euler_pkpm_bb_grad_u_x_1x_ser_p1, euler_pkpm_bb_grad_u_x_1x_ser_p2 }, // 0
+static const gkyl_dg_euler_pkpm_recovery_kern_list ser_pkpm_recovery_z_kernels[] = {
+  { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2
+  { NULL, euler_pkpm_recovery_z_3x_ser_p1, NULL }, // 2
 };
 
 // PKPM total pressure force, p_force = 1/rho (b . div(P) + p_perp div(b))
 GKYL_CU_D
 static const gkyl_dg_euler_pkpm_p_force_kern_list ser_pkpm_p_force_kernels[] = {
   { NULL, euler_pkpm_p_force_1x_ser_p1, euler_pkpm_p_force_1x_ser_p2 }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2
+  { NULL, euler_pkpm_p_force_2x_ser_p1, euler_pkpm_p_force_2x_ser_p2 }, // 1
+  { NULL, euler_pkpm_p_force_3x_ser_p1, NULL }, // 2
 };
 
 GKYL_CU_D
@@ -130,24 +122,17 @@ choose_ser_euler_pkpm_source_kern(int cdim, int poly_order)
 }
 
 GKYL_CU_D
-static euler_pkpm_pressure_div_t
-choose_ser_euler_pkpm_pressure_div_kern(int cdim, int poly_order)
+static euler_pkpm_recovery_t
+choose_ser_euler_pkpm_recovery_kern(int dir, int cdim, int poly_order)
 {
-  return ser_pkpm_pressure_div_kernels[cdim-1].kernels[poly_order];
-}
-
-GKYL_CU_D
-static euler_pkpm_div_t
-choose_ser_euler_pkpm_div_kern(int cdim, int poly_order)
-{
-  return ser_pkpm_div_kernels[cdim-1].kernels[poly_order];
-}
-
-GKYL_CU_D
-static euler_pkpm_bb_grad_u_t
-choose_ser_euler_pkpm_bb_grad_u_kern(int cdim, int poly_order)
-{
-  return ser_pkpm_bb_grad_u_kernels[cdim-1].kernels[poly_order];
+  if (dir == 0)
+    return ser_pkpm_recovery_x_kernels[cdim-1].kernels[poly_order];
+  else if (dir == 1)
+    return ser_pkpm_recovery_y_kernels[cdim-1].kernels[poly_order];
+  else if (dir == 2)
+    return ser_pkpm_recovery_z_kernels[cdim-1].kernels[poly_order];
+  else 
+    return NULL;
 }
 
 GKYL_CU_D

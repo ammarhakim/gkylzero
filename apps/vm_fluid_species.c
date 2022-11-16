@@ -57,11 +57,17 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   f->p_bc_buffer = 0;
 
   // initialize pointers to pkpm variables: 
+  // div_b (divergence of magnetic field unit vector)
+  // bb_grad_u (bb : grad(u))
   // div_p (divergence of the pressure tensor), 
+  // p_force (total pressure forces in kinetic equation 1/rho (b . div(p) - p_perp div(b)))
   // u_perp_i (perpendicular bulk velocity u - u : bb)
   // rhou_perp_i (perpendicular momentum density rhou - rhou : bb)
   // p_perp (perpendicular pressure)
+  f->div_b = 0;
+  f->bb_grad_u = 0;
   f->div_p = 0;
+  f->p_force = 0;
   f->u_perp_i = 0;
   f->rhou_perp_i = 0;
   f->p_perp = 0;
@@ -131,7 +137,10 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     f->p_bc_buffer = mkarr(app->use_gpu, 6*app->confBasis.num_basis, buff_sz);
 
     // allocate array to pkpm variables
+    f->div_b = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    f->bb_grad_u = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     f->div_p = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+    f->p_force = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     f->u_perp_i = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
     f->rhou_perp_i = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
     f->p_perp = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -338,9 +347,20 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
   vm_fluid_species_prim_vars_apply_bc(app, fluid_species);
 
   if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
-    // calculate divergence of pressure tensor
+    // calculate gradient quantities using recovery
+    gkyl_array_clear(fluid_species->div_b, 0.0);
+    gkyl_array_clear(fluid_species->bb_grad_u, 0.0);
     gkyl_array_clear(fluid_species->div_p, 0.0);
-    gkyl_calc_prim_vars_p_pkpm_div(app->grid.dx, app->confBasis, &app->local, fluid_species->p, fluid_species->div_p);
+    gkyl_calc_prim_vars_pkpm_recovery(app->grid.dx, app->confBasis, &app->local, 
+      app->field->bvar, fluid_species->u, fluid_species->p, 
+      fluid_species->div_b, fluid_species->bb_grad_u, fluid_species->div_p);
+
+    // calculate total pressure forces for kinetic equation coupling
+    gkyl_array_clear(fluid_species->p_force, 0.0);
+    gkyl_calc_prim_vars_pkpm_p_force(app->confBasis, &app->local, 
+      app->field->bvar, fluid_species->div_p, fluid_species->pkpm_species->pkpm_moms.marr, 
+      fluid_species->p_perp, fluid_species->div_b, 
+      fluid_species->p_force);
   }
 }
 
@@ -593,7 +613,10 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
     gkyl_array_release(f->p_bc_buffer);
   }
   if (f->eqn_id == GKYL_EQN_EULER_PKPM) {
+    gkyl_array_release(f->div_b);
+    gkyl_array_release(f->bb_grad_u);
     gkyl_array_release(f->div_p);
+    gkyl_array_release(f->p_force);
     gkyl_array_release(f->u_perp_i);
     gkyl_array_release(f->rhou_perp_i);
     gkyl_array_release(f->p_perp);

@@ -200,9 +200,6 @@ struct vm_species {
                         // index corresponds to location in fluid_species array (size num_fluid_species)
   struct gkyl_array *m1i_pkpm; // "M1i" in the pkpm model for use in current coupling
                                // Used to copy over fluid variable from pkpm_fluid_species (first three components are momentum)
-  struct gkyl_array *div_b; // div(b) used by total pressure force
-  struct gkyl_array *bb_grad_u; // bb : grad(u) for use in force term 
-  struct gkyl_array *p_force; // Total pressure force in PKPM model 1/rho (b . div(P) + p_perp div(b))
 
   gkyl_dg_updater_vlasov *slvr; // Vlasov solver 
   struct gkyl_dg_eqn *eqn_vlasov; // Vlasov equation object
@@ -316,7 +313,10 @@ struct vm_fluid_species {
   struct gkyl_array *u_bc_buffer; // buffer for applying BCs to flow
   struct gkyl_array *p_bc_buffer; // buffer for applying BCs to pressure
   // pkpm variables
+  struct gkyl_array *div_b; // div(b) used by total pressure force
+  struct gkyl_array *bb_grad_u; // bb : grad(u) for use in force term 
   struct gkyl_array *div_p; // array for divergence of the pressure tensor
+  struct gkyl_array *p_force; // Total pressure force in PKPM model 1/rho (b . div(P) + p_perp div(b))
   struct gkyl_array *u_perp_i; // array for perpendicular flow velocity (u - u : bb)
   struct gkyl_array *rhou_perp_i; // array for perpendicular momentum density (rhou - rhou : bb)
   struct gkyl_array *p_perp; // array for perpendicular pressure
@@ -687,14 +687,6 @@ void vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, dou
  */
 void vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species, 
   const struct gkyl_array *fin, const struct gkyl_array *em);
-
-/**
- * Pre-compute parallel-kinetic-perpendicular-moment (pkpm) forces, bb : grad(u) and pressure forces
- *
- * @param app Vlasov app object
- * @param species Species object
- */
-void vm_species_calc_pkpm_forces(gkyl_vlasov_app *app, struct vm_species *species);
 
 /**
  * Compute RHS from species distribution function

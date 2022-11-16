@@ -100,35 +100,23 @@ void gkyl_calc_prim_vars_pkpm_source(struct gkyl_basis basis, const struct gkyl_
   struct gkyl_array* rhs);
 
 /**
- * Compute divergence of pressure tensor from parallel-kinetic-perpendicular-moment inputs.
+ * Compute needed gradient quantities with recovery for discretization of the 
+ * parallel-kinetic-perpendicular-moment (pkpm) model. These include div(p), div(b), and bb : grad(u). 
  *
+ * @param dx Input grid spacing
  * @param basis Basis functions used in expansions
  * @param range Range to apply division operator
+ * @param bvar Input array of magnetic field unit vector and unit tensor
+ * @param u_i Input array of flow velocity 
+ * @param p_ij Input array of pressure tensor
+ * @param div_b Output array of divergence of magnetic field unit vector
+ * @param bb_grad_u Output array of bb : grad(u)
+ * @param div_p Output array of divergence of pressure tensor
  */
-void gkyl_calc_prim_vars_p_pkpm_div(const double *dx, 
+void gkyl_calc_prim_vars_pkpm_recovery(const double *dx, 
   struct gkyl_basis basis, const struct gkyl_range *range,
-  const struct gkyl_array* p_ij, struct gkyl_array* div_p);
-
-/**
- * Compute divergence of vector (used for both div(u) and div(b) in pkpm).
- *
- * @param basis Basis functions used in expansions
- * @param range Range to apply division operator
- */
-void gkyl_calc_prim_vars_pkpm_div(const double *dx, 
-  struct gkyl_basis basis, const struct gkyl_range *range,
-  const struct gkyl_array* A, struct gkyl_array* div_A);
-
-/**
- * Compute bb : grad(u) for parallel-kinetic-perpendicular-moment forces.
- *
- * @param basis Basis functions used in expansions
- * @param range Range to apply division operator
- */
-void gkyl_calc_prim_vars_pkpm_bb_grad_u(const double *dx, 
-  struct gkyl_basis basis, const struct gkyl_range *range,
-  const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
-  struct gkyl_array* bb_grad_u);
+  const struct gkyl_array* bvar, const struct gkyl_array* u_i, const struct gkyl_array* p_ij, 
+  struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, struct gkyl_array* div_p);
 
 /**
  * Compute total pressure forces for parallel-kinetic-perpendicular-moment forces.
@@ -136,6 +124,12 @@ void gkyl_calc_prim_vars_pkpm_bb_grad_u(const double *dx,
  *
  * @param basis Basis functions used in expansions
  * @param range Range to apply division operator
+ * @param bvar Input array of magnetic field unit vector and unit tensor
+ * @param div_p Input array of divergence of pressure tensor
+ * @param vlasov_pkpm_moms Input array parallel-kinetic-perpendicular-moment kinetic moments
+ * @param euler_pkpm Input array parallel-kinetic-perpendicular-moment fluid variables
+ * @param div_b Input array of divergence of magnetic field unit vector
+ * @param p_force Output array of total pressure forces
  */
 void gkyl_calc_prim_vars_pkpm_p_force(struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* bvar, const struct gkyl_array* div_p, const struct gkyl_array* vlasov_pkpm_moms, 

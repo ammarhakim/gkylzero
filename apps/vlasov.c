@@ -562,13 +562,6 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     vm_fluid_species_prim_vars(app, &app->fluid_species[i], fluidin[i]);
   }
 
-  // Compute parallel-kinetic-perpendicular moment (pkpm) kinetic forces if present.
-  // After computing fluid variables (u, p, and div(p)), compute bb : grad(u) and
-  // total pressure forces p_force = 1/rho (b . div(p) + p_perp div(b))
-  for (int i=0; i<app->num_species; ++i) {
-    vm_species_calc_pkpm_forces(app, &app->species[i]);
-  }
-
   // compute necessary moments and boundary corrections for collisions
   for (int i=0; i<app->num_species; ++i) {
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
