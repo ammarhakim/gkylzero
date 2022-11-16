@@ -1,6 +1,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_moment_em_coupling.h>
+#include <gkyl_mat.h>
 
 // Makes indexing cleaner
 static const unsigned RHO = 0;
@@ -24,6 +25,15 @@ static const unsigned BY = 4;
 static const unsigned BZ = 5;
 static const unsigned PHIE = 6;
 static const unsigned PHIM = 7;
+
+#define NN (0)
+#define VX (1)
+#define VY (2)
+#define VZ (3)
+#define PP (4)
+#define TT (4)
+
+#define sq(x) ((x) * (x))
 
 struct gkyl_moment_em_coupling {
   struct gkyl_rect_grid grid; // grid object
@@ -244,6 +254,158 @@ neut_source_update(const gkyl_moment_em_coupling *mes, double dt,
     f[MZ] += dt*f[RHO]*app_accel[2];
   }
 }
+
+/* INTER-SPECIES FRICTION */
+static inline double
+pressure(const double *f, const double gamma)
+{
+  return (f[ER] - 0.5 * (sq(f[MX])+sq(f[MY])+sq(f[MZ])) / f[RHO]) * (gamma-1);
+}
+
+
+static inline double
+energy(const double *f, const double p, const double gamma)
+{
+  return p / (gamma-1) + 0.5 * (sq(f[MX])+sq(f[MY])+sq(f[MZ])) / f[RHO];
+}
+
+
+static void
+calcNu(const gkyl_moment_em_coupling *mes,
+       double **fluids,
+       const double *nuBase,
+       double *nu)
+{
+  const int nfluids = mes->nfluids;
+
+  // Read pre-specified nu_sr for r>s from the flattend 1d array nuBase.
+  // FIXME Do this only once.
+  int i = 0;
+  for (int s=0; s<nfluids; ++s)
+  {
+    double *nu_s = nu + nfluids * s;
+    for (int r=s+1; r<nfluids; ++r)
+    {
+      nu_s[r] = nuBase[i];
+      i += 1;
+    }
+  }
+
+  // Compute the remaining nu terms that satisfy nu_sr*rho_s == nu_rs*rho_r, and
+  // store store the result in the flattened 1d array nu.
+  for (int s=0; s<nfluids; ++s)
+  {
+    const double rho_s = fluids[s][RHO];
+    double *nu_s = nu + nfluids * s;
+
+    for (int r=0; r<s; ++r)
+    {
+      const double rho_r = fluids[r][RHO];
+      const double *nu_r = nu + nfluids * r;
+      nu_s[r] = nu_r[s] * rho_r / rho_s;
+    }
+  }
+}
+
+
+static void
+collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
+  double *fluids[GKYL_MAX_SPECIES])
+{
+  int nfluids = mes->nfluids;
+  double gas_gamma = mes->gas_gamma;
+  double nu[nfluids * nfluids];
+  calcNu(mes, fluids, mes->nu_base, nu);
+
+  // Update velocities
+  struct gkyl_mat *lhs = gkyl_mat_new(3, 3, 0.0);
+  struct gkyl_mat *rhs_u = gkyl_mat_new(nfluids, 1, 0.0);
+  struct gkyl_mat *rhs_v = gkyl_mat_new(nfluids, 1, 0.0);
+  struct gkyl_mat *rhs_w = gkyl_mat_new(nfluids, 1, 0.0);
+
+  for (int s=0; s<nfluids; ++s)
+  {
+    double *fs = fluids[s];
+    gkyl_mat_set(rhs_u, s, 0, fs[MX] / fs[RHO]);
+    gkyl_mat_set(rhs_v, s, 0, fs[MY] / fs[RHO]);
+    gkyl_mat_set(rhs_w, s, 0, fs[MZ] / fs[RHO]);
+
+    gkyl_mat_set(lhs, s, s, 1.0);
+    const double *nu_s = nu + nfluids * s;
+    for (int r=0; r<nfluids; ++r)
+    {
+      if (r==s)
+        continue;
+
+      const double half_dt_nu_sr = 0.5 * dt * nu_s[r];
+      gkyl_mat_inc(lhs, s, s, half_dt_nu_sr);
+      gkyl_mat_inc(lhs, s, r, -half_dt_nu_sr);
+    }
+  }
+
+  // FIXME are the following correct/optimal?
+  gkyl_mem_buff ipiv = gkyl_mem_buff_new(sizeof(long[3]));
+  bool status;
+  status = gkyl_mat_linsolve_lu(lhs, rhs_u, gkyl_mem_buff_data(ipiv));
+  status = gkyl_mat_linsolve_lu(lhs, rhs_v, gkyl_mem_buff_data(ipiv));
+  status = gkyl_mat_linsolve_lu(lhs, rhs_w, gkyl_mem_buff_data(ipiv));
+
+  // update pressure
+  {
+    gkyl_mat_clear(lhs, 0.0);
+    struct gkyl_mat *rhs_T = gkyl_mat_new(nfluids, 1, 0.0);
+
+    double T[nfluids];
+    for (int s=0; s<nfluids; ++s)
+    {
+      const double ms = mes->param[s].mass;
+      const double coeff = 0.5 * dt * ms;
+
+      double *fs = fluids[s];
+      T[s] = pressure(fs, gas_gamma) / fs[RHO] * ms;
+      gkyl_mat_set(rhs_T, s, 1, T[s]);
+      gkyl_mat_set(lhs, s, s, 1.0);
+
+      const double *nu_s = nu + nfluids * s;
+      for (int r=0; r<nfluids; ++r)
+      {
+        if (r==s)
+          continue;
+
+        const double mr = mes->param[r].mass;
+        const double du2 = sq(gkyl_mat_get(rhs_u,s,1)-gkyl_mat_get(rhs_u,r,1)) \
+                         + sq(gkyl_mat_get(rhs_v,s,1)-gkyl_mat_get(rhs_v,r,1)) \
+                         + sq(gkyl_mat_get(rhs_w,s,1)-gkyl_mat_get(rhs_w,r,1));
+        const double coeff_sr = coeff * nu_s[r] / (ms + mr);
+
+        gkyl_mat_inc(rhs_T, s, 1, coeff_sr * (mr / 3.) * du2);
+        gkyl_mat_inc(lhs, s, s, coeff_sr * 2);
+        gkyl_mat_inc(lhs, s, r, -coeff_sr * 2);
+      }
+    }
+
+    // Compute pressure at n+1/2 and then at n+1
+    status = gkyl_mat_linsolve_lu(lhs, rhs_T, gkyl_mem_buff_data(ipiv));
+    for (int s=0; s<nfluids; ++s)
+    {
+      double *f = fluids[s];
+      f[PP] = (2 * gkyl_mat_get(rhs_T,s,1) - T[s]) * f[RHO] / mes->param[s].mass;
+    }
+  } // End of pressure update
+
+  // Compute momentum (from velocity) and total energy at full time-step n+1
+  for (int s=0; s<nfluids; ++s)
+  {
+    double *f = fluids[s];
+    f[MX] = 2 * f[RHO] * gkyl_mat_get(rhs_u,s,1) - f[MX];
+    f[MY] = 2 * f[RHO] * gkyl_mat_get(rhs_v,s,1) - f[MY];
+    f[MZ] = 2 * f[RHO] * gkyl_mat_get(rhs_w,s,1) - f[MZ];
+    f[ER] = f[PP]/(gas_gamma-1) + 0.5*(sq(f[MX])+sq(f[MY])+sq(f[MZ]))/f[RHO];
+  }
+
+  gkyl_mem_buff_release(ipiv);
+}
+
 
 // Update momentum and E field along with appropriate pressure update.
 // If isothermal Euler equations, only update momentum and E,
