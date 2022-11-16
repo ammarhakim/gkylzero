@@ -20,6 +20,10 @@ struct gkyl_moment_em_coupling_inp {
   int nfluids; // number of fluids
   struct gkyl_moment_em_coupling_data param[GKYL_MAX_SPECIES]; // species data
   double epsilon0;
+
+  bool has_collision; // has friction/collision
+  double nu_base[5*4/2]; // base collision frequency
+  double gas_gamma;
 };
 
 // Object type

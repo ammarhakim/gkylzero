@@ -31,6 +31,10 @@ struct gkyl_moment_em_coupling {
   int nfluids; // number of fluids in multi-fluid system
   struct gkyl_moment_em_coupling_data param[GKYL_MAX_SPECIES]; // struct of fluid parameters
   double epsilon0; // permittivity of free space
+
+  bool has_collision; // has friction/collision
+  double nu_base[5*4/2]; // base collision frequencies
+  double gas_gamma;
 };
 
 // Rotate pressure tensor using magnetic field. See Wang
@@ -330,6 +334,15 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
   up->nfluids = inp.nfluids;
   for (int n=0; n<inp.nfluids; ++n) up->param[n] = inp.param[n];
   up->epsilon0 = inp.epsilon0;
+
+  up->has_collision = inp.has_collision;
+  if(inp.has_collision) {
+    int n_entries = up->nfluids * (up->nfluids-1) / 2;
+    for (int i=0; i<n_entries; ++i) {
+      up->nu_base[i] = inp.nu_base[i];
+    }
+    up->gas_gamma = inp.gas_gamma;
+  }
 
   return up;
 }
