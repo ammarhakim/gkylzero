@@ -8,14 +8,15 @@ PREFIX = ${HOME}/gkylsoft
 
 G0_INC_DIR = ${PREFIX}/gkylzero/include
 G0_LIB_DIR = ${PREFIX}/gkylzero/lib
-G0_STLIB = ${PREFIX}/gkylzero/lib/libgkylzero.a
+G0_LIB = -lgkylzero
 CUDA_LIB = 
 
 ifeq ($(CC), nvcc)
 	CUDA_LIB = -lcublas
 endif
 
-G0_LIBS = ${G0_STLIB} ${CUDA_LIB} -lm -lpthread
+G0_LIBS = ${G0_LIB} ${CUDA_LIB} -lm -lpthread
+G0_RPATH = -Wl,-rpath,${G0_LIB_DIR}
 
 # Default lapack include and libraries: we prefer linking to static library
 LAPACK_INC = ${HOME}/gkylsoft/OpenBLAS/include
@@ -41,7 +42,7 @@ INCLUDES = -I${G0_INC_DIR} -I${LAPACK_INC} -I${SUPERLU_INC}
 all: rt_twostream
 
 rt_twostream: rt_twostream.c
-	 ${CC} ${CFLAGS} ${INCLUDES} rt_twostream.c -o rt_twostream -L${G0_LIB_DIR} ${G0_LIBS} ${LAPACK_LIB} ${SUPERLU_LIB}
+	 ${CC} ${CFLAGS} ${INCLUDES} rt_twostream.c -o rt_twostream -L${G0_LIB_DIR} ${G0_RPATH} ${G0_LIBS} ${LAPACK_LIB} ${SUPERLU_LIB}
 
 clean:
 	rm -rf rt_twostream rt_twostream.dSYM
