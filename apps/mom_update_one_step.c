@@ -55,7 +55,7 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
       case FIELD_UPDATE:
         state = SPECIES_UPDATE; // next state
 
-        if (app->has_field) {
+        if (app->has_field && app->field.evolve) {
           struct timespec fl_tm = gkyl_wall_clock();
           struct gkyl_update_status s = moment_field_update(app, &app->field, tcurr, dt);
           if (!s.success) {

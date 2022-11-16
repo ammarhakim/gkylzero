@@ -12,6 +12,8 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   fld->ctx = mom_fld->ctx;
   fld->init = mom_fld->init;
 
+  fld->evolve = mom_fld->evolve;
+
   fld->scheme_type = mom->scheme_type;
   
   // choose default limiter
