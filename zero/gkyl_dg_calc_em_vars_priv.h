@@ -11,8 +11,8 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
-typedef void (*em_t)(const double *em, double* GKYL_RESTRICT out);
-typedef void (*em_pkpm_kappa_inv_b_t)(const double *bvar, const double *ExB, double* GKYL_RESTRICT out);
+typedef void (*em_t)(const double *em, double* out);
+typedef void (*em_pkpm_kappa_inv_b_t)(const double *bvar, const double *ExB, double* out);
 
 // for use in kernel tables
 typedef struct { em_t kernels[3]; } gkyl_dg_em_bvar_kern_list;

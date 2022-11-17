@@ -1,5 +1,5 @@
 #include <gkyl_euler_kernels.h> 
-GKYL_CU_DH void euler_pkpm_recovery_y_3x_ser_p1(const double *dxv, const double *bvarl, const double *bvarc, const double *bvarr, const double *u_il, const double *u_ic, const double *u_ir, const double *p_ijl, const double *p_ijc, const double *p_ijr, double* GKYL_RESTRICT div_b, double* GKYL_RESTRICT bb_grad_u, double* GKYL_RESTRICT div_p) 
+GKYL_CU_DH void euler_pkpm_recovery_y_3x_ser_p1(const double *dxv, const double *bvarl, const double *bvarc, const double *bvarr, const double *u_il, const double *u_ic, const double *u_ir, const double *p_ijl, const double *p_ijc, const double *p_ijr, double* div_b, double* bb_grad_u, double* div_p) 
 { 
   // dxv[NDIM]: Cell spacing.
   // Al/Ac/Ar:  Inpute vector in left/center/right cells.

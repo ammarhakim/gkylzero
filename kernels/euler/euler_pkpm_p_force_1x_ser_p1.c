@@ -2,7 +2,7 @@
 #include <gkyl_basis_ser_1x_p1_inv.h> 
 GKYL_CU_DH void euler_pkpm_p_force_1x_ser_p1(const double *bvar, const double *div_p, const double *vlasov_pkpm_moms, 
   const double *p_perp, const double *div_b, 
-  double* GKYL_RESTRICT p_force) 
+  double* p_force) 
 { 
   // bvar:             magnetic field unit vector (nine components; first three components, b_i, other six components, b_i b_j.) 
   // div_p:            Volume expansion of divergence of pressure tensor.

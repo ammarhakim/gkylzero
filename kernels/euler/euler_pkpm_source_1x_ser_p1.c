@@ -1,5 +1,5 @@
 #include <gkyl_euler_kernels.h> 
-GKYL_CU_DH void euler_pkpm_source_1x_ser_p1(const double *qmem, const double *nu, const double *nu_vth_sq, const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *rhou_perp_i, const double *p_perp, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void euler_pkpm_source_1x_ser_p1(const double *qmem, const double *nu, const double *nu_vth_sq, const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *rhou_perp_i, const double *p_perp, double* out) 
 { 
   // qmem:             q/m*EM fields.
   // nu:               Collisionality.

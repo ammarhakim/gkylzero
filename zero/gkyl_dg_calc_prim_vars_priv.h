@@ -14,27 +14,27 @@
 
 typedef void (*euler_pressure_t)(const double gas_gamma, 
   const double *uvar, const double *statevec, 
-  double* GKYL_RESTRICT out);
+  double* out);
 
 typedef void (*euler_pkpm_prim_vars_t)(const double *bvar, const double *vlasov_pkpm_moms, const double *statevec, 
-  double* GKYL_RESTRICT u_i, double* GKYL_RESTRICT u_perp_i, double* GKYL_RESTRICT rhou_perp_i, 
-  double* GKYL_RESTRICT p_perp, double* GKYL_RESTRICT p_ij);
+  double* u_i, double* u_perp_i, double* rhou_perp_i, 
+  double* p_perp, double* p_ij);
 
 typedef void (*euler_pkpm_source_t)(const double* qmem, 
   const double *nu, const double *nu_vth_sq, 
   const double *vlasov_pkpm_moms, const double *euler_pkpm, 
   const double *rhou_perp_i, const double *p_perp,  
-  double* GKYL_RESTRICT out);
+  double* out);
 
 typedef void (*euler_pkpm_recovery_t)(const double *dxv, 
   const double *bvarl, const double *bvarc, const double *bvarr, 
   const double *u_il, const double *u_ic, const double *u_ir, 
   const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-  double* GKYL_RESTRICT div_b, double* GKYL_RESTRICT bb_grad_u, double* GKYL_RESTRICT div_p);
+  double* div_b, double* bb_grad_u, double* div_p);
 
 typedef void (*euler_pkpm_p_force_t)(const double *bvar, const double *div_p, 
   const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *div_b, 
-  double* GKYL_RESTRICT p_force);
+  double* p_force);
 
 // for use in kernel tables
 typedef struct { euler_pressure_t kernels[3]; } gkyl_dg_euler_pressure_kern_list;

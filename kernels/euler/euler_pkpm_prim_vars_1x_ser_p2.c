@@ -1,6 +1,6 @@
 #include <gkyl_euler_kernels.h> 
 #include <gkyl_basis_ser_1x_p2_inv.h> 
-GKYL_CU_DH void euler_pkpm_prim_vars_1x_ser_p2(const double *bvar, const double *vlasov_pkpm_moms, const double *statevec, double* GKYL_RESTRICT u_i, double* GKYL_RESTRICT u_perp_i, double* GKYL_RESTRICT rhou_perp_i, double* GKYL_RESTRICT p_perp, double* GKYL_RESTRICT p_ij) 
+GKYL_CU_DH void euler_pkpm_prim_vars_1x_ser_p2(const double *bvar, const double *vlasov_pkpm_moms, const double *statevec, double* u_i, double* u_perp_i, double* rhou_perp_i, double* p_perp, double* p_ij) 
 { 
   // bvar:             Magnetic field unit vector and tensor.
   // vlasov_pkpm_moms: [rho, p_parallel, q_parallel], Moments computed from kinetic equation in pkpm model.
