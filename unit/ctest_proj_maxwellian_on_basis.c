@@ -72,32 +72,6 @@ void eval_vtsq_1v(double t, const double *xn, double* restrict fout, void *ctx)
   fout[0] = vtsq;
 }
 
-void eval_M1i_2v(double t, const double *xn, double* restrict fout, void *ctx)
-{
-  double x = xn[0];
-  fout[0] = 0.5; fout[1] = 0.25;
-}
-
-void eval_M2_2v(double t, const double *xn, double* restrict fout, void *ctx)
-{
-  double n = 1.0, vth2 = 1.0, ux = 0.5, uy = 0.25;
-  double x = xn[0];
-  fout[0] = 2*n*vth2 + n*(ux*ux+uy*uy);
-}
-
-void eval_udrift_2v(double t, const double *xn, double* restrict fout, void *ctx)
-{
-  double x = xn[0];
-  fout[0] = 0.5; fout[1] = 0.25;
-}
-
-void eval_vtsq_2v(double t, const double *xn, double* restrict fout, void *ctx)
-{
-  double x = xn[0];
-  double vtsq = 1.0;
-  fout[0] = vtsq;
-}
-
 void
 test_1x1v(int poly_order, bool use_gpu)
 {
@@ -117,7 +91,10 @@ test_1x1v(int poly_order, bool use_gpu)
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  if (poly_order == 1) 
+    gkyl_cart_modal_hybrid(&basis, cdim, vdim);
+  else
+    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 1 };
@@ -181,8 +158,7 @@ test_1x1v(int poly_order, bool use_gpu)
   }
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
-  double p1_vals[] = {  7.5585421616306459e-01, -2.1688605007995894e-17,  2.5560131294504802e-02,
-    0.0000000000000000e+00 };
+  double p1_vals[] = {  7.5586260555876306e-01, 0.0000000000000000e+00, 2.5444480361615229e-02, 0.0000000000000000e+00, -3.5764626824659473e-03, 0.0000000000000000e+00 };
   double p2_vals[] = {  7.5586260555876306e-01,  3.3461741853476639e-17,  2.5444480361615243e-02,
     9.2374888136351991e-18, 3.6409663532636887e-16, -3.5764626824658884e-03,
     5.2417618568471655e-17, -3.0935326627861718e-18 };
@@ -289,6 +265,32 @@ test_1x1v(int poly_order, bool use_gpu)
   gkyl_proj_maxwellian_on_basis_release(proj_max);
 }
 
+void eval_M1i_2v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  fout[0] = 0.5; fout[1] = 0.25;
+}
+
+void eval_M2_2v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double n = 1.0, vth2 = 1.0, ux = 0.5, uy = 0.25;
+  double x = xn[0];
+  fout[0] = 2*n*vth2 + n*(ux*ux+uy*uy);
+}
+
+void eval_udrift_2v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  fout[0] = 0.5; fout[1] = 0.25;
+}
+
+void eval_vtsq_2v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  double vtsq = 1.0;
+  fout[0] = vtsq;
+}
+
 void
 test_1x2v(int poly_order, bool use_gpu)
 {
@@ -308,7 +310,10 @@ test_1x2v(int poly_order, bool use_gpu)
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  if (poly_order == 1) 
+    gkyl_cart_modal_hybrid(&basis, cdim, vdim);
+  else
+    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = { 1 };
@@ -372,9 +377,10 @@ test_1x2v(int poly_order, bool use_gpu)
   }
 
   // values to compare  at index (1, 9, 9) [remember, lower-left index is (1,1,1)]
-  double p1_vals[] = {  4.2319425948079414e-01,  1.2894963939286889e-17,  1.1450235276582092e-02,
-    -1.1450235276582088e-02, -9.8282386852756766e-19, -9.8282386852756766e-19,
-    -3.0980544974766697e-04, -9.8282386852756766e-19 };
+  double p1_vals[] = {  
+    4.2337474137655012e-01, 0.0000000000000000e+00, 1.1241037221784697e-02, -1.1241037221784659e-02, 0.0000000000000000e+00, 0.0000000000000000e+00,
+    -2.9846116329636935e-04, 0.0000000000000000e+00, -8.7555592875305493e-03, 0.0000000000000000e+00, 2.3246915375411265e-04, 0.0000000000000000e+00,
+    -8.7555592875305354e-03, 0.0000000000000000e+00, -2.3246915375410571e-04, 0.0000000000000000e+00 };
   double p2_vals[] = { 4.2337474137655023e-01,  5.0502880544733958e-17,  1.1241037221784692e-02,
     -1.1241037221784697e-02, -4.7391077427032355e-18,  2.1997861612039929e-18,
     -2.9846116329638447e-04,  1.7051554382338028e-16, -8.7555592875305649e-03,
@@ -472,10 +478,10 @@ test_1x2v(int poly_order, bool use_gpu)
       TEST_CHECK( gkyl_compare_double(p3_vals[i], fv[i], 1e-10) );
   }
 
-//  // write distribution function to file
-//  char fname[1024];
-//  sprintf(fname, "ctest_proj_maxwellian_on_basis_test_1x1v_p%d.gkyl", poly_order);
-//  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
+  // write distribution function to file
+  char fname[1024];
+  sprintf(fname, "ctest_proj_maxwellian_on_basis_test_1x2v_p%d.gkyl", poly_order);
+  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   gkyl_array_release(m0); gkyl_array_release(udrift); gkyl_array_release(vtsq);
   if (use_gpu) {

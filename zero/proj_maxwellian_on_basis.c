@@ -11,9 +11,10 @@
 #include <assert.h>
 
 // create range to loop over quadrature points.
-static inline struct gkyl_range get_qrange(int dim, int num_quad) {
+static inline struct gkyl_range get_qrange(int cdim, int dim, int num_quad, int num_quad_v) {
   int qshape[GKYL_MAX_DIM];
-  for (int i=0; i<dim; ++i) qshape[i] = num_quad;
+  for (int i=0; i<cdim; ++i) qshape[i] = num_quad;
+  for (int i=cdim; i<dim; ++i) qshape[i] = num_quad_v;
   struct gkyl_range qrange;
   gkyl_range_init_from_shape(&qrange, dim, qshape);
   return qrange;
@@ -22,23 +23,32 @@ static inline struct gkyl_range get_qrange(int dim, int num_quad) {
 // Sets ordinates, weights and basis functions at ords. Returns total
 // number of quadrature nodes
 static int
-init_quad_values(const struct gkyl_basis *basis, int num_quad, struct gkyl_array **ordinates,
+init_quad_values(int cdim, const struct gkyl_basis *basis, int num_quad, struct gkyl_array **ordinates,
   struct gkyl_array **weights, struct gkyl_array **basis_at_ords, bool use_gpu)
 {
   int ndim = basis->ndim;
-  double ordinates1[num_quad], weights1[num_quad];
+  int num_quad_v = num_quad;
+  // Hybrid basis have p=2 in velocity space.
+  if (basis->b_type == GKYL_BASIS_MODAL_HYBRID) num_quad_v = num_quad+1;
 
+  double ordinates1[num_quad], weights1[num_quad];
+  double ordinates1_v[num_quad_v], weights1_v[num_quad_v];
   if (num_quad <= gkyl_gauss_max) {
     // use pre-computed values if possible (these are more accurate
     // than computing them on the fly)
     memcpy(ordinates1, gkyl_gauss_ordinates[num_quad], sizeof(double[num_quad]));
     memcpy(weights1, gkyl_gauss_weights[num_quad], sizeof(double[num_quad]));
-  }
-  else {
+  } else {
     gkyl_gauleg(-1, 1, ordinates1, weights1, num_quad);
   }
+  if (num_quad_v <= gkyl_gauss_max) {
+    memcpy(ordinates1_v, gkyl_gauss_ordinates[num_quad_v], sizeof(double[num_quad_v]));
+    memcpy(weights1_v, gkyl_gauss_weights[num_quad_v], sizeof(double[num_quad_v]));
+  } else {
+    gkyl_gauleg(-1, 1, ordinates1_v, weights1_v, num_quad_v);
+  }
 
-  struct gkyl_range qrange = get_qrange(ndim, num_quad);
+  struct gkyl_range qrange = get_qrange(cdim, ndim, num_quad, num_quad_v);
 
   int tot_quad = qrange.volume;
 
@@ -61,14 +71,18 @@ init_quad_values(const struct gkyl_basis *basis, int num_quad, struct gkyl_array
     
     // set ordinates
     double *ord = gkyl_array_fetch(ordinates_ho, node);
-    for (int i=0; i<ndim; ++i)
+    for (int i=0; i<cdim; ++i)
       ord[i] = ordinates1[iter.idx[i]-qrange.lower[i]];
+    for (int i=cdim; i<ndim; ++i)
+      ord[i] = ordinates1_v[iter.idx[i]-qrange.lower[i]];
     
     // set weights
     double *wgt = gkyl_array_fetch(weights_ho, node);
     wgt[0] = 1.0;
-    for (int i=0; i<qrange.ndim; ++i)
+    for (int i=0; i<cdim; ++i)
       wgt[0] *= weights1[iter.idx[i]-qrange.lower[i]];
+    for (int i=cdim; i<ndim; ++i)
+      wgt[0] *= weights1_v[iter.idx[i]-qrange.lower[i]];
   }
 
   // pre-compute basis functions at ordinates
@@ -101,7 +115,6 @@ gkyl_proj_maxwellian_on_basis_new(
   gkyl_proj_maxwellian_on_basis *up = gkyl_malloc(sizeof(gkyl_proj_maxwellian_on_basis));
 
   up->grid = *grid;
-  up->num_quad = num_quad;
   up->cdim = conf_basis->ndim;
   up->pdim = phase_basis->ndim;
   up->num_conf_basis = conf_basis->num_basis;
@@ -111,24 +124,26 @@ gkyl_proj_maxwellian_on_basis_new(
   // MF 2022/08/09: device kernel has arrays hard-coded to 3x, vdim=3, p=2 for now.
   if (use_gpu) assert((up->cdim<3 && conf_basis->poly_order<4) || (up->cdim==3 && conf_basis->poly_order<3));
 
-  // initialize data needed for phase-space quadrature 
-  up->tot_quad = init_quad_values(phase_basis, num_quad,
-    &up->ordinates, &up->weights, &up->basis_at_ords, use_gpu);
-
   // initialize data needed for conf-space quadrature 
-  up->tot_conf_quad = init_quad_values(conf_basis, num_quad,
+  up->tot_conf_quad = init_quad_values(up->cdim, conf_basis, num_quad,
     &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, use_gpu);
 
+  // initialize data needed for phase-space quadrature 
+  up->tot_quad = init_quad_values(up->cdim, phase_basis, num_quad,
+    &up->ordinates, &up->weights, &up->basis_at_ords, use_gpu);
+
   up->fun_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad); // Only used in CPU implementation.
+
+  // To avoid creating iterators over ranges in device kernel, we'll
+  // create a map between phase-space and conf-space ordinates.
+  int num_quad_v = num_quad;  // Hybrid basis have p=2 in velocity space.
+  if (phase_basis->b_type == GKYL_BASIS_MODAL_HYBRID) num_quad_v = num_quad+1;
+  up->conf_qrange = get_qrange(up->cdim, up->cdim, num_quad, num_quad_v);
+  up->phase_qrange = get_qrange(up->cdim, up->pdim, num_quad, num_quad_v);
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     // Allocate device copies of arrays needed for quadrature.
-
-    // To avoid creating iterators over ranges in device kernel, we'll
-    // create a map between phase-space and conf-space ordinates.
-    struct gkyl_range conf_qrange = get_qrange(up->cdim, num_quad);
-    struct gkyl_range phase_qrange = get_qrange(up->pdim, num_quad);
 
     int p2c_qidx_ho[phase_qrange.volume];
     up->p2c_qidx = (int*) gkyl_cu_malloc(sizeof(int)*phase_qrange.volume);
@@ -136,10 +151,10 @@ gkyl_proj_maxwellian_on_basis_new(
     int pidx[GKYL_MAX_DIM];
     for (int n=0; n<up->tot_quad; ++n) {
       gkyl_range_inv_idx(&phase_qrange, n, pidx);
-      int cqidx = gkyl_range_idx(&conf_qrange, pidx);
+      int cqidx = gkyl_range_idx(&up->conf_qrange, pidx);
       p2c_qidx_ho[n] = cqidx;
     }
-    gkyl_cu_memcpy(up->p2c_qidx, p2c_qidx_ho, sizeof(int)*phase_qrange.volume, GKYL_CU_MEMCPY_H2D);
+    gkyl_cu_memcpy(up->p2c_qidx, p2c_qidx_ho, sizeof(int)*up->phase_qrange.volume, GKYL_CU_MEMCPY_H2D);
   }
 #endif
 
@@ -179,16 +194,11 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
 
   int cdim = up->cdim, pdim = up->pdim;
   int vdim = pdim-cdim;
-  int num_quad = up->num_quad;
   int tot_quad = up->tot_quad;
   int num_phase_basis = up->num_phase_basis;  
 
   int tot_conf_quad = up->tot_conf_quad;
   int num_conf_basis = up->num_conf_basis;
-
-  // create range to loop over config-space and phase-space quadrature points
-  struct gkyl_range conf_qrange = get_qrange(cdim, num_quad);
-  struct gkyl_range phase_qrange = get_qrange(pdim, num_quad);
 
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
@@ -246,13 +256,13 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
 
       struct gkyl_range_iter qiter;
       // compute Maxwellian at phase-space quadrature nodes
-      gkyl_range_iter_init(&qiter, &phase_qrange);
+      gkyl_range_iter_init(&qiter, &up->phase_qrange);
       while (gkyl_range_iter_next(&qiter)) {
 
-        int cqidx = gkyl_range_idx(&conf_qrange, qiter.idx);
+        int cqidx = gkyl_range_idx(&up->conf_qrange, qiter.idx);
         double nvth2_q = num[cqidx]/pow(2.0*GKYL_PI*vth2[cqidx], vdim/2.0);
 
-        int pqidx = gkyl_range_idx(&phase_qrange, qiter.idx);
+        int pqidx = gkyl_range_idx(&up->phase_qrange, qiter.idx);
 
         comp_to_phys(pdim, gkyl_array_cfetch(up->ordinates, pqidx),
           up->grid.dx, xc, xmu);
@@ -287,16 +297,11 @@ gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
 
   int cdim = up->cdim, pdim = up->pdim;
   int vdim = pdim-cdim;
-  int num_quad = up->num_quad;
   int tot_quad = up->tot_quad;
   int num_phase_basis = up->num_phase_basis;  
 
   int tot_conf_quad = up->tot_conf_quad;
   int num_conf_basis = up->num_conf_basis;
-
-  // create range to loop over config-space and phase-space quadrature points
-  struct gkyl_range conf_qrange = get_qrange(cdim, num_quad);
-  struct gkyl_range phase_qrange = get_qrange(pdim, num_quad);
 
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
@@ -346,13 +351,13 @@ gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
 
       struct gkyl_range_iter qiter;
       // compute Maxwellian at phase-space quadrature nodes
-      gkyl_range_iter_init(&qiter, &phase_qrange);
+      gkyl_range_iter_init(&qiter, &up->phase_qrange);
       while (gkyl_range_iter_next(&qiter)) {
 
-        int cqidx = gkyl_range_idx(&conf_qrange, qiter.idx);
+        int cqidx = gkyl_range_idx(&up->conf_qrange, qiter.idx);
         double nvtsq_q = m0_o[cqidx]/pow(2.0*GKYL_PI*vtsq_o[cqidx], vdim/2.0);
 
-        int pqidx = gkyl_range_idx(&phase_qrange, qiter.idx);
+        int pqidx = gkyl_range_idx(&up->phase_qrange, qiter.idx);
 
         comp_to_phys(pdim, gkyl_array_cfetch(up->ordinates, pqidx),
           up->grid.dx, xc, xmu);

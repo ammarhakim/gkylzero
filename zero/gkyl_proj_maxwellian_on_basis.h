@@ -15,7 +15,7 @@ typedef struct gkyl_proj_maxwellian_on_basis gkyl_proj_maxwellian_on_basis;
  * @param grid Grid object
  * @param conf_basis Conf-space basis functions
  * @param phase_basis Phase-space basis functions
- * @param num_quad Number of quadrature nodes
+ * @param num_quad Number of quadrature nodes (in 1D).
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
