@@ -17,6 +17,9 @@ typedef double (*vlasov_vol_t)(const double *w, const double *dxv,
 typedef void (*vlasov_stream_surf_t)(const double *w, const double *dxv,
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
+typedef void (*vlasov_stream_gen_geo_surf_t)(const double *w, const double *dxv, const double *alpha_geo,
+  const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
+
 typedef void (*vlasov_accel_surf_t)(const double *w, const double *dxv,
   const double *qmem, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
@@ -37,6 +40,7 @@ typedef struct { vlasov_vol_t kernels[3]; } gkyl_dg_vlasov_stream_vol_kern_list;
 typedef struct { vlasov_vol_t kernels[3]; } gkyl_dg_vlasov_stream_gen_geo_vol_kern_list;
 typedef struct { vlasov_vol_t kernels[3]; } gkyl_dg_vlasov_vol_kern_list;
 typedef struct { vlasov_stream_surf_t kernels[3]; } gkyl_dg_vlasov_stream_surf_kern_list;
+typedef struct { vlasov_stream_gen_geo_surf_t kernels[3]; } gkyl_dg_vlasov_stream_gen_geo_surf_kern_list;
 typedef struct { vlasov_accel_surf_t kernels[3]; } gkyl_dg_vlasov_accel_surf_kern_list;
 typedef struct { vlasov_accel_boundary_surf_t kernels[3]; } gkyl_dg_vlasov_accel_boundary_surf_kern_list;
 
@@ -124,6 +128,48 @@ static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_surf_z_kernels[] = 
   { NULL, NULL, NULL }, // 4
   // 3x kernels
   { NULL, vlasov_surfz_3x3v_ser_p1, NULL }, // 5
+};
+
+// Streaming gen geo surface kernel list: x-direction
+GKYL_CU_D
+static const gkyl_dg_vlasov_stream_gen_geo_surf_kern_list ser_stream_gen_geo_surf_x_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2  
+  // 2x kernels
+  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL }, // 4
+  // 3x kernels
+  { NULL, vlasov_gen_geo_surfx_3x3v_ser_p1, NULL }, // 5
+};
+
+// Streaming gen geo surface kernel list: y-direction
+GKYL_CU_D
+static const gkyl_dg_vlasov_stream_gen_geo_surf_kern_list ser_stream_gen_geo_surf_y_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2  
+  // 2x kernels
+  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL }, // 4
+  // 3x kernels
+  { NULL, vlasov_gen_geo_surfy_3x3v_ser_p1, NULL }, // 5
+};
+
+// Streaming gen geo surface kernel list: z-direction
+GKYL_CU_D
+static const gkyl_dg_vlasov_stream_gen_geo_surf_kern_list ser_stream_gen_geo_surf_z_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2  
+  // 2x kernels
+  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL }, // 4
+  // 3x kernels
+  { NULL, vlasov_gen_geo_surfz_3x3v_ser_p1, NULL }, // 5
 };
 
 // Acceleration surface kernel list: vx-direction
