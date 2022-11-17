@@ -70,6 +70,8 @@ gkyl_prim_lbo_calc_advance(const struct gkyl_prim_lbo_calc* calc,
   }
 
   bool status = gkyl_nmat_linsolve_lu_pa(calc->mem, calc->As, calc->xs);
+  assert(status);
+
   gkyl_range_iter_init(&conf_iter, conf_rng);
   count = 0;
   while (gkyl_range_iter_next(&conf_iter)) {
