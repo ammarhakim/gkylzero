@@ -31,7 +31,10 @@ void
 gkyl_vlasov_pkpm_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_pkpm_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(auxin.u_i) && gkyl_array_is_cu_dev(auxin.p_ij) && gkyl_array_is_cu_dev(auxin.bvar)) {
+  if (gkyl_array_is_cu_dev(auxin.bvar) &&
+      gkyl_array_is_cu_dev(auxin.u_i) &&
+      gkyl_array_is_cu_dev(auxin.bb_grad_u) &&
+      gkyl_array_is_cu_dev(auxin.p_force)) {
     gkyl_vlasov_pkpm_set_auxfields_cu(eqn->on_dev, auxin);
     return;
   }

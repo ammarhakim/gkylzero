@@ -25,7 +25,6 @@ gkyl_prim_lbo_vlasov_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
-
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
     return gkyl_prim_lbo_vlasov_cu_dev_new(cbasis, pbasis);
