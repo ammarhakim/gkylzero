@@ -172,7 +172,7 @@ endif
 
 ## GkylZero Library 
 ZERO := libgkylzero
-SRCS := $(shell find $(SRC_DIRS) -name *.c)
+SRCS := $(shell find $(SRC_DIRS) -name '*.c')
 ifdef USING_NVCC
 	SRCS += $(shell find zero -name *.cu)
 endif
