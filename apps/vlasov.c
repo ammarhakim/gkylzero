@@ -448,7 +448,7 @@ gkyl_vlasov_app_write_fluid_p_species(gkyl_vlasov_app* app, int sidx, double tm,
     gkyl_array_copy(app->fluid_species[sidx].p_host, app->fluid_species[sidx].p);
 
   gkyl_grid_sub_array_write(&app->grid, &app->local,
-    app->fluid_species[sidx].p, fileNm);
+    app->fluid_species[sidx].p_host, fileNm);
 }
 
 void
