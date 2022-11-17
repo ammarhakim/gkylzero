@@ -273,36 +273,30 @@ energy(const double *f, const double p, const double gamma)
 static void
 calcNu(const gkyl_moment_em_coupling *mes,
        double **fluids,
-       const double *nuBase,
+       const double *nu_bases,
        double *nu)
 {
   const int nfluids = mes->nfluids;
 
-  // Read pre-specified nu_sr for r>s from the flattend 1d array nuBase.
-  // FIXME Do this only once.
+  // Read pre-specified nu_sr for r>s from the flattend 1d array nu_bases.
   int i = 0;
   for (int s=0; s<nfluids; ++s)
   {
     double *nu_s = nu + nfluids * s;
+    double ms = mes->param[s].mass;
+    double rho_s = fluids[s][RHO];
+
     for (int r=s+1; r<nfluids; ++r)
     {
-      nu_s[r] = nuBase[i];
+      double *nu_r = nu + nfluids * r;
+      double mr = mes->param[r].mass;
+      double rho_r = fluids[r][RHO];
+
+      double nu_base_sr = nu_bases[i];
+      nu_s[r] = nu_base_sr * rho_r / (ms + mr);
+      nu_r[s] = nu_base_sr * rho_s / (ms + mr);
+
       i += 1;
-    }
-  }
-
-  // Compute the remaining nu terms that satisfy nu_sr*rho_s == nu_rs*rho_r, and
-  // store store the result in the flattened 1d array nu.
-  for (int s=0; s<nfluids; ++s)
-  {
-    const double rho_s = fluids[s][RHO];
-    double *nu_s = nu + nfluids * s;
-
-    for (int r=0; r<s; ++r)
-    {
-      const double rho_r = fluids[r][RHO];
-      const double *nu_r = nu + nfluids * r;
-      nu_s[r] = nu_r[s] * rho_r / rho_s;
     }
   }
 }
