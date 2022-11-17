@@ -4,12 +4,10 @@
 #include <math.h>
 
 #include <gkyl_array.h>
-#include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_maxwell_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
-#include <assert.h>
 
 typedef void (*em_t)(const double *em, double* out);
 typedef void (*em_pkpm_kappa_inv_b_t)(const double *bvar, const double *ExB, double* out);
