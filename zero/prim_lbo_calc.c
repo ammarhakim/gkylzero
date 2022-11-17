@@ -41,7 +41,7 @@ gkyl_prim_lbo_calc_new(const struct gkyl_rect_grid *grid,
 }
 
 void
-gkyl_prim_lbo_calc_advance(const struct gkyl_prim_lbo_calc* calc, 
+gkyl_prim_lbo_calc_advance(struct gkyl_prim_lbo_calc* calc, 
   const struct gkyl_range *conf_rng,
   const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
   struct gkyl_array *prim_moms_out)

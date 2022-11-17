@@ -46,12 +46,12 @@ gkyl_prim_lbo_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
  * @param boundary_corrections Momentum and Energy boundary corrections
  * @param prim_moms_out Output drift velocity and thermal speed squared.
  */
-void gkyl_prim_lbo_calc_advance(const struct gkyl_prim_lbo_calc* calc, 
+void gkyl_prim_lbo_calc_advance(struct gkyl_prim_lbo_calc* calc, 
   const struct gkyl_range *conf_rng,
   const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
   struct gkyl_array *prim_moms_out);
 
-void gkyl_prim_lbo_calc_advance_cu(const struct gkyl_prim_lbo_calc* calc, 
+void gkyl_prim_lbo_calc_advance_cu(struct gkyl_prim_lbo_calc* calc, 
   const struct gkyl_range *conf_rng, 
   const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
   struct gkyl_array* prim_moms_out);

@@ -75,7 +75,7 @@ gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs,
 }
 
 void
-gkyl_prim_lbo_calc_advance_cu(const struct gkyl_prim_lbo_calc* calc, 
+gkyl_prim_lbo_calc_advance_cu(struct gkyl_prim_lbo_calc* calc, 
   const struct gkyl_range *conf_rng, 
   const struct gkyl_array* moms, const struct gkyl_array* boundary_corrections,
   struct gkyl_array* prim_moms_out)

@@ -41,7 +41,7 @@ gkyl_prim_lbo_cross_calc_new(const struct gkyl_rect_grid *grid,
 }
 
 void
-gkyl_prim_lbo_cross_calc_advance(const struct gkyl_prim_lbo_cross_calc* calc,
+gkyl_prim_lbo_cross_calc_advance(struct gkyl_prim_lbo_cross_calc* calc,
   const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
   double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms,
