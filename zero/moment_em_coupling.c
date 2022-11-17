@@ -478,6 +478,9 @@ fluid_source_update(const gkyl_moment_em_coupling *mes, double dt,
       f[P33] = f[MZ] * f[MZ] / f[RHO] + prTen[n][5];
     }
   }
+
+  if (mes->has_collision)
+    collision_source_update(mes, dt, fluids);
 }
 
 gkyl_moment_em_coupling*
