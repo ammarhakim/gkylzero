@@ -357,7 +357,7 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
 
       double *fs = fluids[s];
       T[s] = pressure(fs, gas_gamma) / fs[RHO] * ms;
-      gkyl_mat_set(rhs_T, s, 1, T[s]);
+      gkyl_mat_set(rhs_T, s, 0, T[s]);
       gkyl_mat_set(lhs, s, s, 1.0);
 
       const double *nu_s = nu + nfluids * s;
@@ -367,12 +367,12 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
           continue;
 
         const double mr = mes->param[r].mass;
-        const double du2 = sq(gkyl_mat_get(rhs_u,s,1)-gkyl_mat_get(rhs_u,r,1)) \
-                         + sq(gkyl_mat_get(rhs_v,s,1)-gkyl_mat_get(rhs_v,r,1)) \
-                         + sq(gkyl_mat_get(rhs_w,s,1)-gkyl_mat_get(rhs_w,r,1));
+        const double du2 = sq(gkyl_mat_get(rhs_u,s,0)-gkyl_mat_get(rhs_u,r,0)) \
+                         + sq(gkyl_mat_get(rhs_v,s,0)-gkyl_mat_get(rhs_v,r,0)) \
+                         + sq(gkyl_mat_get(rhs_w,s,0)-gkyl_mat_get(rhs_w,r,0));
         const double coeff_sr = coeff * nu_s[r] / (ms + mr);
 
-        gkyl_mat_inc(rhs_T, s, 1, coeff_sr * (mr / 3.) * du2);
+        gkyl_mat_inc(rhs_T, s, 0, coeff_sr * (mr / 3.) * du2);
         gkyl_mat_inc(lhs, s, s, coeff_sr * 2);
         gkyl_mat_inc(lhs, s, r, -coeff_sr * 2);
       }
@@ -383,21 +383,27 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
     for (int s=0; s<nfluids; ++s)
     {
       double *f = fluids[s];
-      f[PP] = (2 * gkyl_mat_get(rhs_T,s,1) - T[s]) * f[RHO] / mes->param[s].mass;
+      f[PP] = (2 * gkyl_mat_get(rhs_T,s,0) - T[s]) * f[RHO] / mes->param[s].mass;
     }
+
+    gkyl_mat_release(rhs_T);
   } // End of pressure update
 
   // Compute momentum (from velocity) and total energy at full time-step n+1
   for (int s=0; s<nfluids; ++s)
   {
     double *f = fluids[s];
-    f[MX] = 2 * f[RHO] * gkyl_mat_get(rhs_u,s,1) - f[MX];
-    f[MY] = 2 * f[RHO] * gkyl_mat_get(rhs_v,s,1) - f[MY];
-    f[MZ] = 2 * f[RHO] * gkyl_mat_get(rhs_w,s,1) - f[MZ];
+    f[MX] = 2 * f[RHO] * gkyl_mat_get(rhs_u,s,0) - f[MX];
+    f[MY] = 2 * f[RHO] * gkyl_mat_get(rhs_v,s,0) - f[MY];
+    f[MZ] = 2 * f[RHO] * gkyl_mat_get(rhs_w,s,0) - f[MZ];
     f[ER] = f[PP]/(gas_gamma-1) + 0.5*(sq(f[MX])+sq(f[MY])+sq(f[MZ]))/f[RHO];
   }
 
   gkyl_mem_buff_release(ipiv);
+  gkyl_mat_release(lhs);
+  gkyl_mat_release(rhs_u);
+  gkyl_mat_release(rhs_v);
+  gkyl_mat_release(rhs_w);
 }
 
 
