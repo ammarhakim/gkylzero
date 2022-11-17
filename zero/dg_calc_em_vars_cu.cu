@@ -136,7 +136,7 @@ gkyl_calc_em_vars_pkpm_kappa_inv_b_cu_kernel(struct gkyl_basis basis,
 
 // Host-side wrapper for b/kappa (kappa Lorentz boost factor for E x B velocity) calculation
 void
-gkyl_calc_em_vars_kappa_inv_b_cu(struct gkyl_basis basis, 
+gkyl_calc_em_vars_pkpm_kappa_inv_b_cu(struct gkyl_basis basis, 
   const struct gkyl_range* range, 
   const struct gkyl_array* bvar, const struct gkyl_array* ExB, 
   struct gkyl_array* kappa_inv_b)
