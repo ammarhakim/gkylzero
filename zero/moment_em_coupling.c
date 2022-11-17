@@ -283,18 +283,16 @@ calcNu(const gkyl_moment_em_coupling *mes,
   for (int s=0; s<nfluids; ++s)
   {
     double *nu_s = nu + nfluids * s;
-    double ms = mes->param[s].mass;
     double rho_s = fluids[s][RHO];
 
     for (int r=s+1; r<nfluids; ++r)
     {
       double *nu_r = nu + nfluids * r;
-      double mr = mes->param[r].mass;
       double rho_r = fluids[r][RHO];
 
       double nu_base_sr = nu_bases[i];
-      nu_s[r] = nu_base_sr * rho_r / (ms + mr);
-      nu_r[s] = nu_base_sr * rho_s / (ms + mr);
+      nu_s[r] = nu_base_sr * rho_r;
+      nu_r[s] = nu_base_sr * rho_s;
 
       i += 1;
     }
