@@ -63,6 +63,16 @@ gkyl_mat_set(struct gkyl_mat *mat, size_t r, size_t c, double val)
 }
 
 /**
+ * Set value in matrix.
+ */
+GKYL_CU_DH
+static inline void
+gkyl_mat_inc(struct gkyl_mat *mat, size_t r, size_t c, double val)
+{
+  mat->data[c*mat->nr+r] += val;
+}
+
+/**
  * Get value from matrix.
  */
 GKYL_CU_DH
