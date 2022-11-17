@@ -52,8 +52,10 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
 
   // initialize pointers to flow velocity and pressure
   f->u = 0;
+  f->u_host = 0;
   f->u_bc_buffer = 0;
   f->p = 0;
+  f->p_host = 0;
   f->p_bc_buffer = 0;
 
   // initialize pointers to pkpm variables: 
@@ -135,6 +137,13 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     // allocate buffer for applying boundary conditions to primitive variables (u and p)
     f->u_bc_buffer = mkarr(app->use_gpu, 3*app->confBasis.num_basis, buff_sz);
     f->p_bc_buffer = mkarr(app->use_gpu, 6*app->confBasis.num_basis, buff_sz);
+
+    f->u_host = f->u;
+    f->p_host = f->p;
+    if (app->use_gpu) {
+      f->u_host = mkarr(false, 3*app->confBasis.num_basis, app->local_ext.volume);
+      f->p_host = mkarr(false, 6*app->confBasis.num_basis, app->local_ext.volume);
+    }
 
     // allocate array to pkpm variables
     f->div_b = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -635,7 +644,10 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
 
   if (app->use_gpu) {
     gkyl_array_release(f->fluid_host);
+    gkyl_array_release(f->u_host);
     gkyl_cu_free(f->omegaCfl_ptr);
+    if (f->eqn_id == GKYL_EQN_EULER || f->eqn_id == GKYL_EQN_EULER_PKPM) 
+      gkyl_array_release(f->p_host);
   }
   else {
     gkyl_free(f->omegaCfl_ptr);

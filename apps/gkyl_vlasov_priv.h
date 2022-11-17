@@ -312,6 +312,8 @@ struct vm_fluid_species {
   struct gkyl_array *p; // array for pressure (used by Euler (1 component) and pkpm Euler (6 components))
   struct gkyl_array *u_bc_buffer; // buffer for applying BCs to flow
   struct gkyl_array *p_bc_buffer; // buffer for applying BCs to pressure
+  struct gkyl_array *u_host; // array for host-side fluid/advection velocity (for I/O)
+  struct gkyl_array *p_host; // array for host-side pressure (for I/O)
   // pkpm variables
   struct gkyl_array *div_b; // div(b) used by total pressure force
   struct gkyl_array *bb_grad_u; // bb : grad(u) for use in force term 
