@@ -196,6 +196,10 @@ struct gkyl_moment_app {
 
   // pointer to function that takes a single-step of simulation
   struct gkyl_update_status (*update_func)(gkyl_moment_app* app, double dt0);
+
+  bool has_collision; // has friction/collision
+  double nu_base[5*4/2]; // base collision frequencies
+  double gas_gamma;
 };
 
 /** Some common functions to species and fields */
