@@ -122,7 +122,7 @@ gkyl_calc_prim_vars_pkpm_source_cu(struct gkyl_basis basis, const struct gkyl_ra
 }
 
 __global__ void
-gkyl_calc_prim_vars_pkpm_recovery_cu_kernel(double dx[GKYL_MAX_DIM], struct gkyl_basis basis, struct gkyl_range range, 
+gkyl_calc_prim_vars_pkpm_recovery_cu_kernel(double dx, struct gkyl_basis basis, struct gkyl_range range, 
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, const struct gkyl_array* p_ij, 
   struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, struct gkyl_array* div_p)
 {
@@ -158,13 +158,13 @@ gkyl_calc_prim_vars_pkpm_recovery_cu_kernel(double dx[GKYL_MAX_DIM], struct gkyl
     double *div_p_d = (double*) gkyl_array_fetch(div_p, linc);
 
     for (int dir=0; dir<cdim; ++dir) {
-      gkyl_copy_int_arr(cdim, iter.idx, idxl);
-      gkyl_copy_int_arr(cdim, iter.idx, idxr);
+      gkyl_copy_int_arr(cdim, idxc, idxl);
+      gkyl_copy_int_arr(cdim, idxc, idxr);
 
       idxl[dir] = idxl[dir]-1; idxr[dir] = idxr[dir]+1;
 
-      long linl = gkyl_range_idx(range, idxl); 
-      long linr = gkyl_range_idx(range, idxr);
+      long linl = gkyl_range_idx(&range, idxl); 
+      long linr = gkyl_range_idx(&range, idxr);
 
       const double *bvar_l = (const double*) gkyl_array_cfetch(bvar, linl);
       const double *bvar_r = (const double*) gkyl_array_cfetch(bvar, linr);
@@ -175,7 +175,7 @@ gkyl_calc_prim_vars_pkpm_recovery_cu_kernel(double dx[GKYL_MAX_DIM], struct gkyl
       const double *p_ij_l = (const double*) gkyl_array_cfetch(p_ij, linl);
       const double *p_ij_r = (const double*) gkyl_array_cfetch(p_ij, linr);
 
-      pkpm_recovery[dir](dx, bvar_l, bvar_c, bvar_r, u_i_l, u_i_c, u_i_r, p_ij_l, p_ij_c, p_ij_r, 
+      pkpm_recovery[dir](&dx, bvar_l, bvar_c, bvar_r, u_i_l, u_i_c, u_i_r, p_ij_l, p_ij_c, p_ij_r, 
         div_b_d, bb_grad_u_d, div_p_d);
     }
   }
@@ -220,13 +220,13 @@ gkyl_calc_prim_vars_pkpm_p_force_cu_kernel(struct gkyl_basis basis, struct gkyl_
     // linc will have jumps in it to jump over ghost cells
     long start = gkyl_range_idx(&range, idx);
 
-    const double *bvar_d = (const double*) gkyl_array_cfetch(bvar, loc);
-    const double *div_p_d = (const double*) gkyl_array_cfetch(div_p, loc);
-    const double *vlasov_pkpm_moms_d = (const double*) gkyl_array_cfetch(vlasov_pkpm_moms, loc);
-    const double *euler_pkpm_d = (const double*) gkyl_array_cfetch(euler_pkpm, loc);
-    const double *div_b_d = (const double*) gkyl_array_cfetch(div_b, loc);
+    const double *bvar_d = (const double*) gkyl_array_cfetch(bvar, start);
+    const double *div_p_d = (const double*) gkyl_array_cfetch(div_p, start);
+    const double *vlasov_pkpm_moms_d = (const double*) gkyl_array_cfetch(vlasov_pkpm_moms, start);
+    const double *euler_pkpm_d = (const double*) gkyl_array_cfetch(euler_pkpm, start);
+    const double *div_b_d = (const double*) gkyl_array_cfetch(div_b, start);
     
-    double *p_force_d = (double*) gkyl_array_fetch(p_force, loc);
+    double *p_force_d = (double*) gkyl_array_fetch(p_force, start);
     pkpm_p_force(bvar_d, div_p_d, vlasov_pkpm_moms_d, euler_pkpm_d, div_b_d, p_force_d);
   }
 }

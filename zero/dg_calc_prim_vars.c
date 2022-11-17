@@ -89,7 +89,7 @@ void gkyl_calc_prim_vars_pkpm_source(struct gkyl_basis basis, const struct gkyl_
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(rhs)) {
-    return gkyl_calc_prim_vars_pkpm_cu(basis, range, 
+    return gkyl_calc_prim_vars_pkpm_source_cu(basis, range, 
       qmem, nu, nu_vthsq, vlasov_pkpm_moms, euler_pkpm, rhou_perp_i, p_perp, rhs);
   }
 #endif
