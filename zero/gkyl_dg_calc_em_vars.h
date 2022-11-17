@@ -54,3 +54,17 @@ void gkyl_calc_em_vars_ExB(const struct gkyl_basis* cbasis, const struct gkyl_ra
  */
 void gkyl_calc_em_vars_pkpm_kappa_inv_b(const struct gkyl_basis* cbasis, const struct gkyl_range *range, 
   const struct gkyl_array* bvar, const struct gkyl_array* ExB, struct gkyl_array* kappa_inv_b);
+
+/**
+ * Host-side wrappers for em vars operations on device
+ */
+
+void gkyl_calc_em_vars_bvar_cu(const struct gkyl_basis* cbasis, const struct gkyl_range *range, 
+  const struct gkyl_array* em, struct gkyl_array* bvar);
+
+void gkyl_calc_em_vars_ExB_cu(const struct gkyl_basis* cbasis, const struct gkyl_range *range, 
+  const struct gkyl_array* em, struct gkyl_array* ExB);
+
+void gkyl_calc_em_vars_pkpm_kappa_inv_b_cu(const struct gkyl_basis* cbasis, const struct gkyl_range *range, 
+  const struct gkyl_array* bvar, const struct gkyl_array* ExB, struct gkyl_array* kappa_inv_b);
+

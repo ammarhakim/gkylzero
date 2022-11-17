@@ -134,3 +134,27 @@ void gkyl_calc_prim_vars_pkpm_recovery(const double *dx,
 void gkyl_calc_prim_vars_pkpm_p_force(struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* bvar, const struct gkyl_array* div_p, const struct gkyl_array* vlasov_pkpm_moms, 
   const struct gkyl_array* euler_pkpm, const struct gkyl_array* div_b, struct gkyl_array* p_force);
+
+/**
+ * Host-side wrappers for prim vars operations on device
+ */
+
+void gkyl_calc_prim_vars_pkpm_cu(struct gkyl_basis basis, const struct gkyl_range *range,
+  const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
+  struct gkyl_array* u_i, struct gkyl_array* u_perp_i, struct gkyl_array* rhou_perp_i,
+  struct gkyl_array* p_perp, struct gkyl_array* p_ij);
+
+void gkyl_calc_prim_vars_pkpm_source_cu(struct gkyl_basis basis, const struct gkyl_range *range,
+  const struct gkyl_array* qmem, const struct gkyl_array* nu, const struct gkyl_array* nu_vthsq, 
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm,
+  const struct gkyl_array* rhou_perp_i, const struct gkyl_array* p_perp, 
+  struct gkyl_array* rhs);
+
+void gkyl_calc_prim_vars_pkpm_recovery_cu(const double *dx, 
+  struct gkyl_basis basis, const struct gkyl_range *range,
+  const struct gkyl_array* bvar, const struct gkyl_array* u_i, const struct gkyl_array* p_ij, 
+  struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, struct gkyl_array* div_p);
+
+void gkyl_calc_prim_vars_pkpm_p_force_cu(struct gkyl_basis basis, const struct gkyl_range *range,
+  const struct gkyl_array* bvar, const struct gkyl_array* div_p, const struct gkyl_array* vlasov_pkpm_moms, 
+  const struct gkyl_array* euler_pkpm, const struct gkyl_array* div_b, struct gkyl_array* p_force);

@@ -50,6 +50,15 @@ void gkyl_calc_prim_vars_pkpm(struct gkyl_basis basis, const struct gkyl_range *
   struct gkyl_array* u_i, struct gkyl_array* u_perp_i, struct gkyl_array* rhou_perp_i,
   struct gkyl_array* p_perp, struct gkyl_array* p_ij)
 {
+// Check if more than one of the output arrays is on device? 
+// Probably a better way to do this (JJ: 11/16/22)
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(u_i)) {
+    return gkyl_calc_prim_vars_pkpm_cu(basis, range, bvar, vlasov_pkpm_moms, euler_pkpm, 
+      u_i, u_perp_i, rhou_perp_i, p_perp, p_ij);
+  }
+#endif
+
   int cdim = basis.ndim;
   int poly_order = basis.poly_order;
   euler_pkpm_prim_vars_t pkpm_prim_vars = choose_ser_euler_pkpm_prim_vars_kern(cdim, poly_order);
@@ -78,6 +87,13 @@ void gkyl_calc_prim_vars_pkpm_source(struct gkyl_basis basis, const struct gkyl_
   const struct gkyl_array* rhou_perp_i,  const struct gkyl_array* p_perp, 
   struct gkyl_array* rhs)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(rhs)) {
+    return gkyl_calc_prim_vars_pkpm_cu(basis, range, 
+      qmem, nu, nu_vthsq, vlasov_pkpm_moms, euler_pkpm, rhou_perp_i, p_perp, rhs);
+  }
+#endif
+
   int cdim = basis.ndim;
   int poly_order = basis.poly_order;
   euler_pkpm_source_t pkpm_source = choose_ser_euler_pkpm_source_kern(cdim, poly_order);
@@ -104,6 +120,15 @@ void gkyl_calc_prim_vars_pkpm_recovery(const double *dx,
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, const struct gkyl_array* p_ij, 
   struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, struct gkyl_array* div_p)
 {
+// Check if more than one of the output arrays is on device? 
+// Probably a better way to do this (JJ: 11/16/22)
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(div_p)) {
+    return gkyl_calc_prim_vars_pkpm_recovery_cu(dx, basis, range, 
+      bvar, u_i, p_ij, div_b, bb_grad_u, div_p);
+  }
+#endif
+
   int cdim = basis.ndim;
   int poly_order = basis.poly_order;
   euler_pkpm_recovery_t pkpm_recovery[3];
@@ -155,6 +180,13 @@ void gkyl_calc_prim_vars_pkpm_p_force(struct gkyl_basis basis, const struct gkyl
   const struct gkyl_array* bvar, const struct gkyl_array* div_p, const struct gkyl_array* vlasov_pkpm_moms, 
   const struct gkyl_array* euler_pkpm, const struct gkyl_array* div_b, struct gkyl_array* p_force)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(p_force)) {
+    return gkyl_calc_prim_vars_pkpm_p_force_cu(basis, range, 
+      bvar, div_p, vlasov_pkpm_moms, euler_pkpm, div_b, p_force);
+  }
+#endif
+
   int cdim = basis.ndim;
   int poly_order = basis.poly_order;
   euler_pkpm_p_force_t pkpm_p_force = choose_ser_euler_pkpm_p_force_kern(cdim, poly_order);

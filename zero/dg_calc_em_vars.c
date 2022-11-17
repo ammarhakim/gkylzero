@@ -10,6 +10,12 @@ void gkyl_calc_em_vars_bvar(const struct gkyl_basis* cbasis,
   const struct gkyl_range* range, 
   const struct gkyl_array* em, struct gkyl_array* bvar)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(bvar)) {
+    return gkyl_calc_em_vars_bvar_cu(cbasis, range, em, bvar);
+  }
+#endif
+  
   int cdim = cbasis->ndim;
   int poly_order = cbasis->poly_order;
 
@@ -30,6 +36,12 @@ void gkyl_calc_em_vars_ExB(const struct gkyl_basis* cbasis,
   const struct gkyl_range* range, 
   const struct gkyl_array* em, struct gkyl_array* ExB)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(ExB)) {
+    return gkyl_calc_em_vars_ExB_cu(cbasis, range, em, ExB);
+  }
+#endif
+
   int cdim = cbasis->ndim;
   int poly_order = cbasis->poly_order;
 
@@ -51,6 +63,12 @@ void gkyl_calc_em_vars_pkpm_kappa_inv_b(const struct gkyl_basis* cbasis,
   const struct gkyl_array* bvar, const struct gkyl_array* ExB,
   struct gkyl_array* kappa_inv_b)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(ExB)) {
+    return gkyl_calc_em_vars_pkpm_kappa_inv_b_cu(cbasis, range, bvar, ExB, kappa_inv_b);
+  }
+#endif
+
   int cdim = cbasis->ndim;
   int poly_order = cbasis->poly_order;
 
