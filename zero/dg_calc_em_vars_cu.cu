@@ -12,12 +12,12 @@ extern "C" {
 }
 
 __global__ void
-gkyl_calc_em_vars_bvar_cu_kernel(struct gkyl_basis cbasis,
+gkyl_calc_em_vars_bvar_cu_kernel(struct gkyl_basis basis,
   struct gkyl_range range, 
   const struct gkyl_array* em, struct gkyl_array* bvar)
 {
-  int cdim = cbasis.ndim;
-  int poly_order = cbasis.poly_order;
+  int cdim = basis.ndim;
+  int poly_order = basis.poly_order;
 
   em_t em_bvar = choose_ser_em_bvar_kern(cdim, poly_order);
 
@@ -46,22 +46,22 @@ gkyl_calc_em_vars_bvar_cu_kernel(struct gkyl_basis cbasis,
 
 // Host-side wrapper for magnetic field unit vector calculation
 void
-gkyl_calc_em_vars_bvar_cu(const struct gkyl_basis* cbasis, 
+gkyl_calc_em_vars_bvar_cu(struct gkyl_basis basis, 
   const struct gkyl_range* range, 
   const struct gkyl_array* em, struct gkyl_array* bvar)
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
-  gkyl_calc_em_vars_bvar_cu_kernel<<<nblocks, nthreads>>>(*cbasis, *range, em->on_dev, bvar->on_dev);
+  gkyl_calc_em_vars_bvar_cu_kernel<<<nblocks, nthreads>>>(basis, *range, em->on_dev, bvar->on_dev);
 }
 
 __global__ void
-gkyl_calc_em_vars_ExB_cu_kernel(struct gkyl_basis cbasis,
+gkyl_calc_em_vars_ExB_cu_kernel(struct gkyl_basis basis,
   struct gkyl_range range, 
   const struct gkyl_array* em, struct gkyl_array* ExB)
 {
-  int cdim = cbasis.ndim;
-  int poly_order = cbasis.poly_order;
+  int cdim = basis.ndim;
+  int poly_order = basis.poly_order;
 
   em_t em_ExB = choose_ser_em_ExB_kern(cdim, poly_order);
 
@@ -90,23 +90,23 @@ gkyl_calc_em_vars_ExB_cu_kernel(struct gkyl_basis cbasis,
 
 // Host-side wrapper for E x B velocity calculation
 void
-gkyl_calc_em_vars_ExB_cu(const struct gkyl_basis* cbasis, 
+gkyl_calc_em_vars_ExB_cu(struct gkyl_basis basis, 
   const struct gkyl_range* range, 
   const struct gkyl_array* em, struct gkyl_array* ExB)
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
-  gkyl_calc_em_vars_ExB_cu_kernel<<<nblocks, nthreads>>>(*cbasis, *range, em->on_dev, ExB->on_dev);
+  gkyl_calc_em_vars_ExB_cu_kernel<<<nblocks, nthreads>>>(basis, *range, em->on_dev, ExB->on_dev);
 }
 
 __global__ void
-gkyl_calc_em_vars_pkpm_kappa_inv_b_cu_kernel(struct gkyl_basis cbasis,
+gkyl_calc_em_vars_pkpm_kappa_inv_b_cu_kernel(struct gkyl_basis basis,
   struct gkyl_range range, 
   const struct gkyl_array* bvar, const struct gkyl_array* ExB, 
   struct gkyl_array* kappa_inv_b)
 {
-  int cdim = cbasis.ndim;
-  int poly_order = cbasis.poly_order;
+  int cdim = basis.ndim;
+  int poly_order = basis.poly_order;
 
   em_pkpm_kappa_inv_b_t em_pkpm_kappa_inv_b = choose_ser_em_pkpm_kappa_inv_b_kern(cdim, poly_order);
 
@@ -136,13 +136,13 @@ gkyl_calc_em_vars_pkpm_kappa_inv_b_cu_kernel(struct gkyl_basis cbasis,
 
 // Host-side wrapper for b/kappa (kappa Lorentz boost factor for E x B velocity) calculation
 void
-gkyl_calc_em_vars_kappa_inv_b_cu(const struct gkyl_basis* cbasis, 
+gkyl_calc_em_vars_kappa_inv_b_cu(struct gkyl_basis basis, 
   const struct gkyl_range* range, 
   const struct gkyl_array* bvar, const struct gkyl_array* ExB, 
   struct gkyl_array* kappa_inv_b)
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
-  gkyl_calc_em_vars_pkpm_kappa_inv_b_cu_kernel<<<nblocks, nthreads>>>(*cbasis, *range, 
+  gkyl_calc_em_vars_pkpm_kappa_inv_b_cu_kernel<<<nblocks, nthreads>>>(basis, *range, 
     bvar->on_dev, ExB->on_dev, kappa_inv_b->on_dev);
 }

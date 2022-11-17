@@ -18,7 +18,7 @@
  * @param em Input array which contain EM fields (Ex, Ey, Ez, Bx, By, Bz)
  * @param bvar Output array of magnetic field unit vector and unit tensor
  */
-void gkyl_calc_em_vars_bvar(const struct gkyl_basis* cbasis, const struct gkyl_range *range, 
+void gkyl_calc_em_vars_bvar(struct gkyl_basis basis, const struct gkyl_range *range, 
   const struct gkyl_array* em, struct gkyl_array* bvar);
 
 /**
@@ -29,7 +29,7 @@ void gkyl_calc_em_vars_bvar(const struct gkyl_basis* cbasis, const struct gkyl_r
  * @param em Input array which contain EM fields (Ex, Ey, Ez, Bx, By, Bz)
  * @param ExB Output array of E x B velocity
  */
-void gkyl_calc_em_vars_ExB(const struct gkyl_basis* cbasis, const struct gkyl_range *range, 
+void gkyl_calc_em_vars_ExB(struct gkyl_basis basis, const struct gkyl_range *range, 
   const struct gkyl_array* em, struct gkyl_array* ExB);
 
 /**
@@ -52,19 +52,19 @@ void gkyl_calc_em_vars_ExB(const struct gkyl_basis* cbasis, const struct gkyl_ra
  * @param kappa_inv_b Output array of magnetic field unit vector 
  *                    divided by E x B velocity Lorentz boost factor b/kappa
  */
-void gkyl_calc_em_vars_pkpm_kappa_inv_b(const struct gkyl_basis* cbasis, const struct gkyl_range *range, 
+void gkyl_calc_em_vars_pkpm_kappa_inv_b(struct gkyl_basis basis, const struct gkyl_range *range, 
   const struct gkyl_array* bvar, const struct gkyl_array* ExB, struct gkyl_array* kappa_inv_b);
 
 /**
  * Host-side wrappers for em vars operations on device
  */
 
-void gkyl_calc_em_vars_bvar_cu(const struct gkyl_basis* cbasis, const struct gkyl_range *range, 
+void gkyl_calc_em_vars_bvar_cu(struct gkyl_basis basis, const struct gkyl_range *range, 
   const struct gkyl_array* em, struct gkyl_array* bvar);
 
-void gkyl_calc_em_vars_ExB_cu(const struct gkyl_basis* cbasis, const struct gkyl_range *range, 
+void gkyl_calc_em_vars_ExB_cu(struct gkyl_basis basis, const struct gkyl_range *range, 
   const struct gkyl_array* em, struct gkyl_array* ExB);
 
-void gkyl_calc_em_vars_pkpm_kappa_inv_b_cu(const struct gkyl_basis* cbasis, const struct gkyl_range *range, 
+void gkyl_calc_em_vars_pkpm_kappa_inv_b_cu(struct gkyl_basis basis, const struct gkyl_range *range, 
   const struct gkyl_array* bvar, const struct gkyl_array* ExB, struct gkyl_array* kappa_inv_b);
 

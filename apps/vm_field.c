@@ -243,7 +243,7 @@ vm_field_calc_bvar(gkyl_vlasov_app *app, struct vm_field *field,
 {
   // Assumes magnetic field boundary conditions applied so magnetic field 
   // unit vector and unit tensor are defined everywhere in the domain
-  gkyl_calc_em_vars_bvar(&app->confBasis, &app->local_ext, em, field->bvar);
+  gkyl_calc_em_vars_bvar(app->confBasis, &app->local_ext, em, field->bvar);
 }
 
 void
@@ -252,7 +252,7 @@ vm_field_calc_ExB(gkyl_vlasov_app *app, struct vm_field *field,
 {
   // Assumes electric field and magnetic field boundary conditions applied 
   // so E x B velocity is defined everywhere in the domain 
-  gkyl_calc_em_vars_ExB(&app->confBasis, &app->local_ext, em, field->ExB);
+  gkyl_calc_em_vars_ExB(app->confBasis, &app->local_ext, em, field->ExB);
 }
 
 void
@@ -262,9 +262,9 @@ vm_field_calc_sr_pkpm_vars(gkyl_vlasov_app *app, struct vm_field *field,
   // Assumes electric field and magnetic field boundary conditions applied 
   // so E x B velocity and magnetic field unit vector and unit tensor
   // are defined everywhere in the domain   
-  gkyl_calc_em_vars_bvar(&app->confBasis, &app->local_ext, em, field->bvar);
-  gkyl_calc_em_vars_ExB(&app->confBasis, &app->local_ext, em, field->ExB);
-  gkyl_calc_em_vars_pkpm_kappa_inv_b(&app->confBasis, &app->local_ext, field->bvar, field->ExB, field->kappa_inv_b);
+  gkyl_calc_em_vars_bvar(app->confBasis, &app->local_ext, em, field->bvar);
+  gkyl_calc_em_vars_ExB(app->confBasis, &app->local_ext, em, field->ExB);
+  gkyl_calc_em_vars_pkpm_kappa_inv_b(app->confBasis, &app->local_ext, field->bvar, field->ExB, field->kappa_inv_b);
   // TO DO: THESE VARIABLES NEED TO BE CONTINUOUS
 }
 
