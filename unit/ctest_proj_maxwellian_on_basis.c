@@ -775,6 +775,7 @@ TEST_LIST = {
 // MF 2022/11/17: not ready. Need new updater.
   { "test_1x2v_p1_gk", test_1x2v_p1_gk },
   { "test_1x2v_p2_gk", test_1x2v_p2_gk },
+
 #ifdef GKYL_HAVE_CUDA
   { "test_1x1v_p0_gpu", test_1x1v_p0_gpu },
   { "test_1x1v_p1_gpu", test_1x1v_p1_gpu },
