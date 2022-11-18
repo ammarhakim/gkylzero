@@ -204,13 +204,12 @@ proj_on_basis(const gkyl_proj_maxwellian_on_basis *up, const struct gkyl_array *
 void
 gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
-  const struct gkyl_array *M0, const struct gkyl_array *M1i, const struct gkyl_array *M2,
-  struct gkyl_array *fmax)
+  const struct gkyl_array *moms, struct gkyl_array *fmax)
 {
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_proj_maxwellian_on_basis_lab_mom_cu(up, phase_rng, conf_rng, M0, M1i, M2, fmax);
+    return gkyl_proj_maxwellian_on_basis_lab_mom_cu(up, phase_rng, conf_rng, moms, fmax);
 #endif
 
   int cdim = up->cdim, pdim = up->pdim;
@@ -228,7 +227,7 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
   for (int d=0; d<conf_rng->ndim; ++d) rem_dir[d] = 1;
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
-  double exp_amp[tot_conf_quad], vel[tot_conf_quad][vdim], vth2[tot_conf_quad];
+  double exp_amp[tot_conf_quad], udrift[tot_conf_quad][vdim], vtsq[tot_conf_quad];
   
   // outer loop over configuration space cells; for each
   // config-space cell inner loop walks over velocity space
@@ -236,37 +235,37 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
   while (gkyl_range_iter_next(&conf_iter)) {
     long midx = gkyl_range_idx(conf_rng, conf_iter.idx);
 
-    const double *M0_d = gkyl_array_cfetch(M0, midx);
-    const double *M1i_d = gkyl_array_cfetch(M1i, midx);
-    const double *M2_d = gkyl_array_cfetch(M2, midx);
+    const double *moms_d = gkyl_array_cfetch(moms, midx);
+    const double *m1i_d = &moms_d[num_conf_basis];
+    const double *m2_d = &moms_d[num_conf_basis*(vdim+1)];
     
     // compute primitive moments at quadrature nodes
     for (int n=0; n<tot_conf_quad; ++n) {
       const double *b_ord = gkyl_array_cfetch(up->conf_basis_at_ords, n);
 
-      double num = 0.0;  // number density
+      double den = 0.0;  // number density
       for (int k=0; k<num_conf_basis; ++k)
-        num += M0_d[k]*b_ord[k];
+        den += moms_d[k]*b_ord[k];
 
       // velocity vector
       for (int d=0; d<vdim; ++d) {
-        double M1i_n = 0.0;
+        double m1i_n = 0.0;
         for (int k=0; k<num_conf_basis; ++k)
-          M1i_n += M1i_d[num_conf_basis*d+k]*b_ord[k];
-        vel[n][d] = M1i_n/num;
+          m1i_n += m1i_d[num_conf_basis*d+k]*b_ord[k];
+        udrift[n][d] = m1i_n/den;
       }
 
-      // vth2
-      double M2_n = 0.0;
+      // vtsq
+      double m2_n = 0.0;
       for (int k=0; k<num_conf_basis; ++k)
-        M2_n += M2_d[k]*b_ord[k];
+        m2_n += m2_d[k]*b_ord[k];
 
-      double v2 = 0.0; // vel^2
-      for (int d=0; d<vdim; ++d) v2 += vel[n][d]*vel[n][d];
-      vth2[n] = (M2_n - num*v2)/(num*vdim);
+      double usq = 0.0; // vel^2
+      for (int d=0; d<vdim; ++d) usq += udrift[n][d]*udrift[n][d];
+      vtsq[n] = (m2_n - den*usq)/(den*vdim);
 
       // Amplitude of the exponential.
-      exp_amp[n] = num/sqrt(pow(2.0*GKYL_PI*vth2[n], vdim));
+      exp_amp[n] = den/sqrt(pow(2.0*GKYL_PI*vtsq[n], vdim));
     }
 
     // inner loop over velocity space
@@ -290,10 +289,10 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
 
         double efact = 0.0;        
         for (int d=0; d<vdim; ++d)
-          efact += (vel[cqidx][d]-xmu[cdim+d])*(vel[cqidx][d]-xmu[cdim+d]);
+          efact += pow(udrift[cqidx][d]-xmu[cdim+d],2);
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
-        fq[0] = exp_amp[cqidx]*exp(-efact/(2.0*vth2[cqidx]));
+        fq[0] = exp_amp[cqidx]*exp(-efact/(2.0*vtsq[cqidx]));
       }
 
       // compute expansion coefficients of Maxwellian on basis
@@ -307,13 +306,13 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
 void
 gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
-  const struct gkyl_array *m0, const struct gkyl_array *udrift, const struct gkyl_array *vtsq,  
+  const struct gkyl_array *moms, const struct gkyl_array *prim_moms,
   struct gkyl_array *fmax)
 {
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_proj_maxwellian_on_basis_prim_mom_cu(up, phase_rng, conf_rng, m0, udrift, vtsq, fmax);
+    return gkyl_proj_maxwellian_on_basis_prim_mom_cu(up, phase_rng, conf_rng, moms, prim_moms, fmax);
 #endif
 
   int cdim = up->cdim, pdim = up->pdim;
@@ -339,9 +338,10 @@ gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
   while (gkyl_range_iter_next(&conf_iter)) {
     long midx = gkyl_range_idx(conf_rng, conf_iter.idx);
 
-    const double *m0_d = gkyl_array_cfetch(m0, midx);
-    const double *udrift_d = gkyl_array_cfetch(udrift, midx);
-    const double *vtsq_d = gkyl_array_cfetch(vtsq, midx);
+    const double *moms_d = gkyl_array_cfetch(moms, midx);
+    const double *prim_moms_d = gkyl_array_cfetch(prim_moms, midx);
+    const double *udrift_d = prim_moms_d;
+    const double *vtsq_d = &prim_moms_d[num_conf_basis*vdim];
     
     // compute primitive moments at quadrature nodes
     for (int n=0; n<tot_conf_quad; ++n) {
@@ -351,7 +351,7 @@ gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
       for (int d=0; d<vdim; ++d) udrift_o[n][d] = 0.0;
       vtsq_o[n] = 0.0;
       for (int k=0; k<num_conf_basis; ++k) {
-        m0_o += m0_d[k]*b_ord[k];
+        m0_o += moms_d[k]*b_ord[k];
 
         for (int d=0; d<vdim; ++d) {
           udrift_o[n][d] += udrift_d[num_conf_basis*d+k]*b_ord[k];
@@ -386,7 +386,7 @@ gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
 
         double efact = 0.0;        
         for (int d=0; d<vdim; ++d)
-          efact += (xmu[cdim+d]-udrift_o[cqidx][d])*(xmu[cdim+d]-udrift_o[cqidx][d]);
+          efact += pow(xmu[cdim+d]-udrift_o[cqidx][d],2);
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
         fq[0] = expamp_o[cqidx]*exp(-efact/(2.0*vtsq_o[cqidx]));
@@ -403,14 +403,13 @@ gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
 void
 gkyl_proj_gkmaxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
-  const struct gkyl_array *m0, const struct gkyl_array *m1, const struct gkyl_array *m2,
-  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, double mass,
-  struct gkyl_array *fmax)
+  const struct gkyl_array *moms, const struct gkyl_array *bmag,
+  const struct gkyl_array *jacob_tot, double mass, struct gkyl_array *fmax)
 {
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_proj_gkmaxwellian_on_basis_lab_mom_cu(up, phase_rng, conf_rng, m0, m1, m2, 
+    return gkyl_proj_gkmaxwellian_on_basis_lab_mom_cu(up, phase_rng, conf_rng, moms, 
                                                       bmag, jacob_tot, mass, fmax);
 #endif
 
@@ -440,9 +439,10 @@ gkyl_proj_gkmaxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
   while (gkyl_range_iter_next(&conf_iter)) {
     long midx = gkyl_range_idx(conf_rng, conf_iter.idx);
 
-    const double *m0_d = gkyl_array_cfetch(m0, midx);
-    const double *m1_d = gkyl_array_cfetch(m1, midx);
-    const double *m2_d = gkyl_array_cfetch(m2, midx);
+    const double *moms_d = gkyl_array_cfetch(moms, midx);
+    const double *m0_d = moms_d;
+    const double *m1_d = &moms_d[num_conf_basis];
+    const double *m2_d = &moms_d[2*num_conf_basis];
     const double *bmag_d = gkyl_array_cfetch(bmag, midx);
     const double *jactot_d = gkyl_array_cfetch(jacob_tot, midx);
     
@@ -450,31 +450,24 @@ gkyl_proj_gkmaxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
     for (int n=0; n<tot_conf_quad; ++n) {
       const double *b_ord = gkyl_array_cfetch(up->conf_basis_at_ords, n);
 
-      bfield[n] = 0.0;  // magnetic field amplitude.
-      for (int k=0; k<num_conf_basis; ++k)
+      double den = 0.0;  // number density.
+      double m2_n = 0.0; // kinetic energy density.
+      double jac = 0.0;  // total jacobian (conf * guiding center jacobian).
+      bfield[n] = 0.0;   // magnetic field amplitude.
+      upar[n] = 0.0;     // parallel speed.
+      for (int k=0; k<num_conf_basis; ++k) {
         bfield[n] += bmag_d[k]*b_ord[k];
-
-      double num = 0.0;  // number density.
-      for (int k=0; k<num_conf_basis; ++k)
-        num += m0_d[k]*b_ord[k];
-
-      upar[n] = 0.0;  // parallel speed.
-      for (int k=0; k<num_conf_basis; ++k)
+        jac += jactot_d[k]*b_ord[k];
+        den += m0_d[k]*b_ord[k];
         upar[n] += m1_d[k]*b_ord[k];
-      upar[n] = upar[n]/num;
-
-      // thermal speed squared.
-      double m2_n = 0.0;
-      for (int k=0; k<num_conf_basis; ++k)
         m2_n += m2_d[k]*b_ord[k];
-      vtsq[n] = (m2_n - num*upar[n]*upar[n])/(num*vdim_phys);
+      }
+      upar[n] = upar[n]/den;
+      vtsq[n] = (m2_n - den*upar[n]*upar[n])/(den*vdim_phys);
 
       // compute the amplitude of the exponential.
-      double jac = 0.0;
-      for (int k=0; k<num_conf_basis; ++k)
-        jac += jactot_d[k]*b_ord[k];
-      if ((num > 0.) && (vtsq[n]>0.))
-        exp_amp[n] = jac*num/sqrt(pow(2.0*GKYL_PI*vtsq[n], vdim_phys));
+      if ((den > 0.) && (vtsq[n]>0.))
+        exp_amp[n] = jac*den/sqrt(pow(2.0*GKYL_PI*vtsq[n], vdim_phys));
       else
         exp_amp[n] = 0.;
 
@@ -519,14 +512,13 @@ gkyl_proj_gkmaxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
 void
 gkyl_proj_gkmaxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
-  const struct gkyl_array *m0, const struct gkyl_array *upar, const struct gkyl_array *vtsq,  
-  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, double mass,
-  struct gkyl_array *fmax)
+  const struct gkyl_array *moms, const struct gkyl_array *prim_moms, const struct gkyl_array *bmag,
+  const struct gkyl_array *jacob_tot, double mass, struct gkyl_array *fmax)
 {
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu(up, phase_rng, conf_rng, m0, upar, vtsq,
+    return gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu(up, phase_rng, conf_rng, moms, prim_moms,
                                                        bmag, jacob_tot, mass, fmax);
 #endif
 
@@ -556,9 +548,10 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up
   while (gkyl_range_iter_next(&conf_iter)) {
     long midx = gkyl_range_idx(conf_rng, conf_iter.idx);
 
-    const double *m0_d = gkyl_array_cfetch(m0, midx);
-    const double *upar_d = gkyl_array_cfetch(upar, midx);
-    const double *vtsq_d = gkyl_array_cfetch(vtsq, midx);
+    const double *m0_d = gkyl_array_cfetch(moms, midx);
+    const double *prim_moms_d = gkyl_array_cfetch(prim_moms, midx);
+    const double *upar_d = prim_moms_d;
+    const double *vtsq_d = &prim_moms_d[num_conf_basis];
     const double *bmag_d = gkyl_array_cfetch(bmag, midx);
     const double *jactot_d = gkyl_array_cfetch(jacob_tot, midx);
     
