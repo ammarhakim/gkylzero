@@ -166,12 +166,12 @@ gkyl_proj_maxwellian_on_basis_new(
   if (up->use_gpu) {
     // Allocate device copies of arrays needed for quadrature.
 
-    int p2c_qidx_ho[phase_qrange.volume];
-    up->p2c_qidx = (int*) gkyl_cu_malloc(sizeof(int)*phase_qrange.volume);
+    int p2c_qidx_ho[up->phase_qrange.volume];
+    up->p2c_qidx = (int*) gkyl_cu_malloc(sizeof(int)*up->phase_qrange.volume);
 
     int pidx[GKYL_MAX_DIM];
     for (int n=0; n<up->tot_quad; ++n) {
-      gkyl_range_inv_idx(&phase_qrange, n, pidx);
+      gkyl_range_inv_idx(&up->phase_qrange, n, pidx);
       int cqidx = gkyl_range_idx(&up->conf_qrange, pidx);
       p2c_qidx_ho[n] = cqidx;
     }

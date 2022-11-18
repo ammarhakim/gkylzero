@@ -8,7 +8,7 @@ extern "C" {
 }
 
 __global__ static void
-gkyl_proj_maxwellian_on_basis_lab_mom_cu_ker(int num_quad, const struct gkyl_rect_grid grid,
+gkyl_proj_maxwellian_on_basis_lab_mom_cu_ker(const struct gkyl_rect_grid grid,
   const struct gkyl_range phase_r, const struct gkyl_range conf_r,
   const struct gkyl_array* GKYL_RESTRICT conf_basis_at_ords, 
   const struct gkyl_array* GKYL_RESTRICT phase_basis_at_ords, 
@@ -103,7 +103,7 @@ gkyl_proj_maxwellian_on_basis_lab_mom_cu_ker(int num_quad, const struct gkyl_rec
 }
 
 __global__ static void
-gkyl_proj_maxwellian_on_basis_prim_mom_cu_ker(int num_quad, const struct gkyl_rect_grid grid,
+gkyl_proj_maxwellian_on_basis_prim_mom_cu_ker(const struct gkyl_rect_grid grid,
   const struct gkyl_range phase_r, const struct gkyl_range conf_r,
   const struct gkyl_array* GKYL_RESTRICT conf_basis_at_ords, 
   const struct gkyl_array* GKYL_RESTRICT phase_basis_at_ords, 
@@ -200,7 +200,7 @@ gkyl_proj_maxwellian_on_basis_lab_mom_cu(const gkyl_proj_maxwellian_on_basis *up
 {
   int nblocks = phase_r->nblocks, nthreads = phase_r->nthreads;
   gkyl_proj_maxwellian_on_basis_lab_mom_cu_ker<<<nblocks, nthreads>>>
-    (up->num_quad, up->grid, *phase_r, *conf_r, up->conf_basis_at_ords->on_dev, up->basis_at_ords->on_dev,
+    (up->grid, *phase_r, *conf_r, up->conf_basis_at_ords->on_dev, up->basis_at_ords->on_dev,
      up->ordinates->on_dev, up->weights->on_dev, up->p2c_qidx,
      M0->on_dev, M1i->on_dev, M2->on_dev, fmax->on_dev);
 }
@@ -213,7 +213,7 @@ gkyl_proj_maxwellian_on_basis_prim_mom_cu(const gkyl_proj_maxwellian_on_basis *u
 {
   int nblocks = phase_r->nblocks, nthreads = phase_r->nthreads;
   gkyl_proj_maxwellian_on_basis_prim_mom_cu_ker<<<nblocks, nthreads>>>
-    (up->num_quad, up->grid, *phase_r, *conf_r, up->conf_basis_at_ords->on_dev, up->basis_at_ords->on_dev,
+    (up->grid, *phase_r, *conf_r, up->conf_basis_at_ords->on_dev, up->basis_at_ords->on_dev,
      up->ordinates->on_dev, up->weights->on_dev, up->p2c_qidx,
      m0->on_dev, udrift->on_dev, vtsq->on_dev, fmax->on_dev);
 }
