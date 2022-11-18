@@ -46,7 +46,7 @@ typedef struct { euler_pkpm_p_force_t kernels[3]; } gkyl_dg_euler_pkpm_p_force_k
 GKYL_CU_D
 static const gkyl_dg_euler_pressure_kern_list ser_pressure_kernels[] = {
   { NULL, euler_pressure_1x_ser_p1, euler_pressure_1x_ser_p2 }, // 0
-  { NULL, euler_pressure_2x_ser_p1, euler_pressure_2x_ser_p2 }, // 1
+  { NULL, euler_pressure_2x_ser_p1, NULL }, // 1
   { NULL, euler_pressure_3x_ser_p1, euler_pressure_3x_ser_p2 }, // 2
 };
 
@@ -54,7 +54,7 @@ static const gkyl_dg_euler_pressure_kern_list ser_pressure_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_euler_pkpm_prim_vars_kern_list ser_pkpm_prim_vars_kernels[] = {
   { NULL, euler_pkpm_prim_vars_1x_ser_p1, euler_pkpm_prim_vars_1x_ser_p2 }, // 0
-  { NULL, euler_pkpm_prim_vars_2x_ser_p1, euler_pkpm_prim_vars_2x_ser_p2 }, // 1
+  { NULL, euler_pkpm_prim_vars_2x_ser_p1, NULL }, // 1
   { NULL, euler_pkpm_prim_vars_3x_ser_p1, NULL }, // 2
 };
 
@@ -62,7 +62,7 @@ static const gkyl_dg_euler_pkpm_prim_vars_kern_list ser_pkpm_prim_vars_kernels[]
 GKYL_CU_D
 static const gkyl_dg_euler_pkpm_source_kern_list ser_pkpm_source_kernels[] = {
   { NULL, euler_pkpm_source_1x_ser_p1, euler_pkpm_source_1x_ser_p2 }, // 0
-  { NULL, euler_pkpm_source_2x_ser_p1, euler_pkpm_source_2x_ser_p2 }, // 1
+  { NULL, euler_pkpm_source_2x_ser_p1, NULL }, // 1
   { NULL, euler_pkpm_source_3x_ser_p1, NULL }, // 2
 };
 
@@ -70,7 +70,7 @@ static const gkyl_dg_euler_pkpm_source_kern_list ser_pkpm_source_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_euler_pkpm_recovery_kern_list ser_pkpm_recovery_x_kernels[] = {
   { NULL, euler_pkpm_recovery_x_1x_ser_p1, euler_pkpm_recovery_x_1x_ser_p2 }, // 0
-  { NULL, euler_pkpm_recovery_x_2x_ser_p1, euler_pkpm_recovery_x_2x_ser_p2 }, // 1
+  { NULL, euler_pkpm_recovery_x_2x_ser_p1, NULL }, // 1
   { NULL, euler_pkpm_recovery_x_3x_ser_p1, NULL }, // 2
 };
 
@@ -78,7 +78,7 @@ static const gkyl_dg_euler_pkpm_recovery_kern_list ser_pkpm_recovery_x_kernels[]
 GKYL_CU_D
 static const gkyl_dg_euler_pkpm_recovery_kern_list ser_pkpm_recovery_y_kernels[] = {
   { NULL, NULL, NULL }, // 0
-  { NULL, euler_pkpm_recovery_y_2x_ser_p1, euler_pkpm_recovery_y_2x_ser_p2 }, // 1
+  { NULL, euler_pkpm_recovery_y_2x_ser_p1, NULL }, // 1
   { NULL, euler_pkpm_recovery_y_3x_ser_p1, NULL }, // 2
 };
 
@@ -94,7 +94,7 @@ static const gkyl_dg_euler_pkpm_recovery_kern_list ser_pkpm_recovery_z_kernels[]
 GKYL_CU_D
 static const gkyl_dg_euler_pkpm_p_force_kern_list ser_pkpm_p_force_kernels[] = {
   { NULL, euler_pkpm_p_force_1x_ser_p1, euler_pkpm_p_force_1x_ser_p2 }, // 0
-  { NULL, euler_pkpm_p_force_2x_ser_p1, euler_pkpm_p_force_2x_ser_p2 }, // 1
+  { NULL, euler_pkpm_p_force_2x_ser_p1, NULL }, // 1
   { NULL, euler_pkpm_p_force_3x_ser_p1, NULL }, // 2
 };
 

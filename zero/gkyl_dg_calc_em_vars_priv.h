@@ -21,7 +21,7 @@ typedef struct { em_pkpm_kappa_inv_b_t kernels[3]; } gkyl_dg_em_pkpm_kappa_inv_b
 GKYL_CU_D
 static const gkyl_dg_em_bvar_kern_list ser_em_bvar_kernels[] = {
   { NULL, em_bvar_1x_ser_p1, em_bvar_1x_ser_p2 }, // 0
-  { NULL, em_bvar_2x_ser_p1, em_bvar_2x_ser_p2 }, // 1
+  { NULL, em_bvar_2x_ser_p1, NULL }, // 1
   { NULL, em_bvar_3x_ser_p1, NULL }, // 2
 };
 
@@ -29,7 +29,7 @@ static const gkyl_dg_em_bvar_kern_list ser_em_bvar_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_em_ExB_kern_list ser_em_ExB_kernels[] = {
   { NULL, em_ExB_1x_ser_p1, em_ExB_1x_ser_p2 }, // 0
-  { NULL, em_ExB_2x_ser_p1, em_ExB_2x_ser_p2 }, // 1
+  { NULL, em_ExB_2x_ser_p1, NULL }, // 1
   { NULL, em_ExB_3x_ser_p1, NULL }, // 2
 };
 
@@ -37,7 +37,7 @@ static const gkyl_dg_em_ExB_kern_list ser_em_ExB_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_em_pkpm_kappa_inv_b_kern_list ser_em_pkpm_kappa_inv_b_kernels[] = {
   { NULL, em_pkpm_kappa_inv_b_1x_ser_p1, em_pkpm_kappa_inv_b_1x_ser_p2 }, // 0
-  { NULL, em_pkpm_kappa_inv_b_2x_ser_p1, em_pkpm_kappa_inv_b_2x_ser_p2 }, // 1
+  { NULL, em_pkpm_kappa_inv_b_2x_ser_p1, NULL }, // 1
   { NULL, em_pkpm_kappa_inv_b_3x_ser_p1, NULL }, // 2
 };
 

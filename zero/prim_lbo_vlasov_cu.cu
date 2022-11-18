@@ -48,6 +48,8 @@ gkyl_prim_lbo_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
   int pdim = prim_vlasov->prim.pdim = pbasis->ndim;
   int vdim = pdim - cdim;
   int poly_order = prim_vlasov->prim.poly_order = cbasis->poly_order;
+  prim_vlasov->prim.num_config = cbasis->num_basis;
+  prim_vlasov->prim.num_phase = pbasis->num_basis;
   prim_vlasov->prim.udim = vdim;
 
   prim_vlasov->prim.flag = 0;
