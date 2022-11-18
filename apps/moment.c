@@ -145,7 +145,7 @@ gkyl_moment_app_max_dt(gkyl_moment_app* app)
   for (int i=0;  i<app->num_species; ++i) 
     max_dt = fmin(max_dt, moment_species_max_dt(app, &app->species[i]));
 
-  if (app->has_field)
+  if (app->has_field && app->field.evolve)
     max_dt = fmin(max_dt, moment_field_max_dt(app, &app->field));
 
   return max_dt;
