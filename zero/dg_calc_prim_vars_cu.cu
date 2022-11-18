@@ -122,18 +122,20 @@ gkyl_calc_prim_vars_pkpm_source_cu(struct gkyl_basis basis, const struct gkyl_ra
 }
 
 __global__ void
-gkyl_calc_prim_vars_pkpm_recovery_cu_kernel(double dx, struct gkyl_basis basis, struct gkyl_range range, 
+gkyl_calc_prim_vars_pkpm_recovery_cu_kernel(struct gkyl_rect_grid grid, struct gkyl_basis basis, struct gkyl_range range, 
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, const struct gkyl_array* p_ij, 
   struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, struct gkyl_array* div_p)
 {
   int cdim = basis.ndim;
   int poly_order = basis.poly_order;
+  double dx[GKYL_MAX_DIM] = {0.0};
 
   euler_pkpm_recovery_t pkpm_recovery[3];
   // Fetch the kernels in each direction
-  for (int d=0; d<cdim; ++d) 
+  for (int d=0; d<cdim; ++d) {
     pkpm_recovery[d] = choose_ser_euler_pkpm_recovery_kern(d, cdim, poly_order);
-
+    dx[d] = grid.dx[d];
+  }
   int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
@@ -175,7 +177,7 @@ gkyl_calc_prim_vars_pkpm_recovery_cu_kernel(double dx, struct gkyl_basis basis, 
       const double *p_ij_l = (const double*) gkyl_array_cfetch(p_ij, linl);
       const double *p_ij_r = (const double*) gkyl_array_cfetch(p_ij, linr);
 
-      pkpm_recovery[dir](&dx, bvar_l, bvar_c, bvar_r, u_i_l, u_i_c, u_i_r, p_ij_l, p_ij_c, p_ij_r, 
+      pkpm_recovery[dir](dx, bvar_l, bvar_c, bvar_r, u_i_l, u_i_c, u_i_r, p_ij_l, p_ij_c, p_ij_r, 
         div_b_d, bb_grad_u_d, div_p_d);
     }
   }
@@ -183,14 +185,14 @@ gkyl_calc_prim_vars_pkpm_recovery_cu_kernel(double dx, struct gkyl_basis basis, 
 
 // Host-side wrapper for pkpm derivative calculations with recovery
 void
-gkyl_calc_prim_vars_pkpm_recovery_cu(const double *dx, 
+gkyl_calc_prim_vars_pkpm_recovery_cu(const struct gkyl_rect_grid *grid, 
   struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, const struct gkyl_array* p_ij, 
   struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, struct gkyl_array* div_p)
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
-  gkyl_calc_prim_vars_pkpm_recovery_cu_kernel<<<nblocks, nthreads>>>(*dx, basis, *range, 
+  gkyl_calc_prim_vars_pkpm_recovery_cu_kernel<<<nblocks, nthreads>>>(*grid, basis, *range, 
     bvar->on_dev, u_i->on_dev, p_ij->on_dev, 
     div_b->on_dev, bb_grad_u->on_dev, div_p->on_dev);
 }

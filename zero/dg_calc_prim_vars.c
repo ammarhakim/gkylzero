@@ -115,7 +115,7 @@ void gkyl_calc_prim_vars_pkpm_source(struct gkyl_basis basis, const struct gkyl_
   }
 }
 
-void gkyl_calc_prim_vars_pkpm_recovery(const double *dx, 
+void gkyl_calc_prim_vars_pkpm_recovery(const struct gkyl_rect_grid *grid, 
   struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, const struct gkyl_array* p_ij, 
   struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, struct gkyl_array* div_p)
@@ -124,7 +124,7 @@ void gkyl_calc_prim_vars_pkpm_recovery(const double *dx,
 // Probably a better way to do this (JJ: 11/16/22)
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(div_p)) {
-    return gkyl_calc_prim_vars_pkpm_recovery_cu(dx, basis, range, 
+    return gkyl_calc_prim_vars_pkpm_recovery_cu(grid, basis, range, 
       bvar, u_i, p_ij, div_b, bb_grad_u, div_p);
   }
 #endif
@@ -170,7 +170,7 @@ void gkyl_calc_prim_vars_pkpm_recovery(const double *dx,
       const double *p_ij_l = gkyl_array_cfetch(p_ij, linl);
       const double *p_ij_r = gkyl_array_cfetch(p_ij, linr);
 
-      pkpm_recovery[dir](dx, bvar_l, bvar_c, bvar_r, u_i_l, u_i_c, u_i_r, p_ij_l, p_ij_c, p_ij_r, 
+      pkpm_recovery[dir](grid->dx, bvar_l, bvar_c, bvar_r, u_i_l, u_i_c, u_i_r, p_ij_l, p_ij_c, p_ij_r, 
         div_b_d, bb_grad_u_d, div_p_d);
     }
   }

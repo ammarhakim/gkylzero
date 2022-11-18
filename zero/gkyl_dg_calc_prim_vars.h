@@ -2,6 +2,7 @@
 
 #include <gkyl_array.h>
 #include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
 #include <gkyl_basis.h>
 #include <gkyl_dg_bin_ops.h>
 
@@ -103,7 +104,7 @@ void gkyl_calc_prim_vars_pkpm_source(struct gkyl_basis basis, const struct gkyl_
  * Compute needed gradient quantities with recovery for discretization of the 
  * parallel-kinetic-perpendicular-moment (pkpm) model. These include div(p), div(b), and bb : grad(u). 
  *
- * @param dx Input grid spacing
+ * @param grid Grid (for getting cell spacing)
  * @param basis Basis functions used in expansions
  * @param range Range to apply division operator
  * @param bvar Input array of magnetic field unit vector and unit tensor
@@ -113,7 +114,7 @@ void gkyl_calc_prim_vars_pkpm_source(struct gkyl_basis basis, const struct gkyl_
  * @param bb_grad_u Output array of bb : grad(u)
  * @param div_p Output array of divergence of pressure tensor
  */
-void gkyl_calc_prim_vars_pkpm_recovery(const double *dx, 
+void gkyl_calc_prim_vars_pkpm_recovery(const struct gkyl_rect_grid *grid, 
   struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, const struct gkyl_array* p_ij, 
   struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, struct gkyl_array* div_p);
@@ -150,7 +151,7 @@ void gkyl_calc_prim_vars_pkpm_source_cu(struct gkyl_basis basis, const struct gk
   const struct gkyl_array* rhou_perp_i, const struct gkyl_array* p_perp, 
   struct gkyl_array* rhs);
 
-void gkyl_calc_prim_vars_pkpm_recovery_cu(const double *dx, 
+void gkyl_calc_prim_vars_pkpm_recovery_cu(const struct gkyl_rect_grid *grid, 
   struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, const struct gkyl_array* p_ij, 
   struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, struct gkyl_array* div_p);

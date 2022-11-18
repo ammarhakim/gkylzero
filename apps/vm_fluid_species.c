@@ -360,7 +360,7 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
     gkyl_array_clear(fluid_species->div_b, 0.0);
     gkyl_array_clear(fluid_species->bb_grad_u, 0.0);
     gkyl_array_clear(fluid_species->div_p, 0.0);
-    gkyl_calc_prim_vars_pkpm_recovery(app->grid.dx, app->confBasis, &app->local, 
+    gkyl_calc_prim_vars_pkpm_recovery(&app->grid, app->confBasis, &app->local, 
       app->field->bvar, fluid_species->u, fluid_species->p, 
       fluid_species->div_b, fluid_species->bb_grad_u, fluid_species->div_p);
 
