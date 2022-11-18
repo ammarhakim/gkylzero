@@ -82,7 +82,15 @@ gkyl_prim_lbo_calc_advance_cu(struct gkyl_prim_lbo_calc* calc,
 {
   int nc = calc->prim->num_config;
   int udim = calc->prim->udim;
-  
+  int N = nc*(udim + 1);
+
+  if (calc->is_first) {
+    calc->As = gkyl_nmat_cu_dev_new(conf_rng->volume, N, N);
+    calc->xs = gkyl_nmat_cu_dev_new(conf_rng->volume, N, 1);
+    calc->mem = gkyl_nmat_linsolve_lu_cu_dev_new(calc->As->num, calc->As->nr);
+    calc->is_first = false;
+  }
+
   gkyl_prim_lbo_calc_set_cu_ker<<<conf_rng->nblocks, conf_rng->nthreads>>>(calc->on_dev,
     calc->As->on_dev, calc->xs->on_dev, *conf_rng,
     moms->on_dev, boundary_corrections->on_dev);
@@ -96,21 +104,15 @@ gkyl_prim_lbo_calc_advance_cu(struct gkyl_prim_lbo_calc* calc,
 
 struct gkyl_prim_lbo_calc*
 gkyl_prim_lbo_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis* cbasis, const struct gkyl_range *conf_rng, 
   struct gkyl_prim_lbo_type *prim)
 {
   gkyl_prim_lbo_calc *up = (gkyl_prim_lbo_calc*) gkyl_malloc(sizeof(gkyl_prim_lbo_calc));
   up->grid = *grid;
   up->prim = prim;
 
-  // allocate device memory for use in kernels 
-  int nc = up->prim->num_config;
-  int udim = up->prim->udim;
-  int N = nc*(udim + 1);
-  
-  up->As = gkyl_nmat_cu_dev_new(conf_rng->volume, N, N);
-  up->xs = gkyl_nmat_cu_dev_new(conf_rng->volume, N, 1);
-  up->mem = gkyl_nmat_linsolve_lu_cu_dev_new(up->As->num, up->As->nr);
+  up->is_first = true;
+  up->As = up->xs = 0;
+  up->mem = 0;
 
   struct gkyl_prim_lbo_type *pt = gkyl_prim_lbo_type_acquire(prim);
   up->prim = pt->on_dev; // so memcpy below gets dev copy

@@ -14,15 +14,12 @@ typedef struct gkyl_prim_lbo_cross_calc gkyl_prim_lbo_cross_calc;
  * distribution function. Free using gkyl_prim_vlasov_cross_calc_release.
  *
  * @param grid Grid object
- * @param cbasis Config-space basis 
- * @param conf_rng Config-space range
  * @param prim Pointer to primitive moment type object
  * @param use_gpu bool to determine if on GPU
  * @return New updater pointer.
  */
 struct gkyl_prim_lbo_cross_calc* 
 gkyl_prim_lbo_cross_calc_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_rng, 
   struct gkyl_prim_lbo_type *prim, bool use_gpu);
 
 /**
@@ -31,7 +28,6 @@ gkyl_prim_lbo_cross_calc_new(const struct gkyl_rect_grid *grid,
  */
 struct gkyl_prim_lbo_cross_calc* 
 gkyl_prim_lbo_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_rng, 
   struct gkyl_prim_lbo_type *prim);
 
 /**
