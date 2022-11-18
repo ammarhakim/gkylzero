@@ -714,10 +714,10 @@ test_1x2v_gk(int poly_order, bool use_gpu)
       TEST_CHECK( gkyl_compare_double(p2_vals[i], fv[i], 1e-12) );
   }
 
-  // write distribution function to file
-  char fname[1024];
-  sprintf(fname, "ctest_proj_maxwellian_on_basis_test_1x2v_p%d.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
+//  // write distribution function to file
+//  char fname[1024];
+//  sprintf(fname, "ctest_proj_maxwellian_on_basis_test_1x2v_p%d.gkyl", poly_order);
+//  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   gkyl_array_release(m0); gkyl_array_release(udrift); gkyl_array_release(vtsq);
   gkyl_array_release(bmag); gkyl_array_release(jacob_tot);
@@ -759,6 +759,9 @@ void test_1x2v_p0_gpu() { test_1x2v(0, true); }
 void test_1x2v_p1_gpu() { test_1x2v(1, true); }
 void test_1x2v_p2_gpu() { test_1x2v(2, true); }
 void test_1x2v_p3_gpu() { test_1x2v(3, true); }
+
+void test_1x2v_p1_gk_gpu() { test_1x2v_gk(1, true); }
+void test_1x2v_p2_gk_gpu() { test_1x2v_gk(2, true); }
 #endif
 
 TEST_LIST = {
@@ -786,6 +789,9 @@ TEST_LIST = {
   { "test_1x2v_p1_gpu", test_1x2v_p1_gpu },
   { "test_1x2v_p2_gpu", test_1x2v_p2_gpu },
   { "test_1x2v_p3_gpu", test_1x2v_p3_gpu },
+
+  { "test_1x2v_p1_gk_gpu", test_1x2v_p1_gk_gpu },
+  { "test_1x2v_p2_gk_gpu", test_1x2v_p2_gk_gpu },
 #endif
   { NULL, NULL },
 };
