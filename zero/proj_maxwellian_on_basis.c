@@ -11,25 +11,34 @@
 #include <assert.h>
 
 // create range to loop over quadrature points.
-static inline struct gkyl_range get_qrange(int cdim, int dim, int num_quad, int num_quad_v) {
+static inline struct gkyl_range get_qrange(int cdim, int dim, int num_quad, int num_quad_v, bool *is_vdim_p2) {
   int qshape[GKYL_MAX_DIM];
   for (int i=0; i<cdim; ++i) qshape[i] = num_quad;
-  for (int i=cdim; i<dim; ++i) qshape[i] = num_quad_v;
+  for (int i=cdim; i<dim; ++i) qshape[i] = is_vdim_p2[i-cdim]? num_quad_v : num_quad;
   struct gkyl_range qrange;
   gkyl_range_init_from_shape(&qrange, dim, qshape);
   return qrange;
 }
 
-// Sets ordinates, weights and basis functions at ords. Returns total
-// number of quadrature nodes
+// Sets ordinates, weights and basis functions at ords.
+// Returns the total number of quadrature nodes
 static int
 init_quad_values(int cdim, const struct gkyl_basis *basis, int num_quad, struct gkyl_array **ordinates,
   struct gkyl_array **weights, struct gkyl_array **basis_at_ords, bool use_gpu)
 {
   int ndim = basis->ndim;
+  int vdim = ndim-cdim;
   int num_quad_v = num_quad;
-  // Hybrid basis have p=2 in velocity space.
-  if (basis->b_type == GKYL_BASIS_MODAL_HYBRID) num_quad_v = num_quad+1;
+  // hybrid basis have p=2 in velocity space.
+  // gkhybrid basis have p=2 in vpar only.
+  bool is_vdim_p2[] = {false, false, false};  // 3 is the max vdim.
+  if ((basis->b_type == GKYL_BASIS_MODAL_HYBRID) ||
+      (basis->b_type == GKYL_BASIS_MODAL_GKHYBRID)) {
+    num_quad_v = num_quad+1;
+    is_vdim_p2[0] = true;  // for gkhybrid.
+    if (basis->b_type == GKYL_BASIS_MODAL_HYBRID)
+      for (int d=0; d<vdim; d++) is_vdim_p2[d] = true;
+  }
 
   double ordinates1[num_quad], weights1[num_quad];
   double ordinates1_v[num_quad_v], weights1_v[num_quad_v];
@@ -48,7 +57,7 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, int num_quad, struct 
     gkyl_gauleg(-1, 1, ordinates1_v, weights1_v, num_quad_v);
   }
 
-  struct gkyl_range qrange = get_qrange(cdim, ndim, num_quad, num_quad_v);
+  struct gkyl_range qrange = get_qrange(cdim, ndim, num_quad, num_quad_v, is_vdim_p2);
 
   int tot_quad = qrange.volume;
 
@@ -74,7 +83,8 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, int num_quad, struct 
     for (int i=0; i<cdim; ++i)
       ord[i] = ordinates1[iter.idx[i]-qrange.lower[i]];
     for (int i=cdim; i<ndim; ++i)
-      ord[i] = ordinates1_v[iter.idx[i]-qrange.lower[i]];
+      ord[i] = is_vdim_p2[i-cdim]? ordinates1_v[iter.idx[i]-qrange.lower[i]] :
+                                   ordinates1[iter.idx[i]-qrange.lower[i]];
     
     // set weights
     double *wgt = gkyl_array_fetch(weights_ho, node);
@@ -82,7 +92,8 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, int num_quad, struct 
     for (int i=0; i<cdim; ++i)
       wgt[0] *= weights1[iter.idx[i]-qrange.lower[i]];
     for (int i=cdim; i<ndim; ++i)
-      wgt[0] *= weights1_v[iter.idx[i]-qrange.lower[i]];
+      wgt[0] *= is_vdim_p2[i-cdim]? weights1_v[iter.idx[i]-qrange.lower[i]] :
+                                    weights1[iter.idx[i]-qrange.lower[i]];
   }
 
   // pre-compute basis functions at ordinates
@@ -134,12 +145,22 @@ gkyl_proj_maxwellian_on_basis_new(
 
   up->fun_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad); // Only used in CPU implementation.
 
+  int vdim = up->pdim-up->cdim;
   // To avoid creating iterators over ranges in device kernel, we'll
   // create a map between phase-space and conf-space ordinates.
   int num_quad_v = num_quad;  // Hybrid basis have p=2 in velocity space.
-  if (phase_basis->b_type == GKYL_BASIS_MODAL_HYBRID) num_quad_v = num_quad+1;
-  up->conf_qrange = get_qrange(up->cdim, up->cdim, num_quad, num_quad_v);
-  up->phase_qrange = get_qrange(up->cdim, up->pdim, num_quad, num_quad_v);
+  // hybrid basis have p=2 in velocity space.
+  // gkhybrid basis have p=2 in vpar only.
+  bool is_vdim_p2[] = {false, false, false};  // 3 is the max vdim.
+  if ((phase_basis->b_type == GKYL_BASIS_MODAL_HYBRID) ||
+      (phase_basis->b_type == GKYL_BASIS_MODAL_GKHYBRID)) {
+    num_quad_v = num_quad+1;
+    is_vdim_p2[0] = true;  // for gkhybrid.
+    if (phase_basis->b_type == GKYL_BASIS_MODAL_HYBRID)
+      for (int d=0; d<vdim; d++) is_vdim_p2[d] = true;
+  }
+  up->conf_qrange = get_qrange(up->cdim, up->cdim, num_quad, num_quad_v, is_vdim_p2);
+  up->phase_qrange = get_qrange(up->cdim, up->pdim, num_quad, num_quad_v, is_vdim_p2);
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -207,7 +228,7 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
   for (int d=0; d<conf_rng->ndim; ++d) rem_dir[d] = 1;
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
-  double num[tot_conf_quad], vel[tot_conf_quad][vdim], vth2[tot_conf_quad];
+  double exp_amp[tot_conf_quad], vel[tot_conf_quad][vdim], vth2[tot_conf_quad];
   
   // outer loop over configuration space cells; for each
   // config-space cell inner loop walks over velocity space
@@ -223,17 +244,16 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
     for (int n=0; n<tot_conf_quad; ++n) {
       const double *b_ord = gkyl_array_cfetch(up->conf_basis_at_ords, n);
 
-      // number density
-      num[n] = 0.0;
+      double num = 0.0;  // number density
       for (int k=0; k<num_conf_basis; ++k)
-        num[n] += M0_d[k]*b_ord[k];
+        num += M0_d[k]*b_ord[k];
 
       // velocity vector
       for (int d=0; d<vdim; ++d) {
         double M1i_n = 0.0;
         for (int k=0; k<num_conf_basis; ++k)
           M1i_n += M1i_d[num_conf_basis*d+k]*b_ord[k];
-        vel[n][d] = M1i_n/num[n];
+        vel[n][d] = M1i_n/num;
       }
 
       // vth2
@@ -243,7 +263,10 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
 
       double v2 = 0.0; // vel^2
       for (int d=0; d<vdim; ++d) v2 += vel[n][d]*vel[n][d];
-      vth2[n] = (M2_n - num[n]*v2)/(num[n]*vdim);
+      vth2[n] = (M2_n - num*v2)/(num*vdim);
+
+      // Amplitude of the exponential.
+      exp_amp[n] = num/sqrt(pow(2.0*GKYL_PI*vth2[n], vdim));
     }
 
     // inner loop over velocity space
@@ -260,8 +283,6 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
       while (gkyl_range_iter_next(&qiter)) {
 
         int cqidx = gkyl_range_idx(&up->conf_qrange, qiter.idx);
-        double nvth2_q = num[cqidx]/pow(2.0*GKYL_PI*vth2[cqidx], vdim/2.0);
-
         int pqidx = gkyl_range_idx(&up->phase_qrange, qiter.idx);
 
         comp_to_phys(pdim, gkyl_array_cfetch(up->ordinates, pqidx),
@@ -272,7 +293,7 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
           efact += (vel[cqidx][d]-xmu[cdim+d])*(vel[cqidx][d]-xmu[cdim+d]);
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
-        fq[0] = nvth2_q*exp(-efact/(2.0*vth2[cqidx]));
+        fq[0] = exp_amp[cqidx]*exp(-efact/(2.0*vth2[cqidx]));
       }
 
       // compute expansion coefficients of Maxwellian on basis
@@ -310,7 +331,7 @@ gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
   for (int d=0; d<conf_rng->ndim; ++d) rem_dir[d] = 1;
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
-  double m0_o[tot_conf_quad], udrift_o[tot_conf_quad][vdim], vtsq_o[tot_conf_quad];
+  double expamp_o[tot_conf_quad], udrift_o[tot_conf_quad][vdim], vtsq_o[tot_conf_quad];
   
   // outer loop over configuration space cells; for each
   // config-space cell inner loop walks over velocity space
@@ -326,11 +347,11 @@ gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
     for (int n=0; n<tot_conf_quad; ++n) {
       const double *b_ord = gkyl_array_cfetch(up->conf_basis_at_ords, n);
 
-      m0_o[n] = 0.0;
+      double m0_o = 0.0;
       for (int d=0; d<vdim; ++d) udrift_o[n][d] = 0.0;
       vtsq_o[n] = 0.0;
       for (int k=0; k<num_conf_basis; ++k) {
-        m0_o[n] += m0_d[k]*b_ord[k];
+        m0_o += m0_d[k]*b_ord[k];
 
         for (int d=0; d<vdim; ++d) {
           udrift_o[n][d] += udrift_d[num_conf_basis*d+k]*b_ord[k];
@@ -338,6 +359,9 @@ gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
 
         vtsq_o[n] += vtsq_d[k]*b_ord[k];
       }
+
+      // Amplitude of the exponential.
+      expamp_o[n] = m0_o/sqrt(pow(2.0*GKYL_PI*vtsq_o[n], vdim));
 
     }
 
@@ -355,8 +379,6 @@ gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
       while (gkyl_range_iter_next(&qiter)) {
 
         int cqidx = gkyl_range_idx(&up->conf_qrange, qiter.idx);
-        double nvtsq_q = m0_o[cqidx]/pow(2.0*GKYL_PI*vtsq_o[cqidx], vdim/2.0);
-
         int pqidx = gkyl_range_idx(&up->phase_qrange, qiter.idx);
 
         comp_to_phys(pdim, gkyl_array_cfetch(up->ordinates, pqidx),
@@ -367,7 +389,7 @@ gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
           efact += (xmu[cdim+d]-udrift_o[cqidx][d])*(xmu[cdim+d]-udrift_o[cqidx][d]);
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
-        fq[0] = nvtsq_q*exp(-efact/(2.0*vtsq_o[cqidx]));
+        fq[0] = expamp_o[cqidx]*exp(-efact/(2.0*vtsq_o[cqidx]));
       }
 
       // compute expansion coefficients of Maxwellian on basis
@@ -376,6 +398,228 @@ gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
     }
   }
   
+}
+
+void
+gkyl_proj_gkmaxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
+  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
+  const struct gkyl_array *m0, const struct gkyl_array *m1, const struct gkyl_array *m2,
+  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, double mass,
+  struct gkyl_array *fmax)
+{
+
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu)
+    return gkyl_proj_gkmaxwellian_on_basis_lab_mom_cu(up, phase_rng, conf_rng, m0, m1, m2, 
+                                                      bmag, jacob_tot, mass, fmax);
+#endif
+
+  double fJacB_floor = 1.e-40;
+  int cdim = up->cdim, pdim = up->pdim;
+  int vdim = pdim-cdim;
+  int vdim_phys = vdim==1 ? 1 : 3;
+  int tot_quad = up->tot_quad;
+  int num_phase_basis = up->num_phase_basis;  
+
+  int tot_conf_quad = up->tot_conf_quad;
+  int num_conf_basis = up->num_conf_basis;
+
+  struct gkyl_range vel_rng;
+  struct gkyl_range_iter conf_iter, vel_iter;
+  
+  int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
+  for (int d=0; d<conf_rng->ndim; ++d) rem_dir[d] = 1;
+
+  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM] = {0.};
+  double exp_amp[tot_conf_quad], upar[tot_conf_quad], vtsq[tot_conf_quad];
+  double bfield[tot_conf_quad];
+  
+  // outer loop over configuration space cells; for each
+  // config-space cell inner loop walks over velocity space
+  gkyl_range_iter_init(&conf_iter, conf_rng);
+  while (gkyl_range_iter_next(&conf_iter)) {
+    long midx = gkyl_range_idx(conf_rng, conf_iter.idx);
+
+    const double *m0_d = gkyl_array_cfetch(m0, midx);
+    const double *m1_d = gkyl_array_cfetch(m1, midx);
+    const double *m2_d = gkyl_array_cfetch(m2, midx);
+    const double *bmag_d = gkyl_array_cfetch(bmag, midx);
+    const double *jactot_d = gkyl_array_cfetch(jacob_tot, midx);
+    
+    // compute primitive moments at quadrature nodes
+    for (int n=0; n<tot_conf_quad; ++n) {
+      const double *b_ord = gkyl_array_cfetch(up->conf_basis_at_ords, n);
+
+      bfield[n] = 0.0;  // magnetic field amplitude.
+      for (int k=0; k<num_conf_basis; ++k)
+        bfield[n] += bmag_d[k]*b_ord[k];
+
+      double num = 0.0;  // number density.
+      for (int k=0; k<num_conf_basis; ++k)
+        num += m0_d[k]*b_ord[k];
+
+      upar[n] = 0.0;  // parallel speed.
+      for (int k=0; k<num_conf_basis; ++k)
+        upar[n] += m1_d[k]*b_ord[k];
+      upar[n] = upar[n]/num;
+
+      // thermal speed squared.
+      double m2_n = 0.0;
+      for (int k=0; k<num_conf_basis; ++k)
+        m2_n += m2_d[k]*b_ord[k];
+      vtsq[n] = (m2_n - num*upar[n]*upar[n])/(num*vdim_phys);
+
+      // compute the amplitude of the exponential.
+      double jac = 0.0;
+      for (int k=0; k<num_conf_basis; ++k)
+        jac += jactot_d[k]*b_ord[k];
+      if ((num > 0.) && (vtsq[n]>0.))
+        exp_amp[n] = jac*num/sqrt(pow(2.0*GKYL_PI*vtsq[n], vdim_phys));
+      else
+        exp_amp[n] = 0.;
+
+    }
+
+    // inner loop over velocity space
+    gkyl_range_deflate(&vel_rng, phase_rng, rem_dir, conf_iter.idx);
+    gkyl_range_iter_no_split_init(&vel_iter, &vel_rng);
+    while (gkyl_range_iter_next(&vel_iter)) {
+      
+      copy_idx_arrays(conf_rng->ndim, phase_rng->ndim, conf_iter.idx, vel_iter.idx, pidx);
+      gkyl_rect_grid_cell_center(&up->grid, pidx, xc);
+
+      struct gkyl_range_iter qiter;
+      // compute Maxwellian at phase-space quadrature nodes
+      gkyl_range_iter_init(&qiter, &up->phase_qrange);
+      while (gkyl_range_iter_next(&qiter)) {
+
+        int cqidx = gkyl_range_idx(&up->conf_qrange, qiter.idx);
+        int pqidx = gkyl_range_idx(&up->phase_qrange, qiter.idx);
+
+        comp_to_phys(pdim, gkyl_array_cfetch(up->ordinates, pqidx),
+          up->grid.dx, xc, xmu);
+
+        double efact = 0.0;        
+        // vpar term.
+        efact += (xmu[cdim]-upar[cqidx])*(xmu[cdim]-upar[cqidx]);
+        // mu term (only for 2v, vdim_phys=3).
+        efact += (vdim_phys-1)*xmu[cdim+1]*bfield[cqidx]/mass;
+
+        double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
+        fq[0] = (fJacB_floor+exp_amp[cqidx])*exp(-efact/(2.0*vtsq[cqidx]));
+      }
+
+      // compute expansion coefficients of Maxwellian on basis
+      long lidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
+      proj_on_basis(up, up->fun_at_ords, gkyl_array_fetch(fmax, lidx));
+    }
+  } 
+}
+
+void
+gkyl_proj_gkmaxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
+  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
+  const struct gkyl_array *m0, const struct gkyl_array *upar, const struct gkyl_array *vtsq,  
+  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, double mass,
+  struct gkyl_array *fmax)
+{
+
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu)
+    return gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu(up, phase_rng, conf_rng, m0, upar, vtsq,
+                                                       bmag, jacob_tot, mass, fmax);
+#endif
+
+  double fJacB_floor = 1.e-40;
+  int cdim = up->cdim, pdim = up->pdim;
+  int vdim = pdim-cdim;
+  int vdim_phys = vdim==1 ? 1 : 3;
+  int tot_quad = up->tot_quad;
+  int num_phase_basis = up->num_phase_basis;  
+
+  int tot_conf_quad = up->tot_conf_quad;
+  int num_conf_basis = up->num_conf_basis;
+
+  struct gkyl_range vel_rng;
+  struct gkyl_range_iter conf_iter, vel_iter;
+  
+  int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
+  for (int d=0; d<conf_rng->ndim; ++d) rem_dir[d] = 1;
+
+  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
+  double expamp_o[tot_conf_quad], upar_o[tot_conf_quad], vtsq_o[tot_conf_quad];
+  double bmag_o[tot_conf_quad];
+  
+  // outer loop over configuration space cells; for each
+  // config-space cell inner loop walks over velocity space
+  gkyl_range_iter_init(&conf_iter, conf_rng);
+  while (gkyl_range_iter_next(&conf_iter)) {
+    long midx = gkyl_range_idx(conf_rng, conf_iter.idx);
+
+    const double *m0_d = gkyl_array_cfetch(m0, midx);
+    const double *upar_d = gkyl_array_cfetch(upar, midx);
+    const double *vtsq_d = gkyl_array_cfetch(vtsq, midx);
+    const double *bmag_d = gkyl_array_cfetch(bmag, midx);
+    const double *jactot_d = gkyl_array_cfetch(jacob_tot, midx);
+    
+    // compute primitive moments at quadrature nodes
+    for (int n=0; n<tot_conf_quad; ++n) {
+      const double *b_ord = gkyl_array_cfetch(up->conf_basis_at_ords, n);
+
+      double m0_o = 0., jac_o = 0.;
+      upar_o[n] = 0.;
+      vtsq_o[n] = 0.;
+      bmag_o[n] = 0.;
+      for (int k=0; k<num_conf_basis; ++k) {
+        m0_o += m0_d[k]*b_ord[k];
+        upar_o[n] += upar_d[k]*b_ord[k];
+        vtsq_o[n] += vtsq_d[k]*b_ord[k];
+        bmag_o[n] += bmag_d[k]*b_ord[k];
+        jac_o += jactot_d[k]*b_ord[k];
+      }
+
+      // Amplitude of the exponential.
+      if ((m0_o > 0.) && (vtsq_o[n]>0.))
+        expamp_o[n] = jac_o*m0_o/sqrt(pow(2.0*GKYL_PI*vtsq_o[n], vdim_phys));
+      else
+        expamp_o[n] = 0.;
+
+    }
+
+    // inner loop over velocity space
+    gkyl_range_deflate(&vel_rng, phase_rng, rem_dir, conf_iter.idx);
+    gkyl_range_iter_no_split_init(&vel_iter, &vel_rng);
+    while (gkyl_range_iter_next(&vel_iter)) {
+      
+      copy_idx_arrays(conf_rng->ndim, phase_rng->ndim, conf_iter.idx, vel_iter.idx, pidx);
+      gkyl_rect_grid_cell_center(&up->grid, pidx, xc);
+
+      struct gkyl_range_iter qiter;
+      // compute Maxwellian at phase-space quadrature nodes
+      gkyl_range_iter_init(&qiter, &up->phase_qrange);
+      while (gkyl_range_iter_next(&qiter)) {
+
+        int cqidx = gkyl_range_idx(&up->conf_qrange, qiter.idx);
+        int pqidx = gkyl_range_idx(&up->phase_qrange, qiter.idx);
+
+        comp_to_phys(pdim, gkyl_array_cfetch(up->ordinates, pqidx),
+          up->grid.dx, xc, xmu);
+
+        double efact = 0.0;        
+        // vpar term.
+        efact += (xmu[cdim]-upar_o[cqidx])*(xmu[cdim]-upar_o[cqidx]);
+        // mu term (only for 2v, vdim_phys=3).
+        efact += (vdim_phys-1)*xmu[cdim+1]*bmag_o[cqidx]/mass;
+
+        double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
+        fq[0] = (fJacB_floor+expamp_o[cqidx])*exp(-efact/(2.0*vtsq_o[cqidx]));
+      }
+
+      // compute expansion coefficients of Maxwellian on basis
+      long lidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
+      proj_on_basis(up, up->fun_at_ords, gkyl_array_fetch(fmax, lidx));
+    }
+  }
 }
 
 void

@@ -61,6 +61,50 @@ void gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis 
   struct gkyl_array *fmax);
 
 /**
+ * Compute projection of a gyrokinetic Maxwellian on basis.
+ * This method takes lab-frame moments to compute the projection
+ * of Maxwellian on basis functions.
+ *
+ * @param pob Project on basis updater to run
+ * @param phase_rng Phase-space range
+ * @param conf_rng Config-space range
+ * @param m0 Number density moment
+ * @param m1 Momentum in lab-frame
+ * @param m2 Energy in lab-frame
+ * @param bmag Magnetic field magnitude.
+ * @param jacob_tot Total jacobian (conf * guiding center jacobian). 
+ * @param mass Species mass.
+ * @param fmax Output Maxwellian
+ */
+void gkyl_proj_gkmaxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
+  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
+  const struct gkyl_array *M0, const struct gkyl_array *M1, const struct gkyl_array *M2,
+  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, double mass,
+  struct gkyl_array *fmax);
+
+/**
+ * Compute projection of a gyrokinetic Maxwellian on basis. This
+ * method takes primitive (fluid-frame) moments to compute the
+ * projection of Maxwellian on basis functions.
+ *
+ * @param pob Project on basis updater to run
+ * @param phase_rng Phase-space range
+ * @param conf_rng Config-space range
+ * @param m0 Number density moment
+ * @param udrift Velocity vector
+ * @param vtsq Square of thermal velocity (vtsq = T/m)
+ * @param bmag Magnetic field magnitude.
+ * @param jacob_tot Total jacobian (conf * guiding center jacobian). 
+ * @param mass Species mass.
+ * @param fmax Output Maxwellian
+ */
+void gkyl_proj_gkmaxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
+  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
+  const struct gkyl_array *m0, const struct gkyl_array *upar, const struct gkyl_array *vtsq,
+  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, double mass,
+  struct gkyl_array *fmax);
+
+/**
  * Delete updater.
  *
  * @param pob Updater to delete.
