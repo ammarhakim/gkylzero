@@ -51,6 +51,11 @@ test_mat_base()
     for (size_t i=0; i<m->nr; ++i)
       TEST_CHECK( gkyl_mat_get(m, i, j) == gkyl_mat_get(m2, i, j) );
 
+  double old = gkyl_mat_get(m, 3, 4);
+  double inc = -123.0;
+  gkyl_mat_inc(m, 3, 4, inc);
+  TEST_CHECK( gkyl_mat_get(m, 3, 4) == old + inc );
+
   gkyl_mat_release(m);
   gkyl_mat_release(m2);
 }
