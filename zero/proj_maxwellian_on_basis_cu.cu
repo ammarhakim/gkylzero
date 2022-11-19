@@ -292,7 +292,7 @@ gkyl_proj_gkmaxwellian_on_basis_lab_mom_cu_ker(const struct gkyl_rect_grid grid,
       // mu term (only for 2v, vdim_phys=3).
       efact += (vdim_phys-1)*xmu[cdim+1]*bfield[cqidx]/mass;
 
-      double fmax_o = (fJacB_floor+exp_amp[cqidx])*exp(-efact/(2.0*vtsq[cqidx]));
+      double fmax_o = fJacB_floor+exp_amp[cqidx]*exp(-efact/(2.0*vtsq[cqidx]));
 
       double tmp = phase_w[n]*fmax_o;
       for (int k=0; k<num_phase_basis; ++k)
@@ -393,7 +393,7 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu_ker(const struct gkyl_rect_grid grid
       // mu term (only for 2v, vdim_phys=3).
       efact += (vdim_phys-1)*xmu[cdim+1]*bmag_o[cqidx]/mass;
 
-      double fmax_o = (fJacB_floor+expamp_o[cqidx])*exp(-efact/(2.0*vtsq_o[cqidx]));
+      double fmax_o = fJacB_floor+expamp_o[cqidx]*exp(-efact/(2.0*vtsq_o[cqidx]));
 
       double tmp = phase_w[n]*fmax_o;
       for (int k=0; k<num_phase_basis; ++k)

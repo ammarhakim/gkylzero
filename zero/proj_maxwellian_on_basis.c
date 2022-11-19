@@ -499,7 +499,7 @@ gkyl_proj_gkmaxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
         efact += (vdim_phys-1)*xmu[cdim+1]*bfield[cqidx]/mass;
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
-        fq[0] = (fJacB_floor+exp_amp[cqidx])*exp(-efact/(2.0*vtsq[cqidx]));
+        fq[0] = fJacB_floor+exp_amp[cqidx]*exp(-efact/(2.0*vtsq[cqidx]));
       }
 
       // compute expansion coefficients of Maxwellian on basis
@@ -605,7 +605,7 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up
         efact += (vdim_phys-1)*xmu[cdim+1]*bmag_o[cqidx]/mass;
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
-        fq[0] = (fJacB_floor+expamp_o[cqidx])*exp(-efact/(2.0*vtsq_o[cqidx]));
+        fq[0] = fJacB_floor+expamp_o[cqidx]*exp(-efact/(2.0*vtsq_o[cqidx]));
       }
 
       // compute expansion coefficients of Maxwellian on basis
