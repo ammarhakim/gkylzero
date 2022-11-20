@@ -337,10 +337,14 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
 
   // FIXME are the following correct/optimal?
   gkyl_mem_buff ipiv = gkyl_mem_buff_new(sizeof(long[nfluids]));
+  struct gkyl_mat *lhs_u = gkyl_mat_clone(lhs);
+  struct gkyl_mat *lhs_v = gkyl_mat_clone(lhs);
+  struct gkyl_mat *lhs_w = gkyl_mat_clone(lhs);
   bool status;
-  status = gkyl_mat_linsolve_lu(lhs, rhs_u, gkyl_mem_buff_data(ipiv));
-  status = gkyl_mat_linsolve_lu(lhs, rhs_v, gkyl_mem_buff_data(ipiv));
-  status = gkyl_mat_linsolve_lu(lhs, rhs_w, gkyl_mem_buff_data(ipiv));
+  // note that lhs and rhs will be over-written
+  status = gkyl_mat_linsolve_lu(lhs_u, rhs_u, gkyl_mem_buff_data(ipiv));
+  status = gkyl_mat_linsolve_lu(lhs_v, rhs_v, gkyl_mem_buff_data(ipiv));
+  status = gkyl_mat_linsolve_lu(lhs_w, rhs_w, gkyl_mem_buff_data(ipiv));
 
   // update pressure
   {
@@ -399,6 +403,9 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
 
   gkyl_mem_buff_release(ipiv);
   gkyl_mat_release(lhs);
+  gkyl_mat_release(lhs_u);
+  gkyl_mat_release(lhs_v);
+  gkyl_mat_release(lhs_w);
   gkyl_mat_release(rhs_u);
   gkyl_mat_release(rhs_v);
   gkyl_mat_release(rhs_w);
