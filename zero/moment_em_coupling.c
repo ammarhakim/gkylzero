@@ -310,7 +310,7 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
   calcNu(mes, fluids, mes->nu_base, nu);
 
   // Update velocities
-  struct gkyl_mat *lhs = gkyl_mat_new(3, 3, 0.0);
+  struct gkyl_mat *lhs = gkyl_mat_new(nfluids, nfluids, 0.0);
   struct gkyl_mat *rhs_u = gkyl_mat_new(nfluids, 1, 0.0);
   struct gkyl_mat *rhs_v = gkyl_mat_new(nfluids, 1, 0.0);
   struct gkyl_mat *rhs_w = gkyl_mat_new(nfluids, 1, 0.0);
@@ -336,7 +336,7 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
   }
 
   // FIXME are the following correct/optimal?
-  gkyl_mem_buff ipiv = gkyl_mem_buff_new(sizeof(long[3]));
+  gkyl_mem_buff ipiv = gkyl_mem_buff_new(sizeof(long[nfluids]));
   bool status;
   status = gkyl_mat_linsolve_lu(lhs, rhs_u, gkyl_mem_buff_data(ipiv));
   status = gkyl_mat_linsolve_lu(lhs, rhs_v, gkyl_mem_buff_data(ipiv));
