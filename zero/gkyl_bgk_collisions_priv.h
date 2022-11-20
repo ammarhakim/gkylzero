@@ -2,10 +2,12 @@
 #include <gkyl_dg_bin_ops_priv.h>
 
 struct gkyl_bgk_collisions {
-  int cdim; // Configuration-space dimension.
-  int pdim; // Phase-space dimension.
-  int cnum_basis; // Number of conf-space basis functions.
-  int pnum_basis; // Number of phase-space basis functions.
+  unsigned cdim; // Configuration-space dimension.
+  unsigned vdim; // Velocity-space dimension.
+  unsigned cnum_basis; // Number of conf-space basis functions.
+  unsigned pnum_basis; // Number of phase-space basis functions.
+  unsigned poly_order; // Polynomial order of the basis.
+  enum gkyl_basis_type pb_type; // Phase basis type.
 
   mul_op_t mul_op; // Conf*phase bin_op multiplication kernel.
 

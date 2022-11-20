@@ -13,17 +13,18 @@ gkyl_bgk_collisions_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
   gkyl_bgk_collisions *up = gkyl_malloc(sizeof(gkyl_bgk_collisions));
 
   up->cdim = cbasis->ndim;
-  up->pdim = pbasis->ndim;
+  up->vdim = pbasis->ndim-up->cdim;
   up->cnum_basis = cbasis->num_basis;
   up->pnum_basis = pbasis->num_basis;
+  up->poly_order = cbasis->poly_order;
   up->use_gpu = use_gpu;
   assert(up->pnum_basis > up->cnum_basis);
   assert(up->pnum_basis <= 160); // MF 2022/11/18: hardcode to 3x3v p=1 hybrid.
 
-  int vdim = up->pdim-up->cdim;
   int poly_order = cbasis->poly_order;
-  enum gkyl_basis_type b_type = pbasis->b_type;
-  up->mul_op = choose_mul_conf_phase_kern(b_type, up->cdim, vdim, poly_order);
+  up->pb_type = pbasis->b_type;
+  if (!up->use_gpu)
+    up->mul_op = choose_mul_conf_phase_kern(up->pb_type, up->cdim, up->vdim, poly_order);
 
   return up;
 }
@@ -37,8 +38,10 @@ gkyl_bgk_collisions_advance(const gkyl_bgk_collisions *up,
   // Compute nu*f_M - nu*f, and its contribution to the CFL rate.
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_bgk_collisions_advance_cu(up, crange, prange, nu, nufM, fin, out, cflrate);
+    return gkyl_bgk_collisions_advance_cu(up, crange, prange, nu, nufM, fin, out, cflfreq);
 #endif
+
+  unsigned pdim = up->cdim+up->vdim;
 
   struct gkyl_range_iter piter;
   gkyl_range_iter_init(&piter, prange);
@@ -62,7 +65,7 @@ gkyl_bgk_collisions_advance(const gkyl_bgk_collisions *up,
 
     // Add contribution to CFL frequency.
     double *cflfreq_d = gkyl_array_fetch(cflfreq, ploc);
-    cflfreq_d[0] += nu_d[0]*sqrt(pow(2,up->pdim)) ;
+    cflfreq_d[0] += nu_d[0]*sqrt(pow(2,pdim)) ;
   }
 }
 
