@@ -342,7 +342,7 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
   bool status = gkyl_mat_linsolve_lu(lhs, rhs, gkyl_mem_buff_data(ipiv));
 
   /* STEP 2: UPDATE TEMPERATURE OR PRESSURE */
-  {
+  if (true) {
     gkyl_mat_clear(lhs, 0.0);
     struct gkyl_mat *rhs_T = gkyl_mat_new(nfluids, 1, 0.0);
 
@@ -384,6 +384,12 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
     }
 
     gkyl_mat_release(rhs_T);
+  } else {
+    for (int s=0; s<nfluids; ++s)
+    {
+      double *f = fluids[s];
+      f[PP] = pressure(f, gas_gamma);
+    }
   }
 
   /* STEP 3: UPDATE MOMENTUM AND TOTAL ENERGY */
