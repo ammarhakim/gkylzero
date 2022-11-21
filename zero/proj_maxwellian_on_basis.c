@@ -538,7 +538,7 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up
   int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
   for (int d=0; d<conf_rng->ndim; ++d) rem_dir[d] = 1;
 
-  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
+  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM] = {0.};
   double expamp_o[tot_conf_quad], upar_o[tot_conf_quad], vtsq_o[tot_conf_quad];
   double bmag_o[tot_conf_quad];
   

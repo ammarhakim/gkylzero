@@ -9,6 +9,8 @@ struct gkyl_bgk_collisions {
   unsigned poly_order; // Polynomial order of the basis.
   enum gkyl_basis_type pb_type; // Phase basis type.
 
+  double cellav_fac; // Multiply 0-th DG coeff by this to get the cell avg.
+
   mul_op_t mul_op; // Conf*phase bin_op multiplication kernel.
 
   bool use_gpu;

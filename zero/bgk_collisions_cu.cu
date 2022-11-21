@@ -11,14 +11,14 @@ extern "C" {
 
 __global__ void
 gkyl_bgk_collisions_advance_cu_kernel(unsigned cdim, unsigned vdim, unsigned poly_order,
-  unsigned pnum_basis, enum gkyl_basis_type b_type, struct gkyl_range crange, struct gkyl_range prange,
+  unsigned pnum_basis, enum gkyl_basis_type b_type, double cellav_fac,
+  struct gkyl_range crange, struct gkyl_range prange,
   const struct gkyl_array* nu, const struct gkyl_array* nufM, const struct gkyl_array* fin,
   struct gkyl_array* out, struct gkyl_array* cflfreq)
 {
   mul_op_t mul_op = choose_mul_conf_phase_kern(b_type, cdim, vdim, poly_order);
 
   int pidx[GKYL_MAX_DIM];
-  unsigned pdim = cdim+vdim;
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
       linc1 < prange.volume;
@@ -52,7 +52,7 @@ gkyl_bgk_collisions_advance_cu_kernel(unsigned cdim, unsigned vdim, unsigned pol
 
     // Add contribution to CFL frequency.
     double *cflfreq_d = (double *) gkyl_array_fetch(cflfreq, pstart);
-    cflfreq_d[0] += nu_d[0]*sqrt(pow(2,pdim)) ;
+    cflfreq_d[0] += nu_d[0]*cellav_fac;
   }
 }
 
@@ -64,7 +64,7 @@ gkyl_bgk_collisions_advance_cu(const gkyl_bgk_collisions *up,
 {
   int nblocks = prange->nblocks;
   int nthreads = prange->nthreads;
-  gkyl_bgk_collisions_advance_cu_kernel<<<nblocks, nthreads>>>(up->cdim,
-    up->vdim, up->poly_order, up->pnum_basis, up->pb_type, *crange, *prange,
+  gkyl_bgk_collisions_advance_cu_kernel<<<nblocks, nthreads>>>(up->cdim, up->vdim,
+    up->poly_order, up->pnum_basis, up->pb_type, up->cellav_fac, *crange, *prange,
     nu->on_dev, nufM->on_dev, fin->on_dev, out->on_dev, cflfreq->on_dev);
 }

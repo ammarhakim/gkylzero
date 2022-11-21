@@ -26,6 +26,8 @@ gkyl_bgk_collisions_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
   if (!up->use_gpu)
     up->mul_op = choose_mul_conf_phase_kern(up->pb_type, up->cdim, up->vdim, poly_order);
 
+  up->cellav_fac = 1./sqrt(pow(2,up->cdim));
+
   return up;
 }
 
@@ -40,8 +42,6 @@ gkyl_bgk_collisions_advance(const gkyl_bgk_collisions *up,
   if (up->use_gpu)
     return gkyl_bgk_collisions_advance_cu(up, crange, prange, nu, nufM, fin, out, cflfreq);
 #endif
-
-  unsigned pdim = up->cdim+up->vdim;
 
   struct gkyl_range_iter piter;
   gkyl_range_iter_init(&piter, prange);
@@ -65,7 +65,7 @@ gkyl_bgk_collisions_advance(const gkyl_bgk_collisions *up,
 
     // Add contribution to CFL frequency.
     double *cflfreq_d = gkyl_array_fetch(cflfreq, ploc);
-    cflfreq_d[0] += nu_d[0]*sqrt(pow(2,pdim)) ;
+    cflfreq_d[0] += nu_d[0]*up->cellav_fac;
   }
 }
 
