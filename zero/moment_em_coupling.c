@@ -307,27 +307,29 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
   int nfluids = mes->nfluids;
   double gas_gamma = mes->gas_gamma;
   double nu[nfluids * nfluids];
+
+  /* STEP 0: CALCULATE INTER-SPECIES COLLISION FREQUENCIES */
   calcNu(mes, fluids, mes->nu_base, nu);
 
-  // Update velocities
+  /* STEP 1: UPDATE VELOCITIES */
+  // the lhs matrix is identical for all three (i.e., x,y,z) components
   struct gkyl_mat *lhs = gkyl_mat_new(nfluids, nfluids, 0.0);
-  struct gkyl_mat *rhs_u = gkyl_mat_new(nfluids, 1, 0.0);
-  struct gkyl_mat *rhs_v = gkyl_mat_new(nfluids, 1, 0.0);
-  struct gkyl_mat *rhs_w = gkyl_mat_new(nfluids, 1, 0.0);
+  // rhs has 3 column vectors, each has nfluids components <-> nfluids equations
+  struct gkyl_mat *rhs = gkyl_mat_new(nfluids, 3, 0.0);
 
   for (int s=0; s<nfluids; ++s)
   {
     double *fs = fluids[s];
-    gkyl_mat_set(rhs_u, s, 0, fs[MX] / fs[RHO]);
-    gkyl_mat_set(rhs_v, s, 0, fs[MY] / fs[RHO]);
-    gkyl_mat_set(rhs_w, s, 0, fs[MZ] / fs[RHO]);
+    gkyl_mat_set(rhs, s, 0, fs[MX] / fs[RHO]);
+    gkyl_mat_set(rhs, s, 1, fs[MY] / fs[RHO]);
+    gkyl_mat_set(rhs, s, 2, fs[MZ] / fs[RHO]);
 
     gkyl_mat_set(lhs, s, s, 1.0);
     const double *nu_s = nu + nfluids * s;
     for (int r=0; r<nfluids; ++r)
     {
       if (r==s)
-        continue;
+        continue; // TODO allow self-collision
 
       const double half_dt_nu_sr = 0.5 * dt * nu_s[r];
       gkyl_mat_inc(lhs, s, s, half_dt_nu_sr);
@@ -335,18 +337,11 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
     }
   }
 
-  // FIXME are the following correct/optimal?
   gkyl_mem_buff ipiv = gkyl_mem_buff_new(sizeof(long[nfluids]));
-  struct gkyl_mat *lhs_u = gkyl_mat_clone(lhs);
-  struct gkyl_mat *lhs_v = gkyl_mat_clone(lhs);
-  struct gkyl_mat *lhs_w = gkyl_mat_clone(lhs);
-  bool status;
-  // note that lhs and rhs will be over-written
-  status = gkyl_mat_linsolve_lu(lhs_u, rhs_u, gkyl_mem_buff_data(ipiv));
-  status = gkyl_mat_linsolve_lu(lhs_v, rhs_v, gkyl_mem_buff_data(ipiv));
-  status = gkyl_mat_linsolve_lu(lhs_w, rhs_w, gkyl_mem_buff_data(ipiv));
+  // lhs and rhs are both input and output, i.e., rhs is solution after solve
+  bool status = gkyl_mat_linsolve_lu(lhs, rhs, gkyl_mem_buff_data(ipiv));
 
-  // update pressure
+  /* STEP 2: UPDATE TEMPERATURE OR PRESSURE */
   {
     gkyl_mat_clear(lhs, 0.0);
     struct gkyl_mat *rhs_T = gkyl_mat_new(nfluids, 1, 0.0);
@@ -369,9 +364,9 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
           continue;
 
         const double mr = mes->param[r].mass;
-        const double du2 = sq(gkyl_mat_get(rhs_u,s,0)-gkyl_mat_get(rhs_u,r,0)) \
-                         + sq(gkyl_mat_get(rhs_v,s,0)-gkyl_mat_get(rhs_v,r,0)) \
-                         + sq(gkyl_mat_get(rhs_w,s,0)-gkyl_mat_get(rhs_w,r,0));
+        const double du2 = sq(gkyl_mat_get(rhs,s,0)-gkyl_mat_get(rhs,r,0)) \
+                         + sq(gkyl_mat_get(rhs,s,1)-gkyl_mat_get(rhs,r,1)) \
+                         + sq(gkyl_mat_get(rhs,s,2)-gkyl_mat_get(rhs,r,2));
         const double coeff_sr = coeff * nu_s[r] / (ms + mr);
 
         gkyl_mat_inc(rhs_T, s, 0, coeff_sr * (mr / 3.) * du2);
@@ -389,26 +384,21 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
     }
 
     gkyl_mat_release(rhs_T);
-  } // End of pressure update
+  }
 
-  // Compute momentum (from velocity) and total energy at full time-step n+1
+  /* STEP 3: UPDATE MOMENTUM AND TOTAL ENERGY */
   for (int s=0; s<nfluids; ++s)
   {
     double *f = fluids[s];
-    f[MX] = 2 * f[RHO] * gkyl_mat_get(rhs_u,s,0) - f[MX];
-    f[MY] = 2 * f[RHO] * gkyl_mat_get(rhs_v,s,0) - f[MY];
-    f[MZ] = 2 * f[RHO] * gkyl_mat_get(rhs_w,s,0) - f[MZ];
+    f[MX] = 2 * f[RHO] * gkyl_mat_get(rhs,s,0) - f[MX];
+    f[MY] = 2 * f[RHO] * gkyl_mat_get(rhs,s,1) - f[MY];
+    f[MZ] = 2 * f[RHO] * gkyl_mat_get(rhs,s,2) - f[MZ];
     f[ER] = f[PP]/(gas_gamma-1) + 0.5*(sq(f[MX])+sq(f[MY])+sq(f[MZ]))/f[RHO];
   }
 
   gkyl_mem_buff_release(ipiv);
   gkyl_mat_release(lhs);
-  gkyl_mat_release(lhs_u);
-  gkyl_mat_release(lhs_v);
-  gkyl_mat_release(lhs_w);
-  gkyl_mat_release(rhs_u);
-  gkyl_mat_release(rhs_v);
-  gkyl_mat_release(rhs_w);
+  gkyl_mat_release(rhs);
 }
 
 
