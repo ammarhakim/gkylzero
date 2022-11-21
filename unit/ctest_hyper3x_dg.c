@@ -60,7 +60,7 @@ test_vlasov_2x3v_p1_(bool use_gpu)
 
   // initialize eqn
   struct gkyl_dg_eqn *eqn;
-  enum gkyl_field_id field_id = GKYL_FIELD_E_B;
+  enum gkyl_field_id field_id = GKYL_FIELD_NULL;
   eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &confRange, field_id, use_gpu);
 
   // initialize hyper_dg slvr // CHECK THIS (TNB)
@@ -102,7 +102,7 @@ test_vlasov_2x3v_p1_(bool use_gpu)
     qmem_d = qmem->data;
   }
   for(int i=0; i< nem; i++) {
-    qmem_d[i] = 0; //(double)(-i+27 % nem) / nem  * ((i%2 == 0) ? 1 : -1);
+    qmem_d[i] = 0.; //(double)(-i+27 % nem) / nem  * ((i%2 == 0) ? 1 : -1);
   }
   if (use_gpu) gkyl_array_copy(qmem, qmem_h);
 
@@ -141,177 +141,179 @@ test_vlasov_2x3v_p1_(bool use_gpu)
   // check data in first non-ghost cell
   rhs_d = gkyl_array_fetch(rhs_h, linl);
 
-//  printf("first cell rhs\n");
-//  for(int i=0; i<rhs->ncomp; i++) printf("%.16e\n", rhs_d[i]);
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[0 ], 1.5583125504656174e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[1 ], 2.6228222340877672e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[2 ], 2.3673600178359444e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[3 ], 2.0445381301295842e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[4 ], 5.8009947700332258e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[5 ],-4.3951673951369203e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[6 ],-3.2740808507907353e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[7 ], 6.1685466145806656e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[8 ],-9.9225900289967033e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[9 ], 1.5556139476411834e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[10],-2.0649266813526133e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[11],-2.0472420155729774e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[12],-1.6861158492781747e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[13], 5.7160667881100276e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[14],-3.7334543012748869e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[15],-4.0631107293252215e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[16],-2.2368678996807198e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[17], 2.4975896418604588e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[18],-1.7766928843531296e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[19], 6.9681762700869800e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[20],-2.5402211148036020e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[21], 2.5963072988336688e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[22],-1.2065136079090388e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[23], 1.4311020988985428e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[24],-1.7307228807072821e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[25], 1.0648291736093665e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[26],-2.8942763774151025e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[27], 3.4876234221247344e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[28],-1.6213472698033865e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[29],-1.3152058297652811e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[30], 5.5160829801207081e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[31], 1.3248009285063111e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[32], 2.0626248834060192e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[33],-1.8675890171358858e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[34], 1.0700556896733145e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[35], 1.0267345121490179e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[36],-2.9814328597585448e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[37], 8.2810622260402198e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[38],-2.8000677504722145e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[39], 2.5161866916865655e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[40], 1.6582163376892304e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[41],-2.2287681627701883e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[42],-6.5143195699025309e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[43], 7.6733697089938193e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[44], 1.6105940484870842e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[45], 2.5284590774855953e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[46],-1.6803923116017092e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[47], 3.4993021915577259e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[48],-6.4429006203071723e-02, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[49], 2.1373817491282676e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[50],-9.0822803896705562e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[51], 6.3081769272408259e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[52],-1.1470246109901016e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[53], 2.7774567065033185e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[54],-2.7118393077830891e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[55], 1.9747275150178819e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[56],-1.8774237677748375e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[57],-4.0091254392929780e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[58], 1.1181326827391735e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[59], 1.0012387003982573e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[60],-1.5378762139131592e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[61], 1.9579525074768895e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[62],-7.2504813611281804e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[63], 2.8594267179149174e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[64], 3.3960460641818287e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[65],-1.2671905220786885e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[66], 2.3465937131321578e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[67],-2.5018574073021767e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[68],-7.6358915438484063e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[69],-4.8114279712708772e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[70], 4.2101152078896291e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[71],-1.0127724148100189e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[72],-5.7706791067934295e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[73],-1.0415188306383120e-01, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[74],-5.6167239912421829e+00, 1e-12) );  */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[75], 3.9890443806074821e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[76],-2.0747338814618409e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[77], 2.6252175357150804e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[78],-1.5452629233319728e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[79], 3.5165336694630724e+01, 1e-12) ); */
+  printf("\nfirst cell rhs\n");
+  //for(int i=0; i<rhs->ncomp; i++) printf("%.16e\n", rhs_d[i]);
+  //for(int i=0; i<rhs->ncomp; i++) printf("  TEST_CHECK( gkyl_compare_double(rhs_d[%d], %.16e, 1e-12) );\n", i, rhs_d[i]);
+  TEST_CHECK( gkyl_compare_double(rhs_d[0], 1.3690598923241531e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[1], 2.5959124607127443e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[2], -9.1488834927265028e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[3], -3.7667112687365285e-02, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[4], -5.5533422537472843e-02, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[5], 1.0309401076758480e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[6], -1.1074510946701672e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[7], 4.0855765035618780e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[8], -1.1163550491206880e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[9], 3.5436950494916047e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[10], -7.9861410154013406e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[11], 5.7730481386913730e-02, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[12], -2.9883756828964786e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[13], 1.0294587787959923e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[14], -1.8108249704942395e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[15], 1.1783500590114784e-02, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[16], -9.2287937163858977e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[17], 9.8524611325354616e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[18], -6.0553984851628695e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[19], 9.7347366830467656e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[20], -8.9061171167058877e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[21], 2.2236181248744577e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[22], -8.6851072802314935e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[23], -6.2311671918347092e-02, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[24], -1.1738397710451357e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[25], 1.0226951861308613e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[26], -9.5434496888054916e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[27], 8.6677665786627554e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[28], -8.3838134849355939e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[29], 6.6911322691834907e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[30], -8.5490688922265754e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[31], 8.7237671583388074e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[32], 1.0334747013046115e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[33], 7.0975673823576679e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[34], -1.0353770140648715e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[35], -6.7914231596387657e-05, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[36], 1.5553796806952253e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[37], 9.1181559558118011e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[38], -4.4368046638159059e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[39], 1.0521370129389039e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[40], -2.5328004264881254e-02, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[41], 1.0735589126771989e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[42], 8.0253459362875812e-02, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[43], 9.1179421184190090e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[44], -1.0546866726854645e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[45], 7.4978411411601920e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[46], -1.0215084283778118e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[47], 1.1103845770127094e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[48], -6.3986417153681030e-02, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[49], 3.2284501760088669e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[50], -8.5705274011403283e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[51], 6.3986417153680406e-02, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[52], 1.7976350479367634e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[53], 9.4521357289442633e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[54], 1.6211996623166575e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[55], 9.1170087011384435e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[56], 4.4217588044088992e-02, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[57], 1.0693322352950108e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[58], -1.5880055981183322e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[59], 1.1192740889871851e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[60], -8.9937579923000968e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[61], 5.2285772693619348e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[62], -8.7349229823544192e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[63], 9.0295862131402451e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[64], -1.0309401076758483e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[65], 3.3886652512965904e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[66], -1.0095523624279904e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[67], 7.9999999999999544e-02, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[68], 1.5999999999999998e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[69], 1.0937174059046534e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[70], 1.4609845870289315e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[71], 1.0602022582867146e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[72], 7.5401693355437813e-03, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[73], 1.0740603221996334e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[74], -1.9547005383792518e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[75], 9.7082717581449387e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[76], -1.0514555600634669e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[77], 4.9887923446496557e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[78], -1.0255717792950517e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[79], 8.9070574748053115e+00, 1e-12) );
 
 /*   // get linear index of some other cell */
 /*   // 1-indexed for interfacing with G2 Lua layer */
-/*   int idx2[] = {6, 3, 5, 8, 2}; */
-/*   int linl2 = gkyl_range_idx(&phaseRange, idx2); */
-/*   rhs_d = gkyl_array_fetch(rhs_h, linl2); */
+  int idx2[] = {6, 3, 5, 8, 2, 1};
+  int linl2 = gkyl_range_idx(&phaseRange, idx2);
+  rhs_d = gkyl_array_fetch(rhs_h, linl2);
 
-/* //  printf("second cell rhs\n"); */
-/* //  for(int i=0; i<rhs->ncomp; i++) printf("%.16e\n", rhs_d[i]); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[0 ], 4.7846096908267584e-02, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[1 ], 1.1169581543468636e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[2 ],-5.7985569827277743e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[3 ], 6.3560588230111681e-01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[4 ],-3.8037040250162341e-01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[5 ], 3.1215390309173313e-01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[6 ],-5.9451450645977602e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[7 ], 1.4624629486937456e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[8 ],-4.9690031412084231e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[9 ], 3.5213109571593453e+00, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[10],-6.0955021313238532e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[11], 2.6476452020050101e-01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[12],-3.5100041616767794e+00, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[13], 4.8316996719345781e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[14],-6.1122488642299089e-01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[15], 7.9850069590596184e-01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[16],-6.4345760693277171e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[17], 5.5391125581775690e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[18],-7.3134438613368351e+00, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[19], 5.2492380773845227e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[20],-6.0283166541522384e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[21], 7.9945201071625741e-02, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[22],-5.7177859264242791e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[23], 1.0385552375417682e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[24],-4.5437126504480567e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[25], 7.7523547979949659e-01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[26],-5.2901252593887023e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[27], 5.6432376028981565e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[28],-6.3928564161796082e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[29], 1.4801034042997721e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[30],-6.1595791904709372e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[31], 6.8347478052667171e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[32], 7.7635047936775073e-02, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[33], 1.1223967073645461e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[34],-4.8555037059507058e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[35], 1.2892406386095562e-01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[36],-3.9986417153680837e-01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[37], 6.1091198999195505e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[38],-1.1056795014088960e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[39], 4.8890197502476475e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[40],-3.2270859286785982e+00, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[41], 4.8833583888325073e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[42], 5.4541037169184979e-02, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[43], 6.0485697373310906e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[44],-5.1988442558875640e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[45], 1.1184035513346096e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[46],-4.8157508893945355e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[47], 5.9610415538418607e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[48],-3.4882339711782762e-01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[49], 3.5298202468643511e+00, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[50],-5.6203287350628727e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[51], 3.4882339711782717e-01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[52],-3.6695369052217031e-01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[53], 6.7906001630206347e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[54],-3.0448691264619017e+00, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[55], 5.7296223828675863e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[56],-2.8163526802784560e+00, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[57], 4.9266605122525164e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[58],-5.5910759361390594e-01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[59], 6.0312249472335431e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[60],-5.9820310601514130e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[61], 3.9298520202026186e+00, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[62],-5.6639340789701137e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[63], 5.9784613439394072e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[64],-3.1215390309173785e-01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[65], 3.4700765537768121e+00, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[66],-4.7918000752070810e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[67], 2.8905989232414975e-01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[68],-3.9094010767585058e-01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[69], 5.9660773305385845e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[70],-2.9851254333743560e+00, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[71], 4.9050915156881537e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[72],-2.7772648983706874e+00, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[73], 4.8843130373068703e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[74],-5.2000000000000235e-01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[75], 6.8558300614068344e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[76],-5.1539246260931648e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[77], 3.9101083271150761e+00, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[78],-4.8358250228732551e+01, 1e-12) ); */
-/*   TEST_CHECK( gkyl_compare_double(rhs_d[79], 6.0284545971110632e+01, 1e-12) ); */
+  printf("second cell rhs\n");
+  //for(int i=0; i<rhs->ncomp; i++) printf("%.16e\n", rhs_d[i]);
+  //for(int i=0; i<rhs->ncomp; i++) printf("  TEST_CHECK( gkyl_compare_double(rhs_d[%d], %.16e, 1e-12) );\n", i, rhs_d[i]);
+  TEST_CHECK( gkyl_compare_double(rhs_d[0], 4.0254663528750839e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[1], 3.5055661041459551e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[2], -5.9719988627674560e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[3], 2.4679735333677346e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[4], 1.7433013587762800e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[5], -2.4254663528751841e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[6], -8.0895487891781030e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[7], 3.3979716522998558e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[8], -5.1465327291404527e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[9], 3.1469742464311096e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[10], -6.0378612387375462e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[11], -2.5213307702818638e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[12], -3.1458461565011586e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[13], 4.7745069764400398e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[14], 8.4558149005685354e-02, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[15], 2.5532012342852122e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[16], -8.7692916515462798e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[17], 8.3320979782297044e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[18], -3.3355757126962551e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[19], 5.1777943243601726e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[20], -8.8211329316249746e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[21], 2.9755756064845059e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[22], -5.6564985249657092e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[23], 3.1846905993719712e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[24], -4.7375950449271848e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[25], 2.4921330770281909e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[26], -8.2558126402449730e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[27], 8.6266738402830455e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[28], -8.9430491127651436e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[29], 3.4356255437200701e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[30], -6.0941623438163560e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[31], 9.4168094543678635e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[32], 4.4898811618556794e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[33], 3.5314166191155195e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[34], -4.7884211522148370e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[35], -3.4570856028669938e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[36], -2.3501026779855829e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[37], 8.8615528467765316e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[38], -3.4968136794301024e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[39], 5.0823106334645843e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[40], -2.8525893551345447e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[41], 4.8266011563965989e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[42], 4.2589410541797218e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[43], 8.5764073350286012e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[44], -7.9694811442965104e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[45], 3.5274306067035454e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[46], -4.7665520252619011e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[47], 8.3504454968954363e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[48], 2.0587714126142315e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[49], 3.1478592976962837e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[50], -5.5828271610272871e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[51], -2.0587714126142381e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[52], -2.3216542289014268e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[53], 9.1772094823822343e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[54], -3.0993674868130277e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[55], 5.9146055987912519e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[56], -2.8340314704207628e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[57], 4.8694333787823062e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[58], 1.1106299860327151e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[59], 8.1556274558128763e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[60], -8.7748814590552357e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[61], 3.1678718186298134e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[62], -5.6064269779058783e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[63], 8.7713124022956279e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[64], 2.4254663528751652e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[65], 3.1418987396851609e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[66], -4.7545872990580406e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[67], -2.6564064605509718e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[68], -2.3456406460551036e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[69], 8.3529863247802268e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[70], -3.0934069288019053e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[71], 5.0903639709630930e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[72], -2.8301365035276184e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[73], 4.8270971532602601e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[74], 1.5017059221717682e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[75], 8.9799405237043672e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[76], -7.9470780435029781e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[77], 3.1659112606186909e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[78], -4.7786072571909806e+01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(rhs_d[79], 8.8212949996830361e+01, 1e-12) );
 
   // clean up
   gkyl_array_release(fin);
