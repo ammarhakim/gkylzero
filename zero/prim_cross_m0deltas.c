@@ -14,11 +14,12 @@ gkyl_prim_cross_m0deltas_new(const struct gkyl_basis *basis, const struct gkyl_r
   // MF 2022/11/19: hardcoded arrays for a max of 3x p2 Ser basis below.
   assert(basis->num_basis <= 20);
 
-  // Preallocate memory for the weak division.
-  up->mem = gkyl_dg_bin_op_mem_new(range->volume, basis->num_basis);
-
   up->betap1 = betap1;
   up->use_gpu = use_gpu;
+
+  // Preallocate memory for the weak division.
+  up->mem = use_gpu ? gkyl_dg_bin_op_mem_cu_dev_new(range->volume, basis->num_basis)
+	             : gkyl_dg_bin_op_mem_new(range->volume, basis->num_basis);
 
   return up;
 }
