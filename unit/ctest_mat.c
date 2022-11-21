@@ -154,13 +154,16 @@ test_mat_linsolve()
  
   // trivial extension of the test above; rhs is two column vectors
   struct gkyl_mat *xx = gkyl_mat_new(3, 2, 1.0);
+  gkyl_mat_set(xx, 0, 1, 2.0);
+  gkyl_mat_set(xx, 1, 1, 2.0);
+  gkyl_mat_set(xx, 2, 1, 2.0);
   status = gkyl_mat_linsolve_lu(AA, xx, gkyl_mem_buff_data(ipiv));
 
   TEST_CHECK( gkyl_compare(gkyl_mat_get(xx,0,0), -1.0, 1e-15) );
   TEST_CHECK( gkyl_compare(gkyl_mat_get(xx,1,0), 1.0, 1e-15) );
   TEST_CHECK( gkyl_compare(gkyl_mat_get(xx,2,0), 0.0, 1e-15) );
-  TEST_CHECK( gkyl_compare(gkyl_mat_get(xx,0,1), -1.0, 1e-15) );
-  TEST_CHECK( gkyl_compare(gkyl_mat_get(xx,1,1), 1.0, 1e-15) );
+  TEST_CHECK( gkyl_compare(gkyl_mat_get(xx,0,1), -2.0, 1e-15) );
+  TEST_CHECK( gkyl_compare(gkyl_mat_get(xx,1,1), 2.0, 1e-15) );
   TEST_CHECK( gkyl_compare(gkyl_mat_get(xx,2,1), 0.0, 1e-15) );
 
   gkyl_mat_release(AA);
