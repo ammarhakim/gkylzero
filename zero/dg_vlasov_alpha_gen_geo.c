@@ -23,10 +23,7 @@ copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 void
 gkyl_dg_alpha_gen_geo(struct gkyl_basis basis, const struct gkyl_range *conf_rng,
   const struct gkyl_range *phase_rng, const struct gkyl_array *tv_comp,
-  const struct gkyl_rect_grid *grid,
-  const struct gkyl_array *gxx, const struct gkyl_array *gxy,
-  const struct gkyl_array *gxz, const struct gkyl_array *gyy,
-  const struct gkyl_array *gyz, const struct gkyl_array *gzz,
+  const struct gkyl_rect_grid *grid, const struct gkyl_array *gij,
   struct gkyl_array *alpha_geo)
 {
   // Add GPU capability later...
@@ -56,12 +53,7 @@ gkyl_dg_alpha_gen_geo(struct gkyl_basis basis, const struct gkyl_range *conf_rng
   while (gkyl_range_iter_next(&conf_iter)) {
     long loc_c = gkyl_range_idx(conf_rng, conf_iter.idx);
 
-    const double *gxx_d = gkyl_array_cfetch(gxx, loc_c);
-    const double *gxy_d = gkyl_array_cfetch(gxy, loc_c);
-    const double *gxz_d = gkyl_array_cfetch(gxz, loc_c);
-    const double *gyy_d = gkyl_array_cfetch(gyy, loc_c);
-    const double *gyz_d = gkyl_array_cfetch(gyz, loc_c);
-    const double *gzz_d = gkyl_array_cfetch(gzz, loc_c);
+    const double *gij_d = gkyl_array_cfetch(gij, loc_c);
 
     // Loop over velocity space. 
     while (gkyl_range_iter_next(&vel_iter)) {
@@ -74,7 +66,7 @@ gkyl_dg_alpha_gen_geo(struct gkyl_basis basis, const struct gkyl_range *conf_rng
       gkyl_rect_grid_cell_center(grid, pidx, xc);
 
       // Call alpha_gen_geo kernel.
-      alpha_gen_geo(xc, grid->dx, tv_comp_d, gxx_d, gxy_d, gxz_d, gyy_d, gyz_d, gzz_d, alpha_geo_d);
+      alpha_gen_geo(xc, grid->dx, tv_comp_d, gij_d, alpha_geo_d);
     }
   }
   

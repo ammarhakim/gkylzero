@@ -1,10 +1,10 @@
 #include <gkyl_dg_vlasov_alpha_gen_geo_kernels.h> 
-GKYL_CU_DH void vlasov_alpha_gen_geo_3x3v_ser_p1(const double *w, const double *dxv, const double *tvComp, const double *gxx, const double *gxy, const double *gxz, const double *gyy, const double *gyz, const double *gzz, double* GKYL_RESTRICT alpha_geo) 
+GKYL_CU_DH void vlasov_alpha_gen_geo_3x3v_ser_p1(const double *w, const double *dxv, const double *tvComp, const double *gij, double* GKYL_RESTRICT alpha_geo) 
 { 
   // w[NDIM]:    Cell-center coordinates.
   // dxv[NDIM]:  Cell spacing.
   // tvComp[72]: Components for tangent basis vectors.
-  // gij[8]:    Contravariant components of metric tensor.
+  // gij[48]:    Contravariant components of metric tensor.
   // v_i:        Covariant components of velocity.
   // alpha_geo:        Output alpha field.
 
@@ -12,6 +12,12 @@ GKYL_CU_DH void vlasov_alpha_gen_geo_3x3v_ser_p1(const double *w, const double *
   double v_y[64];
   double v_z[64];
 
+  const double *gxx = &gij[0]; 
+  const double *gxy = &gij[8]; 
+  const double *gxz = &gij[16]; 
+  const double *gyy = &gij[24]; 
+  const double *gyz = &gij[32]; 
+  const double *gzz = &gij[40]; 
   v_x[0] = 2.828427124746191*(w[5]*tvComp[16]+w[4]*tvComp[8]+tvComp[0]*w[3]); 
   v_x[1] = 2.828427124746191*(w[5]*tvComp[17]+w[4]*tvComp[9]+tvComp[1]*w[3]); 
   v_x[2] = 2.828427124746191*(w[5]*tvComp[18]+w[4]*tvComp[10]+tvComp[2]*w[3]); 

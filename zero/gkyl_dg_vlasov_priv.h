@@ -422,6 +422,7 @@ struct dg_vlasov {
   int pdim; // Phase-space dimensions
   vlasov_vol_t vol; // Volume kernel
   vlasov_stream_surf_t stream_surf[3]; // Surface terms for streaming
+  vlasov_stream_gen_geo_surf_t stream_gen_geo_surf[3];
   vlasov_accel_surf_t accel_surf[3]; // Surface terms for acceleration
   vlasov_accel_boundary_surf_t accel_boundary_surf[3]; // Surface terms for acceleration
   struct gkyl_range conf_range; // configuration space range
