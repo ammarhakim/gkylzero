@@ -33,7 +33,8 @@ gkyl_prim_cross_m0deltas_advance(gkyl_prim_cross_m0deltas *up, struct gkyl_basis
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
     return gkyl_prim_cross_m0deltas_advance_cu(up, basis, massself, m0self, nuself,
-                                               massother, m0other, nuother, range, out);
+      massother, m0other, nuother, prem0s, range, out);
+
 #endif
 
   int num_basis = basis.num_basis;
