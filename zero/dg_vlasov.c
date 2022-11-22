@@ -112,7 +112,7 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
     vlasov->vol = CK(stream_vol_kernels,cdim,vdim,poly_order);
   else if (field_id == GKYL_FIELD_NULL_GEN_GEO) {
     vlasov->vol = CK(stream_gen_geo_vol_kernels,cdim,vdim,poly_order);
-    // Neutral gen geo will always be 3x3v. Do we need to add branching below? 
+    // Neutral gen geo will always be 3x3v.
     vlasov->stream_gen_geo_surf[0] = CK(stream_gen_geo_surf_x_kernels,cdim,vdim,poly_order);
     vlasov->stream_gen_geo_surf[1] = CK(stream_gen_geo_surf_y_kernels,cdim,vdim,poly_order);
     vlasov->stream_gen_geo_surf[2] = CK(stream_gen_geo_surf_z_kernels,cdim,vdim,poly_order);

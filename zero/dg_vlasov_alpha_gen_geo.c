@@ -21,10 +21,10 @@ copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 
 // calculate alpha gen geo
 void
-gkyl_dg_alpha_gen_geo(struct gkyl_basis basis, const struct gkyl_range *conf_rng,
-  const struct gkyl_range *phase_rng, const struct gkyl_array *tv_comp,
-  const struct gkyl_rect_grid *grid, const struct gkyl_array *gij,
-  struct gkyl_array *alpha_geo)
+gkyl_dg_alpha_gen_geo(struct gkyl_basis basis,
+  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
+  const struct gkyl_rect_grid *grid,const struct gkyl_array *tv_comp,
+  const struct gkyl_array *gij, struct gkyl_array *alpha_geo)
 {
   // Add GPU capability later...
   /*#ifdef GKYL_HAVE_CUDA

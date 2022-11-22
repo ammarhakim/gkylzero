@@ -17,7 +17,7 @@
  * @param gij Metric coefficients g^ij
  * @param alpha_geo Output contravariant velocity components v^i
  */
-void gkyl_dg_alpha_gen_geo(struct gkyl_basis basis, const struct gkyl_range *conf_rng,
-  const struct gkyl_range *phase_rng, const struct gkyl_array *tv_comp,
-  const struct gkyl_rect_grid *grid, const struct gkyl_array *gij,
-  struct gkyl_array *alpha_geo);
+void gkyl_dg_alpha_gen_geo(struct gkyl_basis basis,
+  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
+  const struct gkyl_rect_grid *grid,const struct gkyl_array *tv_comp,
+  const struct gkyl_array *gij, struct gkyl_array *alpha_geo);
