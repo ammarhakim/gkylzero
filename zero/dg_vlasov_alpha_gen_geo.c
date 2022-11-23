@@ -21,10 +21,11 @@ copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 
 // calculate alpha gen geo
 void
-gkyl_dg_alpha_gen_geo(struct gkyl_basis basis,
+gkyl_dg_alpha_gen_geo(struct gkyl_basis *conf_basis,
+  struct gkyl_basis *phase_basis,
   const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
-  const struct gkyl_rect_grid *grid,const struct gkyl_array *tv_comp,
-  const struct gkyl_array *gij, struct gkyl_array *alpha_geo)
+  const struct gkyl_rect_grid *grid,const struct gkyl_array* tv_comp,
+  const struct gkyl_array* gij, struct gkyl_array* alpha_geo)
 {
   // Add GPU capability later...
   /*#ifdef GKYL_HAVE_CUDA
@@ -33,41 +34,34 @@ gkyl_dg_alpha_gen_geo(struct gkyl_basis basis,
   }
   #endif*/
   
-  int num_basis = basis.num_basis;
-  int ndim = basis.ndim;
-  int poly_order = basis.poly_order;
+  int num_basis = phase_basis->num_basis;
+  int cdim = conf_basis->ndim;
+  int vdim = phase_basis->ndim - cdim;
+  int poly_order = conf_basis->poly_order;
   int pidx[GKYL_MAX_DIM];
   double xc[GKYL_MAX_DIM];
 
   // Assert that grid is 3x3v and then select kernel here
-  assert(ndim == 6);
+  assert(cdim + vdim == 6);
   dg_vlasov_alpha_gen_geof_t alpha_gen_geo = CK(ser_vlasov_alpha_gen_geo_kernels, poly_order); 
 
-  struct gkyl_range vel_rng;
-  struct gkyl_range_iter conf_iter, vel_iter;
+  struct gkyl_range_iter phase_iter;
 
-  int rem_dir[GKYL_MAX_DIM] = { 0 };
-  for (int d=0; d<conf_rng->ndim; ++d) rem_dir[d] = 1;
+  gkyl_range_iter_init(&phase_iter, phase_rng);
+  while (gkyl_range_iter_next(&phase_iter)) {
+    long ploc = gkyl_range_idx(phase_rng, phase_iter.idx);
+    double *alpha_geo_d = gkyl_array_fetch(alpha_geo, ploc);
 
-  gkyl_range_iter_init(&conf_iter, conf_rng);
-  while (gkyl_range_iter_next(&conf_iter)) {
-    long loc_c = gkyl_range_idx(conf_rng, conf_iter.idx);
+    int cidx[3]; 
+    for (int d=0; d<cdim; d++) cidx[d] = phase_iter.idx[d];
+    long cloc = gkyl_range_idx(conf_rng, cidx);
+    const double *gij_d = gkyl_array_cfetch(gij, cloc);
+    const double *tv_comp_d = gkyl_array_cfetch(tv_comp, cloc);
+    gkyl_rect_grid_cell_center(grid, phase_iter.idx, xc);
 
-    const double *gij_d = gkyl_array_cfetch(gij, loc_c);
+    // Call alpha_gen_geo kernel.
+    alpha_gen_geo(xc, grid->dx, tv_comp_d, gij_d, alpha_geo_d);
 
-    // Loop over velocity space. 
-    while (gkyl_range_iter_next(&vel_iter)) {
-      long loc_v = gkyl_range_idx(&vel_rng, vel_iter.idx);
-      const double *tv_comp_d = gkyl_array_cfetch(tv_comp, loc_v);
-      double *alpha_geo_d = gkyl_array_fetch(alpha_geo, loc_v);
-
-      // Get cell center and width.
-      copy_idx_arrays(conf_rng->ndim, phase_rng->ndim, conf_iter.idx, vel_iter.idx, pidx);
-      gkyl_rect_grid_cell_center(grid, pidx, xc);
-
-      // Call alpha_gen_geo kernel.
-      alpha_gen_geo(xc, grid->dx, tv_comp_d, gij_d, alpha_geo_d);
-    }
   }
   
 }
