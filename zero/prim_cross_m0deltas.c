@@ -26,14 +26,15 @@ gkyl_prim_cross_m0deltas_new(const struct gkyl_basis *basis, const struct gkyl_r
 
 void
 gkyl_prim_cross_m0deltas_advance(gkyl_prim_cross_m0deltas *up, struct gkyl_basis basis,
-  double massself, struct gkyl_array* m0self, struct gkyl_array* nuself,
-  double massother, struct gkyl_array* m0other, struct gkyl_array* nuother,
-  const struct gkyl_range *range, struct gkyl_array* out)
+  double massself, const struct gkyl_array* m0self, const struct gkyl_array* nuself,
+  double massother, const struct gkyl_array* m0other, const struct gkyl_array* nuother,
+  const struct gkyl_array* prem0s, const struct gkyl_range *range, struct gkyl_array* out)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
     return gkyl_prim_cross_m0deltas_advance_cu(up, basis, massself, m0self, nuself,
-                                               massother, m0other, nuother, range, out);
+      massother, m0other, nuother, prem0s, range, out);
+
 #endif
 
   int num_basis = basis.num_basis;
@@ -58,6 +59,7 @@ gkyl_prim_cross_m0deltas_advance(gkyl_prim_cross_m0deltas *up, struct gkyl_basis
     const double *nuself_d = gkyl_array_cfetch(nuself, loc);
     const double *m0other_d = gkyl_array_cfetch(m0other, loc);
     const double *nuother_d = gkyl_array_cfetch(nuother, loc);
+    const double *prem0s_d = gkyl_array_cfetch(prem0s, loc);
 
     // compute the numerator and denominator in:
     //   m0_s*delta_s = m0_s*2*m_r*m0_r*nu_rs/(m_s*m0_s*nu_sr+m_r*m0_r*nu_rs)
@@ -72,7 +74,7 @@ gkyl_prim_cross_m0deltas_advance(gkyl_prim_cross_m0deltas *up, struct gkyl_basis
 
     array_acc1(num_basis, denom, 0.5/up->betap1, numer);
 
-    mul_op(m0self_d, numer, numer);
+    mul_op(prem0s_d, numer, numer);
 
     struct gkyl_mat A = gkyl_nmat_get(As, count);
     struct gkyl_mat x = gkyl_nmat_get(xs, count);

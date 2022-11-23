@@ -494,7 +494,7 @@ gkyl_proj_gkmaxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
 
         double efact = 0.0;        
         // vpar term.
-        efact += (xmu[cdim]-upar[cqidx])*(xmu[cdim]-upar[cqidx]);
+        efact += pow(xmu[cdim]-upar[cqidx],2);
         // mu term (only for 2v, vdim_phys=3).
         efact += (vdim_phys-1)*xmu[cdim+1]*bfield[cqidx]/mass;
 
@@ -600,7 +600,7 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up
 
         double efact = 0.0;        
         // vpar term.
-        efact += (xmu[cdim]-upar_o[cqidx])*(xmu[cdim]-upar_o[cqidx]);
+        efact += pow(xmu[cdim]-upar_o[cqidx],2);
         // mu term (only for 2v, vdim_phys=3).
         efact += (vdim_phys-1)*xmu[cdim+1]*bmag_o[cqidx]/mass;
 

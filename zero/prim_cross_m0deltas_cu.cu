@@ -15,7 +15,7 @@ gkyl_prim_cross_m0deltas_set_op_range_cu_kernel(struct gkyl_nmat *As, struct gky
   struct gkyl_basis basis, double betap1,
   double massself, struct gkyl_array* m0self, struct gkyl_array* nuself,
   double massother, struct gkyl_array* m0other, struct gkyl_array* nuother,
-  struct gkyl_range range, struct gkyl_array* out)
+  struct gkyl_array* prem0s, struct gkyl_range range, struct gkyl_array* out)
 {
   int num_basis = basis.num_basis;
   int ndim = basis.ndim;
@@ -44,6 +44,7 @@ gkyl_prim_cross_m0deltas_set_op_range_cu_kernel(struct gkyl_nmat *As, struct gky
     const double *nuself_d = (const double*) gkyl_array_cfetch(nuself, start);
     const double *m0other_d = (const double*) gkyl_array_cfetch(m0other, start);
     const double *nuother_d = (const double*) gkyl_array_cfetch(nuother, start);
+    const double *prem0s_d = (const double*) gkyl_array_cfetch(prem0s, start);
 
     // compute the numerator and denominator in:
     //   m0_s*delta_s = m0_s*2*m_r*m0_r*nu_rs/(m_s*m0_s*nu_sr+m_r*m0_r*nu_rs)
@@ -58,7 +59,7 @@ gkyl_prim_cross_m0deltas_set_op_range_cu_kernel(struct gkyl_nmat *As, struct gky
 
     array_acc1(num_basis, denom, 0.5/betap1, numer);
 
-    mul_op(m0self_d, numer, numer);
+    mul_op(prem0s_d, numer, numer);
 
     struct gkyl_mat A = gkyl_nmat_get(As, linc1);
     struct gkyl_mat x = gkyl_nmat_get(xs, linc1);
@@ -100,9 +101,9 @@ gkyl_prim_cross_m0deltas_copy_sol_range_cu_kernel(struct gkyl_nmat *xs,
 // Host-side wrapper for range-based dg division operation
 void
 gkyl_prim_cross_m0deltas_advance_cu(gkyl_prim_cross_m0deltas *up, struct gkyl_basis basis,
-  double massself, struct gkyl_array* m0self, struct gkyl_array* nuself,
-  double massother, struct gkyl_array* m0other, struct gkyl_array* nuother,
-  const struct gkyl_range *range, struct gkyl_array* out)
+  double massself, const struct gkyl_array* m0self, const struct gkyl_array* nuself,
+  double massother, const struct gkyl_array* m0other, const struct gkyl_array* nuother,
+  const struct gkyl_array* prem0s, const struct gkyl_range *range, struct gkyl_array* out)
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
@@ -113,7 +114,7 @@ gkyl_prim_cross_m0deltas_advance_cu(gkyl_prim_cross_m0deltas *up, struct gkyl_ba
   // construct matrices using CUDA kernel
   gkyl_prim_cross_m0deltas_set_op_range_cu_kernel<<<nblocks, nthreads>>>(A_d->on_dev,
     x_d->on_dev, basis, up->betap1, massself, m0self->on_dev, nuself->on_dev,
-    massother, m0other->on_dev, nuother->on_dev, *range, out->on_dev);
+    massother, m0other->on_dev, nuother->on_dev, prem0s->on_dev, *range, out->on_dev);
 
   // invert all matrices in batch mode
   bool status = gkyl_nmat_linsolve_lu_pa(up->mem->lu_mem, A_d, x_d);
