@@ -20,7 +20,6 @@ copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 
 struct gkyl_proj_maxwellian_on_basis {
   struct gkyl_rect_grid grid;
-  int num_quad; // number of quadrature points to use in each direction
   int cdim; // Configuration-space dimension
   int pdim; // Phase-space dimension
 
@@ -28,6 +27,9 @@ struct gkyl_proj_maxwellian_on_basis {
   int num_phase_basis; // number of phase-space basis functions
 
   bool use_gpu;
+
+  struct gkyl_range conf_qrange; // Range of conf-space ordinates.
+  struct gkyl_range phase_qrange; // Range of phase-space ordinates.
 
   // for quadrature in phase-space
   int tot_quad; // total number of quadrature points
@@ -49,11 +51,23 @@ struct gkyl_proj_maxwellian_on_basis {
 void
 gkyl_proj_maxwellian_on_basis_lab_mom_cu(const gkyl_proj_maxwellian_on_basis *up,
   const struct gkyl_range *phase_r, const struct gkyl_range *conf_r,
-  const struct gkyl_array *M0, const struct gkyl_array *M1i, const struct gkyl_array *M2,
-  struct gkyl_array *fmax);
+  const struct gkyl_array *moms, struct gkyl_array *fmax);
 
 void
 gkyl_proj_maxwellian_on_basis_prim_mom_cu(const gkyl_proj_maxwellian_on_basis *up,
   const struct gkyl_range *phase_r, const struct gkyl_range *conf_r,
-  const struct gkyl_array *m0, const struct gkyl_array *udrift, const struct gkyl_array *vtsq,
+  const struct gkyl_array *moms, const struct gkyl_array *prim_moms,
+  struct gkyl_array *fmax);
+
+void
+gkyl_proj_gkmaxwellian_on_basis_lab_mom_cu(const gkyl_proj_maxwellian_on_basis *up,
+  const struct gkyl_range *phase_r, const struct gkyl_range *conf_r,
+  const struct gkyl_array *moms, const struct gkyl_array *bmag,
+  const struct gkyl_array *jacob_tot, double mass, struct gkyl_array *fmax);
+
+void
+gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu(const gkyl_proj_maxwellian_on_basis *up,
+  const struct gkyl_range *phase_r, const struct gkyl_range *conf_r,
+  const struct gkyl_array *moms, const struct gkyl_array *prim_moms,
+  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, double mass,
   struct gkyl_array *fmax);
