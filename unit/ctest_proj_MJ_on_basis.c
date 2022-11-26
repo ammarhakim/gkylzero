@@ -5,6 +5,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_correct_maxwellian.h>
 #include <gkyl_correct_MJ.h>
+#include <gkyl_MJ_moments.h>
 #include <gkyl_proj_MJ_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
@@ -42,6 +43,45 @@ ev_p_over_gamma_3p(double t, const double *xn, double *out, void *ctx)
 }
 
 static const evalf_t p_over_gamma_func[3] = {ev_p_over_gamma_1p, ev_p_over_gamma_2p, ev_p_over_gamma_3p};
+
+// Projection functions for gamma = sqrt(1 + p^2) in special relativistic systems
+static void
+ev_gamma_1p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = sqrt(1.0 + xn[0]*xn[0]);
+}
+static void
+ev_gamma_2p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1]);
+}
+static void
+ev_gamma_3p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+}
+
+static const evalf_t gamma_func[3] = {ev_gamma_1p, ev_gamma_2p, ev_gamma_3p};
+
+// Projection functions for gamma_inv = 1/sqrt(1 + p^2) in special relativistic systems
+static void
+ev_gamma_inv_1p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = 1.0/sqrt(1.0 + xn[0]*xn[0]);
+}
+static void
+ev_gamma_inv_2p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = 1.0/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1]);
+}
+static void
+ev_gamma_inv_3p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = 1.0/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+}
+
+static const evalf_t gamma_inv_func[3] = {ev_gamma_inv_1p, ev_gamma_inv_2p, ev_gamma_inv_3p};
+
 
 
 struct skin_ghost_ranges {
@@ -183,7 +223,7 @@ test_1x1v_no_drift(int poly_order)
 
   gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(proj_MJ, &local, &confLocal, m0, m1i, m2, distf);
 
-// build the p_over_gamma
+// build p_over_gamma
 struct gkyl_array *p_over_gamma;
 p_over_gamma = mkarr(vdim*velBasis.num_basis, velLocal.volume);
 gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
@@ -192,10 +232,11 @@ gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_p
     .qtype = GKYL_GAUSS_LOBATTO_QUAD,
     .num_quad = 8,
     .num_ret_vals = vdim,
-    .eval = p_over_gamma_func[vdim-1], //ev_p_over_gamma_1p,
+    .eval = p_over_gamma_func[vdim-1],
     .ctx = 0
   });
   gkyl_proj_on_basis_advance(p_over_gamma_proj, 0.0, &velLocal, p_over_gamma);
+
 
   // correct the MJ distribution m0 Moment
   gkyl_correct_MJ *corr_MJ = gkyl_correct_MJ_new(&grid,&confBasis,&basis,&confLocal,&velLocal,confLocal.volume,confLocal_ext.volume, false);
@@ -328,9 +369,43 @@ gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_p
   });
   gkyl_proj_on_basis_advance(p_over_gamma_proj, 0.0, &velLocal, p_over_gamma);
 
+  // build gamma
+  struct gkyl_array *gamma;
+  gamma = mkarr(velBasis.num_basis, velLocal.volume);
+  gkyl_proj_on_basis *gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+      .grid = &vel_grid,
+      .basis = &velBasis,
+      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
+      .num_quad = 8,
+      .num_ret_vals = 1,
+      .eval = gamma_func[vdim-1],
+      .ctx = 0
+    });
+    gkyl_proj_on_basis_advance(gamma_proj, 0.0, &velLocal, gamma);
+
+
+  // build gamma_inv
+  struct gkyl_array *gamma_inv;
+  gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
+  gkyl_proj_on_basis *gamma_inv_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+      .grid = &vel_grid,
+      .basis = &velBasis,
+      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
+      .num_quad = 8,
+      .num_ret_vals = 1,
+      .eval = gamma_inv_func[vdim-1],
+      .ctx = 0
+    });
+    gkyl_proj_on_basis_advance(gamma_inv_proj, 0.0, &velLocal, gamma_inv);
+
   // correct the MJ distribution m0 Moment
   gkyl_correct_MJ *corr_MJ = gkyl_correct_MJ_new(&grid,&confBasis,&basis,&confLocal,&velLocal,confLocal.volume,confLocal_ext.volume, false);
   gkyl_correct_MJ_fix(corr_MJ,p_over_gamma,distf,m0,m1i,&local,&confLocal);
+
+  // test accuracy of the projection:
+  gkyl_MJ_moments *MJ_moms = gkyl_MJ_moments_new(&grid,&confBasis,&basis,&confLocal,&velLocal,confLocal.volume,confLocal_ext.volume, false);
+  gkyl_MJ_moments_fix(MJ_moms,p_over_gamma,gamma,gamma_inv,distf,m0,m1i,m2,&local,&confLocal);
+
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p2_vals[] = {  5.9020018022791720e-01,  1.8856465819367569e-17,  1.6811060851198739e-02,
@@ -352,7 +427,10 @@ gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_p
 
   // release memory for moment data object
   gkyl_proj_on_basis_release(p_over_gamma_proj);
+  gkyl_proj_on_basis_release(gamma_proj);
+  gkyl_proj_on_basis_release(gamma_inv_proj);
   gkyl_correct_MJ_release(corr_MJ);
+  gkyl_MJ_moments_release(MJ_moms);
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
   gkyl_array_release(distf);
   gkyl_proj_MJ_on_basis_release(proj_MJ);
