@@ -197,8 +197,10 @@ struct gkyl_moment_app {
   // pointer to function that takes a single-step of simulation
   struct gkyl_update_status (*update_func)(gkyl_moment_app* app, double dt0);
 
-  bool has_collision; // has friction/collision
-  double nu_base[5*4/2]; // base collision frequencies
+  bool has_collision; // has collisions
+  // scaling factors for collision frequencies so that nu_sr=nu_base_sr/rho_s
+  // nu_rs=nu_base_rs/rho_r, and nu_base_sr=nu_base_rs
+  double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
   double gas_gamma;
 };
 

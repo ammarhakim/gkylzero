@@ -42,8 +42,9 @@ struct gkyl_moment_em_coupling {
   struct gkyl_moment_em_coupling_data param[GKYL_MAX_SPECIES]; // struct of fluid parameters
   double epsilon0; // permittivity of free space
 
-  bool has_collision; // has friction/collision
-  double nu_base[5*4/2]; // base collision frequencies
+  bool has_collision; // has collisions
+  // normalized collision frequencies; nu_sr = nu_base[s][r] * rho_r
+  double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
   double gas_gamma;
 };
 
@@ -273,29 +274,18 @@ energy(const double *f, const double p, const double gamma)
 static void
 calcNu(const gkyl_moment_em_coupling *mes,
        double **fluids,
-       const double *nu_bases,
+       const double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES],
        double *nu)
 {
   const int nfluids = mes->nfluids;
 
-  // Read pre-specified nu_sr for r>s from the flattend 1d array nu_bases.
-  int i = 0;
   for (int s=0; s<nfluids; ++s)
   {
     double *nu_s = nu + nfluids * s;
     double rho_s = fluids[s][RHO];
 
-    for (int r=s+1; r<nfluids; ++r)
-    {
-      double *nu_r = nu + nfluids * r;
-      double rho_r = fluids[r][RHO];
-
-      double nu_base_sr = nu_bases[i];
-      nu_s[r] = nu_base_sr * rho_r;
-      nu_r[s] = nu_base_sr * rho_s;
-
-      i += 1;
-    }
+    for (int r=0; r<nfluids; ++r)
+      nu_s[r] = nu_base[s][r] / rho_s;
   }
 }
 
@@ -504,10 +494,9 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
 
   up->has_collision = inp.has_collision;
   if(inp.has_collision) {
-    int n_entries = up->nfluids * (up->nfluids-1) / 2;
-    for (int i=0; i<n_entries; ++i) {
-      up->nu_base[i] = inp.nu_base[i];
-    }
+    for (int s=0; s<inp.nfluids; ++s)
+      for (int r=0; r<inp.nfluids; ++r)
+        up->nu_base[s][r] = inp.nu_base[s][r];
     up->gas_gamma = inp.gas_gamma;
   }
 

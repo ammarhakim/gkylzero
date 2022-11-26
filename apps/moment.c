@@ -100,9 +100,9 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   app->has_collision = mom->has_collision;
   app->gas_gamma = mom->gas_gamma;
   int num_entries = app->num_species * (app->num_species-1) / 2;
-  for (int i=0; i<num_entries; ++i) {
-    app->nu_base[i] = mom->nu_base[i];
-  }
+  for (int s=0; s<app->num_species; ++s)
+    for (int r=0; r<app->num_species; ++r)
+      app->nu_base[s][r] = mom->nu_base[s][r];
 
   // check if we should update sources
   app->update_sources = 0;
