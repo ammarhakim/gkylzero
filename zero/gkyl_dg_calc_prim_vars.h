@@ -172,8 +172,10 @@ void gkyl_calc_prim_vars_pkpm_source_cu(struct gkyl_basis basis, const struct gk
 
 void gkyl_calc_prim_vars_pkpm_recovery_cu(const struct gkyl_rect_grid *grid, 
   struct gkyl_basis basis, const struct gkyl_range *range,
-  const struct gkyl_array* bvar, const struct gkyl_array* u_i, const struct gkyl_array* p_ij, 
-  struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, struct gkyl_array* div_p);
+  const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
+  const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, 
+  struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, 
+  struct gkyl_array* div_p, struct gkyl_array* p_force);
 
 void gkyl_calc_prim_vars_pkpm_upwind_p_cu(const struct gkyl_rect_grid *phase_grid, 
   struct gkyl_basis cbasis, const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
