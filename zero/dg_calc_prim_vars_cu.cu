@@ -198,6 +198,87 @@ gkyl_calc_prim_vars_pkpm_recovery_cu(const struct gkyl_rect_grid *grid,
 }
 
 __global__ void
+gkyl_calc_prim_vars_pkpm_upwind_p_cu_kernel(struct gkyl_rect_grid phase_grid, struct gkyl_basis cbasis, 
+  struct gkyl_range phase_range, struct gkyl_range conf_range, 
+  const struct gkyl_array* bvar, const struct gkyl_array* f, struct gkyl_array* p_force)
+{
+  int cdim = basis.ndim;
+  int poly_order = basis.poly_order;
+  double dx[GKYL_MAX_DIM] = {0.0};
+
+  pkpm_mom_flux_t pkpm_mom_flux[3];
+  // Fetch the kernels in each direction
+  for (int d=0; d<cdim; ++d) {
+    pkpm_mom_flux[d] = choose_ser_pkpm_mom_flux_kern(d, cdim, poly_order);
+    dx[d] = grid.dx[d];
+  }
+  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&phase_range, linc1, idxc);
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long conf_linc = gkyl_range_idx(&conf_range, idxc);
+    long phase_linc = gkyl_range_idx(&phase_range, idxc);
+    gkyl_rect_grid_cell_center(&phase_grid, idxc, xc);
+
+    const double *bvar_c = (const double*) gkyl_array_cfetch(bvar, conf_linc);
+    const double *f_c = (const double*) gkyl_array_cfetch(f, phase_linc);
+
+    double momLocal[96]; // hard-coded to max confBasis.num_basis (3x p=3 Ser) for now.
+    for (unsigned int k=0; k<96; ++k)
+      momLocal[k] = 0.0;
+
+    for (int dir=0; dir<cdim; ++dir) {
+      gkyl_copy_int_arr(cdim+1, idxc, idxl);
+      gkyl_copy_int_arr(cdim+1, idxc, idxr);
+
+      // get left and right configuration space indices
+      idxl[dir] = idxl[dir]-1; idxr[dir] = idxr[dir]+1;
+      long conf_linl = gkyl_range_idx(conf_range, idxl); 
+      long conf_linr = gkyl_range_idx(conf_range, idxr);
+
+      long phase_linl = gkyl_range_idx(phase_range, idxl); 
+      long phase_linr = gkyl_range_idx(phase_range, idxr);
+
+      const double *bvar_l = (const double*) gkyl_array_cfetch(bvar, conf_linl);
+      const double *f_l = (const double*) gkyl_array_cfetch(f, phase_linl);
+
+      const double *bvar_r = (const double*) gkyl_array_cfetch(bvar, conf_linr);
+      const double *f_r = (const double*) gkyl_array_cfetch(f, phase_linr);
+
+      pkpm_mom_flux[dir](xc, phase_grid->dx, mass, bvar_l, bvar_c, bvar_r, f_l, f_c, f_r, &momLocal[0]);
+    }
+
+    double *p_force_d = (double*) gkyl_array_fetch(p_force, conf_linc);
+
+    for (unsigned int k = 0; k < p_force->ncomp; ++k) {
+       if (linc1 < phase_range.volume)
+         atomicAdd(&p_force_d[k], momLocal[k]);
+    }
+  }
+}
+
+// Host-side wrapper for pkpm moment flux quantities
+void 
+gkyl_calc_prim_vars_pkpm_upwind_p_cu(const struct gkyl_rect_grid *phase_grid, 
+  struct gkyl_basis cbasis, const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
+  double mass, const struct gkyl_array* bvar, const struct gkyl_array* f, struct gkyl_array* p_force)
+{
+  int nblocks = range->nblocks;
+  int nthreads = range->nthreads;
+  gkyl_calc_prim_vars_pkpm_upwind_p_cu_kernel<<<nblocks, nthreads>>>(*phase_grid, cbasis, *phase_range, *conf_range, 
+    mass, bvar->on_dev, f->on_dev, p_force->on_dev);  
+}
+
+__global__ void
 gkyl_calc_prim_vars_pkpm_p_force_cu_kernel(struct gkyl_basis basis, struct gkyl_range range, 
   const struct gkyl_array* bvar, const struct gkyl_array* div_p, const struct gkyl_array* vlasov_pkpm_moms, 
   const struct gkyl_array* euler_pkpm, const struct gkyl_array* div_b, struct gkyl_array* p_force)

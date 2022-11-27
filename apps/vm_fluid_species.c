@@ -294,7 +294,10 @@ vm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_s
   vm_fluid_species_calc_diff(app, fluid_species, t0);
 
   // compute primitive variables at t = 0
-  vm_fluid_species_prim_vars(app, fluid_species, fluid_species->fluid);
+  const struct gkyl_array *fin[app->num_species];
+  for (int i=0; i<app->num_species; ++i)
+    fin[i] = app->species[i].f;
+  vm_fluid_species_prim_vars(app, fluid_species, fluid_species->fluid, fin);
 
   // we are pre-computing source for now as it is time-independent
   vm_fluid_species_source_calc(app, fluid_species, t0);
@@ -323,7 +326,7 @@ vm_fluid_species_calc_diff(gkyl_vlasov_app* app, struct vm_fluid_species* fluid_
 
 void
 vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species,
-  const struct gkyl_array *fluid)
+  const struct gkyl_array *fluid, const struct gkyl_array *fin[])
 {
   gkyl_array_clear(fluid_species->u, 0.0);
 
@@ -366,10 +369,18 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
 
     // calculate total pressure forces for kinetic equation coupling
     gkyl_array_clear(fluid_species->p_force, 0.0);
-    gkyl_calc_prim_vars_pkpm_p_force(app->confBasis, &app->local, 
-      app->field->bvar, fluid_species->div_p, fluid_species->pkpm_species->pkpm_moms.marr, 
-      fluid_species->p_perp, fluid_species->div_b, 
-      fluid_species->p_force);
+    gkyl_calc_prim_vars_pkpm_upwind_p(&fluid_species->pkpm_species->grid, app->confBasis, 
+      &fluid_species->pkpm_species->local, &app->local, 
+      fluid_species->pkpm_species->info.mass, app->field->bvar, 
+      fin[fluid_species->species_index], fluid_species->p_force);  
+    // divide out mass density from p_force
+    gkyl_dg_div_op_range(fluid_species->u_mem, app->confBasis, 0, fluid_species->p_force, 0,
+      fluid_species->p_force, 0, fluid_species->pkpm_species->pkpm_moms.marr, &app->local);   
+
+    // gkyl_calc_prim_vars_pkpm_p_force(app->confBasis, &app->local, 
+    //   app->field->bvar, fluid_species->div_p, fluid_species->pkpm_species->pkpm_moms.marr, 
+    //   fluid_species->p_perp, fluid_species->div_b, 
+    //   fluid_species->p_force);
   }
 }
 

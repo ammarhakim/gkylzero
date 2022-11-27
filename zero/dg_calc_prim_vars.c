@@ -1,6 +1,7 @@
 #include <assert.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_array_ops.h>
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_dg_calc_prim_vars.h>
 #include <gkyl_dg_calc_prim_vars_priv.h>
@@ -173,6 +174,68 @@ void gkyl_calc_prim_vars_pkpm_recovery(const struct gkyl_rect_grid *grid,
       pkpm_recovery[dir](grid->dx, bvar_l, bvar_c, bvar_r, u_i_l, u_i_c, u_i_r, p_ij_l, p_ij_c, p_ij_r, 
         div_b_d, bb_grad_u_d, div_p_d);
     }
+  }
+}
+
+void gkyl_calc_prim_vars_pkpm_upwind_p(const struct gkyl_rect_grid *phase_grid, 
+  struct gkyl_basis cbasis, const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
+  double mass, const struct gkyl_array* bvar, const struct gkyl_array* f, struct gkyl_array* p_force)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(p_force)) {
+    return gkyl_calc_prim_vars_pkpm_upwind_p_cu(phase_grid, basis, phase_range, conf_range, mass, 
+      bvar, f, p_force);
+  }
+#endif
+  int cdim = cbasis.ndim;
+  int poly_order = cbasis.poly_order;
+  pkpm_mom_flux_t pkpm_mom_flux[3];
+  // Fetch the kernels in each direction
+  for (int d=0; d<cdim; ++d) 
+    pkpm_mom_flux[d] = choose_ser_pkpm_mom_flux_kern(d, cdim, poly_order);
+
+  double xc[GKYL_MAX_DIM];
+  struct gkyl_range_iter phase_iter;
+  
+  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
+
+  gkyl_array_clear_range(p_force, 0.0, *conf_range);
+
+  gkyl_range_iter_init(&phase_iter, phase_range);
+  while (gkyl_range_iter_next(&phase_iter)) {
+    // cdim + 1 to get pdim of pkpm model
+    gkyl_copy_int_arr(cdim+1, phase_iter.idx, idxc);
+    long conf_linc = gkyl_range_idx(conf_range, idxc); 
+    long phase_linc = gkyl_range_idx(phase_range, idxc); 
+    gkyl_rect_grid_cell_center(phase_grid, idxc, xc);
+
+    const double *bvar_c = gkyl_array_cfetch(bvar, conf_linc);
+    const double *f_c = gkyl_array_cfetch(f, phase_linc);
+
+    double *p_force_d = gkyl_array_fetch(p_force, conf_linc);
+    
+    // loop over directions to get flux contribution in each direction
+    for (int dir=0; dir<cdim; ++dir) {
+      // cdim + 1 to get pdim of pkpm model
+      gkyl_copy_int_arr(cdim+1, phase_iter.idx, idxl);
+      gkyl_copy_int_arr(cdim+1, phase_iter.idx, idxr);
+
+      // get left and right configuration space indices
+      idxl[dir] = idxl[dir]-1; idxr[dir] = idxr[dir]+1;
+      long conf_linl = gkyl_range_idx(conf_range, idxl); 
+      long conf_linr = gkyl_range_idx(conf_range, idxr);
+
+      long phase_linl = gkyl_range_idx(phase_range, idxl); 
+      long phase_linr = gkyl_range_idx(phase_range, idxr);
+
+      const double *bvar_l = gkyl_array_cfetch(bvar, conf_linl);
+      const double *f_l = gkyl_array_cfetch(f, phase_linl);
+
+      const double *bvar_r = gkyl_array_cfetch(bvar, conf_linr);
+      const double *f_r = gkyl_array_cfetch(f, phase_linr);
+
+      pkpm_mom_flux[dir](xc, phase_grid->dx, mass, bvar_l, bvar_c, bvar_r, f_l, f_c, f_r, p_force_d);
+    }   
   }
 }
 

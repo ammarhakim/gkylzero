@@ -567,7 +567,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   // Need to do this *before* collisions since collisional boundary corrections
   // use fluid primitive moments in fluid-kinetic systems (e.g., pkpm model)
   for (int i=0; i<app->num_fluid_species; ++i) {
-    vm_fluid_species_prim_vars(app, &app->fluid_species[i], fluidin[i]);
+    vm_fluid_species_prim_vars(app, &app->fluid_species[i], fluidin[i], fin);
   }
 
   // compute necessary moments and boundary corrections for collisions

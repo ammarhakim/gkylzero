@@ -965,7 +965,7 @@ void vm_fluid_species_calc_diff(gkyl_vlasov_app* app, struct vm_fluid_species* f
  * @param fluid Input array fluid species
  */
 void vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species,
-  const struct gkyl_array *fluid);
+  const struct gkyl_array *fluid, const struct gkyl_array *fin[]);
 
 /**
  * Compute RHS from fluid species equations
