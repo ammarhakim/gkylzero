@@ -1,9 +1,21 @@
 #include <gkyl_euler_kernels.h> 
-GKYL_CU_DH void euler_pkpm_recovery_x_2x_ser_p1(const double *dxv, const double *bvarl, const double *bvarc, const double *bvarr, const double *u_il, const double *u_ic, const double *u_ir, const double *p_ijl, const double *p_ijc, const double *p_ijr, double* div_b, double* bb_grad_u, double* div_p) 
+#include <gkyl_basis_ser_2x_p1_inv.h> 
+GKYL_CU_DH void euler_pkpm_recovery_x_2x_ser_p1(const double *dxv, 
+  const double *bvarl, const double *bvarc, const double *bvarr, 
+  const double *u_il, const double *u_ic, const double *u_ir, 
+  const double *p_ijl, const double *p_ijc, const double *p_ijr, 
+  const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
+  double* div_b, double* bb_grad_u, double* div_p, double* p_force) 
 { 
   // dxv[NDIM]: Cell spacing.
-  // Al/Ac/Ar:  Inpute vector in left/center/right cells.
-  // out:       Increment to volume expansion of div(A) in one direction.
+  // bvarl/bvarc/bvarr:  Input magnetic field unit vector in left/center/right cells.
+  // u_il/u_ic/u_ir:     Input bulk velocity (ux,uy,uz) in left/center/right cells.
+  // p_ijl/p_ijc/p_ijr:  Input pressure tensor in left/center/right cells.
+  // vlasov_pkpm_momsl/vlasov_pkpm_momsc/vlasov_pkpm_momsr: Input pkpm moments (rho, p_parallel, q_parallel) in left/center/right cells.
+  // div_b:              Increment to volume expansion of div(b) in one direction.
+  // bb_grad_u:          Increment to volume expansion of bb : grad(u) in one direction.
+  // div_p:              Increment to volume expansion of div(p) in one direction.
+  // p_force:            Increment to volume expansion of p_force = 1/rho * div(p_parallel b_hat) in one direction.
 
   const double dx1 = 2.0/dxv[0]; 
 
@@ -51,9 +63,15 @@ GKYL_CU_DH void euler_pkpm_recovery_x_2x_ser_p1(const double *dxv, const double 
   const double *Pyz_r = &p_ijr[16]; 
   const double *Pzz_r = &p_ijr[20]; 
 
+  const double *ppar_l = &vlasov_pkpm_momsl[4]; 
+  const double *ppar_c = &vlasov_pkpm_momsc[4]; 
+  const double *ppar_r = &vlasov_pkpm_momsr[4]; 
+  const double *rho = &vlasov_pkpm_momsc[0]; 
+
   double *div_p_x = &div_p[0]; 
   double *div_p_y = &div_p[4]; 
   double *div_p_z = &div_p[8]; 
+
   double grad_u_x[4] = {0.0}; 
   double grad_u_y[4] = {0.0}; 
   double grad_u_z[4] = {0.0}; 
@@ -71,6 +89,24 @@ GKYL_CU_DH void euler_pkpm_recovery_x_2x_ser_p1(const double *dxv, const double 
   grad_u_z[1] = (-0.5*uz_r[1])+0.5*uz_l[1]+0.4330127018922193*uz_r[0]+0.4330127018922193*uz_l[0]-0.8660254037844386*uz_c[0]; 
   grad_u_z[2] = (-0.2886751345948129*uz_r[3])-0.2886751345948129*uz_l[3]+0.5773502691896258*uz_c[3]+0.25*uz_r[2]-0.25*uz_l[2]; 
   grad_u_z[3] = (-0.5*uz_r[3])+0.5*uz_l[3]+0.4330127018922193*uz_r[2]+0.4330127018922193*uz_l[2]-0.8660254037844386*uz_c[2]; 
+
+  double ppar_b_l[4] = {0.0}; 
+  double ppar_b_c[4] = {0.0}; 
+  double ppar_b_r[4] = {0.0}; 
+  ppar_b_l[0] = 0.5*b_l[3]*ppar_l[3]+0.5*b_l[2]*ppar_l[2]+0.5*b_l[1]*ppar_l[1]+0.5*b_l[0]*ppar_l[0]; 
+  ppar_b_l[1] = 0.5*b_l[2]*ppar_l[3]+0.5*ppar_l[2]*b_l[3]+0.5*b_l[0]*ppar_l[1]+0.5*ppar_l[0]*b_l[1]; 
+  ppar_b_l[2] = 0.5*b_l[1]*ppar_l[3]+0.5*ppar_l[1]*b_l[3]+0.5*b_l[0]*ppar_l[2]+0.5*ppar_l[0]*b_l[2]; 
+  ppar_b_l[3] = 0.5*b_l[0]*ppar_l[3]+0.5*ppar_l[0]*b_l[3]+0.5*b_l[1]*ppar_l[2]+0.5*ppar_l[1]*b_l[2]; 
+
+  ppar_b_c[0] = 0.5*b_c[3]*ppar_c[3]+0.5*b_c[2]*ppar_c[2]+0.5*b_c[1]*ppar_c[1]+0.5*b_c[0]*ppar_c[0]; 
+  ppar_b_c[1] = 0.5*b_c[2]*ppar_c[3]+0.5*ppar_c[2]*b_c[3]+0.5*b_c[0]*ppar_c[1]+0.5*ppar_c[0]*b_c[1]; 
+  ppar_b_c[2] = 0.5*b_c[1]*ppar_c[3]+0.5*ppar_c[1]*b_c[3]+0.5*b_c[0]*ppar_c[2]+0.5*ppar_c[0]*b_c[2]; 
+  ppar_b_c[3] = 0.5*b_c[0]*ppar_c[3]+0.5*ppar_c[0]*b_c[3]+0.5*b_c[1]*ppar_c[2]+0.5*ppar_c[1]*b_c[2]; 
+
+  ppar_b_r[0] = 0.5*b_r[3]*ppar_r[3]+0.5*b_r[2]*ppar_r[2]+0.5*b_r[1]*ppar_r[1]+0.5*b_r[0]*ppar_r[0]; 
+  ppar_b_r[1] = 0.5*b_r[2]*ppar_r[3]+0.5*ppar_r[2]*b_r[3]+0.5*b_r[0]*ppar_r[1]+0.5*ppar_r[0]*b_r[1]; 
+  ppar_b_r[2] = 0.5*b_r[1]*ppar_r[3]+0.5*ppar_r[1]*b_r[3]+0.5*b_r[0]*ppar_r[2]+0.5*ppar_r[0]*b_r[2]; 
+  ppar_b_r[3] = 0.5*b_r[0]*ppar_r[3]+0.5*ppar_r[0]*b_r[3]+0.5*b_r[1]*ppar_r[2]+0.5*ppar_r[1]*b_r[2]; 
 
   div_b[0] += ((-0.2886751345948129*(b_r[1]+b_l[1]))+0.5773502691896258*b_c[1]+0.25*b_r[0]-0.25*b_l[0])*dx1; 
   div_b[1] += ((-0.5*b_r[1])+0.5*b_l[1]+0.4330127018922193*(b_r[0]+b_l[0])-0.8660254037844386*b_c[0])*dx1; 
@@ -96,5 +132,18 @@ GKYL_CU_DH void euler_pkpm_recovery_x_2x_ser_p1(const double *dxv, const double 
   div_p_z[1] += ((-0.5*Pxz_r[1])+0.5*Pxz_l[1]+0.4330127018922193*(Pxz_r[0]+Pxz_l[0])-0.8660254037844386*Pxz_c[0])*dx1; 
   div_p_z[2] += ((-0.2886751345948129*(Pxz_r[3]+Pxz_l[3]))+0.5773502691896258*Pxz_c[3]+0.25*Pxz_r[2]-0.25*Pxz_l[2])*dx1; 
   div_p_z[3] += ((-0.5*Pxz_r[3])+0.5*Pxz_l[3]+0.4330127018922193*(Pxz_r[2]+Pxz_l[2])-0.8660254037844386*Pxz_c[2])*dx1; 
+
+  double div_ppar_b[4] = {0.0}; 
+  double rho_inv[4] = {0.0}; 
+  ser_2x_p1_inv(rho, rho_inv); 
+  div_ppar_b[0] = (-0.2886751345948129*ppar_b_r[1])-0.2886751345948129*ppar_b_l[1]+0.5773502691896258*ppar_b_c[1]+0.25*ppar_b_r[0]-0.25*ppar_b_l[0]; 
+  div_ppar_b[1] = (-0.5*ppar_b_r[1])+0.5*ppar_b_l[1]+0.4330127018922193*ppar_b_r[0]+0.4330127018922193*ppar_b_l[0]-0.8660254037844386*ppar_b_c[0]; 
+  div_ppar_b[2] = (-0.2886751345948129*ppar_b_r[3])-0.2886751345948129*ppar_b_l[3]+0.5773502691896258*ppar_b_c[3]+0.25*ppar_b_r[2]-0.25*ppar_b_l[2]; 
+  div_ppar_b[3] = (-0.5*ppar_b_r[3])+0.5*ppar_b_l[3]+0.4330127018922193*ppar_b_r[2]+0.4330127018922193*ppar_b_l[2]-0.8660254037844386*ppar_b_c[2]; 
+
+  p_force[0] += 0.5*(div_ppar_b[3]*rho_inv[3]+div_ppar_b[2]*rho_inv[2]+div_ppar_b[1]*rho_inv[1]+div_ppar_b[0]*rho_inv[0])*dx1; 
+  p_force[1] += 0.5*(div_ppar_b[2]*rho_inv[3]+rho_inv[2]*div_ppar_b[3]+div_ppar_b[0]*rho_inv[1]+rho_inv[0]*div_ppar_b[1])*dx1; 
+  p_force[2] += 0.5*(div_ppar_b[1]*rho_inv[3]+rho_inv[1]*div_ppar_b[3]+div_ppar_b[0]*rho_inv[2]+rho_inv[0]*div_ppar_b[2])*dx1; 
+  p_force[3] += 0.5*(div_ppar_b[0]*rho_inv[3]+rho_inv[0]*div_ppar_b[3]+div_ppar_b[1]*rho_inv[2]+rho_inv[1]*div_ppar_b[2])*dx1; 
 
 } 

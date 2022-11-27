@@ -472,8 +472,8 @@ vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species,
   const struct gkyl_array *fin, const struct gkyl_array *em)
 {
   if (species->model_id == GKYL_MODEL_PKPM) {
-    vm_species_moment_calc(&species->pkpm_moms, species->local,
-      app->local, fin);
+    vm_species_moment_calc(&species->pkpm_moms, species->local_ext,
+      app->local_ext, fin);
     vm_field_calc_bvar(app, app->field, em);   
   }
   else if (species->model_id == GKYL_MODEL_SR_PKPM) {

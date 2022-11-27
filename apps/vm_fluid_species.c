@@ -363,24 +363,10 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
     gkyl_array_clear(fluid_species->div_b, 0.0);
     gkyl_array_clear(fluid_species->bb_grad_u, 0.0);
     gkyl_array_clear(fluid_species->div_p, 0.0);
-    gkyl_calc_prim_vars_pkpm_recovery(&app->grid, app->confBasis, &app->local, 
-      app->field->bvar, fluid_species->u, fluid_species->p, 
-      fluid_species->div_b, fluid_species->bb_grad_u, fluid_species->div_p);
-
-    // calculate total pressure forces for kinetic equation coupling
     gkyl_array_clear(fluid_species->p_force, 0.0);
-    gkyl_calc_prim_vars_pkpm_upwind_p(&fluid_species->pkpm_species->grid, app->confBasis, 
-      &fluid_species->pkpm_species->local, &app->local, 
-      fluid_species->pkpm_species->info.mass, app->field->bvar, 
-      fin[fluid_species->species_index], fluid_species->p_force);  
-    // divide out mass density from p_force
-    gkyl_dg_div_op_range(fluid_species->u_mem, app->confBasis, 0, fluid_species->p_force, 0,
-      fluid_species->p_force, 0, fluid_species->pkpm_species->pkpm_moms.marr, &app->local);   
-
-    // gkyl_calc_prim_vars_pkpm_p_force(app->confBasis, &app->local, 
-    //   app->field->bvar, fluid_species->div_p, fluid_species->pkpm_species->pkpm_moms.marr, 
-    //   fluid_species->p_perp, fluid_species->div_b, 
-    //   fluid_species->p_force);
+    gkyl_calc_prim_vars_pkpm_recovery(&app->grid, app->confBasis, &app->local, 
+      app->field->bvar, fluid_species->u, fluid_species->p, fluid_species->pkpm_species->pkpm_moms.marr, 
+      fluid_species->div_b, fluid_species->bb_grad_u, fluid_species->div_p, fluid_species->p_force);
   }
 }
 

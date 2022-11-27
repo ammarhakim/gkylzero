@@ -19,7 +19,8 @@ GKYL_CU_DH void euler_pkpm_recovery_x_1x_ser_p1(const double *dxv,
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-    double* div_b, double* bb_grad_u, double* div_p) ; 
+    const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
+    double* div_b, double* bb_grad_u, double* div_p, double* p_force) ; 
 GKYL_CU_DH void vlasov_pkpm_upwind_p_force_x_1x1v_ser_p1(const double *w, const double *dxv, double mass, 
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *fl, const double *fc, const double *fr, double* out) ; 
@@ -45,7 +46,8 @@ GKYL_CU_DH void euler_pkpm_recovery_x_1x_ser_p2(const double *dxv,
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-    double* div_b, double* bb_grad_u, double* div_p) ; 
+    const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
+    double* div_b, double* bb_grad_u, double* div_p, double* p_force) ; 
 GKYL_CU_DH void vlasov_pkpm_upwind_p_force_x_1x1v_ser_p2(const double *w, const double *dxv, double mass, 
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *fl, const double *fc, const double *fr, double* out) ; 
@@ -73,7 +75,8 @@ GKYL_CU_DH void euler_pkpm_recovery_x_2x_ser_p1(const double *dxv,
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-    double* div_b, double* bb_grad_u, double* div_p) ; 
+    const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
+    double* div_b, double* bb_grad_u, double* div_p, double* p_force) ; 
 GKYL_CU_DH void vlasov_pkpm_upwind_p_force_x_2x1v_ser_p1(const double *w, const double *dxv, double mass, 
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *fl, const double *fc, const double *fr, double* out) ; 
@@ -86,7 +89,8 @@ GKYL_CU_DH void euler_pkpm_recovery_y_2x_ser_p1(const double *dxv,
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-    double* div_b, double* bb_grad_u, double* div_p) ; 
+    const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
+    double* div_b, double* bb_grad_u, double* div_p, double* p_force) ; 
 GKYL_CU_DH void vlasov_pkpm_upwind_p_force_y_2x1v_ser_p1(const double *w, const double *dxv, double mass, 
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *fl, const double *fc, const double *fr, double* out) ; 
@@ -114,7 +118,8 @@ GKYL_CU_DH void euler_pkpm_recovery_x_2x_ser_p2(const double *dxv,
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-    double* div_b, double* bb_grad_u, double* div_p) ; 
+    const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
+    double* div_b, double* bb_grad_u, double* div_p, double* p_force) ; 
 GKYL_CU_DH void vlasov_pkpm_upwind_p_force_x_2x1v_ser_p2(const double *w, const double *dxv, double mass, 
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *fl, const double *fc, const double *fr, double* out) ; 
@@ -127,7 +132,8 @@ GKYL_CU_DH void euler_pkpm_recovery_y_2x_ser_p2(const double *dxv,
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-    double* div_b, double* bb_grad_u, double* div_p) ; 
+    const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
+    double* div_b, double* bb_grad_u, double* div_p, double* p_force) ; 
 GKYL_CU_DH void vlasov_pkpm_upwind_p_force_y_2x1v_ser_p2(const double *w, const double *dxv, double mass, 
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *fl, const double *fc, const double *fr, double* out) ; 
@@ -157,7 +163,8 @@ GKYL_CU_DH void euler_pkpm_recovery_x_3x_ser_p1(const double *dxv,
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-    double* div_b, double* bb_grad_u, double* div_p) ; 
+    const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
+    double* div_b, double* bb_grad_u, double* div_p, double* p_force) ; 
 GKYL_CU_DH void vlasov_pkpm_upwind_p_force_x_3x1v_ser_p1(const double *w, const double *dxv, double mass, 
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *fl, const double *fc, const double *fr, double* out) ; 
@@ -170,7 +177,8 @@ GKYL_CU_DH void euler_pkpm_recovery_y_3x_ser_p1(const double *dxv,
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-    double* div_b, double* bb_grad_u, double* div_p) ; 
+    const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
+    double* div_b, double* bb_grad_u, double* div_p, double* p_force) ; 
 GKYL_CU_DH void vlasov_pkpm_upwind_p_force_y_3x1v_ser_p1(const double *w, const double *dxv, double mass, 
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *fl, const double *fc, const double *fr, double* out) ; 
@@ -183,7 +191,8 @@ GKYL_CU_DH void euler_pkpm_recovery_z_3x_ser_p1(const double *dxv,
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-    double* div_b, double* bb_grad_u, double* div_p) ; 
+    const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
+    double* div_b, double* bb_grad_u, double* div_p, double* p_force) ; 
 GKYL_CU_DH void vlasov_pkpm_upwind_p_force_z_3x1v_ser_p1(const double *w, const double *dxv, double mass, 
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *fl, const double *fc, const double *fr, double* out) ; 
@@ -213,7 +222,8 @@ GKYL_CU_DH void euler_pkpm_recovery_x_3x_ser_p2(const double *dxv,
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-    double* div_b, double* bb_grad_u, double* div_p) ; 
+    const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
+    double* div_b, double* bb_grad_u, double* div_p, double* p_force) ; 
 GKYL_CU_DH void vlasov_pkpm_upwind_p_force_x_3x1v_ser_p2(const double *w, const double *dxv, double mass, 
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *fl, const double *fc, const double *fr, double* out) ; 
@@ -226,7 +236,8 @@ GKYL_CU_DH void euler_pkpm_recovery_y_3x_ser_p2(const double *dxv,
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-    double* div_b, double* bb_grad_u, double* div_p) ; 
+    const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
+    double* div_b, double* bb_grad_u, double* div_p, double* p_force) ; 
 GKYL_CU_DH void vlasov_pkpm_upwind_p_force_y_3x1v_ser_p2(const double *w, const double *dxv, double mass, 
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *fl, const double *fc, const double *fr, double* out) ; 
@@ -239,7 +250,8 @@ GKYL_CU_DH void euler_pkpm_recovery_z_3x_ser_p2(const double *dxv,
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-    double* div_b, double* bb_grad_u, double* div_p) ; 
+    const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
+    double* div_b, double* bb_grad_u, double* div_p, double* p_force) ; 
 GKYL_CU_DH void vlasov_pkpm_upwind_p_force_z_3x1v_ser_p2(const double *w, const double *dxv, double mass, 
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *fl, const double *fc, const double *fr, double* out) ; 
@@ -265,7 +277,8 @@ GKYL_CU_DH void euler_pkpm_recovery_x_1x_tensor_p2(const double *dxv,
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-    double* div_b, double* bb_grad_u, double* div_p) ; 
+    const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
+    double* div_b, double* bb_grad_u, double* div_p, double* p_force) ; 
 GKYL_CU_DH void vlasov_pkpm_upwind_p_force_x_1x1v_tensor_p2(const double *w, const double *dxv, double mass, 
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *fl, const double *fc, const double *fr, double* out) ; 
@@ -293,7 +306,8 @@ GKYL_CU_DH void euler_pkpm_recovery_x_2x_tensor_p2(const double *dxv,
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-    double* div_b, double* bb_grad_u, double* div_p) ; 
+    const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
+    double* div_b, double* bb_grad_u, double* div_p, double* p_force) ; 
 GKYL_CU_DH void vlasov_pkpm_upwind_p_force_x_2x1v_tensor_p2(const double *w, const double *dxv, double mass, 
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *fl, const double *fc, const double *fr, double* out) ; 
@@ -306,7 +320,8 @@ GKYL_CU_DH void euler_pkpm_recovery_y_2x_tensor_p2(const double *dxv,
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-    double* div_b, double* bb_grad_u, double* div_p) ; 
+    const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
+    double* div_b, double* bb_grad_u, double* div_p, double* p_force) ; 
 GKYL_CU_DH void vlasov_pkpm_upwind_p_force_y_2x1v_tensor_p2(const double *w, const double *dxv, double mass, 
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *fl, const double *fc, const double *fr, double* out) ; 
@@ -336,7 +351,8 @@ GKYL_CU_DH void euler_pkpm_recovery_x_3x_tensor_p2(const double *dxv,
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-    double* div_b, double* bb_grad_u, double* div_p) ; 
+    const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
+    double* div_b, double* bb_grad_u, double* div_p, double* p_force) ; 
 GKYL_CU_DH void vlasov_pkpm_upwind_p_force_x_3x1v_tensor_p2(const double *w, const double *dxv, double mass, 
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *fl, const double *fc, const double *fr, double* out) ; 
@@ -349,7 +365,8 @@ GKYL_CU_DH void euler_pkpm_recovery_y_3x_tensor_p2(const double *dxv,
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-    double* div_b, double* bb_grad_u, double* div_p) ; 
+    const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
+    double* div_b, double* bb_grad_u, double* div_p, double* p_force) ; 
 GKYL_CU_DH void vlasov_pkpm_upwind_p_force_y_3x1v_tensor_p2(const double *w, const double *dxv, double mass, 
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *fl, const double *fc, const double *fr, double* out) ; 
@@ -362,7 +379,8 @@ GKYL_CU_DH void euler_pkpm_recovery_z_3x_tensor_p2(const double *dxv,
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-    double* div_b, double* bb_grad_u, double* div_p) ; 
+    const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
+    double* div_b, double* bb_grad_u, double* div_p, double* p_force) ; 
 GKYL_CU_DH void vlasov_pkpm_upwind_p_force_z_3x1v_tensor_p2(const double *w, const double *dxv, double mass, 
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *fl, const double *fc, const double *fr, double* out) ; 

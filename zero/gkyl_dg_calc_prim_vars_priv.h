@@ -28,7 +28,8 @@ typedef void (*euler_pkpm_recovery_t)(const double *dxv,
   const double *bvarl, const double *bvarc, const double *bvarr, 
   const double *u_il, const double *u_ic, const double *u_ir, 
   const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-  double* div_b, double* bb_grad_u, double* div_p);
+  const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
+  double* div_b, double* bb_grad_u, double* div_p, double* p_force);
 
 typedef void (*pkpm_mom_flux_t)(const double *w, const double *dxv, double mass, 
   const double *bvarl, const double *bvarc, const double *bvarr, 

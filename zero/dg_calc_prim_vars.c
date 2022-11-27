@@ -118,15 +118,17 @@ void gkyl_calc_prim_vars_pkpm_source(struct gkyl_basis basis, const struct gkyl_
 
 void gkyl_calc_prim_vars_pkpm_recovery(const struct gkyl_rect_grid *grid, 
   struct gkyl_basis basis, const struct gkyl_range *range,
-  const struct gkyl_array* bvar, const struct gkyl_array* u_i, const struct gkyl_array* p_ij, 
-  struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, struct gkyl_array* div_p)
+  const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
+  const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, 
+  struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, 
+  struct gkyl_array* div_p, struct gkyl_array* p_force)
 {
 // Check if more than one of the output arrays is on device? 
 // Probably a better way to do this (JJ: 11/16/22)
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(div_p)) {
     return gkyl_calc_prim_vars_pkpm_recovery_cu(grid, basis, range, 
-      bvar, u_i, p_ij, div_b, bb_grad_u, div_p);
+      bvar, u_i, p_ij, vlasov_pkpm_moms, div_b, bb_grad_u, div_p, p_force);
   }
 #endif
 
@@ -148,10 +150,12 @@ void gkyl_calc_prim_vars_pkpm_recovery(const struct gkyl_rect_grid *grid,
     const double *bvar_c = gkyl_array_cfetch(bvar, linc);
     const double *u_i_c = gkyl_array_cfetch(u_i, linc);
     const double *p_ij_c = gkyl_array_cfetch(p_ij, linc);
+    const double *vlasov_pkpm_moms_c = gkyl_array_cfetch(vlasov_pkpm_moms, linc);
 
     double *div_b_d = gkyl_array_fetch(div_b, linc);
     double *bb_grad_u_d = gkyl_array_fetch(bb_grad_u, linc);
     double *div_p_d = gkyl_array_fetch(div_p, linc);
+    double *p_force_d = gkyl_array_fetch(p_force, linc);
 
     for (int dir=0; dir<cdim; ++dir) {
       gkyl_copy_int_arr(cdim, iter.idx, idxl);
@@ -171,8 +175,13 @@ void gkyl_calc_prim_vars_pkpm_recovery(const struct gkyl_rect_grid *grid,
       const double *p_ij_l = gkyl_array_cfetch(p_ij, linl);
       const double *p_ij_r = gkyl_array_cfetch(p_ij, linr);
 
-      pkpm_recovery[dir](grid->dx, bvar_l, bvar_c, bvar_r, u_i_l, u_i_c, u_i_r, p_ij_l, p_ij_c, p_ij_r, 
-        div_b_d, bb_grad_u_d, div_p_d);
+      const double *vlasov_pkpm_moms_l = gkyl_array_cfetch(vlasov_pkpm_moms, linl);
+      const double *vlasov_pkpm_moms_r = gkyl_array_cfetch(vlasov_pkpm_moms, linr);
+
+      pkpm_recovery[dir](grid->dx, 
+        bvar_l, bvar_c, bvar_r, u_i_l, u_i_c, u_i_r, 
+        p_ij_l, p_ij_c, p_ij_r, vlasov_pkpm_moms_l, vlasov_pkpm_moms_c, vlasov_pkpm_moms_r, 
+        div_b_d, bb_grad_u_d, div_p_d, p_force_d);
     }
   }
 }
