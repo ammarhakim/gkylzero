@@ -105,7 +105,8 @@ specific parts of the code will be built:
 unit and regression test executables are written in the
 `build/unit` and `build/regression` directories.
 
-If you want to use the code as a library you should install it:
+If you want to use the code as a library (e.g. for use by
+[gkyl](https://github.com/ammarhakim/gkyl/)) you should install it:
 ```
   make install
 ```

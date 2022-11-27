@@ -97,13 +97,22 @@ wave_lax(const struct gkyl_wv_eqn *eqn,
   double ul = ql[1]/ql[0], ur = qr[1]/qr[0];
   double pl = gkyl_euler_pressure(gas_gamma, ql), pr = gkyl_euler_pressure(gas_gamma, qr);
   double sl = fabs(ul) + sqrt(gas_gamma*pl/rhol), sr = fabs(ur) + sqrt(gas_gamma*pr/rhor);
+  double amax = fmax(sl, sr);
 
-  double *wv = &waves[0]; // single wave
-  for (int i=0; i<5; ++i)  wv[i] = delta[i];
+  double fl[5], fr[5];
+  gkyl_euler_flux(gas_gamma, ql, fl);
+  gkyl_euler_flux(gas_gamma, qr, fr);
 
-  s[0] = 0.5*(sl+sr);
+  double *w0 = &waves[0], *w1 = &waves[5];
+  for (int i=0; i<5; ++i) {
+    w0[i] = 0.5*((qr[i]-ql[i]) - (fr[i]-fl[i])/amax);
+    w1[i] = 0.5*((qr[i]-ql[i]) + (fr[i]-fl[i])/amax);
+  }
+
+  s[0] = -amax;
+  s[1] = amax;
   
-  return s[0];
+  return s[1];
 }
 
 static void
@@ -111,22 +120,13 @@ qfluct_lax(const struct gkyl_wv_eqn *eqn,
   const double *ql, const double *qr, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
-  const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
-  double gas_gamma = euler->gas_gamma;
-
-  double rhol = ql[0], rhor = qr[0];
-  double ul = ql[1]/ql[0], ur = qr[1]/qr[0];
-  double pl = gkyl_euler_pressure(gas_gamma, ql), pr = gkyl_euler_pressure(gas_gamma, qr);
-  double sl = fabs(ul) + sqrt(gas_gamma*pl/rhol), sr = fabs(ur) + sqrt(gas_gamma*pr/rhor);
-  double amax = fmax(sl, sr);
-
-  double fl[5], fr[5];
-  gkyl_euler_flux(gas_gamma, ql, fl);
-  gkyl_euler_flux(gas_gamma, qr, fr);
+  const double *w0 = &waves[0], *w1 = &waves[5];
+  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
+  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]);
 
   for (int i=0; i<5; ++i) {
-    amdq[i] = 0.5*(fr[i]-fl[i] - amax*(qr[i]-ql[i]));
-    apdq[i] = 0.5*(fr[i]-fl[i] + amax*(qr[i]-ql[i]));
+    amdq[i] = s0m*w0[i] + s1m*w1[i];
+    apdq[i] = s0p*w0[i] + s1p*w1[i];
   }
 }
 
@@ -456,7 +456,7 @@ gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp)
       break;
       
     case WV_EULER_RP_LAX:
-      euler->eqn.num_waves = 1;
+      euler->eqn.num_waves = 2;
       euler->eqn.waves_func = wave_lax_l;
       euler->eqn.qfluct_func = qfluct_lax_l;
       break;      

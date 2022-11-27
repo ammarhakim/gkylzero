@@ -293,7 +293,20 @@ struct gkyl_wv_ten_moment { struct gkyl_wv_eqn *eqn; };
 struct gkyl_wv_eqn* gkyl_wv_ten_moment_new(double k0);
 ]]
 
--- gkyl_wc_mhd.h
+-- gkyl_moment_prim_mhd.h
+ffi.cdef [[
+/**
+ * Compute conserved variables from primitive variables.
+ *
+ * @param gas_gamma Gas adiabatic constant
+ * @param pv Primitive variables
+ * @param q Conserved variables
+
+ */
+void gkyl_mhd_cons_vars(double gas_gamma, const double pv[8], double q[8]);
+]]
+
+-- gkyl_wv_mhd.h
 ffi.cdef [[
 
 // Type of Rieman problem solver to use
@@ -709,12 +722,17 @@ _M.MHD = function(tbl)
    return ffi.gc(C.gkyl_wv_mhd_new(minp), C.gkyl_wv_eqn_release)
 end
 
--- Wraps user given init function in a function that can be passed to
--- the C callback APIs
+-- Raw wrapper around MHD function
+_M.gkyl_mhd_cons_vars = function(gas_gamma, pv, q)
+   return C.gkyl_mhd_cons_vars(gas_gamma, pv, q)
+end
+
+-- Wraps user given function in a function that can be passed to the C
+-- callback APIs
 local function gkyl_eval_moment(func)
    return function(t, xn, fout, ctx)
       local xnl = ffi.new("double[10]")
-      for i=1, 3 do xnl[i] = xn[i-1] end -- might not be safe?
+      for i=1, 3 do xnl[i] = xn[i-1] end
       local ret = { func(t, xnl) } -- package return into table
       for i=1,#ret do
          fout[i-1] = ret[i]
@@ -725,7 +743,7 @@ end
 local function gkyl_eval_applied(func)
    return function(t, xn, fout, ctx)
       local xnl = ffi.new("double[10]")
-      for i=1, 3 do xnl[i] = xn[i-1] end -- might not be safe?
+      for i=1, 3 do xnl[i] = xn[i-1] end
       local ux,uy,uz = func(t, xnl)
 
       fout[0] = ux; fout[1] = uy; fout[2] = uz
@@ -735,7 +753,7 @@ end
 local function gkyl_eval_mapc2p(func)
    return function(t, xn, fout, ctx)
       local xnl = ffi.new("double[10]")
-      for i=1, 3 do xnl[i] = xn[i-1] end -- might not be safe?
+      for i=1, 3 do xnl[i] = xn[i-1] end
       local ret = { func(t, xnl) } -- package return into table
       for i=1,#ret do
          fout[i-1] = ret[i]
@@ -834,7 +852,7 @@ _M.Species = ffi.metatype(species_type, species_mt)
 local function gkyl_eval_field(func)
    return function(t, xn, fout, ctx)
       local xnl = ffi.new("double[10]")
-      for i=1, 6 do xnl[i] = xn[i-1] end -- might not be safe?
+      for i=1, 3 do xnl[i] = xn[i-1] end
 
       local ex,ey,ez,bx,by,bz = func(t, xnl)
 
@@ -847,7 +865,7 @@ end
 local function gkyl_eval_ext_field(func)
    return function(t, xn, fout, ctx)
       local xnl = ffi.new("double[10]")
-      for i=1, 6 do xnl[i] = xn[i-1] end -- might not be safe?
+      for i=1, 3 do xnl[i] = xn[i-1] end
 
       local ex,ey,ez,bx,by,bz = func(t, xnl)
 

@@ -1,6 +1,7 @@
 #include <gkyl_bc_basic.h>
 #include <gkyl_bc_basic_priv.h>
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 
 // Private function to create a pointer to the function that applies the BC,
 // i.e., the array_copy_func applied to expansion coefficients in ghost cell.

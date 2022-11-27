@@ -9,6 +9,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_array_reduce.h>
+#include <gkyl_alloc_flags_priv.h>
 
 bool
 gkyl_array_copy_func_is_cu_dev(const struct gkyl_array_copy_func *bc)

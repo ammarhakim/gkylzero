@@ -237,7 +237,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
   int ndim = update_range->ndim;
   int meqn = wv->equation->num_equations;
   //  when forced to use Lax fluxes, we only have a single wave
-  int mwaves = wv->force_low_order_flux ? 1 :  wv->equation->num_waves;
+  int mwaves = wv->force_low_order_flux ? 2 :  wv->equation->num_waves;
 
   double cfla = 0.0, cfl = wv->cfl, cflm = 1.1*cfl;
 

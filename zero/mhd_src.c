@@ -161,12 +161,12 @@ static void gkyl_mhd_src_glm(const gkyl_mhd_src *up, double dt,
     double ch = up->glm_ch;
     double alpha = up->glm_alpha;
 
-    // Mignone, Equation (24e) or (27)
+    // Dedner's equation (24e) or Mignone's equation (27)
     double rate = alpha * ch / up->dxyz_min;
     q[PSI_GLM] *= exp(- rate * dt);
 
     double Bx = q[BX], By = q[BY], Bz = q[BZ];
-    // Mignone, Equation (24)
+    // Dedner's equations (24b) and (24d)
     q[MX] -= dt * divB[0] * Bx;
     q[MY] -= dt * divB[0] * By;
     q[MZ] -= dt * divB[0] * Bz;

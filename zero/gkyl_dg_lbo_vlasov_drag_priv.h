@@ -77,8 +77,8 @@ kernel_lbo_vlasov_drag_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const doub
   const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo_vlasov_drag->vdim*lbo_vlasov_drag->num_cbasis];
   bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_drag, nuSum_p, nuUSum_p, nuVtSqSum_p);
   if (noPrimMomCross) {
-  return lbo_vlasov_drag_vol_1x1v_ser_p1(xc, dx,
-      nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+    return lbo_vlasov_drag_vol_1x1v_ser_p1(xc, dx,
+        nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
   } else {
     return 0.;
   }
@@ -97,8 +97,8 @@ kernel_lbo_vlasov_drag_vol_1x1v_ser_p2(const struct gkyl_dg_eqn *eqn, const doub
   const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo_vlasov_drag->vdim*lbo_vlasov_drag->num_cbasis];
   bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_drag, nuSum_p, nuUSum_p, nuVtSqSum_p);
   if (noPrimMomCross) {
-  return lbo_vlasov_drag_vol_1x1v_ser_p2(xc, dx,
-      nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+    return lbo_vlasov_drag_vol_1x1v_ser_p2(xc, dx,
+        nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
   } else {
     return 0.;
   }
@@ -117,8 +117,8 @@ kernel_lbo_vlasov_drag_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doub
   const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo_vlasov_drag->vdim*lbo_vlasov_drag->num_cbasis];
   bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_drag, nuSum_p, nuUSum_p, nuVtSqSum_p);
   if (noPrimMomCross) {
-  return lbo_vlasov_drag_vol_1x2v_ser_p1(xc, dx,
-      nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+    return lbo_vlasov_drag_vol_1x2v_ser_p1(xc, dx,
+        nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
   } else {
     return 0.;
   }
@@ -137,8 +137,8 @@ kernel_lbo_vlasov_drag_vol_1x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const doub
   const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo_vlasov_drag->vdim*lbo_vlasov_drag->num_cbasis];
   bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_drag, nuSum_p, nuUSum_p, nuVtSqSum_p);
   if (noPrimMomCross) {
-  return lbo_vlasov_drag_vol_1x2v_ser_p2(xc, dx,
-      nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+    return lbo_vlasov_drag_vol_1x2v_ser_p2(xc, dx,
+        nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
   } else {
     return 0.;
   }
@@ -157,8 +157,8 @@ kernel_lbo_vlasov_drag_vol_1x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const doub
   const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo_vlasov_drag->vdim*lbo_vlasov_drag->num_cbasis];
   bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_drag, nuSum_p, nuUSum_p, nuVtSqSum_p);
   if (noPrimMomCross) {
-  return lbo_vlasov_drag_vol_1x3v_ser_p1(xc, dx,
-      nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+    return lbo_vlasov_drag_vol_1x3v_ser_p1(xc, dx,
+        nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
   } else {
     return 0.;
   }
@@ -177,8 +177,8 @@ kernel_lbo_vlasov_drag_vol_1x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const doub
   const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo_vlasov_drag->vdim*lbo_vlasov_drag->num_cbasis];
   bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_drag, nuSum_p, nuUSum_p, nuVtSqSum_p);
   if (noPrimMomCross) {
-  return lbo_vlasov_drag_vol_1x3v_ser_p2(xc, dx,
-      nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+    return lbo_vlasov_drag_vol_1x3v_ser_p2(xc, dx,
+        nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
   } else {
     return 0.;
   }
@@ -197,8 +197,8 @@ kernel_lbo_vlasov_drag_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doub
   const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo_vlasov_drag->vdim*lbo_vlasov_drag->num_cbasis];
   bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_drag, nuSum_p, nuUSum_p, nuVtSqSum_p);
   if (noPrimMomCross) {
-  return lbo_vlasov_drag_vol_2x2v_ser_p1(xc, dx,
-      nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+    return lbo_vlasov_drag_vol_2x2v_ser_p1(xc, dx,
+        nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
   } else {
     return 0.;
   }
@@ -217,8 +217,8 @@ kernel_lbo_vlasov_drag_vol_2x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const doub
   const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo_vlasov_drag->vdim*lbo_vlasov_drag->num_cbasis];
   bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_drag, nuSum_p, nuUSum_p, nuVtSqSum_p);
   if (noPrimMomCross) {
-  return lbo_vlasov_drag_vol_2x2v_ser_p2(xc, dx,
-      nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+    return lbo_vlasov_drag_vol_2x2v_ser_p2(xc, dx,
+        nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
   } else {
     return 0.;
   }
@@ -237,8 +237,8 @@ kernel_lbo_vlasov_drag_vol_2x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const doub
   const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo_vlasov_drag->vdim*lbo_vlasov_drag->num_cbasis];
   bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_drag, nuSum_p, nuUSum_p, nuVtSqSum_p);
   if (noPrimMomCross) {
-  return lbo_vlasov_drag_vol_2x3v_ser_p1(xc, dx,
-      nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+    return lbo_vlasov_drag_vol_2x3v_ser_p1(xc, dx,
+        nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
   } else {
     return 0.;
   }
@@ -257,8 +257,8 @@ kernel_lbo_vlasov_drag_vol_2x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const doub
   const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo_vlasov_drag->vdim*lbo_vlasov_drag->num_cbasis];
   bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_drag, nuSum_p, nuUSum_p, nuVtSqSum_p);
   if (noPrimMomCross) {
-  return lbo_vlasov_drag_vol_2x3v_ser_p2(xc, dx,
-      nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+    return lbo_vlasov_drag_vol_2x3v_ser_p2(xc, dx,
+        nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
   } else {
     return 0.;
   }
@@ -277,8 +277,8 @@ kernel_lbo_vlasov_drag_vol_3x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const doub
   const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo_vlasov_drag->vdim*lbo_vlasov_drag->num_cbasis];
   bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_drag, nuSum_p, nuUSum_p, nuVtSqSum_p);
   if (noPrimMomCross) {
-  return lbo_vlasov_drag_vol_3x3v_ser_p1(xc, dx,
-      nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+    return lbo_vlasov_drag_vol_3x3v_ser_p1(xc, dx,
+        nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
   } else {
     return 0.;
   }
