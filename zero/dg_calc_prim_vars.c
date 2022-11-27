@@ -183,7 +183,7 @@ void gkyl_calc_prim_vars_pkpm_upwind_p(const struct gkyl_rect_grid *phase_grid,
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(p_force)) {
-    return gkyl_calc_prim_vars_pkpm_upwind_p_cu(phase_grid, basis, phase_range, conf_range, mass, 
+    return gkyl_calc_prim_vars_pkpm_upwind_p_cu(phase_grid, cbasis, phase_range, conf_range, mass, 
       bvar, f, p_force);
   }
 #endif

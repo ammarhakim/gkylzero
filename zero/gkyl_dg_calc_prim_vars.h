@@ -175,7 +175,7 @@ void gkyl_calc_prim_vars_pkpm_recovery_cu(const struct gkyl_rect_grid *grid,
 
 void gkyl_calc_prim_vars_pkpm_upwind_p_cu(const struct gkyl_rect_grid *phase_grid, 
   struct gkyl_basis cbasis, const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array* bvar, const struct gkyl_array* f, struct gkyl_array* p_force);
+  double mass, const struct gkyl_array* bvar, const struct gkyl_array* f, struct gkyl_array* p_force);
 
 void gkyl_calc_prim_vars_pkpm_p_force_cu(struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* bvar, const struct gkyl_array* div_p, const struct gkyl_array* vlasov_pkpm_moms, 
