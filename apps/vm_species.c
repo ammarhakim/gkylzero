@@ -283,18 +283,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       s->V_drift_mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
   }
 
-  // allocate array to store b_i/rho for PKPM model
-  s->rho_inv_b = 0;
-  s->rho_inv_mem = 0;
   s->has_magB = false;
   if (s->model_id  == GKYL_MODEL_PKPM) {
-    s->rho_inv_b = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
-    if (app->use_gpu)
-      s->rho_inv_mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
-    else
-      s->rho_inv_mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
-
-    // Get pointer to fluid species object (needed for computing primitive moments)
+    // Get pointer to fluid species object for coupling
     s->pkpm_fluid_species = vm_find_fluid_species(app, s->info.pkpm_fluid_species);
     s->pkpm_fluid_index = vm_find_fluid_species_idx(app, s->info.pkpm_fluid_species);
 
@@ -481,15 +472,9 @@ vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species,
   const struct gkyl_array *fin, const struct gkyl_array *em)
 {
   if (species->model_id == GKYL_MODEL_PKPM) {
-    vm_species_moment_calc(&species->pkpm_moms, species->local,
-      app->local, fin);
-    vm_field_calc_bvar(app, app->field, em);
-
-    for (int i = 0; i<3; ++i)
-      gkyl_dg_div_op_range(species->rho_inv_mem, app->confBasis, 
-        i, species->rho_inv_b, 
-        i, app->field->bvar, 
-        0, species->pkpm_moms.marr, &app->local);  
+    vm_species_moment_calc(&species->pkpm_moms, species->local_ext,
+      app->local_ext, fin);
+    vm_field_calc_bvar(app, app->field, em);   
   }
   else if (species->model_id == GKYL_MODEL_SR_PKPM) {
     vm_field_calc_sr_pkpm_vars(app, app->field, em);  
@@ -524,25 +509,27 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   if (app->use_gpu) {
     if (species->model_id == GKYL_MODEL_PKPM)
       gkyl_dg_updater_vlasov_advance_cu(species->slvr, &species->local, 
-        species->pkpm_fluid_species->u, species->pkpm_fluid_species->div_p,
-        app->field->bvar, species->rho_inv_b, 
+        app->field->bvar, species->pkpm_fluid_species->u,
+        species->pkpm_fluid_species->bb_grad_u, species->pkpm_fluid_species->p_force, 
+        species->lbo.prim_moms, 
         fin, species->cflrate, rhs);
     else
       gkyl_dg_updater_vlasov_advance_cu(species->slvr, &species->local, 
         species->qmem, species->p_over_gamma, 
-        0, 0,
+        0, 0, 0, 
         fin, species->cflrate, rhs);    
   }
   else {
     if (species->model_id == GKYL_MODEL_PKPM)
       gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
-        species->pkpm_fluid_species->u, species->pkpm_fluid_species->div_p, 
-        app->field->bvar, species->rho_inv_b, 
+        app->field->bvar, species->pkpm_fluid_species->u,
+        species->pkpm_fluid_species->bb_grad_u, species->pkpm_fluid_species->p_force, 
+        species->lbo.prim_moms, 
         fin, species->cflrate, rhs);
     else
       gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
         species->qmem, species->p_over_gamma, 
-        0, 0, 
+        0, 0, 0, 
         fin, species->cflrate, rhs);
   }
 
@@ -720,8 +707,6 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     gkyl_dg_bin_op_mem_release(s->V_drift_mem);
   }
   if (s->model_id == GKYL_MODEL_PKPM) {
-    gkyl_array_release(s->rho_inv_b);
-    gkyl_dg_bin_op_mem_release(s->rho_inv_mem);
     vm_species_moment_release(app, &s->pkpm_moms);
 
     gkyl_array_release(s->m1i_pkpm);

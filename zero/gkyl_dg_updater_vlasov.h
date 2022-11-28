@@ -65,6 +65,7 @@ void gkyl_dg_updater_vlasov_advance(gkyl_dg_updater_vlasov *vlasov,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *aux1, const struct gkyl_array *aux2, 
   const struct gkyl_array *aux3, const struct gkyl_array *aux4, 
+  const struct gkyl_array *aux5, 
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 
@@ -72,6 +73,7 @@ void gkyl_dg_updater_vlasov_advance_cu(gkyl_dg_updater_vlasov *vlasov,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *aux1, const struct gkyl_array *aux2, 
   const struct gkyl_array *aux3, const struct gkyl_array *aux4, 
+  const struct gkyl_array *aux5, 
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 

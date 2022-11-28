@@ -258,13 +258,6 @@ void gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* hdg, const struct gkyl_range *updat
   assert(false);
 }
 
-void gkyl_hyper_dg_gen_stencil_advance_cu(gkyl_hyper_dg* hdg, const struct gkyl_range *update_range,
-  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
-  struct gkyl_array* GKYL_RESTRICT rhs)
-{
-  assert(false);
-}
-
 void
 gkyl_hyper_dg_set_update_vol_cu(gkyl_hyper_dg *hdg, int update_vol_term)
 {

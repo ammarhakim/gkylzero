@@ -17,21 +17,23 @@ extern "C" {
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
 gkyl_vlasov_pkpm_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
-  const struct gkyl_array *u_i, const struct gkyl_array *p_ij, 
-  const struct gkyl_array *bvar, const struct gkyl_array *rho_inv_b)
+  const struct gkyl_array *bvar, const struct gkyl_array *u_i, 
+  const struct gkyl_array *bb_grad_u, const struct gkyl_array *p_force, const struct gkyl_array *vth_sq)
 {
   struct dg_vlasov_pkpm *vlasov_pkpm = container_of(eqn, struct dg_vlasov_pkpm, eqn);
-  vlasov_pkpm->auxfields.u_i = u_i;
-  vlasov_pkpm->auxfields.p_ij = p_ij;
   vlasov_pkpm->auxfields.bvar = bvar;
-  vlasov_pkpm->auxfields.rho_inv_b = rho_inv_b;
+  vlasov_pkpm->auxfields.u_i = u_i;
+  vlasov_pkpm->auxfields.bb_grad_u = bb_grad_u;
+  vlasov_pkpm->auxfields.p_force = p_force;
+  vlasov_pkpm->auxfields.vth_sq = vth_sq;
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
 void
 gkyl_vlasov_pkpm_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_pkpm_auxfields auxin)
 {
-  gkyl_vlasov_pkpm_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.u_i->on_dev, auxin.p_ij->on_dev, auxin.bvar->on_dev, auxin.rho_inv_b->on_dev);
+  gkyl_vlasov_pkpm_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.bvar->on_dev, auxin.u_i->on_dev, 
+    auxin.bb_grad_u->on_dev, auxin.p_force->on_dev, auxin.vth_sq->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and vlasov_pkpm kernel function
@@ -40,11 +42,12 @@ __global__ static void
 dg_vlasov_pkpm_set_cu_dev_ptrs(struct dg_vlasov_pkpm *vlasov_pkpm, enum gkyl_basis_type b_type,
   int cdim, int poly_order)
 {
-  vlasov_pkpm->auxfields.u_i = 0;
-  vlasov_pkpm->auxfields.p_ij = 0;
   vlasov_pkpm->auxfields.bvar = 0;  
-  vlasov_pkpm->auxfields.rho_inv_b = 0;  
-
+  vlasov_pkpm->auxfields.u_i = 0;
+  vlasov_pkpm->auxfields.bb_grad_u = 0;
+  vlasov_pkpm->auxfields.p_force = 0;  
+  vlasov_pkpm->auxfields.vth_sq = 0;  
+  
   vlasov_pkpm->eqn.surf_term = surf;
   vlasov_pkpm->eqn.boundary_surf_term = boundary_surf;
 

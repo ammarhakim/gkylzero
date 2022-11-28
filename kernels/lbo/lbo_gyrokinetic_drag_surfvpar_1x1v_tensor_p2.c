@@ -33,32 +33,32 @@ GKYL_CU_DH void lbo_gyrokinetic_drag_surfvpar_1x1v_tensor_p2(const double *w, co
   double Ghat_l[3] = {0.0}; 
   double Ghat_r[3] = {0.0}; 
 
-  if (0.6324555320336759*alphaDrSurf_l[2]-0.9486832980505137*alphaDrSurf_l[1]+0.7071067811865475*alphaDrSurf_l[0] < 0) { 
+  if (0.6324555320336768*alphaDrSurf_l[2]-0.9486832980505135*alphaDrSurf_l[1]+0.7071067811865468*alphaDrSurf_l[0] < 0) { 
     fUpwindQuad_l[0] = tensor_2x_p2_surfx2_eval_quad_node_0_r(fl); 
   } else { 
     fUpwindQuad_l[0] = tensor_2x_p2_surfx2_eval_quad_node_0_l(fc); 
   } 
-  if (0.6324555320336759*alphaDrSurf_r[2]-0.9486832980505137*alphaDrSurf_r[1]+0.7071067811865475*alphaDrSurf_r[0] < 0) { 
+  if (0.6324555320336768*alphaDrSurf_r[2]-0.9486832980505135*alphaDrSurf_r[1]+0.7071067811865468*alphaDrSurf_r[0] < 0) { 
     fUpwindQuad_r[0] = tensor_2x_p2_surfx2_eval_quad_node_0_r(fc); 
   } else { 
     fUpwindQuad_r[0] = tensor_2x_p2_surfx2_eval_quad_node_0_l(fr); 
   } 
-  if (0.7071067811865475*alphaDrSurf_l[0]-0.7905694150420947*alphaDrSurf_l[2] < 0) { 
+  if (0.7071067811865468*alphaDrSurf_l[0]-0.7905694150420945*alphaDrSurf_l[2] < 0) { 
     fUpwindQuad_l[1] = tensor_2x_p2_surfx2_eval_quad_node_1_r(fl); 
   } else { 
     fUpwindQuad_l[1] = tensor_2x_p2_surfx2_eval_quad_node_1_l(fc); 
   } 
-  if (0.7071067811865475*alphaDrSurf_r[0]-0.7905694150420947*alphaDrSurf_r[2] < 0) { 
+  if (0.7071067811865468*alphaDrSurf_r[0]-0.7905694150420945*alphaDrSurf_r[2] < 0) { 
     fUpwindQuad_r[1] = tensor_2x_p2_surfx2_eval_quad_node_1_r(fc); 
   } else { 
     fUpwindQuad_r[1] = tensor_2x_p2_surfx2_eval_quad_node_1_l(fr); 
   } 
-  if (0.6324555320336759*alphaDrSurf_l[2]+0.9486832980505137*alphaDrSurf_l[1]+0.7071067811865475*alphaDrSurf_l[0] < 0) { 
+  if (0.6324555320336768*alphaDrSurf_l[2]+0.9486832980505135*alphaDrSurf_l[1]+0.7071067811865468*alphaDrSurf_l[0] < 0) { 
     fUpwindQuad_l[2] = tensor_2x_p2_surfx2_eval_quad_node_2_r(fl); 
   } else { 
     fUpwindQuad_l[2] = tensor_2x_p2_surfx2_eval_quad_node_2_l(fc); 
   } 
-  if (0.6324555320336759*alphaDrSurf_r[2]+0.9486832980505137*alphaDrSurf_r[1]+0.7071067811865475*alphaDrSurf_r[0] < 0) { 
+  if (0.6324555320336768*alphaDrSurf_r[2]+0.9486832980505135*alphaDrSurf_r[1]+0.7071067811865468*alphaDrSurf_r[0] < 0) { 
     fUpwindQuad_r[2] = tensor_2x_p2_surfx2_eval_quad_node_2_r(fc); 
   } else { 
     fUpwindQuad_r[2] = tensor_2x_p2_surfx2_eval_quad_node_2_l(fr); 

@@ -429,8 +429,11 @@ gkyl_vlasov_app_write_fluid_u_species(gkyl_vlasov_app* app, int sidx, double tm,
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, app->fluid_species[sidx].info.name, frame);
 
+  if (app->use_gpu)
+    gkyl_array_copy(app->fluid_species[sidx].u_host, app->fluid_species[sidx].u);
+
   gkyl_grid_sub_array_write(&app->grid, &app->local,
-    app->fluid_species[sidx].u, fileNm);
+    app->fluid_species[sidx].u_host, fileNm);
 }
 
 void
@@ -441,8 +444,11 @@ gkyl_vlasov_app_write_fluid_p_species(gkyl_vlasov_app* app, int sidx, double tm,
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, app->fluid_species[sidx].info.name, frame);
 
+  if (app->use_gpu)
+    gkyl_array_copy(app->fluid_species[sidx].p_host, app->fluid_species[sidx].p);
+
   gkyl_grid_sub_array_write(&app->grid, &app->local,
-    app->fluid_species[sidx].p, fileNm);
+    app->fluid_species[sidx].p_host, fileNm);
 }
 
 void
@@ -453,8 +459,10 @@ gkyl_vlasov_app_write_fluid_pkpm_moms(gkyl_vlasov_app* app, int sidx, double tm,
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, app->fluid_species[sidx].info.name, frame);
 
-  gkyl_grid_sub_array_write(&app->grid, &app->local,
-    app->fluid_species[sidx].pkpm_species->pkpm_moms.marr, fileNm);
+  if (app->use_gpu)
+    gkyl_array_copy(app->fluid_species[sidx].pkpm_species->pkpm_moms.marr_host, app->fluid_species[sidx].pkpm_species->pkpm_moms.marr);
+
+  gkyl_grid_sub_array_write(&app->grid, &app->local, app->fluid_species[sidx].pkpm_species->pkpm_moms.marr_host, fileNm);
 }
 
 void
@@ -826,11 +834,11 @@ gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
     gkyl_array_clear_range(rhs, 0.0, species->local);
     if (app->use_gpu)
       gkyl_dg_updater_vlasov_advance_cu(species->slvr, &species->local,
-        species->qmem, species->p_over_gamma, 0, 0, 
+        species->qmem, species->p_over_gamma, 0, 0, 0, 
         fin, species->cflrate, rhs);
     else
       gkyl_dg_updater_vlasov_advance(species->slvr, &species->local,
-        species->qmem, species->p_over_gamma, 0, 0, 
+        species->qmem, species->p_over_gamma, 0, 0, 0, 
         fin, species->cflrate, rhs);
   }
 }

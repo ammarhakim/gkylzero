@@ -14,15 +14,12 @@ typedef struct gkyl_prim_lbo_calc gkyl_prim_lbo_calc;
  * function. Free using gkyl_prim_vlasov_calc_release.
  *
  * @param grid Grid object
- * @param cbasis Config-space basis 
- * @param conf_rng Config-space range
  * @param prim Pointer to primitive moment type object
  * @param use_gpu bool to determine if on GPU
  * @return New updater pointer.
  */
 struct gkyl_prim_lbo_calc* 
 gkyl_prim_lbo_calc_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_rng, 
   struct gkyl_prim_lbo_type *prim, bool use_gpu);
 
 /**
@@ -31,7 +28,6 @@ gkyl_prim_lbo_calc_new(const struct gkyl_rect_grid *grid,
  */
 struct gkyl_prim_lbo_calc* 
 gkyl_prim_lbo_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_rng, 
   struct gkyl_prim_lbo_type *prim);
 
 /**
@@ -46,12 +42,12 @@ gkyl_prim_lbo_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
  * @param boundary_corrections Momentum and Energy boundary corrections
  * @param prim_moms_out Output drift velocity and thermal speed squared.
  */
-void gkyl_prim_lbo_calc_advance(const struct gkyl_prim_lbo_calc* calc, 
+void gkyl_prim_lbo_calc_advance(struct gkyl_prim_lbo_calc* calc, 
   const struct gkyl_range *conf_rng,
   const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
   struct gkyl_array *prim_moms_out);
 
-void gkyl_prim_lbo_calc_advance_cu(const struct gkyl_prim_lbo_calc* calc, 
+void gkyl_prim_lbo_calc_advance_cu(struct gkyl_prim_lbo_calc* calc, 
   const struct gkyl_range *conf_rng, 
   const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
   struct gkyl_array* prim_moms_out);

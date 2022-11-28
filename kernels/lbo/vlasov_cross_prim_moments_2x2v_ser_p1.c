@@ -267,14 +267,14 @@ GKYL_CU_DH void vlasov_cross_prim_moments_2x2v_ser_p1(struct gkyl_mat *A, struct
   { 
     int a0 = 4*vd; 
     // Dot product terms in energy equation RHS. 
-    uM1Self[0] += 0.5*m1r[7]*u_self[a0+3]+0.5*m1r[6]*u_self[a0+2]+0.5*m1r[5]*u_self[a0+1]+0.5*m1r[4]*u_self[a0]; 
-    uM1Self[1] += 0.5*m1r[6]*u_self[a0+3]+0.5*m1r[7]*u_self[a0+2]+0.5*m1r[4]*u_self[a0+1]+0.5*m1r[5]*u_self[a0]; 
-    uM1Self[2] += 0.5*m1r[5]*u_self[a0+3]+0.5*m1r[4]*u_self[a0+2]+0.5*m1r[7]*u_self[a0+1]+0.5*m1r[6]*u_self[a0]; 
-    uM1Self[3] += 0.5*m1r[4]*u_self[a0+3]+0.5*m1r[5]*u_self[a0+2]+0.5*m1r[6]*u_self[a0+1]+0.5*m1r[7]*u_self[a0]; 
-    uM1Other[0] += 0.5*m1r[7]*u_other[a0+3]+0.5*m1r[6]*u_other[a0+2]+0.5*m1r[5]*u_other[a0+1]+0.5*m1r[4]*u_other[a0]; 
-    uM1Other[1] += 0.5*m1r[6]*u_other[a0+3]+0.5*m1r[7]*u_other[a0+2]+0.5*m1r[4]*u_other[a0+1]+0.5*m1r[5]*u_other[a0]; 
-    uM1Other[2] += 0.5*m1r[5]*u_other[a0+3]+0.5*m1r[4]*u_other[a0+2]+0.5*m1r[7]*u_other[a0+1]+0.5*m1r[6]*u_other[a0]; 
-    uM1Other[3] += 0.5*m1r[4]*u_other[a0+3]+0.5*m1r[5]*u_other[a0+2]+0.5*m1r[6]*u_other[a0+1]+0.5*m1r[7]*u_other[a0]; 
+    uM1Self[0] += 0.5*m1r[a0+3]*u_self[a0+3]+0.5*m1r[a0+2]*u_self[a0+2]+0.5*m1r[a0+1]*u_self[a0+1]+0.5*m1r[a0]*u_self[a0]; 
+    uM1Self[1] += 0.5*m1r[a0+2]*u_self[a0+3]+0.5*u_self[a0+2]*m1r[a0+3]+0.5*m1r[a0]*u_self[a0+1]+0.5*u_self[a0]*m1r[a0+1]; 
+    uM1Self[2] += 0.5*m1r[a0+1]*u_self[a0+3]+0.5*u_self[a0+1]*m1r[a0+3]+0.5*m1r[a0]*u_self[a0+2]+0.5*u_self[a0]*m1r[a0+2]; 
+    uM1Self[3] += 0.5*m1r[a0]*u_self[a0+3]+0.5*u_self[a0]*m1r[a0+3]+0.5*m1r[a0+1]*u_self[a0+2]+0.5*u_self[a0+1]*m1r[a0+2]; 
+    uM1Other[0] += 0.5*m1r[a0+3]*u_other[a0+3]+0.5*m1r[a0+2]*u_other[a0+2]+0.5*m1r[a0+1]*u_other[a0+1]+0.5*m1r[a0]*u_other[a0]; 
+    uM1Other[1] += 0.5*m1r[a0+2]*u_other[a0+3]+0.5*u_other[a0+2]*m1r[a0+3]+0.5*m1r[a0]*u_other[a0+1]+0.5*u_other[a0]*m1r[a0+1]; 
+    uM1Other[2] += 0.5*m1r[a0+1]*u_other[a0+3]+0.5*u_other[a0+1]*m1r[a0+3]+0.5*m1r[a0]*u_other[a0+2]+0.5*u_other[a0]*m1r[a0+2]; 
+    uM1Other[3] += 0.5*m1r[a0]*u_other[a0+3]+0.5*u_other[a0]*m1r[a0+3]+0.5*m1r[a0+1]*u_other[a0+2]+0.5*u_other[a0+1]*m1r[a0+2]; 
   const double u_self0R2 = pow(u_self[a0],2);
   const double u_self1R2 = pow(u_self[a0+1],2);
   const double u_self2R2 = pow(u_self[a0+2],2);

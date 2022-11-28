@@ -200,8 +200,6 @@ struct vm_species {
                         // index corresponds to location in fluid_species array (size num_fluid_species)
   struct gkyl_array *m1i_pkpm; // "M1i" in the pkpm model for use in current coupling
                                // Used to copy over fluid variable from pkpm_fluid_species (first three components are momentum)
-  struct gkyl_array *rho_inv_b; // b_i/rho (for use in pressure force 1/rho * b. div(P))
-  struct gkyl_dg_bin_op_mem *rho_inv_mem; // memory used in the div-op for rho_inv_b
 
   gkyl_dg_updater_vlasov *slvr; // Vlasov solver 
   struct gkyl_dg_eqn *eqn_vlasov; // Vlasov equation object
@@ -314,13 +312,14 @@ struct vm_fluid_species {
   struct gkyl_array *p; // array for pressure (used by Euler (1 component) and pkpm Euler (6 components))
   struct gkyl_array *u_bc_buffer; // buffer for applying BCs to flow
   struct gkyl_array *p_bc_buffer; // buffer for applying BCs to pressure
-
+  struct gkyl_array *u_host; // array for host-side fluid/advection velocity (for I/O)
+  struct gkyl_array *p_host; // array for host-side pressure (for I/O)
+  // pkpm variables
+  struct gkyl_array *div_b; // div(b) used by total pressure force
+  struct gkyl_array *bb_grad_u; // bb : grad(u) for use in force term 
   struct gkyl_array *div_p; // array for divergence of the pressure tensor
-
-  struct gkyl_array *ux_dg; // array for *just* x velocity (DG)
-  struct gkyl_array *ux_wgt; // weight for used in continuous projection
-  struct gkyl_array *ux_fem; // array for continuous x velocity 
-  struct gkyl_fem_parproj *fem_proj; // 1D continuous projection operator
+  struct gkyl_array *p_force; // Total pressure force in PKPM model 1/rho (b . div(P) + p_perp div(b))
+  struct gkyl_array *p_perp_source; // array for perpendicular pressure
 
   struct gkyl_array *D; // array for diffusion tensor
   struct gkyl_array *D_host; // host copy of diffusion tensor

@@ -21,7 +21,7 @@ gkyl_lbo_vlasov_diff_free(const struct gkyl_ref_count* ref)
 }
 
 void
-gkyl_lbo_vlasov_diff_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_vlasov_diff_auxfields auxin)
+gkyl_lbo_vlasov_diff_set_auxfields(const struct gkyl_dg_eqn *eqn, const struct gkyl_dg_lbo_vlasov_diff_auxfields auxin)
 {
 
 #ifdef GKYL_HAVE_CUDA
