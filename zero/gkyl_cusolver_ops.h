@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <stdbool.h>
-#include "gkyl_alloc_flags_priv.h"
 
 #include <gkyl_alloc.h>
 #include <gkyl_mat_triples.h>
