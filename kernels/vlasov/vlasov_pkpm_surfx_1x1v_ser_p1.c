@@ -23,18 +23,18 @@ GKYL_CU_DH void vlasov_pkpm_surfx_1x1v_ser_p1(const double *w, const double *dxv
   double alpha_l[6] = {0.0}; 
   double alpha_c[6] = {0.0}; 
   double alpha_r[6] = {0.0}; 
-  alpha_l[0] = 1.414213562373095*bl[0]*wvpar+1.414213562373095*ul[0]; 
-  alpha_l[1] = 1.414213562373095*bl[1]*wvpar+1.414213562373095*ul[1]; 
+  alpha_l[0] = 1.414213562373095*bl[0]*wvpar; 
+  alpha_l[1] = 1.414213562373095*bl[1]*wvpar; 
   alpha_l[2] = 0.408248290463863*bl[0]*dvpar; 
   alpha_l[3] = 0.408248290463863*bl[1]*dvpar; 
 
-  alpha_c[0] = 1.414213562373095*bc[0]*wvpar+1.414213562373095*uc[0]; 
-  alpha_c[1] = 1.414213562373095*bc[1]*wvpar+1.414213562373095*uc[1]; 
+  alpha_c[0] = 1.414213562373095*bc[0]*wvpar; 
+  alpha_c[1] = 1.414213562373095*bc[1]*wvpar; 
   alpha_c[2] = 0.408248290463863*bc[0]*dvpar; 
   alpha_c[3] = 0.408248290463863*bc[1]*dvpar; 
 
-  alpha_r[0] = 1.414213562373095*br[0]*wvpar+1.414213562373095*ur[0]; 
-  alpha_r[1] = 1.414213562373095*br[1]*wvpar+1.414213562373095*ur[1]; 
+  alpha_r[0] = 1.414213562373095*br[0]*wvpar; 
+  alpha_r[1] = 1.414213562373095*br[1]*wvpar; 
   alpha_r[2] = 0.408248290463863*br[0]*dvpar; 
   alpha_r[3] = 0.408248290463863*br[1]*dvpar; 
 
@@ -102,5 +102,126 @@ GKYL_CU_DH void vlasov_pkpm_surfx_1x1v_ser_p1(const double *w, const double *dxv
   out[3] += -1.224744871391589*(Ghat_r[1]+Ghat_l[1])*dx1; 
   out[4] += (0.7071067811865475*Ghat_l[2]-0.7071067811865475*Ghat_r[2])*dx1; 
   out[5] += -1.224744871391589*(Ghat_r[2]+Ghat_l[2])*dx1; 
+
+  double alpha_u_l[6] = {0.0}; 
+  double alpha_u_c[6] = {0.0}; 
+  double alpha_u_r[6] = {0.0}; 
+  alpha_u_l[0] = 1.414213562373095*ul[0]; 
+  alpha_u_l[1] = 1.414213562373095*ul[1]; 
+
+  alpha_u_c[0] = 1.414213562373095*uc[0]; 
+  alpha_u_c[1] = 1.414213562373095*uc[1]; 
+
+  alpha_u_r[0] = 1.414213562373095*ur[0]; 
+  alpha_u_r[1] = 1.414213562373095*ur[1]; 
+
+  double alphaSurf_lr[3] = {0.0}; 
+  double alphaSurf_cl[3] = {0.0}; 
+  double alphaSurf_cr[3] = {0.0}; 
+  double alphaSurf_rl[3] = {0.0}; 
+  alphaSurf_lr[0] = 1.732050807568877*ul[1]+ul[0]; 
+
+  alphaSurf_cl[0] = uc[0]-1.732050807568877*uc[1]; 
+
+  alphaSurf_cr[0] = 1.732050807568877*uc[1]+uc[0]; 
+
+  alphaSurf_rl[0] = ur[0]-1.732050807568877*ur[1]; 
+
+  double fSurf_lr[3] = {0.0}; 
+  double fSurf_cl[3] = {0.0}; 
+  double fSurf_cr[3] = {0.0}; 
+  double fSurf_rl[3] = {0.0}; 
+  fSurf_lr[0] = 1.224744871391589*fl[1]+0.7071067811865475*fl[0]; 
+  fSurf_lr[1] = 1.224744871391589*fl[3]+0.7071067811865475*fl[2]; 
+  fSurf_lr[2] = 1.224744871391589*fl[5]+0.7071067811865475*fl[4]; 
+
+  fSurf_cl[0] = 0.7071067811865475*fc[0]-1.224744871391589*fc[1]; 
+  fSurf_cl[1] = 0.7071067811865475*fc[2]-1.224744871391589*fc[3]; 
+  fSurf_cl[2] = 0.7071067811865475*fc[4]-1.224744871391589*fc[5]; 
+
+  fSurf_cr[0] = 1.224744871391589*fc[1]+0.7071067811865475*fc[0]; 
+  fSurf_cr[1] = 1.224744871391589*fc[3]+0.7071067811865475*fc[2]; 
+  fSurf_cr[2] = 1.224744871391589*fc[5]+0.7071067811865475*fc[4]; 
+
+  fSurf_rl[0] = 0.7071067811865475*fr[0]-1.224744871391589*fr[1]; 
+  fSurf_rl[1] = 0.7071067811865475*fr[2]-1.224744871391589*fr[3]; 
+  fSurf_rl[2] = 0.7071067811865475*fr[4]-1.224744871391589*fr[5]; 
+
+  double jump_f_quad_l[3] = {0.0};
+  double jump_f_quad_r[3] = {0.0};
+  double jump_f_modal_l[3] = {0.0};
+  double jump_f_modal_r[3] = {0.0};
+
+  double Ghat_u_l[3] = {0.0}; 
+  double Ghat_u_r[3] = {0.0}; 
+
+  double alpha_l_r = 0.0; 
+  double alpha_c_l = 0.0; 
+  double alpha_c_r = 0.0; 
+  double alpha_r_l = 0.0; 
+  double alphaQuad_l = 0.0; 
+  double alphaQuad_r = 0.0; 
+  double f_l_r = 0.0; 
+  double f_c_l = 0.0; 
+  double f_c_r = 0.0; 
+  double f_r_l = 0.0; 
+  alpha_l_r = hyb_1x1v_p1_surfx1_eval_quad_node_0_r(alpha_u_l); 
+  alpha_c_l = hyb_1x1v_p1_surfx1_eval_quad_node_0_l(alpha_u_c); 
+  alpha_c_r = hyb_1x1v_p1_surfx1_eval_quad_node_0_r(alpha_u_c); 
+  alpha_r_l = hyb_1x1v_p1_surfx1_eval_quad_node_0_l(alpha_u_r); 
+  alphaQuad_l = fmax(fabs(alpha_l_r), fabs(alpha_c_l)); 
+  alphaQuad_r = fmax(fabs(alpha_c_r), fabs(alpha_r_l)); 
+  f_l_r = hyb_1x1v_p1_surfx1_eval_quad_node_0_r(fl); 
+  f_c_l = hyb_1x1v_p1_surfx1_eval_quad_node_0_l(fc); 
+  f_c_r = hyb_1x1v_p1_surfx1_eval_quad_node_0_r(fc); 
+  f_r_l = hyb_1x1v_p1_surfx1_eval_quad_node_0_l(fr); 
+  jump_f_quad_l[0] = 0.5*alphaQuad_l*(f_c_l - f_l_r); 
+  jump_f_quad_r[0] = 0.5*alphaQuad_r*(f_r_l - f_c_r); 
+
+  alpha_l_r = hyb_1x1v_p1_surfx1_eval_quad_node_1_r(alpha_u_l); 
+  alpha_c_l = hyb_1x1v_p1_surfx1_eval_quad_node_1_l(alpha_u_c); 
+  alpha_c_r = hyb_1x1v_p1_surfx1_eval_quad_node_1_r(alpha_u_c); 
+  alpha_r_l = hyb_1x1v_p1_surfx1_eval_quad_node_1_l(alpha_u_r); 
+  alphaQuad_l = fmax(fabs(alpha_l_r), fabs(alpha_c_l)); 
+  alphaQuad_r = fmax(fabs(alpha_c_r), fabs(alpha_r_l)); 
+  f_l_r = hyb_1x1v_p1_surfx1_eval_quad_node_1_r(fl); 
+  f_c_l = hyb_1x1v_p1_surfx1_eval_quad_node_1_l(fc); 
+  f_c_r = hyb_1x1v_p1_surfx1_eval_quad_node_1_r(fc); 
+  f_r_l = hyb_1x1v_p1_surfx1_eval_quad_node_1_l(fr); 
+  jump_f_quad_l[1] = 0.5*alphaQuad_l*(f_c_l - f_l_r); 
+  jump_f_quad_r[1] = 0.5*alphaQuad_r*(f_r_l - f_c_r); 
+
+  alpha_l_r = hyb_1x1v_p1_surfx1_eval_quad_node_2_r(alpha_u_l); 
+  alpha_c_l = hyb_1x1v_p1_surfx1_eval_quad_node_2_l(alpha_u_c); 
+  alpha_c_r = hyb_1x1v_p1_surfx1_eval_quad_node_2_r(alpha_u_c); 
+  alpha_r_l = hyb_1x1v_p1_surfx1_eval_quad_node_2_l(alpha_u_r); 
+  alphaQuad_l = fmax(fabs(alpha_l_r), fabs(alpha_c_l)); 
+  alphaQuad_r = fmax(fabs(alpha_c_r), fabs(alpha_r_l)); 
+  f_l_r = hyb_1x1v_p1_surfx1_eval_quad_node_2_r(fl); 
+  f_c_l = hyb_1x1v_p1_surfx1_eval_quad_node_2_l(fc); 
+  f_c_r = hyb_1x1v_p1_surfx1_eval_quad_node_2_r(fc); 
+  f_r_l = hyb_1x1v_p1_surfx1_eval_quad_node_2_l(fr); 
+  jump_f_quad_l[2] = 0.5*alphaQuad_l*(f_c_l - f_l_r); 
+  jump_f_quad_r[2] = 0.5*alphaQuad_r*(f_r_l - f_c_r); 
+
+
+  // Project tensor nodal quadrature basis back onto modal basis. 
+  hyb_1x1v_p1_xdir_upwind_quad_to_modal(jump_f_quad_l, jump_f_modal_l); 
+  hyb_1x1v_p1_xdir_upwind_quad_to_modal(jump_f_quad_r, jump_f_modal_r); 
+  Ghat_u_l[0] = (-1.0*jump_f_modal_l[0])+0.3535533905932737*alphaSurf_lr[0]*fSurf_lr[0]+0.3535533905932737*alphaSurf_cl[0]*fSurf_cl[0]; 
+  Ghat_u_l[1] = (-1.0*jump_f_modal_l[1])+0.3535533905932737*alphaSurf_lr[0]*fSurf_lr[1]+0.3535533905932737*alphaSurf_cl[0]*fSurf_cl[1]; 
+  Ghat_u_l[2] = (-1.0*jump_f_modal_l[2])+0.3535533905932737*alphaSurf_lr[0]*fSurf_lr[2]+0.3535533905932737*alphaSurf_cl[0]*fSurf_cl[2]; 
+
+  Ghat_u_r[0] = (-1.0*jump_f_modal_r[0])+0.3535533905932737*alphaSurf_rl[0]*fSurf_rl[0]+0.3535533905932737*alphaSurf_cr[0]*fSurf_cr[0]; 
+  Ghat_u_r[1] = (-1.0*jump_f_modal_r[1])+0.3535533905932737*alphaSurf_rl[0]*fSurf_rl[1]+0.3535533905932737*alphaSurf_cr[0]*fSurf_cr[1]; 
+  Ghat_u_r[2] = (-1.0*jump_f_modal_r[2])+0.3535533905932737*alphaSurf_rl[0]*fSurf_rl[2]+0.3535533905932737*alphaSurf_cr[0]*fSurf_cr[2]; 
+
+  out[0] += (0.7071067811865475*Ghat_u_l[0]-0.7071067811865475*Ghat_u_r[0])*dx1; 
+  out[1] += -1.224744871391589*(Ghat_u_r[0]+Ghat_u_l[0])*dx1; 
+  out[2] += (0.7071067811865475*Ghat_u_l[1]-0.7071067811865475*Ghat_u_r[1])*dx1; 
+  out[3] += -1.224744871391589*(Ghat_u_r[1]+Ghat_u_l[1])*dx1; 
+  out[4] += (0.7071067811865475*Ghat_u_l[2]-0.7071067811865475*Ghat_u_r[2])*dx1; 
+  out[5] += -1.224744871391589*(Ghat_u_r[2]+Ghat_u_l[2])*dx1; 
+
 
 } 
