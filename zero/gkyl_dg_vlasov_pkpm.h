@@ -13,6 +13,7 @@ struct gkyl_dg_vlasov_pkpm_auxfields {
   const struct gkyl_array *u_i;
   const struct gkyl_array *bb_grad_u;
   const struct gkyl_array *p_force;
+  const struct gkyl_array *vth_sq;
 };
 
 /**
