@@ -92,7 +92,7 @@ gkyl_calc_prim_vars_pkpm_source_cu_kernel(struct gkyl_basis basis, struct gkyl_r
     const double *nu_vthsq_d = (const double*) gkyl_array_cfetch(nu_vthsq, start);
     const double *vlasov_pkpm_moms_d = (const double*) gkyl_array_cfetch(vlasov_pkpm_moms, start);
     const double *euler_pkpm_d = (const double*) gkyl_array_cfetch(euler_pkpm, start);
-    const double *p_perp_source_d = (const double*) gkyl_array_cfetch(p_perp, start);
+    const double *p_perp_source_d = (const double*) gkyl_array_cfetch(p_perp_source, start);
 
     double *rhs_d = (double*) gkyl_array_fetch(rhs, start);
     pkpm_source(qmem_d, nu_d, nu_vthsq_d, vlasov_pkpm_moms_d, euler_pkpm_d, p_perp_source_d, rhs_d);
