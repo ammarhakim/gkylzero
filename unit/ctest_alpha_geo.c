@@ -80,7 +80,7 @@ test_alpha_gen_geo_(bool use_gpu)
   a1 = mkarr1(use_gpu, confBasis.num_basis, confRange.volume);
   tv_comp = mkarr1(use_gpu, 9*confBasis.num_basis, confRange.volume);
   gij = mkarr1(use_gpu, 6*confBasis.num_basis, confRange.volume);
-  alpha_geo = mkarr1(use_gpu, 3*basis.num_basis, phaseRange.volume);
+  alpha_geo = mkarr1(use_gpu, vdim*basis.num_basis, phaseRange.volume);
 
   // initialize arrays of 1 and 0.
   gkyl_proj_on_basis_advance(projConfOne, 0.0, &confRange, a1);
@@ -110,16 +110,7 @@ test_alpha_gen_geo_(bool use_gpu)
   gkyl_dg_alpha_gen_geo(&confBasis, &basis, &confRange, &phaseRange, &phaseGrid, tv_comp, gij, alpha_geo);
   // write out alpha_gen_geo
   gkyl_grid_sub_array_write(&phaseGrid, &phaseRange, alpha_geo, "ctest_alpha_geo_3x3v.gkyl");
-  
-  /* // clean up */
-  /* gkyl_array_release(fin); */
-  /* gkyl_array_release(rhs); */
-  /* gkyl_array_release(rhs_h); */
-  /* gkyl_array_release(cflrate); */
-  /* gkyl_array_release(qmem); */
-
-  /* gkyl_hyper_dg_release(slvr); */
-  /* gkyl_dg_eqn_release(eqn); */
+ 
 }
 
 void
