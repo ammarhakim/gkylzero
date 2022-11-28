@@ -3,6 +3,7 @@
 #include <gkyl_basis_ser_2x_p1_upwind_quad_to_modal.h> 
 GKYL_CU_DH void euler_pkpm_surfy_2x_ser_p1(const double *w, const double *dxv,
   const double *u_il, const double *u_ic, const double *u_ir,
+  const double *vth_sql, const double *vth_sqc, const double *vth_sqr,
   const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:                       Cell-center coordinates.
@@ -60,6 +61,14 @@ GKYL_CU_DH void euler_pkpm_surfy_2x_ser_p1(const double *w, const double *dxv,
   double u_r_l = 0.0; 
   double uQuad_l = 0.0; 
   double uQuad_r = 0.0; 
+  double vth_sq_l_r = 0.0; 
+  double vth_sq_c_l = 0.0; 
+  double vth_sq_c_r = 0.0; 
+  double vth_sq_r_l = 0.0; 
+  double vthQuad_l = 0.0; 
+  double vthQuad_r = 0.0; 
+  double max_speed_l = 0.0; 
+  double max_speed_r = 0.0; 
   double rhoux_l_r = 0.0; 
   double rhoux_c_l = 0.0; 
   double rhoux_c_r = 0.0; 
@@ -83,6 +92,14 @@ GKYL_CU_DH void euler_pkpm_surfy_2x_ser_p1(const double *w, const double *dxv,
   u_r_l = ser_2x_p1_surfx2_eval_quad_node_0_l(u_r); 
   uQuad_l = fmax(fabs(u_l_r), fabs(u_c_l)); 
   uQuad_r = fmax(fabs(u_c_r), fabs(u_r_l)); 
+  vth_sq_l_r = ser_2x_p1_surfx2_eval_quad_node_0_r(vth_sql); 
+  vth_sq_c_l = ser_2x_p1_surfx2_eval_quad_node_0_l(vth_sqc); 
+  vth_sq_c_r = ser_2x_p1_surfx2_eval_quad_node_0_r(vth_sqc); 
+  vth_sq_r_l = ser_2x_p1_surfx2_eval_quad_node_0_l(vth_sqr); 
+  vthQuad_l = fmax(sqrt(fabs(vth_sq_l_r)), sqrt(fabs(vth_sq_c_l))); 
+  vthQuad_r = fmax(sqrt(fabs(vth_sq_c_r)), sqrt(fabs(vth_sq_r_l))); 
+  max_speed_l = uQuad_l + vthQuad_l; 
+  max_speed_r = uQuad_r + vthQuad_r; 
   rhoux_l_r = ser_2x_p1_surfx2_eval_quad_node_0_r(rhoux_l); 
   rhoux_c_l = ser_2x_p1_surfx2_eval_quad_node_0_l(rhoux_c); 
   rhoux_c_r = ser_2x_p1_surfx2_eval_quad_node_0_r(rhoux_c); 
@@ -99,14 +116,14 @@ GKYL_CU_DH void euler_pkpm_surfy_2x_ser_p1(const double *w, const double *dxv,
   p_perp_c_l = ser_2x_p1_surfx2_eval_quad_node_0_l(p_perp_c); 
   p_perp_c_r = ser_2x_p1_surfx2_eval_quad_node_0_r(p_perp_c); 
   p_perp_r_l = ser_2x_p1_surfx2_eval_quad_node_0_l(p_perp_r); 
-  lax_rhoux_quad_l[0] = 0.5*(rhoux_l_r*u_l_r + rhoux_c_l*u_c_l) - 0.5*uQuad_l*(rhoux_c_l - rhoux_l_r); 
-  lax_rhoux_quad_r[0] = 0.5*(rhoux_c_r*u_c_r + rhoux_r_l*u_r_l) - 0.5*uQuad_r*(rhoux_r_l - rhoux_c_r); 
-  lax_rhouy_quad_l[0] = 0.5*(rhouy_l_r*u_l_r + rhouy_c_l*u_c_l) - 0.5*uQuad_l*(rhouy_c_l - rhouy_l_r); 
-  lax_rhouy_quad_r[0] = 0.5*(rhouy_c_r*u_c_r + rhouy_r_l*u_r_l) - 0.5*uQuad_r*(rhouy_r_l - rhouy_c_r); 
-  lax_rhouz_quad_l[0] = 0.5*(rhouz_l_r*u_l_r + rhouz_c_l*u_c_l) - 0.5*uQuad_l*(rhouz_c_l - rhouz_l_r); 
-  lax_rhouz_quad_r[0] = 0.5*(rhouz_c_r*u_c_r + rhouz_r_l*u_r_l) - 0.5*uQuad_r*(rhouz_r_l - rhouz_c_r); 
-  lax_p_perp_quad_l[0] = 0.5*(p_perp_l_r*u_l_r + p_perp_c_l*u_c_l) - 0.5*uQuad_l*(p_perp_c_l - p_perp_l_r); 
-  lax_p_perp_quad_r[0] = 0.5*(p_perp_c_r*u_c_r + p_perp_r_l*u_r_l) - 0.5*uQuad_r*(p_perp_r_l - p_perp_c_r); 
+  lax_rhoux_quad_l[0] = 0.5*(rhoux_l_r*u_l_r + rhoux_c_l*u_c_l) - 0.5*max_speed_l*(rhoux_c_l - rhoux_l_r); 
+  lax_rhoux_quad_r[0] = 0.5*(rhoux_c_r*u_c_r + rhoux_r_l*u_r_l) - 0.5*max_speed_r*(rhoux_r_l - rhoux_c_r); 
+  lax_rhouy_quad_l[0] = 0.5*(rhouy_l_r*u_l_r + rhouy_c_l*u_c_l) - 0.5*max_speed_l*(rhouy_c_l - rhouy_l_r); 
+  lax_rhouy_quad_r[0] = 0.5*(rhouy_c_r*u_c_r + rhouy_r_l*u_r_l) - 0.5*max_speed_r*(rhouy_r_l - rhouy_c_r); 
+  lax_rhouz_quad_l[0] = 0.5*(rhouz_l_r*u_l_r + rhouz_c_l*u_c_l) - 0.5*max_speed_l*(rhouz_c_l - rhouz_l_r); 
+  lax_rhouz_quad_r[0] = 0.5*(rhouz_c_r*u_c_r + rhouz_r_l*u_r_l) - 0.5*max_speed_r*(rhouz_r_l - rhouz_c_r); 
+  lax_p_perp_quad_l[0] = 0.5*(p_perp_l_r*u_l_r + p_perp_c_l*u_c_l) - 0.5*max_speed_l*(p_perp_c_l - p_perp_l_r); 
+  lax_p_perp_quad_r[0] = 0.5*(p_perp_c_r*u_c_r + p_perp_r_l*u_r_l) - 0.5*max_speed_r*(p_perp_r_l - p_perp_c_r); 
 
   u_l_r = ser_2x_p1_surfx2_eval_quad_node_1_r(u_l); 
   u_c_l = ser_2x_p1_surfx2_eval_quad_node_1_l(u_c); 
@@ -114,6 +131,14 @@ GKYL_CU_DH void euler_pkpm_surfy_2x_ser_p1(const double *w, const double *dxv,
   u_r_l = ser_2x_p1_surfx2_eval_quad_node_1_l(u_r); 
   uQuad_l = fmax(fabs(u_l_r), fabs(u_c_l)); 
   uQuad_r = fmax(fabs(u_c_r), fabs(u_r_l)); 
+  vth_sq_l_r = ser_2x_p1_surfx2_eval_quad_node_1_r(vth_sql); 
+  vth_sq_c_l = ser_2x_p1_surfx2_eval_quad_node_1_l(vth_sqc); 
+  vth_sq_c_r = ser_2x_p1_surfx2_eval_quad_node_1_r(vth_sqc); 
+  vth_sq_r_l = ser_2x_p1_surfx2_eval_quad_node_1_l(vth_sqr); 
+  vthQuad_l = fmax(sqrt(fabs(vth_sq_l_r)), sqrt(fabs(vth_sq_c_l))); 
+  vthQuad_r = fmax(sqrt(fabs(vth_sq_c_r)), sqrt(fabs(vth_sq_r_l))); 
+  max_speed_l = uQuad_l + vthQuad_l; 
+  max_speed_r = uQuad_r + vthQuad_r; 
   rhoux_l_r = ser_2x_p1_surfx2_eval_quad_node_1_r(rhoux_l); 
   rhoux_c_l = ser_2x_p1_surfx2_eval_quad_node_1_l(rhoux_c); 
   rhoux_c_r = ser_2x_p1_surfx2_eval_quad_node_1_r(rhoux_c); 
@@ -130,14 +155,14 @@ GKYL_CU_DH void euler_pkpm_surfy_2x_ser_p1(const double *w, const double *dxv,
   p_perp_c_l = ser_2x_p1_surfx2_eval_quad_node_1_l(p_perp_c); 
   p_perp_c_r = ser_2x_p1_surfx2_eval_quad_node_1_r(p_perp_c); 
   p_perp_r_l = ser_2x_p1_surfx2_eval_quad_node_1_l(p_perp_r); 
-  lax_rhoux_quad_l[1] = 0.5*(rhoux_l_r*u_l_r + rhoux_c_l*u_c_l) - 0.5*uQuad_l*(rhoux_c_l - rhoux_l_r); 
-  lax_rhoux_quad_r[1] = 0.5*(rhoux_c_r*u_c_r + rhoux_r_l*u_r_l) - 0.5*uQuad_r*(rhoux_r_l - rhoux_c_r); 
-  lax_rhouy_quad_l[1] = 0.5*(rhouy_l_r*u_l_r + rhouy_c_l*u_c_l) - 0.5*uQuad_l*(rhouy_c_l - rhouy_l_r); 
-  lax_rhouy_quad_r[1] = 0.5*(rhouy_c_r*u_c_r + rhouy_r_l*u_r_l) - 0.5*uQuad_r*(rhouy_r_l - rhouy_c_r); 
-  lax_rhouz_quad_l[1] = 0.5*(rhouz_l_r*u_l_r + rhouz_c_l*u_c_l) - 0.5*uQuad_l*(rhouz_c_l - rhouz_l_r); 
-  lax_rhouz_quad_r[1] = 0.5*(rhouz_c_r*u_c_r + rhouz_r_l*u_r_l) - 0.5*uQuad_r*(rhouz_r_l - rhouz_c_r); 
-  lax_p_perp_quad_l[1] = 0.5*(p_perp_l_r*u_l_r + p_perp_c_l*u_c_l) - 0.5*uQuad_l*(p_perp_c_l - p_perp_l_r); 
-  lax_p_perp_quad_r[1] = 0.5*(p_perp_c_r*u_c_r + p_perp_r_l*u_r_l) - 0.5*uQuad_r*(p_perp_r_l - p_perp_c_r); 
+  lax_rhoux_quad_l[1] = 0.5*(rhoux_l_r*u_l_r + rhoux_c_l*u_c_l) - 0.5*max_speed_l*(rhoux_c_l - rhoux_l_r); 
+  lax_rhoux_quad_r[1] = 0.5*(rhoux_c_r*u_c_r + rhoux_r_l*u_r_l) - 0.5*max_speed_r*(rhoux_r_l - rhoux_c_r); 
+  lax_rhouy_quad_l[1] = 0.5*(rhouy_l_r*u_l_r + rhouy_c_l*u_c_l) - 0.5*max_speed_l*(rhouy_c_l - rhouy_l_r); 
+  lax_rhouy_quad_r[1] = 0.5*(rhouy_c_r*u_c_r + rhouy_r_l*u_r_l) - 0.5*max_speed_r*(rhouy_r_l - rhouy_c_r); 
+  lax_rhouz_quad_l[1] = 0.5*(rhouz_l_r*u_l_r + rhouz_c_l*u_c_l) - 0.5*max_speed_l*(rhouz_c_l - rhouz_l_r); 
+  lax_rhouz_quad_r[1] = 0.5*(rhouz_c_r*u_c_r + rhouz_r_l*u_r_l) - 0.5*max_speed_r*(rhouz_r_l - rhouz_c_r); 
+  lax_p_perp_quad_l[1] = 0.5*(p_perp_l_r*u_l_r + p_perp_c_l*u_c_l) - 0.5*max_speed_l*(p_perp_c_l - p_perp_l_r); 
+  lax_p_perp_quad_r[1] = 0.5*(p_perp_c_r*u_c_r + p_perp_r_l*u_r_l) - 0.5*max_speed_r*(p_perp_r_l - p_perp_c_r); 
 
   // Project tensor nodal quadrature basis back onto modal basis. 
   ser_2x_p1_upwind_quad_to_modal(lax_rhoux_quad_l, lax_rhoux_modal_l); 

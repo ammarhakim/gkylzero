@@ -2,6 +2,7 @@
 #include <gkyl_basis_ser_1x_p1_surfx1_eval_quad.h> 
 GKYL_CU_DH void euler_pkpm_surfx_1x_ser_p1(const double *w, const double *dxv, 
   const double *u_il, const double *u_ic, const double *u_ir,
+  const double *vth_sql, const double *vth_sqc, const double *vth_sqr,
   const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:                       Cell-center coordinates.
@@ -40,18 +41,26 @@ GKYL_CU_DH void euler_pkpm_surfx_1x_ser_p1(const double *w, const double *dxv,
   double ux_c_l = ser_1x_p1_surfx1_eval_quad_node_0_l(ux_c); 
   double ux_c_r = ser_1x_p1_surfx1_eval_quad_node_0_r(ux_c); 
   double ux_r_l = ser_1x_p1_surfx1_eval_quad_node_0_l(ux_r); 
+  double vth_sq_l_r = ser_1x_p1_surfx1_eval_quad_node_0_r(vth_sql); 
+  double vth_sq_c_l = ser_1x_p1_surfx1_eval_quad_node_0_l(vth_sqc); 
+  double vth_sq_c_r = ser_1x_p1_surfx1_eval_quad_node_0_r(vth_sqc); 
+  double vth_sq_r_l = ser_1x_p1_surfx1_eval_quad_node_0_l(vth_sqr); 
 
   double ux_max_l = fmax(fabs(ux_l_r), fabs(ux_c_l)); 
   double ux_max_r = fmax(fabs(ux_c_r), fabs(ux_r_l)); 
+  double vth_max_l = fmax(sqrt(fabs(vth_sq_l_r)), sqrt(fabs(vth_sq_c_l))); 
+  double vth_max_r = fmax(sqrt(fabs(vth_sq_c_r)), sqrt(fabs(vth_sq_r_l))); 
+  double max_speed_l = ux_max_l + vth_max_l; 
+  double max_speed_r = ux_max_r + vth_max_r; 
 
-  double Ghat_rhoux_l = 0.6123724356957945*rhoux_l[1]*ux_max_l+0.6123724356957945*rhoux_c[1]*ux_max_l+0.3535533905932737*rhoux_l[0]*ux_max_l-0.3535533905932737*rhoux_c[0]*ux_max_l+0.6123724356957945*rhoux_l[1]*ux_l_r+0.3535533905932737*rhoux_l[0]*ux_l_r-0.6123724356957945*rhoux_c[1]*ux_c_l+0.3535533905932737*rhoux_c[0]*ux_c_l; 
-  double Ghat_rhoux_r = (-0.6123724356957945*rhoux_r[1]*ux_r_l)+0.3535533905932737*rhoux_r[0]*ux_r_l+0.6123724356957945*rhoux_r[1]*ux_max_r+0.6123724356957945*rhoux_c[1]*ux_max_r-0.3535533905932737*rhoux_r[0]*ux_max_r+0.3535533905932737*rhoux_c[0]*ux_max_r+0.6123724356957945*rhoux_c[1]*ux_c_r+0.3535533905932737*rhoux_c[0]*ux_c_r; 
-  double Ghat_rhouy_l = 0.6123724356957945*rhouy_l[1]*ux_max_l+0.6123724356957945*rhouy_c[1]*ux_max_l+0.3535533905932737*rhouy_l[0]*ux_max_l-0.3535533905932737*rhouy_c[0]*ux_max_l+0.6123724356957945*rhouy_l[1]*ux_l_r+0.3535533905932737*rhouy_l[0]*ux_l_r-0.6123724356957945*rhouy_c[1]*ux_c_l+0.3535533905932737*rhouy_c[0]*ux_c_l; 
-  double Ghat_rhouy_r = (-0.6123724356957945*rhouy_r[1]*ux_r_l)+0.3535533905932737*rhouy_r[0]*ux_r_l+0.6123724356957945*rhouy_r[1]*ux_max_r+0.6123724356957945*rhouy_c[1]*ux_max_r-0.3535533905932737*rhouy_r[0]*ux_max_r+0.3535533905932737*rhouy_c[0]*ux_max_r+0.6123724356957945*rhouy_c[1]*ux_c_r+0.3535533905932737*rhouy_c[0]*ux_c_r; 
-  double Ghat_rhouz_l = 0.6123724356957945*rhouz_l[1]*ux_max_l+0.6123724356957945*rhouz_c[1]*ux_max_l+0.3535533905932737*rhouz_l[0]*ux_max_l-0.3535533905932737*rhouz_c[0]*ux_max_l+0.6123724356957945*rhouz_l[1]*ux_l_r+0.3535533905932737*rhouz_l[0]*ux_l_r-0.6123724356957945*rhouz_c[1]*ux_c_l+0.3535533905932737*rhouz_c[0]*ux_c_l; 
-  double Ghat_rhouz_r = (-0.6123724356957945*rhouz_r[1]*ux_r_l)+0.3535533905932737*rhouz_r[0]*ux_r_l+0.6123724356957945*rhouz_r[1]*ux_max_r+0.6123724356957945*rhouz_c[1]*ux_max_r-0.3535533905932737*rhouz_r[0]*ux_max_r+0.3535533905932737*rhouz_c[0]*ux_max_r+0.6123724356957945*rhouz_c[1]*ux_c_r+0.3535533905932737*rhouz_c[0]*ux_c_r; 
-  double Ghat_p_perp_l = 0.6123724356957945*p_perp_l[1]*ux_max_l+0.6123724356957945*p_perp_c[1]*ux_max_l+0.3535533905932737*p_perp_l[0]*ux_max_l-0.3535533905932737*p_perp_c[0]*ux_max_l+0.6123724356957945*p_perp_l[1]*ux_l_r+0.3535533905932737*p_perp_l[0]*ux_l_r-0.6123724356957945*p_perp_c[1]*ux_c_l+0.3535533905932737*p_perp_c[0]*ux_c_l; 
-  double Ghat_p_perp_r = (-0.6123724356957945*p_perp_r[1]*ux_r_l)+0.3535533905932737*p_perp_r[0]*ux_r_l+0.6123724356957945*p_perp_r[1]*ux_max_r+0.6123724356957945*p_perp_c[1]*ux_max_r-0.3535533905932737*p_perp_r[0]*ux_max_r+0.3535533905932737*p_perp_c[0]*ux_max_r+0.6123724356957945*p_perp_c[1]*ux_c_r+0.3535533905932737*p_perp_c[0]*ux_c_r; 
+  double Ghat_rhoux_l = 0.6123724356957945*rhoux_l[1]*ux_l_r+0.3535533905932737*rhoux_l[0]*ux_l_r-0.6123724356957945*rhoux_c[1]*ux_c_l+0.3535533905932737*rhoux_c[0]*ux_c_l+0.6123724356957945*rhoux_l[1]*max_speed_l+0.6123724356957945*rhoux_c[1]*max_speed_l+0.3535533905932737*rhoux_l[0]*max_speed_l-0.3535533905932737*rhoux_c[0]*max_speed_l; 
+  double Ghat_rhoux_r = (-0.6123724356957945*rhoux_r[1]*ux_r_l)+0.3535533905932737*rhoux_r[0]*ux_r_l+0.6123724356957945*rhoux_c[1]*ux_c_r+0.3535533905932737*rhoux_c[0]*ux_c_r+0.6123724356957945*rhoux_r[1]*max_speed_r+0.6123724356957945*rhoux_c[1]*max_speed_r-0.3535533905932737*rhoux_r[0]*max_speed_r+0.3535533905932737*rhoux_c[0]*max_speed_r; 
+  double Ghat_rhouy_l = 0.6123724356957945*rhouy_l[1]*ux_l_r+0.3535533905932737*rhouy_l[0]*ux_l_r-0.6123724356957945*rhouy_c[1]*ux_c_l+0.3535533905932737*rhouy_c[0]*ux_c_l+0.6123724356957945*rhouy_l[1]*max_speed_l+0.6123724356957945*rhouy_c[1]*max_speed_l+0.3535533905932737*rhouy_l[0]*max_speed_l-0.3535533905932737*rhouy_c[0]*max_speed_l; 
+  double Ghat_rhouy_r = (-0.6123724356957945*rhouy_r[1]*ux_r_l)+0.3535533905932737*rhouy_r[0]*ux_r_l+0.6123724356957945*rhouy_c[1]*ux_c_r+0.3535533905932737*rhouy_c[0]*ux_c_r+0.6123724356957945*rhouy_r[1]*max_speed_r+0.6123724356957945*rhouy_c[1]*max_speed_r-0.3535533905932737*rhouy_r[0]*max_speed_r+0.3535533905932737*rhouy_c[0]*max_speed_r; 
+  double Ghat_rhouz_l = 0.6123724356957945*rhouz_l[1]*ux_l_r+0.3535533905932737*rhouz_l[0]*ux_l_r-0.6123724356957945*rhouz_c[1]*ux_c_l+0.3535533905932737*rhouz_c[0]*ux_c_l+0.6123724356957945*rhouz_l[1]*max_speed_l+0.6123724356957945*rhouz_c[1]*max_speed_l+0.3535533905932737*rhouz_l[0]*max_speed_l-0.3535533905932737*rhouz_c[0]*max_speed_l; 
+  double Ghat_rhouz_r = (-0.6123724356957945*rhouz_r[1]*ux_r_l)+0.3535533905932737*rhouz_r[0]*ux_r_l+0.6123724356957945*rhouz_c[1]*ux_c_r+0.3535533905932737*rhouz_c[0]*ux_c_r+0.6123724356957945*rhouz_r[1]*max_speed_r+0.6123724356957945*rhouz_c[1]*max_speed_r-0.3535533905932737*rhouz_r[0]*max_speed_r+0.3535533905932737*rhouz_c[0]*max_speed_r; 
+  double Ghat_p_perp_l = 0.6123724356957945*p_perp_l[1]*ux_l_r+0.3535533905932737*p_perp_l[0]*ux_l_r-0.6123724356957945*p_perp_c[1]*ux_c_l+0.3535533905932737*p_perp_c[0]*ux_c_l+0.6123724356957945*p_perp_l[1]*max_speed_l+0.6123724356957945*p_perp_c[1]*max_speed_l+0.3535533905932737*p_perp_l[0]*max_speed_l-0.3535533905932737*p_perp_c[0]*max_speed_l; 
+  double Ghat_p_perp_r = (-0.6123724356957945*p_perp_r[1]*ux_r_l)+0.3535533905932737*p_perp_r[0]*ux_r_l+0.6123724356957945*p_perp_c[1]*ux_c_r+0.3535533905932737*p_perp_c[0]*ux_c_r+0.6123724356957945*p_perp_r[1]*max_speed_r+0.6123724356957945*p_perp_c[1]*max_speed_r-0.3535533905932737*p_perp_r[0]*max_speed_r+0.3535533905932737*p_perp_c[0]*max_speed_r; 
   outrhou0[0] += 0.7071067811865475*Ghat_rhoux_l*dx1-0.7071067811865475*Ghat_rhoux_r*dx1; 
   outrhou0[1] += (-1.224744871391589*Ghat_rhoux_r*dx1)-1.224744871391589*Ghat_rhoux_l*dx1; 
 
