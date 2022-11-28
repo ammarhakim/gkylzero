@@ -11,8 +11,6 @@
 struct gkyl_dg_euler_pkpm_auxfields { 
   const struct gkyl_array *u_i;
   const struct gkyl_array *div_p;
-  const struct gkyl_array *u_perp_i;
-  const struct gkyl_array *p_perp;
 };
 
 /**

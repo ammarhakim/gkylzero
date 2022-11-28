@@ -319,10 +319,7 @@ struct vm_fluid_species {
   struct gkyl_array *bb_grad_u; // bb : grad(u) for use in force term 
   struct gkyl_array *div_p; // array for divergence of the pressure tensor
   struct gkyl_array *p_force; // Total pressure force in PKPM model 1/rho (b . div(P) + p_perp div(b))
-  struct gkyl_array *u_perp_i; // array for perpendicular flow velocity (u - u : bb)
-  struct gkyl_array *rhou_perp_i; // array for perpendicular momentum density (rhou - rhou : bb)
-  struct gkyl_array *p_perp; // array for perpendicular pressure
-  struct gkyl_array *p_perp_bc_buffer; // buffer for applying BCs to perpendicular pressure
+  struct gkyl_array *p_perp_source; // array for perpendicular pressure
 
   struct gkyl_array *D; // array for diffusion tensor
   struct gkyl_array *D_host; // host copy of diffusion tensor
@@ -341,8 +338,6 @@ struct vm_fluid_species {
   struct gkyl_bc_basic *bc_u_up[3];
   struct gkyl_bc_basic *bc_p_lo[3];
   struct gkyl_bc_basic *bc_p_up[3];
-  struct gkyl_bc_basic *bc_p_perp_lo[3];
-  struct gkyl_bc_basic *bc_p_perp_up[3];
 
   // fluid advection
   bool has_advect; // flag to indicate there is advection of fluid equation
@@ -965,7 +960,7 @@ void vm_fluid_species_calc_diff(gkyl_vlasov_app* app, struct vm_fluid_species* f
  * @param fluid Input array fluid species
  */
 void vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species,
-  const struct gkyl_array *fluid, const struct gkyl_array *fin[]);
+  const struct gkyl_array *fluid);
 
 /**
  * Compute RHS from fluid species equations

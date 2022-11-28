@@ -15,8 +15,7 @@ extern "C" {
 __global__ void
 gkyl_calc_prim_vars_pkpm_cu_kernel(struct gkyl_basis basis, struct gkyl_range range, 
   const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
-  struct gkyl_array* u_i, struct gkyl_array* u_perp_i, struct gkyl_array* rhou_perp_i,
-  struct gkyl_array* p_perp, struct gkyl_array* p_ij)
+  struct gkyl_array* u_i, struct gkyl_array* p_ij)
 {
   int cdim = basis.ndim;
   int poly_order = basis.poly_order;
@@ -43,13 +42,9 @@ gkyl_calc_prim_vars_pkpm_cu_kernel(struct gkyl_basis basis, struct gkyl_range ra
     const double *euler_pkpm_d = (const double*) gkyl_array_cfetch(euler_pkpm, start);
     
     double *u_i_d = (double*) gkyl_array_fetch(u_i, start);
-    double *u_perp_i_d = (double*) gkyl_array_fetch(u_perp_i, start);
-    double *rhou_perp_i_d = (double*) gkyl_array_fetch(rhou_perp_i, start);
-    double *p_perp_d = (double*) gkyl_array_fetch(p_perp, start);
     double *p_ij_d = (double*) gkyl_array_fetch(p_ij, start);
 
-    pkpm_prim_vars(bvar_d, vlasov_pkpm_moms_d, euler_pkpm_d, 
-      u_i_d, u_perp_i_d, rhou_perp_i_d, p_perp_d, p_ij_d);
+    pkpm_prim_vars(bvar_d, vlasov_pkpm_moms_d, euler_pkpm_d, u_i_d, p_ij_d);
   }
 }
 
@@ -57,22 +52,20 @@ gkyl_calc_prim_vars_pkpm_cu_kernel(struct gkyl_basis basis, struct gkyl_range ra
 void
 gkyl_calc_prim_vars_pkpm_cu(struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
-  struct gkyl_array* u_i, struct gkyl_array* u_perp_i, struct gkyl_array* rhou_perp_i,
-  struct gkyl_array* p_perp, struct gkyl_array* p_ij)
+  struct gkyl_array* u_i, struct gkyl_array* p_ij)
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
   gkyl_calc_prim_vars_pkpm_cu_kernel<<<nblocks, nthreads>>>(basis, *range, 
     bvar->on_dev, vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev, 
-    u_i->on_dev, u_perp_i->on_dev, rhou_perp_i->on_dev, p_perp->on_dev, p_ij->on_dev);
+    u_i->on_dev, p_ij->on_dev);
 }
 
 __global__ void
 gkyl_calc_prim_vars_pkpm_source_cu_kernel(struct gkyl_basis basis, struct gkyl_range range, 
   const struct gkyl_array* qmem, const struct gkyl_array* nu, const struct gkyl_array* nu_vthsq,
   const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm,
-  const struct gkyl_array* rhou_perp_i,  const struct gkyl_array* p_perp, 
-  struct gkyl_array* rhs)
+  const struct gkyl_array* p_perp_source, struct gkyl_array* rhs)
 {
   int cdim = basis.ndim;
   int poly_order = basis.poly_order;
@@ -99,11 +92,10 @@ gkyl_calc_prim_vars_pkpm_source_cu_kernel(struct gkyl_basis basis, struct gkyl_r
     const double *nu_vthsq_d = (const double*) gkyl_array_cfetch(nu_vthsq, start);
     const double *vlasov_pkpm_moms_d = (const double*) gkyl_array_cfetch(vlasov_pkpm_moms, start);
     const double *euler_pkpm_d = (const double*) gkyl_array_cfetch(euler_pkpm, start);
-    const double *rhou_perp_i_d = (const double*) gkyl_array_cfetch(rhou_perp_i, start);
-    const double *p_perp_d = (const double*) gkyl_array_cfetch(p_perp, start);
+    const double *p_perp_source_d = (const double*) gkyl_array_cfetch(p_perp, start);
 
     double *rhs_d = (double*) gkyl_array_fetch(rhs, start);
-    pkpm_source(qmem_d, nu_d, nu_vthsq_d, vlasov_pkpm_moms_d, euler_pkpm_d, rhou_perp_i_d, p_perp_d, rhs_d);
+    pkpm_source(qmem_d, nu_d, nu_vthsq_d, vlasov_pkpm_moms_d, euler_pkpm_d, p_perp_source_d, rhs_d);
   }
 }
 
@@ -111,21 +103,22 @@ gkyl_calc_prim_vars_pkpm_source_cu_kernel(struct gkyl_basis basis, struct gkyl_r
 void
 gkyl_calc_prim_vars_pkpm_source_cu(struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* qmem, const struct gkyl_array* nu, const struct gkyl_array* nu_vthsq,
-  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm,
-  const struct gkyl_array* rhou_perp_i,  const struct gkyl_array* p_perp, 
-  struct gkyl_array* rhs)
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
+  const struct gkyl_array* p_perp_source, struct gkyl_array* rhs)
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
   gkyl_calc_prim_vars_pkpm_source_cu_kernel<<<nblocks, nthreads>>>(basis, *range, 
     qmem->on_dev, nu->on_dev, nu_vthsq->on_dev, vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev, 
-    rhou_perp_i->on_dev, p_perp->on_dev, rhs->on_dev);
+    p_perp_source->on_dev, rhs->on_dev);
 }
 
 __global__ void
 gkyl_calc_prim_vars_pkpm_recovery_cu_kernel(struct gkyl_rect_grid grid, struct gkyl_basis basis, struct gkyl_range range, 
-  const struct gkyl_array* bvar, const struct gkyl_array* u_i, const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, 
-  struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, struct gkyl_array* div_p, struct gkyl_array* p_force)
+  const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
+  const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
+  struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, 
+  struct gkyl_array* div_p, struct gkyl_array* p_force, struct gkyl_array* p_perp_source)
 {
   int cdim = basis.ndim;
   int poly_order = basis.poly_order;
@@ -156,11 +149,13 @@ gkyl_calc_prim_vars_pkpm_recovery_cu_kernel(struct gkyl_rect_grid grid, struct g
     const double *u_i_c = (const double*) gkyl_array_cfetch(u_i, linc);
     const double *p_ij_c = (const double*) gkyl_array_cfetch(p_ij, linc);
     const double *vlasov_pkpm_moms_c = (const double*) gkyl_array_cfetch(vlasov_pkpm_moms, linc);
+    const double *euler_pkpm_c = (const double*) gkyl_array_cfetch(euler_pkpm, linc);
 
     double *div_b_d = (double*) gkyl_array_fetch(div_b, linc);
     double *bb_grad_u_d = (double*) gkyl_array_fetch(bb_grad_u, linc);
     double *div_p_d = (double*) gkyl_array_fetch(div_p, linc);
     double *p_force_d = (double*) gkyl_array_fetch(p_force, linc);
+    double *p_perp_source_d = (double*) gkyl_array_fetch(p_perp_source, linc);
 
     for (int dir=0; dir<cdim; ++dir) {
       gkyl_copy_int_arr(cdim, idxc, idxl);
@@ -185,8 +180,8 @@ gkyl_calc_prim_vars_pkpm_recovery_cu_kernel(struct gkyl_rect_grid grid, struct g
 
       pkpm_recovery[dir](dx, 
         bvar_l, bvar_c, bvar_r, u_i_l, u_i_c, u_i_r, 
-        p_ij_l, p_ij_c, p_ij_r, vlasov_pkpm_moms_l, vlasov_pkpm_moms_c, vlasov_pkpm_moms_r, 
-        div_b_d, bb_grad_u_d, div_p_d, p_force_d);
+        p_ij_l, p_ij_c, p_ij_r, vlasov_pkpm_moms_l, vlasov_pkpm_moms_c, vlasov_pkpm_moms_r, euler_pkpm_c, 
+        div_b_d, bb_grad_u_d, div_p_d, p_force_d, p_perp_source_d);
     }
   }
 }
@@ -196,143 +191,13 @@ void
 gkyl_calc_prim_vars_pkpm_recovery_cu(const struct gkyl_rect_grid *grid, 
   struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
-  const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, 
+  const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
   struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, 
-  struct gkyl_array* div_p, struct gkyl_array* p_force)
+  struct gkyl_array* div_p, struct gkyl_array* p_force, struct gkyl_array* p_perp_source)
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
   gkyl_calc_prim_vars_pkpm_recovery_cu_kernel<<<nblocks, nthreads>>>(*grid, basis, *range, 
-    bvar->on_dev, u_i->on_dev, p_ij->on_dev, vlasov_pkpm_moms->on_dev, 
-    div_b->on_dev, bb_grad_u->on_dev, div_p->on_dev, p_force->on_dev);
-}
-
-__global__ void
-gkyl_calc_prim_vars_pkpm_upwind_p_cu_kernel(struct gkyl_rect_grid phase_grid, struct gkyl_basis cbasis, 
-  struct gkyl_range phase_range, struct gkyl_range conf_range, double mass, 
-  const struct gkyl_array* bvar, const struct gkyl_array* f, struct gkyl_array* p_force)
-{
-  int cdim = cbasis.ndim;
-  int poly_order = cbasis.poly_order;
-  double dx[GKYL_MAX_DIM] = {0.0};
-  double xc[GKYL_MAX_DIM] = {0.0};
-  
-  pkpm_mom_flux_t pkpm_mom_flux[3];
-  // Fetch the kernels in each direction
-  for (int d=0; d<cdim; ++d) {
-    pkpm_mom_flux[d] = choose_ser_pkpm_mom_flux_kern(d, cdim, poly_order);
-    dx[d] = phase_grid.dx[d];
-  }
-  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
-
-  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
-      linc1 < phase_range.volume;
-      linc1 += gridDim.x*blockDim.x)
-  {
-    // inverse index from linc1 to idx
-    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
-    // since update_range is a subrange
-    gkyl_sub_range_inv_idx(&phase_range, linc1, idxc);
-
-    // convert back to a linear index on the super-range (with ghost cells)
-    // linc will have jumps in it to jump over ghost cells
-    long conf_linc = gkyl_range_idx(&conf_range, idxc);
-    long phase_linc = gkyl_range_idx(&phase_range, idxc);
-    gkyl_rect_grid_cell_center(&phase_grid, idxc, xc);
-
-    const double *bvar_c = (const double*) gkyl_array_cfetch(bvar, conf_linc);
-    const double *f_c = (const double*) gkyl_array_cfetch(f, phase_linc);
-
-    double *p_force_d = (double*) gkyl_array_fetch(p_force, conf_linc);
-    double momLocal[96]; // hard-coded to max confBasis.num_basis (3x p=3 Ser) for now.
-    for (unsigned int k=0; k<96; ++k)
-      momLocal[k] = 0.0;
-   
-    for (int dir=0; dir<cdim; ++dir) {
-      gkyl_copy_int_arr(cdim+1, idxc, idxl);
-      gkyl_copy_int_arr(cdim+1, idxc, idxr);
-
-      // get left and right configuration space indices
-      idxl[dir] = idxl[dir]-1; idxr[dir] = idxr[dir]+1;
-      long conf_linl = gkyl_range_idx(&conf_range, idxl); 
-      long conf_linr = gkyl_range_idx(&conf_range, idxr);
-
-      long phase_linl = gkyl_range_idx(&phase_range, idxl); 
-      long phase_linr = gkyl_range_idx(&phase_range, idxr);
-
-      const double *bvar_l = (const double*) gkyl_array_cfetch(bvar, conf_linl);
-      const double *f_l = (const double*) gkyl_array_cfetch(f, phase_linl);
-
-      const double *bvar_r = (const double*) gkyl_array_cfetch(bvar, conf_linr);
-      const double *f_r = (const double*) gkyl_array_cfetch(f, phase_linr);
-
-      pkpm_mom_flux[dir](xc, dx, mass, bvar_l, bvar_c, bvar_r, f_l, f_c, f_r, &momLocal[0]);
-    }
-    for (unsigned int k = 0; k < p_force->ncomp; ++k) {
-      if (linc1 < phase_range.volume)
-        atomicAdd(&p_force_d[k], momLocal[k]);
-    }
-  }
-}
-
-// Host-side wrapper for pkpm moment flux quantities
-void 
-gkyl_calc_prim_vars_pkpm_upwind_p_cu(const struct gkyl_rect_grid *phase_grid, 
-  struct gkyl_basis cbasis, const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  double mass, const struct gkyl_array* bvar, const struct gkyl_array* f, struct gkyl_array* p_force)
-{
-  int nblocks = phase_range->nblocks;
-  int nthreads = phase_range->nthreads;
-  gkyl_array_clear_range(p_force, 0.0, *conf_range);
-  gkyl_calc_prim_vars_pkpm_upwind_p_cu_kernel<<<nblocks, nthreads>>>(*phase_grid, cbasis, *phase_range, *conf_range, 
-    mass, bvar->on_dev, f->on_dev, p_force->on_dev);  
-}
-
-__global__ void
-gkyl_calc_prim_vars_pkpm_p_force_cu_kernel(struct gkyl_basis basis, struct gkyl_range range, 
-  const struct gkyl_array* bvar, const struct gkyl_array* div_p, const struct gkyl_array* vlasov_pkpm_moms, 
-  const struct gkyl_array* euler_pkpm, const struct gkyl_array* div_b, struct gkyl_array* p_force)
-{
-  int cdim = basis.ndim;
-  int poly_order = basis.poly_order;
-
-  euler_pkpm_p_force_t pkpm_p_force = choose_ser_euler_pkpm_p_force_kern(cdim, poly_order);
-
-  int idx[GKYL_MAX_DIM];
-
-  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
-      linc1 < range.volume;
-      linc1 += gridDim.x*blockDim.x)
-  {
-    // inverse index from linc1 to idx
-    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
-    // since update_range is a subrange
-    gkyl_sub_range_inv_idx(&range, linc1, idx);
-
-    // convert back to a linear index on the super-range (with ghost cells)
-    // linc will have jumps in it to jump over ghost cells
-    long start = gkyl_range_idx(&range, idx);
-
-    const double *bvar_d = (const double*) gkyl_array_cfetch(bvar, start);
-    const double *div_p_d = (const double*) gkyl_array_cfetch(div_p, start);
-    const double *vlasov_pkpm_moms_d = (const double*) gkyl_array_cfetch(vlasov_pkpm_moms, start);
-    const double *euler_pkpm_d = (const double*) gkyl_array_cfetch(euler_pkpm, start);
-    const double *div_b_d = (const double*) gkyl_array_cfetch(div_b, start);
-    
-    double *p_force_d = (double*) gkyl_array_fetch(p_force, start);
-    pkpm_p_force(bvar_d, div_p_d, vlasov_pkpm_moms_d, euler_pkpm_d, div_b_d, p_force_d);
-  }
-}
-
-// Host-side wrapper for pkpm primitive variable calculations
-void
-gkyl_calc_prim_vars_pkpm_p_force_cu(struct gkyl_basis basis, const struct gkyl_range *range,
-  const struct gkyl_array* bvar, const struct gkyl_array* div_p, const struct gkyl_array* vlasov_pkpm_moms, 
-  const struct gkyl_array* euler_pkpm, const struct gkyl_array* div_b, struct gkyl_array* p_force)
-{
-  int nblocks = range->nblocks;
-  int nthreads = range->nthreads;
-  gkyl_calc_prim_vars_pkpm_p_force_cu_kernel<<<nblocks, nthreads>>>(basis, *range, 
-    bvar->on_dev, div_p->on_dev, vlasov_pkpm_moms->on_dev, 
-    euler_pkpm->on_dev, div_b->on_dev, p_force->on_dev);
+    bvar->on_dev, u_i->on_dev, p_ij->on_dev, vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev, 
+    div_b->on_dev, bb_grad_u->on_dev, div_p->on_dev, p_force->on_dev, p_perp_source->on_dev);
 }

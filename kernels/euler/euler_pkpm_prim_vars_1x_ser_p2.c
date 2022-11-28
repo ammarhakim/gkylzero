@@ -1,20 +1,17 @@
 #include <gkyl_euler_kernels.h> 
 #include <gkyl_basis_ser_1x_p2_inv.h> 
-GKYL_CU_DH void euler_pkpm_prim_vars_1x_ser_p2(const double *bvar, const double *vlasov_pkpm_moms, const double *statevec, double* u_i, double* u_perp_i, double* rhou_perp_i, double* p_perp, double* p_ij) 
+GKYL_CU_DH void euler_pkpm_prim_vars_1x_ser_p2(const double *bvar, const double *vlasov_pkpm_moms, const double *statevec, double* u_i, double* p_ij) 
 { 
   // bvar:             Magnetic field unit vector and tensor.
   // vlasov_pkpm_moms: [rho, p_parallel, q_parallel], Moments computed from kinetic equation in pkpm model.
-  // statevec:         [rho ux, rho uy, rho uz, E_perp], Fluid input state vector.
+  // statevec:         [rho ux, rho uy, rho uz, p_perp], Fluid input state vector.
   // u_i:              Output flow velocity [ux, uy, uz].
-  // u_perp_i:         Output perpendicular flow velocity, u - (u . b)b = [u_perp_x, u_perp_y, u_perp_z].
-  // rhou_perp_i:      Output perpendicular momentum density, rhou - (rhou . b)b = [rhou_perp_x, rhou_perp_y, rhou_perp_z].
-  // p_perp:           Output perpendicular pressure (E_perp = 1/2 rho u_perp^2 + p_perp).
   // p_ij:             Output pressure tensor, p_ij = (p_parallel - p_perp)bb + p_perp I.
 
   const double *rhoux = &statevec[0]; 
   const double *rhouy = &statevec[3]; 
   const double *rhouz = &statevec[6]; 
-  const double *E_perp = &statevec[9]; 
+  const double *p_perp = &statevec[9]; 
   // Parallel pressure is first component of pkpm moment array and unit tensor are last six components of bvar array.
   const double *rho = &vlasov_pkpm_moms[0]; 
   const double *p_parallel = &vlasov_pkpm_moms[3]; 
@@ -28,13 +25,6 @@ GKYL_CU_DH void euler_pkpm_prim_vars_1x_ser_p2(const double *bvar, const double 
   double *ux = &u_i[0]; 
   double *uy = &u_i[3]; 
   double *uz = &u_i[6]; 
-
-  double *u_perp_x = &u_perp_i[0]; 
-  double *u_perp_y = &u_perp_i[3]; 
-  double *u_perp_z = &u_perp_i[6]; 
-  double *rhou_perp_x = &rhou_perp_i[0]; 
-  double *rhou_perp_y = &rhou_perp_i[3]; 
-  double *rhou_perp_z = &rhou_perp_i[6]; 
 
   double *Pxx = &p_ij[0]; 
   double *Pxy = &p_ij[3]; 
@@ -56,34 +46,6 @@ GKYL_CU_DH void euler_pkpm_prim_vars_1x_ser_p2(const double *bvar, const double 
   uz[0] = 0.7071067811865475*rho_inv[2]*rhouz[2]+0.7071067811865475*rho_inv[1]*rhouz[1]+0.7071067811865475*rho_inv[0]*rhouz[0]; 
   uz[1] = 0.6324555320336759*rho_inv[1]*rhouz[2]+0.6324555320336759*rhouz[1]*rho_inv[2]+0.7071067811865475*rho_inv[0]*rhouz[1]+0.7071067811865475*rhouz[0]*rho_inv[1]; 
   uz[2] = 0.4517539514526256*rho_inv[2]*rhouz[2]+0.7071067811865475*rho_inv[0]*rhouz[2]+0.7071067811865475*rhouz[0]*rho_inv[2]+0.6324555320336759*rho_inv[1]*rhouz[1]; 
-
-  u_perp_x[0] = (-0.7071067811865475*bxbz[2]*uz[2])-0.7071067811865475*bxby[2]*uy[2]-0.7071067811865475*bxbx[2]*ux[2]-0.7071067811865475*bxbz[1]*uz[1]-0.7071067811865475*bxby[1]*uy[1]-0.7071067811865475*bxbx[1]*ux[1]-0.7071067811865475*bxbz[0]*uz[0]-0.7071067811865475*bxby[0]*uy[0]-0.7071067811865475*bxbx[0]*ux[0]+ux[0]; 
-  u_perp_x[1] = (-0.6324555320336759*bxbz[1]*uz[2])-0.6324555320336759*bxby[1]*uy[2]-0.6324555320336759*bxbx[1]*ux[2]-0.6324555320336759*uz[1]*bxbz[2]-0.6324555320336759*uy[1]*bxby[2]-0.6324555320336759*ux[1]*bxbx[2]-0.7071067811865475*bxbz[0]*uz[1]-0.7071067811865475*bxby[0]*uy[1]-0.7071067811865475*bxbx[0]*ux[1]+ux[1]-0.7071067811865475*uz[0]*bxbz[1]-0.7071067811865475*uy[0]*bxby[1]-0.7071067811865475*ux[0]*bxbx[1]; 
-  u_perp_x[2] = (-0.4517539514526256*bxbz[2]*uz[2])-0.7071067811865475*bxbz[0]*uz[2]-0.4517539514526256*bxby[2]*uy[2]-0.7071067811865475*bxby[0]*uy[2]-0.4517539514526256*bxbx[2]*ux[2]-0.7071067811865475*bxbx[0]*ux[2]+ux[2]-0.7071067811865475*uz[0]*bxbz[2]-0.7071067811865475*uy[0]*bxby[2]-0.7071067811865475*ux[0]*bxbx[2]-0.6324555320336759*bxbz[1]*uz[1]-0.6324555320336759*bxby[1]*uy[1]-0.6324555320336759*bxbx[1]*ux[1]; 
-
-  u_perp_y[0] = (-0.7071067811865475*bybz[2]*uz[2])-0.7071067811865475*byby[2]*uy[2]-0.7071067811865475*bxby[2]*ux[2]-0.7071067811865475*bybz[1]*uz[1]-0.7071067811865475*byby[1]*uy[1]-0.7071067811865475*bxby[1]*ux[1]-0.7071067811865475*bybz[0]*uz[0]-0.7071067811865475*byby[0]*uy[0]+uy[0]-0.7071067811865475*bxby[0]*ux[0]; 
-  u_perp_y[1] = (-0.6324555320336759*bybz[1]*uz[2])-0.6324555320336759*byby[1]*uy[2]-0.6324555320336759*bxby[1]*ux[2]-0.6324555320336759*uz[1]*bybz[2]-0.6324555320336759*uy[1]*byby[2]-0.6324555320336759*ux[1]*bxby[2]-0.7071067811865475*bybz[0]*uz[1]-0.7071067811865475*byby[0]*uy[1]+uy[1]-0.7071067811865475*bxby[0]*ux[1]-0.7071067811865475*uz[0]*bybz[1]-0.7071067811865475*uy[0]*byby[1]-0.7071067811865475*ux[0]*bxby[1]; 
-  u_perp_y[2] = (-0.4517539514526256*bybz[2]*uz[2])-0.7071067811865475*bybz[0]*uz[2]-0.4517539514526256*byby[2]*uy[2]-0.7071067811865475*byby[0]*uy[2]+uy[2]-0.4517539514526256*bxby[2]*ux[2]-0.7071067811865475*bxby[0]*ux[2]-0.7071067811865475*uz[0]*bybz[2]-0.7071067811865475*uy[0]*byby[2]-0.7071067811865475*ux[0]*bxby[2]-0.6324555320336759*bybz[1]*uz[1]-0.6324555320336759*byby[1]*uy[1]-0.6324555320336759*bxby[1]*ux[1]; 
-
-  u_perp_z[0] = (-0.7071067811865475*bzbz[2]*uz[2])-0.7071067811865475*bybz[2]*uy[2]-0.7071067811865475*bxbz[2]*ux[2]-0.7071067811865475*bzbz[1]*uz[1]-0.7071067811865475*bybz[1]*uy[1]-0.7071067811865475*bxbz[1]*ux[1]-0.7071067811865475*bzbz[0]*uz[0]+uz[0]-0.7071067811865475*bybz[0]*uy[0]-0.7071067811865475*bxbz[0]*ux[0]; 
-  u_perp_z[1] = (-0.6324555320336759*bzbz[1]*uz[2])-0.6324555320336759*bybz[1]*uy[2]-0.6324555320336759*bxbz[1]*ux[2]-0.6324555320336759*uz[1]*bzbz[2]-0.6324555320336759*uy[1]*bybz[2]-0.6324555320336759*ux[1]*bxbz[2]-0.7071067811865475*bzbz[0]*uz[1]+uz[1]-0.7071067811865475*bybz[0]*uy[1]-0.7071067811865475*bxbz[0]*ux[1]-0.7071067811865475*uz[0]*bzbz[1]-0.7071067811865475*uy[0]*bybz[1]-0.7071067811865475*ux[0]*bxbz[1]; 
-  u_perp_z[2] = (-0.4517539514526256*bzbz[2]*uz[2])-0.7071067811865475*bzbz[0]*uz[2]+uz[2]-0.4517539514526256*bybz[2]*uy[2]-0.7071067811865475*bybz[0]*uy[2]-0.4517539514526256*bxbz[2]*ux[2]-0.7071067811865475*bxbz[0]*ux[2]-0.7071067811865475*uz[0]*bzbz[2]-0.7071067811865475*uy[0]*bybz[2]-0.7071067811865475*ux[0]*bxbz[2]-0.6324555320336759*bzbz[1]*uz[1]-0.6324555320336759*bybz[1]*uy[1]-0.6324555320336759*bxbz[1]*ux[1]; 
-
-  rhou_perp_x[0] = 0.7071067811865475*rho[2]*u_perp_x[2]+0.7071067811865475*rho[1]*u_perp_x[1]+0.7071067811865475*rho[0]*u_perp_x[0]; 
-  rhou_perp_x[1] = 0.6324555320336759*rho[1]*u_perp_x[2]+0.6324555320336759*u_perp_x[1]*rho[2]+0.7071067811865475*rho[0]*u_perp_x[1]+0.7071067811865475*u_perp_x[0]*rho[1]; 
-  rhou_perp_x[2] = 0.4517539514526256*rho[2]*u_perp_x[2]+0.7071067811865475*rho[0]*u_perp_x[2]+0.7071067811865475*u_perp_x[0]*rho[2]+0.6324555320336759*rho[1]*u_perp_x[1]; 
-
-  rhou_perp_y[0] = 0.7071067811865475*rho[2]*u_perp_y[2]+0.7071067811865475*rho[1]*u_perp_y[1]+0.7071067811865475*rho[0]*u_perp_y[0]; 
-  rhou_perp_y[1] = 0.6324555320336759*rho[1]*u_perp_y[2]+0.6324555320336759*u_perp_y[1]*rho[2]+0.7071067811865475*rho[0]*u_perp_y[1]+0.7071067811865475*u_perp_y[0]*rho[1]; 
-  rhou_perp_y[2] = 0.4517539514526256*rho[2]*u_perp_y[2]+0.7071067811865475*rho[0]*u_perp_y[2]+0.7071067811865475*u_perp_y[0]*rho[2]+0.6324555320336759*rho[1]*u_perp_y[1]; 
-
-  rhou_perp_z[0] = 0.7071067811865475*rho[2]*u_perp_z[2]+0.7071067811865475*rho[1]*u_perp_z[1]+0.7071067811865475*rho[0]*u_perp_z[0]; 
-  rhou_perp_z[1] = 0.6324555320336759*rho[1]*u_perp_z[2]+0.6324555320336759*u_perp_z[1]*rho[2]+0.7071067811865475*rho[0]*u_perp_z[1]+0.7071067811865475*u_perp_z[0]*rho[1]; 
-  rhou_perp_z[2] = 0.4517539514526256*rho[2]*u_perp_z[2]+0.7071067811865475*rho[0]*u_perp_z[2]+0.7071067811865475*u_perp_z[0]*rho[2]+0.6324555320336759*rho[1]*u_perp_z[1]; 
-
-  p_perp[0] = (-0.3535533905932737*rhou_perp_z[2]*u_perp_z[2])-0.3535533905932737*rhou_perp_y[2]*u_perp_y[2]-0.3535533905932737*rhou_perp_x[2]*u_perp_x[2]-0.3535533905932737*rhou_perp_z[1]*u_perp_z[1]-0.3535533905932737*rhou_perp_y[1]*u_perp_y[1]-0.3535533905932737*rhou_perp_x[1]*u_perp_x[1]-0.3535533905932737*rhou_perp_z[0]*u_perp_z[0]-0.3535533905932737*rhou_perp_y[0]*u_perp_y[0]-0.3535533905932737*rhou_perp_x[0]*u_perp_x[0]+E_perp[0]; 
-  p_perp[1] = (-0.3162277660168379*rhou_perp_z[1]*u_perp_z[2])-0.3162277660168379*rhou_perp_y[1]*u_perp_y[2]-0.3162277660168379*rhou_perp_x[1]*u_perp_x[2]-0.3162277660168379*u_perp_z[1]*rhou_perp_z[2]-0.3162277660168379*u_perp_y[1]*rhou_perp_y[2]-0.3162277660168379*u_perp_x[1]*rhou_perp_x[2]-0.3535533905932737*rhou_perp_z[0]*u_perp_z[1]-0.3535533905932737*rhou_perp_y[0]*u_perp_y[1]-0.3535533905932737*rhou_perp_x[0]*u_perp_x[1]-0.3535533905932737*u_perp_z[0]*rhou_perp_z[1]-0.3535533905932737*u_perp_y[0]*rhou_perp_y[1]-0.3535533905932737*u_perp_x[0]*rhou_perp_x[1]+E_perp[1]; 
-  p_perp[2] = (-0.2258769757263128*rhou_perp_z[2]*u_perp_z[2])-0.3535533905932737*rhou_perp_z[0]*u_perp_z[2]-0.2258769757263128*rhou_perp_y[2]*u_perp_y[2]-0.3535533905932737*rhou_perp_y[0]*u_perp_y[2]-0.2258769757263128*rhou_perp_x[2]*u_perp_x[2]-0.3535533905932737*rhou_perp_x[0]*u_perp_x[2]-0.3535533905932737*u_perp_z[0]*rhou_perp_z[2]-0.3535533905932737*u_perp_y[0]*rhou_perp_y[2]-0.3535533905932737*u_perp_x[0]*rhou_perp_x[2]+E_perp[2]-0.3162277660168379*rhou_perp_z[1]*u_perp_z[1]-0.3162277660168379*rhou_perp_y[1]*u_perp_y[1]-0.3162277660168379*rhou_perp_x[1]*u_perp_x[1]; 
 
   Pxx[0] = (-0.7071067811865475*bxbx[2]*p_perp[2])+0.7071067811865475*bxbx[2]*p_parallel[2]-0.7071067811865475*bxbx[1]*p_perp[1]+0.7071067811865475*bxbx[1]*p_parallel[1]-0.7071067811865475*bxbx[0]*p_perp[0]+p_perp[0]+0.7071067811865475*bxbx[0]*p_parallel[0]; 
   Pxx[1] = (-0.6324555320336759*bxbx[1]*p_perp[2])+0.6324555320336759*bxbx[1]*p_parallel[2]-0.6324555320336759*p_perp[1]*bxbx[2]+0.6324555320336759*p_parallel[1]*bxbx[2]-0.7071067811865475*bxbx[0]*p_perp[1]+p_perp[1]+0.7071067811865475*bxbx[0]*p_parallel[1]-0.7071067811865475*p_perp[0]*bxbx[1]+0.7071067811865475*p_parallel[0]*bxbx[1]; 

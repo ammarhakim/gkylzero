@@ -5,17 +5,20 @@ GKYL_CU_DH void euler_pkpm_recovery_x_1x_ser_p1(const double *dxv,
   const double *u_il, const double *u_ic, const double *u_ir, 
   const double *p_ijl, const double *p_ijc, const double *p_ijr, 
   const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
-  double* div_b, double* bb_grad_u, double* div_p, double* p_force) 
+  const double *statevecc, 
+  double* div_b, double* bb_grad_u, double* div_p, double* p_force, double* p_perp_source) 
 { 
   // dxv[NDIM]: Cell spacing.
   // bvarl/bvarc/bvarr:  Input magnetic field unit vector in left/center/right cells.
   // u_il/u_ic/u_ir:     Input bulk velocity (ux,uy,uz) in left/center/right cells.
   // p_ijl/p_ijc/p_ijr:  Input pressure tensor in left/center/right cells.
   // vlasov_pkpm_momsl/vlasov_pkpm_momsc/vlasov_pkpm_momsr: Input pkpm moments (rho, p_parallel, q_parallel) in left/center/right cells.
+  // statevecc:          rho ux, rho uy, rho uz, p_perp], Fluid input state vector in center cell.
   // div_b:              Increment to volume expansion of div(b) in one direction.
   // bb_grad_u:          Increment to volume expansion of bb : grad(u) in one direction.
   // div_p:              Increment to volume expansion of div(p) in one direction.
   // p_force:            Increment to volume expansion of p_force = 1/rho * div(p_parallel b_hat) in one direction.
+  // p_perp_source:      Increment to volume expansion of perpendicular pressure compression source (p_perp div(u) - p_perp bb : grad(u)).
 
   const double dx1 = 2.0/dxv[0]; 
 
@@ -68,6 +71,8 @@ GKYL_CU_DH void euler_pkpm_recovery_x_1x_ser_p1(const double *dxv,
   const double *ppar_r = &vlasov_pkpm_momsr[2]; 
   const double *rho = &vlasov_pkpm_momsc[0]; 
 
+  const double *p_perp = &statevecc[6]; 
+
   double *div_p_x = &div_p[0]; 
   double *div_p_y = &div_p[2]; 
   double *div_p_z = &div_p[4]; 
@@ -119,5 +124,8 @@ GKYL_CU_DH void euler_pkpm_recovery_x_1x_ser_p1(const double *dxv,
 
   p_force[0] += 0.7071067811865475*(div_ppar_b[1]*rho_inv[1]+div_ppar_b[0]*rho_inv[0])*dx1; 
   p_force[1] += 0.7071067811865475*(div_ppar_b[0]*rho_inv[1]+rho_inv[0]*div_ppar_b[1])*dx1; 
+
+  p_perp_source[0] += 0.7071067811865475*(bb_grad_u[1]*p_perp[1]+bb_grad_u[0]*p_perp[0])-0.7071067811865475*(grad_u_x[1]*p_perp[1]+grad_u_x[0]*p_perp[0])*dx1; 
+  p_perp_source[1] += 0.7071067811865475*(bb_grad_u[0]*p_perp[1]+p_perp[0]*bb_grad_u[1])-0.7071067811865475*(grad_u_x[0]*p_perp[1]+p_perp[0]*grad_u_x[1])*dx1; 
 
 } 

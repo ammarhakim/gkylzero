@@ -78,8 +78,7 @@ void gkyl_calc_prim_vars_p_from_statevec(struct gkyl_basis basis, const struct g
  */
 void gkyl_calc_prim_vars_pkpm(struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
-  struct gkyl_array* u_i, struct gkyl_array* u_perp_i, struct gkyl_array* rhou_perp_i,
-  struct gkyl_array* p_perp, struct gkyl_array* p_ij);
+  struct gkyl_array* u_i, struct gkyl_array* p_ij);
 
 /**
  * Compute parallel-kinetic-perpendicular-moment model source terms.
@@ -97,8 +96,7 @@ void gkyl_calc_prim_vars_pkpm(struct gkyl_basis basis, const struct gkyl_range *
 void gkyl_calc_prim_vars_pkpm_source(struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* qmem, const struct gkyl_array* nu, const struct gkyl_array* nu_vthsq, 
   const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm,
-  const struct gkyl_array* rhou_perp_i, const struct gkyl_array* p_perp, 
-  struct gkyl_array* rhs);
+  const struct gkyl_array* p_perp_source, struct gkyl_array* rhs);
 
 /**
  * Compute needed gradient quantities with recovery for discretization of the 
@@ -117,43 +115,9 @@ void gkyl_calc_prim_vars_pkpm_source(struct gkyl_basis basis, const struct gkyl_
 void gkyl_calc_prim_vars_pkpm_recovery(const struct gkyl_rect_grid *grid, 
   struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
-  const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, 
+  const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
   struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, 
-  struct gkyl_array* div_p, struct gkyl_array* p_force);
-
-/**
- * Compute upwinded divergence quantities for discretization of the 
- * parallel-kinetic-perpendicular-moment (pkpm) model. These include:
- * 1. div (integral v_parallel^2 b_hat F) (pressure force)
- *
- * @param phase_grid Phase space grid (for getting cell spacing and cell center)
- * @param basis Basis functions used in expansions
- * @param phase_range Phase space range 
- * @param conf_range Configuration space range
- * @param bvar Input array of magnetic field unit vector and unit tensor
- * @param f Input array of distribution function
- * @param p_force Output array of pressure force
- */
-void gkyl_calc_prim_vars_pkpm_upwind_p(const struct gkyl_rect_grid *phase_grid, 
-  struct gkyl_basis cbasis, const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  double mass, const struct gkyl_array* bvar, const struct gkyl_array* f, struct gkyl_array* p_force);
-
-/**
- * Compute total pressure forces for parallel-kinetic-perpendicular-moment forces.
- * Total pressure force p_force = 1/rho (b . div(P) + p_perp div(b))
- *
- * @param basis Basis functions used in expansions
- * @param range Range to apply division operator
- * @param bvar Input array of magnetic field unit vector and unit tensor
- * @param div_p Input array of divergence of pressure tensor
- * @param vlasov_pkpm_moms Input array parallel-kinetic-perpendicular-moment kinetic moments
- * @param euler_pkpm Input array parallel-kinetic-perpendicular-moment fluid variables
- * @param div_b Input array of divergence of magnetic field unit vector
- * @param p_force Output array of total pressure forces
- */
-void gkyl_calc_prim_vars_pkpm_p_force(struct gkyl_basis basis, const struct gkyl_range *range,
-  const struct gkyl_array* bvar, const struct gkyl_array* div_p, const struct gkyl_array* vlasov_pkpm_moms, 
-  const struct gkyl_array* euler_pkpm, const struct gkyl_array* div_b, struct gkyl_array* p_force);
+  struct gkyl_array* div_p, struct gkyl_array* p_force, struct gkyl_array* p_perp_source);
 
 /**
  * Host-side wrappers for prim vars operations on device
@@ -161,26 +125,16 @@ void gkyl_calc_prim_vars_pkpm_p_force(struct gkyl_basis basis, const struct gkyl
 
 void gkyl_calc_prim_vars_pkpm_cu(struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
-  struct gkyl_array* u_i, struct gkyl_array* u_perp_i, struct gkyl_array* rhou_perp_i,
-  struct gkyl_array* p_perp, struct gkyl_array* p_ij);
+  struct gkyl_array* u_i, struct gkyl_array* p_ij);
 
 void gkyl_calc_prim_vars_pkpm_source_cu(struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* qmem, const struct gkyl_array* nu, const struct gkyl_array* nu_vthsq, 
   const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm,
-  const struct gkyl_array* rhou_perp_i, const struct gkyl_array* p_perp, 
-  struct gkyl_array* rhs);
+  const struct gkyl_array* p_perp_source, struct gkyl_array* rhs);
 
 void gkyl_calc_prim_vars_pkpm_recovery_cu(const struct gkyl_rect_grid *grid, 
   struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
-  const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, 
+  const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
   struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, 
-  struct gkyl_array* div_p, struct gkyl_array* p_force);
-
-void gkyl_calc_prim_vars_pkpm_upwind_p_cu(const struct gkyl_rect_grid *phase_grid, 
-  struct gkyl_basis cbasis, const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  double mass, const struct gkyl_array* bvar, const struct gkyl_array* f, struct gkyl_array* p_force);
-
-void gkyl_calc_prim_vars_pkpm_p_force_cu(struct gkyl_basis basis, const struct gkyl_range *range,
-  const struct gkyl_array* bvar, const struct gkyl_array* div_p, const struct gkyl_array* vlasov_pkpm_moms, 
-  const struct gkyl_array* euler_pkpm, const struct gkyl_array* div_b, struct gkyl_array* p_force);
+  struct gkyl_array* div_p, struct gkyl_array* p_force, struct gkyl_array* p_perp_source);

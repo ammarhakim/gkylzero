@@ -121,7 +121,7 @@ evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[0] = me*vdrift_x;
   fout[1] = me*vdrift_y;
   fout[2] = me*Jz;
-  fout[3] = me*app->vtElc*app->vtElc + 0.5*me*(v_perp_x*v_perp_x + v_perp_y*v_perp_y + v_perp_z*v_perp_z);
+  fout[3] = me*app->vtElc*app->vtElc;
 }
 
 void
@@ -166,7 +166,7 @@ evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[0] = mi*vdrift_x;
   fout[1] = mi*vdrift_y;
   fout[2] = 0.0;
-  fout[3] = mi*app->vtIon*app->vtIon + 0.5*mi*(v_perp_x*v_perp_x + v_perp_y*v_perp_y + v_perp_z*v_perp_z);
+  fout[3] = mi*app->vtIon*app->vtIon;
 
 }
 
@@ -262,7 +262,7 @@ create_ctx(void)
 
   // domain size and simulation time
   double L = 20.0*M_PI*rhoi;
-  double tend = 0.04/omegaCi;
+  double tend = 2.0/omegaCi;
   
   struct pkpm_ot_ctx ctx = {
     .epsilon0 = epsilon0,
