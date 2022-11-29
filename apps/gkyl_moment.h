@@ -50,6 +50,8 @@ struct gkyl_moment_field {
   void (*ext_em_func)(double t, const double *xn, double *fout, void *ctx);
   
   // boundary conditions
+  void (*bc_lower_func)(double t, double xc[3], int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  void (*bc_upper_func)(double t, double xc[3], int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
 };
 
