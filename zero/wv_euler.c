@@ -37,7 +37,7 @@ riem_to_cons(const struct gkyl_wv_eqn *eqn,
 
 // Euler perfectly reflecting wall
 static void
-euler_wall(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+euler_wall(double t, double xc[3], int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
 {
   // copy density and pressure
   ghost[0] = skin[0];
@@ -51,7 +51,7 @@ euler_wall(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, v
 
 // Euler no-slip wall
 static void
-euler_no_slip(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+euler_no_slip(double t, double xc[3], int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
 {
   // copy density and pressure
   ghost[0] = skin[0];

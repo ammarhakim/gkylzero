@@ -111,9 +111,13 @@ gkyl_wv_apply_bc_advance(const gkyl_wv_apply_bc *bc, double tm,
     // rotate skin data to local coordinates
     gkyl_wv_eqn_rotate_to_local(bc->eqn, wg->tau1[dir], wg->tau2[dir], wg->norm[dir],
       gkyl_array_fetch(out, sloc), skin_local);
-      
+
+    double xc[3], xp[3];
+    gkyl_rect_grid_cell_center(&bc->grid, iter.idx, xc);
+    // TODO compute physical coordinates
+
     // apply boundary condition in local coordinates
-    bc->bcfunc(tm, ncomp, skin_local, ghost_local, bc->ctx);
+    bc->bcfunc(tm, xc, ncomp, skin_local, ghost_local, bc->ctx);
 
     // rotate back to global
     gkyl_wv_eqn_rotate_to_global(bc->eqn, wg->tau1[dir], wg->tau2[dir], wg->norm[dir],
@@ -179,9 +183,13 @@ gkyl_wv_apply_bc_to_buff(const gkyl_wv_apply_bc *bc, double tm,
     // rotate skin data to local coordinates of skin-cell edge
     gkyl_wv_eqn_rotate_to_local(bc->eqn, wgs->tau1[dir], wgs->tau2[dir], wgs->norm[dir],
       gkyl_array_cfetch(inp, sloc), skin_local);
-      
+
+    double xc[3], xp[3];
+    gkyl_rect_grid_cell_center(&bc->grid, iter.idx, xc);
+    // TODO compute physical coordinates
+
     // apply boundary condition in local coordinates
-    bc->bcfunc(tm, ncomp, skin_local, ghost_local, bc->ctx);
+    bc->bcfunc(tm, xc, ncomp, skin_local, ghost_local, bc->ctx);
 
     // rotate back to global coordinates as defined on ghost cell edge
     const struct gkyl_wave_cell_geom *wgg = gkyl_wave_geom_get(bc->geom, gidx);

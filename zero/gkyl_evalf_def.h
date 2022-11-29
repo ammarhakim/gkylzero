@@ -16,12 +16,13 @@ typedef void (*evalf_t)(double t, const double *xn, double *fout, void *ctx);
  * Type of function to apply BC
  *
  * @param t Time at which BC is applied
+ * @param xc Coordinate of skin cell
  * @param ncomp Number of compontents (size of skin and ghost arrays)
  * @param skin Pointer to data in skin-cell
  * @param ghost Pointer to data in ghost-cell
  * @param ctx Context for function evaluation. Can be NULL
  */
-typedef void (*wv_bc_func_t)(double t, int ncomp, const double *skin, double *ghost, void *ctx);
+typedef void (*wv_bc_func_t)(double t, double xc[3], int ncomp, const double *skin, double *ghost, void *ctx);
 
 /**
  * Type of function for use in array copy op.

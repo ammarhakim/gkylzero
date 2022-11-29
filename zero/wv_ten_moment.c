@@ -53,7 +53,7 @@ ten_moment_free(const struct gkyl_ref_count *ref)
 
 // Ten moment perfectly reflecting wall
 static void
-ten_moment_wall(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+ten_moment_wall(double t, double xc[3], int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
 {
   // copy density and Pxx, Pyy, and Pzz
   ghost[0] = skin[0];

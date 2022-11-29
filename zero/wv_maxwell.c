@@ -37,7 +37,7 @@ riem_to_cons(const struct gkyl_wv_eqn *eqn,
 }
 
 static void
-maxwell_wall(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+maxwell_wall(double t, double xc[3], int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
 {
   // zero-tangent for E field
   ghost[0] = skin[0];
