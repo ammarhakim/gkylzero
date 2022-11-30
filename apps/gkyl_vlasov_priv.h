@@ -91,6 +91,14 @@ struct vm_lbo_collisions {
   struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator
   struct gkyl_array *nu_sum, *prim_moms, *nu_prim_moms; // LBO primitive moments
 
+  // If PKPM model, have to apply BCs to primitive moments (vth^2)
+  struct gkyl_array *bc_buffer; // buffer for BCs (used by bc_basic)
+  // boundary conditions on lower/upper edges in each direction  
+  enum gkyl_species_bc_type lower_bc[3], upper_bc[3];
+  // Pointers to updaters that apply BC.
+  struct gkyl_bc_basic *bc_lo[3];
+  struct gkyl_bc_basic *bc_up[3];
+
   double betaGreenep1; // value of Greene's factor beta + 1
   double other_m[GKYL_MAX_SPECIES]; // masses of species being collided with
   struct gkyl_array *other_prim_moms[GKYL_MAX_SPECIES]; // self-primitive moments of species being collided with
@@ -564,6 +572,14 @@ double vm_species_lbo_rhs(gkyl_vlasov_app *app,
   const struct vm_species *species,
   struct vm_lbo_collisions *lbo,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Apply BCs to primitive moments
+ *
+ * @param app Vlasov app object
+ * @param lbo Species LBO object to apply boundary conditions to primitive moments
+ */
+void vm_species_lbo_apply_bc(struct gkyl_vlasov_app *app, const struct vm_lbo_collisions *lbo);
 
 /**
  * Release species LBO object.

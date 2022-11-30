@@ -50,8 +50,8 @@ GKYL_CU_DH void euler_pkpm_surfx_1x_ser_p2(const double *w, const double *dxv,
   double ux_max_r = fmax(fabs(ux_c_r), fabs(ux_r_l)); 
   double vth_max_l = fmax(sqrt(fabs(vth_sq_l_r)), sqrt(fabs(vth_sq_c_l))); 
   double vth_max_r = fmax(sqrt(fabs(vth_sq_c_r)), sqrt(fabs(vth_sq_r_l))); 
-  double max_speed_l = ux_max_l + vth_max_l; 
-  double max_speed_r = ux_max_r + vth_max_r; 
+  double max_speed_l = ux_max_l + sqrt(5.0/3.0)*vth_max_l; 
+  double max_speed_r = ux_max_r + sqrt(5.0/3.0)*vth_max_r; 
 
   double Ghat_rhoux_l = 0.7905694150420948*rhoux_l[2]*ux_l_r+0.6123724356957945*rhoux_l[1]*ux_l_r+0.3535533905932737*rhoux_l[0]*ux_l_r+0.7905694150420948*rhoux_c[2]*ux_c_l-0.6123724356957945*rhoux_c[1]*ux_c_l+0.3535533905932737*rhoux_c[0]*ux_c_l+0.7905694150420948*rhoux_l[2]*max_speed_l-0.7905694150420948*rhoux_c[2]*max_speed_l+0.6123724356957945*rhoux_l[1]*max_speed_l+0.6123724356957945*rhoux_c[1]*max_speed_l+0.3535533905932737*rhoux_l[0]*max_speed_l-0.3535533905932737*rhoux_c[0]*max_speed_l; 
   double Ghat_rhoux_r = 0.7905694150420948*rhoux_r[2]*ux_r_l-0.6123724356957945*rhoux_r[1]*ux_r_l+0.3535533905932737*rhoux_r[0]*ux_r_l+0.7905694150420948*rhoux_c[2]*ux_c_r+0.6123724356957945*rhoux_c[1]*ux_c_r+0.3535533905932737*rhoux_c[0]*ux_c_r-0.7905694150420948*rhoux_r[2]*max_speed_r+0.7905694150420948*rhoux_c[2]*max_speed_r+0.6123724356957945*rhoux_r[1]*max_speed_r+0.6123724356957945*rhoux_c[1]*max_speed_r-0.3535533905932737*rhoux_r[0]*max_speed_r+0.3535533905932737*rhoux_c[0]*max_speed_r; 

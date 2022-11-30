@@ -98,8 +98,8 @@ GKYL_CU_DH void euler_pkpm_surfx_2x_ser_p1(const double *w, const double *dxv,
   vth_sq_r_l = ser_2x_p1_surfx1_eval_quad_node_0_l(vth_sqr); 
   vthQuad_l = fmax(sqrt(fabs(vth_sq_l_r)), sqrt(fabs(vth_sq_c_l))); 
   vthQuad_r = fmax(sqrt(fabs(vth_sq_c_r)), sqrt(fabs(vth_sq_r_l))); 
-  max_speed_l = uQuad_l + vthQuad_l; 
-  max_speed_r = uQuad_r + vthQuad_r; 
+  max_speed_l = uQuad_l + sqrt(5.0/3.0)*vthQuad_l; 
+  max_speed_r = uQuad_r + sqrt(5.0/3.0)*vthQuad_r; 
   rhoux_l_r = ser_2x_p1_surfx1_eval_quad_node_0_r(rhoux_l); 
   rhoux_c_l = ser_2x_p1_surfx1_eval_quad_node_0_l(rhoux_c); 
   rhoux_c_r = ser_2x_p1_surfx1_eval_quad_node_0_r(rhoux_c); 
@@ -137,8 +137,8 @@ GKYL_CU_DH void euler_pkpm_surfx_2x_ser_p1(const double *w, const double *dxv,
   vth_sq_r_l = ser_2x_p1_surfx1_eval_quad_node_1_l(vth_sqr); 
   vthQuad_l = fmax(sqrt(fabs(vth_sq_l_r)), sqrt(fabs(vth_sq_c_l))); 
   vthQuad_r = fmax(sqrt(fabs(vth_sq_c_r)), sqrt(fabs(vth_sq_r_l))); 
-  max_speed_l = uQuad_l + vthQuad_l; 
-  max_speed_r = uQuad_r + vthQuad_r; 
+  max_speed_l = uQuad_l + sqrt(5.0/3.0)*vthQuad_l; 
+  max_speed_r = uQuad_r + sqrt(5.0/3.0)*vthQuad_r; 
   rhoux_l_r = ser_2x_p1_surfx1_eval_quad_node_1_r(rhoux_l); 
   rhoux_c_l = ser_2x_p1_surfx1_eval_quad_node_1_l(rhoux_c); 
   rhoux_c_r = ser_2x_p1_surfx1_eval_quad_node_1_r(rhoux_c); 

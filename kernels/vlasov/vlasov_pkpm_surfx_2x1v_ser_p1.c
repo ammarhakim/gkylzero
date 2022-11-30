@@ -233,8 +233,8 @@ GKYL_CU_DH void vlasov_pkpm_surfx_2x1v_ser_p1(const double *w, const double *dxv
   vth_sq_r_l = hyb_2x1v_p1_surfx1_eval_quad_node_0_l(vth_sq_r); 
   vthQuad_l = fmax(sqrt(fabs(vth_sq_l_r)), sqrt(fabs(vth_sq_c_l))); 
   vthQuad_r = fmax(sqrt(fabs(vth_sq_c_r)), sqrt(fabs(vth_sq_r_l))); 
-  max_speed_l = alphaQuad_l + vthQuad_l; 
-  max_speed_r = alphaQuad_r + vthQuad_r; 
+  max_speed_l = alphaQuad_l + sqrt(5.0/3.0)*vthQuad_l; 
+  max_speed_r = alphaQuad_r + sqrt(5.0/3.0)*vthQuad_r; 
   f_l_r = hyb_2x1v_p1_surfx1_eval_quad_node_0_r(fl); 
   f_c_l = hyb_2x1v_p1_surfx1_eval_quad_node_0_l(fc); 
   f_c_r = hyb_2x1v_p1_surfx1_eval_quad_node_0_r(fc); 
@@ -254,8 +254,8 @@ GKYL_CU_DH void vlasov_pkpm_surfx_2x1v_ser_p1(const double *w, const double *dxv
   vth_sq_r_l = hyb_2x1v_p1_surfx1_eval_quad_node_1_l(vth_sq_r); 
   vthQuad_l = fmax(sqrt(fabs(vth_sq_l_r)), sqrt(fabs(vth_sq_c_l))); 
   vthQuad_r = fmax(sqrt(fabs(vth_sq_c_r)), sqrt(fabs(vth_sq_r_l))); 
-  max_speed_l = alphaQuad_l + vthQuad_l; 
-  max_speed_r = alphaQuad_r + vthQuad_r; 
+  max_speed_l = alphaQuad_l + sqrt(5.0/3.0)*vthQuad_l; 
+  max_speed_r = alphaQuad_r + sqrt(5.0/3.0)*vthQuad_r; 
   f_l_r = hyb_2x1v_p1_surfx1_eval_quad_node_1_r(fl); 
   f_c_l = hyb_2x1v_p1_surfx1_eval_quad_node_1_l(fc); 
   f_c_r = hyb_2x1v_p1_surfx1_eval_quad_node_1_r(fc); 
@@ -275,8 +275,8 @@ GKYL_CU_DH void vlasov_pkpm_surfx_2x1v_ser_p1(const double *w, const double *dxv
   vth_sq_r_l = hyb_2x1v_p1_surfx1_eval_quad_node_2_l(vth_sq_r); 
   vthQuad_l = fmax(sqrt(fabs(vth_sq_l_r)), sqrt(fabs(vth_sq_c_l))); 
   vthQuad_r = fmax(sqrt(fabs(vth_sq_c_r)), sqrt(fabs(vth_sq_r_l))); 
-  max_speed_l = alphaQuad_l + vthQuad_l; 
-  max_speed_r = alphaQuad_r + vthQuad_r; 
+  max_speed_l = alphaQuad_l + sqrt(5.0/3.0)*vthQuad_l; 
+  max_speed_r = alphaQuad_r + sqrt(5.0/3.0)*vthQuad_r; 
   f_l_r = hyb_2x1v_p1_surfx1_eval_quad_node_2_r(fl); 
   f_c_l = hyb_2x1v_p1_surfx1_eval_quad_node_2_l(fc); 
   f_c_r = hyb_2x1v_p1_surfx1_eval_quad_node_2_r(fc); 
@@ -296,8 +296,8 @@ GKYL_CU_DH void vlasov_pkpm_surfx_2x1v_ser_p1(const double *w, const double *dxv
   vth_sq_r_l = hyb_2x1v_p1_surfx1_eval_quad_node_3_l(vth_sq_r); 
   vthQuad_l = fmax(sqrt(fabs(vth_sq_l_r)), sqrt(fabs(vth_sq_c_l))); 
   vthQuad_r = fmax(sqrt(fabs(vth_sq_c_r)), sqrt(fabs(vth_sq_r_l))); 
-  max_speed_l = alphaQuad_l + vthQuad_l; 
-  max_speed_r = alphaQuad_r + vthQuad_r; 
+  max_speed_l = alphaQuad_l + sqrt(5.0/3.0)*vthQuad_l; 
+  max_speed_r = alphaQuad_r + sqrt(5.0/3.0)*vthQuad_r; 
   f_l_r = hyb_2x1v_p1_surfx1_eval_quad_node_3_r(fl); 
   f_c_l = hyb_2x1v_p1_surfx1_eval_quad_node_3_l(fc); 
   f_c_r = hyb_2x1v_p1_surfx1_eval_quad_node_3_r(fc); 
@@ -317,8 +317,8 @@ GKYL_CU_DH void vlasov_pkpm_surfx_2x1v_ser_p1(const double *w, const double *dxv
   vth_sq_r_l = hyb_2x1v_p1_surfx1_eval_quad_node_4_l(vth_sq_r); 
   vthQuad_l = fmax(sqrt(fabs(vth_sq_l_r)), sqrt(fabs(vth_sq_c_l))); 
   vthQuad_r = fmax(sqrt(fabs(vth_sq_c_r)), sqrt(fabs(vth_sq_r_l))); 
-  max_speed_l = alphaQuad_l + vthQuad_l; 
-  max_speed_r = alphaQuad_r + vthQuad_r; 
+  max_speed_l = alphaQuad_l + sqrt(5.0/3.0)*vthQuad_l; 
+  max_speed_r = alphaQuad_r + sqrt(5.0/3.0)*vthQuad_r; 
   f_l_r = hyb_2x1v_p1_surfx1_eval_quad_node_4_r(fl); 
   f_c_l = hyb_2x1v_p1_surfx1_eval_quad_node_4_l(fc); 
   f_c_r = hyb_2x1v_p1_surfx1_eval_quad_node_4_r(fc); 
@@ -338,8 +338,8 @@ GKYL_CU_DH void vlasov_pkpm_surfx_2x1v_ser_p1(const double *w, const double *dxv
   vth_sq_r_l = hyb_2x1v_p1_surfx1_eval_quad_node_5_l(vth_sq_r); 
   vthQuad_l = fmax(sqrt(fabs(vth_sq_l_r)), sqrt(fabs(vth_sq_c_l))); 
   vthQuad_r = fmax(sqrt(fabs(vth_sq_c_r)), sqrt(fabs(vth_sq_r_l))); 
-  max_speed_l = alphaQuad_l + vthQuad_l; 
-  max_speed_r = alphaQuad_r + vthQuad_r; 
+  max_speed_l = alphaQuad_l + sqrt(5.0/3.0)*vthQuad_l; 
+  max_speed_r = alphaQuad_r + sqrt(5.0/3.0)*vthQuad_r; 
   f_l_r = hyb_2x1v_p1_surfx1_eval_quad_node_5_r(fl); 
   f_c_l = hyb_2x1v_p1_surfx1_eval_quad_node_5_l(fc); 
   f_c_r = hyb_2x1v_p1_surfx1_eval_quad_node_5_r(fc); 
