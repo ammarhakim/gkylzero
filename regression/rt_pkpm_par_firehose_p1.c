@@ -177,7 +177,7 @@ create_ctx(void)
 
   // domain size and simulation time
   double L = 100.0*M_PI*di;
-  double tend = 1.0/omegaCi;
+  double tend = 0.1/omegaCi;
 
   struct pkpm_par_firehose_ctx ctx = {
     .epsilon0 = epsilon0,
@@ -330,19 +330,22 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = ctx.tend;
   double dt = tend-tcurr;
-  int nframe = 1;
+  int nframe = 100;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
   // initialize simulation
   gkyl_vlasov_app_apply_ic(app, tcurr);
   write_data(&io_trig, app, tcurr);
+  gkyl_vlasov_app_calc_field_energy(app, tcurr);
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
     printf("Taking time-step at t = %g ...", tcurr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
+
+    gkyl_vlasov_app_calc_field_energy(app, tcurr);
     
     if (!status.success) {
       printf("** Update method failed! Aborting simulation ....\n");
@@ -356,6 +359,7 @@ main(int argc, char **argv)
     step += 1;
   }
 
+  gkyl_vlasov_app_write_field_energy(app);
   gkyl_vlasov_app_stat_write(app);
 
   // fetch simulation statistics
