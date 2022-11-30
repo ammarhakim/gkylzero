@@ -10,6 +10,8 @@
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_vlasov_auxfields { 
   const struct gkyl_array *qmem;
+  const struct gkyl_array *cot_vec; 
+  const struct gkyl_array *alpha_geo;
 };
 
 /**

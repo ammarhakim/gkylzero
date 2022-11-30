@@ -11,6 +11,7 @@
 struct gkyl_dg_vlasov_poisson_auxfields {
   const struct gkyl_array *fac_phi; // Pointer to fac*phi, where phi is the potential.
   const struct gkyl_array *vecA; // Pointer to q/m*A, where A is the vector potential.
+  const struct gkyl_array *alpha_geo;
 };
 
 /**

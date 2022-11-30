@@ -20,7 +20,7 @@ enum gkyl_field_id {
   GKYL_FIELD_PHI_A, // Poisson with static B = curl(A) (phi, A)
   GKYL_FIELD_NULL, // no field is present
   GKYL_FIELD_SR_NULL, // no field is present, special relativistic Vlasov
-  GKYL_FIELD_NULL_GEN_GEO // neutral Vlasov species with gen geo
+  GKYL_FIELD_GEN_GEO // neutral Vlasov species with gen geo
 };
 
 // Identifiers for specific collision object types

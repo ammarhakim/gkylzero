@@ -1,8 +1,9 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH void vlasov_surfy_2x2v_tensor_p2(const double *w, const double *dxv, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void vlasov_surfy_2x2v_tensor_p2(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
+  // alpha_geo: Fields used only for general geometry.
   // fl/fc/fr:  Input Distribution function in left/center/right cells.
   // out:       Incremented distribution function in center cell.
   const double dx11 = 2/dxv[1]; 

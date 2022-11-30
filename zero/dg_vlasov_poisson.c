@@ -37,6 +37,7 @@ gkyl_vlasov_poisson_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_
   struct dg_vlasov_poisson *vlasov_poisson = container_of(eqn, struct dg_vlasov_poisson, eqn);
   vlasov_poisson->auxfields.fac_phi = auxin.fac_phi;
   vlasov_poisson->auxfields.vecA = auxin.vecA;
+  vlasov_poisson->auxfields.alpha_geo = auxin.alpha_geo;
 }
 
 struct gkyl_dg_eqn*
@@ -161,7 +162,8 @@ gkyl_dg_vlasov_poisson_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
   for (int i=0; i<vdim; ++i) assert(vlasov_poisson->accel_boundary_surf[i]);
 
   vlasov_poisson->auxfields.fac_phi = 0;
-  vlasov_poisson->auxfields.vecA = 0; 
+  vlasov_poisson->auxfields.vecA = 0;
+  vlasov_poisson->auxfields.alpha_geo = 0; 
   vlasov_poisson->conf_range = *conf_range;
 
   vlasov_poisson->eqn.flags = 0;

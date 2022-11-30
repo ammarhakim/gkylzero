@@ -36,6 +36,8 @@ gkyl_vlasov_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_a
 
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
   vlasov->auxfields.qmem = auxin.qmem;
+  vlasov->auxfields.cot_vec = auxin.cot_vec;
+  vlasov->auxfields.alpha_geo = auxin.alpha_geo;
 }
 
 struct gkyl_dg_eqn*
@@ -110,12 +112,12 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   }  
   if (field_id == GKYL_FIELD_NULL)
     vlasov->vol = CK(stream_vol_kernels,cdim,vdim,poly_order);
-  else if (field_id == GKYL_FIELD_NULL_GEN_GEO) {
+  else if (field_id == GKYL_FIELD_GEN_GEO) {
     vlasov->vol = CK(stream_gen_geo_vol_kernels,cdim,vdim,poly_order);
     // Neutral gen geo will always be 3x3v.
-    vlasov->stream_gen_geo_surf[0] = CK(stream_gen_geo_surf_x_kernels,cdim,vdim,poly_order);
-    vlasov->stream_gen_geo_surf[1] = CK(stream_gen_geo_surf_y_kernels,cdim,vdim,poly_order);
-    vlasov->stream_gen_geo_surf[2] = CK(stream_gen_geo_surf_z_kernels,cdim,vdim,poly_order);
+    vlasov->stream_surf[0] = CK(stream_gen_geo_surf_x_kernels,cdim,vdim,poly_order);
+    vlasov->stream_surf[1] = CK(stream_gen_geo_surf_y_kernels,cdim,vdim,poly_order);
+    vlasov->stream_surf[2] = CK(stream_gen_geo_surf_z_kernels,cdim,vdim,poly_order);
   }
   else {
     vlasov->vol = CK(vol_kernels,cdim,vdim,poly_order);
@@ -145,7 +147,9 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   for (int i=0; i<vdim; ++i) assert(vlasov->accel_surf[i]);
   for (int i=0; i<vdim; ++i) assert(vlasov->accel_boundary_surf[i]);
 
-  vlasov->auxfields.qmem = 0;  
+  vlasov->auxfields.qmem = 0;
+  vlasov->auxfields.cot_vec = 0;
+  vlasov->auxfields.alpha_geo = 0;
   vlasov->conf_range = *conf_range;
 
   vlasov->eqn.flags = 0;

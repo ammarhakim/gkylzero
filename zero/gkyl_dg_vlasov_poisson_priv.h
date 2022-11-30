@@ -11,7 +11,7 @@
 #include <gkyl_vlasov_kernels.h>
 
 // Types for various kernels
-typedef void (*vlasov_poisson_stream_surf_t)(const double *w, const double *dxv,
+typedef void (*vlasov_poisson_stream_surf_t)(const double *w, const double *dxv, const double *alpha_geo,
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
 typedef void (*vlasov_poisson_accel_surf_t)(const double *w, const double *dxv,
@@ -1004,8 +1004,11 @@ surf(const struct gkyl_dg_eqn *eqn,
   struct dg_vlasov_poisson *vlasov_poisson = container_of(eqn, struct dg_vlasov_poisson, eqn);
 
   if (dir < vlasov_poisson->cdim) {
+    long cidx = gkyl_range_idx(&vlasov_poisson->conf_range, idxC);
     vlasov_poisson->stream_surf[dir]
-      (xcC, dxC, qInL, qInC, qInR, qRhsOut);
+      (xcC, dxC,
+       vlasov_poisson->auxfields.alpha_geo ? (const double*) gkyl_array_cfetch(vlasov_poisson->auxfields.alpha_geo, cidx) : 0,
+       qInL, qInC, qInR, qRhsOut);
   }
   else {
     long cidx = gkyl_range_idx(&vlasov_poisson->conf_range, idxC);

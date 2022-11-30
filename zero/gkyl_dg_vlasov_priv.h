@@ -10,14 +10,11 @@
 #include <gkyl_vlasov_kernels.h>
 #include <gkyl_vlasov.h>
 
-// Types for various kernels
+// Types for various kernels // signatures will need to change in kernels and header files. see VP for example.
 typedef double (*vlasov_vol_t)(const double *w, const double *dxv,
-  const double *qmem, const double *f, double* GKYL_RESTRICT out);
+  const double *qmem, const double *cot_vec, const double *f, double* GKYL_RESTRICT out);
 
-typedef void (*vlasov_stream_surf_t)(const double *w, const double *dxv,
-  const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
-
-typedef void (*vlasov_stream_gen_geo_surf_t)(const double *w, const double *dxv, const double *alpha_geo,
+typedef void (*vlasov_stream_surf_t)(const double *w, const double *dxv, const double *alpha_geo,
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
 typedef void (*vlasov_accel_surf_t)(const double *w, const double *dxv,
@@ -40,7 +37,7 @@ typedef struct { vlasov_vol_t kernels[3]; } gkyl_dg_vlasov_stream_vol_kern_list;
 typedef struct { vlasov_vol_t kernels[3]; } gkyl_dg_vlasov_stream_gen_geo_vol_kern_list;
 typedef struct { vlasov_vol_t kernels[3]; } gkyl_dg_vlasov_vol_kern_list;
 typedef struct { vlasov_stream_surf_t kernels[3]; } gkyl_dg_vlasov_stream_surf_kern_list;
-typedef struct { vlasov_stream_gen_geo_surf_t kernels[3]; } gkyl_dg_vlasov_stream_gen_geo_surf_kern_list;
+typedef struct { vlasov_stream_surf_t kernels[3]; } gkyl_dg_vlasov_stream_gen_geo_surf_kern_list;
 typedef struct { vlasov_accel_surf_t kernels[3]; } gkyl_dg_vlasov_accel_surf_kern_list;
 typedef struct { vlasov_accel_boundary_surf_t kernels[3]; } gkyl_dg_vlasov_accel_boundary_surf_kern_list;
 
@@ -422,7 +419,6 @@ struct dg_vlasov {
   int pdim; // Phase-space dimensions
   vlasov_vol_t vol; // Volume kernel
   vlasov_stream_surf_t stream_surf[3]; // Surface terms for streaming
-  vlasov_stream_gen_geo_surf_t stream_gen_geo_surf[3];
   vlasov_accel_surf_t accel_surf[3]; // Surface terms for acceleration
   vlasov_accel_boundary_surf_t accel_boundary_surf[3]; // Surface terms for acceleration
   struct gkyl_range conf_range; // configuration space range
@@ -446,6 +442,7 @@ vol(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
   return vlasov->vol(xc, dx,
     vlasov->auxfields.qmem ? (const double*) gkyl_array_cfetch(vlasov->auxfields.qmem, cidx) : 0,
+    vlasov->auxfields.cot_vec ? (const double*) gkyl_array_cfetch(vlasov->auxfields.cot_vec, cidx) : 0,
     qIn, qRhsOut);
 }
 
@@ -461,8 +458,11 @@ surf(const struct gkyl_dg_eqn *eqn,
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
 
   if (dir < vlasov->cdim) {
+    long cidx = gkyl_range_idx(&vlasov->conf_range, idxC);
     vlasov->stream_surf[dir]
-      (xcC, dxC, qInL, qInC, qInR, qRhsOut);
+      (xcC, dxC,
+       vlasov->auxfields.alpha_geo ? (const double*) gkyl_array_cfetch(vlasov->auxfields.alpha_geo, cidx) : 0,
+       qInL, qInC, qInR, qRhsOut);
   }
   else {
     long cidx = gkyl_range_idx(&vlasov->conf_range, idxC);
