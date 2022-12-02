@@ -279,13 +279,12 @@ calcNu(const gkyl_moment_em_coupling *mes,
 {
   const int nfluids = mes->nfluids;
 
+  // TODO temperature dependence? user-defined calcNu function?
   for (int s=0; s<nfluids; ++s)
   {
     double *nu_s = nu + nfluids * s;
-    double rho_s = fluids[s][RHO];
-
     for (int r=0; r<nfluids; ++r)
-      nu_s[r] = nu_base[s][r] / rho_s;
+      nu_s[r] = nu_base[s][r] * fluids[r][RHO];
   }
 }
 
@@ -318,8 +317,10 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
     const double *nu_s = nu + nfluids * s;
     for (int r=0; r<nfluids; ++r)
     {
-      if (r==s)
-        continue; // TODO allow self-collision
+      if (r==s) {
+        gkyl_mat_inc(lhs, s, s, 0.5 * dt * nu_s[s]);
+        continue;
+      }
 
       const double half_dt_nu_sr = 0.5 * dt * nu_s[r];
       gkyl_mat_inc(lhs, s, s, half_dt_nu_sr);
