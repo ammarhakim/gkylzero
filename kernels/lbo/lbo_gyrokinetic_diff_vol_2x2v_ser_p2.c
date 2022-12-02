@@ -27,9 +27,9 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_vol_2x2v_ser_p2(const double *w, const do
 
   double facDiffMu[48];
   // Expand mu diffusion coefficient in phase basis.
-  facDiffMu[0] = rdv2[1]*w[3]*(bmag_inv[7]*nuVtSqSum[7]+bmag_inv[6]*nuVtSqSum[6]+bmag_inv[5]*nuVtSqSum[5]+bmag_inv[4]*nuVtSqSum[4]+bmag_inv[3]*nuVtSqSum[3]+bmag_inv[2]*nuVtSqSum[2]+bmag_inv[1]*nuVtSqSum[1]+bmag_inv[0]*nuVtSqSum[0]); 
-  facDiffMu[4] = 0.5773502691896258*(bmag_inv[7]*nuVtSqSum[7]+bmag_inv[6]*nuVtSqSum[6]+bmag_inv[5]*nuVtSqSum[5]+bmag_inv[4]*nuVtSqSum[4]+bmag_inv[3]*nuVtSqSum[3]+bmag_inv[2]*nuVtSqSum[2]+bmag_inv[1]*nuVtSqSum[1]+bmag_inv[0]*nuVtSqSum[0]); 
-  facDiffMu[5] = rdv2[1]*w[3]*((0.8*bmag_inv[6]+0.8944271909999159*bmag_inv[2])*nuVtSqSum[7]+0.8*nuVtSqSum[6]*bmag_inv[7]+0.8944271909999159*(nuVtSqSum[2]*bmag_inv[7]+bmag_inv[1]*nuVtSqSum[6]+nuVtSqSum[1]*bmag_inv[6]+bmag_inv[3]*nuVtSqSum[5]+nuVtSqSum[3]*bmag_inv[5]+bmag_inv[3]*nuVtSqSum[4])+nuVtSqSum[3]*(0.8944271909999159*bmag_inv[4]+bmag_inv[0])+nuVtSqSum[0]*bmag_inv[3]+bmag_inv[1]*nuVtSqSum[2]+nuVtSqSum[1]*bmag_inv[2]); 
+  facDiffMu[0] = rdv2[1]*w[3]*(bmag_inv[4]*nuVtSqSum[4]+bmag_inv[1]*nuVtSqSum[1]+bmag_inv[0]*nuVtSqSum[0]); 
+  facDiffMu[4] = 0.5773502691896258*(bmag_inv[4]*nuVtSqSum[4]+bmag_inv[1]*nuVtSqSum[1]+bmag_inv[0]*nuVtSqSum[0]); 
+  facDiffMu[5] = rdv2[1]*w[3]*(0.8944271909999159*bmag_inv[1]*nuVtSqSum[6]+nuVtSqSum[3]*(0.8944271909999159*bmag_inv[4]+bmag_inv[0])+bmag_inv[1]*nuVtSqSum[2]); 
 
   return fabs(rdv2[1]*(9.0*facDiffMu[0]-10.06230589874905*(facDiffMu[5]+facDiffMu[4]))*m_+rdvSq4[0]*(4.5*facDiffVpar[0]-5.031152949374527*(facDiffVpar[5]+facDiffVpar[4]))); 
 
