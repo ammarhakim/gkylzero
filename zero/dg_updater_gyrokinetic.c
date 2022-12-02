@@ -23,6 +23,8 @@ gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid,
 {
   gkyl_dg_updater_gyrokinetic *up = gkyl_malloc(sizeof(gkyl_dg_updater_gyrokinetic));
 
+  up->use_gpu = use_gpu;
+
   up->eqn_id = eqn_id;
   if (eqn_id == GKYL_GK_DEFAULT)
     up->dgeqn = gkyl_dg_gyrokinetic_new(cbasis, pbasis, conf_range, charge, mass, use_gpu);
@@ -61,7 +63,10 @@ gkyl_dg_updater_gyrokinetic_advance(gkyl_dg_updater_gyrokinetic *up,
         .cmag = cmag, .b_i = b_i, .phi = phi, .apar = apar, .apardot = apardot });
 
 #ifdef GKYL_HAVE_CUDA
-  gkyl_hyper_dg_advance_cu(up->hyperdg, update_rng, fIn, cflrate, rhs);
+  if (up->use_gpu)
+    gkyl_hyper_dg_advance_cu(up->hyperdg, update_rng, fIn, cflrate, rhs);
+  else
+    gkyl_hyper_dg_advance(up->hyperdg, update_rng, fIn, cflrate, rhs);
 #else
   gkyl_hyper_dg_advance(up->hyperdg, update_rng, fIn, cflrate, rhs);
 #endif

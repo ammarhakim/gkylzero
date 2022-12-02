@@ -32,8 +32,7 @@ init_quad_values(const struct gkyl_basis *basis, int num_quad,
     // than computing them on the fly)
     memcpy(ordinates1, gkyl_gauss_ordinates[num_quad], sizeof(double[num_quad]));
     memcpy(weights1, gkyl_gauss_weights[num_quad], sizeof(double[num_quad]));
-  }
-  else {
+  } else {
     gkyl_gauleg(-1, 1, ordinates1, weights1, num_quad);
   }
 
@@ -70,12 +69,13 @@ init_quad_values(const struct gkyl_basis *basis, int num_quad,
 
   // pre-compute basis functions at ordinates
   struct gkyl_array *basis_at_ords_ho = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, tot_quad);
+  for (int n=0; n<tot_quad; ++n)
+    basis->eval(gkyl_array_fetch(ordinates_ho, n), gkyl_array_fetch(basis_at_ords_ho, n));
+
   if (use_gpu)
     *basis_at_ords = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis->num_basis, tot_quad);
   else
     *basis_at_ords = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, tot_quad);
-  for (int n=0; n<tot_quad; ++n)
-    basis->eval(gkyl_array_fetch(ordinates_ho, n), gkyl_array_fetch(basis_at_ords_ho, n));
 
   // copy host array to device array
   gkyl_array_copy(*weights, weights_ho);
@@ -161,8 +161,8 @@ calc_nu(const gkyl_spitzer_coll_freq *up, struct gkyl_range qrange, const double
 
     double *fq = gkyl_array_fetch(up->fun_at_ords, qidx);
 
-    fq[0] = ((m0Other_q<0.) || (vtSqSelf_q<0.) || (vtSqOther_q<0.)) ?
-      1.e-40 : normNu*m0Other_q/pow(sqrt(vtSqSelf_q+vtSqOther_q),3);
+    fq[0] = ((m0Other_q>0.) && (vtSqSelf_q>0.) && (vtSqOther_q>0.)) ?
+      normNu*m0Other_q/pow(sqrt(vtSqSelf_q+vtSqOther_q),3) : 1.e-14;
   }
 
   // compute expansion coefficients of Maxwellian on basis
