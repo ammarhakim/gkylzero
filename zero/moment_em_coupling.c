@@ -434,7 +434,7 @@ user_source_euler_update(const gkyl_moment_em_coupling *mes,
   double n1 = n0 + dt * S[0];
   double T1 = T0 + dt * S[1];
 
-  double rho1 = n0 * m;
+  double rho1 = n1 * m;
   q[RHO] = rho1;
   q1[MX] = rho1 * u;
   q1[MY] = rho1 * v;
