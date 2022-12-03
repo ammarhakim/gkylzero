@@ -53,6 +53,12 @@ struct moment_species {
   struct gkyl_array *app_accel; // array for applied acceleration/forces
   // pointer to projection operator for applied acceleration/forces function
   gkyl_fv_proj *proj_app_accel;
+
+  struct gkyl_array *user_source; // array for user-defined number density and
+                                  // temperature sources
+  // pointer to projection operator for user-defined source function
+  gkyl_fv_proj *proj_user_source;
+
   struct gkyl_array *bc_buffer; // buffer for periodic BCs
 
   enum gkyl_eqn_type eqn_type; // type ID of equation
@@ -202,6 +208,9 @@ struct gkyl_moment_app {
   // nu_rs=nu_base_rs/rho_r, and nu_base_sr=nu_base_rs
   double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
   double gas_gamma;
+
+  bool has_user_sources;
+  double k_Boltzmann;
 };
 
 /** Some common functions to species and fields */

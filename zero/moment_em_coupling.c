@@ -47,7 +47,7 @@ struct gkyl_moment_em_coupling {
   double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
   double gas_gamma;
 
-  bool has_user_source;
+  bool has_user_sources;
   double k_Boltzmann;
 };
 
@@ -414,7 +414,7 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
 // q1: output fluid species data after update
 // S: source data
 static void
-eulerUpdate(const gkyl_moment_em_coupling *mes,
+user_source_euler_update(const gkyl_moment_em_coupling *mes,
             const int s,
             const double dt,
             double *q,
@@ -431,8 +431,8 @@ eulerUpdate(const gkyl_moment_em_coupling *mes,
   double v2 = u*u + v*v + w*w;
   double T0 = (q[ER] - 0.5 * rho0 * v2) * (gamma-1.0) / n0 / kB;
 
-  double n1 = n0 + dt * S[NN];
-  double T1 = T0 + dt * S[TT];
+  double n1 = n0 + dt * S[0];
+  double T1 = T0 + dt * S[1];
 
   double rho1 = n0 * m;
   q[RHO] = rho1;
@@ -453,7 +453,7 @@ user_source_update(
   {
     double *q = qPtrs[s];
     const double *S = sourcePtrs[s];
-    eulerUpdate(mes, s, dt, q, q, S);
+    user_source_euler_update(mes, s, dt, q, q, S);
   }
 }
 
@@ -469,7 +469,8 @@ user_source_update(
 static void
 fluid_source_update(const gkyl_moment_em_coupling *mes, double dt,
   double* fluids[GKYL_MAX_SPECIES], const double *app_accels[GKYL_MAX_SPECIES],
-  double* em, const double* app_current, const double* ext_em)
+  double* em, const double* app_current, const double* ext_em,
+  const double *user_sources[GKYL_MAX_SPECIES])
 {
   int nfluids = mes->nfluids;
   double keOld[GKYL_MAX_SPECIES];
@@ -542,8 +543,8 @@ fluid_source_update(const gkyl_moment_em_coupling *mes, double dt,
   if (mes->has_collision)
     collision_source_update(mes, dt, fluids);
 
-  if (mes->has_user_source)
-    user_source_update(mes, dt, fluids, 0); // XXX not usable yet
+  if (mes->has_user_sources)
+    user_source_update(mes, dt, fluids, user_sources); // XXX not usable yet
 }
 
 gkyl_moment_em_coupling*
@@ -565,6 +566,12 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
     up->gas_gamma = inp.gas_gamma;
   }
 
+  up->has_user_sources = inp.has_user_sources;
+  if (inp.has_user_sources) {
+    up->gas_gamma = inp.gas_gamma;
+    up->k_Boltzmann = inp.k_Boltzmann;
+  }
+
   return up;
 }
 
@@ -572,11 +579,13 @@ void
 gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
   const struct gkyl_range *update_range,
   struct gkyl_array *fluid[GKYL_MAX_SPECIES], const struct gkyl_array *app_accel[GKYL_MAX_SPECIES],
-  struct gkyl_array *em, const struct gkyl_array *app_current, const struct gkyl_array *ext_em)
+  struct gkyl_array *em, const struct gkyl_array *app_current, const struct gkyl_array *ext_em,
+  const struct gkyl_array *user_source[GKYL_MAX_SPECIES])
 {
   int nfluids = mes->nfluids;
   double *fluids[GKYL_MAX_SPECIES];
   const double *app_accels[GKYL_MAX_SPECIES];
+  const double *user_sources[GKYL_MAX_SPECIES];
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
@@ -587,12 +596,14 @@ gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
     for (int n=0; n<nfluids; ++n) {
       fluids[n] = gkyl_array_fetch(fluid[n], lidx);
       app_accels[n] = gkyl_array_cfetch(app_accel[n], lidx);
+      user_sources[n] = gkyl_array_cfetch(user_source[n], lidx);
     }
 
     fluid_source_update(mes, dt, fluids, app_accels,
       gkyl_array_fetch(em, lidx),
       gkyl_array_cfetch(app_current, lidx),
-      gkyl_array_cfetch(ext_em, lidx)
+      gkyl_array_cfetch(ext_em, lidx),
+      user_sources
     );
   }
 }

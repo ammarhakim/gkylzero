@@ -104,6 +104,9 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     for (int r=0; r<app->num_species; ++r)
       app->nu_base[s][r] = mom->nu_base[s][r];
 
+  app->has_user_sources = mom->has_user_sources;
+  app->k_Boltzmann = mom->k_Boltzmann;
+
   // check if we should update sources
   app->update_sources = 0;
   if (app->has_field && ns>0) {

@@ -27,7 +27,7 @@ struct gkyl_moment_em_coupling_inp {
   double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
   double gas_gamma;
 
-  bool has_user_source;
+  bool has_user_sources;
   double k_Boltzmann;
 };
 
@@ -62,7 +62,8 @@ gkyl_moment_em_coupling* gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupl
 void gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
   const struct gkyl_range *update_rng, 
   struct gkyl_array *fluid[GKYL_MAX_SPECIES], const struct gkyl_array *app_accel[GKYL_MAX_SPECIES],
-  struct gkyl_array *em, const struct gkyl_array *app_current, const struct gkyl_array *ext_em);
+  struct gkyl_array *em, const struct gkyl_array *app_current, const struct gkyl_array *ext_em,
+  const struct gkyl_array *user_source[GKYL_MAX_SPECIES]);
 
 /**
  * Delete updater.

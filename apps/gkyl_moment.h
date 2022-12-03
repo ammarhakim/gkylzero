@@ -26,6 +26,8 @@ struct gkyl_moment_species {
   void (*bc_upper_func)(double t, double xc[3], int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
   // pointer to applied acceleration/forces function
   void (*app_accel_func)(double t, const double *xn, double *fout, void *ctx);
+  // pointer to user-defined number density and temperature sources
+  void (*user_source_func)(double t, const double *xn, double *fout, void *ctx);
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
 };
@@ -98,6 +100,9 @@ struct gkyl_moment {
   // nu_rs=nu_base_rs/rho_r, and nu_base_sr=nu_base_rs
   double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
   double gas_gamma;
+
+  bool has_user_sources;
+  double k_Boltzmann;
 };
 
 // Simulation statistics
