@@ -46,6 +46,9 @@ struct gkyl_moment_em_coupling {
   // normalized collision frequencies; nu_sr = nu_base[s][r] * rho_r
   double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
   double gas_gamma;
+
+  bool has_user_source;
+  double k_Boltzmann;
 };
 
 // Rotate pressure tensor using magnetic field. See Wang
@@ -399,6 +402,64 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
   gkyl_mat_release(rhs);
 }
 
+/***********************************************/
+/* user-defined density and temperature source */
+/***********************************************/
+
+// q1 = q + dt * L(q), L is an operator
+// mes: solver parameters
+// fd: fluid species parameters
+// dt: time step size
+// q: input fluid species data
+// q1: output fluid species data after update
+// S: source data
+static void
+eulerUpdate(const gkyl_moment_em_coupling *mes,
+            const int s,
+            const double dt,
+            double *q,
+            double *q1,
+            const double *S)
+{
+  double m = mes->param[s].mass, gamma = mes->gas_gamma, kB = mes->k_Boltzmann;
+
+  double rho0 = q[RHO];
+  double n0 = rho0 / m;
+  double u = q[MX] / rho0;
+  double v = q[MY] / rho0;
+  double w = q[MZ] / rho0;
+  double v2 = u*u + v*v + w*w;
+  double T0 = (q[ER] - 0.5 * rho0 * v2) * (gamma-1.0) / n0 / kB;
+
+  double n1 = n0 + dt * S[NN];
+  double T1 = T0 + dt * S[TT];
+
+  double rho1 = n0 * m;
+  q[RHO] = rho1;
+  q1[MX] = rho1 * u;
+  q1[MY] = rho1 * v;
+  q1[MZ] = rho1 * w;
+  q1[ER] = n1 * kB * T1 / (gamma-1.0) + 0.5 * rho1 * v2;
+}
+
+void
+user_source_update(
+  const gkyl_moment_em_coupling *mes,
+  const double dt,
+  double *qPtrs[],
+  const double *sourcePtrs[])
+{
+  for (int s=0; s<mes->nfluids; ++s)
+  {
+    double *q = qPtrs[s];
+    const double *S = sourcePtrs[s];
+    eulerUpdate(mes, s, dt, q, q, S);
+  }
+}
+
+/**********************************/
+/* update all sources in one call */
+/**********************************/
 
 // Update momentum and E field along with appropriate pressure update.
 // If isothermal Euler equations, only update momentum and E,
@@ -480,6 +541,9 @@ fluid_source_update(const gkyl_moment_em_coupling *mes, double dt,
 
   if (mes->has_collision)
     collision_source_update(mes, dt, fluids);
+
+  if (mes->has_user_source)
+    user_source_update(mes, dt, fluids, 0); // XXX not usable yet
 }
 
 gkyl_moment_em_coupling*
