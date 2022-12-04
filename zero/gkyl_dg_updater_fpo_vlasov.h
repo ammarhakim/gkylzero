@@ -2,7 +2,7 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
-#include <gkyl_dg_updater_collisions_priv.h>
+#include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
