@@ -197,7 +197,11 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   sp->user_source = mkarr(false, 2, app->local_ext.volume);
   sp->proj_user_source = 0;
   if (mom_sp->user_source_func)
+  {
     sp->proj_user_source = gkyl_fv_proj_new(&app->grid, 2, 2, mom_sp->user_source_func, sp->ctx);
+    sp->user_source_set_only_once = mom_sp->user_source_set_only_once;
+    sp->user_source_is_set = false;
+  }
 
   // allocate buffer for applying BCs (used for periodic BCs)
   long buff_sz = 0;

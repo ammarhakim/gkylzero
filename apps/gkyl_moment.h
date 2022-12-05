@@ -28,6 +28,7 @@ struct gkyl_moment_species {
   void (*app_accel_func)(double t, const double *xn, double *fout, void *ctx);
   // pointer to user-defined number density and temperature sources
   void (*user_source_func)(double t, const double *xn, double *fout, void *ctx);
+  bool user_source_set_only_once;
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
 };
@@ -103,7 +104,6 @@ struct gkyl_moment {
 
   bool has_user_sources;
   double k_Boltzmann;
-  bool user_sources_set_only_once;
 };
 
 // Simulation statistics

@@ -54,10 +54,11 @@ struct moment_species {
   // pointer to projection operator for applied acceleration/forces function
   gkyl_fv_proj *proj_app_accel;
 
-  struct gkyl_array *user_source; // array for user-defined number density and
-                                  // temperature sources
+  struct gkyl_array *user_source; // array for user-defined sources
   // pointer to projection operator for user-defined source function
   gkyl_fv_proj *proj_user_source;
+  bool user_source_set_only_once;
+  bool user_source_is_set;
 
   struct gkyl_array *bc_buffer; // buffer for periodic BCs
 
@@ -211,8 +212,6 @@ struct gkyl_moment_app {
 
   bool has_user_sources;
   double k_Boltzmann;
-  bool user_sources_set_only_once;
-  bool user_sources_is_set;
 };
 
 /** Some common functions to species and fields */

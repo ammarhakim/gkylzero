@@ -106,8 +106,6 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
 
   app->has_user_sources = mom->has_user_sources;
   app->k_Boltzmann = mom->k_Boltzmann;
-  app->user_sources_set_only_once = mom->user_sources_set_only_once;
-  app->user_sources_is_set = false;
 
   // check if we should update sources
   app->update_sources = 0;

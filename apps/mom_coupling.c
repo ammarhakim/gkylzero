@@ -52,14 +52,14 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
     app_accels[i] = app->species[i].app_accel;
 
     if (app->species[i].proj_user_source
-        && !(app->user_sources_set_only_once && app->user_sources_is_set))
+        && !(app->species[i].user_source_set_only_once && app->species[i].user_source_is_set))
     {
       gkyl_fv_proj_advance(app->species[i].proj_user_source, tcurr,
                            &app->local, app->species[i].user_source);
     }
     user_sources[i] = app->species[i].user_source;
+    app->species[i].user_source_is_set = true;
   }
-  app->user_sources_is_set = true;
 
   if (app->field.proj_app_current)
     gkyl_fv_proj_advance(app->field.proj_app_current, tcurr, &app->local, app->field.app_current);
