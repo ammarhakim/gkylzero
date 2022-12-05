@@ -105,7 +105,6 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
       app->nu_base[s][r] = mom->nu_base[s][r];
 
   app->has_user_sources = mom->has_user_sources;
-  app->k_Boltzmann = mom->k_Boltzmann;
 
   // check if we should update sources
   app->update_sources = 0;

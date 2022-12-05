@@ -48,7 +48,6 @@ struct gkyl_moment_em_coupling {
   double gas_gamma;
 
   bool has_user_sources;
-  double k_Boltzmann;
 };
 
 // Rotate pressure tensor using magnetic field. See Wang
@@ -406,13 +405,6 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
 /* user-defined density and temperature source */
 /***********************************************/
 
-// q1 = q + dt * L(q), L is an operator
-// mes: solver parameters
-// fd: fluid species parameters
-// dt: time step size
-// q: input fluid species data
-// q1: output fluid species data after update
-// S: source data
 static void
 user_source_euler_update(const gkyl_moment_em_coupling *mes,
             const int s,
@@ -421,7 +413,7 @@ user_source_euler_update(const gkyl_moment_em_coupling *mes,
             double *q1,
             const double *S)
 {
-  double m = mes->param[s].mass, gamma = mes->gas_gamma, kB = mes->k_Boltzmann;
+  double m = mes->param[s].mass;
 
   double rho0 = q[RHO];
   double n0 = rho0 / m;
@@ -429,17 +421,17 @@ user_source_euler_update(const gkyl_moment_em_coupling *mes,
   double v = q[MY] / rho0;
   double w = q[MZ] / rho0;
   double v2 = u*u + v*v + w*w;
-  double T0 = (q[ER] - 0.5 * rho0 * v2) * (gamma-1.0) / n0 / kB;
+  double TT0 = (q[ER] - 0.5 * rho0 * v2) / n0; // TT0=kB*T0/(gamma-1)
 
-  double n1 = n0 + dt * S[0];
-  double T1 = T0 + dt * S[1];
+  double n1 = n0 + dt * S[0]; // source for number density n
+  double TT1 = TT0 + dt * S[1]; // source for scaled temperature kB*T/(gamma-1)
 
   double rho1 = n1 * m;
   q[RHO] = rho1;
   q1[MX] = rho1 * u;
   q1[MY] = rho1 * v;
   q1[MZ] = rho1 * w;
-  q1[ER] = n1 * kB * T1 / (gamma-1.0) + 0.5 * rho1 * v2;
+  q1[ER] = n1 * TT1 + 0.5 * rho1 * v2;
 }
 
 void
@@ -567,10 +559,6 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
   }
 
   up->has_user_sources = inp.has_user_sources;
-  if (inp.has_user_sources) {
-    up->gas_gamma = inp.gas_gamma;
-    up->k_Boltzmann = inp.k_Boltzmann;
-  }
 
   return up;
 }

@@ -27,7 +27,6 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       src_inp.nu_base[s][r] = app->nu_base[s][r];
 
   src_inp.has_user_sources = app->has_user_sources;
-  src_inp.k_Boltzmann = app->k_Boltzmann;
 
   // create updater to solve for sources
   src->slvr = gkyl_moment_em_coupling_new(src_inp);

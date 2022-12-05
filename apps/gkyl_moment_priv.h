@@ -211,7 +211,6 @@ struct gkyl_moment_app {
   double gas_gamma;
 
   bool has_user_sources;
-  double k_Boltzmann;
 };
 
 /** Some common functions to species and fields */

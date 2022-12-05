@@ -103,7 +103,6 @@ struct gkyl_moment {
   double gas_gamma;
 
   bool has_user_sources;
-  double k_Boltzmann;
 };
 
 // Simulation statistics
