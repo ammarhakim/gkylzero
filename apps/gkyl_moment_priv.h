@@ -211,6 +211,8 @@ struct gkyl_moment_app {
 
   bool has_user_sources;
   double k_Boltzmann;
+  bool user_sources_set_only_once;
+  bool user_sources_is_set;
 };
 
 /** Some common functions to species and fields */

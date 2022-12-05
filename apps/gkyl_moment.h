@@ -103,6 +103,7 @@ struct gkyl_moment {
 
   bool has_user_sources;
   double k_Boltzmann;
+  bool user_sources_set_only_once;
 };
 
 // Simulation statistics
