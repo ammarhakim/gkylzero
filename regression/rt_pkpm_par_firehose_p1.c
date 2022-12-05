@@ -75,7 +75,7 @@ evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 0.0;
-  fout[3] = n0*me*elcTemp;
+  fout[3] = n0*elcTemp;
 }
 
 void
@@ -95,7 +95,7 @@ evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 0.0;
-  fout[3] = n0*mi*T_perp;
+  fout[3] = n0*T_perp;
 }
 
 void
@@ -177,7 +177,7 @@ create_ctx(void)
 
   // domain size and simulation time
   double L = 100.0*M_PI*di;
-  double tend = 0.1/omegaCi;
+  double tend = 10.0/omegaCi;
 
   struct pkpm_par_firehose_ctx ctx = {
     .epsilon0 = epsilon0,
@@ -223,7 +223,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 8192);
-  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 32);  
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 16);  
 
   struct pkpm_par_firehose_ctx ctx = create_ctx(); // context for init functions
 
