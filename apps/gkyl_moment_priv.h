@@ -209,8 +209,6 @@ struct gkyl_moment_app {
   // nu_rs=nu_base_rs/rho_r, and nu_base_sr=nu_base_rs
   double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
   double gas_gamma;
-
-  bool has_user_sources;
 };
 
 /** Some common functions to species and fields */

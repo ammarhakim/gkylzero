@@ -536,7 +536,7 @@ fluid_source_update(const gkyl_moment_em_coupling *mes, double dt,
     collision_source_update(mes, dt, fluids);
 
   if (mes->has_user_sources)
-    user_source_update(mes, dt, fluids, user_sources); // XXX not usable yet
+    user_source_update(mes, dt, fluids, user_sources);
 }
 
 gkyl_moment_em_coupling*

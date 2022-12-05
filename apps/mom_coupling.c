@@ -26,7 +26,10 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     for (int r=0; r<app->num_species; ++r)
       src_inp.nu_base[s][r] = app->nu_base[s][r];
 
-  src_inp.has_user_sources = app->has_user_sources;
+  src_inp.has_user_sources = false;
+  for (int i=0; i<app->num_species; ++i)
+    if (app->species[i].proj_user_source)
+      src_inp.has_user_sources = true;
 
   // create updater to solve for sources
   src->slvr = gkyl_moment_em_coupling_new(src_inp);
