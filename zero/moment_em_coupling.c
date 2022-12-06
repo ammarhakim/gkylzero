@@ -31,7 +31,6 @@ static const unsigned PHIM = 7;
 #define VY (2)
 #define VZ (3)
 #define PP (4)
-#define TT (4)
 
 #define sq(x) ((x) * (x))
 
@@ -260,16 +259,9 @@ neut_source_update(const gkyl_moment_em_coupling *mes, double dt,
 
 /* INTER-SPECIES FRICTION */
 static inline double
-pressure(const double *f, const double gamma)
+internal_energy(const double *f)
 {
-  return (f[ER] - 0.5 * (sq(f[MX])+sq(f[MY])+sq(f[MZ])) / f[RHO]) * (gamma-1);
-}
-
-
-static inline double
-energy(const double *f, const double p, const double gamma)
-{
-  return p / (gamma-1) + 0.5 * (sq(f[MX])+sq(f[MY])+sq(f[MZ])) / f[RHO];
+  return f[ER] - 0.5*(sq(f[MX])+sq(f[MY])+sq(f[MZ]))/f[RHO];
 }
 
 
@@ -346,7 +338,7 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
       const double coeff = 0.5 * dt * ms;
 
       double *fs = fluids[s];
-      T[s] = pressure(fs, gas_gamma) / fs[RHO] * ms;
+      T[s] = internal_energy(fs) / fs[RHO] * ms; // this is actually T/(gamma-1)
       gkyl_mat_set(rhs_T, s, 0, T[s]);
       gkyl_mat_set(lhs, s, s, 1.0);
 
@@ -383,7 +375,7 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
     for (int s=0; s<nfluids; ++s)
     {
       double *f = fluids[s];
-      f[PP] = pressure(f, gas_gamma);
+      f[PP] = internal_energy(f);
     }
   }
 
@@ -394,7 +386,7 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
     f[MX] = 2 * f[RHO] * gkyl_mat_get(rhs,s,0) - f[MX];
     f[MY] = 2 * f[RHO] * gkyl_mat_get(rhs,s,1) - f[MY];
     f[MZ] = 2 * f[RHO] * gkyl_mat_get(rhs,s,2) - f[MZ];
-    f[ER] = f[PP]/(gas_gamma-1) + 0.5*(sq(f[MX])+sq(f[MY])+sq(f[MZ]))/f[RHO];
+    f[ER] = f[PP] + 0.5*(sq(f[MX])+sq(f[MY])+sq(f[MZ]))/f[RHO];
   }
 
   gkyl_mem_buff_release(ipiv);
