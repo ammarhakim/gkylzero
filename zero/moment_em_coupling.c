@@ -354,7 +354,7 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
         const double coeff_sr = coeff * nu_s[r] / (ms + mr);
 
         // XXX coefficients might be incorrect when degree of freedom is not 3
-        gkyl_mat_inc(rhs_T, s, 0, coeff_sr * (mr / 3.) * du2);
+        gkyl_mat_inc(rhs_T, s, 0, coeff_sr * (mr / 2.0) * du2);
         gkyl_mat_inc(lhs, s, s, coeff_sr * 2);
         gkyl_mat_inc(lhs, s, r, -coeff_sr * 2);
       }
