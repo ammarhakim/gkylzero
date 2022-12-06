@@ -26,11 +26,7 @@ static const unsigned BZ = 5;
 static const unsigned PHIE = 6;
 static const unsigned PHIM = 7;
 
-#define NN (0)
-#define VX (1)
-#define VY (2)
-#define VZ (3)
-#define PP (4)
+#define INTERNAL_ENERGY (4)
 
 #define sq(x) ((x) * (x))
 
@@ -363,7 +359,7 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
     for (int s=0; s<nfluids; ++s)
     {
       double *f = fluids[s];
-      f[PP] = (2.0 * gkyl_mat_get(rhs_T,s,0) - T[s]) * f[RHO] / mes->param[s].mass;
+      f[INTERNAL_ENERGY] = (2.0 * gkyl_mat_get(rhs_T,s,0) - T[s]) * f[RHO] / mes->param[s].mass;
     }
 
     gkyl_mat_release(rhs_T);
@@ -371,7 +367,7 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
     for (int s=0; s<nfluids; ++s)
     {
       double *f = fluids[s];
-      f[PP] = internal_energy(f);
+      f[INTERNAL_ENERGY] = internal_energy(f);
     }
   }
 
@@ -382,7 +378,7 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
     f[MX] = 2 * f[RHO] * gkyl_mat_get(rhs,s,0) - f[MX];
     f[MY] = 2 * f[RHO] * gkyl_mat_get(rhs,s,1) - f[MY];
     f[MZ] = 2 * f[RHO] * gkyl_mat_get(rhs,s,2) - f[MZ];
-    f[ER] = f[PP] + 0.5*(sq(f[MX])+sq(f[MY])+sq(f[MZ]))/f[RHO];
+    f[ER] = f[INTERNAL_ENERGY] + 0.5*(sq(f[MX])+sq(f[MY])+sq(f[MZ]))/f[RHO];
   }
 
   gkyl_mem_buff_release(ipiv);
