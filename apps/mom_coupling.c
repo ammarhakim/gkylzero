@@ -21,7 +21,6 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     };
 
   src_inp.has_collision = app->has_collision;
-  src_inp.gas_gamma = app->gas_gamma;
   for (int s=0; s<app->num_species; ++s)
     for (int r=0; r<app->num_species; ++r)
       src_inp.nu_base[s][r] = app->nu_base[s][r];

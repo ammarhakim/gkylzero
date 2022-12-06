@@ -208,7 +208,6 @@ struct gkyl_moment_app {
   // scaling factors for collision frequencies so that nu_sr=nu_base_sr/rho_s
   // nu_rs=nu_base_rs/rho_r, and nu_base_sr=nu_base_rs
   double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
-  double gas_gamma;
 };
 
 /** Some common functions to species and fields */

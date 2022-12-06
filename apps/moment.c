@@ -98,7 +98,6 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
 
   // specify collision parameters FIXME move to a better place
   app->has_collision = mom->has_collision;
-  app->gas_gamma = mom->gas_gamma;
   int num_entries = app->num_species * (app->num_species-1) / 2;
   for (int s=0; s<app->num_species; ++s)
     for (int r=0; r<app->num_species; ++r)

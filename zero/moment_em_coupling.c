@@ -44,7 +44,6 @@ struct gkyl_moment_em_coupling {
   bool has_collision; // has collisions
   // normalized collision frequencies; nu_sr = nu_base[s][r] * rho_r
   double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
-  double gas_gamma;
 
   bool has_user_sources;
 };
@@ -288,7 +287,6 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
   double *fluids[GKYL_MAX_SPECIES])
 {
   int nfluids = mes->nfluids;
-  double gas_gamma = mes->gas_gamma;
   double nu[nfluids * nfluids];
 
   /* STEP 0: CALCULATE INTER-SPECIES COLLISION FREQUENCIES */
@@ -548,7 +546,6 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
     for (int s=0; s<inp.nfluids; ++s)
       for (int r=0; r<inp.nfluids; ++r)
         up->nu_base[s][r] = inp.nu_base[s][r];
-    up->gas_gamma = inp.gas_gamma;
   }
 
   up->has_user_sources = inp.has_user_sources;
