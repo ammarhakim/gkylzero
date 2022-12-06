@@ -321,7 +321,7 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
   }
 
   gkyl_mem_buff ipiv = gkyl_mem_buff_new(sizeof(long[nfluids]));
-  // lhs and rhs are both input and output, i.e., rhs is solution after solve
+  // lhs and rhs will be rewritten by output, i.e., rhs is solution after solve
   bool status = gkyl_mat_linsolve_lu(lhs, rhs, gkyl_mem_buff_data(ipiv));
 
   /* STEP 2: UPDATE TEMPERATURE OR PRESSURE */
@@ -353,14 +353,13 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
                    + sq(fs[MZ]/fs[RHO]-fr[MZ]/fr[RHO]);
         const double coeff_sr = coeff * nu_s[r] / (ms + mr);
 
-        // XXX coefficients might be incorrect when degree of freedom is not 3
         gkyl_mat_inc(rhs_T, s, 0, coeff_sr * (mr / 2.0) * du2);
         gkyl_mat_inc(lhs, s, s, coeff_sr * 2);
         gkyl_mat_inc(lhs, s, r, -coeff_sr * 2);
       }
     }
 
-    // Compute pressure at n+1/2 and then at n+1
+    // Compute pressure at n+1/2 and then at n+1 using old velocities
     status = gkyl_mat_linsolve_lu(lhs, rhs_T, gkyl_mem_buff_data(ipiv));
     for (int s=0; s<nfluids; ++s)
     {
