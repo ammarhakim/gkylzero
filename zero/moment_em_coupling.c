@@ -333,7 +333,6 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
     for (int s=0; s<nfluids; ++s)
     {
       const double ms = mes->param[s].mass;
-      const double coeff = 0.5 * dt * ms;
 
       double *fs = fluids[s];
       T[s] = internal_energy(fs) / fs[RHO] * ms; // this is actually T/(gamma-1)
@@ -351,11 +350,11 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
         double du2 = sq(fs[MX]/fs[RHO]-fr[MX]/fr[RHO])
                    + sq(fs[MY]/fs[RHO]-fr[MY]/fr[RHO])
                    + sq(fs[MZ]/fs[RHO]-fr[MZ]/fr[RHO]);
-        const double coeff_sr = coeff * nu_s[r] / (ms + mr);
+        const double coeff_sr = dt * nu_s[r] * ms / (ms + mr);
 
-        gkyl_mat_inc(rhs_T, s, 0, coeff_sr * (mr / 2.0) * du2);
-        gkyl_mat_inc(lhs, s, s, coeff_sr * 2);
-        gkyl_mat_inc(lhs, s, r, -coeff_sr * 2);
+        gkyl_mat_inc(rhs_T, s, 0, coeff_sr * 0.5 * mr * du2);
+        gkyl_mat_inc(lhs, s, s, coeff_sr);
+        gkyl_mat_inc(lhs, s, r, -coeff_sr);
       }
     }
 
@@ -364,7 +363,7 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
     for (int s=0; s<nfluids; ++s)
     {
       double *f = fluids[s];
-      f[PP] = (2 * gkyl_mat_get(rhs_T,s,0) - T[s]) * f[RHO] / mes->param[s].mass;
+      f[PP] = (2.0 * gkyl_mat_get(rhs_T,s,0) - T[s]) * f[RHO] / mes->param[s].mass;
     }
 
     gkyl_mat_release(rhs_T);
