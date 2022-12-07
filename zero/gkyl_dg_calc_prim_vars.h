@@ -113,7 +113,7 @@ void gkyl_calc_prim_vars_pkpm_source(struct gkyl_basis basis, const struct gkyl_
  * @param div_p Output array of divergence of pressure tensor
  */
 void gkyl_calc_prim_vars_pkpm_recovery(const struct gkyl_rect_grid *grid, 
-  struct gkyl_basis basis, const struct gkyl_range *range,
+  struct gkyl_basis basis, const struct gkyl_range *range, double nuHyp, 
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
   const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
   struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, 
@@ -133,7 +133,7 @@ void gkyl_calc_prim_vars_pkpm_source_cu(struct gkyl_basis basis, const struct gk
   const struct gkyl_array* p_perp_source, struct gkyl_array* rhs);
 
 void gkyl_calc_prim_vars_pkpm_recovery_cu(const struct gkyl_rect_grid *grid, 
-  struct gkyl_basis basis, const struct gkyl_range *range,
+  struct gkyl_basis basis, const struct gkyl_range *range, double nuHyp, 
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
   const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
   struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, 

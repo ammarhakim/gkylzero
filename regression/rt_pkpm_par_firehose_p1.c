@@ -177,7 +177,7 @@ create_ctx(void)
 
   // domain size and simulation time
   double L = 100.0*M_PI*di;
-  double tend = 10.0/omegaCi;
+  double tend = 1.0/omegaCi;
 
   struct pkpm_par_firehose_ctx ctx = {
     .epsilon0 = epsilon0,
@@ -234,6 +234,7 @@ main(int argc, char **argv)
     .pkpm_species = "elc",
     .ctx = &ctx,
     .init = evalFluidElc,
+    .nuHyp = 1.0e-4,
   };  
   
   // electrons
@@ -266,6 +267,7 @@ main(int argc, char **argv)
     .pkpm_species = "ion",
     .ctx = &ctx,
     .init = evalFluidIon,
+    .nuHyp = 1.0e-4,
   };  
   
   // ions

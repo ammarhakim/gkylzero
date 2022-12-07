@@ -23,12 +23,12 @@ typedef void (*euler_pkpm_source_t)(const double* qmem,
   const double *vlasov_pkpm_moms, const double *euler_pkpm, 
   const double *p_perp_source, double* out);
 
-typedef void (*euler_pkpm_recovery_t)(const double *dxv, 
+typedef void (*euler_pkpm_recovery_t)(const double *dxv, double nuHyp, 
   const double *bvarl, const double *bvarc, const double *bvarr, 
   const double *u_il, const double *u_ic, const double *u_ir, 
   const double *p_ijl, const double *p_ijc, const double *p_ijr, 
   const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
-  const double *euler_pkpm, 
+  const double *euler_pkpml, const double *euler_pkpmc, const double *euler_pkpmr, 
   double* div_b, double* bb_grad_u, double* div_p, double* p_force, double *p_perp_source);
 
 // for use in kernel tables
