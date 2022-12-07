@@ -342,10 +342,10 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
           continue;
 
         const double mr = mes->param[r].mass;
-        double *fr = fluids[r];
-        double du2 = sq(fs[MX]/fs[RHO]-fr[MX]/fr[RHO])
-                   + sq(fs[MY]/fs[RHO]-fr[MY]/fr[RHO])
-                   + sq(fs[MZ]/fs[RHO]-fr[MZ]/fr[RHO]);
+        // velocity difference due to velocities at t=n+1/2
+        double du2 = sq(gkyl_mat_get(rhs,s,0)-gkyl_mat_get(rhs,r,0))
+                   + sq(gkyl_mat_get(rhs,s,1)-gkyl_mat_get(rhs,r,1))
+                   + sq(gkyl_mat_get(rhs,s,2)-gkyl_mat_get(rhs,r,2));
         const double coeff_sr = dt * nu_s[r] * ms / (ms + mr);
 
         gkyl_mat_inc(rhs_T, s, 0, coeff_sr * 0.5 * mr * du2);
