@@ -114,7 +114,7 @@ gkyl_calc_prim_vars_pkpm_source_cu(struct gkyl_basis basis, const struct gkyl_ra
 }
 
 __global__ void
-gkyl_calc_prim_vars_pkpm_recovery_cu_kernel(struct gkyl_rect_grid grid, struct gkyl_basis basis, struct gkyl_range range, 
+gkyl_calc_prim_vars_pkpm_recovery_cu_kernel(struct gkyl_rect_grid grid, struct gkyl_basis basis, struct gkyl_range range, double nuHyp, 
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
   const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
   struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, 
@@ -178,9 +178,13 @@ gkyl_calc_prim_vars_pkpm_recovery_cu_kernel(struct gkyl_rect_grid grid, struct g
       const double *vlasov_pkpm_moms_l = (const double*) gkyl_array_cfetch(vlasov_pkpm_moms, linl);
       const double *vlasov_pkpm_moms_r = (const double*) gkyl_array_cfetch(vlasov_pkpm_moms, linr);
 
-      pkpm_recovery[dir](dx, 
+      const double *euler_pkpm_l = (const double*) gkyl_array_cfetch(euler_pkpm, linl);
+      const double *euler_pkpm_r = (const double*) gkyl_array_cfetch(euler_pkpm, linr);
+
+      pkpm_recovery[dir](dx, nuHyp, 
         bvar_l, bvar_c, bvar_r, u_i_l, u_i_c, u_i_r, 
-        p_ij_l, p_ij_c, p_ij_r, vlasov_pkpm_moms_l, vlasov_pkpm_moms_c, vlasov_pkpm_moms_r, euler_pkpm_c, 
+        p_ij_l, p_ij_c, p_ij_r, vlasov_pkpm_moms_l, vlasov_pkpm_moms_c, vlasov_pkpm_moms_r, 
+        euler_pkpm_l, euler_pkpm_c, euler_pkpm_r, 
         div_b_d, bb_grad_u_d, div_p_d, p_force_d, p_perp_source_d);
     }
   }
@@ -189,7 +193,7 @@ gkyl_calc_prim_vars_pkpm_recovery_cu_kernel(struct gkyl_rect_grid grid, struct g
 // Host-side wrapper for pkpm derivative calculations with recovery
 void
 gkyl_calc_prim_vars_pkpm_recovery_cu(const struct gkyl_rect_grid *grid, 
-  struct gkyl_basis basis, const struct gkyl_range *range,
+  struct gkyl_basis basis, const struct gkyl_range *range, double nuHyp, 
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
   const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
   struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, 
@@ -197,7 +201,7 @@ gkyl_calc_prim_vars_pkpm_recovery_cu(const struct gkyl_rect_grid *grid,
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
-  gkyl_calc_prim_vars_pkpm_recovery_cu_kernel<<<nblocks, nthreads>>>(*grid, basis, *range, 
+  gkyl_calc_prim_vars_pkpm_recovery_cu_kernel<<<nblocks, nthreads>>>(*grid, basis, *range, nuHyp, 
     bvar->on_dev, u_i->on_dev, p_ij->on_dev, vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev, 
     div_b->on_dev, bb_grad_u->on_dev, div_p->on_dev, p_force->on_dev, p_perp_source->on_dev);
 }

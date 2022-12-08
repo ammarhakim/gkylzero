@@ -109,7 +109,7 @@ void gkyl_calc_prim_vars_pkpm_source(struct gkyl_basis basis, const struct gkyl_
 }
 
 void gkyl_calc_prim_vars_pkpm_recovery(const struct gkyl_rect_grid *grid, 
-  struct gkyl_basis basis, const struct gkyl_range *range,
+  struct gkyl_basis basis, const struct gkyl_range *range, double nuHyp, 
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
   const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
   struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, 
@@ -119,7 +119,7 @@ void gkyl_calc_prim_vars_pkpm_recovery(const struct gkyl_rect_grid *grid,
 // Probably a better way to do this (JJ: 11/16/22)
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(div_p)) {
-    return gkyl_calc_prim_vars_pkpm_recovery_cu(grid, basis, range, 
+    return gkyl_calc_prim_vars_pkpm_recovery_cu(grid, basis, range, nuHyp, 
       bvar, u_i, p_ij, vlasov_pkpm_moms, euler_pkpm, div_b, bb_grad_u, div_p, p_force, p_perp_source);
   }
 #endif
@@ -172,9 +172,13 @@ void gkyl_calc_prim_vars_pkpm_recovery(const struct gkyl_rect_grid *grid,
       const double *vlasov_pkpm_moms_l = gkyl_array_cfetch(vlasov_pkpm_moms, linl);
       const double *vlasov_pkpm_moms_r = gkyl_array_cfetch(vlasov_pkpm_moms, linr);
 
-      pkpm_recovery[dir](grid->dx, 
+      const double *euler_pkpm_l = gkyl_array_cfetch(euler_pkpm, linl);
+      const double *euler_pkpm_r = gkyl_array_cfetch(euler_pkpm, linr);
+
+      pkpm_recovery[dir](grid->dx, nuHyp, 
         bvar_l, bvar_c, bvar_r, u_i_l, u_i_c, u_i_r, 
-        p_ij_l, p_ij_c, p_ij_r, vlasov_pkpm_moms_l, vlasov_pkpm_moms_c, vlasov_pkpm_moms_r, euler_pkpm_c, 
+        p_ij_l, p_ij_c, p_ij_r, vlasov_pkpm_moms_l, vlasov_pkpm_moms_c, vlasov_pkpm_moms_r, 
+        euler_pkpm_l, euler_pkpm_c, euler_pkpm_r, 
         div_b_d, bb_grad_u_d, div_p_d, p_force_d, p_perp_source_d);
     }
   }

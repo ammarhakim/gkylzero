@@ -73,6 +73,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   f->p_perp_source = 0;
 
   f->param = 0.0;
+  f->nuHyp = 0.0;
   f->has_advect = false;
   f->advects_with_species = false;
   f->collision_id = GKYL_NO_COLLISIONS;
@@ -153,6 +154,8 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     f->pkpm_species = vm_find_species(app, f->info.pkpm_species);
     // index in fluid_species struct of fluid species kinetic species is colliding with
     f->species_index = vm_find_species_idx(app, f->info.pkpm_species);
+
+    f->nuHyp = f->info.nuHyp ? f->info.nuHyp : 0.0;
   }
 
   f->advect_slvr = gkyl_dg_updater_fluid_new(&app->grid, &app->confBasis,
@@ -349,7 +352,7 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
     gkyl_array_clear(fluid_species->div_p, 0.0);
     gkyl_array_clear(fluid_species->p_force, 0.0);
     gkyl_array_clear(fluid_species->p_perp_source, 0.0);
-    gkyl_calc_prim_vars_pkpm_recovery(&app->grid, app->confBasis, &app->local, 
+    gkyl_calc_prim_vars_pkpm_recovery(&app->grid, app->confBasis, &app->local, fluid_species->nuHyp, 
       app->field->bvar, fluid_species->u, fluid_species->p, fluid_species->pkpm_species->pkpm_moms.marr, fluid, 
       fluid_species->div_b, fluid_species->bb_grad_u, fluid_species->div_p, fluid_species->p_force, fluid_species->p_perp_source);
   }

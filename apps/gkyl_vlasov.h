@@ -138,6 +138,8 @@ struct gkyl_vlasov_fluid_species {
 
   // Number of fluid equations
   int num_eqn;
+  // Hyper-diffusion coefficient
+  double nuHyp;
 
   // Thermal velocity (if isothermal Euler)
   // gkyl_eqn_type eqn_id = GKYL_EQN_ISO_EULER

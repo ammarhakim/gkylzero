@@ -328,6 +328,7 @@ struct vm_fluid_species {
   struct gkyl_array *div_p; // array for divergence of the pressure tensor
   struct gkyl_array *p_force; // Total pressure force in PKPM model 1/rho (b . div(P) + p_perp div(b))
   struct gkyl_array *p_perp_source; // array for perpendicular pressure
+  double nuHyp; // Hyper-diffusion coefficient
 
   struct gkyl_array *D; // array for diffusion tensor
   struct gkyl_array *D_host; // host copy of diffusion tensor
