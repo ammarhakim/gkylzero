@@ -169,7 +169,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
   // create solver
   s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
-    &app->local, &s->local_vel, s->field_id, app->use_gpu);
+    &app->local, &s->local_vel, &s->local, s->field_id, app->use_gpu);
 
   // acquire equation object
   s->eqn_vlasov = gkyl_dg_updater_vlasov_acquire_eqn(s->slvr);

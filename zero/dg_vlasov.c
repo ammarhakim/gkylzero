@@ -42,11 +42,12 @@ gkyl_vlasov_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_a
 
 struct gkyl_dg_eqn*
 gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, enum gkyl_field_id field_id, bool use_gpu)
+  const struct gkyl_range* conf_range, const struct gkyl_range* phase_range,
+  enum gkyl_field_id field_id, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_vlasov_cu_dev_new(cbasis, pbasis, conf_range, field_id);
+    return gkyl_dg_vlasov_cu_dev_new(cbasis, pbasis, conf_range, phase_range, field_id);
   } 
 #endif
   struct dg_vlasov *vlasov = gkyl_malloc(sizeof(struct dg_vlasov));
@@ -157,7 +158,8 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   vlasov->auxfields.cot_vec = 0;
   vlasov->auxfields.alpha_geo = 0;
   vlasov->conf_range = *conf_range;
-
+  vlasov->phase_range = *phase_range;
+  
   vlasov->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(vlasov->eqn.flags);
 
@@ -171,7 +173,8 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
 
 struct gkyl_dg_eqn*
 gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, enum gkyl_field_id field_id)
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, const struct gkyl_range* phase_range,
+  enum gkyl_field_id field_id)
 {
   assert(false);
   return 0;

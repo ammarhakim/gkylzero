@@ -22,12 +22,12 @@ gkyl_dg_updater_vlasov*
 gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
-  enum gkyl_field_id field_id, bool use_gpu)
+  const struct gkyl_range *phase_range, enum gkyl_field_id field_id, bool use_gpu)
 {
   gkyl_dg_updater_vlasov *up = gkyl_malloc(sizeof(gkyl_dg_updater_vlasov));
 
   if (field_id == GKYL_FIELD_E_B || field_id == GKYL_FIELD_NULL)
-    up->eqn_vlasov = gkyl_dg_vlasov_new(cbasis, pbasis, conf_range, field_id, use_gpu);
+    up->eqn_vlasov = gkyl_dg_vlasov_new(cbasis, pbasis, conf_range, phase_range, field_id, use_gpu);
   else if (field_id == GKYL_FIELD_PHI || field_id == GKYL_FIELD_PHI_A)
     up->eqn_vlasov = gkyl_dg_vlasov_poisson_new(cbasis, pbasis, conf_range, field_id, use_gpu);
   else if (field_id == GKYL_FIELD_SR_E_B || field_id == GKYL_FIELD_SR_NULL)

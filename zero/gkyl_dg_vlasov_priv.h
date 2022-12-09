@@ -422,6 +422,8 @@ struct dg_vlasov {
   vlasov_accel_surf_t accel_surf[3]; // Surface terms for acceleration
   vlasov_accel_boundary_surf_t accel_boundary_surf[3]; // Surface terms for acceleration
   struct gkyl_range conf_range; // configuration space range
+  struct gkyl_range phase_range; 
+  struct gkyl_range vel_range; 
   struct gkyl_dg_vlasov_auxfields auxfields; // Auxiliary fields.
 };
 
@@ -458,10 +460,10 @@ surf(const struct gkyl_dg_eqn *eqn,
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
 
   if (dir < vlasov->cdim) {
-    long cidx = gkyl_range_idx(&vlasov->conf_range, idxC);
+    long pidx = gkyl_range_idx(&vlasov->phase_range, idxC);
     vlasov->stream_surf[dir]
       (xcC, dxC,
-       vlasov->auxfields.alpha_geo ? (const double*) gkyl_array_cfetch(vlasov->auxfields.alpha_geo, cidx) : 0,
+       vlasov->auxfields.alpha_geo ? (const double*) gkyl_array_cfetch(vlasov->auxfields.alpha_geo, pidx) : 0,
        qInL, qInC, qInR, qRhsOut);
   }
   else {

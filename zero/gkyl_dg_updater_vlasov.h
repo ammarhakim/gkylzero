@@ -24,6 +24,7 @@ struct gkyl_dg_updater_vlasov_tm {
  * @param pbasis Phase-space basis function
  * @param conf_range Config space range
  * @param vel_range Velocity space range
+ * @param phase_range Phase space range
  * @param field_id Enum identifier for field type (see gkyl_eqn_type.h)
  * 
  * @return New vlasov updater object
@@ -31,7 +32,7 @@ struct gkyl_dg_updater_vlasov_tm {
 gkyl_dg_updater_vlasov* gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
-  enum gkyl_field_id field_id, bool use_gpu);
+  const struct gkyl_range *phase_range, enum gkyl_field_id field_id, bool use_gpu);
 
 /**
  * Acquire Vlasov equation object
