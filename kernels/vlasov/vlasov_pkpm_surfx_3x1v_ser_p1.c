@@ -7,12 +7,13 @@ GKYL_CU_DH void vlasov_pkpm_surfx_3x1v_ser_p1(const double *w, const double *dxv
      const double *vth_sql, const double *vth_sqc, const double *vth_sqr,
      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
-  // w[NDIM]:   Cell-center coordinates.
-  // dxv[NDIM]: Cell spacing.
-  // bvarl/bvarc/bvarr:  Input magnetic field unit vector in left/center/right cells.
-  // u_il/u_ic/u_ir:  Input bulk velocity (ux,uy,uz) in left/center/right cells.
-  // fl/fc/fr:  Input Distribution function in left/center/right cells.
-  // out:       Incremented distribution function in center cell.
+  // w[NDIM]:                 Cell-center coordinates.
+  // dxv[NDIM]:               Cell spacing.
+  // bvarl/bvarc/bvarr:       Input magnetic field unit vector in left/center/right cells.
+  // u_il/u_ic/u_ir:          Input bulk velocity (ux,uy,uz) in left/center/right cells.
+  // vth_sql/vth_sqc/vth_sqr: Input vth^2 (for penalization) in left/center/right cells.
+  // fl/fc/fr:                Input Distribution function in left/center/right cells.
+  // out:                     Incremented distribution function in center cell.
   const double dx1 = 2.0/dxv[0]; 
   const double dvpar = dxv[3], wvpar = w[3]; 
   const double *ul = &u_il[0]; 

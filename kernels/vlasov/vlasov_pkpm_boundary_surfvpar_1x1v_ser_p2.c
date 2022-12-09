@@ -5,13 +5,13 @@ GKYL_CU_DH void vlasov_pkpm_boundary_surfvpar_1x1v_ser_p2(const double *w, const
      const double *bb_grad_u, const double *p_force, 
      const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
 { 
-  // w[NDIM]:   Cell-center coordinates.
-  // dxv[NDIM]: Cell spacing.
-  // p_force:   total pressure force = 1/rho (b . div(P) + p_perp div(b)) for Euler PKPM.
-  // bb_grad_u: bb : grad(u).
+  // w[NDIM]:     Cell-center coordinates.
+  // dxv[NDIM]:   Cell spacing.
+  // p_force:     total pressure force = 1/rho (b . div(P) + p_perp div(b)) for Euler PKPM.
+  // bb_grad_u:   bb : grad(u).
   // edge:        Determines if the update is for the left edge (-1) or right edge (+1).
   // fSkin/fEdge: Input Distribution function in skin cell/last edge cell 
-  // out:       Incremented distribution function in center cell.
+  // out:         Incremented distribution function in center cell.
   const double dx0 = 2.0/dxv[0]; 
   const double dv1par = 2.0/dxv[1]; 
   const double dvpar = dxv[1], wvpar = w[1]; 
