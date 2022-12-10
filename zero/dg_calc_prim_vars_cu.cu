@@ -15,7 +15,7 @@ extern "C" {
 __global__ void
 gkyl_calc_prim_vars_pkpm_cu_kernel(struct gkyl_basis basis, struct gkyl_range range, 
   const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
-  struct gkyl_array* u_i, struct gkyl_array* p_ij)
+  struct gkyl_array* u_i, struct gkyl_array* p_ij, struct gkyl_array* T_ij)
 {
   int cdim = basis.ndim;
   int poly_order = basis.poly_order;
@@ -43,8 +43,9 @@ gkyl_calc_prim_vars_pkpm_cu_kernel(struct gkyl_basis basis, struct gkyl_range ra
     
     double *u_i_d = (double*) gkyl_array_fetch(u_i, start);
     double *p_ij_d = (double*) gkyl_array_fetch(p_ij, start);
+    double *T_ij_d = (double*) gkyl_array_fetch(T_ij, start);
 
-    pkpm_prim_vars(bvar_d, vlasov_pkpm_moms_d, euler_pkpm_d, u_i_d, p_ij_d);
+    pkpm_prim_vars(bvar_d, vlasov_pkpm_moms_d, euler_pkpm_d, u_i_d, p_ij_d, T_ij_d);
   }
 }
 
@@ -52,13 +53,13 @@ gkyl_calc_prim_vars_pkpm_cu_kernel(struct gkyl_basis basis, struct gkyl_range ra
 void
 gkyl_calc_prim_vars_pkpm_cu(struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
-  struct gkyl_array* u_i, struct gkyl_array* p_ij)
+  struct gkyl_array* u_i, struct gkyl_array* p_ij, struct gkyl_array* T_ij)
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
   gkyl_calc_prim_vars_pkpm_cu_kernel<<<nblocks, nthreads>>>(basis, *range, 
     bvar->on_dev, vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev, 
-    u_i->on_dev, p_ij->on_dev);
+    u_i->on_dev, p_ij->on_dev, T_ij->on_dev);
 }
 
 __global__ void

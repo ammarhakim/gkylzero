@@ -511,7 +511,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
       gkyl_dg_updater_vlasov_advance_cu(species->slvr, &species->local, 
         app->field->bvar, species->pkpm_fluid_species->u,
         species->pkpm_fluid_species->bb_grad_u, species->pkpm_fluid_species->p_force, 
-        species->lbo.prim_moms, 
+        species->pkpm_fluid_species->T_ij, 
         fin, species->cflrate, rhs);
     else
       gkyl_dg_updater_vlasov_advance_cu(species->slvr, &species->local, 
@@ -524,7 +524,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
       gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
         app->field->bvar, species->pkpm_fluid_species->u,
         species->pkpm_fluid_species->bb_grad_u, species->pkpm_fluid_species->p_force, 
-        species->lbo.prim_moms, 
+        species->pkpm_fluid_species->T_ij, 
         fin, species->cflrate, rhs);
     else
       gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 

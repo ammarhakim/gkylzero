@@ -3,12 +3,13 @@
 #include <gkyl_basis_ser_2x_p1_upwind_quad_to_modal.h> 
 GKYL_CU_DH void euler_pkpm_surfy_2x_ser_p1(const double *w, const double *dxv,
   const double *u_il, const double *u_ic, const double *u_ir,
-  const double *vth_sql, const double *vth_sqc, const double *vth_sqr,
+  const double *T_ijl, const double *T_ijc, const double *T_ijr,
   const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:                       Cell-center coordinates.
   // dxv[NDIM]:                     Cell spacing.
   // u_il/u_ic/u_ir:                Input bulk velocity (ux,uy,uz) in left/center/right cells.
+  // T_ijl/T_ijc/T_ijr:             Input Temperature tensor/mass (for penalization) in left/center/right cells.
   // statevecl/statevecc/statevecr: [rho ux, rho uy, rho uz, E_perp], Fluid input state vector in left/center/right cells.
   // out: Incremented output.
 
@@ -32,6 +33,11 @@ GKYL_CU_DH void euler_pkpm_surfy_2x_ser_p1(const double *w, const double *dxv,
   const double *u_l = &u_il[4]; 
   const double *u_c = &u_ic[4]; 
   const double *u_r = &u_ir[4]; 
+
+  // Get thermal velocity in direction of update for penalization vth^2 = 3.0*T_ii/m. 
+  const double *vth_sql = &T_ijl[12]; 
+  const double *vth_sqc = &T_ijc[12]; 
+  const double *vth_sqr = &T_ijr[12]; 
 
   double *outrhou0 = &out[0]; 
   double *outrhou1 = &out[4]; 
@@ -98,8 +104,8 @@ GKYL_CU_DH void euler_pkpm_surfy_2x_ser_p1(const double *w, const double *dxv,
   vth_sq_r_l = ser_2x_p1_surfx2_eval_quad_node_0_l(vth_sqr); 
   vthQuad_l = fmax(sqrt(fabs(vth_sq_l_r)), sqrt(fabs(vth_sq_c_l))); 
   vthQuad_r = fmax(sqrt(fabs(vth_sq_c_r)), sqrt(fabs(vth_sq_r_l))); 
-  max_speed_l = uQuad_l + sqrt(5.0/3.0)*vthQuad_l; 
-  max_speed_r = uQuad_r + sqrt(5.0/3.0)*vthQuad_r; 
+  max_speed_l = uQuad_l + vthQuad_l; 
+  max_speed_r = uQuad_r + vthQuad_r; 
   rhoux_l_r = ser_2x_p1_surfx2_eval_quad_node_0_r(rhoux_l); 
   rhoux_c_l = ser_2x_p1_surfx2_eval_quad_node_0_l(rhoux_c); 
   rhoux_c_r = ser_2x_p1_surfx2_eval_quad_node_0_r(rhoux_c); 
@@ -137,8 +143,8 @@ GKYL_CU_DH void euler_pkpm_surfy_2x_ser_p1(const double *w, const double *dxv,
   vth_sq_r_l = ser_2x_p1_surfx2_eval_quad_node_1_l(vth_sqr); 
   vthQuad_l = fmax(sqrt(fabs(vth_sq_l_r)), sqrt(fabs(vth_sq_c_l))); 
   vthQuad_r = fmax(sqrt(fabs(vth_sq_c_r)), sqrt(fabs(vth_sq_r_l))); 
-  max_speed_l = uQuad_l + sqrt(5.0/3.0)*vthQuad_l; 
-  max_speed_r = uQuad_r + sqrt(5.0/3.0)*vthQuad_r; 
+  max_speed_l = uQuad_l + vthQuad_l; 
+  max_speed_r = uQuad_r + vthQuad_r; 
   rhoux_l_r = ser_2x_p1_surfx2_eval_quad_node_1_r(rhoux_l); 
   rhoux_c_l = ser_2x_p1_surfx2_eval_quad_node_1_l(rhoux_c); 
   rhoux_c_r = ser_2x_p1_surfx2_eval_quad_node_1_r(rhoux_c); 

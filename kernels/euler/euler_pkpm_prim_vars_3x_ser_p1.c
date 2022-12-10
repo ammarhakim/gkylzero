@@ -1,12 +1,14 @@
 #include <gkyl_euler_kernels.h> 
 #include <gkyl_basis_ser_3x_p1_inv.h> 
-GKYL_CU_DH void euler_pkpm_prim_vars_3x_ser_p1(const double *bvar, const double *vlasov_pkpm_moms, const double *statevec, double* u_i, double* p_ij) 
+GKYL_CU_DH void euler_pkpm_prim_vars_3x_ser_p1(const double *bvar, const double *vlasov_pkpm_moms, const double *statevec, 
+  double* u_i, double* p_ij, double* T_ij) 
 { 
   // bvar:             Magnetic field unit vector and tensor.
   // vlasov_pkpm_moms: [rho, p_parallel, q_parallel], Moments computed from kinetic equation in pkpm model.
   // statevec:         [rho ux, rho uy, rho uz, p_perp], Fluid input state vector.
   // u_i:              Output flow velocity [ux, uy, uz].
   // p_ij:             Output pressure tensor, p_ij = (p_parallel - p_perp)bb + p_perp I.
+  // T_ij:             Output Temperature tensor for penalization T_ij = 3.0*p_ij/rho.
 
   const double *rhoux = &statevec[0]; 
   const double *rhouy = &statevec[8]; 
@@ -32,6 +34,10 @@ GKYL_CU_DH void euler_pkpm_prim_vars_3x_ser_p1(const double *bvar, const double 
   double *Pyy = &p_ij[24]; 
   double *Pyz = &p_ij[32]; 
   double *Pzz = &p_ij[40]; 
+
+  double *Txx = &T_ij[0]; 
+  double *Tyy = &T_ij[24]; 
+  double *Tzz = &T_ij[40]; 
 
   double rho_inv[8] = {0.0}; 
   ser_3x_p1_inv(rho, rho_inv); 
@@ -115,4 +121,30 @@ GKYL_CU_DH void euler_pkpm_prim_vars_3x_ser_p1(const double *bvar, const double 
   Pzz[5] = (-0.3535533905932737*bzbz[2]*p_perp[7])+0.3535533905932737*bzbz[2]*p_parallel[7]-0.3535533905932737*p_perp[2]*bzbz[7]+0.3535533905932737*p_parallel[2]*bzbz[7]-0.3535533905932737*bzbz[4]*p_perp[6]+0.3535533905932737*bzbz[4]*p_parallel[6]-0.3535533905932737*p_perp[4]*bzbz[6]+0.3535533905932737*p_parallel[4]*bzbz[6]-0.3535533905932737*bzbz[0]*p_perp[5]+p_perp[5]+0.3535533905932737*bzbz[0]*p_parallel[5]-0.3535533905932737*p_perp[0]*bzbz[5]+0.3535533905932737*p_parallel[0]*bzbz[5]-0.3535533905932737*bzbz[1]*p_perp[3]+0.3535533905932737*bzbz[1]*p_parallel[3]-0.3535533905932737*p_perp[1]*bzbz[3]+0.3535533905932737*p_parallel[1]*bzbz[3]; 
   Pzz[6] = (-0.3535533905932737*bzbz[1]*p_perp[7])+0.3535533905932737*bzbz[1]*p_parallel[7]-0.3535533905932737*p_perp[1]*bzbz[7]+0.3535533905932737*p_parallel[1]*bzbz[7]-0.3535533905932737*bzbz[0]*p_perp[6]+p_perp[6]+0.3535533905932737*bzbz[0]*p_parallel[6]-0.3535533905932737*p_perp[0]*bzbz[6]+0.3535533905932737*p_parallel[0]*bzbz[6]-0.3535533905932737*bzbz[4]*p_perp[5]+0.3535533905932737*bzbz[4]*p_parallel[5]-0.3535533905932737*p_perp[4]*bzbz[5]+0.3535533905932737*p_parallel[4]*bzbz[5]-0.3535533905932737*bzbz[2]*p_perp[3]+0.3535533905932737*bzbz[2]*p_parallel[3]-0.3535533905932737*p_perp[2]*bzbz[3]+0.3535533905932737*p_parallel[2]*bzbz[3]; 
   Pzz[7] = (-0.3535533905932737*bzbz[0]*p_perp[7])+p_perp[7]+0.3535533905932737*bzbz[0]*p_parallel[7]-0.3535533905932737*p_perp[0]*bzbz[7]+0.3535533905932737*p_parallel[0]*bzbz[7]-0.3535533905932737*bzbz[1]*p_perp[6]+0.3535533905932737*bzbz[1]*p_parallel[6]-0.3535533905932737*p_perp[1]*bzbz[6]+0.3535533905932737*p_parallel[1]*bzbz[6]-0.3535533905932737*bzbz[2]*p_perp[5]+0.3535533905932737*bzbz[2]*p_parallel[5]-0.3535533905932737*p_perp[2]*bzbz[5]+0.3535533905932737*p_parallel[2]*bzbz[5]-0.3535533905932737*bzbz[3]*p_perp[4]+0.3535533905932737*bzbz[3]*p_parallel[4]-0.3535533905932737*p_perp[3]*bzbz[4]+0.3535533905932737*p_parallel[3]*bzbz[4]; 
+  Txx[0] = 1.060660171779821*Pxx[7]*rho_inv[7]+1.060660171779821*Pxx[6]*rho_inv[6]+1.060660171779821*Pxx[5]*rho_inv[5]+1.060660171779821*Pxx[4]*rho_inv[4]+1.060660171779821*Pxx[3]*rho_inv[3]+1.060660171779821*Pxx[2]*rho_inv[2]+1.060660171779821*Pxx[1]*rho_inv[1]+1.060660171779821*Pxx[0]*rho_inv[0]; 
+  Txx[1] = 1.060660171779821*Pxx[6]*rho_inv[7]+1.060660171779821*rho_inv[6]*Pxx[7]+1.060660171779821*Pxx[3]*rho_inv[5]+1.060660171779821*rho_inv[3]*Pxx[5]+1.060660171779821*Pxx[2]*rho_inv[4]+1.060660171779821*rho_inv[2]*Pxx[4]+1.060660171779821*Pxx[0]*rho_inv[1]+1.060660171779821*rho_inv[0]*Pxx[1]; 
+  Txx[2] = 1.060660171779821*Pxx[5]*rho_inv[7]+1.060660171779821*rho_inv[5]*Pxx[7]+1.060660171779821*Pxx[3]*rho_inv[6]+1.060660171779821*rho_inv[3]*Pxx[6]+1.060660171779821*Pxx[1]*rho_inv[4]+1.060660171779821*rho_inv[1]*Pxx[4]+1.060660171779821*Pxx[0]*rho_inv[2]+1.060660171779821*rho_inv[0]*Pxx[2]; 
+  Txx[3] = 1.060660171779821*Pxx[4]*rho_inv[7]+1.060660171779821*rho_inv[4]*Pxx[7]+1.060660171779821*Pxx[2]*rho_inv[6]+1.060660171779821*rho_inv[2]*Pxx[6]+1.060660171779821*Pxx[1]*rho_inv[5]+1.060660171779821*rho_inv[1]*Pxx[5]+1.060660171779821*Pxx[0]*rho_inv[3]+1.060660171779821*rho_inv[0]*Pxx[3]; 
+  Txx[4] = 1.060660171779821*Pxx[3]*rho_inv[7]+1.060660171779821*rho_inv[3]*Pxx[7]+1.060660171779821*Pxx[5]*rho_inv[6]+1.060660171779821*rho_inv[5]*Pxx[6]+1.060660171779821*Pxx[0]*rho_inv[4]+1.060660171779821*rho_inv[0]*Pxx[4]+1.060660171779821*Pxx[1]*rho_inv[2]+1.060660171779821*rho_inv[1]*Pxx[2]; 
+  Txx[5] = 1.060660171779821*Pxx[2]*rho_inv[7]+1.060660171779821*rho_inv[2]*Pxx[7]+1.060660171779821*Pxx[4]*rho_inv[6]+1.060660171779821*rho_inv[4]*Pxx[6]+1.060660171779821*Pxx[0]*rho_inv[5]+1.060660171779821*rho_inv[0]*Pxx[5]+1.060660171779821*Pxx[1]*rho_inv[3]+1.060660171779821*rho_inv[1]*Pxx[3]; 
+  Txx[6] = 1.060660171779821*Pxx[1]*rho_inv[7]+1.060660171779821*rho_inv[1]*Pxx[7]+1.060660171779821*Pxx[0]*rho_inv[6]+1.060660171779821*rho_inv[0]*Pxx[6]+1.060660171779821*Pxx[4]*rho_inv[5]+1.060660171779821*rho_inv[4]*Pxx[5]+1.060660171779821*Pxx[2]*rho_inv[3]+1.060660171779821*rho_inv[2]*Pxx[3]; 
+  Txx[7] = 1.060660171779821*Pxx[0]*rho_inv[7]+1.060660171779821*rho_inv[0]*Pxx[7]+1.060660171779821*Pxx[1]*rho_inv[6]+1.060660171779821*rho_inv[1]*Pxx[6]+1.060660171779821*Pxx[2]*rho_inv[5]+1.060660171779821*rho_inv[2]*Pxx[5]+1.060660171779821*Pxx[3]*rho_inv[4]+1.060660171779821*rho_inv[3]*Pxx[4]; 
+
+  Tyy[0] = 1.060660171779821*Pyy[7]*rho_inv[7]+1.060660171779821*Pyy[6]*rho_inv[6]+1.060660171779821*Pyy[5]*rho_inv[5]+1.060660171779821*Pyy[4]*rho_inv[4]+1.060660171779821*Pyy[3]*rho_inv[3]+1.060660171779821*Pyy[2]*rho_inv[2]+1.060660171779821*Pyy[1]*rho_inv[1]+1.060660171779821*Pyy[0]*rho_inv[0]; 
+  Tyy[1] = 1.060660171779821*Pyy[6]*rho_inv[7]+1.060660171779821*rho_inv[6]*Pyy[7]+1.060660171779821*Pyy[3]*rho_inv[5]+1.060660171779821*rho_inv[3]*Pyy[5]+1.060660171779821*Pyy[2]*rho_inv[4]+1.060660171779821*rho_inv[2]*Pyy[4]+1.060660171779821*Pyy[0]*rho_inv[1]+1.060660171779821*rho_inv[0]*Pyy[1]; 
+  Tyy[2] = 1.060660171779821*Pyy[5]*rho_inv[7]+1.060660171779821*rho_inv[5]*Pyy[7]+1.060660171779821*Pyy[3]*rho_inv[6]+1.060660171779821*rho_inv[3]*Pyy[6]+1.060660171779821*Pyy[1]*rho_inv[4]+1.060660171779821*rho_inv[1]*Pyy[4]+1.060660171779821*Pyy[0]*rho_inv[2]+1.060660171779821*rho_inv[0]*Pyy[2]; 
+  Tyy[3] = 1.060660171779821*Pyy[4]*rho_inv[7]+1.060660171779821*rho_inv[4]*Pyy[7]+1.060660171779821*Pyy[2]*rho_inv[6]+1.060660171779821*rho_inv[2]*Pyy[6]+1.060660171779821*Pyy[1]*rho_inv[5]+1.060660171779821*rho_inv[1]*Pyy[5]+1.060660171779821*Pyy[0]*rho_inv[3]+1.060660171779821*rho_inv[0]*Pyy[3]; 
+  Tyy[4] = 1.060660171779821*Pyy[3]*rho_inv[7]+1.060660171779821*rho_inv[3]*Pyy[7]+1.060660171779821*Pyy[5]*rho_inv[6]+1.060660171779821*rho_inv[5]*Pyy[6]+1.060660171779821*Pyy[0]*rho_inv[4]+1.060660171779821*rho_inv[0]*Pyy[4]+1.060660171779821*Pyy[1]*rho_inv[2]+1.060660171779821*rho_inv[1]*Pyy[2]; 
+  Tyy[5] = 1.060660171779821*Pyy[2]*rho_inv[7]+1.060660171779821*rho_inv[2]*Pyy[7]+1.060660171779821*Pyy[4]*rho_inv[6]+1.060660171779821*rho_inv[4]*Pyy[6]+1.060660171779821*Pyy[0]*rho_inv[5]+1.060660171779821*rho_inv[0]*Pyy[5]+1.060660171779821*Pyy[1]*rho_inv[3]+1.060660171779821*rho_inv[1]*Pyy[3]; 
+  Tyy[6] = 1.060660171779821*Pyy[1]*rho_inv[7]+1.060660171779821*rho_inv[1]*Pyy[7]+1.060660171779821*Pyy[0]*rho_inv[6]+1.060660171779821*rho_inv[0]*Pyy[6]+1.060660171779821*Pyy[4]*rho_inv[5]+1.060660171779821*rho_inv[4]*Pyy[5]+1.060660171779821*Pyy[2]*rho_inv[3]+1.060660171779821*rho_inv[2]*Pyy[3]; 
+  Tyy[7] = 1.060660171779821*Pyy[0]*rho_inv[7]+1.060660171779821*rho_inv[0]*Pyy[7]+1.060660171779821*Pyy[1]*rho_inv[6]+1.060660171779821*rho_inv[1]*Pyy[6]+1.060660171779821*Pyy[2]*rho_inv[5]+1.060660171779821*rho_inv[2]*Pyy[5]+1.060660171779821*Pyy[3]*rho_inv[4]+1.060660171779821*rho_inv[3]*Pyy[4]; 
+
+  Tzz[0] = 1.060660171779821*Pzz[7]*rho_inv[7]+1.060660171779821*Pzz[6]*rho_inv[6]+1.060660171779821*Pzz[5]*rho_inv[5]+1.060660171779821*Pzz[4]*rho_inv[4]+1.060660171779821*Pzz[3]*rho_inv[3]+1.060660171779821*Pzz[2]*rho_inv[2]+1.060660171779821*Pzz[1]*rho_inv[1]+1.060660171779821*Pzz[0]*rho_inv[0]; 
+  Tzz[1] = 1.060660171779821*Pzz[6]*rho_inv[7]+1.060660171779821*rho_inv[6]*Pzz[7]+1.060660171779821*Pzz[3]*rho_inv[5]+1.060660171779821*rho_inv[3]*Pzz[5]+1.060660171779821*Pzz[2]*rho_inv[4]+1.060660171779821*rho_inv[2]*Pzz[4]+1.060660171779821*Pzz[0]*rho_inv[1]+1.060660171779821*rho_inv[0]*Pzz[1]; 
+  Tzz[2] = 1.060660171779821*Pzz[5]*rho_inv[7]+1.060660171779821*rho_inv[5]*Pzz[7]+1.060660171779821*Pzz[3]*rho_inv[6]+1.060660171779821*rho_inv[3]*Pzz[6]+1.060660171779821*Pzz[1]*rho_inv[4]+1.060660171779821*rho_inv[1]*Pzz[4]+1.060660171779821*Pzz[0]*rho_inv[2]+1.060660171779821*rho_inv[0]*Pzz[2]; 
+  Tzz[3] = 1.060660171779821*Pzz[4]*rho_inv[7]+1.060660171779821*rho_inv[4]*Pzz[7]+1.060660171779821*Pzz[2]*rho_inv[6]+1.060660171779821*rho_inv[2]*Pzz[6]+1.060660171779821*Pzz[1]*rho_inv[5]+1.060660171779821*rho_inv[1]*Pzz[5]+1.060660171779821*Pzz[0]*rho_inv[3]+1.060660171779821*rho_inv[0]*Pzz[3]; 
+  Tzz[4] = 1.060660171779821*Pzz[3]*rho_inv[7]+1.060660171779821*rho_inv[3]*Pzz[7]+1.060660171779821*Pzz[5]*rho_inv[6]+1.060660171779821*rho_inv[5]*Pzz[6]+1.060660171779821*Pzz[0]*rho_inv[4]+1.060660171779821*rho_inv[0]*Pzz[4]+1.060660171779821*Pzz[1]*rho_inv[2]+1.060660171779821*rho_inv[1]*Pzz[2]; 
+  Tzz[5] = 1.060660171779821*Pzz[2]*rho_inv[7]+1.060660171779821*rho_inv[2]*Pzz[7]+1.060660171779821*Pzz[4]*rho_inv[6]+1.060660171779821*rho_inv[4]*Pzz[6]+1.060660171779821*Pzz[0]*rho_inv[5]+1.060660171779821*rho_inv[0]*Pzz[5]+1.060660171779821*Pzz[1]*rho_inv[3]+1.060660171779821*rho_inv[1]*Pzz[3]; 
+  Tzz[6] = 1.060660171779821*Pzz[1]*rho_inv[7]+1.060660171779821*rho_inv[1]*Pzz[7]+1.060660171779821*Pzz[0]*rho_inv[6]+1.060660171779821*rho_inv[0]*Pzz[6]+1.060660171779821*Pzz[4]*rho_inv[5]+1.060660171779821*rho_inv[4]*Pzz[5]+1.060660171779821*Pzz[2]*rho_inv[3]+1.060660171779821*rho_inv[2]*Pzz[3]; 
+  Tzz[7] = 1.060660171779821*Pzz[0]*rho_inv[7]+1.060660171779821*rho_inv[0]*Pzz[7]+1.060660171779821*Pzz[1]*rho_inv[6]+1.060660171779821*rho_inv[1]*Pzz[6]+1.060660171779821*Pzz[2]*rho_inv[5]+1.060660171779821*rho_inv[2]*Pzz[5]+1.060660171779821*Pzz[3]*rho_inv[4]+1.060660171779821*rho_inv[3]*Pzz[4]; 
 } 

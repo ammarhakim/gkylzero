@@ -4,14 +4,14 @@
 GKYL_CU_DH void vlasov_pkpm_surfy_2x1v_ser_p1(const double *w, const double *dxv, 
      const double *bvarl, const double *bvarc, const double *bvarr, 
      const double *u_il, const double *u_ic, const double *u_ir, 
-     const double *vth_sql, const double *vth_sqc, const double *vth_sqr,
+     const double *T_ijl, const double *T_ijc, const double *T_ijr,
      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:                 Cell-center coordinates.
   // dxv[NDIM]:               Cell spacing.
   // bvarl/bvarc/bvarr:       Input magnetic field unit vector in left/center/right cells.
   // u_il/u_ic/u_ir:          Input bulk velocity (ux,uy,uz) in left/center/right cells.
-  // vth_sql/vth_sqc/vth_sqr: Input vth^2 (for penalization) in left/center/right cells.
+  // T_ijl/T_ijc/T_ijr:       Input Temperature tensor/mass (for penalization) in left/center/right cells.
   // fl/fc/fr:                Input Distribution function in left/center/right cells.
   // out:                     Incremented distribution function in center cell.
   const double dx1 = 2.0/dxv[1]; 
@@ -22,6 +22,11 @@ GKYL_CU_DH void vlasov_pkpm_surfy_2x1v_ser_p1(const double *w, const double *dxv
   const double *bl = &bvarl[4]; 
   const double *bc = &bvarc[4]; 
   const double *br = &bvarr[4]; 
+  // Get thermal velocity in direction of update for penalization vth^2 = 3.0*T_ii/m. 
+  const double *vth_sql = &T_ijl[12]; 
+  const double *vth_sqc = &T_ijc[12]; 
+  const double *vth_sqr = &T_ijr[12]; 
+
   double alpha_l[12] = {0.0}; 
   double alpha_c[12] = {0.0}; 
   double alpha_r[12] = {0.0}; 
@@ -234,8 +239,8 @@ GKYL_CU_DH void vlasov_pkpm_surfy_2x1v_ser_p1(const double *w, const double *dxv
   vth_sq_r_l = hyb_2x1v_p1_surfx2_eval_quad_node_0_l(vth_sq_r); 
   vthQuad_l = fmax(sqrt(fabs(vth_sq_l_r)), sqrt(fabs(vth_sq_c_l))); 
   vthQuad_r = fmax(sqrt(fabs(vth_sq_c_r)), sqrt(fabs(vth_sq_r_l))); 
-  max_speed_l = alphaQuad_l + sqrt(5.0/3.0)*vthQuad_l; 
-  max_speed_r = alphaQuad_r + sqrt(5.0/3.0)*vthQuad_r; 
+  max_speed_l = alphaQuad_l + vthQuad_l; 
+  max_speed_r = alphaQuad_r + vthQuad_r; 
   f_l_r = hyb_2x1v_p1_surfx2_eval_quad_node_0_r(fl); 
   f_c_l = hyb_2x1v_p1_surfx2_eval_quad_node_0_l(fc); 
   f_c_r = hyb_2x1v_p1_surfx2_eval_quad_node_0_r(fc); 
@@ -255,8 +260,8 @@ GKYL_CU_DH void vlasov_pkpm_surfy_2x1v_ser_p1(const double *w, const double *dxv
   vth_sq_r_l = hyb_2x1v_p1_surfx2_eval_quad_node_1_l(vth_sq_r); 
   vthQuad_l = fmax(sqrt(fabs(vth_sq_l_r)), sqrt(fabs(vth_sq_c_l))); 
   vthQuad_r = fmax(sqrt(fabs(vth_sq_c_r)), sqrt(fabs(vth_sq_r_l))); 
-  max_speed_l = alphaQuad_l + sqrt(5.0/3.0)*vthQuad_l; 
-  max_speed_r = alphaQuad_r + sqrt(5.0/3.0)*vthQuad_r; 
+  max_speed_l = alphaQuad_l + vthQuad_l; 
+  max_speed_r = alphaQuad_r + vthQuad_r; 
   f_l_r = hyb_2x1v_p1_surfx2_eval_quad_node_1_r(fl); 
   f_c_l = hyb_2x1v_p1_surfx2_eval_quad_node_1_l(fc); 
   f_c_r = hyb_2x1v_p1_surfx2_eval_quad_node_1_r(fc); 
@@ -276,8 +281,8 @@ GKYL_CU_DH void vlasov_pkpm_surfy_2x1v_ser_p1(const double *w, const double *dxv
   vth_sq_r_l = hyb_2x1v_p1_surfx2_eval_quad_node_2_l(vth_sq_r); 
   vthQuad_l = fmax(sqrt(fabs(vth_sq_l_r)), sqrt(fabs(vth_sq_c_l))); 
   vthQuad_r = fmax(sqrt(fabs(vth_sq_c_r)), sqrt(fabs(vth_sq_r_l))); 
-  max_speed_l = alphaQuad_l + sqrt(5.0/3.0)*vthQuad_l; 
-  max_speed_r = alphaQuad_r + sqrt(5.0/3.0)*vthQuad_r; 
+  max_speed_l = alphaQuad_l + vthQuad_l; 
+  max_speed_r = alphaQuad_r + vthQuad_r; 
   f_l_r = hyb_2x1v_p1_surfx2_eval_quad_node_2_r(fl); 
   f_c_l = hyb_2x1v_p1_surfx2_eval_quad_node_2_l(fc); 
   f_c_r = hyb_2x1v_p1_surfx2_eval_quad_node_2_r(fc); 
@@ -297,8 +302,8 @@ GKYL_CU_DH void vlasov_pkpm_surfy_2x1v_ser_p1(const double *w, const double *dxv
   vth_sq_r_l = hyb_2x1v_p1_surfx2_eval_quad_node_3_l(vth_sq_r); 
   vthQuad_l = fmax(sqrt(fabs(vth_sq_l_r)), sqrt(fabs(vth_sq_c_l))); 
   vthQuad_r = fmax(sqrt(fabs(vth_sq_c_r)), sqrt(fabs(vth_sq_r_l))); 
-  max_speed_l = alphaQuad_l + sqrt(5.0/3.0)*vthQuad_l; 
-  max_speed_r = alphaQuad_r + sqrt(5.0/3.0)*vthQuad_r; 
+  max_speed_l = alphaQuad_l + vthQuad_l; 
+  max_speed_r = alphaQuad_r + vthQuad_r; 
   f_l_r = hyb_2x1v_p1_surfx2_eval_quad_node_3_r(fl); 
   f_c_l = hyb_2x1v_p1_surfx2_eval_quad_node_3_l(fc); 
   f_c_r = hyb_2x1v_p1_surfx2_eval_quad_node_3_r(fc); 
@@ -318,8 +323,8 @@ GKYL_CU_DH void vlasov_pkpm_surfy_2x1v_ser_p1(const double *w, const double *dxv
   vth_sq_r_l = hyb_2x1v_p1_surfx2_eval_quad_node_4_l(vth_sq_r); 
   vthQuad_l = fmax(sqrt(fabs(vth_sq_l_r)), sqrt(fabs(vth_sq_c_l))); 
   vthQuad_r = fmax(sqrt(fabs(vth_sq_c_r)), sqrt(fabs(vth_sq_r_l))); 
-  max_speed_l = alphaQuad_l + sqrt(5.0/3.0)*vthQuad_l; 
-  max_speed_r = alphaQuad_r + sqrt(5.0/3.0)*vthQuad_r; 
+  max_speed_l = alphaQuad_l + vthQuad_l; 
+  max_speed_r = alphaQuad_r + vthQuad_r; 
   f_l_r = hyb_2x1v_p1_surfx2_eval_quad_node_4_r(fl); 
   f_c_l = hyb_2x1v_p1_surfx2_eval_quad_node_4_l(fc); 
   f_c_r = hyb_2x1v_p1_surfx2_eval_quad_node_4_r(fc); 
@@ -339,8 +344,8 @@ GKYL_CU_DH void vlasov_pkpm_surfy_2x1v_ser_p1(const double *w, const double *dxv
   vth_sq_r_l = hyb_2x1v_p1_surfx2_eval_quad_node_5_l(vth_sq_r); 
   vthQuad_l = fmax(sqrt(fabs(vth_sq_l_r)), sqrt(fabs(vth_sq_c_l))); 
   vthQuad_r = fmax(sqrt(fabs(vth_sq_c_r)), sqrt(fabs(vth_sq_r_l))); 
-  max_speed_l = alphaQuad_l + sqrt(5.0/3.0)*vthQuad_l; 
-  max_speed_r = alphaQuad_r + sqrt(5.0/3.0)*vthQuad_r; 
+  max_speed_l = alphaQuad_l + vthQuad_l; 
+  max_speed_r = alphaQuad_r + vthQuad_r; 
   f_l_r = hyb_2x1v_p1_surfx2_eval_quad_node_5_r(fl); 
   f_c_l = hyb_2x1v_p1_surfx2_eval_quad_node_5_l(fc); 
   f_c_r = hyb_2x1v_p1_surfx2_eval_quad_node_5_r(fc); 
