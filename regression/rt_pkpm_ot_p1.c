@@ -26,6 +26,7 @@ struct pkpm_ot_ctx {
   double delta_B0;
   double L;
   double tend;
+  double min_dt;
   bool use_gpu;
 };
 
@@ -101,23 +102,6 @@ evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double vdrift_y = u0y*sin(2.0*M_PI*x/Lx);
   double vdrift_z = -Jz / qi;
 
-  // get u_perp to properly initialize E_perp
-  double B_x = -B0x*sin(2.0*M_PI*y/Ly);
-  double B_y = B0y*sin(4.0*M_PI*x/Lx);
-  double B_z = app->B0;
-
-  double magB2 = B_x*B_x + B_y*B_y + B_z*B_z;
-  double bxbx = B_x*B_x/magB2;
-  double bxby = B_x*B_y/magB2;
-  double bxbz = B_x*B_z/magB2;
-  double byby = B_y*B_y/magB2;
-  double bybz = B_y*B_z/magB2;
-  double bzbz = B_z*B_z/magB2;
-
-  double v_perp_x = vdrift_x - (vdrift_x*bxbx + vdrift_y*bxby + vdrift_z*bxbz);
-  double v_perp_y = vdrift_y - (vdrift_x*bxby + vdrift_y*byby + vdrift_z*bybz);
-  double v_perp_z = vdrift_z - (vdrift_x*bxbz + vdrift_y*bybz + vdrift_z*bzbz);
-
   fout[0] = me*vdrift_x;
   fout[1] = me*vdrift_y;
   fout[2] = me*Jz;
@@ -146,23 +130,6 @@ evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double vdrift_y = u0y*sin(2.0*M_PI*x/Lx);
   double vdrift_z = 0.0;
 
-  // get u_perp to properly initialize E_perp
-  double B_x = -B0x*sin(2.0*M_PI*y/Ly);
-  double B_y = B0y*sin(4.0*M_PI*x/Lx);
-  double B_z = app->B0;
-
-  double magB2 = B_x*B_x + B_y*B_y + B_z*B_z;
-  double bxbx = B_x*B_x/magB2;
-  double bxby = B_x*B_y/magB2;
-  double bxbz = B_x*B_z/magB2;
-  double byby = B_y*B_y/magB2;
-  double bybz = B_y*B_z/magB2;
-  double bzbz = B_z*B_z/magB2;
-
-  double v_perp_x = vdrift_x - (vdrift_x*bxbx + vdrift_y*bxby + vdrift_z*bxbz);
-  double v_perp_y = vdrift_y - (vdrift_x*bxby + vdrift_y*byby + vdrift_z*bybz);
-  double v_perp_z = vdrift_z - (vdrift_x*bxbz + vdrift_y*bybz + vdrift_z*bzbz);
-
   fout[0] = mi*vdrift_x;
   fout[1] = mi*vdrift_y;
   fout[2] = 0.0;
@@ -186,10 +153,6 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double B0x = app->delta_B0;
   double B0y = app->delta_B0;
 
-  double ne = app->n0;
-  double ni = ne - (app->epsilon0/qi)*(2.0*M_PI/(Lx*Lx*Ly*Ly*ne*qi*app->mu0))*(app->B0*Lx*Ly*Ly*u0y*ne*qi*app->mu0*cos(2.0*M_PI*x/Lx) 
-      + 8*M_PI*B0y*B0y*Ly*Ly*cos(8*M_PI*x/Lx) 
-      + Lx*(Ly*(app->B0*Lx*u0x*ne*qi*app->mu0 + 8*M_PI*B0x*B0y*cos(4.0*M_PI*x/Lx))*cos(2.0*M_PI*y/Ly)+2.0*M_PI*B0x*B0x*Lx*cos(4.0*M_PI*y/Ly)));
   double Jz = (B0y*(4.0*M_PI/Lx)*cos(4.0*M_PI*x/Lx) + B0x*(2.0*M_PI/Ly)*cos(2.0*M_PI*y/Ly)) / app->mu0;
 
   double B_x = -B0x*sin(2.0*M_PI*y/Ly);
@@ -239,10 +202,10 @@ create_ctx(void)
   double Te_Ti = 1.0; // ratio of electron to ion temperature
   double n0 = 1.0; // initial number density
 
-  double vAe = 1.0/8.0;
+  double vAe = 0.5;
   double B0 = vAe*sqrt(mu0*n0*massElc);
-  double beta = 1.0;
-  double vtElc = vAe*sqrt(beta);
+  double beta = 0.08;
+  double vtElc = vAe*sqrt(beta/2.0);
 
   // ion velocities
   double vAi = vAe/sqrt(massIon);
@@ -250,19 +213,19 @@ create_ctx(void)
 
   // ion cyclotron frequency and gyroradius
   double omegaCi = chargeIon*B0/massIon;
-  double rhoi = vtIon/omegaCi;
+  double di = vAi/omegaCi;
 
   // collision frequencies
   double nuElc = 0.1*omegaCi;
   double nuIon = 0.1*omegaCi/sqrt(massIon);
 
   // OT initial conditions
-  double delta_u0 = 0.1*vAi;
-  double delta_B0 = 0.1*B0;
+  double delta_u0 = 0.2*vAi;
+  double delta_B0 = 0.2*B0;
 
   // domain size and simulation time
-  double L = 20.0*M_PI*rhoi;
-  double tend = 2.0/omegaCi;
+  double L = 20.48*di;
+  double tend = 100.0/omegaCi;
   
   struct pkpm_ot_ctx ctx = {
     .epsilon0 = epsilon0,
@@ -284,6 +247,7 @@ create_ctx(void)
     .delta_B0 = delta_B0,
     .L = L,
     .tend = tend,
+    .min_dt = 1.0e-2, 
   };
   return ctx;
 }
@@ -302,7 +266,7 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 256);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 64);
   int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
 
   if (app_args.trace_mem) {
@@ -319,6 +283,7 @@ main(int argc, char **argv)
     .pkpm_species = "elc",
     .ctx = &ctx,
     .init = evalFluidElc,
+    .nuHyp = 1.0e-5,
   };  
   
   // electrons
@@ -351,6 +316,7 @@ main(int argc, char **argv)
     .pkpm_species = "ion",
     .ctx = &ctx,
     .init = evalFluidIon,
+    .nuHyp = 1.0e-5, 
   };  
   
   // ions
@@ -396,7 +362,8 @@ main(int argc, char **argv)
     .cells = { NX, NX },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
-
+    //.cfl_frac = 0.8,
+    
     .num_periodic_dir = 2,
     .periodic_dirs = { 0, 1 },
 
@@ -415,7 +382,7 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = ctx.tend;
   double dt = tend-tcurr;
-  int nframe = 1;
+  int nframe = 100;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
@@ -431,6 +398,12 @@ main(int argc, char **argv)
     
     if (!status.success) {
       printf("** Update method failed! Aborting simulation ....\n");
+      break;
+    }
+    if (status.dt_actual < ctx.min_dt) {
+      printf("** Time step crashing! Aborting simulation and writing out last output ....\n");
+      gkyl_vlasov_app_write(app, tcurr, 1000);
+      gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1000);
       break;
     }
     tcurr += status.dt_actual;

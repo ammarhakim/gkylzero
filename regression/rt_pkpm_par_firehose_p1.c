@@ -38,10 +38,10 @@ evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   struct pkpm_par_firehose_ctx *app = ctx;
   double x = xn[0], v = xn[1];
 
-  double vt = app->vtElc;
+  double elcTemp = app->elcTemp;
   double n0 = app->n0;
-
-  fout[0] = n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
+  // electron mass is 1.0 in normalized units
+  fout[0] = n0/sqrt(2.0*M_PI*elcTemp)*(exp(-sq(v)/(2*elcTemp)));
 }
 
 void
@@ -177,7 +177,7 @@ create_ctx(void)
 
   // domain size and simulation time
   double L = 100.0*M_PI*di;
-  double tend = 1.0/omegaCi;
+  double tend = 10.0/omegaCi;
 
   struct pkpm_par_firehose_ctx ctx = {
     .epsilon0 = epsilon0,
@@ -234,7 +234,7 @@ main(int argc, char **argv)
     .pkpm_species = "elc",
     .ctx = &ctx,
     .init = evalFluidElc,
-    .nuHyp = 1.0e-4,
+    .nuHyp = 1.0e-3,
   };  
   
   // electrons
@@ -267,7 +267,7 @@ main(int argc, char **argv)
     .pkpm_species = "ion",
     .ctx = &ctx,
     .init = evalFluidIon,
-    .nuHyp = 1.0e-4,
+    .nuHyp = 1.0e-3,
   };  
   
   // ions
