@@ -64,10 +64,15 @@ mkarr(long nc, long size)
 }
 // allocate cu_dev array
 static struct gkyl_array*
-mkarr_cu(long nc, long size)
+mkarr_cu(long nc, long size, bool use_gpu)
 {
-  struct gkyl_array* a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
-  return a;
+  if (use_gpu) {
+    struct gkyl_array* a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
+    return a;
+  } else {
+    struct gkyl_array* a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+    return a;
+  }
 }
 
 struct skin_ghost_ranges {
@@ -127,7 +132,7 @@ void distf_2x2v(double t, const double *xn, double* restrict fout, void *ctx)
 }
 
 void
-test_1x1v(int polyOrder)
+test_1x1v(int polyOrder, bool use_gpu)
 {
   double mass = 1.;
   int poly_order = 1;
@@ -168,48 +173,65 @@ test_1x1v(int polyOrder)
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // create distribution function array and project distribution function on basis
-  struct gkyl_array *distf;
-  distf = mkarr(basis.num_basis, local_ext.volume);
+  struct gkyl_array *distf_ho, *distf;
+  distf_ho = mkarr(basis.num_basis, local_ext.volume);
+  distf = mkarr_cu(basis.num_basis, local_ext.volume, use_gpu);
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, distf_1x1v, NULL);
-  gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
-//  gkyl_grid_sub_array_write(&grid, &local, distf, "ctest_mom_gyrokinetic_1x1v_p1_distf.gkyl");
+  gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
+  gkyl_array_copy(distf, distf_ho);
+//  gkyl_grid_sub_array_write(&grid, &local, distf_ho, "ctest_mom_gyrokinetic_1x1v_p1_distf.gkyl");
 
   // create bmag array and project magnetic field amplitude function on basis
-  struct gkyl_array *bmag;
-  bmag = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *bmag_ho, *bmag;
+  bmag_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  bmag = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
   gkyl_proj_on_basis *projbmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
     poly_order+1, 1, bmag_1x, NULL);
-  gkyl_proj_on_basis_advance(projbmag, 0.0, &confLocal, bmag);
-//  gkyl_grid_sub_array_write(&confGrid, &confLocal, bmag, "ctest_mom_gyrokinetic_1x1v_p1_bmag.gkyl");
 
-  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M0", false);
-  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M1", false);
-  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M2", false);
+  gkyl_proj_on_basis_advance(projbmag, 0.0, &confLocal, bmag_ho);
+  gkyl_array_copy(bmag, bmag_ho);
+//  gkyl_grid_sub_array_write(&confGrid, &confLocal, bmag_ho, "ctest_mom_gyrokinetic_1x1v_p1_bmag.gkyl");
+
+  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M0", use_gpu);
+  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M1", use_gpu);
+  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M2", use_gpu);
   gkyl_gyrokinetic_set_bmag(M0_t, bmag);
   gkyl_gyrokinetic_set_bmag(M1_t, bmag);
   gkyl_gyrokinetic_set_bmag(M2_t, bmag);
-  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t, false);
-  gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t, false);
-  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t, false);
+  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t, use_gpu);
+  gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t, use_gpu);
+  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t, use_gpu);
 
   // create moment arrays
-  struct gkyl_array *m0, *m1, *m2;
-  m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m1 = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *m0_ho, *m1_ho, *m2_ho, *m0, *m1, *m2;
+  m0_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m1_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m2_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m0 = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
+  m1 = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
+  m2 = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
 
   // compute the moments
-  gkyl_mom_calc_advance(m0calc, &local, &confLocal, distf, m0);
-  gkyl_mom_calc_advance(m1calc, &local, &confLocal, distf, m1);
-  gkyl_mom_calc_advance(m2calc, &local, &confLocal, distf, m2);
+  if (use_gpu) {
+    gkyl_mom_calc_advance_cu(m0calc, &local, &confLocal, distf, m0);
+    gkyl_mom_calc_advance_cu(m1calc, &local, &confLocal, distf, m1);
+    gkyl_mom_calc_advance_cu(m2calc, &local, &confLocal, distf, m2);
+  } else {
+    gkyl_mom_calc_advance(m0calc, &local, &confLocal, distf, m0);
+    gkyl_mom_calc_advance(m1calc, &local, &confLocal, distf, m1);
+    gkyl_mom_calc_advance(m2calc, &local, &confLocal, distf, m2);
+  }
+  gkyl_array_copy(m0_ho, m0);
+  gkyl_array_copy(m1_ho, m1);
+  gkyl_array_copy(m2_ho, m2);
 
-  double *m00 = gkyl_array_fetch(m0, 0+confGhost[0]); double *m01 = gkyl_array_fetch(m0, 1+confGhost[0]);
-  double *m02 = gkyl_array_fetch(m0, 2+confGhost[0]); double *m03 = gkyl_array_fetch(m0, 3+confGhost[0]);
-  double *m10 = gkyl_array_fetch(m1, 0+confGhost[0]); double *m11 = gkyl_array_fetch(m1, 1+confGhost[0]);
-  double *m12 = gkyl_array_fetch(m1, 2+confGhost[0]); double *m13 = gkyl_array_fetch(m1, 3+confGhost[0]);
-  double *m20 = gkyl_array_fetch(m2, 0+confGhost[0]); double *m21 = gkyl_array_fetch(m2, 1+confGhost[0]);
-  double *m22 = gkyl_array_fetch(m2, 2+confGhost[0]); double *m23 = gkyl_array_fetch(m2, 3+confGhost[0]);
+  double *m00 = gkyl_array_fetch(m0_ho, 0+confGhost[0]); double *m01 = gkyl_array_fetch(m0_ho, 1+confGhost[0]);
+  double *m02 = gkyl_array_fetch(m0_ho, 2+confGhost[0]); double *m03 = gkyl_array_fetch(m0_ho, 3+confGhost[0]);
+  double *m10 = gkyl_array_fetch(m1_ho, 0+confGhost[0]); double *m11 = gkyl_array_fetch(m1_ho, 1+confGhost[0]);
+  double *m12 = gkyl_array_fetch(m1_ho, 2+confGhost[0]); double *m13 = gkyl_array_fetch(m1_ho, 3+confGhost[0]);
+  double *m20 = gkyl_array_fetch(m2_ho, 0+confGhost[0]); double *m21 = gkyl_array_fetch(m2_ho, 1+confGhost[0]);
+  double *m22 = gkyl_array_fetch(m2_ho, 2+confGhost[0]); double *m23 = gkyl_array_fetch(m2_ho, 3+confGhost[0]);
 
   if (poly_order==1) {
     // Check M0.
@@ -305,15 +327,17 @@ test_1x1v(int polyOrder)
 
   // release memory for moment data object
   gkyl_array_release(m0); gkyl_array_release(m1); gkyl_array_release(m2);
+  gkyl_array_release(m0_ho); gkyl_array_release(m1_ho); gkyl_array_release(m2_ho);
   gkyl_mom_calc_release(m0calc); gkyl_mom_calc_release(m1calc); gkyl_mom_calc_release(m2calc);
   gkyl_mom_type_release(M0_t); gkyl_mom_type_release(M1_t); gkyl_mom_type_release(M2_t);
 
   gkyl_proj_on_basis_release(projDistf);
-  gkyl_array_release(distf);
+  gkyl_array_release(distf); gkyl_array_release(distf_ho);
+  gkyl_array_release(bmag); gkyl_array_release(bmag_ho);
 }
 
 void
-test_1x2v(int poly_order)
+test_1x2v(int poly_order, bool use_gpu)
 {
   double mass = 1.;
   double lower[] = {-M_PI, -2.0, 0.0}, upper[] = {M_PI, 2.0, 2.0};
@@ -353,47 +377,64 @@ test_1x2v(int poly_order)
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // create distribution function array and project distribution function on basis
-  struct gkyl_array *distf;
-  distf = mkarr(basis.num_basis, local_ext.volume);
+  struct gkyl_array *distf_ho, *distf;
+  distf_ho = mkarr(basis.num_basis, local_ext.volume);
+  distf = mkarr_cu(basis.num_basis, local_ext.volume, use_gpu);
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, distf_1x2v, NULL);
-  gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
+  gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
+  gkyl_array_copy(distf, distf_ho);
 
   // create bmag array and project magnetic field amplitude function on basis
-  struct gkyl_array *bmag;
-  bmag = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *bmag_ho, *bmag;
+  bmag_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  bmag = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
   gkyl_proj_on_basis *projbmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
     poly_order+1, 1, bmag_1x, NULL);
-  gkyl_proj_on_basis_advance(projbmag, 0.0, &confLocal, bmag);
 
-  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M0", false);
-  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M1", false);
-  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M2", false);
+  gkyl_proj_on_basis_advance(projbmag, 0.0, &confLocal, bmag_ho);
+  gkyl_array_copy(bmag, bmag_ho);
+
+  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M0", use_gpu);
+  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M1", use_gpu);
+  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M2", use_gpu);
   gkyl_gyrokinetic_set_bmag(M0_t, bmag);
   gkyl_gyrokinetic_set_bmag(M1_t, bmag);
   gkyl_gyrokinetic_set_bmag(M2_t, bmag);
-  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t, false);
-  gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t, false);
-  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t, false);
+  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t, use_gpu);
+  gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t, use_gpu);
+  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t, use_gpu);
 
   // create moment arrays
-  struct gkyl_array *m0, *m1, *m2;
-  m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m1 = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *m0_ho, *m1_ho, *m2_ho, *m0, *m1, *m2;
+  m0_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m1_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m2_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m0 = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
+  m1 = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
+  m2 = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
 
   // compute the moments
-  gkyl_mom_calc_advance(m0calc, &local, &confLocal, distf, m0);
-  gkyl_mom_calc_advance(m1calc, &local, &confLocal, distf, m1);
-  gkyl_mom_calc_advance(m2calc, &local, &confLocal, distf, m2);
+  if (use_gpu) {
+    gkyl_mom_calc_advance_cu(m0calc, &local, &confLocal, distf, m0);
+    gkyl_mom_calc_advance_cu(m1calc, &local, &confLocal, distf, m1);
+    gkyl_mom_calc_advance_cu(m2calc, &local, &confLocal, distf, m2);
+  } else {
+    gkyl_mom_calc_advance(m0calc, &local, &confLocal, distf, m0);
+    gkyl_mom_calc_advance(m1calc, &local, &confLocal, distf, m1);
+    gkyl_mom_calc_advance(m2calc, &local, &confLocal, distf, m2);
+  }
+  gkyl_array_copy(m0_ho, m0);
+  gkyl_array_copy(m1_ho, m1);
+  gkyl_array_copy(m2_ho, m2);
 
-  double *m00 = gkyl_array_fetch(m0, gkyl_range_idx(&confLocal, &(int) {0+confGhost[0]})); 
-  double *m01 = gkyl_array_fetch(m0, gkyl_range_idx(&confLocal, &(int) {1+confGhost[0]}));
-  double *m02 = gkyl_array_fetch(m0, 2+confGhost[0]); double *m03 = gkyl_array_fetch(m0, 3+confGhost[0]);
-  double *m10 = gkyl_array_fetch(m1, 0+confGhost[0]); double *m11 = gkyl_array_fetch(m1, 1+confGhost[0]);
-  double *m12 = gkyl_array_fetch(m1, 2+confGhost[0]); double *m13 = gkyl_array_fetch(m1, 3+confGhost[0]);
-  double *m20 = gkyl_array_fetch(m2, 0+confGhost[0]); double *m21 = gkyl_array_fetch(m2, 1+confGhost[0]);
-  double *m22 = gkyl_array_fetch(m2, 2+confGhost[0]); double *m23 = gkyl_array_fetch(m2, 3+confGhost[0]);
+  double *m00 = gkyl_array_fetch(m0_ho, gkyl_range_idx(&confLocal, &(int) {0+confGhost[0]})); 
+  double *m01 = gkyl_array_fetch(m0_ho, gkyl_range_idx(&confLocal, &(int) {1+confGhost[0]}));
+  double *m02 = gkyl_array_fetch(m0_ho, 2+confGhost[0]); double *m03 = gkyl_array_fetch(m0_ho, 3+confGhost[0]);
+  double *m10 = gkyl_array_fetch(m1_ho, 0+confGhost[0]); double *m11 = gkyl_array_fetch(m1_ho, 1+confGhost[0]);
+  double *m12 = gkyl_array_fetch(m1_ho, 2+confGhost[0]); double *m13 = gkyl_array_fetch(m1_ho, 3+confGhost[0]);
+  double *m20 = gkyl_array_fetch(m2_ho, 0+confGhost[0]); double *m21 = gkyl_array_fetch(m2_ho, 1+confGhost[0]);
+  double *m22 = gkyl_array_fetch(m2_ho, 2+confGhost[0]); double *m23 = gkyl_array_fetch(m2_ho, 3+confGhost[0]);
   if (poly_order==1) {
     // Check M0.
     TEST_CHECK( gkyl_compare(  191.6841953662915, m00[0], 1e-12) );
@@ -470,15 +511,17 @@ test_1x2v(int poly_order)
 
   // release memory for moment data object
   gkyl_array_release(m0); gkyl_array_release(m1); gkyl_array_release(m2);
+  gkyl_array_release(m0_ho); gkyl_array_release(m1_ho); gkyl_array_release(m2_ho);
   gkyl_mom_calc_release(m0calc); gkyl_mom_calc_release(m1calc); gkyl_mom_calc_release(m2calc);
   gkyl_mom_type_release(M0_t); gkyl_mom_type_release(M1_t); gkyl_mom_type_release(M2_t);
 
   gkyl_proj_on_basis_release(projDistf);
-  gkyl_array_release(distf);
+  gkyl_array_release(distf); gkyl_array_release(distf_ho);
+  gkyl_array_release(bmag); gkyl_array_release(bmag_ho);
 }
 
 void
-test_2x2v(int poly_order)
+test_2x2v(int poly_order, bool use_gpu)
 {
   double mass = 1.;
   double lower[] = {-M_PI, -M_PI, -2.0, 0.0}, upper[] = {M_PI, M_PI, 2.0, 2.0};
@@ -518,39 +561,56 @@ test_2x2v(int poly_order)
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // create distribution function array and project distribution function on basis
-  struct gkyl_array *distf;
-  distf = mkarr(basis.num_basis, local_ext.volume);
+  struct gkyl_array *distf_ho, *distf;
+  distf_ho = mkarr(basis.num_basis, local_ext.volume);
+  distf = mkarr_cu(basis.num_basis, local_ext.volume, use_gpu);
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, distf_2x2v, NULL);
-  gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
+  gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
+  gkyl_array_copy(distf, distf_ho);
 
   // create bmag array and project magnetic field amplitude function on basis
-  struct gkyl_array *bmag;
-  bmag = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *bmag_ho, *bmag;
+  bmag_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  bmag = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
   gkyl_proj_on_basis *projbmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
     poly_order+1, 1, bmag_2x, NULL);
-  gkyl_proj_on_basis_advance(projbmag, 0.0, &confLocal, bmag);
 
-  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M0", false);
-  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M1", false);
-  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M2", false);
+  gkyl_proj_on_basis_advance(projbmag, 0.0, &confLocal, bmag_ho);
+  gkyl_array_copy(bmag, bmag_ho);
+
+  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M0", use_gpu);
+  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M1", use_gpu);
+  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M2", use_gpu);
   gkyl_gyrokinetic_set_bmag(M0_t, bmag);
   gkyl_gyrokinetic_set_bmag(M1_t, bmag);
   gkyl_gyrokinetic_set_bmag(M2_t, bmag);
-  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t, false);
-  gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t, false);
-  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t, false);
+  gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t, use_gpu);
+  gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t, use_gpu);
+  gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t, use_gpu);
 
   // create moment arrays
-  struct gkyl_array *m0, *m1, *m2;
-  m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m1 = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *m0_ho, *m1_ho, *m2_ho, *m0, *m1, *m2;
+  m0_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m1_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m2_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m0 = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
+  m1 = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
+  m2 = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
 
   // compute the moments
-  gkyl_mom_calc_advance(m0calc, &local, &confLocal, distf, m0);
-  gkyl_mom_calc_advance(m1calc, &local, &confLocal, distf, m1);
-  gkyl_mom_calc_advance(m2calc, &local, &confLocal, distf, m2);
+  if (use_gpu) {
+    gkyl_mom_calc_advance_cu(m0calc, &local, &confLocal, distf, m0);
+    gkyl_mom_calc_advance_cu(m1calc, &local, &confLocal, distf, m1);
+    gkyl_mom_calc_advance_cu(m2calc, &local, &confLocal, distf, m2);
+  } else {
+    gkyl_mom_calc_advance(m0calc, &local, &confLocal, distf, m0);
+    gkyl_mom_calc_advance(m1calc, &local, &confLocal, distf, m1);
+    gkyl_mom_calc_advance(m2calc, &local, &confLocal, distf, m2);
+  }
+  gkyl_array_copy(m0_ho, m0);
+  gkyl_array_copy(m1_ho, m1);
+  gkyl_array_copy(m2_ho, m2);
 
   if (poly_order==1) {
     double m0Correct[] = {
@@ -611,15 +671,15 @@ test_2x2v(int poly_order)
       for (int j=0; j<cells[1]; j++) {
         int idx[] = {i+confGhost[0], j+confGhost[1]};
         // Check M0.
-        double *m0ptr = gkyl_array_fetch(m0, gkyl_range_idx(&confLocal, idx)); 
+        double *m0ptr = gkyl_array_fetch(m0_ho, gkyl_range_idx(&confLocal, idx)); 
         for (int k=0; k<confBasis.num_basis; k++)
           TEST_CHECK( gkyl_compare( m0Correct[(i*cells[1]+j)*confBasis.num_basis+k], m0ptr[k], 1e-12) );
         // Check M1.
-        double *m1ptr = gkyl_array_fetch(m1, gkyl_range_idx(&confLocal, idx)); 
+        double *m1ptr = gkyl_array_fetch(m1_ho, gkyl_range_idx(&confLocal, idx)); 
         for (int k=0; k<confBasis.num_basis; k++)
           TEST_CHECK( gkyl_compare( m1Correct[(i*cells[1]+j)*confBasis.num_basis+k], m1ptr[k], 1e-12) );
         // Check M2.
-        double *m2ptr = gkyl_array_fetch(m2, gkyl_range_idx(&confLocal, idx)); 
+        double *m2ptr = gkyl_array_fetch(m2_ho, gkyl_range_idx(&confLocal, idx)); 
         for (int k=0; k<confBasis.num_basis; k++)
           TEST_CHECK( gkyl_compare( m2Correct[(i*cells[1]+j)*confBasis.num_basis+k], m2ptr[k], 1e-12) );
       }
@@ -703,15 +763,15 @@ test_2x2v(int poly_order)
       for (int j=0; j<cells[1]; j++) {
         int idx[] = {i+confGhost[0], j+confGhost[1]};
         // Check M0.
-        double *m0ptr = gkyl_array_fetch(m0, gkyl_range_idx(&confLocal, idx)); 
+        double *m0ptr = gkyl_array_fetch(m0_ho, gkyl_range_idx(&confLocal, idx)); 
         for (int k=0; k<confBasis.num_basis; k++)
           TEST_CHECK( gkyl_compare( m0Correct[(i*cells[1]+j)*confBasis.num_basis+k], m0ptr[k], 1e-12) );
         // Check M1.
-        double *m1ptr = gkyl_array_fetch(m1, gkyl_range_idx(&confLocal, idx)); 
+        double *m1ptr = gkyl_array_fetch(m1_ho, gkyl_range_idx(&confLocal, idx)); 
         for (int k=0; k<confBasis.num_basis; k++)
           TEST_CHECK( gkyl_compare( m1Correct[(i*cells[1]+j)*confBasis.num_basis+k], m1ptr[k], 1e-12) );
         // Check M2.
-        double *m2ptr = gkyl_array_fetch(m2, gkyl_range_idx(&confLocal, idx)); 
+        double *m2ptr = gkyl_array_fetch(m2_ho, gkyl_range_idx(&confLocal, idx)); 
         for (int k=0; k<confBasis.num_basis; k++)
           TEST_CHECK( gkyl_compare( m2Correct[(i*cells[1]+j)*confBasis.num_basis+k], m2ptr[k], 1e-12) );
       }
@@ -720,19 +780,30 @@ test_2x2v(int poly_order)
 
   // release memory for moment data object
   gkyl_array_release(m0); gkyl_array_release(m1); gkyl_array_release(m2);
+  gkyl_array_release(m0_ho); gkyl_array_release(m1_ho); gkyl_array_release(m2_ho);
   gkyl_mom_calc_release(m0calc); gkyl_mom_calc_release(m1calc); gkyl_mom_calc_release(m2calc);
   gkyl_mom_type_release(M0_t); gkyl_mom_type_release(M1_t); gkyl_mom_type_release(M2_t);
 
   gkyl_proj_on_basis_release(projDistf);
-  gkyl_array_release(distf);
+  gkyl_array_release(distf); gkyl_array_release(distf_ho);
+  gkyl_array_release(bmag); gkyl_array_release(bmag_ho);
 }
 
-void test_1x1v_p1() { test_1x1v(1); } 
-void test_1x1v_p2() { test_1x1v(2); } 
-void test_1x2v_p1() { test_1x2v(1); } 
-void test_1x2v_p2() { test_1x2v(2); } 
-void test_2x2v_p1() { test_2x2v(1); } 
-void test_2x2v_p2() { test_2x2v(2); } 
+void test_1x1v_p1() { test_1x1v(1, false); } 
+void test_1x1v_p2() { test_1x1v(2, false); } 
+void test_1x2v_p1() { test_1x2v(1, false); } 
+void test_1x2v_p2() { test_1x2v(2, false); } 
+void test_2x2v_p1() { test_2x2v(1, false); } 
+void test_2x2v_p2() { test_2x2v(2, false); } 
+
+#ifdef GKYL_HAVE_CUDA
+void test_1x1v_p1_cu() { test_1x1v(1, true); } 
+void test_1x1v_p2_cu() { test_1x1v(2, true); } 
+void test_1x2v_p1_cu() { test_1x2v(1, true); } 
+void test_1x2v_p2_cu() { test_1x2v(2, true); } 
+void test_2x2v_p1_cu() { test_2x2v(1, true); } 
+void test_2x2v_p2_cu() { test_2x2v(2, true); } 
+#endif
 
 TEST_LIST = {
   { "mom_gyrokinetic", test_mom_gyrokinetic },
@@ -745,9 +816,12 @@ TEST_LIST = {
 //  { "test_3x2v_p1", test_3x2v_p1 },
 #ifdef GKYL_HAVE_CUDA
 //  { "cu_mom_gyrokinetic", test_cu_mom_gyrokinetic },
-//  { "test_1x1v_p1_cu", test_1x1v_p1_cu },
-//  { "test_1x2v_p1_cu", test_1x2v_p1_cu },
-//  { "test_2x2v_p1_cu", test_2x2v_p1_cu },
+  { "test_1x1v_p1_cu", test_1x1v_p1_cu },
+  { "test_1x1v_p2_cu", test_1x1v_p2_cu },
+  { "test_1x2v_p1_cu", test_1x2v_p1_cu },
+  { "test_1x2v_p2_cu", test_1x2v_p2_cu },
+  { "test_2x2v_p1_cu", test_2x2v_p1_cu },
+  { "test_2x2v_p2_cu", test_2x2v_p2_cu },
 //  { "test_3x2v_p1_cu", test_3x2v_p1_cu },
 #endif
   { NULL, NULL },
