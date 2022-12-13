@@ -16,7 +16,7 @@ typedef void (*euler_pressure_t)(const double gas_gamma,
 
 typedef void (*euler_pkpm_prim_vars_t)(const double *bvar, 
   const double *vlasov_pkpm_moms, const double *statevec, 
-  double* u_i, double* p_ij);
+  double* u_i, double* p_ij, double* T_ij);
 
 typedef void (*euler_pkpm_source_t)(const double* qmem, 
   const double *nu, const double *nu_vth_sq, 

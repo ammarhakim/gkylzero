@@ -2,12 +2,13 @@
 #include <gkyl_basis_ser_1x_p2_surfx1_eval_quad.h> 
 GKYL_CU_DH void euler_pkpm_surfx_1x_ser_p2(const double *w, const double *dxv, 
   const double *u_il, const double *u_ic, const double *u_ir,
-  const double *vth_sql, const double *vth_sqc, const double *vth_sqr,
+  const double *T_ijl, const double *T_ijc, const double *T_ijr,
   const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:                       Cell-center coordinates.
   // dxv[NDIM]:                     Cell spacing.
   // u_il/u_ic/u_ir:                Input bulk velocity (ux,uy,uz) in left/center/right cells.
+  // T_ijl/T_ijc/T_ijr:             Input Temperature tensor/mass (for penalization) in left/center/right cells.
   // statevecl/statevecc/statevecr: [rho ux, rho uy, rho uz, p_perp], Fluid input state vector in left/center/right cells.
   // out: Incremented output.
 
@@ -32,6 +33,10 @@ GKYL_CU_DH void euler_pkpm_surfx_1x_ser_p2(const double *w, const double *dxv,
   const double *ux_c = &u_ic[0]; 
   const double *ux_r = &u_ir[0]; 
 
+  const double *vth_sql = &T_ijl[0]; 
+  const double *vth_sqc = &T_ijc[0]; 
+  const double *vth_sqr = &T_ijr[0]; 
+
   double *outrhou0 = &out[0]; 
   double *outrhou1 = &out[3]; 
   double *outrhou2 = &out[6]; 
@@ -50,8 +55,8 @@ GKYL_CU_DH void euler_pkpm_surfx_1x_ser_p2(const double *w, const double *dxv,
   double ux_max_r = fmax(fabs(ux_c_r), fabs(ux_r_l)); 
   double vth_max_l = fmax(sqrt(fabs(vth_sq_l_r)), sqrt(fabs(vth_sq_c_l))); 
   double vth_max_r = fmax(sqrt(fabs(vth_sq_c_r)), sqrt(fabs(vth_sq_r_l))); 
-  double max_speed_l = ux_max_l + sqrt(5.0/3.0)*vth_max_l; 
-  double max_speed_r = ux_max_r + sqrt(5.0/3.0)*vth_max_r; 
+  double max_speed_l = ux_max_l + vth_max_l; 
+  double max_speed_r = ux_max_r + vth_max_r; 
 
   double Ghat_rhoux_l = 0.7905694150420948*rhoux_l[2]*ux_l_r+0.6123724356957945*rhoux_l[1]*ux_l_r+0.3535533905932737*rhoux_l[0]*ux_l_r+0.7905694150420948*rhoux_c[2]*ux_c_l-0.6123724356957945*rhoux_c[1]*ux_c_l+0.3535533905932737*rhoux_c[0]*ux_c_l+0.7905694150420948*rhoux_l[2]*max_speed_l-0.7905694150420948*rhoux_c[2]*max_speed_l+0.6123724356957945*rhoux_l[1]*max_speed_l+0.6123724356957945*rhoux_c[1]*max_speed_l+0.3535533905932737*rhoux_l[0]*max_speed_l-0.3535533905932737*rhoux_c[0]*max_speed_l; 
   double Ghat_rhoux_r = 0.7905694150420948*rhoux_r[2]*ux_r_l-0.6123724356957945*rhoux_r[1]*ux_r_l+0.3535533905932737*rhoux_r[0]*ux_r_l+0.7905694150420948*rhoux_c[2]*ux_c_r+0.6123724356957945*rhoux_c[1]*ux_c_r+0.3535533905932737*rhoux_c[0]*ux_c_r-0.7905694150420948*rhoux_r[2]*max_speed_r+0.7905694150420948*rhoux_c[2]*max_speed_r+0.6123724356957945*rhoux_r[1]*max_speed_r+0.6123724356957945*rhoux_c[1]*max_speed_r-0.3535533905932737*rhoux_r[0]*max_speed_r+0.3535533905932737*rhoux_c[0]*max_speed_r; 

@@ -78,7 +78,7 @@ void gkyl_calc_prim_vars_p_from_statevec(struct gkyl_basis basis, const struct g
  */
 void gkyl_calc_prim_vars_pkpm(struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
-  struct gkyl_array* u_i, struct gkyl_array* p_ij);
+  struct gkyl_array* u_i, struct gkyl_array* p_ij, struct gkyl_array* T_ij);
 
 /**
  * Compute parallel-kinetic-perpendicular-moment model source terms.
@@ -125,7 +125,7 @@ void gkyl_calc_prim_vars_pkpm_recovery(const struct gkyl_rect_grid *grid,
 
 void gkyl_calc_prim_vars_pkpm_cu(struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
-  struct gkyl_array* u_i, struct gkyl_array* p_ij);
+  struct gkyl_array* u_i, struct gkyl_array* p_ij, struct gkyl_array* T_ij);
 
 void gkyl_calc_prim_vars_pkpm_source_cu(struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* qmem, const struct gkyl_array* nu, const struct gkyl_array* nu_vthsq, 

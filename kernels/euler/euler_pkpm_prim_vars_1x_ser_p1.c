@@ -1,12 +1,14 @@
 #include <gkyl_euler_kernels.h> 
 #include <gkyl_basis_ser_1x_p1_inv.h> 
-GKYL_CU_DH void euler_pkpm_prim_vars_1x_ser_p1(const double *bvar, const double *vlasov_pkpm_moms, const double *statevec, double* u_i, double* p_ij) 
+GKYL_CU_DH void euler_pkpm_prim_vars_1x_ser_p1(const double *bvar, const double *vlasov_pkpm_moms, const double *statevec, 
+  double* u_i, double* p_ij, double* T_ij) 
 { 
   // bvar:             Magnetic field unit vector and tensor.
   // vlasov_pkpm_moms: [rho, p_parallel, q_parallel], Moments computed from kinetic equation in pkpm model.
   // statevec:         [rho ux, rho uy, rho uz, p_perp], Fluid input state vector.
   // u_i:              Output flow velocity [ux, uy, uz].
   // p_ij:             Output pressure tensor, p_ij = (p_parallel - p_perp)bb + p_perp I.
+  // T_ij:             Output Temperature tensor for penalization T_ij = 3.0*p_ij/rho.
 
   const double *rhoux = &statevec[0]; 
   const double *rhouy = &statevec[2]; 
@@ -32,6 +34,10 @@ GKYL_CU_DH void euler_pkpm_prim_vars_1x_ser_p1(const double *bvar, const double 
   double *Pyy = &p_ij[6]; 
   double *Pyz = &p_ij[8]; 
   double *Pzz = &p_ij[10]; 
+
+  double *Txx = &T_ij[0]; 
+  double *Tyy = &T_ij[6]; 
+  double *Tzz = &T_ij[10]; 
 
   double rho_inv[2] = {0.0}; 
   ser_1x_p1_inv(rho, rho_inv); 
@@ -61,4 +67,12 @@ GKYL_CU_DH void euler_pkpm_prim_vars_1x_ser_p1(const double *bvar, const double 
 
   Pzz[0] = (-0.7071067811865475*bzbz[1]*p_perp[1])+0.7071067811865475*bzbz[1]*p_parallel[1]-0.7071067811865475*bzbz[0]*p_perp[0]+p_perp[0]+0.7071067811865475*bzbz[0]*p_parallel[0]; 
   Pzz[1] = (-0.7071067811865475*bzbz[0]*p_perp[1])+p_perp[1]+0.7071067811865475*bzbz[0]*p_parallel[1]-0.7071067811865475*p_perp[0]*bzbz[1]+0.7071067811865475*p_parallel[0]*bzbz[1]; 
+  Txx[0] = 2.121320343559642*Pxx[1]*rho_inv[1]+2.121320343559642*Pxx[0]*rho_inv[0]; 
+  Txx[1] = 2.121320343559642*Pxx[0]*rho_inv[1]+2.121320343559642*rho_inv[0]*Pxx[1]; 
+
+  Tyy[0] = 2.121320343559642*Pyy[1]*rho_inv[1]+2.121320343559642*Pyy[0]*rho_inv[0]; 
+  Tyy[1] = 2.121320343559642*Pyy[0]*rho_inv[1]+2.121320343559642*rho_inv[0]*Pyy[1]; 
+
+  Tzz[0] = 2.121320343559642*Pzz[1]*rho_inv[1]+2.121320343559642*Pzz[0]*rho_inv[0]; 
+  Tzz[1] = 2.121320343559642*Pzz[0]*rho_inv[1]+2.121320343559642*rho_inv[0]*Pzz[1]; 
 } 
