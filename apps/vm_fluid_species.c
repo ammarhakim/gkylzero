@@ -85,6 +85,11 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     f->u = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
     // allocate buffer for applying boundary conditions to primitive variables (u)
     f->u_bc_buffer = mkarr(app->use_gpu, 3*app->confBasis.num_basis, buff_sz);
+    
+    f->u_host = f->u;
+    if (app->use_gpu) {
+      f->u_host = mkarr(false, 3*app->confBasis.num_basis, app->local_ext.volume);
+    }
   }
   else if (f->info.gas_gamma) {
     f->param = f->info.gas_gamma; // parameter for Euler is gas_gamma, adiabatic index
@@ -95,6 +100,13 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     // allocate buffer for applying boundary conditions to primitive variables (u and p)
     f->u_bc_buffer = mkarr(app->use_gpu, 3*app->confBasis.num_basis, buff_sz);
     f->p_bc_buffer = mkarr(app->use_gpu, app->confBasis.num_basis, buff_sz);
+    
+    f->u_host = f->u;
+    f->p_host = f->p;
+    if (app->use_gpu) {
+      f->u_host = mkarr(false, 3*app->confBasis.num_basis, app->local_ext.volume);
+      f->p_host = mkarr(false, 6*app->confBasis.num_basis, app->local_ext.volume);
+    }
   }
   else if (f->info.advection.velocity) {
     f->eqn_id = GKYL_EQN_ADVECTION;
@@ -126,6 +138,11 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
           .ctx = f->info.advection.velocity_ctx
         }
       );
+      
+      f->u_host = f->u;
+      if (app->use_gpu) {
+        f->u_host = mkarr(false, 3*app->confBasis.num_basis, app->local_ext.volume);
+      }
     }
   }
   else {
@@ -377,9 +394,13 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
       gkyl_dg_updater_fluid_advance_cu(fluid_species->advect_slvr, fluid_species->eqn_id,
         &app->local, fluid_species->u, fluid_species->div_p, fluid_species->T_ij, 
         fluid, fluid_species->cflrate, rhs);
-    else
+    else if(fluid_species->eqn_id == GKYL_EQN_EULER)
       gkyl_dg_updater_fluid_advance_cu(fluid_species->advect_slvr, fluid_species->eqn_id,
         &app->local, fluid_species->u, fluid_species->p, 0, 
+        fluid, fluid_species->cflrate, rhs);
+    else
+      gkyl_dg_updater_fluid_advance_cu(fluid_species->advect_slvr, fluid_species->eqn_id,
+        &app->local, fluid_species->u, 0, 0, 
         fluid, fluid_species->cflrate, rhs);
 
     if (fluid_species->has_diffusion)
@@ -391,9 +412,13 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
       gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, fluid_species->eqn_id,
         &app->local, fluid_species->u, fluid_species->div_p, fluid_species->T_ij, 
         fluid, fluid_species->cflrate, rhs);
-    else 
+    else if(fluid_species->eqn_id == GKYL_EQN_EULER)
       gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, fluid_species->eqn_id,
         &app->local, fluid_species->u, fluid_species->p, 0, 
+        fluid, fluid_species->cflrate, rhs);
+    else
+      gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, fluid_species->eqn_id,
+        &app->local, fluid_species->u, 0, 0, 
         fluid, fluid_species->cflrate, rhs);
 
     if (fluid_species->has_diffusion)
