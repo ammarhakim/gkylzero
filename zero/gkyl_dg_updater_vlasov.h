@@ -24,6 +24,7 @@ struct gkyl_dg_updater_vlasov_tm {
  * @param pbasis Phase-space basis function
  * @param conf_range Config space range
  * @param vel_range Velocity space range
+ * @param phase_range Phase space range
  * @param model_id Enum identifier for model type (e.g., SR, PKPM, see gkyl_eqn_type.h)
  * @param field_id Enum identifier for field type (e.g., Maxwell's, Poisson, see gkyl_eqn_type.h)
  * @param use_gpu Boolean to determine whether struct objects are on host or device
@@ -32,7 +33,7 @@ struct gkyl_dg_updater_vlasov_tm {
  */
 gkyl_dg_updater_vlasov* gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
+  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
   enum gkyl_model_id model_id, enum gkyl_field_id field_id, bool use_gpu);
 
 /**
@@ -65,7 +66,9 @@ void gkyl_dg_updater_vlasov_advance(gkyl_dg_updater_vlasov *vlasov,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *aux1, const struct gkyl_array *aux2, 
   const struct gkyl_array *aux3, const struct gkyl_array *aux4, 
-  const struct gkyl_array *aux5, 
+  const struct gkyl_array *aux5, const struct gkyl_array *aux6, 
+  const struct gkyl_array *aux7, const struct gkyl_array *aux8, 
+  const struct gkyl_array *aux9, 
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 
@@ -73,7 +76,9 @@ void gkyl_dg_updater_vlasov_advance_cu(gkyl_dg_updater_vlasov *vlasov,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *aux1, const struct gkyl_array *aux2, 
   const struct gkyl_array *aux3, const struct gkyl_array *aux4, 
-  const struct gkyl_array *aux5, 
+  const struct gkyl_array *aux5, const struct gkyl_array *aux6,
+  const struct gkyl_array *aux7, const struct gkyl_array *aux8, 
+  const struct gkyl_array *aux9,  
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 

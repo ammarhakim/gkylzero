@@ -1,22 +1,23 @@
 #include <gkyl_euler_kernels.h> 
 #include <gkyl_basis_ser_1x_p1_inv.h> 
 GKYL_CU_DH void euler_pkpm_prim_vars_1x_ser_p1(const double *bvar, const double *vlasov_pkpm_moms, const double *statevec, 
-  double* u_i, double* p_ij, double* T_ij) 
+  double* u_i, double* p_ij, double* T_ij, double* T_perp_over_m) 
 { 
   // bvar:             Magnetic field unit vector and tensor.
-  // vlasov_pkpm_moms: [rho, p_parallel, q_parallel], Moments computed from kinetic equation in pkpm model.
-  // statevec:         [rho ux, rho uy, rho uz, p_perp], Fluid input state vector.
+  // vlasov_pkpm_moms: [rho, p_parallel, p_perp], Moments computed from kinetic equation in pkpm model.
+  // statevec:         [rho ux, rho uy, rho uz], Fluid input state vector.
   // u_i:              Output flow velocity [ux, uy, uz].
   // p_ij:             Output pressure tensor, p_ij = (p_parallel - p_perp)bb + p_perp I.
   // T_ij:             Output Temperature tensor for penalization T_ij = 3.0*p_ij/rho.
+  // T_perp_over_m:    Output T_perp/m = p_perp/rho.
 
   const double *rhoux = &statevec[0]; 
   const double *rhouy = &statevec[2]; 
   const double *rhouz = &statevec[4]; 
-  const double *p_perp = &statevec[6]; 
   // Parallel pressure is first component of pkpm moment array and unit tensor are last six components of bvar array.
   const double *rho = &vlasov_pkpm_moms[0]; 
   const double *p_parallel = &vlasov_pkpm_moms[2]; 
+  const double *p_perp = &vlasov_pkpm_moms[4]; 
   const double *bxbx = &bvar[6]; 
   const double *bxby = &bvar[8]; 
   const double *bxbz = &bvar[10]; 
@@ -75,4 +76,7 @@ GKYL_CU_DH void euler_pkpm_prim_vars_1x_ser_p1(const double *bvar, const double 
 
   Tzz[0] = 2.121320343559642*Pzz[1]*rho_inv[1]+2.121320343559642*Pzz[0]*rho_inv[0]; 
   Tzz[1] = 2.121320343559642*Pzz[0]*rho_inv[1]+2.121320343559642*rho_inv[0]*Pzz[1]; 
+
+  T_perp_over_m[0] = 0.7071067811865475*p_perp[1]*rho_inv[1]+0.7071067811865475*p_perp[0]*rho_inv[0]; 
+  T_perp_over_m[1] = 0.7071067811865475*p_perp[0]*rho_inv[1]+0.7071067811865475*rho_inv[0]*p_perp[1]; 
 } 

@@ -42,6 +42,7 @@ evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   double n0 = app->n0;
   // electron mass is 1.0 in normalized units
   fout[0] = n0/sqrt(2.0*M_PI*elcTemp)*(exp(-sq(v)/(2*elcTemp)));
+  fout[1] = elcTemp*n0/sqrt(2.0*M_PI*elcTemp)*(exp(-sq(v)/(2*elcTemp)));
 }
 
 void
@@ -52,10 +53,12 @@ evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   double mi = app->massIon;
   double Lx = app->L;
   double T_par = app->ionTempPar;
+  double T_perp = app->ionTempPerp;
   double n0 = app->n0;
   double vt = sqrt(T_par/mi);
 
   fout[0] = n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
+  fout[1] = T_perp/mi*n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
 }
 
 void
@@ -75,7 +78,6 @@ evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 0.0;
-  fout[3] = n0*elcTemp;
 }
 
 void
@@ -95,7 +97,6 @@ evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 0.0;
-  fout[3] = n0*T_perp;
 }
 
 void
@@ -177,7 +178,7 @@ create_ctx(void)
 
   // domain size and simulation time
   double L = 100.0*M_PI*di;
-  double tend = 10.0/omegaCi;
+  double tend = 0.005/omegaCi;
 
   struct pkpm_par_firehose_ctx ctx = {
     .epsilon0 = epsilon0,
@@ -230,11 +231,11 @@ main(int argc, char **argv)
   // electron Tperp                                                                                              
   struct gkyl_vlasov_fluid_species fluid_elc = {
     .name = "fluid_elc",
-    .num_eqn = 4,
+    .num_eqn = 3,
     .pkpm_species = "elc",
     .ctx = &ctx,
     .init = evalFluidElc,
-    .nuHyp = 1.0e-3,
+    //.nuHyp = 1.0e-3,
   };  
   
   // electrons
@@ -263,11 +264,11 @@ main(int argc, char **argv)
   // ion Tperp                                                                                              
   struct gkyl_vlasov_fluid_species fluid_ion = {
     .name = "fluid_ion",
-    .num_eqn = 4,
+    .num_eqn = 3,
     .pkpm_species = "ion",
     .ctx = &ctx,
     .init = evalFluidIon,
-    .nuHyp = 1.0e-3,
+    //.nuHyp = 1.0e-3,
   };  
   
   // ions
@@ -332,7 +333,7 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = ctx.tend;
   double dt = tend-tcurr;
-  int nframe = 100;
+  int nframe = 5;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 

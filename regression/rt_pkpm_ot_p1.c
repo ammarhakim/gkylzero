@@ -56,6 +56,7 @@ evalDistFuncElc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double fv = maxwellian(app->n0, vx, app->vtElc);
     
   fout[0] = fv;
+  fout[1] = app->vtElc*app->vtElc*fv;
 }
 void
 evalDistFuncIon(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -76,6 +77,7 @@ evalDistFuncIon(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double fv = maxwellian(app->n0, vx, app->vtIon);
     
   fout[0] = fv;
+  fout[1] = app->vtIon*app->vtIon*fv;
 }
 
 void
@@ -105,7 +107,6 @@ evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[0] = me*vdrift_x;
   fout[1] = me*vdrift_y;
   fout[2] = me*Jz;
-  fout[3] = me*app->vtElc*app->vtElc;
 }
 
 void
@@ -133,8 +134,6 @@ evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[0] = mi*vdrift_x;
   fout[1] = mi*vdrift_y;
   fout[2] = 0.0;
-  fout[3] = mi*app->vtIon*app->vtIon;
-
 }
 
 void
@@ -279,11 +278,11 @@ main(int argc, char **argv)
   // electron Tperp                                                                                              
   struct gkyl_vlasov_fluid_species fluid_elc = {
     .name = "fluid_elc",
-    .num_eqn = 4,
+    .num_eqn = 3,
     .pkpm_species = "elc",
     .ctx = &ctx,
     .init = evalFluidElc,
-    .nuHyp = 1.0e-5,
+    //.nuHyp = 1.0e-5,
   };  
   
   // electrons
@@ -312,11 +311,11 @@ main(int argc, char **argv)
   // ion Tperp                                                                                              
   struct gkyl_vlasov_fluid_species fluid_ion = {
     .name = "fluid_ion",
-    .num_eqn = 4,
+    .num_eqn = 3,
     .pkpm_species = "ion",
     .ctx = &ctx,
     .init = evalFluidIon,
-    .nuHyp = 1.0e-5, 
+    //.nuHyp = 1.0e-5, 
   };  
   
   // ions

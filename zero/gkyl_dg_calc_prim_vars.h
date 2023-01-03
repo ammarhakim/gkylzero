@@ -71,32 +71,48 @@ void gkyl_calc_prim_vars_p_from_statevec(struct gkyl_basis basis, const struct g
  * @param vlasov_pkpm_moms Input array parallel-kinetic-perpendicular-moment kinetic moments
  * @param euler_pkpm Input array parallel-kinetic-perpendicular-moment fluid variables
  * @param u_i Output array of flow velocity 
- * @param u_perp_i Output array of perpendicular flow velocity (u - u : bb)
- * @param rhou_perp_i Output array of perpendicular momentum density (rhou - rhou : bb)
- * @param p_perp Output array of perpendicular pressure
  * @param p_ij Output array of pressure tensor
+ * @param T_ij Output array of temperature tensor
  */
 void gkyl_calc_prim_vars_pkpm(struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
-  struct gkyl_array* u_i, struct gkyl_array* p_ij, struct gkyl_array* T_ij);
+  struct gkyl_array* u_i, struct gkyl_array* p_ij, struct gkyl_array* T_ij, struct gkyl_array* T_perp_over_m);
 
 /**
  * Compute parallel-kinetic-perpendicular-moment model source terms.
  *
  * @param basis Basis functions used in expansions
- * @param range Range to apply division operator
+ * @param range Range to calculate source terms (configuration space range)
  * @param qmem Input array of q/m*EM fields
- * @param nu Input array of collisionality
- * @param nu_vthsq Input array of nu*vth^2, vth^2 = T/m
  * @param vlasov_pkpm_moms Input array parallel-kinetic-perpendicular-moment kinetic moments
  * @param euler_pkpm Input array parallel-kinetic-perpendicular-moment fluid variables
- * @param rhou_perp_i Input array of perpendicular momentum density (rhou - rhou : bb)
- * @param p_perp Input array of perpendicular pressure
+ * @param rhs Output increment to fluid variables
  */
 void gkyl_calc_prim_vars_pkpm_source(struct gkyl_basis basis, const struct gkyl_range *range,
-  const struct gkyl_array* qmem, const struct gkyl_array* nu, const struct gkyl_array* nu_vthsq, 
-  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm,
-  const struct gkyl_array* p_perp_source, struct gkyl_array* rhs);
+  const struct gkyl_array* qmem, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm,
+  struct gkyl_array* rhs);
+
+/**
+ * Compute parallel-kinetic-perpendicular-moment model mirror force distribution function.
+ * In the mirror force for the T_perp/m*G = T_perp/m*(F_0 - F_1) kinetic equation,
+ * g_dist_source = 2.0*(T_perp/m*G) - T_perp/m*F_0 + T_perp/m*F_2
+ * Note that T_perp/m*G is the evolved quantity for the first Laguerre moment. 
+ * Also outputs F_1 from T_perp/m*G for the evolution of F_2 if F_2 is present. 
+ * To simplify internal Gkeyll logic, assume F_2 is present and output F_1 even if F_2 = 0.0.
+ *
+ * @param basis Basis functions used in expansions
+ * @param conf_range Range to index configuration space fields
+ * @param phase_range Range to calculate mirror force distribution function 
+ * @param T_perp_over_m Input array of T_perp/m = p_perp/rho
+ * @param fIn Input array of pkpm distribution functions: [F_0, T_perp/m G = T_perp/m (F_0 - F_1)]
+ * @param F_k_p_1 Input array of k+1 distribution function. F_2 expansion is the first NP coefficients.
+ * @param g_dist_source Output array: 2.0*(T_perp/m*G) - T_perp/m*(F_0 - F_2)
+ * @param F_k_m_1 Output array of k-1 distribution function. F_1 expansion is the first NP coefficients.
+ */
+void gkyl_calc_prim_vars_pkpm_dist_mirror_force(struct gkyl_basis basis, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
+  const struct gkyl_array* T_perp_over_m, const struct gkyl_array* fIn, const struct gkyl_array* F_k_p_1,
+  struct gkyl_array* g_dist_source, struct gkyl_array* F_k_m_1);
 
 /**
  * Compute needed gradient quantities with recovery for discretization of the 
@@ -116,8 +132,10 @@ void gkyl_calc_prim_vars_pkpm_recovery(const struct gkyl_rect_grid *grid,
   struct gkyl_basis basis, const struct gkyl_range *range, double nuHyp, 
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
   const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
+  const struct gkyl_array* T_perp_over_m, const struct gkyl_array* nu, const struct gkyl_array* nu_vthsq, 
   struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, 
-  struct gkyl_array* div_p, struct gkyl_array* p_force, struct gkyl_array* p_perp_source);
+  struct gkyl_array* div_p, struct gkyl_array* p_force, 
+  struct gkyl_array* p_perp_source, struct gkyl_array* p_perp_div_b);
 
 /**
  * Host-side wrappers for prim vars operations on device
@@ -125,16 +143,22 @@ void gkyl_calc_prim_vars_pkpm_recovery(const struct gkyl_rect_grid *grid,
 
 void gkyl_calc_prim_vars_pkpm_cu(struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
-  struct gkyl_array* u_i, struct gkyl_array* p_ij, struct gkyl_array* T_ij);
+  struct gkyl_array* u_i, struct gkyl_array* p_ij, struct gkyl_array* T_ij, struct gkyl_array* T_perp_over_m);
 
 void gkyl_calc_prim_vars_pkpm_source_cu(struct gkyl_basis basis, const struct gkyl_range *range,
-  const struct gkyl_array* qmem, const struct gkyl_array* nu, const struct gkyl_array* nu_vthsq, 
-  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm,
-  const struct gkyl_array* p_perp_source, struct gkyl_array* rhs);
+  const struct gkyl_array* qmem, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm,
+  struct gkyl_array* rhs);
+
+void gkyl_calc_prim_vars_pkpm_dist_mirror_force_cu(struct gkyl_basis basis, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
+  const struct gkyl_array* T_perp_over_m, const struct gkyl_array* fIn, const struct gkyl_array* F_k_p_1,
+  struct gkyl_array* g_dist_source, struct gkyl_array* F_k_m_1);
 
 void gkyl_calc_prim_vars_pkpm_recovery_cu(const struct gkyl_rect_grid *grid, 
   struct gkyl_basis basis, const struct gkyl_range *range, double nuHyp, 
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
   const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
+  const struct gkyl_array* T_perp_over_m, const struct gkyl_array* nu, const struct gkyl_array* nu_vthsq, 
   struct gkyl_array* div_b, struct gkyl_array* bb_grad_u, 
-  struct gkyl_array* div_p, struct gkyl_array* p_force, struct gkyl_array* p_perp_source);
+  struct gkyl_array* div_p, struct gkyl_array* p_force, 
+  struct gkyl_array* p_perp_source, struct gkyl_array* p_perp_div_b);

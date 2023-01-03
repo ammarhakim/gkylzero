@@ -563,13 +563,6 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     vm_species_calc_pkpm_vars(app, &app->species[i], fin[i], emin);
   }
 
-  // compute primitive moments for fluid species evolution and coupling
-  // Need to do this *before* collisions since collisional boundary corrections
-  // use fluid primitive moments in fluid-kinetic systems (e.g., pkpm model)
-  for (int i=0; i<app->num_fluid_species; ++i) {
-    vm_fluid_species_prim_vars(app, &app->fluid_species[i], fluidin[i]);
-  }
-
   // compute necessary moments and boundary corrections for collisions
   for (int i=0; i<app->num_species; ++i) {
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
@@ -584,6 +577,12 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
       && app->species[i].lbo.num_cross_collisions) {
       vm_species_lbo_cross_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
     }
+  }
+
+  // compute primitive moments for fluid species evolution and coupling
+  // Need to do this after collisions since p_perp_source depends on nu and nu*vth^2
+  for (int i=0; i<app->num_fluid_species; ++i) {
+    vm_fluid_species_prim_vars(app, &app->fluid_species[i], fluidin[i]);
   }
 
   // compute RHS of Vlasov equations
@@ -834,11 +833,11 @@ gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
     gkyl_array_clear_range(rhs, 0.0, species->local);
     if (app->use_gpu)
       gkyl_dg_updater_vlasov_advance_cu(species->slvr, &species->local,
-        species->qmem, species->p_over_gamma, 0, 0, 0, 
+        species->qmem, species->p_over_gamma, 0, 0, 0, 0, 0, 0, 0, 
         fin, species->cflrate, rhs);
     else
       gkyl_dg_updater_vlasov_advance(species->slvr, &species->local,
-        species->qmem, species->p_over_gamma, 0, 0, 0, 
+        species->qmem, species->p_over_gamma, 0, 0, 0, 0, 0, 0, 0, 
         fin, species->cflrate, rhs);
   }
 }

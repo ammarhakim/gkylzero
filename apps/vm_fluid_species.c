@@ -66,11 +66,14 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   // u_perp_i (perpendicular bulk velocity u - u : bb)
   // rhou_perp_i (perpendicular momentum density rhou - rhou : bb)
   // p_perp (perpendicular pressure)
+  f->T_perp_over_m = 0;
+  f->T_perp_over_m_bc_buffer = 0;
   f->div_b = 0;
   f->bb_grad_u = 0;
   f->div_p = 0;
   f->p_force = 0;
   f->p_perp_source = 0;
+  f->p_perp_div_b = 0;
 
   f->param = 0.0;
   f->nuHyp = 0.0;
@@ -133,9 +136,11 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     // allocate array to store fluid velocity and pressure tensor
     f->u = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
     f->p = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_ext.volume);
+    f->T_perp_over_m = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     // allocate buffer for applying boundary conditions to primitive variables (u and p)
     f->u_bc_buffer = mkarr(app->use_gpu, 3*app->confBasis.num_basis, buff_sz);
     f->p_bc_buffer = mkarr(app->use_gpu, 6*app->confBasis.num_basis, buff_sz);
+    f->T_perp_over_m_bc_buffer = mkarr(app->use_gpu, app->confBasis.num_basis, buff_sz);
 
     f->u_host = f->u;
     f->p_host = f->p;
@@ -148,8 +153,9 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     f->div_b = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     f->bb_grad_u = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     f->div_p = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
-    f->p_force = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    f->p_force = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
     f->p_perp_source = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    f->p_perp_div_b = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     f->T_ij = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_ext.volume);
 
     f->pkpm_species = vm_find_species(app, f->info.pkpm_species);
@@ -248,6 +254,9 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     if (f->eqn_id == GKYL_EQN_EULER || f->eqn_id == GKYL_EQN_EULER_PKPM)
       f->bc_p_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &app->local_ext, ghost, bctype,
                                       app->basis_on_dev.confBasis, f->p->ncomp, app->cdim, app->use_gpu);
+    if (f->eqn_id == GKYL_EQN_EULER_PKPM)
+      f->bc_T_perp_over_m_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &app->local_ext, ghost, bctype,
+                                      app->basis_on_dev.confBasis, f->T_perp_over_m->ncomp, app->cdim, app->use_gpu);
 
     // Upper BC updater. Copy BCs by default.
     if (f->upper_bc[d] == GKYL_SPECIES_COPY)
@@ -262,6 +271,9 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     if (f->eqn_id == GKYL_EQN_EULER || f->eqn_id == GKYL_EQN_EULER_PKPM)
       f->bc_p_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &app->local_ext, ghost, bctype,
                                       app->basis_on_dev.confBasis, f->p->ncomp, app->cdim, app->use_gpu);
+    if (f->eqn_id == GKYL_EQN_EULER_PKPM)
+      f->bc_T_perp_over_m_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &app->local_ext, ghost, bctype,
+                                      app->basis_on_dev.confBasis, f->T_perp_over_m->ncomp, app->cdim, app->use_gpu);
   }
 }
 
@@ -333,9 +345,9 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
       fluid_species->u, fluid, fluid_species->p);
   }
   else if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
-    gkyl_calc_prim_vars_pkpm(app->confBasis, &app->local, app->field->bvar,
+    gkyl_calc_prim_vars_pkpm(app->confBasis, &app->local_ext, app->field->bvar,
       fluid_species->pkpm_species->pkpm_moms.marr, fluid, 
-      fluid_species->u, fluid_species->p, fluid_species->T_ij);
+      fluid_species->u, fluid_species->p, fluid_species->T_ij, fluid_species->T_perp_over_m);
   }
   else {
     if (fluid_species->has_advect)
@@ -343,8 +355,8 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
     if (fluid_species->advects_with_species)
       gkyl_array_accumulate(fluid_species->u, 1.0, fluid_species->other_advect);
   }
-  // Note: Also applies boundary conditions to PKPM moments for use in fluid solve
-  vm_fluid_species_prim_vars_apply_bc(app, fluid_species);
+  // // Note: Also applies boundary conditions to PKPM moments for use in fluid solve
+  // vm_fluid_species_prim_vars_apply_bc(app, fluid_species);
 
   if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
     // calculate gradient quantities using recovery
@@ -353,9 +365,15 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
     gkyl_array_clear(fluid_species->div_p, 0.0);
     gkyl_array_clear(fluid_species->p_force, 0.0);
     gkyl_array_clear(fluid_species->p_perp_source, 0.0);
+    gkyl_array_clear(fluid_species->p_perp_div_b, 0.0);
     gkyl_calc_prim_vars_pkpm_recovery(&app->grid, app->confBasis, &app->local, fluid_species->nuHyp, 
-      app->field->bvar, fluid_species->u, fluid_species->p, fluid_species->pkpm_species->pkpm_moms.marr, fluid, 
-      fluid_species->div_b, fluid_species->bb_grad_u, fluid_species->div_p, fluid_species->p_force, fluid_species->p_perp_source);
+      app->field->bvar, fluid_species->u, 
+      fluid_species->p, fluid_species->pkpm_species->pkpm_moms.marr, 
+      fluid, fluid_species->T_perp_over_m, 
+      fluid_species->pkpm_species->lbo.nu_sum, fluid_species->pkpm_species->lbo.nu_prim_moms, 
+      fluid_species->div_b, fluid_species->bb_grad_u, 
+      fluid_species->div_p, fluid_species->p_force, 
+      fluid_species->p_perp_source, fluid_species->p_perp_div_b);
   }
 }
 
@@ -414,9 +432,7 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
       gkyl_array_accumulate(fluid_species->pkpm_species->qmem, qbym, app->field->ext_em);
 
     gkyl_calc_prim_vars_pkpm_source(app->confBasis, &app->local, fluid_species->pkpm_species->qmem,
-      fluid_species->pkpm_species->lbo.nu_sum, fluid_species->pkpm_species->lbo.nu_prim_moms,
-      fluid_species->pkpm_species->pkpm_moms.marr, fluid,
-      fluid_species->p_perp_source, rhs);
+      fluid_species->pkpm_species->pkpm_moms.marr, fluid, rhs);
   }
 
   gkyl_array_reduce_range(fluid_species->omegaCfl_ptr, fluid_species->cflrate, GKYL_MAX, app->local);
@@ -513,6 +529,12 @@ vm_fluid_species_prim_vars_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_
       gkyl_array_copy_from_buffer(fluid_species->p, fluid_species->p_bc_buffer->data, app->skin_ghost.lower_ghost[d]);
     }
     if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
+      gkyl_array_copy_to_buffer(fluid_species->T_perp_over_m_bc_buffer->data, fluid_species->T_perp_over_m, app->skin_ghost.lower_skin[d]);
+      gkyl_array_copy_from_buffer(fluid_species->T_perp_over_m, fluid_species->T_perp_over_m_bc_buffer->data, app->skin_ghost.upper_ghost[d]);
+
+      gkyl_array_copy_to_buffer(fluid_species->T_perp_over_m_bc_buffer->data, fluid_species->T_perp_over_m, app->skin_ghost.upper_skin[d]);
+      gkyl_array_copy_from_buffer(fluid_species->T_perp_over_m, fluid_species->T_perp_over_m_bc_buffer->data, app->skin_ghost.lower_ghost[d]);
+
       gkyl_array_copy_to_buffer(fluid_species->p_bc_buffer->data, fluid_species->T_ij, app->skin_ghost.lower_skin[d]);
       gkyl_array_copy_from_buffer(fluid_species->T_ij, fluid_species->p_bc_buffer->data, app->skin_ghost.upper_ghost[d]);
 
@@ -530,8 +552,10 @@ vm_fluid_species_prim_vars_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_
           gkyl_bc_basic_advance(fluid_species->bc_u_lo[d], fluid_species->u_bc_buffer, fluid_species->u);
           if (fluid_species->eqn_id == GKYL_EQN_EULER || fluid_species->eqn_id == GKYL_EQN_EULER_PKPM)
             gkyl_bc_basic_advance(fluid_species->bc_p_lo[d], fluid_species->p_bc_buffer, fluid_species->p);
-          if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM)
+          if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
+            gkyl_bc_basic_advance(fluid_species->bc_T_perp_over_m_lo[d], fluid_species->T_perp_over_m_bc_buffer, fluid_species->T_perp_over_m);
             gkyl_bc_basic_advance(fluid_species->bc_p_lo[d], fluid_species->p_bc_buffer, fluid_species->T_ij);
+          }
           break;
         case GKYL_SPECIES_REFLECT:
         case GKYL_SPECIES_NO_SLIP:
@@ -548,8 +572,10 @@ vm_fluid_species_prim_vars_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_
           gkyl_bc_basic_advance(fluid_species->bc_u_up[d], fluid_species->u_bc_buffer, fluid_species->u);
           if (fluid_species->eqn_id == GKYL_EQN_EULER || fluid_species->eqn_id == GKYL_EQN_EULER_PKPM)
             gkyl_bc_basic_advance(fluid_species->bc_p_up[d], fluid_species->p_bc_buffer, fluid_species->p);
-          if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM)
+          if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
+            gkyl_bc_basic_advance(fluid_species->bc_T_perp_over_m_up[d], fluid_species->T_perp_over_m_bc_buffer, fluid_species->T_perp_over_m);
             gkyl_bc_basic_advance(fluid_species->bc_p_up[d], fluid_species->p_bc_buffer, fluid_species->T_ij);
+          }
           break;
         case GKYL_SPECIES_REFLECT:
         case GKYL_SPECIES_NO_SLIP:
@@ -592,11 +618,14 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
     gkyl_array_release(f->p_bc_buffer);
   }
   if (f->eqn_id == GKYL_EQN_EULER_PKPM) {
+    gkyl_array_release(f->T_perp_over_m);
+    gkyl_array_release(f->T_perp_over_m_bc_buffer);
     gkyl_array_release(f->div_b);
     gkyl_array_release(f->bb_grad_u);
     gkyl_array_release(f->div_p);
     gkyl_array_release(f->p_force);
     gkyl_array_release(f->p_perp_source);
+    gkyl_array_release(f->p_perp_div_b);
     gkyl_array_release(f->T_ij);
   }
   if (f->has_advect) {
@@ -630,6 +659,10 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
     if (f->eqn_id == GKYL_EQN_EULER || f->eqn_id == GKYL_EQN_EULER_PKPM) {
       gkyl_bc_basic_release(f->bc_p_lo[d]);
       gkyl_bc_basic_release(f->bc_p_up[d]);
+    }
+    if (f->eqn_id == GKYL_EQN_EULER_PKPM) {
+      gkyl_bc_basic_release(f->bc_T_perp_over_m_lo[d]);
+      gkyl_bc_basic_release(f->bc_T_perp_over_m_up[d]);      
     }
   }
 }

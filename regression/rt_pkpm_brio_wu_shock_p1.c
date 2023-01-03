@@ -35,10 +35,14 @@ evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   double vt = app->vte, n0 = app->n0;
   double mass = app->massElc;
   double Lx = app->Lx;
-  if (x<0.5*Lx)
+  if (x<0.5*Lx) {
     fout[0] = maxwellian(n0, v, 0.0, vt);
-  else
+    fout[1] = vt*vt*maxwellian(n0, v, 0.0, vt);
+  }
+  else {
     fout[0] = maxwellian(0.125*n0, v, 0.0, sqrt(0.1*vt*vt/0.125));
+    fout[1] = 0.1*vt*vt/0.125*maxwellian(0.125*n0, v, 0.0, sqrt(0.1*vt*vt/0.125));
+  }
 }
 
 void
@@ -49,10 +53,14 @@ evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   double vt = app->vti, n0 = app->n0;
   double mass = app->massIon;
   double Lx = app->Lx;
-  if (x<0.5*Lx)
+  if (x<0.5*Lx) {
     fout[0] = maxwellian(n0, v, 0.0, vt);
-  else
+    fout[1] = vt*vt*maxwellian(n0, v, 0.0, vt);
+  }
+  else {
     fout[0] = maxwellian(0.125*n0, v, 0.0, sqrt(0.1*vt*vt/0.125));
+    fout[1] = 0.1*vt*vt/0.125*maxwellian(0.125*n0, v, 0.0, sqrt(0.1*vt*vt/0.125));
+  }
 }
 
 void
@@ -66,10 +74,6 @@ evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 0.0;
-  if (x<0.5*Lx)
-    fout[3] = n0*mass*vt*vt;
-  else
-    fout[3] = 0.1*n0*mass*vt*vt;
 }
 
 void
@@ -83,10 +87,6 @@ evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 0.0;
-  if (x<0.5*Lx)
-    fout[3] = n0*mass*vt*vt;
-  else
-    fout[3] = 0.1*n0*mass*vt*vt;
 }
 
 void
@@ -161,7 +161,7 @@ main(int argc, char **argv)
   // electron Tperp                                                                                              
   struct gkyl_vlasov_fluid_species fluid_elc = {
     .name = "fluid_elc",
-    .num_eqn = 4,
+    .num_eqn = 3,
     .pkpm_species = "elc",
     .ctx = &ctx,
     .init = evalFluidElc,
@@ -193,7 +193,7 @@ main(int argc, char **argv)
   // ion Tperp                                                                                              
   struct gkyl_vlasov_fluid_species fluid_ion = {
     .name = "fluid_ion",
-    .num_eqn = 4,
+    .num_eqn = 3,
     .pkpm_species = "ion",
     .ctx = &ctx,
     .init = evalFluidIon,

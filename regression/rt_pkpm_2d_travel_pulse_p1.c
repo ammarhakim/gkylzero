@@ -6,7 +6,7 @@
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
 
-struct pkpm_sod_shock_ctx {
+struct pkpm_travel_pulse_ctx {
   double charge; // charge
   double mass; // mass
   double vt; // thermal velocity
@@ -25,34 +25,32 @@ maxwellian(double n, double v, double u, double vth)
 void
 evalDistFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct pkpm_sod_shock_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
-  if (x<0.5) {
-    fout[0] = maxwellian(1.0, v, 0.0, 1.0);
-    fout[1] = maxwellian(1.0, v, 0.0, 1.0);
-  }
-  else {
-    fout[0] = maxwellian(0.125, v, 0.0, sqrt(0.1/0.125));
-    fout[1] = 0.1/0.125*maxwellian(0.125, v, 0.0, sqrt(0.1/0.125));
-  }
+  struct pkpm_travel_pulse_ctx *app = ctx;
+  double x = xn[0], y = xn[1], v = xn[2];
+  double n = 1.0 + 0.2*sin(M_PI*x)*sin(M_PI*y);
+  double p = 1.0;
+  fout[0] = maxwellian(n, v, 0.0, sqrt(p/n));
+  fout[1] = p/n*maxwellian(n, v, 0.0, sqrt(p/n));
 }
 
 void 
 evalFluidFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct pkpm_sod_shock_ctx *app = ctx;
-  double x = xn[0];
-  // No initial flow (u = 0)
-  fout[0] = 0.0;
-  fout[1] = 0.0;
+  struct pkpm_travel_pulse_ctx *app = ctx;
+  double x = xn[0], y = xn[1];
+  double n = 1.0 + 0.2*sin(M_PI*x)*sin(M_PI*y);
+  double p = 1.0, u = 1.0;
+  double gas_gamma = 5.0/3.0;
+  
+  fout[0] = n*u;
+  fout[1] = n*u;
   fout[2] = 0.0;
 }
 
 void
 evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct pkpm_sod_shock_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
+  struct pkpm_travel_pulse_ctx *app = ctx;
   fout[0] = 100.0;
 }
 
@@ -60,21 +58,22 @@ void
 evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
-  double B_x = 1.0;
+  double B_x = 1.0/sqrt(2.0);
+  double B_y = 1.0/sqrt(2.0);
   
   fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
-  fout[3] = B_x; fout[4] = 0.0; fout[5] = 0.0;
+  fout[3] = B_x; fout[4] = B_y; fout[5] = 0.0;
   fout[6] = 0.0; fout[7] = 0.0;
 }
 
-struct pkpm_sod_shock_ctx
+struct pkpm_travel_pulse_ctx
 create_ctx(void)
 {
-  struct pkpm_sod_shock_ctx ctx = {
+  struct pkpm_travel_pulse_ctx ctx = {
     .mass = 1.0,
-    .charge = 1.0,
+    .charge = 0.0,
     .vt = 1.0,
-    .Lx = 1.0,
+    .Lx = 2.0,
   };
   return ctx;
 }
@@ -84,19 +83,19 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 16);
   int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  struct pkpm_sod_shock_ctx ctx = create_ctx(); // context for init functions
+  struct pkpm_travel_pulse_ctx ctx = create_ctx(); // context for init functions
 
   // PKPM fluid                                                                                      
   struct gkyl_vlasov_fluid_species fluid = {
     .name = "fluid",
-    .num_eqn = 3,
+    .num_eqn = 4,
     .pkpm_species = "neut",
     .ctx = &ctx,
     .init = evalFluidFunc,
@@ -138,17 +137,17 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "pkpm_neut_sod_shock_p1",
+    .name = "pkpm_2d_travel_pulse_p1",
 
-    .cdim = 1, .vdim = 1,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx },
-    .cells = { NX },
+    .cdim = 2, .vdim = 1,
+    .lower = { 0.0, 0.0 },
+    .upper = { ctx.Lx, ctx.Lx },
+    .cells = { NX, NX },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
-    .num_periodic_dir = 0,
-    .periodic_dirs = {  },
+    .num_periodic_dir = 2,
+    .periodic_dirs = { 0, 1 },
 
     .num_species = 1,
     .species = { neut },
@@ -163,7 +162,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.1;
+  double tcurr = 0.0, tend = 1.0;
   double dt = tend-tcurr;
 
   // initialize simulation
