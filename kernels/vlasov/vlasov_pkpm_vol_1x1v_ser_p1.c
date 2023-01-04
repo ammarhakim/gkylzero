@@ -63,8 +63,8 @@ GKYL_CU_DH double vlasov_pkpm_vol_1x1v_ser_p1(const double *w, const double *dxv
 
   cflFreq_mid += 5.0*fabs(0.25*alpha_vdim_G_1[0]); 
 
-  alpha_div_b[0] = -1.414213562373095*div_b[0]*dv1par; 
-  alpha_div_b[1] = -1.414213562373095*div_b[1]*dv1par; 
+  alpha_div_b[0] = 1.414213562373095*div_b[0]*dv1par; 
+  alpha_div_b[1] = 1.414213562373095*div_b[1]*dv1par; 
 
   cflFreq_mid += 5.0*fabs(0.3535533905932737*p_perp_div_b[0]); 
 

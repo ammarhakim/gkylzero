@@ -137,14 +137,14 @@ GKYL_CU_DH double vlasov_pkpm_vol_3x1v_ser_p1(const double *w, const double *dxv
 
   cflFreq_mid += 5.0*fabs(0.125*alpha_vdim_G_1[0]); 
 
-  alpha_div_b[0] = -1.414213562373095*div_b[0]*dv1par; 
-  alpha_div_b[1] = -1.414213562373095*div_b[1]*dv1par; 
-  alpha_div_b[2] = -1.414213562373095*div_b[2]*dv1par; 
-  alpha_div_b[3] = -1.414213562373095*div_b[3]*dv1par; 
-  alpha_div_b[5] = -1.414213562373095*div_b[4]*dv1par; 
-  alpha_div_b[6] = -1.414213562373095*div_b[5]*dv1par; 
-  alpha_div_b[7] = -1.414213562373095*div_b[6]*dv1par; 
-  alpha_div_b[11] = -1.414213562373095*div_b[7]*dv1par; 
+  alpha_div_b[0] = 1.414213562373095*div_b[0]*dv1par; 
+  alpha_div_b[1] = 1.414213562373095*div_b[1]*dv1par; 
+  alpha_div_b[2] = 1.414213562373095*div_b[2]*dv1par; 
+  alpha_div_b[3] = 1.414213562373095*div_b[3]*dv1par; 
+  alpha_div_b[5] = 1.414213562373095*div_b[4]*dv1par; 
+  alpha_div_b[6] = 1.414213562373095*div_b[5]*dv1par; 
+  alpha_div_b[7] = 1.414213562373095*div_b[6]*dv1par; 
+  alpha_div_b[11] = 1.414213562373095*div_b[7]*dv1par; 
 
   cflFreq_mid += 5.0*fabs(0.1767766952966368*p_perp_div_b[0]); 
 
