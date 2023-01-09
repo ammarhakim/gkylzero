@@ -58,22 +58,21 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   f->p_host = 0;
   f->p_bc_buffer = 0;
 
-  // initialize pointers to pkpm variables: 
-  // div_b (divergence of magnetic field unit vector)
-  // bb_grad_u (bb : grad(u))
-  // div_p (divergence of the pressure tensor), 
-  // p_force (total pressure forces in kinetic equation 1/rho (b . div(p) - p_perp div(b)))
-  // u_perp_i (perpendicular bulk velocity u - u : bb)
-  // rhou_perp_i (perpendicular momentum density rhou - rhou : bb)
-  // p_perp (perpendicular pressure)
-  f->T_perp_over_m = 0;
-  f->T_perp_over_m_bc_buffer = 0;
-  f->div_b = 0;
-  f->bb_grad_u = 0;
+  // div_p (divergence of the pressure tensor)
   f->div_p = 0;
-  f->p_force = 0;
-  f->p_perp_source = 0;
-  f->p_perp_div_b = 0;
+
+  // 1/rho, T_perp/m = p_perp/rho, and its inverse (primitive variabls in pkpm)
+  f->rho_inv = 0;
+  f->T_perp_over_m = 0;
+  f->T_perp_over_m_inv = 0;
+
+  // initialize pointers to pkpm variables, stored in pkpm_accel_vars: 
+  // 0: div_b (divergence of magnetic field unit vector)
+  // 1: bb_grad_u (bb : grad(u))
+  // 2: p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - T_perp/m*div(b)
+  // 3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - nu + nu rho vth^2/p_perp)
+  // 4: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
+  f->pkpm_accel_vars = 0;
 
   f->param = 0.0;
   f->nuHyp = 0.0;
@@ -150,14 +149,16 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   }
   else {
     f->eqn_id = GKYL_EQN_EULER_PKPM;
-    // allocate array to store fluid velocity and pressure tensor
+    // allocate array to store fluid velocity, pressure tensor, 1/rho, T_perp/m, (T_perp/m)^-1, and Tij (Tij for penalizations)
     f->u = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
     f->p = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_ext.volume);
+    f->rho_inv = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     f->T_perp_over_m = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    // allocate buffer for applying boundary conditions to primitive variables (u and p)
+    f->T_perp_over_m_inv = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    f->T_ij = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_ext.volume);
+    // allocate buffer for applying boundary conditions to primitive variables (u and p); can reuse pressure buffer for Tij
     f->u_bc_buffer = mkarr(app->use_gpu, 3*app->confBasis.num_basis, buff_sz);
     f->p_bc_buffer = mkarr(app->use_gpu, 6*app->confBasis.num_basis, buff_sz);
-    f->T_perp_over_m_bc_buffer = mkarr(app->use_gpu, app->confBasis.num_basis, buff_sz);
 
     f->u_host = f->u;
     f->p_host = f->p;
@@ -165,15 +166,15 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       f->u_host = mkarr(false, 3*app->confBasis.num_basis, app->local_ext.volume);
       f->p_host = mkarr(false, 6*app->confBasis.num_basis, app->local_ext.volume);
     }
-
-    // allocate array to pkpm variables
-    f->div_b = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    f->bb_grad_u = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    // allocate array for divergence of pressure tensor (for momentum equation coupling)
     f->div_p = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
-    f->p_force = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
-    f->p_perp_source = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    f->p_perp_div_b = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    f->T_ij = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_ext.volume);
+    // allocate array for pkpm acceleration variables, stored in pkpm_accel_vars: 
+    // 0: div_b (divergence of magnetic field unit vector)
+    // 1: bb_grad_u (bb : grad(u))
+    // 2: p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - T_perp/m*div(b)
+    // 3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - nu + nu rho vth^2/p_perp)
+    // 4: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
+    f->pkpm_accel_vars = mkarr(app->use_gpu, 5*app->confBasis.num_basis, app->local_ext.volume);
 
     f->pkpm_species = vm_find_species(app, f->info.pkpm_species);
     // index in fluid_species struct of fluid species kinetic species is colliding with
@@ -271,9 +272,6 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     if (f->eqn_id == GKYL_EQN_EULER || f->eqn_id == GKYL_EQN_EULER_PKPM)
       f->bc_p_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &app->local_ext, ghost, bctype,
                                       app->basis_on_dev.confBasis, f->p->ncomp, app->cdim, app->use_gpu);
-    if (f->eqn_id == GKYL_EQN_EULER_PKPM)
-      f->bc_T_perp_over_m_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &app->local_ext, ghost, bctype,
-                                      app->basis_on_dev.confBasis, f->T_perp_over_m->ncomp, app->cdim, app->use_gpu);
 
     // Upper BC updater. Copy BCs by default.
     if (f->upper_bc[d] == GKYL_SPECIES_COPY)
@@ -288,9 +286,6 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     if (f->eqn_id == GKYL_EQN_EULER || f->eqn_id == GKYL_EQN_EULER_PKPM)
       f->bc_p_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &app->local_ext, ghost, bctype,
                                       app->basis_on_dev.confBasis, f->p->ncomp, app->cdim, app->use_gpu);
-    if (f->eqn_id == GKYL_EQN_EULER_PKPM)
-      f->bc_T_perp_over_m_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &app->local_ext, ghost, bctype,
-                                      app->basis_on_dev.confBasis, f->T_perp_over_m->ncomp, app->cdim, app->use_gpu);
   }
 }
 
@@ -364,7 +359,8 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
   else if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
     gkyl_calc_prim_vars_pkpm(app->confBasis, &app->local_ext, app->field->bvar,
       fluid_species->pkpm_species->pkpm_moms.marr, fluid, 
-      fluid_species->u, fluid_species->p, fluid_species->T_ij, fluid_species->T_perp_over_m);
+      fluid_species->u, fluid_species->p, fluid_species->T_ij, 
+      fluid_species->rho_inv, fluid_species->T_perp_over_m, fluid_species->T_perp_over_m_inv);
   }
   else {
     if (fluid_species->has_advect)
@@ -377,20 +373,21 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
 
   if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
     // calculate gradient quantities using recovery
-    gkyl_array_clear(fluid_species->div_b, 0.0);
-    gkyl_array_clear(fluid_species->bb_grad_u, 0.0);
+    // These are div(p), divergence of the pressure tensor,
+    // And acceleration variables for pkpm, pkpm_accel_vars:
+    // 0: div_b (divergence of magnetic field unit vector)
+    // 1: bb_grad_u (bb : grad(u))
+    // 2: p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - T_perp/m*div(b)
+    // 3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - nu + nu rho vth^2/p_perp)
+    // 4: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
     gkyl_array_clear(fluid_species->div_p, 0.0);
-    gkyl_array_clear(fluid_species->p_force, 0.0);
-    gkyl_array_clear(fluid_species->p_perp_source, 0.0);
-    gkyl_array_clear(fluid_species->p_perp_div_b, 0.0);
+    gkyl_array_clear(fluid_species->pkpm_accel_vars, 0.0);
     gkyl_calc_prim_vars_pkpm_recovery(&app->grid, app->confBasis, &app->local, fluid_species->nuHyp, 
       app->field->bvar, fluid_species->u, 
-      fluid_species->p, fluid_species->pkpm_species->pkpm_moms.marr, 
-      fluid, fluid_species->T_perp_over_m, 
+      fluid_species->p, fluid_species->pkpm_species->pkpm_moms.marr, fluid, 
+      fluid_species->rho_inv, fluid_species->T_perp_over_m, fluid_species->T_perp_over_m_inv, 
       fluid_species->pkpm_species->lbo.nu_sum, fluid_species->pkpm_species->lbo.nu_prim_moms, 
-      fluid_species->div_b, fluid_species->bb_grad_u, 
-      fluid_species->div_p, fluid_species->p_force, 
-      fluid_species->p_perp_source, fluid_species->p_perp_div_b);
+      fluid_species->div_p, fluid_species->pkpm_accel_vars);
   }
 }
 
@@ -444,7 +441,7 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
         &app->local, fluid_species->D, fluid_species->u, fluid, fluid_species->cflrate, rhs);
   }
 
-  // Relax T_perp, d T_perp/dt = nu*n*(T - T_perp)
+  // Accumulate source contribution if PKPM -> adds forces (E + u x B) to momentum equation RHS
   if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
     double qbym = fluid_species->pkpm_species->info.charge/fluid_species->pkpm_species->info.mass;
     gkyl_array_set(fluid_species->pkpm_species->qmem, qbym, em);
@@ -554,12 +551,6 @@ vm_fluid_species_prim_vars_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_
       gkyl_array_copy_from_buffer(fluid_species->p, fluid_species->p_bc_buffer->data, app->skin_ghost.lower_ghost[d]);
     }
     if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
-      gkyl_array_copy_to_buffer(fluid_species->T_perp_over_m_bc_buffer->data, fluid_species->T_perp_over_m, app->skin_ghost.lower_skin[d]);
-      gkyl_array_copy_from_buffer(fluid_species->T_perp_over_m, fluid_species->T_perp_over_m_bc_buffer->data, app->skin_ghost.upper_ghost[d]);
-
-      gkyl_array_copy_to_buffer(fluid_species->T_perp_over_m_bc_buffer->data, fluid_species->T_perp_over_m, app->skin_ghost.upper_skin[d]);
-      gkyl_array_copy_from_buffer(fluid_species->T_perp_over_m, fluid_species->T_perp_over_m_bc_buffer->data, app->skin_ghost.lower_ghost[d]);
-
       gkyl_array_copy_to_buffer(fluid_species->p_bc_buffer->data, fluid_species->T_ij, app->skin_ghost.lower_skin[d]);
       gkyl_array_copy_from_buffer(fluid_species->T_ij, fluid_species->p_bc_buffer->data, app->skin_ghost.upper_ghost[d]);
 
@@ -578,7 +569,6 @@ vm_fluid_species_prim_vars_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_
           if (fluid_species->eqn_id == GKYL_EQN_EULER || fluid_species->eqn_id == GKYL_EQN_EULER_PKPM)
             gkyl_bc_basic_advance(fluid_species->bc_p_lo[d], fluid_species->p_bc_buffer, fluid_species->p);
           if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
-            gkyl_bc_basic_advance(fluid_species->bc_T_perp_over_m_lo[d], fluid_species->T_perp_over_m_bc_buffer, fluid_species->T_perp_over_m);
             gkyl_bc_basic_advance(fluid_species->bc_p_lo[d], fluid_species->p_bc_buffer, fluid_species->T_ij);
           }
           break;
@@ -598,7 +588,6 @@ vm_fluid_species_prim_vars_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_
           if (fluid_species->eqn_id == GKYL_EQN_EULER || fluid_species->eqn_id == GKYL_EQN_EULER_PKPM)
             gkyl_bc_basic_advance(fluid_species->bc_p_up[d], fluid_species->p_bc_buffer, fluid_species->p);
           if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
-            gkyl_bc_basic_advance(fluid_species->bc_T_perp_over_m_up[d], fluid_species->T_perp_over_m_bc_buffer, fluid_species->T_perp_over_m);
             gkyl_bc_basic_advance(fluid_species->bc_p_up[d], fluid_species->p_bc_buffer, fluid_species->T_ij);
           }
           break;
@@ -644,14 +633,10 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
   }
   if (f->eqn_id == GKYL_EQN_EULER_PKPM) {
     gkyl_array_release(f->T_perp_over_m);
-    gkyl_array_release(f->T_perp_over_m_bc_buffer);
-    gkyl_array_release(f->div_b);
-    gkyl_array_release(f->bb_grad_u);
-    gkyl_array_release(f->div_p);
-    gkyl_array_release(f->p_force);
-    gkyl_array_release(f->p_perp_source);
-    gkyl_array_release(f->p_perp_div_b);
+    gkyl_array_release(f->T_perp_over_m_inv);
     gkyl_array_release(f->T_ij);
+    gkyl_array_release(f->div_p);
+    gkyl_array_release(f->pkpm_accel_vars);
   }
   if (f->has_advect) {
     gkyl_array_release(f->advect);
@@ -684,10 +669,6 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
     if (f->eqn_id == GKYL_EQN_EULER || f->eqn_id == GKYL_EQN_EULER_PKPM) {
       gkyl_bc_basic_release(f->bc_p_lo[d]);
       gkyl_bc_basic_release(f->bc_p_up[d]);
-    }
-    if (f->eqn_id == GKYL_EQN_EULER_PKPM) {
-      gkyl_bc_basic_release(f->bc_T_perp_over_m_lo[d]);
-      gkyl_bc_basic_release(f->bc_T_perp_over_m_up[d]);      
     }
   }
 }

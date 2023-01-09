@@ -1,15 +1,18 @@
 #include <gkyl_euler_kernels.h> 
 #include <gkyl_basis_ser_2x_p1_inv.h> 
 GKYL_CU_DH void euler_pkpm_prim_vars_2x_ser_p1(const double *bvar, const double *vlasov_pkpm_moms, const double *statevec, 
-  double* u_i, double* p_ij, double* T_ij, double* T_perp_over_m) 
+  double* u_i, double* p_ij, double* T_ij, 
+  double* rho_inv, double* T_perp_over_m, double* T_perp_over_m_inv) 
 { 
-  // bvar:             Magnetic field unit vector and tensor.
-  // vlasov_pkpm_moms: [rho, p_parallel, p_perp], Moments computed from kinetic equation in pkpm model.
-  // statevec:         [rho ux, rho uy, rho uz], Fluid input state vector.
-  // u_i:              Output flow velocity [ux, uy, uz].
-  // p_ij:             Output pressure tensor, p_ij = (p_parallel - p_perp)bb + p_perp I.
-  // T_ij:             Output Temperature tensor for penalization T_ij = 3.0*p_ij/rho.
-  // T_perp_over_m:    Output T_perp/m = p_perp/rho.
+  // bvar:              Magnetic field unit vector and tensor.
+  // vlasov_pkpm_moms:  [rho, p_parallel, p_perp], Moments computed from kinetic equation in pkpm model.
+  // statevec:          [rho ux, rho uy, rho uz], Fluid input state vector.
+  // u_i:               Output flow velocity [ux, uy, uz].
+  // p_ij:              Output pressure tensor, p_ij = (p_parallel - p_perp)bb + p_perp I.
+  // T_ij:              Output Temperature tensor for penalization T_ij = 3.0*p_ij/rho.
+  // rho_inv:           Output 1/rho.
+  // T_perp_over_m:     Output p_perp/rho = T_perp/m.
+  // T_perp_over_m_inv: Output (T_perp/m)^-1.
 
   const double *rhoux = &statevec[0]; 
   const double *rhouy = &statevec[4]; 
@@ -40,7 +43,6 @@ GKYL_CU_DH void euler_pkpm_prim_vars_2x_ser_p1(const double *bvar, const double 
   double *Tyy = &T_ij[12]; 
   double *Tzz = &T_ij[20]; 
 
-  double rho_inv[4] = {0.0}; 
   ser_2x_p1_inv(rho, rho_inv); 
   ux[0] = 0.5*rho_inv[3]*rhoux[3]+0.5*rho_inv[2]*rhoux[2]+0.5*rho_inv[1]*rhoux[1]+0.5*rho_inv[0]*rhoux[0]; 
   ux[1] = 0.5*rho_inv[2]*rhoux[3]+0.5*rhoux[2]*rho_inv[3]+0.5*rho_inv[0]*rhoux[1]+0.5*rhoux[0]*rho_inv[1]; 
@@ -105,4 +107,5 @@ GKYL_CU_DH void euler_pkpm_prim_vars_2x_ser_p1(const double *bvar, const double 
   T_perp_over_m[1] = 0.5*p_perp[2]*rho_inv[3]+0.5*rho_inv[2]*p_perp[3]+0.5*p_perp[0]*rho_inv[1]+0.5*rho_inv[0]*p_perp[1]; 
   T_perp_over_m[2] = 0.5*p_perp[1]*rho_inv[3]+0.5*rho_inv[1]*p_perp[3]+0.5*p_perp[0]*rho_inv[2]+0.5*rho_inv[0]*p_perp[2]; 
   T_perp_over_m[3] = 0.5*p_perp[0]*rho_inv[3]+0.5*rho_inv[0]*p_perp[3]+0.5*p_perp[1]*rho_inv[2]+0.5*rho_inv[1]*p_perp[2]; 
+  ser_2x_p1_inv(T_perp_over_m, T_perp_over_m_inv); 
 } 

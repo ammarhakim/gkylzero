@@ -18,19 +18,13 @@ extern "C" {
 __global__ static void
 gkyl_vlasov_pkpm_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
   const struct gkyl_array *bvar, const struct gkyl_array *u_i, 
-  const struct gkyl_array *bb_grad_u, const struct gkyl_array *p_force, 
-  const struct gkyl_array *div_b, const struct gkyl_array *p_perp_source, 
-  const struct gkyl_array *p_perp_div_b, const struct gkyl_array *g_dist_source, 
+  const struct gkyl_array *pkpm_accel_vars, const struct gkyl_array *g_dist_source, 
   const struct gkyl_array *vth_sq)
 {
   struct dg_vlasov_pkpm *vlasov_pkpm = container_of(eqn, struct dg_vlasov_pkpm, eqn);
   vlasov_pkpm->auxfields.bvar = bvar;
   vlasov_pkpm->auxfields.u_i = u_i;
-  vlasov_pkpm->auxfields.bb_grad_u = bb_grad_u;
-  vlasov_pkpm->auxfields.p_force = p_force;
-  vlasov_pkpm->auxfields.div_b = div_b;
-  vlasov_pkpm->auxfields.p_perp_source = p_perp_source;
-  vlasov_pkpm->auxfields.p_perp_div_b = p_perp_div_b;
+  vlasov_pkpm->auxfields.pkpm_accel_vars = pkpm_accel_vars;
   vlasov_pkpm->auxfields.g_dist_source = g_dist_source;
   vlasov_pkpm->auxfields.vth_sq = vth_sq;
 }
@@ -41,9 +35,7 @@ gkyl_vlasov_pkpm_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_
 {
   gkyl_vlasov_pkpm_set_auxfields_cu_kernel<<<1,1>>>(eqn, 
     auxin.bvar->on_dev, auxin.u_i->on_dev, 
-    auxin.bb_grad_u->on_dev, auxin.p_force->on_dev, 
-    auxin.div_b->on_dev, auxin.p_perp_source->on_dev, 
-    auxin.p_perp_div_b->on_dev, auxin.g_dist_source->on_dev, 
+    auxin.pkpm_accel_vars->on_dev, auxin.g_dist_source->on_dev, 
     auxin.vth_sq->on_dev);
 }
 
@@ -55,11 +47,7 @@ dg_vlasov_pkpm_set_cu_dev_ptrs(struct dg_vlasov_pkpm *vlasov_pkpm, enum gkyl_bas
 {
   vlasov_pkpm->auxfields.bvar = 0;  
   vlasov_pkpm->auxfields.u_i = 0;
-  vlasov_pkpm->auxfields.bb_grad_u = 0;
-  vlasov_pkpm->auxfields.p_force = 0;  
-  vlasov_pkpm->auxfields.div_b = 0;
-  vlasov_pkpm->auxfields.p_perp_source = 0;
-  vlasov_pkpm->auxfields.p_perp_div_b = 0;
+  vlasov_pkpm->auxfields.pkpm_accel_vars = 0;
   vlasov_pkpm->auxfields.g_dist_source = 0;
   vlasov_pkpm->auxfields.vth_sq = 0;  
   

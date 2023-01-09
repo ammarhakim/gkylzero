@@ -321,22 +321,25 @@ struct vm_fluid_species {
 
   struct gkyl_array *u; // array for fluid/advection velocity
   struct gkyl_array *p; // array for pressure (used by Euler (1 component) and pkpm Euler (6 components))
-  struct gkyl_array *T_perp_over_m; // array for T_perp/m = p_perp/rho 
+  struct gkyl_array *rho_inv; // array for 1/rho
+  struct gkyl_array *T_perp_over_m; // array for p_perp/rho = T_perp/m
+  struct gkyl_array *T_perp_over_m_inv; // array for (T_perp/m)^-1 
+  struct gkyl_array *T_ij; // Temperature tensor for penalization T_ij = 3.0*P_ij/rho
 
   struct gkyl_array *u_bc_buffer; // buffer for applying BCs to flow
   struct gkyl_array *p_bc_buffer; // buffer for applying BCs to pressure
-  struct gkyl_array *T_perp_over_m_bc_buffer; // buffer for applying BCs to T_perp/m
   
   struct gkyl_array *u_host; // array for host-side fluid/advection velocity (for I/O)
   struct gkyl_array *p_host; // array for host-side pressure (for I/O)
   // pkpm variables
-  struct gkyl_array *div_b; // div(b) used by total pressure force
-  struct gkyl_array *bb_grad_u; // bb : grad(u) for use in force term 
   struct gkyl_array *div_p; // array for divergence of the pressure tensor
-  struct gkyl_array *p_force; // Total pressure force in PKPM model 1/rho (b . div(P) - p_perp div(b))
-  struct gkyl_array *p_perp_source; // array for perpendicular pressure source
-  struct gkyl_array *p_perp_div_b; // array for 2.0*p_perp/rho*div(b)
-  struct gkyl_array *T_ij; // Temperature tensor for penalization T_ij = 3.0*P_ij/rho
+  struct gkyl_array *pkpm_accel_vars;  // Acceleration variables for pkpm, pkpm_accel_vars:
+                                       // 0: div_b (divergence of magnetic field unit vector)
+                                       // 1: bb_grad_u (bb : grad(u))
+                                       // 2: p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - T_perp/m*div(b)
+                                       // 3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - nu + nu rho vth^2/p_perp)
+                                       // 4: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
+
   double nuHyp; // Hyper-diffusion coefficient
 
   struct gkyl_array *D; // array for diffusion tensor
@@ -356,8 +359,6 @@ struct vm_fluid_species {
   struct gkyl_bc_basic *bc_u_up[3];
   struct gkyl_bc_basic *bc_p_lo[3];
   struct gkyl_bc_basic *bc_p_up[3];
-  struct gkyl_bc_basic *bc_T_perp_over_m_lo[3];
-  struct gkyl_bc_basic *bc_T_perp_over_m_up[3];
 
   // fluid advection
   bool has_advect; // flag to indicate there is advection of fluid equation

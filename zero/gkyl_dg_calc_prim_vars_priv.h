@@ -16,7 +16,8 @@ typedef void (*euler_pressure_t)(const double gas_gamma,
 
 typedef void (*euler_pkpm_prim_vars_t)(const double *bvar, 
   const double *vlasov_pkpm_moms, const double *statevec, 
-  double* u_i, double* p_ij, double* T_ij, double* T_perp_over_m); 
+  double* u_i, double* p_ij, double* T_ij, 
+  double* rho_inv, double* T_perp_over_m, double* T_perp_over_m_inv); 
 
 typedef void (*euler_pkpm_source_t)(const double* qmem, 
   const double *vlasov_pkpm_moms, const double *euler_pkpm, 
@@ -28,10 +29,12 @@ typedef void (*euler_pkpm_recovery_t)(const double *dxv, double nuHyp,
   const double *p_ijl, const double *p_ijc, const double *p_ijr, 
   const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
   const double *statevecl, const double *statevecc, const double *statevecr, 
-  const double *T_perp_over_m, const double *nu, const double *nu_vthsq, 
-  double* div_b, double* bb_grad_u, double* div_p, double* p_force, double* p_perp_source, double* p_perp_div_b); 
+  const double *rho_inv, const double *T_perp_over_m, const double *T_perp_over_m_inv, 
+  const double *nu, const double *nu_vthsq, 
+  double* div_p, double* pkpm_accel_vars); 
 
-typedef void (*pkpm_dist_mirror_force_t)(const double* T_perp_over_m, const double* f, const double* F_k_p_1, 
+typedef void (*pkpm_dist_mirror_force_t)(const double* T_perp_over_m, const double* T_perp_over_m_inv, 
+  const double* f, const double* F_k_p_1, 
   double* g_dist_source, double* F_k_m_1); 
 
 // for use in kernel tables

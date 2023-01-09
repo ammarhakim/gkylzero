@@ -173,7 +173,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       s->f_host = mkarr(false, 2*app->basis.num_basis, s->local_ext.volume);
 
     // Distribution function arrays for coupling different Laguerre moments
-    s->g_dist_source = mkarr(app->use_gpu, 2*app->basis.num_basis, s->local_ext.volume); 
+    s->g_dist_source = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume); 
     s->F_k_p_1 = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume); 
     s->F_k_m_1 = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume); 
 
@@ -543,21 +543,20 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
     if (species->model_id == GKYL_MODEL_PKPM) {
       // Calculate distrbution functions for coupling different Laguerre moments
       gkyl_calc_prim_vars_pkpm_dist_mirror_force(app->confBasis, &app->local, &species->local,
-      species->pkpm_fluid_species->T_perp_over_m, fin, species->F_k_p_1,
+      species->pkpm_fluid_species->T_perp_over_m, species->pkpm_fluid_species->T_perp_over_m_inv, 
+      fin, species->F_k_p_1, 
       species->g_dist_source, species->F_k_m_1);
 
       gkyl_dg_updater_vlasov_advance_cu(species->slvr, &species->local, 
         app->field->bvar, species->pkpm_fluid_species->u,
-        species->pkpm_fluid_species->bb_grad_u, species->pkpm_fluid_species->p_force, 
-        species->pkpm_fluid_species->div_b, species->pkpm_fluid_species->p_perp_source, 
-        species->pkpm_fluid_species->p_perp_div_b, species->g_dist_source, 
+        species->pkpm_fluid_species->pkpm_accel_vars, species->g_dist_source, 
         species->pkpm_fluid_species->T_ij, 
         fin, species->cflrate, rhs);
     }
     else {
       gkyl_dg_updater_vlasov_advance_cu(species->slvr, &species->local, 
         species->qmem, species->p_over_gamma, 
-        0, 0, 0, 0, 0, 0, 0, 
+        0, 0, 0, 
         fin, species->cflrate, rhs);    
     }
   }
@@ -565,21 +564,20 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
     if (species->model_id == GKYL_MODEL_PKPM) {
       // Calculate distrbution functions for coupling different Laguerre moments
       gkyl_calc_prim_vars_pkpm_dist_mirror_force(app->confBasis, &app->local, &species->local, 
-      species->pkpm_fluid_species->T_perp_over_m, fin, species->F_k_p_1,
+      species->pkpm_fluid_species->T_perp_over_m, species->pkpm_fluid_species->T_perp_over_m_inv, 
+      fin, species->F_k_p_1, 
       species->g_dist_source, species->F_k_m_1);
 
       gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
         app->field->bvar, species->pkpm_fluid_species->u,
-        species->pkpm_fluid_species->bb_grad_u, species->pkpm_fluid_species->p_force, 
-        species->pkpm_fluid_species->div_b, species->pkpm_fluid_species->p_perp_source, 
-        species->pkpm_fluid_species->p_perp_div_b, species->g_dist_source, 
+        species->pkpm_fluid_species->pkpm_accel_vars, species->g_dist_source, 
         species->pkpm_fluid_species->T_ij, 
         fin, species->cflrate, rhs);
     }
     else {
       gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
         species->qmem, species->p_over_gamma, 
-        0, 0, 0, 0, 0, 0, 0, 
+        0, 0, 0, 
         fin, species->cflrate, rhs);
     }
   }
