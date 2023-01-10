@@ -215,8 +215,8 @@ create_ctx(void)
   double di = vAi/omegaCi;
 
   // collision frequencies
-  double nuElc = 0.1*omegaCi;
-  double nuIon = 0.1*omegaCi/sqrt(massIon);
+  double nuElc = 0.01*omegaCi;
+  double nuIon = 0.01*omegaCi/sqrt(massIon);
 
   // OT initial conditions
   double delta_u0 = 0.2*vAi;
@@ -282,7 +282,7 @@ main(int argc, char **argv)
     .pkpm_species = "elc",
     .ctx = &ctx,
     .init = evalFluidElc,
-    //.nuHyp = 1.0e-5,
+    .nuHyp = 1.0e-5,
   };  
   
   // electrons
@@ -315,7 +315,7 @@ main(int argc, char **argv)
     .pkpm_species = "ion",
     .ctx = &ctx,
     .init = evalFluidIon,
-    //.nuHyp = 1.0e-5, 
+    .nuHyp = 1.0e-5, 
   };  
   
   // ions

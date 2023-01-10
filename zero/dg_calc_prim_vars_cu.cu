@@ -50,8 +50,8 @@ gkyl_calc_prim_vars_pkpm_cu_kernel(struct gkyl_basis basis, struct gkyl_range ra
     double *T_perp_over_m_inv_d = (double*) gkyl_array_fetch(T_perp_over_m_inv, start);
 
     pkpm_prim_vars(bvar_d, vlasov_pkpm_moms_d, euler_pkpm_d, 
-      u_i, p_ij, T_ij, 
-      rho_inv, T_perp_over_m, T_perp_over_m_inv);
+      u_i_d, p_ij_d, T_ij_d, 
+      rho_inv_d, T_perp_over_m_d, T_perp_over_m_inv_d);
   }
 }
 
@@ -167,7 +167,7 @@ gkyl_calc_prim_vars_pkpm_dist_mirror_force_cu(struct gkyl_basis basis,
   int nthreads = phase_range->nthreads;
   gkyl_calc_prim_vars_pkpm_dist_mirror_force_cu_kernel<<<nblocks, nthreads>>>(basis, *conf_range, *phase_range, 
     T_perp_over_m->on_dev, T_perp_over_m_inv->on_dev, fIn->on_dev, F_k_p_1->on_dev, 
-    g_dist_source->on_dev, F_k_m_1->on_dev)
+    g_dist_source->on_dev, F_k_m_1->on_dev);
 }
 
 __global__ void
