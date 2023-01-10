@@ -29,8 +29,11 @@ evalDistFuncSquare(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTR
   double x = xn[0], v = xn[1];
   if(v>-1.0 && v<1.0) {
     fout[0] = 0.5;
+    // T_perp/m = 1.0
+    fout[1] = 0.5;
   } else {
     fout[0] = 0.0;
+    fout[1] = 0.0;
   }
 }
 
@@ -41,11 +44,9 @@ evalFluidFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   double x = xn[0];
   
   // Finite ux (but rho*ux = 1.0)
-  // p_perp = 1.0 (slightly different than p_parallel)
   fout[0] = 1.0;
   fout[1] = 0.0;
   fout[2] = 0.0;
-  fout[3] = 1.0;
 }
 
 void
@@ -96,7 +97,7 @@ main(int argc, char **argv)
   // PKPM fluid                                                                                      
   struct gkyl_vlasov_fluid_species fluid = {
     .name = "fluid",
-    .num_eqn = 4,
+    .num_eqn = 3,
     .pkpm_species = "neut",
     .ctx = &ctx,
     .init = evalFluidFunc,

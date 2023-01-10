@@ -95,7 +95,7 @@ main(int argc, char **argv)
   // PKPM fluid                                                                                      
   struct gkyl_vlasov_fluid_species fluid = {
     .name = "fluid",
-    .num_eqn = 4,
+    .num_eqn = 3,
     .pkpm_species = "neut",
     .ctx = &ctx,
     .init = evalFluidFunc,

@@ -74,7 +74,6 @@ evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double elcTemp = app->elcTemp;
   double n0 = app->n0;
 
-  // flow velocity initialized as a tanh function to avoid issues with recovery of a step function
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 0.0;

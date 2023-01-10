@@ -17,6 +17,8 @@ evalDistFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double x = xn[0], v = xn[1];
 
   fout[0] = 1/sqrt(2*M_PI)*exp(-sq(v)/2);
+  // T_perp/m = 1.0
+  fout[1] = 1/sqrt(2*M_PI)*exp(-sq(v)/2);
 }
 
 void
@@ -27,7 +29,6 @@ evalFluid(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 0.0;
-  fout[3] = 1.0;
 }
 
 void
@@ -64,7 +65,7 @@ main(int argc, char **argv)
   // electrons
   struct gkyl_vlasov_fluid_species fluid_elc = {
     .name = "fluid_elc",
-    .num_eqn = 4,
+    .num_eqn = 3,
     .pkpm_species = "elc",
     .ctx = 0,
     .init = evalFluid,
