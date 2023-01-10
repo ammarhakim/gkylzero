@@ -144,6 +144,7 @@ main(int argc, char **argv)
     .cells = { 32 },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
+    .cfl_frac = 0.8,
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },

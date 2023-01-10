@@ -149,7 +149,7 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 256);
   int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
 
   if (app_args.trace_mem) {
@@ -242,6 +242,7 @@ main(int argc, char **argv)
     .cells = { NX },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
+    .cfl_frac = 0.8,
 
     .num_periodic_dir = 0,
     .periodic_dirs = { },
