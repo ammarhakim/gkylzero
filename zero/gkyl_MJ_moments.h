@@ -27,9 +27,10 @@ gkyl_MJ_moments *gkyl_MJ_moments_new(
   long conf_local_ncells, long conf_local_ext_ncells, bool use_gpu);
 
 /**
- * Fix the Maxwellian so that it's moments match desired moments.
+ * Update the m0, m1, and m2 moments (n, vb, T) moments of an arbitary sr
+ * distribution so they are ready as inputs to the MJ routine
  *
- * @param cMJ Maxwell correction updater 
+ * @param cMJ Maxwell-Juttner correction updater
  * @param p_over_gamma velocity array
  * @param gamma array
  * @param gamma_inv array
@@ -40,7 +41,7 @@ gkyl_MJ_moments *gkyl_MJ_moments_new(
  * @param phase_local Local phase-space range
  * @param conf_local Local configuration space range
  */
-void gkyl_MJ_moments_fix(gkyl_MJ_moments *cMJ, const struct gkyl_array *p_over_gamma,
+void gkyl_MJ_moments_advance(gkyl_MJ_moments *cMJ, const struct gkyl_array *p_over_gamma,
   const struct gkyl_array *gamma, const struct gkyl_array *gamma_inv,
   struct gkyl_array *fout,
   struct gkyl_array *m0,

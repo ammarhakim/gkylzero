@@ -10,6 +10,7 @@
 
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_vlasov_sr.h>
+#include <gkyl_array_ops_priv.h>
 
 
 struct gkyl_MJ_moments {
@@ -68,7 +69,7 @@ gkyl_MJ_moments_new(const struct gkyl_rect_grid *grid,
   return up;
 }
 
-void gkyl_MJ_moments_fix(gkyl_MJ_moments *cMJ, const struct gkyl_array *p_over_gamma,
+void gkyl_MJ_moments_advance(gkyl_MJ_moments *cMJ, const struct gkyl_array *p_over_gamma,
   const struct gkyl_array *gamma, const struct gkyl_array *gamma_inv,
   struct gkyl_array *fout,
   struct gkyl_array *m0,
@@ -130,11 +131,34 @@ void gkyl_MJ_moments_fix(gkyl_MJ_moments *cMJ, const struct gkyl_array *p_over_g
       const double *vb = gkyl_array_cfetch(cMJ->V_drift, midx);
       const double *pressure = gkyl_array_cfetch(cMJ->pressure, midx);
       const double *temperature = gkyl_array_cfetch(cMJ->temperature, midx);
+
+      // Update the moments
+      double *m0_d = gkyl_array_fetch(m0, midx);
+      double *m1i_d = gkyl_array_fetch(m1i, midx);
+      double *m2_d = gkyl_array_fetch(m2, midx);
+      array_set1(cMJ->conf_basis.ndim, m0_d, 1., num);
+      array_set1(vdim*cMJ->conf_basis.ndim, m1i_d, 1., vb);
+      array_set1(cMJ->conf_basis.ndim, m2_d, 1., temperature);
+
+      // Multiply against the bases, ONLY HERE CAN WE MULTI by *1./sqrt(2):
+      // Calclate the error: Assumes constant slope in position
+      const double error_num = 1.0 - num[0]*(1./sqrt(2));
+      const double error_vb = 0.5 - vb[0]*(1./sqrt(2));
+      const double error_temperature = 1.0 - temperature[0]*(1./sqrt(2));
+      const double error_pressure = 1.0 - pressure[0]*(1./sqrt(2));
+
       printf("\n----------- Ouptuts Start ---------\n");
       printf("num: %1.16g\n",num[0]);
       printf("vb : %1.16g\n",vb[0]);
       printf("T  : %1.16g\n",temperature[0]);
       printf("P  : %1.16g\n",pressure[0]);
+      printf("m0_d: %1.16g\n",m0_d[0]);
+      printf("m1i_d : %1.16g\n",m1i_d[0]);
+      printf("m2_d  : %1.16g\n",m2_d[0]);
+      printf("error(num): %1.16g\n",error_num);
+      printf("error(vb) : %1.16g\n",error_vb);
+      printf("error(T)  : %1.16g\n",error_temperature);
+      printf("error(P)  : %1.16g\n",error_pressure);
       printf("\n----------- Ouptuts End ---------\n");
   }
 
