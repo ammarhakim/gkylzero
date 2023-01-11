@@ -79,8 +79,10 @@ void gkyl_correct_MJ_fix(gkyl_correct_MJ *cMJ, const struct gkyl_array *p_over_g
     fout, cMJ->num_vb);
 
   // isolate vb by dividing N*vb by N
-  gkyl_dg_div_op_range(cMJ->mem, cMJ->conf_basis, 0, cMJ->num_vb,
-    0, cMJ->num_vb, 0, cMJ->num_ratio, conf_local);
+  for (int d=0; d<vdim; ++d){
+    gkyl_dg_div_op_range(cMJ->mem, cMJ->conf_basis, d, cMJ->num_vb,
+      d, cMJ->num_vb, 0, cMJ->num_ratio, conf_local);
+  }
 
   // compute number density ratio
   gkyl_dg_div_op_range(cMJ->mem, cMJ->conf_basis, 0, cMJ->num_ratio,
@@ -90,6 +92,37 @@ void gkyl_correct_MJ_fix(gkyl_correct_MJ *cMJ, const struct gkyl_array *p_over_g
   gkyl_calc_sr_vars_Gamma(&cMJ->conf_basis, &cMJ->phase_basis,
       conf_local, cMJ->num_vb, cMJ->gamma);
 
+      // Temporarily print out the n, vb, T: Recall the quantities are *1/sqrt(2)
+      // due to them being the coefficients
+    struct gkyl_range_iter biter;
+    gkyl_range_iter_init(&biter, conf_local);
+    while (gkyl_range_iter_next(&biter)) {
+        long midx = gkyl_range_idx(conf_local, biter.idx);
+
+        // Update the moments
+        const double *m0_d = gkyl_array_cfetch(m0, midx);
+        const double *m1i_d = gkyl_array_cfetch(m1i, midx);
+
+        double *num = gkyl_array_fetch(cMJ->num_ratio, midx);
+        double *vb = gkyl_array_fetch(cMJ->num_vb, midx);
+        double *gamma = gkyl_array_fetch(cMJ->gamma, midx);
+
+        printf("\n----------- Ouptuts Start (correct_MJ.c) ---------\n");
+        printf("m0_d: %1.16g\n",m0_d[0]);
+        printf("m1i_d : %1.16g\n",m1i_d[0]);
+        int i;
+        for (i = 0; i < 3; ++i){
+          printf("num[%d]: %1.16e\n",i,num[i]);
+        }
+        for (i = 0; i < 3; ++i){
+          printf("gamma[%d]: %1.16e\n",i,gamma[i]);
+        }
+        for (i = 0; i < 9; ++i){ // 9 for 3d * p2 (3*3=9 numbers)
+          printf("vb[%d] : %1.16e\n",i,vb[i]);
+        }
+        printf("\n----------- Ouptuts End (correct_MJ.c) ---------\n");
+    }
+
   // multiply the number density ratio by gamma, to account for the frame trans.
   gkyl_dg_mul_op_range(cMJ->conf_basis, 0, cMJ->num_ratio,
       0, cMJ->num_ratio, 0, cMJ->gamma, conf_local);
@@ -98,36 +131,7 @@ void gkyl_correct_MJ_fix(gkyl_correct_MJ *cMJ, const struct gkyl_array *p_over_g
   gkyl_dg_mul_conf_phase_op_range(&cMJ->conf_basis, &cMJ->phase_basis,
     fout, cMJ->num_ratio, fout, conf_local, phase_local);
 
-    // Temporarily print out the n, vb, T: Recall the quantities are *1/sqrt(2)
-    // due to them being the coefficients
-  struct gkyl_range_iter biter;
-  gkyl_range_iter_init(&biter, conf_local);
-  while (gkyl_range_iter_next(&biter)) {
-      long midx = gkyl_range_idx(conf_local, biter.idx);
 
-      // Update the moments
-      const double *m0_d = gkyl_array_cfetch(m0, midx);
-      const double *m1i_d = gkyl_array_cfetch(m1i, midx);
-
-      double *num = gkyl_array_fetch(cMJ->num_ratio, midx);
-      double *vb = gkyl_array_fetch(cMJ->num_vb, midx);
-      double *gamma = gkyl_array_fetch(cMJ->gamma, midx);
-
-      printf("\n----------- Ouptuts Start (correct_MJ.c) ---------\n");
-      printf("m0_d: %1.16g\n",m0_d[0]);
-      printf("m1i_d : %1.16g\n",m1i_d[0]);
-      int i;
-      for (i = 0; i < 3; ++i){
-        printf("num[%d]: %1.16e\n",i,num[i]);
-      }
-      for (i = 0; i < 3; ++i){
-        printf("gamma[%d]: %1.16e\n",i,gamma[i]);
-      }
-      for (i = 0; i < 9; ++i){ // 9 for 3d * p2 (3*3=9 numbers)
-        printf("vb[%d] : %1.16e\n",i,vb[i]);
-      }
-      printf("\n----------- Ouptuts End (correct_MJ.c) ---------\n");
-  }
 
 }
 
