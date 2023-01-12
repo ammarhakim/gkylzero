@@ -33,17 +33,19 @@ gkyl_ten_moment_grad_closure* gkyl_ten_moment_grad_closure_new(struct gkyl_ten_m
  * gkyl_sub_range_init method.
  *
  * @param gces Gradient closure updater object.
- * @param update_rng Range on which to compute.
- * @param fluid Input array of fluid variables (array size: nfluids)
+ * @param heat_flux_rng Range on which to compute heat flux tensor (cell nodes)
+ * @param update_rng Range on which to compute update.
+ * @param fluid Input array of fluid variables 
  * @param em Total EM variables (plasma + external)
- * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
+ * @param cflrate CFL scalar rate (frequency: units of 1/[T]) 
+ * @param heat_flux Array for storing intermediate computation of heat flux tensor (cell nodes)
  * @param rhs RHS output (NOTE: Returns RHS output of all nfluids)
  */
 
 void gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces, 
-  const struct gkyl_range *update_rng,
+  const struct gkyl_range *heat_flux_range, const struct gkyl_range *update_range,
   const struct gkyl_array *fluid, const struct gkyl_array *em_tot,
-  struct gkyl_array *cflrate, struct gkyl_array *rhs);
+  struct gkyl_array *cflrate, struct gkyl_array *heat_flux, struct gkyl_array *rhs);
 
 /**
  * Delete updater.

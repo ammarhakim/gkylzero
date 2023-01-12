@@ -139,10 +139,15 @@ struct moment_field {
 
 // Source data
 struct moment_coupling {
-  gkyl_moment_em_coupling *slvr; // source solver function
+  struct gkyl_rect_grid non_ideal_grid; // grid for braginskii variables (braginskii variables located at cell nodes)
+  struct gkyl_range non_ideal_local, non_ideal_local_ext; // local, local-ext ranges for braginskii variables (loop over nodes)
+
   gkyl_ten_moment_grad_closure *grad_closure_slvr[GKYL_MAX_SPECIES]; // Gradient-based closure solver (if present)
-  struct gkyl_array *cflrate; // array for stable time-step from non-ideal terms
-  struct gkyl_array *rhs[GKYL_MAX_SPECIES]; // array for storing RHS of each species from non-ideal term updates (Braginskii/Gradient-based closure)
+  struct gkyl_array *non_ideal_cflrate[GKYL_MAX_SPECIES]; // array for stable time-step from non-ideal terms
+  struct gkyl_array *non_ideal_vars[GKYL_MAX_SPECIES]; // array for non-ideal variables (heat-flux tensor)
+  struct gkyl_array *rhs[GKYL_MAX_SPECIES]; // array for storing RHS of each species from non-ideal term updates (Gradient-based closure)
+
+  gkyl_moment_em_coupling *slvr; // source solver function
 };
 
 struct mhd_src {
