@@ -393,7 +393,7 @@ gkyl_moment_app_release(gkyl_moment_app* app)
     moment_field_release(&app->field);
 
   if (app->update_sources)
-    moment_coupling_release(&app->sources);
+    moment_coupling_release(app, &app->sources);
 
   if (app->update_mhd_source)
     mhd_src_release(&app->mhd_source);

@@ -28,6 +28,7 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_ten_moment_grad_closure.h>
 #include <gkyl_util.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
@@ -43,6 +44,7 @@ struct moment_species {
   double charge, mass;
   
   double k0; // closure parameter (default is 0.0, used by 10 moment)
+  bool has_grad_closure; // has gradient-based closure (only for 10 moment)
 
   int evolve; // evolve species? 1-yes, 0-no
 
@@ -138,6 +140,9 @@ struct moment_field {
 // Source data
 struct moment_coupling {
   gkyl_moment_em_coupling *slvr; // source solver function
+  gkyl_ten_moment_grad_closure *grad_closure_slvr[GKYL_MAX_SPECIES]; // Gradient-based closure solver (if present)
+  struct gkyl_array *cflrate; // array for stable time-step from non-ideal terms
+  struct gkyl_array *rhs[GKYL_MAX_SPECIES]; // array for storing RHS of each species from non-ideal term updates (Braginskii/Gradient-based closure)
 };
 
 struct mhd_src {
@@ -231,6 +236,9 @@ bool check_for_nans(const struct gkyl_array *q, struct gkyl_range update_rng);
 void moment_apply_periodic_bc(const gkyl_moment_app *app, struct gkyl_array *bc_buffer,
   int dir, struct gkyl_array *f);
 
+// Apply periodic BCs to corner cells of "f" (ONLY WORKS IN 2D)
+void moment_apply_periodic_corner_sync_2d(const gkyl_moment_app *app, struct gkyl_array *f);
+
 // Apply wedge-periodic BCs to array "f"
 void moment_apply_wedge_bc(const gkyl_moment_app *app, double tcurr,
   const struct gkyl_range *update_rng, struct gkyl_array *bc_buffer,
@@ -310,7 +318,7 @@ void moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   int nstrang, double tcurr, double dt);
 
 // Release coupling sources
-void moment_coupling_release(const struct moment_coupling *src);
+void moment_coupling_release(const struct gkyl_moment_app *app, const struct moment_coupling *src);
 
 /** Top-level app API */
 

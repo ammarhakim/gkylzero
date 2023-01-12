@@ -12,6 +12,7 @@
 struct gkyl_moment_species {
   char name[128]; // species name
   double charge, mass; // charge and mass
+  bool has_grad_closure; // has gradient-based closure (only for 10 moment)
   enum gkyl_wave_limiter limiter; // limiter to use
   struct gkyl_wv_eqn *equation; // equation object
 
