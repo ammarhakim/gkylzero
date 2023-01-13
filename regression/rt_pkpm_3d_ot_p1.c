@@ -236,9 +236,9 @@ create_ctx(void)
   double Te_Ti = 1.0; // ratio of electron to ion temperature
   double n0 = 1.0; // initial number density
 
-  double vAe = 0.25;
+  double vAe = 0.5;
   double B0 = vAe*sqrt(mu0*n0*massElc);
-  double beta = 0.5;
+  double beta = 0.08;
   double vtElc = vAe*sqrt(beta/2.0);
 
   // ion velocities
@@ -254,15 +254,15 @@ create_ctx(void)
   double nuIon = 0.01*omegaCi/sqrt(massIon);
 
   // OT initial conditions
-  double elong = 4.0;
+  double elong = 5.0;
   double u0x = vAi/elong;
   double u0y = vAi/elong;
   double B0x = B0/elong;
   double B0y = B0/elong;
 
   // domain size and simulation time
-  double L = 10.0*M_PI*di;
-  double Lz = elong*10.0*M_PI*di;
+  double L = 20.48*di;
+  double Lz = elong*L;
   double tend = 100.0/omegaCi;
   
   struct pkpm_ot_ctx ctx = {
@@ -305,7 +305,7 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 64);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 16);
   int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
 
   if (app_args.trace_mem) {
@@ -322,7 +322,7 @@ main(int argc, char **argv)
     .pkpm_species = "elc",
     .ctx = &ctx,
     .init = evalFluidElc,
-    .nuHyp = 1.0e-5,
+    .nuHyp = 1.0e-2,
   };  
   
   // electrons
@@ -355,7 +355,7 @@ main(int argc, char **argv)
     .pkpm_species = "ion",
     .ctx = &ctx,
     .init = evalFluidIon,
-    .nuHyp = 1.0e-5, 
+    .nuHyp = 1.0e-2, 
   };  
   
   // ions
@@ -398,7 +398,7 @@ main(int argc, char **argv)
     .cdim = 3, .vdim = 1,
     .lower = { 0.0, 0.0, 0.0 },
     .upper = { ctx.L, ctx.L, ctx.Lz },
-    .cells = { NX, NX, NX },
+    .cells = { NX, NX, 5*NX },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
     //.cfl_frac = 0.8,
