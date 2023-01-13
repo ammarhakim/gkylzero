@@ -117,14 +117,14 @@ void
 evalNuElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_brio_wu_ctx *app = ctx;
-  fout[0] = 1.0e-4;
+  fout[0] = 4.0e-5;
 }
 
 void
 evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_brio_wu_ctx *app = ctx;
-  fout[0] = 1.0e-4/sqrt(app->massIon);
+  fout[0] = 4.0e-5/sqrt(app->massIon);
 }
 
 struct pkpm_brio_wu_ctx
@@ -135,10 +135,10 @@ create_ctx(void)
     .massElc = 1.0,
     .chargeIon = 1.0,
     .massIon = 1836.153,
-    .vte = 0.08,
+    .vte = 0.04,
     .vti = ctx.vte/sqrt(ctx.massIon),
     .beta = 0.1, 
-    .Lx = 128.0,
+    .Lx = 409.6,
     .n0 = 1.0
   };
   return ctx;
@@ -149,8 +149,8 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 256);
-  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 448);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 64);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -165,6 +165,7 @@ main(int argc, char **argv)
     .pkpm_species = "elc",
     .ctx = &ctx,
     .init = evalFluidElc,
+    .nuHyp = 1.0e-5,
   };  
   
   // electrons
@@ -173,8 +174,8 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_PKPM,
     .pkpm_fluid_species = "fluid_elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
-    .lower = { -12.0 * ctx.vte},
-    .upper = { 12.0 * ctx.vte}, 
+    .lower = { -16.0 * ctx.vte},
+    .upper = { 16.0 * ctx.vte}, 
     .cells = { VX },
 
     .ctx = &ctx,
@@ -197,6 +198,7 @@ main(int argc, char **argv)
     .pkpm_species = "ion",
     .ctx = &ctx,
     .init = evalFluidIon,
+    .nuHyp = 1.0e-5,
   };  
   
   // ions
@@ -205,8 +207,8 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_PKPM,
     .pkpm_fluid_species = "fluid_ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
-    .lower = { -6.0 * ctx.vti},
-    .upper = { 6.0 * ctx.vti}, 
+    .lower = { -16.0 * ctx.vti},
+    .upper = { 16.0 * ctx.vti}, 
     .cells = { VX },
 
     .ctx = &ctx,
@@ -260,7 +262,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 20.0;
+  double tcurr = 0.0, tend = 10000.0;
   double dt = tend-tcurr;
 
   // initialize simulation
