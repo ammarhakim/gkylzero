@@ -133,13 +133,13 @@ create_default_ctx(void)
     .T = 0.1,
     .vdrift = 0.0,
     .grav = 1.0,
-    .J_0 = 2.0,
+    .J_0 = 0.5,
     .Lx = 100.0,
     .perturb = 1.0e-4,
-    .elc_pmax = 2048.0,
-    .Nv_elc = 32768,
-    .pos_pmax = 64.0,
-    .Nv_pos = 1024,
+    .elc_pmax = 512.0,
+    .Nv_elc = 8192,
+    .pos_pmax = 512.0,
+    .Nv_pos = 8192,
   };
 }
 
@@ -228,7 +228,7 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "pulsar_atm_sr",
+    .name = "pulsar_atm_sr_sub_GJ",
     
     .cdim = 1, .vdim = 1,
     .lower = { 0.0 },
@@ -252,9 +252,9 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 100.0;
+  double tcurr = 0.0, tend = 500.0;
   double dt = tend-tcurr;
-  int nframe = 50;
+  int nframe = 100;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
