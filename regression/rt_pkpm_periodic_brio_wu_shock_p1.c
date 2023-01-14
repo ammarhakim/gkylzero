@@ -37,7 +37,7 @@ evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   double vt = app->vte, n0 = app->n0;
   double mass = app->massElc;
   double Lx = app->Lx;
-  if (x<0.5*Lx) {
+  if (abs(x)<0.5*Lx) {
     fout[0] = maxwellian(n0, v, 0.0, vt);
     fout[1] = vt*vt*maxwellian(n0, v, 0.0, vt);
   }
@@ -55,7 +55,7 @@ evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   double vt = app->vti, n0 = app->n0;
   double mass = app->massIon;
   double Lx = app->Lx;
-  if (x<0.5*Lx) {
+  if (abs(x)<0.5*Lx) {
     fout[0] = maxwellian(n0, v, 0.0, vt);
     fout[1] = vt*vt*maxwellian(n0, v, 0.0, vt);
   }
@@ -105,7 +105,7 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double B0 = sqrt(2.0*n0*Telc/beta);
   double B_x = B0/sqrt(2.0);
   double B_z = 0.0;
-  if (x<0.5*Lx)
+  if (abs(x)<0.5*Lx)
     B_z = B0/sqrt(2.0);
   else
     B_z = -B0/sqrt(2.0);
@@ -162,7 +162,7 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 1792);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 3584);
   int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 96);
 
   if (app_args.trace_mem) {
@@ -249,18 +249,18 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "pkpm_brio_wu_p1",
+    .name = "pkpm_periodic_brio_wu_p1",
 
     .cdim = 1, .vdim = 1,
-    .lower = { 0.0 },
+    .lower = { -ctx.Lx },
     .upper = { ctx.Lx },
     .cells = { NX },
     .poly_order = 1,
     .basis_type = app_args.basis_type, 
     .cfl_frac = 0.5,
 
-    .num_periodic_dir = 0,
-    .periodic_dirs = { },
+    .num_periodic_dir = 1,
+    .periodic_dirs = { 0 },
 
     .num_species = 2,
     .species = { elc, ion },
