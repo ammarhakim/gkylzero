@@ -42,62 +42,6 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
     // primitive moment calculators
     lbo->coll_pcalc = gkyl_prim_lbo_vlasov_pkpm_calc_new(&s->grid, 
       &app->confBasis, &app->basis, &app->local, app->use_gpu);
-
-    // Since PKPM used vth^2 to penalize fluxes, need to apply BCs to vth^2
-    // allocate buffer for applying BCs
-    long buff_sz = 0;
-    // compute buffer size needed
-    for (int d=0; d<app->cdim; ++d) {
-      long vol = app->skin_ghost.lower_skin[d].volume;
-      buff_sz = buff_sz > vol ? buff_sz : vol;
-    }
-    lbo->bc_buffer = mkarr(app->use_gpu, app->confBasis.num_basis, buff_sz);
-
-    // determine which directions are not periodic
-    int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
-    for (int d=0; d<num_periodic_dir; ++d)
-      is_np[app->periodic_dirs[d]] = 0;
-
-    for (int dir=0; dir<app->cdim; ++dir) {
-      lbo->lower_bc[dir] = lbo->upper_bc[dir] = GKYL_SPECIES_COPY;
-      if (is_np[dir]) {
-        const enum gkyl_species_bc_type *bc;
-        // Use vm_species to get BC type if not periodic
-        if (dir == 0)
-          bc = s->info.bcx;
-        else if (dir == 1)
-          bc = s->info.bcy;
-        else
-          bc = s->info.bcz;
-
-        lbo->lower_bc[dir] = bc[0];
-        lbo->upper_bc[dir] = bc[1];
-      }
-    }
-
-    int ghost[GKYL_MAX_DIM] = {0.0};
-    for (int d=0; d<app->cdim; ++d)
-      ghost[d] = 1;
-
-    for (int d=0; d<app->cdim; ++d) {
-      // Lower BC updater. Copy BCs by default.
-      enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
-      if (lbo->lower_bc[d] == GKYL_SPECIES_COPY)
-        bctype = GKYL_BC_COPY;
-      else if (lbo->lower_bc[d] == GKYL_SPECIES_ABSORB)
-        bctype = GKYL_BC_ABSORB;
-
-      lbo->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &app->local_ext, ghost, bctype,
-                                      app->basis_on_dev.confBasis, lbo->prim_moms->ncomp, app->cdim, app->use_gpu);
-      // Upper BC updater. Copy BCs by default.
-      if (lbo->upper_bc[d] == GKYL_SPECIES_COPY)
-        bctype = GKYL_BC_COPY;
-      else if (lbo->upper_bc[d] == GKYL_SPECIES_ABSORB)
-        bctype = GKYL_BC_ABSORB;
-
-      lbo->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &app->local_ext, ghost, bctype,
-                                      app->basis_on_dev.confBasis, lbo->prim_moms->ncomp, app->cdim, app->use_gpu);
-    }
   }
   else {
     lbo->boundary_corrections = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
@@ -205,8 +149,6 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
       gkyl_prim_lbo_calc_advance_cu(lbo->coll_pcalc, &app->local, 
         species->pkpm_moms.marr, lbo->boundary_corrections,
         lbo->prim_moms);
-      // Apply BCs to vth^2 for use in penalization
-      vm_species_lbo_apply_bc(app, lbo);
       // PKPM model only has vth^2
       gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_prim_moms, 0, lbo->prim_moms, 0, lbo->self_nu);
     }
@@ -235,8 +177,6 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
       gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, &app->local, 
         species->pkpm_moms.marr, lbo->boundary_corrections,
         lbo->prim_moms);
-      // Apply BCs to vth^2 for use in penalization
-      vm_species_lbo_apply_bc(app, lbo);
       // PKPM model only has vth^2
       gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_prim_moms, 0, lbo->prim_moms, 0, lbo->self_nu);
     }
@@ -334,57 +274,6 @@ vm_species_lbo_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   return 0;
 }
 
-// Determine which directions are periodic and which directions are copy,
-// and then apply boundary conditions to primitive moments (only used by PKPM)
-void
-vm_species_lbo_apply_bc(gkyl_vlasov_app *app, const struct vm_lbo_collisions *lbo)
-{
-  int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
-  int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
-  for (int d=0; d<num_periodic_dir; ++d) {
-    gkyl_array_copy_to_buffer(lbo->bc_buffer->data, lbo->prim_moms, app->skin_ghost.lower_skin[d]);
-    gkyl_array_copy_from_buffer(lbo->prim_moms, lbo->bc_buffer->data, app->skin_ghost.upper_ghost[d]);
-
-    gkyl_array_copy_to_buffer(lbo->bc_buffer->data, lbo->prim_moms, app->skin_ghost.upper_skin[d]);
-    gkyl_array_copy_from_buffer(lbo->prim_moms, lbo->bc_buffer->data, app->skin_ghost.lower_ghost[d]);
-    is_np_bc[app->periodic_dirs[d]] = 0;
-  }
-  for (int d=0; d<cdim; ++d) {
-    if (is_np_bc[d]) {
-
-      switch (lbo->lower_bc[d]) {
-        case GKYL_SPECIES_COPY:
-        case GKYL_SPECIES_ABSORB:
-          gkyl_bc_basic_advance(lbo->bc_lo[d], lbo->bc_buffer, lbo->prim_moms);
-          break;
-        case GKYL_SPECIES_REFLECT:
-        case GKYL_SPECIES_NO_SLIP:
-        case GKYL_SPECIES_WEDGE:
-        case GKYL_SPECIES_FIXED_FUNC:
-          assert(false);
-          break;
-        default:
-          break;
-      }
-
-      switch (lbo->upper_bc[d]) {
-        case GKYL_SPECIES_COPY:
-        case GKYL_SPECIES_ABSORB:
-          gkyl_bc_basic_advance(lbo->bc_up[d], lbo->bc_buffer, lbo->prim_moms);
-          break;
-        case GKYL_SPECIES_REFLECT:
-        case GKYL_SPECIES_NO_SLIP:
-        case GKYL_SPECIES_WEDGE:
-        case GKYL_SPECIES_FIXED_FUNC:
-          assert(false);
-          break;
-        default:
-          break;
-      }
-    }
-  }
-}
-
 void 
 vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_collisions *lbo)
 {
@@ -397,14 +286,6 @@ vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_co
   if (lbo->model_id != GKYL_MODEL_PKPM) {
     gkyl_array_release(lbo->m0);
     vm_species_moment_release(app, &lbo->moms);
-  }
-  else {
-    // Copy BCs are allocated by default for PKPM. Need to free.
-    for (int d=0; d<app->cdim; ++d) {
-      gkyl_bc_basic_release(lbo->bc_lo[d]);
-      gkyl_bc_basic_release(lbo->bc_up[d]);
-    }
-    gkyl_array_release(lbo->bc_buffer);
   }
 
   gkyl_mom_calc_bcorr_release(lbo->bcorr_calc);
