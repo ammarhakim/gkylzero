@@ -28,7 +28,7 @@ gkyl_mom_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
 
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_mom_vlasov_pkpm_cu_dev_new(cbasis, pbasis, mass);
+    return gkyl_mom_vlasov_pkpm_cu_dev_new(cbasis, pbasis, mass, diag);
   } 
 #endif    
   struct mom_type_vlasov_pkpm *mom_vlasov_pkpm = gkyl_malloc(sizeof(struct mom_type_vlasov_pkpm));
