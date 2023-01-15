@@ -49,8 +49,13 @@ GKYL_CU_DH void em_bvar_1x_ser_p1(const double *em, double* bvar)
   magB_sq[1] = B_z_sq[1]+B_y_sq[1]+B_x_sq[1]; 
 
   bool notCellAvg = true;
-  if (notCellAvg && (0.7071067811865475*magB_sq[0]-1.224744871391589*magB_sq[1] < 0)) notCellAvg = false; 
-  if (notCellAvg && (1.224744871391589*magB_sq[1]+0.7071067811865475*magB_sq[0] < 0)) notCellAvg = false; 
+  // Check if either Bx^2, By^2, or Bz^2 < 0 at control points. 
+  if (notCellAvg && (0.7071067811865475*B_x_sq[0]-1.224744871391589*B_x_sq[1] < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.7071067811865475*B_y_sq[0]-1.224744871391589*B_y_sq[1] < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.7071067811865475*B_z_sq[0]-1.224744871391589*B_z_sq[1] < 0)) notCellAvg = false; 
+  if (notCellAvg && (1.224744871391589*B_x_sq[1]+0.7071067811865475*B_x_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && (1.224744871391589*B_y_sq[1]+0.7071067811865475*B_y_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && (1.224744871391589*B_z_sq[1]+0.7071067811865475*B_z_sq[0] < 0)) notCellAvg = false; 
   double magB_sq_inv[2] = {0.0}; 
 
   // Calculate expansions of B_i B_j/|B|^2, which can be calculated free of aliasing errors. 
@@ -75,7 +80,7 @@ GKYL_CU_DH void em_bvar_1x_ser_p1(const double *em, double* bvar)
   bzbz[1] = 0.7071067811865475*B_z_sq[0]*magB_sq_inv[1]+0.7071067811865475*magB_sq_inv[0]*B_z_sq[1]; 
 
   } else { 
-  // If |B|^2 < 0 at control points, only use cell average to get 1/|B|^2. 
+  // If either Bx^2, By^2, or Bz^2 < 0 at control points, only use cell average to get 1/|B|^2. 
   magB_sq_inv[0] = 2.0/magB_sq[0]; 
   bxbx[0] = 0.7071067811865475*B_x_sq[1]*magB_sq_inv[1]+0.7071067811865475*B_x_sq[0]*magB_sq_inv[0]; 
   bxby[0] = 0.7071067811865475*B_x_B_y[1]*magB_sq_inv[1]+0.7071067811865475*B_x_B_y[0]*magB_sq_inv[0]; 

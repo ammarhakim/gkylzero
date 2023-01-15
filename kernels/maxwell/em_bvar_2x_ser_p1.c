@@ -57,10 +57,19 @@ GKYL_CU_DH void em_bvar_2x_ser_p1(const double *em, double* bvar)
   magB_sq[3] = B_z_sq[3]+B_y_sq[3]+B_x_sq[3]; 
 
   bool notCellAvg = true;
-  if (notCellAvg && (1.5*magB_sq[3]-0.8660254037844386*magB_sq[2]-0.8660254037844386*magB_sq[1]+0.5*magB_sq[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && ((-1.5*magB_sq[3])-0.8660254037844386*magB_sq[2]+0.8660254037844386*magB_sq[1]+0.5*magB_sq[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && ((-1.5*magB_sq[3])+0.8660254037844386*magB_sq[2]-0.8660254037844386*magB_sq[1]+0.5*magB_sq[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (1.5*magB_sq[3]+0.8660254037844386*magB_sq[2]+0.8660254037844386*magB_sq[1]+0.5*magB_sq[0] < 0)) notCellAvg = false; 
+  // Check if either Bx^2, By^2, or Bz^2 < 0 at control points. 
+  if (notCellAvg && (1.5*B_x_sq[3]-0.8660254037844386*B_x_sq[2]-0.8660254037844386*B_x_sq[1]+0.5*B_x_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && (1.5*B_y_sq[3]-0.8660254037844386*B_y_sq[2]-0.8660254037844386*B_y_sq[1]+0.5*B_y_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && (1.5*B_z_sq[3]-0.8660254037844386*B_z_sq[2]-0.8660254037844386*B_z_sq[1]+0.5*B_z_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && ((-1.5*B_x_sq[3])-0.8660254037844386*B_x_sq[2]+0.8660254037844386*B_x_sq[1]+0.5*B_x_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && ((-1.5*B_y_sq[3])-0.8660254037844386*B_y_sq[2]+0.8660254037844386*B_y_sq[1]+0.5*B_y_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && ((-1.5*B_z_sq[3])-0.8660254037844386*B_z_sq[2]+0.8660254037844386*B_z_sq[1]+0.5*B_z_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && ((-1.5*B_x_sq[3])+0.8660254037844386*B_x_sq[2]-0.8660254037844386*B_x_sq[1]+0.5*B_x_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && ((-1.5*B_y_sq[3])+0.8660254037844386*B_y_sq[2]-0.8660254037844386*B_y_sq[1]+0.5*B_y_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && ((-1.5*B_z_sq[3])+0.8660254037844386*B_z_sq[2]-0.8660254037844386*B_z_sq[1]+0.5*B_z_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && (1.5*B_x_sq[3]+0.8660254037844386*B_x_sq[2]+0.8660254037844386*B_x_sq[1]+0.5*B_x_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && (1.5*B_y_sq[3]+0.8660254037844386*B_y_sq[2]+0.8660254037844386*B_y_sq[1]+0.5*B_y_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && (1.5*B_z_sq[3]+0.8660254037844386*B_z_sq[2]+0.8660254037844386*B_z_sq[1]+0.5*B_z_sq[0] < 0)) notCellAvg = false; 
   double magB_sq_inv[4] = {0.0}; 
 
   // Calculate expansions of B_i B_j/|B|^2, which can be calculated free of aliasing errors. 
@@ -97,7 +106,7 @@ GKYL_CU_DH void em_bvar_2x_ser_p1(const double *em, double* bvar)
   bzbz[3] = 0.5*B_z_sq[0]*magB_sq_inv[3]+0.5*magB_sq_inv[0]*B_z_sq[3]+0.5*B_z_sq[1]*magB_sq_inv[2]+0.5*magB_sq_inv[1]*B_z_sq[2]; 
 
   } else { 
-  // If |B|^2 < 0 at control points, only use cell average to get 1/|B|^2. 
+  // If either Bx^2, By^2, or Bz^2 < 0 at control points, only use cell average to get 1/|B|^2. 
   magB_sq_inv[0] = 4.0/magB_sq[0]; 
   bxbx[0] = 0.5*B_x_sq[3]*magB_sq_inv[3]+0.5*B_x_sq[2]*magB_sq_inv[2]+0.5*B_x_sq[1]*magB_sq_inv[1]+0.5*B_x_sq[0]*magB_sq_inv[0]; 
   bxby[0] = 0.5*B_x_B_y[3]*magB_sq_inv[3]+0.5*B_x_B_y[2]*magB_sq_inv[2]+0.5*B_x_B_y[1]*magB_sq_inv[1]+0.5*B_x_B_y[0]*magB_sq_inv[0]; 
