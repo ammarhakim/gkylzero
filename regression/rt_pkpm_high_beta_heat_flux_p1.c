@@ -15,8 +15,9 @@ struct pkpm_heat_flux_ctx {
   double vAe;
   double B0;
   double beta;
+  double elcTemp;
   double vtElc;
-  double vtFac;
+  double tempFac;
   double nuElc;
   double Lx;
   double Ly;
@@ -26,10 +27,11 @@ struct pkpm_heat_flux_ctx {
 };
 
 static inline double
-maxwellian(double n, double v, double vth)
+maxwellian(double n, double v, double temp)
 {
   double v2 = v*v;
-  return n/sqrt(2*M_PI*vth*vth)*exp(-v2/(2*vth*vth));
+  // assumes mass = 1.0
+  return n/sqrt(2*M_PI*temp)*exp(-v2/(2*temp));
 }
 
 void
@@ -40,15 +42,15 @@ evalDistFuncElc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double x = xn[0], y = xn[1], vx = xn[2];
 
   double Lx = app->Lx;
-  double vtElc = app->vtElc;
-  double vtFac = app->vtFac;
+  double elcTemp = app->elcTemp;
+  double tempFac = app->tempFac;
 
   // linear temperature gradient
-  double vt = vtElc - x/Lx*vtFac*vtElc;
-  double fv = maxwellian(app->n0, vx, vt);
+  double temp = elcTemp*(1.0 - x/Lx*tempFac);
+  double fv = maxwellian(app->n0, vx, temp);
     
   fout[0] = fv;
-  fout[1] = vt*vt*fv;
+  fout[1] = temp*fv;
 }
 
 void
@@ -78,8 +80,8 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double Ly = app->Ly;
   double kx = 2.0*M_PI/Lx;
   double ky = 2.0*M_PI/Ly;
-  for (int i=0; i<64; ++i) {
-    for (int j=0; j<64; ++j) {
+  for (int i=0; i<16; ++i) {
+    for (int j=0; j<16; ++j) {
       B_z -= alpha*gkyl_pcg64_rand_double(&rng)*sin(i*kx*x + 2.0*M_PI*gkyl_pcg64_rand_double(&rng))*sin(j*ky*y + 2.0*M_PI*gkyl_pcg64_rand_double(&rng));
     }
   }
@@ -107,21 +109,22 @@ create_ctx(void)
 
   double n0 = 1.0; // initial number density
 
-  double beta = 50.0;
-  double vtElc = 1.0/8.0;
-  double vtFac = 1.0/4.0; // Temperature is 4 times colder at right wall
-  double vAe = vtElc/sqrt(beta/2.0);
+  double beta = 64.0;
+  double elcTemp = 0.01;
+  double vtElc = sqrt(2.0*elcTemp/massElc);
+  double tempFac = 1.0/2.0; // Temperature is 2 times colder at right wall
+  double vAe = vtElc/sqrt(beta);
   double B0 = vAe*sqrt(mu0*n0*massElc);
 
   // ion cyclotron frequency and gyroradius
   double omegaCe = fabs(chargeElc)*B0/massElc;
-  double rhoe = sqrt(2.0)*vtElc/omegaCe;
+  double rhoe = vtElc/omegaCe;
 
   // collision frequencies
-  double nuElc = 1.0e-4*omegaCe;
+  double nuElc = 1.0e-2*omegaCe;
 
   // domain size and simulation time
-  double Lx = 256.0*rhoe;
+  double Lx = 128.0*rhoe;
   double Ly = 32.0*rhoe;
   double tend = 1000.0/omegaCe;
   
@@ -134,8 +137,9 @@ create_ctx(void)
     .vAe = vAe,
     .B0 = B0,
     .beta = beta,
+    .elcTemp = elcTemp,
     .vtElc = vtElc,
-    .vtFac = vtFac,
+    .tempFac = tempFac,
     .nuElc = nuElc,
     .Lx = Lx,
     .Ly = Ly,
@@ -159,9 +163,9 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 256);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[0], 32);
-  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -177,7 +181,7 @@ main(int argc, char **argv)
     .pkpm_species = "elc",
     .ctx = &ctx,
     .init = evalFluidElc,
-    .nuHyp = 1.0e-5,
+    .nuHyp = 1.0e-3,
     // momentum is zero at the boundary so there is zero current at the wall
     .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
   };  
@@ -214,7 +218,8 @@ main(int argc, char **argv)
     .mgnErrorSpeedFactor = 0.0,
 
     .ctx = &ctx,
-    .init = evalFieldFunc
+    .init = evalFieldFunc,
+    .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL }
   };
 
   // VM app
@@ -227,7 +232,7 @@ main(int argc, char **argv)
     .cells = { NX, NY },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
-    //.cfl_frac = 0.8,
+    .cfl_frac = 0.5,
     
     .num_periodic_dir = 1,
     .periodic_dirs = { 1 },
