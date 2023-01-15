@@ -41,7 +41,7 @@ gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid,
       up->type = gkyl_mom_vlasov_sr_new(cbasis, pbasis, conf_range, vel_range, mom, use_gpu);
   }
   else if (up->model_id == GKYL_MODEL_PKPM) {
-    up->type = gkyl_mom_vlasov_pkpm_new(cbasis, pbasis, mass, use_gpu);
+    up->type = gkyl_mom_vlasov_pkpm_new(cbasis, pbasis, mass, is_integrated, use_gpu);
   }
   else {
     if (is_integrated)

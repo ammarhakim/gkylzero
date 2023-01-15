@@ -37,7 +37,7 @@ evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   double vt = app->vte, n0 = app->n0;
   double mass = app->massElc;
   double Lx = app->Lx;
-  if (abs(x)<0.5*Lx) {
+  if (fabs(x)<0.5*Lx) {
     fout[0] = maxwellian(n0, v, 0.0, vt);
     fout[1] = vt*vt*maxwellian(n0, v, 0.0, vt);
   }
@@ -55,7 +55,7 @@ evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   double vt = app->vti, n0 = app->n0;
   double mass = app->massIon;
   double Lx = app->Lx;
-  if (abs(x)<0.5*Lx) {
+  if (fabs(x)<0.5*Lx) {
     fout[0] = maxwellian(n0, v, 0.0, vt);
     fout[1] = vt*vt*maxwellian(n0, v, 0.0, vt);
   }
@@ -105,7 +105,7 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double B0 = sqrt(2.0*n0*Telc/beta);
   double B_x = B0/sqrt(2.0);
   double B_z = 0.0;
-  if (abs(x)<0.5*Lx)
+  if (fabs(x)<0.5*Lx)
     B_z = B0/sqrt(2.0);
   else
     B_z = -B0/sqrt(2.0);

@@ -317,8 +317,11 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->pkpm_fluid_species = vm_find_fluid_species(app, s->info.pkpm_fluid_species);
     s->pkpm_fluid_index = vm_find_fluid_species_idx(app, s->info.pkpm_fluid_species);
 
-    // pkpm moments (mass, parallel pressure, parallel heat flux)
+    // pkpm moments for update (rho, p_par, p_perp)
     vm_species_moment_init(app, s, &s->pkpm_moms, "PKPM");
+    // pkpm moments for diagnostics (rho, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp)
+    // For simplicity, is_integrated flag also used by PKPM to turn on diagnostics
+    vm_species_moment_init(app, s, &s->pkpm_moms_diag, "Integrated");
 
     // Current density for accumulating onto electric field
     s->m1i_pkpm = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
@@ -757,6 +760,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   }
   if (s->model_id == GKYL_MODEL_PKPM) {
     vm_species_moment_release(app, &s->pkpm_moms);
+    vm_species_moment_release(app, &s->pkpm_moms_diag);
 
     gkyl_array_release(s->g_dist_source);
     gkyl_array_release(s->F_k_m_1);

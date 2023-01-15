@@ -337,6 +337,16 @@ void gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame);
 void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
+ * Write pkpm moment data to file.
+ * 
+ * @param app App object.
+ * @param sidx Index of fluid species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_vlasov_app_write_species_pkpm_moms(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+
+/**
  * Write species p/gamma to file.
  * 
  * @param app App object.
@@ -355,16 +365,6 @@ void gkyl_vlasov_app_write_species_gamma(gkyl_vlasov_app* app, int sidx, double 
  * @param frame Frame number
  */
 void gkyl_vlasov_app_write_magB(gkyl_vlasov_app* app, int sidx, double tm, int frame);
-
-/**
- * Write gradient of magnetic field to file.
- * 
- * @param app App object.
- * @param sidx Index of species to initialize.
- * @param tm Time-stamp
- * @param frame Frame number
- */
-void gkyl_vlasov_app_write_gradB(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
  * Write fluid species data to file.
@@ -395,16 +395,6 @@ void gkyl_vlasov_app_write_fluid_u_species(gkyl_vlasov_app* app, int sidx, doubl
  * @param frame Frame number
  */
 void gkyl_vlasov_app_write_fluid_p_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
-
-/**
- * Write pkpm moment data to file.
- * 
- * @param app App object.
- * @param sidx Index of fluid species to initialize.
- * @param tm Time-stamp
- * @param frame Frame number
- */
-void gkyl_vlasov_app_write_fluid_pkpm_moms(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
  * Write diagnostic moments for species to file.

@@ -165,7 +165,8 @@ struct vm_species {
 
   struct vm_species_moment m1i; // for computing currents
   struct vm_species_moment m0; // for computing charge density
-  struct vm_species_moment pkpm_moms; // for computing pkpm moments
+  struct vm_species_moment pkpm_moms; // for computing pkpm moments needed in update
+  struct vm_species_moment pkpm_moms_diag; // for computing pkpm moments diagnostics
   struct vm_species_moment *moms; // diagnostic moments
   struct vm_species_moment integ_moms; // integrated moments
 

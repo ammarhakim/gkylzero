@@ -17,14 +17,15 @@ extern "C" {
 __global__
 static void
 set_cu_ptrs(struct mom_type_vlasov_pkpm *mom_vlasov_pkpm,
-  enum gkyl_basis_type b_type, int cdim, int poly_order)
+  enum gkyl_basis_type b_type, int cdim, int poly_order, bool diag)
 {
   // choose kernel tables based on basis-function type
-  const gkyl_mom_vlasov_pkpm_kern_list *mom_vlasov_pkpm_kernels;
+  const gkyl_mom_vlasov_pkpm_kern_list *mom_vlasov_pkpm_kernels, *mom_vlasov_pkpm_diag_kernels;
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       mom_vlasov_pkpm_kernels = ser_mom_vlasov_pkpm_kernels;
+      mom_vlasov_pkpm_diag_kernels = ser_mom_vlasov_pkpm_diag_kernels;
       break;
 
     default:
@@ -32,12 +33,19 @@ set_cu_ptrs(struct mom_type_vlasov_pkpm *mom_vlasov_pkpm,
       break;    
   }
 
-  mom_vlasov_pkpm->momt.kernel = CK(mom_vlasov_pkpm_kernels, cdim, poly_order);
+  if (diag) {
+    mom_vlasov_pkpm->momt.kernel = CK(mom_vlasov_pkpm_diag_kernels, cdim, poly_order);
+    mom_vlasov_pkpm->momt.num_mom = 7; // rho, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp
+  }
+  else {
+    mom_vlasov_pkpm->momt.kernel = CK(mom_vlasov_pkpm_kernels, cdim, poly_order);
+    mom_vlasov_pkpm->momt.num_mom = 3; // rho, p_par, p_perp
+  }
 }
 
 struct gkyl_mom_type*
 gkyl_mom_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  double mass)
+  double mass, bool diag)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -53,8 +61,6 @@ gkyl_mom_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gk
   mom_vlasov_pkpm->momt.num_config = cbasis->num_basis;
   mom_vlasov_pkpm->momt.num_phase = pbasis->num_basis;
 
-  mom_vlasov_pkpm->momt.num_mom = 3; // rho, p_parallel, q_parallel 
-
   mom_vlasov_pkpm->mass = mass;
 
   mom_vlasov_pkpm->momt.flags = 0;
@@ -66,7 +72,7 @@ gkyl_mom_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gk
     gkyl_cu_malloc(sizeof(struct mom_type_vlasov_pkpm));
   gkyl_cu_memcpy(mom_vlasov_pkpm_cu, mom_vlasov_pkpm, sizeof(struct mom_type_vlasov_pkpm), GKYL_CU_MEMCPY_H2D);
 
-  set_cu_ptrs<<<1,1>>>(mom_vlasov_pkpm_cu, cbasis->b_type, cdim, poly_order);
+  set_cu_ptrs<<<1,1>>>(mom_vlasov_pkpm_cu, cbasis->b_type, cdim, poly_order, diag);
 
   mom_vlasov_pkpm->momt.on_dev = &mom_vlasov_pkpm_cu->momt;
   
