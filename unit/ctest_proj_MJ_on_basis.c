@@ -546,18 +546,19 @@ gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_p
   gkyl_correct_MJ_fix(corr_MJ,p_over_gamma,distf,m0,m1i,&local,&confLocal);
 
   // values to compare  at index (1, 9, 9) [remember, lower-left index is (1,1,1)]
-  double p2_vals[] = { 1.6962401858070214e-01, -7.7409013792616062e-18, -3.9380955867889663e-03,
-  -2.8639115438725903e-02, 5.5535324575725082e-19, 1.1489034695079269e-18,
-  8.1594568989774036e-03, -1.2454319344697310e-17, -1.0858276718973473e-02,
-  -8.3719428179921188e-03, -5.6169974218438426e-19, 1.1852358453425043e-17,
-  1.5733767456010547e-18, 1.2600839078583602e-17, 2.0991499099505761e-03,
-  9.9534173931022546e-19, -6.4527265157546547e-04, -1.0507606385517198e-17,
-  -9.2457560036345989e-19, 7.4145989533791131e-19 };
+  double p2_vals[] = { 1.7020667884226476e-01,-7.7674914557148726e-18,-3.9516229859383111e-03,
+-2.8737491097032285e-02,5.5726088991130445e-19, 1.1528499648312598e-18,
+8.1874847179781978e-03,-3.2664700781515490e-17,-1.0895575012022617e-02,
+-8.4007005283266260e-03,-5.6362918661943106e-19, 1.2361294855201663e-17,
+1.5787813110263945e-18, 1.6049196559163938e-17, 2.1063605116438087e-03,
+9.9876074849903799e-19,-6.4748916982029943e-04, -1.1513826111652373e-17,
+-9.2775152713167211e-19, 7.4400681776181471e-19 };
 
   const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[3]) { 1, 9, 9 }));
 
   if (poly_order == 2) {
     for (int i=0; i<basis.num_basis; ++i){
+      //printf("(1x2v) fv[%d] = %1.16e\n",i,fv[i]);
       TEST_CHECK( gkyl_compare_double(p2_vals[i], fv[i], 1e-12) );
     }
   }
@@ -675,42 +676,28 @@ gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_p
   gkyl_correct_MJ_fix(corr_MJ,p_over_gamma,distf,m0,m1i,&local,&confLocal);
 
   // values to compare  at index (1, 9, 9, 9) [remember, lower-left index is (1,1,1,1)]
-  double p2_vals[] = { 1.0 };
+  double p2_vals[] = { 1.6326923473662415e-02,-2.7779798362812092e-19,-5.7251397678571113e-06,
+-2.9413756182605218e-03,-1.0882706908197464e-02,-9.1691545498145794e-20,-1.6291112189383686e-19,
+7.3891738935669528e-04,2.6215943616563620e-19,4.7510775105676502e-04,2.3920085423587236e-03,
+-9.9802375797330017e-18,-1.2803270453557807e-03,-9.9127347429027999e-04,2.5692430697696867e-03,
+6.1658843868991359e-20,-1.3264339369366439e-19,1.0168790481577535e-19,-6.9285728763006371e-04,
+9.6703166952672561e-19,-1.2973734048803087e-19,2.1959726150563245e-18,2.8815110668801877e-04,
+5.0624860779664815e-20,-8.0565695192437930e-05,6.1758274994024305e-18,8.9364068681703317e-04,
+6.1884319642738651e-04,-1.4541027076081463e-19,-2.9745137044417144e-04,-7.3247363003543797e-04,
+5.0969448116179235e-21,-9.1037608148881686e-19,-2.0316355770111445e-19,-1.1045702861983222e-20,
+-1.6121338502579294e-18,-1.1349043120445892e-19,-1.1128896927091706e-18,-2.0910403428929313e-04,
+-1.0857925819912504e-19,7.0221942561665685e-05,-3.5211619192312874e-20,9.6248525403692007e-20,
+2.6937616824160315e-04,5.4200306973849285e-19,-7.5794415473298147e-20,-1.8943801946011106e-20,
+6.8793916231015913e-22 };
 
   const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[4]) { 1, 9, 9, 9 }));
 
   if (poly_order == 2) {
     for (int i=0; i<basis.num_basis; ++i){
-      printf("fv[%d] = %1.16e\n",i,fv[i]);
-      //TEST_CHECK( gkyl_compare_double(p2_vals[i], fv[i], 1e-12) );
+      //printf("%1.16e,\n",fv[i]);
+      TEST_CHECK( gkyl_compare_double(p2_vals[i], fv[i], 1e-12) );
     }
   }
-
-  // Temporarily print out the n, vb, T: Recall the quantities are *1/sqrt(2)
-  // due to them being the coefficients
-struct gkyl_range_iter biter;
-gkyl_range_iter_init(&biter, &confLocal);
-while (gkyl_range_iter_next(&biter)) {
-    long midx = gkyl_range_idx(&confLocal, biter.idx);
-
-    // Update the moments
-    double *m0_d = gkyl_array_fetch(m0, midx);
-    double *m1i_d = gkyl_array_fetch(m1i, midx);
-    double *m2_d = gkyl_array_fetch(m2, midx);
-
-    printf("\n----------- Ouptuts Start (Check M0, M1i, M2: ctest_proj_MJ_on_basis.c) ---------\n");
-    int i;
-    for (i = 0; i < 3; ++i){
-      printf("num[%d]: %1.16e\n",i,m0_d[i]);
-    }
-    for (i = 0; i < 9; ++i){ // 9 for 3d * p2 (3*3=9 numbers)
-      printf("vb[%d] : %1.16e\n",i,m1i_d[i]);
-    }
-    for (i = 0; i < 3; ++i){
-      printf("T[%d]: %1.16g\n",i,m2_d[i]);
-    }
-    printf("\n----------- Ouptuts End (Check M0, M1i, M2: ctest_proj_MJ_on_basis.c) ---------\n");
-}
 
 
   // write distribution function to file
