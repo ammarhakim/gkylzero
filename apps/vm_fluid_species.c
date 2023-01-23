@@ -357,7 +357,7 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
       fluid_species->u, fluid, fluid_species->p);
   }
   else if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
-    gkyl_calc_prim_vars_pkpm(app->confBasis, &app->local_ext, app->field->bvar,
+    gkyl_calc_prim_vars_pkpm(app->confBasis, &app->local, app->field->bvar,
       fluid_species->pkpm_species->pkpm_moms.marr, fluid, 
       fluid_species->u, fluid_species->p, fluid_species->T_ij, 
       fluid_species->rho_inv, fluid_species->T_perp_over_m, fluid_species->T_perp_over_m_inv);
@@ -368,8 +368,8 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
     if (fluid_species->advects_with_species)
       gkyl_array_accumulate(fluid_species->u, 1.0, fluid_species->other_advect);
   }
-  // // Note: Also applies boundary conditions to PKPM moments for use in fluid solve
-  // vm_fluid_species_prim_vars_apply_bc(app, fluid_species);
+  // Apply boundary conditions to primitive variables such as u and p
+  vm_fluid_species_prim_vars_apply_bc(app, fluid_species);
 
   if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
     // calculate gradient quantities using recovery
