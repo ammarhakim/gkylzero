@@ -106,7 +106,7 @@ evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 
   fout[0] = me*vdrift_x;
   fout[1] = me*vdrift_y;
-  fout[2] = me*Jz;
+  fout[2] = me*vdrift_z;
 }
 
 void
@@ -224,7 +224,7 @@ create_ctx(void)
 
   // domain size and simulation time
   double L = 20.48*di;
-  double tend = 100.0/omegaCi;
+  double tend = 75.0/omegaCi;
   
   struct pkpm_ot_ctx ctx = {
     .epsilon0 = epsilon0,
@@ -265,7 +265,7 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 64);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 112);
   int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
 
   if (app_args.trace_mem) {
@@ -275,14 +275,14 @@ main(int argc, char **argv)
      
   struct pkpm_ot_ctx ctx = create_ctx(); // context for init functions
 
-  // electron Tperp                                                                                              
+  // electron momentum                                                                                              
   struct gkyl_vlasov_fluid_species fluid_elc = {
     .name = "fluid_elc",
     .num_eqn = 3,
     .pkpm_species = "elc",
     .ctx = &ctx,
     .init = evalFluidElc,
-    .nuHyp = 1.0e-5,
+    .nuHyp = 1.0e-4,
   };  
   
   // electrons
@@ -308,14 +308,14 @@ main(int argc, char **argv)
     .num_diag_moments = 0,
   };
 
-  // ion Tperp                                                                                              
+  // ion momentum                                                                                              
   struct gkyl_vlasov_fluid_species fluid_ion = {
     .name = "fluid_ion",
     .num_eqn = 3,
     .pkpm_species = "ion",
     .ctx = &ctx,
     .init = evalFluidIon,
-    .nuHyp = 1.0e-5, 
+    .nuHyp = 1.0e-4, 
   };  
   
   // ions
@@ -381,7 +381,7 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = ctx.tend;
   double dt = tend-tcurr;
-  int nframe = 100;
+  int nframe = 75;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 

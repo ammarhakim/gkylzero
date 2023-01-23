@@ -112,7 +112,7 @@ create_ctx(void)
   double beta = 64.0;
   double elcTemp = 0.01;
   double vtElc = sqrt(2.0*elcTemp/massElc);
-  double tempFac = 1.0/2.0; // Temperature is 2 times colder at right wall
+  double tempFac = 0.75; // Temperature is 4 times colder at right wall
   double vAe = vtElc/sqrt(beta);
   double B0 = vAe*sqrt(mu0*n0*massElc);
 
@@ -124,9 +124,9 @@ create_ctx(void)
   double nuElc = 1.0e-2*omegaCe;
 
   // domain size and simulation time
-  double Lx = 128.0*rhoe;
+  double Lx = 256.0*rhoe;
   double Ly = 32.0*rhoe;
-  double tend = 1000.0/omegaCe;
+  double tend = 2000.0/omegaCe;
   
   struct pkpm_heat_flux_ctx ctx = {
     .epsilon0 = epsilon0,
@@ -163,9 +163,9 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 256);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[0], 32);
-  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 64);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -181,9 +181,7 @@ main(int argc, char **argv)
     .pkpm_species = "elc",
     .ctx = &ctx,
     .init = evalFluidElc,
-    .nuHyp = 1.0e-3,
-    // momentum is zero at the boundary so there is zero current at the wall
-    .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
+    .nuHyp = 1.0e-2,
   };  
   
   // electrons
@@ -252,7 +250,7 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = ctx.tend;
   double dt = tend-tcurr;
-  int nframe = 100;
+  int nframe = 200;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
