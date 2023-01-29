@@ -257,13 +257,25 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   for (int d=0; d<app->cdim; ++d)
     ghost[d] = 1;
 
+  // Certain operations fail if absorbing BCs used because absorbing BCs 
+  // means the mass density is 0 in the ghost cells (divide by zero)
+  f->bc_is_absorb = false;
   for (int d=0; d<app->cdim; ++d) {
     // Lower BC updater. Copy BCs by default.
     enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
-    if (f->lower_bc[d] == GKYL_SPECIES_COPY)
+    if (f->lower_bc[d] == GKYL_SPECIES_COPY) {
       bctype = GKYL_BC_COPY;
-    else if (f->lower_bc[d] == GKYL_SPECIES_ABSORB)
+    }
+    else if (f->lower_bc[d] == GKYL_SPECIES_ABSORB) {
       bctype = GKYL_BC_ABSORB;
+      f->bc_is_absorb = true;
+    }
+    else if (f->lower_bc[d] == GKYL_SPECIES_REFLECT && f->eqn_id == GKYL_EQN_EULER_PKPM) {
+      bctype = GKYL_BC_PKPM_MOM_REFLECT;
+    }
+    else if (f->lower_bc[d] == GKYL_SPECIES_NO_SLIP && f->eqn_id == GKYL_EQN_EULER_PKPM) {
+      bctype = GKYL_BC_PKPM_MOM_NO_SLIP;
+    }
 
     f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &app->local_ext, ghost, bctype,
                                     app->basis_on_dev.confBasis, f->fluid->ncomp, app->cdim, app->use_gpu);
@@ -274,10 +286,19 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
                                       app->basis_on_dev.confBasis, f->p->ncomp, app->cdim, app->use_gpu);
 
     // Upper BC updater. Copy BCs by default.
-    if (f->upper_bc[d] == GKYL_SPECIES_COPY)
+    if (f->upper_bc[d] == GKYL_SPECIES_COPY) {
       bctype = GKYL_BC_COPY;
-    else if (f->upper_bc[d] == GKYL_SPECIES_ABSORB)
+    }
+    else if (f->upper_bc[d] == GKYL_SPECIES_ABSORB) {
       bctype = GKYL_BC_ABSORB;
+      f->bc_is_absorb = true;
+    }
+    else if (f->upper_bc[d] == GKYL_SPECIES_REFLECT && f->eqn_id == GKYL_EQN_EULER_PKPM) {
+      bctype = GKYL_BC_PKPM_MOM_REFLECT;
+    }
+    else if (f->upper_bc[d] == GKYL_SPECIES_NO_SLIP && f->eqn_id == GKYL_EQN_EULER_PKPM) {
+      bctype = GKYL_BC_PKPM_MOM_NO_SLIP;
+    }
 
     f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &app->local_ext, ghost, bctype,
                                     app->basis_on_dev.confBasis, f->fluid->ncomp, app->cdim, app->use_gpu);
@@ -357,10 +378,16 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
       fluid_species->u, fluid, fluid_species->p);
   }
   else if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
-    gkyl_calc_prim_vars_pkpm(app->confBasis, &app->local, app->field->bvar,
-      fluid_species->pkpm_species->pkpm_moms.marr, fluid, 
-      fluid_species->u, fluid_species->p, fluid_species->T_ij, 
-      fluid_species->rho_inv, fluid_species->T_perp_over_m, fluid_species->T_perp_over_m_inv);
+    if (fluid_species->bc_is_absorb)
+      gkyl_calc_prim_vars_pkpm(app->confBasis, &app->local, app->field->bvar,
+        fluid_species->pkpm_species->pkpm_moms.marr, fluid, 
+        fluid_species->u, fluid_species->p, fluid_species->T_ij, 
+        fluid_species->rho_inv, fluid_species->T_perp_over_m, fluid_species->T_perp_over_m_inv);
+    else
+      gkyl_calc_prim_vars_pkpm(app->confBasis, &app->local_ext, app->field->bvar,
+        fluid_species->pkpm_species->pkpm_moms.marr, fluid, 
+        fluid_species->u, fluid_species->p, fluid_species->T_ij, 
+        fluid_species->rho_inv, fluid_species->T_perp_over_m, fluid_species->T_perp_over_m_inv);      
   }
   else {
     if (fluid_species->has_advect)
@@ -368,8 +395,11 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
     if (fluid_species->advects_with_species)
       gkyl_array_accumulate(fluid_species->u, 1.0, fluid_species->other_advect);
   }
-  // Apply boundary conditions to primitive variables such as u and p
-  vm_fluid_species_prim_vars_apply_bc(app, fluid_species);
+
+  // Apply boundary conditions to primitive variables such as u and p if needed
+  // Only needed if there is an absorbing boundary condition
+  if (fluid_species->bc_is_absorb)  
+    vm_fluid_species_prim_vars_apply_bc(app, fluid_species);
 
   if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
     // calculate gradient quantities using recovery
@@ -500,10 +530,10 @@ vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *f
       switch (fluid_species->lower_bc[d]) {
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_ABSORB:
-          gkyl_bc_basic_advance(fluid_species->bc_lo[d], fluid_species->bc_buffer, f);
-          break;
         case GKYL_SPECIES_REFLECT:
         case GKYL_SPECIES_NO_SLIP:
+          gkyl_bc_basic_advance(fluid_species->bc_lo[d], fluid_species->bc_buffer, f);
+          break;
         case GKYL_SPECIES_WEDGE:
         case GKYL_SPECIES_FIXED_FUNC:
           assert(false);
@@ -515,10 +545,10 @@ vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *f
       switch (fluid_species->upper_bc[d]) {
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_ABSORB:
-          gkyl_bc_basic_advance(fluid_species->bc_up[d], fluid_species->bc_buffer, f);
-          break;
         case GKYL_SPECIES_REFLECT:
         case GKYL_SPECIES_NO_SLIP:
+          gkyl_bc_basic_advance(fluid_species->bc_up[d], fluid_species->bc_buffer, f);
+          break;
         case GKYL_SPECIES_WEDGE:
         case GKYL_SPECIES_FIXED_FUNC:
           assert(false);
@@ -664,11 +694,11 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
   for (int d=0; d<app->cdim; ++d) {
     gkyl_bc_basic_release(f->bc_lo[d]);
     gkyl_bc_basic_release(f->bc_up[d]);
-    gkyl_bc_basic_release(f->bc_u_lo[d]);
-    gkyl_bc_basic_release(f->bc_u_up[d]);
-    if (f->eqn_id == GKYL_EQN_EULER || f->eqn_id == GKYL_EQN_EULER_PKPM) {
-      gkyl_bc_basic_release(f->bc_p_lo[d]);
-      gkyl_bc_basic_release(f->bc_p_up[d]);
-    }
+    // gkyl_bc_basic_release(f->bc_u_lo[d]);
+    // gkyl_bc_basic_release(f->bc_u_up[d]);
+    // if (f->eqn_id == GKYL_EQN_EULER || f->eqn_id == GKYL_EQN_EULER_PKPM) {
+    //   gkyl_bc_basic_release(f->bc_p_lo[d]);
+    //   gkyl_bc_basic_release(f->bc_p_up[d]);
+    // }
   }
 }
