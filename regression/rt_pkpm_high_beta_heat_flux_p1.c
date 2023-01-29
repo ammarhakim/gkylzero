@@ -95,7 +95,10 @@ void
 evalNuElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_heat_flux_ctx *app = ctx;
-  fout[0] = app->nuElc;
+  double x = xn[0];
+  double Lx = app->Lx;
+  double Ly = app->Ly; // Ly sets the length scale of the collisionality profile
+  fout[0] = app->nuElc*(tanh((x - Lx)/Ly) - tanh(x/Ly) + 2.0);
 }
 
 struct pkpm_heat_flux_ctx
@@ -121,7 +124,7 @@ create_ctx(void)
   double rhoe = vtElc/omegaCe;
 
   // collision frequencies
-  double nuElc = 1.0e-2*omegaCe;
+  double nuElc = 4.0e-2*omegaCe;
 
   // domain size and simulation time
   double Lx = 256.0*rhoe;
@@ -165,7 +168,7 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 256);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[0], 32);
-  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 64);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -182,6 +185,7 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalFluidElc,
     .nuHyp = 1.0e-2,
+    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
   };  
   
   // electrons
