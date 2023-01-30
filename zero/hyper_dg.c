@@ -38,7 +38,6 @@ gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
         hdg->equation, xcc, hdg->grid.dx, idxc,
         gkyl_array_cfetch(fIn, linc), gkyl_array_fetch(rhs, linc)
       );
-      //printf("linc is %ld\n", linc);
       double *cflrate_d = gkyl_array_fetch(cflrate, linc);
       cflrate_d[0] += cflr; // frequencies are additive
     }

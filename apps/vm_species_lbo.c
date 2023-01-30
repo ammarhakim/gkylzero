@@ -212,8 +212,11 @@ vm_species_lbo_cross_moms(gkyl_vlasov_app *app, const struct vm_species *species
         lbo->boundary_corrections, 
         lbo->cross_prim_moms[i]);
 
-    gkyl_dg_mul_op(app->confBasis, 0, lbo->cross_nu_prim_moms, 0, lbo->cross_prim_moms[i], 0, lbo->cross_nu[i]);
-    gkyl_dg_mul_op(app->confBasis, 1, lbo->cross_nu_prim_moms, 1, lbo->cross_prim_moms[i], 0, lbo->cross_nu[i]);
+
+    for (int d=0; d<app->vdim; d++)
+      gkyl_dg_mul_op(app->confBasis, d, lbo->cross_nu_prim_moms, d, lbo->cross_prim_moms[i], 0, lbo->cross_nu[i]);
+    gkyl_dg_mul_op(app->confBasis, app->vdim, lbo->cross_nu_prim_moms, app->vdim, lbo->cross_prim_moms[i], 0, lbo->cross_nu[i]);
+
     gkyl_array_accumulate(lbo->nu_prim_moms, 1.0, lbo->cross_nu_prim_moms);
   }
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
