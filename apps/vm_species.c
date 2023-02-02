@@ -125,26 +125,19 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   }
   s->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
   
-  // determine field-type 
+  // determine model-type and field-type 
+  s->model_id = s->info.model_id; 
   s->field_id = app->has_field ? app->field->info.field_id : GKYL_FIELD_NULL;
 
   // allocate array to store q/m*(E,B) or potential depending on equation system
   s->qmem = 0;
-  s->fac_phi = 0;
-  if (s->field_id  == GKYL_FIELD_E_B || s->field_id  == GKYL_FIELD_SR_E_B)
+  if (s->field_id  == GKYL_FIELD_E_B)
     s->qmem = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
-  else if (s->field_id == GKYL_FIELD_PHI || s->field_id == GKYL_FIELD_PHI_A)
-    s->fac_phi = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-
-  // allocate array to store vector potential if present
-  s->vecA = 0;
-  if (s->field_id == GKYL_FIELD_PHI_A)
-    s->vecA = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
 
   // allocate array to store p/gamma (velocity) if present
   // Since p/gamma is a geometric quantity, can pre-compute it here
   s->p_over_gamma = 0;
-  if (s->field_id  == GKYL_FIELD_SR_E_B) {
+  if (s->model_id  == GKYL_MODEL_SR) {
     s->p_over_gamma = mkarr(app->use_gpu, vdim*app->velBasis.num_basis, s->local_vel.volume);
     s->p_over_gamma_host = s->p_over_gamma;
     if (app->use_gpu)
@@ -169,7 +162,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
   // create solver
   s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
-    &app->local, &s->local_vel, &s->local, s->field_id, app->use_gpu);
+    &app->local, &s->local_vel, &s->local, s->model_id, s->field_id, app->use_gpu);
 
   // acquire equation object
   s->eqn_vlasov = gkyl_dg_updater_vlasov_acquire_eqn(s->slvr);
@@ -383,7 +376,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   const struct gkyl_array *fluidin[])
 {
   gkyl_array_clear(species->cflrate, 0.0);
-  if (species->field_id  == GKYL_FIELD_E_B || species->field_id  == GKYL_FIELD_SR_E_B) {
+  if (species->field_id  == GKYL_FIELD_E_B) {
     double qbym = species->info.charge/species->info.mass;
     gkyl_array_set(species->qmem, qbym, em);
 
@@ -408,12 +401,14 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   gkyl_array_clear(rhs, 0.0);
  
   if (app->use_gpu)
-    gkyl_dg_updater_vlasov_advance_cu(species->slvr, species->field_id, &species->local, 
+    gkyl_dg_updater_vlasov_advance_cu(species->slvr, &species->local, 
       species->qmem, species->p_over_gamma, 
+      0, 0, 0, 
       fin, species->cflrate, rhs);
   else
-    gkyl_dg_updater_vlasov_advance(species->slvr, species->field_id, &species->local, 
+    gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
       species->qmem, species->p_over_gamma, 
+      0, 0, 0, 
       fin, species->cflrate, rhs);
 
   if (species->collision_id == GKYL_LBO_COLLISIONS)
@@ -559,15 +554,10 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   gkyl_dg_updater_vlasov_release(s->slvr);
 
   // Release arrays for different types of Vlasov equations
-  if (s->field_id  == GKYL_FIELD_E_B || s->field_id  == GKYL_FIELD_SR_E_B)
+  if (s->field_id  == GKYL_FIELD_E_B)
     gkyl_array_release(s->qmem);
-  else if (s->field_id == GKYL_FIELD_PHI || s->field_id == GKYL_FIELD_PHI_A)
-    gkyl_array_release(s->fac_phi);
 
-  if (s->field_id == GKYL_FIELD_PHI_A)
-    gkyl_array_release(s->vecA);
-
-  if (s->field_id  == GKYL_FIELD_SR_E_B) {
+  if (s->field_id  == GKYL_MODEL_SR) {
     gkyl_array_release(s->p_over_gamma);
     if (app->use_gpu)
       gkyl_array_release(s->p_over_gamma_host);

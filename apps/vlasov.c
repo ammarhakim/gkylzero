@@ -190,7 +190,7 @@ void
 gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0)
 {
   app->tcurr = t0;
-  if (app->has_field)
+  if (app->has_field) 
     gkyl_vlasov_app_apply_ic_field(app, t0);
   for (int i=0; i<app->num_species; ++i)
     gkyl_vlasov_app_apply_ic_species(app, i, t0);
@@ -298,7 +298,7 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
     gkyl_vlasov_app_write_field(app, tm, frame);
   for (int i=0; i<app->num_species; ++i) {
     gkyl_vlasov_app_write_species(app, i, tm, frame);
-    if (app->species[i].field_id == GKYL_FIELD_SR_E_B && frame == 0)
+    if (app->species[i].model_id == GKYL_MODEL_SR && frame == 0)
       gkyl_vlasov_app_write_species_gamma(app, i, tm, frame);
     if (app->species[i].has_mirror_force && frame == 0) {
       gkyl_vlasov_app_write_magB(app, i, tm, frame);
@@ -795,12 +795,14 @@ gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
     //   gkyl_hyper_dg_set_update_vol(species->slvr, update_vol_term);
     gkyl_array_clear_range(rhs, 0.0, species->local);
     if (app->use_gpu)
-      gkyl_dg_updater_vlasov_advance_cu(species->slvr, species->field_id, &species->local, 
+      gkyl_dg_updater_vlasov_advance_cu(species->slvr, &species->local, 
         species->qmem, species->p_over_gamma, 
+        0, 0, 0, 
         fin, species->cflrate, rhs);
     else
-      gkyl_dg_updater_vlasov_advance(species->slvr, species->field_id, &species->local, 
+      gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
         species->qmem, species->p_over_gamma, 
+        0, 0, 0, 
         fin, species->cflrate, rhs);
   }
 }

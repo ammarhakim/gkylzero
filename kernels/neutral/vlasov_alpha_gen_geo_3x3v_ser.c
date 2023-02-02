@@ -8,9 +8,9 @@ GKYL_CU_DH void vlasov_alpha_gen_geo_3x3v_ser_p1(const double *w, const double *
   // v_i:        Covariant components of velocity.
   // alpha_geo:        Output alpha field.
 
-  double v_x[160];
-  double v_y[160];
-  double v_z[160];
+  double v_x[160] = {0.0};
+  double v_y[160] = {0.0};
+  double v_z[160] = {0.0};
 
   const double *gxx = &gij[0]; 
   const double *gxy = &gij[8]; 

@@ -15,12 +15,17 @@ enum gkyl_eqn_type {
 // Identifiers for specific field object types
 enum gkyl_field_id {
   GKYL_FIELD_E_B = 0, // Maxwell (E, B). This is default
-  GKYL_FIELD_SR_E_B, // Maxwell (E, B) with special relativity
-  GKYL_FIELD_PHI, // Poisson (only phi)  
+  GKYL_FIELD_PHI, // Poisson (only phi)
   GKYL_FIELD_PHI_A, // Poisson with static B = curl(A) (phi, A)
   GKYL_FIELD_NULL, // no field is present
-  GKYL_FIELD_SR_NULL, // no field is present, special relativistic Vlasov
-  GKYL_FIELD_GEN_GEO // neutral Vlasov species with gen geo
+};
+
+// Identifiers for subsidary models
+// These are used to distinguish things like special relativistic from non-relativistic
+enum gkyl_model_id {
+  GKYL_MODEL_DEFAULT = 0, // No subsidiary model specified
+  GKYL_MODEL_SR,
+  GKYL_MODEL_GEN_GEO,
 };
 
 // Identifiers for specific collision object types

@@ -61,23 +61,25 @@ test_vlasov_3x3v_p1_(bool use_gpu)
   // initialize eqn
   struct gkyl_dg_eqn *eqn;
   enum gkyl_field_id field_id = GKYL_FIELD_NULL;
-  eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &confRange, field_id, use_gpu);
+  enum gkyl_model_id model_id = GKYL_MODEL_DEFAULT;
+  eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &confRange, &phaseRange, model_id, field_id, use_gpu);
 
-  // initialize hyper_dg slvr // CHECK THIS (TNB)
-  int up_dirs[GKYL_MAX_DIM] = {0, 1, 2, 3, 4, 5};
-  int zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0, 1, 1, 1};
+  // initialize hyper_dg slvr 
+  // FIELD_NULL so only configuration space update, no velocity space update
+  int up_dirs[GKYL_MAX_DIM] = {0, 1, 2};
+  int zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
+  int num_up_dirs = cdim; 
 
   gkyl_hyper_dg *slvr;
-  slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1, use_gpu);
+  slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
 
   // initialize arrays
-  struct gkyl_array *fin, *rhs, *cflrate, *qmem;
-  struct gkyl_array *fin_h, *qmem_h, *rhs_h;
+  struct gkyl_array *fin, *rhs, *cflrate;
+  struct gkyl_array *fin_h, *rhs_h;
   
   fin = mkarr1(use_gpu, basis.num_basis, phaseRange_ext.volume);
   rhs = mkarr1(use_gpu, basis.num_basis, phaseRange_ext.volume);
   cflrate = mkarr1(use_gpu, 1, phaseRange_ext.volume);
-  qmem = mkarr1(use_gpu, 8*confBasis.num_basis, confRange_ext.volume);
 
   // set initial condition
   int nf = phaseRange_ext.volume*basis.num_basis;
@@ -93,26 +95,13 @@ test_vlasov_3x3v_p1_(bool use_gpu)
   }
   if (use_gpu) gkyl_array_copy(fin, fin_h);
 
-  int nem = confRange_ext.volume*confBasis.num_basis;
-  double *qmem_d;
-  if (use_gpu) {
-    qmem_h = mkarr1(false, 8*confBasis.num_basis, confRange_ext.volume);
-    qmem_d = qmem_h->data;
-  } else {
-    qmem_d = qmem->data;
-  }
-  for(int i=0; i< nem; i++) {
-    qmem_d[i] = 0.; //(double)(-i+27 % nem) / nem  * ((i%2 == 0) ? 1 : -1);
-  }
-  if (use_gpu) gkyl_array_copy(qmem, qmem_h);
-
   // run hyper_dg_advance
   int nrep = 10;
   for(int n=0; n<nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
     gkyl_vlasov_set_auxfields(eqn,
-      (struct gkyl_dg_vlasov_auxfields) { .qmem = qmem }); // must set EM fields to use
+      (struct gkyl_dg_vlasov_auxfields) { .field = 0, .ext_field = 0, .cot_vec = 0, .alpha_geo = 0 }); // must set EM fields to use
     if (use_gpu)
       gkyl_hyper_dg_advance_cu(slvr, &phaseRange, fin, cflrate, rhs);
     else
@@ -480,14 +469,12 @@ test_vlasov_3x3v_p1_(bool use_gpu)
   gkyl_array_release(rhs);
   gkyl_array_release(rhs_h);
   gkyl_array_release(cflrate);
-  gkyl_array_release(qmem);
 
   gkyl_hyper_dg_release(slvr);
   gkyl_dg_eqn_release(eqn);
 
   if (use_gpu) {
     gkyl_array_release(fin_h);
-    gkyl_array_release(qmem_h);
   }
 }
 

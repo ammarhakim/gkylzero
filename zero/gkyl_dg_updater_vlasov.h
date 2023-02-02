@@ -25,14 +25,16 @@ struct gkyl_dg_updater_vlasov_tm {
  * @param conf_range Config space range
  * @param vel_range Velocity space range
  * @param phase_range Phase space range
- * @param field_id Enum identifier for field type (see gkyl_eqn_type.h)
+ * @param model_id Enum identifier for model type (e.g., SR, General Geometry, see gkyl_eqn_type.h)
+ * @param field_id Enum identifier for field type (e.g., Maxwell's, Poisson, see gkyl_eqn_type.h)
+ * @param use_gpu Boolean to determine whether struct objects are on host or device
  * 
  * @return New vlasov updater object
  */
 gkyl_dg_updater_vlasov* gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
-  const struct gkyl_range *phase_range, enum gkyl_field_id field_id, bool use_gpu);
+  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
+  enum gkyl_model_id model_id, enum gkyl_field_id field_id, bool use_gpu);
 
 /**
  * Acquire Vlasov equation object
@@ -51,23 +53,29 @@ gkyl_dg_updater_vlasov_acquire_eqn(const gkyl_dg_updater_vlasov* vlasov);
  * gkyl_sub_range_init method.
  *
  * @param vlasov vlasov updater object
- * @param field_id Enum identifier for field type (see gkyl_eqn_type.h)
  * @param update_rng Range on which to compute.
- * @param aux1 Auxiliary field 1 (usually qmem or fac_phi)
+ * @param aux1 Auxiliary field 1 (usually field, i.e., q/m*EM or q/m*phi)
  * @param aux2 Auxiliary field 2
+ * @param aux3 Auxiliary field 3
+ * @param aux4 Auxiliary field 4
+ * @param aux5 Auxiliary field 5
  * @param fIn Input to updater
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
 void gkyl_dg_updater_vlasov_advance(gkyl_dg_updater_vlasov *vlasov,
-  enum gkyl_field_id field_id, const struct gkyl_range *update_rng,
+  const struct gkyl_range *update_rng,
   const struct gkyl_array *aux1, const struct gkyl_array *aux2, 
+  const struct gkyl_array *aux3, const struct gkyl_array *aux4, 
+  const struct gkyl_array *aux5,  
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 
 void gkyl_dg_updater_vlasov_advance_cu(gkyl_dg_updater_vlasov *vlasov,
-  enum gkyl_field_id field_id, const struct gkyl_range *update_rng,
+  const struct gkyl_range *update_rng,
   const struct gkyl_array *aux1, const struct gkyl_array *aux2, 
+  const struct gkyl_array *aux3, const struct gkyl_array *aux4, 
+  const struct gkyl_array *aux5,  
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 
