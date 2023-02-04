@@ -20,6 +20,8 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   
   // closure parameter, used by 10 moment
   sp->k0 = mom_sp->equation->type == GKYL_EQN_TEN_MOMENT ? gkyl_wv_ten_moment_k0(mom_sp->equation) : 0.0;
+  // check if we are running with gradient-based closure
+  sp->has_grad_closure = mom_sp->has_grad_closure == 0 ? 0 : mom_sp->has_grad_closure;
 
   sp->scheme_type = mom->scheme_type;
 
@@ -220,7 +222,8 @@ moment_species_apply_bc(const gkyl_moment_app *app, double tcurr,
     moment_apply_periodic_bc(app, sp->bc_buffer, app->periodic_dirs[d], f);
     is_non_periodic[app->periodic_dirs[d]] = 0;
   }
-  
+  if (ndim == 2)
+    moment_apply_periodic_corner_sync_2d(app, f);
   for (int d=0; d<ndim; ++d)
     if (is_non_periodic[d]) {
       // handle non-wedge BCs

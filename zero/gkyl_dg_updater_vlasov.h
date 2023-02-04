@@ -25,7 +25,7 @@ struct gkyl_dg_updater_vlasov_tm {
  * @param conf_range Config space range
  * @param vel_range Velocity space range
  * @param phase_range Phase space range
- * @param model_id Enum identifier for model type (e.g., SR, PKPM, see gkyl_eqn_type.h)
+ * @param model_id Enum identifier for model type (e.g., SR, General Geometry, PKPM, see gkyl_eqn_type.h)
  * @param field_id Enum identifier for field type (e.g., Maxwell's, Poisson, see gkyl_eqn_type.h)
  * @param use_gpu Boolean to determine whether struct objects are on host or device
  * 
@@ -54,7 +54,7 @@ gkyl_dg_updater_vlasov_acquire_eqn(const gkyl_dg_updater_vlasov* vlasov);
  *
  * @param vlasov vlasov updater object
  * @param update_rng Range on which to compute.
- * @param aux1 Auxiliary field 1 (usually qmem or fac_phi)
+ * @param aux1 Auxiliary field 1 (usually field, i.e., q/m*EM or q/m*phi)
  * @param aux2 Auxiliary field 2
  * @param aux3 Auxiliary field 3
  * @param aux4 Auxiliary field 4

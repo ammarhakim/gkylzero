@@ -1,11 +1,10 @@
 #include <gkyl_vlasov_kernels.h> 
 
-GKYL_CU_DH double vlasov_poisson_vol_2x3v_ser_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const double *f, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_poisson_vol_2x3v_ser_p2(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
-  // fac_phi:   potential (scaled by appropriate factors).
-  // vecA:      vector potential (scaled by appropriate factors). Unused in pure Vlasov-Poisson. 
+  // field:     potential (scaled by appropriate factors).
   // f:         Input distribution function.
   // out:       Incremented output.
   double dv0dx0 = dxv[2]/dxv[0]; 
@@ -14,7 +13,7 @@ GKYL_CU_DH double vlasov_poisson_vol_2x3v_ser_p2(const double *w, const double *
   double dv1dx1 = dxv[3]/dxv[1]; 
   double w1dx1 = w[3]/dxv[1]; 
   const double dx11 = 2/dxv[1]; 
-  const double *phi = &fac_phi[0]; 
+  const double *phi = &field[0]; 
   const double dv10 = 2/dxv[2]; 
   const double dv1 = dxv[2], wv1 = w[2]; 
   const double dv11 = 2/dxv[3]; 

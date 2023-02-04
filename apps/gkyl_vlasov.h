@@ -65,7 +65,7 @@ struct gkyl_vlasov_species {
   char name[128]; // species name
 
   enum gkyl_model_id model_id; // type of model 
-                               // (e.g., SR, PKPM, see gkyl_eqn_type.h)
+                               // (e.g., SR, general geometry, PKPM, see gkyl_eqn_type.h)
 
   double charge, mass; // charge and mass
   double lower[3], upper[3]; // lower, upper bounds of velocity-space

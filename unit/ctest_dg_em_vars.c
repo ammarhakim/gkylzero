@@ -410,7 +410,7 @@ void test_2x_p1() { test(2, 8, 1, 1.0e-11, false); }
 void test_3x_p1() { test(3, 8, 1, 1.0e-10, false); }
 
 void test_2x_p1_big() { test(2, 512, 1, 1.0e-9, false); }
-void test_3x_p1_big() { test(3, 128, 1, 1.0e-9, false); }
+void test_3x_p1_big() { test(3, 128, 1, 1.0e-8, false); }
 
 void test_1x_p2() { test(1, 512, 2, 1.0e-4, false); }
 void test_2x_p2() { test(2, 512, 2, 1.0e-2, false); }

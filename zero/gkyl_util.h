@@ -218,6 +218,20 @@ gkyl_copy_long_arr(int n, const long* GKYL_RESTRICT inp, long* GKYL_RESTRICT out
 }
 
 /**
+ * Copy (small) double arrays.
+ *
+ * @param n Number of elements to copy
+ * @param inp Input array
+ * @param out Output array
+ */
+GKYL_CU_DH
+static inline void
+gkyl_copy_double_arr(int n, const double* GKYL_RESTRICT inp, double* GKYL_RESTRICT out)
+{
+  for (int i=0; i<n; ++i) out[i] = inp[i];
+}
+
+/**
  *   Round a/b to nearest higher integer value
  */
 GKYL_CU_DH

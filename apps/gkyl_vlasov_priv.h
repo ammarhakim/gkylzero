@@ -26,7 +26,6 @@
 #include <gkyl_dg_updater_moment.h>
 #include <gkyl_dg_updater_vlasov.h>
 #include <gkyl_dg_vlasov.h>
-#include <gkyl_dg_vlasov_poisson.h>
 #include <gkyl_dg_vlasov_pkpm.h>
 #include <gkyl_dg_vlasov_sr.h>
 #include <gkyl_dynvec.h>
@@ -176,13 +175,11 @@ struct vm_species {
   bool is_first_integ_write_call; // flag for int-moments dynvec written first time
 
   enum gkyl_field_id field_id; // type of field equation 
-  enum gkyl_model_id model_id; // type of Vlasov equation (e.g., Vlasov vs. SR vs. PKPM model)
+  enum gkyl_model_id model_id; // type of Vlasov equation (e.g., Vlasov vs. SR)
   struct gkyl_array *qmem; // array for q/m*(E,B)
-  struct gkyl_array *fac_phi; // array for potential (electrostatic or gravitational)
-  struct gkyl_array *vecA; // array for vector potential
 
   // Special relativistic Vlasov arrays
-  struct gkyl_array *p_over_gamma; // array for p/gamma (velocity) 
+  struct gkyl_array *p_over_gamma; // array for p/gamma (velocity) in special relativistic equation
   struct gkyl_array *p_over_gamma_host; // host copy for use in projecting before copying over to GPU
   struct gkyl_array *gamma; // array for gamma = sqrt(1 + p^2) 
   struct gkyl_array *gamma_host; // host copy for use in projecting before copying over to GPU

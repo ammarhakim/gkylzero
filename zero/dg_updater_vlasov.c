@@ -6,7 +6,6 @@
 #include <gkyl_dg_eqn.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_dg_vlasov_pkpm.h>
-#include <gkyl_dg_vlasov_poisson.h>
 #include <gkyl_dg_vlasov_sr.h>
 #include <gkyl_dg_updater_vlasov.h>
 #include <gkyl_dg_updater_vlasov_priv.h>
@@ -32,10 +31,8 @@ gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid,
     up->eqn_vlasov = gkyl_dg_vlasov_sr_new(cbasis, pbasis, conf_range, vel_range, up->field_id, use_gpu);
   else if (up->model_id == GKYL_MODEL_PKPM)
     up->eqn_vlasov = gkyl_dg_vlasov_pkpm_new(cbasis, pbasis, conf_range, phase_range, use_gpu);
-  else if (up->field_id == GKYL_FIELD_PHI || up->field_id == GKYL_FIELD_PHI_A)
-    up->eqn_vlasov = gkyl_dg_vlasov_poisson_new(cbasis, pbasis, conf_range, up->field_id, use_gpu);
   else
-    up->eqn_vlasov = gkyl_dg_vlasov_new(cbasis, pbasis, conf_range, up->field_id, use_gpu);
+    up->eqn_vlasov = gkyl_dg_vlasov_new(cbasis, pbasis, conf_range, phase_range, up->model_id, up->field_id, use_gpu);
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int vdim = pdim-cdim;
@@ -78,18 +75,17 @@ gkyl_dg_updater_vlasov_advance(gkyl_dg_updater_vlasov *vlasov,
   }
   else if (vlasov->model_id == GKYL_MODEL_PKPM) {
     gkyl_vlasov_pkpm_set_auxfields(vlasov->eqn_vlasov, 
-      (struct gkyl_dg_vlasov_pkpm_auxfields) { .bvar = aux1, .u_i = aux2, 
-      .pkpm_accel_vars = aux3, .g_dist_source = aux4, 
-      .vth_sq = aux5 });
+      (struct gkyl_dg_vlasov_pkpm_auxfields) { 
+        .bvar = aux1, .u_i = aux2, 
+        .pkpm_accel_vars = aux3, .g_dist_source = aux4, 
+        .vth_sq = aux5 });
   }
-  else if (vlasov->field_id == GKYL_FIELD_PHI || vlasov->field_id == GKYL_FIELD_PHI_A)
-    gkyl_vlasov_poisson_set_auxfields(vlasov->eqn_vlasov, 
-      (struct gkyl_dg_vlasov_poisson_auxfields) { .fac_phi = aux1, .vecA = aux2 });
   else {
     gkyl_vlasov_set_auxfields(vlasov->eqn_vlasov, 
-      (struct gkyl_dg_vlasov_auxfields) { .qmem = aux1 });    
+      (struct gkyl_dg_vlasov_auxfields) { 
+        .field = aux1, .ext_field = aux3, 
+        .cot_vec = aux4, .alpha_geo = aux5 }); 
   }
-  
   struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance(vlasov->up_vlasov, update_rng, fIn, cflrate, rhs);
   vlasov->vlasov_tm += gkyl_time_diff_now_sec(wst);
@@ -131,18 +127,18 @@ gkyl_dg_updater_vlasov_advance_cu(gkyl_dg_updater_vlasov *vlasov,
   }
   else if (vlasov->model_id == GKYL_MODEL_PKPM) {
     gkyl_vlasov_pkpm_set_auxfields(vlasov->eqn_vlasov, 
-      (struct gkyl_dg_vlasov_pkpm_auxfields) { .bvar = aux1, .u_i = aux2, 
-      .pkpm_accel_vars = aux3, .g_dist_source = aux4, 
-      .vth_sq = aux5 });
+      (struct gkyl_dg_vlasov_pkpm_auxfields) { 
+        .bvar = aux1, .u_i = aux2, 
+        .pkpm_accel_vars = aux3, .g_dist_source = aux4, 
+        .vth_sq = aux5 });
   }
-  else if (vlasov->field_id == GKYL_FIELD_PHI || vlasov->field_id == GKYL_FIELD_PHI_A)
-    gkyl_vlasov_poisson_set_auxfields(vlasov->eqn_vlasov, 
-      (struct gkyl_dg_vlasov_poisson_auxfields) { .fac_phi = aux1, .vecA = aux2 });
   else {
     gkyl_vlasov_set_auxfields(vlasov->eqn_vlasov, 
-      (struct gkyl_dg_vlasov_auxfields) { .qmem = aux1 });    
+      (struct gkyl_dg_vlasov_auxfields) { 
+        .field = aux1, .ext_field = aux3, 
+        .cot_vec = aux4, .alpha_geo = aux5 }); 
   }
-  
+
   struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance_cu(vlasov->up_vlasov, update_rng, fIn, cflrate, rhs);
   vlasov->vlasov_tm += gkyl_time_diff_now_sec(wst);

@@ -213,16 +213,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
   // allocate array to store q/m*(E,B) or potential depending on equation system
   s->qmem = 0;
-  s->fac_phi = 0;
   if (s->field_id  == GKYL_FIELD_E_B)
     s->qmem = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
-  else if (s->field_id == GKYL_FIELD_PHI || s->field_id == GKYL_FIELD_PHI_A)
-    s->fac_phi = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-
-  // allocate array to store vector potential if present
-  s->vecA = 0;
-  if (s->field_id == GKYL_FIELD_PHI_A)
-    s->vecA = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
 
   // allocate array to store relativistic variables if present
   // Since p/gamma, gamma, gamma_inv are a geometric quantities, can pre-compute it here
@@ -752,11 +744,6 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   // Release arrays for different types of Vlasov equations
   if (s->field_id  == GKYL_FIELD_E_B)
     gkyl_array_release(s->qmem);
-  else if (s->field_id == GKYL_FIELD_PHI || s->field_id == GKYL_FIELD_PHI_A)
-    gkyl_array_release(s->fac_phi);
-
-  if (s->field_id == GKYL_FIELD_PHI_A)
-    gkyl_array_release(s->vecA);
 
   if (s->model_id  == GKYL_MODEL_SR) {
     gkyl_array_release(s->p_over_gamma);
