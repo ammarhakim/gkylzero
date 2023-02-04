@@ -65,7 +65,7 @@ ifeq ($(UNAME), Darwin)
 	LAPACK_INC = zero # dummy
 	LAPACK_LIB = -framework Accelerate
 	CFLAGS += -DGKYL_USING_FRAMEWORK_ACCELERATE
-	SHFLAGS += -dynamiclib -install_name ${PREFIX}/gkylzero/lib/libgkylzero.so
+	SHFLAGS += -dynamiclib 
 else
 	SHFLAGS += -shared
 endif
@@ -104,7 +104,6 @@ endif
 EXEC_LIB_DIRS = -L${SUPERLU_LIB_DIR} -L${LAPACK_LIB_DIR} -L${BUILD_DIR}
 EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
 EXEC_LIBS = ${BUILD_DIR}/libgkylzero.so ${EXEC_EXT_LIBS}
-#EXEC_RPATH = -Wl,-rpath,${BUILD_DIR}
 EXEC_RPATH = 
 
 # Build commands for C source
@@ -160,6 +159,10 @@ $(BUILD_DIR)/kernels/lbo/%.c.o : kernels/lbo/%.c
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
 $(BUILD_DIR)/kernels/maxwell/%.c.o : kernels/maxwell/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/kernels/neutral_react/%.c.o : kernels/neutral_react/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
