@@ -1,19 +1,19 @@
 #include <gkyl_vlasov_kernels.h> 
 #include <gkyl_basis_hyb_3x3v_p1_surfx5_eval_quad.h> 
 #include <gkyl_basis_hyb_3x3v_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH void vlasov_poisson_surfvy_3x3v_ser_p1(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void vlasov_poisson_surfvy_3x3v_ser_p1(const double *w, const double *dxv, const double *field, const double *ext_field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w:         Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
-  // fac_phi:   potential (scaled by appropriate factors).
-  // vecA:      vector potential (scaled by appropriate factors). Unused in pure Vlasov-Poisson. 
+  // field:     potential (scaled by appropriate factors).
+  // ext_field: vector potential (scaled by appropriate factors). Unused in pure Vlasov-Poisson. 
   // fl/fc/fr:  Input Distribution function in left/center/right cells 
   // out:       Output distribution function in center cell 
   const double dv11 = 2/dxv[4]; 
   const double dv1 = dxv[3], wv1 = w[3]; 
   const double dv2 = dxv[4], wv2 = w[4]; 
   const double dv3 = dxv[5], wv3 = w[5]; 
-  const double *phi = &fac_phi[0]; 
+  const double *phi = &field[0]; 
   const double dx10 = 2/dxv[0]; 
   const double dx11 = 2/dxv[1]; 
   const double dx12 = 2/dxv[2]; 
@@ -31,7 +31,7 @@ GKYL_CU_DH void vlasov_poisson_surfvy_3x3v_ser_p1(const double *w, const double 
   double Ghat_l[64] = {0.0}; 
   double Ghat_r[64] = {0.0}; 
 
-  if (alpha[7]-alpha[3]-alpha[1]+alpha[0] > 0) { 
+  if (0.1767766952966368*alpha[7]-0.1767766952966368*(alpha[3]+alpha[1])+0.1767766952966368*alpha[0] > 0) { 
     fUpwindQuad_l[0] = hyb_3x3v_p1_surfx5_eval_quad_node_0_r(fl); 
     fUpwindQuad_r[0] = hyb_3x3v_p1_surfx5_eval_quad_node_0_r(fc); 
     fUpwindQuad_l[1] = hyb_3x3v_p1_surfx5_eval_quad_node_1_r(fl); 
@@ -70,7 +70,7 @@ GKYL_CU_DH void vlasov_poisson_surfvy_3x3v_ser_p1(const double *w, const double 
     fUpwindQuad_l[8] = hyb_3x3v_p1_surfx5_eval_quad_node_8_l(fc); 
     fUpwindQuad_r[8] = hyb_3x3v_p1_surfx5_eval_quad_node_8_l(fr); 
   } 
-  if (alpha[7]-alpha[3]-alpha[1]+alpha[0] > 0) { 
+  if (0.1767766952966368*alpha[7]-0.1767766952966368*(alpha[3]+alpha[1])+0.1767766952966368*alpha[0] > 0) { 
     fUpwindQuad_l[9] = hyb_3x3v_p1_surfx5_eval_quad_node_9_r(fl); 
     fUpwindQuad_r[9] = hyb_3x3v_p1_surfx5_eval_quad_node_9_r(fc); 
     fUpwindQuad_l[10] = hyb_3x3v_p1_surfx5_eval_quad_node_10_r(fl); 
@@ -109,7 +109,7 @@ GKYL_CU_DH void vlasov_poisson_surfvy_3x3v_ser_p1(const double *w, const double 
     fUpwindQuad_l[17] = hyb_3x3v_p1_surfx5_eval_quad_node_17_l(fc); 
     fUpwindQuad_r[17] = hyb_3x3v_p1_surfx5_eval_quad_node_17_l(fr); 
   } 
-  if (alpha[7]-alpha[3]-alpha[1]+alpha[0] > 0) { 
+  if (0.1767766952966368*alpha[7]-0.1767766952966368*(alpha[3]+alpha[1])+0.1767766952966368*alpha[0] > 0) { 
     fUpwindQuad_l[18] = hyb_3x3v_p1_surfx5_eval_quad_node_18_r(fl); 
     fUpwindQuad_r[18] = hyb_3x3v_p1_surfx5_eval_quad_node_18_r(fc); 
     fUpwindQuad_l[19] = hyb_3x3v_p1_surfx5_eval_quad_node_19_r(fl); 
@@ -148,7 +148,7 @@ GKYL_CU_DH void vlasov_poisson_surfvy_3x3v_ser_p1(const double *w, const double 
     fUpwindQuad_l[26] = hyb_3x3v_p1_surfx5_eval_quad_node_26_l(fc); 
     fUpwindQuad_r[26] = hyb_3x3v_p1_surfx5_eval_quad_node_26_l(fr); 
   } 
-  if (alpha[7]-alpha[3]-alpha[1]+alpha[0] > 0) { 
+  if (0.1767766952966368*alpha[7]-0.1767766952966368*(alpha[3]+alpha[1])+0.1767766952966368*alpha[0] > 0) { 
     fUpwindQuad_l[27] = hyb_3x3v_p1_surfx5_eval_quad_node_27_r(fl); 
     fUpwindQuad_r[27] = hyb_3x3v_p1_surfx5_eval_quad_node_27_r(fc); 
     fUpwindQuad_l[28] = hyb_3x3v_p1_surfx5_eval_quad_node_28_r(fl); 
@@ -187,7 +187,7 @@ GKYL_CU_DH void vlasov_poisson_surfvy_3x3v_ser_p1(const double *w, const double 
     fUpwindQuad_l[35] = hyb_3x3v_p1_surfx5_eval_quad_node_35_l(fc); 
     fUpwindQuad_r[35] = hyb_3x3v_p1_surfx5_eval_quad_node_35_l(fr); 
   } 
-  if (alpha[7]-alpha[3]-alpha[1]+alpha[0] > 0) { 
+  if (0.1767766952966368*alpha[7]-0.1767766952966368*(alpha[3]+alpha[1])+0.1767766952966368*alpha[0] > 0) { 
     fUpwindQuad_l[36] = hyb_3x3v_p1_surfx5_eval_quad_node_36_r(fl); 
     fUpwindQuad_r[36] = hyb_3x3v_p1_surfx5_eval_quad_node_36_r(fc); 
     fUpwindQuad_l[37] = hyb_3x3v_p1_surfx5_eval_quad_node_37_r(fl); 
@@ -226,7 +226,7 @@ GKYL_CU_DH void vlasov_poisson_surfvy_3x3v_ser_p1(const double *w, const double 
     fUpwindQuad_l[44] = hyb_3x3v_p1_surfx5_eval_quad_node_44_l(fc); 
     fUpwindQuad_r[44] = hyb_3x3v_p1_surfx5_eval_quad_node_44_l(fr); 
   } 
-  if (alpha[7]-alpha[3]-alpha[1]+alpha[0] > 0) { 
+  if (0.1767766952966368*alpha[7]-0.1767766952966368*(alpha[3]+alpha[1])+0.1767766952966368*alpha[0] > 0) { 
     fUpwindQuad_l[45] = hyb_3x3v_p1_surfx5_eval_quad_node_45_r(fl); 
     fUpwindQuad_r[45] = hyb_3x3v_p1_surfx5_eval_quad_node_45_r(fc); 
     fUpwindQuad_l[46] = hyb_3x3v_p1_surfx5_eval_quad_node_46_r(fl); 
@@ -265,7 +265,7 @@ GKYL_CU_DH void vlasov_poisson_surfvy_3x3v_ser_p1(const double *w, const double 
     fUpwindQuad_l[53] = hyb_3x3v_p1_surfx5_eval_quad_node_53_l(fc); 
     fUpwindQuad_r[53] = hyb_3x3v_p1_surfx5_eval_quad_node_53_l(fr); 
   } 
-  if (alpha[7]-alpha[3]-alpha[1]+alpha[0] > 0) { 
+  if (0.1767766952966368*alpha[7]-0.1767766952966368*(alpha[3]+alpha[1])+0.1767766952966368*alpha[0] > 0) { 
     fUpwindQuad_l[54] = hyb_3x3v_p1_surfx5_eval_quad_node_54_r(fl); 
     fUpwindQuad_r[54] = hyb_3x3v_p1_surfx5_eval_quad_node_54_r(fc); 
     fUpwindQuad_l[55] = hyb_3x3v_p1_surfx5_eval_quad_node_55_r(fl); 
@@ -304,7 +304,7 @@ GKYL_CU_DH void vlasov_poisson_surfvy_3x3v_ser_p1(const double *w, const double 
     fUpwindQuad_l[62] = hyb_3x3v_p1_surfx5_eval_quad_node_62_l(fc); 
     fUpwindQuad_r[62] = hyb_3x3v_p1_surfx5_eval_quad_node_62_l(fr); 
   } 
-  if (alpha[7]-alpha[3]-alpha[1]+alpha[0] > 0) { 
+  if (0.1767766952966368*alpha[7]-0.1767766952966368*(alpha[3]+alpha[1])+0.1767766952966368*alpha[0] > 0) { 
     fUpwindQuad_l[63] = hyb_3x3v_p1_surfx5_eval_quad_node_63_r(fl); 
     fUpwindQuad_r[63] = hyb_3x3v_p1_surfx5_eval_quad_node_63_r(fc); 
     fUpwindQuad_l[64] = hyb_3x3v_p1_surfx5_eval_quad_node_64_r(fl); 
@@ -348,135 +348,135 @@ GKYL_CU_DH void vlasov_poisson_surfvy_3x3v_ser_p1(const double *w, const double 
   hyb_3x3v_p1_vdir_upwind_quad_to_modal(fUpwindQuad_l, fUpwind_l); 
   hyb_3x3v_p1_vdir_upwind_quad_to_modal(fUpwindQuad_r, fUpwind_r); 
 
-  Ghat_l[0] = 0.1767766952966368*(alpha[7]*fUpwind_l[7]+alpha[3]*fUpwind_l[3]+alpha[1]*fUpwind_l[1]+alpha[0]*fUpwind_l[0]); 
-  Ghat_l[1] = 0.1767766952966368*(alpha[3]*fUpwind_l[7]+fUpwind_l[3]*alpha[7]+alpha[0]*fUpwind_l[1]+fUpwind_l[0]*alpha[1]); 
-  Ghat_l[2] = 0.1767766952966368*(alpha[7]*fUpwind_l[16]+alpha[3]*fUpwind_l[8]+alpha[1]*fUpwind_l[6]+alpha[0]*fUpwind_l[2]); 
-  Ghat_l[3] = 0.1767766952966368*(alpha[1]*fUpwind_l[7]+fUpwind_l[1]*alpha[7]+alpha[0]*fUpwind_l[3]+fUpwind_l[0]*alpha[3]); 
-  Ghat_l[4] = 0.1767766952966368*(alpha[7]*fUpwind_l[18]+alpha[3]*fUpwind_l[11]+alpha[1]*fUpwind_l[9]+alpha[0]*fUpwind_l[4]); 
-  Ghat_l[5] = 0.1767766952966368*(alpha[7]*fUpwind_l[21]+alpha[3]*fUpwind_l[14]+alpha[1]*fUpwind_l[12]+alpha[0]*fUpwind_l[5]); 
-  Ghat_l[6] = 0.1767766952966368*(alpha[3]*fUpwind_l[16]+alpha[7]*fUpwind_l[8]+alpha[0]*fUpwind_l[6]+alpha[1]*fUpwind_l[2]); 
-  Ghat_l[7] = 0.1767766952966368*(alpha[0]*fUpwind_l[7]+fUpwind_l[0]*alpha[7]+alpha[1]*fUpwind_l[3]+fUpwind_l[1]*alpha[3]); 
-  Ghat_l[8] = 0.1767766952966368*(alpha[1]*fUpwind_l[16]+alpha[0]*fUpwind_l[8]+fUpwind_l[6]*alpha[7]+fUpwind_l[2]*alpha[3]); 
-  Ghat_l[9] = 0.1767766952966368*(alpha[3]*fUpwind_l[18]+alpha[7]*fUpwind_l[11]+alpha[0]*fUpwind_l[9]+alpha[1]*fUpwind_l[4]); 
-  Ghat_l[10] = 0.1767766952966368*(alpha[7]*fUpwind_l[26]+alpha[3]*fUpwind_l[19]+alpha[1]*fUpwind_l[17]+alpha[0]*fUpwind_l[10]); 
-  Ghat_l[11] = 0.1767766952966368*(alpha[1]*fUpwind_l[18]+alpha[0]*fUpwind_l[11]+alpha[7]*fUpwind_l[9]+alpha[3]*fUpwind_l[4]); 
-  Ghat_l[12] = 0.1767766952966368*(alpha[3]*fUpwind_l[21]+alpha[7]*fUpwind_l[14]+alpha[0]*fUpwind_l[12]+alpha[1]*fUpwind_l[5]); 
-  Ghat_l[13] = 0.1767766952966368*(alpha[7]*fUpwind_l[27]+alpha[3]*fUpwind_l[22]+alpha[1]*fUpwind_l[20]+alpha[0]*fUpwind_l[13]); 
-  Ghat_l[14] = 0.1767766952966368*(alpha[1]*fUpwind_l[21]+alpha[0]*fUpwind_l[14]+alpha[7]*fUpwind_l[12]+alpha[3]*fUpwind_l[5]); 
-  Ghat_l[15] = 0.1767766952966368*(alpha[7]*fUpwind_l[29]+alpha[3]*fUpwind_l[25]+alpha[1]*fUpwind_l[23]+alpha[0]*fUpwind_l[15]); 
-  Ghat_l[16] = 0.1767766952966368*(alpha[0]*fUpwind_l[16]+alpha[1]*fUpwind_l[8]+fUpwind_l[2]*alpha[7]+alpha[3]*fUpwind_l[6]); 
-  Ghat_l[17] = 0.1767766952966368*(alpha[3]*fUpwind_l[26]+alpha[7]*fUpwind_l[19]+alpha[0]*fUpwind_l[17]+alpha[1]*fUpwind_l[10]); 
-  Ghat_l[18] = 0.1767766952966368*(alpha[0]*fUpwind_l[18]+alpha[1]*fUpwind_l[11]+alpha[3]*fUpwind_l[9]+fUpwind_l[4]*alpha[7]); 
-  Ghat_l[19] = 0.1767766952966368*(alpha[1]*fUpwind_l[26]+alpha[0]*fUpwind_l[19]+alpha[7]*fUpwind_l[17]+alpha[3]*fUpwind_l[10]); 
-  Ghat_l[20] = 0.1767766952966368*(alpha[3]*fUpwind_l[27]+alpha[7]*fUpwind_l[22]+alpha[0]*fUpwind_l[20]+alpha[1]*fUpwind_l[13]); 
-  Ghat_l[21] = 0.1767766952966368*(alpha[0]*fUpwind_l[21]+alpha[1]*fUpwind_l[14]+alpha[3]*fUpwind_l[12]+fUpwind_l[5]*alpha[7]); 
-  Ghat_l[22] = 0.1767766952966368*(alpha[1]*fUpwind_l[27]+alpha[0]*fUpwind_l[22]+alpha[7]*fUpwind_l[20]+alpha[3]*fUpwind_l[13]); 
-  Ghat_l[23] = 0.1767766952966368*(alpha[3]*fUpwind_l[29]+alpha[7]*fUpwind_l[25]+alpha[0]*fUpwind_l[23]+alpha[1]*fUpwind_l[15]); 
-  Ghat_l[24] = 0.1767766952966368*(alpha[7]*fUpwind_l[31]+alpha[3]*fUpwind_l[30]+alpha[1]*fUpwind_l[28]+alpha[0]*fUpwind_l[24]); 
-  Ghat_l[25] = 0.1767766952966368*(alpha[1]*fUpwind_l[29]+alpha[0]*fUpwind_l[25]+alpha[7]*fUpwind_l[23]+alpha[3]*fUpwind_l[15]); 
-  Ghat_l[26] = 0.1767766952966368*(alpha[0]*fUpwind_l[26]+alpha[1]*fUpwind_l[19]+alpha[3]*fUpwind_l[17]+alpha[7]*fUpwind_l[10]); 
-  Ghat_l[27] = 0.1767766952966368*(alpha[0]*fUpwind_l[27]+alpha[1]*fUpwind_l[22]+alpha[3]*fUpwind_l[20]+alpha[7]*fUpwind_l[13]); 
-  Ghat_l[28] = 0.1767766952966368*(alpha[3]*fUpwind_l[31]+alpha[7]*fUpwind_l[30]+alpha[0]*fUpwind_l[28]+alpha[1]*fUpwind_l[24]); 
-  Ghat_l[29] = 0.1767766952966368*(alpha[0]*fUpwind_l[29]+alpha[1]*fUpwind_l[25]+alpha[3]*fUpwind_l[23]+alpha[7]*fUpwind_l[15]); 
-  Ghat_l[30] = 0.1767766952966368*(alpha[1]*fUpwind_l[31]+alpha[0]*fUpwind_l[30]+alpha[7]*fUpwind_l[28]+alpha[3]*fUpwind_l[24]); 
-  Ghat_l[31] = 0.1767766952966368*(alpha[0]*fUpwind_l[31]+alpha[1]*fUpwind_l[30]+alpha[3]*fUpwind_l[28]+alpha[7]*fUpwind_l[24]); 
-  Ghat_l[32] = 0.01178511301977579*(15.0*alpha[7]*fUpwind_l[38]+15.0*(alpha[3]*fUpwind_l[35]+alpha[1]*fUpwind_l[33])+15.0*alpha[0]*fUpwind_l[32]); 
-  Ghat_l[33] = 0.01178511301977579*(15.0*alpha[3]*fUpwind_l[38]+15.0*(alpha[7]*fUpwind_l[35]+alpha[0]*fUpwind_l[33])+15.0*alpha[1]*fUpwind_l[32]); 
-  Ghat_l[34] = 0.01178511301977579*(15.0*alpha[7]*fUpwind_l[43]+15.0*(alpha[3]*fUpwind_l[39]+alpha[1]*fUpwind_l[37])+15.0*alpha[0]*fUpwind_l[34]); 
-  Ghat_l[35] = 0.01178511301977579*(15.0*alpha[1]*fUpwind_l[38]+15.0*(alpha[0]*fUpwind_l[35]+alpha[7]*fUpwind_l[33])+15.0*alpha[3]*fUpwind_l[32]); 
-  Ghat_l[36] = 0.01178511301977579*(15.0*alpha[7]*fUpwind_l[45]+15.0*(alpha[3]*fUpwind_l[42]+alpha[1]*fUpwind_l[40])+15.0*alpha[0]*fUpwind_l[36]); 
-  Ghat_l[37] = 0.01178511301977579*(15.0*alpha[3]*fUpwind_l[43]+15.0*(alpha[7]*fUpwind_l[39]+alpha[0]*fUpwind_l[37])+15.0*alpha[1]*fUpwind_l[34]); 
-  Ghat_l[38] = 0.01178511301977579*(15.0*alpha[0]*fUpwind_l[38]+15.0*(alpha[1]*fUpwind_l[35]+alpha[3]*fUpwind_l[33])+15.0*alpha[7]*fUpwind_l[32]); 
-  Ghat_l[39] = 0.01178511301977579*(15.0*alpha[1]*fUpwind_l[43]+15.0*(alpha[0]*fUpwind_l[39]+alpha[7]*fUpwind_l[37])+15.0*alpha[3]*fUpwind_l[34]); 
-  Ghat_l[40] = 0.01178511301977579*(15.0*alpha[3]*fUpwind_l[45]+15.0*(alpha[7]*fUpwind_l[42]+alpha[0]*fUpwind_l[40])+15.0*alpha[1]*fUpwind_l[36]); 
-  Ghat_l[41] = 0.01178511301977579*(15.0*alpha[7]*fUpwind_l[47]+15.0*(alpha[3]*fUpwind_l[46]+alpha[1]*fUpwind_l[44])+15.0*alpha[0]*fUpwind_l[41]); 
-  Ghat_l[42] = 0.01178511301977579*(15.0*alpha[1]*fUpwind_l[45]+15.0*(alpha[0]*fUpwind_l[42]+alpha[7]*fUpwind_l[40])+15.0*alpha[3]*fUpwind_l[36]); 
-  Ghat_l[43] = 0.01178511301977579*(15.0*alpha[0]*fUpwind_l[43]+15.0*(alpha[1]*fUpwind_l[39]+alpha[3]*fUpwind_l[37])+15.0*alpha[7]*fUpwind_l[34]); 
-  Ghat_l[44] = 0.01178511301977579*(15.0*alpha[3]*fUpwind_l[47]+15.0*(alpha[7]*fUpwind_l[46]+alpha[0]*fUpwind_l[44])+15.0*alpha[1]*fUpwind_l[41]); 
-  Ghat_l[45] = 0.01178511301977579*(15.0*alpha[0]*fUpwind_l[45]+15.0*(alpha[1]*fUpwind_l[42]+alpha[3]*fUpwind_l[40])+15.0*alpha[7]*fUpwind_l[36]); 
-  Ghat_l[46] = 0.01178511301977579*(15.0*alpha[1]*fUpwind_l[47]+15.0*(alpha[0]*fUpwind_l[46]+alpha[7]*fUpwind_l[44])+15.0*alpha[3]*fUpwind_l[41]); 
-  Ghat_l[47] = 0.01178511301977579*(15.0*alpha[0]*fUpwind_l[47]+15.0*(alpha[1]*fUpwind_l[46]+alpha[3]*fUpwind_l[44])+15.0*alpha[7]*fUpwind_l[41]); 
-  Ghat_l[48] = 0.01178511301977579*(15.0*alpha[7]*fUpwind_l[54]+15.0*(alpha[3]*fUpwind_l[51]+alpha[1]*fUpwind_l[49])+15.0*alpha[0]*fUpwind_l[48]); 
-  Ghat_l[49] = 0.01178511301977579*(15.0*alpha[3]*fUpwind_l[54]+15.0*(alpha[7]*fUpwind_l[51]+alpha[0]*fUpwind_l[49])+15.0*alpha[1]*fUpwind_l[48]); 
-  Ghat_l[50] = 0.01178511301977579*(15.0*alpha[7]*fUpwind_l[59]+15.0*(alpha[3]*fUpwind_l[55]+alpha[1]*fUpwind_l[53])+15.0*alpha[0]*fUpwind_l[50]); 
-  Ghat_l[51] = 0.01178511301977579*(15.0*alpha[1]*fUpwind_l[54]+15.0*(alpha[0]*fUpwind_l[51]+alpha[7]*fUpwind_l[49])+15.0*alpha[3]*fUpwind_l[48]); 
-  Ghat_l[52] = 0.01178511301977579*(15.0*alpha[7]*fUpwind_l[61]+15.0*(alpha[3]*fUpwind_l[58]+alpha[1]*fUpwind_l[56])+15.0*alpha[0]*fUpwind_l[52]); 
-  Ghat_l[53] = 0.01178511301977579*(15.0*alpha[3]*fUpwind_l[59]+15.0*(alpha[7]*fUpwind_l[55]+alpha[0]*fUpwind_l[53])+15.0*alpha[1]*fUpwind_l[50]); 
-  Ghat_l[54] = 0.01178511301977579*(15.0*alpha[0]*fUpwind_l[54]+15.0*(alpha[1]*fUpwind_l[51]+alpha[3]*fUpwind_l[49])+15.0*alpha[7]*fUpwind_l[48]); 
-  Ghat_l[55] = 0.01178511301977579*(15.0*alpha[1]*fUpwind_l[59]+15.0*(alpha[0]*fUpwind_l[55]+alpha[7]*fUpwind_l[53])+15.0*alpha[3]*fUpwind_l[50]); 
-  Ghat_l[56] = 0.01178511301977579*(15.0*alpha[3]*fUpwind_l[61]+15.0*(alpha[7]*fUpwind_l[58]+alpha[0]*fUpwind_l[56])+15.0*alpha[1]*fUpwind_l[52]); 
-  Ghat_l[57] = 0.01178511301977579*(15.0*alpha[7]*fUpwind_l[63]+15.0*(alpha[3]*fUpwind_l[62]+alpha[1]*fUpwind_l[60])+15.0*alpha[0]*fUpwind_l[57]); 
-  Ghat_l[58] = 0.01178511301977579*(15.0*alpha[1]*fUpwind_l[61]+15.0*(alpha[0]*fUpwind_l[58]+alpha[7]*fUpwind_l[56])+15.0*alpha[3]*fUpwind_l[52]); 
-  Ghat_l[59] = 0.01178511301977579*(15.0*alpha[0]*fUpwind_l[59]+15.0*(alpha[1]*fUpwind_l[55]+alpha[3]*fUpwind_l[53])+15.0*alpha[7]*fUpwind_l[50]); 
-  Ghat_l[60] = 0.01178511301977579*(15.0*alpha[3]*fUpwind_l[63]+15.0*(alpha[7]*fUpwind_l[62]+alpha[0]*fUpwind_l[60])+15.0*alpha[1]*fUpwind_l[57]); 
-  Ghat_l[61] = 0.01178511301977579*(15.0*alpha[0]*fUpwind_l[61]+15.0*(alpha[1]*fUpwind_l[58]+alpha[3]*fUpwind_l[56])+15.0*alpha[7]*fUpwind_l[52]); 
-  Ghat_l[62] = 0.01178511301977579*(15.0*alpha[1]*fUpwind_l[63]+15.0*(alpha[0]*fUpwind_l[62]+alpha[7]*fUpwind_l[60])+15.0*alpha[3]*fUpwind_l[57]); 
-  Ghat_l[63] = 0.01178511301977579*(15.0*alpha[0]*fUpwind_l[63]+15.0*(alpha[1]*fUpwind_l[62]+alpha[3]*fUpwind_l[60])+15.0*alpha[7]*fUpwind_l[57]); 
+  Ghat_l[0] = 0.1767766952966368*alpha[7]*fUpwind_l[7]+0.1767766952966368*alpha[3]*fUpwind_l[3]+0.1767766952966368*alpha[1]*fUpwind_l[1]+0.1767766952966368*alpha[0]*fUpwind_l[0]; 
+  Ghat_l[1] = 0.1767766952966368*alpha[3]*fUpwind_l[7]+0.1767766952966368*fUpwind_l[3]*alpha[7]+0.1767766952966368*alpha[0]*fUpwind_l[1]+0.1767766952966368*fUpwind_l[0]*alpha[1]; 
+  Ghat_l[2] = 0.1767766952966368*alpha[7]*fUpwind_l[16]+0.1767766952966368*alpha[3]*fUpwind_l[8]+0.1767766952966368*alpha[1]*fUpwind_l[6]+0.1767766952966368*alpha[0]*fUpwind_l[2]; 
+  Ghat_l[3] = 0.1767766952966368*alpha[1]*fUpwind_l[7]+0.1767766952966368*fUpwind_l[1]*alpha[7]+0.1767766952966368*alpha[0]*fUpwind_l[3]+0.1767766952966368*fUpwind_l[0]*alpha[3]; 
+  Ghat_l[4] = 0.1767766952966368*alpha[7]*fUpwind_l[18]+0.1767766952966368*alpha[3]*fUpwind_l[11]+0.1767766952966368*alpha[1]*fUpwind_l[9]+0.1767766952966368*alpha[0]*fUpwind_l[4]; 
+  Ghat_l[5] = 0.1767766952966368*alpha[7]*fUpwind_l[21]+0.1767766952966368*alpha[3]*fUpwind_l[14]+0.1767766952966368*alpha[1]*fUpwind_l[12]+0.1767766952966368*alpha[0]*fUpwind_l[5]; 
+  Ghat_l[6] = 0.1767766952966368*alpha[3]*fUpwind_l[16]+0.1767766952966368*alpha[7]*fUpwind_l[8]+0.1767766952966368*alpha[0]*fUpwind_l[6]+0.1767766952966368*alpha[1]*fUpwind_l[2]; 
+  Ghat_l[7] = 0.1767766952966368*alpha[0]*fUpwind_l[7]+0.1767766952966368*fUpwind_l[0]*alpha[7]+0.1767766952966368*alpha[1]*fUpwind_l[3]+0.1767766952966368*fUpwind_l[1]*alpha[3]; 
+  Ghat_l[8] = 0.1767766952966368*alpha[1]*fUpwind_l[16]+0.1767766952966368*alpha[0]*fUpwind_l[8]+0.1767766952966368*fUpwind_l[6]*alpha[7]+0.1767766952966368*fUpwind_l[2]*alpha[3]; 
+  Ghat_l[9] = 0.1767766952966368*alpha[3]*fUpwind_l[18]+0.1767766952966368*alpha[7]*fUpwind_l[11]+0.1767766952966368*alpha[0]*fUpwind_l[9]+0.1767766952966368*alpha[1]*fUpwind_l[4]; 
+  Ghat_l[10] = 0.1767766952966368*alpha[7]*fUpwind_l[26]+0.1767766952966368*alpha[3]*fUpwind_l[19]+0.1767766952966368*alpha[1]*fUpwind_l[17]+0.1767766952966368*alpha[0]*fUpwind_l[10]; 
+  Ghat_l[11] = 0.1767766952966368*alpha[1]*fUpwind_l[18]+0.1767766952966368*alpha[0]*fUpwind_l[11]+0.1767766952966368*alpha[7]*fUpwind_l[9]+0.1767766952966368*alpha[3]*fUpwind_l[4]; 
+  Ghat_l[12] = 0.1767766952966368*alpha[3]*fUpwind_l[21]+0.1767766952966368*alpha[7]*fUpwind_l[14]+0.1767766952966368*alpha[0]*fUpwind_l[12]+0.1767766952966368*alpha[1]*fUpwind_l[5]; 
+  Ghat_l[13] = 0.1767766952966368*alpha[7]*fUpwind_l[27]+0.1767766952966368*alpha[3]*fUpwind_l[22]+0.1767766952966368*alpha[1]*fUpwind_l[20]+0.1767766952966368*alpha[0]*fUpwind_l[13]; 
+  Ghat_l[14] = 0.1767766952966368*alpha[1]*fUpwind_l[21]+0.1767766952966368*alpha[0]*fUpwind_l[14]+0.1767766952966368*alpha[7]*fUpwind_l[12]+0.1767766952966368*alpha[3]*fUpwind_l[5]; 
+  Ghat_l[15] = 0.1767766952966368*alpha[7]*fUpwind_l[29]+0.1767766952966368*alpha[3]*fUpwind_l[25]+0.1767766952966368*alpha[1]*fUpwind_l[23]+0.1767766952966368*alpha[0]*fUpwind_l[15]; 
+  Ghat_l[16] = 0.1767766952966368*alpha[0]*fUpwind_l[16]+0.1767766952966368*alpha[1]*fUpwind_l[8]+0.1767766952966368*fUpwind_l[2]*alpha[7]+0.1767766952966368*alpha[3]*fUpwind_l[6]; 
+  Ghat_l[17] = 0.1767766952966368*alpha[3]*fUpwind_l[26]+0.1767766952966368*alpha[7]*fUpwind_l[19]+0.1767766952966368*alpha[0]*fUpwind_l[17]+0.1767766952966368*alpha[1]*fUpwind_l[10]; 
+  Ghat_l[18] = 0.1767766952966368*alpha[0]*fUpwind_l[18]+0.1767766952966368*alpha[1]*fUpwind_l[11]+0.1767766952966368*alpha[3]*fUpwind_l[9]+0.1767766952966368*fUpwind_l[4]*alpha[7]; 
+  Ghat_l[19] = 0.1767766952966368*alpha[1]*fUpwind_l[26]+0.1767766952966368*alpha[0]*fUpwind_l[19]+0.1767766952966368*alpha[7]*fUpwind_l[17]+0.1767766952966368*alpha[3]*fUpwind_l[10]; 
+  Ghat_l[20] = 0.1767766952966368*alpha[3]*fUpwind_l[27]+0.1767766952966368*alpha[7]*fUpwind_l[22]+0.1767766952966368*alpha[0]*fUpwind_l[20]+0.1767766952966368*alpha[1]*fUpwind_l[13]; 
+  Ghat_l[21] = 0.1767766952966368*alpha[0]*fUpwind_l[21]+0.1767766952966368*alpha[1]*fUpwind_l[14]+0.1767766952966368*alpha[3]*fUpwind_l[12]+0.1767766952966368*fUpwind_l[5]*alpha[7]; 
+  Ghat_l[22] = 0.1767766952966368*alpha[1]*fUpwind_l[27]+0.1767766952966368*alpha[0]*fUpwind_l[22]+0.1767766952966368*alpha[7]*fUpwind_l[20]+0.1767766952966368*alpha[3]*fUpwind_l[13]; 
+  Ghat_l[23] = 0.1767766952966368*alpha[3]*fUpwind_l[29]+0.1767766952966368*alpha[7]*fUpwind_l[25]+0.1767766952966368*alpha[0]*fUpwind_l[23]+0.1767766952966368*alpha[1]*fUpwind_l[15]; 
+  Ghat_l[24] = 0.1767766952966368*alpha[7]*fUpwind_l[31]+0.1767766952966368*alpha[3]*fUpwind_l[30]+0.1767766952966368*alpha[1]*fUpwind_l[28]+0.1767766952966368*alpha[0]*fUpwind_l[24]; 
+  Ghat_l[25] = 0.1767766952966368*alpha[1]*fUpwind_l[29]+0.1767766952966368*alpha[0]*fUpwind_l[25]+0.1767766952966368*alpha[7]*fUpwind_l[23]+0.1767766952966368*alpha[3]*fUpwind_l[15]; 
+  Ghat_l[26] = 0.1767766952966368*alpha[0]*fUpwind_l[26]+0.1767766952966368*alpha[1]*fUpwind_l[19]+0.1767766952966368*alpha[3]*fUpwind_l[17]+0.1767766952966368*alpha[7]*fUpwind_l[10]; 
+  Ghat_l[27] = 0.1767766952966368*alpha[0]*fUpwind_l[27]+0.1767766952966368*alpha[1]*fUpwind_l[22]+0.1767766952966368*alpha[3]*fUpwind_l[20]+0.1767766952966368*alpha[7]*fUpwind_l[13]; 
+  Ghat_l[28] = 0.1767766952966368*alpha[3]*fUpwind_l[31]+0.1767766952966368*alpha[7]*fUpwind_l[30]+0.1767766952966368*alpha[0]*fUpwind_l[28]+0.1767766952966368*alpha[1]*fUpwind_l[24]; 
+  Ghat_l[29] = 0.1767766952966368*alpha[0]*fUpwind_l[29]+0.1767766952966368*alpha[1]*fUpwind_l[25]+0.1767766952966368*alpha[3]*fUpwind_l[23]+0.1767766952966368*alpha[7]*fUpwind_l[15]; 
+  Ghat_l[30] = 0.1767766952966368*alpha[1]*fUpwind_l[31]+0.1767766952966368*alpha[0]*fUpwind_l[30]+0.1767766952966368*alpha[7]*fUpwind_l[28]+0.1767766952966368*alpha[3]*fUpwind_l[24]; 
+  Ghat_l[31] = 0.1767766952966368*alpha[0]*fUpwind_l[31]+0.1767766952966368*alpha[1]*fUpwind_l[30]+0.1767766952966368*alpha[3]*fUpwind_l[28]+0.1767766952966368*alpha[7]*fUpwind_l[24]; 
+  Ghat_l[32] = 0.1767766952966368*alpha[7]*fUpwind_l[38]+0.1767766952966368*alpha[3]*fUpwind_l[35]+0.1767766952966368*alpha[1]*fUpwind_l[33]+0.1767766952966368*alpha[0]*fUpwind_l[32]; 
+  Ghat_l[33] = 0.1767766952966368*alpha[3]*fUpwind_l[38]+0.1767766952966368*alpha[7]*fUpwind_l[35]+0.1767766952966368*alpha[0]*fUpwind_l[33]+0.1767766952966368*alpha[1]*fUpwind_l[32]; 
+  Ghat_l[34] = 0.1767766952966368*alpha[7]*fUpwind_l[43]+0.1767766952966368*alpha[3]*fUpwind_l[39]+0.1767766952966368*alpha[1]*fUpwind_l[37]+0.1767766952966368*alpha[0]*fUpwind_l[34]; 
+  Ghat_l[35] = 0.1767766952966368*alpha[1]*fUpwind_l[38]+0.1767766952966368*alpha[0]*fUpwind_l[35]+0.1767766952966368*alpha[7]*fUpwind_l[33]+0.1767766952966368*alpha[3]*fUpwind_l[32]; 
+  Ghat_l[36] = 0.1767766952966368*alpha[7]*fUpwind_l[45]+0.1767766952966368*alpha[3]*fUpwind_l[42]+0.1767766952966368*alpha[1]*fUpwind_l[40]+0.1767766952966368*alpha[0]*fUpwind_l[36]; 
+  Ghat_l[37] = 0.1767766952966368*alpha[3]*fUpwind_l[43]+0.1767766952966368*alpha[7]*fUpwind_l[39]+0.1767766952966368*alpha[0]*fUpwind_l[37]+0.1767766952966368*alpha[1]*fUpwind_l[34]; 
+  Ghat_l[38] = 0.1767766952966368*alpha[0]*fUpwind_l[38]+0.1767766952966368*alpha[1]*fUpwind_l[35]+0.1767766952966368*alpha[3]*fUpwind_l[33]+0.1767766952966368*alpha[7]*fUpwind_l[32]; 
+  Ghat_l[39] = 0.1767766952966368*alpha[1]*fUpwind_l[43]+0.1767766952966368*alpha[0]*fUpwind_l[39]+0.1767766952966368*alpha[7]*fUpwind_l[37]+0.1767766952966368*alpha[3]*fUpwind_l[34]; 
+  Ghat_l[40] = 0.1767766952966368*alpha[3]*fUpwind_l[45]+0.1767766952966368*alpha[7]*fUpwind_l[42]+0.1767766952966368*alpha[0]*fUpwind_l[40]+0.1767766952966368*alpha[1]*fUpwind_l[36]; 
+  Ghat_l[41] = 0.1767766952966368*alpha[7]*fUpwind_l[47]+0.1767766952966368*alpha[3]*fUpwind_l[46]+0.1767766952966368*alpha[1]*fUpwind_l[44]+0.1767766952966368*alpha[0]*fUpwind_l[41]; 
+  Ghat_l[42] = 0.1767766952966368*alpha[1]*fUpwind_l[45]+0.1767766952966368*alpha[0]*fUpwind_l[42]+0.1767766952966368*alpha[7]*fUpwind_l[40]+0.1767766952966368*alpha[3]*fUpwind_l[36]; 
+  Ghat_l[43] = 0.1767766952966368*alpha[0]*fUpwind_l[43]+0.1767766952966368*alpha[1]*fUpwind_l[39]+0.1767766952966368*alpha[3]*fUpwind_l[37]+0.1767766952966368*alpha[7]*fUpwind_l[34]; 
+  Ghat_l[44] = 0.1767766952966368*alpha[3]*fUpwind_l[47]+0.1767766952966368*alpha[7]*fUpwind_l[46]+0.1767766952966368*alpha[0]*fUpwind_l[44]+0.1767766952966368*alpha[1]*fUpwind_l[41]; 
+  Ghat_l[45] = 0.1767766952966368*alpha[0]*fUpwind_l[45]+0.1767766952966368*alpha[1]*fUpwind_l[42]+0.1767766952966368*alpha[3]*fUpwind_l[40]+0.1767766952966368*alpha[7]*fUpwind_l[36]; 
+  Ghat_l[46] = 0.1767766952966368*alpha[1]*fUpwind_l[47]+0.1767766952966368*alpha[0]*fUpwind_l[46]+0.1767766952966368*alpha[7]*fUpwind_l[44]+0.1767766952966368*alpha[3]*fUpwind_l[41]; 
+  Ghat_l[47] = 0.1767766952966368*alpha[0]*fUpwind_l[47]+0.1767766952966368*alpha[1]*fUpwind_l[46]+0.1767766952966368*alpha[3]*fUpwind_l[44]+0.1767766952966368*alpha[7]*fUpwind_l[41]; 
+  Ghat_l[48] = 0.1767766952966368*alpha[7]*fUpwind_l[54]+0.1767766952966368*alpha[3]*fUpwind_l[51]+0.1767766952966368*alpha[1]*fUpwind_l[49]+0.1767766952966368*alpha[0]*fUpwind_l[48]; 
+  Ghat_l[49] = 0.1767766952966368*alpha[3]*fUpwind_l[54]+0.1767766952966368*alpha[7]*fUpwind_l[51]+0.1767766952966368*alpha[0]*fUpwind_l[49]+0.1767766952966368*alpha[1]*fUpwind_l[48]; 
+  Ghat_l[50] = 0.1767766952966368*alpha[7]*fUpwind_l[59]+0.1767766952966368*alpha[3]*fUpwind_l[55]+0.1767766952966368*alpha[1]*fUpwind_l[53]+0.1767766952966368*alpha[0]*fUpwind_l[50]; 
+  Ghat_l[51] = 0.1767766952966368*alpha[1]*fUpwind_l[54]+0.1767766952966368*alpha[0]*fUpwind_l[51]+0.1767766952966368*alpha[7]*fUpwind_l[49]+0.1767766952966368*alpha[3]*fUpwind_l[48]; 
+  Ghat_l[52] = 0.1767766952966368*alpha[7]*fUpwind_l[61]+0.1767766952966368*alpha[3]*fUpwind_l[58]+0.1767766952966368*alpha[1]*fUpwind_l[56]+0.1767766952966368*alpha[0]*fUpwind_l[52]; 
+  Ghat_l[53] = 0.1767766952966368*alpha[3]*fUpwind_l[59]+0.1767766952966368*alpha[7]*fUpwind_l[55]+0.1767766952966368*alpha[0]*fUpwind_l[53]+0.1767766952966368*alpha[1]*fUpwind_l[50]; 
+  Ghat_l[54] = 0.1767766952966368*alpha[0]*fUpwind_l[54]+0.1767766952966368*alpha[1]*fUpwind_l[51]+0.1767766952966368*alpha[3]*fUpwind_l[49]+0.1767766952966368*alpha[7]*fUpwind_l[48]; 
+  Ghat_l[55] = 0.1767766952966368*alpha[1]*fUpwind_l[59]+0.1767766952966368*alpha[0]*fUpwind_l[55]+0.1767766952966368*alpha[7]*fUpwind_l[53]+0.1767766952966368*alpha[3]*fUpwind_l[50]; 
+  Ghat_l[56] = 0.1767766952966368*alpha[3]*fUpwind_l[61]+0.1767766952966368*alpha[7]*fUpwind_l[58]+0.1767766952966368*alpha[0]*fUpwind_l[56]+0.1767766952966368*alpha[1]*fUpwind_l[52]; 
+  Ghat_l[57] = 0.1767766952966368*alpha[7]*fUpwind_l[63]+0.1767766952966368*alpha[3]*fUpwind_l[62]+0.1767766952966368*alpha[1]*fUpwind_l[60]+0.1767766952966368*alpha[0]*fUpwind_l[57]; 
+  Ghat_l[58] = 0.1767766952966368*alpha[1]*fUpwind_l[61]+0.1767766952966368*alpha[0]*fUpwind_l[58]+0.1767766952966368*alpha[7]*fUpwind_l[56]+0.1767766952966368*alpha[3]*fUpwind_l[52]; 
+  Ghat_l[59] = 0.1767766952966368*alpha[0]*fUpwind_l[59]+0.1767766952966368*alpha[1]*fUpwind_l[55]+0.1767766952966368*alpha[3]*fUpwind_l[53]+0.1767766952966368*alpha[7]*fUpwind_l[50]; 
+  Ghat_l[60] = 0.1767766952966368*alpha[3]*fUpwind_l[63]+0.1767766952966368*alpha[7]*fUpwind_l[62]+0.1767766952966368*alpha[0]*fUpwind_l[60]+0.1767766952966368*alpha[1]*fUpwind_l[57]; 
+  Ghat_l[61] = 0.1767766952966368*alpha[0]*fUpwind_l[61]+0.1767766952966368*alpha[1]*fUpwind_l[58]+0.1767766952966368*alpha[3]*fUpwind_l[56]+0.1767766952966368*alpha[7]*fUpwind_l[52]; 
+  Ghat_l[62] = 0.1767766952966368*alpha[1]*fUpwind_l[63]+0.1767766952966368*alpha[0]*fUpwind_l[62]+0.1767766952966368*alpha[7]*fUpwind_l[60]+0.1767766952966368*alpha[3]*fUpwind_l[57]; 
+  Ghat_l[63] = 0.1767766952966368*alpha[0]*fUpwind_l[63]+0.1767766952966368*alpha[1]*fUpwind_l[62]+0.1767766952966368*alpha[3]*fUpwind_l[60]+0.1767766952966368*alpha[7]*fUpwind_l[57]; 
 
-  Ghat_r[0] = 0.1767766952966368*(alpha[7]*fUpwind_r[7]+alpha[3]*fUpwind_r[3]+alpha[1]*fUpwind_r[1]+alpha[0]*fUpwind_r[0]); 
-  Ghat_r[1] = 0.1767766952966368*(alpha[3]*fUpwind_r[7]+fUpwind_r[3]*alpha[7]+alpha[0]*fUpwind_r[1]+fUpwind_r[0]*alpha[1]); 
-  Ghat_r[2] = 0.1767766952966368*(alpha[7]*fUpwind_r[16]+alpha[3]*fUpwind_r[8]+alpha[1]*fUpwind_r[6]+alpha[0]*fUpwind_r[2]); 
-  Ghat_r[3] = 0.1767766952966368*(alpha[1]*fUpwind_r[7]+fUpwind_r[1]*alpha[7]+alpha[0]*fUpwind_r[3]+fUpwind_r[0]*alpha[3]); 
-  Ghat_r[4] = 0.1767766952966368*(alpha[7]*fUpwind_r[18]+alpha[3]*fUpwind_r[11]+alpha[1]*fUpwind_r[9]+alpha[0]*fUpwind_r[4]); 
-  Ghat_r[5] = 0.1767766952966368*(alpha[7]*fUpwind_r[21]+alpha[3]*fUpwind_r[14]+alpha[1]*fUpwind_r[12]+alpha[0]*fUpwind_r[5]); 
-  Ghat_r[6] = 0.1767766952966368*(alpha[3]*fUpwind_r[16]+alpha[7]*fUpwind_r[8]+alpha[0]*fUpwind_r[6]+alpha[1]*fUpwind_r[2]); 
-  Ghat_r[7] = 0.1767766952966368*(alpha[0]*fUpwind_r[7]+fUpwind_r[0]*alpha[7]+alpha[1]*fUpwind_r[3]+fUpwind_r[1]*alpha[3]); 
-  Ghat_r[8] = 0.1767766952966368*(alpha[1]*fUpwind_r[16]+alpha[0]*fUpwind_r[8]+fUpwind_r[6]*alpha[7]+fUpwind_r[2]*alpha[3]); 
-  Ghat_r[9] = 0.1767766952966368*(alpha[3]*fUpwind_r[18]+alpha[7]*fUpwind_r[11]+alpha[0]*fUpwind_r[9]+alpha[1]*fUpwind_r[4]); 
-  Ghat_r[10] = 0.1767766952966368*(alpha[7]*fUpwind_r[26]+alpha[3]*fUpwind_r[19]+alpha[1]*fUpwind_r[17]+alpha[0]*fUpwind_r[10]); 
-  Ghat_r[11] = 0.1767766952966368*(alpha[1]*fUpwind_r[18]+alpha[0]*fUpwind_r[11]+alpha[7]*fUpwind_r[9]+alpha[3]*fUpwind_r[4]); 
-  Ghat_r[12] = 0.1767766952966368*(alpha[3]*fUpwind_r[21]+alpha[7]*fUpwind_r[14]+alpha[0]*fUpwind_r[12]+alpha[1]*fUpwind_r[5]); 
-  Ghat_r[13] = 0.1767766952966368*(alpha[7]*fUpwind_r[27]+alpha[3]*fUpwind_r[22]+alpha[1]*fUpwind_r[20]+alpha[0]*fUpwind_r[13]); 
-  Ghat_r[14] = 0.1767766952966368*(alpha[1]*fUpwind_r[21]+alpha[0]*fUpwind_r[14]+alpha[7]*fUpwind_r[12]+alpha[3]*fUpwind_r[5]); 
-  Ghat_r[15] = 0.1767766952966368*(alpha[7]*fUpwind_r[29]+alpha[3]*fUpwind_r[25]+alpha[1]*fUpwind_r[23]+alpha[0]*fUpwind_r[15]); 
-  Ghat_r[16] = 0.1767766952966368*(alpha[0]*fUpwind_r[16]+alpha[1]*fUpwind_r[8]+fUpwind_r[2]*alpha[7]+alpha[3]*fUpwind_r[6]); 
-  Ghat_r[17] = 0.1767766952966368*(alpha[3]*fUpwind_r[26]+alpha[7]*fUpwind_r[19]+alpha[0]*fUpwind_r[17]+alpha[1]*fUpwind_r[10]); 
-  Ghat_r[18] = 0.1767766952966368*(alpha[0]*fUpwind_r[18]+alpha[1]*fUpwind_r[11]+alpha[3]*fUpwind_r[9]+fUpwind_r[4]*alpha[7]); 
-  Ghat_r[19] = 0.1767766952966368*(alpha[1]*fUpwind_r[26]+alpha[0]*fUpwind_r[19]+alpha[7]*fUpwind_r[17]+alpha[3]*fUpwind_r[10]); 
-  Ghat_r[20] = 0.1767766952966368*(alpha[3]*fUpwind_r[27]+alpha[7]*fUpwind_r[22]+alpha[0]*fUpwind_r[20]+alpha[1]*fUpwind_r[13]); 
-  Ghat_r[21] = 0.1767766952966368*(alpha[0]*fUpwind_r[21]+alpha[1]*fUpwind_r[14]+alpha[3]*fUpwind_r[12]+fUpwind_r[5]*alpha[7]); 
-  Ghat_r[22] = 0.1767766952966368*(alpha[1]*fUpwind_r[27]+alpha[0]*fUpwind_r[22]+alpha[7]*fUpwind_r[20]+alpha[3]*fUpwind_r[13]); 
-  Ghat_r[23] = 0.1767766952966368*(alpha[3]*fUpwind_r[29]+alpha[7]*fUpwind_r[25]+alpha[0]*fUpwind_r[23]+alpha[1]*fUpwind_r[15]); 
-  Ghat_r[24] = 0.1767766952966368*(alpha[7]*fUpwind_r[31]+alpha[3]*fUpwind_r[30]+alpha[1]*fUpwind_r[28]+alpha[0]*fUpwind_r[24]); 
-  Ghat_r[25] = 0.1767766952966368*(alpha[1]*fUpwind_r[29]+alpha[0]*fUpwind_r[25]+alpha[7]*fUpwind_r[23]+alpha[3]*fUpwind_r[15]); 
-  Ghat_r[26] = 0.1767766952966368*(alpha[0]*fUpwind_r[26]+alpha[1]*fUpwind_r[19]+alpha[3]*fUpwind_r[17]+alpha[7]*fUpwind_r[10]); 
-  Ghat_r[27] = 0.1767766952966368*(alpha[0]*fUpwind_r[27]+alpha[1]*fUpwind_r[22]+alpha[3]*fUpwind_r[20]+alpha[7]*fUpwind_r[13]); 
-  Ghat_r[28] = 0.1767766952966368*(alpha[3]*fUpwind_r[31]+alpha[7]*fUpwind_r[30]+alpha[0]*fUpwind_r[28]+alpha[1]*fUpwind_r[24]); 
-  Ghat_r[29] = 0.1767766952966368*(alpha[0]*fUpwind_r[29]+alpha[1]*fUpwind_r[25]+alpha[3]*fUpwind_r[23]+alpha[7]*fUpwind_r[15]); 
-  Ghat_r[30] = 0.1767766952966368*(alpha[1]*fUpwind_r[31]+alpha[0]*fUpwind_r[30]+alpha[7]*fUpwind_r[28]+alpha[3]*fUpwind_r[24]); 
-  Ghat_r[31] = 0.1767766952966368*(alpha[0]*fUpwind_r[31]+alpha[1]*fUpwind_r[30]+alpha[3]*fUpwind_r[28]+alpha[7]*fUpwind_r[24]); 
-  Ghat_r[32] = 0.01178511301977579*(15.0*alpha[7]*fUpwind_r[38]+15.0*(alpha[3]*fUpwind_r[35]+alpha[1]*fUpwind_r[33])+15.0*alpha[0]*fUpwind_r[32]); 
-  Ghat_r[33] = 0.01178511301977579*(15.0*alpha[3]*fUpwind_r[38]+15.0*(alpha[7]*fUpwind_r[35]+alpha[0]*fUpwind_r[33])+15.0*alpha[1]*fUpwind_r[32]); 
-  Ghat_r[34] = 0.01178511301977579*(15.0*alpha[7]*fUpwind_r[43]+15.0*(alpha[3]*fUpwind_r[39]+alpha[1]*fUpwind_r[37])+15.0*alpha[0]*fUpwind_r[34]); 
-  Ghat_r[35] = 0.01178511301977579*(15.0*alpha[1]*fUpwind_r[38]+15.0*(alpha[0]*fUpwind_r[35]+alpha[7]*fUpwind_r[33])+15.0*alpha[3]*fUpwind_r[32]); 
-  Ghat_r[36] = 0.01178511301977579*(15.0*alpha[7]*fUpwind_r[45]+15.0*(alpha[3]*fUpwind_r[42]+alpha[1]*fUpwind_r[40])+15.0*alpha[0]*fUpwind_r[36]); 
-  Ghat_r[37] = 0.01178511301977579*(15.0*alpha[3]*fUpwind_r[43]+15.0*(alpha[7]*fUpwind_r[39]+alpha[0]*fUpwind_r[37])+15.0*alpha[1]*fUpwind_r[34]); 
-  Ghat_r[38] = 0.01178511301977579*(15.0*alpha[0]*fUpwind_r[38]+15.0*(alpha[1]*fUpwind_r[35]+alpha[3]*fUpwind_r[33])+15.0*alpha[7]*fUpwind_r[32]); 
-  Ghat_r[39] = 0.01178511301977579*(15.0*alpha[1]*fUpwind_r[43]+15.0*(alpha[0]*fUpwind_r[39]+alpha[7]*fUpwind_r[37])+15.0*alpha[3]*fUpwind_r[34]); 
-  Ghat_r[40] = 0.01178511301977579*(15.0*alpha[3]*fUpwind_r[45]+15.0*(alpha[7]*fUpwind_r[42]+alpha[0]*fUpwind_r[40])+15.0*alpha[1]*fUpwind_r[36]); 
-  Ghat_r[41] = 0.01178511301977579*(15.0*alpha[7]*fUpwind_r[47]+15.0*(alpha[3]*fUpwind_r[46]+alpha[1]*fUpwind_r[44])+15.0*alpha[0]*fUpwind_r[41]); 
-  Ghat_r[42] = 0.01178511301977579*(15.0*alpha[1]*fUpwind_r[45]+15.0*(alpha[0]*fUpwind_r[42]+alpha[7]*fUpwind_r[40])+15.0*alpha[3]*fUpwind_r[36]); 
-  Ghat_r[43] = 0.01178511301977579*(15.0*alpha[0]*fUpwind_r[43]+15.0*(alpha[1]*fUpwind_r[39]+alpha[3]*fUpwind_r[37])+15.0*alpha[7]*fUpwind_r[34]); 
-  Ghat_r[44] = 0.01178511301977579*(15.0*alpha[3]*fUpwind_r[47]+15.0*(alpha[7]*fUpwind_r[46]+alpha[0]*fUpwind_r[44])+15.0*alpha[1]*fUpwind_r[41]); 
-  Ghat_r[45] = 0.01178511301977579*(15.0*alpha[0]*fUpwind_r[45]+15.0*(alpha[1]*fUpwind_r[42]+alpha[3]*fUpwind_r[40])+15.0*alpha[7]*fUpwind_r[36]); 
-  Ghat_r[46] = 0.01178511301977579*(15.0*alpha[1]*fUpwind_r[47]+15.0*(alpha[0]*fUpwind_r[46]+alpha[7]*fUpwind_r[44])+15.0*alpha[3]*fUpwind_r[41]); 
-  Ghat_r[47] = 0.01178511301977579*(15.0*alpha[0]*fUpwind_r[47]+15.0*(alpha[1]*fUpwind_r[46]+alpha[3]*fUpwind_r[44])+15.0*alpha[7]*fUpwind_r[41]); 
-  Ghat_r[48] = 0.01178511301977579*(15.0*alpha[7]*fUpwind_r[54]+15.0*(alpha[3]*fUpwind_r[51]+alpha[1]*fUpwind_r[49])+15.0*alpha[0]*fUpwind_r[48]); 
-  Ghat_r[49] = 0.01178511301977579*(15.0*alpha[3]*fUpwind_r[54]+15.0*(alpha[7]*fUpwind_r[51]+alpha[0]*fUpwind_r[49])+15.0*alpha[1]*fUpwind_r[48]); 
-  Ghat_r[50] = 0.01178511301977579*(15.0*alpha[7]*fUpwind_r[59]+15.0*(alpha[3]*fUpwind_r[55]+alpha[1]*fUpwind_r[53])+15.0*alpha[0]*fUpwind_r[50]); 
-  Ghat_r[51] = 0.01178511301977579*(15.0*alpha[1]*fUpwind_r[54]+15.0*(alpha[0]*fUpwind_r[51]+alpha[7]*fUpwind_r[49])+15.0*alpha[3]*fUpwind_r[48]); 
-  Ghat_r[52] = 0.01178511301977579*(15.0*alpha[7]*fUpwind_r[61]+15.0*(alpha[3]*fUpwind_r[58]+alpha[1]*fUpwind_r[56])+15.0*alpha[0]*fUpwind_r[52]); 
-  Ghat_r[53] = 0.01178511301977579*(15.0*alpha[3]*fUpwind_r[59]+15.0*(alpha[7]*fUpwind_r[55]+alpha[0]*fUpwind_r[53])+15.0*alpha[1]*fUpwind_r[50]); 
-  Ghat_r[54] = 0.01178511301977579*(15.0*alpha[0]*fUpwind_r[54]+15.0*(alpha[1]*fUpwind_r[51]+alpha[3]*fUpwind_r[49])+15.0*alpha[7]*fUpwind_r[48]); 
-  Ghat_r[55] = 0.01178511301977579*(15.0*alpha[1]*fUpwind_r[59]+15.0*(alpha[0]*fUpwind_r[55]+alpha[7]*fUpwind_r[53])+15.0*alpha[3]*fUpwind_r[50]); 
-  Ghat_r[56] = 0.01178511301977579*(15.0*alpha[3]*fUpwind_r[61]+15.0*(alpha[7]*fUpwind_r[58]+alpha[0]*fUpwind_r[56])+15.0*alpha[1]*fUpwind_r[52]); 
-  Ghat_r[57] = 0.01178511301977579*(15.0*alpha[7]*fUpwind_r[63]+15.0*(alpha[3]*fUpwind_r[62]+alpha[1]*fUpwind_r[60])+15.0*alpha[0]*fUpwind_r[57]); 
-  Ghat_r[58] = 0.01178511301977579*(15.0*alpha[1]*fUpwind_r[61]+15.0*(alpha[0]*fUpwind_r[58]+alpha[7]*fUpwind_r[56])+15.0*alpha[3]*fUpwind_r[52]); 
-  Ghat_r[59] = 0.01178511301977579*(15.0*alpha[0]*fUpwind_r[59]+15.0*(alpha[1]*fUpwind_r[55]+alpha[3]*fUpwind_r[53])+15.0*alpha[7]*fUpwind_r[50]); 
-  Ghat_r[60] = 0.01178511301977579*(15.0*alpha[3]*fUpwind_r[63]+15.0*(alpha[7]*fUpwind_r[62]+alpha[0]*fUpwind_r[60])+15.0*alpha[1]*fUpwind_r[57]); 
-  Ghat_r[61] = 0.01178511301977579*(15.0*alpha[0]*fUpwind_r[61]+15.0*(alpha[1]*fUpwind_r[58]+alpha[3]*fUpwind_r[56])+15.0*alpha[7]*fUpwind_r[52]); 
-  Ghat_r[62] = 0.01178511301977579*(15.0*alpha[1]*fUpwind_r[63]+15.0*(alpha[0]*fUpwind_r[62]+alpha[7]*fUpwind_r[60])+15.0*alpha[3]*fUpwind_r[57]); 
-  Ghat_r[63] = 0.01178511301977579*(15.0*alpha[0]*fUpwind_r[63]+15.0*(alpha[1]*fUpwind_r[62]+alpha[3]*fUpwind_r[60])+15.0*alpha[7]*fUpwind_r[57]); 
+  Ghat_r[0] = 0.1767766952966368*alpha[7]*fUpwind_r[7]+0.1767766952966368*alpha[3]*fUpwind_r[3]+0.1767766952966368*alpha[1]*fUpwind_r[1]+0.1767766952966368*alpha[0]*fUpwind_r[0]; 
+  Ghat_r[1] = 0.1767766952966368*alpha[3]*fUpwind_r[7]+0.1767766952966368*fUpwind_r[3]*alpha[7]+0.1767766952966368*alpha[0]*fUpwind_r[1]+0.1767766952966368*fUpwind_r[0]*alpha[1]; 
+  Ghat_r[2] = 0.1767766952966368*alpha[7]*fUpwind_r[16]+0.1767766952966368*alpha[3]*fUpwind_r[8]+0.1767766952966368*alpha[1]*fUpwind_r[6]+0.1767766952966368*alpha[0]*fUpwind_r[2]; 
+  Ghat_r[3] = 0.1767766952966368*alpha[1]*fUpwind_r[7]+0.1767766952966368*fUpwind_r[1]*alpha[7]+0.1767766952966368*alpha[0]*fUpwind_r[3]+0.1767766952966368*fUpwind_r[0]*alpha[3]; 
+  Ghat_r[4] = 0.1767766952966368*alpha[7]*fUpwind_r[18]+0.1767766952966368*alpha[3]*fUpwind_r[11]+0.1767766952966368*alpha[1]*fUpwind_r[9]+0.1767766952966368*alpha[0]*fUpwind_r[4]; 
+  Ghat_r[5] = 0.1767766952966368*alpha[7]*fUpwind_r[21]+0.1767766952966368*alpha[3]*fUpwind_r[14]+0.1767766952966368*alpha[1]*fUpwind_r[12]+0.1767766952966368*alpha[0]*fUpwind_r[5]; 
+  Ghat_r[6] = 0.1767766952966368*alpha[3]*fUpwind_r[16]+0.1767766952966368*alpha[7]*fUpwind_r[8]+0.1767766952966368*alpha[0]*fUpwind_r[6]+0.1767766952966368*alpha[1]*fUpwind_r[2]; 
+  Ghat_r[7] = 0.1767766952966368*alpha[0]*fUpwind_r[7]+0.1767766952966368*fUpwind_r[0]*alpha[7]+0.1767766952966368*alpha[1]*fUpwind_r[3]+0.1767766952966368*fUpwind_r[1]*alpha[3]; 
+  Ghat_r[8] = 0.1767766952966368*alpha[1]*fUpwind_r[16]+0.1767766952966368*alpha[0]*fUpwind_r[8]+0.1767766952966368*fUpwind_r[6]*alpha[7]+0.1767766952966368*fUpwind_r[2]*alpha[3]; 
+  Ghat_r[9] = 0.1767766952966368*alpha[3]*fUpwind_r[18]+0.1767766952966368*alpha[7]*fUpwind_r[11]+0.1767766952966368*alpha[0]*fUpwind_r[9]+0.1767766952966368*alpha[1]*fUpwind_r[4]; 
+  Ghat_r[10] = 0.1767766952966368*alpha[7]*fUpwind_r[26]+0.1767766952966368*alpha[3]*fUpwind_r[19]+0.1767766952966368*alpha[1]*fUpwind_r[17]+0.1767766952966368*alpha[0]*fUpwind_r[10]; 
+  Ghat_r[11] = 0.1767766952966368*alpha[1]*fUpwind_r[18]+0.1767766952966368*alpha[0]*fUpwind_r[11]+0.1767766952966368*alpha[7]*fUpwind_r[9]+0.1767766952966368*alpha[3]*fUpwind_r[4]; 
+  Ghat_r[12] = 0.1767766952966368*alpha[3]*fUpwind_r[21]+0.1767766952966368*alpha[7]*fUpwind_r[14]+0.1767766952966368*alpha[0]*fUpwind_r[12]+0.1767766952966368*alpha[1]*fUpwind_r[5]; 
+  Ghat_r[13] = 0.1767766952966368*alpha[7]*fUpwind_r[27]+0.1767766952966368*alpha[3]*fUpwind_r[22]+0.1767766952966368*alpha[1]*fUpwind_r[20]+0.1767766952966368*alpha[0]*fUpwind_r[13]; 
+  Ghat_r[14] = 0.1767766952966368*alpha[1]*fUpwind_r[21]+0.1767766952966368*alpha[0]*fUpwind_r[14]+0.1767766952966368*alpha[7]*fUpwind_r[12]+0.1767766952966368*alpha[3]*fUpwind_r[5]; 
+  Ghat_r[15] = 0.1767766952966368*alpha[7]*fUpwind_r[29]+0.1767766952966368*alpha[3]*fUpwind_r[25]+0.1767766952966368*alpha[1]*fUpwind_r[23]+0.1767766952966368*alpha[0]*fUpwind_r[15]; 
+  Ghat_r[16] = 0.1767766952966368*alpha[0]*fUpwind_r[16]+0.1767766952966368*alpha[1]*fUpwind_r[8]+0.1767766952966368*fUpwind_r[2]*alpha[7]+0.1767766952966368*alpha[3]*fUpwind_r[6]; 
+  Ghat_r[17] = 0.1767766952966368*alpha[3]*fUpwind_r[26]+0.1767766952966368*alpha[7]*fUpwind_r[19]+0.1767766952966368*alpha[0]*fUpwind_r[17]+0.1767766952966368*alpha[1]*fUpwind_r[10]; 
+  Ghat_r[18] = 0.1767766952966368*alpha[0]*fUpwind_r[18]+0.1767766952966368*alpha[1]*fUpwind_r[11]+0.1767766952966368*alpha[3]*fUpwind_r[9]+0.1767766952966368*fUpwind_r[4]*alpha[7]; 
+  Ghat_r[19] = 0.1767766952966368*alpha[1]*fUpwind_r[26]+0.1767766952966368*alpha[0]*fUpwind_r[19]+0.1767766952966368*alpha[7]*fUpwind_r[17]+0.1767766952966368*alpha[3]*fUpwind_r[10]; 
+  Ghat_r[20] = 0.1767766952966368*alpha[3]*fUpwind_r[27]+0.1767766952966368*alpha[7]*fUpwind_r[22]+0.1767766952966368*alpha[0]*fUpwind_r[20]+0.1767766952966368*alpha[1]*fUpwind_r[13]; 
+  Ghat_r[21] = 0.1767766952966368*alpha[0]*fUpwind_r[21]+0.1767766952966368*alpha[1]*fUpwind_r[14]+0.1767766952966368*alpha[3]*fUpwind_r[12]+0.1767766952966368*fUpwind_r[5]*alpha[7]; 
+  Ghat_r[22] = 0.1767766952966368*alpha[1]*fUpwind_r[27]+0.1767766952966368*alpha[0]*fUpwind_r[22]+0.1767766952966368*alpha[7]*fUpwind_r[20]+0.1767766952966368*alpha[3]*fUpwind_r[13]; 
+  Ghat_r[23] = 0.1767766952966368*alpha[3]*fUpwind_r[29]+0.1767766952966368*alpha[7]*fUpwind_r[25]+0.1767766952966368*alpha[0]*fUpwind_r[23]+0.1767766952966368*alpha[1]*fUpwind_r[15]; 
+  Ghat_r[24] = 0.1767766952966368*alpha[7]*fUpwind_r[31]+0.1767766952966368*alpha[3]*fUpwind_r[30]+0.1767766952966368*alpha[1]*fUpwind_r[28]+0.1767766952966368*alpha[0]*fUpwind_r[24]; 
+  Ghat_r[25] = 0.1767766952966368*alpha[1]*fUpwind_r[29]+0.1767766952966368*alpha[0]*fUpwind_r[25]+0.1767766952966368*alpha[7]*fUpwind_r[23]+0.1767766952966368*alpha[3]*fUpwind_r[15]; 
+  Ghat_r[26] = 0.1767766952966368*alpha[0]*fUpwind_r[26]+0.1767766952966368*alpha[1]*fUpwind_r[19]+0.1767766952966368*alpha[3]*fUpwind_r[17]+0.1767766952966368*alpha[7]*fUpwind_r[10]; 
+  Ghat_r[27] = 0.1767766952966368*alpha[0]*fUpwind_r[27]+0.1767766952966368*alpha[1]*fUpwind_r[22]+0.1767766952966368*alpha[3]*fUpwind_r[20]+0.1767766952966368*alpha[7]*fUpwind_r[13]; 
+  Ghat_r[28] = 0.1767766952966368*alpha[3]*fUpwind_r[31]+0.1767766952966368*alpha[7]*fUpwind_r[30]+0.1767766952966368*alpha[0]*fUpwind_r[28]+0.1767766952966368*alpha[1]*fUpwind_r[24]; 
+  Ghat_r[29] = 0.1767766952966368*alpha[0]*fUpwind_r[29]+0.1767766952966368*alpha[1]*fUpwind_r[25]+0.1767766952966368*alpha[3]*fUpwind_r[23]+0.1767766952966368*alpha[7]*fUpwind_r[15]; 
+  Ghat_r[30] = 0.1767766952966368*alpha[1]*fUpwind_r[31]+0.1767766952966368*alpha[0]*fUpwind_r[30]+0.1767766952966368*alpha[7]*fUpwind_r[28]+0.1767766952966368*alpha[3]*fUpwind_r[24]; 
+  Ghat_r[31] = 0.1767766952966368*alpha[0]*fUpwind_r[31]+0.1767766952966368*alpha[1]*fUpwind_r[30]+0.1767766952966368*alpha[3]*fUpwind_r[28]+0.1767766952966368*alpha[7]*fUpwind_r[24]; 
+  Ghat_r[32] = 0.1767766952966368*alpha[7]*fUpwind_r[38]+0.1767766952966368*alpha[3]*fUpwind_r[35]+0.1767766952966368*alpha[1]*fUpwind_r[33]+0.1767766952966368*alpha[0]*fUpwind_r[32]; 
+  Ghat_r[33] = 0.1767766952966368*alpha[3]*fUpwind_r[38]+0.1767766952966368*alpha[7]*fUpwind_r[35]+0.1767766952966368*alpha[0]*fUpwind_r[33]+0.1767766952966368*alpha[1]*fUpwind_r[32]; 
+  Ghat_r[34] = 0.1767766952966368*alpha[7]*fUpwind_r[43]+0.1767766952966368*alpha[3]*fUpwind_r[39]+0.1767766952966368*alpha[1]*fUpwind_r[37]+0.1767766952966368*alpha[0]*fUpwind_r[34]; 
+  Ghat_r[35] = 0.1767766952966368*alpha[1]*fUpwind_r[38]+0.1767766952966368*alpha[0]*fUpwind_r[35]+0.1767766952966368*alpha[7]*fUpwind_r[33]+0.1767766952966368*alpha[3]*fUpwind_r[32]; 
+  Ghat_r[36] = 0.1767766952966368*alpha[7]*fUpwind_r[45]+0.1767766952966368*alpha[3]*fUpwind_r[42]+0.1767766952966368*alpha[1]*fUpwind_r[40]+0.1767766952966368*alpha[0]*fUpwind_r[36]; 
+  Ghat_r[37] = 0.1767766952966368*alpha[3]*fUpwind_r[43]+0.1767766952966368*alpha[7]*fUpwind_r[39]+0.1767766952966368*alpha[0]*fUpwind_r[37]+0.1767766952966368*alpha[1]*fUpwind_r[34]; 
+  Ghat_r[38] = 0.1767766952966368*alpha[0]*fUpwind_r[38]+0.1767766952966368*alpha[1]*fUpwind_r[35]+0.1767766952966368*alpha[3]*fUpwind_r[33]+0.1767766952966368*alpha[7]*fUpwind_r[32]; 
+  Ghat_r[39] = 0.1767766952966368*alpha[1]*fUpwind_r[43]+0.1767766952966368*alpha[0]*fUpwind_r[39]+0.1767766952966368*alpha[7]*fUpwind_r[37]+0.1767766952966368*alpha[3]*fUpwind_r[34]; 
+  Ghat_r[40] = 0.1767766952966368*alpha[3]*fUpwind_r[45]+0.1767766952966368*alpha[7]*fUpwind_r[42]+0.1767766952966368*alpha[0]*fUpwind_r[40]+0.1767766952966368*alpha[1]*fUpwind_r[36]; 
+  Ghat_r[41] = 0.1767766952966368*alpha[7]*fUpwind_r[47]+0.1767766952966368*alpha[3]*fUpwind_r[46]+0.1767766952966368*alpha[1]*fUpwind_r[44]+0.1767766952966368*alpha[0]*fUpwind_r[41]; 
+  Ghat_r[42] = 0.1767766952966368*alpha[1]*fUpwind_r[45]+0.1767766952966368*alpha[0]*fUpwind_r[42]+0.1767766952966368*alpha[7]*fUpwind_r[40]+0.1767766952966368*alpha[3]*fUpwind_r[36]; 
+  Ghat_r[43] = 0.1767766952966368*alpha[0]*fUpwind_r[43]+0.1767766952966368*alpha[1]*fUpwind_r[39]+0.1767766952966368*alpha[3]*fUpwind_r[37]+0.1767766952966368*alpha[7]*fUpwind_r[34]; 
+  Ghat_r[44] = 0.1767766952966368*alpha[3]*fUpwind_r[47]+0.1767766952966368*alpha[7]*fUpwind_r[46]+0.1767766952966368*alpha[0]*fUpwind_r[44]+0.1767766952966368*alpha[1]*fUpwind_r[41]; 
+  Ghat_r[45] = 0.1767766952966368*alpha[0]*fUpwind_r[45]+0.1767766952966368*alpha[1]*fUpwind_r[42]+0.1767766952966368*alpha[3]*fUpwind_r[40]+0.1767766952966368*alpha[7]*fUpwind_r[36]; 
+  Ghat_r[46] = 0.1767766952966368*alpha[1]*fUpwind_r[47]+0.1767766952966368*alpha[0]*fUpwind_r[46]+0.1767766952966368*alpha[7]*fUpwind_r[44]+0.1767766952966368*alpha[3]*fUpwind_r[41]; 
+  Ghat_r[47] = 0.1767766952966368*alpha[0]*fUpwind_r[47]+0.1767766952966368*alpha[1]*fUpwind_r[46]+0.1767766952966368*alpha[3]*fUpwind_r[44]+0.1767766952966368*alpha[7]*fUpwind_r[41]; 
+  Ghat_r[48] = 0.1767766952966368*alpha[7]*fUpwind_r[54]+0.1767766952966368*alpha[3]*fUpwind_r[51]+0.1767766952966368*alpha[1]*fUpwind_r[49]+0.1767766952966368*alpha[0]*fUpwind_r[48]; 
+  Ghat_r[49] = 0.1767766952966368*alpha[3]*fUpwind_r[54]+0.1767766952966368*alpha[7]*fUpwind_r[51]+0.1767766952966368*alpha[0]*fUpwind_r[49]+0.1767766952966368*alpha[1]*fUpwind_r[48]; 
+  Ghat_r[50] = 0.1767766952966368*alpha[7]*fUpwind_r[59]+0.1767766952966368*alpha[3]*fUpwind_r[55]+0.1767766952966368*alpha[1]*fUpwind_r[53]+0.1767766952966368*alpha[0]*fUpwind_r[50]; 
+  Ghat_r[51] = 0.1767766952966368*alpha[1]*fUpwind_r[54]+0.1767766952966368*alpha[0]*fUpwind_r[51]+0.1767766952966368*alpha[7]*fUpwind_r[49]+0.1767766952966368*alpha[3]*fUpwind_r[48]; 
+  Ghat_r[52] = 0.1767766952966368*alpha[7]*fUpwind_r[61]+0.1767766952966368*alpha[3]*fUpwind_r[58]+0.1767766952966368*alpha[1]*fUpwind_r[56]+0.1767766952966368*alpha[0]*fUpwind_r[52]; 
+  Ghat_r[53] = 0.1767766952966368*alpha[3]*fUpwind_r[59]+0.1767766952966368*alpha[7]*fUpwind_r[55]+0.1767766952966368*alpha[0]*fUpwind_r[53]+0.1767766952966368*alpha[1]*fUpwind_r[50]; 
+  Ghat_r[54] = 0.1767766952966368*alpha[0]*fUpwind_r[54]+0.1767766952966368*alpha[1]*fUpwind_r[51]+0.1767766952966368*alpha[3]*fUpwind_r[49]+0.1767766952966368*alpha[7]*fUpwind_r[48]; 
+  Ghat_r[55] = 0.1767766952966368*alpha[1]*fUpwind_r[59]+0.1767766952966368*alpha[0]*fUpwind_r[55]+0.1767766952966368*alpha[7]*fUpwind_r[53]+0.1767766952966368*alpha[3]*fUpwind_r[50]; 
+  Ghat_r[56] = 0.1767766952966368*alpha[3]*fUpwind_r[61]+0.1767766952966368*alpha[7]*fUpwind_r[58]+0.1767766952966368*alpha[0]*fUpwind_r[56]+0.1767766952966368*alpha[1]*fUpwind_r[52]; 
+  Ghat_r[57] = 0.1767766952966368*alpha[7]*fUpwind_r[63]+0.1767766952966368*alpha[3]*fUpwind_r[62]+0.1767766952966368*alpha[1]*fUpwind_r[60]+0.1767766952966368*alpha[0]*fUpwind_r[57]; 
+  Ghat_r[58] = 0.1767766952966368*alpha[1]*fUpwind_r[61]+0.1767766952966368*alpha[0]*fUpwind_r[58]+0.1767766952966368*alpha[7]*fUpwind_r[56]+0.1767766952966368*alpha[3]*fUpwind_r[52]; 
+  Ghat_r[59] = 0.1767766952966368*alpha[0]*fUpwind_r[59]+0.1767766952966368*alpha[1]*fUpwind_r[55]+0.1767766952966368*alpha[3]*fUpwind_r[53]+0.1767766952966368*alpha[7]*fUpwind_r[50]; 
+  Ghat_r[60] = 0.1767766952966368*alpha[3]*fUpwind_r[63]+0.1767766952966368*alpha[7]*fUpwind_r[62]+0.1767766952966368*alpha[0]*fUpwind_r[60]+0.1767766952966368*alpha[1]*fUpwind_r[57]; 
+  Ghat_r[61] = 0.1767766952966368*alpha[0]*fUpwind_r[61]+0.1767766952966368*alpha[1]*fUpwind_r[58]+0.1767766952966368*alpha[3]*fUpwind_r[56]+0.1767766952966368*alpha[7]*fUpwind_r[52]; 
+  Ghat_r[62] = 0.1767766952966368*alpha[1]*fUpwind_r[63]+0.1767766952966368*alpha[0]*fUpwind_r[62]+0.1767766952966368*alpha[7]*fUpwind_r[60]+0.1767766952966368*alpha[3]*fUpwind_r[57]; 
+  Ghat_r[63] = 0.1767766952966368*alpha[0]*fUpwind_r[63]+0.1767766952966368*alpha[1]*fUpwind_r[62]+0.1767766952966368*alpha[3]*fUpwind_r[60]+0.1767766952966368*alpha[7]*fUpwind_r[57]; 
 
   out[0] += (0.7071067811865475*Ghat_l[0]-0.7071067811865475*Ghat_r[0])*dv11; 
   out[1] += (0.7071067811865475*Ghat_l[1]-0.7071067811865475*Ghat_r[1])*dv11; 

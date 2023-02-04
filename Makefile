@@ -65,7 +65,7 @@ ifeq ($(UNAME), Darwin)
 	LAPACK_INC = zero # dummy
 	LAPACK_LIB = -framework Accelerate
 	CFLAGS += -DGKYL_USING_FRAMEWORK_ACCELERATE
-	SHFLAGS += -dynamiclib -install_name ${PREFIX}/gkylzero/lib/libgkylzero.so
+	SHFLAGS += -dynamiclib 
 else
 	SHFLAGS += -shared
 endif
@@ -90,11 +90,21 @@ UNITS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard unit/ctest_*.c))
 KERN_INC_DIRS = $(shell find $(SRC_DIRS) -type d)
 KERN_INCLUDES = $(addprefix -I,$(KERN_INC_DIRS))
 
+# We need to build CUDA unit-test objects
+UNIT_CU_SRCS =
+UNIT_CU_OBJS =
+# There is some problem with the Vlasov and Maxwell kernels that is causing some unit builds to fail
+ifdef USING_NVCC
+#	UNIT_CU_SRCS = $(shell find unit -name *.cu)
+	UNIT_CU_SRCS = unit/ctest_cusolver.cu unit/ctest_basis_cu.cu unit/ctest_array_cu.cu unit/ctest_mom_vlasov_cu.cu unit/ctest_range_cu.cu unit/ctest_rect_grid_cu.cu
+	UNIT_CU_OBJS = $(UNIT_CU_SRCS:%=$(BUILD_DIR)/%.o)
+endif
+
 # List of link directories and libraries for unit and regression tests
 EXEC_LIB_DIRS = -L${SUPERLU_LIB_DIR} -L${LAPACK_LIB_DIR} -L${BUILD_DIR}
 EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
-EXEC_LIBS = -lgkylzero ${EXEC_EXT_LIBS}
-EXEC_RPATH = -Wl,-rpath,${BUILD_DIR}
+EXEC_LIBS = ${BUILD_DIR}/libgkylzero.so ${EXEC_EXT_LIBS}
+EXEC_RPATH = 
 
 # Build commands for C source
 $(BUILD_DIR)/%.c.o: %.c
@@ -107,16 +117,12 @@ $(BUILD_DIR)/%.cu.o: %.cu
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
 # Unit tests
-${BUILD_DIR}/unit/%: unit/%.c ${ZERO_SH_LIB} ${UNIT_CU_OBJS} ${UNIT_CU_SRCS}
-	${MKDIR_P} ${PREFIX}/gkylzero/lib
-	cp -f ${ZERO_SH_LIB} ${PREFIX}/gkylzero/lib
+${BUILD_DIR}/unit/%: unit/%.c ${ZERO_SH_LIB} ${UNIT_CU_OBJS}
 	$(MKDIR_P) ${BUILD_DIR}/unit
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${UNIT_CU_OBJS} ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
 
 # Regression tests
 ${BUILD_DIR}/regression/%: regression/%.c ${ZERO_SH_LIB}
-	${MKDIR_P} ${PREFIX}/gkylzero/lib
-	cp -f ${ZERO_SH_LIB} ${PREFIX}/gkylzero/lib
 	$(MKDIR_P) ${BUILD_DIR}/regression
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
 
@@ -153,6 +159,10 @@ $(BUILD_DIR)/kernels/lbo/%.c.o : kernels/lbo/%.c
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
 $(BUILD_DIR)/kernels/maxwell/%.c.o : kernels/maxwell/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/kernels/neutral_react/%.c.o : kernels/neutral_react/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 

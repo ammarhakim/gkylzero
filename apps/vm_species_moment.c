@@ -36,7 +36,7 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   
   if (app->use_gpu) {
     struct gkyl_mom_type *mtype;
-    if (s->field_id == GKYL_FIELD_SR_E_B) {
+    if (s->model_id == GKYL_MODEL_SR) {
 
       if (is_integrated)
         mtype = gkyl_int_mom_vlasov_sr_cu_dev_new(&app->confBasis, &app->basis, &s->local_vel);
@@ -71,7 +71,7 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   }
   else {
     struct gkyl_mom_type *mtype;
-    if (s->field_id == GKYL_FIELD_SR_E_B) {
+    if (s->model_id == GKYL_MODEL_SR) {
 
       if (is_integrated)
         mtype = gkyl_int_mom_vlasov_sr_new(&app->confBasis, &app->basis, &s->local_vel);
