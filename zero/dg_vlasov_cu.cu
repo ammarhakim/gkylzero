@@ -28,8 +28,10 @@ gkyl_vlasov_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
 void
 gkyl_vlasov_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin)
 {
-  gkyl_vlasov_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.field->on_dev, auxin.ext_field->on_dev, 
-    auxin.cot_vec->on_dev, auxin.alpha_geo->on_dev);
+  gkyl_vlasov_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.field->on_dev,
+    auxin.ext_field ? auxin.ext_field->on_dev : 0,
+    auxin.cot_vec ? auxin.cot_vec->on_dev : 0,
+    auxin.alpha_geo ? auxin.alpha_geo->on_dev : 0);
 }
 
 // CUDA kernel to set device pointers to range object and vlasov kernel function
