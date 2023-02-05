@@ -70,6 +70,13 @@ else
 	SHFLAGS += -shared
 endif
 
+# For install shared-lib we need to pass extra flag to Mac
+# compiler. See note below for ZERO_SH_INSTALL_LIB target.
+SHFLAGS_INSTALL = ${SHFLAGS}
+ifeq ($(UNAME), Darwin)
+	SHFLAGS_INSTALL = ${SHFLAGS} -install_name ${PREFIX}/gkylzero/lib/libgkylzero.so
+endif
+
 # Header files
 HEADERS := $(wildcard minus/*.h) $(wildcard zero/*.h) $(wildcard apps/*.h) $(wildcard kernels/*/*.h)
 # Headers to install
@@ -206,6 +213,16 @@ $(ZERO_SH_LIB): $(OBJS)
 	$(MKDIR_P) $(dir $@)
 	${CC} ${SHFLAGS} ${LDFLAGS} ${OBJS} ${EXEC_LIB_DIRS} ${EXEC_EXT_LIBS} -o $@
 
+# Due to an issue with shared-lib linking on the Mac, we need to build
+# a separate shared lib to install. This one has the install path
+# hard-coded into the library itself, so external execs, like gkyl,
+# can link to the library properly. Perhaps there is a another way to
+# do this, don't know. -- AH, Feb 4th 2023.
+ZERO_SH_INSTALL_LIB := $(BUILD_DIR)/$(ZERO)-install.so
+$(ZERO_SH_INSTALL_LIB): $(OBJS)
+	$(MKDIR_P) $(dir $@)
+	${CC} ${SHFLAGS_INSTALL} ${LDFLAGS} ${OBJS} ${EXEC_LIB_DIRS} ${EXEC_EXT_LIBS} -o $@
+
 ## All libraries build targets completed at this point
 
 .PHONY: all
@@ -220,7 +237,7 @@ regression: ${REGS} ## Build regression tests
 check: ${UNITS} ## Build (if needed) and run all unit tests
 	$(foreach unit,${UNITS},echo $(unit); $(unit) -E;)
 
-install: all ## Install library and headers
+install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 # Construct install directories
 	$(MKDIR_P) ${PREFIX}/gkylzero/include
 	${MKDIR_P} ${PREFIX}/gkylzero/lib
@@ -231,7 +248,7 @@ install: all ## Install library and headers
 	cp ${INSTALL_HEADERS} ${PREFIX}/gkylzero/include
 	./minus/gengkylzeroh.sh > ${PREFIX}/gkylzero/include/gkylzero.h
 # libraries
-	cp -f ${ZERO_SH_LIB} ${PREFIX}/gkylzero/lib
+	cp -f ${ZERO_SH_INSTALL_LIB} ${PREFIX}/gkylzero/lib/libgkylzero.so
 # Examples
 	cp -f Makefile.sample ${PREFIX}/gkylzero/share/Makefile
 	cp -f regression/rt_arg_parse.h ${PREFIX}/gkylzero/share/rt_arg_parse.h
