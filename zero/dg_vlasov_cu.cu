@@ -37,7 +37,7 @@ gkyl_vlasov_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlaso
 __global__ static void 
 dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
   int cv_index, int cdim, int vdim, int poly_order, 
-  enum gkyl_field_id model_id, enum gkyl_field_id field_id)
+  enum gkyl_model_id model_id, enum gkyl_field_id field_id)
 {
   vlasov->auxfields.field = 0;
   vlasov->auxfields.ext_field = 0;
@@ -121,7 +121,7 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
       assert(false);
       break;    
   }
-  if (model_id == GKYL_FIELD_GEN_GEO) {
+  if (model_id == GKYL_MODEL_GEN_GEO) {
     if (field_id == GKYL_FIELD_NULL) 
       vlasov->eqn.vol_term = stream_gen_geo_vol_kernels[cv_index].kernels[poly_order];
     else 
