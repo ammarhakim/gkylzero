@@ -9,10 +9,10 @@
 #include <gkyl_util.h>
 
 typedef void (*vlasov_pkpm_self_prim_t)(struct gkyl_mat *A, struct gkyl_mat *rhs, 
-  const double *moms, const double *pvar, const double *boundary_corrections);
+  const double *moms, const double *boundary_corrections);
 
 // for use in kernel tables
-typedef struct { vlasov_pkpm_self_prim_t kernels[4]; } gkyl_prim_lbo_vlasov_pkpm_self_kern_list;
+typedef struct { vlasov_pkpm_self_prim_t kernels[3]; } gkyl_prim_lbo_vlasov_pkpm_self_kern_list;
 
 
 //
@@ -23,11 +23,11 @@ typedef struct { vlasov_pkpm_self_prim_t kernels[4]; } gkyl_prim_lbo_vlasov_pkpm
 GKYL_CU_D
 static const gkyl_prim_lbo_vlasov_pkpm_self_kern_list ser_self_prim_kernels[] = {
   // 1x kernels
-  { NULL, vlasov_pkpm_self_prim_moments_1x1v_ser_p1, vlasov_pkpm_self_prim_moments_1x1v_ser_p2, vlasov_pkpm_self_prim_moments_1x1v_ser_p3 }, // 0
+  { NULL, vlasov_pkpm_self_prim_moments_1x1v_ser_p1, vlasov_pkpm_self_prim_moments_1x1v_ser_p2 }, // 0
   // 2x kernels
-  { NULL, vlasov_pkpm_self_prim_moments_2x1v_ser_p1, vlasov_pkpm_self_prim_moments_2x1v_ser_p2, NULL }, // 1
+  { NULL, vlasov_pkpm_self_prim_moments_2x1v_ser_p1, vlasov_pkpm_self_prim_moments_2x1v_ser_p2 }, // 1
   // 3x kernels
-  { NULL, vlasov_pkpm_self_prim_moments_3x1v_ser_p1, vlasov_pkpm_self_prim_moments_3x1v_ser_p2, NULL }, // 2
+  { NULL, vlasov_pkpm_self_prim_moments_3x1v_ser_p1, NULL }, // 2
 };
 
 struct prim_lbo_type_vlasov_pkpm {
@@ -52,6 +52,5 @@ self_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A, struct gkyl
   struct prim_lbo_type_vlasov_pkpm *prim_vlasov_pkpm = container_of(prim, struct prim_lbo_type_vlasov_pkpm, prim);
 
   long cidx = gkyl_range_idx(&prim_vlasov_pkpm->conf_range, idx);
-  return prim_vlasov_pkpm->self_prim(A, rhs, 
-    moms, (const double*) gkyl_array_cfetch(prim_vlasov_pkpm->auxfields.pvar, cidx), boundary_corrections);
+  return prim_vlasov_pkpm->self_prim(A, rhs, moms, boundary_corrections);
 }

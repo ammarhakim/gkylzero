@@ -5,7 +5,7 @@ GKYL_CU_DH double euler_pkpm_vol_1x_ser_p2(const double *w, const double *dxv, c
   // dxv[NDIM]: Cell spacing.
   // u_i:       bulk flow velocity (ux, uy, uz).
   // div_p:     divergence of the pressure tensor.
-  // statevec: [rho ux, rho uy, rho uz, p_perp], Fluid input state vector.
+  // statevec: [rho ux, rho uy, rho uz], Fluid input state vector.
   // out: Incremented output.
 
   double dx10 = 2./dxv[0]; 
@@ -13,7 +13,6 @@ GKYL_CU_DH double euler_pkpm_vol_1x_ser_p2(const double *w, const double *dxv, c
   const double *rhoux = &statevec[0]; 
   const double *rhouy = &statevec[3]; 
   const double *rhouz = &statevec[6]; 
-  const double *p_perp = &statevec[9]; 
 
   const double *ux = &u_i[0]; 
   const double *uy = &u_i[3]; 
@@ -26,7 +25,6 @@ GKYL_CU_DH double euler_pkpm_vol_1x_ser_p2(const double *w, const double *dxv, c
   double *outrhoux = &out[0]; 
   double *outrhouy = &out[3]; 
   double *outrhouz = &out[6]; 
-  double *outp_perp = &out[9]; 
 
   double cflFreq_mid = 0.0; 
   cflFreq_mid += 0.5*5.0*dx10*(fabs(0.7071067811865475*ux[0]-0.7905694150420947*ux[2])); 
@@ -42,9 +40,6 @@ GKYL_CU_DH double euler_pkpm_vol_1x_ser_p2(const double *w, const double *dxv, c
   outrhouz[0] += -1.0*div_p_z[0]; 
   outrhouz[1] += 1.224744871391589*rhouz[2]*ux[2]*dx10+1.224744871391589*rhouz[1]*ux[1]*dx10+1.224744871391589*rhouz[0]*ux[0]*dx10-1.0*div_p_z[1]; 
   outrhouz[2] += 2.449489742783178*rhouz[1]*ux[2]*dx10+2.449489742783178*ux[1]*rhouz[2]*dx10+2.738612787525831*rhouz[0]*ux[1]*dx10+2.738612787525831*ux[0]*rhouz[1]*dx10-1.0*div_p_z[2]; 
-
-  outp_perp[1] += 1.224744871391589*p_perp[2]*ux[2]*dx10+1.224744871391589*p_perp[1]*ux[1]*dx10+1.224744871391589*p_perp[0]*ux[0]*dx10; 
-  outp_perp[2] += 2.449489742783178*p_perp[1]*ux[2]*dx10+2.449489742783178*ux[1]*p_perp[2]*dx10+2.738612787525831*p_perp[0]*ux[1]*dx10+2.738612787525831*ux[0]*p_perp[1]*dx10; 
 
   return cflFreq_mid; 
 } 

@@ -34,11 +34,27 @@ gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bc
     case GKYL_BC_REFLECT:
       fout->func = species_reflect_bc;
       break;
+
     // Perfect electrical conductor
     case GKYL_BC_MAXWELL_PEC:
       fout->func = maxwell_pec_bc;
       break;
-      
+
+    // PKPM Reflecting wall for distribution function
+    case GKYL_BC_PKPM_SPECIES_REFLECT:
+      fout->func = pkpm_species_reflect_bc;
+      break;    
+
+    // PKPM Reflecting wall for momentum
+    case GKYL_BC_PKPM_MOM_REFLECT:
+      fout->func = pkpm_mom_reflect_bc;
+      break;    
+
+    // PKPM No-slip wall for momentum
+    case GKYL_BC_PKPM_MOM_NO_SLIP:
+      fout->func = pkpm_mom_no_slip_bc;
+      break;   
+
     default:
       assert(false);
       break;
@@ -94,11 +110,14 @@ gkyl_bc_basic_advance(const struct gkyl_bc_basic *up, struct gkyl_array *buff_ar
     case GKYL_BC_COPY:
     case GKYL_BC_ABSORB:
     case GKYL_BC_MAXWELL_PEC:
+    case GKYL_BC_PKPM_MOM_REFLECT:
+    case GKYL_BC_PKPM_MOM_NO_SLIP:
       gkyl_array_copy_to_buffer_fn(buff_arr->data, f_arr,
                                    up->skin_r, up->array_copy_func->on_dev);
       break;
 
     case GKYL_BC_REFLECT:
+    case GKYL_BC_PKPM_SPECIES_REFLECT:
       gkyl_array_flip_copy_to_buffer_fn(buff_arr->data, f_arr, up->dir+up->cdim,
                                         up->skin_r, up->array_copy_func->on_dev);
       break;

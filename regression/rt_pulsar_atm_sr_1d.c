@@ -10,10 +10,16 @@
 #include <rt_arg_parse.h>
 
 struct pulsar_atm_ctx {
-  double T; // electron thermal velocity
+  double T; // temperature
   double vdrift; // drift velocity
   double J_0; // doubles as curl(B) and gravity
   double grav; // gravitational scale height = g/T
+  double Lx; // size of box
+  double perturb; // size of perturbation for exciting instabilities
+  double elc_pmax; // electron momentum space extents
+  int Nv_elc; // number of electron momentum grid points
+  double pos_pmax; // positron momentum space extents
+  int Nv_pos; // number of positron momentum grid points
 };
 
 static inline double sq(double x) { return x*x; }
@@ -27,9 +33,9 @@ evalElcDistFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double grav = app->grav;
 
   // modified Bessel function of the second kind evaluated for T = mc^2 (K_2(1))
-  double K_2 = 1.6248388986351774828107073822838437146593935281628733843345054697;
+  //double K_2 = 1.6248388986351774828107073822838437146593935281628733843345054697;
   // modified Bessel function of the second kind evaluated for T = 0.1 mc^2 (K_2(10))
-  //double K_2 = 0.0000215098170069327687306645644239671272492068461808732468335569;
+  double K_2 = 0.0000215098170069327687306645644239671272492068461808732468335569;
   // modified Bessel function of the second kind evaluated for T = 0.04 mc^2 (K_2(25))
   //double K_2 = 3.7467838080691090570137658745889511812329380156362352887017e-12;
   // Lorentz factor for drift velocity
@@ -37,8 +43,8 @@ evalElcDistFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double n = 10000.0*exp(-grav*x); // scale height = grav
   double nElc = 0.0;
-  if (n > 10.0)
-    nElc = 1.0; // extra charge density to make E = 0 in atmosphere
+  /* if (n > 10.0) */
+  /*   nElc = 1.0; // extra charge density to make E = 0 in atmosphere */
   double mc2_T = 1.0/T;
 
   double fv = (n+nElc)/K_2*exp(-mc2_T*gamma*(sqrt(1 + p*p) - vdrift*p));
@@ -54,9 +60,9 @@ evalDistFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double grav = app->grav;
 
   // modified Bessel function of the second kind evaluated for T = mc^2 (K_2(1))
-  double K_2 = 1.6248388986351774828107073822838437146593935281628733843345054697;
+  //double K_2 = 1.6248388986351774828107073822838437146593935281628733843345054697;
   // modified Bessel function of the second kind evaluated for T = 0.1 mc^2 (K_2(10))
-  //double K_2 = 0.0000215098170069327687306645644239671272492068461808732468335569;
+  double K_2 = 0.0000215098170069327687306645644239671272492068461808732468335569;
   // modified Bessel function of the second kind evaluated for T = 0.04 mc^2 (K_2(25))
   //double K_2 = 3.7467838080691090570137658745889511812329380156362352887017e-12;
   // Lorentz factor for drift velocity
@@ -75,7 +81,8 @@ evalAccelFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   struct pulsar_atm_ctx *app = ctx;
   double x = xn[0];
   double grav = app->grav;
-  fout[0] = -grav; fout[1] = 0.0, fout[2] = 0.0;
+  double T = app->T;
+  fout[0] = -grav*T; fout[1] = 0.0, fout[2] = 0.0;
 }
 
 void
@@ -84,6 +91,10 @@ evalCurrentFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   struct pulsar_atm_ctx *app = ctx;
   double x = xn[0];
   double J_0 = app->J_0;
+  double Lx = app->Lx;
+  double grav = app->grav;
+  // profile adjusts from J_0 -> 1 over a scale height halfway through the box
+  //double curr = J_0/2.0*tanh(grav*(x - Lx/2.0)) + (1.0 - J_0);
   fout[0] = J_0; fout[1] = 0.0, fout[2] = 0.0;
 }
 
@@ -94,10 +105,21 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double x = xn[0];
   double grav = app->grav;
 
-  double E_x = -x;
+  pcg64_random_t rng = gkyl_pcg64_init(0); // RNG for use in IC
+  double Lx = app->Lx;
+  double kx = 2.0*M_PI/Lx;
+  double perturb = app->perturb;
+
+  // linear profile in E_x corresponds to potential drop
+  double E_x = x;
+  /* // add perturbations to Ex to excite instabilities */
+  /* for (int i=0; i<64; ++i)  */
+  /*   E_x += perturb*gkyl_pcg64_rand_double(&rng)*sin(i*kx*x + 2.0*M_PI*gkyl_pcg64_rand_double(&rng)); */
+  
   double n = 10000.0*exp(-grav*x); // scale height = grav
-  if (n > 10.0)
-    E_x = 0.0;
+  /* // Ex equals 0 inside atmosphere where n = n_GJ */
+  /* if (n > 10.0) */
+  /*   E_x = 0.0; */
 
   fout[0] = E_x; fout[1] = 0.0, fout[2] = 0.0;
   fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
@@ -108,10 +130,16 @@ struct pulsar_atm_ctx
 create_default_ctx(void)
 {
   return (struct pulsar_atm_ctx) {
-    .T = 1.0,
+    .T = 0.1,
     .vdrift = 0.0,
     .grav = 1.0,
     .J_0 = 2.0,
+    .Lx = 100.0,
+    .perturb = 1.0e-4,
+    .elc_pmax = 2048.0,
+    .Nv_elc = 32768,
+    .pos_pmax = 64.0,
+    .Nv_pos = 1024,
   };
 }
 
@@ -134,8 +162,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 32);
-  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 512);  
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 1024);
 
   struct pulsar_atm_ctx ctx;
   
@@ -147,9 +174,9 @@ main(int argc, char **argv)
     .charge = -1.0,
     .mass = 1.0,
     .model_id = GKYL_MODEL_SR,
-    .lower = { -512.0 },
-    .upper = { 512.0 }, 
-    .cells = { VX },
+    .lower = { -ctx.elc_pmax },
+    .upper = { ctx.elc_pmax }, 
+    .cells = { ctx.Nv_elc },
 
     .ctx = &ctx,
     .init = evalElcDistFunc,
@@ -157,7 +184,7 @@ main(int argc, char **argv)
     .accel = evalAccelFunc,
     .accel_ctx = &ctx,
 
-    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_COPY },
+    .bcx = { GKYL_SPECIES_FIXED_FUNC, GKYL_SPECIES_COPY },
 
     .num_diag_moments = 2,
     .diag_moments = { "M0", "M1i" },
@@ -169,9 +196,9 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_SR,
     .charge = 1.0,
     .mass = 1.0,
-    .lower = { -128.0 },
-    .upper = { 128.0 }, 
-    .cells = { VX },
+    .lower = { -ctx.pos_pmax },
+    .upper = { ctx.pos_pmax }, 
+    .cells = { ctx.Nv_pos },
 
     .ctx = &ctx,
     .init = evalDistFunc,
@@ -179,7 +206,7 @@ main(int argc, char **argv)
     .accel = evalAccelFunc,
     .accel_ctx = &ctx,
 
-    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_COPY },
+    .bcx = { GKYL_SPECIES_FIXED_FUNC, GKYL_SPECIES_COPY },
 
     .num_diag_moments = 2,
     .diag_moments = { "M0", "M1i" },
@@ -205,11 +232,12 @@ main(int argc, char **argv)
     
     .cdim = 1, .vdim = 1,
     .lower = { 0.0 },
-    .upper = { 50.0 },
+    .upper = { ctx.Lx },
     .cells = { NX },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
-
+    .cfl_frac = 0.5, //can increase stability
+    
     .num_periodic_dir = 0,
     .periodic_dirs = { },
 
@@ -224,9 +252,9 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 20.0;
+  double tcurr = 0.0, tend = 100.0;
   double dt = tend-tcurr;
-  int nframe = 20;
+  int nframe = 50;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 

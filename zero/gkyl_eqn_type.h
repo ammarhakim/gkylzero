@@ -26,8 +26,9 @@ enum gkyl_field_id {
 // or the parallel-kinetic-perpendicular-moment model
 enum gkyl_model_id {
   GKYL_MODEL_DEFAULT = 0, // No subsidiary model specified
-  GKYL_MODEL_PKPM,
   GKYL_MODEL_SR,
+  GKYL_MODEL_GEN_GEO,
+  GKYL_MODEL_PKPM,
   GKYL_MODEL_SR_PKPM,
 };
 

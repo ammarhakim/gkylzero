@@ -16,6 +16,8 @@ struct pkpm_brio_wu_ctx {
   double beta; // plasma beta (for strength of magnetic field)
   double Lx; // size of the box
   double n0; // initial number density
+  double tend; // end time
+  double min_dt; // minimum size time step for breaking out of simulation
 };
 
 static inline double sq(double x) { return x*x; }
@@ -35,10 +37,14 @@ evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   double vt = app->vte, n0 = app->n0;
   double mass = app->massElc;
   double Lx = app->Lx;
-  if (x<0.5*Lx)
+  if (x<0.5*Lx) {
     fout[0] = maxwellian(n0, v, 0.0, vt);
-  else
+    fout[1] = vt*vt*maxwellian(n0, v, 0.0, vt);
+  }
+  else {
     fout[0] = maxwellian(0.125*n0, v, 0.0, sqrt(0.1*vt*vt/0.125));
+    fout[1] = 0.1*vt*vt/0.125*maxwellian(0.125*n0, v, 0.0, sqrt(0.1*vt*vt/0.125));
+  }
 }
 
 void
@@ -49,10 +55,14 @@ evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   double vt = app->vti, n0 = app->n0;
   double mass = app->massIon;
   double Lx = app->Lx;
-  if (x<0.5*Lx)
+  if (x<0.5*Lx) {
     fout[0] = maxwellian(n0, v, 0.0, vt);
-  else
+    fout[1] = vt*vt*maxwellian(n0, v, 0.0, vt);
+  }
+  else {
     fout[0] = maxwellian(0.125*n0, v, 0.0, sqrt(0.1*vt*vt/0.125));
+    fout[1] = 0.1*vt*vt/0.125*maxwellian(0.125*n0, v, 0.0, sqrt(0.1*vt*vt/0.125));
+  }
 }
 
 void
@@ -66,10 +76,6 @@ evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 0.0;
-  if (x<0.5*Lx)
-    fout[3] = n0*mass*vt*vt;
-  else
-    fout[3] = 0.1*n0*mass*vt*vt;
 }
 
 void
@@ -83,10 +89,6 @@ evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 0.0;
-  if (x<0.5*Lx)
-    fout[3] = n0*mass*vt*vt;
-  else
-    fout[3] = 0.1*n0*mass*vt*vt;
 }
 
 void
@@ -117,14 +119,14 @@ void
 evalNuElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_brio_wu_ctx *app = ctx;
-  fout[0] = 1.0e-4;
+  fout[0] = 4.0e-5;
 }
 
 void
 evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_brio_wu_ctx *app = ctx;
-  fout[0] = 1.0e-4/sqrt(app->massIon);
+  fout[0] = 4.0e-5/sqrt(app->massIon);
 }
 
 struct pkpm_brio_wu_ctx
@@ -135,13 +137,24 @@ create_ctx(void)
     .massElc = 1.0,
     .chargeIon = 1.0,
     .massIon = 1836.153,
-    .vte = 0.08,
+    .vte = 0.05,
     .vti = ctx.vte/sqrt(ctx.massIon),
     .beta = 0.1, 
-    .Lx = 128.0,
-    .n0 = 1.0
+    .Lx = 2000.0,
+    .n0 = 1.0,
+    .tend = 25000.0,
+    .min_dt = 0.001,
   };
   return ctx;
+}
+
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double tcurr)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) {
+    gkyl_vlasov_app_write(app, tcurr, iot->curr-1);
+    gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, iot->curr-1);
+  }
 }
 
 int
@@ -149,8 +162,8 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
-  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 1792);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 96);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -161,10 +174,11 @@ main(int argc, char **argv)
   // electron Tperp                                                                                              
   struct gkyl_vlasov_fluid_species fluid_elc = {
     .name = "fluid_elc",
-    .num_eqn = 4,
+    .num_eqn = 3,
     .pkpm_species = "elc",
     .ctx = &ctx,
     .init = evalFluidElc,
+    .nuHyp = 1.0e-5,
   };  
   
   // electrons
@@ -193,10 +207,11 @@ main(int argc, char **argv)
   // ion Tperp                                                                                              
   struct gkyl_vlasov_fluid_species fluid_ion = {
     .name = "fluid_ion",
-    .num_eqn = 4,
+    .num_eqn = 3,
     .pkpm_species = "ion",
     .ctx = &ctx,
     .init = evalFluidIon,
+    .nuHyp = 1.0e-5,
   };  
   
   // ions
@@ -205,8 +220,8 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_PKPM,
     .pkpm_fluid_species = "fluid_ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
-    .lower = { -6.0 * ctx.vti},
-    .upper = { 6.0 * ctx.vti}, 
+    .lower = { -24.0 * ctx.vti},
+    .upper = { 24.0 * ctx.vti}, 
     .cells = { VX },
 
     .ctx = &ctx,
@@ -242,6 +257,7 @@ main(int argc, char **argv)
     .cells = { NX },
     .poly_order = 1,
     .basis_type = app_args.basis_type, 
+    .cfl_frac = 0.5,
 
     .num_periodic_dir = 0,
     .periodic_dirs = { },
@@ -259,14 +275,15 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 20.0;
+  double tcurr = 0.0, tend = ctx.tend;
   double dt = tend-tcurr;
+  int nframe = 250;
+  // create trigger for IO
+  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
   // initialize simulation
   gkyl_vlasov_app_apply_ic(app, tcurr);
-  
-  gkyl_vlasov_app_write(app, tcurr, 0);
-  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 0);
+  write_data(&io_trig, app, tcurr);
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
@@ -278,14 +295,19 @@ main(int argc, char **argv)
       printf("** Update method failed! Aborting simulation ....\n");
       break;
     }
+    if (status.dt_actual < ctx.min_dt) {
+      printf("** Time step crashing! Aborting simulation and writing out last output ....\n");
+      gkyl_vlasov_app_write(app, tcurr, 1000);
+      gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1000);
+      break;
+    }
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
+
+    write_data(&io_trig, app, tcurr);
+
     step += 1;
   }
-
-  gkyl_vlasov_app_write(app, tcurr, 1);
-  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1);
-  gkyl_vlasov_app_stat_write(app);
 
   // fetch simulation statistics
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);

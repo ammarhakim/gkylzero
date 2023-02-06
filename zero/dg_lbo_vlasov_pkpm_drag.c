@@ -56,7 +56,7 @@ gkyl_dg_lbo_vlasov_pkpm_drag_new(const struct gkyl_basis* cbasis, const struct g
   lbo_vlasov_pkpm_drag->cdim = cdim;
   lbo_vlasov_pkpm_drag->pdim = pdim;
 
-  lbo_vlasov_pkpm_drag->eqn.num_equations = 1;
+  lbo_vlasov_pkpm_drag->eqn.num_equations = 2;
   lbo_vlasov_pkpm_drag->eqn.surf_term = surf;
   lbo_vlasov_pkpm_drag->eqn.boundary_surf_term = boundary_surf;
 

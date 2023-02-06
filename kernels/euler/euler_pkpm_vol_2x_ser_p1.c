@@ -5,7 +5,7 @@ GKYL_CU_DH double euler_pkpm_vol_2x_ser_p1(const double *w, const double *dxv, c
   // dxv[NDIM]: Cell spacing.
   // u_i:       bulk flow velocity (ux, uy, uz).
   // div_p:     divergence of the pressure tensor.
-  // statevec: [rho ux, rho uy, rho uz, p_perp], Fluid input state vector.
+  // statevec: [rho ux, rho uy, rho uz], Fluid input state vector.
   // out: Incremented output.
 
   double dx10 = 2./dxv[0]; 
@@ -14,7 +14,6 @@ GKYL_CU_DH double euler_pkpm_vol_2x_ser_p1(const double *w, const double *dxv, c
   const double *rhoux = &statevec[0]; 
   const double *rhouy = &statevec[4]; 
   const double *rhouz = &statevec[8]; 
-  const double *p_perp = &statevec[12]; 
 
   const double *ux = &u_i[0]; 
   const double *uy = &u_i[4]; 
@@ -27,7 +26,6 @@ GKYL_CU_DH double euler_pkpm_vol_2x_ser_p1(const double *w, const double *dxv, c
   double *outrhoux = &out[0]; 
   double *outrhouy = &out[4]; 
   double *outrhouz = &out[8]; 
-  double *outp_perp = &out[12]; 
 
   double cflFreq_mid = 0.0; 
   cflFreq_mid += 0.5*3.0*dx10*(fabs(0.5*ux[0])); 
@@ -47,10 +45,6 @@ GKYL_CU_DH double euler_pkpm_vol_2x_ser_p1(const double *w, const double *dxv, c
   outrhouz[1] += 0.8660254037844386*rhouz[3]*ux[3]*dx10+0.8660254037844386*rhouz[2]*ux[2]*dx10+0.8660254037844386*rhouz[1]*ux[1]*dx10+0.8660254037844386*rhouz[0]*ux[0]*dx10-1.0*div_p_z[1]; 
   outrhouz[2] += 0.8660254037844386*rhouz[3]*uy[3]*dx11+0.8660254037844386*rhouz[2]*uy[2]*dx11+0.8660254037844386*rhouz[1]*uy[1]*dx11+0.8660254037844386*rhouz[0]*uy[0]*dx11-1.0*div_p_z[2]; 
   outrhouz[3] += 0.8660254037844386*rhouz[2]*uy[3]*dx11+0.8660254037844386*uy[2]*rhouz[3]*dx11+0.8660254037844386*rhouz[0]*uy[1]*dx11+0.8660254037844386*uy[0]*rhouz[1]*dx11+0.8660254037844386*rhouz[1]*ux[3]*dx10+0.8660254037844386*ux[1]*rhouz[3]*dx10+0.8660254037844386*rhouz[0]*ux[2]*dx10+0.8660254037844386*ux[0]*rhouz[2]*dx10-1.0*div_p_z[3]; 
-
-  outp_perp[1] += 0.8660254037844386*p_perp[3]*ux[3]*dx10+0.8660254037844386*p_perp[2]*ux[2]*dx10+0.8660254037844386*p_perp[1]*ux[1]*dx10+0.8660254037844386*p_perp[0]*ux[0]*dx10; 
-  outp_perp[2] += 0.8660254037844386*p_perp[3]*uy[3]*dx11+0.8660254037844386*p_perp[2]*uy[2]*dx11+0.8660254037844386*p_perp[1]*uy[1]*dx11+0.8660254037844386*p_perp[0]*uy[0]*dx11; 
-  outp_perp[3] += 0.8660254037844386*p_perp[2]*uy[3]*dx11+0.8660254037844386*uy[2]*p_perp[3]*dx11+0.8660254037844386*p_perp[0]*uy[1]*dx11+0.8660254037844386*uy[0]*p_perp[1]*dx11+0.8660254037844386*p_perp[1]*ux[3]*dx10+0.8660254037844386*ux[1]*p_perp[3]*dx10+0.8660254037844386*p_perp[0]*ux[2]*dx10+0.8660254037844386*ux[0]*p_perp[2]*dx10; 
 
   return cflFreq_mid; 
 } 

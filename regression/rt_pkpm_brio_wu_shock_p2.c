@@ -35,10 +35,14 @@ evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   double vt = app->vte, n0 = app->n0;
   double mass = app->massElc;
   double Lx = app->Lx;
-  if (x<0.5*Lx)
+  if (x<0.5*Lx) {
     fout[0] = maxwellian(n0, v, 0.0, vt);
-  else
+    fout[1] = vt*vt*maxwellian(n0, v, 0.0, vt);
+  }
+  else {
     fout[0] = maxwellian(0.125*n0, v, 0.0, sqrt(0.1*vt*vt/0.125));
+    fout[1] = 0.1*vt*vt/0.125*maxwellian(0.125*n0, v, 0.0, sqrt(0.1*vt*vt/0.125));
+  }
 }
 
 void
@@ -49,10 +53,14 @@ evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   double vt = app->vti, n0 = app->n0;
   double mass = app->massIon;
   double Lx = app->Lx;
-  if (x<0.5*Lx)
+  if (x<0.5*Lx) {
     fout[0] = maxwellian(n0, v, 0.0, vt);
-  else
+    fout[1] = vt*vt*maxwellian(n0, v, 0.0, vt);
+  }
+  else {
     fout[0] = maxwellian(0.125*n0, v, 0.0, sqrt(0.1*vt*vt/0.125));
+    fout[1] = 0.1*vt*vt/0.125*maxwellian(0.125*n0, v, 0.0, sqrt(0.1*vt*vt/0.125));
+  }
 }
 
 void
@@ -66,10 +74,6 @@ evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 0.0;
-  if (x<0.5*Lx)
-    fout[3] = n0*mass*vt*vt;
-  else
-    fout[3] = 0.1*n0*mass*vt*vt;
 }
 
 void
@@ -83,10 +87,6 @@ evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 0.0;
-  if (x<0.5*Lx)
-    fout[3] = n0*mass*vt*vt;
-  else
-    fout[3] = 0.1*n0*mass*vt*vt;
 }
 
 void
@@ -117,14 +117,14 @@ void
 evalNuElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_brio_wu_ctx *app = ctx;
-  fout[0] = 1.0e-4;
+  fout[0] = 4.0e-5;
 }
 
 void
 evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_brio_wu_ctx *app = ctx;
-  fout[0] = 1.0e-4/sqrt(app->massIon);
+  fout[0] = 4.0e-5/sqrt(app->massIon);
 }
 
 struct pkpm_brio_wu_ctx
@@ -135,10 +135,10 @@ create_ctx(void)
     .massElc = 1.0,
     .chargeIon = 1.0,
     .massIon = 1836.153,
-    .vte = 0.08,
+    .vte = 0.04,
     .vti = ctx.vte/sqrt(ctx.massIon),
     .beta = 0.1, 
-    .Lx = 128.0,
+    .Lx = 409.6,
     .n0 = 1.0
   };
   return ctx;
@@ -149,8 +149,8 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
-  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 224);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 64);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -161,10 +161,11 @@ main(int argc, char **argv)
   // electron Tperp                                                                                              
   struct gkyl_vlasov_fluid_species fluid_elc = {
     .name = "fluid_elc",
-    .num_eqn = 4,
+    .num_eqn = 3,
     .pkpm_species = "elc",
     .ctx = &ctx,
     .init = evalFluidElc,
+    .nuHyp = 1.0e-5,
   };  
   
   // electrons
@@ -173,8 +174,8 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_PKPM,
     .pkpm_fluid_species = "fluid_elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
-    .lower = { -12.0 * ctx.vte},
-    .upper = { 12.0 * ctx.vte}, 
+    .lower = { -16.0 * ctx.vte},
+    .upper = { 16.0 * ctx.vte}, 
     .cells = { VX },
 
     .ctx = &ctx,
@@ -193,10 +194,11 @@ main(int argc, char **argv)
   // ion Tperp                                                                                              
   struct gkyl_vlasov_fluid_species fluid_ion = {
     .name = "fluid_ion",
-    .num_eqn = 4,
+    .num_eqn = 3,
     .pkpm_species = "ion",
     .ctx = &ctx,
     .init = evalFluidIon,
+    .nuHyp = 1.0e-5,
   };  
   
   // ions
@@ -205,8 +207,8 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_PKPM,
     .pkpm_fluid_species = "fluid_ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
-    .lower = { -6.0 * ctx.vti},
-    .upper = { 6.0 * ctx.vti}, 
+    .lower = { -16.0 * ctx.vti},
+    .upper = { 16.0 * ctx.vti}, 
     .cells = { VX },
 
     .ctx = &ctx,
@@ -241,7 +243,8 @@ main(int argc, char **argv)
     .upper = { ctx.Lx },
     .cells = { NX },
     .poly_order = 2,
-    .basis_type = app_args.basis_type,
+    .basis_type = app_args.basis_type, 
+    .cfl_frac = 0.8,
 
     .num_periodic_dir = 0,
     .periodic_dirs = { },
@@ -259,7 +262,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 1.0;
+  double tcurr = 0.0, tend = 20.0;
   double dt = tend-tcurr;
 
   // initialize simulation

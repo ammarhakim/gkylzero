@@ -53,6 +53,17 @@ GKYL_CU_DH void em_bvar_1x_ser_p2(const double *em, double* bvar)
   magB_sq[2] = B_z_sq[2]+B_y_sq[2]+B_x_sq[2]; 
 
   bool notCellAvg = true;
+  // Check if either Bx^2, By^2, or Bz^2 < 0 at control points (Gauss-Legendre quadrature points). 
+  // Or if |B|^2 < 0 at cell corners. 
+  if (notCellAvg && (0.6324555320336759*B_x_sq[2]-0.9486832980505137*B_x_sq[1]+0.7071067811865475*B_x_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.6324555320336759*B_y_sq[2]-0.9486832980505137*B_y_sq[1]+0.7071067811865475*B_y_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.6324555320336759*B_z_sq[2]-0.9486832980505137*B_z_sq[1]+0.7071067811865475*B_z_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.7071067811865475*B_x_sq[0]-0.7905694150420947*B_x_sq[2] < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.7071067811865475*B_y_sq[0]-0.7905694150420947*B_y_sq[2] < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.7071067811865475*B_z_sq[0]-0.7905694150420947*B_z_sq[2] < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.6324555320336759*B_x_sq[2]+0.9486832980505137*B_x_sq[1]+0.7071067811865475*B_x_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.6324555320336759*B_y_sq[2]+0.9486832980505137*B_y_sq[1]+0.7071067811865475*B_y_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.6324555320336759*B_z_sq[2]+0.9486832980505137*B_z_sq[1]+0.7071067811865475*B_z_sq[0] < 0)) notCellAvg = false; 
   if (notCellAvg && (1.58113883008419*magB_sq[2]-1.224744871391589*magB_sq[1]+0.7071067811865475*magB_sq[0] < 0)) notCellAvg = false; 
   if (notCellAvg && (1.58113883008419*magB_sq[2]+1.224744871391589*magB_sq[1]+0.7071067811865475*magB_sq[0] < 0)) notCellAvg = false; 
   double magB_sq_inv[3] = {0.0}; 
@@ -85,7 +96,7 @@ GKYL_CU_DH void em_bvar_1x_ser_p2(const double *em, double* bvar)
   bzbz[2] = 0.4517539514526256*B_z_sq[2]*magB_sq_inv[2]+0.7071067811865475*B_z_sq[0]*magB_sq_inv[2]+0.7071067811865475*magB_sq_inv[0]*B_z_sq[2]+0.6324555320336759*B_z_sq[1]*magB_sq_inv[1]; 
 
   } else { 
-  // If |B|^2 < 0 at control points, only use cell average to get 1/|B|^2. 
+  // If either Bx^2, By^2, or Bz^2 < 0 at control points, only use cell average to get 1/|B|^2. 
   magB_sq_inv[0] = 2.0/magB_sq[0]; 
   bxbx[0] = 0.7071067811865475*B_x_sq[2]*magB_sq_inv[2]+0.7071067811865475*B_x_sq[1]*magB_sq_inv[1]+0.7071067811865475*B_x_sq[0]*magB_sq_inv[0]; 
   bxby[0] = 0.7071067811865475*B_x_B_y[2]*magB_sq_inv[2]+0.7071067811865475*B_x_B_y[1]*magB_sq_inv[1]+0.7071067811865475*B_x_B_y[0]*magB_sq_inv[0]; 
