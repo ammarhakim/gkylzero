@@ -7,21 +7,6 @@
 
 #include <stdbool.h>
 
-// Parameters for applying the mirror force in Vlasov simulations
-// Used in simulations where advecting fluid species can couple 
-// to Vlasov simulation 
-struct gkyl_vlasov_mirror_force {
-  void *magB_ctx; // context for magnitude of B
-  // pointer to magnitude of B function
-  void (*magB)(double t, const double *xn, double *Bout, void *ctx);
-
-  void *gradB_ctx; // context for gradient of B
-  // pointer to gradient of B function
-  void (*gradB)(double t, const double *xn, double *gradBout, void *ctx);
-
-  char fluid_mirror_force[128]; // name of fluid species for the mirror force
-};
-
 // Parameters for species collisions
 struct gkyl_vlasov_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
@@ -29,6 +14,8 @@ struct gkyl_vlasov_collisions {
   void *ctx; // context for collision function
   // function for computing self-collision frequency
   void (*self_nu)(double t, const double *xn, double *fout, void *ctx);
+  // input constant collisionality
+  double const_nu;
 
   int num_cross_collisions; // number of species to cross-collide with
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
@@ -63,13 +50,11 @@ struct gkyl_vlasov_fluid_advection {
   // pointer to applied advection velocity function
   void (*velocity)(double t, const double *xn, double *aout, void *ctx);
   enum gkyl_quad_type qtype; // quadrature to use
-  
-  char advect_with[128]; // names of species to advect with
-  enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
 };
 
 // Parameters for fluid species diffusion
 struct gkyl_vlasov_fluid_diffusion {
+  bool anisotropic; // bool for whether the diffusion tensor is anisotropic
   void* D_ctx; // context for applied diffusion function
   // pointer to applied advection diffusion tensor function
   void (*D)(double t, const double* xn, double* Dout, void* ctx);
@@ -80,7 +65,7 @@ struct gkyl_vlasov_species {
   char name[128]; // species name
 
   enum gkyl_model_id model_id; // type of model 
-                               // (e.g., SR, general geometry, see gkyl_eqn_type.h)
+                               // (e.g., SR, general geometry, PKPM, see gkyl_eqn_type.h)
 
   double charge, mass; // charge and mass
   double lower[3], upper[3]; // lower, upper bounds of velocity-space
@@ -93,14 +78,18 @@ struct gkyl_vlasov_species {
   int num_diag_moments; // number of diagnostic moments
   char diag_moments[16][16]; // list of diagnostic moments
 
+  char pkpm_fluid_species[128]; // names of fluid species for PKPM model
+
   // collisions to include
   struct gkyl_vlasov_collisions collisions;
 
   // source to include
   struct gkyl_vlasov_source source;
 
-  // mirror force to include
-  struct gkyl_vlasov_mirror_force mirror_force;
+  // magnitude of B for Jacobian in field-line following coordinates
+  void *magB_ctx; // context for magnitude of B
+  // pointer to magnitude of B function
+  void (*magB)(double t, const double *xn, double *Bout, void *ctx);
 
   void *accel_ctx; // context for applied acceleration function
   // pointer to applied acceleration function
@@ -112,7 +101,8 @@ struct gkyl_vlasov_species {
 
 // Parameter for EM field
 struct gkyl_vlasov_field {
-  enum gkyl_field_id field_id; // type of field (see gkyl_eqn_type.h)
+  enum gkyl_field_id field_id; // type of field 
+                               // (e.g., Maxwell's, Poisson, see gkyl_eqn_type.h)
   bool is_static; // set to true if field does not change in time
 
   double epsilon0, mu0;
@@ -121,6 +111,16 @@ struct gkyl_vlasov_field {
   void *ctx; // context for initial condition init function
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
+
+  void *ext_em_ctx; // context for external electromagnetic fields function
+  // pointer to external electromagnetic fields function
+  void (*ext_em)(double t, const double *xn, double *ext_em_out, void *ctx);
+  bool ext_em_evolve; // set to true if external electromagnetic field function is time dependent
+
+  void *app_current_ctx; // context for external electromagnetic fields function
+  // pointer to external electromagnetic fields function
+  void (*app_current)(double t, const double *xn, double *app_current_out, void *ctx);
+  bool app_current_evolve; // set to true if applied current function is time dependent
   
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
@@ -136,11 +136,26 @@ struct gkyl_vlasov_fluid_species {
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
 
+  // Number of fluid equations
+  int num_eqn;
+  // Hyper-diffusion coefficient
+  double nuHyp;
+
+  // Thermal velocity (if isothermal Euler)
+  // gkyl_eqn_type eqn_id = GKYL_EQN_ISO_EULER
+  double vt;
+  // Adiabatic index (if Euler)
+  // gkyl_eqn_type eqn_id = GKYL_EQN_EULER
+  double gas_gamma;
+  // advection coupling (if scalar advection)
+  // gkyl_eqn_type eqn_id = GKYL_EQN_ADVECTION
+  struct gkyl_vlasov_fluid_advection advection;
+
   // source term
   struct gkyl_vlasov_fluid_source source;
-  
-  // advection coupling to include
-  struct gkyl_vlasov_fluid_advection advection;
+
+  // gkyl_eqn_type eqn_id = GKYL_EQN_EULER_PKPM
+  char pkpm_species[128]; // names of species to for pkpm coupling
   
   // diffusion coupling to include
   struct gkyl_vlasov_fluid_diffusion diffusion;
@@ -322,6 +337,16 @@ void gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame);
 void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
+ * Write pkpm moment data to file.
+ * 
+ * @param app App object.
+ * @param sidx Index of fluid species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_vlasov_app_write_species_pkpm_moms(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+
+/**
  * Write species p/gamma to file.
  * 
  * @param app App object.
@@ -342,16 +367,6 @@ void gkyl_vlasov_app_write_species_gamma(gkyl_vlasov_app* app, int sidx, double 
 void gkyl_vlasov_app_write_magB(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
- * Write gradient of magnetic field to file.
- * 
- * @param app App object.
- * @param sidx Index of species to initialize.
- * @param tm Time-stamp
- * @param frame Frame number
- */
-void gkyl_vlasov_app_write_gradB(gkyl_vlasov_app* app, int sidx, double tm, int frame);
-
-/**
  * Write fluid species data to file.
  * 
  * @param app App object.
@@ -360,6 +375,26 @@ void gkyl_vlasov_app_write_gradB(gkyl_vlasov_app* app, int sidx, double tm, int 
  * @param frame Frame number
  */
 void gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+
+/**
+ * Write velocity of fluid species data to file.
+ * 
+ * @param app App object.
+ * @param sidx Index of fluid species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_vlasov_app_write_fluid_u_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+
+/**
+ * Write pressure of fluid species data to file.
+ * 
+ * @param app App object.
+ * @param sidx Index of fluid species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_vlasov_app_write_fluid_p_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
  * Write diagnostic moments for species to file.

@@ -9,7 +9,8 @@ enum gkyl_eqn_type {
   GKYL_EQN_MAXWELL, // Maxwell equations
   GKYL_EQN_MHD,  // Ideal MHD equations
   GKYL_EQN_BURGERS, // Burgers equations
-  GKYL_EQN_ADVECTION, // Advection equation
+  GKYL_EQN_ADVECTION, // Scalar advection equation
+  GKYL_EQN_EULER_PKPM, // Euler equations with parallel-kinetic-perpendicular-moment (pkpm) model
 };
 
 // Identifiers for specific field object types
@@ -22,17 +23,30 @@ enum gkyl_field_id {
 
 // Identifiers for subsidary models
 // These are used to distinguish things like special relativistic from non-relativistic
+// or the parallel-kinetic-perpendicular-moment model
 enum gkyl_model_id {
   GKYL_MODEL_DEFAULT = 0, // No subsidiary model specified
   GKYL_MODEL_SR,
   GKYL_MODEL_GEN_GEO,
+  GKYL_MODEL_PKPM,
+  GKYL_MODEL_SR_PKPM,
+};
+
+// Identifiers for specific diffusion object types
+enum gkyl_diffusion_id {
+  GKYL_NO_DIFFUSION = 0, // No diffusion. This is default.
+  GKYL_ISO_DIFFUSION, // Isotropic diffusion. 
+  GKYL_ANISO_DIFFUSION, // Anisotropic diffusion.
+  GKYL_EULER_ISO_DIFFUSION, // Diffusion in isothermal Euler equations (momentum equation)
+  GKYL_EULER_DIFFUSION, // Diffusion in Euler equations (momentum and energy equations)
 };
 
 // Identifiers for specific collision object types
 enum gkyl_collision_id {
   GKYL_NO_COLLISIONS = 0, // No collisions. This is default
   GKYL_BGK_COLLISIONS, // BGK Collision operator
-  GKYL_LBO_COLLISIONS // LBO Collision operator
+  GKYL_LBO_COLLISIONS, // LBO Collision operator
+  GKYL_FPO_COLLISIONS, // FPO Collision operator
 };
 
 // Identifiers for specific source object types
@@ -45,6 +59,5 @@ enum gkyl_source_id {
 // type of quadrature to use
 enum gkyl_quad_type {
   GKYL_GAUSS_QUAD, // Gauss-Legendre quadrature
-  GKYL_GAUSS_LOBATTO_QUAD // Gauss-Lobatto quadrature
+  GKYL_GAUSS_LOBATTO_QUAD, // Gauss-Lobatto quadrature
 };
-

@@ -51,11 +51,10 @@ dg_diffusion_set_cu_dev_ptrs(struct dg_diffusion* diffusion, enum gkyl_basis_typ
       break;    
   } 
   
-  diffusion->eqn.vol_term = vol;
   diffusion->eqn.surf_term = surf;
   //advection->eqn.boundary_surf_term = boundary_surf;
 
-  diffusion->vol = CK(vol_kernels, cdim, poly_order);
+  diffusion->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 
   diffusion->surf[0] = CK(surf_x_kernels, cdim, poly_order);
   if (cdim>1)

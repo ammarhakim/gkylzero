@@ -8,17 +8,17 @@
  *
  * @param cbasis Configuration space basis functions
  * @param pbasis Phase-space basis functions
+ * @param use_gpu bool to determine if on GPU
  * @return Pointer to Gyrokinetic primitive moment object
  */
-struct gkyl_prim_lbo_type* gkyl_prim_lbo_gyrokinetic_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis);
+struct gkyl_prim_lbo_type* 
+gkyl_prim_lbo_gyrokinetic_new(const struct gkyl_basis* cbasis,
+  const struct gkyl_basis* pbasis, bool use_gpu);
 
 /**
- * Create a new Gyrokinetic primitive moment object that lives on NV-GPU.
- *
- * @param cbasis Configuration space basis functions
- * @param pbasis Phase-space basis functions
- * @return Pointer to Gyrokinetic primitive moment object
+ * Create a new Gyrokinetic primitive type object on NV-GPU: 
+ * see new() method above for documentation.
  */
-struct gkyl_prim_lbo_type* gkyl_prim_lbo_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis,
+struct gkyl_prim_lbo_type* 
+gkyl_prim_lbo_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis);

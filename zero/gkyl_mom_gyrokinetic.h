@@ -14,16 +14,21 @@
  * @param conf_range Configuration-space range
  * @param mass Mass of species
  * @param mom Name of moment to compute.
+ * @param use_gpu bool to determine if on GPU
  */
-struct gkyl_mom_type* gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, double mass, const char *mom);
+struct gkyl_mom_type* 
+gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, 
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, 
+  double mass, const char *mom, bool use_gpu);
 
 /**
- * Create new gyrokinetic moment type object on NV-GPU: see new() method
- * above for documentation.
+ * Create new gyrokinetic moment type object on NV-GPU: 
+ * see new() method above for documentation.
  */
-struct gkyl_mom_type* gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, double mass, const char *mom);
+struct gkyl_mom_type* 
+gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, 
+  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, 
+  double mass, const char *mom);
 
 /**
  * Set magnitude of the magnetic field, bmag, needed in computing moments.

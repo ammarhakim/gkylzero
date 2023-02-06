@@ -71,23 +71,31 @@ evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
 }
 
 void
-evalPperpElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct mirror_ctx *app = ctx;
   double x = xn[0];
   double vt = app->vte, n = app->n0;
   double magB = calcMagB(xn,ctx);
-  fout[0] = n*exp(-sq(x))*vt*vt/magB;
+  // No initial flow (u = 0)
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+  fout[3] = n*exp(-sq(x))*vt*vt/magB;
 }
 
 void
-evalPperpIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct mirror_ctx *app = ctx;
   double x = xn[0];
   double vt = app->vti, n = app->n0;
   double magB = calcMagB(xn,ctx);
-  fout[0] = n*exp(-sq(x))*vt*vt/magB;
+  // No initial flow (u = 0)
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+  fout[3] = n*exp(-sq(x))*vt*vt/magB;
 }
 
 void
@@ -95,9 +103,10 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct mirror_ctx *app = ctx;
   double x = xn[0];
+  double B_x = 1.0;
   
   fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
-  fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
+  fout[3] = B_x; fout[4] = 0.0; fout[5] = 0.0;
   fout[6] = 0.0; fout[7] = 0.0;
 }
 
@@ -124,18 +133,6 @@ evalMagB(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, 
   double x = xn[0];
   double magB = calcMagB(xn,ctx);
   fout[0] = magB;
-}
-
-void
-evalGradB(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct mirror_ctx *app = ctx;
-  double x = xn[0];
-  double gamma = app->gamma;
-  double loc = app->loc;
-  double mag = app->mag;
-  fout[0] = -mag*(2.0*(-loc + x))/(cu(gamma)*sq(1.0 + sq(-loc + x)/sq(gamma))) 
-  - mag*(2.0*(loc + x))/(cu(gamma)*sq(1 + sq(loc + x)/sq(gamma)));
 }
 
 struct mirror_ctx
@@ -221,13 +218,12 @@ main(int argc, char **argv)
   printf("Debye length at z = Lx, %lg\n", ctx.lambdaD/sqrt(exp(-sq(ctx.Lx))));
   
   // electron Pperp
-  struct gkyl_vlasov_fluid_species Pperp_elc = {
-    .name = "Pperp_elc",
-
+  struct gkyl_vlasov_fluid_species fluid_elc = {
+    .name = "fluid_elc",
+    .num_eqn = 4,
+    .pkpm_species = "elc",
     .ctx = &ctx,
-    .init = evalPperpElc,
-
-    .advection = {.advect_with = "elc", .collision_id = GKYL_LBO_COLLISIONS},
+    .init = evalFluidElc,
 
     .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
   };  
@@ -235,6 +231,8 @@ main(int argc, char **argv)
   // electrons
   struct gkyl_vlasov_species elc = {
     .name = "elc",
+    .model_id = GKYL_MODEL_PKPM,
+    .pkpm_fluid_species = "fluid_elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
     .lower = { -6.0 * ctx.vte},
     .upper = { 6.0 * ctx.vte}, 
@@ -250,31 +248,21 @@ main(int argc, char **argv)
 
       .ctx = &ctx,
       .self_nu = evalNuElc,
-      .collide_with_fluid = "Pperp_elc",
     },    
 
-    .mirror_force = {
-      .magB_ctx = &ctx,
-      .magB = evalMagB,
+    .magB_ctx = &ctx,
+    .magB = evalMagB,
 
-      .gradB_ctx = &ctx,
-      .gradB = evalGradB,
-
-      .fluid_mirror_force = "Pperp_elc",
-    },
-
-    .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "M2" },
+    .num_diag_moments = 0,
   };
 
   // ion Pperp                                                                                              
-  struct gkyl_vlasov_fluid_species Pperp_ion = {
-    .name = "Pperp_ion",
-
+  struct gkyl_vlasov_fluid_species fluid_ion = {
+    .name = "fluid_ion",
+    .num_eqn = 4,
+    .pkpm_species = "ion",
     .ctx = &ctx,
-    .init = evalPperpIon,
-
-    .advection = {.advect_with = "ion", .collision_id = GKYL_LBO_COLLISIONS},
+    .init = evalFluidIon,
 
     .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
   };  
@@ -282,6 +270,8 @@ main(int argc, char **argv)
   // ions
   struct gkyl_vlasov_species ion = {
     .name = "ion",
+    .model_id = GKYL_MODEL_PKPM,
+    .pkpm_fluid_species = "fluid_ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
     .lower = { -6.0 * ctx.vti},
     .upper = { 6.0 * ctx.vti}, 
@@ -297,21 +287,12 @@ main(int argc, char **argv)
 
       .ctx = &ctx,
       .self_nu = evalNuIon,
-      .collide_with_fluid = "Pperp_ion" ,
     },    
 
-    .mirror_force = {
-      .magB_ctx = &ctx,
-      .magB = evalMagB,
+    .magB_ctx = &ctx,
+    .magB = evalMagB,
 
-      .gradB_ctx = &ctx,
-      .gradB = evalGradB,
-
-      .fluid_mirror_force = "Pperp_ion",
-    },
-
-    .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "M2" },
+    .num_diag_moments = 0,
   };
 
   // field
@@ -343,7 +324,7 @@ main(int argc, char **argv)
     .num_species = 2,
     .species = { elc, ion },
     .num_fluid_species = 2,
-    .fluid_species = { Pperp_elc, Pperp_ion },
+    .fluid_species = { fluid_elc, fluid_ion },
     .field = field,
 
     .use_gpu = app_args.use_gpu,

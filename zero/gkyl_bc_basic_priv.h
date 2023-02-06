@@ -47,8 +47,8 @@ static void
 copy_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
-  int nbasis = mc->basis->num_basis;
-  for (int c=0; c<nbasis; ++c) out[c] = inp[c];
+  int num_comp = mc->ncomp;
+  for (int c=0; c<num_comp; ++c) out[c] = inp[c];
 }
 
 GKYL_CU_D
@@ -56,8 +56,8 @@ static void
 species_absorb_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
-  int nbasis = mc->basis->num_basis;
-  for (int c=0; c<nbasis; ++c) out[c] = 0.0;
+  int num_comp = mc->ncomp;
+  for (int c=0; c<num_comp; ++c) out[c] = 0.0;
 }
 
 GKYL_CU_D
@@ -104,4 +104,58 @@ maxwell_pec_bc(size_t nc, double *out, const double *inp, void *ctx)
   int eloc = nbasis*6, oloc = nbasis*7;
   mc->basis->flip_even_sign(dir, &inp[eloc], &out[eloc]);
   mc->basis->flip_odd_sign(dir, &inp[oloc], &out[oloc]);
+}
+
+// Reflecting wall BCs for PKPM momentum
+GKYL_CU_D
+static void
+pkpm_mom_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
+{
+  struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
+  int dir = mc->dir;
+  int nbasis = mc->basis->num_basis;
+
+  // reflect normal component (zero normal) and zero gradient in other components
+  for (int i=0; i<3; ++i) {
+    int loc = nbasis*i;
+    if (i == dir)
+      mc->basis->flip_even_sign(dir, &inp[loc], &out[loc]);
+    else
+      mc->basis->flip_odd_sign(dir, &inp[loc], &out[loc]);
+  }
+}
+
+// No-slip wall BCs for PKPM momentum
+GKYL_CU_D
+static void
+pkpm_mom_no_slip_bc(size_t nc, double *out, const double *inp, void *ctx)
+{
+  struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
+  int dir = mc->dir;
+  int nbasis = mc->basis->num_basis;
+
+  // zero normal and zero tangent
+  for (int i=0; i<3; ++i) {
+    int loc = nbasis*i;
+    mc->basis->flip_even_sign(dir, &inp[loc], &out[loc]);
+  }  
+}
+
+GKYL_CU_D
+static void
+pkpm_species_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
+{
+  struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
+  int dir = mc->dir, cdim = mc->cdim;
+  int nbasis = mc->basis->num_basis;
+
+  int f_loc = 0*nbasis;
+  int g_loc = 1*nbasis;
+
+  // reflect F_0
+  mc->basis->flip_odd_sign(dir, &inp[f_loc], &out[f_loc]);
+  mc->basis->flip_odd_sign(dir+cdim, &out[f_loc], &out[f_loc]);
+  // reflect G
+  mc->basis->flip_odd_sign(dir, &inp[g_loc], &out[g_loc]);
+  mc->basis->flip_odd_sign(dir+cdim, &out[g_loc], &out[g_loc]);
 }

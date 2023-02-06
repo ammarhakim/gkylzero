@@ -25,23 +25,15 @@ dg_maxwell_set_cu_dev_ptrs(struct dg_maxwell* maxwell, enum gkyl_basis_type b_ty
       surf_z_kernels = ser_surf_z_kernels;
       break;
 
-    case GKYL_BASIS_MODAL_TENSOR:
-      vol_kernels = ten_vol_kernels;
-      surf_x_kernels = ten_surf_x_kernels;
-      surf_y_kernels = ten_surf_y_kernels;
-      surf_z_kernels = ten_surf_z_kernels;
-      break;
-
     default:
       assert(false);
       break;    
   }  
   
-  maxwell->eqn.vol_term = vol;
   maxwell->eqn.surf_term = surf;
   maxwell->eqn.boundary_surf_term = boundary_surf;
 
-  maxwell->vol =  CK(vol_kernels, cdim, poly_order);
+  maxwell->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 
   maxwell->surf[0] = CK(surf_x_kernels, cdim, poly_order);
   if (cdim>1)

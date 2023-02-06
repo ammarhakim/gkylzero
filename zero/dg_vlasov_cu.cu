@@ -28,8 +28,10 @@ gkyl_vlasov_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
 void
 gkyl_vlasov_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin)
 {
-  gkyl_vlasov_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.field->on_dev, auxin.ext_field->on_dev, 
-    auxin.cot_vec->on_dev, auxin.alpha_geo->on_dev);
+  gkyl_vlasov_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.field->on_dev,
+    auxin.ext_field ? auxin.ext_field->on_dev : 0,
+    auxin.cot_vec ? auxin.cot_vec->on_dev : 0,
+    auxin.alpha_geo ? auxin.alpha_geo->on_dev : 0);
 }
 
 // CUDA kernel to set device pointers to range object and vlasov kernel function
@@ -37,7 +39,7 @@ gkyl_vlasov_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlaso
 __global__ static void 
 dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
   int cv_index, int cdim, int vdim, int poly_order, 
-  enum gkyl_field_id model_id, enum gkyl_field_id field_id)
+  enum gkyl_model_id model_id, enum gkyl_field_id field_id)
 {
   vlasov->auxfields.field = 0;
   vlasov->auxfields.ext_field = 0;
@@ -121,7 +123,7 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
       assert(false);
       break;    
   }
-  if (model_id == GKYL_FIELD_GEN_GEO) {
+  if (model_id == GKYL_MODEL_GEN_GEO) {
     if (field_id == GKYL_FIELD_NULL) 
       vlasov->eqn.vol_term = stream_gen_geo_vol_kernels[cv_index].kernels[poly_order];
     else 

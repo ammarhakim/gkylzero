@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gkyl_eqn_type.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_dg_eqn.h>
 

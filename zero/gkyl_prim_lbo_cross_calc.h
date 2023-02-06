@@ -10,17 +10,24 @@
 typedef struct gkyl_prim_lbo_cross_calc gkyl_prim_lbo_cross_calc;
 
 /**
- * Create new updater to compute cross-primitive moments of distribution
- * function. Free using gkyl_prim_vlasov_cross_calc_release.
+ * Create new updater to compute cross-primitive moments of 
+ * distribution function. Free using gkyl_prim_vlasov_cross_calc_release.
  *
  * @param grid Grid object
  * @param prim Pointer to primitive moment type object
+ * @param use_gpu bool to determine if on GPU
  * @return New updater pointer.
  */
-gkyl_prim_lbo_cross_calc* gkyl_prim_lbo_cross_calc_new(const struct gkyl_rect_grid *grid,
-  struct gkyl_prim_lbo_type *prim);
+struct gkyl_prim_lbo_cross_calc* 
+gkyl_prim_lbo_cross_calc_new(const struct gkyl_rect_grid *grid,
+  struct gkyl_prim_lbo_type *prim, bool use_gpu);
 
-gkyl_prim_lbo_cross_calc* gkyl_prim_lbo_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
+/**
+ * Create new updater to compute cross-primitive moments of 
+ * distribution function on NV-GPU. See new() method for documentation.
+ */
+struct gkyl_prim_lbo_cross_calc* 
+gkyl_prim_lbo_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
   struct gkyl_prim_lbo_type *prim);
 
 /**
@@ -30,7 +37,6 @@ gkyl_prim_lbo_cross_calc* gkyl_prim_lbo_cross_calc_cu_dev_new(const struct gkyl_
  * on_dev-consistently constructed.
  *
  * @param calc Primitive moment calculator updater to run
- * @param cbasis_rng Config-space basis functions
  * @param conf_rng Config-space range
  * @param greene Greene's factor
  * @param self_m Mass of the species
@@ -42,16 +48,16 @@ gkyl_prim_lbo_cross_calc* gkyl_prim_lbo_cross_calc_cu_dev_new(const struct gkyl_
  * @param boundary_corrections Momentum and Energy boundary corrections
  * @param prim_moms_out Output drift velocity and thermal speed squared
  */
-void gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc,
-  struct gkyl_basis cbasis, const struct gkyl_range *conf_rng,
+void gkyl_prim_lbo_cross_calc_advance(struct gkyl_prim_lbo_cross_calc* calc,
+  const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
   double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms,
   double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms,
   const struct gkyl_array *boundary_corrections, 
   struct gkyl_array *prim_moms_out);
 
-void gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc,
-  struct gkyl_basis cbasis, const struct gkyl_range *conf_rng,
+void gkyl_prim_lbo_cross_calc_advance_cu(struct gkyl_prim_lbo_cross_calc* calc,
+  const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
   double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms,
   double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms,
@@ -73,14 +79,12 @@ void gkyl_prim_lbo_cross_calc_release(gkyl_prim_lbo_cross_calc* calc);
 const struct gkyl_prim_lbo_type* gkyl_prim_lbo_cross_calc_get_prim(gkyl_prim_lbo_cross_calc* calc);
 
 // "derived" class constructors
-gkyl_prim_lbo_cross_calc* 
-gkyl_prim_lbo_vlasov_cross_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
+struct gkyl_prim_lbo_cross_calc* 
+gkyl_prim_lbo_vlasov_cross_calc_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
+  const struct gkyl_range *conf_rng, bool use_gpu);
 
-gkyl_prim_lbo_cross_calc* 
-gkyl_prim_lbo_gyrokinetic_cross_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
-
-gkyl_prim_lbo_cross_calc* 
-gkyl_prim_lbo_vlasov_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
-
-gkyl_prim_lbo_cross_calc* 
-gkyl_prim_lbo_gyrokinetic_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
+struct gkyl_prim_lbo_cross_calc* 
+gkyl_prim_lbo_gyrokinetic_cross_calc_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
+  const struct gkyl_range *conf_rng, bool use_gpu);

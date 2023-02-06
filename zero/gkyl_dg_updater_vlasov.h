@@ -25,7 +25,7 @@ struct gkyl_dg_updater_vlasov_tm {
  * @param conf_range Config space range
  * @param vel_range Velocity space range
  * @param phase_range Phase space range
- * @param model_id Enum identifier for model type (e.g., SR, General Geometry, see gkyl_eqn_type.h)
+ * @param model_id Enum identifier for model type (e.g., SR, General Geometry, PKPM, see gkyl_eqn_type.h)
  * @param field_id Enum identifier for field type (e.g., Maxwell's, Poisson, see gkyl_eqn_type.h)
  * @param use_gpu Boolean to determine whether struct objects are on host or device
  * 
@@ -80,7 +80,7 @@ void gkyl_dg_updater_vlasov_advance_cu(gkyl_dg_updater_vlasov *vlasov,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 
 /**
- * Return total time spent in drag and diffusion terms
+ * Return total time spent in vlasov equation
  *
  * @param vlasov Updater object
  * @return timers

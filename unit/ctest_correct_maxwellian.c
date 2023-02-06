@@ -190,8 +190,8 @@ test_1x1v(int poly_order, bool use_gpu)
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // compute the number density
-  struct gkyl_mom_type *m0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0");
-  struct gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, m0_t);
+  struct gkyl_mom_type *m0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0", use_gpu);
+  struct gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, m0_t, use_gpu);
   gkyl_mom_type_release(m0_t);
 
   gkyl_mom_calc_advance(m0calc, &local, &confLocal, distf, m0); // m0 = 2.5*orginal m0
