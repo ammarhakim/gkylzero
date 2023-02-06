@@ -7,10 +7,14 @@ PREFIX=$HOME/gkylsoft
 CC=gcc
 CXX=g++
 FC=gfortran
+MPICC=$PREFIX/openmpi/bin/mpicc
+MPICXX=$PREFIX/openmpi/bin/mpicxx
 
 # by default, do not build anything
 BUILD_OPENBLAS=no
 BUILD_SUPERLU=no
+BUILD_SUPERLU_DIST=no
+BUILD_SUPERLU_DIST_GPU=no
 
 # by default, download as well as build packages
 DOWNLOAD_PKGS=yes
@@ -30,6 +34,8 @@ Build GkylZero dependencies
 CC 
 CXX                         C and C++ compilers to use
 FC                          Fortran compiler to use (only gfortran is supported)
+MPICC                       
+MPICXX                      MPI C and C++ compilers to use
 
 -h
 --help                      This help.
@@ -44,6 +50,8 @@ The following flags specify the libraries to build.
 
 --build-openblas            [no] Should we build OpenBLAS?
 --build-superlu             [no] Should we build SuperLU (serial)
+--build-superlu_dist        [no] Should we build SuperLU (parallel)
+--enable-superlu_gpu        [no] Build GPUs lib for SuperLU (needs --build-superlu_dist=yes)
 
 EOF
 }
@@ -123,6 +131,14 @@ do
    --build-superlu)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_SUPERLU="$value"
+      ;;
+   --build-superlu_dist)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_SUPERLU_DIST="$value"
+      ;;
+   --enable-superlu_gpu)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_SUPERLU_DIST_GPU="$value"
       ;;   
    *)
       die "Error: Unknown flag: $1"
@@ -130,6 +146,13 @@ do
    esac
    shift
 done
+
+CMAKE_SUPERLU_DIST_GPU=OFF
+# Set package options
+if [ "$BUILD_SUPERLU_DIST_GPU" = "yes" ]
+then
+    CMAKE_SUPERLU_DIST_GPU=ON
+fi
 
 # Write out build options for scripts to use
 cat <<EOF1 > build-opts.sh
@@ -146,7 +169,12 @@ GKYLSOFT=$PREFIX
 # Various compilers
 CC=$CC
 CXX=$CXX
+MPICC=$MPICC
+MPICXX=$MPICXX
 FC=gfortran
+
+# Package options
+CMAKE_SUPERLU_DIST_GPU=$CMAKE_SUPERLU_DIST_GPU
 
 EOF1
 
@@ -166,8 +194,17 @@ build_superlu() {
     fi
 }
 
+build_superlu_dist() {
+    if [ "$BUILD_SUPERLU_DIST" = "yes" ]
+    then    
+	echo "Building SUPERLU Parallel"
+	./build-parmetis.sh
+	./build-superlu_dist.sh 
+    fi
+}
+
 echo "Installations will be in  $PREFIX"
 
 build_openblas
 build_superlu
-
+build_superlu_dist

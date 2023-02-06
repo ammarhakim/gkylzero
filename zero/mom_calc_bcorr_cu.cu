@@ -14,7 +14,7 @@ extern "C" {
 }
 
 __global__ static void
-gkyl_mom_calc_bcorr_advance_cu_ker(const gkyl_mom_calc_bcorr* bcorr,
+gkyl_mom_calc_bcorr_advance_cu_ker(const struct gkyl_mom_calc_bcorr* bcorr,
   const struct gkyl_range conf_rng, struct gkyl_range vel_rng,
   enum gkyl_vel_edge edge, const struct gkyl_array* fin, struct gkyl_array* out)
 {
@@ -49,7 +49,7 @@ gkyl_mom_calc_bcorr_advance_cu_ker(const gkyl_mom_calc_bcorr* bcorr,
 }
 
 void
-gkyl_mom_calc_bcorr_advance_cu(gkyl_mom_calc_bcorr *bcorr,
+gkyl_mom_calc_bcorr_advance_cu(const struct gkyl_mom_calc_bcorr *bcorr,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
   const struct gkyl_array *GKYL_RESTRICT fin, struct gkyl_array *GKYL_RESTRICT out)
 {

@@ -5,7 +5,7 @@ source ./build-opts.sh
 # Edit to suite your system
 PREFIX=$GKYLSOFT/OpenBLAS-0.3.15
 # Location where dependency sources will be downloaded
-DEP_SOURCES=$HOME/gkylsoft/dep_src/
+DEP_SOURCES=$GKYLSOFT/dep_src/
 
 mkdir -p $DEP_SOURCES
 cd $DEP_SOURCES

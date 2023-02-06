@@ -2,7 +2,7 @@
 #include <gkyl_basis_ser_2x_p1_exp_sq.h> 
 #include <gkyl_basis_ser_2x_p1_inv.h> 
 #include <gkyl_basis_ser_2x_p1_sqrt_with_sign.h> 
-GKYL_CU_DH void em_pkpm_kappa_inv_b_2x_ser_p1(const double *bvar, const double *ExB, double* GKYL_RESTRICT kappa_inv_b) 
+GKYL_CU_DH void em_pkpm_kappa_inv_b_2x_ser_p1(const double *bvar, const double *ExB, double* kappa_inv_b) 
 { 
   // bvar:        Input magnetic field unit vector and unit tensor. 
   // ExB:         Input E x B velocity. 

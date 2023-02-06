@@ -19,8 +19,6 @@ dg_euleriso_diffusion_surfy_2x_ser_p1(const double* w, const double* dx,
   // out: Incremented output
 
   const double J = 4/dx[1]/dx[1];
-  double dxsqrd = dx[0]*dx[0];
-  double dysqrd = dx[1]*dx[1];
   const double *D = &D_in[4]; 
   double mu = D[0]; 
   const double *uvarxl = &uvarl[0]; 
@@ -32,12 +30,12 @@ dg_euleriso_diffusion_surfy_2x_ser_p1(const double* w, const double* dx,
   const double *uvarxr = &uvarr[0]; 
   const double *uvaryr = &uvarr[4]; 
   const double *uvarzr = &uvarr[8]; 
-  out[4] += J*((-(0.5412658773652741*uvaryr[2]*mu)/dysqrd)+(0.5412658773652741*uvaryl[2]*mu)/dysqrd+(0.5625*uvaryr[0]*mu)/dysqrd+(0.5625*uvaryl[0]*mu)/dysqrd-(1.125*uvaryc[0]*mu)/dysqrd-(0.5412658773652741*uvarxr[1]*mu)/dxsqrd+(0.5412658773652741*uvarxl[1]*mu)/dxsqrd+(0.5625*uvarxr[0]*mu)/dxsqrd+(0.5625*uvarxl[0]*mu)/dxsqrd-(1.125*uvarxc[0]*mu)/dxsqrd);
-  out[5] += J*((-(0.5412658773652741*uvaryr[3]*mu)/dysqrd)+(0.5412658773652741*uvaryl[3]*mu)/dysqrd+(0.5625*uvaryr[1]*mu)/dysqrd+(0.5625*uvaryl[1]*mu)/dysqrd-(1.125*uvaryc[1]*mu)/dysqrd-(0.4375*uvarxr[1]*mu)/dxsqrd-(0.4375*uvarxl[1]*mu)/dxsqrd-(2.875*uvarxc[1]*mu)/dxsqrd+(0.5412658773652741*uvarxr[0]*mu)/dxsqrd-(0.5412658773652741*uvarxl[0]*mu)/dxsqrd);
-  out[6] += J*((-(0.4375*uvaryr[2]*mu)/dysqrd)-(0.4375*uvaryl[2]*mu)/dysqrd-(2.875*uvaryc[2]*mu)/dysqrd+(0.5412658773652741*uvaryr[0]*mu)/dysqrd-(0.5412658773652741*uvaryl[0]*mu)/dysqrd-(0.5412658773652741*uvarxr[3]*mu)/dxsqrd+(0.5412658773652741*uvarxl[3]*mu)/dxsqrd+(0.5625*uvarxr[2]*mu)/dxsqrd+(0.5625*uvarxl[2]*mu)/dxsqrd-(1.125*uvarxc[2]*mu)/dxsqrd);
-  out[7] += J*((-(0.4375*uvaryr[3]*mu)/dysqrd)-(0.4375*uvaryl[3]*mu)/dysqrd-(2.875*uvaryc[3]*mu)/dysqrd+(0.5412658773652741*uvaryr[1]*mu)/dysqrd-(0.5412658773652741*uvaryl[1]*mu)/dysqrd-(0.4375*uvarxr[3]*mu)/dxsqrd-(0.4375*uvarxl[3]*mu)/dxsqrd-(2.875*uvarxc[3]*mu)/dxsqrd+(0.5412658773652741*uvarxr[2]*mu)/dxsqrd-(0.5412658773652741*uvarxl[2]*mu)/dxsqrd);
-  out[8] += J*((-(0.5412658773652741*uvaryr[2]*mu)/dysqrd)+(0.5412658773652741*uvaryl[2]*mu)/dysqrd+(0.5625*uvaryr[0]*mu)/dysqrd+(0.5625*uvaryl[0]*mu)/dysqrd-(1.125*uvaryc[0]*mu)/dysqrd-(0.5412658773652741*uvarxr[1]*mu)/dxsqrd+(0.5412658773652741*uvarxl[1]*mu)/dxsqrd+(0.5625*uvarxr[0]*mu)/dxsqrd+(0.5625*uvarxl[0]*mu)/dxsqrd-(1.125*uvarxc[0]*mu)/dxsqrd);
-  out[9] += J*((-(0.5412658773652741*uvaryr[3]*mu)/dysqrd)+(0.5412658773652741*uvaryl[3]*mu)/dysqrd+(0.5625*uvaryr[1]*mu)/dysqrd+(0.5625*uvaryl[1]*mu)/dysqrd-(1.125*uvaryc[1]*mu)/dysqrd-(0.4375*uvarxr[1]*mu)/dxsqrd-(0.4375*uvarxl[1]*mu)/dxsqrd-(2.875*uvarxc[1]*mu)/dxsqrd+(0.5412658773652741*uvarxr[0]*mu)/dxsqrd-(0.5412658773652741*uvarxl[0]*mu)/dxsqrd);
-  out[10] += J*((-(0.4375*uvaryr[2]*mu)/dysqrd)-(0.4375*uvaryl[2]*mu)/dysqrd-(2.875*uvaryc[2]*mu)/dysqrd+(0.5412658773652741*uvaryr[0]*mu)/dysqrd-(0.5412658773652741*uvaryl[0]*mu)/dysqrd-(0.5412658773652741*uvarxr[3]*mu)/dxsqrd+(0.5412658773652741*uvarxl[3]*mu)/dxsqrd+(0.5625*uvarxr[2]*mu)/dxsqrd+(0.5625*uvarxl[2]*mu)/dxsqrd-(1.125*uvarxc[2]*mu)/dxsqrd);
-  out[11] += J*((-(0.4375*uvaryr[3]*mu)/dysqrd)-(0.4375*uvaryl[3]*mu)/dysqrd-(2.875*uvaryc[3]*mu)/dysqrd+(0.5412658773652741*uvaryr[1]*mu)/dysqrd-(0.5412658773652741*uvaryl[1]*mu)/dysqrd-(0.4375*uvarxr[3]*mu)/dxsqrd-(0.4375*uvarxl[3]*mu)/dxsqrd-(2.875*uvarxc[3]*mu)/dxsqrd+(0.5412658773652741*uvarxr[2]*mu)/dxsqrd-(0.5412658773652741*uvarxl[2]*mu)/dxsqrd);
+  out[4] += J*((-0.5412658773652741*uvaryr[2]*mu)+0.5412658773652741*uvaryl[2]*mu-0.5412658773652741*uvarxr[1]*mu+0.5412658773652741*uvarxl[1]*mu+0.5625*uvaryr[0]*mu+0.5625*uvaryl[0]*mu-1.125*uvaryc[0]*mu+0.5625*uvarxr[0]*mu+0.5625*uvarxl[0]*mu-1.125*uvarxc[0]*mu);
+  out[5] += J*((-0.5412658773652741*uvaryr[3]*mu)+0.5412658773652741*uvaryl[3]*mu+0.5625*uvaryr[1]*mu+0.5625*uvaryl[1]*mu-1.125*uvaryc[1]*mu-0.4375*uvarxr[1]*mu-0.4375*uvarxl[1]*mu-2.875*uvarxc[1]*mu+0.5412658773652741*uvarxr[0]*mu-0.5412658773652741*uvarxl[0]*mu);
+  out[6] += J*((-0.5412658773652741*uvarxr[3]*mu)+0.5412658773652741*uvarxl[3]*mu-0.4375*uvaryr[2]*mu-0.4375*uvaryl[2]*mu-2.875*uvaryc[2]*mu+0.5625*uvarxr[2]*mu+0.5625*uvarxl[2]*mu-1.125*uvarxc[2]*mu+0.5412658773652741*uvaryr[0]*mu-0.5412658773652741*uvaryl[0]*mu);
+  out[7] += J*((-0.4375*uvaryr[3]*mu)-0.4375*uvaryl[3]*mu-2.875*uvaryc[3]*mu-0.4375*uvarxr[3]*mu-0.4375*uvarxl[3]*mu-2.875*uvarxc[3]*mu+0.5412658773652741*uvarxr[2]*mu-0.5412658773652741*uvarxl[2]*mu+0.5412658773652741*uvaryr[1]*mu-0.5412658773652741*uvaryl[1]*mu);
+  out[8] += J*((-0.5412658773652741*uvaryr[2]*mu)+0.5412658773652741*uvaryl[2]*mu-0.5412658773652741*uvarxr[1]*mu+0.5412658773652741*uvarxl[1]*mu+0.5625*uvaryr[0]*mu+0.5625*uvaryl[0]*mu-1.125*uvaryc[0]*mu+0.5625*uvarxr[0]*mu+0.5625*uvarxl[0]*mu-1.125*uvarxc[0]*mu);
+  out[9] += J*((-0.5412658773652741*uvaryr[3]*mu)+0.5412658773652741*uvaryl[3]*mu+0.5625*uvaryr[1]*mu+0.5625*uvaryl[1]*mu-1.125*uvaryc[1]*mu-0.4375*uvarxr[1]*mu-0.4375*uvarxl[1]*mu-2.875*uvarxc[1]*mu+0.5412658773652741*uvarxr[0]*mu-0.5412658773652741*uvarxl[0]*mu);
+  out[10] += J*((-0.5412658773652741*uvarxr[3]*mu)+0.5412658773652741*uvarxl[3]*mu-0.4375*uvaryr[2]*mu-0.4375*uvaryl[2]*mu-2.875*uvaryc[2]*mu+0.5625*uvarxr[2]*mu+0.5625*uvarxl[2]*mu-1.125*uvarxc[2]*mu+0.5412658773652741*uvaryr[0]*mu-0.5412658773652741*uvaryl[0]*mu);
+  out[11] += J*((-0.4375*uvaryr[3]*mu)-0.4375*uvaryl[3]*mu-2.875*uvaryc[3]*mu-0.4375*uvarxr[3]*mu-0.4375*uvarxl[3]*mu-2.875*uvarxc[3]*mu+0.5412658773652741*uvarxr[2]*mu-0.5412658773652741*uvarxl[2]*mu+0.5412658773652741*uvaryr[1]*mu-0.5412658773652741*uvaryl[1]*mu);
 }

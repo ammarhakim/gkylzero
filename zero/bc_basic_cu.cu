@@ -18,6 +18,7 @@ gkyl_bc_basic_create_set_cu_dev_ptrs(int dir, int cdim, enum gkyl_bc_basic_type 
 
   switch (bctype) {
     case GKYL_BC_COPY:
+    case GKYL_BC_FIXED_FUNC:
       fout->func = copy_bc;
       break;
 
@@ -28,10 +29,26 @@ gkyl_bc_basic_create_set_cu_dev_ptrs(int dir, int cdim, enum gkyl_bc_basic_type 
     case GKYL_BC_REFLECT:
       fout->func = species_reflect_bc;
       break;
+
     // Perfect electrical conductor
     case GKYL_BC_MAXWELL_PEC:
       fout->func = maxwell_pec_bc;
       break;
+
+    // PKPM Reflecting wall for distribution function
+    case GKYL_BC_PKPM_SPECIES_REFLECT:
+      fout->func = pkpm_species_reflect_bc;
+      break;    
+
+    // PKPM Reflecting wall for momentum
+    case GKYL_BC_PKPM_MOM_REFLECT:
+      fout->func = pkpm_mom_reflect_bc;
+      break;    
+
+    // PKPM No-slip wall for momentum
+    case GKYL_BC_PKPM_MOM_NO_SLIP:
+      fout->func = pkpm_mom_no_slip_bc;
+      break; 
 
     default:
       assert(false);

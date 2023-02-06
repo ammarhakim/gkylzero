@@ -61,7 +61,8 @@ test_vlasov_1x2v_p2_(bool use_gpu)
   // initialize eqn
   struct gkyl_dg_eqn *eqn;
   enum gkyl_field_id field_id = GKYL_FIELD_E_B;
-  eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &confRange, field_id, use_gpu);
+  enum gkyl_model_id model_id = GKYL_MODEL_DEFAULT;
+  eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &confRange, &phaseRange, model_id, field_id, use_gpu);
 
   // initialize hyper_dg slvr
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2};
@@ -118,7 +119,7 @@ test_vlasov_1x2v_p2_(bool use_gpu)
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
     gkyl_vlasov_set_auxfields(eqn,
-      (struct gkyl_dg_vlasov_auxfields) { .qmem = qmem }); // Must set EM fields to use.
+      (struct gkyl_dg_vlasov_auxfields) { .field = qmem, .ext_field = 0, .cot_vec = 0, .alpha_geo = 0 }); // Must set EM fields to use.
     if (use_gpu)
       gkyl_hyper_dg_advance_cu(slvr, &phaseRange, fin, cflrate, rhs);
     else
@@ -266,7 +267,8 @@ test_vlasov_2x3v_p1_(bool use_gpu)
   // initialize eqn
   struct gkyl_dg_eqn *eqn;
   enum gkyl_field_id field_id = GKYL_FIELD_E_B;
-  eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &confRange, field_id, use_gpu);
+  enum gkyl_model_id model_id = GKYL_MODEL_DEFAULT;
+  eqn = gkyl_dg_vlasov_new(&confBasis, &basis, &confRange, &phaseRange, model_id, field_id, use_gpu);
 
   // initialize hyper_dg slvr
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2, 3, 4};
@@ -317,7 +319,7 @@ test_vlasov_2x3v_p1_(bool use_gpu)
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
     gkyl_vlasov_set_auxfields(eqn,
-      (struct gkyl_dg_vlasov_auxfields) { .qmem = qmem }); // must set EM fields to use
+      (struct gkyl_dg_vlasov_auxfields) { .field = qmem, .ext_field = 0, .cot_vec = 0, .alpha_geo = 0 }); // must set EM fields to use
     if (use_gpu)
       gkyl_hyper_dg_advance_cu(slvr, &phaseRange, fin, cflrate, rhs);
     else

@@ -26,7 +26,6 @@
 #include <gkyl_dg_updater_moment.h>
 #include <gkyl_dg_updater_vlasov.h>
 #include <gkyl_dg_vlasov.h>
-#include <gkyl_dg_vlasov_poisson.h>
 #include <gkyl_dg_vlasov_pkpm.h>
 #include <gkyl_dg_vlasov_sr.h>
 #include <gkyl_dynvec.h>
@@ -158,13 +157,15 @@ struct vm_species {
 
   struct gkyl_array *f, *f1, *fnew; // arrays for updates
   struct gkyl_array *cflrate; // CFL rate in each cell
-  struct gkyl_array *bc_buffer; // buffer for BCs (used for both copy and periodic)
+  struct gkyl_array *bc_buffer; // buffer for BCs (used by bc_basic)
+  struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // fixed buffers for time independent BCs 
 
   struct gkyl_array *f_host; // host copy for use IO and initialization
 
   struct vm_species_moment m1i; // for computing currents
   struct vm_species_moment m0; // for computing charge density
-  struct vm_species_moment pkpm_moms; // for computing pkpm moments
+  struct vm_species_moment pkpm_moms; // for computing pkpm moments needed in update
+  struct vm_species_moment pkpm_moms_diag; // for computing pkpm moments diagnostics
   struct vm_species_moment *moms; // diagnostic moments
   struct vm_species_moment integ_moms; // integrated moments
 
@@ -174,13 +175,11 @@ struct vm_species {
   bool is_first_integ_write_call; // flag for int-moments dynvec written first time
 
   enum gkyl_field_id field_id; // type of field equation 
-  enum gkyl_model_id model_id; // type of Vlasov equation (e.g., Vlasov vs. SR vs. PKPM model)
+  enum gkyl_model_id model_id; // type of Vlasov equation (e.g., Vlasov vs. SR)
   struct gkyl_array *qmem; // array for q/m*(E,B)
-  struct gkyl_array *fac_phi; // array for potential (electrostatic or gravitational)
-  struct gkyl_array *vecA; // array for vector potential
 
   // Special relativistic Vlasov arrays
-  struct gkyl_array *p_over_gamma; // array for p/gamma (velocity) 
+  struct gkyl_array *p_over_gamma; // array for p/gamma (velocity) in special relativistic equation
   struct gkyl_array *p_over_gamma_host; // host copy for use in projecting before copying over to GPU
   struct gkyl_array *gamma; // array for gamma = sqrt(1 + p^2) 
   struct gkyl_array *gamma_host; // host copy for use in projecting before copying over to GPU
@@ -199,8 +198,9 @@ struct vm_species {
                         // index corresponds to location in fluid_species array (size num_fluid_species)
   struct gkyl_array *m1i_pkpm; // "M1i" in the pkpm model for use in current coupling
                                // Used to copy over fluid variable from pkpm_fluid_species (first three components are momentum)
-  struct gkyl_array *rho_inv_b; // b_i/rho (for use in pressure force 1/rho * b. div(P))
-  struct gkyl_dg_bin_op_mem *rho_inv_mem; // memory used in the div-op for rho_inv_b
+  struct gkyl_array *g_dist_source; // 2*T_perp/m*G - T_perp/m*(F_0 - F_2)
+  struct gkyl_array *F_k_p_1; // k+1 distribution function (first NP components are F_2) 
+  struct gkyl_array *F_k_m_1; // k-1 distribution function (first NP components are F_1)
 
   gkyl_dg_updater_vlasov *slvr; // Vlasov solver 
   struct gkyl_dg_eqn *eqn_vlasov; // Vlasov equation object
@@ -311,13 +311,26 @@ struct vm_fluid_species {
 
   struct gkyl_array *u; // array for fluid/advection velocity
   struct gkyl_array *p; // array for pressure (used by Euler (1 component) and pkpm Euler (6 components))
+  struct gkyl_array *rho_inv; // array for 1/rho
+  struct gkyl_array *T_perp_over_m; // array for p_perp/rho = T_perp/m
+  struct gkyl_array *T_perp_over_m_inv; // array for (T_perp/m)^-1 
+  struct gkyl_array *T_ij; // Temperature tensor for penalization T_ij = 3.0*P_ij/rho
+
   struct gkyl_array *u_bc_buffer; // buffer for applying BCs to flow
   struct gkyl_array *p_bc_buffer; // buffer for applying BCs to pressure
+  
+  struct gkyl_array *u_host; // array for host-side fluid/advection velocity (for I/O)
+  struct gkyl_array *p_host; // array for host-side pressure (for I/O)
+  // pkpm variables
+  struct gkyl_array *div_p; // array for divergence of the pressure tensor
+  struct gkyl_array *pkpm_accel_vars;  // Acceleration variables for pkpm, pkpm_accel_vars:
+                                       // 0: div_b (divergence of magnetic field unit vector)
+                                       // 1: bb_grad_u (bb : grad(u))
+                                       // 2: p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - T_perp/m*div(b)
+                                       // 3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - nu + nu rho vth^2/p_perp)
+                                       // 4: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
 
-  struct gkyl_array *ux_dg; // array for *just* x velocity (DG)
-  struct gkyl_array *ux_wgt; // weight for used in continuous projection
-  struct gkyl_array *ux_fem; // array for continuous x velocity 
-  struct gkyl_fem_parproj *fem_proj; // 1D continuous projection operator
+  double nuHyp; // Hyper-diffusion coefficient
 
   struct gkyl_array *D; // array for diffusion tensor
   struct gkyl_array *D_host; // host copy of diffusion tensor
@@ -331,7 +344,8 @@ struct vm_fluid_species {
   struct gkyl_bc_basic *bc_lo[3];
   struct gkyl_bc_basic *bc_up[3];
 
-  // Pointers to updaters that apply BCs to velocity and pressure
+  // Pointers to updaters that apply BCs to velocity and pressure (and Tij in pkpm)
+  bool bc_is_absorb; // boolean for absorbing BCs since 1/rho is undefined in absorbing BCs
   struct gkyl_bc_basic *bc_u_lo[3];
   struct gkyl_bc_basic *bc_u_up[3];
   struct gkyl_bc_basic *bc_p_lo[3];
@@ -562,6 +576,14 @@ double vm_species_lbo_rhs(gkyl_vlasov_app *app,
   const struct vm_species *species,
   struct vm_lbo_collisions *lbo,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Apply BCs to primitive moments
+ *
+ * @param app Vlasov app object
+ * @param lbo Species LBO object to apply boundary conditions to primitive moments
+ */
+void vm_species_lbo_apply_bc(struct gkyl_vlasov_app *app, const struct vm_lbo_collisions *lbo);
 
 /**
  * Release species LBO object.

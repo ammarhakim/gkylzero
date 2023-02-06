@@ -80,7 +80,7 @@ gkyl_dg_lbo_vlasov_pkpm_drag_cu_dev_new(const struct gkyl_basis* cbasis, const s
   lbo_vlasov_pkpm_drag->cdim = cdim;
   lbo_vlasov_pkpm_drag->pdim = pdim;
 
-  lbo_vlasov_pkpm_drag->eqn.num_equations = 1;
+  lbo_vlasov_pkpm_drag->eqn.num_equations = 2;
   lbo_vlasov_pkpm_drag->conf_range = *conf_range;
   lbo_vlasov_pkpm_drag->vMaxSq = pow(pgrid->upper[cdim],2);
 

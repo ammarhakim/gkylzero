@@ -17,21 +17,26 @@ extern "C" {
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
 gkyl_vlasov_pkpm_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
-  const struct gkyl_array *u_i, const struct gkyl_array *p_ij, 
-  const struct gkyl_array *bvar, const struct gkyl_array *rho_inv_b)
+  const struct gkyl_array *bvar, const struct gkyl_array *u_i, 
+  const struct gkyl_array *pkpm_accel_vars, const struct gkyl_array *g_dist_source, 
+  const struct gkyl_array *vth_sq)
 {
   struct dg_vlasov_pkpm *vlasov_pkpm = container_of(eqn, struct dg_vlasov_pkpm, eqn);
-  vlasov_pkpm->auxfields.u_i = u_i;
-  vlasov_pkpm->auxfields.p_ij = p_ij;
   vlasov_pkpm->auxfields.bvar = bvar;
-  vlasov_pkpm->auxfields.rho_inv_b = rho_inv_b;
+  vlasov_pkpm->auxfields.u_i = u_i;
+  vlasov_pkpm->auxfields.pkpm_accel_vars = pkpm_accel_vars;
+  vlasov_pkpm->auxfields.g_dist_source = g_dist_source;
+  vlasov_pkpm->auxfields.vth_sq = vth_sq;
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
 void
 gkyl_vlasov_pkpm_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_pkpm_auxfields auxin)
 {
-  gkyl_vlasov_pkpm_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.u_i->on_dev, auxin.p_ij->on_dev, auxin.bvar->on_dev, auxin.rho_inv_b->on_dev);
+  gkyl_vlasov_pkpm_set_auxfields_cu_kernel<<<1,1>>>(eqn, 
+    auxin.bvar->on_dev, auxin.u_i->on_dev, 
+    auxin.pkpm_accel_vars->on_dev, auxin.g_dist_source->on_dev, 
+    auxin.vth_sq->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and vlasov_pkpm kernel function
@@ -40,11 +45,12 @@ __global__ static void
 dg_vlasov_pkpm_set_cu_dev_ptrs(struct dg_vlasov_pkpm *vlasov_pkpm, enum gkyl_basis_type b_type,
   int cdim, int poly_order)
 {
-  vlasov_pkpm->auxfields.u_i = 0;
-  vlasov_pkpm->auxfields.p_ij = 0;
   vlasov_pkpm->auxfields.bvar = 0;  
-  vlasov_pkpm->auxfields.rho_inv_b = 0;  
-
+  vlasov_pkpm->auxfields.u_i = 0;
+  vlasov_pkpm->auxfields.pkpm_accel_vars = 0;
+  vlasov_pkpm->auxfields.g_dist_source = 0;
+  vlasov_pkpm->auxfields.vth_sq = 0;  
+  
   vlasov_pkpm->eqn.surf_term = surf;
   vlasov_pkpm->eqn.boundary_surf_term = boundary_surf;
 
@@ -84,7 +90,7 @@ dg_vlasov_pkpm_set_cu_dev_ptrs(struct dg_vlasov_pkpm *vlasov_pkpm, enum gkyl_bas
 
 struct gkyl_dg_eqn*
 gkyl_dg_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, enum gkyl_field_id field_id)
+  const struct gkyl_range* conf_range, const struct gkyl_range* phase_range)
 {
   struct dg_vlasov_pkpm *vlasov_pkpm = (struct dg_vlasov_pkpm*) gkyl_malloc(sizeof(struct dg_vlasov_pkpm));
 
@@ -94,8 +100,9 @@ gkyl_dg_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gky
   vlasov_pkpm->cdim = cdim;
   vlasov_pkpm->pdim = pdim;
 
-  vlasov_pkpm->eqn.num_equations = 1;
+  vlasov_pkpm->eqn.num_equations = 2;
   vlasov_pkpm->conf_range = *conf_range;
+  vlasov_pkpm->phase_range = *phase_range;
 
   vlasov_pkpm->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(vlasov_pkpm->eqn.flags);

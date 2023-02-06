@@ -31,26 +31,31 @@ void
 gkyl_vlasov_pkpm_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_pkpm_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(auxin.u_i) && gkyl_array_is_cu_dev(auxin.p_ij) && gkyl_array_is_cu_dev(auxin.bvar)) {
+  if (gkyl_array_is_cu_dev(auxin.bvar) &&
+      gkyl_array_is_cu_dev(auxin.u_i) &&
+      gkyl_array_is_cu_dev(auxin.pkpm_accel_vars) &&
+      gkyl_array_is_cu_dev(auxin.g_dist_source) &&
+      gkyl_array_is_cu_dev(auxin.vth_sq)) {
     gkyl_vlasov_pkpm_set_auxfields_cu(eqn->on_dev, auxin);
     return;
   }
 #endif
 
   struct dg_vlasov_pkpm *vlasov_pkpm = container_of(eqn, struct dg_vlasov_pkpm, eqn);
-  vlasov_pkpm->auxfields.u_i = auxin.u_i;
-  vlasov_pkpm->auxfields.p_ij = auxin.p_ij;
   vlasov_pkpm->auxfields.bvar = auxin.bvar;
-  vlasov_pkpm->auxfields.rho_inv_b = auxin.rho_inv_b;
+  vlasov_pkpm->auxfields.u_i = auxin.u_i;
+  vlasov_pkpm->auxfields.pkpm_accel_vars = auxin.pkpm_accel_vars;
+  vlasov_pkpm->auxfields.g_dist_source = auxin.g_dist_source;
+  vlasov_pkpm->auxfields.vth_sq = auxin.vth_sq;
 }
 
 struct gkyl_dg_eqn*
 gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, bool use_gpu)
+  const struct gkyl_range* conf_range, const struct gkyl_range* phase_range, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_vlasov_pkpm_cu_dev_new(cbasis, pbasis, conf_range);
+    return gkyl_dg_vlasov_pkpm_cu_dev_new(cbasis, pbasis, conf_range, phase_range);
   } 
 #endif
   struct dg_vlasov_pkpm *vlasov_pkpm = gkyl_malloc(sizeof(struct dg_vlasov_pkpm));
@@ -62,7 +67,7 @@ gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
   vlasov_pkpm->cdim = cdim;
   vlasov_pkpm->pdim = pdim;
 
-  vlasov_pkpm->eqn.num_equations = 1;
+  vlasov_pkpm->eqn.num_equations = 2;
   vlasov_pkpm->eqn.surf_term = surf;
   vlasov_pkpm->eqn.boundary_surf_term = boundary_surf;
 
@@ -104,11 +109,13 @@ gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
   assert(vlasov_pkpm->accel_surf);
   assert(vlasov_pkpm->accel_boundary_surf);
 
-  vlasov_pkpm->auxfields.u_i = 0;
-  vlasov_pkpm->auxfields.p_ij = 0;
   vlasov_pkpm->auxfields.bvar = 0;  
-  vlasov_pkpm->auxfields.rho_inv_b = 0;  
+  vlasov_pkpm->auxfields.u_i = 0;
+  vlasov_pkpm->auxfields.pkpm_accel_vars = 0;
+  vlasov_pkpm->auxfields.g_dist_source = 0;
+  vlasov_pkpm->auxfields.vth_sq = 0;  
   vlasov_pkpm->conf_range = *conf_range;
+  vlasov_pkpm->phase_range = *phase_range;
 
   vlasov_pkpm->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(vlasov_pkpm->eqn.flags);
@@ -122,8 +129,8 @@ gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_dg_eqn*
-gkyl_dg_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range)
+gkyl_dg_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+  const struct gkyl_range* conf_range, const struct gkyl_range* phase_range)
 {
   assert(false);
   return 0;

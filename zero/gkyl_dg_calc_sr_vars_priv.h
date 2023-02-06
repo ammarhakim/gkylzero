@@ -35,9 +35,9 @@ static const gkyl_dg_sr_Gamma2_kern_list ser_sr_Gamma2_kernels[] = {
   { NULL, sr_Gamma2_1x2v_ser_p1, sr_Gamma2_1x2v_ser_p2 }, // 1
   { NULL, sr_Gamma2_1x3v_ser_p1, sr_Gamma2_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, sr_Gamma2_2x1v_ser_p1, sr_Gamma2_2x1v_ser_p2 }, // 3
-  { NULL, sr_Gamma2_2x2v_ser_p1, sr_Gamma2_2x2v_ser_p2 }, // 4
-  { NULL, sr_Gamma2_2x3v_ser_p1, sr_Gamma2_2x3v_ser_p2 }, // 5
+  { NULL, sr_Gamma2_2x1v_ser_p1, NULL }, // 3
+  { NULL, sr_Gamma2_2x2v_ser_p1, NULL }, // 4
+  { NULL, sr_Gamma2_2x3v_ser_p1, NULL }, // 5
   // 3x kernels
   { NULL, sr_Gamma2_3x1v_ser_p1, NULL                  }, // 6
   { NULL, sr_Gamma2_3x2v_ser_p1, NULL                  }, // 7
@@ -52,9 +52,9 @@ static const gkyl_dg_sr_Gamma_kern_list ser_sr_Gamma_kernels[] = {
   { NULL, sr_Gamma_1x2v_ser_p1, sr_Gamma_1x2v_ser_p2 }, // 1
   { NULL, sr_Gamma_1x3v_ser_p1, sr_Gamma_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, sr_Gamma_2x1v_ser_p1, sr_Gamma_2x1v_ser_p2 }, // 3
-  { NULL, sr_Gamma_2x2v_ser_p1, sr_Gamma_2x2v_ser_p2 }, // 4
-  { NULL, sr_Gamma_2x3v_ser_p1, sr_Gamma_2x3v_ser_p2 }, // 5
+  { NULL, sr_Gamma_2x1v_ser_p1, NULL }, // 3
+  { NULL, sr_Gamma_2x2v_ser_p1, NULL }, // 4
+  { NULL, sr_Gamma_2x3v_ser_p1, NULL }, // 5
   // 3x kernels
   { NULL, sr_Gamma_3x1v_ser_p1, NULL                 }, // 6
   { NULL, sr_Gamma_3x2v_ser_p1, NULL                 }, // 7
@@ -69,9 +69,9 @@ static const gkyl_dg_sr_Gamma_inv_kern_list ser_sr_Gamma_inv_kernels[] = {
   { NULL, sr_Gamma_inv_1x2v_ser_p1, sr_Gamma_inv_1x2v_ser_p2 }, // 1
   { NULL, sr_Gamma_inv_1x3v_ser_p1, sr_Gamma_inv_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, sr_Gamma_inv_2x1v_ser_p1, sr_Gamma_inv_2x1v_ser_p2 }, // 3
-  { NULL, sr_Gamma_inv_2x2v_ser_p1, sr_Gamma_inv_2x2v_ser_p2 }, // 4
-  { NULL, sr_Gamma_inv_2x3v_ser_p1, sr_Gamma_inv_2x3v_ser_p2 }, // 5
+  { NULL, sr_Gamma_inv_2x1v_ser_p1, NULL }, // 3
+  { NULL, sr_Gamma_inv_2x2v_ser_p1, NULL }, // 4
+  { NULL, sr_Gamma_inv_2x3v_ser_p1, NULL }, // 5
   // 3x kernels
   { NULL, sr_Gamma_inv_3x1v_ser_p1, NULL                     }, // 6
   { NULL, sr_Gamma_inv_3x2v_ser_p1, NULL                     }, // 7

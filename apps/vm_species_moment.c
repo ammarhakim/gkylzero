@@ -32,6 +32,7 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
 {
   assert(is_moment_name_valid(nm));
 
+  // For simplicity, is_integrated flag also used by PKPM to turn on diagnostics
   bool is_integrated = strcmp(nm, "Integrated") == 0;
   sm->use_gpu = app->use_gpu;
   sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
@@ -45,7 +46,8 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   sm->GammaV2 = s->GammaV2;
   sm->GammaV_inv = s->GammaV_inv;
 
-  if (is_integrated) {
+  // Using the is_integrated flag as a temporary bool for handling PKPM diagnostics so check that we are *not* PKPM
+  if (is_integrated && s->model_id != GKYL_MODEL_PKPM) {
     sm->marr = mkarr(sm->use_gpu, num_mom, app->local_ext.volume);
     sm->marr_host = sm->marr;
     if (sm->use_gpu)

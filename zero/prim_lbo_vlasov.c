@@ -31,6 +31,7 @@ gkyl_prim_lbo_vlasov_new(const struct gkyl_basis* cbasis,
   } 
 #endif  
   struct prim_lbo_type_vlasov *prim_vlasov = gkyl_malloc(sizeof(struct prim_lbo_type_vlasov));
+
   int cdim = prim_vlasov->prim.cdim = cbasis->ndim;
   int pdim = prim_vlasov->prim.pdim = pbasis->ndim;
   int vdim = pdim-cdim;

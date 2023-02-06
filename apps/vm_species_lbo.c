@@ -151,9 +151,6 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
         lbo->prim_moms);
       // PKPM model only has vth^2
       gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_prim_moms, 0, lbo->prim_moms, 0, lbo->self_nu);
-      // PKPM moments have factor of mass in them, need to divide out mass
-      // nu_prim_moms = T -> need T/m for diffusion
-      gkyl_array_scale(lbo->nu_prim_moms, species->info.mass);
     }
     else {
       gkyl_prim_lbo_calc_advance_cu(lbo->coll_pcalc, &app->local, 
@@ -182,9 +179,6 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
         lbo->prim_moms);
       // PKPM model only has vth^2
       gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_prim_moms, 0, lbo->prim_moms, 0, lbo->self_nu);
-      // PKPM moments have factor of mass in them, need to divide out mass
-      // nu_prim_moms = T -> need T/m for diffusion
-      gkyl_array_scale(lbo->nu_prim_moms, species->info.mass);
     }
     else {
       gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, &app->local, 
