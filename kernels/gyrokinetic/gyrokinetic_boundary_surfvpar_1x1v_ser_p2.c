@@ -1,4 +1,6 @@
 #include <gkyl_gyrokinetic_kernels.h>
+#include <gkyl_basis_ser_2x_p2_surfx2_eval_quad.h> 
+#include <gkyl_basis_ser_2x_p2_upwind_quad_to_modal.h> 
 GKYL_CU_DH void gyrokinetic_boundary_surfvpar_1x1v_ser_p2(const double *w, const double *dxv, const double q_, const double m_, const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, const double *phi, const double *apar, const double *apardot, const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]: cell-center.
@@ -29,7 +31,7 @@ GKYL_CU_DH void gyrokinetic_boundary_surfvpar_1x1v_ser_p2(const double *w, const
   const double *b_y = &b_i[3];
   const double *b_z = &b_i[6];
 
-  double hamil[8]; 
+  double hamil[8] = {0.}; 
   hamil[0] = (0.3333333333333333*(3.0*rdvpar2Sq*(m_*wvparSq+1.414213562373095*phi[0]*q_)+m_))/rdvpar2Sq; 
   hamil[1] = 1.414213562373095*phi[1]*q_; 
   hamil[2] = (1.154700538379252*m_*wvpar)/rdvpar2; 
@@ -52,26 +54,25 @@ GKYL_CU_DH void gyrokinetic_boundary_surfvpar_1x1v_ser_p2(const double *w, const
   alphaR[2] = -(0.07071067811865474*((15.0*hamil[1]*BstarZdBmag[6]+(30.0*BstarZdBmag[3]+17.32050807568877*BstarZdBmag[1])*hamil[4]+8.660254037844386*hamil[1]*BstarZdBmag[4])*rdx2+14.14213562373095*apardot[2]*q_))/m_; 
 
   double fUpOrdR[3] = {0.};
-  if (alphaR[0]-1.118033988749896*alphaR[2] > 0.) {
-    fUpOrdR[0] = (-0.9682458365518543*fskin[6])+1.118033988749895*fskin[5]-0.5590169943749475*fskin[4]+0.8660254037844386*fskin[2]+0.5*fskin[0]; 
-  } else {
-    fUpOrdR[0] = 0.9682458365518543*fedge[6]+1.118033988749895*fedge[5]-0.5590169943749475*fedge[4]-0.8660254037844386*fedge[2]+0.5*fedge[0]; 
-  }
   if (alphaR[2]-1.499999999999997*alphaR[1]+1.118033988749892*alphaR[0] > 0.) {
-    fUpOrdR[1] = (-1.5*fskin[7])+0.7745966692414834*fskin[6]+1.118033988749895*fskin[5]+0.447213595499958*fskin[4]-1.161895003862225*fskin[3]+0.8660254037844386*fskin[2]-0.6708203932499369*fskin[1]+0.5*fskin[0]; 
-  } else {
-    fUpOrdR[1] = (-1.5*fedge[7])-0.7745966692414834*fedge[6]+1.118033988749895*fedge[5]+0.447213595499958*fedge[4]+1.161895003862225*fedge[3]-0.8660254037844386*fedge[2]-0.6708203932499369*fedge[1]+0.5*fedge[0]; 
-  }
+    fUpOrdR[0] = ser_2x_p2_surfx2_eval_quad_node_0_r(fskin); 
+  } else { 
+    fUpOrdR[0] = ser_2x_p2_surfx2_eval_quad_node_0_l(fedge); 
+  } 
+  if (alphaR[0]-1.118033988749896*alphaR[2] > 0.) {
+    fUpOrdR[1] = ser_2x_p2_surfx2_eval_quad_node_1_r(fskin); 
+  } else { 
+    fUpOrdR[1] = ser_2x_p2_surfx2_eval_quad_node_1_l(fedge); 
+  } 
   if (alphaR[2]+1.499999999999997*alphaR[1]+1.118033988749892*alphaR[0] > 0.) {
-    fUpOrdR[2] = 1.5*fskin[7]+0.7745966692414834*fskin[6]+1.118033988749895*fskin[5]+0.447213595499958*fskin[4]+1.161895003862225*fskin[3]+0.8660254037844386*fskin[2]+0.6708203932499369*fskin[1]+0.5*fskin[0]; 
-  } else {
-    fUpOrdR[2] = 1.5*fedge[7]-0.7745966692414834*fedge[6]+1.118033988749895*fedge[5]+0.447213595499958*fedge[4]-1.161895003862225*fedge[3]-0.8660254037844386*fedge[2]+0.6708203932499369*fedge[1]+0.5*fedge[0]; 
-  }
+    fUpOrdR[2] = ser_2x_p2_surfx2_eval_quad_node_2_r(fskin); 
+  } else { 
+    fUpOrdR[2] = ser_2x_p2_surfx2_eval_quad_node_2_l(fedge); 
+  } 
 
+  // Project tensor nodal quadrature basis back onto modal basis. 
   double fUpR[3] = {0.};
-  fUpR[0] = 0.392837100659193*fUpOrdR[2]+0.392837100659193*fUpOrdR[1]+0.6285393610547091*fUpOrdR[0]; 
-  fUpR[1] = 0.5270462766947293*fUpOrdR[2]-0.5270462766947293*fUpOrdR[1]; 
-  fUpR[2] = 0.3513641844631533*fUpOrdR[2]+0.3513641844631533*fUpOrdR[1]-0.7027283689263066*fUpOrdR[0]; 
+  ser_2x_p2_upwind_quad_to_modal(fUpOrdR, fUpR); 
 
   double GhatR[8] = {0.}; 
   GhatR[0] = 0.7071067811865475*alphaR[2]*fUpR[2]+0.7071067811865475*alphaR[1]*fUpR[1]+0.7071067811865475*alphaR[0]*fUpR[0]; 
@@ -95,26 +96,25 @@ GKYL_CU_DH void gyrokinetic_boundary_surfvpar_1x1v_ser_p2(const double *w, const
   alphaL[2] = (0.07071067811865474*((15.0*hamil[1]*BstarZdBmag[6]+(30.0*BstarZdBmag[3]-17.32050807568877*BstarZdBmag[1])*hamil[4]-8.660254037844386*hamil[1]*BstarZdBmag[4])*rdx2-14.14213562373095*apardot[2]*q_))/m_; 
 
   double fUpOrdL[3] = {0.};
-  if (alphaL[0]-1.118033988749896*alphaL[2] > 0.) {
-    fUpOrdL[0] = (-0.9682458365518543*fedge[6])+1.118033988749895*fedge[5]-0.5590169943749475*fedge[4]+0.8660254037844386*fedge[2]+0.5*fedge[0]; 
-  } else {
-    fUpOrdL[0] = 0.9682458365518543*fskin[6]+1.118033988749895*fskin[5]-0.5590169943749475*fskin[4]-0.8660254037844386*fskin[2]+0.5*fskin[0]; 
-  }
   if (alphaL[2]-1.499999999999997*alphaL[1]+1.118033988749892*alphaL[0] > 0.) {
-    fUpOrdL[1] = (-1.5*fedge[7])+0.7745966692414834*fedge[6]+1.118033988749895*fedge[5]+0.447213595499958*fedge[4]-1.161895003862225*fedge[3]+0.8660254037844386*fedge[2]-0.6708203932499369*fedge[1]+0.5*fedge[0]; 
-  } else {
-    fUpOrdL[1] = (-1.5*fskin[7])-0.7745966692414834*fskin[6]+1.118033988749895*fskin[5]+0.447213595499958*fskin[4]+1.161895003862225*fskin[3]-0.8660254037844386*fskin[2]-0.6708203932499369*fskin[1]+0.5*fskin[0]; 
-  }
+    fUpOrdL[0] = ser_2x_p2_surfx2_eval_quad_node_0_r(fedge); 
+  } else { 
+    fUpOrdL[0] = ser_2x_p2_surfx2_eval_quad_node_0_l(fskin); 
+  } 
+  if (alphaL[0]-1.118033988749896*alphaL[2] > 0.) {
+    fUpOrdL[1] = ser_2x_p2_surfx2_eval_quad_node_1_r(fedge); 
+  } else { 
+    fUpOrdL[1] = ser_2x_p2_surfx2_eval_quad_node_1_l(fskin); 
+  } 
   if (alphaL[2]+1.499999999999997*alphaL[1]+1.118033988749892*alphaL[0] > 0.) {
-    fUpOrdL[2] = 1.5*fedge[7]+0.7745966692414834*fedge[6]+1.118033988749895*fedge[5]+0.447213595499958*fedge[4]+1.161895003862225*fedge[3]+0.8660254037844386*fedge[2]+0.6708203932499369*fedge[1]+0.5*fedge[0]; 
-  } else {
-    fUpOrdL[2] = 1.5*fskin[7]-0.7745966692414834*fskin[6]+1.118033988749895*fskin[5]+0.447213595499958*fskin[4]-1.161895003862225*fskin[3]-0.8660254037844386*fskin[2]+0.6708203932499369*fskin[1]+0.5*fskin[0]; 
-  }
+    fUpOrdL[2] = ser_2x_p2_surfx2_eval_quad_node_2_r(fedge); 
+  } else { 
+    fUpOrdL[2] = ser_2x_p2_surfx2_eval_quad_node_2_l(fskin); 
+  } 
 
+  // Project tensor nodal quadrature basis back onto modal basis. 
   double fUpL[3] = {0.};
-  fUpL[0] = 0.392837100659193*fUpOrdL[2]+0.392837100659193*fUpOrdL[1]+0.6285393610547091*fUpOrdL[0]; 
-  fUpL[1] = 0.5270462766947293*fUpOrdL[2]-0.5270462766947293*fUpOrdL[1]; 
-  fUpL[2] = 0.3513641844631533*fUpOrdL[2]+0.3513641844631533*fUpOrdL[1]-0.7027283689263066*fUpOrdL[0]; 
+  ser_2x_p2_upwind_quad_to_modal(fUpOrdL, fUpL); 
 
   double GhatL[8] = {0.}; 
   GhatL[0] = 0.7071067811865475*alphaL[2]*fUpL[2]+0.7071067811865475*alphaL[1]*fUpL[1]+0.7071067811865475*alphaL[0]*fUpL[0]; 
