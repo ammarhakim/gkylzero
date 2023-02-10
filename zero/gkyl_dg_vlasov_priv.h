@@ -1091,10 +1091,10 @@ GKYL_CU_D
 static void
 surf(const struct gkyl_dg_eqn *eqn, 
   int dir,
-  const double*  xcL, const double*  xcC, const double*  xcR, 
-  const double*  dxL, const double* dxC, const double* dxR,
-  const int*  idxL, const int*  idxC, const int*  idxR,
-  const double* qInL, const double*  qInC, const double*  qInR, double* GKYL_RESTRICT qRhsOut)
+  const double* xcL, const double* xcC, const double* xcR, 
+  const double* dxL, const double* dxC, const double* dxR,
+  const int* idxL, const int* idxC, const int* idxR,
+  const double* qInL, const double* qInC, const double* qInR, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
 
@@ -1119,8 +1119,8 @@ GKYL_CU_D
 static void
 boundary_surf(const struct gkyl_dg_eqn *eqn,
   int dir,
-  const double*  xcEdge, const double*  xcSkin,
-  const double*  dxEdge, const double* dxSkin,
+  const double* xcEdge, const double* xcSkin,
+  const double* dxEdge, const double* dxSkin,
   const int* idxEdge, const int* idxSkin, const int edge,
   const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
 {

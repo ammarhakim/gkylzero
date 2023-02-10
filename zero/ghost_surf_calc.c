@@ -14,14 +14,14 @@ gkyl_ghost_surf_calc_advance(gkyl_ghost_surf_calc *gcalc,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
   const struct gkyl_array *fIn, struct gkyl_array *rhs)
 {
-  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM], idx_edge[GKYL_MAX_DIM];
-  double xcl[GKYL_MAX_DIM], xcc[GKYL_MAX_DIM], xcr[GKYL_MAX_DIM];
+  // Ghost and skin index and cell center coordinates.
+  int idxg[GKYL_MAX_DIM], idxs[GKYL_MAX_DIM];
+  double xcg[GKYL_MAX_DIM], xcs[GKYL_MAX_DIM];
+
   struct gkyl_range edge_rng;
-  struct gkyl_range_iter conf_iter, edge_iter;
+  struct gkyl_range_iter edge_iter;
   
-  int pidx[GKYL_MAX_DIM], eiter_idx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
   int clower_idx[GKYL_MAX_DIM], cupper_idx[GKYL_MAX_DIM] = { 0 };
-  int conf_idx[GKYL_MAX_CDIM];
 
   for (int d=0; d<phase_rng->ndim; ++d) {
     clower_idx[d] = phase_rng->lower[d];
@@ -29,49 +29,53 @@ gkyl_ghost_surf_calc_advance(gkyl_ghost_surf_calc *gcalc,
   }
 
   for (int dir=0; dir<conf_rng->ndim; ++dir) {
-    clower_idx[dir] = phase_rng->upper[dir];
-    cupper_idx[dir] = phase_rng->upper[dir];
-    gkyl_sub_range_init(&edge_rng, phase_rng, clower_idx, cupper_idx);
-    gkyl_range_iter_no_split_init(&edge_iter, &edge_rng);
-
-    while (gkyl_range_iter_next(&edge_iter)) {
-      gkyl_copy_int_arr(edge_rng.ndim, edge_iter.idx, idxc);
-      gkyl_copy_int_arr(edge_rng.ndim, edge_iter.idx, idxl);
-      idxl[dir] = idxl[dir]-1;
-
-      gkyl_rect_grid_cell_center(&gcalc->grid, idxc, xcc);
-      gkyl_rect_grid_cell_center(&gcalc->grid, idxl, xcl);
-
-      long linc = gkyl_range_idx(&edge_rng, idxc);
-      long linl = gkyl_range_idx(&edge_rng, idxl);
-
-      gcalc->equation->boundary_surf_term(gcalc->equation, dir, xcl, xcc,
-        gcalc->grid.dx, gcalc->grid.dx, idxc, idxc, 1, 
-	gkyl_array_cfetch(fIn, linl), gkyl_array_cfetch(fIn, linc), gkyl_array_fetch(rhs, linc)
-      );
-    }
-
+    // Ghost surf at lower boundary.
     clower_idx[dir] = phase_rng->lower[dir];
     cupper_idx[dir] = phase_rng->lower[dir];
     gkyl_sub_range_init(&edge_rng, phase_rng, clower_idx, cupper_idx);
     gkyl_range_iter_no_split_init(&edge_iter, &edge_rng);
 
     while (gkyl_range_iter_next(&edge_iter)) {
-      gkyl_copy_int_arr(edge_rng.ndim, edge_iter.idx, idxc);
-      gkyl_copy_int_arr(edge_rng.ndim, edge_iter.idx, idxr);
-      idxr[dir] = idxr[dir]+1;
+      gkyl_copy_int_arr(edge_rng.ndim, edge_iter.idx, idxg);
+      gkyl_copy_int_arr(edge_rng.ndim, edge_iter.idx, idxs);
+      idxs[dir] += 1;
 
-      gkyl_rect_grid_cell_center(&gcalc->grid, idxc, xcc);
-      gkyl_rect_grid_cell_center(&gcalc->grid, idxr, xcr);
+      gkyl_rect_grid_cell_center(&gcalc->grid, idxg, xcg);
+      gkyl_rect_grid_cell_center(&gcalc->grid, idxs, xcs);
 
-      long linc = gkyl_range_idx(&edge_rng, idxc); 
-      long linr = gkyl_range_idx(&edge_rng, idxr);
+      long ling = gkyl_range_idx(&edge_rng, idxg); 
+      long lins = gkyl_range_idx(&edge_rng, idxs);
 
-      gcalc->equation->boundary_surf_term(gcalc->equation, dir, xcc, xcr,
-        gcalc->grid.dx, gcalc->grid.dx, idxc, idxr, -1,
-	gkyl_array_cfetch(fIn, linr), gkyl_array_cfetch(fIn, linc), gkyl_array_fetch(rhs, linc)
+      gcalc->equation->boundary_surf_term(gcalc->equation, dir, xcs, xcg,
+        gcalc->grid.dx, gcalc->grid.dx, idxs, idxg, -1,
+	gkyl_array_cfetch(fIn, lins), gkyl_array_cfetch(fIn, ling), gkyl_array_fetch(rhs, ling)
       );
     }
+
+    // Ghost surf at upper boundary.
+    clower_idx[dir] = phase_rng->upper[dir];
+    cupper_idx[dir] = phase_rng->upper[dir];
+    gkyl_sub_range_init(&edge_rng, phase_rng, clower_idx, cupper_idx);
+    gkyl_range_iter_no_split_init(&edge_iter, &edge_rng);
+
+    while (gkyl_range_iter_next(&edge_iter)) {
+      gkyl_copy_int_arr(edge_rng.ndim, edge_iter.idx, idxs);
+      gkyl_copy_int_arr(edge_rng.ndim, edge_iter.idx, idxg);
+      idxs[dir] -= 1;
+
+      gkyl_rect_grid_cell_center(&gcalc->grid, idxs, xcs);
+      gkyl_rect_grid_cell_center(&gcalc->grid, idxg, xcg);
+
+      long lins = gkyl_range_idx(&edge_rng, idxs);
+      long ling = gkyl_range_idx(&edge_rng, idxg);
+
+      gcalc->equation->boundary_surf_term(gcalc->equation, dir, xcs, xcg,
+        gcalc->grid.dx, gcalc->grid.dx, idxs, idxg, 1, 
+	gkyl_array_cfetch(fIn, lins), gkyl_array_cfetch(fIn, ling), gkyl_array_fetch(rhs, ling)
+      );
+    }
+
+    // Reset clower and cupper for the next iteration.
     clower_idx[dir] = phase_rng->lower[dir];
     cupper_idx[dir] = phase_rng->upper[dir];
   }
