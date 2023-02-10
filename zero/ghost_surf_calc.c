@@ -23,12 +23,9 @@ gkyl_ghost_surf_calc_advance(gkyl_ghost_surf_calc *gcalc,
   int clower_idx[GKYL_MAX_DIM], cupper_idx[GKYL_MAX_DIM] = { 0 };
   int conf_idx[GKYL_MAX_CDIM];
 
-  double fBlank[fIn->ncomp];
-  for (int i=0; i<fIn->ncomp; ++i) fBlank[i] = 0.0;
-
-  for (int dim=0; dim<phase_rng->ndim; ++dim) {
-    clower_idx[dim] = phase_rng->lower[dim];
-    cupper_idx[dim] = phase_rng->upper[dim];
+  for (int d=0; d<phase_rng->ndim; ++d) {
+    clower_idx[d] = phase_rng->lower[d];
+    cupper_idx[d] = phase_rng->upper[d];
   }
 
   for (int dir=0; dir<conf_rng->ndim; ++dir) {
