@@ -24,9 +24,7 @@ gkyl_ghost_surf_calc_advance(gkyl_ghost_surf_calc *gcalc,
   int conf_idx[GKYL_MAX_CDIM];
 
   double fBlank[fIn->ncomp];
-  for (int i=0; i<fIn->ncomp; ++i) {
-    fBlank[i] = 0.0;
-  }
+  for (int i=0; i<fIn->ncomp; ++i) fBlank[i] = 0.0;
 
   for (int dim=0; dim<phase_rng->ndim; ++dim) {
     clower_idx[dim] = phase_rng->lower[dim];
@@ -42,19 +40,17 @@ gkyl_ghost_surf_calc_advance(gkyl_ghost_surf_calc *gcalc,
     while (gkyl_range_iter_next(&edge_iter)) {
       gkyl_copy_int_arr(edge_rng.ndim, edge_iter.idx, idxc);
       gkyl_copy_int_arr(edge_rng.ndim, edge_iter.idx, idxl);
-      gkyl_copy_int_arr(edge_rng.ndim, edge_iter.idx, idxr);
-      idxl[dir] = idxl[dir]-1; idxr[dir] = idxr[dir]+1;
+      idxl[dir] = idxl[dir]-1;
 
       gkyl_rect_grid_cell_center(&gcalc->grid, idxc, xcc);
       gkyl_rect_grid_cell_center(&gcalc->grid, idxl, xcl);
-      gkyl_rect_grid_cell_center(&gcalc->grid, idxr, xcr);
 
       long linc = gkyl_range_idx(&edge_rng, idxc);
       long linl = gkyl_range_idx(&edge_rng, idxl);
 
-      gcalc->equation->surf_term(gcalc->equation, dir, xcl, xcc, xcr,
-        gcalc->grid.dx, gcalc->grid.dx, gcalc->grid.dx, idxl, idxc, idxr,
-	gkyl_array_cfetch(fIn, linl), fBlank, fBlank, gkyl_array_fetch(rhs, linc)
+      gcalc->equation->boundary_surf_term(gcalc->equation, dir, xcl, xcc,
+        gcalc->grid.dx, gcalc->grid.dx, idxc, idxc, 1, 
+	gkyl_array_cfetch(fIn, linl), gkyl_array_cfetch(fIn, linc), gkyl_array_fetch(rhs, linc)
       );
     }
 
@@ -65,20 +61,18 @@ gkyl_ghost_surf_calc_advance(gkyl_ghost_surf_calc *gcalc,
 
     while (gkyl_range_iter_next(&edge_iter)) {
       gkyl_copy_int_arr(edge_rng.ndim, edge_iter.idx, idxc);
-      gkyl_copy_int_arr(edge_rng.ndim, edge_iter.idx, idxl);
       gkyl_copy_int_arr(edge_rng.ndim, edge_iter.idx, idxr);
-      idxl[dir] = idxl[dir]-1; idxr[dir] = idxr[dir]+1;
+      idxr[dir] = idxr[dir]+1;
 
       gkyl_rect_grid_cell_center(&gcalc->grid, idxc, xcc);
-      gkyl_rect_grid_cell_center(&gcalc->grid, idxl, xcl);
       gkyl_rect_grid_cell_center(&gcalc->grid, idxr, xcr);
 
       long linc = gkyl_range_idx(&edge_rng, idxc); 
       long linr = gkyl_range_idx(&edge_rng, idxr);
 
-      gcalc->equation->surf_term(gcalc->equation, dir, xcl, xcc, xcr,
-        gcalc->grid.dx, gcalc->grid.dx, gcalc->grid.dx, idxl, idxc, idxr,
-	fBlank, fBlank, gkyl_array_cfetch(fIn, linr), gkyl_array_fetch(rhs, linc)
+      gcalc->equation->boundary_surf_term(gcalc->equation, dir, xcc, xcr,
+        gcalc->grid.dx, gcalc->grid.dx, idxc, idxr, -1,
+	gkyl_array_cfetch(fIn, linr), gkyl_array_cfetch(fIn, linc), gkyl_array_fetch(rhs, linc)
       );
     }
     clower_idx[dir] = phase_rng->lower[dir];

@@ -15,6 +15,10 @@ typedef void (*vlasov_stream_surf_t)(const double *w, const double *dxv,
   const double *alpha_geo,
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
+typedef void (*vlasov_stream_boundary_surf_t)(const double *w, const double *dxv, 
+  const double *alpha_geo,
+  const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out);
+
 typedef void (*vlasov_accel_surf_t)(const double *w, const double *dxv,
   const double *field, const double *ext_field, 
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
@@ -42,6 +46,8 @@ typedef struct { vol_termf_t kernels[3]; } gkyl_dg_vlasov_vol_kern_list;
 typedef struct { vlasov_stream_surf_t kernels[3]; } gkyl_dg_vlasov_stream_surf_kern_list;
 typedef struct { vlasov_stream_surf_t kernels[3]; } gkyl_dg_vlasov_stream_gen_geo_surf_kern_list;
 
+typedef struct { vlasov_stream_boundary_surf_t kernels[3]; } gkyl_dg_vlasov_stream_boundary_surf_kern_list;
+
 typedef struct { vlasov_accel_surf_t kernels[3]; } gkyl_dg_vlasov_poisson_accel_surf_kern_list;
 typedef struct { vlasov_accel_surf_t kernels[3]; } gkyl_dg_vlasov_poisson_extem_accel_surf_kern_list;
 typedef struct { vlasov_accel_surf_t kernels[3]; } gkyl_dg_vlasov_accel_surf_kern_list;
@@ -51,14 +57,15 @@ typedef struct { vlasov_accel_boundary_surf_t kernels[3]; } gkyl_dg_vlasov_poiss
 typedef struct { vlasov_accel_boundary_surf_t kernels[3]; } gkyl_dg_vlasov_accel_boundary_surf_kern_list;
 
 struct dg_vlasov {
-  struct gkyl_dg_eqn eqn; // Base object
-  int cdim; // Config-space dimensions
-  int pdim; // Phase-space dimensions
-  vlasov_stream_surf_t stream_surf[3]; // Surface terms for streaming
-  vlasov_accel_surf_t accel_surf[3]; // Surface terms for acceleration
+  struct gkyl_dg_eqn eqn; // Base object.
+  int cdim; // Config-space dimensions.
+  int pdim; // Phase-space dimensions.
+  vlasov_stream_surf_t stream_surf[3]; // Surface terms for streaming.
+  vlasov_stream_boundary_surf_t stream_boundary_surf[3]; // Boundary surface terms for streaming
+  vlasov_accel_surf_t accel_surf[3]; // Surface terms for acceleration.
   vlasov_accel_boundary_surf_t accel_boundary_surf[3]; // Surface terms for acceleration
-  struct gkyl_range conf_range; // configuration space range (for indexing fields)
-  struct gkyl_range phase_range; // phase space range (for indexing alpha_geo in geometry)
+  struct gkyl_range conf_range; // Configuration space range (for indexing fields)
+  struct gkyl_range phase_range; // Phase space range (for indexing alpha_geo in geometry)
   struct gkyl_dg_vlasov_auxfields auxfields; // Auxiliary fields.
 };
 
@@ -986,6 +993,48 @@ static const gkyl_dg_vlasov_accel_surf_kern_list ser_accel_surf_vz_kernels[] = {
   { NULL, vlasov_surfvz_3x3v_ser_p1, NULL }, // 5
 };
 
+// Streaming boundary surface kernel list: x-direction
+GKYL_CU_D
+static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_boundary_surf_x_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_boundary_surfx_1x1v_ser_p1, vlasov_boundary_surfx_1x1v_ser_p2 }, // 0
+  { NULL, vlasov_boundary_surfx_1x2v_ser_p1, vlasov_boundary_surfx_1x2v_ser_p2 }, // 1
+  { NULL, vlasov_boundary_surfx_1x3v_ser_p1, vlasov_boundary_surfx_1x3v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, vlasov_boundary_surfx_2x2v_ser_p1, vlasov_boundary_surfx_2x2v_ser_p2 }, // 3
+  { NULL, vlasov_boundary_surfx_2x3v_ser_p1, vlasov_boundary_surfx_2x3v_ser_p2 }, // 4
+  // 3x kernels
+  { NULL, vlasov_boundary_surfx_3x3v_ser_p1, NULL                   }, // 5
+};
+
+// Streaming boundary surface kernel list: y-direction
+GKYL_CU_D
+static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_boundary_surf_y_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, vlasov_boundary_surfy_2x2v_ser_p1, vlasov_boundary_surfy_2x2v_ser_p2 }, // 3
+  { NULL, vlasov_boundary_surfy_2x3v_ser_p1, vlasov_boundary_surfy_2x3v_ser_p2 }, // 4
+  // 3x kernels
+  { NULL, vlasov_boundary_surfy_3x3v_ser_p1, NULL                   }, // 5
+};
+
+// Streaming boundary surface kernel list: z-direction
+GKYL_CU_D
+static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_boundary_surf_z_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL }, // 4
+  // 3x kernels
+  { NULL, vlasov_boundary_surfz_3x3v_ser_p1, NULL }, // 5
+};
+
 // Acceleration (full Vlasov-Maxwell) boundary surface kernel (zero-flux BCs) list: vx-direction
 GKYL_CU_D
 static const gkyl_dg_vlasov_accel_boundary_surf_kern_list ser_accel_boundary_surf_vx_kernels[] = {
@@ -1077,7 +1126,13 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
 
-  if (dir >= vlasov->cdim) {
+  if (dir < vlasov->cdim) {
+    long pidx = gkyl_range_idx(&vlasov->phase_range, idxSkin);
+    vlasov->stream_boundary_surf[dir]
+      (xcSkin, dxSkin,
+        vlasov->auxfields.alpha_geo ? (const double*) gkyl_array_cfetch(vlasov->auxfields.alpha_geo, pidx) : 0,
+        edge, qInEdge, qInSkin, qRhsOut);
+  } else if (dir >= vlasov->cdim) {
     long cidx = gkyl_range_idx(&vlasov->conf_range, idxSkin);
     vlasov->accel_boundary_surf[dir-vlasov->cdim]
       (xcSkin, dxSkin,
