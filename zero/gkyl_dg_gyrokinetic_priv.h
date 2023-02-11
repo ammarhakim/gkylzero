@@ -45,7 +45,7 @@ struct dg_gyrokinetic {
   int pdim; // Phase-space dimensions.
   gyrokinetic_step2_vol_t step2_vol; // Volume kernel.
   gyrokinetic_surf_t surf[4]; // Surface terms.
-  gyrokinetic_boundary_surf_t boundary_surf; // Surface terms for velocity boundary.
+  gyrokinetic_boundary_surf_t boundary_surf[4]; // Surface terms for velocity boundary.
   struct gkyl_range conf_range; // Configuration space range.
   double charge, mass;
   struct gkyl_dg_gyrokinetic_auxfields auxfields; // Auxiliary fields.
@@ -288,6 +288,42 @@ static const gkyl_dg_gyrokinetic_surf_kern_list ser_surf_vpar_kernels[] = {
   { NULL, gyrokinetic_surfvpar_3x2v_ser_p1, gyrokinetic_surfvpar_3x2v_ser_p2 }, // 3
 };
 
+// Conf-space advection boundary surface kernel list: x-direction
+GKYL_CU_D
+static const gkyl_dg_gyrokinetic_boundary_surf_kern_list ser_boundary_surf_x_kernels[] = {
+  // 1x kernels
+  { NULL, gyrokinetic_boundary_surfx_1x1v_ser_p1, gyrokinetic_boundary_surfx_1x1v_ser_p2 }, // 0
+  { NULL, gyrokinetic_boundary_surfx_1x2v_ser_p1, gyrokinetic_boundary_surfx_1x2v_ser_p2 }, // 1
+  // 2x kernels
+  { NULL, gyrokinetic_boundary_surfx_2x2v_ser_p1, gyrokinetic_boundary_surfx_2x2v_ser_p2 }, // 2
+  // 3x kernels
+  { NULL, gyrokinetic_boundary_surfx_3x2v_ser_p1, gyrokinetic_boundary_surfx_3x2v_ser_p2 }, // 3
+};
+
+// Conf-space advection boundary surface kernel list: y-direction
+GKYL_CU_D
+static const gkyl_dg_gyrokinetic_boundary_surf_kern_list ser_boundary_surf_y_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  // 2x kernels
+  { NULL, gyrokinetic_boundary_surfy_2x2v_ser_p1, gyrokinetic_boundary_surfy_2x2v_ser_p2 }, // 2
+  // 3x kernels
+  { NULL, gyrokinetic_boundary_surfy_3x2v_ser_p1, gyrokinetic_boundary_surfy_3x2v_ser_p2 }, // 3
+};
+
+// Conf-space advection boundary surface kernel list: z-direction
+GKYL_CU_D
+static const gkyl_dg_gyrokinetic_boundary_surf_kern_list ser_boundary_surf_z_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  // 2x kernels
+  { NULL, NULL, NULL }, // 2
+  // 3x kernels
+  { NULL, gyrokinetic_boundary_surfz_3x2v_ser_p1, gyrokinetic_boundary_surfz_3x2v_ser_p2 }, // 3
+};
+
 // Acceleration boundary surface kernel (zero-flux BCs) list: vpar-direction
 GKYL_CU_D
 static const gkyl_dg_gyrokinetic_boundary_surf_kern_list ser_boundary_surf_vpar_kernels[] = {
@@ -336,6 +372,7 @@ surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
+  // Only in x,y,z,vpar directions.
   if (dir <= gyrokinetic->cdim) {
     long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idxC);
     gyrokinetic->surf[dir](xcC, dxC, 
@@ -362,10 +399,10 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  // only in vpar direction
-  if (dir == gyrokinetic->cdim) {
+  // Only in x,y,z,vpar directions.
+  if (dir <= gyrokinetic->cdim) {
     long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idxSkin);
-    gyrokinetic->boundary_surf(xcSkin, dxSkin, 
+    gyrokinetic->boundary_surf[dir](xcSkin, dxSkin, 
       gyrokinetic->charge, gyrokinetic->mass,
       (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.bmag, cidx),
       (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.jacobtot_inv, cidx),
