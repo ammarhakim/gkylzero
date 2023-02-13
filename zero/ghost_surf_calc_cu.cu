@@ -15,11 +15,11 @@ extern "C" {
 
 __global__ static void
 gkyl_ghost_surf_calc_advance_cu_ker(const gkyl_ghost_surf_calc* gcalc,
-  int dir, int edge, const struct gkyl_range conf_rng, struct gkyl_range edge_rng,
+  int dir, int edge, struct gkyl_range edge_rng,
   const struct gkyl_array* fIn, struct gkyl_array* rhs)
 {
   double xcc[GKYL_MAX_DIM], xcl[GKYL_MAX_DIM], xcr[GKYL_MAX_DIM];
-  int idxc[GKYL_MAX_DIM], idxl[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM];
+  int idxc[GKYL_MAX_DIM], idxl[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
 
   double* fBlank;
   fBlank = (double*) gkyl_array_cfetch(fIn, 0);
@@ -66,7 +66,7 @@ gkyl_ghost_surf_calc_advance_cu_ker(const gkyl_ghost_surf_calc* gcalc,
 
 void
 gkyl_ghost_surf_calc_advance_cu(gkyl_ghost_surf_calc *gcalc,
-  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
+  const struct gkyl_range *phase_rng,
   const struct gkyl_array *fIn, struct gkyl_array *rhs)
 {
   struct gkyl_range edge_rng;
@@ -78,7 +78,7 @@ gkyl_ghost_surf_calc_advance_cu(gkyl_ghost_surf_calc *gcalc,
     cupper_idx[dim] = phase_rng->upper[dim];
   }
   
-  for(int dir=0; dir<conf_rng->ndim; ++dir) {
+  for(int dir=0; dir<gcalc->cdim; ++dir) {
     edge = 1;
     clower_idx[dir] = phase_rng->upper[dir];
     cupper_idx[dir] = phase_rng->upper[dir];
@@ -87,7 +87,7 @@ gkyl_ghost_surf_calc_advance_cu(gkyl_ghost_surf_calc *gcalc,
     nthreads = edge_rng.nthreads;
 
     gkyl_ghost_surf_calc_advance_cu_ker<<<nblocks, nthreads>>>(gcalc->on_dev, dir,
-      edge, *conf_rng, edge_rng, fIn->on_dev, rhs->on_dev);
+      edge, edge_rng, fIn->on_dev, rhs->on_dev);
 
     edge = 0;
     clower_idx[dir] = phase_rng->lower[dir];
@@ -97,7 +97,7 @@ gkyl_ghost_surf_calc_advance_cu(gkyl_ghost_surf_calc *gcalc,
     nthreads = edge_rng.nthreads;
 
     gkyl_ghost_surf_calc_advance_cu_ker<<<nblocks, nthreads>>>(gcalc->on_dev, dir,
-      edge, *conf_rng, edge_rng, fIn->on_dev, rhs->on_dev);
+      edge, edge_rng, fIn->on_dev, rhs->on_dev);
 
     // Reset indices for loop over each velocity dimension
     clower_idx[dir] = phase_rng->lower[dir];
@@ -107,10 +107,11 @@ gkyl_ghost_surf_calc_advance_cu(gkyl_ghost_surf_calc *gcalc,
 
 gkyl_ghost_surf_calc*
 gkyl_ghost_surf_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_dg_eqn *equation)
+  const struct gkyl_dg_eqn *equation, int cdim)
 {
   gkyl_ghost_surf_calc *up = (gkyl_ghost_surf_calc*) gkyl_malloc(sizeof(gkyl_ghost_surf_calc));
   up->grid = *grid;
+  up->cdim = cdim;
   
   struct gkyl_dg_eqn *eqn = gkyl_dg_eqn_acquire(equation);
   up->equation = eqn->on_dev;

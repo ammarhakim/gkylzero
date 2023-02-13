@@ -5,11 +5,7 @@ void
 vm_species_bflux_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_boundary_fluxes *bflux)
 { 
   // allocate solver
-  if (app->use_gpu) {
-    bflux->flux_slvr = gkyl_ghost_surf_calc_cu_dev_new(&s->grid, s->eqn_vlasov);
-  } else {
-    bflux->flux_slvr = gkyl_ghost_surf_calc_new(&s->grid, s->eqn_vlasov);
-  }
+  bflux->flux_slvr = gkyl_ghost_surf_calc_new(&s->grid, s->eqn_vlasov, app->cdim, app->use_gpu);
 
   // initialize moment solver
   for (int i=0; i<2*app->cdim; ++i) {
@@ -32,9 +28,9 @@ vm_species_bflux_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   // This is overwritten by the boundary conditions and is not being stored,
   // it is only currently used to calculate moments for other applications
   if (app->use_gpu) {
-    gkyl_ghost_surf_calc_advance_cu(bflux->flux_slvr, &species->local_ext, &app->local_ext, fin, rhs);
+    gkyl_ghost_surf_calc_advance_cu(bflux->flux_slvr, &species->local_ext, fin, rhs);
   } else {
-    gkyl_ghost_surf_calc_advance(bflux->flux_slvr, &species->local_ext, &app->local_ext, fin, rhs);
+    gkyl_ghost_surf_calc_advance(bflux->flux_slvr, &species->local_ext, fin, rhs);
   }
 
   // only calculating integrated moments for use in the bflux source for now,
