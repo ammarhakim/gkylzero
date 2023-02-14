@@ -14,7 +14,6 @@ gkyl_ghost_surf_calc_advance(gkyl_ghost_surf_calc *gcalc,
   const struct gkyl_range *phase_rng,
   const struct gkyl_array *fIn, struct gkyl_array *rhs)
 {
-  printf("Ghostbusting!\n");
   // Ghost and skin index and cell center coordinates.
   int idxg[GKYL_MAX_DIM], idxs[GKYL_MAX_DIM];
   double xcg[GKYL_MAX_DIM], xcs[GKYL_MAX_DIM];
