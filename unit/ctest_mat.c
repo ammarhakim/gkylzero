@@ -51,6 +51,11 @@ test_mat_base()
     for (size_t i=0; i<m->nr; ++i)
       TEST_CHECK( gkyl_mat_get(m, i, j) == gkyl_mat_get(m2, i, j) );
 
+  double old = gkyl_mat_get(m, 3, 4);
+  double inc = -123.0;
+  gkyl_mat_inc(m, 3, 4, inc);
+  TEST_CHECK( gkyl_mat_get(m, 3, 4) == old + inc );
+
   gkyl_mat_release(m);
   gkyl_mat_release(m2);
 }
@@ -125,6 +130,7 @@ test_mat_linsolve()
       val += 1.0;
     }
   gkyl_mat_set(A,2,2,10.0); // ensures determinant is not zero
+  struct gkyl_mat *AA = gkyl_mat_clone(A);
 
   //gkyl_mat_show("A", stdout, A);
 
@@ -145,7 +151,23 @@ test_mat_linsolve()
   TEST_CHECK( gkyl_compare(gkyl_mat_get(x,0,0), -1.0, 1e-15) );
   TEST_CHECK( gkyl_compare(gkyl_mat_get(x,1,0), 1.0, 1e-15) );
   TEST_CHECK( gkyl_compare(gkyl_mat_get(x,2,0), 0.0, 1e-15) );
-  
+ 
+  // trivial extension of the test above; rhs is two column vectors
+  struct gkyl_mat *xx = gkyl_mat_new(3, 2, 1.0);
+  gkyl_mat_set(xx, 0, 1, 2.0);
+  gkyl_mat_set(xx, 1, 1, 2.0);
+  gkyl_mat_set(xx, 2, 1, 2.0);
+  status = gkyl_mat_linsolve_lu(AA, xx, gkyl_mem_buff_data(ipiv));
+
+  TEST_CHECK( gkyl_compare(gkyl_mat_get(xx,0,0), -1.0, 1e-15) );
+  TEST_CHECK( gkyl_compare(gkyl_mat_get(xx,1,0), 1.0, 1e-15) );
+  TEST_CHECK( gkyl_compare(gkyl_mat_get(xx,2,0), 0.0, 1e-15) );
+  TEST_CHECK( gkyl_compare(gkyl_mat_get(xx,0,1), -2.0, 1e-15) );
+  TEST_CHECK( gkyl_compare(gkyl_mat_get(xx,1,1), 2.0, 1e-15) );
+  TEST_CHECK( gkyl_compare(gkyl_mat_get(xx,2,1), 0.0, 1e-15) );
+
+  gkyl_mat_release(AA);
+  gkyl_mat_release(xx);
   gkyl_mat_release(A);
   gkyl_mat_release(x);
   gkyl_mem_buff_release(ipiv);
@@ -394,3 +416,4 @@ TEST_LIST = {
 #endif
   { NULL, NULL },
 };
+
