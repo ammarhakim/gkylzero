@@ -91,6 +91,11 @@ struct gkyl_moment {
   int num_species; // number of species
   struct gkyl_moment_species species[GKYL_MAX_SPECIES]; // species objects
   struct gkyl_moment_field field; // field object
+
+  bool has_collision; // has collisions
+  // scaling factors for collision frequencies so that nu_sr=nu_base_sr/rho_s
+  // nu_rs=nu_base_rs/rho_r, and nu_base_sr=nu_base_rs
+  double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
 };
 
 // Simulation statistics

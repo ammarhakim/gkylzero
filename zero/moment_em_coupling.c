@@ -1,6 +1,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_moment_em_coupling.h>
+#include <gkyl_mat.h>
 
 // Makes indexing cleaner
 static const unsigned RHO = 0;
@@ -25,12 +26,20 @@ static const unsigned BZ = 5;
 static const unsigned PHIE = 6;
 static const unsigned PHIM = 7;
 
+#define INTERNAL_ENERGY (4)
+
+#define sq(x) ((x) * (x))
+
 struct gkyl_moment_em_coupling {
   struct gkyl_rect_grid grid; // grid object
   int ndim; // number of dimensions
   int nfluids; // number of fluids in multi-fluid system
   struct gkyl_moment_em_coupling_data param[GKYL_MAX_SPECIES]; // struct of fluid parameters
   double epsilon0; // permittivity of free space
+
+  bool has_collision; // has collisions
+  // normalized collision frequencies; nu_sr = nu_base[s][r] * rho_r
+  double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
 };
 
 // Rotate pressure tensor using magnetic field. See Wang
@@ -228,6 +237,193 @@ neut_source_update(const gkyl_moment_em_coupling *mes, double dt,
   }
 }
 
+/* INTER-SPECIES FRICTION */
+static inline double
+internal_energy(const double *f)
+{
+  return f[ER] - 0.5*(sq(f[MX])+sq(f[MY])+sq(f[MZ]))/f[RHO];
+}
+
+
+static void
+calcNu(const gkyl_moment_em_coupling *mes,
+       double **fluids,
+       const double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES],
+       double *nu)
+{
+  int nfluids = mes->nfluids;
+
+  // TODO temperature dependence? user-defined calcNu function?
+  for (int s=0; s<nfluids; ++s)
+  {
+    double *nu_s = nu + nfluids * s;
+    for (int r=0; r<nfluids; ++r)
+      nu_s[r] = nu_base[s][r] * fluids[r][RHO];
+  }
+}
+
+
+static void
+collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
+  double *fluids[GKYL_MAX_SPECIES])
+{
+  int nfluids = mes->nfluids;
+  double nu[nfluids * nfluids];
+
+  /* STEP 0: CALCULATE INTER-SPECIES COLLISION FREQUENCIES */
+  calcNu(mes, fluids, mes->nu_base, nu);
+
+  /* STEP 1: UPDATE VELOCITIES */
+  // the lhs matrix is identical for all three (i.e., x,y,z) components
+  struct gkyl_mat *lhs = gkyl_mat_new(nfluids, nfluids, 0.0);
+  // rhs has 3 column vectors, each has nfluids components <-> nfluids equations
+  struct gkyl_mat *rhs = gkyl_mat_new(nfluids, 3, 0.0);
+
+  for (int s=0; s<nfluids; ++s)
+  {
+    double *fs = fluids[s];
+    gkyl_mat_set(rhs, s, 0, fs[MX] / fs[RHO]);
+    gkyl_mat_set(rhs, s, 1, fs[MY] / fs[RHO]);
+    gkyl_mat_set(rhs, s, 2, fs[MZ] / fs[RHO]);
+
+    gkyl_mat_set(lhs, s, s, 1.0);
+    double *nu_s = nu + nfluids * s;
+    for (int r=0; r<nfluids; ++r)
+    {
+      if (r==s) {
+        gkyl_mat_inc(lhs, s, s, 0.5 * dt * nu_s[s]);
+        continue;
+      }
+
+      double half_dt_nu_sr = 0.5 * dt * nu_s[r];
+      gkyl_mat_inc(lhs, s, s, half_dt_nu_sr);
+      gkyl_mat_inc(lhs, s, r, -half_dt_nu_sr);
+    }
+  }
+
+  gkyl_mem_buff ipiv = gkyl_mem_buff_new(sizeof(long[nfluids]));
+  // lhs and rhs will be rewritten by output, i.e., rhs is solution after solve
+  bool status = gkyl_mat_linsolve_lu(lhs, rhs, gkyl_mem_buff_data(ipiv));
+
+  /* STEP 2: UPDATE TEMPERATURE OR PRESSURE */
+  if (true) {
+    gkyl_mat_clear(lhs, 0.0);
+    struct gkyl_mat *rhs_T = gkyl_mat_new(nfluids, 1, 0.0);
+
+    double T[nfluids];
+    for (int s=0; s<nfluids; ++s)
+    {
+      double ms = mes->param[s].mass;
+
+      double *fs = fluids[s];
+      T[s] = internal_energy(fs) / fs[RHO] * ms; // this is actually T/(gamma-1)
+      gkyl_mat_set(rhs_T, s, 0, T[s]);
+      gkyl_mat_set(lhs, s, s, 1.0);
+
+      double *nu_s = nu + nfluids * s;
+      for (int r=0; r<nfluids; ++r)
+      {
+        if (r==s)
+          continue;
+
+        double mr = mes->param[r].mass;
+        // velocity difference due to velocities at t=n+1/2
+        double du2 = sq(gkyl_mat_get(rhs,s,0)-gkyl_mat_get(rhs,r,0))
+                   + sq(gkyl_mat_get(rhs,s,1)-gkyl_mat_get(rhs,r,1))
+                   + sq(gkyl_mat_get(rhs,s,2)-gkyl_mat_get(rhs,r,2));
+        double coeff_sr = dt * nu_s[r] * ms / (ms + mr);
+
+        gkyl_mat_inc(rhs_T, s, 0, coeff_sr * 0.5 * mr * du2);
+        gkyl_mat_inc(lhs, s, s, coeff_sr);
+        gkyl_mat_inc(lhs, s, r, -coeff_sr);
+      }
+    }
+
+    // Compute pressure at n+1/2 and then at n+1 using old velocities
+    status = gkyl_mat_linsolve_lu(lhs, rhs_T, gkyl_mem_buff_data(ipiv));
+    for (int s=0; s<nfluids; ++s)
+    {
+      double *f = fluids[s];
+      f[INTERNAL_ENERGY] = (2.0 * gkyl_mat_get(rhs_T,s,0) - T[s]) * f[RHO] / mes->param[s].mass;
+    }
+
+    gkyl_mat_release(rhs_T);
+  } else {
+    for (int s=0; s<nfluids; ++s)
+    {
+      double *f = fluids[s];
+      f[INTERNAL_ENERGY] = internal_energy(f);
+    }
+  }
+
+  /* STEP 3: UPDATE MOMENTUM AND TOTAL ENERGY */
+  for (int s=0; s<nfluids; ++s)
+  {
+    double *f = fluids[s];
+    f[MX] = 2 * f[RHO] * gkyl_mat_get(rhs,s,0) - f[MX];
+    f[MY] = 2 * f[RHO] * gkyl_mat_get(rhs,s,1) - f[MY];
+    f[MZ] = 2 * f[RHO] * gkyl_mat_get(rhs,s,2) - f[MZ];
+    f[ER] = f[INTERNAL_ENERGY] + 0.5*(sq(f[MX])+sq(f[MY])+sq(f[MZ]))/f[RHO];
+  }
+
+  gkyl_mem_buff_release(ipiv);
+  gkyl_mat_release(lhs);
+  gkyl_mat_release(rhs);
+}
+
+/***********************************************/
+/* user-defined density and temperature source */
+/***********************************************/
+
+static void
+user_source_euler_update(const gkyl_moment_em_coupling *mes,
+            const int s,
+            const double dt,
+            double *q,
+            double *q1,
+            const double *S)
+{
+  double m = mes->param[s].mass;
+
+  double rho0 = q[RHO];
+  double n0 = rho0 / m;
+  double u = q[MX] / rho0;
+  double v = q[MY] / rho0;
+  double w = q[MZ] / rho0;
+  double v2 = u*u + v*v + w*w;
+  double TT0 = (q[ER] - 0.5 * rho0 * v2) / n0; // TT0=kB*T0/(gamma-1)
+
+  double n1 = n0 + dt * S[0]; // source for number density n
+  double TT1 = TT0 + dt * S[1]; // source for scaled temperature kB*T/(gamma-1)
+
+  double rho1 = n1 * m;
+  q[RHO] = rho1;
+  q1[MX] = rho1 * u;
+  q1[MY] = rho1 * v;
+  q1[MZ] = rho1 * w;
+  q1[ER] = n1 * TT1 + 0.5 * rho1 * v2;
+}
+
+void
+user_source_update(
+  const gkyl_moment_em_coupling *mes,
+  const double dt,
+  double *qPtrs[],
+  const double *sourcePtrs[])
+{
+  for (int s=0; s<mes->nfluids; ++s)
+  {
+    double *q = qPtrs[s];
+    const double *S = sourcePtrs[s];
+    user_source_euler_update(mes, s, dt, q, q, S);
+  }
+}
+
+/**********************************/
+/* update all sources in one call */
+/**********************************/
+
+
 // Update momentum and E field along with appropriate pressure update.
 // If isothermal Euler equations, only update momentum and E,
 // if Euler equations, update energy based on new kinetic energy,
@@ -315,6 +511,9 @@ fluid_source_update(const gkyl_moment_em_coupling *mes, double dt,
       f[P33] = f[MZ] * f[MZ] / f[RHO] + prTen[n][5];
     }
   }
+
+  if (mes->has_collision)
+    collision_source_update(mes, dt, fluids);
 }
 
 gkyl_moment_em_coupling*
@@ -327,6 +526,13 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
   up->nfluids = inp.nfluids;
   for (int n=0; n<inp.nfluids; ++n) up->param[n] = inp.param[n];
   up->epsilon0 = inp.epsilon0;
+
+  up->has_collision = inp.has_collision;
+  if(inp.has_collision) {
+    for (int s=0; s<inp.nfluids; ++s)
+      for (int r=0; r<inp.nfluids; ++r)
+        up->nu_base[s][r] = inp.nu_base[s][r];
+  }
 
   return up;
 }
