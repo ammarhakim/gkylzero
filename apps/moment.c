@@ -96,6 +96,13 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   for (int i=0; i<ns; ++i)
     moment_species_init(mom, &mom->species[i], app, &app->species[i]);
 
+  // specify collision parameters in the exposed app
+  app->has_collision = mom->has_collision;
+  int num_entries = app->num_species * (app->num_species-1) / 2;
+  for (int s=0; s<app->num_species; ++s)
+    for (int r=0; r<app->num_species; ++r)
+      app->nu_base[s][r] = mom->nu_base[s][r];
+
   // check if we should update sources
   app->update_sources = 0;
   if (app->has_field && ns>0) {
