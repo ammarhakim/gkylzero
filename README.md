@@ -135,12 +135,3 @@ clean". Pay attention to all compiler warnings.
 Most importantly, **please internalize and follow** the programming
 philosophy outlined in the document ["A Minimalist Approach to
 Software"](https://www.ammar-hakim.org/sj/pn/pn0/pn0-minimalism.html).
-
-
-# Valgrind installation for Mac
-
-Using brew install
-```
-    brew tap LouisBrunner/valgrind
-    brew install --HEAD LouisBrunner/valgrind/valgrind
-```
