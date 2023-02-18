@@ -9,10 +9,11 @@
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_vlasov_pkpm_auxfields { 
-  const struct gkyl_array *u_i;
-  const struct gkyl_array *p_ij;
   const struct gkyl_array *bvar;
-  const struct gkyl_array *rho_inv_b;
+  const struct gkyl_array *u_i;
+  const struct gkyl_array *pkpm_accel_vars;
+  const struct gkyl_array *g_dist_source;
+  const struct gkyl_array *vth_sq;
 };
 
 /**
@@ -20,15 +21,16 @@ struct gkyl_dg_vlasov_pkpm_auxfields {
  *
  * @param cbasis Configuration space basis functions
  * @param pbasis Phase-space basis functions
- * @param conf_range Configuration space range for use in indexing EM field
+ * @param conf_range Configuration space range for use in indexing configuration space fields
+ * @param phase_range Phase space range for use in indexing phase space fields
  * @param use_gpu bool to determine if on GPU
  * @return Pointer to Vlasov equation object for parallel-kinetic-perpendicular-moment (pkpm) model.
  */
-struct gkyl_dg_eqn* gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, bool use_gpu);
+struct gkyl_dg_eqn* gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+  const struct gkyl_range* conf_range, const struct gkyl_range* phase_range, bool use_gpu);
 
-struct gkyl_dg_eqn* gkyl_dg_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range);
+struct gkyl_dg_eqn* gkyl_dg_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+  const struct gkyl_range* conf_range, const struct gkyl_range* phase_range);
 
 /**
  * Set the auxiliary fields 

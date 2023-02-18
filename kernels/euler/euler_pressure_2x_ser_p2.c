@@ -1,5 +1,5 @@
 #include <gkyl_euler_kernels.h> 
-GKYL_CU_DH void euler_pressure_2x_ser_p2(const double gas_gamma, const double *uvar, const double *statevec, double* GKYL_RESTRICT pressure) 
+GKYL_CU_DH void euler_pressure_2x_ser_p2(const double gas_gamma, const double *uvar, const double *statevec, double* pressure) 
 { 
   // gas_gamma: Adiabatic index.
   // uvar: [ux, uy, uz], Fluid flow.

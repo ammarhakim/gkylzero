@@ -27,10 +27,14 @@ evalDistFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct pkpm_sod_shock_ctx *app = ctx;
   double x = xn[0], v = xn[1];
-  if (x<0.5)
+  if (x<0.5) {
     fout[0] = maxwellian(1.0, v, 0.0, 1.0);
-  else
+    fout[1] = maxwellian(1.0, v, 0.0, 1.0);
+  }
+  else {
     fout[0] = maxwellian(0.125, v, 0.0, sqrt(0.1/0.125));
+    fout[1] = 0.1/0.125*maxwellian(0.125, v, 0.0, sqrt(0.1/0.125));
+  }
 }
 
 void 
@@ -42,11 +46,6 @@ evalFluidFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 0.0;
-  // p_perp = 1.0 on the left side, p_perp = 0.1 on the right side
-  if (x<0.5)
-    fout[3] = 1.0;
-  else
-    fout[3] = 0.1;
 }
 
 void
@@ -97,7 +96,7 @@ main(int argc, char **argv)
   // PKPM fluid                                                                                      
   struct gkyl_vlasov_fluid_species fluid = {
     .name = "fluid",
-    .num_eqn = 4,
+    .num_eqn = 3,
     .pkpm_species = "neut",
     .ctx = &ctx,
     .init = evalFluidFunc,

@@ -22,13 +22,13 @@ gkyl_mom_vlasov_pkpm_free(const struct gkyl_ref_count *ref)
 
 struct gkyl_mom_type*
 gkyl_mom_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  double mass, bool use_gpu)
+  double mass, bool diag, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_mom_vlasov_pkpm_cu_dev_new(cbasis, pbasis, mass);
+    return gkyl_mom_vlasov_pkpm_cu_dev_new(cbasis, pbasis, mass, diag);
   } 
 #endif    
   struct mom_type_vlasov_pkpm *mom_vlasov_pkpm = gkyl_malloc(sizeof(struct mom_type_vlasov_pkpm));
@@ -42,11 +42,12 @@ gkyl_mom_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
   mom_vlasov_pkpm->momt.num_phase = pbasis->num_basis;
 
   // choose kernel tables based on basis-function type
-  const gkyl_mom_vlasov_pkpm_kern_list *mom_vlasov_pkpm_kernels;
+  const gkyl_mom_vlasov_pkpm_kern_list *mom_vlasov_pkpm_kernels, *mom_vlasov_pkpm_diag_kernels;
 
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       mom_vlasov_pkpm_kernels = ser_mom_vlasov_pkpm_kernels;
+      mom_vlasov_pkpm_diag_kernels = ser_mom_vlasov_pkpm_diag_kernels;
       break;
 
     default:
@@ -54,8 +55,14 @@ gkyl_mom_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
       break;    
   }
 
-  mom_vlasov_pkpm->momt.kernel = CK(mom_vlasov_pkpm_kernels, cdim, poly_order);
-  mom_vlasov_pkpm->momt.num_mom = 3; // rho, p_parallel, q_parallel
+  if (diag) {
+    mom_vlasov_pkpm->momt.kernel = CK(mom_vlasov_pkpm_diag_kernels, cdim, poly_order);
+    mom_vlasov_pkpm->momt.num_mom = 7; // rho, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp
+  }
+  else {
+    mom_vlasov_pkpm->momt.kernel = CK(mom_vlasov_pkpm_kernels, cdim, poly_order);
+    mom_vlasov_pkpm->momt.num_mom = 3; // rho, p_par, p_perp
+  }
 
   mom_vlasov_pkpm->mass = mass;
     
@@ -72,7 +79,7 @@ gkyl_mom_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
 
 struct gkyl_mom_type*
 gkyl_mom_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  double mass)
+  double mass, bool diag)
 {
   assert(false);
   return 0;

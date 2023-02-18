@@ -1,7 +1,7 @@
 #include <gkyl_maxwell_kernels.h> 
 #include <gkyl_basis_ser_1x_p1_exp_sq.h> 
 #include <gkyl_basis_ser_1x_p1_inv.h> 
-GKYL_CU_DH void em_ExB_1x_ser_p1(const double *em, double* GKYL_RESTRICT ExB) 
+GKYL_CU_DH void em_ExB_1x_ser_p1(const double *em, double* ExB) 
 { 
   // em:  Input electromagnetic fields. 
   // ExB: E x B velocity = E x B/|B|^2. 

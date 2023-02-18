@@ -54,7 +54,8 @@ gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid,
 void
 gkyl_dg_updater_fluid_advance(gkyl_dg_updater_fluid *fluid,
   enum gkyl_eqn_type eqn_id, const struct gkyl_range *update_rng,
-  const struct gkyl_array *u_i, struct gkyl_array *p_ij, 
+  const struct gkyl_array *aux1, const struct gkyl_array *aux2, 
+  const struct gkyl_array *aux3, 
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
@@ -63,19 +64,20 @@ gkyl_dg_updater_fluid_advance(gkyl_dg_updater_fluid *fluid,
   // TO DO: More intelligent way to do these aux field sets? (JJ: 04/26/22)
   if (eqn_id == GKYL_EQN_ADVECTION) {
     gkyl_advection_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_advection_auxfields) { .u_i = u_i });
+      (struct gkyl_dg_advection_auxfields) { .u_i = aux1 });
   }
   else if (eqn_id == GKYL_EQN_EULER_PKPM) {
+    // Pressure in PKPM is pre-computed div(P) for consistency with kinetic equation
     gkyl_euler_pkpm_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_euler_pkpm_auxfields) { .u_i = u_i, .p_ij = p_ij });
+      (struct gkyl_dg_euler_pkpm_auxfields) { .u_i = aux1, .div_p = aux2, .vth_sq = aux3 });
   }
   else if (eqn_id == GKYL_EQN_EULER) {
     gkyl_euler_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_euler_auxfields) { .u_i = u_i, .p_ij = p_ij });
+      (struct gkyl_dg_euler_auxfields) { .u_i = aux1, .p_ij = aux2 });
   }
   else if (eqn_id == GKYL_EQN_ISO_EULER) {
     gkyl_euler_iso_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_euler_iso_auxfields) { .u_i = u_i });
+      (struct gkyl_dg_euler_iso_auxfields) { .u_i = aux1 });
   }
 
   struct timespec wst = gkyl_wall_clock();
@@ -104,7 +106,8 @@ gkyl_dg_updater_fluid_release(gkyl_dg_updater_fluid* fluid)
 void
 gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
   enum gkyl_eqn_type eqn_id, const struct gkyl_range *update_rng,
-  const struct gkyl_array *u_i, struct gkyl_array *p_ij, 
+  const struct gkyl_array *aux1, const struct gkyl_array *aux2, 
+  const struct gkyl_array *aux3, 
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
@@ -113,15 +116,20 @@ gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
   // TO DO: More intelligent way to do these aux field sets? (JJ: 04/26/22)
   if (eqn_id == GKYL_EQN_ADVECTION) {
     gkyl_advection_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_advection_auxfields) { .u_i = u_i });
+      (struct gkyl_dg_advection_auxfields) { .u_i = aux1 });
   }
   else if (eqn_id == GKYL_EQN_EULER_PKPM) {
+    // Pressure in PKPM is pre-computed div(P) for consistency with kinetic equation
     gkyl_euler_pkpm_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_euler_pkpm_auxfields) { .u_i = u_i, .p_ij = p_ij });
+      (struct gkyl_dg_euler_pkpm_auxfields) { .u_i = aux1, .div_p = aux2, .vth_sq = aux3 });
   }
   else if (eqn_id == GKYL_EQN_EULER) {
     gkyl_euler_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_euler_auxfields) { .u_i = u_i, .p_ij = p_ij });
+      (struct gkyl_dg_euler_auxfields) { .u_i = aux1, .p_ij = aux2 });
+  }
+  else if (eqn_id == GKYL_EQN_ISO_EULER) {
+    gkyl_euler_iso_set_auxfields(fluid->eqn_fluid,
+      (struct gkyl_dg_euler_iso_auxfields) { .u_i = aux1 });
   }
 
   struct timespec wst = gkyl_wall_clock();
@@ -136,7 +144,8 @@ gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
 void
 gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
   enum gkyl_eqn_type eqn_id, const struct gkyl_range *update_rng,
-  const struct gkyl_array *u_i, struct gkyl_array *p_ij, 
+  const struct gkyl_array *aux1, const struct gkyl_array *aux2, 
+  const struct gkyl_array *aux3, 
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {

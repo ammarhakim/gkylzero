@@ -243,7 +243,7 @@ vm_field_calc_bvar(gkyl_vlasov_app *app, struct vm_field *field,
 {
   // Assumes magnetic field boundary conditions applied so magnetic field 
   // unit vector and unit tensor are defined everywhere in the domain
-  gkyl_calc_em_vars_bvar(&app->confBasis, &app->local_ext, em, field->bvar);
+  gkyl_calc_em_vars_bvar(app->confBasis, &app->local_ext, em, field->bvar);
 }
 
 void
@@ -252,7 +252,7 @@ vm_field_calc_ExB(gkyl_vlasov_app *app, struct vm_field *field,
 {
   // Assumes electric field and magnetic field boundary conditions applied 
   // so E x B velocity is defined everywhere in the domain 
-  gkyl_calc_em_vars_ExB(&app->confBasis, &app->local_ext, em, field->ExB);
+  gkyl_calc_em_vars_ExB(app->confBasis, &app->local_ext, em, field->ExB);
 }
 
 void
@@ -262,9 +262,9 @@ vm_field_calc_sr_pkpm_vars(gkyl_vlasov_app *app, struct vm_field *field,
   // Assumes electric field and magnetic field boundary conditions applied 
   // so E x B velocity and magnetic field unit vector and unit tensor
   // are defined everywhere in the domain   
-  gkyl_calc_em_vars_bvar(&app->confBasis, &app->local_ext, em, field->bvar);
-  gkyl_calc_em_vars_ExB(&app->confBasis, &app->local_ext, em, field->ExB);
-  gkyl_calc_em_vars_pkpm_kappa_inv_b(&app->confBasis, &app->local_ext, field->bvar, field->ExB, field->kappa_inv_b);
+  gkyl_calc_em_vars_bvar(app->confBasis, &app->local_ext, em, field->bvar);
+  gkyl_calc_em_vars_ExB(app->confBasis, &app->local_ext, em, field->ExB);
+  gkyl_calc_em_vars_pkpm_kappa_inv_b(app->confBasis, &app->local_ext, field->bvar, field->ExB, field->kappa_inv_b);
   // TO DO: THESE VARIABLES NEED TO BE CONTINUOUS
 }
 
@@ -294,10 +294,10 @@ vm_field_accumulate_current(gkyl_vlasov_app *app,
       vm_species_moment_calc(&s->m1i, s->local, app->local, fin[i]);
       gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, app->local);
     }
-    // Accumulate applied current to electric field terms
-    if (app->field->has_app_current)
-      gkyl_array_accumulate_range(emout, -1.0/app->field->info.epsilon0, app->field->app_current, app->local);
   } 
+  // Accumulate applied current to electric field terms
+  if (app->field->has_app_current)
+    gkyl_array_accumulate_range(emout, -1.0/app->field->info.epsilon0, app->field->app_current, app->local);
 }
 
 // Compute the RHS for field update, returning maximum stable

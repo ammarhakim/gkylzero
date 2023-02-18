@@ -30,6 +30,7 @@ evalDistFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double n = 1.0 + 0.2*sin(M_PI*x);
   double p = 1.0;
   fout[0] = maxwellian(n, v, 0.0, sqrt(p/n));
+  fout[1] = p/n*maxwellian(n, v, 0.0, sqrt(p/n));
 }
 
 void 
@@ -44,7 +45,6 @@ evalFluidFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   fout[0] = n*u;
   fout[1] = 0.0;
   fout[2] = 0.0;
-  fout[3] = p;
 }
 
 void
@@ -95,7 +95,7 @@ main(int argc, char **argv)
   // PKPM fluid                                                                                      
   struct gkyl_vlasov_fluid_species fluid = {
     .name = "fluid",
-    .num_eqn = 4,
+    .num_eqn = 3,
     .pkpm_species = "neut",
     .ctx = &ctx,
     .init = evalFluidFunc,

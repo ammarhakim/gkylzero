@@ -79,7 +79,7 @@ gkyl_dg_lbo_vlasov_pkpm_diff_cu_dev_new(const struct gkyl_basis* cbasis, const s
   lbo_vlasov_pkpm_diff->cdim = cdim;
   lbo_vlasov_pkpm_diff->pdim = pdim;
 
-  lbo_vlasov_pkpm_diff->eqn.num_equations = 1;
+  lbo_vlasov_pkpm_diff->eqn.num_equations = 2;
   lbo_vlasov_pkpm_diff->conf_range = *conf_range;
   lbo_vlasov_pkpm_diff->vMaxSq = pow(pgrid->upper[cdim],2);
 

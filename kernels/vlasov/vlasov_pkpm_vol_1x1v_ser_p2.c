@@ -1,45 +1,45 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH double vlasov_pkpm_vol_1x1v_ser_p2(const double *w, const double *dxv, const double *u_i, const double *p_ij, const double *bvar, const double *rho_inv_b, const double *f, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_pkpm_vol_1x1v_ser_p2(const double *w, const double *dxv, 
+  const double *bvar, const double *u_i, 
+  const double *pkpm_accel_vars, const double *g_dist_source, 
+  const double *f, double* GKYL_RESTRICT out) 
 { 
-  // w[NDIM]:   Cell-center coordinates.
-  // dxv[NDIM]: Cell spacing.
-  // u_i:       bulk flow velocity (ux, uy, uz).
-  // p_ij:      pressure tensor (P_xx, P_xy, P_xz, P_yy, P_yz, P_zz).
-  // bvar:      magnetic field unit vector (nine components; first three components, b_i, other six components, b_i b_j.) 
-  // rho_inv_b: b_i/rho (for pressure force 1/rho * b . div(P)).
-  // f:         Input distribution function.
-  // out:       Incremented output.
+  // w[NDIM]:         Cell-center coordinates.
+  // dxv[NDIM]:       Cell spacing.
+  // bvar:            magnetic field unit vector (nine components; first three components, b_i, other six components, b_i b_j.) 
+  // u_i:             flow velocity  // pkpm_accel_vars: pkpm acceleration variables
+  // g_dist_source:   2.0*T_perp/m*(2.0*T_perp/m*G_1 + T_perp/m*(F_2 - F_0)).
+  // f:               Input distribution function [F_0, T_perp/m G = T_perp/m (F_0 - F_1)].
+  // out:             Incremented output.
   const double dx0 = 2.0/dxv[0]; 
   const double dv1par = 2.0/dxv[1]; 
   const double dvpar = dxv[1], wvpar = w[1]; 
   const double *ux = &u_i[0]; 
   const double *uy = &u_i[3]; 
   const double *uz = &u_i[6]; 
-
-  const double *Pxx = &p_ij[0]; 
-  const double *Pxy = &p_ij[3]; 
-  const double *Pxz = &p_ij[6]; 
-  const double *Pyy = &p_ij[9]; 
-  const double *Pyz = &p_ij[12]; 
-  const double *Pzz = &p_ij[15]; 
-
   const double *bx = &bvar[0]; 
   const double *by = &bvar[3]; 
   const double *bz = &bvar[6]; 
-  const double *bxbx = &bvar[9]; 
-  const double *bxby = &bvar[12]; 
-  const double *bxbz = &bvar[15]; 
-  const double *byby = &bvar[18]; 
-  const double *bybz = &bvar[21]; 
-  const double *bzbz = &bvar[24]; 
 
-  const double *rho_inv_bx = &rho_inv_b[0]; 
-  const double *rho_inv_by = &rho_inv_b[3]; 
-  const double *rho_inv_bz = &rho_inv_b[6]; 
+  const double *F_0 = &f[0]; 
+  const double *G_1 = &f[8]; 
+  const double *F_0_source = &f[8]; 
+  const double *G_1_source = &g_dist_source[0]; 
+  const double *div_b = &pkpm_accel_vars[0]; 
+  const double *bb_grad_u = &pkpm_accel_vars[3]; 
+  const double *p_force = &pkpm_accel_vars[6]; 
+  const double *p_perp_source = &pkpm_accel_vars[9]; 
+  const double *p_perp_div_b = &pkpm_accel_vars[12]; 
+
+  double *out_F_0 = &out[0]; 
+  double *out_G_1 = &out[8]; 
 
   double cflFreq_mid = 0.0; 
+
   double alpha_cdim[8] = {0.0}; 
   double alpha_vdim[8] = {0.0}; 
+  double alpha_div_b[8] = {0.0}; 
+  double alpha_G_1_source[8] = {0.0}; 
 
   alpha_cdim[0] = 1.414213562373095*dx0*(bx[0]*wvpar+ux[0]); 
   alpha_cdim[1] = 1.414213562373095*dx0*(bx[1]*wvpar+ux[1]); 
@@ -47,23 +47,46 @@ GKYL_CU_DH double vlasov_pkpm_vol_1x1v_ser_p2(const double *w, const double *dxv
   alpha_cdim[3] = 0.408248290463863*bx[1]*dvpar*dx0; 
   alpha_cdim[4] = 1.414213562373095*dx0*(bx[2]*wvpar+ux[2]); 
   alpha_cdim[6] = 0.408248290463863*bx[2]*dvpar*dx0; 
+
   cflFreq_mid += 5.0*fabs(0.25*alpha_cdim[0]-0.2795084971874737*alpha_cdim[4]); 
 
-  alpha_vdim[0] = ((-3.872983346207417*bxbz[1]*uz[2])-3.872983346207417*bxby[1]*uy[2]-3.872983346207417*bxbx[1]*ux[2]-1.732050807568877*bxbz[0]*uz[1]-1.732050807568877*bxby[0]*uy[1]-1.732050807568877*bxbx[0]*ux[1])*dv1par*dx0*wvpar+(3.872983346207417*rho_inv_bz[1]*Pxz[2]+3.872983346207417*rho_inv_by[1]*Pxy[2]+3.872983346207417*rho_inv_bx[1]*Pxx[2]+1.732050807568877*rho_inv_bz[0]*Pxz[1]+1.732050807568877*rho_inv_by[0]*Pxy[1]+1.732050807568877*rho_inv_bx[0]*Pxx[1])*dv1par*dx0; 
-  alpha_vdim[1] = ((-3.464101615137754*bxbz[2]*uz[2])-3.872983346207417*bxbz[0]*uz[2]-3.464101615137754*bxby[2]*uy[2]-3.872983346207417*bxby[0]*uy[2]-3.464101615137754*bxbx[2]*ux[2]-3.872983346207417*bxbx[0]*ux[2]-1.732050807568877*bxbz[1]*uz[1]-1.732050807568877*bxby[1]*uy[1]-1.732050807568877*bxbx[1]*ux[1])*dv1par*dx0*wvpar+(3.464101615137754*Pxz[2]*rho_inv_bz[2]+3.464101615137754*Pxy[2]*rho_inv_by[2]+3.464101615137754*Pxx[2]*rho_inv_bx[2]+3.872983346207417*rho_inv_bz[0]*Pxz[2]+3.872983346207417*rho_inv_by[0]*Pxy[2]+3.872983346207417*rho_inv_bx[0]*Pxx[2]+1.732050807568877*Pxz[1]*rho_inv_bz[1]+1.732050807568877*Pxy[1]*rho_inv_by[1]+1.732050807568877*Pxx[1]*rho_inv_bx[1])*dv1par*dx0; 
-  alpha_vdim[2] = ((-1.118033988749895*bxbz[1]*uz[2])-1.118033988749895*bxby[1]*uy[2]-1.118033988749895*bxbx[1]*ux[2]-0.5*bxbz[0]*uz[1]-0.5*bxby[0]*uy[1]-0.5*bxbx[0]*ux[1])*dv1par*dvpar*dx0; 
-  alpha_vdim[3] = ((-1.0*bxbz[2]*uz[2])-1.118033988749895*bxbz[0]*uz[2]-1.0*bxby[2]*uy[2]-1.118033988749895*bxby[0]*uy[2]-1.0*bxbx[2]*ux[2]-1.118033988749895*bxbx[0]*ux[2]-0.5*bxbz[1]*uz[1]-0.5*bxby[1]*uy[1]-0.5*bxbx[1]*ux[1])*dv1par*dvpar*dx0; 
-  alpha_vdim[4] = ((-3.464101615137754*bxbz[1]*uz[2])-3.464101615137754*bxby[1]*uy[2]-3.464101615137754*bxbx[1]*ux[2]-1.732050807568877*uz[1]*bxbz[2]-1.732050807568877*uy[1]*bxby[2]-1.732050807568877*ux[1]*bxbx[2])*dv1par*dx0*wvpar+(1.732050807568877*Pxz[1]*rho_inv_bz[2]+1.732050807568877*Pxy[1]*rho_inv_by[2]+1.732050807568877*Pxx[1]*rho_inv_bx[2]+3.464101615137754*rho_inv_bz[1]*Pxz[2]+3.464101615137754*rho_inv_by[1]*Pxy[2]+3.464101615137754*rho_inv_bx[1]*Pxx[2])*dv1par*dx0; 
-  alpha_vdim[6] = ((-1.0*bxbz[1]*uz[2])-1.0*bxby[1]*uy[2]-1.0*bxbx[1]*ux[2]-0.5000000000000001*uz[1]*bxbz[2]-0.5000000000000001*uy[1]*bxby[2]-0.5000000000000001*ux[1]*bxbx[2])*dv1par*dvpar*dx0; 
+  alpha_vdim[0] = 1.414213562373095*p_force[0]*dv1par-1.414213562373095*bb_grad_u[0]*dv1par*wvpar; 
+  alpha_vdim[1] = 1.414213562373095*p_force[1]*dv1par-1.414213562373095*bb_grad_u[1]*dv1par*wvpar; 
+  alpha_vdim[2] = -0.408248290463863*bb_grad_u[0]*dv1par*dvpar; 
+  alpha_vdim[3] = -0.408248290463863*bb_grad_u[1]*dv1par*dvpar; 
+  alpha_vdim[4] = 1.414213562373095*p_force[2]*dv1par-1.414213562373095*bb_grad_u[2]*dv1par*wvpar; 
+  alpha_vdim[6] = -0.408248290463863*bb_grad_u[2]*dv1par*dvpar; 
+
   cflFreq_mid += 5.0*fabs(0.25*alpha_vdim[0]-0.2795084971874737*alpha_vdim[4]); 
 
-  out[1] += 0.8660254037844386*(alpha_cdim[6]*f[6]+alpha_cdim[4]*f[4]+alpha_cdim[3]*f[3]+alpha_cdim[2]*f[2]+alpha_cdim[1]*f[1]+alpha_cdim[0]*f[0]); 
-  out[2] += 0.8660254037844386*(alpha_vdim[6]*f[6]+alpha_vdim[4]*f[4]+alpha_vdim[3]*f[3]+alpha_vdim[2]*f[2]+alpha_vdim[1]*f[1]+alpha_vdim[0]*f[0]); 
-  out[3] += 0.7745966692414833*alpha_cdim[3]*f[7]+0.8660254037844386*alpha_cdim[4]*f[6]+0.7745966692414833*(alpha_vdim[3]*f[6]+f[3]*alpha_vdim[6])+0.8660254037844386*f[4]*alpha_cdim[6]+0.7745966692414833*(alpha_cdim[2]*f[5]+alpha_vdim[1]*f[4]+f[1]*alpha_vdim[4])+0.8660254037844386*((alpha_vdim[2]+alpha_cdim[1])*f[3]+f[2]*alpha_vdim[3]+f[1]*alpha_cdim[3]+alpha_cdim[0]*f[2]+f[0]*alpha_cdim[2]+alpha_vdim[0]*f[1]+f[0]*alpha_vdim[1]); 
-  out[4] += 1.732050807568877*(alpha_cdim[3]*f[6]+f[3]*alpha_cdim[6]+alpha_cdim[1]*f[4]+f[1]*alpha_cdim[4])+1.936491673103709*(alpha_cdim[2]*f[3]+f[2]*alpha_cdim[3]+alpha_cdim[0]*f[1]+f[0]*alpha_cdim[1]); 
-  out[5] += 1.732050807568877*alpha_vdim[3]*f[7]+1.936491673103709*(alpha_vdim[4]*f[6]+f[4]*alpha_vdim[6])+1.732050807568877*alpha_vdim[2]*f[5]+1.936491673103709*(alpha_vdim[1]*f[3]+f[1]*alpha_vdim[3]+alpha_vdim[0]*f[2]+f[0]*alpha_vdim[2]); 
-  out[6] += (1.549193338482967*alpha_cdim[6]+1.732050807568877*alpha_cdim[2])*f[7]+(0.5532833351724881*alpha_vdim[6]+0.8660254037844386*alpha_vdim[2]+1.732050807568877*alpha_cdim[1])*f[6]+0.8660254037844386*f[2]*alpha_vdim[6]+1.732050807568877*(f[1]*alpha_cdim[6]+alpha_cdim[3]*f[5])+(0.5532833351724881*alpha_vdim[4]+1.732050807568877*alpha_cdim[3])*f[4]+0.8660254037844386*(alpha_vdim[0]*f[4]+f[0]*alpha_vdim[4])+f[3]*(1.732050807568877*alpha_cdim[4]+0.7745966692414833*alpha_vdim[3])+1.936491673103709*(alpha_cdim[0]*f[3]+f[0]*alpha_cdim[3]+alpha_cdim[1]*f[2])+f[1]*(1.936491673103709*alpha_cdim[2]+0.7745966692414833*alpha_vdim[1]); 
-  out[7] += (1.549193338482967*alpha_vdim[6]+1.732050807568877*alpha_vdim[2]+0.8660254037844386*alpha_cdim[1])*f[7]+0.7745966692414833*alpha_cdim[6]*f[6]+1.732050807568877*(alpha_vdim[1]*f[6]+f[1]*alpha_vdim[6])+(1.732050807568877*alpha_vdim[3]+0.8660254037844386*alpha_cdim[0])*f[5]+1.732050807568877*alpha_vdim[3]*f[4]+f[3]*(1.732050807568877*alpha_vdim[4]+0.7745966692414833*alpha_cdim[3])+1.936491673103709*(alpha_vdim[0]*f[3]+f[0]*alpha_vdim[3])+0.7745966692414833*alpha_cdim[2]*f[2]+1.936491673103709*(alpha_vdim[1]*f[2]+f[1]*alpha_vdim[2]); 
+  alpha_div_b[0] = 1.414213562373095*div_b[0]*dv1par; 
+  alpha_div_b[1] = 1.414213562373095*div_b[1]*dv1par; 
+  alpha_div_b[4] = 1.414213562373095*div_b[2]*dv1par; 
+
+  cflFreq_mid += 5.0*fabs(0.3535533905932737*p_perp_div_b[0]-0.3952847075210473*p_perp_div_b[2])*dv1par; 
+
+  alpha_G_1_source[0] = 1.414213562373095*p_perp_source[0]-1.414213562373095*div_b[0]*wvpar; 
+  alpha_G_1_source[1] = 1.414213562373095*p_perp_source[1]-1.414213562373095*div_b[1]*wvpar; 
+  alpha_G_1_source[2] = -0.408248290463863*div_b[0]*dvpar; 
+  alpha_G_1_source[3] = -0.408248290463863*div_b[1]*dvpar; 
+  alpha_G_1_source[4] = 1.414213562373095*p_perp_source[2]-1.414213562373095*div_b[2]*wvpar; 
+  alpha_G_1_source[6] = -0.408248290463863*div_b[2]*dvpar; 
+
+  out_F_0[1] += 0.8660254037844386*F_0[6]*alpha_cdim[6]+0.8660254037844386*F_0[4]*alpha_cdim[4]+0.8660254037844386*F_0[3]*alpha_cdim[3]+0.8660254037844386*F_0[2]*alpha_cdim[2]+0.8660254037844386*F_0[1]*alpha_cdim[1]+0.8660254037844386*F_0[0]*alpha_cdim[0]; 
+  out_F_0[2] += 0.8660254037844386*F_0[6]*alpha_vdim[6]+0.8660254037844386*F_0[4]*alpha_vdim[4]+0.8660254037844386*F_0_source[4]*alpha_div_b[4]+0.8660254037844386*F_0[3]*alpha_vdim[3]+0.8660254037844386*F_0[2]*alpha_vdim[2]+0.8660254037844386*F_0[1]*alpha_vdim[1]+0.8660254037844386*F_0_source[1]*alpha_div_b[1]+0.8660254037844386*F_0[0]*alpha_vdim[0]+0.8660254037844386*F_0_source[0]*alpha_div_b[0]; 
+  out_F_0[3] += 0.7745966692414834*alpha_cdim[3]*F_0[7]+0.7745966692414834*F_0[3]*alpha_vdim[6]+0.8660254037844387*F_0[4]*alpha_cdim[6]+0.8660254037844387*alpha_cdim[4]*F_0[6]+0.7745966692414834*alpha_vdim[3]*F_0[6]+0.7745966692414833*alpha_cdim[2]*F_0[5]+0.7745966692414833*F_0[1]*alpha_vdim[4]+0.7745966692414833*F_0_source[1]*alpha_div_b[4]+0.7745966692414833*alpha_div_b[1]*F_0_source[4]+0.7745966692414833*alpha_vdim[1]*F_0[4]+0.8660254037844386*F_0[2]*alpha_vdim[3]+0.8660254037844386*F_0[1]*alpha_cdim[3]+0.8660254037844386*alpha_vdim[2]*F_0[3]+0.8660254037844386*alpha_cdim[1]*F_0[3]+0.8660254037844386*F_0[0]*alpha_cdim[2]+0.8660254037844386*alpha_cdim[0]*F_0[2]+0.8660254037844386*F_0[0]*alpha_vdim[1]+0.8660254037844386*F_0_source[0]*alpha_div_b[1]+0.8660254037844386*alpha_div_b[0]*F_0_source[1]+0.8660254037844386*alpha_vdim[0]*F_0[1]; 
+  out_F_0[4] += 1.732050807568877*F_0[3]*alpha_cdim[6]+1.732050807568877*alpha_cdim[3]*F_0[6]+1.732050807568877*F_0[1]*alpha_cdim[4]+1.732050807568877*alpha_cdim[1]*F_0[4]+1.936491673103709*F_0[2]*alpha_cdim[3]+1.936491673103709*alpha_cdim[2]*F_0[3]+1.936491673103709*F_0[0]*alpha_cdim[1]+1.936491673103709*alpha_cdim[0]*F_0[1]; 
+  out_F_0[5] += 1.732050807568877*alpha_vdim[3]*F_0[7]+1.936491673103709*F_0[4]*alpha_vdim[6]+1.936491673103709*alpha_div_b[4]*F_0_source[6]+1.936491673103709*alpha_vdim[4]*F_0[6]+1.732050807568877*alpha_vdim[2]*F_0[5]+1.936491673103709*F_0[1]*alpha_vdim[3]+1.936491673103709*alpha_div_b[1]*F_0_source[3]+1.936491673103709*alpha_vdim[1]*F_0[3]+1.936491673103709*F_0[0]*alpha_vdim[2]+1.936491673103709*alpha_div_b[0]*F_0_source[2]+1.936491673103709*alpha_vdim[0]*F_0[2]; 
+  out_F_0[6] += 1.549193338482967*alpha_cdim[6]*F_0[7]+1.732050807568877*alpha_cdim[2]*F_0[7]+0.5532833351724881*F_0[6]*alpha_vdim[6]+0.8660254037844386*F_0[2]*alpha_vdim[6]+1.732050807568877*F_0[1]*alpha_cdim[6]+0.8660254037844386*alpha_vdim[2]*F_0[6]+1.732050807568877*alpha_cdim[1]*F_0[6]+1.732050807568877*alpha_cdim[3]*F_0[5]+0.5532833351724881*F_0[4]*alpha_vdim[4]+0.8660254037844387*F_0[0]*alpha_vdim[4]+0.5532833351724881*F_0_source[4]*alpha_div_b[4]+0.8660254037844387*F_0_source[0]*alpha_div_b[4]+1.732050807568877*F_0[3]*alpha_cdim[4]+0.8660254037844387*alpha_div_b[0]*F_0_source[4]+1.732050807568877*alpha_cdim[3]*F_0[4]+0.8660254037844387*alpha_vdim[0]*F_0[4]+0.7745966692414834*F_0[3]*alpha_vdim[3]+1.936491673103709*F_0[0]*alpha_cdim[3]+1.936491673103709*alpha_cdim[0]*F_0[3]+1.936491673103709*F_0[1]*alpha_cdim[2]+1.936491673103709*alpha_cdim[1]*F_0[2]+0.7745966692414834*F_0[1]*alpha_vdim[1]+0.7745966692414834*F_0_source[1]*alpha_div_b[1]; 
+  out_F_0[7] += 1.549193338482967*alpha_vdim[6]*F_0[7]+1.732050807568877*alpha_vdim[2]*F_0[7]+0.8660254037844386*alpha_cdim[1]*F_0[7]+1.732050807568877*F_0[1]*alpha_vdim[6]+0.7745966692414834*F_0[6]*alpha_cdim[6]+1.732050807568877*alpha_div_b[1]*F_0_source[6]+1.732050807568877*alpha_vdim[1]*F_0[6]+1.732050807568877*alpha_vdim[3]*F_0[5]+0.8660254037844387*alpha_cdim[0]*F_0[5]+1.732050807568877*F_0[3]*alpha_vdim[4]+1.732050807568877*F_0_source[3]*alpha_div_b[4]+1.732050807568877*alpha_vdim[3]*F_0[4]+1.936491673103709*F_0[0]*alpha_vdim[3]+0.7745966692414834*F_0[3]*alpha_cdim[3]+1.936491673103709*alpha_div_b[0]*F_0_source[3]+1.936491673103709*alpha_vdim[0]*F_0[3]+1.936491673103709*F_0[1]*alpha_vdim[2]+0.7745966692414834*F_0[2]*alpha_cdim[2]+1.936491673103709*alpha_div_b[1]*F_0_source[2]+1.936491673103709*alpha_vdim[1]*F_0[2]; 
+  out_G_1[0] += 0.5*G_1[6]*alpha_G_1_source[6]+0.5*G_1[4]*alpha_G_1_source[4]+0.5*G_1[3]*alpha_G_1_source[3]+0.5*G_1[2]*alpha_G_1_source[2]+0.5*G_1[1]*alpha_G_1_source[1]+0.5*G_1[0]*alpha_G_1_source[0]; 
+  out_G_1[1] += 0.8660254037844386*G_1[6]*alpha_cdim[6]+0.447213595499958*G_1[3]*alpha_G_1_source[6]+0.447213595499958*alpha_G_1_source[3]*G_1[6]+0.8660254037844386*G_1[4]*alpha_cdim[4]+0.4472135954999579*G_1[1]*alpha_G_1_source[4]+0.4472135954999579*alpha_G_1_source[1]*G_1[4]+0.8660254037844386*G_1[3]*alpha_cdim[3]+0.5*G_1[2]*alpha_G_1_source[3]+0.5*alpha_G_1_source[2]*G_1[3]+0.8660254037844386*G_1[2]*alpha_cdim[2]+0.8660254037844386*G_1[1]*alpha_cdim[1]+0.5*G_1[0]*alpha_G_1_source[1]+0.5*alpha_G_1_source[0]*G_1[1]+0.8660254037844386*G_1[0]*alpha_cdim[0]; 
+  out_G_1[2] += 0.447213595499958*alpha_G_1_source[3]*G_1[7]+0.8660254037844386*G_1[6]*alpha_vdim[6]+0.5000000000000001*G_1[4]*alpha_G_1_source[6]+0.5000000000000001*alpha_G_1_source[4]*G_1[6]+0.4472135954999579*alpha_G_1_source[2]*G_1[5]+0.8660254037844386*G_1[4]*alpha_vdim[4]+0.8660254037844386*G_1_source[4]*alpha_div_b[4]+0.8660254037844386*G_1[3]*alpha_vdim[3]+0.5*G_1[1]*alpha_G_1_source[3]+0.5*alpha_G_1_source[1]*G_1[3]+0.8660254037844386*G_1[2]*alpha_vdim[2]+0.5*G_1[0]*alpha_G_1_source[2]+0.5*alpha_G_1_source[0]*G_1[2]+0.8660254037844386*G_1[1]*alpha_vdim[1]+0.8660254037844386*G_1_source[1]*alpha_div_b[1]+0.8660254037844386*G_1[0]*alpha_vdim[0]+0.8660254037844386*G_1_source[0]*alpha_div_b[0]; 
+  out_G_1[3] += 0.4*alpha_G_1_source[6]*G_1[7]+0.7745966692414834*alpha_cdim[3]*G_1[7]+0.447213595499958*alpha_G_1_source[2]*G_1[7]+0.7745966692414834*G_1[3]*alpha_vdim[6]+0.8660254037844387*G_1[4]*alpha_cdim[6]+0.447213595499958*G_1[1]*alpha_G_1_source[6]+0.8660254037844387*alpha_cdim[4]*G_1[6]+0.7745966692414834*alpha_vdim[3]*G_1[6]+0.447213595499958*alpha_G_1_source[1]*G_1[6]+0.4472135954999579*alpha_G_1_source[3]*G_1[5]+0.7745966692414833*alpha_cdim[2]*G_1[5]+0.7745966692414833*G_1[1]*alpha_vdim[4]+0.7745966692414833*G_1_source[1]*alpha_div_b[4]+0.4472135954999579*G_1[3]*alpha_G_1_source[4]+0.7745966692414833*alpha_div_b[1]*G_1_source[4]+0.4472135954999579*alpha_G_1_source[3]*G_1[4]+0.7745966692414833*alpha_vdim[1]*G_1[4]+0.8660254037844386*G_1[2]*alpha_vdim[3]+0.8660254037844386*G_1[1]*alpha_cdim[3]+0.5*G_1[0]*alpha_G_1_source[3]+0.8660254037844386*alpha_vdim[2]*G_1[3]+0.8660254037844386*alpha_cdim[1]*G_1[3]+0.5*alpha_G_1_source[0]*G_1[3]+0.8660254037844386*G_1[0]*alpha_cdim[2]+0.5*G_1[1]*alpha_G_1_source[2]+0.5*alpha_G_1_source[1]*G_1[2]+0.8660254037844386*alpha_cdim[0]*G_1[2]+0.8660254037844386*G_1[0]*alpha_vdim[1]+0.8660254037844386*G_1_source[0]*alpha_div_b[1]+0.8660254037844386*alpha_div_b[0]*G_1_source[1]+0.8660254037844386*alpha_vdim[0]*G_1[1]; 
+  out_G_1[4] += 1.732050807568877*G_1[3]*alpha_cdim[6]+0.31943828249997*G_1[6]*alpha_G_1_source[6]+0.5000000000000001*G_1[2]*alpha_G_1_source[6]+1.732050807568877*alpha_cdim[3]*G_1[6]+0.5000000000000001*alpha_G_1_source[2]*G_1[6]+1.732050807568877*G_1[1]*alpha_cdim[4]+0.31943828249997*G_1[4]*alpha_G_1_source[4]+0.5*G_1[0]*alpha_G_1_source[4]+1.732050807568877*alpha_cdim[1]*G_1[4]+0.5*alpha_G_1_source[0]*G_1[4]+1.936491673103709*G_1[2]*alpha_cdim[3]+0.4472135954999579*G_1[3]*alpha_G_1_source[3]+1.936491673103709*alpha_cdim[2]*G_1[3]+1.936491673103709*G_1[0]*alpha_cdim[1]+0.4472135954999579*G_1[1]*alpha_G_1_source[1]+1.936491673103709*alpha_cdim[0]*G_1[1]; 
+  out_G_1[5] += 1.732050807568877*alpha_vdim[3]*G_1[7]+0.5000000000000001*alpha_G_1_source[1]*G_1[7]+1.936491673103709*G_1[4]*alpha_vdim[6]+0.4472135954999579*G_1[6]*alpha_G_1_source[6]+1.936491673103709*alpha_div_b[4]*G_1_source[6]+1.936491673103709*alpha_vdim[4]*G_1[6]+1.732050807568877*alpha_vdim[2]*G_1[5]+0.5*alpha_G_1_source[0]*G_1[5]+1.936491673103709*G_1[1]*alpha_vdim[3]+0.4472135954999579*G_1[3]*alpha_G_1_source[3]+1.936491673103709*alpha_div_b[1]*G_1_source[3]+1.936491673103709*alpha_vdim[1]*G_1[3]+1.936491673103709*G_1[0]*alpha_vdim[2]+0.4472135954999579*G_1[2]*alpha_G_1_source[2]+1.936491673103709*alpha_div_b[0]*G_1_source[2]+1.936491673103709*alpha_vdim[0]*G_1[2]; 
+  out_G_1[6] += 1.549193338482967*alpha_cdim[6]*G_1[7]+0.4*alpha_G_1_source[3]*G_1[7]+1.732050807568877*alpha_cdim[2]*G_1[7]+0.5532833351724881*G_1[6]*alpha_vdim[6]+0.8660254037844386*G_1[2]*alpha_vdim[6]+1.732050807568877*G_1[1]*alpha_cdim[6]+0.4472135954999579*G_1[5]*alpha_G_1_source[6]+0.31943828249997*G_1[4]*alpha_G_1_source[6]+0.5*G_1[0]*alpha_G_1_source[6]+0.31943828249997*alpha_G_1_source[4]*G_1[6]+0.8660254037844386*alpha_vdim[2]*G_1[6]+1.732050807568877*alpha_cdim[1]*G_1[6]+0.5*alpha_G_1_source[0]*G_1[6]+1.732050807568877*alpha_cdim[3]*G_1[5]+0.5532833351724881*G_1[4]*alpha_vdim[4]+0.8660254037844387*G_1[0]*alpha_vdim[4]+0.5532833351724881*G_1_source[4]*alpha_div_b[4]+0.8660254037844387*G_1_source[0]*alpha_div_b[4]+1.732050807568877*G_1[3]*alpha_cdim[4]+0.5000000000000001*G_1[2]*alpha_G_1_source[4]+0.8660254037844387*alpha_div_b[0]*G_1_source[4]+1.732050807568877*alpha_cdim[3]*G_1[4]+0.5000000000000001*alpha_G_1_source[2]*G_1[4]+0.8660254037844387*alpha_vdim[0]*G_1[4]+0.7745966692414834*G_1[3]*alpha_vdim[3]+1.936491673103709*G_1[0]*alpha_cdim[3]+0.447213595499958*G_1[1]*alpha_G_1_source[3]+0.447213595499958*alpha_G_1_source[1]*G_1[3]+1.936491673103709*alpha_cdim[0]*G_1[3]+1.936491673103709*G_1[1]*alpha_cdim[2]+1.936491673103709*alpha_cdim[1]*G_1[2]+0.7745966692414834*G_1[1]*alpha_vdim[1]+0.7745966692414834*G_1_source[1]*alpha_div_b[1]; 
+  out_G_1[7] += 1.549193338482967*alpha_vdim[6]*G_1[7]+0.4472135954999579*alpha_G_1_source[4]*G_1[7]+1.732050807568877*alpha_vdim[2]*G_1[7]+0.8660254037844386*alpha_cdim[1]*G_1[7]+0.5*alpha_G_1_source[0]*G_1[7]+1.732050807568877*G_1[1]*alpha_vdim[6]+0.7745966692414834*G_1[6]*alpha_cdim[6]+0.4*G_1[3]*alpha_G_1_source[6]+1.732050807568877*alpha_div_b[1]*G_1_source[6]+0.4*alpha_G_1_source[3]*G_1[6]+1.732050807568877*alpha_vdim[1]*G_1[6]+1.732050807568877*alpha_vdim[3]*G_1[5]+0.5000000000000001*alpha_G_1_source[1]*G_1[5]+0.8660254037844387*alpha_cdim[0]*G_1[5]+1.732050807568877*G_1[3]*alpha_vdim[4]+1.732050807568877*G_1_source[3]*alpha_div_b[4]+1.732050807568877*alpha_vdim[3]*G_1[4]+1.936491673103709*G_1[0]*alpha_vdim[3]+0.7745966692414834*G_1[3]*alpha_cdim[3]+0.447213595499958*G_1[2]*alpha_G_1_source[3]+1.936491673103709*alpha_div_b[0]*G_1_source[3]+0.447213595499958*alpha_G_1_source[2]*G_1[3]+1.936491673103709*alpha_vdim[0]*G_1[3]+1.936491673103709*G_1[1]*alpha_vdim[2]+0.7745966692414834*G_1[2]*alpha_cdim[2]+1.936491673103709*alpha_div_b[1]*G_1_source[2]+1.936491673103709*alpha_vdim[1]*G_1[2]; 
 
   return cflFreq_mid; 
 } 

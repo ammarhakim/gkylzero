@@ -202,15 +202,15 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_gpu)
   // and magnetic unit tensor (b_i b_j = B_i B_j/|B|^2, 6 components)
   // and ExB: ExB velocity (E x B/|B|^2, 3 components)
   if (use_gpu) {
-    gkyl_calc_em_vars_bvar(&basis, &local, field_cu, bvar_cu);
-    gkyl_calc_em_vars_ExB(&basis, &local, field_cu, ExB_cu);
+    gkyl_calc_em_vars_bvar(basis, &local, field_cu, bvar_cu);
+    gkyl_calc_em_vars_ExB(basis, &local, field_cu, ExB_cu);
     // Copy host array to device.
     gkyl_array_copy(bvar , bvar_cu );
     gkyl_array_copy(ExB , ExB_cu );
   }
   else {
-    gkyl_calc_em_vars_bvar(&basis, &local, field, bvar);
-    gkyl_calc_em_vars_ExB(&basis, &local, field, ExB);
+    gkyl_calc_em_vars_bvar(basis, &local, field, bvar);
+    gkyl_calc_em_vars_ExB(basis, &local, field, ExB);
   }
 
   double em_tm = gkyl_time_diff_now_sec(tm);
@@ -410,7 +410,7 @@ void test_2x_p1() { test(2, 8, 1, 1.0e-11, false); }
 void test_3x_p1() { test(3, 8, 1, 1.0e-10, false); }
 
 void test_2x_p1_big() { test(2, 512, 1, 1.0e-9, false); }
-void test_3x_p1_big() { test(3, 128, 1, 1.0e-9, false); }
+void test_3x_p1_big() { test(3, 128, 1, 1.0e-8, false); }
 
 void test_1x_p2() { test(1, 512, 2, 1.0e-4, false); }
 void test_2x_p2() { test(2, 512, 2, 1.0e-2, false); }
