@@ -10,7 +10,7 @@
 
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_vlasov_sr.h>
-#include <gkyl_array_ops_priv.h>
+#include <gkyl_array_ops_priv.h> 
 
 
 struct gkyl_mj_moments {

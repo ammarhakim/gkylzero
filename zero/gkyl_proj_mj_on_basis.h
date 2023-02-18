@@ -3,7 +3,7 @@
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_range.h>
-#include <gkyl_rect_grid.h>
+#include <gkyl_rect_grid.h> 
 
 // Object type
 typedef struct gkyl_proj_mj_on_basis gkyl_proj_mj_on_basis;

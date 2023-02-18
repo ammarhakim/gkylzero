@@ -12,7 +12,7 @@
 #include <gkyl_mom_vlasov_sr.h>
 
 // Temporary
-#include <gkyl_array_ops_priv.h>
+#include <gkyl_array_ops_priv.h> 
 
 
 struct gkyl_correct_mj {

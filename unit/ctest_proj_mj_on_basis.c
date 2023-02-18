@@ -19,7 +19,7 @@ mkarr(long nc, long size)
 {
   struct gkyl_array* a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
-}
+} 
 
 // Projection functions for p/(gamma) = v in special relativistic systems
 // Simplifies to p/sqrt(1 + p^2) where c = 1
