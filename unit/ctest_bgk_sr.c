@@ -334,7 +334,7 @@ test_1x1v(int poly_order)
   gkyl_proj_on_basis_advance(projnu_conf, 0.0, &confLocal, nudt_conf);
 
   // timeloop evolving partial_t(f) = -nu(f-f^mj)
-  for (int i=0; i<100; ++i){ //3000
+  for (int i=0; i<1000; ++i){ //3000
 
     //printf("\n----------- ************************* ---------\n");
     //printf("----------- Begining timeloop: T = %d ---------\n", i);
@@ -342,7 +342,9 @@ test_1x1v(int poly_order)
 
     // write distribution function to file
     char fname[1024];
-    sprintf(fname, "ctest_bgk_sr_1x1v_p%d_time_%03d.gkyl", poly_order,i);
+    if ( i == 999 || i == 0){
+      sprintf(fname, "ctest_bgk_sr_1x1v_p%d_time_%03d.gkyl", poly_order,i);
+    }
     gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
     // calculate the moments of the dist (n, vb, T -> m0, m1i, m2)
@@ -395,9 +397,9 @@ test_1x1v(int poly_order)
 
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
-  double p2_vals[] = {  0.3111763739757983, -1.414330550550466e-17,
-    0.01240793867820277, 2.923925724016573e-18, 5.282248416150693e-18,
--0.0003050218593188588, 1.657915322259353e-19, -8.206209766498314e-18 };
+  double p2_vals[] = {  0.4908183182853421,-1.779993558391936e-17,
+0.01957103464383442,4.791671361253045e-18, -2.283871108067826e-17,
+-0.000481110805805566,-9.813947903343648e-19, -1.29480691392842e-17 };
 
   const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[2]) { 1, 160 }));
 
