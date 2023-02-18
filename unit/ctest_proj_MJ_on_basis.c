@@ -4,9 +4,9 @@
 
 #include <gkyl_array_rio.h>
 #include <gkyl_correct_maxwellian.h>
-#include <gkyl_correct_MJ.h>
-#include <gkyl_MJ_moments.h>
-#include <gkyl_proj_MJ_on_basis.h>
+#include <gkyl_correct_mj.h>
+#include <gkyl_mj_moments.h>
+#include <gkyl_proj_mj_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -230,11 +230,11 @@ test_1x1v_no_drift(int poly_order)
   struct gkyl_array *distf;
   distf = mkarr(basis.num_basis, local_ext.volume);
 
-  // projection updater to compute MJ
-  gkyl_proj_MJ_on_basis *proj_MJ = gkyl_proj_MJ_on_basis_new(&grid,
+  // projection updater to compute mj
+  gkyl_proj_mj_on_basis *proj_mj = gkyl_proj_mj_on_basis_new(&grid,
     &confBasis, &basis, poly_order+1);
 
-  gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(proj_MJ, &local, &confLocal, m0, m1i, m2, distf);
+  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, m0, m1i, m2, distf);
 
 // build p_over_gamma
 struct gkyl_array *p_over_gamma;
@@ -251,9 +251,9 @@ gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_p
   gkyl_proj_on_basis_advance(p_over_gamma_proj, 0.0, &velLocal, p_over_gamma);
 
 
-  // correct the MJ distribution m0 Moment
-  gkyl_correct_MJ *corr_MJ = gkyl_correct_MJ_new(&grid,&confBasis,&basis,&confLocal,&velLocal,confLocal.volume,confLocal_ext.volume, false);
-  gkyl_correct_MJ_fix(corr_MJ,p_over_gamma,distf,m0,m1i,&local,&confLocal);
+  // correct the mj distribution m0 Moment
+  gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid,&confBasis,&basis,&confLocal,&velLocal,confLocal.volume,confLocal_ext.volume, false);
+  gkyl_correct_mj_fix(corr_mj,p_over_gamma,distf,m0,m1i,&local,&confLocal);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p1_vals[] = {  5.3918752026566863e-01, -1.0910243387206232e-17,  -6.0196985297046972e-02,
@@ -278,15 +278,15 @@ gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_p
 
   // write distribution function to file
   char fname[1024];
-  sprintf(fname, "ctest_proj_MJ_on_basis_test_1x1v_p%d_no_drift.gkyl", poly_order);
+  sprintf(fname, "ctest_proj_mj_on_basis_test_1x1v_p%d_no_drift.gkyl", poly_order);
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // release memory for moment data object
   gkyl_proj_on_basis_release(p_over_gamma_proj);
-  gkyl_correct_MJ_release(corr_MJ);
+  gkyl_correct_mj_release(corr_mj);
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
   gkyl_array_release(distf);
-  gkyl_proj_MJ_on_basis_release(proj_MJ);
+  gkyl_proj_mj_on_basis_release(proj_mj);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
@@ -362,11 +362,11 @@ test_1x1v(int poly_order)
   struct gkyl_array *distf;
   distf = mkarr(basis.num_basis, local_ext.volume);
 
-  // projection updater to compute MJ
-  gkyl_proj_MJ_on_basis *proj_MJ = gkyl_proj_MJ_on_basis_new(&grid,
+  // projection updater to compute mj
+  gkyl_proj_mj_on_basis *proj_mj = gkyl_proj_mj_on_basis_new(&grid,
     &confBasis, &basis, poly_order+1);
 
-  gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(proj_MJ, &local, &confLocal, m0, m1i, m2, distf);
+  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, m0, m1i, m2, distf);
 
 // build the p_over_gamma
 struct gkyl_array *p_over_gamma;
@@ -411,13 +411,13 @@ gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_p
     });
     gkyl_proj_on_basis_advance(gamma_inv_proj, 0.0, &velLocal, gamma_inv);
 
-  // correct the MJ distribution m0 Moment
-  gkyl_correct_MJ *corr_MJ = gkyl_correct_MJ_new(&grid,&confBasis,&basis,&confLocal,&velLocal,confLocal.volume,confLocal_ext.volume, false);
-  gkyl_correct_MJ_fix(corr_MJ,p_over_gamma,distf,m0,m1i,&local,&confLocal);
+  // correct the mj distribution m0 Moment
+  gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid,&confBasis,&basis,&confLocal,&velLocal,confLocal.volume,confLocal_ext.volume, false);
+  gkyl_correct_mj_fix(corr_mj,p_over_gamma,distf,m0,m1i,&local,&confLocal);
 
   // test accuracy of the projection:
-  gkyl_MJ_moments *MJ_moms = gkyl_MJ_moments_new(&grid,&confBasis,&basis,&confLocal,&velLocal,confLocal.volume,confLocal_ext.volume, false);
-  gkyl_MJ_moments_advance(MJ_moms,p_over_gamma,gamma,gamma_inv,distf,m0,m1i,m2,&local,&confLocal);
+  gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&grid,&confBasis,&basis,&confLocal,&velLocal,confLocal.volume,confLocal_ext.volume, false);
+  gkyl_mj_moments_advance(mj_moms,p_over_gamma,gamma,gamma_inv,distf,m0,m1i,m2,&local,&confLocal);
 
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
@@ -435,18 +435,18 @@ gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_p
 
   // write distribution function to file
   char fname[1024];
-  sprintf(fname, "ctest_proj_MJ_on_basis_test_1x1v_p%d.gkyl", poly_order);
+  sprintf(fname, "ctest_proj_mj_on_basis_test_1x1v_p%d.gkyl", poly_order);
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // release memory for moment data object
   gkyl_proj_on_basis_release(p_over_gamma_proj);
   gkyl_proj_on_basis_release(gamma_proj);
   gkyl_proj_on_basis_release(gamma_inv_proj);
-  gkyl_correct_MJ_release(corr_MJ);
-  gkyl_MJ_moments_release(MJ_moms);
+  gkyl_correct_mj_release(corr_mj);
+  gkyl_mj_moments_release(mj_moms);
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
   gkyl_array_release(distf);
-  gkyl_proj_MJ_on_basis_release(proj_MJ);
+  gkyl_proj_mj_on_basis_release(proj_mj);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
@@ -521,11 +521,11 @@ test_1x2v(int poly_order)
   struct gkyl_array *distf;
   distf = mkarr(basis.num_basis, local_ext.volume);
 
-  // projection updater to compute MJ
-  gkyl_proj_MJ_on_basis *proj_MJ = gkyl_proj_MJ_on_basis_new(&grid,
+  // projection updater to compute mj
+  gkyl_proj_mj_on_basis *proj_mj = gkyl_proj_mj_on_basis_new(&grid,
     &confBasis, &basis, poly_order+1);
 
-  gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(proj_MJ, &local, &confLocal, m0, m1i, m2, distf);
+  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, m0, m1i, m2, distf);
 
 // build the p_over_gamma
 struct gkyl_array *p_over_gamma;
@@ -541,9 +541,9 @@ gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_p
   });
   gkyl_proj_on_basis_advance(p_over_gamma_proj, 0.0, &velLocal, p_over_gamma);
 
-  // correct the MJ distribution m0 Moment
-  gkyl_correct_MJ *corr_MJ = gkyl_correct_MJ_new(&grid,&confBasis,&basis,&confLocal,&velLocal,confLocal.volume,confLocal_ext.volume, false);
-  gkyl_correct_MJ_fix(corr_MJ,p_over_gamma,distf,m0,m1i,&local,&confLocal);
+  // correct the mj distribution m0 Moment
+  gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid,&confBasis,&basis,&confLocal,&velLocal,confLocal.volume,confLocal_ext.volume, false);
+  gkyl_correct_mj_fix(corr_mj,p_over_gamma,distf,m0,m1i,&local,&confLocal);
 
   // values to compare  at index (1, 9, 9) [remember, lower-left index is (1,1,1)]
   double p2_vals[] = { 1.7020667884226476e-01,-7.7674914557148726e-18,-3.9516229859383111e-03,
@@ -565,15 +565,15 @@ gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_p
 
   // write distribution function to file
   char fname[1024];
-  sprintf(fname, "ctest_proj_MJ_on_basis_test_1x2v_p%d.gkyl", poly_order);
+  sprintf(fname, "ctest_proj_mj_on_basis_test_1x2v_p%d.gkyl", poly_order);
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // release memory for moment data object
   gkyl_proj_on_basis_release(p_over_gamma_proj);
-  gkyl_correct_MJ_release(corr_MJ);
+  gkyl_correct_mj_release(corr_mj);
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
   gkyl_array_release(distf);
-  gkyl_proj_MJ_on_basis_release(proj_MJ);
+  gkyl_proj_mj_on_basis_release(proj_mj);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
@@ -651,11 +651,11 @@ test_1x3v(int poly_order)
   struct gkyl_array *distf;
   distf = mkarr(basis.num_basis, local_ext.volume);
 
-  // projection updater to compute MJ
-  gkyl_proj_MJ_on_basis *proj_MJ = gkyl_proj_MJ_on_basis_new(&grid,
+  // projection updater to compute mj
+  gkyl_proj_mj_on_basis *proj_mj = gkyl_proj_mj_on_basis_new(&grid,
     &confBasis, &basis, poly_order+1);
 
-  gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(proj_MJ, &local, &confLocal, m0, m1i, m2, distf);
+  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, m0, m1i, m2, distf);
 
 // build the p_over_gamma
 struct gkyl_array *p_over_gamma;
@@ -671,9 +671,9 @@ gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_p
   });
   gkyl_proj_on_basis_advance(p_over_gamma_proj, 0.0, &velLocal, p_over_gamma);
 
-  // correct the MJ distribution m0 Moment
-  gkyl_correct_MJ *corr_MJ = gkyl_correct_MJ_new(&grid,&confBasis,&basis,&confLocal,&velLocal,confLocal.volume,confLocal_ext.volume, false);
-  gkyl_correct_MJ_fix(corr_MJ,p_over_gamma,distf,m0,m1i,&local,&confLocal);
+  // correct the mj distribution m0 Moment
+  gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid,&confBasis,&basis,&confLocal,&velLocal,confLocal.volume,confLocal_ext.volume, false);
+  gkyl_correct_mj_fix(corr_mj,p_over_gamma,distf,m0,m1i,&local,&confLocal);
 
   // values to compare  at index (1, 9, 9, 9) [remember, lower-left index is (1,1,1,1)]
   double p2_vals[] = { 1.6326923473662415e-02,-2.7779798362812092e-19,-5.7251397678571113e-06,
@@ -702,15 +702,15 @@ gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_p
 
   // write distribution function to file
   char fname[1024];
-  sprintf(fname, "ctest_proj_MJ_on_basis_test_1x3v_p%d.gkyl", poly_order);
+  sprintf(fname, "ctest_proj_mj_on_basis_test_1x3v_p%d.gkyl", poly_order);
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // release memory for moment data object
   gkyl_proj_on_basis_release(p_over_gamma_proj);
-  gkyl_correct_MJ_release(corr_MJ);
+  gkyl_correct_mj_release(corr_mj);
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
   gkyl_array_release(distf);
-  gkyl_proj_MJ_on_basis_release(proj_MJ);
+  gkyl_proj_mj_on_basis_release(proj_mj);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
@@ -723,12 +723,8 @@ void test_1x3v_p2() { test_1x3v(2); }
 TEST_LIST = {
   { "test_1x1v_no_drift_p1", test_1x1v_no_drift_p1 },
   { "test_1x1v_no_drift_p2", test_1x1v_no_drift_p2 },
-
   { "test_1x1v_p2", test_1x1v_p2 },
-
   { "test_1x2v_p2", test_1x2v_p2 },
-
   { "test_1x3v_p2", test_1x3v_p2 },
-
   { NULL, NULL },
 };

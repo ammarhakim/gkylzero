@@ -6,7 +6,7 @@
 #include <gkyl_rect_grid.h>
 
 // Object type
-typedef struct gkyl_MJ_moments gkyl_MJ_moments;
+typedef struct gkyl_mj_moments gkyl_mj_moments;
 
 /**
  * Create new updater to correct a Maxwellian to match specified
@@ -20,7 +20,7 @@ typedef struct gkyl_MJ_moments gkyl_MJ_moments;
  * @param conf_local_cells Number of cells in local config-space
  * @param conf_local_ext_cells Number of cells in local extended config-space
  */
-gkyl_MJ_moments *gkyl_MJ_moments_new(
+gkyl_mj_moments *gkyl_mj_moments_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *conf_basis,
   const struct gkyl_basis *phase_basis, const struct gkyl_range *conf_range,
   const struct gkyl_range *vel_range,
@@ -28,9 +28,9 @@ gkyl_MJ_moments *gkyl_MJ_moments_new(
 
 /**
  * Update the m0, m1, and m2 moments (n, vb, T) moments of an arbitary sr
- * distribution so they are ready as inputs to the MJ routine
+ * distribution so they are ready as inputs to the mj routine
  *
- * @param cMJ Maxwell-Juttner correction updater
+ * @param cmj Maxwell-Juttner correction updater
  * @param p_over_gamma velocity array
  * @param gamma array
  * @param gamma_inv array
@@ -41,7 +41,7 @@ gkyl_MJ_moments *gkyl_MJ_moments_new(
  * @param phase_local Local phase-space range
  * @param conf_local Local configuration space range
  */
-void gkyl_MJ_moments_advance(gkyl_MJ_moments *cMJ, const struct gkyl_array *p_over_gamma,
+void gkyl_mj_moments_advance(gkyl_mj_moments *cmj, const struct gkyl_array *p_over_gamma,
   const struct gkyl_array *gamma, const struct gkyl_array *gamma_inv,
   struct gkyl_array *fout,
   struct gkyl_array *m0,
@@ -52,6 +52,6 @@ void gkyl_MJ_moments_advance(gkyl_MJ_moments *cMJ, const struct gkyl_array *p_ov
 /**
  * Delete updater.
  *
- * @param cMJ Updater to delete.
+ * @param cmj Updater to delete.
  */
-void gkyl_MJ_moments_release(gkyl_MJ_moments* cMJ);
+void gkyl_mj_moments_release(gkyl_mj_moments* cmj);

@@ -4,10 +4,10 @@
 
 #include <gkyl_array_rio.h>
 #include <gkyl_correct_maxwellian.h>
-#include <gkyl_correct_MJ.h>
+#include <gkyl_correct_mj.h>
 #include <gkyl_dg_bin_ops.h>
-#include <gkyl_MJ_moments.h>
-#include <gkyl_proj_MJ_on_basis.h>
+#include <gkyl_mj_moments.h>
+#include <gkyl_proj_mj_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -193,7 +193,7 @@ void evalFunc_nu_conf(double t, const double *xn, double* restrict fout, void *c
 void
 test_1x1v(int poly_order)
 {
-  double lower[] = {0.1, -16.0}, upper[] = {1.0, 16.0};
+  double lower[] = {0.1, -32.0}, upper[] = {1.0, 32.0};
   int cells[] = {2, 320};
   int vdim = 1, cdim = 1;
   int ndim = cdim+vdim;
@@ -297,8 +297,8 @@ test_1x1v(int poly_order)
   // create distribution function array
   struct gkyl_array *distf;
   distf = mkarr(basis.num_basis, local_ext.volume);
-  struct gkyl_array *distf_MJ;
-  distf_MJ = mkarr(basis.num_basis, local_ext.volume);
+  struct gkyl_array *distf_mj;
+  distf_mj = mkarr(basis.num_basis, local_ext.volume);
   struct gkyl_array *bgk_out;
   bgk_out = mkarr(basis.num_basis, local_ext.volume);
   struct gkyl_array *nudt;
@@ -308,8 +308,8 @@ test_1x1v(int poly_order)
   struct gkyl_array *cflfreq;
   cflfreq = mkarr(basis.num_basis, local_ext.volume);
 
-  // projection updater to compute MJ
-  gkyl_proj_MJ_on_basis *proj_MJ = gkyl_proj_MJ_on_basis_new(&grid,
+  // projection updater to compute mj
+  gkyl_proj_mj_on_basis *proj_mj = gkyl_proj_mj_on_basis_new(&grid,
     &confBasis, &basis, poly_order+1);
 
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
@@ -333,40 +333,47 @@ test_1x1v(int poly_order)
   // create the collision frequency matrix in conf spade
   gkyl_proj_on_basis_advance(projnu_conf, 0.0, &confLocal, nudt_conf);
 
-  // timeloop evolving partial_t(f) = -nu(f-f^MJ)
-  for (int i=0; i<300; ++i){
+  // timeloop evolving partial_t(f) = -nu(f-f^mj)
+  for (int i=0; i<100; ++i){ //3000
+
+    //printf("\n----------- ************************* ---------\n");
+    //printf("----------- Begining timeloop: T = %d ---------\n", i);
+    //printf("----------- ************************* ---------\n\n");
 
     // write distribution function to file
     char fname[1024];
-    sprintf(fname, "ctest_bgk_sr_1x1v_p%d_time_%d.gkyl", poly_order,i);
+    sprintf(fname, "ctest_bgk_sr_1x1v_p%d_time_%03d.gkyl", poly_order,i);
     gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
     // calculate the moments of the dist (n, vb, T -> m0, m1i, m2)
-    gkyl_MJ_moments *MJ_moms = gkyl_MJ_moments_new(&grid,&confBasis,&basis,&confLocal,&velLocal,confLocal.volume,confLocal_ext.volume, false);
-    gkyl_MJ_moments_advance(MJ_moms,p_over_gamma,gamma,gamma_inv,distf,m0,m1i,m2,&local,&confLocal);
+    gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&grid,&confBasis,&basis,&confLocal,&velLocal,confLocal.volume,confLocal_ext.volume, false);
+    gkyl_mj_moments_advance(mj_moms,p_over_gamma,gamma,gamma_inv,distf,m0,m1i,m2,&local,&confLocal);
 
-    // Update the dist_MJ using the moments
-    gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(proj_MJ, &local, &confLocal, m0, m1i, m2, distf_MJ);
+    // Update the dist_mj using the moments
+    gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, m0, m1i, m2, distf_mj);
 
-    // correct the MJ distribution m0 (n) Moment
-    gkyl_correct_MJ *corr_MJ = gkyl_correct_MJ_new(&grid,&confBasis,&basis,&confLocal,&velLocal,confLocal.volume,confLocal_ext.volume, false);
-    gkyl_correct_MJ_fix(corr_MJ,p_over_gamma,distf_MJ,m0,m1i,&local,&confLocal);
+    // correct the mj distribution m0 (n) Moment
+    gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid,&confBasis,&basis,&confLocal,&velLocal,confLocal.volume,confLocal_ext.volume, false);
+    gkyl_correct_mj_fix(corr_mj,p_over_gamma,distf_mj,m0,m1i,&local,&confLocal);
 
-    // calculate nu*f^MJ,
-    //gkyl_dg_mul_op_range(basis, 0, distf_MJ, 0, nudt, 0, distf_MJ, &local);
+    // calculate nu*f^mj,
+    //gkyl_dg_mul_op_range(basis, 0, distf_mj, 0, nudt, 0, distf_mj, &local);
     gkyl_dg_mul_conf_phase_op_range(&confBasis, &basis,
-      distf_MJ, nudt_conf, distf_MJ, &confLocal, &local);
+      distf_mj, nudt_conf, distf_mj, &confLocal, &local);
 
+
+      // TEMPORARY: Verf the mj projections
+      //gkyl_mj_moments_advance(mj_moms,p_over_gamma,gamma,gamma_inv,distf_mj,m0,m1i,m2,&local,&confLocal);
 
 
     // calculate the BGK contribution
     gkyl_bgk_collisions_advance(bgk_obj,
       &confLocal, &local,
-      nudt_conf, distf_MJ, distf,
+      nudt_conf, distf_mj, distf,
       bgk_out, cflfreq);
 
     // update f with the BGK operation (Forward Euler update)
-    // f^j+1 = f^j + out;  out = -dt*nu*(f - f^MJ)
+    // f^j+1 = f^j + out;  out = -dt*nu*(f - f^mj)
     struct gkyl_range_iter piter;
     gkyl_range_iter_init(&piter, &local);
     while (gkyl_range_iter_next(&piter)) {
@@ -380,19 +387,19 @@ test_1x1v(int poly_order)
     }
 
     // Release the memory
-    gkyl_correct_MJ_release(corr_MJ);
-    gkyl_MJ_moments_release(MJ_moms);
+    gkyl_correct_mj_release(corr_mj);
+    gkyl_mj_moments_release(mj_moms);
   }
   // end timeloop
 
 
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
-  double p2_vals[] = {  5.9020018022791720e-01,  1.8856465819367569e-17,  1.6811060851198739e-02,
-    -3.1835607256007792e-18, -2.5559407924922751e-17, -1.6328957375267440e-02,
-    3.5362637935871408e-17, -1.1626136441969583e-17 };
+  double p2_vals[] = {  0.3111763739757983, -1.414330550550466e-17,
+    0.01240793867820277, 2.923925724016573e-18, 5.282248416150693e-18,
+-0.0003050218593188588, 1.657915322259353e-19, -8.206209766498314e-18 };
 
-  const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[2]) { 1, 17 }));
+  const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[2]) { 1, 160 }));
 
   if (poly_order == 2) {
     for (int i=0; i<basis.num_basis; ++i){
@@ -409,12 +416,12 @@ test_1x1v(int poly_order)
   gkyl_proj_on_basis_release(gamma_inv_proj);
   gkyl_array_release(m0); gkyl_array_release(m1i); gkyl_array_release(m2);
   gkyl_array_release(distf);
-  gkyl_array_release(distf_MJ);
+  gkyl_array_release(distf_mj);
   gkyl_array_release(bgk_out);
   gkyl_array_release(nudt);
   gkyl_array_release(nudt_conf);
   gkyl_array_release(cflfreq);
-  gkyl_proj_MJ_on_basis_release(proj_MJ);
+  gkyl_proj_mj_on_basis_release(proj_mj);
   gkyl_proj_on_basis_release(projDistf);
   gkyl_proj_on_basis_release(projnu);
   gkyl_proj_on_basis_release(projnu_conf);

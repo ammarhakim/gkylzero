@@ -9,10 +9,10 @@
 #include <gkyl_mom_vlasov.h>
 #include <gkyl_mom_vlasov_sr.h>
 #include <gkyl_gauss_quad_data.h>
-#include <gkyl_proj_MJ_on_basis.h>
+#include <gkyl_proj_mj_on_basis.h>
 #include <gkyl_range.h>
 
-struct gkyl_proj_MJ_on_basis {
+struct gkyl_proj_mj_on_basis {
   struct gkyl_rect_grid grid;
   int num_quad; // number of quadrature points to use in each direction
   int cdim; // Configuration-space dimension
@@ -93,13 +93,13 @@ init_quad_values(const struct gkyl_basis *basis, int num_quad,
   return tot_quad;
 }
 
-gkyl_proj_MJ_on_basis*
-gkyl_proj_MJ_on_basis_new(
+gkyl_proj_mj_on_basis*
+gkyl_proj_mj_on_basis_new(
   const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
   int num_quad)
 {
-  gkyl_proj_MJ_on_basis *up = gkyl_malloc(sizeof(gkyl_proj_MJ_on_basis));
+  gkyl_proj_mj_on_basis *up = gkyl_malloc(sizeof(gkyl_proj_mj_on_basis));
 
   up->grid = *grid;
   up->num_quad = num_quad;
@@ -128,7 +128,7 @@ comp_to_phys(int ndim, const double *eta,
 }
 
 static void
-proj_on_basis(const gkyl_proj_MJ_on_basis *up, const struct gkyl_array *fun_at_ords, double* f)
+proj_on_basis(const gkyl_proj_mj_on_basis *up, const struct gkyl_array *fun_at_ords, double* f)
 {
   int num_basis = up->num_phase_basis;
   int tot_quad = up->tot_quad;
@@ -156,10 +156,10 @@ copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 }
 
 void
-gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(const gkyl_proj_MJ_on_basis *up,
+gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(const gkyl_proj_mj_on_basis *up,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
   const struct gkyl_array *num_fluid_frame, const struct gkyl_array *vel_fluid_frame, const struct gkyl_array *T_fluid_frame,
-  struct gkyl_array *f_MJ)
+  struct gkyl_array *f_mj)
 {
   int cdim = up->cdim, pdim = up->pdim;
   int vdim = pdim-cdim;
@@ -225,7 +225,7 @@ gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(const gkyl_proj_MJ_on_basis *up
       for (int k=0; k<num_conf_basis; ++k)
         T_fluid_frame_n += T_fluid_frame_d[k]*b_ord[k];
 
-      // Using new def*** vth -> T (MJ change)
+      // Using new def*** vth -> T (mj change)
       T[n] = T_fluid_frame_n; // Change to P = <nT> moment
     }
 
@@ -238,7 +238,7 @@ gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(const gkyl_proj_MJ_on_basis *up
       gkyl_rect_grid_cell_center(&up->grid, pidx, xc);
 
       struct gkyl_range_iter qiter;
-      // compute MJ at phase-space quadrature nodes
+      // compute mj at phase-space quadrature nodes
       gkyl_range_iter_init(&qiter, &phase_qrange);
       while (gkyl_range_iter_next(&qiter)) {
 
@@ -262,22 +262,22 @@ gkyl_proj_MJ_on_basis_fluid_stationary_frame_mom(const gkyl_proj_MJ_on_basis *up
         double gamma_shifted = 0.0;
         gamma_shifted = 1/sqrt(1-vv);
 
-        // f_MJ uses a leading order expansion of the modified bessel function
+        // f_mj uses a leading order expansion of the modified bessel function
         // c = 1 assumed
         double *fq = gkyl_array_fetch(fun_at_ords, pqidx);
         fq[0] = norm*exp( (1.0/Theta) - (gamma_shifted/Theta)*(sqrt(1+uu) - vu) );
       }
 
-      // compute expansion coefficients of MJ on basis
+      // compute expansion coefficients of mj on basis
       long lidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
-      proj_on_basis(up, fun_at_ords, gkyl_array_fetch(f_MJ, lidx));
+      proj_on_basis(up, fun_at_ords, gkyl_array_fetch(f_mj, lidx));
     }
   }
   gkyl_array_release(fun_at_ords);
 }
 
 void
-gkyl_proj_MJ_on_basis_release(gkyl_proj_MJ_on_basis* up)
+gkyl_proj_mj_on_basis_release(gkyl_proj_mj_on_basis* up)
 {
   gkyl_array_release(up->ordinates);
   gkyl_array_release(up->weights);

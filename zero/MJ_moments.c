@@ -2,7 +2,7 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
-#include <gkyl_MJ_moments.h>
+#include <gkyl_mj_moments.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_dg_updater_moment.h>
@@ -13,7 +13,7 @@
 #include <gkyl_array_ops_priv.h>
 
 
-struct gkyl_MJ_moments {
+struct gkyl_mj_moments {
   struct gkyl_rect_grid grid;
   struct gkyl_basis conf_basis, phase_basis;
 
@@ -35,13 +35,13 @@ struct gkyl_MJ_moments {
 };
 
 
-gkyl_MJ_moments *
-gkyl_MJ_moments_new(const struct gkyl_rect_grid *grid,
+gkyl_mj_moments *
+gkyl_mj_moments_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
   const struct gkyl_range* conf_range, const struct gkyl_range* vel_range,
   long conf_local_ncells, long conf_local_ext_ncells, bool use_gpu)
 {
-  gkyl_MJ_moments *up = gkyl_malloc(sizeof(*up));
+  gkyl_mj_moments *up = gkyl_malloc(sizeof(*up));
 
   up->grid = *grid;
   up->conf_basis = *conf_basis;
@@ -69,7 +69,7 @@ gkyl_MJ_moments_new(const struct gkyl_rect_grid *grid,
   return up;
 }
 
-void gkyl_MJ_moments_advance(gkyl_MJ_moments *cMJ, const struct gkyl_array *p_over_gamma,
+void gkyl_mj_moments_advance(gkyl_mj_moments *cmj, const struct gkyl_array *p_over_gamma,
   const struct gkyl_array *gamma, const struct gkyl_array *gamma_inv,
   struct gkyl_array *fout,
   struct gkyl_array *m0,
@@ -78,69 +78,68 @@ void gkyl_MJ_moments_advance(gkyl_MJ_moments *cMJ, const struct gkyl_array *p_ov
   const struct gkyl_range *phase_local, const struct gkyl_range *conf_local)
 {
   // vdim
-  int vdim = cMJ->phase_basis.ndim - cMJ->conf_basis.ndim;
+  int vdim = cmj->phase_basis.ndim - cmj->conf_basis.ndim;
 
   // compute the sr moments, lab frame <N> and <Nvb>
-  gkyl_dg_updater_moment_advance(cMJ->m0calc, phase_local, conf_local,
+  gkyl_dg_updater_moment_advance(cmj->m0calc, phase_local, conf_local,
     0, 0, 0,
     0, 0, 0,
-    fout, cMJ->num_ratio);
-  gkyl_dg_updater_moment_advance(cMJ->m1icalc, phase_local, conf_local,
+    fout, cmj->num_ratio);
+  gkyl_dg_updater_moment_advance(cmj->m1icalc, phase_local, conf_local,
     p_over_gamma, 0, 0,
     0, 0, 0,
-    fout, cMJ->num_vb);
+    fout, cmj->num_vb);
 
   // (vb = <Nvb>/<N>) isolate vb by dividing <N*vb> by <N>
-  gkyl_dg_div_op_range(cMJ->mem, cMJ->conf_basis, 0, cMJ->V_drift,
-    0, cMJ->num_vb, 0, cMJ->num_ratio, conf_local);
+  gkyl_dg_div_op_range(cmj->mem, cmj->conf_basis, 0, cmj->V_drift,
+    0, cmj->num_vb, 0, cmj->num_ratio, conf_local);
 
-  // (Gamma = 1/sqrt(1-vb^2)) calculate cMJ->gamma from cMJ->num_vb
-  gkyl_calc_sr_vars_Gamma(&cMJ->conf_basis, &cMJ->phase_basis,
-      conf_local, cMJ->V_drift, cMJ->gamma);
+  // (Gamma = 1/sqrt(1-vb^2)) calculate cmj->gamma from cmj->num_vb
+  gkyl_calc_sr_vars_Gamma(&cmj->conf_basis, &cmj->phase_basis,
+      conf_local, cmj->V_drift, cmj->gamma);
 
   // (Gamma^2 = 1/(1-vb^2)) calculate
-  gkyl_calc_sr_vars_Gamma2(&cMJ->conf_basis, &cMJ->phase_basis,
-      conf_local, cMJ->V_drift, cMJ->GammaV2);
+  gkyl_calc_sr_vars_Gamma2(&cmj->conf_basis, &cmj->phase_basis,
+      conf_local, cmj->V_drift, cmj->GammaV2);
 
   // (Gamma_inv = sqrt(1-vb^2))
-  gkyl_calc_sr_vars_Gamma_inv(&cMJ->conf_basis, &cMJ->phase_basis,
-      conf_local, cMJ->V_drift, cMJ->Gamma_inv);
+  gkyl_calc_sr_vars_Gamma_inv(&cmj->conf_basis, &cmj->phase_basis,
+      conf_local, cmj->V_drift, cmj->Gamma_inv);
 
   // compute the pressure moment (stationary frame)
-  gkyl_dg_updater_moment_advance(cMJ->m2calc, phase_local, conf_local,
+  gkyl_dg_updater_moment_advance(cmj->m2calc, phase_local, conf_local,
         p_over_gamma, gamma,
-        gamma_inv, cMJ->V_drift,
-        cMJ->GammaV2, cMJ->Gamma_inv,
-        fout, cMJ->pressure);
+        gamma_inv, cmj->V_drift,
+        cmj->GammaV2, cmj->Gamma_inv,
+        fout, cmj->pressure);
 
   // (n = N/gamma) divide the number density by gamma, to account for the frame trans.
-  gkyl_dg_div_op_range(cMJ->mem, cMJ->conf_basis, 0, cMJ->num_ratio,
-      0, cMJ->num_ratio, 0, cMJ->gamma, conf_local);
+  gkyl_dg_div_op_range(cmj->mem, cmj->conf_basis, 0, cmj->num_ratio,
+      0, cmj->num_ratio, 0, cmj->gamma, conf_local);
 
   // (T = P/n) Calculate from the restframe Pressure, the rest frame temperature
-  gkyl_dg_div_op_range(cMJ->mem, cMJ->conf_basis, 0, cMJ->temperature,
-    0, cMJ->pressure, 0, cMJ->num_ratio, conf_local);
-
+  gkyl_dg_div_op_range(cmj->mem, cmj->conf_basis, 0, cmj->temperature,
+    0, cmj->pressure, 0, cmj->num_ratio, conf_local);
 
 }
 
 void
-gkyl_MJ_moments_release(gkyl_MJ_moments* cMJ)
+gkyl_mj_moments_release(gkyl_mj_moments* cmj)
 {
 
-  //gkyl_mom_calc_release(cMJ->m0calc);
-  gkyl_dg_updater_moment_release(cMJ->m0calc);
-  gkyl_dg_updater_moment_release(cMJ->m1icalc);
-  gkyl_dg_updater_moment_release(cMJ->m2calc);
-  gkyl_array_release(cMJ->num_ratio);
-  gkyl_array_release(cMJ->num_vb);
-  gkyl_array_release(cMJ->V_drift);
-  gkyl_array_release(cMJ->Gamma_inv);
-  gkyl_array_release(cMJ->gamma);
-  gkyl_array_release(cMJ->GammaV2);
-  gkyl_array_release(cMJ->pressure);
-  gkyl_array_release(cMJ->temperature);
-  gkyl_dg_bin_op_mem_release(cMJ->mem);
+  //gkyl_mom_calc_release(cmj->m0calc);
+  gkyl_dg_updater_moment_release(cmj->m0calc);
+  gkyl_dg_updater_moment_release(cmj->m1icalc);
+  gkyl_dg_updater_moment_release(cmj->m2calc);
+  gkyl_array_release(cmj->num_ratio);
+  gkyl_array_release(cmj->num_vb);
+  gkyl_array_release(cmj->V_drift);
+  gkyl_array_release(cmj->Gamma_inv);
+  gkyl_array_release(cmj->gamma);
+  gkyl_array_release(cmj->GammaV2);
+  gkyl_array_release(cmj->pressure);
+  gkyl_array_release(cmj->temperature);
+  gkyl_dg_bin_op_mem_release(cmj->mem);
 
-  gkyl_free(cMJ);
+  gkyl_free(cmj);
 }
