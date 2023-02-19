@@ -418,6 +418,10 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   gkyl_array_release(f->em_energy);
   gkyl_dynvec_release(f->integ_energy);
 
+  gkyl_array_release(f->bvar);
+  gkyl_array_release(f->kappa_inv_b);
+  gkyl_array_release(f->ExB);
+
   if (f->has_ext_em) {
     gkyl_array_release(f->ext_em);
     if (app->use_gpu)

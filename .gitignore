@@ -17,6 +17,7 @@ waf_tools/*.pyc
 waf_tools/__pycache__/
 gkylzero-dist*
 *.json
+TAGS
 
 # Object files
 *.o
