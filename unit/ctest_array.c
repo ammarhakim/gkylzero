@@ -738,7 +738,7 @@ void test_array_copy_range()
   struct gkyl_range sub_range_r;
   gkyl_sub_range_init(&sub_range_r, &range, lower_r, upper_r);
 
-  gkyl_array_copy_range_to_range(a2, a1, sub_range_r, sub_range_l);
+  gkyl_array_copy_range_to_range(a2, a1, &sub_range_l, &sub_range_r);
 
   gkyl_range_iter_init(&iter, &sub_range_r);
   while (gkyl_range_iter_next(&iter)) {
