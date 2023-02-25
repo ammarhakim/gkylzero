@@ -331,7 +331,7 @@ void gkyl_array_copy_range_cu(struct gkyl_array *out, const struct gkyl_array* i
   struct gkyl_range range);
 
 void gkyl_array_copy_range_to_range_cu(struct gkyl_array *out, const struct gkyl_array* inp,
-  struct gkyl_range out_range, struct gkyl_range inp_range);
+  struct gkyl_range *out_range, struct gkyl_range *inp_range);
 
 void gkyl_array_copy_to_buffer_cu(void *data, const struct gkyl_array *arr, 
   struct gkyl_range range);
