@@ -2,34 +2,32 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
-#include <gkyl_dg_updater_vlasov.h>
+#include <gkyl_dg_updater_gyrokinetic.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
 // Object type
-typedef struct gkyl_dg_updater_bflux_vlasov gkyl_dg_updater_bflux_vlasov;
+typedef struct gkyl_dg_updater_bflux_gyrokinetic gkyl_dg_updater_bflux_gyrokinetic;
 
 // return type for drag and diffusion timers
-struct gkyl_dg_updater_bflux_vlasov_tm {
+struct gkyl_dg_updater_bflux_gyrokinetic_tm {
   double bflux_tm; // time for bflux updates
 };
 
 /**
  * Create new updater to compute the boundary flux contributions from
- * Vlasov equations. These are DG surface terms using hyper dg.
- * Supports Vlasov-Maxwell, Vlasov-Poisson (with and without vector potential A)
- * and special relativistic Vlasov-Maxwell
+ * gyrokinetic equations. These are DG surface terms using hyper dg.
  *
  * @param grid Grid object.
  * @param cdim Number of configuration space dimensions.
- * @param vlasov objects which performs the Vlasov DG update.
+ * @param gyrokinetic objects which performs the gyrokinetic DG update.
  * @param use_gpu Boolean to determine whether struct objects are on host or device
  * 
  * @return New boundary flux updater object.
  */
-gkyl_dg_updater_bflux_vlasov* gkyl_dg_updater_bflux_vlasov_new(const struct gkyl_rect_grid *grid, 
-  int cdim, const gkyl_dg_updater_vlasov *vlasov, bool use_gpu);
+gkyl_dg_updater_bflux_gyrokinetic* gkyl_dg_updater_bflux_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
+  int cdim, const gkyl_dg_updater_gyrokinetic *gyrokinetic, bool use_gpu);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
@@ -42,11 +40,11 @@ gkyl_dg_updater_bflux_vlasov* gkyl_dg_updater_bflux_vlasov_new(const struct gkyl
  * @param fIn Input to updater.
  * @param rhs RHS output.
  */
-void gkyl_dg_updater_bflux_vlasov_advance(gkyl_dg_updater_bflux_vlasov *up,
+void gkyl_dg_updater_bflux_gyrokinetic_advance(gkyl_dg_updater_bflux_gyrokinetic *up,
   const struct gkyl_range *update_rng,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT rhs);
 
-void gkyl_dg_updater_bflux_vlasov_advance_cu(gkyl_dg_updater_bflux_vlasov *up,
+void gkyl_dg_updater_bflux_gyrokinetic_advance_cu(gkyl_dg_updater_bflux_gyrokinetic *up,
   const struct gkyl_range *update_rng,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT rhs);
 
@@ -56,11 +54,11 @@ void gkyl_dg_updater_bflux_vlasov_advance_cu(gkyl_dg_updater_bflux_vlasov *up,
  * @param up Boundary flux updater.
  * @return timers
  */
-struct gkyl_dg_updater_bflux_vlasov_tm gkyl_dg_updater_bflux_vlasov_get_tm(const gkyl_dg_updater_bflux_vlasov *up);
+struct gkyl_dg_updater_bflux_gyrokinetic_tm gkyl_dg_updater_bflux_gyrokinetic_get_tm(const gkyl_dg_updater_bflux_gyrokinetic *up);
 
 /**
  * Delete updater.
  *
  * @param up Boundary flux updater.
  */
-void gkyl_dg_updater_bflux_vlasov_release(gkyl_dg_updater_bflux_vlasov* up);
+void gkyl_dg_updater_bflux_gyrokinetic_release(gkyl_dg_updater_bflux_gyrokinetic* up);

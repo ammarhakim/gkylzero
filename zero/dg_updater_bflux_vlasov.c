@@ -1,7 +1,6 @@
 #include <assert.h>
 #include <math.h>
 #include <time.h>
-
 #include <gkyl_alloc.h>
 #include <gkyl_dg_updater_vlasov.h>
 #include <gkyl_dg_updater_bflux_vlasov.h>
@@ -20,40 +19,40 @@ gkyl_dg_updater_bflux_vlasov_new(const struct gkyl_rect_grid *grid,
 }
 
 void
-gkyl_dg_updater_bflux_vlasov_advance(gkyl_dg_updater_bflux_vlasov *bflux,
+gkyl_dg_updater_bflux_vlasov_advance(gkyl_dg_updater_bflux_vlasov *up,
   const struct gkyl_range *update_rng,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT rhs)
 {
   struct timespec wst = gkyl_wall_clock();
-  gkyl_ghost_surf_calc_advance(bflux->slvr, update_rng, fIn, rhs);
-  bflux->bflux_tm += gkyl_time_diff_now_sec(wst);
+  gkyl_ghost_surf_calc_advance(up->slvr, update_rng, fIn, rhs);
+  up->bflux_tm += gkyl_time_diff_now_sec(wst);
 }
 
 struct gkyl_dg_updater_bflux_vlasov_tm
-OAgkyl_dg_updater_bflux_vlasov_get_tm(const gkyl_dg_updater_bflux_vlasov *bflux)
+OAgkyl_dg_updater_bflux_vlasov_get_tm(const gkyl_dg_updater_bflux_vlasov *up)
 {
   return (struct gkyl_dg_updater_bflux_vlasov_tm) {
-    .bflux_tm = bflux->bflux_tm,
+    .bflux_tm = up->bflux_tm,
   };
 }
 
 void
-gkyl_dg_updater_bflux_vlasov_release(gkyl_dg_updater_bflux_vlasov* bflux)
+gkyl_dg_updater_bflux_vlasov_release(gkyl_dg_updater_bflux_vlasov* up)
 {
-  gkyl_ghost_surf_calc_release(bflux->slvr);
-  gkyl_free(bflux);
+  gkyl_ghost_surf_calc_release(up->slvr);
+  gkyl_free(up);
 }
 
 #ifdef GKYL_HAVE_CUDA
 
 void
-gkyl_dg_updater_bflux_vlasov_advance_cu(gkyl_dg_updater_bflux_vlasov *bflux,
+gkyl_dg_updater_bflux_vlasov_advance_cu(gkyl_dg_updater_bflux_vlasov *up,
   const struct gkyl_range *update_rng,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT rhs)
 {
   struct timespec wst = gkyl_wall_clock();
-  gkyl_ghost_surf_calc_advance_cu(bflux->slvr, update_rng, fIn, rhs);
-  bflux->bflux_tm += gkyl_time_diff_now_sec(wst);
+  gkyl_ghost_surf_calc_advance_cu(up->slvr, update_rng, fIn, rhs);
+  up->bflux_tm += gkyl_time_diff_now_sec(wst);
 }
 
 #endif
@@ -61,7 +60,7 @@ gkyl_dg_updater_bflux_vlasov_advance_cu(gkyl_dg_updater_bflux_vlasov *bflux,
 #ifndef GKYL_HAVE_CUDA
 
 void
-gkyl_dg_updater_bflux_vlasov_advance_cu(gkyl_dg_updater_bflux_vlasov *bflux,
+gkyl_dg_updater_bflux_vlasov_advance_cu(gkyl_dg_updater_bflux_vlasov *up,
   const struct gkyl_range *update_rng,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT rhs)
 {
