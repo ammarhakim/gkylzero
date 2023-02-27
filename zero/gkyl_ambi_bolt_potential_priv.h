@@ -63,7 +63,6 @@ struct gkyl_ambi_bolt_potential {
   double mass_e;  // Electron mass.
   double charge_e;  // Electron charge.
   double temp_e;  // Electron temperature.
-  struct gkyl_range loskin_r, upskin_r;  // Lower/upper skin ranges.
   struct gkyl_ambi_bolt_potential_kernels *kernels;  // sheath_calc and phi_calc kernels.
   struct gkyl_ambi_bolt_potential_kernels *kernels_cu;  // device copy.
 };

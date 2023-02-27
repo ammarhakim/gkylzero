@@ -4,7 +4,6 @@
 
 gkyl_ambi_bolt_potential*
 gkyl_ambi_bolt_potential_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
-  const struct gkyl_range *local_range_ext, const int *num_ghosts,
   double mass_e, double charge_e, double temp_e, bool use_gpu)
 {
   struct gkyl_ambi_bolt_potential *up = gkyl_malloc(sizeof(struct gkyl_ambi_bolt_potential));
@@ -19,11 +18,6 @@ gkyl_ambi_bolt_potential_new(const struct gkyl_rect_grid *grid, const struct gky
   up->mass_e = mass_e;
   up->charge_e = charge_e;
   up->temp_e = temp_e;
-
-  // Create ranges over the skin cells along the field line.
-  struct gkyl_range ghost_r;
-  gkyl_skin_ghost_ranges(&up->loskin_r, &ghost_r, sheath_dir, GKYL_LOWER_EDGE, local_range_ext, num_ghosts);
-  gkyl_skin_ghost_ranges(&up->upskin_r, &ghost_r, sheath_dir, GKYL_UPPER_EDGE, local_range_ext, num_ghosts);
 
   up->kernels = gkyl_malloc(sizeof(struct gkyl_ambi_bolt_potential_kernels));
 #ifdef GKYL_HAVE_CUDA
@@ -43,33 +37,64 @@ gkyl_ambi_bolt_potential_new(const struct gkyl_rect_grid *grid, const struct gky
 
 void
 gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, enum gkyl_edge_loc edge,
-  struct gkyl_array *jacob_geo_inv, struct gkyl_array *gammai, struct gkyl_array *m0i,
-  struct gkyl_array *sheath_vals)
+  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_array *jacob_geo_inv,
+  const struct gkyl_array *gammai, const struct gkyl_array *m0i, struct gkyl_array *sheath_vals)
 {
   unsigned int keridx = (edge == GKYL_LOWER_EDGE) ? 0 : 1;
 
-  int sonly_idx[GKYL_MAX_CDIM]; // Index in skin-only array/grid.
+  int idx_s[GKYL_MAX_CDIM]; // Skin index.
 
-  struct gkyl_range *skin_r = (edge == GKYL_LOWER_EDGE) ? &up->loskin_r : &up->upskin_r;
+  // MF 2022/02/27: Although we wish to obtain skin-cell quantities (sheath
+  // potential and density) we loop over the ghost cell because it is easier
+  // given that ghost grids exist in the app, but we have not created skin
+  // grids. And gammai and sheath_vals are defined on the ghost grid.
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, skin_r);
+  gkyl_range_iter_init(&iter, ghost_r);
   while (gkyl_range_iter_next(&iter)) {
+    long ghost_loc = gkyl_range_idx(ghost_r, iter.idx);
 
-    long skin_loc = gkyl_range_idx(skin_r, iter.idx);
+    gkyl_copy_int_arr(up->ndim, iter.idx, idx_s);
+    // Assume only 1 ghost cell on either side along the field line.
+    idx_s[up->ndim-1] = edge == GKYL_LOWER_EDGE? iter.idx[up->ndim-1]+1 : iter.idx[up->ndim-1]-1;
 
-    gkyl_copy_int_arr(skin_r->ndim, iter.idx, sonly_idx);
-    sonly_idx[up->ndim] = 0;
-
-    long sonly_loc = gkyl_range_idx(skin_r, sonly_idx);
+    long skin_loc = gkyl_range_idx(skin_r, idx_s);
 
     const double *jacinv_p = (const double*) gkyl_array_cfetch(jacob_geo_inv, skin_loc);
-    const double *gammai_p = (const double*) gkyl_array_cfetch(gammai, skin_loc);
     const double *m0i_p = (const double*) gkyl_array_cfetch(m0i, skin_loc);
+    const double *gammai_p = (const double*) gkyl_array_cfetch(gammai, ghost_loc);
 
-    double *out_p = (double*) gkyl_array_cfetch(sheath_vals, sonly_loc);
+    double *out_p = (double*) gkyl_array_cfetch(sheath_vals, ghost_loc);
 
     up->kernels->sheath_calc[keridx](up->dz, up->charge_e, up->mass_e, up->temp_e, jacinv_p, gammai_p, m0i_p, out_p);
-  
+  }
+}
+
+void
+gkyl_ambi_bolt_potential_phi_calc(struct gkyl_ambi_bolt_potential *up, enum gkyl_edge_loc edge,
+  const struct gkyl_range *extlocal_r, const struct gkyl_array *jacob_geo_inv, const struct gkyl_array *m0i,
+  const struct gkyl_array *sheath_vals, struct gkyl_array *phi)
+{
+  int idx_g[GKYL_MAX_CDIM]; // Index in ghost grid sheath_vals is defined on.
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, extlocal_r);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(extlocal_r, iter.idx);
+
+    // We assume each MPI rank calls this over the local extended range and
+    // that the sheath values are defined on the lower local ghost range.
+    gkyl_copy_int_arr(up->ndim, iter.idx, idx_g);
+    idx_g[up->ndim-1] = extlocal_r->lower[up->ndim-1];
+
+    long ghost_loc = gkyl_range_idx(extlocal_r, idx_g);
+
+    const double *jacinv_p = (const double*) gkyl_array_cfetch(jacob_geo_inv, loc);
+    const double *m0i_p = (const double*) gkyl_array_cfetch(m0i, loc);
+    const double *sheathvals_p = (const double*) gkyl_array_cfetch(sheath_vals, ghost_loc);
+
+    double *phi_p = (double*) gkyl_array_cfetch(phi, loc);
+
+    up->kernels->phi_calc(up->charge_e, up->temp_e, jacinv_p, m0i_p, sheathvals_p, phi_p);
   }
 }
 
