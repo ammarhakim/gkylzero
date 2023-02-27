@@ -56,7 +56,7 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
   const gkyl_dg_gyrokinetic_vol_kern_list *vol_kernels;
   const gkyl_dg_gyrokinetic_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;
   const gkyl_dg_gyrokinetic_surf_kern_list *surf_vpar_kernels;
-  const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_x_kernels,*boundary_surf_y_kernels,*boundary_surf_z_kernels,;
+  const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_x_kernels,*boundary_surf_y_kernels,*boundary_surf_z_kernels;
   const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_vpar_kernels;
   
   switch (b_type) {

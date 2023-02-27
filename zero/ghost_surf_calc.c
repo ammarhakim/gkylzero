@@ -11,7 +11,7 @@
 
 void
 gkyl_ghost_surf_calc_advance(gkyl_ghost_surf_calc *gcalc,
-  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
+  const struct gkyl_range *phase_rng,
   const struct gkyl_array *fIn, struct gkyl_array *rhs)
 {
   // Ghost and skin index and cell center coordinates.
@@ -28,7 +28,7 @@ gkyl_ghost_surf_calc_advance(gkyl_ghost_surf_calc *gcalc,
     cupper_idx[d] = phase_rng->upper[d];
   }
 
-  for (int dir=0; dir<conf_rng->ndim; ++dir) {
+  for (int dir=0; dir<gcalc->cdim; ++dir) {
     // Ghost surf at lower boundary.
     clower_idx[dir] = phase_rng->lower[dir];
     cupper_idx[dir] = phase_rng->lower[dir];
@@ -83,11 +83,17 @@ gkyl_ghost_surf_calc_advance(gkyl_ghost_surf_calc *gcalc,
 
 gkyl_ghost_surf_calc*
 gkyl_ghost_surf_calc_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_dg_eqn *equation)
+  const struct gkyl_dg_eqn *equation, int cdim, bool use_gpu)
 {
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_ghost_surf_calc_cu_dev_new(grid, equation, cdim);
+  } 
+#endif
   gkyl_ghost_surf_calc *up = gkyl_malloc(sizeof(gkyl_ghost_surf_calc));
   up->grid = *grid;
   up->equation = gkyl_dg_eqn_acquire(equation);
+  up->cdim = cdim;
   
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
@@ -100,7 +106,7 @@ gkyl_ghost_surf_calc_new(const struct gkyl_rect_grid *grid,
 void
 gkyl_ghost_surf_calc_release(gkyl_ghost_surf_calc* up)
 {
-  gkyl_dg_eqn_release(up->equation);
+  // gkyl_dg_eqn_release(up->equation);
   if (GKYL_IS_CU_ALLOC(up->flags))
     gkyl_cu_free(up->on_dev);
   gkyl_free(up);
@@ -110,7 +116,7 @@ gkyl_ghost_surf_calc_release(gkyl_ghost_surf_calc* up)
 
 void
 gkyl_ghost_surf_calc_advance_cu(gkyl_ghost_surf_calc *gcalc,
-  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
+  const struct gkyl_range *phase_rng,
   const struct gkyl_array *fIn, struct gkyl_array *rhs)
 {
   assert(false);
@@ -118,7 +124,7 @@ gkyl_ghost_surf_calc_advance_cu(gkyl_ghost_surf_calc *gcalc,
 
 gkyl_ghost_surf_calc*
 gkyl_ghost_surf_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_dg_eqn *equation)
+  const struct gkyl_dg_eqn *equation, int cdim)
 {
   assert(false);
 }

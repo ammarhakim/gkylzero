@@ -729,21 +729,25 @@ void test_array_copy_range()
   // clear array for second test
   gkyl_array_clear(a2, 0.0);
   // initialize left sub-range
-  int lower_l[] = {range.lower[0], range.lower[1]}, upper_l[] = {range.lower[0], range.upper[1]};
+  int lower_l[] = {range.lower[0], range.lower[1]}, upper_l[] = {range.lower[0], shape[1]/2-1};
   struct gkyl_range sub_range_l;
   gkyl_sub_range_init(&sub_range_l, &range, lower_l, upper_l);
   
   // initialize right sub-range
-  int lower_r[] = {range.upper[0], range.lower[1]}, upper_r[] = {range.upper[0], range.upper[1]};
+  int lower_r[] = {range.upper[0], shape[1]/2}, upper_r[] = {range.upper[0], range.upper[1]};
   struct gkyl_range sub_range_r;
   gkyl_sub_range_init(&sub_range_r, &range, lower_r, upper_r);
 
-  gkyl_array_copy_range_to_range(a2, a1, sub_range_r, sub_range_l);
+  gkyl_array_copy_range_to_range(a2, a1, &sub_range_r, &sub_range_l);
 
   gkyl_range_iter_init(&iter, &sub_range_r);
   while (gkyl_range_iter_next(&iter)) {
+    int idx_l[GKYL_MAX_DIM];
+    idx_l[0] = range.lower[0], idx_l[1] = iter.idx[1]-shape[1]/2;
     double *d = gkyl_array_fetch(a2, gkyl_range_idx(&sub_range_r, iter.idx));
-    TEST_CHECK( d[0]  == iter.idx[0] + 10.5*iter.idx[1] );
+    TEST_CHECK( d[0]  == idx_l[0] + 10.5*idx_l[1] );
+    TEST_MSG("Expected: %.13e in cell (%d,%d)", iter.idx[0] + 10.5*iter.idx[1], iter.idx[0], iter.idx[1]);
+    TEST_MSG("Produced: %.13e", d[0]);
   }
 
   gkyl_array_release(a1);
@@ -2122,24 +2126,27 @@ void test_cu_array_copy_range()
   // clear array for second test
   gkyl_array_clear_cu(a2_cu, 0.0);
   // initialize left sub-range
-  int lower_l[] = {range.lower[0], range.lower[1]}, upper_l[] = {range.lower[0], range.upper[1]};
+  int lower_l[] = {range.lower[0], range.lower[1]}, upper_l[] = {range.lower[0], shape[1]/2-1};
   struct gkyl_range sub_range_l;
   gkyl_sub_range_init(&sub_range_l, &range, lower_l, upper_l);
   
   // initialize right sub-range
-  int lower_r[] = {range.upper[0], range.lower[1]}, upper_r[] = {range.upper[0], range.upper[1]};
+  int lower_r[] = {range.upper[0], shape[1]/2}, upper_r[] = {range.upper[0], range.upper[1]};
   struct gkyl_range sub_range_r;
   gkyl_sub_range_init(&sub_range_r, &range, lower_r, upper_r);
 
-  //gkyl_array_copy_range_to_range_cu(a2_cu, a1_cu, sub_range_r, sub_range_l);
+  gkyl_array_copy_range_to_range_cu(a2_cu, a1_cu, &sub_range_r, &sub_range_l);
 
   // copy back to host to check contents
   gkyl_array_copy(a2, a2_cu);
   gkyl_range_iter_init(&iter, &sub_range_r);
   while (gkyl_range_iter_next(&iter)) {
+    int idx_l[GKYL_MAX_DIM];
+    idx_l[0] = range.lower[0], idx_l[1] = iter.idx[1]-shape[1]/2;
     double *d = gkyl_array_fetch(a2, gkyl_range_idx(&sub_range_r, iter.idx));
-    // TODO: This test FAILS
-    //TEST_CHECK( d[0]  == iter.idx[0] + 10.5*iter.idx[1] );
+    TEST_CHECK( d[0]  == idx_l[0] + 10.5*idx_l[1] );
+    TEST_MSG("Expected: %.13e in cell (%d,%d)", iter.idx[0] + 10.5*iter.idx[1], iter.idx[0], iter.idx[1]);
+    TEST_MSG("Produced: %.13e", d[0]);
   }
 
   gkyl_array_release(a1);
@@ -2204,7 +2211,7 @@ TEST_LIST = {
   { "cu_array_copy_buffer", test_cu_array_copy_buffer },
   { "cu_array_copy_buffer_fn", test_cu_array_copy_buffer_fn },
   { "cu_array_flip_copy_buffer_fn", test_cu_array_flip_copy_buffer_fn },
-//  { "cu_array_copy_range", test_cu_array_copy_range },
+  { "cu_array_copy_range", test_cu_array_copy_range },
   { "cu_array_dev_kernel", test_cu_array_dev_kernel },
 #endif
   { NULL, NULL },
