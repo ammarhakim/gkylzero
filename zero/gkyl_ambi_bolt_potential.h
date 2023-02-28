@@ -52,7 +52,7 @@ gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, enum g
  *  phi = phi_s + (T_e/e)*ln(n_i/n_is).
  *
  * @param up Ambipolar, Boltzmann electron sheath potential updater. 
- * @param edge Lower (-1) or upper (1) boundary along the field line.
+ * @param local_r Local range.
  * @param extlocal_r Extended local range.
  * @param jacob_geo_inv Reciprocal of the configuration space Jacobian.
  * @param m0i Ion number density times the conf-space Jacobian.
@@ -60,9 +60,10 @@ gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, enum g
  * @param phi electrostatic potential.
  */
 void
-gkyl_ambi_bolt_potential_phi_calc(struct gkyl_ambi_bolt_potential *up, enum gkyl_edge_loc edge,
-  const struct gkyl_range *extlocal_r, const struct gkyl_array *jacob_geo_inv,
-  const struct gkyl_array *m0i, const struct gkyl_array *sheath_vals, struct gkyl_array *phi);
+gkyl_ambi_bolt_potential_phi_calc(struct gkyl_ambi_bolt_potential *up,
+  const struct gkyl_range *local_r, const struct gkyl_range *extlocal_r,
+  const struct gkyl_array *jacob_geo_inv, const struct gkyl_array *m0i,
+  const struct gkyl_array *sheath_vals, struct gkyl_array *phi);
 
 /**
  * Delete updater.

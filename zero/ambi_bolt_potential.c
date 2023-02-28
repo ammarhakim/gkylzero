@@ -35,8 +35,7 @@ gkyl_ambi_bolt_potential_new(const struct gkyl_rect_grid *grid, const struct gky
   return up;
 }
 
-void
-gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, enum gkyl_edge_loc edge,
+void gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, enum gkyl_edge_loc edge,
   const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_array *jacob_geo_inv,
   const struct gkyl_array *gammai, const struct gkyl_array *m0i, struct gkyl_array *sheath_vals)
 {
@@ -69,19 +68,19 @@ gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, enum g
   }
 }
 
-void
-gkyl_ambi_bolt_potential_phi_calc(struct gkyl_ambi_bolt_potential *up, enum gkyl_edge_loc edge,
-  const struct gkyl_range *extlocal_r, const struct gkyl_array *jacob_geo_inv, const struct gkyl_array *m0i,
+void gkyl_ambi_bolt_potential_phi_calc(struct gkyl_ambi_bolt_potential *up,
+  const struct gkyl_range *local_r, const struct gkyl_range *extlocal_r,
+  const struct gkyl_array *jacob_geo_inv, const struct gkyl_array *m0i,
   const struct gkyl_array *sheath_vals, struct gkyl_array *phi)
 {
   int idx_g[GKYL_MAX_CDIM]; // Index in ghost grid sheath_vals is defined on.
 
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, extlocal_r);
+  gkyl_range_iter_init(&iter, local_r);
   while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(extlocal_r, iter.idx);
+    long loc = gkyl_range_idx(local_r, iter.idx);
 
-    // We assume each MPI rank calls this over the local extended range and
+    // We assume each MPI rank calls this over the local range and
     // that the sheath values are defined on the lower local ghost range.
     gkyl_copy_int_arr(up->ndim, iter.idx, idx_g);
     idx_g[up->ndim-1] = extlocal_r->lower[up->ndim-1];
@@ -98,8 +97,8 @@ gkyl_ambi_bolt_potential_phi_calc(struct gkyl_ambi_bolt_potential *up, enum gkyl
   }
 }
 
-void
-gkyl_ambi_bolt_potential_release(gkyl_ambi_bolt_potential *up)
+void gkyl_ambi_bolt_potential_release(gkyl_ambi_bolt_potential *up)
 {
+  gkyl_free(up->kernels);
   gkyl_free(up);
 }

@@ -69,7 +69,7 @@ struct gkyl_ambi_bolt_potential {
 
 // "Choose Kernel" based on cdim, vdim and polyorder
 #define CSHEATHK(lst,dim,poly_order,loc) lst[dim-1].list[poly_order-1].kernels[loc]
-#define CPHIK(lst,dim,poly_order) lst[dim-1].kernels[poly_order]
+#define CPHIK(lst,dim,poly_order) lst[dim-1].kernels[poly_order-1]
 
 static void
 ambi_bolt_potential_choose_kernels(const struct gkyl_basis* basis, struct gkyl_ambi_bolt_potential_kernels *kers)
