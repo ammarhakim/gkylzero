@@ -71,6 +71,7 @@ struct gkyl_ambi_bolt_potential {
 #define CSHEATHK(lst,dim,poly_order,loc) lst[dim-1].list[poly_order-1].kernels[loc]
 #define CPHIK(lst,dim,poly_order) lst[dim-1].kernels[poly_order-1]
 
+GKYL_CU_D
 static void
 ambi_bolt_potential_choose_kernels(const struct gkyl_basis* basis, struct gkyl_ambi_bolt_potential_kernels *kers)
 {
@@ -91,3 +92,6 @@ ambi_bolt_potential_choose_kernels(const struct gkyl_basis* basis, struct gkyl_a
       break;
   }
 }
+
+void
+ambi_bolt_potential_choose_kernels_cu(const struct gkyl_basis *basis, struct gkyl_ambi_bolt_potential_kernels *kers);

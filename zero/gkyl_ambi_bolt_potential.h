@@ -47,6 +47,11 @@ gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, enum g
   const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_array *jacob_geo_inv,
   const struct gkyl_array *gammai, const struct gkyl_array *m0i, struct gkyl_array *sheath_vals);
 
+void
+gkyl_ambi_bolt_potential_sheath_calc_cu(struct gkyl_ambi_bolt_potential *up, enum gkyl_edge_loc edge,
+  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_array *jacob_geo_inv,
+  const struct gkyl_array *gammai, const struct gkyl_array *m0i, struct gkyl_array *sheath_vals);
+
 /**
  * Compute the electrostatic potential in the domain as
  *  phi = phi_s + (T_e/e)*ln(n_i/n_is).
@@ -61,6 +66,12 @@ gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, enum g
  */
 void
 gkyl_ambi_bolt_potential_phi_calc(struct gkyl_ambi_bolt_potential *up,
+  const struct gkyl_range *local_r, const struct gkyl_range *extlocal_r,
+  const struct gkyl_array *jacob_geo_inv, const struct gkyl_array *m0i,
+  const struct gkyl_array *sheath_vals, struct gkyl_array *phi);
+
+void
+gkyl_ambi_bolt_potential_phi_calc_cu(struct gkyl_ambi_bolt_potential *up,
   const struct gkyl_range *local_r, const struct gkyl_range *extlocal_r,
   const struct gkyl_array *jacob_geo_inv, const struct gkyl_array *m0i,
   const struct gkyl_array *sheath_vals, struct gkyl_array *phi);

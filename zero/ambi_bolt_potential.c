@@ -31,6 +31,10 @@ gkyl_ambi_bolt_potential_new(const struct gkyl_rect_grid *grid, const struct gky
 
   // Select sheath_calc and phi_calc kernels.
   ambi_bolt_potential_choose_kernels(basis, up->kernels);
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu)
+    ambi_bolt_potential_choose_kernels_cu(basis, up->kernels_cu);
+#endif
 
   return up;
 }
@@ -39,6 +43,12 @@ void gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, e
   const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_array *jacob_geo_inv,
   const struct gkyl_array *gammai, const struct gkyl_array *m0i, struct gkyl_array *sheath_vals)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu)
+    return gkyl_ambi_bolt_potential_sheath_calc_cu(up, edge, skin_r, ghost_r, jacob_geo_inv,
+		                                   gammai, m0i, sheath_vals);
+#endif
+
   unsigned int keridx = (edge == GKYL_LOWER_EDGE) ? 0 : 1;
 
   int idx_s[GKYL_MAX_CDIM]; // Skin index.
@@ -50,18 +60,16 @@ void gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, e
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, ghost_r);
   while (gkyl_range_iter_next(&iter)) {
-    long ghost_loc = gkyl_range_idx(ghost_r, iter.idx);
-
     gkyl_copy_int_arr(up->ndim, iter.idx, idx_s);
     // Assume only 1 ghost cell on either side along the field line.
     idx_s[up->ndim-1] = edge == GKYL_LOWER_EDGE? iter.idx[up->ndim-1]+1 : iter.idx[up->ndim-1]-1;
 
+    long ghost_loc = gkyl_range_idx(ghost_r, iter.idx);
     long skin_loc = gkyl_range_idx(skin_r, idx_s);
 
     const double *jacinv_p = (const double*) gkyl_array_cfetch(jacob_geo_inv, skin_loc);
     const double *m0i_p = (const double*) gkyl_array_cfetch(m0i, skin_loc);
     const double *gammai_p = (const double*) gkyl_array_cfetch(gammai, ghost_loc);
-
     double *out_p = (double*) gkyl_array_cfetch(sheath_vals, ghost_loc);
 
     up->kernels->sheath_calc[keridx](up->dz, up->charge_e, up->mass_e, up->temp_e, jacinv_p, gammai_p, m0i_p, out_p);
@@ -73,24 +81,28 @@ void gkyl_ambi_bolt_potential_phi_calc(struct gkyl_ambi_bolt_potential *up,
   const struct gkyl_array *jacob_geo_inv, const struct gkyl_array *m0i,
   const struct gkyl_array *sheath_vals, struct gkyl_array *phi)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu)
+    return gkyl_ambi_bolt_potential_phi_calc_cu(up, local_r, extlocal_r, jacob_geo_inv,
+		                                m0i, sheath_vals, phi);
+#endif
+
   int idx_g[GKYL_MAX_CDIM]; // Index in ghost grid sheath_vals is defined on.
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, local_r);
   while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(local_r, iter.idx);
-
     // We assume each MPI rank calls this over the local range and
     // that the sheath values are defined on the lower local ghost range.
     gkyl_copy_int_arr(up->ndim, iter.idx, idx_g);
     idx_g[up->ndim-1] = extlocal_r->lower[up->ndim-1];
 
+    long loc = gkyl_range_idx(local_r, iter.idx);
     long ghost_loc = gkyl_range_idx(extlocal_r, idx_g);
 
     const double *jacinv_p = (const double*) gkyl_array_cfetch(jacob_geo_inv, loc);
     const double *m0i_p = (const double*) gkyl_array_cfetch(m0i, loc);
     const double *sheathvals_p = (const double*) gkyl_array_cfetch(sheath_vals, ghost_loc);
-
     double *phi_p = (double*) gkyl_array_cfetch(phi, loc);
 
     up->kernels->phi_calc(up->charge_e, up->temp_e, jacinv_p, m0i_p, sheathvals_p, phi_p);
@@ -100,5 +112,9 @@ void gkyl_ambi_bolt_potential_phi_calc(struct gkyl_ambi_bolt_potential *up,
 void gkyl_ambi_bolt_potential_release(gkyl_ambi_bolt_potential *up)
 {
   gkyl_free(up->kernels);
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu)
+    gkyl_cu_free(up->kernels_cu);
+#endif
   gkyl_free(up);
 }
