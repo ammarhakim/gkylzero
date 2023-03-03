@@ -356,13 +356,19 @@ struct gkyl_moment_species {
   void *ctx; // context for initial condition init function (and potentially other functions)
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
-  // pointer to boundary condition functions
-  void (*bc_lower_func)(double t, int nc, const double *skin, double *  ghost, void *ctx);
-  void (*bc_upper_func)(double t, int nc, const double *skin, double *  ghost, void *ctx);
   // pointer to applied acceleration/forces function
   void (*app_accel_func)(double t, const double *xn, double *fout, void *ctx);
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
+  // pointer to boundary condition functions along x
+  void (*bcx_lower_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  void (*bcx_upper_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  // pointer to boundary condition functions along y
+  void (*bcy_lower_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  void (*bcy_upper_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  // pointer to boundary condition functions along z
+  void (*bcz_lower_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  void (*bcz_upper_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
 };
 
 // Parameter for EM field
@@ -386,6 +392,15 @@ struct gkyl_moment_field {
   
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
+  // pointer to boundary condition functions along x
+  void (*bcx_lower_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  void (*bcx_upper_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  // pointer to boundary condition functions along y
+  void (*bcy_lower_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  void (*bcy_upper_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  // pointer to boundary condition functions along z
+  void (*bcz_lower_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  void (*bcz_upper_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
 };
 
 // Choices of schemes to use in the fluid solver 
@@ -758,6 +773,15 @@ local function gkyl_eval_applied(func)
    end
 end
 
+local function gkyl_eval_bc(func)
+   return function(t, nc, skin, ghost, ctx)
+      local ret = { func(t, nc, skin, ctx) } -- package return into table
+      for i=1,#ret do
+         ghost[i-1] = ret[i]
+      end
+   end
+end
+
 local function gkyl_eval_mapc2p(func)
    return function(t, xn, fout, ctx)
       local xnl = ffi.new("double[10]")
@@ -842,6 +866,26 @@ local species_mt = {
          s.bcz[0], s.bcz[1] = tbl.bcz[1], tbl.bcz[2]
       end
 
+      if tbl.bcx_lower_func then
+         s.bcx_lower_func = gkyl_eval_bc(tbl.bcx_lower_func)
+      end
+      if tbl.bcy_lower_func then
+         s.bcy_lower_func = gkyl_eval_bc(tbl.bcy_lower_func)
+      end
+      if tbl.bcz_lower_func then
+         s.bcz_lower_func = gkyl_eval_bc(tbl.bcz_lower_func)
+      end
+
+      if tbl.bcx_upper_func then
+         s.bcx_upper_func = gkyl_eval_bc(tbl.bcx_upper_func)
+      end
+      if tbl.bcy_upper_func then
+         s.bcy_upper_func = gkyl_eval_bc(tbl.bcy_upper_func)
+      end
+      if tbl.bcz_upper_func then
+         s.bcz_upper_func = gkyl_eval_bc(tbl.bcz_upper_func)
+      end
+
       return s
    end,
    __index = {
@@ -850,7 +894,8 @@ local species_mt = {
       bcWall = C.GKYL_SPECIES_REFLECT,
       bcCopy = C.GKYL_SPECIES_COPY,
       bcNoSlip = C.GKYL_SPECIES_NO_SLIP,
-      bcWedge = C.GKYL_SPECIES_WEDGE
+      bcWedge = C.GKYL_SPECIES_WEDGE,
+      bcFunc = C.GKYL_SPECIES_FUNC
    }
 }
 _M.Species = ffi.metatype(species_type, species_mt)
@@ -942,6 +987,26 @@ local field_mt = {
          f.bcz[0], f.bcz[1] = tbl.bcz[1], tbl.bcz[2]
       end
 
+      if tbl.bcx_lower_func then
+         f.bcx_lower_func = gkyl_eval_bc(tbl.bcx_lower_func)
+      end
+      if tbl.bcy_lower_func then
+         f.bcy_lower_func = gkyl_eval_bc(tbl.bcy_lower_func)
+      end
+      if tbl.bcz_lower_func then
+         f.bcz_lower_func = gkyl_eval_bc(tbl.bcz_lower_func)
+      end
+
+      if tbl.bcx_upper_func then
+         f.bcx_upper_func = gkyl_eval_bc(tbl.bcx_upper_func)
+      end
+      if tbl.bcy_upper_func then
+         f.bcy_upper_func = gkyl_eval_bc(tbl.bcy_upper_func)
+      end
+      if tbl.bcz_upper_func then
+         f.bcz_upper_func = gkyl_eval_bc(tbl.bcz_upper_func)
+      end
+
       return f
    end,
    __index = {
@@ -949,7 +1014,8 @@ local field_mt = {
       bcCopy = C.GKYL_FIELD_COPY,
       bcReflect = C.GKYL_FIELD_PEC_WALL,
       bcPEC = C.GKYL_FIELD_PEC_WALL,
-      bcWedge = C.GKYL_FIELD_WEDGE
+      bcWedge = C.GKYL_FIELD_WEDGE,
+      bcFunc = C.GKYL_FIELD_FUNC
    }
 }
 _M.Field = ffi.metatype(field_type, field_mt)
