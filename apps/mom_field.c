@@ -157,6 +157,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         case GKYL_FIELD_WEDGE:
           fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_copy, 0);
+          break;
 
         case GKYL_FIELD_FUNC:
           fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
