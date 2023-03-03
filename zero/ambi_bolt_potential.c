@@ -12,9 +12,7 @@ gkyl_ambi_bolt_potential_new(const struct gkyl_rect_grid *grid, const struct gky
   up->num_basis = basis->num_basis;
   up->use_gpu = use_gpu;
 
-  int sheath_dir = up->ndim;
-
-  up->dz = grid->dx[sheath_dir];
+  up->dz = grid->dx[up->ndim-1];
   up->mass_e = mass_e;
   up->charge_e = charge_e;
   up->temp_e = temp_e;

@@ -1,6 +1,6 @@
 #include <gkyl_ambi_bolt_potential_kernels.h>
 
-GKYL_CU_DH void ambi_bolt_potential_sheath_calc_lower_1x_ser_p2(const double sheathDirDx, double q_e, double m_e, double T_e, const double *jacInv, const double *GammaJac_i, const double *m0JacIon, double *out) 
+GKYL_CU_DH void ambi_bolt_potential_sheath_calc_lower_1x_ser_p2(double sheathDirDx, double q_e, double m_e, double T_e, const double *jacInv, const double *GammaJac_i, const double *m0JacIon, double *out) 
 { 
   // sheathDirDx: cell length in direction of the sheath.
   // q_e:         electron change.
@@ -32,7 +32,7 @@ GKYL_CU_DH void ambi_bolt_potential_sheath_calc_lower_1x_ser_p2(const double she
 
 }
 
-GKYL_CU_DH void ambi_bolt_potential_sheath_calc_upper_1x_ser_p2(const double sheathDirDx, double q_e, double m_e, double T_e, const double *jacInv, const double *GammaJac_i, const double *m0JacIon, double *out) 
+GKYL_CU_DH void ambi_bolt_potential_sheath_calc_upper_1x_ser_p2(double sheathDirDx, double q_e, double m_e, double T_e, const double *jacInv, const double *GammaJac_i, const double *m0JacIon, double *out) 
 { 
   // sheathDirDx: cell length in direction of the sheath.
   // q_e:         electron change.
