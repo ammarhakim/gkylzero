@@ -121,6 +121,7 @@ enum gkyl_field_bc_type {
   GKYL_FIELD_COPY = 0, // copy BCs
   GKYL_FIELD_PEC_WALL, // perfect electrical conductor (PEC) BCs
   GKYL_FIELD_WEDGE, // specialized "wedge" BCs for RZ-theta
+  GKYL_FIELD_FUNC, // Function boundary conditions
 };
 
 ]]
