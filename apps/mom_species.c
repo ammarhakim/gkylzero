@@ -139,7 +139,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
       else
         bc_upper_func = mom_sp->bcz_upper_func;
 
-      sp->upper_bct[dir] = bc[0];
+      sp->lower_bct[dir] = bc[0];
       sp->upper_bct[dir] = bc[1];
 
       // lower BCs
