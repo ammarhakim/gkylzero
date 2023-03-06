@@ -8,9 +8,10 @@
 #include <gkyl_dg_updater_moment.h>
 #include <gkyl_proj_on_basis.h>
 
+#include <gkyl_array_ops.h>
+#include <gkyl_array_ops_priv.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_vlasov_sr.h>
-#include <gkyl_array_ops_priv.h> 
 
 
 struct gkyl_mj_moments {
@@ -120,6 +121,14 @@ void gkyl_mj_moments_advance(gkyl_mj_moments *cmj, const struct gkyl_array *p_ov
   // (T = P/n) Calculate from the restframe Pressure, the rest frame temperature
   gkyl_dg_div_op_range(cmj->mem, cmj->conf_basis, 0, cmj->temperature,
     0, cmj->pressure, 0, cmj->num_ratio, conf_local);
+
+  // Save the outputs to m0 m1i m2 (for n vb T):
+  gkyl_array_clear(m0, 0.0);
+  gkyl_array_clear(m1i, 0.0);
+  gkyl_array_clear(m2, 0.0);
+  gkyl_array_accumulate(m0, 1.0, cmj->num_ratio);
+  gkyl_array_accumulate(m1i, 1.0, cmj->V_drift);
+  gkyl_array_accumulate(m2, 1.0, cmj->temperature);
 
 }
 
