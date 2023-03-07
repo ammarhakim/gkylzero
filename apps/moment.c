@@ -392,15 +392,15 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
 void
 gkyl_moment_app_release(gkyl_moment_app* app)
 {
+  if (app->update_sources)
+    moment_coupling_release(app, &app->sources);
+  
   for (int i=0; i<app->num_species; ++i)
     moment_species_release(&app->species[i]);
   gkyl_free(app->species);
 
   if (app->has_field)
     moment_field_release(&app->field);
-
-  if (app->update_sources)
-    moment_coupling_release(app, &app->sources);
 
   if (app->update_mhd_source)
     mhd_src_release(&app->mhd_source);
