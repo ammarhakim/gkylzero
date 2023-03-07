@@ -22,13 +22,19 @@ struct gkyl_moment_species {
   void *ctx; // context for initial condition init function (and potentially other functions)
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
-  // pointer to boundary condition functions
-  void (*bc_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
-  void (*bc_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
   // pointer to applied acceleration/forces function
   void (*app_accel_func)(double t, const double *xn, double *fout, void *ctx);
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
+  // pointer to boundary condition functions along x
+  void (*bcx_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  void (*bcx_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  // pointer to boundary condition functions along y
+  void (*bcy_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  void (*bcy_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  // pointer to boundary condition functions along z
+  void (*bcz_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  void (*bcz_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
 };
 
 // Parameter for EM field
@@ -52,6 +58,15 @@ struct gkyl_moment_field {
   
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
+  // pointer to boundary condition functions along x
+  void (*bcx_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  void (*bcx_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  // pointer to boundary condition functions along y
+  void (*bcy_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  void (*bcy_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  // pointer to boundary condition functions along z
+  void (*bcz_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  void (*bcz_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
 };
 
 // Choices of schemes to use in the fluid solver 
