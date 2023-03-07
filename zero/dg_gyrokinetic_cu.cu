@@ -56,6 +56,7 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
   const gkyl_dg_gyrokinetic_vol_kern_list *vol_kernels;
   const gkyl_dg_gyrokinetic_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;
   const gkyl_dg_gyrokinetic_surf_kern_list *surf_vpar_kernels;
+  const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_x_kernels,*boundary_surf_y_kernels,*boundary_surf_z_kernels;
   const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_vpar_kernels;
   
   switch (b_type) {
@@ -65,6 +66,9 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
       surf_y_kernels = ser_surf_y_kernels;
       surf_z_kernels = ser_surf_z_kernels;
       surf_vpar_kernels = ser_surf_vpar_kernels;
+      boundary_surf_x_kernels = ser_boundary_surf_x_kernels;
+      boundary_surf_y_kernels = ser_boundary_surf_y_kernels;
+      boundary_surf_z_kernels = ser_boundary_surf_z_kernels;
       boundary_surf_vpar_kernels = ser_boundary_surf_vpar_kernels;
       
       break;
@@ -81,10 +85,14 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
     gyrokinetic->surf[1] = surf_y_kernels[cv_index].kernels[poly_order];
   if (cdim>2)
     gyrokinetic->surf[2] = surf_z_kernels[cv_index].kernels[poly_order];
-
   gyrokinetic->surf[cdim] = surf_vpar_kernels[cv_index].kernels[poly_order];
 
-  gyrokinetic->boundary_surf = boundary_surf_vpar_kernels[cv_index].kernels[poly_order];
+  gyrokinetic->boundary_surf[0] = boundary_surf_x_kernels[cv_index].kernels[poly_order];
+  if (cdim>1)
+    gyrokinetic->boundary_surf[1] = boundary_surf_y_kernels[cv_index].kernels[poly_order];
+  if (cdim>2)
+    gyrokinetic->boundary_surf[2] = boundary_surf_z_kernels[cv_index].kernels[poly_order];
+  gyrokinetic->boundary_surf[cdim] = boundary_surf_vpar_kernels[cv_index].kernels[poly_order];
 }
 
 struct gkyl_dg_eqn*

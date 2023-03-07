@@ -72,6 +72,10 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
     *accel_surf_vy_kernels, 
     *accel_surf_vz_kernels;
 
+  const gkyl_dg_vlasov_stream_boundary_surf_kern_list *stream_boundary_surf_x_kernels, 
+    *stream_boundary_surf_y_kernels,
+    *stream_boundary_surf_z_kernels;
+  
   const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list *poisson_accel_boundary_surf_vx_kernels, 
     *poisson_accel_boundary_surf_vy_kernels,
     *poisson_accel_boundary_surf_vz_kernels;
@@ -107,6 +111,10 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
       accel_surf_vy_kernels = ser_accel_surf_vy_kernels;
       accel_surf_vz_kernels = ser_accel_surf_vz_kernels;
 
+      stream_boundary_surf_x_kernels = ser_stream_boundary_surf_x_kernels;
+      stream_boundary_surf_y_kernels = ser_stream_boundary_surf_y_kernels;
+      stream_boundary_surf_z_kernels = ser_stream_boundary_surf_z_kernels;
+      
       poisson_accel_boundary_surf_vx_kernels = ser_poisson_accel_boundary_surf_vx_kernels;
       poisson_accel_boundary_surf_vy_kernels = ser_poisson_accel_boundary_surf_vy_kernels;
       poisson_accel_boundary_surf_vz_kernels = ser_poisson_accel_boundary_surf_vz_kernels;
@@ -198,6 +206,12 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
       vlasov->stream_surf[1] = stream_surf_y_kernels[cv_index].kernels[poly_order];
     if (cdim>2)
       vlasov->stream_surf[2] = stream_surf_z_kernels[cv_index].kernels[poly_order];
+
+    vlasov->stream_boundary_surf[0] = stream_boundary_surf_x_kernels[cv_index].kernels[poly_order];
+    if (cdim>1)
+      vlasov->stream_boundary_surf[1] = stream_boundary_surf_y_kernels[cv_index].kernels[poly_order];
+    if (cdim>2)
+      vlasov->stream_boundary_surf[2] = stream_boundary_surf_z_kernels[cv_index].kernels[poly_order];
   }    
 }
 

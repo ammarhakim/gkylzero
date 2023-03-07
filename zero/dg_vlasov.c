@@ -87,6 +87,10 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
     *accel_surf_vy_kernels, 
     *accel_surf_vz_kernels;
 
+  const gkyl_dg_vlasov_stream_boundary_surf_kern_list *stream_boundary_surf_x_kernels, 
+    *stream_boundary_surf_y_kernels,
+    *stream_boundary_surf_z_kernels;
+
   const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list *poisson_accel_boundary_surf_vx_kernels, 
     *poisson_accel_boundary_surf_vy_kernels,
     *poisson_accel_boundary_surf_vz_kernels;
@@ -121,6 +125,10 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
       accel_surf_vx_kernels = ser_accel_surf_vx_kernels;
       accel_surf_vy_kernels = ser_accel_surf_vy_kernels;
       accel_surf_vz_kernels = ser_accel_surf_vz_kernels;
+
+      stream_boundary_surf_x_kernels = ser_stream_boundary_surf_x_kernels;
+      stream_boundary_surf_y_kernels = ser_stream_boundary_surf_y_kernels;
+      stream_boundary_surf_z_kernels = ser_stream_boundary_surf_z_kernels;
 
       poisson_accel_boundary_surf_vx_kernels = ser_poisson_accel_boundary_surf_vx_kernels;
       poisson_accel_boundary_surf_vy_kernels = ser_poisson_accel_boundary_surf_vy_kernels;
@@ -201,6 +209,12 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
       vlasov->stream_surf[1] = CK(stream_surf_y_kernels,cdim,vdim,poly_order);
     if (cdim>2)
       vlasov->stream_surf[2] = CK(stream_surf_z_kernels,cdim,vdim,poly_order);
+
+    vlasov->stream_boundary_surf[0] = CK(stream_boundary_surf_x_kernels,cdim,vdim,poly_order);
+    if (cdim>1)
+      vlasov->stream_boundary_surf[1] = CK(stream_boundary_surf_y_kernels,cdim,vdim,poly_order);
+    if (cdim>2)
+      vlasov->stream_boundary_surf[2] = CK(stream_boundary_surf_z_kernels,cdim,vdim,poly_order); 
   }    
 
   // ensure non-NULL pointers
