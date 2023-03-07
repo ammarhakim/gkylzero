@@ -108,6 +108,23 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
       else
         bc = mom_fld->bcz;
 
+      void (*bc_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+      if (dir == 0)
+        bc_lower_func = mom_fld->bcx_lower_func;
+      else if (dir == 1)
+        bc_lower_func = mom_fld->bcy_lower_func;
+      else
+        bc_lower_func = mom_fld->bcz_lower_func;
+
+      void (*bc_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+      if (dir == 0)
+        bc_upper_func = mom_fld->bcx_upper_func;
+      else if (dir == 1)
+        bc_upper_func = mom_fld->bcy_upper_func;
+      else
+        bc_upper_func = mom_fld->bcz_upper_func;
+
+
       fld->lower_bct[dir] = bc[0];
       fld->upper_bct[dir] = bc[1];
 
@@ -122,6 +139,12 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
           fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_copy, 0);
           break;
+
+        case GKYL_FIELD_FUNC:
+          fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            bc_lower_func, mom_fld->ctx);
+          break;
       }
 
       switch (bc[1]) {
@@ -134,6 +157,13 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         case GKYL_FIELD_WEDGE:
           fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_copy, 0);
+          break;
+
+        case GKYL_FIELD_FUNC:
+          fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost,
+            bc_upper_func, mom_fld->ctx);
+          break;
       }
     }
   }
