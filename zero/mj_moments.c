@@ -92,8 +92,13 @@ void gkyl_mj_moments_advance(gkyl_mj_moments *cmj, const struct gkyl_array *p_ov
     fout, cmj->num_vb);
 
   // (vb = <Nvb>/<N>) isolate vb by dividing <N*vb> by <N>
-  gkyl_dg_div_op_range(cmj->mem, cmj->conf_basis, 0, cmj->V_drift,
-    0, cmj->num_vb, 0, cmj->num_ratio, conf_local);
+  //1D: gkyl_dg_div_op_range(cmj->mem, cmj->conf_basis, 0, cmj->V_drift,
+  // 0, cmj->num_vb, 0, cmj->num_ratio, conf_local);
+    for (int d=0; d<vdim; ++d){
+      gkyl_dg_div_op_range(cmj->mem, cmj->conf_basis, d, cmj->V_drift,
+        d, cmj->num_vb, 0, cmj->num_ratio, conf_local);
+    }
+
 
   // (Gamma = 1/sqrt(1-vb^2)) calculate cmj->gamma from cmj->num_vb
   gkyl_calc_sr_vars_Gamma(&cmj->conf_basis, &cmj->phase_basis,
