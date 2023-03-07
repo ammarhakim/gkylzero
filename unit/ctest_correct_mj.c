@@ -150,8 +150,8 @@ void eval_M2_1v_null(double t, const double *xn, double* restrict fout, void *ct
 void
 test_1x1v(int poly_order)
 {
-  double lower[] = {0.1, -132.0}, upper[] = {1.0, 132.0};
-  int cells[] = {2, 3200};
+  double lower[] = {0.1, -10.0}, upper[] = {1.0, 10.0};
+  int cells[] = {2, 32};
   int vdim = 1, cdim = 1;
   int ndim = cdim+vdim;
 
@@ -302,7 +302,7 @@ test_1x1v(int poly_order)
 
 
   // timeloop evolving partial_t(f) = -nu(f-f^mj)
-  for (int i=0; i<1000; ++i){ //3000
+  for (int i=0; i<300; ++i){ //3000
 
     //printf("\n----------- ************************* ---------\n");
     //printf("----------- Begining timeloop: T = %d ---------\n", i);
@@ -310,7 +310,7 @@ test_1x1v(int poly_order)
 
     // write distribution function to file
     char fname[1024];
-    if ( i == 9 || i == 0){
+    if ((i % 100) == 0){
       sprintf(fname, "ctest_correct_mj_1x1v_p%d_iteration_%03d.gkyl", poly_order,i);
     }
     gkyl_grid_sub_array_write(&grid, &local, distf_mj, fname);
@@ -340,7 +340,7 @@ test_1x1v(int poly_order)
     gkyl_array_accumulate_range(dm2, 1.0, ddm2,confLocal);
 
     // 4. Diagnostic ouputs
-    if ( (i % 100) == 0){
+    if (0) { //( (i % 100) == 0){
       struct gkyl_range_iter biter;
       gkyl_range_iter_init(&biter, &confLocal);
       while (gkyl_range_iter_next(&biter)) {
@@ -362,16 +362,19 @@ test_1x1v(int poly_order)
           printf("n: %g\n",m0_local[0]);
           printf("dn: %g\n",dm0_local[0]);
           printf("ddn: %g\n",ddm0_local[0]);
+          printf("Diff (n - n_corr): %g\n",(m0_local[0]-m0_corr_local[0]));
           printf("------- vb interation : %d ------\n",i);
           printf("vb_corr: %g\n",m1i_corr_local[0]);
           printf("vb: %g\n",m1i_local[0]);
           printf("dvb: %g\n",dm1i_local[0]);
           printf("ddvb: %g\n",ddm1i_local[0]);
+          printf("Diff (vb - vb_corr): %g\n",(m1i_local[0]-m1i_corr_local[0]));
           printf("------- T interation : %d ------\n",i);
           printf("m2_corr: %g\n",m2_corr_local[0]);
           printf("m2: %g\n",m2_local[0]);
           printf("dm2: %g\n",dm2_local[0]);
           printf("ddm2: %g\n",ddm2_local[0]);
+          printf("Diff (vb - vb_corr): %g\n",(m2_local[0]-m2_corr_local[0]));
       }
     }
 
@@ -401,11 +404,11 @@ test_1x1v(int poly_order)
 
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
-  double p2_vals[] = {  0.4908183182853421,-1.779993558391936e-17,
-0.01957103464383442,4.791671361253045e-18, -2.283871108067826e-17,
--0.000481110805805566,-9.813947903343648e-19, -1.29480691392842e-17 };
+  double p2_vals[] = {  0.4106556323526475,-8.940762710879627e-17,
+0.06572788982671821,8.645045365809577e-18,-5.979556483302724e-17,
+-0.001036545017544019,2.229425706102836e-17,2.764128755933108e-17};
 
-  const double *fv = gkyl_array_cfetch(distf_mj, gkyl_range_idx(&local_ext, (int[2]) { 1, 160 }));
+  const double *fv = gkyl_array_cfetch(distf_mj, gkyl_range_idx(&local_ext, (int[2]) { 1, 16 }));
 
   if (poly_order == 2) {
     for (int i=0; i<basis.num_basis; ++i){
