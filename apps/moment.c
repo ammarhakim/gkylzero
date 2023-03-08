@@ -171,6 +171,16 @@ gkyl_moment_app_apply_ic_field(gkyl_moment_app* app, double t0)
   gkyl_fv_proj_advance(proj, t0, &app->local, app->field.fcurr);
   gkyl_fv_proj_release(proj);
 
+  if (app->field.proj_ext_em) {
+    gkyl_fv_proj_advance(
+        app->field.proj_ext_em, t0, &app->local, app->field.ext_em);
+
+    if (app->field.is_ext_em_static)
+      app->field.was_ext_em_computed = true;
+    else
+      app->field.was_ext_em_computed = false;
+  }
+
   moment_field_apply_bc(app, t0, &app->field, app->field.fcurr);
 }
 
