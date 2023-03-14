@@ -4,13 +4,72 @@
 #include <math.h>
 
 #include <gkyl_array.h>
-#include <gkyl_array.h>
 #include <gkyl_basis.h>
+#include <gkyl_proj_on_basis.h>
 #include <gkyl_sr_Gamma_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 #include <assert.h>
 
+// Projection functions for p/(gamma) = v in special relativistic systems
+// Simplifies to p/sqrt(1 + p^2) where c = 1
+static void 
+ev_p_over_gamma_1p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = xn[0]/sqrt(1.0 + xn[0]*xn[0]);
+}
+static void 
+ev_p_over_gamma_2p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = xn[0]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1]);
+  out[1] = xn[1]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1]);
+}
+static void 
+ev_p_over_gamma_3p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = xn[0]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+  out[1] = xn[1]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+  out[2] = xn[2]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+}
+static const evalf_t p_over_gamma_func[3] = {ev_p_over_gamma_1p, ev_p_over_gamma_2p, ev_p_over_gamma_3p};
+
+// Projection functions for gamma = sqrt(1 + p^2) in special relativistic systems
+static void 
+ev_gamma_1p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = sqrt(1.0 + xn[0]*xn[0]);
+}
+static void 
+ev_gamma_2p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1]);
+}
+static void 
+ev_gamma_3p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+}
+static const evalf_t gamma_func[3] = {ev_gamma_1p, ev_gamma_2p, ev_gamma_3p};
+
+// Projection functions for gamma_inv = 1/sqrt(1 + p^2) in special relativistic systems
+static void 
+ev_gamma_inv_1p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = 1.0/sqrt(1.0 + xn[0]*xn[0]);
+}
+static void 
+ev_gamma_inv_2p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = 1.0/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1]);
+}
+static void 
+ev_gamma_inv_3p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = 1.0/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+}
+static const evalf_t gamma_inv_func[3] = {ev_gamma_inv_1p, ev_gamma_inv_2p, ev_gamma_inv_3p};
+
+// Function pointer type for different GammaV functions (GammaV^2, GammaV, 1/GammaV)
 typedef void (*sr_t)(const double *V_i, double* GKYL_RESTRICT out);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
