@@ -77,8 +77,8 @@ typedef void (*sr_t)(const double *V_i, double* GKYL_RESTRICT out);
 static struct { int vdim[4]; } cv_index[] = {
   {-1, -1, -1, -1}, // 0x makes no sense
   {-1,  0,  1,  2}, // 1x kernel indices
-  {-1,  3,  4,  5}, // 2x kernel indices
-  {-1,  6,  7,  8}, // 3x kernel indices  
+  {-1, -1,  3,  4}, // 2x kernel indices
+  {-1, -1, -1,  5}, // 3x kernel indices  
 };
 
 // for use in kernel tables
@@ -94,13 +94,10 @@ static const gkyl_dg_sr_Gamma2_kern_list ser_sr_Gamma2_kernels[] = {
   { NULL, sr_Gamma2_1x2v_ser_p1, sr_Gamma2_1x2v_ser_p2 }, // 1
   { NULL, sr_Gamma2_1x3v_ser_p1, sr_Gamma2_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, sr_Gamma2_2x1v_ser_p1, NULL }, // 3
-  { NULL, sr_Gamma2_2x2v_ser_p1, NULL }, // 4
-  { NULL, sr_Gamma2_2x3v_ser_p1, NULL }, // 5
+  { NULL, sr_Gamma2_2x2v_ser_p1, NULL }, // 3
+  { NULL, sr_Gamma2_2x3v_ser_p1, NULL }, // 4
   // 3x kernels
-  { NULL, sr_Gamma2_3x1v_ser_p1, NULL                  }, // 6
-  { NULL, sr_Gamma2_3x2v_ser_p1, NULL                  }, // 7
-  { NULL, sr_Gamma2_3x3v_ser_p1, NULL                  }, // 8
+  { NULL, sr_Gamma2_3x3v_ser_p1, NULL }, // 5
 };
 
 // Lorentz boost factor kernel list
@@ -111,13 +108,10 @@ static const gkyl_dg_sr_Gamma_kern_list ser_sr_Gamma_kernels[] = {
   { NULL, sr_Gamma_1x2v_ser_p1, sr_Gamma_1x2v_ser_p2 }, // 1
   { NULL, sr_Gamma_1x3v_ser_p1, sr_Gamma_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, sr_Gamma_2x1v_ser_p1, NULL }, // 3
-  { NULL, sr_Gamma_2x2v_ser_p1, NULL }, // 4
-  { NULL, sr_Gamma_2x3v_ser_p1, NULL }, // 5
+  { NULL, sr_Gamma_2x2v_ser_p1, NULL }, // 3
+  { NULL, sr_Gamma_2x3v_ser_p1, NULL }, // 4
   // 3x kernels
-  { NULL, sr_Gamma_3x1v_ser_p1, NULL                 }, // 6
-  { NULL, sr_Gamma_3x2v_ser_p1, NULL                 }, // 7
-  { NULL, sr_Gamma_3x3v_ser_p1, NULL                 }, // 8
+  { NULL, sr_Gamma_3x3v_ser_p1, NULL }, // 5
 };
 
 // *inverse* Lorentz boost factor kernel list
@@ -128,13 +122,10 @@ static const gkyl_dg_sr_Gamma_inv_kern_list ser_sr_Gamma_inv_kernels[] = {
   { NULL, sr_Gamma_inv_1x2v_ser_p1, sr_Gamma_inv_1x2v_ser_p2 }, // 1
   { NULL, sr_Gamma_inv_1x3v_ser_p1, sr_Gamma_inv_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, sr_Gamma_inv_2x1v_ser_p1, NULL }, // 3
-  { NULL, sr_Gamma_inv_2x2v_ser_p1, NULL }, // 4
-  { NULL, sr_Gamma_inv_2x3v_ser_p1, NULL }, // 5
+  { NULL, sr_Gamma_inv_2x2v_ser_p1, NULL }, // 3
+  { NULL, sr_Gamma_inv_2x3v_ser_p1, NULL }, // 4
   // 3x kernels
-  { NULL, sr_Gamma_inv_3x1v_ser_p1, NULL                     }, // 6
-  { NULL, sr_Gamma_inv_3x2v_ser_p1, NULL                     }, // 7
-  { NULL, sr_Gamma_inv_3x3v_ser_p1, NULL                     }, // 8
+  { NULL, sr_Gamma_inv_3x3v_ser_p1, NULL }, // 5
 };
 
 GKYL_CU_D
