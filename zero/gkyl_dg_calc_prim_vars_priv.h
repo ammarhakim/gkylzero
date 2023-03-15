@@ -6,6 +6,7 @@
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_euler_kernels.h>
+#include <gkyl_euler_pkpm_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 #include <assert.h>

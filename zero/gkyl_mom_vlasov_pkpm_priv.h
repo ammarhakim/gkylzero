@@ -5,7 +5,7 @@
 #include <gkyl_array.h>
 #include <gkyl_mom_type.h>
 #include <gkyl_ref_count.h>
-#include <gkyl_mom_vlasov_kernels.h>
+#include <gkyl_mom_vlasov_pkpm_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
