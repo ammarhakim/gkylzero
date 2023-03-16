@@ -52,12 +52,12 @@ init_quad_values(const struct gkyl_basis *basis, int num_quad,
     int node = gkyl_range_idx(&qrange, iter.idx);
 
     // set ordinates
-    double *ord = gkyl_array_fetch(ordinates_ho, node);
+    double *ord = (double*) gkyl_array_fetch(ordinates_ho, node);
     for (int i=0; i<ndim; ++i)
       ord[i] = ordinates1[iter.idx[i]-qrange.lower[i]];
 
     // set weights
-    double *wgt = gkyl_array_fetch(weights_ho, node);
+    double *wgt = (double*) gkyl_array_fetch(weights_ho, node);
     wgt[0] = 1.0;
     for (int i=0; i<qrange.ndim; ++i)
       wgt[0] *= weights1[iter.idx[i]-qrange.lower[i]];
@@ -70,7 +70,7 @@ init_quad_values(const struct gkyl_basis *basis, int num_quad,
   else
     *basis_at_ords = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, tot_quad);
   for (int n=0; n<tot_quad; ++n)
-    basis->eval(gkyl_array_fetch(ordinates_ho, n), gkyl_array_fetch(basis_at_ords_ho, n));
+    basis->eval((double*) gkyl_array_fetch(ordinates_ho, n), (double*) gkyl_array_fetch(basis_at_ords_ho, n));
 
   // copy host array to device array
   gkyl_array_copy(*weights, weights_ho);
