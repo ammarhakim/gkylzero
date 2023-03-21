@@ -7,13 +7,13 @@ extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_ops_priv.h>
-#include <gkyl_dg_calc_prim_vars.h>
-#include <gkyl_dg_calc_prim_vars_priv.h>
+#include <gkyl_dg_calc_pkpm_vars.h>
+#include <gkyl_dg_calc_pkpm_vars_priv.h>
 #include <gkyl_util.h>
 }
 
 __global__ void
-gkyl_calc_prim_vars_pkpm_cu_kernel(struct gkyl_basis basis, struct gkyl_range range, 
+gkyl_calc_pkpm_vars_prim_cu_kernel(struct gkyl_basis basis, struct gkyl_range range, 
   const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
   struct gkyl_array* u_i, struct gkyl_array* p_ij, struct gkyl_array* T_ij, 
   struct gkyl_array* rho_inv, struct gkyl_array* T_perp_over_m, struct gkyl_array* T_perp_over_m_inv)
@@ -21,7 +21,7 @@ gkyl_calc_prim_vars_pkpm_cu_kernel(struct gkyl_basis basis, struct gkyl_range ra
   int cdim = basis.ndim;
   int poly_order = basis.poly_order;
 
-  euler_pkpm_prim_vars_t pkpm_prim_vars = choose_ser_euler_pkpm_prim_vars_kern(cdim, poly_order);
+  pkpm_prim_t pkpm_prim = choose_ser_pkpm_prim_kern(cdim, poly_order);
 
   int idx[GKYL_MAX_DIM];
 
@@ -49,7 +49,7 @@ gkyl_calc_prim_vars_pkpm_cu_kernel(struct gkyl_basis basis, struct gkyl_range ra
     double *T_perp_over_m_d = (double*) gkyl_array_fetch(T_perp_over_m, start);
     double *T_perp_over_m_inv_d = (double*) gkyl_array_fetch(T_perp_over_m_inv, start);
 
-    pkpm_prim_vars(bvar_d, vlasov_pkpm_moms_d, euler_pkpm_d, 
+    pkpm_prim(bvar_d, vlasov_pkpm_moms_d, euler_pkpm_d, 
       u_i_d, p_ij_d, T_ij_d, 
       rho_inv_d, T_perp_over_m_d, T_perp_over_m_inv_d);
   }
@@ -57,28 +57,28 @@ gkyl_calc_prim_vars_pkpm_cu_kernel(struct gkyl_basis basis, struct gkyl_range ra
 
 // Host-side wrapper for pkpm primitive variable calculations
 void
-gkyl_calc_prim_vars_pkpm_cu(struct gkyl_basis basis, const struct gkyl_range *range,
+gkyl_calc_pkpm_vars_prim_cu(struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
   struct gkyl_array* u_i, struct gkyl_array* p_ij, struct gkyl_array* T_ij, 
   struct gkyl_array* rho_inv, struct gkyl_array* T_perp_over_m, struct gkyl_array* T_perp_over_m_inv)
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
-  gkyl_calc_prim_vars_pkpm_cu_kernel<<<nblocks, nthreads>>>(basis, *range, 
+  gkyl_calc_pkpm_vars_prim_cu_kernel<<<nblocks, nthreads>>>(basis, *range, 
     bvar->on_dev, vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev, 
     u_i->on_dev, p_ij->on_dev, T_ij->on_dev, 
     rho_inv->on_dev, T_perp_over_m->on_dev, T_perp_over_m_inv->on_dev);
 }
 
 __global__ void
-gkyl_calc_prim_vars_pkpm_source_cu_kernel(struct gkyl_basis basis, struct gkyl_range range, 
+gkyl_calc_pkpm_vars_source_cu_kernel(struct gkyl_basis basis, struct gkyl_range range, 
   const struct gkyl_array* qmem, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm,
   struct gkyl_array* rhs)
 {
   int cdim = basis.ndim;
   int poly_order = basis.poly_order;
 
-  euler_pkpm_source_t pkpm_source = choose_ser_euler_pkpm_source_kern(cdim, poly_order);
+  pkpm_source_t pkpm_source = choose_ser_pkpm_source_kern(cdim, poly_order);
 
   int idx[GKYL_MAX_DIM];
 
@@ -106,19 +106,19 @@ gkyl_calc_prim_vars_pkpm_source_cu_kernel(struct gkyl_basis basis, struct gkyl_r
 
 // Host-side wrapper for pkpm source term calculations
 void
-gkyl_calc_prim_vars_pkpm_source_cu(struct gkyl_basis basis, const struct gkyl_range *range,
+gkyl_calc_pkpm_vars_source_cu(struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* qmem, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
   struct gkyl_array* rhs)
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
-  gkyl_calc_prim_vars_pkpm_source_cu_kernel<<<nblocks, nthreads>>>(basis, *range, 
+  gkyl_calc_pkpm_vars_source_cu_kernel<<<nblocks, nthreads>>>(basis, *range, 
     qmem->on_dev, vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev, 
     rhs->on_dev);
 }
 
 __global__ void
-gkyl_calc_prim_vars_pkpm_dist_mirror_force_cu_kernel(struct gkyl_basis basis, 
+gkyl_calc_pkpm_vars_dist_mirror_force_cu_kernel(struct gkyl_basis basis, 
   struct gkyl_range conf_range, struct gkyl_range phase_range,
   const struct gkyl_array* T_perp_over_m, const struct gkyl_array* T_perp_over_m_inv, 
   const struct gkyl_array* fIn, const struct gkyl_array* F_k_p_1,
@@ -157,7 +157,7 @@ gkyl_calc_prim_vars_pkpm_dist_mirror_force_cu_kernel(struct gkyl_basis basis,
 }
 // Host-side wrapper for pkpm mirror force source distribution function calculation
 void 
-gkyl_calc_prim_vars_pkpm_dist_mirror_force_cu(struct gkyl_basis basis, 
+gkyl_calc_pkpm_vars_dist_mirror_force_cu(struct gkyl_basis basis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_array* T_perp_over_m, const struct gkyl_array* T_perp_over_m_inv, 
   const struct gkyl_array* fIn, const struct gkyl_array* F_k_p_1,
@@ -165,13 +165,13 @@ gkyl_calc_prim_vars_pkpm_dist_mirror_force_cu(struct gkyl_basis basis,
 {
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
-  gkyl_calc_prim_vars_pkpm_dist_mirror_force_cu_kernel<<<nblocks, nthreads>>>(basis, *conf_range, *phase_range, 
+  gkyl_calc_pkpm_vars_dist_mirror_force_cu_kernel<<<nblocks, nthreads>>>(basis, *conf_range, *phase_range, 
     T_perp_over_m->on_dev, T_perp_over_m_inv->on_dev, fIn->on_dev, F_k_p_1->on_dev, 
     g_dist_source->on_dev, F_k_m_1->on_dev);
 }
 
 __global__ void
-gkyl_calc_prim_vars_pkpm_recovery_cu_kernel(struct gkyl_rect_grid grid, struct gkyl_basis basis, struct gkyl_range range, double nuHyp, 
+gkyl_calc_pkpm_vars_recovery_cu_kernel(struct gkyl_rect_grid grid, struct gkyl_basis basis, struct gkyl_range range, double nuHyp, 
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
   const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
   const struct gkyl_array* rho_inv, const struct gkyl_array* T_perp_over_m, const struct gkyl_array* T_perp_over_m_inv, 
@@ -182,10 +182,10 @@ gkyl_calc_prim_vars_pkpm_recovery_cu_kernel(struct gkyl_rect_grid grid, struct g
   int poly_order = basis.poly_order;
   double dx[GKYL_MAX_DIM] = {0.0};
 
-  euler_pkpm_recovery_t pkpm_recovery[3];
+  pkpm_recovery_t pkpm_recovery[3];
   // Fetch the kernels in each direction
   for (int d=0; d<cdim; ++d) {
-    pkpm_recovery[d] = choose_ser_euler_pkpm_recovery_kern(d, cdim, poly_order);
+    pkpm_recovery[d] = choose_ser_pkpm_recovery_kern(d, cdim, poly_order);
     dx[d] = grid.dx[d];
   }
   int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
@@ -256,7 +256,7 @@ gkyl_calc_prim_vars_pkpm_recovery_cu_kernel(struct gkyl_rect_grid grid, struct g
 
 // Host-side wrapper for pkpm derivative calculations with recovery
 void
-gkyl_calc_prim_vars_pkpm_recovery_cu(const struct gkyl_rect_grid *grid, 
+gkyl_calc_pkpm_vars_recovery_cu(const struct gkyl_rect_grid *grid, 
   struct gkyl_basis basis, const struct gkyl_range *range, double nuHyp, 
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
   const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
@@ -266,7 +266,7 @@ gkyl_calc_prim_vars_pkpm_recovery_cu(const struct gkyl_rect_grid *grid,
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
-  gkyl_calc_prim_vars_pkpm_recovery_cu_kernel<<<nblocks, nthreads>>>(*grid, basis, *range, nuHyp, 
+  gkyl_calc_pkpm_vars_recovery_cu_kernel<<<nblocks, nthreads>>>(*grid, basis, *range, nuHyp, 
     bvar->on_dev, u_i->on_dev, p_ij->on_dev, vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev, 
     rho_inv->on_dev, T_perp_over_m->on_dev, T_perp_over_m_inv->on_dev, 
     nu->on_dev, nu_vthsq->on_dev, 
