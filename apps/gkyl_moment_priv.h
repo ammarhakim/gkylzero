@@ -142,25 +142,19 @@ struct moment_field {
 
 // Source data
 struct moment_coupling {
-  struct gkyl_rect_grid
-      non_ideal_grid; // grid for braginskii variables (braginskii variables
-                      // located at cell nodes)
-  struct gkyl_range non_ideal_local,
-      non_ideal_local_ext; // local, local-ext ranges for braginskii variables
-                           // (loop over nodes)
+// grid for braginskii variables (braginskii variables located at cell nodes)  
+  struct gkyl_rect_grid non_ideal_grid;
+ // local, local-ext ranges for braginskii variables (loop over nodes)  
+  struct gkyl_range non_ideal_local, non_ideal_local_ext;
 
-  gkyl_ten_moment_grad_closure
-      *grad_closure_slvr[GKYL_MAX_SPECIES]; // Gradient-based closure solver (if
-                                            // present)
-  struct gkyl_array
-      *non_ideal_cflrate[GKYL_MAX_SPECIES]; // array for stable time-step from
-                                            // non-ideal terms
-  struct gkyl_array
-      *non_ideal_vars[GKYL_MAX_SPECIES]; // array for non-ideal variables
-                                         // (heat-flux tensor)
-  struct gkyl_array
-      *rhs[GKYL_MAX_SPECIES]; // array for storing RHS of each species from
-                              // non-ideal term updates (Gradient-based closure)
+ // Gradient-based closure solver (if present)  
+  gkyl_ten_moment_grad_closure *grad_closure_slvr[GKYL_MAX_SPECIES];
+ // array for stable time-step from non-ideal terms  
+  struct gkyl_array *non_ideal_cflrate[GKYL_MAX_SPECIES];
+ // array for non-ideal variables (heat-flux tensor)  
+  struct gkyl_array *non_ideal_vars[GKYL_MAX_SPECIES];
+  // array for storing RHS of each species from non-ideal term updates (gradient-based closure)
+  struct gkyl_array  *rhs[GKYL_MAX_SPECIES]; 
 
   gkyl_moment_em_coupling *slvr; // source solver function
 };
@@ -172,21 +166,21 @@ struct mhd_src {
 // Moment app object: used as opaque pointer in user code
 struct gkyl_moment_app {
   char name[128]; // name of app
-  int ndim;       // space dimensions
-  double tcurr;   // current time
-  double cfl;     // CFL number
+  int ndim; // space dimensions
+  double tcurr; // current time
+  double cfl; // CFL number
 
   enum gkyl_moment_scheme scheme_type; // scheme to use
-  enum gkyl_mp_recon mp_recon;         // reconstruction scheme to use
-  bool
-      use_hybrid_flux_kep; // should shock-hybrid scheme be used when using KEP?
+  enum gkyl_mp_recon mp_recon; // reconstruction scheme to use
+ // should shock-hybrid scheme be used when using KEP?  
+  bool use_hybrid_flux_kep;
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
 
   int is_dir_skipped[3]; // flags to tell if update in direction are skipped
 
-  struct gkyl_rect_grid grid;         // grid
+  struct gkyl_rect_grid grid; // grid
   struct gkyl_range local, local_ext; // local, local-ext ranges
 
   bool has_mapc2p; // flag to indicate if we have mapc2p
@@ -198,7 +192,7 @@ struct gkyl_moment_app {
 
   struct app_skin_ghost_ranges skin_ghost; // conf-space skin/ghost
 
-  int has_field;             // flag to indicate if we have a field
+  int has_field; // flag to indicate if we have a field
   struct moment_field field; // field data
 
   // species data
