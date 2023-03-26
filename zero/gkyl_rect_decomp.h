@@ -3,6 +3,30 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
+struct gkyl_rect_decomp {
+  int ndim; // dimension of decomposition
+  int ndecomp; // number of sub-domains
+  struct gkyl_range *ranges; // decomposed ranges
+};
+
+/**
+ * Create a new decomposition given "cuts" in each direction. The
+ * total number of decomposed ranges are product of all cuts.
+ *
+ * @param ndim Number of dimensions
+ * @param cuts Cuts in each direction.
+ * @param range Range to decompose
+ */
+struct gkyl_rect_decomp *gkyl_rect_decomp_new_from_cuts(int ndim,
+  const int cuts[], const struct gkyl_range *range);
+
+/**
+ * Free decomposition.
+ *
+ * @param decomp Decomposition to free
+ */
+void gkyl_rect_decomp_release(struct gkyl_rect_decomp *decomp);
+
 /**
  * Create range and extended ranges from grid and ghost-cell data. The
  * range is a sub-range of the extended range.

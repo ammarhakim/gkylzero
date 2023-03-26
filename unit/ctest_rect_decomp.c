@@ -101,6 +101,8 @@ test_ranges_from_range_2d(void)
     TEST_CHECK( local.lower[i] == inlocal.lower[i] );
     TEST_CHECK( local.upper[i] == inlocal.upper[i] );
   }
+
+  TEST_CHECK( gkyl_range_is_sub_range(&local) == 1 );
 }
 
 void
@@ -119,6 +121,23 @@ test_ranges_from_range_3d(void)
     TEST_CHECK( local.lower[i] == inlocal.lower[i] );
     TEST_CHECK( local.upper[i] == inlocal.upper[i] );
   }
+
+  TEST_CHECK( gkyl_range_is_sub_range(&local) == 1 );
+}
+
+void
+test_rect_decomp_2d(void)
+{
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, (int[]) { 1, 1 }, (int[]) { 100, 100 });
+  
+  int cuts[] = { 5, 5 };
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(2, cuts, &range);
+
+  TEST_CHECK( decomp->ndim == 2 );
+  TEST_CHECK( decomp->ndecomp == 25 );
+
+  gkyl_rect_decomp_release(decomp);
 }
 
 TEST_LIST = {
@@ -127,6 +146,9 @@ TEST_LIST = {
   { "ranges_3d", test_ranges_3d },
 
   { "ranges_from_range_2d", test_ranges_from_range_2d },
-  { "ranges_from_range_3d", test_ranges_from_range_3d },  
+  { "ranges_from_range_3d", test_ranges_from_range_3d },
+
+  { "rect_decomp_2d", test_rect_decomp_2d },
+  
   { NULL, NULL },
 };

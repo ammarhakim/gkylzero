@@ -1,4 +1,28 @@
 #include <gkyl_rect_decomp.h>
+#include <gkyl_alloc.h>
+
+struct gkyl_rect_decomp*
+gkyl_rect_decomp_new_from_cuts(int ndim, const int cuts[], const struct gkyl_range *range)
+{
+  struct gkyl_rect_decomp *decomp = gkyl_malloc(sizeof(*decomp));
+
+  int ndecomp = 1;
+  for (int i=0; i<ndim; ++i)
+    ndecomp *= cuts[i];
+  decomp->ranges = gkyl_malloc(sizeof(struct gkyl_range[ndecomp]));
+  
+  decomp->ndim = ndim;
+  decomp->ndecomp = ndecomp;  
+
+  return decomp;
+}
+
+void
+gkyl_rect_decomp_release(struct gkyl_rect_decomp *decomp)
+{
+  gkyl_free(decomp->ranges);
+  gkyl_free(decomp);
+}
 
 void
 gkyl_create_grid_ranges(const struct gkyl_rect_grid *grid,
