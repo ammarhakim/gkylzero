@@ -45,7 +45,7 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     memcpy(&app->local_ext, &app->global_ext, sizeof(struct gkyl_range));
   }
   
-  skin_ghost_ranges_init(&app->skin_ghost, &app->local_ext, ghost);
+  skin_ghost_ranges_init(&app->skin_ghost, &app->global_ext, ghost);
 
   app->c2p_ctx = app->mapc2p = 0;  
   app->has_mapc2p = mom->mapc2p ? true : false;
