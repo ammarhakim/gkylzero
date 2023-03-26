@@ -106,27 +106,25 @@ struct moment_field {
   // pointer to projection operator for applied current function
   gkyl_fv_proj *proj_app_current;
 
-  bool is_ext_em_static;     // flag to indicate if external field is
-                             // time-independent
+  bool is_ext_em_static; // flag to indicate if external field is time-independent
   struct gkyl_array *ext_em; // array external fields
-  gkyl_fv_proj
-      *proj_ext_em; // pointer to projection operator for external fields
-  bool was_ext_em_computed; // flag to indicate if we already computed external
-                            // EM field
+  gkyl_fv_proj *proj_ext_em; // pointer to projection operator for external fields
+  bool was_ext_em_computed; // flag to indicate if we already computed external EM field
 
   struct gkyl_array *bc_buffer; // buffer for periodic BCs
 
-  enum gkyl_moment_scheme scheme_type; // scheme to update equations
-  // solvers and data to update fluid equations
+ // scheme to update equations solvers and data to update fluid
+ // equations
+  enum gkyl_moment_scheme scheme_type;
   union {
     struct {
-      gkyl_wave_prop *slvr[3];        // wave-prop solver in each direction
+      gkyl_wave_prop *slvr[3]; // wave-prop solver in each direction
       struct gkyl_array *fdup, *f[4]; // arrays for updates
     };
     struct {
-      gkyl_mp_scheme *mp_slvr;           // monotonicity-preserving scheme
+      gkyl_mp_scheme *mp_slvr; // monotonicity-preserving scheme
       struct gkyl_array *f0, *f1, *fnew; // arrays for updates
-      struct gkyl_array *cflrate;        // CFL rate in each cell
+      struct gkyl_array *cflrate; // CFL rate in each cell
     };
   };
   struct gkyl_array *fcurr; // points to current solution (depends on scheme)
@@ -136,7 +134,7 @@ struct moment_field {
   // boundary conditions on lower/upper edges in each direction
   gkyl_wv_apply_bc *lower_bc[3], *upper_bc[3];
 
-  gkyl_dynvec integ_energy;        // integrated energy components
+  gkyl_dynvec integ_energy; // integrated energy components
   bool is_first_energy_write_call; // flag for dynvec written first time
 };
 
@@ -182,6 +180,7 @@ struct gkyl_moment_app {
 
   struct gkyl_rect_grid grid; // grid
   struct gkyl_range local, local_ext; // local, local-ext ranges
+  struct gkyl_range global, global_ext; // global, global-ext ranges
 
   bool has_mapc2p; // flag to indicate if we have mapc2p
   void *c2p_ctx;   // context for mapc2p function

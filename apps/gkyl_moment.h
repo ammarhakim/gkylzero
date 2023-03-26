@@ -69,11 +69,20 @@ struct gkyl_moment_field {
   void (*bcz_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
 };
 
-// Choices of schemes to use in the fluid solver 
+// Choices of schemes to use in the fluid solver
 enum gkyl_moment_scheme {
   GKYL_MOMENT_WAVE_PROP = 0, // default, 2nd-order FV
   GKYL_MOMENT_MP, // monotonicity-preserving Suresh-Huynh scheme
   GKYL_MOMENT_KEP // Kinetic-energy preserving scheme
+};
+
+// Lower-level inputs: in general this does not need to be set by the
+// user. It is needed when the App is being created on a sub-range of
+// the global range, and is meant for use in higher-level drivers that
+// use MPI or other parallel mechanism.
+struct gkyl_moment_low_inp {
+  // local range over which App operates
+  struct gkyl_range local;
 };
 
 // Top-level app parameters
@@ -111,6 +120,11 @@ struct gkyl_moment {
   // scaling factors for collision frequencies so that nu_sr=nu_base_sr/rho_s
   // nu_rs=nu_base_rs/rho_r, and nu_base_sr=nu_base_rs
   double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
+
+  // this should not be set by typical user-facing code but only by
+  // higher-level drivers
+  bool has_low_inp; // should one use low-level inputs?
+  struct gkyl_moment_low_inp low_inp; // low-level inputs
 };
 
 // Simulation statistics

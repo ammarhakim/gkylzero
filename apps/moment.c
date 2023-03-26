@@ -33,7 +33,17 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     for (int d=0; d<3; ++d) ghost[d] = 3; // 3 for MP scheme and KEP
   
   gkyl_rect_grid_init(&app->grid, ndim, mom->lower, mom->upper, mom->cells);
-  gkyl_create_grid_ranges(&app->grid, ghost, &app->local_ext, &app->local);
+  gkyl_create_grid_ranges(&app->grid, ghost, &app->global_ext, &app->global);
+
+  if (mom->has_low_inp) {
+    // create local and local_ext from user-supplied local range
+    gkyl_create_ranges(&mom->low_inp.local, ghost, &app->local_ext, &app->local);
+  }
+  else {
+    // global and local ranges are same, and so just copy
+    memcpy(&app->local, &app->global, sizeof(struct gkyl_range));
+    memcpy(&app->local_ext, &app->global_ext, sizeof(struct gkyl_range));
+  }
   
   skin_ghost_ranges_init(&app->skin_ghost, &app->local_ext, ghost);
 

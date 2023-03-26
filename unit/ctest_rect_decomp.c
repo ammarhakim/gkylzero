@@ -82,12 +82,51 @@ void test_ranges_3d()
   TEST_CHECK( range.lower[2] == 1 );
   TEST_CHECK( range.upper[2] == 10 );  
 
-  TEST_CHECK( gkyl_range_is_sub_range(&range) == 1 );    
+  TEST_CHECK( gkyl_range_is_sub_range(&range) == 1 );
+}
+
+void
+test_ranges_from_range_2d(void)
+{
+  struct gkyl_range inlocal;
+  gkyl_range_init(&inlocal, 2, (int[]) { 1, 2 }, (int[]) { 10, 20 });
+
+  struct gkyl_range local, local_ext;
+  gkyl_create_ranges(&inlocal, (int[]) { 2, 1 }, &local_ext, &local);
+
+  TEST_CHECK( local.ndim == inlocal.ndim );
+  TEST_CHECK( local_ext.ndim == inlocal.ndim );
+  
+  for (int i=0; i<inlocal.ndim; ++i) {
+    TEST_CHECK( local.lower[i] == inlocal.lower[i] );
+    TEST_CHECK( local.upper[i] == inlocal.upper[i] );
+  }
+}
+
+void
+test_ranges_from_range_3d(void)
+{
+  struct gkyl_range inlocal;
+  gkyl_range_init(&inlocal, 3, (int[]) { 1, 2, 3 }, (int[]) { 10, 20, 30 });
+
+  struct gkyl_range local, local_ext;
+  gkyl_create_ranges(&inlocal, (int[]) { 2, 1, 0 }, &local_ext, &local);
+
+  TEST_CHECK( local.ndim == inlocal.ndim );
+  TEST_CHECK( local_ext.ndim == inlocal.ndim );
+  
+  for (int i=0; i<inlocal.ndim; ++i) {
+    TEST_CHECK( local.lower[i] == inlocal.lower[i] );
+    TEST_CHECK( local.upper[i] == inlocal.upper[i] );
+  }
 }
 
 TEST_LIST = {
   { "ranges_1d", test_ranges_1d },
   { "ranges_2d", test_ranges_2d },
   { "ranges_3d", test_ranges_3d },
+
+  { "ranges_from_range_2d", test_ranges_from_range_2d },
+  { "ranges_from_range_3d", test_ranges_from_range_3d },  
   { NULL, NULL },
 };
