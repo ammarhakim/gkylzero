@@ -110,7 +110,7 @@ endif
 # List of link directories and libraries for unit and regression tests
 EXEC_LIB_DIRS = -L${SUPERLU_LIB_DIR} -L${LAPACK_LIB_DIR} -L${BUILD_DIR}
 EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
-EXEC_LIBS = ${BUILD_DIR}/libgkylzero.so ${EXEC_EXT_LIBS}
+EXEC_LIBS = $(CURDIR)/${BUILD_DIR}/libgkylzero.so ${EXEC_EXT_LIBS}
 EXEC_RPATH = 
 
 # Build commands for C source
