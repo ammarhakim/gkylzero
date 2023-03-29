@@ -226,77 +226,32 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   s->GammaV2 = 0;
   s->GammaV_inv = 0;
   if (s->model_id  == GKYL_MODEL_SR) {
-    // Projection of p/gamma
+    // Allocate special relativistic variables, p/gamma, gamma, & 1/gamma
     s->p_over_gamma = mkarr(app->use_gpu, vdim*app->velBasis.num_basis, s->local_vel.volume);
     s->p_over_gamma_host = s->p_over_gamma;
-    if (app->use_gpu)
-      s->p_over_gamma_host = mkarr(false, vdim*app->velBasis.num_basis, s->local_vel.volume);
-    struct gamma_ctx ctx = { .mass = s->info.mass };
-    gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-        .grid = &s->grid_vel,
-        .basis = &app->velBasis,
-        .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-        .num_quad = 8,
-        .num_ret_vals = vdim,
-        .eval = p_over_gamma_func[vdim-1],
-        .ctx = &ctx
-      }
-    );  
-    // run updater
-    gkyl_proj_on_basis_advance(p_over_gamma_proj, 0.0, &s->local_vel, s->p_over_gamma_host);
-    gkyl_proj_on_basis_release(p_over_gamma_proj);    
-    if (app->use_gpu) // note: p_over_gamma_host is same as p_over_gamma when not on GPUs
-      gkyl_array_copy(s->p_over_gamma, s->p_over_gamma_host);
-
-    // Project of gamma
     s->gamma = mkarr(app->use_gpu, app->velBasis.num_basis, s->local_vel.volume);
     s->gamma_host = s->gamma;
-    if (app->use_gpu)
-      s->gamma_host = mkarr(false, app->velBasis.num_basis, s->local_vel.volume);
-
-    gkyl_proj_on_basis *gamma_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-        .grid = &s->grid_vel,
-        .basis = &app->velBasis,
-        .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-        .num_quad = 8,
-        .num_ret_vals = 1,
-        .eval = gamma_func[vdim-1],
-        .ctx = &ctx
-      }
-    );  
-    // run updater
-    gkyl_proj_on_basis_advance(gamma_proj, 0.0, &s->local_vel, s->gamma_host);
-    gkyl_proj_on_basis_release(gamma_proj);    
-    if (app->use_gpu) // note: gamma_host is same as gamma when not on GPUs
-      gkyl_array_copy(s->gamma, s->gamma_host);
-
-    // Projection of gamma_inv = 1/gamma
     s->gamma_inv = mkarr(app->use_gpu, app->velBasis.num_basis, s->local_vel.volume);
     s->gamma_inv_host = s->gamma_inv;
-    if (app->use_gpu)
+    // Projection routines are done on CPU, need to allocate host arrays if simulation on GPU
+    if (app->use_gpu) {
+      s->p_over_gamma_host = mkarr(false, vdim*app->velBasis.num_basis, s->local_vel.volume);
+      s->gamma_host = mkarr(false, app->velBasis.num_basis, s->local_vel.volume);
       s->gamma_inv_host = mkarr(false, app->velBasis.num_basis, s->local_vel.volume);
-
-    gkyl_proj_on_basis *gamma_inv_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-        .grid = &s->grid_vel,
-        .basis = &app->velBasis,
-        .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-        .num_quad = 8,
-        .num_ret_vals = 1,
-        .eval = gamma_inv_func[vdim-1],
-        .ctx = &ctx
-      }
-    );  
-    // run updater
-    gkyl_proj_on_basis_advance(gamma_inv_proj, 0.0, &s->local_vel, s->gamma_inv_host);
-    gkyl_proj_on_basis_release(gamma_inv_proj);    
-    if (app->use_gpu) // note: gamma_inv_host is same as gamma_inv when not on GPUs
+    }
+    // Project p/gamma, gamma, & 1/gamma
+    gkyl_calc_sr_vars_init_p_vars(&s->grid_vel, &app->velBasis, &s->local_vel, 
+      s->p_over_gamma_host, s->gamma_host, s->gamma_inv_host);
+    // Copy CPU arrays to GPU 
+    if (app->use_gpu) {
+      gkyl_array_copy(s->p_over_gamma, s->p_over_gamma_host);
+      gkyl_array_copy(s->gamma, s->gamma_host);
       gkyl_array_copy(s->gamma_inv, s->gamma_inv_host);
-
+    }
     // Derived quantities array
     s->V_drift = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
     s->GammaV2 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     s->GammaV_inv = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-
     if (app->use_gpu)
       s->V_drift_mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
     else
@@ -551,7 +506,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   if (app->use_gpu) {
     if (species->model_id == GKYL_MODEL_PKPM) {
       // Calculate distrbution functions for coupling different Laguerre moments
-      gkyl_calc_prim_vars_pkpm_dist_mirror_force(app->confBasis, &app->local, &species->local,
+      gkyl_calc_pkpm_vars_dist_mirror_force(app->confBasis, &app->local, &species->local,
       species->pkpm_fluid_species->T_perp_over_m, species->pkpm_fluid_species->T_perp_over_m_inv, 
       fin, species->F_k_p_1, 
       species->g_dist_source, species->F_k_m_1);
@@ -572,7 +527,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   else {
     if (species->model_id == GKYL_MODEL_PKPM) {
       // Calculate distrbution functions for coupling different Laguerre moments
-      gkyl_calc_prim_vars_pkpm_dist_mirror_force(app->confBasis, &app->local, &species->local, 
+      gkyl_calc_pkpm_vars_dist_mirror_force(app->confBasis, &app->local, &species->local, 
       species->pkpm_fluid_species->T_perp_over_m, species->pkpm_fluid_species->T_perp_over_m_inv, 
       fin, species->F_k_p_1, 
       species->g_dist_source, species->F_k_m_1);

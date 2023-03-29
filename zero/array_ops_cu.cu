@@ -398,7 +398,7 @@ gkyl_array_copy_range_cu_kernel(struct gkyl_array *out, const struct gkyl_array*
   int idx_out[GKYL_MAX_DIM], idx_inp[GKYL_MAX_DIM];
   long n = NCOM(out); // assume ncomp_in == ncomp_out
   int ndim = inp_range.ndim;
-  // ac1 = size of last dimension of inp_range (fastest moving dimension)
+  // ac1 = size of last dimension in input range (fastest moving dimension)
   long ac1 = inp_range.iac[ndim-1] > 0 ? inp_range.iac[ndim-1] : 1;
 
   // 2D thread grid
@@ -612,16 +612,13 @@ gkyl_array_copy_range_cu(struct gkyl_array *out,
 
 void
 gkyl_array_copy_range_to_range_cu(struct gkyl_array *out,
-  const struct gkyl_array *inp, struct gkyl_range out_range, struct gkyl_range inp_range)
+  const struct gkyl_array *inp, struct gkyl_range *out_range, struct gkyl_range *inp_range)
 {
-  printf("gkyl_array_copy_range_to_range_cu is not working properly. Please FIX!!\n");
-  assert(false);
-  
   dim3 dimGrid, dimBlock;
-  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, inp_range, out->ncomp);
+  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *inp_range, out->ncomp);
 
   gkyl_array_copy_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev,
-    inp->on_dev, out_range, inp_range);
+    inp->on_dev, *out_range, *inp_range);
 }
 
 void 

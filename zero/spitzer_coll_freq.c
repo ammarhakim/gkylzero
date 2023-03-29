@@ -92,7 +92,7 @@ gkyl_spitzer_coll_freq*
 gkyl_spitzer_coll_freq_new(const struct gkyl_basis *basis, int num_quad,
   double nufrac, double eps0, double hbar, bool use_gpu)
 {
-  gkyl_spitzer_coll_freq *up = gkyl_malloc(sizeof(gkyl_spitzer_coll_freq));
+  struct gkyl_spitzer_coll_freq *up = gkyl_malloc(sizeof(struct gkyl_spitzer_coll_freq));
 
   up->ndim = basis->ndim;
   up->num_quad = num_quad;
