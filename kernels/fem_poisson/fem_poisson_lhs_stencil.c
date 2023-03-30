@@ -128,11 +128,6 @@ void fem_poisson_lhs_stencil_1x_ser_p1_lox_neumannx(const double epsilon, const 
   double rdx2Sq[1];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
 
-  double volFac = 0.5*dx[0]; 
-
-  double rdx2SqVol[1]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.5*rdx2Sq[0]*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], -0.5*rdx2Sq[0]*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], -0.5*rdx2Sq[0]*epsilon);
@@ -149,11 +144,6 @@ void fem_poisson_lhs_stencil_1x_ser_p2_lox_neumannx(const double epsilon, const 
 
   double rdx2Sq[1];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
-
-  double volFac = 0.5*dx[0]; 
-
-  double rdx2SqVol[1]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 1.166666666666667*rdx2Sq[0]*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], -1.333333333333333*rdx2Sq[0]*epsilon);
@@ -177,12 +167,7 @@ void fem_poisson_lhs_stencil_1x_ser_p1_lox_robinx(const double epsilon, const do
   double rdx2Sq[1];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
 
-  double volFac = 0.5*dx[0]; 
-
-  double rdx2SqVol[1]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.5*(rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.5*(rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], -0.5*rdx2Sq[0]*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], -0.5*rdx2Sq[0]*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], 0.5*rdx2Sq[0]*epsilon);
@@ -199,12 +184,7 @@ void fem_poisson_lhs_stencil_1x_ser_p2_lox_robinx(const double epsilon, const do
   double rdx2Sq[1];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
 
-  double volFac = 0.5*dx[0]; 
-
-  double rdx2SqVol[1]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.1666666666666667*(7.0*rdx2Sq[0]*bcVals[1]-6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.1666666666666667*(7.0*rdx2Sq[0]*bcVals[1]-6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], -1.333333333333333*rdx2Sq[0]*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.1666666666666667*rdx2Sq[0]*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], -1.333333333333333*rdx2Sq[0]*epsilon);
@@ -304,11 +284,6 @@ void fem_poisson_lhs_stencil_1x_ser_p1_upx_neumannx(const double epsilon, const 
   double rdx2Sq[1];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
 
-  double volFac = 0.5*dx[0]; 
-
-  double rdx2SqVol[1]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.5*rdx2Sq[0]*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], -0.5*rdx2Sq[0]*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], -0.5*rdx2Sq[0]*epsilon);
@@ -325,11 +300,6 @@ void fem_poisson_lhs_stencil_1x_ser_p2_upx_neumannx(const double epsilon, const 
 
   double rdx2Sq[1];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
-
-  double volFac = 0.5*dx[0]; 
-
-  double rdx2SqVol[1]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 1.166666666666667*rdx2Sq[0]*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], -1.333333333333333*rdx2Sq[0]*epsilon);
@@ -353,15 +323,10 @@ void fem_poisson_lhs_stencil_1x_ser_p1_upx_robinx(const double epsilon, const do
   double rdx2Sq[1];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
 
-  double volFac = 0.5*dx[0]; 
-
-  double rdx2SqVol[1]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.5*rdx2Sq[0]*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], -0.5*rdx2Sq[0]*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], -0.5*rdx2Sq[0]*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.5*(rdx2Sq[0]*bcVals[4]+2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.5*(rdx2Sq[0]*bcVals[4]+2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
 
 }
 void fem_poisson_lhs_stencil_1x_ser_p2_upx_robinx(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -375,11 +340,6 @@ void fem_poisson_lhs_stencil_1x_ser_p2_upx_robinx(const double epsilon, const do
   double rdx2Sq[1];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
 
-  double volFac = 0.5*dx[0]; 
-
-  double rdx2SqVol[1]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 1.166666666666667*rdx2Sq[0]*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], -1.333333333333333*rdx2Sq[0]*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.1666666666666667*rdx2Sq[0]*epsilon);
@@ -388,7 +348,7 @@ void fem_poisson_lhs_stencil_1x_ser_p2_upx_robinx(const double epsilon, const do
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -1.333333333333333*rdx2Sq[0]*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], 0.1666666666666667*rdx2Sq[0]*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -1.333333333333333*rdx2Sq[0]*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.1666666666666667*(7.0*rdx2Sq[0]*bcVals[4]+6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.1666666666666667*(7.0*rdx2Sq[0]*bcVals[4]+6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p1_inx_periodicx_iny_periodicy(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -727,12 +687,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_neumannx_iny_periodicy(const double e
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -762,12 +716,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_neumannx_iny_periodicy(const double e
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -847,23 +795,17 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_robinx_iny_periodicy(const double eps
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -883,18 +825,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_iny_periodicy(const double eps
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[7], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -913,12 +849,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_iny_periodicy(const double eps
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.02222222222222222*(80.0*bcVals[1]*rdx2Sq[1]+24.0*rdx2Sq[0]*bcVals[1]-48.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.02222222222222222*(80.0*bcVals[1]*rdx2Sq[1]+24.0*rdx2Sq[0]*bcVals[1]-48.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[4], 0.02222222222222222*(40.0*rdx2Sq[1]-24.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[6], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
@@ -929,12 +865,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_iny_periodicy(const double eps
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[0], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
@@ -1183,12 +1119,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_neumannx_iny_periodicy(const double e
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -1218,12 +1148,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_neumannx_iny_periodicy(const double e
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -1303,28 +1227,22 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_robinx_iny_periodicy(const double eps
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_iny_periodicy(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -1338,12 +1256,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_iny_periodicy(const double eps
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -1363,12 +1275,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_iny_periodicy(const double eps
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[7], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
@@ -1379,12 +1291,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_iny_periodicy(const double eps
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[1], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[3], 0.02222222222222222*(40.0*rdx2Sq[1]-24.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], (0.02222222222222222*((80.0*rdx2Sq[1]+24.0*rdx2Sq[0])*bcVals[4]+48.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], (0.02222222222222222*((80.0*rdx2Sq[1]+24.0*rdx2Sq[0])*bcVals[4]+48.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
@@ -1403,12 +1315,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_iny_periodicy(const double eps
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[0], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p1_inx_periodicx_loy_periodicy(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -1639,12 +1551,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_inx_periodicx_loy_neumanny(const double e
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -1674,12 +1580,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_inx_periodicx_loy_neumanny(const double e
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -1759,18 +1659,12 @@ void fem_poisson_lhs_stencil_2x_ser_p1_inx_periodicx_loy_robiny(const double eps
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -1795,31 +1689,25 @@ void fem_poisson_lhs_stencil_2x_ser_p2_inx_periodicx_loy_robiny(const double eps
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[7], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[7]-48.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[7]-48.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[4], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[5], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[6], -0.02222222222222222*(24.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[7], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
@@ -2095,12 +1983,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_inx_periodicx_upy_neumanny(const double e
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -2130,12 +2012,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_inx_periodicx_upy_neumanny(const double e
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -2215,12 +2091,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_inx_periodicx_upy_robiny(const double eps
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -2231,12 +2101,12 @@ void fem_poisson_lhs_stencil_2x_ser_p1_inx_periodicx_upy_robiny(const double eps
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p2_inx_periodicx_upy_robiny(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -2250,12 +2120,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_inx_periodicx_upy_robiny(const double eps
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -2302,25 +2166,25 @@ void fem_poisson_lhs_stencil_2x_ser_p2_inx_periodicx_upy_robiny(const double eps
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[0], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[1], -0.02222222222222222*(24.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[2], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[3], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[4], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[10]+48.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[10]+48.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[0], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p1_lox_periodicx_loy_periodicy(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -2551,12 +2415,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_periodicx_loy_neumanny(const double e
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -2586,12 +2444,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_periodicx_loy_neumanny(const double e
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -2671,18 +2523,12 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_periodicx_loy_robiny(const double eps
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -2707,31 +2553,25 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_periodicx_loy_robiny(const double eps
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[7], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[7]-48.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[7]-48.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[4], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[5], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[6], -0.02222222222222222*(24.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[7], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
@@ -3007,12 +2847,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_dirichletx_loy_neumanny(const double 
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[0], 1.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[1], 0.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[2], 0.0);
@@ -3042,12 +2876,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_dirichletx_loy_neumanny(const double 
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[0], 1.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[1], 0.0);
@@ -3127,18 +2955,12 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_dirichletx_loy_robiny(const double ep
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[0], 1.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[1], 0.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[2], 0.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[3], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[0], 0.0);
@@ -3163,12 +2985,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_dirichletx_loy_robiny(const double ep
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[0], 1.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[1], 0.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[2], 0.0);
@@ -3177,17 +2993,17 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_dirichletx_loy_robiny(const double ep
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[5], 0.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[6], 0.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[7], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[7]-48.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[7]-48.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[4], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[5], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[6], -0.02222222222222222*(24.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[7], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
@@ -3247,12 +3063,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_neumannx_loy_periodicy(const double e
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -3282,12 +3092,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_neumannx_loy_periodicy(const double e
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -3367,12 +3171,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_neumannx_loy_dirichlety(const double 
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[0], 1.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[1], 0.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[2], 0.0);
@@ -3402,12 +3200,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_neumannx_loy_dirichlety(const double 
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[0], 1.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[1], 0.0);
@@ -3487,12 +3279,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_neumannx_loy_neumanny(const double ep
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -3522,12 +3308,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_neumannx_loy_neumanny(const double ep
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -3607,18 +3387,12 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_neumannx_loy_robiny(const double epsi
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -3643,31 +3417,25 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_neumannx_loy_robiny(const double epsi
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[7], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[7]-48.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[7]-48.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[4], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[5], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[6], -0.02222222222222222*(24.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[7], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
@@ -3727,23 +3495,17 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_robinx_loy_periodicy(const double eps
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -3763,18 +3525,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_loy_periodicy(const double eps
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[7], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -3793,12 +3549,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_loy_periodicy(const double eps
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.02222222222222222*(80.0*bcVals[1]*rdx2Sq[1]+24.0*rdx2Sq[0]*bcVals[1]-48.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.02222222222222222*(80.0*bcVals[1]*rdx2Sq[1]+24.0*rdx2Sq[0]*bcVals[1]-48.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[4], 0.02222222222222222*(40.0*rdx2Sq[1]-24.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[6], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
@@ -3809,12 +3565,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_loy_periodicy(const double eps
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[0], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
@@ -3847,12 +3603,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_robinx_loy_dirichlety(const double ep
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[0], 1.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[1], 0.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[2], 0.0);
@@ -3861,9 +3611,9 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_robinx_loy_dirichlety(const double ep
   gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[1], 1.0);
   gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[2], 0.0);
   gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[3], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -3882,12 +3632,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_loy_dirichlety(const double ep
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[0], 1.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[1], 0.0);
@@ -3913,12 +3657,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_loy_dirichlety(const double ep
   gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[5], 0.0);
   gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[6], 0.0);
   gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[7], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.02222222222222222*(80.0*bcVals[1]*rdx2Sq[1]+24.0*rdx2Sq[0]*bcVals[1]-48.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.02222222222222222*(80.0*bcVals[1]*rdx2Sq[1]+24.0*rdx2Sq[0]*bcVals[1]-48.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[4], 0.02222222222222222*(40.0*rdx2Sq[1]-24.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[6], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
@@ -3929,12 +3673,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_loy_dirichlety(const double ep
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[0], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
@@ -3967,23 +3711,17 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_robinx_loy_neumanny(const double epsi
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -4003,18 +3741,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_loy_neumanny(const double epsi
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[7], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -4033,12 +3765,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_loy_neumanny(const double epsi
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.02222222222222222*(80.0*bcVals[1]*rdx2Sq[1]+24.0*rdx2Sq[0]*bcVals[1]-48.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.02222222222222222*(80.0*bcVals[1]*rdx2Sq[1]+24.0*rdx2Sq[0]*bcVals[1]-48.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[4], 0.02222222222222222*(40.0*rdx2Sq[1]-24.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[6], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
@@ -4049,12 +3781,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_loy_neumanny(const double epsi
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[0], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
@@ -4087,23 +3819,17 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_robinx_loy_robiny(const double epsilo
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*((bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2SqVol[0])*bcVals[7]-2.0*bcVals[1]*rdx2SqVol[1]*bcVals[6])*epsilon)/(bcVals[1]*bcVals[7]));
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*((bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2Sq[0])*bcVals[7]-2.0*bcVals[1]*rdx2Sq[1]*bcVals[6])*epsilon)/(bcVals[1]*bcVals[7]));
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -4123,42 +3849,36 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_loy_robiny(const double epsilo
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*((26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2SqVol[0])*bcVals[7]-12.0*bcVals[1]*rdx2SqVol[1]*bcVals[6])*epsilon)/(bcVals[1]*bcVals[7]));
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*((26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2Sq[0])*bcVals[7]-12.0*bcVals[1]*rdx2Sq[1]*bcVals[6])*epsilon)/(bcVals[1]*bcVals[7]));
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[7], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[7]-48.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[7]-48.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[4], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[5], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[6], -0.02222222222222222*(24.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[7], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.02222222222222222*(80.0*bcVals[1]*rdx2Sq[1]+24.0*rdx2Sq[0]*bcVals[1]-48.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.02222222222222222*(80.0*bcVals[1]*rdx2Sq[1]+24.0*rdx2Sq[0]*bcVals[1]-48.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[4], 0.02222222222222222*(40.0*rdx2Sq[1]-24.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[6], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
@@ -4169,12 +3889,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_loy_robiny(const double epsilo
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[0], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
@@ -4423,12 +4143,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_periodicx_upy_neumanny(const double e
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -4458,12 +4172,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_periodicx_upy_neumanny(const double e
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -4543,12 +4251,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_periodicx_upy_robiny(const double eps
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -4559,12 +4261,12 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_periodicx_upy_robiny(const double eps
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p2_lox_periodicx_upy_robiny(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -4578,12 +4280,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_periodicx_upy_robiny(const double eps
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -4630,25 +4326,25 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_periodicx_upy_robiny(const double eps
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[0], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[1], -0.02222222222222222*(24.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[2], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[3], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[4], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[10]+48.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[10]+48.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[0], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p1_lox_dirichletx_upy_periodicy(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -4879,12 +4575,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_dirichletx_upy_neumanny(const double 
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[0], 1.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[1], 0.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[2], 0.0);
@@ -4914,12 +4604,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_dirichletx_upy_neumanny(const double 
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[0], 1.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[1], 0.0);
@@ -4999,12 +4683,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_dirichletx_upy_robiny(const double ep
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[0], 1.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[1], 0.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[2], 0.0);
@@ -5019,8 +4697,8 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_dirichletx_upy_robiny(const double ep
   gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[3], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p2_lox_dirichletx_upy_robiny(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -5034,12 +4712,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_dirichletx_upy_robiny(const double ep
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[0], 1.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[1], 0.0);
@@ -5094,17 +4766,17 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_dirichletx_upy_robiny(const double ep
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[2], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[3], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[4], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[10]+48.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[10]+48.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[0], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p1_lox_neumannx_upy_periodicy(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -5118,12 +4790,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_neumannx_upy_periodicy(const double e
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
@@ -5154,12 +4820,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_neumannx_upy_periodicy(const double e
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -5239,12 +4899,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_neumannx_upy_dirichlety(const double 
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -5274,12 +4928,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_neumannx_upy_dirichlety(const double 
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -5359,12 +5007,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_neumannx_upy_neumanny(const double ep
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -5394,12 +5036,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_neumannx_upy_neumanny(const double ep
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -5479,12 +5115,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_neumannx_upy_robiny(const double epsi
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -5495,12 +5125,12 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_neumannx_upy_robiny(const double epsi
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p2_lox_neumannx_upy_robiny(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -5514,12 +5144,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_neumannx_upy_robiny(const double epsi
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -5566,25 +5190,25 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_neumannx_upy_robiny(const double epsi
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[0], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[1], -0.02222222222222222*(24.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[2], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[3], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[4], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[10]+48.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[10]+48.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[0], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p1_lox_robinx_upy_periodicy(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -5599,23 +5223,17 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_robinx_upy_periodicy(const double eps
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -5635,18 +5253,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_upy_periodicy(const double eps
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[7], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -5665,12 +5277,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_upy_periodicy(const double eps
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.02222222222222222*(80.0*bcVals[1]*rdx2Sq[1]+24.0*rdx2Sq[0]*bcVals[1]-48.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.02222222222222222*(80.0*bcVals[1]*rdx2Sq[1]+24.0*rdx2Sq[0]*bcVals[1]-48.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[4], 0.02222222222222222*(40.0*rdx2Sq[1]-24.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[6], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
@@ -5681,12 +5293,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_upy_periodicy(const double eps
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[0], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
@@ -5719,15 +5331,9 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_robinx_upy_dirichlety(const double ep
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
@@ -5755,18 +5361,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_upy_dirichlety(const double ep
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[7], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -5785,12 +5385,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_upy_dirichlety(const double ep
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.02222222222222222*(80.0*bcVals[1]*rdx2Sq[1]+24.0*rdx2Sq[0]*bcVals[1]-48.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.02222222222222222*(80.0*bcVals[1]*rdx2Sq[1]+24.0*rdx2Sq[0]*bcVals[1]-48.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[4], 0.02222222222222222*(40.0*rdx2Sq[1]-24.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[6], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
@@ -5839,23 +5439,17 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_robinx_upy_neumanny(const double epsi
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -5875,18 +5469,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_upy_neumanny(const double epsi
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[7], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -5905,12 +5493,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_upy_neumanny(const double epsi
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.02222222222222222*(80.0*bcVals[1]*rdx2Sq[1]+24.0*rdx2Sq[0]*bcVals[1]-48.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.02222222222222222*(80.0*bcVals[1]*rdx2Sq[1]+24.0*rdx2Sq[0]*bcVals[1]-48.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[4], 0.02222222222222222*(40.0*rdx2Sq[1]-24.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[6], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
@@ -5921,12 +5509,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_upy_neumanny(const double epsi
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[0], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
@@ -5959,28 +5547,22 @@ void fem_poisson_lhs_stencil_2x_ser_p1_lox_robinx_upy_robiny(const double epsilo
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*(bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -(0.1666666666666667*(2.0*bcVals[1]*rdx2Sq[1]-1.0*rdx2Sq[0]*bcVals[1]+2.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*((bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2SqVol[0])*bcVals[10]+2.0*bcVals[1]*rdx2SqVol[1]*bcVals[9])*epsilon)/(bcVals[1]*bcVals[10]));
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*((bcVals[1]*rdx2Sq[1]+rdx2Sq[0]*bcVals[1]-2.0*bcVals[0]*rdx2Sq[0])*bcVals[10]+2.0*bcVals[1]*rdx2Sq[1]*bcVals[9])*epsilon)/(bcVals[1]*bcVals[10]));
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_upy_robiny(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -5995,18 +5577,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_upy_robiny(const double epsilo
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*(26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[7], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -6025,12 +5601,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_upy_robiny(const double epsilo
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.02222222222222222*(80.0*bcVals[1]*rdx2Sq[1]+24.0*rdx2Sq[0]*bcVals[1]-48.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.02222222222222222*(80.0*bcVals[1]*rdx2Sq[1]+24.0*rdx2Sq[0]*bcVals[1]-48.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[4], 0.02222222222222222*(40.0*rdx2Sq[1]-24.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[6], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
@@ -6041,30 +5617,30 @@ void fem_poisson_lhs_stencil_2x_ser_p2_lox_robinx_upy_robiny(const double epsilo
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], (0.01111111111111111*(28.0*bcVals[1]*rdx2Sq[1]+17.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2SqVol[0])*epsilon)/bcVals[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -(0.02222222222222222*(40.0*bcVals[1]*rdx2Sq[1]-3.0*rdx2Sq[0]*bcVals[1]+6.0*bcVals[0]*rdx2Sq[0])*epsilon)/bcVals[1]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*((26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2SqVol[0])*bcVals[10]+12.0*bcVals[1]*rdx2SqVol[1]*bcVals[9])*epsilon)/(bcVals[1]*bcVals[10]));
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*((26.0*bcVals[1]*rdx2Sq[1]+26.0*rdx2Sq[0]*bcVals[1]-12.0*bcVals[0]*rdx2Sq[0])*bcVals[10]+12.0*bcVals[1]*rdx2Sq[1]*bcVals[9])*epsilon)/(bcVals[1]*bcVals[10]));
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[0], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[1], -0.02222222222222222*(24.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[2], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[3], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[4], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[10]+48.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[10]+48.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[0], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p1_upx_periodicx_loy_periodicy(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -6295,12 +5871,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_periodicx_loy_neumanny(const double e
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -6330,12 +5900,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_periodicx_loy_neumanny(const double e
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -6415,18 +5979,12 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_periodicx_loy_robiny(const double eps
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -6451,31 +6009,25 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_periodicx_loy_robiny(const double eps
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[7], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[7]-48.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[7]-48.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[4], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[5], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[6], -0.02222222222222222*(24.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[7], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
@@ -6751,12 +6303,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_dirichletx_loy_neumanny(const double 
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -6786,12 +6332,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_dirichletx_loy_neumanny(const double 
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -6871,14 +6411,8 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_dirichletx_loy_robiny(const double ep
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[0], 0.0);
@@ -6907,23 +6441,17 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_dirichletx_loy_robiny(const double ep
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[7], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[7]-48.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[7]-48.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[4], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[5], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
@@ -6991,12 +6519,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_neumannx_loy_periodicy(const double e
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -7026,12 +6548,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_neumannx_loy_periodicy(const double e
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -7111,12 +6627,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_neumannx_loy_dirichlety(const double 
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[0], 1.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[1], 0.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[2], 0.0);
@@ -7146,12 +6656,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_neumannx_loy_dirichlety(const double 
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[0], 1.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[1], 0.0);
@@ -7231,12 +6735,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_neumannx_loy_neumanny(const double ep
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -7266,12 +6764,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_neumannx_loy_neumanny(const double ep
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -7351,18 +6843,12 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_neumannx_loy_robiny(const double epsi
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -7387,31 +6873,25 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_neumannx_loy_robiny(const double epsi
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[7], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[7]-48.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[7]-48.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[4], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[5], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[6], -0.02222222222222222*(24.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[7], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
@@ -7471,28 +6951,22 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_robinx_loy_periodicy(const double eps
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_loy_periodicy(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -7506,12 +6980,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_loy_periodicy(const double eps
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -7531,12 +6999,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_loy_periodicy(const double eps
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[7], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
@@ -7547,12 +7015,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_loy_periodicy(const double eps
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[1], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[3], 0.02222222222222222*(40.0*rdx2Sq[1]-24.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], (0.02222222222222222*((80.0*rdx2Sq[1]+24.0*rdx2Sq[0])*bcVals[4]+48.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], (0.02222222222222222*((80.0*rdx2Sq[1]+24.0*rdx2Sq[0])*bcVals[4]+48.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
@@ -7571,12 +7039,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_loy_periodicy(const double eps
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[0], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p1_upx_robinx_loy_dirichlety(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -7591,12 +7059,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_robinx_loy_dirichlety(const double ep
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[0], 1.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[1], 0.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[2], 0.0);
@@ -7610,9 +7072,9 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_robinx_loy_dirichlety(const double ep
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_loy_dirichlety(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -7626,12 +7088,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_loy_dirichlety(const double ep
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[0], 1.0);
   gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[1], 0.0);
@@ -7667,12 +7123,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_loy_dirichlety(const double ep
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[1], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[3], 0.02222222222222222*(40.0*rdx2Sq[1]-24.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], (0.02222222222222222*((80.0*rdx2Sq[1]+24.0*rdx2Sq[0])*bcVals[4]+48.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], (0.02222222222222222*((80.0*rdx2Sq[1]+24.0*rdx2Sq[0])*bcVals[4]+48.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
@@ -7691,12 +7147,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_loy_dirichlety(const double ep
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[0], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p1_upx_robinx_loy_neumanny(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -7711,28 +7167,22 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_robinx_loy_neumanny(const double epsi
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_loy_neumanny(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -7746,12 +7196,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_loy_neumanny(const double epsi
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -7771,12 +7215,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_loy_neumanny(const double epsi
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[7], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
@@ -7787,12 +7231,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_loy_neumanny(const double epsi
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[1], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[3], 0.02222222222222222*(40.0*rdx2Sq[1]-24.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], (0.02222222222222222*((80.0*rdx2Sq[1]+24.0*rdx2Sq[0])*bcVals[4]+48.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], (0.02222222222222222*((80.0*rdx2Sq[1]+24.0*rdx2Sq[0])*bcVals[4]+48.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
@@ -7811,12 +7255,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_loy_neumanny(const double epsi
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[0], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p1_upx_robinx_loy_robiny(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -7831,28 +7275,22 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_robinx_loy_robiny(const double epsilo
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*(((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2SqVol[0]*bcVals[3])*bcVals[7]-2.0*rdx2SqVol[1]*bcVals[4]*bcVals[6])*epsilon)/(bcVals[4]*bcVals[7]));
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*(((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2Sq[0]*bcVals[3])*bcVals[7]-2.0*rdx2Sq[1]*bcVals[4]*bcVals[6])*epsilon)/(bcVals[4]*bcVals[7]));
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_loy_robiny(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -7867,36 +7305,30 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_loy_robiny(const double epsilo
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[7]-12.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[7], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[7]-48.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[7]-48.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[4], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[5], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[6], -0.02222222222222222*(24.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[7], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2SqVol[1]*bcVals[6])*epsilon)/bcVals[7]);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*(((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3])*bcVals[7]-12.0*rdx2SqVol[1]*bcVals[4]*bcVals[6])*epsilon)/(bcVals[4]*bcVals[7]));
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[7]+6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[7]-6.0*rdx2Sq[1]*bcVals[6])*epsilon)/bcVals[7]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*(((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2Sq[0]*bcVals[3])*bcVals[7]-12.0*rdx2Sq[1]*bcVals[4]*bcVals[6])*epsilon)/(bcVals[4]*bcVals[7]));
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
@@ -7907,12 +7339,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_loy_robiny(const double epsilo
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[1], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[3], 0.02222222222222222*(40.0*rdx2Sq[1]-24.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], (0.02222222222222222*((80.0*rdx2Sq[1]+24.0*rdx2Sq[0])*bcVals[4]+48.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], (0.02222222222222222*((80.0*rdx2Sq[1]+24.0*rdx2Sq[0])*bcVals[4]+48.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
@@ -7931,12 +7363,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_loy_robiny(const double epsilo
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[0], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p1_upx_periodicx_upy_periodicy(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -8167,12 +7599,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_periodicx_upy_neumanny(const double e
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -8202,12 +7628,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_periodicx_upy_neumanny(const double e
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -8287,12 +7707,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_periodicx_upy_robiny(const double eps
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -8303,12 +7717,12 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_periodicx_upy_robiny(const double eps
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p2_upx_periodicx_upy_robiny(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -8322,12 +7736,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_periodicx_upy_robiny(const double eps
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -8374,25 +7782,25 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_periodicx_upy_robiny(const double eps
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[0], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[1], -0.02222222222222222*(24.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[2], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[3], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[4], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[10]+48.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[10]+48.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[0], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p1_upx_dirichletx_upy_periodicy(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -8623,12 +8031,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_dirichletx_upy_neumanny(const double 
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -8658,12 +8060,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_dirichletx_upy_neumanny(const double 
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -8743,12 +8139,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_dirichletx_upy_robiny(const double ep
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -8759,8 +8149,8 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_dirichletx_upy_robiny(const double ep
   gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[3], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_insert(tri, globalIdxs[3], globalIdxs[0], 0.0);
   gkyl_mat_triples_insert(tri, globalIdxs[3], globalIdxs[1], 0.0);
   gkyl_mat_triples_insert(tri, globalIdxs[3], globalIdxs[2], 0.0);
@@ -8778,12 +8168,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_dirichletx_upy_robiny(const double ep
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -8830,17 +8214,17 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_dirichletx_upy_robiny(const double ep
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[0], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[1], -0.02222222222222222*(24.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[2], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[3], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[4], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[10]+48.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[10]+48.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_insert(tri, globalIdxs[7], globalIdxs[0], 0.0);
   gkyl_mat_triples_insert(tri, globalIdxs[7], globalIdxs[1], 0.0);
   gkyl_mat_triples_insert(tri, globalIdxs[7], globalIdxs[2], 0.0);
@@ -8862,12 +8246,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_neumannx_upy_periodicy(const double e
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
@@ -8898,12 +8276,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_neumannx_upy_periodicy(const double e
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -8983,12 +8355,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_neumannx_upy_dirichlety(const double 
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -9018,12 +8384,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_neumannx_upy_dirichlety(const double 
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -9103,12 +8463,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_neumannx_upy_neumanny(const double ep
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -9138,12 +8492,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_neumannx_upy_neumanny(const double ep
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -9223,12 +8571,6 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_neumannx_upy_robiny(const double epsi
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
@@ -9239,12 +8581,12 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_neumannx_upy_robiny(const double epsi
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p2_upx_neumannx_upy_robiny(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -9258,12 +8600,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_neumannx_upy_robiny(const double epsi
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -9310,25 +8646,25 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_neumannx_upy_robiny(const double epsi
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[0], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[1], -0.02222222222222222*(24.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[2], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[3], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[4], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[10]+48.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[10]+48.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[0], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p1_upx_robinx_upy_periodicy(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -9343,28 +8679,22 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_robinx_upy_periodicy(const double eps
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_upy_periodicy(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -9378,12 +8708,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_upy_periodicy(const double eps
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -9403,12 +8727,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_upy_periodicy(const double eps
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[7], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
@@ -9419,12 +8743,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_upy_periodicy(const double eps
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[1], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[3], 0.02222222222222222*(40.0*rdx2Sq[1]-24.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], (0.02222222222222222*((80.0*rdx2Sq[1]+24.0*rdx2Sq[0])*bcVals[4]+48.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], (0.02222222222222222*((80.0*rdx2Sq[1]+24.0*rdx2Sq[0])*bcVals[4]+48.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
@@ -9443,12 +8767,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_upy_periodicy(const double eps
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[0], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p1_upx_robinx_upy_dirichlety(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -9463,20 +8787,14 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_robinx_upy_dirichlety(const double ep
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[0], 0.0);
   gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[1], 0.0);
   gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[2], 1.0);
@@ -9499,12 +8817,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_upy_dirichlety(const double ep
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
@@ -9523,12 +8835,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_upy_dirichlety(const double ep
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[7], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
@@ -9539,12 +8851,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_upy_dirichlety(const double ep
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[1], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[3], 0.02222222222222222*(40.0*rdx2Sq[1]-24.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], (0.02222222222222222*((80.0*rdx2Sq[1]+24.0*rdx2Sq[0])*bcVals[4]+48.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], (0.02222222222222222*((80.0*rdx2Sq[1]+24.0*rdx2Sq[0])*bcVals[4]+48.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_insert(tri, globalIdxs[5], globalIdxs[0], 0.0);
   gkyl_mat_triples_insert(tri, globalIdxs[5], globalIdxs[1], 0.0);
   gkyl_mat_triples_insert(tri, globalIdxs[5], globalIdxs[2], 0.0);
@@ -9583,28 +8895,22 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_robinx_upy_neumanny(const double epsi
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_upy_neumanny(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -9618,12 +8924,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_upy_neumanny(const double epsi
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -9643,12 +8943,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_upy_neumanny(const double epsi
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[7], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
@@ -9659,12 +8959,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_upy_neumanny(const double epsi
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[1], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[3], 0.02222222222222222*(40.0*rdx2Sq[1]-24.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], (0.02222222222222222*((80.0*rdx2Sq[1]+24.0*rdx2Sq[0])*bcVals[4]+48.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], (0.02222222222222222*((80.0*rdx2Sq[1]+24.0*rdx2Sq[0])*bcVals[4]+48.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
@@ -9683,12 +8983,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_upy_neumanny(const double epsi
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[0], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p1_upx_robinx_upy_robiny(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -9703,28 +9003,22 @@ void fem_poisson_lhs_stencil_2x_ser_p1_upx_robinx_upy_robiny(const double epsilo
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
 
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
-
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.3333333333333333*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.1666666666666667*(rdx2Sq[1]-2.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], -0.1666666666666667*(2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.3333333333333333*((rdx2Sq[1]+rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1666666666666667*(rdx2Sq[1]+rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*(((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2SqVol[0]*bcVals[3])*bcVals[10]+2.0*rdx2SqVol[1]*bcVals[4]*bcVals[9])*epsilon)/(bcVals[4]*bcVals[10]));
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], -(0.1666666666666667*((2.0*rdx2Sq[1]-1.0*rdx2Sq[0])*bcVals[4]-2.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], (0.1666666666666667*((rdx2Sq[1]-2.0*rdx2Sq[0])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], (0.3333333333333333*(((rdx2Sq[1]+rdx2Sq[0])*bcVals[4]+2.0*rdx2Sq[0]*bcVals[3])*bcVals[10]+2.0*rdx2Sq[1]*bcVals[4]*bcVals[9])*epsilon)/(bcVals[4]*bcVals[10]));
 
 }
 void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_upy_robiny(const double epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
@@ -9738,12 +9032,6 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_upy_robiny(const double epsilo
   double rdx2Sq[2];
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]);
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]);
-
-  double volFac = 0.25*dx[0]*dx[1]; 
-
-  double rdx2SqVol[2]; 
-  rdx2SqVol[0] = volFac*rdx2Sq[0]; 
-  rdx2SqVol[1] = volFac*rdx2Sq[1]; 
 
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.02222222222222222*(26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
@@ -9763,12 +9051,12 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_upy_robiny(const double epsilo
   gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[7], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], 0.01111111111111111*(17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], 0.02222222222222222*(3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[6], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
@@ -9779,35 +9067,35 @@ void fem_poisson_lhs_stencil_2x_ser_p2_upx_robinx_upy_robiny(const double epsilo
   gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[1], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[3], 0.02222222222222222*(40.0*rdx2Sq[1]-24.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], (0.02222222222222222*((80.0*rdx2Sq[1]+24.0*rdx2Sq[0])*bcVals[4]+48.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], (0.02222222222222222*((80.0*rdx2Sq[1]+24.0*rdx2Sq[0])*bcVals[4]+48.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], 0.01111111111111111*(28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -0.02222222222222222*(40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[4], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (0.02222222222222222*((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[10]+12.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[0], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[1], -0.02222222222222222*(24.0*rdx2Sq[1]-40.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[2], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[3], 0.0);
   gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[4], 0.0);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[10]+48.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], (0.02222222222222222*((24.0*rdx2Sq[1]+80.0*rdx2Sq[0])*bcVals[10]+48.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[0], 0.01111111111111111*(23.0*rdx2Sq[1]+23.0*rdx2Sq[0])*epsilon);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[1], -0.02222222222222222*(3.0*rdx2Sq[1]+20.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], (0.01111111111111111*((28.0*rdx2Sq[1]+17.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
   gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[3], -0.02222222222222222*(20.0*rdx2Sq[1]+3.0*rdx2Sq[0])*epsilon);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2SqVol[0]*bcVals[3])*epsilon)/bcVals[4]);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2SqVol[1]*bcVals[9])*epsilon)/bcVals[10]);
-  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*(((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3])*bcVals[10]+12.0*rdx2SqVol[1]*bcVals[4]*bcVals[9])*epsilon)/(bcVals[4]*bcVals[10]));
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -(0.02222222222222222*((40.0*rdx2Sq[1]-3.0*rdx2Sq[0])*bcVals[4]-6.0*rdx2Sq[0]*bcVals[3])*epsilon)/bcVals[4]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], (0.01111111111111111*((17.0*rdx2Sq[1]+28.0*rdx2Sq[0])*bcVals[10]-6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], (0.02222222222222222*((3.0*rdx2Sq[1]-40.0*rdx2Sq[0])*bcVals[10]+6.0*rdx2Sq[1]*bcVals[9])*epsilon)/bcVals[10]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], (0.02222222222222222*(((26.0*rdx2Sq[1]+26.0*rdx2Sq[0])*bcVals[4]+12.0*rdx2Sq[0]*bcVals[3])*bcVals[10]+12.0*rdx2Sq[1]*bcVals[4]*bcVals[9])*epsilon)/(bcVals[4]*bcVals[10]));
 
 }
