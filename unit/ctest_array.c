@@ -493,7 +493,7 @@ void test_array_scale_by_cell()
   gkyl_array_release(s);
 }
 
-void test_array_shiftc0()
+void test_array_shiftc()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 3, 10);
 
@@ -503,15 +503,43 @@ void test_array_shiftc0()
     for (size_t k=0; k<a1->ncomp; ++k) a1_d[i*a1->ncomp+k] = i*2.0+k;
   }
 
-  gkyl_array_shiftc0(a1, s);
+  gkyl_array_shiftc(a1, s, 0);
 
-  TEST_CHECK( gkyl_compare(a1_d[0], 0*1.0+0-0.5, 1e-14) );
+  TEST_CHECK( gkyl_compare(a1_d[0], 0*1.0+0+s, 1e-14) );
   for (unsigned i=0; i<a1->size; ++i) {
     for (size_t k=1; k<a1->ncomp; ++k) 
       TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+k], i*2.0+k, 1e-14) );
   }
 
   gkyl_array_release(a1);
+
+  // Repeat the test but shifting another coefficient as well.
+  int shiftks[] = {0, 2};
+  int nks = sizeof(shiftks)/sizeof(shiftks[0]);
+
+  struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 4, 8);
+  double *a2_d = a2->data;
+  for (unsigned i=0; i<a2->size; ++i) {
+    for (size_t k=0; k<a2->ncomp; ++k) a2_d[i*a2->ncomp+k] = i*2.0+k;
+  }
+
+  for (size_t l=0; l<nks; l++)
+    gkyl_array_shiftc(a2, s, shiftks[l]);
+
+  for (unsigned i=0; i<a2->size; ++i) {
+    for (size_t k=0; k<a2->ncomp; ++k) {
+      bool isshifted = false;
+      for (size_t l=0; l<nks; l++) {
+        if (shiftks[l]==k) {isshifted = true; break;}
+      }
+      if (isshifted)
+        TEST_CHECK( gkyl_compare(a2_d[i*a2->ncomp+k], i*2.0+k+s, 1e-14) );
+      else
+        TEST_CHECK( gkyl_compare(a2_d[i*a2->ncomp+k], i*2.0+k, 1e-14) );
+    }
+  }
+
+  gkyl_array_release(a2);
 }
 
 void test_array_opcombine()
@@ -1883,7 +1911,7 @@ void test_cu_array_scale_by_cell()
   gkyl_array_release(s_cu);
 }
 
-void test_cu_array_shiftc0()
+void test_cu_array_shiftc()
 {
   double s = -0.5;
 
@@ -1900,7 +1928,7 @@ void test_cu_array_shiftc0()
   // copy host arrays to device
   gkyl_array_copy(a1_cu, a1);
 
-  gkyl_array_shiftc0(a1_cu, s);
+  gkyl_array_shiftc(a1_cu, s, 0);
 
   // copy from device and check if things are ok
   gkyl_array_copy(a1, a1_cu);
@@ -1912,6 +1940,38 @@ void test_cu_array_shiftc0()
 
   gkyl_array_release(a1);
   gkyl_array_release(a1_cu);
+
+  // Repeat the test but shifting another coefficient as well.
+  int shiftks[] = {0, 2};
+  int nks = sizeof(shiftks)/sizeof(shiftks[0]);
+
+  struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 4, 8);
+  struct gkyl_array *a2_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 4, 8);
+  double *a2_d = a2->data;
+  for (unsigned i=0; i<a2->size; ++i) {
+    for (size_t k=0; k<a2->ncomp; ++k) a2_d[i*a2->ncomp+k] = i*2.0+k;
+  }
+  gkyl_array_copy(a2_cu, a2);
+
+  for (size_t l=0; l<nks; l++)
+    gkyl_array_shiftc(a2_cu, s, shiftks[l]);
+
+  gkyl_array_copy(a2, a2_cu);
+  for (unsigned i=0; i<a2->size; ++i) {
+    for (size_t k=0; k<a2->ncomp; ++k) {
+      bool isshifted = false;
+      for (size_t l=0; l<nks; l++) {
+        if (shiftks[l]==k) {isshifted = true; break;}
+      }
+      if (isshifted)
+        TEST_CHECK( gkyl_compare(a2_d[i*a2->ncomp+k], i*2.0+k+s, 1e-14) );
+      else
+        TEST_CHECK( gkyl_compare(a2_d[i*a2->ncomp+k], i*2.0+k, 1e-14) );
+    }
+  }
+
+  gkyl_array_release(a2);
+  gkyl_array_release(a2_cu);
 }
 
 void test_cu_array_copy_buffer()
@@ -2174,7 +2234,7 @@ TEST_LIST = {
   { "array_set_offset_range", test_array_set_offset_range },
   { "array_scale", test_array_scale },
   { "array_scale_by_cell", test_array_scale_by_cell },
-  { "array_shiftc0", test_array_shiftc0 },
+  { "array_shiftc", test_array_shiftc },
   { "array_opcombine", test_array_opcombine },
   { "array_ops_comp", test_array_ops_comp },
   { "array_copy_buffer", test_array_copy_buffer },
@@ -2207,7 +2267,7 @@ TEST_LIST = {
   { "cu_array_set_offset_range", test_cu_array_set_offset_range },
   { "cu_array_scale", test_cu_array_scale },
   { "cu_array_scale_by_cell", test_cu_array_scale_by_cell },
-  { "cu_array_shiftc0", test_cu_array_shiftc0 },
+  { "cu_array_shiftc", test_cu_array_shiftc },
   { "cu_array_copy_buffer", test_cu_array_copy_buffer },
   { "cu_array_copy_buffer_fn", test_cu_array_copy_buffer_fn },
   { "cu_array_flip_copy_buffer_fn", test_cu_array_flip_copy_buffer_fn },

@@ -112,13 +112,14 @@ struct gkyl_array* gkyl_array_scale(struct gkyl_array *out, double a);
 struct gkyl_array* gkyl_array_scale_by_cell(struct gkyl_array *out, const struct gkyl_array *a);
 
 /**
- * Shift the zeroth coefficient in every cell, out_0 = a+out_0. Returns out.
+ * Shift the k-th coefficient in every cell, out_k = a+out_k. Returns out.
  *
  * @param out Output array.
- * @param a Factor to shift 0th coefficient by.
+ * @param a Factor to shift k-th coefficient by.
+ * @param k Coefficient to be shifted.
  * @return out array.
  */
-struct gkyl_array* gkyl_array_shiftc0(struct gkyl_array *out, double a);
+struct gkyl_array* gkyl_array_shiftc(struct gkyl_array *out, double a, unsigned k);
 
 /**
  * Clear out = val. Returns out.
@@ -305,7 +306,7 @@ void gkyl_array_scale_cu(struct gkyl_array* out, double a);
 
 void gkyl_array_scale_by_cell_cu(struct gkyl_array* out, const struct gkyl_array* a);
 
-void gkyl_array_shiftc0_cu(struct gkyl_array* out, double a);
+void gkyl_array_shiftc_cu(struct gkyl_array* out, double a, unsigned k);
 
 /**
  * Host-side wrappers for range-based array operations

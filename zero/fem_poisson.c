@@ -232,7 +232,7 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
 #else
     gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->solve_range);
 #endif
-    gkyl_array_shiftc0(rhsin, up->mavgfac*up->rhs_avg[0]);
+    gkyl_array_shiftc(rhsin, up->mavgfac*up->rhs_avg[0], 0);
   }
 
 

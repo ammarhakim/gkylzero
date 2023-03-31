@@ -46,7 +46,8 @@ struct gkyl_poisson_bc {
  *
  * @param grid Grid object
  * @param basis Basis functions of the DG field.
- * @param isdirperiodic boolean array indicating periodic directions.
+ * @param bcs Boundary conditions.
+ * @param epsilon Value of the permittivity.
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
