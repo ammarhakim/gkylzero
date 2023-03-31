@@ -1,6 +1,6 @@
-#include <gkyl_fem_poisson_vareps_kernels.h> 
+#include <gkyl_fem_poisson_kernels.h> 
  
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p1_inx_periodicx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_1x_ser_p1_inx_periodicx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -21,7 +21,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p1_inx_periodicx(const dou
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p2_inx_periodicx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_1x_ser_p2_inx_periodicx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -47,7 +47,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p2_inx_periodicx(const dou
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p1_lox_periodicx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_1x_ser_p1_lox_periodicx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -68,7 +68,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p1_lox_periodicx(const dou
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p2_lox_periodicx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_1x_ser_p2_lox_periodicx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -94,7 +94,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p2_lox_periodicx(const dou
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p1_lox_dirichletx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_1x_ser_p1_lox_dirichletx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -115,7 +115,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p1_lox_dirichletx(const do
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p2_lox_dirichletx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_1x_ser_p2_lox_dirichletx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -141,7 +141,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p2_lox_dirichletx(const do
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p1_lox_neumannx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_1x_ser_p1_lox_neumannx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -165,7 +165,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p1_lox_neumannx(const doub
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p2_lox_neumannx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_1x_ser_p2_lox_neumannx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -194,7 +194,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p2_lox_neumannx(const doub
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p1_lox_robinx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_1x_ser_p1_lox_robinx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -218,7 +218,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p1_lox_robinx(const double
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p2_lox_robinx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_1x_ser_p2_lox_robinx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -247,7 +247,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p2_lox_robinx(const double
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p1_upx_periodicx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_1x_ser_p1_upx_periodicx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -268,7 +268,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p1_upx_periodicx(const dou
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p2_upx_periodicx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_1x_ser_p2_upx_periodicx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -294,7 +294,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p2_upx_periodicx(const dou
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p1_upx_dirichletx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_1x_ser_p1_upx_dirichletx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -315,7 +315,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p1_upx_dirichletx(const do
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p2_upx_dirichletx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_1x_ser_p2_upx_dirichletx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -341,7 +341,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p2_upx_dirichletx(const do
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p1_upx_neumannx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_1x_ser_p1_upx_neumannx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -365,7 +365,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p1_upx_neumannx(const doub
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p2_upx_neumannx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_1x_ser_p2_upx_neumannx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -394,7 +394,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p2_upx_neumannx(const doub
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p1_upx_robinx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_1x_ser_p1_upx_robinx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -418,7 +418,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p1_upx_robinx(const double
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p2_upx_robinx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_1x_ser_p2_upx_robinx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -447,7 +447,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_1x_ser_p2_upx_robinx(const double
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_inx_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -478,7 +478,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_inx_periodicx_iny_perio
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_inx_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -529,7 +529,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_inx_periodicx_iny_perio
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -560,7 +560,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_periodicx_iny_perio
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -611,7 +611,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_periodicx_iny_perio
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_dirichletx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_dirichletx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -642,7 +642,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_dirichletx_iny_peri
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_dirichletx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_dirichletx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -693,7 +693,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_dirichletx_iny_peri
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_neumannx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_neumannx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -728,7 +728,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_neumannx_iny_period
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_neumannx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_neumannx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -783,7 +783,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_neumannx_iny_period
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_robinx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_robinx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -818,7 +818,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_robinx_iny_periodic
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_robinx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_robinx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -873,7 +873,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_robinx_iny_periodic
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -904,7 +904,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_periodicx_iny_perio
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -955,7 +955,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_periodicx_iny_perio
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_dirichletx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_dirichletx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -986,7 +986,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_dirichletx_iny_peri
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_dirichletx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -1037,7 +1037,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_dirichletx_iny_peri
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_neumannx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_neumannx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -1072,7 +1072,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_neumannx_iny_period
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_neumannx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_neumannx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -1127,7 +1127,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_neumannx_iny_period
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_robinx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_robinx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -1162,7 +1162,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_robinx_iny_periodic
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_robinx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_robinx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -1217,7 +1217,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_robinx_iny_periodic
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_inx_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -1248,7 +1248,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_inx_periodicx_loy_perio
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_inx_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -1299,7 +1299,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_inx_periodicx_loy_perio
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_inx_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -1330,7 +1330,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_inx_periodicx_loy_diric
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_inx_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -1381,7 +1381,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_inx_periodicx_loy_diric
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_inx_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -1416,7 +1416,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_inx_periodicx_loy_neuma
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_inx_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -1471,7 +1471,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_inx_periodicx_loy_neuma
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_inx_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -1506,7 +1506,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_inx_periodicx_loy_robin
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_inx_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -1561,7 +1561,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_inx_periodicx_loy_robin
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_inx_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -1592,7 +1592,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_inx_periodicx_upy_perio
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_inx_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -1643,7 +1643,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_inx_periodicx_upy_perio
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_inx_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -1674,7 +1674,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_inx_periodicx_upy_diric
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_inx_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -1725,7 +1725,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_inx_periodicx_upy_diric
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_inx_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -1760,7 +1760,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_inx_periodicx_upy_neuma
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_inx_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -1815,7 +1815,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_inx_periodicx_upy_neuma
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_inx_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -1850,7 +1850,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_inx_periodicx_upy_robin
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_inx_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -1905,7 +1905,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_inx_periodicx_upy_robin
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -1936,7 +1936,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_periodicx_loy_perio
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -1987,7 +1987,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_periodicx_loy_perio
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -2018,7 +2018,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_periodicx_loy_diric
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -2069,7 +2069,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_periodicx_loy_diric
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -2104,7 +2104,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_periodicx_loy_neuma
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -2159,7 +2159,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_periodicx_loy_neuma
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -2194,7 +2194,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_periodicx_loy_robin
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -2249,7 +2249,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_periodicx_loy_robin
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_dirichletx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_dirichletx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -2280,7 +2280,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_dirichletx_loy_peri
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_dirichletx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_dirichletx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -2331,7 +2331,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_dirichletx_loy_peri
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_dirichletx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_dirichletx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -2362,7 +2362,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_dirichletx_loy_diri
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_dirichletx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_dirichletx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -2413,7 +2413,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_dirichletx_loy_diri
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_dirichletx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_dirichletx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -2448,7 +2448,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_dirichletx_loy_neum
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_dirichletx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_dirichletx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -2503,7 +2503,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_dirichletx_loy_neum
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_dirichletx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_dirichletx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -2538,7 +2538,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_dirichletx_loy_robi
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_dirichletx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_dirichletx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -2593,7 +2593,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_dirichletx_loy_robi
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_neumannx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_neumannx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -2628,7 +2628,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_neumannx_loy_period
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_neumannx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_neumannx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -2683,7 +2683,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_neumannx_loy_period
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_neumannx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_neumannx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -2718,7 +2718,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_neumannx_loy_dirich
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_neumannx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_neumannx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -2773,7 +2773,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_neumannx_loy_dirich
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_neumannx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_neumannx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -2808,7 +2808,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_neumannx_loy_neuman
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_neumannx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_neumannx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -2863,7 +2863,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_neumannx_loy_neuman
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_neumannx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_neumannx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -2898,7 +2898,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_neumannx_loy_robiny
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_neumannx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_neumannx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -2953,7 +2953,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_neumannx_loy_robiny
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_robinx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_robinx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -2988,7 +2988,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_robinx_loy_periodic
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_robinx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_robinx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -3043,7 +3043,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_robinx_loy_periodic
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_robinx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_robinx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -3078,7 +3078,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_robinx_loy_dirichle
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_robinx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_robinx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -3133,7 +3133,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_robinx_loy_dirichle
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_robinx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_robinx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -3168,7 +3168,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_robinx_loy_neumanny
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_robinx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_robinx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -3223,7 +3223,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_robinx_loy_neumanny
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_robinx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_robinx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -3258,7 +3258,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_robinx_loy_robiny(c
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_robinx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_robinx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -3313,7 +3313,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_robinx_loy_robiny(c
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -3344,7 +3344,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_periodicx_upy_perio
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -3395,7 +3395,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_periodicx_upy_perio
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -3426,7 +3426,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_periodicx_upy_diric
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -3477,7 +3477,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_periodicx_upy_diric
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -3512,7 +3512,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_periodicx_upy_neuma
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -3567,7 +3567,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_periodicx_upy_neuma
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -3602,7 +3602,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_periodicx_upy_robin
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -3657,7 +3657,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_periodicx_upy_robin
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_dirichletx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_dirichletx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -3688,7 +3688,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_dirichletx_upy_peri
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_dirichletx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -3739,7 +3739,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_dirichletx_upy_peri
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_dirichletx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_dirichletx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -3770,7 +3770,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_dirichletx_upy_diri
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_dirichletx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -3821,7 +3821,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_dirichletx_upy_diri
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_dirichletx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_dirichletx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -3856,7 +3856,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_dirichletx_upy_neum
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_dirichletx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -3911,7 +3911,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_dirichletx_upy_neum
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_dirichletx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_dirichletx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -3946,7 +3946,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_dirichletx_upy_robi
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_dirichletx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -4001,7 +4001,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_dirichletx_upy_robi
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_neumannx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_neumannx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -4036,7 +4036,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_neumannx_upy_period
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_neumannx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_neumannx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -4091,7 +4091,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_neumannx_upy_period
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_neumannx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_neumannx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -4126,7 +4126,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_neumannx_upy_dirich
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_neumannx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_neumannx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -4181,7 +4181,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_neumannx_upy_dirich
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_neumannx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_neumannx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -4216,7 +4216,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_neumannx_upy_neuman
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_neumannx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_neumannx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -4271,7 +4271,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_neumannx_upy_neuman
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_neumannx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_neumannx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -4306,7 +4306,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_neumannx_upy_robiny
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_neumannx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_neumannx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -4361,7 +4361,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_neumannx_upy_robiny
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_robinx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_robinx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -4396,7 +4396,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_robinx_upy_periodic
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_robinx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_robinx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -4451,7 +4451,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_robinx_upy_periodic
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_robinx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_robinx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -4486,7 +4486,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_robinx_upy_dirichle
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_robinx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_robinx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -4541,7 +4541,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_robinx_upy_dirichle
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_robinx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_robinx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -4576,7 +4576,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_robinx_upy_neumanny
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_robinx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_robinx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -4631,7 +4631,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_robinx_upy_neumanny
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_robinx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_lox_robinx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -4666,7 +4666,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_lox_robinx_upy_robiny(c
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_robinx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_lox_robinx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -4721,7 +4721,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_lox_robinx_upy_robiny(c
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -4752,7 +4752,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_periodicx_loy_perio
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -4803,7 +4803,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_periodicx_loy_perio
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -4834,7 +4834,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_periodicx_loy_diric
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -4885,7 +4885,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_periodicx_loy_diric
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -4920,7 +4920,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_periodicx_loy_neuma
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -4975,7 +4975,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_periodicx_loy_neuma
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -5010,7 +5010,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_periodicx_loy_robin
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -5065,7 +5065,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_periodicx_loy_robin
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_dirichletx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_dirichletx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -5096,7 +5096,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_dirichletx_loy_peri
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_dirichletx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -5147,7 +5147,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_dirichletx_loy_peri
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_dirichletx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_dirichletx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -5178,7 +5178,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_dirichletx_loy_diri
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_dirichletx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -5229,7 +5229,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_dirichletx_loy_diri
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_dirichletx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_dirichletx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -5264,7 +5264,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_dirichletx_loy_neum
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_dirichletx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -5319,7 +5319,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_dirichletx_loy_neum
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_dirichletx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_dirichletx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -5354,7 +5354,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_dirichletx_loy_robi
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_dirichletx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -5409,7 +5409,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_dirichletx_loy_robi
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_neumannx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_neumannx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -5444,7 +5444,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_neumannx_loy_period
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_neumannx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_neumannx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -5499,7 +5499,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_neumannx_loy_period
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_neumannx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_neumannx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -5534,7 +5534,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_neumannx_loy_dirich
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_neumannx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_neumannx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -5589,7 +5589,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_neumannx_loy_dirich
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_neumannx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_neumannx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -5624,7 +5624,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_neumannx_loy_neuman
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_neumannx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_neumannx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -5679,7 +5679,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_neumannx_loy_neuman
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_neumannx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_neumannx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -5714,7 +5714,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_neumannx_loy_robiny
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_neumannx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_neumannx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -5769,7 +5769,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_neumannx_loy_robiny
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_robinx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_robinx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -5804,7 +5804,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_robinx_loy_periodic
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_robinx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_robinx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -5859,7 +5859,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_robinx_loy_periodic
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_robinx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_robinx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -5894,7 +5894,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_robinx_loy_dirichle
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_robinx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_robinx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -5949,7 +5949,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_robinx_loy_dirichle
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_robinx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_robinx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -5984,7 +5984,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_robinx_loy_neumanny
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_robinx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_robinx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -6039,7 +6039,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_robinx_loy_neumanny
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_robinx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_robinx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -6074,7 +6074,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_robinx_loy_robiny(c
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_robinx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_robinx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -6129,7 +6129,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_robinx_loy_robiny(c
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -6160,7 +6160,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_periodicx_upy_perio
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -6211,7 +6211,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_periodicx_upy_perio
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -6242,7 +6242,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_periodicx_upy_diric
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -6293,7 +6293,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_periodicx_upy_diric
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -6328,7 +6328,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_periodicx_upy_neuma
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -6383,7 +6383,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_periodicx_upy_neuma
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -6418,7 +6418,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_periodicx_upy_robin
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -6473,7 +6473,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_periodicx_upy_robin
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_dirichletx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_dirichletx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -6504,7 +6504,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_dirichletx_upy_peri
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_dirichletx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -6555,7 +6555,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_dirichletx_upy_peri
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_dirichletx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_dirichletx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -6586,7 +6586,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_dirichletx_upy_diri
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_dirichletx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -6637,7 +6637,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_dirichletx_upy_diri
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_dirichletx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_dirichletx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -6672,7 +6672,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_dirichletx_upy_neum
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_dirichletx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -6727,7 +6727,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_dirichletx_upy_neum
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_dirichletx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_dirichletx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -6762,7 +6762,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_dirichletx_upy_robi
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_dirichletx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -6817,7 +6817,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_dirichletx_upy_robi
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_neumannx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_neumannx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -6852,7 +6852,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_neumannx_upy_period
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_neumannx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_neumannx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -6907,7 +6907,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_neumannx_upy_period
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_neumannx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_neumannx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -6942,7 +6942,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_neumannx_upy_dirich
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_neumannx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_neumannx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -6997,7 +6997,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_neumannx_upy_dirich
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_neumannx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_neumannx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -7032,7 +7032,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_neumannx_upy_neuman
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_neumannx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_neumannx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -7087,7 +7087,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_neumannx_upy_neuman
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_neumannx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_neumannx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -7122,7 +7122,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_neumannx_upy_robiny
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_neumannx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_neumannx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -7177,7 +7177,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_neumannx_upy_robiny
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_robinx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_robinx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -7212,7 +7212,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_robinx_upy_periodic
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_robinx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_robinx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -7267,7 +7267,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_robinx_upy_periodic
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_robinx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_robinx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -7302,7 +7302,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_robinx_upy_dirichle
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_robinx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_robinx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -7357,7 +7357,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_robinx_upy_dirichle
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_robinx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_robinx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -7392,7 +7392,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_robinx_upy_neumanny
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_robinx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_robinx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -7447,7 +7447,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_robinx_upy_neumanny
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_robinx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_robinx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.
@@ -7482,7 +7482,7 @@ GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p1_upx_robinx_upy_robiny(c
 
 }
 
-GKYL_CU_DH void fem_poisson_vareps_src_stencil_2x_ser_p2_upx_robinx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_robinx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity tensor.
   // rho: right side source.

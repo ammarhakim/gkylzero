@@ -1,6 +1,6 @@
-#include <gkyl_fem_poisson_vareps_kernels.h> 
+#include <gkyl_fem_poisson_kernels.h> 
  
-void fem_poisson_vareps_lhs_stencil_1x_ser_p1_inx_periodicx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_1x_ser_p1_inx_periodicx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -19,7 +19,7 @@ void fem_poisson_vareps_lhs_stencil_1x_ser_p1_inx_periodicx(const double *epsilo
 
 }
 
-void fem_poisson_vareps_lhs_stencil_1x_ser_p2_inx_periodicx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_1x_ser_p2_inx_periodicx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -43,7 +43,7 @@ void fem_poisson_vareps_lhs_stencil_1x_ser_p2_inx_periodicx(const double *epsilo
 
 }
 
-void fem_poisson_vareps_lhs_stencil_1x_ser_p1_lox_periodicx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_1x_ser_p1_lox_periodicx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -62,7 +62,7 @@ void fem_poisson_vareps_lhs_stencil_1x_ser_p1_lox_periodicx(const double *epsilo
 
 }
 
-void fem_poisson_vareps_lhs_stencil_1x_ser_p2_lox_periodicx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_1x_ser_p2_lox_periodicx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -86,7 +86,7 @@ void fem_poisson_vareps_lhs_stencil_1x_ser_p2_lox_periodicx(const double *epsilo
 
 }
 
-void fem_poisson_vareps_lhs_stencil_1x_ser_p1_lox_dirichletx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_1x_ser_p1_lox_dirichletx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -105,7 +105,7 @@ void fem_poisson_vareps_lhs_stencil_1x_ser_p1_lox_dirichletx(const double *epsil
 
 }
 
-void fem_poisson_vareps_lhs_stencil_1x_ser_p2_lox_dirichletx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_1x_ser_p2_lox_dirichletx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -129,7 +129,7 @@ void fem_poisson_vareps_lhs_stencil_1x_ser_p2_lox_dirichletx(const double *epsil
 
 }
 
-void fem_poisson_vareps_lhs_stencil_1x_ser_p1_lox_neumannx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_1x_ser_p1_lox_neumannx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -151,7 +151,7 @@ void fem_poisson_vareps_lhs_stencil_1x_ser_p1_lox_neumannx(const double *epsilon
 
 }
 
-void fem_poisson_vareps_lhs_stencil_1x_ser_p2_lox_neumannx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_1x_ser_p2_lox_neumannx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -178,7 +178,7 @@ void fem_poisson_vareps_lhs_stencil_1x_ser_p2_lox_neumannx(const double *epsilon
 
 }
 
-void fem_poisson_vareps_lhs_stencil_1x_ser_p1_lox_robinx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_1x_ser_p1_lox_robinx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -200,7 +200,7 @@ void fem_poisson_vareps_lhs_stencil_1x_ser_p1_lox_robinx(const double *epsilon, 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_1x_ser_p2_lox_robinx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_1x_ser_p2_lox_robinx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -227,7 +227,7 @@ void fem_poisson_vareps_lhs_stencil_1x_ser_p2_lox_robinx(const double *epsilon, 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_1x_ser_p1_upx_periodicx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_1x_ser_p1_upx_periodicx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -246,7 +246,7 @@ void fem_poisson_vareps_lhs_stencil_1x_ser_p1_upx_periodicx(const double *epsilo
 
 }
 
-void fem_poisson_vareps_lhs_stencil_1x_ser_p2_upx_periodicx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_1x_ser_p2_upx_periodicx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -270,7 +270,7 @@ void fem_poisson_vareps_lhs_stencil_1x_ser_p2_upx_periodicx(const double *epsilo
 
 }
 
-void fem_poisson_vareps_lhs_stencil_1x_ser_p1_upx_dirichletx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_1x_ser_p1_upx_dirichletx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -289,7 +289,7 @@ void fem_poisson_vareps_lhs_stencil_1x_ser_p1_upx_dirichletx(const double *epsil
 
 }
 
-void fem_poisson_vareps_lhs_stencil_1x_ser_p2_upx_dirichletx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_1x_ser_p2_upx_dirichletx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -313,7 +313,7 @@ void fem_poisson_vareps_lhs_stencil_1x_ser_p2_upx_dirichletx(const double *epsil
 
 }
 
-void fem_poisson_vareps_lhs_stencil_1x_ser_p1_upx_neumannx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_1x_ser_p1_upx_neumannx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -335,7 +335,7 @@ void fem_poisson_vareps_lhs_stencil_1x_ser_p1_upx_neumannx(const double *epsilon
 
 }
 
-void fem_poisson_vareps_lhs_stencil_1x_ser_p2_upx_neumannx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_1x_ser_p2_upx_neumannx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -362,7 +362,7 @@ void fem_poisson_vareps_lhs_stencil_1x_ser_p2_upx_neumannx(const double *epsilon
 
 }
 
-void fem_poisson_vareps_lhs_stencil_1x_ser_p1_upx_robinx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_1x_ser_p1_upx_robinx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -384,7 +384,7 @@ void fem_poisson_vareps_lhs_stencil_1x_ser_p1_upx_robinx(const double *epsilon, 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_1x_ser_p2_upx_robinx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_1x_ser_p2_upx_robinx(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -411,7 +411,7 @@ void fem_poisson_vareps_lhs_stencil_1x_ser_p2_upx_robinx(const double *epsilon, 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_inx_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -448,7 +448,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_inx_periodicx_iny_periodicy(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_inx_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -533,7 +533,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_inx_periodicx_iny_periodicy(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -570,7 +570,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_periodicx_iny_periodicy(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -655,7 +655,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_periodicx_iny_periodicy(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_dirichletx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -692,7 +692,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_dirichletx_iny_periodicy(const
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_dirichletx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -777,7 +777,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_dirichletx_iny_periodicy(const
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_neumannx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -818,7 +818,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_neumannx_iny_periodicy(const d
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_neumannx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -907,7 +907,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_neumannx_iny_periodicy(const d
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_robinx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_robinx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -948,7 +948,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_robinx_iny_periodicy(const dou
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_robinx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_robinx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -1037,7 +1037,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_robinx_iny_periodicy(const dou
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -1074,7 +1074,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_periodicx_iny_periodicy(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -1159,7 +1159,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_periodicx_iny_periodicy(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_dirichletx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -1196,7 +1196,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_dirichletx_iny_periodicy(const
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_dirichletx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -1281,7 +1281,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_dirichletx_iny_periodicy(const
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_neumannx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -1322,7 +1322,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_neumannx_iny_periodicy(const d
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_neumannx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -1411,7 +1411,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_neumannx_iny_periodicy(const d
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_robinx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_robinx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -1452,7 +1452,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_robinx_iny_periodicy(const dou
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_robinx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_robinx_iny_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -1541,7 +1541,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_robinx_iny_periodicy(const dou
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_inx_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -1578,7 +1578,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_inx_periodicx_loy_periodicy(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_inx_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -1663,7 +1663,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_inx_periodicx_loy_periodicy(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_inx_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -1700,7 +1700,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_inx_periodicx_loy_dirichlety(const
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_inx_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -1785,7 +1785,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_inx_periodicx_loy_dirichlety(const
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_inx_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -1826,7 +1826,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_inx_periodicx_loy_neumanny(const d
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_inx_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -1915,7 +1915,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_inx_periodicx_loy_neumanny(const d
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_inx_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -1956,7 +1956,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_inx_periodicx_loy_robiny(const dou
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_inx_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -2045,7 +2045,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_inx_periodicx_loy_robiny(const dou
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_inx_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -2082,7 +2082,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_inx_periodicx_upy_periodicy(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_inx_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -2167,7 +2167,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_inx_periodicx_upy_periodicy(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_inx_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -2204,7 +2204,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_inx_periodicx_upy_dirichlety(const
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_inx_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -2289,7 +2289,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_inx_periodicx_upy_dirichlety(const
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_inx_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -2330,7 +2330,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_inx_periodicx_upy_neumanny(const d
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_inx_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -2419,7 +2419,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_inx_periodicx_upy_neumanny(const d
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_inx_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -2460,7 +2460,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_inx_periodicx_upy_robiny(const dou
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_inx_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -2549,7 +2549,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_inx_periodicx_upy_robiny(const dou
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -2586,7 +2586,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_periodicx_loy_periodicy(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -2671,7 +2671,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_periodicx_loy_periodicy(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -2708,7 +2708,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_periodicx_loy_dirichlety(const
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -2793,7 +2793,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_periodicx_loy_dirichlety(const
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -2834,7 +2834,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_periodicx_loy_neumanny(const d
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -2923,7 +2923,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_periodicx_loy_neumanny(const d
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -2964,7 +2964,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_periodicx_loy_robiny(const dou
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -3053,7 +3053,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_periodicx_loy_robiny(const dou
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_dirichletx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -3090,7 +3090,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_dirichletx_loy_periodicy(const
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_dirichletx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -3175,7 +3175,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_dirichletx_loy_periodicy(const
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_dirichletx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -3212,7 +3212,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_dirichletx_loy_dirichlety(cons
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_dirichletx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -3297,7 +3297,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_dirichletx_loy_dirichlety(cons
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_dirichletx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -3338,7 +3338,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_dirichletx_loy_neumanny(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_dirichletx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -3427,7 +3427,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_dirichletx_loy_neumanny(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_dirichletx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -3468,7 +3468,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_dirichletx_loy_robiny(const do
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_dirichletx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -3557,7 +3557,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_dirichletx_loy_robiny(const do
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_neumannx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -3598,7 +3598,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_neumannx_loy_periodicy(const d
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_neumannx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -3687,7 +3687,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_neumannx_loy_periodicy(const d
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_neumannx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -3728,7 +3728,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_neumannx_loy_dirichlety(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_neumannx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -3817,7 +3817,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_neumannx_loy_dirichlety(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_neumannx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -3858,7 +3858,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_neumannx_loy_neumanny(const do
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_neumannx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -3947,7 +3947,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_neumannx_loy_neumanny(const do
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_neumannx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -3988,7 +3988,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_neumannx_loy_robiny(const doub
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_neumannx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -4077,7 +4077,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_neumannx_loy_robiny(const doub
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_robinx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_robinx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -4118,7 +4118,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_robinx_loy_periodicy(const dou
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_robinx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_robinx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -4207,7 +4207,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_robinx_loy_periodicy(const dou
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_robinx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_robinx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -4248,7 +4248,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_robinx_loy_dirichlety(const do
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_robinx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_robinx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -4337,7 +4337,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_robinx_loy_dirichlety(const do
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_robinx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_robinx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -4378,7 +4378,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_robinx_loy_neumanny(const doub
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_robinx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_robinx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -4467,7 +4467,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_robinx_loy_neumanny(const doub
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_robinx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_robinx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -4508,7 +4508,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_robinx_loy_robiny(const double
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_robinx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_robinx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -4597,7 +4597,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_robinx_loy_robiny(const double
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -4634,7 +4634,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_periodicx_upy_periodicy(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -4719,7 +4719,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_periodicx_upy_periodicy(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -4756,7 +4756,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_periodicx_upy_dirichlety(const
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -4841,7 +4841,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_periodicx_upy_dirichlety(const
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -4882,7 +4882,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_periodicx_upy_neumanny(const d
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -4971,7 +4971,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_periodicx_upy_neumanny(const d
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -5012,7 +5012,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_periodicx_upy_robiny(const dou
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -5101,7 +5101,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_periodicx_upy_robiny(const dou
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_dirichletx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -5138,7 +5138,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_dirichletx_upy_periodicy(const
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_dirichletx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -5223,7 +5223,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_dirichletx_upy_periodicy(const
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_dirichletx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -5260,7 +5260,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_dirichletx_upy_dirichlety(cons
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_dirichletx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -5345,7 +5345,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_dirichletx_upy_dirichlety(cons
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_dirichletx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -5386,7 +5386,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_dirichletx_upy_neumanny(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_dirichletx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -5475,7 +5475,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_dirichletx_upy_neumanny(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_dirichletx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -5516,7 +5516,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_dirichletx_upy_robiny(const do
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_dirichletx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -5605,7 +5605,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_dirichletx_upy_robiny(const do
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_neumannx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -5646,7 +5646,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_neumannx_upy_periodicy(const d
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_neumannx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -5735,7 +5735,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_neumannx_upy_periodicy(const d
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_neumannx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -5776,7 +5776,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_neumannx_upy_dirichlety(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_neumannx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -5865,7 +5865,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_neumannx_upy_dirichlety(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_neumannx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -5906,7 +5906,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_neumannx_upy_neumanny(const do
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_neumannx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -5995,7 +5995,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_neumannx_upy_neumanny(const do
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_neumannx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -6036,7 +6036,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_neumannx_upy_robiny(const doub
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_neumannx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -6125,7 +6125,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_neumannx_upy_robiny(const doub
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_robinx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_robinx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -6166,7 +6166,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_robinx_upy_periodicy(const dou
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_robinx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_robinx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -6255,7 +6255,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_robinx_upy_periodicy(const dou
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_robinx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_robinx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -6296,7 +6296,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_robinx_upy_dirichlety(const do
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_robinx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_robinx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -6385,7 +6385,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_robinx_upy_dirichlety(const do
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_robinx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_robinx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -6426,7 +6426,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_robinx_upy_neumanny(const doub
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_robinx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_robinx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -6515,7 +6515,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_robinx_upy_neumanny(const doub
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_robinx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_robinx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -6556,7 +6556,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_lox_robinx_upy_robiny(const double
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_robinx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_robinx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -6645,7 +6645,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_lox_robinx_upy_robiny(const double
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -6682,7 +6682,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_periodicx_loy_periodicy(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -6767,7 +6767,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_periodicx_loy_periodicy(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -6804,7 +6804,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_periodicx_loy_dirichlety(const
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -6889,7 +6889,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_periodicx_loy_dirichlety(const
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -6930,7 +6930,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_periodicx_loy_neumanny(const d
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -7019,7 +7019,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_periodicx_loy_neumanny(const d
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -7060,7 +7060,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_periodicx_loy_robiny(const dou
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -7149,7 +7149,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_periodicx_loy_robiny(const dou
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_dirichletx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -7186,7 +7186,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_dirichletx_loy_periodicy(const
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_dirichletx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -7271,7 +7271,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_dirichletx_loy_periodicy(const
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_dirichletx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -7308,7 +7308,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_dirichletx_loy_dirichlety(cons
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_dirichletx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -7393,7 +7393,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_dirichletx_loy_dirichlety(cons
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_dirichletx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -7434,7 +7434,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_dirichletx_loy_neumanny(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_dirichletx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -7523,7 +7523,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_dirichletx_loy_neumanny(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_dirichletx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -7564,7 +7564,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_dirichletx_loy_robiny(const do
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_dirichletx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -7653,7 +7653,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_dirichletx_loy_robiny(const do
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_neumannx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -7694,7 +7694,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_neumannx_loy_periodicy(const d
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_neumannx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -7783,7 +7783,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_neumannx_loy_periodicy(const d
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_neumannx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -7824,7 +7824,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_neumannx_loy_dirichlety(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_neumannx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -7913,7 +7913,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_neumannx_loy_dirichlety(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_neumannx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -7954,7 +7954,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_neumannx_loy_neumanny(const do
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_neumannx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -8043,7 +8043,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_neumannx_loy_neumanny(const do
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_neumannx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -8084,7 +8084,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_neumannx_loy_robiny(const doub
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_neumannx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -8173,7 +8173,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_neumannx_loy_robiny(const doub
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_robinx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_robinx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -8214,7 +8214,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_robinx_loy_periodicy(const dou
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_robinx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_robinx_loy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -8303,7 +8303,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_robinx_loy_periodicy(const dou
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_robinx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_robinx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -8344,7 +8344,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_robinx_loy_dirichlety(const do
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_robinx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_robinx_loy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -8433,7 +8433,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_robinx_loy_dirichlety(const do
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_robinx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_robinx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -8474,7 +8474,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_robinx_loy_neumanny(const doub
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_robinx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_robinx_loy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -8563,7 +8563,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_robinx_loy_neumanny(const doub
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_robinx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_robinx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -8604,7 +8604,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_robinx_loy_robiny(const double
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_robinx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_robinx_loy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -8693,7 +8693,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_robinx_loy_robiny(const double
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -8730,7 +8730,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_periodicx_upy_periodicy(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -8815,7 +8815,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_periodicx_upy_periodicy(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -8852,7 +8852,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_periodicx_upy_dirichlety(const
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -8937,7 +8937,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_periodicx_upy_dirichlety(const
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -8978,7 +8978,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_periodicx_upy_neumanny(const d
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -9067,7 +9067,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_periodicx_upy_neumanny(const d
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -9108,7 +9108,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_periodicx_upy_robiny(const dou
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -9197,7 +9197,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_periodicx_upy_robiny(const dou
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_dirichletx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -9234,7 +9234,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_dirichletx_upy_periodicy(const
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_dirichletx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -9319,7 +9319,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_dirichletx_upy_periodicy(const
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_dirichletx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -9356,7 +9356,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_dirichletx_upy_dirichlety(cons
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_dirichletx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -9441,7 +9441,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_dirichletx_upy_dirichlety(cons
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_dirichletx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -9482,7 +9482,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_dirichletx_upy_neumanny(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_dirichletx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -9571,7 +9571,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_dirichletx_upy_neumanny(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_dirichletx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -9612,7 +9612,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_dirichletx_upy_robiny(const do
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_dirichletx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -9701,7 +9701,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_dirichletx_upy_robiny(const do
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_neumannx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -9742,7 +9742,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_neumannx_upy_periodicy(const d
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_neumannx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -9831,7 +9831,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_neumannx_upy_periodicy(const d
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_neumannx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -9872,7 +9872,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_neumannx_upy_dirichlety(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_neumannx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -9961,7 +9961,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_neumannx_upy_dirichlety(const 
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_neumannx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -10002,7 +10002,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_neumannx_upy_neumanny(const do
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_neumannx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -10091,7 +10091,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_neumannx_upy_neumanny(const do
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_neumannx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -10132,7 +10132,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_neumannx_upy_robiny(const doub
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_neumannx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -10221,7 +10221,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_neumannx_upy_robiny(const doub
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_robinx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_robinx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -10262,7 +10262,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_robinx_upy_periodicy(const dou
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_robinx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_robinx_upy_periodicy(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -10351,7 +10351,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_robinx_upy_periodicy(const dou
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_robinx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_robinx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -10392,7 +10392,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_robinx_upy_dirichlety(const do
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_robinx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_robinx_upy_dirichlety(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -10481,7 +10481,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_robinx_upy_dirichlety(const do
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_robinx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_robinx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -10522,7 +10522,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_robinx_upy_neumanny(const doub
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_robinx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_robinx_upy_neumanny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -10611,7 +10611,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_robinx_upy_neumanny(const doub
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_robinx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_robinx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.
@@ -10652,7 +10652,7 @@ void fem_poisson_vareps_lhs_stencil_2x_ser_p1_upx_robinx_upy_robiny(const double
 
 }
 
-void fem_poisson_vareps_lhs_stencil_2x_ser_p2_upx_robinx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_robinx_upy_robiny(const double *epsilon, const double *dx, const double *bcVals, const long *globalIdxs, gkyl_mat_triples *tri) 
 { 
   // epsilon: permittivity tensor.
   // dx: cell length in each direction.

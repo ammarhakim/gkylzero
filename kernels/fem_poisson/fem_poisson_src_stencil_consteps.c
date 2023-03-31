@@ -1,6 +1,6 @@
 #include <gkyl_fem_poisson_kernels.h> 
  
-GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p1_inx_periodicx(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_1x_ser_p1_inx_periodicx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -20,7 +20,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p1_inx_periodicx(double epsilon, 
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p2_inx_periodicx(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_1x_ser_p2_inx_periodicx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -45,7 +45,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p2_inx_periodicx(double epsilon, 
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p1_lox_periodicx(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_1x_ser_p1_lox_periodicx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -65,7 +65,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p1_lox_periodicx(double epsilon, 
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p2_lox_periodicx(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_1x_ser_p2_lox_periodicx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -90,7 +90,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p2_lox_periodicx(double epsilon, 
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p1_lox_dirichletx(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_1x_ser_p1_lox_dirichletx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -110,7 +110,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p1_lox_dirichletx(double epsilon,
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p2_lox_dirichletx(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_1x_ser_p2_lox_dirichletx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -135,7 +135,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p2_lox_dirichletx(double epsilon,
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p1_lox_neumannx(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_1x_ser_p1_lox_neumannx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -147,9 +147,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p1_lox_neumannx(double epsilon, c
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*rdx2Sq[0]*bcVals[2]*epsilon)-0.408248290463863*rho[1]+0.7071067811865476*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])-0.408248290463863*rho[1]+0.7071067811865476*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-1.0*rdx2Sq[0]*bcVals[2]*epsilon)-0.408248290463863*rho[1]+0.7071067811865476*rho[0];
+  bsrc[globalIdxs[0]] += (-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])-0.408248290463863*rho[1]+0.7071067811865476*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],0.408248290463863*rho[1]+0.7071067811865476*rho[0]);
@@ -158,7 +158,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p1_lox_neumannx(double epsilon, c
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p2_lox_neumannx(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_1x_ser_p2_lox_neumannx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -170,9 +170,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p2_lox_neumannx(double epsilon, c
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*rdx2Sq[0]*bcVals[2]*epsilon)+0.210818510677892*rho[2]-0.408248290463863*rho[1]+0.2357022603955158*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],0.210818510677892*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.408248290463863*rho[1]+0.2357022603955158*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-1.0*rdx2Sq[0]*bcVals[2]*epsilon)+0.210818510677892*rho[2]-0.408248290463863*rho[1]+0.2357022603955158*rho[0];
+  bsrc[globalIdxs[0]] += 0.210818510677892*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.408248290463863*rho[1]+0.2357022603955158*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],0.9428090415820636*rho[0]-0.4216370213557841*rho[2]);
@@ -186,7 +186,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p2_lox_neumannx(double epsilon, c
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p1_lox_robinx(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_1x_ser_p1_lox_robinx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -198,9 +198,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p1_lox_robinx(double epsilon, con
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.408248290463863*rho[1]+0.7071067811865476*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1])-0.408248290463863*rho[1]+0.7071067811865476*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.408248290463863*rho[1]+0.7071067811865476*rho[0];
+  bsrc[globalIdxs[0]] += (-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1])-0.408248290463863*rho[1]+0.7071067811865476*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],0.408248290463863*rho[1]+0.7071067811865476*rho[0]);
@@ -209,7 +209,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p1_lox_robinx(double epsilon, con
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p2_lox_robinx(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_1x_ser_p2_lox_robinx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -221,9 +221,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p2_lox_robinx(double epsilon, con
   rdx2Sq[0] = 4.0/(dx[0]*dx[0]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.210818510677892*rho[2]-0.408248290463863*rho[1]+0.2357022603955158*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],0.210818510677892*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.408248290463863*rho[1]+0.2357022603955158*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.210818510677892*rho[2]-0.408248290463863*rho[1]+0.2357022603955158*rho[0];
+  bsrc[globalIdxs[0]] += 0.210818510677892*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.408248290463863*rho[1]+0.2357022603955158*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],0.9428090415820636*rho[0]-0.4216370213557841*rho[2]);
@@ -237,7 +237,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p2_lox_robinx(double epsilon, con
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p1_upx_periodicx(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_1x_ser_p1_upx_periodicx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -257,7 +257,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p1_upx_periodicx(double epsilon, 
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p2_upx_periodicx(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_1x_ser_p2_upx_periodicx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -282,7 +282,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p2_upx_periodicx(double epsilon, 
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p1_upx_dirichletx(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_1x_ser_p1_upx_dirichletx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -302,7 +302,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p1_upx_dirichletx(double epsilon,
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p2_upx_dirichletx(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_1x_ser_p2_upx_dirichletx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -327,7 +327,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p2_upx_dirichletx(double epsilon,
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p1_upx_neumannx(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_1x_ser_p1_upx_neumannx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -344,13 +344,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p1_upx_neumannx(double epsilon, c
   bsrc[globalIdxs[0]] += 0.7071067811865476*rho[0]-0.408248290463863*rho[1];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],rdx2Sq[0]*bcVals[5]*epsilon+0.408248290463863*rho[1]+0.7071067811865476*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],epsilon[0]*rdx2Sq[0]*bcVals[5]+0.408248290463863*rho[1]+0.7071067811865476*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += rdx2Sq[0]*bcVals[5]*epsilon+0.408248290463863*rho[1]+0.7071067811865476*rho[0];
+  bsrc[globalIdxs[1]] += epsilon[0]*rdx2Sq[0]*bcVals[5]+0.408248290463863*rho[1]+0.7071067811865476*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p2_upx_neumannx(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_1x_ser_p2_upx_neumannx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -372,13 +372,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p2_upx_neumannx(double epsilon, c
   bsrc[globalIdxs[1]] += 0.9428090415820636*rho[0]-0.4216370213557841*rho[2];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],rdx2Sq[0]*bcVals[5]*epsilon+0.210818510677892*rho[2]+0.408248290463863*rho[1]+0.2357022603955158*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],epsilon[0]*rdx2Sq[0]*bcVals[5]+0.210818510677892*rho[2]+0.408248290463863*rho[1]+0.2357022603955158*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += rdx2Sq[0]*bcVals[5]*epsilon+0.210818510677892*rho[2]+0.408248290463863*rho[1]+0.2357022603955158*rho[0];
+  bsrc[globalIdxs[2]] += epsilon[0]*rdx2Sq[0]*bcVals[5]+0.210818510677892*rho[2]+0.408248290463863*rho[1]+0.2357022603955158*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p1_upx_robinx(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_1x_ser_p1_upx_robinx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -395,13 +395,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p1_upx_robinx(double epsilon, con
   bsrc[globalIdxs[0]] += 0.7071067811865476*rho[0]-0.408248290463863*rho[1];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.408248290463863*rho[1]+0.7071067811865476*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.408248290463863*rho[1]+0.7071067811865476*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.408248290463863*rho[1]+0.7071067811865476*rho[0];
+  bsrc[globalIdxs[1]] += (epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.408248290463863*rho[1]+0.7071067811865476*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p2_upx_robinx(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_1x_ser_p2_upx_robinx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -423,13 +423,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_1x_ser_p2_upx_robinx(double epsilon, con
   bsrc[globalIdxs[1]] += 0.9428090415820636*rho[0]-0.4216370213557841*rho[2];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.210818510677892*rho[2]+0.408248290463863*rho[1]+0.2357022603955158*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.210818510677892*rho[2]+0.408248290463863*rho[1]+0.2357022603955158*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.210818510677892*rho[2]+0.408248290463863*rho[1]+0.2357022603955158*rho[0];
+  bsrc[globalIdxs[2]] += (epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.210818510677892*rho[2]+0.408248290463863*rho[1]+0.2357022603955158*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_inx_periodicx_iny_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -459,7 +459,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_inx_periodicx_iny_periodicy(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_inx_periodicx_iny_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -509,7 +509,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_inx_periodicx_iny_periodicy(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_periodicx_iny_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -539,7 +539,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_periodicx_iny_periodicy(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_periodicx_iny_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -589,7 +589,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_periodicx_iny_periodicy(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_dirichletx_iny_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_dirichletx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -619,7 +619,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_dirichletx_iny_periodicy(d
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_dirichletx_iny_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_dirichletx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -669,7 +669,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_dirichletx_iny_periodicy(d
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_iny_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_neumannx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -682,9 +682,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_iny_periodicy(dou
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*rdx2Sq[0]*bcVals[2]*epsilon)+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-1.0*rdx2Sq[0]*bcVals[2]*epsilon)+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],(-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -692,9 +692,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_iny_periodicy(dou
   bsrc[globalIdxs[1]] += (-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-1.0*rdx2Sq[0]*bcVals[2]*epsilon)-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-1.0*rdx2Sq[0]*bcVals[2]*epsilon)-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -703,7 +703,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_iny_periodicy(dou
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_iny_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_neumannx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -716,9 +716,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_iny_periodicy(dou
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
@@ -731,9 +731,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_iny_periodicy(dou
   bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(-1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (-1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -741,9 +741,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_iny_periodicy(dou
   bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],(-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += (-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += (-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[6]],(-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
@@ -757,7 +757,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_iny_periodicy(dou
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_iny_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_robinx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -770,9 +770,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_iny_periodicy(doubl
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],(-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -780,9 +780,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_iny_periodicy(doubl
   bsrc[globalIdxs[1]] += (-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -791,7 +791,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_iny_periodicy(doubl
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_iny_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_robinx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -804,9 +804,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_iny_periodicy(doubl
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
@@ -819,9 +819,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_iny_periodicy(doubl
   bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(-(1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (-(1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -829,9 +829,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_iny_periodicy(doubl
   bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],(-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += (-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += (-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[6]],(-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
@@ -845,7 +845,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_iny_periodicy(doubl
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_periodicx_iny_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -875,7 +875,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_periodicx_iny_periodicy(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_periodicx_iny_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -925,7 +925,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_periodicx_iny_periodicy(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_dirichletx_iny_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_dirichletx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -955,7 +955,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_dirichletx_iny_periodicy(d
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_dirichletx_iny_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_dirichletx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -1005,7 +1005,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_dirichletx_iny_periodicy(d
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_neumannx_iny_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_neumannx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -1023,9 +1023,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_neumannx_iny_periodicy(dou
   bsrc[globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],rdx2Sq[0]*bcVals[5]*epsilon-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],epsilon[0]*rdx2Sq[0]*bcVals[5]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += rdx2Sq[0]*bcVals[5]*epsilon-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += epsilon[0]*rdx2Sq[0]*bcVals[5]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -1033,13 +1033,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_neumannx_iny_periodicy(dou
   bsrc[globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],rdx2Sq[0]*bcVals[5]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],epsilon[0]*rdx2Sq[0]*bcVals[5]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += rdx2Sq[0]*bcVals[5]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += epsilon[0]*rdx2Sq[0]*bcVals[5]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_iny_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_neumannx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -1062,9 +1062,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_iny_periodicy(dou
   bsrc[globalIdxs[1]] += 0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += 0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -1072,9 +1072,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_iny_periodicy(dou
   bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[4]],1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[4]] += 1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
@@ -1087,13 +1087,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_iny_periodicy(dou
   bsrc[globalIdxs[6]] += (-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += 0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += 0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_iny_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_robinx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -1111,9 +1111,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_iny_periodicy(doubl
   bsrc[globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += (epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -1121,13 +1121,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_iny_periodicy(doubl
   bsrc[globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],(epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += (epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_iny_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_robinx_iny_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -1150,9 +1150,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_iny_periodicy(doubl
   bsrc[globalIdxs[1]] += 0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -1160,9 +1160,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_iny_periodicy(doubl
   bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[4]],(1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[4]] += (1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
@@ -1175,13 +1175,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_iny_periodicy(doubl
   bsrc[globalIdxs[6]] += (-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],(0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += (0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += 0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_inx_periodicx_loy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -1211,7 +1211,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_inx_periodicx_loy_periodicy(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_inx_periodicx_loy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -1261,7 +1261,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_inx_periodicx_loy_periodicy(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_inx_periodicx_loy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -1291,7 +1291,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_inx_periodicx_loy_dirichlety(d
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_inx_periodicx_loy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -1341,7 +1341,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_inx_periodicx_loy_dirichlety(d
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_inx_periodicx_loy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -1354,14 +1354,14 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_inx_periodicx_loy_neumanny(dou
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*rdx2Sq[1]*bcVals[8]*epsilon)+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-1.0*rdx2Sq[1]*bcVals[8]*epsilon)+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += (-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-1.0*rdx2Sq[1]*bcVals[8]*epsilon)-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-1.0*rdx2Sq[1]*bcVals[8]*epsilon)-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += (-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -1375,7 +1375,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_inx_periodicx_loy_neumanny(dou
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_inx_periodicx_loy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -1388,19 +1388,19 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_inx_periodicx_loy_neumanny(dou
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
+  bsrc[globalIdxs[1]] += (-1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += (-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -1429,7 +1429,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_inx_periodicx_loy_neumanny(dou
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_inx_periodicx_loy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -1442,14 +1442,14 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_inx_periodicx_loy_robiny(doubl
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += (-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += (-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -1463,7 +1463,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_inx_periodicx_loy_robiny(doubl
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_inx_periodicx_loy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -1476,19 +1476,19 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_inx_periodicx_loy_robiny(doubl
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-(1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-(1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
+  bsrc[globalIdxs[1]] += (-(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += (-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -1517,7 +1517,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_inx_periodicx_loy_robiny(doubl
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_inx_periodicx_upy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -1547,7 +1547,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_inx_periodicx_upy_periodicy(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_inx_periodicx_upy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -1597,7 +1597,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_inx_periodicx_upy_periodicy(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_inx_periodicx_upy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -1627,7 +1627,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_inx_periodicx_upy_dirichlety(d
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_inx_periodicx_upy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -1677,7 +1677,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_inx_periodicx_upy_dirichlety(d
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_inx_periodicx_upy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -1700,18 +1700,18 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_inx_periodicx_upy_neumanny(dou
   bsrc[globalIdxs[1]] += (-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],rdx2Sq[1]*bcVals[11]*epsilon-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += rdx2Sq[1]*bcVals[11]*epsilon-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],rdx2Sq[1]*bcVals[11]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],epsilon[0]*rdx2Sq[1]*bcVals[11]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += rdx2Sq[1]*bcVals[11]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += epsilon[0]*rdx2Sq[1]*bcVals[11]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_inx_periodicx_upy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -1749,23 +1749,23 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_inx_periodicx_upy_neumanny(dou
   bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += 0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += 0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[6]],1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[6]],1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[6]] += 1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[6]] += 1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += 0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += 0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_inx_periodicx_upy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -1788,18 +1788,18 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_inx_periodicx_upy_robiny(doubl
   bsrc[globalIdxs[1]] += (-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += (epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],(epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += (epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_inx_periodicx_upy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -1837,23 +1837,23 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_inx_periodicx_upy_robiny(doubl
   bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],(0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += (0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += (0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[6]],(1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[6]],(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[6]] += (1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[6]] += (1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],(0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += (0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += (0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_periodicx_loy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -1883,7 +1883,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_periodicx_loy_periodicy(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_periodicx_loy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -1933,7 +1933,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_periodicx_loy_periodicy(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_periodicx_loy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -1963,7 +1963,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_periodicx_loy_dirichlety(d
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_periodicx_loy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -2013,7 +2013,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_periodicx_loy_dirichlety(d
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_periodicx_loy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -2026,14 +2026,14 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_periodicx_loy_neumanny(dou
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*rdx2Sq[1]*bcVals[8]*epsilon)+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-1.0*rdx2Sq[1]*bcVals[8]*epsilon)+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += (-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-1.0*rdx2Sq[1]*bcVals[8]*epsilon)-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-1.0*rdx2Sq[1]*bcVals[8]*epsilon)-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += (-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -2047,7 +2047,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_periodicx_loy_neumanny(dou
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_periodicx_loy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -2060,19 +2060,19 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_periodicx_loy_neumanny(dou
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
+  bsrc[globalIdxs[1]] += (-1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += (-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -2101,7 +2101,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_periodicx_loy_neumanny(dou
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_periodicx_loy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -2114,14 +2114,14 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_periodicx_loy_robiny(doubl
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += (-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += (-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -2135,7 +2135,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_periodicx_loy_robiny(doubl
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_periodicx_loy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -2148,19 +2148,19 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_periodicx_loy_robiny(doubl
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-(1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-(1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
+  bsrc[globalIdxs[1]] += (-(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += (-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -2189,7 +2189,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_periodicx_loy_robiny(doubl
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_dirichletx_loy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_dirichletx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -2219,7 +2219,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_dirichletx_loy_periodicy(d
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_dirichletx_loy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_dirichletx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -2269,7 +2269,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_dirichletx_loy_periodicy(d
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_dirichletx_loy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_dirichletx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -2299,7 +2299,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_dirichletx_loy_dirichlety(
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_dirichletx_loy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_dirichletx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -2349,7 +2349,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_dirichletx_loy_dirichlety(
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_dirichletx_loy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_dirichletx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -2367,9 +2367,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_dirichletx_loy_neumanny(do
   bsrc[globalIdxs[0]] = bcVals[2];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-1.0*rdx2Sq[1]*bcVals[8]*epsilon)-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-1.0*rdx2Sq[1]*bcVals[8]*epsilon)-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += (-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicExch((unsigned long long int*) &bsrc[globalIdxs[2]],__double_as_longlong(bcVals[2]));
@@ -2383,7 +2383,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_dirichletx_loy_neumanny(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_dirichletx_loy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_dirichletx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -2401,14 +2401,14 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_dirichletx_loy_neumanny(do
   bsrc[globalIdxs[0]] = bcVals[2];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
+  bsrc[globalIdxs[1]] += (-1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += (-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicExch((unsigned long long int*) &bsrc[globalIdxs[3]],__double_as_longlong(bcVals[2]));
@@ -2437,7 +2437,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_dirichletx_loy_neumanny(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_dirichletx_loy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_dirichletx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -2455,9 +2455,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_dirichletx_loy_robiny(doub
   bsrc[globalIdxs[0]] = bcVals[2];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += (-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicExch((unsigned long long int*) &bsrc[globalIdxs[2]],__double_as_longlong(bcVals[2]));
@@ -2471,7 +2471,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_dirichletx_loy_robiny(doub
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_dirichletx_loy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_dirichletx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -2489,14 +2489,14 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_dirichletx_loy_robiny(doub
   bsrc[globalIdxs[0]] = bcVals[2];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-(1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-(1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
+  bsrc[globalIdxs[1]] += (-(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += (-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicExch((unsigned long long int*) &bsrc[globalIdxs[3]],__double_as_longlong(bcVals[2]));
@@ -2525,7 +2525,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_dirichletx_loy_robiny(doub
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_loy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_neumannx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -2538,9 +2538,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_loy_periodicy(dou
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*rdx2Sq[0]*bcVals[2]*epsilon)+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-1.0*rdx2Sq[0]*bcVals[2]*epsilon)+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],(-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -2548,9 +2548,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_loy_periodicy(dou
   bsrc[globalIdxs[1]] += (-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-1.0*rdx2Sq[0]*bcVals[2]*epsilon)-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-1.0*rdx2Sq[0]*bcVals[2]*epsilon)-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -2559,7 +2559,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_loy_periodicy(dou
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_loy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_neumannx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -2572,9 +2572,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_loy_periodicy(dou
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
@@ -2587,9 +2587,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_loy_periodicy(dou
   bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(-1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (-1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -2597,9 +2597,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_loy_periodicy(dou
   bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],(-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += (-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += (-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[6]],(-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
@@ -2613,7 +2613,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_loy_periodicy(dou
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_loy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_neumannx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -2636,9 +2636,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_loy_dirichlety(do
   bsrc[globalIdxs[1]] = bcVals[8];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-1.0*rdx2Sq[0]*bcVals[2]*epsilon)-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-1.0*rdx2Sq[0]*bcVals[2]*epsilon)-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -2647,7 +2647,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_loy_dirichlety(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_loy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_neumannx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -2675,9 +2675,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_loy_dirichlety(do
   bsrc[globalIdxs[2]] = bcVals[8];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(-1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (-1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -2685,9 +2685,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_loy_dirichlety(do
   bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],(-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += (-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += (-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[6]],(-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
@@ -2701,7 +2701,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_loy_dirichlety(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_loy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_neumannx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -2714,19 +2714,19 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_loy_neumanny(doub
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*rdx2Sq[1]*bcVals[8]*epsilon)-1.0*rdx2Sq[0]*bcVals[2]*epsilon+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-1.0*rdx2Sq[1]*bcVals[8]*epsilon)-1.0*rdx2Sq[0]*bcVals[2]*epsilon+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += (-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-1.0*rdx2Sq[1]*bcVals[8]*epsilon)-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-1.0*rdx2Sq[1]*bcVals[8]*epsilon)-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += (-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-1.0*rdx2Sq[0]*bcVals[2]*epsilon)-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-1.0*rdx2Sq[0]*bcVals[2]*epsilon)-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -2735,7 +2735,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_loy_neumanny(doub
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_loy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_neumannx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -2748,24 +2748,24 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_loy_neumanny(doub
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
+  bsrc[globalIdxs[1]] += (-1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += (-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(-1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (-1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -2773,9 +2773,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_loy_neumanny(doub
   bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],(-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += (-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += (-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[6]],(-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
@@ -2789,7 +2789,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_loy_neumanny(doub
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_loy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_neumannx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -2802,19 +2802,19 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_loy_robiny(double
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-1.0*rdx2Sq[0]*bcVals[2]*epsilon+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-1.0*rdx2Sq[0]*bcVals[2]*epsilon+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += (-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += (-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-1.0*rdx2Sq[0]*bcVals[2]*epsilon)-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-1.0*rdx2Sq[0]*bcVals[2]*epsilon)-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -2823,7 +2823,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_loy_robiny(double
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_loy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_neumannx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -2836,24 +2836,24 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_loy_robiny(double
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-(1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-(1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
+  bsrc[globalIdxs[1]] += (-(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += (-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(-1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (-1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -2861,9 +2861,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_loy_robiny(double
   bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],(-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += (-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += (-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[6]],(-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
@@ -2877,7 +2877,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_loy_robiny(double
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_loy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_robinx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -2890,9 +2890,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_loy_periodicy(doubl
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],(-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -2900,9 +2900,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_loy_periodicy(doubl
   bsrc[globalIdxs[1]] += (-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -2911,7 +2911,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_loy_periodicy(doubl
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_loy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_robinx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -2924,9 +2924,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_loy_periodicy(doubl
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
@@ -2939,9 +2939,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_loy_periodicy(doubl
   bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(-(1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (-(1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -2949,9 +2949,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_loy_periodicy(doubl
   bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],(-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += (-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += (-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[6]],(-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
@@ -2965,7 +2965,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_loy_periodicy(doubl
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_loy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_robinx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -2988,9 +2988,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_loy_dirichlety(doub
   bsrc[globalIdxs[1]] = bcVals[8];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -2999,7 +2999,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_loy_dirichlety(doub
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_loy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_robinx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -3027,9 +3027,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_loy_dirichlety(doub
   bsrc[globalIdxs[2]] = bcVals[8];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(-(1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (-(1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -3037,9 +3037,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_loy_dirichlety(doub
   bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],(-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += (-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += (-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[6]],(-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
@@ -3053,7 +3053,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_loy_dirichlety(doub
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_loy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_robinx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -3066,19 +3066,19 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_loy_neumanny(double
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*rdx2Sq[1]*bcVals[8]*epsilon)-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1]+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-1.0*rdx2Sq[1]*bcVals[8]*epsilon)-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1]+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += (-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-1.0*rdx2Sq[1]*bcVals[8]*epsilon)-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-1.0*rdx2Sq[1]*bcVals[8]*epsilon)-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += (-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -3087,7 +3087,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_loy_neumanny(double
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_loy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_robinx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -3100,24 +3100,24 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_loy_neumanny(double
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1]-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1]-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
+  bsrc[globalIdxs[1]] += (-1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += (-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(-(1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (-(1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -3125,9 +3125,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_loy_neumanny(double
   bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],(-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += (-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += (-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[6]],(-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
@@ -3141,7 +3141,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_loy_neumanny(double
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_loy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_robinx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -3154,19 +3154,19 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_loy_robiny(double e
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1]+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1]+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += (-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += (-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -3175,7 +3175,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_loy_robiny(double e
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_loy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_robinx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -3188,24 +3188,24 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_loy_robiny(double e
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1]-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1]-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-(1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-(1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
+  bsrc[globalIdxs[1]] += (-(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += (-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(-(1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (-(1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -3213,9 +3213,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_loy_robiny(double e
   bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],(-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += (-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += (-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[6]],(-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
@@ -3229,7 +3229,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_loy_robiny(double e
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_periodicx_upy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -3259,7 +3259,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_periodicx_upy_periodicy(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_periodicx_upy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -3309,7 +3309,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_periodicx_upy_periodicy(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_periodicx_upy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -3339,7 +3339,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_periodicx_upy_dirichlety(d
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_periodicx_upy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -3389,7 +3389,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_periodicx_upy_dirichlety(d
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_periodicx_upy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -3412,18 +3412,18 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_periodicx_upy_neumanny(dou
   bsrc[globalIdxs[1]] += (-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],rdx2Sq[1]*bcVals[11]*epsilon-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += rdx2Sq[1]*bcVals[11]*epsilon-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],rdx2Sq[1]*bcVals[11]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],epsilon[0]*rdx2Sq[1]*bcVals[11]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += rdx2Sq[1]*bcVals[11]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += epsilon[0]*rdx2Sq[1]*bcVals[11]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_periodicx_upy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -3461,23 +3461,23 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_periodicx_upy_neumanny(dou
   bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += 0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += 0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[6]],1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[6]],1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[6]] += 1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[6]] += 1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += 0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += 0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_periodicx_upy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -3500,18 +3500,18 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_periodicx_upy_robiny(doubl
   bsrc[globalIdxs[1]] += (-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += (epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],(epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += (epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_periodicx_upy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -3549,23 +3549,23 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_periodicx_upy_robiny(doubl
   bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],(0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += (0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += (0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[6]],(1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[6]],(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[6]] += (1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[6]] += (1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],(0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += (0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += (0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_dirichletx_upy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_dirichletx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -3595,7 +3595,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_dirichletx_upy_periodicy(d
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_dirichletx_upy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_dirichletx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -3645,7 +3645,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_dirichletx_upy_periodicy(d
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_dirichletx_upy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_dirichletx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -3675,7 +3675,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_dirichletx_upy_dirichlety(
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_dirichletx_upy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_dirichletx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -3725,7 +3725,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_dirichletx_upy_dirichlety(
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_dirichletx_upy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_dirichletx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -3753,101 +3753,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_dirichletx_upy_neumanny(do
   bsrc[globalIdxs[2]] = bcVals[2];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],rdx2Sq[1]*bcVals[11]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],epsilon[0]*rdx2Sq[1]*bcVals[11]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += rdx2Sq[1]*bcVals[11]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += epsilon[0]*rdx2Sq[1]*bcVals[11]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_dirichletx_upy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
-{ 
-  // epsilon: permittivity.
-  // rho: right side source.
-  // bcVals[3*2*dim]: values to impose as BCs, i.e. bcVals[0]*phi+bcVals[1]*d(phi)/dx=bcVals[2].
-  // globalIdxs: global linear index of each basis function/node in current cell.
-  // bsrc: global right side source vector.
-
-  double rdx2Sq[2]; 
-  rdx2Sq[0] = 4.0/(dx[0]*dx[0]); 
-  rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
-
-  #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[globalIdxs[0]],__double_as_longlong(bcVals[2]));
-  #else
-  bsrc[globalIdxs[0]] = bcVals[2];
-  #endif
-  #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
-  #else
-  bsrc[globalIdxs[1]] += 0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
-  #endif
-  #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
-  #else
-  bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
-  #endif
-  #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[globalIdxs[3]],__double_as_longlong(bcVals[2]));
-  #else
-  bsrc[globalIdxs[3]] = bcVals[2];
-  #endif
-  #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
-  #else
-  bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
-  #endif
-  #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[globalIdxs[5]],__double_as_longlong(bcVals[2]));
-  #else
-  bsrc[globalIdxs[5]] = bcVals[2];
-  #endif
-  #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[6]],1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
-  #else
-  bsrc[globalIdxs[6]] += 1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
-  #endif
-  #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
-  #else
-  bsrc[globalIdxs[7]] += 0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
-  #endif
-
-}
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_dirichletx_upy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
-{ 
-  // epsilon: permittivity.
-  // rho: right side source.
-  // bcVals[3*2*dim]: values to impose as BCs, i.e. bcVals[0]*phi+bcVals[1]*d(phi)/dx=bcVals[2].
-  // globalIdxs: global linear index of each basis function/node in current cell.
-  // bsrc: global right side source vector.
-
-  double rdx2Sq[2]; 
-  rdx2Sq[0] = 4.0/(dx[0]*dx[0]); 
-  rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
-
-  #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[globalIdxs[0]],__double_as_longlong(bcVals[2]));
-  #else
-  bsrc[globalIdxs[0]] = bcVals[2];
-  #endif
-  #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
-  #else
-  bsrc[globalIdxs[1]] += (-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
-  #endif
-  #ifdef __CUDA_ARCH__
-  atomicExch((unsigned long long int*) &bsrc[globalIdxs[2]],__double_as_longlong(bcVals[2]));
-  #else
-  bsrc[globalIdxs[2]] = bcVals[2];
-  #endif
-  #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
-  #else
-  bsrc[globalIdxs[3]] += (rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
-  #endif
-
-}
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_dirichletx_upy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_dirichletx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -3890,18 +3802,18 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_dirichletx_upy_robiny(doub
   bsrc[globalIdxs[5]] = bcVals[2];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[6]],(1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[6]],1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[6]] += (1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[6]] += 1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],(0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += (0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += 0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_upy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_dirichletx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -3914,9 +3826,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_upy_periodicy(dou
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*rdx2Sq[0]*bcVals[2]*epsilon)+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicExch((unsigned long long int*) &bsrc[globalIdxs[0]],__double_as_longlong(bcVals[2]));
   #else
-  bsrc[globalIdxs[0]] += (-1.0*rdx2Sq[0]*bcVals[2]*epsilon)+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] = bcVals[2];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],(-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -3924,18 +3836,18 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_upy_periodicy(dou
   bsrc[globalIdxs[1]] += (-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-1.0*rdx2Sq[0]*bcVals[2]*epsilon)-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicExch((unsigned long long int*) &bsrc[globalIdxs[2]],__double_as_longlong(bcVals[2]));
   #else
-  bsrc[globalIdxs[2]] += (-1.0*rdx2Sq[0]*bcVals[2]*epsilon)-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] = bcVals[2];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],(epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += 0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += (epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_upy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_dirichletx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -3948,9 +3860,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_upy_periodicy(dou
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicExch((unsigned long long int*) &bsrc[globalIdxs[0]],__double_as_longlong(bcVals[2]));
   #else
-  bsrc[globalIdxs[0]] += (-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] = bcVals[2];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
@@ -3963,9 +3875,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_upy_periodicy(dou
   bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(-1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicExch((unsigned long long int*) &bsrc[globalIdxs[3]],__double_as_longlong(bcVals[2]));
   #else
-  bsrc[globalIdxs[3]] += (-1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[3]] = bcVals[2];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -3973,9 +3885,97 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_upy_periodicy(dou
   bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],(-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicExch((unsigned long long int*) &bsrc[globalIdxs[5]],__double_as_longlong(bcVals[2]));
   #else
-  bsrc[globalIdxs[5]] += (-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] = bcVals[2];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[globalIdxs[6]],(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
+  #else
+  bsrc[globalIdxs[6]] += (1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[globalIdxs[7]],(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  #else
+  bsrc[globalIdxs[7]] += (0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  #endif
+
+}
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_neumannx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+{ 
+  // epsilon: permittivity.
+  // rho: right side source.
+  // bcVals[3*2*dim]: values to impose as BCs, i.e. bcVals[0]*phi+bcVals[1]*d(phi)/dx=bcVals[2].
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // bsrc: global right side source vector.
+
+  double rdx2Sq[2]; 
+  rdx2Sq[0] = 4.0/(dx[0]*dx[0]); 
+  rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
+
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[globalIdxs[0]],0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  #else
+  bsrc[globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[globalIdxs[1]],(-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  #else
+  bsrc[globalIdxs[1]] += (-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  #else
+  bsrc[globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[globalIdxs[3]],0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  #else
+  bsrc[globalIdxs[3]] += 0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  #endif
+
+}
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_neumannx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+{ 
+  // epsilon: permittivity.
+  // rho: right side source.
+  // bcVals[3*2*dim]: values to impose as BCs, i.e. bcVals[0]*phi+bcVals[1]*d(phi)/dx=bcVals[2].
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // bsrc: global right side source vector.
+
+  double rdx2Sq[2]; 
+  rdx2Sq[0] = 4.0/(dx[0]*dx[0]); 
+  rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
+
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[globalIdxs[0]],(-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  #else
+  bsrc[globalIdxs[0]] += (-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[globalIdxs[1]],0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
+  #else
+  bsrc[globalIdxs[1]] += 0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[globalIdxs[2]],0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  #else
+  bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  #else
+  bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  #else
+  bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  #else
+  bsrc[globalIdxs[5]] += (-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[6]],(-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
@@ -3989,7 +3989,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_upy_periodicy(dou
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_upy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_neumannx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -4002,9 +4002,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_upy_dirichlety(do
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*rdx2Sq[0]*bcVals[2]*epsilon)+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-1.0*rdx2Sq[0]*bcVals[2]*epsilon)+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],(-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -4023,7 +4023,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_upy_dirichlety(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_upy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_neumannx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -4036,9 +4036,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_upy_dirichlety(do
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
@@ -4051,9 +4051,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_upy_dirichlety(do
   bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(-1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (-1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -4077,7 +4077,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_upy_dirichlety(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_upy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_neumannx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -4090,9 +4090,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_upy_neumanny(doub
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*rdx2Sq[0]*bcVals[2]*epsilon)+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-1.0*rdx2Sq[0]*bcVals[2]*epsilon)+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],(-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -4100,18 +4100,18 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_upy_neumanny(doub
   bsrc[globalIdxs[1]] += (-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],rdx2Sq[1]*bcVals[11]*epsilon-1.0*rdx2Sq[0]*bcVals[2]*epsilon-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += rdx2Sq[1]*bcVals[11]*epsilon-1.0*rdx2Sq[0]*bcVals[2]*epsilon-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],rdx2Sq[1]*bcVals[11]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],epsilon[0]*rdx2Sq[1]*bcVals[11]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += rdx2Sq[1]*bcVals[11]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += epsilon[0]*rdx2Sq[1]*bcVals[11]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_upy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_neumannx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -4124,9 +4124,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_upy_neumanny(doub
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
@@ -4139,9 +4139,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_upy_neumanny(doub
   bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(-1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (-1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -4149,23 +4149,23 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_upy_neumanny(doub
   bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += 0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += 0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[6]],1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[6]],1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[6]] += 1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[6]] += 1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += 0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += 0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_upy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_neumannx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -4178,9 +4178,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_upy_robiny(double
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*rdx2Sq[0]*bcVals[2]*epsilon)+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-1.0*rdx2Sq[0]*bcVals[2]*epsilon)+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],(-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -4188,18 +4188,18 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_neumannx_upy_robiny(double
   bsrc[globalIdxs[1]] += (-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-1.0*rdx2Sq[0]*bcVals[2]*epsilon-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-1.0*rdx2Sq[0]*bcVals[2]*epsilon-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += (epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-1.0*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],(epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += (epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_upy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_neumannx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -4212,9 +4212,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_upy_robiny(double
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
@@ -4227,9 +4227,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_upy_robiny(double
   bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(-1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (-1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -4237,23 +4237,23 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_neumannx_upy_robiny(double
   bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],(0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += (0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += (0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[6]],(1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[6]],(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[6]] += (1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[6]] += (1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],(0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += (0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += (0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_upy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_robinx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -4266,9 +4266,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_upy_periodicy(doubl
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],(-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -4276,9 +4276,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_upy_periodicy(doubl
   bsrc[globalIdxs[1]] += (-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -4287,7 +4287,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_upy_periodicy(doubl
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_upy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_robinx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -4300,9 +4300,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_upy_periodicy(doubl
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
@@ -4315,9 +4315,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_upy_periodicy(doubl
   bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(-(1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (-(1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -4325,9 +4325,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_upy_periodicy(doubl
   bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],(-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += (-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += (-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[6]],(-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
@@ -4341,7 +4341,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_upy_periodicy(doubl
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_upy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_robinx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -4354,9 +4354,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_upy_dirichlety(doub
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],(-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -4375,7 +4375,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_upy_dirichlety(doub
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_upy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_robinx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -4388,9 +4388,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_upy_dirichlety(doub
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
@@ -4403,9 +4403,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_upy_dirichlety(doub
   bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(-(1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (-(1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -4429,7 +4429,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_upy_dirichlety(doub
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_upy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_robinx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -4442,9 +4442,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_upy_neumanny(double
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],(-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -4452,18 +4452,18 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_upy_neumanny(double
   bsrc[globalIdxs[1]] += (-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],rdx2Sq[1]*bcVals[11]*epsilon-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += rdx2Sq[1]*bcVals[11]*epsilon-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],rdx2Sq[1]*bcVals[11]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],epsilon[0]*rdx2Sq[1]*bcVals[11]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += rdx2Sq[1]*bcVals[11]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += epsilon[0]*rdx2Sq[1]*bcVals[11]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_upy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_robinx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -4476,9 +4476,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_upy_neumanny(double
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
@@ -4491,9 +4491,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_upy_neumanny(double
   bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(-(1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (-(1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -4501,23 +4501,23 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_upy_neumanny(double
   bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += 0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += 0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[6]],1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[6]],1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[6]] += 1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[6]] += 1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += 0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += 0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_upy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_lox_robinx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -4530,9 +4530,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_upy_robiny(double e
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],(-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -4540,18 +4540,18 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_lox_robinx_upy_robiny(double e
   bsrc[globalIdxs[1]] += (-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-(1.0*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += (epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-(1.0*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],(epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += (epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_upy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_lox_robinx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -4564,9 +4564,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_upy_robiny(double e
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[1]],0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
@@ -4579,9 +4579,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_upy_robiny(double e
   bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(-(1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (-(1.333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1])+0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -4589,23 +4589,23 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_lox_robinx_upy_robiny(double e
   bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],(0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += (0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-(0.3333333333333333*rdx2Sq[0]*bcVals[2]*epsilon)/bcVals[1]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += (0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[2])/bcVals[1]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[6]],(1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[6]],(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[6]] += (1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[6]] += (1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],(0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += (0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += (0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_periodicx_loy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -4635,7 +4635,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_periodicx_loy_periodicy(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_periodicx_loy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -4685,7 +4685,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_periodicx_loy_periodicy(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_periodicx_loy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -4715,7 +4715,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_periodicx_loy_dirichlety(d
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_periodicx_loy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -4765,7 +4765,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_periodicx_loy_dirichlety(d
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_periodicx_loy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -4778,14 +4778,14 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_periodicx_loy_neumanny(dou
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*rdx2Sq[1]*bcVals[8]*epsilon)+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-1.0*rdx2Sq[1]*bcVals[8]*epsilon)+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += (-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-1.0*rdx2Sq[1]*bcVals[8]*epsilon)-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-1.0*rdx2Sq[1]*bcVals[8]*epsilon)-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += (-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -4799,7 +4799,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_periodicx_loy_neumanny(dou
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_periodicx_loy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -4812,19 +4812,19 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_periodicx_loy_neumanny(dou
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
+  bsrc[globalIdxs[1]] += (-1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += (-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -4853,7 +4853,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_periodicx_loy_neumanny(dou
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_periodicx_loy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -4866,14 +4866,14 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_periodicx_loy_robiny(doubl
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += (-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += (-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -4887,7 +4887,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_periodicx_loy_robiny(doubl
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_periodicx_loy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -4900,19 +4900,19 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_periodicx_loy_robiny(doubl
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-(1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-(1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
+  bsrc[globalIdxs[1]] += (-(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += (-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -4941,7 +4941,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_periodicx_loy_robiny(doubl
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_dirichletx_loy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_dirichletx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -4971,7 +4971,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_dirichletx_loy_periodicy(d
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_dirichletx_loy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_dirichletx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -5021,7 +5021,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_dirichletx_loy_periodicy(d
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_dirichletx_loy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_dirichletx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -5051,7 +5051,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_dirichletx_loy_dirichlety(
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_dirichletx_loy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_dirichletx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -5101,7 +5101,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_dirichletx_loy_dirichlety(
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_dirichletx_loy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_dirichletx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -5114,9 +5114,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_dirichletx_loy_neumanny(do
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*rdx2Sq[1]*bcVals[8]*epsilon)+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-1.0*rdx2Sq[1]*bcVals[8]*epsilon)+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += (-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicExch((unsigned long long int*) &bsrc[globalIdxs[1]],__double_as_longlong(bcVals[5]));
@@ -5135,7 +5135,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_dirichletx_loy_neumanny(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_dirichletx_loy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_dirichletx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -5148,14 +5148,14 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_dirichletx_loy_neumanny(do
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
+  bsrc[globalIdxs[1]] += (-1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicExch((unsigned long long int*) &bsrc[globalIdxs[2]],__double_as_longlong(bcVals[5]));
@@ -5189,7 +5189,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_dirichletx_loy_neumanny(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_dirichletx_loy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_dirichletx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -5202,9 +5202,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_dirichletx_loy_robiny(doub
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += (-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicExch((unsigned long long int*) &bsrc[globalIdxs[1]],__double_as_longlong(bcVals[5]));
@@ -5223,7 +5223,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_dirichletx_loy_robiny(doub
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_dirichletx_loy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_dirichletx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -5236,14 +5236,14 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_dirichletx_loy_robiny(doub
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-(1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-(1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
+  bsrc[globalIdxs[1]] += (-(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicExch((unsigned long long int*) &bsrc[globalIdxs[2]],__double_as_longlong(bcVals[5]));
@@ -5277,7 +5277,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_dirichletx_loy_robiny(doub
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_neumannx_loy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_neumannx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -5295,9 +5295,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_neumannx_loy_periodicy(dou
   bsrc[globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],rdx2Sq[0]*bcVals[5]*epsilon-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],epsilon[0]*rdx2Sq[0]*bcVals[5]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += rdx2Sq[0]*bcVals[5]*epsilon-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += epsilon[0]*rdx2Sq[0]*bcVals[5]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -5305,13 +5305,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_neumannx_loy_periodicy(dou
   bsrc[globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],rdx2Sq[0]*bcVals[5]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],epsilon[0]*rdx2Sq[0]*bcVals[5]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += rdx2Sq[0]*bcVals[5]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += epsilon[0]*rdx2Sq[0]*bcVals[5]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_loy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_neumannx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -5334,9 +5334,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_loy_periodicy(dou
   bsrc[globalIdxs[1]] += 0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += 0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -5344,9 +5344,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_loy_periodicy(dou
   bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[4]],1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[4]] += 1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
@@ -5359,13 +5359,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_loy_periodicy(dou
   bsrc[globalIdxs[6]] += (-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += 0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += 0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_neumannx_loy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_neumannx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -5393,13 +5393,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_neumannx_loy_dirichlety(do
   bsrc[globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],rdx2Sq[0]*bcVals[5]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],epsilon[0]*rdx2Sq[0]*bcVals[5]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += rdx2Sq[0]*bcVals[5]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += epsilon[0]*rdx2Sq[0]*bcVals[5]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_loy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_neumannx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -5432,9 +5432,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_loy_dirichlety(do
   bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[4]],1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[4]] += 1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
@@ -5447,13 +5447,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_loy_dirichlety(do
   bsrc[globalIdxs[6]] += (-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += 0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += 0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_neumannx_loy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_neumannx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -5466,14 +5466,14 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_neumannx_loy_neumanny(doub
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*rdx2Sq[1]*bcVals[8]*epsilon)+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-1.0*rdx2Sq[1]*bcVals[8]*epsilon)+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += (-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-1.0*rdx2Sq[1]*bcVals[8]*epsilon)+rdx2Sq[0]*bcVals[5]*epsilon-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])+epsilon[0]*rdx2Sq[0]*bcVals[5]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-1.0*rdx2Sq[1]*bcVals[8]*epsilon)+rdx2Sq[0]*bcVals[5]*epsilon-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += (-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])+epsilon[0]*rdx2Sq[0]*bcVals[5]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -5481,13 +5481,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_neumannx_loy_neumanny(doub
   bsrc[globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],rdx2Sq[0]*bcVals[5]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],epsilon[0]*rdx2Sq[0]*bcVals[5]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += rdx2Sq[0]*bcVals[5]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += epsilon[0]*rdx2Sq[0]*bcVals[5]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_loy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_neumannx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -5500,19 +5500,19 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_loy_neumanny(doub
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
+  bsrc[globalIdxs[1]] += (-1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += (-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -5520,9 +5520,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_loy_neumanny(doub
   bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[4]],1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[4]] += 1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
@@ -5535,13 +5535,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_loy_neumanny(doub
   bsrc[globalIdxs[6]] += (-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += 0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += 0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_neumannx_loy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_neumannx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -5554,14 +5554,14 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_neumannx_loy_robiny(double
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += (-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+rdx2Sq[0]*bcVals[5]*epsilon-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+epsilon[0]*rdx2Sq[0]*bcVals[5]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+rdx2Sq[0]*bcVals[5]*epsilon-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += (-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+epsilon[0]*rdx2Sq[0]*bcVals[5]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -5569,13 +5569,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_neumannx_loy_robiny(double
   bsrc[globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],rdx2Sq[0]*bcVals[5]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],epsilon[0]*rdx2Sq[0]*bcVals[5]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += rdx2Sq[0]*bcVals[5]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += epsilon[0]*rdx2Sq[0]*bcVals[5]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_loy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_neumannx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -5588,19 +5588,19 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_loy_robiny(double
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-(1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-(1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
+  bsrc[globalIdxs[1]] += (-(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += (-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -5608,9 +5608,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_loy_robiny(double
   bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[4]],1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[4]] += 1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
@@ -5623,13 +5623,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_loy_robiny(double
   bsrc[globalIdxs[6]] += (-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += 0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += 0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_loy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_robinx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -5647,9 +5647,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_loy_periodicy(doubl
   bsrc[globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += (epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -5657,13 +5657,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_loy_periodicy(doubl
   bsrc[globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],(epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += (epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_loy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_robinx_loy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -5686,9 +5686,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_loy_periodicy(doubl
   bsrc[globalIdxs[1]] += 0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -5696,9 +5696,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_loy_periodicy(doubl
   bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[4]],(1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[4]] += (1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
@@ -5711,13 +5711,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_loy_periodicy(doubl
   bsrc[globalIdxs[6]] += (-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],(0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += (0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += 0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_loy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_robinx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -5745,13 +5745,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_loy_dirichlety(doub
   bsrc[globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],(epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += (epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_loy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_robinx_loy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -5784,9 +5784,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_loy_dirichlety(doub
   bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[4]],(1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[4]] += (1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
@@ -5799,13 +5799,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_loy_dirichlety(doub
   bsrc[globalIdxs[6]] += (-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],(0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += (0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += 0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_loy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_robinx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -5818,14 +5818,14 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_loy_neumanny(double
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*rdx2Sq[1]*bcVals[8]*epsilon)+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-1.0*rdx2Sq[1]*bcVals[8]*epsilon)+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += (-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-1.0*rdx2Sq[1]*bcVals[8]*epsilon)+(rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])+(epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-1.0*rdx2Sq[1]*bcVals[8]*epsilon)+(rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += (-1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])+(epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -5833,13 +5833,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_loy_neumanny(double
   bsrc[globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],(epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += (epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_loy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_robinx_loy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -5852,19 +5852,19 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_loy_neumanny(double
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
+  bsrc[globalIdxs[1]] += (-1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+(0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)+(0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += (-0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -5872,9 +5872,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_loy_neumanny(double
   bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[4]],(1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[4]] += (1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
@@ -5887,13 +5887,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_loy_neumanny(double
   bsrc[globalIdxs[6]] += (-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],(0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += (0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += 0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_loy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_robinx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -5906,14 +5906,14 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_loy_robiny(double e
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[0]] += (-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+(rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+(epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-(1.0*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+(rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += (-(1.0*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+(epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -5921,13 +5921,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_loy_robiny(double e
   bsrc[globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],(epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += (epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_loy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_robinx_loy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -5940,19 +5940,19 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_loy_robiny(double e
   rdx2Sq[1] = 4.0/(dx[1]*dx[1]); 
 
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[0]],(-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[0]],(-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[0]] += (-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[0]] += (-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])-0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(-(1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(-(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (-(1.333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
+  bsrc[globalIdxs[1]] += (-(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+(0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (-(0.3333333333333333*rdx2Sq[1]*bcVals[8]*epsilon)/bcVals[7])+(0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += (-(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[8])/bcVals[7])+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -5960,9 +5960,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_loy_robiny(double e
   bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[4]],(1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[4]] += (1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
@@ -5975,13 +5975,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_loy_robiny(double e
   bsrc[globalIdxs[6]] += (-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],(0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += (0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += 0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_periodicx_upy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -6011,7 +6011,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_periodicx_upy_periodicy(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_periodicx_upy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -6061,7 +6061,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_periodicx_upy_periodicy(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_periodicx_upy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -6091,7 +6091,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_periodicx_upy_dirichlety(d
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_periodicx_upy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -6141,7 +6141,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_periodicx_upy_dirichlety(d
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_periodicx_upy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -6164,18 +6164,18 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_periodicx_upy_neumanny(dou
   bsrc[globalIdxs[1]] += (-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],rdx2Sq[1]*bcVals[11]*epsilon-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += rdx2Sq[1]*bcVals[11]*epsilon-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],rdx2Sq[1]*bcVals[11]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],epsilon[0]*rdx2Sq[1]*bcVals[11]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += rdx2Sq[1]*bcVals[11]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += epsilon[0]*rdx2Sq[1]*bcVals[11]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_periodicx_upy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -6213,23 +6213,23 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_periodicx_upy_neumanny(dou
   bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += 0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += 0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[6]],1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[6]],1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[6]] += 1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[6]] += 1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += 0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += 0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_periodicx_upy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -6252,18 +6252,18 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_periodicx_upy_robiny(doubl
   bsrc[globalIdxs[1]] += (-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += (epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],(epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += (epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_periodicx_upy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -6301,23 +6301,23 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_periodicx_upy_robiny(doubl
   bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],(0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += (0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += (0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[6]],(1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[6]],(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[6]] += (1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[6]] += (1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],(0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += (0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += (0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_dirichletx_upy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_dirichletx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -6347,7 +6347,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_dirichletx_upy_periodicy(d
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_dirichletx_upy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_dirichletx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -6397,7 +6397,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_dirichletx_upy_periodicy(d
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_dirichletx_upy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_dirichletx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -6427,7 +6427,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_dirichletx_upy_dirichlety(
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_dirichletx_upy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_dirichletx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -6477,7 +6477,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_dirichletx_upy_dirichlety(
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_dirichletx_upy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_dirichletx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -6500,9 +6500,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_dirichletx_upy_neumanny(do
   bsrc[globalIdxs[1]] = bcVals[5];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],rdx2Sq[1]*bcVals[11]*epsilon-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += rdx2Sq[1]*bcVals[11]*epsilon-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicExch((unsigned long long int*) &bsrc[globalIdxs[3]],__double_as_longlong(bcVals[5]));
@@ -6511,7 +6511,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_dirichletx_upy_neumanny(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_dirichletx_upy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_dirichletx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -6549,14 +6549,14 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_dirichletx_upy_neumanny(do
   bsrc[globalIdxs[4]] = bcVals[5];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += 0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += 0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[6]],1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[6]],1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[6]] += 1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[6]] += 1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicExch((unsigned long long int*) &bsrc[globalIdxs[7]],__double_as_longlong(bcVals[5]));
@@ -6565,7 +6565,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_dirichletx_upy_neumanny(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_dirichletx_upy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_dirichletx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -6588,9 +6588,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_dirichletx_upy_robiny(doub
   bsrc[globalIdxs[1]] = bcVals[5];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += (epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicExch((unsigned long long int*) &bsrc[globalIdxs[3]],__double_as_longlong(bcVals[5]));
@@ -6599,7 +6599,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_dirichletx_upy_robiny(doub
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_dirichletx_upy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_dirichletx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -6637,14 +6637,14 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_dirichletx_upy_robiny(doub
   bsrc[globalIdxs[4]] = bcVals[5];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],(0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += (0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += (0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[6]],(1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[6]],(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[6]] += (1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[6]] += (1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicExch((unsigned long long int*) &bsrc[globalIdxs[7]],__double_as_longlong(bcVals[5]));
@@ -6653,7 +6653,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_dirichletx_upy_robiny(doub
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_neumannx_upy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_neumannx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -6671,9 +6671,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_neumannx_upy_periodicy(dou
   bsrc[globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],rdx2Sq[0]*bcVals[5]*epsilon-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],epsilon[0]*rdx2Sq[0]*bcVals[5]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += rdx2Sq[0]*bcVals[5]*epsilon-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += epsilon[0]*rdx2Sq[0]*bcVals[5]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -6681,13 +6681,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_neumannx_upy_periodicy(dou
   bsrc[globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],rdx2Sq[0]*bcVals[5]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],epsilon[0]*rdx2Sq[0]*bcVals[5]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += rdx2Sq[0]*bcVals[5]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += epsilon[0]*rdx2Sq[0]*bcVals[5]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_upy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_neumannx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -6710,9 +6710,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_upy_periodicy(dou
   bsrc[globalIdxs[1]] += 0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += 0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -6720,9 +6720,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_upy_periodicy(dou
   bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[4]],1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[4]] += 1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
@@ -6735,13 +6735,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_upy_periodicy(dou
   bsrc[globalIdxs[6]] += (-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += 0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += 0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_neumannx_upy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_neumannx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -6759,9 +6759,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_neumannx_upy_dirichlety(do
   bsrc[globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],rdx2Sq[0]*bcVals[5]*epsilon-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],epsilon[0]*rdx2Sq[0]*bcVals[5]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += rdx2Sq[0]*bcVals[5]*epsilon-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += epsilon[0]*rdx2Sq[0]*bcVals[5]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicExch((unsigned long long int*) &bsrc[globalIdxs[2]],__double_as_longlong(bcVals[11]));
@@ -6775,7 +6775,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_neumannx_upy_dirichlety(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_upy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_neumannx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -6798,9 +6798,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_upy_dirichlety(do
   bsrc[globalIdxs[1]] += 0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += 0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -6808,9 +6808,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_upy_dirichlety(do
   bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[4]],1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[4]] += 1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicExch((unsigned long long int*) &bsrc[globalIdxs[5]],__double_as_longlong(bcVals[11]));
@@ -6829,7 +6829,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_upy_dirichlety(do
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_neumannx_upy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_neumannx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -6847,23 +6847,23 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_neumannx_upy_neumanny(doub
   bsrc[globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],rdx2Sq[0]*bcVals[5]*epsilon-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],epsilon[0]*rdx2Sq[0]*bcVals[5]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += rdx2Sq[0]*bcVals[5]*epsilon-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += epsilon[0]*rdx2Sq[0]*bcVals[5]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],rdx2Sq[1]*bcVals[11]*epsilon-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += rdx2Sq[1]*bcVals[11]*epsilon-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],rdx2Sq[1]*bcVals[11]*epsilon+rdx2Sq[0]*bcVals[5]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],epsilon[0]*rdx2Sq[1]*bcVals[11]+epsilon[0]*rdx2Sq[0]*bcVals[5]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += rdx2Sq[1]*bcVals[11]*epsilon+rdx2Sq[0]*bcVals[5]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += epsilon[0]*rdx2Sq[1]*bcVals[11]+epsilon[0]*rdx2Sq[0]*bcVals[5]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_upy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_neumannx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -6886,9 +6886,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_upy_neumanny(doub
   bsrc[globalIdxs[1]] += 0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += 0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -6896,28 +6896,28 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_upy_neumanny(doub
   bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[4]],1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[4]] += 1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += 0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += 0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[6]],1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[6]],1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[6]] += 1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[6]] += 1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon+0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += 0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon+0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += 0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_neumannx_upy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_neumannx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -6935,23 +6935,23 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_neumannx_upy_robiny(double
   bsrc[globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],rdx2Sq[0]*bcVals[5]*epsilon-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],epsilon[0]*rdx2Sq[0]*bcVals[5]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += rdx2Sq[0]*bcVals[5]*epsilon-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += epsilon[0]*rdx2Sq[0]*bcVals[5]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += (epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+rdx2Sq[0]*bcVals[5]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],(epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+epsilon[0]*rdx2Sq[0]*bcVals[5]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+rdx2Sq[0]*bcVals[5]*epsilon+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += (epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+epsilon[0]*rdx2Sq[0]*bcVals[5]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_upy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_neumannx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -6974,9 +6974,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_upy_robiny(double
   bsrc[globalIdxs[1]] += 0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += 0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -6984,28 +6984,28 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_neumannx_upy_robiny(double
   bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[4]],1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[4]] += 1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],(0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += (0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += (0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[6]],(1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[6]],(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[6]] += (1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[6]] += (1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],(0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += (0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += (0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_upy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_robinx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -7023,9 +7023,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_upy_periodicy(doubl
   bsrc[globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += (epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
@@ -7033,13 +7033,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_upy_periodicy(doubl
   bsrc[globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],(epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += (epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_upy_periodicy(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_robinx_upy_periodicy(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -7062,9 +7062,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_upy_periodicy(doubl
   bsrc[globalIdxs[1]] += 0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -7072,9 +7072,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_upy_periodicy(doubl
   bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[4]],(1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[4]] += (1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
@@ -7087,13 +7087,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_upy_periodicy(doubl
   bsrc[globalIdxs[6]] += (-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],(0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += (0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += 0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_upy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_robinx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -7111,9 +7111,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_upy_dirichlety(doub
   bsrc[globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += (epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicExch((unsigned long long int*) &bsrc[globalIdxs[2]],__double_as_longlong(bcVals[11]));
@@ -7127,7 +7127,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_upy_dirichlety(doub
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_upy_dirichlety(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_robinx_upy_dirichlety(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -7150,9 +7150,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_upy_dirichlety(doub
   bsrc[globalIdxs[1]] += 0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -7160,9 +7160,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_upy_dirichlety(doub
   bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[4]],(1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[4]] += (1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicExch((unsigned long long int*) &bsrc[globalIdxs[5]],__double_as_longlong(bcVals[11]));
@@ -7181,7 +7181,7 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_upy_dirichlety(doub
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_upy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_robinx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -7199,23 +7199,23 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_upy_neumanny(double
   bsrc[globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += (epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],rdx2Sq[1]*bcVals[11]*epsilon-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += rdx2Sq[1]*bcVals[11]*epsilon-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],rdx2Sq[1]*bcVals[11]*epsilon+(rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],epsilon[0]*rdx2Sq[1]*bcVals[11]+(epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += rdx2Sq[1]*bcVals[11]*epsilon+(rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += epsilon[0]*rdx2Sq[1]*bcVals[11]+(epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_upy_neumanny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_robinx_upy_neumanny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -7238,9 +7238,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_upy_neumanny(double
   bsrc[globalIdxs[1]] += 0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -7248,28 +7248,28 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_upy_neumanny(double
   bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[4]],(1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[4]] += (1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += 0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += 0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[6]],1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[6]],1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[6]] += 1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[6]] += 1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon+(0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += 0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon+(0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += 0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_upy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p1_upx_robinx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -7287,23 +7287,23 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p1_upx_robinx_upy_robiny(double e
   bsrc[globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[1]],(rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[1]],(epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[1]] += (rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[1]] += (epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]-0.1666666666666667*rho[3]-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],(epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[2]] += (epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1666666666666667*rho[3]+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[3]],(rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+(rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[3]],(epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+(epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
   #else
-  bsrc[globalIdxs[3]] += (rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+(rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  bsrc[globalIdxs[3]] += (epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+(epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
   #endif
 
 }
-GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_upy_robiny(double epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
+GKYL_CU_DH void fem_poisson_src_stencil_consteps_2x_ser_p2_upx_robinx_upy_robiny(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs, double *bsrc) 
 { 
   // epsilon: permittivity.
   // rho: right side source.
@@ -7326,9 +7326,9 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_upy_robiny(double e
   bsrc[globalIdxs[1]] += 0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[2]],(0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[2]],0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[2]] += (0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
   atomicAdd(&bsrc[globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
@@ -7336,24 +7336,24 @@ GKYL_CU_DH void fem_poisson_src_stencil_2x_ser_p2_upx_robinx_upy_robiny(double e
   bsrc[globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[4]],(1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[4]] += (1.333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]-0.1721325931647741*rho[7]-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+(1.333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[5]],(0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[5]],(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[5]] += (0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[5]] += (0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.08606629658238707*rho[7]+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[6]],(1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[6]],(1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
   #else
-  bsrc[globalIdxs[6]] += (1.333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
+  bsrc[globalIdxs[6]] += (1.333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]-0.1721325931647741*rho[6]-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
   #endif
   #ifdef __CUDA_ARCH__
-  atomicAdd(&bsrc[globalIdxs[7]],(0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+(0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  atomicAdd(&bsrc[globalIdxs[7]],(0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
   #else
-  bsrc[globalIdxs[7]] += (0.3333333333333333*rdx2Sq[1]*bcVals[11]*epsilon)/bcVals[10]+(0.3333333333333333*rdx2Sq[0]*bcVals[5]*epsilon)/bcVals[4]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  bsrc[globalIdxs[7]] += (0.3333333333333333*epsilon[0]*rdx2Sq[1]*bcVals[11])/bcVals[10]+0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+(0.3333333333333333*epsilon[0]*rdx2Sq[0]*bcVals[5])/bcVals[4]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
   #endif
 
 }

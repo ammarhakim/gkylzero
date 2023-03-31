@@ -8,7 +8,7 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_array_rio.h>
-#include <gkyl_fem_poisson_vareps.h>
+#include <gkyl_fem_poisson.h>
 
 void evalFunc2x_periodicx_periodicy(double t, const double *xn, double* restrict fout, void *ctx)
 {
@@ -141,23 +141,23 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
 //  gkyl_grid_sub_array_write(&grid, &localRange, eps, "ctest_fem_poisson_vareps_2x_eps_1.gkyl");
 
   // FEM poisson solver.
-  gkyl_fem_poisson_vareps *poisson = gkyl_fem_poisson_vareps_new(&grid, basis, &bcs, eps, use_gpu);
+  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, &bcs, 0, eps, use_gpu);
 
   // Set the RHS source.
   if (use_gpu)
-    gkyl_fem_poisson_vareps_set_rhs(poisson, rho_cu);
+    gkyl_fem_poisson_set_rhs(poisson, rho_cu);
   else
-    gkyl_fem_poisson_vareps_set_rhs(poisson, rho);
+    gkyl_fem_poisson_set_rhs(poisson, rho);
 
   // Solve the problem.
   if (use_gpu) {
-    gkyl_fem_poisson_vareps_solve(poisson, phi_cu);
+    gkyl_fem_poisson_solve(poisson, phi_cu);
     gkyl_array_copy(phi, phi_cu);
 #ifdef GKYL_HAVE_CUDA
     cudaDeviceSynchronize();
 #endif
   } else {
-    gkyl_fem_poisson_vareps_solve(poisson, phi);
+    gkyl_fem_poisson_solve(poisson, phi);
   }
 
   if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC && bcs.lo_type[1] == GKYL_POISSON_PERIODIC) {
@@ -261,7 +261,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
     }
   }
 
-  gkyl_fem_poisson_vareps_release(poisson);
+  gkyl_fem_poisson_release(poisson);
   gkyl_proj_on_basis_release(projob);
   gkyl_array_release(rho);
   gkyl_array_release(phi);

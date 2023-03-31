@@ -1,55 +1,9 @@
 #include <gkyl_fem_poisson.h>
 #include <gkyl_fem_poisson_priv.h>
 
-static long
-global_num_nodes(const int dim, const int poly_order, const int basis_type, const int *num_cells, bool *isdirperiodic)
-{
-  if (dim==1) {
-    if (poly_order == 1) {
-      if (isdirperiodic[0]) {
-        return fem_poisson_num_nodes_global_1x_ser_p1_periodicx(num_cells);
-      } else {
-        return fem_poisson_num_nodes_global_1x_ser_p1_nonperiodicx(num_cells);
-      }
-    } else if (poly_order == 2) {
-      if (isdirperiodic[0]) {
-        return fem_poisson_num_nodes_global_1x_ser_p2_periodicx(num_cells);
-      } else {
-        return fem_poisson_num_nodes_global_1x_ser_p2_nonperiodicx(num_cells);
-      }
-    }
-  } else if (dim==2) {
-    if (poly_order == 1) {
-      if (isdirperiodic[0] && isdirperiodic[1]) {
-        return fem_poisson_num_nodes_global_2x_ser_p1_periodicx_periodicy(num_cells);
-      } else if (!isdirperiodic[0] && isdirperiodic[1]) {
-        return fem_poisson_num_nodes_global_2x_ser_p1_nonperiodicx_periodicy(num_cells);
-      } else if (isdirperiodic[0] && !isdirperiodic[1]) {
-        return fem_poisson_num_nodes_global_2x_ser_p1_periodicx_nonperiodicy(num_cells);
-      } else {
-        return fem_poisson_num_nodes_global_2x_ser_p1_nonperiodicx_nonperiodicy(num_cells);
-      }
-    } else if (poly_order == 2) {
-      if (isdirperiodic[0] && isdirperiodic[1]) {
-        return fem_poisson_num_nodes_global_2x_ser_p2_periodicx_periodicy(num_cells);
-      } else if (!isdirperiodic[0] && isdirperiodic[1]) {
-        return fem_poisson_num_nodes_global_2x_ser_p2_nonperiodicx_periodicy(num_cells);
-      } else if (isdirperiodic[0] && !isdirperiodic[1]) {
-        return fem_poisson_num_nodes_global_2x_ser_p2_periodicx_nonperiodicy(num_cells);
-      } else {
-        return fem_poisson_num_nodes_global_2x_ser_p2_nonperiodicx_nonperiodicy(num_cells);
-      }
-    }
-  } else if (dim==3) {
-    assert(false);  // Other dimensionalities not supported.
-  }
-  assert(false);  // Other dimensionalities not supported.
-  return -1;
-}
-
 gkyl_fem_poisson*
 gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-  struct gkyl_poisson_bc *bcs, const double epsilon, bool use_gpu)
+  struct gkyl_poisson_bc *bcs, double epsilon_const, struct gkyl_array *epsilon_var, bool use_gpu)
 {
 
   gkyl_fem_poisson *up = gkyl_malloc(sizeof(gkyl_fem_poisson));
@@ -72,7 +26,15 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->basis = basis;
   up->use_gpu = use_gpu;
 
-  up->epsilon = epsilon;
+  if (epsilon_var) {
+    up->isvareps = true;
+    up->epsilon  = epsilon_var;
+  } else {
+    up->isvareps = false;
+    // Create an array to hold epsilon.
+    up->epsilon  = gkyl_array_new(GKYL_DOUBLE, 1, 1);
+    gkyl_array_shiftc(up->epsilon, epsilon_const, 0);
+  }
 
   up->globalidx = gkyl_malloc(sizeof(long[up->num_basis])); // global index, one for each basis in a cell.
 
@@ -141,7 +103,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 
   // Compute the number of local and global nodes.
   up->numnodes_local = up->num_basis;
-  up->numnodes_global = global_num_nodes(up->ndim, up->poly_order, basis.b_type, up->num_cells, up->isdirperiodic);
+  up->numnodes_global = gkyl_fem_poisson_global_num_nodes(up->ndim, up->poly_order, basis.b_type, up->num_cells, up->isdirperiodic);
 
   for (int d=0; d<up->ndim; d++) up->dx[d] = up->grid.dx[d];  // Cell lengths.
 #ifdef GKYL_HAVE_CUDA
@@ -157,17 +119,17 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   fem_poisson_choose_local2global_kernels(&basis, up->isdirperiodic, up->kernels->l2g);
 
   // Select lhs kernels:
-  fem_poisson_choose_lhs_kernels(&basis, bcs, up->kernels->lhsker);
+  fem_poisson_choose_lhs_kernels(&basis, bcs, up->isvareps, up->kernels->lhsker);
 
   // Select rhs src kernels:
-  fem_poisson_choose_src_kernels(&basis, bcs, up->kernels->srcker);
+  fem_poisson_choose_src_kernels(&basis, bcs, up->isvareps, up->kernels->srcker);
 
   // Select sol kernel:
   up->kernels->solker = fem_poisson_choose_sol_kernels(&basis);
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    fem_poisson_choose_kernels_cu(&basis, bcs,  up->isdirperiodic, up->kernels_cu);
+    fem_poisson_choose_kernels_cu(&basis, bcs, up->isvareps, up->isdirperiodic, up->kernels_cu);
 #endif
 
   // Create a linear Ax=B problem. Here A is the discrete (global) stiffness
@@ -191,13 +153,15 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   while (gkyl_range_iter_next(&up->solve_iter)) {
     long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
 
+    double *eps_p = up->isvareps? gkyl_array_fetch(up->epsilon, linidx) : up->epsilon->data;
+
     int keri = idx_to_inup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
     for (size_t d=0; d<up->ndim; d++) idx0[d] = up->solve_iter.idx[d]-1;
     up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
 
-    // Apply the -epsilon*nabla^2 stencil.
+    // Apply the -nabla . (epsilon*nabla) stencil.
     keri = idx_to_inloup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
-    up->kernels->lhsker[keri](epsilon, up->dx, up->bcvals, up->globalidx, tri);
+    up->kernels->lhsker[keri](eps_p, up->dx, up->bcvals, up->globalidx, tri);
   }
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -253,6 +217,7 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
   while (gkyl_range_iter_next(&up->solve_iter)) {
     long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
 
+    double *eps_p = up->isvareps? gkyl_array_fetch(up->epsilon, linidx) : up->epsilon->data;
     double *rhsin_p = gkyl_array_fetch(rhsin, linidx);
 
     int keri = idx_to_inup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
@@ -262,7 +227,7 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
     // Apply the RHS source stencil. It's mostly the mass matrix times a
     // modal-to-nodal operator times the source, modified by BCs in skin cells.
     keri = idx_to_inloup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
-    up->kernels->srcker[keri](up->epsilon, up->dx, rhsin_p, up->bcvals, up->globalidx, brhs_p);
+    up->kernels->srcker[keri](eps_p, up->dx, rhsin_p, up->bcvals, up->globalidx, brhs_p);
   }
 
   gkyl_superlu_brhs_from_array(up->prob, brhs_p);
@@ -305,6 +270,8 @@ void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
     gkyl_array_release(up->rhs_cellavg);
     gkyl_free(up->rhs_avg);
   }
+  if (!up->isvareps)
+    gkyl_array_release(up->epsilon);
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     gkyl_cu_free(up->kernels_cu);

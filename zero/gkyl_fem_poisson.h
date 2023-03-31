@@ -38,22 +38,26 @@ struct gkyl_poisson_bc {
 
 /**
  * Create new updater to solve the Poisson problem
- *   - epsilon * nabla^2 phi = rho
+ *   - nabla . (epsilon * nabla phi) = rho
  * using a FEM to ensure phi is continuous. The input is the
  * DG field rho, which is translated to FEM. The output is the
  * DG field phi, after we've translted the FEM solution to DG.
  * Free using gkyl_fem_poisson_release method.
  *
+ * For scalar, spatially constant epsilon use gkyl_fem_poisson_consteps_new,
+ * for tensor or heterogenous epsilon use gkyl_fem_poisson_vareps_new.
+ *
  * @param grid Grid object
  * @param basis Basis functions of the DG field.
  * @param bcs Boundary conditions.
- * @param epsilon Value of the permittivity.
+ * @param epsilon_const Constant scalar value of the permittivity.
+ * @param epsilon_var Spatially varying permittivity tensor.
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
 gkyl_fem_poisson* gkyl_fem_poisson_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-  struct gkyl_poisson_bc *bcs, const double epsilon, bool use_gpu);
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs,
+  double epsilon_const, struct gkyl_array *epsilon_var, bool use_gpu);
 
 /**
  * Assign the right-side vector with the discontinuous (DG) source field.
