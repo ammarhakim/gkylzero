@@ -37,7 +37,7 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
 
   if (mom->has_low_inp) {
     // create local and local_ext from user-supplied local range
-    gkyl_create_ranges(&mom->low_inp.local, ghost, &app->local_ext, &app->local);
+    gkyl_create_ranges(&mom->low_inp.local_range, ghost, &app->local_ext, &app->local);
   }
   else {
     // global and local ranges are same, and so just copy
