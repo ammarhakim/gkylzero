@@ -82,7 +82,7 @@ enum gkyl_moment_scheme {
 // use MPI or other parallel mechanism.
 struct gkyl_moment_low_inp {
   // local range over which App operates
-  struct gkyl_range local;
+  struct gkyl_range local_range;
 };
 
 // Top-level app parameters
