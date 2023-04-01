@@ -1,5 +1,9 @@
-#include <gkyl_rect_decomp.h>
 #include <gkyl_alloc.h>
+#include <gkyl_array.h>
+#include <gkyl_array_ops.h>
+#include <gkyl_rect_decomp.h>
+
+#include <string.h>
 
 struct gkyl_rect_decomp*
 gkyl_rect_decomp_new_from_cuts(int ndim, const int cuts[], const struct gkyl_range *range)
@@ -7,14 +11,95 @@ gkyl_rect_decomp_new_from_cuts(int ndim, const int cuts[], const struct gkyl_ran
   struct gkyl_rect_decomp *decomp = gkyl_malloc(sizeof(*decomp));
 
   int ndecomp = 1;
-  for (int i=0; i<ndim; ++i)
-    ndecomp *= cuts[i];
+  decomp->ndim = ndim;  
+
+  for (int d=0; d<ndim; ++d) ndecomp *= cuts[d];  
+  decomp->ndecomp = ndecomp;
   decomp->ranges = gkyl_malloc(sizeof(struct gkyl_range[ndecomp]));
-  
-  decomp->ndim = ndim;
-  decomp->ndecomp = ndecomp;  
+
+  memcpy(&decomp->parent_range, range, sizeof(struct gkyl_range));
+
+  div_t qr[GKYL_MAX_DIM];
+  for (int d=0; d<ndim; ++d)
+    qr[d] = div(gkyl_range_shape(range, d), cuts[d]);
+
+  int *sidx[GKYL_MAX_DIM], *eidx[GKYL_MAX_DIM];
+  for (int d=0; d<ndim; ++d) {
+    sidx[d] = gkyl_malloc(sizeof(int[cuts[d]]));
+    eidx[d] = gkyl_malloc(sizeof(int[cuts[d]]));
+
+    int *shape = gkyl_malloc(sizeof(int[cuts[d]]));
+
+    // compute shape in direction 'd'
+    for (int i=0; i<cuts[d]; ++i)
+      shape[i] = i<qr[d].rem ? qr[d].quot+1 : qr[d].quot;
+
+    sidx[d][0] = range->lower[d];
+    eidx[d][0] = sidx[d][0]+shape[0]-1;
+    for (int i=1; i<cuts[d]; ++i) {
+      sidx[d][i] = eidx[d][i-1]+1;
+      eidx[d][i] = sidx[d][i]+shape[i]-1;
+    }
+
+    gkyl_free(shape);
+  }
+
+  struct gkyl_range rcuts;
+  gkyl_range_init_from_shape(&rcuts, ndim, cuts);
+  struct gkyl_range_iter citer;
+  gkyl_range_iter_init(&citer, &rcuts);
+
+  int dnum = 0;
+  // loop over cuts range, constructing each of the sub-ranges in the
+  // decomposition
+  while( gkyl_range_iter_next(&citer) ) {
+    int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+
+    for (int d=0; d<ndim; ++d) {
+      lower[d] = sidx[d][citer.idx[d]];
+      upper[d] = eidx[d][citer.idx[d]];
+    }
+
+    gkyl_sub_range_init(&decomp->ranges[dnum++], range, lower, upper);
+  }
+
+  for (int d=0; d<ndim; ++d) {
+    gkyl_free(sidx[d]);
+    gkyl_free(eidx[d]);
+  }
 
   return decomp;
+}
+
+bool
+gkyl_rect_decomp_check_covering(const struct gkyl_rect_decomp *decomp)
+{
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, decomp->parent_range.volume);
+  gkyl_array_clear(arr, 0.0);
+
+  // following loops over each sub-range and increments the region it
+  // indexes in 'arr'. Each index should be visited exactly once.
+  for (int i=0; i<decomp->ndecomp; ++i) {
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &decomp->ranges[i]);
+
+    while (gkyl_range_iter_next(&iter)) {
+      double *d = gkyl_array_fetch(arr, gkyl_range_idx(&decomp->ranges[i], iter.idx));
+      d[0] += 1.0;
+    }
+  }
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &decomp->parent_range);
+  while (gkyl_range_iter_next(&iter)) {
+    const double *d = gkyl_array_cfetch(arr, gkyl_range_idx(&decomp->parent_range, iter.idx));
+    if (d[0] != 1.0)
+      return false;
+  }
+
+  gkyl_array_release(arr);
+  
+  return true;
 }
 
 void

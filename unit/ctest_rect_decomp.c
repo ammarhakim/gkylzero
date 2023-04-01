@@ -1,6 +1,8 @@
 #include <acutest.h>
 #include <gkyl_rect_decomp.h>
 
+#include <string.h>
+
 void test_ranges_1d()
 {
   double lower[] = { 1.0 }, upper[] = {2.5 };
@@ -129,13 +131,70 @@ void
 test_rect_decomp_2d(void)
 {
   struct gkyl_range range;
-  gkyl_range_init(&range, 2, (int[]) { 1, 1 }, (int[]) { 100, 100 });
+  gkyl_range_init(&range, 2, (int[]) { 1, 2 }, (int[]) { 100, 100 });
   
-  int cuts[] = { 5, 5 };
+  int cuts[] = { 5, 6 };
   struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(2, cuts, &range);
 
   TEST_CHECK( decomp->ndim == 2 );
-  TEST_CHECK( decomp->ndecomp == 25 );
+  TEST_CHECK( decomp->ndecomp == cuts[0]*cuts[1] );
+
+  TEST_CHECK( memcmp(&range, &decomp->parent_range, sizeof(struct gkyl_range)) == 0 );
+
+  long vol = 0;
+  for (int i=0; i<decomp->ndecomp; ++i)
+    vol += decomp->ranges[i].volume;
+
+  TEST_CHECK( vol == range.volume );
+  TEST_CHECK( gkyl_rect_decomp_check_covering(decomp) );  
+
+  gkyl_rect_decomp_release(decomp);
+}
+
+void
+test_rect_decomp_3d(void)
+{
+  struct gkyl_range range;
+  gkyl_range_init(&range, 3, (int[]) { 1, 2, 3 }, (int[]) { 100, 200, 300 });
+  
+  int cuts[] = { 5, 6, 7 };
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(3, cuts, &range);
+
+  TEST_CHECK( decomp->ndim == 3 );
+  TEST_CHECK( decomp->ndecomp == cuts[0]*cuts[1]*cuts[2] );
+
+  TEST_CHECK( memcmp(&range, &decomp->parent_range, sizeof(struct gkyl_range)) == 0 );
+
+  long vol = 0;
+  for (int i=0; i<decomp->ndecomp; ++i)
+    vol += decomp->ranges[i].volume;
+
+  TEST_CHECK( vol == range.volume );
+  TEST_CHECK( gkyl_rect_decomp_check_covering(decomp) );
+
+  gkyl_rect_decomp_release(decomp);
+}
+
+void
+test_rect_decomp_4d(void)
+{
+  struct gkyl_range range;
+  gkyl_range_init(&range, 4, (int[]) { 1, 2, 3, 4 }, (int[]) { 10, 20, 30, 40 });
+  
+  int cuts[] = { 2, 1, 3, 4 };
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(4, cuts, &range);
+
+  TEST_CHECK( decomp->ndim == 4 );
+  TEST_CHECK( decomp->ndecomp == cuts[0]*cuts[1]*cuts[2]*cuts[3] );
+
+  TEST_CHECK( memcmp(&range, &decomp->parent_range, sizeof(struct gkyl_range)) == 0 );
+
+  long vol = 0;
+  for (int i=0; i<decomp->ndecomp; ++i)
+    vol += decomp->ranges[i].volume;
+
+  TEST_CHECK( vol == range.volume );
+  TEST_CHECK( gkyl_rect_decomp_check_covering(decomp) );
 
   gkyl_rect_decomp_release(decomp);
 }
@@ -149,6 +208,8 @@ TEST_LIST = {
   { "ranges_from_range_3d", test_ranges_from_range_3d },
 
   { "rect_decomp_2d", test_rect_decomp_2d },
+  { "rect_decomp_3d", test_rect_decomp_3d },
+  { "rect_decomp_4d", test_rect_decomp_4d },
   
   { NULL, NULL },
 };
