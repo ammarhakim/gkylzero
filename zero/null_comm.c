@@ -1,6 +1,8 @@
 #include <gkyl_alloc.h>
 #include <gkyl_null_comm.h>
 
+#include <string.h>
+
 static void
 comm_free(const struct gkyl_ref_count *ref)
 {
@@ -17,10 +19,10 @@ get_rank(struct gkyl_comm *comm, int *rank)
 
 static int
 all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
-  enum gkyl_array_op op, int nelem, const void *data,
+  enum gkyl_array_op op, int nelem, const void *inp,
   void *out)
 {
-
+  memcpy(out, inp, gkyl_elem_type_size[type]*nelem);
   return 0;
 }
 
