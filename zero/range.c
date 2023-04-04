@@ -314,6 +314,48 @@ gkyl_skin_ghost_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
   }
 }
 
+void
+gkyl_directional_ranges(struct gkyl_range *pos, struct gkyl_range *neg,
+  int dir, int vdir, enum gkyl_edge_loc edge, const struct gkyl_range *parent, const int *nghost,
+  int *npos, int *nneg)
+{
+  int ndim = parent->ndim;
+  int lo[GKYL_MAX_DIM] = {0}, up[GKYL_MAX_DIM] = {0};
+
+  if (edge == GKYL_LOWER_EDGE) {
+
+    incr_int_array(ndim, 0, nghost, parent->lower, lo);
+    incr_int_array(ndim, 0, nghost, parent->upper, up);
+
+    up[vdir] = lo[vdir]+nneg[vdir]+nghost[vdir];
+    up[dir] = lo[dir]+nghost[dir]-1;
+    gkyl_sub_range_init(neg, parent, lo, up);
+
+    incr_int_array(ndim, 0, nghost, parent->lower, lo);
+    incr_int_array(ndim, 0, nghost, parent->upper, up);
+    
+    lo[vdir] = up[vdir]-npos[vdir]-nghost[vdir];
+    up[dir] = lo[dir]+nghost[dir]-1;
+    gkyl_sub_range_init(pos, parent, lo, up);
+  }
+  else {
+
+    incr_int_array(ndim, 0, nghost, parent->lower, lo);
+    incr_int_array(ndim, 0, nghost, parent->upper, up);
+   
+    up[vdir] = lo[vdir]+nneg[vdir];
+    lo[dir] = up[dir];
+    gkyl_sub_range_init(neg, parent, lo, up);
+
+    incr_int_array(ndim, 0, nghost, parent->lower, lo);
+    incr_int_array(ndim, 0, nghost, parent->upper, up);
+    
+    lo[vdir] = up[vdir]-npos[vdir];
+    lo[dir] = up[dir];
+    gkyl_sub_range_init(pos, parent, lo, up);
+  }
+}
+
 int
 gkyl_range_intersect(struct gkyl_range* irng,
   const struct gkyl_range *r1, const struct gkyl_range *r2)

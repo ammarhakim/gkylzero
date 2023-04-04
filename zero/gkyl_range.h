@@ -226,6 +226,10 @@ void gkyl_range_upper_skin(struct gkyl_range* srng,
 void gkyl_skin_ghost_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
   int dir, enum gkyl_edge_loc edge, const struct gkyl_range *parent, const int *nghost);
 
+void gkyl_directional_ranges(struct gkyl_range *pos, struct gkyl_range *neg,
+  int dir, int vdir, enum gkyl_edge_loc edge, const struct gkyl_range *parent, const int *nghost,
+  int *npos, int *nneg);
+
 /**
  * Compute intersection of two ranges. No sub-range information is
  * propagated to the new range object.
