@@ -370,7 +370,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
         }
 
         // compute actual CFl across all domains
-        wv->comm->all_reduce(wv->comm, GKYL_DOUBLE, GKYL_MAX, 1, &cfla, &cfla_global);
+        gkyl_comm_all_reduce(wv->comm, GKYL_DOUBLE, GKYL_MAX, 1, &cfla, &cfla_global);
         cfla = cfla_global;
 
         if (cfla > cflm) // check time-step before any updates are performed

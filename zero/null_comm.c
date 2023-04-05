@@ -26,6 +26,18 @@ all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
   return 0;
 }
 
+static int
+array_sync(struct gkyl_comm *comm, struct gkyl_array *array)
+{
+  return 0;
+}
+
+static int
+barrier(struct gkyl_comm *comm)
+{
+  return 0;
+}
+
 struct gkyl_comm*
 gkyl_null_comm_new(void)
 {
@@ -33,6 +45,8 @@ gkyl_null_comm_new(void)
 
   comm->get_rank = get_rank;
   comm->all_reduce = all_reduce;
+  comm->gkyl_array_sync = array_sync;
+  comm->barrier = barrier;
 
   comm->ref_count = gkyl_ref_count_init(comm_free);
 

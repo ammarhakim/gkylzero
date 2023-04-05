@@ -45,6 +45,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
           .update_dirs = { d },
           .cfl = app->cfl,
           .geom = app->geom,
+          .comm = app->comm
         }
       );
       
@@ -253,6 +254,8 @@ moment_species_apply_bc(const gkyl_moment_app *app, double tcurr,
         moment_apply_wedge_bc(app, tcurr, &app->local,
           sp->bc_buffer, d, sp->lower_bc[d], sp->upper_bc[d], f);
     }
+
+  gkyl_comm_gkyl_array_sync(app->comm, f);
 }
 
 // maximum stable time-step

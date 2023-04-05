@@ -38,6 +38,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
           .check_inv_domain = false,
           .cfl = app->cfl,
           .geom = app->geom,
+          .comm = app->comm
         }
       );
 
@@ -221,7 +222,9 @@ moment_field_apply_bc(const gkyl_moment_app *app, double tcurr,
       if (field->lower_bct[d] == GKYL_FIELD_WEDGE)
         moment_apply_wedge_bc(app, tcurr, &app->local,
           field->bc_buffer, d, field->lower_bc[d], field->upper_bc[d], f);
-    }  
+    }
+
+  gkyl_comm_gkyl_array_sync(app->comm, f);
 }
 
 double
