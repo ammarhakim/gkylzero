@@ -1,4 +1,4 @@
-#include <gkyl_euler_kernels.h> 
+#include <gkyl_euler_pkpm_kernels.h> 
 GKYL_CU_DH void pkpm_dist_mirror_force_1x1v_ser_p2(const double* T_perp_over_m, const double* T_perp_over_m_inv, const double* f, const double* F_k_p_1, double* g_dist_source, double* F_k_m_1) 
 { 
   // T_perp_over_m: Input p_perp/rho = T_perp/m.

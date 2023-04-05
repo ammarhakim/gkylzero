@@ -1,4 +1,4 @@
-#include <gkyl_vlasov_kernels.h> 
+#include <gkyl_vlasov_pkpm_kernels.h> 
 GKYL_CU_DH double vlasov_pkpm_vol_2x1v_ser_p2(const double *w, const double *dxv, 
   const double *bvar, const double *u_i, 
   const double *pkpm_accel_vars, const double *g_dist_source, 

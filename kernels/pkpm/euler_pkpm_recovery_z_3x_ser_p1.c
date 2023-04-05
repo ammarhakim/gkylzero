@@ -1,4 +1,4 @@
-#include <gkyl_euler_kernels.h> 
+#include <gkyl_euler_pkpm_kernels.h> 
 GKYL_CU_DH void euler_pkpm_recovery_z_3x_ser_p1(const double *dxv, double nuHyp, 
   const double *bvarl, const double *bvarc, const double *bvarr, 
   const double *u_il, const double *u_ic, const double *u_ir, 

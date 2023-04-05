@@ -1,4 +1,4 @@
-#include <gkyl_euler_kernels.h> 
+#include <gkyl_euler_pkpm_kernels.h> 
 GKYL_CU_DH double euler_pkpm_vol_1x_ser_p2(const double *w, const double *dxv, const double *u_i, const double *div_p, const double *statevec, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]: Cell-center coordinates.

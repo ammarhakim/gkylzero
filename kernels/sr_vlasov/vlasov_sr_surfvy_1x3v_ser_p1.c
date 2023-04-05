@@ -1,4 +1,4 @@
-#include <gkyl_vlasov_kernels.h> 
+#include <gkyl_vlasov_sr_kernels.h> 
 #include <gkyl_basis_ser_4x_p1_surfx3_eval_quad.h> 
 #include <gkyl_basis_ser_4x_p1_upwind_quad_to_modal.h> 
 GKYL_CU_DH void vlasov_sr_surfvy_1x3v_ser_p1(const double *w, const double *dxv, const double *p_over_gamma, const double *qmem, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 

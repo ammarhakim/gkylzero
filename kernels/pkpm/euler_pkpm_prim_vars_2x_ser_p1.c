@@ -1,4 +1,4 @@
-#include <gkyl_euler_kernels.h> 
+#include <gkyl_euler_pkpm_kernels.h> 
 #include <gkyl_basis_ser_2x_p1_inv.h> 
 GKYL_CU_DH void euler_pkpm_prim_vars_2x_ser_p1(const double *bvar, const double *vlasov_pkpm_moms, const double *statevec, 
   double* u_i, double* p_ij, double* T_ij, 
