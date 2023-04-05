@@ -302,6 +302,8 @@ gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, i
 struct gkyl_update_status
 gkyl_moment_update(gkyl_moment_app* app, double dt)
 {
+  gkyl_comm_barrier(app->comm);
+  
   app->stat.nup += 1;
   
   struct timespec wst = gkyl_wall_clock();
@@ -320,7 +322,10 @@ gkyl_moment_app_calc_field_energy(gkyl_moment_app* app, double tm)
     double energy[6] = { 0.0 };
     calc_integ_quant(app->field.maxwell, app->grid.cellVolume, app->field.fcurr, app->geom,
       app->local, energy);
-    gkyl_dynvec_append(app->field.integ_energy, tm, energy);
+    
+    double energy_global[6];
+    gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 6, energy, energy_global);
+    gkyl_dynvec_append(app->field.integ_energy, tm, energy_global);
   }
 }
 
@@ -334,8 +339,10 @@ gkyl_moment_app_calc_integrated_mom(gkyl_moment_app *app, double tm)
 
     calc_integ_quant(app->species[sidx].equation, app->grid.cellVolume, app->species[sidx].fcurr, app->geom,
       app->local, q_integ);
-    
-    gkyl_dynvec_append(app->species[sidx].integ_q, tm, q_integ);
+
+    double q_integ_global[num_diag];
+    gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_diag, q_integ, q_integ_global);
+    gkyl_dynvec_append(app->species[sidx].integ_q, tm, q_integ_global);
   }
 }
 
