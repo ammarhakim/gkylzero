@@ -10,9 +10,3 @@
  */
 struct gkyl_comm *gkyl_null_comm_new(void);
 
-/**
- * Delete communicator
- *
- * @param comm Communicator to delete
- */
-void gkyl_null_comm_release(struct gkyl_comm *comm);

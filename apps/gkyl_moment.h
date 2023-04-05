@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gkyl_app.h>
+#include <gkyl_comm.h>
 #include <gkyl_mp_scheme.h>
 #include <gkyl_util.h>
 #include <gkyl_wave_prop.h>
@@ -83,6 +84,8 @@ enum gkyl_moment_scheme {
 struct gkyl_moment_low_inp {
   // local range over which App operates
   struct gkyl_range local_range;
+  // communicator to used
+  struct gkyl_comm *comm;
 };
 
 // Top-level app parameters

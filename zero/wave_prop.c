@@ -5,6 +5,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_null_comm.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_util.h>
 #include <gkyl_wave_geom.h>
@@ -23,6 +24,8 @@ struct gkyl_wave_prop {
   bool check_inv_domain; // flag to indicate if invariant domains are checked
 
   struct gkyl_wave_geom *geom; // geometry object
+  struct gkyl_comm *comm; // communcator
+  
   // data for 1D slice update
   struct gkyl_array *waves, *apdq, *amdq, *speeds, *flux2;
   // flags to indicate if fluctuations should be recomputed
@@ -99,6 +102,11 @@ gkyl_wave_prop_new(const struct gkyl_wave_prop_inp *winp)
   up->limiter = winp->limiter == 0 ? GKYL_MONOTONIZED_CENTERED : winp->limiter;
   up->cfl = winp->cfl;
   up->equation = gkyl_wv_eqn_acquire(winp->equation);
+
+  if (winp->comm)
+    up->comm = gkyl_comm_acquire(winp->comm);
+  else
+    up->comm = gkyl_null_comm_new();
 
   up->force_low_order_flux = winp->force_low_order_flux;
   up->check_inv_domain = winp->check_inv_domain;
@@ -239,7 +247,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
   //  when forced to use Lax fluxes, we only have a single wave
   int mwaves = wv->force_low_order_flux ? 2 :  wv->equation->num_waves;
 
-  double cfla = 0.0, cfl = wv->cfl, cflm = 1.1*cfl;
+  double cfla = 0.0, cfla_global = 0.0, cfl = wv->cfl, cflm = 1.1*cfl;
 
   double ql_local[meqn], qr_local[meqn];
   double waves_local[meqn*mwaves];
@@ -360,6 +368,10 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
           
           cfla = calc_cfla(mwaves, cfla, dtdx/cg->kappa, s);
         }
+
+        // compute actual CFl across all domains
+        wv->comm->all_reduce(wv->comm, GKYL_DOUBLE, GKYL_MAX, 1, &cfla, &cfla_global);
+        cfla = cfla_global;
 
         if (cfla > cflm) // check time-step before any updates are performed
           return (struct gkyl_wave_prop_status) {
@@ -530,6 +542,7 @@ gkyl_wave_prop_release(gkyl_wave_prop* up)
   gkyl_array_release(up->speeds);
   gkyl_array_release(up->flux2);
   gkyl_array_release(up->redo_fluct);
+  gkyl_comm_release(up->comm);
   
   gkyl_wave_geom_release(up->geom);
   

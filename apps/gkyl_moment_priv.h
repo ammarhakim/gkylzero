@@ -15,6 +15,7 @@
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_comm.h>
 #include <gkyl_dflt.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
@@ -181,6 +182,8 @@ struct gkyl_moment_app {
   struct gkyl_rect_grid grid; // grid
   struct gkyl_range local, local_ext; // local, local-ext ranges
   struct gkyl_range global, global_ext; // global, global-ext ranges
+
+  struct gkyl_comm *comm;   // communicator object
 
   bool has_mapc2p; // flag to indicate if we have mapc2p
   void *c2p_ctx;   // context for mapc2p function

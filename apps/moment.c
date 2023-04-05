@@ -1,4 +1,5 @@
 #include <gkyl_moment_priv.h>
+#include <gkyl_null_comm.h>
 
 static inline int
 int_max(int a, int b)
@@ -38,11 +39,17 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   if (mom->has_low_inp) {
     // create local and local_ext from user-supplied local range
     gkyl_create_ranges(&mom->low_inp.local_range, ghost, &app->local_ext, &app->local);
+    
+    if (mom->low_inp.comm)
+      app->comm = gkyl_comm_acquire(mom->low_inp.comm);
+    else
+      app->comm = gkyl_null_comm_new();
   }
   else {
     // global and local ranges are same, and so just copy
     memcpy(&app->local, &app->global, sizeof(struct gkyl_range));
     memcpy(&app->local_ext, &app->global_ext, sizeof(struct gkyl_range));
+    app->comm = gkyl_null_comm_new();
   }
   
   skin_ghost_ranges_init(&app->skin_ghost, &app->global_ext, ghost);
@@ -414,6 +421,8 @@ gkyl_moment_app_release(gkyl_moment_app* app)
 {
   if (app->update_sources)
     moment_coupling_release(app, &app->sources);
+
+  gkyl_comm_release(app->comm);
   
   for (int i=0; i<app->num_species; ++i)
     moment_species_release(&app->species[i]);

@@ -2,6 +2,7 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
+#include <gkyl_comm.h>
 #include <gkyl_evalf_def.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
@@ -41,6 +42,7 @@ struct gkyl_wave_prop_inp {
   bool check_inv_domain; // flag to indicate if invariant domains are checked
 
   const struct gkyl_wave_geom *geom; // geometry
+  const struct gkyl_comm *comm; // communcator
 };
 
 // Some statics from update calls

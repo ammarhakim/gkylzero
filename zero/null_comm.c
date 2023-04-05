@@ -38,9 +38,3 @@ gkyl_null_comm_new(void)
 
   return comm;
 }
-
-void
-gkyl_null_comm_release(struct gkyl_comm *comm)
-{
-  gkyl_free(comm);
-}
