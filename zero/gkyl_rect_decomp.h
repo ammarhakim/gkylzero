@@ -2,12 +2,15 @@
 
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_ref_count.h>
 
 struct gkyl_rect_decomp {
   int ndim; // dimension of decomposition
   int ndecomp; // number of sub-domains
   struct gkyl_range parent_range; // range that was decomposed
   struct gkyl_range *ranges; // decomposed ranges
+
+  struct gkyl_ref_count ref_count;
 };
 
 /**

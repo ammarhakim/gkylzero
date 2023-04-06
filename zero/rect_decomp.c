@@ -2,8 +2,17 @@
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_rect_decomp.h>
+#include <gkyl_util.h>
 
 #include <string.h>
+
+static void
+rect_decomp_free(const struct gkyl_ref_count *ref)
+{
+  struct gkyl_rect_decomp *decomp = container_of(ref, struct gkyl_rect_decomp, ref_count);
+  gkyl_free(decomp->ranges);
+  gkyl_free(decomp);
+}    
 
 struct gkyl_rect_decomp*
 gkyl_rect_decomp_new_from_cuts(int ndim, const int cuts[], const struct gkyl_range *range)
