@@ -164,7 +164,10 @@ gkyl_moment_app_max_dt(gkyl_moment_app* app)
   if (app->has_field)
     max_dt = fmin(max_dt, moment_field_max_dt(app, &app->field));
 
-  return max_dt;
+  double max_dt_global;
+  gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &max_dt, &max_dt_global);
+
+  return max_dt_global;
 }
 
 void
