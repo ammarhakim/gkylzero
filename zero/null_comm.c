@@ -18,6 +18,13 @@ get_rank(struct gkyl_comm *comm, int *rank)
 }
 
 static int
+get_size(struct gkyl_comm *comm, int *sz)
+{
+  *sz = 1;
+  return 0;
+}
+
+static int
 all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
   enum gkyl_array_op op, int nelem, const void *inp,
   void *out)
@@ -44,6 +51,7 @@ gkyl_null_comm_new(void)
   struct gkyl_comm *comm = gkyl_malloc(sizeof *comm);
 
   comm->get_rank = get_rank;
+  comm->get_size = get_size;
   comm->all_reduce = all_reduce;
   comm->gkyl_array_sync = array_sync;
   comm->barrier = barrier;

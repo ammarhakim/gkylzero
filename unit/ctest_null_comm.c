@@ -8,8 +8,11 @@ test_1()
 
   int rank;
   gkyl_comm_get_rank(comm, &rank);
-  
   TEST_CHECK( rank == 0 );
+
+  int sz;
+  gkyl_comm_get_size(comm, &sz);
+  TEST_CHECK( sz == 1 );  
 
   double out[3], inp[3] = { 2.0, 4.0, 8.0 };
   gkyl_comm_all_reduce(comm, GKYL_DOUBLE, GKYL_MIN, 3, inp, out);

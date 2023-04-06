@@ -95,6 +95,9 @@ typedef struct gkyl_mem_buff_tag* gkyl_mem_buff;
 /** Allocate new memory buffer with count bytes */
 gkyl_mem_buff gkyl_mem_buff_new(size_t count);
 
+/** Resize the mem_buff */
+gkyl_mem_buff gkyl_mem_buff_resize(gkyl_mem_buff mem, size_t count);
+
 /** Get size of mem_buff */
 size_t gkyl_mem_buff_size(gkyl_mem_buff mem);
 

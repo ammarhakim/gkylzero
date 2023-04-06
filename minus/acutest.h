@@ -1619,9 +1619,17 @@ test_is_tracer_present_(void)
 extern void gkyl_mem_debug_set(bool flag);
 extern void gkyl_cu_dev_mem_debug_set(bool flag);
 
+#ifdef GKYL_HAVE_MPI
+#include <mpi.h>
+#endif
+
 int
 main(int argc, char** argv)
 {
+#ifdef GKYL_HAVE_MPI
+  MPI_Init(&argc, &argv);
+#endif
+  
     int i;
     test_argv0_ = argv[0];
 
@@ -1771,6 +1779,10 @@ main(int argc, char** argv)
 
     free((void*) test_details_);
 
+#ifdef GKYL_HAVE_MPI
+    MPI_Finalize();
+#endif    
+    
     return (test_stat_failed_units_ == 0) ? 0 : 1;
 }
 
