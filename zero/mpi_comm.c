@@ -59,10 +59,10 @@ barrier(struct gkyl_comm *comm)
 }
 
 struct gkyl_comm*
-gkyl_mpi_comm_new(MPI_Comm comm)
+gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
 {
   struct mpi_comm *mpi = gkyl_malloc(sizeof *mpi);
-  mpi->mcomm = comm;
+  mpi->mcomm = inp->comm;
 
   mpi->base.get_rank = get_rank;
   mpi->base.get_size = get_size;

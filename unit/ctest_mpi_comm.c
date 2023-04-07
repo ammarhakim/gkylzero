@@ -7,7 +7,10 @@
 void
 test_1()
 {
-  struct gkyl_comm *comm = gkyl_mpi_comm_new(MPI_COMM_WORLD);
+  struct gkyl_comm *comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+      .comm = MPI_COMM_WORLD,
+    }
+  );
 
   int rank;
   gkyl_comm_get_rank(comm, &rank);

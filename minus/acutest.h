@@ -1633,12 +1633,6 @@ extern void gkyl_cu_dev_mem_debug_set(bool flag);
 int
 main(int argc, char** argv)
 {
-  if (test_gkyl_mpi_init_) {
-#ifdef GKYL_HAVE_MPI
-    MPI_Init(&argc, &argv);
-#endif
-  }
-  
     int i;
     test_argv0_ = argv[0];
 
@@ -1668,6 +1662,12 @@ main(int argc, char** argv)
     /* Parse options */
     test_cmdline_read_(test_cmdline_options_, argc, argv, test_cmdline_callback_);
 
+    if (test_gkyl_mpi_init_) {
+#ifdef GKYL_HAVE_MPI
+      MPI_Init(&argc, &argv);
+#endif
+    }
+    
     if (test_gkyl_mem_check_) {
       gkyl_mem_debug_set(true);
       gkyl_cu_dev_mem_debug_set(true);
