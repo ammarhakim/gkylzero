@@ -8,6 +8,9 @@ GKYL_CU_DH void em_pkpm_kappa_inv_b_1x_ser_p2(const double *bvar, const double *
   // ExB:         Input E x B velocity. 
   // kappa_inv_b: b_i/kappa = B_i/|B| * sqrt(1 - |E x B|^2/(c^2 |B|^4)). 
  
+  const double *bx = &bvar[0]; 
+  const double *by = &bvar[3]; 
+  const double *bz = &bvar[6]; 
   const double *bxbx = &bvar[9]; 
   const double *byby = &bvar[18]; 
   const double *bzbz = &bvar[24]; 
