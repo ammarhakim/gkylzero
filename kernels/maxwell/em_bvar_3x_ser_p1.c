@@ -87,7 +87,7 @@ GKYL_CU_DH void em_bvar_3x_ser_p1(const double *em, double* bvar)
   if (notCellAvgMagB) { 
   ser_3x_p1_inv(magB_sq, magB_sq_inv); 
   } else { 
-  // If either Bx^2, By^2, or Bz^2 < 0 at control points, only use cell average to get 1/|B|^2. 
+  // If |B|^2 < 0 at control points, only use cell average to get 1/|B|^2. 
   magB_sq_inv[0] = 8.0/magB_sq[0]; 
   } 
   // Calculate expansions of B_i B_j/|B|^2, which can be calculated free of aliasing errors. 
@@ -230,8 +230,9 @@ GKYL_CU_DH void em_bvar_3x_ser_p1(const double *em, double* bvar)
 
   } 
   // Calculate b_i = B_i/|B| by taking square root of B_i^2/|B|^2 at quadrature points. 
-  ser_3x_p1_sqrt_with_sign(bxbx, bx); 
-  ser_3x_p1_sqrt_with_sign(byby, by); 
-  ser_3x_p1_sqrt_with_sign(bzbz, bz); 
+  // Uses the sign of B_i at quadrature points to get the correct sign of b_i. 
+  ser_3x_p1_sqrt_with_sign(B_x, bxbx, bx); 
+  ser_3x_p1_sqrt_with_sign(B_y, byby, by); 
+  ser_3x_p1_sqrt_with_sign(B_z, bzbz, bz); 
 } 
  

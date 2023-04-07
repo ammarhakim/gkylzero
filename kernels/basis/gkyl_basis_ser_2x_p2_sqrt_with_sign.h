@@ -1,56 +1,66 @@
 GKYL_CU_DH static inline void 
-ser_2x_p2_sqrt_with_sign(const double *A, double *ASqrt) 
+ser_2x_p2_sqrt_with_sign(const double *ASign, const double *A, double *ASqrt) 
 { 
+  // ASign: Input DG field, used to get correct sign of Asqrt. 
   // A:     Input DG field. 
-  // ASqrt: Output DG field (expansion of sqrt(A)). 
+  // ASqrt: Output DG field (expansion of sqrt(A), with sign determined by Asign). 
  
   double AOrd[9] = {0.0}; 
 
   double temp = 0.0; 
+  double temp_sign = 0.0; 
   temp = (-0.5999999999999995*A[7])-0.5999999999999999*A[6]+0.4472135954999579*(A[5]+A[4])+0.9*A[3]-0.6708203932499369*(A[2]+A[1])+0.5*A[0]; 
-  if (temp < 0) { 
+  temp_sign = (-0.5999999999999995*ASign[7])-0.5999999999999999*ASign[6]+0.4472135954999579*(ASign[5]+ASign[4])+0.9*ASign[3]-0.6708203932499369*(ASign[2]+ASign[1])+0.5*ASign[0]; 
+  if (temp_sign < 0.0) { 
   AOrd[0] = -sqrt(temp); 
   } else { 
   AOrd[0] = sqrt(temp); 
   } 
   temp = 0.75*A[7]-0.5590169943749475*A[5]+0.4472135954999579*A[4]-0.6708203932499369*A[1]+0.5*A[0]; 
-  if (temp < 0) { 
+  temp_sign = 0.75*ASign[7]-0.5590169943749475*ASign[5]+0.4472135954999579*ASign[4]-0.6708203932499369*ASign[1]+0.5*ASign[0]; 
+  if (temp_sign < 0.0) { 
   AOrd[1] = -sqrt(temp); 
   } else { 
   AOrd[1] = sqrt(temp); 
   } 
   temp = (-0.5999999999999995*A[7])+0.5999999999999999*A[6]+0.4472135954999579*(A[5]+A[4])-0.9*A[3]+0.6708203932499369*A[2]-0.6708203932499369*A[1]+0.5*A[0]; 
-  if (temp < 0) { 
+  temp_sign = (-0.5999999999999995*ASign[7])+0.5999999999999999*ASign[6]+0.4472135954999579*(ASign[5]+ASign[4])-0.9*ASign[3]+0.6708203932499369*ASign[2]-0.6708203932499369*ASign[1]+0.5*ASign[0]; 
+  if (temp_sign < 0.0) { 
   AOrd[2] = -sqrt(temp); 
   } else { 
   AOrd[2] = sqrt(temp); 
   } 
   temp = 0.75*A[6]+0.4472135954999579*A[5]-0.5590169943749475*A[4]-0.6708203932499369*A[2]+0.5*A[0]; 
-  if (temp < 0) { 
+  temp_sign = 0.75*ASign[6]+0.4472135954999579*ASign[5]-0.5590169943749475*ASign[4]-0.6708203932499369*ASign[2]+0.5*ASign[0]; 
+  if (temp_sign < 0.0) { 
   AOrd[3] = -sqrt(temp); 
   } else { 
   AOrd[3] = sqrt(temp); 
   } 
   temp = 0.5*A[0]-0.5590169943749475*(A[5]+A[4]); 
-  if (temp < 0) { 
+  temp_sign = 0.5*ASign[0]-0.5590169943749475*(ASign[5]+ASign[4]); 
+  if (temp_sign < 0.0) { 
   AOrd[4] = -sqrt(temp); 
   } else { 
   AOrd[4] = sqrt(temp); 
   } 
   temp = (-0.75*A[6])+0.4472135954999579*A[5]-0.5590169943749475*A[4]+0.6708203932499369*A[2]+0.5*A[0]; 
-  if (temp < 0) { 
+  temp_sign = (-0.75*ASign[6])+0.4472135954999579*ASign[5]-0.5590169943749475*ASign[4]+0.6708203932499369*ASign[2]+0.5*ASign[0]; 
+  if (temp_sign < 0.0) { 
   AOrd[5] = -sqrt(temp); 
   } else { 
   AOrd[5] = sqrt(temp); 
   } 
   temp = 0.5999999999999995*A[7]-0.5999999999999999*A[6]+0.4472135954999579*(A[5]+A[4])-0.9*A[3]-0.6708203932499369*A[2]+0.6708203932499369*A[1]+0.5*A[0]; 
-  if (temp < 0) { 
+  temp_sign = 0.5999999999999995*ASign[7]-0.5999999999999999*ASign[6]+0.4472135954999579*(ASign[5]+ASign[4])-0.9*ASign[3]-0.6708203932499369*ASign[2]+0.6708203932499369*ASign[1]+0.5*ASign[0]; 
+  if (temp_sign < 0.0) { 
   AOrd[6] = -sqrt(temp); 
   } else { 
   AOrd[6] = sqrt(temp); 
   } 
   temp = (-0.75*A[7])-0.5590169943749475*A[5]+0.4472135954999579*A[4]+0.6708203932499369*A[1]+0.5*A[0]; 
-  if (temp < 0) { 
+  temp_sign = (-0.75*ASign[7])-0.5590169943749475*ASign[5]+0.4472135954999579*ASign[4]+0.6708203932499369*ASign[1]+0.5*ASign[0]; 
+  if (temp_sign < 0.0) { 
   AOrd[7] = -sqrt(temp); 
   } else { 
   AOrd[7] = sqrt(temp); 
