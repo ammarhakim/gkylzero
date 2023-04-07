@@ -11,189 +11,243 @@ ser_3x_p1_sqrt_with_sign(const double *ASign, const double *A, double *ASqrt)
   double temp_sign = 0.0; 
   temp = (-0.853814968245462*A[7])+0.6363961030678926*(A[6]+A[5]+A[4])-0.4743416490252568*(A[3]+A[2]+A[1])+0.3535533905932737*A[0]; 
   temp_sign = (-0.853814968245462*ASign[7])+0.6363961030678926*(ASign[6]+ASign[5]+ASign[4])-0.4743416490252568*(ASign[3]+ASign[2]+ASign[1])+0.3535533905932737*ASign[0]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[0] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[0] = -sqrt(temp); 
   } else { 
   AOrd[0] = sqrt(temp); 
   } 
   temp = 0.6363961030678926*A[4]-0.4743416490252568*(A[2]+A[1])+0.3535533905932737*A[0]; 
   temp_sign = 0.6363961030678926*ASign[4]-0.4743416490252568*(ASign[2]+ASign[1])+0.3535533905932737*ASign[0]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[1] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[1] = -sqrt(temp); 
   } else { 
   AOrd[1] = sqrt(temp); 
   } 
   temp = 0.853814968245462*A[7]-0.6363961030678926*(A[6]+A[5])+0.6363961030678926*A[4]+0.4743416490252568*A[3]-0.4743416490252568*(A[2]+A[1])+0.3535533905932737*A[0]; 
   temp_sign = 0.853814968245462*ASign[7]-0.6363961030678926*(ASign[6]+ASign[5])+0.6363961030678926*ASign[4]+0.4743416490252568*ASign[3]-0.4743416490252568*(ASign[2]+ASign[1])+0.3535533905932737*ASign[0]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[2] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[2] = -sqrt(temp); 
   } else { 
   AOrd[2] = sqrt(temp); 
   } 
   temp = 0.6363961030678926*A[5]-0.4743416490252568*(A[3]+A[1])+0.3535533905932737*A[0]; 
   temp_sign = 0.6363961030678926*ASign[5]-0.4743416490252568*(ASign[3]+ASign[1])+0.3535533905932737*ASign[0]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[3] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[3] = -sqrt(temp); 
   } else { 
   AOrd[3] = sqrt(temp); 
   } 
   temp = 0.3535533905932737*A[0]-0.4743416490252568*A[1]; 
   temp_sign = 0.3535533905932737*ASign[0]-0.4743416490252568*ASign[1]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[4] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[4] = -sqrt(temp); 
   } else { 
   AOrd[4] = sqrt(temp); 
   } 
   temp = (-0.6363961030678926*A[5])+0.4743416490252568*A[3]-0.4743416490252568*A[1]+0.3535533905932737*A[0]; 
   temp_sign = (-0.6363961030678926*ASign[5])+0.4743416490252568*ASign[3]-0.4743416490252568*ASign[1]+0.3535533905932737*ASign[0]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[5] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[5] = -sqrt(temp); 
   } else { 
   AOrd[5] = sqrt(temp); 
   } 
   temp = 0.853814968245462*A[7]-0.6363961030678926*A[6]+0.6363961030678926*A[5]-0.6363961030678926*A[4]-0.4743416490252568*A[3]+0.4743416490252568*A[2]-0.4743416490252568*A[1]+0.3535533905932737*A[0]; 
   temp_sign = 0.853814968245462*ASign[7]-0.6363961030678926*ASign[6]+0.6363961030678926*ASign[5]-0.6363961030678926*ASign[4]-0.4743416490252568*ASign[3]+0.4743416490252568*ASign[2]-0.4743416490252568*ASign[1]+0.3535533905932737*ASign[0]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[6] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[6] = -sqrt(temp); 
   } else { 
   AOrd[6] = sqrt(temp); 
   } 
   temp = (-0.6363961030678926*A[4])+0.4743416490252568*A[2]-0.4743416490252568*A[1]+0.3535533905932737*A[0]; 
   temp_sign = (-0.6363961030678926*ASign[4])+0.4743416490252568*ASign[2]-0.4743416490252568*ASign[1]+0.3535533905932737*ASign[0]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[7] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[7] = -sqrt(temp); 
   } else { 
   AOrd[7] = sqrt(temp); 
   } 
   temp = (-0.853814968245462*A[7])+0.6363961030678926*A[6]-0.6363961030678926*(A[5]+A[4])+0.4743416490252568*(A[3]+A[2])-0.4743416490252568*A[1]+0.3535533905932737*A[0]; 
   temp_sign = (-0.853814968245462*ASign[7])+0.6363961030678926*ASign[6]-0.6363961030678926*(ASign[5]+ASign[4])+0.4743416490252568*(ASign[3]+ASign[2])-0.4743416490252568*ASign[1]+0.3535533905932737*ASign[0]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[8] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[8] = -sqrt(temp); 
   } else { 
   AOrd[8] = sqrt(temp); 
   } 
   temp = 0.6363961030678926*A[6]-0.4743416490252568*(A[3]+A[2])+0.3535533905932737*A[0]; 
   temp_sign = 0.6363961030678926*ASign[6]-0.4743416490252568*(ASign[3]+ASign[2])+0.3535533905932737*ASign[0]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[9] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[9] = -sqrt(temp); 
   } else { 
   AOrd[9] = sqrt(temp); 
   } 
   temp = 0.3535533905932737*A[0]-0.4743416490252568*A[2]; 
   temp_sign = 0.3535533905932737*ASign[0]-0.4743416490252568*ASign[2]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[10] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[10] = -sqrt(temp); 
   } else { 
   AOrd[10] = sqrt(temp); 
   } 
   temp = (-0.6363961030678926*A[6])+0.4743416490252568*A[3]-0.4743416490252568*A[2]+0.3535533905932737*A[0]; 
   temp_sign = (-0.6363961030678926*ASign[6])+0.4743416490252568*ASign[3]-0.4743416490252568*ASign[2]+0.3535533905932737*ASign[0]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[11] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[11] = -sqrt(temp); 
   } else { 
   AOrd[11] = sqrt(temp); 
   } 
   temp = 0.3535533905932737*A[0]-0.4743416490252568*A[3]; 
   temp_sign = 0.3535533905932737*ASign[0]-0.4743416490252568*ASign[3]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[12] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[12] = -sqrt(temp); 
   } else { 
   AOrd[12] = sqrt(temp); 
   } 
   temp = 0.3535533905932737*A[0]; 
   temp_sign = 0.3535533905932737*ASign[0]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[13] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[13] = -sqrt(temp); 
   } else { 
   AOrd[13] = sqrt(temp); 
   } 
   temp = 0.4743416490252568*A[3]+0.3535533905932737*A[0]; 
   temp_sign = 0.4743416490252568*ASign[3]+0.3535533905932737*ASign[0]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[14] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[14] = -sqrt(temp); 
   } else { 
   AOrd[14] = sqrt(temp); 
   } 
   temp = (-0.6363961030678926*A[6])-0.4743416490252568*A[3]+0.4743416490252568*A[2]+0.3535533905932737*A[0]; 
   temp_sign = (-0.6363961030678926*ASign[6])-0.4743416490252568*ASign[3]+0.4743416490252568*ASign[2]+0.3535533905932737*ASign[0]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[15] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[15] = -sqrt(temp); 
   } else { 
   AOrd[15] = sqrt(temp); 
   } 
   temp = 0.4743416490252568*A[2]+0.3535533905932737*A[0]; 
   temp_sign = 0.4743416490252568*ASign[2]+0.3535533905932737*ASign[0]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[16] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[16] = -sqrt(temp); 
   } else { 
   AOrd[16] = sqrt(temp); 
   } 
   temp = 0.6363961030678926*A[6]+0.4743416490252568*(A[3]+A[2])+0.3535533905932737*A[0]; 
   temp_sign = 0.6363961030678926*ASign[6]+0.4743416490252568*(ASign[3]+ASign[2])+0.3535533905932737*ASign[0]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[17] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[17] = -sqrt(temp); 
   } else { 
   AOrd[17] = sqrt(temp); 
   } 
   temp = 0.853814968245462*A[7]+0.6363961030678926*A[6]-0.6363961030678926*(A[5]+A[4])-0.4743416490252568*(A[3]+A[2])+0.4743416490252568*A[1]+0.3535533905932737*A[0]; 
   temp_sign = 0.853814968245462*ASign[7]+0.6363961030678926*ASign[6]-0.6363961030678926*(ASign[5]+ASign[4])-0.4743416490252568*(ASign[3]+ASign[2])+0.4743416490252568*ASign[1]+0.3535533905932737*ASign[0]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[18] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[18] = -sqrt(temp); 
   } else { 
   AOrd[18] = sqrt(temp); 
   } 
   temp = (-0.6363961030678926*A[4])-0.4743416490252568*A[2]+0.4743416490252568*A[1]+0.3535533905932737*A[0]; 
   temp_sign = (-0.6363961030678926*ASign[4])-0.4743416490252568*ASign[2]+0.4743416490252568*ASign[1]+0.3535533905932737*ASign[0]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[19] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[19] = -sqrt(temp); 
   } else { 
   AOrd[19] = sqrt(temp); 
   } 
   temp = (-0.853814968245462*A[7])-0.6363961030678926*A[6]+0.6363961030678926*A[5]-0.6363961030678926*A[4]+0.4743416490252568*A[3]-0.4743416490252568*A[2]+0.4743416490252568*A[1]+0.3535533905932737*A[0]; 
   temp_sign = (-0.853814968245462*ASign[7])-0.6363961030678926*ASign[6]+0.6363961030678926*ASign[5]-0.6363961030678926*ASign[4]+0.4743416490252568*ASign[3]-0.4743416490252568*ASign[2]+0.4743416490252568*ASign[1]+0.3535533905932737*ASign[0]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[20] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[20] = -sqrt(temp); 
   } else { 
   AOrd[20] = sqrt(temp); 
   } 
   temp = (-0.6363961030678926*A[5])-0.4743416490252568*A[3]+0.4743416490252568*A[1]+0.3535533905932737*A[0]; 
   temp_sign = (-0.6363961030678926*ASign[5])-0.4743416490252568*ASign[3]+0.4743416490252568*ASign[1]+0.3535533905932737*ASign[0]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[21] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[21] = -sqrt(temp); 
   } else { 
   AOrd[21] = sqrt(temp); 
   } 
   temp = 0.4743416490252568*A[1]+0.3535533905932737*A[0]; 
   temp_sign = 0.4743416490252568*ASign[1]+0.3535533905932737*ASign[0]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[22] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[22] = -sqrt(temp); 
   } else { 
   AOrd[22] = sqrt(temp); 
   } 
   temp = 0.6363961030678926*A[5]+0.4743416490252568*(A[3]+A[1])+0.3535533905932737*A[0]; 
   temp_sign = 0.6363961030678926*ASign[5]+0.4743416490252568*(ASign[3]+ASign[1])+0.3535533905932737*ASign[0]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[23] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[23] = -sqrt(temp); 
   } else { 
   AOrd[23] = sqrt(temp); 
   } 
   temp = (-0.853814968245462*A[7])-0.6363961030678926*(A[6]+A[5])+0.6363961030678926*A[4]-0.4743416490252568*A[3]+0.4743416490252568*(A[2]+A[1])+0.3535533905932737*A[0]; 
   temp_sign = (-0.853814968245462*ASign[7])-0.6363961030678926*(ASign[6]+ASign[5])+0.6363961030678926*ASign[4]-0.4743416490252568*ASign[3]+0.4743416490252568*(ASign[2]+ASign[1])+0.3535533905932737*ASign[0]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[24] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[24] = -sqrt(temp); 
   } else { 
   AOrd[24] = sqrt(temp); 
   } 
   temp = 0.6363961030678926*A[4]+0.4743416490252568*(A[2]+A[1])+0.3535533905932737*A[0]; 
   temp_sign = 0.6363961030678926*ASign[4]+0.4743416490252568*(ASign[2]+ASign[1])+0.3535533905932737*ASign[0]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[25] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[25] = -sqrt(temp); 
   } else { 
   AOrd[25] = sqrt(temp); 
   } 
   temp = 0.853814968245462*A[7]+0.6363961030678926*(A[6]+A[5]+A[4])+0.4743416490252568*(A[3]+A[2]+A[1])+0.3535533905932737*A[0]; 
   temp_sign = 0.853814968245462*ASign[7]+0.6363961030678926*(ASign[6]+ASign[5]+ASign[4])+0.4743416490252568*(ASign[3]+ASign[2]+ASign[1])+0.3535533905932737*ASign[0]; 
-  if (temp_sign < 0.0) { 
+  if (temp < 0.0) { 
+  AOrd[26] = 0.0; 
+  } else if (temp > 0.0 && temp_sign < 0.0) { 
   AOrd[26] = -sqrt(temp); 
   } else { 
   AOrd[26] = sqrt(temp); 
