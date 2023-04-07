@@ -56,67 +56,30 @@ GKYL_CU_DH void em_bvar_2x_ser_p1(const double *em, double* bvar)
   magB_sq[2] = B_z_sq[2]+B_y_sq[2]+B_x_sq[2]; 
   magB_sq[3] = B_z_sq[3]+B_y_sq[3]+B_x_sq[3]; 
 
-  bool notCellAvgMagB = true;
-  // Check if |B|^2 < 0 at cell corners. 
-  if (notCellAvgMagB && (1.5*magB_sq[3]-0.8660254037844386*magB_sq[2]-0.8660254037844386*magB_sq[1]+0.5*magB_sq[0] < 0)) notCellAvgMagB = false; 
-  if (notCellAvgMagB && ((-1.5*magB_sq[3])-0.8660254037844386*magB_sq[2]+0.8660254037844386*magB_sq[1]+0.5*magB_sq[0] < 0)) notCellAvgMagB = false; 
-  if (notCellAvgMagB && ((-1.5*magB_sq[3])+0.8660254037844386*magB_sq[2]-0.8660254037844386*magB_sq[1]+0.5*magB_sq[0] < 0)) notCellAvgMagB = false; 
-  if (notCellAvgMagB && (1.5*magB_sq[3]+0.8660254037844386*magB_sq[2]+0.8660254037844386*magB_sq[1]+0.5*magB_sq[0] < 0)) notCellAvgMagB = false; 
+  bool notCellAvg = true;
+  // Check if either Bx^2, By^2, or Bz^2 < 0 at control points. 
+  if (notCellAvg && (1.5*B_x_sq[3]-0.8660254037844386*B_x_sq[2]-0.8660254037844386*B_x_sq[1]+0.5*B_x_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && (1.5*B_y_sq[3]-0.8660254037844386*B_y_sq[2]-0.8660254037844386*B_y_sq[1]+0.5*B_y_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && (1.5*B_z_sq[3]-0.8660254037844386*B_z_sq[2]-0.8660254037844386*B_z_sq[1]+0.5*B_z_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && ((-1.5*B_x_sq[3])-0.8660254037844386*B_x_sq[2]+0.8660254037844386*B_x_sq[1]+0.5*B_x_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && ((-1.5*B_y_sq[3])-0.8660254037844386*B_y_sq[2]+0.8660254037844386*B_y_sq[1]+0.5*B_y_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && ((-1.5*B_z_sq[3])-0.8660254037844386*B_z_sq[2]+0.8660254037844386*B_z_sq[1]+0.5*B_z_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && ((-1.5*B_x_sq[3])+0.8660254037844386*B_x_sq[2]-0.8660254037844386*B_x_sq[1]+0.5*B_x_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && ((-1.5*B_y_sq[3])+0.8660254037844386*B_y_sq[2]-0.8660254037844386*B_y_sq[1]+0.5*B_y_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && ((-1.5*B_z_sq[3])+0.8660254037844386*B_z_sq[2]-0.8660254037844386*B_z_sq[1]+0.5*B_z_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && (1.5*B_x_sq[3]+0.8660254037844386*B_x_sq[2]+0.8660254037844386*B_x_sq[1]+0.5*B_x_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && (1.5*B_y_sq[3]+0.8660254037844386*B_y_sq[2]+0.8660254037844386*B_y_sq[1]+0.5*B_y_sq[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && (1.5*B_z_sq[3]+0.8660254037844386*B_z_sq[2]+0.8660254037844386*B_z_sq[1]+0.5*B_z_sq[0] < 0)) notCellAvg = false; 
   double magB_sq_inv[4] = {0.0}; 
 
-  if (notCellAvgMagB) { 
-  ser_2x_p1_inv(magB_sq, magB_sq_inv); 
-  } else { 
-  // If |B|^2 < 0 at control points, only use cell average to get 1/|B|^2. 
-  magB_sq_inv[0] = 4.0/magB_sq[0]; 
-  } 
   // Calculate expansions of B_i B_j/|B|^2, which can be calculated free of aliasing errors. 
+  if (notCellAvg) { 
+  ser_2x_p1_inv(magB_sq, magB_sq_inv); 
   bxbx[0] = 0.5*B_x_sq[3]*magB_sq_inv[3]+0.5*B_x_sq[2]*magB_sq_inv[2]+0.5*B_x_sq[1]*magB_sq_inv[1]+0.5*B_x_sq[0]*magB_sq_inv[0]; 
   bxbx[1] = 0.5*B_x_sq[2]*magB_sq_inv[3]+0.5*magB_sq_inv[2]*B_x_sq[3]+0.5*B_x_sq[0]*magB_sq_inv[1]+0.5*magB_sq_inv[0]*B_x_sq[1]; 
   bxbx[2] = 0.5*B_x_sq[1]*magB_sq_inv[3]+0.5*magB_sq_inv[1]*B_x_sq[3]+0.5*B_x_sq[0]*magB_sq_inv[2]+0.5*magB_sq_inv[0]*B_x_sq[2]; 
   bxbx[3] = 0.5*B_x_sq[0]*magB_sq_inv[3]+0.5*magB_sq_inv[0]*B_x_sq[3]+0.5*B_x_sq[1]*magB_sq_inv[2]+0.5*magB_sq_inv[1]*B_x_sq[2]; 
 
-  byby[0] = 0.5*B_y_sq[3]*magB_sq_inv[3]+0.5*B_y_sq[2]*magB_sq_inv[2]+0.5*B_y_sq[1]*magB_sq_inv[1]+0.5*B_y_sq[0]*magB_sq_inv[0]; 
-  byby[1] = 0.5*B_y_sq[2]*magB_sq_inv[3]+0.5*magB_sq_inv[2]*B_y_sq[3]+0.5*B_y_sq[0]*magB_sq_inv[1]+0.5*magB_sq_inv[0]*B_y_sq[1]; 
-  byby[2] = 0.5*B_y_sq[1]*magB_sq_inv[3]+0.5*magB_sq_inv[1]*B_y_sq[3]+0.5*B_y_sq[0]*magB_sq_inv[2]+0.5*magB_sq_inv[0]*B_y_sq[2]; 
-  byby[3] = 0.5*B_y_sq[0]*magB_sq_inv[3]+0.5*magB_sq_inv[0]*B_y_sq[3]+0.5*B_y_sq[1]*magB_sq_inv[2]+0.5*magB_sq_inv[1]*B_y_sq[2]; 
-
-  bzbz[0] = 0.5*B_z_sq[3]*magB_sq_inv[3]+0.5*B_z_sq[2]*magB_sq_inv[2]+0.5*B_z_sq[1]*magB_sq_inv[1]+0.5*B_z_sq[0]*magB_sq_inv[0]; 
-  bzbz[1] = 0.5*B_z_sq[2]*magB_sq_inv[3]+0.5*magB_sq_inv[2]*B_z_sq[3]+0.5*B_z_sq[0]*magB_sq_inv[1]+0.5*magB_sq_inv[0]*B_z_sq[1]; 
-  bzbz[2] = 0.5*B_z_sq[1]*magB_sq_inv[3]+0.5*magB_sq_inv[1]*B_z_sq[3]+0.5*B_z_sq[0]*magB_sq_inv[2]+0.5*magB_sq_inv[0]*B_z_sq[2]; 
-  bzbz[3] = 0.5*B_z_sq[0]*magB_sq_inv[3]+0.5*magB_sq_inv[0]*B_z_sq[3]+0.5*B_z_sq[1]*magB_sq_inv[2]+0.5*magB_sq_inv[1]*B_z_sq[2]; 
-
-  bool notCellAvg = true;
-  // Check if either Bx^2/|B|^2, By^2/|B|^2, or Bz^2/|B|^2 < 0 at control points (Gauss-Legendre quadrature points). 
-  if (notCellAvg && (0.9*bxbx[3]-0.6708203932499369*bxbx[2]-0.6708203932499369*bxbx[1]+0.5*bxbx[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.9*bzbz[3]-0.6708203932499369*bzbz[2]-0.6708203932499369*bzbz[1]+0.5*bzbz[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.9*bzbz[3]-0.6708203932499369*bzbz[2]-0.6708203932499369*bzbz[1]+0.5*bzbz[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.5*bxbx[0]-0.6708203932499369*bxbx[1] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.5*bzbz[0]-0.6708203932499369*bzbz[1] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.5*bzbz[0]-0.6708203932499369*bzbz[1] < 0)) notCellAvg = false; 
-  if (notCellAvg && ((-0.9*bxbx[3])+0.6708203932499369*bxbx[2]-0.6708203932499369*bxbx[1]+0.5*bxbx[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && ((-0.9*bzbz[3])+0.6708203932499369*bzbz[2]-0.6708203932499369*bzbz[1]+0.5*bzbz[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && ((-0.9*bzbz[3])+0.6708203932499369*bzbz[2]-0.6708203932499369*bzbz[1]+0.5*bzbz[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.5*bxbx[0]-0.6708203932499369*bxbx[2] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.5*bzbz[0]-0.6708203932499369*bzbz[2] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.5*bzbz[0]-0.6708203932499369*bzbz[2] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.5*bxbx[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.5*bzbz[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.5*bzbz[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.6708203932499369*bxbx[2]+0.5*bxbx[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.6708203932499369*bzbz[2]+0.5*bzbz[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.6708203932499369*bzbz[2]+0.5*bzbz[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && ((-0.9*bxbx[3])-0.6708203932499369*bxbx[2]+0.6708203932499369*bxbx[1]+0.5*bxbx[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && ((-0.9*bzbz[3])-0.6708203932499369*bzbz[2]+0.6708203932499369*bzbz[1]+0.5*bzbz[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && ((-0.9*bzbz[3])-0.6708203932499369*bzbz[2]+0.6708203932499369*bzbz[1]+0.5*bzbz[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.6708203932499369*bxbx[1]+0.5*bxbx[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.6708203932499369*bzbz[1]+0.5*bzbz[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.6708203932499369*bzbz[1]+0.5*bzbz[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.9*bxbx[3]+0.6708203932499369*bxbx[2]+0.6708203932499369*bxbx[1]+0.5*bxbx[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.9*bzbz[3]+0.6708203932499369*bzbz[2]+0.6708203932499369*bzbz[1]+0.5*bzbz[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.9*bzbz[3]+0.6708203932499369*bzbz[2]+0.6708203932499369*bzbz[1]+0.5*bzbz[0] < 0)) notCellAvg = false; 
-
-  if (notCellAvg && notCellAvgMagB) { 
   bxby[0] = 0.5*B_x_B_y[3]*magB_sq_inv[3]+0.5*B_x_B_y[2]*magB_sq_inv[2]+0.5*B_x_B_y[1]*magB_sq_inv[1]+0.5*B_x_B_y[0]*magB_sq_inv[0]; 
   bxby[1] = 0.5*B_x_B_y[2]*magB_sq_inv[3]+0.5*magB_sq_inv[2]*B_x_B_y[3]+0.5*B_x_B_y[0]*magB_sq_inv[1]+0.5*magB_sq_inv[0]*B_x_B_y[1]; 
   bxby[2] = 0.5*B_x_B_y[1]*magB_sq_inv[3]+0.5*magB_sq_inv[1]*B_x_B_y[3]+0.5*B_x_B_y[0]*magB_sq_inv[2]+0.5*magB_sq_inv[0]*B_x_B_y[2]; 
@@ -127,16 +90,30 @@ GKYL_CU_DH void em_bvar_2x_ser_p1(const double *em, double* bvar)
   bxbz[2] = 0.5*B_x_B_z[1]*magB_sq_inv[3]+0.5*magB_sq_inv[1]*B_x_B_z[3]+0.5*B_x_B_z[0]*magB_sq_inv[2]+0.5*magB_sq_inv[0]*B_x_B_z[2]; 
   bxbz[3] = 0.5*B_x_B_z[0]*magB_sq_inv[3]+0.5*magB_sq_inv[0]*B_x_B_z[3]+0.5*B_x_B_z[1]*magB_sq_inv[2]+0.5*magB_sq_inv[1]*B_x_B_z[2]; 
 
+  byby[0] = 0.5*B_y_sq[3]*magB_sq_inv[3]+0.5*B_y_sq[2]*magB_sq_inv[2]+0.5*B_y_sq[1]*magB_sq_inv[1]+0.5*B_y_sq[0]*magB_sq_inv[0]; 
+  byby[1] = 0.5*B_y_sq[2]*magB_sq_inv[3]+0.5*magB_sq_inv[2]*B_y_sq[3]+0.5*B_y_sq[0]*magB_sq_inv[1]+0.5*magB_sq_inv[0]*B_y_sq[1]; 
+  byby[2] = 0.5*B_y_sq[1]*magB_sq_inv[3]+0.5*magB_sq_inv[1]*B_y_sq[3]+0.5*B_y_sq[0]*magB_sq_inv[2]+0.5*magB_sq_inv[0]*B_y_sq[2]; 
+  byby[3] = 0.5*B_y_sq[0]*magB_sq_inv[3]+0.5*magB_sq_inv[0]*B_y_sq[3]+0.5*B_y_sq[1]*magB_sq_inv[2]+0.5*magB_sq_inv[1]*B_y_sq[2]; 
+
   bybz[0] = 0.5*B_y_B_z[3]*magB_sq_inv[3]+0.5*B_y_B_z[2]*magB_sq_inv[2]+0.5*B_y_B_z[1]*magB_sq_inv[1]+0.5*B_y_B_z[0]*magB_sq_inv[0]; 
   bybz[1] = 0.5*B_y_B_z[2]*magB_sq_inv[3]+0.5*magB_sq_inv[2]*B_y_B_z[3]+0.5*B_y_B_z[0]*magB_sq_inv[1]+0.5*magB_sq_inv[0]*B_y_B_z[1]; 
   bybz[2] = 0.5*B_y_B_z[1]*magB_sq_inv[3]+0.5*magB_sq_inv[1]*B_y_B_z[3]+0.5*B_y_B_z[0]*magB_sq_inv[2]+0.5*magB_sq_inv[0]*B_y_B_z[2]; 
   bybz[3] = 0.5*B_y_B_z[0]*magB_sq_inv[3]+0.5*magB_sq_inv[0]*B_y_B_z[3]+0.5*B_y_B_z[1]*magB_sq_inv[2]+0.5*magB_sq_inv[1]*B_y_B_z[2]; 
 
+  bzbz[0] = 0.5*B_z_sq[3]*magB_sq_inv[3]+0.5*B_z_sq[2]*magB_sq_inv[2]+0.5*B_z_sq[1]*magB_sq_inv[1]+0.5*B_z_sq[0]*magB_sq_inv[0]; 
+  bzbz[1] = 0.5*B_z_sq[2]*magB_sq_inv[3]+0.5*magB_sq_inv[2]*B_z_sq[3]+0.5*B_z_sq[0]*magB_sq_inv[1]+0.5*magB_sq_inv[0]*B_z_sq[1]; 
+  bzbz[2] = 0.5*B_z_sq[1]*magB_sq_inv[3]+0.5*magB_sq_inv[1]*B_z_sq[3]+0.5*B_z_sq[0]*magB_sq_inv[2]+0.5*magB_sq_inv[0]*B_z_sq[2]; 
+  bzbz[3] = 0.5*B_z_sq[0]*magB_sq_inv[3]+0.5*magB_sq_inv[0]*B_z_sq[3]+0.5*B_z_sq[1]*magB_sq_inv[2]+0.5*magB_sq_inv[1]*B_z_sq[2]; 
+
   } else { 
-  // If either Bx^2/|B|^2, By^2/|B|^2, or Bz^2/|B|^2 < 0 at control points, only use cell average to get bb tensor. 
+  // If either Bx^2, By^2, or Bz^2 < 0 at control points, only use cell average to get 1/|B|^2. 
+  magB_sq_inv[0] = 4.0/magB_sq[0]; 
+  bxbx[0] = 0.5*B_x_sq[3]*magB_sq_inv[3]+0.5*B_x_sq[2]*magB_sq_inv[2]+0.5*B_x_sq[1]*magB_sq_inv[1]+0.5*B_x_sq[0]*magB_sq_inv[0]; 
   bxby[0] = 0.5*B_x_B_y[3]*magB_sq_inv[3]+0.5*B_x_B_y[2]*magB_sq_inv[2]+0.5*B_x_B_y[1]*magB_sq_inv[1]+0.5*B_x_B_y[0]*magB_sq_inv[0]; 
   bxbz[0] = 0.5*B_x_B_z[3]*magB_sq_inv[3]+0.5*B_x_B_z[2]*magB_sq_inv[2]+0.5*B_x_B_z[1]*magB_sq_inv[1]+0.5*B_x_B_z[0]*magB_sq_inv[0]; 
+  byby[0] = 0.5*B_y_sq[3]*magB_sq_inv[3]+0.5*B_y_sq[2]*magB_sq_inv[2]+0.5*B_y_sq[1]*magB_sq_inv[1]+0.5*B_y_sq[0]*magB_sq_inv[0]; 
   bybz[0] = 0.5*B_y_B_z[3]*magB_sq_inv[3]+0.5*B_y_B_z[2]*magB_sq_inv[2]+0.5*B_y_B_z[1]*magB_sq_inv[1]+0.5*B_y_B_z[0]*magB_sq_inv[0]; 
+  bzbz[0] = 0.5*B_z_sq[3]*magB_sq_inv[3]+0.5*B_z_sq[2]*magB_sq_inv[2]+0.5*B_z_sq[1]*magB_sq_inv[1]+0.5*B_z_sq[0]*magB_sq_inv[0]; 
 
   bxbx[1] = 0.0; 
   bxby[1] = 0.0; 
