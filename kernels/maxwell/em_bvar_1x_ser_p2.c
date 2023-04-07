@@ -79,15 +79,21 @@ GKYL_CU_DH void em_bvar_1x_ser_p2(const double *em, double* bvar)
 
   bool notCellAvg = true;
   // Check if either Bx^2/|B|^2, By^2/|B|^2, or Bz^2/|B|^2 < 0 at control points (Gauss-Legendre quadrature points). 
-  if (notCellAvg && (0.6324555320336759*bxbx[2]-0.9486832980505137*bxbx[1]+0.7071067811865475*bxbx[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.6324555320336759*bzbz[2]-0.9486832980505137*bzbz[1]+0.7071067811865475*bzbz[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.6324555320336759*bzbz[2]-0.9486832980505137*bzbz[1]+0.7071067811865475*bzbz[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && (1.156987065043442*bxbx[2]-1.109839118871799*bxbx[1]+0.7071067811865475*bxbx[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && (1.156987065043442*bzbz[2]-1.109839118871799*bzbz[1]+0.7071067811865475*bzbz[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && (1.156987065043442*bzbz[2]-1.109839118871799*bzbz[1]+0.7071067811865475*bzbz[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && ((-0.1028945116539821*bxbx[2])-0.6594875259537025*bxbx[1]+0.7071067811865475*bxbx[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && ((-0.1028945116539821*bzbz[2])-0.6594875259537025*bzbz[1]+0.7071067811865475*bzbz[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && ((-0.1028945116539821*bzbz[2])-0.6594875259537025*bzbz[1]+0.7071067811865475*bzbz[0] < 0)) notCellAvg = false; 
   if (notCellAvg && (0.7071067811865475*bxbx[0]-0.7905694150420947*bxbx[2] < 0)) notCellAvg = false; 
   if (notCellAvg && (0.7071067811865475*bzbz[0]-0.7905694150420947*bzbz[2] < 0)) notCellAvg = false; 
   if (notCellAvg && (0.7071067811865475*bzbz[0]-0.7905694150420947*bzbz[2] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.6324555320336759*bxbx[2]+0.9486832980505137*bxbx[1]+0.7071067811865475*bxbx[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.6324555320336759*bzbz[2]+0.9486832980505137*bzbz[1]+0.7071067811865475*bzbz[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (0.6324555320336759*bzbz[2]+0.9486832980505137*bzbz[1]+0.7071067811865475*bzbz[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && ((-0.1028945116539821*bxbx[2])+0.6594875259537025*bxbx[1]+0.7071067811865475*bxbx[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && ((-0.1028945116539821*bzbz[2])+0.6594875259537025*bzbz[1]+0.7071067811865475*bzbz[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && ((-0.1028945116539821*bzbz[2])+0.6594875259537025*bzbz[1]+0.7071067811865475*bzbz[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && (1.156987065043442*bxbx[2]+1.109839118871799*bxbx[1]+0.7071067811865475*bxbx[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && (1.156987065043442*bzbz[2]+1.109839118871799*bzbz[1]+0.7071067811865475*bzbz[0] < 0)) notCellAvg = false; 
+  if (notCellAvg && (1.156987065043442*bzbz[2]+1.109839118871799*bzbz[1]+0.7071067811865475*bzbz[0] < 0)) notCellAvg = false; 
 
   if (notCellAvg && notCellAvgMagB) { 
   bxby[0] = 0.7071067811865475*B_x_B_y[2]*magB_sq_inv[2]+0.7071067811865475*B_x_B_y[1]*magB_sq_inv[1]+0.7071067811865475*B_x_B_y[0]*magB_sq_inv[0]; 
