@@ -22,7 +22,8 @@ typedef int (*all_reduce_t)(struct gkyl_comm *comm, enum gkyl_elem_type type,
   enum gkyl_array_op op, int nelem, const void *inp, void *out);
 
 // "Synchronize" @a array across the regions or blocks.
-typedef int (*gkyl_array_sync_t)(struct gkyl_comm *comm, struct gkyl_array *array);
+typedef int (*gkyl_array_sync_t)(struct gkyl_comm *comm, int ndim, const int *nghost,
+  struct gkyl_array *array);
 
 // Barrier
 typedef int (*barrier_t)(struct gkyl_comm *comm);
@@ -92,9 +93,10 @@ gkyl_comm_all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
  * @return error code: 0 for success
  */
 static int
-gkyl_comm_gkyl_array_sync(struct gkyl_comm *comm, struct gkyl_array *array)
+gkyl_comm_gkyl_array_sync(struct gkyl_comm *comm, int ndim, const int *nghost,
+  struct gkyl_array *array)
 {
-  return comm->gkyl_array_sync(comm, array);
+  return comm->gkyl_array_sync(comm, ndim, nghost, array);
 }
 
 /**

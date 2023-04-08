@@ -27,6 +27,14 @@ struct gkyl_rect_decomp *gkyl_rect_decomp_new_from_cuts(int ndim,
   const int cuts[], const struct gkyl_range *range);
 
 /**
+ * Acquire a pointer to the decomposition.
+ *
+ * @param decomp Decom to acquire pointer to
+ * @return New decomposition
+ */
+struct gkyl_rect_decomp* gkyl_rect_decomp_acquire(const struct gkyl_rect_decomp *decomp);
+
+/**
  * Check if decomposition is  a valid covering of the range.
  *
  * NOTE: This function internally allocates memory over the complete
