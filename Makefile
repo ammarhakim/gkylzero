@@ -104,6 +104,7 @@ SRC_DIRS := minus zero apps kernels
 # List of regression and unit tests
 REGS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard regression/rt_*.c))
 UNITS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard unit/ctest_*.c))
+MPI_UNITS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard unit/mctest_*.c))
 
 # list of includes from kernels
 KERN_INC_DIRS = $(shell find $(SRC_DIRS) -type d)
@@ -245,13 +246,17 @@ $(ZERO_SH_INSTALL_LIB): $(OBJS)
 all: ${BUILD_DIR}/gkylzero.h ${ZERO_SH_LIB} ## Build libraries and amalgamated header
 
 # Explicit targets to build unit and regression tests
-unit: ${UNITS} ## Build unit tests
+unit: ${UNITS} ${MPI_UNITS} ## Build unit tests
 regression: ${REGS} ## Build regression tests
 
-.PHONY: check
+.PHONY: check mpicheck
 # Run all unit tests
 check: ${UNITS} ## Build (if needed) and run all unit tests
 	$(foreach unit,${UNITS},echo $(unit); $(unit) -E;)
+
+# Run all unit tests needing MPI
+mpicheck: ${MPI_UNITS} ## Build (if needed) and run all unit tests needing MPI
+	$(foreach unit,${MPI_UNITS},echo $(unit); $(unit) -E -M;)
 
 install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 # Construct install directories
