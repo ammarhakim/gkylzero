@@ -275,7 +275,7 @@ gkyl_calc_pkpm_vars_recovery_cu(const struct gkyl_rect_grid *grid,
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
   const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
   const struct gkyl_array* rho_inv, const struct gkyl_array* T_perp_over_m, 
-  const struct gkyl_array* T_perp_over_m_inv, const struct gkyl_array* nu, const 
+  const struct gkyl_array* T_perp_over_m_inv, const struct gkyl_array* nu, 
   struct gkyl_array* div_p, struct gkyl_array* pkpm_accel_vars)
 {
   int nblocks = range->nblocks;
