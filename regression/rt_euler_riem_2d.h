@@ -90,6 +90,9 @@ get_sim_name(enum gkyl_wv_euler_rp rp_type, enum gkyl_moment_scheme scheme)
     case WV_EULER_RP_LAX:
       return "euler_riem_2d_lax";
       break;
+    case WV_EULER_RP_HLL:
+      return "euler_riem_2d_hll";
+      break;
   }
 }
 
