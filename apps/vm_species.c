@@ -14,85 +14,6 @@
 #include <gkyl_vlasov_priv.h>
 #include <time.h>
 
-// Projection functions for p/(gamma) = v in special relativistic systems
-// Simplifies to p/sqrt(1 + p^2) where c = 1
-static void 
-ev_p_over_gamma_1p(double t, const double *xn, double *out, void *ctx)
-{
-  struct gamma_ctx *gtx = (struct gamma_ctx*) ctx;
-  double mass = gtx->mass;
-  out[0] = xn[0]/sqrt(1.0 + xn[0]*xn[0]);
-}
-static void 
-ev_p_over_gamma_2p(double t, const double *xn, double *out, void *ctx)
-{
-  struct gamma_ctx *gtx = (struct gamma_ctx*) ctx;
-  double mass = gtx->mass;
-  out[0] = xn[0]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1]);
-  out[1] = xn[1]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1]);
-}
-static void 
-ev_p_over_gamma_3p(double t, const double *xn, double *out, void *ctx)
-{
-  struct gamma_ctx *gtx = (struct gamma_ctx*) ctx;
-  double mass = gtx->mass;
-  out[0] = xn[0]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
-  out[1] = xn[1]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
-  out[2] = xn[2]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
-}
-
-static const evalf_t p_over_gamma_func[3] = {ev_p_over_gamma_1p, ev_p_over_gamma_2p, ev_p_over_gamma_3p};
-
-// Projection functions for gamma = sqrt(1 + p^2) in special relativistic systems
-static void 
-ev_gamma_1p(double t, const double *xn, double *out, void *ctx)
-{
-  struct gamma_ctx *gtx = (struct gamma_ctx*) ctx;
-  double mass = gtx->mass;
-  out[0] = sqrt(1.0 + xn[0]*xn[0]);
-}
-static void 
-ev_gamma_2p(double t, const double *xn, double *out, void *ctx)
-{
-  struct gamma_ctx *gtx = (struct gamma_ctx*) ctx;
-  double mass = gtx->mass;
-  out[0] = sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1]);
-}
-static void 
-ev_gamma_3p(double t, const double *xn, double *out, void *ctx)
-{
-  struct gamma_ctx *gtx = (struct gamma_ctx*) ctx;
-  double mass = gtx->mass;
-  out[0] = sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
-}
-
-static const evalf_t gamma_func[3] = {ev_gamma_1p, ev_gamma_2p, ev_gamma_3p};
-
-// Projection functions for gamma_inv = 1/sqrt(1 + p^2) in special relativistic systems
-static void 
-ev_gamma_inv_1p(double t, const double *xn, double *out, void *ctx)
-{
-  struct gamma_ctx *gtx = (struct gamma_ctx*) ctx;
-  double mass = gtx->mass;
-  out[0] = 1.0/sqrt(1.0 + xn[0]*xn[0]);
-}
-static void 
-ev_gamma_inv_2p(double t, const double *xn, double *out, void *ctx)
-{
-  struct gamma_ctx *gtx = (struct gamma_ctx*) ctx;
-  double mass = gtx->mass;
-  out[0] = 1.0/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1]);
-}
-static void 
-ev_gamma_inv_3p(double t, const double *xn, double *out, void *ctx)
-{
-  struct gamma_ctx *gtx = (struct gamma_ctx*) ctx;
-  double mass = gtx->mass;
-  out[0] = 1.0/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
-}
-
-static const evalf_t gamma_inv_func[3] = {ev_gamma_inv_1p, ev_gamma_inv_2p, ev_gamma_inv_3p};
-
 // function to evaluate acceleration (this is needed as accel function
 // provided by the user returns 3 components, while the Vlasov solver
 // expects 8 components to match the EM field)
@@ -173,7 +94,11 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       s->f_host = mkarr(false, 2*app->basis.num_basis, s->local_ext.volume);
 
     // Distribution function arrays for coupling different Laguerre moments
-    s->g_dist_source = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume); 
+    // g_dist_source has two components: 
+    // [2.0*T_perp/m*(2.0*T_perp/m G + T_perp/m (F_2 - F_0)), 
+    // (-vpar div(b) + bb:grad(u) - div(u) - 2 nu) T_perp/m G + 2 nu vth^2 F_0]
+    // First component is mirror force source *distribution*, second component is *total* vperp characteristics source.
+    s->g_dist_source = mkarr(app->use_gpu, 2*app->basis.num_basis, s->local_ext.volume); 
     s->F_k_p_1 = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume); 
     s->F_k_m_1 = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume); 
 
@@ -506,10 +431,12 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   if (app->use_gpu) {
     if (species->model_id == GKYL_MODEL_PKPM) {
       // Calculate distrbution functions for coupling different Laguerre moments
-      gkyl_calc_pkpm_vars_dist_mirror_force(app->confBasis, &app->local, &species->local,
-      species->pkpm_fluid_species->T_perp_over_m, species->pkpm_fluid_species->T_perp_over_m_inv, 
-      fin, species->F_k_p_1, 
-      species->g_dist_source, species->F_k_m_1);
+      gkyl_calc_pkpm_vars_dist_mirror_force(&species->grid, app->confBasis, 
+        &app->local, &species->local,
+        species->pkpm_fluid_species->T_perp_over_m, species->pkpm_fluid_species->T_perp_over_m_inv, 
+        species->lbo.nu_prim_moms, species->pkpm_fluid_species->pkpm_accel_vars, 
+        fin, species->F_k_p_1, 
+        species->g_dist_source, species->F_k_m_1);
 
       gkyl_dg_updater_vlasov_advance_cu(species->slvr, &species->local, 
         app->field->bvar, species->pkpm_fluid_species->u,
@@ -527,10 +454,12 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   else {
     if (species->model_id == GKYL_MODEL_PKPM) {
       // Calculate distrbution functions for coupling different Laguerre moments
-      gkyl_calc_pkpm_vars_dist_mirror_force(app->confBasis, &app->local, &species->local, 
-      species->pkpm_fluid_species->T_perp_over_m, species->pkpm_fluid_species->T_perp_over_m_inv, 
-      fin, species->F_k_p_1, 
-      species->g_dist_source, species->F_k_m_1);
+      gkyl_calc_pkpm_vars_dist_mirror_force(&species->grid, app->confBasis, 
+        &app->local, &species->local, 
+        species->pkpm_fluid_species->T_perp_over_m, species->pkpm_fluid_species->T_perp_over_m_inv, 
+        species->lbo.nu_prim_moms, species->pkpm_fluid_species->pkpm_accel_vars, 
+        fin, species->F_k_p_1, 
+        species->g_dist_source, species->F_k_m_1);
 
       gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
         app->field->bvar, species->pkpm_fluid_species->u,
