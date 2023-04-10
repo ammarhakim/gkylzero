@@ -889,7 +889,26 @@ void test_intersect()
 
   // r1 inter r4
   TEST_CHECK( 0 == gkyl_range_intersect(&inter, &r1, &r4) );
+}
+
+void test_extend(void)
+{
+  int lo[] = {1, 1}, up[] = { 4, 8 };
   
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, lo, up);
+
+  int elo[] = { 0, 1 }, eup[] = { 1, 2 };
+  struct gkyl_range ext_range;
+  gkyl_range_extend(&ext_range, &range, elo, eup);
+
+  TEST_CHECK( ext_range.volume == (4+1)*(8+1+2) );
+
+  TEST_CHECK( ext_range.lower[0] == 1 );
+  TEST_CHECK( ext_range.upper[0] == 5 );
+
+  TEST_CHECK( ext_range.lower[1] == 0 );
+  TEST_CHECK( ext_range.upper[1] == 10 );
 }
 
 // CUDA specific tests
@@ -943,6 +962,7 @@ TEST_LIST = {
   { "sub_range_split_iter", test_sub_range_split_iter },
   { "nested_iter", test_nested_iter },
   { "intersect", test_intersect },
+  { "extend", test_extend },
 #ifdef GKYL_HAVE_CUDA
   { "cu_range", test_cu_range },
 #endif  

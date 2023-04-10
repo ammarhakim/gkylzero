@@ -186,6 +186,19 @@ void gkyl_range_shorten(struct gkyl_range *rng,
   const struct gkyl_range* range, int dir, int len);
 
 /**
+ * Return a new range that is an extension of the input range. The
+ * lower index in dir is reduced by elo[dir] and upper index increased
+ * by eup[dir].
+ *
+ * @param erng Extended range
+ * @param rng Range to extend
+ * @param elo Lower in dir is reduced by elo[dir]
+ * @param eup Upper in dir is increased by eup[dir]
+ */
+void gkyl_range_extend(struct gkyl_range *erng,
+  const struct gkyl_range* rng, const int *elo, const int *eup);
+
+/**
  * Return range in direction 'dir' which corresponds to the "lower
  * skin" cells.  Lower skin cells refer to the second inner-most layer
  * of cells on the lower end of the range.
