@@ -24,5 +24,6 @@ enum gkyl_species_bc_type {
 enum gkyl_field_bc_type {
   GKYL_FIELD_COPY = 0, // copy BCs
   GKYL_FIELD_PEC_WALL, // perfect electrical conductor (PEC) BCs
+  GKYL_FIELD_RESERVOIR, // Reservoir Maxwell's BCs for heat flux problem
   GKYL_FIELD_WEDGE, // specialized "wedge" BCs for RZ-theta
 };

@@ -106,6 +106,33 @@ maxwell_pec_bc(size_t nc, double *out, const double *inp, void *ctx)
   mc->basis->flip_odd_sign(dir, &inp[oloc], &out[oloc]);
 }
 
+// Reservoir Maxwell's BCs for heat flux problem
+// Based on Roberg-Clark et al. PRL 2018
+// NOTE: ONLY WORKS WITH X BOUNDARY 
+GKYL_CU_D
+static void
+maxwell_reservoir_bc(size_t nc, double *out, const double *inp, void *ctx)
+{
+  struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
+  int dir = mc->dir;
+  int nbasis = mc->basis->num_basis;
+
+  // Zero gradient for Ex, Ez, Bx, Bz
+  mc->basis->flip_odd_sign(dir, &inp[nbasis*0], &out[nbasis*0]);
+  mc->basis->flip_odd_sign(dir, &inp[nbasis*2], &out[nbasis*2]);
+  mc->basis->flip_odd_sign(dir, &inp[nbasis*3], &out[nbasis*3]);
+  mc->basis->flip_odd_sign(dir, &inp[nbasis*5], &out[nbasis*5]);
+
+  // Zero Ey and By
+  mc->basis->flip_even_sign(dir, &inp[nbasis*1], &out[nbasis*1]);
+  mc->basis->flip_even_sign(dir, &inp[nbasis*4], &out[nbasis*4]);
+
+  // correction potentials
+  int eloc = nbasis*6, oloc = nbasis*7;
+  mc->basis->flip_even_sign(dir, &inp[eloc], &out[eloc]);
+  mc->basis->flip_odd_sign(dir, &inp[oloc], &out[oloc]);
+}
+
 // Reflecting wall BCs for PKPM momentum
 GKYL_CU_D
 static void

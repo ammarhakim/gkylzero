@@ -35,6 +35,13 @@ gkyl_bc_basic_create_set_cu_dev_ptrs(int dir, int cdim, enum gkyl_bc_basic_type 
       fout->func = maxwell_pec_bc;
       break;
 
+    // Reservoir Maxwell's BCs for heat flux problem
+    // Based on Roberg-Clark et al. PRL 2018
+    // NOTE: ONLY WORKS WITH X BOUNDARY 
+    case GKYL_BC_MAXWELL_RESERVOIR:
+      fout->func = maxwell_reservoir_bc;
+      break;
+
     // PKPM Reflecting wall for distribution function
     case GKYL_BC_PKPM_SPECIES_REFLECT:
       fout->func = pkpm_species_reflect_bc;
