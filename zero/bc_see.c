@@ -5,23 +5,25 @@
 #include <assert.h>
 #include <math.h>
 
+// CHANGE NEEDED - Instead of passing gain coefficients as a precalculated double array, ideally we should calculate them in initialization. If possible, I would like to merge this object with bc_emission, though attempts to do so so far have proven messy. Should the user import the SEY function, or pick it from a list and supply fitting parameters? 
+
 void
-gkyl_bc_see_calc_normalization(double *numerator, double *denominator, double *tot_flux, double *k, double charge, double mass, double phi, void *ctx)
+gkyl_bc_see_calc_normalization(double *tot_flux, void *ctx)
 {
   struct bc_see_ctx *mc = (struct bc_see_ctx*) ctx;
   
-  double effective_gamma = numerator[0]/denominator[0];
-  k[0] = 6.0*effective_gamma*tot_flux[0]*phi*phi*mc->mass/fabs(mc->charge);
+  double effective_gamma = mc->numerator/mc->denominator;
+  mc->k = 6.0*effective_gamma*tot_flux[0]*mc->phi*mc->phi*mc->mass/fabs(mc->charge);
 }
 
-// Projection functions for gamma_inv = 1/sqrt(1 + p^2) in special relativistic systems
+// CHANGE NEEDED - function assumes 1X1V
 static void 
 chung_everhart(double t, const double *xn, double *out, void *ctx)
 {
-  struct bc_see_ctx *gtx = (struct bc_see_ctx*) ctx;
-  double k = gtx->k;
-  double phi = gtx->phi;
-  double E = 0.5*gtx->mass*xn[1]*xn[1]/fabs(gtx->charge);
+  struct bc_see_ctx *mc = (struct bc_see_ctx*) ctx;
+  double k = mc->k;
+  double phi = mc->phi;
+  double E = 0.5*mc->mass*xn[1]*xn[1]/fabs(mc->charge);
   out[0] = k*E/((E + phi)*(E + phi)*(E + phi)*(E + phi));
 }
 
@@ -34,7 +36,8 @@ gkyl_bc_see_new(struct gkyl_rect_grid *grid, int dir, enum gkyl_edge_loc edge, c
   struct gkyl_bc_see *up = gkyl_malloc(sizeof(struct gkyl_bc_see));
 
   int vdir = dir + cdim;
-  
+
+  // CHANGE NEEDED - number of positive and negative cell currently assumes a symmetric domain
   int num_pos[GKYL_MAX_DIM];
   int num_neg[GKYL_MAX_DIM];
   for (int d=0; d<vdim; ++d) {
@@ -42,16 +45,12 @@ gkyl_bc_see_new(struct gkyl_rect_grid *grid, int dir, enum gkyl_edge_loc edge, c
     num_pos[cdim+d] = grid->cells[cdim+d]/2;
     num_neg[cdim+d] = grid->cells[cdim+d]/2;
   }
+
   up->dir = dir;
   up->cdim = cdim;
   up->edge = edge;
   up->use_gpu = use_gpu;
   up->cbasis = cbasis;
-  up->gain = gain;
-  up->elastic = elastic;
-  up->mass = bc_param[7];
-  up->charge = bc_param[8];
-  up->phi = bc_param[0];
   up->grid = grid;
 
   // Create the skin/ghost ranges.
@@ -65,18 +64,18 @@ gkyl_bc_see_new(struct gkyl_rect_grid *grid, int dir, enum gkyl_edge_loc edge, c
   struct bc_see_ctx *ctx = gkyl_malloc(sizeof(*ctx));
   up->func = bc_see;
   ctx->basis = basis;
-  ctx->basis = cbasis;
   ctx->dir = dir;
   ctx->cdim = cdim;
   ctx->ncomp = num_comp;
   ctx->gain = gain;
   ctx->elastic = elastic;
-  ctx->mass = up->mass;
-  ctx->charge = up->charge;
-  ctx->phi = up->phi;
+  ctx->mass = bc_param[7];
+  ctx->charge = bc_param[8];
+  ctx->phi = bc_param[0];
+  ctx->edge = edge;
 
   up->boundary_proj = gkyl_proj_on_basis_new(grid, basis,
-    3, 1, chung_everhart, ctx);
+    basis->poly_order+1, 1, chung_everhart, ctx);
 
   up->mcalc  = gkyl_dg_updater_moment_new(grid, cbasis, 
     basis, NULL, NULL, GKYL_MODEL_DEFAULT, "M1i", false, 0.0, use_gpu);
@@ -99,6 +98,7 @@ gkyl_bc_see_advance(const struct gkyl_bc_see *up, struct gkyl_array *buff_arr, s
     gkyl_dg_updater_moment_advance(up->mcalc, &up->pos_r, &up->cskin_r, NULL, NULL, NULL, NULL, NULL, NULL, f_arr, up->flux);
   }
   struct gkyl_range_iter iter;
+  // CHANGE NEEDED - these should all be stored in ctx so they don't have to be passed to the function
   double numerator[1] = {0.0};
   double denominator[1] = {0.0};
   double tot_flux[1] = {0.0};
@@ -125,17 +125,19 @@ gkyl_bc_see_advance(const struct gkyl_bc_see *up, struct gkyl_array *buff_arr, s
     
     gkyl_rect_grid_cell_center(up->grid, iter.idx, xc);
     
-    up->func(numerator, denominator, tot_flux, in_flux, up->dir, up->gain, up->elastic, up->cbasis, up->edge, inp, out, up->ctx, iter.idx, xc);
+    up->func(out, inp, up->ctx, iter.idx, xc);
     count += 1;
   }
-  gkyl_bc_see_calc_normalization(numerator, denominator, tot_flux, k, up->charge, up->mass, up->phi, up->ctx);
+  gkyl_bc_see_calc_normalization(tot_flux, up->ctx);
 
   struct bc_see_ctx *mc = (struct bc_see_ctx*) up->ctx;
 
   mc->k = k[0];
 
-  // run updater
+  // CHANGE NEEDED - order should be the opposite, or it causes problems when there are no elastic particles
   gkyl_array_copy_from_buffer(f_arr, buff_arr->data, up->ghost_r);
+
+  // CHANGE NEEDED - projection should only be done one, and simply scaled with each advance
   gkyl_proj_on_basis_advance(up->boundary_proj, 0.0, &up->ghost_r, up->f_store);
   gkyl_array_accumulate_range(f_arr, 1.0, up->f_store, up->ghost_r);
 
