@@ -55,9 +55,14 @@ bool gkyl_rect_decomp_check_covering(const struct gkyl_rect_decomp *decomp);
 /**
  * Compute the neighbor of range @a nidx. The returned object must be
  * freed using the gkyl_rect_decomp_neigh_release call.
+ *
+ * @param decomp Decomposition object
+ * @param inc_corners If true, corner neighbors are also included
+ * @param nidx Index of range for which neighbor data is needed
+ * @return Neighbor list for range nidx
  */
 struct gkyl_rect_decomp_neigh* gkyl_rect_decomp_calc_neigh(
-  const struct gkyl_rect_decomp *decomp, int nidx);
+  const struct gkyl_rect_decomp *decomp, bool inc_corners, int nidx);
 
 /**
  * Free neighbor memory

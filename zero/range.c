@@ -65,7 +65,7 @@ gkyl_range_init(struct gkyl_range *rng, int ndim,
     rng->upper[i] = upper[i];
     rng->volume *= upper[i]-lower[i]+1;
     // need to handle case when upper[i]<lower[i]
-    is_zero_vol = upper[i]<lower[i] ? 1 : 0;
+    is_zero_vol = GKYL_MAX(is_zero_vol, upper[i]<lower[i] ? 1 : 0);
   }
   // reset volume if any lower[d] <= upper[d]
   if (is_zero_vol) rng->volume = 0;
