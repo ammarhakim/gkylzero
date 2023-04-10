@@ -83,7 +83,7 @@ GKYL_CU_D static const int m_flip_odd[3][3] = { // zero gradient
   { M_EZ, M_BX, M_BY },
 };
 
-// Perfect electrical conductor
+// Maxwell's perfect electrical conductor (zero normal B and zero tangent E)
 GKYL_CU_D
 static void
 maxwell_pec_bc(size_t nc, double *out, const double *inp, void *ctx)
@@ -94,6 +94,40 @@ maxwell_pec_bc(size_t nc, double *out, const double *inp, void *ctx)
 
   const int *feven = m_flip_even[dir];
   const int *fodd = m_flip_odd[dir];
+
+  for (int i=0; i<3; ++i) {
+    int eloc = nbasis*feven[i], oloc = nbasis*fodd[i];
+    mc->basis->flip_even_sign(dir, &inp[eloc], &out[eloc]);
+    mc->basis->flip_odd_sign(dir, &inp[oloc], &out[oloc]);
+  }
+  // correction potentials
+  int eloc = nbasis*6, oloc = nbasis*7;
+  mc->basis->flip_even_sign(dir, &inp[eloc], &out[eloc]);
+  mc->basis->flip_odd_sign(dir, &inp[oloc], &out[oloc]);
+}
+
+GKYL_CU_D static const int m_sym_flip_even[3][3] = { // zero tangent B and zero normal E
+  { M_EX, M_BY, M_BZ },
+  { M_EY, M_BX, M_BZ },
+  { M_EZ, M_BX, M_BY },
+};
+GKYL_CU_D static const int m_sym_flip_odd[3][3] = { // zero gradient
+  { M_BX, M_EY, M_EZ },
+  { M_BY, M_EX, M_EZ },
+  { M_BZ, M_EX, M_EY },
+};
+
+// Maxwell's symmetry BC (zero normal E and zero tangent B)
+GKYL_CU_D
+static void
+maxwell_sym_bc(size_t nc, double *out, const double *inp, void *ctx)
+{
+  struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
+  int dir = mc->dir;
+  int nbasis = mc->basis->num_basis;
+
+  const int *feven = m_sym_flip_even[dir];
+  const int *fodd = m_sym_flip_odd[dir];
 
   for (int i=0; i<3; ++i) {
     int eloc = nbasis*feven[i], oloc = nbasis*fodd[i];

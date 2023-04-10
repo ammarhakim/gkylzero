@@ -114,13 +114,16 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
       switch (bc[0]) {
         case GKYL_FIELD_PEC_WALL:
           fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
-          &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, maxwell->wall_bc_func, 0);
+            &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, maxwell->wall_bc_func, 0);
           break;
 
         case GKYL_FIELD_COPY:
         case GKYL_FIELD_WEDGE:
           fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_copy, 0);
+          break;
+
+        default:
           break;
       }
 
@@ -134,6 +137,10 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         case GKYL_FIELD_WEDGE:
           fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_copy, 0);
+          break;
+
+        default:
+          break;
       }
     }
   }

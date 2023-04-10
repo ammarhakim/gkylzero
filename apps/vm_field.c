@@ -179,6 +179,8 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       bctype = GKYL_BC_COPY;
     else if (f->lower_bc[d] == GKYL_FIELD_PEC_WALL)
       bctype = GKYL_BC_MAXWELL_PEC;
+    else if (f->lower_bc[d] == GKYL_FIELD_SYM_WALL)
+      bctype = GKYL_BC_MAXWELL_SYM;
     else if (f->lower_bc[d] == GKYL_FIELD_RESERVOIR)
       bctype = GKYL_BC_MAXWELL_RESERVOIR;
 
@@ -190,6 +192,8 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       bctype = GKYL_BC_COPY;
     else if (f->upper_bc[d] == GKYL_FIELD_PEC_WALL)
       bctype = GKYL_BC_MAXWELL_PEC;
+    else if (f->upper_bc[d] == GKYL_FIELD_SYM_WALL)
+      bctype = GKYL_BC_MAXWELL_SYM;
     else if (f->upper_bc[d] == GKYL_FIELD_RESERVOIR)
       bctype = GKYL_BC_MAXWELL_RESERVOIR;
 
@@ -373,9 +377,11 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
       switch (field->lower_bc[d]) {
         case GKYL_FIELD_COPY:
         case GKYL_FIELD_PEC_WALL:
+        case GKYL_FIELD_SYM_WALL:
         case GKYL_FIELD_RESERVOIR:
           gkyl_bc_basic_advance(field->bc_lo[d], field->bc_buffer, f);
           break;
+
         default:
           break;
       }
@@ -383,9 +389,11 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
       switch (field->upper_bc[d]) {
         case GKYL_FIELD_COPY:
         case GKYL_FIELD_PEC_WALL:
+        case GKYL_FIELD_SYM_WALL:
         case GKYL_FIELD_RESERVOIR:
           gkyl_bc_basic_advance(field->bc_up[d], field->bc_buffer, f);
           break;
+          
         default:
           break;
       }   
