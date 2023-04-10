@@ -24,7 +24,7 @@ struct mpi_comm {
   struct gkyl_comm base; // base communicator
 
   MPI_Comm mcomm; // MPI communicator to use
-  struct gkyl_rect_decomp *decomp; // pre-computed decomposition2
+  struct gkyl_rect_decomp *decomp; // pre-computed decomposition
 };
 
 static void
@@ -63,11 +63,12 @@ all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
   return ret == MPI_SUCCESS ? 0 : 1;
 }
 
-/* static int */
-/* array_sync(struct gkyl_comm *comm, struct gkyl_array *array) */
-/* { */
-/*   return 0; */
-/* } */
+static int
+array_sync(struct gkyl_comm *comm, int ndim, const int *nghost,
+  struct gkyl_array *array)
+{
+  return 0;
+}
 
 static int
 barrier(struct gkyl_comm *comm)
@@ -88,6 +89,7 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   mpi->base.get_size = get_size;
   mpi->base.barrier = barrier;
   mpi->base.all_reduce = all_reduce;
+  mpi->base.gkyl_array_sync = array_sync;
 
   mpi->base.ref_count = gkyl_ref_count_init(comm_free);
 

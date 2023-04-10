@@ -146,7 +146,13 @@ test_rect_decomp_2d(void)
     vol += decomp->ranges[i].volume;
 
   TEST_CHECK( vol == range.volume );
-  TEST_CHECK( gkyl_rect_decomp_check_covering(decomp) );  
+  TEST_CHECK( gkyl_rect_decomp_check_covering(decomp) );
+
+  for (int n=0; n<5*6; ++n) {
+    struct gkyl_rect_decomp_neigh *neigh = gkyl_rect_decomp_calc_neigh(decomp, n);
+
+    gkyl_rect_decomp_neigh_release(neigh);
+  }
 
   gkyl_rect_decomp_release(decomp);
 }

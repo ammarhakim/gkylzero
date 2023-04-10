@@ -6,6 +6,10 @@
 
 #include <string.h>
 
+// define container to store vector of ints
+#define i_val int
+#include <stc/cvec.h>
+
 static void
 rect_decomp_free(const struct gkyl_ref_count *ref)
 {
@@ -116,6 +120,31 @@ gkyl_rect_decomp_check_covering(const struct gkyl_rect_decomp *decomp)
   gkyl_array_release(arr);
   
   return true;
+}
+
+struct gkyl_rect_decomp_neigh*
+gkyl_rect_decomp_calc_neigh(const struct gkyl_rect_decomp *decomp, int nidx)
+{
+  struct gkyl_rect_decomp_neigh *neigh = 0;
+  c_auto(cvec_int, vec)
+  {
+
+    // copy data from vec to neigh struct    
+    int nn = cvec_int_size(vec);
+    neigh = gkyl_malloc(sizeof(struct gkyl_rect_decomp_neigh) + sizeof(int[nn]));
+    neigh->num_neigh = nn;
+    int count = 0;
+    c_foreach(k, cvec_int, vec)
+      neigh->neigh[count++] = *k.ref;
+  }
+    
+  return neigh;
+}
+
+void
+gkyl_rect_decomp_neigh_release(struct gkyl_rect_decomp_neigh *ng)
+{
+  gkyl_free(ng);
 }
 
 void

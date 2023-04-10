@@ -4,6 +4,7 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_ref_count.h>
 
+// Decomposition object
 struct gkyl_rect_decomp {
   int ndim; // dimension of decomposition
   int ndecomp; // number of sub-domains
@@ -11,6 +12,12 @@ struct gkyl_rect_decomp {
   struct gkyl_range *ranges; // decomposed ranges
 
   struct gkyl_ref_count ref_count;
+};
+
+// List of neighbors 
+struct gkyl_rect_decomp_neigh {
+  int num_neigh; // number of neighbors
+  int neigh[]; // list of neighbors
 };
 
 /**
@@ -44,6 +51,20 @@ struct gkyl_rect_decomp* gkyl_rect_decomp_acquire(const struct gkyl_rect_decomp 
  * @return true if this is a valid covering
  */
 bool gkyl_rect_decomp_check_covering(const struct gkyl_rect_decomp *decomp);
+
+/**
+ * Compute the neighbor of range @a nidx. The returned object must be
+ * freed using the gkyl_rect_decomp_neigh_release call.
+ */
+struct gkyl_rect_decomp_neigh* gkyl_rect_decomp_calc_neigh(
+  const struct gkyl_rect_decomp *decomp, int nidx);
+
+/**
+ * Free neighbor memory
+ *
+ * @param ng Neighbor data to free
+ */
+void gkyl_rect_decomp_neigh_release(struct gkyl_rect_decomp_neigh *ng);
 
 /**
  * Free decomposition.

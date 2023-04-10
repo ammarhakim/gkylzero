@@ -6,9 +6,9 @@
 This is the GkeyllZero layer of the Gkeyll code. The name is
 pronounced as in the book "The Strange Case of Dr. Jekyll and
 Mr. Hyde" which is required reading for all members of the Gkeyll
-Team. GkeyllZero is written in C and some C++. GkeyllZero is developed
-at Princeton Plasma Physics Laboratory (PPPL) and is copyrighted
-2020-2022 by Ammar Hakim and the Gkeyll Team.
+Team. GkeyllZero is written in C. GkeyllZero is developed at Princeton
+Plasma Physics Laboratory (PPPL) and is copyrighted 2020-2023 by Ammar
+Hakim and the Gkeyll Team.
 
 **NOTE**: Though the code is called "Gkeyll" and "GkeyllZero" we use
 the prefix "gkyl" in the source code itself. This may be confusing at
@@ -18,8 +18,8 @@ Documentation is available at http://gkeyll.rtfd.io.
 
 # Install
 
-GkeyllZero has just a few dependencies: OpenBLAS and SuperLU. If you
-are on a cluster these libraries are likely already installed. In that
+GkeyllZero has just a few dependencies: OpenBLAS, SuperLU and optionally, MPI.
+If you are on a cluster these libraries are likely already installed. In that
 case you should use the configure script to specify the location of
 the include and full path to the static libraries for these. See
 configure help.
@@ -61,7 +61,7 @@ make -j #
 ```
 where # is the number of cores you wish to use (if working on the login
 node of a cluster it is preferable that you use fewer than the total number
-of cores available, otherwise you will slow down the login node and irk
+of cores available, otherwise you will slow down the login node and annoy
 other users).
 
 Note: On Traverse and Stellar-amd you need to load cudatoolkit/11.6. 
