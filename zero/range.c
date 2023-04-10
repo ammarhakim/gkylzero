@@ -315,7 +315,7 @@ gkyl_skin_ghost_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
 }
 
 void
-gkyl_directional_ranges(struct gkyl_range *pos, struct gkyl_range *neg,
+gkyl_pos_neg_ranges(struct gkyl_range *pos, struct gkyl_range *neg,
   int dir, int vdir, enum gkyl_edge_loc edge, const struct gkyl_range *parent, const int *nghost,
   int *npos, int *nneg)
 {

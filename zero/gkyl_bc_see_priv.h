@@ -23,7 +23,8 @@ struct gkyl_bc_see {
   struct gkyl_range skin_r, ghost_r, pos_r, neg_r, cskin_r, cghost_r;
   struct gkyl_dg_updater_moment *mcalc;
   struct gkyl_array *flux;
-  struct gkyl_array *f_store;
+  struct gkyl_array *f_proj;
+  double tot_flux;
   const struct gkyl_basis *cbasis;
   gkyl_proj_on_basis *boundary_proj;
   bool use_gpu;
@@ -31,7 +32,7 @@ struct gkyl_bc_see {
 
 struct bc_see_ctx {
   int dir; // direction for BCs.
-  int cdim; // config-space dimensions.
+  int cdim, vdim; // config-space dimensions.
   int ncomp; // number of components within a cell.
   double *gain;
   double *elastic;
