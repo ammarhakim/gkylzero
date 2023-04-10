@@ -52,10 +52,11 @@ bc_see(double *out, const double *inp, void *ctx, int idx[GKYL_MAX_DIM], double 
   int dir = mc->dir;
   int nbasis = mc->basis->num_basis;
 
-  // CHANGE NEEDED - elastic backscattering should be optional/separated from the inelastic
-  mc->basis->flip_odd_sign(dir, inp, out);
-  for (int c=0; c<nbasis; ++c) out[c] = mc->elastic[idx[1] - 1]*out[c];
-  mc->basis->flip_odd_sign(dir+cdim, out, out);
+  if (mc->elastic) {
+    mc->basis->flip_odd_sign(dir, inp, out);
+    for (int c=0; c<nbasis; ++c) out[c] = mc->elastic[idx[1] - 1]*out[c];
+    mc->basis->flip_odd_sign(dir+cdim, out, out);
+  }
 
   // CHANGE NEEDED - verify this is in fact correct, might be flipped in the positive/negative plane
   if ((mc->edge == GKYL_LOWER_EDGE && xc[cdim+dir] < 0) || (mc->edge == GKYL_UPPER_EDGE && xc[cdim+dir] > 0)) { 

@@ -16,7 +16,6 @@ gkyl_bc_see_calc_normalization(double *tot_flux, void *ctx)
   return 6.0*effective_gamma*tot_flux[0]*mc->phi*mc->phi*mc->mass/fabs(mc->charge);
 }
 
-// CHANGE NEEDED - function assumes 1X1V
 static void 
 chung_everhart(double t, const double *xn, double *out, void *ctx)
 {
@@ -35,15 +34,15 @@ chung_everhart(double t, const double *xn, double *out, void *ctx)
 
 struct gkyl_bc_see*
 gkyl_bc_see_new(struct gkyl_rect_grid *grid, int dir, enum gkyl_edge_loc edge, const struct gkyl_range *conf_range_ext, const struct gkyl_range *local_range_ext,
-		const int *num_ghosts, const struct gkyl_basis *cbasis, const struct gkyl_basis *basis,
-		int num_comp, int cdim, int vdim, const double *bc_param, double *gain, double *elastic, bool use_gpu)
+  const int *num_ghosts, const struct gkyl_basis *cbasis, const struct gkyl_basis *basis,
+  int num_comp, int cdim, int vdim, const double *bc_param, double *gain, double *elastic, bool use_gpu)
 {
   // Allocate space for new updater.
   struct gkyl_bc_see *up = gkyl_malloc(sizeof(struct gkyl_bc_see));
 
   int vdir = dir + cdim;
 
-  // CHANGE NEEDED - number of positive and negative cell currently assumes a symmetric domain
+  // CHANGE NEEDED - number of positive and negative cells currently assumes a symmetric domain
   int num_pos[GKYL_MAX_DIM];
   int num_neg[GKYL_MAX_DIM];
   for (int d=0; d<vdim; ++d) {
@@ -118,6 +117,7 @@ gkyl_bc_see_advance(const struct gkyl_bc_see *up, struct gkyl_array *buff_arr, s
   }
   const double *in_flux = gkyl_array_cfetch(up->flux, up->cskin_r.upper[0]);
   tot_flux[0] = up->cbasis->eval_expand(z, in_flux);
+  gkyl_array_clear(buff_arr, 0.0);
   
   gkyl_range_iter_init(&iter, &up->skin_r);
 
@@ -135,7 +135,6 @@ gkyl_bc_see_advance(const struct gkyl_bc_see *up, struct gkyl_array *buff_arr, s
   }
   double k = gkyl_bc_see_calc_normalization(tot_flux, up->ctx);
 
-  // CHANGE NEEDED - order should be the opposite, or it causes problems when there are no elastic particles
   gkyl_array_copy_from_buffer(f_arr, buff_arr->data, up->ghost_r);
   gkyl_array_accumulate_range(f_arr, k, up->f_proj, up->ghost_r);
 }
