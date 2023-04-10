@@ -224,7 +224,7 @@ moment_field_apply_bc(const gkyl_moment_app *app, double tcurr,
           field->bc_buffer, d, field->lower_bc[d], field->upper_bc[d], f);
     }
 
-  gkyl_comm_gkyl_array_sync(app->comm, f);
+  gkyl_comm_gkyl_array_sync(app->comm, app->ndim, app->nghost, f);
 }
 
 double

@@ -176,6 +176,7 @@ struct gkyl_moment_app {
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
+  int nghost[3]; // number of ghost-cells in each direction
 
   int is_dir_skipped[3]; // flags to tell if update in direction are skipped
 
@@ -228,18 +229,24 @@ struct gkyl_moment_app {
 /** Some common functions to species and fields */
 
 // functions for use in integrated quantities calculation
-static inline void integ_unit(int nc, const double *qin, double *integ_out) {
+static inline void
+integ_unit(int nc, const double *qin, double *integ_out)
+{
   for (int i = 0; i < nc; ++i)
     integ_out[i] = qin[i];
 }
-static inline void integ_sq(int nc, const double *qin, double *integ_out) {
+static inline void
+integ_sq(int nc, const double *qin, double *integ_out)
+{
   for (int i = 0; i < nc; ++i)
     integ_out[i] = qin[i] * qin[i];
 }
 
 // function for copy BC
-static inline void bc_copy(double t, int nc, const double *skin,
-                           double *GKYL_RESTRICT ghost, void *ctx) {
+static inline void
+bc_copy(double t, int nc, const double *skin,
+  double *GKYL_RESTRICT ghost, void *ctx)
+{
   for (int c = 0; c < nc; ++c)
     ghost[c] = skin[c];
 }

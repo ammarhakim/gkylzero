@@ -80,6 +80,13 @@ gkyl_rect_decomp_new_from_cuts(int ndim, const int cuts[], const struct gkyl_ran
   return decomp;
 }
 
+struct gkyl_rect_decomp*
+gkyl_rect_decomp_acquire(const struct gkyl_rect_decomp *decomp)
+{
+  gkyl_ref_count_inc(&decomp->ref_count);
+  return (struct gkyl_rect_decomp*) decomp;
+}
+
 bool
 gkyl_rect_decomp_check_covering(const struct gkyl_rect_decomp *decomp)
 {

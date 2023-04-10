@@ -32,6 +32,8 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   int ghost[3] = { 2, 2, 2 }; // 2 ghost-cells for wave
   if (mom->scheme_type != GKYL_MOMENT_WAVE_PROP)
     for (int d=0; d<3; ++d) ghost[d] = 3; // 3 for MP scheme and KEP
+
+  for (int d=0; d<3; ++d) app->nghost[d] = ghost[d];
   
   gkyl_rect_grid_init(&app->grid, ndim, mom->lower, mom->upper, mom->cells);
   gkyl_create_grid_ranges(&app->grid, ghost, &app->global_ext, &app->global);
