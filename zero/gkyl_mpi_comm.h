@@ -8,7 +8,7 @@
 
 // input to create new MPI communicator
 struct gkyl_mpi_comm_inp {
-  MPI_Comm comm; // MPI communicator to use
+  MPI_Comm mpi_comm; // MPI communicator to use
   const struct gkyl_rect_decomp *decomp; // pre-computed decomposition
 };
 

@@ -83,6 +83,15 @@ void gkyl_rect_decomp_release(struct gkyl_rect_decomp *decomp);
 // ghost cells.
 
 /**
+ * Create range over global region given cells in each direction.
+ *
+ * @param ndim Grid dimension
+ * @param cells Number of cells in each direction
+ * @param range On output, global range
+ */
+void gkyl_create_global_range(int ndim, const int *cells, struct gkyl_range *range);
+
+/**
  * Create range and extended ranges from grid and ghost-cell data. The
  * range is a sub-range of the extended range.
  *
@@ -96,7 +105,7 @@ void gkyl_create_grid_ranges(const struct gkyl_rect_grid *grid,
   struct gkyl_range *range);
 
 /**
- * Create range and extended ranges from give range and ghost-cell
+ * Create range and extended ranges from given range and ghost-cell
  * data. The range is a sub-range of the extended range.
  *
  * @param inrange Input range to use

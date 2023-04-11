@@ -82,7 +82,7 @@ struct gkyl_comm*
 gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
 {
   struct mpi_comm *mpi = gkyl_malloc(sizeof *mpi);
-  mpi->mcomm = inp->comm;
+  mpi->mcomm = inp->mpi_comm;
   mpi->decomp = gkyl_rect_decomp_acquire(inp->decomp);
   
   mpi->base.get_rank = get_rank;

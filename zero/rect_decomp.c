@@ -214,6 +214,20 @@ gkyl_rect_decomp_release(struct gkyl_rect_decomp *decomp)
   gkyl_free(decomp);
 }
 
+// Utility functions
+
+void
+gkyl_create_global_range(int ndim, const int *cells, struct gkyl_range *range)
+{
+  int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+  for (int i=0; i<ndim; ++i) {
+    // this needs to be consistent with gkyl_create_grid_ranges below
+    lower[i] = 1;
+    upper[i] = cells[i];
+  }
+  gkyl_range_init(range, ndim, lower, upper);
+}
+
 void
 gkyl_create_grid_ranges(const struct gkyl_rect_grid *grid,
   const int *nghost, struct gkyl_range *ext_range, struct gkyl_range *range)
@@ -225,6 +239,7 @@ gkyl_create_grid_ranges(const struct gkyl_rect_grid *grid,
     lower_ext[i] = 1-nghost[i];
     upper_ext[i] = grid->cells[i]+nghost[i];
 
+    // this needs to be consistent with gkyl_create_global_range above
     lower[i] = 1;
     upper[i] = grid->cells[i];
   }

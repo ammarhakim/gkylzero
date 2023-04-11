@@ -13,6 +13,15 @@
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_comm.h>
+
+#include <gkyl_null_comm.h>
+
+#ifdef GKYL_HAVE_MPI
+#include <mpi.h>
+#include <gkyl_mpi_comm.h>
+#endif
+
 #include <rt_arg_parse.h>
 
 struct euler_ctx {
@@ -99,6 +108,11 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum 
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Init(&argc, &argv);
+#endif  
+  
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 200);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 200);
 
@@ -125,18 +139,72 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum 
     .init = evalEulerInit,
   };
 
+  int nrank = 1; // number of processors in simulation
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
+#endif
+
+  // create global range
+  int cells[] = { NX, NY };
+  struct gkyl_range globalr;
+  gkyl_create_global_range(2, cells, &globalr);
+  
+  // create decomposition
+  int cuts[] = { 1, 1 };
+#ifdef GKYL_HAVE_MPI  
+  if (app_args.use_mpi) {
+    cuts[0] = app_args.cuts[0];
+    cuts[1] = app_args.cuts[1];
+  }
+#endif  
+    
+  struct gkyl_rect_decomp *decomp =
+    gkyl_rect_decomp_new_from_cuts(2, cuts, &globalr);
+  
+  // construct communcator for use in app
+  struct gkyl_comm *comm;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+        .decomp = decomp
+      }
+    );
+  }
+  else
+    comm = gkyl_null_comm_new();
+#else
+  comm = gkyl_null_comm_new();
+#endif
+
+  int my_rank;
+  gkyl_comm_get_rank(comm, &my_rank);
+  printf("(%d) my_rank: %d\n", app_args.use_mpi, my_rank);
+
+  struct gkyl_moment_low_inp low_inp = {
+    .comm = comm,
+    .local_range = decomp->ranges[my_rank]
+  };
+
   // VM app
   struct gkyl_moment app_inp = {
     .ndim = 2,
-    .lower = { 0.0, 0.0 },
-    .upper = { 1.0, 1.0 }, 
-    .cells = { NX, NY },
-    
+    .lower = {0.0, 0.0},
+    .upper = {1.0, 1.0},
+    .cells = {NX, NY},
+
     .scheme_type = scheme,
     .mp_recon = app_args.mp_recon,
 
     .num_species = 1,
-    .species = { fluid },
+    .species = {fluid},
+
+    .has_low_inp = true,
+    .low_inp = {
+      .comm = comm,
+      .local_range = decomp->ranges[my_rank]
+    }
   };
   strcpy(app_inp.name, get_sim_name(rp_type, scheme));
 
@@ -190,5 +258,13 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum 
   printf("Field updates took %g secs\n", stat.field_tm);
   printf("Total updates took %g secs\n", stat.total_tm);
 
+  gkyl_comm_release(comm);
+  gkyl_rect_decomp_release(decomp);
+  
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Finalize();
+#endif    
+  
   return 0;
 }
