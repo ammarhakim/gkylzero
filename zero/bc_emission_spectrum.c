@@ -113,7 +113,8 @@ gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
   } else {
     z[up->dir] = 1.0;
   }
-  const double *in_flux = gkyl_array_cfetch(up->flux, up->cskin_r.upper[0]);
+  long flux_idx = gkyl_range_idx(&up->cskin_r, &up->cskin_r.upper[up->dir]);
+  const double *in_flux = gkyl_array_cfetch(up->flux, flux_idx);
   tot_flux[0] = up->cbasis->eval_expand(z, in_flux);
   gkyl_array_clear(buff_arr, 0.0);
   
