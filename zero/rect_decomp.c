@@ -10,6 +10,12 @@
 #define i_val int
 #include <stc/cvec.h>
 
+// Private struct to manage the neighbor data struct
+struct rect_decomp_neigh_cont {
+  struct gkyl_rect_decomp_neigh neigh;
+  cvec_int l_neigh;
+};
+
 static void
 rect_decomp_free(const struct gkyl_ref_count *ref)
 {
@@ -126,15 +132,45 @@ gkyl_rect_decomp_check_covering(const struct gkyl_rect_decomp *decomp)
 static struct gkyl_rect_decomp_neigh*
 calc_neigh_with_corners(const struct gkyl_rect_decomp *decomp, int nidx)
 {
-  struct gkyl_rect_decomp_neigh *neigh = 0;
-
+  struct rect_decomp_neigh_cont *cont = gkyl_malloc(sizeof(*cont));
+  cont->l_neigh = cvec_int_init();
+  
   int elo[GKYL_MAX_DIM], eup[GKYL_MAX_DIM];
   for (int i=0; i<decomp->ndim; ++i)
     elo[i] = eup[i] = 1;
   
-  c_auto(cvec_int, vec)
-  {
-    struct gkyl_range erng;
+  struct gkyl_range erng;
+  gkyl_range_extend(&erng, &decomp->ranges[nidx], elo, eup);
+
+  for (int i=0; i<decomp->ndecomp; ++i)
+    if (i != nidx) {
+      struct gkyl_range irng;
+      int is_inter = gkyl_range_intersect(&irng, &erng,
+        &decomp->ranges[i]);
+      if (is_inter)
+        cvec_int_push_back(&cont->l_neigh, i);
+    }
+
+  cont->neigh.num_neigh = cvec_int_size(cont->l_neigh);
+  cont->neigh.neigh = cvec_int_front(&cont->l_neigh);
+  
+  return &cont->neigh;
+}
+
+// compute neighbors leaving out corner neighbors: only face neighbors
+// are included
+static struct gkyl_rect_decomp_neigh*
+calc_neigh_no_corners(const struct gkyl_rect_decomp *decomp, int nidx)
+{
+  struct rect_decomp_neigh_cont *cont = gkyl_malloc(sizeof(*cont));
+  cont->l_neigh = cvec_int_init();
+  
+  struct gkyl_range erng;
+
+  for (int n=0; n<decomp->ndim; ++n) {
+    
+    int elo[GKYL_MAX_DIM] = { 0 }, eup[GKYL_MAX_DIM] = { 0 };
+    elo[n] = eup[n] = 1; // only extend in 1 direction
     gkyl_range_extend(&erng, &decomp->ranges[nidx], elo, eup);
 
     for (int i=0; i<decomp->ndecomp; ++i)
@@ -143,58 +179,14 @@ calc_neigh_with_corners(const struct gkyl_rect_decomp *decomp, int nidx)
         int is_inter = gkyl_range_intersect(&irng, &erng,
           &decomp->ranges[i]);
         if (is_inter)
-          cvec_int_push_back(&vec, i);
+          cvec_int_push_back(&cont->l_neigh, i);
       }
-
-    // copy data from vec to neigh struct
-    int nn = cvec_int_size(vec);
-    neigh = gkyl_malloc(sizeof(struct gkyl_rect_decomp_neigh) + sizeof(int[nn]));
-    neigh->num_neigh = nn;
-    int count = 0;
-    c_foreach(k, cvec_int, vec)
-      neigh->neigh[count++] = *k.ref;
   }
-    
-  return neigh;
-}
-
-// compute neighbors leaving out corner neighbors: only face neighbors
-// are included
-static struct gkyl_rect_decomp_neigh*
-calc_neigh_no_corners(const struct gkyl_rect_decomp *decomp, int nidx)
-{
-  struct gkyl_rect_decomp_neigh *neigh = 0;
   
-  c_auto(cvec_int, vec)
-  {
-    struct gkyl_range erng;
-
-    for (int n=0; n<decomp->ndim; ++n) {
-
-      int elo[GKYL_MAX_DIM] = { 0 }, eup[GKYL_MAX_DIM] = { 0 };
-      elo[n] = eup[n] = 1; // only extend in 1 direction
-      gkyl_range_extend(&erng, &decomp->ranges[nidx], elo, eup);
-
-      for (int i=0; i<decomp->ndecomp; ++i)
-        if (i != nidx) {
-          struct gkyl_range irng;
-          int is_inter = gkyl_range_intersect(&irng, &erng,
-            &decomp->ranges[i]);
-          if (is_inter)
-            cvec_int_push_back(&vec, i);
-        }
-    }
-      
-    // copy data from vec to neigh struct
-    int nn = cvec_int_size(vec);
-    neigh = gkyl_malloc(sizeof(struct gkyl_rect_decomp_neigh) + sizeof(int[nn]));
-    neigh->num_neigh = nn;
-    int count = 0;
-    c_foreach(k, cvec_int, vec)
-      neigh->neigh[count++] = *k.ref;
-  }
-    
-  return neigh;  
+  cont->neigh.num_neigh = cvec_int_size(cont->l_neigh);
+  cont->neigh.neigh = cvec_int_front(&cont->l_neigh);
+  
+  return &cont->neigh;
 }
 
 struct gkyl_rect_decomp_neigh*
@@ -209,7 +201,10 @@ gkyl_rect_decomp_calc_neigh(const struct gkyl_rect_decomp *decomp,
 void
 gkyl_rect_decomp_neigh_release(struct gkyl_rect_decomp_neigh *ng)
 {
-  gkyl_free(ng);
+  struct rect_decomp_neigh_cont *cont = container_of(ng,
+    struct rect_decomp_neigh_cont, neigh);
+  cvec_int_drop(&cont->l_neigh);
+  gkyl_free(cont);
 }
 
 void      

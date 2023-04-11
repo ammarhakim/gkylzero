@@ -17,7 +17,7 @@ struct gkyl_rect_decomp {
 // List of neighbors 
 struct gkyl_rect_decomp_neigh {
   int num_neigh; // number of neighbors
-  int neigh[]; // list of neighbors
+  const int *neigh; // list of neighbors
 };
 
 /**
