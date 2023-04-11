@@ -87,6 +87,8 @@ gkyl_rect_decomp_new_from_cuts(int ndim, const int cuts[], const struct gkyl_ran
     gkyl_free(eidx[d]);
   }
 
+  decomp->ref_count = gkyl_ref_count_init(rect_decomp_free);
+  
   return decomp;
 }
 
@@ -210,8 +212,7 @@ gkyl_rect_decomp_neigh_release(struct gkyl_rect_decomp_neigh *ng)
 void      
 gkyl_rect_decomp_release(struct gkyl_rect_decomp *decomp)
 {
-  gkyl_free(decomp->ranges);
-  gkyl_free(decomp);
+  gkyl_ref_count_dec(&decomp->ref_count);
 }
 
 // Utility functions
