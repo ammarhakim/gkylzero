@@ -7,9 +7,6 @@
 
 // CHANGE NEEDED - Instead of passing gain coefficients as a precalculated double array,
 // ideally we should calculate them in initialization.
-// Should the user import the SEY function, or pick it from a list and supply fitting parameters? 
-// If possible, I would like to merge this object with bc_emission as they have overall similar logic,
-// though attempts to do so have proven messy.
 
 struct gkyl_bc_emission_spectrum*
 gkyl_bc_emission_spectrum_new(struct gkyl_rect_grid *grid,
@@ -46,8 +43,8 @@ gkyl_bc_emission_spectrum_new(struct gkyl_rect_grid *grid,
     local_range_ext, num_ghosts);
   gkyl_skin_ghost_ranges(&up->cskin_r, &up->cghost_r, dir, edge,
     local_conf_range_ext, num_ghosts);
-  gkyl_pos_neg_ranges(&up->pos_r, &up->neg_r, dir, vdir, edge,
-    local_range_ext, num_ghosts, num_pos, num_neg);
+  gkyl_pos_neg_ranges(&up->pos_r, &up->neg_r, vdir,
+    &up->skin_r, num_ghosts, num_pos, num_neg);
 
   switch (bctype) {
     case GKYL_BC_CHUNG_EVERHART:

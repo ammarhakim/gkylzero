@@ -226,8 +226,19 @@ void gkyl_range_upper_skin(struct gkyl_range* srng,
 void gkyl_skin_ghost_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
   int dir, enum gkyl_edge_loc edge, const struct gkyl_range *parent, const int *nghost);
 
+/**
+ * Create positive and negative space sub-ranges given parent range.
+ *
+ * @param pos On output, positive space range
+ * @param neg On outout, negative space range
+ * @param dir Direction in which pos/neg are computed
+ * @param parent Range for which pos/neg are computed
+ * @param nghost Number of ghost cells in 'dir' are nghost[dir]
+ * @param npos Number of positive space cells
+ * @param nneg Number of negative space cells
+ */
 void gkyl_pos_neg_ranges(struct gkyl_range *pos, struct gkyl_range *neg,
-  int dir, int vdir, enum gkyl_edge_loc edge, const struct gkyl_range *parent, const int *nghost,
+  int dir, const struct gkyl_range *parent, const int *nghost,
   int *npos, int *nneg);
 
 /**
