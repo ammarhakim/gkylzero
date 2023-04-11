@@ -266,8 +266,11 @@ states_hll_common(const struct gkyl_wv_eqn *eqn, const double *ql,
   double ur = qr[1] / rr;
   double pr = gkyl_euler_pressure(g, qr);
 
-  // STEP 1. compute min and max wave speeds; here, Toro (10.59) is chosen
-  //   first, estimate middle pressure, Toro (10.61)
+  // STEP 1. compute min and max wave speeds; here, the pressure-based speed
+  // estimates Toro (10.59) are used
+  //   first, estimate middle pressure; using PVRS Toro (10.61) but Toro Fig 9.4
+  //   presents an adaptive method to switch between PVRS and TRRS (10.63) and
+  //   TSRS (10.65); for ideal gases, max(0, p_PVRS) might also be good
   double cl = sqrt(g*pl/rl);
   double cr = sqrt(g*pr/rr);
   double ra = 0.5 * (rl + rr);
