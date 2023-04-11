@@ -23,11 +23,11 @@ struct gkyl_bc_emission {
 };
 
 // context for use in BCs
-struct bc_gain_ctx {
+struct bc_emission_ctx {
   int dir; // direction for BCs.
   int cdim; // config-space dimensions.
   int ncomp; // number of components within a cell.
-  double gain;
+  double *param;
   const struct gkyl_basis *basis; // basis function.
 };
 
@@ -35,11 +35,12 @@ GKYL_CU_D
 static void
 bc_emission_gain(double *out, const double *inp, void *ctx, int in_idx[GKYL_MAX_DIM], int out_idx[GKYL_MAX_DIM])
 {
-  struct bc_gain_ctx *mc = (struct bc_gain_ctx*) ctx;
+  struct bc_emission_ctx *mc = (struct bc_emission_ctx*) ctx;
   int dir = mc->dir, cdim = mc->cdim;
   int nbasis = mc->basis->num_basis;
+  double gain = mc->param[0];
 
   mc->basis->flip_odd_sign(dir, inp, out);
-  for (int c=0; c<nbasis; ++c) out[c] = mc->gain*out[c];
+  for (int c=0; c<nbasis; ++c) out[c] = gain*out[c];
   mc->basis->flip_odd_sign(dir+cdim, out, out);
 }

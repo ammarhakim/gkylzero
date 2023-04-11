@@ -6,7 +6,7 @@
 struct gkyl_bc_emission*
 gkyl_bc_emission_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range *local_range_ext,
   const int *num_ghosts, enum gkyl_bc_emission_type bctype, const struct gkyl_basis *basis,
-  int num_comp, int cdim, const double *bc_param, const struct gkyl_array *bc_field, bool use_gpu)
+  int num_comp, int cdim, double *bc_param, const struct gkyl_array *bc_field, bool use_gpu)
 {
   // Allocate space for new updater.
   struct gkyl_bc_emission *up = gkyl_malloc(sizeof(struct gkyl_bc_emission));
@@ -21,24 +21,25 @@ gkyl_bc_emission_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range *
   gkyl_skin_ghost_ranges(&up->skin_r, &up->ghost_r, dir, edge,
     local_range_ext, num_ghosts);
 
+  struct bc_emission_ctx *ctx = gkyl_malloc(sizeof(*ctx));
+  ctx->param = bc_param;
+  ctx->basis = basis;
+  ctx->dir = dir;
+  ctx->cdim = cdim;
+  ctx->ncomp = num_comp;
+
   switch (bctype) {
     case GKYL_BC_CONSTANT_GAIN:
-      struct bc_gain_ctx *ctx = gkyl_malloc(sizeof(*ctx));
-      ctx->gain = bc_param[0];
       up->func = bc_emission_gain;
-      ctx->basis = basis;
-      ctx->dir = dir;
-      ctx->cdim = cdim;
-      ctx->ncomp = num_comp;
-  
-      up->ctx = ctx;
-      up->ctx_on_dev = up->ctx;
       break;
       
     default:
       assert(false);
       break;
   }
+  
+  up->ctx = ctx;
+  up->ctx_on_dev = up->ctx;
   return up;
 }
 

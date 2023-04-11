@@ -27,7 +27,7 @@ typedef struct gkyl_bc_emission gkyl_bc_emission;
  */
 struct gkyl_bc_emission* gkyl_bc_emission_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range *local_range_ext,
   const int *num_ghosts, enum gkyl_bc_emission_type bctype, const struct gkyl_basis *basis,
-  int num_comp, int cdim, const double *bc_param, const struct gkyl_array *bc_field, bool use_gpu);
+  int num_comp, int cdim, double *bc_param, const struct gkyl_array *bc_field, bool use_gpu);
 
 /**
  * Create new updater to apply basic BCs to a field
