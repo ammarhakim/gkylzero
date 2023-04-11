@@ -22,6 +22,7 @@ typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
  * @param local_conf_range_ext Local extended configuration range.
  * @param local_range_ext Local extended phase range.
  * @param num_ghosts Number of ghosts in each dimension.
+ * @param bctype BC type (see gkyl_bc_emission_spectrum_type).
  * @param cbasis Configuration basis on which coefficients in array are expanded
  * @param basis Basis on which coefficients in array are expanded (a device pointer if use_gpu=true).
  * @param cdim Configuration space dimensions.
@@ -34,8 +35,9 @@ typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
  */
 struct gkyl_bc_emission_spectrum* gkyl_bc_emission_spectrum_new(struct gkyl_rect_grid *grid,
   int dir, enum gkyl_edge_loc edge, const struct gkyl_range *local_conf_range_ext,
-  const struct gkyl_range *local_range_ext, const int *num_ghosts, const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *basis, int cdim, int vdim, const double* bc_param, double *gain,
+  const struct gkyl_range *local_range_ext, const int *num_ghosts,
+  enum gkyl_bc_emission_spectrum_type bctype, const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *basis, int cdim, int vdim, double* bc_param, double *gain,
   double *elastic, bool use_gpu);
 
 /**
