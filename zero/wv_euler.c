@@ -145,26 +145,17 @@ qfluct_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
-// Waves and speeds using Roe averaging
+// project column vector delta onto the right eigenvectors of the flux Jacobian
+// evaluated at Q = {u, v, w, enth}
 static double
-wave_roe(const struct gkyl_wv_eqn *eqn,
-  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+project_euler(const struct gkyl_wv_eqn *eqn,
+  const double *delta, const double *Q, double *waves, double *s)
 {
   const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
   double gas_gamma = euler->gas_gamma;
   double g1 = gas_gamma - 1;
 
-  double rhol = ql[0], rhor = qr[0];
-  double pl = gkyl_euler_pressure(gas_gamma, ql), pr = gkyl_euler_pressure(gas_gamma, qr);
-
-  // Roe averages: see Roe's original 1981 paper or LeVeque book
-  double srrhol = sqrt(rhol), srrhor = sqrt(rhor);
-  double ravgl1 = 1/srrhol, ravgr1 = 1/srrhor;
-  double ravg2 = 1/(srrhol+srrhor);
-  double u = (ql[1]*ravgl1 + qr[1]*ravgr1)*ravg2;
-  double v = (ql[2]*ravgl1 + qr[2]*ravgr1)*ravg2;
-  double w = (ql[3]*ravgl1 + qr[3]*ravgr1)*ravg2;
-  double enth = ((ql[4]+pl)*ravgl1 + (qr[4]+pr)*ravgr1)*ravg2;
+  double u = Q[0], v = Q[1], w = Q[2], enth = Q[3];
 
   // See http://ammar-hakim.org/sj/euler-eigensystem.html for notation
   // and meaning of these terms
@@ -209,6 +200,32 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   s[2] = u+a;
   
   return fabs(u)+a;
+}
+
+// Waves and speeds using Roe averaging
+static double
+wave_roe(const struct gkyl_wv_eqn *eqn,
+  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+{
+  const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
+  double gas_gamma = euler->gas_gamma;
+  double g1 = gas_gamma - 1;
+
+  double rhol = ql[0], rhor = qr[0];
+  double pl = gkyl_euler_pressure(gas_gamma, ql), pr = gkyl_euler_pressure(gas_gamma, qr);
+
+  // Roe averages: see Roe's original 1981 paper or LeVeque book
+  double srrhol = sqrt(rhol), srrhor = sqrt(rhor);
+  double ravgl1 = 1/srrhol, ravgr1 = 1/srrhor;
+  double ravg2 = 1/(srrhol+srrhor);
+  double u = (ql[1]*ravgl1 + qr[1]*ravgr1)*ravg2;
+  double v = (ql[2]*ravgl1 + qr[2]*ravgr1)*ravg2;
+  double w = (ql[3]*ravgl1 + qr[3]*ravgr1)*ravg2;
+  double enth = ((ql[4]+pl)*ravgl1 + (qr[4]+pr)*ravgr1)*ravg2;
+
+  double Q[4] = {u, v, w, enth};
+
+  return project_euler(eqn, delta, Q, waves, s);
 }
 
 static void
