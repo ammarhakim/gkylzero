@@ -186,6 +186,8 @@ test_rect_decomp_2d(void)
   struct gkyl_range crange;
   gkyl_range_init_from_shape(&crange, 2, cuts);
   struct gkyl_range_iter iter;
+
+  // check decomposition without corner neighbors
   gkyl_range_iter_init(&iter, &crange);
   while ( gkyl_range_iter_next(&iter) ) {
 
@@ -201,6 +203,23 @@ test_rect_decomp_2d(void)
 
     gkyl_rect_decomp_neigh_release(neigh);
   }
+
+  // check decomposition with corner neighbors
+  gkyl_range_iter_init(&iter, &crange);
+  while ( gkyl_range_iter_next(&iter) ) {
+
+    struct gkyl_rect_decomp_neigh *neigh =
+      gkyl_rect_decomp_calc_neigh(decomp, true, gkyl_range_idx(&crange, iter.idx));
+
+    if (is_on_corner(2, iter.idx, cuts))
+      TEST_CHECK( neigh->num_neigh == 3 );
+    else if (is_on_face(2, iter.idx, cuts) )
+      TEST_CHECK( neigh->num_neigh == 5 );
+    else
+      TEST_CHECK( neigh->num_neigh == 8 );
+
+    gkyl_rect_decomp_neigh_release(neigh);
+  }  
 
   gkyl_rect_decomp_release(decomp);
 }
@@ -229,6 +248,8 @@ test_rect_decomp_3d(void)
   struct gkyl_range crange;
   gkyl_range_init_from_shape(&crange, 3, cuts);
   struct gkyl_range_iter iter;
+
+  // check decomposition without corner neighbors
   gkyl_range_iter_init(&iter, &crange);
   while ( gkyl_range_iter_next(&iter) ) {
 
@@ -246,6 +267,25 @@ test_rect_decomp_3d(void)
 
     gkyl_rect_decomp_neigh_release(neigh);
   }
+
+  // check decomposition with corner neighbors
+  gkyl_range_iter_init(&iter, &crange);
+  while ( gkyl_range_iter_next(&iter) ) {
+
+    struct gkyl_rect_decomp_neigh *neigh =
+      gkyl_rect_decomp_calc_neigh(decomp, true, gkyl_range_idx(&crange, iter.idx));
+    
+    if (is_on_corner(3, iter.idx, cuts))
+      TEST_CHECK( neigh->num_neigh == 7 );
+    else if (is_on_edge(3, iter.idx, cuts) )
+      TEST_CHECK( neigh->num_neigh == 11 );
+    else if (is_on_face(3, iter.idx, cuts) )
+      TEST_CHECK( neigh->num_neigh == 17 );
+    else
+      TEST_CHECK( neigh->num_neigh == 26 );
+
+    gkyl_rect_decomp_neigh_release(neigh);
+  }  
 
   gkyl_rect_decomp_release(decomp);
 }
