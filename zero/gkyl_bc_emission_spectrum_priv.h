@@ -1,22 +1,20 @@
 #pragma once
 
-// Private header for bc_see updater, not for direct use in user code.
+// Private header for bc_emission_spectrum updater, not for direct use in user code.
 
-#include <gkyl_bc_see.h>
+#include <gkyl_bc_emission_spectrum.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_dg_updater_moment.h>
 #include <math.h>
 #include <assert.h>
 
-// CHANGE NEEDED - too many arguments, fix issues with accessing ctx instead
-typedef void (*see_func_t)(double *out, const double *inp, void *ctx, int idx[GKYL_MAX_DIM], double xc[GKYL_MAX_DIM]);
+typedef void (*emission_spectrum_func_t)(double *out, const double *inp, void *ctx, int idx[GKYL_MAX_DIM], double xc[GKYL_MAX_DIM]);
 
-// CHANGE NEEDED - too many elements, fix issues with accessing ctx and store them there instead
-struct gkyl_bc_see {
+struct gkyl_bc_emission_spectrum {
   int dir, cdim;
   enum gkyl_edge_loc edge;
-  see_func_t func;
+  emission_spectrum_func_t func;
   struct gkyl_rect_grid *grid; // grid object
   void *ctx;
   void *ctx_on_dev;
@@ -30,10 +28,9 @@ struct gkyl_bc_see {
   bool use_gpu;
 };
 
-struct bc_see_ctx {
+struct bc_chung_ctx {
   int dir; // direction for BCs.
   int cdim, vdim; // config-space dimensions.
-  int ncomp; // number of components within a cell.
   double *gain;
   double *elastic;
   double mass, charge, phi, k;
@@ -45,9 +42,9 @@ struct bc_see_ctx {
 
 GKYL_CU_D
 static void
-bc_see(double *out, const double *inp, void *ctx, int idx[GKYL_MAX_DIM], double xc[GKYL_MAX_DIM])
+bc_chung_everhart(double *out, const double *inp, void *ctx, int idx[GKYL_MAX_DIM], double xc[GKYL_MAX_DIM])
 {
-  struct bc_see_ctx *mc = (struct bc_see_ctx*) ctx;
+  struct bc_chung_ctx *mc = (struct bc_chung_ctx*) ctx;
   int cdim = mc->cdim;
   int dir = mc->dir;
   int nbasis = mc->basis->num_basis;

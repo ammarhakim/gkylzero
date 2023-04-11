@@ -1,5 +1,5 @@
-#include <gkyl_bc_see.h>
-#include <gkyl_bc_see_priv.h>
+#include <gkyl_bc_emission_spectrum.h>
+#include <gkyl_bc_emission_spectrum_priv.h>
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
 #include <assert.h>
@@ -8,9 +8,9 @@
 // CHANGE NEEDED - Instead of passing gain coefficients as a precalculated double array, ideally we should calculate them in initialization. If possible, I would like to merge this object with bc_emission, though attempts to do so so far have proven messy. Should the user import the SEY function, or pick it from a list and supply fitting parameters? 
 
 double
-gkyl_bc_see_calc_normalization(double *tot_flux, void *ctx)
+chung_everhart_normalization(double *tot_flux, void *ctx)
 {
-  struct bc_see_ctx *mc = (struct bc_see_ctx*) ctx;
+  struct bc_chung_ctx *mc = (struct bc_chung_ctx*) ctx;
   
   double effective_gamma = mc->numerator/mc->denominator;
   return 6.0*effective_gamma*tot_flux[0]*mc->phi*mc->phi*mc->mass/fabs(mc->charge);
@@ -19,7 +19,7 @@ gkyl_bc_see_calc_normalization(double *tot_flux, void *ctx)
 static void 
 chung_everhart(double t, const double *xn, double *out, void *ctx)
 {
-  struct bc_see_ctx *mc = (struct bc_see_ctx*) ctx;
+  struct bc_chung_ctx *mc = (struct bc_chung_ctx*) ctx;
   int cdim = mc->cdim;
   int vdim = mc->vdim;
   double phi = mc->phi;
@@ -32,13 +32,15 @@ chung_everhart(double t, const double *xn, double *out, void *ctx)
   out[0] = E/((E + phi)*(E + phi)*(E + phi)*(E + phi));
 }
 
-struct gkyl_bc_see*
-gkyl_bc_see_new(struct gkyl_rect_grid *grid, int dir, enum gkyl_edge_loc edge, const struct gkyl_range *conf_range_ext, const struct gkyl_range *local_range_ext,
-  const int *num_ghosts, const struct gkyl_basis *cbasis, const struct gkyl_basis *basis,
-  int num_comp, int cdim, int vdim, const double *bc_param, double *gain, double *elastic, bool use_gpu)
+struct gkyl_bc_emission_spectrum*
+gkyl_bc_emission_spectrum_new(struct gkyl_rect_grid *grid,
+  int dir, enum gkyl_edge_loc edge, const struct gkyl_range *local_conf_range_ext,
+  const struct gkyl_range *local_range_ext, const int *num_ghosts, const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *basis, int cdim, int vdim, const double* bc_param, double *gain,
+  double *elastic, bool use_gpu)
 {
   // Allocate space for new updater.
-  struct gkyl_bc_see *up = gkyl_malloc(sizeof(struct gkyl_bc_see));
+  struct gkyl_bc_emission_spectrum *up = gkyl_malloc(sizeof(struct gkyl_bc_emission_spectrum));
 
   int vdir = dir + cdim;
 
@@ -62,17 +64,16 @@ gkyl_bc_see_new(struct gkyl_rect_grid *grid, int dir, enum gkyl_edge_loc edge, c
   gkyl_skin_ghost_ranges(&up->skin_r, &up->ghost_r, dir, edge,
     local_range_ext, num_ghosts);
   gkyl_skin_ghost_ranges(&up->cskin_r, &up->cghost_r, dir, edge,
-    conf_range_ext, num_ghosts);
+    local_conf_range_ext, num_ghosts);
   gkyl_pos_neg_ranges(&up->pos_r, &up->neg_r, dir, vdir, edge,
     local_range_ext, num_ghosts, num_pos, num_neg);
 
-  struct bc_see_ctx *ctx = gkyl_malloc(sizeof(*ctx));
-  up->func = bc_see;
+  struct bc_chung_ctx *ctx = gkyl_malloc(sizeof(*ctx));
+  up->func = bc_chung_everhart;
   ctx->basis = basis;
   ctx->dir = dir;
   ctx->cdim = cdim;
   ctx->vdim = vdim;
-  ctx->ncomp = num_comp;
   ctx->gain = gain;
   ctx->elastic = elastic;
   ctx->mass = bc_param[7];
@@ -90,7 +91,7 @@ gkyl_bc_see_new(struct gkyl_rect_grid *grid, int dir, enum gkyl_edge_loc edge, c
   up->mcalc  = gkyl_dg_updater_moment_new(grid, cbasis, 
     basis, NULL, NULL, GKYL_MODEL_DEFAULT, "M1i", false, 0.0, use_gpu);
   int num_mom = gkyl_dg_updater_moment_num_mom(up->mcalc);
-  up->flux = gkyl_array_new(GKYL_DOUBLE, num_mom*cbasis->num_basis, conf_range_ext->volume);
+  up->flux = gkyl_array_new(GKYL_DOUBLE, num_mom*cbasis->num_basis, local_conf_range_ext->volume);
   
   up->ctx = ctx;
   up->ctx_on_dev = up->ctx;
@@ -99,7 +100,7 @@ gkyl_bc_see_new(struct gkyl_rect_grid *grid, int dir, enum gkyl_edge_loc edge, c
 }
 
 void
-gkyl_bc_see_advance(const struct gkyl_bc_see *up, struct gkyl_array *buff_arr, struct gkyl_array *f_arr)
+gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up, struct gkyl_array *buff_arr, struct gkyl_array *f_arr)
 {
   if (up->edge == GKYL_LOWER_EDGE) {
     gkyl_dg_updater_moment_advance(up->mcalc, &up->neg_r, &up->cskin_r, NULL, NULL, NULL, NULL, NULL, NULL, f_arr, up->flux);
@@ -133,13 +134,13 @@ gkyl_bc_see_advance(const struct gkyl_bc_see *up, struct gkyl_array *buff_arr, s
     up->func(out, inp, up->ctx, iter.idx, xc);
     count += 1;
   }
-  double k = gkyl_bc_see_calc_normalization(tot_flux, up->ctx);
+  double k = chung_everhart_normalization(tot_flux, up->ctx);
 
   gkyl_array_copy_from_buffer(f_arr, buff_arr->data, up->ghost_r);
   gkyl_array_accumulate_range(f_arr, k, up->f_proj, up->ghost_r);
 }
 
-void gkyl_bc_see_release(struct gkyl_bc_see *up)
+void gkyl_bc_emission_spectrum_release(struct gkyl_bc_emission_spectrum *up)
 {
   // Release updater memory.
   gkyl_free(up);
