@@ -222,7 +222,7 @@ roe_avg(const struct gkyl_wv_eqn *eqn, const double *ql,
   double w = (ql[3]*ravgl1 + qr[3]*ravgr1)*ravg2;
   double enth = ((ql[4]+pl)*ravgl1 + (qr[4]+pr)*ravgr1)*ravg2;
 
-  avg[0] = u; avg[1] = v; avg[2] = w; avg[4] = enth;
+  avg[0] = u; avg[1] = v; avg[2] = w; avg[3] = enth;
 }
 
 // Waves and speeds using Roe averaging
