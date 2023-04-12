@@ -8,12 +8,16 @@
 
 // input to create new MPI communicator
 struct gkyl_mpi_comm_inp {
-  MPI_Comm comm; // MPI communicator to use
+  MPI_Comm mpi_comm; // MPI communicator to use
   const struct gkyl_rect_decomp *decomp; // pre-computed decomposition
 };
 
 /**
- * Return a new MPI communicator
+ * Return a new MPI communicator. The methods in the communicator work
+ * on arrays defined on the decomp specified in the input. This
+ * contract is not checked (and can't be checked) and so the user of
+ * this object must ensure consistency of the arrays and the
+ * decomposition.
  *
  * @param inp Input struct to use for initialiation
  * @return New MPI communicator

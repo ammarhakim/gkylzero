@@ -6,6 +6,16 @@
 
 #include <string.h>
 
+// define container to store vector of ints
+#define i_val int
+#include <stc/cvec.h>
+
+// Private struct to manage the neighbor data struct
+struct rect_decomp_neigh_cont {
+  struct gkyl_rect_decomp_neigh neigh;
+  cvec_int l_neigh;
+};
+
 static void
 rect_decomp_free(const struct gkyl_ref_count *ref)
 {
@@ -77,6 +87,8 @@ gkyl_rect_decomp_new_from_cuts(int ndim, const int cuts[], const struct gkyl_ran
     gkyl_free(eidx[d]);
   }
 
+  decomp->ref_count = gkyl_ref_count_init(rect_decomp_free);
+  
   return decomp;
 }
 
@@ -118,11 +130,103 @@ gkyl_rect_decomp_check_covering(const struct gkyl_rect_decomp *decomp)
   return true;
 }
 
+// compute neighbors accounting for corner neighbors
+static struct gkyl_rect_decomp_neigh*
+calc_neigh_with_corners(const struct gkyl_rect_decomp *decomp, int nidx)
+{
+  struct rect_decomp_neigh_cont *cont = gkyl_malloc(sizeof(*cont));
+  cont->l_neigh = cvec_int_init();
+  
+  int elo[GKYL_MAX_DIM], eup[GKYL_MAX_DIM];
+  for (int i=0; i<decomp->ndim; ++i)
+    elo[i] = eup[i] = 1;
+  
+  struct gkyl_range erng;
+  gkyl_range_extend(&erng, &decomp->ranges[nidx], elo, eup);
+
+  for (int i=0; i<decomp->ndecomp; ++i)
+    if (i != nidx) {
+      struct gkyl_range irng;
+      int is_inter = gkyl_range_intersect(&irng, &erng,
+        &decomp->ranges[i]);
+      if (is_inter)
+        cvec_int_push_back(&cont->l_neigh, i);
+    }
+
+  cont->neigh.num_neigh = cvec_int_size(cont->l_neigh);
+  cont->neigh.neigh = cvec_int_front(&cont->l_neigh);
+  
+  return &cont->neigh;
+}
+
+// compute neighbors leaving out corner neighbors: only face neighbors
+// are included
+static struct gkyl_rect_decomp_neigh*
+calc_neigh_no_corners(const struct gkyl_rect_decomp *decomp, int nidx)
+{
+  struct rect_decomp_neigh_cont *cont = gkyl_malloc(sizeof(*cont));
+  cont->l_neigh = cvec_int_init();
+  
+  struct gkyl_range erng;
+
+  for (int n=0; n<decomp->ndim; ++n) {
+    
+    int elo[GKYL_MAX_DIM] = { 0 }, eup[GKYL_MAX_DIM] = { 0 };
+    elo[n] = eup[n] = 1; // only extend in 1 direction
+    gkyl_range_extend(&erng, &decomp->ranges[nidx], elo, eup);
+
+    for (int i=0; i<decomp->ndecomp; ++i)
+      if (i != nidx) {
+        struct gkyl_range irng;
+        int is_inter = gkyl_range_intersect(&irng, &erng,
+          &decomp->ranges[i]);
+        if (is_inter)
+          cvec_int_push_back(&cont->l_neigh, i);
+      }
+  }
+  
+  cont->neigh.num_neigh = cvec_int_size(cont->l_neigh);
+  cont->neigh.neigh = cvec_int_front(&cont->l_neigh);
+  
+  return &cont->neigh;
+}
+
+struct gkyl_rect_decomp_neigh*
+gkyl_rect_decomp_calc_neigh(const struct gkyl_rect_decomp *decomp,
+  bool inc_corners, int nidx)
+{
+  if (inc_corners)
+    return calc_neigh_with_corners(decomp, nidx);
+  return calc_neigh_no_corners(decomp, nidx);
+}
+
 void
+gkyl_rect_decomp_neigh_release(struct gkyl_rect_decomp_neigh *ng)
+{
+  struct rect_decomp_neigh_cont *cont = container_of(ng,
+    struct rect_decomp_neigh_cont, neigh);
+  cvec_int_drop(&cont->l_neigh);
+  gkyl_free(cont);
+}
+
+void      
 gkyl_rect_decomp_release(struct gkyl_rect_decomp *decomp)
 {
-  gkyl_free(decomp->ranges);
-  gkyl_free(decomp);
+  gkyl_ref_count_dec(&decomp->ref_count);
+}
+
+// Utility functions
+
+void
+gkyl_create_global_range(int ndim, const int *cells, struct gkyl_range *range)
+{
+  int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+  for (int i=0; i<ndim; ++i) {
+    // this needs to be consistent with gkyl_create_grid_ranges below
+    lower[i] = 1;
+    upper[i] = cells[i];
+  }
+  gkyl_range_init(range, ndim, lower, upper);
 }
 
 void
@@ -136,6 +240,7 @@ gkyl_create_grid_ranges(const struct gkyl_rect_grid *grid,
     lower_ext[i] = 1-nghost[i];
     upper_ext[i] = grid->cells[i]+nghost[i];
 
+    // this needs to be consistent with gkyl_create_global_range above
     lower[i] = 1;
     upper[i] = grid->cells[i];
   }

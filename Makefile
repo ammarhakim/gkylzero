@@ -247,7 +247,7 @@ all: ${BUILD_DIR}/gkylzero.h ${ZERO_SH_LIB} ## Build libraries and amalgamated h
 
 # Explicit targets to build unit and regression tests
 unit: ${UNITS} ${MPI_UNITS} ## Build unit tests
-regression: ${REGS} ## Build regression tests
+regression: ${REGS} regression/rt_arg_parse.h ## Build regression tests
 
 .PHONY: check mpicheck
 # Run all unit tests
@@ -283,6 +283,10 @@ install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 .PHONY: clean
 clean: ## Clean build output
 	rm -rf ${BUILD_DIR}
+
+.PHONY: cleanur
+cleanur: ## Delete the unit and regression test executables
+	rm -rf ${BUILD_DIR}/unit ${BUILD_DIR}/regression
 
 # include dependencies
 -include $(DEPS)

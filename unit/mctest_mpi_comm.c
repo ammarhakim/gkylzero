@@ -17,7 +17,7 @@ test_1()
   struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(2, cuts, &range);  
   
   struct gkyl_comm *comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-      .comm = MPI_COMM_WORLD,
+      .mpi_comm = MPI_COMM_WORLD,
       .decomp = decomp
     }
   );
@@ -51,7 +51,7 @@ test_n2()
   struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(2, cuts, &range);  
   
   struct gkyl_comm *comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-      .comm = MPI_COMM_WORLD,
+      .mpi_comm = MPI_COMM_WORLD,
       .decomp = decomp
     }
   );

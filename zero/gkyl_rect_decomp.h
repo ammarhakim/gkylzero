@@ -4,6 +4,7 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_ref_count.h>
 
+// Decomposition object
 struct gkyl_rect_decomp {
   int ndim; // dimension of decomposition
   int ndecomp; // number of sub-domains
@@ -11,6 +12,12 @@ struct gkyl_rect_decomp {
   struct gkyl_range *ranges; // decomposed ranges
 
   struct gkyl_ref_count ref_count;
+};
+
+// List of neighbors 
+struct gkyl_rect_decomp_neigh {
+  int num_neigh; // number of neighbors
+  const int *neigh; // list of neighbors
 };
 
 /**
@@ -46,6 +53,25 @@ struct gkyl_rect_decomp* gkyl_rect_decomp_acquire(const struct gkyl_rect_decomp 
 bool gkyl_rect_decomp_check_covering(const struct gkyl_rect_decomp *decomp);
 
 /**
+ * Compute the neighbor of range @a nidx. The returned object must be
+ * freed using the gkyl_rect_decomp_neigh_release call.
+ *
+ * @param decomp Decomposition object
+ * @param inc_corners If true, corner neighbors are also included
+ * @param nidx Index of range for which neighbor data is needed
+ * @return Neighbor list for range nidx
+ */
+struct gkyl_rect_decomp_neigh* gkyl_rect_decomp_calc_neigh(
+  const struct gkyl_rect_decomp *decomp, bool inc_corners, int nidx);
+
+/**
+ * Free neighbor memory
+ *
+ * @param ng Neighbor data to free
+ */
+void gkyl_rect_decomp_neigh_release(struct gkyl_rect_decomp_neigh *ng);
+
+/**
  * Free decomposition.
  *
  * @param decomp Decomposition to free
@@ -55,6 +81,15 @@ void gkyl_rect_decomp_release(struct gkyl_rect_decomp *decomp);
 // The functions below are utility functions to construct properly
 // nested ranges that extend over the grid or over local ranges, given
 // ghost cells.
+
+/**
+ * Create range over global region given cells in each direction.
+ *
+ * @param ndim Grid dimension
+ * @param cells Number of cells in each direction
+ * @param range On output, global range
+ */
+void gkyl_create_global_range(int ndim, const int *cells, struct gkyl_range *range);
 
 /**
  * Create range and extended ranges from grid and ghost-cell data. The
@@ -70,7 +105,7 @@ void gkyl_create_grid_ranges(const struct gkyl_rect_grid *grid,
   struct gkyl_range *range);
 
 /**
- * Create range and extended ranges from give range and ghost-cell
+ * Create range and extended ranges from given range and ghost-cell
  * data. The range is a sub-range of the extended range.
  *
  * @param inrange Input range to use

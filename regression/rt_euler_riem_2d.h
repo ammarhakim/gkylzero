@@ -13,6 +13,15 @@
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_comm.h>
+
+#include <gkyl_null_comm.h>
+
+#ifdef GKYL_HAVE_MPI
+#include <mpi.h>
+#include <gkyl_mpi_comm.h>
+#endif
+
 #include <rt_arg_parse.h>
 
 struct euler_ctx {
@@ -102,6 +111,11 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum 
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Init(&argc, &argv);
+#endif  
+  
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 200);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 200);
 
@@ -128,18 +142,66 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum 
     .init = evalEulerInit,
   };
 
+  int nrank = 1; // number of processors in simulation
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
+#endif
+
+  // create global range
+  int cells[] = { NX, NY };
+  struct gkyl_range globalr;
+  gkyl_create_global_range(2, cells, &globalr);
+  
+  // create decomposition
+  int cuts[] = { 1, 1 };
+#ifdef GKYL_HAVE_MPI  
+  if (app_args.use_mpi) {
+    cuts[0] = app_args.cuts[0];
+    cuts[1] = app_args.cuts[1];
+  }
+#endif  
+    
+  struct gkyl_rect_decomp *decomp =
+    gkyl_rect_decomp_new_from_cuts(2, cuts, &globalr);
+  
+  // construct communcator for use in app
+  struct gkyl_comm *comm;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+        .decomp = decomp
+      }
+    );
+  }
+  else
+    comm = gkyl_null_comm_new();
+#else
+  comm = gkyl_null_comm_new();
+#endif
+
+  int my_rank;
+  gkyl_comm_get_rank(comm, &my_rank);
+
   // VM app
   struct gkyl_moment app_inp = {
     .ndim = 2,
-    .lower = { 0.0, 0.0 },
-    .upper = { 1.0, 1.0 }, 
-    .cells = { NX, NY },
-    
+    .lower = {0.0, 0.0},
+    .upper = {1.0, 1.0},
+    .cells = {NX, NY},
+
     .scheme_type = scheme,
     .mp_recon = app_args.mp_recon,
 
     .num_species = 1,
-    .species = { fluid },
+    .species = {fluid},
+
+    .has_low_inp = true,
+    .low_inp = {
+      .comm = comm,
+      .local_range = decomp->ranges[my_rank]
+    }
   };
   strcpy(app_inp.name, get_sim_name(rp_type, scheme));
 
@@ -159,14 +221,14 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum 
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
-    printf("Taking time-step %ld at t = %g ...", step, tcurr);
+    gkyl_moment_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, tcurr);
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
-    printf(" dt = %g\n", status.dt_actual);
+    gkyl_moment_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
 
     gkyl_moment_app_calc_integrated_mom(app, tcurr);
     
     if (!status.success) {
-      printf("** Update method failed! Aborting simulation ....\n");
+      gkyl_moment_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
     }
     tcurr += status.dt_actual;
@@ -186,12 +248,20 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum 
   gkyl_wv_eqn_release(euler);
   gkyl_moment_app_release(app);
 
-  printf("\n");
-  printf("Number of update calls %ld\n", stat.nup);
-  printf("Number of failed time-steps %ld\n", stat.nfail);
-  printf("Species updates took %g secs\n", stat.species_tm);
-  printf("Field updates took %g secs\n", stat.field_tm);
-  printf("Total updates took %g secs\n", stat.total_tm);
+  gkyl_moment_app_cout(app, stdout, "\n");
+  gkyl_moment_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
+  gkyl_moment_app_cout(app, stdout, "Number of failed time-steps %ld\n", stat.nfail);
+  gkyl_moment_app_cout(app, stdout, "Species updates took %g secs\n", stat.species_tm);
+  gkyl_moment_app_cout(app, stdout, "Field updates took %g secs\n", stat.field_tm);
+  gkyl_moment_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
+  gkyl_comm_release(comm);
+  gkyl_rect_decomp_release(decomp);
+  
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Finalize();
+#endif    
+  
   return 0;
 }

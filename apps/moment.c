@@ -372,39 +372,39 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
   // append to existing file so we have a history of different runs
   FILE *fp = 0;
   with_file (fp, fileNm.str, "a") {
-    fprintf(fp, "{\n");
+    gkyl_moment_app_cout(app, fp, "{\n");
 
     if (strftime(buff, sizeof buff, "%c", &curr_tm))
-      fprintf(fp, " date : %s\n", buff);
+      gkyl_moment_app_cout(app, fp, " date : %s\n", buff);
 
-    fprintf(fp, " nup : %ld,\n", app->stat.nup);
-    fprintf(fp, " nfail : %ld,\n", app->stat.nfail);
-    fprintf(fp, " total_tm : %lg,\n", app->stat.total_tm);
+    gkyl_moment_app_cout(app, fp, " nup : %ld,\n", app->stat.nup);
+    gkyl_moment_app_cout(app, fp, " nfail : %ld,\n", app->stat.nfail);
+    gkyl_moment_app_cout(app, fp, " total_tm : %lg,\n", app->stat.total_tm);
 
     if (app->scheme_type == GKYL_MOMENT_WAVE_PROP) {    
-      fprintf(fp, " species_tm : %lg,\n", app->stat.species_tm);
-      fprintf(fp, " field_tm : %lg,\n", app->stat.field_tm);
-      fprintf(fp, " sources_tm : %lg\n", app->stat.sources_tm);
+      gkyl_moment_app_cout(app, fp, " species_tm : %lg,\n", app->stat.species_tm);
+      gkyl_moment_app_cout(app, fp, " field_tm : %lg,\n", app->stat.field_tm);
+      gkyl_moment_app_cout(app, fp, " sources_tm : %lg\n", app->stat.sources_tm);
     }
     else if (app->scheme_type == GKYL_MOMENT_MP || app->scheme_type == GKYL_MOMENT_KEP) {
-      fprintf(fp, " nfeuler : %ld,\n", app->stat.nfeuler);
-      fprintf(fp, " nstage_2_fail : %ld,\n", app->stat.nstage_2_fail);
-      fprintf(fp, " nstage_3_fail : %ld,\n", app->stat.nstage_3_fail);
+      gkyl_moment_app_cout(app, fp, " nfeuler : %ld,\n", app->stat.nfeuler);
+      gkyl_moment_app_cout(app, fp, " nstage_2_fail : %ld,\n", app->stat.nstage_2_fail);
+      gkyl_moment_app_cout(app, fp, " nstage_3_fail : %ld,\n", app->stat.nstage_3_fail);
 
-      fprintf(fp, " stage_2_dt_diff : [ %lg, %lg ],\n",
+      gkyl_moment_app_cout(app, fp, " stage_2_dt_diff : [ %lg, %lg ],\n",
         app->stat.stage_2_dt_diff[0], app->stat.stage_2_dt_diff[1]);
-      fprintf(fp, " stage_3_dt_diff : [ %lg, %lg ],\n",
+      gkyl_moment_app_cout(app, fp, " stage_3_dt_diff : [ %lg, %lg ],\n",
         app->stat.stage_3_dt_diff[0], app->stat.stage_3_dt_diff[1]);
       
-      fprintf(fp, " total_tm : %lg,\n", app->stat.total_tm);
-      fprintf(fp, " init_species_tm : %lg,\n", app->stat.init_species_tm);
+      gkyl_moment_app_cout(app, fp, " total_tm : %lg,\n", app->stat.total_tm);
+      gkyl_moment_app_cout(app, fp, " init_species_tm : %lg,\n", app->stat.init_species_tm);
       if (app->has_field)
-        fprintf(fp, " init_field_tm : %lg,\n", app->stat.init_field_tm);
+        gkyl_moment_app_cout(app, fp, " init_field_tm : %lg,\n", app->stat.init_field_tm);
       
-      fprintf(fp, " species_rhs_tm : %lg,\n", app->stat.species_rhs_tm);
+      gkyl_moment_app_cout(app, fp, " species_rhs_tm : %lg,\n", app->stat.species_rhs_tm);
 
       if (app->has_field)
-        fprintf(fp, " field_rhs_tm : %lg,\n", app->stat.field_rhs_tm);
+        gkyl_moment_app_cout(app, fp, " field_rhs_tm : %lg,\n", app->stat.field_rhs_tm);
     }
     
     for (int i=0; i<app->num_species; ++i) {
@@ -412,20 +412,39 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
       if (app->scheme_type == GKYL_MOMENT_WAVE_PROP) {
         for (int d=0; d<app->ndim; ++d) {
           struct gkyl_wave_prop_stats wvs = gkyl_wave_prop_stats(app->species[i].slvr[d]);
-          fprintf(fp, " %s_n_bad_1D_sweeps[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_advance_calls);
-          fprintf(fp, " %s_n_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_cells);
-          fprintf(fp, " %s_n_max_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_max_bad_cells);
+          gkyl_moment_app_cout(app, fp, " %s_n_bad_1D_sweeps[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_advance_calls);
+          gkyl_moment_app_cout(app, fp, " %s_n_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_cells);
+          gkyl_moment_app_cout(app, fp, " %s_n_max_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_max_bad_cells);
 
           tot_bad_cells += wvs.n_bad_cells;
         }
       }
-      fprintf(fp, " %s_bad_cell_frac = %lg\n", app->species[i].name, (double) tot_bad_cells/tot_cells_up );
+      gkyl_moment_app_cout(app, fp, " %s_bad_cell_frac = %lg\n", app->species[i].name, (double) tot_bad_cells/tot_cells_up );
     }
   
-    fprintf(fp, "}\n");
+    gkyl_moment_app_cout(app, fp, "}\n");
   }
 
   cstr_drop(&fileNm);
+}
+
+// private function to handle variable argument list for printing
+static void
+v_moment_app_cout(const gkyl_moment_app* app, FILE *fp, const char *fmt, va_list argp)
+{
+  int rank, r = 0;
+  gkyl_comm_get_rank(app->comm, &rank);
+  if (rank == 0)
+    vfprintf(fp, fmt, argp);
+}
+
+void
+gkyl_moment_app_cout(const gkyl_moment_app* app, FILE *fp, const char *fmt, ...)
+{
+  va_list argp;
+  va_start(argp, fmt);
+  v_moment_app_cout(app, fp, fmt, argp);
+  va_end(argp);
 }
 
 void
