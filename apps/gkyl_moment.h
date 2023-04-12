@@ -254,6 +254,18 @@ void gkyl_moment_app_write_integrated_mom(gkyl_moment_app *app);
 void gkyl_moment_app_stat_write(const gkyl_moment_app* app);
 
 /**
+ * Write output to console: this is mainly for diagnostic messages the
+ * driver code wants to write to console. It accounts for parallel
+ * output by not messing up the console with messages from each rank.
+ *
+ * @param app App object
+ * @param fp File pointer for open file for output
+ * @param fmt Format string for console output
+ * @param argp Objects to write
+ */
+void gkyl_moment_app_cout(const gkyl_moment_app* app, FILE *fp, const char *fmt, ...);
+
+/**
  * Advance simulation by a suggested time-step 'dt'. The dt may be too
  * large in which case method will attempt to take a smaller time-step
  * and also return it as the 'dt_actual' field of the status

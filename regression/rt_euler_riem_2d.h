@@ -180,7 +180,6 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum 
 
   int my_rank;
   gkyl_comm_get_rank(comm, &my_rank);
-  printf("(%d) my_rank: %d\n", app_args.use_mpi, my_rank);
 
   struct gkyl_moment_low_inp low_inp = {
     .comm = comm,
@@ -224,14 +223,14 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum 
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
-    printf("Taking time-step %ld at t = %g ...", step, tcurr);
+    gkyl_moment_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, tcurr);
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
-    printf(" dt = %g\n", status.dt_actual);
+    gkyl_moment_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
 
     gkyl_moment_app_calc_integrated_mom(app, tcurr);
     
     if (!status.success) {
-      printf("** Update method failed! Aborting simulation ....\n");
+      gkyl_moment_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
     }
     tcurr += status.dt_actual;
@@ -251,12 +250,12 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum 
   gkyl_wv_eqn_release(euler);
   gkyl_moment_app_release(app);
 
-  printf("\n");
-  printf("Number of update calls %ld\n", stat.nup);
-  printf("Number of failed time-steps %ld\n", stat.nfail);
-  printf("Species updates took %g secs\n", stat.species_tm);
-  printf("Field updates took %g secs\n", stat.field_tm);
-  printf("Total updates took %g secs\n", stat.total_tm);
+  gkyl_moment_app_cout(app, stdout, "\n");
+  gkyl_moment_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
+  gkyl_moment_app_cout(app, stdout, "Number of failed time-steps %ld\n", stat.nfail);
+  gkyl_moment_app_cout(app, stdout, "Species updates took %g secs\n", stat.species_tm);
+  gkyl_moment_app_cout(app, stdout, "Field updates took %g secs\n", stat.field_tm);
+  gkyl_moment_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   gkyl_comm_release(comm);
   gkyl_rect_decomp_release(decomp);
