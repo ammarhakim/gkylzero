@@ -28,9 +28,6 @@ static const size_t array_elem_size[] = {
   [GKYL_USER] = 1,
 };
 
-// type-id for field data
-static const uint64_t dynvec_file_type = 2;
-
 struct gkyl_dynvec_tag {
   enum gkyl_elem_type type; // type of data stored in vector
   size_t elemsz, ncomp; // size of elements, number of 'components'
@@ -226,7 +223,7 @@ gkyl_dynvec_write_mode(const gkyl_dynvec vec,
     fwrite(g0, sizeof(char[5]), 1, fp);
     uint64_t version = 1;
     fwrite(&version, sizeof(uint64_t), 1, fp);
-    fwrite(&dynvec_file_type, sizeof(uint64_t), 1, fp);
+    fwrite(&gkyl_file_type_int[GKYL_DYNVEC_DATA_FILE], sizeof(uint64_t), 1, fp);
     uint64_t meta_size = 0; // THIS WILL CHANGE ONCE METADATA IS EMBEDDED
     fwrite(&meta_size, sizeof(uint64_t), 1, fp);
     
@@ -276,7 +273,7 @@ gkyl_dynvec_read_ncomp_1(FILE *fp, int *ncomp)
 
   uint64_t file_type;
   frr = fread(&file_type, sizeof(uint64_t), 1, fp);
-  if (file_type != dynvec_file_type)
+  if (file_type != gkyl_file_type_int[GKYL_DYNVEC_DATA_FILE])
     return false;
 
   uint64_t meta_size;
@@ -327,7 +324,7 @@ gkyl_dynvec_read_1(gkyl_dynvec vec, FILE *fp) {
 
   uint64_t file_type;
   frr = fread(&file_type, sizeof(uint64_t), 1, fp);
-  if (file_type != dynvec_file_type)
+  if (file_type != gkyl_file_type_int[GKYL_DYNVEC_DATA_FILE])
     return false;
 
   uint64_t meta_size;

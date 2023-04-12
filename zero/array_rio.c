@@ -66,9 +66,6 @@ static const size_t array_elem_size[] = {
   [GKYL_USER] = 1,
 };
 
-// type-id for field data
-static const uint64_t field_file_type = 1;
-
 void
 gkyl_array_write(const struct gkyl_array *arr, FILE *fp)
 {
@@ -114,7 +111,7 @@ gkyl_grid_sub_array_write_fp(const struct gkyl_rect_grid *grid,
   fwrite(g0, sizeof(char[5]), 1, fp);
   uint64_t version = 1;
   fwrite(&version, sizeof(uint64_t), 1, fp);
-  fwrite(&field_file_type, sizeof(uint64_t), 1, fp);
+  fwrite(&gkyl_file_type_int[GKYL_FIELD_DATA_FILE], sizeof(uint64_t), 1, fp);
   uint64_t meta_size = 0; // THIS WILL CHANGE ONCE METADATA IS EMBEDDED
   fwrite(&meta_size, sizeof(uint64_t), 1, fp);
   
