@@ -182,33 +182,6 @@ gkyl_dynvec_acquire(const gkyl_dynvec vec)
   return (struct gkyl_dynvec_tag*) vec;
 }
 
-/*
-  IF THIS FORMAT IF MODIFIED, PLEASE COPY AND THEN CHANGE THE
-  DESCRIPTION SO WE HAVE THE OLDER VERSIONS DOCUMENTED HERE. UPDATE
-  VERSION BY 1 EACH TIME YOU CHANGE THE FORMAT.
-
-  The format of the gkyl binary output is as follows.
-
-  ## Version 1: May 9th 2022. Created by A.H
-
-  Data      Type and meaning
-  --------------------------
-  gkyl0     5 bytes
-  version   uint64_t 
-  file_type uint64_t (1: field data, 2: diagnostic data)
-  meta_size uint64_t Number of bytes of meta-data
-  DATA      meta_size bytes of data. This is in msgpack format
-
-  For file_type = 2 (dynvec) the above header is followed by
-
-  real_type uint64_t. Indicates real type of data 
-  esznc     uint64_t Element-size * number of components in field
-  size      uint64_t Total number of cells in field
-  TIME_DATA float64[size] bytes of data
-  DATA      size*esznc bytes of data
-  
- */
-
 static int
 gkyl_dynvec_write_mode(const gkyl_dynvec vec,
   const char *fname, const char *mode)
