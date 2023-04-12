@@ -148,7 +148,7 @@ qfluct_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
 // project column vector delta onto the right eigenvectors of the flux Jacobian
 // evaluated at avg = {u, v, w, enth}
 static double
-project_euler(const struct gkyl_wv_eqn *eqn,
+proj_onto_euler_eigvect(const struct gkyl_wv_eqn *eqn,
   const double *delta, const double *avg, double *waves, double *s)
 {
   const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
@@ -233,7 +233,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   double avg[4];
   roe_avg(eqn, ql, qr, avg);
 
-  return project_euler(eqn, delta, avg, waves, s);
+  return proj_onto_euler_eigvect(eqn, delta, avg, waves, s);
 }
 
 static void
