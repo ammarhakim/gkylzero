@@ -16,6 +16,7 @@
 #include <gkyl_comm.h>
 
 #include <gkyl_null_comm.h>
+#include <gkyl_rect_decomp.h>
 
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
