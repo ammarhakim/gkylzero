@@ -181,11 +181,6 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum 
   int my_rank;
   gkyl_comm_get_rank(comm, &my_rank);
 
-  struct gkyl_moment_low_inp low_inp = {
-    .comm = comm,
-    .local_range = decomp->ranges[my_rank]
-  };
-
   // VM app
   struct gkyl_moment app_inp = {
     .ndim = 2,
