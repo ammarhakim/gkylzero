@@ -146,16 +146,16 @@ qfluct_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
 }
 
 // project column vector delta onto the right eigenvectors of the flux Jacobian
-// evaluated at Q = {u, v, w, enth}
+// evaluated at avg = {u, v, w, enth}
 static double
 project_euler(const struct gkyl_wv_eqn *eqn,
-  const double *delta, const double *Q, double *waves, double *s)
+  const double *delta, const double *avg, double *waves, double *s)
 {
   const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
   double gas_gamma = euler->gas_gamma;
   double g1 = gas_gamma - 1;
 
-  double u = Q[0], v = Q[1], w = Q[2], enth = Q[3];
+  double u = avg[0], v = avg[1], w = avg[2], enth = avg[3];
 
   // See http://ammar-hakim.org/sj/euler-eigensystem.html for notation
   // and meaning of these terms
@@ -202,10 +202,9 @@ project_euler(const struct gkyl_wv_eqn *eqn,
   return fabs(u)+a;
 }
 
-// Waves and speeds using Roe averaging
-static double
-wave_roe(const struct gkyl_wv_eqn *eqn,
-  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+inline static void
+roe_avg(const struct gkyl_wv_eqn *eqn, const double *ql,
+    const double *qr, double *avg)
 {
   const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
   double gas_gamma = euler->gas_gamma;
@@ -223,9 +222,18 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   double w = (ql[3]*ravgl1 + qr[3]*ravgr1)*ravg2;
   double enth = ((ql[4]+pl)*ravgl1 + (qr[4]+pr)*ravgr1)*ravg2;
 
-  double Q[4] = {u, v, w, enth};
+  avg[0] = u; avg[1] = v; avg[2] = w; avg[4] = enth;
+}
 
-  return project_euler(eqn, delta, Q, waves, s);
+// Waves and speeds using Roe averaging
+static double
+wave_roe(const struct gkyl_wv_eqn *eqn,
+  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+{
+  double avg[4];
+  roe_avg(eqn, ql, qr, avg);
+
+  return project_euler(eqn, delta, avg, waves, s);
 }
 
 static void
