@@ -7,22 +7,6 @@
 #include <gkyl_array_rio.h>
 #include <unistd.h>
 
-// code for array datatype for use in IO
-static const uint64_t array_data_type[] = {
-  [GKYL_INT] = 0,
-  [GKYL_FLOAT] = 1,
-  [GKYL_DOUBLE] = 2,
-  [GKYL_USER] = 32,
-};
-
-// size in bytes for various data-types
-static const size_t array_elem_size[] = {
-  [GKYL_INT] = sizeof(int),
-  [GKYL_FLOAT] = sizeof(float),
-  [GKYL_DOUBLE] = sizeof(double),
-  [GKYL_USER] = 1,
-};
-
 void
 gkyl_array_write(const struct gkyl_array *arr, FILE *fp)
 {
@@ -73,7 +57,7 @@ gkyl_grid_sub_array_write_fp(const struct gkyl_rect_grid *grid,
   fwrite(&meta_size, sizeof(uint64_t), 1, fp);
   
   // Version 0 format is used for rest of the file
-  uint64_t real_type = array_data_type[arr->type];
+  uint64_t real_type = gkyl_array_data_type[arr->type];
   fwrite(&real_type, sizeof(uint64_t), 1, fp);
   gkyl_rect_grid_write(grid, fp);
   gkyl_sub_array_write(range, arr, fp);
@@ -104,7 +88,7 @@ gkyl_array_new_from_file(enum gkyl_elem_type type, FILE *fp)
   if (1 != fread(&size, sizeof(uint64_t), 1, fp))
     return 0;
 
-  int ncomp = esznc/array_elem_size[type];
+  int ncomp = esznc/gkyl_elem_type_size[type];
   arr = gkyl_array_new(type, ncomp, size);
   if (1 != fread(arr->data, arr->esznc*arr->size, 1, fp)) {
     gkyl_array_release(arr);
