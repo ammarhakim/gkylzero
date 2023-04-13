@@ -251,21 +251,24 @@ void
 gkyl_moment_app_write_field_energy(gkyl_moment_app *app)
 {
   if (app->has_field) {
-    // write out field energy
-    cstr fileNm = cstr_from_fmt("%s-field-energy.gkyl", app->name);
-
-    if (app->field.is_first_energy_write_call) {
-      // write to a new file (this ensure previous output is removed)
-      gkyl_dynvec_write(app->field.integ_energy, fileNm.str);
-      app->field.is_first_energy_write_call = false;
-    }
-    else {
-      // append to existing file
-      gkyl_dynvec_awrite(app->field.integ_energy, fileNm.str);
+    int rank;
+    gkyl_comm_get_rank(app->comm, &rank);
+    if (rank == 0) {
+      // write out field energy
+      cstr fileNm = cstr_from_fmt("%s-field-energy.gkyl", app->name);
+      
+      if (app->field.is_first_energy_write_call) {
+        // write to a new file (this ensure previous output is removed)
+        gkyl_dynvec_write(app->field.integ_energy, fileNm.str);
+        app->field.is_first_energy_write_call = false;
+      }
+      else {
+        // append to existing file
+        gkyl_dynvec_awrite(app->field.integ_energy, fileNm.str);
+      }
+      cstr_drop(&fileNm);
     }
     gkyl_dynvec_clear(app->field.integ_energy);
-    
-    cstr_drop(&fileNm);
   }
 }
 
@@ -273,20 +276,23 @@ void
 gkyl_moment_app_write_integrated_mom(gkyl_moment_app *app)
 {
   for (int i=0; i<app->num_species; ++i) {
-    // write out diagnostic moments
-    cstr fileNm = cstr_from_fmt("%s-%s-%s.gkyl", app->name, app->species[i].name,
-      "imom");
-    
-    if (app->species[i].is_first_q_write_call) {
-      gkyl_dynvec_write(app->species[i].integ_q, fileNm.str);
-      app->species[i].is_first_q_write_call = false;
-    }
-    else {
-      gkyl_dynvec_awrite(app->species[i].integ_q, fileNm.str);
+    int rank;
+    gkyl_comm_get_rank(app->comm, &rank);
+    if (rank == 0) {
+      // write out diagnostic moments
+      cstr fileNm = cstr_from_fmt("%s-%s-%s.gkyl", app->name, app->species[i].name,
+        "imom");
+      
+      if (app->species[i].is_first_q_write_call) {
+        gkyl_dynvec_write(app->species[i].integ_q, fileNm.str);
+        app->species[i].is_first_q_write_call = false;
+      }
+      else {
+        gkyl_dynvec_awrite(app->species[i].integ_q, fileNm.str);
+      }
+      cstr_drop(&fileNm);
     }
     gkyl_dynvec_clear(app->species[i].integ_q);
-
-    cstr_drop(&fileNm);
   }
 }
 
