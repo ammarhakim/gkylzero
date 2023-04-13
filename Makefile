@@ -271,6 +271,7 @@ install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 # libraries
 	cp -f ${ZERO_SH_INSTALL_LIB} ${PREFIX}/gkylzero/lib/libgkylzero.so
 # Examples
+	test -e config.mak && cp -f config.mak ${PREFIX}/gkylzero/share/config.mak || echo "No config.mak"
 	cp -f Makefile.sample ${PREFIX}/gkylzero/share/Makefile
 	cp -f regression/rt_arg_parse.h ${PREFIX}/gkylzero/share/rt_arg_parse.h
 	cp -f regression/rt_twostream.c ${PREFIX}/gkylzero/share/rt_twostream.c
