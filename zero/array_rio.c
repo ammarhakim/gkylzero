@@ -3,9 +3,9 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <gkyl_array_rio.h>
-#include <unistd.h>
 
 void
 gkyl_array_write(const struct gkyl_array *arr, FILE *fp)

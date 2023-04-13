@@ -183,6 +183,12 @@ test_rect_decomp_2d(void)
   TEST_CHECK( vol == range.volume );
   TEST_CHECK( gkyl_rect_decomp_check_covering(decomp) );
 
+  long offs = 0;
+  for (int i=0; i<decomp->ndecomp; ++i) {
+    TEST_CHECK( offs == gkyl_rect_decomp_calc_offset(decomp, i) );
+    offs += decomp->ranges[i].volume;
+  }
+
   struct gkyl_range crange;
   gkyl_range_init_from_shape(&crange, 2, cuts);
   struct gkyl_range_iter iter;

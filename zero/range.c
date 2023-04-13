@@ -342,6 +342,23 @@ gkyl_range_intersect(struct gkyl_range* irng,
   return irng->volume > 0 ? 1 : 0;
 }
 
+int
+gkyl_sub_range_intersect(struct gkyl_range* irng,
+  const struct gkyl_range *r1, const struct gkyl_range *r2)
+{
+  int ndim = r1->ndim;
+  int lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
+  for (int d=0; d<ndim; ++d) {
+    lo[d] = r1->lower[d] > r2->lower[d] ? r1->lower[d] : r2->lower[d];
+    up[d] = r1->upper[d] < r2->upper[d] ? r1->upper[d] : r2->upper[d];
+  }
+  if (irng->volume)
+    gkyl_sub_range_init(irng, r1, lo, up);
+  else
+    gkyl_range_init(irng, ndim, lo, up); // not sure what to do if intersection is empty
+  return irng->volume > 0 ? 1 : 0;
+}
+
 void
 gkyl_range_iter_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range)

@@ -248,7 +248,19 @@ void gkyl_skin_ghost_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
  * @param r2 Range to intersect
  * @return 1 if intersection is not-empty, 0 otherwise
  */
-int gkyl_range_intersect(struct gkyl_range* irng,
+int gkyl_range_intersect(struct gkyl_range *irng, const struct gkyl_range *r1,
+  const struct gkyl_range *r2);
+
+/**
+ * Compute intersection of two ranges. The intersection is a sub-range
+ * of @a r1.
+ * 
+ * @param irng Intersection of r1 and r2. 
+ * @param r1 Range to intersect. irng is sub-range of r1
+ * @param r2 Range to intersect
+ * @return 1 if intersection is not-empty, 0 otherwise
+ */
+int gkyl_sub_range_intersect(struct gkyl_range* irng,
   const struct gkyl_range *r1, const struct gkyl_range *r2);
 
 /**

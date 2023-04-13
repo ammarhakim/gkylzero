@@ -79,7 +79,7 @@ gkyl_rect_decomp_new_from_cuts(int ndim, const int cuts[], const struct gkyl_ran
       upper[d] = eidx[d][citer.idx[d]];
     }
 
-    gkyl_sub_range_init(&decomp->ranges[dnum++], range, lower, upper);
+    gkyl_range_init(&decomp->ranges[dnum++], range->ndim, lower, upper);
   }
 
   for (int d=0; d<ndim; ++d) {
@@ -108,11 +108,15 @@ gkyl_rect_decomp_check_covering(const struct gkyl_rect_decomp *decomp)
   // following loops over each sub-range and increments the region it
   // indexes in 'arr'. Each index should be visited exactly once.
   for (int i=0; i<decomp->ndecomp; ++i) {
+    // construct a sub-range so indexing into global array works fine
+    struct gkyl_range lrange;
+    gkyl_sub_range_intersect(&lrange, &decomp->parent_range, &decomp->ranges[i]);
+    
     struct gkyl_range_iter iter;
-    gkyl_range_iter_init(&iter, &decomp->ranges[i]);
+    gkyl_range_iter_init(&iter, &lrange);
 
     while (gkyl_range_iter_next(&iter)) {
-      double *d = gkyl_array_fetch(arr, gkyl_range_idx(&decomp->ranges[i], iter.idx));
+      double *d = gkyl_array_fetch(arr, gkyl_range_idx(&decomp->parent_range, iter.idx));
       d[0] += 1.0;
     }
   }
@@ -207,6 +211,15 @@ gkyl_rect_decomp_neigh_release(struct gkyl_rect_decomp_neigh *ng)
     struct rect_decomp_neigh_cont, neigh);
   cvec_int_drop(&cont->l_neigh);
   gkyl_free(cont);
+}
+
+long
+gkyl_rect_decomp_calc_offset(const struct gkyl_rect_decomp *decomp, int nidx)
+{
+  long offset = 0;
+  for (int i=0; i<nidx; ++i)
+    offset += decomp->ranges[i].volume;
+  return offset;
 }
 
 void      

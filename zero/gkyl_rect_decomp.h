@@ -23,7 +23,8 @@ struct gkyl_rect_decomp_neigh {
 /**
  * Create a new decomposition of @a range, given @a cuts in each
  * direction. The total number of decomposed ranges are product of all
- * cuts. The decomposed ranges are sub-ranges of the parent range.
+ * cuts. The decomposed ranges index independent of @a range,
+ * i.e. decomposed ranges are NOT sub-ranges of @a range.
  *
  * @param ndim Number of dimensions
  * @param cuts Cuts in each direction.
@@ -70,6 +71,17 @@ struct gkyl_rect_decomp_neigh* gkyl_rect_decomp_calc_neigh(
  * @param ng Neighbor data to free
  */
 void gkyl_rect_decomp_neigh_release(struct gkyl_rect_decomp_neigh *ng);
+
+/**
+ * Compute cumulative offet of @a nidx range in the decomp. The
+ * cumulative offset is the global linear index of the first cell in
+ * the local range.
+ *
+ * @param decomp Decomposition object
+ * @param nidx Index of range for which offset is needed
+ * @return Offest of first cell in range[nidx]
+ */
+long gkyl_rect_decomp_calc_offset(const struct gkyl_rect_decomp *decomp, int nidx);
 
 /**
  * Free decomposition.
