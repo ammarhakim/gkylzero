@@ -123,7 +123,7 @@ evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 
   double Jx = 0.0;
   double Jy = 0.0;
-  double Jz = -B0/w0*sech2(y/w0) - psi0*sin(pi_2*x/Lx)*((pi_2/Lx)*(pi_2/Lx)*(1 - cos(pi_4*y/Ly)) + (pi_4/Ly)*(pi_4/Ly)*cos(pi_4*y/Ly));
+  double Jz = -B0/w0*sech2(y/w0) - psi0*cos(pi_2*x/Lx)*cos(M_PI*y/Ly)*((pi_2/Lx)*(pi_2/Lx) + (M_PI/Ly)*(M_PI/Ly));
 
   fout[0] = 0.0;
   fout[1] = 0.0;
@@ -156,7 +156,7 @@ evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 
   double Jx = 0.0;
   double Jy = 0.0;
-  double Jz  = -B0/w0*sech2(y/w0) - psi0*sin(pi_2*x/Lx)*((pi_2/Lx)*(pi_2/Lx)*(1 - cos(pi_4*y/Ly)) + (pi_4/Ly)*(pi_4/Ly)*cos(pi_4*y/Ly));
+  double Jz  = -B0/w0*sech2(y/w0) - psi0*cos(pi_2*x/Lx)*cos(M_PI*y/Ly)*((pi_2/Lx)*(pi_2/Lx) + (M_PI/Ly)*(M_PI/Ly));
 
   fout[0] = 0.0;
   fout[1] = 0.0;
@@ -191,8 +191,8 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double E_x = 0.0;
   double E_y = 0.0;
   double E_z = 0.0;
-  double B_x = b1x - psi0*pi_4/Ly*sin(pi_2*x/Lx)*sin(pi_4*y/Ly);
-  double B_y = b1y + psi0*pi_2/Lx*cos(pi_2*x/Lx)*(1-cos(pi_4*y/Ly));
+  double B_x = b1x - psi0 * (M_PI / Ly) * cos(2 * M_PI * x / Lx) * sin(M_PI * y / Ly);
+  double B_y = b1y + psi0 * (2 * M_PI / Lx) * sin(2 * M_PI * x / Lx) * cos(M_PI * y / Ly);
   double B_z = b1z;
   
   fout[0] = E_x; fout[1] = E_y, fout[2] = E_z;
