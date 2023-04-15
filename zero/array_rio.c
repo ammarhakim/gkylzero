@@ -21,11 +21,7 @@ gkyl_sub_array_write(const struct gkyl_range *range,
   const struct gkyl_array *arr, FILE *fp)
 {
 #define _F(loc) gkyl_array_cfetch(arr, loc)
-  
-  uint64_t esznc = arr->esznc, size = range->volume;
-  fwrite(&esznc, sizeof(uint64_t), 1, fp);
-  fwrite(&size, sizeof(uint64_t), 1, fp);
-  
+
   // construct skip iterator to allow writing (potentially) in chunks
   // rather than element by element or requiring a copy of data
   struct gkyl_range_skip_iter skip;
@@ -42,9 +38,8 @@ gkyl_sub_array_write(const struct gkyl_range *range,
 }
 
 int
-gkyl_grid_sub_array_write_fp(const struct gkyl_rect_grid *grid,
-  const struct gkyl_range *range,
-  const struct gkyl_array *arr, FILE *fp)
+gkyl_grid_sub_array_header_write_fp(const struct gkyl_rect_grid *grid,
+  struct gkyl_array_header_info *hdr, FILE *fp)
 {
   const char g0[5] = "gkyl0";
 
@@ -52,16 +47,37 @@ gkyl_grid_sub_array_write_fp(const struct gkyl_rect_grid *grid,
   fwrite(g0, sizeof(char[5]), 1, fp);
   uint64_t version = 1;
   fwrite(&version, sizeof(uint64_t), 1, fp);
-  fwrite(&gkyl_file_type_int[GKYL_FIELD_DATA_FILE], sizeof(uint64_t), 1, fp);
+  fwrite(&hdr->file_type, sizeof(uint64_t), 1, fp);
   uint64_t meta_size = 0; // THIS WILL CHANGE ONCE METADATA IS EMBEDDED
   fwrite(&meta_size, sizeof(uint64_t), 1, fp);
   
-  // Version 0 format is used for rest of the file
-  uint64_t real_type = gkyl_array_data_type[arr->type];
+  // Version 0 format is used for rest of the header
+  uint64_t real_type = gkyl_array_data_type[hdr->etype];
   fwrite(&real_type, sizeof(uint64_t), 1, fp);
   gkyl_rect_grid_write(grid, fp);
-  gkyl_sub_array_write(range, arr, fp);
 
+  fwrite(&hdr->esznc, sizeof(uint64_t), 1, fp);
+  fwrite(&hdr->tot_cells, sizeof(uint64_t), 1, fp);
+
+  return errno;
+}
+
+int
+gkyl_grid_sub_array_write_fp(const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *range,
+  const struct gkyl_array *arr, FILE *fp)
+{
+  gkyl_grid_sub_array_header_write_fp(grid,
+    &(struct gkyl_array_header_info) {
+      .file_type = gkyl_file_type_int[GKYL_FIELD_DATA_FILE],
+      .etype = arr->type,
+      .esznc = arr->esznc,
+      .tot_cells = range->volume
+    },
+    fp
+  );
+
+  gkyl_sub_array_write(range, arr, fp);
   return errno;
 }
 
