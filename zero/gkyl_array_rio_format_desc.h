@@ -74,3 +74,14 @@
   Note: the global range in Gkeyll, of which each range is a part,
   is 1-indexed.
  */
+
+#include <stdio.h>
+
+// The following utility functions allow to determine the size in
+// bytes of the headers for gkyl output files.
+
+size_t gkyl_base_hdr_size(size_t meta_sz);
+size_t gkyl_file_type_1_hrd_size(int ndim);
+size_t gkyl_file_type_2_hrd_size(void);
+size_t gkyl_file_type_3_hrd_size(int ndim);
+size_t gkyl_file_type_3_range_hrd_size(int ndim);
