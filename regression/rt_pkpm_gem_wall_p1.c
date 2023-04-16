@@ -230,11 +230,14 @@ create_ctx(void)
   double nbOverN0 = 0.2; // background number density
 
   double vAe = 1.0/4.0;
-  double B0 = vAe*sqrt(mu0*n0*massElc);
   double beta = 5.0/6.0;
   double vtElc = vAe*sqrt(beta*Te_Ti);
 
-  double guide = 0.1*B0;
+  // B0 has 1/sqrt(2) factor because B is equally subdivided between
+  // guide field and in-plane field
+  double B0 = vAe*sqrt(mu0*n0*massElc)/sqrt(2.0);  
+  double guide = B0;
+  double tot_B = sqrt(B0*B0 + guide*guide);
 
   double T_e = vtElc*vtElc/2.0;
   double T_i = T_e/Te_Ti;
@@ -244,12 +247,12 @@ create_ctx(void)
   double vtIon = vtElc/sqrt(massIon); //Ti/Te = 1.0
 
   // ion cyclotron frequency and gyroradius
-  double omegaCi = chargeIon*B0/massIon;
+  double omegaCi = chargeIon*tot_B/massIon;
   double di = vAi/omegaCi;
 
   // Layer width and perturbation
   double w0 = 0.5*di;
-  double psi0 = 0.1*B0*di;
+  double psi0 = 0.1*tot_B*di;
 
   // collision frequencies
   double nuElc = 0.01*omegaCi;
@@ -306,7 +309,7 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 64);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 32);
-  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
