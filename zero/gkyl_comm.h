@@ -3,6 +3,7 @@
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_elem_type.h>
+#include <gkyl_rect_grid.h>
 #include <gkyl_ref_count.h>
 
 // The return value of the functions is an error code. Success is
@@ -25,6 +26,11 @@ typedef int (*all_reduce_t)(struct gkyl_comm *comm, enum gkyl_elem_type type,
 typedef int (*gkyl_array_sync_t)(struct gkyl_comm *comm, int ndim, const int *nghost,
   struct gkyl_array *array);
 
+// Write array to specified file
+typedef int (*gkyl_array_write_t)(struct gkyl_comm *comm,
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+  const struct gkyl_array *arr, const char *fname);
+
 // Barrier
 typedef int (*barrier_t)(struct gkyl_comm *comm);
 
@@ -37,6 +43,8 @@ struct gkyl_comm {
   all_reduce_t all_reduce; // all reduce function
   gkyl_array_sync_t gkyl_array_sync; // sync array
   barrier_t barrier; // barrier
+
+  gkyl_array_write_t gkyl_array_write; // array output
 
   struct gkyl_ref_count ref_count; // reference count
 };
@@ -109,6 +117,25 @@ static int
 gkyl_comm_barrier(struct gkyl_comm *comm)
 {
   return comm->barrier(comm);
+}
+
+/**
+ * Write out grid and array data to file in .gkyl format so postgkyl
+ * can understand it.
+ *
+ * @param comm Communcator
+ * @param grid Grid object to write
+ * @param range Range describing portion of the array to output.
+ * @param arr Array object to write
+ * @param fname Name of output file (include .gkyl extension)
+ * @return Status flag: 0 if write succeeded, 'errno' otherwise
+ */
+static int
+gkyl_comm_array_write(struct gkyl_comm *comm,
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+  const struct gkyl_array *arr, const char *fname)
+{
+  return comm->gkyl_array_write(comm, grid, range, arr, fname);
 }
 
 /**

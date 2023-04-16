@@ -1,4 +1,5 @@
 #include <gkyl_alloc.h>
+#include <gkyl_array_rio.h>
 #include <gkyl_null_comm.h>
 
 #include <string.h>
@@ -40,10 +41,14 @@ array_sync(struct gkyl_comm *comm, int ndim, const int *nghost,
   return 0;
 }
 
+static int barrier(struct gkyl_comm *comm) { return 0; }
+
 static int
-barrier(struct gkyl_comm *comm)
+array_write(struct gkyl_comm *comm,
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+  const struct gkyl_array *arr, const char *fname)
 {
-  return 0;
+  return gkyl_grid_sub_array_write(grid, range, arr, fname);
 }
 
 struct gkyl_comm*
@@ -56,6 +61,7 @@ gkyl_null_comm_new(void)
   comm->all_reduce = all_reduce;
   comm->gkyl_array_sync = array_sync;
   comm->barrier = barrier;
+  comm->gkyl_array_write = array_write;
 
   comm->ref_count = gkyl_ref_count_init(comm_free);
 

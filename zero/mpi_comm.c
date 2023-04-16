@@ -2,8 +2,12 @@
 #ifdef GKYL_HAVE_MPI
 
 #include <gkyl_alloc.h>
+#include <gkyl_array_rio.h>
+#include <gkyl_array_rio_format_desc.h>
 #include <gkyl_elem_type.h>
 #include <gkyl_mpi_comm.h>
+
+#include <errno.h>
 
 // Mapping of Gkeyll type to MPI_Datatype
 static MPI_Datatype g2_mpi_datatype[] = {
@@ -25,6 +29,7 @@ struct mpi_comm {
 
   MPI_Comm mcomm; // MPI communicator to use
   struct gkyl_rect_decomp *decomp; // pre-computed decomposition
+  long local_range_offset; // offset of the local region
 };
 
 static void
@@ -78,18 +83,137 @@ barrier(struct gkyl_comm *comm)
   return 0;
 }
 
+// set of functions to help with parallel array output using MPI-IO
+static void
+sub_array_decomp_write(struct mpi_comm *comm, const struct gkyl_rect_decomp *decomp,
+  const struct gkyl_range *range,
+  const struct gkyl_array *arr, MPI_File fp)
+{
+#define _F(loc) gkyl_array_cfetch(arr, loc)
+
+  int rank;
+  MPI_Comm_rank(comm->mcomm, &rank);
+
+  // seek to appropriate place in the file, depending on rank
+  size_t hdr_sz = gkyl_base_hdr_size(0) + gkyl_file_type_3_hrd_size(range->ndim);
+  size_t file_loc = hdr_sz +
+    arr->esznc*gkyl_rect_decomp_calc_offset(decomp, rank) +
+    rank*gkyl_file_type_3_range_hrd_size(range->ndim);
+
+  MPI_Offset fp_offset = file_loc;
+  MPI_File_seek(fp, fp_offset, MPI_SEEK_SET);
+
+  do {
+    char *buff; size_t buff_sz;
+    FILE *fbuff = open_memstream(&buff, &buff_sz);
+  
+    uint64_t loidx[GKYL_MAX_DIM] = {0}, upidx[GKYL_MAX_DIM] = {0};
+    for (int d = 0; d < range->ndim; ++d) {
+      loidx[d] = range->lower[d];
+      upidx[d] = range->upper[d];
+    }
+    
+    fwrite(loidx, sizeof(uint64_t), range->ndim, fbuff);
+    fwrite(upidx, sizeof(uint64_t), range->ndim, fbuff);
+    uint64_t sz = range->volume;
+    fwrite(&sz, sizeof(uint64_t), 1, fbuff);
+
+    fclose(fbuff);
+
+    MPI_Status status;
+    MPI_File_write(fp, buff, buff_sz, MPI_CHAR, &status);
+
+    free(buff);
+    
+  } while (0);
+
+  // construct skip iterator to allow writing (potentially) in chunks
+  // rather than element by element or requiring a copy of data
+  struct gkyl_range_skip_iter skip;
+  gkyl_range_skip_iter_init(&skip, range);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &skip.range);
+
+  MPI_Status status;
+  while (gkyl_range_iter_next(&iter)) {
+    long start = gkyl_range_idx(&skip.range, iter.idx);
+    MPI_File_write(fp, _F(start), arr->esznc*skip.delta, MPI_CHAR, &status);
+  }
+
+#undef _F
+}
+
+static int
+grid_sub_array_decomp_write_fp(struct mpi_comm *comm,
+  const struct gkyl_rect_grid *grid,
+  const struct gkyl_rect_decomp *decomp, const struct gkyl_range *range,
+  const struct gkyl_array *arr, MPI_File fp)
+{
+  char *buff; size_t buff_sz;
+  FILE *fbuff = open_memstream(&buff, &buff_sz);
+
+  // wtite header to a char buffer
+  gkyl_grid_sub_array_header_write_fp(grid,
+    &(struct gkyl_array_header_info) {
+      .file_type = gkyl_file_type_int[GKYL_MULTI_RANGE_DATA_FILE],
+      .etype = arr->type,
+      .esznc = arr->esznc,
+      .tot_cells = decomp->parent_range.volume
+    },
+    fbuff
+  );
+  uint64_t nrange = decomp->ndecomp;
+  fwrite(&nrange, sizeof(uint64_t), 1, fbuff);
+  fclose(fbuff);
+
+  // actual header IO is only done by rank 0
+  int rank;
+  MPI_Comm_rank(comm->mcomm, &rank);
+  if (rank == 0) {
+    MPI_Status status;
+    MPI_File_write(fp, buff, buff_sz, MPI_CHAR, &status);
+  }
+  free(buff);
+  
+  // write data in array
+  sub_array_decomp_write(comm, decomp, range, arr, fp);
+  return errno;
+}
+
+static int
+array_write(struct gkyl_comm *comm,
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+  const struct gkyl_array *arr, const char *fname)
+{
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
+  MPI_File fp;
+  int err =
+    MPI_File_open(mpi->mcomm, fname, MPI_MODE_CREATE|MPI_MODE_WRONLY, MPI_INFO_NULL, &fp);
+  if (err != MPI_SUCCESS)
+    return err;
+  err = grid_sub_array_decomp_write_fp(mpi, grid, mpi->decomp, range, arr, fp);
+  MPI_File_close(&fp);
+  return err;
+}
+
 struct gkyl_comm*
 gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
 {
   struct mpi_comm *mpi = gkyl_malloc(sizeof *mpi);
   mpi->mcomm = inp->mpi_comm;
   mpi->decomp = gkyl_rect_decomp_acquire(inp->decomp);
+
+  int rank;
+  MPI_Comm_rank(inp->mpi_comm, &rank);
+  mpi->local_range_offset = gkyl_rect_decomp_calc_offset(mpi->decomp, rank);
   
   mpi->base.get_rank = get_rank;
   mpi->base.get_size = get_size;
   mpi->base.barrier = barrier;
   mpi->base.all_reduce = all_reduce;
   mpi->base.gkyl_array_sync = array_sync;
+  mpi->base.gkyl_array_write = array_write;
 
   mpi->base.ref_count = gkyl_ref_count_init(comm_free);
 

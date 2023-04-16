@@ -245,10 +245,6 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum 
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
 
-  // simulation complete, free resources
-  gkyl_wv_eqn_release(euler);
-  gkyl_moment_app_release(app);
-
   gkyl_moment_app_cout(app, stdout, "\n");
   gkyl_moment_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
   gkyl_moment_app_cout(app, stdout, "Number of failed time-steps %ld\n", stat.nfail);
@@ -256,6 +252,9 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum 
   gkyl_moment_app_cout(app, stdout, "Field updates took %g secs\n", stat.field_tm);
   gkyl_moment_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
+  // simulation complete, free resources
+  gkyl_wv_eqn_release(euler);
+  gkyl_moment_app_release(app);  
   gkyl_comm_release(comm);
   gkyl_rect_decomp_release(decomp);
   
