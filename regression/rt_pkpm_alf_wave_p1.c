@@ -24,10 +24,10 @@ struct pkpm_ot_ctx {
   double nuIon;
   double delta_u0;
   double delta_B0;
-  double Lx;
-  double Lz;
-  double kx;
-  double kz;
+  double Lperp;
+  double Lpar;
+  double kperp;
+  double kpar;
   double tend;
   double min_dt;
   bool use_gpu;
@@ -45,14 +45,14 @@ evalDistFuncElc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 {
   struct pkpm_ot_ctx *app = ctx;
   
-  double x = xn[0], z = xn[1], vx = xn[2];
+  double x = xn[0], y = xn[1], vx = xn[2];
 
   double qe = app->chargeElc;
   double qi = app->chargeIon;
-  double Lx = app->Lx;
-  double Ly = app->Lz;
-  double u0y = app->delta_u0;
-  double B0y = app->delta_B0;
+  double Lperp = app->Lperp;
+  double Lpar = app->Lpar;
+  double u0perp = app->delta_u0;
+  double B0perp = app->delta_B0;
   
   double fv = maxwellian(app->n0, vx, app->vtElc);
     
@@ -64,16 +64,14 @@ evalDistFuncIon(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 {
   struct pkpm_ot_ctx *app = ctx;
   
-  double x = xn[0], z = xn[1], vx = xn[2];
+  double x = xn[0], y = xn[1], vx = xn[2];
 
   double qe = app->chargeElc;
   double qi = app->chargeIon;
-  double Lx = app->Lx;
-  double Ly = app->Lz;
-  double u0x = app->delta_u0;
-  double u0y = app->delta_u0;
-  double B0x = app->delta_B0;
-  double B0y = app->delta_B0;
+  double Lperp = app->Lperp;
+  double Lpar = app->Lpar;
+  double u0perp = app->delta_u0;
+  double B0perp = app->delta_B0;
 
   double fv = maxwellian(app->n0, vx, app->vtIon);
     
@@ -86,25 +84,25 @@ evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct pkpm_ot_ctx *app = ctx;
   
-  double x = xn[0], z = xn[1];
+  double x = xn[0], y = xn[1];
 
   double qe = app->chargeElc;
   double qi = app->chargeIon;
   double me = app->massElc;
   double mi = app->massIon;
-  double Lx = app->Lx;
-  double Ly = app->Lz;
-  double kx = app->kx;
-  double kz = app->kz;
-  double u0y = app->delta_u0;
-  double B0y = app->delta_B0;
+  double Lperp = app->Lperp;
+  double Lpar = app->Lpar;
+  double kperp = app->kperp;
+  double kpar = app->kpar;
+  double u0perp = app->delta_u0;
+  double B0perp = app->delta_B0;
 
-  double Jx = B0y*kz*sin(kx*x + kz*z) / app->mu0;
-  double Jz = -B0y*kx*sin(kx*x + kz*z) / app->mu0;
+  double Jx = B0perp*kpar*sin(kperp*x + kpar*y) / app->mu0;
+  double Jy = -B0perp*kperp*sin(kperp*x + kpar*y) / app->mu0;
 
   double vdrift_x = -Jx / qi;
-  double vdrift_y = -u0y*cos(kx*x + kz*z);
-  double vdrift_z = -Jz / qi;
+  double vdrift_y = -Jy / qi;
+  double vdrift_z = -u0perp*cos(kperp*x + kpar*y);;
 
   fout[0] = me*vdrift_x;
   fout[1] = me*vdrift_y;
@@ -116,26 +114,26 @@ evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct pkpm_ot_ctx *app = ctx;
   
-  double x = xn[0], z = xn[1];
+  double x = xn[0], y = xn[1];
 
   double qe = app->chargeElc;
   double qi = app->chargeIon;
   double me = app->massElc;
   double mi = app->massIon;
-  double Lx = app->Lx;
-  double Ly = app->Lz;
-  double kx = app->kx;
-  double kz = app->kz;
-  double u0y = app->delta_u0;
-  double B0y = app->delta_B0;
+  double Lpar = app->Lperp;
+  double Lperp = app->Lpar;
+  double kperp = app->kperp;
+  double kpar = app->kpar;
+  double u0perp = app->delta_u0;
+  double B0perp = app->delta_B0;
 
   double vdrift_x = 0.0;
-  double vdrift_y = -u0y*cos(kx*x + kz*z);
-  double vdrift_z = 0.0;
+  double vdrift_y = 0.0;
+  double vdrift_z = -u0perp*cos(kperp*x + kpar*y);
 
   fout[0] = mi*vdrift_x;
   fout[1] = mi*vdrift_y;
-  fout[2] = 0.0;
+  fout[2] = mi*vdrift_z;
 }
 
 void
@@ -143,28 +141,28 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct pkpm_ot_ctx *app = ctx;
 
-  double x = xn[0], z = xn[1];
+  double x = xn[0], y = xn[1];
 
   double qe = app->chargeElc;
   double qi = app->chargeIon;
-  double Lx = app->Lx;
-  double Ly = app->Lz;
-  double kx = app->kx;
-  double kz = app->kz;
-  double u0y = app->delta_u0;
-  double B0y = app->delta_B0;
+  double Lperp = app->Lperp;
+  double Lpar = app->Lpar;
+  double kperp = app->kperp;
+  double kpar = app->kpar;
+  double u0perp = app->delta_u0;
+  double B0perp = app->delta_B0;
 
-  double Jx = B0y*kz*sin(kx*x + kz*z) / app->mu0;
-  double Jz = -B0y*kx*sin(kx*x + kz*z) / app->mu0;
+  double Jx = B0perp*kpar*sin(kperp*x + kpar*y) / app->mu0;
+  double Jy = -B0perp*kperp*sin(kperp*x + kpar*y) / app->mu0;
 
   double B_x = 0.;
-  double B_y = B0y*cos(kx*x + kz*z);
-  double B_z = app->B0;
+  double B_y = -app->B0;
+  double B_z = -B0perp*cos(kperp*x + kpar*y);
 
   // Assumes qi = abs(qe)
   double u_xe = -Jx / qi;
-  double u_ye = -u0y*cos(kx*x + kz*z);
-  double u_ze = -Jz / qi;
+  double u_ye = -Jy / qi;
+  double u_ze = -u0perp*cos(kperp*x + kpar*y);;
 
   // E = - v_e x B ~  (J - u) x B
   double E_x = - (u_ye*B_z - u_ze*B_y);
@@ -222,15 +220,15 @@ create_ctx(void)
   double nuIon = 0.01*omegaCi/sqrt(massIon);
 
   // initial conditions
-  double delta_B0 = 1.e-3*B0;
-  double delta_u0 = 1.e-3*vAi;
-  double kx = 1.005412 / rhoi;
-  double kz = 0.087627 / rhoi;
+  double delta_B0 = 1.e-6*B0;
+  double delta_u0 = 1.e-6*vAi;
+  double kperp = 1.005412 / rhoi;
+  double kpar = 0.087627 / rhoi;
 
   // domain size and simulation time
-  double Lx = 2.*M_PI/kx;
-  double Lz = 2.*M_PI/kz;
-  double tend = 75.0/omegaCi;
+  double Lperp = 2.*M_PI/kperp;
+  double Lpar = 2.*M_PI/kpar;
+  double tend = 100.0/omegaCi;
   
   struct pkpm_ot_ctx ctx = {
     .epsilon0 = epsilon0,
@@ -250,10 +248,10 @@ create_ctx(void)
     .nuIon = nuIon,
     .delta_u0 = delta_u0,
     .delta_B0 = delta_B0,
-    .Lx = Lx,
-    .Lz = Lz,
-    .kx = kx,
-    .kz = kz,
+    .Lperp = Lperp,
+    .Lpar = Lpar,
+    .kperp = kperp,
+    .kpar = kpar,
     .tend = tend,
     .min_dt = 1.0e-2, 
   };
@@ -275,7 +273,7 @@ main(int argc, char **argv)
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 16);
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[1], 16);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 16);
   int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
 
   if (app_args.trace_mem) {
@@ -292,7 +290,7 @@ main(int argc, char **argv)
     .pkpm_species = "elc",
     .ctx = &ctx,
     .init = evalFluidElc,
-    .nuHyp = 1.0e-4,
+    // .nuHyp = 1.0e-4,
   };  
   
   // electrons
@@ -325,7 +323,7 @@ main(int argc, char **argv)
     .pkpm_species = "ion",
     .ctx = &ctx,
     .init = evalFluidIon,
-    .nuHyp = 1.0e-4, 
+    // .nuHyp = 1.0e-4, 
   };  
   
   // ions
@@ -367,8 +365,8 @@ main(int argc, char **argv)
 
     .cdim = 2, .vdim = 1,
     .lower = { 0.0, 0.0 },
-    .upper = { ctx.Lx, ctx.Lz },
-    .cells = { NX, NZ },
+    .upper = { ctx.Lperp, ctx.Lpar },
+    .cells = { NX, NY },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
     //.cfl_frac = 0.8,
@@ -391,7 +389,7 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = ctx.tend;
   double dt = tend-tcurr;
-  int nframe = 75;
+  int nframe = 100;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
