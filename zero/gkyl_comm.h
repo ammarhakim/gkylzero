@@ -23,8 +23,9 @@ typedef int (*all_reduce_t)(struct gkyl_comm *comm, enum gkyl_elem_type type,
   enum gkyl_array_op op, int nelem, const void *inp, void *out);
 
 // "Synchronize" @a array across the regions or blocks.
-typedef int (*gkyl_array_sync_t)(struct gkyl_comm *comm, int ndim, const int *nghost,
-  struct gkyl_array *array);
+typedef int (*gkyl_array_sync_t)(struct gkyl_comm *comm,
+  const struct gkyl_range *local, const struct gkyl_range *local_ext,
+  const int *nghost, struct gkyl_array *array);
 
 // Write array to specified file
 typedef int (*gkyl_array_write_t)(struct gkyl_comm *comm,
@@ -100,11 +101,13 @@ gkyl_comm_all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
  * @param array Array to synchronize
  * @return error code: 0 for success
  */
-static int
-gkyl_comm_gkyl_array_sync(struct gkyl_comm *comm, int ndim, const int *nghost,
+static int gkyl_comm_gkyl_array_sync(struct gkyl_comm *comm,
+  const struct gkyl_range *local,
+  const struct gkyl_range *local_ext,
+  const int *nghost,
   struct gkyl_array *array)
 {
-  return comm->gkyl_array_sync(comm, ndim, nghost, array);
+  return comm->gkyl_array_sync(comm, local, local_ext, nghost, array);
 }
 
 /**

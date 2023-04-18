@@ -35,8 +35,9 @@ all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
 }
 
 static int
-array_sync(struct gkyl_comm *comm, int ndim, const int *nghost,
-  struct gkyl_array *array)
+array_sync(struct gkyl_comm *comm,
+  const struct gkyl_range *local, const struct gkyl_range *local_ext,
+  const int *nghost, struct gkyl_array *array)
 {
   return 0;
 }

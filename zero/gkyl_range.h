@@ -122,6 +122,14 @@ static inline int gkyl_range_shape(const struct gkyl_range *rng, int dir)
 int gkyl_range_is_sub_range(const struct gkyl_range *rng);
 
 /**
+ * Return 1 if idx is inside the range.
+ *
+ * @param rng Range obkect
+ * @return 1 if true, 0 otherwise
+ */
+int gkyl_range_contains_idx(const struct gkyl_range *rng, const int *idx);
+
+/**
  * Create a sub-range from a given range. The sub-range must be fully
  * contained in the parent range or else it will be truncated. The
  * sub-range and the parent range will returns the same linear index

@@ -82,7 +82,13 @@ void test_sub_range()
     TEST_CHECK( invIdx[0] == iter.idx[0] );
     TEST_CHECK( invIdx[1] == iter.idx[1] );
   }
-  
+
+  TEST_CHECK( gkyl_range_contains_idx(&range, (int[]) { 1, 1 }) == 1 );
+  TEST_CHECK( gkyl_range_contains_idx(&range, (int[]) { 1, 5 }) == 1 );
+  TEST_CHECK( gkyl_range_contains_idx(&range, (int[]) { 1, 10 }) == 1 );
+  TEST_CHECK( gkyl_range_contains_idx(&range, (int[]) { 10, 20 }) == 1 );
+
+  TEST_CHECK( gkyl_range_contains_idx(&range, (int[]) { 0, 20 }) == 0 );
 }
 
 void test_sub_range_inv_idx()

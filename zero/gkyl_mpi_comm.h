@@ -10,6 +10,7 @@
 struct gkyl_mpi_comm_inp {
   MPI_Comm mpi_comm; // MPI communicator to use
   const struct gkyl_rect_decomp *decomp; // pre-computed decomposition
+  bool sync_corners; // should we sync corners?
 };
 
 /**

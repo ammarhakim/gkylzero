@@ -2,6 +2,7 @@
 #ifdef GKYL_HAVE_MPI
 
 #include <gkyl_alloc.h>
+#include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_array_rio_format_desc.h>
 #include <gkyl_elem_type.h>
@@ -30,6 +31,9 @@ struct mpi_comm {
   MPI_Comm mcomm; // MPI communicator to use
   struct gkyl_rect_decomp *decomp; // pre-computed decomposition
   long local_range_offset; // offset of the local region
+  
+  struct gkyl_rect_decomp_neigh *neigh; // neighbors of local region
+  gkyl_mem_buff sendb, recvb; // send/recv buffers
 };
 
 static void
@@ -38,6 +42,9 @@ comm_free(const struct gkyl_ref_count *ref)
   struct gkyl_comm *comm = container_of(ref, struct gkyl_comm, ref_count);
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
   gkyl_rect_decomp_release(mpi->decomp);
+  gkyl_rect_decomp_neigh_release(mpi->neigh);
+  gkyl_mem_buff_release(mpi->sendb);
+  gkyl_mem_buff_release(mpi->recvb);
   gkyl_free(mpi);
 }
 
@@ -69,9 +76,56 @@ all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
 }
 
 static int
-array_sync(struct gkyl_comm *comm, int ndim, const int *nghost,
-  struct gkyl_array *array)
+array_sync(struct gkyl_comm *comm,
+  const struct gkyl_range *local, const struct gkyl_range *local_ext,
+  const int *nghost, struct gkyl_array *array)
 {
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
+
+  int rank;
+  gkyl_comm_get_rank(comm, &rank);
+
+  int elo[GKYL_MAX_DIM], eup[GKYL_MAX_DIM];
+  for (int i=0; i<mpi->decomp->ndim; ++i)
+    elo[i] = eup[i] = nghost[i];
+
+  int tag = 4242;
+
+  for (int n=0; n<mpi->neigh->num_neigh; ++n) {
+    int nid = mpi->neigh->neigh[n];
+
+    // post nonblocking recv to get data into ghost-cells
+    struct gkyl_range recv_rgn;
+    int isrecv = gkyl_sub_range_intersect(&recv_rgn, local_ext, &mpi->decomp->ranges[nid]);
+    size_t recv_vol = array->esznc*recv_rgn.volume;
+
+    MPI_Request recv_req;
+    if (isrecv) {
+      if (gkyl_mem_buff_size(mpi->recvb) < recv_vol)
+        mpi->recvb = gkyl_mem_buff_resize(mpi->recvb, recv_vol);
+      MPI_Irecv(gkyl_mem_buff_data(mpi->recvb),
+        recv_vol, MPI_CHAR, nid, tag, mpi->mcomm, &recv_req);
+    }
+
+    // send skin-cell data to neighbors
+    struct gkyl_range neigh_ext;
+    gkyl_range_extend(&neigh_ext, &mpi->decomp->ranges[nid], elo, eup);
+    struct gkyl_range send_rgn;
+    int issend =  gkyl_sub_range_intersect(&send_rgn, local, &neigh_ext);
+    size_t send_vol = array->esznc*send_rgn.volume;
+    
+    if (issend) {
+      if (gkyl_mem_buff_size(mpi->sendb) < send_vol)
+        mpi->sendb = gkyl_mem_buff_resize(mpi->sendb, send_vol);
+      gkyl_array_copy_to_buffer(gkyl_mem_buff_data(mpi->sendb), array, send_rgn);
+      MPI_Send(gkyl_mem_buff_data(mpi->sendb), send_vol, MPI_CHAR, nid, tag, mpi->mcomm);
+    }
+
+    if (isrecv) {
+      MPI_Wait(&recv_req, MPI_STATUS_IGNORE);
+      gkyl_array_copy_from_buffer(array, gkyl_mem_buff_data(mpi->recvb), recv_rgn);
+    }
+  }
   return 0;
 }
 
@@ -97,7 +151,7 @@ sub_array_decomp_write(struct mpi_comm *comm, const struct gkyl_rect_decomp *dec
   // seek to appropriate place in the file, depending on rank
   size_t hdr_sz = gkyl_base_hdr_size(0) + gkyl_file_type_3_hrd_size(range->ndim);
   size_t file_loc = hdr_sz +
-    arr->esznc*gkyl_rect_decomp_calc_offset(decomp, rank) +
+    arr->esznc*comm->local_range_offset +
     rank*gkyl_file_type_3_range_hrd_size(range->ndim);
 
   MPI_Offset fp_offset = file_loc;
@@ -128,7 +182,10 @@ sub_array_decomp_write(struct mpi_comm *comm, const struct gkyl_rect_decomp *dec
   } while (0);
 
   // construct skip iterator to allow writing (potentially) in chunks
-  // rather than element by element or requiring a copy of data
+  // rather than element by element or requiring a copy of data. Note:
+  // We must use "range" here and not decomp->ranges[rank] as the
+  // latter is not a sub-range of the local extended
+  // range.
   struct gkyl_range_skip_iter skip;
   gkyl_range_skip_iter_init(&skip, range);
 
@@ -207,6 +264,10 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   int rank;
   MPI_Comm_rank(inp->mpi_comm, &rank);
   mpi->local_range_offset = gkyl_rect_decomp_calc_offset(mpi->decomp, rank);
+
+  mpi->neigh = gkyl_rect_decomp_calc_neigh(mpi->decomp, inp->sync_corners, rank);
+  mpi->sendb = gkyl_mem_buff_new(1024); // will be resized later
+  mpi->recvb = gkyl_mem_buff_new(1024);
   
   mpi->base.get_rank = get_rank;
   mpi->base.get_size = get_size;

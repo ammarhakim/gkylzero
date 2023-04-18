@@ -184,6 +184,15 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum 
 
   int my_rank;
   gkyl_comm_get_rank(comm, &my_rank);
+  int comm_sz;
+  gkyl_comm_get_size(comm, &comm_sz);
+
+  int ncuts = cuts[0]*cuts[1];
+  if (ncuts != comm_sz) {
+    if (my_rank == 0)
+      fprintf(stderr, "*** Number of ranks, %d, do not match total cuts, %d!\n", comm_sz, ncuts);
+    goto mpifinalize;
+  }
 
   // VM app
   struct gkyl_moment app_inp = {
@@ -257,7 +266,9 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum 
   gkyl_moment_app_release(app);  
   gkyl_comm_release(comm);
   gkyl_rect_decomp_release(decomp);
-  
+
+  mpifinalize:
+  ;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)
     MPI_Finalize();
