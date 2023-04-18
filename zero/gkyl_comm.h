@@ -101,12 +101,13 @@ gkyl_comm_all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
  * @param array Array to synchronize
  * @return error code: 0 for success
  */
-static int gkyl_comm_gkyl_array_sync(struct gkyl_comm *comm,
+static int gkyl_comm_array_sync(struct gkyl_comm *comm,
   const struct gkyl_range *local,
   const struct gkyl_range *local_ext,
   const int *nghost,
   struct gkyl_array *array)
 {
+  comm->barrier(comm);
   return comm->gkyl_array_sync(comm, local, local_ext, nghost, array);
 }
 

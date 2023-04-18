@@ -99,10 +99,6 @@ test_n2_sync_1d()
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-  cstr fileNm = cstr_from_fmt("mctes_mpi_%d.txt", rank);
-  FILE *fp = fopen(fileNm.str, "w");
-  cstr_drop(&fileNm);
-  
   struct gkyl_range range;
   gkyl_range_init(&range, 1, (int[]) { 1 }, (int[]) { 10 });
 
@@ -120,10 +116,8 @@ test_n2_sync_1d()
   struct gkyl_range local, local_ext;
   gkyl_create_ranges(&decomp->ranges[rank], nghost, &local_ext, &local);
 
-  gkyl_print_range(&local, "local", fp);
-  gkyl_print_range(&local_ext, "local_ext", fp);
-  
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, range.ndim, local_ext.volume);
+  gkyl_array_clear(arr, 200005);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &local);
@@ -133,23 +127,18 @@ test_n2_sync_1d()
     f[0] = iter.idx[0];
   }
 
-  gkyl_comm_gkyl_array_sync(comm, &local, &local_ext, nghost, arr);
+  gkyl_comm_array_sync(comm, &local, &local_ext, nghost, arr);
 
   struct gkyl_range in_range; // interior, including ghost cells
-  gkyl_range_intersect(&in_range, &local_ext, &range);
+  gkyl_sub_range_intersect(&in_range, &local_ext, &range);
 
   gkyl_range_iter_init(&iter, &in_range);
   while (gkyl_range_iter_next(&iter)) {
-    long idx = gkyl_range_idx(&local_ext, iter.idx);
+    long idx = gkyl_range_idx(&in_range, iter.idx);
     const double  *f = gkyl_array_cfetch(arr, idx);
-    fprintf(fp, "%d: (%d). %lg\n", rank, iter.idx[0], f[0]);
-    /* if (gkyl_range_contains_idx(&local, iter.idx) == 0 ) { */
-    /*   if ( (iter.idx[0] != f[0]) ) */
-    /*     fprintf(fp, "%d: (%d). %lg\n", rank, iter.idx[0], f[0]); */
-    /* } */
+    
+    TEST_CHECK( iter.idx[0] == f[0] );
   }
-
-  fclose(fp);
 
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
@@ -166,10 +155,6 @@ test_n4_sync_2d()
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-  cstr fileNm = cstr_from_fmt("mctes_mpi_%d.txt", rank);
-  FILE *fp = fopen(fileNm.str, "w");
-  cstr_drop(&fileNm);
-  
   struct gkyl_range range;
   gkyl_range_init(&range, 2, (int[]) { 1, 1 }, (int[]) { 10, 10 });
 
@@ -183,15 +168,22 @@ test_n4_sync_2d()
     }
   );
 
-  int nghost[] = { 2, 2 };
+  int nghost[] = { 1, 1 };
   struct gkyl_range local, local_ext;
   gkyl_create_ranges(&decomp->ranges[rank], nghost, &local_ext, &local);
 
-  gkyl_print_range(&local, "local", fp);
-  gkyl_print_range(&local_ext, "local_ext", fp);
+  struct gkyl_range local_x, local_ext_x, local_y, local_ext_y;
+  gkyl_create_ranges(&decomp->ranges[rank], (int[]) {1, 0},
+    &local_ext_x, &local_x);
   
-  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 2, local_ext.volume);
+  gkyl_create_ranges(&decomp->ranges[rank], (int[]) { 0, 1 },
+    &local_ext_y, &local_y);
 
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 2, local_ext.volume);
+  gkyl_array_clear(arr, 200005);
+
+  gkyl_comm_barrier(comm);
+  
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &local);
   while (gkyl_range_iter_next(&iter)) {
@@ -200,23 +192,22 @@ test_n4_sync_2d()
     f[0] = iter.idx[0]; f[1] = iter.idx[1];
   }
 
-  gkyl_comm_gkyl_array_sync(comm, &local, &local_ext, nghost, arr);
+  gkyl_comm_array_sync(comm, &local, &local_ext, nghost, arr);
 
   struct gkyl_range in_range; // interior, including ghost cells
-  gkyl_range_intersect(&in_range, &local_ext, &range);
+  gkyl_sub_range_intersect(&in_range, &local_ext, &range);
 
   gkyl_range_iter_init(&iter, &in_range);
   while (gkyl_range_iter_next(&iter)) {
-    long idx = gkyl_range_idx(&local_ext, iter.idx);
+    long idx = gkyl_range_idx(&in_range, iter.idx);
     const double  *f = gkyl_array_cfetch(arr, idx);
 
-    if (gkyl_range_contains_idx(&local, iter.idx) == 0 ) {
-      if ( (iter.idx[0] != f[0]) || (iter.idx[1] != f[1]) )
-        fprintf(fp, "%d: (%d, %d). %lg %lg\n", rank, iter.idx[0], iter.idx[1], f[0], f[1]);
+    // excludes corners
+    if (gkyl_range_contains_idx(&local_ext_x, iter.idx) || gkyl_range_contains_idx(&local_ext_y, iter.idx)) {
+      TEST_CHECK( iter.idx[0] == f[0] );
+      TEST_CHECK( iter.idx[1] == f[1] );
     }
   }
-
-  fclose(fp);
 
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);

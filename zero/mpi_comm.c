@@ -75,6 +75,9 @@ all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
   return ret == MPI_SUCCESS ? 0 : 1;
 }
 
+// DEBUG
+#include <stc/cstr.h>
+
 static int
 array_sync(struct gkyl_comm *comm,
   const struct gkyl_range *local, const struct gkyl_range *local_ext,
@@ -83,7 +86,7 @@ array_sync(struct gkyl_comm *comm,
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
 
   int rank;
-  gkyl_comm_get_rank(comm, &rank);
+  MPI_Comm_rank(mpi->mcomm, &rank);
 
   int elo[GKYL_MAX_DIM], eup[GKYL_MAX_DIM];
   for (int i=0; i<mpi->decomp->ndim; ++i)
@@ -113,7 +116,7 @@ array_sync(struct gkyl_comm *comm,
     struct gkyl_range send_rgn;
     int issend =  gkyl_sub_range_intersect(&send_rgn, local, &neigh_ext);
     size_t send_vol = array->esznc*send_rgn.volume;
-    
+
     if (issend) {
       if (gkyl_mem_buff_size(mpi->sendb) < send_vol)
         mpi->sendb = gkyl_mem_buff_resize(mpi->sendb, send_vol);

@@ -53,6 +53,20 @@ calc_skip_iter(const struct gkyl_range *rng, int *remDir)
   return del;
 }
 
+// compute volume, safely (for malformed ranges
+static long
+calc_volume_safely(int ndim, const int *lower, const int *upper)
+{
+  int is_zero_vol = 0;
+  long vol = 1L;
+  for (int i=0; i<ndim; ++i) {
+    vol *= upper[i]-lower[i]+1;
+    is_zero_vol = GKYL_MAX(is_zero_vol, upper[i]<lower[i] ? 1 : 0);
+  }
+  if (is_zero_vol) vol = 0;
+  return vol;
+}
+
 void
 gkyl_range_init(struct gkyl_range *rng, int ndim,
   const int *lower, const int *upper)
@@ -362,10 +376,12 @@ gkyl_sub_range_intersect(struct gkyl_range* irng,
     lo[d] = r1->lower[d] > r2->lower[d] ? r1->lower[d] : r2->lower[d];
     up[d] = r1->upper[d] < r2->upper[d] ? r1->upper[d] : r2->upper[d];
   }
-  if (irng->volume)
+  
+  long vol = calc_volume_safely(ndim, lo, up);
+  if (vol > 0)
     gkyl_sub_range_init(irng, r1, lo, up);
   else
-    gkyl_range_init(irng, ndim, lo, up); // not sure what to do if intersection is empty
+    gkyl_range_init(irng, ndim, lo, up);
   return irng->volume > 0 ? 1 : 0;
 }
 
