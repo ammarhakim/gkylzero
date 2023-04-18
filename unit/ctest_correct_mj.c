@@ -340,8 +340,8 @@ test_1x1v(int poly_order)
     char fname[1024];
     if ((i % 100) == 0){
       sprintf(fname, "ctest_correct_mj_1x1v_p%d_iteration_%03d.gkyl", poly_order,i);
+      gkyl_grid_sub_array_write(&grid, &local, distf_mj, fname);
     }
-    gkyl_grid_sub_array_write(&grid, &local, distf_mj, fname);
 
     // 2. Calculate the new moments
     // calculate the moments of the dist (n, vb, T -> m0, m1i, m2)
@@ -633,8 +633,8 @@ test_1x2v(int poly_order)
     char fname[1024];
     if ((i % 100) == 0){
       sprintf(fname, "ctest_correct_mj_1x2v_p%d_iteration_%03d.gkyl", poly_order,i);
+      gkyl_grid_sub_array_write(&grid, &local, distf_mj, fname);
     }
-    gkyl_grid_sub_array_write(&grid, &local, distf_mj, fname);
 
     // 2. Calculate the new moments
     // calculate the moments of the dist (n, vb, T -> m0, m1i, m2)
@@ -933,7 +933,7 @@ test_1x3v(int poly_order)
 
 
   // timeloop evolving partial_t(f) = -nu(f-f^mj)
-  for (int i=0; i<300; ++i){ //3000 
+  for (int i=0; i<300; ++i){ //3000
 
     //printf("\n----------- ************************* ---------\n");
     //printf("----------- Begining iterative Loop: T = %d ---------\n", i);
@@ -943,8 +943,8 @@ test_1x3v(int poly_order)
     char fname[1024];
     if ((i % 100) == 0){
       sprintf(fname, "ctest_correct_mj_1x3v_p%d_iteration_%03d.gkyl", poly_order,i);
+      gkyl_grid_sub_array_write(&grid, &local, distf_mj, fname);
     }
-    gkyl_grid_sub_array_write(&grid, &local, distf_mj, fname);
 
 
       // correct the mj distribution m0 Moment
