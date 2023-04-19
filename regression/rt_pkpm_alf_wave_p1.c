@@ -213,7 +213,7 @@ create_ctx(void)
   // ion cyclotron frequency and gyroradius
   double omegaCi = chargeIon*B0/massIon;
   double di = vAi/omegaCi;
-  double rhoi = vtIon/omegaCi;
+  double rhoi = sqrt(2.)*vtIon/omegaCi;
 
   // collision frequencies
   double nuElc = 0.01*omegaCi;
@@ -222,8 +222,8 @@ create_ctx(void)
   // initial conditions
   double delta_B0 = 1.e-6*B0;
   double delta_u0 = 1.e-6*vAi;
-  double kperp = 1.005412 / rhoi;
-  double kpar = 0.087627 / rhoi;
+  double kperp = 1.005412 / rhoi; 
+  double kpar = 0.087627 / rhoi; // Theta = 85 degrees
 
   // domain size and simulation time
   double Lperp = 2.*M_PI/kperp;
