@@ -15,12 +15,12 @@ struct pkpm_gem_ctx {
   double massIon; // ion mass
   double Te_Ti; // electron to ion temperature ratio
   double n0;
+  double nbOverN0;
   double vAe;
   double B0;
   double guide;
   double w0;
   double psi0;
-  double beta;
   double T_e;
   double T_i;
   double vtElc;
@@ -35,10 +35,10 @@ struct pkpm_gem_ctx {
 };
 
 static inline double
-maxwellian(double n, double v, double vth)
+maxwellian(double n, double v, double temp, double mass)
 {
   double v2 = v*v;
-  return n/sqrt(2*M_PI*vth*vth)*exp(-v2/(2*vth*vth));
+  return n/sqrt(2.0*M_PI*temp/mass)*exp(-v2/(2.0*temp/mass));
 }
 
 static inline double
@@ -54,23 +54,23 @@ evalDistFuncElc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   
   double x = xn[0], y = xn[1], vx = xn[2];
 
-  double vt = app->vtElc;
+  double me = app->massElc;
+  double mi = app->massIon;
   double T_e = app->T_e;
   double T_i = app->T_i;
   double Lx = app->Lx;
   double Ly = app->Ly;
   double n0 = app->n0;
+  double nbOverN0 = app->nbOverN0;
   double B0 = app->B0;
   double w0 = app->w0;
 
-  double b1x = B0*(tanh((y-Ly*.25)/w0)-tanh((y-Ly*.75)/w0) + tanh((y-Ly*1.25)/w0)-tanh((y+Ly*.25)/w0)+1);
-
-  double n = (0.5*(B0*B0 - b1x*b1x) + n0*(T_i+T_e))/(T_i+T_e);
+  double n = n0*(sech2(y/w0) + nbOverN0);
   
-  double fv = maxwellian(n, vx, vt);
+  double fv = maxwellian(n, vx, T_e, me);
     
   fout[0] = fv;
-  fout[1] = vt*vt*fv;
+  fout[1] = T_e/me*fv;
 }
 void
 evalDistFuncIon(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -79,23 +79,23 @@ evalDistFuncIon(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   
   double x = xn[0], y = xn[1], vx = xn[2];
 
-  double vt = app->vtIon;
+  double me = app->massElc;
+  double mi = app->massIon;
   double T_e = app->T_e;
   double T_i = app->T_i;
   double Lx = app->Lx;
   double Ly = app->Ly;
   double n0 = app->n0;
+  double nbOverN0 = app->nbOverN0;
   double B0 = app->B0;
   double w0 = app->w0;
 
-  double b1x = B0*(tanh((y-Ly*.25)/w0)-tanh((y-Ly*.75)/w0) + tanh((y-Ly*1.25)/w0)-tanh((y+Ly*.25)/w0)+1);
-
-  double n = (0.5*(B0*B0 - b1x*b1x) + n0*(T_i+T_e))/(T_i+T_e);
+  double n = n0*(sech2(y/w0) + nbOverN0);
   
-  double fv = maxwellian(n, vx, vt);
+  double fv = maxwellian(n, vx, T_i, mi);
     
   fout[0] = fv;
-  fout[1] = vt*vt*fv;
+  fout[1] = T_i/mi*fv;
 }
 
 void
@@ -124,8 +124,7 @@ evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 
   double Jx = 0.0;
   double Jy = 0.0;
-  double Jz  = -B0/w0*(sech2((y-Ly*.25)/w0) - sech2((y-Ly*.75)/w0)+ sech2((y-Ly*1.25)/w0) - sech2((y+Ly*.25)/w0)) 
-    - psi0*sin(pi_2*x/Lx)*((pi_2/Lx)*(pi_2/Lx)*(1 - cos(pi_4*y/Ly)) + (pi_4/Ly)*(pi_4/Ly)*cos(pi_4*y/Ly));
+  double Jz = -B0/w0*sech2(y/w0) - psi0*cos(pi_2*x/Lx)*cos(M_PI*y/Ly)*((pi_2/Lx)*(pi_2/Lx) + (M_PI/Ly)*(M_PI/Ly));
 
   fout[0] = 0.0;
   fout[1] = 0.0;
@@ -158,8 +157,7 @@ evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 
   double Jx = 0.0;
   double Jy = 0.0;
-  double Jz  = -B0/w0*(sech2((y-Ly*.25)/w0) - sech2((y-Ly*.75)/w0)+ sech2((y-Ly*1.25)/w0) - sech2((y+Ly*.25)/w0)) 
-    - psi0*sin(pi_2*x/Lx)*((pi_2/Lx)*(pi_2/Lx)*(1 - cos(pi_4*y/Ly)) + (pi_4/Ly)*(pi_4/Ly)*cos(pi_4*y/Ly));
+  double Jz  = -B0/w0*sech2(y/w0) - psi0*cos(pi_2*x/Lx)*cos(M_PI*y/Ly)*((pi_2/Lx)*(pi_2/Lx) + (M_PI/Ly)*(M_PI/Ly));
 
   fout[0] = 0.0;
   fout[1] = 0.0;
@@ -187,15 +185,15 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double pi_2 = 2.0*M_PI;
   double pi_4 = 4.0*M_PI;
 
-  double b1x = B0*(tanh((y-Ly*.25)/w0)-tanh((y-Ly*.75)/w0) + tanh((y-Ly*1.25)/w0)-tanh((y+Ly*.25)/w0)+1);
+  double b1x = B0*tanh(y/w0);
   double b1y = 0.0;
   double b1z = guide;
 
   double E_x = 0.0;
   double E_y = 0.0;
   double E_z = 0.0;
-  double B_x = b1x - psi0*pi_4/Ly*sin(pi_2*x/Lx)*sin(pi_4*y/Ly);
-  double B_y = b1y + psi0*pi_2/Lx*cos(pi_2*x/Lx)*(1-cos(pi_4*y/Ly));
+  double B_x = b1x - psi0 * (M_PI / Ly) * cos(2 * M_PI * x / Lx) * sin(M_PI * y / Ly);
+  double B_y = b1y + psi0 * (2 * M_PI / Lx) * sin(2 * M_PI * x / Lx) * cos(M_PI * y / Ly);
   double B_z = b1z;
   
   fout[0] = E_x; fout[1] = E_y, fout[2] = E_z;
@@ -225,33 +223,34 @@ create_ctx(void)
 
   double massElc = 1.0; // electron mass
   double chargeElc = -1.0; // electron charge
-  double massIon = 25.0; // ion mass
+  double massIon = 100.0; // ion mass
   double chargeIon = 1.0; // ion charge
 
   double Te_Ti = 0.2; // ratio of electron to ion temperature
   double n0 = 1.0; // initial number density
+  double nbOverN0 = 0.2; // background number density
 
-  double vAe = 1.0/4.0;
-  double B0 = vAe*sqrt(mu0*n0*massElc);
-  double beta = 5.0/6.0;
-  double vtElc = vAe*sqrt(beta*Te_Ti);
-
-  double guide = 0.1*B0;
-
-  double T_e = vtElc*vtElc/2.0;
-  double T_i = T_e/Te_Ti;
-
-  // ion velocities
+  double vAe = 0.04;
   double vAi = vAe/sqrt(massIon);
-  double vtIon = vtElc/sqrt(massIon); //Ti/Te = 1.0
+  double beta_elc = 1.0/6.0;
+  // B0 has 1/sqrt(2) factor because B is equally subdivided between
+  // guide field and in-plane field
+  double B0 = vAe*sqrt(mu0*n0*massElc)/sqrt(2.0);  
+  double guide = B0;
+  double tot_B = sqrt(B0*B0 + guide*guide);
+
+  double T_e = beta_elc*tot_B*tot_B/(2.0*mu0*n0);
+  double T_i = T_e/Te_Ti;
+  double vtElc = sqrt(2.0*T_e/massElc);
+  double vtIon = sqrt(2.0*T_i/massIon);
 
   // ion cyclotron frequency and gyroradius
-  double omegaCi = chargeIon*B0/massIon;
+  double omegaCi = chargeIon*tot_B/massIon;
   double di = vAi/omegaCi;
 
   // Layer width and perturbation
   double w0 = 0.5*di;
-  double psi0 = 0.1*B0*di;
+  double psi0 = 0.1*tot_B*di;
 
   // collision frequencies
   double nuElc = 0.01*omegaCi;
@@ -259,8 +258,8 @@ create_ctx(void)
 
   // domain size and simulation time
   double Lx = 8.0*M_PI*di;
-  double Ly = 8.0*M_PI*di;
-  double tend = 10.0/omegaCi;
+  double Ly = 4.0*M_PI*di;
+  double tend = 35.0/omegaCi;
   
   struct pkpm_gem_ctx ctx = {
     .epsilon0 = epsilon0,
@@ -273,10 +272,10 @@ create_ctx(void)
     .T_e = T_e,
     .T_i = T_i,
     .n0 = n0,
+    .nbOverN0 = nbOverN0,
     .vAe = vAe,
     .B0 = B0,
     .guide = guide,
-    .beta = beta,
     .w0 = w0,
     .psi0 = psi0,
     .vtElc = vtElc,
@@ -305,9 +304,9 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
-  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 128);
-  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 64);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 32);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -324,6 +323,7 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalFluidElc,
     .nuHyp = 1.0e-4,
+    .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
   };  
   
   // electrons
@@ -332,8 +332,8 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_PKPM,
     .pkpm_fluid_species = "fluid_elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
-    .lower = { -8.0 * ctx.vtElc},
-    .upper = { 8.0 * ctx.vtElc}, 
+    .lower = { -4.0 * ctx.vtElc},
+    .upper = { 4.0 * ctx.vtElc}, 
     .cells = { VX },
 
     .ctx = &ctx,
@@ -347,6 +347,7 @@ main(int argc, char **argv)
     },    
 
     .num_diag_moments = 0,
+    .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
   };
 
   // ion momentum                                                                                              
@@ -357,6 +358,7 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalFluidIon,
     .nuHyp = 1.0e-4, 
+    .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
   };  
   
   // ions
@@ -365,8 +367,8 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_PKPM,
     .pkpm_fluid_species = "fluid_ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
-    .lower = { -8.0 * ctx.vtIon},
-    .upper = { 8.0 * ctx.vtIon}, 
+    .lower = { -4.0 * ctx.vtIon},
+    .upper = { 4.0 * ctx.vtIon}, 
     .cells = { VX },
 
     .ctx = &ctx,
@@ -380,6 +382,7 @@ main(int argc, char **argv)
     },    
 
     .num_diag_moments = 0,
+    .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
   };
 
   // field
@@ -389,7 +392,8 @@ main(int argc, char **argv)
     .mgnErrorSpeedFactor = 0.0,
 
     .ctx = &ctx,
-    .init = evalFieldFunc
+    .init = evalFieldFunc,
+    .bcy = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
   };
 
   // VM app
@@ -397,15 +401,15 @@ main(int argc, char **argv)
     .name = "pkpm_gem_p1",
 
     .cdim = 2, .vdim = 1,
-    .lower = { 0.0, 0.0 },
-    .upper = { ctx.Lx, ctx.Ly },
+    .lower = { -ctx.Lx/2.0, -ctx.Ly/2.0 },
+    .upper = { ctx.Lx/2.0, ctx.Ly/2.0 },
     .cells = { NX, NY },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
     //.cfl_frac = 0.8,
     
-    .num_periodic_dir = 2,
-    .periodic_dirs = { 0, 1 },
+    .num_periodic_dir = 1,
+    .periodic_dirs = { 0 },
 
     .num_species = 2,
     .species = { elc, ion },
@@ -422,7 +426,7 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = ctx.tend;
   double dt = tend-tcurr;
-  int nframe = 100;
+  int nframe = 35;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
