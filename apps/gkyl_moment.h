@@ -150,7 +150,7 @@ struct gkyl_moment_stat {
 
   double stage_2_dt_diff[2]; // [min,max] rel-diff for stage-2 failure
   double stage_3_dt_diff[2]; // [min,max] rel-diff for stage-3 failure
-    
+  
   double init_species_tm; // time to initialize all species
   double init_field_tm; // time to initialize fields
 

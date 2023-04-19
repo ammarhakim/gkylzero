@@ -363,6 +363,93 @@ gkyl_moment_app_stat(gkyl_moment_app* app)
   return app->stat;
 }
 
+// ensure stats across processors are made consistent
+static void
+comm_reduce_app_stat(const gkyl_moment_app* app, const struct gkyl_moment_stat *local, struct gkyl_moment_stat *global)
+{
+  int comm_sz;
+  gkyl_comm_get_size(app->comm, &comm_sz);
+  if (comm_sz == 1) {
+    memcpy(global, local, sizeof(struct gkyl_moment_stat));
+    return;
+  }
+
+  enum { NUP, NFAIL, NFEULER, NSTAGE_2_FAIL, NSTAGE_3_FAIL, L_END };
+  int64_t l_red[] = {
+    [NUP] = local->nup,
+    [NFAIL] = local->nfail,
+    [NFEULER] = local->nfeuler,
+    [NSTAGE_2_FAIL] = local->nstage_2_fail,
+    [NSTAGE_3_FAIL] = local->nstage_3_fail
+  };
+
+  int64_t l_red_global[L_END];
+  gkyl_comm_all_reduce(app->comm, GKYL_INT_64, GKYL_MAX, L_END, l_red, l_red_global);
+
+  global->nup = l_red_global[NUP];
+  global->nfail = l_red_global[NFAIL];
+  global->nfeuler = l_red_global[NFEULER];
+  global->nstage_2_fail = l_red_global[NSTAGE_2_FAIL];
+  global->nstage_3_fail = l_red_global[NSTAGE_3_FAIL];
+
+  enum { TOTAL_TM, SPECIES_TM, FIELD_TM, SOURCES_TM, INIT_SPECIES_TM, INIT_FIELD_TM,
+    SPECIES_RHS_TM, FIELD_RHS_TM, D_END };
+
+  double d_red[] = {
+    [TOTAL_TM] = local->total_tm,
+    [SPECIES_TM] = local->species_tm,
+    [FIELD_TM] = local->field_tm,
+    [SOURCES_TM] = local->sources_tm,
+    [INIT_SPECIES_TM] = local->init_species_tm,
+    [INIT_FIELD_TM] = local->init_field_tm,
+    [SPECIES_RHS_TM] = local->species_rhs_tm,
+    [FIELD_RHS_TM] = local->field_rhs_tm
+  };
+
+  double_t d_red_global[D_END];
+  gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_MAX, D_END, d_red, d_red_global);
+
+  global->total_tm = d_red_global[TOTAL_TM];
+  global->species_tm = d_red_global[SPECIES_TM];
+  global->field_tm = d_red_global[FIELD_TM];
+  global->sources_tm = d_red_global[SOURCES_TM];
+  global->init_species_tm = d_red_global[INIT_SPECIES_TM];
+  global->init_field_tm = d_red_global[INIT_FIELD_TM];
+  global->species_rhs_tm = d_red_global[SPECIES_RHS_TM];
+  global->field_rhs_tm = d_red_global[FIELD_RHS_TM];
+}
+
+static void
+comm_reduce_wave_prop_stats(const gkyl_moment_app* app, const struct gkyl_wave_prop_stats *local,
+  struct gkyl_wave_prop_stats *global)
+{
+  int comm_sz;
+  gkyl_comm_get_size(app->comm, &comm_sz);
+  if (comm_sz == 1) {
+    memcpy(global, local, sizeof(struct gkyl_wave_prop_stats));
+    return;
+  }
+
+  enum { N_CALLS, N_BAD_ADVANCE_CALLS, N_MAX_BAD_CELLS, L_END };
+  int64_t l_red[] = {
+    [N_CALLS] = local->n_calls,
+    [N_BAD_ADVANCE_CALLS] = local->n_bad_advance_calls,
+    [N_MAX_BAD_CELLS] = local->n_max_bad_cells
+  };
+
+  int64_t l_red_global[L_END];
+  gkyl_comm_all_reduce(app->comm, GKYL_INT_64, GKYL_MAX, L_END, l_red, l_red_global); 
+
+  global->n_calls = l_red_global[N_CALLS];
+  global->n_bad_advance_calls = l_red_global[N_BAD_ADVANCE_CALLS];
+  global->n_max_bad_cells = l_red_global[N_MAX_BAD_CELLS];
+
+  int64_t n_bad_cells_local = local->n_bad_cells, n_bad_cells = 0;
+  
+  gkyl_comm_all_reduce(app->comm, GKYL_INT_64, GKYL_SUM, 1, &n_bad_cells_local, &n_bad_cells);
+  global->n_bad_cells = n_bad_cells;
+}
+
 void
 gkyl_moment_app_stat_write(const gkyl_moment_app* app)
 {
@@ -372,64 +459,82 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
   time_t t = time(NULL);
   struct tm curr_tm = *localtime(&t);
 
-  // compute total number of cells updated in simulation
-  long tot_cells_up = app->local.volume*app->num_species*app->ndim*app->stat.nup;
+  // total number of cells updated in simulation
+  long tot_cells_up = app->global.volume*app->num_species*app->ndim*app->stat.nup;
+
+  struct gkyl_moment_stat stat = { };
+  comm_reduce_app_stat(app, &app->stat, &stat);
+
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
 
   // append to existing file so we have a history of different runs
   FILE *fp = 0;
-  with_file (fp, fileNm.str, "a") {
-    gkyl_moment_app_cout(app, fp, "{\n");
+  if (rank == 0) fp = fopen(fileNm.str, "a");
 
-    if (strftime(buff, sizeof buff, "%c", &curr_tm))
-      gkyl_moment_app_cout(app, fp, " date : %s\n", buff);
+  gkyl_moment_app_cout(app, fp, "{\n");
 
-    gkyl_moment_app_cout(app, fp, " nup : %ld,\n", app->stat.nup);
-    gkyl_moment_app_cout(app, fp, " nfail : %ld,\n", app->stat.nfail);
-    gkyl_moment_app_cout(app, fp, " total_tm : %lg,\n", app->stat.total_tm);
+  if (strftime(buff, sizeof buff, "%c", &curr_tm))
+    gkyl_moment_app_cout(app, fp, " date : %s\n", buff);
 
-    if (app->scheme_type == GKYL_MOMENT_WAVE_PROP) {    
-      gkyl_moment_app_cout(app, fp, " species_tm : %lg,\n", app->stat.species_tm);
-      gkyl_moment_app_cout(app, fp, " field_tm : %lg,\n", app->stat.field_tm);
-      gkyl_moment_app_cout(app, fp, " sources_tm : %lg\n", app->stat.sources_tm);
-    }
-    else if (app->scheme_type == GKYL_MOMENT_MP || app->scheme_type == GKYL_MOMENT_KEP) {
-      gkyl_moment_app_cout(app, fp, " nfeuler : %ld,\n", app->stat.nfeuler);
-      gkyl_moment_app_cout(app, fp, " nstage_2_fail : %ld,\n", app->stat.nstage_2_fail);
-      gkyl_moment_app_cout(app, fp, " nstage_3_fail : %ld,\n", app->stat.nstage_3_fail);
+  gkyl_moment_app_cout(app, fp, " nup : %ld,\n", stat.nup);
+  gkyl_moment_app_cout(app, fp, " nfail : %ld,\n", stat.nfail);
+  gkyl_moment_app_cout(app, fp, " total_tm : %lg,\n", stat.total_tm);
 
-      gkyl_moment_app_cout(app, fp, " stage_2_dt_diff : [ %lg, %lg ],\n",
-        app->stat.stage_2_dt_diff[0], app->stat.stage_2_dt_diff[1]);
-      gkyl_moment_app_cout(app, fp, " stage_3_dt_diff : [ %lg, %lg ],\n",
-        app->stat.stage_3_dt_diff[0], app->stat.stage_3_dt_diff[1]);
-      
-      gkyl_moment_app_cout(app, fp, " total_tm : %lg,\n", app->stat.total_tm);
-      gkyl_moment_app_cout(app, fp, " init_species_tm : %lg,\n", app->stat.init_species_tm);
-      if (app->has_field)
-        gkyl_moment_app_cout(app, fp, " init_field_tm : %lg,\n", app->stat.init_field_tm);
-      
-      gkyl_moment_app_cout(app, fp, " species_rhs_tm : %lg,\n", app->stat.species_rhs_tm);
-
-      if (app->has_field)
-        gkyl_moment_app_cout(app, fp, " field_rhs_tm : %lg,\n", app->stat.field_rhs_tm);
-    }
-    
-    for (int i=0; i<app->num_species; ++i) {
-      long tot_bad_cells = 0L;
-      if (app->scheme_type == GKYL_MOMENT_WAVE_PROP) {
-        for (int d=0; d<app->ndim; ++d) {
-          struct gkyl_wave_prop_stats wvs = gkyl_wave_prop_stats(app->species[i].slvr[d]);
-          gkyl_moment_app_cout(app, fp, " %s_n_bad_1D_sweeps[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_advance_calls);
-          gkyl_moment_app_cout(app, fp, " %s_n_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_bad_cells);
-          gkyl_moment_app_cout(app, fp, " %s_n_max_bad_cells[%d] = %ld\n", app->species[i].name, d, wvs.n_max_bad_cells);
-
-          tot_bad_cells += wvs.n_bad_cells;
-        }
-      }
-      gkyl_moment_app_cout(app, fp, " %s_bad_cell_frac = %lg\n", app->species[i].name, (double) tot_bad_cells/tot_cells_up );
-    }
-  
-    gkyl_moment_app_cout(app, fp, "}\n");
+  if (app->scheme_type == GKYL_MOMENT_WAVE_PROP) {
+    gkyl_moment_app_cout(app, fp, " species_tm : %lg,\n", stat.species_tm);
+    gkyl_moment_app_cout(app, fp, " field_tm : %lg,\n", stat.field_tm);
+    gkyl_moment_app_cout(app, fp, " sources_tm : %lg\n", stat.sources_tm);
   }
+  else if (app->scheme_type == GKYL_MOMENT_MP || app->scheme_type == GKYL_MOMENT_KEP) {
+    
+    gkyl_moment_app_cout(app, fp, " nfeuler : %ld,\n", stat.nfeuler);
+    gkyl_moment_app_cout(app, fp, " nstage_2_fail : %ld,\n", stat.nstage_2_fail);
+    gkyl_moment_app_cout(app, fp, " nstage_3_fail : %ld,\n", stat.nstage_3_fail);
+
+    gkyl_moment_app_cout(app, fp, " stage_2_dt_diff : [ %lg, %lg ],\n",
+      stat.stage_2_dt_diff[0], stat.stage_2_dt_diff[1]);
+    gkyl_moment_app_cout(app, fp, " stage_3_dt_diff : [ %lg, %lg ],\n",
+      stat.stage_3_dt_diff[0], stat.stage_3_dt_diff[1]);
+
+    gkyl_moment_app_cout(app, fp, " total_tm : %lg,\n", stat.total_tm);
+    gkyl_moment_app_cout(app, fp, " init_species_tm : %lg,\n", stat.init_species_tm);
+    if (app->has_field)
+      gkyl_moment_app_cout(app, fp, " init_field_tm : %lg,\n", stat.init_field_tm);
+
+    gkyl_moment_app_cout(app, fp, " species_rhs_tm : %lg,\n", stat.species_rhs_tm);
+
+    if (app->has_field)
+      gkyl_moment_app_cout(app, fp, " field_rhs_tm : %lg,\n", stat.field_rhs_tm);
+  }
+
+  for (int i = 0; i < app->num_species; ++i) {
+    long tot_bad_cells = 0L;
+    
+    if (app->scheme_type == GKYL_MOMENT_WAVE_PROP) {
+      for (int d = 0; d < app->ndim; ++d) {
+        struct gkyl_wave_prop_stats wvs_local = gkyl_wave_prop_stats(app->species[i].slvr[d]);
+        struct gkyl_wave_prop_stats wvs = {};
+        comm_reduce_wave_prop_stats(app, &wvs_local, &wvs);
+
+        gkyl_moment_app_cout(app, fp, " %s_n_bad_1D_sweeps[%d] = %ld\n",
+          app->species[i].name, d, wvs.n_bad_advance_calls);
+        gkyl_moment_app_cout(app, fp, " %s_n_bad_cells[%d] = %ld\n",
+          app->species[i].name, d, wvs.n_bad_cells);
+        gkyl_moment_app_cout(app, fp, " %s_n_max_bad_cells[%d] = %ld\n",
+          app->species[i].name, d, wvs.n_max_bad_cells);
+
+        tot_bad_cells += wvs.n_bad_cells;
+      }
+    }
+    gkyl_moment_app_cout(app, fp, " %s_bad_cell_frac = %lg\n",
+      app->species[i].name, (double)tot_bad_cells/tot_cells_up);
+  }
+
+  gkyl_moment_app_cout(app, fp, "}\n");
+
+  if (rank == 0)
+    fclose(fp);
 
   cstr_drop(&fileNm);
 }
