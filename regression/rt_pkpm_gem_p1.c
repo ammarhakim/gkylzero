@@ -159,7 +159,7 @@ evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 
   double Jx = 0.0;
   double Jy = 0.0;
-  double Jz = -B0/w0*(sech2(y/w0)-sech2((y+Ly)/w0) - sech2((y-Ly)/w0)) 
+  double Jz = B0/w0*(sech2(y/w0) - sech2((y+Ly)/w0) - sech2((y-Ly)/w0)) 
               -psi0*cos(pi_2*x/Lx)*cos(M_PI*y/Ly)*((pi_2/Lx)*(pi_2/Lx) + (M_PI/Ly)*(M_PI/Ly)) + noise[2];
 
   fout[0] = 0.0;
@@ -200,7 +200,7 @@ evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 
   double Jx = 0.0;
   double Jy = 0.0;
-  double Jz = -B0/w0*(sech2(y/w0)-sech2((y+Ly)/w0) - sech2((y-Ly)/w0)) 
+  double Jz = B0/w0*(sech2(y/w0) - sech2((y+Ly)/w0) - sech2((y-Ly)/w0)) 
               -psi0*cos(pi_2*x/Lx)*cos(M_PI*y/Ly)*((pi_2/Lx)*(pi_2/Lx) + (M_PI/Ly)*(M_PI/Ly)) + noise[2];
 
   fout[0] = 0.0;
@@ -236,7 +236,7 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double noise[3] = {0.0};
   noise_init(noise_amp, noise_index, k_init, k_final, Lx, Ly, x, y, noise);
 
-  double b1x = B0*(tanh(y/w0)-tanh((y+Ly)/w0) - tanh((y-Ly)/w0));
+  double b1x = -B0*(tanh(y/w0) - tanh((y+Ly)/w0) - tanh((y-Ly)/w0));
   double b1y = 0.0;
   double b1z = guide;
 
@@ -304,7 +304,7 @@ create_ctx(void)
   double psi0 = 0.1*tot_B*di;
 
   // noise levels for perturbation
-  double noise_amp = 0.05*tot_B;
+  double noise_amp = 0.001*tot_B;
   int k_init = 1;            // first wave mode to perturb with noise, 1.0 correspond to box size
   int k_final = 20;          // last wave mode to perturb with noise
   double noise_index = -1.0; // spectral index of the noise
@@ -487,7 +487,7 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = ctx.tend;
   double dt = tend-tcurr;
-  int nframe = 35;
+  int nframe = 25;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
