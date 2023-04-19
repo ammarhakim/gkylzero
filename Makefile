@@ -246,8 +246,13 @@ $(ZERO_SH_INSTALL_LIB): $(OBJS)
 all: ${BUILD_DIR}/gkylzero.h ${ZERO_SH_LIB} ## Build libraries and amalgamated header
 
 # Explicit targets to build unit and regression tests
+<<<<<<< HEAD
 unit: ${UNITS} ${MPI_UNITS} ## Build unit tests
 regression: ${REGS} regression/rt_arg_parse.h ## Build regression tests
+=======
+unit: ${ZERO_SH_LIB} ${UNITS} ## Build unit tests
+regression: ${ZERO_SH_LIB} ${REGS} ## Build regression tests
+>>>>>>> main
 
 .PHONY: check mpicheck
 # Run all unit tests
