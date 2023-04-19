@@ -21,6 +21,10 @@ struct pkpm_gem_ctx {
   double guide;
   double w0;
   double psi0;
+  double noise_amp;
+  double noise_index;
+  int k_init;
+  int k_final;
   double T_e;
   double T_i;
   double vtElc;
@@ -47,6 +51,28 @@ sech2(double x)
   return 1.0/(cosh(x)*cosh(x));
 }
 
+static inline void
+noise_init(double noise_amp, double noise_index, int k_init, int k_final, double Lx, double Ly, double x, double y, double noise[3])
+{
+  pcg64_random_t rng = gkyl_pcg64_init(0);
+  double kindex = (noise_index + 1.0) / 2.0;
+  double B_amp = 0.0; 
+  double B_phase = 0.0;
+  for (int i = k_init; i < k_final; ++i) {
+    B_amp = gkyl_pcg64_rand_double(&rng);
+    B_phase = gkyl_pcg64_rand_double(&rng);
+
+    noise[0] -= 2.0*(2.0*M_PI/Ly)*(Lx/(i*2.0*M_PI))*B_amp*sin(2.0*M_PI*y/Ly)*(cos(2.0*M_PI*y/Ly)+1)*cos(i*2.0*M_PI*x/Lx +  2.0*M_PI*B_phase)*pow(i,kindex);
+    noise[1] += B_amp*(cos(2.0*M_PI*y/Ly) + 1.0)*(cos(2.0*M_PI*y/Ly) + 1.0)*sin(i*2.0*M_PI*x/Lx + 2.0*M_PI*B_phase)*pow(i,kindex);
+    noise[2] += (2.0*M_PI*i/Lx)*B_amp*(cos(2.0*M_PI*y/Ly) + 1.0)*(cos(2.0*M_PI*y/Ly) + 1.0)*cos(i*2.0*M_PI*x/Lx + 2*M_PI*B_phase)*pow(i,kindex) + 
+                 2.0*(2.0*M_PI/Ly)*(2.0*M_PI/Ly)*(Lx/(i*2.0*M_PI))*B_amp*(sin(2.0*M_PI*y/Ly)*sin(2.0*M_PI*y/Ly) - cos(2.0*M_PI*y/Ly)*(cos(2.0*M_PI*y/Ly)+1.0))*cos(i*2.0*M_PI*x/Lx +  2.*M_PI*B_phase)*pow(i,kindex);
+  }
+  double kdiff = floor(k_final) - floor(k_init) + 1.0;
+  noise[0] = noise_amp*noise[0]/sqrt(2.0*kdiff*kdiff/3.0);
+  noise[1] = noise_amp*noise[1]/sqrt(2.0*kdiff*kdiff/3.0);
+  noise[2] = noise_amp*noise[2]/sqrt(2.0*kdiff*kdiff/3.0);
+}
+
 void
 evalDistFuncElc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -65,7 +91,8 @@ evalDistFuncElc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double B0 = app->B0;
   double w0 = app->w0;
 
-  double n = n0*(sech2(y/w0) + nbOverN0);
+  double b1x = B0*(tanh(y/w0)-tanh((y+Ly)/w0) - tanh((y-Ly)/w0));
+  double n = (0.5*(B0*B0 - b1x*b1x) + nbOverN0*(T_i+T_e))/(T_i+T_e); // only correct for mu0,n0 = 1
   
   double fv = maxwellian(n, vx, T_e, me);
     
@@ -90,7 +117,8 @@ evalDistFuncIon(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double B0 = app->B0;
   double w0 = app->w0;
 
-  double n = n0*(sech2(y/w0) + nbOverN0);
+  double b1x = B0*(tanh(y/w0)-tanh((y+Ly)/w0) - tanh((y-Ly)/w0));
+  double n = (0.5*(B0*B0 - b1x*b1x) + nbOverN0*(T_i+T_e))/(T_i+T_e); // only correct for mu0,n0 = 1
   
   double fv = maxwellian(n, vx, T_i, mi);
     
@@ -116,15 +144,23 @@ evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double psi0 = app->psi0;  
   double T_e = app->T_e;
   double T_i = app->T_i;
+  double noise_amp = app->noise_amp;
+  double noise_index = app->noise_index;
+  int k_init = app->k_init;
+  int k_final = app->k_final;
 
   double TeFrac = T_e/(T_i+T_e);
 
   double pi_2 = 2.0*M_PI;
   double pi_4 = 4.0*M_PI;
 
+  double noise[3] = {0.0};
+  noise_init(noise_amp, noise_index, k_init, k_final, Lx, Ly, x, y, noise);
+
   double Jx = 0.0;
   double Jy = 0.0;
-  double Jz = -B0/w0*sech2(y/w0) - psi0*cos(pi_2*x/Lx)*cos(M_PI*y/Ly)*((pi_2/Lx)*(pi_2/Lx) + (M_PI/Ly)*(M_PI/Ly));
+  double Jz = -B0/w0*(sech2(y/w0)-sech2((y+Ly)/w0) - sech2((y-Ly)/w0)) 
+              -psi0*cos(pi_2*x/Lx)*cos(M_PI*y/Ly)*((pi_2/Lx)*(pi_2/Lx) + (M_PI/Ly)*(M_PI/Ly)) + noise[2];
 
   fout[0] = 0.0;
   fout[1] = 0.0;
@@ -149,15 +185,23 @@ evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double psi0 = app->psi0;  
   double T_e = app->T_e;
   double T_i = app->T_i;
+  double noise_amp = app->noise_amp;
+  double noise_index = app->noise_index;
+  int k_init = app->k_init;
+  int k_final = app->k_final;
 
   double TiFrac = T_i/(T_i+T_e);
 
   double pi_2 = 2.0*M_PI;
   double pi_4 = 4.0*M_PI;
 
+  double noise[3] = {0.0};
+  noise_init(noise_amp, noise_index, k_init, k_final, Lx, Ly, x, y, noise);
+
   double Jx = 0.0;
   double Jy = 0.0;
-  double Jz  = -B0/w0*sech2(y/w0) - psi0*cos(pi_2*x/Lx)*cos(M_PI*y/Ly)*((pi_2/Lx)*(pi_2/Lx) + (M_PI/Ly)*(M_PI/Ly));
+  double Jz = -B0/w0*(sech2(y/w0)-sech2((y+Ly)/w0) - sech2((y-Ly)/w0)) 
+              -psi0*cos(pi_2*x/Lx)*cos(M_PI*y/Ly)*((pi_2/Lx)*(pi_2/Lx) + (M_PI/Ly)*(M_PI/Ly)) + noise[2];
 
   fout[0] = 0.0;
   fout[1] = 0.0;
@@ -180,20 +224,27 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double B0 = app->B0;
   double guide = app->guide;
   double w0 = app->w0;
-  double psi0 = app->psi0; 
+  double psi0 = app->psi0;  
+  double noise_amp = app->noise_amp;
+  double noise_index = app->noise_index;
+  int k_init = app->k_init;
+  int k_final = app->k_final;
 
   double pi_2 = 2.0*M_PI;
   double pi_4 = 4.0*M_PI;
 
-  double b1x = B0*tanh(y/w0);
+  double noise[3] = {0.0};
+  noise_init(noise_amp, noise_index, k_init, k_final, Lx, Ly, x, y, noise);
+
+  double b1x = B0*(tanh(y/w0)-tanh((y+Ly)/w0) - tanh((y-Ly)/w0));
   double b1y = 0.0;
   double b1z = guide;
 
   double E_x = 0.0;
   double E_y = 0.0;
   double E_z = 0.0;
-  double B_x = b1x - psi0 * (M_PI / Ly) * cos(2 * M_PI * x / Lx) * sin(M_PI * y / Ly);
-  double B_y = b1y + psi0 * (2 * M_PI / Lx) * sin(2 * M_PI * x / Lx) * cos(M_PI * y / Ly);
+  double B_x = b1x + psi0 * (M_PI / Ly) * cos(2 * M_PI * x / Lx) * sin(M_PI * y / Ly) + noise[0];
+  double B_y = b1y - psi0 * (2 * M_PI / Lx) * sin(2 * M_PI * x / Lx) * cos(M_PI * y / Ly) + noise[1];
   double B_z = b1z;
   
   fout[0] = E_x; fout[1] = E_y, fout[2] = E_z;
@@ -223,14 +274,14 @@ create_ctx(void)
 
   double massElc = 1.0; // electron mass
   double chargeElc = -1.0; // electron charge
-  double massIon = 100.0; // ion mass
+  double massIon = 25.0; // ion mass
   double chargeIon = 1.0; // ion charge
 
   double Te_Ti = 0.2; // ratio of electron to ion temperature
   double n0 = 1.0; // initial number density
   double nbOverN0 = 0.2; // background number density
 
-  double vAe = 0.04;
+  double vAe = 1.0/4.0;
   double vAi = vAe/sqrt(massIon);
   double beta_elc = 1.0/6.0;
   // B0 has 1/sqrt(2) factor because B is equally subdivided between
@@ -252,6 +303,12 @@ create_ctx(void)
   double w0 = 0.5*di;
   double psi0 = 0.1*tot_B*di;
 
+  // noise levels for perturbation
+  double noise_amp = 0.05*tot_B;
+  int k_init = 1;            // first wave mode to perturb with noise, 1.0 correspond to box size
+  int k_final = 20;          // last wave mode to perturb with noise
+  double noise_index = -1.0; // spectral index of the noise
+
   // collision frequencies
   double nuElc = 0.01*omegaCi;
   double nuIon = 0.01*omegaCi/sqrt(massIon);
@@ -259,7 +316,7 @@ create_ctx(void)
   // domain size and simulation time
   double Lx = 8.0*M_PI*di;
   double Ly = 4.0*M_PI*di;
-  double tend = 35.0/omegaCi;
+  double tend = 25.0/omegaCi;
   
   struct pkpm_gem_ctx ctx = {
     .epsilon0 = epsilon0,
@@ -278,6 +335,10 @@ create_ctx(void)
     .guide = guide,
     .w0 = w0,
     .psi0 = psi0,
+    .noise_amp = noise_amp,
+    .noise_index = noise_index,
+    .k_init = k_init,
+    .k_final = k_final,
     .vtElc = vtElc,
     .vtIon = vtIon,
     .nuElc = nuElc,
