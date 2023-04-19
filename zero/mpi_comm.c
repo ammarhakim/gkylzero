@@ -75,9 +75,6 @@ all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
   return ret == MPI_SUCCESS ? 0 : 1;
 }
 
-// DEBUG
-#include <stc/cstr.h>
-
 static int
 array_sync(struct gkyl_comm *comm,
   const struct gkyl_range *local, const struct gkyl_range *local_ext,

@@ -146,7 +146,7 @@ test_n2_sync_1d()
 }
 
 void
-test_n4_sync_2d()
+test_n4_sync_2d(bool use_corners)
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -164,7 +164,7 @@ test_n4_sync_2d()
   struct gkyl_comm *comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
       .mpi_comm = MPI_COMM_WORLD,
       .decomp = decomp,
-      .sync_corners = false,
+      .sync_corners = use_corners,
     }
   );
 
@@ -202,10 +202,16 @@ test_n4_sync_2d()
     long idx = gkyl_range_idx(&in_range, iter.idx);
     const double  *f = gkyl_array_cfetch(arr, idx);
 
-    // excludes corners
-    if (gkyl_range_contains_idx(&local_ext_x, iter.idx) || gkyl_range_contains_idx(&local_ext_y, iter.idx)) {
+    if (use_corners) {
       TEST_CHECK( iter.idx[0] == f[0] );
       TEST_CHECK( iter.idx[1] == f[1] );
+    }
+    else {
+      // excludes corners
+      if (gkyl_range_contains_idx(&local_ext_x, iter.idx) || gkyl_range_contains_idx(&local_ext_y, iter.idx)) {
+        TEST_CHECK( iter.idx[0] == f[0] );
+        TEST_CHECK( iter.idx[1] == f[1] );
+      }
     }
   }
 
@@ -214,11 +220,15 @@ test_n4_sync_2d()
   gkyl_array_release(arr);
 }
 
+void test_n4_sync_2d_no_corner() { test_n4_sync_2d(false); }
+void test_n4_sync_2d_use_corner() { test_n4_sync_2d(true); }
+
 TEST_LIST = {
     {"test_1", test_1},
     {"test_n2", test_n2},
     {"test_n2_sync_1d", test_n2_sync_1d},
-    {"test_n4_sync_2d", test_n4_sync_2d},
+    {"test_n4_sync_2d_no_corner", test_n4_sync_2d_no_corner },
+    {"test_n4_sync_2d_use_corner", test_n4_sync_2d_use_corner},
     {NULL, NULL},
 };
 
