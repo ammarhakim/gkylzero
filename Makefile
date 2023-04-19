@@ -233,8 +233,8 @@ $(ZERO_SH_INSTALL_LIB): $(OBJS)
 all: ${BUILD_DIR}/gkylzero.h ${ZERO_SH_LIB} ## Build libraries and amalgamated header
 
 # Explicit targets to build unit and regression tests
-unit: ${UNITS} ## Build unit tests
-regression: ${REGS} ## Build regression tests
+unit: ${ZERO_SH_LIB} ${UNITS} ## Build unit tests
+regression: ${ZERO_SH_LIB} ${REGS} ## Build regression tests
 
 .PHONY: check
 # Run all unit tests

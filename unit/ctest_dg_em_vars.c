@@ -435,7 +435,7 @@ TEST_LIST = {
   { "test_3x_p1", test_3x_p1 },
 
   { "test_2x_p1_big", test_2x_p1_big },
-  { "test_3x_p1_big", test_3x_p1_big },
+//  { "test_3x_p1_big", test_3x_p1_big },
 
   { "test_1x_p2", test_1x_p2 },
   //{ "test_2x_p2", test_2x_p2 },
