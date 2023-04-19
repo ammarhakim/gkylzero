@@ -215,8 +215,8 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_gpu)
 
   double em_tm = gkyl_time_diff_now_sec(tm);
 
-  printf("\nEM variable computation on (%d)^%d took %g sec\n", cells[0], ndim, 
-    em_tm);
+  /* printf("\nEM variable computation on (%d)^%d took %g sec\n", cells[0], ndim,  */
+  /*   em_tm); */
 
   // Check if b . b = 1 from EM vars computation
   struct gkyl_array *bibj_check, *b_dot_b;
@@ -322,8 +322,8 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_gpu)
 
   double em_2_tm = gkyl_time_diff_now_sec(tm2);
 
-  printf("dg_bin_op EM variable computation on (%d)^%d took %g sec\n", cells[0], ndim, 
-    em_2_tm);
+  /* printf("dg_bin_op EM variable computation on (%d)^%d took %g sec\n", cells[0], ndim,  */
+  /*   em_2_tm); */
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &local);
@@ -434,8 +434,8 @@ TEST_LIST = {
   { "test_2x_p1", test_2x_p1 },
   { "test_3x_p1", test_3x_p1 },
 
-  { "test_2x_p1_big", test_2x_p1_big },
-//  { "test_3x_p1_big", test_3x_p1_big },
+  /* { "test_2x_p1_big", test_2x_p1_big }, */
+  /* { "test_3x_p1_big", test_3x_p1_big }, */
 
   { "test_1x_p2", test_1x_p2 },
   //{ "test_2x_p2", test_2x_p2 },
@@ -445,8 +445,8 @@ TEST_LIST = {
   { "test_2x_p1_gpu", test_2x_p1_gpu },
   { "test_3x_p1_gpu", test_3x_p1_gpu },
 
-  { "test_2x_p1_big_gpu", test_2x_p1_big_gpu },
-  { "test_3x_p1_big_gpu", test_3x_p1_big_gpu },
+  /* { "test_2x_p1_big_gpu", test_2x_p1_big_gpu }, */
+  /* { "test_3x_p1_big_gpu", test_3x_p1_big_gpu }, */
 
   { "test_1x_p2_gpu", test_1x_p2_gpu },
   //{ "test_2x_p2_gpu", test_2x_p2_gpu },

@@ -45,6 +45,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
           .update_dirs = { d },
           .cfl = app->cfl,
           .geom = app->geom,
+          .comm = app->comm
         }
       );
       
@@ -123,6 +124,22 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
       else
         bc = mom_sp->bcz;
 
+      void (*bc_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+      if (dir == 0)
+        bc_lower_func = mom_sp->bcx_lower_func;
+      else if (dir == 1)
+        bc_lower_func = mom_sp->bcy_lower_func;
+      else
+        bc_lower_func = mom_sp->bcz_lower_func;
+
+      void (*bc_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+      if (dir == 0)
+        bc_upper_func = mom_sp->bcx_upper_func;
+      else if (dir == 1)
+        bc_upper_func = mom_sp->bcy_upper_func;
+      else
+        bc_upper_func = mom_sp->bcz_upper_func;
+
       sp->lower_bct[dir] = bc[0];
       sp->upper_bct[dir] = bc[1];
 
@@ -143,7 +160,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         case GKYL_SPECIES_FUNC:
           sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
-            mom_sp->bc_lower_func, mom_sp->ctx);
+            bc_lower_func, mom_sp->ctx);
           break;
         
         case GKYL_SPECIES_COPY:
@@ -174,7 +191,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         case GKYL_SPECIES_FUNC:
           sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
-            mom_sp->bc_upper_func, mom_sp->ctx);
+            bc_upper_func, mom_sp->ctx);
           break;
           
         case GKYL_SPECIES_COPY:
@@ -237,6 +254,8 @@ moment_species_apply_bc(const gkyl_moment_app *app, double tcurr,
         moment_apply_wedge_bc(app, tcurr, &app->local,
           sp->bc_buffer, d, sp->lower_bc[d], sp->upper_bc[d], f);
     }
+
+  gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, app->nghost, f);
 }
 
 // maximum stable time-step

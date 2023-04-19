@@ -15,6 +15,7 @@ BUILD_OPENBLAS=no
 BUILD_SUPERLU=no
 BUILD_SUPERLU_DIST=no
 BUILD_SUPERLU_DIST_GPU=no
+BUILD_OPENMPI=no
 
 # by default, download as well as build packages
 DOWNLOAD_PKGS=yes
@@ -52,6 +53,7 @@ The following flags specify the libraries to build.
 --build-superlu             [no] Should we build SuperLU (serial)
 --build-superlu_dist        [no] Should we build SuperLU (parallel)
 --enable-superlu_gpu        [no] Build GPUs lib for SuperLU (needs --build-superlu_dist=yes)
+--build-openmpi             [no] Should we build OpenMPI?
 
 EOF
 }
@@ -139,6 +141,10 @@ do
    --enable-superlu_gpu)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_SUPERLU_DIST_GPU="$value"
+      ;;
+   --build-openmpi)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_OPENMPI="$value"
       ;;   
    *)
       die "Error: Unknown flag: $1"
@@ -203,8 +209,17 @@ build_superlu_dist() {
     fi
 }
 
+build_openmpi() {
+    if [ "$BUILD_OPENMPI" = "yes" ]
+    then    
+	echo "Building OpenMPI"
+	./build-openmpi.sh
+    fi
+}
+
 echo "Installations will be in  $PREFIX"
 
+build_openmpi
 build_openblas
 build_superlu
 build_superlu_dist

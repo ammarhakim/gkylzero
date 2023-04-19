@@ -82,7 +82,13 @@ void test_sub_range()
     TEST_CHECK( invIdx[0] == iter.idx[0] );
     TEST_CHECK( invIdx[1] == iter.idx[1] );
   }
-  
+
+  TEST_CHECK( gkyl_range_contains_idx(&range, (int[]) { 1, 1 }) == 1 );
+  TEST_CHECK( gkyl_range_contains_idx(&range, (int[]) { 1, 5 }) == 1 );
+  TEST_CHECK( gkyl_range_contains_idx(&range, (int[]) { 1, 10 }) == 1 );
+  TEST_CHECK( gkyl_range_contains_idx(&range, (int[]) { 10, 20 }) == 1 );
+
+  TEST_CHECK( gkyl_range_contains_idx(&range, (int[]) { 0, 20 }) == 0 );
 }
 
 void test_sub_range_inv_idx()
@@ -889,7 +895,41 @@ void test_intersect()
 
   // r1 inter r4
   TEST_CHECK( 0 == gkyl_range_intersect(&inter, &r1, &r4) );
+}
+
+void test_intersect_2()
+{
+  struct gkyl_range r1, r2, r3, inter;
+
+  gkyl_range_init(&r1, 3, (int[]) { 0, 1, 1 }, (int[]) { 35, 67, 300 } );
+  gkyl_range_init(&r2, 3, (int[]) { 35, 1, 1 }, (int[]) { 67, 67, 300 } );
+  gkyl_range_init(&r3, 3, (int[]) { 68, 135, 1 }, (int[]) { 100, 200, 300 } );
+
+  // r1 inter r2
+  TEST_CHECK( 1 == gkyl_range_intersect(&inter, &r1, &r2) );
+
+  // r1 inter r3
+  TEST_CHECK( 0 == gkyl_range_intersect(&inter, &r1, &r3) );
+}
+
+void test_extend(void)
+{
+  int lo[] = {1, 1}, up[] = { 4, 8 };
   
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, lo, up);
+
+  int elo[] = { 0, 1 }, eup[] = { 1, 2 };
+  struct gkyl_range ext_range;
+  gkyl_range_extend(&ext_range, &range, elo, eup);
+
+  TEST_CHECK( ext_range.volume == (4+1)*(8+1+2) );
+
+  TEST_CHECK( ext_range.lower[0] == 1 );
+  TEST_CHECK( ext_range.upper[0] == 5 );
+
+  TEST_CHECK( ext_range.lower[1] == 0 );
+  TEST_CHECK( ext_range.upper[1] == 10 );
 }
 
 // CUDA specific tests
@@ -943,6 +983,8 @@ TEST_LIST = {
   { "sub_range_split_iter", test_sub_range_split_iter },
   { "nested_iter", test_nested_iter },
   { "intersect", test_intersect },
+  { "intersect_2", test_intersect_2 },  
+  { "extend", test_extend },
 #ifdef GKYL_HAVE_CUDA
   { "cu_range", test_cu_range },
 #endif  
