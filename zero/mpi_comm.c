@@ -255,6 +255,22 @@ array_write(struct gkyl_comm *comm,
   return err;
 }
 
+static struct gkyl_comm*
+extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
+{
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
+
+  // extend internal decomp object and create a new communicator
+  struct gkyl_rect_decomp *ext_decomp = gkyl_rect_decomp_extended_new(erange, mpi->decomp);
+  struct gkyl_comm *ext_comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+      .mpi_comm = mpi->mcomm,
+      .decomp = ext_decomp
+    }
+  );
+  gkyl_rect_decomp_release(ext_decomp);
+  return ext_comm;
+}
+
 struct gkyl_comm*
 gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
 {

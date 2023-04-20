@@ -32,6 +32,11 @@ typedef int (*gkyl_array_write_t)(struct gkyl_comm *comm,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
   const struct gkyl_array *arr, const char *fname);
 
+// Create a new communcator that extends the communcator to work on a
+// extended domain specified by erange
+typedef struct gkyl_comm* (*extend_comm_t)(const struct gkyl_comm *comm,
+  const struct gkyl_range *erange);
+
 // Barrier
 typedef int (*barrier_t)(struct gkyl_comm *comm);
 
@@ -46,6 +51,8 @@ struct gkyl_comm {
   barrier_t barrier; // barrier
 
   gkyl_array_write_t gkyl_array_write; // array output
+
+  extend_comm_t extend_comm; // extend communcator
 
   struct gkyl_ref_count ref_count; // reference count
 };
@@ -140,6 +147,22 @@ gkyl_comm_array_write(struct gkyl_comm *comm,
   const struct gkyl_array *arr, const char *fname)
 {
   return comm->gkyl_array_write(comm, grid, range, arr, fname);
+}
+
+/**
+ * Create a new communcator that extends the communcator to work on a
+ * extended domain specified by erange. The returned communcator must
+ * be freed by calling gkyl_comm_release.
+ *
+ * @param comm Communcator
+ * @param arnage Range to extend by
+ * @return Newly created communcator
+ */
+static struct gkyl_comm*
+gkyl_comm_extend_comm(const struct gkyl_comm *comm,
+  const struct gkyl_range *erange)
+{
+  return comm->extend_comm(comm, erange);
 }
 
 /**
