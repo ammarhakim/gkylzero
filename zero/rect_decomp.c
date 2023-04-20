@@ -92,6 +92,45 @@ gkyl_rect_decomp_new_from_cuts(int ndim, const int cuts[], const struct gkyl_ran
   return decomp;
 }
 
+// ext_range = a X b 
+static void
+init_extend_range(struct gkyl_range *ext_range,
+  const struct gkyl_range *a, const struct gkyl_range *b)
+{
+  int adim = a->ndim, bdim = b->ndim;
+  int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+
+  for (int d=0; d<adim; ++d) {
+    lower[d] = a->lower[d];
+    upper[d] = a->upper[d];
+  }
+  for (int d=0; d<bdim; ++d) {
+    lower[adim+d] = b->lower[d];
+    upper[adim+d] = b->upper[d];
+  }
+
+  gkyl_range_init(ext_range, adim+bdim, lower, upper);
+}
+
+struct gkyl_rect_decomp*
+gkyl_rect_decomp_extended_new(const struct gkyl_range *arange,
+  const struct gkyl_rect_decomp *decomp)
+{
+  struct gkyl_rect_decomp *extd = gkyl_malloc(sizeof(*extd));
+
+  int ndecomp =  extd->ndecomp = decomp->ndecomp;  
+  int ndim = extd->ndim = arange->ndim + decomp->ndim;
+  extd->ranges = gkyl_malloc(sizeof(struct gkyl_range[ndecomp]));
+
+  init_extend_range(&extd->parent_range, &decomp->parent_range, arange);
+  for (int n=0; n<ndecomp; ++n)
+    init_extend_range(&extd->ranges[n], &decomp->ranges[n], arange);
+
+  extd->ref_count = gkyl_ref_count_init(rect_decomp_free);
+  
+  return extd;
+}
+
 struct gkyl_rect_decomp*
 gkyl_rect_decomp_acquire(const struct gkyl_rect_decomp *decomp)
 {

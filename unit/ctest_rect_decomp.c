@@ -320,6 +320,43 @@ test_rect_decomp_4d(void)
   gkyl_rect_decomp_release(decomp);
 }
 
+void
+test_rect_decomp_2d_2v(void)
+{
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, (int[]) { 1, 2 }, (int[]) { 100, 100 });
+  
+  int cuts[] = { 5, 6 };
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(2, cuts, &range);
+
+  TEST_CHECK( decomp->ndim == 2 );
+  TEST_CHECK( decomp->ndecomp == cuts[0]*cuts[1] );
+
+  struct gkyl_range vrange;
+  gkyl_range_init(&vrange, 2, (int[]) { 1, 2 }, (int[]) { 16, 16 });
+
+  struct gkyl_rect_decomp *ext_decomp = gkyl_rect_decomp_extended_new(
+    &vrange, decomp);
+
+  TEST_CHECK( ext_decomp->ndim == 4 );
+  TEST_CHECK( ext_decomp->ndecomp == cuts[0]*cuts[1] );
+
+  TEST_CHECK( ext_decomp->parent_range.volume = decomp->parent_range.volume*vrange.volume );
+  for (int i=0; i<decomp->ndecomp; ++i)
+    TEST_CHECK( ext_decomp->ranges[i].volume == decomp->ranges[i].volume*vrange.volume );
+
+  for (int i=0; i<decomp->ndecomp; ++i) {
+    
+    for (int d=0; d<vrange.ndim; ++d) {
+      TEST_CHECK( ext_decomp->ranges[d].lower[range.ndim+d] == vrange.lower[d] );
+      TEST_CHECK( ext_decomp->ranges[d].upper[range.ndim+d] == vrange.upper[d] );
+    }
+  }
+
+  gkyl_rect_decomp_release(decomp);
+  gkyl_rect_decomp_release(ext_decomp);
+}
+
 TEST_LIST = {
   { "ranges_1d", test_ranges_1d },
   { "ranges_2d", test_ranges_2d },
@@ -331,6 +368,8 @@ TEST_LIST = {
   { "rect_decomp_2d", test_rect_decomp_2d },
   { "rect_decomp_3d", test_rect_decomp_3d },
   { "rect_decomp_4d", test_rect_decomp_4d },
+
+  { "rect_decomp_2d_2v", test_rect_decomp_2d_2v },
   
   { NULL, NULL },
 };

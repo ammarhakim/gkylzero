@@ -35,6 +35,17 @@ struct gkyl_rect_decomp *gkyl_rect_decomp_new_from_cuts(int ndim,
   const int cuts[], const struct gkyl_range *range);
 
 /**
+ * Create a new decomposition from a given decomposition. The new
+ * decomposition extends each region by a tensor product with @a
+ * arange.
+ *
+ * @param arange Range to extend by
+ * @return New extended decomposition
+ */
+struct gkyl_rect_decomp *gkyl_rect_decomp_extended_new(const struct gkyl_range *arange,
+  const struct gkyl_rect_decomp *decomp);
+
+/**
  * Acquire a pointer to the decomposition.
  *
  * @param decomp Decom to acquire pointer to
