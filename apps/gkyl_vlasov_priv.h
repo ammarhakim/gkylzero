@@ -414,8 +414,11 @@ struct gkyl_vlasov_app {
     
   struct gkyl_rect_grid grid; // config-space grid
   struct gkyl_range local, local_ext; // local, local-ext conf-space ranges
+  struct gkyl_range global, global_ext; // global, global-ext conf-space ranges  
   struct gkyl_basis basis, confBasis, velBasis; // phase-space, conf-space basis, vel-space basis
 
+  struct gkyl_comm *comm;   // communicator object for conf-space arrays
+  
   // pointers to basis on device (these point to host structs if not
   // on GPU)
   struct {

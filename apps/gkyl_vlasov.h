@@ -3,9 +3,21 @@
 #include <gkyl_app.h>
 #include <gkyl_basis.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_range.h>
 #include <gkyl_util.h>
 
 #include <stdbool.h>
+
+// Lower-level inputs: in general this does not need to be set by the
+// user. It is needed when the App is being created on a sub-range of
+// the global range, and is meant for use in higher-level drivers that
+// use MPI or other parallel mechanism.
+struct gkyl_vm_low_inp {
+  // local range over which App operates
+  struct gkyl_range local_range;
+  // communicator to used
+  struct gkyl_comm *comm;
+};
 
 // Parameters for species collisions
 struct gkyl_vlasov_collisions {
@@ -189,6 +201,11 @@ struct gkyl_vm {
   
   bool skip_field; // Skip field update or no field specified
   struct gkyl_vlasov_field field; // field object
+
+  // this should not be set by typical user-facing code but only by
+  // higher-level drivers
+  bool has_low_inp; // should one use low-level inputs?
+  struct gkyl_vm_low_inp low_inp; // low-level inputs  
 };
 
 // Simulation statistics

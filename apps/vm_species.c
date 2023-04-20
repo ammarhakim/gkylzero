@@ -687,6 +687,8 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
       }      
     }
   }
+
+  // sync goes here
 }
 
 void

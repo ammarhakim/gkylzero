@@ -3,6 +3,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_dflt.h>
 #include <gkyl_dynvec.h>
+#include <gkyl_null_comm.h>
 
 #include <gkyl_vlasov_priv.h>
 
@@ -89,8 +90,25 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   gkyl_rect_grid_init(&app->grid, cdim, vm->lower, vm->upper, vm->cells);
 
   int ghost[] = { 1, 1, 1 };
-  gkyl_create_grid_ranges(&app->grid, ghost, &app->local_ext, &app->local);
-  skin_ghost_ranges_init(&app->skin_ghost, &app->local_ext, ghost);
+  gkyl_create_grid_ranges(&app->grid, ghost, &app->global_ext, &app->global);
+
+  if (vm->has_low_inp) {
+    // create local and local_ext from user-supplied local range
+    gkyl_create_ranges(&vm->low_inp.local_range, ghost, &app->local_ext, &app->local);
+    
+    if (vm->low_inp.comm)
+      app->comm = gkyl_comm_acquire(vm->low_inp.comm);
+    else
+      app->comm = gkyl_null_comm_new();    
+  }
+  else {
+    // global and local ranges are same, and so just copy
+    memcpy(&app->local, &app->global, sizeof(struct gkyl_range));
+    memcpy(&app->local_ext, &app->global_ext, sizeof(struct gkyl_range));
+    app->comm = gkyl_null_comm_new();    
+  }
+
+  skin_ghost_ranges_init(&app->skin_ghost, &app->global_ext, ghost);
 
   app->has_field = !vm->skip_field; // note inversion of truth value
 
@@ -622,6 +640,8 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   if (dt_rel_diff > 0 && dt_rel_diff < dt_max_rel_diff)
     dtmin = dt;
 
+  // all-reduce goes here to compute dta across processes
+  
   // don't take a time-step larger that input dt
   double dta = st->dt_actual = dt < dtmin ? dt : dtmin;
   st->dt_suggested = dtmin;

@@ -384,6 +384,8 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
       }   
     }
   }
+
+  // sync goes here
 }
 
 void
