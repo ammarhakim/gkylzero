@@ -350,8 +350,9 @@ vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
   int poly_order = app->poly_order;
   gkyl_proj_on_basis *proj;
   if (species->model_id == GKYL_MODEL_PKPM)
+    // PKPM often run with hybrid basis, so do a higher order projection for ICs
     proj = gkyl_proj_on_basis_new(&species->grid, &app->basis,
-      poly_order+1, 2, species->info.init, species->info.ctx);
+      8, 2, species->info.init, species->info.ctx);
   else
     proj = gkyl_proj_on_basis_new(&species->grid, &app->basis,
       poly_order+1, 1, species->info.init, species->info.ctx);
