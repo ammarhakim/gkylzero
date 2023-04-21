@@ -383,7 +383,7 @@ main(int argc, char **argv)
     .pkpm_species = "elc",
     .ctx = &ctx,
     .init = evalFluidElc,
-    .nuHyp = 1.0e-4,
+    .nuHyp = 1.0e-3,
     .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
   };  
   
@@ -393,8 +393,8 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_PKPM,
     .pkpm_fluid_species = "fluid_elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
-    .lower = { -4.0 * ctx.vtElc},
-    .upper = { 4.0 * ctx.vtElc}, 
+    .lower = { -8.0 * ctx.vtElc},
+    .upper = { 8.0 * ctx.vtElc}, 
     .cells = { VX },
 
     .ctx = &ctx,
@@ -418,7 +418,7 @@ main(int argc, char **argv)
     .pkpm_species = "ion",
     .ctx = &ctx,
     .init = evalFluidIon,
-    .nuHyp = 1.0e-4, 
+    .nuHyp = 1.0e-3, 
     .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
   };  
   
@@ -428,8 +428,8 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_PKPM,
     .pkpm_fluid_species = "fluid_ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
-    .lower = { -4.0 * ctx.vtIon},
-    .upper = { 4.0 * ctx.vtIon}, 
+    .lower = { -8.0 * ctx.vtIon},
+    .upper = { 8.0 * ctx.vtIon}, 
     .cells = { VX },
 
     .ctx = &ctx,
