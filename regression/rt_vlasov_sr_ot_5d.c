@@ -26,11 +26,11 @@ struct ot_ctx {
 };
 
 static inline double
-maxwelljuttner3D(double n, double px, double py, double pz, double ux, double uy, double uz, double T, double mass, double K_2)
+maxwelljuttner3D(double n, double px, double py, double pz, double ux, double uy, double uz, double T, double K_2)
 {
   double gamma = 1.0/sqrt(1 - ux*ux - uy*uy - uz*uz);
   // T is in units of m_e c^2
-  return n/(4*M_PI*(T/mass)*K_2)*exp(-(mass*gamma/T)*(sqrt(1.0 + px*px + py*py + pz*pz) - ux*px - uy*py - uz*pz));
+  return n/(4*M_PI*T*K_2)*exp(-(gamma/T)*(sqrt(1.0 + px*px + py*py + pz*pz) - ux*px - uy*py - uz*pz));
 }
 
 void
@@ -50,24 +50,21 @@ evalDistFuncElc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double B0y = app->delta_B0;
 
   double n = app->n0;
-  // Density correction
-  // double ni = ne - (app->epsilon0/qi)*(2.0*M_PI/(Lx*Lx*Ly*Ly*ne*qi*app->mu0))*(app->B0*Lx*Ly*Ly*u0y*ne*qi*app->mu0*cos(2.0*M_PI*x/Lx) 
-  //     + 8*M_PI*B0y*B0y*Ly*Ly*cos(8*M_PI*x/Lx) 
-  //     + Lx*(Ly*(app->B0*Lx*u0x*ne*qi*app->mu0 + 8*M_PI*B0x*B0y*cos(4.0*M_PI*x/Lx))*cos(2.0*M_PI*y/Ly)+2.0*M_PI*B0x*B0x*Lx*cos(4.0*M_PI*y/Ly)));
-  double Jz = (B0y*(4.0*M_PI/Lx)*cos(4.0*M_PI*x/Lx) + B0x*(2.0*M_PI/Ly)*cos(2.0*M_PI*y/Ly)) / app->mu0;
+  // Half the current to the electrons
+  double Jz = 0.5*(B0y*(4.0*M_PI/Lx)*cos(4.0*M_PI*x/Lx) + B0x*(2.0*M_PI/Ly)*cos(2.0*M_PI*y/Ly)) / app->mu0;
 
   double vdrift_x = -u0x*sin(2.0*M_PI*y/Ly);
   double vdrift_y = u0y*sin(2.0*M_PI*x/Lx);
-  double vdrift_z = -Jz / (n*qi);
+  double vdrift_z = Jz / (n*qe);
 
   // modified Bessel function of the second kind evaluated for T = mc^2 (K_2(1))
-  double K_2 = 1.6248388986351774828107073822838437146593935281628733843345054697;
+  // double K_2 = 1.6248388986351774828107073822838437146593935281628733843345054697;
   // modified Bessel function of the second kind evaluated for T = 0.1 mc^2 (K_2(10))
   //double K_2 = 0.0000215098170069327687306645644239671272492068461808732468335569;
   // modified Bessel function of the second kind evaluated for T = 0.04 mc^2 (K_2(25))
-  //double K_2 = 3.7467838080691090570137658745889511812329380156362352887017e-12;
+  double K_2 = 3.7467838080691090570137658745889511812329380156362352887017e-12;
   
-  double fv = maxwelljuttner3D(n, vx, vy, vz, vdrift_x, vdrift_y, vdrift_z, app->Telc, app->massElc, K_2);
+  double fv = maxwelljuttner3D(n, vx, vy, vz, vdrift_x, vdrift_y, vdrift_z, app->Telc, K_2);
     
   fout[0] = fv;
 }
@@ -88,15 +85,12 @@ evalDistFuncIon(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double B0y = app->delta_B0;
 
   double n = app->n0;
-  // Density correction
-  // double ni = ne - (app->epsilon0/qi)*(2.0*M_PI/(Lx*Lx*Ly*Ly*ne*qi*app->mu0))*(app->B0*Lx*Ly*Ly*u0y*ne*qi*app->mu0*cos(2.0*M_PI*x/Lx) 
-  //     + 8*M_PI*B0y*B0y*Ly*Ly*cos(8*M_PI*x/Lx) 
-  //     + Lx*(Ly*(app->B0*Lx*u0x*ne*qi*app->mu0 + 8*M_PI*B0x*B0y*cos(4.0*M_PI*x/Lx))*cos(2.0*M_PI*y/Ly)+2.0*M_PI*B0x*B0x*Lx*cos(4.0*M_PI*y/Ly)));
-  double Jz = (B0y*(4.0*M_PI/Lx)*cos(4.0*M_PI*x/Lx) + B0x*(2.0*M_PI/Ly)*cos(2.0*M_PI*y/Ly)) / app->mu0;
+  // Half the current to the positrons
+  double Jz = 0.5*(B0y*(4.0*M_PI/Lx)*cos(4.0*M_PI*x/Lx) + B0x*(2.0*M_PI/Ly)*cos(2.0*M_PI*y/Ly)) / app->mu0;
 
   double vdrift_x = -u0x*sin(2.0*M_PI*y/Ly);
   double vdrift_y = u0y*sin(2.0*M_PI*x/Lx);
-  double vdrift_z = 0.0;
+  double vdrift_z = Jz / (n*qi);
 
   // modified Bessel function of the second kind evaluated for T = mc^2 (K_2(1))
   //double K_2 = 1.6248388986351774828107073822838437146593935281628733843345054697;
@@ -105,7 +99,7 @@ evalDistFuncIon(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   // modified Bessel function of the second kind evaluated for T = 0.04 mc^2 (K_2(25))
   double K_2 = 3.7467838080691090570137658745889511812329380156362352887017e-12;
   
-  double fv = maxwelljuttner3D(n, vx, vy, vz, vdrift_x, vdrift_y, vdrift_z, app->Tion, app->massIon, K_2);
+  double fv = maxwelljuttner3D(n, vx, vy, vz, vdrift_x, vdrift_y, vdrift_z, app->Tion, K_2);
     
   fout[0] = fv;
 }
@@ -127,25 +121,15 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double B0y = app->delta_B0;
 
   double n = app->n0;
-  // Density correction
-  // double ni = ne - (app->epsilon0/qi)*(2.0*M_PI/(Lx*Lx*Ly*Ly*ne*qi*app->mu0))*(app->B0*Lx*Ly*Ly*u0y*ne*qi*app->mu0*cos(2.0*M_PI*x/Lx) 
-  //     + 8*M_PI*B0y*B0y*Ly*Ly*cos(8*M_PI*x/Lx) 
-  //     + Lx*(Ly*(app->B0*Lx*u0x*ne*qi*app->mu0 + 8*M_PI*B0x*B0y*cos(4.0*M_PI*x/Lx))*cos(2.0*M_PI*y/Ly)+2.0*M_PI*B0x*B0x*Lx*cos(4.0*M_PI*y/Ly)));
-  double Jz = (B0y*(4.0*M_PI/Lx)*cos(4.0*M_PI*x/Lx) + B0x*(2.0*M_PI/Ly)*cos(2.0*M_PI*y/Ly)) / app->mu0;
+  double Jz = 0.5*(B0y*(4.0*M_PI/Lx)*cos(4.0*M_PI*x/Lx) + B0x*(2.0*M_PI/Ly)*cos(2.0*M_PI*y/Ly)) / app->mu0;
 
   double B_x = -B0x*sin(2.0*M_PI*y/Ly);
   double B_y = B0y*sin(4.0*M_PI*x/Lx);
   double B_z = app->B0;
 
-  // Assumes qi = abs(qe)
-  double u_xe = -u0x*sin(2.0*M_PI*y/Ly);
-  double u_ye = u0y*sin(2.0*M_PI*x/Lx);
-  double u_ze = -Jz / (qi*n);
-
-  // E = - v_e x B ~  (J - u) x B
-  double E_x = - (u_ye*B_z - u_ze*B_y);
-  double E_y = - (u_ze*B_x - u_xe*B_z);
-  double E_z = - (u_xe*B_y - u_ye*B_x);
+  double E_x = 0.0;
+  double E_y = 0.0;
+  double E_z = 0.0;
   
   fout[0] = E_x; fout[1] = E_y, fout[2] = E_z;
   fout[3] = B_x; fout[4] = B_y; fout[5] = B_z;
@@ -160,15 +144,15 @@ create_ctx(void)
 
   double massElc = 1.0; // electron mass
   double chargeElc = -1.0; // electron charge
-  double massIon = 25.0; // ion mass
+  double massIon = 1.0; // ion mass
   double chargeIon = 1.0; // ion charge
 
   double n0 = 1.0; // initial number density
   
-  double sigma = 1.0/25.0; // B^2/(2*mu0*n_i m_i c^2) = 1.0/25.0
-  // T_i = T_e = m_e c^2 ~ 0.5 MeV
-  double Telc = 1.0; // T_e/m_e c^2 = 1.0
-  double Tion = 1.0; 
+  double sigma = 1.0; // B^2/(2*mu0*n_i m_i c^2) = 1.0
+  // T_i = T_e = 0.04*m_e c^2 ~ 0.02 MeV
+  double Telc = 0.04; // T_e/m_e c^2 = 0.04
+  double Tion = 0.04; 
 
   double B0 = sqrt(sigma*massIon*2.0*mu0);
   // ion Alfvén velocity
@@ -178,8 +162,8 @@ create_ctx(void)
   double omegaCi = chargeIon*B0/massIon;
 
   // OT initial conditions
-  double delta_u0 = 0.1*vAi;
-  double delta_B0 = 0.1*B0;
+  double delta_u0 = 0.5*vAi;
+  double delta_B0 = 0.5*B0;
 
   // domain size and simulation time
   double L = 20.0*M_PI;
@@ -231,9 +215,9 @@ main(int argc, char **argv)
     .name = "elc",
     .model_id = GKYL_MODEL_SR,
     .charge = ctx.chargeElc, .mass = ctx.massElc,
-    .lower = { -8.0 * ctx.Telc, -8.0 * ctx.Telc, -8.0 * ctx.Telc },
-    .upper = { 8.0 * ctx.Telc, 8.0 * ctx.Telc, 8.0 * ctx.Telc }, 
-    .cells = { 12, 12, 12 },
+    .lower = { -1.0, -1.0, -1.0 },
+    .upper = { 1.0, 1.0, 1.0 }, 
+    .cells = { 8, 8, 8 },
 
     .ctx = &ctx,
     .init = evalDistFuncElc,
@@ -247,9 +231,9 @@ main(int argc, char **argv)
     .name = "ion",
     .model_id = GKYL_MODEL_SR,
     .charge = ctx.chargeIon, .mass = ctx.massIon,
-    .lower = { -ctx.Tion, -ctx.Tion, -ctx.Tion },
-    .upper = { ctx.Tion, ctx.Tion, ctx.Tion}, 
-    .cells = { 12, 12, 12 },
+    .lower = { -1.0, -1.0, -1.0 },
+    .upper = { 1.0, 1.0, 1.0}, 
+    .cells = { 8, 8, 8 },
 
     .ctx = &ctx,
     .init = evalDistFuncIon,

@@ -434,22 +434,22 @@ TEST_LIST = {
   { "test_2x_p1", test_2x_p1 },
   { "test_3x_p1", test_3x_p1 },
 
-  /* { "test_2x_p1_big", test_2x_p1_big }, */
-  /* { "test_3x_p1_big", test_3x_p1_big }, */
+  // { "test_2x_p1_big", test_2x_p1_big },
+  // { "test_3x_p1_big", test_3x_p1_big },
 
   { "test_1x_p2", test_1x_p2 },
-  //{ "test_2x_p2", test_2x_p2 },
+  // { "test_2x_p2", test_2x_p2 },
 
 #ifdef GKYL_HAVE_CUDA
   { "test_1x_p1_gpu", test_1x_p1_gpu },
   { "test_2x_p1_gpu", test_2x_p1_gpu },
   { "test_3x_p1_gpu", test_3x_p1_gpu },
 
-  /* { "test_2x_p1_big_gpu", test_2x_p1_big_gpu }, */
-  /* { "test_3x_p1_big_gpu", test_3x_p1_big_gpu }, */
+  // { "test_2x_p1_big_gpu", test_2x_p1_big_gpu },
+  // { "test_3x_p1_big_gpu", test_3x_p1_big_gpu },
 
   { "test_1x_p2_gpu", test_1x_p2_gpu },
-  //{ "test_2x_p2_gpu", test_2x_p2_gpu },
+  // { "test_2x_p2_gpu", test_2x_p2_gpu },
 
 #endif
   { NULL, NULL },

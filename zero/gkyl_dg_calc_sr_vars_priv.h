@@ -4,13 +4,72 @@
 #include <math.h>
 
 #include <gkyl_array.h>
-#include <gkyl_array.h>
 #include <gkyl_basis.h>
+#include <gkyl_proj_on_basis.h>
 #include <gkyl_sr_Gamma_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 #include <assert.h>
 
+// Projection functions for p/(gamma) = v in special relativistic systems
+// Simplifies to p/sqrt(1 + p^2) where c = 1
+static void 
+ev_p_over_gamma_1p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = xn[0]/sqrt(1.0 + xn[0]*xn[0]);
+}
+static void 
+ev_p_over_gamma_2p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = xn[0]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1]);
+  out[1] = xn[1]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1]);
+}
+static void 
+ev_p_over_gamma_3p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = xn[0]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+  out[1] = xn[1]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+  out[2] = xn[2]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+}
+static const evalf_t p_over_gamma_func[3] = {ev_p_over_gamma_1p, ev_p_over_gamma_2p, ev_p_over_gamma_3p};
+
+// Projection functions for gamma = sqrt(1 + p^2) in special relativistic systems
+static void 
+ev_gamma_1p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = sqrt(1.0 + xn[0]*xn[0]);
+}
+static void 
+ev_gamma_2p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1]);
+}
+static void 
+ev_gamma_3p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+}
+static const evalf_t gamma_func[3] = {ev_gamma_1p, ev_gamma_2p, ev_gamma_3p};
+
+// Projection functions for gamma_inv = 1/sqrt(1 + p^2) in special relativistic systems
+static void 
+ev_gamma_inv_1p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = 1.0/sqrt(1.0 + xn[0]*xn[0]);
+}
+static void 
+ev_gamma_inv_2p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = 1.0/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1]);
+}
+static void 
+ev_gamma_inv_3p(double t, const double *xn, double *out, void *ctx)
+{
+  out[0] = 1.0/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
+}
+static const evalf_t gamma_inv_func[3] = {ev_gamma_inv_1p, ev_gamma_inv_2p, ev_gamma_inv_3p};
+
+// Function pointer type for different GammaV functions (GammaV^2, GammaV, 1/GammaV)
 typedef void (*sr_t)(const double *V_i, double* GKYL_RESTRICT out);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
@@ -18,8 +77,8 @@ typedef void (*sr_t)(const double *V_i, double* GKYL_RESTRICT out);
 static struct { int vdim[4]; } cv_index[] = {
   {-1, -1, -1, -1}, // 0x makes no sense
   {-1,  0,  1,  2}, // 1x kernel indices
-  {-1,  3,  4,  5}, // 2x kernel indices
-  {-1,  6,  7,  8}, // 3x kernel indices  
+  {-1, -1,  3,  4}, // 2x kernel indices
+  {-1, -1, -1,  5}, // 3x kernel indices  
 };
 
 // for use in kernel tables
@@ -35,13 +94,10 @@ static const gkyl_dg_sr_Gamma2_kern_list ser_sr_Gamma2_kernels[] = {
   { NULL, sr_Gamma2_1x2v_ser_p1, sr_Gamma2_1x2v_ser_p2 }, // 1
   { NULL, sr_Gamma2_1x3v_ser_p1, sr_Gamma2_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, sr_Gamma2_2x1v_ser_p1, NULL }, // 3
-  { NULL, sr_Gamma2_2x2v_ser_p1, NULL }, // 4
-  { NULL, sr_Gamma2_2x3v_ser_p1, NULL }, // 5
+  { NULL, sr_Gamma2_2x2v_ser_p1, NULL }, // 3
+  { NULL, sr_Gamma2_2x3v_ser_p1, NULL }, // 4
   // 3x kernels
-  { NULL, sr_Gamma2_3x1v_ser_p1, NULL                  }, // 6
-  { NULL, sr_Gamma2_3x2v_ser_p1, NULL                  }, // 7
-  { NULL, sr_Gamma2_3x3v_ser_p1, NULL                  }, // 8
+  { NULL, sr_Gamma2_3x3v_ser_p1, NULL }, // 5
 };
 
 // Lorentz boost factor kernel list
@@ -52,13 +108,10 @@ static const gkyl_dg_sr_Gamma_kern_list ser_sr_Gamma_kernels[] = {
   { NULL, sr_Gamma_1x2v_ser_p1, sr_Gamma_1x2v_ser_p2 }, // 1
   { NULL, sr_Gamma_1x3v_ser_p1, sr_Gamma_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, sr_Gamma_2x1v_ser_p1, NULL }, // 3
-  { NULL, sr_Gamma_2x2v_ser_p1, NULL }, // 4
-  { NULL, sr_Gamma_2x3v_ser_p1, NULL }, // 5
+  { NULL, sr_Gamma_2x2v_ser_p1, NULL }, // 3
+  { NULL, sr_Gamma_2x3v_ser_p1, NULL }, // 4
   // 3x kernels
-  { NULL, sr_Gamma_3x1v_ser_p1, NULL                 }, // 6
-  { NULL, sr_Gamma_3x2v_ser_p1, NULL                 }, // 7
-  { NULL, sr_Gamma_3x3v_ser_p1, NULL                 }, // 8
+  { NULL, sr_Gamma_3x3v_ser_p1, NULL }, // 5
 };
 
 // *inverse* Lorentz boost factor kernel list
@@ -69,13 +122,10 @@ static const gkyl_dg_sr_Gamma_inv_kern_list ser_sr_Gamma_inv_kernels[] = {
   { NULL, sr_Gamma_inv_1x2v_ser_p1, sr_Gamma_inv_1x2v_ser_p2 }, // 1
   { NULL, sr_Gamma_inv_1x3v_ser_p1, sr_Gamma_inv_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, sr_Gamma_inv_2x1v_ser_p1, NULL }, // 3
-  { NULL, sr_Gamma_inv_2x2v_ser_p1, NULL }, // 4
-  { NULL, sr_Gamma_inv_2x3v_ser_p1, NULL }, // 5
+  { NULL, sr_Gamma_inv_2x2v_ser_p1, NULL }, // 3
+  { NULL, sr_Gamma_inv_2x3v_ser_p1, NULL }, // 4
   // 3x kernels
-  { NULL, sr_Gamma_inv_3x1v_ser_p1, NULL                     }, // 6
-  { NULL, sr_Gamma_inv_3x2v_ser_p1, NULL                     }, // 7
-  { NULL, sr_Gamma_inv_3x3v_ser_p1, NULL                     }, // 8
+  { NULL, sr_Gamma_inv_3x3v_ser_p1, NULL }, // 5
 };
 
 GKYL_CU_D

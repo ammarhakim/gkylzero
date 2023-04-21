@@ -5,6 +5,7 @@ extern "C" {
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_dg_vlasov_sr.h>    
 #include <gkyl_dg_vlasov_sr_priv.h>
+#include <gkyl_util.h>
 }
 
 #include <cassert>
