@@ -6,6 +6,7 @@
 #include <unistd.h>
 
 #include <gkyl_array_rio.h>
+#include <gkyl_elem_type_priv.h>
 
 void
 gkyl_array_write(const struct gkyl_array *arr, FILE *fp)
