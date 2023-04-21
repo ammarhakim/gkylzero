@@ -150,6 +150,7 @@ struct vm_species {
   struct gkyl_job_pool *job_pool; // Job pool
   struct gkyl_rect_grid grid;
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
+  struct gkyl_range global, global_ext; // global, global-ext conf-space ranges    
   struct app_skin_ghost_ranges skin_ghost; // conf-space skin/ghost
 
   struct gkyl_rect_grid grid_vel; // velocity space grid

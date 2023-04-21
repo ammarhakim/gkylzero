@@ -194,7 +194,7 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum 
     goto mpifinalize;
   }
 
-  // VM app
+  // moment app
   struct gkyl_moment app_inp = {
     .ndim = 2,
     .lower = {0.0, 0.0},
