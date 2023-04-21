@@ -292,6 +292,7 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   mpi->base.all_reduce = all_reduce;
   mpi->base.gkyl_array_sync = array_sync;
   mpi->base.gkyl_array_write = array_write;
+  mpi->base.extend_comm = extend_comm;
 
   mpi->base.ref_count = gkyl_ref_count_init(comm_free);
 
