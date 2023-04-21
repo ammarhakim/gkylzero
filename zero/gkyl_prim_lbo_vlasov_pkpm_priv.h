@@ -3,7 +3,7 @@
 
 #include <gkyl_array.h>
 #include <gkyl_prim_lbo_type.h>
-#include <gkyl_prim_lbo_vlasov_kernels.h>
+#include <gkyl_prim_lbo_vlasov_pkpm_kernels.h>
 #include <gkyl_mat.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>

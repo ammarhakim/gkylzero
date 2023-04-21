@@ -18,6 +18,7 @@
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_em_vars.h>
 #include <gkyl_dg_calc_prim_vars.h>
+#include <gkyl_dg_calc_pkpm_vars.h>
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_updater_fluid.h>

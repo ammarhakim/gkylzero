@@ -97,7 +97,7 @@ evalNuElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
   struct pkpm_heat_flux_ctx *app = ctx;
   double x = xn[0];
   double Lx = app->Lx;
-  double Ly = app->Ly; // Ly sets the length scale of the collisionality profile
+  double Ly = app->Ly/4.0; // Ly sets the length scale of the collisionality profile
   fout[0] = app->nuElc*(tanh((x - Lx)/Ly) - tanh(x/Ly) + 2.0);
 }
 
@@ -113,7 +113,7 @@ create_ctx(void)
   double n0 = 1.0; // initial number density
 
   double beta = 64.0;
-  double elcTemp = 0.01;
+  double elcTemp = 0.02;
   double vtElc = sqrt(2.0*elcTemp/massElc);
   double tempFac = 0.75; // Temperature is 4 times colder at right wall
   double vAe = vtElc/sqrt(beta);
@@ -124,7 +124,7 @@ create_ctx(void)
   double rhoe = vtElc/omegaCe;
 
   // collision frequencies
-  double nuElc = 4.0e-2*omegaCe;
+  double nuElc = omegaCe/5.0;
 
   // domain size and simulation time
   double Lx = 256.0*rhoe;
@@ -194,8 +194,8 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_PKPM,
     .pkpm_fluid_species = "fluid_elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
-    .lower = { -6.0 * ctx.vtElc},
-    .upper = { 6.0 * ctx.vtElc}, 
+    .lower = { -4.0 * ctx.vtElc},
+    .upper = { 4.0 * ctx.vtElc}, 
     .cells = { VX },
 
     .ctx = &ctx,
@@ -221,7 +221,7 @@ main(int argc, char **argv)
 
     .ctx = &ctx,
     .init = evalFieldFunc,
-    .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL }
+    .bcx = { GKYL_FIELD_RESERVOIR, GKYL_FIELD_RESERVOIR }
   };
 
   // VM app
