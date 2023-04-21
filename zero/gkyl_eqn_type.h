@@ -61,3 +61,9 @@ enum gkyl_quad_type {
   GKYL_GAUSS_QUAD, // Gauss-Legendre quadrature
   GKYL_GAUSS_LOBATTO_QUAD, // Gauss-Lobatto quadrature
 };
+
+/** Flags for indicating acting edge of velocity space */
+enum gkyl_vel_edge { 
+  GKYL_VX_LOWER, GKYL_VY_LOWER, GKYL_VZ_LOWER, 
+  GKYL_VX_UPPER, GKYL_VY_UPPER, GKYL_VZ_UPPER 
+};
