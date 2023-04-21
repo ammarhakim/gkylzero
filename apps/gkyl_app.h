@@ -27,4 +27,5 @@ enum gkyl_field_bc_type {
   GKYL_FIELD_SYM_WALL, // Maxwell's symmetry BC (zero normal E and zero tangent B)
   GKYL_FIELD_RESERVOIR, // Reservoir Maxwell's BCs for heat flux problem
   GKYL_FIELD_WEDGE, // specialized "wedge" BCs for RZ-theta
+  GKYL_FIELD_FUNC, // Function boundary conditions
 };

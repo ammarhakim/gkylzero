@@ -38,6 +38,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
           .check_inv_domain = false,
           .cfl = app->cfl,
           .geom = app->geom,
+          .comm = app->comm
         }
       );
 
@@ -108,6 +109,23 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
       else
         bc = mom_fld->bcz;
 
+      void (*bc_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+      if (dir == 0)
+        bc_lower_func = mom_fld->bcx_lower_func;
+      else if (dir == 1)
+        bc_lower_func = mom_fld->bcy_lower_func;
+      else
+        bc_lower_func = mom_fld->bcz_lower_func;
+
+      void (*bc_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+      if (dir == 0)
+        bc_upper_func = mom_fld->bcx_upper_func;
+      else if (dir == 1)
+        bc_upper_func = mom_fld->bcy_upper_func;
+      else
+        bc_upper_func = mom_fld->bcz_upper_func;
+
+
       fld->lower_bct[dir] = bc[0];
       fld->upper_bct[dir] = bc[1];
 
@@ -117,6 +135,11 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
             &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, maxwell->wall_bc_func, 0);
           break;
 
+        case GKYL_FIELD_FUNC:
+          fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            bc_lower_func, mom_fld->ctx);
+
         case GKYL_FIELD_COPY:
         case GKYL_FIELD_WEDGE:
           fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
@@ -124,6 +147,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
           break;
 
         default:
+          assert(false);
           break;
       }
 
@@ -133,13 +157,20 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
             &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, maxwell->wall_bc_func, 0);
           break;
 
+        case GKYL_FIELD_FUNC:
+          fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost,
+            bc_upper_func, mom_fld->ctx);
+          break;
+
         case GKYL_FIELD_COPY:
         case GKYL_FIELD_WEDGE:
           fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_copy, 0);
           break;
-
+          
         default:
+          assert(false);
           break;
       }
     }
@@ -198,7 +229,9 @@ moment_field_apply_bc(const gkyl_moment_app *app, double tcurr,
       if (field->lower_bct[d] == GKYL_FIELD_WEDGE)
         moment_apply_wedge_bc(app, tcurr, &app->local,
           field->bc_buffer, d, field->lower_bc[d], field->upper_bc[d], f);
-    }  
+    }
+
+  gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, app->nghost, f);
 }
 
 double

@@ -4,6 +4,10 @@
 
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_comm.h>
+
+#include <stdio.h>
+#include <stdlib.h>
 
 // ranges for use in BCs
 struct app_skin_ghost_ranges {
