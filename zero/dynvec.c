@@ -1,5 +1,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_dynvec.h>
+#include <gkyl_elem_type_priv.h>
 #include <gkyl_ref_count.h>
 #include <gkyl_util.h>
 

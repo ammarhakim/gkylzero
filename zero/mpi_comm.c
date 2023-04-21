@@ -5,7 +5,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_array_rio_format_desc.h>
-#include <gkyl_elem_type.h>
+#include <gkyl_elem_type_priv.h>
 #include <gkyl_mpi_comm.h>
 
 #include <errno.h>
