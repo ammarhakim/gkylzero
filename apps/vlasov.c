@@ -893,6 +893,92 @@ range_stat_write(gkyl_vlasov_app* app, const char *nm, const struct gkyl_range *
   gkyl_vlasov_app_cout(app, fp, " ],\n");
 }
 
+// ensure stats across processors are made consistent
+static void
+comm_reduce_app_stat(const gkyl_vlasov_app* app,
+  const struct gkyl_vlasov_stat *local, struct gkyl_vlasov_stat *global)
+{
+  int comm_sz;
+  gkyl_comm_get_size(app->comm, &comm_sz);
+  if (comm_sz == 1) {
+    memcpy(global, local, sizeof(struct gkyl_vlasov_stat));
+    return;
+  }
+
+  global->use_gpu = local->use_gpu;
+
+  enum { NUP, NFEULER, NSTAGE_2_FAIL, NSTAGE_3_FAIL, L_END };
+  int64_t l_red[] = {
+    [NUP] = local->nup,
+    [NFEULER] = local->nfeuler,
+    [NSTAGE_2_FAIL] = local->nstage_2_fail,
+    [NSTAGE_3_FAIL] = local->nstage_3_fail
+  };
+
+  int64_t l_red_global[L_END];
+  gkyl_comm_all_reduce(app->comm, GKYL_INT_64, GKYL_MAX, L_END, l_red, l_red_global);
+
+  global->nup = l_red_global[NUP];
+  global->nfeuler = l_red_global[NFEULER];
+  global->nstage_2_fail = l_red_global[NSTAGE_2_FAIL];
+  global->nstage_3_fail = l_red_global[NSTAGE_3_FAIL];  
+
+  enum {
+    TOTAL_TM, INIT_SPECIES_TM, INIT_FLUID_SPECIES_TM, INIT_FIELD_TM,
+    SPECIES_RHS_TM, FLUID_SPECIES_RHS_TM, SPECIES_COLL_MOM_TM,
+    SPECIES_COL_TM, FIELD_RHS_TM, CURRENT_TM,
+    SPECIES_OMEGA_CFL_TM, FIELD_OMEGA_CFL_TM, MOM_TM, DIAG_TM,
+    D_END
+  };
+
+  double d_red[D_END] = {
+    [TOTAL_TM] = local->total_tm,
+    [INIT_SPECIES_TM] = local->init_species_tm,
+    [INIT_FLUID_SPECIES_TM] = local->init_fluid_species_tm,
+    [INIT_FIELD_TM] = local->field_rhs_tm,
+    [SPECIES_RHS_TM] = local->species_rhs_tm,
+    [FLUID_SPECIES_RHS_TM] = local->species_rhs_tm,
+    [SPECIES_COLL_MOM_TM] = local->species_coll_mom_tm,
+    [SPECIES_COL_TM] = local->species_coll_tm,
+    [FIELD_RHS_TM] = local->field_rhs_tm,
+    [CURRENT_TM] = local->current_tm,
+    [SPECIES_OMEGA_CFL_TM] = local->species_omega_cfl_tm,
+    [FIELD_OMEGA_CFL_TM] = local->field_omega_cfl_tm,
+    [MOM_TM] = local->mom_tm,
+    [DIAG_TM] = local->diag_tm,
+  };
+
+  double d_red_global[D_END];
+  gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_MAX, D_END, d_red, d_red_global);
+  
+  global->total_tm = d_red_global[TOTAL_TM];
+  global->init_species_tm = d_red_global[INIT_SPECIES_TM];
+  global->init_fluid_species_tm = d_red_global[INIT_FLUID_SPECIES_TM];
+  global->field_rhs_tm = d_red_global[INIT_FIELD_TM];
+  global->species_rhs_tm = d_red_global[SPECIES_RHS_TM];
+  global->species_rhs_tm = d_red_global[FLUID_SPECIES_RHS_TM];
+  global->species_coll_mom_tm = d_red_global[SPECIES_COLL_MOM_TM];
+  global->species_coll_tm = d_red_global[SPECIES_COL_TM];
+  global->field_rhs_tm = d_red_global[FIELD_RHS_TM];
+  global->current_tm = d_red_global[CURRENT_TM];
+  global->species_omega_cfl_tm = d_red_global[SPECIES_OMEGA_CFL_TM];
+  global->field_omega_cfl_tm = d_red_global[FIELD_OMEGA_CFL_TM];
+  global->mom_tm = d_red_global[MOM_TM];
+  global->diag_tm = d_red_global[DIAG_TM];
+
+  // misc data needing reduction
+
+  gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 2, local->stage_2_dt_diff,
+    global->stage_2_dt_diff);
+  gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 2, local->stage_3_dt_diff,
+    global->stage_3_dt_diff);
+
+  gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES, local->species_lbo_coll_drag_tm,
+    global->species_lbo_coll_drag_tm);
+  gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES, local->species_lbo_coll_diff_tm,
+    global->species_lbo_coll_diff_tm);
+}
+
 void
 gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
 {
@@ -908,6 +994,9 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
   vm_species_coll_tm(app);
   vm_species_tm(app);
 
+  struct gkyl_vlasov_stat stat = { };
+  comm_reduce_app_stat(app, &app->stat, &stat);
+  
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
   // append to existing file so we have a history of different runs
@@ -919,56 +1008,56 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
   if (strftime(buff, sizeof buff, "%c", &curr_tm))
     gkyl_vlasov_app_cout(app, fp, " date : %s,\n", buff);
 
-  gkyl_vlasov_app_cout(app, fp, " use_gpu : %d,\n", app->stat.use_gpu);
+  gkyl_vlasov_app_cout(app, fp, " use_gpu : %d,\n", stat.use_gpu);
   
   for (int s=0; s<app->num_species; ++s)
-    range_stat_write(app, app->species[s].info.name, &app->species[s].local, fp);
+    range_stat_write(app, app->species[s].info.name, &app->species[s].global, fp);
   
-  gkyl_vlasov_app_cout(app, fp, " nup : %ld,\n", app->stat.nup);
-  gkyl_vlasov_app_cout(app, fp, " nfeuler : %ld,\n", app->stat.nfeuler);
-  gkyl_vlasov_app_cout(app, fp, " nstage_2_fail : %ld,\n", app->stat.nstage_2_fail);
-  gkyl_vlasov_app_cout(app, fp, " nstage_3_fail : %ld,\n", app->stat.nstage_3_fail);
+  gkyl_vlasov_app_cout(app, fp, " nup : %ld,\n", stat.nup);
+  gkyl_vlasov_app_cout(app, fp, " nfeuler : %ld,\n", stat.nfeuler);
+  gkyl_vlasov_app_cout(app, fp, " nstage_2_fail : %ld,\n", stat.nstage_2_fail);
+  gkyl_vlasov_app_cout(app, fp, " nstage_3_fail : %ld,\n", stat.nstage_3_fail);
 
   gkyl_vlasov_app_cout(app, fp, " stage_2_dt_diff : [ %lg, %lg ],\n",
-    app->stat.stage_2_dt_diff[0], app->stat.stage_2_dt_diff[1]);
+    stat.stage_2_dt_diff[0], stat.stage_2_dt_diff[1]);
   gkyl_vlasov_app_cout(app, fp, " stage_3_dt_diff : [ %lg, %lg ],\n",
-    app->stat.stage_3_dt_diff[0], app->stat.stage_3_dt_diff[1]);
+    stat.stage_3_dt_diff[0], stat.stage_3_dt_diff[1]);
 
-  gkyl_vlasov_app_cout(app, fp, " total_tm : %lg,\n", app->stat.total_tm);
-  gkyl_vlasov_app_cout(app, fp, " init_species_tm : %lg,\n", app->stat.init_species_tm);
+  gkyl_vlasov_app_cout(app, fp, " total_tm : %lg,\n", stat.total_tm);
+  gkyl_vlasov_app_cout(app, fp, " init_species_tm : %lg,\n", stat.init_species_tm);
   if (app->has_field)
-    gkyl_vlasov_app_cout(app, fp, " init_field_tm : %lg,\n", app->stat.init_field_tm);
+    gkyl_vlasov_app_cout(app, fp, " init_field_tm : %lg,\n", stat.init_field_tm);
   
-  gkyl_vlasov_app_cout(app, fp, " species_rhs_tm : %lg,\n", app->stat.species_rhs_tm);
+  gkyl_vlasov_app_cout(app, fp, " species_rhs_tm : %lg,\n", stat.species_rhs_tm);
 
   for (int s=0; s<app->num_species; ++s) {
     gkyl_vlasov_app_cout(app, fp, " species_coll_drag_tm[%d] : %lg,\n", s,
-      app->stat.species_lbo_coll_drag_tm[s]);
+      stat.species_lbo_coll_drag_tm[s]);
     gkyl_vlasov_app_cout(app, fp, " species_coll_diff_tm[%d] : %lg,\n", s,
-      app->stat.species_lbo_coll_diff_tm[s]);
+      stat.species_lbo_coll_diff_tm[s]);
   }
 
-  gkyl_vlasov_app_cout(app, fp, " species_coll_mom_tm : %lg,\n", app->stat.species_coll_mom_tm);
-  gkyl_vlasov_app_cout(app, fp, " species_coll_tm : %lg,\n", app->stat.species_coll_tm);
+  gkyl_vlasov_app_cout(app, fp, " species_coll_mom_tm : %lg,\n", stat.species_coll_mom_tm);
+  gkyl_vlasov_app_cout(app, fp, " species_coll_tm : %lg,\n", stat.species_coll_tm);
   
-  gkyl_vlasov_app_cout(app, fp, " fluid_species_rhs_tm : %lg,\n", app->stat.fluid_species_rhs_tm);
+  gkyl_vlasov_app_cout(app, fp, " fluid_species_rhs_tm : %lg,\n", stat.fluid_species_rhs_tm);
 
   if (app->has_field) {
-    gkyl_vlasov_app_cout(app, fp, " field_rhs_tm : %lg,\n", app->stat.field_rhs_tm);
-    gkyl_vlasov_app_cout(app, fp, " current_tm : %lg,\n", app->stat.current_tm);
+    gkyl_vlasov_app_cout(app, fp, " field_rhs_tm : %lg,\n", stat.field_rhs_tm);
+    gkyl_vlasov_app_cout(app, fp, " current_tm : %lg,\n", stat.current_tm);
   }
 
-  gkyl_vlasov_app_cout(app, fp, " nmom : %ld,\n", app->stat.nmom);
-  gkyl_vlasov_app_cout(app, fp, " mom_tm : %lg\n", app->stat.mom_tm);
+  gkyl_vlasov_app_cout(app, fp, " nmom : %ld,\n", stat.nmom);
+  gkyl_vlasov_app_cout(app, fp, " mom_tm : %lg\n", stat.mom_tm);
 
-  gkyl_vlasov_app_cout(app, fp, " ndiag : %ld,\n", app->stat.ndiag);
-  gkyl_vlasov_app_cout(app, fp, " diag_tm : %lg\n", app->stat.diag_tm);
+  gkyl_vlasov_app_cout(app, fp, " ndiag : %ld,\n", stat.ndiag);
+  gkyl_vlasov_app_cout(app, fp, " diag_tm : %lg\n", stat.diag_tm);
   
-  gkyl_vlasov_app_cout(app, fp, " nspecies_omega_cfl : %ld,\n", app->stat.nspecies_omega_cfl);
-  gkyl_vlasov_app_cout(app, fp, " species_omega_cfl_tm : %lg\n", app->stat.species_omega_cfl_tm);
+  gkyl_vlasov_app_cout(app, fp, " nspecies_omega_cfl : %ld,\n", stat.nspecies_omega_cfl);
+  gkyl_vlasov_app_cout(app, fp, " species_omega_cfl_tm : %lg\n", stat.species_omega_cfl_tm);
 
-  gkyl_vlasov_app_cout(app, fp, " nfield_omega_cfl : %ld,\n", app->stat.nfield_omega_cfl);
-  gkyl_vlasov_app_cout(app, fp, " field_omega_cfl_tm : %lg\n", app->stat.field_omega_cfl_tm);
+  gkyl_vlasov_app_cout(app, fp, " nfield_omega_cfl : %ld,\n", stat.nfield_omega_cfl);
+  gkyl_vlasov_app_cout(app, fp, " field_omega_cfl_tm : %lg\n", stat.field_omega_cfl_tm);
   
   gkyl_vlasov_app_cout(app, fp, "}\n");
 
