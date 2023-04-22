@@ -402,23 +402,26 @@ gkyl_vlasov_app_write_species_pkpm_moms(gkyl_vlasov_app* app, int sidx, double t
 void
 gkyl_vlasov_app_write_species_gamma(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
-  const char *fmt = "%s-%s_p_over_gamma_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].info.name, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame);
+// This seems to be just for debugging and is not needed in
+// production. So commenting it out. A.H April 22nd 2023.
+  
+  /* const char *fmt = "%s-%s_p_over_gamma_%d.gkyl"; */
+  /* int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].info.name, frame); */
+  /* char fileNm[sz+1]; // ensures no buffer overflow */
+  /* snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame); */
 
-  if (app->use_gpu) {
-    // copy data from device to host before writing it out
-    gkyl_array_copy(app->species[sidx].p_over_gamma_host, app->species[sidx].p_over_gamma);
-    // TODO: not parallel yet
-    gkyl_grid_sub_array_write(&app->species[sidx].grid_vel, &app->species[sidx].local_vel,
-      app->species[sidx].p_over_gamma_host, fileNm);
-  }
-  else {
-    // TODO: not parallel yet
-    gkyl_grid_sub_array_write(&app->species[sidx].grid_vel, &app->species[sidx].local_vel,
-      app->species[sidx].p_over_gamma, fileNm);
-  }
+  /* if (app->use_gpu) { */
+  /*   // copy data from device to host before writing it out */
+  /*   gkyl_array_copy(app->species[sidx].p_over_gamma_host, app->species[sidx].p_over_gamma); */
+  /*   // TODO: not parallel yet */
+  /*   gkyl_grid_sub_array_write(&app->species[sidx].grid_vel, &app->species[sidx].local_vel, */
+  /*     app->species[sidx].p_over_gamma_host, fileNm); */
+  /* } */
+  /* else { */
+  /*   // TODO: not parallel yet */
+  /*   gkyl_grid_sub_array_write(&app->species[sidx].grid_vel, &app->species[sidx].local_vel, */
+  /*     app->species[sidx].p_over_gamma, fileNm); */
+  /* } */
 }
 
 void
