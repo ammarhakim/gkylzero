@@ -274,7 +274,7 @@ gkyl_vlasov_app_calc_mom(gkyl_vlasov_app* app)
 void
 gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
 {
-  double avals[2+GKYL_MAX_DIM];
+  double avals[2+GKYL_MAX_DIM], avals_global[2+GKYL_MAX_DIM];
 
   struct timespec wst = gkyl_wall_clock();
 
@@ -298,7 +298,9 @@ gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
     else {
       gkyl_array_reduce_range(avals, s->integ_moms.marr_host, GKYL_SUM, app->local);
     }
-    gkyl_dynvec_append(s->integ_diag, tm, avals);
+
+    gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+GKYL_MAX_DIM, avals, avals_global);
+    gkyl_dynvec_append(s->integ_diag, tm, avals_global);
 
     app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
     app->stat.nmom += 1;
@@ -514,20 +516,24 @@ void
 gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app)
 {
   for (int i=0; i<app->num_species; ++i) {
-    // write out diagnostic moments
-    const char *fmt = "%s-%s-%s.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
-      "imom");
-    char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
+    int rank;
+    gkyl_comm_get_rank(app->comm, &rank);
+    if (rank == 0) {
+      // write out diagnostic moments
+      const char *fmt = "%s-%s-%s.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
+        "imom");
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
       "imom");
 
-    if (app->species[i].is_first_integ_write_call) {
-      gkyl_dynvec_write(app->species[i].integ_diag, fileNm);
-      app->species[i].is_first_integ_write_call = false;
-    }
-    else {
-      gkyl_dynvec_awrite(app->species[i].integ_diag, fileNm);
+      if (app->species[i].is_first_integ_write_call) {
+        gkyl_dynvec_write(app->species[i].integ_diag, fileNm);
+        app->species[i].is_first_integ_write_call = false;
+      }
+      else {
+        gkyl_dynvec_awrite(app->species[i].integ_diag, fileNm);
+      }
     }
     gkyl_dynvec_clear(app->species[i].integ_diag);
   }
@@ -542,14 +548,19 @@ gkyl_vlasov_app_write_field_energy(gkyl_vlasov_app* app)
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name);
 
-  if (app->field->is_first_energy_write_call) {
-    // write to a new file (this ensure previous output is removed)
-    gkyl_dynvec_write(app->field->integ_energy, fileNm);
-    app->field->is_first_energy_write_call = false;
-  }
-  else {
-    // append to existing file
-    gkyl_dynvec_awrite(app->field->integ_energy, fileNm);
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+
+  if (rank == 0) {
+    if (app->field->is_first_energy_write_call) {
+      // write to a new file (this ensure previous output is removed)
+      gkyl_dynvec_write(app->field->integ_energy, fileNm);
+      app->field->is_first_energy_write_call = false;
+    }
+    else {
+      // append to existing file
+      gkyl_dynvec_awrite(app->field->integ_energy, fileNm);
+    }
   }
   gkyl_dynvec_clear(app->field->integ_energy);
 }

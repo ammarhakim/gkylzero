@@ -419,8 +419,11 @@ vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *fie
   else { 
     gkyl_array_reduce_range(energy, field->em_energy, GKYL_SUM, app->local);
   }
+
+  double energy_global[6] = { 0.0 };
+  gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 6, energy, energy_global);
   
-  gkyl_dynvec_append(field->integ_energy, tm, energy);
+  gkyl_dynvec_append(field->integ_energy, tm, energy_global);
 }
 
 // release resources for field
