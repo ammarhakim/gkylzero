@@ -101,6 +101,17 @@ void gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim,
   const int *shape);
 
 /**
+ * Create a new range which is a tensor product of @a a and @a b input
+ * ranges.
+ *
+ * @param rng On output, rng = a X b
+ * @param a First operand of tensor-product
+ * @param b Second operand of tensor-product
+ */
+void gkyl_range_ten_prod(struct gkyl_range *rng, const struct gkyl_range *a,
+  const struct gkyl_range *b);
+
+/**
  * Shape in direction dir
  *
  * @param rng Range object

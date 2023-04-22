@@ -62,13 +62,25 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   }
   // full phase space grid
   gkyl_rect_grid_init(&s->grid, pdim, lower, upper, cells);
-  gkyl_create_grid_ranges(&s->grid, ghost, &s->local_ext, &s->local);
-  
-  skin_ghost_ranges_init(&s->skin_ghost, &s->local_ext, ghost);
+  gkyl_create_grid_ranges(&s->grid, ghost, &s->global_ext, &s->global);
+
+  skin_ghost_ranges_init(&s->skin_ghost, &s->global_ext, ghost);  
   
   // velocity space grid
   gkyl_rect_grid_init(&s->grid_vel, vdim, lower_vel, upper_vel, cells_vel);
   gkyl_create_grid_ranges(&s->grid_vel, ghost_vel, &s->local_ext_vel, &s->local_vel);
+
+  for (int d=0; d<pdim; ++d)
+    s->nghost[d] = ghost[d];
+
+  // phase-space communicator
+  s->comm = gkyl_comm_extend_comm(app->comm, &s->local_vel);
+
+  // create local and local_ext from app local range
+  struct gkyl_range local;
+  // local = conf-local X local_vel
+  gkyl_range_ten_prod(&local, &app->local, &s->local_vel);
+  gkyl_create_ranges(&local, ghost, &s->local_ext, &s->local);
 
   // allocate buffer for applying periodic BCs
   long buff_sz = 0;
@@ -573,7 +585,7 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
     }
   }
 
-  // sync goes here
+  gkyl_comm_array_sync(species->comm, &species->local, &species->local_ext, species->nghost, f); 
 }
 
 void
@@ -612,6 +624,8 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   gkyl_array_release(s->bc_buffer);
   gkyl_array_release(s->bc_buffer_lo_fixed);
   gkyl_array_release(s->bc_buffer_up_fixed);
+
+  gkyl_comm_release(s->comm);
 
   if (app->use_gpu)
     gkyl_array_release(s->f_host);

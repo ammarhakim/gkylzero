@@ -122,9 +122,9 @@ gkyl_rect_decomp_extended_new(const struct gkyl_range *arange,
   int ndim = extd->ndim = arange->ndim + decomp->ndim;
   extd->ranges = gkyl_malloc(sizeof(struct gkyl_range[ndecomp]));
 
-  init_extend_range(&extd->parent_range, &decomp->parent_range, arange);
+  gkyl_range_ten_prod(&extd->parent_range, &decomp->parent_range, arange);
   for (int n=0; n<ndecomp; ++n)
-    init_extend_range(&extd->ranges[n], &decomp->ranges[n], arange);
+    gkyl_range_ten_prod(&extd->ranges[n], &decomp->ranges[n], arange);
 
   extd->ref_count = gkyl_ref_count_init(rect_decomp_free);
   

@@ -112,6 +112,23 @@ gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim, const int *shape)
   gkyl_range_init(rng, ndim, lo, up);
 }
 
+void
+gkyl_range_ten_prod(struct gkyl_range *rng, const struct gkyl_range *a, const struct gkyl_range *b)
+{
+  int adim = a->ndim, bdim = b->ndim;
+  int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+
+  for (int d=0; d<adim; ++d) {
+    lower[d] = a->lower[d];
+    upper[d] = a->upper[d];
+  }
+  for (int d=0; d<bdim; ++d) {
+    lower[adim+d] = b->lower[d];
+    upper[adim+d] = b->upper[d];
+  }
+  gkyl_range_init(rng, adim+bdim, lower, upper);
+}
+
 int
 gkyl_range_is_sub_range(const struct gkyl_range *rng)
 {
