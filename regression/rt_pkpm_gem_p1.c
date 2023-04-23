@@ -281,7 +281,7 @@ create_ctx(void)
   double n0 = 1.0; // initial number density
   double nbOverN0 = 0.2; // background number density
 
-  double vAe = 1.0/4.0;
+  double vAe = 1.0/12.0;
   double vAi = vAe/sqrt(massIon);
   double beta_elc = 1.0/6.0;
   // B0 has 1/sqrt(2) factor because B is equally subdivided between
@@ -316,7 +316,7 @@ create_ctx(void)
   // domain size and simulation time
   double Lx = 8.0*M_PI*di;
   double Ly = 4.0*M_PI*di;
-  double tend = 25.0/omegaCi;
+  double tend = 37.0/omegaCi;
   
   struct pkpm_gem_ctx ctx = {
     .epsilon0 = epsilon0,
@@ -367,7 +367,7 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 64);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 32);
-  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 64);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -393,8 +393,8 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_PKPM,
     .pkpm_fluid_species = "fluid_elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
-    .lower = { -8.0 * ctx.vtElc},
-    .upper = { 8.0 * ctx.vtElc}, 
+    .lower = { -28.0 * ctx.vtElc},
+    .upper = { 28.0 * ctx.vtElc}, 
     .cells = { VX },
 
     .ctx = &ctx,
@@ -428,8 +428,8 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_PKPM,
     .pkpm_fluid_species = "fluid_ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
-    .lower = { -8.0 * ctx.vtIon},
-    .upper = { 8.0 * ctx.vtIon}, 
+    .lower = { -16.0 * ctx.vtIon},
+    .upper = { 16.0 * ctx.vtIon}, 
     .cells = { VX },
 
     .ctx = &ctx,
@@ -487,7 +487,7 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = ctx.tend;
   double dt = tend-tcurr;
-  int nframe = 25;
+  int nframe = 185;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
