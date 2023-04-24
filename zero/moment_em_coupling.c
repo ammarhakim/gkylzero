@@ -541,13 +541,14 @@ void
 gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
   const struct gkyl_range *update_range,
   struct gkyl_array *fluid[GKYL_MAX_SPECIES], 
-  const struct gkyl_array *app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *rhs[GKYL_MAX_SPECIES],
+  const struct gkyl_array *app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *pr_rhs[GKYL_MAX_SPECIES],
   struct gkyl_array *em, const struct gkyl_array *app_current, const struct gkyl_array *ext_em)
 {
   int nfluids = mes->nfluids;
   double *fluids[GKYL_MAX_SPECIES];
   const double *app_accels[GKYL_MAX_SPECIES];
-  const double *rhs_s[GKYL_MAX_SPECIES];
+  // pressure tensor rhs for gradient-based closure
+  const double *pr_rhs_s[GKYL_MAX_SPECIES];
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
@@ -558,10 +559,10 @@ gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
     for (int n=0; n<nfluids; ++n) {
       fluids[n] = gkyl_array_fetch(fluid[n], lidx);
       app_accels[n] = gkyl_array_cfetch(app_accel[n], lidx);
-      rhs_s[n] = gkyl_array_cfetch(rhs[n], lidx);
+      pr_rhs_s[n] = gkyl_array_cfetch(pr_rhs[n], lidx);
     }
 
-    fluid_source_update(mes, dt, fluids, app_accels, rhs_s, 
+    fluid_source_update(mes, dt, fluids, app_accels, pr_rhs_s,
       gkyl_array_fetch(em, lidx),
       gkyl_array_cfetch(app_current, lidx),
       gkyl_array_cfetch(ext_em, lidx)

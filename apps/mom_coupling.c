@@ -31,7 +31,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
 
   for (int n=0; n<app->num_species; ++n) {
     int meqn = app->species[n].num_equations;
-    src->rhs[n] = mkarr(false, meqn, app->local_ext.volume);
+    src->pr_rhs[n] = mkarr(false, meqn, app->local_ext.volume);
     src->non_ideal_cflrate[n] = mkarr(false, 1, app->local_ext.volume); 
   }
 
@@ -74,7 +74,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   int sidx[] = { 0, app->ndim };
   struct gkyl_array *fluids[GKYL_MAX_SPECIES];
   const struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
-  const struct gkyl_array *rhs_const[GKYL_MAX_SPECIES];
+  const struct gkyl_array *pr_rhs_const[GKYL_MAX_SPECIES];
   
   for (int i=0; i<app->num_species; ++i) {
     fluids[i] = app->species[i].f[sidx[nstrang]];
@@ -87,7 +87,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
       gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i], 
         &src->non_ideal_local, &app->local, 
         app->species[i].f[sidx[nstrang]], app->field.f[sidx[nstrang]], 
-        src->non_ideal_cflrate[i], src->non_ideal_vars[i], src->rhs[i]);
+        src->non_ideal_cflrate[i], src->non_ideal_vars[i], src->pr_rhs[i]);
     }
   }
   
@@ -107,10 +107,10 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
 
   // Get the RHS pointer for accumulation during source update
   for (int i=0; i<app->num_species; ++i)
-    rhs_const[i] = src->rhs[i];
+    pr_rhs_const[i] = src->pr_rhs[i];
 
   gkyl_moment_em_coupling_advance(src->slvr, dt, &app->local,
-    fluids, app_accels, rhs_const, 
+    fluids, app_accels, pr_rhs_const, 
     app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em);
 
   for (int i=0; i<app->num_species; ++i)
@@ -125,7 +125,7 @@ moment_coupling_release(const struct gkyl_moment_app *app, const struct moment_c
 {
   gkyl_moment_em_coupling_release(src->slvr);
   for (int i=0; i<app->num_species; ++i) {
-    gkyl_array_release(src->rhs[i]);
+    gkyl_array_release(src->pr_rhs[i]);
     gkyl_array_release(src->non_ideal_cflrate[i]);
     gkyl_array_release(src->non_ideal_vars[i]);
     if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_grad_closure)

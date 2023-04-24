@@ -153,7 +153,7 @@ struct moment_coupling {
  // array for non-ideal variables (heat-flux tensor)  
   struct gkyl_array *non_ideal_vars[GKYL_MAX_SPECIES];
   // array for storing RHS of each species from non-ideal term updates (gradient-based closure)
-  struct gkyl_array  *rhs[GKYL_MAX_SPECIES]; 
+  struct gkyl_array  *pr_rhs[GKYL_MAX_SPECIES];
 
   gkyl_moment_em_coupling *slvr; // source solver function
 };
