@@ -243,6 +243,85 @@ gkyl_rect_decomp_calc_neigh(const struct gkyl_rect_decomp *decomp,
   return calc_neigh_no_corners(decomp, nidx);
 }
 
+// check if range touches lower/upper edge of parent range in direction dir
+static bool
+is_on_lower_edge(int dir, const struct gkyl_range *range,
+  const struct gkyl_range *parent)
+{
+  if (range->lower[dir] == parent->lower[dir])
+    return true;
+  return false;
+}
+static bool
+is_on_upper_edge(int dir, const struct gkyl_range *range,
+  const struct gkyl_range *parent)
+{
+  if (range->upper[dir] == parent->upper[dir])
+    return true;
+  return false;
+}
+
+struct gkyl_rect_decomp_neigh*
+gkyl_rect_decomp_calc_periodic_neigh(const struct gkyl_rect_decomp *decomp,
+  int dir, bool inc_corners, int nidx)
+{
+  struct rect_decomp_neigh_cont *cont = gkyl_malloc(sizeof(*cont));
+  cont->l_neigh = cvec_int_init();
+
+  const struct gkyl_range *curr = &decomp->ranges[nidx];
+
+  int elo[GKYL_MAX_DIM] = { 0 }, eup[GKYL_MAX_DIM] = { 0 };
+  elo[dir] = eup[dir] = 1; // only extend in 1 direction
+  
+  // Note: a range can be both on the lower and upper edges of the
+  // parent edge so we must check for both
+
+  if (is_on_lower_edge(dir, curr, &decomp->parent_range)) {
+    int delta[GKYL_MAX_DIM] = { 0 };
+    delta[dir] = gkyl_range_shape(&decomp->parent_range, dir);
+    
+    struct gkyl_range curr_shift;
+    gkyl_range_shift(&curr_shift, curr, delta);
+      
+    struct gkyl_range shift_erng;
+    gkyl_range_extend(&shift_erng, &curr_shift, elo, eup);
+
+    for (int i=0; i<decomp->ndecomp; ++i)
+      if (is_on_upper_edge(dir, &decomp->ranges[i], &decomp->parent_range)) {
+        struct gkyl_range irng;
+        int is_inter = gkyl_range_intersect(&irng, &shift_erng,
+          &decomp->ranges[i]);
+        if (is_inter)
+          cvec_int_push_back(&cont->l_neigh, i);        
+      }
+  }
+
+  if (is_on_upper_edge(dir, curr, &decomp->parent_range)) {
+    int delta[GKYL_MAX_DIM] = { 0 };
+    delta[dir] = -gkyl_range_shape(&decomp->parent_range, dir);
+    
+    struct gkyl_range curr_shift;
+    gkyl_range_shift(&curr_shift, curr, delta);
+      
+    struct gkyl_range shift_erng;
+    gkyl_range_extend(&shift_erng, &curr_shift, elo, eup);
+
+    for (int i=0; i<decomp->ndecomp; ++i)
+      if (is_on_lower_edge(dir, &decomp->ranges[i], &decomp->parent_range)) {
+        struct gkyl_range irng;
+        int is_inter = gkyl_range_intersect(&irng, &shift_erng,
+          &decomp->ranges[i]);
+        if (is_inter)
+          cvec_int_push_back(&cont->l_neigh, i);        
+      }
+  }
+
+  cont->neigh.num_neigh = cvec_int_size(cont->l_neigh);  
+  cont->neigh.neigh = cvec_int_front(&cont->l_neigh);  
+  
+  return &cont->neigh;
+}
+
 void
 gkyl_rect_decomp_neigh_release(struct gkyl_rect_decomp_neigh *ng)
 {

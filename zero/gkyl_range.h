@@ -112,6 +112,17 @@ void gkyl_range_ten_prod(struct gkyl_range *rng, const struct gkyl_range *a,
   const struct gkyl_range *b);
 
 /**
+ * Create a new range that is the same shape as inp range, but the
+ * indices are shifted in each direction by delta[dir]
+ *
+ * @param rng On output new shifted range
+ * @param inp Input range to shift
+ * @param delta Range indices are shifted by delta[dir] in each direction
+ */
+void gkyl_range_shift(struct gkyl_range *rng, const struct gkyl_range *inp,
+  const int *delta);
+
+/**
  * Shape in direction dir
  *
  * @param rng Range object

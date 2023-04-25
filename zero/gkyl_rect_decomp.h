@@ -77,6 +77,20 @@ struct gkyl_rect_decomp_neigh* gkyl_rect_decomp_calc_neigh(
   const struct gkyl_rect_decomp *decomp, bool inc_corners, int nidx);
 
 /**
+ * Compute the periodic neighbor of range @a nidx in the specified
+ * direction. The returned object must be freed using the
+ * gkyl_rect_decomp_neigh_release call.
+ *
+ * @param decomp Decomposition object
+ * @param dir Direction to compute periodic neighbors
+ * @param inc_corners If true, corner neighbors are also included
+ * @param nidx Index of range for which neighbor data is needed
+ * @return Periodic neighbor list for range nidx
+ */
+struct gkyl_rect_decomp_neigh* gkyl_rect_decomp_calc_periodic_neigh(
+  const struct gkyl_rect_decomp *decomp, int dir, bool inc_corners, int nidx);
+
+/**
  * Free neighbor memory
  *
  * @param ng Neighbor data to free

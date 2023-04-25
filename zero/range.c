@@ -129,6 +129,19 @@ gkyl_range_ten_prod(struct gkyl_range *rng, const struct gkyl_range *a, const st
   gkyl_range_init(rng, adim+bdim, lower, upper);
 }
 
+void
+gkyl_range_shift(struct gkyl_range *rng, const struct gkyl_range *inp,
+  const int *delta)
+{
+  int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+
+  for (int d=0; d<inp->ndim; ++d) {
+    lower[d] = inp->lower[d] + delta[d];
+    upper[d] = inp->upper[d] + delta[d];
+  }
+  gkyl_range_init(rng, inp->ndim, lower, upper);
+}
+
 int
 gkyl_range_is_sub_range(const struct gkyl_range *rng)
 {

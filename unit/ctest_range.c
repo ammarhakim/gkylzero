@@ -49,6 +49,26 @@ void test_range_shape()
   }
 }
 
+void test_range_shift()
+{
+  int lower[] = {1, 1}, upper[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, lower, upper);
+
+  int delta[] = { 10, -20 };
+  
+  struct gkyl_range rshift;
+  gkyl_range_shift(&rshift, &range, delta);
+
+  TEST_CHECK( rshift.ndim = range.ndim );
+  TEST_CHECK( rshift.volume = range.volume );
+
+  for (int d=0; d<range.ndim; ++d) {
+    TEST_CHECK( rshift.lower[d] - range.lower[d] == delta[d] );
+    TEST_CHECK( rshift.upper[d] - range.upper[d] == delta[d] );
+  }
+}
+
 void test_sub_range()
 {
   int lower[] = {1, 1}, upper[] = {10, 20};
@@ -954,6 +974,7 @@ void test_cu_range()
 TEST_LIST = {
   { "range_0", test_range_0 },
   { "range_1", test_range_1 },
+  { "range_shift", test_range_shift },
   { "range_shape",  test_range_shape },
   { "sub_range",  test_sub_range },
   { "sub_sub_range",  test_sub_sub_range },
