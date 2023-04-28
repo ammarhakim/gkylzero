@@ -63,7 +63,7 @@ void gkyl_dg_iz_temp(const struct gkyl_dg_iz *iz,
  * @param coef_iz Output reaction rate coefficient
  */
 
-void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *viz,
+void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *iz,
   const struct gkyl_range *update_rng, const struct gkyl_range *phase_rng, 
   const struct gkyl_array *n_neut, const struct gkyl_array *vth_sq_neut, const struct gkyl_array *vth_sq_elc,
   struct gkyl_array *cflrate, struct gkyl_array *coef_iz);
