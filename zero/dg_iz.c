@@ -80,6 +80,8 @@ void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *iz,
   while (gkyl_range_iter_next(&conf_iter)) {
     long loc = gkyl_range_idx(update_rng, conf_iter.idx);
 
+    // Calculate these fields from M0, M1, M2
+    // Reference proj_maxwellian_on_basis
     const double *n_neut_d = gkyl_array_cfetch(n_neut, loc);
     const double *vth_sq_neut_d = gkyl_array_cfetch(vth_sq_neut, loc);
     const double *vth_sq_elc_d = gkyl_array_cfetch(vth_sq_elc, loc);
