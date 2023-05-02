@@ -1,3 +1,5 @@
+#include <stdarg.h>
+
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
