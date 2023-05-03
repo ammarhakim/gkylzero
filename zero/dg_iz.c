@@ -41,11 +41,13 @@ gkyl_dg_iz_new(const struct gkyl_basis* cbasis,
     up->X = 0.136;
   }
 
-  const gkyl_iz_temp_kern_list *iz_temp_kernels;
-  const gkyl_iz_react_rate_kern_list *iz_react_rate_kernels;
+  //const gkyl_iz_temp_kern_list *iz_temp_kernels;
+  //const gkyl_iz_react_rate_kern_list *iz_react_rate_kernels;
 
-  up->iz_temp = CK(iz_temp_kernels, cdim, poly_order);
-  up->react_rate = CK(iz_react_rate_kernels, cdim, poly_order);
+  up->iz_temp = CK(ser_iz_temp_kernels, cdim, poly_order);
+  up->react_rate = CK(ser_iz_react_rate_kernels, cdim, poly_order);
+  assert(up->iz_temp);
+  assert(up->react_rate);
   
   return up;
 }
@@ -73,7 +75,7 @@ void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *iz,
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
 
-  int rem_dir[GKYL_MAX_DIM] = { 0 };
+  int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
   for (int d=0; d<update_rng->ndim; ++d) rem_dir[d] = 1;
 
   gkyl_range_iter_init(&conf_iter, update_rng);
@@ -86,10 +88,11 @@ void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *iz,
     const double *vth_sq_neut_d = gkyl_array_cfetch(vth_sq_neut, loc);
     const double *vth_sq_elc_d = gkyl_array_cfetch(vth_sq_elc, loc);
     double *coef_iz_d = gkyl_array_fetch(coef_iz, loc);
+    
 
-    double cflr = iz->react_rate(iz->elem_charge, iz->mass_elc, 
-      iz->E, iz->A, iz->K, iz->P, iz->X, 
-      n_neut_d, vth_sq_neut_d, vth_sq_elc_d, 
+    double cflr = iz->react_rate(iz->elem_charge, iz->mass_elc,
+      iz->E, iz->A, iz->K, iz->P, iz->X,
+      n_neut_d, vth_sq_neut_d, vth_sq_elc_d,
       coef_iz_d);
 
     gkyl_range_deflate(&vel_rng, phase_rng, rem_dir, conf_iter.idx);
@@ -99,7 +102,7 @@ void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *iz,
     // to get total cfl rate in each phase space cell
     while (gkyl_range_iter_next(&vel_iter)) {
       long cfl_idx = gkyl_range_idx(&vel_rng, vel_iter.idx);
-      double *cflrate_d = gkyl_array_fetch(cflrate, cfl_idx);
+      double *cflrate_d = gkyl_array_fetch(cflrate, pidx);
       cflrate_d[0] += cflr; // frequencies are additive
     }
   }

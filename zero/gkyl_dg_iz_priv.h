@@ -10,7 +10,7 @@ typedef double (*dg_iz_react_ratef_t)(double elem_charge, double mass, double E,
   const double *n_neut, const double *vt_sq_neut, const double *vt_sq_elc, double* GKYL_RESTRICT coef_iz);
 
 struct gkyl_dg_iz {
-  struct gkyl_rect_grid grid; // grid object
+  struct gkyl_rect_grid grid; // conf grid object
   int cdim; // number of configuration space dimensions
   int poly_order; // polynomial order of DG basis
   
