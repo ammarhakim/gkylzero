@@ -21,13 +21,18 @@ typedef struct gkyl_dg_cx gkyl_dg_cx;
 
 /**
  * Create new updater to calculate charge exchange reaction rate
- * @param cbasis Configuration-space basis-functions
+ * @param grid Phase space grid
+ * @param conf_basis Configuration-space basis-functions
+ * @param phase_basis Phase-space basis-functions
+ * @param mass_ion Ion mass
  * @param type_ion Enum for type of ion for charge exchange (support H^+, D^+, Ar^+, Ne^+)
  * @param use_gpu Boolean for whether struct is on host or device
  */
-struct gkyl_dg_cx* gkyl_dg_cx_new(const struct gkyl_basis* cbasis, 
+struct gkyl_dg_cx* gkyl_dg_cx_new(const struct gkyl_rect_grid *grid,
+  struct gkyl_basis *conf_basis,
+  struct gkyl_basis *phase_basis, double mass_ion,
   enum gkyl_dg_cx_type type_ion, 
-  bool use_gpu);
+				  bool use_gpu);
 
 /**
  * Compute CX reaction rate coefficient for use in neutral reactions. 

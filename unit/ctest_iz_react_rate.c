@@ -6,11 +6,12 @@
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_dg_iz.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_const.h>
 #include <stdio.h>
 
 // Global variables
-double echarge = 1.602177e-19;
-double emass = 9.109384e-31;
+double echarge = GKYL_ELEMENTARY_CHARGE; //1.602177e-19;
+double emass = GKYL_ELECTRON_MASS; //9.109384e-31;
 
 void eval_dens(double t, const double *xn, double* restrict fout, void *ctx)
 {
@@ -72,13 +73,15 @@ test_iz_react_rate()
   
   struct gkyl_dg_iz *reactRate = gkyl_dg_iz_new(&basis, echarge, emass, GKYL_H, false);
 
-  gkyl_dg_iz_temp(reactRate, &confRange, vtSqElc, vtSqIz); 
+  gkyl_dg_iz_temp(reactRate, &confRange, vtSqElc, vtSqIz);
+  gkyl_grid_sub_array_write(&confGrid, &confRange, vtSqIz, "ctest_vtSqIz_1x.gkyl");
   
   gkyl_dg_iz_react_rate(reactRate, &confRange, &phaseRange, m0Neut, vtSqNeut, vtSqElc, cflRate, coefIz);
+  gkyl_grid_sub_array_write(&confGrid, &confRange, coefIz, "ctest_react_rate_1x.gkyl");
     
   // left cell
   double *cl_vt = gkyl_array_fetch(vtSqIz, 0);
-  TEST_CHECK( gkyl_compare(3.847097620882374e+12, cl_vt[0], 1e-12) );
+  TEST_CHECK( gkyl_compare(3.8470971703792085e+12, cl_vt[0], 1e-12) );
   TEST_CHECK( gkyl_compare(0.0, cl_vt[1], 1e-12) );
 
   double *cl_coef = gkyl_array_fetch(coefIz, 0);

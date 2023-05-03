@@ -13,19 +13,25 @@
 #define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order]
 
 gkyl_dg_cx*
-gkyl_dg_cx_new(const struct gkyl_basis* cbasis, 
+gkyl_dg_cx_new(const struct gkyl_rect_grid *grid,
+  struct gkyl_basis *conf_basis,
+  struct gkyl_basis *phase_basis, double mass_ion,
   enum gkyl_dg_cx_type type_ion, 
   bool use_gpu)
 {
   gkyl_dg_cx *up = gkyl_malloc(sizeof(gkyl_dg_cx));
 
-  int cdim = cbasis->ndim;
-  int poly_order = cbasis->poly_order;
+  int num_basis = phase_basis->num_basis;
+  int cdim = conf_basis->ndim;
+  int vdim = phase_basis->ndim - cdim;
+  int poly_order = conf_basis->poly_order;
+  up->grid = *grid; 
   up->cdim = cdim;
+  up->vdim = vdim; 
   up->poly_order = poly_order;
 
   /* up->elem_charge = elem_charge; */
-  /* up->mass_ion = mass_ion; */
+  up->mass_ion = mass_ion;
   /* up->mass_neut = mass_neut; */
   if (type_ion == GKYL_H) {
     up->a = 1.12e-18;
@@ -75,20 +81,25 @@ void gkyl_dg_cx_react_rate(const struct gkyl_dg_cx *cx,
     const double *vth_sq_ion_d = gkyl_array_cfetch(vth_sq_ion, loc);
     double *coef_cx_d = gkyl_array_fetch(coef_cx, loc);
 
-    // prim mom must be in Vlasov form upar_ion --> u
+    // prim mom must be in Vlasov form upar_ion --> u. Can test in 1x1v first.
     
-    // Calculate vt_sq min for ion, neut
-    const double vth_sq_ion_min;
-    const double vth_sq_neut_min;
+    // Calculate vt_sq min for ion, neut (use same for now to test 1x1v)
+    double vth_sq_ion_min;
+    double vth_sq_neut_min;
+    double TempMin = 0.0; 
+    for (int d=0; d<cx->vdim; d++) {
+      TempMin = TempMin + (1./3.)*(cx->mass_ion/6.)*cx->grid.dx[cx->cdim+d];
+    }
+    vth_sq_ion_min = TempMin/cx->mass_ion;
+    vth_sq_neut_min = TempMin/cx->mass_ion;
     
     //double cflr = cx->react_rate(cx->a, cx->b, 
-    cx->react_rate(cx->a, cx->b, 
+    double cflr = cx->react_rate(cx->a, cx->b, 
       n_neut_d, u_ion_d, u_neut_d, vth_sq_ion_d,
       vth_sq_ion_min, vth_sq_neut_d, vth_sq_neut_min, 
       coef_cx_d);
 
-    // cflrate calculation -- to be added soon
-    /*gkyl_range_deflate(&vel_rng, phase_rng, rem_dir, conf_iter.idx);
+    gkyl_range_deflate(&vel_rng, phase_rng, rem_dir, conf_iter.idx);
     gkyl_range_iter_no_split_init(&vel_iter, &vel_rng);
     // cfl associated with reaction is a *phase space* cfl
     // Need to loop over velocity space for each configuration space cell
@@ -97,7 +108,7 @@ void gkyl_dg_cx_react_rate(const struct gkyl_dg_cx *cx,
       long cfl_idx = gkyl_range_idx(&vel_rng, vel_iter.idx);
       double *cflrate_d = gkyl_array_fetch(cflrate, cfl_idx);
       cflrate_d[0] += cflr; // frequencies are additive
-      }*/
+      }
   }
 }
 

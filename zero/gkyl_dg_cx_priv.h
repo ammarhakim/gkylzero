@@ -4,15 +4,17 @@
 
 #include <gkyl_dg_cx_kernels.h>
 
-typedef void (*dg_cx_react_ratef_t)(double a, double b, const double *m0_neut, const double *u_ion, const double *u_neut, const double *vt_sq_ion, double vt_sq_ion_min, const double *vt_sq_neut, double vt_sq_neut_min, double* GKYL_RESTRICT v_sigma_cx)  ;
+typedef double (*dg_cx_react_ratef_t)(double a, double b, const double *m0_neut, const double *u_ion, const double *u_neut, const double *vt_sq_ion, double vt_sq_ion_min, const double *vt_sq_neut, double vt_sq_neut_min, double* GKYL_RESTRICT v_sigma_cx)  ;
 
 struct gkyl_dg_cx {
   struct gkyl_rect_grid grid; // grid object
   int cdim; // number of configuration space dimensions
+  int vdim; 
   int poly_order; // polynomial order of DG basis
   
   double a; // Fitting function coefficient.
   double b; // Fitting function coefficient.
+  double mass_ion; 
 
   dg_cx_react_ratef_t react_rate; // pointer to reaction rate kernel
 };

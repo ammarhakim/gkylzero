@@ -4,7 +4,7 @@
 
 // These kernels will need to change void --> double to return cfl.
 
-GKYL_CU_DH static inline void 
+GKYL_CU_DH static inline double 
 sigma_cx_1x1v_ser_p1(double a, double b, const double *m0_neut, const double *u_ion, const double *u_neut, const double *vt_sq_ion, double vt_sq_ion_min, const double *vt_sq_neut, double vt_sq_neut_min, double* GKYL_RESTRICT v_sigma_cx) 
 { 
   // a               constant in fitting function. 
@@ -24,17 +24,18 @@ sigma_cx_1x1v_ser_p1(double a, double b, const double *m0_neut, const double *u_
   
   if (m0_neut_av <= 0 || vt_sq_neut_av <= 0 || vt_sq_ion_av <= 0) { 
     v_sigma_cx[0] = 0.0;
+    return 0.0; 
   } else {
   double v_in_sq_av = 0.5*pow(u_neut[0],2)-1.0*u_ion[0]*u_neut[0]+0.5*pow(u_ion[0],2); 
  
   double v_cx = sqrt(1.273239544735163*vt_sq_neut_av+1.273239544735163*vt_sq_neut_av+v_in_sq_av);
-  v_sigma_cx[0] = 1.414213562373095*v_cx*a-1.414213562373095*v_cx*log(v_cx)*b; 
- 
-  }
- 
+  v_sigma_cx[0] = 1.414213562373095*v_cx*a-1.414213562373095*v_cx*log(v_cx)*b;
+
+  return 0.1666666666666667*m0_neut[0]*v_sigma_cx[0];
+  }  
 }
 
-GKYL_CU_DH static inline void 
+GKYL_CU_DH static inline double 
 sigma_cx_1x1v_ser_p2(double a, double b, const double *m0_neut, const double *u_ion, const double *u_neut, const double *vt_sq_ion, double vt_sq_ion_min, const double *vt_sq_neut, double vt_sq_neut_min, double* GKYL_RESTRICT v_sigma_cx) 
 { 
   // a               constant in fitting function. 
@@ -54,16 +55,18 @@ sigma_cx_1x1v_ser_p2(double a, double b, const double *m0_neut, const double *u_
   
   if (m0_neut_av <= 0 || vt_sq_neut_av <= 0 || vt_sq_ion_av <= 0) { 
     v_sigma_cx[0] = 0.0;
+    return 0.0;
   } else {
-  double v_in_sq_av = 0.5*pow(u_neut[0],2)-1.0*u_ion[0]*u_neut[0]+0.5*pow(u_ion[0],2); 
+    double v_in_sq_av = 0.5*pow(u_neut[0],2)-1.0*u_ion[0]*u_neut[0]+0.5*pow(u_ion[0],2); 
  
-  double v_cx = sqrt(1.273239544735163*vt_sq_neut_av+1.273239544735163*vt_sq_ion_av+v_in_sq_av);
-  v_sigma_cx[0] = 1.414213562373095*v_cx*a-1.414213562373095*v_cx*log(v_cx)*b; 
- 
+    double v_cx = sqrt(1.273239544735163*vt_sq_neut_av+1.273239544735163*vt_sq_ion_av+v_in_sq_av);
+    v_sigma_cx[0] = 1.414213562373095*v_cx*a-1.414213562373095*v_cx*log(v_cx)*b;
+
+    return 0.1*m0_neut[0]*v_sigma_cx[0];
   }
 } 
 
-GKYL_CU_DH static inline void
+GKYL_CU_DH static inline double
 sigma_cx_1x2v_ser_p1(double a, double b, const double *m0_neut, const double *u_ion, const double *u_neut, const double *vt_sq_ion, double vt_sq_ion_min, const double *vt_sq_neut, double vt_sq_neut_min, double* GKYL_RESTRICT v_sigma_cx) 
 { 
   // a               constant in fitting function. 
@@ -83,16 +86,18 @@ sigma_cx_1x2v_ser_p1(double a, double b, const double *m0_neut, const double *u_
   
   if (m0_neut_av <= 0 || vt_sq_neut_av <= 0 || vt_sq_ion_av <= 0) { 
     v_sigma_cx[0] = 0.0;
+    return 0.0; 
   } else {
-  double v_in_sq_av = 0.5*pow(u_neut[2],2)-1.0*u_ion[2]*u_neut[2]+0.5*pow(u_ion[2],2)+0.5*pow(u_neut[0],2)-1.0*u_ion[0]*u_neut[0]+0.5*pow(u_ion[0],2); 
+    double v_in_sq_av = 0.5*pow(u_neut[2],2)-1.0*u_ion[2]*u_neut[2]+0.5*pow(u_ion[2],2)+0.5*pow(u_neut[0],2)-1.0*u_ion[0]*u_neut[0]+0.5*pow(u_ion[0],2); 
  
-  double v_cx = sqrt(1.273239544735163*vt_sq_neut_av+1.273239544735163*vt_sq_ion_av+v_in_sq_av);
-  v_sigma_cx[0] = 1.414213562373095*v_cx*a-1.414213562373095*v_cx*log(v_cx)*b; 
- 
+    double v_cx = sqrt(1.273239544735163*vt_sq_neut_av+1.273239544735163*vt_sq_ion_av+v_in_sq_av);
+    v_sigma_cx[0] = 1.414213562373095*v_cx*a-1.414213562373095*v_cx*log(v_cx)*b;
+
+    return 0.1666666666666667*m0_neut[0]*v_sigma_cx[0];  
   }
 }
 
-GKYL_CU_DH static inline void
+GKYL_CU_DH static inline double
 sigma_cx_1x2v_ser_p2(double a, double b, const double *m0_neut, const double *u_ion, const double *u_neut, const double *vt_sq_ion, double vt_sq_ion_min, const double *vt_sq_neut, double vt_sq_neut_min, double* GKYL_RESTRICT v_sigma_cx) 
 { 
   // a               constant in fitting function. 
@@ -112,16 +117,18 @@ sigma_cx_1x2v_ser_p2(double a, double b, const double *m0_neut, const double *u_
   
   if (m0_neut_av <= 0 || vt_sq_neut_av <= 0 || vt_sq_ion_av <= 0) { 
     v_sigma_cx[0] = 0.0;
+    return 0.0; 
   } else {
-  double v_in_sq_av = 0.5*pow(u_neut[3],2)-1.0*u_ion[3]*u_neut[3]+0.5*pow(u_ion[3],2)+0.5*pow(u_neut[0],2)-1.0*u_ion[0]*u_neut[0]+0.5*pow(u_ion[0],2); 
+    double v_in_sq_av = 0.5*pow(u_neut[3],2)-1.0*u_ion[3]*u_neut[3]+0.5*pow(u_ion[3],2)+0.5*pow(u_neut[0],2)-1.0*u_ion[0]*u_neut[0]+0.5*pow(u_ion[0],2); 
  
-  double v_cx = sqrt(1.273239544735163*vt_sq_neut_av+1.273239544735163*vt_sq_ion_av+v_in_sq_av);
-  v_sigma_cx[0] = 1.414213562373095*v_cx*a-1.414213562373095*v_cx*log(v_cx)*b; 
- 
+    double v_cx = sqrt(1.273239544735163*vt_sq_neut_av+1.273239544735163*vt_sq_ion_av+v_in_sq_av);
+    v_sigma_cx[0] = 1.414213562373095*v_cx*a-1.414213562373095*v_cx*log(v_cx)*b;
+
+    return 0.1*m0_neut[0]*v_sigma_cx[0]; 
   }
 }
 
-GKYL_CU_DH static inline void
+GKYL_CU_DH static inline double
 sigma_cx_1x3v_ser_p1(double a, double b, const double *m0_neut, const double *u_ion, const double *u_neut, const double *vt_sq_ion, double vt_sq_ion_min, const double *vt_sq_neut, double vt_sq_neut_min, double* GKYL_RESTRICT v_sigma_cx) 
 { 
   // a               constant in fitting function. 
@@ -141,16 +148,18 @@ sigma_cx_1x3v_ser_p1(double a, double b, const double *m0_neut, const double *u_
   
   if (m0_neut_av <= 0 || vt_sq_neut_av <= 0 || vt_sq_ion_av <= 0) { 
     v_sigma_cx[0] = 0.0;
+    return 0.0; 
   } else {
-  double v_in_sq_av = 0.5*pow(u_neut[4],2)-1.0*u_ion[4]*u_neut[4]+0.5*pow(u_ion[4],2)+0.5*pow(u_neut[2],2)-1.0*u_ion[2]*u_neut[2]+0.5*pow(u_ion[2],2)+0.5*pow(u_neut[0],2)-1.0*u_ion[0]*u_neut[0]+0.5*pow(u_ion[0],2); 
+    double v_in_sq_av = 0.5*pow(u_neut[4],2)-1.0*u_ion[4]*u_neut[4]+0.5*pow(u_ion[4],2)+0.5*pow(u_neut[2],2)-1.0*u_ion[2]*u_neut[2]+0.5*pow(u_ion[2],2)+0.5*pow(u_neut[0],2)-1.0*u_ion[0]*u_neut[0]+0.5*pow(u_ion[0],2); 
  
-  double v_cx = sqrt(1.273239544735163*vt_sq_neut_av+1.273239544735163*vt_sq_ion_av+v_in_sq_av);
-  v_sigma_cx[0] = 1.414213562373095*v_cx*a-1.414213562373095*v_cx*log(v_cx)*b; 
- 
+    double v_cx = sqrt(1.273239544735163*vt_sq_neut_av+1.273239544735163*vt_sq_ion_av+v_in_sq_av);
+    v_sigma_cx[0] = 1.414213562373095*v_cx*a-1.414213562373095*v_cx*log(v_cx)*b;
+
+    return 0.1666666666666667*m0_neut[0]*v_sigma_cx[0]; 
   }
 }
 
-GKYL_CU_DH static inline void
+GKYL_CU_DH static inline double
 sigma_cx_1x3v_ser_p2(double a, double b, const double *m0_neut, const double *u_ion, const double *u_neut, const double *vt_sq_ion, double vt_sq_ion_min, const double *vt_sq_neut, double vt_sq_neut_min, double* GKYL_RESTRICT v_sigma_cx) 
 { 
   // a               constant in fitting function. 
@@ -170,16 +179,18 @@ sigma_cx_1x3v_ser_p2(double a, double b, const double *m0_neut, const double *u_
   
   if (m0_neut_av <= 0 || vt_sq_neut_av <= 0 || vt_sq_ion_av <= 0) { 
     v_sigma_cx[0] = 0.0;
+    return 0.0; 
   } else {
-  double v_in_sq_av = 0.5*pow(u_neut[6],2)-1.0*u_ion[6]*u_neut[6]+0.5*pow(u_ion[6],2)+0.5*pow(u_neut[3],2)-1.0*u_ion[3]*u_neut[3]+0.5*pow(u_ion[3],2)+0.5*pow(u_neut[0],2)-1.0*u_ion[0]*u_neut[0]+0.5*pow(u_ion[0],2); 
+    double v_in_sq_av = 0.5*pow(u_neut[6],2)-1.0*u_ion[6]*u_neut[6]+0.5*pow(u_ion[6],2)+0.5*pow(u_neut[3],2)-1.0*u_ion[3]*u_neut[3]+0.5*pow(u_ion[3],2)+0.5*pow(u_neut[0],2)-1.0*u_ion[0]*u_neut[0]+0.5*pow(u_ion[0],2); 
  
-  double v_cx = sqrt(1.273239544735163*vt_sq_neut_av+1.273239544735163*vt_sq_ion_av+v_in_sq_av);
-  v_sigma_cx[0] = 1.414213562373095*v_cx*a-1.414213562373095*v_cx*log(v_cx)*b; 
- 
+    double v_cx = sqrt(1.273239544735163*vt_sq_neut_av+1.273239544735163*vt_sq_ion_av+v_in_sq_av);
+    v_sigma_cx[0] = 1.414213562373095*v_cx*a-1.414213562373095*v_cx*log(v_cx)*b; 
+
+    return 0.1*m0_neut[0]*v_sigma_cx[0]; 
   }
 } 
 
-GKYL_CU_DH static inline void
+GKYL_CU_DH static inline double
 sigma_cx_2x3v_ser_p1(double a, double b, const double *m0_neut, const double *u_ion, const double *u_neut, const double *vt_sq_ion, double vt_sq_ion_min, const double *vt_sq_neut, double vt_sq_neut_min, double* GKYL_RESTRICT v_sigma_cx) 
 { 
   // a               constant in fitting function. 
@@ -199,16 +210,18 @@ sigma_cx_2x3v_ser_p1(double a, double b, const double *m0_neut, const double *u_
   
   if (m0_neut_av <= 0 || vt_sq_neut_av <= 0 || vt_sq_ion_av <= 0) { 
     v_sigma_cx[0] = 0.0;
+    return 0.0; 
   } else {
-  double v_in_sq_av = 0.25*pow(u_neut[8],2)-0.5*u_ion[8]*u_neut[8]+0.25*pow(u_ion[8],2)+0.25*pow(u_neut[4],2)-0.5*u_ion[4]*u_neut[4]+0.25*pow(u_ion[4],2)+0.25*pow(u_neut[0],2)-0.5*u_ion[0]*u_neut[0]+0.25*pow(u_ion[0],2); 
+    double v_in_sq_av = 0.25*pow(u_neut[8],2)-0.5*u_ion[8]*u_neut[8]+0.25*pow(u_ion[8],2)+0.25*pow(u_neut[4],2)-0.5*u_ion[4]*u_neut[4]+0.25*pow(u_ion[4],2)+0.25*pow(u_neut[0],2)-0.5*u_ion[0]*u_neut[0]+0.25*pow(u_ion[0],2); 
  
-  double v_cx = sqrt(1.273239544735163*vt_sq_neut_av+1.273239544735163*vt_sq_ion_av+v_in_sq_av);
-  v_sigma_cx[0] = 2.0*v_cx*a-2.0*v_cx*log(v_cx)*b; 
- 
+    double v_cx = sqrt(1.273239544735163*vt_sq_neut_av+1.273239544735163*vt_sq_ion_av+v_in_sq_av);
+    v_sigma_cx[0] = 2.0*v_cx*a-2.0*v_cx*log(v_cx)*b;
+
+    return 0.08333333333333333*m0_neut[0]*v_sigma_cx[0]; 
   }
 }
 
-GKYL_CU_DH static inline void
+GKYL_CU_DH static inline double
 sigma_cx_2x3v_ser_p2(double a, double b, const double *m0_neut, const double *u_ion, const double *u_neut, const double *vt_sq_ion, double vt_sq_ion_min, const double *vt_sq_neut, double vt_sq_neut_min, double* GKYL_RESTRICT v_sigma_cx) 
 { 
   // a               constant in fitting function. 
@@ -228,16 +241,18 @@ sigma_cx_2x3v_ser_p2(double a, double b, const double *m0_neut, const double *u_
   
   if (m0_neut_av <= 0 || vt_sq_neut_av <= 0 || vt_sq_ion_av <= 0) { 
     v_sigma_cx[0] = 0.0;
+    return 0.0; 
   } else {
-  double v_in_sq_av = 0.25*pow(u_neut[16],2)-0.5*u_ion[16]*u_neut[16]+0.25*pow(u_ion[16],2)+0.25*pow(u_neut[8],2)-0.5*u_ion[8]*u_neut[8]+0.25*pow(u_ion[8],2)+0.25*pow(u_neut[0],2)-0.5*u_ion[0]*u_neut[0]+0.25*pow(u_ion[0],2); 
+    double v_in_sq_av = 0.25*pow(u_neut[16],2)-0.5*u_ion[16]*u_neut[16]+0.25*pow(u_ion[16],2)+0.25*pow(u_neut[8],2)-0.5*u_ion[8]*u_neut[8]+0.25*pow(u_ion[8],2)+0.25*pow(u_neut[0],2)-0.5*u_ion[0]*u_neut[0]+0.25*pow(u_ion[0],2); 
  
-  double v_cx = sqrt(1.273239544735163*vt_sq_neut_av+1.273239544735163*vt_sq_ion_av+v_in_sq_av);
-  v_sigma_cx[0] = 2.0*v_cx*a-2.0*v_cx*log(v_cx)*b; 
- 
+    double v_cx = sqrt(1.273239544735163*vt_sq_neut_av+1.273239544735163*vt_sq_ion_av+v_in_sq_av);
+    v_sigma_cx[0] = 2.0*v_cx*a-2.0*v_cx*log(v_cx)*b; 
+
+    return 0.05*m0_neut[0]*v_sigma_cx[0]; 
   }
 } 
 
-GKYL_CU_DH static inline void
+GKYL_CU_DH static inline double
 sigma_cx_3x3v_ser_p1(double a, double b, const double *m0_neut, const double *u_ion, const double *u_neut, const double *vt_sq_ion, double vt_sq_ion_min, const double *vt_sq_neut, double vt_sq_neut_min, double* GKYL_RESTRICT v_sigma_cx) 
 { 
   // a               constant in fitting function. 
@@ -257,16 +272,18 @@ sigma_cx_3x3v_ser_p1(double a, double b, const double *m0_neut, const double *u_
   
   if (m0_neut_av <= 0 || vt_sq_neut_av <= 0 || vt_sq_ion_av <= 0) { 
     v_sigma_cx[0] = 0.0;
+    return 0.0; 
   } else {
-  double v_in_sq_av = 0.125*pow(u_neut[16],2)-0.25*u_ion[16]*u_neut[16]+0.125*pow(u_ion[16],2)+0.125*pow(u_neut[8],2)-0.25*u_ion[8]*u_neut[8]+0.125*pow(u_ion[8],2)+0.125*pow(u_neut[0],2)-0.25*u_ion[0]*u_neut[0]+0.125*pow(u_ion[0],2); 
+    double v_in_sq_av = 0.125*pow(u_neut[16],2)-0.25*u_ion[16]*u_neut[16]+0.125*pow(u_ion[16],2)+0.125*pow(u_neut[8],2)-0.25*u_ion[8]*u_neut[8]+0.125*pow(u_ion[8],2)+0.125*pow(u_neut[0],2)-0.25*u_ion[0]*u_neut[0]+0.125*pow(u_ion[0],2); 
  
-  double v_cx = sqrt(1.273239544735163*vt_sq_neut_av+1.273239544735163*vt_sq_ion_av+v_in_sq_av);
-  v_sigma_cx[0] = 2.828427124746191*v_cx*a-2.828427124746191*v_cx*log(v_cx)*b; 
- 
+    double v_cx = sqrt(1.273239544735163*vt_sq_neut_av+1.273239544735163*vt_sq_ion_av+v_in_sq_av);
+    v_sigma_cx[0] = 2.828427124746191*v_cx*a-2.828427124746191*v_cx*log(v_cx)*b;
+
+    return 0.04166666666666666*m0_neut[0]*v_sigma_cx[0]; 
   }
 }
 
-GKYL_CU_DH static inline void
+GKYL_CU_DH static inline double
 sigma_cx_3x3v_ser_p2(double a, double b, const double *m0_neut, const double *u_ion, const double *u_neut, const double *vt_sq_ion, double vt_sq_ion_min, const double *vt_sq_neut, double vt_sq_neut_min, double* GKYL_RESTRICT v_sigma_cx) 
 { 
   // a               constant in fitting function. 
@@ -286,11 +303,13 @@ sigma_cx_3x3v_ser_p2(double a, double b, const double *m0_neut, const double *u_
   
   if (m0_neut_av <= 0 || vt_sq_neut_av <= 0 || vt_sq_ion_av <= 0) { 
     v_sigma_cx[0] = 0.0;
+    return 0.0; 
   } else {
-  double v_in_sq_av = 0.125*pow(u_neut[40],2)-0.25*u_ion[40]*u_neut[40]+0.125*pow(u_ion[40],2)+0.125*pow(u_neut[20],2)-0.25*u_ion[20]*u_neut[20]+0.125*pow(u_ion[20],2)+0.125*pow(u_neut[0],2)-0.25*u_ion[0]*u_neut[0]+0.125*pow(u_ion[0],2); 
+    double v_in_sq_av = 0.125*pow(u_neut[40],2)-0.25*u_ion[40]*u_neut[40]+0.125*pow(u_ion[40],2)+0.125*pow(u_neut[20],2)-0.25*u_ion[20]*u_neut[20]+0.125*pow(u_ion[20],2)+0.125*pow(u_neut[0],2)-0.25*u_ion[0]*u_neut[0]+0.125*pow(u_ion[0],2); 
  
-  double v_cx = sqrt(1.273239544735163*vt_sq_neut_av+1.273239544735163*vt_sq_ion_av+v_in_sq_av);
-  v_sigma_cx[0] = 2.828427124746191*v_cx*a-2.828427124746191*v_cx*log(v_cx)*b; 
- 
+    double v_cx = sqrt(1.273239544735163*vt_sq_neut_av+1.273239544735163*vt_sq_ion_av+v_in_sq_av);
+    v_sigma_cx[0] = 2.828427124746191*v_cx*a-2.828427124746191*v_cx*log(v_cx)*b;
+
+    return 0.025*m0_neut[0]*v_sigma_cx[0]; 
   }
 }
