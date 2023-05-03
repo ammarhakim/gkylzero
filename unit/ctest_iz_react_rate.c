@@ -73,10 +73,8 @@ test_iz_react_rate()
   struct gkyl_dg_iz *reactRate = gkyl_dg_iz_new(&basis, echarge, emass, GKYL_H, false);
 
   gkyl_dg_iz_temp(reactRate, &confRange, vtSqElc, vtSqIz); 
-  gkyl_grid_sub_array_write(&confGrid, &confRange, vtSqIz, "ctest_vtSqIz_1x.gkyl");
   
   gkyl_dg_iz_react_rate(reactRate, &confRange, &phaseRange, m0Neut, vtSqNeut, vtSqElc, cflRate, coefIz);
-  gkyl_grid_sub_array_write(&confGrid, &confRange, coefIz, "ctest_react_rate_1x.gkyl");
     
   // left cell
   double *cl_vt = gkyl_array_fetch(vtSqIz, 0);
