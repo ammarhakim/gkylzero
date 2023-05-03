@@ -102,7 +102,7 @@ void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *iz,
     // to get total cfl rate in each phase space cell
     while (gkyl_range_iter_next(&vel_iter)) {
       long cfl_idx = gkyl_range_idx(&vel_rng, vel_iter.idx);
-      double *cflrate_d = gkyl_array_fetch(cflrate, pidx);
+      double *cflrate_d = gkyl_array_fetch(cflrate, cfl_idx);
       cflrate_d[0] += cflr; // frequencies are additive
     }
   }
