@@ -8,6 +8,10 @@
 #include <gkyl_array_rio.h>
 #include <stdio.h>
 
+// Global variables
+double echarge = 1.602177e-19;
+double emass = 9.109384e-31;
+
 void eval_dens(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
@@ -16,7 +20,7 @@ void eval_dens(double t, const double *xn, double* restrict fout, void *ctx)
 void eval_vtSq(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
-  fout[0] = 40*1.602e-19/9.1e-31*x*x; //fabs(x);
+  fout[0] = 40*echarge/emass;  //fabs(x);
 }
 
 void
@@ -57,32 +61,32 @@ test_iz_react_rate()
   struct gkyl_array *m0Neut = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   struct gkyl_array *vtSqElc = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   struct gkyl_array *vtSqNeut = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
-  struct gkyl_array *cflRate = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
+  struct gkyl_array *cflRate = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, phaseRange.volume);
+  struct gkyl_array *vtSqIz = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   struct gkyl_array *coefIz = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   
   // project moments on basis
   gkyl_proj_on_basis_advance(projDens, 0.0, &confRange, m0Neut);
   gkyl_proj_on_basis_advance(projVtSq, 0.0, &confRange, vtSqElc);
   gkyl_proj_on_basis_advance(projVtSq, 0.0, &confRange, vtSqNeut);
-
-  gkyl_grid_sub_array_write(&confGrid, &confRange, m0Neut, "ctest_iz_m0_1x.gkyl");
-  gkyl_grid_sub_array_write(&confGrid, &confRange, vtSqElc, "ctest_iz_vtSqElc_1x.gkyl");
-
-  double echarge = 1.602176634e-19;
-  double emass = 9.109383701528e-31;
   
   struct gkyl_dg_iz *reactRate = gkyl_dg_iz_new(&basis, echarge, emass, GKYL_H, false);
 
-  //gkyl_dg_iz_temp(reactRate, &confRange, vtSqElc, coefIz); 
-
+  gkyl_dg_iz_temp(reactRate, &confRange, vtSqElc, vtSqIz); 
+  gkyl_grid_sub_array_write(&confGrid, &confRange, vtSqIz, "ctest_vtSqIz_1x.gkyl");
+  
   gkyl_dg_iz_react_rate(reactRate, &confRange, &phaseRange, m0Neut, vtSqNeut, vtSqElc, cflRate, coefIz);
   gkyl_grid_sub_array_write(&confGrid, &confRange, coefIz, "ctest_react_rate_1x.gkyl");
-
+    
   // left cell
-  double *cl = gkyl_array_fetch(coefIz, 0);
-  TEST_CHECK( gkyl_compare(4.5659992900909018e+05, cl[0], 1e-12) );
-  TEST_CHECK( gkyl_compare(-4.4853312014181618e+01, cl[1], 1e-12) );
+  double *cl_vt = gkyl_array_fetch(vtSqIz, 0);
+  TEST_CHECK( gkyl_compare(3.847097620882374e+12, cl_vt[0], 1e-12) );
+  TEST_CHECK( gkyl_compare(0.0, cl_vt[1], 1e-12) );
 
+  double *cl_coef = gkyl_array_fetch(coefIz, 0);
+  TEST_CHECK( gkyl_compare(3.362239235468358e-14, cl_coef[0], 1e-12) );
+  TEST_CHECK( gkyl_compare(0.0, cl_coef[1], 1e-12) );
+  
   gkyl_dg_iz_release(reactRate);
 }
 

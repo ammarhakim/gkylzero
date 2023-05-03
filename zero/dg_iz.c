@@ -53,13 +53,13 @@ gkyl_dg_iz_new(const struct gkyl_basis* cbasis,
 }
 
 void gkyl_dg_iz_temp(const struct gkyl_dg_iz *iz,
-  const struct gkyl_range *update_rng, const struct gkyl_array *vth_sq_elc,
+  const struct gkyl_range *conf_rng, const struct gkyl_array *vth_sq_elc,
   struct gkyl_array *vth_sq_iz)
 {
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, update_rng);
+  gkyl_range_iter_init(&iter, conf_rng);
   while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(update_rng, iter.idx);
+    long loc = gkyl_range_idx(conf_rng, iter.idx);
     const double *vth_sq_elc_d = gkyl_array_cfetch(vth_sq_elc, loc);
     double *vth_sq_iz_d = gkyl_array_fetch(vth_sq_iz, loc);
 
@@ -68,7 +68,7 @@ void gkyl_dg_iz_temp(const struct gkyl_dg_iz *iz,
 }
 
 void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *iz,
-  const struct gkyl_range *update_rng, const struct gkyl_range *phase_rng, 
+  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, 
   const struct gkyl_array *n_neut, const struct gkyl_array *vth_sq_neut, const struct gkyl_array *vth_sq_elc,
   struct gkyl_array *cflrate, struct gkyl_array *coef_iz)
 {
@@ -76,11 +76,11 @@ void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *iz,
   struct gkyl_range_iter conf_iter, vel_iter;
 
   int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
-  for (int d=0; d<update_rng->ndim; ++d) rem_dir[d] = 1;
+  for (int d=0; d<conf_rng->ndim; ++d) rem_dir[d] = 1;
 
-  gkyl_range_iter_init(&conf_iter, update_rng);
+  gkyl_range_iter_init(&conf_iter, conf_rng);
   while (gkyl_range_iter_next(&conf_iter)) {
-    long loc = gkyl_range_idx(update_rng, conf_iter.idx);
+    long loc = gkyl_range_idx(conf_rng, conf_iter.idx);
 
     // Calculate these fields from M0, M1, M2
     // Reference proj_maxwellian_on_basis
@@ -88,7 +88,6 @@ void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *iz,
     const double *vth_sq_neut_d = gkyl_array_cfetch(vth_sq_neut, loc);
     const double *vth_sq_elc_d = gkyl_array_cfetch(vth_sq_elc, loc);
     double *coef_iz_d = gkyl_array_fetch(coef_iz, loc);
-    
 
     double cflr = iz->react_rate(iz->elem_charge, iz->mass_elc,
       iz->E, iz->A, iz->K, iz->P, iz->X,
