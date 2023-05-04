@@ -10,8 +10,8 @@
 #include <stdio.h>
 
 // Global variables
-double echarge = GKYL_ELEMENTARY_CHARGE; //1.602177e-19;
-double emass = GKYL_ELECTRON_MASS; //9.109384e-31;
+double echarge = GKYL_ELEMENTARY_CHARGE;
+double emass = GKYL_ELECTRON_MASS;
 
 void eval_dens(double t, const double *xn, double* restrict fout, void *ctx)
 {
@@ -85,7 +85,7 @@ test_iz_react_rate()
   TEST_CHECK( gkyl_compare(0.0, cl_vt[1], 1e-12) );
 
   double *cl_coef = gkyl_array_fetch(coefIz, 0);
-  TEST_CHECK( gkyl_compare(3.362239235468358e-14, cl_coef[0], 1e-12) );
+  TEST_CHECK( gkyl_compare(3.362239235468358e-14, cl_coef[0], 1e-16) );
   TEST_CHECK( gkyl_compare(0.0, cl_coef[1], 1e-12) );
   
   gkyl_dg_iz_release(reactRate);

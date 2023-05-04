@@ -23,7 +23,7 @@ void eval_dens(double t, const double *xn, double* restrict fout, void *ctx)
 void eval_ion_u(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
-  fout[0] = 0.; //sqrt(40*echarge/imass); //fabs(x);
+  fout[0] = sqrt(40*echarge/imass); //fabs(x);
 }
 void eval_neut_u(double t, const double *xn, double* restrict fout, void *ctx)
 {
@@ -50,7 +50,7 @@ test_cx_react_rate()
   int pdim = cdim + vdim; 
   double lower[] = {-2.0,-1.0}, upper[] = {2.0,1.0};
   int ghost[] = {0, 0};
-  int cells[] = {16,8};
+  int cells[] = {1,1};
 
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -100,11 +100,11 @@ test_cx_react_rate()
   struct gkyl_dg_cx *reactRate = gkyl_dg_cx_new(&confGrid, &basis, &phaseBasis, imass, GKYL_H, false);
 
   gkyl_dg_cx_react_rate(reactRate, &confRange, &phaseRange, m0Neut, uNeut, vtSqNeut, uIon, vtSqIon, cflRate, coefCx);
-  //gkyl_grid_sub_array_write(&confGrid, &confRange, coefCx, "ctest_cx_react_rate_1x.gkyl");
+  gkyl_grid_sub_array_write(&confGrid, &confRange, coefCx, "ctest_cx_react_rate_1x.gkyl");
 
   // Calculate reaction rate analytically to compare
   double m0_n = 1e19;
-  double u_i = 0.0; //sqrt(40*echarge/imass);
+  double u_i = sqrt(40*echarge/imass);
   double u_n = 0.0;
   double vt2_i = 40*echarge/imass;
   double vt2_n = 10*echarge/imass;
@@ -113,11 +113,14 @@ test_cx_react_rate()
   double v_cx = sqrt(v_cx_sq); 
 
   double sig_cx = 1.12e-18 - 7.15e-20*log(v_cx);
+  printf("\n%e", v_cx*sig_cx*sqrt(2));
   
   // left cell
   double *cl = gkyl_array_fetch(coefCx, 0);
-  TEST_CHECK( gkyl_compare(3.4733085243845514e-14, cl[0], 1e-12) ); 
-
+  printf("\n%e", cl[0]); 
+  TEST_CHECK( gkyl_compare(4.186509619868415e-14, cl[0], 1e-16) ); 
+  //TEST_CHECK( gkyl_compare(1., cl[0], 1e-12) ); 
+  
   gkyl_dg_cx_release(reactRate);
 }
 
