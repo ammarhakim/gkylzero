@@ -1,19 +1,12 @@
 #include "math.h"
 
 #include <acutest.h>
-// #include <gkyl_array.h>
 #include <gkyl_array_rio.h>
-// #include <gkyl_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_dg_fpo_vlasov_diff_coeff.h>
 #include <gkyl_dg_fpo_vlasov_drag_coeff.h>
 #include <gkyl_proj_on_basis.h>
-// #include <gkyl_rect_grid.h>
 #include <gkyl_rect_decomp.h>
-// #include <gkyl_util.h>
-// #include <stdio.h>
-// #include <stdlib.h>
-// #include <time.h>
 
 // Allocate array filled with zeros
 static struct gkyl_array*
@@ -80,7 +73,7 @@ test(int Nv, int poly_order, double eps)
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
   // Project the function and analytic derivatives
-  int num_quads = 8;
+  int num_quads = 4;
   struct gkyl_proj_on_basis *proj_fn, *proj_1st_derivatives, *proj_2nd_derivatives;
   proj_fn = gkyl_proj_on_basis_new(&grid, &basis,
     num_quads, 1, eval_1x3v_fn, NULL);
@@ -140,7 +133,6 @@ test(int Nv, int poly_order, double eps)
       TEST_CHECK(gkyl_compare(drag_coeff_d[m], fn_1st_deriv_d[m], eps));
       TEST_MSG("Expected %.13e, coefficient (%d) in cell (%d, %d, %d, %d)", fn_1st_deriv_d[m], m, iter.idx[0], iter.idx[1], iter.idx[2], iter.idx[3]);
       TEST_MSG("Produced: %.13e, coefficient (%d)", drag_coeff_d[m], m);
-      drag_coeff_diff_d[m] = drag_coeff_d[m] - fn_1st_deriv_d[m];
     }
 
     // Check diffusion coefficient components against 2nd derivatives
@@ -153,23 +145,8 @@ test(int Nv, int poly_order, double eps)
       TEST_CHECK(gkyl_compare(diff_coeff_d[m], fn_2nd_deriv_d[m], eps));
       TEST_MSG("Expected %.13e, coefficient (%d) in cell (%d, %d, %d, %d)", fn_2nd_deriv_d[m], m, iter.idx[0], iter.idx[1], iter.idx[2], iter.idx[3]);
       TEST_MSG("Produced: %.13e, coefficient (%d)", diff_coeff_d[m], m);
-      diff_coeff_diff_d[m] = diff_coeff_d[m] - fn_2nd_deriv_d[m];
     }
   }
-
-  // Write output files
-  char fname1[64], fname2[64], fname3[64], fname4[64];
-  sprintf(fname1, "unit-out/ctest_drag_coeff_difference_%dc_p%d.gkyl", Nv, poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, drag_coeff_diff, fname1);
-
-  sprintf(fname2, "unit-out/ctest_diff_coeff_difference_%dc_p%d.gkyl", Nv, poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, diff_coeff_diff, fname2);
-  //
-  // sprintf(fname3, "unit-out/ctest_drag_coeff_%dc_p%d.gkyl", Nv, poly_order);
-  // gkyl_grid_sub_array_write(&grid, &local, drag_coeff, fname3);
-  //
-  // sprintf(fname4, "unit-out/ctest_diff_coeff_%dc_p%d.gkyl", Nv, poly_order);
-  // gkyl_grid_sub_array_write(&grid, &local, diff_coeff, fnam43);
 
   gkyl_array_release(fn);
   gkyl_array_release(fn_1st_deriv);
