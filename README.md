@@ -119,6 +119,29 @@ on the RTFD website linked above.
 
 # Developing for GkeyllZero
 
+Built-in tests
+--------------
+
+GkeyllZero has built in unit (```/unit```) and regression (```/regression```) tests
+that run automatically by our CI system or can be run manually by
+developers. These tests are not compiled by the simple ```make```
+command used to compile the code (see previous sections). Instead the
+developer needs to build specific targets. For example we can build
+the unit tests for gkyl_array on a CPU with
+```
+    make build/unit/ctest_array
+```
+or build the same unit test on a NVIDIA GPU-accelerated node with
+```
+    make cuda-build/unit/ctest_array
+```
+These produce an executable in the ```build``` or ```cuda-build``` directory,
+respectively, that can be run. A similar procedure should be followed
+to compile and run regression tests in ```/regression```.
+
+Development philosophy
+---------------------
+
 Out goal is to keep GkeyllZero as simple and dependency free as
 possible. Some dependencies are unavoidable like MPI and linear
 algebra libraries. However, we must avoid an exponentially increasing
