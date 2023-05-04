@@ -18,7 +18,8 @@ sigma_cx_1x1v_ser_p1(double a, double b, const double *m0_neut, const double *u_
  
   double m0_neut_av = 0.7071067811865476*m0_neut[0]; 
   double vt_sq_ion_av = 0.7071067811865476*vt_sq_ion[0]; 
-  double vt_sq_neut_av = 0.7071067811865476*vt_sq_neut[0]; 
+  double vt_sq_neut_av = 0.7071067811865476*vt_sq_neut[0];
+  
   if ((vt_sq_ion_av > 0.) && (vt_sq_ion_av < vt_sq_ion_min)) vt_sq_ion_av = vt_sq_ion_min;
   if ((vt_sq_neut_av > 0.) && (vt_sq_neut_av < vt_sq_neut_min)) vt_sq_ion_av = vt_sq_neut_min;
   
@@ -27,8 +28,8 @@ sigma_cx_1x1v_ser_p1(double a, double b, const double *m0_neut, const double *u_
     return 0.0; 
   } else {
   double v_in_sq_av = 0.5*pow(u_neut[0],2)-1.0*u_ion[0]*u_neut[0]+0.5*pow(u_ion[0],2); 
- 
-  double v_cx = sqrt(1.273239544735163*vt_sq_neut_av+1.273239544735163*vt_sq_neut_av+v_in_sq_av);
+  
+  double v_cx = sqrt(1.273239544735163*vt_sq_neut_av+1.273239544735163*vt_sq_ion_av+v_in_sq_av);
   v_sigma_cx[0] = 1.414213562373095*v_cx*a-1.414213562373095*v_cx*log(v_cx)*b;
 
   return 0.1666666666666667*m0_neut[0]*v_sigma_cx[0];
@@ -58,7 +59,7 @@ sigma_cx_1x1v_ser_p2(double a, double b, const double *m0_neut, const double *u_
     return 0.0;
   } else {
     double v_in_sq_av = 0.5*pow(u_neut[0],2)-1.0*u_ion[0]*u_neut[0]+0.5*pow(u_ion[0],2); 
- 
+    
     double v_cx = sqrt(1.273239544735163*vt_sq_neut_av+1.273239544735163*vt_sq_ion_av+v_in_sq_av);
     v_sigma_cx[0] = 1.414213562373095*v_cx*a-1.414213562373095*v_cx*log(v_cx)*b;
 

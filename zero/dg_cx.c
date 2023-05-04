@@ -50,16 +50,14 @@ gkyl_dg_cx_new(const struct gkyl_rect_grid *grid,
     up->b = 4.350e-20;
   }  
 
-  const gkyl_cx_react_rate_kern_list *cx_react_rate_kernels;
-
-  up->react_rate = CK(cx_react_rate_kernels, cdim, poly_order);
+  up->react_rate = CK(ser_cx_react_rate_kernels, cdim, poly_order);
   
   return up;
 }
 
 // need m0Neut, uIon, uNeut, vtSqIon, vtSqNeut
 void gkyl_dg_cx_react_rate(const struct gkyl_dg_cx *cx,
-  const struct gkyl_range *update_rng, const struct gkyl_range *phase_rng, 
+  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, 
   const struct gkyl_array *n_neut,  const struct gkyl_array *u_neut, const struct gkyl_array *vth_sq_neut,
   const struct gkyl_array *u_ion, const struct gkyl_array *vth_sq_ion,
   struct gkyl_array *cflrate, struct gkyl_array *coef_cx)
@@ -68,21 +66,19 @@ void gkyl_dg_cx_react_rate(const struct gkyl_dg_cx *cx,
   struct gkyl_range_iter conf_iter, vel_iter;
 
   int rem_dir[GKYL_MAX_DIM] = { 0 };
-  for (int d=0; d<update_rng->ndim; ++d) rem_dir[d] = 1;
+  for (int d=0; d<conf_rng->ndim; ++d) rem_dir[d] = 1;
 
-  gkyl_range_iter_init(&conf_iter, update_rng);
+  gkyl_range_iter_init(&conf_iter, conf_rng);
   while (gkyl_range_iter_next(&conf_iter)) {
-    long loc = gkyl_range_idx(update_rng, conf_iter.idx);
+    long loc = gkyl_range_idx(conf_rng, conf_iter.idx);
 
     const double *n_neut_d = gkyl_array_cfetch(n_neut, loc);
-    const double *u_neut_d = gkyl_array_cfetch(vth_sq_neut, loc);
-    const double *u_ion_d = gkyl_array_cfetch(vth_sq_ion, loc);
+    const double *u_neut_d = gkyl_array_cfetch(u_neut, loc);
+    const double *u_ion_d = gkyl_array_cfetch(u_ion, loc);
     const double *vth_sq_neut_d = gkyl_array_cfetch(vth_sq_neut, loc);
     const double *vth_sq_ion_d = gkyl_array_cfetch(vth_sq_ion, loc);
     double *coef_cx_d = gkyl_array_fetch(coef_cx, loc);
 
-    // prim mom must be in Vlasov form upar_ion --> u. Can test in 1x1v first.
-    
     // Calculate vt_sq min for ion, neut (use same for now to test 1x1v)
     double vth_sq_ion_min;
     double vth_sq_neut_min;
@@ -93,10 +89,9 @@ void gkyl_dg_cx_react_rate(const struct gkyl_dg_cx *cx,
     vth_sq_ion_min = TempMin/cx->mass_ion;
     vth_sq_neut_min = TempMin/cx->mass_ion;
     
-    //double cflr = cx->react_rate(cx->a, cx->b, 
-    double cflr = cx->react_rate(cx->a, cx->b, 
+    double cflr = cx->react_rate(cx->a, cx->b,
       n_neut_d, u_ion_d, u_neut_d, vth_sq_ion_d,
-      vth_sq_ion_min, vth_sq_neut_d, vth_sq_neut_min, 
+      vth_sq_ion_min, vth_sq_neut_d, vth_sq_neut_min,
       coef_cx_d);
 
     gkyl_range_deflate(&vel_rng, phase_rng, rem_dir, conf_iter.idx);
