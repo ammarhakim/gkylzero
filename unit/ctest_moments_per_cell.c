@@ -185,7 +185,7 @@ void eval_M1i_3v_null(double t, const double *xn, double *restrict fout, void *c
 void test_1x1v(int poly_order)
 {
   double lower[] = {0.1, -10.0}, upper[] = {1.0, 10.0};
-  int cells[] = {2, 32};
+  int cells[] = {2, 256}; // {16, 32, 64, 128}
   int vdim = 1, cdim = 1;
   int ndim = cdim + vdim;
 
@@ -209,9 +209,10 @@ void test_1x1v(int poly_order)
 
   // basis functions
   struct gkyl_basis basis, confBasis, velBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
-  gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
-  gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
+  int poly_order_fixed = 2;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order_fixed);
+  gkyl_cart_modal_serendip(&confBasis, cdim, poly_order_fixed);
+  gkyl_cart_modal_serendip(&velBasis, vdim, poly_order_fixed);
 
   int confGhost[] = {1};
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
@@ -390,7 +391,7 @@ void test_1x1v(int poly_order)
     }
 
     // 4. (NEW) Print the moments per cell
-    sprintf(fname, "ctest_moments_per_cell_moments_1x1v_p%d_iteration_%03d.gkyl", poly_order, i);
+    sprintf(fname, "ctest_moments_per_cell_moments_1x1v_nquad%d_NV_%03d.gkyl", (poly_order + 1), cells[1]);
     gkyl_grid_sub_array_write(&grid, &local, m, fname);
 
     // a. Calculate  ddMi^(k+1) =  Mi_corr - Mi_new
