@@ -102,14 +102,34 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     
     if (vm->low_inp.comm)
       app->comm = gkyl_comm_acquire(vm->low_inp.comm);
-    else
-      app->comm = gkyl_null_comm_new();    
+    else {
+      int cuts[3] = { 1, 1, 1 };
+      struct gkyl_rect_decomp *rect_decomp =
+        gkyl_rect_decomp_new_from_cuts(cdim, cuts, &app->global);
+      
+      app->comm = gkyl_null_comm_new( &(struct gkyl_null_comm_inp) {
+          .decomp = rect_decomp
+        }
+      );
+
+      gkyl_rect_decomp_release(rect_decomp);
+    }
   }
   else {
     // global and local ranges are same, and so just copy
     memcpy(&app->local, &app->global, sizeof(struct gkyl_range));
     memcpy(&app->local_ext, &app->global_ext, sizeof(struct gkyl_range));
-    app->comm = gkyl_null_comm_new();    
+
+    int cuts[3] = { 1, 1, 1 };
+    struct gkyl_rect_decomp *rect_decomp =
+      gkyl_rect_decomp_new_from_cuts(cdim, cuts, &app->global);
+    
+    app->comm = gkyl_null_comm_new( &(struct gkyl_null_comm_inp) {
+        .decomp = rect_decomp
+      }
+    );
+    
+    gkyl_rect_decomp_release(rect_decomp);
   }
 
   skin_ghost_ranges_init(&app->skin_ghost, &app->global_ext, ghost);

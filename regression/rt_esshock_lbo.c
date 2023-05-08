@@ -153,9 +153,15 @@ main(int argc, char **argv)
     );
   }
   else
-    comm = gkyl_null_comm_new();
+    comm = gkyl_null_comm_new( &(struct gkyl_null_comm_inp) {
+        .decomp = decomp
+      }
+    );
 #else
-  comm = gkyl_null_comm_new();
+  comm = gkyl_null_comm_new( &(struct gkyl_null_comm_inp) {
+      .decomp = decomp
+    }
+  );
 #endif
 
   int my_rank;
@@ -309,7 +315,10 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
 
   // simulation complete, free app
-  gkyl_vlasov_app_release(app);  
+  gkyl_vlasov_app_release(app);
+
+  gkyl_comm_release(comm);
+  gkyl_rect_decomp_release(decomp);
   
   mpifinalize:
   ;

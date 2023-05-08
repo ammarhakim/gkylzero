@@ -105,6 +105,9 @@ gkyl_comm_all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
  * Synchronize array across domain.
  *
  * @param comm Communicator
+ * @param local Local range for array: sub-range of local_ext
+ * @param local_ext Extended range, i.e. range over which array is defined
+ * @param nghost Number of ghost cells in direction dir is nghost[dir]
  * @param array Array to synchronize
  * @return error code: 0 for success
  */
@@ -151,8 +154,9 @@ gkyl_comm_array_write(struct gkyl_comm *comm,
 
 /**
  * Create a new communcator that extends the communcator to work on a
- * extended domain specified by erange. The returned communcator must
- * be freed by calling gkyl_comm_release.
+ * extended domain specified by erange. (Each range handled by the
+ * communcator is extended by a tensor-product with erange). The
+ * returned communcator must be freed by calling gkyl_comm_release.
  *
  * @param comm Communcator
  * @param arnage Range to extend by

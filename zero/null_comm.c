@@ -5,11 +5,19 @@
 
 #include <string.h>
 
+// Private struct
+struct null_comm {
+  struct gkyl_comm base; // base communicator
+  struct gkyl_rect_decomp *decomp; // pre-computed decomposition
+};
+
 static void
 comm_free(const struct gkyl_ref_count *ref)
 {
-  struct gkyl_comm *comm = container_of(ref, struct gkyl_comm, ref_count);
-  gkyl_free(comm);
+  struct gkyl_comm *comm = container_of(ref, struct gkyl_comm, ref_count);  
+  struct null_comm *null_comm = container_of(comm, struct null_comm, base);
+  gkyl_rect_decomp_release(null_comm->decomp);
+  gkyl_free(null_comm);
 }
 
 static int
@@ -56,23 +64,33 @@ array_write(struct gkyl_comm *comm,
 static struct gkyl_comm*
 extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
 {
-  return gkyl_comm_acquire(comm);
+  struct null_comm *null_comm = container_of(comm, struct null_comm, base);
+  // extend internal decomp object and create a new communicator
+  struct gkyl_rect_decomp *ext_decomp = gkyl_rect_decomp_extended_new(erange, null_comm->decomp);
+  struct gkyl_comm *ext_comm = gkyl_null_comm_new( &(struct gkyl_null_comm_inp) {
+      .decomp = ext_decomp
+    }
+  );
+  gkyl_rect_decomp_release(ext_decomp);
+  
+  return ext_comm;
 }
 
 struct gkyl_comm*
-gkyl_null_comm_new(void)
+gkyl_null_comm_new(const struct gkyl_null_comm_inp *inp)
 {
-  struct gkyl_comm *comm = gkyl_malloc(sizeof *comm);
+  struct null_comm *comm = gkyl_malloc(sizeof *comm);
+  comm->decomp = gkyl_rect_decomp_acquire(inp->decomp);
 
-  comm->get_rank = get_rank;
-  comm->get_size = get_size;
-  comm->all_reduce = all_reduce;
-  comm->gkyl_array_sync = array_sync;
-  comm->barrier = barrier;
-  comm->gkyl_array_write = array_write;
-  comm->extend_comm = extend_comm;
+  comm->base.get_rank = get_rank;
+  comm->base.get_size = get_size;
+  comm->base.all_reduce = all_reduce;
+  comm->base.gkyl_array_sync = array_sync;
+  comm->base.barrier = barrier;
+  comm->base.gkyl_array_write = array_write;
+  comm->base.extend_comm = extend_comm;
 
-  comm->ref_count = gkyl_ref_count_init(comm_free);
+  comm->base.ref_count = gkyl_ref_count_init(comm_free);
 
-  return comm;
+  return &comm->base;
 }

@@ -141,9 +141,15 @@ main(int argc, char **argv)
     );
   }
   else
-    comm = gkyl_null_comm_new();
+    comm = gkyl_null_comm_new( &(struct gkyl_null_comm_inp) {
+        .decomp = decomp
+      }
+    );
 #else
-  comm = gkyl_null_comm_new();
+  comm = gkyl_null_comm_new( &(struct gkyl_null_comm_inp) {
+      .decomp = decomp
+    }
+  );
 #endif
 
   int my_rank;
